@@ -23,7 +23,7 @@ challenge. It is composed from the four steps' halves, at the same intermediate 
 * **The challenges `(α, β)`** (`challengeSecurity`), at `4·2^{μ_bus}/|E|` (Theorem 5.1 and
   Proposition `prop:pad`, `doc/leanvm/body/08-end-to-end-protocol.tex` at leanVM `3a37fb6e1`).
   The state after them is `afterChallenge`: the push and pull products agree at `(α, β)`, the
-  count product is nonzero, every constraint vanishes, and the public lines and the Flock
+  count product is nonzero, every constraint vanishes, and the public lines and the Keccak
   predicate hold. It asks the products to agree, not the multisets, since a collision of the
   products could be charged to no later challenge. A stack outside `M3Holds` whose executed count
   cells are nonzero and that meets the clauses no challenge touches is unbalanced: its executed
@@ -38,7 +38,7 @@ challenge. It is composed from the four steps' halves, at the same intermediate 
   balanced on the bus (§6.2, `06-bus-interactions.tex:78`; the deployed verifier's check is
   `crates/verifier/src/bus.rs:117-119`).
 * **The grand-product argument** (`gkrSecurity`), at `Typed.gkrErrors` from the unit `1/|E|`. Its riders
-  carry the constraints and the public lines with the Flock predicate, so its state function
+  carry the constraints and the public lines with the Keccak predicate, so its state function
   carries the zerocheck: a constraint that does not vanish on the cube has a nonzero extension
   restricted to the coordinates of `ζ` drawn so far, which a coordinate makes zero at one value at
   most, inside the argument's own bound.

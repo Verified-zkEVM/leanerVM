@@ -12,8 +12,8 @@ public import LeanVM.Protocol.EndToEnd.Complete.BusTables
 /-!
 # The verifier's bus blocks
 
-The tail of `verify_bus_balance` (`python-verifier/verifier.py:536-606` at leanVM
-`3a37fb6e1c7423e36b67d1cac4eda70c3ad4dd45`) after its reads (`busOut`, `verifyBusBalance_eq`);
+The tail of `verify_bus_balance` (`python-verifier/verifier.py:578-640` at leanVM
+`3375f7a137c50b803f3416f6466b5d4e0719708a`) after its reads (`busOut`, `verifyBusBalance_eq`);
 the table blocks of the three sides at the leanISA instance's sizes (`pushBlocks`, `pullBlocks`,
 `countBlocks`: each table's at its log-height and row count, `layout_push`, …), the bus's depth
 (`busDepth`) and the bounds on it; the empty forms the bus starts from (`forms0_*`) and the
@@ -29,7 +29,7 @@ open LeanVM.Protocol.Whir.Complete Finset
 @[expose] public section
 
 /-- The tail of `verify_bus_balance` after the reads: the claims, the point, the forms and the
-totals (`verifier.py:572-606`). -/
+totals (`verifier.py:620-640`). -/
 def busOut (layout : Verifier.Layout) (alphas : List E) (beta : E)
     (point treeValues memory : List E)
     (memoryFinal bytecodeFinal : E) : BusResult :=

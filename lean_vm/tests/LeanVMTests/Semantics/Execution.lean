@@ -1,4 +1,5 @@
 import LeanVM.Semantics.Lemmas
+import LeanVM.Semantics.KeccakCells
 
 /-!
 # Tests: steps, runs, and valid executions
@@ -12,8 +13,8 @@ Nothing here evaluates `gLog?`: every fetch and read is `Program.fetch_gpow` or
 Fixtures: the executor test `mul_192bit_word` (`crates/leanvm_core/src/cpu/mod.rs:887-904` at
 the pin, operands and product as the test computes them with the executor's `F192` arithmetic at
 `a386121f`, the test unchanged since but for unwrapping the now fallible `execute`) as a
-`ValidExecution`; the `BLAKE2S` row of `blake2s_computes_the_compression` (`cpu/mod.rs:774-836`)
-on that test's cells at `a386121f`; a taken `JUMP`; a `DEREF` in `pc` mode; the rejections of
+`ValidExecution`; the first `KECCAK` row of `keccak_permutes_in_both_layouts` (`cpu/mod.rs:855-889`
+at `3375f7a1`) on that test's cells, with a mutation; a taken `JUMP`; a `DEREF` in `pc` mode; the rejections of
 failed reads, a step past the sentinel, a wrong final frame pointer, an out-of-range `DEREF`
 cell, a `JUMP` destination outside `K` and a non-canonical cell; and a `JUMP` sentinel, whose two
 rows are steps that chain to the final registers while `run` never reaches them.
@@ -354,73 +355,102 @@ example : ∀ n, run haltProg ctlImage n Regs.initial ≠ some (Regs.final haltP
       run_succ_of_eq (prog := haltProg) (r := ⟨g, g⟩) (by decide +kernel) 0]
     exact fun h ↦ Option.some_ne_none _ h.symm
 
-/-! ## `BLAKE2S` (`blake2s_computes_the_compression`, `cpu/mod.rs:774-836`) -/
+/-! ## `KECCAK` (`keccak_permutes_in_both_layouts`, `cpu/mod.rs:855-889`) -/
 
--- The cells of the executor test `blake2s_computes_the_compression` at leanVM a386121f.
-def rustM0 : E :=
-  E.ofLimbs (K.ofBits 0x0123456789abcdef) (K.ofBits 0xfedcba9876543210) 0x0000000000000000
-def rustM1 : E :=
-  E.ofLimbs (K.ofBits 0x1111222233334444) (K.ofBits 0x5555666677778888) 0x0000000000000000
-def rustM2 : E :=
-  E.ofLimbs (K.ofBits 0xdeadbeefcafebabe) (K.ofBits 0x0badf00d0badf00d) 0x0000000000000000
-def rustM3 : E :=
-  E.ofLimbs (K.ofBits 0x9999aaaabbbbcccc) (K.ofBits 0xddddeeeeffff0000) 0x0000000000000000
-def rustCv0 : E := E.ofLimbs (K.ofBits 0x0000000000000007) 0x0000000000000000 0x0000000000000000
-def rustCv1 : E := E.ofLimbs (K.ofBits 0x000000000000000b) 0x0000000000000000 0x0000000000000000
-def rustMd : E :=
-  E.ofLimbs (K.ofBits 0x0000000000000040) (K.ofBits 0x00000000ffffffff) 0x0000000000000000
-def rustOut0 : E :=
-  E.ofLimbs (K.ofBits 0x583fffe1350e2137) (K.ofBits 0x0de9e32629a5c508) 0x0000000000000000
-def rustOut1 : E :=
-  E.ofLimbs (K.ofBits 0xf1b0679a15df60bb) (K.ofBits 0x0228c8d4ed9b3a24) 0x0000000000000000
+-- The input cells of the executor test `keccak_permutes_in_both_layouts` at leanVM `3375f7a1`:
+-- the words `a, b` (each read twice through the aliased `m` pairs), the padding's first byte in
+-- the tail, its last bit in `b8` (whose free high limb `0x5555` is ignored), and a zero capacity.
+def kA : E := E.ofLimbs (K.ofBits 0x0123456789abcdef) (K.ofBits 0xfedcba9876543210) 0
+def kB : E := E.ofLimbs (K.ofBits 0xdeadbeefcafebabe) (K.ofBits 0x0badf00d0badf00d) 0
+def kPad : E := E.ofLimbs (K.ofBits 0x01) 0 0
+def kEnd : E := E.ofLimbs (K.ofBits 0x8000000000000000) (K.ofBits 0x5555) 0
 
-/-- The executor's cells: the chaining value at `0, 1` (the public input `[w(7), w(11)]`), the
-message at `2..5`, the output at `6, 7`, and the metadata at `8`; `out1` is the second output
-cell, mutated below. -/
-def blakeImage (out1 : E) : MemImage 4 := fun i ↦
-  match (i : ℕ) with
-  | 0 => rustCv0
-  | 1 => rustCv1
-  | 2 => rustM0
-  | 3 => rustM1
-  | 4 => rustM2
-  | 5 => rustM3
-  | 6 => rustOut0
-  | 7 => out1
-  | 8 => rustMd
+/-- The thirteen output cells in the odd layout, `permute_cells(input, false, true)` as the
+pinned Python verifier's `keccak_f` and `_keccak_cell_lanes` compute it (computed outside Lean;
+their first four lanes are the Keccak-256 digest
+`456db617edafbf8d35b9f83bbe63fd305a2a1a857a7d16775e00d9e0374917d9` of the 64 message bytes, the
+test's own check). -/
+def kOut : Fin 13 → E := fun c ↦
+  match (c : ℕ) with
+  | 0 => E.ofLimbs (K.ofBits 0x0) (K.ofBits 0x8dbfafed17b66d45) 0
+  | 1 => E.ofLimbs (K.ofBits 0x30fd63be3bf8b935) (K.ofBits 0x77167d7a851a2a5a) 0
+  | 2 => E.ofLimbs (K.ofBits 0xd9174937e0d9005e) (K.ofBits 0xa6a08643e0752e62) 0
+  | 3 => E.ofLimbs (K.ofBits 0x96fa9d5eb49e3867) (K.ofBits 0xd3075d1a22781d5) 0
+  | 4 => E.ofLimbs (K.ofBits 0x81ae728bf7328686) (K.ofBits 0xf51da81b6f1b6499) 0
+  | 5 => E.ofLimbs (K.ofBits 0xdaf2a8af5b43dbf9) (K.ofBits 0xdbf85b3cc1312641) 0
+  | 6 => E.ofLimbs (K.ofBits 0x993d35c56291827e) (K.ofBits 0x47fd59ac60e225e2) 0
+  | 7 => E.ofLimbs (K.ofBits 0x36607d1d9e6abed) (K.ofBits 0x6cee5561314ca0f3) 0
+  | 8 => E.ofLimbs (K.ofBits 0x3e20ee955c09012e) (K.ofBits 0x8a928dc9e22c3dcf) 0
+  | 9 => E.ofLimbs (K.ofBits 0x7f24a1dac6837929) (K.ofBits 0xd22b33eacce5fcd2) 0
+  | 10 => E.ofLimbs (K.ofBits 0x2b1e71fdcd52b881) (K.ofBits 0x427618061608ac91) 0
+  | 11 => E.ofLimbs (K.ofBits 0x44c480aa40bfdbf9) (K.ofBits 0x7a29ee993739ddb0) 0
+  | 12 => E.ofLimbs (K.ofBits 0xf7f9aa87f90247d1) (K.ofBits 0xe5177d767bf6bd92) 0
   | _ => 0
 
-/-- The executor's `BLAKE2S` row: `ins: [2, 3, 4, 5], cv: 0, out: 6, md: 8`. -/
-def blakeIns : Instr := .blake2s ![gpow 2, gpow 3, gpow 4, gpow 5] 1 (gpow 6) (gpow 8)
+/-- The executor's cells: the public input at `0, 1`, `a, b` at `2, 3`, the tail at `4..7`, `b8` at
+`8`, the capacity at `9..12`, and the output at `13..25`; `out` is the output cell `0`, mutated
+below. -/
+def keccakImage (out0 : E) : MemImage 5 := fun i ↦
+  match (i : ℕ) with
+  | 0 => ofK 7
+  | 1 => ofK 11
+  | 2 => kA
+  | 3 => kB
+  | 4 => kPad
+  | 8 => kEnd
+  | 13 => out0
+  | n + 14 => if h : n < 12 then kOut ⟨n + 1, by omega⟩ else 0
+  | _ => 0
 
-/-- The nine reads of the row, on the image with second output cell `out1`. -/
-theorem blake_reads (out1 : E) :
-    execute (blakeImage out1) ⟨1, 1⟩ blakeIns =
-      (do
-        guard (CompressCells ![rustM0, rustM1, rustM2, rustM3] rustCv0 rustCv1 rustOut0 out1
-          rustMd)
-        pure (Regs.next ⟨1, 1⟩)) := by
-  simp only [blakeIns, execute, executeWith, one_mul, mul_one, Matrix.cons_val, g_mul_gpow, Nat.reduceAdd,
-    read_one (blakeImage out1), read_g (blakeImage out1), read_lit (blakeImage out1) 2,
-    read_lit (blakeImage out1) 3, read_lit (blakeImage out1) 4, read_lit (blakeImage out1) 5,
-    read_lit (blakeImage out1) 6, read_lit (blakeImage out1) 7, read_lit (blakeImage out1) 8,
-    Option.bind_eq_bind, Option.bind_some]
-  rfl
+/-- The executor's first `KECCAK` row: `m: [2, 3, 2, 3], tail: 4, b8: 8, cap: 9, out: 13`, even
+input layout, odd output layout. -/
+def keccakIns : Instr := .keccak ![gpow 2, gpow 3, gpow 2, gpow 3] (gpow 4) (gpow 8) (gpow 9)
+  (gpow 13) false true
 
-/-- The row steps: the nine cells satisfy `CompressCells`. -/
-example : step (oneStep blakeIns) (blakeImage rustOut1) ⟨1, 1⟩ = some ⟨g, 1⟩ := by
-  rw [step_of_fetch_eq_some (r := ⟨1, 1⟩) (fetch_one _)]
-  show execute (blakeImage rustOut1) ⟨1, 1⟩ blakeIns = _
-  rw [blake_reads]
+/-- The cells the row reads. -/
+def kIn : Fin 13 → E := ![kA, kB, kA, kB, kPad, 0, 0, 0, kEnd, 0, 0, 0, 0]
+
+/-- The memory index of read cell `c`: the aliased pairs, the tail, `b8`, the capacity. -/
+def kInIdx : Fin 13 → ℕ := ![2, 3, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
+
+theorem keccakInOffset_eq : ∀ c : Fin 13,
+    1 * keccakInOffset ![gpow 2, gpow 3, gpow 2, gpow 3] (gpow 4) (gpow 8) (gpow 9) c =
+      gpow (kInIdx c) := by
   decide +kernel
 
-/-- With a nonzero top limb on the second output cell the row is invalid, although the
-cell's words are right. -/
-example : step (oneStep blakeIns)
-    (blakeImage (E.ofLimbs (K.ofBits 0xf1b0679a15df60bb) (K.ofBits 0x0228c8d4ed9b3a24) 1)) ⟨1, 1⟩ = none := by
+theorem keccakOutOffset_eq : ∀ c : Fin 13, 1 * (g ^ c.val * gpow 13) = gpow (c.val + 13) := by
+  decide +kernel
+
+/-- The row's reads, on the image with output cell `0` set to `out0`. -/
+theorem keccak_reads (out0 : E) :
+    execute (keccakImage out0) ⟨1, 1⟩ keccakIns =
+      (do guard (KeccakCells kIn false (Function.update kOut 0 out0) true); pure ⟨g, 1⟩) := by
+  have hin : readCells (keccakImage out0).read 1 (keccakInOffset ![gpow 2, gpow 3, gpow 2, gpow 3]
+      (gpow 4) (gpow 8) (gpow 9)) = some kIn := by
+    refine (readCells_eq_some_iff _ _ _ _).mpr fun c ↦ ?_
+    rw [keccakInOffset_eq c]
+    fin_cases c <;> exact (read_lit (keccakImage out0) _ (by decide) (by decide)).trans rfl
+  have hout : readCells (keccakImage out0).read 1 (fun c ↦ g ^ c.val * gpow 13) =
+      some (Function.update kOut 0 out0) := by
+    refine (readCells_eq_some_iff _ _ _ _).mpr fun c ↦ ?_
+    rw [keccakOutOffset_eq c]
+    fin_cases c <;> exact (read_lit (keccakImage out0) _ (by decide) (by decide)).trans rfl
+  simp only [keccakIns, execute, executeWith, hin, hout, Option.bind_eq_bind, Option.bind_some]
+  rfl
+
+/-- The row steps: the cells are a Keccak-f[1600] permutation, even layout in, odd layout out. -/
+example : step (oneStep keccakIns) (keccakImage (kOut 0)) ⟨1, 1⟩ = some ⟨g, 1⟩ := by
   rw [step_of_fetch_eq_some (r := ⟨1, 1⟩) (fetch_one _)]
-  show execute (blakeImage _) ⟨1, 1⟩ blakeIns = _
-  rw [blake_reads]
+  show execute (keccakImage (kOut 0)) ⟨1, 1⟩ keccakIns = _
+  rw [keccak_reads]
+  decide +kernel
+
+/-- Mutation: output cell `0` holds lane `0` in its high limb (odd layout); with a nonzero low
+limb, which holds no lane and must be written zero, the row is invalid. -/
+example : step (oneStep keccakIns) (keccakImage (kOut 0 + ofK 1)) ⟨1, 1⟩ = none := by
+  rw [step_of_fetch_eq_some (r := ⟨1, 1⟩) (fetch_one _)]
+  show execute (keccakImage _) ⟨1, 1⟩ keccakIns = _
+  rw [keccak_reads]
   decide +kernel
 
 /-! ## A `JUMP` sentinel -/

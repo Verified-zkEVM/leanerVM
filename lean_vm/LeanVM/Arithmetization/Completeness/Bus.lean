@@ -60,7 +60,7 @@ theorem flatMap_singleton_eq_map {α β : Type} (f : α → β) (l : List α) :
   | cons x xs ih => simp [ih]
 
 /-- A row sends one state pull, `(pc, fp)`. -/
-theorem sendsOf_statePull (pc fp : K) (next : Regs K) (rbc : K) (e : Vector K 8)
+theorem sendsOf_statePull (pc fp : K) (next : Regs K) (rbc : K) (e : Vector K 11)
     (reads : List (K × K × Vector K 3)) :
     ((sendsOf pc fp next rbc e reads).filter (·.1 = StatePull.name)).map (·.2) =
       [#[pc, fp]] := by
@@ -68,7 +68,7 @@ theorem sendsOf_statePull (pc fp : K) (next : Regs K) (rbc : K) (e : Vector K 8)
     List.filter_flatMap]
 
 /-- A row sends one state push, the successor. -/
-theorem sendsOf_statePush (pc fp : K) (next : Regs K) (rbc : K) (e : Vector K 8)
+theorem sendsOf_statePush (pc fp : K) (next : Regs K) (rbc : K) (e : Vector K 11)
     (reads : List (K × K × Vector K 3)) :
     ((sendsOf pc fp next rbc e reads).filter (·.1 = StatePush.name)).map (·.2) =
       [#[next.pc, next.fp]] := by
@@ -76,7 +76,7 @@ theorem sendsOf_statePush (pc fp : K) (next : Regs K) (rbc : K) (e : Vector K 8)
     List.filter_flatMap]
 
 /-- A row sends one bytecode pull, the entry with the count `rbc`. -/
-theorem sendsOf_bcPull (pc fp : K) (next : Regs K) (rbc : K) (e : Vector K 8)
+theorem sendsOf_bcPull (pc fp : K) (next : Regs K) (rbc : K) (e : Vector K 11)
     (reads : List (K × K × Vector K 3)) :
     ((sendsOf pc fp next rbc e reads).filter (·.1 = BytecodePull.name)).map (·.2) =
       [bcMsgOf pc rbc e] := by
@@ -84,7 +84,7 @@ theorem sendsOf_bcPull (pc fp : K) (next : Regs K) (rbc : K) (e : Vector K 8)
     List.filter_flatMap]
 
 /-- A row sends one bytecode push, the entry with the count `g · rbc`. -/
-theorem sendsOf_bcPush (pc fp : K) (next : Regs K) (rbc : K) (e : Vector K 8)
+theorem sendsOf_bcPush (pc fp : K) (next : Regs K) (rbc : K) (e : Vector K 11)
     (reads : List (K × K × Vector K 3)) :
     ((sendsOf pc fp next rbc e reads).filter (·.1 = BytecodePush.name)).map (·.2) =
       [bcMsgOf pc (g * rbc) e] := by
@@ -92,7 +92,7 @@ theorem sendsOf_bcPush (pc fp : K) (next : Regs K) (rbc : K) (e : Vector K 8)
     List.filter_flatMap]
 
 /-- A row sends a memory pull per read. -/
-theorem sendsOf_memPull (pc fp : K) (next : Regs K) (rbc : K) (e : Vector K 8)
+theorem sendsOf_memPull (pc fp : K) (next : Regs K) (rbc : K) (e : Vector K 11)
     (reads : List (K × K × Vector K 3)) :
     ((sendsOf pc fp next rbc e reads).filter (·.1 = MemPull.name)).map (·.2) =
       reads.map fun x ↦ memMsgOf x.1 x.2.1 x.2.2 := by
@@ -101,7 +101,7 @@ theorem sendsOf_memPull (pc fp : K) (next : Regs K) (rbc : K) (e : Vector K 8)
     map_flatMap_singleton]
 
 /-- A row sends a memory push per read, with the count `g · count`. -/
-theorem sendsOf_memPush (pc fp : K) (next : Regs K) (rbc : K) (e : Vector K 8)
+theorem sendsOf_memPush (pc fp : K) (next : Regs K) (rbc : K) (e : Vector K 11)
     (reads : List (K × K × Vector K 3)) :
     ((sendsOf pc fp next rbc e reads).filter (·.1 = MemPush.name)).map (·.2) =
       reads.map fun x ↦ memMsgOf x.1 (g * x.2.1) x.2.2 := by
@@ -190,7 +190,7 @@ noncomputable def memMsg {κ : ℕ} (img : MemImage κ) (a : K) (e : ℕ) : Arra
   memMsgOf a (g ^ e) (img.limbsAt a)
 
 /-- The entry the program holds at the counter `pc`, `0` where it holds none. -/
-noncomputable def entryAt (prog : Program) (pc : K) : Vector K 8 :=
+noncomputable def entryAt (prog : Program) (pc : K) : Vector K 11 :=
   match prog.fetch pc with
   | some ins => entry ins
   | none => 0

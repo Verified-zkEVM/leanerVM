@@ -1,8 +1,8 @@
 /-
   LeanVM.Spec.IsaWith
 
-  leanISA with the relation `BLAKE2S` checks a parameter: the deployed machine at the compression
-  function, the Flock-blind machine at canonical cells.
+  leanISA with the relation `KECCAK` checks a parameter: the deployed machine at Keccak-f[1600],
+  the reduction-blind machine at canonical cells.
 -/
 
 module
@@ -16,45 +16,50 @@ open LeanVM.Parameters
 @[expose] public section
 
 /-!
-# Executions under any `BLAKE2S` semantics
+# Executions under any `KECCAK` semantics
 
-The relation `BLAKE2S` checks of its nine cells is a parameter of the machine here (`BlakeSem`):
-the deployed one, `blakeDeployed`, is `CompressCells`; the Flock-blind one, `blakeFree`, only
-asks the cells to be canonical (what the bus enforces of a `BLAKE2S` row when the proof does not
-bind the row to the compression function). Every definition
-below is the one above with the check replaced, and is the one above at `blakeDeployed`
-(`executeWithB_deployed`, `runB_deployed`, `validExecutionB_deployed`). -/
+The relation `KECCAK` checks of its twenty-six cells is a parameter of the machine here
+(`KeccakSem`): the deployed one, `keccakDeployed`, is `KeccakCells`; the reduction-blind one,
+`keccakFree`, only asks what the bus enforces of a `KECCAK` row when the proof does not bind the
+row to the permutation: the cells read are canonical, and the cells written are canonical with
+the limb holding no lane zero. Every definition below is the one above with the check replaced,
+and is the one above at `keccakDeployed` (`executeWithB_deployed`, `runB_deployed`,
+`validExecutionB_deployed`). -/
 
-/-- **A semantics of `BLAKE2S`**: the relation of the message, chaining-value, output and
-metadata cells, decidable. -/
-structure BlakeSem where
+/-- **A semantics of `KECCAK`**: the relation of the cells read in a layout and the cells written
+in a layout, decidable. -/
+structure KeccakSem where
   /-- The relation. -/
-  check : (Fin 4 → E) → E → E → E → E → E → Prop
+  check : (Fin 13 → E) → Bool → (Fin 13 → E) → Bool → Prop
   /-- It is decidable. -/
-  dec : ∀ m cv0 cv1 out0 out1 md, Decidable (check m cv0 cv1 out0 out1 md)
+  dec : ∀ input inOdd output outOdd, Decidable (check input inOdd output outOdd)
 
-/-- The deployed semantics: the compression function (`CompressCells`). -/
-def blakeDeployed : BlakeSem := ⟨CompressCells, fun _ _ _ _ _ _ ↦ inferInstance⟩
+/-- The deployed semantics: Keccak-f[1600] (`KeccakCells`). -/
+def keccakDeployed : KeccakSem := ⟨KeccakCells, fun _ _ _ _ ↦ inferInstance⟩
 
-/-- The nine cells are canonical (no `y²` term): all `blakeFree` asks. -/
-def CanonicalCells (m : Fin 4 → E) (cv0 cv1 out0 out1 md : E) : Prop :=
-  (∀ i, IsCanonical128 (m i)) ∧ IsCanonical128 cv0 ∧ IsCanonical128 cv1 ∧
-    IsCanonical128 out0 ∧ IsCanonical128 out1 ∧ IsCanonical128 md
+/-- The limb of the cells written that holds no lane in the layout `odd` is zero: cell `0`'s
+low limb in the odd layout, cell `8`'s high limb in the even one. -/
+def FreeLimbZero (output : Fin 13 → E) (odd : Bool) : Prop :=
+  if odd then (output 0).limb 0 = 0 else (output 8).limb 1 = 0
 
-instance {m : Fin 4 → E} {cv0 cv1 out0 out1 md : E} :
-    Decidable (CanonicalCells m cv0 cv1 out0 out1 md) := by
-  unfold CanonicalCells; infer_instance
+instance {output : Fin 13 → E} {odd : Bool} : Decidable (FreeLimbZero output odd) := by
+  unfold FreeLimbZero; infer_instance
 
-/-- **The Flock-blind semantics**: any canonical output. -/
-def blakeFree : BlakeSem := ⟨CanonicalCells, fun _ _ _ _ _ _ ↦ inferInstance⟩
+/-- The cells read and written are canonical, and the limb of the cells written holding no lane
+is zero: all `keccakFree` asks. -/
+def CanonicalKeccak (input : Fin 13 → E) (_inOdd : Bool) (output : Fin 13 → E) (outOdd : Bool) :
+    Prop :=
+  (∀ c, IsCanonical128 (input c)) ∧ (∀ c, IsCanonical128 (output c)) ∧ FreeLimbZero output outOdd
 
-/-- The deployed check implies the Flock-blind one. -/
-theorem canonicalCells_of_compressCells {m : Fin 4 → E} {cv0 cv1 out0 out1 md : E}
-    (h : CompressCells m cv0 cv1 out0 out1 md) : CanonicalCells m cv0 cv1 out0 out1 md :=
-  ⟨h.1, h.2.1, h.2.2.1, h.2.2.2.1, h.2.2.2.2.1, h.2.2.2.2.2.1⟩
+instance {input : Fin 13 → E} {inOdd : Bool} {output : Fin 13 → E} {outOdd : Bool} :
+    Decidable (CanonicalKeccak input inOdd output outOdd) := by
+  unfold CanonicalKeccak; infer_instance
+
+/-- **The reduction-blind semantics**: any canonical output with its free limb zero. -/
+def keccakFree : KeccakSem := ⟨CanonicalKeccak, fun _ _ _ _ ↦ inferInstance⟩
 
 /-- `executeWith` under the semantics `S`. -/
-def executeWithB (S : BlakeSem) (read : K → Option E) (r : Regs K) : Instr → Option (Regs K)
+def executeWithB (S : KeccakSem) (read : K → Option E) (r : Regs K) : Instr → Option (Regs K)
   | .xor oA oB oC => do
     let vA ← read (r.fp * oA)
     let vB ← read (r.fp * oB)
@@ -84,56 +89,48 @@ def executeWithB (S : BlakeSem) (read : K → Option E) (r : Regs K) : Instr →
     let f ← read (r.fp * of)
     guard (IsInK c ∧ IsInK d ∧ IsInK f)
     pure (if c = 0 then r.next else ⟨d.limb 0, f.limb 0⟩)
-  | .blake2s om ocv oout omd => do
-    let m0 ← read (r.fp * om 0)
-    let m1 ← read (r.fp * om 1)
-    let m2 ← read (r.fp * om 2)
-    let m3 ← read (r.fp * om 3)
-    let cv0 ← read (r.fp * ocv)
-    let cv1 ← read (r.fp * (g * ocv))
-    let out0 ← read (r.fp * oout)
-    let out1 ← read (r.fp * (g * oout))
-    let md ← read (r.fp * omd)
-    @guard Option _ (S.check ![m0, m1, m2, m3] cv0 cv1 out0 out1 md)
-      (S.dec ![m0, m1, m2, m3] cv0 cv1 out0 out1 md)
+  | .keccak om otail ob8 ocap oout inOdd outOdd => do
+    let input ← readCells read r.fp (keccakInOffset om otail ob8 ocap)
+    let output ← readCells read r.fp fun c ↦ g ^ c.val * oout
+    @guard Option _ (S.check input inOdd output outOdd) (S.dec input inOdd output outOdd)
     pure r.next
 
 /-- One step under the semantics `S`. -/
-noncomputable def stepB (S : BlakeSem) {κ : ℕ} (prog : Program) (L : MemImage κ) (r : Regs K) :
+noncomputable def stepB (S : KeccakSem) {κ : ℕ} (prog : Program) (L : MemImage κ) (r : Regs K) :
     Option (Regs K) :=
   prog.fetch r.pc >>= executeWithB S L.read r
 
 /-- `n` steps under the semantics `S`. -/
-noncomputable def runB (S : BlakeSem) {κ : ℕ} (prog : Program) (L : MemImage κ) :
+noncomputable def runB (S : KeccakSem) {κ : ℕ} (prog : Program) (L : MemImage κ) :
     ℕ → Regs K → Option (Regs K)
   | 0, r => some r
   | n + 1, r => if r.pc = prog.finalPc then none else stepB S prog L r >>= runB S prog L n
 
 /-- **A valid execution under the semantics `S`.** -/
-def ValidExecutionB (S : BlakeSem) (prog : Program) (input : PublicInput) (t : Trace prog) :
+def ValidExecutionB (S : KeccakSem) (prog : Program) (input : PublicInput) (t : Trace prog) :
     Prop :=
   HasPublicBoundary input t ∧ runB S prog t.image t.steps Regs.initial = some (Regs.final prog)
 
 theorem executeWithB_deployed (read : K → Option E) (r : Regs K) (i : Instr) :
-    executeWithB blakeDeployed read r i = executeWith read r i := by
+    executeWithB keccakDeployed read r i = executeWith read r i := by
   cases i <;> rfl
 
 theorem stepB_deployed {κ : ℕ} (prog : Program) (L : MemImage κ) (r : Regs K) :
-    stepB blakeDeployed prog L r = step prog L r := by
-  have : executeWithB blakeDeployed L.read r = executeWith L.read r :=
+    stepB keccakDeployed prog L r = step prog L r := by
+  have : executeWithB keccakDeployed L.read r = executeWith L.read r :=
     funext (executeWithB_deployed L.read r)
   simp only [stepB, step, execute, this]
 
 theorem runB_deployed {κ : ℕ} (prog : Program) (L : MemImage κ) :
-    ∀ (n : ℕ) (r : Regs K), runB blakeDeployed prog L n r = run prog L n r
+    ∀ (n : ℕ) (r : Regs K), runB keccakDeployed prog L n r = run prog L n r
   | 0, _ => rfl
   | n + 1, r => by
-    have : runB blakeDeployed prog L n = run prog L n := funext (runB_deployed prog L n)
+    have : runB keccakDeployed prog L n = run prog L n := funext (runB_deployed prog L n)
     simp only [runB, run, stepB_deployed, this]
 
 /-- **The deployed semantics gives the deployed valid executions.** -/
 theorem validExecutionB_deployed (prog : Program) (input : PublicInput) (t : Trace prog) :
-    ValidExecutionB blakeDeployed prog input t ↔ ValidExecution prog input t := by
+    ValidExecutionB keccakDeployed prog input t ↔ ValidExecution prog input t := by
   simp only [ValidExecutionB, ValidExecution, runB_deployed]
 
 end

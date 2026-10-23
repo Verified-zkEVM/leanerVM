@@ -7,12 +7,13 @@
 
 module
 
-public import LeanVM.Protocol.Spine.Instance
+public import LeanVM.Protocol.Spine.KeccakZero
 
 /-!
 # Claims and seams
 
-The oracle protocol is six phases, `commit ⟫ bus ⟫ table ⟫ pub ⟫ flock ⟫ opening`, each a
+The oracle protocol's front is four phases, `commit ⟫ bus ⟫ table ⟫ pub`, then the Keccak
+reduction, ring switching and the opening, each a
 reduction from a statement to a statement over the one committed stack `q`. The statement
 types between phases and the relations on them are fixed here, so a phase is built and proved
 knowing only its two seams.
@@ -37,17 +38,17 @@ built: the row polynomials are over `K` and the weights carry `E`.
   (`M3Honest`): soundness cannot extract them.
 * `bus`: the point, the forms and totals, and the boundary claims; it holds when every
   constraint's extension is zero at the point, the forms sum to the totals, every claim holds,
-  and so do the public lines and the Flock predicate.
-* `table`: column claims; it holds when every claim, the public lines and the Flock predicate
-  hold.
-* `pub`: column claims; it holds when every claim and the Flock predicate hold.
-* `flock`: column and weighted claims; it holds when every claim holds.
+  and so do the public lines and the Keccak predicate.
+* `table`: column claims and the table sumcheck's point; it holds when every claim and the public
+  lines hold, and the Keccak predicate along the point (`M3Instance.auxAt`: the table sumcheck
+  turns the predicate on the cube into its multilinear test at the point it draws,
+  `Spine/KeccakZero.lean`).
+* `pub`: column claims and the point; it holds when every claim holds, and the Keccak predicate
+  along the point.
 * `done`: nothing, and holds.
 
-The claim pools have the sizes the instance fixes (`busClaims`, `tableClaims`, `pubClaims`,
-`poolSize`): one claim per boundary column, then per column of each sumcheck table, then per
-public line, then the Flock phase's weighted claim. So the number of claims the opening phase
-batches, and with it the opening's error, is a closed form of the instance. A seam says which
+The claim pools have the sizes the instance fixes (`busClaims`, `tableClaims`, `pubClaims`): one
+claim per boundary column, then per column of each sumcheck table, then per public line. A seam says which
 claims hold, not which values a phase pools: that is fixed by the phase's knowledge soundness.
 Seams carry no challenge; the escape "violated on the cube, zero at `ζ`" is charged to the bus
 phase, where `ζ` is drawn (§5.5).
@@ -132,22 +133,21 @@ structure BusOut (I : M3Instance) where
   /-- The boundary columns' claims. -/
   columns : Vector (ColumnClaim I) I.busClaims
 
-/-- What the table sumcheck hands on: column claims only. -/
+/-- What the table sumcheck hands on: column claims, and the point it ended at, along which the
+Keccak predicate now holds. -/
 structure TableOut (I : M3Instance) where
   /-- The column claims. -/
   columns : Vector (ColumnClaim I) I.tableClaims
+  /-- The sumcheck's final point, in coordinate order. -/
+  point : Vector E I.τmax
 
-/-- What the public-input phase hands on: column claims, now with the public lines' claims. -/
+/-- What the public-input phase hands on: column claims, now with the public lines' claims, and
+the table sumcheck's point. -/
 structure PubOut (I : M3Instance) where
   /-- The column claims. -/
   columns : Vector (ColumnClaim I) I.pubClaims
-
-/-- What the Flock phase hands on: the claim pool the opening phase batches. -/
-structure FlockOut (I : M3Instance) where
-  /-- The column claims, to be weighted through the layout. -/
-  columns : Vector (ColumnClaim I) I.pubClaims
-  /-- The weighted claims, ring switched. -/
-  weighted : Vector (WeightedClaim I) I.flockClaims
+  /-- The table sumcheck's final point. -/
+  point : Vector E I.τmax
 
 /-! ## Seam relations
 
@@ -182,16 +182,15 @@ def bus := of I fun (s : I.Stmt × BusOut I) q ↦
     M3Instance.Form.eval I (s.2.forms side j) q (I.lowPoint s.2.point j) = s.2.totals side) ∧
   (∀ c ∈ s.2.columns.toList, c.Holds q) ∧ I.PublicLinesHold s.1 q ∧ I.aux q
 
-/-- After the table sumcheck: every column claim holds, and what it did not touch. -/
+/-- After the table sumcheck: every column claim holds, the public lines hold, and the Keccak
+predicate holds at the point. -/
 def table := of I fun (s : I.Stmt × TableOut I) q ↦
-  (∀ c ∈ s.2.columns.toList, c.Holds q) ∧ I.PublicLinesHold s.1 q ∧ I.aux q
+  (∀ c ∈ s.2.columns.toList, c.Holds q) ∧ I.PublicLinesHold s.1 q ∧ I.auxAt s.2.point.toList q
 
-/-- After the public-input phase: every column claim holds, and the Flock predicate. -/
-def pub := of I fun (s : I.Stmt × PubOut I) q ↦ (∀ c ∈ s.2.columns.toList, c.Holds q) ∧ I.aux q
-
-/-- After the Flock phase: every pooled claim holds. -/
-def flock := of I fun (s : I.Stmt × FlockOut I) q ↦
-  (∀ c ∈ s.2.columns.toList, c.Holds q) ∧ ∀ c ∈ s.2.weighted.toList, c.Holds q
+/-- After the public-input phase: every column claim holds, and the Keccak predicate at the table
+sumcheck's point. -/
+def pub := of I fun (s : I.Stmt × PubOut I) q ↦
+  (∀ c ∈ s.2.columns.toList, c.Holds q) ∧ I.auxAt s.2.point.toList q
 
 /-- After the opening phase: nothing is left to check. -/
 def done := of I fun (_ : Unit) _ ↦ True

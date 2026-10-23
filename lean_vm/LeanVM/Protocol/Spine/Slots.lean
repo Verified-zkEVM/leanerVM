@@ -25,10 +25,10 @@ security at the errors written here, the numbers `Spine/Errors.lean` charges the
   degree `3` at `3/|E|` each, the final values at no error;
 * the public input (`pubSlot`, `pubErrors`): the challenge `r` at `1/|E|`, then the values of
   the lines marked `sent`;
-* Flock (`flockPhaseSlot`, `flockErrors`): Flock's challenges at the errors listed there, or
-  nothing without a Flock region;
-* the opening (`openingSlot`, `openingErrors`): the batching challenge `λ` at `(J - 1)/|E|`, `J`
-  the number of pooled claims.
+* ring switching (`ringErrors`): its six challenges at `2^{2^{5−p}−1}/|E|`.
+
+The Keccak reduction and the stacked opening are specified directly on the verifier program
+(`LeanVM.Protocol.Keccak`, `LeanVM.Protocol.Whir`), not as typed components.
 
 The protocol ends with one question to the stack (`stackQuestion`): the final weighted claim's
 weight, accepted when the answer is the claim's value. `Seam.opened` is what the opening must
@@ -87,58 +87,12 @@ abbrev pubSlot : Slot :=
 noncomputable abbrev pubErrors : Errors pubSlot.tree pubSlot.roles :=
   (overE 1, fun _ _ ↦ PUnit.unit)
 
-/-! ## Flock -/
-
-/-- The Flock phase's slot for `2 ^ k` compressions: the `k + 1` coordinates of the point, the 64
-values, `z_skip`, `8 + k` zerocheck rounds, the two values `v_a, v_b`, `α_lc`, 8 lincheck
-rounds, the 64 values, and the six ring-switching challenges. -/
-abbrev flockSlotOf (k : ℕ) : Slot :=
-  (((((((((drawsSlot E (k + 1)).append (saySlot (Vector E 64))).append (drawSlot E)).append
-    (roundsSlot E 2 8)).append (roundsSlot E 2 k)).append (saySlot (Vector E 2))).append
-    (drawSlot E)).append (roundsSlot E 2 8)).append (saySlot (Vector E 64))).append
-    (drawsSlot E 6)
+/-! ## Ring switching -/
 
 /-- The ring-switching challenges' errors: `2^{2^{5−p}−1}` over `|E|` on the `p`-th, that is
 `2^31, 2^15, 2^7, 8, 2, 1`. -/
 noncomputable abbrev ringErrors : Errors (drawsSlot E 6).tree (drawsSlot E 6).roles :=
   drawsErrorsOf E (fun p ↦ overE (2 ^ (2 ^ (5 - p) - 1))) 6
-
-/-- The Flock phase's errors for `2 ^ k` compressions: `1` on each coordinate of the point, `127`
-on `z_skip`, `2` on each within-block and lincheck round, `3` on each batch round and on `α_lc`,
-and the ring-switching challenges'. -/
-noncomputable abbrev flockErrorsOf (k : ℕ) : Errors (flockSlotOf k).tree (flockSlotOf k).roles :=
-  Errors.append _ _ (Errors.append _ _ (Errors.append _ _ (Errors.append _ _ (Errors.append _ _
-    (Errors.append _ _ (Errors.append _ _ (Errors.append _ _ (Errors.append _ _
-    (drawsErrors E (overE 1) (k + 1)) (sayErrors _)) (drawErrors E (overE 127)))
-    (roundsErrors E 2 (overE 2) 8)) (roundsErrors E 2 (overE 3) k)) (sayErrors _))
-    (drawErrors E (overE 3))) (roundsErrors E 2 (overE 2) 8)) (sayErrors _)) ringErrors
-
-/-- The Flock slot: the Flock phase for the region's compressions, or nothing. -/
-def flockSlotOpt : Option (FlockRegion I.toShape) → Slot
-  | none => doneSlot
-  | some r => flockSlotOf r.kBatch
-
-/-- The Flock phase's errors on the slot of a region or of none. -/
-noncomputable def flockErrorsOpt :
-    (o : Option (FlockRegion I.toShape)) → Errors (flockSlotOpt I o).tree (flockSlotOpt I o).roles
-  | none => doneErrors
-  | some r => flockErrorsOf r.kBatch
-
-/-- The Flock phase's slot. -/
-abbrev flockPhaseSlot : Slot := flockSlotOpt I I.flock
-
-/-- The Flock phase's errors. -/
-noncomputable abbrev flockErrors : Errors (flockPhaseSlot I).tree (flockPhaseSlot I).roles :=
-  flockErrorsOpt I I.flock
-
-/-! ## The opening -/
-
-/-- The opening's slot: the batching challenge `λ`; the one question to the stack is no move. -/
-abbrev openingSlot : Slot := drawSlot E
-
-/-- The opening's error: `J − 1` on `λ`, `J` the number of pooled claims. -/
-noncomputable abbrev openingErrors : Errors openingSlot.tree openingSlot.roles :=
-  drawErrors E (overE (I.poolSize - 1))
 
 /-! ## Each slot's errors along a path -/
 
@@ -166,36 +120,6 @@ theorem ringErrors_bounded : Errors.Bounded (drawsSlot E 6).tree (drawsSlot E 6)
   (drawsErrorsOf_bounded E _ 6).mono (le_of_eq (by
     simp only [Finset.sum_range_succ, Finset.sum_range_zero, zero_add, ← overE_add]
     norm_num))
-
-/-- The Flock phase's errors for `2 ^ k` compressions sum to `(4k + 302 + 2^31 + 2^15)/|E|`. -/
-theorem flockErrorsOf_bounded (k : ℕ) :
-    Errors.Bounded (flockSlotOf k).tree (flockSlotOf k).roles (flockErrorsOf k)
-      (overE (4 * k + 302 + 2 ^ 31 + 2 ^ 15)) :=
-  (((((((((drawsErrors_bounded E _ (k + 1)).append (sayErrors_bounded _)).append
-    (drawErrors_bounded _ _)).append (roundsErrors_bounded E 2 _ 8)).append
-    (roundsErrors_bounded E 2 _ k)).append (sayErrors_bounded _)).append
-    (drawErrors_bounded _ _)).append (roundsErrors_bounded E 2 _ 8)).append
-    (sayErrors_bounded _)).append ringErrors_bounded |>.mono (le_of_eq (by
-      simp only [add_zero, nat_mul_overE, ← overE_add]
-      congr 1
-      omega))
-
-/-- The Flock phase's errors, with at most `2^32` compressions, sum to at most
-`(4·32 + 302 + 2^31 + 2^15)/|E|`. -/
-theorem flockErrors_bounded (hk : ∀ r ∈ I.flock, r.kBatch ≤ 32) :
-    Errors.Bounded (flockPhaseSlot I).tree (flockPhaseSlot I).roles (flockErrors I)
-      (overE (4 * 32 + 302 + 2 ^ 31 + 2 ^ 15)) := by
-  unfold flockPhaseSlot flockErrors
-  generalize hf : I.flock = f at hk
-  cases f with
-  | none => exact doneErrors_bounded.mono zero_le
-  | some r =>
-    exact (flockErrorsOf_bounded r.kBatch).mono (overE_mono (by have := hk r rfl; omega))
-
-/-- The opening's error sums to `(J − 1)/|E|`. -/
-theorem openingErrors_bounded :
-    Errors.Bounded openingSlot.tree openingSlot.roles (openingErrors I) (overE (I.poolSize - 1)) :=
-  drawErrors_bounded _ _
 
 /-! ## The question to the stack -/
 

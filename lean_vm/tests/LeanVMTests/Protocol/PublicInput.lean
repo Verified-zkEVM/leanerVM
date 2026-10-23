@@ -1,6 +1,5 @@
 import LeanVM.Protocol.PublicInput
 import LeanVM.Protocol.Spine.Toy
-import LeanVM.Protocol.Spine.Compose
 
 /-!
 # Public-input phase tests
@@ -101,11 +100,11 @@ def r₂ : E := y * y + 1
 
 /-- The toy's statement `1` with the three columns' cells 0 received. -/
 def stmt1 : K × TableOut toy :=
-  (1, ⟨received toy (by decide) (by decide) (by decide) (by decide) 0 ![1, 1, 1]⟩)
+  (1, ⟨received toy (by decide) (by decide) (by decide) (by decide) 0 ![1, 1, 1], #v[0]⟩)
 
 /-- The toy's statement `0` with the same received claims. -/
 def stmt0 : K × TableOut toy :=
-  (0, ⟨received toy (by decide) (by decide) (by decide) (by decide) 0 ![1, 1, 1]⟩)
+  (0, ⟨received toy (by decide) (by decide) (by decide) (by decide) 0 ![1, 1, 1], #v[0]⟩)
 
 /-- The value of the toy's line at statement `1` and challenge `y`: `(1 + y)·1 + y·0`. -/
 def good : List E := [1 + y]
@@ -182,7 +181,7 @@ abbrev noneSent : M3Instance :=
 
 /-- Its statement `1` with the received claims. -/
 def stmtNone : K × TableOut noneSent :=
-  (1, ⟨received noneSent (by decide) (by decide) (by decide) (by decide) 0 ![1, 1, 1]⟩)
+  (1, ⟨received noneSent (by decide) (by decide) (by decide) (by decide) 0 ![1, 1, 1], #v[0]⟩)
 
 -- The message is empty, a value is rejected, and the line is pooled all the same.
 #guard expectedValues noneSent (1: K) y = []
@@ -202,7 +201,7 @@ abbrev threeLimbs : M3Instance :=
 
 /-- Its statement `1` with the three columns' cells 1 received. -/
 def stmtLimbs : K × TableOut threeLimbs :=
-  (1, ⟨received threeLimbs (by decide) (by decide) (by decide) (by decide) 1 ![1, 1, 0]⟩)
+  (1, ⟨received threeLimbs (by decide) (by decide) (by decide) (by decide) 1 ![1, 1, 0], #v[0]⟩)
 
 /-- A stack whose three columns hold their lines: `[1, 1]`, `[1, 1]`, `[0, 0]`. -/
 def goodLimbs : Column 3 := ⟨#v[1, 1, 1, 1, 0, 0, 0, 0]⟩
@@ -238,7 +237,7 @@ abbrev twoLimbs : M3Instance :=
 
 /-- Its statement with the received claims. -/
 def stmtTwo : K × TableOut twoLimbs :=
-  (0, ⟨received twoLimbs (by decide) (by decide) (by decide) (by decide) 0 ![0, 1, 0]⟩)
+  (0, ⟨received twoLimbs (by decide) (by decide) (by decide) (by decide) 0 ![0, 1, 0], #v[0]⟩)
 
 /-- A stack whose two limbs are `[0, 1]` and `[1, 0]`: both violate the public input. -/
 def badLimbs : Column 3 := ⟨#v[0, 1, 1, 0, 0, 0, 0, 0]⟩
@@ -274,14 +273,6 @@ example : Typed.Complete (phase toy) (Seam.table toy) (Seam.pub toy) := complete
 
 example : Typed.Security (phase toy) (Seam.table toy) (Seam.pub toy) pubErrors := security toy
 
-/-- The phase is one field of a bundle: with the four other phases and their proofs, the master
-completeness theorem applies. -/
-example (P : Phases toy) (C : P.Complete) (initial : PFunctor)
-    (impl : QueryImpl (OracleSpec.ofPFunctor initial) Id) (input : K) (q : Column toy.μ)
-    (h : ((input, fun i ↦ i.elim0), q) ∈ M3HonestRel toy) :
-    Pr{let x ← (leanVmPiop P initial).execute impl input q}[x.2.2 = some ()] = 1 :=
-  piop_perfectCompleteness P C initial impl input q h
-
 /-! ## The check is load-bearing -/
 
 section Refutations
@@ -310,8 +301,9 @@ theorem receivedTrue_holds (I : M3Instance) (h : I.tableClaims = 3) (h0 : 0 < I.
 /-- A stack as the one oracle. -/
 def oracleOf {I : M3Instance} (q : Column I.μ) : ∀ i, TheOracle I i := fun _ ↦ q
 
-/-- An instance without a Flock region has nothing to hold there. -/
-theorem aux_of_none {I : M3Instance} (h : I.flock = none) (q : Column I.μ) : I.aux q := by
+/-- An instance without a Keccak region has nothing to hold there, at any point. -/
+theorem aux_of_none {I : M3Instance} (h : I.keccak = none) (pt : List E) (q : Column I.μ) :
+    I.auxAt pt q := by
   intro r hr
   rw [h] at hr
   exact (Option.not_mem_none r hr).elim
@@ -328,7 +320,7 @@ abbrev noCheck := phaseWith toy (fun _ _ _ ↦ true) (pooledFrom toy)
 
 /-- The statement `1` with the received claims true of `badLine`, whose line fails. -/
 def stmtBad : K × TableOut toy :=
-  (1, ⟨receivedTrue toy (by decide) (by decide) (by decide) (by decide) badLine⟩)
+  (1, ⟨receivedTrue toy (by decide) (by decide) (by decide) (by decide) badLine, #v[0]⟩)
 
 theorem stmtBad_not_table : ((stmtBad, oracleOf badLine), ()) ∉ Seam.table toy :=
   fun h ↦ absurd (h.2.1 ⟨⟨0, 2⟩, 1, 0, true, by decide⟩ (by simp [stmtBad])).2 (by decide)
@@ -337,7 +329,7 @@ theorem stmtBad_not_table : ((stmtBad, oracleOf badLine), ()) ∉ Seam.table toy
 theorem noCheck_pub (c : E) :
     ((verdict toy (pooledFrom toy) stmtBad c (trueValues toy badLine 1 c), oracleOf badLine),
       ()) ∈ Seam.pub toy := by
-  refine ⟨fun cl hcl ↦ ?_, aux_of_none rfl _⟩
+  refine ⟨fun cl hcl ↦ ?_, aux_of_none rfl _ _⟩
   rw [verdict, dite_eq_left (show (trueValues toy badLine 1 c).length =
     sentCount toy (toy.publicLines stmtBad.1) from trueValues_length toy badLine 1 c)] at hcl
   simp only [pooledFrom, Vector.toList_append, List.mem_append] at hcl
@@ -371,7 +363,7 @@ def oneBadLimb : Column 3 := ⟨#v[0, 0, 1, 0, 0, 0, 0, 0]⟩
 
 /-- The statement `0` with the received claims true of `oneBadLimb`. -/
 def stmtOneBad : K × TableOut twoLimbs :=
-  (0, ⟨receivedTrue twoLimbs (by decide) (by decide) (by decide) (by decide) oneBadLimb⟩)
+  (0, ⟨receivedTrue twoLimbs (by decide) (by decide) (by decide) (by decide) oneBadLimb, #v[0]⟩)
 
 theorem stmtOneBad_not_table : ((stmtOneBad, oracleOf oneBadLimb), ()) ∉ Seam.table twoLimbs :=
   fun h ↦ absurd (h.2.1 ⟨⟨0, 1⟩, 0, 0, true, by decide⟩ (by simp)).1 (by decide)
@@ -388,7 +380,7 @@ theorem firstOnly_pub (c : E) :
   have c1 : (twoLimbs.column oneBadLimb ⟨0, 0⟩).values.get ⟨1, by decide⟩ = 0 := by decide
   have d0 : (twoLimbs.column oneBadLimb ⟨0, 1⟩).values.get ⟨0, by decide⟩ = 1 := by decide
   have d1 : (twoLimbs.column oneBadLimb ⟨0, 1⟩).values.get ⟨1, by decide⟩ = 0 := by decide
-  refine ⟨fun cl hcl ↦ ?_, aux_of_none rfl _⟩
+  refine ⟨fun cl hcl ↦ ?_, aux_of_none rfl _ _⟩
   rw [verdict, dite_eq_left (show (firstOnlyMsg c).length =
     sentCount twoLimbs (twoLimbs.publicLines stmtOneBad.1) from rfl)] at hcl
   simp only [pooledFrom, Vector.toList_append, List.mem_append] at hcl
@@ -425,7 +417,7 @@ example {err : Typed.Errors pubSlot.tree pubSlot.roles}
 `noneSent`. -/
 def poolDropped (s : K × TableOut noneSent) (r : E) (cs : List E)
     (h : cs.length = sentCount noneSent (noneSent.publicLines s.1)) : K × PubOut noneSent :=
-  (s.1, ⟨s.2.columns ++ claimsWith noneSent r (fun _ ↦ 0) (noneSent.publicLines s.1) cs h⟩)
+  (s.1, ⟨s.2.columns ++ claimsWith noneSent r (fun _ ↦ 0) (noneSent.publicLines s.1) cs h, s.2.point⟩)
 
 /-- The phase with the check and the dropped claim. -/
 abbrev dropped := phaseWith noneSent (check noneSent) poolDropped
@@ -433,7 +425,7 @@ abbrev dropped := phaseWith noneSent (check noneSent) poolDropped
 /-- The statement `1` with the received claims true of `goodLimbs`, whose column 2 is `[0, 0]`
 against the line's cells `(1, 0)`. -/
 def stmtDropped : K × TableOut noneSent :=
-  (1, ⟨receivedTrue noneSent (by decide) (by decide) (by decide) (by decide) goodLimbs⟩)
+  (1, ⟨receivedTrue noneSent (by decide) (by decide) (by decide) (by decide) goodLimbs, #v[0]⟩)
 
 theorem stmtDropped_not_table :
     ((stmtDropped, oracleOf goodLimbs), ()) ∉ Seam.table noneSent :=
@@ -444,7 +436,7 @@ theorem dropped_pub (c : E) :
       Seam.pub noneSent := by
   have c0 : (noneSent.column goodLimbs ⟨0, 2⟩).values.get ⟨0, by decide⟩ = 0 := by decide
   have c1 : (noneSent.column goodLimbs ⟨0, 2⟩).values.get ⟨1, by decide⟩ = 0 := by decide
-  refine ⟨fun cl hcl ↦ ?_, aux_of_none rfl _⟩
+  refine ⟨fun cl hcl ↦ ?_, aux_of_none rfl _ _⟩
   rw [verdict, dite_eq_left (show ([] : List E).length =
     sentCount noneSent (noneSent.publicLines stmtDropped.1) from rfl)] at hcl
   simp only [poolDropped, Vector.toList_append, List.mem_append] at hcl
@@ -472,11 +464,11 @@ example {err : Typed.Errors pubSlot.tree pubSlot.roles}
 
 /-- The statement `1` with the received claims true of the honest stack: in the table seam. -/
 def stmtHonest : K × TableOut toy :=
-  (1, ⟨receivedTrue toy (by decide) (by decide) (by decide) (by decide) honest⟩)
+  (1, ⟨receivedTrue toy (by decide) (by decide) (by decide) (by decide) honest, #v[0]⟩)
 
 theorem stmtHonest_table : ((stmtHonest, oracleOf honest), ()) ∈ Seam.table toy :=
   ⟨receivedTrue_holds toy (by decide) (by decide) (by decide) (by decide) honest, by decide,
-    aux_of_none rfl _⟩
+    aux_of_none rfl _ _⟩
 
 /-- The check with the two cells swapped: `(1 + r)·cell1 + r·cell0`. -/
 def swappedValues (input : K) (r : E) : List E :=
@@ -530,7 +522,7 @@ instead of the value computed from the statement, which the verifiers at leanVM
 `127510d14c98ade4e8a97646c44fa7f1ff5e752d` compute for every limb (`verifier.py:1393-1394`). -/
 def poolZero (I : M3Instance) (s : I.Stmt × TableOut I) (r : E) (cs : List E)
     (h : cs.length = sentCount I (I.publicLines s.1)) : I.Stmt × PubOut I :=
-  (s.1, ⟨s.2.columns ++ claimsWith I r (fun _ ↦ 0) (I.publicLines s.1) cs h⟩)
+  (s.1, ⟨s.2.columns ++ claimsWith I r (fun _ ↦ 0) (I.publicLines s.1) cs h, s.2.point⟩)
 
 -- The two pools are the same where the unsent line is zero, as the top limb is: on three lines
 -- shaped like the memory limbs the claims are the same, the value pooled at `0` being the line's.
@@ -550,9 +542,9 @@ abbrev topOne : M3Instance :=
 -- There the two pools differ: the value computed for the top line at `y` is `1 + y`, and the
 -- constant is `0`.
 #guard ((poolZero topOne (1, ⟨receivedTrue topOne (by decide) (by decide) (by decide) (by decide)
-    goodLimbs⟩) y [1, 1] rfl).2.columns.toList.map fun c ↦ c.value) ≠
+    goodLimbs, #v[0]⟩) y [1, 1] rfl).2.columns.toList.map fun c ↦ c.value) ≠
   ((pooledFrom topOne (1, ⟨receivedTrue topOne (by decide) (by decide) (by decide) (by decide)
-    goodLimbs⟩) y [1, 1] rfl).2.columns.toList.map fun c ↦ c.value)
+    goodLimbs, #v[0]⟩) y [1, 1] rfl).2.columns.toList.map fun c ↦ c.value)
 
 /-- The phase with the specification's check and that pool, on the statement with the top line
 `(1, 0)`. -/
@@ -561,7 +553,7 @@ abbrev zeroTop := phaseWith topOne (check topOne) (poolZero topOne)
 /-- The statement `1` with the received claims true of `goodLimbs`, whose top column `[0, 0]`
 is not the top line's `(1, 0)`. -/
 def stmtTop : K × TableOut topOne :=
-  (1, ⟨receivedTrue topOne (by decide) (by decide) (by decide) (by decide) goodLimbs⟩)
+  (1, ⟨receivedTrue topOne (by decide) (by decide) (by decide) (by decide) goodLimbs, #v[0]⟩)
 
 theorem stmtTop_not_table : ((stmtTop, oracleOf goodLimbs), ()) ∉ Seam.table topOne :=
   fun h ↦ absurd (h.2.1 ⟨⟨0, 2⟩, 1, 0, false, by decide⟩ (by simp [stmtTop])).1 (by decide)
@@ -590,7 +582,7 @@ theorem zeroTop_pub (c : E) :
   have d1 : (topOne.column goodLimbs ⟨0, 1⟩).values.get ⟨1, by decide⟩ = 1 := by decide
   have e0 : (topOne.column goodLimbs ⟨0, 2⟩).values.get ⟨0, by decide⟩ = 0 := by decide
   have e1 : (topOne.column goodLimbs ⟨0, 2⟩).values.get ⟨1, by decide⟩ = 0 := by decide
-  refine ⟨fun cl hcl ↦ ?_, aux_of_none rfl _⟩
+  refine ⟨fun cl hcl ↦ ?_, aux_of_none rfl _ _⟩
   rw [verdict, dite_eq_left (show ([1, 1] : List E).length =
     sentCount topOne (topOne.publicLines stmtTop.1) from rfl)] at hcl
   simp only [poolZero, Vector.toList_append, List.mem_append] at hcl

@@ -1,8 +1,9 @@
 /-
   LeanVM.Spec.DaWith
 
-  The DA claim for any hash: LeanDA's commitment, membership challenges and vector digest with the
-  hash a parameter in any monad and the padding digests parameters, the deployed ones recovered.
+  The DA claim for any hash and permutation: LeanDA's commitment, membership challenges and
+  vector digest with the hash and the sponge's permutation parameters in any monad and the
+  padding digests parameters, the deployed ones recovered.
 -/
 
 module
@@ -10,26 +11,40 @@ module
 public import LeanVM.Spec.Da
 
 /-!
-# The DA claim, for any hash
+# The DA claim, for any hash and permutation
 
-LeanDA (`formal/lean_da`) defines its algorithms with a pure hash `H : List UInt8 → Digest`. The
-guest's proofs also need them answered by a log: every hash made, then the value. So the algorithms the DA claim uses are transcribed here in any monad
-(`…With`), and the deployed padding digests are parameters (`pc`, `pr`; deployed: the hashes of
-the zero cell and the zero row, which the guest bakes as constants, design D5). At `m = Id` they
-are LeanDA's own (`commitCodewordsWith_id`, `membershipVectorWith_id`, `vectorDigestWith_id`).
-`Witness.OpensWith` is `Witness.Opens` over an `Option`-valued hash. The tree is built with
-`nodes.length` as fuel, which is enough (`treeRootFuel_id`).
+LeanDA (`lean_da`, `LeanDa.Scheme`) defines its algorithms with a pure hash
+`H : List UInt8 → Digest` and a pure sponge permutation `P : Lanes → Lanes`. The guest's proofs
+also need them answered by a log: every hash and permutation made, then the value. So the
+algorithms the DA claim uses are transcribed here in any monad (`…With`): the commitment, the
+challenges' duplex sponge (`spongeNewWith`, `spongeDuplexWith`, `spongeAbsorbWith`,
+`spongeSampleWith`, `spongeSamplesWith`, LeanDA's `Sponge` operations), the membership vector and
+the two-level vector digest; and the deployed padding digests are parameters (`pc`, `pr`;
+deployed: the hashes of the zero cell and the zero row, which the guest bakes as constants,
+`DA_PAD_CELL_*`, `DA_PAD_ROW_*`, `crates/rec_aggregation/src/aggregation.rs:2636-2639` at leanVM
+`3375f7a137c50b803f3416f6466b5d4e0719708a`). At `m = Id` they are LeanDA's own
+(`commitCodewordsWith_id`, `membershipVectorWith_id`, `vectorDigestWith_id`), and at Keccak-256
+and Keccak-f[1600] the deployed DA claim (`vectorDigestOfWith_id`). `Witness.OpensWith` is
+`Witness.Opens` over an `Option`-valued hash: it hashes, but runs no sponge. The tree is built
+with `nodes.length` as fuel, which is enough (`treeRootFuel_id`).
+
+This project's hash `H : Bytes → m Digest` and permutation `F : KState → m KState` are LeanDA's
+through `daHash` (the digest as bytes) and `daPerm` (lanes as `K` words), as `keccak` and
+`keccakLanes` are in `LeanVM.Spec.Da`.
 -/
 
 namespace LeanVM.Da
 
-open LeanVM.Parameters LeanVM.Protocol LeanVM.Protocol.Blake2sHash
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Protocol LeanVM.Protocol.KeccakHash
 
 @[expose] public section
 
 section With
 
 variable {m : Type → Type} [Monad m] (HD : List UInt8 → m LeanDa.Digest)
+  (PD : LeanDa.Lanes → m LeanDa.Lanes)
+
+/-! ## The commitment -/
 
 /-- `LeanDa.listCellDigest` with the hash `HD`. -/
 def listCellDigestWith (row : List K) (j : ℕ) : m LeanDa.Digest :=
@@ -63,50 +78,92 @@ def commitCodewordsWith (pc pr : LeanDa.Digest) (rows : List (List K)) : m LeanD
   let n := LeanDa.nPad rows.length
   let rds ← rows.mapM (rowDigestWith HD)
   let rowTree ← treeRootWith HD (rds ++ List.replicate (n - rows.length) pr)
-  let cols ← ((List.range LeanDa.cellsPerRow).flatMap fun j ↦ (List.range n).map fun i ↦ (i, j)).mapM
-    fun ij ↦ if h : ij.1 < rows.length then listCellDigestWith HD rows[ij.1] ij.2 else pure pc
+  let cols ← ((List.range LeanDa.cellsPerRow).flatMap fun j ↦
+      (List.range n).map fun i ↦ (i, j)).mapM fun ij ↦
+    if h : ij.1 < rows.length then listCellDigestWith HD rows[ij.1] ij.2 else pure pc
   let columnTree ← treeRootWith HD cols
   HD (LeanDa.pairBytes rowTree columnTree)
 
-/-- `LeanDa.compressWords` with the hash `HD`. -/
-def compressWordsWith (state : LeanDa.Digest) (words : List K) : m LeanDa.Digest :=
-  HD (state.toList ++ words.flatMap LeanDa.kBytes)
+/-! ## The challenges' sponge -/
 
-/-- `LeanDa.squeezes` with the hash `HD`. -/
-def squeezesWith : ℕ → LeanDa.Digest → m (List E)
+/-- `LeanDa.Sponge.new` with the permutation `PD`. -/
+def spongeNewWith (iv publicInput : LeanDa.Digest) : m LeanDa.Sponge := do
+  let state ← PD (Vector.ofFn fun i : Fin 25 ↦
+    if (i : ℕ) < 4 then LeanDa.word iv i else if (i : ℕ) < 8 then LeanDa.word publicInput (i - 4)
+    else 0)
+  pure ⟨state, []⟩
+
+/-- `LeanDa.Sponge.fromLabel` with the hash `HD` and the permutation `PD`. -/
+def spongeFromLabelWith (label : List UInt8) : m LeanDa.Sponge := do
+  spongeNewWith PD (← HD label) (Vector.replicate 32 0)
+
+/-- `LeanDa.Sponge.duplex` with the permutation `PD`. -/
+def spongeDuplexWith (s : LeanDa.Sponge) : m LeanDa.Sponge := do
+  let state ← PD (Vector.ofFn fun i : Fin 25 ↦
+    if (i : ℕ) < LeanDa.rateLanes then (LeanDa.rateWords s.pending).getD i 0 else s.state[i])
+  pure ⟨state, []⟩
+
+/-- `LeanDa.Sponge.absorb` with the permutation `PD`. -/
+def spongeAbsorbWith (s : LeanDa.Sponge) (x : E) (tag : K) : m LeanDa.Sponge := do
+  let s ← if s.pending.length = LeanDa.rateScalars then spongeDuplexWith PD s else pure s
+  pure ⟨s.state, s.pending ++ [(x, tag)]⟩
+
+/-- `LeanDa.Sponge.observe` with the permutation `PD`. -/
+def spongeObserveWith (s : LeanDa.Sponge) (x : E) : m LeanDa.Sponge :=
+  spongeAbsorbWith PD s x LeanDa.dsObserve
+
+/-- `LeanDa.Sponge.sample` with the permutation `PD`. -/
+def spongeSampleWith (s : LeanDa.Sponge) : m (E × LeanDa.Sponge) := do
+  let s ← spongeDuplexWith PD s
+  pure (LeanDa.ofLimbs s.state[0] s.state[1] s.state[2], s)
+
+/-- `LeanDa.Sponge.samples` with the permutation `PD`. -/
+def spongeSamplesWith : ℕ → LeanDa.Sponge → m (List E)
   | 0, _ => pure []
-  | n + 1, state => do
-    let state ← compressWordsWith HD state [0, 0, 0, LeanDa.K.ofBits 2]
-    let rest ← squeezesWith n state
-    pure (LeanDa.ofLimbs (LeanDa.word state 0) (LeanDa.word state 1) (LeanDa.word state 2) :: rest)
+  | n + 1, s => do
+    let (c, s) ← spongeSampleWith PD s
+    let rest ← spongeSamplesWith n s
+    pure (c :: rest)
 
-/-- `LeanDa.membershipChallenges` with the hash `HD`. -/
+/-- `LeanDa.membershipChallenges` with the hash `HD` and the permutation `PD`. -/
 def membershipChallengesWith (root : LeanDa.Digest) : m (List E) := do
-  let state ← HD LeanDa.label
-  let state ← compressWordsWith HD state [LeanDa.word root 0, LeanDa.word root 1, 0, LeanDa.K.ofBits 1]
-  let state ← compressWordsWith HD state [LeanDa.word root 2, LeanDa.word root 3, 0, LeanDa.K.ofBits 1]
-  squeezesWith HD LeanDa.logK state
+  let s ← spongeFromLabelWith HD PD LeanDa.label
+  let s ← spongeObserveWith PD s (LeanDa.ofLimbs (LeanDa.word root 0) (LeanDa.word root 1) 0)
+  let s ← spongeObserveWith PD s (LeanDa.ofLimbs (LeanDa.word root 2) (LeanDa.word root 3) 0)
+  spongeSamplesWith PD LeanDa.logK s
 
-/-- `LeanDa.membershipVector` with the hash `HD`. -/
+/-- `LeanDa.membershipVector` with the hash `HD` and the permutation `PD`. -/
 def membershipVectorWith (root : LeanDa.Digest) : m (List E) :=
-  LeanDa.dualCodeword <$> membershipChallengesWith HD root
+  LeanDa.dualCodeword <$> membershipChallengesWith HD PD root
 
-/-- `LeanDa.vectorDigest` with the hash `HD`. -/
-def vectorDigestWith (vector : List E) : m LeanDa.Digest :=
-  HD ((vector.flatMap fun e ↦ [LeanDa.limb e 0, LeanDa.limb e 1, LeanDa.limb e 2]).flatMap
-    LeanDa.kBytes)
+/-! ## The vector digest -/
+
+/-- `LeanDa.columnDigest` with the hash `HD`. -/
+def columnDigestWith (vector : List E) (j : ℕ) : m LeanDa.Digest :=
+  HD (LeanDa.limbBytes ((vector.drop (j * LeanDa.cellSymbols)).take LeanDa.cellSymbols))
+
+/-- `LeanDa.vectorDigest` with the hash `HD`: the hash of the column digests. -/
+def vectorDigestWith (vector : List E) : m LeanDa.Digest := do
+  let ds ← (List.range LeanDa.cellsPerRow).mapM (columnDigestWith HD vector)
+  HD (ds.flatMap fun d ↦ d.toList)
 
 end With
 
-/-- The hash of a log of this project's digests as LeanDA's: `toBytes` of the answer. -/
+/-- This project's hash as LeanDA's: `toBytes` of the answer. -/
 def daHash {m : Type → Type} [Monad m] (H : List UInt8 → m Digest) (x : List UInt8) :
     m LeanDa.Digest :=
   toBytes <$> H x
 
-/-- **The vector digest of a root, with the hash `H`** (`vectorDigestOf`). -/
-def vectorDigestOfWith {m : Type → Type} [Monad m] (H : List UInt8 → m Digest) (root : Digest) :
-    m LeanDa.Digest := do
-  vectorDigestWith (daHash H) (← membershipVectorWith (daHash H) (toBytes root))
+/-- This project's permutation as LeanDA's: on the lanes as 64-bit words. -/
+def daPerm {m : Type → Type} [Monad m] (F : KState → m KState) (l : LeanDa.Lanes) :
+    m LeanDa.Lanes :=
+  stateLanes <$> F (lanesState l)
+
+/-- **The vector digest of a root, with the hash `H` and the permutation `F`**
+(`vectorDigestOf`). -/
+def vectorDigestOfWith {m : Type → Type} [Monad m] (H : List UInt8 → m Digest)
+    (F : KState → m KState) (root : Digest) : m LeanDa.Digest := do
+  vectorDigestWith (daHash H) (← membershipVectorWith (daHash H) (daPerm F) (toBytes root))
 
 /-- **`Witness.Opens` over an `Option`-valued hash**, the padding digests `pc`, `pr` parameters:
 every hash answered, and the claim true of the answers. -/
@@ -121,6 +178,7 @@ def Witness.OpensWith (H : List UInt8 → Option Digest) (pc pr : LeanDa.Digest)
 
 /-! ## The deployed algorithms, recovered -/
 
+/-- `mapM` in `Id` is `map`. -/
 theorem mapM_id {α β : Type} (f : α → Id β) : ∀ l : List α,
     (l.mapM (m := Id) f : List β) = l.map fun a ↦ Id.run (f a)
   | [] => rfl
@@ -128,13 +186,15 @@ theorem mapM_id {α β : Type} (f : α → Id β) : ∀ l : List α,
 
 section Id
 
-variable (H : List UInt8 → LeanDa.Digest)
+variable (H : List UInt8 → LeanDa.Digest) (P : LeanDa.Lanes → LeanDa.Lanes)
 
+/-- A tree level with the pure hash is `LeanDa.treeLevel`. -/
 theorem treeLevelWith_id (nodes : List LeanDa.Digest) :
     Id.run (treeLevelWith (m := Id) H nodes) = LeanDa.treeLevel H nodes := by
   simp only [treeLevelWith, mapM_id, LeanDa.treeLevel]
   rfl
 
+/-- A tree level halves the nodes. -/
 theorem length_treeLevel (nodes : List LeanDa.Digest) :
     (LeanDa.treeLevel H nodes).length = nodes.length / 2 := by
   simp [LeanDa.treeLevel]
@@ -155,15 +215,18 @@ theorem treeRootFuel_id : ∀ (fuel : ℕ) (nodes : List LeanDa.Digest), nodes.l
       show Id.run (treeRootFuel (m := Id) H fuel (Id.run (treeLevelWith (m := Id) H nodes))) = _
       rw [treeLevelWith_id, treeRootFuel_id fuel _ (by omega)]
 
+/-- The tree's root with the pure hash is `LeanDa.treeRoot`. -/
 theorem treeRootWith_id (nodes : List LeanDa.Digest) :
     Id.run (treeRootWith (m := Id) H nodes) = LeanDa.treeRoot H nodes :=
   treeRootFuel_id H _ nodes le_rfl
 
+/-- A row's digest with the pure hash is `LeanDa.rowDigest`. -/
 theorem rowDigestWith_id (row : List K) :
     Id.run (rowDigestWith (m := Id) H row) = LeanDa.rowDigest H row := by
   simp only [rowDigestWith, listCellDigestWith, LeanDa.rowDigest, LeanDa.listCellDigest]
   rfl
 
+/-- The commitment with the pure hash and LeanDA's padding digests is `LeanDa.commitCodewords`. -/
 theorem commitCodewordsWith_id (rows : List (List K)) :
     Id.run (commitCodewordsWith (m := Id) H (LeanDa.paddingCell H) (LeanDa.paddingRow H) rows) =
       LeanDa.commitCodewords H rows := by
@@ -180,35 +243,55 @@ theorem commitCodewordsWith_id (rows : List (List K)) :
     rw [List.map_map]
     congr 1
 
-theorem membershipVectorWith_id (root : LeanDa.Digest) :
-    Id.run (membershipVectorWith (m := Id) H root) = LeanDa.membershipVector H root := by
-  have hsq : ∀ (n : ℕ) (st : LeanDa.Digest),
-      Id.run (squeezesWith (m := Id) H n st) = LeanDa.squeezes H n st := by
-    intro n
-    induction n with
-    | zero => intro st; rfl
-    | succ n ih =>
-      intro st
-      simp only [squeezesWith, LeanDa.squeezes, compressWordsWith, LeanDa.compressWords]
-      show _ :: Id.run (squeezesWith (m := Id) H n _) = _
-      rw [ih]
-  simp only [membershipVectorWith, membershipChallengesWith, LeanDa.membershipVector,
-    LeanDa.membershipChallenges, compressWordsWith, LeanDa.compressWords]
-  show LeanDa.dualCodeword (Id.run (squeezesWith (m := Id) H _ _)) = _
-  rw [hsq]
+/-- The sponge's samples with the pure permutation are `LeanDa.Sponge.samples`. -/
+theorem spongeSamplesWith_id : ∀ (n : ℕ) (s : LeanDa.Sponge),
+    Id.run (spongeSamplesWith (m := Id) P n s) = LeanDa.Sponge.samples P n s
+  | 0, _ => rfl
+  | n + 1, s => by
+    show _ :: Id.run (spongeSamplesWith (m := Id) P n _) = _
+    rw [spongeSamplesWith_id n]
+    rfl
 
-theorem vectorDigestWith_id (vector : List E) :
-    Id.run (vectorDigestWith (m := Id) H vector) = LeanDa.vectorDigest H vector :=
+/-- Observing with the pure permutation is `LeanDa.Sponge.observe`. -/
+theorem spongeObserveWith_id (s : LeanDa.Sponge) (x : E) :
+    Id.run (spongeObserveWith (m := Id) P s x) = LeanDa.Sponge.observe P s x := by
+  simp only [spongeObserveWith, spongeAbsorbWith, LeanDa.Sponge.observe, LeanDa.Sponge.absorb]
+  split <;> rfl
+
+/-- The membership vector with the pure hash and permutation is `LeanDa.membershipVector`. -/
+theorem membershipVectorWith_id (root : LeanDa.Digest) :
+    Id.run (membershipVectorWith (m := Id) H P root) = LeanDa.membershipVector H P root := by
+  show LeanDa.dualCodeword (Id.run (spongeSamplesWith (m := Id) P _
+    (Id.run (spongeObserveWith (m := Id) P (Id.run (spongeObserveWith (m := Id) P
+      (Id.run (spongeFromLabelWith (m := Id) H P LeanDa.label)) _)) _)))) = _
+  rw [spongeObserveWith_id, spongeObserveWith_id, spongeSamplesWith_id]
   rfl
 
-theorem vectorDigestOfWith_id (root : Digest) :
-    Id.run (vectorDigestOfWith (m := Id) blake2sBytes root) = vectorDigestOf root := by
-  simp only [vectorDigestOfWith, vectorDigestOf]
-  show Id.run (vectorDigestWith (m := Id) blake2s
-    (Id.run (membershipVectorWith (m := Id) blake2s _))) = _
-  rw [membershipVectorWith_id, vectorDigestWith_id]
+/-- The vector digest with the pure hash is `LeanDa.vectorDigest`. -/
+theorem vectorDigestWith_id (vector : List E) :
+    Id.run (vectorDigestWith (m := Id) H vector) = LeanDa.vectorDigest H vector := by
+  show H ((Id.run ((List.range LeanDa.cellsPerRow).mapM (m := Id)
+    (columnDigestWith (m := Id) H vector))).flatMap fun d ↦ d.toList) = _
+  rw [mapM_id]
+  rfl
 
 end Id
+
+/-- Keccak-256, as LeanDA's hash, is `keccak`. -/
+theorem daHash_id : daHash (m := Id) keccak256 = keccak := rfl
+
+/-- Keccak-f[1600], as LeanDA's permutation, is `keccakLanes`. -/
+theorem daPerm_id : daPerm (m := Id) keccakF = keccakLanes := rfl
+
+/-- The vector digest of a root with Keccak is `vectorDigestOf`. -/
+theorem vectorDigestOfWith_id (root : Digest) :
+    Id.run (vectorDigestOfWith (m := Id) keccak256 keccakF root) = vectorDigestOf root := by
+  unfold vectorDigestOfWith
+  rw [daHash_id, daPerm_id]
+  show Id.run (vectorDigestWith (m := Id) keccak
+    (Id.run (membershipVectorWith (m := Id) keccak keccakLanes (toBytes root)))) = _
+  rw [membershipVectorWith_id, vectorDigestWith_id]
+  rfl
 
 end
 end LeanVM.Da

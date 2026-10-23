@@ -48,27 +48,29 @@ variable {prog : Program} {input : PublicInput} {w : EnsembleWitness (leanIsaEns
 /-! ## Bytecode messages as triples -/
 
 /-- A bytecode message as its triple. -/
-def bcMsgOfTriple (x : K × K × Vector K 8) : Array K := bcMsgOf x.1 x.2.1 x.2.2
+def bcMsgOfTriple (x : K × K × Vector K 11) : Array K := bcMsgOf x.1 x.2.1 x.2.2
 
 /-- The triple of a bytecode message, `0` for a missing coordinate. -/
-def tripleOfBcMsg (a : Array K) : K × K × Vector K 8 :=
+def tripleOfBcMsg (a : Array K) : K × K × Vector K 11 :=
   (a.getD 0 0, a.getD 1 0, #v[a.getD 2 0, a.getD 3 0, a.getD 4 0, a.getD 5 0, a.getD 6 0,
-    a.getD 7 0, a.getD 8 0, a.getD 9 0])
+    a.getD 7 0, a.getD 8 0, a.getD 9 0, a.getD 10 0, a.getD 11 0, a.getD 12 0])
 
-/-- A vector of eight is its entries. -/
-theorem vec8_eta (v : Vector K 8) : #v[v[0], v[1], v[2], v[3], v[4], v[5], v[6], v[7]] = v := by
-  refine Vector.ext fun i hi ↦ ?_
-  interval_cases i <;> rfl
+/-- A vector of eleven is its entries. -/
+theorem vec8_eta (v : Vector K 11) :
+    #v[v[0], v[1], v[2], v[3], v[4], v[5], v[6], v[7], v[8], v[9], v[10]] = v := by
+  obtain ⟨⟨l⟩, hl⟩ := v
+  match l, hl with
+  | [_, _, _, _, _, _, _, _, _, _, _], _ => rfl
 
 /-- Reading a bytecode message back gives its triple. -/
-theorem tripleOfBcMsg_bcMsgOfTriple (x : K × K × Vector K 8) :
+theorem tripleOfBcMsg_bcMsgOfTriple (x : K × K × Vector K 11) :
     tripleOfBcMsg (bcMsgOfTriple x) = x := by
   obtain ⟨a, c, v⟩ := x
   simp only [tripleOfBcMsg, bcMsgOfTriple, bcMsgOf]
   simp [vec8_eta]
 
 /-- Reading a bytecode message back gives its coordinates. -/
-theorem tripleOfBcMsg_bcMsgOf (pc c : K) (e : Vector K 8) :
+theorem tripleOfBcMsg_bcMsgOf (pc c : K) (e : Vector K 11) :
     tripleOfBcMsg (bcMsgOf pc c e) = (pc, c, e) :=
   tripleOfBcMsg_bcMsgOfTriple (pc, c, e)
 
@@ -76,14 +78,16 @@ theorem tripleOfBcMsg_bcMsgOf (pc c : K) (e : Vector K 8) :
 theorem bcMsgOfTriple_injective : Function.Injective bcMsgOfTriple := fun x y h ↦ by
   rw [← tripleOfBcMsg_bcMsgOfTriple x, h, tripleOfBcMsg_bcMsgOfTriple]
 
-/-- A vector of seven is its entries. -/
-theorem vec7_eta (v : Vector K 7) : #v[v[0], v[1], v[2], v[3], v[4], v[5], v[6]] = v := by
-  refine Vector.ext fun i hi ↦ ?_
-  interval_cases i <;> rfl
+/-- A vector of ten is its entries. -/
+theorem vec7_eta (v : Vector K 10) :
+    #v[v[0], v[1], v[2], v[3], v[4], v[5], v[6], v[7], v[8], v[9]] = v := by
+  obtain ⟨⟨l⟩, hl⟩ := v
+  match l, hl with
+  | [_, _, _, _, _, _, _, _, _, _], _ => rfl
 
-/-- An opcode followed by seven operands is the eight-coordinate vector of them. -/
-theorem cons_append_eta (a : K) (v : Vector K 7) :
-    #v[a] ++ v = #v[a, v[0], v[1], v[2], v[3], v[4], v[5], v[6]] := by
+/-- An opcode followed by ten operands is the eleven-coordinate vector of them. -/
+theorem cons_append_eta (a : K) (v : Vector K 10) :
+    #v[a] ++ v = #v[a, v[0], v[1], v[2], v[3], v[4], v[5], v[6], v[7], v[8], v[9]] := by
   conv_lhs => rw [← vec7_eta v]
   rfl
 
@@ -104,10 +108,10 @@ theorem flatMap_singleton_eq_map' {α : Type*} {β : Type} (f : α → β) (l : 
   | cons x xs ih => simp [ih]
 
 /-- The bytecode read of a row of the six tables, as a triple. -/
-def RowRec.bcRead (x : RowRec) : K × K × Vector K 8 := (x.pc, x.rbc, x.e)
+def RowRec.bcRead (x : RowRec) : K × K × Vector K 11 := (x.pc, x.rbc, x.e)
 
 /-- A bytecode read pushed back: its count multiplied by `g`. -/
-def bumpBc (x : K × K × Vector K 8) : K × K × Vector K 8 := (x.1, g * x.2.1, x.2.2)
+def bumpBc (x : K × K × Vector K 11) : K × K × Vector K 11 := (x.1, g * x.2.1, x.2.2)
 
 /-- The bytecode messages a row of the six tables pulls. -/
 theorem chanOf_rowRec_bcPull (x : RowRec) :
@@ -152,12 +156,12 @@ theorem bc_triples_perm (h : SatisfiedByB prog input w) {f : Air.Flat.Table K ×
 /-- Every bytecode message a satisfying witness pulls has a counter `g^k` of the program and
 the program's entry there. -/
 theorem bc_pulls_seeded (h : SatisfiedByB prog input w) :
-    ∀ msg ∈ messagesOn w BytecodePull.toRaw, ∃ x : K × K × Vector K 8, msg = bcMsgOfTriple x ∧
+    ∀ msg ∈ messagesOn w BytecodePull.toRaw, ∃ x : K × K × Vector K 11, msg = bcMsgOfTriple x ∧
       ∃ k : Fin (2 ^ prog.logSize), x.1 = gpow k ∧ x.2.2 = entry (prog.code k) := by
   obtain ⟨f, hf⟩ := exists_opRecs w
   obtain ⟨mfin, bfin, hall⟩ := allSends_eq h hf
   have hperm := bc_triples_perm h hall
-  let key : K × K × Vector K 8 → K × Vector K 8 := fun x ↦ (x.1, x.2.2)
+  let key : K × K × Vector K 11 → K × Vector K 11 := fun x ↦ (x.1, x.2.2)
   have hseeded := lookup_sound key (·.2.1) bumpBc _ _ _ (fun _ _ ↦ rfl) (fun _ _ ↦ rfl) hperm
     (fun x hx ↦ by
       obtain ⟨p, hp, rfl⟩ := List.mem_map.mp hx

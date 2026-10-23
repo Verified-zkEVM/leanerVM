@@ -268,7 +268,7 @@ theorem constraintCompleteness_rows {prog : Program} {input : PublicInput} {t : 
     exact List.mem_map_of_mem (List.mem_range.mpr hk)
   · intro j
     fin_cases j
-    exacts [hlen .xor, hlen .mulNative, hlen .setConstant, hlen .deref, hlen .jump, hlen .blake2s]
+    exacts [hlen .xor, hlen .mulNative, hlen .setConstant, hlen .deref, hlen .jump, hlen .keccak]
 
 /-- **Constraint completeness**. A valid execution of
 at most `2^maxLogRows` steps has a witness satisfying the constraint statement and representing

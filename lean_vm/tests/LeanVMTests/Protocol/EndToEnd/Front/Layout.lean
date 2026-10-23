@@ -4,18 +4,20 @@ import LeanVM.Protocol.EndToEnd.Front.CommitDoom
 /-!
 # Tests: the verifier's layout is the instance's
 
-* **Two size vectors against the pinned Rust.** For the two height vectors of
-  `tests/LeanVMTests/Protocol/LeanIsa.lean`, whose offsets were checked against the pinned Rust,
-  announced as full tables, the verifier program builds its layout, its stacked size is the instance's, every committed
-  column's placement is at the instance's block offset with the instance's log-size, and every
-  `BLAKE2S` limb sits at the Flock region's offset plus its deployed slot, below `8` coordinates.
+* **Two size vectors against the pinned Python.** For the two height vectors of
+  `tests/LeanVMTests/Protocol/LeanIsa.lean`, whose offsets were checked against the pinned
+  Python's `build_layout`, announced as full tables, the verifier program builds its layout, its
+  stacked size is the instance's, every committed column's placement is at the instance's block
+  offset with the instance's log-size, every `KECCAK` input lane is the column of `QKECCAK`'s
+  block at its slot, and every output lane has no placement (it is derived, never opened).
 * **Row counts.** Row counts that are not powers of two give the placements and the stacked size
   of the least powers of two holding them.
 * **The announced sizes.** `readSizes` returns on the announcement of admissible sizes, and
-  rejects a memory below `2^16`, a table above `2^32` rows and the rate `5`; a `BLAKE2S` table
-  of two rows is accepted.
-* **Mutations.** Breaking ties by the higher index, or reading the limbs at the identity slots,
-  moves placements: the tie order and the deployed slots are load-bearing.
+  rejects a memory below `2^16`, a table above `2^32` rows and the rate `5`; a `KECCAK` table
+  of two rows is accepted, at its floor height `2^9`.
+* **Mutations.** Breaking ties by the higher index, or reading the lanes in the low six
+  coordinates of `QKECCAK`, moves placements: the tie order and the lanes' columns are
+  load-bearing.
 * **The bus flushes.** Every opcode table's pushed and pulled tuples, evaluated on a row, are the
   Python's in the Python's order, and its count columns the Python's `cnt` columns. This is the
   regression for `DEREF`, whose Clean table read the local cell before the store target until it
@@ -36,7 +38,7 @@ def prog4 : Program := ⟨2, by decide, fun _ ↦ .xor 0 0 0⟩
 tall as the memory. -/
 def s₁ : Sizes := ⟨16, by decide, ![65536, 8, 65536, 16, 65536, 65536]⟩
 
-/-- The second size vector, heights `2, 18, 5, 0, 7, 3`: mixed heights. -/
+/-- The second size vector, heights `2, 18, 5, 0, 7, 9` (`KECCAK` at its floor): mixed heights. -/
 def s₂ : Sizes := ⟨18, by decide, ![4, 262144, 32, 1, 128, 8]⟩
 
 /-- The second size vector's heights, from row counts that are not powers of two. -/
@@ -45,30 +47,31 @@ def s₃ : Sizes := ⟨18, by decide, ![3, 200000, 17, 0, 65, 5]⟩
 /-! ## The layout -/
 
 #guard tableLogs s₁ == [16, 3, 16, 4, 16, 16]
-#guard tableLogs s₂ == [2, 18, 5, 0, 7, 3]
+#guard tableLogs s₂ == [2, 18, 5, 0, 7, 9]
 #guard tableLogs s₃ == tableLogs s₂
 #guard (buildLayout (bytecodeWords prog4) s₁.logMem (tableRows s₁)).isSome
 #guard (buildLayout (bytecodeWords prog4) s₂.logMem (tableRows s₂)).isSome
 #guard (buildLayout (bytecodeWords prog4) s₃.logMem (tableRows s₃)).isSome
-#guard (verifierLayout prog4 s₁).stackLog = 25
+#guard (verifierLayout prog4 s₁).stackLog = 24
 #guard (verifierLayout prog4 s₂).stackLog = 23
 #guard (verifierLayout prog4 s₃).stackLog = 23
 #guard decide ((verifierLayout prog4 s₃).placements = (verifierLayout prog4 s₂).placements)
 #guard decide (LayoutOk s₁)
 
-/-- The placement the instance gives a column: its block's offset, or the Flock region's offset
-plus its deployed slot. -/
-def instancePlacement (prog : Program) (s : Sizes) (c : Col) : Placement :=
-  if h : IsLimb c then
-    { vars := s.τ 5, low := 8,
-      index := (blocks prog s).offset (flockBlock prog s) +
-        (Blake2sFlock.slots ⟨c.2.val - 9, by have := h.2.2; omega⟩).val }
-  else { vars := kappa prog s c, index := (blocks prog s).offset (blockOf c h) }
+/-- The placement the instance gives a column: none for an output lane; for an input lane, the
+column of `QKECCAK`'s block at its slot; otherwise its block's offset. -/
+def instancePlacement (prog : Program) (s : Sizes) (c : Col) : Option Placement :=
+  if IsOut c then none
+  else if h : IsLane c then
+    some
+      { vars := s.τ 5,
+        index := (blocks prog s).offset (keccakBlock prog s) + (c.2.val - 13) * 2 ^ s.τ 5 }
+  else some { vars := kappa prog s c, index := (blocks prog s).offset (blockOf c h) }
 
 /-- The verifier's placement of every column agrees with the instance's. -/
 def placementsAgree (prog : Program) (s : Sizes) : Bool :=
   columns.all fun c ↦
-    (verifierLayout prog s).placements.getD (pyCol c) default = instancePlacement prog s c
+    (verifierLayout prog s).placements.getD (pyCol c) none = instancePlacement prog s c
 
 #guard placementsAgree prog4 s₁
 #guard placementsAgree prog4 s₂
@@ -77,17 +80,20 @@ def placementsAgree (prog : Program) (s : Sizes) : Bool :=
 /-- The general statements, at the test's sizes. -/
 example : (verifierLayout prog4 s₁).stackLog = leanIsaμ prog4 s₁ := stackLog_verifierLayout _ _
 
-example (c : Col) (h : ¬ IsLimb c) :
-    (verifierLayout prog4 s₂).placements.getD (pyCol c) default = instancePlacement prog4 s₂ c := by
-  rw [placement_committed prog4 s₂ c h, instancePlacement]
-  simp only [h, ↓reduceDIte]
+example (c : Col) (h : ¬ IsLane c) :
+    (verifierLayout prog4 s₂).placement (pyCol c) =
+      { vars := kappa prog4 s₂ c, index := (blocks prog4 s₂).offset (blockOf c h) } :=
+  placement_committed prog4 s₂ c h
 
-example (F : FlockSpec) (hF : F.slot = Blake2sFlock.slots) (c : Col)
-    (z : Vector E (kappa prog4 s₁ c)) (v : E) (q : Column (leanIsaμ prog4 s₁)) :
+example (c : Col) (h : IsOut c) : (verifierLayout prog4 s₂).placements.getD (pyCol c) none = none :=
+  placements_outLane prog4 s₂ c h
+
+example (c : Col) (hc : ¬ IsOut c) (z : Vector E (kappa prog4 s₁ c)) (v : E)
+    (q : Column (leanIsaμ prog4 s₁)) :
     StackClaim.Holds (leanIsaμ prog4 s₁)
         ((⟨pyCol c, z.toList, v⟩ : Verifier.ColumnClaim).onStack (verifierLayout prog4 s₁)) q ↔
-      (⟨c, z, v⟩ : LeanVM.Protocol.ColumnClaim (leanIsaInstance F prog4 s₁)).Holds q :=
-  onStack_holds_iff prog4 s₁ F hF c z v q
+      (⟨c, z, v⟩ : LeanVM.Protocol.ColumnClaim (leanIsaInstance prog4 s₁)).Holds q :=
+  onStack_holds_iff prog4 s₁ c hc z v q
 
 /-! ## The announced sizes -/
 
@@ -103,7 +109,7 @@ def rejects (s : Sizes) (ρ : ℕ) : Bool :=
   | some .fail => true
   | _ => false
 
-#guard readsTo s₁ 2 25
+#guard readsTo s₁ 2 24
 #guard readsTo s₂ 4 23
 #guard readsTo s₃ 4 23
 #guard readsTo ⟨16, by decide, ![65536, 8, 65536, 16, 65536, 2]⟩ 2 22
@@ -125,11 +131,13 @@ def stackOffsetsHighTies (sizes : List ℕ) : List ℕ :=
 #guard stackOffsetsHighTies (committedColumns.map (kappa prog4 s₁)) ≠
   (stackOffsets (committedColumns.map (kappa prog4 s₁))).1
 
--- The limbs at the identity slots move off the deployed placement.
-#guard (columns.filter fun c ↦ decide (IsLimb c)).any fun c ↦
-  (verifierLayout prog4 s₁).placements.getD (pyCol c) default ≠
-    { vars := s₁.τ 5, low := 8,
-      index := (blocks prog4 s₁).offset (flockBlock prog4 s₁) + (c.2.val - 9) }
+-- The input lanes read in the low six coordinates of `QKECCAK` (slot-major) move off the
+-- deployed placement.
+#guard (columns.filter fun c ↦ decide (IsLane c ∧ ¬ IsOut c)).any fun c ↦
+  (verifierLayout prog4 s₁).placements.getD (pyCol c) none ≠
+    some
+      { vars := s₁.τ 5, low := 6,
+        index := (blocks prog4 s₁).offset (keccakBlock prog4 s₁) + (c.2.val - 13) }
 
 /-! ## The bus flushes: the `DEREF` order -/
 

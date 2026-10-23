@@ -39,7 +39,7 @@ folded by `y^3 = y + 1`.
 * Natural-number casts follow characteristic two: `2 : K = 0`. Wire words use
   `K.ofBits`; `K.ofBits 2` is `x` (bit 1).
 * `ofK a` occupies the `y^0` limb only. "`x ∈ K`" is the predicate `IsInK`; a canonical 128-bit
-  word, the cell shape BLAKE2S consumes, is `IsCanonical128`.
+  word, the cell shape `KECCAK` reads and writes, is `IsCanonical128`.
 
 ## Computability and the module system
 

@@ -25,8 +25,10 @@ witness. A **decoder** reads a seed, a statement and a witness off a memory (`De
   `s` passing the outer verifier's other checks (`OuterChecks`), while the execution the
   knowledge extractor `extractor` (`Extractor.lean`) reads off the proof and the adversary's
   answers does not explain `s` (`Explains`: decode to the deployed seed, `s` and a witness
-  holding it, or give a BLAKE2s collision among `collisionCandidates`), with probability at most
-  `soundnessError Q`.
+  holding it, or give a Keccak-256 collision among `collisionCandidates`), with probability at
+  most `soundnessError Q`. The experiment is `LeanVM.Spec.Statement`'s: Keccak-256 and
+  Keccak-f[1600] outside the executed program are random oracles; the statement's digest and the
+  collisions are of the deployed Keccak-256, which the guest computes.
 
 Both hold of any decoder that happens to output valid witnesses; their content is in the decoder
 the theorems name (`LeanVM.Guest.End.decode`), which reads every component off the memory: the
@@ -34,12 +36,17 @@ statement from `main`'s frame, each signature, matrix and child proof from the f
 function that checked it, the first frame of the memory at which that function's code holds on
 the call's words. The decoder chooses nothing and verifies nothing. The seed is the guest's hint:
 the statement's digest binds it, so a consumer comparing the digest with its own statement's under
-the deployed seed learns both, unless it holds a BLAKE2s collision.
+the deployed seed learns both, unless it holds a Keccak-256 collision.
+
+At leanVM `3375f7a137c50b803f3416f6466b5d4e0719708a` the statement's preimage is hashed as it is,
+without the zero fill to whole blocks that BLAKE2s had (`statement_digest`,
+`crates/rec_aggregation/src/aggregation.rs:344-365`): `statementPreimage` is those bytes, and the
+former `statementBytes` (the bytes before the fill) is gone.
 -/
 
 namespace LeanVM.Node
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Protocol LeanVM.Protocol.Blake2sHash
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Protocol LeanVM.Protocol.KeccakHash
 open LeanVM.Protocol.Compile LeanVM.Protocol.Verifier
 open scoped ENNReal
 
@@ -51,15 +58,11 @@ open scoped ENNReal
 def paddedCells (c : DeferredClaim) : List E :=
   c.cells ++ if c.cells.length % 2 = 1 then [0] else []
 
-/-- The bytes of a statement under `seed`, before the zero fill. -/
-def statementBytes (seed : Digest) (s : NodeStatement) : List UInt8 :=
+/-- The bytes `statementDigest seed s` hashes: the seed, the signer set's and the DA claims'
+digests, then the padded deferred cells. -/
+def statementPreimage (seed : Digest) (s : NodeStatement) : List UInt8 :=
   digestBytes seed ++ digestBytes (signersDigest s.claims.xmss s.claims.sphincs) ++
     digestBytes (daListDigest s.claims.da) ++ (paddedCells s.defer).flatMap eBytes
-
-/-- The bytes `statementDigest seed s` hashes: zero-filled to whole 64-byte blocks. -/
-def statementPreimage (seed : Digest) (s : NodeStatement) : List UInt8 :=
-  statementBytes seed s ++
-    List.replicate ((64 - (statementBytes seed s).length % 64) % 64) 0
 
 /-- The bytes `signersDigest xmss sphincs` hashes. -/
 def signersPreimage (xmss : List XmssClaim) (sphincs : List SphincsClaim) : List UInt8 :=
@@ -89,9 +92,10 @@ def collisionCandidates (seed : Digest) (s : NodeStatement) (seed' : Digest)
     (sphincsPreimage s.claims.sphincs, sphincsPreimage s'.claims.sphincs),
     (daPreimage s.claims.da, daPreimage s'.claims.da)]
 
-/-- **A collision**: a pair of different inputs with the same BLAKE2s digest, among `pairs`. -/
+/-- **A collision**: a pair of different inputs with the same Keccak-256 digest, among
+`pairs`. -/
 def HasCollision (pairs : List (List UInt8 × List UInt8)) : Prop :=
-  ∃ p ∈ pairs, p.1 ≠ p.2 ∧ blake2sBytes p.1 = blake2sBytes p.2
+  ∃ p ∈ pairs, p.1 ≠ p.2 ∧ keccak256 p.1 = keccak256 p.2
 
 /-! ## Decoders -/
 
@@ -120,7 +124,7 @@ def GuestKnowledge (guest : Program) (decode : Decoder) : Prop :=
   ∀ input (t : Trace guest), ValidExecution guest input t → DecodesOn guest input (decode t.image)
 
 /-- **The decoding `d` explains the statement `s`**: it is the deployed seed, `s` and a witness
-holding `s`; or the decoded seed and statement, with the deployed seed and `s`, give a BLAKE2s
+holding `s`; or the decoded seed and statement, with the deployed seed and `s`, give a Keccak-256
 collision among the candidates. -/
 def Explains (guest : Program) (s : NodeStatement) (d : Decoded) : Prop :=
   (d.seed = deployedSeed guest ∧ d.statement = s ∧

@@ -1,4 +1,4 @@
-import LeanVM.Protocol.LeanVM
+import LeanVM.Protocol.EndToEnd.Complete.Statement
 import LeanVMTests.Arithmetization.Completeness.Fixture
 
 /-!
@@ -8,8 +8,9 @@ Statement locks of `LeanVM/Protocol/EndToEnd/Complete/Small.lean`, with their ax
 `Trace.committedSize ≤ 2^28` holds whenever the former caps do (at most `2^19` steps, `2^23` words
 of memory and `2^23` instructions: `committedSize_le_of_caps`), in particular for the one-step
 trace of `Completeness.Fixture`. It also holds for a run of `2^20` steps, all `JUMP`s, which the
-former caps excluded, so `LeanVM.completeness` applies to it (`longTrace_complete`). The negative
-case: a `BLAKE2S` table of more than `2^19` rows has no admissible sizes, whatever the rest.
+former caps excluded, so completeness (`Complete.completeness_le`, which `LeanVM.completeness`
+restates) applies to it (`longTrace_complete`). The negative case: a `KECCAK` table of more than
+`2^21` rows has no admissible sizes, whatever the rest.
 -/
 
 namespace LeanVMTests.Protocol.EndToEnd.Complete.Small
@@ -31,24 +32,24 @@ example {prog : Program} {input : PublicInput} {t : Trace prog}
       s.Admissible prog :=
   exists_admissible_witness hv hbudget
 
-example (H : Bytes → Digest) {prog : Program} {input : PublicInput}
+example (H : Bytes → Digest) (F : KState → KState) {prog : Program} {input : PublicInput}
     {t : Trace prog} {ρ fuel : ℕ} {proof : Proof}
-    (h : honestProofOf H prog input t ρ fuel = some proof) :
-    verifyWith (m := Id) H (bytecodeWords prog) (publicDigest input) proof = true :=
-  verify_honestProofOf H h
+    (h : honestProofOf H F prog input t ρ fuel = some proof) :
+    verifyWith (m := Id) H F (bytecodeWords prog) (publicDigest input) proof = true :=
+  verify_honestProofOf H F h
 
 example {prog : Program} {input : PublicInput} {t : Trace prog} {ρ : ℕ}
     (hv : ValidExecution prog input t) (hbudget : t.committedSize ≤ 2 ^ maxMu)
-    (hρ : validRate ρ) (H : Bytes → Digest) (fuel : ℕ)
-    (hpow : ∀ hist bits k cv,
+    (hρ : validRate ρ) (H : Bytes → Digest) (F : KState → KState) (fuel : ℕ)
+    (hpow : ∀ hist bits k sp,
       (leanVmProgram (bytecodeWords prog) (publicDigest input)).after hist =
-          some (.grind bits k) → findNonce H bits cv fuel ≠ none) :
-    (honestProofOf H prog input t ρ fuel).isSome :=
-  honestProofOf_isSome hv hbudget hρ H fuel hpow
+          some (.grind bits k) → findNonce F bits sp fuel ≠ none) :
+    (honestProofOf H F prog input t ρ fuel).isSome :=
+  honestProofOf_isSome hv hbudget hρ H F fuel hpow
 
 example (prog : Program) (s : Sizes) : (LeanVM.Protocol.LeanIsa.blocks prog s).total =
-    4 * 2 ^ s.logMem + 2 ^ prog.logSize + 2 ^ (8 + s.τ 5) + 15 * 2 ^ s.τ 0 + 15 * 2 ^ s.τ 1 +
-      8 * 2 ^ s.τ 2 + 15 * 2 ^ s.τ 3 + 14 * 2 ^ s.τ 4 + 19 * 2 ^ s.τ 5 :=
+    4 * 2 ^ s.logMem + 2 ^ prog.logSize + 2 ^ (s.τ 5 + 6) + 15 * 2 ^ s.τ 0 + 15 * 2 ^ s.τ 1 +
+      8 * 2 ^ s.τ 2 + 15 * 2 ^ s.τ 3 + 14 * 2 ^ s.τ 4 + 40 * 2 ^ s.τ 5 :=
   blocks_total_eq prog s
 
 /--
@@ -78,16 +79,27 @@ theorem height_le {prog : Program} {t : Trace prog} {rf : Regs K} {n : ℕ}
   rw [Trace.count_eq_runRows h]
   exact (Trace.runRows_le_steps h op).trans hn
 
-/-- With at most `2^n` steps, the committed size is at most `4·2^κ + 2^logSize + 342·2^n`. -/
+/-- The `KECCAK` table's height, at least `2^9`, is at most `2^n + 2^9` with at most `2^n`
+steps. -/
+theorem keccakHeight_le {prog : Program} {t : Trace prog} {rf : Regs K} {n : ℕ}
+    (h : run prog t.image t.steps Regs.initial = some rf) (hn : t.steps ≤ 2 ^ n) :
+    2 ^ max (Nat.clog 2 (t.count .keccak)) 9 ≤ 2 ^ n + 512 := by
+  have h5 := height_le h hn .keccak
+  rcases le_total (Nat.clog 2 (t.count .keccak)) 9 with hle | hle
+  · rw [max_eq_right hle]; omega
+  · rw [max_eq_left hle]; omega
+
+/-- With at most `2^n` steps, the committed size is at most
+`4·2^κ + 2^logSize + 171·2^n + 53248`. -/
 theorem committedSize_le {prog : Program} {t : Trace prog} {rf : Regs K} {n : ℕ}
     (h : run prog t.image t.steps Regs.initial = some rf) (hn : t.steps ≤ 2 ^ n) :
-    t.committedSize ≤ 4 * 2 ^ t.κ + 2 ^ prog.logSize + 342 * 2 ^ n := by
+    t.committedSize ≤ 4 * 2 ^ t.κ + 2 ^ prog.logSize + 171 * 2 ^ n + 53248 := by
   have h0 := height_le h hn .xor
   have h1 := height_le h hn .mulNative
   have h2 := height_le h hn .setConstant
   have h3 := height_le h hn .deref
   have h4 := height_le h hn .jump
-  have h5 := height_le h hn .blake2s
+  have h5 := keccakHeight_le h hn
   simp only [Trace.committedSize]
   omega
 
@@ -220,10 +232,10 @@ theorem count_eq_zero {op : Opcode} (hop : op ≠ .jump) : longTrace.count op = 
 kernel would evaluate its counts, a run of `2^20` steps, when comparing the sums. -/
 theorem committedSize_le_of_jumps {prog : Program} (t : Trace prog)
     (h0 : ∀ op, op ≠ .jump → t.count op = 0) {a : ℕ} (hj : 2 ^ Nat.clog 2 (t.count .jump) ≤ a) :
-    t.committedSize ≤ 4 * 2 ^ t.κ + 2 ^ prog.logSize + 14 * a + 328 := by
+    t.committedSize ≤ 4 * 2 ^ t.κ + 2 ^ prog.logSize + 14 * a + 53301 := by
   simp only [Trace.committedSize, h0 .xor (by decide), h0 .mulNative (by decide),
-    h0 .setConstant (by decide), h0 .deref (by decide), h0 .blake2s (by decide),
-    Nat.clog_zero_right, pow_zero]
+    h0 .setConstant (by decide), h0 .deref (by decide), h0 .keccak (by decide),
+    Nat.clog_zero_right, pow_zero, show max 0 9 = 9 from rfl]
   omega
 
 /-- **The long run is within the budget**, -/
@@ -238,15 +250,15 @@ example : 2 ^ 19 < longTrace.steps := by decide
 
 /-- so completeness covers it. -/
 theorem longTrace_complete {ρ fuel : ℕ} (hρ : 1 ≤ ρ ∧ ρ ≤ 4) (hfuel : fuel ≤ 2 ^ 64) :
-    Pr{let z ← LeanVM.experiment (LeanVM.honestProver loopProg loopInput longTrace ρ fuel)}[
+    Pr{let z ← LeanVM.experiment (honestProverRom loopProg loopInput longTrace ρ fuel)}[
       z.1.2 = false] ≤ LeanVM.completenessError fuel :=
-  LeanVM.completeness longTrace_valid longTrace_budget hρ hfuel
+  completeness_le longTrace_valid longTrace_budget hρ hfuel
 
 /-! ## The negative case -/
 
-/-- **A `BLAKE2S` table of more than `2^19` rows is inadmissible**, for every program and every
-other size: its height is `2^20`, and its Flock region alone has `2^28` rows. -/
-theorem not_admissible_of_blake2s (prog : Program) (s : Sizes) (h : s.τ 5 = 20) :
+/-- **A `KECCAK` table of more than `2^21` rows is inadmissible**, for every program and every
+other size: its height is `2^22`, and `q_keccak` alone has `2^28` cells. -/
+theorem not_admissible_of_keccak (prog : Program) (s : Sizes) (h : s.τ 5 = 22) :
     ¬ s.Admissible prog := by
   intro hs
   have hμ := (blocks_fits prog s).trans (Nat.pow_le_pow_right (by norm_num) hs.2.2.2)

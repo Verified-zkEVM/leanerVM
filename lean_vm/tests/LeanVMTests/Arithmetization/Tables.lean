@@ -3,17 +3,17 @@ import LeanVM.Arithmetization.Tables.MulNative
 import LeanVM.Arithmetization.Tables.SetConstant
 import LeanVM.Arithmetization.Tables.Deref
 import LeanVM.Arithmetization.Tables.Jump
-import LeanVM.Arithmetization.Tables.Blake2s
+import LeanVM.Arithmetization.Tables.Keccak
 import Clean.Circuit.WitnessGeneration
 
 /-!
 # Tests: the six opcode tables
 
 A classic test for kernel evaluation: the fixtures decide `E` arithmetic and `Regs`
-equalities in the kernel. One prover data serves every table: a thirty-two-word image
+equalities in the kernel. One prover data serves the five small tables: a thirty-two-word image
 (`κ = 5`) holding the cells of one instruction per opcode, a `DEREF` in each of the three store
 modes and a `JUMP` on each branch, read through `imageOf` at literal indices as in the channel
-tests. There is no program fixture: the tables are program-free, each row naming
+tests; `KECCAK`, whose row reads twenty-six cells, has a thirty-two-word image of its own. There is no program fixture: the tables are program-free, each row naming
 the instruction it executes in its own columns.
 
 For each table: the honest row is bound (`*Bindings`, over `imageOf tabData`) and satisfies its
@@ -28,20 +28,22 @@ computes the same two values (`#guard`, compiled).
 Rejections use actual rows and the tables' own theorems: the counterexample to a
 step-only contract, a `DEREF` row with the flag pair `(1, 1)`, executes from its registers
 and fails its bindings; a changed input limb (`XOR`, `MUL_NATIVE`), a changed immediate
-(`SET_CONSTANT`, which the cell does not hold), and a non-canonical image cell (`BLAKE2S`)
+(`SET_CONSTANT`, which the cell does not hold), and a non-canonical image cell (`KECCAK`)
 fail the constraints `main` emits in every environment over the data, read
 back through each table's `soundness`; the two `JUMP` residuals reject the wrong witness `b = 1`
 at `v_cond = 0` (`flags_sound`). What a table does not reject is a row
 naming an instruction the program does not hold at its counter (an `XOR` row at `pc = g^2`
 with honest reads is accepted): that is the bus's, as it is for leanVM's AIRs, and the
-boundary tests reject it at the block. The `BLAKE2S` boundary: a bound row whose output cell is
-a wrong but canonical word, consistently in row and image, is locally complete
-(`blake2sRow_complete`) and fails `Blake2sRelation` and `Blake2sSpec`, the failure Flock
-enforces.
+boundary tests reject it at the block. The `KECCAK` boundary: a bound row whose output lane is
+a wrong but canonical word, consistently in row and image, is locally complete (the table's
+`completeness`) and fails `KeccakRelation` and `KeccakSpec`, the failure the Keccak reduction
+(the verifier's GKR over the rounds) enforces.
 
 The `MUL_NATIVE` row reproduces the executor's `mul_192bit_word` product (`cpu/mod.rs:887-904`)
-from the twelve-product coordinates, and the `BLAKE2S` row the cells of the executor's
-`blake2s_computes_the_compression`, both tests at leanVM `a386121f`.
+from the twelve-product coordinates (test at leanVM `a386121f`), and the `KECCAK` row the first
+permutation of the executor's `keccak_permutes_in_both_layouts` (`cpu/mod.rs:855-889` at leanVM
+`3375f7a1`): even layout in, odd layout out, the output lanes Keccak-f[1600] as the pinned
+Python verifier's `keccak_f` computes it.
 -/
 
 namespace LeanVMTests.Arithmetization.Tables
@@ -61,18 +63,6 @@ def y2 : K := (K.ofBits 0x5555666677778888)
 def mulXY : E :=
   E.ofLimbs (K.ofBits 0xf4bccd9a2e8e525b) (K.ofBits 0xf85ebb9433986f2f) (K.ofBits 0x918137982bf175ac)
 
--- The executor test `blake2s_computes_the_compression` at leanVM a386121f: the nine cells, as
--- `(lo, hi)`.
-def rustM0 : Vector K 2 := #v[K.ofBits 0x0123456789abcdef, K.ofBits 0xfedcba9876543210]
-def rustM1 : Vector K 2 := #v[K.ofBits 0x1111222233334444, K.ofBits 0x5555666677778888]
-def rustM2 : Vector K 2 := #v[K.ofBits 0xdeadbeefcafebabe, K.ofBits 0x0badf00d0badf00d]
-def rustM3 : Vector K 2 := #v[K.ofBits 0x9999aaaabbbbcccc, K.ofBits 0xddddeeeeffff0000]
-def rustCv0 : Vector K 2 := #v[K.ofBits 0x0000000000000007, 0x0000000000000000]
-def rustCv1 : Vector K 2 := #v[K.ofBits 0x000000000000000b, 0x0000000000000000]
-def rustMd : Vector K 2 := #v[K.ofBits 0x0000000000000040, K.ofBits 0x00000000ffffffff]
-def rustOut0 : Vector K 2 := #v[K.ofBits 0x583fffe1350e2137, K.ofBits 0x0de9e32629a5c508]
-def rustOut1 : Vector K 2 := #v[K.ofBits 0xf1b0679a15df60bb, K.ofBits 0x0228c8d4ed9b3a24]
-
 /-- The canonical image word of a two-limb cell. -/
 def cell (v : Vector K 2) : Vector K 3 := #v[v[0], v[1], 0]
 
@@ -84,7 +74,7 @@ def xyLanes : Vector K 3 :=
 /-- The image, thirty-two words: `x`, `y`, `x + y`, `x · y` at `2..5`; the `SET` immediate at
 `6`; the `pc`-mode `DEREF` pointer `g^8` at `7`, its target `g²·g³` (the return address of
 `pc = g^3`) at `8`, its local cell at `9`; the `JUMP` cells `c = 1`, `d = g^6`, `f = 1` at
-`10..12` and the untaken condition `c = 0` at `13`; the nine `BLAKE2S` cells at `16..24`; the
+`10..12` and the untaken condition `c = 0` at `13`; zero at `16..24`; the
 `cell`-mode `DEREF` pointer `g^26` at `25`, its target at `26` holding the local word at `27`;
 the `fp`-mode `DEREF` pointer `g^29` at `28`, its target at `29` holding `fp = 1`, its local cell
 at `30`; zero elsewhere. -/
@@ -95,8 +85,8 @@ def memTable : Array (Vector K 3) :=
     #v[gpow 8, 0, 0], #v[g ^ 2 * gpow 3, 0, 0], #v[K.ofBits 5, K.ofBits 6, K.ofBits 7],
     #v[1, 0, 0], #v[gpow 6, 0, 0], #v[1, 0, 0],
     #v[0, 0, 0], #v[0, 0, 0], #v[0, 0, 0],
-    cell rustM0, cell rustM1, cell rustM2, cell rustM3, cell rustCv0, cell rustCv1,
-    cell rustOut0, cell rustOut1, cell rustMd,
+    #v[0, 0, 0], #v[0, 0, 0], #v[0, 0, 0], #v[0, 0, 0], #v[0, 0, 0], #v[0, 0, 0],
+    #v[0, 0, 0], #v[0, 0, 0], #v[0, 0, 0],
     #v[gpow 26, 0, 0], #v[K.ofBits 3, K.ofBits 4, K.ofBits 5], #v[K.ofBits 3, K.ofBits 4, K.ofBits 5],
     #v[gpow 29, 0, 0], #v[1, 0, 0], #v[K.ofBits 9, K.ofBits 9, K.ofBits 9],
     #v[0, 0, 0]]
@@ -414,10 +404,10 @@ example (next : Regs K) : ¬ DerefSpec invalidDeref next tabData := by
 /-- The flag pair `(1, 1)` cannot be pulled either: its bytecode tuple decodes to nothing, at
 this counter or any other and over any data. -/
 example (pc : K) (data : ProverData K) :
-    ¬ BytecodePull.Guarantees ⟨pc, 1, Opcode.deref.code, #v[gpow 7, 1, gpow 9, 1, 1, 0, 0]⟩
+    ¬ BytecodePull.Guarantees ⟨pc, 1, Opcode.deref.code, #v[gpow 7, 1, gpow 9, 1, 1, 0, 0, 0, 0, 0]⟩
       data := by
   rintro ⟨ins, hdec⟩
-  have h : decode (#v[Opcode.deref.code] ++ #v[gpow 7, 1, gpow 9, 1, 1, 0, 0]) = none := by
+  have h : decode (#v[Opcode.deref.code] ++ #v[gpow 7, 1, gpow 9, 1, 1, 0, 0, 0, 0, 0]) = none := by
     decide +kernel
   exact nomatch h.symm.trans hdec
 
@@ -494,132 +484,156 @@ booleanity of `b` alone would have accepted `b = 1`. -/
 example (w b : K) (h1 : b + 0 * w = 0) (h2 : 0 * (b + 1) = 0) : b = 0 := by
   simpa using flags_sound h1 h2
 
-/-! ## `BLAKE2S` -/
+/-! ## `KECCAK` -/
 
-/-- The honest `BLAKE2S` row at `pc = g^5`: the executor's cells at `g^16 … g^24`. -/
-def blake2sRow : Blake2sRow K :=
-  ⟨gpow 5, 1, gpow 16, gpow 17, gpow 18, gpow 19, gpow 20, gpow 22, gpow 24,
-    rustM0, rustM1, rustM2, rustM3, rustOut0, rustOut1, rustCv0, rustCv1, rustMd,
-    1, 1, 1, 1, 1, 1, 1, 1, 1, 1⟩
+-- The executor test `keccak_permutes_in_both_layouts` at leanVM 3375f7a1, its first permutation:
+-- the input lanes (the words `a, b, a, b`, the padding's first byte in lane `8`, its last bit in
+-- lane `16`, a zero capacity), and their image under `keccak_f` (`verifier.py`, computed outside
+-- Lean).
+def kLin : Vector K 25 :=
+  #v[K.ofBits 0x123456789abcdef, K.ofBits 0xfedcba9876543210, K.ofBits 0xdeadbeefcafebabe,
+    K.ofBits 0xbadf00d0badf00d, K.ofBits 0x123456789abcdef, K.ofBits 0xfedcba9876543210,
+    K.ofBits 0xdeadbeefcafebabe, K.ofBits 0xbadf00d0badf00d, K.ofBits 0x1, K.ofBits 0x0,
+    K.ofBits 0x0, K.ofBits 0x0, K.ofBits 0x0, K.ofBits 0x0, K.ofBits 0x0, K.ofBits 0x0,
+    K.ofBits 0x8000000000000000, K.ofBits 0x0, K.ofBits 0x0, K.ofBits 0x0, K.ofBits 0x0,
+    K.ofBits 0x0, K.ofBits 0x0, K.ofBits 0x0, K.ofBits 0x0]
 
-/-- A canonical cell read at `1 · g^k` of a well-shaped thirty-two-word data. -/
-theorem readCell {data : ProverData K} (hlog : (imageOf data).1 = 5) (hws : WellShapedData data)
-    (k : ℕ) (c : Vector K 2) (hk : k < 32 := by decide)
-    (hv : (memRows data)[k]'(by rw [hws.memRows_size, hlog]; exact hk) = cell c :=
-      by decide +kernel) :
-    (imageOf data).2.read (1 * gpow k) = some (E.ofCell c) := by
-  rw [one_mul]; exact readAt hlog hws k (cell c) hk hv
+def kLout : Vector K 25 :=
+  #v[K.ofBits 0x8dbfafed17b66d45, K.ofBits 0x30fd63be3bf8b935, K.ofBits 0x77167d7a851a2a5a,
+    K.ofBits 0xd9174937e0d9005e, K.ofBits 0xa6a08643e0752e62, K.ofBits 0x96fa9d5eb49e3867,
+    K.ofBits 0xd3075d1a22781d5, K.ofBits 0x81ae728bf7328686, K.ofBits 0xf51da81b6f1b6499,
+    K.ofBits 0xdaf2a8af5b43dbf9, K.ofBits 0xdbf85b3cc1312641, K.ofBits 0x993d35c56291827e,
+    K.ofBits 0x47fd59ac60e225e2, K.ofBits 0x36607d1d9e6abed, K.ofBits 0x6cee5561314ca0f3,
+    K.ofBits 0x3e20ee955c09012e, K.ofBits 0x8a928dc9e22c3dcf, K.ofBits 0x7f24a1dac6837929,
+    K.ofBits 0xd22b33eacce5fcd2, K.ofBits 0x2b1e71fdcd52b881, K.ofBits 0x427618061608ac91,
+    K.ofBits 0x44c480aa40bfdbf9, K.ofBits 0x7a29ee993739ddb0, K.ofBits 0xf7f9aa87f90247d1,
+    K.ofBits 0xe5177d767bf6bd92]
 
-/-- The nine cell reads of a row over a well-shaped data whose cells at `16..24` are the row's:
-the binding. -/
-theorem blake2s_reads {data : ProverData K} (hlog : (imageOf data).1 = 5)
-    (hws : WellShapedData data) (r : Blake2sRow K)
-    (hr : r = ⟨gpow 5, 1, gpow 16, gpow 17, gpow 18, gpow 19, gpow 20, gpow 22, gpow 24,
-      r.m0, r.m1, r.m2, r.m3, r.out0, r.out1, r.cv0, r.cv1, r.md, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1⟩)
-    (h16 : (memRows data)[16]'(by rw [hws.memRows_size, hlog]; decide) = cell r.m0)
-    (h17 : (memRows data)[17]'(by rw [hws.memRows_size, hlog]; decide) = cell r.m1)
-    (h18 : (memRows data)[18]'(by rw [hws.memRows_size, hlog]; decide) = cell r.m2)
-    (h19 : (memRows data)[19]'(by rw [hws.memRows_size, hlog]; decide) = cell r.m3)
-    (h20 : (memRows data)[20]'(by rw [hws.memRows_size, hlog]; decide) = cell r.cv0)
-    (h21 : (memRows data)[21]'(by rw [hws.memRows_size, hlog]; decide) = cell r.cv1)
-    (h22 : (memRows data)[22]'(by rw [hws.memRows_size, hlog]; decide) = cell r.out0)
-    (h23 : (memRows data)[23]'(by rw [hws.memRows_size, hlog]; decide) = cell r.out1)
-    (h24 : (memRows data)[24]'(by rw [hws.memRows_size, hlog]; decide) = cell r.md) :
-    Blake2sBindings (imageOf data).2 r := by
-  rw [hr]
-  refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
-  · exact readCell hlog hws 16 r.m0 (by decide) h16
-  · exact readCell hlog hws 17 r.m1 (by decide) h17
-  · exact readCell hlog hws 18 r.m2 (by decide) h18
-  · exact readCell hlog hws 19 r.m3 (by decide) h19
-  · exact readCell hlog hws 20 r.cv0 (by decide) h20
-  · show (imageOf data).2.read (1 * (g * gpow 20)) = some (E.ofCell r.cv1)
-    rw [g_mul_gpow]; exact readCell hlog hws 21 r.cv1 (by decide) h21
-  · exact readCell hlog hws 22 r.out0 (by decide) h22
-  · show (imageOf data).2.read (1 * (g * gpow 22)) = some (E.ofCell r.out1)
-    rw [g_mul_gpow]; exact readCell hlog hws 23 r.out1 (by decide) h23
-  · exact readCell hlog hws 24 r.md (by decide) h24
+/-- Output cell `c` in the odd layout: lane `0` alone in the high limb of cell `0`, then the lane
+pairs `(2c - 1, 2c)`. -/
+def kOutCell (L : Vector K 25) (c : ℕ) : Vector K 3 :=
+  if c = 0 then #v[0, L[0], 0] else #v[L.getD (2 * c - 1) 0, L.getD (2 * c) 0, 0]
 
-theorem blake2s_bindings : Blake2sBindings (imageOf tabData).2 blake2sRow :=
-  blake2s_reads (dataOf_logSize rfl) (dataOf_wellShaped rfl) blake2sRow rfl
-    (by decide +kernel) (by decide +kernel) (by decide +kernel) (by decide +kernel)
-    (by decide +kernel) (by decide +kernel) (by decide +kernel) (by decide +kernel)
-    (by decide +kernel)
+/-- The `KECCAK` image: `a, b` at `2, 3`, the tail at `4..7`, `b8` at `8` (its high limb
+`0x5555`, which holds no lane in the even layout, is free), the zero capacity at `9..12`, and the
+thirteen output cells at `13..25`. -/
+def kMemOf (L : Vector K 25) : Array (Vector K 3) :=
+  #[(#v[0, 0, 0] : Vector K 3), #v[0, 0, 0], #v[kLin[0], kLin[1], 0], #v[kLin[2], kLin[3], 0],
+    #v[kLin[8], 0, 0], #v[0, 0, 0], #v[0, 0, 0], #v[0, 0, 0], #v[kLin[16], K.ofBits 0x5555, 0],
+    #v[0, 0, 0], #v[0, 0, 0], #v[0, 0, 0], #v[0, 0, 0]] ++
+  (List.range 13).toArray.map (kOutCell L) ++ (List.replicate 6 (#v[0, 0, 0] : Vector K 3)).toArray
 
-/-- The named assumption holds of the honest row: the executor's cells compress. -/
-theorem blake2s_relation : Blake2sRelation blake2sRow := by
-  show CompressCells _ _ _ _ _ _
+def kMem : Array (Vector K 3) := kMemOf kLout
+
+/-- The honest `KECCAK` row at `pc = g^5`, `fp = 1`: `m = [2, 3, 2, 3]`, `tail = 4`, `b8 = 8`,
+`cap = 9`, `out = 13`, even in, odd out, the free limb `0x5555`, every count `1`. -/
+def keccakRow : KeccakRow K :=
+  ⟨gpow 5, 1, #v[gpow 2, gpow 3, gpow 2, gpow 3], gpow 4, gpow 8, gpow 9, gpow 13, 0, 1,
+    K.ofBits 0x5555, kLin, kLout, Vector.replicate 26 1, 1⟩
+
+/-- The word at `g^k` of a thirty-two-word image, as a value `e` of its limbs. -/
+theorem readMem (mem : Array (Vector K 3)) (hs : mem.size = 32) (k : ℕ) (hk : k < 32) (e : E)
+    (h : E.ofLimbs (mem[k]'(by rw [hs]; exact hk))[0] (mem[k]'(by rw [hs]; exact hk))[1]
+      (mem[k]'(by rw [hs]; exact hk))[2] = e) :
+    (imageOf (dataOf mem)).2.read (gpow k) = some e :=
+  (readAt (dataOf_logSize hs) (dataOf_wellShaped hs) k _ hk rfl).trans (congrArg some h)
+
+/-- The memory index of read cell `c`. -/
+def kInIdx : Fin 13 → ℕ := ![2, 3, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
+
+theorem keccakRow_inOffset : ∀ c : Fin 13,
+    keccakRow.fp * keccakInOffset keccakRow.oms keccakRow.otail keccakRow.ob8 keccakRow.ocap c =
+      gpow (kInIdx c) := by
   decide +kernel
 
-/-- `Blake2sSpec` on the honest row, through `blake2s_refines_iff`: bound, compressing, and the
+theorem keccakRow_outOffset : ∀ c : Fin 13,
+    keccakRow.fp * (g ^ c.val * keccakRow.oout) = gpow (c.val + 13) := by
+  decide +kernel
+
+/-- The honest row is bound to the image. -/
+theorem keccak_bindings : KeccakBindings (imageOf (dataOf kMem)).2 keccakRow false true := by
+  refine ⟨fun c ↦ ?_, fun c ↦ ?_⟩
+  · refine (congrArg (imageOf (dataOf kMem)).2.read (keccakRow_inOffset c)).trans ?_
+    fin_cases c <;> exact readMem _ (by decide +kernel) _ (by decide) _ (by decide +kernel)
+  · refine (congrArg (imageOf (dataOf kMem)).2.read (keccakRow_outOffset c)).trans ?_
+    fin_cases c <;> exact readMem _ (by decide +kernel) _ (by decide) _ (by decide +kernel)
+
+/-- The permutation of the input lanes is the executor's, in one kernel evaluation of
+Keccak-f[1600]. -/
+theorem keccak_lanes :
+    ∀ l : Fin 25, stateLanes (keccakF (laneState keccakRow.inLanes)) l = kLout[l] := by
+  decide +kernel
+
+/-- The named assumption holds of the honest row. -/
+theorem keccak_relation : KeccakRelation keccakRow := by
+  funext l
+  exact (keccak_lanes l).symm
+
+/-- `KeccakSpec` on the honest row, through `keccak_refines_iff`: bound, permuting, and the
 successor is `(g · g^5, 1)`. -/
-theorem blake2s_spec : Blake2sSpec blake2sRow ⟨g * gpow 5, 1⟩ tabData :=
-  (blake2s_refines_iff _ _ _).mpr ⟨blake2s_bindings, blake2s_relation, rfl⟩
+theorem keccak_spec : KeccakSpec keccakRow ⟨g * gpow 5, 1⟩ (dataOf kMem) :=
+  (keccak_refines_iff _ _ _).mpr ⟨⟨false, true, rfl, rfl, keccak_bindings⟩, keccak_relation, rfl⟩
 
-/-- …and its execution, decided in the kernel directly. -/
-example : execute (imageOf tabData).2 ⟨gpow 5, 1⟩
-    (.blake2s ![gpow 16, gpow 17, gpow 18, gpow 19] (gpow 20) (gpow 22) (gpow 24)) =
-      some ⟨g * gpow 5, 1⟩ := by
-  simp only [execute, executeWith, one_mul, g_mul_gpow, Matrix.cons_val, Fin.isValue, read_at 16 (cell rustM0),
-    read_at 17 (cell rustM1), read_at 18 (cell rustM2), read_at 19 (cell rustM3),
-    read_at 20 (cell rustCv0), read_at 21 (cell rustCv1), read_at 22 (cell rustOut0),
-    read_at 23 (cell rustOut1), read_at 24 (cell rustMd), Option.bind_eq_bind, Option.bind_some]
-  decide +kernel
+/-- The valid execution alone yields a satisfying row, with any counts. -/
+example : ConstraintsHold.Completeness (rowEnv (dataOf kMem))
+    ((keccakTable.main (const (keccakRowOf (imageOf (dataOf kMem)).2 (gpow 5) 1 keccakRow.oms
+      (gpow 4) (gpow 8) (gpow 9) (gpow 13) false true (Vector.replicate 26 1) 1))).operations 0) := by
+  obtain ⟨i, o, hi, ho, -, hexec⟩ := keccak_spec
+  cases i <;> cases o <;>
+    first
+    | exact absurd hi (by decide +kernel)
+    | exact absurd ho (by decide +kernel)
+    | exact keccak_exec_complete hexec _ _
 
-/-- The honest row is bound, so locally complete: `main` accepts it without checking the
-compression. -/
-example : ConstraintsHold.Completeness (rowEnv tabData)
-    ((blake2sTable.main (const blake2sRow)).operations 0) :=
-  blake2sRow_complete blake2s_bindings
-
-/-- The valid execution alone yields a satisfying row. -/
-example : ConstraintsHold.Completeness (rowEnv tabData)
-    ((blake2sTable.main (const (blake2sRowOf (imageOf tabData).2 (gpow 5) 1 (gpow 16) (gpow 17)
-      (gpow 18) (gpow 19) (gpow 20) (gpow 22) (gpow 24) 1 1 1 1 1 1 1 1 1 1))).operations 0) :=
-  blake2s_exec_complete blake2s_spec.exec_eq 1 1 1 1 1 1 1 1 1 1
-
-/-- A non-canonical cell is rejected: an image whose second output cell has
-a nonzero top limb does not balance the row's canonical read of it, so the constraints `main`
-emits on the honest row fail in every environment over that image. -/
-def badMem : Array (Vector K 3) := memTable.set! 23 #v[rustOut1[0], rustOut1[1], 1]
+/-- A non-canonical cell is rejected: an image whose first output cell has a nonzero top limb
+does not balance the row's canonical read of it, so the constraints `main` emits on the honest
+row fail in every environment over that image. -/
+def badMem : Array (Vector K 3) := kMem.set! 13 #v[0, kLout[0], 1]
 
 example (get : ℕ → K) :
     ¬ ConstraintsHold.Soundness ⟨get, dataOf badMem⟩
-      ((blake2sTable.main (const blake2sRow)).operations 0) := by
+      ((keccakTable.main (const keccakRow)).operations 0) := by
   intro h
-  have hs : Blake2sSpec blake2sRow _ (dataOf badMem) :=
-    (blake2sTable.soundness 0 ⟨get, dataOf badMem⟩ (const blake2sRow) blake2sRow
-      ProvableType.eval_const blake2s_relation h).1
-  obtain ⟨⟨-, -, -, -, -, -, -, hout1, -⟩, -⟩ := hs
-  rw [show blake2sRow.fp * (g * blake2sRow.oout) = 1 * (g * gpow 22) from rfl, one_mul,
-    g_mul_gpow, readAt (dataOf_logSize (mem := badMem) rfl) (dataOf_wellShaped rfl) 23
-      #v[rustOut1[0], rustOut1[1], 1]] at hout1
-  exact absurd (Option.some.inj hout1) (by decide +kernel)
+  have hs : KeccakSpec keccakRow _ (dataOf badMem) :=
+    (keccakTable.soundness 0 ⟨get, dataOf badMem⟩ (const keccakRow) keccakRow
+      ProvableType.eval_const keccak_relation h).1
+  obtain ⟨i, o, -, ho, hb, -⟩ := hs
+  have h0 := hb.out_eq 0
+  rw [keccakRow_outOffset 0] at h0
+  change (imageOf (dataOf badMem)).2.read (gpow 13) = _ at h0
+  rw [readMem badMem (by decide +kernel) 13 (by decide) _ rfl] at h0
+  cases o
+  · exact absurd ho (by decide +kernel)
+  · exact absurd (Option.some.inj h0) (by decide +kernel)
 
-/-- The boundary with Flock: an output cell holding a wrong but canonical word, consistently in
-the row and in the image. The row is bound and locally complete, and it fails the compression
-relation and the functional specification: that failure is Flock's to enforce. -/
-def wrongOut1 : Vector K 2 := #v[rustOut1[0], rustOut1[1] + 1]
+/-- The boundary with the Keccak reduction: an output lane holding a wrong but canonical word,
+consistently in the row and in the image. The row is bound and locally complete, and it fails
+the permutation relation and the functional specification: that failure is the Keccak GKR's to
+enforce. -/
+def wrongLout : Vector K 25 := kLout.set 0 (kLout[0] + 1)
 
-def wrongMem : Array (Vector K 3) := memTable.set! 23 (cell wrongOut1)
+def keccakRow' : KeccakRow K := { keccakRow with lout := wrongLout }
 
-def blake2sRow' : Blake2sRow K := { blake2sRow with out1 := wrongOut1 }
+/-- The wrong row is bound to the image holding its output lanes. -/
+theorem keccak'_bindings :
+    KeccakBindings (imageOf (dataOf (kMemOf wrongLout))).2 keccakRow' false true := by
+  refine ⟨fun c ↦ ?_, fun c ↦ ?_⟩
+  · refine (congrArg (imageOf (dataOf (kMemOf wrongLout))).2.read (keccakRow_inOffset c)).trans ?_
+    fin_cases c <;> exact readMem _ (by decide +kernel) _ (by decide) _ (by decide +kernel)
+  · refine (congrArg (imageOf (dataOf (kMemOf wrongLout))).2.read (keccakRow_outOffset c)).trans ?_
+    fin_cases c <;> exact readMem _ (by decide +kernel) _ (by decide) _ (by decide +kernel)
 
-theorem blake2s'_bindings : Blake2sBindings (imageOf (dataOf wrongMem)).2 blake2sRow' :=
-  blake2s_reads (dataOf_logSize (mem := wrongMem) rfl) (dataOf_wellShaped rfl) blake2sRow' rfl
-    (by decide +kernel) (by decide +kernel) (by decide +kernel) (by decide +kernel)
-    (by decide +kernel) (by decide +kernel) (by decide +kernel) (by decide +kernel)
-    (by decide +kernel)
+example : ConstraintsHold.Completeness (rowEnv (dataOf (kMemOf wrongLout)))
+    ((keccakTable.main (const keccakRow')).operations 0) :=
+  (keccakTable.completeness 0 (rowEnv (dataOf (kMemOf wrongLout))) (const _)
+    (by simp only [circuit_norm, keccakTable, memRead, bytecodeRead, -BitVec.reduceNeg]) _
+    ProvableType.eval_const_prover ⟨false, true, rfl, rfl, keccak'_bindings⟩).1
 
-example : ConstraintsHold.Completeness (rowEnv (dataOf wrongMem))
-    ((blake2sTable.main (const blake2sRow')).operations 0) :=
-  blake2sRow_complete blake2s'_bindings
+theorem keccak'_no_relation : ¬ KeccakRelation keccakRow' := by
+  intro h
+  exact absurd ((congrFun h 0).trans (keccak_lanes 0)) (by decide +kernel)
 
-theorem blake2s'_no_relation : ¬ Blake2sRelation blake2sRow' := by
-  show ¬ CompressCells _ _ _ _ _ _
-  decide +kernel
-
-example (next : Regs K) : ¬ Blake2sSpec blake2sRow' next (dataOf wrongMem) := fun h ↦
-  blake2s'_no_relation ((blake2s_refines_iff _ _ _).mp h).2.1
+example (next : Regs K) : ¬ KeccakSpec keccakRow' next (dataOf (kMemOf wrongLout)) := fun h ↦
+  keccak'_no_relation ((keccak_refines_iff _ _ _).mp h).2.1
 
 end LeanVMTests.Arithmetization.Tables

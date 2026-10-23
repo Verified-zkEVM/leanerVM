@@ -93,10 +93,12 @@ theorem memTable_rowOps :
 theorem bytecodeTable_rowOps :
     (⟨bytecodeTable⟩ : Component K).rowOperations.interactions =
       [⟨BytecodePush.toRaw, 1, toElements (⟨var ⟨0⟩, 1, var ⟨2⟩,
-          #v[var ⟨3⟩, var ⟨4⟩, var ⟨5⟩, var ⟨6⟩, var ⟨7⟩, var ⟨8⟩, var ⟨9⟩]⟩ :
+          #v[var ⟨3⟩, var ⟨4⟩, var ⟨5⟩, var ⟨6⟩, var ⟨7⟩, var ⟨8⟩, var ⟨9⟩, var ⟨10⟩,
+            var ⟨11⟩, var ⟨12⟩]⟩ :
           BytecodeMsg (Expression K)), false⟩,
        ⟨BytecodePull.toRaw, -1, toElements (⟨var ⟨0⟩, var ⟨1⟩, var ⟨2⟩,
-          #v[var ⟨3⟩, var ⟨4⟩, var ⟨5⟩, var ⟨6⟩, var ⟨7⟩, var ⟨8⟩, var ⟨9⟩]⟩ :
+          #v[var ⟨3⟩, var ⟨4⟩, var ⟨5⟩, var ⟨6⟩, var ⟨7⟩, var ⟨8⟩, var ⟨9⟩, var ⟨10⟩,
+            var ⟨11⟩, var ⟨12⟩]⟩ :
           BytecodeMsg (Expression K)), true⟩] := by
   with_unfolding_all rfl
 
@@ -139,11 +141,12 @@ theorem deref_constraints (env : Environment K) :
   rw [Component.constraintsHold_iff]
   simp only [circuit_norm, derefTable, memRead, bytecodeRead, -BitVec.reduceNeg]
 
-/-- The `BLAKE2S` table asserts nothing: the compression is Flock's (`Blake2sRowsValid`). -/
-theorem blake2s_constraints (env : Environment K) :
-    (⟨blake2sTable⟩ : Component K).operations.ConstraintsHold env := by
+/-- The `KECCAK` table asserts nothing: the permutation is the Keccak reduction's
+(`KeccakRowsValid`). -/
+theorem keccak_constraints (env : Environment K) :
+    (⟨keccakTable⟩ : Component K).operations.ConstraintsHold env := by
   rw [Component.constraintsHold_iff]
-  simp only [circuit_norm, blake2sTable, memRead, bytecodeRead, -BitVec.reduceNeg]
+  simp only [circuit_norm, keccakTable, memRead, bytecodeRead, -BitVec.reduceNeg]
 
 /-- The memory block asserts nothing. -/
 theorem mem_constraints (env : Environment K) :

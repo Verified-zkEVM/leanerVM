@@ -41,13 +41,14 @@ example : ∀ {μ R : ℕ}, Whir.Admissible μ R → ∀ (q : Column μ) (claims
         S.ShapedFrom chal (verifyStackedOpening μ R claims) h :=
   @runFrom_verifyStackedOpening
 
-example : ∀ (H : Bytes → Digest) {μ R : ℕ}, Whir.Admissible μ R → ∀ (q : Column μ)
-    (claims : List StackClaim), (∀ c ∈ claims, StackClaim.Holds μ c q) →
-    (∀ c ∈ claims, IsMultilinearFn μ c.1) → ∀ (seed : Digest) (fuel : ℕ),
-    (∀ h bits k cv, (openingProgram μ R claims).after h = some (.grind bits k) →
-      findNonce H bits cv fuel ≠ none) →
-    ∃ π, prove H (openingProgram μ R claims) (openingProver μ R q claims) seed fuel = some π ∧
-      runProof (m := Id) H (openingProgram μ R claims) seed π = true :=
+example : ∀ (H : Bytes → Digest) (F : LeanVM.Semantics.KState → LeanVM.Semantics.KState) {μ R : ℕ},
+    Whir.Admissible μ R →
+    ∀ (q : Column μ) (claims : List StackClaim), (∀ c ∈ claims, StackClaim.Holds μ c q) →
+    (∀ c ∈ claims, IsMultilinearFn μ c.1) → ∀ (seed : LeanVM.Semantics.KState) (fuel : ℕ),
+    (∀ h bits k sp, (openingProgram μ R claims).after h = some (.grind bits k) →
+      findNonce F bits sp fuel ≠ none) →
+    ∃ π, prove H F (openingProgram μ R claims) (openingProver μ R q claims) seed fuel = some π ∧
+      runProof (m := Id) H F (openingProgram μ R claims) seed π = true :=
   @exists_prove_runProof_openingProgram
 
 example : ∀ {μ lf : ℕ} {f₀ : List E} {B : List E → E}, f₀.length = 2 ^ μ → μ ≤ 64 →

@@ -6,8 +6,8 @@ import LeanVM.Protocol.ToVCVio.Rom.Bounds
 # Random-oracle potential tests
 
 Statement locks for the potential bounds over lazy samplers, VCVio's `randomOracle`, and the
-logged oracle `loggedRO`; the inhabitants of `IsLazySampler` for both oracles; first-match log
-lookup on concrete logs; a two-query computation on `Bool →ₒ Bool`, for which the birthday bound
+logged oracle `loggedRO` for two oracles; the inhabitants of `IsLazySampler` for both
+implementations; first-match log lookup on concrete logs, each oracle reading its own entries; a two-query computation on `Bool →ₒ Bool`, for which the birthday bound
 gives `1/2` (the exact collision probability: the second fresh answer equals the first) and the
 fresh-hit bound for the target `{true}` gives `1`; and a counterexample showing that the
 increment `δ` does real work: the fresh-hit potential does not satisfy the step bound at
@@ -50,22 +50,22 @@ example {ι : Type} [DecidableEq ι] {spec : OracleSpec.{0, 0} ι}
     Pr{let z ← romExperiment A V}[z.1.2 = true ∧ bad z.1.1 z.2] ≤ (Q_A + Q_V : ℕ) * δ :=
   prEvent_romExperiment_le hΦ hΦ₀ A V Q_A Q_V hA hV bad hbad
 
-example {D R : Type} [DecidableEq D] [SampleableType R] [Fintype R] {α : Type}
-    {Φ : List (D × R) → ℝ≥0∞} {δ : ℝ≥0∞} (N : ℕ)
-    (hΦ : ∀ (ℓ : List (D × R)) (t : D), ℓ.length < N → t ∉ ℓ.map Prod.fst →
-      (∑ u, Φ (ℓ ++ [(t, u)])) / Fintype.card R ≤ Φ ℓ + δ) (hΦ₀ : Φ [] = 0)
-    (A : OracleComp (D →ₒ R) α) (V : α → OracleComp (D →ₒ R) Bool) (Q_A Q_V : ℕ)
+example {D₁ R₁ D₂ R₂ : Type} [DecidableEq D₁] [DecidableEq D₂] [SampleableType R₁]
+    [SampleableType R₂] [Fintype R₁] [Fintype R₂] {α : Type}
+    {Φ : List (LogEntry D₁ R₁ D₂ R₂) → ℝ≥0∞} {δ : ℝ≥0∞} (N : ℕ) (hΦ : LogStepBelow N Φ δ)
+    (hΦ₀ : Φ [] = 0) (A : OracleComp (Spec₂ D₁ R₁ D₂ R₂) α)
+    (V : α → OracleComp (Spec₂ D₁ R₁ D₂ R₂) Bool) (Q_A Q_V : ℕ)
     (hA : IsTotalQueryBound A Q_A) (hV : ∀ a, IsTotalQueryBound (V a) Q_V)
-    (hN : Q_A + Q_V ≤ N) (bad : α → (D →ₒ R).QueryCache → Prop)
+    (hN : Q_A + Q_V ≤ N) (bad : α → (Spec₂ D₁ R₁ D₂ R₂).QueryCache → Prop)
     (hbad : ∀ z ∈ support (logExperiment A V), z.1.2 = true → bad z.1.1 (cacheOf z.2) →
       1 ≤ Φ z.2) :
     Pr{let z ← romExperiment A V}[z.1.2 = true ∧ bad z.1.1 z.2] ≤ (Q_A + Q_V : ℕ) * δ :=
   prEvent_romExperiment_le_of_logFreshStepBelow N hΦ hΦ₀ A V Q_A Q_V hA hV hN bad hbad
 
-example {D R : Type} [DecidableEq D] [SampleableType R] {α : Type}
-    (oa : OracleComp (D →ₒ R) α) :
+example {D₁ R₁ D₂ R₂ : Type} [DecidableEq D₁] [DecidableEq D₂] [SampleableType R₁]
+    [SampleableType R₂] {α : Type} (oa : OracleComp (Spec₂ D₁ R₁ D₂ R₂) α) :
     (fun z ↦ (z.1, cacheOf z.2)) <$> (simulateQ loggedRO oa).run [] =
-      (simulateQ (D →ₒ R).randomOracle oa).run ∅ :=
+      (simulateQ (Spec₂ D₁ R₁ D₂ R₂).randomOracle oa).run ∅ :=
   map_run_simulateQ_loggedRO_nil oa
 
 /-! ## Inhabitants -/
@@ -74,8 +74,8 @@ example : IsLazySampler (fun (c : (Bool →ₒ Bool).QueryCache) t ↦ c t)
     (fun c t u ↦ c.cacheQuery t u) (Bool →ₒ Bool).randomOracle :=
   randomOracle_isLazySampler
 
-example : IsLazySampler (fun (ℓ : List (Bool × Bool)) t ↦ logLookup ℓ t)
-    (fun ℓ t u ↦ ℓ ++ [(t, u)]) (loggedRO (D := Bool) (R := Bool)) :=
+example : IsLazySampler (spec := Spec₂ Bool Bool Bool Bool) logLookup logRecord
+    (loggedRO (D₁ := Bool) (R₁ := Bool) (D₂ := Bool) (R₂ := Bool)) :=
   loggedRO_isLazySampler
 
 example : IsBudgetedPotential (birthdayPotential (D := Bool) (R := Bool)) :=
@@ -86,10 +86,17 @@ example : FreshStepBound (hitPotential (D := Bool) ({true} : Finset Bool)) (1 / 
 
 /-! ## First-match lookup -/
 
-#guard logLookup [(1, 2), (1, 3)] (1 : ℕ) = some (2 : ℕ)
-#guard logLookup [(0, 5), (1, 3)] (1 : ℕ) = some (3 : ℕ)
-#guard logLookup [(0, 5), (1, 3)] (2 : ℕ) = (none : Option ℕ)
-#guard logLookup ([(0, 5)] ++ [(2, 7)]) (2 : ℕ) = some (7 : ℕ)
+#guard pairLookup [(1, 2), (1, 3)] (1 : ℕ) = some (2 : ℕ)
+#guard pairLookup [(0, 5), (1, 3)] (1 : ℕ) = some (3 : ℕ)
+#guard pairLookup [(0, 5), (1, 3)] (2 : ℕ) = (none : Option ℕ)
+#guard pairLookup ([(0, 5)] ++ [(2, 7)]) (2 : ℕ) = some (7 : ℕ)
+
+/-- A log of both oracles: each lookup reads its own oracle's entries. -/
+def mixed : List (LogEntry ℕ ℕ ℕ ℕ) := [.inr (1, 9), .inl (1, 2), .inr (1, 4)]
+
+#guard lookL mixed 1 = some 2
+#guard lookR mixed 1 = some 9
+#guard lookL mixed 0 = none
 
 /-! ## A two-query computation -/
 

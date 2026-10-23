@@ -9,7 +9,7 @@
 module
 
 public import LeanVM.Protocol.EndToEnd.Front.LayoutStack
-public import LeanVM.Protocol.LeanIsa
+public import LeanVM.Protocol.LeanIsa.Read
 public import LeanVM.Protocol.Verifier
 public import LeanVM.Spec.Statement
 
@@ -17,26 +17,27 @@ public import LeanVM.Spec.Statement
 # The verifier's layout is the instance's
 
 The verifier program (`LeanVM.Protocol.Verifier`, `python-verifier/verifier.py` at leanVM
-`127510d14c98ade4e8a97646c44fa7f1ff5e752d`) computes its own layout (`buildLayout`) from the
+`3375f7a137c50b803f3416f6466b5d4e0719708a`) computes its own layout (`buildLayout`) from the
 bytecode words and the announced sizes; the oracle protocol reads the stack through the leanISA
-instance's layout (`leanIsaInstance F prog s`, `LeanVM.Protocol.LeanIsa`). This module proves
+instance's layout (`leanIsaInstance prog s`, `LeanVM.Protocol.LeanIsa`). This module proves
 they are one layout, for every program and every size vector:
 
 * `bytecodeWords prog`: the bytecode the verifier takes, the instance's public bytecode column
   (`bytecodeColumn`, `FixedColumns.lean`) as a list: `2 ^ (logSize + 4)` words, instruction bits
-  low, slot bits high, sixteen slots per instruction, the entry at slots 3 to 10.
+  low, slot bits high, sixteen slots per instruction, the entry at slots 3 to 13.
 * `pyCol c`: the Python's global column number of the instance's column `c`, its position in the
-  instance's global order (`columns`): the memory columns `0 to 3`, `BFCNT` `4`, `QFLOCK` `5`, then
+  instance's global order (`columns`): the memory columns `0 to 3`, `BFCNT` `4`, `QKECCAK` `5`, then
   the six opcode tables' columns in order. `pyCol_*` give the named columns.
 * `buildLayout_eq`: the layout is built from the announced rows (`tableRows`) exactly when the
   sizes are in the windows `buildLayout` checks (`LayoutOk`), and is then `verifierLayout prog s`,
-  whose log-heights are `tableLogs s` (`map_log2Ceil_tableRows`).
+  whose log-heights are `tableLogs s` (`logHeights_tableRows`, with `KECCAK`'s floor).
 * `stackLog_verifierLayout`: its stacked size is the instance's `μ`.
-* `placement_committed`, `placement_limb`: every committed column at its block's offset, every
-  `BLAKE2S` limb at its Flock slot (for the deployed slots `Blake2sFlock.slots`).
+* `placement_committed`, `placement_inLane`: every committed column at its block's offset, every
+  `KECCAK` input lane at its slot of `QKECCAK`; an output lane has no placement
+  (`placements_outLane`), as the instance commits none.
 * `stackPoint_eq_extend`: a point placed by the verifier's layout is the instance layout's lift
-  of that point; hence `onStack_holds_iff`: a verifier column claim holds of a stack exactly when
-  the instance's column claim holds.
+  of that point; hence `onStack_holds_iff`: a verifier column claim on a column that is not an
+  output lane holds of a stack exactly when the instance's column claim holds.
 -/
 
 namespace LeanVM.Protocol.EndToEnd.Front
@@ -110,25 +111,29 @@ def tableRows (s : Sizes) : List ℕ := List.ofFn s.rows
 /-- The tables' log-heights, in opcode order. -/
 def tableLogs (s : Sizes) : List ℕ := List.ofFn s.τ
 
-/-- The verifier's log-heights of the announced rows (`log2_ceil`) are the tables'. -/
-theorem map_log2Ceil_tableRows (s : Sizes) : (tableRows s).map log2Ceil = tableLogs s := by
-  simp only [tableRows, tableLogs, List.map_ofFn, Function.comp_def, log2Ceil_eq_clog]
+/-- The verifier's log-heights of the announced rows (`log2_ceil`, at least the table's floor)
+are the tables'. -/
+theorem logHeights_tableRows (s : Sizes) :
+    List.zipWith (fun rows floor ↦ max (log2Ceil rows) floor) (tableRows s) tableLogFloors =
+      tableLogs s := by
+  simp only [tableRows, tableLogs, List.ofFn_succ, List.ofFn_zero, tableLogFloors,
+    List.zipWith_cons_cons, List.zipWith_nil_left, log2Ceil_eq_clog]
   rfl
 
 /-- The Python's global column number of the instance's column `c`: its position in the global
 order. -/
 def pyCol (c : Col) : ℕ := columns.idxOf c
 
-/-- The instance has `110` columns, as the Python. -/
-theorem length_columns : columns.length = 110 := by decide +kernel
+/-- The instance has `163` columns, as the Python. -/
+theorem length_columns : columns.length = 163 := by decide +kernel
 
 /-- Every column is in the global order. -/
 theorem mem_columns (c : Col) : c ∈ columns := by
   simp only [columns, List.mem_flatMap, List.mem_finRange, List.mem_map, true_and]
   exact ⟨c.1, c.2, rfl⟩
 
-/-- A global column number is below `110`. -/
-theorem pyCol_lt (c : Col) : pyCol c < 110 :=
+/-- A global column number is below `163`. -/
+theorem pyCol_lt (c : Col) : pyCol c < 163 :=
   length_columns ▸ List.idxOf_lt_length_of_mem (mem_columns c)
 
 /-- The column at a global number. -/
@@ -150,8 +155,8 @@ theorem pyCol_memCol (i : Fin 4) : pyCol (memCol i) = i := by
 /-- `BFCNT` is `BYTECODE_FINAL_COUNTERS`. -/
 theorem pyCol_bfcntCol : pyCol bfcntCol = bytecodeFinalCounters := by decide +kernel
 
-/-- `QFLOCK` is `QFLOCK`. -/
-theorem pyCol_flockCol : pyCol flockCol = qflock := by decide +kernel
+/-- `QKECCAK` is `QKECCAK`. -/
+theorem pyCol_keccakCol : pyCol keccakCol = qkeccak := by decide +kernel
 
 /-- Column `i` of opcode table `j` is the Python's `GLOBAL_COLUMN_BASES[j] + i`. -/
 theorem pyCol_opIdx (j : Fin 6) (i : Fin (width (opIdx j))) :
@@ -197,7 +202,7 @@ theorem buildLayout_eq (prog : Program) (s : Sizes) :
   have hL := prog.logSize_le
   unfold buildLayout
   rw [log2Strict_length_bytecodeWords]
-  simp only [busBits, Nat.add_sub_cancel, map_log2Ceil_tableRows]
+  simp only [busBits, Nat.add_sub_cancel, logHeights_tableRows]
   have hlen : (tableRows s).length = tables.length := by
     simp [tableRows, tables]
   by_cases hok : LayoutOk s
@@ -220,7 +225,7 @@ theorem buildLayout_eq (prog : Program) (s : Sizes) :
 
 /-- The instance's widths, table by table. -/
 theorem width_vals : width 0 = 4 ∧ width 1 = 1 ∧ width 2 = 1 ∧ width 3 = 15 ∧ width 4 = 15 ∧
-    width 5 = 8 ∧ width 6 = 15 ∧ width 7 = 14 ∧ width 8 = 37 := by
+    width 5 = 8 ∧ width 6 = 15 ∧ width 7 = 14 ∧ width 8 = 90 := by
   decide +kernel
 
 /-- A function of the table, along the global order. -/
@@ -242,8 +247,8 @@ theorem pyKappas_eq (prog : Program) (s : Sizes) :
     h7, h8]
   simp only [pyKappas, columnKappas, tables, List.flatMap_cons, List.flatMap_nil,
     List.append_nil]
-  have hq : (tableLogs s).getD opBlake2s 0 + qflockSlotBits = height prog s 2 := by
-    rw [add_comm]
+  have hq : (tableLogs s).getD opKeccak 0 + qkeccakSlotBits = height prog s 2 := by
+    rw [show qkeccakSlotBits = 6 by decide]
     rfl
   rw [hq]
   rfl
@@ -256,19 +261,51 @@ theorem getD_pyKappas (prog : Program) (s : Sizes) (c : Col) :
     exact pyCol_lt c
   rw [pyKappas_eq, List.getD_eq_getElem _ _ h, List.getElem_map, getElem_columns_pyCol]
 
-/-- The Python has `110` columns. -/
-theorem length_pyKappas (prog : Program) (s : Sizes) : (pyKappas prog s).length = 110 := by
+/-- The Python has `163` columns. -/
+theorem length_pyKappas (prog : Program) (s : Sizes) : (pyKappas prog s).length = 163 := by
   rw [pyKappas_eq, List.length_map, length_columns]
 
-/-- The Flock slot of a global column: the deployed slot of a limb, none otherwise. -/
-theorem limbSlot_pyCol (c : Col) :
-    limbSlot (pyCol c) = if h : IsLimb c then
-      some (Blake2sFlock.slots ⟨c.2.val - 9, by have := h.2.2; omega⟩).val else none := by
-  revert c; decide +kernel
+/-- The `q_keccak` slot of a global column below `163`: lane `l`'s for input lane `l`
+(global columns `86 … 110`), none otherwise. Checked in the kernel. -/
+theorem keccakSlot_lt : ∀ c : Fin 163,
+    keccakSlot c = if 86 ≤ c.val ∧ c.val < 111 then some (c.val - 86) else none := by
+  decide +kernel
+
+/-- The output lanes are global columns `111 … 135`. -/
+theorem keccakOutputColumns_eq : keccakOutputColumns = (List.range 25).map (111 + ·) := by
+  decide +kernel
+
+/-- The instance's input lanes are global columns `86 … 110`, its output lanes `111 … 135`. -/
+theorem pyCol_lanes : ∀ c : Col, (IsLane c ∧ ¬ IsOut c ↔ 86 ≤ pyCol c ∧ pyCol c < 111) ∧
+    (IsOut c ↔ 111 ≤ pyCol c ∧ pyCol c < 136) ∧ (IsLane c → pyCol c = 73 + c.2.val) := by
+  decide +kernel
+
+/-- The `q_keccak` slot of a global column: its lane for an input lane, none otherwise. -/
+theorem keccakSlot_pyCol (c : Col) :
+    keccakSlot (pyCol c) = if IsLane c ∧ ¬ IsOut c then some (c.2.val - 13) else none := by
+  have h1 := keccakSlot_lt ⟨pyCol c, pyCol_lt c⟩
+  obtain ⟨hin, -, hval⟩ := pyCol_lanes c
+  simp only at h1
+  rw [h1]
+  by_cases h : IsLane c ∧ ¬ IsOut c
+  · rw [ite_eq_left h, ite_eq_left (hin.mp h), hval h.1]
+    congr 1
+    omega
+  · rw [ite_eq_right h, ite_eq_right (fun h' ↦ h (hin.mpr h'))]
+
+/-- A global column is an output lane exactly when its instance column is. -/
+theorem mem_keccakOutputColumns_pyCol (c : Col) :
+    pyCol c ∈ keccakOutputColumns ↔ IsOut c := by
+  rw [keccakOutputColumns_eq, (pyCol_lanes c).2.1]
+  simp only [List.mem_map, List.mem_range]
+  constructor
+  · rintro ⟨l, hl, he⟩; omega
+  · intro h; exact ⟨pyCol c - 111, by omega, by omega⟩
 
 /-- The Python's committed columns (`block_cols`) are the instance's, in global order. -/
 theorem blockCols_eq :
-    (List.range 110).filter (fun c ↦ (limbSlot c).isNone) = committedColumns.map pyCol := by
+    (List.range 163).filter (fun c ↦ (keccakSlot c).isNone ∧ c ∉ keccakOutputColumns) =
+      committedColumns.map pyCol := by
   decide +kernel
 
 /-- The committed columns are distinct. -/
@@ -338,7 +375,7 @@ private theorem mem_committed_of_mem_stackOrder (prog : Program) (s : Sizes) {c 
 
 /-- **The Python's offsets are the instance's**: in `stack_offsets` of the committed columns'
 sizes, the block of a committed column starts at the instance's offset of its block. -/
-theorem stackOffsets_getD (prog : Program) (s : Sizes) (c : Col) (h : ¬ IsLimb c) :
+theorem stackOffsets_getD (prog : Program) (s : Sizes) (c : Col) (h : ¬ IsLane c) :
     (stackOffsets (committedColumns.map (kappa prog s))).1.getD (committedColumns.idxOf c) 0 =
       (blocks prog s).offset (blockOf c h) := by
   have hnd := (List.mergeSort_perm (List.range committedColumns.length)
@@ -385,23 +422,27 @@ theorem stackOffsets_snd (prog : Program) (s : Sizes) :
 
 /-- The Python's offset of a global column's block (`offset_of` in `placements_of`). -/
 def pyOffset (prog : Program) (s : Sizes) (column : ℕ) : ℕ :=
-  let blockCols := (List.range (pyKappas prog s).length).filter fun c ↦ (limbSlot c).isNone
+  let blockCols := (List.range (pyKappas prog s).length).filter fun c ↦
+    (keccakSlot c).isNone ∧ c ∉ keccakOutputColumns
   (stackOffsets (blockCols.map ((pyKappas prog s).getD · 0))).1.getD (blockCols.idxOf column) 0
 
 /-- `placements_of`, unfolded: each column's placement from its log-size and the offsets. -/
 theorem placementsOf_pyKappas (prog : Program) (s : Sizes) :
     placementsOf (pyKappas prog s) =
       ((pyKappas prog s).zipIdx.map fun (kappa, column) ↦
-        match limbSlot column with
+        match keccakSlot column with
         | some slot =>
-          ({ vars := kappa, index := pyOffset prog s qflock + slot, low := qflockSlotBits } :
+          some ({ vars := kappa, index := pyOffset prog s qkeccak + slot * 2 ^ kappa } :
             Placement)
-        | none => { vars := kappa, index := pyOffset prog s column },
+        | none =>
+          if column ∈ keccakOutputColumns then none
+          else some { vars := kappa, index := pyOffset prog s column },
       max minStackedLog (stackOffsets (((List.range (pyKappas prog s).length).filter
-        fun c ↦ (limbSlot c).isNone).map ((pyKappas prog s).getD · 0))).2) := rfl
+        fun c ↦ (keccakSlot c).isNone ∧ c ∉ keccakOutputColumns).map
+          ((pyKappas prog s).getD · 0))).2) := rfl
 
 /-- The Python's offset of a committed column is its block's. -/
-theorem pyOffset_pyCol (prog : Program) (s : Sizes) (c : Col) (h : ¬ IsLimb c) :
+theorem pyOffset_pyCol (prog : Program) (s : Sizes) (c : Col) (h : ¬ IsLane c) :
     pyOffset prog s (pyCol c) = (blocks prog s).offset (blockOf c h) := by
   unfold pyOffset
   simp only [length_pyKappas, blockCols_eq, blockSizes_eq]
@@ -418,12 +459,14 @@ theorem stackLog_verifierLayout (prog : Program) (s : Sizes) :
 
 /-- The Python's placement of a global column. -/
 theorem placements_getD (prog : Program) (s : Sizes) (c : Col) :
-    (verifierLayout prog s).placements.getD (pyCol c) default =
-      match limbSlot (pyCol c) with
+    (verifierLayout prog s).placements.getD (pyCol c) none =
+      match keccakSlot (pyCol c) with
       | some slot =>
-        { vars := kappa prog s c, index := pyOffset prog s qflock + slot, low := qflockSlotBits }
-      | none => { vars := kappa prog s c, index := pyOffset prog s (pyCol c) } := by
-  show (placementsOf (pyKappas prog s)).1.getD (pyCol c) default = _
+        some { vars := kappa prog s c, index := pyOffset prog s qkeccak + slot * 2 ^ kappa prog s c }
+      | none =>
+        if pyCol c ∈ keccakOutputColumns then none
+        else some { vars := kappa prog s c, index := pyOffset prog s (pyCol c) } := by
+  show (placementsOf (pyKappas prog s)).1.getD (pyCol c) none = _
   have hlt : pyCol c < (pyKappas prog s).zipIdx.length := by
     rw [List.length_zipIdx, length_pyKappas]; exact pyCol_lt c
   rw [placementsOf_pyKappas, List.getD_eq_getElem _ _ (by rw [List.length_map]; exact hlt),
@@ -433,28 +476,34 @@ theorem placements_getD (prog : Program) (s : Sizes) (c : Col) :
   simp only [zero_add, hk]
 
 /-- **A committed column's placement**: its log-size, at its block's offset. -/
-theorem placement_committed (prog : Program) (s : Sizes) (c : Col) (h : ¬ IsLimb c) :
-    (verifierLayout prog s).placements.getD (pyCol c) default =
+theorem placement_committed (prog : Program) (s : Sizes) (c : Col) (h : ¬ IsLane c) :
+    (verifierLayout prog s).placement (pyCol c) =
       { vars := kappa prog s c, index := (blocks prog s).offset (blockOf c h) } := by
-  rw [placements_getD, limbSlot_pyCol]
-  simp only [h, ↓reduceDIte]
+  have hno : ¬ IsOut c := fun ho ↦ h ⟨ho.1, by have := ho.2.1; omega, ho.2.2⟩
+  have hns : ¬ (IsLane c ∧ ¬ IsOut c) := fun h' ↦ h h'.1
+  unfold Verifier.Layout.placement
+  rw [placements_getD, keccakSlot_pyCol, ite_eq_right hns]
+  simp only [(mem_keccakOutputColumns_pyCol c).not.mpr hno, ↓reduceIte, Option.getD_some]
   rw [pyOffset_pyCol prog s c h]
 
-/-- **A `BLAKE2S` limb's placement**: `τ_BLAKE2S` variables at its deployed slot of the Flock
-region, below the region's `8` low coordinates. -/
-theorem placement_limb (prog : Program) (s : Sizes) (c : Col) (h : IsLimb c) :
-    (verifierLayout prog s).placements.getD (pyCol c) default =
+/-- **An output lane has no placement**: the instance commits none. -/
+theorem placements_outLane (prog : Program) (s : Sizes) (c : Col) (h : IsOut c) :
+    (verifierLayout prog s).placements.getD (pyCol c) none = none := by
+  have hns : ¬ (IsLane c ∧ ¬ IsOut c) := fun h' ↦ h'.2 h
+  rw [placements_getD, keccakSlot_pyCol, ite_eq_right hns]
+  simp only [(mem_keccakOutputColumns_pyCol c).mpr h, ↓reduceIte]
+
+/-- **An input lane's placement**: `τ_KECCAK` variables at slot `l` of `QKECCAK`, the cells
+`offset + l · 2 ^ τ_KECCAK + x`. -/
+theorem placement_inLane (prog : Program) (s : Sizes) (c : Col) (h : IsLane c ∧ ¬ IsOut c) :
+    (verifierLayout prog s).placement (pyCol c) =
       { vars := s.τ 5,
-        index := (blocks prog s).offset (flockBlock prog s) +
-          (Blake2sFlock.slots ⟨c.2.val - 9, by have := h.2.2; omega⟩).val,
-        low := 8 } := by
-  rw [placements_getD, limbSlot_pyCol]
-  simp only [h, ↓reduceDIte]
-  rw [← pyCol_flockCol, pyOffset_pyCol prog s flockCol not_isLimb_flockCol]
-  have hk : kappa prog s c = s.τ 5 := by
-    simp only [kappa, h.1]
-    rfl
-  rw [hk]
+        index := (blocks prog s).offset (keccakBlock prog s) + (c.2.val - 13) * 2 ^ s.τ 5 } := by
+  have hk : kappa prog s c = s.τ 5 := kappa_of_isLane prog s h.1
+  unfold Verifier.Layout.placement
+  rw [placements_getD, keccakSlot_pyCol, ite_eq_left h]
+  simp only [Option.getD_some]
+  rw [← pyCol_keccakCol, pyOffset_pyCol prog s keccakCol not_isLane_keccakCol, hk]
   rfl
 
 /-! ## Placed points are lifted points -/
@@ -479,83 +528,91 @@ theorem toList_boolVec {m : ℕ} (x : Fin (2 ^ m)) :
 
 /-- The instance lifts a point of a committed column to the point followed by the bits of its
 block's selector. -/
-theorem extend_committed (prog : Program) (s : Sizes) (slot : Fin 18 → Fin 256) (c : Col)
-    (h : ¬ IsLimb c) (z : Vector E (kappa prog s c)) :
-    ((LeanIsa.layout prog s slot).extend c z).toList =
+theorem extend_committed (prog : Program) (s : Sizes) (c : Col)
+    (h : ¬ IsLane c) (z : Vector E (kappa prog s c)) :
+    ((LeanIsa.layout prog s).extend c z).toList =
       z.toList ++ boolPoint (leanIsaμ prog s - kappa prog s c)
         ((blocks prog s).offset (blockOf c h) / 2 ^ kappa prog s c) := by
-  have e : (LeanIsa.layout prog s slot).extend c z =
+  have e : (LeanIsa.layout prog s).extend c z =
       (((blocks prog s).layout (blocks_fits prog s)).piecewise
-        ((blocks prog s).stridedLayout (blocks_fits prog s) (flockBlock prog s) 8 slot
-          (κ := fun _ ↦ s.τ 5) fun _ ↦ size_flockBlock prog s)).extend (route prog s c)
+        ((blocks prog s).sliceLayout (blocks_fits prog s) (keccakBlock prog s) 6
+          (fun l : Fin 25 ↦ (⟨l, by omega⟩ : Fin (2 ^ 6)))
+          (κ := fun _ ↦ s.τ 5) fun _ ↦ size_keccakBlock prog s)).extend (route prog s c)
         (Vector.cast (route_kappa prog s c).symm z) := rfl
   have hr : route prog s c = .inl (blockOf c h) := by simp [route, h]
   rw [e, piecewise_extend_inl _ _ _ _ hr]
   simp only [Blocks.layout, Blocks.extendPoint, Vector.toList_cast, Vector.toList_append,
     toList_boolVec, Blocks.selector_val, size_blockOf]
 
-/-- The instance lifts a point of a `BLAKE2S` limb to its slot's bits, the point, and the bits of
-the Flock region's selector. -/
-theorem extend_limb (prog : Program) (s : Sizes) (slot : Fin 18 → Fin 256) (c : Col)
-    (h : IsLimb c) (z : Vector E (kappa prog s c)) :
-    ((LeanIsa.layout prog s slot).extend c z).toList =
-      boolPoint 8 (slot ⟨c.2.val - 9, by have := h.2.2; omega⟩) ++ z.toList ++
-        boolPoint (leanIsaμ prog s - (8 + s.τ 5))
-          ((blocks prog s).offset (flockBlock prog s) / 2 ^ (8 + s.τ 5)) := by
-  have e : (LeanIsa.layout prog s slot).extend c z =
+/-- The instance lifts a point of a `KECCAK` lane to the point, its slot's bits, and the bits of
+`QKECCAK`'s selector. -/
+theorem extend_lane (prog : Program) (s : Sizes) (c : Col)
+    (h : IsLane c) (z : Vector E (kappa prog s c)) :
+    ((LeanIsa.layout prog s).extend c z).toList =
+      z.toList ++ boolPoint 6 (laneSlot c).val ++
+        boolPoint (leanIsaμ prog s - (s.τ 5 + 6))
+          ((blocks prog s).offset (keccakBlock prog s) / 2 ^ (s.τ 5 + 6)) := by
+  have e : (LeanIsa.layout prog s).extend c z =
       (((blocks prog s).layout (blocks_fits prog s)).piecewise
-        ((blocks prog s).stridedLayout (blocks_fits prog s) (flockBlock prog s) 8 slot
-          (κ := fun _ ↦ s.τ 5) fun _ ↦ size_flockBlock prog s)).extend (route prog s c)
+        ((blocks prog s).sliceLayout (blocks_fits prog s) (keccakBlock prog s) 6
+          (fun l : Fin 25 ↦ (⟨l, by omega⟩ : Fin (2 ^ 6)))
+          (κ := fun _ ↦ s.τ 5) fun _ ↦ size_keccakBlock prog s)).extend (route prog s c)
         (Vector.cast (route_kappa prog s c).symm z) := rfl
-  have hr : route prog s c = .inr ⟨c.2.val - 9, by have := h.2.2; omega⟩ := by simp [route, h]
+  have hr : route prog s c = .inr (laneSlot c) := by simp [route, h]
   rw [e, piecewise_extend_inr _ _ _ _ hr]
-  simp only [Blocks.stridedLayout, Blocks.extendPoint, Vector.toList_cast, Vector.toList_append,
-    toList_boolVec, Blocks.selector_val, size_flockBlock]
-/-- **A placed point is the instance's lifted point**: for the deployed Flock slots, the
-verifier's layout places a point of column `pyCol c` where the instance's layout lifts it. -/
-theorem stackPoint_eq_extend (prog : Program) (s : Sizes) (F : FlockSpec)
-    (hF : F.slot = Blake2sFlock.slots) (c : Col)
-    (z : Vector E (kappa prog s c)) :
-    ((verifierLayout prog s).placements.getD (pyCol c) default).stackPoint z.toList
-        (verifierLayout prog s).stackLog =
-      ((leanIsaInstance F prog s).layout.extend c z).toList := by
-  rw [stackLog_verifierLayout]
-  show _ = ((LeanIsa.layout prog s F.slot).extend c z).toList
-  by_cases h : IsLimb c
-  · have hsz := Blocks.size_le _ (blocks_fits prog s) (flockBlock prog s)
-    have hdvd := Blocks.pow_size_dvd_offset _ (flockBlock prog s)
-    rw [size_flockBlock] at hsz hdvd
-    rw [placement_limb prog s c h, extend_limb prog s _ c h, hF,
-      stackPoint_strided _ _ _ _ _ (by unfold leanIsaμ at hsz ⊢; omega) hdvd
-        (Blake2sFlock.slots _).isLt]
-  · rw [placement_committed prog s c h, extend_committed prog s _ c h, stackPoint_aligned]
+  simp only [Blocks.sliceLayout, Blocks.extendPoint, Vector.toList_cast, Vector.toList_append,
+    toList_boolVec, Blocks.selector_val, size_keccakBlock, List.append_assoc]
 
-/-- **A verifier column claim means the instance's column claim**: the claim on global column
-`pyCol c` at `z` with value `v`, placed on the stack by the verifier's layout, holds of a stack
-exactly when the instance's claim on `c` at `z` with value `v` holds of it. -/
-theorem onStack_holds_iff (prog : Program) (s : Sizes) (F : FlockSpec)
-    (hF : F.slot = Blake2sFlock.slots) (c : Col)
+/-- **A placed point is the instance's lifted point**: for a column that is not an output lane,
+the verifier's layout places a point of column `pyCol c` where the instance's layout lifts it. -/
+theorem stackPoint_eq_extend (prog : Program) (s : Sizes) (c : Col) (hc : ¬ IsOut c)
+    (z : Vector E (kappa prog s c)) :
+    ((verifierLayout prog s).placement (pyCol c)).stackPoint z.toList
+        (verifierLayout prog s).stackLog =
+      ((leanIsaInstance prog s).layout.extend c z).toList := by
+  rw [stackLog_verifierLayout]
+  show _ = ((LeanIsa.layout prog s).extend c z).toList
+  by_cases h : IsLane c
+  · have hsz := Blocks.size_le _ (blocks_fits prog s) (keccakBlock prog s)
+    have hdvd := Blocks.pow_size_dvd_offset _ (keccakBlock prog s)
+    rw [size_keccakBlock] at hsz hdvd
+    have hl : (laneSlot c).val = c.2.val - 13 := by
+      have := h.2.1; have := h.2.2
+      simp only [laneSlot]
+      by_contra hne
+      exact hc ⟨h.1, by omega, h.2.2⟩
+    rw [placement_inLane prog s c ⟨h, hc⟩, extend_lane prog s c h, ← hl,
+      stackPoint_slice _ _ _ _ _ (by unfold leanIsaμ at hsz ⊢; omega) hdvd
+        (by have := (laneSlot c).isLt; omega)]
+  · rw [placement_committed prog s c h, extend_committed prog s c h, stackPoint_aligned]
+
+/-- **A verifier column claim means the instance's column claim**: for a column that is not an
+output lane, the claim on global column `pyCol c` at `z` with value `v`, placed on the stack by
+the verifier's layout, holds of a stack exactly when the instance's claim on `c` at `z` with value
+`v` holds of it. -/
+theorem onStack_holds_iff (prog : Program) (s : Sizes) (c : Col) (hc : ¬ IsOut c)
     (z : Vector E (kappa prog s c)) (v : E) (q : Column (leanIsaμ prog s)) :
     StackClaim.Holds (leanIsaμ prog s)
         ((⟨pyCol c, z.toList, v⟩ : Verifier.ColumnClaim).onStack (verifierLayout prog s)) q ↔
-      (⟨c, z, v⟩ : LeanVM.Protocol.ColumnClaim (leanIsaInstance F prog s)).Holds q := by
+      (⟨c, z, v⟩ : LeanVM.Protocol.ColumnClaim (leanIsaInstance prog s)).Holds q := by
   unfold Verifier.ColumnClaim.onStack
   simp only
-  rw [stackPoint_eq_extend prog s F hF c z, stackClaim_holds_eqEval_iff]
-  unfold LeanVM.Protocol.ColumnClaim.Holds M3Instance.column
-  rw [(leanIsaInstance F prog s).layout.read_eval]
+  rw [stackPoint_eq_extend prog s c hc z, stackClaim_holds_eqEval_iff]
+  show _ ↔ eval₂Mle ((leanIsaInstance prog s).column q c).values (algebraMap K E) z = v
+  rw [column_of_not_isOut prog s q hc]
+  exact Iff.of_eq (congrArg (· = v) ((leanIsaInstance prog s).layout.read_eval q c z).symm)
 
 /-! ## The bytecode fingerprint -/
 
-/-- The bytecode column's extension at `(z, w)` is the eight entry columns' extensions at `z`,
-weighted by the Lagrange basis of `w` at slots `3 to 10`: the other slots are zero. -/
+/-- The bytecode column's extension at `(z, w)` is the eleven entry columns' extensions at `z`,
+weighted by the Lagrange basis of `w` at slots `3 to 13`: the other slots are zero. -/
 theorem bytecodeColumnEval_eq_entries (prog : Program) (z : Vector E prog.logSize)
     (w : Vector E 4) :
     bytecodeColumnEval prog z w =
-      ∑ k : Fin 8, (lagrangeBasis w)[k.val + 3] *
+      ∑ k : Fin 11, (lagrangeBasis w)[k.val + 3] *
         eval₂Mle (entryColumn prog k).values (algebraMap K E) z := by
   unfold bytecodeColumnEval
-  let e : Fin 8 → Fin 16 := fun k ↦ ⟨k.val + 3, by omega⟩
+  let e : Fin 11 → Fin 16 := fun k ↦ ⟨k.val + 3, by omega⟩
   have he : Function.Injective e := fun a b h ↦ by
     simp only [e, Fin.mk.injEq] at h; exact Fin.ext (by omega)
   rw [← Finset.sum_subset (Finset.subset_univ (Finset.univ.image e)), Finset.sum_image
@@ -565,26 +622,26 @@ theorem bytecodeColumnEval_eq_entries (prog : Program) (z : Vector E prog.logSiz
     refine congrArg₂ (· * ·) rfl (Finset.sum_congr rfl fun i _ ↦ ?_)
     refine congrArg₂ (· * ·) ?_ rfl
     have h := encodeSlots_getElem (prog.code i) (k.val + 3) (by omega)
-    simp only [show 3 ≤ k.val + 3 ∧ k.val + 3 < 11 from ⟨by omega, by omega⟩] at h
+    simp only [show 3 ≤ k.val + 3 ∧ k.val + 3 < 14 from ⟨by omega, by omega⟩] at h
     simp only [Fin.getElem_fin] at h ⊢
     rw [h]
     simp [CMlPolynomialEval.map, entryColumn]
   · intro s _ hs
-    have hs' : ¬ (3 ≤ s.val ∧ s.val < 11) := by
+    have hs' : ¬ (3 ≤ s.val ∧ s.val < 14) := by
       rintro ⟨h1, h2⟩
       exact hs (Finset.mem_image.mpr ⟨⟨s.val - 3, by omega⟩, Finset.mem_univ _,
         Fin.ext (by simp only [e]; omega)⟩)
     simp [encodeSlots_getElem _ _ s.isLt, hs']
 
 /-- **The bytecode fingerprint**: the Python's `multilinear_eval(bytecode, (*low, *alphas))` is the
-sum over the instance's eight entry coordinates (`entryColumn`, coordinates `3 to 10` of the bytecode
+sum over the instance's eleven entry coordinates (`entryColumn`, coordinates `3 to 13` of the bytecode
 boundary blocks) of the fingerprint weight times the column's extension at `low`. Added to the
 weighted separator, index and count (slots `0 to 2`), it is the instance's fingerprint of the
 bytecode block at `low`. -/
 theorem multilinearEval_bytecodeWords (prog : Program) (z : Vector E prog.logSize)
     (w : Vector E 4) :
     multilinearEval ((bytecodeWords prog).map ofK) (z.toList ++ w.toList) =
-      ∑ k : Fin 8, (lagrangeBasis w)[k.val + 3] *
+      ∑ k : Fin 11, (lagrangeBasis w)[k.val + 3] *
         eval₂Mle (entryColumn prog k).values (algebraMap K E) z := by
   rw [← bytecodeColumnEval_eq_entries, ← bytecodeColumn_eval, ← Vector.toList_append]
   have : (bytecodeWords prog).map ofK =

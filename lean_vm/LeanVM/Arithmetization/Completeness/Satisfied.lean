@@ -498,15 +498,15 @@ theorem skelWitness_constraints (prog : Program) (input : PublicInput) {κ : ℕ
     | mulNative _ _ _ => simp [Instr.opcode] at h
     | setConstant _ _ => simp [Instr.opcode] at h
     | deref _ _ _ _ => simp [Instr.opcode] at h
-    | blake2s _ _ _ _ => simp [Instr.opcode] at h
-  · exact fun _ _ ↦ blake2s_constraints _
+    | keccak _ _ _ _ _ _ _ => simp [Instr.opcode] at h
+  · exact fun _ _ ↦ keccak_constraints _
   · exact fun _ _ ↦ mem_constraints _
   · exact fun _ _ ↦ bytecode_constraints _
 
 /-! ## The verifier's checks -/
 
 /-- Every pull of a row's read carries a nonzero count, when the row's counts are nonzero. -/
-theorem sendsOf_counts_ne_zero {pc fp : K} {next : Regs K} {rbc : K} {e : Vector K 8}
+theorem sendsOf_counts_ne_zero {pc fp : K} {next : Regs K} {rbc : K} {e : Vector K 11}
     {reads : List (K × K × Vector K 3)} (hb : rbc ≠ 0) (hr : ∀ x ∈ reads, x.2.1 ≠ 0) :
     ∀ y ∈ sendsOf pc fp next rbc e reads,
       (y.1 = MemPull.name ∨ y.1 = BytecodePull.name) → ∃ h : 1 < y.2.size, y.2[1] ≠ 0 := by
@@ -561,27 +561,24 @@ theorem skelWitness_counts_nonzero (prog : Program) (input : PublicInput) {κ : 
 
 /-! ## The blocks, the compression and the words -/
 
-/-- **Every `BLAKE2S` row compresses**: the row of an executing instruction satisfies the
-relation its execution checks. -/
-theorem skelWitness_blake2s_valid (prog : Program) (input : PublicInput) {κ : ℕ}
+/-- **Every `KECCAK` row permutes**: the row of an executing instruction satisfies the relation
+its execution checks. -/
+theorem skelWitness_keccak_valid (prog : Program) (input : PublicInput) {κ : ℕ}
     (img : MemImage κ) (S : List Skel)
     (hS : ∀ sk ∈ S, ∃ next, execute img sk.regs sk.ins = some next) :
-    Blake2sRowsValid (skelWitness prog input img S) := by
+    KeccakRowsValid (skelWitness prog input img S) := by
   intro row hrow
-  have hrow' : row ∈ ((skelRows img S).filter fun r ↦ r.sk.ins.opcode = .blake2s).map
+  have hrow' : row ∈ ((skelRows img S).filter fun r ↦ r.sk.ins.opcode = .keccak).map
       (PRow.raw img) := hrow
   obtain ⟨⟨⟨pc, fp, ins⟩, exps, bc⟩, hr, rfl⟩ := List.mem_map.mp hrow'
   obtain ⟨hr1, hr2⟩ := List.mem_filter.mp hr
   simp only [decide_eq_true_eq] at hr2
   obtain ⟨next, hn⟩ := hS _ (mem_mkRows_sk hr1)
   cases ins with
-  | blake2s om ocv oout omd =>
-    have hom : om = ![om 0, om 1, om 2, om 3] := by funext i; fin_cases i <;> rfl
-    have hn' : execute img ⟨pc, fp⟩ (.blake2s ![om 0, om 1, om 2, om 3] ocv oout omd) =
-        some next := hom ▸ hn
+  | keccak om otail ob8 ocap oout inOdd outOdd =>
     simp only [PRow.raw, rowOf, rawRow]
-    rw [blake2sRowAt_toElements]
-    exact ((blake2s_refines_iff _ _ _).mp (blake2sRowOf_refines hn' _ _ _ _ _ _ _ _ _ _)).2.1
+    rw [keccakRowAt_toElements]
+    exact ((keccak_refines_iff _ _ _).mp (keccakRowOf_refines hn _ _)).2.1
   | xor _ _ _ => simp [Instr.opcode] at hr2
   | mulNative _ _ _ => simp [Instr.opcode] at hr2
   | setConstant _ _ => simp [Instr.opcode] at hr2
@@ -732,7 +729,7 @@ theorem skelWitness_satisfiedBy (prog : Program) (input : PublicInput) {κ : ℕ
       index_columns := skelWitness_index_columns prog input img S
       seed_rows := skelWitness_seed_rows prog input img S hκ
       bytecode_rows := skelWitness_bytecode_rows prog input img S
-      blake2s_valid := skelWitness_blake2s_valid prog input img S hex
+      keccak_valid := skelWitness_keccak_valid prog input img S hex
       word0_eq := hwa
       word1_eq := hwb }
 

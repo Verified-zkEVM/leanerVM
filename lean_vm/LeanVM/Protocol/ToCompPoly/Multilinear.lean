@@ -390,6 +390,14 @@ theorem slice_getElem_nat {k m : ℕ} (t : CMlPolynomialEval R (k + m)) (j : Fin
   rw [slice, Vector.getElem_ofFn]
   rfl
 
+/-- Mapping the entries commutes with taking a slice. -/
+theorem slice_map {S : Type*} [CommRing S] (φ : R →+* S) {k m : ℕ}
+    (t : CMlPolynomialEval R (k + m)) (j : Fin (2 ^ m)) :
+    CMlPolynomialEval.map φ (slice t j) = slice (CMlPolynomialEval.map φ t) j := by
+  apply Vector.ext
+  intro i hi
+  simp [slice, CMlPolynomialEval.map]
+
 /-- Evaluation at a split point is the sum of the slices' evaluations, each weighted by the
 Lagrange basis of the high coordinates. -/
 theorem evalMle_split {k m : ℕ} (t : CMlPolynomialEval R (k + m)) (z : Vector R k)

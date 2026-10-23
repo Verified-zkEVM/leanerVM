@@ -13,7 +13,6 @@ public import LeanVM.Protocol.EndToEnd.Sound.Moves
 public import LeanVM.Protocol.EndToEnd.Sound.Returns
 public import LeanVM.Protocol.EndToEnd.Sound.BusDepth
 public import LeanVM.Protocol.EndToEnd.Front.TableFidLeanIsa
-public import LeanVM.Protocol.EndToEnd.Front.WalkFaithful
 public import LeanVM.Protocol.EndToEnd.Front.LayoutSizes
 public import LeanVM.Protocol.EndToEnd.Complete.Public
 public import LeanVM.Protocol.Whir.Complete.Opening
@@ -24,7 +23,7 @@ public import LeanVM.Protocol.Compile.SpecRules.Cert
 
 `leanVmSpec prog input` is a specification of `leanVmProgram (bytecodeWords prog)
 (publicDigest input)` (`LeanVM.Protocol.Verifier`, leanVM
-`127510d14c98ade4e8a97646c44fa7f1ff5e752d`) from no doom, with postcondition rejection, at
+`3375f7a137c50b803f3416f6466b5d4e0719708a`) from no doom, with postcondition rejection, at
 `εmax = 2^-128` and lead `0`; `leanVmCert` is its doom certificate (`Spec.toCert`). It composes,
 with `Spec.bind'`:
 
@@ -35,10 +34,12 @@ with `Spec.bind'`:
 3. the stack's root (`commitSpec`), creating `CommitPost`: no candidate of the committed word at
    level 0's Johnson threshold satisfies `M3Holds` of the leanISA instance at `s`
    (`CommitDoom`), and the commitments so far are exactly the stack's, of level 0's shape;
-4. the bus and the table sumcheck (`busTableSpec_leanIsa`), the public input (`pubPhaseSpec`), Flock
-   (`flockBridgeSpec`) and ring switching (`ringBridgeSpec`), each framed (`Spec.frame`) with the
-   shape of the commitments, which they keep since they commit nothing (`MovesOK.reach_commits`),
-   and the first two with the bound on the number of claims they return (`Spec.retInv`);
+4. the bus and the table sumcheck (`busTableSpec_leanIsa`), the public input (`pubPhaseSpec`, at
+   the table sumcheck's point, chosen by `Spec.exPre` from the table seam, `tablePost_pubPre`), the
+   Keccak reduction (`keccakPhaseSpec`) and ring switching (`ringSpec`), each framed (`Spec.frame`)
+   with the shape of the commitments, which they keep since they commit nothing
+   (`MovesOK.reach_commits`), and with the bounds on the number of claims they return
+   (`Spec.retInv`);
 5. the stacked opening (`stackedSpec`) with the deployed codes (`deployed_spec_hyps`), from ring
    switching's postcondition (`stackedPre_of_ringPost`).
 
@@ -62,9 +63,6 @@ open scoped ENNReal NNReal
 
 /-! ## The parameters -/
 
-/-- The deployed Flock specification, with the BLAKE2s circuit. -/
-abbrev F₀ : FlockSpec := Blake2sFlock.blake2sFlockSpec
-
 /-- **The per-group error**, `2^-128`. -/
 noncomputable abbrev εLean : ℝ≥0∞ := (2 : ℝ≥0∞)⁻¹ ^ 128
 
@@ -78,7 +76,7 @@ abbrev StackShape (μ R : ℕ) (h : List Ev) : Prop := ShapeOK 0 (code₀ μ R) 
 satisfies the leanISA relation (`CommitDoom`), and the stack's is the only commitment. -/
 def CommitPost (prog : Program) (input : PublicInput) (a : Verifier.Layout × ℕ) (_ : Unit)
     (h : List Ev) : Prop :=
-  CommitDoom F₀ prog input thrOf a h ∧ StackShape a.1.stackLog a.2 h
+  CommitDoom prog input thrOf a h ∧ StackShape a.1.stackLog a.2 h
 
 /-- What the announced value is on a run: the verifier's layout at admissible sizes, an
 admissible WHIR shape, and a layout `buildLayout` returned. -/
@@ -102,9 +100,8 @@ def veBody (publicInput : Digest) (layout : Verifier.Layout) (ρ : ℕ) : Prog U
   let claims ← Verifier.tablePhase layout bus
   let publicClaims ← Verifier.publicInputPhase layout publicInput
   let claims := claims ++ publicClaims
-  let (flockPoint, flockS) ←
-    Verifier.verifyFlock .computed (blake2sR1csLogSize + layout.tableLogHeights.getD opBlake2s 0)
-  let (ringTarget, ringWeight) ← Verifier.ringSwitch flockPoint flockS
+  let (claims, keccakPoint, keccakSlices) ← Verifier.keccakPhase layout claims
+  let (ringTarget, ringWeight) ← Verifier.ringSwitch keccakPoint keccakSlices
   Verifier.verifyStackedOpening layout.stackLog ρ
     (Verifier.ringSwitchClaim layout ringTarget ringWeight :: claims.map (·.onStack layout))
 
@@ -137,7 +134,7 @@ theorem listMax_le {μ R : ℕ} (hw : Whir.Admissible μ R) : (code₀ μ R).lis
 
 /-- The bus of the leanISA instance at a built verifier layout has depth at most `38`. -/
 theorem μBus_le (hlb : LayoutBounds (verifierLayout prog s)) :
-    (leanIsaInstance F₀ prog s).μBus ≤ 38 := by
+    (leanIsaInstance prog s).μBus ≤ 38 := by
   rw [← busLayout_depth_leanIsa]
   exact pushDepth_le hlb
 
@@ -169,18 +166,6 @@ theorem stackShape_keep {α : Type} {p : Prog α} (hp : MovesOK (fun _ ↦ False
     ∀ h₀ l, p.Reach h₀ l → StackShape μ R h₀ → StackShape μ R (h₀ ++ l) := by
   intro h₀ l hl hJ
   simpa [StackShape, commits_append_hist, hp.reach_commits hl] using hJ
-
-/-- The number of Flock rounds of a built layout is at most `46`. -/
-theorem flockRounds_le {layout : Verifier.Layout} (hlb : LayoutBounds layout) :
-    blake2sR1csLogSize + layout.tableLogHeights.getD opBlake2s 0 - flockKSkip -
-      fixedChallenges.length ≤ 46 := by
-  have : layout.tableLogHeights.getD opBlake2s 0 ≤ 32 := by
-    rw [List.getD_eq_getElem?_getD]
-    cases hi : layout.tableLogHeights[opBlake2s]? with
-    | none => simp
-    | some x => exact hlb.heights_le x (List.mem_of_getElem? hi)
-  simp only [blake2sR1csLogSize]
-  omega
 
 variable {prog s ρ}
 
@@ -240,75 +225,88 @@ noncomputable def ringPart (hw : Whir.Admissible (verifierLayout prog s).stackLo
     Spec ((ringSwitch pt sv).bind fun y ↦ verifyStackedOpening (verifierLayout prog s).stackLog ρ
         (ringSwitchClaim (verifierLayout prog s) y.1 y.2 ::
           cl.map (·.onStack (verifierLayout prog s))))
-      (fun h ↦ LinPost F₀ prog s (verifierLayout prog s) (Cs prog s ρ) (toI prog s) cl input
-          (pt, sv) h ∧ StackShape (verifierLayout prog s).stackLog ρ h)
+      (fun h ↦ ((pt.length = s.τ 5 + 6 ∧ sv.length = 64) ∧
+          RingPre (verifierLayout prog s) (Cs prog s ρ) cl (s.τ 5) pt sv h) ∧
+        StackShape (verifierLayout prog s).stackLog ρ h)
       (fun _ _ ↦ False) εLean
       ((∑ _i ∈ Finset.range 6, (L₀ : ℝ≥0∞) * ((overE 1 : ℝ≥0) : ℝ≥0∞)) +
         eBatch (cl.length + 1) (code₀ (verifierLayout prog s).stackLog ρ)) 0 :=
-  (Spec.frame (Spec.retInv (ringBridgeSpec F₀ prog s (verifierLayout prog s) (Cs prog s ρ)
-      (toI prog s) cl input (ringLayoutHyp_verifierLayout prog s F₀) (cs_stable prog s ρ)
-      (cs_ncard prog s ρ hw)
+  (Spec.frame (Spec.retInv (ringSpec (verifierLayout prog s) (Cs prog s ρ) cl
+      (ringLayoutHyp_verifierLayout prog s) (cs_stable prog s ρ) (cs_ncard prog s ρ hw)
       (T := eBatch (cl.length + 1) (code₀ (verifierLayout prog s).stackLog ρ))
       pt sv) _ (ringSwitch_ret_multilinear _ pt sv))
     _ (stackShape_keep (movesOK_ringSwitch pt sv) _ _)).bind' fun y ↦ stackedPart hw cl y
 
-/-- **Flock, ring switching and the stacked opening**, for at most `230` claims. -/
-noncomputable def flockPart (hw : Whir.Admissible (verifierLayout prog s).stackLog ρ)
+open Classical in
+/-- **The Keccak reduction, ring switching and the stacked opening**, for at most `549` claims. -/
+noncomputable def keccakPart (hw : Whir.Admissible (verifierLayout prog s).stackLog ρ)
     (hlb : LayoutBounds (verifierLayout prog s)) (cl : List Verifier.ColumnClaim)
-    (hcl : cl.length ≤ 230) :
-    Spec ((verifyFlock .computed (blake2sR1csLogSize +
-          (verifierLayout prog s).tableLogHeights.getD opBlake2s 0)).bind fun x ↦
-        (ringSwitch x.1 x.2).bind fun y ↦ verifyStackedOpening (verifierLayout prog s).stackLog ρ
-          (ringSwitchClaim (verifierLayout prog s) y.1 y.2 ::
-            cl.map (·.onStack (verifierLayout prog s))))
-      (fun h ↦ FlockPre F₀ prog s (verifierLayout prog s) (Cs prog s ρ) (toI prog s) cl h ∧
+    (hcl : cl.length ≤ 549) :
+    Spec ((keccakPhase (verifierLayout prog s) cl).bind fun r ↦
+        (ringSwitch r.2.1 r.2.2).bind fun y ↦
+          verifyStackedOpening (verifierLayout prog s).stackLog ρ
+            (ringSwitchClaim (verifierLayout prog s) y.1 y.2 ::
+              r.1.map (·.onStack (verifierLayout prog s))))
+      (fun h ↦ KeccakPre prog s (Cs prog s ρ) cl h ∧
         StackShape (verifierLayout prog s).stackLog ρ h)
-      (fun _ _ ↦ False) εLean
-      ((∑ _i ∈ Finset.range (blake2sR1csLogSize +
-          (verifierLayout prog s).tableLogHeights.getD opBlake2s 0 - flockKSkip -
-          fixedChallenges.length), (L₀ : ℝ≥0∞) * ((overE 1 : ℝ≥0) : ℝ≥0∞)) + 0) 0 :=
-  have he := phase_errors (leanIsaInstance F₀ prog s) (μBus_le prog s hlb)
-    (B_leanIsa_le F₀ prog s)
-  (Spec.frame (flockBridgeSpec F₀ prog s (verifierLayout prog s) (Cs prog s ρ) (toI prog s) cl
-      input walkFaithful_blake2sFlockSpec (tableLogHeights_blake2s prog s) (cs_stable prog s ρ)
+      (fun _ _ ↦ False) εLean ((L₀ : ℝ≥0∞) * KeccakGkr.errE 6) 0 :=
+  have he := phase_errors (leanIsaInstance prog s) (μBus_le prog s hlb) (B_leanIsa_le prog s)
+  (Spec.frame (Spec.retInv (keccakPhaseSpec prog s (Cs prog s ρ) (cs_stable prog s ρ)
       (cs_ncard prog s ρ hw)
-      (he.2.2.2.2.2.2.2.2.1 (cl.length + 1) _ (by omega)
-        (listMax_le hw))
-      he.2.2.2.2.2.2.2.2.2.1 he.2.2.2.2.2.2.2.2.2.2.1 he.2.2.2.2.2.2.2.2.2.2.2)
-    _ (stackShape_keep (movesOK_verifyFlock _) _ _)).bind' fun x ↦ ringPart input hw cl x.1 x.2
+      (T := (∑ _i ∈ Finset.range 6, (L₀ : ℝ≥0∞) * ((overE 1 : ℝ≥0) : ℝ≥0∞)) +
+        eBatch 551 (code₀ (verifierLayout prog s).stackLog ρ))
+      (he.2.2.2.2.2.2.2.2.1 551 _ le_rfl (listMax_le hw)) he.2.2.2.2.2.2.2.2.2 cl)
+      (fun r ↦ r.1.length ≤ cl.length + 1) (retOK_keccakPhase _ cl))
+    _ (stackShape_keep (movesOK_keccakPhase _ cl) _ _)).bind' fun r ↦
+    if hr : r.1.length ≤ 550 then
+      (ringPart hw r.1 r.2.1 r.2.2).mono (fun _ hp ↦ ⟨hp.1.1, hp.2⟩) (fun _ _ h ↦ h) le_rfl
+        (add_le_add le_rfl (eBatch_le_of_le _ (by omega))) le_rfl
+    else Spec.dead.mono (fun _ hp ↦ hr (by have := hp.1.2; omega)) (fun _ _ h ↦ h) le_rfl le_rfl
+      le_rfl
 
 open Classical in
-/-- **The public input, then Flock, ring switching and the opening**, after at most `227` claims
-of the table phase. The public input's challenge and Flock's point are one group of challenges,
-whose lead is at most `L₀ · 47/|E|` (`pubLead_le`). -/
-noncomputable def pubPart (hw : Whir.Admissible (verifierLayout prog s).stackLog ρ)
+/-- **The public input at the table sumcheck's point `pt`, then the Keccak reduction, ring
+switching and the opening**, after at most `545` claims of the table phase. The public input's
+challenge and the Keccak reduction's six first challenges are one group, of lead at most
+`L₀ · 7/|E|` (`pubLead_le`). -/
+noncomputable def pubPartAt (hw : Whir.Admissible (verifierLayout prog s).stackLog ρ)
     (hlb : LayoutBounds (verifierLayout prog s)) (cl : List Verifier.ColumnClaim)
-    (hcl : cl.length ≤ 227) :
+    (hcl : cl.length ≤ 545)
+    (pt : Vector E (leanIsaInstance prog s).τmax) :
     Spec ((Verifier.publicInputPhase (verifierLayout prog s) (publicDigest input)).bind fun pc ↦
-        (verifyFlock .computed (blake2sR1csLogSize +
-          (verifierLayout prog s).tableLogHeights.getD opBlake2s 0)).bind fun x ↦
-        (ringSwitch x.1 x.2).bind fun y ↦ verifyStackedOpening (verifierLayout prog s).stackLog ρ
+        (keccakPhase (verifierLayout prog s) (cl ++ pc)).bind fun r ↦
+        (ringSwitch r.2.1 r.2.2).bind fun y ↦ verifyStackedOpening (verifierLayout prog s).stackLog ρ
           (ringSwitchClaim (verifierLayout prog s) y.1 y.2 ::
-            (cl ++ pc).map (·.onStack (verifierLayout prog s))))
-      (fun h ↦ PubPre F₀ prog s (verifierLayout prog s) (Cs prog s ρ) (toI prog s) cl input h ∧
+            r.1.map (·.onStack (verifierLayout prog s))))
+      (fun h ↦ (OutLanesAt s cl pt.toList ∧
+          PubPre prog s (verifierLayout prog s) (Cs prog s ρ) (toI prog s) (WireHolds prog s) cl
+            input pt h) ∧
         StackShape (verifierLayout prog s).stackLog ρ h)
-      (fun _ _ ↦ False) εLean ((L₀ : ℝ≥0∞) * ((overE 47 : ℝ≥0) : ℝ≥0∞)) 0 :=
-  ((Spec.frame (Spec.retInv (pubPhaseSpec F₀ prog s (verifierLayout prog s) (Cs prog s ρ)
-      (toI prog s) cl input (pubLayoutHyp_verifierLayout prog s F₀)
-      (EndToEnd.Complete.digestScalars_publicDigest input) (cs_stable prog s ρ)
-      (cs_ncard prog s ρ hw))
-      (fun pc ↦ pc.length ≤ 3) (retOK_publicInputPhase _ _))
-    _ (stackShape_keep (movesOK_publicInputPhase _ _) _ _)).bind' fun pc ↦
-    if hpc : pc.length ≤ 3 then
-      (flockPart input hw hlb (cl ++ pc) (by rw [List.length_append]; omega)).mono
-        (fun _ hp ↦ ⟨hp.1.1, hp.2⟩) (fun _ _ h ↦ h) le_rfl le_rfl le_rfl
-    else Spec.dead.mono (fun _ hp ↦ hpc hp.1.2) (fun _ _ h ↦ h) le_rfl le_rfl le_rfl).mono
-    (fun _ h ↦ h) (fun _ _ h ↦ h) le_rfl (pubLead_le L₀ (flockRounds_le hlb)) le_rfl
+      (fun _ _ ↦ False) εLean ((L₀ : ℝ≥0∞) * ((overE 7 : ℝ≥0) : ℝ≥0∞)) 0 :=
+  if hout : OutLanesAt s cl pt.toList then
+    (((Spec.frame (Spec.retInv (pubPhaseSpec prog s (verifierLayout prog s) (Cs prog s ρ)
+        (toI prog s) (WireHolds prog s) cl input pt (pubLayoutHyp_verifierLayout prog s)
+        (EndToEnd.Complete.digestScalars_publicDigest input) (cs_stable prog s ρ)
+        (cs_ncard prog s ρ hw) (T := (L₀ : ℝ≥0∞) * KeccakGkr.errE 6))
+        (fun pc ↦ pc.length ≤ 3) (retOK_publicInputPhase _ _))
+      _ (stackShape_keep (movesOK_publicInputPhase _ _) _ _)).mono
+      (Pre' := fun h ↦ (OutLanesAt s cl pt.toList ∧
+          PubPre prog s (verifierLayout prog s) (Cs prog s ρ) (toI prog s) (WireHolds prog s) cl
+            input pt h) ∧ StackShape (verifierLayout prog s).stackLog ρ h)
+      (fun _ hp ↦ ⟨hp.1.2, hp.2⟩) (fun _ _ h ↦ h) le_rfl le_rfl le_rfl).bind' fun pc ↦
+      if hpc : pc.length ≤ 3 then
+        (keccakPart hw hlb (cl ++ pc) (by rw [List.length_append]; omega)).mono
+          (fun _ hp ↦ ⟨⟨pt, fun l ↦ (hout l).imp fun _ hv ↦ List.mem_append_left _ hv,
+            hp.1.1⟩, hp.2⟩)
+          (fun _ _ h ↦ h) le_rfl le_rfl le_rfl
+      else Spec.dead.mono (fun _ hp ↦ hpc hp.1.2) (fun _ _ h ↦ h) le_rfl le_rfl le_rfl).mono
+      (fun _ h ↦ h) (fun _ _ h ↦ h) le_rfl (pubLead_le L₀) le_rfl
+  else Spec.dead.mono (fun _ hp ↦ hout hp.1.1) (fun _ _ h ↦ h) le_rfl le_rfl le_rfl
 
 /-- The candidates of the stack's word, as oracles of the instance, are finite and at most
 `2^18`. -/
 theorem candsOf_bound (hw : Whir.Admissible (verifierLayout prog s).stackLog ρ) (W : Word) :
-    (candsOf F₀ prog s ρ thrOf W).Finite ∧ (candsOf F₀ prog s ρ thrOf W).ncard ≤ L₀ := by
+    (candsOf prog s ρ thrOf W).Finite ∧ (candsOf prog s ρ thrOf W).ncard ≤ L₀ := by
   rw [stackLog_verifierLayout] at hw
   refine ⟨(candidates_bound hw W).1.image _, ?_⟩
   rw [candsOf_ncard]
@@ -322,36 +320,37 @@ theorem movesOK_busTable (layout : Verifier.Layout) :
 
 open Classical in
 /-- **Everything after the stack's root**: the bus and the table sumcheck, from the root's doom,
-then the public input, Flock, ring switching and the
-opening. -/
+then, at the table sumcheck's point, the public input, the Keccak reduction, ring switching and
+the opening. -/
 noncomputable def restSpec
     (hw : Whir.Admissible (verifierLayout prog s).stackLog ρ)
     (hlb : LayoutBounds (verifierLayout prog s)) :
     Spec ((verifyBusBalance .computed (verifierLayout prog s)).bind fun bus ↦
         (tablePhase (verifierLayout prog s) bus).bind fun cl ↦
         (Verifier.publicInputPhase (verifierLayout prog s) (publicDigest input)).bind fun pc ↦
-        (verifyFlock .computed (blake2sR1csLogSize +
-          (verifierLayout prog s).tableLogHeights.getD opBlake2s 0)).bind fun x ↦
-        (ringSwitch x.1 x.2).bind fun y ↦ verifyStackedOpening (verifierLayout prog s).stackLog ρ
+        (keccakPhase (verifierLayout prog s) (cl ++ pc)).bind fun r ↦
+        (ringSwitch r.2.1 r.2.2).bind fun y ↦ verifyStackedOpening (verifierLayout prog s).stackLog ρ
           (ringSwitchClaim (verifierLayout prog s) y.1 y.2 ::
-            (cl ++ pc).map (·.onStack (verifierLayout prog s))))
+            r.1.map (·.onStack (verifierLayout prog s))))
       (fun h ↦ CommitPost prog input (verifierLayout prog s, ρ) () h)
-      (fun _ _ ↦ False) εLean (abError (leanIsaInstance F₀ prog s) L₀ + 0) 0 :=
-  have he := phase_errors (leanIsaInstance F₀ prog s) (μBus_le prog s hlb)
-    (B_leanIsa_le F₀ prog s)
+      (fun _ _ ↦ False) εLean (abError (leanIsaInstance prog s) L₀ + 0) 0 :=
+  have he := phase_errors (leanIsaInstance prog s) (μBus_le prog s hlb)
+    (B_leanIsa_le prog s)
   Spec.congr (Prog.bind_assoc _ _ _) <|
-    ((Spec.frame (Spec.retInv (busTableSpec_leanIsa F₀ prog s input
-        (candsOf F₀ prog s ρ thrOf) (fun W ↦ (candsOf_bound hw W).1)
+    ((Spec.frame (Spec.retInv (busTableSpec_leanIsa prog s input
+        (candsOf prog s ρ thrOf) (fun W ↦ (candsOf_bound hw W).1)
         (fun W ↦ (candsOf_bound hw W).2) he.2.1 he.2.2.1 he.2.2.2.1 he.2.2.2.2.1
         he.2.2.2.2.2.1 he.2.2.2.2.2.2.1 (he.2.2.2.2.2.2.2.1 _))
-        (fun cl ↦ cl.length ≤ 227) (retOK_busTable _))
+        (fun cl ↦ cl.length ≤ 545) (retOK_busTable _))
       _ (stackShape_keep (movesOK_busTable _) _ _)).mono
-      (fun h hp ↦ ⟨commitDoom_hdoom F₀ prog s input thrOf ρ h hp.1, hp.2⟩) (fun _ _ h ↦ h)
+      (fun h hp ↦ ⟨commitDoom_hdoom prog s input thrOf ρ h hp.1, hp.2⟩) (fun _ _ h ↦ h)
       le_rfl le_rfl le_rfl).bind' fun cl ↦
-      if hcl : cl.length ≤ 227 then
-        (pubPart input hw hlb cl hcl).mono
-          (fun h hp ↦ ⟨tablePost_pubPre F₀ prog s (candsOf F₀ prog s ρ thrOf) input rfl
-            (Cs prog s ρ) (candsL_mem F₀ prog s ρ thrOf) cl h hp.1.1, hp.2⟩) (fun _ _ h ↦ h)
+      if hcl : cl.length ≤ 545 then
+        (Spec.exPre fun pt ↦ pubPartAt input hw hlb cl hcl pt).mono
+          (fun h hp ↦ by
+            obtain ⟨pt, hout, hpre⟩ := tablePost_pubPre prog s (candsOf prog s ρ thrOf) input
+              (Cs prog s ρ) (candsL_mem prog s ρ thrOf) cl h hp.1.1
+            exact ⟨pt, ⟨hout, hpre⟩, hp.2⟩) (fun _ _ h ↦ h)
           le_rfl le_rfl le_rfl
       else Spec.dead.mono (fun _ hp ↦ hcl hp.1.2) (fun _ _ h ↦ h) le_rfl le_rfl le_rfl
 
@@ -364,8 +363,8 @@ noncomputable def realSpec
       (fun _ _ ↦ False) εLean 0 0 :=
   (commitSpec (CommitPost prog input (verifierLayout prog s, ρ))
       (verifierLayout prog s).stackLog ρ
-      (phase_errors (leanIsaInstance F₀ prog s) (μBus_le prog s hlb)
-        (B_leanIsa_le F₀ prog s)).1).bind' fun _ ↦
+      (phase_errors (leanIsaInstance prog s) (μBus_le prog s hlb)
+        (B_leanIsa_le prog s)).1).bind' fun _ ↦
     restSpec input hw hlb
 
 end Phases

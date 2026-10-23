@@ -117,6 +117,11 @@ program: the table is program-free (the module docstring). -/
 def SetSpec (r : SetRow K) (next : Regs K) (data : ProverData K) : Prop :=
   SetRefines (imageOf data).2 r next
 
+/-- The bytecode tuple of a row is `entry` of the instruction it names, by definition; spelled
+once, so that the unifier need not see it through `decode`. -/
+private theorem setConstant_entry (o k0 k1 k2 : K) :
+    #v[Opcode.setConstant.code] ++ #v[o, k0, k1, k2, 0, 0, 0, 0, 0, 0] = entry (.setConstant o (E.ofLimbs k0 k1 k2)) := rfl
+
 /-! ## The table -/
 
 /-- The `SET_CONSTANT` table (specification §7.3; `tables.rs:532-585`): state step, bytecode
@@ -128,7 +133,7 @@ def setTable : GeneralFormalCircuit K SetRow Regs where
     StatePull.pull ⟨r.pc, r.fp⟩
     StatePush.push next
     bytecodeRead r.pc r.rbc (Expression.const Opcode.setConstant.code)
-      #v[r.o, r.k[0], r.k[1], r.k[2], 0, 0, 0]
+      #v[r.o, r.k[0], r.k[1], r.k[2], 0, 0, 0, 0, 0, 0]
     memRead (r.fp * r.o) r.r r.k
     pure next
   -- The push channels: their requirements are vacuous, the obligation is `Spec`.
@@ -161,7 +166,7 @@ def setTable : GeneralFormalCircuit K SetRow Regs where
     obtain ⟨_, _, _, hvk, _, _⟩ := h_input
     subst hvk
     simp only [Vector.getElem_map] at hk ⊢
-    exact ⟨⟨_, decode_entry (.setConstant _ (E.ofLimbs _ _ _))⟩, hk⟩
+    exact ⟨⟨_, by rw [setConstant_entry]; exact decode_entry _⟩, hk⟩
 
 /-! ## Rows from executions -/
 

@@ -1,9 +1,8 @@
 /-
   LeanVM.Protocol.Verifier.DeferredShape
 
-  The claims a deferring verifier accepts are of the verifier's shapes: the bytecode's point has
-  the bytecode's log-length, the lincheck's row and column points have its round count, and the
-  slices are `kBits`.
+  The claim a deferring verifier accepts is of the verifier's shape: the bytecode's point has the
+  bytecode's log-length.
 -/
 
 module
@@ -13,10 +12,10 @@ public import LeanVM.Protocol.Verifier.Deferred
 /-!
 # The shapes of the accepted claims
 
-The claimed evaluator (`Evaluations.claimed c`) answers only at the points of `c`, so a run of
-the deferring verifier that returns passes through both of its calls at `c`'s points, which are
-the verifier's own: the bus's `bytecodeLow ++ alphas` and the lincheck's `chiIn`,
-`chiInPrime` and slices. Their lengths are fixed by the program (`verifyDeferred_shaped`).
+The claimed evaluator (`Evaluations.claimed c`) answers only at the point of `c`, so a run of
+the deferring verifier that returns passes through its call at `c`'s point, which is the
+verifier's own: the bus's `bytecodeLow ++ alphas`. Its length is fixed by the program
+(`verifyDeferred_shaped`).
 
 The run is read through `Prog.Returns` (`returns_of_runProof`: an accepted proof's program may
 return `true`), and every phase on the way is walked with `Prog.returns_bind`:
@@ -24,13 +23,12 @@ return `true`), and every phase on the way is walked with `Prog.returns_bind`:
 * `readSizes_logBytecode`: the layout's bytecode log-size is `Nat.log2 bytecode.length` less
   `busBits`;
 * `busLayout_depth_ge`: the push side's GKR depth is at least the bytecode's log-size, so the
-  bus point's `take` keeps all of it;
-* `returns_verifyFlockZerocheck`: the zerocheck's point is longer than the lincheck's rounds.
+  bus point's `take` keeps all of it.
 -/
 
 namespace LeanVM.Protocol.Compile
 
-open LeanVM.Parameters
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Protocol.KeccakHash
 
 @[expose] public section
 
@@ -39,8 +37,8 @@ namespace Prog
 variable {α : Type}
 
 /-- A program's successful run returns what the program may return. -/
-theorem returns_of_run (H : Bytes → Id Digest) {p : Prog α} :
-    ∀ {s : St} {a : α} {s' : St}, run H p s = some (a, s') → Returns p a := by
+theorem returns_of_run (H : Bytes → Id Digest) (F : KState → Id KState) {p : Prog α} :
+    ∀ {s : St} {a : α} {s' : St}, run H F p s = some (a, s') → Returns p a := by
   induction p with
   | ret b =>
     intro s a s' h
@@ -70,6 +68,7 @@ theorem returns_of_run (H : Bytes → Id Digest) {p : Prog α} :
     simp only [run] at h
     split at h
     · next x0 x1 xs hs =>
+      change (match digestOfScalars (x0, x1) with | some root => _ | none => _) = _ at h
       split at h
       · next root hroot => exact .commit height width (ih h)
       · simp at h
@@ -87,12 +86,12 @@ theorem returns_of_run (H : Bytes → Id Digest) {p : Prog α} :
       · simp at h
 
 /-- An accepted proof's program may return `true`. -/
-theorem returns_of_runProof (H : Bytes → Id Digest) {P : Prog Bool} {seed : Digest} {π : Proof}
-    (h : runProof H P seed π = true) : Returns P true := by
+theorem returns_of_runProof (H : Bytes → Id Digest) (F : KState → Id KState) {P : Prog Bool}
+    {seed : KState} {π : Proof} (h : runProof H F P seed π = true) : Returns P true := by
   unfold runProof at h
   revert h
-  match hr : run H P ⟨seed, π.stream, π.openings, []⟩ with
-  | some (true, s) => exact fun _ ↦ returns_of_run H hr
+  match hr : run H F P ⟨⟨seed, []⟩, π.stream, π.openings, []⟩ with
+  | some (true, s) => exact fun _ ↦ returns_of_run H F hr
   | some (false, _) => intro h; simp at h
   | none => intro h; simp at h
 
@@ -128,7 +127,7 @@ end LeanVM.Protocol.Compile
 
 namespace LeanVM.Protocol.Verifier
 
-open LeanVM.Parameters LeanVM.Protocol.Compile LeanVM.Protocol.Blake2sHash
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Protocol.Compile LeanVM.Protocol.KeccakHash
 
 @[expose] public section
 
@@ -200,15 +199,6 @@ theorem returns_verifyGkrGrandProducts {depth : ℕ} {x : E × List E × List E}
 theorem returns_claimed_bytecode {c : FixedClaims} {words : List K} {point : List E} {v : E}
     (h : Prog.Returns ((Evaluations.claimed c).bytecode words point) v) :
     point = c.bytecodePoint := by
-  obtain ⟨_, h, -⟩ := Prog.returns_bind h
-  exact Prog.returns_require h
-
-/-- The claimed matrices' value is given only at the claimed weights. -/
-theorem returns_claimed_matrices {c : FixedClaims} {alpha zSkip v : E}
-    {chiIn chiInPrime s : List E}
-    (h : Prog.Returns ((Evaluations.claimed c).matrices alpha zSkip chiIn chiInPrime s) v) :
-    alpha = c.alpha ∧ zSkip = c.zSkip ∧ chiIn = c.rowPoint ∧ chiInPrime = c.columnPoint ∧
-      s = c.slices := by
   obtain ⟨_, h, -⟩ := Prog.returns_bind h
   exact Prog.returns_require h
 
@@ -299,73 +289,24 @@ theorem verifyBusBalance_bytecodePoint {c : FixedClaims} {layout : Layout} {b : 
     hp]
   omega
 
-/-- The zerocheck's point: the fixed coordinates and the sampled ones. -/
-theorem returns_verifyFlockZerocheck {logN : ℕ} {zc : ZerocheckResult}
-    (h : Prog.Returns (verifyFlockZerocheck logN) zc) :
-    zc.chi.length = fixedChallenges.length + (logN - flockKSkip - fixedChallenges.length) := by
-  unfold verifyFlockZerocheck at h
-  obtain ⟨sampled, hs, h⟩ := Prog.returns_bind h
-  obtain ⟨_, -, h⟩ := Prog.returns_bind h
-  obtain ⟨_, -, h⟩ := Prog.returns_bind h
-  obtain ⟨⟨chi, running⟩, hc, h⟩ := Prog.returns_bind h
-  obtain ⟨_, -, h⟩ := Prog.returns_bind h
-  obtain ⟨_, -, h⟩ := Prog.returns_bind h
-  rw [Prog.returns_ret h]
-  have hc' : chi.length = _ := returns_sumcheck hc
-  rw [hc', List.length_map, List.length_append, Prog.returns_sampleN hs]
-
-/-- Flock, on at least `blake2sR1csLogSize` variables, asks for the matrices at a row and a column
-point of `flockNumLincheckRounds` coordinates and `kBits` slices. -/
-theorem verifyFlock_shaped {c : FixedClaims} {logN : ℕ} {x : List E × List E}
-    (hN : blake2sR1csLogSize ≤ logN) (h : Prog.Returns (verifyFlock (.claimed c) logN) x) :
-    c.rowPoint.length = flockNumLincheckRounds ∧
-      c.columnPoint.length = flockNumLincheckRounds ∧ c.slices.length = kBits := by
-  unfold verifyFlock verifyFlockLincheck at h
-  obtain ⟨zc, hz, h⟩ := Prog.returns_bind h
-  obtain ⟨_, -, h⟩ := Prog.returns_bind h
-  obtain ⟨⟨rc, rLc⟩, hrc, h⟩ := Prog.returns_bind h
-  obtain ⟨s, hs, h⟩ := Prog.returns_bind h
-  obtain ⟨_, hm, -⟩ := Prog.returns_bind h
-  obtain ⟨-, -, h1, h2, h3⟩ := returns_claimed_matrices hm
-  have hchi := returns_verifyFlockZerocheck hz
-  have hrc' : rc.length = _ := returns_sumcheck hrc
-  have h7 : fixedChallenges.length = 7 := by simp [fixedChallenges]
-  have h6 : flockKSkip = 6 := by decide
-  have h8 : flockNumLincheckRounds = 8 := rfl
-  have h14 : blake2sR1csLogSize = 14 := rfl
-  refine ⟨?_, ?_, ?_⟩
-  · rw [← h1, List.length_take, hchi]
-    omega
-  · rw [← h2, List.length_reverse, hrc', List.length_replicate]
-  · rw [← h3, Prog.returns_readN hs]
-
 /-- **The verifier's claims, of the verifier's shapes**: a run of the verifier on the claimed
 evaluator that may return makes claims of the lengths the program fixes. -/
 theorem verifyExecution_shaped {c : FixedClaims} {bytecode : List K} {publicInput : Digest}
     {u : Unit} (h : Prog.Returns (verifyExecution (.claimed c) bytecode publicInput) u) :
-    c.bytecodePoint.length = Nat.log2 bytecode.length ∧
-      c.rowPoint.length = flockNumLincheckRounds ∧
-      c.columnPoint.length = flockNumLincheckRounds ∧ c.slices.length = kBits := by
+    c.bytecodePoint.length = Nat.log2 bytecode.length := by
   unfold verifyExecution at h
   obtain ⟨⟨layout, r⟩, hl, h⟩ := Prog.returns_bind h
   obtain ⟨_, -, h⟩ := Prog.returns_bind h
-  obtain ⟨_, hb, h⟩ := Prog.returns_bind h
-  obtain ⟨_, -, h⟩ := Prog.returns_bind h
-  obtain ⟨_, -, h⟩ := Prog.returns_bind h
-  obtain ⟨_, hf, -⟩ := Prog.returns_bind h
-  refine ⟨?_, verifyFlock_shaped (Nat.le_add_right _ _) hf⟩
+  obtain ⟨_, hb, -⟩ := Prog.returns_bind h
   rw [verifyBusBalance_bytecodePoint hb]
   exact readSizes_logBytecode hl
 
 /-- **An accepted proof's claims are of the verifier's shapes**: a proof the deferring verifier
-accepts claims the bytecode at a point of the bytecode's log-length, and the matrices at a row and
-a column point of `flockNumLincheckRounds` coordinates and `kBits` slices. -/
+accepts claims the bytecode at a point of the bytecode's log-length. -/
 theorem verifyDeferred_shaped {bytecode : List K} {iv publicInput : Digest} {c : FixedClaims}
     {π : Proof} (h : verifyDeferred bytecode iv publicInput c π = true) :
-    c.bytecodePoint.length = Nat.log2 bytecode.length ∧
-      c.rowPoint.length = flockNumLincheckRounds ∧
-      c.columnPoint.length = flockNumLincheckRounds ∧ c.slices.length = kBits := by
-  have hP := Prog.returns_of_runProof blake2sBytes h
+    c.bytecodePoint.length = Nat.log2 bytecode.length := by
+  have hP := Prog.returns_of_runProof keccak256 keccakF h
   unfold deferredProgram at hP
   obtain ⟨_, hu, -⟩ := Prog.returns_bind hP
   exact verifyExecution_shaped hu

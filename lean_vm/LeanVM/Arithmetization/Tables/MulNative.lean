@@ -152,6 +152,11 @@ program: the table is program-free (the module docstring). -/
 def MulSpec (r : MulRow K) (next : Regs K) (data : ProverData K) : Prop :=
   MulRefines (imageOf data).2 r next
 
+/-- The bytecode tuple of a row is `entry` of the instruction it names, by definition; spelled
+once, so that the unifier need not see it through `decode`. -/
+private theorem mulNative_entry (a b c : K) :
+    #v[Opcode.mulNative.code] ++ #v[a, b, c, 0, 0, 0, 0, 0, 0, 0] = entry (.mulNative a b c) := rfl
+
 /-! ## The table -/
 
 /-- The `MUL_NATIVE` table (specification §7.2; `tables.rs:441-526`): state step, bytecode read
@@ -163,7 +168,7 @@ def mulTable : GeneralFormalCircuit K MulRow Regs where
     StatePull.pull ⟨r.pc, r.fp⟩
     StatePush.push next
     bytecodeRead r.pc r.rbc (Expression.const Opcode.mulNative.code)
-      #v[r.oA, r.oB, r.oC, 0, 0, 0, 0]
+      #v[r.oA, r.oB, r.oC, 0, 0, 0, 0, 0, 0, 0]
     memRead (r.fp * r.oA) r.rA r.vA
     memRead (r.fp * r.oB) r.rB r.vB
     -- `TOWER_LANES` (`tables.rs:45-49`), lane by lane, pair by pair.
@@ -208,7 +213,7 @@ def mulTable : GeneralFormalCircuit K MulRow Regs where
     obtain ⟨_, _, _, _, _, hvA, hvB, _, _, _, _⟩ := h_input
     subst hvA hvB
     simp only [Vector.getElem_map] at hA hB hC ⊢
-    exact ⟨⟨_, decode_entry (.mulNative _ _ _)⟩, hA, hB, hC⟩
+    exact ⟨⟨_, by rw [mulNative_entry]; exact decode_entry _⟩, hA, hB, hC⟩
 
 /-! ## Rows from executions -/
 

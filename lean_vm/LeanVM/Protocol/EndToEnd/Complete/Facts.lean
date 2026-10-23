@@ -1,9 +1,8 @@
 /-
   LeanVM.Protocol.EndToEnd.Complete.Facts
 
-  What each phase of an honest run hands the next: the true row values of the opcode tables,
-  the facts the bus phase establishes of its result for the table sumcheck, and the true slices
-  the Flock phase returns for ring switching.
+  What each phase of an honest run hands the next: the true row values of the opcode tables and
+  the facts the bus phase establishes of its result for the table sumcheck.
 -/
 
 module
@@ -14,9 +13,8 @@ public import LeanVM.Protocol.EndToEnd.Complete.Claims
 # The facts an honest run threads
 
 The verifier program's phases (`LeanVM.Protocol.Verifier.verifyExecution`,
-`python-verifier/verifier.py:1358-1407` at leanVM `127510d14c98ade4e8a97646c44fa7f1ff5e752d`)
-pass data to each other: the bus's `BusResult` to the table sumcheck, Flock's point and slices to
-ring switching. Against the honest prover of a stack `q` (`inst prog s`), that data is true of
+`python-verifier/verifier.py:1451-1509` at leanVM `3375f7a137c50b803f3416f6466b5d4e0719708a`) pass data
+to each other: the bus's `BusResult` to the table sumcheck. Against the honest prover of a stack `q` (`inst prog s`), that data is true of
 `q`; this module names what "true" means, the interface between the phases' completeness proofs.
 
 * `rowVal prog s q t x`: row `x` of opcode table `t`, read off the stack through the instance's
@@ -27,10 +25,6 @@ ring switching. Against the honest prover of a stack `q` (`inst prog s`), that d
   and side; and each side's total is the sum, over every table's rows, of the equality weight of
   the row against the point's first `τ_t` coordinates times the table's form for the side. This is
   what makes the table sumcheck's target `Σ_side ξ^side · total_side` the true batched sum.
-* `flockSlice prog s q i point`: slice `i` of the Flock region at `point`, the extension of bit
-  `i` of every `QFLOCK` cell (`cellBit`), the first coordinate the lowest bit of the cell index.
-  `FlockGood`: Flock's result is a point of the region's `8 + τ_BLAKE2S` coordinates and the 64
-  true slices there.
 -/
 
 namespace LeanVM.Protocol.EndToEnd.Complete
@@ -80,20 +74,6 @@ structure BusGood (prog : Program) (s : Sizes) (q : Column (leanIsaμ prog s)) (
   totals_length : b.totals.length = 3
   /-- Every side's total is the true total. -/
   totals : ∀ side, side < 3 → b.totals.getD side 0 = trueTotal prog s q b.point b.forms side
-
-/-! ## Flock's result -/
-
-/-- Slice `i` of the Flock region at `point`: the extension of bit `i` of the `QFLOCK` cells,
-the first coordinate the lowest bit of the cell index. -/
-def flockSlice (prog : Program) (s : Sizes) (q : Column (leanIsaμ prog s)) (i : ℕ)
-    (point : List E) : E :=
-  multilinearEval (((inst prog s).column q flockCol).values.toList.map fun a ↦ cellBit a i) point
-
-/-- **Flock's result is true**: a point of the region's coordinates and the 64 true slices
-there. -/
-def FlockGood (prog : Program) (s : Sizes) (q : Column (leanIsaμ prog s))
-    (r : List E × List E) : Prop :=
-  r.1.length = 8 + s.τ 5 ∧ r.2 = (List.range 64).map fun i ↦ flockSlice prog s q i r.1
 
 end
 end LeanVM.Protocol.EndToEnd.Complete

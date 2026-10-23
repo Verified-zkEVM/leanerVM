@@ -18,7 +18,7 @@ open LeanVM.Protocol.EndToEnd.Sound
 /-! ## Statement locks -/
 
 example (layout : LeanVM.Protocol.Verifier.Layout) :
-    RetOK (fun claims : List LeanVM.Protocol.Verifier.ColumnClaim ↦ claims.length ≤ 227)
+    RetOK (fun claims : List LeanVM.Protocol.Verifier.ColumnClaim ↦ claims.length ≤ 545)
       ((LeanVM.Protocol.Verifier.verifyBusBalance .computed layout).bind
         (LeanVM.Protocol.Verifier.tablePhase layout)) :=
   retOK_busTable layout

@@ -184,6 +184,11 @@ program: the table is program-free (the module docstring). -/
 def JumpSpec (r : JumpRow K) (next : Regs K) (data : ProverData K) : Prop :=
   JumpRefines (imageOf data).2 r next
 
+/-- The bytecode tuple of a row is `entry` of the instruction it names, by definition; spelled
+once, so that the unifier need not see it through `decode`. -/
+private theorem jump_entry (a b c : K) :
+    #v[Opcode.jump.code] ++ #v[a, b, c, 0, 0, 0, 0, 0, 0, 0] = entry (.jump a b c) := rfl
+
 /-! ## The table -/
 
 /-- The `JUMP` table (specification §7.5; `tables.rs:693-815`): the witnesses `w`, `b`, the two
@@ -202,7 +207,7 @@ def jumpTable : GeneralFormalCircuit K JumpRow Regs where
         b * r.vfp + b * r.fp + r.fp⟩
     StatePull.pull ⟨r.pc, r.fp⟩
     StatePush.push next
-    bytecodeRead r.pc r.rbc (Expression.const Opcode.jump.code) #v[r.oc, r.od, r.of, 0, 0, 0, 0]
+    bytecodeRead r.pc r.rbc (Expression.const Opcode.jump.code) #v[r.oc, r.od, r.of, 0, 0, 0, 0, 0, 0, 0]
     memRead (r.fp * r.oc) r.rc #v[r.vcond, 0, 0]
     memRead (r.fp * r.od) r.rd #v[r.vpc, 0, 0]
     memRead (r.fp * r.of) r.rf #v[r.vfp, 0, 0]
@@ -240,7 +245,7 @@ def jumpTable : GeneralFormalCircuit K JumpRow Regs where
     obtain ⟨hc, hd, hf⟩ := h.bindings
     obtain ⟨hw, hb⟩ := h_env
     rw [hw, hb]
-    exact ⟨(flags_complete _).1, (flags_complete _).2, ⟨_, decode_entry (.jump _ _ _)⟩,
+    exact ⟨(flags_complete _).1, (flags_complete _).2, ⟨_, by rw [jump_entry]; exact decode_entry _⟩,
       hc, hd, hf⟩
 
 /-! ## The witness discipline -/

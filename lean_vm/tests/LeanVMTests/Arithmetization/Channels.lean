@@ -73,25 +73,25 @@ example : channelSep foreign ≠ channelSep MemPull.toRaw := by decide
 
 def st : Regs K := ⟨gpow 3, gpow 5⟩
 def mm : MemMsg K := ⟨gpow 3 * gpow 5, gpow 2, #v[K.ofBits 7, K.ofBits 8, K.ofBits 9]⟩
-def bm : BytecodeMsg K := ⟨gpow 3, gpow 4, Opcode.deref.code, #v[gpow 4, 1, gpow 5, 1, 0, 0, 0]⟩
+def bm : BytecodeMsg K := ⟨gpow 3, gpow 4, Opcode.deref.code, #v[gpow 4, 1, gpow 5, 1, 0, 0, 0, 0, 0, 0]⟩
 
 #guard (toElements st).toList = [gpow 3, gpow 5]
 #guard (toElements mm).toList = [gpow 3 * gpow 5, gpow 2, K.ofBits 7, K.ofBits 8, K.ofBits 9]
 #guard (toElements bm).toList =
-  [gpow 3, gpow 4, Opcode.deref.code, gpow 4, 1, gpow 5, 1, 0, 0, 0]
+  [gpow 3, gpow 4, Opcode.deref.code, gpow 4, 1, gpow 5, 1, 0, 0, 0, 0, 0, 0]
 
 /-- The orders as theorems, through the three `toElements` lemmas. -/
 example : (toElements st).toList = [gpow 3, gpow 5] := regs_toElements st
 example : (toElements mm).toList = [gpow 3 * gpow 5, gpow 2, K.ofBits 7, K.ofBits 8, K.ofBits 9] := by
   rw [memMsg_toElements]; rfl
 example : (toElements bm).toList =
-    [gpow 3, gpow 4, Opcode.deref.code, gpow 4, 1, gpow 5, 1, 0, 0, 0] := by
+    [gpow 3, gpow 4, Opcode.deref.code, gpow 4, 1, gpow 5, 1, 0, 0, 0, 0, 0, 0] := by
   rw [bytecodeMsg_toElements]; rfl
 
--- Sizes: two, five, and ten coordinates after the separator.
+-- Sizes: two, five, and thirteen coordinates after the separator.
 example : size Regs = 2 := rfl
 example : size MemMsg = 5 := rfl
-example : size BytecodeMsg = 10 := rfl
+example : size BytecodeMsg = 13 := rfl
 
 /-- The state message is the machine's register pair: `Regs.initial` is a message. -/
 example : (toElements Regs.initial).toList = [1, 1] := by
@@ -125,7 +125,7 @@ example (a c : Expression K) (v : Vector (Expression K) 3) :
   rfl
 
 /-- `bytecodeRead` likewise. -/
-example (pc c o : Expression K) (op : Vector (Expression K) 7) :
+example (pc c o : Expression K) (op : Vector (Expression K) 10) :
     (bytecodeRead pc c o op).operations 0 =
       [.interact ⟨BytecodePull.toRaw, -1,
          toElements (⟨pc, c, o, op⟩ : BytecodeMsg (Expression K)), true⟩,
@@ -238,23 +238,23 @@ example : ¬ MemPull.Guarantees ⟨gpow 1, gpow 0, #v[K.ofBits 4, K.ofBits 5, K.
 /-- The bytecode guarantee is decodability alone: an instruction's entry passes, at any counter
 and with any count, over every data (the guarantee reads no data). -/
 example (pc c : K) (data : ProverData K) :
-    BytecodePull.Guarantees ⟨pc, c, Opcode.jump.code, #v[1, 1, 1, 0, 0, 0, 0]⟩ data :=
+    BytecodePull.Guarantees ⟨pc, c, Opcode.jump.code, #v[1, 1, 1, 0, 0, 0, 0, 0, 0, 0]⟩ data :=
   ⟨_, decode_entry (.jump 1 1 1)⟩
 
 /-- An entry that decodes to nothing is no bytecode read at any counter: the flag pair `(1, 1)`
 is no store mode. -/
 example (pc c : K) (data : ProverData K) :
-    ¬ BytecodePull.Guarantees ⟨pc, c, Opcode.deref.code, #v[1, 1, 1, 1, 1, 0, 0]⟩ data := by
+    ¬ BytecodePull.Guarantees ⟨pc, c, Opcode.deref.code, #v[1, 1, 1, 1, 1, 0, 0, 0, 0, 0]⟩ data := by
   rintro ⟨ins, hdec⟩
-  have h : decode (#v[Opcode.deref.code] ++ #v[(1: K), 1, 1, 1, 1, 0, 0]) = none := by
+  have h : decode (#v[Opcode.deref.code] ++ #v[(1: K), 1, 1, 1, 1, 0, 0, 0, 0, 0]) = none := by
     decide +kernel
   exact nomatch h.symm.trans hdec
 
 /-- Nor is a nonzero spare slot. -/
 example (pc c : K) (data : ProverData K) :
-    ¬ BytecodePull.Guarantees ⟨pc, c, Opcode.xor.code, #v[1, 1, 1, 0, 0, 0, 1]⟩ data := by
+    ¬ BytecodePull.Guarantees ⟨pc, c, Opcode.xor.code, #v[1, 1, 1, 0, 0, 0, 0, 0, 0, 1]⟩ data := by
   rintro ⟨ins, hdec⟩
-  have h : decode (#v[Opcode.xor.code] ++ #v[(1: K), 1, 1, 0, 0, 0, 1]) = none := by
+  have h : decode (#v[Opcode.xor.code] ++ #v[(1: K), 1, 1, 0, 0, 0, 0, 0, 0, 1]) = none := by
     decide +kernel
   exact nomatch h.symm.trans hdec
 

@@ -1,68 +1,81 @@
 import LeanVM.Protocol.Compile.Rom.Sound
+import LeanVM.Protocol.Compile.Cost
 
 /-!
 # Random-oracle theorem tests
 
 Statement locks for the random-oracle theorem of the compiled verifier and its parts: the
-uniformity of the squeezed challenge, the proof-of-work fraction, the count of failing answers,
-the potential's step inequality and final inequality, and `romSound` itself.
+uniformity of the squeezed challenge, the proof-of-work fraction, the counts of failing answers,
+the potential's step inequalities and final inequality, and `romSound` itself.
 
 Then the theorem end to end on a tiny verifier program: read one scalar `x`, sample one
 challenge `c`, accept iff `c = x`. Its doom certificate (`toyCert`) is "the history is empty or
 is one scalar": a group escapes it only if the challenge hits the scalar, with probability
-`1/|E|`. The seeding (a family of one statement, `toySeeds`) hashes fixed bytes, then the digest
-with 32 fixed bytes; the compiled verifier makes four queries on every proof
-(`toy_queryBound`). Every accepted proof has a doomed boundary prefix (the empty history), so
-`romSound` bounds the acceptance probability of every adversary with `Q_A` queries by
-`(Q_A + 4) · (2^-192 + 4 (Q_A + 4) / 2^256)` (`toy_accept_le`), instantiated also at a concrete
-adversary. Negative checks: the trivial doom predicate is not a certificate (the
-verdict refutes doom: `Cert.final` is load-bearing); a 70-bit proof of work passes on the zero
-digest, which is why the discount is `2^-min(b, 64)` and not `2^-b`; extraction from no answers
-gives zero rows.
+`1/|E|`. The seeding (a family of one statement, `toySeeds`) hashes fixed bytes, then permutes
+the digest into the sponge's first state; the compiled verifier makes three queries on every
+proof (`toy_queryBound`): the hash, the seed's permutation and the squeeze, the scalar waiting in
+the sponge. Every accepted proof has a doomed boundary prefix (the empty history), so `romSound`
+bounds the acceptance probability of every adversary with `Q_A` queries by
+`(Q_A + 3) · (2^-192 + 5 (Q_A + 3) / 2^256)` (`toy_accept_le`), instantiated also at a concrete
+adversary. Negative checks: the trivial doom predicate is not a certificate (the verdict refutes
+doom: `Cert.final` is load-bearing); a 70-bit proof of work passes on the zero challenge, which
+is why the discount is `2^-min(b, 64)` and not `2^-b`; extraction from no answers gives zero
+rows.
 -/
 
 namespace LeanVMTests.Protocol.Compile.RomSound
 
-open LeanVM.Parameters LeanVM.Protocol LeanVM.Protocol.Compile LeanVM.Protocol.Rom
-  LeanVM.Protocol.Compile.Rom LeanVM.Protocol.Blake2sHash
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Protocol LeanVM.Protocol.Compile
+  LeanVM.Protocol.Rom LeanVM.Protocol.Compile.Rom LeanVM.Protocol.KeccakHash
 open OracleComp OracleSpec
 open scoped ENNReal
 
 /-! ## Statement locks -/
 
 example (f : E → ℝ≥0∞) :
-    (∑ d : Digest, f (challengeOf d)) / Fintype.card Digest = (∑ c : E, f c) / Fintype.card E :=
+    (∑ u : KState, f (challengeOf u)) / Fintype.card KState = (∑ c : E, f c) / Fintype.card E :=
   sum_challengeOf_div f
 
 example (b : ℕ) (n : E) :
-    (∑ d : Digest, if powOk b n d then (1 : ℝ≥0∞) else 0) / Fintype.card Digest ≤
+    (∑ u : KState, ind (powOk b n (challengeOf u) = true)) / Fintype.card KState ≤
       2⁻¹ ^ min b 64 :=
   sum_powOk_div_le b n
 
 example : Fintype.card Digest = 2 ^ 256 := card_digest
 
-example {X : Type} (σ : Seeds X) (ℓ : Log) (t : Bytes) :
-    ∑ u, ind (BadEntry σ ℓ t u) ≤ ((4 + σ.steps.length) * (ℓ.length + 1) : ℕ) :=
-  sum_badEntry_le σ ℓ t
+example : Fintype.card KState = 2 ^ 1600 := card_kstate
+
+example {X : Type} (σ : Seeds X) (ℓ : Log) (x : Bytes) :
+    ∑ u, ind (BadH σ ℓ x u) ≤ ((5 + σ.offs.length) * (ℓ.length + 1) : ℕ) :=
+  sum_badH_le σ ℓ x
+
+example (ℓ : Log) (s : KState) :
+    (∑ u, ind (BadF ℓ s u)) / Fintype.card KState ≤
+      ((2 * ℓ.length + 2 : ℕ) : ℝ≥0∞) * 2⁻¹ ^ 256 :=
+  sum_badF_div_le ℓ s
+
+example {X : Type} {P : Prog Bool} (D : List Ev → Prop) (σ : Seeds X) (ℓ : Log) (x : Bytes) :
+    (∑ u, pot D σ P (ℓ ++ [.inl (x, u)])) / Fintype.card Digest ≤
+      pot D σ P ℓ + ((5 + σ.offs.length) * (ℓ.length + 1) : ℕ) / 2 ^ 256 :=
+  step_ineqH D ℓ x
 
 example {X : Type} {P : Prog Bool} (C : Cert P) (σ : Seeds X) {εmax : ℝ≥0∞}
-    (hε : ∀ h, 2⁻¹ ^ min (grindBits h) 64 * C.ε h ≤ εmax) (ℓ : Log) (t : Bytes)
-    (ht : t ∉ ℓ.map Prod.fst) :
-    (∑ u, pot C.D σ P (ℓ ++ [(t, u)])) / Fintype.card Digest ≤
-      pot C.D σ P ℓ +
-        (εmax + ((4 + σ.steps.length) * (ℓ.length + 1) : ℕ) / Fintype.card Digest) :=
-  step_ineq C hε ℓ t ht
+    (hε : ∀ h, 2⁻¹ ^ min (grindBits h) 64 * C.ε h ≤ εmax) (ℓ : Log) (t : KState)
+    (ht : lookF ℓ t = none) :
+    (∑ u, pot C.D σ P (ℓ ++ [.inr (t, u)])) / Fintype.card KState ≤
+      pot C.D σ P ℓ + (εmax + ((5 + σ.offs.length) * (ℓ.length + 1) : ℕ) / 2 ^ 256) :=
+  step_ineqF C hε ℓ t ht
 
 example {X : Type} {P : Prog Bool} (C : Cert P) (σ : Seeds X) : pot C.D σ P [] = 0 :=
   pot_nil C.D σ P
 
 example {X : Type} {P : Prog Bool} (C : Cert P) {σ : Seeds X} {ℓ : Log} (hf : ¬ Fail σ ℓ)
-    {x : X} {π : Proof} (hroot : RootOk P (σ.root x))
-    (hv : verify (look ℓ) (σ.seed x) (nodeAt P (σ.root x)) π = some true)
-    (hbad : ∃ h₀, h₀ <+: extractedFrom (look ℓ) (σ.seed x) (nodeAt P (σ.root x)) (σ.root x) π ∧
-      (σ.root x).length ≤ h₀.length ∧ Boundary h₀ ∧ C.D h₀) :
+    (hε1 : ∀ h, grindBits h = 0 → C.ε h < 1) {x : X} {π : Proof} (hroot : RootOk P (σ.root x))
+    (hv : verify (lookH ℓ) (lookF ℓ) (σ.seed x) (nodeAt P (σ.root x)) π = some true)
+    (hbad : ∃ h₀, h₀ <+: extractedFrom (lookH ℓ) (lookF ℓ) (σ.seed x) (nodeAt P (σ.root x))
+      (σ.root x) π ∧ (σ.root x).length ≤ h₀.length ∧ Boundary h₀ ∧ C.D h₀) :
     1 ≤ pot C.D σ P ℓ :=
-  final_ineq C hf hroot hv hbad
+  final_ineq C hf hε1 hroot hv hbad
 
 example {X : Type} (P : Prog Bool) (C : Cert P) (σ : Seeds X)
     (hroot : ∀ x, RootOk P (σ.root x)) (εmax : ℝ≥0∞)
@@ -70,7 +83,7 @@ example {X : Type} (P : Prog Bool) (C : Cert P) (σ : Seeds X)
     (A : OracleComp HashSpec (X × Proof)) (QA : ℕ) (hA : IsTotalQueryBound A QA)
     (QV : ℕ) (hV : ∀ z, IsTotalQueryBound (verifierFam σ P z) QV) :
     Pr{let z ← romExperiment A (verifierFam σ P)}[z.1.2 = true ∧ Doomed C σ z.1.1 z.2] ≤
-      (QA + QV : ℕ) * (εmax + ((4 + σ.steps.length) * (QA + QV) : ℕ) / 2 ^ 256) :=
+      (QA + QV : ℕ) * (εmax + ((5 + σ.offs.length) * (QA + QV) : ℕ) / 2 ^ 256) :=
   romSound P C σ hroot εmax hε A QA hA QV hV
 
 /-! ## A tiny program and its certificate -/
@@ -153,51 +166,36 @@ theorem not_cert_of_always_doomed : ¬ ∃ C : Cert toyProg, ∀ h, C.D h := by
 
 /-! ## The compiled toy verifier -/
 
-/-- The seeding: one hash of fixed bytes, then the digest with 32 fixed bytes. -/
-def toySeed : Seed := ⟨[0x6c, 0x65, 0x61, 0x6e], [([], List.replicate 32 0)]⟩
+/-- The seeding: one hash of fixed bytes, then the permutation of the digest. -/
+def toySeed : Seed := ⟨[fun _ ↦ [0x6c, 0x65, 0x61, 0x6e]], fun ds ↦ seedInput (ds.getD 0 default) default⟩
 
 /-- The seedings of one statement, rooted at the empty history. -/
 def toySeeds : Seeds Unit where
   seed _ := toySeed
   root _ := []
-  steps := []
-  steps_mem _ a ha := by simp [toySeed] at ha; exact Or.inr (by rw [ha])
-  last _ := ⟨List.replicate 32 0, by simp, rfl⟩
-  first_len _ := by decide
-  mid_len _ a ha := by simp [toySeed] at ha
-  inj _ _ x x' _ _ _ := rfl
+  offs := []
+  refs _ ds hl i hi := by
+    left
+    have h1 : ds.length = 1 := hl
+    have hi0 : i = 0 := by omega
+    subst hi0
+    simp only [toySeed, laneDigest_seedInput]
+    rw [List.getD_eq_getElem _ _ (by omega)]
+  cap0 _ ds := capOf_seedInput _ _
+  inj _ _ x x' _ _ _ _ _ := rfl
 
 theorem toy_rootOk : RootOk toyProg [] :=
   ⟨Prog.Reachable.nil, trivial, rfl, rfl, by simp [Prog.after]⟩
 
-theorem queryH_bound (x : Bytes) : IsTotalQueryBound (queryH x) 1 := by
-  simp [queryH, IsTotalQueryBound]
-
-theorem pure_bound {α : Type} (a : α) (n : ℕ) :
-    IsTotalQueryBound (pure a : OracleComp HashSpec α) n := trivial
-
-theorem toy_run_bound (s : St) : IsTotalQueryBound (run queryH toyProg s) 2 := by
-  simp only [toyProg, run]
-  split
-  · exact pure_bound _ _
-  · refine isTotalQueryBound_bind (n₁ := 1) (n₂ := 1) (queryH_bound _) fun cv ↦ ?_
-    refine (isTotalQueryBound_bind (n₁ := 1) (n₂ := 0) (queryH_bound _) fun cv' ↦ ?_).mono
-      (by norm_num)
-    exact pure_bound _ _
-
 theorem nodeAt_toy : nodeAt toyProg [] = toyProg := rfl
 
-/-- The compiled toy verifier makes at most four queries on every proof. -/
+/-- The toy program's cost: a read and a sample, `1 + 4` quarters. -/
+theorem toy_cost : toyProg.CostLE 0 5 := ⟨by norm_num, fun _ ↦ ⟨le_rfl, fun _ ↦ trivial⟩⟩
+
+/-- The compiled toy verifier makes at most three queries on every proof. -/
 theorem toy_queryBound (z : Unit × Proof) :
-    IsTotalQueryBound (verifierFam toySeeds toyProg z) 4 := by
-  simp only [verifierFam, toySeeds, nodeAt_toy, verifierComp, verify, Seed.run, toySeed,
-    List.foldlM_cons, List.foldlM_nil, bind_pure, bind_assoc]
-  refine isTotalQueryBound_bind (n₁ := 1) (n₂ := 3) (queryH_bound _) fun d ↦ ?_
-  refine isTotalQueryBound_bind (n₁ := 1) (n₂ := 2) (queryH_bound _) fun seed ↦ ?_
-  unfold runProof
-  refine (isTotalQueryBound_bind (n₁ := 2) (n₂ := 0) (toy_run_bound _) fun r ↦ ?_).mono
-    (by norm_num)
-  split <;> exact pure_bound _ _
+    IsTotalQueryBound (verifierFam toySeeds toyProg z) 3 :=
+  isTotalQueryBound_verifierComp toy_cost toySeed z.2
 
 theorem toy_eps (h : List Ev) :
     (2 : ℝ≥0∞)⁻¹ ^ min (grindBits h) 64 * toyCert.ε h ≤ (Fintype.card E : ℝ≥0∞)⁻¹ := by
@@ -214,12 +212,12 @@ theorem toy_doomed (z : Unit × Proof) (c : HashSpec.QueryCache) : Doomed toyCer
 
 /-- **The random-oracle theorem on the toy program.** Every adversary with at most `QA` queries
 makes the compiled toy verifier accept with probability at most
-`(QA + 4) · (2^-192 + 4 (QA + 4) / 2^256)`. -/
+`(QA + 3) · (2^-192 + 5 (QA + 3) / 2^256)`. -/
 theorem toy_accept_le (A : OracleComp HashSpec (Unit × Proof)) (QA : ℕ)
     (hA : IsTotalQueryBound A QA) :
     Pr{let z ← romExperiment A (verifierFam toySeeds toyProg)}[z.1.2 = true] ≤
-      (QA + 4 : ℕ) * ((2 ^ 192 : ℝ≥0∞)⁻¹ + failBound toySeeds (QA + 4)) := by
-  have h := romSound toyProg toyCert toySeeds (fun _ ↦ toy_rootOk) _ toy_eps A QA hA 4
+      (QA + 3 : ℕ) * ((2 ^ 192 : ℝ≥0∞)⁻¹ + failBound toySeeds (QA + 3)) := by
+  have h := romSound toyProg toyCert toySeeds (fun _ ↦ toy_rootOk) _ toy_eps A QA hA 3
     toy_queryBound
   simp only [toy_doomed, and_true, card_E, Nat.cast_pow, Nat.cast_ofNat] at h
   exact h
@@ -229,18 +227,19 @@ def toyAdv : OracleComp HashSpec (Unit × Proof) := pure ((), ⟨[0], []⟩)
 
 /-- The theorem at the concrete adversary. -/
 example : Pr{let z ← romExperiment toyAdv (verifierFam toySeeds toyProg)}[z.1.2 = true] ≤
-    (0 + 4 : ℕ) * ((2 ^ 192 : ℝ≥0∞)⁻¹ + failBound toySeeds (0 + 4)) :=
+    (0 + 3 : ℕ) * ((2 ^ 192 : ℝ≥0∞)⁻¹ + failBound toySeeds (0 + 3)) :=
   toy_accept_le _ 0 trivial
 
 /-! ## Negative checks -/
 
-/-- A 70-bit proof of work passes on the zero digest: the predicate tests one 64-bit word, so
+/-- A 70-bit proof of work passes on the zero challenge: the predicate tests one 64-bit lane, so
 for `b > 64` its success fraction is `2^-64`, and the discount is `2^-min(b, 64)`. -/
-example : powOk 70 0 (Vector.replicate 8 0) = true := by decide
+example : powOk 70 0 (E.ofLimbs 0 0 0) = true := by
+  simp [powOk, limb_ofLimbs, K.lane]
 
 /-- Extraction from no answers gives the zero row of the width. -/
-example (r : Digest) (ht w p : ℕ) : extract (look []) r ht w p = List.replicate w 0 := by
-  have : ¬ ∃ o : Opening, openOne (m := Option) (look []) r ht w p o = some true := by
+example (r : Digest) (ht w p : ℕ) : extract (lookH []) r ht w p = List.replicate w 0 := by
+  have : ¬ ∃ o : Opening, openOne (m := Option) (lookH []) r ht w p o = some true := by
     rintro ⟨o, ho⟩
     obtain ⟨-, -, ld, hld, -⟩ := (openOne_eq_some_true_iff _ _ _ _ _ _).mp ho
     simp at hld

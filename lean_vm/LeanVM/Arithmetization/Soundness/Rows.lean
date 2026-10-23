@@ -16,7 +16,7 @@ public import LeanVM.Spec.IsaWith
 /-!
 # The rows of a satisfying witness
 
-At leanVM pin `127510d14c98ade4e8a97646c44fa7f1ff5e752d` and Clean pin `42fe4b26`. Specification
+At leanVM pin `3375f7a137c50b803f3416f6466b5d4e0719708a` and Clean pin `42fe4b26`. Specification
 §7 (the six AIRs, `doc/leanvm/body/07-*`) and §6 (their bus interactions): the per-row soundness
 of the six opcode tables, from the tables of `Arithmetization.Tables` and their Clean soundness
 theorems; the bus is `Soundness.Bus`'s.
@@ -25,11 +25,11 @@ theorems; the bus is `Soundness.Bus`'s.
 component as the typed row `rowInput` (the first cells, a missing cell `0`). Whatever its cells,
 the row circuit of each opcode table sends the messages `sendsOf pc fp next rbc e reads` of
 `Completeness.Rows`: the state pull `(pc, fp)` and push `next`, the bytecode pull and push of the
-eight coordinates `e` at `pc`, and per memory read a pull of `(addr, count, v)` and a push of
-`(addr, g·count, v)`, at most nine reads (`BLAKE2S`). The memory and bytecode pairs need nothing
+eleven coordinates `e` at `pc`, and per memory read a pull of `(addr, count, v)` and a push of
+`(addr, g·count, v)`, at most twenty-six reads (`KECCAK`). The memory and bytecode pairs need nothing
 more of the rows than this shape (`Soundness.MemChannel`, `Soundness.BytecodeChannel`).
 
-**The step** (also `OpRow`). Under the table's `Assumptions` (the compression, for `BLAKE2S`), its
+**The step** (also `OpRow`). Under the table's `Assumptions` (the permutation, for `KECCAK`), its
 constraints (the `JUMP` residuals), and the guarantees of its pulls (that the memory reads are the
 image's words and the bytecode entry decodes, which `Soundness.MemChannel` and
 `Soundness.BytecodeChannel` derive from the bus), Clean's instantiated soundness theorem
@@ -42,12 +42,12 @@ which for `JUMP` reads the indicator, the row's second local witness (`jump_outp
 carry a guarantee; every interaction a table emits is on one of the six (`*_channelOk`), so the
 guarantees of a row are those of its memory and bytecode pulls.
 
-**Without the compression** (`OpRow`'s last clause). Under its constraints and the guarantees
-alone a row is a step of the Flock-blind semantics `blakeFree` (`LeanVM.Spec.IsaWith`), whose
-`BLAKE2S` asks only canonical cells: a `BLAKE2S` row is bound to the image by the table's circuit
-without its assumption (`blake2sTableFree`), and its cells, two limbs each, are canonical
-(`blake2s_free_exec`); every other table assumes nothing, and a deployed step is a Flock-blind one
-(`executeWithB_free_of_executeWith`).
+**Without the permutation** (`OpRow`'s last clause). Under its constraints and the guarantees
+alone a row is a step of the reduction-blind semantics `keccakFree` (`LeanVM.Spec.IsaWith`), whose
+`KECCAK` asks only canonical cells with the written cells' free limb zero: a `KECCAK` row is bound
+to the image by the table's circuit without its assumption (`keccakTableFree`), and its cells are
+cells of lanes (`keccak_free_exec`); every other table assumes nothing, and a deployed step is a
+reduction-blind one (`executeWithB_free_of_executeWith`).
 
 ## Wrong readings excluded
 
@@ -78,8 +78,8 @@ structure RowRec where
   next : Regs K
   /-- The bytecode read count. -/
   rbc : K
-  /-- The bytecode coordinates `(opcode, op₁, …, op₇)`. -/
-  e : Vector K 8
+  /-- The bytecode coordinates `(opcode, op₁, …, op₁₀)`. -/
+  e : Vector K 11
   /-- The memory reads `(addr, count, limbs)`. -/
   reads : List (K × K × Vector K 3)
 
@@ -94,40 +94,39 @@ def RowRec.sends (x : RowRec) : List (String × Array K) :=
 def RowRec.src (x : RowRec) : Regs K := ⟨x.pc, x.fp⟩
 
 /-- A component's row in the environment `env` has the shape of an opcode-table row, with at
-most nine memory reads, and under the table's assumptions, constraints and pull guarantees it is
+most twenty-six memory reads, and under the table's assumptions, constraints and pull guarantees it is
 a step: an instruction encoded by its bytecode coordinates executes from its pulled state to its
 pushed state over the image the data names, to the fall-through unless it is a `JUMP`. Without
-the assumptions (the compression, for `BLAKE2S`) it is a step under the Flock-blind semantics
-`blakeFree` (`LeanVM.Spec.IsaWith`), whose `BLAKE2S` asks only canonical cells. -/
+the assumptions (the permutation, for `KECCAK`) it is a step under the reduction-blind semantics
+`keccakFree` (`LeanVM.Spec.IsaWith`). -/
 def OpRow (c : Component K) (env : Environment K) : Prop :=
-  ∃ x : RowRec, rowSends c env = x.sends ∧ x.reads.length ≤ 9 ∧
+  ∃ x : RowRec, rowSends c env = x.sends ∧ x.reads.length ≤ 26 ∧
     (c.Assumptions env → c.operations.ConstraintsHold env → c.operations.FullGuarantees env →
       ∃ ins, x.e = entry ins ∧ execute (imageOf env.data).2 x.src ins = some x.next ∧
         (ins.opcode ≠ .jump → x.next = ⟨g * x.pc, x.fp⟩)) ∧
     (c.operations.ConstraintsHold env → c.operations.FullGuarantees env →
       ∃ ins, x.e = entry ins ∧
-        executeWithB blakeFree (imageOf env.data).2.read x.src ins = some x.next ∧
+        executeWithB keccakFree (imageOf env.data).2.read x.src ins = some x.next ∧
         (ins.opcode ≠ .jump → x.next = ⟨g * x.pc, x.fp⟩))
 
-/-- **A deployed step is a Flock-blind step**: the compression's cells are canonical. -/
+/-- **A deployed step is a reduction-blind step**: the cells Keccak-f writes are canonical with
+their free limb zero. -/
 theorem executeWithB_free_of_executeWith {read : K → Option E} {r next : Regs K} {ins : Instr}
-    (h : executeWith read r ins = some next) : executeWithB blakeFree read r ins = some next := by
+    (h : executeWith read r ins = some next) : executeWithB keccakFree read r ins = some next := by
   cases ins with
-  | blake2s om ocv oout omd =>
+  | keccak om otail ob8 ocap oout inOdd outOdd =>
     simp only [executeWith, executeWithB, Option.bind_eq_bind, Option.bind_eq_some_iff] at h ⊢
-    obtain ⟨m0, hm0, m1, hm1, m2, hm2, m3, hm3, cv0, hcv0, cv1, hcv1, out0, hout0, out1, hout1,
-      md, hmd, u, hu, hnext⟩ := h
-    refine ⟨m0, hm0, m1, hm1, m2, hm2, m3, hm3, cv0, hcv0, cv1, hcv1, out0, hout0, out1, hout1,
-      md, hmd, (), ?_, hnext⟩
-    have hc := canonicalCells_of_compressCells (guard_eq_some hu)
+    obtain ⟨input, hin, output, hout, u, hu, hnext⟩ := h
+    refine ⟨input, hin, output, hout, (), ?_, hnext⟩
+    have hc := canonicalKeccak_of_keccakCells (guard_eq_some hu)
     unfold guard
-    simp only [blakeFree, hc, ↓reduceIte]
+    simp only [keccakFree, hc, ↓reduceIte]
     rfl
   | _ => exact h
 
-/-- A row of a table whose assumptions hold is a Flock-blind step where it is a step. -/
+/-- A row of a table whose assumptions hold is a reduction-blind step where it is a step. -/
 theorem opRow_of_assumptions {c : Component K} {env : Environment K} (hA : c.Assumptions env)
-    (h : ∃ x : RowRec, rowSends c env = x.sends ∧ x.reads.length ≤ 9 ∧
+    (h : ∃ x : RowRec, rowSends c env = x.sends ∧ x.reads.length ≤ 26 ∧
       (c.Assumptions env → c.operations.ConstraintsHold env → c.operations.FullGuarantees env →
         ∃ ins, x.e = entry ins ∧ execute (imageOf env.data).2 x.src ins = some x.next ∧
           (ins.opcode ≠ .jump → x.next = ⟨g * x.pc, x.fp⟩))) :
@@ -162,7 +161,7 @@ theorem set_opRow (env : Environment K) : OpRow ⟨setTable⟩ env := by
   set r := (⟨setTable⟩ : Component K).rowInput env with hr
   have hx : eval env (varFromOffset SetRow 0) = r := eval_varFromOffset_valueFromOffset ..
   refine opRow_of_assumptions trivial ⟨⟨r.pc, r.fp, ⟨g * r.pc, r.fp⟩, r.rbc,
-    #v[Opcode.setConstant.code, r.o, r.k[0], r.k[1], r.k[2], 0, 0, 0],
+    #v[Opcode.setConstant.code, r.o, r.k[0], r.k[1], r.k[2], 0, 0, 0, 0, 0, 0],
     [(r.fp * r.o, r.r, r.k)]⟩, ?_, by simp, ?_⟩
   · rw [rowSends_mk, set_sends_gen _ _ _ _ hx]
     simp [RowRec.sends, sendsOf, memMsgOf, bcMsgOf]
@@ -203,7 +202,7 @@ theorem deref_opRow (env : Environment K) : OpRow ⟨derefTable⟩ env := by
   set r := (⟨derefTable⟩ : Component K).rowInput env with hr
   have hx : eval env (varFromOffset DerefRow 0) = r := eval_varFromOffset_valueFromOffset ..
   refine opRow_of_assumptions trivial ⟨⟨r.pc, r.fp, ⟨g * r.pc, r.fp⟩, r.rbc,
-    #v[Opcode.deref.code, r.o1, r.o2, r.o3, r.fpc, r.ffp, 0, 0],
+    #v[Opcode.deref.code, r.o1, r.o2, r.o3, r.fpc, r.ffp, 0, 0, 0, 0, 0],
     [(r.fp * r.o1, r.r1, #v[r.p, 0, 0]),
      (r.p * r.o2, r.r2, #v[(1 + r.fpc + r.ffp) * r.v3[0] + r.fpc * (g ^ 2 * r.pc) + r.ffp * r.fp,
           (1 + r.fpc + r.ffp) * r.v3[1], (1 + r.fpc + r.ffp) * r.v3[2]]),
@@ -230,79 +229,141 @@ theorem deref_opRow (env : Environment K) : OpRow ⟨derefTable⟩ env := by
     · rw [← show ((⟨derefTable⟩ : Component K).rowOutput env) = ⟨g * r.pc, r.fp⟩ from hnext]
       exact hexec
 
-/-- **The `BLAKE2S` table without its assumption**: the same row circuit, sound for the bindings
-and the fall-through alone, whatever the output cells hold (the Flock-blind reading of a row). -/
-def blake2sTableFree : GeneralFormalCircuit K Blake2sRow Regs :=
-  { blake2sTable with
+set_option maxHeartbeats 16000000 in
+/-- **The `KECCAK` table without its assumption**: the same row circuit, sound for the flags, the
+bindings and the fall-through alone, whatever the output lanes hold (the reduction-blind reading
+of a row). -/
+def keccakTableFree : GeneralFormalCircuit K KeccakRow Regs :=
+  { keccakTable with
     Assumptions := fun _ _ ↦ True
-    Spec := fun r next data ↦ Blake2sBindings (imageOf data).2 r ∧ next = Regs.next ⟨r.pc, r.fp⟩
+    Spec := fun r next data ↦ (∃ inOdd outOdd : Bool, r.oddIn = flagK inOdd ∧
+      r.oddOut = flagK outOdd ∧ KeccakBindings (imageOf data).2 r inOdd outOdd) ∧
+      next = Regs.next ⟨r.pc, r.fp⟩
     soundness := by
-      circuit_proof_start [blake2sTable, StatePull, StatePush, MemPull, MemPush, BytecodePull,
+      circuit_proof_start [keccakTable, StatePull, StatePush, MemPull, MemPush, BytecodePull,
         BytecodePush, memRead, bytecodeRead]
-      obtain ⟨-, hm0, hm1, hm2, hm3, hcv0, hcv1, hout0, hout1, hmd⟩ := h_holds
-      obtain ⟨_, _, _, _, _, _, _, _, _, hvm0, hvm1, hvm2, hvm3, hvout0, hvout1, hvcv0, hvcv1,
-        hvmd, _, _, _, _, _, _, _, _, _, _⟩ := h_input
-      subst hvm0 hvm1 hvm2 hvm3 hvout0 hvout1 hvcv0 hvcv1 hvmd
-      refine ⟨⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩, rfl⟩
-      · simpa only [E.ofCell, Vector.getElem_map] using hm0
-      · simpa only [E.ofCell, Vector.getElem_map] using hm1
-      · simpa only [E.ofCell, Vector.getElem_map] using hm2
-      · simpa only [E.ofCell, Vector.getElem_map] using hm3
-      · simpa only [E.ofCell, Vector.getElem_map] using hcv0
-      · simpa only [E.ofCell, Vector.getElem_map] using hcv1
-      · simpa only [E.ofCell, Vector.getElem_map] using hout0
-      · simpa only [E.ofCell, Vector.getElem_map] using hout1
-      · simpa only [E.ofCell, Vector.getElem_map] using hmd }
+      obtain ⟨⟨ins, hdec⟩, h0, h1, h2, h3, h4, h5, h6, h7, h8, h9, h10, h11, h12, h13, h14, h15, h16, h17, h18, h19, h20, h21, h22, h23, h24, h25⟩ := h_holds
+      obtain ⟨_, _, hom, _, _, _, _, hoi, hoo, _, hlin, hlout, _, _⟩ := h_input
+      subst hom hlin hlout
+      rw [keccak_tuple] at hdec
+      obtain ⟨inOdd, outOdd, hfi, hfo⟩ := keccak_flags_of_decode rfl hdec
+      simp only [hfi] at h0 h1 h2 h3 h4 h5 h6 h7 h8 h9 h10 h11 h12
+      simp only [hfo] at h13 h14 h15 h16 h17 h18 h19 h20 h21 h22 h23 h24 h25
+      refine ⟨⟨inOdd, outOdd, hfi, hfo, ⟨fun c ↦ ?_, fun c ↦ ?_⟩⟩, rfl⟩
+      · fin_cases c
+        · cases inOdd <;> simp [laneCells, cellLanes, laneLimb, keccakInOffset, KeccakRow.inLanes, KeccakRow.oms, flagK, Vector.getElem_map, CharTwo.add_self_eq_zero, one_mul] at h0 ⊢ <;> exact h0
+        · cases inOdd <;> simp [laneCells, cellLanes, laneLimb, keccakInOffset, KeccakRow.inLanes, KeccakRow.oms, flagK, Vector.getElem_map, CharTwo.add_self_eq_zero, one_mul] at h1 ⊢ <;> exact h1
+        · cases inOdd <;> simp [laneCells, cellLanes, laneLimb, keccakInOffset, KeccakRow.inLanes, KeccakRow.oms, flagK, Vector.getElem_map, CharTwo.add_self_eq_zero, one_mul] at h2 ⊢ <;> exact h2
+        · cases inOdd <;> simp [laneCells, cellLanes, laneLimb, keccakInOffset, KeccakRow.inLanes, KeccakRow.oms, flagK, Vector.getElem_map, CharTwo.add_self_eq_zero, one_mul] at h3 ⊢ <;> exact h3
+        · cases inOdd <;> simp [laneCells, cellLanes, laneLimb, keccakInOffset, KeccakRow.inLanes, flagK, Vector.getElem_map, CharTwo.add_self_eq_zero, pow_zero, one_mul] at h4 ⊢ <;> exact h4
+        · cases inOdd <;> simp [laneCells, cellLanes, laneLimb, keccakInOffset, KeccakRow.inLanes, flagK, Vector.getElem_map, CharTwo.add_self_eq_zero, one_mul, pow_one] at h5 ⊢ <;> exact h5
+        · cases inOdd <;> simp [laneCells, cellLanes, laneLimb, keccakInOffset, KeccakRow.inLanes, flagK, Vector.getElem_map, CharTwo.add_self_eq_zero, one_mul] at h6 ⊢ <;> exact h6
+        · cases inOdd <;> simp [laneCells, cellLanes, laneLimb, keccakInOffset, KeccakRow.inLanes, flagK, Vector.getElem_map, CharTwo.add_self_eq_zero, one_mul] at h7 ⊢ <;> exact h7
+        · cases inOdd <;> simp [laneCells, cellLanes, laneLimb, keccakInOffset, KeccakRow.inLanes, flagK, Vector.getElem_map, CharTwo.add_self_eq_zero, one_mul] at h8 ⊢ <;> exact h8
+        · cases inOdd <;> simp [laneCells, cellLanes, laneLimb, keccakInOffset, KeccakRow.inLanes, Vector.getElem_map, pow_zero, one_mul] at h9 ⊢ <;> exact h9
+        · cases inOdd <;> simp [laneCells, cellLanes, laneLimb, keccakInOffset, KeccakRow.inLanes, Vector.getElem_map, pow_one] at h10 ⊢ <;> exact h10
+        · cases inOdd <;> simp [laneCells, cellLanes, laneLimb, keccakInOffset, KeccakRow.inLanes, Vector.getElem_map] at h11 ⊢ <;> exact h11
+        · cases inOdd <;> simp [laneCells, cellLanes, laneLimb, keccakInOffset, KeccakRow.inLanes, Vector.getElem_map] at h12 ⊢ <;> exact h12
+      · fin_cases c
+        · cases outOdd <;> simp [laneCells, cellLanes, laneLimb, KeccakRow.outLanes, flagK, Vector.getElem_map, CharTwo.add_self_eq_zero, pow_zero, one_mul] at h13 ⊢ <;> exact h13
+        · cases outOdd <;> simp [laneCells, cellLanes, laneLimb, KeccakRow.outLanes, flagK, Vector.getElem_map, CharTwo.add_self_eq_zero, one_mul, pow_one] at h14 ⊢ <;> exact h14
+        · cases outOdd <;> simp [laneCells, cellLanes, laneLimb, KeccakRow.outLanes, flagK, Vector.getElem_map, CharTwo.add_self_eq_zero, one_mul] at h15 ⊢ <;> exact h15
+        · cases outOdd <;> simp [laneCells, cellLanes, laneLimb, KeccakRow.outLanes, flagK, Vector.getElem_map, CharTwo.add_self_eq_zero, one_mul] at h16 ⊢ <;> exact h16
+        · cases outOdd <;> simp [laneCells, cellLanes, laneLimb, KeccakRow.outLanes, flagK, Vector.getElem_map, CharTwo.add_self_eq_zero, one_mul] at h17 ⊢ <;> exact h17
+        · cases outOdd <;> simp [laneCells, cellLanes, laneLimb, KeccakRow.outLanes, flagK, Vector.getElem_map, CharTwo.add_self_eq_zero, one_mul] at h18 ⊢ <;> exact h18
+        · cases outOdd <;> simp [laneCells, cellLanes, laneLimb, KeccakRow.outLanes, flagK, Vector.getElem_map, CharTwo.add_self_eq_zero, one_mul] at h19 ⊢ <;> exact h19
+        · cases outOdd <;> simp [laneCells, cellLanes, laneLimb, KeccakRow.outLanes, flagK, Vector.getElem_map, CharTwo.add_self_eq_zero, one_mul] at h20 ⊢ <;> exact h20
+        · cases outOdd <;> simp [laneCells, cellLanes, laneLimb, KeccakRow.outLanes, flagK, Vector.getElem_map, CharTwo.add_self_eq_zero, one_mul] at h21 ⊢ <;> exact h21
+        · cases outOdd <;> simp [laneCells, cellLanes, laneLimb, KeccakRow.outLanes, Vector.getElem_map] at h22 ⊢ <;> exact h22
+        · cases outOdd <;> simp [laneCells, cellLanes, laneLimb, KeccakRow.outLanes, Vector.getElem_map] at h23 ⊢ <;> exact h23
+        · cases outOdd <;> simp [laneCells, cellLanes, laneLimb, KeccakRow.outLanes, Vector.getElem_map] at h24 ⊢ <;> exact h24
+        · cases outOdd <;> simp [laneCells, cellLanes, laneLimb, KeccakRow.outLanes, Vector.getElem_map] at h25 ⊢ <;> exact h25 }
 
-/-- A cell read as two limbs is canonical. -/
-theorem isCanonical128_ofCell (v : Vector K 2) : IsCanonical128 (E.ofCell v) := by
-  simp [IsCanonical128, E.ofCell, limb_ofLimbs]
+/-- The cells of lanes in a layout satisfy the reduction-blind check: canonical, the written
+cells' free limb zero. -/
+theorem canonicalKeccak_laneCells (L L' : Fin 25 → K) (inOdd outOdd : Bool) (free : K) :
+    CanonicalKeccak (laneCells L inOdd free) inOdd (laneCells L' outOdd 0) outOdd := by
+  refine ⟨fun c ↦ ?_, fun c ↦ ?_, ?_⟩
+  · show (E.ofLimbs _ _ 0).limb 2 = 0
+    rw [limb_ofLimbs]; rfl
+  · show (E.ofLimbs _ _ 0).limb 2 = 0
+    rw [limb_ofLimbs]; rfl
+  · cases outOdd <;> simp [FreeLimbZero, laneCells, cellLanes, laneLimb, limb_ofLimbs]
 
-/-- A bound `BLAKE2S` row executes under the Flock-blind semantics: its cells are canonical. -/
-theorem blake2s_free_exec {κ : ℕ} {mem : MemImage κ} {r : Blake2sRow K}
-    (h : Blake2sBindings mem r) :
-    executeWithB blakeFree mem.read ⟨r.pc, r.fp⟩
-      (.blake2s ![r.om0, r.om1, r.om2, r.om3] r.ocv r.oout r.omd) =
+/-- A bound `KECCAK` row executes under the reduction-blind semantics. -/
+theorem keccak_free_exec {κ : ℕ} {mem : MemImage κ} {r : KeccakRow K} {inOdd outOdd : Bool}
+    (h : KeccakBindings mem r inOdd outOdd) :
+    executeWithB keccakFree mem.read ⟨r.pc, r.fp⟩
+      (.keccak r.oms r.otail r.ob8 r.ocap r.oout inOdd outOdd) =
         some (Regs.next ⟨r.pc, r.fp⟩) := by
-  have hc : CanonicalCells ![E.ofCell r.m0, E.ofCell r.m1, E.ofCell r.m2, E.ofCell r.m3]
-      (E.ofCell r.cv0) (E.ofCell r.cv1) (E.ofCell r.out0) (E.ofCell r.out1) (E.ofCell r.md) :=
-    ⟨fun i ↦ by fin_cases i <;> exact isCanonical128_ofCell _, isCanonical128_ofCell _,
-      isCanonical128_ofCell _, isCanonical128_ofCell _, isCanonical128_ofCell _,
-      isCanonical128_ofCell _⟩
-  simp only [executeWithB, blakeFree, Matrix.cons_val, Fin.isValue, h.m0_eq, h.m1_eq, h.m2_eq,
-    h.m3_eq, h.cv0_eq, h.cv1_eq, h.out0_eq, h.out1_eq, h.md_eq, Option.bind_eq_bind,
-    Option.bind_some]
+  have hin := (readCells_eq_some_iff mem.read r.fp (keccakInOffset r.oms r.otail r.ob8 r.ocap)
+    (laneCells r.inLanes inOdd r.free)).mpr h.in_eq
+  have hout := (readCells_eq_some_iff mem.read r.fp (fun c ↦ g ^ c.val * r.oout)
+    (laneCells r.outLanes outOdd 0)).mpr h.out_eq
+  simp only [executeWithB, keccakFree, hin, hout, Option.bind_eq_bind, Option.bind_some]
   unfold guard
-  simp only [hc, ↓reduceIte]
+  simp only [canonicalKeccak_laneCells, ↓reduceIte]
   rfl
 
-/-- A `BLAKE2S` row has the shape and, under the compression and the guarantees, steps. -/
-theorem blake2s_opRow (env : Environment K) : OpRow ⟨blake2sTable⟩ env := by
-  set r := (⟨blake2sTable⟩ : Component K).rowInput env with hr
-  have hx : eval env (varFromOffset Blake2sRow 0) = r := eval_varFromOffset_valueFromOffset ..
+/-- A `KECCAK` row has the shape and, under the permutation and the guarantees, steps; without the
+permutation it is a reduction-blind step. -/
+theorem keccak_opRow (env : Environment K) : OpRow ⟨keccakTable⟩ env := by
+  set r := (⟨keccakTable⟩ : Component K).rowInput env with hr
+  have hx : eval env (varFromOffset KeccakRow 0) = r := eval_varFromOffset_valueFromOffset ..
   refine ⟨⟨r.pc, r.fp, ⟨g * r.pc, r.fp⟩, r.rbc,
-    entry (.blake2s ![r.om0, r.om1, r.om2, r.om3] r.ocv r.oout r.omd),
-    [(r.fp * r.om0, r.rm0, #v[r.m0[0], r.m0[1], 0]), (r.fp * r.om1, r.rm1, #v[r.m1[0], r.m1[1], 0]),
-     (r.fp * r.om2, r.rm2, #v[r.m2[0], r.m2[1], 0]), (r.fp * r.om3, r.rm3, #v[r.m3[0], r.m3[1], 0]),
-     (r.fp * r.ocv, r.rcv0, #v[r.cv0[0], r.cv0[1], 0]),
-     (r.fp * (g * r.ocv), r.rcv1, #v[r.cv1[0], r.cv1[1], 0]),
-     (r.fp * r.oout, r.rout0, #v[r.out0[0], r.out0[1], 0]),
-     (r.fp * (g * r.oout), r.rout1, #v[r.out1[0], r.out1[1], 0]),
-     (r.fp * r.omd, r.rmd, #v[r.md[0], r.md[1], 0])]⟩, ?_, by simp, ?_, ?_⟩
-  · rw [rowSends_mk, blake2s_sends_gen _ _ _ _ hx]
-    simp [RowRec.sends, sendsOf, memMsgOf, bcMsgOf, entry]
+    #v[Opcode.keccak.code, r.om[0], r.om[1], r.om[2], r.om[3], r.otail, r.ob8, r.ocap, r.oout,
+      r.oddIn, r.oddOut],
+    [(r.fp * r.om[0], r.cnt[0], #v[r.lin[0] + r.oddIn * r.lin[0] + r.oddIn * r.free, r.lin[1] + r.oddIn * r.lin[1] + r.oddIn * r.lin[0], 0]),
+     (r.fp * r.om[1], r.cnt[1], #v[r.lin[2] + r.oddIn * r.lin[2] + r.oddIn * r.lin[1], r.lin[3] + r.oddIn * r.lin[3] + r.oddIn * r.lin[2], 0]),
+     (r.fp * r.om[2], r.cnt[2], #v[r.lin[4] + r.oddIn * r.lin[4] + r.oddIn * r.lin[3], r.lin[5] + r.oddIn * r.lin[5] + r.oddIn * r.lin[4], 0]),
+     (r.fp * r.om[3], r.cnt[3], #v[r.lin[6] + r.oddIn * r.lin[6] + r.oddIn * r.lin[5], r.lin[7] + r.oddIn * r.lin[7] + r.oddIn * r.lin[6], 0]),
+     (r.fp * (g ^ 0 * r.otail), r.cnt[4], #v[r.lin[8] + r.oddIn * r.lin[8] + r.oddIn * r.lin[7], r.lin[9] + r.oddIn * r.lin[9] + r.oddIn * r.lin[8], 0]),
+     (r.fp * (g ^ 1 * r.otail), r.cnt[5], #v[r.lin[10] + r.oddIn * r.lin[10] + r.oddIn * r.lin[9], r.lin[11] + r.oddIn * r.lin[11] + r.oddIn * r.lin[10], 0]),
+     (r.fp * (g ^ 2 * r.otail), r.cnt[6], #v[r.lin[12] + r.oddIn * r.lin[12] + r.oddIn * r.lin[11], r.lin[13] + r.oddIn * r.lin[13] + r.oddIn * r.lin[12], 0]),
+     (r.fp * (g ^ 3 * r.otail), r.cnt[7], #v[r.lin[14] + r.oddIn * r.lin[14] + r.oddIn * r.lin[13], r.lin[15] + r.oddIn * r.lin[15] + r.oddIn * r.lin[14], 0]),
+     (r.fp * r.ob8, r.cnt[8], #v[r.lin[16] + r.oddIn * r.lin[16] + r.oddIn * r.lin[15], r.free + r.oddIn * r.free + r.oddIn * r.lin[16], 0]),
+     (r.fp * (g ^ 0 * r.ocap), r.cnt[9], #v[r.lin[17], r.lin[18], 0]),
+     (r.fp * (g ^ 1 * r.ocap), r.cnt[10], #v[r.lin[19], r.lin[20], 0]),
+     (r.fp * (g ^ 2 * r.ocap), r.cnt[11], #v[r.lin[21], r.lin[22], 0]),
+     (r.fp * (g ^ 3 * r.ocap), r.cnt[12], #v[r.lin[23], r.lin[24], 0]),
+     (r.fp * (g ^ 0 * r.oout), r.cnt[13], #v[r.lout[0] + r.oddOut * r.lout[0], r.lout[1] + r.oddOut * r.lout[1] + r.oddOut * r.lout[0], 0]),
+     (r.fp * (g ^ 1 * r.oout), r.cnt[14], #v[r.lout[2] + r.oddOut * r.lout[2] + r.oddOut * r.lout[1], r.lout[3] + r.oddOut * r.lout[3] + r.oddOut * r.lout[2], 0]),
+     (r.fp * (g ^ 2 * r.oout), r.cnt[15], #v[r.lout[4] + r.oddOut * r.lout[4] + r.oddOut * r.lout[3], r.lout[5] + r.oddOut * r.lout[5] + r.oddOut * r.lout[4], 0]),
+     (r.fp * (g ^ 3 * r.oout), r.cnt[16], #v[r.lout[6] + r.oddOut * r.lout[6] + r.oddOut * r.lout[5], r.lout[7] + r.oddOut * r.lout[7] + r.oddOut * r.lout[6], 0]),
+     (r.fp * (g ^ 4 * r.oout), r.cnt[17], #v[r.lout[8] + r.oddOut * r.lout[8] + r.oddOut * r.lout[7], r.lout[9] + r.oddOut * r.lout[9] + r.oddOut * r.lout[8], 0]),
+     (r.fp * (g ^ 5 * r.oout), r.cnt[18], #v[r.lout[10] + r.oddOut * r.lout[10] + r.oddOut * r.lout[9], r.lout[11] + r.oddOut * r.lout[11] + r.oddOut * r.lout[10], 0]),
+     (r.fp * (g ^ 6 * r.oout), r.cnt[19], #v[r.lout[12] + r.oddOut * r.lout[12] + r.oddOut * r.lout[11], r.lout[13] + r.oddOut * r.lout[13] + r.oddOut * r.lout[12], 0]),
+     (r.fp * (g ^ 7 * r.oout), r.cnt[20], #v[r.lout[14] + r.oddOut * r.lout[14] + r.oddOut * r.lout[13], r.lout[15] + r.oddOut * r.lout[15] + r.oddOut * r.lout[14], 0]),
+     (r.fp * (g ^ 8 * r.oout), r.cnt[21], #v[r.lout[16] + r.oddOut * r.lout[16] + r.oddOut * r.lout[15], r.oddOut * r.lout[16], 0]),
+     (r.fp * (g ^ 9 * r.oout), r.cnt[22], #v[r.lout[17], r.lout[18], 0]),
+     (r.fp * (g ^ 10 * r.oout), r.cnt[23], #v[r.lout[19], r.lout[20], 0]),
+     (r.fp * (g ^ 11 * r.oout), r.cnt[24], #v[r.lout[21], r.lout[22], 0]),
+     (r.fp * (g ^ 12 * r.oout), r.cnt[25], #v[r.lout[23], r.lout[24], 0])]⟩, ?_, by simp, ?_, ?_⟩
+  · rw [rowSends_mk, keccak_sends_gen _ _ _ _ hx]
+    simp [RowRec.sends, sendsOf, memMsgOf, bcMsgOf]
   · intro ha hc hg
     obtain ⟨hs, -⟩ := Component.weakSoundness ha hc hg
-    have hs' : Blake2sRefines (imageOf env.data).2 r
-      ((⟨blake2sTable⟩ : Component K).rowOutput env) := hs
-    obtain ⟨-, -, hnext⟩ := (blake2s_refines_iff _ _ _).mp hs'
-    refine ⟨.blake2s ![r.om0, r.om1, r.om2, r.om3] r.ocv r.oout r.omd, rfl, ?_, fun _ ↦ rfl⟩
-    rw [← show ((⟨blake2sTable⟩ : Component K).rowOutput env) = ⟨g * r.pc, r.fp⟩ from hnext]
-    exact hs'.exec_eq
+    have hs' : KeccakRefines (imageOf env.data).2 r
+      ((⟨keccakTable⟩ : Component K).rowOutput env) := hs
+    obtain ⟨⟨inOdd, outOdd, hfi, hfo, -⟩, -, hnext⟩ := (keccak_refines_iff _ _ _).mp hs'
+    obtain ⟨i, o, hi, ho, -, hexec⟩ := hs'
+    have hi' : i = inOdd := by
+      have := congrArg flag? (hi.symm.trans hfi); simpa [flag?_flagK] using this
+    have ho' : o = outOdd := by
+      have := congrArg flag? (ho.symm.trans hfo); simpa [flag?_flagK] using this
+    subst hi' ho'
+    refine ⟨.keccak r.oms r.otail r.ob8 r.ocap r.oout i o, ?_, ?_, fun _ ↦ rfl⟩
+    · simp [entry, hfi, hfo, KeccakRow.oms]
+    · rw [← show ((⟨keccakTable⟩ : Component K).rowOutput env) = ⟨g * r.pc, r.fp⟩ from hnext]
+      exact hexec
   · intro hc hg
-    obtain ⟨⟨hb, -⟩, -⟩ := Component.weakSoundness (component := ⟨blake2sTableFree⟩) trivial hc hg
-    exact ⟨.blake2s ![r.om0, r.om1, r.om2, r.om3] r.ocv r.oout r.omd, rfl, blake2s_free_exec hb,
-      fun _ ↦ rfl⟩
+    obtain ⟨⟨⟨inOdd, outOdd, hfi, hfo, hb⟩, -⟩, -⟩ :=
+      Component.weakSoundness (component := ⟨keccakTableFree⟩) trivial hc hg
+    have hfi' : r.oddIn = flagK inOdd := hfi
+    have hfo' : r.oddOut = flagK outOdd := hfo
+    have hb' : KeccakBindings (imageOf env.data).2 r inOdd outOdd := hb
+    exact ⟨.keccak r.oms r.otail r.ob8 r.ocap r.oout inOdd outOdd,
+      by simp [entry, hfi', hfo', KeccakRow.oms], keccak_free_exec hb', fun _ ↦ rfl⟩
 
 /-- The output of the `JUMP` row circuit at a row variable that evaluates to `r`: the successor
 selected by the indicator `b`, the local witness at slot `n + 1`. -/
@@ -405,11 +466,12 @@ theorem jump_channelOk : ∀ a ∈ (⟨jumpTable⟩ : Component K).operations.in
     channelOk_bytecodePull, channelOk_statePull, channelOk_statePush, channelOk_memPush,
     channelOk_bytecodePush, and_self]
 
-/-- Every interaction of the `BLAKE2S` table is on one of the six channels. -/
-theorem blake2s_channelOk : ∀ a ∈ (⟨blake2sTable⟩ : Component K).operations.interactions,
+set_option maxHeartbeats 16000000 in
+/-- Every interaction of the `KECCAK` table is on one of the six channels. -/
+theorem keccak_channelOk : ∀ a ∈ (⟨keccakTable⟩ : Component K).operations.interactions,
     ChannelOk a.channel := by
   rw [Component.interactions_eq]
-  simp only [Component.rowOperations_mk, circuit_norm, blake2sTable, memRead, bytecodeRead,
+  simp only [Component.rowOperations_mk, circuit_norm, keccakTable, memRead, bytecodeRead,
     -BitVec.reduceNeg]
   simp only [forall_eq_or_imp, forall_eq, ChannelInteraction.toRaw_channel, channelOk_memPull,
     channelOk_bytecodePull, channelOk_statePull, channelOk_statePush, channelOk_memPush,
@@ -432,7 +494,7 @@ theorem tableAt_opRow (w : Air.Flat.EnsembleWitness (leanIsaEnsemble prog)) (j :
   · exact ⟨set_opRow, set_channelOk⟩
   · exact ⟨deref_opRow, deref_channelOk⟩
   · exact ⟨jump_opRow, jump_channelOk⟩
-  · exact ⟨blake2s_opRow, blake2s_channelOk⟩
+  · exact ⟨keccak_opRow, keccak_channelOk⟩
   · exact absurd hj (by decide)
   · exact absurd hj (by decide)
 

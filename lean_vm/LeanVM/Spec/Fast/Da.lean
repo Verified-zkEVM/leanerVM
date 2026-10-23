@@ -16,9 +16,11 @@ public import LeanVM.Spec.Field
 
 `lean_da` compiles `LeanDa.membershipVector` with CompPoly's arithmetic: a `@[csimp]` lemma
 acts where code is compiled, so the word products of `LeanVM.Spec.Field` do not reach it there.
-The NTT's butterflies and layers, the encoding, the dual codeword and the membership vector are
-restated here word for word, each equal to its definition by `rfl`, so that every module importing
-this one compiles `LeanDa.membershipVector` with them. Nothing here transcribes a source.
+The NTT's butterflies and layers, the encoding, the dual codeword and the membership vector (for
+any hash `H` and sponge permutation `P`) are restated here word for word, each equal to its
+definition by `rfl`, so that every module importing this one compiles `LeanDa.membershipVector`
+with them. The challenges' sponge (`LeanDa.membershipChallenges`, fourteen permutations) is not
+restated. Nothing here transcribes a source.
 -/
 
 namespace LeanVM.Da.Fast
@@ -52,17 +54,23 @@ def dualCodeword (z : List E) : List E :=
   encode (z.foldl (fun t challenge ↦ t ++ t.map (· * challenge)) [1])
 
 /-- `LeanDa.membershipVector`, with `dualCodeword`. -/
-def membershipVector (H : List UInt8 → LeanDa.Digest) (root : LeanDa.Digest) : List E :=
-  dualCodeword (LeanDa.membershipChallenges H root)
+def membershipVector (H : List UInt8 → LeanDa.Digest) (P : LeanDa.Lanes → LeanDa.Lanes)
+    (root : LeanDa.Digest) : List E :=
+  dualCodeword (LeanDa.membershipChallenges H P root)
 
+/-- `LeanDa.butterfly` compiles as its restatement. -/
 @[csimp] theorem butterfly_eq : @LeanDa.butterfly = @butterfly := rfl
 
+/-- `LeanDa.encodeLayer` compiles as its restatement. -/
 @[csimp] theorem encodeLayer_eq : @LeanDa.encodeLayer = @encodeLayer := rfl
 
+/-- `LeanDa.encode` compiles as its restatement. -/
 @[csimp] theorem encode_eq : @LeanDa.encode = @encode := rfl
 
+/-- `LeanDa.dualCodeword` compiles as its restatement. -/
 @[csimp] theorem dualCodeword_eq : @LeanDa.dualCodeword = @dualCodeword := rfl
 
+/-- `LeanDa.membershipVector` compiles as its restatement. -/
 @[csimp] theorem membershipVector_eq : @LeanDa.membershipVector = @membershipVector := rfl
 
 end

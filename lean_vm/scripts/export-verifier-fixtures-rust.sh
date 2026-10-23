@@ -3,7 +3,7 @@
 # format the Python verifier and the `verifier` crate read (`python-verifier/verifier.py`,
 # `Proof.load` and `main`; `crates/verifier/src/transcript.rs`, `Proof::load`; and
 # `crates/leanvm_core/tests/verifiers/python_verifier.rs`, `encode` and `test_python_verifier`,
-# at leanVM 127510d14c98ade4e8a97646c44fa7f1ff5e752d):
+# at leanVM 3375f7a137c50b803f3416f6466b5d4e0719708a):
 #
 #   bytecode.bin          the bytecode table, little-endian 64-bit words;
 #   public_input.bin      the public input's two halves, 16 bytes each (c0, c1 little-endian);
@@ -62,7 +62,7 @@ EOF
 cat > "$work/src/main.rs" <<'EOF'
 use lean_compiler::{compile, parse, parse_const, parse_with_replacements};
 use leanvm_core::cpu::{Program, prove, public_input_bytes, verify};
-use primitives::field::{F64, F192, g_pow};
+use primitives::field::{F192, g_pow};
 use std::collections::BTreeMap;
 use std::path::Path;
 
@@ -79,9 +79,9 @@ def mix(value, tag):
     return value * GEN + value
 
 def main():
-    seed = [5, 7]
+    # 160 bytes: two blocks, the second read in the odd layout.
     digest = StackBuf(2)
-    blake2s(seed, seed, digest)
+    keccak_cells([5, 7, 5, 7, 5, 7, 5, 7, 5, 7], digest)
 
     chain = HeapBuf(LOOP_STEPS + 1)
     chain[1] = digest[0]
@@ -96,15 +96,15 @@ def main():
 
 // The public input the program computes (python_verifier.rs, `public_input`).
 fn chain_public_input(loop_steps: usize) -> [F192; 2] {
-    use leanvm_core::hash_flock::{FINAL_FLAG, IV, PINNED_T, compression, digest, metadata};
-
-    let seed = [F64(5), F64::ZERO, F64(7), F64::ZERO];
-    let metadata = metadata(PINNED_T, FINAL_FLAG, 0);
-    let digest = digest(&compression(seed, seed, IV, metadata));
-    let digest = [
-        F192::new(digest[0].0, digest[1].0, 0),
-        F192::new(digest[2].0, digest[3].0, 0),
-    ];
+    let message: Vec<u8> = [5u64, 7]
+        .repeat(5)
+        .into_iter()
+        .flat_map(|v| [v, 0])
+        .flat_map(u64::to_le_bytes)
+        .collect();
+    let digest = primitives::hash::hash(&message);
+    let word = |i: usize| u64::from_le_bytes(digest[8 * i..8 * i + 8].try_into().unwrap());
+    let digest = [F192::new(word(0), word(1), 0), F192::new(word(2), word(3), 0)];
     let mut value = digest[0];
     let mut index = F192::ONE;
     let generator = F192::from(g_pow(1));

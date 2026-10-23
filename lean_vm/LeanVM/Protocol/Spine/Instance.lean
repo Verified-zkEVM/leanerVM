@@ -8,10 +8,10 @@ module
 
 public import LeanVM.Spec.Verifier
 public import LeanVM.Protocol.Compile.Prog
-public import LeanVM.Protocol.Blake2sHash
+public import LeanVM.Protocol.KeccakHash
 public import LeanVM.Parameters.Field
 public import LeanVM.Protocol.Field
-public import LeanVM.Protocol.ToArkLib.Flock.BlockR1CS
+public import LeanVM.Semantics.KeccakCells
 public import LeanVM.Protocol.ToArkLib.Oracles
 public import LeanVM.Protocol.ToCompPoly.Multilinear
 public import CompPoly.Multivariate.Basic
@@ -25,24 +25,27 @@ log-heights and widths; per table, the constraint polynomials that must vanish o
 separator first (§5.1); a bound `d` on the total degree of both (leanVM's is 2); the count
 columns whose cells must be nonzero (§6.2); the boundary blocks, tuples the verifier's side of
 the bus provides or consumes, with constant, publicly known or committed coordinates (§5.4); the
-layout of every column inside the one committed stack `q`; the columns whose first two cells the
-public statement fixes (§8.2); and, where the arithmetization has one, the region of the stack
-the Flock argument owns, with the predicate that argument establishes of it (for leanISA, that
-Flock's R1CS holds of the bits packed into `q_flock`, §4.2 and Annex C; the toy has none).
-Nothing here knows leanISA: leanISA is one instance, built by the adaptor.
+layout of every column inside the one committed stack `q`; the columns that are not committed but
+derived from the stack (`derived`: for leanISA, the `KECCAK` table's output lanes, Keccak-f[1600]
+of its input lanes, which no opening reads; their claims are the Keccak reduction's); the columns
+whose first two cells the public statement fixes (§8.2); and, where the arithmetization has one,
+the region of the stack the Keccak reduction owns, with the predicate it establishes of it (for
+leanISA, that every step's state after twelve rounds, committed in `q_keccak`, is the first
+twelve rounds of its input state; the toy has none). Nothing here knows leanISA: leanISA is one
+instance, built by the adaptor.
 
 Four kinds of quantity are read off an instance by the protocol's schedule. The *sumcheck
 tables* are those with a constraint, a flush or a count column; the others are column groups
 the table sumcheck never visits. `τmax` is the largest log-height among them, `B` the number of
 their constraints, `μBus` the log-height of the bus's leaf stacks, and the claim counts
-(`busClaims`, `tableClaims`, `pubClaims`, `poolSize`) are how many claims the phases pool.
+(`busClaims`, `tableClaims`, `pubClaims`) are how many claims the phases pool.
 
 Each table also has a row count `rows j ≤ 2 ^ τ j`, the announced one: its rows `x < rows j`
 are the *executed* rows, the others *padding* rows, which an honest prover fills with the
 public row `padRow j` (§8.3). `M3Holds I input q` is the relation: constraints vanish on every
 row, the tuples the executed rows and the boundary push and pull are one multiset (a
 permutation, counted in the integers: in characteristic two a tuple pushed twice and never
-pulled would sum to zero), executed count cells are nonzero, the public lines hold, the Flock
+pulled would sum to zero), executed count cells are nonzero, the public lines hold, the Keccak
 predicate holds of its region. A padding row is free (Proposition `prop:pad`); completeness
 starts from `M3Honest`, which also asks the padding rows to be `padRow` (`PaddingHonest`). It is decidable, and every value is read from `q` through
 `I.layout`, so knowledge of `q` is exactly as strong as the layout is. Polynomials are CompPoly's
@@ -56,7 +59,7 @@ Written from the specification; nothing here transcribes Rust.
 
 namespace LeanVM.Protocol
 
-open LeanVM.Parameters CompPoly CPoly CMlPolynomialEval
+open LeanVM.Parameters LeanVM.Semantics CompPoly CPoly CMlPolynomialEval
 
 @[expose] public section
 
@@ -109,7 +112,7 @@ abbrev Layout.read {μ : ℕ} {ι : Type} {κ : ι → ℕ} (L : Layout μ ι κ
     Column μ → (c : ι) → Column (κ c) :=
   Layout.readWith L.extend
 
-/-! ## Boundary blocks, public lines, the Flock region -/
+/-! ## Boundary blocks, public lines, the Keccak region -/
 
 /-- One coordinate of a boundary tuple on a block of height `2 ^ κ`: a constant, a column both
 parties know (the index column `g^i`, the bytecode column), or a committed column of the same
@@ -154,31 +157,37 @@ def cellBit (a : K) (i : ℕ) : E := if a.toBitVec.getLsbD i then 1 else 0
 
 /-- The table of bit `i` of every cell of a column: the `i`-th of the `64` Boolean tables a
 column of `K` packs (Annex A, §A.1: `q(u) = Σ_i Q_i(u)·x^i`). -/
-def bitTable {n : ℕ} (c : Column n) (i : Fin (2 ^ Flock.kSkip)) : CMlPolynomialEval E n :=
+def bitTable {n : ℕ} (c : Column n) (i : Fin 64) : CMlPolynomialEval E n :=
   Vector.ofFn fun u ↦ cellBit (c.values.get u) i
 
-/-- Where the packed witness of the Flock argument sits: a column of height `2 ^ (8 + kBatch)`,
-`2 ^ kBatch` blocks of `2 ^ 14` bits packed 64 to a cell, and the R1CS each block satisfies,
-with the walks a verifier evaluates its matrices by (Annex C). -/
-structure FlockRegion (S : Shape) where
+/-- Where the Keccak reduction's committed column sits: a column of height `2 ^ (h + 6)`, `64`
+slots of `2^h` words, slot `l < 25` lane `l` of each step's input state and slot `25 + l` lane `l`
+of its state after twelve rounds (`QKECCAK`, `verifier.py:686-691`). -/
+structure KeccakRegion (S : Shape) where
   /-- The column. -/
   col : S.ColumnId
-  /-- The log-count of compressions. -/
-  kBatch : ℕ
-  /-- The column holds `2 ^ kBatch` blocks of `2 ^ 8` cells. -/
-  height : S.τ col.1 = 8 + kBatch
-  /-- The R1CS of one block of `2 ^ 14` positions. -/
-  r1cs : BlockR1CS E (Flock.kSkip + Flock.kIn)
+  /-- The log-count of steps. -/
+  logSteps : ℕ
+  /-- The column holds `64` slots of `2 ^ logSteps` words. -/
+  height : S.τ col.1 = logSteps + 6
 
-/-- What the Flock phase establishes of the region (Annex C, §C.1): every block of `2 ^ 14`
-bits, packed 64 to a cell, satisfies the R1CS and holds `1` at the constant position. Block `t`
-holds at position `j` bit `j mod 64` of cell `j / 64 + 256·t`: within-block coordinates low,
-batch coordinates high. -/
-def FlockRegion.Holds {S : Shape} (r : FlockRegion S) (c : Column (8 + r.kBatch)) : Prop :=
-  BlockR1CS.BatchHolds r.r1cs Flock.constPos (bitTable c)
+/-- Word `x` of slot `slot` of the region's column: cell `x + 2^logSteps · slot`. -/
+def KeccakRegion.word {S : Shape} (r : KeccakRegion S) (c : Column (r.logSteps + 6)) (slot : ℕ)
+    (x : Fin (2 ^ r.logSteps)) : K :=
+  c.values.toArray.getD (x.val + 2 ^ r.logSteps * slot) 0
 
-instance {S : Shape} (r : FlockRegion S) (c : Column (8 + r.kBatch)) : Decidable (r.Holds c) :=
-  inferInstanceAs (Decidable (BlockR1CS.BatchHolds _ _ _))
+/-- The state a slot range of the region holds at step `x`: lane `l` is slot `base + l`. -/
+def KeccakRegion.state {S : Shape} (r : KeccakRegion S) (c : Column (r.logSteps + 6))
+    (base : ℕ) (x : Fin (2 ^ r.logSteps)) : KState :=
+  laneState fun l ↦ r.word c (base + l) x
+
+/-- What the Keccak reduction establishes of the region: at every step, the state committed
+after twelve rounds is the first segment of Keccak-f[1600] of the input state. -/
+def KeccakRegion.Holds {S : Shape} (r : KeccakRegion S) (c : Column (r.logSteps + 6)) : Prop :=
+  ∀ x, r.state c 25 x = keccakSegment 0 (r.state c 0 x)
+
+instance {S : Shape} (r : KeccakRegion S) (c : Column (r.logSteps + 6)) : Decidable (r.Holds c) :=
+  inferInstanceAs (Decidable (∀ y, r.state c 25 y = keccakSegment 0 (r.state c 0 y)))
 
 /-! ## The instance -/
 
@@ -212,13 +221,16 @@ structure M3Instance extends Shape where
   μ : ℕ
   /-- The stack layout. -/
   layout : Layout μ toShape.ColumnId (fun c ↦ τ c.1)
+  /-- The columns derived from the stack rather than read off it, with how: for leanISA, the
+  `KECCAK` table's output lanes. A derived column's claims are never opened against the stack. -/
+  derived : (c : toShape.ColumnId) → Option (Column μ → Column (τ c.1))
   /-- How many columns the statement fixes cells of: a constant of the instance, so that the
   number of claims the public-input phase pools is one. -/
   nLines : ℕ
   /-- The columns whose first two cells the statement fixes. -/
   publicLines : Stmt → Vector (PublicLine toShape) nLines
-  /-- The region the Flock argument owns, if the arithmetization has one. -/
-  flock : Option (FlockRegion toShape)
+  /-- The region the Keccak reduction owns, if the arithmetization has one. -/
+  keccak : Option (KeccakRegion toShape)
 
 namespace M3Instance
 
@@ -227,8 +239,9 @@ variable (I : M3Instance)
 /-- Log-height of a column: its table's. -/
 abbrev κ (c : I.ColumnId) : ℕ := I.τ c.1
 
-/-- Read one column off the stack. -/
-def column (q : Column I.μ) (c : I.ColumnId) : Column (I.κ c) := I.layout.read q c
+/-- One column of the stack: derived from it, or read off it through the layout. -/
+def column (q : Column I.μ) (c : I.ColumnId) : Column (I.κ c) :=
+  (I.derived c).elim (I.layout.read q c) fun f ↦ f q
 
 /-- Row `x` of table `j`, read off the stack. -/
 def row (q : Column I.μ) (j : Fin I.ntab) (x : Fin (2 ^ I.τ j)) : Fin (I.width j) → K :=
@@ -284,8 +297,8 @@ def boundaryTuples (q : Column I.μ) (s : Side) : List (Vector K 16) :=
 def tuples (q : Column I.μ) (s : Side) : List (Vector K 16) :=
   I.flushTuples q s ++ I.boundaryTuples q s
 
-/-- The Flock region, read off the stack at its height. -/
-def flockColumn (r : FlockRegion I.toShape) (q : Column I.μ) : Column (8 + r.kBatch) :=
+/-- The Keccak region, read off the stack at its height. -/
+def keccakColumn (r : KeccakRegion I.toShape) (q : Column I.μ) : Column (r.logSteps + 6) :=
   ⟨Vector.cast (congrArg (2 ^ ·) r.height) (I.column q r.col).values⟩
 
 /-! ## What the schedule reads off the instance -/
@@ -340,11 +353,6 @@ def boundaryColumns : List I.ColumnId :=
 /-- The number of columns of the sumcheck tables: one claim each after the table sumcheck. -/
 def tableColumns : ℕ := ∑ j : I.SumcheckTables, I.width j.1
 
-/-- The number of weighted claims the Flock phase pools: one if there is a region. -/
-def flockClaims : ℕ :=
-  match I.flock with
-  | some _ => 1
-  | none => 0
 
 /-- The claims pooled after the bus phase: one per boundary column. -/
 abbrev busClaims : ℕ := I.boundaryColumns.length
@@ -356,9 +364,6 @@ abbrev tableClaims : ℕ := I.busClaims + I.tableColumns
 /-- The claims pooled after the public-input phase: one more per public line. -/
 abbrev pubClaims : ℕ := I.tableClaims + I.nLines
 
-/-- The claims the opening phase batches: the column claims and the Flock phase's weighted
-claims. -/
-abbrev poolSize : ℕ := I.pubClaims + I.flockClaims
 
 end M3Instance
 
@@ -391,13 +396,14 @@ def PublicLinesHold (input : I.Stmt) (q : Column I.μ) : Prop :=
     (I.column q l.col).values.get ⟨0, Nat.two_pow_pos _⟩ = l.cell0 ∧
       (I.column q l.col).values.get ⟨1, Nat.one_lt_two_pow l.pos.ne'⟩ = l.cell1
 
-/-- The Flock predicate holds of the Flock region, if there is one: what the Flock phase
-establishes, the statement its honest prover can convince the verifier of (for leanISA, Flock's
-R1CS on the bits packed into `q_flock`; that the limb slots then compress is a consequence). -/
-def aux (q : Column I.μ) : Prop := ∀ r ∈ I.flock, r.Holds (I.flockColumn r q)
+/-- The Keccak predicate holds of the Keccak region, if there is one: what the Keccak reduction
+establishes of the committed column (for leanISA, every step's state after twelve rounds is the
+first segment of its input state's permutation; that the `KECCAK` rows permute is then the
+derived output lanes'). -/
+def aux (q : Column I.μ) : Prop := ∀ r ∈ I.keccak, r.Holds (I.keccakColumn r q)
 
 instance instDecidableAux (q : Column I.μ) : Decidable (I.aux q) :=
-  inferInstanceAs (Decidable (∀ r ∈ I.flock, r.Holds (I.flockColumn r q)))
+  inferInstanceAs (Decidable (∀ r ∈ I.keccak, r.Holds (I.keccakColumn r q)))
 
 deriving instance Decidable for ConstraintsVanish, Balanced, CountsNonzero, PublicLinesHold,
   PaddingHonest

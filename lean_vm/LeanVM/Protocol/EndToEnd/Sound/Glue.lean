@@ -12,14 +12,14 @@ module
 public import LeanVM.Protocol.Whir.Params.Deployed
 public import LeanVM.Protocol.Whir.Sound.Candidates
 public import LeanVM.Protocol.EndToEnd.Front.BusTable
-public import LeanVM.Protocol.EndToEnd.Front.FlockBridge
+public import LeanVM.Protocol.EndToEnd.Front.KeccakBridge
 public import LeanVM.Protocol.EndToEnd.Front.RingMultilinear
 
 /-!
 # The seams of the end-to-end specification
 
 Facts that glue the phase specifications of the deployed verifier
-(`LeanVM.Protocol.Verifier.verifyExecution`, leanVM `127510d14c98ade4e8a97646c44fa7f1ff5e752d`)
+(`LeanVM.Protocol.Verifier.verifyExecution`, leanVM `3375f7a137c50b803f3416f6466b5d4e0719708a`)
 into one specification:
 
 * `thrOf μ R`: the Johnson threshold of level `0` of the deployed ladder; the stack's doom
@@ -246,47 +246,54 @@ theorem abError_eq (I : M3Instance) (L : ℕ) :
     abError I L = ((L * (4 * 2 ^ I.μBus) : ℕ) : ℝ≥0∞) / ((2 ^ 192 : ℕ) : ℝ≥0∞) := by
   rw [abError, mul_overE]
 
-theorem eBatch_le (J : ℕ) (P₀ : LevelCode) (hJ : J ≤ 231) (hL : P₀.listMax ≤ L₀) :
-    eBatch J P₀ ≤ ((230 * L₀ : ℕ) : ℝ≥0∞) / ((2 ^ 192 : ℕ) : ℝ≥0∞) := by
+theorem eBatch_le (J : ℕ) (P₀ : LevelCode) (hJ : J ≤ 551) (hL : P₀.listMax ≤ L₀) :
+    eBatch J P₀ ≤ ((550 * L₀ : ℕ) : ℝ≥0∞) / ((2 ^ 192 : ℕ) : ℝ≥0∞) := by
   rw [eBatch, card_E_ennreal]
   refine ENNReal.div_le_div_right (Nat.cast_le.2 ?_) _
   exact Nat.mul_le_mul (by omega) hL
 
+/-- The batching error grows with the number of claims. -/
+theorem eBatch_le_of_le {J J' : ℕ} (P₀ : LevelCode) (h : J ≤ J') : eBatch J P₀ ≤ eBatch J' P₀ :=
+  ENNReal.div_le_div_right (Nat.cast_le.2 (Nat.mul_le_mul_right _ (Nat.sub_le_sub_right h 1))) _
+
+/-- `L · errE d` as a natural number over `|E|`. -/
+theorem mul_errE (L d : ℕ) :
+    (L : ℝ≥0∞) * KeccakGkr.errE d = ((L * d : ℕ) : ℝ≥0∞) / ((2 ^ 192 : ℕ) : ℝ≥0∞) := by
+  rw [KeccakGkr.errE, card_E_ennreal, ← mul_assoc, ← Nat.cast_mul, ENNReal.div_eq_inv_mul,
+    mul_comm]
+
 /-- **The lead after the table sumcheck**: the public input's challenge, which makes no prover
-move, and the at most `46` coordinates of Flock's point after it are one group, of at most
-`L₀ · 47/|E|`. -/
-theorem pubLead_le (L : ℕ) {n : ℕ} (hn : n ≤ 46) :
-    (L : ℝ≥0∞) * ((overE 1 : ℝ≥0) : ℝ≥0∞) +
-        ((∑ _i ∈ Finset.range n, (L : ℝ≥0∞) * ((overE 1 : ℝ≥0) : ℝ≥0∞)) + 0) ≤
-      (L : ℝ≥0∞) * ((overE 47 : ℝ≥0) : ℝ≥0∞) := by
-  rw [add_zero, sum_mul_overE_one, mul_overE, mul_overE, div_E_add]
+move, and the Keccak reduction's six segment and lane challenges after it are one group, of at
+most `L₀ · 7/|E|`. -/
+theorem pubLead_le (L : ℕ) :
+    (L : ℝ≥0∞) * ((overE 1 : ℝ≥0) : ℝ≥0∞) + (L : ℝ≥0∞) * KeccakGkr.errE 6 ≤
+      (L : ℝ≥0∞) * ((overE 7 : ℝ≥0) : ℝ≥0∞) := by
+  rw [mul_overE, mul_overE, mul_errE, div_E_add]
   exact ENNReal.div_le_div_right (Nat.cast_le.2 (by nlinarith)) _
 
-/-- **Every error hypothesis of the front phases**, at `L₀ = 2^18` candidates, `|E| = 2^192`,
-a bus of depth at most `38`, `B ≤ 2^20`, at most `231` opening claims with a level-0 list of at
-most `2^18`, and the lead after the table sumcheck at most `L₀ · 47/|E|` (the public input's
-challenge and at most `46` Flock coordinates, `pubLead_le`): each is at most `2^-128`. -/
+/-- **Every error hypothesis of the phases**, at `L₀ = 2^18` candidates, `|E| = 2^192`, a bus
+of depth at most `38`, `B ≤ 2^20`, at most `551` opening claims with a level-0 list of at most
+`2^18`, and the lead after the table sumcheck at most `L₀ · 7/|E|` (the public input's challenge
+and the Keccak reduction's six first challenges, `pubLead_le`): each is at most `2^-128`. -/
 theorem phase_errors (I : M3Instance) (hμ : I.μBus ≤ 38) (hB : I.B ≤ 2 ^ 20) :
     abError I L₀ + 0 ≤ (2 : ℝ≥0∞)⁻¹ ^ 128 ∧ abError I L₀ < 1 ∧
     roundError L₀ 4 ≤ (2 : ℝ≥0∞)⁻¹ ^ 128 ∧
     interpLead L₀ 2 (lambdaError L₀) ≤ (2 : ℝ≥0∞)⁻¹ ^ 128 ∧
     lambdaError L₀ + 0 ≤ (2 : ℝ≥0∞)⁻¹ ^ 128 ∧
-    roundError L₀ 3 + (L₀ : ℝ≥0∞) * ((overE 47 : ℝ≥0) : ℝ≥0∞) ≤ (2 : ℝ≥0∞)⁻¹ ^ 128 ∧
-    (L₀ : ℝ≥0∞) * ((overE 47 : ℝ≥0) : ℝ≥0∞) ≤ (2 : ℝ≥0∞)⁻¹ ^ 128 ∧
-    (∀ n, xiError I L₀ + sumcheckLead n ((L₀ : ℝ≥0∞) * ((overE 47 : ℝ≥0) : ℝ≥0∞)) ≤
+    roundError L₀ 3 + (L₀ : ℝ≥0∞) * ((overE 7 : ℝ≥0) : ℝ≥0∞) ≤ (2 : ℝ≥0∞)⁻¹ ^ 128 ∧
+    (L₀ : ℝ≥0∞) * ((overE 7 : ℝ≥0) : ℝ≥0∞) ≤ (2 : ℝ≥0∞)⁻¹ ^ 128 ∧
+    (∀ n, xiError I L₀ + sumcheckLead n ((L₀ : ℝ≥0∞) * ((overE 7 : ℝ≥0) : ℝ≥0∞)) ≤
       (2 : ℝ≥0∞)⁻¹ ^ 128) ∧
-    (∀ (J : ℕ) (P₀ : LevelCode), J ≤ 231 → P₀.listMax ≤ L₀ →
+    (∀ (J : ℕ) (P₀ : LevelCode), J ≤ 551 → P₀.listMax ≤ L₀ →
       (∑ _i ∈ Finset.range 6, (L₀ : ℝ≥0∞) * ((overE 1 : ℝ≥0) : ℝ≥0∞)) + eBatch J P₀ ≤
         (2 : ℝ≥0∞)⁻¹ ^ 128) ∧
-    (L₀ : ℝ≥0∞) * ((overE 127 : ℝ≥0) : ℝ≥0∞) + 0 ≤ (2 : ℝ≥0∞)⁻¹ ^ 128 ∧
-    (L₀ : ℝ≥0∞) * ((overE 2 : ℝ≥0) : ℝ≥0∞) + 0 ≤ (2 : ℝ≥0∞)⁻¹ ^ 128 ∧
-    (L₀ : ℝ≥0∞) * ((overE 3 : ℝ≥0) : ℝ≥0∞) + 0 ≤ (2 : ℝ≥0∞)⁻¹ ^ 128 := by
+    (L₀ : ℝ≥0∞) * KeccakGkr.errE 46 ≤ (2 : ℝ≥0∞)⁻¹ ^ 128 := by
   have hp : 2 ^ I.μBus ≤ 2 ^ 38 := Nat.pow_le_pow_right (by norm_num) hμ
   have hab : abError I L₀ + 0 ≤ (2 : ℝ≥0∞)⁻¹ ^ 128 := by
     rw [add_zero, abError_eq]
     exact le_eps_of_nat le_rfl (by simp only [L₀]; nlinarith)
   refine ⟨hab, ((add_zero (abError I L₀)).symm.le.trans hab).trans_lt eps_lt_one, ?_, ?_, ?_, ?_,
-    ?_, ?_, ?_, ?_, ?_, ?_⟩
+    ?_, ?_, ?_, ?_⟩
   · rw [roundError_eq]; exact le_eps_of_nat le_rfl (by norm_num)
   · rw [interpLead_eq, unitError_eq, lambdaError_eq, mul_div_E, div_E_add]
     exact le_eps_of_nat le_rfl (by norm_num)
@@ -294,18 +301,16 @@ theorem phase_errors (I : M3Instance) (hμ : I.μBus ≤ 38) (hB : I.B ≤ 2 ^ 2
   · rw [roundError_eq, mul_overE, div_E_add]; exact le_eps_of_nat le_rfl (by norm_num)
   · rw [mul_overE]; exact le_eps_of_nat le_rfl (by norm_num)
   · intro n
-    refine le_eps_of_nat (n := L₀ * (I.B + 3 - 1) + L₀ * 47)
+    refine le_eps_of_nat (n := L₀ * (I.B + 3 - 1) + L₀ * 7)
       ((add_le_add le_rfl (sumcheckLead_le _ _)).trans (le_of_eq ?_)) ?_
     · rw [xiError_eq, mul_overE, div_E_add]
     · simp only [L₀]; omega
   · intro J P₀ hJ hL
-    refine le_eps_of_nat (n := 6 * L₀ + 230 * L₀)
+    refine le_eps_of_nat (n := 6 * L₀ + 550 * L₀)
       ((add_le_add le_rfl (eBatch_le J P₀ hJ hL)).trans (le_of_eq ?_)) ?_
     · rw [sum_mul_overE_one, div_E_add]
     · norm_num
-  · rw [add_zero, mul_overE]; exact le_eps_of_nat le_rfl (by norm_num)
-  · rw [add_zero, mul_overE]; exact le_eps_of_nat le_rfl (by norm_num)
-  · rw [add_zero, mul_overE]; exact le_eps_of_nat le_rfl (by norm_num)
+  · rw [mul_errE]; exact le_eps_of_nat le_rfl (by norm_num)
 
 end PhaseErrors
 

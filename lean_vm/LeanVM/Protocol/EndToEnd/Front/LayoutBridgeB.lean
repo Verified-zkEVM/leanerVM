@@ -1,34 +1,29 @@
 /-
   LeanVM.Protocol.EndToEnd.Front.LayoutBridgeB
 
-  The layout facts the public-input, Flock and ring-switching bridge assumes, proved at the
-  verifier's layout and the leanISA instance: the reading of a candidate as the instance's stack,
-  the memory claims at the public point, the `QFLOCK` weight, and the `BLAKE2S` height.
+  The layout facts the public-input bridge assumes, proved at the verifier's layout and the
+  leanISA instance: the reading of a candidate as the instance's stack, the memory claims at the
+  public point, and the `KECCAK` height.
 -/
 
 module
 
 public import LeanVM.Protocol.EndToEnd.Front.LayoutInstance
 public import LeanVM.Protocol.EndToEnd.Front.PubPhase
-public import LeanVM.Protocol.EndToEnd.Front.RingFidelity
 
 /-!
-# Layout facts for the public input and ring switching
+# Layout facts for the public input
 
-The public-input, Flock and ring-switching bridge (`PubPhase`, `FlockBridge`, `RingFidelity`)
-takes four facts about the verifier's layout as hypotheses. At `layout = verifierLayout prog s`
-and the leanISA instance at `s`:
+The public-input bridge (`PubPhase`) takes facts about the verifier's layout as hypotheses. At
+`layout = verifierLayout prog s` and the leanISA instance at `s`:
 
 * `toI`: a stack on the layout's `stackLog` variables read on the instance's `μ`, the cast along
   `stackLog_verifierLayout`;
 * `pubLayoutHyp_verifierLayout`: the program's claim on memory column `j < 3` at `(r, 0, …, 0)` is
   the instance's claim on `MEM_j` at `linePoint r`;
-* `ringLayoutHyp_verifierLayout`: the program's weight of the `QFLOCK` placement at a point of the
-  region, paired with a stack, is the stack's extension at the point lifted by the instance;
-* `tableLogHeights_blake2s`: the layout's `BLAKE2S` height is `τ_BLAKE2S`.
+* `tableLogHeights_keccak`: the layout's `KECCAK` height is `τ_KECCAK`.
 
-Memory columns and `QFLOCK` are committed columns, so these hold for every Flock specification:
-the deployed slots only place the `BLAKE2S` limbs.
+The memory columns are committed columns.
 -/
 
 namespace LeanVM.Protocol.EndToEnd.Front
@@ -71,46 +66,87 @@ variable (prog : Program) (s : Sizes)
 def toI (q : Column (verifierLayout prog s).stackLog) : Column (leanIsaμ prog s) :=
   castColumn (stackLog_verifierLayout prog s) q
 
-/-! ## Committed columns, for any Flock specification -/
+/-! ## Reading a claim of the program -/
 
-/-- A placed point of a committed column is the instance's lifted point, for any slots. -/
-theorem stackPoint_eq_extend_committed (F : FlockSpec) (c : Col) (hc : ¬ IsLimb c)
-    (z : Vector E (kappa prog s c)) :
-    ((verifierLayout prog s).placements.getD (pyCol c) default).stackPoint z.toList
-        (verifierLayout prog s).stackLog =
-      ((leanIsaInstance F prog s).layout.extend c z).toList := by
-  rw [stackLog_verifierLayout]
-  show _ = ((LeanIsa.layout prog s F.slot).extend c z).toList
-  rw [placement_committed prog s c hc, extend_committed prog s _ c hc, stackPoint_aligned]
+/-- **A claim of the program, read on a candidate** (the wire's reading): a claim on a `KECCAK`
+output lane, which the layout does not place, is read as the claim on the derived column it names
+(lane `column − 111`, at the point, on `τ_KECCAK` variables); every other claim on the stack, at
+its placement (`ColumnClaim.onStack`). -/
+def WireHolds (c : Verifier.ColumnClaim) (q : Column (verifierLayout prog s).stackLog) : Prop :=
+  if c.column ∈ keccakOutputColumns then
+    ∃ hl : c.point.length = s.τ 5,
+      eval₂Mle ((leanIsaInstance prog s).column (toI prog s q)
+          (outCol ⟨(c.column - 111) % 25, Nat.mod_lt _ (by norm_num)⟩)).values (algebraMap K E)
+        (⟨c.point.toArray, by simpa using hl⟩ : Vector E (s.τ 5)) = c.value
+  else StackClaim.Holds (verifierLayout prog s).stackLog (c.onStack (verifierLayout prog s)) q
 
-/-- **A verifier claim on a committed column means the instance's claim**, for any slots. -/
-theorem onStack_holds_iff_committed (F : FlockSpec) (c : Col) (hc : ¬ IsLimb c)
-    (z : Vector E (kappa prog s c)) (v : E) (q : Column (leanIsaμ prog s)) :
-    StackClaim.Holds (leanIsaμ prog s)
-        ((⟨pyCol c, z.toList, v⟩ : Verifier.ColumnClaim).onStack (verifierLayout prog s)) q ↔
-      (⟨c, z, v⟩ : LeanVM.Protocol.ColumnClaim (leanIsaInstance F prog s)).Holds q := by
-  unfold Verifier.ColumnClaim.onStack
-  simp only
-  rw [stackPoint_eq_extend_committed prog s F c hc z, stackClaim_holds_eqEval_iff]
-  unfold LeanVM.Protocol.ColumnClaim.Holds M3Instance.column
-  rw [(leanIsaInstance F prog s).layout.read_eval]
+/-- A claim off the output lanes is read on the stack. -/
+theorem wireHolds_of_not_mem {c : Verifier.ColumnClaim} (hc : c.column ∉ keccakOutputColumns)
+    (q : Column (verifierLayout prog s).stackLog) :
+    WireHolds prog s c q ↔
+      StackClaim.Holds (verifierLayout prog s).stackLog (c.onStack (verifierLayout prog s)) q := by
+  unfold WireHolds
+  rw [ite_eq_right hc]
 
-/-! ## The four facts -/
+/-- An output lane is `outCol` of its lane. -/
+theorem eq_outCol_of_isOut {c : Col} (h : IsOut c) :
+    c = outCol ⟨(pyCol c - 111) % 25, Nat.mod_lt _ (by norm_num)⟩ := by
+  obtain ⟨-, -, hv⟩ := pyCol_lanes c
+  have hp := hv h.isLane
+  obtain ⟨j, i⟩ := c
+  obtain ⟨hj, h1, h2⟩ := h
+  simp only at hj h1 h2 hp
+  subst hj
+  simp only [outCol, Sigma.mk.injEq, heq_eq_eq, true_and]
+  ext
+  simp only [hp]
+  omega
 
-/-- **The `BLAKE2S` height** of the verifier's layout is `τ_BLAKE2S`. -/
-theorem tableLogHeights_blake2s :
-    (verifierLayout prog s).tableLogHeights.getD opBlake2s 0 = s.τ 5 := by
-  simp [verifierLayout, tableLogs, opBlake2s]
+/-- **The wire's reading of a claim on an instance column is the instance's claim**: the program's
+claim on global column `pyCol col` at `z` holds of a candidate exactly when the instance's claim on
+`col` holds of its reading, output lanes included. -/
+theorem wireHolds_iff (col : Col) (z : Vector E (kappa prog s col)) (v : E)
+    (q : Column (verifierLayout prog s).stackLog) :
+    WireHolds prog s ⟨pyCol col, z.toList, v⟩ q ↔
+      (⟨col, z, v⟩ : LeanVM.Protocol.ColumnClaim (leanIsaInstance prog s)).Holds (toI prog s q) := by
+  by_cases ho : IsOut col
+  · have hm : pyCol col ∈ keccakOutputColumns := (mem_keccakOutputColumns_pyCol col).mpr ho
+    have he := eq_outCol_of_isOut ho
+    unfold WireHolds
+    rw [ite_eq_left hm]
+    simp only
+    generalize hl : (⟨(pyCol col - 111) % 25, Nat.mod_lt _ (by norm_num)⟩ : Fin 25) = l at he ⊢
+    subst he
+    unfold LeanVM.Protocol.ColumnClaim.Holds
+    constructor
+    · rintro ⟨hl, h⟩
+      exact h
+    · intro h
+      exact ⟨by simp; rfl, h⟩
+  · have hm : pyCol col ∉ keccakOutputColumns := (mem_keccakOutputColumns_pyCol col).not.mpr ho
+    rw [wireHolds_of_not_mem prog s hm, holds_castColumn (stackLog_verifierLayout prog s)]
+    exact onStack_holds_iff prog s col ho z v (toI prog s q)
+
+/-! ## The facts -/
+
+/-- **The `KECCAK` height** of the verifier's layout is `τ_KECCAK`. -/
+theorem tableLogHeights_keccak :
+    (verifierLayout prog s).tableLogHeights.getD opKeccak 0 = s.τ 5 := by
+  simp [verifierLayout, tableLogs, opKeccak]
 
 /-- The memory columns are committed. -/
-theorem not_isLimb_memCol (i : Fin 4) : ¬ IsLimb (memCol i) := by
+theorem not_isLane_memCol (i : Fin 4) : ¬ IsLane (memCol i) := by
   revert i; decide
+
+/-- The memory columns are not output lanes. -/
+theorem not_isOut_memCol (i : Fin 4) : ¬ IsOut (memCol i) :=
+  fun h ↦ not_isLane_memCol i h.isLane
 
 /-- The public point of the program is the instance's line point. -/
 theorem pubPoint_eq (r : E) :
     pubPoint (verifierLayout prog s) r = (PublicInput.linePoint s.logMem_pos r).toList := by
-  have hv : ((verifierLayout prog s).placements.getD memory0 default).vars = s.logMem := by
-    have h := placement_committed prog s (memCol 0) (not_isLimb_memCol 0)
+  have hv : ((verifierLayout prog s).placement memory0).vars = s.logMem := by
+    have h := placement_committed prog s (memCol 0) (not_isLane_memCol 0)
     rw [pyCol_memCol] at h
     simp only [Fin.val_zero] at h
     rw [show memory0 = 0 from rfl, h]
@@ -126,14 +162,13 @@ theorem pubPoint_eq (r : E) :
 /-- **The memory claims at the public point** (`pubLayoutHyp`): the program's claim on memory
 column `j < 3` at `(r, 0, …, 0)` holding of a candidate is the instance's claim on `MEM_j` at
 `linePoint r` holding of its reading. -/
-theorem pubLayoutHyp_verifierLayout (F : FlockSpec) :
-    pubLayoutHyp F prog s (verifierLayout prog s) (toI prog s) := by
+theorem pubLayoutHyp_verifierLayout :
+    pubLayoutHyp prog s (verifierLayout prog s) (toI prog s) (WireHolds prog s) := by
   intro j r v q h
   have hcol : (j.val : ℕ) = pyCol (memCol j.castSucc) := by
     rw [pyCol_memCol]; rfl
-  rw [hcol, pubPoint_eq, holds_castColumn (stackLog_verifierLayout prog s)] at h
-  exact (onStack_holds_iff_committed prog s F (memCol j.castSucc) (not_isLimb_memCol _)
-    (PublicInput.linePoint s.logMem_pos r) v (toI prog s q)).mp h
+  rw [hcol, pubPoint_eq] at h
+  exact (wireHolds_iff prog s (memCol j.castSucc) (PublicInput.linePoint s.logMem_pos r) v q).mp h
 
 /-- A stack's extension read on equal variables. -/
 theorem eval₂Mle_castColumn {a b : ℕ} (h : a = b) (q : Column a) (v : Vector E b) :
@@ -153,40 +188,6 @@ theorem eqAbove_mul_eqEval (v off μ : ℕ) (hv : v ≤ μ) (p : List E) (hp : p
   congr 1
   simp only [Placement.eqAbove, zero_add, length_boolPoint, Nat.sub_zero,
     selectorPoint_eq_boolPoint, Nat.shiftRight_eq_div_pow]
-
-/-- **The `QFLOCK` weight** (`ringLayoutHyp`): the program's weight of the `QFLOCK` placement at a
-point of the region, paired with a candidate, is its reading's extension at the point lifted by
-the instance's layout. -/
-theorem ringLayoutHyp_verifierLayout (F : FlockSpec) :
-    ringLayoutHyp F prog s (verifierLayout prog s) (toI prog s) := by
-  intro p hp q
-  have hP := placement_committed prog s flockCol not_isLimb_flockCol
-  rw [pyCol_flockCol] at hP
-  rw [hP]
-  let z' : Vector E (kappa prog s flockCol) := toVec _ p
-  have hz' : z'.toList = p := by
-    apply List.ext_getElem (by simp [z', hp]; rfl)
-    intro i h1 h2
-    simp [z', toVec, List.getElem?_eq_getElem h2]
-  have hsp := stackPoint_eq_extend_committed prog s F flockCol not_isLimb_flockCol z'
-  rw [pyCol_flockCol, hP, hz'] at hsp
-  have hle : kappa prog s flockCol ≤ (verifierLayout prog s).stackLog := by
-    rw [stackLog_verifierLayout]
-    have h := Blocks.size_le _ (blocks_fits prog s) (flockBlock prog s)
-    rw [size_flockBlock] at h
-    exact h
-  have hpt : ∀ x : Fin (2 ^ (verifierLayout prog s).stackLog),
-      ({ vars := kappa prog s flockCol,
-          index := (blocks prog s).offset (LeanIsa.blockOf flockCol not_isLimb_flockCol) } :
-          Placement).eqAbove (boolPoint (verifierLayout prog s).stackLog x) *
-        eqEval p ((boolPoint (verifierLayout prog s).stackLog x).take (kappa prog s flockCol)) =
-      eqEval (Vector.cast (stackLog_verifierLayout prog s).symm
-        ((leanIsaInstance F prog s).layout.extend flockCol z')).toList
-        (boolPoint (verifierLayout prog s).stackLog x) := fun x ↦ by
-    rw [eqAbove_mul_eqEval _ _ _ hle p (by rw [hp]; rfl), hsp, Vector.toList_cast]
-  simp only [hpt]
-  rw [sum_eqEval_mul, toI, eval₂Mle_castColumn]
-  rfl
 
 end
 end LeanVM.Protocol.EndToEnd.Front

@@ -20,8 +20,9 @@ The table sumcheck phase's security on the typed framework (`tableSumcheckSecuri
 
 * `xi_escape`: the batching challenge `ξ` escapes doom on the bus seam with probability at most
   `L₀ · (B + 2) / |E|`;
-* `tableFamily_sound`: the rounds' family (`Sumcheck.family` of `tableSummand`) is sound, its
-  invariant being the side condition no challenge changes;
+* `tableFamily_sound`: the rounds' family (`Sumcheck.familyInv` of `tableSummand`, with the
+  invariant `TableSumcheck.inv`: the side condition, the Keccak predicate along the challenges)
+  is sound, a challenge restoring a broken invariant at one value at most;
 * `finalValues_keep`: values that pass the final check carry doom on the rounds' last stage to doom
   on the table seam at `tableOut`.
 -/
@@ -52,17 +53,23 @@ theorem xi_escape {L₀ : ℕ} {C : Set (∀ i, TheOracle I i)} (hfin : C.Finite
 
 /-- The rounds' family. -/
 noncomputable abbrev tableFamily : SumcheckRound.Family E (Data I) (TheOracle I) Unit 3 :=
-  Sumcheck.family (tableSummand I) Sumcheck.unitWeights nodes (side I)
+  Sumcheck.familyInv (tableSummand I) Sumcheck.unitWeights nodes (inv I)
 
 /-- The rounds' family is consistent (the summand has degree at most three in each variable). -/
 theorem tableFamily_consistent (hd : I.d ≤ 2) : (tableFamily I).Consistent I.τmax :=
-  (Sumcheck.family_honest (tableSummand I) Sumcheck.unitWeights nodes (side I)
-    (tableSummand_degree I hd) nodes_injective).toConsistent
+  Sumcheck.familyInv_consistent (tableSummand I) Sumcheck.unitWeights nodes
+    (tableSummand_degree I hd) nodes_injective (inv I)
 
-/-- The rounds' family is sound: its invariant is the side condition, which no challenge
-changes. -/
+/-- The rounds' family is sound: a challenge restores a broken invariant at one value at most
+(`inv_sound`). -/
 theorem tableFamily_sound : (tableFamily I).Sound I.τmax :=
-  fun _ _ _ _ h ↦ (Nat.card_eq_zero.mpr (Or.inl ⟨fun x ↦ h x.2⟩)).trans_le (Nat.zero_le 3)
+  fun ctx j c hj h ↦ inv_sound I ctx j c hj h
+
+/-- The rounds' first stage is the batching challenge's output relation. -/
+theorem tableFamily_rel_zero :
+    SumcheckRound.rel (tableFamily I) 0 =
+      Sumcheck.relIn (tableSummand I) Sumcheck.unitWeights (side I) :=
+  (Sumcheck.rel_zero_inv (tableSummand I) Sumcheck.unitWeights nodes (inv I)).trans (relIn_inv I)
 
 /-- **The final values keep doom**: values that pass the final check carry doom on the rounds'
 last stage to doom on the table seam. -/

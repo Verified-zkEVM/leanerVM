@@ -17,7 +17,7 @@ public import LeanVM.Protocol.Verifier.Cost
 # Knowledge soundness of the leanVM verifier in the random-oracle model
 
 For one statement, `P = leanVmProgram (bytecodeWords prog) (publicDigest input)` the deployed
-verifier program (leanVM `127510d14c98ade4e8a97646c44fa7f1ff5e752d`) and `σ = leanVmSeed …` its
+verifier program (leanVM `3375f7a137c50b803f3416f6466b5d4e0719708a`) and `σ = leanVmSeed …` its
 Fiat-Shamir seed: the doom certificate's bound, the extractor, and the step from an accepted proof
 without a witness to doom. The probability statements, for an adversary that chooses the
 statement, are in `LeanVM.Protocol.EndToEnd.Sound.Statements`.
@@ -25,11 +25,12 @@ statement, are in `LeanVM.Protocol.EndToEnd.Sound.Statements`.
 * `leanVmCert_bound`: every escape bound of `leanVmCert`, discounted by the proof of work before
   its group, is at most `2^-128`.
 * `extractStack prog input c π`: **the extractor**. It reads the extracted history of `π` under
-  the cache `c`, the announced sizes `(s, ρ)` (the value `readSizes` returned along it; a
-  classical choice, unique by `announced_eq`) and the stack's committed word `W₀` (the first
-  commitment), and returns a candidate of `W₀` at level 0's Johnson threshold satisfying
-  `M3Holds (leanIsaInstance blake2sFlockSpec prog s) input`, if one exists (a classical choice;
-  the extractor is a specification of what is extracted, not an algorithm).
+  the cache `c` (its answers to both oracles, Keccak-256 and Keccak-f), the announced sizes
+  `(s, ρ)` (the value `readSizes` returned along it; a classical choice, unique by
+  `announced_eq`) and the stack's committed word `W₀` (the first commitment), and returns a
+  candidate of `W₀` at level 0's Johnson threshold satisfying
+  `M3Holds (leanIsaInstance prog s) input`, if one exists (a classical choice; the extractor is
+  a specification of what is extracted, not an algorithm).
 * `doomed_of_not_extracted`: a proof accepted while the extractor finds no good candidate has a
   doomed boundary prefix: after the stack's root the certificate's doom is `CommitDoom`
   (`leanVmSpec_D_commit`), which is "no good candidate".
@@ -44,7 +45,7 @@ open LeanVM.Parameters LeanVM.Semantics LeanVM.Arithmetization LeanVM.Protocol
 open LeanVM.Protocol.Compile LeanVM.Protocol.Compile.Rom LeanVM.Protocol.Verifier
 open LeanVM.Protocol.LeanIsa LeanVM.Protocol.Whir.Sound LeanVM.Protocol.EndToEnd.Front
 open LeanVM.Protocol.EndToEnd.Complete (publicDigest)
-open LeanVM.Protocol.Blake2sHash LeanVM.Protocol.Rom
+open LeanVM.Protocol.KeccakHash LeanVM.Protocol.Rom
 open OracleComp OracleSpec
 open scoped ENNReal
 
@@ -54,6 +55,15 @@ open scoped ENNReal
 attribute [local irreducible] instFintypeDigest
 
 variable (prog : Program) (input : PublicInput)
+
+/-! ## Doomed runs -/
+
+/-- Some boundary prefix of the extracted history of the seeded verifier's run of `P` on `π`,
+under the answers of the cache `c` to both oracles, is doomed. -/
+def DoomedRun {P : Prog Bool} (C : Cert P) (σ : Seed) (π : Proof) (c : HashSpec.QueryCache) :
+    Prop :=
+  ∃ h₀, h₀ <+: extractedHistory (fun x ↦ c (.inl x)) (fun s ↦ c (.inr s)) σ P π ∧
+    Boundary h₀ ∧ C.D h₀
 
 /-! ## The doom bound -/
 
@@ -105,9 +115,9 @@ theorem leanVmSpec_D_commit {l₁ : List Ev} {a : Verifier.Layout × ℕ}
   have hve : (verifyExecution .computed (bytecodeWords prog) (publicDigest input)).after (l₁ ++ [e]) =
       some ((verifyBusBalance .computed lay).bind fun bus ↦ (tablePhase lay bus).bind fun cl ↦
         (Verifier.publicInputPhase lay (publicDigest input)).bind fun pc ↦
-        (verifyFlock .computed (blake2sR1csLogSize + lay.tableLogHeights.getD opBlake2s 0)).bind fun x ↦
-        (ringSwitch x.1 x.2).bind fun y ↦ verifyStackedOpening lay.stackLog ρ
-          (ringSwitchClaim lay y.1 y.2 :: (cl ++ pc).map (·.onStack lay))) := by
+        (keccakPhase lay (cl ++ pc)).bind fun r ↦
+        (ringSwitch r.2.1 r.2.2).bind fun y ↦ verifyStackedOpening lay.stackLog ρ
+          (ringSwitchClaim lay y.1 y.2 :: r.1.map (·.onStack lay))) := by
     rw [verifyExecution_eq, Prog.after_bind_append _ hl₁]
     exact Prog.after_bind_append _ hce []
   have hs : (verifyExecution .computed (bytecodeWords prog) (publicDigest input)).retSplit (l₁ ++ [e]) =
@@ -167,16 +177,17 @@ open Classical in
 /-- **The extractor.** From the cache `c` and the proof `π`: the extracted history of the
 verifier's run, the sizes `s` and rate `ρ` it announced, and the stack's committed word `W₀`
 (its first commitment); a candidate of `W₀` at level 0's Johnson threshold satisfying
-`M3Holds (leanIsaInstance blake2sFlockSpec prog s) input`, if one exists. The candidate is a
-classical choice: the extractor specifies what is extracted, with no claim of efficiency. -/
+`M3Holds (leanIsaInstance prog s) input`, if one exists. The candidate is a classical choice:
+the extractor specifies what is extracted, with no claim of efficiency. -/
 noncomputable def extractStack (c : HashSpec.QueryCache) (π : Proof) :
     Option (Σ s : Sizes, Column (leanIsaμ prog s)) :=
-  let hist := extractedHistory (fun x ↦ c x) (leanVmSeed (bytecodeWords prog) (publicDigest input))
+  let hist := extractedHistory (fun x ↦ c (.inl x)) (fun s ↦ c (.inr s))
+    (leanVmSeed (bytecodeWords prog) (publicDigest input))
     (leanVmProgram (bytecodeWords prog) (publicDigest input)) π
   match announced prog hist, firstWord hist with
   | some (s, ρ), some W =>
     if hq : ∃ q ∈ Candidates (leanIsaμ prog s) ρ (thrOf (leanIsaμ prog s) ρ) W,
-        M3Holds (leanIsaInstance F₀ prog s) input q then
+        M3Holds (leanIsaInstance prog s) input q then
       some ⟨s, hq.choose⟩
     else none
   | _, _ => none
@@ -186,7 +197,7 @@ relation. -/
 def Extracted (c : HashSpec.QueryCache) (π : Proof) : Prop :=
   ∃ (s : Sizes) (q : Column (leanIsaμ prog s)), extractStack prog input c π = some ⟨s, q⟩ ∧
     s.Admissible prog ∧
-    M3Holds (leanIsaInstance F₀ prog s) input q
+    M3Holds (leanIsaInstance prog s) input q
 
 /-! ## Accepted without extraction is doomed -/
 
@@ -200,14 +211,16 @@ theorem commits_reads_commit (xs : List E) (ht w : ℕ) (W : Word) :
 /-- **Accepted, and the extractor fails, is doomed**: the prefix of the extracted history up to
 the stack's root is a boundary at which the certificate's doom holds. -/
 theorem doomed_of_not_extracted {c : HashSpec.QueryCache} {π : Proof}
-    (hv : Rom.verify (fun x ↦ c x) (leanVmSeed (bytecodeWords prog) (publicDigest input))
+    (hv : Rom.verify (fun x ↦ c (.inl x)) (fun s ↦ c (.inr s))
+      (leanVmSeed (bytecodeWords prog) (publicDigest input))
       (leanVmProgram (bytecodeWords prog) (publicDigest input)) π = some true)
     (hne : ¬ Extracted prog input c π) :
     DoomedRun (leanVmCert prog input) (leanVmSeed (bytecodeWords prog) (publicDigest input)) π
       c := by
-  set hist := extractedHistory (fun x ↦ c x) (leanVmSeed (bytecodeWords prog) (publicDigest input))
+  set hist := extractedHistory (fun x ↦ c (.inl x)) (fun s ↦ c (.inr s))
+    (leanVmSeed (bytecodeWords prog) (publicDigest input))
     (leanVmProgram (bytecodeWords prog) (publicDigest input)) π with hhist
-  obtain ⟨hafter, hws⟩ := after_extractedHistory (fun x ↦ c x) hv
+  obtain ⟨hafter, hws⟩ := after_extractedHistory (fun x ↦ c (.inl x)) (fun s ↦ c (.inr s)) hv
   rw [← hhist] at hafter hws
   -- The run: the announced sizes, the root, the rest.
   obtain ⟨u, m, m', hm, hve, -⟩ := after_bind_ret hafter
@@ -243,7 +256,7 @@ theorem doomed_of_not_extracted {c : HashSpec.QueryCache} {π : Proof}
   have hfw : firstWord (l₁ ++ [e]) = some W := by
     simp [firstWord, hcomm]
   -- No good candidate.
-  have hdoom : CommitDoom F₀ prog input thrOf a (l₁ ++ [e]) := by
+  have hdoom : CommitDoom prog input thrOf a (l₁ ++ [e]) := by
     refine ⟨s, W, hg.1, hfw, fun q hq hM ↦ hne ?_⟩
     have hann : announced prog hist = some (s, a.2) :=
       announced_eq prog ((List.prefix_append l₁ [e]).trans hpre) hl₁ hg.1
@@ -252,7 +265,7 @@ theorem doomed_of_not_extracted {c : HashSpec.QueryCache} {π : Proof}
       have := firstWord_append hfw (r₂ ++ m')
       simpa [he] using this
     have hq' : ∃ q ∈ Candidates (leanIsaμ prog s) a.2 (thrOf (leanIsaμ prog s) a.2) W,
-        M3Holds (leanIsaInstance F₀ prog s) input q := ⟨q, hq, hM⟩
+        M3Holds (leanIsaInstance prog s) input q := ⟨q, hq, hM⟩
     refine ⟨s, hq'.choose, ?_, hg.2.1, hq'.choose_spec.2⟩
     simp only [extractStack, ← hhist, hann, hfw', hq', ↓reduceDIte]
   exact ⟨l₁ ++ [e], hpre, by simp [Boundary, he], (leanVmSpec_D_commit prog input hl₁ hg

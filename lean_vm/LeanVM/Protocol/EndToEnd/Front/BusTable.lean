@@ -2,7 +2,7 @@
   LeanVM.Protocol.EndToEnd.Front.BusTable
 
   The bus phase followed by the table sumcheck, specified from the commitment's doom to the table
-  seam on the wire, and the table seam read as the doom the public-input bridge starts from.
+  seam on the wire, and the commitment's doom as the bus phase's.
 -/
 
 module
@@ -20,11 +20,9 @@ public import LeanVM.Protocol.EndToEnd.Complete.BusLayout
 (`Seam.commit` on the candidates) to the table seam on the wire (`TablePost`). It needs the table phase's
 identities (`TableFid`) for every read of the right shape.
 
-`tablePost_pubPre`: at the verifier's layout and the leanISA instance with the deployed Flock
-slots, the table seam on the wire is the doom the public-input bridge starts from (`PubPre`): no
-candidate satisfies the program's column claims, the public lines and the Flock predicate.
-
-`tablePost_pubPre` holds at every Flock region (`leanIsaWith F prog s fl`, `Front.InstanceWith`).
+`commitDoom_hdoom`: at the verifier's layout, the commitment's doom (`CommitDoom`) is the bus
+phase's: at the sizes the layout was built from (`verifierLayout_injective`), no candidate of the
+committed word, as an oracle of the leanISA instance (`candsOf`), satisfies `M3Holds`.
 -/
 
 namespace LeanVM.Protocol.EndToEnd.Front
@@ -64,37 +62,17 @@ noncomputable def busTableSpec (colOf : I.ColumnId → ℕ)
     else specOfFalse fun _ hp ↦ hw ⟨hp.1, hp.2.1, hp.2.2.1⟩)
     hfin hcard hμ hdepth hab he4 hT hlam
 
-/-! ## The table seam as the public-input bridge's doom -/
+/-! ## The commitment's doom at the leanISA instance -/
 
 section LeanIsa
 
 open LeanVM.Protocol.LeanIsa
 
-variable (F : FlockSpec) (prog : Program) (s : Sizes)
-  (cands' : Word → Set (∀ i, TheOracle (leanIsaInstance F prog s) i))
-  (input' : PublicInput)
-
-/-- **The table seam on the wire is the public-input bridge's doom**: at the verifier's layout,
-with the deployed Flock slots, if the table seam holds of no candidate at the protocol's output,
-then no candidate of `C` satisfies the program's column claims, the public lines and the Flock
-predicate, `C` being read off the same commitment. -/
-theorem tablePost_pubPre {fl : Option (FlockRegion (shape prog s))}
-    (hF : F.slot = Blake2sFlock.slots)
-    (C : List Ev → Set (Column (verifierLayout prog s).stackLog))
-    (hC : ∀ h q, q ∈ C h → ∀ W, firstWord h = some W → (fun _ ↦ toI prog s q) ∈ cands' W)
-    (claims : List Verifier.ColumnClaim) (h : List Ev)
-    (hpost : TablePost (leanIsaWith F prog s fl) cands' input' pyCol claims h) :
-    PubPreWith F prog s fl (verifierLayout prog s) C (toI prog s) claims input' h := by
-  obtain ⟨W, tout, hW, hR, hin, hcl⟩ := hpost
-  rintro q hq ⟨hcols, hpl, haux⟩
-  refine hR _ (hC h q hq W hW) ⟨fun c hc ↦ ?_, by rw [hin]; exact hpl, haux⟩
-  have hs := hcols _ (hcl c hc)
-  rw [holds_castColumn (stackLog_verifierLayout prog s)] at hs
-  exact (onStack_holds_iff prog s F hF c.col c.point c.value (toI prog s q)).mp hs
+variable (prog : Program) (s : Sizes) (input' : PublicInput)
 
 /-- The candidates of a committed word as oracles of the instance. -/
 def candsOf (ρ : ℕ) (A : ℕ → ℕ → ℕ) (W : Word) :
-    Set (∀ i, TheOracle (leanIsaInstance F prog s) i) :=
+    Set (∀ i, TheOracle (leanIsaInstance prog s) i) :=
   (fun q ↦ fun _ ↦ q) '' EndToEnd.Candidates (leanIsaμ prog s) ρ (A (leanIsaμ prog s) ρ) W
 
 /-- The candidates of the history's first commitment, read on the layout's stack. -/
@@ -104,7 +82,7 @@ def candsL (ρ : ℕ) (A : ℕ → ℕ → ℕ) (h : List Ev) : Set (Column (ver
 
 theorem candsL_mem (ρ : ℕ) (A : ℕ → ℕ → ℕ) :
     ∀ h q, q ∈ candsL prog s ρ A h → ∀ W, firstWord h = some W →
-      (fun _ ↦ toI prog s q) ∈ candsOf F prog s ρ A W := by
+      (fun _ ↦ toI prog s q) ∈ candsOf prog s ρ A W := by
   rintro h q ⟨W', hW', hq⟩ W hW
   rw [hW] at hW'
   cases hW'
@@ -112,7 +90,7 @@ theorem candsL_mem (ρ : ℕ) (A : ℕ → ℕ → ℕ) :
 
 /-- The candidates as oracles are as many as the candidates. -/
 theorem candsOf_ncard (ρ : ℕ) (A : ℕ → ℕ → ℕ) (W : Word) :
-    (candsOf F prog s ρ A W).ncard =
+    (candsOf prog s ρ A W).ncard =
       (EndToEnd.Candidates (leanIsaμ prog s) ρ (A (leanIsaμ prog s) ρ) W).ncard :=
   Set.ncard_image_of_injective _ fun _ _ h ↦ congrFun h 0
 
@@ -154,8 +132,8 @@ theorem verifierLayout_injective {s s' : Sizes}
 /-- **The commitment's doom is the bus phase's**: at the sizes the layout was built from, no
 candidate oracle satisfies `M3Holds`. -/
 theorem commitDoom_hdoom (A : ℕ → ℕ → ℕ) (ρ : ℕ) (h : List Ev)
-    (hD : CommitDoom F prog input' A (verifierLayout prog s, ρ) h) :
-    HDoom (candsOf F prog s ρ A) (Seam.commit (leanIsaInstance F prog s)) input' h := by
+    (hD : CommitDoom prog input' A (verifierLayout prog s, ρ) h) :
+    HDoom (candsOf prog s ρ A) (Seam.commit (leanIsaInstance prog s)) input' h := by
   obtain ⟨s', W, hs, hW, hq⟩ := hD
   obtain rfl := verifierLayout_injective prog hs.symm
   exact ⟨W, hW, by rintro _ ⟨q, hq', rfl⟩ hin; exact hq q hq' hin⟩

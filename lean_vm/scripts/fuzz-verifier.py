@@ -69,8 +69,8 @@ from collections import Counter, defaultdict
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
-PIN = "3f7dc2196e43ca60034c5803eb307c050b4f91d9"
-VERIFIER_SHA256 = "16ac4c0dd33894ddb14e8dad92eb7f9d75ef7d543764903aec983b45e862beef"
+PIN = "3375f7a137c50b803f3416f6466b5d4e0719708a"
+VERIFIER_SHA256 = "e5014b58c80121fee19cdd8a73ca876a3e0406975c3858b5b0de16cfbe977826"
 FILES = ("bytecode.bin", "public_input.bin", "stream.bin", "merkle_openings.bin")
 ROOT = Path(__file__).resolve().parent.parent
 TREE = ROOT.parent / ".leanvm"
@@ -139,9 +139,9 @@ def instrument(tree: Path, directory: Path) -> dict:
     V.Transcript.grind_check = grind
     V.Transcript.merkle = merkle
     V.Digest.from_halves = classmethod(from_halves)
-    for name, attribute in (("bus", "verify_bus_balance"), ("flock-zerocheck", "verify_flock_zerocheck"),
-                            ("flock-lincheck", "verify_flock_lincheck"), ("ring", "ring_switch"),
-                            ("whir", "verify_stacked_opening")):
+    for name, attribute in (("bus", "verify_bus_balance"), ("keccak", "verify_keccak"),
+                            ("keccak-layer", "verify_keccak_layer"), ("keccak-open", "_keccak_open"),
+                            ("ring", "ring_switch"), ("whir", "verify_stacked_opening")):
         setattr(V, attribute, phase(name, getattr(V, attribute)))
     original_table = V.table_sumcheck
 

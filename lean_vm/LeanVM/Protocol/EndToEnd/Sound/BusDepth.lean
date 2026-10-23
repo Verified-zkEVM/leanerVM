@@ -15,8 +15,7 @@ public import LeanVM.Protocol.EndToEnd.Front.LayoutStack
 
 The bus and table phases' specification (`Front.busTableSpec`) is stated over an abstract
 instance and a verifier layout, and asks four size facts of them. For the leanISA instance
-`leanIsaInstance F prog s` at the verifier's layout `verifierLayout prog s`, with any Flock
-specification and at every size:
+`leanIsaInstance prog s` at the verifier's layout `verifierLayout prog s`, at every size:
 
 * `busLayout_depth_leanIsa`: the push side's depth the verifier computes (`busLayout`, the
   framework blocks `[0, log_mem, log_bytecode]` and the tables' push flushes) is the instance's
@@ -49,8 +48,8 @@ theorem length_pySide_push (t : Fin 6) :
 
 /-- The instance's push leaves: the three seeds' (state, memory, bytecode), then each opcode
 table's push flushes. -/
-theorem pushLeaves_leanIsa (F : FlockSpec) (prog : Program) (s : Sizes) :
-    (leanIsaInstance F prog s).pushLeaves = (1 + 2 ^ s.logMem + 2 ^ prog.logSize) +
+theorem pushLeaves_leanIsa (prog : Program) (s : Sizes) :
+    (leanIsaInstance prog s).pushLeaves = (1 + 2 ^ s.logMem + 2 ^ prog.logSize) +
       ∑ t : Fin 6, ((LeanIsa.flushes (opIdx t)).filter fun f ↦ decide (f.1 = Side.push)).length *
         2 ^ s.τ t := by
   rw [M3Instance.pushLeaves, ← List.ofFn_eq_map, List.sum_ofFn]
@@ -70,9 +69,9 @@ theorem pushLeaves_leanIsa (F : FlockSpec) (prog : Program) (s : Sizes) :
     rfl
 
 /-- The push side's stacked total at the verifier's layout is the instance's push leaves. -/
-theorem blockTotal_push_eq_pushLeaves (F : FlockSpec) (prog : Program) (s : Sizes) :
+theorem blockTotal_push_eq_pushLeaves (prog : Program) (s : Sizes) :
     blockTotal (sideSizes (fwLogs prog s) (pushBlocks s)) =
-      (leanIsaInstance F prog s).pushLeaves := by
+      (leanIsaInstance prog s).pushLeaves := by
   rw [pushLeaves_leanIsa, blockTotal_sideSizes, pushBlocks, sum_flatten_ofFn, fwLogs]
   simp only [List.map_cons, List.map_nil, List.sum_cons, List.sum_nil, pow_zero, List.map_map,
     Function.comp_def, List.map_const', List.sum_replicate, smul_eq_mul, length_pySide_push]
@@ -81,26 +80,26 @@ theorem blockTotal_push_eq_pushLeaves (F : FlockSpec) (prog : Program) (s : Size
 /-! ## The four facts -/
 
 /-- The push side's depth at the verifier's layout is the instance's bus depth. -/
-theorem busLayout_depth_leanIsa (F : FlockSpec) (prog : Program) (s : Sizes) :
+theorem busLayout_depth_leanIsa (prog : Program) (s : Sizes) :
     (busLayout [0, (verifierLayout prog s).logMemory, (verifierLayout prog s).logBytecode]
-      (verifierLayout prog s).push).depth = (leanIsaInstance F prog s).μBus := by
-  rw [busLayout_depth_verifier, busDepth, log2Ceil_eq_clog, blockTotal_push_eq_pushLeaves F]
+      (verifierLayout prog s).push).depth = (leanIsaInstance prog s).μBus := by
+  rw [busLayout_depth_verifier, busDepth, log2Ceil_eq_clog, blockTotal_push_eq_pushLeaves]
   rfl
 
 /-- The instance has at least two push leaves: the memory seed's. -/
-theorem two_le_pushLeaves_leanIsa (F : FlockSpec) (prog : Program) (s : Sizes) :
-    2 ≤ (leanIsaInstance F prog s).pushLeaves := by
+theorem two_le_pushLeaves_leanIsa (prog : Program) (s : Sizes) :
+    2 ≤ (leanIsaInstance prog s).pushLeaves := by
   rw [pushLeaves_leanIsa]
   exact le_add_right (le_add_right (le_add_left (Nat.le_self_pow s.logMem_pos.ne' 2)))
 
 /-- The instance's bus depth is positive. -/
-theorem μBus_leanIsa_ne_zero (F : FlockSpec) (prog : Program) (s : Sizes) :
-    (leanIsaInstance F prog s).μBus ≠ 0 :=
-  (Nat.clog_pos (by norm_num) (two_le_pushLeaves_leanIsa F prog s)).ne'
+theorem μBus_leanIsa_ne_zero (prog : Program) (s : Sizes) :
+    (leanIsaInstance prog s).μBus ≠ 0 :=
+  (Nat.clog_pos (by norm_num) (two_le_pushLeaves_leanIsa prog s)).ne'
 
 /-- The instance's degree bound is `2`. -/
-theorem d_leanIsa_le (F : FlockSpec) (prog : Program) (s : Sizes) :
-    (leanIsaInstance F prog s).d ≤ 2 :=
+theorem d_leanIsa_le (prog : Program) (s : Sizes) :
+    (leanIsaInstance prog s).d ≤ 2 :=
   le_rfl
 
 /-- The instance's constraint counts: `JUMP` (table `7`) has two, the others none. -/
@@ -109,22 +108,22 @@ theorem length_constraints : ∀ j : Fin 9,
   decide +kernel
 
 /-- The sumcheck tables have two constraints, `JUMP`'s. -/
-theorem B_leanIsa (F : FlockSpec) (prog : Program) (s : Sizes) :
-    (leanIsaInstance F prog s).B = 2 := by
-  let I := leanIsaInstance F prog s
+theorem B_leanIsa (prog : Program) (s : Sizes) :
+    (leanIsaInstance prog s).B = 2 := by
+  let I := leanIsaInstance prog s
   have hsub : I.B = ∑ j ∈ Finset.univ.filter I.SumcheckTable, (I.constraints j).length :=
     (Finset.sum_subtype _ (by simp) (fun j ↦ (I.constraints j).length)).symm
   have hfil : ∑ j ∈ Finset.univ.filter I.SumcheckTable, (I.constraints j).length =
       ∑ j : Fin 9, (LeanIsa.constraints j).length :=
     Finset.sum_filter_of_ne fun _ _ hj ↦
       Or.inl (List.ne_nil_of_length_pos (Nat.pos_of_ne_zero hj))
-  rw [show (leanIsaInstance F prog s).B = I.B from rfl, hsub, hfil,
+  rw [show (leanIsaInstance prog s).B = I.B from rfl, hsub, hfil,
     Finset.sum_congr rfl fun j _ ↦ length_constraints j, Finset.sum_ite_eq']
   simp
 
 /-- The instance's constraint count is at most `2 ^ 20`. -/
-theorem B_leanIsa_le (F : FlockSpec) (prog : Program) (s : Sizes) :
-    (leanIsaInstance F prog s).B ≤ 2 ^ 20 := by
+theorem B_leanIsa_le (prog : Program) (s : Sizes) :
+    (leanIsaInstance prog s).B ≤ 2 ^ 20 := by
   rw [B_leanIsa]
   norm_num
 

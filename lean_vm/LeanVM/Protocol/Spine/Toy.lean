@@ -21,7 +21,7 @@ One table of width 3 and height 2 on a stack of height 8: column `i` at cells `2
 statement, its cell 1 is `0`, and its value on the line is sent. The table pushes `(0, X₀, 0, …)`
 on every row, slot 0 its constant domain separator, and one boundary block pulls
 `(0, [1, 1], 0, …)`, the known column `[1, 1]` in slot 1, so the bus balances exactly when
-column 0 is `[1, 1]` in some order; column 1 is a count column; there is no Flock region;
+column 0 is `[1, 1]` in some order; column 1 is a count column; there is no Keccak region and no derived column;
 the degree bound is 2.
 `M3Holds` on it is decided by evaluation, and each of its clauses can be made to fail alone
 (`tests/LeanVMTests/Protocol/Spine.lean`).
@@ -119,7 +119,8 @@ abbrev toy : M3Instance where
   layout := layout
   nLines := 1
   publicLines := fun v ↦ #v[⟨⟨0, 2⟩, v, 0, true, by decide⟩]
-  flock := none
+  derived := fun _ ↦ none
+  keccak := none
 
 /-- The honest stack: columns `[1, 1]`, `[1, 1]`, `[1, 0]`, then padding. -/
 def honest : Column 3 := ⟨#v[1, 1, 1, 1, 1, 0, 0, 0]⟩

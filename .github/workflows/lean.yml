@@ -209,7 +209,7 @@ jobs:
           name: lean-da-axioms
           path: ${{ runner.temp }}/axioms.txt
 
-  # `lean_vm` models the verifier, the guest and the prover's proofs of the leanVM commit in
+  # `lean_vm` models the verifier and the prover's proofs of the leanVM commit in
   # `leanvm-rev`, and imports the two signature schemes and LeanDA, so a change to any of them
   # re-checks it. A skipped job counts as
   # passed for branch protection.
@@ -290,12 +290,6 @@ jobs:
         run: python3 -I scripts/ci-build.py
       - name: Test
         run: lake test
-      - name: Check the Rust vectors' costly checks, compiled
-        run: lake exe node-vectors
-      - name: Check the guest's core IR data is current
-        run: lake exe guest-core --check
-      - name: Check the guest's certificates and check modules are current
-        run: lake exe guest-cert --check
       - name: Save the Lake build
         if: github.ref == 'refs/heads/main' && steps.lake-cache.outputs.cache-hit != 'true'
         uses: actions/cache/save@v4
@@ -308,11 +302,6 @@ jobs:
       # leanVM at `leanvm-rev`, in `.leanvm`, with its `formal/lean_vm` a link to this `lean_vm`.
       - name: Check out leanVM at the pin
         run: ../leanvm-tree.sh
-      # leanVM's tests that write the Lean data (the guest's bytecode and source, the compiler's
-      # test programs, the node vectors) fail when this copy differs from what they write.
-      - name: Check the Lean data from leanVM is current
-        working-directory: .leanvm
-        run: cargo test --release -p rec_aggregation --lib -- guest_bytecode_lean guest_source_lean node_spec_vectors
       # The Lean verifier and the pinned Rust verifier must agree on the committed proofs and on
       # mutations of them, so a bump to a protocol change fails here until the Lean one follows.
       - name: Rust-vs-Lean differential
@@ -320,11 +309,3 @@ jobs:
           lake build leanvm-verify
           cargo build --release --manifest-path scripts/rust-verifier-cli/Cargo.toml
           python3 -I scripts/fuzz-verifier.py tests/fixtures/verifier --jobs 4
-      # The guest's mirror and its honest hint generator against real aggregations: the Rust test
-      # writes each case's statement, witness and installed streams, and `guest-diff` regenerates the
-      # streams from the witness, compares them and runs the guest's core IR on them.
-      - name: Guest mirror and hint generator against Rust aggregations
-        run: |
-          lake build guest-diff
-          (cd ../.leanvm && LEANVM_GUEST_DIFF="$RUNNER_TEMP/guest-diff" cargo test --release -p rec_aggregation guest_diff -- --ignored)
-          .lake/build/bin/guest-diff "$RUNNER_TEMP"/guest-diff/*.txt

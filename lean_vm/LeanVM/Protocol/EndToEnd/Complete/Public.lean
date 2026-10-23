@@ -11,20 +11,20 @@ module
 public import LeanVM.Protocol.EndToEnd.Complete.Claims
 public import LeanVM.Protocol.Whir.Complete.Script
 public import LeanVM.Protocol.PublicInput
-public import LeanVM.Protocol.Blake2sHash
+public import LeanVM.Protocol.KeccakHash
 public import LeanVM.Spec.Statement
-import LeanVM.Protocol.Compile.Rom.Encoding
+public import LeanVM.Semantics.Lemmas
 
 /-!
 # The public input
 
-Step 5 of `verify_execution` (`publicInputPhase`, `python-verifier/verifier.py:1390-1396` at
-leanVM `127510d14c98ade4e8a97646c44fa7f1ff5e752d`): sample `r`, and claim of memory column `ℓ` at
+Step 5 of `verify_execution` (`publicInputPhase`, `python-verifier/verifier.py:1484-1490` at
+leanVM `3375f7a137c50b803f3416f6466b5d4e0719708a`): sample `r`, and claim of memory column `ℓ` at
 `(r, 0, …, 0)` the line through limb `ℓ` of the halves `(h₀, h₁)` of the public-input digest,
 `(1 + r)·h₀,ℓ + r·h₁,ℓ`. The prover sends nothing.
 
-* `publicDigest input`: the digest of a public input, its eight 32-bit words (the low and high
-  words of each lane), so that its two halves are the public input's two memory words
+* `publicDigest input`: the digest of a public input, its four lanes as `u64` words, so that its
+  two halves are the public input's two memory words
   (`digestScalars_publicDigest`); the inverse of the soundness side's reading
   `Front.publicInputOfDigest`.
 * `hPub`: the honest prover receives `r` and sends nothing; it returns the claims at the
@@ -39,7 +39,7 @@ namespace LeanVM.Protocol.EndToEnd.Complete
 
 open LeanVM.Parameters LeanVM.Semantics LeanVM.Protocol.Compile LeanVM.Protocol.Verifier
 open LeanVM.Protocol.LeanIsa LeanVM.Protocol.EndToEnd.Front LeanVM.Protocol.Whir.Complete
-open LeanVM.Protocol.Blake2sHash LeanVM.Protocol.PublicInput CompPoly CMlPolynomialEval
+open LeanVM.Protocol.KeccakHash LeanVM.Protocol.PublicInput CompPoly CMlPolynomialEval
 
 @[expose] public section
 
@@ -50,13 +50,10 @@ export LeanVM (publicDigest)
 /-- **The digest names the public input.** -/
 theorem publicDigest_injective : Function.Injective publicDigest := by
   intro a b h
-  have hw : ∀ i : Fin 8, (publicDigest a)[i] = (publicDigest b)[i] := fun i ↦ by rw [h]
   have hl : ∀ i : Fin 4, a.lanes i = b.lanes i := by
     intro i
-    have h0 := hw ⟨2 * i, by omega⟩
-    have h1 := hw ⟨2 * i + 1, by omega⟩
-    rw [← Compile.Rom.ofWords_lowWord_highWord (a.lanes i),
-      ← Compile.Rom.ofWords_lowWord_highWord (b.lanes i)]
+    have hw : (publicDigest a)[i.val] = (publicDigest b)[i.val] := by rw [h]
+    rw [← K.ofLane_lane (a.lanes i), ← K.ofLane_lane (b.lanes i)]
     fin_cases i <;> simp_all [publicDigest]
   cases a; cases b
   simp only [PublicInput.mk.injEq]
@@ -65,14 +62,13 @@ theorem publicDigest_injective : Function.Injective publicDigest := by
 /-- The digest's two halves are the public input's two memory words. -/
 theorem digestScalars_publicDigest (input : PublicInput) :
     digestScalars (publicDigest input) = (input.word0, input.word1) := by
-  simp [digestScalars, publicDigest, wordsCell, PublicInput.word0, PublicInput.word1,
-    Compile.Rom.ofWords_lowWord_highWord]
+  simp [digestScalars, publicDigest, PublicInput.word0, PublicInput.word1, K.ofLane_lane]
 
 /-! ## The honest prover -/
 
 /-- The public point `(r, 0, …, 0)` the program claims the memory columns at. -/
 def publicPoint (layout : Verifier.Layout) (r : E) : List E :=
-  r :: List.replicate ((layout.placements.getD memory0 default).vars - 1) 0
+  r :: List.replicate ((layout.placement memory0).vars - 1) 0
 
 /-- Claims of the three memory columns at the public point after the challenge `r`, at the given
 values. -/
@@ -99,7 +95,7 @@ theorem publicPoint_eq (prog : Program) (s : Sizes) (r : E) :
     publicPoint (verifierLayout prog s) r = (linePoint s.logMem_pos r).toList := by
   have hp := placement_committed prog s (memCol 0) (by decide)
   rw [pyCol_memCol] at hp
-  have hv : ((verifierLayout prog s).placements.getD memory0 default).vars = s.logMem := by
+  have hv : ((verifierLayout prog s).placement memory0).vars = s.logMem := by
     rw [show memory0 = ((0 : Fin 4) : ℕ) from rfl, hp]
     rfl
   rw [publicPoint, hv]

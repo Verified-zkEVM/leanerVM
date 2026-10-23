@@ -2,9 +2,9 @@
   LeanVM.Protocol.EndToEnd.Complete.Assemble
 
   The honest run of the whole verifier program assembled from honest phases: the announcement,
-  the stack's commitment, the bus, the table sumcheck, the public input, Flock, ring switching and
-  the stacked opening, each following its sub-program to true data, compose into a run that
-  accepts.
+  the stack's commitment, the bus, the table sumcheck, the public input, the Keccak reduction, ring
+  switching and the stacked opening, each following its sub-program to true data, compose into a
+  run that accepts.
 -/
 
 module
@@ -12,12 +12,13 @@ module
 public import LeanVM.Protocol.EndToEnd.Complete.Sizes
 public import LeanVM.Protocol.EndToEnd.Complete.Public
 public import LeanVM.Protocol.EndToEnd.Complete.Facts
+public import LeanVM.Protocol.EndToEnd.Complete.KeccakPhase
 
 /-!
 # Assembling the honest run
 
-`verifyExecution` (`LeanVM.Protocol.Verifier`, `python-verifier/verifier.py:1358-1407` at leanVM
-`127510d14c98ade4e8a97646c44fa7f1ff5e752d`) is a sequence of phases. Its honest prover is the
+`verifyExecution` (`LeanVM.Protocol.Verifier`, `python-verifier/verifier.py:1451-1507` at leanVM
+`3375f7a137c50b803f3416f6466b5d4e0719708a`) is a sequence of phases. Its honest prover is the
 sequence of the phases' honest scripts (`honestRun`), and the simulation composes along `bind`
 (`Follows.bind`), each phase handing the next the facts it needs:
 
@@ -25,18 +26,21 @@ sequence of the phases' honest scripts (`honestRun`), and the simulation compose
 | --- | --- | --- |
 | `readSizes` | `announce s ρ` | the layout is `verifierLayout prog s`, the rate `ρ` |
 | `commitStack` | the stack's word | the commitments are `[stackCommit μ ρ q]` |
-| `verifyBusBalance` | `Phases.bus` | `BusGood` |
-| `tablePhase` | `Phases.table` | the claims are true (`TrueClaims`) |
-| `publicInputPhase` | `hPub` | the claims are true |
-| `verifyFlock` | `Phases.flock` | `FlockGood` |
+| `verifyBusBalance` | `Phases.bus` | `BusGood`; its claims are on the framework's columns |
+| `tablePhase` | `Phases.table` | the claims are true, the output lanes' the honest ones |
+| `publicInputPhase` | `hPub` | the claims are true, on the memory columns |
+| `keccakPhase` | `Phases.keccak` | true claims on no output lane, the true slices of `q_keccak` |
 | `ringSwitch` | `Phases.ring` | the ring-switching claim holds and is multilinear |
 | `verifyStackedOpening` | `Whir.Complete.honestOpening` | accepts |
 
 `Phases` packages the four phase scripts whose proofs live in their own modules, and
 `Phases.Honest` their simulation statements; `follows_verifyExecution` composes them with the
 proved steps (`follows_readSizes`, `follows_commitStack`, `follows_publicInputPhase`,
-`follows_verifyStackedOpening`). Between the commitment and the opening no phase commits, so
-the opening runs from the commitments `[stackCommit μ ρ q]` it needs.
+`follows_verifyStackedOpening`). The bus's and the public input's claims are on the framework's
+columns whatever the run (`retOK_busColumns`, `retOK_publicColumns`, through `follows_retOK`), so
+the claims on the output lanes the Keccak phase checks are the table's. Between the commitment and
+the opening no phase commits, so the opening runs from the commitments `[stackCommit μ ρ q]` it
+needs.
 -/
 
 namespace LeanVM.Protocol.EndToEnd.Complete
@@ -47,15 +51,15 @@ open LeanVM.Protocol.LeanIsa LeanVM.Protocol.EndToEnd.Front LeanVM.Protocol.Whir
 @[expose] public section
 
 /-- The four phase scripts whose simulations are proved in their own modules: the bus, the table
-sumcheck, Flock and ring switching. -/
+sumcheck, the Keccak phase and ring switching. -/
 structure Phases where
   /-- The bus phase. -/
   bus : Script BusResult
   /-- The table sumcheck, from the bus's result. -/
   table : BusResult → Script (List Verifier.ColumnClaim)
-  /-- Flock. -/
-  flock : Script (List E × List E)
-  /-- Ring switching, from Flock's point and slices. -/
+  /-- The Keccak phase, from the claims so far. -/
+  keccak : List Verifier.ColumnClaim → Script (List Verifier.ColumnClaim × List E × List E)
+  /-- Ring switching, from the Keccak phase's point and slices. -/
   ring : List E → List E → Script (E × (List E → E))
 
 /-- **The phases are honest** for the stack `q`: each follows its sub-program of the verifier
@@ -65,16 +69,23 @@ structure Phases.Honest (prog : Program) (s : Sizes) (q : Column (leanIsaμ prog
   /-- The bus phase ends in a true result. -/
   bus : ∀ cs, Follows (fun cs' a b ↦ cs' = cs ∧ a = b ∧ BusGood prog s q b) P.bus
     (verifyBusBalance .computed (verifierLayout prog s)) cs
-  /-- The table sumcheck, from a true bus result, ends in true claims. -/
+  /-- The table sumcheck, from a true bus result, ends in true claims, its claims on the output
+  lanes the honest ones. -/
   table : ∀ bus, BusGood prog s q bus → ∀ cs,
-    Follows (fun cs' a b ↦ cs' = cs ∧ a = b ∧ TrueClaims prog s q b) (P.table bus)
-      (tablePhase (verifierLayout prog s) bus) cs
-  /-- Flock ends in its true point and slices. -/
-  flock : ∀ cs, Follows (fun cs' a b ↦ cs' = cs ∧ a = b ∧ FlockGood prog s q b) P.flock
-    (verifyFlock .computed (blake2sR1csLogSize + (verifierLayout prog s).tableLogHeights.getD opBlake2s 0))
-    cs
-  /-- Ring switching, from Flock's true result, ends in a true multilinear claim. -/
-  ring : ∀ r, FlockGood prog s q r → ∀ cs,
+    Follows (fun cs' a b ↦ cs' = cs ∧ a = b ∧ TrueClaims prog s q b ∧
+        ∃ tc, b = bus.claims ++ tc ∧ ∃ z : Vector E (s.τ 5),
+          tc.filter (fun c ↦ c.column ∈ keccakOutputColumns) = honestLanes prog s q z)
+      (P.table bus) (tablePhase (verifierLayout prog s) bus) cs
+  /-- The Keccak phase, from true claims whose output lanes are the honest ones, ends in true
+  claims on no output lane and the true slices of `q_keccak`. -/
+  keccak : ∀ claims, TrueClaims prog s q claims → ∀ z : Vector E (s.τ 5),
+    lanesOf claims = honestLanes prog s q z → ∀ cs,
+    Follows (fun cs' a b ↦ cs' = cs ∧ a = b ∧
+        (∀ c ∈ b.1, TrueClaim prog s q c ∧ c.column ∉ keccakOutputColumns) ∧
+        KeccakGkr.slicesTrue (s.τ 5) (qkH prog s q) b.2.1 b.2.2)
+      (P.keccak claims) (keccakPhase (verifierLayout prog s) claims) cs
+  /-- Ring switching, from the true slices, ends in a true multilinear claim. -/
+  ring : ∀ r : List E × List E, KeccakGkr.slicesTrue (s.τ 5) (qkH prog s q) r.1 r.2 → ∀ cs,
     Follows (fun cs' a b ↦ cs' = cs ∧ a = b ∧
         StackClaim.Holds (leanIsaμ prog s) (ringSwitchClaim (verifierLayout prog s) b.1 b.2) q ∧
         IsMultilinearFn (leanIsaμ prog s) (ringSwitchClaim (verifierLayout prog s) b.1 b.2).1)
@@ -95,9 +106,9 @@ noncomputable def honestRun (prog : Program) (s : Sizes) (ρ : ℕ) (q : Column 
   P.bus.bind fun bus ↦
   (P.table bus).bind fun claims ↦
   (hPub prog s q).bind fun pub ↦
-  P.flock.bind fun fl ↦
-  (P.ring fl.1 fl.2).bind fun rs ↦
-  honestOpening (leanIsaμ prog s) ρ q (openingClaims prog s rs (claims ++ pub))
+  (P.keccak (claims ++ pub)).bind fun kr ↦
+  (P.ring kr.2.1 kr.2.2).bind fun rs ↦
+  honestOpening (leanIsaμ prog s) ρ q (openingClaims prog s rs kr.1)
 
 /-- **The honest run follows `verify_execution`.** For sizes admissible for the program, a valid
 rate, a stack satisfying `M3Holds` of the leanISA instance and honest phases, the honest run
@@ -116,28 +127,31 @@ theorem follows_verifyExecution {prog : Program} {s : Sizes} {input : PublicInpu
   simp only [stackLog_verifierLayout]
   refine Follows.bind (fun cs₂ _ _ hc ↦ ?_) _ _ _ (follows_commitStack hadm q [])
   subst hc
-  refine Follows.bind (fun cs₃ bus bus' hb ↦ ?_) _ _ _ (hP.bus _)
-  obtain ⟨rfl, rfl, hbus⟩ := hb
+  refine Follows.bind (fun cs₃ bus bus' hb ↦ ?_) _ _ _
+    (follows_retOK _ _ _ (hP.bus _) (retOK_busColumns _))
+  obtain ⟨⟨rfl, rfl, hbus⟩, hbcol⟩ := hb
   refine Follows.bind (fun cs₄ cl cl' hc ↦ ?_) _ _ _ (hP.table bus hbus _)
-  obtain ⟨rfl, rfl, htab⟩ := hc
-  refine Follows.bind (fun cs₅ pub pub' hc ↦ ?_) _ _ _ (follows_publicInputPhase hq _)
-  obtain ⟨rfl, rfl, hpub⟩ := hc
-  refine Follows.bind (fun cs₆ fl fl' hc ↦ ?_) _ _ _ (hP.flock _)
-  obtain ⟨rfl, rfl, hfl⟩ := hc
-  refine Follows.bind (fun cs₇ rs rs' hc ↦ ?_) _ _ _ (hP.ring fl hfl _)
+  obtain ⟨rfl, rfl, htab, tc, rfl, z, hz⟩ := hc
+  refine Follows.bind (fun cs₅ pub pub' hc ↦ ?_) _ _ _
+    (follows_retOK _ _ _ (follows_publicInputPhase hq _) (retOK_publicColumns _ _))
+  obtain ⟨⟨rfl, rfl, hpub⟩, hpcol⟩ := hc
+  refine Follows.bind (fun cs₆ kr kr' hc ↦ ?_) _ _ _
+    (hP.keccak _ (trueClaims_append htab hpub) z
+      (lanesOf_honest prog s q hbcol hpcol z hz) _)
+  obtain ⟨rfl, rfl, hkc, hsl⟩ := hc
+  refine Follows.bind (fun cs₇ rs rs' hc ↦ ?_) _ _ _ (hP.ring (kr.2.1, kr.2.2) hsl _)
   obtain ⟨rfl, rfl, hrh, hrm⟩ := hc
-  have hall := trueClaims_append htab hpub
   refine (follows_verifyStackedOpening hadm q _ ?_ ?_)
   · intro c hc
     rcases List.mem_cons.mp hc with rfl | hc
     · exact hrh
     · obtain ⟨cl, hcl, rfl⟩ := List.mem_map.mp hc
-      exact (hall cl hcl).holds
+      exact (hkc cl hcl).1.holds (hkc cl hcl).2
   · intro c hc
     rcases List.mem_cons.mp hc with rfl | hc
     · exact hrm
     · obtain ⟨cl, hcl, rfl⟩ := List.mem_map.mp hc
-      exact (hall cl hcl).multilinear
+      exact (hkc cl hcl).1.multilinear (hkc cl hcl).2
 
 /-! ## The whole program -/
 

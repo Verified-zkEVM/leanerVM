@@ -60,17 +60,17 @@ def counted (c : RawChannel K) : Bool := c.name = MemPull.name || c.name = Bytec
 
 /-- The ensemble's eight components, in its order. -/
 def components : List (Component K) :=
-  [⟨xorTable⟩, ⟨mulTable⟩, ⟨setTable⟩, ⟨derefTable⟩, ⟨jumpTable⟩, ⟨blake2sTable⟩, ⟨memTable⟩,
+  [⟨xorTable⟩, ⟨mulTable⟩, ⟨setTable⟩, ⟨derefTable⟩, ⟨jumpTable⟩, ⟨keccakTable⟩, ⟨memTable⟩,
     ⟨bytecodeTable⟩]
 
 -- The widths are the Rust's committed column counts, and the blocks' row widths.
-example : components.map Component.width = [15, 15, 8, 15, 14, 37, 5, 10] := by decide +kernel
+example : components.map Component.width = [15, 15, 8, 15, 14, 90, 5, 13] := by decide +kernel
 
 -- The count columns are `count_columns()`, in its order; each block's finalize count is its
 -- column `1`.
 example : components.map (fun c ↦ (c.toM3 channelSep channelDir counted).count.map (·.val)) =
     [[11, 12, 13, 14], [11, 12, 13, 14], [6, 7], [11, 12, 13, 14], [8, 9, 10, 11],
-      [27, 28, 29, 30, 31, 32, 33, 34, 35, 36], [1], [1]] := by
+      (List.range 27).map (63 + ·), [1], [1]] := by
   decide +kernel
 
 -- Only `JUMP` has constraints: two, of degree two. No component has a lookup.

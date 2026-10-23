@@ -1,0 +1,167 @@
+/-
+  LeanVM.Spec.Fast.Keccak
+
+  Keccak-f[1600] and Keccak-256 as the compiled verifier runs them: the round with its lanes
+  written out, and a block's lanes read from an array, each proved equal to the definition it
+  replaces and swapped in for compilation by `@[csimp]`.
+-/
+
+module
+
+public import LeanVM.Spec.Keccak
+
+/-!
+# The compiled Keccak
+
+`Keccak.round` (`LeanVM.Spec.Keccak`) follows the Python's loops: θ's parities and its mix as
+vectors built from functions, ρ and π as twenty-five writes into a zero state, χ as a vector of
+index arithmetic. `roundLanes` is the same round with its twenty-five lanes written out, the
+indices and rotations computed once (`round_eq_roundLanes`, lane by lane). `KeccakHash.leLane`
+reads a block's bytes by indexing a list, a walk from its head per byte; `leLaneArray` reads them
+from an array (`leLane_eq_leLaneArray`).
+
+A `@[csimp]` lemma acts where code is compiled, and `keccakF`, `absorbBlock`, `absorb` and
+`keccak256` were compiled with the definitions above. Each is restated here, word for word, so
+that it is compiled with the replacements, and the lemma equating it with its restatement
+compiles it as the restatement in every module that imports this one. Nothing here transcribes a
+source.
+-/
+
+namespace LeanVM.Spec.Fast.Keccak
+
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Protocol LeanVM.Protocol.KeccakHash
+
+@[expose] public section
+
+/-! ## The round -/
+
+/-- `Keccak.round`, its lanes written out: θ's column parities `c` and their mixes `d`, ρ and π
+as the lane each `b` takes, then χ and ι. -/
+def roundLanes (a : KState) (rc : UInt64) : KState :=
+  let c0 := Keccak.lane a 0 ^^^ Keccak.lane a 5 ^^^ Keccak.lane a 10 ^^^ Keccak.lane a 15 ^^^ Keccak.lane a 20
+  let c1 := Keccak.lane a 1 ^^^ Keccak.lane a 6 ^^^ Keccak.lane a 11 ^^^ Keccak.lane a 16 ^^^ Keccak.lane a 21
+  let c2 := Keccak.lane a 2 ^^^ Keccak.lane a 7 ^^^ Keccak.lane a 12 ^^^ Keccak.lane a 17 ^^^ Keccak.lane a 22
+  let c3 := Keccak.lane a 3 ^^^ Keccak.lane a 8 ^^^ Keccak.lane a 13 ^^^ Keccak.lane a 18 ^^^ Keccak.lane a 23
+  let c4 := Keccak.lane a 4 ^^^ Keccak.lane a 9 ^^^ Keccak.lane a 14 ^^^ Keccak.lane a 19 ^^^ Keccak.lane a 24
+  let d0 := c4 ^^^ Keccak.rot c1 1
+  let d1 := c0 ^^^ Keccak.rot c2 1
+  let d2 := c1 ^^^ Keccak.rot c3 1
+  let d3 := c2 ^^^ Keccak.rot c4 1
+  let d4 := c3 ^^^ Keccak.rot c0 1
+  let b0 := Keccak.rot (Keccak.lane a 0 ^^^ d0) 0
+  let b1 := Keccak.rot (Keccak.lane a 6 ^^^ d1) 44
+  let b2 := Keccak.rot (Keccak.lane a 12 ^^^ d2) 43
+  let b3 := Keccak.rot (Keccak.lane a 18 ^^^ d3) 21
+  let b4 := Keccak.rot (Keccak.lane a 24 ^^^ d4) 14
+  let b5 := Keccak.rot (Keccak.lane a 3 ^^^ d3) 28
+  let b6 := Keccak.rot (Keccak.lane a 9 ^^^ d4) 20
+  let b7 := Keccak.rot (Keccak.lane a 10 ^^^ d0) 3
+  let b8 := Keccak.rot (Keccak.lane a 16 ^^^ d1) 45
+  let b9 := Keccak.rot (Keccak.lane a 22 ^^^ d2) 61
+  let b10 := Keccak.rot (Keccak.lane a 1 ^^^ d1) 1
+  let b11 := Keccak.rot (Keccak.lane a 7 ^^^ d2) 6
+  let b12 := Keccak.rot (Keccak.lane a 13 ^^^ d3) 25
+  let b13 := Keccak.rot (Keccak.lane a 19 ^^^ d4) 8
+  let b14 := Keccak.rot (Keccak.lane a 20 ^^^ d0) 18
+  let b15 := Keccak.rot (Keccak.lane a 4 ^^^ d4) 27
+  let b16 := Keccak.rot (Keccak.lane a 5 ^^^ d0) 36
+  let b17 := Keccak.rot (Keccak.lane a 11 ^^^ d1) 10
+  let b18 := Keccak.rot (Keccak.lane a 17 ^^^ d2) 15
+  let b19 := Keccak.rot (Keccak.lane a 23 ^^^ d3) 56
+  let b20 := Keccak.rot (Keccak.lane a 2 ^^^ d2) 62
+  let b21 := Keccak.rot (Keccak.lane a 8 ^^^ d3) 55
+  let b22 := Keccak.rot (Keccak.lane a 14 ^^^ d4) 39
+  let b23 := Keccak.rot (Keccak.lane a 15 ^^^ d0) 41
+  let b24 := Keccak.rot (Keccak.lane a 21 ^^^ d1) 2
+  #v[(b0 ^^^ (~~~ b1 &&& b2)) ^^^ rc,
+    b1 ^^^ (~~~ b2 &&& b3),
+    b2 ^^^ (~~~ b3 &&& b4),
+    b3 ^^^ (~~~ b4 &&& b0),
+    b4 ^^^ (~~~ b0 &&& b1),
+    b5 ^^^ (~~~ b6 &&& b7),
+    b6 ^^^ (~~~ b7 &&& b8),
+    b7 ^^^ (~~~ b8 &&& b9),
+    b8 ^^^ (~~~ b9 &&& b5),
+    b9 ^^^ (~~~ b5 &&& b6),
+    b10 ^^^ (~~~ b11 &&& b12),
+    b11 ^^^ (~~~ b12 &&& b13),
+    b12 ^^^ (~~~ b13 &&& b14),
+    b13 ^^^ (~~~ b14 &&& b10),
+    b14 ^^^ (~~~ b10 &&& b11),
+    b15 ^^^ (~~~ b16 &&& b17),
+    b16 ^^^ (~~~ b17 &&& b18),
+    b17 ^^^ (~~~ b18 &&& b19),
+    b18 ^^^ (~~~ b19 &&& b15),
+    b19 ^^^ (~~~ b15 &&& b16),
+    b20 ^^^ (~~~ b21 &&& b22),
+    b21 ^^^ (~~~ b22 &&& b23),
+    b22 ^^^ (~~~ b23 &&& b24),
+    b23 ^^^ (~~~ b24 &&& b20),
+    b24 ^^^ (~~~ b20 &&& b21)]
+
+
+set_option maxHeartbeats 4000000 in
+/-- **The round with its lanes written out is `Keccak.round`.** -/
+@[csimp] theorem round_eq_roundLanes : @Keccak.round = @roundLanes := by
+  funext a rc
+  apply Vector.ext
+  intro j hj
+  interval_cases j
+  all_goals simp [Keccak.round, roundLanes, Keccak.lane, keccakRho, keccakPi, List.range,
+    List.range.loop, List.foldl, Vector.setIfInBounds, UInt64.xor_assoc]
+
+/-- `keccakF`, restated. -/
+def keccakFLanes (a : KState) : KState := keccakRC.foldl Keccak.round a
+
+/-- `keccakF` compiles as its restatement. -/
+@[csimp] theorem keccakF_eq_keccakFLanes : @keccakF = @keccakFLanes := rfl
+
+/-! ## The blocks and the hash -/
+
+/-- `leLane` reading the bytes from an array. -/
+def leLaneArray (bytes : Array UInt8) (i : ℕ) : UInt64 :=
+  (List.range 8).foldl
+    (fun acc k ↦ acc ||| ((bytes.getD (8 * i + k) 0).toUInt64 <<< (8 * k).toUInt64)) 0
+
+/-- **Reading a lane from the bytes as an array is `leLane`.** -/
+theorem leLane_eq_leLaneArray (bytes : List UInt8) (i : ℕ) :
+    leLane bytes i = leLaneArray bytes.toArray i := by
+  have h : ∀ j, bytes.toArray.getD j 0 = bytes.getD j 0 := fun j ↦ by
+    simp [Array.getD_eq_getD_getElem?, List.getD_eq_getElem?_getD]
+  simp only [leLane, leLaneArray, h]
+
+/-- `absorbBlock`, the block read from an array. -/
+def absorbBlockArray (state : KState) (block : List UInt8) : KState :=
+  let bytes := block.toArray
+  keccakF (Vector.ofFn fun i ↦
+    if i.val < 17 then Keccak.lane state i ^^^ leLaneArray bytes i else Keccak.lane state i)
+
+/-- `absorbBlock` compiles as its restatement. -/
+@[csimp] theorem absorbBlock_eq_absorbBlockArray : @absorbBlock = @absorbBlockArray := by
+  funext state block
+  simp only [absorbBlock, absorbBlockArray, leLane_eq_leLaneArray]
+
+/-- `absorb`, restated. -/
+def absorbBlocks : (blocks : ℕ) → KState → List UInt8 → KState
+  | 0, state, data => absorbBlock state (padBlock data)
+  | blocks + 1, state, data =>
+    absorbBlocks blocks (absorbBlock state (data.take rate)) (data.drop rate)
+
+/-- `absorb` compiles as its restatement. -/
+@[csimp] theorem absorb_eq_absorbBlocks : @absorb = @absorbBlocks := by
+  funext blocks state data
+  induction blocks generalizing state data with
+  | zero => rfl
+  | succ blocks ih => exact ih _ _
+
+/-- `keccak256`, restated. -/
+def keccak256Blocks (data : List UInt8) : Digest :=
+  let state := absorb (data.length / rate) (Vector.replicate 25 0) data
+  #v[Keccak.lane state 0, Keccak.lane state 1, Keccak.lane state 2, Keccak.lane state 3]
+
+/-- `keccak256` compiles as its restatement. -/
+@[csimp] theorem keccak256_eq_keccak256Blocks : @keccak256 = @keccak256Blocks := rfl
+
+end
+
+end LeanVM.Spec.Fast.Keccak

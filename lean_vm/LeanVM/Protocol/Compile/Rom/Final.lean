@@ -14,42 +14,78 @@ public import LeanVM.Protocol.Compile.Rom.History
 /-!
 # The final inequality
 
-`final_ineq`: let `C : Cert P` be a doom certificate, `ℓ` a log without failure, and `π` a proof
-the seeded verifier accepts with every hash answered by `ℓ` (`verify (look ℓ) σ P π = some
-true`). If some boundary prefix of the extracted history (`extractedHistory`) is doomed, then
-`1 ≤ pot C.D σ P ℓ`.
+`final_ineq`: let `C : Cert P` be a doom certificate whose escape bound is below one at every
+history without proof of work, `ℓ` a log without failure, and `π` a proof the seeded verifier
+accepts with every query answered by `ℓ`. If some boundary prefix of the extracted history
+(`extractedFrom`) is doomed, then `1 ≤ pot C.D σ P ℓ`.
 
-The run is followed group by group. A *boundary* of the run is the seed or the point right
-after a prover move (a scalar, a commitment, a nonce). At each boundary `h`, with chain state
-`cv` and node `p`:
+The run is followed group by group. A *boundary* of the run is the seed or the point right after
+a prover move (a scalar, a commitment, a proof of work). At each boundary `h`, with node `p`, the
+sponge's state is decoded (`Known`) at a history and position from which its waiting scalars,
+consumed, lead to `h` and `p` (`SpInv`), and the group starting at `h` is carried (`Carried`):
 
-* the decoder knows `cv` at `h` (`Known`), and some record of the log has term at least
-  `[D h] · gv ℓ cv h p` (`seed_known`, `move`);
-* the run's squeezes and openings until the next prover move or the verdict are the ones `gv`
-  follows (`follow`): the squeezes are lookups in `ℓ`, and the openings return the extracted
-  rows because the answers are injective (`answer_of_openAll`). So `gv ℓ cv h p` is `esc D` at
-  the group's end, which is `1` if `D h` holds there and not at the end.
+* after the seed or a proof of work no scalar waits, and the state's record has term at least
+  `[D h] · gv ℓ u h p` (`seed_known`, `move`);
+* after a scalar or a commitment, scalars wait, and the group's first squeeze, a permutation of
+  them, is decoded as the record `sq h p` (`duplex_read`, `walk`), unless the group has no
+  squeeze at all: then it is a run of openings, whose escape probability is `0` or `1`; the
+  certificate bounds it by `C.ε h < 1`, so it is `0`.
+
+The run's squeezes and openings until the next prover move or the verdict are the ones `gv`
+follows (`follow`): the squeezes are lookups in `ℓ`, and the openings return the extracted rows
+because the answers are injective (`answer_of_openAll`). So the record's term is at least
+`[D h] · esc D` at the group's end, which is `1` if `D h` holds there and not at the end
+(`group`).
 
 The run's final history is not doomed (`Cert.final`) and prover moves keep doom (`Cert.read`,
 `Cert.grind`, `Cert.commit`), so from the first doomed boundary some group leaves doom; its record
-has term `1`. Commitments read the word extracted from the entries before their root is
-absorbed, which is the word extracted from the whole log (`extract_take_eq`, using
-`lt_of_rootOf`). After a nonce, the record that carries the group is whichever of the nonce's
-two entries came first: the chain step (`Shape.grd`, whose factor is the proof of work's result
-`1`) or the proof of work (`Shape.pow`).
+has term `1` (`from_boundary`). A prover move absorbs its scalars, a permutation being forced
+when four wait (`absorb_step`): the decoder reads the forced permutation at its entry, and its
+output is decoded at the move's position. Commitments read the word extracted from the entries
+before their root is absorbed, which is the word extracted from the whole log (`duplex_read`).
+After a nonce the squeeze is the proof of work's, decoded as the record `st h p (some (b, n))`
+whose factor is the proof of work's result `1`.
 -/
 
 namespace LeanVM.Protocol.Compile.Rom
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Protocol.Blake2sHash LeanVM.Protocol.Rom
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Protocol.KeccakHash LeanVM.Protocol.Rom
 open scoped ENNReal
 
 @[expose] public section
 
-/- The enumeration of `Digest` must never be unfolded by unification. -/
-attribute [local irreducible] instFintypeDigest
+/- The enumerations of `Digest` and `KState` must never be unfolded by unification. -/
+attribute [local irreducible] instFintypeDigest instFintypeKState
 
 variable {X : Type} {σ : Seeds X} {P : Prog Bool}
+
+/-! ## The sponge in `Option` -/
+
+theorem absorb_option (F : KState → Option KState) (sp : Sponge) (x : E) (tag : ℕ)
+    (sp' : Sponge) :
+    Compile.absorb (m := Option) F sp x tag = some sp' ↔
+      if sp.pending.length = 4 then ∃ u, F (duplexInput sp) = some u ∧ sp' = ⟨u, [(x, tag)]⟩
+      else sp' = { sp with pending := sp.pending ++ [(x, tag)] } := by
+  unfold Compile.absorb duplex
+  split
+  · rename_i h4
+    simp only [rateScalars] at h4
+    simp only [h4, ↓reduceIte, bind, pure, Option.bind_eq_some_iff, Option.some.injEq]
+    constructor
+    · rintro ⟨sp1, ⟨u, hu, rfl⟩, rfl⟩; exact ⟨u, hu, rfl⟩
+    · rintro ⟨u, hu, rfl⟩; exact ⟨⟨u, []⟩, ⟨u, hu, rfl⟩, rfl⟩
+  · rename_i h4
+    simp only [rateScalars] at h4
+    simp [h4, pure, eq_comm]
+
+theorem squeeze_option (F : KState → Option KState) (sp : Sponge) (r : E × Sponge) :
+    squeeze (m := Option) F sp = some r ↔
+      ∃ u, F (duplexInput sp) = some u ∧ r = (challengeOf u, ⟨u, []⟩) := by
+  unfold squeeze duplex
+  simp only [bind, pure, Option.bind_eq_some_iff, Option.some.injEq]
+  constructor
+  · rintro ⟨sp1, ⟨u, hu, rfl⟩, rfl⟩; exact ⟨u, hu, rfl⟩
+  · rintro ⟨u, hu, rfl⟩; exact ⟨⟨u, []⟩, ⟨u, hu, rfl⟩, rfl⟩
 
 /-! ## Histories without boundaries -/
 
@@ -95,96 +131,372 @@ theorem esc_move {D : List Ev → Prop} {h : List Ev} {p : Prog Bool} (hm : Move
   | query _ _ _ => exact absurd hm id
   | fail => exact absurd hm id
 
+theorem not_query_of_move {p : Prog Bool} (hm : Move p) : ∀ i ps k, p ≠ .query i ps k := by
+  rintro i ps k rfl; exact hm
+
+/-! ## Openings between absorptions -/
+
+/-- The run goes from `(h, p)` to `(h', p')` through openings only, each answered from the
+history's words. -/
+inductive QSteps : List Ev → Prog Bool → List Ev → Prog Bool → Prop where
+  | refl (h : List Ev) (p : Prog Bool) : QSteps h p h p
+  | step {h : List Ev} {i : ℕ} {ps : List ℕ} {k : List (List K) → Prog Bool}
+      {rows : List (List K)} {h' : List Ev} {p' : Prog Bool} :
+      answer h i ps = some rows → QSteps (h ++ [Ev.query rows]) (k rows) h' p' →
+      QSteps h (.query i ps k) h' p'
+
+theorem QSteps.snoc {h₁ h : List Ev} {p₁ : Prog Bool} {i : ℕ} {ps : List ℕ}
+    {k : List (List K) → Prog Bool} {rows : List (List K)}
+    (hq : QSteps h₁ p₁ h (.query i ps k)) (ha : answer h i ps = some rows) :
+    QSteps h₁ p₁ (h ++ [Ev.query rows]) (k rows) := by
+  generalize hp : (Prog.query i ps k : Prog Bool) = q at hq
+  induction hq with
+  | refl => subst hp; exact .step ha (.refl _ _)
+  | step ha' _ ih => exact .step ha' (ih ha hp)
+
+theorem settle_eq_of_qsteps {h₁ h : List Ev} {p₁ p : Prog Bool} (hq : QSteps h₁ p₁ h p) :
+    settle h₁ p₁ = settle h p := by
+  induction hq with
+  | refl => rfl
+  | step ha _ ih => simp only [settle, ha]; exact ih
+
+theorem settle_self {h : List Ev} {q : Prog Bool} (hq : ∀ i ps k, q ≠ .query i ps k) :
+    settle h q = some (h, q) := by
+  cases q with
+  | query i ps k => exact absurd rfl (hq i ps k)
+  | _ => rfl
+
+theorem esc_eq_of_qsteps (D : List Ev → Prop) {h h' : List Ev} {p p' : Prog Bool}
+    (hq : QSteps h p h' p') : esc D h p = esc D h' p' := by
+  induction hq with
+  | refl => rfl
+  | step ha _ ih => rw [esc_query, ha]; exact ih
+
+theorem gv_eq_of_qsteps (D : List Ev → Prop) (ℓ : Log) (d : KState) {h h' : List Ev}
+    {p p' : Prog Bool} (hq : QSteps h p h' p') : gv D ℓ d h p = gv D ℓ d h' p' := by
+  induction hq with
+  | refl => rfl
+  | step ha _ ih => simp only [gv, ha]; exact ih
+
+theorem gv1_eq_of_qsteps (D : List Ev → Prop) (ℓ : Log) (u : KState) {h h' : List Ev}
+    {p : Prog Bool} {k : E → Prog Bool} (hq : QSteps h p h' (.sample k)) :
+    gv1 D ℓ u h p = gv D ℓ u (h' ++ [Ev.sample (challengeOf u)]) (k (challengeOf u)) := by
+  generalize hs : (Prog.sample k : Prog Bool) = q at hq
+  induction hq with
+  | refl => subst hs; rfl
+  | step ha _ ih => simp only [gv1, ha]; exact ih hs
+
+theorem prefix_noBnd_of_qsteps {h h' : List Ev} {p p' : Prog Bool} (hq : QSteps h p h' p') :
+    h <+: h' ∧ NoBnd h h' := by
+  induction hq with
+  | refl h p => exact ⟨List.prefix_refl _, noBnd_refl _⟩
+  | step _ _ ih =>
+    exact ⟨(List.prefix_append _ _).trans ih.1,
+      noBnd_trans (noBnd_append_single (not_boundary_append_query _ _)) ih.2 ih.1⟩
+
+/-- Openings keep reachability. -/
+theorem reach_of_qsteps {h h' : List Ev} {p p' : Prog Bool} (hq : QSteps h p h' p') :
+    P.Reachable h → P.after h = some p → P.Reachable h' ∧ P.after h' = some p' := by
+  induction hq with
+  | refl => exact fun hr ha ↦ ⟨hr, ha⟩
+  | step ha' _ ih => exact fun hr ha ↦ ih (Prog.Reachable.query hr ha ha') (after_query_step ha _)
+
+/-! ## Consumption, continued -/
+
+/-- Consuming more scalars continues from where the first ones left. -/
+theorem consume_append_done {W : Digest → ℕ → ℕ → Word} :
+    ∀ (ps : List (E × ℕ)) (h : List Ev) (pos : Pos) {h' : List Ev} {pos' : Pos}
+      (qs : List (E × ℕ)), consume W h pos ps = .done h' pos' →
+        consume W h pos (ps ++ qs) = consume W h' pos' qs
+  | [], h, pos, h', pos', qs, hc => by
+    simp only [consume, Cons.done.injEq] at hc
+    obtain ⟨rfl, rfl⟩ := hc
+    rfl
+  | (x, tag) :: rest, h, .node p, h', pos', qs, hc => by
+    simp only [List.cons_append, consume] at hc ⊢
+    split at hc
+    · split at hc
+      · rename_i hs _
+        simp only [↓reduceIte, *]
+        exact consume_append_done rest _ _ qs hc
+      · cases hc
+    · split at hc
+      · rename_i hs _
+        simp only [↓reduceIte, *]
+        exact consume_append_done rest _ _ qs hc
+      · cases hc
+    · split at hc <;> cases hc
+    · cases hc
+  | (x, tag) :: rest, h, .half ht w k x₀, h', pos', qs, hc => by
+    simp only [List.cons_append, consume] at hc ⊢
+    by_cases htag : tag = 1
+    · simp only [htag, ↓reduceIte] at hc ⊢
+      rcases hr : digestOfScalars (x₀, x) with _ | r
+      · simp [hr] at hc
+      · simp only [hr] at hc ⊢
+        exact consume_append_done rest _ _ qs hc
+    · simp only [htag, ↓reduceIte] at hc
+      cases hc
+
+/-- A node at which the program absorbs a scalar. -/
+def Absorbs : Prog Bool → Prop
+  | .read _ => True
+  | .grind _ _ => True
+  | .commit _ _ _ => True
+  | _ => False
+
+/-! ## The sponge's invariant -/
+
+/-- **The sponge at a point of the run.** Its waiting scalars are as the verifier keeps them; its
+state's capacity is known at `(h₀, pos₀)`; consuming the waiting scalars from there, with the
+whole log's words, reaches `(h₁, p₁)`, from which openings reach the run's `(h, p)`. -/
+def SpInv (σ : Seeds X) (P : Prog Bool) (ℓ : Log) (sp : Sponge) (h : List Ev) (p : Prog Bool) :
+    Prop :=
+  ValidPending sp.pending ∧ ∃ h₀ pos₀ h₁ p₁, Known σ P ℓ (capOf sp.state) (h₀, pos₀) ∧
+    consume (extract (lookH ℓ)) h₀ pos₀ sp.pending = .done h₁ (.node p₁) ∧ QSteps h₁ p₁ h p
+
+theorem SpInv.snoc {ℓ : Log} {sp : Sponge} {h : List Ev} {i : ℕ} {ps : List ℕ}
+    {k : List (List K) → Prog Bool} {rows : List (List K)}
+    (hs : SpInv σ P ℓ sp h (.query i ps k)) (ha : answer h i ps = some rows) :
+    SpInv σ P ℓ sp (h ++ [Ev.query rows]) (k rows) := by
+  obtain ⟨hv, h₀, pos₀, h₁, p₁, hk, hc, hq⟩ := hs
+  exact ⟨hv, h₀, pos₀, h₁, p₁, hk, hc, hq.snoc ha⟩
+
+/-- **An absorption under the invariant.** Absorbing one scalar, when the program absorbs next,
+keeps the state known, a forced permutation being read by the decoder, and the waiting scalars
+consume as before, then the new one. -/
+theorem absorb_step {ℓ : Log} (hf : ¬ Fail σ ℓ) {sp : Sponge} {h₀ h₁ : List Ev} {pos₀ pos₁ : Pos}
+    (hk : Known σ P ℓ (capOf sp.state) (h₀, pos₀)) (hv : ValidPending sp.pending)
+    (hc : consume (extract (lookH ℓ)) h₀ pos₀ sp.pending = .done h₁ pos₁)
+    (habs : ∀ p₁, pos₁ = .node p₁ → ∃ h' q, settle h₁ p₁ = some (h', q) ∧ Absorbs q)
+    {x : E} {tag : ℕ} (htag : tag = 1 ∨ tag = 4) {sp' : Sponge}
+    (ha : Compile.absorb (m := Option) (lookF ℓ) sp x tag = some sp') :
+    ValidPending sp'.pending ∧ sp'.pending ≠ [] ∧
+      ∃ h₀' pos₀', Known σ P ℓ (capOf sp'.state) (h₀', pos₀') ∧
+        consume (extract (lookH ℓ)) h₀' pos₀' sp'.pending =
+          consume (extract (lookH ℓ)) h₁ pos₁ [(x, tag)] := by
+  rw [absorb_option] at ha
+  split at ha
+  · rename_i h4
+    obtain ⟨v, hl, rfl⟩ := ha
+    refine ⟨⟨by simp, by simpa using htag⟩, by simp, ?_⟩
+    rw [duplexInput_eq] at hl
+    obtain ⟨-, hkn⟩ := duplex_read hf hk hv hl
+    rw [hc] at hkn
+    rcases pos₁ with p₁ | ⟨ht, w, k, x₀⟩
+    · obtain ⟨h', q, hs, habq⟩ := habs p₁ rfl
+      have hq : ∀ i ps k, q ≠ .query i ps k := by rintro i ps k rfl; exact habq
+      have hcons : consume (extract (lookH ℓ)) h' (.node q) [(x, tag)] =
+          consume (extract (lookH ℓ)) h₁ (.node p₁) [(x, tag)] := by
+        simp only [consume, settle_self hq, hs]
+      cases q with
+      | read k =>
+        refine ⟨h', .node (.read k), hkn _ ?_, hcons⟩
+        simp [decodeAt, hs, forced, h4]
+      | commit ht w k =>
+        refine ⟨h', .node (.commit ht w k), hkn _ ?_, hcons⟩
+        simp [decodeAt, hs, forced, h4]
+      | grind b k =>
+        refine ⟨h', .node (.grind b k), hkn _ ?_, hcons⟩
+        simp [decodeAt, hs, forced, h4]
+      | _ => exact absurd habq id
+    · exact ⟨h₁, .half ht w k x₀, hkn _ (by simp [decodeAt, h4]), rfl⟩
+  · rename_i h4
+    subst ha
+    refine ⟨⟨by have := hv.1; simp; omega, ?_⟩, by simp, h₀, pos₀, hk, ?_⟩
+    · intro e he
+      rcases List.mem_append.mp he with he | he
+      · exact hv.2 e he
+      · rw [List.mem_singleton] at he; subst he; exact htag
+    · exact consume_append_done _ _ _ _ hc
+
 /-! ## Following a group -/
 
 section Follow
 
 variable (C : Cert P) {ℓ : Log}
 
-theorem settle_self_of_move {h : List Ev} {p : Prog Bool} (hm : Move p) :
-    settle h p = some (h, p) := by
-  cases p with
-  | query _ _ _ => exact absurd hm id
-  | _ => rfl
-
-theorem settle_sample (h : List Ev) (k : E → Prog Bool) :
-    settle h (.sample k) = some (h, .sample k) := rfl
-
-/-- **Following a group.** From a chain state the decoder knows, the run's squeezes and
-openings up to the next prover move or the verdict are those `gv` follows. -/
+/-- **Following a group with no scalar waiting.** From a state the decoder knows, the run's
+squeezes and openings up to the next prover move or the verdict are those `gv` follows. -/
 theorem follow (hf : ¬ Fail σ ℓ) :
     ∀ (p : Prog Bool) (s : St) (h : List Ev) {s_f : St} {hist : List Ev},
-      RootsInv (look ℓ) s h → P.Reachable h → P.after h = some p →
-      (∀ h' p', settle h p = some (h', p') → Known σ P ℓ s.cv (.st h' p')) →
-      xrun (look ℓ) p s h = some (true, s_f, hist) →
+      RootsInv (lookH ℓ) s h → P.Reachable h → P.after h = some p →
+      s.sponge.pending = [] → SpInv σ P ℓ s.sponge h p →
+      xrun (lookH ℓ) (lookF ℓ) p s h = some (true, s_f, hist) →
       ∃ (p_e : Prog Bool) (s_e : St) (h_e : List Ev),
-        gv C.D ℓ s.cv h p = esc C.D h_e p_e ∧ xrun (look ℓ) p_e s_e h_e = some (true, s_f, hist) ∧
-        RootsInv (look ℓ) s_e h_e ∧ P.Reachable h_e ∧ P.after h_e = some p_e ∧
-        Known σ P ℓ s_e.cv (.st h_e p_e) ∧ Move p_e ∧ h <+: h_e ∧ NoBnd h h_e ∧
+        gv C.D ℓ s.sponge.state h p = esc C.D h_e p_e ∧
+        xrun (lookH ℓ) (lookF ℓ) p_e s_e h_e = some (true, s_f, hist) ∧
+        RootsInv (lookH ℓ) s_e h_e ∧ P.Reachable h_e ∧ P.after h_e = some p_e ∧
+        SpInv σ P ℓ s_e.sponge h_e p_e ∧ Move p_e ∧ h <+: h_e ∧ NoBnd h h_e ∧
         s_e.stream = s.stream
-  | .ret true, s, h, _, _, hR, hr, ha, hk, hx =>
-    ⟨.ret true, s, h, rfl, hx, hR, hr, ha, hk h _ rfl, trivial, List.prefix_refl _, noBnd_refl h,
+  | .ret true, s, h, _, _, hR, hr, ha, _, hsp, hx =>
+    ⟨.ret true, s, h, rfl, hx, hR, hr, ha, hsp, trivial, List.prefix_refl _, noBnd_refl h, rfl⟩
+  | .ret false, s, h, _, _, _, _, _, _, _, hx => by simp [xrun] at hx
+  | .fail, s, h, _, _, _, _, _, _, _, hx => by simp [xrun] at hx
+  | .read k, s, h, _, _, hR, hr, ha, _, hsp, hx =>
+    ⟨.read k, s, h, rfl, hx, hR, hr, ha, hsp, trivial, List.prefix_refl _, noBnd_refl h, rfl⟩
+  | .grind b k, s, h, _, _, hR, hr, ha, _, hsp, hx =>
+    ⟨.grind b k, s, h, rfl, hx, hR, hr, ha, hsp, trivial, List.prefix_refl _, noBnd_refl h,
       rfl⟩
-  | .ret false, s, h, _, _, _, _, _, _, hx => by simp [xrun] at hx
-  | .fail, s, h, _, _, _, _, _, _, hx => by simp [xrun] at hx
-  | .read k, s, h, _, _, hR, hr, ha, hk, hx =>
-    ⟨.read k, s, h, rfl, hx, hR, hr, ha, hk h _ rfl, trivial, List.prefix_refl _, noBnd_refl h,
+  | .commit ht w k, s, h, _, _, hR, hr, ha, _, hsp, hx =>
+    ⟨.commit ht w k, s, h, rfl, hx, hR, hr, ha, hsp, trivial, List.prefix_refl _, noBnd_refl h,
       rfl⟩
-  | .grind b k, s, h, _, _, hR, hr, ha, hk, hx =>
-    ⟨.grind b k, s, h, rfl, hx, hR, hr, ha, hk h _ rfl, trivial, List.prefix_refl _,
-      noBnd_refl h, rfl⟩
-  | .commit ht w k, s, h, _, _, hR, hr, ha, hk, hx =>
-    ⟨.commit ht w k, s, h, rfl, hx, hR, hr, ha, hk h _ rfl, trivial, List.prefix_refl _,
-      noBnd_refl h, rfl⟩
-  | .sample k, s, h, s_f, hist, hR, hr, ha, hk, hx => by
-    simp only [xrun, absorbBlock_option, Option.bind_eq_some_iff] at hx
-    obtain ⟨u, hu, hx⟩ := hx
-    obtain ⟨j, hj, hej, -⟩ := (look_eq_some_iff ℓ _ u).mp hu
-    have hj1 : ℓ[j].1 = digestBytes s.cv ++ blockOf 0 2 := by rw [hej]
-    have hj2 : ℓ[j].2 = u := by rw [hej]
-    obtain ⟨-, hknown⟩ := entry_read hf (hk h _ (settle_sample h k)) hj (by norm_num) hj1
-    rw [hj2] at hknown
-    have hk' : ∀ h' p', settle (h ++ [Ev.sample (challengeOf u)]) (k (challengeOf u)) =
-        some (h', p') → Known σ P ℓ u (.st h' p') := by
-      intro h' p' hs
-      refine hknown _ ?_
-      simp only [stepAt, stepSt, and_self, ↓reduceIte, stInfo, hs, Option.map_some]
+  | .sample k, s, h, s_f, hist, hR, hr, ha, hpe, hsp, hx => by
+    simp only [xrun, Option.bind_eq_some_iff] at hx
+    obtain ⟨r, hr0, hx⟩ := hx
+    obtain ⟨u, hu, rfl⟩ := (squeeze_option _ _ _).mp hr0
+    rw [duplexInput_eq, hpe] at hu
+    obtain ⟨hv, h₀, pos₀, h₁, p₁, hk, hc, hq⟩ := hsp
+    rw [hpe] at hc
+    simp only [consume, Cons.done.injEq] at hc
+    obtain ⟨rfl, rfl⟩ := hc
+    have hsq : settle h₀ p₁ = some (h, .sample k) := by
+      rw [settle_eq_of_qsteps hq]; rfl
+    obtain ⟨-, hkn⟩ := duplex_read hf hk (ps := []) ⟨by simp, by simp⟩ hu
+    have hk' : Known σ P ℓ (capOf u)
+        (h ++ [Ev.sample (challengeOf u)], .node (k (challengeOf u))) :=
+      hkn _ (by simp [consume, decodeAt, hsq])
     have hr' := Prog.Reachable.sample (challengeOf u) hr ha
-    have ha' : P.after (h ++ [Ev.sample (challengeOf u)]) = some (k (challengeOf u)) := by
-      rw [Prog.after_append_single _ ha]; simp [Prog.after]
-    obtain ⟨p_e, s_e, h_e, hg, hx', hR', hre, hae, hke, hm, hp, hnb, hst⟩ :=
-      follow hf (k (challengeOf u)) { s with cv := u } _ (rootsInv_append_sample hR _ _) hr' ha'
-        hk' hx
-    refine ⟨p_e, s_e, h_e, ?_, hx', hR', hre, hae, hke, hm,
+    have ha' := after_sample_step ha (challengeOf u)
+    obtain ⟨p_e, s_e, h_e, hg, hx', hR', hre, hae, hse, hm, hp, hnb, hst⟩ :=
+      follow hf (k (challengeOf u)) { s with sponge := ⟨u, []⟩ } _
+        (rootsInv_append_sample hR _ _) hr' ha' rfl
+        ⟨⟨by simp, by simp⟩, _, _, _, _, hk', rfl, .refl _ _⟩ hx
+    refine ⟨p_e, s_e, h_e, ?_, hx', hR', hre, hae, hse, hm,
       (List.prefix_append _ _).trans hp, ?_, hst⟩
-    · simp only [gv, hu]
+    · have hsqIn : sqIn s.sponge.state = duplexOf (capOf s.sponge.state) [] := rfl
+      simp only [gv, hsqIn, hu]
       exact hg
     · exact noBnd_trans (noBnd_append_single (not_boundary_append_sample h _)) hnb hp
-  | .query i ps k, s, h, s_f, hist, hR, hr, ha, hk, hx => by
+  | .query i ps k, s, h, s_f, hist, hR, hr, ha, hpe, hsp, hx => by
     simp only [xrun] at hx
     split at hx
     · simp at hx
     · rename_i root ht w hroot
       split at hx
       · rename_i rows rest ho
-        have hans := answer_of_openAll (answersInj_look hf) hR hroot ho
+        have hans := answer_of_openAll (answersInj_lookH hf) hR hroot ho
         have hr' := Prog.Reachable.query hr ha hans
-        have ha' : P.after (h ++ [Ev.query rows]) = some (k rows) := by
-          rw [Prog.after_append_single _ ha]; simp [Prog.after]
-        have hk' : ∀ h' p', settle (h ++ [Ev.query rows]) (k rows) = some (h', p') →
-            Known σ P ℓ ({ s with openings := rest } : St).cv (.st h' p') := by
-          intro h' p' hs
-          refine hk h' p' ?_
-          simp only [settle, hans]
-          exact hs
-        obtain ⟨p_e, s_e, h_e, hg, hx', hR', hre, hae, hke, hm, hp, hnb, hst⟩ :=
-          follow hf (k rows) _ _ (rootsInv_append_query hR rows rest) hr' ha' hk' hx
-        refine ⟨p_e, s_e, h_e, ?_, hx', hR', hre, hae, hke, hm,
+        have ha' := after_query_step ha rows
+        obtain ⟨p_e, s_e, h_e, hg, hx', hR', hre, hae, hse, hm, hp, hnb, hst⟩ :=
+          follow hf (k rows) { s with openings := rest } _ (rootsInv_append_query hR rows rest)
+            hr' ha' hpe (hsp.snoc hans) hx
+        refine ⟨p_e, s_e, h_e, ?_, hx', hR', hre, hae, hse, hm,
           (List.prefix_append _ _).trans hp, ?_, hst⟩
         · simp only [gv, hans]
           exact hg
         · exact noBnd_trans (noBnd_append_single (not_boundary_append_query h _)) hnb hp
       · simp at hx
+
+/-- **Walking a group's openings with scalars waiting.** From a boundary `(h, p)` at which the
+waiting scalars, consumed, end, the run's openings lead either to the group's first squeeze, a
+permutation of the waiting scalars decoded as the record `sq h p`, and the rest of the group, or
+to a prover move or the verdict with no squeeze at all. -/
+theorem walk (hf : ¬ Fail σ ℓ) {h : List Ev} {p : Prog Bool} {h₀ : List Ev} {pos₀ : Pos} :
+    ∀ (p' : Prog Bool) (s : St) (h' : List Ev) {s_f : St} {hist : List Ev},
+      Known σ P ℓ (capOf s.sponge.state) (h₀, pos₀) → ValidPending s.sponge.pending →
+      s.sponge.pending ≠ [] →
+      consume (extract (lookH ℓ)) h₀ pos₀ s.sponge.pending = .done h (.node p) →
+      QSteps h p h' p' →
+      RootsInv (lookH ℓ) s h' → P.Reachable h' → P.after h' = some p' →
+      xrun (lookH ℓ) (lookF ℓ) p' s h' = some (true, s_f, hist) →
+      ∃ (p_e : Prog Bool) (s_e : St) (h_e : List Ev),
+        xrun (lookH ℓ) (lookF ℓ) p_e s_e h_e = some (true, s_f, hist) ∧
+        RootsInv (lookH ℓ) s_e h_e ∧ P.Reachable h_e ∧ P.after h_e = some p_e ∧
+        SpInv σ P ℓ s_e.sponge h_e p_e ∧ Move p_e ∧ h' <+: h_e ∧ NoBnd h' h_e ∧
+        s_e.stream = s.stream ∧
+        ((∃ κ ∈ (decode σ P ℓ).kinds, ind (C.D h) * esc C.D h_e p_e ≤ term C.D ℓ κ) ∨
+          esc C.D h p = esc C.D h_e p_e)
+  | .sample k, s, h', s_f, hist, hk, hv, hne, hc, hq, hR, hr, ha, hx => by
+    simp only [xrun, Option.bind_eq_some_iff] at hx
+    obtain ⟨r, hr0, hx⟩ := hx
+    obtain ⟨u, hu, rfl⟩ := (squeeze_option _ _ _).mp hr0
+    rw [duplexInput_eq] at hu
+    obtain ⟨hkind, hkn⟩ := duplex_read hf hk hv hu
+    rw [hc] at hkind hkn
+    have hsq : settle h p = some (h', .sample k) := by
+      rw [settle_eq_of_qsteps hq]; rfl
+    have hdec : decodeAt (.done h (.node p)) s.sponge.pending =
+        (.sq h p, fun u ↦ some (h' ++ [Ev.sample (challengeOf u)], .node (k (challengeOf u)))) := by
+      simp [decodeAt, hsq, hne]
+    rw [hdec] at hkind hkn
+    have hk' := hkn _ rfl
+    have hr' := Prog.Reachable.sample (challengeOf u) hr ha
+    have ha' := after_sample_step ha (challengeOf u)
+    obtain ⟨p_e, s_e, h_e, hg, hx', hR', hre, hae, hse, hm, hp, hnb, hst⟩ :=
+      follow C hf (k (challengeOf u)) { s with sponge := ⟨u, []⟩ } _
+        (rootsInv_append_sample hR _ _) hr' ha' rfl
+        ⟨⟨by simp, by simp⟩, _, _, _, _, hk', rfl, .refl _ _⟩ hx
+    refine ⟨p_e, s_e, h_e, hx', hR', hre, hae, hse, hm, (List.prefix_append _ _).trans hp,
+      noBnd_trans (noBnd_append_single (not_boundary_append_sample h' _)) hnb hp, hst,
+      Or.inl ⟨_, hkind, ?_⟩⟩
+    simp only [term, gv1_eq_of_qsteps C.D ℓ u hq]
+    rw [← hg]
+  | .query i ps k, s, h', s_f, hist, hk, hv, hne, hc, hq, hR, hr, ha, hx => by
+    simp only [xrun] at hx
+    split at hx
+    · simp at hx
+    · rename_i root ht w hroot
+      split at hx
+      · rename_i rows rest ho
+        have hans := answer_of_openAll (answersInj_lookH hf) hR hroot ho
+        have hr' := Prog.Reachable.query hr ha hans
+        have ha' := after_query_step ha rows
+        obtain ⟨p_e, s_e, h_e, hx', hR', hre, hae, hse, hm, hp, hnb, hst, hres⟩ :=
+          walk hf (k rows) { s with openings := rest } _ hk hv hne hc (hq.snoc hans)
+            (rootsInv_append_query hR rows rest) hr' ha' hx
+        exact ⟨p_e, s_e, h_e, hx', hR', hre, hae, hse, hm, (List.prefix_append _ _).trans hp,
+          noBnd_trans (noBnd_append_single (not_boundary_append_query h' _)) hnb hp, hst, hres⟩
+      · simp at hx
+  | .ret true, s, h', _, _, hk, hv, _, hc, hq, hR, hr, ha, hx =>
+    ⟨.ret true, s, h', hx, hR, hr, ha, ⟨hv, _, _, _, _, hk, hc, hq⟩, trivial,
+      List.prefix_refl _, noBnd_refl _, rfl, Or.inr (esc_eq_of_qsteps C.D hq)⟩
+  | .ret false, s, h', _, _, _, _, _, _, _, _, _, _, hx => by simp [xrun] at hx
+  | .fail, s, h', _, _, _, _, _, _, _, _, _, _, hx => by simp [xrun] at hx
+  | .read k', s, h', _, _, hk, hv, _, hc, hq, hR, hr, ha, hx =>
+    ⟨.read k', s, h', hx, hR, hr, ha, ⟨hv, _, _, _, _, hk, hc, hq⟩, trivial,
+      List.prefix_refl _, noBnd_refl _, rfl, Or.inr (esc_eq_of_qsteps C.D hq)⟩
+  | .grind b k', s, h', _, _, hk, hv, _, hc, hq, hR, hr, ha, hx =>
+    ⟨.grind b k', s, h', hx, hR, hr, ha, ⟨hv, _, _, _, _, hk, hc, hq⟩, trivial,
+      List.prefix_refl _, noBnd_refl _, rfl, Or.inr (esc_eq_of_qsteps C.D hq)⟩
+  | .commit ht w k', s, h', _, _, hk, hv, _, hc, hq, hR, hr, ha, hx =>
+    ⟨.commit ht w k', s, h', hx, hR, hr, ha, ⟨hv, _, _, _, _, hk, hc, hq⟩, trivial,
+      List.prefix_refl _, noBnd_refl _, rfl, Or.inr (esc_eq_of_qsteps C.D hq)⟩
+
+/-- The group at a boundary is carried: after the seed or a proof of work, with no scalar
+waiting, by the state's record; after a scalar or a commitment, with scalars waiting, at a
+history without proof of work, by the record of the group's first squeeze. -/
+def Carried (C : Cert P) (ℓ : Log) (s : St) (h : List Ev) (p : Prog Bool) : Prop :=
+  (s.sponge.pending = [] ∧ ∃ κ ∈ (decode σ P ℓ).kinds,
+    ind (C.D h) * gv C.D ℓ s.sponge.state h p ≤ term C.D ℓ κ) ∨
+  (s.sponge.pending ≠ [] ∧ grindBits h = 0)
+
+/-- **A group.** From a boundary whose group is carried, the run reaches the next prover move or
+the verdict; either a record bounds `[D h]` times the escape probability there, or the group has
+no squeeze and its escape probability is the one at its start. -/
+theorem group (hf : ¬ Fail σ ℓ) {p : Prog Bool} {s : St} {h : List Ev} {s_f : St}
+    {hist : List Ev} (hR : RootsInv (lookH ℓ) s h) (hr : P.Reachable h)
+    (ha : P.after h = some p)
+    (hsp : ValidPending s.sponge.pending ∧ ∃ h₀ pos₀, Known σ P ℓ (capOf s.sponge.state) (h₀, pos₀) ∧
+      consume (extract (lookH ℓ)) h₀ pos₀ s.sponge.pending = .done h (.node p))
+    (hcar : Carried (σ := σ) C ℓ s h p) (hx : xrun (lookH ℓ) (lookF ℓ) p s h = some (true, s_f, hist)) :
+    ∃ (p_e : Prog Bool) (s_e : St) (h_e : List Ev),
+      xrun (lookH ℓ) (lookF ℓ) p_e s_e h_e = some (true, s_f, hist) ∧
+      RootsInv (lookH ℓ) s_e h_e ∧ P.Reachable h_e ∧ P.after h_e = some p_e ∧
+      SpInv σ P ℓ s_e.sponge h_e p_e ∧ Move p_e ∧ h <+: h_e ∧ NoBnd h h_e ∧
+      s_e.stream = s.stream ∧
+      ((∃ κ ∈ (decode σ P ℓ).kinds, ind (C.D h) * esc C.D h_e p_e ≤ term C.D ℓ κ) ∨
+        (esc C.D h p = esc C.D h_e p_e ∧ grindBits h = 0)) := by
+  obtain ⟨hv, h₀, pos₀, hk, hc⟩ := hsp
+  rcases hcar with ⟨hpe, κ, hκ, hterm⟩ | ⟨hne, hg⟩
+  · obtain ⟨p_e, s_e, h_e, hgv, hx', hR', hre, hae, hse, hm, hp, hnb, hst⟩ :=
+      follow C hf p s h hR hr ha hpe ⟨hv, h₀, pos₀, h, p, hk, hc, .refl _ _⟩ hx
+    exact ⟨p_e, s_e, h_e, hx', hR', hre, hae, hse, hm, hp, hnb, hst,
+      Or.inl ⟨κ, hκ, by rw [← hgv]; exact hterm⟩⟩
+  · obtain ⟨p_e, s_e, h_e, hx', hR', hre, hae, hse, hm, hp, hnb, hst, hres⟩ :=
+      walk C hf p s h hk hv hne hc (.refl _ _) hR hr ha hx
+    exact ⟨p_e, s_e, h_e, hx', hR', hre, hae, hse, hm, hp, hnb, hst,
+      hres.imp id fun he ↦ ⟨he, hg⟩⟩
 
 end Follow
 
@@ -194,42 +506,24 @@ section Move
 
 variable (C : Cert P) {ℓ : Log}
 
-/-- A record of the log whose term bounds the doomed group value at a boundary. -/
-def Carried (C : Cert P) (ℓ : Log) (cv : Digest) (h : List Ev) (p : Prog Bool) : Prop :=
-  ∃ κ ∈ (decode σ P ℓ).kinds, ind (C.D h) * gv C.D ℓ cv h p ≤ term C.D ℓ κ
-
-/-- A lookup absent from a later prefix is absent from an earlier one. -/
-theorem look_take_none_of_le {ℓ : Log} {x : Bytes} {i j : ℕ} (hij : i ≤ j)
-    (h : look (ℓ.take j) x = none) : look (ℓ.take i) x = none := by
-  rcases hl : look (ℓ.take i) x with _ | v
-  · rfl
-  · have := look_of_prefix (List.take_prefix_take_left hij) hl
-    rw [h] at this
-    cases this
-
-/-- Without failure, the first entry with output `c` in a prefix past its entry is that
-entry. -/
-theorem find?_take_output {ℓ : Log} (hf : ¬ Fail σ ℓ) {i j : ℕ} (hi : i < ℓ.length)
-    (hij : i < j) (hj : j ≤ ℓ.length) :
-    (ℓ.take j).find? (fun e ↦ decide (e.2 = ℓ[i].2)) = some ℓ[i] := by
-  rw [List.find?_eq_some_iff_getElem]
-  refine ⟨by simp, i, by simp; omega, by simp, fun k hk ↦ ?_⟩
-  simp only [List.getElem_take, Bool.not_eq_eq_eq_not, Bool.not_true, decide_eq_false_iff_not]
-  exact output_ne hf (by omega) hi hk
-
-/-- **A prover move.** From a chain state the decoder knows at a prover move, the run reaches
-the next boundary, where the decoder knows the new state and a record carries the group that
-starts there; doom is kept. -/
+/-- **A prover move.** From the run at a prover move, with the sponge's invariant, the run
+reaches the next boundary, where the invariant holds with no opening pending and the group is
+carried; doom is kept. -/
 theorem move (hf : ¬ Fail σ ℓ) {p : Prog Bool} (hm : Move p) (hp : ∀ a, p ≠ .ret a) {s : St}
-    {h : List Ev} {s_f : St} {hist : List Ev} (hR : RootsInv (look ℓ) s h) (hr : P.Reachable h)
-    (ha : P.after h = some p) (hk : Known σ P ℓ s.cv (.st h p))
-    (hx : xrun (look ℓ) p s h = some (true, s_f, hist)) :
+    {h : List Ev} {s_f : St} {hist : List Ev} (hR : RootsInv (lookH ℓ) s h)
+    (hr : P.Reachable h) (ha : P.after h = some p) (hsp : SpInv σ P ℓ s.sponge h p)
+    (hx : xrun (lookH ℓ) (lookF ℓ) p s h = some (true, s_f, hist)) :
     ∃ (s' : St) (h' : List Ev) (p' : Prog Bool),
-      s'.stream.length < s.stream.length ∧ RootsInv (look ℓ) s' h' ∧ P.Reachable h' ∧
+      s'.stream.length < s.stream.length ∧ RootsInv (lookH ℓ) s' h' ∧ P.Reachable h' ∧
       Boundary h' ∧ P.after h' = some p' ∧
-      (∀ h'' p'', settle h' p' = some (h'', p'') → Known σ P ℓ s'.cv (.st h'' p'')) ∧
-      Carried (σ := σ) C ℓ s'.cv h' p' ∧ xrun (look ℓ) p' s' h' = some (true, s_f, hist) ∧
-      (C.D h → C.D h') ∧ h' = h ++ (h'.drop h.length) ∧ h'.length = h.length + 1 := by
+      (ValidPending s'.sponge.pending ∧ ∃ h₀ pos₀, Known σ P ℓ (capOf s'.sponge.state) (h₀, pos₀) ∧
+        consume (extract (lookH ℓ)) h₀ pos₀ s'.sponge.pending = .done h' (.node p')) ∧
+      Carried (σ := σ) C ℓ s' h' p' ∧
+      xrun (lookH ℓ) (lookF ℓ) p' s' h' = some (true, s_f, hist) ∧
+      (C.D h → C.D h') ∧ h <+: h' ∧ h'.length = h.length + 1 := by
+  obtain ⟨hv, h₀, pos₀, h₁, p₁, hk, hc, hq⟩ := hsp
+  have hset : settle h₁ p₁ = some (h, p) := by
+    rw [settle_eq_of_qsteps hq, settle_self (not_query_of_move hm)]
   cases p with
   | ret a => exact absurd rfl (hp a)
   | sample _ => exact absurd hm id
@@ -240,132 +534,72 @@ theorem move (hf : ¬ Fail σ ℓ) {p : Prog Bool} (hm : Move p) (hp : ∀ a, p 
     split at hx
     · simp at hx
     · rename_i x xs hs
-      simp only [absorbBlock_option, Option.bind_eq_some_iff] at hx
-      obtain ⟨u, hu, hx⟩ := hx
-      obtain ⟨j, hj, hej, -⟩ := (look_eq_some_iff ℓ _ u).mp hu
-      obtain ⟨hkind, hknown⟩ := entry_read hf hk hj (x := x) (tag := 1) (by norm_num)
-        (by rw [hej])
-      have hj2 : ℓ[j].2 = u := by rw [hej]
-      rw [hj2] at hkind hknown
+      simp only [Option.bind_eq_some_iff] at hx
+      obtain ⟨sp', hab, hx⟩ := hx
+      obtain ⟨hv', hne', h₀', pos₀', hk', hc'⟩ := absorb_step hf hk hv hc
+        (fun p₁' he ↦ by cases he; exact ⟨h, _, hset, trivial⟩) (Or.inl rfl) hab
       have hr' := Prog.Reachable.read x hr ha
-      have ha' : P.after (h ++ [Ev.read x]) = some (k x) := by
-        rw [Prog.after_append_single _ ha]; simp [Prog.after]
-      refine ⟨_, h ++ [Ev.read x], k x, by simp [hs], rootsInv_append_read hR x u xs, hr',
-        boundary_append_read h x, ha', fun h'' p'' hse ↦ hknown _ ?_, ⟨_, hkind, ?_⟩, hx,
-        fun hD ↦ C.read x hr ha hD, by simp, by simp⟩
-      · simp only [stepAt, stepSt, ↓reduceIte, stInfo, hse, Option.map_some]
-      · simp only [stepAt, stepSt, ↓reduceIte, term, le_refl]
+      have ha' := after_read_step ha x
+      refine ⟨_, h ++ [Ev.read x], k x, by simp [hs], rootsInv_append_read hR x sp' xs, hr',
+        boundary_append_read h x, ha', ⟨hv', h₀', pos₀', hk', ?_⟩,
+        Or.inr ⟨hne', grindBits_append_read h x⟩, hx, fun hD ↦ C.read x hr ha hD,
+        List.prefix_append _ _, by simp⟩
+      rw [hc']
+      simp [consume, hset]
   | grind b k =>
     simp only [xrun] at hx
     split at hx
     · simp at hx
     · rename_i n xs hs
-      simp only [absorbBlock_option, Option.bind_eq_some_iff] at hx
-      obtain ⟨base, hbase, d, hd, cv', hcv', hx⟩ := hx
+      simp only [Option.bind_eq_some_iff] at hx
+      obtain ⟨sp', hab, r, hr0, hx⟩ := hx
+      obtain ⟨hv', hne', h₀', pos₀', hk', hc'⟩ := absorb_step hf hk hv hc
+        (fun p₁' he ↦ by cases he; exact ⟨h, _, hset, trivial⟩) (Or.inr rfl) hab
+      have hgrd : consume (extract (lookH ℓ)) h₀' pos₀' sp'.pending = .grd h b k n := by
+        rw [hc']
+        simp [consume, hset]
+      obtain ⟨u, hu, rfl⟩ := (squeeze_option _ _ _).mp hr0
       split at hx
       · rename_i hpow
-        obtain ⟨jb, hjb, hejb, hnb⟩ := (look_eq_some_iff ℓ _ base).mp hbase
-        obtain ⟨jp, hjp, hejp, hnp⟩ := (look_eq_some_iff ℓ _ d).mp hd
-        obtain ⟨jg, hjg, hejg, hng⟩ := (look_eq_some_iff ℓ _ cv').mp hcv'
-        -- the base
-        obtain ⟨-, hkb⟩ := entry_read hf hk hjb (x := 0) (tag := 3) (by norm_num)
-          (by rw [hejb])
-        have hkb' : Known σ P ℓ base (.base h b k s.cv) := by
-          have := hkb (.base h b k s.cv) (by simp [stepAt, stepSt])
-          rwa [show ℓ[jb].2 = base by rw [hejb]] at this
-        -- the chain step after the nonce
-        obtain ⟨hkg, hkng⟩ := entry_read hf hk hjg (x := n) (tag := 4) (by norm_num)
-          (by rw [hejg])
-        have hjg2 : ℓ[jg].2 = cv' := by rw [hejg]
-        rw [hjg2] at hkg hkng
-        -- the proof of work
-        obtain ⟨hkp, -⟩ := entry_read hf hkb' hjp (x := n) (tag := 4) (by norm_num)
-          (by rw [hejp])
-        have hjp2 : ℓ[jp].2 = d := by rw [hejp]
-        rw [hjp2] at hkp
+        rw [duplexInput_eq] at hu
+        obtain ⟨hkind, hkn⟩ := duplex_read hf hk' hv' hu
+        rw [hgrd] at hkind hkn
+        simp only [decodeAt] at hkind hkn
+        have hku := hkn _ rfl
         have hr' := Prog.Reachable.grind hr ha
-        have ha' : P.after (h ++ [Ev.grind b]) = some k := by
-          rw [Prog.after_append_single _ ha]; simp [Prog.after]
-        have hpowd : ind (powOk b n d = true) = 1 := ind_of hpow
-        -- which of the two entries of the nonce came first
-        have hne : jp ≠ jg := by
-          intro hpg
-          subst hpg
-          have hin : digestBytes base ++ blockOf n 4 = digestBytes s.cv ++ blockOf n 4 :=
-            congrArg Prod.fst (hejp.symm.trans hejg)
-          have hbc : base = s.cv := (chainInput_inj hin).1
-          have hc : chunk0 ℓ[jb].1 = digestBytes ℓ[jb].2 := by
-            rw [hejb, hbc]; exact chunk0_append _ _
-          exact lt_irrefl _ (lt_of_chunk hf hjb hjb (Or.inl hc))
-        have hcarry : Carried (σ := σ) C ℓ cv' (h ++ [Ev.grind b]) k := by
-          rcases Nat.lt_or_gt_of_ne hne with hlt | hlt
-          · -- the proof of work first
-            refine ⟨_, hkp, ?_⟩
-            have hgn : look (ℓ.take jp) (digestBytes s.cv ++ blockOf n 4) = none :=
-              look_take_none_of_le hlt.le hng
-            simp only [stepAt, ↓reduceIte, hgn, term, hpowd, one_mul, hcv', gvOpt, le_refl]
-          · -- the chain step first
-            refine ⟨_, hkg, ?_⟩
-            have hpn : powIn (ℓ.take jg) s.cv n = none := by
-              unfold powIn
-              rcases hb' : look (ℓ.take jg) (digestBytes s.cv ++ blockOf 0 3) with _ | base'
-              · rfl
-              · have : base' = base := by
-                  have := look_of_prefix (List.take_prefix jg ℓ) hb'
-                  rw [hbase] at this
-                  exact (Option.some.inj this).symm
-                subst this
-                exact look_take_none_of_le hlt.le hnp
-            have hrho : rho ℓ b s.cv n = 1 := by
-              simp only [rho, powIn, hbase, Option.bind_some, hd, hpowd]
-            simp only [stepAt, stepSt, show ¬ (4 = 3 ∧ n = 0) by omega, ↓reduceIte, hpn, term,
-              hrho, one_mul, le_refl]
-        refine ⟨_, h ++ [Ev.grind b], k, by simp [hs], rootsInv_append_grind hR b cv' xs, hr',
-          boundary_append_grind h b, ha', fun h'' p'' hse ↦ hkng _ ?_, hcarry, hx,
-          fun hD ↦ C.grind hr ha hD, by simp, by simp⟩
-        simp only [stepAt, stepSt, show ¬ (4 = 3 ∧ n = 0) by omega, ↓reduceIte, stInfo, hse,
-          Option.map_some]
+        have ha' := after_grind_step ha
+        refine ⟨_, h ++ [Ev.grind b], k, by simp [hs], rootsInv_append_grind hR b _ xs, hr',
+          boundary_append_grind h b, ha', ⟨⟨by simp, by simp⟩, _, _, hku, rfl⟩,
+          Or.inl ⟨rfl, _, hkind, ?_⟩, hx, fun hD ↦ C.grind hr ha hD,
+          List.prefix_append _ _, by simp⟩
+        simp only [term, powF, ind_of hpow, one_mul, le_refl]
       · simp at hx
   | commit ht w k =>
     simp only [xrun] at hx
     split at hx
     · rename_i x0 x1 xs hs
-      simp only [absorbBlock_option, Option.bind_eq_some_iff] at hx
-      obtain ⟨cv0, h0, cv1, h1, hx⟩ := hx
+      simp only [Option.bind_eq_some_iff] at hx
+      obtain ⟨sp0, h0, sp1, h1, hx⟩ := hx
       split at hx
       · rename_i root hroot
-        obtain ⟨j0, hj0, hej0, -⟩ := (look_eq_some_iff ℓ _ cv0).mp h0
-        obtain ⟨j1, hj1, hej1, -⟩ := (look_eq_some_iff ℓ _ cv1).mp h1
-        obtain ⟨-, hk0⟩ := entry_read hf hk hj0 (x := x0) (tag := 1) (by norm_num)
-          (by rw [hej0])
-        have hk0' : Known σ P ℓ cv0 (.half h ht w k x0) := by
-          have := hk0 (.half h ht w k x0) (by simp [stepAt, stepSt])
-          rwa [show ℓ[j0].2 = cv0 by rw [hej0]] at this
-        obtain ⟨hk1, hkn1⟩ := entry_read hf hk0' hj1 (x := x1) (tag := 1) (by norm_num)
-          (by rw [hej1])
-        have hj12 : ℓ[j1].2 = cv1 := by rw [hej1]
-        rw [hj12] at hk1 hkn1
-        -- the word extracted before the root is absorbed is the word of the whole log
-        have h01 : j0 < j1 := lt_of_chunk hf hj0 hj1 (Or.inl (by
-          rw [hej1, hej0]; exact chunk0_append _ _))
-        have hrt : ∀ (i : ℕ) (hi : i < ℓ.length), ℓ[i].2 = root → i < j1 := by
-          intro i hi hir
-          refine lt_of_rootOf hf hi hj1 ⟨cv0, x0, x1, ℓ[j0], by rw [hej1], ?_, ?_, ?_⟩
-          · have := find?_take_output hf hj0 h01 hj1.le
-            rwa [show ℓ[j0].2 = cv0 by rw [hej0]] at this
-          · rw [hej0]; exact List.drop_left' (digestBytes_length _)
-          · rw [hir]; exact hroot
-        have hW : extract (look (ℓ.take j1)) root ht w = extract (look ℓ) root ht w :=
-          extract_take_eq hf hrt ht w
-        have hr' := Prog.Reachable.commit (extract (look ℓ) root ht w) hr ha
+        obtain ⟨hv0, -, h₀', pos₀', hk0, hc0⟩ := absorb_step hf hk hv hc
+          (fun p₁' he ↦ by cases he; exact ⟨h, _, hset, trivial⟩) (Or.inl rfl) h0
+        have hc0' : consume (extract (lookH ℓ)) h₀' pos₀' sp0.pending =
+            .done h (.half ht w k x0) := by
+          rw [hc0]
+          simp [consume, hset]
+        obtain ⟨hv1, hne1, h₀'', pos₀'', hk1, hc1⟩ := absorb_step hf hk0 hv0 hc0'
+          (fun p₁' he ↦ by cases he) (Or.inl rfl) h1
+        have hr' := Prog.Reachable.commit (extract (lookH ℓ) root ht w) hr ha
           (wellShaped_extract _ _ _ _)
-        have ha' : P.after (h ++ [Ev.commit ht w (extract (look ℓ) root ht w)]) = some k := by
-          rw [Prog.after_append_single _ ha]; simp [Prog.after]
-        refine ⟨_, _, k, by simp [hs], rootsInv_append_commit hR root ht w cv1 xs, hr',
-          boundary_append_commit _ _ _ _, ha', fun h'' p'' hse ↦ hkn1 _ ?_, ⟨_, hk1, ?_⟩, hx,
-          fun hD ↦ C.commit _ hr ha (wellShaped_extract _ _ _ _) hD, by simp, by simp⟩
-        · simp only [stepAt, ↓reduceIte, hroot, hW, stInfo, hse, Option.map_some]
-        · simp only [stepAt, ↓reduceIte, hroot, hW, term, le_refl]
+        have ha' := after_commit_step ha (extract (lookH ℓ) root ht w)
+        refine ⟨_, _, k, by simp [hs], rootsInv_append_commit hR root ht w sp1 xs, hr',
+          boundary_append_commit _ _ _ _, ha', ⟨hv1, h₀'', pos₀'', hk1, ?_⟩,
+          Or.inr ⟨hne1, grindBits_append_commit _ _ _ _⟩, hx,
+          fun hD ↦ C.commit _ hr ha (wellShaped_extract _ _ _ _) hD,
+          List.prefix_append _ _, by simp⟩
+        rw [hc1]
+        simp [consume, hroot]
       · simp at hx
     · simp at hx
 
@@ -381,43 +615,52 @@ theorem eq_take_of_prefix {h₀ h₁ hist : List Ev} (h0 : h₀ <+: hist) (h1 : 
     (hl : h₀.length ≤ h₁.length) : h₀ = h₁.take h₀.length :=
   List.prefix_iff_eq_take.mp (List.prefix_of_prefix_length_le h0 h1 hl)
 
-theorem term_le_termSum {κ : Shape × Digest} (hκ : κ ∈ (decode σ P ℓ).kinds) :
+theorem term_le_termSum {κ : Shape × KState} (hκ : κ ∈ (decode σ P ℓ).kinds) :
     term C.D ℓ κ ≤ termSum C.D σ P ℓ :=
   List.single_le_sum (fun _ _ ↦ bot_le) _ (List.mem_map_of_mem hκ)
 
-/-- **The run from a boundary.** From a boundary of an accepting run at which the decoder knows
-the chain state and a record carries the group, if a boundary at least as long on the
-extracted history is doomed, the records' terms sum to at least one. -/
-theorem from_boundary (hf : ¬ Fail σ ℓ) {s_f : St} {hist : List Ev} :
+/-- **The run from a boundary.** From a boundary of an accepting run whose group is carried, if a
+boundary at least as long on the extracted history is doomed, the records' terms sum to at least
+one. -/
+theorem from_boundary (hf : ¬ Fail σ ℓ) (hε1 : ∀ h, grindBits h = 0 → C.ε h < 1) {s_f : St}
+    {hist : List Ev} :
     ∀ (n : ℕ) (s : St) (h : List Ev) (p : Prog Bool), s.stream.length < n →
-      RootsInv (look ℓ) s h → P.Reachable h → P.after h = some p →
-      (∀ h' p', settle h p = some (h', p') → Known σ P ℓ s.cv (.st h' p')) →
-      Carried (σ := σ) C ℓ s.cv h p → xrun (look ℓ) p s h = some (true, s_f, hist) →
+      RootsInv (lookH ℓ) s h → P.Reachable h → P.after h = some p → Boundary h →
+      (ValidPending s.sponge.pending ∧ ∃ h₀ pos₀, Known σ P ℓ (capOf s.sponge.state) (h₀, pos₀) ∧
+        consume (extract (lookH ℓ)) h₀ pos₀ s.sponge.pending = .done h (.node p)) →
+      Carried (σ := σ) C ℓ s h p → xrun (lookH ℓ) (lookF ℓ) p s h = some (true, s_f, hist) →
       (∃ h₀, h₀ <+: hist ∧ h.length ≤ h₀.length ∧ Boundary h₀ ∧ C.D h₀) →
       1 ≤ termSum C.D σ P ℓ
-  | 0, _, _, _, hn, _, _, _, _, _, _, _ => absurd hn (Nat.not_lt_zero _)
-  | n + 1, s, h, p, hn, hR, hr, ha, hk, hcarry, hx, hbad => by
-    obtain ⟨p_e, s_e, h_e, hg, hx', hR', hre, hae, hke, hm, hpre, hnb, hst⟩ :=
-      follow C hf p s h hR hr ha hk hx
-    obtain ⟨κ, hκ, hterm⟩ := hcarry
-    have hhist : h <+: hist := xrun_prefix _ _ _ _ hx
-    have hehist : h_e <+: hist := xrun_prefix _ _ _ _ hx'
+  | 0, _, _, _, hn, _, _, _, _, _, _, _, _ => absurd hn (Nat.not_lt_zero _)
+  | n + 1, s, h, p, hn, hR, hr, ha, hb, hsp, hcar, hx, hbad => by
+    obtain ⟨p_e, s_e, h_e, hx', hR', hre, hae, hse, hm, hpre, hnb, hst, hres⟩ :=
+      group C hf hR hr ha hsp hcar hx
+    have hhist : h <+: hist := xrun_prefix _ _ _ _ _ hx
+    have hehist : h_e <+: hist := xrun_prefix _ _ _ _ _ hx'
     by_cases hesc : C.D h ∧ ¬ C.D h_e
-    · -- the group leaves doom: its record's term is one
-      calc (1 : ℝ≥0∞) = ind (C.D h) * gv C.D ℓ s.cv h p := by
-            rw [ind_of hesc.1, one_mul, hg, esc_move hm hesc.2]
-        _ ≤ term C.D ℓ κ := hterm
-        _ ≤ termSum C.D σ P ℓ := term_le_termSum C hκ
+    · -- the group leaves doom
+      rcases hres with ⟨κ, hκ, hterm⟩ | ⟨heq, hg⟩
+      · calc (1 : ℝ≥0∞) = ind (C.D h) * esc C.D h_e p_e := by
+              rw [ind_of hesc.1, one_mul, esc_move hm hesc.2]
+          _ ≤ term C.D ℓ κ := hterm
+          _ ≤ termSum C.D σ P ℓ := term_le_termSum C hκ
+      · -- a group of openings only escapes with probability `0` or `1`; the certificate makes
+        -- it `0`
+        exfalso
+        have h1 : esc C.D h p = 1 := by rw [heq, esc_move hm hesc.2]
+        have h2 := esc_le_eps C hr hb ha hesc.1
+        rw [h1] at h2
+        exact absurd (hε1 h hg) (not_lt.mpr h2)
     have hcase : C.D h_e ∨ ¬ C.D h := by tauto
     -- a doomed boundary past `h` is past the group
     have hpast : ¬ C.D h → ∀ h₀, h₀ <+: hist → h.length ≤ h₀.length → Boundary h₀ → C.D h₀ →
         h_e.length < h₀.length := by
-      intro hD h₀ hh₀ hl hb hD₀
+      intro hD h₀ hh₀ hl hb₀ hD₀
       by_contra hle
       rw [not_lt] at hle
       rcases Nat.lt_or_eq_of_le hl with hlt | heq
-      · rw [eq_take_of_prefix hh₀ hehist hle] at hb
-        exact hnb _ hlt hle hb
+      · rw [eq_take_of_prefix hh₀ hehist hle] at hb₀
+        exact hnb _ hlt hle hb₀
       · have : h₀ = h := by
           rw [eq_take_of_prefix hh₀ hhist (by omega), ← heq, List.take_length]
         exact hD (this ▸ hD₀)
@@ -427,8 +670,8 @@ theorem from_boundary (hf : ¬ Fail σ ℓ) {s_f : St} {hist : List Ev} :
       obtain ⟨-, -, rfl⟩ := hx'
       rcases hcase with hD | hD
       · exact absurd hD (C.final hre hae)
-      · obtain ⟨h₀, hh₀, hl, hb, hD₀⟩ := hbad
-        have := hpast hD h₀ hh₀ hl hb hD₀
+      · obtain ⟨h₀, hh₀, hl, hb₀, hD₀⟩ := hbad
+        have := hpast hD h₀ hh₀ hl hb₀ hD₀
         have := hh₀.length_le
         omega
     have hpm : ∀ a, p_e ≠ .ret a := by
@@ -437,34 +680,36 @@ theorem from_boundary (hf : ¬ Fail σ ℓ) {s_f : St} {hist : List Ev} :
       cases a
       · exact hm
       · exact hret rfl
-    obtain ⟨s', h', p', hlt, hR'', hr'', hb'', ha'', hk'', hc'', hx'', hDD, -, hlen'⟩ :=
-      move C hf hm hpm hR' hre hae hke hx'
-    refine from_boundary hf n s' h' p' (by rw [hst] at hlt; omega) hR'' hr'' ha'' hk'' hc''
-      hx'' ?_
+    obtain ⟨s', h', p', hlt, hR'', hr'', hb'', ha'', hsp'', hc'', hx'', hDD, -, hlen'⟩ :=
+      move C hf hm hpm hR' hre hae hse hx'
+    refine from_boundary hf hε1 n s' h' p' (by rw [hst] at hlt; omega) hR'' hr'' ha'' hb''
+      hsp'' hc'' hx'' ?_
     rcases hcase with hD | hD
-    · exact ⟨h', xrun_prefix _ _ _ _ hx'', le_rfl, hb'', hDD hD⟩
-    · obtain ⟨h₀, hh₀, hl, hb, hD₀⟩ := hbad
-      exact ⟨h₀, hh₀, by have := hpast hD h₀ hh₀ hl hb hD₀; omega, hb, hD₀⟩
+    · exact ⟨h', xrun_prefix _ _ _ _ _ hx'', le_rfl, hb'', hDD hD⟩
+    · obtain ⟨h₀, hh₀, hl, hb₀, hD₀⟩ := hbad
+      exact ⟨h₀, hh₀, by have := hpast hD h₀ hh₀ hl hb₀ hD₀; omega, hb₀, hD₀⟩
 
 /-- **The final inequality.** If the seeded verifier of the statement `x`, whose root is a root
-of the program, accepts `π` with every hash answered by a log without failure, and some boundary
-prefix of the extracted history past the root is doomed, the potential of the log is at least
-one. -/
-theorem final_ineq (hf : ¬ Fail σ ℓ) {x : X} {π : Proof} (hroot : RootOk P (σ.root x))
-    (hv : verify (look ℓ) (σ.seed x) (nodeAt P (σ.root x)) π = some true)
-    (hbad : ∃ h₀, h₀ <+: extractedFrom (look ℓ) (σ.seed x) (nodeAt P (σ.root x)) (σ.root x) π ∧
-      (σ.root x).length ≤ h₀.length ∧ Boundary h₀ ∧ C.D h₀) :
+of the program, accepts `π` with every query answered by a log without failure, and some
+boundary prefix of the extracted history past the root is doomed, the potential of the log is at
+least one. The certificate's escape bounds are below one at histories without proof of work. -/
+theorem final_ineq (hf : ¬ Fail σ ℓ) (hε1 : ∀ h, grindBits h = 0 → C.ε h < 1) {x : X}
+    {π : Proof} (hroot : RootOk P (σ.root x))
+    (hv : verify (lookH ℓ) (lookF ℓ) (σ.seed x) (nodeAt P (σ.root x)) π = some true)
+    (hbad : ∃ h₀, h₀ <+: extractedFrom (lookH ℓ) (lookF ℓ) (σ.seed x) (nodeAt P (σ.root x))
+      (σ.root x) π ∧ (σ.root x).length ≤ h₀.length ∧ Boundary h₀ ∧ C.D h₀) :
     1 ≤ pot C.D σ P ℓ := by
   obtain ⟨seed, s, hseed, hx⟩ := xrun_of_verify_from (σ.root x) hv
   obtain ⟨hkind, hknown⟩ := seed_known (P := P) hf hseed hroot
   have hS : 1 ≤ termSum C.D σ P ℓ := by
-    refine from_boundary C hf (π.stream.length + 1) ⟨seed, π.stream, π.openings, []⟩ (σ.root x)
-      (nodeAt P (σ.root x)) (Nat.lt_succ_self _) ?_ hroot.1 (after_nodeAt hroot) ?_ ?_ hx hbad
+    refine from_boundary C hf hε1 (π.stream.length + 1)
+      ⟨⟨seed, []⟩, π.stream, π.openings, []⟩ (σ.root x) (nodeAt P (σ.root x))
+      (Nat.lt_succ_self _) ?_ hroot.1 (after_nodeAt hroot) hroot.2.1
+      ⟨⟨by simp, by simp⟩, _, _, hknown, rfl⟩ ?_ hx hbad
     · show commits (σ.root x) = []
       exact hroot.2.2.2.1
-    · intro h' p' hse
-      exact hknown _ (by simp only [stInfo, hse, Option.map_some])
-    · exact ⟨_, hkind, by simp only [term, le_refl]⟩
+    · refine Or.inl ⟨rfl, _, hkind, ?_⟩
+      simp only [term, powF, one_mul, le_refl]
   simp only [pot, hf, ↓reduceIte]
   exact le_min le_rfl hS
 

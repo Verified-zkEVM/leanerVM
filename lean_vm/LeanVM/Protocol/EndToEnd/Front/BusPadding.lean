@@ -12,8 +12,8 @@ public import LeanVM.Protocol.Bus
 /-!
 # The padding weight
 
-The verifier (`python-verifier/verifier.py:270-276` at leanVM
-`3a37fb6e1c7423e36b67d1cac4eda70c3ad4dd45`) computes `pad_n(point)`, the multilinear extension
+The verifier (`python-verifier/verifier.py:278-284` at leanVM
+`3375f7a137c50b803f3416f6466b5d4e0719708a`) computes `pad_n(point)`, the multilinear extension
 of `[x ≥ n]` on the cube of `point`'s length, in one pass from the low bit (`paddingWeight`);
 the bus phase writes it as the extension of the indicator table (`Bus.padWeight`). They agree for
 every `n ≤ 2^|point|` (`paddingWeight_eq_padWeight`), which is `doc/leanvm` Lemma `lem:suffix`:

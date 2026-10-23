@@ -19,7 +19,7 @@ import Mathlib.Algebra.Polynomial.BigOperators
 # Honest sumcheck rounds on the wire
 
 The verifier program's `sumcheck claim count modes` (`LeanVM.Protocol.Verifier.sumcheck`,
-`python-verifier/verifier.py:405-426` at leanVM `127510d14c98ade4e8a97646c44fa7f1ff5e752d`) reads,
+`python-verifier/verifier.py:448-472` at leanVM `3375f7a137c50b803f3416f6466b5d4e0719708a`) reads,
 per round, a polynomial of `count` coefficients with one coefficient left out: in plain mode
 (`none`) the linear one, in equality mode (`some r`) the constant one, which it derives from the
 running claim. Then it samples the challenge and moves to the polynomial's value there.
@@ -37,8 +37,8 @@ it exactly (`follows_sumcheckRoundPoly`), in characteristic two. `follows_sumche
 script `hSumcheck` follows the program from `claimOf pre`, to the challenges drawn and the final
 claim `claimOf (pre ++ challenges)`.
 
-Nothing here is specific to a phase: the bus's GKR layers (equality mode), the table sumcheck,
-the Flock rounds and the lincheck all instantiate it.
+Nothing here is specific to a phase: the bus's GKR layers (equality mode), the table sumcheck
+and the Keccak reduction's sumchecks all instantiate it.
 -/
 
 namespace LeanVM.Protocol.EndToEnd.Complete

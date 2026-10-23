@@ -8,13 +8,14 @@
 module
 
 public import LeanVM.Spec.Field
-public import LeanVM.Spec.Blake2s
+public import LeanVM.Spec.Keccak
 
 /-!
 # leanISA
 
-The leanVM instruction set, from §2 of the leanVM specification at
-`3f7dc2196e43ca60034c5803eb307c050b4f91d9`.
+The leanVM instruction set, from §2 of the leanVM specification
+(`doc/leanvm/body/02-vm-specification.tex`) at `3375f7a137c50b803f3416f6466b5d4e0719708a` (branch
+`keccak-gkr`).
 
 Words are elements of `E = K[y]/(y³ + y + 1)`, `K = GF(2^64)`. Addresses are powers of the
 generator `g` of `K*`: memory word `i` and bytecode slot `i` both sit at `g^i`. The machine has two
@@ -38,7 +39,7 @@ inductive Opcode
   | setConstant
   | deref
   | jump
-  | blake2s
+  | keccak
   deriving DecidableEq, Repr
 
 /-- The bus code of an opcode: `g^0, …, g^5` in constructor order (specification §6.4). -/
@@ -48,18 +49,18 @@ def Opcode.code : Opcode → K
   | .setConstant => gpow 2
   | .deref => gpow 3
   | .jump => gpow 4
-  | .blake2s => gpow 5
+  | .keccak => gpow 5
 
 /-! ## Size bounds (specification §2, §6.2) -/
 
-/-- The least memory log-size, `2^16` cells (`cpu/mod.rs:50`, `MIN_LOG_MEM`). -/
+/-- The least memory log-size, `2^16` cells (`cpu/mod.rs:41`, `MIN_LOG_MEM`). -/
 def minLogMem : ℕ := 16
 
-/-- The greatest memory log-size, `2^32` cells (`cpu/mod.rs:51`, `MAX_LOG_MEM`). -/
+/-- The greatest memory log-size, `2^32` cells (`cpu/mod.rs:42`, `MAX_LOG_MEM`). -/
 def maxLogMem : ℕ := 32
 
-/-- The greatest bytecode log-size (`crates/verifier/src/layout.rs:418`; `MAX_LOG_BYTECODE`,
-`cpu/mod.rs:64` at `a386121f`, is removed at `127510d1`). -/
+/-- The greatest bytecode log-size, in instructions (`crates/verifier/src/layout.rs:449`;
+`verifier.py:959`). -/
 def maxLogBytecode : ℕ := 32
 
 end
@@ -121,9 +122,11 @@ inductive Instr
   | deref (o1 o2 o3 : K) (mode : DerefMode)
   /-- `[o_c]`, `[o_d]`, `[o_f]` are in `K`; jump to `([o_d], [o_f])` if `[o_c] ≠ 0`. -/
   | jump (oc od of : K)
-  /-- `([o_out], [g·o_out])` is the BLAKE2s compression of the message `[o_m₀], …, [o_m₃]` under
-  the chaining value `([o_cv], [g·o_cv])`, with counter and flags `[o_md]`. -/
-  | blake2s (om : Fin 4 → K) (ocv oout omd : K)
+  /-- One Keccak-f[1600] permutation of a state held in thirteen cells: the cells
+  `[o_m₀], …, [o_m₃]`, `[g^k · o_tail]` (`k < 4`), `[o_b8]`, `[g^k · o_cap]` (`k < 4`), read in the
+  layout `inOdd`, permute to the cells `[g^k · o_out]` (`k < 13`), written in the layout `outOdd`
+  (`KeccakCells`). -/
+  | keccak (om : Fin 4 → K) (otail ob8 ocap oout : K) (inOdd outOdd : Bool)
   deriving DecidableEq
 
 /-- The opcode of an instruction. -/
@@ -133,7 +136,7 @@ def Instr.opcode : Instr → Opcode
   | .setConstant .. => .setConstant
   | .deref .. => .deref
   | .jump .. => .jump
-  | .blake2s .. => .blake2s
+  | .keccak .. => .keccak
 
 /-- A program: `2^logSize` instructions, instruction `i` at address `g^i`. -/
 structure Program where
@@ -148,37 +151,75 @@ structure Program where
 noncomputable def Program.fetch (prog : Program) (pc : K) : Option Instr :=
   (gLog? prog.logSize pc).map prog.code
 
-/-! ## `BLAKE2S`
+/-! ## `KECCAK`
 
-How the 32-bit words of the compression function are stored in memory words. -/
+How the 25 lanes of a Keccak state are held in thirteen memory words, two lanes to a word, in the
+words' limbs `0` and `1`, the `y²` limb zero (specification §2, the `KECCAK` paragraph;
+`_keccak_cell_lanes`, `verifier.py:864-876`; `cell_lanes`, `crates/leanvm_core/src/keccak.rs:66-87`):
 
-/-- The metadata word: the counter is limb 0, the two flag words are the halves of limb 1. -/
-def unpackMetadata (md : E) : UInt64 × UInt32 × UInt32 :=
-  (⟨(md.limb 0).toBitVec⟩, lowWord (md.limb 1), highWord (md.limb 1))
+* even layout: cell `c < 8` holds lanes `(2c, 2c + 1)`, cell `8` holds `(16, ·)`;
+* odd layout: cell `0` holds `(·, 0)`, cell `1 ≤ c ≤ 8` holds `(2c − 1, 2c)`;
+* both: cell `9 ≤ c < 13` holds `(2c − 1, 2c)`.
 
-/-- The sixteen message words of four memory words. -/
-def messageWords (m : Fin 4 → E) : Vector UInt32 16 :=
-  cellWords (m 0) ++ cellWords (m 1) ++ cellWords (m 2) ++ cellWords (m 3)
+A limb `·` holds no lane: it is ignored when read and zero when written. -/
 
-/-- What `BLAKE2S` checks: the nine words have no `y²` term, and the output is the compression
-of the message under the chaining value and the metadata. -/
-def CompressCells (m : Fin 4 → E) (cv0 cv1 out0 out1 md : E) : Prop :=
-  (∀ i, IsCanonical128 (m i)) ∧ IsCanonical128 cv0 ∧ IsCanonical128 cv1 ∧
-    IsCanonical128 out0 ∧ IsCanonical128 out1 ∧ IsCanonical128 md ∧
-    cellWords out0 ++ cellWords out1 =
-      compress (cellWords cv0 ++ cellWords cv1) (messageWords m) (unpackMetadata md).1
-        (unpackMetadata md).2.1 (unpackMetadata md).2.2
+/-- The lanes cell `c` holds in limbs `0` and `1`, in the layout `odd` (`_keccak_cell_lanes`,
+`verifier.py:868-876`); `none` marks a limb that holds no lane. -/
+def cellLanes (odd : Bool) (c : ℕ) : Option ℕ × Option ℕ :=
+  if 9 ≤ c ∨ (odd ∧ 1 ≤ c) then (some (2 * c - 1), some (2 * c))
+  else if odd then (none, some 0)
+  else if c = 8 then (some 16, none)
+  else (some (2 * c), some (2 * c + 1))
 
-/-- `CompressCells` is decidable (compared as lists of words, which the kernel reduces). -/
-instance {m : Fin 4 → E} {cv0 cv1 out0 out1 md : E} :
-    Decidable (CompressCells m cv0 cv1 out0 out1 md) :=
-  decidable_of_iff
-    ((∀ i, IsCanonical128 (m i)) ∧ IsCanonical128 cv0 ∧ IsCanonical128 cv1 ∧
-      IsCanonical128 out0 ∧ IsCanonical128 out1 ∧ IsCanonical128 md ∧
-      (cellWords out0 ++ cellWords out1).toList =
-        (compress (cellWords cv0 ++ cellWords cv1) (messageWords m) (unpackMetadata md).1
-          (unpackMetadata md).2.1 (unpackMetadata md).2.2).toList)
-    (by simp only [CompressCells, Vector.toList_inj])
+/-- The state thirteen cells hold in the layout `odd`: lane `l` is the limb of the cell that holds
+it (`state_of_cells`, `crates/leanvm_core/src/keccak.rs:95-107`). -/
+def stateOfCells (cells : Fin 13 → E) (odd : Bool) : KState :=
+  (List.finRange 13).foldl (fun s (c : Fin 13) ↦
+    let (lo, hi) := cellLanes odd c.val
+    let s := match lo with
+      | some l => s.setIfInBounds l (cells c |>.limb 0).lane
+      | none => s
+    match hi with
+      | some l => s.setIfInBounds l (cells c |>.limb 1).lane
+      | none => s) (Vector.replicate 25 0)
+
+/-- The thirteen cells holding a state in the layout `odd`, a limb holding no lane zero, the `y²`
+limb zero (`cells_of_state`, `crates/leanvm_core/src/keccak.rs:109-120`). -/
+def cellsOfState (s : KState) (odd : Bool) (c : Fin 13) : E :=
+  let limb := fun (l : Option ℕ) ↦ match l with
+    | some l => K.ofLane (Keccak.lane s l)
+    | none => 0
+  E.ofLimbs (limb (cellLanes odd c).1) (limb (cellLanes odd c).2) 0
+
+/-- What `KECCAK` checks: the thirteen cells read have no `y²` term, and the thirteen written are
+the cells, in the layout `outOdd`, of Keccak-f[1600] of the state the cells read hold in the
+layout `inOdd`. -/
+def KeccakCells (input : Fin 13 → E) (inOdd : Bool) (output : Fin 13 → E) (outOdd : Bool) :
+    Prop :=
+  (∀ c, IsCanonical128 (input c)) ∧
+    ∀ c, output c = cellsOfState (keccakF (stateOfCells input inOdd)) outOdd c
+
+/-- `KeccakCells` is decidable. -/
+instance {input : Fin 13 → E} {inOdd : Bool} {output : Fin 13 → E} {outOdd : Bool} :
+    Decidable (KeccakCells input inOdd output outOdd) := by
+  unfold KeccakCells; infer_instance
+
+/-- The address of read cell `c` relative to the frame: `o_m₀, …, o_m₃`, then `g^k · o_tail`
+(`k < 4`), `o_b8`, then `g^k · o_cap` (`k < 4`) (`_flushes_keccak`'s `address`,
+`verifier.py:899-904`). -/
+def keccakInOffset (om : Fin 4 → K) (otail ob8 ocap : K) (c : Fin 13) : K :=
+  if h : c.val < 4 then om ⟨c.val, h⟩
+  else if c.val < 8 then g ^ (c.val - 4) * otail
+  else if c.val = 8 then ob8
+  else g ^ (c.val - 9) * ocap
+
+/-- Read the thirteen words at the frame-relative offsets `offset c`, in order; `none` if any read
+fails. -/
+def readCells (read : K → Option E) (fp : K) (offset : Fin 13 → K) : Option (Fin 13 → E) :=
+  (List.finRange 13).foldr (fun c acc ↦ do
+    let v ← read (fp * offset c)
+    let rest ← acc
+    pure fun c' ↦ if c' = c then v else rest c') (some fun _ ↦ 0)
 
 /-! ## One step -/
 
@@ -231,17 +272,10 @@ def executeWith (read : K → Option E) (r : Regs K) : Instr → Option (Regs K)
     let f ← read (r.fp * of)
     guard (IsInK c ∧ IsInK d ∧ IsInK f)
     pure (if c = 0 then r.next else ⟨d.limb 0, f.limb 0⟩)
-  | .blake2s om ocv oout omd => do
-    let m0 ← read (r.fp * om 0)
-    let m1 ← read (r.fp * om 1)
-    let m2 ← read (r.fp * om 2)
-    let m3 ← read (r.fp * om 3)
-    let cv0 ← read (r.fp * ocv)
-    let cv1 ← read (r.fp * (g * ocv))
-    let out0 ← read (r.fp * oout)
-    let out1 ← read (r.fp * (g * oout))
-    let md ← read (r.fp * omd)
-    guard (CompressCells ![m0, m1, m2, m3] cv0 cv1 out0 out1 md)
+  | .keccak om otail ob8 ocap oout inOdd outOdd => do
+    let input ← readCells read r.fp (keccakInOffset om otail ob8 ocap)
+    let output ← readCells read r.fp fun c ↦ g ^ c.val * oout
+    guard (KeccakCells input inOdd output outOdd)
     pure r.next
 
 /-- Execute an instruction on the memory `L`. -/
@@ -329,22 +363,30 @@ def derefFlags : DerefMode → K × K
   | .pc => (1, 0)
   | .fp => (0, 1)
 
-/-- The bus entry of an instruction, `(opcode, op₁, …, op₇)`: slots 3 to 10 of specification §8.1,
-the eight public columns of `cpu/layout.rs:221-282`. -/
-def entry : Instr → Vector K 8
-  | .xor oA oB oC => #v[Opcode.xor.code, oA, oB, oC, 0, 0, 0, 0]
-  | .mulNative oA oB oC => #v[Opcode.mulNative.code, oA, oB, oC, 0, 0, 0, 0]
-  | .setConstant o k => #v[Opcode.setConstant.code, o, k.limb 0, k.limb 1, k.limb 2, 0, 0, 0]
-  | .deref o1 o2 o3 mode =>
-      #v[Opcode.deref.code, o1, o2, o3, (derefFlags mode).1, (derefFlags mode).2, 0, 0]
-  | .jump oc od of => #v[Opcode.jump.code, oc, od, of, 0, 0, 0, 0]
-  | .blake2s om ocv oout omd => #v[Opcode.blake2s.code, om 0, om 1, om 2, om 3, ocv, oout, omd]
+/-- A layout flag as the bytecode carries it: `0` or `1` (`flag`, `cpu/layout.rs:244`). -/
+def flagK (b : Bool) : K := if b then 1 else 0
 
-/-- The sixteen slots of an instruction (specification §8.1): the entry at slots 3 to 10, zero
-elsewhere. -/
+/-- The bus entry of an instruction, `(opcode, op₁, …, op₁₀)`: slots 3 to 13 of specification
+§8.1, the eleven public columns of `bytecode_columns` (`cpu/layout.rs:221-300`): offsets as
+g-powers, a `SET` immediate as its three limbs, the `DEREF` store-mode flags and `KECCAK`'s
+layout flags as `0` or `1`, unused slots zero. -/
+def entry : Instr → Vector K 11
+  | .xor oA oB oC => #v[Opcode.xor.code, oA, oB, oC, 0, 0, 0, 0, 0, 0, 0]
+  | .mulNative oA oB oC => #v[Opcode.mulNative.code, oA, oB, oC, 0, 0, 0, 0, 0, 0, 0]
+  | .setConstant o k =>
+      #v[Opcode.setConstant.code, o, k.limb 0, k.limb 1, k.limb 2, 0, 0, 0, 0, 0, 0]
+  | .deref o1 o2 o3 mode =>
+      #v[Opcode.deref.code, o1, o2, o3, (derefFlags mode).1, (derefFlags mode).2, 0, 0, 0, 0, 0]
+  | .jump oc od of => #v[Opcode.jump.code, oc, od, of, 0, 0, 0, 0, 0, 0, 0]
+  | .keccak om otail ob8 ocap oout inOdd outOdd =>
+      #v[Opcode.keccak.code, om 0, om 1, om 2, om 3, otail, ob8, ocap, oout, flagK inOdd,
+        flagK outOdd]
+
+/-- The sixteen slots of an instruction (specification §8.1; `BYTECODE_PUBLIC_SLOT = 3`,
+`leaf.rs:744`): the entry at slots 3 to 13, zero elsewhere. -/
 def encodeSlots (i : Instr) : Vector K 16 :=
   let e := entry i
-  #v[0, 0, 0, e[0], e[1], e[2], e[3], e[4], e[5], e[6], e[7], 0, 0, 0, 0, 0]
+  #v[0, 0, 0, e[0], e[1], e[2], e[3], e[4], e[5], e[6], e[7], e[8], e[9], e[10], 0, 0]
 
 end
 end LeanVM.Arithmetization

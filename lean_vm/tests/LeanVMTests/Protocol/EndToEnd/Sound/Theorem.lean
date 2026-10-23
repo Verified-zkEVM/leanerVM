@@ -18,7 +18,7 @@ namespace LeanVMTests.Protocol.EndToEnd.Sound.Theorem
 open LeanVM.Parameters LeanVM.Semantics LeanVM.Arithmetization LeanVM.Protocol
 open LeanVM.Protocol.Compile LeanVM.Protocol.Compile.Rom LeanVM.Protocol.Verifier
 open LeanVM.Protocol.LeanIsa LeanVM.Protocol.EndToEnd.Sound LeanVM.Protocol.EndToEnd.Front
-open LeanVM.Protocol.Blake2sHash LeanVM.Protocol.Rom
+open LeanVM.Protocol.KeccakHash LeanVM.Protocol.Rom
 open LeanVM.Protocol.EndToEnd.Complete (publicDigest)
 open OracleComp OracleSpec
 open scoped ENNReal
@@ -33,7 +33,7 @@ noncomputable example (prog : Program) (input : PublicInput) :
 example (A : OracleComp HashSpec (Statement × Proof)) (QA : ℕ) (hA : IsTotalQueryBound A QA) :
     Pr{let z ← romExperiment A (verifierFam leanVmSeeds anyProgram)}[z.1.2 = true ∧
       ¬ Extracted z.1.1.1.1 z.1.1.1.2 z.2 z.1.1.2] ≤
-      ((QA + 13213 : ℕ) : ℝ≥0∞) * ((2 : ℝ≥0∞)⁻¹ ^ 128 + failBound leanVmSeeds (QA + 13213)) :=
+      ((QA + 12008 : ℕ) : ℝ≥0∞) * ((2 : ℝ≥0∞)⁻¹ ^ 128 + failBound leanVmSeeds (QA + 12008)) :=
   leanVm_knowledge A QA hA
 
 example (A : OracleComp HashSpec (Statement × Proof)) (QA : ℕ) (hA : IsTotalQueryBound A QA) :
@@ -42,13 +42,13 @@ example (A : OracleComp HashSpec (Statement × Proof)) (QA : ℕ) (hA : IsTotalQ
       ¬ ∃ (s : Sizes) (q : Column (leanIsaμ z.1.1.1.1 s)),
         extractStack z.1.1.1.1 z.1.1.1.2 z.2 z.1.1.2 =
           some (⟨s, q⟩ : Σ s : Sizes, Column (leanIsaμ z.1.1.1.1 s)) ∧
-        ∃ t, AssignmentRepresents (witnessOf Blake2sFlock.blake2sFlockSpec z.1.1.1.1 s q) t ∧
+        ∃ t, AssignmentRepresents (witnessOf z.1.1.1.1 s q) t ∧
           ValidExecution z.1.1.1.1 z.1.1.1.2 t] ≤
-      ((QA + 13213 : ℕ) : ℝ≥0∞) * ((2 : ℝ≥0∞)⁻¹ ^ 128 + failBound leanVmSeeds (QA + 13213)) :=
+      ((QA + 12008 : ℕ) : ℝ≥0∞) * ((2 : ℝ≥0∞)⁻¹ ^ 128 + failBound leanVmSeeds (QA + 12008)) :=
   leanVm_execution A QA hA
 
 example (QA : ℕ) (hQ : QA ≤ 2 ^ 64) :
-    ((QA + 13213 : ℕ) : ℝ≥0∞) * ((2 : ℝ≥0∞)⁻¹ ^ 128 + failBound leanVmSeeds (QA + 13213)) ≤
+    ((QA + 12008 : ℕ) : ℝ≥0∞) * ((2 : ℝ≥0∞)⁻¹ ^ 128 + failBound leanVmSeeds (QA + 12008)) ≤
       (2 : ℝ≥0∞)⁻¹ ^ 63 :=
   leanVm_bound_le hQ
 

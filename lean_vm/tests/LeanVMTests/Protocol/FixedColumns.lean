@@ -114,7 +114,8 @@ example (w : Vector E 4) : eval₂Mle (bytecodeColumn singletonColumnProgram).va
 /-! ## Sixteen instructions against the Rust encoder -/
 
 /-- Sixteen instructions of the six kinds, with the distinct operands `K.ofBits 1` to
-`K.ofBits 58` in order of appearance, and the three `DEREF` modes. -/
+`K.ofBits 58` in order of appearance (the two `KECCAK`s' output operands `K.ofBits 59` and
+`K.ofBits 60`), the three `DEREF` modes, and both `KECCAK` layout-flag pairs. -/
 def sixteen : Program where
   logSize := 4
   logSize_le := by decide
@@ -124,16 +125,16 @@ def sixteen : Program where
     .setConstant (K.ofBits 7) (E.ofLimbs (K.ofBits 8) (K.ofBits 9) (K.ofBits 10)),
     .deref (K.ofBits 11) (K.ofBits 12) (K.ofBits 13) .cell,
     .jump (K.ofBits 14) (K.ofBits 15) (K.ofBits 16),
-    .blake2s ![K.ofBits 17, K.ofBits 18, K.ofBits 19, K.ofBits 20] (K.ofBits 21) (K.ofBits 22)
-      (K.ofBits 23),
+    .keccak ![K.ofBits 17, K.ofBits 18, K.ofBits 19, K.ofBits 20] (K.ofBits 21) (K.ofBits 22)
+      (K.ofBits 23) (K.ofBits 59) false true,
     .deref (K.ofBits 24) (K.ofBits 25) (K.ofBits 26) .pc,
     .deref (K.ofBits 27) (K.ofBits 28) (K.ofBits 29) .fp,
     .xor (K.ofBits 30) (K.ofBits 31) (K.ofBits 32),
     .mulNative (K.ofBits 33) (K.ofBits 34) (K.ofBits 35),
     .setConstant (K.ofBits 36) (E.ofLimbs (K.ofBits 37) (K.ofBits 38) (K.ofBits 39)),
     .jump (K.ofBits 40) (K.ofBits 41) (K.ofBits 42),
-    .blake2s ![K.ofBits 43, K.ofBits 44, K.ofBits 45, K.ofBits 46] (K.ofBits 47) (K.ofBits 48)
-      (K.ofBits 49),
+    .keccak ![K.ofBits 43, K.ofBits 44, K.ofBits 45, K.ofBits 46] (K.ofBits 47) (K.ofBits 48)
+      (K.ofBits 49) (K.ofBits 60) true false,
     .xor (K.ofBits 50) (K.ofBits 51) (K.ofBits 52),
     .mulNative (K.ofBits 53) (K.ofBits 54) (K.ofBits 55),
     .jump (K.ofBits 56) (K.ofBits 57) (K.ofBits 58)]
@@ -144,8 +145,8 @@ def zeroSlot : List K := List.replicate 16 0
 /-- Slot 3, the opcodes, one per instruction. -/
 def opcodeSlot : List K :=
   [Opcode.xor.code, Opcode.mulNative.code, Opcode.setConstant.code, Opcode.deref.code,
-    Opcode.jump.code, Opcode.blake2s.code, Opcode.deref.code, Opcode.deref.code, Opcode.xor.code,
-    Opcode.mulNative.code, Opcode.setConstant.code, Opcode.jump.code, Opcode.blake2s.code,
+    Opcode.jump.code, Opcode.keccak.code, Opcode.deref.code, Opcode.deref.code, Opcode.xor.code,
+    Opcode.mulNative.code, Opcode.setConstant.code, Opcode.jump.code, Opcode.keccak.code,
     Opcode.xor.code, Opcode.mulNative.code, Opcode.jump.code]
 
 /-- Slot 4, the first operand of every instruction. -/
@@ -154,7 +155,7 @@ def slot4 : List K :=
     K.ofBits 27, K.ofBits 30, K.ofBits 33, K.ofBits 36, K.ofBits 40, K.ofBits 43, K.ofBits 50,
     K.ofBits 53, K.ofBits 56]
 
-/-- Slot 5, the second operand: `SET_CONSTANT`'s first limb, `BLAKE2S`'s second message
+/-- Slot 5, the second operand: `SET_CONSTANT`'s first limb, `KECCAK`'s second message
 cell. -/
 def slot5 : List K :=
   [K.ofBits 2, K.ofBits 5, K.ofBits 8, K.ofBits 12, K.ofBits 15, K.ofBits 18, K.ofBits 25,
@@ -167,28 +168,36 @@ def slot6 : List K :=
     K.ofBits 29, K.ofBits 32, K.ofBits 35, K.ofBits 38, K.ofBits 42, K.ofBits 45, K.ofBits 52,
     K.ofBits 55, K.ofBits 58]
 
-/-- Slot 7: `SET_CONSTANT`'s top limb, `BLAKE2S`'s fourth message cell, the first `DEREF`
+/-- Slot 7: `SET_CONSTANT`'s top limb, `KECCAK`'s fourth message cell, the first `DEREF`
 flag (`1` for the `pc` mode), zero for the rest. -/
 def slot7 : List K :=
   [0, 0, K.ofBits 10, 0, 0, K.ofBits 20, 1, 0, 0, 0, K.ofBits 39, 0, K.ofBits 46, 0, 0, 0]
 
-/-- Slot 8: `BLAKE2S`'s chaining-value operand and the second `DEREF` flag (`1` for the `fp`
-mode). -/
+/-- Slot 8: `KECCAK`'s tail operand and the second `DEREF` flag (`1` for the `fp` mode). -/
 def slot8 : List K := [0, 0, 0, 0, 0, K.ofBits 21, 0, 1, 0, 0, 0, 0, K.ofBits 47, 0, 0, 0]
 
-/-- Slot 9: `BLAKE2S`'s output operand. -/
+/-- Slot 9: `KECCAK`'s `b8` operand. -/
 def slot9 : List K := [0, 0, 0, 0, 0, K.ofBits 22, 0, 0, 0, 0, 0, 0, K.ofBits 48, 0, 0, 0]
 
-/-- Slot 10: `BLAKE2S`'s metadata operand. -/
+/-- Slot 10: `KECCAK`'s capacity operand. -/
 def slot10 : List K := [0, 0, 0, 0, 0, K.ofBits 23, 0, 0, 0, 0, 0, 0, K.ofBits 49, 0, 0, 0]
 
-/-- The table `stacked_bytecode_table` builds (`crates/leanvm_core/src/leaf.rs:558-577` at leanVM
-`127510d14c98ade4e8a97646c44fa7f1ff5e752d`): sixteen slots of `2 ^ κ_bc` cells, the cell
-`(slot << κ_bc) + i` holding column `slot` at instruction `i`; the eight public columns at
-slots 3 to 10 (`BYTECODE_PUBLIC_SLOT = 3`), and zero at the other slots. -/
+/-- Slot 11: `KECCAK`'s output operand. -/
+def slot11 : List K := [0, 0, 0, 0, 0, K.ofBits 59, 0, 0, 0, 0, 0, 0, K.ofBits 60, 0, 0, 0]
+
+/-- Slot 12: `KECCAK`'s input layout flag (`1` for the odd layout). -/
+def slot12 : List K := [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0]
+
+/-- Slot 13: `KECCAK`'s output layout flag. -/
+def slot13 : List K := [0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+
+/-- The table `stacked_bytecode_table` builds (`crates/leanvm_core/src/leaf.rs:750-768` at leanVM
+`3375f7a137c50b803f3416f6466b5d4e0719708a`): sixteen slots of `2 ^ κ_bc` cells, the cell
+`(slot << κ_bc) + i` holding column `slot` at instruction `i`; the eleven public columns at
+slots 3 to 13 (`BYTECODE_PUBLIC_SLOT = 3`), and zero at the other slots. -/
 def rustTable : List K :=
   zeroSlot ++ zeroSlot ++ zeroSlot ++ opcodeSlot ++ slot4 ++ slot5 ++ slot6 ++ slot7 ++ slot8 ++
-    slot9 ++ slot10 ++ zeroSlot ++ zeroSlot ++ zeroSlot ++ zeroSlot ++ zeroSlot
+    slot9 ++ slot10 ++ slot11 ++ slot12 ++ slot13 ++ zeroSlot ++ zeroSlot
 
 -- The column is the Rust's table, cell for cell.
 #guard (bytecodeColumn sixteen).values.toList = rustTable

@@ -18,11 +18,12 @@ public import VCVio.EvalDist.ProbabilityNotation
 # The statements
 
 The verifier receives a statement (a program and a public input) as the program's bytecode and
-the public input's digest (`bytecodeWords`, `publicDigest`), and a proof. With BLAKE2s it is the
-deployed verifier (`verify`). In the random-oracle model, the hash is a lazily sampled random
-function from byte strings to digests (`HashSpec`, `queryH`), and an adversary is any
-computation with access to it that outputs a statement and a proof, choosing both after querying
-(`Adversary`). The experiment runs the adversary, then the verifier on its output, against one
+the public input's digest (`bytecodeWords`, `publicDigest`), and a proof. With Keccak-256 and
+Keccak-f[1600] it is the deployed verifier (`verify`). In the random-oracle model, Keccak-256 is a
+lazily sampled random function from byte strings to digests, and Keccak-f[1600], which the
+Fiat-Shamir sponge permutes, a lazily sampled random function from states to states, the two
+independent (`HashSpec`, `queryH`, `queryF`); an adversary is any computation with access to
+both that outputs a statement and a proof, choosing both after querying (`Adversary`). The experiment runs the adversary, then the verifier on its output, against one
 oracle, and records the verdict, the oracle's answers at the end, and the oracle's answers to the
 adversary's queries, as they stood when the adversary output its proof (`experiment`).
 
@@ -52,7 +53,10 @@ nonces per proof of work, makes the verifier reject with probability at most
 
 **Scope and trust.**
 
-* BLAKE2s is modelled as a random oracle.
+* Keccak-256 is modelled as a random oracle on byte strings, and Keccak-f[1600], the sponge's
+  permutation, as an independent random function on states. That the permutation is invertible
+  (and that Keccak-256 is built from it) is not part of this model; the random-permutation model
+  is a separate argument.
 * A proof is the Python verifier's format: the scalar stream and one full Merkle path per query.
   The Rust prover ships pruned paths, which the deployed Rust verifier expands into these paths;
   that expansion is not formalized.
@@ -62,14 +66,14 @@ nonces per proof of work, makes the verifier reject with probability at most
 * The definitions rest on Mathlib, CompPoly (the fields) and VCVio (oracle computations, the
   random oracle, `Pr`, query bounds).
 
-The proofs are `LeanVM.knowledgeSoundness_holds` and `LeanVM.completeness_holds`
-(`LeanVM/Protocol/LeanVM.lean`).
+The proofs are `LeanVM.knowledgeSoundness_holds` (`LeanVM/Protocol/LeanVMSound.lean`) and
+`LeanVM.completeness_holds` (`LeanVM/Protocol/LeanVM.lean`).
 -/
 
 namespace LeanVM
 
 open LeanVM.Parameters LeanVM.Semantics LeanVM.Arithmetization LeanVM.Protocol
-open LeanVM.Protocol.Compile LeanVM.Protocol.Verifier LeanVM.Protocol.Blake2sHash
+open LeanVM.Protocol.Compile LeanVM.Protocol.Verifier LeanVM.Protocol.KeccakHash
 open OracleComp OracleSpec
 open scoped ENNReal
 
@@ -86,30 +90,33 @@ def bytecodeWords (prog : Program) : List K :=
   (List.finRange 16).flatMap fun s ↦
     (List.finRange (2 ^ prog.logSize)).map fun i ↦ (encodeSlots (prog.code i))[s]
 
-/-- The public input as the verifier reads it: the low and high 32-bit words of its four lanes,
-in order (`hash_to_scalars`, `crates/fiat_shamir/src/merkle.rs:8-19`, read backwards). -/
+/-- The public input as the verifier reads it: its four lanes, the digest's four words
+(`public_input_bytes`, `crates/leanvm_core/src/cpu/mod.rs:735-742`; `Digest.halves`,
+`verifier.py:223-226`). -/
 def publicDigest (input : PublicInput) : Digest :=
-  #v[lowWord (input.lanes 0), highWord (input.lanes 0), lowWord (input.lanes 1),
-    highWord (input.lanes 1), lowWord (input.lanes 2), highWord (input.lanes 2),
-    lowWord (input.lanes 3), highWord (input.lanes 3)]
+  #v[(input.lanes 0).lane, (input.lanes 1).lane, (input.lanes 2).lane, (input.lanes 3).lane]
 
-/-- **The leanVM verifier**, for a hash function `H` in any monad `m`: does `proof` show that
-`prog` runs on `input`? -/
-def verifier {m : Type → Type} [Monad m] (H : Bytes → m Digest) (prog : Program)
-    (input : PublicInput) (proof : Proof) : m Bool :=
-  verifyWith H (bytecodeWords prog) (publicDigest input) proof
+/-- **The leanVM verifier**, for a hash function `H` and a permutation `F` in any monad `m`: does
+`proof` show that `prog` runs on `input`? -/
+def verifier {m : Type → Type} [Monad m] (H : Bytes → m Digest) (F : KState → m KState)
+    (prog : Program) (input : PublicInput) (proof : Proof) : m Bool :=
+  verifyWith H F (bytecodeWords prog) (publicDigest input) proof
 
-/-- **The deployed verifier**: `verifier` with BLAKE2s-256. -/
+/-- **The deployed verifier**: `verifier` with Keccak-256 and Keccak-f[1600]. -/
 def verify (prog : Program) (input : PublicInput) (proof : Proof) : Bool :=
-  Id.run (verifier blake2sBytes prog input proof)
+  Id.run (verifier (m := Id) keccak256 keccakF prog input proof)
 
 /-! ## The random-oracle model -/
 
-/-- The random oracle: a function from byte strings to digests. -/
-abbrev HashSpec : OracleSpec Bytes := Bytes →ₒ Digest
+/-- The random oracles: Keccak-256, a function from byte strings to digests (queries `.inl x`), and
+Keccak-f[1600], a function from states to states (queries `.inr s`). -/
+abbrev HashSpec : OracleSpec (Bytes ⊕ KState) := (Bytes →ₒ Digest) + (KState →ₒ KState)
 
-/-- A query to the random oracle. -/
-def queryH (x : Bytes) : OracleComp HashSpec Digest := liftM (HashSpec.query x)
+/-- A query to the hash. -/
+def queryH (x : Bytes) : OracleComp HashSpec Digest := liftM (HashSpec.query (.inl x))
+
+/-- A query to the permutation. -/
+def queryF (s : KState) : OracleComp HashSpec KState := liftM (HashSpec.query (.inr s))
 
 /-- A statement: a program and a public input. -/
 abbrev Statement : Type := Program × PublicInput
@@ -150,7 +157,7 @@ oracle. -/
 noncomputable def experiment (A : Adversary) : ProbComp Outcome := do
   let (z, adversaryCache) ← (simulateQ HashSpec.randomOracle A).run ∅
   let (verdict, cache) ←
-    (simulateQ HashSpec.randomOracle (verifier queryH z.1.1 z.1.2 z.2)).run adversaryCache
+    (simulateQ HashSpec.randomOracle (verifier queryH queryF z.1.1 z.1.2 z.2)).run adversaryCache
   return ((z, verdict), cache, adversaryCache)
 
 /-! ## Knowledge soundness -/
@@ -161,11 +168,11 @@ abbrev Extractor : Type :=
   (prog : Program) → PublicInput → HashSpec.QueryCache → Proof → Option (Trace prog)
 
 /-- **The extractor** (`LeanVM.Extraction.extract`, `LeanVM/Spec/Extractor.lean`): from the
-adversary's answers and the proof, the announced sizes and the word the stack's root commits to,
-and a valid execution of the program on the public input that is the halting run of the memory
-image of a stack in the word's Johnson list, if there is one. -/
+adversary's answers to its hash queries and the proof, the announced sizes and the word the
+stack's root commits to, and a valid execution of the program on the public input that is the
+halting run of the memory image of a stack in the word's Johnson list, if there is one. -/
 noncomputable def extractor : Extractor := fun prog input answers proof ↦
-  Extraction.extract prog input (bytecodeWords prog) (fun x ↦ answers x) proof
+  Extraction.extract prog input (bytecodeWords prog) (fun x ↦ answers (.inl x)) proof
 
 /-- **The adversary breaks soundness**: the verifier accepts its statement and proof, the
 program's last instruction is not a `JUMP`, and the execution extracted from the adversary's
@@ -175,13 +182,25 @@ def Breaks (extract : Extractor) (z : Outcome) : Prop :=
     ¬ ∃ t, extract z.program z.input z.adversaryCache z.proof = some t ∧
       ValidExecution z.program z.input t
 
+/-- The verifier's oracle queries, at most, on every statement and proof: `12008` queries to
+Keccak-256 and Keccak-f together (the bytecode, the relation label, the IV, the seed's
+permutation, the sponge's permutations, one per challenge and one per four absorbed scalars, and
+every Merkle hash of the openings), the bound the proof establishes over every admissible shape
+(`LeanVM.Protocol.Verifier.leanVmQueryBound`). The bound is not tight: it charges every WHIR
+opening at the largest commitment height, and bounds the bus depth, the table heights and the
+Keccak reduction's point by the window of the announced sizes. -/
+def verifierQueries : ℕ := 12008
+
 /-- **The soundness error** of an adversary of `Q` queries: one `2^-128` per query of the
-adversary and the verifier (at most `13213`), plus collisions, plus one `2^-256` per query of the
-verifier, for a fresh answer that is the stack's root the adversary announced without computing
-it (the extractor, reading the adversary's answers only, would then miss the root's preimage). -/
+adversary and the verifier (at most `verifierQueries`), plus, per query, `7 · (Q + V) / 2^256`
+for a fresh answer that collides with or predicts a value the oracles' answers already refer to
+(a digest, or a state's capacity), plus one `2^-256` per query of the verifier, for a fresh hash
+answer that is the stack's root the adversary announced without computing it (the extractor,
+reading the adversary's answers only, would then miss the root's preimage). -/
 noncomputable def soundnessError (Q : ℕ) : ℝ≥0∞ :=
-  ((Q + 13213 : ℕ) : ℝ≥0∞) * ((2 : ℝ≥0∞)⁻¹ ^ 128 + ((5 * (Q + 13213) : ℕ) : ℝ≥0∞) / 2 ^ 256) +
-    (13213 : ℝ≥0∞) / 2 ^ 256
+  ((Q + verifierQueries : ℕ) : ℝ≥0∞) *
+      ((2 : ℝ≥0∞)⁻¹ ^ 128 + ((7 * (Q + verifierQueries) : ℕ) : ℝ≥0∞) / 2 ^ 256) +
+    (verifierQueries : ℝ≥0∞) / 2 ^ 256
 
 /-- **Knowledge soundness in the random-oracle model**, for the extractor `extractor`. -/
 def KnowledgeSoundness : Prop :=
@@ -197,23 +216,26 @@ abbrev HonestProver : Type :=
 
 /-- **The completeness error** at a fuel of `fuel` nonces per proof of work: each of the
 `Q` queries of the honest prover and the verifier may complete a proof of work whose nonces all
-failed, or meet a digest the oracle already gave. -/
+failed, a nonce failing a proof of work of `17` bits with probability `1 - 2^-17`. -/
 noncomputable def completenessError (fuel : ℕ) : ℝ≥0∞ :=
-  let Q : ℕ := 13216 + 13210 * (2 ^ 27 + fuel + 1)
-  Q * ((1 - (2 : ℝ≥0∞)⁻¹ ^ 17) ^ fuel + Q / 2 ^ 256)
+  let Q : ℕ := 12012 + 48017 * (2 ^ 27 + 2 * fuel + 2)
+  Q * (1 - (2 : ℝ≥0∞)⁻¹ ^ 17) ^ fuel
 
 /-- **The committed size of an execution**: the number of cells the honest prover commits to,
 every committed column at its table's height, the least power of two holding the table's rows
-(`1` for no row). The memory has four columns of `2^κ` rows, and the bytecode's counts (`BFCNT`)
-one of `2^logSize` rows. Each opcode has a table of one row per instruction of that opcode the execution
-executes (`Trace.count`), with `15, 15, 8, 15, 14, 19` committed columns for `XOR`, `MUL_NATIVE`,
-`SET_CONSTANT`, `DEREF`, `JUMP`, `BLAKE2S`; and Flock's region has `2^8` rows per row of the
-`BLAKE2S` table. -/
+(`1` for no row), and at least `2^9` for the `KECCAK` table (`TABLE_LOG_FLOORS`,
+`verifier.py:954`). The memory has four columns of `2^κ` rows, and the bytecode's counts (`BFCNT`)
+one of `2^logSize` rows. Each opcode has a table of one row per instruction of that opcode the
+execution executes (`Trace.count`), with `15, 15, 8, 15, 14, 40` committed columns for `XOR`,
+`MUL_NATIVE`, `SET_CONSTANT`, `DEREF`, `JUMP`, `KECCAK` (the `KECCAK` table's fifty value lanes
+are committed in `q_keccak`, or not at all); and `q_keccak` has `2^6` rows per row of the `KECCAK`
+table. -/
 noncomputable def Semantics.Trace.committedSize {prog : Program} (t : Trace prog) : ℕ :=
   let height (op : Opcode) : ℕ := 2 ^ Nat.clog 2 (t.count op)
+  let keccakHeight : ℕ := 2 ^ max (Nat.clog 2 (t.count .keccak)) 9
   4 * 2 ^ t.κ + 2 ^ prog.logSize +
     15 * height .xor + 15 * height .mulNative + 8 * height .setConstant + 15 * height .deref +
-    14 * height .jump + 19 * height .blake2s + 2 ^ 8 * height .blake2s
+    14 * height .jump + 40 * keccakHeight + 2 ^ 6 * keccakHeight
 
 /-- **Completeness in the random-oracle model.** -/
 def Completeness : Prop :=

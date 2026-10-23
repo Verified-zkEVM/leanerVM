@@ -260,8 +260,8 @@ theorem rowVal_padding (hP : (inst prog s).PaddingHonest q) (t : Fin 6) (x : Fin
     have h0 : ofK (0 : K) = 0 := map_zero (algebraMap K E)
     cases h : (padRowK (tables[(t : ℕ)]?.getD default))[i]? <;> simp [h0]
   · have hl : ((padRowK (tables.getD t default)).map ofK).length = width (opIdx t) := by
-      simp only [padRowK, List.length_map]
-      exact columns_length t
+      simp only [padRowK]
+      split <;> simp only [List.length_map] <;> exact columns_length t
     rw [List.getD_eq_default _ _ (by omega)]
 
 /-- **One block's contribution to the true total**: its selector times its extension, and the

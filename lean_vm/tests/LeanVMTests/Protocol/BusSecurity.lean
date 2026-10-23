@@ -140,7 +140,8 @@ abbrev padInst (fl : List (Side × Vector (CMvPolynomial 2 K) 16))
   layout := layout
   nLines := 0
   publicLines := fun _ ↦ #v[]
-  flock := none
+  derived := fun _ ↦ none
+  keccak := none
 
 /-- Every slot `X₀`, pushed: no slot is constant. -/
 def pushAll : Side × Vector (CMvPolynomial 2 K) 16 :=

@@ -89,7 +89,14 @@ end Prog
 object only: its element list has `2^256` entries, and compiled code would build it when the
 program starts (a closed constant is evaluated at initialization), so it is `noncomputable`. -/
 noncomputable instance instFintypeDigest : Fintype Digest :=
-  Fintype.ofEquiv (Fin 8 → UInt32)
+  Fintype.ofEquiv (Fin 4 → UInt64)
+    { toFun := Vector.ofFn, invFun := fun v i ↦ v[i]
+      left_inv := fun _ ↦ funext fun _ ↦ Vector.getElem_ofFn _
+      right_inv := fun _ ↦ Vector.ext fun _ _ ↦ Vector.getElem_ofFn _ }
+
+/-- Keccak states are finite, as digests are (`2^1600` of them). -/
+noncomputable instance instFintypeKState : Fintype LeanVM.Semantics.KState :=
+  Fintype.ofEquiv (Fin 25 → UInt64)
     { toFun := Vector.ofFn, invFun := fun v i ↦ v[i]
       left_inv := fun _ ↦ funext fun _ ↦ Vector.getElem_ofFn _
       right_inv := fun _ ↦ Vector.ext fun _ _ ↦ Vector.getElem_ofFn _ }

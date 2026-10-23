@@ -22,7 +22,7 @@ Proposition 6.1 (`doc/leanvm/body/06-bus-interactions.tex`, §6.1), as `no_row_a
 (the last instruction is not a `JUMP`), and serve `constraintSoundness`.
 
 **The rows are steps** (`opRecs_step`). For a row of the six tables, the table's `Assumptions`
-are `SatisfiedBy.blake2s_valid` (`assumptions_of_blake2sRowsValid`), its constraints are
+are `SatisfiedBy.keccak_valid` (`assumptions_of_keccakRowsValid`), its constraints are
 `SatisfiedBy.constraints`, and the guarantees of its pulls are the two lookup theorems
 (`mem_channel_sound`, `bytecode_guarantee`; every interaction is on one of the six channels,
 `ChannelOk`). The table's soundness (`Soundness.Rows`) makes the row execute an instruction encoded
@@ -42,8 +42,8 @@ which yields a run from `Regs.initial` to `Regs.final prog`, each of whose steps
 (`exists_walk`, which `Soundness.Theorem` uses for `AssignmentRepresents`).
 
 **Under any semantics** (`RowsStep`, `opRecs_pc_ne_finalPcB`, `exists_walkB`): the same, for
-rows that are steps of a semantics `S` of `BLAKE2S`: the deployed one under the BLAKE2s validity
-(`rowsStep_deployed`), the Flock-blind one `blakeFree` without it (`rowsStep_free`).
+rows that are steps of a semantics `S` of `KECCAK`: the deployed one under the `KECCAK` validity
+(`rowsStep_deployed`), the reduction-blind one `keccakFree` without it (`rowsStep_free`).
 
 ## Why the rows, not `w.interactions`
 
@@ -130,7 +130,7 @@ theorem opRecs_step (h : SatisfiedBy prog input w) {f : Air.Flat.Table K × Arra
         ((prog.code k).opcode ≠ .jump → (f p).next = ⟨g * (f p).pc, (f p).fp⟩) := by
   obtain ⟨ht, hrow⟩ := mem_opPairs hp
   have ht' := List.mem_of_mem_take ht
-  have ha := assumptions_of_blake2sRowsValid h.blake2s_valid p.1
+  have ha := assumptions_of_keccakRowsValid h.keccak_valid p.1
     (w.mem_allTables_of_mem_tables ht') p.2 hrow
   have hc := h.constraints p.1 (w.mem_allTables_of_mem_tables ht') p.2 hrow
   obtain ⟨ins, he, hexec, hnj⟩ := (hf p hp).2.2.2.1 ha hc (opRecs_guarantees h.toB hf hp)
@@ -145,7 +145,7 @@ theorem opRecs_step (h : SatisfiedBy prog input w) {f : Air.Flat.Table K × Arra
 /-- **Every row of the six tables is a step under the semantics `S`**, from its pulled state to
 its pushed state; its counter is a slot of the program, and the successor is the fall-through
 unless the program holds a `JUMP` there. -/
-def RowsStep (S : BlakeSem) (w : EnsembleWitness (leanIsaEnsemble prog))
+def RowsStep (S : KeccakSem) (w : EnsembleWitness (leanIsaEnsemble prog))
     (f : Air.Flat.Table K × Array K → RowRec) : Prop :=
   ∀ p ∈ opPairs w, stepB S prog (imageOf w.data).2 (f p).src = some (f p).next ∧
     ∃ k : Fin (2 ^ prog.logSize), (f p).pc = gpow k ∧
@@ -153,15 +153,15 @@ def RowsStep (S : BlakeSem) (w : EnsembleWitness (leanIsaEnsemble prog))
 
 /-- The rows are steps of the deployed semantics. -/
 theorem rowsStep_deployed (h : SatisfiedBy prog input w)
-    {f : Air.Flat.Table K × Array K → RowRec} (hf : OpRecs w f) : RowsStep blakeDeployed w f :=
+    {f : Air.Flat.Table K × Array K → RowRec} (hf : OpRecs w f) : RowsStep keccakDeployed w f :=
   fun _ hp ↦ by
     rw [stepB_deployed]
     exact opRecs_step h hf hp
 
-/-- **Without the BLAKE2s validity, the rows are steps of the Flock-blind semantics**
-(`blakeFree`): a `BLAKE2S` row reads canonical cells, whatever its output holds. -/
+/-- **Without the `KECCAK` validity, the rows are steps of the reduction-blind semantics**
+(`keccakFree`): a `KECCAK` row reads canonical cells, whatever its output holds. -/
 theorem rowsStep_free (h : SatisfiedByB prog input w)
-    {f : Air.Flat.Table K × Array K → RowRec} (hf : OpRecs w f) : RowsStep blakeFree w f := by
+    {f : Air.Flat.Table K × Array K → RowRec} (hf : OpRecs w f) : RowsStep keccakFree w f := by
   intro p hp
   obtain ⟨ht, hrow⟩ := mem_opPairs hp
   have hc := h.constraints p.1 (w.mem_allTables_of_mem_tables (List.mem_of_mem_take ht)) p.2 hrow
@@ -224,7 +224,7 @@ theorem two_pow_logSize_lt (prog : Program) : 2 ^ prog.logSize < 2 ^ 64 - 1 :=
 /-- **No row of the six tables sits at the sentinel counter**, under any semantics its rows are
 steps of: its instruction is not a `JUMP`, so it would push `(g^N_prog, fp)`, which no pull
 balances. -/
-theorem opRecs_pc_ne_finalPcB {S : BlakeSem} (hsafe : SentinelSafe prog)
+theorem opRecs_pc_ne_finalPcB {S : KeccakSem} (hsafe : SentinelSafe prog)
     (h : SatisfiedByB prog input w) {f : Air.Flat.Table K × Array K → RowRec} (hf : OpRecs w f)
     (hS : RowsStep S w f) {p : Air.Flat.Table K × Array K}
     (hp : p ∈ opPairs w) : (f p).pc ≠ prog.finalPc := by
@@ -309,7 +309,7 @@ theorem no_row_at_sentinel (hsafe : SentinelSafe prog) (h : SatisfiedBy prog inp
 /-- **The walk of a witness**, under any semantics `S` its rows are steps of: records for its
 rows and a run under `S` from the initial to the final registers over the image the data names,
 each of whose steps is a row. -/
-theorem exists_walkB (S : BlakeSem) (hsafe : SentinelSafe prog) (h : SatisfiedByB prog input w)
+theorem exists_walkB (S : KeccakSem) (hsafe : SentinelSafe prog) (h : SatisfiedByB prog input w)
     (hS : ∀ f, OpRecs w f → RowsStep S w f) :
     ∃ f, OpRecs w f ∧ ∃ n, runB S prog (imageOf w.data).2 n Regs.initial = some (Regs.final prog) ∧
       ∀ k < n, ∃ p ∈ opPairs w, runB S prog (imageOf w.data).2 k Regs.initial = some (f p).src ∧
@@ -332,7 +332,7 @@ theorem exists_walk (hsafe : SentinelSafe prog) (h : SatisfiedBy prog input w) :
       ∀ k < n, ∃ p ∈ opPairs w, run prog (imageOf w.data).2 k Regs.initial = some (f p).src ∧
         run prog (imageOf w.data).2 (k + 1) Regs.initial = some (f p).next := by
   simpa only [runB_deployed] using
-    exists_walkB blakeDeployed hsafe h.toB fun _ hf ↦ rowsStep_deployed h hf
+    exists_walkB keccakDeployed hsafe h.toB fun _ hf ↦ rowsStep_deployed h hf
 
 /-- **Specification Proposition 6.1**: a balanced state channel over rows that are steps contains a
 run from `(1, 1)` to `(g^(N_prog - 1), 1)`; the remaining rows are closed walks. -/

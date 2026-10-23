@@ -2,7 +2,7 @@
   LeanVM.Protocol.EndToEnd.Complete.Rom
 
   Completeness of the leanVM verifier in the random-oracle model: the honest prover of a valid
-  execution within the budget, run against the random oracle, makes the verifier reject with
+  execution within the budget, run against the random oracles, makes the verifier reject with
   probability at most `completenessError fuel`, below `2^-128` at a fuel of `2^25` nonces per
   proof of work.
 -/
@@ -18,14 +18,17 @@ public import LeanVM.Protocol.Verifier.Cost
 # Completeness against the random oracle
 
 `honestComp prog input t ρ fuel` is the honest prover of `honestProofOf` as an oracle
-computation: the same classically chosen witness of `t`, proved by
-`Rom.honestComp` with every hash a query to the random oracle. In the experiment of the
-knowledge-soundness theorem with this prover as the adversary, the verifier rejects with
-probability at most
+computation: the same classically chosen witness of `t`, proved by `Rom.honestComp` with every
+hash a query to the random oracle for Keccak-256 and every permutation one to the random oracle
+for Keccak-f[1600]. In the experiment of the knowledge-soundness theorem with this prover as the
+adversary, the verifier rejects with probability at most (`Rom.romComplete`)
 
-  `completenessError fuel = Q · ((1 - 2^-17)^fuel + Q / 2^256)`,
+  `completenessError fuel = Q · (1 - 2^-17)^fuel`,
 
-`Q = 3 + 13210 · (2^27 + fuel + 1) + 13213` the queries of the prover and the verifier together
+`Q = (3 + 1) + 48017 · (2^27 + 2·fuel + 2) + 12008` the queries of the prover and the verifier
+together (`completenessQueries`): the seed's three hashes and one permutation, `leanVmCost = 48017`
+moves of the program each costing the prover at most `proverFactor costHeight fuel =
+2^27 + 2·fuel + 2` queries, and the verifier's `leanVmQueryBound = 12008`
 (`romComplete_leanVm`). At `fuel = 2^25`, it is below `2^-128` (`completenessError_le`): the
 seventeen-bit proofs of work fail with probability `(1 - 2^-17)^(2^25) ≤ 2^-256` each.
 -/
@@ -34,7 +37,7 @@ namespace LeanVM.Protocol.EndToEnd.Complete
 
 open LeanVM.Parameters LeanVM.Semantics LeanVM.Arithmetization LeanVM.Protocol.Compile
 open LeanVM.Protocol.Compile.Rom LeanVM.Protocol.Verifier LeanVM.Protocol.LeanIsa
-open LeanVM.Protocol.EndToEnd.Front LeanVM.Protocol.Rom LeanVM.Protocol.Blake2sHash
+open LeanVM.Protocol.EndToEnd.Front LeanVM.Protocol.Rom LeanVM.Protocol.KeccakHash
 open OracleComp OracleSpec
 open Air.Flat (EnsembleWitness)
 open scoped ENNReal
@@ -50,19 +53,19 @@ noncomputable def honestComp (prog : Program) (input : PublicInput) (t : Trace p
   if h : ∃ w s, HonestFor prog input t ρ w s then
     Rom.honestComp (leanVmSeed (bytecodeWords prog) (publicDigest input))
       (leanVmProgram (bytecodeWords prog) (publicDigest input))
-      (leanVmProver prog h.choose_spec.choose ρ
-        (stackOf Blake2sFlock.blake2sFlockSpec prog h.choose_spec.choose h.choose)) fuel
+      (leanVmProver prog h.choose_spec.choose ρ (stackOf prog h.choose_spec.choose h.choose)) fuel
   else pure ⟨[], []⟩
 
-/-- The queries of the honest prover and the verifier together, at a fuel of `fuel`. -/
+/-- The queries of the honest prover and the verifier together, at a fuel of `fuel`: the seed's
+three hashes and one permutation, the program's moves at the prover's factor, and the verifier's
+bound. -/
 def completenessQueries (fuel : ℕ) : ℕ :=
-  1 + 2 + leanVmCost * proverFactor costHeight fuel + leanVmQueryBound
+  3 + 1 + leanVmCost * proverFactor costHeight fuel + leanVmQueryBound
 
 /-- **The completeness error** at a fuel of `fuel` nonces per proof of work: every query may
-complete a failed proof of work, or meet a digest the log already holds. -/
+complete a proof of work whose nonces all failed. -/
 noncomputable def completenessError (fuel : ℕ) : ℝ≥0∞ :=
-  (completenessQueries fuel : ℝ≥0∞) *
-    (missProb Whir.queryGrindingBits ^ fuel + (completenessQueries fuel : ℝ≥0∞) / 2 ^ 256)
+  (completenessQueries fuel : ℝ≥0∞) * missProb Whir.queryGrindingBits ^ fuel
 
 /-- **Completeness in the random-oracle model.** For a valid execution whose committed size is at
 most `2^28`, at a valid rate, and a fuel of at most `2^64` nonces, the verifier rejects the honest
@@ -79,8 +82,8 @@ theorem romComplete_leanVm {prog : Program} {input : PublicInput} {t : Trace pro
   unfold honestComp
   simp only [hex, ↓reduceDIte]
   obtain ⟨-, hw', hs', hadm', -⟩ := hex.choose_spec.choose_spec
-  have hq := m3Honest_stackOf (F := Blake2sFlock.blake2sFlockSpec) hw' hs' padLimbs_compress
-  have hrun := runI_leanVmProgram hadm' hρ hq walkFaithful_blake2sFlockSpec
+  have hq := m3Honest_stackOf hw' hs'
+  have hrun := runI_leanVmProgram hadm' hρ hq
   have h := Rom.romComplete (leanVmProgram (bytecodeWords prog) (publicDigest input)) _
     (leanVmSeed (bytecodeWords prog) (publicDigest input)) (bits := Whir.queryGrindingBits)
     (by decide) (by decide) hfuel (fun _ _ _ hg ↦ Sound.grind_bits_eq _ _ hg)
@@ -92,28 +95,16 @@ theorem romComplete_leanVm {prog : Program} {input : PublicInput} {t : Trace pro
 /-- **The numbers**: at a fuel of `2^25` nonces per proof of work, the completeness error is
 below `2^-128`. -/
 theorem completenessError_le : completenessError (2 ^ 25) ≤ (2 : ℝ≥0∞)⁻¹ ^ 128 := by
-  have hQ : completenessQueries (2 ^ 25) = 2216270260026 := by decide
+  have hQ : completenessQueries (2 ^ 25) ≤ 2 ^ 128 := by decide
   have hmiss : missProb Whir.queryGrindingBits ^ (2 ^ 25) ≤ (2 : ℝ≥0∞)⁻¹ ^ 256 := by
     have := missProb_pow_le Whir.queryGrindingBits 256
     rwa [show 2 ^ Whir.queryGrindingBits * 256 = 2 ^ 25 by decide] at this
   unfold completenessError
-  rw [hQ]
-  calc ((2216270260026 : ℕ) : ℝ≥0∞) * (missProb Whir.queryGrindingBits ^ 2 ^ 25 +
-        ((2216270260026 : ℕ) : ℝ≥0∞) / 2 ^ 256)
-      ≤ ((2216270260026 : ℕ) : ℝ≥0∞) * ((2 : ℝ≥0∞)⁻¹ ^ 256 +
-        ((2216270260026 : ℕ) : ℝ≥0∞) / 2 ^ 256) := by gcongr
-    _ = ((2216270260026 * (1 + 2216270260026) : ℕ) : ℝ≥0∞) / ((2 ^ 256 : ℕ) : ℝ≥0∞) := by
-        rw [← ENNReal.inv_pow, ← one_div, ENNReal.div_add_div_same, ← mul_div_assoc]
-        push_cast
-        ring_nf
-    _ ≤ ((2 ^ 128 : ℕ) : ℝ≥0∞) / ((2 ^ 256 : ℕ) : ℝ≥0∞) := by
-        gcongr
-        norm_num
+  calc (completenessQueries (2 ^ 25) : ℝ≥0∞) * missProb Whir.queryGrindingBits ^ 2 ^ 25
+      ≤ ((2 ^ 128 : ℕ) : ℝ≥0∞) * (2 : ℝ≥0∞)⁻¹ ^ 256 := by gcongr
     _ = (2 : ℝ≥0∞)⁻¹ ^ 128 := by
-        rw [Nat.cast_pow, Nat.cast_pow, Nat.cast_ofNat,
-          show (2 : ℝ≥0∞) ^ 256 = 2 ^ 128 * 2 ^ 128 by rw [← pow_add],
-          ENNReal.div_eq_inv_mul, ENNReal.mul_inv (by simp) (by simp), mul_assoc,
-          ENNReal.inv_mul_cancel (by simp) (by simp), mul_one, ENNReal.inv_pow]
+        rw [Nat.cast_pow, Nat.cast_ofNat, show (256 : ℕ) = 128 + 128 from rfl, pow_add,
+          ← mul_assoc, ← mul_pow, ENNReal.mul_inv_cancel (by simp) (by simp), one_pow, one_mul]
 
 end
 end LeanVM.Protocol.EndToEnd.Complete

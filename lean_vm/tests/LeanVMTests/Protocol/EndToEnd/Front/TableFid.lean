@@ -5,7 +5,8 @@ import LeanVM.Protocol.EndToEnd.Front.TableFidLeanIsa
 
 * **Flushes at values in `E`.** At values of a table's columns outside `K`, every opcode table's
   Python flushes evaluate to the instance's flush polynomials evaluated by `eval₂`, in order
-  (`pyFlush_evalE`); `JUMP`'s constraints likewise (`jumpConstraints_evalE`).
+  (`pyFlush_evalE`), `KECCAK`'s twenty-eight flushes of a side included; `JUMP`'s constraints
+  likewise (`jumpConstraints_evalE`).
 * **The instance's shape.** The sumcheck tables are the six opcode tables, `B = 2`, and the
   boundary columns are the memory columns and `BFCNT`.
 * **The weights, and the mutation that makes the length of `α` load-bearing.** For four `α` the
@@ -32,8 +33,8 @@ def prog4 : Program := ⟨2, by decide, fun _ ↦ .xor 0 0 0⟩
 /-- A size vector with a table as tall as the memory. -/
 def s₁ : Sizes := ⟨16, by decide, ![2 ^ 16, 2 ^ 3, 2 ^ 16, 2 ^ 4, 2 ^ 16, 2 ^ 16]⟩
 
-/-- The instance at the test's sizes, with the deployed Flock specification. -/
-abbrev I₁ : M3Instance := leanIsaInstance Blake2sFlock.blake2sFlockSpec prog4 s₁
+/-- The instance at the test's sizes. -/
+abbrev I₁ : M3Instance := leanIsaInstance prog4 s₁
 
 /-! ## Flushes and constraints at values in `E` -/
 
@@ -54,6 +55,9 @@ def instVals (t : Fin 6) (side : Side) : List (List E) :=
 #guard pyVals 3 .pull == instVals 3 .pull
 #guard pyVals 4 .push == instVals 4 .push
 #guard pyVals 4 .pull == instVals 4 .pull
+#guard (Complete.pySide 5 .push).length == 28 && (Complete.pySide 5 .pull).length == 28
+#guard pyVals 5 .push == instVals 5 .push
+#guard pyVals 5 .pull == instVals 5 .pull
 
 example (t : Fin 6) (side : Side) : pyVals t side = instVals t side := pyFlush_evalE t side (eOf t)
 
@@ -64,16 +68,16 @@ example (t : Fin 6) (side : Side) : pyVals t side = instVals t side := pyFlush_e
 
 /-! ## The instance's shape -/
 
-example : I₁.B = 2 := sumcheckB_leanIsa _ _ _
+example : I₁.B = 2 := sumcheckB_leanIsa _ _
 example : I₁.boundaryColumns = [memCol 0, memCol 1, memCol 2, memCol 3, bfcntCol] :=
-  boundaryColumns_leanIsa _ _ _
-example (j : Fin 9) (h : I₁.SumcheckTable j) : 3 ≤ j.val := three_le_of_sumcheckTable _ _ _ j h
-example (t : Fin 6) : I₁.SumcheckTable (opIdx t) := sumcheckTable_opIdx _ _ _ t
+  boundaryColumns_leanIsa _ _
+example (j : Fin 9) (h : I₁.SumcheckTable j) : 3 ≤ j.val := three_le_of_sumcheckTable _ _ j h
+example (t : Fin 6) : I₁.SumcheckTable (opIdx t) := sumcheckTable_opIdx _ _ t
 
-example : I₁.τmax = (tableLogs s₁).foldl max 0 := τmax_leanIsa _ _ _
-example : I₁.μBus ≠ 0 := μBus_ne_zero _ _ _
+example : I₁.τmax = (tableLogs s₁).foldl max 0 := τmax_leanIsa _ _
+example : I₁.μBus ≠ 0 := μBus_ne_zero _ _
 example : (busLayout [0, (verifierLayout prog4 s₁).logMemory, (verifierLayout prog4 s₁).logBytecode]
-    (verifierLayout prog4 s₁).push).depth = I₁.μBus := busDepth_leanIsa _ _ _
+    (verifierLayout prog4 s₁).push).depth = I₁.μBus := busDepth_leanIsa _ _
 
 /-! ## The weights: four `α`, and the mutation with five -/
 
@@ -101,7 +105,7 @@ def sTiny : Sizes := ⟨1, by decide, ![1, 1, 1, 1, 1, 1]⟩
 fingerprints (`bnd_push`). -/
 def bndPushAgrees (w : BusWit) : Bool :=
   ((boundary prog4 sTiny).filter fun b ↦ decide (b.side = Side.push)).map (fun b ↦
-      arkB Blake2sFlock.blake2sFlockSpec prog4 sTiny (toAlpha w.alphas) w.beta
+      arkB prog4 sTiny (toAlpha w.alphas) w.beta
         (w.vals _) w.point (.boundary b)) ==
     (fingerprints (eqKernel w.alphas) w.memory (w.point.take sTiny.logMem)
       (w.point.take prog4.logSize)
@@ -122,7 +126,7 @@ def r₅ : BusWit := { r₄ with alphas := α₅ }
 
 example : bndPushAgrees r₄ = true := by
   unfold bndPushAgrees
-  rw [bnd_push Blake2sFlock.blake2sFlockSpec prog4 sTiny r₄ rfl rfl (by decide) (by decide)]
+  rw [bnd_push prog4 sTiny r₄ rfl rfl (by decide) (by decide)]
   simp
 
 /-! ## Inhabitants -/
@@ -134,13 +138,13 @@ def w₀ : BusWit :=
 example : w₀.Shaped I₁ := ⟨by simp [w₀], rfl, rfl⟩
 
 example (input : PublicInput) :
-    TableFid I₁ (leanIsa_conditions _ _ _) input (verifierLayout prog4 s₁) pyCol w₀ :=
-  tableFid_leanIsa _ _ _ input _ w₀ ⟨by simp [w₀], rfl, rfl⟩ rfl
+    TableFid I₁ (leanIsa_conditions _ _) input (verifierLayout prog4 s₁) pyCol w₀ :=
+  tableFid_leanIsa _ _ input _ w₀ ⟨by simp [w₀], rfl, rfl⟩ rfl
 
 example (input : PublicInput) (ξ : E) :
     dot (fpsOf ξ) (w₀.result (verifierLayout prog4 s₁)).totals =
-      powerBatch (claimed I₁ (busStmt I₁ (leanIsa_conditions _ _ _) input w₀)) ξ :=
-  target_leanIsa _ _ _ input w₀ (by simp [w₀]) rfl rfl ξ
+      powerBatch (claimed I₁ (busStmt I₁ (leanIsa_conditions _ _) input w₀)) ξ :=
+  target_leanIsa _ _ input w₀ (by simp [w₀]) rfl rfl ξ
 
 #guard cpsOf yE == [1, yE]
 #guard fpsOf yE == [yE ^ 2, yE ^ 3, yE ^ 4]
