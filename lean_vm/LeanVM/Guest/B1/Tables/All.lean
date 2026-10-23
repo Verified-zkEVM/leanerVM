@@ -22,6 +22,7 @@ public import LeanVM.Guest.B1.Tables.VtC.Hon
 public import LeanVM.Guest.B1.Tables.VtC.SAll
 public import LeanVM.Guest.B1.Tables.VtC.SLoads
 public import LeanVM.Guest.B1.Tables.VtC.BMain
+public import LeanVM.Guest.B1.Tables.VtC.AMain
 public import LeanVM.Guest.B1.Tables.VtC.FComplete
 public import LeanVM.Guest.B1.Tables.VtC.FInBuf
 public import LeanVM.Guest.B1.Tables.VtC.ZSetup
