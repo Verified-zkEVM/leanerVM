@@ -122,8 +122,10 @@ inductive ChainEvent where
   | root (d : Digest)
   /-- A grinding nonce read and checked at the given number of bits. -/
   | nonce (bits : ℕ) (x : E)
-  /-- A commitment opened against its root at the given positions. -/
-  | opening (root : Digest) (positions : List ℕ)
+  /-- A commitment opened against its root, for a tree of `2 ^ depth` leaves of `leafWords`
+  words whose stored rows are `rowWords` wide, at the given positions: the call, so that a log
+  determines the walk's openings. -/
+  | opening (root : Digest) (depth rowWords leafWords : ℕ) (positions : List ℕ)
 
 /-- The primitives `ops`, each step appended to a log after it runs. -/
 def ChainOps.logged {n : Type → Type} [Monad n] (ops : ChainOps n) :
@@ -146,7 +148,7 @@ def ChainOps.logged {n : Type → Type} [Monad n] (ops : ChainOps n) :
     return x
   nextOpening root depth rowWords leafWords ps := do
     let rows ← ops.nextOpening root depth rowWords leafWords ps
-    modify (·.push (.opening root ps))
+    modify (·.push (.opening root depth rowWords leafWords ps))
     return rows
 
 /-- The chain walk's monad on a proof: the transcript reader over the deployed proof, whose

@@ -254,7 +254,7 @@ def isNonce : ChainEvent → Bool
 
 /-- A logged opening. -/
 def isOpening : ChainEvent → Bool
-  | .opening _ _ => true
+  | .opening .. => true
   | _ => false
 
 -- The logged walk reads the whole stream, checks four grinding nonces, and opens the four

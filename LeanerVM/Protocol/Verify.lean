@@ -33,16 +33,16 @@ and `python-verifier/verifier.py:1365-1407` (`verify_execution`).
 3. **The Merkle openings** (`walkOpenings`): every level's pruned opening against its root at its
    positions, by `merkleVerifyWith H`; the rows. Then the stream and the openings must be fully
    consumed (`Reader.finish`).
-
-The walk and the openings are `walkProof`, written over the walk's primitives (`ChainOps`) and run
-here on the proof reader's, `readerOps H`; the same walk runs on any other reader of the chain.
-`LeanerVM.Protocol.Verify.Hom` carries `verifyWith` along a monad morphism of the hash's monads
-(`verifyWith_hom`, `verifyWith_simulateQ`).
 4. **The algebra** (`algebra`), phase by phase, pure: the oracle verifiers' checks and outputs
    on the wire transcript (`leanVmBus`, `tableStep`, `pubStep`, `flockStep`), the opening's pool
    batched by the powers of `λ` (`Opening.poolList`: the ring-switched claim first, the column
    claims after, each through the stack's layout), and WHIR's sumcheck and terminal check
    (`whirCheck`).
+
+The walk and the openings are `walkProof`, written over the walk's primitives (`ChainOps`) and run
+here on the proof reader's, `readerOps H`; the same walk runs on any other reader of the chain.
+`LeanerVM.Protocol.Verify.Hom` carries `verifyWith` along a monad morphism of the hash's monads
+(`verifyWith_hom`, `verifyWith_simulateQ`, `verifyWith_pure`).
 
 `verify := verifyWith (m := Id) blake2sBytes`. Every function is total and computable, by
 structural recursion; a malformed proof is `false`.

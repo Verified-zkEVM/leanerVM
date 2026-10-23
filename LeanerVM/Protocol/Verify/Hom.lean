@@ -19,7 +19,9 @@ a monad morphism `φ : m →ᵐ m'`, `φ (verifyWith H prog input proof)` is
 `verifyWith (fun t ↦ φ (H t)) prog input proof`. `verifyWith_simulateQ` is the instance at
 VCVio's `simulateQ impl`: the verifier with every hash a query to the oracle
 `List UInt8 →ₒ Digest`, simulated by `impl`, is the verifier with `impl` answering, so the
-random-oracle run, the BLAKE2s run and a logged run are one function at three hashes.
+random-oracle run, the BLAKE2s run and a logged run are one function at three hashes;
+`verifyWith_pure` makes the BLAKE2s run, answering by `pure (blake2sBytes t)`, `pure` of
+`verify`.
 
 Lean has no parametricity theorem, so the transport is proved through the definitions: the
 chain's steps, the reader's operations along the lifted morphism `ReadM.mapHom φ`, the Merkle
@@ -304,6 +306,16 @@ theorem verifyWith_hom (prog : Program) (input : PublicInput) (proof : Proof Pru
           Reader.finish_hom, MonadHom.mmap_pure]
         congr 1; funext r
         cases r <;> simp
+
+/-- **The deterministic run**: the verifier with every hash answered by `pure (H t)` in a lawful
+monad is `pure` of the verifier in `Id`; at `H := blake2sBytes`, of `verify`. -/
+theorem verifyWith_pure {m : Type → Type} [Monad m] [LawfulMonad m] (H : List UInt8 → Digest)
+    (prog : Program) (input : PublicInput) (proof : Proof PrunedMerklePaths) :
+    verifyWith (fun t ↦ (pure (H t) : m Digest)) prog input proof =
+      pure (verifyWith (m := Id) H prog input proof) := by
+  have h := verifyWith_hom (MonadHom.pure m) (m := Id) H prog input proof
+  simp only [MonadHom.pure_apply] at h
+  exact h.symm
 
 /-- **The random-oracle run is the verifier at the oracle**: the verifier with every hash a query
 to the oracle `List UInt8 →ₒ Digest`, simulated by `impl`, is the verifier with `impl`
