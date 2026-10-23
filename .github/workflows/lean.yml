@@ -290,6 +290,12 @@ jobs:
         run: python3 -I scripts/ci-build.py
       - name: Test
         run: lake test
+      # What is slow in the interpreter: the guest's Fiat-Shamir IV against the Rust's, the DA
+      # vector digests.
+      - name: The Rust vectors' costly checks
+        run: |
+          lake build node-vectors
+          .lake/build/bin/node-vectors
       - name: Save the Lake build
         if: github.ref == 'refs/heads/main' && steps.lake-cache.outputs.cache-hit != 'true'
         uses: actions/cache/save@v4
@@ -302,6 +308,12 @@ jobs:
       # leanVM at `leanvm-rev`, in `.leanvm`, with its `formal/lean_vm` a link to this `lean_vm`.
       - name: Check out leanVM at the pin
         run: ../leanvm-tree.sh
+      # The guest's bytecode, source, manifest, test programs and node vectors are what
+      # `scripts/guest-export` writes from leanVM's sources at the pin.
+      - name: The guest's data is leanVM's
+        run: |
+          cargo build --release --manifest-path scripts/guest-export/Cargo.toml
+          scripts/guest-export/target/release/guest-export . --check
       # The Lean verifier and the pinned Rust verifier must agree on the committed proofs and on
       # mutations of them, so a bump to a protocol change fails here until the Lean one follows.
       - name: Rust-vs-Lean differential

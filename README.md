@@ -18,7 +18,7 @@ Each is its own Lake project on the toolchain in [`lean-toolchain`](lean-toolcha
 
 ## Against leanVM
 
-[`leanvm-rev`](leanvm-rev) is the leanVM commit whose verifier, guest and prover `lean_vm` is about. [`leanvm-tree.sh`](leanvm-tree.sh) checks it out into `.leanvm/`, with its `formal/lean_vm` a link to `lean_vm/`. There the Rust verifier is fuzzed against the Lean one; CI runs it. (At this pin leanVM has no tests that write Lean data: the guest's bytecode and source writers and the node vectors' are gone with the BLAKE2s guest.)
+[`leanvm-rev`](leanvm-rev) is the leanVM commit whose verifier, guest and prover `lean_vm` is about. [`leanvm-tree.sh`](leanvm-tree.sh) checks it out into `.leanvm/`, with its `formal/lean_vm` a link to `lean_vm/`. There the Rust verifier is fuzzed against the Lean one, and `lean_vm/scripts/guest-export` writes the aggregation guest's data and the node vectors from leanVM's sources (at this pin leanVM has no tests that write Lean data); CI runs both.
 
 leanVM's own `formal/` goes on changing. Following it is deliberate: bump `leanvm-rev`, carry over the matching `formal/` changes, and let the checks above say what is stale. The generated data's headers and some prose still name leanVM's paths (`formal/lean_vm/…`, `crates/…`); those are citations into the leanVM tree.
 

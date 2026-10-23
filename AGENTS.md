@@ -5,8 +5,8 @@ Read [`README.md`](README.md) first, then the README of the project you work in.
 ## The repository
 
 - Five Lake projects, `lean_rpm`, `lean_vm`, `lean_xmss`, `lean_sphincs` and `lean_da`, each built in its own directory; the root is no Lean project. `lake build` at the root (`check-all.sh`) is the full gate, as `.github/workflows/lean.yml` runs it.
-- `lean_vm` is about leanVM at `leanvm-rev`. Run leanVM's Rust in `.leanvm/` (`./leanvm-tree.sh`), whose `formal/lean_vm` is a link to `lean_vm`: its `LEANVM_WRITE_*` tests write the Lean data here. Never edit `.leanvm/` itself; bump `leanvm-rev` instead.
-- Generated data is regenerated, not edited (at `keccak-gkr` there is none: the guest's data and the node vectors went with the BLAKE2s guest).
+- `lean_vm` is about leanVM at `leanvm-rev`. Run leanVM's Rust in `.leanvm/` (`./leanvm-tree.sh`), whose `formal/lean_vm` is a link to `lean_vm`: Never edit `.leanvm/` itself; bump `leanvm-rev` instead.
+- Generated data (`lean_vm/LeanVM/Guest/Data/`, `lean_vm/tests/LeanVMTests/Spec/NodeVectors.lean`, `lean_vm/tests/LeanVMTests/Guest/{Programs,Manifest}.lean`) is regenerated, not edited: by `lean_vm/scripts/guest-export` from leanVM's sources at the pin, or by `lake exe guest-core` / `lake exe guest-cert`.
 - No `sorry`, `axiom`, `admit`, `native_decide`, `implemented_by` or `unsafe`, and no local overrides of a lakefile's options; every warning is an error, deprecations included. The axiom footprint of every end theorem is Lean's three.
 - Builds are heavy: run them on a large machine, after `lake exe cache get`. Cap `lean` and compiled executables with `ulimit -v`, not `lake` (it reserves about 1 GB of address space per job).
 - The Rust code reached through `.leanvm/` (Rust verifier, prover, guests) is test evidence, not proof; a proof claim cites leanVM sources at a named commit.
