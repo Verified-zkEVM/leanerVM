@@ -217,6 +217,74 @@ theorem noRetList_flatten_map (f : ℕ → List Stmt) (h : ∀ i, Stmt.noRetList
   | i :: l => by
     rw [List.map_cons, List.flatten_cons, noRetList_append, h i, noRetList_flatten_map f h l]; rfl
 
+/-! ## Facts by position
+
+A body's statements without `ret`, `pre`, hold one by one: the statement at position `k`, found
+by kernel evaluation (`stmtEqb`), holds. `body_pre` splits a body into its statements and its
+final `ret`. -/
+
+/-- The statement at position `k` of a block without `ret` holds. -/
+theorem holds_at {pre : List Stmt} (hnr : Stmt.noRetList pre = true) {kret : List E → Prop}
+    (h : Stmt.HoldsList C rd σ pre True kret) (k : ℕ) {s : Stmt}
+    (hk : stmtEqb (pre.getD k (.ret [])) s = true) (hlt : k < pre.length) :
+    Stmt.HoldsList C rd σ [s] True kret := by
+  rw [← stmtEqb_sound hk]
+  have hsplit : pre = pre.take k ++ [pre.getD k (.ret [])] ++ pre.drop (k + 1) := by
+    rw [List.getD_eq_getElem _ _ hlt]
+    simp
+  rw [hsplit] at h hnr
+  rw [noRetList_append, noRetList_append, Bool.and_eq_true, Bool.and_eq_true] at hnr
+  rw [holdsList_append, holdsList_append, holdsList_noRet _ hnr.1.1,
+    holdsList_noRet _ hnr.1.2] at h
+  exact h.2.1
+
+/-- The atom at position `k` holds. -/
+theorem atom_at {pre : List Stmt} (hnr : Stmt.noRetList pre = true) {kret : List E → Prop}
+    (h : Stmt.HoldsList C rd σ pre True kret) (k : ℕ) (a : Atom)
+    (hk : stmtEqb (pre.getD k (.ret [])) (.atom a) = true ∧ k < pre.length) : a.Holds rd σ := by
+  have := holds_at hnr h k hk.1 hk.2
+  simpa [Stmt.HoldsList, Stmt.Holds] using this
+
+/-- The call at position `k` holds. -/
+theorem call_at {pre : List Stmt} (hnr : Stmt.noRetList pre = true) {kret : List E → Prop}
+    (h : Stmt.HoldsList C rd σ pre True kret) (k : ℕ) (f : String) (args rets : List V)
+    (hk : stmtEqb (pre.getD k (.ret [])) (.call f args rets) = true ∧ k < pre.length) :
+    C f (args.map σ) (rets.map σ) := by
+  have := holds_at hnr h k hk.1 hk.2
+  simpa [Stmt.HoldsList, Stmt.Holds] using this
+
+/-- The conditional call at position `k` holds. -/
+theorem callIf_at {pre : List Stmt} (hnr : Stmt.noRetList pre = true) {kret : List E → Prop}
+    (h : Stmt.HoldsList C rd σ pre True kret) (k : ℕ) (c : V) (f : String) (args : List V)
+    (hk : stmtEqb (pre.getD k (.ret [])) (.callIf c f args) = true ∧ k < pre.length) :
+    IsInK (σ c) ∧ (σ c ≠ 0 → C f (args.map σ) []) := by
+  have := holds_at hnr h k hk.1 hk.2
+  simp only [Stmt.HoldsList, Stmt.Holds, and_true] at this
+  exact this
+
+/-- The fused `match` of calls at position `k` holds. -/
+theorem dispatch_at {pre : List Stmt} (hnr : Stmt.noRetList pre = true) {kret : List E → Prop}
+    (h : Stmt.HoldsList C rd σ pre True kret) (k : ℕ) (x : V) (fs : List String)
+    (args rets : List V)
+    (hk : stmtEqb (pre.getD k (.ret [])) (.dispatch x fs args rets) = true ∧ k < pre.length) :
+    ∃ (j : ℕ) (h : j < fs.length), σ x = ofK (Parameters.gpow j) ∧
+      C fs[j] (args.map σ) (rets.map σ) := by
+  have := holds_at hnr h k hk.1 hk.2
+  simp only [Stmt.HoldsList, Stmt.Holds, and_true] at this
+  exact this
+
+/-- A function whose body is `pre ++ [ret vs]` (`pre` without `ret`): its relation is some
+valuation of its parameters satisfying `pre` and returning `vs`. -/
+theorem rel_pre {f : String} {fn : Fn} (hf : coreProgram.find? f = some fn) {pre : List Stmt}
+    {vs : List V} (hb : fn.body = pre ++ [.ret vs]) (hnr : Stmt.noRetList pre = true)
+    (args rets : List E) (h : coreProgram.Rel rd f args rets) :
+    ∃ σ : Val, fn.params.map σ = args ∧
+      Stmt.HoldsList (coreProgram.Rel rd) rd σ pre True (fun rs => rs = rets) ∧
+      vs.map σ = rets := by
+  obtain ⟨σ, hp, hb'⟩ := (rel_iff_sem hf args rets).mp h
+  rw [hb, holdsList_append, holdsList_noRet _ hnr] at hb'
+  exact ⟨σ, hp, hb'.1, hb'.2⟩
+
 /-! ## Loops -/
 
 /-- **A `mul_range` loop, soundness**: if the helper's relation at depth `d + 1` at `x` gives the
