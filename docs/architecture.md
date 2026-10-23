@@ -594,13 +594,33 @@ offsets and powers (`TableSumcheck.formula_eq_formulaFast`). Beside the definiti
 are the fast paths of the bit-product table, the cube weights, the cube decoder, the stack, the
 aligned, strided and leanISA layouts, the witness's columns, an instance's column reads, rows and
 virtual tables, the bus leaves and the grand-product prover's messages
-(`Gkr.roundPoly_eq_roundPolyFast`, `Bus.sideLeaves_eq_sideLeavesFast`). A round message is a
-function of the context and the challenges, so a prover rebuilds what it reads each round: the
-sumcheck binds its tables afresh, `m · 2 ^ n` per round and `n · m · 2 ^ n` over the sumcheck;
-the grand-product argument rebuilds its trees' level below, and the bus phase its leaves. The
-Flock rounds (`Flock.normRound_eq_normRoundFolded`, `Flock.highRound_eq_highRoundFolded`) and a
-round message's value (`SumcheckRound.evaluate_eq_evaluateHorner`) take the same route. All are
-timed by the `leanervm-bench` executable ([bench/README.md](../bench/README.md)).
+(`Gkr.roundPoly_eq_roundPolyFast`, `Bus.sideLeaves_eq_sideLeavesFast`). The Flock rounds
+(`Flock.normRound_eq_normRoundFolded`, `Flock.highRound_eq_highRoundFolded`) and a round
+message's value (`SumcheckRound.evaluate_eq_evaluateHorner`) take the same route, and the
+BLAKE2s inhabitant's honest column traces the circuit on 64-bit words
+(`LeanerVM.Protocol.ToArkLib.Flock.CircuitFast`,
+`Blake2sFlock.blake2sFlockSpec_eq_blake2sFlockSpecFast`).
+
+A round message is a function of the context and the challenges, so an honest prover that is a
+composition of one-round components rebuilds what it reads each round. Prover-only state is
+carried beside the witness by a cached prover (`Component.Cached`,
+`LeanerVM.Protocol.ToArkLib.CachedProver`): a prover whose run, from the cache of its input, is
+the component's honest run with the cache of its output. Cached provers compose, and one with no
+cache on either side is a prover of the component's statements whose run is the honest prover's
+(`Component.Cached.toProver_run`), with the component's verifier and its completeness
+(`Component.Cached.complete`); no definition changes. The sumcheck's tables are bound once per
+challenge (`SumcheckRound.RoundCache`, `Sumcheck.cachedRounds`), the grand-product argument
+builds every tree's levels once and binds the children of each layer's level below once per
+challenge (`cachedGkr`), and `leanVmFastProver` (`LeanerVM.Protocol.HonestProver`) is the oracle
+protocol's prover with the bus phase and the table sumcheck cached, proved to run as
+`leanVmProver (leanVmPhases I h)` (`leanVmFastProver_run`). This is an honest-prover refinement,
+not a `@[csimp]` substitution: a caller runs `leanVmFastProver`. Running any prover through
+ArkLib's `Prover.run` needs the challenge samplers of its schedule, which ArkLib builds for an
+appended schedule with `Fin.fappend₂`, exponential in the depth of a schedule appended on the
+right when compiled; `LeanerVM.Protocol.ToArkLib.AppendLazy` substitutes lazy forms by
+`@[csimp]`, imported where the schedules are built. A block's selector weight is one product
+(`Blocks.selectorWeight_eq_selectorWeightFast`). All are timed by the `leanervm-bench` executable
+([bench/README.md](../bench/README.md)).
 
 Rust FFI follows when a Lean caller needs a measured fast path and the ABI can be
 specified. CUDA follows when profiling identifies a stable parallel kernel boundary. A

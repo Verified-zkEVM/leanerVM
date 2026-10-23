@@ -22,6 +22,8 @@ lake build leanervm-bench                   # compiles every transitive module t
 .lake/build/bin/leanervm-bench 100          # iteration counts at 100% (the default), every group
 .lake/build/bin/leanervm-bench 100 sumcheck # one group: `arith`, `sumcheck` or `provers`
 .lake/build/bin/leanervm-bench 1 provers GKR # the prover workloads whose name contains `GKR`
+.lake/build/bin/leanervm-bench 1 runs        # provers run through ArkLib's `Prover.run`
+.lake/build/bin/leanervm-bench 1 protocol pub 15 # leanVM's phases up to the public input
 ```
 
 Inputs come from a xorshift seeded by `LEANERVM_BENCH_SEED` (default `12345`), so nothing is
@@ -138,6 +140,23 @@ above). The table sumcheck adds per point the formula: the weight of each table'
 `τ_max` products, and its row polynomials; and per round the columns read off the stack through
 the layout (`Layout.readWith`, `μ` comparisons a cell).
 
+The ", with state" lines run the cached prover's messages (`Sumcheck.roundFromCache`,
+`Sumcheck.stepCache`): the tables read off the context once and bound one challenge at a time,
+`m · 2 ^ n` over the sumcheck. Recorded on 2026-10-23 on the same machine, beside the lines above,
+each pair printing the same checksum (milliseconds for all `n` rounds):
+
+| Workload | `n` | Stateless (ms) | With state (ms) |
+| --- | ---: | ---: | ---: |
+| `Sumcheck.plain` | 12 | 696 | 309 |
+| `Sumcheck.plain` | 16 | 16,381 | 5,637 |
+| `Sumcheck.normalized` | 12 | 825 | 431 |
+| `Sumcheck.normalized` | 16 | 18,128 | 7,340 |
+| `TableSumcheck` | 12 | 2,503 | 1,933 |
+| `TableSumcheck` | 16 | 49,611 | 37,076 |
+
+What is left is the round polynomial itself, `(d + 1) · 2 ^ (n - j - 1)` evaluations of the
+summand at round `j`; in the table sumcheck the formula dominates.
+
 ### The honest provers' tables
 
 The `provers` group times, once each, the tables the honest provers of the bus phase and of the
@@ -153,6 +172,8 @@ workloads whose name contains it (`.lake/build/bin/leanervm-bench 1 provers "GKR
 | `column read leanISA 2^k cells` | one memory column read off that stack (`M3Instance.column`, through the layout) |
 | `cube point and index …` | the cube point of an index and back, on 22 coordinates, generic and over `E`: most of a cell read |
 | `GKR last layer 3 trees 2^μ` | the `μ - 2` sumcheck messages and the children of the grand-product argument's last radix-four step, on three random trees |
+| `GKR last layer 3 trees 2^μ, with state` | the same from the cached prover's data: the trees' levels built once (`Gkr.treesOf`), the children of the level below bound one challenge at a time (`Gkr.roundFromBound`, `Gkr.stepChildren`) |
+| `Flock circuit: compile`, `one block, on words`, `on bitsets` | `ProductCircuit.compile` of the BLAKE2s circuit, and one compression's block traced on 64-bit words (`Compiled.traceW`) and on bitsets (`trace`) |
 
 The fast paths are the `@[csimp]` theorems listed in `docs/architecture.md`, "Performance backend
 contract". Recorded on 2026-10-23 on the same machine as above, shared with other builds; "before"
@@ -182,6 +203,69 @@ point lifted through the layout and decoded, about 0.8 µs at 22 coordinates. A 
 grand-product argument from layer `m` costs `m` rounds of `O(2^(m+2))` work: the honest prover
 keeps no state between messages, so every round rebuilds its trees' level below, and in the bus
 phase the leaves. `E` products, about 3 µs each, dominate every row of this table.
+
+With prover state and the BLAKE2s column traced on words (`Blake2sFlock.genColumnFast`, through
+`Blake2sFlock.blake2sFlockSpec_eq_blake2sFlockSpecFast`), recorded on 2026-10-23, each pair
+printing the same checksum:
+
+| Workload | Stateless | With state |
+| --- | ---: | ---: |
+| `GKR last layer 3 trees 2^8` | 0.040 s | 0.025 s |
+| `GKR last layer 3 trees 2^12` | 0.93 s | 0.39 s |
+| `GKR last layer 3 trees 2^16` | 19.2 s | 6.5 s |
+| `GKR last layer 3 trees 2^20` | 382 s | 106 s |
+| `Flock circuit: one block`, bitsets / words | 0.36 s | 0.18 s |
+| `stackOf leanISA 2^15 cells`, steady | 3.0 s | 0.87 s |
+
+The BLAKE2s circuit's forms are dense (about 3,000 of the `2^14` positions each, 89 million in
+all), so the compiled circuit holds each form as its 256 words; compiling takes 3.5 s, once per
+process (the first stack pays it). The last layer's messages are now the round polynomial's own
+`O(nside · 2^ρ · (2^ρ + 1) · 2^(m - j))` products at round `j`.
+
+### The honest provers, run
+
+The `runs` and `protocol` groups run provers through ArkLib's `Prover.run`, the challenges drawn
+by `IO.rand` from the seed (`runProver`), so that two provers timed at the same seed draw the
+same challenges. `runs` times trivial sumcheck rounds and a plain sumcheck of three tables, with
+state (`Sumcheck.cachedWeighted`) and without. `protocol` builds the leanISA stack of the
+constraint statement tests' witness at memory log-size `lm + 1` (fourth argument, default `15`,
+the smallest admissible: `2^19` cells, `2^17` bus leaves, `τ_max = 3` since the witness's opcode
+tables are small, eight `BLAKE2S` rows), then runs the phases of `leanVmPhases` one after the
+other, each on the output of the one before, up to the phase the third argument names (`bus`,
+`table`, `pub`, `flock`, or `whole` for every phase and `leanVmFastProver`): the bus phase and
+the table sumcheck with state (`Bus.busCached`, `TableSumcheck.tableCached`), beside their
+stateless honest provers when the fifth argument is `spec`.
+
+```sh
+.lake/build/bin/leanervm-bench 1 runs
+.lake/build/bin/leanervm-bench 1 protocol table 0 spec   # 2^15 cells, 2^8 leaves
+.lake/build/bin/leanervm-bench 1 protocol pub 15         # the smallest admissible size
+```
+
+ArkLib builds an appended schedule's challenge samplers with `Fin.fappend₂`, which, compiled,
+evaluates the inner schedules' entries at every step: `Prover.run` of `SumcheckRound.rounds`, a
+schedule appended on the right once per round, took 0.6 ms at 4 rounds, 1.3 s at 7, 18 s at 8 and
+261 s at 9. With the lazy instances of `LeanerVM.Protocol.ToArkLib.AppendLazy` it takes 0.5 ms at
+8 rounds and 1.8 ms at 32. The plain sumcheck of three tables of `2^16` entries runs in 6.0 s with
+state and 38.1 s without (the stateless prover also computes each message twice, once to send it
+and once for its output statement). Recorded on 2026-10-23, each pair printing the same checksum:
+
+| Phase | `2^15` cells, `2^8` leaves: stateless | with state | `2^19` cells, `2^17` leaves: with state |
+| --- | ---: | ---: | ---: |
+| the stack (`stackOf`) | | 3.9 s | 3.9 s |
+| bus phase | 121 s | 0.35 s | 9.1 s (and 0.55 s to read its output) |
+| table sumcheck | 7.2 s | 3.3 s | 4.1 s |
+| public input | | 0.1 ms | 0.1 ms |
+| Flock phase | | not finished in 15 min | not run |
+
+The bus phase's output reads each block's selector weight; before
+`Blocks.selectorWeight_eq_selectorWeightFast` each weight built a Lagrange basis of up to `2^17`
+entries to read one, and reading the output took 64 s at the smallest size. The Flock phase does
+not run at leanVM's size: the BLAKE2s inhabitant's R1CS carries the naive walks of
+`ProductCircuit.toBlockR1CS` (`2^28` products a walk), and `Flock.leftTable` walks a block once
+per entry it reads, in every round. It needs walks on the compiled circuit's words and a cached
+prover of its own, as the bus phase has; until then the whole protocol's prover
+(`leanVmFastProver`) does not finish at leanVM's size.
 
 Further runtime benchmark groups belong here once leanerVM has executable semantics. Each such
 group must name the workload, parameter revision, expected result, and whether it measures Lean code

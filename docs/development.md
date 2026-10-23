@@ -68,6 +68,7 @@ this package, not dependencies, so adding or changing them needs none of the rev
 ```sh
 lake build leanervm-bench
 .lake/build/bin/leanervm-bench [percent] [arith|sumcheck|provers|all] [filter]
+.lake/build/bin/leanervm-bench 1 protocol [bus|table|pub|flock|whole] [lm] [spec]
 ```
 
 The object files land in each package's own `.lake/build`. A worktree that shares its

@@ -2,9 +2,10 @@
   LeanerVMBench
 
   Steady-state timings of the field arithmetic, the BLAKE2s hasher, a Merkle root and a
-  multilinear evaluation, the sumcheck provers' round messages, and one-shot timings of the honest
+  multilinear evaluation, the sumcheck provers' round messages, one-shot timings of the honest
   provers' tables (the Lagrange basis, the leanISA stack, the bus leaves, a grand-product layer),
-  as compiled into the `leanervm-bench` executable.
+  and runs of the honest provers through ArkLib's `Prover.run`, as compiled into the
+  `leanervm-bench` executable.
 -/
 
 import LeanerVM.Protocol.Field
@@ -13,6 +14,9 @@ import LeanerVM.Protocol.Stack
 import LeanerVM.Protocol.TableSumcheck
 import LeanerVM.Protocol.ToArkLib.ProductSumcheck
 import LeanerVM.Protocol.LeanIsa
+import LeanerVM.Protocol.HonestProver
+import LeanerVM.Protocol.FlockSpecFast
+import LeanerVM.Protocol.ToArkLib.AppendLazy
 import LeanerVMTests.Arithmetization.Statement
 
 /-!
@@ -23,10 +27,12 @@ percentage (default `100`), on inputs derived from the seed in `LEANERVM_BENCH_S
 `12345`), so that nothing is evaluated at compile time. Each sumcheck workload computes the honest
 prover's message of every round once, at the log-sizes up to `LEANERVM_BENCH_MAXLOG` (default
 `20`); the specification's algorithm runs at small sizes beside it. The second argument selects
-the group: `arith`, `sumcheck`, `provers` or `all` (the default). Each prover workload runs once,
-at the sizes in its name; a third argument keeps only the prover workloads whose name contains it.
-Every result feeds a printed checksum, and every timed value is passed through the opaque `force`
-inside the timed interval. See `bench/README.md`.
+the group: `arith`, `sumcheck`, `provers` or `all` (the default), or `runs` and `protocol`, which
+run provers through ArkLib's `Prover.run` with challenges drawn by `IO.rand`. Each prover workload
+runs once, at the sizes in its name; a third argument keeps only the prover workloads whose name
+contains it, and for `protocol` names the last phase run. Every result feeds a printed checksum,
+and every timed value is passed through the opaque `force` inside the timed interval. See
+`bench/README.md`.
 -/
 
 namespace LeanerVMBench
@@ -66,13 +72,18 @@ def timeLoop {α : Type} (name : String) (iters : Nat) (init : α) (step : Nat �
 
 /-- Time one run of a computation, in seconds. Its argument comes from an opaque call made
 after the clock starts, so that the computation cannot be hoisted out of the interval. -/
-def timeOnce {α : Type} (name : String) (f : Unit → α) (show_ : α → String) : IO Unit := do
+def timeOnceR {α : Type} (name : String) (f : Unit → α) (show_ : α → String) : IO α := do
   let t0 ← IO.monoNanosNow
   let u ← force ()
   let r ← force (f u)
   let t1 ← IO.monoNanosNow
   IO.println s!"{name}\t{(t1 - t0).toFloat / 1e9} s\t1 run\t[{show_ r}]"
   (← IO.getStdout).flush
+  pure r
+
+/-- `timeOnceR`, the value dropped. -/
+def timeOnce {α : Type} (name : String) (f : Unit → α) (show_ : α → String) : IO Unit :=
+  discard <| timeOnceR name f show_
 
 /-- The sum of a table's entries, as a checksum. -/
 def sumTable {R : Type} [Add R] [Zero R] {n : ℕ} (t : Vector R n) : R := t.foldl (· + ·) 0
@@ -244,6 +255,30 @@ def benchTableCtx (n : Nat) (seed : UInt64) :
   let q : Column (n + 2) := ⟨Vector.ofFn fun i ↦ kOf (xs (seed + i.val.toUInt64))⟩
   (((((), benchBusOut n seed), eOf (seed + 77)), fun _ ↦ q), ())
 
+/-- The messages of rounds `j, …` of a sumcheck from its bound tables `ts`, the tables bound to
+each challenge in turn (the prover with state), every coefficient summed into `acc`. -/
+def chainSum {X ι : Type} {O : ι → Type} {W : Type} {n m d : ℕ}
+    (V : Sumcheck.Virtual E X O W n m) (wt : Sumcheck.CoordWeights E X n)
+    (nodes : Fin (d + 1) → E) (ctx : SumcheckRound.Ctx X O W) (cs : Array E) :
+    (k j : ℕ) → Vector (CMlPolynomialEval E (n - j)) m → E → E
+  | 0, _, _, acc => acc
+  | k + 1, j, ts, acc =>
+    let q := Sumcheck.roundFromCache V wt nodes ctx j (firstChals cs j) ts
+    chainSum V wt nodes ctx cs k (j + 1) (Sumcheck.stepCache ts cs[j]!)
+      (acc + q.toArray.foldl (· + ·) 0)
+
+/-- Time the messages of every round of a sumcheck with its bound tables carried, the tables
+read off the context included, with `timeRounds`' checksum. -/
+def timeChain {X ι : Type} {O : ι → Type} {W : Type} {n m d : ℕ} (name : String)
+    (V : Sumcheck.Virtual E X O W n m) (wt : Sumcheck.CoordWeights E X n)
+    (nodes : Fin (d + 1) → E) (ctx : SumcheckRound.Ctx X O W) (cs : Array E) : IO Unit := do
+  let t0 ← IO.monoNanosNow
+  let u ← force ()
+  let acc ← force (chainSum V wt nodes ctx cs n 0
+    (Sumcheck.boundCache V ctx 0 (Vector.ofFn fun i : Fin 0 ↦ (fun _ ↦ i.elim0) u)) 0)
+  let t1 ← IO.monoNanosNow
+  IO.println s!"{name}\t{(t1 - t0).toFloat / 1e6} ms for {n} rounds\t[{acc}]"
+
 /-- The sumcheck workloads at log-sizes `ns`, and the specification's algorithm at `specNs`. -/
 def runSumcheck (seed : UInt64) (ns specNs : List Nat) : IO Unit := do
   let cs := chalsOf seed 32
@@ -262,9 +297,15 @@ def runSumcheck (seed : UInt64) (ns specNs : List Nat) : IO Unit := do
         (firstChals cs j)
       else Sumcheck.roundPoly V Sumcheck.unitWeights TableSumcheck.nodes unitCtx j
         (firstChals cs j)
+    if !spec then
+      timeChain s!"Sumcheck.plain 2^{n} x 3 tables, with state" V Sumcheck.unitWeights
+        TableSumcheck.nodes unitCtx cs
     timeRounds s!"Sumcheck.normalized 2^{n} x 3 tables{tag}" n fun j ↦
       if spec then specRoundPoly V wtEq TableSumcheck.nodes unitCtx j (firstChals cs j)
       else Sumcheck.roundPoly V wtEq TableSumcheck.nodes unitCtx j (firstChals cs j)
+    if !spec then
+      timeChain s!"Sumcheck.normalized 2^{n} x 3 tables, with state" V wtEq TableSumcheck.nodes
+        unitCtx cs
     timeRounds s!"ProductSum 2^{n}{tag}" n fun j ↦
       if spec then specProductRound (ts 0) (ts 1) j (firstChals cs j)
       else ProductSum.roundPoly (ts 0) (ts 1) j (firstChals cs j)
@@ -277,6 +318,9 @@ def runSumcheck (seed : UInt64) (ns specNs : List Nat) : IO Unit := do
       else
         Sumcheck.roundPoly (TableSumcheck.tableSummand I) Sumcheck.unitWeights
           TableSumcheck.nodes ctx j (firstChals cs j)
+    if !spec then
+      timeChain s!"TableSumcheck 2^{n} rows x 4 columns, with state"
+        (TableSumcheck.tableSummand I) Sumcheck.unitWeights TableSumcheck.nodes ctx cs
 
 /-! ## The honest provers' tables -/
 
@@ -322,6 +366,30 @@ def gkrLastLayer (seed : UInt64) (m : ℕ) (u : Unit) : E :=
   let ch := Gkr.children 3 (m + 2) leaves 2 m () (fun i ↦ i.elim0) chal
   (msgs.map sumTable).foldl (· + ·) 0 + sumTable (ch 0) + sumTable (ch 1) + sumTable (ch 2)
 
+/-- The messages of rounds `j, …` of the last layer's sumcheck from the bound children, each
+challenge bound in turn, and the children read off the children bound on every coordinate, every
+entry summed into `acc`. -/
+def gkrChainSum (m : ℕ) (ctx : Gkr.LayerCtx Unit E NoOracle 3 m) (chal : Vector E m) :
+    (k j : ℕ) → Vector (Vector (CMlPolynomialEval E (m - j)) (2 ^ 2)) 3 → E → E
+  | 0, j, B, acc => B.toList.foldl (fun a row ↦ row.toList.foldl
+      (fun a (t : Vector E (2 ^ (m - j))) ↦ a + t[0]'(Nat.two_pow_pos _)) a) acc
+  | k + 1, j, B, acc =>
+    gkrChainSum m ctx chal k (j + 1) (Gkr.stepChildren 3 2 m B (chal[j]?.getD 0))
+      (acc + sumTable (Gkr.roundFromBound ctx j B))
+
+/-- `gkrLastLayer` with state: the trees' levels built once, the children of the level below
+bound one challenge at a time. -/
+def gkrLastLayerCached (seed : UInt64) (m : ℕ) (u : Unit) : E :=
+  let tabs := randomLeaves seed 3 (m + 2)
+  let leaves : Unit → (∀ i, NoOracle i) → Fin 3 → CMlPolynomialEval E (m + 2) := fun _ _ ↦ tabs
+  let point : Vector E m := Vector.ofFn fun i ↦ eOf (xs (seed * 5 + i.val.toUInt64))
+  let lam := eOf (xs (seed * 7))
+  let ctx : Gkr.LayerCtx Unit E NoOracle 3 m :=
+    ((((u, (point, fun _ ↦ 0)), lam), fun i ↦ i.elim0), ())
+  let chal : Vector E m := Vector.ofFn fun i ↦ eOf (xs (seed * 11 + i.val.toUInt64))
+  let T := Gkr.treesOf 3 (m + 2) leaves u (fun i ↦ i.elim0)
+  gkrChainSum m ctx chal m 0 (Gkr.boundChildren 3 2 m T 0 #v[]) 0
+
 /-- The prover workloads, each run once. -/
 def runProvers (keep : String → Bool) (seed : UInt64) : IO Unit := do
   -- The Lagrange basis (the equality kernel's cube values) at an `E` point.
@@ -345,6 +413,17 @@ def runProvers (keep : String → Bool) (seed : UInt64) : IO Unit := do
       (fun _ ↦ sumTable (witnessColumn Blake2sFlock.blake2sFlockSpec fillProg s fillWitness
         flockCol))
       (fun a ↦ a.toBitVec.toHex)
+  -- The BLAKE2s circuit compiled for its prover, and one block traced, on words and as bitsets.
+  if keep "Flock circuit" then
+    let c ← force (Blake2sCircuit.blake2sCircuit : ProductCircuit Blake2sCircuit.m)
+    timeOnce "Flock circuit: gates" (fun _ ↦ c.gates.size) toString
+    let pc ← timeOnceR "Flock circuit: compile" (fun _ ↦ ProductCircuit.compile c)
+      fun pc ↦ toString (pc.gates.foldl (fun a g ↦ a ^^^ g.2.1.foldl (· ^^^ ·) 0) (0 : UInt64))
+    let inp := Blake2sFlock.inputForm (fun i ↦ kOf (seed + i.val.toUInt64))
+    timeOnce "Flock circuit: one block, on words" (fun _ ↦ pc.traceW inp)
+      fun zw ↦ toString (zw.foldl (· ^^^ ·) (0 : UInt64))
+    timeOnce "Flock circuit: one block, on bitsets" (fun _ ↦ c.trace inp)
+      fun z ↦ toString ((ProductCircuit.wordsOf z).foldl (· ^^^ ·) (0 : UInt64))
   -- The bus leaves of the three sides, on a random stack of the instance's height.
   for lm in [0, 10, 14, 18] do
     let s := sizesAt lm
@@ -378,14 +457,167 @@ def runProvers (keep : String → Bool) (seed : UInt64) : IO Unit := do
     let name := s!"GKR last layer 3 trees 2^{m + 2}"
     if keep name then
       timeOnce name (gkrLastLayer seed m) toString
+    let name := s!"GKR last layer 3 trees 2^{m + 2}, with state"
+    if keep name then
+      timeOnce name (gkrLastLayerCached seed m) toString
+
+/-! ## The honest provers, run -/
+
+open OracleComp OracleSpec ProtocolSpec in
+/-- Run a prover through ArkLib's `Prover.run`, its challenges drawn by `IO.rand` (VCVio's
+`OracleComp.runIO`). -/
+def runProver {S W S' W' : Type} {n : ℕ} {pSpec : ProtocolSpec n}
+    [∀ i, SampleableType (pSpec.Challenge i)] (P : Prover []ₒ S W S' W' pSpec) (s : S) (w : W) :
+    IO (pSpec.FullTranscript × S' × W') :=
+  simulateQ (spec := unifSpec) (fun n ↦ Fin.ofNat (n + 1) <$> (IO.rand 0 n).toIO)
+    (simulateQ (QueryImpl.add (fun t ↦ isEmptyElim t) challengeQueryImpl) (P.run s w))
+
+/-- Time one run of a prover, the random generator seeded first, so that two provers timed at the
+same seed draw the same challenges. -/
+def timeProver {α : Type} (name : String) (seed : ℕ) (act : Unit → IO α) (show_ : α → String) :
+    IO α := do
+  IO.setRandSeed seed
+  let t0 ← IO.monoNanosNow
+  let r ← act (← force ())
+  let t1 ← IO.monoNanosNow
+  let c ← force (show_ r)
+  let t2 ← IO.monoNanosNow
+  IO.println s!"{name}\t{(t1 - t0).toFloat / 1e9} s\t1 run\t[{c}]\tchecksum {(t2 - t1).toFloat / 1e9} s"
+  (← IO.getStdout).flush
+  pure r
+
+/-- Run a step and print its wall-clock time, everything it builds included. -/
+def wall {α : Type} (name : String) (act : IO α) : IO α := do
+  let t0 ← IO.monoNanosNow
+  let r ← act
+  let t1 ← IO.monoNanosNow
+  IO.println s!"{name}: {(t1 - t0).toFloat / 1e9} s wall-clock"
+  (← IO.getStdout).flush
+  pure r
+
+/-- The sum of the values of column claims, as a checksum. -/
+def claimSum {I : M3Instance} {k : ℕ} (cs : Vector (ColumnClaim I) k) : E :=
+  cs.toList.foldl (fun a c ↦ a + c.value) 0
+
+/-- A checksum of the bus phase's output: the point, the totals, the boundary values. -/
+def busSum {I : M3Instance} (b : BusOut I) : E :=
+  sumTable b.point + b.totals 0 + b.totals 1 + b.totals 2 + claimSum b.columns
+
+/-- The bus phase's provers on the statement and the stack: the one with state, and the honest
+one when `spec` holds. Returns the output of the one with state. -/
+def runBus (I : M3Instance) (h : Bus.Conditions I) (sd : ℕ) (tag : String) (spec : Bool)
+    (x : I.Stmt × ∀ i, TheOracle I i) : IO ((I.Stmt × BusOut I) × ∀ i, TheOracle I i) := do
+  let r ← timeProver s!"bus phase, with state, {tag}" sd
+    (fun _ ↦ runProver (Bus.busCached I h).toProver x ()) fun r ↦ toString (busSum r.2.1.1.2)
+  if spec then
+    discard <| timeProver s!"bus phase, honest (spec), {tag}" sd
+      (fun _ ↦ runProver (busPhase I h).toDef.red.prover x ())
+      fun r ↦ toString (busSum r.2.1.1.2)
+  pure r.2.1
+
+/-- The table sumcheck's provers. -/
+def runTable (I : M3Instance) (sd : ℕ) (tag : String) (spec : Bool)
+    (x : (I.Stmt × BusOut I) × ∀ i, TheOracle I i) :
+    IO ((I.Stmt × TableOut I) × ∀ i, TheOracle I i) := do
+  let r ← timeProver s!"table sumcheck, with state, {tag}" sd
+    (fun _ ↦ runProver (TableSumcheck.tableCached I).toProver x ())
+    fun r ↦ toString (claimSum r.2.1.1.2.columns)
+  if spec then
+    discard <| timeProver s!"table sumcheck, honest (spec), {tag}" sd
+      (fun _ ↦ runProver (TableSumcheck.tableSumcheck I).toDef.red.prover x ())
+      fun r ↦ toString (claimSum r.2.1.1.2.columns)
+  pure r.2.1
+
+/-- The public-input phase's honest prover. -/
+def runPub (I : M3Instance) (sd : ℕ) (tag : String)
+    (x : (I.Stmt × TableOut I) × ∀ i, TheOracle I i) :
+    IO ((I.Stmt × PubOut I) × ∀ i, TheOracle I i) := do
+  let r ← timeProver s!"public input, honest, {tag}" sd
+    (fun _ ↦ runProver (deployedPublicInputPhase I).toDef.red.prover x ())
+    fun r ↦ toString (claimSum r.2.1.1.2.columns)
+  pure r.2.1
+
+/-- The Flock phase's honest prover. -/
+def runFlock (I : M3Instance) (sd : ℕ) (tag : String)
+    (x : (I.Stmt × PubOut I) × ∀ i, TheOracle I i) :
+    IO ((I.Stmt × FlockOut I) × ∀ i, TheOracle I i) := do
+  let r ← timeProver s!"Flock phase, honest, {tag}" sd
+    (fun _ ↦ runProver (flockPhase I).toDef.red.prover x ())
+    fun r ↦ toString (claimSum r.2.1.1.2.columns +
+      r.2.1.1.2.weighted.toList.foldl (fun a c ↦ a + c.value) 0)
+  pure r.2.1
+
+/-- The opening's honest prover. -/
+def runOpening (I : M3Instance) (sd : ℕ) (tag : String)
+    (x : (I.Stmt × FlockOut I) × ∀ i, TheOracle I i) : IO Unit :=
+  discard <| timeProver s!"opening, honest, {tag}" sd
+    (fun _ ↦ runProver (openingPhase I).red.prover x ()) fun _ ↦ "-"
+
+/-- The whole protocol's provers. -/
+def runWhole (I : M3Instance) (h : Bus.Conditions I) (sd : ℕ) (tag : String) (spec : Bool)
+    (stmt : I.Stmt) (q : Column I.μ) : IO Unit := do
+  discard <| timeProver s!"whole protocol, with state, {tag}" sd
+    (fun _ ↦ runProver (leanVmFastProver I h) (stmt, fun i ↦ i.elim0) q) fun _ ↦ "-"
+  if spec then
+    discard <| timeProver s!"whole protocol, honest (spec), {tag}" sd
+      (fun _ ↦ runProver (leanVmProver (leanVmPhases I h)) (stmt, fun i ↦ i.elim0) q)
+      fun _ ↦ "-"
+
+/-- `k` trivial sumcheck rounds, whose schedule is appended on the right once per round. -/
+def trivialRounds (k : ℕ) :=
+  SumcheckRound.rounds (F := E) (X := Unit) (O := NoOracle) (W := Unit) (d := 0)
+    (fun _ _ _ ↦ #v[0]) (fun _ _ ↦ []) k k 0 (Nat.zero_add k)
+
+/-- ArkLib's `Prover.run` of a plain sumcheck of three tables, with state and stateless, at
+`n` variables: the run's cost beside its messages'. -/
+def runSumcheckProver (seed : UInt64) (n : ℕ) : IO Unit := do
+  let ts ← force fun i : Fin 3 ↦ tableOf (seed + 1000 * i.val.toUInt64) n
+  let V := cubic ts
+  let x : SumcheckRound.Stmt Unit E 0 × ∀ i, NoOracle i := (((), (#v[], 0)), noO)
+  discard <| timeProver s!"Prover.run, plain sumcheck 2^{n} x 3 tables, with state" 7
+    (fun _ ↦ runProver (Sumcheck.cachedWeighted V Sumcheck.unitWeights TableSumcheck.nodes).toProver
+      x ()) fun r ↦ toString (sumTable r.2.1.1.2.2)
+  discard <| timeProver s!"Prover.run, plain sumcheck 2^{n} x 3 tables, stateless" 7
+    (fun _ ↦ runProver (Sumcheck.weighted V Sumcheck.unitWeights TableSumcheck.nodes).red.prover
+      x ()) fun r ↦ toString (sumTable r.2.1.1.2.2)
+
+/-- The leanISA instance's phases at memory log-size `lm + 1`, run one after the other, each
+prover with state on the output of the one before, and the honest provers of `leanVmPhases`
+beside them on the same input when `spec` holds; the phases after `last` are skipped. Then the
+whole protocol's provers, when `whole` holds. The checksums of the two provers of a phase
+agree. -/
+def runProtocol (seed : UInt64) (lm : ℕ) (spec whole : Bool) (last : String) : IO Unit := do
+  let s := sizesAt lm
+  let I := leanIsaAt s
+  let h : Bus.Conditions I := leanIsa_conditions Blake2sFlock.blake2sFlockSpec fillProg s
+  let q : Column I.μ ← timeProver "the stack" 0
+    (fun _ ↦ force (stackOf Blake2sFlock.blake2sFlockSpec fillProg s fillWitness))
+    fun q ↦ (sumTable q.values).toBitVec.toHex
+  let stmt : I.Stmt := ⟨fun i ↦ kOf (xs (seed + 31 * i.val.toUInt64))⟩
+  let tag := s!"leanISA 2^{I.μ} cells, 2^{I.μBus} leaves, tau_max {I.τmax}"
+  IO.println s!"instance: {tag}"
+  (← IO.getStdout).flush
+  let sd := seed.toNat
+  let bus ← wall "bus phase" (runBus I h sd tag spec (stmt, fun _ ↦ q))
+  if last == "bus" then return
+  let tab ← wall "table sumcheck" (runTable I (sd + 1) tag spec bus)
+  if last == "table" then return
+  let pub ← wall "public input" (runPub I (sd + 2) tag tab)
+  if last == "pub" then return
+  let flk ← wall "Flock phase" (runFlock I (sd + 3) tag pub)
+  if last == "flock" then return
+  wall "opening" (runOpening I (sd + 4) tag flk)
+  if whole then wall "whole protocol" (runWhole I h (sd + 5) tag spec stmt q)
 
 end Provers
 
 end LeanerVMBench
 
-/-- `leanervm-bench [percent] [group] [filter]`: run the workloads of `group` (`arith`, `sumcheck`,
-`provers` or `all`, the default), arithmetic iteration counts scaled to `percent` per cent (default
-`100`), keeping only the prover workloads whose name contains `filter`. -/
+/-- `leanervm-bench [percent] [group] [filter] [lm] [spec]`: run the workloads of `group` (`arith`,
+`sumcheck`, `provers` or `all`, the default; or `runs`, or `protocol` up to the phase `filter`, at
+memory log-size `lm + 1`, the stateless provers beside when the fifth argument is `spec`),
+arithmetic iteration counts scaled to `percent` per cent (default `100`), keeping only the prover
+workloads whose name contains `filter`. -/
 def main (args : List String) : IO Unit := do
   let seed : UInt64 := ((← IO.getEnv "LEANERVM_BENCH_SEED").getD "12345").toNat!.toUInt64
   let maxLog := ((← IO.getEnv "LEANERVM_BENCH_MAXLOG").getD "20").toNat!
@@ -398,3 +630,20 @@ def main (args : List String) : IO Unit := do
   if group == "all" || group == "sumcheck" then
     LeanerVMBench.runSumcheck seed ([4, 6, 8, 12, 16, 20].filter (· ≤ maxLog)) [4, 6, 8]
   if group == "all" || group == "provers" then LeanerVMBench.runProvers keep seed
+  if group == "runs" then
+    -- `runs`: ArkLib's `Prover.run` of trivial sumcheck rounds, and of a plain sumcheck with
+    -- state and without.
+    for k in [4, 8, 16, 32] do
+      discard <| LeanerVMBench.timeProver s!"Prover.run, {k} trivial sumcheck rounds" 3
+        (fun _ ↦ LeanerVMBench.runProver (LeanerVMBench.trivialRounds k).red.prover
+          (((), (#v[], 0)), LeanerVMBench.noO) ())
+        fun r ↦ toString (r.2.1.1.2.1.toList.foldl (· + ·) 0)
+    for n in [4, 8, 12, 16] do LeanerVMBench.runSumcheckProver seed n
+  if group == "protocol" then
+    -- `protocol`: the leanISA phases' provers up to the phase named by the filter (`bus`,
+    -- `table`, `pub`, `flock`, or `whole` for every phase and the whole protocol), at memory
+    -- log-size `lm + 1` (the fourth argument, default `15`, the smallest admissible), the honest
+    -- provers beside them when the fifth argument is `spec`.
+    let lm := ((args.drop 3).head?.bind String.toNat?).getD 15
+    let spec := (args.drop 4).head? == some "spec"
+    LeanerVMBench.runProtocol seed lm spec (filter == "whole") filter
