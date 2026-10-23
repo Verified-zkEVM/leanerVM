@@ -29,12 +29,13 @@ after); then the values of the boundary columns at the final point, one scalar p
 dropped), then the `2^ρ` descendants of each of the three trees, tree by tree, then the `ρ`
 combination challenges, low bit first, and the next combiner. The last combiner is drawn too.
 
-**The algebra** (`busStep`): the count root must not be zero; each layer combines the trees'
-claims by the powers of its combiner (`powerBatch`), decodes its rounds against the running
-claim with the equality weights of the point so far (`replayRounds`), checks the final claim
-against the combination of the descendants' products (the oracle verifier's
-`Gkr.combineCheck`), and moves to the point `(u, c)` with each tree's descendants interpolated at
-`u` (`Gkr.interpDone`). The final point `ζ`, the three values and the boundary values make the
+**The algebra** (`busReplay`, `busStep`): the count root must not be zero; the layers have the
+shapes the depth fixes (`gkrRadices`, `m` rounds and `ρ` combination challenges at depth `m`);
+each layer combines the trees' claims by the powers of its combiner (`powerBatch`), decodes its
+rounds against the running claim with the equality weights of the point so far
+(`replayRounds`), checks the final claim against the combination of the descendants' products
+(the oracle verifier's `Gkr.combineCheck`), and moves to the point `(u, c)` with each tree's
+descendants interpolated at `u` (the oracle verifier's `Gkr.interpDone`). The final point `ζ`, the three values and the boundary values make the
 grand product's last statement, and the bus phase's output is the oracle verifier's
 `Bus.busOut` of it, generic over the instance: the point `ζ_{<τ_max}`, the forms and totals of
 the three sides and the boundary columns' claims.
@@ -136,38 +137,52 @@ end Walk
 /-- The descendants of the three trees, each a table on `ρ` variables. -/
 def childTables (ρ : ℕ) : List (List E) → Option (Fin 3 → CMlPolynomialEval E ρ)
   | [a, b, c] => do
-    let ta ← vec? (2 ^ ρ) a
-    let tb ← vec? (2 ^ ρ) b
-    let tc ← vec? (2 ^ ρ) c
+    let ta ← RoundPoly.ofList? (2 ^ ρ) a
+    let tb ← RoundPoly.ofList? (2 ^ ρ) b
+    let tc ← RoundPoly.ofList? (2 ^ ρ) c
     return ![ta, tb, tc]
   | _ => none
 
-/-- The layers replayed from a point, the trees' claims there and a combiner: each layer's rounds
-decoded against the combined claim with the point's equality weights, its descendants checked
-against the final claim, and the next point and claims. Returns the final point and claims, or
-`none` at the first failed check. -/
-def replayGkr : List E → (Fin 3 → E) → E → List GkrLayer → Option (List E × (Fin 3 → E))
-  | point, values, _, [] => some (point, values)
-  | point, values, lam, l :: ls => do
-    let ρ := l.combos.length
-    let (final, xs) ← replayRounds (2 ^ ρ) (fun j ↦ point[j]?) 0 (powerBatch values lam)
-      l.rounds
+/-- The layers replayed from the layer statement `ℓ` on `m` variables and a combiner, at the
+radix exponents `ρs` the depth fixes (`gkrRadices`): a layer has `m` rounds and `ρ` combination
+challenges, its rounds are decoded against the combined claim with the point's equality weights,
+its descendants are checked by the oracle verifier's `Gkr.combineCheck`, and the next statement
+is its `Gkr.interpDone`. The last statement, or `none` at the first failed check or a layer of
+another shape. -/
+def replayGkr {X : Type} : List ℕ → (m : ℕ) → Gkr.LayerStmt X E 3 m → E → List GkrLayer →
+    Option (Σ n, Gkr.LayerStmt X E 3 n)
+  | [], m, ℓ, _, [] => some ⟨m, ℓ⟩
+  | ρ :: ρs, m, ℓ, lam, l :: ls => do
+    let (final, xs) ← replayRounds (2 ^ ρ) (fun j ↦ ℓ.2.1[j]?) 0 (powerBatch ℓ.2.2 lam) l.rounds
+    let c ← RoundPoly.ofList? m xs
+    let u ← RoundPoly.ofList? ρ l.combos
     let ch ← childTables ρ l.children
-    if final ≠ powerBatch (fun t ↦ ∏ c : Fin (2 ^ ρ), (ch t)[c]) lam then none
-    let u : Vector E ρ := ⟨l.combos.toArray, by simp [ρ]⟩
-    replayGkr (l.combos ++ xs) (fun t ↦ evalMle (ch t) u) l.combiner ls
+    let st : SumcheckRound.Stmt (Gkr.LayerX X E 3 m) E m := ((ℓ, lam), (c, final))
+    if !Gkr.combineCheck 3 ρ m st ch then none
+    replayGkr ρs (m + ρ) (Gkr.interpDone 3 ρ m ((ℓ.1, (c, ch)), u)) l.combiner ls
+  | _, _, _, _, _ => none
+
+/-- The grand product replayed for the statement `input` of an instance: a nonzero count root,
+the layers from the roots, and the grand product's last statement on `μ_bus` variables with the
+boundary values. -/
+def busReplay (I : M3Instance) (input : I.Stmt) (w : BusWire) :
+    Option (Gkr.LayerStmt (Bus.Data I) E 3 I.μBus × Vector E I.busClaims) := do
+  let α ← RoundPoly.ofList? 4 w.alpha
+  if w.count = 0 then none
+  let x : Bus.Data I := (input, (fun i ↦ α[i], w.beta))
+  let ⟨n, ℓ⟩ ← replayGkr (gkrRadices I.μBus) 0 (x, (#v[], ![w.shared, w.shared, w.count]))
+    w.combiner w.layers
+  if hn : n = I.μBus then
+    let vals ← RoundPoly.ofList? I.busClaims w.values
+    return (by subst hn; exact ℓ, vals)
+  else none
 
 /-- The bus phase's algebra on its wire, for the statement `input` of an instance meeting the
-bus phase's conditions: a nonzero count root, the layers replayed, and the bus phase's output,
-`Bus.busOut` of the grand product's last statement and the boundary values. -/
+bus phase's conditions: the grand product replayed (`busReplay`), and the bus phase's output,
+`Bus.busOut` of its last statement and the boundary values. -/
 def busStep (I : M3Instance) (h : Bus.Conditions I) (input : I.Stmt) (w : BusWire) :
     Option (I.Stmt × BusOut I) := do
-  let α ← vec? 4 w.alpha
-  if w.count = 0 then none
-  let (ζ, vs) ← replayGkr [] ![w.shared, w.shared, w.count] w.combiner w.layers
-  let ζ ← vec? I.μBus ζ
-  let vals ← vec? I.busClaims w.values
-  let ℓ : Gkr.LayerStmt (Bus.Data I) E 3 I.μBus := ((input, (fun i ↦ α[i], w.beta)), (ζ, vs))
+  let (ℓ, vals) ← busReplay I input w
   return (input, Bus.busOut h ℓ vals)
 
 /-- The bus phase's algebra for leanVM's instance. -/

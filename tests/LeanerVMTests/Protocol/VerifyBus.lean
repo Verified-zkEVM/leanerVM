@@ -11,8 +11,9 @@ squeezes the second verifier's challenges: the four fingerprint challenges `α` 
 every layer's check passing, to the Python verifier's bus point `ζ`; the bus phase's output, the
 oracle verifier's `Bus.busOut` at the leanISA instance, has the Python verifier's three totals
 (`verify_bus_balance`). Each check rejects its mutation: a zero count root, a descendant flipped,
-a round's wire coefficient flipped (the layer check fails), and a missing boundary value. The
-radices: one binary layer first at an odd depth.
+a round's wire coefficient flipped (the layer check fails), a changed root, a layer of another
+shape than the depth fixes (a round more, a combination challenge fewer), a missing layer, and
+a missing boundary value. The radices: one binary layer first at an odd depth.
 -/
 
 namespace LeanerVMTests.Protocol.VerifyBus
@@ -48,13 +49,14 @@ def wire : BusWire :=
 #guard wire.layers.map (·.rounds.length) == [0, 2, 4, 6, 8, 10, 12, 14, 16]
 #guard wire.count == e3 0x0006c6c006c6c000 0 0
 
-/-- The grand product replayed. -/
-def replayed : Option (List E × (Fin 3 → E)) :=
-  replayGkr [] ![wire.shared, wire.shared, wire.count] wire.combiner wire.layers
+/-- The grand product replayed from the roots, the layers of `wire` at depth 18. -/
+def replay (layers : List GkrLayer) (shared : E := wire.shared) :
+    Option (Σ n, Gkr.LayerStmt Unit E 3 n) :=
+  replayGkr (gkrRadices 18) 0 ((), (#v[], ![shared, shared, wire.count])) wire.combiner layers
 
 -- The Python verifier's bus point, its first three coordinates.
-#guard match replayed with
-  | some (ζ, _) => ζ.length == 18 && ζ.take 3 ==
+#guard match replay wire.layers with
+  | some ⟨_, ℓ⟩ => ℓ.2.1.toList.length == 18 && ℓ.2.1.toList.take 3 ==
     [e3 0x4edd315f69a937de 0xa35a324df8bd9fb1 0xffe1eeb513c84ec8,
       e3 0xf23219f3500c3dbf 0xdbc2708b53371966 0x5ef55961e04fc53c,
       e3 0xfd8cb86eda6e49cf 0x30f73c0be8dc4ef8 0x05ec069509985420]
@@ -77,15 +79,18 @@ def withLayer (i : ℕ) (f : GkrLayer → GkrLayer) : BusWire :=
 -- A zero count root.
 #guard (leanVmBus fx.prog sizes.1 fx.input { wire with count := 0 }).isNone
 -- A descendant flipped: the layer's check fails.
-#guard (replayGkr [] ![wire.shared, wire.shared, wire.count] wire.combiner
-  (withLayer 3 fun l ↦ { l with children := l.children.modify 1 (·.modify 2 (· + 1)) }).layers).isNone
+#guard (replay (withLayer 3 fun l ↦
+  { l with children := l.children.modify 1 (·.modify 2 (· + 1)) }).layers).isNone
 -- A round's wire coefficient flipped: the decoded rounds miss the layer's check.
-#guard (replayGkr [] ![wire.shared, wire.shared, wire.count] wire.combiner
-  (withLayer 5 fun l ↦ { l with rounds := l.rounds.modify 0 fun r ↦
+#guard (replay (withLayer 5 fun l ↦ { l with rounds := l.rounds.modify 0 fun r ↦
     { r with wire := r.wire.modify 0 (· + 1) } }).layers).isNone
 -- The shared root changed.
-#guard (replayGkr [] ![wire.shared + 1, wire.shared + 1, wire.count] wire.combiner
-  wire.layers).isNone
+#guard (replay wire.layers (wire.shared + 1)).isNone
+-- A layer of another shape: a round more than its depth, a combination challenge fewer.
+#guard (replay (withLayer 2 fun l ↦ { l with rounds := l.rounds ++ l.rounds.take 1 }).layers).isNone
+#guard (replay (withLayer 4 fun l ↦ { l with combos := l.combos.dropLast }).layers).isNone
+-- A layer missing.
+#guard (replay wire.layers.dropLast).isNone
 -- A boundary value missing.
 #guard (leanVmBus fx.prog sizes.1 fx.input { wire with values := wire.values.dropLast }).isNone
 
