@@ -51,6 +51,10 @@ finalizes included. A memory pull's conclusion is its channel guarantee
 pull's is the strong form, the entry is the program's at the pulled counter, which implies the
 decoding guarantee `BytecodePull.Guarantees` (`decode_entry`).
 
+**Messages, table by table.** `messagesOn_split` splits a witness's messages on a channel into
+the verifier's, the six opcode tables' and the two blocks' (`rowsOn`, `tables_eq_take_append`),
+and `rowsOn_single_nil` drops a table that sends nothing on the channel.
+
 ## Wrong readings excluded
 
 * Lemma 6.3 concludes that every count is `0`, not that the list is empty: a read with count
@@ -127,9 +131,50 @@ theorem lookup_sound {M κ : Type} [DecidableEq κ] {key : M → κ} {count : M 
     (by rw [List.length_map]; exact lt_of_le_of_lt (List.length_filter_le _ _) length_lt)
   exact counts_ne m hm (hzero _ (List.mem_map_of_mem (List.mem_filter.mpr ⟨hm, by simp [p]⟩)))
 
-/-! ## Proof helpers -/
+/-! ## A witness's messages, table by table -/
 
 variable {prog : Program} {input : PublicInput}
+
+/-- The messages of a list of tables on a channel, row by row. -/
+def rowsOn (ts : List (Air.Flat.Table K)) (c : RawChannel K) : List (Array K) :=
+  ts.flatMap fun t ↦ t.table.flatMap fun row ↦ rowMessagesOn t row c
+
+/-- A witness's tables are the six opcode tables and the two blocks. -/
+theorem tables_eq_take_append (w : EnsembleWitness (leanIsaEnsemble prog)) :
+    w.tables = w.tables.take 6 ++ [tableAt w 6, tableAt w 7] := by
+  have hlen : w.tables.length = 8 := w.same_length.symm
+  conv_lhs => rw [← List.take_append_drop 6 w.tables]
+  rw [List.drop_eq_getElem_cons (by omega), List.drop_eq_getElem_cons (by omega),
+    List.drop_eq_nil_of_le (by omega)]
+  rfl
+
+/-- A witness's messages on a channel: the verifier's, the six opcode tables', the memory
+block's and the bytecode block's. -/
+theorem messagesOn_split (w : EnsembleWitness (leanIsaEnsemble prog)) (c : RawChannel K) :
+    messagesOn w c = rowsOn [w.verifierTable] c ++ rowsOn (w.tables.take 6) c ++
+      rowsOn [tableAt w 6] c ++ rowsOn [tableAt w 7] c := by
+  rw [messagesOn_eq_flatMap, EnsembleWitness.allTables]
+  conv_lhs => rw [tables_eq_take_append w]
+  simp only [rowsOn, List.flatMap_cons, List.flatMap_append, List.flatMap_nil, List.append_nil,
+    List.append_assoc]
+
+/-- A table whose every row sends nothing on `c` contributes nothing. -/
+theorem rowsOn_single_nil {t : Air.Flat.Table K} {c : RawChannel K}
+    (h : ∀ row, rowMessagesOn t row c = []) : rowsOn [t] c = [] := by
+  simp only [rowsOn, List.flatMap_cons, List.flatMap_nil, List.append_nil, h]
+  exact List.flatMap_eq_nil_iff.mpr fun _ _ ↦ rfl
+
+/-- The memory block's component is `memTable`. -/
+theorem tableAt_six_component (w : EnsembleWitness (leanIsaEnsemble prog)) :
+    (tableAt w 6).component = ⟨memTable⟩ :=
+  (tableAt_component w 6).trans rfl
+
+/-- The bytecode block's component is `bytecodeTable`. -/
+theorem tableAt_seven_component (w : EnsembleWitness (leanIsaEnsemble prog)) :
+    (tableAt w 7).component = ⟨bytecodeTable⟩ :=
+  (tableAt_component w 7).trans rfl
+
+/-! ## Proof helpers -/
 
 /-- The key of a bus message as a coordinate list: every coordinate but the count. -/
 private def readKey (l : List K) : List K := l.eraseIdx 1
@@ -159,51 +204,12 @@ private theorem bytecodeMsg_bump_toList (m : BytecodeMsg K) :
     bytecodeMsg_toElements]
   rfl
 
-/-- The messages of a list of tables on a channel, row by row. -/
-private def rowsOn (ts : List (Air.Flat.Table K)) (c : RawChannel K) : List (Array K) :=
-  ts.flatMap fun t ↦ t.table.flatMap fun row ↦ rowMessagesOn t row c
-
-/-- A witness's tables are the six opcode tables and the two blocks. -/
-private theorem tables_eq (w : EnsembleWitness (leanIsaEnsemble prog)) :
-    w.tables = w.tables.take 6 ++ [tableAt w 6, tableAt w 7] := by
-  have hlen : w.tables.length = 8 := w.same_length.symm
-  conv_lhs => rw [← List.take_append_drop 6 w.tables]
-  rw [List.drop_eq_getElem_cons (by omega), List.drop_eq_getElem_cons (by omega),
-    List.drop_eq_nil_of_le (by omega)]
-  rfl
-
-/-- A witness's messages on a channel: the verifier's, the six opcode tables', the memory
-block's and the bytecode block's. -/
-private theorem messagesOn_split (w : EnsembleWitness (leanIsaEnsemble prog)) (c : RawChannel K) :
-    messagesOn w c = rowsOn [w.verifierTable] c ++ rowsOn (w.tables.take 6) c ++
-      rowsOn [tableAt w 6] c ++ rowsOn [tableAt w 7] c := by
-  rw [messagesOn_eq_flatMap, EnsembleWitness.allTables]
-  conv_lhs => rw [tables_eq w]
-  simp only [rowsOn, List.flatMap_cons, List.flatMap_append, List.flatMap_nil, List.append_nil,
-    List.append_assoc]
-
-/-- A table whose every row sends nothing on `c` contributes nothing. -/
-private theorem rowsOn_single_nil {t : Air.Flat.Table K} {c : RawChannel K}
-    (h : ∀ row, rowMessagesOn t row c = []) : rowsOn [t] c = [] := by
-  simp only [rowsOn, List.flatMap_cons, List.flatMap_nil, List.append_nil, h]
-  exact List.flatMap_eq_nil_iff.mpr fun _ _ ↦ rfl
-
 /-- The verifier sends nothing on a lookup channel. -/
 private theorem rowsOn_verifier (w : EnsembleWitness (leanIsaEnsemble prog)) {c : RawChannel K}
     (h1 : c.name ≠ StatePush.name) (h2 : c.name ≠ StatePull.name) :
     rowsOn [w.verifierTable] c = [] :=
   rowsOn_single_nil fun row ↦ by
     rw [verifier_rowMessagesOn (prog := prog) rfl, ite_eq_right h1, ite_eq_right h2]
-
-/-- The memory block's component. -/
-private theorem tableAt_six (w : EnsembleWitness (leanIsaEnsemble prog)) :
-    (tableAt w 6).component = ⟨memTable⟩ :=
-  (tableAt_component w 6).trans rfl
-
-/-- The bytecode block's component. -/
-private theorem tableAt_seven (w : EnsembleWitness (leanIsaEnsemble prog)) :
-    (tableAt w 7).component = ⟨bytecodeTable⟩ :=
-  (tableAt_component w 7).trans rfl
 
 /-- On a memory channel, a witness's messages are the six opcode tables' and the memory
 block's. -/
@@ -213,8 +219,8 @@ private theorem messagesOn_memChannel (w : EnsembleWitness (leanIsaEnsemble prog
   rcases hc with hc | hc <;>
   rw [messagesOn_split, rowsOn_verifier w (by rw [hc]; decide) (by rw [hc]; decide),
     rowsOn_single_nil (t := tableAt w 7) fun row ↦ by
-      rw [bytecodeBlock_rowMessagesOn (tableAt_seven w) row rfl, hc, ite_eq_right (by decide),
-        ite_eq_right (by decide)], List.nil_append, List.append_nil]
+      rw [bytecodeBlock_rowMessagesOn (tableAt_seven_component w) row rfl, hc,
+        ite_eq_right (by decide), ite_eq_right (by decide)], List.nil_append, List.append_nil]
 
 /-- On a bytecode channel, a witness's messages are the six opcode tables' and the bytecode
 block's. -/
@@ -224,8 +230,8 @@ private theorem messagesOn_bytecodeChannel (w : EnsembleWitness (leanIsaEnsemble
   rcases hc with hc | hc <;>
   rw [messagesOn_split, rowsOn_verifier w (by rw [hc]; decide) (by rw [hc]; decide),
     rowsOn_single_nil (t := tableAt w 6) fun row ↦ by
-      rw [memBlock_rowMessagesOn (tableAt_six w) row rfl, hc, ite_eq_right (by decide),
-        ite_eq_right (by decide)], List.nil_append, List.append_nil]
+      rw [memBlock_rowMessagesOn (tableAt_six_component w) row rfl, hc,
+        ite_eq_right (by decide), ite_eq_right (by decide)], List.nil_append, List.append_nil]
 
 /-- At most `L · n` messages from a list of tables of at most `L` rows each sending at most `n`
 messages. -/
@@ -304,7 +310,7 @@ private theorem memBlock_good {w : EnsembleWitness (leanIsaEnsemble prog)}
   obtain ⟨i, rfl⟩ := hrow'
   have hidx := h.index_columns i (by rw [hrows, List.length_ofFn]; exact i.isLt)
   simp only [hrows, List.getElem_ofFn, Fin.eta, memRowAt_toElements] at hidx
-  rw [memBlock_rowMessagesOn (tableAt_six w) _ (rowAt_toElements _ _)] at ha
+  rw [memBlock_rowMessagesOn (tableAt_six_component w) _ (rowAt_toElements _ _)] at ha
   refine ⟨i, ?_⟩
   split_ifs at ha <;> simp only [List.mem_singleton, List.not_mem_nil] at ha <;> subst ha <;>
     rw [readKey_memMsg] <;> exact congrArg₂ _ hidx rfl
@@ -387,7 +393,7 @@ private theorem bytecodeBlock_good {w : EnsembleWitness (leanIsaEnsemble prog)}
   rw [hrows, List.mem_ofFn] at hrow'
   obtain ⟨i, rfl⟩ := hrow'
   have hr := rowAt_toElements (tableAt w 7).data (bytecodeRowOf prog i (cntFin i))
-  rw [bytecodeBlock_rowMessagesOn (tableAt_seven w) _ hr] at ha
+  rw [bytecodeBlock_rowMessagesOn (tableAt_seven_component w) _ hr] at ha
   refine ⟨i, ?_⟩
   have he : #v[(bytecodeRowOf prog i (cntFin i)).opcode] ++ (bytecodeRowOf prog i (cntFin i)).op =
       entry (prog.code i) := by

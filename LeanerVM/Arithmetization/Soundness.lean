@@ -107,43 +107,24 @@ private theorem stateKey_injective : Function.Injective stateKey := by
   obtain ⟨rfl, rfl⟩ := h
   rfl
 
-/-- A witness's tables are the six opcode tables and the two blocks. -/
-private theorem tables_eq (w : EnsembleWitness (leanIsaEnsemble prog)) :
-    w.tables = w.tables.take 6 ++ [tableAt w 6, tableAt w 7] := by
-  have hlen : w.tables.length = 8 := w.same_length.symm
-  conv_lhs => rw [← List.take_append_drop 6 w.tables]
-  rw [List.drop_eq_getElem_cons (by omega), List.drop_eq_getElem_cons (by omega),
-    List.drop_eq_nil_of_le (by omega)]
-  rfl
-
-/-- The messages a list of tables sends on a channel, row by row. -/
-private def rowsOn (ts : List (Air.Flat.Table K)) (c : RawChannel K) : List (Array K) :=
-  ts.flatMap fun t ↦ t.table.flatMap fun row ↦ rowMessagesOn t row c
-
 /-- A witness's state messages: the verifier's, then the six opcode tables'; the blocks send
 none. -/
 private theorem messagesOn_state (w : EnsembleWitness (leanIsaEnsemble prog)) {c : RawChannel K}
     (hc : c.name = StatePull.name ∨ c.name = StatePush.name) :
     messagesOn w c = rowsOn [w.verifierTable] c ++ rowsOn (w.tables.take 6) c := by
-  have h6 := (tableAt_component w 6).trans (rfl : _ = (⟨memTable⟩ : Component K))
-  have h7 := (tableAt_component w 7).trans (rfl : _ = (⟨bytecodeTable⟩ : Component K))
   have hne : ∀ n : String, n ≠ StatePull.name → n ≠ StatePush.name → c.name ≠ n := by
     rintro n h1 h2 rfl
     rcases hc with hc | hc
     · exact h1 hc
     · exact h2 hc
-  have hnil6 : (tableAt w 6).table.flatMap (fun row ↦ rowMessagesOn (tableAt w 6) row c) = [] :=
-    List.flatMap_eq_nil_iff.mpr fun row _ ↦ by
-      rw [memBlock_rowMessagesOn h6 row rfl, ite_eq_right (hne _ (by decide) (by decide)),
-        ite_eq_right (hne _ (by decide) (by decide))]
-  have hnil7 : (tableAt w 7).table.flatMap (fun row ↦ rowMessagesOn (tableAt w 7) row c) = [] :=
-    List.flatMap_eq_nil_iff.mpr fun row _ ↦ by
-      rw [bytecodeBlock_rowMessagesOn h7 row rfl, ite_eq_right (hne _ (by decide) (by decide)),
-        ite_eq_right (hne _ (by decide) (by decide))]
-  rw [messagesOn_eq_flatMap, EnsembleWitness.allTables, List.flatMap_cons]
-  conv_lhs => rw [tables_eq w]
-  simp only [rowsOn, List.flatMap_append, List.flatMap_cons, List.flatMap_nil, List.append_nil,
-    hnil6, hnil7]
+  rw [messagesOn_split,
+    rowsOn_single_nil (t := tableAt w 6) fun row ↦ by
+      rw [memBlock_rowMessagesOn (tableAt_six_component w) row rfl,
+        ite_eq_right (hne _ (by decide) (by decide)), ite_eq_right (hne _ (by decide) (by decide))],
+    rowsOn_single_nil (t := tableAt w 7) fun row ↦ by
+      rw [bytecodeBlock_rowMessagesOn (tableAt_seven_component w) row rfl,
+        ite_eq_right (hne _ (by decide) (by decide)), ite_eq_right (hne _ (by decide) (by decide))],
+    List.append_nil, List.append_nil]
 
 /-- The verifier pushes `(1, 1)` and pulls the final registers. -/
 private theorem verifier_states (w : EnsembleWitness (leanIsaEnsemble prog)) :
@@ -298,39 +279,6 @@ private theorem walkSteps_of_walksIn {κ : ℕ} {L : MemImage κ} {E : List (Reg
     rw [walkSteps, ite_eq_right (hfinal s hs), hm s hs s' hstep, Option.bind_some,
       walkSteps_of_walksIn hfinal hm hw (by omega), Option.map_some]
 
-/-- A valid trace's register sequence is its run's states. -/
-private theorem run_regs {t : Trace prog} {r : Regs K}
-    (h : run prog t.image t.steps Regs.initial = some r) :
-    ∀ k (hk : k < t.regs.length), run prog t.image k Regs.initial = some t.regs[k] := by
-  have hsome : ∀ j ∈ List.range (t.steps + 1),
-      run prog t.image j Regs.initial =
-        some ((run prog t.image j Regs.initial).getD Regs.initial) := by
-    intro j hj
-    rcases Nat.lt_succ_iff_lt_or_eq.mp (List.mem_range.mp hj) with hlt | rfl
-    · obtain ⟨r₁, h₁, -⟩ := run_intermediate h hlt
-      rw [h₁]
-      rfl
-    · rw [h]
-      rfl
-  have hfm : ∀ l : List ℕ, (∀ j ∈ l, run prog t.image j Regs.initial =
-      some ((run prog t.image j Regs.initial).getD Regs.initial)) →
-      l.filterMap (fun j ↦ run prog t.image j Regs.initial) =
-        l.map fun j ↦ (run prog t.image j Regs.initial).getD Regs.initial := by
-    intro l hl
-    induction l with
-    | nil => rfl
-    | cons j l ih =>
-      rw [List.filterMap_cons_some (f := fun j ↦ run prog t.image j Regs.initial)
-        (hl j List.mem_cons_self), List.map_cons,
-        ih fun j' hj' ↦ hl j' (List.mem_cons_of_mem j hj')]
-  intro k hk
-  have hregs : t.regs = (List.range (t.steps + 1)).map
-      fun j ↦ (run prog t.image j Regs.initial).getD Regs.initial :=
-    hfm _ hsome
-  have hk' : k < t.steps + 1 := by rw [hregs, List.length_map, List.length_range] at hk; exact hk
-  simp only [hregs, List.getElem_map, List.getElem_range]
-  exact hsome k (List.mem_range.mpr hk')
-
 /-! ## Soundness -/
 
 /-- In a witness of the constraint statement of a program whose sentinel slot is not a `JUMP`,
@@ -364,8 +312,8 @@ theorem traceOf_valid (hsafe : SentinelSafe prog) {w : EnsembleWitness (leanIsaE
     intro k hk
     have hlen : t.regs.length = n + 1 := Trace.regs_length (t := t) hrun
     have hkn : k < n := by omega
-    have hrk := run_regs (t := t) hrun k (by omega)
-    have hrk1 := run_regs (t := t) hrun (k + 1) hk
+    have hrk := Trace.regs_getElem (t := t) hrun k (by omega)
+    have hrk1 := Trace.regs_getElem (t := t) hrun (k + 1) hk
     obtain ⟨u, hu, hu'⟩ := walksIn_states hE hw k hkn
     obtain ⟨p, hp, rfl⟩ := List.mem_map.mp hu
     have hk_eq : t.regs[k] = p.1 := Option.some.inj (hrk.symm.trans hu')

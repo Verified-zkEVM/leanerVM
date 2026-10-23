@@ -27,6 +27,9 @@ from `f s` to `t` with one edge fewer. The remaining edges, which the walk does 
 closed walks; nothing is claimed about them.
 
 `WalksIn f E n s t` says `f` walks from `s` to `t` in `n` steps, each taken from a state of `E`.
+
+The module names no leanVM object: it is list combinatorics, a candidate for Mathlib's
+`List.Perm` and graph-walk lemmas, kept here until it is proposed upstream.
 -/
 
 namespace LeanerVM.Semantics

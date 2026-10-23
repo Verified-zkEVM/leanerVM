@@ -187,5 +187,40 @@ theorem Trace.regs_length {prog : Program} {t : Trace prog} {r : Regs K}
     simp [h₁]
   · simp [h]
 
+/-- Along a trace that runs, the register sequence is the run's states: entry `k` is the state
+after `k` steps. -/
+theorem Trace.regs_getElem {prog : Program} {t : Trace prog} {r : Regs K}
+    (h : run prog t.image t.steps Regs.initial = some r) :
+    ∀ k (hk : k < t.regs.length), run prog t.image k Regs.initial = some t.regs[k] := by
+  have hsome : ∀ j ∈ List.range (t.steps + 1), run prog t.image j Regs.initial =
+      some ((run prog t.image j Regs.initial).getD Regs.initial) := by
+    intro j hj
+    rcases Nat.lt_succ_iff_lt_or_eq.mp (List.mem_range.mp hj) with hlt | rfl
+    · obtain ⟨r₁, h₁, -⟩ := run_intermediate h hlt
+      rw [h₁]
+      rfl
+    · rw [h]
+      rfl
+  have hfm : ∀ l : List ℕ, (∀ j ∈ l, run prog t.image j Regs.initial =
+      some ((run prog t.image j Regs.initial).getD Regs.initial)) →
+      l.filterMap (fun j ↦ run prog t.image j Regs.initial) =
+        l.map fun j ↦ (run prog t.image j Regs.initial).getD Regs.initial := by
+    intro l hl
+    induction l with
+    | nil => rfl
+    | cons j l ih =>
+      rw [List.filterMap_cons_some (f := fun j ↦ run prog t.image j Regs.initial)
+        (hl j List.mem_cons_self), List.map_cons,
+        ih fun j' hj' ↦ hl j' (List.mem_cons_of_mem j hj')]
+  intro k hk
+  have hregs : t.regs = (List.range (t.steps + 1)).map
+      fun j ↦ (run prog t.image j Regs.initial).getD Regs.initial :=
+    hfm _ hsome
+  have hk' : k < t.steps + 1 := by
+    rw [hregs, List.length_map, List.length_range] at hk
+    exact hk
+  simp only [hregs, List.getElem_map, List.getElem_range]
+  exact hsome k (List.mem_range.mpr hk')
+
 end
 end LeanerVM.Semantics
