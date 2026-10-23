@@ -63,6 +63,7 @@ import LeanerVM.Protocol.PublicInput
 import LeanerVM.Protocol.RandomOracle
 import LeanerVM.Protocol.RandomOracleBound
 import LeanerVM.Protocol.RandomOracleGame
+import LeanerVM.Protocol.Replay
 import LeanerVM.Protocol.Spine.Compose
 import LeanerVM.Protocol.Spine.Errors
 import LeanerVM.Protocol.Spine.Instance
@@ -159,6 +160,7 @@ import LeanerVM.Protocol.ToCompPoly.WeightedCube
 import LeanerVM.Protocol.ToVCVio.ChargedInvariant
 import LeanerVM.Protocol.ToVCVio.EventExpectation
 import LeanerVM.Protocol.ToVCVio.HashChain
+import LeanerVM.Protocol.ToVCVio.LogReplay
 import LeanerVM.Protocol.ToVCVio.Merkle
 import LeanerVM.Protocol.ToVCVio.MerkleLog
 import LeanerVM.Protocol.ToVCVio.MonadRel
