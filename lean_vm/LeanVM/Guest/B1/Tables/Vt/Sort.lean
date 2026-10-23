@@ -125,7 +125,8 @@ theorem vt_side_cert {rd : Reader} {σ : Val} {v0 R0 s base n : ℕ} (hn : n ≤
     (hkap : ∀ b < 153, ∃ κ < 34, LoadHolds rd (σ (.n 12)) b (gen ^ κ))
     (hsq : ∀ j < 34, LoadHolds rd (σ (.n 13)) j (gen ^ 2 ^ j)) :
     ∃ κs : List ℕ, κs.length = n ∧ (∀ c < n, LoadHolds rd (σ (.n 12)) (base + c) (gen ^ κs.getD c 0)) ∧
-      ∀ c < n, LoadHolds rd (σ (.n 185)) (base + c) (gen ^ (stackOffsets κs).1.getD c 0) := by
+      (∀ c < n, LoadHolds rd (σ (.n 185)) (base + c) (gen ^ (stackOffsets κs).1.getD c 0)) ∧
+      ∀ c < n, κs.getD c 0 < 34 := by
   obtain ⟨e, he⟩ := tb_exists_fun_of_forall (n := n) (fun r hr => (hfacts r hr).1)
   have hes : ∀ r < n, base ≤ e r ∧ e r < base + n := fun r hr => by
     have h3 := (hfacts r hr).2.2.1
@@ -172,13 +173,16 @@ theorem vt_side_cert {rd : Reader} {σ : Val} {v0 R0 s base n : ℕ} (hn : n ≤
     omega
   obtain ⟨κs, hlen, hκ, hsurj, hoffs, -⟩ := tb_stack_cert hn (fun r => e r - base) kf
     (fun r hr => by have := hes r hr; omega) (fun r hr => (hkf r hr).1) hoff hadj
-  refine ⟨κs, hlen, fun c hc => ?_, fun c hc => ?_⟩
+  refine ⟨κs, hlen, fun c hc => ?_, fun c hc => ?_, fun c hc => ?_⟩
   · obtain ⟨r, hr, hrc⟩ := hsurj c hc
     rw [← hrc, hκ r hr, show base + (e r - base) = e r by have := hes r hr; omega]
     exact (hkf r hr).2
   · have := hoffs c hc
     rw [tb_loadHolds_mul_gen_pow] at this
     exact this
+  · obtain ⟨r, hr, hrc⟩ := hsurj c hc
+    rw [← hrc, hκ r hr]
+    exact (hkf r hr).1
 
 theorem vtSide_push : ∀ e < 153, vtBlockSide e = 0 ↔ 0 ≤ e ∧ e < 0 + 54 := by decide
 
@@ -203,10 +207,12 @@ theorem vt_sort {μ : ℕ} (hμ : μ ≤ 32) (Lm : MemImage μ) {σ : Val} (h : 
     (hsq : ∀ j < 34, LoadHolds Lm.read (σ (.n 13)) j (gen ^ 2 ^ j)) :
     (∃ κs : List ℕ, κs.length = 54 ∧
       (∀ c < 54, LoadHolds Lm.read (σ (.n 12)) (0 + c) (gen ^ κs.getD c 0)) ∧
-      ∀ c < 54, LoadHolds Lm.read (σ (.n 185)) (0 + c) (gen ^ (stackOffsets κs).1.getD c 0)) ∧
+      (∀ c < 54, LoadHolds Lm.read (σ (.n 185)) (0 + c) (gen ^ (stackOffsets κs).1.getD c 0)) ∧
+      ∀ c < 54, κs.getD c 0 < 34) ∧
     (∃ κs : List ℕ, κs.length = 45 ∧
       (∀ c < 45, LoadHolds Lm.read (σ (.n 12)) (108 + c) (gen ^ κs.getD c 0)) ∧
-      ∀ c < 45, LoadHolds Lm.read (σ (.n 185)) (108 + c) (gen ^ (stackOffsets κs).1.getD c 0)) := by
+      (∀ c < 45, LoadHolds Lm.read (σ (.n 185)) (108 + c) (gen ^ (stackOffsets κs).1.getD c 0)) ∧
+      ∀ c < 45, κs.getD c 0 < 34) := by
   have hside := vt_side_tab h
   refine ⟨vt_side_cert (v0 := 186) (R0 := 0) (s := 0) (base := 0) (n := 54) (by norm_num) (fun r hr => ?_) (by norm_num) hside
       vtSide_push hkap hsq,
