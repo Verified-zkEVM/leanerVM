@@ -196,8 +196,8 @@ theorem ly_good (hG : ∀ s ∈ lyEvL, GoodS rd lyS (fun _ => 0) σ s) (n : ℕ)
   good_slice hG n [.atom a] heq rfl _ List.mem_cons_self
 
 /-- A permutation's thirteen outputs from `b`, and its capacity cells, on its equations. -/
-theorem lyc_keccak {ins : List V} {b : ℕ}
-    (hg : Good rd lyS (fun _ => 0) σ (.keccak ins (lyOuts b) false false))
+theorem lyc_keccak {S : List Atom} {w : ℕ → E} {ins : List V} {b : ℕ}
+    (hg : Good rd S w σ (.keccak ins (lyOuts b) false false))
     (hc : AllCanonical (ins.map σ)) :
     (Atom.keccak ins (lyOuts b) false false).Holds rd σ ∧
       (∀ k (hk : k < 13), σ (.n (b + k)) = cellsOfState (permOf (ins.map σ)) false ⟨k, hk⟩) ∧
