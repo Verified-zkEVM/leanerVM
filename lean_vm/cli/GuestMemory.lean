@@ -8,7 +8,7 @@ import LeanVM.Guest.Memory.SizeTotal
 /-!
 # `guest-memory`: the guest's kernel-checked memory-layer facts
 
-`lake exe guest-memory` writes three families of kernel checks about the guest's core IR
+`lake exe guest-memory` writes four families of kernel checks about the guest's core IR
 (`coreProgram`, computed here as `guest-core` computes it: `Expand.expandProgram Data.guest`,
 renumbered):
 
@@ -18,7 +18,10 @@ renumbered):
 * `LeanVM/Guest/Memory/GuestWf*`: `coreProgram_wf : coreProgram.Wf` (`Stmt.wfList` on ranges of
   functions, `WfRange`; a function too large by ranges of its statements, `WfStmts`);
 * `LeanVM/Guest/Memory/GuestMainFree*`: `coreProgram_callsIn_noMain`, no function calls `main`
-  (`Stmt.blockCallees` on ranges of functions, `MainFreeRange`).
+  (`Stmt.blockCallees` on ranges of functions, `MainFreeRange`);
+* `LeanVM/Guest/B2C/KTemps/*`: `tmpsOk_all`, every function's temporaries have distinct
+  certificate cells in its frame past the header (`B2C.tmpCellsB`, on the freshness ranges; a
+  large function by its freshness certificate's list of temporaries).
 
 The ranges are cut by an estimate of their kernel cost (`freshCost`, `wfCost`) and spread over
 modules of a few checks each, which build in parallel. `--check` writes nothing and fails when a
@@ -162,12 +165,17 @@ def chain (pre what : String) (lo : Nat) (rs : List (Nat × Nat × String)) : Li
 
 /-! ### Freshness -/
 
-def freshFiles (P : Program) : Array (System.FilePath × String) := Id.run do
+/-- The functions checked by ranges, and those too large for one check (by their statements),
+for the checks that unfold the functions' bodies (freshness, the temporaries' cells). -/
+def freshPlan (P : Program) : List (Nat × Nat × Nat) × List Nat :=
   let costs := (P.map fun fn => freshCost fn.body fn.params).toArray
   let big := (List.range P.length).filter fun j => costs[j]! > freshBudget
   -- the small functions' ranges, between the big ones
   let bounds := (0 :: big.map (· + 1)).zip (big ++ [P.length])
-  let small := bounds.flatMap fun (lo, hi) => cut costs freshBudget lo hi
+  (bounds.flatMap fun (lo, hi) => cut costs freshBudget lo hi, big)
+
+def freshFiles (P : Program) : Array (System.FilePath × String) := Id.run do
+  let (small, big) := freshPlan P
   let mut files : Array (System.FilePath × String) := #[]
   files := files.push (memDir / "GuestFresh" / "Range.lean", header "LeanVM.Guest.Memory.GuestFresh.Range"
     "Ranges of the guest's core IR whose range-check temporaries the kernel checks fresh." ++
@@ -257,7 +265,8 @@ theorem fresh_of_freshOn (h : FreshOn 0 coreProgram.length) : coreProgram.Fresh 
     files := files.push (memDir / "GuestFresh" / s!"Fresh{j}.lean",
       header s!"LeanVM.Guest.Memory.GuestFresh.Fresh{j}" s!"`{fn.name}`'s temporaries are fresh, by ranges of its statements." ++
       imps ++ "\n" ++ nsOpen ++ String.join steps.toList ++
-      s!"\n/-- `{fn.name}`'s temporaries are fresh. -/\ntheorem core{j}_fresh : Data.core{j}.Fresh := by\n  have h0 := from{j}_0\n  rw [List.drop_zero, all{j}] at h0\n  exact fn_fresh_of_rangeFresh (fn := Data.core{j}) h0 nodup{j} params{j}\n" ++ nsClose)
+      s!"\n/-- `{fn.name}`'s temporaries are fresh. -/\ntheorem core{j}_fresh : Data.core{j}.Fresh := by\n  have h0 := from{j}_0\n  rw [List.drop_zero, all{j}] at h0\n  exact fn_fresh_of_rangeFresh (fn := Data.core{j}) h0 nodup{j} params{j}\n" ++
+      s!"\n/-- `{fn.name}`'s temporaries, by index. -/\ntheorem tmps{j} : (Stmt.tmpsList Data.core{j}.body).map V.idx = temps{j} := by\n  have h0 := (from{j}_0).1\n  rw [List.drop_zero, all{j}] at h0\n  exact h0\n" ++ nsClose)
   -- the whole program
   let pieces : List (Nat × Nat × String) := (small.map (fun ((a, n, _) : Nat × Nat × Nat) => (a, n, s!"freshRange_{a}.on")) ++
       big.map (fun j => (j, 1, s!"freshOn_one (j := {j}) rfl core{j}_fresh"))).mergeSort
@@ -499,6 +508,63 @@ theorem coreProgram_callsIn_noMain : CallsIn coreProgram (· ≠ \"main\") := by
 " ++ nsClose)
   return files
 
+/-! ### The temporaries' cells (`B2C.TmpsOk`) -/
+
+def b2cDir : System.FilePath := "LeanVM/Guest/B2C"
+
+def ktempsFiles (P : Program) : Array (System.FilePath × String) := Id.run do
+  let (small, big) := freshPlan P
+  let mut files : Array (System.FilePath × String) := #[]
+  let ns := "namespace LeanVM.Guest.B2C\n\nopen LeanVM.Guest LeanVM.Guest.Core LeanVM.Guest.Memory\n\n@[expose] public section\n"
+  let close := "\nend\nend LeanVM.Guest.B2C\n"
+  let decls := small.map fun (a, n, w) =>
+    (s!"\nset_option maxRecDepth 100000 in\ntheorem tmpsRange_{a} : TmpsRange {a} {n} := by\n  unfold TmpsRange; decide +kernel\n", w)
+  let mods := modules (4 * freshBudget) decls
+  let mut imports : Array String := #[]
+  for (m, k) in mods.zipIdx do
+    let nm := s!"Part{pad2 k}"
+    imports := imports.push s!"public import LeanVM.Guest.B2C.KTemps.{nm}\n"
+    files := files.push (b2cDir / "KTemps" / s!"{nm}.lean",
+      header s!"LeanVM.Guest.B2C.KTemps.{nm}" "Kernel checks of the temporaries' cells on ranges of the guest's functions." ++
+      "public import LeanVM.Guest.B2C.KTempsBase\n\n" ++ ns ++ String.join m ++ close)
+  for j in big do
+    imports := imports.push s!"public import LeanVM.Guest.B2C.KTemps.Big{j}\n"
+    files := files.push (b2cDir / "KTemps" / s!"Big{j}.lean",
+      header s!"LeanVM.Guest.B2C.KTemps.Big{j}" s!"The temporaries' cells of `{P[j]!.name}`, by its freshness certificate's list." ++
+      s!"public import LeanVM.Guest.B2C.KTempsBase\npublic import LeanVM.Guest.Memory.GuestFresh.Fresh{j}\n\n" ++ ns ++
+      s!"\nset_option maxRecDepth 100000 in\ntheorem tmpsOk_{j} : TmpsOk {j} := by\n  unfold TmpsOk\n  show tmpCellsB {j + 1} ((Stmt.tmpsList Data.core{j}.body).map V.idx) = true\n  rw [tmps{j}]\n  decide +kernel\n" ++ close)
+  let pieces : List (Nat × Nat × String) := (small.map (fun ((a, n, _) : Nat × Nat × Nat) => (a, n, s!"tmpsRange_{a}.on")) ++
+      big.map (fun j => (j, 1, s!"tmpsOn_one tmpsOk_{j}"))).mergeSort
+    (fun (x y : Nat × Nat × String) => x.1 ≤ y.1)
+  let (steps, last, _) := chain "h" "TmpsOn" 0 pieces
+  files := files.push (b2cDir / "KTemps" / "All.lean",
+    header "LeanVM.Guest.B2C.KTemps.All" "Every core function's temporaries pass the cells' check (`tmpsOk_all`)." ++
+    String.join imports.toList ++ "\n" ++ ns ++ "
+/-- The check of the temporaries of the `n` core functions from the `a`-th, function by
+function. -/
+def TmpsOn (a n : ℕ) : Prop := ∀ i, a ≤ i → i < a + n → TmpsOk i
+
+theorem TmpsRange.on {a n : ℕ} (h : TmpsRange a n) : TmpsOn a n := fun _ h1 h2 ↦ h.ok h1 h2
+
+theorem tmpsOn_one {j : ℕ} (h : TmpsOk j) : TmpsOn j 1 := fun i h1 h2 ↦ by
+  obtain rfl : i = j := by omega
+  exact h
+
+/-- Two adjacent ranges are one. -/
+theorem TmpsOn.append' {a n m b k : ℕ} (h : TmpsOn a n) (h' : TmpsOn b m)
+    (hb : a + n = b) (hk : n + m = k) : TmpsOn a k := by
+  intro i h1 h2
+  by_cases hi : i < a + n
+  · exact h i h1 hi
+  · exact h' i (by omega) (by omega)
+
+/-- **Every core function's temporaries pass the check.** -/
+theorem tmpsOk_all {i : ℕ} (hi : i < coreProgram.length) : TmpsOk i := by
+" ++ "\n".intercalate steps ++ s!"
+  exact {last} i (Nat.zero_le _) (by rw [coreProgram_length] at hi; omega)
+" ++ close)
+  return files
+
 end GuestMemory
 
 open GuestMemory
@@ -518,20 +584,20 @@ def main (args : List String) : IO UInt32 := do
     for (fn, j) in program.zipIdx do
       IO.println s!"{j} {fn.name} fresh {freshCost fn.body fn.params} wf {wfCost program.length fn.body} stmts {fn.body.length}"
     return 0
-  let files := freshFiles program ++ wfFiles program ++ mainFreeFiles program
+  let files := freshFiles program ++ wfFiles program ++ mainFreeFiles program ++ ktempsFiles program
   let mut bad := false
   if check then
     for (p, s) in files do
       if !(← p.pathExists) || (← IO.FS.readFile p) != s then
         IO.eprintln s!"stale: {p}"
         bad := true
-    for d in [memDir / "GuestFresh", memDir / "GuestWf", memDir / "GuestMainFree"] do
+    for d in [memDir / "GuestFresh", memDir / "GuestWf", memDir / "GuestMainFree", "LeanVM/Guest/B2C/KTemps"] do
       for p in ← listLean d do
         if !files.any (·.1 == p) then
           IO.eprintln s!"stale: {p}"
           bad := true
   else
-    for d in [memDir / "GuestFresh", memDir / "GuestWf", memDir / "GuestMainFree"] do
+    for d in [memDir / "GuestFresh", memDir / "GuestWf", memDir / "GuestMainFree", "LeanVM/Guest/B2C/KTemps"] do
       for p in ← listLean d do
         if !files.any (·.1 == p) then IO.FS.removeFile p
       IO.FS.createDirAll d

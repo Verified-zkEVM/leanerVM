@@ -104,5 +104,11 @@ theorem core19_fresh : Data.core19.Fresh := by
   rw [List.drop_zero, all19] at h0
   exact fn_fresh_of_rangeFresh (fn := Data.core19) h0 nodup19 params19
 
+/-- `verify_lean_xmss`'s temporaries, by index. -/
+theorem tmps19 : (Stmt.tmpsList Data.core19.body).map V.idx = temps19 := by
+  have h0 := (from19_0).1
+  rw [List.drop_zero, all19] at h0
+  exact h0
+
 end
 end LeanVM.Guest

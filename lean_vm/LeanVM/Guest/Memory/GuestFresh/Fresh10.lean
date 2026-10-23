@@ -253,5 +253,11 @@ theorem core10_fresh : Data.core10.Fresh := by
   rw [List.drop_zero, all10] at h0
   exact fn_fresh_of_rangeFresh (fn := Data.core10) h0 nodup10 params10
 
+/-- `verify_tables`'s temporaries, by index. -/
+theorem tmps10 : (Stmt.tmpsList Data.core10.body).map V.idx = temps10 := by
+  have h0 := (from10_0).1
+  rw [List.drop_zero, all10] at h0
+  exact h0
+
 end
 end LeanVM.Guest
