@@ -8,6 +8,7 @@
 module
 
 public import LeanVM.Guest.B1.Whir.SpecLevel
+public import LeanVM.Guest.B1.Whir.SpecQS
 
 /-!
 # The run, level by level
@@ -45,6 +46,64 @@ theorem foldsTr_take : ∀ (n : ℕ) (F : Fs) (q : List E) (t : E) (xs : List E)
 theorem take_append_drop' (xs : List E) (n : ℕ) : xs = xs.take n ++ xs.drop n :=
   (List.take_append_drop n xs).symm
 
+/-- The query steps of a level's queries and intro: the query, then the continuation's. -/
+theorem rest_qs {β : Type} {ml index : ℕ} {level : Whir.Level} {lf : List E} {ws1 : WhirState}
+    {pending : List (E × List E × (List E → E))} {F2 : Fs} {R : List (Digest × ℕ × ℕ)}
+    (hd : 1 ≤ 192 / (ml + level.logInvRate)) {K : WhirState → Prog β}
+    {osL osR : List Opening} {ic0 ic2 : E} {xsR : List E} {root : Digest} {height width : ℕ}
+    (hlam : (F2.squeezeN (ceilDiv level.queries (192 / (ml + level.logInvRate)))).2.squeeze.1 ≠ 0)
+    (hR : R[index]? = some (root, height, width))
+    (hol : osL.length = (queriesOf (192 / (ml + level.logInvRate)) (ml + level.logInvRate)
+      (F2.squeezeN (ceilDiv level.queries (192 / (ml + level.logInvRate)))).1 level.queries).length)
+    (hok : ∀ k (hk : k < (queriesOf (192 / (ml + level.logInvRate)) (ml + level.logInvRate)
+      (F2.squeezeN (ceilDiv level.queries (192 / (ml + level.logInvRate)))).1 level.queries).length)
+      (ho : k < osL.length),
+      Id.run (Compile.openOne (m := Id) keccak256 root height width
+        (queriesOf (192 / (ml + level.logInvRate)) (ml + level.logInvRate)
+          (F2.squeezeN (ceilDiv level.queries (192 / (ml + level.logInvRate)))).1
+          level.queries)[k] osL[k]) = true) :
+    queryStepsOf ((sampleQueries (ml + level.logInvRate) level.queries).bind fun queries ↦
+      Prog.sampleE.bind fun lam ↦ (Prog.require (lam ≠ 0)).bind fun _ ↦
+        (Prog.queryP index queries).bind fun words ↦
+          (sumcheckRoundPoly 3 (enforcedSum (if index = 0 then words.map fun row ↦ row.reverse.map ofK
+            else words.map extRow) lf (powers lam queries.length)) none).bind fun intro ↦
+            K (glue lam ws1 (pending ++ [(enforcedSum (if index = 0 then
+              words.map fun row ↦ row.reverse.map ofK else words.map extRow) lf
+              (powers lam queries.length), intro,
+              fun x ↦ inducedWeight ml queries (powers lam queries.length) x)])))
+      ⟨F2, ic0 :: ic2 :: xsR, osL ++ osR, R⟩ =
+      (height, (queriesOf (192 / (ml + level.logInvRate)) (ml + level.logInvRate)
+          (F2.squeezeN (ceilDiv level.queries (192 / (ml + level.logInvRate)))).1
+          level.queries).zip osL) ::
+        queryStepsOf (K (glue (F2.squeezeN (ceilDiv level.queries (192 / (ml + level.logInvRate)))).2.squeeze.1
+          ws1 (pending ++ [(enforcedSum (if index = 0 then
+          (osL.map (·.leaf)).map fun row ↦ row.reverse.map ofK else (osL.map (·.leaf)).map extRow)
+          lf (powers (F2.squeezeN (ceilDiv level.queries (192 / (ml + level.logInvRate)))).2.squeeze.1
+            (queriesOf (192 / (ml + level.logInvRate)) (ml + level.logInvRate)
+              (F2.squeezeN (ceilDiv level.queries (192 / (ml + level.logInvRate)))).1
+              level.queries).length),
+          [ic0, enforcedSum (if index = 0 then
+            (osL.map (·.leaf)).map fun row ↦ row.reverse.map ofK else (osL.map (·.leaf)).map extRow)
+            lf (powers (F2.squeezeN (ceilDiv level.queries (192 / (ml + level.logInvRate)))).2.squeeze.1
+              (queriesOf (192 / (ml + level.logInvRate)) (ml + level.logInvRate)
+                (F2.squeezeN (ceilDiv level.queries (192 / (ml + level.logInvRate)))).1
+                level.queries).length) + ic2, ic2],
+          fun x ↦ inducedWeight ml (queriesOf (192 / (ml + level.logInvRate)) (ml + level.logInvRate)
+              (F2.squeezeN (ceilDiv level.queries (192 / (ml + level.logInvRate)))).1 level.queries)
+            (powers (F2.squeezeN (ceilDiv level.queries (192 / (ml + level.logInvRate)))).2.squeeze.1
+              (queriesOf (192 / (ml + level.logInvRate)) (ml + level.logInvRate)
+                (F2.squeezeN (ceilDiv level.queries (192 / (ml + level.logInvRate)))).1
+                level.queries).length) x)])))
+        ⟨foldStep (F2.squeezeN (ceilDiv level.queries (192 / (ml + level.logInvRate)))).2 ic0 ic2,
+          xsR, osR, R⟩ := by
+  rw [qs_sampleQueries_bind hd, qs_sampleE_bind, qs_require_bind _ _ hlam,
+    qs_queryP_bind _ _ _ _ _ hR (openAll_eq _ _ _ _ _ _ hol hok), sumcheck3_bind,
+    qs_readE_bind, qs_readE_bind, squeeze_absorb_two]
+  congr 1
+  congr 1
+  rw [← List.append_nil (queriesOf _ _ _ _), List.zip_append (by rw [hol]), List.zip_nil_left,
+    List.append_nil, List.append_nil]
+
 /-- **The head**: the first quadratic, then the levels. -/
 theorem head_inv {μ r : ℕ} {target : E} {F : Fs} {xs : List E} {os : List Opening}
     {R : List (Digest × ℕ × ℕ)} {res : WhirEnd × FSt}
@@ -52,7 +111,11 @@ theorem head_inv {μ r : ℕ} {target : E} {F : Fs} {xs : List E} {os : List Ope
     ∃ (cfg : List Whir.Level) (c0 c2 : E) (xs' : List E), deriveConfig μ r = some cfg ∧
       xs = c0 :: c2 :: xs' ∧
       runF (whirLevelsOpenNZ μ ((cfg.head?.map (·.fold)).getD 0) 0 cfg ⟨target, [c0, target + c2, c2],
-        [], []⟩) ⟨(F.absorb c0 dsObserve).absorb c2 dsObserve, xs', os, R⟩ = some res := by
+        [], []⟩) ⟨(F.absorb c0 dsObserve).absorb c2 dsObserve, xs', os, R⟩ = some res ∧
+      queryStepsOf (whirOpenNZ μ r target) ⟨F, xs, os, R⟩ =
+        queryStepsOf (whirLevelsOpenNZ μ ((cfg.head?.map (·.fold)).getD 0) 0 cfg
+          ⟨target, [c0, target + c2, c2], [], []⟩)
+          ⟨(F.absorb c0 dsObserve).absorb c2 dsObserve, xs', os, R⟩ := by
   simp only [whirOpenNZ, Prog.bind_eq] at h
   cases hc : deriveConfig μ r with
   | none => simp [hc, Verifier.liftOption, Prog.bind, runF] at h
@@ -62,7 +125,9 @@ theorem head_inv {μ r : ℕ} {target : E} {F : Fs} {xs : List E} {os : List Ope
     obtain ⟨c0, xs1, hx1, h1⟩ := runF_readE_bind h
     obtain ⟨c2, xs2, hx2, h2⟩ := runF_readE_bind h1
     subst hx1 hx2
-    exact ⟨cfg, c0, c2, xs2, rfl, rfl, h2⟩
+    refine ⟨cfg, c0, c2, xs2, rfl, rfl, h2, ?_⟩
+    simp only [whirOpenNZ, Prog.bind_eq, hc, Verifier.liftOption, Prog.ret_bind, sumcheck3_bind]
+    rfl
 
 /-- **A level that is not the last, backwards.** -/
 theorem level_nf_inv {logN lane index : ℕ} {level next : Whir.Level} {rest : List Whir.Level}
@@ -76,7 +141,11 @@ theorem level_nf_inv {logN lane index : ℕ} {level next : Whir.Level} {rest : L
       L.logN = logN ∧ L.index = index ∧ L.level = level ∧ L.fin = false ∧ L.ws = ws ∧ L.F = F ∧
       L.Ok R d ∧ xs = L.words ++ xsR ∧ os = L.os ++ osR ∧
       runF (whirLevelsOpenNZ logN lane (index + 1) (next :: rest) L.wsEnd)
-        ⟨L.Fend, xsR, osR, R ++ [(d, levelShape L.ml next (3 * 2 ^ next.fold))]⟩ = some res := by
+        ⟨L.Fend, xsR, osR, R ++ [(d, levelShape L.ml next (3 * 2 ^ next.fold))]⟩ = some res ∧
+      queryStepsOf (whirLevelsOpenNZ logN lane index (level :: next :: rest) ws) ⟨F, xs, os, R⟩ =
+          (L.height, L.qs.zip L.os) :: queryStepsOf (whirLevelsOpenNZ logN lane (index + 1)
+            (next :: rest) L.wsEnd)
+            ⟨L.Fend, xsR, osR, R ++ [(d, levelShape L.ml next (3 * 2 ^ next.fold))]⟩ := by
   rw [whirLevelsOpenNZ] at h
   simp only [Prog.bind_eq, Prog.pure_eq] at h
   obtain ⟨hl, hnz, h1⟩ := foldsNZ_inv _ _ _ _ _ _ _ _ h
@@ -101,7 +170,7 @@ theorem level_nf_inv {logN lane index : ℕ} {level next : Whir.Level} {rest : L
     rest_inv hd' h6
   subst hx3 hx4 hx5 hx6 hx7
   set L : SpLv := ⟨logN, index, level, false, ws, F, xs.take (2 * level.fold), ra, rb, y, c0, c2,
-    [], nonce, osL, ic0, ic2⟩ with hL
+    [], nonce, osL, ic0, ic2, root, height, width⟩ with hL
   have eTr : L.tr = foldsTr level.fold F ws.quad ws.target xs := foldsTr_take _ _ _ _ _
   have eChs : L.chs = (foldsTr level.fold F ws.quad ws.target xs).2.1 := by rw [SpLv.chs, eTr]
   have eF1 : L.F1 = (foldsTr level.fold F ws.quad ws.target xs).1 := by rw [SpLv.F1, eTr]
@@ -156,15 +225,15 @@ theorem level_nf_inv {logN lane index : ℕ} {level next : Whir.Level} {rest : L
           nonce).perm, []⟩).2 ic0 ic2 := by
     rw [SpLv.Fend, eF2, eNsq]
   refine ⟨L, d, xsR, osR, rfl, rfl, rfl, rfl, rfl, rfl, ⟨?_, ?_, fun _ ↦ hdig, fun _ ↦ ?_,
-    fun h ↦ absurd h Bool.false_ne_true, fun h ↦ absurd h Bool.false_ne_true, ?_, ?_⟩, ?_, eos, ?_⟩
+    fun h ↦ absurd h Bool.false_ne_true, fun h ↦ absurd h Bool.false_ne_true, ?_,
+    by rw [List.getElem?_append_left hR] at hroot; exact hroot, by rw [eQs]; exact hol, ?_⟩, ?_, eos,
+    ?_, ?_⟩
   · show (xs.take (2 * level.fold)).length = 2 * level.fold
     simp only [List.length_take]; omega
   · intro c hc; rw [eChs] at hc; exact hnz c hc
   · rw [eF1, eMl]; exact hpow
   · rw [eLam]; exact hlam
-  · refine ⟨root, height, width, by rw [List.getElem?_append_left hR] at hroot; exact hroot,
-      by rw [eQs]; exact hol, ?_⟩
-    rw [eQs]
+  · rw [eQs]
     exact hok
   · show xs = (xs.take (2 * level.fold) ++ (if false = true then [] ++ [nonce] else
       [ra, rb, y, c0, c2, nonce]) ++ [ic0, ic2]) ++ xsR
@@ -173,6 +242,15 @@ theorem level_nf_inv {logN lane index : ℕ} {level next : Whir.Level} {rest : L
     rw [← hx2, List.take_append_drop]
   · rw [eWsEnd, eFend, eEnf, eLam, eWs1, ePend, eQs, eMl]
     exact h7
+  · rw [eWsEnd, eFend, eEnf, eLam, eWs1, ePend, eQs, eMl]
+    rw [whirLevelsOpenNZ]
+    simp only [Prog.bind_eq, Prog.pure_eq]
+    rw [qs_folds _ _ _ _ _ _ _ hl hnz]
+    simp only [Prog.ret_bind, List.nil_append]
+    rw [hx2, qs_commitP_bind _ _ _ _ _ _ _ hdig, absorb_two hF1, qs_sampleN_bind,
+      squeezeN_cF1 _ _ (by rw [hfl]; exact hml), qs_readE_bind, sumcheck3_bind, qs_readE_bind,
+      qs_readE_bind, qs_grindP_bind _ _ _ _ _ _ (by rw [absorb_four]; exact hpow), absorb_four, eos]
+    exact rest_qs hd' hlam hroot hol hok
 
 /-- **The last level, backwards**: its words and openings, then its tail rounds and the end. -/
 theorem level_fin_inv {logN lane index : ℕ} {level : Whir.Level} {ws : WhirState} {F : Fs}
@@ -192,7 +270,9 @@ theorem level_fin_inv {logN lane index : ℕ} {level : Whir.Level} {ws : WhirSta
         multilinearEval L.ms (tailTr L.ml L.Fend L.wsEnd.quad L.wsEnd.target xsR).2.1,
         (tailTr L.ml L.Fend L.wsEnd.quad L.wsEnd.target xsR).2.2⟩,
         ⟨(tailTr L.ml L.Fend L.wsEnd.quad L.wsEnd.target xsR).1,
-          xsR.drop (2 * (L.ml - 1)), osR, R⟩) := by
+          xsR.drop (2 * (L.ml - 1)), osR, R⟩) ∧
+      queryStepsOf (whirLevelsOpenNZ logN lane index [level] ws) ⟨F, xs, os, R⟩ =
+        [(L.height, L.qs.zip L.os)] := by
   rw [whirLevelsOpenNZ_last] at h
   simp only [Prog.bind_eq] at h
   obtain ⟨hl, hnz, h1⟩ := foldsNZ_inv _ _ _ _ _ _ _ _ h
@@ -212,7 +292,7 @@ theorem level_fin_inv {logN lane index : ℕ} {level : Whir.Level} {ws : WhirSta
   set ml := logN - (ws.folds ++ (foldsTr level.fold F ws.quad ws.target xs).2.1).length with hmldef
   set ms := (List.drop (2 * level.fold) xs).take (2 ^ ml) with hms
   set L : SpLv := ⟨logN, index, level, true, ws, F, xs.take (2 * level.fold), 0, 0, 0, 0, 0,
-    ms, nonce, osL, ic0, ic2⟩ with hL
+    ms, nonce, osL, ic0, ic2, root, height, width⟩ with hL
   have eTr : L.tr = foldsTr level.fold F ws.quad ws.target xs := foldsTr_take _ _ _ _ _
   have eChs : L.chs = (foldsTr level.fold F ws.quad ws.target xs).2.1 := by rw [SpLv.chs, eTr]
   have eF1 : L.F1 = (foldsTr level.fold F ws.quad ws.target xs).1 := by rw [SpLv.F1, eTr]
@@ -296,7 +376,8 @@ theorem level_fin_inv {logN lane index : ℕ} {level : Whir.Level} {ws : WhirSta
   simp only at h8
   have hres := runF_ret_some h8
   refine ⟨L, xsR, osR, rfl, rfl, rfl, rfl, rfl, rfl, ⟨?_, ?_, fun h ↦ Bool.noConfusion h,
-    fun h ↦ Bool.noConfusion h, fun _ ↦ ?_, fun _ ↦ ?_, ?_, ?_⟩, ?_, eos, ?_, ?_, ?_⟩
+    fun h ↦ Bool.noConfusion h, fun _ ↦ ?_, fun _ ↦ ?_, ?_, hroot, by rw [eQs]; exact hol, ?_⟩, ?_,
+    eos, ?_, ?_, ?_, ?_⟩
   · show (xs.take (2 * level.fold)).length = 2 * level.fold
     simp only [List.length_take]; omega
   · intro c hc; rw [eChs] at hc; exact hnz c hc
@@ -305,8 +386,7 @@ theorem level_fin_inv {logN lane index : ℕ} {level : Whir.Level} {ws : WhirSta
     simp only [List.length_take]; omega
   · rw [eF1]; exact hpow
   · rw [eLam]; exact hlam
-  · refine ⟨root, height, width, hroot, by rw [eQs]; exact hol, ?_⟩
-    rw [eQs]
+  · rw [eQs]
     exact hok
   · show xs = (xs.take (2 * level.fold) ++ (if true = true then ms ++ [nonce] else
       [0, 0, 0, 0, 0, nonce]) ++ [ic0, ic2]) ++ xsR
@@ -315,6 +395,16 @@ theorem level_fin_inv {logN lane index : ℕ} {level : Whir.Level} {ws : WhirSta
   · rw [eMl]; exact htl
   · rw [eW, eFend, eMl]; exact htnz
   · rw [eW, eFend, eMl]; exact hres
+  · rw [eQs, whirLevelsOpenNZ_last]
+    simp only [Prog.bind_eq]
+    rw [qs_folds _ _ _ _ _ _ _ hl hnz]
+    simp only
+    rw [qs_readN_bind _ _ _ _ _ _ hml, hx3, qs_grindP_bind _ _ _ _ _ _ hpow, eos]
+    simp only [levelRestNZ, Prog.bind_eq, Prog.pure_eq, Prog.bind_assoc, Prog.ret_bind]
+    rw [rest_qs hd' hlam hroot hol hok]
+    simp only [List.nil_append, levelTailNZ, Prog.bind_eq, Prog.pure_eq]
+    rw [qs_tail _ _ _ _ _ _ _ htl htnz]
+    rfl
 
 end
 end LeanVM.Guest.B1.Whir

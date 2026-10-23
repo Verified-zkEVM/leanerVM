@@ -120,6 +120,10 @@ structure SpLv where
   os : List Opening
   ic0 : E
   ic2 : E
+  /-- The root, height and width of the commitment the level's queries open. -/
+  root : Digest
+  height : ℕ
+  width : ℕ
 
 namespace SpLv
 
@@ -180,10 +184,10 @@ structure Ok (R : List (Digest × ℕ × ℕ)) (d : Digest) : Prop where
   powFin : L.fin = true → powOk Whir.queryGrindingBits L.nonce
     ((L.F1.absorbAll L.ms dsObserve).absorb L.nonce dsPowNonce).squeeze.1 = true
   lam : L.lam ≠ 0
-  opens : ∃ (root : Digest) (height width : ℕ), R[L.index]? = some (root, height, width) ∧
-    L.os.length = L.qs.length ∧
-    ∀ k (hk : k < L.qs.length) (ho : k < L.os.length),
-      Id.run (Compile.openOne (m := Id) keccak256 root height width L.qs[k] L.os[k]) = true
+  root : R[L.index]? = some (L.root, L.height, L.width)
+  osLen : L.os.length = L.qs.length
+  opens : ∀ k (hk : k < L.qs.length) (ho : k < L.os.length),
+    Id.run (Compile.openOne (m := Id) keccak256 L.root L.height L.width L.qs[k] L.os[k]) = true
 
 theorem chs_length : L.chs.length = L.level.fold := foldsTr_chs_length _ _ _ _ _
 

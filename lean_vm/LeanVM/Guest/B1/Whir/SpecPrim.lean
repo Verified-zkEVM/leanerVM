@@ -152,23 +152,23 @@ theorem runF_sampleQueriesAux_bind (d : ℕ) (hd : 1 ≤ 192 / d) :
       queriesOf_cons _ _ hd]
     rfl
 
+theorem ceilDiv_le_self {a b : ℕ} (hb : 1 ≤ b) : ceilDiv a b ≤ a := by
+  unfold ceilDiv
+  rcases Nat.eq_zero_or_pos a with rfl | ha
+  · simp only [Nat.zero_add]; exact (Nat.div_eq_of_lt (by omega)).le
+  · obtain ⟨a', rfl⟩ : ∃ a', a = a' + 1 := ⟨a - 1, by omega⟩
+    obtain ⟨b', rfl⟩ : ∃ b', b = b' + 1 := ⟨b - 1, by omega⟩
+    apply Nat.div_le_of_le_mul
+    have e : a' + 1 + (b' + 1) - 1 = a' + b' + 1 := by omega
+    rw [e]
+    nlinarith [Nat.zero_le (a' * b')]
+
 theorem runF_sampleQueries_bind {d q : ℕ} (hd : 1 ≤ 192 / d) (k : List ℕ → Prog β) (F : Fs)
     (xs : List E) (os : List Opening) (R : List (Digest × ℕ × ℕ)) :
     runF ((sampleQueries d q).bind k) ⟨F, xs, os, R⟩ =
       runF (k (queriesOf (192 / d) d (F.squeezeN (ceilDiv q (192 / d))).1 q))
         ⟨(F.squeezeN (ceilDiv q (192 / d))).2, xs, os, R⟩ :=
-  runF_sampleQueriesAux_bind d hd q q k F xs os R (ceilDiv_le' hd)
-where
-  ceilDiv_le' {a b : ℕ} (hb : 1 ≤ b) : ceilDiv a b ≤ a := by
-    unfold ceilDiv
-    rcases Nat.eq_zero_or_pos a with rfl | ha
-    · simp only [Nat.zero_add]; exact (Nat.div_eq_of_lt (by omega)).le
-    · obtain ⟨a', rfl⟩ : ∃ a', a = a' + 1 := ⟨a - 1, by omega⟩
-      obtain ⟨b', rfl⟩ : ∃ b', b = b' + 1 := ⟨b - 1, by omega⟩
-      apply Nat.div_le_of_le_mul
-      have e : a' + 1 + (b' + 1) - 1 = a' + b' + 1 := by omega
-      rw [e]
-      nlinarith [Nat.zero_le (a' * b')]
+  runF_sampleQueriesAux_bind d hd q q k F xs os R (ceilDiv_le_self hd)
 
 end
 end LeanVM.Guest.B1.Whir
