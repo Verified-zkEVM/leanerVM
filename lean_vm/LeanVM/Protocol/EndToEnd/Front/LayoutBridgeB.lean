@@ -91,8 +91,8 @@ theorem wireHolds_of_not_mem {c : Verifier.ColumnClaim} (hc : c.column ∉ kecca
 /-- An output lane is `outCol` of its lane. -/
 theorem eq_outCol_of_isOut {c : Col} (h : IsOut c) :
     c = outCol ⟨(pyCol c - 111) % 25, Nat.mod_lt _ (by norm_num)⟩ := by
-  obtain ⟨-, -, hv⟩ := pyCol_lanes c
-  have hp := hv h.isLane
+  obtain ⟨-, -, -, hv⟩ := pyCol_lanes c
+  have hp := hv h.isVirtual
   obtain ⟨j, i⟩ := c
   obtain ⟨hj, h1, h2⟩ := h
   simp only at hj h1 h2 hp
@@ -135,18 +135,18 @@ theorem tableLogHeights_keccak :
   simp [verifierLayout, tableLogs, opKeccak]
 
 /-- The memory columns are committed. -/
-theorem not_isLane_memCol (i : Fin 4) : ¬ IsLane (memCol i) := by
+theorem not_isVirtual_memCol (i : Fin 4) : ¬ IsVirtual (memCol i) := by
   revert i; decide
 
 /-- The memory columns are not output lanes. -/
 theorem not_isOut_memCol (i : Fin 4) : ¬ IsOut (memCol i) :=
-  fun h ↦ not_isLane_memCol i h.isLane
+  fun h ↦ not_isVirtual_memCol i h.isVirtual
 
 /-- The public point of the program is the instance's line point. -/
 theorem pubPoint_eq (r : E) :
     pubPoint (verifierLayout prog s) r = (PublicInput.linePoint s.logMem_pos r).toList := by
   have hv : ((verifierLayout prog s).placement memory0).vars = s.logMem := by
-    have h := placement_committed prog s (memCol 0) (not_isLane_memCol 0)
+    have h := placement_committed prog s (memCol 0) (not_isVirtual_memCol 0)
     rw [pyCol_memCol] at h
     simp only [Fin.val_zero] at h
     rw [show memory0 = 0 from rfl, h]
