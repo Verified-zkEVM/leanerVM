@@ -228,9 +228,11 @@ import LeanerVM.Protocol.Whir.Level
 import LeanerVM.Protocol.Whir.LevelSound
 import LeanerVM.Protocol.Whir.Open
 import LeanerVM.Protocol.Whir.OpenSound
+import LeanerVM.Protocol.Whir.QueryWords
 import LeanerVM.Protocol.Whir.Stack
 import LeanerVM.Protocol.Whir.Stage
 import LeanerVM.Protocol.Whir.Transform
+import LeanerVM.Protocol.Whir.TransformWords
 import LeanerVM.Protocol.Whir.Word
 import LeanerVM.Protocol.Whir.WordFast
 import LeanerVM.Protocol.WhirFold
