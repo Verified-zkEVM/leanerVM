@@ -16,9 +16,9 @@ The setup on the fixture: the announced sizes and rate are admissible; they fix 
 `2^20` cells of which 33 lanes are committed, a WHIR ladder of four levels querying
 `224, 56, 32, 22` positions, and a bus of depth 18 with five boundary columns, as the second
 verifier reads them (`python-verifier/verifier.py:1373-1385`). Each setup check rejects its
-mutation before any hash: a nonzero upper limb in an announced size, a size above its cap, a rate
-outside its window. The chain walk's setup reads the root, and rejects a nonzero third limb in a
-half of it.
+mutation before any hash: a nonzero upper limb in an announced size, a size above its cap, the
+`BLAKE2S` table below its floor, a rate outside its window. The chain walk's setup reads the
+root, and rejects a nonzero third limb in a half of it.
 -/
 
 namespace LeanerVMTests.Protocol.RustProof
@@ -200,6 +200,8 @@ def withScalar (i : ℕ) (x : E) : Proof PrunedMerklePaths :=
 #guard (setup? fx.prog (withScalar 2 (E.ofLimbs (K.ofBits 3) 0 1))).isNone
 -- A size above its cap: a table of `2^33` rows.
 #guard (setup? fx.prog (withScalar 2 (sizeScalar 33))).isNone
+-- The `BLAKE2S` table below its floor of `2^3` rows.
+#guard (setup? fx.prog (withScalar 6 (sizeScalar 2))).isNone
 -- The memory below its window.
 #guard (setup? fx.prog (withScalar 0 (sizeScalar 15))).isNone
 -- A stack above `2^28` cells: the memory at `2^28`.
