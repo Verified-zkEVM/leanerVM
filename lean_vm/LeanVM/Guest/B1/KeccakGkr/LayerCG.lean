@@ -110,9 +110,15 @@ theorem layer_body_complete {first odd : ℕ} (hf : first < 2) (ho : odd < 2) (D
       [1, gen ^ (D.y / 2), w 1310, cw.getD 2 0, w 1309] [])
     (hodd : odd = 1 → coreProgram.Rel rd "keccak_round" [w 1310 * gen ^ (D.y / 2),
       cw.getD 2 0 * (gen ^ (D.y / 2)) ^ 2, w 1309 * (gen ^ (D.y / 2)) ^ 2] []) :
-    Stmt.HoldsList (coreProgram.Rel rd) rd
-      (layerσ rd w (D.cap ++ [p0, p1, cur, gen ^ D.y, gen ^ (D.y / 2), gen ^ (D.y / 2 + odd), claim,
-        out, iota]) first odd) (layerT first odd) False (fun r ↦ r = D.rets first cur) := by
+    let σ := layerσ rd w (D.cap ++ [p0, p1, cur, gen ^ D.y, gen ^ (D.y / 2),
+      gen ^ (D.y / 2 + odd), claim, out, iota]) first odd
+    (σ (.n (4 * odd + 1317)) = w 1310 * gen ^ (D.y / 2 + odd) ∧
+      σ (.n (4 * odd + 1323)) = cur * gen ^ (47 + 2 * D.y) ∧
+      σ (.n (4 * odd + 2085)) = cw.getD 3 0 ∧
+      (first = 0 → σ (.n (4 * odd + 2086)) = cw.getD 4 0) ∧ σ (.n 1308) = cw.getD 2 0) ∧
+    Stmt.HoldsList (coreProgram.Rel rd) rd σ (layerT first odd) False
+      (fun r ↦ r = D.rets first cur) := by
+  intro σ'
   obtain ⟨f0, f1, f2, f3, f4, hcapE⟩ := five_of_length' hcl
   have hl : (D.cap ++ [p0, p1, cur, gen ^ D.y, gen ^ (D.y / 2), gen ^ (D.y / 2 + odd), claim,
       out, iota]).length = 14 := by simp [hcl]
@@ -121,8 +127,11 @@ theorem layer_body_complete {first odd : ℕ} (hf : first < 2) (ho : odd < 2) (D
   have hσ := fun v ↦ layerσ_idx (rd := rd) (w := w) (first := first) (odd := odd)
     (args := D.cap ++ [p0, p1, cur, gen ^ D.y, gen ^ (D.y / 2), gen ^ (D.y / 2 + odd),
     claim, out, iota]) v
-  generalize layerσ rd w (D.cap ++ [p0, p1, cur, gen ^ D.y, gen ^ (D.y / 2), gen ^ (D.y / 2 + odd),
-    claim, out, iota]) first odd = σ at hG hpar hσ ⊢
+  generalize hσ' : layerσ rd w (D.cap ++ [p0, p1, cur, gen ^ D.y, gen ^ (D.y / 2),
+    gen ^ (D.y / 2 + odd), claim, out, iota]) first odd = σ at hG hpar hσ
+  have eσ : σ' = σ := hσ'
+  rw [eσ]
+  clear eσ hσ'
   rw [hcapE] at hpar
   have a0 : σ (.n 0) = f0 := hpar 0 (by norm_num)
   have a1 : σ (.n 1) = f1 := hpar 1 (by norm_num)
@@ -236,7 +245,7 @@ theorem layer_body_complete {first odd : ℕ} (hf : first < 2) (ho : odd < 2) (D
     have := LayerData.recWords_rec hrec (j := 0) (by norm_num) (by omega)
     rw [g1310, ecapS, a7, e1307]
     simpa [LayerData.recK, LayerData.run_zero, LayerData.recCur] using this
-  obtain ⟨-, HP⟩ := packSetup_complete (C := coreProgram.Rel rd) gP (hS11 _ _) (pp := cw.getD 2 0)
+  obtain ⟨e1308, HP⟩ := packSetup_complete (C := coreProgram.Rel rd) gP (hS11 _ _) (pp := cw.getD 2 0)
     (by rw [a11]; exact hcw' 2 (by norm_num)) hrec0 (by rw [a9]; exact one_add_gen_pow_isInK _)
     (fun hne ↦ by rw [a9, g1310, g1309]; exact hloop (by rwa [a9] at hne))
     (fun h ↦ by rw [a9, g1310, g1309]; exact hodd h)
@@ -388,6 +397,14 @@ theorem layer_body_complete {first odd : ℕ} (hf : first < 2) (ho : odd < 2) (D
       (w (weightEnd first (4 * odd) + 34)) (w (4 * odd + 1325))
       (w (weightEnd first (4 * odd) + 278))).getD k 0) := fun k hk ↦ by
     rw [a12]; exact readsAt_getD hout (by simp [LayerData.outW]; omega)
+  have e2085 : σ (.n (4 * odd + 2085)) = cw.getD 3 0 := by
+    have g := gW (.atom (.load (.n (4 * odd + 2085)) (.n 11) 3)) (by unfold weightT; split <;> simp)
+    exact load_val (w := w) g (hS11 _ _) (by rw [a11]; exact hcw' 3 (by norm_num))
+  have e2086 : first = 0 → σ (.n (4 * odd + 2086)) = cw.getD 4 0 := by
+    intro h0
+    have g := gW (.atom (.load (.n (4 * odd + 2086)) (.n 11) 4)) (by unfold weightT; simp [h0])
+    exact load_val (w := w) g (hS11 _ _) (by rw [a11]; exact hcw' 4 (by norm_num))
+  refine ⟨⟨by rw [e1317, g1310, a10], e1323, e2085, e2086, e1308⟩, ?_⟩
   -- the sections in turn
   rw [← List.append_assoc, holdsList_append]
   refine HA ?_
