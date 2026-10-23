@@ -115,15 +115,15 @@ def aggregate_claims_sound_Spec : Prop :=
 
 /-! ## What `main` asks of its callees with a witness -/
 
-/-- **What a `verify_sub` call establishes for the proof `π`** (B1-d's `verify_sub`, G:3147):
-its seventh argument holds the child proof's claim on the bytecode (`23` coordinates, then the
-value), and the deferring verifier accepts `π` for the public input of the first two cells
-under the seed of the next two. -/
+/-- **What a `verify_sub` call establishes for the proof `π`** (B1-d's `verify_sub`, G:3147;
+`VerifySub.MeaningVerifySub`): its first four cells hold a public input and a seed, its seventh
+argument the child proof's claim on the bytecode (`23` coordinates, then the value), and the
+deferring verifier accepts `π` for the public input under the seed. -/
 def VerifySubOut (bytecode : List K) (rd : Reader) (args : List E) (π : Proof) : Prop :=
   ∃ pi0 pi1 s0 s1 glp gsq out, args = [pi0, pi1, s0, s1, glp, gsq, out] ∧
-    ∃ fresh : FixedClaims, fresh.bytecodePoint.length = bytecodeVars ∧
-      ReadsAt rd out (fixedCells fresh) ∧
-      verifyDeferred bytecode (digestOfCells s0 s1) (digestOfCells pi0 pi1) fresh π = true
+    ∃ (seed pi : Digest) (fresh : FixedClaims), (s0, s1) = digestScalars seed ∧
+      (pi0, pi1) = digestScalars pi ∧ fresh.bytecodePoint.length = bytecodeVars ∧
+      ReadsAt rd out (fixedCells fresh) ∧ verifyDeferred bytecode seed pi fresh π = true
 
 /-- **The callees' contracts with witness functions**, on the call relation `coreProgram.Rel`. -/
 structure CalleesW (bytecode : List K) (rd : Reader) (wX : E → LeanXmss.Signature)
@@ -137,11 +137,10 @@ structure CalleesW (bytecode : List K) (rd : Reader) (wX : E → LeanXmss.Signat
   /-- The DA check with the exponent table: the matrix `wD args rets` opens the returned claim. -/
   da : ∀ gsq rets, coreProgram.Rel rd "da_verify" [gsq] rets → Da.SquaresAt rd gsq →
     ∃ root vd : Digest, (wD [gsq] rets).Opens root vd ∧ rets = digestCells root ++ digestCells vd
-  /-- A child proof's check with the exponent tables and canonical digests: `wV args`. -/
-  sub : ∀ args, coreProgram.Rel rd "verify_sub" args [] →
-    (∀ pi0 pi1 s0 s1 glp gsq out, args = [pi0, pi1, s0, s1, glp, gsq, out] →
-      ExpTables rd glp gsq ∧ AllCanonical [pi0, pi1, s0, s1]) →
-    VerifySubOut bytecode rd args (wV args)
+  /-- A child proof's check with the exponent tables: the proof `wV args`. -/
+  sub : ∀ pi0 pi1 s0 s1 glp gsq out,
+    coreProgram.Rel rd "verify_sub" [pi0, pi1, s0, s1, glp, gsq, out] [] → ExpTables rd glp gsq →
+    VerifySubOut bytecode rd [pi0, pi1, s0, s1, glp, gsq, out] (wV [pi0, pi1, s0, s1, glp, gsq, out])
   /-- The batching, for `n_children_g = g^m`, `1 ≤ m ≤ 16`, with the hints `wA args`. -/
   agg : ∀ ncg cpi cfresh ccarried dst, coreProgram.Rel rd "aggregate_claims"
     [ncg, cpi, cfresh, ccarried, dst] [] → ∀ m, 1 ≤ m → m ≤ 16 → ncg = gen ^ m →
