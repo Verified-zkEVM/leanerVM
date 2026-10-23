@@ -9,6 +9,7 @@ module
 
 public import LeanVM.Guest.B1.KeccakGkr.Interface
 public import LeanVM.Guest.B1.Fs.Templates
+public import LeanVM.Guest.B1.Common.Atoms
 
 /-!
 # B1-d: shared lemmas
@@ -308,6 +309,27 @@ theorem rel_pre {f : String} {fn : Fn} (hf : coreProgram.find? f = some fn) {pre
   obtain ⟨σ, hp, hb'⟩ := (rel_iff_sem hf args rets).mp h
   rw [hb, holdsList_append, holdsList_noRet _ hnr] at hb'
   exact ⟨σ, hp, hb'.1, hb'.2⟩
+
+/-! ## Blocks of atoms, by kernel evaluation -/
+
+/-- An atom statement. -/
+def isAtom : Stmt → Bool
+  | .atom _ => true
+  | _ => false
+
+theorem allAtoms_of_all {ss : List Stmt} (h : ss.all isAtom = true) : AllAtoms ss := by
+  intro s hs
+  have := List.all_eq_true.1 h s hs
+  cases s <;> simp_all [isAtom]
+
+/-- **An atom of a block of atoms holds**, found by kernel evaluation. -/
+theorem atom_of_block {ss : List Stmt} (hall : ss.all isAtom = true) {next : Prop}
+    {kret : List E → Prop} (hb : Stmt.HoldsList C rd σ ss next kret) (a : Atom)
+    (hm : ss.any (fun s ↦ stmtEqb s (.atom a)) = true) : a.Holds rd σ := by
+  obtain ⟨hall', -⟩ := (holdsList_atoms (allAtoms_of_all hall) next kret).1 hb
+  obtain ⟨s, hs, he⟩ := List.any_eq_true.1 hm
+  rw [stmtEqb_sound he] at hs
+  exact hall' a hs
 
 /-! ## Loops -/
 
