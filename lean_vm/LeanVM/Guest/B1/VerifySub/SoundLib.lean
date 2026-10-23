@@ -157,7 +157,8 @@ theorem size_sel_eq {m e : ℕ} (hm : m < 34) (he : e < 7)
 
 /-! ## The committed columns' total -/
 
-theorem committedCols_length : (Tables.committedCols 163).length = 113 := by decide +kernel
+theorem committedCols_length : (Tables.committedCols 163).length = Tables.nCommittedCols := by
+  decide +kernel
 
 theorem sum_pow_le (l : List ℕ) (h : ∀ x ∈ l, x ≤ 34) :
     (l.map (2 ^ ·)).sum ≤ l.length * 2 ^ 34 := by
@@ -203,8 +204,9 @@ theorem sl_stackTotal_lt {logMem : ℕ} {hs : List ℕ} (hm : logMem ≤ 32) (hl
     by_cases hc : c < (columnKappas logMem 19 hs).length
     · exact hk _ (getD_mem' hc)
     · rw [List.getD_eq_default _ _ (by omega)]; omega)
-  have : (Tables.committedKappas (columnKappas logMem 19 hs)).length = 113 := by
+  have : (Tables.committedKappas (columnKappas logMem 19 hs)).length = Tables.nCommittedCols := by
     simp [Tables.committedKappas, hlen, committedCols_length]
+  have hn : Tables.nCommittedCols ≤ 113 := by decide
   unfold Tables.stackTotal
   rw [this] at hle
   omega
