@@ -19,8 +19,9 @@ theorem term_body : Data.core17.body = termT := stmtsEqb_sound (by decide +kerne
 theorem find_term : coreProgram.find? "check_opening_terminal" = some Data.core17 :=
   Program.find?_of_indexOf? (j := 17) (by decide +kernel) rfl
 
-/-- The template's claims end at value `1836`, the sum at `1835`. -/
-theorem claimsT_end : (claimsT (List.range 165) 375 16).2 = (1836, 1835) := by decide +kernel
+/-- The template's claims end at value `1990`, the sum at `1989`. -/
+theorem claimsT_end : (claimsT (List.range 165) claimsStart 16).2 = (1990, 1989) := by
+  decide +kernel
 
 end
 end LeanVM.Guest.B1.VerifySub
