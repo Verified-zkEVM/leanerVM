@@ -10,6 +10,7 @@ module
 
 public import LeanerVM.Protocol.Field
 public import LeanerVM.Protocol.Whir.Glue
+public import LeanerVM.Protocol.Whir.WordFast
 public import LeanerVM.Protocol.ToArkLib.StepSchedule
 public import LeanerVM.Protocol.ToArkLib.MapWitness
 public import LeanerVM.Protocol.ToArkLib.QueryRecord

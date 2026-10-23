@@ -12,6 +12,7 @@ public import LeanerVM.Protocol.Spine.Compose
 public import LeanerVM.Protocol.Opening
 public import LeanerVM.Protocol.Whir.OpenSound
 public import LeanerVM.Protocol.Whir.Decode
+public import LeanerVM.Protocol.Whir.WordFast
 public import LeanerVM.Protocol.ToArkLib.Relist
 public import LeanerVM.Protocol.ToArkLib.SendEncoded
 public import LeanerVM.Protocol.ToArkLib.MapOracles
