@@ -1,0 +1,132 @@
+/-
+  LeanVM.Guest.B1.Place.OsKidsSp2
+
+  open_stacked's squeeze loops, placed on the honest trace.
+-/
+
+module
+
+public import LeanVM.Guest.B1.Place.OsKidsSp1
+
+/-!
+# The squeeze loops, placed
+
+**`os_sq_completeAtP`**: level `l`'s squeeze loop (`c.sqLoop l`), at its honest arguments
+`[1, g^n, sqz, qpos, qbp]` (the pointers `osAtOf c b`), placed at `p`, reads the callees' words
+`osLk` and its bit pointers `osW … l p` and returns its decoders' frame runs `osS … l p`
+(`OsCompleteAtP`), from fork 4's `sqLoop_relAtIn`: the squeeze run from `sqzC`, the decoded
+positions from `qposC`, the bit pointers from `osW`.
+-/
+
+namespace LeanVM.Guest.B1
+
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Value LeanVM.Guest.Memory
+open LeanVM.Guest.B1.Whir
+open LeanVM.Protocol.Verifier hiding Layout
+open LeanVM.Guest.B1.Main (Layout MemL RegionL)
+
+@[expose] public section
+
+theorem ofK_gpow_mul_gen (a m : ℕ) : ofK (gpow a) * gen ^ m = ofK (gpow (a + m)) := by
+  rw [gen_pow_eq_ofK, ← ofK_mul']
+  congr 1
+  simp only [Parameters.gpow, pow_add]
+
+theorem osPtrAt_eq (c : OsCfg) (b j : ℕ) : osPtrAt c b j = ofK (Parameters.gpow (osBase c b j)) := rfl
+
+theorem osAtOf_qpos (c : OsCfg) (b : ℕ) : (osAtOf c b).P.qpos = osPtrAt c b 7 := rfl
+
+theorem SpLv.F2_pend (L : SpLv) : L.F2.pend = [] := by
+  unfold SpLv.F2; split <;> rfl
+
+theorem loadHolds_xm {rd : Reader} {p : E} {j m k : ℕ} {w : E} :
+    LoadHolds rd (p * (gen ^ j) ^ m) k w ↔ LoadHolds rd p (j * m + k) w := by
+  rw [← pow_mul, loadHolds_mul_gen_pow]
+
+/-- **Level `l`'s squeeze loop, placed.** -/
+theorem os_sq_completeAtP (fs : String → ℕ) (cert : String → V → ℕ) (κ : ℕ) {c : OsCfg}
+    {tr : OsTr} {μ r : ℕ} {cfg : List Whir.Level} (hF : CandFacts c μ r cfg) (h : TrFit c tr)
+    (hs : OsSizes c) {l : ℕ} (hl : l < c.levels.length) {fn : Fn}
+    (hfind : coreProgram.find? (c.sqLoop l) = some fn) (hp : fn.params = osParams 5)
+    (hb : fn.body = sqLoopBody (lvAt c l) (c.sqLoop l)) (hlp : coreProgram.loop (c.sqLoop l) = true)
+    (hdec : OsDecodeAtD fs cert κ (lvAt c l).depth (sqDecName (lvAt c l))) (b : ℕ) (Lin : Layout) :
+    OsCompleteAtP fs cert κ (c.sqLoop l) (fun p ↦ osLk c tr b Lin ++ osW fs cert c b l p)
+      [1, gen ^ (lvAt c l).squeezes, osPtrAt c b (osIxSqz l), osPtrAt c b 7, osPtrAt c b 8] []
+      (osS fs cert c tr l) := by
+  intro fp
+  have hlv := h.lvb l hl
+  have hfit := h.fit l hl
+  have hst := hF.lv l hl
+  have hsq : (lvAt c l).squeezes ≤ c.maxSq := hs.sq l hl
+  have hper := hlv.per
+  have hpend : (tr.L l).F2.pend = [] := SpLv.F2_pend _
+  have hF2 : (tr.L l).F2 = ⟨(tr.L l).F2.cap, []⟩ := fs_of_pend_nil hpend
+  have hcap0 : ((tr.L l).F2.squeezeN 0).2.cap = (tr.L l).F2.cap := rfl
+  have hsqj : ∀ j, sqCapJ ((tr.L l).F2.squeezeN 0).2.cap j = ((tr.L l).F2.squeezeN j).2.cap := fun j ↦ by
+    rw [hcap0, sqCapJ]; conv_rhs => rw [hF2]
+  have hcapF : ∃ S : KState, (tr.L l).F2.cap = capOf S := by
+    unfold SpLv.F2; split
+    · exact ⟨_, rfl⟩
+    · exact ⟨_, rfl⟩
+  obtain ⟨S, hS⟩ := hcapF
+  have hcl : ((tr.L l).F2.squeezeN 0).2.cap.length = 5 := by rw [hcap0, hS]; rfl
+  have hcan : AllCanonical ((tr.L l).F2.squeezeN 0).2.cap := by rw [hcap0, hS]; exact capOf_canonical S
+  -- the memory facts
+  have hsqzR : ∀ rd, MemL rd (osLk c tr b Lin) → ReadsAt rd (osPtrAt c b (osIxSqz l)) (sqzC c tr l) :=
+    fun rd hm ↦ by
+      have := osLk_reads hm (fun _ _ ↦ 0) (j := osIxSqz l) (by unfold osIxSqz; omega)
+        (by unfold osIxSqz; omega)
+      rwa [(osOwnL_getD_lv c tr (fun _ _ ↦ 0) hl).1] at this
+  refine (fun ⟨Lown, hW, hD, hR⟩ ↦ ⟨_, Lown, hW, hD, hR⟩) (sqLoop_relAtIn fs cert κ hfind hp hb hlp
+    hlv.digits hst.posOff hdec hlv.sq0 hlv.sqOrd hcl hcan (Lin := osLk c tr b Lin ++ osW fs cert c b l fp)
+    fp (fun rd hl' hm j hj ↦ ?_) (fun rd hl' hm j hj i hi ↦ ?_) (fun j hj t ht ↦ ?_))
+  · -- the squeeze run
+    obtain ⟨hmk, -⟩ := Main.memL_append.mp hm
+    have hB := lvMemB_cont hF h hs (osLk_fixed hmk) hl (hsqzR rd hmk)
+    have hnext := sqNext_of_rows hpend (n := (lvAt c l).squeezes) hB.rows j hj
+    refine ⟨fun i hi ↦ ?_, fun i hi ↦ ?_⟩
+    · rw [loadHolds_xm, hsqj, show j * 5 + i = 5 * j + i by ring]
+      exact hB.rows j (Nat.le_of_lt hj) i hi
+    · rw [hsqj]; exact hnext i hi
+  · -- the decoded positions and the bit pointers
+    obtain ⟨hmk, hmw⟩ := Main.memL_append.mp hm
+    have hfix := osLk_fixed hmk
+    have hk : j * (192 / (lvAt c l).depth) + i < (lvAt c l).squeezes * (192 / (lvAt c l).depth) := by
+      have : (j + 1) * (192 / (lvAt c l).depth) ≤ (lvAt c l).squeezes * (192 / (lvAt c l).depth) :=
+        Nat.mul_le_mul_right _ (by omega)
+      rw [Nat.add_mul, one_mul] at this; omega
+    have hdiv : (j * (192 / (lvAt c l).depth) + i) / (192 / (lvAt c l).depth) = j := by
+      rw [Nat.add_comm, Nat.add_mul_div_right _ _ (by omega), Nat.div_eq_of_lt hi, Nat.zero_add]
+    have hmod : (j * (192 / (lvAt c l).depth) + i) % (192 / (lvAt c l).depth) = i := by
+      rw [Nat.add_comm, Nat.add_mul_mod_self_right, Nat.mod_eq_of_lt hi]
+    refine ⟨?_, ?_⟩
+    · rw [loadHolds_xm, loadHolds_mul_gen_pow]
+      have := qpos_all hs hfix hl hk
+      rw [osAtOf_qpos] at this
+      have e : posAt c tr l (j * (192 / (lvAt c l).depth) + i) =
+          eOfNat ((eToNat (sqWJ ((tr.L l).F2.squeezeN 0).2.cap j) >>> (i * (lvAt c l).depth)) %
+            2 ^ (lvAt c l).depth) := by
+        unfold posAt
+        rw [hdiv, hmod, squeezeN_getD _ _ _ (by rw [hfit.nsq]; omega)]
+        unfold sqWJ
+        rw [hsqj, ← fs_of_pend_nil (squeezeN_pend hpend j)]
+        rfl
+      rw [e] at this
+      exact this
+    · have hq := hmw _ (List.mem_singleton_self _)
+      have := hq (j * (192 / (lvAt c l).depth) + i) (by simpa using hk)
+      simp only [List.getElem_map, List.getElem_range, hdiv, hmod, osBp, osSqN] at this
+      rw [osPtrAt_eq, ofK_gpow_mul_gen (osBase c b 8) (lvAt c l).posOff, loadHolds_xm]
+      exact this
+  · -- the squeeze run's addresses
+    obtain ⟨q, hq, h1, h2⟩ := osLk_region c tr b Lin (fun _ _ ↦ 0) (j := osIxSqz l)
+      (by unfold osIxSqz; omega) (by unfold osIxSqz; omega) (k := j * 5 + t) (by
+        rw [(osOwnL_getD_lv c tr (fun _ _ ↦ 0) hl).1]
+        simp only [sqzC, List.length_map, List.length_range]
+        have : j + 2 ≤ c.maxSq + 1 := by omega
+        nlinarith)
+    refine ⟨osBase c b (osIxSqz l) + (j * 5 + t), ?_, q, List.mem_append_left _ hq, h1, h2⟩
+    rw [osPtrAt_eq, ← pow_mul, ofK_gpow_mul_gen, Main.addr_ofK, Nat.add_assoc]
+
+end
+end LeanVM.Guest.B1
