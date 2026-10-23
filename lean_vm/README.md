@@ -103,10 +103,11 @@ scripts/guest-export/target/release/guest-export . --check   # CI
 
 An independent check of the bytecode data against leanVM's own disassembly: `DBG_DISASM=/tmp/disasm.txt scripts/guest-export/target/release/guest-export . --check`, then `python3 -I scripts/guest-export/roundtrip.py . /tmp/disasm.txt` compares every slot and every function's range.
 
-The guest-diff cases, real aggregations of the Rust (a one-signature leaf, a leaf of both schemes with a blob, one whose leanXMSS list is longer than a claim group, a node over them), each with its statement, seed, witness and installed hint streams, are written by the exporter's ignored tests; they are the input of the Lean mirror's differential check, `guest-diff`, once it is ported:
+The guest-diff cases, real aggregations of the Rust (a one-signature leaf, a leaf of both schemes with a blob, one whose leanXMSS list is longer than a claim group, a node over them), each with its statement, seed, witness and installed hint streams, are written by the exporter's ignored tests. The Lean mirror's differential check, `guest-diff` (`cli/GuestDiff.lean`), reads them and checks, per case, that the witness holds the statement (`NodeRel`'s computable parts), that the honest hint generator (`Guest/Hints.lean`, `honestStreams`) gives the Rust's installed streams entry for entry, that the public input is the statement's digest, and that the interpreter runs the guest's core IR on `main` with those streams, consuming all of them:
 
 ```sh
 LEANVM_GUEST_DIFF=/tmp/guest-diff cargo test --release --manifest-path scripts/guest-export/Cargo.toml --lib guest_diff -- --ignored
+lake build guest-diff && .lake/build/bin/guest-diff /tmp/guest-diff/*.txt
 ```
 
 ## Credits
