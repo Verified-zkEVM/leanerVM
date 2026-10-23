@@ -33,6 +33,7 @@ import LeanerVM.Protocol.ChainGroups
 import LeanerVM.Protocol.ClaimWeights
 import LeanerVM.Protocol.DecodeChain
 import LeanerVM.Protocol.DecodeWalk
+import LeanerVM.Protocol.DecodeWire
 import LeanerVM.Protocol.Field
 import LeanerVM.Protocol.Fingerprint
 import LeanerVM.Protocol.FixedColumns
