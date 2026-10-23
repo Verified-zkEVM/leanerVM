@@ -12,7 +12,7 @@ public import LeanVM.Guest.B1.Whir.Flatness
 /-!
 # `open_stacked`'s calls, by level
 
-`osLevel_split`: a level is its rounds, commitment (or final message) and grinding check
+`osLevel_callSplit`: a level is its rounds, commitment (or final message) and grinding check
 (`lvA`), its squeezes (`osSqueezes`), and the rest (`lvB`). `osSqueezes_callS`: the squeezes call
 only the squeeze loop. `osLvKOf σ`: the levels' frames as `OsLvK`s (the loop's frame between the
 two blocks); `osLevels_calls`: they are the levels' calls in order. `osBodyA_calls`: the body's
@@ -52,7 +52,7 @@ def lvB (c : OsCfg) (lvl : ℕ) (lv : OsLv) (s : OsSt) : List Stmt :=
   let gl := osGlue beta q.2.2.1 q.2.2.2.1 q.2.2.2.2.1 q.2.2.2.2.2 o.2.1
   lp ++ q.1 ++ o.1 ++ [.atom (.load (.n beta) (.n osBetas) lvl)] ++ gl.1
 
-theorem osLevel_split (c : OsCfg) (lvl : ℕ) (lv : OsLv) (s : OsSt) :
+theorem osLevel_callSplit (c : OsCfg) (lvl : ℕ) (lv : OsLv) (s : OsSt) :
     (osLevel c lvl lv s).1 = lvA c lvl lv s ++ ((osSqueezes c lvl lv (lvM c lvl lv s).2.1).1 ++
       lvB c lvl lv s) := by
   simp only [osLevel, lvA, lvB, lvM, List.append_assoc]
@@ -92,7 +92,7 @@ theorem osLevels_calls (σ : Val) (c : OsCfg) : ∀ (lvl : ℕ) (lvs : List OsLv
   | lvl, lv :: rest, s => by
     have e : (osLevels c lvl (lv :: rest) s).1 = (osLevel c lvl lv s).1 ++
         (osLevels c (lvl + 1) rest (osLevel c lvl lv s).2).1 := rfl
-    rw [e, List.filterMap_append, List.map_append, osLevels_calls σ c (lvl + 1) rest, osLevel_split,
+    rw [e, List.filterMap_append, List.map_append, osLevels_calls σ c (lvl + 1) rest, osLevel_callSplit,
       List.filterMap_append, List.filterMap_append, osSqueezes_callS]
     simp [osLvKOf, OsLvK.calls]
 
