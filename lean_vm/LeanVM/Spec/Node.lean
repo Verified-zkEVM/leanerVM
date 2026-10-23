@@ -16,7 +16,7 @@ public import LeanVM.Spec.Fast.Schemes
 /-!
 # The aggregation node
 
-Transcribed from leanVM `3375f7a137c50b803f3416f6466b5d4e0719708a` (branch `keccak-gkr`),
+Transcribed from leanVM `4af2cdddd7cd41b9df2cc7e123e314a91b0b4462` (branch `main`),
 `crates/rec_aggregation/src/aggregation.rs` (the statement, its digest, the batching, the outer
 verifier) and `crates/rec_aggregation/guests/lean_ethereum.py` (the guest); `aggregation.rs:N`
 and `lean_ethereum.py:N` below are lines of those files at that commit. The signature schemes,
@@ -27,7 +27,7 @@ from their `Scheme` modules, with Keccak-256 as their hash; LeanDA is `lean_da`'
 A node's statement is a list of signature claims, a list of DA claims, and a claim on the
 polynomial that the protocol fixes, the guest's stacked bytecode, which the node defers rather
 than evaluates (`NodeStatement`). Its public input is the statement's digest under a seed, the
-guest's Fiat-Shamir IV (`statementDigest`, `statement_digest`, `aggregation.rs:344-365`,
+guest's Fiat-Shamir IV (`statementDigest`, `statement_digest`, `aggregation.rs:347-368`,
 `lean_ethereum.py:3766-3797`): the Keccak-256 hash of the seed, the signer set's digest and the
 DA claims' digest, sixteen bytes a cell, then the deferred claim's cells, three limbs each.
 
@@ -37,11 +37,11 @@ and a proof that the deferring verifier accepts for it
 (`LeanVM.Protocol.Verifier.verifyDeferred`, the guest's `verify_sub`). The node batches the
 claims that its children's proofs make of the bytecode, with those its children's statements
 defer, into its own deferred claim (`batch`: `aggregate_claims`, `lean_ethereum.py:4285-4392`;
-`aggregate_deferred_claims`, `aggregation.rs:943-1056`). `NodeRel bytecode seed s w` says all
+`aggregate_deferred_claims`, `aggregation.rs:939-1041`). `NodeRel bytecode seed s w` says all
 of it of the statement `s`, with the witness `w` holding every claim; `NodeSpec` is its
 existential.
 
-The outer verifier (`verifyAggregate`, `EthereumProof::verify`, `aggregation.rs:695-717`) checks
+The outer verifier (`verifyAggregate`, `EthereumProof::verify`, `aggregation.rs:697-719`) checks
 a proof of the guest on the statement's digest and evaluates the deferred claim itself.
 
 What a valid execution of the guest establishes is `NodeRel` of the witness its memory holds, on
@@ -55,7 +55,7 @@ sound only if Keccak, computed inside the guest, behaves as the random oracles o
 **Changes from the leanVM `3f7dc219` transcription.** BLAKE2s is replaced by Keccak-256 (the
 hashes) and Keccak-f[1600] (the batching's transcript, a duplex sponge). Flock is gone, so the
 deferred claim is the bytecode's alone: a point and a value (`DeferredClaim`,
-`aggregation.rs:258-318`), and a proof's claims on the fixed polynomials are its bytecode claim
+`aggregation.rs:261-321`), and a proof's claims on the fixed polynomials are its bytecode claim
 (`FixedClaims`). The statement's preimage is no longer zero-filled to whole blocks. The batching
 runs on the verifier's duplex sponge from the label's hash (`FiatShamirState::from_label`), each
 group of absorbed words padded with zeros to a whole rate, and reduces both claims of every child
@@ -93,10 +93,10 @@ def sphincsVerify (pk : Sphincs.PublicKey) (message : Sphincs.Message) (σ : Sph
 /-! ## The statement -/
 
 /-- A leanXMSS key and a message it signed, at a leaf index the claim does not record
-(`LeanXmssClaim`, `aggregation.rs:60`). -/
+(`LeanXmssClaim`, `aggregation.rs:63`). -/
 abbrev XmssClaim : Type := LeanXmss.PublicKey × LeanXmss.Message
 
-/-- A leanSPHINCS key and a message it signed (`LeanSphincsClaim`, `aggregation.rs:63`). -/
+/-- A leanSPHINCS key and a message it signed (`LeanSphincsClaim`, `aggregation.rs:66`). -/
 abbrev SphincsClaim : Type := Sphincs.PublicKey × Sphincs.Message
 
 /-- A DA claim: a root and the digest of the vector its rows are orthogonal to. -/
@@ -112,7 +112,7 @@ structure Claims where
   da : List DaClaim
 
 /-- The claim the statement defers on the stacked bytecode: its value at a point
-(`DeferredClaim`, `aggregation.rs:258-261`). -/
+(`DeferredClaim`, `aggregation.rs:261-264`). -/
 structure DeferredClaim where
   /-- The bytecode's point. -/
   bytecodePoint : List E
@@ -129,25 +129,25 @@ structure NodeStatement where
 /-! ## The deferred claim -/
 
 /-- The deferred claim has the shape of the bytecode `bytecode`: a point of `log₂` of its length
-(`bytecode_vars`, `aggregation.rs:822-824`; `BYTECODE_VARS`, `lean_ethereum.py:330`). -/
+(`bytecode_vars`, `aggregation.rs:824-826`; `BYTECODE_VARS`, `lean_ethereum.py:330`). -/
 def DeferredClaim.Shaped (bytecode : List K) (c : DeferredClaim) : Prop :=
   c.bytecodePoint.length = Nat.log2 bytecode.length
 
 /-- **The deferred claim is true** of the bytecode `bytecode`: it has the shape, and the value is
 the bytecode's multilinear extension at the point (`DeferredClaim::recompute_scalar`,
-`aggregation.rs:279-311`). -/
+`aggregation.rs:282-314`). -/
 def DeferredClaim.Holds (bytecode : List K) (c : DeferredClaim) : Prop :=
   c.Shaped bytecode ∧ 2 ^ c.bytecodePoint.length = bytecode.length ∧
     multilinearEval (bytecode.map ofK) c.bytecodePoint = c.bytecodeValue
 
 /-- What a leaf defers: the bytecode at the all-zero point (`DeferredClaim::leaf`,
-`aggregation.rs:266-268`; `main`'s leaf branch, `lean_ethereum.py:4266-4274`). The value is
+`aggregation.rs:269-271`; `main`'s leaf branch, `lean_ethereum.py:4266-4274`). The value is
 the outer verifier's to check. -/
 def DeferredClaim.AtZero (bytecode : List K) (c : DeferredClaim) : Prop :=
   c.bytecodePoint = List.replicate (Nat.log2 bytecode.length) 0
 
 /-- The cells a deferred claim is hashed and absorbed as: the point, then the value
-(`DeferredClaim::cells`, `aggregation.rs:313-317`; the guest's `defer_stmt`). -/
+(`DeferredClaim::cells`, `aggregation.rs:316-320`; the guest's `defer_stmt`). -/
 def DeferredClaim.cells (c : DeferredClaim) : List E :=
   c.bytecodePoint ++ [c.bytecodeValue]
 
@@ -163,11 +163,11 @@ def fixedCells (c : FixedClaims) : List E :=
 def bytes16 (value : BitVec 128) : List UInt8 := LeanXmss.bytesLE 16 value
 
 /-- A claim as the `64` bytes its list hashes: the key's root and parameter, then the message
-(`claim_cells`, `aggregation.rs:218-225`). -/
+(`claim_cells`, `aggregation.rs:221-228`). -/
 def claimBytes (root parameter : BitVec 128) (message : BitVec 256) : List UInt8 :=
   bytes16 root ++ bytes16 parameter ++ LeanXmss.bytesLE 32 message
 
-/-- The digest of the leanXMSS claims (`claim_list_digest`, `aggregation.rs:212-214`,
+/-- The digest of the leanXMSS claims (`claim_list_digest`, `aggregation.rs:215-217`,
 `lean_ethereum.py:3827-3849`). -/
 def xmssListDigest (claims : List XmssClaim) : Digest :=
   keccak256 (claims.flatMap fun c ↦ claimBytes c.1.root c.1.parameter c.2)
@@ -176,7 +176,7 @@ def xmssListDigest (claims : List XmssClaim) : Digest :=
 def sphincsListDigest (claims : List SphincsClaim) : Digest :=
   keccak256 (claims.flatMap fun c ↦ claimBytes c.1.root c.1.parameter c.2)
 
-/-- **The signer set's digest** (`signers_hash`, `aggregation.rs:239-248`): the hash of the two
+/-- **The signer set's digest** (`signers_hash`, `aggregation.rs:242-251`): the hash of the two
 lists' digests. Each binds its list's length through Keccak's padding. -/
 def signersDigest (xmss : List XmssClaim) (sphincs : List SphincsClaim) : Digest :=
   keccak256 (digestBytes (xmssListDigest xmss) ++ digestBytes (sphincsListDigest sphincs))
@@ -190,7 +190,7 @@ def daListDigest (claims : List DaClaim) : Digest :=
 /-- The 24 bytes of a field element, its three limbs. -/
 def eBytes (x : E) : List UInt8 := kBytes (x.limb 0) ++ kBytes (x.limb 1) ++ kBytes (x.limb 2)
 
-/-- **The statement's digest under `seed`** (`statement_digest`, `aggregation.rs:344-365`,
+/-- **The statement's digest under `seed`** (`statement_digest`, `aggregation.rs:347-368`,
 `lean_ethereum.py:3766-3797`): the Keccak-256 hash of the seed, the signer set's digest and the
 DA claims' digest, then the deferred claim's cells, an odd count paired with a zero cell. The
 cells carry no lengths: the digest tells two deferred claims apart only at one shape. -/
@@ -215,14 +215,14 @@ def sample : Chain E := do
   return c
 
 /-- Words padded with zeros to a whole rate, `rateScalars` words (`pad`,
-`aggregation.rs:953-957`; `AGG_CHILD_PAD`). -/
+`aggregation.rs:949-953`; `AGG_CHILD_PAD`). -/
 def padRate (words : List E) : List E :=
   words ++ List.replicate ((rateScalars - words.length % rateScalars) % rateScalars) 0
 
 /-- The rounds of a batching sumcheck from the running claim: each round absorbs `g(1)` and
 `g(∞)`, squeezes the challenge, and folds the degree-2 round polynomial whose `g(0)` the claim
 fixes (`batch_sumcheck`, `lean_ethereum.py:1007-1024`; `absorb_round`,
-`aggregation.rs:884-900`). The challenges and the final claim. -/
+`aggregation.rs:880-896`). The challenges and the final claim. -/
 def batchRounds : E → List (E × E) → Chain (List E × E)
   | claim, [] => return ([], claim)
   | claim, (g1, gInf) :: rest => do
@@ -257,12 +257,12 @@ structure BatchHints where
   /-- The bytecode's value at the end. -/
   bytecodeValue : E
 
-/-- The batching transcript's label (`RECURSION_AGG_LABEL`, `aggregation.rs:69`). -/
+/-- The batching transcript's label (`RECURSION_AGG_LABEL`, `aggregation.rs:72`). -/
 def batchLabel : List UInt8 := "leanvm/recursion-aggregation/v1".toUTF8.toList
 
 /-- The batching transcript's initial state (`FiatShamirState::from_label`): Keccak-f of the
 label's hash in lanes `0..4`, the other lanes zero. The guest bakes its capacity (`AGG_SEED_*`,
-`aggregation.rs:2618-2621`). -/
+`aggregation.rs:2557-2560`). -/
 def batchSeed : KState := keccakF (seedInput (keccak256 batchLabel) (Vector.replicate 4 0))
 
 /-- **The batching**: one transcript absorbs the children's count, then every child's public
@@ -375,10 +375,10 @@ def OuterChecks (guest : Program) (s : NodeStatement) : Prop :=
   (∀ c ∈ s.claims.da, Da.toBytes c.2 = Da.vectorDigestOf c.1) ∧ s.defer.Holds (bytecodeWords guest)
 
 /-- **The outer verifier** of an aggregate of the guest `guest` (`EthereumProof::verify`,
-`aggregation.rs:695-717`): every DA claim's vector digest is its root's, the deferred claim holds,
+`aggregation.rs:697-719`): every DA claim's vector digest is its root's, the deferred claim holds,
 and the proof verifies on the statement's digest under the guest's IV. It omits the deployed
 verifier's checks on the lists' form (`check_signer_set`, `check_da_roots`,
-`aggregation.rs:541-559`: each list sorted without repeats, fewer than `2^16` signature claims
+`aggregation.rs:543-561`: each list sorted without repeats, fewer than `2^16` signature claims
 and at most `16` DA roots), so it accepts more. -/
 def verifyAggregate (guest : Program) (s : NodeStatement) (π : Proof) : Prop :=
   OuterChecks guest s ∧

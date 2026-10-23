@@ -14,7 +14,7 @@ public import LeanVM.Guest.B1.Whir.Commit
 
 The last level reads the final message (its `2^m` words, stored in `final_msg`) and the nonce,
 absorbing them, and permutes (`opening_final_message`, `MeaningOpeningFinalMessage`);
-`grind_check` reads the permutation's first cell. In the Spec (V:1739-1741, 1752) that is
+`grind_check` reads the permutation's first cell. In the Spec (V:1798-1800, 1752) that is
 `levelMid m []` (`readN (2^m)`) and `grindP`.
 -/
 

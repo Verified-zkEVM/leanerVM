@@ -5,7 +5,7 @@ import LeanVM.Protocol.Verifier
 
 `lake exe leanvm-verify <bytecode> <public input> <stream> <openings>` runs
 `LeanVM.Protocol.Verifier.verifyFiles`, the Lean transcription of `python-verifier/verifier.py`
-at leanVM `3375f7a137c50b803f3416f6466b5d4e0719708a` (the `verify` of `LeanVM/Protocol/LeanVM.lean`
+at leanVM `4af2cdddd7cd41b9df2cc7e123e314a91b0b4462` (the `verify` of `LeanVM/Protocol/LeanVM.lean`
 on the program's bytecode words), compiled, on the four files the Rust prover writes
 (`scripts/export-verifier-fixtures-rust.sh`), and prints the verdict; the exit code is `0` on
 acceptance. `scripts/fuzz-verifier.py` compares it with the Rust verifier on mutated proofs.

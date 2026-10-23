@@ -13,7 +13,7 @@ public import LeanVM.Guest.B1.Bits.Meaning
 /-!
 # The opening's steps as Spec runs
 
-* `opening_fold_run`: a fold round of `foldRounds` (V:1691) or `tailRounds` (V:1702): the sample
+* `opening_fold_run`: a fold round of `foldRounds` (V:1750) or `tailRounds` (V:1761): the sample
   with two scalars waiting, the claim folded (`fold_claim`: the guest's `(c2·r + c1)·r + c0` is
   `polyEval [c0, c1, c2] r`), the next quadratic read (`sumcheckRoundPoly 3 _ none`), its two
   words left waiting.

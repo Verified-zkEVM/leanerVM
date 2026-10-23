@@ -21,7 +21,7 @@ The Spec's side of `open_stacked`, no guest value in it.
 * `runsWith_commitP`: a commitment reads the root's two scalars (absorbed with `dsObserve`) and
   appends the root with its shape; `runsWith_queryP`: a query consumes one opening per position,
   each passing `openOne` (V:501) against the commitment's root, and returns their leaves.
-* `levelMid`, `levelQueries`, `whirLevelsOpen_cons`: a level of `whirLevelsOpen` (V:1732) is its
+* `levelMid`, `levelQueries`, `whirLevelsOpen_cons`: a level of `whirLevelsOpen` (V:1791) is its
   fold rounds, its claims after them (the residual, or the next commitment with its
   out-of-domain claim), its queries and their glue, then the next level or the tail.
 -/
@@ -126,7 +126,7 @@ theorem runsWith_queryP (s : Fs) (roots : List (Digest × ℕ × ℕ)) {i : ℕ}
 
 /-! ## A level of `whirLevelsOpen` -/
 
-/-- A level's claims after its folds (V:1739-1751): the residual at the last level, otherwise the
+/-- A level's claims after its folds (V:1798-1810): the residual at the last level, otherwise the
 next commitment and its out-of-domain claim. -/
 def levelMid (messageLog : ℕ) : List Whir.Level →
     Prog (List E × List (E × List E × (List E → E)))
@@ -141,7 +141,7 @@ def levelMid (messageLog : ℕ) : List Whir.Level →
     let intro ← sumcheckRoundPoly 3 oodValue none
     pure ([], [(oodValue, intro, fun x ↦ eqEval oodPoint x)])
 
-/-- A level's proof of work, queries and glue (V:1752-1764), after its folds and its claims. -/
+/-- A level's proof of work, queries and glue (V:1811-1823), after its folds and its claims. -/
 def levelQueries (messageLog index : ℕ) (level : Whir.Level) (levelFolds : List E)
     (s : WhirState) (pending : List (E × List E × (List E → E))) : Prog WhirState := do
   Prog.grindP Whir.queryGrindingBits
@@ -156,7 +156,7 @@ def levelQueries (messageLog index : ℕ) (level : Whir.Level) (levelFolds : Lis
   return glue lam s (pending ++
     [(enforced, intro, fun x ↦ inducedWeight messageLog queries queryWeights x)])
 
-/-- The last level's tail (V:1765-1774), from its glued state and its residual. -/
+/-- The last level's tail (V:1824-1833), from its glued state and its residual. -/
 def levelTail (laneFolds messageLog : ℕ) (residual : List E) (s : WhirState) : Prog WhirEnd := do
   let (tailFolds, target) ← tailRounds messageLog s.target s.quad
   let point := s.folds ++ tailFolds

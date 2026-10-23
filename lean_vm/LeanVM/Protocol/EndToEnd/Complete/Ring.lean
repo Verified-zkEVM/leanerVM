@@ -14,9 +14,9 @@ public import LeanVM.Protocol.Whir.Complete.Script
 /-!
 # Completeness of ring switching
 
-About the transcription of `python-verifier/verifier.py:1397-1433` (`RING_MAP_SHIFTS`, `_phi`,
+About the transcription of `python-verifier/verifier.py:1408-1444` (`RING_MAP_SHIFTS`, `_phi`,
 `_ring_weight`, `ring_switch`) and `:1504-1506` (the ring claim on the stack) at leanVM
-`3375f7a137c50b803f3416f6466b5d4e0719708a` (`Verifier.ringSwitch`, `Verifier.ringSwitchClaim`;
+`4af2cdddd7cd41b9df2cc7e123e314a91b0b4462` (`Verifier.ringSwitch`, `Verifier.ringSwitchClaim`;
 `crates/pcs/src/ring_switch.rs`).
 
 `ringSwitch point s` reads nothing: it draws the six coefficients `ch` of the staged map `Φ` and

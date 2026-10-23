@@ -10,11 +10,11 @@ to reduce there; they do from a plain file and not from a `module`.
 Nothing here evaluates `gLog?`: every fetch and read is `Program.fetch_gpow` or
 `MemImage.read_gpow` at a literal index, or one of the failure lemmas.
 
-Fixtures: the executor test `mul_192bit_word` (`crates/leanvm_core/src/cpu/mod.rs:887-904` at
+Fixtures: the executor test `mul_192bit_word` (`crates/leanvm_core/src/cpu/mod.rs:873-890` at
 the pin, operands and product as the test computes them with the executor's `F192` arithmetic at
 `a386121f`, the test unchanged since but for unwrapping the now fallible `execute`) as a
-`ValidExecution`; the first `KECCAK` row of `keccak_permutes_in_both_layouts` (`cpu/mod.rs:855-889`
-at `3375f7a1`) on that test's cells, with a mutation; a taken `JUMP`; a `DEREF` in `pc` mode; the rejections of
+`ValidExecution`; the first `KECCAK` row of `keccak_permutes_in_both_layouts` (`cpu/mod.rs:842-875`
+at `4af2cddd`) on that test's cells, with a mutation; a taken `JUMP`; a `DEREF` in `pc` mode; the rejections of
 failed reads, a step past the sentinel, a wrong final frame pointer, an out-of-range `DEREF`
 cell, a `JUMP` destination outside `K` and a non-canonical cell; and a `JUMP` sentinel, whose two
 rows are steps that chain to the final registers while `run` never reaches them.
@@ -68,7 +68,7 @@ example : (1: K) + 1 = 0 := by decide
 /-- Register equality decides in the kernel on a product against a power. -/
 example : Regs.next ⟨1, 1⟩ = ⟨gpow 1, 1⟩ := by decide +kernel
 
-/-! ## `mul_192bit_word` (`cpu/mod.rs:887-904`) -/
+/-! ## `mul_192bit_word` (`cpu/mod.rs:873-890`) -/
 
 -- The operands and product of the executor test `mul_192bit_word` at leanVM a386121f.
 def mulX : E :=
@@ -355,9 +355,9 @@ example : ∀ n, run haltProg ctlImage n Regs.initial ≠ some (Regs.final haltP
       run_succ_of_eq (prog := haltProg) (r := ⟨g, g⟩) (by decide +kernel) 0]
     exact fun h ↦ Option.some_ne_none _ h.symm
 
-/-! ## `KECCAK` (`keccak_permutes_in_both_layouts`, `cpu/mod.rs:855-889`) -/
+/-! ## `KECCAK` (`keccak_permutes_in_both_layouts`, `cpu/mod.rs:842-875`) -/
 
--- The input cells of the executor test `keccak_permutes_in_both_layouts` at leanVM `3375f7a1`:
+-- The input cells of the executor test `keccak_permutes_in_both_layouts` at leanVM `4af2cddd`:
 -- the words `a, b` (each read twice through the aliased `m` pairs), the padding's first byte in
 -- the tail, its last bit in `b8` (whose free high limb `0x5555` is ignored), and a zero capacity.
 def kA : E := E.ofLimbs (K.ofBits 0x0123456789abcdef) (K.ofBits 0xfedcba9876543210) 0

@@ -19,7 +19,7 @@ public import LeanVM.Protocol.EndToEnd.Front.RingMultilinear
 # The seams of the end-to-end specification
 
 Facts that glue the phase specifications of the deployed verifier
-(`LeanVM.Protocol.Verifier.verifyExecution`, leanVM `3375f7a137c50b803f3416f6466b5d4e0719708a`)
+(`LeanVM.Protocol.Verifier.verifyExecution`, leanVM `4af2cdddd7cd41b9df2cc7e123e314a91b0b4462`)
 into one specification:
 
 * `thrOf μ R`: the Johnson threshold of level `0` of the deployed ladder; the stack's doom

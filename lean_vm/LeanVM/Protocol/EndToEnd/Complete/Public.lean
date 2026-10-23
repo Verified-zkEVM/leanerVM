@@ -18,8 +18,8 @@ public import LeanVM.Semantics.Lemmas
 /-!
 # The public input
 
-Step 5 of `verify_execution` (`publicInputPhase`, `python-verifier/verifier.py:1484-1490` at
-leanVM `3375f7a137c50b803f3416f6466b5d4e0719708a`): sample `r`, and claim of memory column `ℓ` at
+Step 5 of `verify_execution` (`publicInputPhase`, `python-verifier/verifier.py:1497-1503` at
+leanVM `4af2cdddd7cd41b9df2cc7e123e314a91b0b4462`): sample `r`, and claim of memory column `ℓ` at
 `(r, 0, …, 0)` the line through limb `ℓ` of the halves `(h₀, h₁)` of the public-input digest,
 `(1 + r)·h₀,ℓ + r·h₁,ℓ`. The prover sends nothing.
 

@@ -12,8 +12,9 @@ public import LeanVM.Protocol.Keccak.Candidate
 /-!
 # The slot weights
 
-`keccakSlotWeights logSteps claim first count` (`verifier.py:1341-1349`) writes, for each
-segment `seg < count` and position `j = z + 64ℓ`, the weight `eq(point_P, seg)·w_j` at row
+`keccakSlotWeights logSteps claim first count` (the weights of `_keccak_open`,
+`verifier.py:1362-1366`) writes, for each segment `seg < count` and position `j = z + 64ℓ`, the
+weight `eq(point_P, seg)·w_j` at row
 `25(first + seg) + ℓ`, column `z` of a `64 × 64` array of zeros. `slotWeights_getD`: entry
 `(o, z)` is `slotW … o z`, the weight of segment `o / 25 - first` at position
 `64·(o mod 25) + z` on the rows `25·first ≤ o < 25·(first + count)`, `0` elsewhere.
@@ -240,7 +241,7 @@ theorem foldAll_eq : ∀ (pt : List E) (rows : List (List E)), rows.length = 2 ^
     simp only [e1, e2, e3, e4, ite_true, zero_ne_one, ite_false]
     ring
 
-/-- `_keccak_open` (`verifier.py:1352-1358`), with the fold named. -/
+/-- `_keccak_open` (`verifier.py:1357-1369`), with the fold named. -/
 theorem keccakOpen_eq (logSteps : ℕ) (claim : KeccakClaim) (first count : ℕ) (value : E) :
     keccakOpen logSteps claim first count value =
       sumcheck value 3 (List.replicate qkeccakSlotBits none) >>= fun x ↦
