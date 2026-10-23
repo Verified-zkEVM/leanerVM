@@ -234,5 +234,33 @@ theorem stackPoint_strided (v k off slot μ : ℕ) (hk : k + v ≤ μ) (hoff : 2
       Nat.div_eq_of_lt (lt_of_lt_of_le hslot (Nat.pow_le_pow_right (by norm_num) (by omega))),
       zero_add]
 
+/-- The cube point of `x + 2 ^ a · m`, for `x < 2 ^ a`: the bits of `x`, then those of `m`. -/
+theorem boolPoint_add_two_pow_mul (a b x m : ℕ) (hx : x < 2 ^ a) :
+    boolPoint (a + b) (x + 2 ^ a * m) = boolPoint a x ++ boolPoint b m := by
+  apply List.ext_getElem (by simp)
+  intro i h1 h2
+  simp only [length_boolPoint] at h1
+  rw [getElem_boolPoint, List.getElem_append]
+  rw [show x + 2 ^ a * m = 2 ^ a * m + x by ring, Nat.testBit_two_pow_mul_add m hx]
+  by_cases hi : i < a
+  · simp only [hi, ↓reduceIte, ↓reduceDIte, length_boolPoint, getElem_boolPoint]
+  · simp only [hi, ↓reduceIte, ↓reduceDIte, length_boolPoint, getElem_boolPoint]
+
+/-- **A slice placement** at slot `slot` of an aligned region of `2 ^ (v + k)` cells at `off`
+(`index = off + slot · 2 ^ v`, `low = 0`): the point, the slot's bits, then the region's bits
+above it. -/
+theorem stackPoint_slice (v k off slot μ : ℕ) (hk : v + k ≤ μ) (hoff : 2 ^ (v + k) ∣ off)
+    (hslot : slot < 2 ^ k) (z : List E) :
+    ({ vars := v, index := off + slot * 2 ^ v } : Placement).stackPoint z μ =
+      z ++ boolPoint k slot ++ boolPoint (μ - (v + k)) (off / 2 ^ (v + k)) := by
+  rw [stackPoint_aligned, List.append_assoc]
+  congr 1
+  obtain ⟨m, rfl⟩ := hoff
+  have hdiv : (2 ^ (v + k) * m + slot * 2 ^ v) / 2 ^ v = slot + 2 ^ k * m := by
+    rw [pow_add, show 2 ^ v * 2 ^ k * m + slot * 2 ^ v = 2 ^ v * (slot + 2 ^ k * m) by ring,
+      Nat.mul_div_cancel_left _ (Nat.two_pow_pos _)]
+  rw [hdiv, Nat.mul_div_cancel_left _ (Nat.two_pow_pos _),
+    show μ - v = k + (μ - (v + k)) by omega, boolPoint_add_two_pow_mul _ _ _ _ hslot]
+
 end
 end LeanVM.Protocol.EndToEnd.Front

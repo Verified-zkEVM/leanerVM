@@ -23,13 +23,13 @@ fails), and an accepted run of it is an accepted run of the deployed verifier
 (`verify_of_verifyDeferred`).
 
 The refinement is proved through the verifier's text: `verifyExecution` reads the fixed
-polynomials only through `ev` (`verifyBusBalance`, `verifyFlockLincheck`), and every other
+polynomials only through `ev` (`verifyBusBalance`), and every other
 program it runs is the same on both sides.
 -/
 
 namespace LeanVM.Protocol.Compile
 
-open LeanVM.Parameters
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Protocol.KeccakHash
 
 @[expose] public section
 
@@ -125,11 +125,11 @@ end Prog
 
 section Run
 
-variable (H : Bytes → Id Digest)
+variable (H : Bytes → Id Digest) (F : KState → Id KState)
 
 /-- A refining program's successful run is the refined program's. -/
 theorem run_of_le {α : Type} {p q : Prog α} (hpq : Prog.Le p q) :
-    ∀ {s : St} {r : α × St}, run H p s = some r → run H q s = some r := by
+    ∀ {s : St} {r : α × St}, run H F p s = some r → run H F q s = some r := by
   induction hpq with
   | fail q => intro s r h; simp [run] at h
   | ret a => intro s r h; exact h
@@ -156,6 +156,8 @@ theorem run_of_le {α : Type} {p q : Prog α} (hpq : Prog.Le p q) :
     simp only [run] at h ⊢
     split at h
     · next x0 x1 xs hs =>
+      change (match digestOfScalars (x0, x1) with | some root => _ | none => _) = _ at h
+      change (match digestOfScalars (x0, x1) with | some root => _ | none => _) = _
       split at h
       · next root hroot => exact ih h
       · simp at h
@@ -175,12 +177,12 @@ theorem run_of_le {α : Type} {p q : Prog α} (hpq : Prog.Le p q) :
       · simp at h
 
 /-- A refining program's accepted proof is the refined program's. -/
-theorem runProof_of_le {P Q : Prog Bool} (hPQ : Prog.Le P Q) {seed : Digest} {π : Proof}
-    (h : runProof H P seed π = true) : runProof H Q seed π = true := by
+theorem runProof_of_le {P Q : Prog Bool} (hPQ : Prog.Le P Q) {seed : KState} {π : Proof}
+    (h : runProof H F P seed π = true) : runProof H F Q seed π = true := by
   unfold runProof at h ⊢
   revert h
-  match hr : run H P ⟨seed, π.stream, π.openings, []⟩ with
-  | some (true, s) => rw [run_of_le H hPQ hr]; exact id
+  match hr : run H F P ⟨⟨seed, []⟩, π.stream, π.openings, []⟩ with
+  | some (true, s) => rw [run_of_le H F hPQ hr]; exact id
   | some (false, _) => intro h; simp at h
   | none => intro h; simp at h
 
@@ -191,31 +193,23 @@ end LeanVM.Protocol.Compile
 
 namespace LeanVM.Protocol.Verifier
 
-open LeanVM.Parameters LeanVM.Protocol.Compile LeanVM.Protocol.Blake2sHash
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Protocol.Compile LeanVM.Protocol.KeccakHash
 
 @[expose] public section
 
-open Prog in
-/-- **`ev` refines `ev'` on the bytecode `bytecode`**: at every point and weights, `ev`'s value
-is `ev'`'s or refused. -/
+/-- **`ev` refines `ev'` on the bytecode `bytecode`**: at every point, `ev`'s value is `ev'`'s or
+refused. -/
 def Evaluations.Le (bytecode : List K) (ev ev' : Evaluations) : Prop :=
-  (∀ point, Prog.Le (ev.bytecode bytecode point) (ev'.bytecode bytecode point)) ∧
-    ∀ alpha zSkip chiIn chiInPrime s,
-      Prog.Le (ev.matrices alpha zSkip chiIn chiInPrime s)
-        (ev'.matrices alpha zSkip chiIn chiInPrime s)
+  ∀ point, Prog.Le (ev.bytecode bytecode point) (ev'.bytecode bytecode point)
 
 /-- True claims refine the computed values. -/
 theorem claimed_le_computed {bytecode : List K} {c : FixedClaims} (hc : c.Holds bytecode) :
     Evaluations.Le bytecode (.claimed c) .computed := by
-  refine ⟨fun point ↦ ?_, fun alpha zSkip chiIn chiInPrime s ↦ ?_⟩
-  · simp only [Evaluations.claimed, Evaluations.computed, Prog.require]
-    split
-    · next h => rw [h, ← hc.1]; exact .ret _
-    · exact .fail _
-  · simp only [Evaluations.claimed, Evaluations.computed, Prog.require]
-    split
-    · next h => obtain ⟨rfl, rfl, rfl, rfl, rfl⟩ := h; rw [← hc.2]; exact .ret _
-    · exact .fail _
+  intro point
+  simp only [Evaluations.claimed, Evaluations.computed, Prog.require]
+  split
+  · next h => rw [h, ← hc]; exact .ret _
+  · exact .fail _
 
 /-- The layout `readSizes` returns carries the bytecode it read. -/
 theorem readSizes_bytecode {bytecode : List K} {x : Layout × ℕ}
@@ -246,15 +240,7 @@ theorem verifyBusBalance_le {ev ev' : Evaluations} {layout : Layout}
   refine .bind (.refl _) fun _ ↦ .bind (.refl _) fun _ ↦ .bind (.refl _) fun x ↦ ?_
   obtain ⟨_, _, _⟩ := x
   refine .bind (.refl _) fun _ ↦ .bind (.refl _) fun _ ↦ .bind (.refl _) fun _ ↦
-    .bind (.refl _) fun _ ↦ .bind (hev.1 _) fun _ ↦ .refl _
-
-theorem verifyFlock_le {ev ev' : Evaluations} {bytecode : List K}
-    (hev : Evaluations.Le bytecode ev ev') (logN : ℕ) :
-    Prog.Le (verifyFlock ev logN) (verifyFlock ev' logN) := by
-  unfold verifyFlock verifyFlockLincheck
-  refine .bind (.refl _) fun _ ↦ .bind (.refl _) fun _ ↦ .bind (.refl _) fun x ↦ ?_
-  obtain ⟨_, _⟩ := x
-  exact .bind (.refl _) fun _ ↦ .bind (hev.2 _ _ _ _ _) fun _ ↦ .refl _
+    .bind (.refl _) fun _ ↦ .bind (hev _) fun _ ↦ .refl _
 
 /-- **The verifier's run refines with its evaluations.** -/
 theorem verifyExecution_le {ev ev' : Evaluations} {bytecode : List K}
@@ -264,13 +250,10 @@ theorem verifyExecution_le {ev ev' : Evaluations} {bytecode : List K}
   refine (Prog.Le.refl _).bind_of fun x hx ↦ ?_
   obtain ⟨layout, r⟩ := x
   have hb : layout.bytecode = bytecode := readSizes_bytecode hx
-  refine .bind (.refl _) fun _ ↦ .bind (verifyBusBalance_le (hb ▸ hev)) fun _ ↦
-    .bind (.refl _) fun _ ↦ .bind (.refl _) fun _ ↦ .bind (verifyFlock_le hev _) fun x ↦ ?_
-  obtain ⟨_, _⟩ := x
-  exact .bind (.refl _) fun x ↦ by obtain ⟨_, _⟩ := x; exact .refl _
+  exact .bind (.refl _) fun _ ↦ .bind (verifyBusBalance_le (hb ▸ hev)) fun _ ↦ .refl _
 
 /-- **The deferring verifier, its claims true, is the deployed verifier**: a proof the deferring
-verifier accepts under the deployed IV, with claims true of the bytecode and of flock's matrices,
+verifier accepts under the deployed IV, with a true claim of the bytecode,
 the deployed verifier accepts. -/
 theorem verify_of_verifyDeferred {bytecode : List K} {publicInput : Digest} {c : FixedClaims}
     {π : Proof} (hc : c.Holds bytecode)
@@ -278,7 +261,7 @@ theorem verify_of_verifyDeferred {bytecode : List K} {publicInput : Digest} {c :
     verify bytecode publicInput π = true := by
   have hle : Prog.Le (deferredProgram c bytecode publicInput) (leanVmProgram bytecode publicInput) :=
     .bind (verifyExecution_le (claimed_le_computed hc) publicInput) fun _ ↦ .refl _
-  exact runProof_of_le blake2sBytes hle h
+  exact runProof_of_le keccak256 keccakF hle h
 
 end
 end LeanVM.Protocol.Verifier

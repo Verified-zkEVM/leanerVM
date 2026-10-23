@@ -1,81 +1,92 @@
 /-
   LeanVM.Protocol.EndToEnd.Front.RingFidelity
 
-  The program's ring switching computes ArkLib's: its staged map, its target and the pairing of
-  its weight with the stack, given the layout's reading of the Flock region.
+  The algebra of the program's ring switching on `q_keccak`: its staged map, its weight and its
+  target, and the pairing of its claim with a stack, given where the layout places `q_keccak`.
 -/
 
 module
 
-public import LeanVM.Protocol.EndToEnd.Front.RingSwitch
+public import LeanVM.Protocol.EndToEnd.Front.KeccakLayout
+public import LeanVM.Protocol.EndToEnd.Complete.Gkr
+public import LeanVM.Protocol.Keccak.Candidate
+public import LeanVM.Protocol.ToArkLib.FrobeniusMap
+public import LeanVM.Protocol.RingFields
 
 /-!
-# The fidelity of ring switching
+# The algebra of ring switching
 
-The program (`_phi`, `_ring_weight`, `ring_switch`, `verifier.py:1304-1340` at leanVM
-`127510d14c98ade4e8a97646c44fa7f1ff5e752d`) against ArkLib's ring switching
-(`ToArkLib/Flock/RingSwitch.lean`):
+The program (`ringMapShifts`, `phiMap`, `ringWeight`, `ringCoefficients`, `ringSwitch`,
+`python-verifier/verifier.py:1397-1433` at leanVM `3375f7a137c50b803f3416f6466b5d4e0719708a`;
+`crates/pcs/src/ring_switch.rs`) and its claim on the stack (`ringSwitchClaim`,
+`verifier.py:1504-1506`):
 
-* `phiMap_eq`: the program's `Φ`, a fold over the six coefficients with shifts
-  `32, 16, 8, 4, 2, 1`, is ArkLib's staged map `frobMap (ringStages 5 fs)`;
-* `target_eq`: the target `poly_eval([Φ(s_i)], GEN)` is ArkLib's `Σ_i g^i Φ(s_i)`;
-* `ringWeight_eq`: the program's weight is `Σ_k c_k eq(r^(2^k), ·)`;
-* `ringCoefficients_sum`: the program's coefficients `c_k`, computed in closed form, are the
-  coefficients of ArkLib's Frobenius terms (`frobTerms`), a computation over the six coefficients
-  (each `c_k` is the product, over the stages whose shift is a bit of `k`, of the stage's
-  coefficient to the power `2^(k mod shift)`);
-* `ringFaithful`: hence, with the layout's reading of the region (`ringLayoutHyp`), the program's
-  ring claim holding of a candidate is ArkLib's switched claim holding of its reading.
+* `phiMap_eq_frobMap`: the program's `Φ`, a fold over the coefficients with shifts
+  `32, 16, 8, 4, 2, 1`, is the staged map `frobMap (stagesOf ch)` (`ToArkLib/FrobeniusMap.lean`);
+  `phiMap_eq_sum`: with six coefficients it is the Frobenius sum `Σ_{k < 64} c_k b^(2^k)` with the
+  program's closed-form coefficients `c_k = ringCoefficients ch` (a computation over the six
+  coefficients, `frobTerms_stagesOf`);
+* `ringWeight_eq_sum`: the program's weight is `Σ_k c_k eq(r^(2^k), ·)`;
+* `ringTarget_eq_sum`: the target `poly_eval([Φ(s_i)], GEN)` is `Σ_i x^i Φ(s_i)`;
+* `colExt_frob`: the extension of `q_keccak` at `point^(2^k)` is `Σ_i x^i ẑ_i(point)^(2^k)`,
+  `ẑ_i` the extension of bit slice `i` (`sliceExt`): a word is its bits packed by the powers of
+  `x` (`K.eq_sum_bits`), and the Frobenius fixes bits and raises the equality weights;
+* `pair_ringClaim`: where the layout places `q_keccak` on an aligned block of `2^(h + 6)` cells
+  (`RingLayoutHyp`), the program's ring claim paired with a stack is `Σ_i x^i Φ(ẑ_i(point))`;
+  so (`ringClaim_holds_iff`) the claim holds exactly when `Σ_i x^i Φ(s_i - ẑ_i(point)) = 0`, the
+  `k = 0` sum of the ring-switching errors under the drawn map;
+* `ringLayoutHyp_verifierLayout`: the verifier's layout places `q_keccak` so.
 
 No mismatch.
 -/
 
 namespace LeanVM.Protocol.EndToEnd.Front
 
-open LeanVM.Parameters LeanVM.Protocol.Compile CompPoly CMlPolynomialEval
-open scoped ENNReal NNReal
+open LeanVM.Parameters LeanVM.Protocol.Verifier LeanVM.Protocol.Ring LeanVM.Protocol.KeccakGkr
+open LeanVM.Semantics LeanVM.Protocol.LeanIsa
 
 @[expose] public section
 
-/-! ## Horner, folds and products -/
+/-! ## The Frobenius of `E` -/
 
-/-- Horner's rule is the sum of the coefficients times the powers. -/
-theorem polyEval_eq_sum (l : List E) (x : E) :
-    LeanVM.Protocol.Verifier.polyEval l x =
-      ∑ i ∈ Finset.range l.length, l.getD i 0 * x ^ i := by
-  induction l with
-  | nil => simp [LeanVM.Protocol.Verifier.polyEval]
-  | cons a l ih =>
-    have h : LeanVM.Protocol.Verifier.polyEval (a :: l) x =
-        LeanVM.Protocol.Verifier.polyEval l x * x + a := rfl
-    rw [h, ih, List.length_cons, Finset.sum_range_succ', Finset.sum_mul]
-    have e : ∀ i ∈ Finset.range l.length,
-        l.getD i 0 * x ^ i * x = (a :: l).getD (i + 1) 0 * x ^ (i + 1) := fun i _ ↦ by
-      simp only [List.getD_cons_succ, pow_succ, mul_assoc]
-    rw [Finset.sum_congr rfl e]
-    simp
+/-- The Frobenius `b ↦ b^(2^k)` is additive. -/
+theorem ring_frob_add (a b : E) (k : ℕ) : (a + b) ^ 2 ^ k = a ^ 2 ^ k + b ^ 2 ^ k :=
+  add_pow_char_pow a b 2 k
 
-/-- A fold multiplying by a function of each entry is the product. -/
-theorem foldl_mul_map {α : Type} (f : α → E) (c : E) (l : List α) :
-    l.foldl (fun p a ↦ p * f a) c = c * (l.map f).prod := by
-  induction l generalizing c with
-  | nil => simp
-  | cons a l ih => rw [List.foldl_cons, ih, List.map_cons, List.prod_cons, mul_assoc]
+/-- The Frobenius commutes with finite sums. -/
+theorem ring_frob_sum {ι : Type} (s : Finset ι) (f : ι → E) (k : ℕ) :
+    (∑ i ∈ s, f i) ^ 2 ^ k = ∑ i ∈ s, f i ^ 2 ^ k := by
+  classical
+  induction s using Finset.induction_on with
+  | empty => simp
+  | insert a s ha ih => rw [Finset.sum_insert ha, Finset.sum_insert ha, ring_frob_add, ih]
 
-/-- Mapping over a zip is zipping with. -/
-theorem map_zip_eq_zipWith {α β γ : Type} (f : α → β → γ) :
-    ∀ (l₁ : List α) (l₂ : List β), (List.zip l₁ l₂).map (fun p ↦ f p.1 p.2) = List.zipWith f l₁ l₂
-  | [], _ => rfl
-  | _ :: _, [] => rfl
-  | a :: l₁, b :: l₂ => by
-    rw [List.zip_cons_cons, List.map_cons, map_zip_eq_zipWith f l₁ l₂, List.zipWith_cons_cons]
+/-- The Frobenius fixes a bit. -/
+theorem bitE_frob (b : Bool) (k : ℕ) : bitE b ^ 2 ^ k = bitE b := by
+  cases b <;> simp [bitE]
 
-/-- The program's product over a pair of points is the equality kernel `eq_eval`. -/
-theorem foldl_zip_eq_eqEval (c : E) (r y : List E) :
+/-- The Frobenius of an equality weight raises the point. -/
+theorem eqAt_frob (k : ℕ) : ∀ (pt : List E) (w : ℕ),
+    eqAt pt w ^ 2 ^ k = eqAt (pt.map (· ^ 2 ^ k)) w
+  | [], _ => by simp
+  | r :: rs, w => by
+    rw [List.map_cons, eqAt_cons, eqAt_cons, mul_pow, eqAt_frob k rs]
+    split_ifs
+    · rfl
+    · rw [ring_frob_add, one_pow]
+
+/-! ## Folds -/
+
+/-- The program's product over a zipped pair of points is the equality kernel. -/
+theorem foldl_zip_eqEval (c : E) : ∀ (r y : List E),
     (List.zip r y).foldl (fun product (p : E × E) ↦ product * (1 + p.1 + p.2)) c =
-      c * LeanVM.Protocol.Verifier.eqEval r y := by
-  rw [foldl_mul_map (fun p : E × E ↦ 1 + p.1 + p.2), LeanVM.Protocol.Verifier.eqEval,
-    foldl_mul_eq, one_mul, map_zip_eq_zipWith (fun x z : E ↦ 1 + x + z)]
+      c * eqEval r y
+  | [], _ => by simp [eqEval]
+  | _ :: _, [] => by simp [eqEval]
+  | a :: r, b :: y => by
+    rw [List.zip_cons_cons, List.foldl_cons, foldl_zip_eqEval _ r y,
+      Whir.Complete.eqEval_cons]
+    ring
 
 /-- The weight fold from any start: the start plus `Σ_k c_k eq(r^(2^k), y)`. -/
 theorem ringWeight_fold (y : List E) :
@@ -83,163 +94,295 @@ theorem ringWeight_fold (y : List E) :
       (cs.foldl (fun (acc : E × List E) c ↦
         ((acc.1 + (List.zip acc.2 y).foldl (fun product (p : E × E) ↦
           product * (1 + p.1 + p.2)) c), acc.2.map (· ^ 2))) (a, r)).1 =
-        a + ∑ k ∈ Finset.range cs.length,
-          cs.getD k 0 * LeanVM.Protocol.Verifier.eqEval (r.map (· ^ 2 ^ k)) y
+        a + ∑ k ∈ Finset.range cs.length, cs.getD k 0 * eqEval (r.map (· ^ 2 ^ k)) y
   | [], a, r => by simp
   | c :: cs, a, r => by
     rw [List.foldl_cons]
-    simp only []
-    rw [ringWeight_fold y cs, foldl_zip_eq_eqEval, List.length_cons, Finset.sum_range_succ']
+    rw [ringWeight_fold y cs, foldl_zip_eqEval, List.length_cons, Finset.sum_range_succ']
     simp only [List.getD_cons_succ, List.getD_cons_zero, pow_zero, pow_one, List.map_map]
     have e : ∀ k ∈ Finset.range cs.length,
-        cs.getD k 0 * LeanVM.Protocol.Verifier.eqEval
-          (List.map ((fun x ↦ x ^ 2 ^ k) ∘ fun x ↦ x ^ 2) r) y =
-        cs.getD k 0 * LeanVM.Protocol.Verifier.eqEval (List.map (fun x ↦ x ^ 2 ^ (k + 1)) r) y :=
-      fun k _ ↦ by
-        have : ((fun x : E ↦ x ^ 2 ^ k) ∘ fun x ↦ x ^ 2) = fun x ↦ x ^ 2 ^ (k + 1) := by
-          funext b
-          simp only [Function.comp, pow_succ, pow_mul]
-          ring
-        rw [this]
+        cs.getD k 0 * eqEval (List.map ((fun x ↦ x ^ 2 ^ k) ∘ fun x ↦ x ^ 2) r) y =
+          cs.getD k 0 * eqEval (List.map (fun x ↦ x ^ 2 ^ (k + 1)) r) y := fun k _ ↦ by
+      have : ((fun x : E ↦ x ^ 2 ^ k) ∘ fun x ↦ x ^ 2) = fun x ↦ x ^ 2 ^ (k + 1) := by
+        funext b
+        simp only [Function.comp]
+        rw [← pow_mul, pow_succ 2 k, mul_comm]
+      rw [this]
     rw [Finset.sum_congr rfl e]
     simp only [List.map_id']
     ring
 
 /-- **The program's weight is `Σ_k c_k eq(r^(2^k), ·)`.** -/
-theorem ringWeight_eq (r y cs : List E) :
-    LeanVM.Protocol.Verifier.ringWeight r y cs =
-      ∑ k ∈ Finset.range cs.length,
-        cs.getD k 0 * LeanVM.Protocol.Verifier.eqEval (r.map (· ^ 2 ^ k)) y := by
-  rw [LeanVM.Protocol.Verifier.ringWeight]
+theorem ringWeight_eq_sum (r y cs : List E) :
+    ringWeight r y cs =
+      ∑ k ∈ Finset.range cs.length, cs.getD k 0 * eqEval (r.map (· ^ 2 ^ k)) y := by
+  rw [ringWeight]
   exact (ringWeight_fold y cs 0 r).trans (zero_add _)
 
-/-! ## The staged map and its coefficients -/
+/-! ## The staged map -/
 
-/-- **The program's `Φ` is ArkLib's staged map**: the stages in order, shifts `32, …, 1`. -/
-theorem phiMap_eq (a : E) {ch : List E} (h : ch.length = 6) :
-    LeanVM.Protocol.Verifier.phiMap a ch = frobMap (Flock.ringStages 5 (toVec 6 ch)) a := by
-  match ch, h with
-  | [f0, f1, f2, f3, f4, f5], _ =>
-    simp [LeanVM.Protocol.Verifier.phiMap, LeanVM.Protocol.Verifier.ringMapShifts,
-      Flock.ringShifts, frobMap, Flock.ringStages, List.ofFn_succ, toVec]
+/-- The stages of the program's map: shift `ringMapShifts[p]`, coefficient `ch[p]`. -/
+def stagesOf (ch : List E) : List (ℕ × E) := (List.zip ch ringMapShifts).map fun p ↦ (p.2, p.1)
+
+/-- **The program's `Φ` is the staged map** of its stages. -/
+theorem phiMap_eq_frobMap (a : E) (ch : List E) : phiMap a ch = frobMap (stagesOf ch) a := by
+  unfold phiMap stagesOf
+  generalize List.zip ch ringMapShifts = l
+  induction l generalizing a with
+  | nil => rfl
+  | cons p l ih =>
+    obtain ⟨c, sh⟩ := p
+    simp only [List.foldl_cons, List.map_cons, frobMap]
+    exact ih _
+
+/-- A zip reads only as much of its left list as its right list is long. -/
+theorem zip_append_of_le {α β : Type} :
+    ∀ (l r : List α) (l' : List β), l'.length ≤ l.length → List.zip (l ++ r) l' = List.zip l l'
+  | _, _, [], _ => by simp
+  | [], _, _ :: _, h => by simp at h
+  | a :: l, r, b :: l', h => by
+    rw [List.cons_append, List.zip_cons_cons, List.zip_cons_cons,
+      zip_append_of_le l r l' (by simpa using h)]
+
+/-- **One more coefficient**: below six, the stage with shift `2^(5 - p)` after the others. -/
+theorem stagesOf_snoc (acc : List E) (c : E) (h : acc.length < 6) :
+    stagesOf (acc ++ [c]) = stagesOf acc ++ [(2 ^ (5 - acc.length), c)] := by
+  match acc, h with
+  | [], _ => rfl
+  | [_], _ => rfl
+  | [_, _], _ => rfl
+  | [_, _, _], _ => rfl
+  | [_, _, _, _], _ => rfl
+  | [_, _, _, _, _], _ => rfl
+
+/-- Past six coefficients, the stages do not change. -/
+theorem stagesOf_snoc_of_le (acc : List E) (c : E) (h : 6 ≤ acc.length) :
+    stagesOf (acc ++ [c]) = stagesOf acc := by
+  unfold stagesOf
+  rw [zip_append_of_le acc [c] ringMapShifts (by simpa [ringMapShifts] using h)]
 
 set_option maxHeartbeats 4000000 in
-/-- The coefficient identity over six named coefficients. -/
-theorem ringCoefficients_sum6 (f0 f1 f2 f3 f4 f5 : E) (F : ℕ → E) :
-    ∑ k ∈ Finset.range 64,
-        (LeanVM.Protocol.Verifier.ringCoefficients [f0, f1, f2, f3, f4, f5]).getD k 0 * F k =
-      ((frobTerms (Flock.ringStages 5 (toVec 6 [f0, f1, f2, f3, f4, f5]))).map
-        fun t ↦ t.1 * F t.2).sum := by
-  simp only [LeanVM.Protocol.Verifier.ringCoefficients, LeanVM.Protocol.Verifier.ringMapShifts,
-    Flock.ringShifts, LeanVM.Protocol.Verifier.kBits, Vector.toList_mk, List.zip_cons_cons,
-    List.zip_nil_right]
-  simp [frobTerms, Flock.ringStages, List.ofFn_succ, toVec, Finset.sum_range_succ, List.filter]
+/-- The program's closed-form coefficients are the Frobenius terms' of its stages: a
+computation over six named coefficients. -/
+theorem frobTerms_stagesOf (f0 f1 f2 f3 f4 f5 : E) (F : ℕ → E) :
+    ((frobTerms (stagesOf [f0, f1, f2, f3, f4, f5])).map fun t ↦ t.1 * F t.2).sum =
+      ∑ k ∈ Finset.range 64, (ringCoefficients [f0, f1, f2, f3, f4, f5]).getD k 0 * F k := by
+  simp only [ringCoefficients, ringMapShifts, kBits, List.zip_cons_cons, List.zip_nil_right,
+    stagesOf]
+  simp [frobTerms, Finset.sum_range_succ, List.filter]
   ring
 
-/-- **The program's coefficients are ArkLib's Frobenius terms'**: for any function of the
-exponent, `Σ_{k < 64} c_k F(k)` over the program's closed form is the sum over ArkLib's terms. A
-computation over the six coefficients. -/
-theorem ringCoefficients_sum {ch : List E} (h : ch.length = 6) (F : ℕ → E) :
-    ∑ k ∈ Finset.range 64, (LeanVM.Protocol.Verifier.ringCoefficients ch).getD k 0 * F k =
-      ((frobTerms (Flock.ringStages 5 (toVec 6 ch))).map fun t ↦ t.1 * F t.2).sum := by
+/-- **The staged map is the Frobenius sum with the program's coefficients**:
+`Φ(b) = Σ_{k < 64} c_k b^(2^k)`. -/
+theorem phiMap_eq_sum {ch : List E} (h : ch.length = 6) (b : E) :
+    phiMap b ch = ∑ k ∈ Finset.range 64, (ringCoefficients ch).getD k 0 * b ^ 2 ^ k := by
+  rw [phiMap_eq_frobMap, frobMap_eq_sum]
   match ch, h with
-  | [f0, f1, f2, f3, f4, f5], _ => exact ringCoefficients_sum6 f0 f1 f2 f3 f4 f5 F
+  | [f0, f1, f2, f3, f4, f5], _ => exact frobTerms_stagesOf f0 f1 f2 f3 f4 f5 fun k ↦ b ^ 2 ^ k
 
 /-- The program's coefficients are sixty-four. -/
-theorem length_ringCoefficients (ch : List E) :
-    (LeanVM.Protocol.Verifier.ringCoefficients ch).length = 64 := by
-  simp [LeanVM.Protocol.Verifier.ringCoefficients, LeanVM.Protocol.Verifier.kBits]
+theorem length_ringCoefficients (ch : List E) : (ringCoefficients ch).length = 64 := by
+  simp [ringCoefficients, kBits]
 
-/-- `GEN` is the generator `g` of `K`, embedded. -/
-theorem gen_eq : LeanVM.Protocol.Verifier.gen = algebraMap K E g := rfl
+/-- The staged map is additive: it sends differences to differences. -/
+theorem phiMap_sub (ch : List E) (a b : E) : phiMap (a - b) ch = phiMap a ch - phiMap b ch := by
+  simp only [phiMap_eq_frobMap]
+  exact map_sub (frobMapHom (stagesOf ch)) a b
 
-/-- ArkLib's target as a sum over the slices' list. -/
-theorem ringTarget_eq_sum (P : Flock.Params E) (fs : Vector E 6) (sv : List E)
-    (hsv : sv.length = 2 ^ P.s) :
-    Flock.ringTarget P 5 (algebraMap K E) g (toVec (2 ^ P.s) sv) fs =
-      ∑ i ∈ Finset.range sv.length,
-        algebraMap K E (g ^ i) * frobMap (Flock.ringStages 5 fs) (sv.getD i 0) := by
-  unfold Flock.ringTarget
-  have h : ∀ i : Fin (2 ^ P.s), (toVec (2 ^ P.s) sv)[i] = sv.getD i 0 := fun i ↦ by
-    simp [toVec]
-  simp only [h]
-  rw [Fin.sum_univ_eq_sum_range (fun i ↦ algebraMap K E (g ^ i) *
-    frobMap (Flock.ringStages 5 fs) (sv.getD i 0)), hsv]
+/-! ## The target -/
 
-/-- **The program's target is ArkLib's**: `poly_eval([Φ(s_i)], GEN) = Σ_i g^i Φ(s_i)`. -/
-theorem target_eq {sv ch : List E} (hsv : sv.length = 64) (hch : ch.length = 6)
-    (F : FlockSpec) (prog : LeanVM.Semantics.Program) (s : LeanIsa.Sizes) :
-    LeanVM.Protocol.Verifier.polyEval (sv.map (LeanVM.Protocol.Verifier.phiMap · ch))
-        LeanVM.Protocol.Verifier.gen = arkTarget F prog s sv ch := by
-  unfold arkTarget
-  rw [ringTarget_eq_sum _ _ _ hsv, polyEval_eq_sum, List.length_map]
-  refine Finset.sum_congr rfl fun i hi ↦ ?_
-  have hi' : i < sv.length := Finset.mem_range.mp hi
-  rw [List.getD_eq_getElem?_getD, List.getElem?_map, List.getElem?_eq_getElem hi',
-    Option.map_some, Option.getD_some, phiMap_eq _ hch, gen_eq, ← map_pow, mul_comm,
-    List.getD_eq_getElem?_getD, List.getElem?_eq_getElem hi', Option.getD_some]
+/-- The ring-switching weights `x^i`, `i < 64`, in `E`. -/
+def ringW (i : Fin 64) : E := algebraMap K E (g ^ i.val)
 
-/-! ## The weight -/
-
-/-- Raising a point read off a list is reading the raised list. -/
-theorem frobPoint_toVec (n e : ℕ) (pt : List E) :
-    frobPoint e (toVec n pt) = toVec n (pt.map (· ^ 2 ^ e)) := by
-  apply Vector.ext
-  intro i hi
-  simp only [frobPoint_getElem, toVec, Vector.getElem_ofFn]
-  rw [List.getD_eq_getElem?_getD, List.getD_eq_getElem?_getD, List.getElem?_map]
-  cases pt[i]? with
-  | none => simp
-  | some a => simp
-
-section Weight
-
-variable (F : FlockSpec) (prog : LeanVM.Semantics.Program) (s : LeanIsa.Sizes)
-  (layout : LeanVM.Protocol.Verifier.Layout)
-  (toI : Column layout.stackLog → Column (fI F prog s).μ)
-
-/-- **What ring switching needs of the layout** (bridge A): the program's weight of the `QFLOCK`
-placement at a point of the region, `eqAbove · eq(p, ·)`, paired with a candidate, is the
-extension of its reading at the point lifted by the instance's layout (`FlockPhase.lift`). -/
-def ringLayoutHyp : Prop :=
-  ∀ (p : List E), p.length = (fP F prog s).m + (fP F prog s).κ → ∀ q : Column layout.stackLog,
-    ∑ x : Fin (2 ^ layout.stackLog),
-      ((layout.placements.getD LeanVM.Protocol.Verifier.qflock default).eqAbove
-          (boolPoint layout.stackLog x) *
-        LeanVM.Protocol.Verifier.eqEval p ((boolPoint layout.stackLog x).take
-          (layout.placements.getD LeanVM.Protocol.Verifier.qflock default).vars)) *
-        ofK (q.values.getD x 0) =
-      eval₂Mle (toI q).values (algebraMap K E) (FlockPhase.lift (fR F prog s) (toVec _ p))
-
-/-- ArkLib's switched weight paired with a stack: the Frobenius terms of the point's lifts. -/
-theorem pair_arkWeight (pt ch : List E) (q : Column (fI F prog s).μ) :
-    (arkWeight F prog s pt ch).pair (algebraMap K E) q.values =
-      ((frobTerms (Flock.ringStages 5 (toVec 6 ch))).map fun t ↦ t.1 *
-        eval₂Mle q.values (algebraMap K E) (FlockPhase.lift (fR F prog s)
-          (toVec _ (pt.map (· ^ 2 ^ t.2))))).sum := by
-  unfold arkWeight Flock.ringWeight
-  rw [Weight.pair_combine, List.map_map]
-  refine congrArg List.sum (List.map_congr_left fun t _ ↦ ?_)
-  simp only [Function.comp, Weight.pair_eqWeight, frobPoint_toVec]
+/-- **The program's target is `Σ_i x^i Φ(s_i)`** over 64 slices. -/
+theorem ringTarget_eq_sum (sv ch : List E) (hsv : sv.length = 64) :
+    polyEval (sv.map (phiMap · ch)) gen = ∑ i : Fin 64, ringW i * phiMap (sv.getD i 0) ch := by
+  rw [Complete.polyEval_eq_sum, List.length_map, hsv, ← Fin.sum_univ_eq_sum_range]
+  refine Finset.sum_congr rfl fun i _ ↦ ?_
+  rw [List.getD_eq_getElem _ _ (by simp [hsv]), List.getElem_map,
+    List.getD_eq_getElem _ _ (by simp [hsv]), ringW, map_pow, mul_comm]
   rfl
 
-/-- **The ring claim's fidelity**, from the layout's reading of the region. -/
-theorem ringFaithful (hlay : ringLayoutHyp F prog s layout toI) :
-    RingFaithful F prog s layout toI := by
-  intro pt sv ch q hpt hsv hch hholds
-  unfold StackClaim.Holds LeanVM.Protocol.Verifier.ringSwitchClaim at hholds
-  dsimp only at hholds
-  rw [← target_eq hsv hch F prog s, ← hholds, pair_arkWeight, ← ringCoefficients_sum hch
-    (fun k ↦ eval₂Mle (toI q).values (algebraMap K E)
-      (FlockPhase.lift (fR F prog s) (toVec _ (pt.map (· ^ 2 ^ k)))))]
-  simp only [ringWeight_eq, length_ringCoefficients, Finset.mul_sum, Finset.sum_mul]
-  rw [Finset.sum_comm]
-  refine Finset.sum_congr rfl fun k _ ↦ ?_
-  rw [← hlay (pt.map (· ^ 2 ^ k)) (by rw [List.length_map, hpt]) q, Finset.mul_sum]
-  refine Finset.sum_congr rfl fun x _ ↦ ?_
-  ring
+/-! ## Slices and the column -/
 
-end Weight
+/-- Bit slice `i` of a word column, extended at `pt` over `2^(h + 6)` words. -/
+def sliceExt (h : ℕ) (col : ℕ → K) (pt : List E) (i : ℕ) : E :=
+  ∑ n ∈ Finset.range (2 ^ (h + 6)), eqAt pt n * bitE ((col n).toBitVec.getLsbD i)
+
+/-- The word column, extended at `pt` over `2^(h + 6)` words. -/
+def colExt (h : ℕ) (col : ℕ → K) (pt : List E) : E :=
+  ∑ n ∈ Finset.range (2 ^ (h + 6)), eqAt pt n * ofK (col n)
+
+/-- A word of `K` in `E` is its bits packed by the powers of `x`. -/
+theorem ofK_eq_sum_bitE (a : K) : ofK a = ∑ i : Fin 64, ringW i * bitE (a.toBitVec.getLsbD i) := by
+  conv_lhs => rw [K.eq_sum_bits a]
+  change algebraMap K E _ = _
+  rw [map_sum (algebraMap K E)]
+  refine Finset.sum_congr rfl fun i _ ↦ ?_
+  unfold ringW
+  split <;> simp_all [bitE]
+
+/-- **The column at `pt^(2^k)` packs the slices' Frobenius**:
+`q̂(pt^(2^k)) = Σ_i x^i ẑ_i(pt)^(2^k)`. -/
+theorem colExt_frob (h : ℕ) (col : ℕ → K) (pt : List E) (k : ℕ) :
+    colExt h col (pt.map (· ^ 2 ^ k)) = ∑ i : Fin 64, ringW i * sliceExt h col pt i ^ 2 ^ k := by
+  simp only [colExt, sliceExt, ring_frob_sum, mul_pow, bitE_frob, eqAt_frob, ofK_eq_sum_bitE,
+    Finset.mul_sum]
+  rw [Finset.sum_comm]
+  exact Finset.sum_congr rfl fun i _ ↦ Finset.sum_congr rfl fun n _ ↦ by ring
+
+/-! ## The layout -/
+
+/-- Word `n` of the block of a stack at `off`. -/
+def qkAt {μ : ℕ} (off : ℕ) (q : Column μ) (n : ℕ) : K := q.values.toArray.getD (off + n) 0
+
+/-- `q_keccak`'s words on a stack of the layout are the block's at its placement. -/
+theorem qkOf_eq_qkAt (layout : Verifier.Layout) (q : Column layout.stackLog) :
+    qkOf layout q = qkAt (layout.placement qkeccak).index q := rfl
+
+/-- **What ring switching needs of the layout**: `q_keccak` is placed on `h + 6` variables, at an
+offset aligned to its size, inside the stack. -/
+structure RingLayoutHyp (layout : Verifier.Layout) (h off : ℕ) : Prop where
+  /-- `q_keccak`'s placement: `h + 6` variables at `off`. -/
+  placement : layout.placement qkeccak = { vars := h + 6, index := off }
+  /-- The offset is aligned to the block's size. -/
+  aligned : 2 ^ (h + 6) ∣ off
+  /-- The block lies inside the stack. -/
+  fits : off + 2 ^ (h + 6) ≤ 2 ^ layout.stackLog
+
+/-- `eq_eval` against a cube point on as many coordinates is the equality weight `eqAt`. -/
+theorem eqEval_boolPoint_eqAt : ∀ (p : List E) (y : ℕ), eqEval p (boolPoint p.length y) = eqAt p y
+  | [], _ => by simp [eqEval, boolPoint]
+  | r :: p, y => by
+    rw [List.length_cons, Whir.Complete.boolPoint_succ, Whir.Complete.eqEval_cons,
+      eqEval_boolPoint_eqAt p, eqAt_cons]
+    congr 1
+    rw [Nat.testBit_zero]
+    rcases Nat.mod_two_eq_zero_or_one y with hy | hy
+    · simp [hy]
+    · simp only [hy, decide_true, ↓reduceIte]
+      linear_combination CharTwo.add_self_eq_zero (1 : E)
+
+/-- **An aligned placement's weight at a cube point**: the indicator of the block times the
+equality weight of the offset inside it. -/
+theorem eqAbove_mul_eqEval_boolPoint {v off μ x : ℕ} (hfit : off + 2 ^ v ≤ 2 ^ μ) (hx : x < 2 ^ μ)
+    (p : List E) (hp : p.length = v) :
+    ({ vars := v, index := off } : Placement).eqAbove (boolPoint μ x) *
+        eqEval p ((boolPoint μ x).take v) =
+      if x / 2 ^ v = off / 2 ^ v then eqAt p (x % 2 ^ v) else 0 := by
+  have hv : v ≤ μ := by
+    have : 2 ^ v ≤ 2 ^ μ := by omega
+    exact (Nat.pow_le_pow_iff_right (by norm_num)).mp this
+  have hpow : 2 ^ μ = 2 ^ v * 2 ^ (μ - v) := by rw [← pow_add, Nat.add_sub_cancel' hv]
+  have hoff : off / 2 ^ v < 2 ^ (μ - v) :=
+    Nat.div_lt_of_lt_mul (by rw [← hpow]; have := Nat.two_pow_pos v; omega)
+  have hxv : x / 2 ^ v < 2 ^ (μ - v) := Nat.div_lt_of_lt_mul (by rw [← hpow]; exact hx)
+  simp only [Placement.eqAbove, zero_add, length_boolPoint, Nat.sub_zero,
+    selectorPoint_eq_boolPoint, Nat.shiftRight_eq_div_pow, drop_boolPoint]
+  rw [Complete.eqEval_boolPoint_boolPoint _ _ _ hoff hxv, take_boolPoint μ v x hv, ← hp,
+    ← boolPoint_mod, eqEval_boolPoint_eqAt, hp]
+  by_cases h : x / 2 ^ v = off / 2 ^ v
+  · simp [h]
+  · simp [h, Ne.symm h]
+
+/-- **A sum over the stack weighted by an aligned placement** is the sum over the block. -/
+theorem sum_placed {v off μ : ℕ} (hal : 2 ^ v ∣ off) (hfit : off + 2 ^ v ≤ 2 ^ μ) (p : List E)
+    (hp : p.length = v) (q : Column μ) :
+    ∑ x : Fin (2 ^ μ), ({ vars := v, index := off } : Placement).eqAbove (boolPoint μ x) *
+        eqEval p ((boolPoint μ x).take v) * ofK (q.values.getD x 0) =
+      ∑ n ∈ Finset.range (2 ^ v), eqAt p n * ofK (qkAt off q n) := by
+  obtain ⟨t, rfl⟩ := hal
+  have hpos := Nat.two_pow_pos v
+  rw [Fin.sum_univ_eq_sum_range (fun x ↦ ({ vars := v, index := 2 ^ v * t } : Placement).eqAbove
+    (boolPoint μ x) * eqEval p ((boolPoint μ x).take v) * ofK (q.values.getD x 0))]
+  have hsub : Finset.Ico (2 ^ v * t) (2 ^ v * t + 2 ^ v) ⊆ Finset.range (2 ^ μ) := fun x hx ↦ by
+    simp only [Finset.mem_Ico] at hx
+    exact Finset.mem_range.mpr (by omega)
+  rw [← Finset.sum_subset hsub fun x hx hn ↦ ?_, Finset.sum_Ico_eq_sum_range,
+    Nat.add_sub_cancel_left]
+  · refine Finset.sum_congr rfl fun n hn ↦ ?_
+    have hn' := Finset.mem_range.mp hn
+    rw [eqAbove_mul_eqEval_boolPoint hfit (by omega) p hp,
+      Nat.mul_add_div hpos, Nat.div_eq_of_lt hn', add_zero, Nat.mul_div_cancel_left _ hpos]
+    simp only [↓reduceIte]
+    rw [Nat.mul_add_mod, Nat.mod_eq_of_lt hn', qkAt]
+    rfl
+  · have hx := Finset.mem_range.mp hx
+    rw [eqAbove_mul_eqEval_boolPoint hfit hx p hp, Nat.mul_div_cancel_left _ hpos]
+    suffices hne : x / 2 ^ v ≠ t by simp [hne]
+    intro he
+    refine hn (Finset.mem_Ico.mpr ⟨?_, ?_⟩)
+    · rw [← he]; exact Nat.mul_div_le x _
+    · have := Nat.lt_mul_div_succ x hpos
+      rw [he, mul_add, mul_one] at this
+      exact this
+
+/-! ## The ring claim on the stack -/
+
+/-- **The ring claim paired with a stack** (any stack size `μ` the block fits in): with
+`q_keccak` placed on `h + 6` variables at an aligned `off`, the pairing of the program's ring
+claim is `Σ_i x^i Φ(ẑ_i(point))`. -/
+theorem pair_ringClaim {layout : Verifier.Layout} {h off μ : ℕ}
+    (hpl : layout.placement qkeccak = { vars := h + 6, index := off }) (hal : 2 ^ (h + 6) ∣ off)
+    (hfit : off + 2 ^ (h + 6) ≤ 2 ^ μ) (q : Column μ) {pt ch : List E}
+    (hpt : pt.length = h + 6) (hch : ch.length = 6) (target : E) :
+    ∑ x : Fin (2 ^ μ), (ringSwitchClaim layout target
+        fun rPrime ↦ ringWeight pt rPrime (ringCoefficients ch)).1 (boolPoint μ x) *
+          ofK (q.values.getD x 0) =
+      ∑ i : Fin 64, ringW i * phiMap (sliceExt h (qkAt off q) pt i) ch := by
+  simp only [ringSwitchClaim, hpl, ringWeight_eq_sum, length_ringCoefficients, Finset.mul_sum,
+    Finset.sum_mul]
+  rw [Finset.sum_comm]
+  have e : ∀ k ∈ Finset.range 64,
+      ∑ x : Fin (2 ^ μ), ({ vars := h + 6, index := off } : Placement).eqAbove (boolPoint μ x) *
+          ((ringCoefficients ch).getD k 0 *
+            eqEval (pt.map (· ^ 2 ^ k)) ((boolPoint μ x).take (h + 6))) *
+          ofK (q.values.getD x 0) =
+        (ringCoefficients ch).getD k 0 *
+          ∑ i : Fin 64, ringW i * sliceExt h (qkAt off q) pt i ^ 2 ^ k := fun k _ ↦ by
+    rw [← colExt_frob, colExt, ← sum_placed hal hfit _ (by rw [List.length_map, hpt]) q,
+      Finset.mul_sum]
+    exact Finset.sum_congr rfl fun x _ ↦ by ring
+  rw [Finset.sum_congr rfl e]
+  simp only [phiMap_eq_sum hch, Finset.mul_sum]
+  rw [Finset.sum_comm]
+  exact Finset.sum_congr rfl fun i _ ↦ Finset.sum_congr rfl fun k _ ↦ by ring
+
+/-- The error of slice `i`: the claimed value minus the column's slice at the point. -/
+def ringErr (h : ℕ) (col : ℕ → K) (pt sv : List E) (i : Fin 64) : E :=
+  sv.getD i 0 - sliceExt h col pt i
+
+/-- **The ring claim holds exactly when the errors' twisted sum vanishes**: for the program's
+target and weight, the claim on a stack holds iff `Σ_i x^i Φ(s_i - ẑ_i(point)) = 0`. -/
+theorem ringClaim_holds_iff {layout : Verifier.Layout} {h off μ : ℕ}
+    (hpl : layout.placement qkeccak = { vars := h + 6, index := off }) (hal : 2 ^ (h + 6) ∣ off)
+    (hfit : off + 2 ^ (h + 6) ≤ 2 ^ μ) (q : Column μ) {pt sv ch : List E}
+    (hpt : pt.length = h + 6) (hsv : sv.length = 64) (hch : ch.length = 6) :
+    StackClaim.Holds μ (ringSwitchClaim layout (polyEval (sv.map (phiMap · ch)) gen)
+        fun rPrime ↦ ringWeight pt rPrime (ringCoefficients ch)) q ↔
+      ∑ i : Fin 64, ringW i * phiMap (ringErr h (qkAt off q) pt sv i) ch = 0 := by
+  unfold StackClaim.Holds
+  rw [pair_ringClaim hpl hal hfit q hpt hch, ringTarget_eq_sum sv ch hsv]
+  simp only [ringErr, phiMap_sub, mul_sub, Finset.sum_sub_distrib]
+  rw [sub_eq_zero, eq_comm]
+  exact Iff.rfl
+
+/-! ## The verifier's layout -/
+
+/-- **The verifier's layout places `q_keccak` as ring switching needs**: on `τ_KECCAK + 6`
+variables at its block's offset, aligned and inside the stack. -/
+theorem ringLayoutHyp_verifierLayout (prog : Program) (s : Sizes) :
+    RingLayoutHyp (verifierLayout prog s) (s.τ 5) ((blocks prog s).offset (keccakBlock prog s)) where
+  placement := placement_qkeccak prog s
+  aligned := by
+    have h := (blocks prog s).pow_size_dvd_offset (keccakBlock prog s)
+    rwa [size_keccakBlock] at h
+  fits := by
+    have h1 := (blocks prog s).offset_add_pow_le_total (keccakBlock prog s)
+    have h2 := blocks_fits prog s
+    rw [size_keccakBlock] at h1
+    rw [stackLog_verifierLayout]
+    omega
 
 end
 end LeanVM.Protocol.EndToEnd.Front

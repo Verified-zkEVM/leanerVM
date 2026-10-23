@@ -15,35 +15,41 @@ public import LeanVM.Protocol.Compile.Rom.Bridge
 
 The random-oracle theorem (`LeanVM.Protocol.Compile.Rom.Sound`, `romSound`) needs a bound `QV`
 on the number of oracle queries the compiled verifier makes on *every* proof
-(`IsTotalQueryBound (verifierComp σ P π) QV`). The compiled run (`LeanVM.Protocol.Compile.Run`)
+(`IsTotalQueryBound (verifierComp σ P π) QV`). The compiled run (`LeanVM.Protocol.Compile.run`)
 makes, per node of the program,
 
-* `read`: one query (the absorb), none if the stream is empty;
-* `sample`: one query (the squeeze);
-* `grind`: three queries (the base, the check and the absorb), none if the stream is empty;
-* `commit`: two queries (one absorb per half of the root), none if the stream is short;
-* `query i ps`: per position, one query for the leaf and one per level of its path, when the
+* `read`: one absorption, which permutes the sponge (one query) when four scalars wait;
+* `sample`: one permutation;
+* `grind`: one absorption, then one permutation;
+* `commit`: two absorptions;
+* `query i ps`: per position, one hash query for the leaf and one per level of its path, when the
   opening has the committed shape, and none otherwise; the run stops at the first failure;
 * `ret`, `fail`: none.
 
-A program's cost therefore depends on the heights of its commitments. `Prog.Costs height p n Q`
-says: every commitment `p` reads has height at most `height`, every run of `p` costs at most `n`
-when an opening of `k` positions is charged `k · (1 + height)`, and every value `p` returns
-satisfies `Q`. The postcondition is what lets a cost depend on the values earlier parts of the
-program return (the announced sizes, the number of query positions): the sequencing rule
-(`Prog.Costs.bind`) charges the continuation only at the values the first part can return.
-`Prog.CostLE height p n` is the cost without a postcondition.
+A permutation forced by an absorption empties the four waiting scalars, so at most one
+absorption in four forces one. The cost is counted in quarters of a query: an absorption costs
+`1` (a quarter of the permutation it may force), a permutation `4`, a hash query `4`. So a read
+costs `1`, a sample `4`, a proof of work `5`, a commitment `2`, and an opening of `k` positions
+`4 · k · (1 + height)`.
+
+A program's cost depends on the heights of its commitments. `Prog.Costs height p n Q` says:
+every commitment `p` reads has height at most `height`, every run of `p` costs at most `n`
+quarters, and every value `p` returns satisfies `Q`. The postcondition is what lets a cost
+depend on the values earlier parts of the program return (the announced sizes, the number of
+query positions): the sequencing rule (`Prog.Costs.bind`) charges the continuation only at the
+values the first part can return. `Prog.CostLE height p n` is the cost without a postcondition.
 
 * `isTotalQueryBound_run`: a program of cost `n`, run from a state whose roots have height at
-  most `height`, makes at most `n` queries;
+  most `height` and whose sponge has `k ≤ 4` scalars waiting, makes at most `(n + k) / 4`
+  queries (the waiting scalars' quarters are paid by the permutation that empties them);
 * `isTotalQueryBound_verifierComp`: the seeded compiled verifier makes at most
-  `1 + |σ.steps| + n` queries on every proof (the seed's `1 + |σ.steps|` hashes, then the
+  `|σ.hs| + 1 + n / 4` queries on every proof (the seed's hashes and permutation, then the
   program).
 -/
 
 namespace LeanVM.Protocol.Compile
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Protocol.Blake2sHash
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Protocol.KeccakHash
 open LeanVM.Protocol.Compile.Rom
 open OracleComp OracleSpec
 
@@ -55,19 +61,23 @@ namespace Prog
 
 variable {α β : Type}
 
-/-- **The cost of a program.** `Costs height p n Q`: every commitment of `p` has height at most
-`height`, every run of `p` costs at most `n` (a read and a sample `1`, a proof of work `3`, a
-commitment `2`, an opening of `k` positions `k · (1 + height)`), and every value `p` returns
-satisfies `Q`. -/
+/-- The cost of opening `k` positions of a commitment of height at most `height`, in quarters:
+`k · (1 + height)` hash queries. -/
+def openCost (height k : ℕ) : ℕ := 4 * (k * (1 + height))
+
+/-- **The cost of a program**, in quarters of a query. `Costs height p n Q`: every commitment of
+`p` has height at most `height`, every run of `p` costs at most `n` (a read `1`, a sample `4`, a
+proof of work `5`, a commitment `2`, an opening of `k` positions `openCost height k`), and every
+value `p` returns satisfies `Q`. -/
 def Costs (height : ℕ) : Prog α → ℕ → (α → Prop) → Prop
   | ret a, _, Q => Q a
   | fail, _, _ => True
   | read k, n, Q => 1 ≤ n ∧ ∀ x, Costs height (k x) (n - 1) Q
-  | sample k, n, Q => 1 ≤ n ∧ ∀ c, Costs height (k c) (n - 1) Q
-  | grind _ k, n, Q => 3 ≤ n ∧ Costs height k (n - 3) Q
+  | sample k, n, Q => 4 ≤ n ∧ ∀ c, Costs height (k c) (n - 4) Q
+  | grind _ k, n, Q => 5 ≤ n ∧ Costs height k (n - 5) Q
   | commit h _ k, n, Q => h ≤ height ∧ 2 ≤ n ∧ Costs height k (n - 2) Q
-  | query _ ps k, n, Q => ps.length * (1 + height) ≤ n ∧
-      ∀ rows, Costs height (k rows) (n - ps.length * (1 + height)) Q
+  | query _ ps k, n, Q => openCost height ps.length ≤ n ∧
+      ∀ rows, Costs height (k rows) (n - openCost height ps.length) Q
 
 /-- **The cost of a program, without a postcondition**: every run of `p` costs at most `n`, every
 commitment having height at most `height`. -/
@@ -120,11 +130,11 @@ theorem bind {p : Prog α} {f : α → Prog β} {n m : ℕ} {Q : α → Prop} {R
   | sample k ih =>
     refine ⟨by have := hp.1; omega, fun x ↦ ?_⟩
     have := ih x (hp.2 x)
-    rwa [show n - 1 + m = n + m - 1 by have := hp.1; omega] at this
+    rwa [show n - 4 + m = n + m - 4 by have := hp.1; omega] at this
   | grind b k ih =>
     refine ⟨by have := hp.1; omega, ?_⟩
     have := ih hp.2
-    rwa [show n - 3 + m = n + m - 3 by have := hp.1; omega] at this
+    rwa [show n - 5 + m = n + m - 5 by have := hp.1; omega] at this
   | commit ht w k ih =>
     refine ⟨hp.1, by have := hp.2.1; omega, ?_⟩
     have := ih hp.2.2
@@ -132,7 +142,7 @@ theorem bind {p : Prog α} {f : α → Prog β} {n m : ℕ} {Q : α → Prop} {R
   | query i ps k ih =>
     refine ⟨by have := hp.1; omega, fun r ↦ ?_⟩
     have := ih r (hp.2 r)
-    rwa [show n - ps.length * (1 + height) + m = n + m - ps.length * (1 + height) by
+    rwa [show n - openCost height ps.length + m = n + m - openCost height ps.length by
       have := hp.1; omega] at this
 
 /-- Sequencing in `do` notation. -/
@@ -159,7 +169,7 @@ theorem pure0 (a : α) : Costs height (pure a : Prog α) 0 fun _ ↦ True := tri
 
 theorem readE : Costs height Prog.readE 1 fun _ ↦ True := ⟨le_rfl, fun _ ↦ trivial⟩
 
-theorem sampleE : Costs height Prog.sampleE 1 fun _ ↦ True := ⟨le_rfl, fun _ ↦ trivial⟩
+theorem sampleE : Costs height Prog.sampleE 4 fun _ ↦ True := ⟨le_rfl, fun _ ↦ trivial⟩
 
 /-- `n` reads cost `n`, and return `n` scalars. -/
 theorem readN : ∀ n, Costs height (Prog.readN n) n fun xs ↦ xs.length = n
@@ -172,8 +182,8 @@ theorem readN : ∀ n, Costs height (Prog.readN n) n fun xs ↦ xs.length = n
           simp [hxs])
     exact h.mono (by omega) fun _ h ↦ h
 
-/-- `n` samples cost `n`, and return `n` challenges. -/
-theorem sampleN : ∀ n, Costs height (Prog.sampleN n) n fun xs ↦ xs.length = n
+/-- `n` samples cost `4n`, and return `n` challenges. -/
+theorem sampleN : ∀ n, Costs height (Prog.sampleN n) (4 * n) fun xs ↦ xs.length = n
   | 0 => rfl
   | n + 1 => by
     have h := bind (height := height) sampleE fun x (_ : True) ↦
@@ -183,14 +193,14 @@ theorem sampleN : ∀ n, Costs height (Prog.sampleN n) n fun xs ↦ xs.length = 
           simp [hxs])
     exact h.mono (by omega) fun _ h ↦ h
 
-theorem grindP (bits : ℕ) : Costs height (Prog.grindP bits) 3 fun _ ↦ True :=
+theorem grindP (bits : ℕ) : Costs height (Prog.grindP bits) 5 fun _ ↦ True :=
   ⟨le_rfl, trivial⟩
 
 theorem commitP {ht : ℕ} (w : ℕ) (hht : ht ≤ height) :
     Costs height (Prog.commitP ht w) 2 fun _ ↦ True := ⟨hht, le_rfl, trivial⟩
 
 theorem queryP (i : ℕ) (ps : List ℕ) :
-    Costs height (Prog.queryP i ps) (ps.length * (1 + height)) fun _ ↦ True :=
+    Costs height (Prog.queryP i ps) (openCost height ps.length) fun _ ↦ True :=
   ⟨le_rfl, fun _ ↦ trivial⟩
 
 theorem require (c : Prop) [Decidable c] {n : ℕ} :
@@ -223,11 +233,11 @@ theorem read {k : E → Prog α} {n : ℕ} (h : ∀ x, CostLE height (k x) n) :
   ⟨by omega, fun x ↦ by rw [Nat.add_sub_cancel]; exact h x⟩
 
 theorem sample {k : E → Prog α} {n : ℕ} (h : ∀ c, CostLE height (k c) n) :
-    CostLE height (Prog.sample k) (n + 1) :=
+    CostLE height (Prog.sample k) (n + 4) :=
   ⟨by omega, fun x ↦ by rw [Nat.add_sub_cancel]; exact h x⟩
 
 theorem grind (bits : ℕ) {k : Prog α} {n : ℕ} (h : CostLE height k n) :
-    CostLE height (Prog.grind bits k) (n + 3) := ⟨by omega, by rw [Nat.add_sub_cancel]; exact h⟩
+    CostLE height (Prog.grind bits k) (n + 5) := ⟨by omega, by rw [Nat.add_sub_cancel]; exact h⟩
 
 theorem commit {ht : ℕ} (w : ℕ) {k : Prog α} {n : ℕ} (hht : ht ≤ height)
     (h : CostLE height k n) : CostLE height (Prog.commit ht w k) (n + 2) :=
@@ -235,7 +245,7 @@ theorem commit {ht : ℕ} (w : ℕ) {k : Prog α} {n : ℕ} (hht : ht ≤ height
 
 theorem query (i : ℕ) (ps : List ℕ) {k : List (List K) → Prog α} {n : ℕ}
     (h : ∀ rows, CostLE height (k rows) n) :
-    CostLE height (Prog.query i ps k) (n + ps.length * (1 + height)) :=
+    CostLE height (Prog.query i ps k) (n + openCost height ps.length) :=
   ⟨by omega, fun r ↦ by rw [Nat.add_sub_cancel]; exact h r⟩
 
 theorem ite {c : Prop} [Decidable c] {p q : Prog α} {n : ℕ} (hp : c → CostLE height p n)
@@ -250,10 +260,16 @@ end Prog
 
 section Run
 
-/-- A query to the random oracle, then a continuation of `n` queries, makes `n + 1`. -/
+/-- A query to the hash, then a continuation of `n` queries, makes `n + 1`. -/
 theorem isTotalQueryBound_queryH_bind {β : Type} (x : Bytes)
     {f : Digest → OracleComp HashSpec β} {n : ℕ} (h : ∀ d, IsTotalQueryBound (f d) n) :
     IsTotalQueryBound (queryH x >>= f) (n + 1) :=
+  isTotalQueryBound_query_bind_iff.mpr ⟨by omega, fun d ↦ by simpa using h d⟩
+
+/-- A query to the permutation, then a continuation of `n` queries, makes `n + 1`. -/
+theorem isTotalQueryBound_queryF_bind {β : Type} (s : KState)
+    {f : KState → OracleComp HashSpec β} {n : ℕ} (h : ∀ d, IsTotalQueryBound (f d) n) :
+    IsTotalQueryBound (queryF s >>= f) (n + 1) :=
   isTotalQueryBound_query_bind_iff.mpr ⟨by omega, fun d ↦ by simpa using h d⟩
 
 theorem isTotalQueryBound_pure' {β : Type} (b : β) (n : ℕ) :
@@ -296,94 +312,150 @@ theorem isTotalQueryBound_openAll (root : Digest) (ht w : ℕ) :
         fun _ ↦ isTotalQueryBound_pure' _ 0).mono (by omega)
     · trivial
 
+/-- An absorption followed by a continuation: the continuation runs at the sponge with the
+scalar appended, after one permutation when four scalars wait. -/
+theorem absorb_bind {β : Type} (sp : Sponge) (x : E) (tag : ℕ)
+    (f : Sponge → OracleComp HashSpec β) :
+    (Compile.absorb queryF sp x tag >>= f) =
+      if sp.pending.length = 4 then queryF (duplexInput sp) >>= fun st ↦ f ⟨st, [(x, tag)]⟩
+      else f { sp with pending := sp.pending ++ [(x, tag)] } := by
+  unfold Compile.absorb duplex
+  split
+  · rename_i h4
+    simp only [rateScalars] at h4
+    simp [h4]
+  · rename_i h4
+    simp only [rateScalars] at h4
+    simp [h4]
+
+/-- A squeeze followed by a continuation: one permutation. -/
+theorem squeeze_bind {β : Type} (sp : Sponge) (f : E × Sponge → OracleComp HashSpec β) :
+    (squeeze queryF sp >>= f) = queryF (duplexInput sp) >>= fun st ↦ f (challengeOf st, ⟨st, []⟩) := by
+  unfold squeeze duplex
+  simp
+
+/-- **An absorption's queries.** An absorption costs a quarter: a continuation of cost `n - 1`
+from every sponge, run from the sponge after the absorption, gives cost `n` from the sponge
+before it. -/
+theorem isTotalQueryBound_absorb {β : Type} (sp : Sponge) (hk : sp.pending.length ≤ 4) (x : E)
+    (tag : ℕ) (g : Sponge → OracleComp HashSpec β) (n : ℕ) (hn : 1 ≤ n)
+    (hg : ∀ sp' : Sponge, sp'.pending.length ≤ 4 →
+      IsTotalQueryBound (g sp') ((n - 1 + sp'.pending.length) / 4)) :
+    IsTotalQueryBound (Compile.absorb queryF sp x tag >>= g) ((n + sp.pending.length) / 4) := by
+  rw [absorb_bind]
+  split
+  · rename_i h4
+    refine (isTotalQueryBound_queryF_bind (n := (n - 1 + 1) / 4) _ fun st ↦ ?_).mono ?_
+    · simpa using hg ⟨st, [(x, tag)]⟩ (by simp)
+    · omega
+  · rename_i h4
+    refine (hg _ (by simp; omega)).mono ?_
+    simp only [List.length_append, List.length_singleton]
+    omega
+
 /-- **The compiled run's queries.** A program of cost `n` at `height`, run from a state whose
-roots have height at most `height`, makes at most `n` queries. -/
+roots have height at most `height` and whose sponge has at most four scalars waiting, makes at
+most `(n + k) / 4` queries, `k` the number of waiting scalars. -/
 theorem isTotalQueryBound_run {α : Type} (height : ℕ) :
     ∀ (p : Prog α) (s : St) (n : ℕ) (Q : α → Prop), p.Costs height n Q →
-      (∀ r ∈ s.roots, r.2.1 ≤ height) → IsTotalQueryBound (run queryH p s) n
-  | .ret a, s, n, Q, _, _ => trivial
-  | .fail, s, n, Q, _, _ => trivial
-  | .read k, s, n, Q, hp, hs => by
+      (∀ r ∈ s.roots, r.2.1 ≤ height) → s.sponge.pending.length ≤ 4 →
+      IsTotalQueryBound (run queryH queryF p s) ((n + s.sponge.pending.length) / 4)
+  | .ret a, s, n, Q, _, _, _ => trivial
+  | .fail, s, n, Q, _, _, _ => trivial
+  | .read k, s, n, Q, hp, hs, hk => by
     simp only [run]
     split
     · trivial
-    · rw [show n = (n - 1) + 1 by have := hp.1; omega]
-      exact isTotalQueryBound_queryH_bind _ fun cv ↦
-        isTotalQueryBound_run height _ _ _ Q (hp.2 _) hs
-  | .sample k, s, n, Q, hp, hs => by
+    · rename_i x xs _
+      exact isTotalQueryBound_absorb _ hk _ _ _ n hp.1 fun sp' hsp' ↦
+        isTotalQueryBound_run height (k x) _ (n - 1) Q (hp.2 x) hs hsp'
+  | .sample k, s, n, Q, hp, hs, hk => by
     simp only [run]
-    rw [show n = (n - 1) + 1 by have := hp.1; omega]
-    exact isTotalQueryBound_queryH_bind _ fun cv ↦
-      isTotalQueryBound_run height _ _ _ Q (hp.2 _) hs
-  | .grind bits k, s, n, Q, hp, hs => by
+    rw [squeeze_bind]
+    refine (isTotalQueryBound_queryF_bind (n := (n - 4) / 4) _ fun st ↦ ?_).mono ?_
+    · simpa using isTotalQueryBound_run height (k (challengeOf st))
+        { s with sponge := ⟨st, []⟩ } (n - 4) Q (hp.2 _) hs (by simp)
+    · have := hp.1
+      omega
+  | .grind bits k, s, n, Q, hp, hs, hk => by
     simp only [run]
     split
     · trivial
-    · rw [show n = (((n - 3) + 1) + 1) + 1 by have := hp.1; omega]
-      refine isTotalQueryBound_queryH_bind _ fun base ↦ isTotalQueryBound_queryH_bind _
-        fun d ↦ isTotalQueryBound_queryH_bind _ fun cv ↦ ?_
-      split
-      · exact isTotalQueryBound_run height _ _ _ Q hp.2 hs
-      · trivial
-  | .commit ht w k, s, n, Q, hp, hs => by
+    · rename_i nn xs _
+      have h5 := hp.1
+      refine isTotalQueryBound_absorb _ hk _ _ _ n (by omega) fun sp' hsp' ↦ ?_
+      rw [squeeze_bind]
+      refine (isTotalQueryBound_queryF_bind (n := (n - 5) / 4) _ fun st ↦ ?_).mono ?_
+      · dsimp only
+        split
+        · simpa using isTotalQueryBound_run height k { s with sponge := ⟨st, []⟩, stream := xs }
+            (n - 5) Q hp.2 hs (by simp)
+        · trivial
+      · omega
+  | .commit ht w k, s, n, Q, hp, hs, hk => by
     simp only [run]
     split
-    · rw [show n = ((n - 2) + 1) + 1 by have := hp.2.1; omega]
-      refine isTotalQueryBound_queryH_bind _ fun cv0 ↦ isTotalQueryBound_queryH_bind _
-        fun cv1 ↦ ?_
+    · rename_i x0 x1 xs _
+      have h2 := hp.2.1
+      refine isTotalQueryBound_absorb _ hk _ _ _ n (by omega) fun sp0 hsp0 ↦ ?_
+      refine isTotalQueryBound_absorb _ hsp0 _ _ _ (n - 1) (by omega) fun sp1 hsp1 ↦ ?_
       split
-      · refine isTotalQueryBound_run height _ _ _ Q hp.2.2 ?_
+      · rename_i root _
+        refine (isTotalQueryBound_run height k _ (n - 2) Q hp.2.2 ?_ hsp1).mono
+          (by dsimp only; omega)
         intro r hr
         rcases List.mem_append.mp hr with hr | hr
         · exact hs r hr
         · rw [List.mem_singleton.mp hr]; exact hp.1
       · trivial
     · trivial
-  | .query i ps k, s, n, Q, hp, hs => by
+  | .query i ps k, s, n, Q, hp, hs, hk => by
     simp only [run]
     split
     · trivial
     · rename_i root ht w hroot
       have hht : ht ≤ height := hs _ (List.mem_of_getElem? hroot)
-      rw [show n = ps.length * (1 + height) + (n - ps.length * (1 + height)) by
-        have := hp.1; omega]
+      have hle : Prog.openCost height ps.length ≤ n := hp.1
+      rw [show (n + s.sponge.pending.length) / 4 = ps.length * (1 + height) +
+          (n - Prog.openCost height ps.length + s.sponge.pending.length) / 4 by
+        unfold Prog.openCost at hle ⊢; omega]
       refine isTotalQueryBound_bind ((isTotalQueryBound_openAll root ht w ps s.openings).mono
         (Nat.mul_le_mul_left _ (by omega))) fun o ↦ ?_
       split
-      · exact isTotalQueryBound_run height _ _ _ Q (hp.2 _) hs
+      · exact isTotalQueryBound_run height _ _ _ Q (hp.2 _) hs hk
       · trivial
 
-/-- A program of cost `n`, run on a proof from any seed, makes at most `n` queries. -/
+/-- A program of cost `n`, run on a proof from any seed, makes at most `n / 4` queries. -/
 theorem isTotalQueryBound_runProof {P : Prog Bool} {height n : ℕ} (hP : P.CostLE height n)
-    (seed : Digest) (π : Proof) : IsTotalQueryBound (runProof queryH P seed π) n := by
+    (seed : KState) (π : Proof) : IsTotalQueryBound (runProof queryH queryF P seed π) (n / 4) := by
   unfold runProof
-  rw [← Nat.add_zero n]
-  refine isTotalQueryBound_bind (isTotalQueryBound_run height P _ n _ hP
-    (by intro r hr; simp at hr)) fun o ↦ ?_
+  rw [← Nat.add_zero (n / 4)]
+  refine isTotalQueryBound_bind ((isTotalQueryBound_run height P _ n _ hP
+    (by intro r hr; simp at hr) (by simp)).mono (by simp)) fun o ↦ ?_
   split <;> trivial
 
-/-- The seeding steps make one query each. -/
-theorem isTotalQueryBound_foldlM_seed :
-    ∀ (as : List (Bytes × Bytes)) (d : Digest),
-      IsTotalQueryBound (as.foldlM (fun d a ↦ queryH (Seed.input a d)) d) as.length
-  | [], d => trivial
-  | a :: as, d => by
-    simp only [List.foldlM_cons, List.length_cons]
-    exact isTotalQueryBound_queryH_bind _ fun d' ↦ isTotalQueryBound_foldlM_seed as d'
+/-- The seeding's hash steps make one query each. -/
+theorem isTotalQueryBound_hsRun :
+    ∀ (fs : List (List Digest → Bytes)) (ds : List Digest),
+      IsTotalQueryBound (Seed.hsRun queryH fs ds) fs.length
+  | [], ds => trivial
+  | f :: fs, ds => by
+    simp only [Seed.hsRun, List.length_cons]
+    exact isTotalQueryBound_queryH_bind _ fun d ↦ isTotalQueryBound_hsRun fs _
 
-/-- The seed makes `1 + |σ.steps|` queries. -/
+/-- The seed makes `|σ.hs| + 1` queries. -/
 theorem isTotalQueryBound_seedRun (σ : Seed) :
-    IsTotalQueryBound (σ.run queryH) (1 + σ.steps.length) := by
+    IsTotalQueryBound (σ.run queryH queryF) (σ.hs.length + 1) := by
   unfold Seed.run
-  rw [Nat.add_comm]
-  exact isTotalQueryBound_queryH_bind _ fun d ↦ isTotalQueryBound_foldlM_seed _ d
+  exact isTotalQueryBound_bind (isTotalQueryBound_hsRun _ _) fun ds ↦
+    isTotalQueryBound_queryF_bind (n := 0) _ fun _ ↦ isTotalQueryBound_pure' _ 0
 
 /-- **The query bound of the compiled verifier.** A verifier program of cost `n` at `height`
-makes, seeded by `σ`, at most `1 + |σ.steps| + n` queries to the random oracle on every proof:
+makes, seeded by `σ`, at most `|σ.hs| + 1 + n / 4` queries to the random oracles on every proof:
 the hypothesis `hV` of `romSound`. -/
 theorem isTotalQueryBound_verifierComp {P : Prog Bool} {height n : ℕ} (hP : P.CostLE height n)
     (σ : Seed) (π : Proof) :
-    IsTotalQueryBound (verifierComp σ P π) (1 + σ.steps.length + n) :=
+    IsTotalQueryBound (verifierComp σ P π) (σ.hs.length + 1 + n / 4) :=
   isTotalQueryBound_bind (isTotalQueryBound_seedRun σ) fun seed ↦
     isTotalQueryBound_runProof hP seed π
 

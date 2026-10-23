@@ -1,5 +1,4 @@
 import LeanVM.Protocol.Spine.Toy
-import LeanVM.Protocol.Spine.Compose
 import LeanVM.Protocol.PublicInput
 import LeanVM.Protocol.ToArkLib.Refinement
 import LeanVM.Protocol.ToArkLib.Typed.PassThrough
@@ -11,12 +10,11 @@ import LeanVM.Protocol.ToArkLib.Typed.PassThrough
 a stack with one cell changed (the public line on either of its two cells), and balance is a
 multiset equality (a stack a field-summed balance would accept is rejected). The instance's
 closed forms on the toy: one sumcheck table of height 2 and width 3, one constraint, two push
-leaves, no boundary column, four pooled claims. The slots: the protocol's tree opens with the
-stack as an oracle message, the errors along every path are bounded on the toy, and the numeric
-bound on the whole protocol's error. The composition: the commitment's extractor reads the stack
-back; the public-input phase fills its slot, so the master theorems have a bundle with a real
-phase in it; a pass-through that keeps the statement is knowledge sound at any seam; a refinement
-transports an extracted witness slot. A plain file, so `#guard` evaluates the compiled decision
+leaves, no boundary column, four pooled claims. The slots: the bus phase's errors are bounded on
+the toy; the public-input phase fills its slot; a pass-through that keeps the statement is
+knowledge sound at any seam; a refinement transports an extracted witness slot. (The typed
+composition of the phases, `Spine.Compose`, went with Flock: its five-phase bundle had a Flock
+slot, and the Keccak reduction has no typed phase.) A plain file, so `#guard` evaluates the compiled decision
 procedures and the kernel computes degrees.
 -/
 
@@ -92,7 +90,7 @@ def badBalanceSum : Column 3 := ⟨#v[0, 0, 1, 1, 1, 0, 0, 0]⟩
 #guard ((toy.tuples badBalanceSum .push).map fun t ↦ t.get 1).sum =
   ((toy.tuples badBalanceSum .pull).map fun t ↦ t.get 1).sum
 
--- The toy has no Flock region, so its Flock predicate holds of every stack.
+-- The toy has no Keccak region, so its Keccak predicate holds of every stack.
 #guard toy.aux badBalanceSum
 
 -- The layout reads the three slices, through the lift alone.
@@ -119,53 +117,19 @@ example : toy.B = 1 := by decide
 -- Two push leaves (the flush on two rows), no pushing boundary block: leaf stacks of height 2.
 example : toy.pushLeaves = 2 := by decide
 example : toy.μBus = 1 := by decide
--- No committed boundary column; three table columns; one public line; no Flock claim.
+-- No committed boundary column; three table columns; one public line.
 example : toy.boundaryColumns = [] := by decide
 example : toy.tableColumns = 3 := by decide
-example : toy.poolSize = 4 := by decide
+example : toy.pubClaims = 4 := by decide
 
 /-! ## The slots -/
-
-/-- The protocol's tree opens with the stack as an oracle message, before the five phases. -/
-example : (piopSlot toy).tree = .oracle (Column 3) fun _ ↦ (phasesSlot toy).tree := rfl
-
-/-- The opening's slot is one challenge, at error `J - 1 = 3` over `|E|` on the toy. -/
-example : (openingErrors toy).1 = overE 3 := rfl
 
 /-- The bus phase's errors on the toy: `4 · 2` on `(α, β)` and the binary layer's `2 + 1`. -/
 example : Errors.Bounded (busSlot toy).tree (busSlot toy).roles (busErrors toy)
     (overE (4 * 2 ^ 1 + ((1 + 1) * 2 + 2 * 1 * 1 + 3 * 1 + 3))) :=
   busErrors_bounded toy
 
-/-- The toy has no Flock region: its Flock slot has no error. -/
-example : Errors.Bounded (flockPhaseSlot toy).tree (flockPhaseSlot toy).roles (flockErrors toy)
-    0 :=
-  doneErrors_bounded
-
-/-- The toy meets the hypotheses of the bound on the protocol's error. -/
-example : Errors.Bounded (piopSlot toy).tree (piopSlot toy).roles (piopErrors toy)
-    (overE (2 ^ 32 + 2 ^ 31 + 2 ^ 20)) :=
-  piopErrors_bounded toy (by decide) (by decide) (by decide) (fun _ h ↦ by cases h) (by decide)
-
-/-- The bound of `piopErrors_bounded`, with `|E| = 2^192`, is below `2^{-159}`. -/
-example : overE (2 ^ 32 + 2 ^ 31 + 2 ^ 20) < 1 / 2 ^ 159 := by
-  rw [overE, card_E]
-  norm_num
-
-/-! ## The composition -/
-
-/-- The commitment's step of the whole protocol's extractor reads the stack off the message,
-whatever the phases' extractors. -/
-example (P : Phases toy) (S : P.Security) (s : K) (q : Column 3) :
-    ((piopExtractor P S s) q).2.1 () = q := rfl
-
-/-- The stack the whole protocol's extractor returns is the committed message, at every instance.
--/
-example (I : M3Instance) (P : Phases I) (S : P.Security) (s : I.Stmt)
-    (path : (piopSlot I).tree.ExecutionPath)
-    (w : ((piopExtractor P S s).terminalState path).Witness) :
-    (piopExtractor P S s).extractWitness path w = path.1 :=
-  piopExtractedStack_eq P S s path w
+/-! ## The seams -/
 
 /-- The public-input phase fills its slot: its two halves typecheck against the spine's seams
 and at the slot's errors. -/
@@ -174,33 +138,6 @@ example : Typed.Complete (PublicInput.phase toy) (Seam.table toy) (Seam.pub toy)
 
 example : Typed.Security (PublicInput.phase toy) (Seam.table toy) (Seam.pub toy) pubErrors :=
   PublicInput.security toy
-
-/-- A bundle whose public-input phase is the built one has both master theorems, given the four
-other phases' proofs: the slots line up. -/
-example (P : Phases toy) (C : P.Complete) (initial : PFunctor)
-    (impl : QueryImpl (OracleSpec.ofPFunctor initial) Id) (input : K) (q : Column 3)
-    (h : ((input, fun i ↦ i.elim0), q) ∈ M3HonestRel toy) :
-    Pr{let x ← (leanVmPiop P initial).execute impl input q}[x.2.2 = some ()] = 1 :=
-  piop_perfectCompleteness P C initial impl input q h
-
-example (P : Phases toy) (S : P.Security) (initial : PFunctor)
-    (impl : QueryImpl (OracleSpec.ofPFunctor initial) Id) (s : K) :
-    ∃ cert : KnowledgeCertificate (piopSlot toy).tree (piopSlot toy).roles
-        ⟨Column 3, M3Holds toy s⟩,
-      cert.extractor = piopExtractor P S s ∧
-      cert.challenges = schedule (piopSlot toy).tree (piopSlot toy).roles (piopSlot toy).samplers
-        (piopErrors toy) ∧
-      SamplesChallenges unifSpec (QueryImpl.id' unifSpec) (piopSlot toy).tree (piopSlot toy).roles
-        (piopSlot toy).oracles initial impl _ (leanVmVerifier P initial s) cert.challenges :=
-  piop_knowledgeSoundness P S initial impl s
-
-/-- A false acceptance has a bad challenge on its path, at every instance. -/
-example (I : M3Instance) (P : Phases I) (S : P.Security) (s : I.Stmt)
-    (path : (piopSlot I).tree.ExecutionPath) (hacc : piopVerdict P s path = some ())
-    (hbad : ¬ M3Holds I s path.1) :
-    RoundExtractor.BadChallengeOnPath (piopExtractor P S s) (piopSlot I).roles path
-      (((piopTerminal P S s).witnessEquiv path).symm ()) :=
-  piop_badChallenge P S s path hacc hbad
 
 /-- A pass-through that keeps the statement is knowledge sound at any seam, at no error: the
 identity at the public-input seam. -/

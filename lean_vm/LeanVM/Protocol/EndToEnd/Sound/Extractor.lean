@@ -22,8 +22,9 @@ verifier's first two steps and picks a candidate whose memory image runs validly
 extractor `extractStack` reads it off the extracted history of the whole run and picks a
 candidate satisfying the leanISA relation. The bridges:
 
-* `xrun_bind`, `run_of_xrun`, `xrun_rootsInv`: the extracted run of a sequence is the runs of its
-  parts, an extracted run is a run, and the roots of a run are its history's commitments.
+* `xrun_bind`, `run_id_of_xrun`, `xrun_rootsInv`: the extracted run of a sequence is the runs of
+  its parts, an extracted run of reads and commitments is a run with any hash and permutation from
+  any sponge, and the roots of a run are its history's commitments.
 * `commitment_eq`: on an accepted proof, the specification's commitment is the layout of the
   announced sizes, the announced rate and the first word of the extracted history.
 * `thrOf_eq_johnsonThreshold`: the specification's threshold is level 0's, `thrOf`.
@@ -31,7 +32,11 @@ candidate satisfying the leanISA relation. The bridges:
   the proof's candidates are the specification's.
 * `haltingRun_imageOf`: the specification's memory image is the witness's (`imageOf`).
 * `extractor_of_extracted`: **when the proof's extractor succeeds on an accepted proof, the
-  specification's returns a valid execution.**
+  specification's, reading the Keccak-256 answers of a prefix of the log, returns a valid
+  execution**, provided no entry past the prefix answers the announced root.
+* `logged2`, `prEvent_logged2_root_le`: the experiment in two stages, the adversary's log then the
+  verifier's, and the probability that a fresh hash answer of the verifier is the announced root,
+  at most one `2^-256` per verifier query.
 -/
 
 namespace LeanVM.Protocol.EndToEnd.Sound
@@ -40,63 +45,60 @@ open LeanVM.Parameters LeanVM.Semantics LeanVM.Arithmetization LeanVM.Protocol
 open LeanVM.Protocol.Compile LeanVM.Protocol.Compile.Rom LeanVM.Protocol.Verifier
 open LeanVM.Protocol.LeanIsa LeanVM.Protocol.Whir LeanVM.Protocol.EndToEnd.Front
 open LeanVM.Protocol.EndToEnd.Complete (publicDigest)
-open LeanVM.Protocol.Blake2sHash LeanVM.Protocol.Rom
+open LeanVM.Protocol.KeccakHash LeanVM.Protocol.Rom
 open OracleComp OracleSpec
 open scoped ENNReal
 
 @[expose] public section
 
-/- The enumeration of `Digest` must never be unfolded by unification. -/
-attribute [local irreducible] instFintypeDigest
+/- The enumerations of `Digest` and `KState` must never be unfolded by unification. -/
+attribute [local irreducible] instFintypeDigest instFintypeKState
 
 /-! ## Extracted runs -/
 
 section XRun
 
-variable (H : Bytes → Option Digest)
+variable (H : Bytes → Option Digest) (F : KState → Option KState)
 
 /-- **The extracted run of a sequence** is the extracted run of its first part, then of the
 second from where the first stopped. -/
 theorem xrun_bind {α β : Type} (f : α → Prog β) :
     ∀ (p : Prog α) (s : St) (h : List Ev),
-      xrun H (p.bind f) s h = (xrun H p s h).bind fun r ↦ xrun H (f r.1) r.2.1 r.2.2
+      xrun H F (p.bind f) s h = (xrun H F p s h).bind fun r ↦ xrun H F (f r.1) r.2.1 r.2.2
   | .ret a, s, h => rfl
   | .fail, s, h => rfl
   | .read k, s, h => by
     simp only [Prog.bind, xrun]
     split
     · rfl
-    · rcases absorbBlock H s.cv _ with _ | cv
+    · rcases Compile.absorb (m := Option) F s.sponge _ _ with _ | sp
       · rfl
       · exact xrun_bind f _ _ _
   | .sample k, s, h => by
     simp only [Prog.bind, xrun]
-    rcases absorbBlock H s.cv _ with _ | cv
+    rcases squeeze (m := Option) F s.sponge with _ | r
     · rfl
     · exact xrun_bind f _ _ _
   | .grind bits k, s, h => by
     simp only [Prog.bind, xrun]
     split
     · rfl
-    · rcases absorbBlock H s.cv _ with _ | base
+    · rcases Compile.absorb (m := Option) F s.sponge _ _ with _ | sp
       · rfl
       · simp only [Option.bind_some]
-        rcases absorbBlock H base _ with _ | d
+        rcases squeeze (m := Option) F sp with _ | r
         · rfl
         · simp only [Option.bind_some]
-          rcases absorbBlock H s.cv _ with _ | cv
+          split
+          · exact xrun_bind f _ _ _
           · rfl
-          · simp only [Option.bind_some]
-            split
-            · exact xrun_bind f _ _ _
-            · rfl
   | .commit height width k, s, h => by
     simp only [Prog.bind, xrun]
     split
-    · rcases absorbBlock H s.cv _ with _ | cv0
+    · rcases Compile.absorb (m := Option) F s.sponge _ _ with _ | sp0
       · rfl
       · simp only [Option.bind_some]
-        rcases absorbBlock H cv0 _ with _ | cv1
+        rcases Compile.absorb (m := Option) F sp0 _ _ with _ | sp1
         · rfl
         · simp only [Option.bind_some]
           split
@@ -115,39 +117,45 @@ theorem xrun_bind {α β : Type} (f : α → Prog β) :
 def ReadsCommits (l : List Ev) : Prop :=
   ∀ e ∈ l, (∃ x, e = .read x) ∨ ∃ ht w W, e = .commit ht w W
 
-/-- **A run of reads and commitments does not depend on the hash**: an extracted run whose
-events are reads and commitments is a run with any hash `H'` from any chain state, reaching the
-same value and state up to the chain state. -/
-theorem run_id_of_xrun (H' : Bytes → Digest) {α : Type} :
+/-- The run of an absorption with a total hash and permutation, at `Id`. -/
+theorem absorb_id (F' : KState → KState) (sp : Sponge) (x : E) (tag : ℕ) :
+    ∃ sp' : Sponge, Compile.absorb (m := Id) F' sp x tag = sp' := ⟨_, rfl⟩
+
+/-- **A run of reads and commitments does not depend on the hash and the permutation**: an
+extracted run whose events are reads and commitments is a run with any hash `H'` and permutation
+`F'` from any sponge, reaching the same value and state up to the sponge. -/
+theorem run_id_of_xrun (H' : Bytes → Digest) (F' : KState → KState) {α : Type} :
     ∀ (p : Prog α) (s : St) (h l : List Ev) {a : α} {s' : St},
-      xrun H p s h = some (a, s', h ++ l) → ReadsCommits l → ∀ cv : Digest,
-        ∃ cv', Id.run (Compile.run H' p { s with cv := cv }) = some (a, { s' with cv := cv' })
-  | .ret a, s, h, l, _, _, hr, _, cv => by
+      xrun H F p s h = some (a, s', h ++ l) → ReadsCommits l → ∀ sp : Sponge,
+        ∃ sp', Id.run (Compile.run H' F' p { s with sponge := sp }) =
+          some (a, { s' with sponge := sp' })
+  | .ret a, s, h, l, _, _, hr, _, sp => by
     simp only [xrun, Option.some.injEq, Prod.mk.injEq] at hr
     obtain ⟨rfl, rfl, -⟩ := hr
-    exact ⟨cv, rfl⟩
+    exact ⟨sp, rfl⟩
   | .fail, s, h, l, _, _, hr, _, _ => by simp [xrun] at hr
-  | .read k, s, h, l, _, _, hr, hrc, cv => by
+  | .read k, s, h, l, _, _, hr, hrc, sp => by
     simp only [xrun] at hr
     split at hr
     · simp at hr
     · rename_i x xs hs
       simp only [Option.bind_eq_some_iff] at hr
-      obtain ⟨cv0, -, hr⟩ := hr
-      obtain ⟨l', hl'⟩ := xrun_prefix H _ _ _ hr
+      obtain ⟨sp0, -, hr⟩ := hr
+      obtain ⟨l', hl'⟩ := xrun_prefix H F _ _ _ hr
       have hl : l = Ev.read x :: l' := by simpa using hl'.symm
       subst hl
       rw [← hl'] at hr
-      obtain ⟨cv', hrun⟩ := run_id_of_xrun H' _ _ _ l' hr
-        (fun e he ↦ hrc e (List.mem_cons_of_mem _ he)) (H' (digestBytes cv ++ Compile.blockOf x 1))
-      refine ⟨cv', ?_⟩
+      obtain ⟨sp', hrun⟩ := run_id_of_xrun H' F' _ _ _ l' hr
+        (fun e he ↦ hrc e (List.mem_cons_of_mem _ he))
+        (Compile.absorb (m := Id) F' sp x dsObserve)
+      refine ⟨sp', ?_⟩
       simp only [Compile.run, hs]
       exact hrun
   | .sample k, s, h, l, _, _, hr, hrc, _ => by
     simp only [xrun, Option.bind_eq_some_iff] at hr
-    obtain ⟨cv0, -, hr⟩ := hr
-    obtain ⟨l', hl'⟩ := xrun_prefix H _ _ _ hr
-    have hl : l = Ev.sample (challengeOf cv0) :: l' := by simpa using hl'.symm
+    obtain ⟨r, -, hr⟩ := hr
+    obtain ⟨l', hl'⟩ := xrun_prefix H F _ _ _ hr
+    have hl : l = Ev.sample r.1 :: l' := by simpa using hl'.symm
     subst hl
     rcases hrc _ List.mem_cons_self with ⟨x, hx⟩ | ⟨ht, w, W, hx⟩ <;> cases hx
   | .grind bits k, s, h, l, _, _, hr, hrc, _ => by
@@ -155,30 +163,31 @@ theorem run_id_of_xrun (H' : Bytes → Digest) {α : Type} :
     split at hr
     · simp at hr
     · simp only [Option.bind_eq_some_iff] at hr
-      obtain ⟨base, hb, d, hd, cv0, hcv, hr⟩ := hr
+      obtain ⟨sp0, -, r, -, hr⟩ := hr
       split at hr
-      · obtain ⟨l', hl'⟩ := xrun_prefix H _ _ _ hr
+      · obtain ⟨l', hl'⟩ := xrun_prefix H F _ _ _ hr
         have hl : l = Ev.grind bits :: l' := by simpa using hl'.symm
         subst hl
         rcases hrc _ List.mem_cons_self with ⟨x, hx⟩ | ⟨ht, w, W, hx⟩ <;> cases hx
       · simp at hr
-  | .commit height width k, s, h, l, _, _, hr, hrc, cv => by
+  | .commit height width k, s, h, l, _, _, hr, hrc, sp => by
     simp only [xrun] at hr
     split at hr
     · rename_i x0 x1 xs hs
       simp only [Option.bind_eq_some_iff] at hr
-      obtain ⟨cv0, -, cv1, -, hr⟩ := hr
+      obtain ⟨sp0, -, sp1, -, hr⟩ := hr
       split at hr
       · rename_i root hroot
-        obtain ⟨l', hl'⟩ := xrun_prefix H _ _ _ hr
+        obtain ⟨l', hl'⟩ := xrun_prefix H F _ _ _ hr
         have hl : l = Ev.commit height width (extract H root height width) :: l' := by
           simpa using hl'.symm
         subst hl
         rw [← hl'] at hr
-        obtain ⟨cv', hrun⟩ := run_id_of_xrun H' _ _ _ l' hr
+        obtain ⟨sp', hrun⟩ := run_id_of_xrun H' F' _ _ _ l' hr
           (fun e he ↦ hrc e (List.mem_cons_of_mem _ he))
-          (H' (digestBytes (H' (digestBytes cv ++ Compile.blockOf x0 1)) ++ Compile.blockOf x1 1))
-        refine ⟨cv', ?_⟩
+          (Compile.absorb (m := Id) F' (Compile.absorb (m := Id) F' sp x0 dsObserve) x1
+            dsObserve)
+        refine ⟨sp', ?_⟩
         simp only [Compile.run, hs, hroot]
         exact hrun
       · simp at hr
@@ -189,7 +198,7 @@ theorem run_id_of_xrun (H' : Bytes → Digest) {α : Type} :
     · simp at hr
     · split at hr
       · rename_i rows rest _
-        obtain ⟨l', hl'⟩ := xrun_prefix H _ _ _ hr
+        obtain ⟨l', hl'⟩ := xrun_prefix H F _ _ _ hr
         have hl : l = Ev.query rows :: l' := by simpa using hl'.symm
         subst hl
         rcases hrc _ List.mem_cons_self with ⟨x, hx⟩ | ⟨ht, w, W, hx⟩ <;> cases hx
@@ -199,7 +208,7 @@ theorem run_id_of_xrun (H' : Bytes → Digest) {α : Type} :
 the roots. -/
 theorem xrun_rootsInv {α : Type} :
     ∀ (p : Prog α) (s : St) (h : List Ev) {a : α} {s' : St} {h' : List Ev},
-      RootsInv H s h → xrun H p s h = some (a, s', h') → RootsInv H s' h'
+      RootsInv H s h → xrun H F p s h = some (a, s', h') → RootsInv H s' h'
   | .ret a, s, h, _, _, _, hR, hr => by
     simp only [xrun, Option.some.injEq, Prod.mk.injEq] at hr
     obtain ⟨-, rfl, rfl⟩ := hr
@@ -211,31 +220,31 @@ theorem xrun_rootsInv {α : Type} :
     · simp at hr
     · rename_i x xs hs
       simp only [Option.bind_eq_some_iff] at hr
-      obtain ⟨cv, -, hr⟩ := hr
-      exact xrun_rootsInv _ _ _ (rootsInv_append_read hR x cv xs) hr
+      obtain ⟨sp, -, hr⟩ := hr
+      exact xrun_rootsInv _ _ _ (rootsInv_append_read hR x sp xs) hr
   | .sample k, s, h, _, _, _, hR, hr => by
     simp only [xrun, Option.bind_eq_some_iff] at hr
-    obtain ⟨cv, -, hr⟩ := hr
-    exact xrun_rootsInv _ _ _ (rootsInv_append_sample hR _ cv) hr
+    obtain ⟨r, -, hr⟩ := hr
+    exact xrun_rootsInv _ _ _ (rootsInv_append_sample hR _ r.2) hr
   | .grind bits k, s, h, _, _, _, hR, hr => by
     simp only [xrun] at hr
     split at hr
     · simp at hr
     · rename_i n xs hs
       simp only [Option.bind_eq_some_iff] at hr
-      obtain ⟨base, hb, d, hd, cv, hcv, hr⟩ := hr
+      obtain ⟨sp, -, r, -, hr⟩ := hr
       split at hr
-      · exact xrun_rootsInv _ _ _ (rootsInv_append_grind hR bits cv xs) hr
+      · exact xrun_rootsInv _ _ _ (rootsInv_append_grind hR bits r.2 xs) hr
       · simp at hr
   | .commit height width k, s, h, _, _, _, hR, hr => by
     simp only [xrun] at hr
     split at hr
     · rename_i x0 x1 xs hs
       simp only [Option.bind_eq_some_iff] at hr
-      obtain ⟨cv0, h0, cv1, h1, hr⟩ := hr
+      obtain ⟨sp0, -, sp1, -, hr⟩ := hr
       split at hr
       · rename_i root hroot
-        exact xrun_rootsInv _ _ _ (rootsInv_append_commit hR root height width cv1 xs) hr
+        exact xrun_rootsInv _ _ _ (rootsInv_append_commit hR root height width sp1 xs) hr
       · simp at hr
     · simp at hr
   | .query i ps k, s, h, _, _, _, hR, hr => by
@@ -266,27 +275,30 @@ def announcedRoot (prog : Program) (π : Proof) : Option Digest :=
 
 /-- **The specification's commitment is the extracted history's**: on an accepted proof, the
 verifier's first two steps announce the layout of the history's announced sizes and its rate, and
-a root whose word under the answers is the history's first word; under any answers the
+a root whose word under the hash answers is the history's first word; under any answers the
 specification's commitment is that layout, rate and root's word. The sizes are good and the
 ladder has a first level. -/
 theorem commitment_eq {c : HashSpec.QueryCache} {π : Proof}
-    (hv : Rom.verify (fun x ↦ c x) (leanVmSeed (bytecodeWords prog) (publicDigest input))
+    (hv : Rom.verify (fun x ↦ c (.inl x)) (fun s ↦ c (.inr s))
+      (leanVmSeed (bytecodeWords prog) (publicDigest input))
       (leanVmProgram (bytecodeWords prog) (publicDigest input)) π = some true)
     {s : Sizes} {ρ : ℕ} {W : Word}
-    (hann : announced prog (extractedHistory (fun x ↦ c x)
+    (hann : announced prog (extractedHistory (fun x ↦ c (.inl x)) (fun s ↦ c (.inr s))
       (leanVmSeed (bytecodeWords prog) (publicDigest input))
       (leanVmProgram (bytecodeWords prog) (publicDigest input)) π) = some (s, ρ))
-    (hfw : firstWord (extractedHistory (fun x ↦ c x)
+    (hfw : firstWord (extractedHistory (fun x ↦ c (.inl x)) (fun s ↦ c (.inr s))
       (leanVmSeed (bytecodeWords prog) (publicDigest input))
       (leanVmProgram (bytecodeWords prog) (publicDigest input)) π) = some W) :
-    (∃ root ht w, announcedRoot prog π = some root ∧ W = extract (fun x ↦ c x) root ht w ∧
+    (∃ root ht w, announcedRoot prog π = some root ∧
+      W = extract (fun x ↦ c (.inl x)) root ht w ∧
       ∀ answers : Bytes → Option Digest,
         Extraction.commitment (bytecodeWords prog) answers π =
           some (verifierLayout prog s, ρ, Extraction.committedWord answers root ht w)) ∧
       Good prog (verifierLayout prog s, ρ) s ∧
       ∃ level rest, deriveConfig (verifierLayout prog s).stackLog ρ = some (level :: rest) := by
-  set H : Bytes → Option Digest := fun x ↦ c x
-  set hist := extractedHistory H (leanVmSeed (bytecodeWords prog) (publicDigest input))
+  set H : Bytes → Option Digest := fun x ↦ c (.inl x)
+  set F : KState → Option KState := fun s ↦ c (.inr s)
+  set hist := extractedHistory H F (leanVmSeed (bytecodeWords prog) (publicDigest input))
     (leanVmProgram (bytecodeWords prog) (publicDigest input)) π with hhist
   obtain ⟨seed, sf, hseed, hx⟩ := xrun_of_verify hv
   rw [← hhist] at hx
@@ -305,19 +317,19 @@ theorem commitment_eq {c : HashSpec.QueryCache} {π : Proof}
   simp only at hx3
   rw [hg, xrun_bind, Option.bind_eq_some_iff] at hx3
   obtain ⟨⟨v, s2, h2⟩, hx2, hx4⟩ := hx3
-  have hpre2 : h2 <+: hist := xrun_prefix H _ _ _ hx4
+  have hpre2 : h2 <+: hist := xrun_prefix H F _ _ _ hx4
   -- The histories of the two steps.
-  obtain ⟨l₁, hl₁, ha, -⟩ := xrun_after H _ _ _ hx1
+  obtain ⟨l₁, hl₁, ha, -⟩ := xrun_after H F _ _ _ hx1
   simp only [List.nil_append] at hl₁
   subst h1
-  obtain ⟨l₂, rfl, hc, -⟩ := xrun_after H _ _ _ hx2
+  obtain ⟨l₂, rfl, hc, -⟩ := xrun_after H F _ _ _ hx2
   obtain ⟨level, rest, W', hcfg, rfl⟩ := commitStack_after_ret hc
   obtain ⟨s', hgood⟩ := good_of_readSizes prog ha
   obtain ⟨s'', -, -, -, hreads⟩ := readSizes_ret_sizes prog ha
   -- The roots.
-  have hR0 : RootsInv H ⟨seed, π.stream, π.openings, []⟩ [] := rfl
-  have hR1 := xrun_rootsInv H _ _ _ hR0 hx1
-  have hR2 := xrun_rootsInv H _ _ _ hR1 hx2
+  have hR0 : RootsInv H ⟨⟨seed, []⟩, π.stream, π.openings, []⟩ [] := rfl
+  have hR1 := xrun_rootsInv H F _ _ _ hR0 hx1
+  have hR2 := xrun_rootsInv H F _ _ _ hR1 hx2
   have hc1 : commits l₁ = [] := by rw [hreads]; exact commits_map_read _
   rw [RootsInv, hc1] at hR1
   have hroots1 : s1.roots = [] := List.map_eq_nil_iff.mp hR1.symm
@@ -342,11 +354,11 @@ theorem commitment_eq {c : HashSpec.QueryCache} {π : Proof}
   rw [← hm, firstWord_append hfw2 m, Option.some.injEq] at hfw
   subst hfw
   -- The specification's run of the two steps.
-  have hxa : xrun H (Extraction.announceSizesAndRoot (bytecodeWords prog))
-      ⟨seed, π.stream, π.openings, []⟩ [] = some (a, s2, [] ++ (l₁ ++ [Ev.commit
+  have hxa : xrun H F (Extraction.announceSizesAndRoot (bytecodeWords prog))
+      ⟨⟨seed, []⟩, π.stream, π.openings, []⟩ [] = some (a, s2, [] ++ (l₁ ++ [Ev.commit
         (levelShape a.1.stackLog level (2 ^ level.fold)).1
         (levelShape a.1.stackLog level (2 ^ level.fold)).2 W'])) := by
-    change xrun H ((readSizes (bytecodeWords prog)).bind fun a ↦
+    change xrun H F ((readSizes (bytecodeWords prog)).bind fun a ↦
       (commitStack a.1.stackLog a.2).bind fun _ ↦ .ret a) _ _ = _
     rw [xrun_bind, hx1, Option.bind_some]
     simp only
@@ -361,8 +373,9 @@ theorem commitment_eq {c : HashSpec.QueryCache} {π : Proof}
       exact Or.inl ⟨x, rfl⟩
     · rw [List.mem_singleton] at he
       exact Or.inr ⟨_, _, _, he⟩
-  obtain ⟨cv', hrun⟩ := run_id_of_xrun H (fun _ ↦ default) _ _ _ _ hxa hrc default
-  have haf : Extraction.afterRoot (bytecodeWords prog) π = some (a, { s2 with cv := cv' }) :=
+  obtain ⟨sp', hrun⟩ := run_id_of_xrun H F (fun _ ↦ default) (fun _ ↦ default) _ _ _ _ hxa hrc
+    ⟨default, []⟩
+  have haf : Extraction.afterRoot (bytecodeWords prog) π = some (a, { s2 with sponge := sp' }) :=
     hrun
   refine ⟨⟨r.1, r.2.1, r.2.2, ?_, hW', fun answers ↦ ?_⟩, by rw [← hgood.1]; exact hgood,
     by rw [← hgood.1]; exact ⟨level, rest, hcfg⟩⟩
@@ -513,30 +526,30 @@ theorem getD_eq {n : ℕ} (v : Vector K n) {i j : ℕ} (hij : i = j) (h : i < n)
   simp [Vector.getD, h]
 
 /-- A cell of a memory column is the stack's cell at the column's placement. -/
-theorem cell_memCol (F : FlockSpec) (s : Sizes) (q : Column (leanIsaμ prog s)) (j : Fin 4)
+theorem cell_memCol (s : Sizes) (q : Column (leanIsaμ prog s)) (j : Fin 4)
     (x : Fin (2 ^ s.logMem)) :
-    cell F prog s q (memCol j) x =
-      q.values.getD (((verifierLayout prog s).placements.getD j default).index + x) 0 := by
-  have hp := placement_committed prog s (memCol j) (not_isLimb_memCol j)
+    cell prog s q (memCol j) x =
+      q.values.getD (((verifierLayout prog s).placement j).index + x) 0 := by
+  have hp := placement_committed prog s (memCol j) (not_isLane_memCol j)
   rw [pyCol_memCol] at hp
   rw [hp]
-  have h := column_committed F prog s q (memCol j) (not_isLimb_memCol j) x
+  have h := column_committed prog s q (memCol j) (not_isLane_memCol j) x
   exact h.trans (getD_eq _ (Nat.add_comm _ _) _)
 
 /-- **The specification's memory image is the witness's**: their halting runs agree. -/
-theorem haltingRun_imageOf (F : FlockSpec) (s : Sizes) (hs : s.logMem ≤ maxLogMem)
+theorem haltingRun_imageOf (s : Sizes) (hs : s.logMem ≤ maxLogMem)
     (q : Column (leanIsaμ prog s)) :
-    Extraction.haltingRun prog (imageOf (witnessOf F prog s q).data).2 =
+    Extraction.haltingRun prog (imageOf (witnessOf prog s q).data).2 =
       Extraction.haltingRun prog
         (Extraction.memoryImage (verifierLayout prog s) (q.values : Vector K (2 ^ _))) := by
-  have hrows : memRows (witnessOf F prog s q).data = imageRows F prog s q := by
+  have hrows : memRows (witnessOf prog s q).data = imageRows prog s q := by
     simp [witnessOf, memRows, dataOf]
-  have hκ : (imageOf (witnessOf F prog s q).data).1 = s.logMem := by
+  have hκ : (imageOf (witnessOf prog s q).data).1 = s.logMem := by
     simp only [imageOf, hrows, imageRows, Array.size_ofFn, Nat.log_pow (by norm_num : 1 < 2)]
     exact min_eq_left hs
   refine haltingRun_congr _ _ hκ fun i ↦ ?_
   simp only [imageOf, hrows]
-  have hi : (i : ℕ) < (imageRows F prog s q).size := by
+  have hi : (i : ℕ) < (imageRows prog s q).size := by
     rw [imageRows, Array.size_ofFn]; exact hκ ▸ i.isLt
   rw [Array.getElem?_eq_getElem hi, Option.map_some, Option.getD_some]
   simp only [imageRows, Array.getElem_ofFn, Extraction.memoryImage]
@@ -563,130 +576,38 @@ theorem haltingRun_valid {w : Air.Flat.EnsembleWitness (leanIsaEnsemble prog)} {
     subst hh
     exact ⟨_, rfl, hv.1, by dsimp only; convert Nat.find_spec h using 3⟩
 
-/-! ## Words read from a prefix of the log -/
-
-section Prefix
-
-variable {X : Type} {σ : Seeds X} {ℓ : Log} {k : ℕ} {r : Digest}
-
-/-- A node anchored in the first `k` entries of the log: the root `r`, or a chunk of one of their
-inputs. -/
-def Anchored (ℓ : Log) (k : ℕ) (r n : Digest) : Prop :=
-  n = r ∨ ∃ (j : ℕ) (hj : j < ℓ.length), j < k ∧
-    (chunk0 ℓ[j].1 = digestBytes n ∨ chunk1 ℓ[j].1 = digestBytes n)
-
-/-- A node is a chunk of the input of the climb's next step. -/
-theorem nodeInput_chunk (n s : Digest) (q : ℕ) :
-    chunk0 (nodeInput n s q) = digestBytes n ∨ chunk1 (nodeInput n s q) = digestBytes n := by
-  unfold nodeInput
-  split
-  · exact Or.inl (chunk0_append _ _)
-  · exact Or.inr (chunk1_append _ _)
-
-/-- Without failure, and when no entry past the first `k` answers the root, an entry answering an
-anchored node is among the first `k`. -/
-theorem lt_of_anchored (hf : ¬ Fail σ ℓ) (hr : ∀ e ∈ ℓ.drop k, e.2 ≠ r) {n : Digest}
-    (ha : Anchored ℓ k r n) {i : ℕ} (hi : i < ℓ.length) (hn : ℓ[i].2 = n) : i < k := by
-  rcases ha with rfl | ⟨j, hj, hjk, hc⟩
-  · by_contra h
-    refine hr ℓ[i] ?_ hn
-    rw [List.mem_iff_getElem]
-    exact ⟨i - k, by simp; omega, by simp only [List.getElem_drop, Nat.add_sub_cancel' (by omega :
-      k ≤ i)]⟩
-  · rw [← hn] at hc
-    exact (lt_of_chunk hf hi hj hc).trans hjk
-
-/-- The answer at an anchored node is in the first `k` entries. -/
-theorem look_take_of_anchored (hf : ¬ Fail σ ℓ) (hr : ∀ e ∈ ℓ.drop k, e.2 ≠ r) {x : Bytes}
-    {n : Digest} (hx : look ℓ x = some n) (ha : Anchored ℓ k r n) : look (ℓ.take k) x = some n := by
-  obtain ⟨i, hi, hei, hfirst⟩ := (look_eq_some_iff ℓ x n).mp hx
-  exact look_take_of_first hi hei hfirst (lt_of_anchored hf hr ha hi (by rw [hei]))
-
-/-- **A climb to the root reads only the first `k` entries**, without failure and when no later
-entry answers the root; its starting node is anchored in them. -/
-theorem climb_take (hf : ¬ Fail σ ℓ) (hr : ∀ e ∈ ℓ.drop k, e.2 ≠ r) :
-    ∀ (path : List Digest) (n : Digest) (q : ℕ),
-      climb (m := Option) (look ℓ) n q path = some r →
-        climb (m := Option) (look (ℓ.take k)) n q path = some r ∧ Anchored ℓ k r n
-  | [], n, q, h => by
-    simp only [climb, pure, Option.some.injEq] at h
-    subst h
-    exact ⟨rfl, Or.inl rfl⟩
-  | s :: ss, n, q, h => by
-    rw [climb_cons, Option.bind_eq_some_iff] at h
-    obtain ⟨p, hp, hc⟩ := h
-    obtain ⟨hc', hap⟩ := climb_take hf hr ss p (q / 2) hc
-    refine ⟨by rw [climb_cons, look_take_of_anchored hf hr hp hap, Option.bind_some]; exact hc',
-      Or.inr ?_⟩
-    obtain ⟨i, hi, hei, -⟩ := (look_eq_some_iff ℓ _ p).mp hp
-    refine ⟨i, hi, lt_of_anchored hf hr hap hi (by rw [hei]), ?_⟩
-    rw [hei]
-    exact nodeInput_chunk n s q
-
-/-- An accepted opening reads only the first `k` entries. -/
-theorem openOne_take (hf : ¬ Fail σ ℓ) (hr : ∀ e ∈ ℓ.drop k, e.2 ≠ r) {ht w v : ℕ}
-    {o : Opening} (h : openOne (m := Option) (look ℓ) r ht w v o = some true) :
-    openOne (m := Option) (look (ℓ.take k)) r ht w v o = some true := by
-  rw [openOne_eq_some_true_iff] at h ⊢
-  obtain ⟨h1, h2, ld, hld, hc⟩ := h
-  obtain ⟨hc', ha⟩ := climb_take hf hr _ _ _ hc
-  exact ⟨h1, h2, ld, look_take_of_anchored hf hr hld ha, hc'⟩
-
-/-- A climb through a log is a climb through every extension of it. -/
-theorem climb_of_prefix {ℓ ℓ' : Log} (hp : ℓ <+: ℓ') :
-    ∀ (path : List Digest) (n : Digest) (q : ℕ),
-      climb (m := Option) (look ℓ) n q path = some r →
-        climb (m := Option) (look ℓ') n q path = some r
-  | [], n, q, h => h
-  | s :: ss, n, q, h => by
-    rw [climb_cons, Option.bind_eq_some_iff] at h ⊢
-    obtain ⟨p, hp', hc⟩ := h
-    exact ⟨p, look_of_prefix hp hp', climb_of_prefix hp ss p _ hc⟩
-
-/-- An opening accepted through a log is accepted through every extension of it. -/
-theorem openOne_of_prefix {ℓ ℓ' : Log} (hp : ℓ <+: ℓ') {ht w v : ℕ} {o : Opening}
-    (h : openOne (m := Option) (look ℓ) r ht w v o = some true) :
-    openOne (m := Option) (look ℓ') r ht w v o = some true := by
-  rw [openOne_eq_some_true_iff] at h ⊢
-  obtain ⟨h1, h2, ld, hld, hc⟩ := h
-  exact ⟨h1, h2, ld, look_of_prefix hp hld, climb_of_prefix hp _ _ _ hc⟩
-
-/-- **The word read from the first `k` entries is the word read from the whole log**, without
-failure and when no entry past the first `k` answers the root. -/
-theorem committedWord_eq (hf : ¬ Fail σ ℓ) (hr : ∀ e ∈ ℓ.drop k, e.2 ≠ r) (ht w : ℕ) :
-    Extraction.committedWord (look (ℓ.take k)) r ht w = extract (look ℓ) r ht w := by
-  have hH : AnswersInj (look ℓ) := fun x y v hx hy ↦ look_inj hf hx hy
-  funext v
-  by_cases hA : ∃ o : Opening, openOne (m := Option) (look (ℓ.take k)) r ht w v o = some true
-  · have h1 := openOne_of_prefix (List.take_prefix k ℓ) hA.choose_spec
-    have hB : ∃ o : Opening, openOne (m := Option) (look ℓ) r ht w v o = some true := ⟨_, h1⟩
-    simp only [Extraction.committedWord, hA, ↓reduceDIte]
-    calc hA.choose.leaf = extract (look ℓ) r ht w (v % 2 ^ ht) :=
-          (extract_eq_of_openOne hH h1).symm
-      _ = hB.choose.leaf := extract_eq_of_openOne hH hB.choose_spec
-      _ = extract (look ℓ) r ht w v := by simp only [extract, pickLeaf, hB, ↓reduceDIte]
-  · have hB : ¬ ∃ o : Opening, openOne (m := Option) (look ℓ) r ht w v o = some true :=
-      fun ⟨o, ho⟩ ↦ hA ⟨o, openOne_take hf hr ho⟩
-    simp only [Extraction.committedWord, extract, pickLeaf, hA, hB, ↓reduceDIte]
-
-end Prefix
-
 /-! ## The extractor -/
 
+/-- **The word the specification reads from a prefix of the log is the word extracted from the
+whole log**, without failure and when no hash entry past the prefix answers the root. -/
+theorem committedWord_eq {X : Type} {σ : Seeds X} {ℓ : Log} {k : ℕ} {r : Digest}
+    (hf : ¬ Fail σ ℓ) (hr : ∀ x, .inl (x, r) ∉ ℓ.drop k) (ht w : ℕ) :
+    Extraction.committedWord (lookH (ℓ.take k)) r ht w = extract (lookH ℓ) r ht w := by
+  have hbefore : HEntriesBefore ℓ r k := by
+    intro i hi x hei
+    by_contra hik
+    refine hr x ?_
+    rw [List.mem_iff_getElem]
+    exact ⟨i - k, by simp; omega, by
+      simp only [List.getElem_drop, Nat.add_sub_cancel' (by omega : k ≤ i)]; exact hei⟩
+  rw [← extract_take_eq hf hbefore ht w]
+  rfl
+
 /-- **When the proof's extractor succeeds on an accepted proof, the specification's, reading
-the first `k` entries of the log, returns a valid execution**, without failure and when no entry
-past the first `k` answers the announced root: the proof's candidate is a candidate of the
-specification's commitment, whose word is the history's (`committedWord_eq`), and its memory
-image runs to a valid execution (`execution_of_extracted`). -/
+the Keccak-256 answers of the first `k` entries of the log, returns a valid execution**, without
+failure and when no hash entry past the first `k` answers the announced root: the proof's
+candidate is a candidate of the specification's commitment, whose word is the history's
+(`committedWord_eq`), and its memory image runs to a valid execution
+(`execution_of_extracted`). -/
 theorem extractor_of_extracted {X : Type} (σ : Seeds X) {ℓ : Log} {k : ℕ} {π : Proof}
     (hsafe : SentinelSafe prog) (hf : ¬ Fail σ ℓ)
-    (hv : Rom.verify (look ℓ) (leanVmSeed (bytecodeWords prog) (publicDigest input))
+    (hv : Rom.verify (lookH ℓ) (lookF ℓ) (leanVmSeed (bytecodeWords prog) (publicDigest input))
       (leanVmProgram (bytecodeWords prog) (publicDigest input)) π = some true)
-    (hroot : ∀ r, announcedRoot prog π = some r → ∀ e ∈ ℓ.drop k, e.2 ≠ r)
+    (hroot : ∀ r, announcedRoot prog π = some r → ∀ x, .inl (x, r) ∉ ℓ.drop k)
     (hx : Extracted prog input (cacheOf ℓ) π) :
     ∃ t, LeanVM.extractor prog input (cacheOf (ℓ.take k)) π = some t ∧
       ValidExecution prog input t := by
-  obtain ⟨s₀, q₀, hx, -, -⟩ := hx
+  obtain ⟨s₀, q₀, hx, hs₀, hM₀⟩ := hx
   unfold extractStack at hx
   dsimp only at hx
   split at hx
@@ -696,10 +617,9 @@ theorem extractor_of_extracted {X : Type} (σ : Seeds X) {ℓ : Log} {k : ℕ} {
       obtain ⟨⟨root, ht, w, hroot', hW, hcomm⟩, hgood, level, rest, hcfg⟩ :=
         commitment_eq hv hann hfw
       obtain ⟨q, hqc, hM⟩ := hq
-      obtain ⟨t, hrep, htv⟩ := execution_of_extracted Blake2sFlock.blake2sFlockSpec hsafe
-        hgood.2.1 hM
+      obtain ⟨t, hrep, htv⟩ := execution_of_extracted hsafe hgood.2.1 hM
       obtain ⟨t', ht', hv'⟩ := haltingRun_valid hrep htv
-      rw [haltingRun_imageOf _ s hgood.2.1.2.1] at ht'
+      rw [haltingRun_imageOf s hgood.2.1.2.1] at ht'
       have hadm := hgood.2.2.1
       simp only [stackLog_verifierLayout] at hadm hcfg
       have hcand := mem_candidates (A' := Extraction.johnsonThreshold (leanIsaμ prog s) ρ) hqc
@@ -711,10 +631,10 @@ theorem extractor_of_extracted {X : Type} (σ : Seeds X) {ℓ : Log} {k : ℕ} {
               some t :=
         ⟨t', hv', exists_candidate_cast (stackLog_verifierLayout prog s) hcand ht'⟩
       refine ⟨hex.choose, ?_, hex.choose_spec.1⟩
-      have hWk : W = Extraction.committedWord (look (ℓ.take k)) root ht w :=
+      have hWk : W = Extraction.committedWord (lookH (ℓ.take k)) root ht w :=
         hW.trans (committedWord_eq hf (hroot root hroot') ht w).symm
-      have hc' : Extraction.commitment (bytecodeWords prog) (fun x ↦ cacheOf (ℓ.take k) x) π =
-          some (verifierLayout prog s, ρ, W) := by
+      have hc' : Extraction.commitment (bytecodeWords prog)
+          (fun x ↦ cacheOf (ℓ.take k) (.inl x)) π = some (verifierLayout prog s, ρ, W) := by
         rw [hWk]
         exact hcomm _
       simp only [LeanVM.extractor, Extraction.extract]
@@ -723,34 +643,7 @@ theorem extractor_of_extracted {X : Type} (σ : Seeds X) {ℓ : Log} {k : ℕ} {
     · simp at hx
   · simp at hx
 
-/-! ## The random-oracle theorem over the log -/
-
-/-- **The random-oracle theorem for an event of the log that implies doom** on accepted proofs
-without failure: `romSound_of_imp`, with the bad event read off the ordered log rather than the
-cache. -/
-theorem romSound_log {X : Type} (P : Prog Bool) (C : Cert P) (σ : Seeds X)
-    (hroot : ∀ x, RootOk P (σ.root x)) (εmax : ℝ≥0∞)
-    (hε : ∀ h, (2 : ℝ≥0∞)⁻¹ ^ min (grindBits h) 64 * C.ε h ≤ εmax)
-    (A : OracleComp HashSpec (X × Proof)) (QA : ℕ) (hA : IsTotalQueryBound A QA)
-    (QV : ℕ) (hV : ∀ z, IsTotalQueryBound (verifierFam σ P z) QV)
-    (bad : X × Proof → Log → Prop)
-    (hbad : ∀ z ℓ, ¬ Fail σ ℓ →
-      Rom.verify (look ℓ) (σ.seed z.1) (nodeAt P (σ.root z.1)) z.2 = some true →
-        bad z ℓ → Doomed C σ z (cacheOf ℓ)) :
-    Pr{let z ← logExperiment A (verifierFam σ P)}[z.1.2 = true ∧ bad z.1.1 z.2] ≤
-      (QA + QV : ℕ) * (εmax + failBound σ (QA + QV)) := by
-  refine prEvent_logExperiment_le_of_freshStepBelow (QA + QV) ?_ (pot_nil C.D σ P) A
-    (verifierFam σ P) QA QV hA hV le_rfl bad ?_
-  · intro ℓ t hℓ ht
-    refine (step_ineq C hε ℓ t ht).trans (add_le_add le_rfl (add_le_add le_rfl ?_))
-    rw [failBound, card_digest, Nat.cast_pow, Nat.cast_ofNat]
-    refine ENNReal.div_le_div_right ?_ _
-    exact_mod_cast Nat.mul_le_mul_left _ hℓ
-  · intro z hz hacc hb
-    by_cases hf : Fail σ z.2
-    · simp only [pot, hf, ↓reduceIte, le_refl]
-    · have hv := verifyFam_of_mem_support_logExperiment A hz hacc
-      exact final_ineq C hf (hroot _) hv (hbad z.1.1 z.2 hf hv hb)
+/-! ## The experiment in two stages -/
 
 /-- The logged experiment in two stages: the adversary's run from the empty log, with the log it
 leaves, then the verifier's run from that log. -/
@@ -767,55 +660,70 @@ theorem logExperiment_eq_logged2 {α : Type} (A : OracleComp HashSpec α)
   refine bind_congr fun p ↦ ?_
   rw [simulateQ_map, StateT.run_map, Functor.map_map]
 
+/-- The adversary's announced root answered by a hash entry past its log. -/
+def RootAnswered {α : Type} (root : α → Option Digest) (a : α) (ℓ₀ ℓ : Log) : Prop :=
+  ∃ r, root a = some r ∧ ∃ x, .inl (x, r) ∈ ℓ.drop ℓ₀.length
+
 /-- **The verifier rarely answers the announced root afresh**: the probability that a fresh
-answer of the verifier, past the adversary's log, is the root `root` of the adversary's output is
-at most one `2^-256` per verifier query. -/
+hash answer of the verifier, past the adversary's log, is the root `root` of the adversary's
+output is at most one `2^-256` per verifier query. Permutation answers are states, never roots. -/
 theorem prEvent_logged2_root_le {α : Type} (A : OracleComp HashSpec α)
     (V : α → OracleComp HashSpec Bool) (QV : ℕ) (hV : ∀ a, IsTotalQueryBound (V a) QV)
     (root : α → Option Digest) :
-    Pr{let w ← logged2 A V}[¬ w.1.2 <+: w.2.2 ∨
-      ∃ r, root w.1.1 = some r ∧ ∃ e ∈ w.2.2.drop w.1.2.length, e.2 = r] ≤
+    Pr{let w ← logged2 A V}[¬ w.1.2 <+: w.2.2 ∨ RootAnswered root w.1.1 w.1.2 w.2.2] ≤
       QV * (2 ^ 256 : ℝ≥0∞)⁻¹ := by
   unfold logged2
   refine prEvent_bind_le_of_forall_le_of_support _ _ _ fun p _ ↦ ?_
   rw [prEvent_map]
-  let Φ : Log → ℝ≥0∞ := fun ℓ ↦
-    ind (∃ r, root p.1 = some r ∧ ∃ e ∈ ℓ.drop p.2.length, e.2 = r)
+  let Φ : Log → ℝ≥0∞ := fun ℓ ↦ ind (RootAnswered root p.1 p.2 ℓ)
+  have hdrop : ∀ (ℓ : Log) (e : Entry), (ℓ ++ [e]).drop p.2.length ⊆ ℓ.drop p.2.length ++ [e] := by
+    intro ℓ e x hx
+    rw [List.drop_append] at hx
+    rcases List.mem_append.mp hx with hx | hx
+    · exact List.mem_append_left _ hx
+    · exact List.mem_append_right _ (List.mem_of_mem_drop hx)
   have hΦ : LogFreshStepBound Φ (2 ^ 256 : ℝ≥0∞)⁻¹ := by
     rw [logFreshStepBound_iff]
-    intro ℓ t _
-    have hstep : ∀ u, Φ (ℓ ++ [(t, u)]) ≤ Φ ℓ + ind (root p.1 = some u) := fun u ↦ by
-      refine (ind_mono ?_).trans (ind_or_le _ _)
-      rintro ⟨r, hr, e, he, hre⟩
-      rw [List.drop_append] at he
-      rcases List.mem_append.mp he with he | he
-      · exact Or.inl ⟨r, hr, e, he, hre⟩
-      · have he' : e = (t, u) := List.mem_singleton.mp (List.mem_of_mem_drop he)
-        subst he'
-        exact Or.inr (hr.trans (congrArg some hre.symm))
-    have hcard : (Fintype.card Digest : ℝ≥0∞) = 2 ^ 256 := by
-      rw [card_digest, Nat.cast_pow, Nat.cast_ofNat]
-    have hsum : ∑ u, ind (root p.1 = some u) ≤ 1 :=
-      sum_ind_le_one fun u u' hu hu' ↦ Option.some.inj (hu.symm.trans hu')
-    calc (∑ u, Φ (ℓ ++ [(t, u)])) / Fintype.card Digest
-        ≤ (∑ u, (ind (root p.1 = some u) + Φ ℓ)) / Fintype.card Digest :=
-          ENNReal.div_le_div_right (Finset.sum_le_sum fun u _ ↦
-            (hstep u).trans (le_of_eq (add_comm _ _))) _
-      _ = (∑ u, ind (root p.1 = some u)) / Fintype.card Digest + Φ ℓ :=
-          sum_add_const_div_card (spec := HashSpec) t _ _
-      _ ≤ 1 / Fintype.card Digest + Φ ℓ := add_le_add_left (ENNReal.div_le_div_right hsum _) _
-      _ = (2 ^ 256 : ℝ≥0∞)⁻¹ + Φ ℓ := by rw [hcard, one_div]
-      _ = Φ ℓ + (2 ^ 256 : ℝ≥0∞)⁻¹ := add_comm _ _
+    refine ⟨fun ℓ t _ ↦ ?_, fun ℓ t _ ↦ ?_⟩
+    · have hstep : ∀ u, Φ (ℓ ++ [.inl (t, u)]) ≤ ind (root p.1 = some u) + Φ ℓ := fun u ↦ by
+        refine (ind_mono ?_).trans ((ind_or_le _ _).trans (le_of_eq (add_comm _ _)))
+        rintro ⟨r, hr, x, hx⟩
+        rcases List.mem_append.mp (hdrop ℓ _ hx) with hx | hx
+        · exact Or.inl ⟨r, hr, x, hx⟩
+        · rw [List.mem_singleton] at hx
+          cases hx
+          exact Or.inr hr
+      have hsum : ∑ u, ind (root p.1 = some u) ≤ 1 :=
+        sum_ind_le_one fun u u' hu hu' ↦ Option.some.inj (hu.symm.trans hu')
+      have h1 : (∑ u, Φ (ℓ ++ [.inl (t, u)])) / Fintype.card Digest ≤
+          (∑ u, (ind (root p.1 = some u) + Φ ℓ)) / Fintype.card Digest :=
+        ENNReal.div_le_div_right (Finset.sum_le_sum fun u _ ↦ hstep u) _
+      rw [avg_add_const] at h1
+      refine h1.trans ?_
+      have h2 : (∑ u, ind (root p.1 = some u)) / Fintype.card Digest ≤ (2 ^ 256 : ℝ≥0∞)⁻¹ := by
+        have h3 : (∑ u, ind (root p.1 = some u)) / Fintype.card Digest ≤
+            1 / Fintype.card Digest := ENNReal.div_le_div_right hsum _
+        rw [card_digest, Nat.cast_pow, Nat.cast_ofNat, one_div] at h3
+        rw [card_digest, Nat.cast_pow, Nat.cast_ofNat]
+        exact h3
+      rw [add_comm]
+      exact add_le_add le_rfl h2
+    · have hstep : ∀ u, Φ (ℓ ++ [.inr (t, u)]) ≤ Φ ℓ := fun u ↦ by
+        refine ind_mono ?_
+        rintro ⟨r, hr, x, hx⟩
+        rcases List.mem_append.mp (hdrop ℓ _ hx) with hx | hx
+        · exact ⟨r, hr, x, hx⟩
+        · simp at hx
+      exact (avg_le_of_le hstep).trans le_self_add
   dsimp only
   refine (prEvent_run_loggedRO_le_of_freshStepBound hΦ (V p.1) QV (hV p.1) p.2
-    (fun _ ℓ ↦ ¬ p.2 <+: ℓ ∨ ∃ r, root p.1 = some r ∧ ∃ e ∈ ℓ.drop p.2.length, e.2 = r)
-    ?_).trans ?_
+    (fun _ ℓ ↦ ¬ p.2 <+: ℓ ∨ RootAnswered root p.1 p.2 ℓ) ?_).trans ?_
   · intro z hz hev
     have hpre := (simulateQ_look_of_mem_support _ p.2 z hz).1
     rcases hev with hn | hr
     · exact absurd hpre hn
     · exact (ind_of hr).ge
-  · simp [Φ, ind]
+  · simp [Φ, RootAnswered, ind]
 
 end
 end LeanVM.Protocol.EndToEnd.Sound

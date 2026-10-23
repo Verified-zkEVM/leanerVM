@@ -33,6 +33,7 @@ namespace LeanVM.Schemes.Fast
 def cons {α : Type} {n : Nat} (head : α) (tail : Fin n → α) : Fin (n + 1) → α :=
   fun i ↦ if h : i.val = 0 then head else tail ⟨i.val - 1, by omega⟩
 
+/-- `Fin.cases` is `cons`. -/
 theorem cases_eq_cons {α : Type} {n : Nat} (head : α) (tail : Fin n → α) :
     (Fin.cases head tail : Fin (n + 1) → α) = cons head tail := by
   funext i
@@ -49,6 +50,7 @@ def sequenceFin {m : Type → Type} [Monad m] {α : Type} :
     let tail ← sequenceFin fun index : Fin n ↦ computation index.succ
     return cons head tail
 
+/-- leanXMSS's `sequenceFin` is `sequenceFin`. -/
 theorem sequenceFin_xmss {m : Type → Type} [Monad m] {α : Type} :
     ∀ {n : Nat} (computation : Fin n → m α),
       LeanXmss.Concrete.sequenceFin computation = sequenceFin computation
@@ -59,6 +61,7 @@ theorem sequenceFin_xmss {m : Type → Type} [Monad m] {α : Type} :
     funext head
     rw [sequenceFin_xmss]
 
+/-- leanSPHINCS's `sequenceFin` is `sequenceFin`. -/
 theorem sequenceFin_sphincs {m : Type → Type} [Monad m] {α : Type} :
     ∀ {n : Nat} (computation : Fin n → m α),
       Sphincs.Concrete.sequenceFin computation = sequenceFin computation
@@ -69,10 +72,12 @@ theorem sequenceFin_sphincs {m : Type → Type} [Monad m] {α : Type} :
     funext head
     rw [sequenceFin_sphincs]
 
+/-- leanXMSS's `sequenceFin` compiles as `sequenceFin`. -/
 @[csimp] theorem xmss_sequenceFin_eq : @LeanXmss.Concrete.sequenceFin = @sequenceFin := by
   funext m _ α n computation
   exact sequenceFin_xmss computation
 
+/-- leanSPHINCS's `sequenceFin` compiles as `sequenceFin`. -/
 @[csimp] theorem sphincs_sequenceFin_eq : @Sphincs.Concrete.sequenceFin = @sequenceFin := by
   funext m _ α n computation
   exact sequenceFin_sphincs computation
@@ -95,6 +100,7 @@ def otsLeaf (parameter : PublicParameter) (lay : Layer) (key : KeyIndex) (messag
   let value ← leafHash parameter lay key endpoints
   return some value
 
+/-- `LeanXmss.Concrete.otsLeaf` compiles as its restatement. -/
 @[csimp] theorem otsLeaf_eq : @LeanXmss.Concrete.otsLeaf = @otsLeaf := rfl
 
 /-- `LeanXmss.Concrete.layerRoot`, with `otsLeaf`. -/
@@ -105,6 +111,7 @@ def layerRoot (parameter : PublicParameter) (lay : Layer) (key : KeyIndex) (mess
   let root ← treeFold parameter lay key part.path layerHeight leaf
   return some root
 
+/-- `LeanXmss.Concrete.layerRoot` compiles as its restatement. -/
 @[csimp] theorem layerRoot_eq : @LeanXmss.Concrete.layerRoot = @layerRoot := rfl
 
 /-- `LeanXmss.Concrete.verify`, with `layerRoot`. -/
@@ -116,6 +123,7 @@ def verify (publicKey : PublicKey) (message : Message) (signature : Signature) :
       (bytesLE 16 bottomRoot) (signature.layers topLayer) | return false
   return decide (root = publicKey.root)
 
+/-- `LeanXmss.Concrete.verify` compiles as its restatement. -/
 @[csimp] theorem verify_eq : @LeanXmss.Concrete.verify = @verify := by
   unfold LeanXmss.Concrete.verify
   rfl
@@ -132,19 +140,21 @@ variable {m : Type → Type} [Monad m] [HasQuery HashSpec m]
 
 /-- `Sphincs.Concrete.otsLeaf`. -/
 def otsLeaf (parameter : PublicParameter) (lay : Layer) (tree : TreeIndex) (leaf : LeafIndex)
-    (message : Digest) (counter : Counter) (values : ChainIndex → Digest) : m (Option Digest) := do
+    (message : ForestKey) (counter : Counter) (values : ChainIndex → Digest) :
+    m (Option Digest) := do
   let some encoding ← encode parameter lay tree leaf message counter | return none
   let endpoints ← _root_.Sphincs.Concrete.sequenceFin fun chainIdx =>
     recoverChain parameter lay tree leaf chainIdx (encoding chainIdx) (values chainIdx)
   let value ← leafHash parameter lay tree leaf endpoints
   return some value
 
+/-- `Sphincs.Concrete.otsLeaf` compiles as its restatement. -/
 @[csimp] theorem otsLeaf_eq : @_root_.Sphincs.Concrete.otsLeaf = @otsLeaf := rfl
 
 /-- `Sphincs.Concrete.verifyLayers`, with `otsLeaf`. -/
 def verifyLayers (parameter : PublicParameter) (index : Index) (signature : Signature) :
-    Nat → Digest → m (Option Digest)
-  | 0, message => pure (some message)
+    Nat → ForestKey → m (Option Digest)
+  | 0, _ => pure none
   | remaining + 1, message => do
       if hlayer : remaining < numLayers then
         let lay : Layer := ⟨remaining, hlayer⟩
@@ -155,27 +165,25 @@ def verifyLayers (parameter : PublicParameter) (index : Index) (signature : Sign
             part.chainValues
           | return none
         let root ← treeFold parameter lay tree leaf (signaturePath signature lay) (layerHeight lay) value
-        verifyLayers parameter index signature remaining root
+        return some root
       else
         pure none
 
+/-- `Sphincs.Concrete.verifyLayers` compiles as its restatement. -/
 @[csimp] theorem verifyLayers_eq : @_root_.Sphincs.Concrete.verifyLayers = @verifyLayers := by
   funext m _ _ parameter index signature remaining message
-  induction remaining generalizing message with
-  | zero => rfl
-  | succ remaining ih =>
-    simp only [_root_.Sphincs.Concrete.verifyLayers, verifyLayers, ih]
-    rfl
+  cases remaining <;> rfl
 
 /-- `Sphincs.Concrete.verify`, with `verifyLayers`. -/
 def verify (publicKey : PublicKey) (message : Message) (signature : Signature) : m Bool := do
   let digest ← messageDigest publicKey.parameter publicKey.root message signature.randomness
   let index := digestIndex digest
-  let ftsPublicKey ← forestRecover publicKey.parameter index (digestMarks digest) signature.forest
+  let forestKey ← forestRecover publicKey.parameter index (digestMarks digest) signature.forest
   let some root ← _root_.Sphincs.Concrete.verifyLayers publicKey.parameter index signature numLayers
-      ftsPublicKey | return false
+      forestKey | return false
   return decide (root = publicKey.root)
 
+/-- `Sphincs.Concrete.verify` compiles as its restatement. -/
 @[csimp] theorem verify_eq : @_root_.Sphincs.Concrete.verify = @verify := by
   unfold _root_.Sphincs.Concrete.verify
   rfl

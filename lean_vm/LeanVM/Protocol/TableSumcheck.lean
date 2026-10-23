@@ -51,14 +51,22 @@ seam's two claims hold (`tableSummand_target`). In characteristic two the factor
 
 Perfect completeness (`tableSumcheckComplete`), from `Seam.bus` to `Seam.table`, needs the
 degree bound `d ≤ 2`: the slot's rounds are cubic, and the summand has degree `d + 1` in each
-variable (`tableSummand_degree`). The bus phase's column claims, the public lines and the Flock
-predicate ride through the sumcheck as its side condition (`side`).
+variable (`tableSummand_degree`). The bus phase's column claims, the public lines and the Keccak
+predicate ride through the sumcheck as its side condition (`side`), and the Keccak predicate holds
+along every point (`M3Instance.auxAt_of_aux`), so at the final one.
 
 Round-by-round knowledge soundness (`tableSumcheckSecurity`), between the same seams and under the
 same bound, is at the slot's error: `(B + 2)/|E|` on `ξ`, since a false claim among the `B + 3`
 batched survives only at a root of a nonzero polynomial of degree at most `B + 2` in `ξ`, the
 true values being fixed before it (`trueValues`); `3/|E|` on each round's challenge; nothing on
-the final values, which the table seam determines (`finalClaims_holds_iff`).
+the final values, which the table seam determines (`finalClaims_holds_iff`). The Keccak predicate
+is not checked by any challenge of its own: the table seam asks it at the final point
+(`M3Instance.auxAt`), and the rounds carry it as an invariant along the challenges
+(`inv`, `M3Instance.auxStage`), the zero test of `Spine/KeccakZero.lean` with the high coordinates
+bound first, as the rounds draw them. A round that restores a broken invariant does so at one
+challenge at most (`inv_sound`), within the round's own `3/|E|`: a candidate alive after the round
+had a true claim and a true invariant before it, or a challenge among the round polynomial's three
+agreements with the honest one or the zero test's one root.
 
 Written from the specification; the order of the powers, the shared side powers, the weights and
 the order of the final values are checked against `crates/leanvm_core/src/cpu/mod.rs:388-406`,
@@ -210,7 +218,7 @@ def finalClaims (r : Vector E I.τmax) (v : Vector E I.tableColumns) :
 the final point in coordinate order. -/
 def tableOut (s : SumcheckRound.Stmt (Data I) E I.τmax) (v : Vector E I.tableColumns) :
     I.Stmt × TableOut I :=
-  (s.1.1.1, ⟨s.1.1.2.columns ++ finalClaims I s.2.1.reverse v⟩)
+  (s.1.1.1, ⟨s.1.1.2.columns ++ finalClaims I s.2.1.reverse v, s.2.1.reverse⟩)
 
 /-! ## The columns -/
 
@@ -459,11 +467,45 @@ theorem nodes_injective : Function.Injective nodes := by
   fin_cases i <;> fin_cases j <;>
     simp_all [nodes, y0.symm, y1.symm, y10.symm, y11.symm, y1y.symm]
 
-/-- What the sumcheck carries unchanged: the bus phase's column claims, the public lines and the
-Flock predicate. -/
+/-- What the sumcheck carries unchanged: the bus phase's column claims and the public lines. -/
+def sideRest (ctx : SumcheckRound.Ctx (Data I) (TheOracle I) Unit) : Prop :=
+  (∀ c ∈ ctx.1.1.1.2.columns.toList, c.Holds (theStack ctx.1.2)) ∧
+    I.PublicLinesHold ctx.1.1.1.1 (theStack ctx.1.2)
+
+/-- What the sumcheck's completeness carries unchanged: the bus phase's column claims, the public
+lines and the Keccak predicate. -/
 def side (ctx : SumcheckRound.Ctx (Data I) (TheOracle I) Unit) : Prop :=
   (∀ c ∈ ctx.1.1.1.2.columns.toList, c.Holds (theStack ctx.1.2)) ∧
     I.PublicLinesHold ctx.1.1.1.1 (theStack ctx.1.2) ∧ I.aux (theStack ctx.1.2)
+
+/-- The rounds' invariant for soundness: the bus phase's column claims and the public lines,
+unchanged, and the Keccak predicate along the challenges drawn so far
+(`M3Instance.auxStage`), which each challenge may break or restore. -/
+def inv (ctx : SumcheckRound.Ctx (Data I) (TheOracle I) Unit) (j : ℕ) (c : Vector E j) : Prop :=
+  sideRest I ctx ∧ I.auxStage c.toList (theStack ctx.1.2)
+
+/-- Before the first challenge, the invariant is the side condition. -/
+theorem inv_zero (ctx : SumcheckRound.Ctx (Data I) (TheOracle I) Unit) :
+    inv I ctx 0 #v[] ↔ side I ctx := by
+  simp only [inv, sideRest, side, Vector.toList_mk, M3Instance.auxStage_nil, and_assoc]
+
+/-- **A round restores a broken invariant at one challenge at most**: the bus claims and the
+public lines do not move, and the Keccak predicate's zero test escapes at one value at most
+(`M3Instance.card_auxStage_push_le`). -/
+theorem inv_sound (ctx : SumcheckRound.Ctx (Data I) (TheOracle I) Unit) (j : ℕ) (c : Vector E j)
+    (hj : j < I.τmax) (hne : ¬ inv I ctx j c) :
+    Nat.card {x // inv I ctx (j + 1) (c.push x)} ≤ 3 := by
+  by_cases hr : sideRest I ctx
+  · have ha : ¬ I.auxStage c.toList (theStack ctx.1.2) := fun ha ↦ hne ⟨hr, ha⟩
+    refine le_trans ?_ ((I.card_auxStage_push_le (theStack ctx.1.2)
+      (by simpa using hj) ha).trans (by norm_num))
+    have := Fintype.ofFinite E
+    exact Nat.card_mono (Set.toFinite _) fun x hx ↦ by
+      have h2 := hx.2
+      rwa [Vector.toList_push] at h2
+  · have : IsEmpty {x // inv I ctx (j + 1) (c.push x)} := ⟨fun x ↦ hr x.2.1⟩
+    rw [Nat.card_of_isEmpty]
+    exact Nat.zero_le _
 
 /-- The final claims hold of the stack exactly when the values sent are the columns' extensions
 at the final point. -/
@@ -492,7 +534,7 @@ theorem tableOut_mem_table (s : SumcheckRound.Stmt (Data I) E I.τmax) (o : ∀ 
     (hside : side I ((s.1, o), ())) :
     ((tableOut I s ((tableSummand I).values ((s.1, o), ()) s.2.1.reverse), o), ()) ∈
       Seam.table I := by
-  refine ⟨fun c hc ↦ ?_, hside.2⟩
+  refine ⟨fun c hc ↦ ?_, hside.2.1, I.auxAt_of_aux hside.2.2 _⟩
   simp only [tableOut, Vector.toList_append, List.mem_append] at hc
   rcases hc with hc | hc
   · exact hside.1 c hc
@@ -530,15 +572,17 @@ theorem xi_batch (s : I.Stmt × BusOut I) (o : ∀ i, TheOracle I i) :
     exact ⟨hzero, htotals, hside⟩⟩
 
 /-- Values whose output is in the table seam are the tables' values at the final point, and the
-side condition holds. -/
+invariant holds at the challenges. -/
 theorem finalValues_reflect (s : SumcheckRound.Stmt (Data I) E I.τmax) (o : ∀ i, TheOracle I i)
     (w : Unit) (v : Vector E I.tableColumns) (h : ((tableOut I s v, o), w) ∈ Seam.table I) :
-    (tableSummand I).values ((s.1, o), w) s.2.1.reverse = v ∧ side I ((s.1, o), w) := by
+    (tableSummand I).values ((s.1, o), w) s.2.1.reverse = v ∧ inv I ((s.1, o), w) I.τmax s.2.1 := by
   cases w
   obtain ⟨hcols, hlines, haux⟩ := h
   simp only [tableOut, Vector.toList_append, List.mem_append] at hcols
-  exact ⟨(finalClaims_holds_iff I ((s.1, o), ()) _ v).mp fun c hc ↦ hcols c (Or.inr hc),
-    fun c hc ↦ hcols c (Or.inl hc), hlines, haux⟩
+  refine ⟨(finalClaims_holds_iff I ((s.1, o), ()) _ v).mp fun c hc ↦ hcols c (Or.inr hc),
+    ⟨fun c hc ↦ hcols c (Or.inl hc), hlines⟩, ?_⟩
+  rw [I.auxStage_full _ (by simp)]
+  simpa [tableOut, Vector.toList_reverse] using haux
 
 /-- The table sumcheck phase on the typed framework, at its slot `tableSlot I`: the batching
 challenge, the rounds of the plain sumcheck, and the final values. -/
@@ -568,17 +612,34 @@ def xiSecurity :
 /-- The final values' security, the phase's last part, at no error. -/
 def finalValuesSecurity :
     Typed.Security (Sumcheck.final (tableSummand I) (tableOut I))
-      (SumcheckRound.rel (Sumcheck.family (tableSummand I) Sumcheck.unitWeights nodes (side I))
+      (SumcheckRound.rel (Sumcheck.familyInv (tableSummand I) Sumcheck.unitWeights nodes (inv I))
         I.τmax) (Seam.table I) (Typed.sayErrors _) :=
-  Sumcheck.finalSecurity (tableSummand I) Sumcheck.unitWeights nodes (side I) (tableOut I)
+  Sumcheck.finalSecurityInv (tableSummand I) Sumcheck.unitWeights nodes (inv I) (tableOut I)
     (finalValues_reflect I)
+
+/-- The rounds' input relation for soundness is the batching challenge's output relation. -/
+theorem relIn_inv :
+    Sumcheck.relIn (tableSummand I) Sumcheck.unitWeights (fun ctx ↦ inv I ctx 0 #v[]) =
+      Sumcheck.relIn (tableSummand I) Sumcheck.unitWeights (side I) := by
+  congr 1
+  funext ctx
+  exact propext (inv_zero I ctx)
+
+/-- The rounds' security, with the Keccak predicate's escape absorbed, at `3/|E|` per round. -/
+def roundsSecurity (hd : I.d ≤ 2) :
+    Typed.Security (Sumcheck.rounds (tableSummand I) Sumcheck.unitWeights nodes)
+      (Sumcheck.relIn (tableSummand I) Sumcheck.unitWeights (side I))
+      (SumcheckRound.rel (Sumcheck.familyInv (tableSummand I) Sumcheck.unitWeights nodes (inv I))
+        I.τmax)
+      (Typed.roundsErrors E 3 (((3 : ℕ) : ℝ≥0) / (Nat.card E : ℝ≥0)) I.τmax) :=
+  relIn_inv I ▸ Sumcheck.roundsSecurityInv (tableSummand I) Sumcheck.unitWeights nodes (inv I)
+    (tableSummand_degree I hd) nodes_injective (inv_sound I)
 
 /-- **Knowledge soundness on the typed framework**, at the slot's errors `tableErrors I`, with
 the extractor that keeps the trivial witness. -/
 def tableSumcheckSecurity (hd : I.d ≤ 2) :
     Typed.Security (tableSumcheck I) (Seam.bus I) (Seam.table I) (tableErrors I) :=
-  (((xiSecurity I).append (Sumcheck.roundsSecurity (tableSummand I) Sumcheck.unitWeights nodes
-      (side I) (tableSummand_degree I hd) nodes_injective)).append
+  (((xiSecurity I).append (roundsSecurity I hd)).append
     (finalValuesSecurity I)).mono (by
       refine Typed.Errors.Le.append ((Typed.drawSlot E).append (Typed.roundsSlot E 3 I.τmax)).tree
         ((Typed.drawSlot E).append (Typed.roundsSlot E 3 I.τmax)).roles

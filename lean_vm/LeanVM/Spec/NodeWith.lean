@@ -1,8 +1,9 @@
 /-
   LeanVM.Spec.NodeWith
 
-  The aggregation's node relation for any hash: the digests, the signature schemes, the batching
-  and `NodeRel` with the hash a parameter in any monad, the deployed ones recovered at BLAKE2s.
+  The aggregation's node relation for any hash and permutation: the digests, the signature
+  schemes, the batching and `NodeRel` with the hash and the permutation parameters in any monad,
+  the deployed ones recovered at Keccak-256 and Keccak-f[1600].
 -/
 
 module
@@ -11,17 +12,20 @@ public import LeanVM.Spec.Node
 public import LeanVM.Spec.DaWith
 
 /-!
-# The node, for any hash
+# The node, for any hash and permutation
 
-`Node.lean` states what a node establishes with BLAKE2s. The guest's proofs also need it relative
-to a hash answered by a log: every hash a check makes must be answered, and the check must hold
-for the answers. So every hashing
-function of `Node.lean` is given here with the hash `H : Bytes → m Digest` in any monad (`…With`):
-at `m = Id` and `H = blake2sBytes` it is the deployed one (`statementDigestWith_id`,
-`batchWith_id`, `xmssVerifyWith_id`, …), and at `m = Option` with `H` a log's lookup it is the
-computation answered by the log. `NodeRelWith H` is `NodeRel` over an `Option`-valued hash, each
-check "answered and true"; the batching starts from a parameter `s0` (deployed: the label's hash,
-the guest's baked `AGG_SEED`).
+`Node.lean` states what a node establishes with Keccak-256 and Keccak-f[1600]. The guest's proofs
+also need it relative to a hash and a permutation answered by a log: every hash and permutation a
+check makes must be answered, and the check must hold for the answers. So every hashing function
+of `Node.lean` is given here with the hash `H : Bytes → m Digest` and the permutation
+`F : KState → m KState` in any monad (`…With`), as the verifier is (`verifier H F`,
+`LeanVM.Spec.Statement`): at `m = Id`, `H = keccak256` and `F = keccakF` it is the deployed one
+(`statementDigestWith_id`, `batchWith_id`, `xmssVerifyWith_id`, …), and at `m = Option` with `H`
+and `F` a log's lookups it is the computation answered by the log. The digests and the signature
+schemes use only `H`; the batching's transcript, a duplex sponge, only `F`, from a parameter
+state `s0` (deployed: `batchSeed`, Keccak-f of the label's hash, whose capacity the guest bakes as
+`AGG_SEED_*`). `NodeRelWith H F` is `NodeRel` over an `Option`-valued hash and permutation, each
+check "answered and true".
 
 The deployed definitions are not changed: this module only adds, so nothing importing `Node.lean`
 is affected.
@@ -29,22 +33,19 @@ is affected.
 
 namespace LeanVM.Node
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Protocol LeanVM.Protocol.Blake2sHash
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Protocol LeanVM.Protocol.KeccakHash
 open LeanVM.Protocol.Compile LeanVM.Protocol.Verifier
 
 @[expose] public section
 
 section With
 
-variable {m : Type → Type} [Monad m] (H : Bytes → m Digest)
+variable {m : Type → Type} [Monad m] (H : Bytes → m Digest) (F : KState → m KState)
 
 /-! ## The signature schemes -/
 
-/-- A digest as the schemes' 256-bit output, its bytes little-endian (`blake2sBits`). -/
-def digestBits (d : Digest) : BitVec 256 :=
-  BitVec.ofNat 256 ((digestBytes d).foldr (fun b acc ↦ b.toNat + 256 * acc) 0)
-
-theorem blake2sBits_eq (input : List UInt8) : blake2sBits input = digestBits (blake2sBytes input) :=
+/-- `keccakBits` is `digestBits` of Keccak-256. -/
+theorem keccakBits_eq (input : List UInt8) : keccakBits input = digestBits (keccak256 input) :=
   rfl
 
 /-- leanXMSS verification with the hash `H`. -/
@@ -84,85 +85,69 @@ def statementDigestWith (seed : Digest) (s : NodeStatement) : m Digest := do
   let sd ← signersDigestWith H s.claims.xmss s.claims.sphincs
   let dd ← daListDigestWith H s.claims.da
   let cells := s.defer.cells ++ if s.defer.cells.length % 2 = 1 then [0] else []
-  let bytes := digestBytes seed ++ digestBytes sd ++ digestBytes dd ++ cells.flatMap eBytes
-  H (bytes ++ List.replicate ((64 - bytes.length % 64) % 64) 0)
+  H (digestBytes seed ++ digestBytes sd ++ digestBytes dd ++ cells.flatMap eBytes)
 
 /-! ## The batching -/
 
-/-- A Fiat-Shamir chain with the hash `H`. -/
-abbrev ChainWith : Type → Type := StateT Digest m
+/-- A Fiat-Shamir chain with the permutation `F`. -/
+abbrev ChainWith : Type → Type := StateT Sponge m
 
-/-- `observe` with the hash `H`. -/
+/-- `observe` with the permutation `F`. -/
 def observeWith (x : E) : ChainWith (m := m) Unit := do
-  let cv ← get
-  set (← (H (digestBytes cv ++ blockOf x 1) : m Digest))
+  set (← (Compile.absorb F (← get) x dsObserve : m Sponge))
 
-/-- `squeeze` with the hash `H`. -/
-def squeezeWith : ChainWith (m := m) E := do
-  let cv ← get
-  let cv' ← (H (digestBytes cv ++ blockOf 0 2) : m Digest)
-  set cv'
-  return challengeOf cv'
+/-- `sample` with the permutation `F`. -/
+def sampleWith : ChainWith (m := m) E := do
+  let (c, sp) ← (Compile.squeeze F (← get) : m (E × Sponge))
+  set sp
+  return c
 
-/-- `batchRounds` with the hash `H`. -/
+/-- `batchRounds` with the permutation `F`. -/
 def batchRoundsWith : E → List (E × E) → ChainWith (m := m) (List E × E)
   | claim, [] => return ([], claim)
   | claim, (g1, gInf) :: rest => do
-    observeWith H g1
-    observeWith H gInf
-    let r ← squeezeWith H
+    observeWith F g1
+    observeWith F gInf
+    let r ← sampleWith F
     let g0 := claim + g1
     let (rs, final) ← batchRoundsWith ((gInf * r + (g0 + g1 + gInf)) * r + g0) rest
     return (r :: rs, final)
 
-/-- **`batch` with the hash `H`, from the chain state `s0`** (deployed: the label's hash). -/
-def batchWith (s0 : Digest) (children : List ChildClaims) (h : BatchHints) :
+/-- `batchSeed` with the hash `H` and the permutation `F`. -/
+def batchSeedWith : m KState := do
+  F (seedInput (← H batchLabel) (Vector.replicate 4 0))
+
+/-- **`batch` with the permutation `F`, from the sponge state `s0`** (deployed: `batchSeed`). -/
+def batchWith (s0 : KState) (children : List ChildClaims) (h : BatchHints) :
     m (Option DeferredClaim) :=
-  go.run' s0
+  go.run' ⟨s0, []⟩
 where
   /-- The transcript. -/
   go : ChainWith (m := m) (Option DeferredClaim) := do
-    observeWith H (ofK (gpow children.length))
+    for x in padRate [gpow children.length] do observeWith F x
     for c in children do
-      observeWith H (digestScalars c.publicInput).1
-      observeWith H (digestScalars c.publicInput).2
-      for x in fixedCells c.fresh ++ c.carried.cells do observeWith H x
-    let mut bytecodeLambdas : List (E × E) := []
+      for x in padRate c.words do observeWith F x
+    let mut lambdas : List (E × E) := []
     for _ in children do
-      let lf ← squeezeWith H
-      let lc ← squeezeWith H
-      bytecodeLambdas := bytecodeLambdas ++ [(lf, lc)]
-    let bytecodeClaim := sumE (List.zipWith (fun c l ↦
-      l.1 * c.fresh.bytecodeValue + l.2 * c.carried.bytecodeValue) children bytecodeLambdas)
-    let (rBytecode, bytecodeFinal) ← batchRoundsWith H bytecodeClaim h.bytecodeRounds
-    let bytecodeWeight := sumE (List.zipWith (fun c l ↦
-      l.1 * eqEval c.fresh.bytecodePoint rBytecode +
-        l.2 * eqEval c.carried.bytecodePoint rBytecode) children bytecodeLambdas)
-    let mut matrixLambdas : List (E × E × E) := []
-    for _ in children do
-      let lf ← squeezeWith H
-      let la ← squeezeWith H
-      let lb ← squeezeWith H
-      matrixLambdas := matrixLambdas ++ [(lf, la, lb)]
-    let matrixClaim := sumE (List.zipWith (fun c l ↦ l.1 * c.fresh.matrixValue +
-      l.2.1 * c.carried.matrixA + l.2.2 * c.carried.matrixB) children matrixLambdas)
-    let (rMatrix, matrixFinal) ← batchRoundsWith H matrixClaim h.matrixRounds
-    let weightA := sumE (List.zipWith (fun c l ↦ l.1 * freshWeight c.fresh rMatrix +
-      l.2.1 * eqEval c.carried.matrixPoint rMatrix) children matrixLambdas)
-    let weightB := sumE (List.zipWith (fun c l ↦ l.1 * c.fresh.alpha * freshWeight c.fresh rMatrix +
-      l.2.2 * eqEval c.carried.matrixPoint rMatrix) children matrixLambdas)
-    if bytecodeFinal = h.bytecodeValue * bytecodeWeight ∧
-        matrixFinal = h.matrixA * weightA + h.matrixB * weightB then
-      return some ⟨rBytecode, h.bytecodeValue, rMatrix, h.matrixA, h.matrixB⟩
+      let lf ← sampleWith F
+      let lc ← sampleWith F
+      lambdas := lambdas ++ [(lf, lc)]
+    let claim := sumE (List.zipWith (fun c l ↦
+      l.1 * c.fresh.bytecodeValue + l.2 * c.carried.bytecodeValue) children lambdas)
+    let (r, final) ← batchRoundsWith F claim h.bytecodeRounds
+    let weight := sumE (List.zipWith (fun c l ↦
+      l.1 * eqEval c.fresh.bytecodePoint r + l.2 * eqEval c.carried.bytecodePoint r)
+      children lambdas)
+    if final = h.bytecodeValue * weight then return some ⟨r, h.bytecodeValue⟩
     else return none
 
 end With
 
-/-! ## The node relation over an answered hash -/
+/-! ## The node relation over an answered hash and permutation -/
 
 section Answered
 
-variable (H : Bytes → Option Digest)
+variable (H : Bytes → Option Digest) (F : KState → Option KState)
 
 /-- The leanXMSS claim is held: by a signature verified with every hash answered, or by a child
 making it. -/
@@ -190,54 +175,64 @@ def childClaimsWith (seed : Digest) (children : List Child) : Option (List Child
   children.mapM fun c ↦ (fun pi ↦ ⟨pi, c.fresh, c.statement.defer⟩) <$>
     statementDigestWith H seed c.statement
 
-/-- **`NodeRel` over an answered hash**: what the witness `w` establishes of `s` when every hash
-the guest computes is answered by `H` (a log's lookup) — every check of `NodeRel` with its hashes
-answered and true; the batching from the chain state `s0`; the DA padding digests `pc`, `pr`. -/
-def NodeRelWith (s0 : Digest) (pc pr : LeanDa.Digest) (bytecode : List K) (seed : Digest)
+/-- **`NodeRel` over an answered hash and permutation**: what the witness `w` establishes of `s`
+when every hash and permutation the guest computes is answered by `H` and `F` (a log's lookups) —
+every check of `NodeRel` with its hashes and permutations answered and true; the batching from
+the sponge state `s0`; the DA padding digests `pc`, `pr`. -/
+def NodeRelWith (s0 : KState) (pc pr : LeanDa.Digest) (bytecode : List K) (seed : Digest)
     (s : NodeStatement) (w : NodeWitness) : Prop :=
   s.defer.Shaped bytecode ∧
   (∀ c ∈ w.children, c.statement.defer.Shaped bytecode ∧ ∃ pi,
     statementDigestWith H seed c.statement = some pi ∧
-    verifyDeferredWith H bytecode seed pi c.fresh c.proof = some true) ∧
+    verifyDeferredWith H F bytecode seed pi c.fresh c.proof = some true) ∧
   List.Forall₂ (XmssHeldWith H w.children) s.claims.xmss w.xmss ∧
   List.Forall₂ (SphincsHeldWith H w.children) s.claims.sphincs w.sphincs ∧
   List.Forall₂ (DaHeldWith H pc pr w.children) s.claims.da w.da ∧
   if w.children = [] then s.defer.AtZero bytecode
   else ∃ cs, childClaimsWith H seed w.children = some cs ∧
-    batchWith H s0 cs w.hints = some (some s.defer)
+    batchWith F s0 cs w.hints = some (some s.defer)
 
 end Answered
 
 /-! ## The deployed functions, recovered -/
 
+/-- leanXMSS verification with Keccak-256 is `xmssVerify`. -/
 theorem xmssVerifyWith_id (pk : LeanXmss.PublicKey) (message : LeanXmss.Message)
     (σ : LeanXmss.Signature) :
-    Id.run (xmssVerifyWith (m := Id) blake2sBytes pk message σ) = xmssVerify pk message σ :=
+    Id.run (xmssVerifyWith (m := Id) keccak256 pk message σ) = xmssVerify pk message σ :=
   rfl
 
+/-- leanSPHINCS verification with Keccak-256 is `sphincsVerify`. -/
 theorem sphincsVerifyWith_id (pk : Sphincs.PublicKey) (message : Sphincs.Message)
     (σ : Sphincs.Signature) :
-    Id.run (sphincsVerifyWith (m := Id) blake2sBytes pk message σ) = sphincsVerify pk message σ :=
+    Id.run (sphincsVerifyWith (m := Id) keccak256 pk message σ) = sphincsVerify pk message σ :=
   rfl
 
+/-- The statement's digest with Keccak-256 is `statementDigest`. -/
 theorem statementDigestWith_id (seed : Digest) (s : NodeStatement) :
-    Id.run (statementDigestWith (m := Id) blake2sBytes seed s) = statementDigest seed s :=
+    Id.run (statementDigestWith (m := Id) keccak256 seed s) = statementDigest seed s :=
   rfl
 
-theorem observeWith_id (x : E) : observeWith (m := Id) blake2sBytes x = observe x := rfl
+/-- Absorbing with Keccak-f is `observe`. -/
+theorem observeWith_id (x : E) : observeWith (m := Id) keccakF x = observe x := rfl
 
-theorem squeezeWith_id : squeezeWith (m := Id) blake2sBytes = squeeze := rfl
+/-- Squeezing with Keccak-f is `sample`. -/
+theorem sampleWith_id : sampleWith (m := Id) keccakF = sample := rfl
 
+/-- The batching's rounds with Keccak-f are `batchRounds`. -/
 theorem batchRoundsWith_id : ∀ (claim : E) (rounds : List (E × E)),
-    batchRoundsWith (m := Id) blake2sBytes claim rounds = batchRounds claim rounds
+    batchRoundsWith (m := Id) keccakF claim rounds = batchRounds claim rounds
   | _, [] => rfl
   | claim, (g1, gInf) :: rest => by
-    simp only [batchRoundsWith, batchRounds, observeWith_id, squeezeWith_id, batchRoundsWith_id]
+    simp only [batchRoundsWith, batchRounds, observeWith_id, sampleWith_id, batchRoundsWith_id]
 
+/-- The batching's initial state with Keccak is `batchSeed`. -/
+theorem batchSeedWith_id : Id.run (batchSeedWith (m := Id) keccak256 keccakF) = batchSeed := rfl
+
+/-- The batching with Keccak-f, from `batchSeed`, is `batch`. -/
 theorem batchWith_id (children : List ChildClaims) (h : BatchHints) :
-    Id.run (batchWith (m := Id) blake2sBytes (blake2sBytes batchLabel) children h) =
-      batch children h := by
-  simp only [batchWith, batch, batchWith.go, batch.go, observeWith_id, squeezeWith_id,
+    Id.run (batchWith (m := Id) keccakF batchSeed children h) = batch children h := by
+  simp only [batchWith, batch, batchWith.go, batch.go, observeWith_id, sampleWith_id,
     batchRoundsWith_id]
   rfl
 

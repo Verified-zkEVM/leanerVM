@@ -45,7 +45,7 @@ example (w : K) (data : ProverData K) :
 /-! ## What the witness satisfies -/
 
 /-- The witness of no skeletons has empty tables, and they are within the caps: no table needs a
-power-of-two height, nor the `BLAKE2S` table eight rows. -/
+power-of-two height, and the `KECCAK` table has no floor. -/
 theorem empty_witness_caps (img : MemImage minLogMem) :
     Caps (skelWitness jumpProg badInput img []) :=
   skelWitness_caps jumpProg badInput img [] le_rfl (by decide) fun _ ↦ Nat.zero_le _

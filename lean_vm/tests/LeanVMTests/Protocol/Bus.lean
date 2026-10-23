@@ -121,7 +121,8 @@ abbrev busToy : M3Instance where
   layout := layout
   nLines := 0
   publicLines := fun _ ↦ #v[]
-  flock := none
+  derived := fun _ ↦ none
+  keccak := none
 
 /-! ## Sizes and side conditions -/
 

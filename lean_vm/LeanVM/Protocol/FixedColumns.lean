@@ -100,7 +100,7 @@ theorem bytecodeColumn_injective {prog prog' : Program} (h : prog.logSize = prog
     simp only [Fin.getElem_fin] at h1
     rw [encodeSlots_getElem _ _ (show j + 3 < 16 by omega),
       encodeSlots_getElem _ _ (show j + 3 < 16 by omega)] at h1
-    simpa [show 3 ≤ j + 3 ∧ j + 3 < 11 by omega] using h1
+    simpa [show 3 ≤ j + 3 ∧ j + 3 < 14 by omega] using h1
   subst hcode
   rfl
 

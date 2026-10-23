@@ -15,9 +15,9 @@ public import LeanVM.Protocol.LeanIsa.Bus
 /-!
 # The framework blocks
 
-The bus phase (`verify_bus_balance`, `python-verifier/verifier.py:534-593` at leanVM
-`127510d14c98ade4e8a97646c44fa7f1ff5e752d`) evaluates the three framework blocks of each side
-itself (`fingerprints`, `verifier.py:560-568`): the state boundary, the memory's `2^logMemory`
+The bus phase (`verify_bus_balance`, `python-verifier/verifier.py:578-640` at leanVM
+`3375f7a137c50b803f3416f6466b5d4e0719708a`) evaluates the three framework blocks of each side
+itself (`fingerprints`, `verifier.py:604-613`): the state boundary, the memory's `2^logMemory`
 rows and the bytecode's `2^logBytecode` rows. The honest leaves of these blocks are, row by row,
 `β` plus the fingerprint of the row's tuple (`stateTab`, `memTab`, `bcTab`). This module proves
 
@@ -338,7 +338,7 @@ theorem ofK_gpow (n : ℕ) : ofK (Parameters.gpow n) = Verifier.gpow n := by
 /-- A memory column's entry is the instance's cell. -/
 theorem getD_colList_mem (i : Fin 4) (x : Fin (2 ^ s.logMem)) :
     (colList prog s q (memCol i)).getD x 0 =
-      ofK (cell Blake2sFlock.blake2sFlockSpec prog s q (memCol i) x) :=
+      ofK (cell prog s q (memCol i) x) :=
   getD_colList prog s q (memCol i) x x.isLt
 
 variable {prog s q} in
@@ -347,7 +347,7 @@ theorem memTab_getD (β : E) (w : List E) (hw : w.length = 16) (cnt : List E)
     (x : Fin (2 ^ s.logMem)) (c : K) (hc : cnt.getD x 0 = ofK c) :
     (memTab prog s q β w cnt).getD x 0 =
       fpV β w (tupleOf (Parameters.gpow 1)
-        (#[Parameters.gpow x, c] ++ (memLimbs Blake2sFlock.blake2sFlockSpec s q x).toArray)) := by
+        (#[Parameters.gpow x, c] ++ (memLimbs s q x).toArray)) := by
   rw [fpV_tupleOf β w hw _ _ (by simp), List.getD_eq_getElem _ _ (by simp [memTab])]
   simp only [memTab, List.getElem_map, List.getElem_range]
   rw [dot_take_eq w _ 6 rfl (by omega)]
@@ -361,11 +361,12 @@ theorem memTab_getD (β : E) (w : List E) (hw : w.length = 16) (cnt : List E)
   simp only [ofK_gpow, Verifier.gpow, gen]
   ring
 
-/-- The eight entry coordinates of an instruction, listed. -/
+/-- The eleven entry coordinates of an instruction, listed. -/
 theorem entryList_eq (i : Fin (2 ^ prog.logSize)) :
     entryList i = [(entry (prog.code i))[0], (entry (prog.code i))[1], (entry (prog.code i))[2],
       (entry (prog.code i))[3], (entry (prog.code i))[4], (entry (prog.code i))[5],
-      (entry (prog.code i))[6], (entry (prog.code i))[7]] := rfl
+      (entry (prog.code i))[6], (entry (prog.code i))[7], (entry (prog.code i))[8],
+      (entry (prog.code i))[9], (entry (prog.code i))[10]] := rfl
 
 variable {prog} in
 /-- **The bytecode block's leaves are the boundary tuples' fingerprints.** -/
@@ -426,7 +427,7 @@ theorem prod_framework_push (β : E) (w : List E) (hw : w.length = 16) :
     (stateTab β w (Verifier.gpow 0)).prod * (memTab prog s q β w (onesList s.logMem)).prod *
         (bcTab prog β w (onesList prog.logSize)).prod =
       (((inst prog s).boundaryTuples q .push).map (fpV β w)).prod := by
-  rw [boundaryTuples_push Blake2sFlock.blake2sFlockSpec s q, stateTab_push β w hw]
+  rw [boundaryTuples_push s q, stateTab_push β w hw]
   simp only [List.map_append, List.prod_append, List.map_cons, List.map_nil, List.prod_cons,
     List.prod_nil, List.map_map]
   rw [eq_map_finRange (memTab prog s q β w (onesList s.logMem)) _ (length_memTab ..) _
@@ -441,7 +442,7 @@ theorem prod_framework_pull (β : E) (w : List E) (hw : w.length = 16) :
         (memTab prog s q β w (colList prog s q (memCol 3))).prod *
         (bcTab prog β w (colList prog s q bfcntCol)).prod =
       (((inst prog s).boundaryTuples q .pull).map (fpV β w)).prod := by
-  rw [boundaryTuples_pull Blake2sFlock.blake2sFlockSpec s q, stateTab_pull prog β w hw]
+  rw [boundaryTuples_pull s q, stateTab_pull prog β w hw]
   simp only [List.map_append, List.prod_append, List.map_cons, List.map_nil, List.prod_cons,
     List.prod_nil, List.map_map]
   rw [eq_map_finRange (memTab prog s q β w (colList prog s q (memCol 3))) _ (length_memTab ..) _

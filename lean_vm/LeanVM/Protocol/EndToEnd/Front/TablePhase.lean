@@ -102,12 +102,16 @@ structure TableFid (colOf : I.ColumnId → ℕ) (w : BusWit) : Prop where
           (rowsOf layout (w.result layout) ch.reverse) evs 0 0 []).2
 
 /-- **The table seam on the wire**: the protocol's output at what was read is doomed, its input
-statement is `input`, and its claims are among the program's. -/
+statement is `input`, its claims are among the program's, and it is the table sumcheck's output
+(`tableOut`) at some final statement and values: its claims are the bus phase's and one per column
+of every sumcheck table at the point's low coordinates. -/
 def TablePost (colOf : I.ColumnId → ℕ) (claims : List Verifier.ColumnClaim) (h : List Ev) : Prop :=
   ∃ (W : Word) (tout : I.Stmt × TableOut I), firstWord h = some W ∧
     RelDoom (cands W) (Seam.table I) tout ∧ tout.1 = input ∧
-    ∀ c ∈ tout.2.columns.toList, (⟨colOf c.col, c.point.toList, c.value⟩ : Verifier.ColumnClaim) ∈
-      claims
+    (∀ c ∈ tout.2.columns.toList, (⟨colOf c.col, c.point.toList, c.value⟩ : Verifier.ColumnClaim) ∈
+      claims) ∧
+    ∃ (st : SumcheckRound.Stmt (Data I) E I.τmax) (v : Vector E I.tableColumns),
+      tout = tableOut I st v
 
 variable {εmax : ℝ≥0∞}
 
@@ -142,7 +146,7 @@ noncomputable def tableSumcheckSpec (colOf : I.ColumnId → ℕ) (w : BusWit)
     (tableFamily_sound I) hfin hcard (by norm_num) he (s, ξ) (List.replicate n none) 0 #v[]
     (dot (fpsOf ξ) bus.totals) (by simp [n, fid.rounds]) (fun k hk ↦ by
       have hk' : k < I.τmax := by simpa [n, fid.rounds] using hk
-      simp [tableFamily, Sumcheck.family, Sumcheck.domain, Sumcheck.unitWeights, wireDomain,
+      simp [tableFamily, Sumcheck.familyInv, Sumcheck.domain, Sumcheck.unitWeights, wireDomain,
         hk'])).bind' fun ⟨ch, claim⟩ ↦
     let P := SumcheckPost (tableFamily I) cands (s, ξ) I.τmax #v[] (ch, claim)
     let rows := rowsOf layout bus ch.reverse
@@ -190,14 +194,15 @@ noncomputable def tablePhaseSpec (colOf : I.ColumnId → ℕ) (w : BusWit)
       gcongr with ξ _
       intro hD
       refine ⟨W, firstWord_append hW _, ?_⟩
-      rw [fid.target ξ, Sumcheck.rel_zero]
+      rw [fid.target ξ, tableFamily_rel_zero]
       exact hD)).bind' fun ξ ↦
   (tableSumcheckSpec I hI cands input layout colOf w fid hd hfin hcard he hT ξ).bind'
     fun tableClaims ↦
   (Spec.ret (Post := TablePost I cands input colOf) ((w.result layout).claims ++ tableClaims)).mono
     (fun _ hp ↦ by
       obtain ⟨ch, claim, evs, hs, hl, rfl, W, hW, hR⟩ := hp
-      exact ⟨W, _, hW, hR, rfl, fid.claims ξ ch claim evs hl hs⟩) (fun _ _ h ↦ h) le_rfl le_rfl
+      exact ⟨W, _, hW, hR, rfl, fid.claims ξ ch claim evs hl hs, _, _, rfl⟩) (fun _ _ h ↦ h)
+      le_rfl le_rfl
     le_rfl
 
 end

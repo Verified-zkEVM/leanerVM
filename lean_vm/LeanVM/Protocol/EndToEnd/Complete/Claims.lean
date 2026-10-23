@@ -15,21 +15,25 @@ public import LeanVM.Protocol.Whir.Complete.Tables
 # True column claims
 
 The verifier program (`LeanVM.Protocol.Verifier`, `python-verifier/verifier.py` at leanVM
-`127510d14c98ade4e8a97646c44fa7f1ff5e752d`) accumulates column claims as data
+`3375f7a137c50b803f3416f6466b5d4e0719708a`) accumulates column claims as data
 (`Verifier.ColumnClaim`: a global column, a point, a value) and opens them on the stack through
 its layout (`ColumnClaim.onStack`). Against the honest prover every claim it accumulates is a
 *true claim* (`TrueClaim`): the global column is the Python number `pyCol c` of an instance
 column `c`, the point is a point `z` of the column's own variables, and the value is the
 extension of the column read off the stack at `z` (`colEval`).
 
-For the stack `q` of the leanISA instance with the BLAKE2s Flock specification (`inst`), a true
-claim is what the opening needs of it (`Whir.Complete.follows_verifyStackedOpening`):
+For the stack `q` of the leanISA instance (`inst`), a true claim on a committed column or a
+`KECCAK` input lane, i.e. on no `KECCAK` output lane (`keccakOutputColumns`, which the verifier
+hands the Keccak reduction instead of the opening), is what the opening needs of it
+(`Whir.Complete.follows_verifyStackedOpening`):
 
 * `TrueClaim.holds`: placed on the stack it holds of `q` (`StackClaim.Holds`), by the layout
   correspondence `Front.onStack_holds_iff`;
 * `TrueClaim.multilinear`: its weight `eq(placed point, ·)` is multilinear on the stack's cube,
   the placed point being the instance's lift of `z`, of the stack's length
   (`Front.stackPoint_eq_extend`).
+
+An output lane's true value is that of the instance's derived column (`LeanIsa.derived`).
 -/
 
 namespace LeanVM.Protocol.EndToEnd.Complete
@@ -39,10 +43,9 @@ open LeanVM.Protocol.EndToEnd.Front LeanVM.Protocol.Whir.Complete CompPoly CMlPo
 
 @[expose] public section
 
-/-- The instance the deployed verifier is complete for: leanISA with the BLAKE2s Flock
-specification. -/
+/-- The instance the deployed verifier is complete for: leanISA. -/
 abbrev inst (prog : Program) (s : Sizes) : M3Instance :=
-  leanIsaInstance Blake2sFlock.blake2sFlockSpec prog s
+  leanIsaInstance prog s
 
 /-- The true value of an instance column at a point of its variables: the column's extension,
 the column read off the stack through the instance's layout. -/
@@ -68,28 +71,33 @@ theorem trueClaims_append {prog : Program} {s : Sizes} {q : Column (leanIsaμ pr
   rcases List.mem_append.mp hcl with h | h
   exacts [ha cl h, hb cl h]
 
-/-- A true claim, placed on the stack by the verifier's layout, holds of the stack. -/
+/-- A true claim on no output lane, placed on the stack by the verifier's layout, holds of the
+stack. -/
 theorem TrueClaim.holds {prog : Program} {s : Sizes} {q : Column (leanIsaμ prog s)}
-    {cl : Verifier.ColumnClaim} (h : TrueClaim prog s q cl) :
+    {cl : Verifier.ColumnClaim} (h : TrueClaim prog s q cl)
+    (hout : cl.column ∉ keccakOutputColumns) :
     StackClaim.Holds (leanIsaμ prog s) (cl.onStack (verifierLayout prog s)) q := by
   obtain ⟨c, z, rfl⟩ := h
-  exact (onStack_holds_iff prog s Blake2sFlock.blake2sFlockSpec rfl c z _ q).mpr rfl
+  exact (onStack_holds_iff prog s c ((mem_keccakOutputColumns_pyCol c).not.mp hout) z _ q).mpr
+    rfl
 
-/-- The point a true claim is placed at has the stack's length. -/
-theorem length_stackPoint (prog : Program) (s : Sizes) (c : Col)
+/-- The point a claim on a column that is not an output lane is placed at has the stack's
+length. -/
+theorem length_stackPoint (prog : Program) (s : Sizes) (c : Col) (hc : ¬ IsOut c)
     (z : Vector E (kappa prog s c)) :
-    (((verifierLayout prog s).placements.getD (pyCol c) default).stackPoint z.toList
+    (((verifierLayout prog s).placement (pyCol c)).stackPoint z.toList
       (verifierLayout prog s).stackLog).length = leanIsaμ prog s := by
-  rw [stackPoint_eq_extend prog s Blake2sFlock.blake2sFlockSpec rfl c z, Vector.length_toList]
+  rw [stackPoint_eq_extend prog s c hc z, Vector.length_toList]
 
-/-- A true claim's weight is multilinear on the stack's cube. -/
+/-- A true claim's weight on no output lane is multilinear on the stack's cube. -/
 theorem TrueClaim.multilinear {prog : Program} {s : Sizes} {q : Column (leanIsaμ prog s)}
-    {cl : Verifier.ColumnClaim} (h : TrueClaim prog s q cl) :
+    {cl : Verifier.ColumnClaim} (h : TrueClaim prog s q cl)
+    (hout : cl.column ∉ keccakOutputColumns) :
     IsMultilinearFn (leanIsaμ prog s) (cl.onStack (verifierLayout prog s)).1 := by
   obtain ⟨c, z, rfl⟩ := h
-  have hm := isMultilinearFn_eqEval (((verifierLayout prog s).placements.getD (pyCol c)
-    default).stackPoint z.toList (verifierLayout prog s).stackLog)
-  rw [length_stackPoint] at hm
+  have hm := isMultilinearFn_eqEval (((verifierLayout prog s).placement (pyCol c)).stackPoint
+    z.toList (verifierLayout prog s).stackLog)
+  rw [length_stackPoint prog s c ((mem_keccakOutputColumns_pyCol c).not.mp hout)] at hm
   exact hm
 
 end

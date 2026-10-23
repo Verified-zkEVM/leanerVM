@@ -12,28 +12,29 @@ public import LeanVM.Protocol.Compile.Prover
 public import LeanVM.Protocol.Compile.Cost
 
 /-!
-# The honest prover against the random oracle
+# The honest prover against the random oracles
 
-`proveM H P S seed fuel` is the honest prover `prove` (`LeanVM.Protocol.Compile.Prover`) with
-the hash `H : Bytes → m Digest` in any monad `m`, as the verifier `run` is. Its `Id` instance is
-`prove` (`proveM_id`); at `H = queryH` it is an oracle computation, the honest prover of the
-random-oracle model.
+`proveM H F P S seed fuel` is the honest prover `prove` (`LeanVM.Protocol.Compile.Prover`) with
+the hash `H : Bytes → m Digest` and the permutation `F : KState → m KState` in any monad `m`, as
+the verifier `run` is. Its `Id` instance is `prove` (`proveM_id`); at `H = queryH` and
+`F = queryF` it is an oracle computation, the honest prover of the random-oracle model.
 
 * The Merkle tree is built level by level as lists (`parentsM`, `rootOfLevelM`, `pathOfLevelM`);
   an opening rebuilds the tree it opens, as `openingAt` does.
-* The proof-of-work search hashes the base `H(cv ‖ (0, 3))` once, then the nonces `0, 1, …` in
-  order (`searchM`).
-* `simulateQ_proveM`: interpreting the queries of `proveM queryH` by any implementation is
-  running `proveM` with that implementation as the hash.
+* The proof-of-work search tries the nonces `0, 1, …` in order, each absorbed into the sponge
+  with tag `4` and a challenge squeezed (`powStepM`, `searchM`).
+* `simulateQ_proveM`: interpreting the queries of `proveM queryH queryF` by any implementation is
+  running `proveM` with that implementation as the hash and the permutation.
 * `simulateQ_id_of_look`: a computation whose run against a log's answers returns `r` returns
-  `r` against every hash function that agrees with the log.
-* `isTotalQueryBound_proveM`: a program of cost `n` at height `h` (`Prog.CostLE`) makes the
-  prover query the oracle at most `n · (2^(h + 1) + fuel + 1)` times, after the seed.
+  `r` against every hash function and permutation that agree with the log.
+* `isTotalQueryBound_proveM`: a program of cost `n` at height `h` (`Prog.CostLE`, in quarters)
+  makes the prover query the oracles at most `n · (2^(h + 1) + 2 · fuel + 2)` times, after the
+  seed.
 -/
 
 namespace LeanVM.Protocol.Compile
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Protocol.Blake2sHash LeanVM.Protocol
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Protocol.KeccakHash LeanVM.Protocol
 open LeanVM.Protocol.Compile.Rom LeanVM.Protocol.Rom
 open OracleComp OracleSpec
 
@@ -43,7 +44,7 @@ open OracleComp OracleSpec
 
 section ProverM
 
-variable {m : Type → Type} [Monad m] (H : Bytes → m Digest)
+variable {m : Type → Type} [Monad m] (H : Bytes → m Digest) (F : KState → m KState)
 
 /-- The first `n` parents of a level: parent `j` hashes nodes `2j` and `2j + 1`. -/
 def parentsM (level : List Digest) (n : ℕ) : m (List Digest) :=
@@ -76,55 +77,59 @@ def openingAtM (height : ℕ) (word : Word) (q : ℕ) : m Opening := do
   let path ← pathOfLevelM H height (← leafHashesM H height word) (q % 2 ^ height)
   pure ⟨word (q % 2 ^ height), path⟩
 
-/-- The nonce search from the base `base`: the first nonce of `ns` whose digest passes. -/
-def searchM (bits : ℕ) (base : Digest) : List ℕ → m (Option E)
+/-- The proof-of-work step of a nonce: absorbed with tag `4`, then a challenge squeezed. -/
+def powStepM (sp : Sponge) (n : E) : m (E × Sponge) := do
+  let sp' ← Compile.absorb F sp n dsPowNonce
+  squeeze F sp'
+
+/-- The nonce search at the sponge `sp`: the first nonce of `ns` whose challenge passes. -/
+def searchM (bits : ℕ) (sp : Sponge) : List ℕ → m (Option E)
   | [] => pure none
   | n :: ns => do
-    let d ← H (digestBytes base ++ blockOf (nonceOf n) 4)
-    if powOk bits (nonceOf n) d then pure (some (nonceOf n)) else searchM bits base ns
+    let r ← powStepM F sp (nonceOf n)
+    if powOk bits (nonceOf n) r.1 then pure (some (nonceOf n)) else searchM bits sp ns
 
-/-- The proof-of-work search: at `bits = 0` the nonce `0`; otherwise the base, then the first
-nonce below `fuel` that passes. -/
-def findNonceM (bits : ℕ) (cv : Digest) (fuel : ℕ) : m (Option E) :=
-  if bits = 0 then pure (some (nonceOf 0)) else do
-    searchM H bits (← H (digestBytes cv ++ blockOf 0 3)) (List.range fuel)
+/-- The proof-of-work search: at `bits = 0` the nonce `0`; otherwise the first nonce below
+`fuel` that passes. -/
+def findNonceM (bits : ℕ) (sp : Sponge) (fuel : ℕ) : m (Option E) :=
+  if bits = 0 then pure (some (nonceOf 0)) else searchM F bits sp (List.range fuel)
 
-/-- The honest prover from a history `h` at chain state `cv` (`proveFrom`). -/
+/-- The honest prover from a history `h` at sponge `sp` (`proveFrom`). -/
 def proveFromM (S : Strategy) (fuel : ℕ) {α : Type} :
-    Prog α → Digest → List Ev → m (Option (List E × List Opening))
+    Prog α → Sponge → List Ev → m (Option (List E × List Opening))
   | .ret _, _, _ => pure (some ([], []))
   | .fail, _, _ => pure (some ([], []))
-  | .read k, cv, h => do
-    let cv' ← H (digestBytes cv ++ blockOf (S.msg h) 1)
-    let r ← proveFromM S fuel (k (S.msg h)) cv' (h ++ [Ev.read (S.msg h)])
+  | .read k, sp, h => do
+    let sp' ← Compile.absorb F sp (S.msg h) dsObserve
+    let r ← proveFromM S fuel (k (S.msg h)) sp' (h ++ [Ev.read (S.msg h)])
     pure (r.map fun t ↦ (S.msg h :: t.1, t.2))
-  | .sample k, cv, h => do
-    let cv' ← H (digestBytes cv ++ blockOf 0 2)
-    proveFromM S fuel (k (challengeOf cv')) cv' (h ++ [Ev.sample (challengeOf cv')])
-  | .grind bits k, cv, h => do
-    match ← findNonceM H bits cv fuel with
+  | .sample k, sp, h => do
+    let r ← squeeze F sp
+    proveFromM S fuel (k r.1) r.2 (h ++ [Ev.sample r.1])
+  | .grind bits k, sp, h => do
+    match ← findNonceM F bits sp fuel with
     | none => pure none
     | some n => do
-      let cv' ← H (digestBytes cv ++ blockOf n 4)
-      let r ← proveFromM S fuel k cv' (h ++ [Ev.grind bits])
-      pure (r.map fun t ↦ (n :: t.1, t.2))
-  | .commit ht w k, cv, h => do
+      let r ← powStepM F sp n
+      let t ← proveFromM S fuel k r.2 (h ++ [Ev.grind bits])
+      pure (t.map fun t ↦ (n :: t.1, t.2))
+  | .commit ht w k, sp, h => do
     let root ← treeRootM H ht (S.word h)
-    let cv0 ← H (digestBytes cv ++ blockOf (digestScalars root).1 1)
-    let cv1 ← H (digestBytes cv0 ++ blockOf (digestScalars root).2 1)
-    let r ← proveFromM S fuel k cv1 (h ++ [Ev.commit ht w (S.word h)])
+    let sp0 ← Compile.absorb F sp (digestScalars root).1 dsObserve
+    let sp1 ← Compile.absorb F sp0 (digestScalars root).2 dsObserve
+    let r ← proveFromM S fuel k sp1 (h ++ [Ev.commit ht w (S.word h)])
     pure (r.map fun t ↦ ((digestScalars root).1 :: (digestScalars root).2 :: t.1, t.2))
-  | .query i ps k, cv, h => match (commits h)[i]? with
+  | .query i ps k, sp, h => match (commits h)[i]? with
     | none => pure (some ([], []))
     | some (ht, _, word) => do
       let os ← ps.mapM (openingAtM H ht word)
-      let r ← proveFromM S fuel (k (ps.map fun q ↦ word (q % 2 ^ ht))) cv
+      let r ← proveFromM S fuel (k (ps.map fun q ↦ word (q % 2 ^ ht))) sp
         (h ++ [Ev.query (ps.map fun q ↦ word (q % 2 ^ ht))])
       pure (r.map fun t ↦ (t.1, os ++ t.2))
 
-/-- **The honest prover**, with the hash in any monad (`prove`). -/
-def proveM (P : Prog Bool) (S : Strategy) (seed : Digest) (fuel : ℕ) : m (Option Proof) := do
-  let r ← proveFromM H S fuel P seed []
+/-- **The honest prover**, with the hash and the permutation in any monad (`prove`). -/
+def proveM (P : Prog Bool) (S : Strategy) (seed : KState) (fuel : ℕ) : m (Option Proof) := do
+  let r ← proveFromM H F S fuel P ⟨seed, []⟩ []
   pure (r.map fun t ↦ ⟨t.1, t.2⟩)
 
 end ProverM
@@ -133,7 +138,7 @@ end ProverM
 
 section Pure
 
-variable (H : Bytes → Digest)
+variable (H : Bytes → Digest) (F : KState → KState)
 
 theorem parentsM_id (level : List Digest) (n : ℕ) :
     parentsM (m := Id) H level n = (List.range n).map fun j ↦
@@ -208,64 +213,68 @@ theorem openingAtM_id (height : ℕ) (word : Word) (q : ℕ) :
   rw [this]
   rfl
 
-theorem searchM_id (bits : ℕ) (cv : Digest) :
-    ∀ ns : List ℕ, searchM (m := Id) H bits (H (digestBytes cv ++ blockOf 0 3)) ns =
-      (ns.find? fun n ↦ powOk bits (nonceOf n) (powDigest H cv (nonceOf n))).map nonceOf
+theorem powStepM_id (sp : Sponge) (n : E) : powStepM (m := Id) F sp n = powStep F sp n := rfl
+
+theorem searchM_id (bits : ℕ) (sp : Sponge) :
+    ∀ ns : List ℕ, searchM (m := Id) F bits sp ns =
+      (ns.find? fun n ↦ powOk bits (nonceOf n) (powStep F sp (nonceOf n)).1).map nonceOf
   | [] => rfl
   | n :: ns => by
     simp only [searchM, List.find?_cons]
-    show (if powOk bits (nonceOf n) (powDigest H cv (nonceOf n)) then _ else _) = _
+    show (if powOk bits (nonceOf n) (powStep F sp (nonceOf n)).1 then _ else _) = _
     split <;> rename_i hp
     · simp only [hp, Option.map_some]; rfl
-    · simp only [hp]; exact searchM_id bits cv ns
+    · simp only [hp]; exact searchM_id bits sp ns
 
-theorem findNonceM_id (bits : ℕ) (cv : Digest) (fuel : ℕ) :
-    findNonceM (m := Id) H bits cv fuel = findNonce H bits cv fuel := by
+theorem findNonceM_id (bits : ℕ) (sp : Sponge) (fuel : ℕ) :
+    findNonceM (m := Id) F bits sp fuel = findNonce F bits sp fuel := by
   unfold findNonceM findNonce
   split
   · rfl
-  · exact searchM_id H bits cv _
+  · exact searchM_id F bits sp _
 
 theorem proveFromM_id (S : Strategy) (fuel : ℕ) {α : Type} :
-    ∀ (p : Prog α) (cv : Digest) (h : List Ev),
-      proveFromM (m := Id) H S fuel p cv h = proveFrom H S fuel p cv h
+    ∀ (p : Prog α) (sp : Sponge) (h : List Ev),
+      proveFromM (m := Id) H F S fuel p sp h = proveFrom H F S fuel p sp h
   | .ret _, _, _ => rfl
   | .fail, _, _ => rfl
-  | .read k, cv, h => by
+  | .read k, sp, h => by
     simp only [proveFromM, proveFrom]
     rw [← proveFromM_id S fuel]
     rfl
-  | .sample k, cv, h => by
+  | .sample k, sp, h => by
     simp only [proveFromM, proveFrom]
     rw [← proveFromM_id S fuel]
     rfl
-  | .grind bits k, cv, h => by
+  | .grind bits k, sp, h => by
     simp only [proveFromM, proveFrom]
-    show (match findNonceM (m := Id) H bits cv fuel with
+    show (match findNonceM (m := Id) F bits sp fuel with
       | none => _ | some n => _) = _
     rw [findNonceM_id]
-    cases findNonce H bits cv fuel
+    cases findNonce F bits sp fuel
     · rfl
-    · show Option.map _ (proveFromM (m := Id) H S fuel k _ _) =
-        Option.map _ (proveFrom H S fuel k _ _)
+    · show Option.map _ (proveFromM (m := Id) H F S fuel k _ _) =
+        Option.map _ (proveFrom H F S fuel k _ _)
       rw [proveFromM_id S fuel]
-  | .commit ht w k, cv, h => by
+      rfl
+  | .commit ht w k, sp, h => by
     simp only [proveFromM, proveFrom]
-    show (proveFromM (m := Id) H S fuel k _ _).map _ = _
+    show (proveFromM (m := Id) H F S fuel k _ _).map _ = _
     rw [treeRootM_id, proveFromM_id S fuel]
-  | .query i ps k, cv, h => by
+    rfl
+  | .query i ps k, sp, h => by
     simp only [proveFromM, proveFrom]
     rcases (commits h)[i]? with _ | ⟨ht, w, word⟩
     · rfl
-    · show (proveFromM (m := Id) H S fuel _ cv _).map
+    · show (proveFromM (m := Id) H F S fuel _ sp _).map
         (fun t ↦ (t.1, Id.run (ps.mapM (openingAtM (m := Id) H ht word)) ++ t.2)) = _
       rw [List.idRun_mapM, proveFromM_id S fuel]
       simp only [Id.run, openingAtM_id]
 
 /-- **The `Id` instance is the honest prover.** -/
-theorem proveM_id (P : Prog Bool) (S : Strategy) (seed : Digest) (fuel : ℕ) :
-    proveM (m := Id) H P S seed fuel = prove H P S seed fuel := by
-  show (proveFromM (m := Id) H S fuel P seed []).map _ = _
+theorem proveM_id (P : Prog Bool) (S : Strategy) (seed : KState) (fuel : ℕ) :
+    proveM (m := Id) H F P S seed fuel = prove H F P S seed fuel := by
+  show (proveFromM (m := Id) H F S fuel P ⟨seed, []⟩ []).map _ = _
   rw [proveFromM_id]
   rfl
 
@@ -285,12 +294,12 @@ theorem simulateQ_mapM {α β : Type} (f : α → OracleComp HashSpec β) :
     congr 1; funext b; rw [simulateQ_mapM f l]
 
 theorem simulateQ_parentsM (level : List Digest) (n : ℕ) :
-    simulateQ impl (parentsM queryH level n) = parentsM (fun x ↦ impl x) level n := by
+    simulateQ impl (parentsM queryH level n) = parentsM (implH impl) level n := by
   simp only [parentsM, simulateQ_mapM, simulateQ_queryH]
 
 theorem simulateQ_rootOfLevelM :
     ∀ (k : ℕ) (level : List Digest),
-      simulateQ impl (rootOfLevelM queryH k level) = rootOfLevelM (fun x ↦ impl x) k level
+      simulateQ impl (rootOfLevelM queryH k level) = rootOfLevelM (implH impl) k level
   | 0, _ => by simp [rootOfLevelM]
   | k + 1, level => by
     simp only [rootOfLevelM, simulateQ_bind, simulateQ_parentsM]
@@ -298,69 +307,73 @@ theorem simulateQ_rootOfLevelM :
 
 theorem simulateQ_pathOfLevelM :
     ∀ (k : ℕ) (level : List Digest) (i : ℕ),
-      simulateQ impl (pathOfLevelM queryH k level i) = pathOfLevelM (fun x ↦ impl x) k level i
+      simulateQ impl (pathOfLevelM queryH k level i) = pathOfLevelM (implH impl) k level i
   | 0, _, _ => by simp [pathOfLevelM]
   | k + 1, level, i => by
     simp only [pathOfLevelM, simulateQ_bind, simulateQ_parentsM, simulateQ_pure]
     congr 1; funext up; rw [simulateQ_pathOfLevelM k up]
 
 theorem simulateQ_leafHashesM (height : ℕ) (word : Word) :
-    simulateQ impl (leafHashesM queryH height word) = leafHashesM (fun x ↦ impl x) height word := by
+    simulateQ impl (leafHashesM queryH height word) = leafHashesM (implH impl) height word := by
   simp only [leafHashesM, simulateQ_mapM, simulateQ_queryH]
 
 theorem simulateQ_treeRootM (height : ℕ) (word : Word) :
-    simulateQ impl (treeRootM queryH height word) = treeRootM (fun x ↦ impl x) height word := by
+    simulateQ impl (treeRootM queryH height word) = treeRootM (implH impl) height word := by
   simp only [treeRootM, simulateQ_bind, simulateQ_leafHashesM, simulateQ_rootOfLevelM]
 
 theorem simulateQ_openingAtM (height : ℕ) (word : Word) (q : ℕ) :
     simulateQ impl (openingAtM queryH height word q) =
-      openingAtM (fun x ↦ impl x) height word q := by
+      openingAtM (implH impl) height word q := by
   simp only [openingAtM, simulateQ_bind, simulateQ_leafHashesM, simulateQ_pathOfLevelM,
     simulateQ_pure]
 
-theorem simulateQ_searchM (bits : ℕ) (base : Digest) :
-    ∀ ns : List ℕ, simulateQ impl (searchM queryH bits base ns) =
-      searchM (fun x ↦ impl x) bits base ns
+theorem simulateQ_powStepM (sp : Sponge) (n : E) :
+    simulateQ impl (powStepM queryF sp n) = powStepM (implF impl) sp n := by
+  simp only [powStepM, simulateQ_bind, simulateQ_absorb, simulateQ_squeeze]
+
+theorem simulateQ_searchM (bits : ℕ) (sp : Sponge) :
+    ∀ ns : List ℕ, simulateQ impl (searchM queryF bits sp ns) =
+      searchM (implF impl) bits sp ns
   | [] => by simp [searchM]
   | n :: ns => by
-    simp only [searchM, simulateQ_bind, simulateQ_queryH]
-    congr 1; funext d
+    simp only [searchM, simulateQ_bind, simulateQ_powStepM]
+    congr 1; funext r
     split
     · simp
-    · exact simulateQ_searchM bits base ns
+    · exact simulateQ_searchM bits sp ns
 
-theorem simulateQ_findNonceM (bits : ℕ) (cv : Digest) (fuel : ℕ) :
-    simulateQ impl (findNonceM queryH bits cv fuel) = findNonceM (fun x ↦ impl x) bits cv fuel := by
+theorem simulateQ_findNonceM (bits : ℕ) (sp : Sponge) (fuel : ℕ) :
+    simulateQ impl (findNonceM queryF bits sp fuel) = findNonceM (implF impl) bits sp fuel := by
   unfold findNonceM
   split
   · simp
-  · simp only [simulateQ_bind, simulateQ_queryH, simulateQ_searchM]
+  · exact simulateQ_searchM impl bits sp _
 
 theorem simulateQ_proveFromM (S : Strategy) (fuel : ℕ) {α : Type} :
-    ∀ (p : Prog α) (cv : Digest) (h : List Ev),
-      simulateQ impl (proveFromM queryH S fuel p cv h) =
-        proveFromM (fun x ↦ impl x) S fuel p cv h
+    ∀ (p : Prog α) (sp : Sponge) (h : List Ev),
+      simulateQ impl (proveFromM queryH queryF S fuel p sp h) =
+        proveFromM (implH impl) (implF impl) S fuel p sp h
   | .ret _, _, _ => by simp [proveFromM]
   | .fail, _, _ => by simp [proveFromM]
-  | .read k, cv, h => by
-    simp only [proveFromM, simulateQ_bind, simulateQ_queryH, simulateQ_pure]
-    congr 1; funext cv'; rw [simulateQ_proveFromM S fuel]
-  | .sample k, cv, h => by
-    simp only [proveFromM, simulateQ_bind, simulateQ_queryH]
-    congr 1; funext cv'; exact simulateQ_proveFromM S fuel _ _ _
-  | .grind bits k, cv, h => by
+  | .read k, sp, h => by
+    simp only [proveFromM, simulateQ_bind, simulateQ_absorb, simulateQ_pure]
+    congr 1; funext sp'; rw [simulateQ_proveFromM S fuel]
+  | .sample k, sp, h => by
+    simp only [proveFromM, simulateQ_bind, simulateQ_squeeze]
+    congr 1; funext r; exact simulateQ_proveFromM S fuel _ _ _
+  | .grind bits k, sp, h => by
     simp only [proveFromM, simulateQ_bind, simulateQ_findNonceM]
     congr 1; funext o
     split
     · simp
-    · simp only [simulateQ_bind, simulateQ_queryH, simulateQ_pure]
-      congr 1; funext cv'; rw [simulateQ_proveFromM S fuel]
-  | .commit ht w k, cv, h => by
-    simp only [proveFromM, simulateQ_bind, simulateQ_treeRootM, simulateQ_queryH,
+    · simp only [simulateQ_bind, simulateQ_powStepM, simulateQ_pure]
+      congr 1; funext r; rw [simulateQ_proveFromM S fuel]
+  | .commit ht w k, sp, h => by
+    simp only [proveFromM, simulateQ_bind, simulateQ_treeRootM, simulateQ_absorb,
       simulateQ_pure]
-    congr 1; funext root; congr 1; funext cv0; congr 1; funext cv1
+    congr 1; funext root; congr 1; funext sp0; congr 1; funext sp1
     rw [simulateQ_proveFromM S fuel]
-  | .query i ps k, cv, h => by
+  | .query i ps k, sp, h => by
     simp only [proveFromM]
     split
     · simp
@@ -368,21 +381,33 @@ theorem simulateQ_proveFromM (S : Strategy) (fuel : ℕ) {α : Type} :
       congr 1; funext os; rw [simulateQ_proveFromM S fuel]
 
 /-- **The prover commutes with simulation.** -/
-theorem simulateQ_proveM (P : Prog Bool) (S : Strategy) (seed : Digest) (fuel : ℕ) :
-    simulateQ impl (proveM queryH P S seed fuel) = proveM (fun x ↦ impl x) P S seed fuel := by
+theorem simulateQ_proveM (P : Prog Bool) (S : Strategy) (seed : KState) (fuel : ℕ) :
+    simulateQ impl (proveM queryH queryF P S seed fuel) =
+      proveM (implH impl) (implF impl) P S seed fuel := by
   simp only [proveM, simulateQ_bind, simulateQ_proveFromM, simulateQ_pure]
 
 end Commute
 
-/-! ## From a log's answers to a hash function -/
+/-! ## From a log's answers to a hash function and a permutation -/
 
-/-- **From the log to a hash function.** A computation that returns `r` when every query is
-answered by the log `ℓ` returns `r` when every query is answered by a hash function that agrees
-with the log. -/
-theorem simulateQ_id_of_look {β : Type} (ℓ : Log) (H : Bytes → Digest)
-    (hH : ∀ x u, look ℓ x = some u → H x = u) (oa : OracleComp HashSpec β) :
-    ∀ r : β, simulateQ (lookImpl ℓ) oa = some r →
-      simulateQ (fun x ↦ (pure (H x) : Id Digest)) oa = r := by
+/-- A hash function and a permutation, as an implementation of the oracles in `Id`. -/
+def totalImpl (H : Bytes → Digest) (F : KState → KState) : QueryImpl HashSpec Id
+  | .inl x => H x
+  | .inr s => F s
+
+theorem implH_totalImpl (H : Bytes → Digest) (F : KState → KState) :
+    implH (totalImpl H F) = H := rfl
+
+theorem implF_totalImpl (H : Bytes → Digest) (F : KState → KState) :
+    implF (totalImpl H F) = F := rfl
+
+/-- **From the log to a hash function and a permutation.** A computation that returns `r` when
+every query is answered by the log `ℓ` returns `r` when every query is answered by a hash
+function and a permutation that agree with the log. -/
+theorem simulateQ_id_of_look {β : Type} (ℓ : Log) (H : Bytes → Digest) (F : KState → KState)
+    (hH : ∀ x u, lookH ℓ x = some u → H x = u) (hF : ∀ s u, lookF ℓ s = some u → F s = u)
+    (oa : OracleComp HashSpec β) :
+    ∀ r : β, simulateQ (lookImpl ℓ) oa = some r → simulateQ (totalImpl H F) oa = r := by
   induction oa using OracleComp.inductionOn with
   | pure x =>
     intro r h
@@ -392,10 +417,14 @@ theorem simulateQ_id_of_look {β : Type} (ℓ : Log) (H : Bytes → Digest)
     intro r h
     rw [simulateQ_query_bind] at h ⊢
     simp only [OracleQuery.input_query, OracleQuery.cont_query, id] at h ⊢
-    change (look ℓ t).bind (fun u ↦ simulateQ (lookImpl ℓ) (mx u)) = some r at h
+    change (logLookup ℓ t).bind (fun u ↦ simulateQ (lookImpl ℓ) (mx u)) = some r at h
     obtain ⟨u, hu, h⟩ := Option.bind_eq_some_iff.mp h
-    change simulateQ (fun x ↦ (pure (H x) : Id Digest)) (mx (H t)) = r
-    rw [hH t u hu]
+    change simulateQ (totalImpl H F) (mx (totalImpl H F t)) = r
+    have ht : totalImpl H F t = u := by
+      rcases t with x | s
+      · exact hH x u hu
+      · exact hF s u hu
+    rw [ht]
     exact ih u r h
 
 /-! ## The prover's queries -/
@@ -462,52 +491,77 @@ theorem isTotalQueryBound_openingAtM (height : ℕ) (word : Word) (q : ℕ) :
     isTotalQueryBound_bind (isTotalQueryBound_pathOfLevelM height l _) fun _ ↦
       isTotalQueryBound_pure' _ 0
 
-theorem isTotalQueryBound_searchM (bits : ℕ) (base : Digest) :
-    ∀ ns : List ℕ, IsTotalQueryBound (searchM queryH bits base ns) ns.length
+/-- An absorption queries at most once. -/
+theorem isTotalQueryBound_absorb_le {β : Type} (sp : Sponge) (x : E) (tag : ℕ)
+    {g : Sponge → OracleComp HashSpec β} {n : ℕ} (hg : ∀ sp', IsTotalQueryBound (g sp') n) :
+    IsTotalQueryBound (Compile.absorb queryF sp x tag >>= g) (n + 1) := by
+  rw [absorb_bind]
+  split
+  · exact isTotalQueryBound_queryF_bind _ fun st ↦ hg _
+  · exact (hg _).mono (Nat.le_succ n)
+
+/-- A squeeze queries once. -/
+theorem isTotalQueryBound_squeeze_le {β : Type} (sp : Sponge)
+    {g : E × Sponge → OracleComp HashSpec β} {n : ℕ} (hg : ∀ r, IsTotalQueryBound (g r) n) :
+    IsTotalQueryBound (squeeze queryF sp >>= g) (n + 1) := by
+  rw [squeeze_bind]
+  exact isTotalQueryBound_queryF_bind _ fun st ↦ hg _
+
+/-- A proof-of-work step queries at most twice. -/
+theorem isTotalQueryBound_powStepM_le {β : Type} (sp : Sponge) (n : E)
+    {g : E × Sponge → OracleComp HashSpec β} {c : ℕ} (hg : ∀ r, IsTotalQueryBound (g r) c) :
+    IsTotalQueryBound (powStepM queryF sp n >>= g) (c + 2) := by
+  simp only [powStepM, bind_assoc]
+  exact isTotalQueryBound_absorb_le _ _ _ fun sp' ↦ isTotalQueryBound_squeeze_le _ hg
+
+theorem isTotalQueryBound_searchM (bits : ℕ) (sp : Sponge) :
+    ∀ ns : List ℕ, IsTotalQueryBound (searchM queryF bits sp ns) (2 * ns.length)
   | [] => trivial
   | n :: ns => by
     simp only [searchM, List.length_cons]
-    refine isTotalQueryBound_queryH_bind _ fun d ↦ ?_
+    rw [show 2 * (ns.length + 1) = 2 * ns.length + 2 by ring]
+    refine isTotalQueryBound_powStepM_le _ _ fun r ↦ ?_
     split
     · trivial
-    · exact isTotalQueryBound_searchM bits base ns
+    · exact isTotalQueryBound_searchM bits sp ns
 
-theorem isTotalQueryBound_findNonceM (bits : ℕ) (cv : Digest) (fuel : ℕ) :
-    IsTotalQueryBound (findNonceM queryH bits cv fuel) (fuel + 1) := by
+theorem isTotalQueryBound_findNonceM (bits : ℕ) (sp : Sponge) (fuel : ℕ) :
+    IsTotalQueryBound (findNonceM queryF bits sp fuel) (2 * fuel) := by
   unfold findNonceM
   split
   · trivial
-  · exact isTotalQueryBound_queryH_bind _ fun base ↦ by
-      simpa using isTotalQueryBound_searchM bits base (List.range fuel)
+  · simpa using isTotalQueryBound_searchM bits sp (List.range fuel)
 
-/-- The query cost of one unit of a program's cost: an opening or a commitment rebuilds a tree
-of height at most `height`, a proof of work searches `fuel` nonces. -/
-def proverFactor (height fuel : ℕ) : ℕ := 2 ^ (height + 1) + fuel + 1
+/-- The query cost of one quarter of a program's cost: an opening or a commitment rebuilds a
+tree of height at most `height`, a proof of work searches `fuel` nonces at two queries each. -/
+def proverFactor (height fuel : ℕ) : ℕ := 2 ^ (height + 1) + 2 * fuel + 2
 
-theorem one_le_proverFactor (height fuel : ℕ) : 1 ≤ proverFactor height fuel :=
-  Nat.le_add_left 1 _
+theorem one_le_proverFactor (height fuel : ℕ) : 1 ≤ proverFactor height fuel := by
+  unfold proverFactor; exact Nat.succ_le_of_lt (by positivity)
 
-theorem fuel_lt_proverFactor (height fuel : ℕ) : fuel + 1 ≤ proverFactor height fuel := by
-  unfold proverFactor; exact Nat.add_le_add_right (Nat.le_add_left _ _) 1
+theorem fuel_le_proverFactor (height fuel : ℕ) :
+    2 * fuel + 2 ≤ proverFactor height fuel := by
+  unfold proverFactor; rw [Nat.add_assoc]; exact Nat.le_add_left _ _
 
-theorem pow_lt_proverFactor (height fuel : ℕ) : 2 ^ (height + 1) + 1 ≤ proverFactor height fuel := by
-  unfold proverFactor; exact Nat.add_le_add_right (Nat.le_add_right _ _) 1
+theorem pow_le_proverFactor (height fuel : ℕ) :
+    2 ^ (height + 1) + 2 ≤ proverFactor height fuel := by
+  unfold proverFactor; exact Nat.add_le_add_right (Nat.le_add_right _ _) 2
 
 /-- **The prover's queries.** From a history whose commitments have height at most `height`, the
-prover runs a program of cost `n` (`Prog.Costs`) with at most `n · proverFactor height fuel`
-queries. -/
+prover runs a program of cost `n` (`Prog.Costs`, in quarters) with at most
+`n · proverFactor height fuel` queries. -/
 theorem isTotalQueryBound_proveFromM (S : Strategy) (fuel height : ℕ) {α : Type} :
-    ∀ (p : Prog α) (cv : Digest) (h : List Ev) (n : ℕ) (Q : α → Prop), p.Costs height n Q →
+    ∀ (p : Prog α) (sp : Sponge) (h : List Ev) (n : ℕ) (Q : α → Prop), p.Costs height n Q →
       (∀ c ∈ commits h, c.1 ≤ height) →
-      IsTotalQueryBound (proveFromM queryH S fuel p cv h) (n * proverFactor height fuel)
+      IsTotalQueryBound (proveFromM queryH queryF S fuel p sp h) (n * proverFactor height fuel)
   | .ret _, _, _, _, _, _, _ => trivial
   | .fail, _, _, _, _, _, _ => trivial
-  | .read k, cv, h, n, Q, hp, hs => by
+  | .read k, sp, h, n, Q, hp, hs => by
     simp only [proveFromM]
     have hs' : ∀ c ∈ commits (h ++ [Ev.read (S.msg h)]), c.1 ≤ height := by
       simpa [commits_append, commits] using hs
-    refine (isTotalQueryBound_queryH_bind (n := (n - 1) * proverFactor height fuel + 0) _
-      fun cv' ↦ isTotalQueryBound_bind (isTotalQueryBound_proveFromM S fuel height _ cv'
+    refine (isTotalQueryBound_absorb_le (n := (n - 1) * proverFactor height fuel + 0) _ _ _
+      fun sp' ↦ isTotalQueryBound_bind (isTotalQueryBound_proveFromM S fuel height _ sp'
         (h ++ [Ev.read (S.msg h)]) (n - 1) Q (hp.2 _) hs') fun _ ↦
           isTotalQueryBound_pure' _ 0).mono ?_
     have h1 := hp.1
@@ -516,37 +570,37 @@ theorem isTotalQueryBound_proveFromM (S : Strategy) (fuel height : ℕ) {α : Ty
     obtain ⟨n', rfl⟩ : ∃ n', n = n' + 1 := ⟨n - 1, by omega⟩
     rw [Nat.add_sub_cancel, Nat.add_mul, one_mul]
     omega
-  | .sample k, cv, h, n, Q, hp, hs => by
+  | .sample k, sp, h, n, Q, hp, hs => by
     simp only [proveFromM]
-    refine (isTotalQueryBound_queryH_bind (n := (n - 1) * proverFactor height fuel) _
-      fun cv' ↦ isTotalQueryBound_proveFromM S fuel height _ cv'
-        (h ++ [Ev.sample (challengeOf cv')]) (n - 1) Q (hp.2 _)
+    refine (isTotalQueryBound_squeeze_le (n := (n - 4) * proverFactor height fuel) _
+      fun r ↦ isTotalQueryBound_proveFromM S fuel height _ r.2
+        (h ++ [Ev.sample r.1]) (n - 4) Q (hp.2 _)
           (by simpa [commits_append, commits] using hs)).mono ?_
     have h1 := hp.1
     have hF := one_le_proverFactor height fuel
     generalize proverFactor height fuel = F at *
-    obtain ⟨n', rfl⟩ : ∃ n', n = n' + 1 := ⟨n - 1, by omega⟩
-    rw [Nat.add_sub_cancel, Nat.add_mul, one_mul]
-    omega
-  | .grind bits k, cv, h, n, Q, hp, hs => by
+    obtain ⟨n', rfl⟩ : ∃ n', n = n' + 4 := ⟨n - 4, by omega⟩
+    rw [Nat.add_sub_cancel, Nat.add_mul]
+    nlinarith
+  | .grind bits k, sp, h, n, Q, hp, hs => by
     simp only [proveFromM]
     have hs' : ∀ c ∈ commits (h ++ [Ev.grind bits]), c.1 ≤ height := by
       simpa [commits_append, commits] using hs
-    refine (isTotalQueryBound_bind (isTotalQueryBound_findNonceM bits cv fuel)
-      (n₂ := (n - 3) * proverFactor height fuel + 0 + 1) fun o ↦ ?_).mono ?_
+    refine (isTotalQueryBound_bind (isTotalQueryBound_findNonceM bits sp fuel)
+      (n₂ := (n - 5) * proverFactor height fuel + 0 + 2) fun o ↦ ?_).mono ?_
     · split
       · trivial
-      · exact isTotalQueryBound_queryH_bind (n := (n - 3) * proverFactor height fuel + 0) _
-          fun cv' ↦ isTotalQueryBound_bind
-          (isTotalQueryBound_proveFromM S fuel height k cv' (h ++ [Ev.grind bits]) (n - 3) Q
+      · exact isTotalQueryBound_powStepM_le (c := (n - 5) * proverFactor height fuel + 0) _ _
+          fun r ↦ isTotalQueryBound_bind
+          (isTotalQueryBound_proveFromM S fuel height k r.2 (h ++ [Ev.grind bits]) (n - 5) Q
             hp.2 hs') fun _ ↦ isTotalQueryBound_pure' _ 0
     · have h1 := hp.1
-      have hF := fuel_lt_proverFactor height fuel
+      have hF := fuel_le_proverFactor height fuel
       generalize proverFactor height fuel = F at *
-      obtain ⟨n', rfl⟩ : ∃ n', n = n' + 3 := ⟨n - 3, by omega⟩
+      obtain ⟨n', rfl⟩ : ∃ n', n = n' + 5 := ⟨n - 5, by omega⟩
       rw [Nat.add_sub_cancel, Nat.add_mul]
-      omega
-  | .commit ht w k, cv, h, n, Q, hp, hs => by
+      nlinarith
+  | .commit ht w k, sp, h, n, Q, hp, hs => by
     simp only [proveFromM]
     have hs' : ∀ c ∈ commits (h ++ [Ev.commit ht w (S.word h)]), c.1 ≤ height := by
       simp only [commits_append, commits, List.mem_append, List.mem_singleton]
@@ -555,22 +609,20 @@ theorem isTotalQueryBound_proveFromM (S : Strategy) (fuel height : ℕ) {α : Ty
       · exact hp.1
     refine (isTotalQueryBound_bind (isTotalQueryBound_treeRootM ht (S.word h))
       (n₂ := (n - 2) * proverFactor height fuel + 0 + 1 + 1) fun root ↦
-        isTotalQueryBound_queryH_bind (n := (n - 2) * proverFactor height fuel + 0 + 1) _
-          fun cv0 ↦ isTotalQueryBound_queryH_bind (n := (n - 2) * proverFactor height fuel + 0) _
-            fun cv1 ↦
-          isTotalQueryBound_bind (isTotalQueryBound_proveFromM S fuel height k cv1
+        isTotalQueryBound_absorb_le _ _ _ fun sp0 ↦ isTotalQueryBound_absorb_le _ _ _ fun sp1 ↦
+          isTotalQueryBound_bind (isTotalQueryBound_proveFromM S fuel height k sp1
             (h ++ [Ev.commit ht w (S.word h)]) (n - 2) Q hp.2.2 hs') fun _ ↦
               isTotalQueryBound_pure' _ 0).mono ?_
     have h1 := hp.2.1
     have h2 : 2 ^ (ht + 1) ≤ 2 ^ (height + 1) := Nat.pow_le_pow_right (by norm_num) (by
       have := hp.1; omega)
-    have hF := pow_lt_proverFactor height fuel
+    have hF := pow_le_proverFactor height fuel
     generalize proverFactor height fuel = F at *
     generalize 2 ^ (height + 1) = A at *
     obtain ⟨n', rfl⟩ : ∃ n', n = n' + 2 := ⟨n - 2, by omega⟩
     rw [Nat.add_sub_cancel, Nat.add_mul]
     omega
-  | .query i ps k, cv, h, n, Q, hp, hs => by
+  | .query i ps k, sp, h, n, Q, hp, hs => by
     simp only [proveFromM]
     split
     · trivial
@@ -581,33 +633,35 @@ theorem isTotalQueryBound_proveFromM (S : Strategy) (fuel height : ℕ) {α : Ty
         simpa [commits_append, commits] using hs
       refine (isTotalQueryBound_bind (isTotalQueryBound_mapM _ _
         (isTotalQueryBound_openingAtM ht word) ps)
-        (n₂ := (n - ps.length * (1 + height)) * proverFactor height fuel + 0) fun os ↦
-          isTotalQueryBound_bind (isTotalQueryBound_proveFromM S fuel height _ cv _ _ Q (hp.2 _)
+        (n₂ := (n - Prog.openCost height ps.length) * proverFactor height fuel + 0) fun os ↦
+          isTotalQueryBound_bind (isTotalQueryBound_proveFromM S fuel height _ sp _ _ Q (hp.2 _)
             hs') fun _ ↦ isTotalQueryBound_pure' _ 0).mono ?_
       have h1 := hp.1
       have h2 : 2 ^ (ht + 1) ≤ proverFactor height fuel :=
         (Nat.pow_le_pow_right (by norm_num) (by omega)).trans
-          ((Nat.le_succ _).trans (pow_lt_proverFactor height fuel))
-      have h3 : ps.length * 2 ^ (ht + 1) ≤ ps.length * (1 + height) * proverFactor height fuel :=
+          ((Nat.le_add_right _ 2).trans (pow_le_proverFactor height fuel))
+      have h3 : ps.length * 2 ^ (ht + 1) ≤
+          Prog.openCost height ps.length * proverFactor height fuel :=
         calc ps.length * 2 ^ (ht + 1) ≤ ps.length * proverFactor height fuel :=
               Nat.mul_le_mul_left _ h2
-          _ ≤ ps.length * (1 + height) * proverFactor height fuel := by
-              rw [mul_assoc]
-              exact Nat.mul_le_mul_left _ (Nat.le_mul_of_pos_left _ (by omega))
+          _ ≤ Prog.openCost height ps.length * proverFactor height fuel := by
+              refine Nat.mul_le_mul_right _ ?_
+              unfold Prog.openCost
+              nlinarith
       generalize proverFactor height fuel = F at *
-      obtain ⟨d, hd⟩ : ∃ d, n = ps.length * (1 + height) + d :=
-        ⟨n - ps.length * (1 + height), by omega⟩
+      generalize Prog.openCost height ps.length = O at *
+      obtain ⟨d, hd⟩ : ∃ d, n = O + d := ⟨n - O, by omega⟩
       rw [hd, Nat.add_sub_cancel_left, Nat.add_mul]
       omega
 
 /-- **The honest prover's queries**: at most `n · proverFactor height fuel` for a program of
 cost `n` at `height`. -/
 theorem isTotalQueryBound_proveM {P : Prog Bool} {height n : ℕ} (hP : P.CostLE height n)
-    (S : Strategy) (seed : Digest) (fuel : ℕ) :
-    IsTotalQueryBound (proveM queryH P S seed fuel) (n * proverFactor height fuel) := by
+    (S : Strategy) (seed : KState) (fuel : ℕ) :
+    IsTotalQueryBound (proveM queryH queryF P S seed fuel) (n * proverFactor height fuel) := by
   unfold proveM
   rw [← Nat.add_zero (n * _)]
-  exact isTotalQueryBound_bind (isTotalQueryBound_proveFromM S fuel height P seed [] n _ hP
+  exact isTotalQueryBound_bind (isTotalQueryBound_proveFromM S fuel height P ⟨seed, []⟩ [] n _ hP
     (by simp [commits])) fun _ ↦ isTotalQueryBound_pure' _ 0
 
 end Queries

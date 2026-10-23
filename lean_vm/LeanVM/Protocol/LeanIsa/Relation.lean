@@ -33,7 +33,7 @@ open Air.Flat (Component EnsembleWitness Ensemble)
 
 @[expose] public section
 
-variable {prog : Program} {F : FlockSpec} {s : Sizes} {q : Column (leanIsaμ prog s)}
+variable {prog : Program} {s : Sizes} {q : Column (leanIsaμ prog s)}
   {w : EnsembleWitness (leanIsaEnsemble prog)}
 
 /-! ## Facts of the opcode components -/
@@ -100,10 +100,10 @@ private theorem opcode_constraintsHold_iff (j : Fin 6) (row : Array K)
 
 /-- Opcode table `j`'s Clean constraints hold on every row exactly when the instance's constraint
 polynomials of that table vanish on every executed row of the stack. -/
-theorem opcode_constraints_iff (h : Agrees F s q w) (j : Fin 6) :
+theorem opcode_constraints_iff (h : Agrees s q w) (j : Fin 6) :
     (opTable w j).Constraints ↔
       ∀ x : Fin (s.rows j), ∀ C ∈ (opcodeTable j).constraints,
-        C.eval ((leanIsaInstance F prog s).row q (opIdx j) (Fin.castLE (s.rows_le j) x)) = 0 := by
+        C.eval ((leanIsaInstance prog s).row q (opIdx j) (Fin.castLE (s.rows_le j) x)) = 0 := by
   rw [Air.Flat.Table.Constraints, forall_mem_table (h.length j)]
   refine forall_congr' fun x ↦ ?_
   rw [Air.Flat.Table.environment, opTable_component]
@@ -114,8 +114,8 @@ theorem opcode_constraints_iff (h : Agrees F s q w) (j : Fin 6) :
 /-! ## The bus -/
 
 /-- The instance's bus balances exactly when leanISA's three channel pairs do. -/
-theorem balanced_iff_pairs (h : Agrees F s q w) :
-    (leanIsaInstance F prog s).Balanced q ↔ ∀ k : Fin 3, BalancedPair w (pullOf k) (pushOf k) := by
+theorem balanced_iff_pairs (h : Agrees s q w) :
+    (leanIsaInstance prog s).Balanced q ↔ ∀ k : Fin 3, BalancedPair w (pullOf k) (pushOf k) := by
   rw [← balanced_iff]
   exact ⟨fun hb ↦ (tuples_perm h .push).symm.trans (hb.trans (tuples_perm h .pull)),
     fun hb ↦ (tuples_perm h .push).trans (hb.trans (tuples_perm h .pull).symm)⟩
@@ -139,9 +139,9 @@ private theorem take_six_tables (w : EnsembleWitness (leanIsaEnsemble prog)) :
 /-- The instance's count cells are nonzero exactly when, on every opcode table, every count column
 is nonzero on the stack's rows. -/
 private theorem m3_countsNonzero_iff :
-    (leanIsaInstance F prog s).CountsNonzero q ↔
+    (leanIsaInstance prog s).CountsNonzero q ↔
       ∀ j : Fin 6, ∀ k ∈ (opcodeTable j).count, ∀ x : Fin (s.rows j),
-        (leanIsaInstance F prog s).row q (opIdx j) (Fin.castLE (s.rows_le j) x) k ≠ 0 := by
+        (leanIsaInstance prog s).row q (opIdx j) (Fin.castLE (s.rows_le j) x) k ≠ 0 := by
   constructor
   · exact fun hc j k hk x ↦ hc (opIdx j) k hk _ x.isLt
   · intro hc j'
@@ -149,7 +149,7 @@ private theorem m3_countsNonzero_iff :
     · exact fun i hi ↦ absurd hi List.not_mem_nil
     · exact fun i hi ↦ absurd hi List.not_mem_nil
     · exact fun i hi ↦ absurd hi List.not_mem_nil
-    · have h9 : (leanIsaInstance F prog s).ntab = 9 := rfl
+    · have h9 : (leanIsaInstance prog s).ntab = 9 := rfl
       exact fun k hk x hx ↦ hc ⟨j, by omega⟩ k hk ⟨x.val, hx⟩
 
 /-- An interaction of a table of known length: one of its component's, on one of its rows. -/
@@ -178,15 +178,15 @@ private theorem name_of_counted {ch : RawChannel K} (h : counted ch = true) :
 
 /-- **The read counts.** Every read count of the six opcode tables is nonzero exactly when every
 cell of the instance's count columns is. -/
-theorem countsNonzero_iff (h : Agrees F s q w) :
-    CountsNonzero w ↔ (leanIsaInstance F prog s).CountsNonzero q := by
+theorem countsNonzero_iff (h : Agrees s q w) :
+    CountsNonzero w ↔ (leanIsaInstance prog s).CountsNonzero q := by
   rw [m3_countsNonzero_iff, CountsNonzero, take_six_tables, List.forall_mem_map]
   refine forall_congr' fun j ↦ ?_
   simp only [List.mem_finRange, true_implies]
   rw [forall_mem_interactions (h.length j), opTable_component]
   have hcell : ∀ (x : Fin (s.rows j)) (k : Fin (opcodeComponent j).width),
       ((opTable w j).table[x.val]'(by rw [h.length j]; exact x.isLt))[k.val]?.getD 0 =
-        (leanIsaInstance F prog s).row q (opIdx j) (Fin.castLE (s.rows_le j) x) k := fun x k ↦ by
+        (leanIsaInstance prog s).row q (opIdx j) (Fin.castLE (s.rows_le j) x) k := fun x k ↦ by
     rw [← h.cells j x k, cellOf, List.getElem?_eq_getElem]
     rfl
   constructor

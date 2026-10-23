@@ -197,7 +197,7 @@ example (cntFin : K) (m : Vector K 3) : ¬ MemSpec ⟨gpow 4, cntFin, m⟩ bData
 
 /-- The honest seed row of slot `0`: the `XOR` entry, executed twice. -/
 def bcRow0 : BytecodeRow K :=
-  ⟨gpow 0, gpow 2, Opcode.xor.code, #v[gpow 2, gpow 3, gpow 4, 0, 0, 0, 0]⟩
+  ⟨gpow 0, gpow 2, Opcode.xor.code, #v[gpow 2, gpow 3, gpow 4, 0, 0, 0, 0, 0, 0, 0]⟩
 
 /-- The honest row decodes: the block's `Spec`, over no data. -/
 theorem bcRow0_decodes : BytecodeDecodes bcRow0 :=
@@ -213,12 +213,12 @@ theorem slot0_lt : 0 < 2 ^ bProg.logSize := by decide
 theorem slot1_lt : 1 < 2 ^ bProg.logSize := by decide
 
 /-- The row `bytecodeRowOf` builds from the program is the honest row, and slot `1` gives the
-`JUMP` entry with its four spare slots zero: the block's rows are a function of the program,
+`JUMP` entry with its seven spare slots zero: the block's rows are a function of the program,
 the finalize count aside. -/
 example : bytecodeRowOf bProg ⟨0, slot0_lt⟩ (gpow 2) = bcRow0 := rfl
 
 example : bytecodeRowOf bProg ⟨1, slot1_lt⟩ 1 =
-    ⟨gpow 1, 1, Opcode.jump.code, #v[1, 1, 1, 0, 0, 0, 0]⟩ :=
+    ⟨gpow 1, 1, Opcode.jump.code, #v[1, 1, 1, 0, 0, 0, 0, 0, 0, 0]⟩ :=
   rfl
 
 /-- Every slot of the program has a satisfying seed row from the program alone
@@ -248,7 +248,7 @@ theorem bcRow0'_not_bound : ¬ BytecodeBindings bProg bcRow0' := by
 
 /-- A nonzero spare slot is no instruction: the row decodes to
 nothing, fails the block's `Spec` … -/
-def bcRow0'' : BytecodeRow K := { bcRow0 with op := #v[gpow 2, gpow 3, gpow 4, 0, 0, 0, 1] }
+def bcRow0'' : BytecodeRow K := { bcRow0 with op := #v[gpow 2, gpow 3, gpow 4, 0, 0, 0, 0, 0, 0, 1] }
 
 theorem bcRow0''_not_decodes : ¬ BytecodeDecodes bcRow0'' := by
   rintro ⟨ins, hdec⟩
@@ -266,7 +266,7 @@ example (get : ℕ → K) (data : ProverData K) :
 
 /-- A counter past the program, `g^2` at `logSize = 1`, fetches nothing: the row is no slot of
 the program, whatever its entry, though the block accepts a decodable one. -/
-example (cntFin opcode : K) (op : Vector K 7) :
+example (cntFin opcode : K) (op : Vector K 10) :
     ¬ BytecodeBindings bProg ⟨gpow 2, cntFin, opcode, op⟩ := by
   rintro ⟨ins, hfetch, -⟩
   rw [Program.fetch, gLog?_gpow_eq_none (by decide) (by decide), Option.map_none] at hfetch

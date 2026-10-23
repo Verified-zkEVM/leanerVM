@@ -107,7 +107,8 @@ abbrev twoTab : M3Instance where
   layout := layout
   nLines := 0
   publicLines := fun _ ↦ #v[]
-  flock := none
+  derived := fun _ ↦ none
+  keccak := none
 
 /-- The two sumcheck tables. -/
 def t0 : twoTab.SumcheckTables := ⟨0, by decide⟩
@@ -352,7 +353,8 @@ abbrev withGroup : M3Instance where
   layout := (groupBlocks.layout groupBlocks_total).comap (fun c ↦ c.1) fun _ ↦ rfl
   nLines := 0
   publicLines := fun _ ↦ #v[]
-  flock := none
+  derived := fun _ ↦ none
+  keccak := none
 
 -- The column group is the tallest table, and no sumcheck table: the sumcheck runs `τ_max = 2`
 -- rounds, not 3, and sends two values, not three.

@@ -26,7 +26,8 @@ and it composes through `bind` (`MovesOK.bind`, `MovesOK.seq`) and survives alon
 
 The instances follow the phases of `leanVmProgram` (`LeanVM.Protocol.Verifier`) with the
 unfoldings and inductions of `LeanVM.Protocol.Verifier.Cost`: the sizes, the bus, the table
-sumcheck, the public input, Flock and ring switching make no prover move other than reads; the
+sumcheck, the public input, the Keccak reduction and ring switching make no prover move other than
+reads; the
 stack's root is the one commitment outside WHIR; the stacked opening commits WHIR's levels and
 checks WHIR's query proofs of work, of `Whir.queryGrindingBits = 17` bits. Hence
 `grind_bits_eq`: every proof of work of the leanVM verifier has exactly `17` bits (the
@@ -38,7 +39,7 @@ bits, the cap at which the random-oracle theorem discounts a group's escape
 ## Deployed behaviour
 
 The statements are on the program `leanVmProgram` at leanVM
-`127510d14c98ade4e8a97646c44fa7f1ff5e752d`, as transcribed in `LeanVM.Protocol.Verifier`.
+`3375f7a137c50b803f3416f6466b5d4e0719708a`, as transcribed in `LeanVM.Protocol.Verifier`.
 -/
 
 namespace LeanVM.Protocol.EndToEnd.Sound
@@ -343,28 +344,67 @@ theorem movesOK_publicInputPhase (layout : Layout) (publicInput : Digest) :
     MovesOK (fun _ ↦ False) False (publicInputPhase layout publicInput) :=
   MovesOK.seq MovesOK.sampleE fun _ ↦ MovesOK.pure _
 
-/-! ## Flock and ring switching -/
+/-! ## The Keccak reduction and ring switching -/
 
-/-- The Flock zerocheck is reads and samples. -/
-theorem movesOK_verifyFlockZerocheck (logN : ℕ) :
-    MovesOK (fun _ ↦ False) False (verifyFlockZerocheck logN) := by
-  refine MovesOK.seq (MovesOK.sampleN _) fun _ ↦ MovesOK.seq (MovesOK.readN _) fun _ ↦
-    MovesOK.seq MovesOK.sampleE fun _ ↦ MovesOK.seq (movesOK_sumcheck _ _ _) fun r ↦ ?_
-  obtain ⟨chi, running⟩ := r
-  exact MovesOK.seq MovesOK.readE fun _ ↦ MovesOK.seq MovesOK.readE fun _ ↦ MovesOK.pure _
+/-- The pack rounds are reads and samples. -/
+theorem movesOK_keccakPackRounds : ∀ (rs : List E) (value scale : E),
+    MovesOK (fun _ ↦ False) False (keccakPackRounds rs value scale)
+  | [], _, _ => MovesOK.pure _
+  | _ :: rs, _, _ =>
+    MovesOK.seq (movesOK_sumcheckRoundPoly 3 _ _) fun _ ↦ MovesOK.seq MovesOK.sampleE fun _ ↦
+      MovesOK.seq (movesOK_keccakPackRounds rs _ _) fun r ↦ by
+        obtain ⟨value, scale, point⟩ := r
+        exact MovesOK.pure _
 
-/-- The Flock lincheck is reads and samples. -/
-theorem movesOK_verifyFlockLincheck (zc : ZerocheckResult) :
-    MovesOK (fun _ ↦ False) False (verifyFlockLincheck .computed zc) := by
-  refine MovesOK.seq MovesOK.sampleE fun _ ↦ MovesOK.seq (movesOK_sumcheck _ _ _) fun r ↦ ?_
-  obtain ⟨roundChallenges, rLc⟩ := r
-  exact MovesOK.seq (MovesOK.readN _) fun _ ↦ MovesOK.seq (MovesOK.pure _) fun _ ↦
-    MovesOK.seq (MovesOK.require _) fun _ ↦ MovesOK.pure _
+/-- A Keccak layer is reads and samples. -/
+theorem movesOK_verifyKeccakLayer (logSteps step : ℕ) (claim : KeccakClaim) :
+    MovesOK (fun _ ↦ False) False (verifyKeccakLayer logSteps step claim) := by
+  refine MovesOK.seq (MovesOK.readN _) fun _ ↦ MovesOK.seq (MovesOK.require _) fun _ ↦
+    MovesOK.seq MovesOK.sampleE fun _ ↦ MovesOK.seq (movesOK_keccakPackRounds _ _ _) fun r ↦ ?_
+  obtain ⟨value, scale, point⟩ := r
+  refine MovesOK.seq (movesOK_sumcheck _ _ _) fun r ↦ ?_
+  obtain ⟨localPoint, value'⟩ := r
+  exact MovesOK.seq (MovesOK.readN _) fun _ ↦ MovesOK.seq (MovesOK.require _) fun _ ↦
+    MovesOK.seq MovesOK.sampleE fun _ ↦ MovesOK.pure _
 
-/-- Flock makes no prover move other than reads. -/
-theorem movesOK_verifyFlock (logN : ℕ) :
-    MovesOK (fun _ ↦ False) False (verifyFlock .computed logN) :=
-  MovesOK.seq (movesOK_verifyFlockZerocheck logN) fun zc ↦ movesOK_verifyFlockLincheck zc
+/-- The Keccak layers are reads and samples. -/
+theorem movesOK_keccakLayers (logSteps : ℕ) : ∀ (steps : List ℕ) (claim : KeccakClaim),
+    MovesOK (fun _ ↦ False) False (keccakLayers logSteps steps claim)
+  | [], _ => MovesOK.pure _
+  | _ :: steps, _ => MovesOK.seq (movesOK_verifyKeccakLayer _ _ _) fun _ ↦
+      movesOK_keccakLayers logSteps steps _
+
+/-- Opening `q_keccak` is a sumcheck. -/
+theorem movesOK_keccakOpen (logSteps : ℕ) (claim : KeccakClaim) (first count : ℕ) (value : E) :
+    MovesOK (fun _ ↦ False) False (keccakOpen logSteps claim first count value) := by
+  refine MovesOK.seq (movesOK_sumcheck _ _ _) fun r ↦ ?_
+  obtain ⟨slot, value'⟩ := r
+  exact MovesOK.pure _
+
+/-- The Keccak reduction is reads and samples. -/
+theorem movesOK_verifyKeccak (logSteps : ℕ) (inst output : List E) :
+    MovesOK (fun _ ↦ False) False (verifyKeccak logSteps inst output) := by
+  unfold verifyKeccak
+  refine MovesOK.seq (MovesOK.sampleN _) fun _ ↦ MovesOK.seq (MovesOK.sampleN _) fun _ ↦
+    MovesOK.seq MovesOK.readE fun _ ↦
+      MovesOK.seq (movesOK_keccakLayers _ _ _) fun _ ↦ ?_
+  simp only [show 1 < keccakSegments from by decide, ↓reduceIte]
+  refine MovesOK.seq (movesOK_keccakOpen _ _ _ _ _) fun r ↦ ?_
+  obtain ⟨slot, weights, value⟩ := r
+  refine MovesOK.seq MovesOK.readE fun _ ↦ MovesOK.seq (MovesOK.require _) fun _ ↦
+    MovesOK.seq (MovesOK.pure _) fun _ ↦ MovesOK.seq (movesOK_sumcheck _ _ _) fun r ↦ ?_
+  obtain ⟨low, value'⟩ := r
+  refine MovesOK.seq (movesOK_keccakOpen _ _ _ _ _) fun r ↦ ?_
+  obtain ⟨slot', weights', value''⟩ := r
+  exact MovesOK.seq (MovesOK.readN _) fun _ ↦ MovesOK.seq (MovesOK.require _) fun _ ↦
+    MovesOK.pure _
+
+/-- The Keccak phase makes no prover move other than reads. -/
+theorem movesOK_keccakPhase (layout : Layout) (claims : List ColumnClaim) :
+    MovesOK (fun _ ↦ False) False (keccakPhase layout claims) :=
+  MovesOK.seq (MovesOK.require _) fun _ ↦ MovesOK.seq (movesOK_verifyKeccak _ _ _) fun r ↦ by
+    obtain ⟨outputs, point, slices⟩ := r
+    exact MovesOK.pure _
 
 /-- Ring switching only samples. -/
 theorem movesOK_ringSwitch (point s : List E) :
@@ -466,9 +506,9 @@ theorem movesOK_verifyExecution (bytecode : List K) (publicInput : Digest) :
     MovesOK.seq (MovesOK.of_none (movesOK_verifyBusBalance layout)) fun bus ↦
       MovesOK.seq (MovesOK.of_none (movesOK_tablePhase layout bus)) fun _ ↦
         MovesOK.seq (MovesOK.of_none (movesOK_publicInputPhase layout publicInput)) fun _ ↦
-          MovesOK.seq (MovesOK.of_none (movesOK_verifyFlock _)) fun r ↦ ?_
-  obtain ⟨flockPoint, flockS⟩ := r
-  refine MovesOK.seq (MovesOK.of_none (movesOK_ringSwitch flockPoint flockS)) fun r ↦ ?_
+          MovesOK.seq (MovesOK.of_none (movesOK_keccakPhase _ _)) fun r ↦ ?_
+  obtain ⟨claims, keccakPoint, keccakSlices⟩ := r
+  refine MovesOK.seq (MovesOK.of_none (movesOK_ringSwitch keccakPoint keccakSlices)) fun r ↦ ?_
   obtain ⟨ringTarget, ringWeight⟩ := r
   exact movesOK_verifyStackedOpening _ _ _
 

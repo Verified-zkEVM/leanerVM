@@ -15,7 +15,7 @@ public import LeanVM.Protocol.Compile.Rom.Log
 # Word extraction from the random oracle
 
 The compiled verifier authenticates a row by climbing a Merkle path to a root
-(`LeanVM.Protocol.Compile.Run`, `openOne`). The random-oracle theorem replaces each commitment
+(`LeanVM.Protocol.Compile.run`, `openOne`). The random-oracle theorem replaces each commitment
 of the interactive reading by the word the oracle's answers determine under the root
 (`extract`): at position `p`, an opening that climbs to the root at `p` through answered
 queries, if there is one, gives the row; otherwise the row is zero. Extracted words are well
@@ -28,15 +28,15 @@ climb runs in `Option`, a missing answer failing it.
   answers (no collision), an accepted opening at position `q` has the leaf the extraction
   chooses at `q mod 2^height`: two climbs to one root through injective answers pass through
   the same nodes (`climb_inj`), and leaves of one length with one hash are equal.
-* **Extraction is stable** (`extract_take_eq`). Without failure, if every entry answering the
-  root comes before the `j`-th, the word extracted from the first `j` entries is the word
-  extracted from the whole log: each node of an accepted climb is an aligned chunk of its
-  parent's input, so its entry comes before the parent's (`climb_take`).
+* **Extraction is stable** (`extract_take_eq`). Without failure, if every hash entry answering
+  the root comes before the `j`-th entry (`HEntriesBefore`), the word extracted from the first
+  `j` entries is the word extracted from the whole log: each node of an accepted climb is an
+  aligned chunk of its parent's input, so its entry comes before the parent's (`climb_take`).
 -/
 
 namespace LeanVM.Protocol.Compile.Rom
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Protocol.Blake2sHash LeanVM.Protocol.Rom
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Protocol.KeccakHash LeanVM.Protocol.Rom
 
 @[expose] public section
 
@@ -77,10 +77,6 @@ theorem nodeInput_inj {n n' s s' : Digest} {q : ℕ}
   split at h
   · exact (pairInput_inj h).1
   · exact (pairInput_inj h).2
-
-/-- Answers that are injective: one answer, one input. -/
-def AnswersInj (H : Bytes → Option Digest) : Prop :=
-  ∀ x y v, H x = some v → H y = some v → x = y
 
 /-- Two climbs of one length to one root through injective answers start at one node. -/
 theorem climb_inj {H : Bytes → Option Digest} (hH : AnswersInj H) {r : Digest} :
@@ -194,25 +190,29 @@ theorem openOne_mono {H H' : Bytes → Option Digest} (hH : ∀ x v, H x = some 
   obtain ⟨hw, hl, ld, hld, hc⟩ := h
   exact ⟨hw, hl, ld, hH _ _ hld, climb_mono hH _ _ _ _ hc⟩
 
-/-- The answers of a log without collisions are injective. -/
-theorem answersInj_look {X : Type} {σ : Seeds X} {ℓ : Log} (hf : ¬ Fail σ ℓ) :
-    AnswersInj (look ℓ) := by
+/-- The hash answers of a log without collisions are injective. -/
+theorem answersInj_lookH {X : Type} {σ : Seeds X} {ℓ : Log} (hf : ¬ Fail σ ℓ) :
+    AnswersInj (lookH ℓ) := by
   intro x y v hx hy
-  obtain ⟨i, hi, hei, -⟩ := (look_eq_some_iff ℓ x v).mp hx
-  obtain ⟨j, hj, hej, -⟩ := (look_eq_some_iff ℓ y v).mp hy
-  have := index_eq_of_output hf hi hj (by rw [hei, hej])
+  obtain ⟨i, hi, hei, -⟩ := (lookH_eq_some_iff ℓ x v).mp hx
+  obtain ⟨j, hj, hej, -⟩ := (lookH_eq_some_iff ℓ y v).mp hy
+  have := index_eq_of_hOut hf hi hj hei hej
   subst this
   rw [hei] at hej
-  exact (Prod.mk.inj hej).1
+  cases hej
+  rfl
+
+/-- Every hash entry with output `r` comes before the `j`-th. -/
+def HEntriesBefore (ℓ : Log) (r : Digest) (j : ℕ) : Prop :=
+  ∀ (i : ℕ) (hi : i < ℓ.length) (x : Bytes), ℓ[i] = .inl (x, r) → i < j
 
 /-- Without failure, a climb in the log whose root's entries all come before the `j`-th is a
 climb in the first `j` entries, and so are the entries of its start. -/
 theorem climb_take {X : Type} {σ : Seeds X} {ℓ : Log} (hf : ¬ Fail σ ℓ) {j : ℕ} {r : Digest}
-    (hr : ∀ (i : ℕ) (hi : i < ℓ.length), ℓ[i].2 = r → i < j) :
+    (hr : HEntriesBefore ℓ r j) :
     ∀ (path : List Digest) (n : Digest) (q : ℕ),
-      climb (m := Option) (look ℓ) n q path = some r →
-        climb (m := Option) (look (ℓ.take j)) n q path = some r ∧
-          ∀ (i : ℕ) (hi : i < ℓ.length), ℓ[i].2 = n → i < j
+      climb (m := Option) (lookH ℓ) n q path = some r →
+        climb (m := Option) (lookH (ℓ.take j)) n q path = some r ∧ HEntriesBefore ℓ n j
   | [], n, q, h => by
     simp only [climb, pure, Option.some.injEq] at h
     subst h
@@ -221,40 +221,40 @@ theorem climb_take {X : Type} {σ : Seeds X} {ℓ : Log} (hf : ¬ Fail σ ℓ) {
     rw [climb_cons, Option.bind_eq_some_iff] at h
     obtain ⟨p, hp, hc⟩ := h
     obtain ⟨hc', hpj⟩ := climb_take hf hr ss p (q / 2) hc
-    obtain ⟨k, hk, hek, hn⟩ := (look_eq_some_iff ℓ _ p).mp hp
-    have hkj : k < j := hpj k hk (by rw [hek])
-    refine ⟨?_, fun i hi hin ↦ ?_⟩
-    · rw [climb_cons, look_take_of_first hk hek hn hkj]
+    obtain ⟨k, hk, hek, hn⟩ := (lookH_eq_some_iff ℓ _ p).mp hp
+    have hkj : k < j := hpj k hk _ hek
+    refine ⟨?_, fun i hi x hin ↦ ?_⟩
+    · rw [climb_cons, lookH_take_of_first hk hek hn hkj]
       exact hc'
-    · refine lt_trans (lt_of_chunk hf hi hk ?_) hkj
-      rw [hek, hin]
-      unfold nodeInput
-      split
-      · exact Or.inl (chunk0_append _ _)
-      · exact Or.inr (chunk1_append _ _)
+    · unfold nodeInput at hek
+      split at hek
+      · exact lt_trans (lt_of_chunk hf hi hk hin hek (o := 0) (by simp)
+          (chunkAt_zero_append _ _)) hkj
+      · exact lt_trans (lt_of_chunk hf hi hk hin hek (o := 32) (by simp)
+          (chunkAt_32_append _ _)) hkj
 
 /-- Without failure, an accepted opening in the log is accepted in the first `j` entries, if
 every entry answering the root comes before the `j`-th. -/
 theorem openOne_take {X : Type} {σ : Seeds X} {ℓ : Log} (hf : ¬ Fail σ ℓ) {j : ℕ} {r : Digest}
-    (hr : ∀ (i : ℕ) (hi : i < ℓ.length), ℓ[i].2 = r → i < j) {ht w q : ℕ} {o : Opening}
-    (h : openOne (m := Option) (look ℓ) r ht w q o = some true) :
-    openOne (m := Option) (look (ℓ.take j)) r ht w q o = some true := by
+    (hr : HEntriesBefore ℓ r j) {ht w q : ℕ} {o : Opening}
+    (h : openOne (m := Option) (lookH ℓ) r ht w q o = some true) :
+    openOne (m := Option) (lookH (ℓ.take j)) r ht w q o = some true := by
   rw [openOne_eq_some_true_iff] at h ⊢
   obtain ⟨hw, hl, ld, hld, hc⟩ := h
   obtain ⟨hc', hldj⟩ := climb_take hf hr o.path ld q hc
-  obtain ⟨k, hk, hek, hn⟩ := (look_eq_some_iff ℓ _ ld).mp hld
-  exact ⟨hw, hl, ld, look_take_of_first hk hek hn (hldj k hk (by rw [hek])), hc'⟩
+  obtain ⟨k, hk, hek, hn⟩ := (lookH_eq_some_iff ℓ _ ld).mp hld
+  exact ⟨hw, hl, ld, lookH_take_of_first hk hek hn (hldj k hk _ hek), hc'⟩
 
 /-- **Extraction is stable.** Without failure, if every entry answering the root comes before
 the `j`-th, the word extracted from the first `j` entries is the word extracted from the
 log. -/
 theorem extract_take_eq {X : Type} {σ : Seeds X} {ℓ : Log} (hf : ¬ Fail σ ℓ) {j : ℕ} {r : Digest}
-    (hr : ∀ (i : ℕ) (hi : i < ℓ.length), ℓ[i].2 = r → i < j) (ht w : ℕ) :
-    extract (look (ℓ.take j)) r ht w = extract (look ℓ) r ht w := by
-  have hpre : ∀ x v, look (ℓ.take j) x = some v → look ℓ x = some v := fun x v h ↦
-    look_of_prefix (List.take_prefix j ℓ) h
-  have heq : ∀ p, (fun o ↦ openOne (m := Option) (look (ℓ.take j)) r ht w p o = some true) =
-      (fun o ↦ openOne (m := Option) (look ℓ) r ht w p o = some true) := fun p ↦
+    (hr : HEntriesBefore ℓ r j) (ht w : ℕ) :
+    extract (lookH (ℓ.take j)) r ht w = extract (lookH ℓ) r ht w := by
+  have hpre : ∀ x v, lookH (ℓ.take j) x = some v → lookH ℓ x = some v := fun x v h ↦
+    lookH_of_prefix (List.take_prefix j ℓ) h
+  have heq : ∀ p, (fun o ↦ openOne (m := Option) (lookH (ℓ.take j)) r ht w p o = some true) =
+      (fun o ↦ openOne (m := Option) (lookH ℓ) r ht w p o = some true) := fun p ↦
     funext fun o ↦ propext ⟨openOne_mono hpre, openOne_take hf hr⟩
   funext p
   show pickLeaf _ w = pickLeaf _ w

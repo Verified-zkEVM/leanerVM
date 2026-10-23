@@ -167,6 +167,16 @@ def family (V : Virtual F X O W n m) (wt : CoordWeights F X n) {d : ℕ}
   weight := domain wt
   inv := fun ctx _ _ ↦ side ctx
 
+/-- The family of claims of the sumcheck with an invariant that the challenges may change: the
+running claims, the honest round polynomials, the domains, and the invariant. -/
+def familyInv (V : Virtual F X O W n m) (wt : CoordWeights F X n) {d : ℕ}
+    (nodes : Fin (d + 1) → F) (inv : SumcheckRound.Ctx X O W → (j : ℕ) → Vector F j → Prop) :
+    SumcheckRound.Family F X O W d where
+  claim := claim V wt
+  poly := roundPoly V wt nodes
+  weight := domain wt
+  inv := inv
+
 /-! ## The relations -/
 
 /-- The output statement: the public data, the final point, and one value per table. -/
@@ -383,6 +393,34 @@ theorem family_honest (hV : ∀ ctx, IndividualDegreeLE (V.summand ctx) d)
   next := fun ctx _ c x hj ↦ evaluate_roundPoly V wt nodes hV hnodes hj ctx c x
   inv_push := fun _ _ _ _ _ h ↦ h
 
+/-- The family with a moving invariant is consistent: its round polynomials pass the check and
+evaluate to the next claim, whatever the invariant. -/
+theorem familyInv_consistent (hV : ∀ ctx, IndividualDegreeLE (V.summand ctx) d)
+    (hnodes : Function.Injective nodes)
+    (inv : SumcheckRound.Ctx X O W → (j : ℕ) → Vector F j → Prop) :
+    (familyInv V wt nodes inv).Consistent n where
+  check := fun ctx _ c hj ↦ weightedSum_roundPoly V wt nodes hV hnodes hj ctx c
+  next := fun ctx _ c x hj ↦ evaluate_roundPoly V wt nodes hV hnodes hj ctx c x
+
+/-- The family with a moving invariant, before the first round: the input relation at the
+invariant's first stage. -/
+theorem rel_zero_inv (inv : SumcheckRound.Ctx X O W → (j : ℕ) → Vector F j → Prop) :
+    SumcheckRound.rel (familyInv V wt nodes inv) 0 = relIn V wt (fun ctx ↦ inv ctx 0 #v[]) := by
+  ext p
+  have hc : p.1.1.2.1 = #v[] := Vector.ext fun i hi ↦ absurd hi (Nat.not_lt_zero i)
+  simp only [SumcheckRound.rel, familyInv, relIn, Set.mem_ofPred_eq, hc]
+  rw [claim_zero, and_comm]
+
+/-- The family with a moving invariant, after the last round: the invariant at the challenges,
+and the running claim is the summand at the challenges in coordinate order. -/
+theorem mem_rel_self_inv (inv : SumcheckRound.Ctx X O W → (j : ℕ) → Vector F j → Prop)
+    (p : (SumcheckRound.Stmt X F n × ∀ i, O i) × W) :
+    p ∈ SumcheckRound.rel (familyInv V wt nodes inv) n ↔
+      inv (SumcheckRound.ctxOf p) n p.1.1.2.1 ∧
+        p.1.1.2.2 = V.summand (SumcheckRound.ctxOf p) p.1.1.2.1.reverse := by
+  simp only [SumcheckRound.rel, familyInv, Set.mem_ofPred_eq]
+  rw [claim_self]
+
 /-- The family's relation before the first round is the input relation. -/
 theorem rel_zero : SumcheckRound.rel (family V wt nodes side) 0 = relIn V wt side := by
   ext p
@@ -516,6 +554,48 @@ def weightedSecurity (hV : ∀ ctx, IndividualDegreeLE (V.summand ctx) d)
         (Typed.sayErrors (Vector F m))) :=
   (roundsSecurity V wt nodes side hV hnodes).append
     (finalSecurity V wt nodes side finalOut fun _ _ _ _ h ↦ h)
+
+variable (inv : SumcheckRound.Ctx X O W → (j : ℕ) → Vector F j → Prop)
+
+omit [SampleableType F] [Finite F] [∀ i, OracleInterface (O i)] [Subsingleton W] in
+/-- Values that pass the final check, for an output relation from which they are the tables'
+values at the final point and the invariant holds at the challenges, make the last stage's
+relation hold. -/
+theorem final_reflect_inv {T : Type} (out : SumcheckRound.Stmt X F n → Vector F m → T)
+    {relOut' : Set ((T × ∀ i, O i) × W)}
+    (h : ∀ s o w v, ((out s v, o), w) ∈ relOut' →
+      V.values ((s.1, o), w) s.2.1.reverse = v ∧ inv ((s.1, o), w) n s.2.1)
+    (s : SumcheckRound.Stmt X F n) (o : ∀ i, O i) (w : W) (v : Vector F m)
+    (hc : finalCheck V s v = true) (hout : ((out s v, o), w) ∈ relOut') :
+    ((s, o), w) ∈ SumcheckRound.rel (familyInv V wt nodes inv) n := by
+  obtain ⟨hv, hinv⟩ := h s o w v hout
+  rw [mem_rel_self_inv V wt nodes inv]
+  rw [finalCheck, decide_eq_true_eq] at hc
+  refine ⟨hinv, ?_⟩
+  rw [← hc]
+  exact congrArg (V.formula s.1 s.2.1.reverse) hv.symm
+
+omit [BEq F] [LawfulBEq F] [SampleableType F] [Finite F] [Subsingleton W] in
+/-- The typed security half of the last message with a moving invariant, at error zero. -/
+def finalSecurityInv {T : Type} (out : SumcheckRound.Stmt X F n → Vector F m → T)
+    {relOut' : Set ((T × ∀ i, O i) × W)}
+    (h : ∀ s o w v, ((out s v, o), w) ∈ relOut' →
+      V.values ((s.1, o), w) s.2.1.reverse = v ∧ inv ((s.1, o), w) n s.2.1) :
+    Typed.Security (final V out) (SumcheckRound.rel (familyInv V wt nodes inv) n) relOut'
+      (Typed.sayErrors (Vector F m)) :=
+  Typed.sendCheckedSecurity (final_reflect_inv V wt nodes inv out h)
+
+/-- The typed security half of the rounds with a moving invariant, at `d / |F|` per round, when a
+challenge restores a broken invariant at `d` values at most. -/
+def roundsSecurityInv (hV : ∀ ctx, IndividualDegreeLE (V.summand ctx) d)
+    (hnodes : Function.Injective nodes)
+    (hS : ∀ ctx j (c : Vector F j), j < n → ¬ inv ctx j c →
+      Nat.card {x // inv ctx (j + 1) (c.push x)} ≤ d) :
+    Typed.Security (rounds V wt nodes) (relIn V wt (fun ctx ↦ inv ctx 0 #v[]))
+      (SumcheckRound.rel (familyInv V wt nodes inv) n)
+      (Typed.roundsErrors F d ((d : ℝ≥0) / (Nat.card F : ℝ≥0)) n) :=
+  rel_zero_inv V wt nodes inv ▸ SumcheckRound.roundsSecurity (familyInv V wt nodes inv) n
+    (familyInv_consistent V wt nodes hV hnodes inv) hS n 0 (Nat.zero_add n)
 
 end Security
 

@@ -15,9 +15,9 @@ public import LeanVM.Protocol.Verifier
 # The Python tables are the instance's
 
 Fidelity of the six instruction tables of `python-verifier/verifier.py` at leanVM
-`127510d14c98ade4e8a97646c44fa7f1ff5e752d`, lines 686-855 (`Flushes`, `_flushes_arith`,
-`_flushes_set`, `_flushes_deref`, `_flushes_jump`, `_jump_constraints`, `_flushes_blake2s`,
-`TABLES`), transcribed as `LeanVM.Protocol.Verifier.tables`, against the leanISA instance's
+`3375f7a137c50b803f3416f6466b5d4e0719708a`, lines 737-943 (`Flushes`, `_flushes_arith`,
+`_flushes_set`, `_flushes_deref`, `_flushes_jump`, `_jump_constraints`, `_keccak_cell_lanes`,
+`_layout_limb`, `_flushes_keccak`, `TABLES`), transcribed as `LeanVM.Protocol.Verifier.tables`, against the leanISA instance's
 opcode tables (`LeanIsa.flushes`, `LeanIsa.counts`, `LeanIsa.constraints` at `opIdx t`), which are
 Clean's components through `Component.toM3`.
 
@@ -409,16 +409,47 @@ def flushesJumpC : FlushesC :=
   let f := f.memoryCols (FormC.prod fp (c "o_d")) (c "cnt_d") [c "v_pc"]
   f.memoryCols (FormC.prod fp (c "o_f")) (c "cnt_f") [c "v_fp"]
 
-/-- `_flushes_blake2s()`, symbolically. -/
-def flushesBlake2sC : FlushesC :=
-  let c := colIdx blake2sColumns
-  let operands := ["o_0", "o_1", "o_2", "o_3", "o_v", "o_out", "o_md"].map c
+/-- `_layout_limb(even, odd, flag, missing)`, symbolically. -/
+def layoutLimbC (even odd : Option ℕ) (flag : ℕ) (missing : Option ℕ) : FormC :=
+  let a := even.orElse fun _ ↦ missing
+  let b := odd.orElse fun _ ↦ missing
+  if a = b then
+    match a with
+    | none => FormC.const .zero
+    | some a => FormC.col a
+  else
+    FormC.sum ((match a with
+      | some a => [FormC.col a, FormC.prod flag a]
+      | none => []) ++
+      (match b with
+      | some b => [FormC.prod flag b]
+      | none => []))
+
+/-- `_flushes_keccak()`, symbolically. -/
+def flushesKeccakC : FlushesC :=
+  let c := colIdx keccakColumns
+  let oM := ["o_m0", "o_m1", "o_m2", "o_m3"].map c
+  let fp := c "fp"
   let f : FlushesC := {}
-  let f := f.stateStep (c "pc") (c "fp")
-  let f := f.bytecode (c "pc") (c "cnt_bc") opBlake2s (operands.map (FormC.col ·))
-  blake2sCells.foldl (fun f (cell, operand, exponent) ↦
-    f.memoryCols (FormC.prod (c "fp") (c operand) exponent) (c ("cnt_" ++ cell))
-      [c (cell ++ "_lo"), c (cell ++ "_hi")]) f
+  let f := f.stateStep (c "pc") fp
+  let f := f.bytecode (c "pc") (c "cnt_bc") opKeccak
+    ((oM ++ ["o_tail", "o_b8", "o_cap", "o_out", "odd_in", "odd_out"].map c).map (FormC.col ·))
+  let address := fun (cell : ℕ) ↦
+    if cell < 4 then FormC.prod fp (oM.getD cell 0)
+    else if cell < 8 then FormC.prod fp (c "o_tail") (cell - 4)
+    else if cell = 8 then FormC.prod fp (c "o_b8")
+    else FormC.prod fp (c "o_cap") (cell - 9)
+  let sides : List (String × ℕ × Option ℕ) := [("in", c "odd_in", some (c "free")),
+    ("out", c "odd_out", none)]
+  sides.zipIdx.foldl (fun f ((pre, flag, missing), side) ↦
+    let lane := fun (l : Option ℕ) ↦ l.map fun l ↦ c (pre ++ "_" ++ decimal l)
+    (List.range 13).foldl (fun f cell ↦
+      let values := ([0, 1] : List ℕ).map (fun h ↦
+        let pick := fun (p : Option ℕ × Option ℕ) ↦ if h = 0 then p.1 else p.2
+        layoutLimbC (lane (pick (keccakCellLanes false cell)))
+          (lane (pick (keccakCellLanes true cell))) flag missing) ++ [FormC.const .zero]
+      f.memory (if side = 0 then address cell else FormC.prod fp (c "o_out") cell)
+        (c ("cnt_" ++ decimal (13 * side + cell))) values) f) f
 
 /-- The tables' flushes, symbolically, in opcode order. -/
 def flushesC : Fin 6 → FlushesC
@@ -427,7 +458,7 @@ def flushesC : Fin 6 → FlushesC
   | 2 => flushesSetC
   | 3 => flushesDerefC
   | 4 => flushesJumpC
-  | 5 => flushesBlake2sC
+  | 5 => flushesKeccakC
 
 /-- The Python table's flushes of a side. -/
 def pySide (t : Fin 6) : Side → List (List Form)
@@ -627,9 +658,9 @@ theorem pyCountColumns : ∀ t : Fin 6,
     rw [show (LeanIsa.counts (opIdx 4)).map (·.val) = [8, 9, 10, 11] by decide +kernel]
     simp [Table.countColumns, tables, jumpColumns]
   | 5 => by
-    rw [show (LeanIsa.counts (opIdx 5)).map (·.val) =
-      [27, 28, 29, 30, 31, 32, 33, 34, 35, 36] by decide +kernel]
-    simp [Table.countColumns, tables, blake2sColumns]
+    rw [show (LeanIsa.counts (opIdx 5)).map (·.val) = (List.range 27).map (63 + ·) by
+      decide +kernel]
+    simp [Table.countColumns, tables, keccakColumns, laneNames, decimal, decimals, List.range_succ]
 
 /-- Only `JUMP` has constraints, two. -/
 theorem pyNConstraints : tables.map Table.nConstraints = [0, 0, 0, 0, 2, 0] := by

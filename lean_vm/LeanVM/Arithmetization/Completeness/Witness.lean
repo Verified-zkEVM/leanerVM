@@ -181,7 +181,7 @@ noncomputable def skelWitness (prog : Program) (input : PublicInput) {κ : ℕ} 
     opTable img (imageData img) (skelRows img S) .setConstant,
     opTable img (imageData img) (skelRows img S) .deref,
     opTable img (imageData img) (skelRows img S) .jump,
-    opTable img (imageData img) (skelRows img S) .blake2s,
+    opTable img (imageData img) (skelRows img S) .keccak,
     memBlock img (imageData img) (skelMemFin img S),
     bcBlock prog (imageData img) (skelBcFin S)]
   data := imageData img

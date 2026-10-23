@@ -17,7 +17,7 @@ public import LeanVM.Arithmetization.Tables.MulNative
 public import LeanVM.Arithmetization.Tables.SetConstant
 public import LeanVM.Arithmetization.Tables.Deref
 public import LeanVM.Arithmetization.Tables.Jump
-public import LeanVM.Arithmetization.Tables.Blake2s
+public import LeanVM.Arithmetization.Tables.Keccak
 public import Clean.Air.FlatEnsemble
 
 @[expose] public section
@@ -25,7 +25,7 @@ public import Clean.Air.FlatEnsemble
 /-!
 # The constraint statement
 
-At leanVM pin `127510d14c98ade4e8a97646c44fa7f1ff5e752d` and Clean pin `42fe4b26`. The
+At leanVM pin `3375f7a137c50b803f3416f6466b5d4e0719708a` and Clean pin `42fe4b26`. The
 statement itself is written from the specification, as what the M3 model means by an
 accepted instance (specification §5, `doc/leanvm/body/05-arithmetization.tex:4`: "an instance
 is accepted exactly when every table's constraints hold and the bus balances", the balance
@@ -38,8 +38,8 @@ product", `:78`; `cpu/layout.rs:73`, the count channel of the six tables' read-c
 `:396-412`), the public words against the committed memory (§8.2,
 `08-end-to-end-protocol.tex:27-37`), the public parts of the bus the verifier forms itself, the
 index column and the program's share of the bytecode blocks (§8.5, `:74`; §6.5,
-`06-bus-interactions.tex:98`), and the BLAKE2s validity Flock proves (§8.5 "BLAKE2s validity";
-`crates/verifier/src/lib.rs:266-289`). This file is the accept relation of the M3 constraint
+`06-bus-interactions.tex:98`), and the `KECCAK` validity the Keccak reduction proves
+(`verify_execution` step 6, `verifier.py:1492-1499`). This file is the accept relation of the M3 constraint
 system and its ensemble, a statement with no soundness or completeness theorem: it is what
 `constraintSoundness` and `constraintCompleteness` are about.
 
@@ -56,7 +56,7 @@ row") Clean's own, consumed unchanged.
 and channels by name (`messagesOn`, `rowMessagesOn`): Clean's `RawChannel` carries
 propositions and has no decidable equality, and the six channels are told apart by name as
 `channelDir` and `channelSep` already read them. A raw row is read as its typed row
-exactly as the component's constraints read it (`memRowAt`, `blake2sRowAt`: Clean's
+exactly as the component's constraints read it (`memRowAt`, `keccakRowAt`: Clean's
 `Component.rowInput`, the first `size Row` cells of the row, a missing cell `0`).
 
 **Balance.** `BalancedPair w pull push` says the messages pushed on `push` and the messages
@@ -84,8 +84,9 @@ and (2) the two public words have a zero third limb (`cpu/mod.rs:688-690`), both
 (`verifier/src/layout.rs:388`); (5) every table has at most `2^MAX_LOG_ROWS` rows
 (`verifier/src/layout.rs:417` at leanVM `3a37fb6e1c7423e36b67d1cac4eda70c3ad4dd45`; the prover
 announces each table's row count, the rows past it in the table's height being padding rows,
-which the bus never sees, so the witness's tables are the executed rows only); (6) there is no
-`BLAKE2S` floor since that commit; (7) the WHIR rate (`verifier/src/lib.rs:217`) and (8) the
+which the bus never sees, so the witness's tables are the executed rows only); (6) the `KECCAK`
+table's height floor (`TABLE_LOG_FLOORS`) is the protocol layer's, its padding rows being outside
+the bus; (7) the WHIR rate (`verifier/src/lib.rs:217`) and (8) the
 stacked size `mu ∈ [MIN_MU, MAX_MU]` (`verifier/src/lib.rs:219-222`) are parameters of the
 commitment, left to the protocol layer, which reads them off the same announcement. `Caps`
 transcribes (4) and (5) and adds `WellShapedData w.data`, a representation hypothesis
@@ -108,16 +109,16 @@ MEM_TOP` and `MFCNT`); and `BytecodeRowsAreTheProgram prog w`, the bytecode bloc
 column is verifier-computed, the memory columns are the committed image, the program is
 public. Their per-row readings are `memRowOf_bindings` and `BytecodeBindings prog`.
 
-**The BLAKE2s validity.** `Blake2sRowsValid w`, every row of the `BLAKE2S` table satisfies
-`Blake2sRelation` (the table's `Assumptions` field), is the one conjunct the verifier
-enforces outside the bus: the table has no constraint on its eighteen limbs, and the compression is
-proved by Flock on the region the limb columns are routed to (§8.5 "BLAKE2s validity", Opening step
-4; `crates/verifier/src/lib.rs:266-289`). Clean's `EnsembleWitness.Constraints` does not include a
-table's `Assumptions`, and its `AssumptionsConsistency` sources them from the public input alone, so
-the fact is a conjunct of the statement, and `assumptions_of_blake2sRowsValid` turns it into the
-`w.Assumptions` that Clean's `TableSoundness` takes. The conjunct stays: the proof system's adaptor
-discharges it from the Flock region, whose R1CS forces every block's limbs to compress
-(`blake2sRowsValid_witnessOf`).
+**The `KECCAK` validity.** `KeccakRowsValid w`, every row of the `KECCAK` table satisfies
+`KeccakRelation` (the table's `Assumptions` field: its output lanes are Keccak-f[1600] of its input
+lanes), is the one conjunct the verifier enforces outside the bus: the table has no constraint on
+its lanes, and the permutation is proved by the Keccak reduction on the input lanes committed in
+`q_keccak` and the output lanes the table's claims hand it (`verifier.py:1492-1499`). Clean's
+`EnsembleWitness.Constraints` does not include a table's `Assumptions`, and its
+`AssumptionsConsistency` sources them from the public input alone, so the fact is a conjunct of the
+statement, and `assumptions_of_keccakRowsValid` turns it into the `w.Assumptions` that Clean's
+`TableSoundness` takes. The conjunct stays: the proof system's adaptor discharges it from the Keccak
+region.
 
 **The statement.** `SatisfiedBy prog input w` is the relation the proof system proves and
 extracts (issue #13), a structure with named fields so that the soundness and completeness
@@ -155,10 +156,10 @@ are proved in `LeanVM.Arithmetization.Soundness` (`mem_channel_sound`,
 * The count product covers the six tables' read counts and nothing else: `CountsNonzero`
   quantifies over `w.tables.take 6`, and a finalize count of `0` is rejected by balance alone
   (§6.2).
-* The compression is not a constraint of the table and not a bus fact: `Blake2sRowsValid` is
-  a conjunct of its own, discharged by Flock, never by `w.Constraints` (which the `BLAKE2S`
-  table satisfies on every row) and never by balance (which binds the limbs to the cells, not
-  the cells to the compression).
+* The permutation is not a constraint of the table and not a bus fact: `KeccakRowsValid` is
+  a conjunct of its own, discharged by the Keccak reduction, never by `w.Constraints` (which the
+  `KECCAK` table satisfies on every row) and never by balance (which binds the lanes to the cells,
+  not the output to the input).
 * The ensemble is a function of the program through the verifier alone; the program is in no
   table of the prover data, and `BytecodeRowsAreTheProgram prog` is the conjunct that pins the
   bytecode block's public columns to it.
@@ -179,7 +180,7 @@ open Air.Flat (Ensemble EnsembleWitness Component)
 bytecode blocks, the six channels, and the verifier `leanIsaVerifier prog`, its one
 program-bearing component (`layout.rs:351-394`). -/
 def leanIsaEnsemble (prog : Program) : Ensemble K PublicIO where
-  tables := [⟨xorTable⟩, ⟨mulTable⟩, ⟨setTable⟩, ⟨derefTable⟩, ⟨jumpTable⟩, ⟨blake2sTable⟩,
+  tables := [⟨xorTable⟩, ⟨mulTable⟩, ⟨setTable⟩, ⟨derefTable⟩, ⟨jumpTable⟩, ⟨keccakTable⟩,
     ⟨memTable⟩, ⟨bytecodeTable⟩]
   channels := [StatePull.toRaw, StatePush.toRaw, MemPull.toRaw, MemPush.toRaw,
     BytecodePull.toRaw, BytecodePush.toRaw]
@@ -192,13 +193,13 @@ def leanIsaEnsemble (prog : Program) : Ensemble K PublicIO where
 variable {prog : Program}
 
 /-- The witness's table of component `j`, in the order of the ensemble's `tables`: `XOR`,
-`MUL_NATIVE`, `SET_CONSTANT`, `DEREF`, `JUMP`, `BLAKE2S`, then the memory block and the
+`MUL_NATIVE`, `SET_CONSTANT`, `DEREF`, `JUMP`, `KECCAK`, then the memory block and the
 bytecode block. -/
 def tableAt (w : EnsembleWitness (leanIsaEnsemble prog)) (j : Fin 8) : Air.Flat.Table K :=
   w.tables[(j : ℕ)]'(by rw [← w.same_length]; exact j.isLt)
 
-/-- The rows of the `BLAKE2S` table. -/
-abbrev blake2sRows (w : EnsembleWitness (leanIsaEnsemble prog)) : List (Array K) :=
+/-- The rows of the `KECCAK` table. -/
+abbrev keccakRows (w : EnsembleWitness (leanIsaEnsemble prog)) : List (Array K) :=
   (tableAt w 5).table
 
 /-- The rows of the memory block. -/
@@ -225,9 +226,9 @@ missing cell `0`, as the block's constraints read it (Clean's `Component.rowInpu
 def memRowAt (w : EnsembleWitness (leanIsaEnsemble prog)) (row : Array K) : MemRow K :=
   valueFromOffset MemRow 0 (Environment.fromArray row w.data)
 
-/-- A raw row of the `BLAKE2S` table, read as its typed row, likewise. -/
-def blake2sRowAt (w : EnsembleWitness (leanIsaEnsemble prog)) (row : Array K) : Blake2sRow K :=
-  valueFromOffset Blake2sRow 0 (Environment.fromArray row w.data)
+/-- A raw row of the `KECCAK` table, read as its typed row, likewise. -/
+def keccakRowAt (w : EnsembleWitness (leanIsaEnsemble prog)) (row : Array K) : KeccakRow K :=
+  valueFromOffset KeccakRow 0 (Environment.fromArray row w.data)
 
 /-! ## Balance -/
 
@@ -297,21 +298,21 @@ def BytecodeRowsAreTheProgram (prog : Program) (w : EnsembleWitness (leanIsaEnse
   ∃ cntFin : Fin (2 ^ prog.logSize) → K,
     bytecodeBlockRows w = List.ofFn fun i ↦ (toElements (bytecodeRowOf prog i (cntFin i))).toArray
 
-/-! ## The BLAKE2s validity -/
+/-! ## The `KECCAK` validity -/
 
-/-- Every row of the `BLAKE2S` table satisfies the compression relation on its eighteen limbs
-(`Blake2sRelation`, the table's `Assumptions`): what Flock proves of the region the limb columns
-are routed to (§8.5 "BLAKE2s validity"; `crates/verifier/src/lib.rs:266-289`). The one conjunct
-enforced outside the bus; the proof system discharges it from the Flock region. -/
-def Blake2sRowsValid (w : EnsembleWitness (leanIsaEnsemble prog)) : Prop :=
-  ∀ row ∈ blake2sRows w, Blake2sRelation (blake2sRowAt w row)
+/-- Every row of the `KECCAK` table satisfies the permutation relation on its lanes
+(`KeccakRelation`, the table's `Assumptions`): what the Keccak reduction proves (`verifier.py:1492-1499`).
+The one conjunct enforced outside the bus; the proof system discharges it from the Keccak
+region. -/
+def KeccakRowsValid (w : EnsembleWitness (leanIsaEnsemble prog)) : Prop :=
+  ∀ row ∈ keccakRows w, KeccakRelation (keccakRowAt w row)
 
 /-! ## The statement -/
 
 /-- The witness `w` satisfies the constraint system of `prog` on `input`: the relation the
 proof system proves and extracts (issue #13). `constraints` is Clean's; the three balances are
 `BalancedPair`; `counts_nonzero` and `caps` are the verifier's checks; the three named
-hypotheses are the facts Clean cannot yet express; `blake2s_valid` is Flock's; the two words
+hypotheses are the facts Clean cannot yet express; `keccak_valid` is the Keccak reduction's; the two words
 are §8.2's evaluation claim against the committed memory. -/
 structure SatisfiedBy (prog : Program) (input : PublicInput)
     (w : EnsembleWitness (leanIsaEnsemble prog)) : Prop where
@@ -337,8 +338,8 @@ structure SatisfiedBy (prog : Program) (input : PublicInput)
   seed_rows : SeedRowsAreTheImage w
   /-- The bytecode block's rows are the program's (§8.5). -/
   bytecode_rows : BytecodeRowsAreTheProgram prog w
-  /-- Every `BLAKE2S` row compresses (§8.5). -/
-  blake2s_valid : Blake2sRowsValid w
+  /-- Every `KECCAK` row permutes. -/
+  keccak_valid : KeccakRowsValid w
   /-- The first word of the image is `input₀ + input₁·y` (§8.2). -/
   word0_eq : (imageOf w.data).2.read (gpow 0) = some input.word0
   /-- The second word of the image is `input₂ + input₃·y` (§8.2). -/
@@ -385,9 +386,9 @@ theorem memRowAt_toElements (w : EnsembleWitness (leanIsaEnsemble prog)) (r : Me
     memRowAt w (toElements r).toArray = r :=
   rowAt_toElements w.data r
 
-/-- `blake2sRowAt` inverts `toElements`. -/
-theorem blake2sRowAt_toElements (w : EnsembleWitness (leanIsaEnsemble prog))
-    (r : Blake2sRow K) : blake2sRowAt w (toElements r).toArray = r :=
+/-- `keccakRowAt` inverts `toElements`. -/
+theorem keccakRowAt_toElements (w : EnsembleWitness (leanIsaEnsemble prog))
+    (r : KeccakRow K) : keccakRowAt w (toElements r).toArray = r :=
   rowAt_toElements w.data r
 
 /-- A table of the witness is `tableAt w j` for some `j`. -/
@@ -405,11 +406,11 @@ theorem tableAt_component (w : EnsembleWitness (leanIsaEnsemble prog)) (j : Fin 
     (tableAt w j).component = (leanIsaEnsemble prog).tables[(j : ℕ)] :=
   (w.same_circuits j j.isLt).symm
 
-/-- The BLAKE2s validity is the whole of Clean's `w.Assumptions`: the `BLAKE2S` table's
-`Assumptions` is `Blake2sRelation` and every other component's is `True`. This is the form
+/-- The `KECCAK` validity is the whole of Clean's `w.Assumptions`: the `KECCAK` table's
+`Assumptions` is `KeccakRelation` and every other component's is `True`. This is the form
 Clean's `TableSoundness` takes in `constraintSoundness`. -/
-theorem assumptions_of_blake2sRowsValid {w : EnsembleWitness (leanIsaEnsemble prog)}
-    (h : Blake2sRowsValid w) : w.Assumptions := by
+theorem assumptions_of_keccakRowsValid {w : EnsembleWitness (leanIsaEnsemble prog)}
+    (h : KeccakRowsValid w) : w.Assumptions := by
   intro t ht
   simp only [EnsembleWitness.allTables, List.mem_cons] at ht
   rcases ht with rfl | ht
@@ -479,7 +480,7 @@ theorem exists_run_of_balanced (hsafe : SentinelSafe prog) (h : SatisfiedBy prog
     ∃ n, run prog (imageOf w.data).2 n Regs.initial = some (Regs.final prog)
 ```
 
-The read bound `mem_channel_sound` needs is derived from `Caps` (`≤ 10 · 6 · 2^32`), never
+The read bound `mem_channel_sound` needs is derived from `Caps` (`≤ 27 · 6 · 2^32`), never
 assumed; `SentinelSafe prog` is the one hypothesis on the program, and only soundness takes it.
 -/
 

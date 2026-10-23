@@ -124,6 +124,52 @@ def dead : Spec p (fun _ ↦ False) Post εmax L T where
   post := by intros; contradiction
   bound := by intros; contradiction
 
+open Classical in
+/-- **An existential precondition**: a family of specifications, one per witness `i` of the
+precondition, is a specification from `∃ i, Pre i`, the witness chosen from the start history
+(doom and potential depend on the start history only through it). -/
+noncomputable def exPre {ι : Type} {Pre : ι → List Ev → Prop}
+    (S : ∀ i, Spec p (Pre i) Post εmax L T) : Spec p (fun h ↦ ∃ i, Pre i h) Post εmax L T where
+  D h₀ l := if h : ∃ i, Pre i h₀ then (S h.choose).D h₀ l else False
+  V h₀ l := if h : ∃ i, Pre i h₀ then (S h.choose).V h₀ l else 1
+  le_one h₀ l := by split_ifs <;> first | exact (S _).le_one _ _ | exact le_rfl
+  start_D h₀ h := by rw [dite_eq_left h]; exact (S _).start_D h₀ h.choose_spec
+  start_V h₀ h := by rw [dite_eq_left h]; exact (S _).start_V h₀ h.choose_spec
+  read x hl ha hD := by
+    split_ifs at hD ⊢ with h
+    exact (S _).read x hl ha hD
+  grind hl ha hD := by
+    split_ifs at hD ⊢ with h
+    exact (S _).grind hl ha hD
+  commit word hl ha hw hD := by
+    split_ifs at hD ⊢ with h
+    exact (S _).commit word hl ha hw hD
+  sample hl ha := by
+    split_ifs with h
+    · exact (S _).sample hl ha
+    · exact avg_le_one _ fun _ ↦ le_rfl
+  query hl ha hq := by
+    split_ifs with h
+    · exact (S _).query hl ha hq
+    · exact le_rfl
+  moveEnd hl ha hm hD := by
+    split_ifs at hD ⊢ with h
+    · exact (S _).moveEnd hl ha hm hD
+    · exact le_rfl
+  retEnd hl ha hD := by
+    split_ifs at hD ⊢ with h
+    · exact (S _).retEnd hl ha hD
+    · exact le_rfl
+  retDoom hl ha hD := by
+    split_ifs at hD ⊢ with h
+    exact (S _).retDoom hl ha hD
+  post hl ha hD := by
+    split_ifs at hD with h
+    exact (S _).post hl ha hD
+  bound hl hne hm hD := by
+    split_ifs at hD ⊢ with h
+    exact (S _).bound hl hne hm hD
+
 /-- Transport along an equality of programs (for a `match` or a definitional unfolding). -/
 def congr {p' : Prog α} (h : p = p') (S : Spec p Pre Post εmax L T) :
     Spec p' Pre Post εmax L T := h ▸ S

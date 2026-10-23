@@ -185,6 +185,16 @@ program: the table is program-free (the module docstring). -/
 def DerefSpec (r : DerefRow K) (next : Regs K) (data : ProverData K) : Prop :=
   DerefRefines (imageOf data).2 r next
 
+/-- The bytecode tuple of a row is `entry` of the instruction it names, by definition; spelled
+once, so that the unifier need not see it through `decode`. -/
+private theorem deref_entry (o1 o2 o3 : K) (mode : DerefMode) :
+    #v[Opcode.deref.code] ++ #v[o1, o2, o3, (derefFlags mode).1, (derefFlags mode).2, 0, 0, 0, 0, 0] = entry (.deref o1 o2 o3 mode) := rfl
+
+/-- A pulled `DEREF` tuple, flat. -/
+private theorem deref_tuple (c o1 o2 o3 fpc ffp : K) :
+    #v[c] ++ #v[o1, o2, o3, fpc, ffp, 0, 0, 0, 0, 0] = #v[c, o1, o2, o3, fpc, ffp, 0, 0, 0, 0, 0] :=
+  rfl
+
 /-! ## The table -/
 
 /-- The `DEREF` table (specification §7.4; `tables.rs:591-687`): state step, bytecode read of
@@ -200,7 +210,7 @@ def derefTable : GeneralFormalCircuit K DerefRow Regs where
     StatePull.pull ⟨r.pc, r.fp⟩
     StatePush.push next
     bytecodeRead r.pc r.rbc (Expression.const Opcode.deref.code)
-      #v[r.o1, r.o2, r.o3, r.fpc, r.ffp, 0, 0]
+      #v[r.o1, r.o2, r.o3, r.fpc, r.ffp, 0, 0, 0, 0, 0]
     memRead (r.fp * r.o1) r.r1 #v[r.p, 0, 0]
     memRead (r.p * r.o2) r.r2
       #v[fbar * r.v3[0] + r.fpc * (Expression.const (g ^ 2) * r.pc) + r.ffp * r.fp,
@@ -226,6 +236,7 @@ def derefTable : GeneralFormalCircuit K DerefRow Regs where
     subst hv3
     -- The pulled tuple is an instruction (`decode`): `DEREF` with the row's operands, the flags
     -- a store mode's. The one use a table makes of the bytecode guarantee.
+    rw [deref_tuple] at hdec
     obtain ⟨mode, rfl, hflags⟩ := decode_deref_eq_some_iff.mp hdec
     obtain ⟨h4, h5⟩ := Prod.ext_iff.mp hflags
     subst h4 h5
@@ -248,7 +259,7 @@ def derefTable : GeneralFormalCircuit K DerefRow Regs where
     subst h4 h5
     rw [← storeCoords_eval] at h2
     simp only [Vector.getElem_map] at h3 h2 ⊢
-    exact ⟨⟨_, decode_entry (.deref _ _ _ mode)⟩, h1, h2, h3⟩
+    exact ⟨⟨_, by rw [deref_entry]; exact decode_entry _⟩, h1, h2, h3⟩
 
 /-! ## Rows from executions -/
 

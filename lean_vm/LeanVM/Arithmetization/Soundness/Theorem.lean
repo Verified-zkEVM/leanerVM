@@ -17,7 +17,7 @@ public import LeanVM.Arithmetization.Completeness.Theorem
 
 At leanVM pin `127510d14c98ade4e8a97646c44fa7f1ff5e752d` and Clean pin `42fe4b26`. The soundness
 direction for the proof system's constraint statement (`SatisfiedBy`), `constraintSoundness`.
-It assumes that statement, whose three hypotheses Clean cannot yet express and whose BLAKE2s
+It assumes that statement, whose three hypotheses Clean cannot yet express and whose `KECCAK`
 validity are conjuncts, and `SentinelSafe` (the last instruction is not a `JUMP`), the one
 condition on the program.
 
@@ -31,7 +31,7 @@ the step's two states.
 
 **Composition.** Per-table soundness is Clean's instantiated soundness theorem of each of the opcode
 tables (`Component.weakSoundness`, in `Soundness.Rows`), applied directly to the witness's rows with
-the tables' `Assumptions` from `assumptions_of_blake2sRowsValid h.blake2s_valid`, the constraints
+the tables' `Assumptions` from `assumptions_of_keccakRowsValid h.keccak_valid`, the constraints
 from `h.constraints`, and the pull guarantees from the two lookup theorems
 (`mem_channel_sound`, `bytecode_channel_sound`); never through Clean's `TableSoundness`, which
 takes the field-sum `BalancedChannels` (unsound in characteristic two), nor through

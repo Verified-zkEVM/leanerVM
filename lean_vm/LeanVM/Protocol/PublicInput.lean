@@ -114,7 +114,7 @@ def lineClaim (r : E) (l : PublicLine I.toShape) : ColumnClaim I :=
 
 /-- What the verifier pools: the claims it received, then one claim per public line. -/
 def pooled (s : I.Stmt × TableOut I) (r : E) : I.Stmt × PubOut I :=
-  (s.1, ⟨s.2.columns ++ (I.publicLines s.1).map (lineClaim I r)⟩)
+  (s.1, ⟨s.2.columns ++ (I.publicLines s.1).map (lineClaim I r), s.2.point⟩)
 
 /-- The values the verifier expects in the prover's message: the values at the challenge of the
 lines whose value is sent, in order. -/
@@ -186,7 +186,7 @@ received, then one claim per public line, from the values sent. No pool exists f
 message. -/
 def pooledFrom (s : I.Stmt × TableOut I) (r : E) (cs : List E)
     (h : cs.length = sentCount I (I.publicLines s.1)) : I.Stmt × PubOut I :=
-  (s.1, ⟨s.2.columns ++ claimsFrom I r (I.publicLines s.1) cs h⟩)
+  (s.1, ⟨s.2.columns ++ claimsFrom I r (I.publicLines s.1) cs h, s.2.point⟩)
 
 /-- The claims from the expected values are the lines' claims: the value sent for a line is
 its line value. -/

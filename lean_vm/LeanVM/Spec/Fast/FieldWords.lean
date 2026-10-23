@@ -34,7 +34,7 @@ instances are restated here, each by a `@[csimp]` lemma proved by `rfl`.
 
 This is a candidate for CompPoly. It lives in `Parameters` rather than `Protocol/ToCompPoly`
 because `LeanVM.Spec.Field` imports it: every module of the repository then compiles `K`
-and `E` arithmetic on words, including the closed constants of `Parameters.Flock`, which are
+and `E` arithmetic on words, including the closed constants of the verifier, which are
 evaluated when a program starts. Nothing here transcribes a source.
 -/
 

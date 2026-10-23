@@ -103,35 +103,18 @@ lean_vm() {
   (cd lean_vm && python3 -I scripts/ci-build.py)
   step "lean_vm: lake test"
   (cd lean_vm && lake test)
-  step "lean_vm: build the compiled checks"
-  (cd lean_vm && lake build node-vectors guest-core guest-cert)
-  step "lean_vm: the Rust vectors' costly checks, compiled"
-  (cd lean_vm && capped .lake/build/bin/node-vectors)
-  step "lean_vm: the guest's core IR data is current"
-  (cd lean_vm && capped .lake/build/bin/guest-core --check)
-  step "lean_vm: the guest's certificates and check modules are current"
-  (cd lean_vm && capped .lake/build/bin/guest-cert --check)
 }
 
 # Against leanVM at `leanvm-rev`, checked out by leanvm-tree.sh with its `formal/lean_vm` a link to
-# lean_vm: the Lean data its tests write is current, the Lean and Rust verifiers agree on the
-# fixtures and their mutations, and the guest's mirror and hint generator agree with Rust
-# aggregations.
+# lean_vm: the Lean and Rust verifiers agree on the fixtures and their mutations.
 leanvm() {
   command -v cargo > /dev/null || fail "leanvm: needs cargo; name the other projects to skip it"
   local tree
   tree=$(./leanvm-tree.sh)
-  step "leanvm: the Lean data from leanVM is current"
-  (cd "$tree" && cargo test --release -p rec_aggregation --lib -- \
-    guest_bytecode_lean guest_source_lean node_spec_vectors)
   step "leanvm: Rust-vs-Lean differential"
   (cd lean_vm && lake build leanvm-verify)
   cargo build --release --manifest-path lean_vm/scripts/rust-verifier-cli/Cargo.toml
   (cd lean_vm && python3 -I scripts/fuzz-verifier.py tests/fixtures/verifier --jobs 4)
-  step "leanvm: guest mirror and hint generator against Rust aggregations"
-  (cd lean_vm && lake build guest-diff)
-  (cd "$tree" && LEANVM_GUEST_DIFF="$log/guest-diff" cargo test --release -p rec_aggregation guest_diff -- --ignored)
-  (cd lean_vm && capped .lake/build/bin/guest-diff "$log"/guest-diff/*.txt)
 }
 
 projects=("$@")

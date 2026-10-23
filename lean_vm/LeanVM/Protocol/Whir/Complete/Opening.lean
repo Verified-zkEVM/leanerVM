@@ -95,6 +95,7 @@ namespace LeanVM.Protocol.Whir.Complete
 
 open LeanVM.Parameters LeanVM.Protocol LeanVM.Protocol.Verifier LeanVM.Protocol.EndToEnd
   LeanVM.Protocol.Compile LeanVM.Protocol.Whir Finset
+open LeanVM.Semantics (KState)
 
 @[expose] public section
 
@@ -942,18 +943,18 @@ theorem runI_openingProgram {μ R : ℕ} (hadm : Whir.Admissible μ R) (q : Colu
     chal (ofScript_agrees _ []) (follows_openingProgram hadm q claims hholds hml)
   exact ⟨hb, hsh⟩
 
-/-- **Completeness of the compiled opening.** For every hash function, the honest compiled
-prover of `openingProgram` produces a proof the compiled verifier accepts, as soon as every
-proof-of-work search finds its nonce below `fuel`. -/
-theorem exists_prove_runProof_openingProgram (H : Bytes → Digest) {μ R : ℕ}
-    (hadm : Whir.Admissible μ R) (q : Column μ) (claims : List StackClaim)
+/-- **Completeness of the compiled opening.** For every hash function and permutation, the
+honest compiled prover of `openingProgram` produces a proof the compiled verifier accepts, as soon
+as every proof-of-work search finds its nonce below `fuel`. -/
+theorem exists_prove_runProof_openingProgram (H : Bytes → Digest) (F : KState → KState)
+    {μ R : ℕ} (hadm : Whir.Admissible μ R) (q : Column μ) (claims : List StackClaim)
     (hholds : ∀ c ∈ claims, StackClaim.Holds μ c q) (hml : ∀ c ∈ claims, IsMultilinearFn μ c.1)
-    (seed : Digest) (fuel : ℕ)
-    (hg : ∀ h bits k cv, (openingProgram μ R claims).after h = some (.grind bits k) →
-      findNonce H bits cv fuel ≠ none) :
-    ∃ π, prove H (openingProgram μ R claims) (openingProver μ R q claims) seed fuel = some π ∧
-      runProof (m := Id) H (openingProgram μ R claims) seed π = true :=
-  exists_prove_runProof H _ _ seed fuel
+    (seed : KState) (fuel : ℕ)
+    (hg : ∀ h bits k sp, (openingProgram μ R claims).after h = some (.grind bits k) →
+      findNonce F bits sp fuel ≠ none) :
+    ∃ π, prove H F (openingProgram μ R claims) (openingProver μ R q claims) seed fuel = some π ∧
+      runProof (m := Id) H F (openingProgram μ R claims) seed π = true :=
+  exists_prove_runProof H F _ _ seed fuel
     (fun chal ↦ (runI_openingProgram hadm q claims hholds hml chal).1)
     (fun chal ↦ (runI_openingProgram hadm q claims hholds hml chal).2) hg
 

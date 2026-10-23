@@ -191,6 +191,54 @@ theorem get_stridedLayout (hμ : B.total ≤ 2 ^ μ) (b : Fin B.n) (k : ℕ) {ι
         omega) := by
   simp only [stridedLayout, boolVec_append, boolVec_cast, get_extendPoint, Fin.val_cast]
 
+/-! ## Slices of a block -/
+
+/-- Reading through a slice lift: the column at slot `slot c` of block `b` is the slice at that
+high index of the block read off the stack. -/
+private theorem readWith_slice (hμ : B.total ≤ 2 ^ μ) (b : Fin B.n) (k : ℕ) {ι : Type}
+    {κ : ι → ℕ} (slot : ι → Fin (2 ^ k)) (h : ∀ c, B.size b = κ c + k) (q : Column μ)
+    (c : ι) :
+    (Layout.readWith (fun c (z : Vector E (κ c)) ↦
+        B.extendPoint hμ b (Vector.cast (h c).symm (z ++ (boolVec (slot c) : Vector E k))))
+        q c).values =
+      slice (Vector.cast (congrArg (2 ^ ·) (h c)) (B.readColumn hμ q b).values) (slot c) := by
+  have key : ∀ y : Fin (2 ^ B.size b),
+      q.values.get (boolIndex (B.extendPoint hμ b (boolVec y : Vector E (B.size b)))) =
+        (B.readColumn hμ q b).values[y] := by
+    intro y
+    rw [← B.readWith_extendPoint hμ q b]
+    simp [Layout.readWith]
+  apply Vector.ext
+  intro x hx
+  simp only [Layout.readWith, Vector.getElem_ofFn, boolVec_append, boolVec_cast, key, slice,
+    Fin.getElem_fin, Vector.getElem_cast, Fin.val_cast]
+
+/-- The slices of block `b`, one column per slot: the high `k` coordinates of the block are
+frozen to the bits of the column's slot, and a point `z` of the column lifts to the stack's
+point `(z, slot bits, selector bits of b)`. The column is the block's cells
+`offset_b + slot · 2 ^ κ + x`: for leanVM, a lane of `q_keccak` (`verifier.py:990`). -/
+def sliceLayout (hμ : B.total ≤ 2 ^ μ) (b : Fin B.n) (k : ℕ) {ι : Type} {κ : ι → ℕ}
+    (slot : ι → Fin (2 ^ k)) (h : ∀ c, B.size b = κ c + k) : Layout μ ι κ where
+  extend := fun c z ↦
+    B.extendPoint hμ b (Vector.cast (h c).symm (z ++ (boolVec (slot c) : Vector E k)))
+  read_eval := fun q c z ↦ by
+    rw [B.readWith_slice hμ b k slot h q c, ← B.readColumn_eval hμ q b,
+      ← eval₂Mle_cast (algebraMap K E) (h c)]
+    simp only [Vector.cast_cast, Vector.cast_rfl]
+    rw [eval₂Mle, eval₂Mle, slice_map, evalMle_append_boolVec]
+
+/-- A slice's cell `x` is the block's cell `x + slot · 2 ^ κ`, at the block's offset. -/
+theorem get_sliceLayout (hμ : B.total ≤ 2 ^ μ) (b : Fin B.n) (k : ℕ) {ι : Type}
+    {κ : ι → ℕ} (slot : ι → Fin (2 ^ k)) (h : ∀ c, B.size b = κ c + k) (q : Column μ) (c : ι)
+    (x : Fin (2 ^ κ c)) :
+    q.values.get (boolIndex ((B.sliceLayout hμ b k slot h).extend c (boolVec x))) =
+      q.values[(cubeIndex x (slot c)).val + B.offset b]'(by
+        have := B.offset_add_pow_le_total b
+        have h1 := (cubeIndex x (slot c)).isLt
+        have h2 : 2 ^ (κ c + k) = 2 ^ B.size b := by rw [h c]
+        omega) := by
+  simp only [sliceLayout, boolVec_append, boolVec_cast, get_extendPoint, Fin.val_cast]
+
 end Columns
 
 /-! ## The one-padded stack in characteristic two -/

@@ -58,5 +58,12 @@ def ColumnClaimsHold (layout : Layout) (cs : List ColumnClaim) (q : Column layou
     Prop :=
   ∀ c ∈ cs, StackClaim.Holds layout.stackLog (c.onStack layout) q
 
+/-- Every claim of the list holds of the stack `q`, by a reading `H` of a claim (for leanISA,
+`Front.WireHolds`: the `KECCAK` output lanes read as the derived columns they claim, every other
+column on the stack). -/
+def ClaimsHoldBy {layout : Layout} (H : ColumnClaim → Column layout.stackLog → Prop)
+    (cs : List ColumnClaim) (q : Column layout.stackLog) : Prop :=
+  ∀ c ∈ cs, H c q
+
 end
 end LeanVM.Protocol.EndToEnd

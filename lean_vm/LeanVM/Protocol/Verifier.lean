@@ -8,19 +8,17 @@
 module
 
 public import LeanVM.Parameters.Whir
-public import LeanVM.Spec.Blake2s
 public import LeanVM.Spec.Verifier
 public import LeanVM.Protocol.Compile.Prog
-public import LeanVM.Protocol.Blake2sHash
+public import LeanVM.Protocol.KeccakHash
 public import LeanVM.Parameters.Field
-public import LeanVM.Spec.Fast.Hash
 
 /-!
 # The verifier on its four files
 
 The verifier is `LeanVM.Spec.Verifier`. This module adds what `lake exe leanvm-verify` needs to
 run it on the files the Rust prover writes (`verifyFiles`), and states that the deployed
-verifier is the hash-parametric one at BLAKE2s (`verifyWith_blake2sBytes`).
+verifier is the parametric one at Keccak-256 and Keccak-f[1600] (`verifyWith_keccak`).
 -/
 
 namespace LeanVM.Protocol.Verifier
@@ -29,17 +27,18 @@ open LeanVM.Parameters
 
 @[expose] public section
 
-open LeanVM.Semantics LeanVM.Protocol.Blake2sHash LeanVM.Protocol.Compile
-/-- The deployed verifier is the hash-parametric one at `Id` and BLAKE2s. -/
-theorem verifyWith_blake2sBytes (bytecode : List K) (publicInput : Digest) (π : Proof) :
-    Id.run (verifyWith blake2sBytes bytecode publicInput π) = verify bytecode publicInput π :=
+open LeanVM.Semantics LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile
+/-- The deployed verifier is the parametric one at `Id`, Keccak-256 and Keccak-f[1600]. -/
+theorem verifyWith_keccak (bytecode : List K) (publicInput : Digest) (π : Proof) :
+    Id.run (verifyWith (m := Id) keccak256 keccakF bytecode publicInput π) =
+      verify bytecode publicInput π :=
   rfl
 
 /-!
 ## Loading a proof from its four files
 
-From `verifier.py`, lines 104-106 (`E.from_bytes`), 203-223 (`Digest`),
-321-331 (`Proof.load`), 384-400 (`Transcript._merkle_data`, `Transcript.merkle`) and 1411-1428
+From `verifier.py`, lines 102-105 (`E.from_bytes`), 210-231 (`Digest`),
+337-346 (`Proof.load`), 427-446 (`Transcript._merkle_data`, `Transcript.merkle`) and 1511-1529
 (`main`). The pinned Rust prover writes the same files
 (`crates/leanvm_core/tests/verifiers/python_verifier.rs`, `python_verify`).
 
@@ -75,9 +74,9 @@ tests on the Rust prover's proofs exercise.
 
 /-! ### Words -/
 
-/-- The word of four little-endian bytes. -/
-def wordOfBytes (b0 b1 b2 b3 : UInt8) : UInt32 :=
-  UInt32.ofNat (b0.toNat + 2 ^ 8 * b1.toNat + 2 ^ 16 * b2.toNat + 2 ^ 24 * b3.toNat)
+/-- The 64-bit word of eight little-endian bytes (`unpack("<Q", …)`). -/
+def laneOfBytes (b : Bytes) : UInt64 :=
+  UInt64.ofNat ((List.range 8).foldr (fun i acc ↦ (b.getD i 0).toNat + 256 * acc) 0)
 
 /-- Read `n` values of `size` bytes each with `decode`, and the bytes after them; `none` if the
 bytes run out (checked on the next `size` bytes, not on the length of all the rest). -/
@@ -89,15 +88,11 @@ def readMany {α : Type} (size : ℕ) (decode : Bytes → α) : ℕ → Bytes �
     else none
 
 /-- The `K` word of eight little-endian bytes (`int.from_bytes(…, "little")`). -/
-def kOfBytes (b : Bytes) : K :=
-  ofWords (wordOfBytes (b.getD 0 0) (b.getD 1 0) (b.getD 2 0) (b.getD 3 0))
-    (wordOfBytes (b.getD 4 0) (b.getD 5 0) (b.getD 6 0) (b.getD 7 0))
+def kOfBytes (b : Bytes) : K := K.ofLane (laneOfBytes b)
 
-/-- The digest of 32 bytes, its words little-endian (`Digest`). -/
+/-- The digest of 32 bytes, its four words little-endian (`Digest.words`). -/
 def digestOfBytes (b : Bytes) : Digest :=
-  Vector.ofFn fun j : Fin 8 ↦
-    wordOfBytes (b.getD (4 * j) 0) (b.getD (4 * j + 1) 0) (b.getD (4 * j + 2) 0)
-      (b.getD (4 * j + 3) 0)
+  Vector.ofFn fun j : Fin 4 ↦ laneOfBytes (b.drop (8 * j))
 
 /-- The scalar of 24 bytes, three little-endian limbs (`E.from_bytes`). -/
 def eOfBytes (b : Bytes) : E := E.ofLimbs (kOfBytes b) (kOfBytes (b.drop 8)) (kOfBytes (b.drop 16))
@@ -110,7 +105,7 @@ def decodeAll {α : Type} (size : ℕ) (decode : Bytes → α) (b : Bytes) : Opt
   | some (xs, []) => some xs
   | _ => none
 
-/-- `bytecode.bin`: the bytecode's words (`main`, `verifier.py:1422-1423`). -/
+/-- `bytecode.bin`: the bytecode's words (`main`, `verifier.py:1522-1523`). -/
 def decodeWords (b : Bytes) : Option (List K) := decodeAll 8 kOfBytes b
 
 /-- `public_input.bin`: the 32-byte public input (`Digest.__post_init__`). -/
@@ -152,7 +147,7 @@ def laterOpeningShapes : ℕ → List Whir.Level → List (ℕ × ℕ)
 
 /-- The openings of a WHIR run on a `logN`-variable stack, level by level: level `0` opens the
 stack at `commitStack`'s shape, level `ℓ + 1` the commitment read at level `ℓ`
-(`verify_whir`, `verifier.py:1008-1086`). -/
+(`verify_whir`, `verifier.py:1108-1186`). -/
 def whirOpeningShapes (logN : ℕ) : List Whir.Level → List (ℕ × ℕ)
   | [] => []
   | level :: rest =>
@@ -162,8 +157,8 @@ def whirOpeningShapes (logN : ℕ) : List Whir.Level → List (ℕ × ℕ)
 /-- The announced layout and rate exponent of a stream, read by the program's own `readSizes`
 (the hash is not consulted for a value: reads only absorb). -/
 def announced (bytecode : List K) (stream : List E) : Option (Layout × ℕ) :=
-  (Id.run (Compile.run (fun _ ↦ pure default) (readSizes bytecode) ⟨default, stream, [], []⟩)).map
-    (·.1)
+  (Id.run (Compile.run (m := Id) (fun _ ↦ pure default) (fun _ ↦ pure default)
+    (readSizes bytecode) ⟨⟨default, []⟩, stream, [], []⟩)).map (·.1)
 
 /-- The shape of every opening `verify` makes on a proof with this stream, in order. -/
 def openingShapes (bytecode : List K) (stream : List E) : Option (List (ℕ × ℕ)) := do

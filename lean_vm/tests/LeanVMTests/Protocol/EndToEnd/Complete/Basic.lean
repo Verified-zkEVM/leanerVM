@@ -21,7 +21,7 @@ namespace LeanVMTests.Protocol.EndToEnd.Complete.Basic
 open LeanVM.Parameters LeanVM.Semantics LeanVM.Protocol LeanVM.Protocol.Verifier
 open LeanVM.Protocol.LeanIsa LeanVM.Protocol.Compile LeanVM.Protocol.EndToEnd
 open LeanVM.Protocol.EndToEnd.Front LeanVM.Protocol.EndToEnd.Complete
-open LeanVM.Protocol.Whir.Complete LeanVM.Protocol.Blake2sHash
+open LeanVM.Protocol.Whir.Complete LeanVM.Protocol.KeccakHash
 
 /-! ## Statement locks -/
 
@@ -80,7 +80,7 @@ def claimFor (mode : Option E) (c : List E) : E :=
   | some r => (1 + r) * polyEval c 0 + r * polyEval c 1
 
 -- Fed the honest wire, the verifier rebuilds the coefficient list, in both modes and for the
--- counts the deployed program uses (`3` for the Flock and WHIR rounds, `4` for the table
+-- counts the deployed program uses (`3` for the WHIR rounds, `4` for the table
 -- sumcheck, `2^step + 1 ∈ {3, 5}` for the GKR layers).
 #guard [3, 4, 5].all fun count ↦
   [none, some (eK 11 12 13)].all fun mode ↦

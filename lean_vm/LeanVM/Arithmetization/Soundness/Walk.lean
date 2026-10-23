@@ -32,9 +32,9 @@ if `s` is final the run is empty; otherwise `s` must be pulled by an edge `e`, w
 the same balance with start `dst e` and one edge fewer. The edges never used are the closed walks
 of specification §8.3, about which nothing is claimed.
 
-**Under any semantics of `BLAKE2S`** (`exists_runB_of_perm`): the same, for the steps and runs
+**Under any semantics of `KECCAK`** (`exists_runB_of_perm`): the same, for the steps and runs
 of a semantics `S` (`LeanVM.Spec.IsaWith`: `stepB S`, `runB S`); `exists_run_of_perm` is it at the
-deployed one, the Flock-blind verifier's walk at `blakeFree`.
+deployed one, the reduction-blind verifier's walk at `keccakFree`.
 
 ## Wrong readings excluded
 
@@ -49,16 +49,16 @@ namespace LeanVM.Arithmetization
 open LeanVM.Parameters LeanVM.Semantics
 
 /-- Away from the sentinel, a run under the semantics `S` takes a step. -/
-theorem runB_succ_of_ne (S : BlakeSem) {prog : Program} {κ : ℕ} {L : MemImage κ} {r : Regs K}
+theorem runB_succ_of_ne (S : KeccakSem) {prog : Program} {κ : ℕ} {L : MemImage κ} {r : Regs K}
     (h : r.pc ≠ prog.finalPc) (n : ℕ) :
     runB S prog L (n + 1) r = stepB S prog L r >>= runB S prog L n := by
   rw [runB, ite_eq_right h]
 
 /-- **Specification Proposition 6.1, the walk decomposition**, under any semantics `S` of
-`BLAKE2S`: edges that are steps away from the sentinel, balanced against a start `s` and the
+`KECCAK`: edges that are steps away from the sentinel, balanced against a start `s` and the
 final registers, contain a run from `s` to the final registers; each step of the run is an
 edge. -/
-theorem exists_runB_of_perm (S : BlakeSem) {α : Type*} {prog : Program} {κ : ℕ} {L : MemImage κ}
+theorem exists_runB_of_perm (S : KeccakSem) {α : Type*} {prog : Program} {κ : ℕ} {L : MemImage κ}
     (src dst : α → Regs K) (E : List α)
     (hE : ∀ e ∈ E, (src e).pc ≠ prog.finalPc ∧ stepB S prog L (src e) = some (dst e))
     (s : Regs K) (hbal : (s :: E.map dst).Perm (Regs.final prog :: E.map src)) :
@@ -116,8 +116,8 @@ theorem exists_run_of_perm {α : Type*} {prog : Program} {κ : ℕ} {L : MemImag
     ∃ n, run prog L n s = some (Regs.final prog) ∧
       ∀ k < n, ∃ e ∈ E, run prog L k s = some (src e) ∧ run prog L (k + 1) s = some (dst e) := by
   have hE' : ∀ e ∈ E, (src e).pc ≠ prog.finalPc ∧
-      stepB blakeDeployed prog L (src e) = some (dst e) := fun e he ↦ by
+      stepB keccakDeployed prog L (src e) = some (dst e) := fun e he ↦ by
     rw [stepB_deployed]; exact hE e he
-  simpa only [runB_deployed] using exists_runB_of_perm blakeDeployed src dst E hE' s hbal
+  simpa only [runB_deployed] using exists_runB_of_perm keccakDeployed src dst E hE' s hbal
 
 end LeanVM.Arithmetization

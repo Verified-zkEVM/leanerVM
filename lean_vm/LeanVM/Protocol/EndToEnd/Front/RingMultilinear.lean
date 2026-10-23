@@ -7,13 +7,13 @@
 
 module
 
-public import LeanVM.Protocol.EndToEnd.Front.RingFidelity
+public import LeanVM.Protocol.EndToEnd.Front.RingSwitch
 
 /-!
 # The ring claim's weight is multilinear
 
-The program's ring claim (`ringSwitchClaim`, `verifier.py:1405-1406` at leanVM
-`127510d14c98ade4e8a97646c44fa7f1ff5e752d`) has the weight
+The program's ring claim (`ringSwitchClaim`, `python-verifier/verifier.py:1504-1506` at leanVM
+`3375f7a137c50b803f3416f6466b5d4e0719708a`) has the weight
 `W(u) = eqAbove(u) · Σ_k c_k Π_n (1 + r_n^(2^k) + u_n)`, `eqAbove` the equality kernel of the
 coordinates above the placement's window. On points of `μ` coordinates every summand is a product
 of one affine function per coordinate (`eq_eval` reads the window's coordinates, `eqAbove` the
@@ -74,7 +74,7 @@ theorem eqEval_eq_prod (a b : List E) :
     | cons z b =>
       have h : eqEval (x :: a) (z :: b) = (1 + x + z) * eqEval a b := by
         simp only [eqEval, List.zipWith_cons_cons, List.foldl_cons, one_mul]
-        rw [foldl_mul_eq, foldl_mul_eq]
+        rw [Whir.Complete.foldl_mul_eq, Whir.Complete.foldl_mul_eq]
         ring
       rw [h, ih, List.length_cons, List.length_cons, Nat.add_min_add_right,
         Finset.prod_range_succ']
@@ -199,7 +199,7 @@ theorem isMultilinearFn_ringWeight (μ : ℕ) (pl : Placement) (r cs : List E) :
       ∑ k ∈ Finset.range cs.length, cs.getD k 0 *
         (pl.eqAbove y * eqEval (r.map (· ^ 2 ^ k)) (y.take pl.vars)) := by
     funext y
-    rw [ringWeight_eq, Finset.mul_sum]
+    rw [ringWeight_eq_sum, Finset.mul_sum]
     exact Finset.sum_congr rfl fun k _ ↦ by ring
   rw [h]
   exact isMultilinearFn_sum _ _ _ fun k _ ↦

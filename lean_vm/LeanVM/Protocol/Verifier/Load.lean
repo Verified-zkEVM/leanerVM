@@ -24,7 +24,7 @@ order by `encodeOpenings_splitOpenings`.
 namespace LeanVM.Protocol.Verifier
 
 open LeanVM.Parameters LeanVM.Semantics LeanVM.Protocol.Compile
-open LeanVM.Protocol.Blake2sHash LeanVM.Protocol.Compile.Rom
+open LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile.Rom
 
 @[expose] public section
 
@@ -45,56 +45,81 @@ def encodeOpenings (os : List Opening) : Bytes := os.flatMap openingBytes
 
 /-! ## Round trips -/
 
-/-- A word is read back from its four bytes (`wordBytes`). -/
-theorem wordOfBytes_wordBytes (w : UInt32) :
-    wordOfBytes w.toUInt8 (w >>> 8).toUInt8 (w >>> 16).toUInt8 (w >>> 24).toUInt8 = w := by
-  apply UInt32.toNat_inj.mp
-  simp only [wordOfBytes, UInt32.toNat_ofNat, UInt32.toNat_toUInt8, UInt32.toNat_shiftRight,
+/-- A lane is read back from the head of its eight bytes (`wordBytes`). -/
+theorem laneOfBytes_wordBytes_append (w : UInt64) (rest : Bytes) :
+    laneOfBytes (wordBytes w ++ rest) = w := by
+  apply UInt64.toNat_inj.mp
+  have hw := w.toNat_lt
+  simp only [laneOfBytes, wordBytes, List.range_succ, List.range_zero, List.nil_append,
+    List.map_cons, List.map_nil, List.cons_append, List.foldr_cons,
+    List.foldr_nil, List.getD_eq_getElem?_getD, List.getElem?_cons_zero, List.getElem?_cons_succ,
+    Option.getD_some, UInt64.toNat_toUInt8, UInt64.toNat_shiftRight,
     Nat.shiftRight_eq_div_pow]
-  have := w.toNat_lt
-  norm_num at this ⊢
+  norm_num
   omega
 
-theorem wordBytes_wordOfBytes (b0 b1 b2 b3 : UInt8) :
-    wordBytes (wordOfBytes b0 b1 b2 b3) = [b0, b1, b2, b3] := by
-  have h0 := b0.toNat_lt
-  have h1 := b1.toNat_lt
-  have h2 := b2.toNat_lt
-  have h3 := b3.toNat_lt
-  simp only [wordBytes, wordOfBytes, List.cons.injEq, and_true]
-  refine ⟨?_, ?_, ?_, ?_⟩ <;> apply UInt8.toNat_inj.mp <;>
-    simp only [UInt32.toNat_toUInt8, UInt32.toNat_shiftRight, UInt32.toNat_ofNat,
-      Nat.shiftRight_eq_div_pow] <;> norm_num at h0 h1 h2 h3 ⊢ <;> omega
+/-- The bytes of the lane read from the head of a byte string are its first eight. -/
+theorem wordBytes_laneOfBytes {b : Bytes} (h : 8 ≤ b.length) :
+    wordBytes (laneOfBytes b) = b.take 8 := by
+  match b, h with
+  | b0 :: b1 :: b2 :: b3 :: b4 :: b5 :: b6 :: b7 :: rest, _ =>
+    have h0 := b0.toNat_lt
+    have h1 := b1.toNat_lt
+    have h2 := b2.toNat_lt
+    have h3 := b3.toNat_lt
+    have h4 := b4.toNat_lt
+    have h5 := b5.toNat_lt
+    have h6 := b6.toNat_lt
+    have h7 := b7.toNat_lt
+    simp only [wordBytes, laneOfBytes, List.range_succ, List.range_zero, List.nil_append,
+      List.map_cons, List.map_nil, List.cons_append, List.foldr_cons,
+      List.foldr_nil, List.getD_eq_getElem?_getD, List.getElem?_cons_zero,
+      List.getElem?_cons_succ, Option.getD_some, List.take_succ_cons, List.take_zero,
+      List.cons.injEq, and_true]
+    refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩ <;> apply UInt8.toNat_inj.mp <;>
+      simp only [UInt64.toNat_toUInt8, UInt64.toNat_shiftRight, Nat.shiftRight_eq_div_pow] <;> norm_num at h0 h1 h2 h3 h4 h5 h6 h7 ⊢ <;> omega
 
 /-- A `K` word is read back from the head of its bytes. -/
 theorem kOfBytes_kBytes_append (a : K) (rest : Bytes) : kOfBytes (kBytes a ++ rest) = a := by
-  have hl := wordOfBytes_wordBytes (lowWord a)
-  have hh := wordOfBytes_wordBytes (highWord a)
-  simpa [kOfBytes, kBytes, wordBytes, hl, hh] using ofWords_lowWord_highWord a
+  simp only [kOfBytes, kBytes, laneOfBytes_wordBytes_append, K.ofLane_lane]
 
 theorem kOfBytes_kBytes (a : K) : kOfBytes (kBytes a) = a := by
   simpa using kOfBytes_kBytes_append a []
 
 /-- The bytes of the word read from the head of a byte string are its first eight. -/
 theorem kBytes_kOfBytes {b : Bytes} (h : 8 ≤ b.length) : kBytes (kOfBytes b) = b.take 8 := by
-  match b, h with
-  | b0 :: b1 :: b2 :: b3 :: b4 :: b5 :: b6 :: b7 :: rest, _ =>
-    simp [kOfBytes, kBytes, lowWord_ofWords, highWord_ofWords, wordBytes_wordOfBytes]
+  simp only [kOfBytes, kBytes, K.lane_ofLane, wordBytes_laneOfBytes h]
 
 theorem digestOfBytes_digestBytes (d : Digest) : digestOfBytes (digestBytes d) = d := by
   obtain ⟨⟨l⟩, hl⟩ := d
   match l, hl with
-  | [w0, w1, w2, w3, w4, w5, w6, w7], _ =>
-    have := wordOfBytes_wordBytes
-    ext j hj
-    interval_cases j <;> simp [digestOfBytes, digestBytes, wordBytes, this]
+  | [w0, w1, w2, w3], hl =>
+    have e : digestBytes ⟨⟨[w0, w1, w2, w3]⟩, hl⟩ =
+        wordBytes w0 ++ (wordBytes w1 ++ (wordBytes w2 ++ (wordBytes w3 ++ []))) := by
+      simp [digestBytes]
+    rw [digestOfBytes, e]
+    refine Vector.ext fun j hj ↦ ?_
+    rw [Vector.getElem_ofFn]
+    have h8 : ∀ (w : UInt64) (r : Bytes), List.drop 8 (wordBytes w ++ r) = r :=
+      fun w r ↦ List.drop_left' (wordBytes_length w)
+    interval_cases j
+    · exact laneOfBytes_wordBytes_append _ _
+    · rw [show 8 * 1 = 8 by rfl, h8]; exact laneOfBytes_wordBytes_append _ _
+    · rw [show 8 * 2 = 8 + 8 by rfl, ← List.drop_drop, h8, h8]
+      exact laneOfBytes_wordBytes_append _ _
+    · rw [show 8 * 3 = 8 + 8 + 8 by rfl, ← List.drop_drop, ← List.drop_drop, h8, h8, h8]
+      exact laneOfBytes_wordBytes_append _ _
 
 theorem digestBytes_digestOfBytes {b : Bytes} (h : b.length = 32) :
     digestBytes (digestOfBytes b) = b := by
   match b, h with
   | [b0, b1, b2, b3, b4, b5, b6, b7, b8, b9, b10, b11, b12, b13, b14, b15, b16, b17, b18, b19,
       b20, b21, b22, b23, b24, b25, b26, b27, b28, b29, b30, b31], _ =>
-    simp [digestOfBytes, digestBytes, wordBytes_wordOfBytes, Vector.toList_ofFn, List.ofFn_succ]
+    simp only [digestOfBytes, digestBytes, Vector.toList_ofFn, List.ofFn_succ, List.ofFn_zero,
+      List.flatMap_cons, List.flatMap_nil]
+    rw [wordBytes_laneOfBytes (by simp), wordBytes_laneOfBytes (by simp),
+      wordBytes_laneOfBytes (by simp), wordBytes_laneOfBytes (by simp)]
+    rfl
 
 theorem eBytes_length (x : E) : (eBytes x).length = 24 := rfl
 

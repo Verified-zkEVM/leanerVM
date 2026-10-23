@@ -46,14 +46,16 @@ example : prog.fetch 0 = none := prog.fetch_zero
 #guard i2.opcode = .deref
 #guard i3.opcode = .jump
 #guard (Instr.mulNative 1 g (gpow 2)).opcode = .mulNative
-#guard (Instr.blake2s ![1, g, gpow 2, gpow 3] (gpow 4) (gpow 6) (gpow 8)).opcode = .blake2s
+#guard (Instr.keccak ![1, g, gpow 2, gpow 3] (gpow 4) (gpow 8) (gpow 9) (gpow 13) false true).opcode = .keccak
 
 /-! ## Equality -/
 
-#guard Instr.blake2s ![1, g, gpow 2, gpow 3] (gpow 4) (gpow 6) (gpow 8) =
-  Instr.blake2s ![1, g, gpow 2, gpow 3] (gpow 4) (gpow 6) (gpow 8)
-#guard Instr.blake2s ![1, g, gpow 2, gpow 3] (gpow 4) (gpow 6) (gpow 8) ≠
-  Instr.blake2s ![1, g, gpow 2, gpow 5] (gpow 4) (gpow 6) (gpow 8)
+#guard Instr.keccak ![1, g, gpow 2, gpow 3] (gpow 4) (gpow 8) (gpow 9) (gpow 13) false true =
+  Instr.keccak ![1, g, gpow 2, gpow 3] (gpow 4) (gpow 8) (gpow 9) (gpow 13) false true
+#guard Instr.keccak ![1, g, gpow 2, gpow 3] (gpow 4) (gpow 8) (gpow 9) (gpow 13) false true ≠
+  Instr.keccak ![1, g, gpow 2, gpow 5] (gpow 4) (gpow 8) (gpow 9) (gpow 13) false true
+#guard Instr.keccak ![1, g, gpow 2, gpow 3] (gpow 4) (gpow 8) (gpow 9) (gpow 13) false true ≠
+  Instr.keccak ![1, g, gpow 2, gpow 3] (gpow 4) (gpow 8) (gpow 9) (gpow 13) true true
 #guard Instr.deref 1 g (gpow 2) .pc ≠ Instr.deref 1 g (gpow 2) .fp
 #guard Instr.setConstant 1 (E.ofLimbs 1 (K.ofBits 2) (K.ofBits 3)) ≠ Instr.setConstant 1 (E.ofLimbs 1 (K.ofBits 2) (K.ofBits 4))
 

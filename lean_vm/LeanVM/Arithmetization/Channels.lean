@@ -160,8 +160,8 @@ structure MemMsg (F : Type) where
   v : Vector F 3
   deriving ProvableStruct
 
-/-- The bytecode tuple after its separator: `(pc, count, opcode, op₁, …, op₇)`, a read of the
-entry `(opcode, op₁, …, op₇)` (`entry`) at counter `pc` (specification §6.4). -/
+/-- The bytecode tuple after its separator: `(pc, count, opcode, op₁, …, op₁₀)`, a read of the
+entry `(opcode, op₁, …, op₁₀)` (`entry`) at counter `pc` (specification §6.4). -/
 structure BytecodeMsg (F : Type) where
   /-- The program counter, the entry's address. -/
   pc : F
@@ -169,8 +169,8 @@ structure BytecodeMsg (F : Type) where
   count : F
   /-- The opcode, coordinate 3 of the tuple. -/
   opcode : F
-  /-- The seven operand slots. -/
-  op : Vector F 7
+  /-- The ten operand slots. -/
+  op : Vector F 10
   deriving ProvableStruct
 
 /-! ## The image in the prover data -/
@@ -248,7 +248,7 @@ def memRead (addr count : Expression K) (v : Vector (Expression K) 3) : Circuit 
 /-- A bytecode read of the entry `(opcode, op)` at counter `pc` with count `count`: pull
 `(pc, count, opcode, op)`, push `(pc, g·count, opcode, op)` (specification §6.2, §6.4;
 `tables.rs:149-156`). -/
-def bytecodeRead (pc count opcode : Expression K) (op : Vector (Expression K) 7) :
+def bytecodeRead (pc count opcode : Expression K) (op : Vector (Expression K) 10) :
     Circuit K Unit := do
   BytecodePull.pull ⟨pc, count, opcode, op⟩
   BytecodePush.push ⟨pc, Expression.const g * count, opcode, op⟩
@@ -303,7 +303,7 @@ theorem memMsg_toElements (m : MemMsg K) :
   rw [Vector.toList_append, Vector.toList_append]
   rfl
 
-/-- A bytecode message flattens to `[pc, count, opcode, op₁, …, op₇]` (specification §6.4). -/
+/-- A bytecode message flattens to `[pc, count, opcode, op₁, …, op₁₀]` (specification §6.4). -/
 theorem bytecodeMsg_toElements (b : BytecodeMsg K) :
     (toElements b).toList = [b.pc, b.count, b.opcode] ++ b.op.toList := by
   obtain ⟨pc, count, opcode, op⟩ := b

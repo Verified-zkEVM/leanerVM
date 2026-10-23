@@ -62,7 +62,7 @@ The phase (`busPhase`), a typed front component at the slot `busSlot I`:
 The grand-product argument carries the constraint polynomials of the tables as *riders*, tables
 whose extension must vanish at the final point (`riders`): that is how the zerocheck of §5.5 is
 paid inside the bus phase (`ζ` is drawn after the stack is committed). One more rider, on no
-variable, is zero exactly when the public lines and the Flock predicate hold of the statement and
+variable, is zero exactly when the public lines and the Keccak predicate hold of the statement and
 the stack (`linesRider`): the predicates the grand-product argument does not touch travel through
 it this way.
 
@@ -78,7 +78,7 @@ its layouts (`crates/leanvm_core/src/leaf.rs:115-130`, called at `:628`; the ver
 Perfect completeness (`busComplete`), from `Seam.commitHonest` to `Seam.bus`: on a stack
 satisfying `M3Holds` with honest padding rows (their leaves `1`), the products of the push and
 pull sides agree at every `(α, β)` (balance is a permutation), the count root is nonzero (counts
-are nonzero), every rider is zero (constraints vanish, lines and Flock predicate hold), and at
+are nonzero), every rider is zero (constraints vanish, lines and Keccak predicate hold), and at
 the end the honest values make every claim true and the forms sum to the totals.
 
 Written from the specification; the layout and its tie order, the count blocks and the order of
@@ -783,7 +783,7 @@ def constraintRiders (q : Column I.μ) : List (Σ τ : Fin (I.μBus + 1), CMlPol
       (I.constraints j).map fun C ↦ ⟨⟨I.τ j, Nat.lt_succ_of_le hj⟩, I.virtualTable q j C⟩
     else []
 
-/-- The public lines and the Flock predicate as a rider on no variable: `0` exactly when they
+/-- The public lines and the Keccak predicate as a rider on no variable: `0` exactly when they
 hold. -/
 def linesRider (input : I.Stmt) (q : Column I.μ) : Σ τ : Fin (I.μBus + 1), CMlPolynomialEval E τ :=
   ⟨⟨0, Nat.succ_pos _⟩, #v[if I.PublicLinesHold input q ∧ I.aux q then 0 else 1]⟩
@@ -796,7 +796,7 @@ abbrev Data : Type := I.Stmt × ((Fin 4 → E) × E)
 def leaves (x : Data I) (o : ∀ i, TheOracle I i) : Fin 3 → CMlPolynomialEval E I.μBus :=
   fun k ↦ sideLeaves I k x.2.1 x.2.2 (theStack o)
 
-/-- The riders: the constraints, and the public lines with the Flock predicate. -/
+/-- The riders: the constraints, and the public lines with the Keccak predicate. -/
 def riders (x : Data I) (o : ∀ i, TheOracle I i) :
     List (Σ τ : Fin (I.μBus + 1), CMlPolynomialEval E τ) :=
   constraintRiders I (theStack o) ++ [linesRider I x.1 (theStack o)]
@@ -811,7 +811,7 @@ private theorem virtualTable_zero_iff (q : Column I.μ) (j : Fin I.ntab)
   simp only [M3Instance.virtualTable, Fin.getElem_fin, Vector.getElem_ofFn]
   exact map_eq_zero_iff (algebraMap K E) (algebraMap K E).injective
 
-/-- The lines' rider is zero exactly when the public lines and the Flock predicate hold. -/
+/-- The lines' rider is zero exactly when the public lines and the Keccak predicate hold. -/
 private theorem linesRider_zero_iff (input : I.Stmt) (q : Column I.μ) :
     (∀ i : Fin (2 ^ ((linesRider I input q).1 : ℕ)), (linesRider I input q).2[i] = 0) ↔
       I.PublicLinesHold input q ∧ I.aux q := by
@@ -834,7 +834,7 @@ private theorem evalMle_linesRider (input : I.Stmt) (q : Column I.μ) (ζ : Vect
   rfl
 
 /-- Every rider is zero exactly when the constraints vanish, the public lines hold and the
-Flock predicate holds. -/
+Keccak predicate holds. -/
 theorem ridersZero_iff (h : Conditions I) (x : Data I) (o : ∀ i, TheOracle I i) :
     Gkr.RidersZero I.μBus (riders I) x o ↔
       I.ConstraintsVanish (theStack o) ∧ I.PublicLinesHold x.1 (theStack o) ∧
@@ -856,7 +856,7 @@ theorem ridersZero_iff (h : Conditions I) (x : Data I) (o : ∀ i, TheOracle I i
     · cases hr
 
 /-- Every rider vanishes at the low coordinates of a point exactly when every constraint of a
-table that fits does, and the public lines and the Flock predicate hold. -/
+table that fits does, and the public lines and the Keccak predicate hold. -/
 theorem riders_vanish_iff (x : Data I) (o : ∀ i, TheOracle I i) (ζ : Vector E I.μBus) :
     (∀ r ∈ riders I x o, evalMle r.2 (Gkr.lowPoint ζ r.1) = 0) ↔
       (∀ j (hj : I.τ j ≤ I.μBus), ∀ C ∈ I.constraints j,
@@ -1250,7 +1250,7 @@ theorem sum_forms_eq_total_iff (h : Conditions I) (k : Fin 3) (α : Fin 4 → E)
 variable (I)
 
 /-- After the challenges: the push and pull products agree, the count product is nonzero, every
-constraint vanishes, and the public lines and the Flock predicate hold. -/
+constraint vanishes, and the public lines and the Keccak predicate hold. -/
 def afterChallenge : Set ((Data I × ∀ i, TheOracle I i) × Unit) :=
   {p | (∏ x : Fin (2 ^ I.μBus), (leaves I p.1.1 p.1.2 0)[x]) =
       ∏ x : Fin (2 ^ I.μBus), (leaves I p.1.1 p.1.2 1)[x] ∧

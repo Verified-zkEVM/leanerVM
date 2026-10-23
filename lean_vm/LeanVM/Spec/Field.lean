@@ -14,7 +14,7 @@ public import LeanVM.Spec.Fast.FieldWords
 # The fields
 
 Specification §2 (`doc/leanvm/body/02-vm-specification.tex:6-12`, leanVM
-`3f7dc2196e43ca60034c5803eb307c050b4f91d9`), on CompPoly's computable carriers:
+`3375f7a137c50b803f3416f6466b5d4e0719708a`), on CompPoly's computable carriers:
 
 ```text
 K = GF(2)[x]/(x^64 + x^4 + x^3 + x + 1)      CompPoly's BF64
@@ -71,7 +71,7 @@ def IsInK (x : E) : Prop := x.limb 1 = 0 ∧ x.limb 2 = 0
 /-- A canonical 128-bit word: its `y²` limb is zero. -/
 def IsCanonical128 (x : E) : Prop := x.limb 2 = 0
 
-/-- The canonical word of a two-limb cell, `c0 + c1·y`: the cell shape `BLAKE2S` consumes. -/
+/-- The canonical word of a two-limb cell, `c0 + c1·y`: the cell shape `KECCAK` reads and writes. -/
 def E.ofCell (v : Vector K 2) : E := E.ofLimbs v[0] v[1] 0
 
 instance : DecidablePred IsInK :=
@@ -83,7 +83,7 @@ instance : DecidablePred IsCanonical128 :=
 /-! ## The generator -/
 
 /-- `g = x`, the word `0x2` (`crates/primitives/src/field/gf2_64.rs:25`, `F64::G = F64(2)`;
-`python-verifier/verifier.py:182`, `GEN = E(2)`). Its order `2^64 - 1` is proved
+`python-verifier/verifier.py:181`, `GEN = E(2)`). Its order `2^64 - 1` is proved
 (`orderOf_g`), not assumed. -/
 def g : K := K.ofBits 0x2
 

@@ -623,6 +623,92 @@ theorem consPart_rowEvals {input : PublicInput} (hq : M3Holds (inst prog s) inpu
       ((List.finRange (width (opIdx 4))).map fun i ↦ ofK (rowCell prog s q 4 y i)) from rfl, h]
   exact hz
 
+/-! ## The output lanes' claims -/
+
+/-- **The honest claims on the output lanes**: lane `l`'s claim on its global column `111 + l`,
+at the point `z` of the `KECCAK` table's coordinates, with the derived column's true value. -/
+def honestLanes (z : Vector E (s.τ 5)) : List Verifier.ColumnClaim :=
+  (List.finRange 25).map fun l ↦ ⟨111 + l.val, z.toList, colEval prog s q (outCol l) z⟩
+
+/-- Output lane `l`'s column of the `KECCAK` table, `38 + l`. -/
+def outIdx (l : Fin 25) : Fin (width (opIdx 5)) := ⟨38 + l, by rw [width_keccak]; omega⟩
+
+theorem outCol_eq (l : Fin 25) : outCol l = ⟨opIdx 5, outIdx l⟩ := rfl
+
+/-- The output lanes are, among the `KECCAK` table's columns, its `38`th to `62`nd. -/
+theorem finRange_filter_out :
+    (List.finRange (width (opIdx 5))).filter
+        (fun i ↦ globalColumnBases.getD 5 0 + i.val ∈ keccakOutputColumns) =
+      (List.finRange 25).map outIdx := by
+  decide +kernel
+
+/-- The indexed entries of a list over `Fin n`. -/
+theorem zipIdx_map_finRange {α : Type} (n : ℕ) (f : Fin n → α) :
+    ((List.finRange n).map f).zipIdx = (List.finRange n).map fun i ↦ (f i, i.val) := by
+  apply List.ext_getElem (by simp)
+  intro i h1 h2
+  simp [List.getElem_zipIdx]
+
+/-- The tables before `KECCAK` claim only columns below its output lanes. -/
+theorem base_lt (t : Fin 6) (ht : t.val < 5) (c : ℕ) (hc : c < width (opIdx t)) :
+    globalColumnBases.getD t 0 + c < 111 := by
+  revert t c; decide +kernel
+
+/-- The `KECCAK` table's columns start at the global column `73`. -/
+theorem base_keccak : globalColumnBases.getD 5 0 = 73 := by decide
+
+/-- The claims of a table before `KECCAK` hold no output lane. -/
+theorem filter_tableRow_lt (bus : BusResult) (pt : List E) (t : Fin 6) (ht : t.val < 5) :
+    ((tableRow prog s q bus pt t).2.zipIdx.map fun (value, column) ↦
+        (⟨globalColumnBases.getD (tableRow prog s q bus pt t).1.1.opcode 0 + column,
+          pt.take (tableRow prog s q bus pt t).1.2.1, value⟩ : Verifier.ColumnClaim)).filter
+      (fun c ↦ c.column ∈ keccakOutputColumns) = [] := by
+  refine List.filter_eq_nil_iff.mpr fun x hx ↦ ?_
+  obtain ⟨⟨value, column⟩, hmem, rfl⟩ := List.mem_map.mp hx
+  have hc : column < width (opIdx t) := by
+    have := (List.mk_mem_zipIdx_iff_getElem?.mp hmem)
+    rw [List.getElem?_eq_some_iff] at this
+    simpa [tableRow, evalsAt] using this.1
+  have hlt := base_lt t ht column hc
+  simp only [tableRow, opcode_tables_getD t, keccakOutputColumns_eq, List.mem_map,
+    List.mem_range, decide_eq_true_eq, not_exists, not_and]
+  intro l hl he
+  omega
+
+/-- **The honest claims on the output lanes**: the table phase's claims on the output lanes are,
+in lane order, the honest claims at the point's first `τ_KECCAK` coordinates. -/
+theorem lanes_termsPure (bus : BusResult) (cp fp pt : List E) (hpt : s.τ 5 ≤ pt.length) :
+    (termsPure cp fp pt (pairsAt prog s q bus pt) 0 0 []).2.filter
+        (fun c ↦ c.column ∈ keccakOutputColumns) =
+      honestLanes prog s q ⟨(pt.take (s.τ 5)).toArray, by simp; omega⟩ := by
+  rw [termsPure_snd, List.nil_append]
+  simp only [pairsAt, List.flatMap_cons, List.flatMap_nil, List.append_nil, List.filter_append]
+  rw [filter_tableRow_lt prog s q bus pt 0 (by decide), filter_tableRow_lt prog s q bus pt 1
+    (by decide), filter_tableRow_lt prog s q bus pt 2 (by decide), filter_tableRow_lt prog s q bus
+    pt 3 (by decide), filter_tableRow_lt prog s q bus pt 4 (by decide)]
+  simp only [List.nil_append]
+  simp only [tableRow, evalsAt, opcode_tables_getD 5, zipIdx_map_finRange, List.map_map,
+    List.filter_map]
+  have hf := finRange_filter_out
+  rw [show ((fun c : Verifier.ColumnClaim ↦ decide (c.column ∈ keccakOutputColumns)) ∘
+      ((fun (x : E × ℕ) ↦ match x with
+        | (value, column) => (⟨globalColumnBases.getD (5 : Fin 6) 0 + column,
+          pt.take (s.τ 5), value⟩ : Verifier.ColumnClaim)) ∘
+        fun i : Fin (width (opIdx 5)) ↦ (multilinearEval (tableColList prog s q 5 i)
+          (pt.take (s.τ 5)), i.val))) =
+      fun i ↦ decide (globalColumnBases.getD 5 0 + i.val ∈ keccakOutputColumns) from rfl, hf,
+    List.map_map, honestLanes]
+  refine List.map_congr_left fun l _ ↦ ?_
+  simp only [Function.comp_apply]
+  have hv : colEval prog s q (outCol l)
+      (⟨(pt.take (s.τ 5)).toArray, by simp; omega⟩ : Vector E (s.τ 5)) =
+      multilinearEval (tableColList prog s q 5 (outIdx l)) (pt.take (s.τ 5)) :=
+    colEval_opIdx prog s q 5 (outIdx l) _
+  rw [hv, show globalColumnBases.getD ((5 : Fin 6) : ℕ) 0 = 73 from base_keccak]
+  simp only [outIdx, Vector.toList_mk]
+  congr 1
+  omega
+
 -- The table heights are `Nat.clog` of the row counts, which unification unfolds.
 set_option maxHeartbeats 800000 in
 variable {prog s q} in
@@ -630,8 +716,10 @@ variable {prog s q} in
 bus result, every check of `tablePhase` passes and every claim it returns is true. -/
 theorem follows_tablePhase {input : PublicInput} (hq : M3Holds (inst prog s) input q)
     (bus : BusResult) (hb : BusGood prog s q bus) (cs : Commits) :
-    Follows (fun cs' a b ↦ cs' = cs ∧ a = b ∧ TrueClaims prog s q b) (hTable prog s q bus)
-      (tablePhase (verifierLayout prog s) bus) cs := by
+    Follows (fun cs' a b ↦ cs' = cs ∧ a = b ∧ TrueClaims prog s q b ∧
+        ∃ tc, b = bus.claims ++ tc ∧ ∃ z : Vector E (s.τ 5),
+          tc.filter (fun c ↦ c.column ∈ keccakOutputColumns) = honestLanes prog s q z)
+      (hTable prog s q bus) (tablePhase (verifierLayout prog s) bus) cs := by
   unfold tablePhase tableSumcheck hTable
   simp only [Prog.bind_eq]
   refine Follows.bind (fun cs₁ xi xi' h ↦ ?_) _ _ _ (Follows.sampleE_sampleE cs)
@@ -660,9 +748,17 @@ theorem follows_tablePhase {input : PublicInput} (hq : M3Holds (inst prog s) inp
         (pairsAt prog s q bus r.1.reverse) 0 0 []).1 = r.2 := by
       rw [hfin, claimOf, hlen, Nat.sub_self, pow_zero, sum_range_one]
       rfl
-    have hgood := trueClaims_append hb.claims
-      (trueClaims_termsPure prog s q bus (cpOf xi) (fpOf xi) r.1.reverse
-        (by rw [List.length_reverse, hlen]))
+    have hgood : TrueClaims prog s q (bus.claims ++
+        (termsPure (cpOf xi) (fpOf xi) r.1.reverse (pairsAt prog s q bus r.1.reverse) 0 0 []).2) ∧
+        ∃ tc, bus.claims ++
+          (termsPure (cpOf xi) (fpOf xi) r.1.reverse (pairsAt prog s q bus r.1.reverse) 0 0 []).2 =
+            bus.claims ++ tc ∧ ∃ z : Vector E (s.τ 5),
+              tc.filter (fun c ↦ c.column ∈ keccakOutputColumns) = honestLanes prog s q z :=
+      ⟨trueClaims_append hb.claims
+        (trueClaims_termsPure prog s q bus (cpOf xi) (fpOf xi) r.1.reverse
+          (by rw [List.length_reverse, hlen])), _, rfl, _,
+        lanes_termsPure prog s q bus _ _ r.1.reverse
+          (by rw [List.length_reverse, hlen]; exact τ_le_nRounds s 5)⟩
     have hP := width_pairsAt prog s q bus r.1.reverse
     generalize pairsAt prog s q bus r.1.reverse = P at hcheck hgood hP ⊢
     exact follows_tableTail bus.claims (cpOf xi) (fpOf xi) r.1.reverse r.2 P hP hcheck _ hgood cs₂

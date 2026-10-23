@@ -1,10 +1,10 @@
 /-
   LeanVM.Protocol.Compile.Rom.Log
 
-  The random oracle's ordered log as the random-oracle theorem reads it: lookups, the seeding
-  description, the failure event (a fresh answer that collides or predicts a digest the log
-  already refers to), the bound on the number of failing answers, and the order facts that
-  hold in a log without failure.
+  The random oracles' ordered log as the random-oracle theorem reads it: lookups, the seeding
+  description, the failure event (a fresh answer that collides with or predicts a value the log
+  already refers to), the bound on the number of failing answers, and the order facts that hold
+  in a log without failure.
 -/
 
 module
@@ -15,166 +15,430 @@ public import LeanVM.Protocol.ToVCVio.Rom.LoggedOracle
 /-!
 # Logs and failure
 
-A log is the ordered list of the fresh queries to the random oracle `H : Bytes → Digest` with
-their answers (`LeanVM.Protocol.Rom.loggedRO`). The random-oracle theorem reads the compiled
-verifier's computation back out of a log; that reading is sound only if no answer was guessed
-before it was drawn. This module defines that condition.
+A log is the ordered list of the fresh queries to the two random oracles, the hash
+`H : Bytes → Digest` and the permutation `F : KState → KState`, with their answers
+(`LeanVM.Protocol.Rom.loggedRO`). The random-oracle theorem reads the compiled verifier's
+computation back out of a log; that reading is sound only if no answer was guessed before it was
+drawn. This module defines that condition.
 
 ## Failure
 
-A fresh answer `u` at the input `t`, appended to the log `ℓ`, *fails* (`BadEntry`) if
+A fresh hash answer `u` at the input `x`, appended to the log `ℓ`, *fails* (`BadH`) if
 
-* `u` is the output of an entry of `ℓ` (a collision);
-* `u` is a 32-byte chunk at offset `0` or `32` of `t` or of an input of `ℓ` (a prediction: chain
-  inputs carry their state at offset `0`, Merkle node inputs their children at `0` and `32`,
-  proof-of-work inputs their base at `0`);
-* `u` is the root two absorbed scalars encode (`RootOf`): an input `cv ‖ (x₁, 1)` of `t :: ℓ`
-  whose state `cv` is the output of an entry of `ℓ` with input `_ ‖ (x₀, 1)`, the root being
-  `digestOfScalars (x₀, x₁)`;
-* `u` would make an input of `t :: ℓ` a later step of the seeding (`Seed.input a u`).
+* `u` is the output of a hash entry of `ℓ` (a collision);
+* `u` is the 32-byte chunk at offset `0`, `32` or one of the seeding offsets `σ.offs` of `x` or
+  of a hash input of `ℓ` (a prediction: Merkle node inputs carry their children at `0` and `32`,
+  the IV's preimage the relation's and the bytecode's digests);
+* `u` is a root a permutation input of `ℓ` absorbs (`RootOf`): two adjacent waiting scalars with
+  tag `1` that encode it, or the last waiting scalar of the input that produced the state (the
+  first permutation entry whose output has the input's capacity, `predIn`) and the first one of
+  this input, a root straddling a forced permutation;
+* `u` is the IV a permutation input of `ℓ` carries in its first four lanes (`laneDigest`).
+
+A fresh permutation answer `u` at the input `s` *fails* (`BadF`) if its capacity, lanes
+`16..25` (`capOf`), is the capacity of an output of `ℓ` (a collision of chaining values), or of
+`s` or an input of `ℓ` (a prediction: a permutation input carries the capacity of the state it
+continues), or zero (the capacity of the seed's input).
 
 `Fail ℓ` holds if some entry of `ℓ` fails with respect to the entries before it.
 
 ## The count
 
-At most `(4 + k) · (|ℓ| + 1)` answers fail (`sum_badEntry_le`), `k` the number of seeding steps:
-`|ℓ|` collisions, and, for each of the `|ℓ| + 1` inputs, two chunks, one root and one seeding
-predecessor per step. Every exclusion is a single digest because the encodings are injective
-(`LeanVM.Protocol.Compile.Rom.Encoding`).
+At most `(5 + |σ.offs|) · (|ℓ| + 1)` hash answers fail (`sum_badH_le`), and each of at most
+`2|ℓ| + 2` capacities excludes a `2^-576 ≤ 2^-256` fraction of the permutation's answers
+(`sum_badF_div_le`).
 
 ## Order
 
-In a log without failure, an entry whose output is a chunk, a root, or a seeding predecessor of
-an entry's input comes before that entry (`lt_of_chunk`, `lt_of_rootOf`, `lt_of_seedInput`),
-and outputs are distinct (`output_ne`).
+In a log without failure, an entry whose output a later input refers to comes before it
+(`lt_of_chunk`, `lt_of_cap`, `lt_of_rootOf`, `lt_of_laneDigest`), hash outputs are distinct
+(`hOut_ne`), and so are the capacities of permutation outputs (`fCap_ne`), none of them zero.
 
 ## The seeding
 
-leanVM's seed is `H(H(ivpre) ‖ pi)`, where `ivpre` holds `H(bytecode)` between fixed bytes. The
-seeding is described by a first input and a list of steps, each step's input being fixed bytes,
-the previous digest, and fixed bytes (`Seed`). The affixes make each step injective, which the
-count needs. The theorem takes a family of seedings (`Seeds`), one per statement: the adversary
-chooses the statement. The failure condition reads only the steps common to the family
-(`Seeds.steps`); a step with an empty prefix is covered by the chunk condition.
+leanVM's seed is `F(seedInput(H(ivPreimage(H(label), H(bytecode))), pi))`. A seeding (`Seed`) is
+a list of hash steps, each input a function of the answers before it, then one permutation step
+whose input is a function of all of them. The theorem takes a family of seedings (`Seeds`), one
+per statement: the adversary chooses the statement. Every hash answer of a seeding is referred to
+by a later step, at a byte offset among `σ.offs`, or by the permutation input's first four lanes
+(`Seeds.refs`); the permutation inputs have zero capacity (`Seeds.cap0`); and the permutation
+input names its statement for answers without collisions (`Seeds.inj`).
 -/
 
 namespace LeanVM.Protocol.Compile.Rom
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Protocol.Blake2sHash LeanVM.Protocol.Rom
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Protocol.KeccakHash LeanVM.Protocol.Rom
 open scoped ENNReal
 
 @[expose] public section
 
+/- The enumerations of `Digest` and `KState` must never be unfolded by unification. -/
+attribute [local irreducible] instFintypeDigest instFintypeKState
+
 /-! ## Logs -/
 
-/-- The random oracle's log: the fresh queries in order, with their answers. -/
-abbrev Log : Type := List (Bytes × Digest)
+/-- An entry of the log: a hash query or a permutation query, with its answer. -/
+abbrev Entry : Type := LogEntry Bytes Digest KState KState
 
-/-- The answer a log gives (its first entry with the input). -/
-abbrev look (ℓ : Log) : Bytes → Option Digest := logLookup ℓ
+/-- The oracles' log: the fresh queries in order, with their answers. -/
+abbrev Log : Type := List Entry
 
-/-- The first 32 bytes of an input. -/
-def chunk0 (x : Bytes) : Bytes := x.take 32
+/-- The hash answer a log gives (its first hash entry with the input). -/
+abbrev lookH (ℓ : Log) : Bytes → Option Digest := lookL ℓ
 
-/-- Bytes `32..64` of an input. -/
-def chunk1 (x : Bytes) : Bytes := (x.drop 32).take 32
+/-- The permutation answer a log gives (its first permutation entry with the input). -/
+abbrev lookF (ℓ : Log) : KState → Option KState := lookR ℓ
 
-theorem chunk0_append (c : Digest) (b : Bytes) : chunk0 (digestBytes c ++ b) = digestBytes c := by
-  simp [chunk0, digestBytes_length]
+/-- The hash inputs of a log. -/
+def hIns (ℓ : Log) : List Bytes := (leftOf ℓ).map Prod.fst
 
-theorem chunk1_append (c c' : Digest) :
-    chunk1 (digestBytes c ++ digestBytes c') = digestBytes c' := by
-  simp [chunk1, digestBytes_length]
+/-- The hash outputs of a log. -/
+def hOuts (ℓ : Log) : List Digest := (leftOf ℓ).map Prod.snd
+
+/-- The permutation inputs of a log. -/
+def fIns (ℓ : Log) : List KState := (rightOf ℓ).map Prod.fst
+
+/-- The permutation outputs of a log. -/
+def fOuts (ℓ : Log) : List KState := (rightOf ℓ).map Prod.snd
+
+theorem length_leftOf_add_rightOf : ∀ ℓ : Log, (leftOf ℓ).length + (rightOf ℓ).length = ℓ.length
+  | [] => rfl
+  | .inl _ :: ℓ => by
+    have := length_leftOf_add_rightOf ℓ
+    simp only [leftOf, rightOf, List.filterMap_cons, List.length_cons] at this ⊢
+    omega
+  | .inr _ :: ℓ => by
+    have := length_leftOf_add_rightOf ℓ
+    simp only [leftOf, rightOf, List.filterMap_cons, List.length_cons] at this ⊢
+    omega
+
+theorem leftOf_cons_inl (p : Bytes × Digest) (ℓ : Log) : leftOf (.inl p :: ℓ) = p :: leftOf ℓ :=
+  rfl
+
+theorem leftOf_cons_inr (p : KState × KState) (ℓ : Log) : leftOf (.inr p :: ℓ) = leftOf ℓ := rfl
+
+theorem rightOf_cons_inl (p : Bytes × Digest) (ℓ : Log) : rightOf (.inl p :: ℓ) = rightOf ℓ :=
+  rfl
+
+theorem rightOf_cons_inr (p : KState × KState) (ℓ : Log) :
+    rightOf (.inr p :: ℓ) = p :: rightOf ℓ := rfl
+
+theorem lookH_cons_inl (x : Bytes) (u : Digest) (ℓ : Log) (y : Bytes) :
+    lookH (.inl (x, u) :: ℓ) y = if x = y then some u else lookH ℓ y := rfl
+
+theorem lookH_cons_inr (p : KState × KState) (ℓ : Log) (y : Bytes) :
+    lookH (.inr p :: ℓ) y = lookH ℓ y := rfl
+
+theorem lookF_cons_inl (p : Bytes × Digest) (ℓ : Log) (s : KState) :
+    lookF (.inl p :: ℓ) s = lookF ℓ s := rfl
+
+theorem lookF_cons_inr (s : KState) (u : KState) (ℓ : Log) (s' : KState) :
+    lookF (.inr (s, u) :: ℓ) s' = if s = s' then some u else lookF ℓ s' := rfl
+
+/-- A hash lookup is the first hash entry with the input. -/
+theorem lookH_eq_some_iff (ℓ : Log) (x : Bytes) (v : Digest) :
+    lookH ℓ x = some v ↔
+      ∃ (i : ℕ) (hi : i < ℓ.length), ℓ[i] = .inl (x, v) ∧ lookH (ℓ.take i) x = none := by
+  induction ℓ with
+  | nil => simp
+  | cons e ℓ ih =>
+    rcases e with ⟨y, u⟩ | p
+    · rw [lookH_cons_inl]
+      by_cases he : y = x
+      · subst he
+        simp only [↓reduceIte, Option.some.injEq]
+        constructor
+        · rintro rfl
+          exact ⟨0, by simp, by simp, by simp⟩
+        · rintro ⟨i, hi, hei, hn⟩
+          cases i with
+          | zero => simp at hei; exact hei
+          | succ i => simp [lookH_cons_inl] at hn
+      · simp only [he, ↓reduceIte]
+        rw [ih]
+        constructor
+        · rintro ⟨i, hi, hei, hn⟩
+          exact ⟨i + 1, by simpa using hi, by simpa using hei, by
+            simp [lookH_cons_inl, he, hn]⟩
+        · rintro ⟨i, hi, hei, hn⟩
+          cases i with
+          | zero => simp at hei; exact absurd hei.1 he
+          | succ i =>
+            refine ⟨i, by simpa using hi, by simpa using hei, ?_⟩
+            simpa [lookH_cons_inl, he] using hn
+    · rw [lookH_cons_inr, ih]
+      constructor
+      · rintro ⟨i, hi, hei, hn⟩
+        exact ⟨i + 1, by simpa using hi, by simpa using hei, by simp [lookH_cons_inr, hn]⟩
+      · rintro ⟨i, hi, hei, hn⟩
+        cases i with
+        | zero => simp at hei
+        | succ i =>
+          exact ⟨i, by simpa using hi, by simpa using hei, by
+            simpa [lookH_cons_inr] using hn⟩
+
+/-- A permutation lookup is the first permutation entry with the input. -/
+theorem lookF_eq_some_iff (ℓ : Log) (s v : KState) :
+    lookF ℓ s = some v ↔
+      ∃ (i : ℕ) (hi : i < ℓ.length), ℓ[i] = .inr (s, v) ∧ lookF (ℓ.take i) s = none := by
+  induction ℓ with
+  | nil => simp
+  | cons e ℓ ih =>
+    rcases e with p | ⟨y, u⟩
+    · rw [lookF_cons_inl, ih]
+      constructor
+      · rintro ⟨i, hi, hei, hn⟩
+        exact ⟨i + 1, by simpa using hi, by simpa using hei, by simp [lookF_cons_inl, hn]⟩
+      · rintro ⟨i, hi, hei, hn⟩
+        cases i with
+        | zero => simp at hei
+        | succ i =>
+          exact ⟨i, by simpa using hi, by simpa using hei, by
+            simpa [lookF_cons_inl] using hn⟩
+    · rw [lookF_cons_inr]
+      by_cases he : y = s
+      · subst he
+        simp only [↓reduceIte, Option.some.injEq]
+        constructor
+        · rintro rfl
+          exact ⟨0, by simp, by simp, by simp⟩
+        · rintro ⟨i, hi, hei, hn⟩
+          cases i with
+          | zero => simp at hei; exact hei
+          | succ i => simp [lookF_cons_inr] at hn
+      · simp only [he, ↓reduceIte]
+        rw [ih]
+        constructor
+        · rintro ⟨i, hi, hei, hn⟩
+          exact ⟨i + 1, by simpa using hi, by simpa using hei, by
+            simp [lookF_cons_inr, he, hn]⟩
+        · rintro ⟨i, hi, hei, hn⟩
+          cases i with
+          | zero => simp at hei; exact absurd hei.1 he
+          | succ i =>
+            refine ⟨i, by simpa using hi, by simpa using hei, ?_⟩
+            simpa [lookF_cons_inr, he] using hn
+
+theorem lookH_append_of_some {ℓ : Log} {x : Bytes} {v : Digest} (h : lookH ℓ x = some v)
+    (ℓ' : Log) : lookH (ℓ ++ ℓ') x = some v := by
+  have h' : lookL ℓ x = some v := h
+  show lookL (ℓ ++ ℓ') x = some v
+  rw [lookL_append, h', Option.some_or]
+
+theorem lookF_append_of_some {ℓ : Log} {s v : KState} (h : lookF ℓ s = some v)
+    (ℓ' : Log) : lookF (ℓ ++ ℓ') s = some v := by
+  have h' : lookR ℓ s = some v := h
+  show lookR (ℓ ++ ℓ') s = some v
+  rw [lookR_append, h', Option.some_or]
+
+/-- A hash lookup in a prefix is a lookup in the log. -/
+theorem lookH_of_prefix {ℓ ℓ' : Log} (hp : ℓ <+: ℓ') {x : Bytes} {v : Digest}
+    (h : lookH ℓ x = some v) : lookH ℓ' x = some v := by
+  obtain ⟨r, rfl⟩ := hp
+  exact lookH_append_of_some h r
+
+/-- A permutation lookup in a prefix is a lookup in the log. -/
+theorem lookF_of_prefix {ℓ ℓ' : Log} (hp : ℓ <+: ℓ') {s v : KState}
+    (h : lookF ℓ s = some v) : lookF ℓ' s = some v := by
+  obtain ⟨r, rfl⟩ := hp
+  exact lookF_append_of_some h r
+
+/-- An entry is found by a hash lookup in every prefix that contains it, if no earlier entry has
+its input. -/
+theorem lookH_take_of_first {ℓ : Log} {i : ℕ} (hi : i < ℓ.length) {x : Bytes} {v : Digest}
+    (hei : ℓ[i] = .inl (x, v)) (hn : lookH (ℓ.take i) x = none) {m : ℕ} (hm : i < m) :
+    lookH (ℓ.take m) x = some v := by
+  rw [lookH_eq_some_iff]
+  exact ⟨i, by simp; omega, by simpa using hei, by rwa [List.take_take, min_eq_left hm.le]⟩
+
+/-- An entry is found by a permutation lookup in every prefix that contains it, if no earlier
+entry has its input. -/
+theorem lookF_take_of_first {ℓ : Log} {i : ℕ} (hi : i < ℓ.length) {s v : KState}
+    (hei : ℓ[i] = .inr (s, v)) (hn : lookF (ℓ.take i) s = none) {m : ℕ} (hm : i < m) :
+    lookF (ℓ.take m) s = some v := by
+  rw [lookF_eq_some_iff]
+  exact ⟨i, by simp; omega, by simpa using hei, by rwa [List.take_take, min_eq_left hm.le]⟩
+
+theorem lookH_append_inl_self {ℓ : Log} {x : Bytes} (h : lookH ℓ x = none) (u : Digest) :
+    lookH (ℓ ++ [.inl (x, u)]) x = some u := by
+  rw [lookH, lookL_append, lookL_inl]; simp [h]
+
+theorem lookH_append_inl_of_ne {ℓ : Log} {x y : Bytes} (h : y ≠ x) (u : Digest) :
+    lookH (ℓ ++ [.inl (x, u)]) y = lookH ℓ y := by
+  rw [lookH, lookL_append, lookL_inl]; simp [Ne.symm h]
+
+theorem lookH_append_inr (ℓ : Log) (p : KState × KState) (y : Bytes) :
+    lookH (ℓ ++ [.inr p]) y = lookH ℓ y := by
+  rw [lookH, lookL_append, lookL_inr]; simp
+
+theorem lookF_append_inr_self {ℓ : Log} {s : KState} (h : lookF ℓ s = none) (u : KState) :
+    lookF (ℓ ++ [.inr (s, u)]) s = some u := by
+  rw [lookF, lookR_append, lookR_inr]; simp [h]
+
+theorem lookF_append_inr_of_ne {ℓ : Log} {s s' : KState} (h : s' ≠ s) (u : KState) :
+    lookF (ℓ ++ [.inr (s, u)]) s' = lookF ℓ s' := by
+  rw [lookF, lookR_append, lookR_inr]; simp [Ne.symm h]
+
+theorem lookF_append_inl (ℓ : Log) (p : Bytes × Digest) (s : KState) :
+    lookF (ℓ ++ [.inl p]) s = lookF ℓ s := by
+  rw [lookF, lookR_append, lookR_inl]; simp
+
+theorem mem_hIns_of_getElem {ℓ : Log} {i : ℕ} (hi : i < ℓ.length) {x : Bytes} {u : Digest}
+    (h : ℓ[i] = .inl (x, u)) : x ∈ hIns ℓ :=
+  List.mem_map.mpr ⟨(x, u), mem_leftOf.mpr (h ▸ List.getElem_mem hi), rfl⟩
+
+theorem mem_hOuts_of_getElem {ℓ : Log} {i : ℕ} (hi : i < ℓ.length) {x : Bytes} {u : Digest}
+    (h : ℓ[i] = .inl (x, u)) : u ∈ hOuts ℓ :=
+  List.mem_map.mpr ⟨(x, u), mem_leftOf.mpr (h ▸ List.getElem_mem hi), rfl⟩
+
+theorem mem_fIns_of_getElem {ℓ : Log} {i : ℕ} (hi : i < ℓ.length) {s u : KState}
+    (h : ℓ[i] = .inr (s, u)) : s ∈ fIns ℓ :=
+  List.mem_map.mpr ⟨(s, u), mem_rightOf.mpr (h ▸ List.getElem_mem hi), rfl⟩
+
+theorem mem_fOuts_of_getElem {ℓ : Log} {i : ℕ} (hi : i < ℓ.length) {s u : KState}
+    (h : ℓ[i] = .inr (s, u)) : u ∈ fOuts ℓ :=
+  List.mem_map.mpr ⟨(s, u), mem_rightOf.mpr (h ▸ List.getElem_mem hi), rfl⟩
+
+/-- An entry before the `i`-th, as an entry of the first `i`. -/
+theorem getElem_take_mem {ℓ : Log} {i j : ℕ} (hj : j < ℓ.length) (hji : j < i) :
+    ℓ[j] ∈ ℓ.take i :=
+  List.mem_iff_getElem.mpr ⟨j, by simp; omega, by simp⟩
 
 /-! ## The seeding -/
 
-/-- The seeding: the first input, then steps, each hashing fixed bytes, the previous digest and
-fixed bytes. The seed is the last digest. -/
+/-- A seeding: hash steps, each input a function of the answers before it, then a permutation
+step whose input is a function of all the hash answers. The seed is the permutation's answer. -/
 structure Seed where
-  /-- The first input. -/
-  first : Bytes
-  /-- The steps, each a prefix and a suffix around the previous digest. -/
-  steps : List (Bytes × Bytes)
+  /-- The hash steps. -/
+  hs : List (List Digest → Bytes)
+  /-- The permutation step's input. -/
+  fin : List Digest → KState
 
-/-- The input of a seeding step at the previous digest `d`. -/
-def Seed.input (a : Bytes × Bytes) (d : Digest) : Bytes := a.1 ++ digestBytes d ++ a.2
+/-- The hash steps from the answers `ds` so far. -/
+def Seed.hsRun {m : Type → Type} [Monad m] (H : Bytes → m Digest) :
+    List (List Digest → Bytes) → List Digest → m (List Digest)
+  | [], ds => pure ds
+  | f :: fs, ds => do
+    let d ← H (f ds)
+    Seed.hsRun H fs (ds ++ [d])
 
-theorem Seed.input_injective (a : Bytes × Bytes) : Function.Injective (Seed.input a) := by
-  intro d d' h
-  simp only [Seed.input, List.append_assoc, List.append_cancel_left_eq] at h
-  exact digestBytes_injective (List.append_inj h (by rw [digestBytes_length,
-    digestBytes_length])).1
+/-- The seed, computed with a hash function and a permutation in any monad. -/
+def Seed.run {m : Type → Type} [Monad m] (H : Bytes → m Digest) (F : KState → m KState)
+    (σ : Seed) : m KState := do
+  let ds ← Seed.hsRun H σ.hs []
+  F (σ.fin ds)
 
-/-- The seed, computed with a hash function in any monad. -/
-def Seed.run {m : Type → Type} [Monad m] (H : Bytes → m Digest) (σ : Seed) : m Digest := do
-  let d ← H σ.first
-  σ.steps.foldlM (fun d a ↦ H (Seed.input a d)) d
+/-- The answers `ds` answer the hash steps of the seeding under the answers `H`. -/
+def Answered (H : Bytes → Option Digest) (σ : Seed) (ds : List Digest) : Prop :=
+  ds.length = σ.hs.length ∧
+    ∀ (i : ℕ) (hi : i < ds.length), ∃ f, σ.hs[i]? = some f ∧ H (f (ds.take i)) = some ds[i]
 
-/-- The first input of the remaining seeding steps from `d` that the answers `H` do not answer,
-and whether it is the last step; `none` if all are answered. -/
-def goPend (H : Bytes → Option Digest) : List (Bytes × Bytes) → Digest → Option (Bytes × Bool)
-  | [], _ => none
-  | a :: as, d => match H (Seed.input a d) with
-    | none => some (Seed.input a d, as.isEmpty)
-    | some d' => goPend H as d'
+theorem hsRun_option {H : Bytes → Option Digest} :
+    ∀ (fs : List (List Digest → Bytes)) (ds₀ ds : List Digest),
+      Seed.hsRun H fs ds₀ = some ds →
+        ∃ ds', ds = ds₀ ++ ds' ∧ ds'.length = fs.length ∧
+          ∀ (i : ℕ) (hi : i < ds'.length), ∃ f, fs[i]? = some f ∧
+            H (f (ds.take (ds₀.length + i))) = some ds'[i]
+  | [], ds₀, ds, h => by
+    simp only [Seed.hsRun, pure, Option.some.injEq] at h
+    subst h
+    exact ⟨[], by simp, rfl, fun i hi ↦ by simp at hi⟩
+  | f :: fs, ds₀, ds, h => by
+    simp only [Seed.hsRun, bind, Option.bind_eq_some_iff] at h
+    obtain ⟨d, hd, h⟩ := h
+    obtain ⟨ds', rfl, hl, hall⟩ := hsRun_option fs (ds₀ ++ [d]) ds h
+    refine ⟨d :: ds', by simp, by simp [hl], fun i hi ↦ ?_⟩
+    cases i with
+    | zero =>
+      refine ⟨f, rfl, ?_⟩
+      simpa [List.take_append_of_le_length] using hd
+    | succ i =>
+      obtain ⟨g, hg, hH⟩ := hall i (by simpa using hi)
+      refine ⟨g, by simpa using hg, ?_⟩
+      simpa [Nat.add_assoc, Nat.add_comm 1 i] using hH
 
-/-- The first input of the seeding that the answers `H` do not answer, and whether it is the
-last; `none` once the seed is answered. -/
-def pend (H : Bytes → Option Digest) (σ : Seed) : Option (Bytes × Bool) :=
-  match H σ.first with
-  | none => some (σ.first, σ.steps.isEmpty)
-  | some d => goPend H σ.steps d
+/-- A seeding run through answers in `Option` answers its hash steps. -/
+theorem answered_of_hsRun {H : Bytes → Option Digest} {σ : Seed} {ds : List Digest}
+    (h : Seed.hsRun H σ.hs [] = some ds) : Answered H σ ds := by
+  obtain ⟨ds', rfl, hl, hall⟩ := hsRun_option σ.hs [] ds h
+  refine ⟨by simpa using hl, fun i hi ↦ ?_⟩
+  obtain ⟨f, hf, hH⟩ := hall i (by simpa using hi)
+  exact ⟨f, hf, by simpa using hH⟩
+
+/-- Answers that are injective: one answer, one input. -/
+def AnswersInj (H : Bytes → Option Digest) : Prop :=
+  ∀ x y v, H x = some v → H y = some v → x = y
 
 /-- **A family of seedings**, one per statement `x : X`: the seeding `seed x`, and the history
-`root x` of the verifier program at which its seed puts the chain. Every step with a nonempty
-prefix is among `steps`; the last step of each seeding is the previous digest followed by 32
-bytes, the only seeding input with the 64 bytes of a chain input; and the last input of a
-seeding, computed through answers without collisions, names its statement. -/
+`root x` of the verifier program at which its seed puts the sponge. Every hash answer of a
+seeding is referred to by a later hash step, at an offset among `offs`, or by the first four
+lanes of the permutation input; the permutation inputs have zero capacity; and the permutation
+input, computed through answers without collisions, names its statement. -/
 structure Seeds (X : Type) where
   /-- The seeding of a statement. -/
   seed : X → Seed
   /-- The history at which the seed puts the program. -/
   root : X → List Ev
-  /-- The seeding steps with a nonempty prefix. -/
-  steps : List (Bytes × Bytes)
-  /-- Every step is among `steps` or has an empty prefix. -/
-  steps_mem : ∀ x, ∀ a ∈ (seed x).steps, a ∈ steps ∨ a.1 = []
-  /-- The last step is the previous digest followed by 32 bytes. -/
-  last : ∀ x, ∃ s : Bytes, s.length = 32 ∧ (seed x).steps.getLast? = some ([], s)
-  /-- The first input is not 64 bytes long. -/
-  first_len : ∀ x, (seed x).first.length ≠ 64
-  /-- No other step's input is 64 bytes long. -/
-  mid_len : ∀ x, ∀ a ∈ (seed x).steps.dropLast, ∀ d, (Seed.input a d).length ≠ 64
-  /-- The last input names the statement, for answers without collisions. -/
-  inj : ∀ H : Bytes → Option Digest, (∀ a b v, H a = some v → H b = some v → a = b) →
-    ∀ x x' t, pend H (seed x) = some (t, true) → pend H (seed x') = some (t, true) → x = x'
+  /-- The byte offsets at which hash steps carry earlier answers. -/
+  offs : List ℕ
+  /-- Every hash answer is referred to later. -/
+  refs : ∀ x (ds : List Digest), ds.length = (seed x).hs.length → ∀ (i : ℕ) (hi : i < ds.length),
+    laneDigest ((seed x).fin ds) = ds[i] ∨
+      ∃ j f, i < j ∧ (seed x).hs[j]? = some f ∧ ∃ o ∈ offs, chunkAt o (f (ds.take j)) =
+        digestBytes ds[i]
+  /-- The permutation inputs have zero capacity. -/
+  cap0 : ∀ x ds, capOf ((seed x).fin ds) = 0
+  /-- The permutation input names the statement, for answers without collisions. -/
+  inj : ∀ H : Bytes → Option Digest, AnswersInj H → ∀ x x' ds ds', Answered H (seed x) ds →
+    Answered H (seed x') ds' → (seed x).fin ds = (seed x').fin ds' → x = x'
 
 /-! ## Failure -/
 
-/-- The root that the input `x` completes in `ℓ`: `x = cv ‖ (x₁, 1)` with `cv` the output of the
-first entry of `ℓ` producing it, that entry's input ending in `(x₀, 1)`, and the root the
-digest `(x₀, x₁)` encodes. -/
-def RootOf (ℓ : Log) (x : Bytes) (r : Digest) : Prop :=
-  ∃ (c : Digest) (x₀ x₁ : E) (e : Bytes × Digest), x = digestBytes c ++ blockOf x₁ 1 ∧
-    ℓ.find? (fun e ↦ decide (e.2 = c)) = some e ∧ e.1.drop 32 = blockOf x₀ 1 ∧
-    digestOfScalars (x₀, x₁) = some r
+/-- The root two adjacent waiting scalars of tag `1`, in slots `i` and `i + 1` of a permutation
+input, encode. -/
+def pairRoot (t : KState) (i : ℕ) : Option Digest :=
+  if slotTag t i = 1 ∧ slotTag t (i + 1) = 1 then digestOfScalars (slotE t i, slotE t (i + 1))
+  else none
 
-/-- A fresh answer `u` at `t` appended to `ℓ` fails: it collides with an output of `ℓ`, or is a
-chunk, a root, or a seeding predecessor of `t` or of an input of `ℓ`. -/
-def BadEntry {X : Type} (σ : Seeds X) (ℓ : Log) (t : Bytes) (u : Digest) : Prop :=
-  (∃ e ∈ ℓ, e.2 = u) ∨
-    ∃ x ∈ t :: ℓ.map Prod.fst, chunk0 x = digestBytes u ∨ chunk1 x = digestBytes u ∨
-      RootOf ℓ x u ∨ ∃ a ∈ σ.steps, x = Seed.input a u
+/-- The input that produced the state a permutation input continues: the first permutation
+entry of the log whose output has the input's capacity. -/
+def predIn (ℓ : Log) (t : KState) : Option KState :=
+  ((rightOf ℓ).find? fun e ↦ decide (capOf e.2 = capOf t)).map Prod.fst
+
+/-- The root straddling a forced permutation: the last waiting scalar of the input before, and
+the first of this one, both of tag `1`. -/
+def straddleRoot (ℓ : Log) (t : KState) : Option Digest :=
+  (predIn ℓ t).bind fun t' ↦
+    if slotTag t' 3 = 1 ∧ slotTag t 0 = 1 then digestOfScalars (slotE t' 3, slotE t 0) else none
+
+/-- The permutation input `t` absorbs the root `r` in the log `ℓ`. -/
+def RootOf (ℓ : Log) (t : KState) (r : Digest) : Prop :=
+  (∃ i < 3, pairRoot t i = some r) ∨ straddleRoot ℓ t = some r
+
+/-- A fresh hash answer `u` at `x` appended to `ℓ` fails. -/
+def BadH {X : Type} (σ : Seeds X) (ℓ : Log) (x : Bytes) (u : Digest) : Prop :=
+  u ∈ hOuts ℓ ∨
+    (∃ y ∈ x :: hIns ℓ, ∃ o ∈ 0 :: 32 :: σ.offs, chunkAt o y = digestBytes u) ∨
+    ∃ t ∈ fIns ℓ, RootOf ℓ t u ∨ laneDigest t = u
+
+/-- A fresh permutation answer `u` at `s` appended to `ℓ` fails. -/
+def BadF (ℓ : Log) (s u : KState) : Prop :=
+  (∃ v ∈ fOuts ℓ, capOf v = capOf u) ∨ (∃ y ∈ s :: fIns ℓ, capOf y = capOf u) ∨ capOf u = 0
+
+/-- A fresh entry appended to `ℓ` fails. -/
+def BadEntry {X : Type} (σ : Seeds X) (ℓ : Log) : Entry → Prop
+  | .inl (x, u) => BadH σ ℓ x u
+  | .inr (s, u) => BadF ℓ s u
 
 /-- Some entry of the log failed with respect to the entries before it. -/
 def Fail {X : Type} (σ : Seeds X) (ℓ : Log) : Prop :=
-  ∃ (i : ℕ) (hi : i < ℓ.length), BadEntry σ (ℓ.take i) ℓ[i].1 ℓ[i].2
+  ∃ (i : ℕ) (hi : i < ℓ.length), BadEntry σ (ℓ.take i) ℓ[i]
 
 theorem not_fail_nil {X : Type} (σ : Seeds X) : ¬ Fail σ [] := fun ⟨_, hi, _⟩ ↦ by simp at hi
 
 /-- The log with one more entry fails exactly if the log fails or the entry does. -/
-theorem fail_append {X : Type} (σ : Seeds X) (ℓ : Log) (t : Bytes) (u : Digest) :
-    Fail σ (ℓ ++ [(t, u)]) ↔ Fail σ ℓ ∨ BadEntry σ ℓ t u := by
+theorem fail_append {X : Type} (σ : Seeds X) (ℓ : Log) (e : Entry) :
+    Fail σ (ℓ ++ [e]) ↔ Fail σ ℓ ∨ BadEntry σ ℓ e := by
   constructor
   · rintro ⟨i, hi, h⟩
     rw [List.length_append, List.length_singleton] at hi
@@ -201,35 +465,7 @@ theorem not_fail_take {X : Type} {σ : Seeds X} {ℓ : Log} (h : ¬ Fail σ ℓ)
 
 section Count
 
-open Classical in
-/-- The indicator of a predicate, in `ℝ≥0∞`. -/
-noncomputable def ind (p : Prop) : ℝ≥0∞ := if p then 1 else 0
-
-theorem ind_le_one (p : Prop) : ind p ≤ 1 := by
-  unfold ind; split <;> simp
-
-theorem ind_of {p : Prop} (h : p) : ind p = 1 := by simp [ind, h]
-
-theorem ind_of_not {p : Prop} (h : ¬ p) : ind p = 0 := by simp [ind, h]
-
-theorem ind_mono {p q : Prop} (h : p → q) : ind p ≤ ind q := by
-  by_cases hp : p
-  · rw [ind_of hp, ind_of (h hp)]
-  · rw [ind_of_not hp]; exact bot_le
-
-/-- A predicate with at most one witness has indicator sum at most one. -/
-theorem sum_ind_le_one {γ : Type} [Fintype γ] {p : γ → Prop}
-    (h : ∀ u u', p u → p u' → u = u') :
-    ∑ u, ind (p u) ≤ 1 := by
-  classical
-  have : ∑ u, ind (p u) = ((Finset.univ.filter p).card : ℝ≥0∞) := by
-    simp only [ind]
-    rw [Finset.sum_ite, Finset.sum_const_zero, add_zero, Finset.sum_const, nsmul_eq_mul, mul_one]
-  rw [this]
-  exact_mod_cast Finset.card_le_one.mpr fun a ha b hb ↦
-    h a b (Finset.mem_filter.mp ha).2 (Finset.mem_filter.mp hb).2
-
-/-- Sums over digests commute with sums over a list. -/
+/-- Sums over a finite type commute with sums over a list. -/
 theorem sum_list_sum_comm {β γ : Type} [Fintype γ] (L : List β) (f : β → γ → ℝ≥0∞) :
     ∑ u, (L.map fun x ↦ f x u).sum = (L.map fun x ↦ ∑ u, f x u).sum := by
   induction L with
@@ -256,136 +492,122 @@ theorem ind_exists_le {β : Type} (L : List β) (q : β → Prop) :
       _ ≤ _ := List.single_le_sum (fun _ _ ↦ bot_le) _ (List.mem_map.mpr ⟨x, hx, rfl⟩)
   · rw [ind_of_not h]; exact bot_le
 
-theorem ind_or_le (p q : Prop) : ind (p ∨ q) ≤ ind p + ind q := by
-  by_cases hp : p
-  · rw [ind_of (Or.inl hp), ind_of hp]; exact le_self_add
-  · by_cases hq : q
-    · rw [ind_of (Or.inr hq), ind_of hq]; exact le_add_self
-    · rw [ind_of_not (by tauto)]; exact bot_le
-
-/-- A root is determined by the input that completes it. -/
-theorem rootOf_unique {ℓ : Log} {x : Bytes} {r r' : Digest} (h : RootOf ℓ x r)
-    (h' : RootOf ℓ x r') : r = r' := by
-  obtain ⟨c, x₀, x₁, e, hx, hf, he, hr⟩ := h
-  obtain ⟨c', x₀', x₁', e', hx', hf', he', hr'⟩ := h'
-  obtain ⟨rfl, rfl, -⟩ := chainInput_inj (hx.symm.trans hx')
-  rw [hf] at hf'
-  cases hf'
-  obtain ⟨rfl, -⟩ := blockOf_inj (he.symm.trans he')
-  rw [hr] at hr'
-  exact Option.some.inj hr'
-
-/-- **The count of failing answers**: at most `(4 + k) · (|ℓ| + 1)` digests fail at a fresh
-input, `k` the number of seeding steps. -/
-theorem sum_badEntry_le {X : Type} (σ : Seeds X) (ℓ : Log) (t : Bytes) :
-    ∑ u, ind (BadEntry σ ℓ t u) ≤ ((4 + σ.steps.length) * (ℓ.length + 1) : ℕ) := by
-  set L := t :: ℓ.map Prod.fst
-  let g : Bytes → Digest → ℝ≥0∞ := fun x u ↦ ind (chunk0 x = digestBytes u) +
-    ind (chunk1 x = digestBytes u) + ind (RootOf ℓ x u) +
-    (σ.steps.map fun a ↦ ind (x = Seed.input a u)).sum
-  have hpt : ∀ u, ind (BadEntry σ ℓ t u) ≤
-      (ℓ.map fun e ↦ ind (e.2 = u)).sum + (L.map fun x ↦ g x u).sum := by
+/-- The roots an input absorbs: at most four. -/
+theorem sum_rootOf_le (ℓ : Log) (t : KState) : ∑ u, ind (RootOf ℓ t u) ≤ 4 := by
+  have hpair : ∀ i, ∑ u, ind (pairRoot t i = some u) ≤ 1 := fun i ↦
+    sum_ind_le_one fun u u' hu hu' ↦ Option.some.inj (hu.symm.trans hu')
+  have hstr : ∑ u, ind (straddleRoot ℓ t = some u) ≤ 1 :=
+    sum_ind_le_one fun u u' hu hu' ↦ Option.some.inj (hu.symm.trans hu')
+  have hpt : ∀ u, ind (RootOf ℓ t u) ≤
+      ([0, 1, 2].map fun i ↦ ind (pairRoot t i = some u)).sum + ind (straddleRoot ℓ t = some u) := by
     intro u
-    refine (ind_or_le _ _).trans (add_le_add (ind_exists_le _ _) ?_)
-    refine (ind_exists_le _ _).trans (le_of_eq_of_le rfl ?_)
-    refine List.sum_le_sum fun x _ ↦ ?_
-    refine (ind_or_le _ _).trans ?_
-    simp only [g, add_assoc]
-    refine add_le_add le_rfl ((ind_or_le _ _).trans (add_le_add le_rfl ?_))
-    exact (ind_or_le _ _).trans (add_le_add le_rfl (ind_exists_le _ _))
-  have h1 : ∀ e ∈ ℓ, ∑ u, ind (e.2 = u) ≤ 1 := fun e _ ↦
+    refine (ind_or_le _ _).trans (add_le_add ?_ le_rfl)
+    refine (ind_mono fun ⟨i, hi, h⟩ ↦ ⟨i, ?_, h⟩).trans (ind_exists_le [0, 1, 2] _)
+    simp only [List.mem_cons, List.not_mem_nil, or_false]
+    omega
+  calc ∑ u, ind (RootOf ℓ t u)
+      ≤ ∑ u, (([0, 1, 2].map fun i ↦ ind (pairRoot t i = some u)).sum +
+          ind (straddleRoot ℓ t = some u)) := Finset.sum_le_sum fun u _ ↦ hpt u
+    _ = ([0, 1, 2].map fun i ↦ ∑ u, ind (pairRoot t i = some u)).sum +
+          ∑ u, ind (straddleRoot ℓ t = some u) := by
+        rw [Finset.sum_add_distrib, sum_list_sum_comm]
+    _ ≤ ([0, 1, 2] : List ℕ).length * 1 + 1 :=
+        add_le_add (list_sum_le _ _ _ fun i _ ↦ hpair i) hstr
+    _ = 4 := by norm_num
+
+/-- **The count of failing hash answers**: at most `(5 + |σ.offs|) · (|ℓ| + 1)` digests fail at a
+fresh input. -/
+theorem sum_badH_le {X : Type} (σ : Seeds X) (ℓ : Log) (x : Bytes) :
+    ∑ u, ind (BadH σ ℓ x u) ≤ ((5 + σ.offs.length) * (ℓ.length + 1) : ℕ) := by
+  set O := 0 :: 32 :: σ.offs
+  set L := x :: hIns ℓ
+  have hpt : ∀ u, ind (BadH σ ℓ x u) ≤
+      ((hOuts ℓ).map fun v ↦ ind (v = u)).sum +
+        (L.map fun y ↦ (O.map fun o ↦ ind (chunkAt o y = digestBytes u)).sum).sum +
+        ((fIns ℓ).map fun t ↦ ind (RootOf ℓ t u) + ind (laneDigest t = u)).sum := by
+    intro u
+    refine (ind_or_le _ _).trans (add_le_add ?_ ?_) |>.trans_eq (add_assoc _ _ _).symm
+    · exact (ind_mono fun h ↦ ⟨u, h, rfl⟩).trans (ind_exists_le _ _)
+    refine (ind_or_le _ _).trans (add_le_add ?_ ?_)
+    · refine (ind_exists_le _ _).trans (List.sum_le_sum fun y _ ↦ ind_exists_le _ _)
+    · exact (ind_exists_le _ _).trans (List.sum_le_sum fun t _ ↦ ind_or_le _ _)
+  have h1 : ∀ v ∈ hOuts ℓ, ∑ u, ind (v = u) ≤ 1 := fun v _ ↦
     sum_ind_le_one fun u u' hu hu' ↦ hu.symm.trans hu'
-  have h2 : ∀ x ∈ L, ∑ u, g x u ≤ (3 + σ.steps.length : ℕ) := by
-    intro x _
-    simp only [g, Finset.sum_add_distrib]
+  have h2 : ∀ y ∈ L, ∑ u, (O.map fun o ↦ ind (chunkAt o y = digestBytes u)).sum ≤
+      (O.length : ℝ≥0∞) := by
+    intro y _
     rw [sum_list_sum_comm]
-    have hc0 : ∑ u, ind (chunk0 x = digestBytes u) ≤ 1 :=
+    have := list_sum_le O (fun o ↦ ∑ u, ind (chunkAt o y = digestBytes u)) 1 fun o _ ↦
       sum_ind_le_one fun u u' hu hu' ↦ digestBytes_injective (hu.symm.trans hu')
-    have hc1 : ∑ u, ind (chunk1 x = digestBytes u) ≤ 1 :=
-      sum_ind_le_one fun u u' hu hu' ↦ digestBytes_injective (hu.symm.trans hu')
-    have hr : ∑ u, ind (RootOf ℓ x u) ≤ 1 :=
-      sum_ind_le_one fun u u' hu hu' ↦ rootOf_unique hu hu'
-    have hs := list_sum_le σ.steps (fun a ↦ ∑ u, ind (x = Seed.input a u)) 1 fun a _ ↦
-      sum_ind_le_one fun u u' hu hu' ↦ Seed.input_injective a (hu.symm.trans hu')
-    rw [mul_one] at hs
-    calc _ ≤ 1 + 1 + 1 + (σ.steps.length : ℝ≥0∞) := by gcongr
-      _ = _ := by push_cast; ring
-  calc ∑ u, ind (BadEntry σ ℓ t u)
-      ≤ ∑ u, ((ℓ.map fun e ↦ ind (e.2 = u)).sum + (L.map fun x ↦ g x u).sum) :=
+    rwa [mul_one] at this
+  have h3 : ∀ t ∈ fIns ℓ, ∑ u, (ind (RootOf ℓ t u) + ind (laneDigest t = u)) ≤ 5 := by
+    intro t _
+    rw [Finset.sum_add_distrib]
+    calc _ ≤ 4 + 1 := add_le_add (sum_rootOf_le ℓ t)
+          (sum_ind_le_one fun u u' hu hu' ↦ hu.symm.trans hu')
+      _ = 5 := by norm_num
+  have hlen := length_leftOf_add_rightOf ℓ
+  calc ∑ u, ind (BadH σ ℓ x u)
+      ≤ ∑ u, (((hOuts ℓ).map fun v ↦ ind (v = u)).sum +
+          (L.map fun y ↦ (O.map fun o ↦ ind (chunkAt o y = digestBytes u)).sum).sum +
+          ((fIns ℓ).map fun t ↦ ind (RootOf ℓ t u) + ind (laneDigest t = u)).sum) :=
         Finset.sum_le_sum fun u _ ↦ hpt u
-    _ = (ℓ.map fun e ↦ ∑ u, ind (e.2 = u)).sum + (L.map fun x ↦ ∑ u, g x u).sum := by
-        rw [Finset.sum_add_distrib, sum_list_sum_comm, sum_list_sum_comm]
-    _ ≤ ℓ.length * 1 + L.length * ((3 + σ.steps.length : ℕ) : ℝ≥0∞) :=
-        add_le_add (list_sum_le _ _ _ h1) (list_sum_le _ _ _ h2)
+    _ = ((hOuts ℓ).map fun v ↦ ∑ u, ind (v = u)).sum +
+          (L.map fun y ↦ ∑ u, (O.map fun o ↦ ind (chunkAt o y = digestBytes u)).sum).sum +
+          ((fIns ℓ).map fun t ↦ ∑ u, (ind (RootOf ℓ t u) + ind (laneDigest t = u))).sum := by
+        rw [Finset.sum_add_distrib, Finset.sum_add_distrib, sum_list_sum_comm, sum_list_sum_comm,
+          sum_list_sum_comm]
+    _ ≤ (hOuts ℓ).length * 1 + L.length * (O.length : ℝ≥0∞) + (fIns ℓ).length * 5 :=
+        add_le_add (add_le_add (list_sum_le _ _ _ h1) (list_sum_le _ _ _ h2))
+          (list_sum_le _ _ _ h3)
     _ ≤ _ := by
-        simp only [L, List.length_cons, List.length_map, mul_one]
+        simp only [hOuts, fIns, L, O, hIns, List.length_map, List.length_cons, mul_one]
+        have : ((leftOf ℓ).length : ℝ≥0∞) + (rightOf ℓ).length = ℓ.length := by
+          exact_mod_cast hlen
         push_cast
-        have : (ℓ.length : ℝ≥0∞) ≤ ℓ.length + 1 := le_self_add
-        calc (ℓ.length : ℝ≥0∞) + (ℓ.length + 1) * (3 + σ.steps.length)
-            ≤ (ℓ.length + 1) + (ℓ.length + 1) * (3 + σ.steps.length) := by gcongr
-          _ = _ := by ring
+        rw [← this]
+        set a : ℝ≥0∞ := ((leftOf ℓ).length : ℝ≥0∞)
+        set b : ℝ≥0∞ := ((rightOf ℓ).length : ℝ≥0∞)
+        set o : ℝ≥0∞ := (σ.offs.length : ℝ≥0∞)
+        have e1 : a + (a + 1) * (o + 1 + 1) + b * 5 = a * (3 + o) + b * 5 + (2 + o) := by ring
+        have e2 : (5 + o) * (a + b + 1) = a * (3 + o) + a * 2 + (b * 5 + b * o) + (5 + o) := by
+          ring
+        rw [e1, e2]
+        have h25 : (2 : ℝ≥0∞) + o ≤ 5 + o := by gcongr; norm_num
+        calc a * (3 + o) + b * 5 + (2 + o) ≤ a * (3 + o) + b * 5 + (5 + o) := by gcongr
+          _ ≤ a * (3 + o) + a * 2 + (b * 5 + b * o) + (5 + o) := by
+            gcongr
+            · exact le_self_add
+            · exact le_self_add
+
+/-- **The count of failing permutation answers**: the answer's capacity avoids at most
+`2|ℓ| + 2` values, each with probability at most `2^-256`. -/
+theorem sum_badF_div_le (ℓ : Log) (s : KState) :
+    (∑ u, ind (BadF ℓ s u)) / Fintype.card KState ≤ ((2 * ℓ.length + 2 : ℕ) : ℝ≥0∞) * 2⁻¹ ^ 256 := by
+  set C : List (Fin 9 → UInt64) := (fOuts ℓ).map capOf ++ (s :: fIns ℓ).map capOf ++ [0]
+  have hpt : ∀ u, ind (BadF ℓ s u) ≤ (C.map fun c ↦ ind (capOf u = c)).sum := by
+    intro u
+    refine le_trans (ind_mono fun h ↦ ?_) (ind_exists_le C _)
+    rcases h with ⟨v, hv, h⟩ | ⟨y, hy, h⟩ | h
+    · exact ⟨capOf v, List.mem_append_left _ (List.mem_append_left _ (List.mem_map_of_mem hv)),
+        h.symm⟩
+    · exact ⟨capOf y, List.mem_append_left _ (List.mem_append_right _ (List.mem_map_of_mem hy)),
+        h.symm⟩
+    · exact ⟨0, List.mem_append_right _ (List.mem_singleton_self 0), h⟩
+  have hC : C.length ≤ 2 * ℓ.length + 2 := by
+    have := length_leftOf_add_rightOf ℓ
+    simp [C, fOuts, fIns]
+    omega
+  calc (∑ u, ind (BadF ℓ s u)) / Fintype.card KState
+      ≤ (∑ u, (C.map fun c ↦ ind (capOf u = c)).sum) / Fintype.card KState := by
+        gcongr with u; exact hpt u
+    _ = (C.map fun c ↦ (∑ u, ind (capOf u = c)) / Fintype.card KState).sum := by
+        rw [sum_list_sum_comm, div_eq_mul_inv, ← List.sum_map_mul_right]
+        simp only [div_eq_mul_inv]
+    _ ≤ C.length * 2⁻¹ ^ 256 := list_sum_le _ _ _ fun c _ ↦ sum_capOf_div_le c
+    _ ≤ _ := by gcongr
 
 end Count
-
-/-! ## Lookups -/
-
-theorem look_append_of_some {ℓ : Log} {x : Bytes} {v : Digest} (h : look ℓ x = some v)
-    (ℓ' : Log) : look (ℓ ++ ℓ') x = some v := by
-  induction ℓ with
-  | nil => simp at h
-  | cons e ℓ ih =>
-    simp only [look, logLookup_cons] at h ⊢
-    simp only [List.cons_append, logLookup_cons]
-    split
-    · simp_all
-    · simp_all
-
-/-- A lookup in a prefix is a lookup in the log. -/
-theorem look_of_prefix {ℓ ℓ' : Log} (hp : ℓ <+: ℓ') {x : Bytes} {v : Digest}
-    (h : look ℓ x = some v) : look ℓ' x = some v := by
-  obtain ⟨r, rfl⟩ := hp
-  exact look_append_of_some h r
-
-/-- A lookup is the first entry with the input. -/
-theorem look_eq_some_iff (ℓ : Log) (x : Bytes) (v : Digest) :
-    look ℓ x = some v ↔
-      ∃ (i : ℕ) (hi : i < ℓ.length), ℓ[i] = (x, v) ∧ look (ℓ.take i) x = none := by
-  induction ℓ with
-  | nil => simp
-  | cons e ℓ ih =>
-    simp only [look, logLookup_cons] at ih ⊢
-    by_cases he : e.1 = x
-    · simp only [he, ↓reduceIte, Option.some.injEq]
-      constructor
-      · rintro rfl
-        exact ⟨0, by simp, by simp [← he], by simp⟩
-      · rintro ⟨i, hi, hei, hn⟩
-        cases i with
-        | zero => simp at hei; subst hei; rfl
-        | succ i => simp [logLookup_cons, he] at hn
-    · rw [ite_eq_right_iff.mpr (fun h ↦ absurd h he), ih]
-      constructor
-      · rintro ⟨i, hi, hei, hn⟩
-        exact ⟨i + 1, by simpa using hi, by simpa using hei, by simp [logLookup_cons, he, hn]⟩
-      · rintro ⟨i, hi, hei, hn⟩
-        cases i with
-        | zero => simp at hei; exact absurd (by rw [hei]) he
-        | succ i =>
-          refine ⟨i, by simpa using hi, by simpa using hei, ?_⟩
-          simpa [logLookup_cons, he] using hn
-
-/-- An entry is found by a lookup in every prefix that contains it, if no earlier entry has its
-input. -/
-theorem look_take_of_first {ℓ : Log} {i : ℕ} (hi : i < ℓ.length) {x : Bytes} {v : Digest}
-    (hei : ℓ[i] = (x, v)) (hn : look (ℓ.take i) x = none) {m : ℕ} (hm : i < m) :
-    look (ℓ.take m) x = some v := by
-  rw [look_eq_some_iff]
-  exact ⟨i, by simp; omega, by simpa using hei, by rwa [List.take_take, min_eq_left hm.le]⟩
-
-/-- An entry of a log is answered by the log (perhaps by an earlier entry). -/
-theorem look_ne_none_of_mem {ℓ : Log} {e : Bytes × Digest} (he : e ∈ ℓ) : look ℓ e.1 ≠ none := by
-  rw [Ne, look, logLookup_eq_none_iff]
-  exact fun h ↦ h (List.mem_map.mpr ⟨e, he, rfl⟩)
 
 /-! ## Order facts without failure -/
 
@@ -393,58 +615,130 @@ section Order
 
 variable {X : Type} {σ : Seeds X} {ℓ : Log}
 
-/-- Without failure, outputs are distinct. -/
-theorem output_ne (h : ¬ Fail σ ℓ) {i j : ℕ} (hi : i < ℓ.length) (hj : j < ℓ.length)
-    (hij : i < j) : ℓ[i].2 ≠ ℓ[j].2 := by
-  intro heq
-  refine h ⟨j, hj, Or.inl ⟨ℓ[i], ?_, heq⟩⟩
-  exact List.mem_iff_getElem.mpr ⟨i, by simp; omega, by simp⟩
+/-- Without failure, hash outputs are distinct. -/
+theorem hOut_ne (h : ¬ Fail σ ℓ) {i j : ℕ} (hi : i < ℓ.length) (hj : j < ℓ.length) (hij : i < j)
+    {x y : Bytes} {u v : Digest} (hei : ℓ[i] = .inl (x, u)) (hej : ℓ[j] = .inl (y, v)) :
+    u ≠ v := by
+  rintro rfl
+  have hb := h
+  refine hb ⟨j, hj, ?_⟩
+  rw [hej]
+  exact Or.inl (mem_hOuts_of_getElem (ℓ := ℓ.take j) (i := i) (by simp; omega)
+    (by simpa using hei))
 
-/-- Without failure, two entries with one output are one entry. -/
-theorem index_eq_of_output (h : ¬ Fail σ ℓ) {i j : ℕ} (hi : i < ℓ.length) (hj : j < ℓ.length)
-    (heq : ℓ[i].2 = ℓ[j].2) : i = j := by
+/-- Without failure, two hash entries with one output are one entry. -/
+theorem index_eq_of_hOut (h : ¬ Fail σ ℓ) {i j : ℕ} (hi : i < ℓ.length) (hj : j < ℓ.length)
+    {x y : Bytes} {u : Digest} (hei : ℓ[i] = .inl (x, u)) (hej : ℓ[j] = .inl (y, u)) : i = j := by
   rcases lt_trichotomy i j with hij | rfl | hij
-  · exact absurd heq (output_ne h hi hj hij)
+  · exact absurd rfl (hOut_ne h hi hj hij hei hej)
   · rfl
-  · exact absurd heq.symm (output_ne h hj hi hij)
+  · exact absurd rfl (hOut_ne h hj hi hij hej hei)
 
-/-- The inputs of the entries up to `i` are those the failure condition of entry `i` reads. -/
-theorem mem_inputs_of_le {i j : ℕ} (hi : i < ℓ.length) (hji : j ≤ i) :
-    ℓ[j].1 ∈ ℓ[i].1 :: (ℓ.take i).map Prod.fst := by
-  rcases Nat.lt_or_eq_of_le hji with hlt | rfl
-  · refine List.mem_cons_of_mem _ (List.mem_map.mpr ⟨ℓ[j], ?_, rfl⟩)
-    exact List.mem_iff_getElem.mpr ⟨j, by simp; omega, by simp⟩
-  · exact List.mem_cons_self
+/-- Without failure, the capacities of permutation outputs are distinct. -/
+theorem fCap_ne (h : ¬ Fail σ ℓ) {i j : ℕ} (hi : i < ℓ.length) (hj : j < ℓ.length) (hij : i < j)
+    {s t u v : KState} (hei : ℓ[i] = .inr (s, u)) (hej : ℓ[j] = .inr (t, v)) :
+    capOf u ≠ capOf v := by
+  intro hc
+  refine h ⟨j, hj, ?_⟩
+  rw [hej]
+  exact Or.inl ⟨u, mem_fOuts_of_getElem (ℓ := ℓ.take j) (i := i) (by simp; omega)
+    (by simpa using hei), hc⟩
 
-/-- Without failure, an entry whose output is a chunk of an entry's input comes before it. -/
+/-- Without failure, two permutation entries whose outputs have one capacity are one entry. -/
+theorem index_eq_of_fCap (h : ¬ Fail σ ℓ) {i j : ℕ} (hi : i < ℓ.length) (hj : j < ℓ.length)
+    {s t u v : KState} (hei : ℓ[i] = .inr (s, u)) (hej : ℓ[j] = .inr (t, v))
+    (hc : capOf u = capOf v) : i = j := by
+  rcases lt_trichotomy i j with hij | rfl | hij
+  · exact absurd hc (fCap_ne h hi hj hij hei hej)
+  · rfl
+  · exact absurd hc.symm (fCap_ne h hj hi hij hej hei)
+
+/-- Without failure, no permutation output has the zero capacity. -/
+theorem fCap_ne_zero (h : ¬ Fail σ ℓ) {i : ℕ} (hi : i < ℓ.length) {s u : KState}
+    (hei : ℓ[i] = .inr (s, u)) : capOf u ≠ 0 := by
+  intro hc
+  refine h ⟨i, hi, ?_⟩
+  rw [hei]
+  exact Or.inr (Or.inr hc)
+
+/-- Without failure, a permutation entry whose output's capacity a permutation input carries
+comes before it. -/
+theorem lt_of_cap (h : ¬ Fail σ ℓ) {i j : ℕ} (hi : i < ℓ.length) (hj : j < ℓ.length)
+    {s t u v : KState} (hei : ℓ[i] = .inr (s, u)) (hej : ℓ[j] = .inr (t, v))
+    (hc : capOf t = capOf u) : i < j := by
+  by_contra hji
+  refine h ⟨i, hi, ?_⟩
+  rw [hei]
+  refine Or.inr (Or.inl ⟨t, ?_, hc⟩)
+  rcases Nat.lt_or_eq_of_le (Nat.le_of_not_lt hji) with hlt | rfl
+  · exact List.mem_cons_of_mem _ (mem_fIns_of_getElem (ℓ := ℓ.take i) (i := j) (by simp; omega)
+      (by simpa using hej))
+  · rw [hei] at hej
+    cases hej
+    exact List.mem_cons_self
+
+/-- Without failure, a hash entry whose output is a chunk, at an offset among `0`, `32` and the
+seeding offsets, of a hash input comes before it. -/
 theorem lt_of_chunk (h : ¬ Fail σ ℓ) {i j : ℕ} (hi : i < ℓ.length) (hj : j < ℓ.length)
-    (hc : chunk0 ℓ[j].1 = digestBytes ℓ[i].2 ∨ chunk1 ℓ[j].1 = digestBytes ℓ[i].2) : i < j := by
+    {x y : Bytes} {u v : Digest} (hei : ℓ[i] = .inl (x, u)) (hej : ℓ[j] = .inl (y, v)) {o : ℕ}
+    (ho : o ∈ 0 :: 32 :: σ.offs) (hc : chunkAt o y = digestBytes u) : i < j := by
   by_contra hji
-  refine h ⟨i, hi, Or.inr ⟨ℓ[j].1, mem_inputs_of_le hi (by omega), ?_⟩⟩
-  rcases hc with hc | hc
-  · exact Or.inl hc
-  · exact Or.inr (Or.inl hc)
+  refine h ⟨i, hi, ?_⟩
+  rw [hei]
+  refine Or.inr (Or.inl ⟨y, ?_, o, ho, hc⟩)
+  rcases Nat.lt_or_eq_of_le (Nat.le_of_not_lt hji) with hlt | rfl
+  · exact List.mem_cons_of_mem _ (mem_hIns_of_getElem (ℓ := ℓ.take i) (i := j) (by simp; omega)
+      (by simpa using hej))
+  · rw [hei] at hej
+    cases hej
+    exact List.mem_cons_self
 
-/-- Without failure, an entry whose output is a seeding successor's predecessor comes before
-it. -/
-theorem lt_of_seedInput (h : ¬ Fail σ ℓ) {i j : ℕ} (hi : i < ℓ.length) (hj : j < ℓ.length)
-    {a : Bytes × Bytes} (ha : a ∈ σ.steps) (hc : ℓ[j].1 = Seed.input a ℓ[i].2) : i < j := by
+/-- Without failure, a hash entry whose output is the IV a permutation input carries comes
+before it. -/
+theorem lt_of_laneDigest (h : ¬ Fail σ ℓ) {i j : ℕ} (hi : i < ℓ.length) (hj : j < ℓ.length)
+    {x : Bytes} {u : Digest} {t v : KState} (hei : ℓ[i] = .inl (x, u))
+    (hej : ℓ[j] = .inr (t, v)) (hc : laneDigest t = u) : i < j := by
   by_contra hji
-  exact h ⟨i, hi, Or.inr ⟨ℓ[j].1, mem_inputs_of_le hi (by omega),
-    Or.inr (Or.inr (Or.inr ⟨a, ha, hc⟩))⟩⟩
+  have hne : j ≠ i := fun e ↦ by subst e; rw [hei] at hej; cases hej
+  refine h ⟨i, hi, ?_⟩
+  rw [hei]
+  exact Or.inr (Or.inr ⟨t, mem_fIns_of_getElem (ℓ := ℓ.take i) (i := j) (by simp; omega)
+    (by simpa using hej), Or.inr hc⟩)
 
-/-- Without failure, an entry whose output is the root an entry's input completes comes before
-it. The root is read in the entries before the later of the two. -/
-theorem lt_of_rootOf (h : ¬ Fail σ ℓ) {i j : ℕ} (hi : i < ℓ.length) (hj : j < ℓ.length)
-    (hr : RootOf (ℓ.take j) ℓ[j].1 ℓ[i].2) : i < j := by
-  by_contra hji
-  refine h ⟨i, hi, Or.inr ⟨ℓ[j].1, mem_inputs_of_le hi (by omega), Or.inr (Or.inr (Or.inl ?_))⟩⟩
-  obtain ⟨c, x₀, x₁, e, hx, hf, he, hro⟩ := hr
-  refine ⟨c, x₀, x₁, e, hx, ?_, he, hro⟩
+/-- The predecessor found in a prefix is found in every longer prefix. -/
+theorem predIn_take_mono {ℓ : Log} {j i : ℕ} (hji : j ≤ i) {t t' : KState}
+    (h : predIn (ℓ.take j) t = some t') : predIn (ℓ.take i) t = some t' := by
   obtain ⟨n, rfl⟩ : ∃ n, i = j + n := ⟨i - j, by omega⟩
-  rw [← List.take_append_drop j (ℓ.take (j + n)), List.find?_append, List.take_take,
-    min_eq_left (by omega), hf]
+  have hsplit : ℓ.take (j + n) = ℓ.take j ++ (ℓ.drop j).take n := by
+    rw [List.take_add]
+  unfold predIn at h ⊢
+  obtain ⟨e, he, rfl⟩ := Option.map_eq_some_iff.mp h
+  refine Option.map_eq_some_iff.mpr ⟨e, ?_, rfl⟩
+  rw [hsplit, rightOf_append, List.find?_append, he]
   rfl
+
+/-- Roots absorbed in a prefix are absorbed in every longer prefix. -/
+theorem rootOf_take_mono {ℓ : Log} {j i : ℕ} (hji : j ≤ i) {t : KState} {r : Digest}
+    (h : RootOf (ℓ.take j) t r) : RootOf (ℓ.take i) t r := by
+  rcases h with h | h
+  · exact Or.inl h
+  · right
+    unfold straddleRoot at h ⊢
+    rcases hp : predIn (ℓ.take j) t with _ | t'
+    · rw [hp] at h; simp at h
+    · rw [hp] at h; rw [predIn_take_mono hji hp]; exact h
+
+/-- Without failure, a hash entry whose output is a root a permutation input absorbs comes
+before it. -/
+theorem lt_of_rootOf (h : ¬ Fail σ ℓ) {i j : ℕ} (hi : i < ℓ.length) (hj : j < ℓ.length)
+    {x : Bytes} {u : Digest} {t v : KState} (hei : ℓ[i] = .inl (x, u))
+    (hej : ℓ[j] = .inr (t, v)) (hr : RootOf (ℓ.take j) t u) : i < j := by
+  by_contra hji
+  have hne : j ≠ i := fun e ↦ by subst e; rw [hei] at hej; cases hej
+  refine h ⟨i, hi, ?_⟩
+  rw [hei]
+  exact Or.inr (Or.inr ⟨t, mem_fIns_of_getElem (ℓ := ℓ.take i) (i := j) (by simp; omega)
+    (by simpa using hej), Or.inl (rootOf_take_mono (by omega) hr)⟩)
 
 end Order
 

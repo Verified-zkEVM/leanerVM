@@ -14,7 +14,7 @@ public import LeanVM.Parameters.Isa
 # Lemmas about leanISA
 
 The load-bearing lemmas of `LeanVM.Semantics`, by section: the memory reader, the program's
-fetch, the BLAKE2s cell encoding, the step, and the execution loop (`run`), with the register
+fetch, the lanes of a `K` word, the step, and the execution loop (`run`), with the register
 sequence of a trace (`Trace.regs`).
 -/
 
@@ -76,7 +76,7 @@ noncomputable def MemImage.limbsAt {κ : ℕ} (L : MemImage κ) (a : K) : Vector
   | some v => #v[v.limb 0, v.limb 1, v.limb 2]
   | none => #v[0, 0, 0]
 
-/-- The two limbs of the word at `a`, zero when there is none: `read`, as a `BLAKE2S` row's cell
+/-- The two limbs of the word at `a`, zero when there is none: `read`, as a row's two-limb cell
 column; specified by `ofCell_cellAt`. -/
 noncomputable def MemImage.cellAt {κ : ℕ} (L : MemImage κ) (a : K) : Vector K 2 :=
   match L.read a with
@@ -184,25 +184,17 @@ theorem Program.fetch_eq_none_iff (prog : Program) {pc : K} :
 theorem Program.fetch_zero (prog : Program) : prog.fetch 0 = none := by
   rw [Program.fetch, gLog?_zero, Option.map_none]
 
-/-! ## Blake2s -/
+/-! ## Lanes -/
 
-/-! ### Proof helpers -/
+/-- A `K` word is the word of its lane. -/
+@[simp] theorem K.ofLane_lane (a : K) : K.ofLane a.lane = a := rfl
 
-/-- Splitting a `K` element into its two words and joining them again is the identity. -/
-private theorem ofWords_lowWord_highWord (a : K) : ofWords (lowWord a) (highWord a) = a := by
-  apply BF64.toBitVec_injective
-  have := BitVec.extractLsb'_append_extractLsb'_eq_extractLsb' (x := a.toBitVec) (start₁ := 0) (len₁ := 32)
-    (start₂ := 32) (len₂ := 32) rfl
-  simpa [ofWords, lowWord, highWord] using this
+/-- A lane is the lane of its word. -/
+@[simp] theorem K.lane_ofLane (w : UInt64) : (K.ofLane w).lane = w := rfl
 
-/-! ### Load-bearing lemmas -/
-
-/-- Packing the words of a canonical cell gives the cell back. -/
-theorem wordsCell_cellWords {x : E} (h : IsCanonical128 x) : wordsCell (cellWords x) = x := by
-  have h2 : x.limb 2 = 0 := h
-  apply E.ext; intro i
-  rw [wordsCell, limb_ofLimbs]
-  fin_cases i <;> simp [cellWords, ofWords_lowWord_highWord, h2]
+/-- Lanes determine words. -/
+theorem K.lane_injective : Function.Injective K.lane := fun a b h ↦ by
+  rw [← K.ofLane_lane a, ← K.ofLane_lane b, h]
 
 /-! ## Step -/
 
