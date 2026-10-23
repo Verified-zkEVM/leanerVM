@@ -136,7 +136,8 @@ theorem kidsFromIn_of_dep (κ : ℕ) : ∀ (ks : List KidD) (prev : List (List E
 
 /-- **A flat function with dependent callees is complete, placed** (`completeAt_flatD`, each
 callee on the results before it, reading the caller's words, the buffers and the earlier
-callees' results). -/
+callees' results). The body holds under any call relation: the callees' relations come from
+their placement. -/
 theorem completeAt_flatDep {f : String} {fn : Fn} (hf : coreProgram.find? f = some fn)
     (hl : coreProgram.loop f = false) (κ : ℕ) (Lin : Layout) (args : List E) (rets : ℕ → List E)
     (Out : List E → Layout → Prop)
@@ -157,7 +158,7 @@ theorem completeAt_flatDep {f : String} {fn : Fn} (hf : coreProgram.find? f = so
       LowDef κ rd → MemL rd (bufL (fp + fs f) sizes (own fp)) → MemL rd Lin →
       MemL rd (outsL (kidsAt (kids fp) [] outs) outs) →
       ∃ σ : Val, fn.params.map σ = args ∧ (∀ s ∈ pre, DispOk σ s) ∧
-        Stmt.HoldsList (coreProgram.Rel rd) rd σ fn.body False (fun r => r = rets fp) ∧
+        Stmt.HoldsList (fun _ _ _ => True) rd σ fn.body False (fun r => r = rets fp) ∧
         (pre.filterMap Main.Stmt.allocSz).map (fun x => x.2.elim id fun s => logG (σ s)) = sizes ∧
         ((pre.filterMap Main.Stmt.allocSz).map Prod.fst).map σ =
           (bases (fp + fs f) sizes).map (fun b => ofK (gpow b)) ∧
