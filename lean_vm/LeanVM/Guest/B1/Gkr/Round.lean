@@ -68,6 +68,7 @@ claim are one round of `tbxGkrRun` from the carried capacity; the challenge is s
 `pt[42 + q]` and the eq factor read at `pt[q]`. -/
 theorem holds_gkRound {B q : ℕ} {cur pt claimV : V} {cap : List V}
     (h : Stmt.HoldsList C rd σ (gkRoundT B q cur pt claimV cap) True kret) :
+    TbxAllCanonical (cap.map σ) ∧
     ∃ xs : List E, xs.length = 4 ∧ (∀ i < 4, LoadHolds rd (σ cur) (4 * q + i) (xs.getD i 0)) ∧
       σ (.n (B + 59)) = ((⟨cap.map σ, []⟩ : TbxFs).absorbAll xs dsObserve).squeeze.1 ∧
       ((List.range 5).map fun k ↦ σ (.n (B + 48 + k))) =
@@ -121,7 +122,8 @@ theorem holds_gkRound {B q : ℕ} {cur pt claimV : V} {cap : List V}
     simpa [hperm] using this
   have hch' := tbx_challengeT_value hch.1 (hout' 0 (by omega)) (hout' 1 (by omega))
   rw [show B + 53 + 6 = B + 59 by omega] at hch'
-  refine ⟨xs, rfl, fun i hi => ?_, ?_, ?_, ht.2.2.2.2.2.2.1, σ (.n (B + 60)), ht.1, ?_⟩
+  refine ⟨fun c hc => hcan c (by simp only [List.map_append, List.mem_append]; exact Or.inr hc),
+    xs, rfl, fun i hi => ?_, ?_, ?_, ht.2.2.2.2.2.2.1, σ (.n (B + 60)), ht.1, ?_⟩
   · interval_cases i
     · exact hl0
     · exact hl1
