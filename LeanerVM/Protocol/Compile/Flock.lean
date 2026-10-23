@@ -533,14 +533,13 @@ theorem flockStep_flockWireOf_of_solved (r : FlockRegion I.toShape) (hr : I.floc
   rw [flockStep_eq I r hr rows hrows, flockTr?_flockWireOf_of_solved I r s t hs, Option.bind_some]
 
 /-- At leanVM's instance the verifier's BLAKE2s walk is the region's: the region carries the
-circuit's R1CS on words (`ProductCircuit.toBlockR1CSE`), equal to its block R1CS
-(`toBlockR1CSE_eq`), whose walk `blake2sRows` is (`blake2sRows_eq`). -/
+circuit's block R1CS (`Blake2sFlock.blake2sR1CS`), whose walk `blake2sRows` is
+(`blake2sRows_eq`). -/
 theorem blake2sRows_eq_region (prog : Program) (sz : Sizes)
     (x : CompPoly.CMlPolynomialEval E (Flock.kSkip + Flock.kIn)) :
     blake2sRows x = (flockRegion prog sz Blake2sFlock.blake2sFlockSpec).r1cs.rows x := by
   rw [blake2sRows_eq]
-  exact congrArg (fun R ↦ BlockR1CS.rows R x)
-    (ProductCircuit.toBlockR1CSE_eq Blake2sCircuit.blake2sCircuit).symm
+  rfl
 
 /-- At leanVM's instance the Flock phase's algebra, with the BLAKE2s circuit's walk
 `blake2sRows`, is the oracle verifier's run on the transcript the wire decodes to. -/
