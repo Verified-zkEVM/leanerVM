@@ -218,5 +218,17 @@ theorem keccakA_perm {ins outs : List V} (h : (Atom.keccak ins outs false false)
   have := hK.1 ⟨k, by simpa [hi] using hk⟩
   simpa [cells13, List.getD_eq_getElem?_getD, List.getElem?_eq_getElem hk] using this
 
+/-- **A permutation's honest outputs**: canonical inputs and the outputs `permOf` of them make the
+`KECCAK` atom hold. -/
+theorem keccakA_of {ins outs : List V} (hi : ins.length = 13) (ho : outs.length = 13)
+    (hc : AllCanonical (ins.map σ))
+    (hout : cells13 (outs.map σ) = cellsOfState (permOf (ins.map σ)) false) :
+    (Atom.keccak ins outs false false).Holds rd σ := by
+  refine ⟨hi, ho, fun c => ?_, fun c => ?_⟩
+  · have hc' : c.val < (ins.map σ).length := by simp [hi]
+    have := hc _ (List.getElem_mem hc')
+    simpa [cells13, List.getD_eq_getElem?_getD, List.getElem?_eq_getElem hc'] using this
+  · rw [hout]; rfl
+
 end
 end LeanVM.Guest.B1
