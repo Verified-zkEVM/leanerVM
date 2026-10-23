@@ -70,7 +70,7 @@ theorem keccak_round_holds : keccak_round_Spec := by
   simp only [eqRound, habs]
   rw [← hc, ← hcap']
   refine ⟨L54_2_0, capAt_five L43_0_1 L44_0_17 L45_0_33 L46_0_49 L47_0_65, ?_, ?_, ?_⟩
-  · rw [e59, e58, word_four] at L59_0_81
+  · rw [e59, e58, word_gen_sq] at L59_0_81
     show LoadHolds rd (σ (V.n 0)) 81 (σ (V.n 8) * gen ^ 2)
     exact L59_0_81
   · rw [e67, e57, e56, e66, e62, e65, e64, e63, e61, e55, word_one] at L67_0_97

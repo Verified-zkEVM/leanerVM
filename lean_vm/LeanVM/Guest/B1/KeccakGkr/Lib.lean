@@ -160,10 +160,6 @@ theorem squeeze_atom {ins outs : List V} {b : ℕ} {s : Fs}
     simp only [Fs.squeeze, Fs.perm]
     interval_cases i <;> rfl
 
-/-- A state's cells are canonical. -/
-theorem cellsOfState_canonical (S : KState) (odd : Bool) (c : Fin 13) :
-    IsCanonical128 (cellsOfState S odd c) := rfl
-
 /-- A squeeze's capacity cells are canonical. -/
 theorem squeeze_cap_canonical (s : Fs) : AllCanonical s.squeeze.2.cap := by
   intro c hc
@@ -172,7 +168,7 @@ theorem squeeze_cap_canonical (s : Fs) : AllCanonical s.squeeze.2.cap := by
 
 /-! ## Words -/
 
-theorem word_four : word 4 0 0 = gen ^ 2 := by
+theorem word_gen_sq : word 4 0 0 = gen ^ 2 := by
   rw [show (4 : ℕ) = 2 ^ 2 from rfl]; exact word_two_pow (by decide)
 
 /-! ## Records and runs -/
@@ -194,6 +190,34 @@ theorem capAt_five {rec : E} {k : ℕ} {c0 c1 c2 c3 c4 : E} (h0 : LoadHolds rd r
 /-- A run of words, read one at a time. -/
 theorem readsAt_of_forall {p : E} {xs : List E} (h : ∀ k (hk : k < xs.length), LoadHolds rd p k xs[k]) :
     ReadsAt rd p xs := h
+
+/-- Words read at `p·g^a` are words read at `p` from offset `a`. -/
+theorem readsAt_gen_pow_mul {p : E} {a : ℕ} {xs : List E} :
+    ReadsAt rd (p * gen ^ a) xs ↔ ∀ k (hk : k < xs.length), LoadHolds rd p (a + k) xs[k] := by
+  simp only [ReadsAt, loadHolds_mul_gen_pow]
+
+/-- Two runs of words, one after the other. -/
+theorem readsAt_append {p : E} {xs ys : List E} :
+    ReadsAt rd p (xs ++ ys) ↔ ReadsAt rd p xs ∧ ReadsAt rd (p * gen ^ xs.length) ys := by
+  rw [readsAt_gen_pow_mul]
+  constructor
+  · intro h
+    refine ⟨fun k hk => ?_, fun k hk => ?_⟩
+    · have := h k (by simp; omega)
+      rwa [List.getElem_append_left hk] at this
+    · have := h (xs.length + k) (by simp; omega)
+      rw [List.getElem_append_right (by omega)] at this
+      simpa using this
+  · rintro ⟨hx, hy⟩ k hk
+    by_cases h : k < xs.length
+    · rw [List.getElem_append_left h]; exact hx k h
+    · rw [List.getElem_append_right (by omega)]
+      have := hy (k - xs.length) (by simp at hk; omega)
+      rwa [show xs.length + (k - xs.length) = k by omega] at this
+
+/-- One word of a run. -/
+theorem readsAt_getElem {p : E} {xs : List E} (h : ReadsAt rd p xs) {k : ℕ} (hk : k < xs.length) :
+    LoadHolds rd p k xs[k] := h k hk
 
 theorem readsAt_two {p a b : E} (ha : LoadHolds rd p 0 a) (hb : LoadHolds rd p 1 b) :
     ReadsAt rd p [a, b] := by
