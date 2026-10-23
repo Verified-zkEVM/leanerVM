@@ -6,7 +6,7 @@
 
 module
 
-public import LeanVM.Guest.B1.Gkr.Interface
+public import LeanVM.Guest.B1.Gkr.Holds
 public import LeanVM.Guest.B1.Tables.Interface
 public import LeanVM.Guest.B1.Tables.Padding
 public import LeanVM.Guest.B1.Placement.Certify
