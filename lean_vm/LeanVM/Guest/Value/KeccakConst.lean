@@ -1,0 +1,154 @@
+/-
+  LeanVM.Guest.Value.KeccakConst
+
+  The guest's baked constants that are Keccak-f[1600] or Keccak-256 of fixed inputs, checked by
+  kernel evaluation.
+-/
+
+module
+
+public import LeanVM.Guest.Value.KeccakSponge
+public import LeanVM.Spec.Node
+public import LeanVM.Spec.Da
+
+/-!
+# Baked Keccak constants
+
+The host bakes into the guest (`placeholder_map`, `crates/rec_aggregation/src/aggregation.rs` at
+leanVM `3375f7a13`) constants that are permutations or hashes of fixed inputs. Each is an
+equation between closed terms, checked here by `decide +kernel` through the evaluator of
+`KeccakEval` (`keccakF_eq_iff`, `keccak256_eq_iff`): no compiled code is trusted.
+
+* `keccakF_zero`: Keccak-f[1600] of the zero state, the `KECCAK` table's padding row
+  (`Table.padding`, the guest's `COORD_PADDING`);
+* `batchSeed_eq`, `aggSeed_cells`: the batching transcript's initial state, whose five capacity
+  cells are `AGG_SEED_0 .. AGG_SEED_4` (`FiatShamirState::from_label(RECURSION_AGG_LABEL)
+  .capacity_cells()`, `aggregation.rs:2620`);
+* `paddingCell_eq`, `daPadCell_cells`, `paddingRow_eq`, `daPadRow_cells`: LeanDA's padding
+  digests (`lean_da::padding_digests`, `crates/lean_da/src/commit.rs:104-107`), whose two cells are
+  `DA_PAD_CELL_0/1` and `DA_PAD_ROW_0/1` (`pack_hash_state`, `aggregation.rs:2630-2639`).
+
+Kernel cost (measured on the build machine): each permutation of the evaluator is milliseconds;
+Keccak-256 of the 2048-byte zero cell (16 permutations) about 6 s and 2 GB over the imports.
+-/
+
+namespace LeanVM.Guest.Value.Keccak
+
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Protocol LeanVM.Protocol.KeccakHash
+open LeanVM.Guest.Value.KeccakEval
+
+@[expose] public section
+
+/-! ## Keccak-f of the zero state -/
+
+/-- Keccak-f[1600] of the zero state. -/
+def keccakFZero : KState :=
+  #v[17376452488221285863, 9571781953733019530, 15391093639620504046, 13624874521033984333,
+    10027350355371872343, 18417369716475457492, 10448040663659726788, 10113917136857017974,
+    12479658147685402012, 3500241080921619556, 16959053435453822517, 12224711289652453635,
+    9342009439668884831, 4879704952849025062, 140226327413610143, 424854978622500449,
+    7259519967065370866, 7004910057750291985, 13293599522548616907, 10105770293752443592,
+    10668034807192757780, 1747952066141424100, 1654286879329379778, 8500057116360352059,
+    16929593379567477321]
+
+/-- **Keccak-f[1600] of the zero state**, the `KECCAK` table's padding row's output. -/
+theorem keccakF_zero : keccakF zeroState = keccakFZero := by
+  rw [keccakF_eq_iff]; decide +kernel
+
+/-! ## The batching seed (`AGG_SEED_*`) -/
+
+/-- Keccak-256 of the batching label. -/
+def batchLabelDigest : Digest :=
+  #v[3225554803577962359, 10440387594429029835, 3141269080130101615, 2858618447650156248]
+
+/-- The batching label's bytes. -/
+theorem batchLabel_eq : Node.batchLabel = [108, 101, 97, 110, 118, 109, 47, 114, 101, 99, 117, 114,
+    115, 105, 111, 110, 45, 97, 103, 103, 114, 101, 103, 97, 116, 105, 111, 110, 47, 118, 49] := by
+  rw [Node.batchLabel, show "leanvm/recursion-aggregation/v1" = String.ofList ['l', 'e', 'a', 'n',
+      'v', 'm', '/', 'r', 'e', 'c', 'u', 'r', 's', 'i', 'o', 'n', '-', 'a', 'g', 'g', 'r', 'e', 'g',
+      'a', 't', 'i', 'o', 'n', '/', 'v', '1'] from rfl,
+    String.toUTF8_eq_toByteArray, String.toByteArray_ofList]
+  decide +kernel
+
+theorem keccak256_batchLabel : keccak256 Node.batchLabel = batchLabelDigest := by
+  rw [batchLabel_eq, keccak256_eq_iff]; decide +kernel
+
+/-- The seed input of two digests, lane by lane. -/
+theorem seedInput_eq (iv pi : Digest) :
+    Compile.seedInput iv pi = #v[iv[0], iv[1], iv[2], iv[3], pi[0], pi[1], pi[2], pi[3],
+      0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0] := by
+  apply Vector.ext
+  intro i hi
+  interval_cases i <;> simp [Compile.seedInput]
+
+/-- The batching transcript's initial state. -/
+def batchSeedValue : KState :=
+  #v[9731470080330201434, 13021276346064953969, 17641262088094796327, 15385747579934674281,
+    16767942838229146784, 1929300249522848364, 2670637271811230429, 15973221218815429819,
+    3410770349630169017, 12695776346224436678, 784848704834098333, 12002339076772184942,
+    14464553134880188447, 12612206758652206804, 18205192014848753121, 1589440240854800282,
+    1562680967124014521, 7666384441264927334, 11925545048015809408, 14528471851986820829,
+    15194020773630548750, 6704907289165917069, 10885225211858021658, 10587785389206534793,
+    159208925504336485]
+
+/-- **The batching seed's value.** -/
+theorem batchSeed_eq : Node.batchSeed = batchSeedValue := by
+  rw [Node.batchSeed, keccak256_batchLabel, seedInput_eq, keccakF_eq_iff]; decide +kernel
+
+/-- `AGG_SEED_0 .. AGG_SEED_4` as the host bakes them (`dsl_u128` of the capacity cells). -/
+def aggSeed : List ℕ :=
+  [1562680967124014521, 219987477440241922375488438384259330662,
+    280280212661789141853795656654516100829, 200796963667835759483519841953162816397,
+    2936886303028784551432414362146044553]
+
+/-- **`AGG_SEED_c` is cell `8 + c` of the batching seed** (even layout): the guest's
+`seed = [AGG_SEED_0, …, AGG_SEED_4]` (`aggregate_claims`, `lean_ethereum.py:4301`) is the
+capacity a `cap=seed` duplex step reads. -/
+theorem aggSeed_cells (c : Fin 5) :
+    LeanVM.Guest.litField (aggSeed.getD c 0) =
+      cellsOfState Node.batchSeed false ⟨8 + c, by omega⟩ := by
+  rw [batchSeed_eq]
+  apply E.ext
+  intro i
+  fin_cases c <;> fin_cases i <;> rfl
+
+/-! ## LeanDA's padding digests (`DA_PAD_*`) -/
+
+/-- The digest of the zero cell. -/
+def daPadCellDigest : Digest :=
+  #v[15569472805043175342, 18354418831448413762, 11782766640862828499, 15718207409690975807]
+
+/-- **LeanDA's padding cell digest.** -/
+theorem paddingCell_eq : LeanDa.paddingCell Da.keccak = Da.toBytes daPadCellDigest := by
+  rw [LeanDa.paddingCell, Da.keccak]
+  refine congrArg Da.toBytes ?_
+  rw [keccak256_eq_iff]; decide +kernel
+
+/-- **`DA_PAD_CELL_0`, `DA_PAD_CELL_1`** (`lean_ethereum.py:4013-4014`) are the cell digest's
+two cells. -/
+theorem daPadCell_cells :
+    (LeanVM.Guest.word 15569472805043175342 18354418831448413762 0,
+      LeanVM.Guest.word 11782766640862828499 15718207409690975807 0) =
+      digestScalars daPadCellDigest := by
+  simp only [digestScalars, daPadCellDigest, LeanVM.Guest.word]; rfl
+
+/-- The digest of the zero row. -/
+def daPadRowDigest : Digest :=
+  #v[4665334884586258498, 1553031596697948144, 7487832681283088925, 14683883899259534590]
+
+/-- **LeanDA's padding row digest.** -/
+theorem paddingRow_eq : LeanDa.paddingRow Da.keccak = Da.toBytes daPadRowDigest := by
+  rw [LeanDa.paddingRow, paddingCell_eq, Da.keccak]
+  refine congrArg Da.toBytes ?_
+  rw [keccak256_eq_iff]; decide +kernel
+
+/-- **`DA_PAD_ROW_0`, `DA_PAD_ROW_1`** (`lean_ethereum.py:3974-3975`) are the row digest's two
+cells. -/
+theorem daPadRow_cells :
+    (LeanVM.Guest.word 4665334884586258498 1553031596697948144 0,
+      LeanVM.Guest.word 7487832681283088925 14683883899259534590 0) =
+      digestScalars daPadRowDigest := by
+  simp only [digestScalars, daPadRowDigest, LeanVM.Guest.word]; rfl
+
+end
+end LeanVM.Guest.Value.Keccak

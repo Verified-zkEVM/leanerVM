@@ -15,26 +15,26 @@ import CompPoly.Fields.Binary.BF64.Impl
 /-!
 # The tower, as the guest reads it
 
-The guest (`crates/rec_aggregation/guests/lean_ethereum.py`, G below) never reads a limb directly:
+The guest (`crates/rec_aggregation/guests/lean_ethereum.py` at leanVM `3375f7a13`, G below) never
+reads a limb directly:
 it hints one, derives the next by `y⁻¹` and proves every piece lies in `K` with `assert_in_k`
 (one untaken `JUMP` whose operands must be in `K`). The tower representation `c0 + c1·y + c2·y²`
 is unique, so those constraints pin the hint. This module states what they pin, at the level of
 values:
 
-* `pack64x2` (G:446-449) is `E.ofLimbs a b 0` (`pack64x2_eq`);
-* `assert_canonical`, `canonical_limbs` (G:451-468) and `challenge_from_state` (G:472-484)
+* `pack64x2` (G:488-491) is `E.ofLimbs a b 0` (`pack64x2_eq`);
+* `assert_canonical`, `canonical_limbs` (G:493-511) and `challenge_from_state` (G:528-538)
   split a canonical word as `lo + y·hi` (`split_iff`, `split_hi`);
-* `fs_compress` (G:488-497) pins a scalar's top limb by the canonicity of the cell it lands in
+* `fs_pack` (G:551-559) pins a scalar's top limb by the canonicity of the cell it lands in
   (`top_pin_iff`);
-* `statement_digest` (G:2661-2703) and `da_vector_cell` (G:3045-3085) split a full word into its
+* `pack_pair` (G:514-524, in `statement_digest` and `da_vector_cell`) splits a full word into its
   three limbs (`split3_iff`, `split3_top`).
 
-The guest's constants are `Y_TOWER = y` and `Y_INV = y⁻¹ = 1 + y²` (`y_inv`;
-`crates/rec_aggregation/src/aggregation.rs:2519-2522`). A zkDSL integer literal is a bit pattern
+The guest's constants are `Y_TOWER = y` and `Y_INV = y⁻¹ = 1 + y²` (`y_inv`; `placeholder_map`,
+`crates/rec_aggregation/src/aggregation.rs`). A zkDSL integer literal is a bit pattern
 (`crates/lean_compiler/zkDSL.md`, "a substituted literal is a bit-pattern element"): `n < 2^64`
 is the Python verifier's `E(n)`, `eOfNat n`, and a wider one, up to the `u128` literals the host
-substitutes, is `eOfNat192 n`. `COORD_BASIS[i]` (`aggregation.rs:2526-2534`) is
-`eOfNat192 (2^i)`. Sums of integers are XORs (`eOfNat_xor`), so they add when their bits are
+substitutes, is `eOfNat192 n`. `COORD_BASIS[i]` (`placeholder_map`) is `eOfNat192 (2^i)`. Sums of integers are XORs (`eOfNat_xor`), so they add when their bits are
 disjoint (`two_pow_mul_xor`); and the product of `x^s` with a word of degree below `64 - s` does
 not reduce (`ofBits_two_pow_mul`).
 -/
@@ -132,10 +132,10 @@ theorem ofLimbs_add (a0 a1 a2 b0 b1 b2 : K) :
     E.ofLimbs a0 a1 a2 + E.ofLimbs b0 b1 b2 = E.ofLimbs (a0 + b0) (a1 + b1) (a2 + b2) :=
   add_limbs a0 a1 a2 b0 b1 b2
 
-/-! ## Packing two limbs (`pack64x2`, G:446-449) -/
+/-! ## Packing two limbs (`pack64x2`, G:488-491) -/
 
-/-- **`pack64x2(a, b)`** (G:446-449): after `assert_in_k(a, b)`, `a + y·b` is the canonical cell
-with limbs `a`, `b` (TRIAGE #1: `E.ofLimbs a b 0`). -/
+/-- **`pack64x2(a, b)`** (G:488-491): after `assert_in_k(a, b)`, `a + y·b` is the canonical cell
+with limbs `a`, `b`: `E.ofLimbs a b 0`. -/
 theorem pack64x2_eq {a b : E} (ha : IsInK a) (hb : IsInK b) :
     a + y * b = E.ofLimbs (a.limb 0) (b.limb 0) 0 := by
   obtain ⟨a0, rfl⟩ := (isInK_iff a).mp ha
@@ -143,7 +143,7 @@ theorem pack64x2_eq {a b : E} (ha : IsInK a) (hb : IsInK b) :
   rw [ofK_eq_ofLimbs, ofK_eq_ofLimbs, mul_comm, ofLimbs_mul_y, ofLimbs_add, ofLimbs_inj]
   simp
 
-/-! ## Splitting a canonical word (`assert_canonical`, `canonical_limbs`, G:451-468) -/
+/-! ## Splitting a canonical word (`assert_canonical`, `canonical_limbs`, G:493-511) -/
 
 /-- The derived limb `(x + c)·y⁻¹`, in limbs. -/
 theorem add_ofK_mul_y_inv (x : E) (c : K) :
@@ -152,10 +152,10 @@ theorem add_ofK_mul_y_inv (x : E) (c : K) :
   rw [eq_ofLimbs x, ofK_eq_ofLimbs, ofLimbs_add, ofLimbs_mul_y_inv]
   simp
 
-/-- **The split of a word** (`assert_canonical`, `canonical_limbs`, G:451-468; the same
-constraints in `challenge_from_state`, G:472-484, and `grind_check`, G:717-720): the hinted
+/-- **The split of a word** (`assert_canonical`, `canonical_limbs`, G:493-511; the same
+constraints in `challenge_from_state`, G:528-538, and `grind_check`, G:792-795): the hinted
 `lo` and the derived `(x + lo)·y⁻¹` both lie in `K` exactly when `x` is canonical
-(`IsCanonical128`) and `lo` is its low limb. TRIAGE #2, #3: the tower representation is unique. -/
+(`IsCanonical128`) and `lo` is its low limb: the tower representation is unique. -/
 theorem split_iff (x lo : E) :
     IsInK lo ∧ IsInK ((x + lo) * y⁻¹) ↔ IsCanonical128 x ∧ lo = ofK (x.limb 0) := by
   constructor
@@ -172,7 +172,7 @@ theorem split_iff (x lo : E) :
 theorem split_hi {x : E} (hx : IsCanonical128 x) : (x + ofK (x.limb 0)) * y⁻¹ = ofK (x.limb 1) := by
   rw [add_ofK_mul_y_inv, k_add_self, zero_add, hx, ofK_eq_ofLimbs]
 
-/-! ## The top limb, pinned by a canonical cell (`fs_compress`, G:488-497) -/
+/-! ## The top limb, pinned by a canonical cell (`fs_pack`, G:551-559) -/
 
 /-- `x + y²·c`, in limbs. -/
 theorem add_y_mul_y_mul_ofK (x : E) (c : K) :
@@ -183,8 +183,8 @@ theorem add_y_mul_y_mul_ofK (x : E) (c : K) :
   rw [hyy, ofK_eq_ofLimbs, mul_limbs, eq_ofLimbs x, ofLimbs_add]
   simp
 
-/-- **The top limb is pinned** (`fs_compress`, G:488-497): a hinted `l` in `K` makes
-`x + y²·l` canonical exactly when it is `x`'s top limb. TRIAGE #5. -/
+/-- **The top limb is pinned** (`fs_pack`, G:551-559): a hinted `l` in `K` makes
+`x + y²·l` canonical exactly when it is `x`'s top limb. -/
 theorem top_pin_iff (x l : E) : IsInK l ∧ IsCanonical128 (x + y * y * l) ↔ l = ofK (x.limb 2) := by
   constructor
   · rintro ⟨hl, hc⟩
@@ -200,16 +200,16 @@ theorem top_pin_iff (x l : E) : IsInK l ∧ IsCanonical128 (x + y * y * l) ↔ l
 theorem top_pin_eq (x : E) : x + y * y * ofK (x.limb 2) = E.ofLimbs (x.limb 0) (x.limb 1) 0 := by
   rw [add_y_mul_y_mul_ofK, k_add_self]
 
-/-- `t + y·tag` for a tag in `K`, the block's second cell in `fs_compress`. -/
+/-- `t + y·tag` for a tag in `K`, the scalar's second cell in `fs_pack`. -/
 theorem ofK_add_y_mul_ofK (a b : K) : ofK a + y * ofK b = E.ofLimbs a b 0 := by
   rw [pack64x2_eq (ofK_isInK a) (ofK_isInK b)]
   simp
 
-/-! ## Splitting a full word into three limbs (`statement_digest`, `da_vector_cell`) -/
+/-! ## Splitting a full word into three limbs (`pack_pair`) -/
 
-/-- **The three-limb split** (`statement_digest`, G:2690-2694; `da_vector_cell`, G:3055-3059):
-two hinted limbs `a`, `b` and the derived top `((x + a)·y⁻¹ + b)·y⁻¹` all lie in `K` (the three
-`pack64x2` calls assert it) exactly when `a`, `b` are `x`'s low limbs. -/
+/-- **The three-limb split** (`pack_pair`, G:514-524): two hinted limbs `a`, `b` and the derived
+top `((x + a)·y⁻¹ + b)·y⁻¹` all lie in `K` (the `pack64x2` calls assert it) exactly when `a`, `b`
+are `x`'s low limbs. -/
 theorem split3_iff (x a b : E) :
     IsInK a ∧ IsInK b ∧ IsInK (((x + a) * y⁻¹ + b) * y⁻¹) ↔
       a = ofK (x.limb 0) ∧ b = ofK (x.limb 1) := by
@@ -244,7 +244,7 @@ literal, and `COORD_BASIS[i] = eOfNat192 (2^i)`). -/
 def eOfNat192 (n : ℕ) : E :=
   E.ofLimbs (K.ofBits n) (K.ofBits (n / 2 ^ 64)) (K.ofBits (n / 2 ^ 128))
 
-/-- `COORD_BASIS[i]` (`aggregation.rs:2526-2534`): the `i`-th coordinate basis vector. -/
+/-- `COORD_BASIS[i]` (`placeholder_map`): the `i`-th coordinate basis vector. -/
 def coordBasis (i : ℕ) : E := eOfNat192 (2 ^ i)
 
 theorem ofBits_xor (a b : ℕ) : K.ofBits (a ^^^ b) = K.ofBits a + K.ofBits b := by
@@ -381,8 +381,7 @@ private theorem ofNat_two_pow_mul {s v : ℕ} :
     Nat.mod_mul_mod, Nat.mul_comm]
 
 /-- **No reduction**: `x^s · v` for `v` of degree below `64 - s` is the shifted word, the
-product the guest's byte counters (`scaled_log`, G:2704-2723) and query positions
-(`decode_query_bits`, G:654-698) rely on. -/
+product the guest's query positions (`decode_query_bits`, G:734-779) rely on. -/
 theorem ofBits_two_pow_mul {s v : ℕ} (h : 2 ^ s * v < 2 ^ 64) :
     K.ofBits (2 ^ s) * K.ofBits v = K.ofBits (2 ^ s * v) := by
   rcases Nat.eq_zero_or_pos v with rfl | hv
@@ -442,7 +441,7 @@ theorem eOfNat192_two_pow_128_mul (X : ℕ) :
   rw [eOfNat192, ofLimbs_inj, h1, h2, ← ofBits_mod (2 ^ 128 * X), h3, ← ofBits_mod (2 ^ 64 * X), h4]
   exact ⟨rfl, rfl, rfl⟩
 
-/-- **A coordinate basis vector times a word** (`decode_query_bits`, G:654-698): `e_i · E(v)` with
+/-- **A coordinate basis vector times a word** (`decode_query_bits`, G:734-779): `e_i · E(v)` with
 `v` of degree below `64 - i mod 64` is the bit pattern `2^i · v`, in limb `i / 64`. -/
 theorem coordBasis_mul_eOfNat {i v : ℕ} (hi : i < 192) (h : 2 ^ (i % 64) * v < 2 ^ 64) :
     coordBasis i * eOfNat v = eOfNat192 (2 ^ i * v) := by

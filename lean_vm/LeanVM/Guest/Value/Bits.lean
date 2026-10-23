@@ -15,24 +15,26 @@ public import Mathlib.Algebra.BigOperators.Group.Finset.Basic
 /-!
 # Bits, counts and logs
 
-A count `n` is the g-power `gen ^ n` (TRIAGE's convention; `Spec/Verifier.lean`'s `gpow`), an
+A count `n` is the g-power `gen ^ n` (`Spec/Verifier.lean`'s `gpow`), an
 integer word its bit pattern `eOfNat n`. The guest moves between the two with hinted bits
 (`hint_decompose_bits`, `hint_decompose_bits_exponent`, `zkDSL.md` §Hints), which it pins by
 booleanity (`b * b == b`, or the write-once `bits[i] = b * b`) and a reconstruction:
 
 * `sum_bitE_coordBasis` and `bits_of_reconstruct`: booleanity and `Σ b_i · COORD_BASIS[s + i] = x`
   make the `b_i` the bits of `x` from bit `s` on, and `x` zero elsewhere (`decode_query_bits`,
-  G:654-698; `grind_check`, G:723-730; `scaled_log`, G:2706-2723; the start offset of G:2555);
+  G:734-779; `grind_check`, G:781-807, whose reconstruction starts at bit `nbits`, G:801);
 * `prod_bitE_gen_pow`: `Π (1 + b_j·(g^(2^j) + 1))` is `g` to the bits' integer
-  (`g_power_of_word`, G:590-603; `verify_log2_ceil`, G:606-640; `column_selector`, G:2002-2017),
+  (`g_power_of_word`, G:670-684; `verify_log2_ceil`, G:686-721; `column_selector`, G:3025-3049,
+  a nibble at a time),
   and `gen_pow_inj` (the order of `g`, `Parameters.Generator`) makes that integer the exponent
-  (`bits_of_exponent`, for `hint_decompose_bits_exponent`); together, `g_power_of_word_spec`
-  and `scaled_log_spec` (G:2706-2723);
+  (`bits_of_exponent`, for `hint_decompose_bits_exponent`); together, `g_power_of_word_spec`,
+  and `bits_of_exponent_shift` for bits pinned in the exponent and weighed over the coordinate
+  basis;
 * `rangeCheck_sound`: the ISA's range check in the exponent (`zkDSL.md` §Range checks) means
   `x = g^e` with `e < k` (`LogLt`), and `gen_pow_div_eq` reads a range-checked quotient
   `log(a / b) < k` as `a = b + c`;
 * `log2Ceil_certified` and `verify_log2_ceil_sound`: `verify_log2_ceil`'s two bounds
-  (G:606-640) pin its hinted log to `max floor (log2Ceil W)` (`Spec/Verifier.lean:695`).
+  (G:686-721) pin its hinted log to `max floor (log2Ceil W)` (`Spec/Verifier.lean`, `log2Ceil`).
 -/
 
 namespace LeanVM.Guest.Value
@@ -174,7 +176,8 @@ theorem reconstruct_bits (s : ℕ) {N n : ℕ} (hN : N < 2 ^ n) :
 theorem e_add_self (a : E) : a + a = 0 := CharTwo.add_self_eq_zero a
 
 /-- **The exponent of a bit run** (`g_power_of_word`, `verify_log2_ceil`, `column_selector`,
-`scaled_log`): `Π_{j < n} (1 + b_j·(g^(2^j) + 1))` over bits is `g` to their integer. -/
+`log2_ceil_in_the_exponent`): `Π_{j < n} (1 + b_j·(g^(2^j) + 1))` over bits is `g` to their
+integer. -/
 theorem prod_bitE_gen_pow (f : ℕ → Bool) (n : ℕ) :
     ∏ j ∈ Finset.range n, (1 + bitE (f j) * (gen ^ 2 ^ j + 1)) = gen ^ bitsVal f n := by
   induction n with
@@ -221,7 +224,7 @@ theorem gen_pow_eq_one_iff {a : ℕ} (ha : a < 2 ^ 64 - 1) : gen ^ a = 1 ↔ a =
     exact pow_zero gen
 
 /-- **A range-checked quotient** (`assert log(a / b) < k`): if `g^a / g^b = g^c` with all three
-exponents below `2^63`, then `a = b + c`, so `b ≤ a` (G:628, G:1513, G:1985, G:2115). -/
+exponents below `2^63`, then `a = b + c`, so `b ≤ a` (G:708, G:1977, G:2191, G:3008). -/
 theorem gen_pow_div_eq {a b c : ℕ} (ha : a < 2 ^ 63) (hb : b < 2 ^ 63) (hc : c < 2 ^ 63)
     (h : gen ^ a / gen ^ b = gen ^ c) : a = b + c := by
   have : gen ^ a = gen ^ (b + c) := by
@@ -229,10 +232,9 @@ theorem gen_pow_div_eq {a b c : ℕ} (ha : a < 2 ^ 63) (hb : b < 2 ^ 63) (hc : c
   exact gen_pow_inj (by omega) (by omega) this
 
 /-- **Bits pinned in the exponent** (`hint_decompose_bits_exponent(bits, x, n)` and the checks
-after it, `scaled_log`, G:2706-2723, `column_selector`, G:2002-2017,
-`log2_ceil_in_the_exponent`, G:643-651): Boolean `b_j` whose product
-`Π_{j < n} (1 + b_j·(g^(2^j) + 1))` is `x = g^N`, with `n ≤ 63` and `N` below the order of `g`,
-are the bits of `N`, and `N < 2^n`. -/
+after it, `column_selector`, G:3025-3049, `log2_ceil_in_the_exponent`, G:723-731): Boolean `b_j`
+whose product `Π_{j < n} (1 + b_j·(g^(2^j) + 1))` is `x = g^N`, with `n ≤ 63` and `N` below the
+order of `g`, are the bits of `N`, and `N < 2^n`. -/
 theorem bits_of_exponent {n N : ℕ} (hn : n ≤ 63) (hN : N < 2 ^ 64 - 1) {b : ℕ → E}
     (hb : ∀ j < n, b j * b j = b j)
     (hx : ∏ j ∈ Finset.range n, (1 + b j * (gen ^ 2 ^ j + 1)) = gen ^ N) :
@@ -246,9 +248,9 @@ theorem bits_of_exponent {n N : ℕ} (hn : n ≤ 63) (hN : N < 2 ^ 64 - 1) {b : 
   rw [bitE_of_mul_self (hb j hj), testBit_bitsVal]
   simp [hj]
 
-/-- **`g_power_of_word(value, g_squares, n)`** (G:590-603; TRIAGE #14): Boolean bits with
+/-- **`g_power_of_word(value)`** (G:670-684, `n = LOG_WORD_BITS`): Boolean bits with
 `Σ_{j < n} b_j · E(2^j) = value`, `n ≤ 63`, make `value` a word in `K` below `2^n`, and the
-product over `g_squares` (`Tables.squares_eq`) its g-power, `gpow (kToNat value.limb0)`. -/
+product `Π (1 + b_j·(1 + g^(2^j)))` its g-power, `gpow (kToNat value.limb0)`. -/
 theorem g_power_of_word_spec {n : ℕ} (hn : n ≤ 63) {b : ℕ → E} (hb : ∀ j < n, b j * b j = b j)
     {value : E} (hword : ∑ j ∈ Finset.range n, b j * eOfNat (2 ^ j) = value) :
     IsInK value ∧ kToNat (value.limb 0) < 2 ^ n ∧
@@ -269,10 +271,10 @@ theorem g_power_of_word_spec {n : ℕ} (hn : n ≤ 63) {b : ℕ → E} (hb : ∀
   rw [hbits j hj]
   cases N.testBit j <;> simp [bitE]
 
-/-- **`scaled_log(x, g_squares, shift)`** (G:2706-2723; TRIAGE #59): Boolean bits whose g-power
-product is `x = g^N`, `N` below the order of `g`, weigh to `E(N)`, and the final product by
+/-- **Bits in the exponent, weighed and shifted**: Boolean bits whose g-power product is
+`x = g^N`, `N` below the order of `g`, weigh to `E(N)`, and the final product by
 `COORD_BASIS[shift]` is `E(2^shift · N)` when it does not reduce. -/
-theorem scaled_log_spec {n N shift : ℕ} (hn : n ≤ 63) (hN : N < 2 ^ 64 - 1) (hs : shift < 64)
+theorem bits_of_exponent_shift {n N shift : ℕ} (hn : n ≤ 63) (hN : N < 2 ^ 64 - 1) (hs : shift < 64)
     (hfit : 2 ^ shift * 2 ^ n ≤ 2 ^ 64) {b : ℕ → E} (hb : ∀ j < n, b j * b j = b j)
     (hx : ∏ j ∈ Finset.range n, (1 + b j * (gen ^ 2 ^ j + 1)) = gen ^ N) :
     N < 2 ^ n ∧
@@ -319,7 +321,7 @@ theorem logLt_of_rangeCheck {x : E} {e e' k : ℕ} (hx : x = ofK (Parameters.gpo
     (h : Parameters.gpow e * Parameters.gpow e' = Parameters.gpow (k - 1)) : LogLt x k :=
   ⟨e, rangeCheck_sound he he' hk hk' h, by rw [hx, gen_pow_eq_ofK]⟩
 
-/-! ## `log2Ceil`, certified by its two bounds (`verify_log2_ceil`, G:606-640) -/
+/-! ## `log2Ceil`, certified by its two bounds (`verify_log2_ceil`, G:686-721) -/
 
 theorem log2Ceil_le_iff {W L : ℕ} : log2Ceil W ≤ L ↔ W ≤ 2 ^ L := by
   unfold log2Ceil bitLength
@@ -355,10 +357,10 @@ theorem high_eq_zero_iff {W L : ℕ} (hW : W < 2 ^ 64) :
     exact Nat.mod_lt _ (Nat.two_pow_pos L)
   · exact Nat.mod_eq_of_lt
 
-/-- **`verify_log2_ceil` is sound** (G:606-640): with `W = Σ b_j 2^j` below `2^64` and the hinted
-log `L < 64` range-checked above `floor` (G:627-628), the guest's two products
-`high · low = 0` and `high · (W + 2^L) = 0` (G:631-632), and, unless `L` is the floor (or zero),
-`(low' + W)·(W + 2^(L-1)) ≠ 0` (G:633-639), pin `L` to `max floor (log2Ceil W)`. Here
+/-- **`verify_log2_ceil` is sound** (G:686-721): with `W = Σ b_j 2^j` below `2^64` and the hinted
+log `L < 64` range-checked above `floor` (G:707-708), the guest's two products
+`high · low = 0` and `high · (W + 2^L) = 0` (G:711-712), and, unless `L` is the floor (or zero),
+`(low' + W)·(W + 2^(L-1)) ≠ 0` (G:713-719), pin `L` to `max floor (log2Ceil W)`. Here
 `low = E(W mod 2^L)` and `low' = E(W mod 2^(L-1))` are the guest's prefix sums `psum_buf[g^L]`,
 `psum_buf[g^(L-1)]` (`bitsVal_mod`), and `high = low + E(W)`. -/
 theorem verify_log2_ceil_sound {W L floor : ℕ} (hW : W < 2 ^ 64) (hL : L < 64) (hfl : floor ≤ L)
