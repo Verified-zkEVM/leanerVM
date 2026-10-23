@@ -156,7 +156,8 @@ theorem certify_placement_completeAt (fs : String → ℕ) (cert : String → V 
     rw [this]
     match outs, ho with
     | [], _ => exact True.intro
-  · intro q hq
+  · rw [flatMap_loadsEv _ cpPreL (by decide +kernel)]
+    intro q hq
     have hOwn : ∀ j < 3, ∀ i, fp + fs f + 99 * j ≤ i → i < fp + fs f + 99 * j + 99 →
         RegionL (bufL (fp + fs f) [99, 99, 99]
         [(cpKs lm hs).map (gen ^ ·), (cpOrd lm hs).map (gen ^ ·),

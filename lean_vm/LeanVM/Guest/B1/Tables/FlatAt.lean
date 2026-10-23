@@ -30,9 +30,8 @@ open LeanVM.Guest.B1.Main (Layout MemL RegionL)
 
 @[expose] public section
 
-/-- An atom that neither loads, nor allocates, nor places a run. -/
+/-- An atom that neither allocates nor places a run. -/
 def _root_.LeanVM.Guest.Core.Atom.plain : Atom → Bool
-  | .load .. => false
   | .hint (.alloc ..) => false
   | .hint (.allocDyn ..) => false
   | .frameAddr .. => false
@@ -110,26 +109,62 @@ theorem walk_flat (σ : Val) (vs : List V) : ∀ pre : List Stmt, pre.all Stmt.f
 
 theorem atom_plain_parts (σ : Val) (a : Atom) (h : a.plain = true) :
     Ev.allocDst? (.atom a) = none ∧ Ev.alloc? σ (.atom a) = none ∧ Ev.addr? (.atom a) = none ∧
-      Ev.call? (.atom a) = none ∧ Ev.loadAddr? σ (.atom a) = none := by
+      Ev.call? (.atom a) = none := by
   cases a with
-  | hint hk => cases hk <;> first | exact ⟨rfl, rfl, rfl, rfl, rfl⟩ | simp [Atom.plain] at h
-  | _ => first | exact ⟨rfl, rfl, rfl, rfl, rfl⟩ | simp [Atom.plain] at h
+  | hint hk => cases hk <;> first | exact ⟨rfl, rfl, rfl, rfl⟩ | simp [Atom.plain] at h
+  | _ => first | exact ⟨rfl, rfl, rfl, rfl⟩ | simp [Atom.plain] at h
 
-/-- What the events of a list of plain atoms place, call and load: nothing. -/
+/-- What the events of a list of plain atoms place, call and load: no buffer, no run, no frame,
+their loads. -/
 theorem atomsOf_parts (σ : Val) : ∀ l : List Stmt, l.all Stmt.plainS = true →
     (atomsOf l).filterMap Ev.allocDst? = [] ∧ (atomsOf l).filterMap (Ev.alloc? σ) = [] ∧
       (atomsOf l).filterMap Ev.addr? = [] ∧ (atomsOf l).filterMap Ev.call? = [] ∧
-      (atomsOf l).filterMap (Ev.loadAddr? σ) = []
+      (atomsOf l).filterMap (Ev.loadAddr? σ) =
+        (l.filterMap Stmt.loadS).map fun q => (σ q.1).limb 0 * gpow q.2
   | [], _ => by simp [atomsOf]
   | s :: l, h => by
     simp only [List.all_cons, Bool.and_eq_true] at h
     obtain ⟨i1, i2, i3, i4, i5⟩ := atomsOf_parts σ l h.2
     match s, h.1 with
     | .atom a, ha =>
-      obtain ⟨k1, k2, k3, k4, k5⟩ := atom_plain_parts σ a ha
+      obtain ⟨k1, k2, k3, k4⟩ := atom_plain_parts σ a ha
       simp only [atomsOf, List.filterMap_cons] at i1 i2 i3 i4 i5 ⊢
-      simp only [k1, k2, k3, k4, k5]
-      exact ⟨i1, i2, i3, i4, i5⟩
+      simp only [k1, k2, k3, k4]
+      refine ⟨i1, i2, i3, i4, ?_⟩
+      cases a <;> simp [Ev.loadAddr?, Stmt.loadS, i5]
+
+/-- The loads a flat statement makes under `σ`: an `ite`'s taken branch's, or its own. -/
+noncomputable def loadsEv (σ : Val) : Stmt → List (V × ℕ)
+  | .ite c z n => (if σ c = 0 then z else n).filterMap Stmt.loadS
+  | s => (Stmt.loadS s).toList
+
+/-- No load in a branch. -/
+def noLoadIte : Stmt → Bool
+  | .ite _ z n => (z ++ n).all fun t ↦ match t with
+    | .atom (.load ..) => false
+    | _ => true
+  | _ => true
+
+theorem flatMap_loadsEv (σ : Val) : ∀ pre : List Stmt, pre.all noLoadIte = true →
+    pre.flatMap (loadsEv σ) = pre.filterMap Stmt.loadS
+  | [], _ => rfl
+  | s :: pre, h => by
+    simp only [List.all_cons, Bool.and_eq_true] at h
+    rw [List.flatMap_cons, List.filterMap_cons, flatMap_loadsEv σ pre h.2]
+    cases s with
+    | ite c z n =>
+      have hz : (if σ c = 0 then z else n).filterMap Stmt.loadS = [] := by
+        rw [List.filterMap_eq_nil_iff]
+        intro t ht
+        have hall := h.1
+        simp only [noLoadIte, List.all_eq_true] at hall
+        have := hall t (by split at ht <;> simp [ht])
+        cases t with
+        | atom a => cases a <;> simp_all [Stmt.loadS]
+        | _ => rfl
+      simp [loadsEv, hz, Stmt.loadS]
+    | atom a => cases a <;> simp [loadsEv, Stmt.loadS]
+    | _ => simp [loadsEv, Stmt.loadS]
 
 /-- What one flat statement places, calls and loads. -/
 theorem flEvs_parts (σ : Val) (s : Stmt) (hs : s.flat = true) :
@@ -138,7 +173,7 @@ theorem flEvs_parts (σ : Val) (s : Stmt) (hs : s.flat = true) :
       ((Main.Stmt.allocSz s).map fun x => x.2.elim id fun s => logG (σ s)).toList ∧
     (flEvs σ s).filterMap Ev.addr? = (Main.Stmt.addrS s).toList ∧
     (flEvs σ s).filterMap Ev.call? = ((s.callSF σ).map (Main.mkCall σ)).toList ∧
-    (flEvs σ s).filterMap (Ev.loadAddr? σ) = ((Stmt.loadS s).map fun q => (σ q.1).limb 0 * gpow q.2).toList := by
+    (flEvs σ s).filterMap (Ev.loadAddr? σ) = (loadsEv σ s).map fun q => (σ q.1).limb 0 * gpow q.2 := by
   have hstr : ∀ t : Stmt, Main.Stmt.straight t = true → flEvs σ t = Main.slEvs σ t →
       t.callSF σ = Main.Stmt.callS t →
       (flEvs σ t).filterMap Ev.allocDst? = ((Main.Stmt.allocSz t).map Prod.fst).toList ∧
@@ -160,20 +195,32 @@ theorem flEvs_parts (σ : Val) (s : Stmt) (hs : s.flat = true) :
     · rw [i3]; cases h : Main.Stmt.addrS t <;> simp [h]
     · rw [i4]; cases h : Main.Stmt.callS t <;> simp [h]
     · rw [i5]; cases h : Stmt.loadS t <;> simp [h]
+  have hstr' : ∀ t : Stmt, Main.Stmt.straight t = true → flEvs σ t = Main.slEvs σ t →
+      t.callSF σ = Main.Stmt.callS t → loadsEv σ t = (Stmt.loadS t).toList →
+      (flEvs σ t).filterMap Ev.allocDst? = ((Main.Stmt.allocSz t).map Prod.fst).toList ∧
+      (flEvs σ t).filterMap (Ev.alloc? σ) =
+        ((Main.Stmt.allocSz t).map fun x => x.2.elim id fun s => logG (σ s)).toList ∧
+      (flEvs σ t).filterMap Ev.addr? = (Main.Stmt.addrS t).toList ∧
+      (flEvs σ t).filterMap Ev.call? = ((t.callSF σ).map (Main.mkCall σ)).toList ∧
+      (flEvs σ t).filterMap (Ev.loadAddr? σ) = (loadsEv σ t).map fun q => (σ q.1).limb 0 * gpow q.2 := by
+    intro t ht he hc hl
+    obtain ⟨i1, i2, i3, i4, i5⟩ := hstr t ht he hc
+    refine ⟨i1, i2, i3, i4, ?_⟩
+    rw [i5, hl]; cases Stmt.loadS t <;> rfl
   match s, hs with
-  | .atom a, _ => exact hstr _ rfl rfl rfl
-  | .call .., _ => exact hstr _ rfl rfl rfl
-  | .callIf .., _ => exact hstr _ rfl rfl rfl
+  | .atom a, _ => exact hstr' _ rfl rfl rfl (by cases a <;> rfl)
+  | .call .., _ => exact hstr' _ rfl rfl rfl rfl
+  | .callIf .., _ => exact hstr' _ rfl rfl rfl rfl
   | .ite c z n, h =>
     simp only [Stmt.flat, Bool.and_eq_true] at h
     obtain ⟨i1, i2, i3, i4, i5⟩ := atomsOf_parts σ (if σ c = 0 then z else n)
       (by split; exacts [h.1, h.2])
     simp only [flEvs, List.filterMap_cons, Ev.allocDst?, Ev.alloc?, Ev.addr?, Ev.call?,
-      Ev.loadAddr?, i1, i2, i3, i4, i5]
-    exact ⟨rfl, rfl, rfl, rfl, rfl⟩
+      Ev.loadAddr?, i1, i2, i3, i4, i5, loadsEv]
+    refine ⟨?_, ?_, ?_, ?_, ?_⟩ <;> first | rfl | trivial
   | .dispatch x fs args rets, _ =>
     simp only [flEvs, Stmt.callSF, List.filterMap_cons, List.filterMap_nil, Ev.allocDst?, Ev.alloc?,
-      Ev.addr?, Ev.call?, Ev.loadAddr?]
+      Ev.addr?, Ev.call?, Ev.loadAddr?, loadsEv, Stmt.loadS]
     exact ⟨rfl, rfl, rfl, rfl, rfl⟩
 
 /-- **What a flat body places, calls and loads**: its top-level statements'. -/
@@ -183,7 +230,7 @@ theorem flat_parts (σ : Val) : ∀ pre : List Stmt, pre.all Stmt.flat = true �
       (pre.filterMap Main.Stmt.allocSz).map (fun x => x.2.elim id fun s => logG (σ s)) ∧
     addrs (pre.flatMap (flEvs σ)) = pre.filterMap Main.Stmt.addrS ∧
     calls (pre.flatMap (flEvs σ)) = (pre.filterMap (Stmt.callSF σ)).map (Main.mkCall σ) ∧
-    loadAddrs σ (pre.flatMap (flEvs σ)) = (pre.filterMap Stmt.loadS).map fun q => (σ q.1).limb 0 * gpow q.2
+    loadAddrs σ (pre.flatMap (flEvs σ)) = (pre.flatMap (loadsEv σ)).map fun q => (σ q.1).limb 0 * gpow q.2
   | [], _ => by simp [allocDsts, allocs, addrs, calls, loadAddrs]
   | s :: pre, h => by
     simp only [List.all_cons, Bool.and_eq_true] at h
@@ -197,7 +244,7 @@ theorem flat_parts (σ : Val) : ∀ pre : List Stmt, pre.all Stmt.flat = true �
     · cases h : Main.Stmt.allocSz s <;> simp [h]
     · cases h : Main.Stmt.addrS s <;> simp [h]
     · cases h : s.callSF σ <;> simp [h]
-    · cases h : Stmt.loadS s <;> simp [h]
+    · simp
 
 variable {fs : String → ℕ} {cert : String → V → ℕ}
 
@@ -221,7 +268,7 @@ theorem completeAt_flatD {f : String} {fn : Fn} (hf : coreProgram.find? f = some
         ((pre.filterMap Main.Stmt.allocSz).map Prod.fst).map σ =
           (bases (fp + fs f) sizes).map (fun b => ofK (gpow b)) ∧
         CallsMatch σ ((pre.filterMap (Stmt.callSF σ)).map (Main.mkCall σ)) (kids fp) outs ∧
-        ∀ q ∈ pre.filterMap Stmt.loadS, ∃ i, (σ q.1).limb 0 * gpow q.2 = gpow i ∧
+        ∀ q ∈ pre.flatMap (loadsEv σ), ∃ i, (σ q.1).limb 0 * gpow q.2 = gpow i ∧
           (RegionL Lin i ∨ RegionL (bufL (fp + fs f) sizes (own fp)) i)) :
     CompleteAtD fs cert κ f Lin args (Returns rets) := by
   intro fp
@@ -289,7 +336,7 @@ theorem completeAt_flatOutD {f : String} {fn : Fn} (hf : coreProgram.find? f = s
         ((pre.filterMap Main.Stmt.allocSz).map Prod.fst).map σ =
           (bases (fp + fs f) sizes).map (fun b => ofK (gpow b)) ∧
         CallsMatch σ ((pre.filterMap (Stmt.callSF σ)).map (Main.mkCall σ)) (kids fp) outs ∧
-        ∀ q ∈ pre.filterMap Stmt.loadS, ∃ i, (σ q.1).limb 0 * gpow q.2 = gpow i ∧
+        ∀ q ∈ pre.flatMap (loadsEv σ), ∃ i, (σ q.1).limb 0 * gpow q.2 = gpow i ∧
           (RegionL Lin i ∨ RegionL (bufL (fp + fs f) sizes (own fp)) i)) :
     CompleteAtD fs cert κ f Lin args Out := by
   intro fp
