@@ -183,7 +183,7 @@ theorem query_openOne_w {D depth width : ℕ} (hD : 2 ≤ D) (hDd : D ≤ depth)
 
 /-- **The queries' openings and sum, named.** -/
 theorem queries_open_w {odd base I depth cd q N0 : ℕ} {cap flags lam lamN qptrs wp nG sum r0 r1 : E}
-    {root : Digest} {ws : List QW}
+    {root : Digest} {ws : List QW} {cap0 : E} (hc0 : cap0 = cap)
     (hm : MeaningOpeningQueriesW odd base I depth cd rd ws [cap, flags, lam, lamN, qptrs, wp, nG]
       [sum])
     (hcap : MeaningVerifyMerkleCap cd rd [cap, flags] [r0, r1])
@@ -198,17 +198,18 @@ theorem queries_open_w {odd base I depth cd q N0 : ℕ} {cap flags lam lamN qptr
     (hdot : ∀ (row : List K) (w : ℕ → E), row.length = width →
       (∀ l < rowLo I + I / rowLo I, LoadHolds rd wp l (w l)) →
         rowDot base I row w = dot (specRow row) (eqKernel fd)) :
-    (ws.map (toOpening rd cap cd depth)).length = q ∧
-      (∀ k (hk : k < qs.length) (ho : k < (ws.map (toOpening rd cap cd depth)).length),
+    (ws.map (toOpening rd cap0 cd depth)).length = q ∧
+      (∀ k (hk : k < qs.length) (ho : k < (ws.map (toOpening rd cap0 cd depth)).length),
         Id.run (Compile.openOne (m := Id) keccak256 root depth width qs[k]
-          (ws.map (toOpening rd cap cd depth))[k]) = true) ∧
-      sum = enforcedSum (((ws.map (toOpening rd cap cd depth)).map (·.leaf)).map specRow) fd
+          (ws.map (toOpening rd cap0 cd depth))[k]) = true) ∧
+      sum = enforcedSum (((ws.map (toOpening rd cap0 cd depth)).map (·.leaf)).map specRow) fd
         (powers lam q) := by
+  subst hc0
   obtain ⟨N, hN, hnG', hlam, hwl, bps, ds, hall, ch, -, hret⟩ := hm
   have hNN : N = N0 := gen_pow_inj hN hN0 (hnG'.symm.trans hnG)
   subst hNN
   rw [hQ] at hwl hall
-  have hql : (ws.map (toOpening rd cap cd depth)).length = q := by rw [List.length_map, hwl]
+  have hql : (ws.map (toOpening rd cap0 cd depth)).length = q := by rw [List.length_map, hwl]
   -- the positions
   have hqs' : ∀ k < q, (ws.getD k default).1 = qs.getD k 0 := by
     intro k hk
@@ -218,8 +219,8 @@ theorem queries_open_w {odd base I depth cd q N0 : ℕ} {cap flags lam lamN qptr
     subst e
     refine eq_of_bits hlt (hqlt k hk) fun l hl ↦ bitE_injective ?_
     exact hbits' l hl _ (hb' l hl)
-  have hget : ∀ k (hk : k < q), (ws.map (toOpening rd cap cd depth))[k]'(by rw [hql]; exact hk) =
-      toOpening rd cap cd depth (ws.getD k default) := by
+  have hget : ∀ k (hk : k < q), (ws.map (toOpening rd cap0 cd depth))[k]'(by rw [hql]; exact hk) =
+      toOpening rd cap0 cd depth (ws.getD k default) := by
     intro k hk
     rw [List.getElem_map, List.getD_eq_getElem _ _ (by rw [hwl]; exact hk)]
   refine ⟨hql, fun k hk ho ↦ ?_, ?_⟩
@@ -235,23 +236,27 @@ theorem queries_open_w {odd base I depth cd q N0 : ℕ} {cap flags lam lamN qptr
       exact hdot _ _ (hrow.trans hwidth) hw
     obtain ⟨hret, -⟩ := List.cons_eq_cons.mp hret
     rw [hret, hlamN, ← hQ, oqChain_powers hlam hodd hb, hQ]
-    have hrl : (((ws.map (toOpening rd cap cd depth)).map (·.leaf)).map specRow).length = q := by
+    have hrl : (((ws.map (toOpening rd cap0 cd depth)).map (·.leaf)).map specRow).length = q := by
       simp [hwl]
     rw [← hrl, enforcedSum_eq, hrl]
     unfold powSum
-    have hL : ∀ k < q, (((ws.map (toOpening rd cap cd depth)).map (·.leaf)).map specRow).getD k [] =
+    have hL : ∀ k < q, (((ws.map (toOpening rd cap0 cd depth)).map (·.leaf)).map specRow).getD k [] =
         specRow (ws.getD k default).2.1 := by
       intro k hk
       rw [List.getD_eq_getElem _ _ (by simp [hwl]; omega), List.getD_eq_getElem _ _ (by omega)]
       simp [toOpening]
     have hmap : (List.range q).map (fun k ↦ lam ^ k * ds k) =
         (List.range q).map (fun k ↦ lam ^ k *
-          dot ((((ws.map (toOpening rd cap cd depth)).map (·.leaf)).map specRow).getD k [])
+          dot ((((ws.map (toOpening rd cap0 cd depth)).map (·.leaf)).map specRow).getD k [])
             (eqKernel fd)) := by
       refine List.map_congr_left fun k hk ↦ ?_
       have hk' : k < q := List.mem_range.mp hk
       rw [hds k hk', hL k hk']
     rw [hmap]
+
+theorem meaningW_args {odd base I depth cd : ℕ} {ws : List QW} {A A' R : List E}
+    (h : MeaningOpeningQueriesW odd base I depth cd rd ws A R) (e : A = A') :
+    MeaningOpeningQueriesW odd base I depth cd rd ws A' R := e ▸ h
 
 end
 end LeanVM.Guest.B1.Whir
