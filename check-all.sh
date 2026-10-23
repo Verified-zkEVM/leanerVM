@@ -119,6 +119,13 @@ leanvm() {
   step "leanvm: the guest's data is leanVM's"
   cargo build --release --manifest-path lean_vm/scripts/guest-export/Cargo.toml
   capped lean_vm/scripts/guest-export/target/release/guest-export lean_vm --check
+  step "leanvm: the honest hints are the Rust's, and the guest runs on them (guest-diff)"
+  local gd
+  gd=$(mktemp -d)
+  (cd lean_vm && LEANVM_GUEST_DIFF="$gd" cargo test --release \
+    --manifest-path scripts/guest-export/Cargo.toml --lib guest_diff -- --ignored)
+  (cd lean_vm && lake build guest-diff && capped .lake/build/bin/guest-diff "$gd"/*.txt)
+  rm -rf "$gd"
   step "leanvm: Rust-vs-Lean differential"
   (cd lean_vm && lake build leanvm-verify)
   cargo build --release --manifest-path lean_vm/scripts/rust-verifier-cli/Cargo.toml

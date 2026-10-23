@@ -318,6 +318,15 @@ jobs:
         run: |
           cargo build --release --manifest-path scripts/guest-export/Cargo.toml
           scripts/guest-export/target/release/guest-export . --check
+      # Four real Rust aggregations (a leaf, a leaf of both schemes with a blob, a long leanXMSS
+      # list, a node over them): the witness holds the statement, the honest hint generator gives
+      # the Rust's installed streams entry for entry, and the interpreter runs `main` on them.
+      - name: The honest hints are the Rust's (guest-diff)
+        run: |
+          LEANVM_GUEST_DIFF="$RUNNER_TEMP/guest-diff" cargo test --release \
+            --manifest-path scripts/guest-export/Cargo.toml --lib guest_diff -- --ignored
+          lake build guest-diff
+          .lake/build/bin/guest-diff "$RUNNER_TEMP"/guest-diff/*.txt
       # The Lean verifier and the pinned Rust verifier must agree on the committed proofs and on
       # mutations of them, so a bump to a protocol change fails here until the Lean one follows.
       - name: Rust-vs-Lean differential
