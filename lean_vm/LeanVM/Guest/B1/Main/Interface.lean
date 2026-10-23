@@ -61,7 +61,7 @@ open LeanVM.Guest.B1.Digest LeanVM.Node
 /-! ## Reading the memory -/
 
 /-- The exponent of a power of `g` below `2^34` (`0` for other words). -/
-noncomputable def gLog (x : E) : ℕ := ((gLog? 34 (x.limb 0)).map Fin.val).getD 0
+@[irreducible] noncomputable def gLog (x : E) : ℕ := ((gLog? 34 (x.limb 0)).map Fin.val).getD 0
 
 /-- The digest of two cells, their low limbs its four words (`digestOfScalars`, unchecked). -/
 def digestOfCells (a b : E) : Digest :=

@@ -38,7 +38,7 @@ theorem gLog_gen_pow {e : ℕ} (he : e < 2 ^ 34) : gLog (gen ^ e) = e := by
   rfl
 
 /-- The exponent of `main`'s value `v`. -/
-noncomputable abbrev lg (σ : Val) (v : ℕ) : ℕ := gLog (σ (.n v))
+@[irreducible] noncomputable def lg (σ : Val) (v : ℕ) : ℕ := gLog (σ (.n v))
 
 theorem pow_lg {σ : Val} {v e : ℕ} (he : e < 2 ^ 34) (h : σ (.n v) = gen ^ e) :
     σ (.n v) = gen ^ lg σ v ∧ lg σ v = e := by
