@@ -119,9 +119,9 @@ def L26Step (rd : Reader) (sqT lamT lfT lcT x : E) : Prop :=
     LoadHolds rd (lamT * x ^ 2) 0 st.squeeze.1 ∧
     LoadHolds rd (lamT * x ^ 2) 1 st.squeeze.2.squeeze.1 ∧
     RowRel rd (sqT * x ^ 14 * gen ^ 14) st.squeeze.2.squeeze.2 ∧
-    memAt rd (sqT * x ^ 14) 27 = memAt rd (sqT * x ^ 14) 13 +
+    LoadHolds rd (sqT * x ^ 14) 27 (memAt rd (sqT * x ^ 14) 13 +
       st.squeeze.1 * memAt rd (memAt rd (lfT * x) 0) 23 +
-      st.squeeze.2.squeeze.1 * memAt rd (memAt rd (lcT * x) 0) 23
+      st.squeeze.2.squeeze.1 * memAt rd (memAt rd (lcT * x) 0) 23)
 
 theorem getD_k1o {c : ℕ} (hc : c < 13) : k1o.getD c default = .n (29 + c) := by
   simp [k1o, List.getD_eq_getElem?_getD, hc]
@@ -203,7 +203,7 @@ theorem l26_step {x : E} {ps : List E} (h : coreProgram.Rel rd "__loop26" (x :: 
     rw [p11] at e
     rw [e, const_sound (hzc c hc) hat, word_zero]
   · -- the running claim
-    have e27 := memAt_of_load (load_sound hl95 hat)
+    have e27 := load_sound hl95 hat
     have e13 := memAt_of_load (load_sound hl89 hat)
     have e90 := memAt_of_load (load_sound hl90 hat)
     have e93 := memAt_of_load (load_sound hl93 hat)
@@ -212,8 +212,9 @@ theorem l26_step {x : E} {ps : List E} (h : coreProgram.Rel rd "__loop26" (x :: 
     rw [isMul_sound hm77 hat, h4, hx] at e78
     rw [isMul_sound hm79 hat, h5, hx] at e80
     rw [p11] at e27 e13
-    rw [e27, e13, e78, e80, e90, e93, add_sound ha95 hat, add_sound ha92 hat,
-      isMul_sound hm91 hat, isMul_sound hm94 hat, lf, lc]
+    rw [add_sound ha95 hat, add_sound ha92 hat, isMul_sound hm91 hat, isMul_sound hm94 hat, lf,
+      lc, ← e13, ← e90, ← e93, ← e78, ← e80] at e27
+    exact e27
 
 /-! ## Equality weights -/
 
@@ -300,9 +301,9 @@ theorem l27_idx : coreProgram.indexOf? "__loop27" = some 397 := by decide +kerne
 /-- **Child `x`'s weight**: `w[x·g] = w[x] + λ_fresh · eq(fresh, r) + λ_carried · eq(carried, r)`,
 the lambdas at `lam·x^2`, the claims' points through the pointer tables, `r` at `pt`. -/
 def L27Step (rd : Reader) (lfT lcT pt wT lamT x : E) : Prop :=
-  memAt rd (wT * x) 1 = memAt rd (wT * x) 0 +
+  LoadHolds rd (wT * x) 1 (memAt rd (wT * x) 0 +
     memAt rd (lamT * x ^ 2) 0 * eqEval (memRun rd (memAt rd (lfT * x) 0) 23) (memRun rd pt 23) +
-    memAt rd (lamT * x ^ 2) 1 * eqEval (memRun rd (memAt rd (lcT * x) 0) 23) (memRun rd pt 23)
+    memAt rd (lamT * x ^ 2) 1 * eqEval (memRun rd (memAt rd (lcT * x) 0) 23) (memRun rd pt 23))
 
 theorem l27_step {x : E} {ps : List E} (h : coreProgram.Rel rd "__loop27" (x :: ps) []) :
     (∀ N lfT lcT pt wT lamT, ps = [N, lfT, lcT, pt, wT, lamT] → L27Step rd lfT lcT pt wT lamT x) ∧
@@ -335,14 +336,15 @@ theorem l27_step {x : E} {ps : List E} (h : coreProgram.Rel rd "__loop27" (x :: 
   have e264 := memAt_of_load (load_sound hl264 hat)
   have e266 := memAt_of_load (load_sound hl266 hat)
   have e270 := memAt_of_load (load_sound hl270 hat)
-  have e272 := memAt_of_load (load_sound hl272 hat)
+  have e272 := load_sound hl272 hat
   rw [isMul_sound hm263 hat, h5, hx] at e264
   rw [isMul_sound hm273 hat, h5, hx] at e272
   rw [isMul_sound hm265 hat, h6, p262] at e266
   rw [isMul_sound hm269 hat, h6, p262] at e270
   unfold L27Step
-  rw [e272, add_sound ha272 hat, add_sound ha268 hat, isMul_sound hm267 hat,
-    isMul_sound hm271 hat, e264, e266, e270, ef, ec]
+  rw [add_sound ha272 hat, add_sound ha268 hat, isMul_sound hm267 hat, isMul_sound hm271 hat,
+    ← e264, ← e266, ← e270, ef, ec] at e272
+  exact e272
 
 end
 end LeanVM.Guest.B1.Main
