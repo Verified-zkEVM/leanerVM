@@ -78,7 +78,7 @@ theorem osKindOf_can : osKindOf "assert_canonical" = some .can := by
 /-- **The body's calls hold at `osCR`** on memory holding the honest buffers. -/
 theorem osCallsOk_honest {c : OsCfg} {tr : OsTr} {μ r : ℕ} {cfg : List Whir.Level}
     (hF : CandFacts c μ r cfg) (h : TrFit c tr) (hs : OsSizes c) {target : E} {S : KState}
-    {xs : List E} {os : List Opening} {root : Digest} (hrun : TrRun μ r target S xs os root tr)
+    {xs : List E} {os : List Opening} {root : Digest} (hrun : TrRun c μ r target S xs os root tr)
     (hcaps : CapsAgree μ r target S xs os root) (hN : OsNames c) {rd : Reader} {A : OsAt}
     (hm : OsMem rd A c tr) (hC : ReadsAt rd A.P.caps (capsC c tr))
     (hFl : ReadsAt rd A.P.flags (flagsC c tr))

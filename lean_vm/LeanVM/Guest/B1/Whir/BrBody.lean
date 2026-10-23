@@ -82,11 +82,13 @@ def osBodyF (c : OsCfg) (tr : OsTr) (σ : Val) (c0 c2 : E) (A : OsAt) : ℕ → 
 
 /-- **What the run gives of its trace** beyond the body: each level's query step is one of the
 run's (so `CapsAgree` speaks of it), and each level's tree has height `L.D`. -/
-structure TrRun (μ r : ℕ) (target : E) (S : KState) (xs : List E) (os : List Opening)
+structure TrRun (c : OsCfg) (μ r : ℕ) (target : E) (S : KState) (xs : List E) (os : List Opening)
     (root : Digest) (tr : OsTr) : Prop where
   qs : ∀ L ∈ tr.Ls, (L.height, L.qs.zip L.os) ∈
     queryStepsOf (whirOpen μ r target) (osStart μ r S xs os root)
   height : ∀ i < tr.Ls.length, (tr.L i).height = (tr.L i).D
+  index : ∀ i < tr.Ls.length, (tr.L i).index = i
+  width : ∀ i < tr.Ls.length, (tr.L i).width = lvWidth i (lvAt c i)
 
 /-- **open_stacked's body, honestly, on the Spec's run.** -/
 theorem osBodyA_honest {c : OsCfg} {μ r : ℕ} {cfg : List Whir.Level} (hF : CandFacts c μ r cfg)
@@ -107,7 +109,7 @@ theorem osBodyA_honest {c : OsCfg} {μ r : ℕ} {cfg : List Whir.Level} (hF : Ca
           (osBodyA c)
           (fun σ' ↦ (osFinishRet c (osTlSt c).2.1 (osTlSt c).2.2).map σ' =
             [w.target, A.PT, A.PT1, w.inner, w.residual] ∧ AgreeBelow 9 σ σ')) ∧
-      TrRun μ r target S xs os root tr := by
+      TrRun c μ r target S xs os root tr := by
   obtain ⟨c0, c2, xs', Ls, hxs, hlc, hch, hqs⟩ := nz_trace hF hrun hnz
   set lane := (cfg.head?.map (·.fold)).getD 0 with hlane
   obtain ⟨hlane', -⟩ := levelsOk_lane hF.lok
@@ -141,7 +143,30 @@ theorem osBodyA_honest {c : OsCfg} {μ r : ℕ} {cfg : List Whir.Level} (hF : Ca
         | cons a b => simp [lvAt, h']
       rw [h1, hF.shape, hhd, SpLv.D, hml0, ← hd0]
     · exact chain_heights _ _ _ _ _ _ _ _ _ hch rfl i (by simpa using hi)
-  refine ⟨c0, c2, tr, hfit, by rw [ptC, hpoint, hpl], by rw [pt1C, hpoint, hpl], ?_, ⟨hqs, hheight⟩⟩
+  obtain ⟨-, hat, -, -, -, -⟩ := chain_at _ _ _ _ _ _ _ _ _ hch
+  have hindex : ∀ i < tr.Ls.length, (tr.L i).index = i := fun i hi ↦ by
+    have := (hat i hi).index
+    rw [Nat.zero_add] at this
+    exact this
+  have hwidth : ∀ i < tr.Ls.length, (tr.L i).width = lvWidth i (lvAt c i) := by
+    intro i hi
+    rcases i with _ | i
+    · have h0 := chain_height0 hch
+      simp only [List.getD_cons_zero, Prod.mk.injEq] at h0
+      have h1 : (Ls.getD 0 default).width = (stackShape μ r).2 := congrArg Prod.snd h0.2
+      have hhd : c.levels.headD default = lvAt c 0 := by
+        cases h' : c.levels with
+        | nil => simp [h'] at hn
+        | cons a b => simp [lvAt, h']
+      show (Ls.getD 0 default).width = _
+      rw [h1, hF.shape, hhd]
+    · have hw := chain_widths _ _ _ _ _ _ _ _ _ hch rfl i (by simpa using hi)
+      have hl := (hat (i + 1) (by simpa using hi)).level
+      have hlw := levelsOk_width 0 c.levels cfg hF.lok i (by rw [← hfit.len]; simpa using hi)
+      show (Ls.getD (i + 1) default).width = _
+      rw [hw, hl, hlw, Nat.zero_add]
+  refine ⟨c0, c2, tr, hfit, by rw [ptC, hpoint, hpl], by rw [pt1C, hpoint, hpl], ?_,
+    ⟨hqs, hheight, hindex, hwidth⟩⟩
   intro C rd σ A hcap h5 h6 h7 hrd hm hc
   -- the head's words
   rw [hxs] at hrd

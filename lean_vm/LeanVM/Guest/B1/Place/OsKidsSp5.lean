@@ -55,7 +55,7 @@ theorem pow_div_lt {q a b : ℕ} (h : q < 2 ^ (a + b)) : q / 2 ^ a < 2 ^ b :=
 theorem os_q_completeAtD (fs : String → ℕ) (cert : String → V → ℕ) (κ : ℕ) {c : OsCfg}
     {tr : OsTr} {μ r : ℕ} {target : E} {S : KState} {xs : List E}
     {os : List Opening} {root : Digest} (h : TrFit c tr)
-    (hs : OsSizes c) (hrun : TrRun μ r target S xs os root tr)
+    (hs : OsSizes c) (hrun : TrRun c μ r target S xs os root tr)
     (hcaps : CapsAgree μ r target S xs os root) {l : ℕ} (hl : l < c.levels.length)
     (hnm : NamesOk c l (lvAt c l))
     (hfits : OqFits fs cert (osQueriesName l (lvAt c l)) (oqLoopOf (osQueriesName l (lvAt c l)))

@@ -77,5 +77,53 @@ theorem chain_height0 {cfg : List Whir.Level} {lvl : ℕ} {ws : WhirState} {F : 
   rw [List.getD_eq_getElem?_getD (l := R), hr]
   rfl
 
+
+/-- **Each level after the first opens a tree of width `3·2^fold`**, its fold its Spec level's. -/
+theorem chain_widths : ∀ (cfg : List Whir.Level) (lvl : ℕ) (ws : WhirState) (F : Fs) (xs : List E)
+    (os : List Opening) (R : List (Digest × ℕ × ℕ)) (Ls : List SpLv) (res : WhirEnd × FSt),
+    SpChain logN lane lvl cfg ws F xs os R Ls res → R.length = lvl + 1 →
+    ∀ i, i + 1 < Ls.length →
+      (Ls.getD (i + 1) default).width = 3 * 2 ^ (Ls.getD (i + 1) default).level.fold
+  | [level], lvl, ws, F, xs, os, R, [L], res, _, _, i, hi => absurd hi (by simp)
+  | level :: next :: cfg, lvl, ws, F, xs, os, R, L :: Ls, res, h, hR, i, hi => by
+    obtain ⟨e1, e2, e3, e4, e5, e6, d, xsR, osR, hOk, -, -, h'⟩ := h
+    rcases i with _ | i
+    · obtain ⟨hl, hat, -, -, ⟨d', hok'⟩, -⟩ := chain_at _ _ _ _ _ _ _ _ _ h'
+      have h0 : 0 < Ls.length := by rw [hl]; simp
+      have hat0 := hat 0 h0
+      have hr := hok'.root
+      rw [hat0.index, Nat.add_zero, List.getElem?_append_right (by rw [hR])] at hr
+      simp only [hR, Nat.sub_self, List.getElem?_cons_zero, Option.some.injEq, Prod.mk.injEq] at hr
+      simp only [List.getD_cons_succ]
+      have hw : (levelShape L.ml next (3 * 2 ^ next.fold)).2 = (Ls.getD 0 default).width :=
+        congrArg Prod.snd hr.2
+      have hlev : (Ls.getD 0 default).level = next := by simpa using hat0.level
+      rw [← hw, hlev]; rfl
+    · simp only [List.getD_cons_succ]
+      exact chain_widths _ _ _ _ _ _ _ Ls res h' (by simp [hR]) i (by simpa using hi)
+  | [], _, _, _, _, _, _, _, _, h, _, _, _ => by simp [SpChain] at h
+  | [_], _, _, _, _, _, _, [], _, h, _, _, _ => by simp [SpChain] at h
+  | [_], _, _, _, _, _, _, _ :: _ :: _, _, h, _, _, _ => by simp [SpChain] at h
+  | _ :: _ :: _, _, _, _, _, _, _, [], _, h, _, _, _ => by simp [SpChain] at h
+
+/-- **`LevelsOk` gives each later level's width** from its Spec level's fold. -/
+theorem levelsOk_width {c : OsCfg} {logN : ℕ} : ∀ (lvl : ℕ) (lvs : List OsLv) (cfg : List Whir.Level),
+    LevelsOk c logN lvl lvs cfg → ∀ j, j + 1 < lvs.length →
+      3 * 2 ^ (cfg.getD (j + 1) ⟨0, 0, 0⟩).fold = lvWidth (lvl + j + 1) (lvs.getD (j + 1) default)
+  | _, [_], [_], _, j, hj => absurd hj (by simp)
+  | lvl, lv :: lv' :: lvs, level :: next :: cfg, h, j, hj => by
+    obtain ⟨-, -, -, -, -, -, -, -, hsh, h'⟩ := h
+    rcases j with _ | j
+    · have := congrArg Prod.snd hsh
+      simpa [levelShape] using this
+    · have := levelsOk_width (lvl + 1) (lv' :: lvs) (next :: cfg) h' j (by simpa using hj)
+      simp only [List.getD_cons_succ] at this ⊢
+      rw [this, show lvl + 1 + j + 1 = lvl + (j + 1) + 1 by omega]
+  | _, [], _, h, _, _ => by simp [LevelsOk] at h
+  | _, [_], [], h, _, _ => by simp [LevelsOk] at h
+  | _, [_], _ :: _ :: _, h, _, _ => by simp [LevelsOk] at h
+  | _, _ :: _ :: _, [], h, _, _ => by simp [LevelsOk] at h
+  | _, _ :: _ :: _, [_], h, _, _ => by simp [LevelsOk] at h
+
 end
 end LeanVM.Guest.B1.Whir
