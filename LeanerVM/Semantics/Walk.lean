@@ -59,21 +59,14 @@ theorem exists_walksIn [DecidableEq V] {f : V → Option V} :
     intro s t hbal hE
     by_cases hst : s = t
     · exact ⟨0, Nat.zero_le _, hst⟩
-    have hs : s ∈ E := by
-      have := hbal.subset List.mem_cons_self
-      rcases List.mem_cons.mp this with h | h
-      · exact absurd h hst
-      · exact h
+    have hs : s ∈ E := (List.mem_cons.mp (hbal.subset List.mem_cons_self)).resolve_left hst
     obtain ⟨s', hs'⟩ := Option.ne_none_iff_exists'.mp (hE s hs)
     have hperm : E.Perm (s :: E.erase s) := List.perm_cons_erase hs
     have hbal' : (s' :: (E.erase s).filterMap f).Perm (t :: E.erase s) := by
-      have h1 : (s :: E.filterMap f).Perm (s :: s' :: (E.erase s).filterMap f) := by
-        refine List.Perm.cons s ?_
-        have := hperm.filterMap f
-        rwa [List.filterMap_cons_some hs'] at this
-      have h2 : (t :: E).Perm (s :: t :: E.erase s) :=
-        (hperm.cons t).trans (List.Perm.swap s t _)
-      exact (List.perm_cons s).mp (h1.symm.trans (hbal.trans h2))
+      have h1 := hperm.filterMap f
+      rw [List.filterMap_cons_some hs'] at h1
+      exact (List.perm_cons s).mp
+        ((h1.cons s).symm.trans (hbal.trans ((hperm.cons t).trans (List.Perm.swap s t _))))
     have hlt : (E.erase s).length < len := by
       rw [List.length_erase_of_mem hs, ← hlen]
       exact Nat.sub_lt (List.length_pos_of_mem hs) Nat.one_pos

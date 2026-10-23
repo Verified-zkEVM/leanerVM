@@ -97,9 +97,6 @@ def traceOf (prog : Program) (w : EnsembleWitness (leanIsaEnsemble prog)) :
 
 /-! ## Proof helpers -/
 
-/-- A state message read back as registers. -/
-private theorem regsOfMsg_pair (r : Regs K) : regsOfMsg #[r.pc, r.fp] = r := rfl
-
 /-- Distinct states have distinct keys. -/
 private theorem stateKey_injective : Function.Injective stateKey := by
   rintro ⟨⟨a⟩, ⟨b⟩⟩ ⟨⟨c⟩, ⟨d⟩⟩ h
@@ -112,18 +109,14 @@ none. -/
 private theorem messagesOn_state (w : EnsembleWitness (leanIsaEnsemble prog)) {c : RawChannel K}
     (hc : c.name = StatePull.name ∨ c.name = StatePush.name) :
     messagesOn w c = rowsOn [w.verifierTable] c ++ rowsOn (w.tables.take 6) c := by
-  have hne : ∀ n : String, n ≠ StatePull.name → n ≠ StatePush.name → c.name ≠ n := by
-    rintro n h1 h2 rfl
-    rcases hc with hc | hc
-    · exact h1 hc
-    · exact h2 hc
+  rcases hc with hc | hc <;>
   rw [messagesOn_split,
     rowsOn_single_nil (t := tableAt w 6) fun row ↦ by
-      rw [memBlock_rowMessagesOn (tableAt_six_component w) row rfl,
-        ite_eq_right (hne _ (by decide) (by decide)), ite_eq_right (hne _ (by decide) (by decide))],
+      rw [memBlock_rowMessagesOn (tableAt_six_component w) row rfl, hc, ite_eq_right (by decide),
+        ite_eq_right (by decide)],
     rowsOn_single_nil (t := tableAt w 7) fun row ↦ by
-      rw [bytecodeBlock_rowMessagesOn (tableAt_seven_component w) row rfl,
-        ite_eq_right (hne _ (by decide) (by decide)), ite_eq_right (hne _ (by decide) (by decide))],
+      rw [bytecodeBlock_rowMessagesOn (tableAt_seven_component w) row rfl, hc,
+        ite_eq_right (by decide), ite_eq_right (by decide)],
     List.append_nil, List.append_nil]
 
 /-- The verifier pushes `(1, 1)` and pulls the final registers. -/
@@ -173,16 +166,6 @@ private theorem statePairs_spec (hsafe : SentinelSafe prog)
       (by rw [hpull]; exact List.mem_singleton_self _),
     t, ht', row, hrow, hpull, hpush⟩
 
-/-- A list of pairs whose first components step to their second: the steps of the first
-components are the second components. -/
-private theorem filterMap_fst {α : Type} {f : α → Option α} :
-    ∀ {l : List (α × α)}, (∀ p ∈ l, f p.1 = some p.2) →
-      (l.map Prod.fst).filterMap f = l.map Prod.snd
-  | [], _ => rfl
-  | p :: l, h => by
-    rw [List.map_cons, List.filterMap_cons_some (h p List.mem_cons_self), List.map_cons,
-      filterMap_fst fun q hq ↦ h q (List.mem_cons_of_mem p hq)]
-
 /-- The states the rows pull: a balanced graph of steps from `(1, 1)` to the final registers. -/
 private theorem states_balanced (hsafe : SentinelSafe prog)
     {w : EnsembleWitness (leanIsaEnsemble prog)} (h : SatisfiedBy prog input w) :
@@ -192,7 +175,8 @@ private theorem states_balanced (hsafe : SentinelSafe prog)
   rw [messagesOn_state w (Or.inr rfl), messagesOn_state w (Or.inl rfl), List.map_append,
     List.map_append, (verifier_states w).1, (verifier_states w).2, ← (statePairs_fst w).1,
     ← (statePairs_fst w).2] at hbal
-  rwa [filterMap_fst fun p hp ↦ (statePairs_spec hsafe h p hp).1]
+  rwa [List.filterMap_map, (List.filterMap_eq_map_iff_forall_eq_some
+    (f := step prog (imageOf w.data).2 ∘ Prod.fst)).mpr fun p hp ↦ (statePairs_spec hsafe h p hp).1]
 
 /-- A walk of steps through states away from the sentinel is a run. -/
 private theorem run_of_walksIn {κ : ℕ} {L : MemImage κ} {E : List (Regs K)}
@@ -237,23 +221,12 @@ private theorem foldl_insert_isSome {l : List (Regs K × Regs K)}
     (h : (m[k]?).isSome ∨ ∃ p ∈ l, stateKey p.1 = k) :
     ((l.foldl (fun m p ↦ m.insert (stateKey p.1) p.2) m)[k]?).isSome := by
   induction l generalizing m with
-  | nil =>
-    rcases h with h | ⟨p, hp, -⟩
-    · exact h
-    · exact absurd hp List.not_mem_nil
+  | nil => simpa using h
   | cons p l ih =>
     refine ih ?_
-    rcases h with h | ⟨q, hq, hk⟩
-    · left
-      rw [Std.HashMap.getElem?_insert]
-      split_ifs
-      · rfl
-      · exact h
-    · rcases List.mem_cons.mp hq with rfl | hq
-      · left
-        rw [Std.HashMap.getElem?_insert, ite_eq_left (beq_iff_eq.mpr hk)]
-        rfl
-      · exact Or.inr ⟨q, hq, hk⟩
+    simp only [Std.HashMap.isSome_getElem?_iff_mem, Std.HashMap.mem_insert, beq_iff_eq,
+      List.mem_cons, or_and_right, exists_or, exists_eq_left] at h ⊢
+    tauto
 
 /-- At a pulled state, the state map holds the state a row pushes from it. -/
 private theorem stateMap_getElem? {w : EnsembleWitness (leanIsaEnsemble prog)}
@@ -272,8 +245,7 @@ private theorem walkSteps_of_walksIn {κ : ℕ} {L : MemImage κ} {E : List (Reg
     (hfinal : ∀ v ∈ E, v ≠ final)
     (hm : ∀ v ∈ E, ∀ v', step prog L v = some v' → m[stateKey v]? = some v') :
     ∀ {n s fuel}, WalksIn (step prog L) E n s final → n ≤ fuel → walkSteps m final fuel s = some n
-  | 0, _, 0, h, _ => by rw [walkSteps, ite_eq_left (show _ = final from h)]
-  | 0, _, _ + 1, h, _ => by rw [walkSteps, ite_eq_left (show _ = final from h)]
+  | 0, _, fuel, h, _ => by cases fuel <;> rw [walkSteps, ite_eq_left (show _ = final from h)]
   | _ + 1, _, 0, _, hn => absurd hn (by omega)
   | n + 1, s, fuel + 1, ⟨hs, s', hstep, hw⟩, hn => by
     rw [walkSteps, ite_eq_right (hfinal s hs), hm s hs s' hstep, Option.bind_some,
@@ -311,20 +283,15 @@ theorem traceOf_valid (hsafe : SentinelSafe prog) {w : EnsembleWitness (leanIsaE
   have hregs : ∀ k (hk : k + 1 < t.regs.length), RowSteps w t.regs[k] t.regs[k + 1] := by
     intro k hk
     have hlen : t.regs.length = n + 1 := Trace.regs_length (t := t) hrun
-    have hkn : k < n := by omega
-    have hrk := Trace.regs_getElem (t := t) hrun k (by omega)
-    have hrk1 := Trace.regs_getElem (t := t) hrun (k + 1) hk
-    obtain ⟨u, hu, hu'⟩ := walksIn_states hE hw k hkn
+    obtain ⟨u, hu, hu'⟩ := walksIn_states hE hw k (by omega)
     obtain ⟨p, hp, rfl⟩ := List.mem_map.mp hu
-    have hk_eq : t.regs[k] = p.1 := Option.some.inj (hrk.symm.trans hu')
-    have hk1_eq : t.regs[k + 1] = p.2 := by
-      have : run prog t.image (k + 1) Regs.initial = some p.2 := by
-        rw [run_add, hu']
-        show run prog t.image 1 p.1 = some p.2
-        rw [run_succ_of_ne (hspec p hp).2.1, (hspec p hp).1]
-        rfl
-      exact Option.some.inj (hrk1.symm.trans this)
-    rw [hk_eq, hk1_eq]
+    have hu1 : run prog t.image (k + 1) Regs.initial = some p.2 := by
+      rw [run_add, hu']
+      show run prog t.image 1 p.1 = some p.2
+      rw [run_succ_of_ne (hspec p hp).2.1, (hspec p hp).1]
+      rfl
+    rw [Option.some.inj ((Trace.regs_getElem (t := t) hrun k (by omega)).symm.trans hu'),
+      Option.some.inj ((Trace.regs_getElem (t := t) hrun (k + 1) hk).symm.trans hu1)]
     exact (hspec p hp).2.2
   exact ⟨t, by rw [traceOf, hwalk]; rfl, ⟨rfl, fun _ _ ↦ rfl, hregs⟩,
     ⟨⟨h.caps.minLogMem_le, h.caps.le_maxLogMem, h.word0_eq, h.word1_eq⟩, hrun⟩⟩

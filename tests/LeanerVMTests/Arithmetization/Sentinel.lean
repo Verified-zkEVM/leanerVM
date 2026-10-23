@@ -53,12 +53,6 @@ theorem sent_not_safe : ¬ SentinelSafe sentProg := by decide
 
 /-! ## The rows -/
 
-/-- A typed row as the raw row a table holds. -/
-def asRow {Row : TypeMap} [ProvableType Row] (r : Row K) : Array K := (toElements r).toArray
-
-/-- A `JUMP` row with its two local witnesses `w = b = 1`. -/
-def asJumpRow (r : JumpRow K) : Array K := asRow r ++ #[1, 1]
-
 /-- Slot `3`, the run's `JUMP` to `(g^31, g^5)`: the condition at `g^26`, the destination at
 `g^27`, the frame word `g^5` at `g^11` (its third read). -/
 def jumpRowA : JumpRow K :=
@@ -94,18 +88,11 @@ def sentBcCnt (i : Fin (2 ^ sentProg.logSize)) : K :=
 /-! ## The witness -/
 
 def derefTS : Air.Flat.Table K :=
-  mkT derefTable (size DerefRow) [asRow derefRowS] fun r hr ↦ by
-    rw [List.mem_singleton] at hr
-    subst hr
-    exact Vector.size_toArray _
+  mkT derefTable (size DerefRow) ([derefRowS].map rawRow) (rows_size [derefRowS])
 
 def jumpTS : Air.Flat.Table K :=
-  mkT jumpTable (size JumpRow + 2) ([jumpRowA, jumpRowB, jumpRow16, jumpRowS].map asJumpRow)
-    fun r hr ↦ by
-      rw [List.mem_map] at hr
-      obtain ⟨_, -, rfl⟩ := hr
-      rw [asJumpRow, Array.size_append, asRow, Vector.size_toArray]
-      rfl
+  mkT jumpTable (size JumpRow + 2) ([jumpRowA, jumpRowB, jumpRow16, jumpRowS].map jumpRaw)
+    (jumpRaw_size [jumpRowA, jumpRowB, jumpRow16, jumpRowS])
 
 def bcTS : Air.Flat.Table K :=
   mkT bytecodeTable (size BytecodeRow)
@@ -183,35 +170,34 @@ theorem sent_constraints : sentW.Constraints := by
   · exact fun _ _ ↦ mem_constraints _
   · exact fun _ _ ↦ bytecode_constraints _
 
-theorem sent_state_balanced : BalancedPair sentW StatePull.toRaw StatePush.toRaw := by
+/-- A message as a numeral, injectively, so that the kernel decides a permutation of messages
+by comparing numerals. -/
+def msgCode (a : Array K) : ℕ := Encodable.encode (a.toList.map fun x ↦ x.toBitVec.toNat)
+
+/-- Distinct messages have distinct codes. -/
+theorem msgCode_injective : Function.Injective msgCode := fun _ _ h ↦
+  Array.toList_inj.mp <| List.map_injective_iff.mpr
+    (fun _ _ h' ↦ BF64.toBitVec_injective (BitVec.eq_of_toNat_eq h')) (Encodable.encode_injective h)
+
+/-- The three pairs balance: one kernel evaluation, which evaluates each row's messages once,
+decides the three permutations on the messages' codes. The memory pair is reduced to the touched
+cells, the untouched seeds and finalizes cancelling. -/
+theorem sent_balanced : BalancedPair sentW StatePull.toRaw StatePush.toRaw ∧
+    BalancedPair sentW BytecodePull.toRaw BytecodePush.toRaw ∧
+    BalancedPair sentW MemPull.toRaw MemPush.toRaw := by
   unfold BalancedPair messagesOn
   simp only [EnsembleWitness.interactions, EnsembleWitness.allTables, sentW, mkWS,
     List.flatMap_cons, List.flatMap_nil, List.append_nil, List.filter_append, List.map_append,
     memT_filter sentCnt StatePush.toRaw (by decide) (by decide),
     memT_filter sentCnt StatePull.toRaw (by decide) (by decide),
-    bcTS_filter StatePush.toRaw (by decide) (by decide),
-    bcTS_filter StatePull.toRaw (by decide) (by decide)]
-  simp only [table_interactions_eq]
-  decide +kernel
-
-theorem sent_bytecode_balanced : BalancedPair sentW BytecodePull.toRaw BytecodePush.toRaw := by
-  unfold BalancedPair messagesOn
-  simp only [EnsembleWitness.interactions, EnsembleWitness.allTables, sentW, mkWS,
-    List.flatMap_cons, List.flatMap_nil, List.append_nil, List.filter_append, List.map_append,
     memT_filter sentCnt BytecodePush.toRaw (by decide) (by decide),
-    memT_filter sentCnt BytecodePull.toRaw (by decide) (by decide)]
-  simp only [table_interactions_eq]
-  decide +kernel
-
-theorem sent_mem_balanced : BalancedPair sentW MemPull.toRaw MemPush.toRaw := by
-  unfold BalancedPair messagesOn
-  rw [EnsembleWitness.interactions]
-  simp only [EnsembleWitness.allTables, sentW, mkWS, List.flatMap_cons, List.flatMap_nil,
-    List.append_nil, List.filter_append, List.map_append,
+    memT_filter sentCnt BytecodePull.toRaw (by decide) (by decide),
+    bcTS_filter StatePush.toRaw (by decide) (by decide),
+    bcTS_filter StatePull.toRaw (by decide) (by decide),
     bcTS_filter MemPush.toRaw (by decide) (by decide),
-    bcTS_filter MemPull.toRaw (by decide) (by decide), memT_pushes, memT_pulls,
-    seeds_split, fins_split sentCnt fun _ ↦ sentCnt_of_ge, ← List.append_assoc]
-  refine List.perm_append_right_iff _ |>.mpr ?_
+    bcTS_filter MemPull.toRaw (by decide) (by decide), memT_pushes, memT_pulls, seeds_split,
+    fins_split sentCnt fun _ ↦ sentCnt_of_ge, ← List.append_assoc, List.perm_append_right_iff,
+    ← List.map_perm_map_iff msgCode_injective]
   simp only [table_interactions_eq]
   decide +kernel
 
@@ -271,9 +257,9 @@ theorem seedRowsS_of {tables : List (Air.Flat.Table K)} {pi : PublicIO K} {h1 h2
 theorem sent_satisfiedBy : SatisfiedBy sentProg mulInput sentW where
   public_input_eq := rfl
   constraints := sent_constraints
-  state_balanced := sent_state_balanced
-  mem_balanced := sent_mem_balanced
-  bytecode_balanced := sent_bytecode_balanced
+  state_balanced := sent_balanced.1
+  mem_balanced := sent_balanced.2.2
+  bytecode_balanced := sent_balanced.2.1
   counts_nonzero := sent_countsNonzero
   caps := sent_caps
   index_columns := sent_indexColumns
@@ -286,8 +272,7 @@ theorem sent_satisfiedBy : SatisfiedBy sentProg mulInput sentW where
     obtain ⟨rj, hrj, rfl⟩ := hr
     rw [List.mem_ofFn] at hrj
     obtain ⟨j, rfl⟩ := hrj
-    show Blake2sRelation (blake2sRowAt sentW (toElements (blakeRow j)).toArray)
-    rw [blake2sRowAt_toElements]
+    rw [rawRow, blake2sRowAt_toElements]
     exact blakeRow_relation j
   word0_eq := by
     rw [show sentW.data = fillData from rfl, fill_imageOf]
