@@ -290,5 +290,62 @@ theorem kseq_completes {b' : Nat} {ss : List Stmt} (h : KSeq lo X lo ss b') (σ 
   obtain ⟨σ', he, ha, hc', hk⟩ := kseq_complete (rd := rd) le_rfl h σ hX (fun j h1 h2 => by omega) hh
   exact completes_atoms h.atoms he ⟨ha, hc', hk⟩ ha
 
+theorem krd_in' {b k : Nat} (h1 : lo ≤ k) (h2 : k < b) : KRd lo X b (.n k) := Or.inl ⟨k, h1, h2, rfl⟩
+
+theorem KSeqA.vals_rd {b m : Nat} {a : Atom} (h : KSeqA lo X b a m) : ∀ v ∈ a.vals, KRd lo X m v ∨
+    ∃ k, b ≤ k ∧ k < m ∧ v = .n k := by
+  have hle := h.le
+  intro v hv
+  cases a with
+  | const d c =>
+      obtain ⟨rfl, -, rfl⟩ := h
+      simp only [Atom.vals, List.mem_singleton] at hv
+      subst hv; exact Or.inr ⟨b, le_rfl, by omega, rfl⟩
+  | add d x y =>
+      obtain ⟨rfl, hx, hy, rfl⟩ := h
+      simp only [Atom.vals, List.mem_cons, List.not_mem_nil, or_false] at hv
+      rcases hv with rfl | rfl | rfl
+      · exact Or.inr ⟨b, le_rfl, by omega, rfl⟩
+      · exact Or.inl (hx.mono (by omega))
+      · exact Or.inl (hy.mono (by omega))
+  | copy d x =>
+      obtain ⟨rfl, hx, rfl⟩ := h
+      simp only [Atom.vals, List.mem_cons, List.not_mem_nil, or_false] at hv
+      rcases hv with rfl | rfl
+      · exact Or.inr ⟨b, le_rfl, by omega, rfl⟩
+      · exact Or.inl (hx.mono (by omega))
+  | keccak ins outs i o =>
+      obtain ⟨rfl, -, hin, rfl⟩ := h
+      simp only [Atom.vals, List.mem_append] at hv
+      rcases hv with hv | hv
+      · exact Or.inl ((hin v hv).mono (by omega))
+      · simp only [runV, List.mem_map, List.mem_range] at hv
+        obtain ⟨k, hk, rfl⟩ := hv
+        exact Or.inr ⟨b + k, by omega, by omega, rfl⟩
+  | hint hh =>
+      match hh, h with
+      | .witness _ (.stack vs), ⟨e, _⟩ =>
+          subst e
+          simp only [Atom.vals, Hint.vals, Dest.vals, runV, List.mem_map, List.mem_range] at hv
+          obtain ⟨k, hk, rfl⟩ := hv
+          exact Or.inr ⟨b + k, by omega, by omega, rfl⟩
+  | _ => exact h.elim
+
+/-- **A block's values** are its own, from `lo`, or external ones of `X` below `lo`. -/
+theorem KSeq.vals_rd : ∀ {b : Nat} {ss : List Stmt} {b' : Nat}, lo ≤ b → KSeq lo X b ss b' →
+    ∀ v ∈ Stmt.valsList ss, KRd lo X b' v
+  | _, [], _, _, _, v, hv => absurd hv (by simp)
+  | _, .atom _ :: _, _, hlo, ⟨_, h1, h2⟩, v, hv => by
+      rw [valsList_cons] at hv
+      have hle := KSeq.le h2
+      rcases List.mem_append.mp hv with hv | hv
+      · rcases h1.vals_rd v (by simpa [Stmt.vals] using hv) with h | ⟨k, hk1, hk2, rfl⟩
+        · exact h.mono hle
+        · exact krd_in' (by omega) (by omega)
+      · exact KSeq.vals_rd (le_trans hlo h1.le) h2 v hv
+  | _, .ite .. :: _, _, _, h, _, _ | _, .match_ .. :: _, _, _, h, _, _ | _, .call .. :: _, _, _, h, _, _
+  | _, .callIf .. :: _, _, _, h, _, _ | _, .dispatch .. :: _, _, _, h, _, _
+  | _, .ret _ :: _, _, _, h, _, _ => h.elim
+
 end
 end LeanVM.Guest.B1.Sig
