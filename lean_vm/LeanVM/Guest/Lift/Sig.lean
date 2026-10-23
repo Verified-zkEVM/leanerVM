@@ -209,12 +209,12 @@ theorem calls_nil_of_leafOk {lok : Atom → Bool} {es : List Ev} (h : ∀ e ∈ 
   have := h e he
   cases e <;> simp_all [EvLeafOk, Ev.call?]
 
-/-- **A leaf's relation, loading from `R`**: when its walk's loads lie in `R`. -/
-theorem relIn_of_leaf {lok : Atom → Bool} {g : String} {fn : Fn} {rd : Reader} {R : ℕ → Prop}
+/-- **A leaf's relation, loading from `R`**: when the loads of every walk that holds lie in `R`. -/
+theorem relIn_of_leaf' {lok : Atom → Bool} {g : String} {fn : Fn} {rd : Reader} {R : ℕ → Prop}
     {args rets : List E} (hf : coreProgram.find? g = some fn)
     (hleaf : Stmt.leafOkList lok fn.body = true)
     (hload : ∀ σ es vs, fn.params.map σ = args → walk σ fn.body = .ret es vs →
-      ∀ A ∈ loadAddrs σ es, ∃ i, A = gpow i ∧ R i)
+      (∀ e ∈ es, e.Holds rd σ) → ∀ A ∈ loadAddrs σ es, ∃ i, A = gpow i ∧ R i)
     (h : coreProgram.Rel rd g args rets) : coreProgram.RelIn rd R g args rets := by
   obtain ⟨t, hn, hv, hb⟩ := Program.Rel.tree coreProgram_wf h
   refine ⟨t, hn, hv, hb, ?_⟩
@@ -223,7 +223,7 @@ theorem relIn_of_leaf {lok : Atom → Bool} {g : String} {fn : Fn} {rd : Reader}
   | node f σ bufs kids =>
     simp only [Tree.name] at hn
     subst hn
-    obtain ⟨fn', hf', hp, es, vs, hw, -, -, hkv⟩ := hv
+    obtain ⟨fn', hf', hp, es, vs, hw, -, hes, hkv⟩ := hv
     rw [hf, Option.some.injEq] at hf'
     subst hf'
     have hall := walk_leafOk (σ := σ) _ hleaf
@@ -233,7 +233,16 @@ theorem relIn_of_leaf {lok : Atom → Bool} {g : String} {fn : Fn} {rd : Reader}
     match kids, hkv with
     | [], _ =>
       rw [Tree.LoadsR, events_node hf hw]
-      exact ⟨hload σ es vs hp hw, trivial⟩
+      exact ⟨hload σ es vs hp hw hes, trivial⟩
+
+/-- **A leaf's relation, loading from `R`**: when the loads of every walk lie in `R`. -/
+theorem relIn_of_leaf {lok : Atom → Bool} {g : String} {fn : Fn} {rd : Reader} {R : ℕ → Prop}
+    {args rets : List E} (hf : coreProgram.find? g = some fn)
+    (hleaf : Stmt.leafOkList lok fn.body = true)
+    (hload : ∀ σ es vs, fn.params.map σ = args → walk σ fn.body = .ret es vs →
+      ∀ A ∈ loadAddrs σ es, ∃ i, A = gpow i ∧ R i)
+    (h : coreProgram.Rel rd g args rets) : coreProgram.RelIn rd R g args rets :=
+  relIn_of_leaf' hf hleaf (fun σ es vs hp hw _ ↦ hload σ es vs hp hw) h
 
 /-! ## `verify_lean_xmss` -/
 
