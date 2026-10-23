@@ -1049,6 +1049,42 @@ Merkle trees', with the fast field arithmetic merged), the rest of Layer 12's ve
   rows of every kind, and the Rust proof's lincheck passes on it. On the fixture the phase hands
   on the Python verifier's ring-switching target (`VerifyFlock.lean`, with a flipped slice, skip
   value, zerocheck and lincheck coefficient, `â` and a missing coefficient rejected).
+- **WHIR, the openings and the verifier** (`Protocol/Verify/Whir.lean`, `Protocol/Verify.lean`):
+  `levelShapes` and `openingsOk` (the number and shapes of the openings, before any hash);
+  `walkWhir` (the fold rounds, the next roots, the out-of-domain samples, the grinding checks, the
+  query positions, `⌊192/(κ + R)⌋` to a squeeze, the batching challenges, the tail rounds) and
+  `walkOpenings` (each level's pruned opening by `merkleVerifyWith`, after the walk: level 0's
+  rows `nLanes` words of `K`, its leaves `2^ℓ` words, its tree of depth `κ + R`, the rows read in
+  reverse, one lane a word, as the Rust does); `whirCheck`, WHIR's algebra on the oracle
+  reduction's weights (`relayoutWeight`, `Whir.foldWeight`, `Whir.gluedWeight`,
+  `Whir.queryWeight`, `Whir.foldRow`, `Whir.batchMessage`) with the terminal check;
+  `openingClaim`, the pool of `Opening.poolList` batched by `λ`; `settleFixedClaims`, the bytecode
+  multilinear (computed and not compared, as the Rust hands it on, since the bus totals already
+  hold the program's share) and the lincheck terminal, which the Flock check compares; and
+  `verifyWith H prog input proof`, total and structurally recursive, in the four stages, with
+  `verify := verifyWith (m := Id) blake2sBytes`. The wire transcript (`Wire`) holds, per phase,
+  the scalars read (round wires raw, the dropped coefficient left to the algebra), the
+  challenges, the nonces, the roots and the positions. **`verify` accepts the Rust proof**, in
+  about 80 s interpreted (`tests/LeanerVMTests/Protocol/Verify.lean`) and about 3 s compiled
+  (`leanervm-verify`). The executable runs every mutation with the stage that rejects it
+  (`outcome`): the setup rejects a nonzero upper limb in a size, a size above its cap and a rate
+  outside its window; the openings' shapes a row of the wrong width at level 0 and after, more
+  rows than queries, a missing and a surplus opening; the reads a nonzero third limb in a half of
+  the commitment root and of a level's root, a wrong grinding nonce at each level, a wrong
+  sibling, a truncated path, a surplus sibling, a duplicated position, a missing row, a changed
+  stored word, a trailing scalar and a truncated stream. A flipped scalar in a phase before a
+  level's grinding nonce moves the chain and is rejected by that level's grinding check; the
+  last level's query message and the last round's coefficient come after the last grinding
+  check and are rejected by WHIR's terminal check. The phases' own checks are exercised on the
+  honest wire: the phase tests above, and WHIR's algebra, which rejects a flipped stored row,
+  residual value and batching challenge. The test module checks the honest proof and the
+  mutations rejected before the walk passes its setup's reads. Owed: `verifierQueries`,
+  `proofDigests`, `rounds` and their bounds, `verifyWith_simulateQ`, `decodePrefix` and
+  `verify_iff_compiled`, which
+  needs `blake2sRows = (blake2sCircuit.toBlockR1CS E).rows` and the instance's known-coordinate
+  evaluators equal to the extensions (they are, by the field `ext_eq`); and `settleFixedClaims` is
+  not yet the seam for the bytecode claim that a recursive verifier defers, since the bus phase
+  evaluates the program's share through the instance's known coordinates.
 
 ## Upstream watch
 

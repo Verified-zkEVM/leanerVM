@@ -251,6 +251,24 @@ former code in parentheses is for reading older pull requests.
   the chain's shape. No attack follows; the consequence is that the Merkle compilation is proved
   on the one shared function rather than on independent oracles per role.
 
+**The executable verifier on a Rust proof.** `Verify.verify` (`Protocol/Verify.lean`) accepts
+the proof the pinned prover makes of the division program of the Rust suite
+(`scripts/dump-proof-rust.sh`): the grinding checks pass at all four WHIR levels, which pins the
+chain state at each to the prover's, the four Merkle openings authenticate, the stream and the
+openings are consumed, and every phase's algebra and WHIR's terminal check pass; the bus totals,
+the table sumcheck's final claim and the ring-switching target are the values the second
+verifier computes on the same proof. The one difference it found is the order of `DEREF`'s
+flushes above, which the leanISA table followed from §7.4 and now reads in the Rust's order.
+The verifier departs from the Rust only in when it checks, never in what it accepts: it reads
+the eight sizes before checking them (`read_public` checks each as it reads it), checks the
+number and shapes of the openings before any hash, walks the whole chain before any Merkle
+opening and the openings before any algebra (the Rust interleaves them; openings are not
+absorbed, so no challenge moves), and computes WHIR's terminal weight as the oracle reduction's
+glued weight rather than the Rust's closed forms (`whir.rs:2264-2308`), equal on this proof. It
+computes the bytecode multilinear `B̃(ζ, α)` and, as the Rust does, does not compare it: the bus
+totals already hold the program's share, column by column (`leaf.rs:453`). This is
+implementation evidence about one proof, not a statement about the Rust.
+
 **Not a discrepancy.** The Python verifier checks the caps (`16 ≤ log_mem ≤ 32`, every height at
 most 32, `τ_BLAKE2S ≥ 3`, a power-of-two program: `py:856-864`, called at `py:1378`). The former
 finding F9, that it omits them, was false.

@@ -61,18 +61,22 @@ the module-system caveats). There is no test executable (finding P3 in
 `lakefile.toml` declares the benchmark source `bench/LeanerVMBench.lean` twice: as the library
 `LeanerVMBench`, a default target, so that `lake build` and the validator elaborate it without
 linking, and as the executable `leanervm-bench`, which is not a default target, because linking an
-executable compiles every transitive module, Mathlib's included, to C. Both are build targets of
-this package, not dependencies, so adding or changing them needs none of the review in
+executable compiles every transitive module, Mathlib's included, to C. A second executable,
+`leanervm-verify` (`bench/LeanerVMVerify.lean`), runs the executable verifier on the Rust proof
+fixture and its mutations; it is not a default target either. These are build targets of this
+package, not dependencies, so adding or changing them needs none of the review in
 [dependencies.md](dependencies.md).
 
 ```sh
 lake build leanervm-bench
 .lake/build/bin/leanervm-bench [percent] [arith|sumcheck|provers|all] [filter]
 .lake/build/bin/leanervm-bench 1 protocol [bus|table|pub|flock|whole] [lm] [spec]
+lake build leanervm-verify
+.lake/build/bin/leanervm-verify [runs]
 ```
 
 The object files land in each package's own `.lake/build`. A worktree that shares its
-`.lake/packages` with another checkout should build the executable on a private copy of the
+`.lake/packages` with another checkout should build an executable on a private copy of the
 packages. See [`bench/README.md`](../bench/README.md) for the workloads and the recorded
 timings.
 
