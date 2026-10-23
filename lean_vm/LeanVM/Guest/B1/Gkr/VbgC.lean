@@ -131,6 +131,12 @@ theorem tb_list3_eq {l : List E} (h : l.length = 3) : ∃ a0 a1 a2, l = [a0, a1,
   match l, h with
   | [a0, a1, a2], _ => exact ⟨a0, a1, a2, rfl⟩
 
+/-- The allocations' pointers: the layers, the rounds' records, the rows, `pairs`,
+`depth_shift`. -/
+def vbgW (layers rounds rows pairs dsh : E) : ℕ → E := fun i ↦
+  if i = 15 then layers else if i = 16 then rounds else if i = 17 then rows else
+    if i = 56 then pairs else dsh
+
 section Body
 
 variable {rd : Reader} {w : ℕ → E} {σ : Val}
@@ -153,11 +159,11 @@ theorem vb_goodS (hG : ∀ s ∈ vbgEvL, GoodS rd vbgS w σ s) (n : ℕ) (s : St
     (fun s hs => hG _ (List.mem_map_of_mem hs)) n [s] heq (by simp [hni]) s List.mem_cons_self
 
 set_option maxHeartbeats 800000 in
-/-- **`verify_bus_gkr`'s body, completely**, at `1 ≤ depth ≤ 32`: the range check's words
+/-- **`verify_bus_gkr`'s body, completely**, on its honest valuation, at `1 ≤ depth ≤ 32`: the range check's words
 defined, the two roots at the cursor (the count nonzero), the root slot, the tables, the binary
 layer's words at an odd depth, every layer's words (`LyIter`), and the last slot with its point at
 `zeta` give the relation, returning the last slot's capacity, cursor and values. -/
-theorem vbg_holds_of {depth : ℕ} (hd1 : 1 ≤ depth) (hd : depth ≤ 32) {cap0 : List E}
+theorem vbg_body_of {depth : ℕ} (hd1 : 1 ≤ depth) (hd : depth ≤ 32) {cap0 : List E}
     (hcl : cap0.length = 5) {cur zeta layers rounds rows pairs dsh : E}
     (hrc : (rd (gpow depth)).isSome = true ∧ (rd (gpow (32 - depth))).isSome = true)
     {x0 x1 : E} (hx0 : LoadHolds rd cur 0 x0) (hx1 : LoadHolds rd cur 1 x1) (hcnt : x1 ≠ 0)
@@ -176,15 +182,18 @@ theorem vbg_holds_of {depth : ℕ} (hd1 : 1 ≤ depth) (hd : depth ≤ 32) {cap0
     {sF : Fs} {curF : E} {stF : GkrState} {rowF posF halfF parF : E}
     (hlast : GkSlotC rd layers depth sF curF stF rowF posF halfF parF)
     (hz : TbReadsAt rd zeta stF.point) :
-    coreProgram.Rel rd "verify_bus_gkr" (cap0 ++ [cur, gen ^ depth, zeta])
-      (sF.cap ++ [curF] ++ stF.values) := by
+    Stmt.HoldsList (coreProgram.Rel rd) rd
+        (B1.Val.ofArgs (ev rd (vbgW layers rounds rows pairs dsh) (cap0 ++ [cur, gen ^ depth, zeta])
+          vbgEvL)) vbgPre True (fun rs => rs = sF.cap ++ [curF] ++ stF.values) ∧
+      vbgRets.map (B1.Val.ofArgs (ev rd (vbgW layers rounds rows pairs dsh)
+        (cap0 ++ [cur, gen ^ depth, zeta]) vbgEvL)) = sF.cap ++ [curF] ++ stF.values := by
   obtain ⟨a0, a1, a2, a3, a4, rfl⟩ := tb_list5_eq hcl
+  simp only [List.cons_append, List.nil_append]
   obtain ⟨fn, hf, hp, hb⟩ := vbgFound
   obtain ⟨c', hc'⟩ := Option.isSome_iff_exists.mp vb_chk
   set args : List E := [a0, a1, a2, a3, a4, cur, gen ^ depth, zeta] with hargs
   have hc8 : chk args.length vbgEvL = some c' := hc'
-  set W : ℕ → E := fun i ↦ if i = 15 then layers else if i = 16 then rounds else
-    if i = 17 then rows else if i = 56 then pairs else dsh with hW
+  set W : ℕ → E := vbgW layers rounds rows pairs dsh with hW
   set σ : Val := B1.Val.ofArgs (ev rd W args vbgEvL) with hσ
   have hG : ∀ s ∈ vbgEvL, GoodS rd vbgS W σ s := (ev_spec rd W vbgEvL args hc8).2.2
   have par : ∀ i < 8, σ (.n i) = args.getD i 0 := fun i hi =>
@@ -217,13 +226,13 @@ theorem vbg_holds_of {depth : ℕ} (hd1 : 1 ≤ depth) (hd : depth ≤ 32) {cap0
     (by omega)
   have e15 : σ (.n 15) = layers := by
     have h : σ (.n 15) = W 15 := g 7 (.hint (.allocDyn (.n 15) (.n 14))) (by decide +kernel) rfl
-    rw [h]; simp [hW]
+    rw [h]; simp [hW, vbgW]
   have e16 : σ (.n 16) = rounds := by
     have h : σ (.n 16) = W 16 := g 8 (.hint (.alloc (.n 16) 6034)) (by decide +kernel) rfl
-    rw [h]; simp [hW]
+    rw [h]; simp [hW, vbgW]
   have e17 : σ (.n 17) = rows := by
     have h : σ (.n 17) = W 17 := g 9 (.hint (.alloc (.n 17) 1640)) (by decide +kernel) rfl
-    rw [h]; simp [hW]
+    rw [h]; simp [hW, vbgW]
   have c18 : σ (.n 18) = word 4294967296 0 0 :=
     g 10 (.const (.n 18) (word 4294967296 0 0)) (by decide +kernel) rfl
   have w32 : word 4294967296 0 0 = gen ^ 32 := by
@@ -286,10 +295,10 @@ theorem vbg_holds_of {depth : ℕ} (hd1 : 1 ≤ depth) (hd : depth ≤ 32) {cap0
   have c55 : σ (.n 55) = word 0 0 0 := g 59 (.const (.n 55) (word 0 0 0)) (by decide +kernel) rfl
   have e56 : σ (.n 56) = pairs := by
     have h : σ (.n 56) = W 56 := g 61 (.hint (.alloc (.n 56) 33)) (by decide +kernel) rfl
-    rw [h]; simp [hW]
+    rw [h]; simp [hW, vbgW]
   have e57 : σ (.n 57) = dsh := by
     have h : σ (.n 57) = W 57 := g 62 (.hint (.alloc (.n 57) 33)) (by decide +kernel) rfl
-    rw [h]; simp [hW]
+    rw [h]; simp [hW, vbgW]
   have hr2 := rateOf_two_getD x0 x1
   have R3 : Stmt.HoldsList (coreProgram.Rel rd) rd σ vbR3 True
       (fun rs => rs = sF.cap ++ [curF] ++ stF.values) := by
@@ -459,11 +468,7 @@ theorem vbg_holds_of {depth : ℕ} (hd1 : 1 ≤ depth) (hd : depth ≤ 32) {cap0
     exact ⟨hfs27, hfs37⟩
   obtain ⟨f0, f1, f2, f3, f4, hf5⟩ := tb_list5_eq hclF
   obtain ⟨v0, v1, v2, hv3⟩ := tb_list3_eq hvlF
-  refine (tb_rel_pre hf hb vbgPre_noRet args _).mpr ⟨σ, ?_, ?_, ?_⟩
-  · rw [hp]
-    simp only [List.range_succ, List.range_zero, List.map_cons, List.map_nil, List.nil_append,
-      List.cons_append]
-    rw [e0, e1, e2, e3, e4, e5, e6, e7]
+  refine ⟨?_, ?_⟩
   · rw [vbgPre_eq']
     repeat rw [tb_holdsList_append_noRet (by decide +kernel)]
     exact ⟨⟨⟨⟨⟨⟨⟨R1, R2⟩, R3⟩, R4⟩, R5⟩, R6⟩, R7⟩, R8⟩
@@ -471,6 +476,45 @@ theorem vbg_holds_of {depth : ℕ} (hd1 : 1 ≤ depth) (hd : depth ≤ 32) {cap0
       List.nil_append, List.cons_append, hf5, hv3]
     rw [e318, e319, e320, e321, e322, q323, e313, e324, e325, e326, hf5, hv3]
     rfl
+
+
+/-- **`verify_bus_gkr`'s body, completely**, at `1 ≤ depth ≤ 32`: the range check's words
+defined, the two roots at the cursor (the count nonzero), the root slot, the tables, the binary
+layer's words at an odd depth, every layer's words (`LyIter`), and the last slot with its point at
+`zeta` give the relation, returning the last slot's capacity, cursor and values. -/
+theorem vbg_holds_of {depth : ℕ} (hd1 : 1 ≤ depth) (hd : depth ≤ 32) {cap0 : List E}
+    (hcl : cap0.length = 5) {cur zeta layers rounds rows pairs dsh : E}
+    (hrc : (rd (gpow depth)).isSome = true ∧ (rd (gpow (32 - depth))).isSome = true)
+    {x0 x1 : E} (hx0 : LoadHolds rd cur 0 x0) (hx1 : LoadHolds rd cur 1 x1) (hcnt : x1 ≠ 0)
+    (hroot : GkSlotC rd layers 0 ⟨cap0, [(x0, dsObserve), (x1, dsObserve)]⟩ (cur * gen ^ 2)
+      ⟨[x0, x0, x1], []⟩ rows 1 1 0)
+    (hpairs : TbReadsAt rd pairs ((List.range 33).map fun k ↦ gen ^ (k / 2)))
+    (hdsh : TbReadsAt rd dsh ((List.range 33).map fun k ↦ gen ^ (k % 2)))
+    (hodd : depth % 2 = 1 → ∃ D : GkStepD,
+      D.Ok ⟨cap0, [(x0, dsObserve), (x1, dsObserve)]⟩ ⟨[x0, x0, x1], []⟩ 1 ∧
+      TbReadsAt rd (cur * gen ^ 2) D.xs ∧
+      GkSlotC rd layers 1 (D.s' ⟨cap0, [(x0, dsObserve), (x1, dsObserve)]⟩ ⟨[x0, x0, x1], []⟩ 1)
+        (cur * gen ^ 2 * gen ^ 6)
+        (D.st' ⟨cap0, [(x0, dsObserve), (x1, dsObserve)]⟩ ⟨[x0, x0, x1], []⟩ 1)
+        (rows * gen ^ 40) gen 1 0)
+    (hit : ∀ j < depth / 2, LyIter rd layers rounds (depth % 2) j)
+    {sF : Fs} {curF : E} {stF : GkrState} {rowF posF halfF parF : E}
+    (hlast : GkSlotC rd layers depth sF curF stF rowF posF halfF parF)
+    (hz : TbReadsAt rd zeta stF.point) :
+    coreProgram.Rel rd "verify_bus_gkr" (cap0 ++ [cur, gen ^ depth, zeta])
+      (sF.cap ++ [curF] ++ stF.values) := by
+  obtain ⟨fn, hf, hp, hb⟩ := vbgFound
+  obtain ⟨hh, hr⟩ := vbg_body_of hd1 hd hcl hrc hx0 hx1 hcnt hroot hpairs hdsh hodd hit hlast hz
+  refine (tb_rel_pre hf hb vbgPre_noRet _ _).mpr ⟨_, ?_, hh, hr⟩
+  obtain ⟨c', hc'⟩ := Option.isSome_iff_exists.mp vb_chk
+  have hl : (cap0 ++ [cur, gen ^ depth, zeta]).length = 8 := by simp [hcl]
+  rw [hp]
+  apply List.ext_getElem (by simp [hl])
+  intro i h1 _
+  simp only [List.getElem_map, List.getElem_range]
+  have hi : i < 8 := by simpa using h1
+  rw [← List.getD_eq_getElem _ 0 (by omega)]
+  exact ev_params rd _ (by rw [hl]; exact hc') (by rw [hl]; exact hi)
 
 end Body
 
