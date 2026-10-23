@@ -66,6 +66,8 @@ theorem tb_word_zero : word 0 0 0 = 0 := by rw [tb_word_eOfNat, eOfNat_zero]
 
 theorem tb_word_one : word 1 0 0 = 1 := by rw [tb_word_eOfNat, eOfNat_one]
 
+theorem tb_word_gen : word 2 0 0 = gen := by rw [tb_word_eOfNat]; rfl
+
 /-- `E(2^a)` is `g^a` below the first reduction. -/
 theorem tb_word_two_pow {a : ℕ} (h : a < 64) : word (2 ^ a) 0 0 = gen ^ a := by
   rw [tb_word_eOfNat, gen_pow_eq_eOfNat h]
@@ -258,6 +260,20 @@ theorem tb_noRetList_append (a b : List Stmt) :
   | nil => simp [Stmt.noRetList]
   | cons s a ih => simp [Stmt.noRetList, ih, Bool.and_assoc]
 
+theorem tb_noRetList_flatten_range (n : ℕ) (g : ℕ → List Stmt)
+    (hg : ∀ i, Stmt.noRetList (g i) = true) : Stmt.noRetList ((List.range n).map g).flatten = true := by
+  induction n with
+  | zero => rfl
+  | succ n ih =>
+    rw [List.range_succ, List.map_append, List.flatten_append, tb_noRetList_append, ih,
+      List.map_singleton, List.flatten_singleton, hg]; rfl
+
+theorem tb_noRetList_mapAtoms (n : ℕ) (f : ℕ → Atom) :
+    Stmt.noRetList ((List.range n).map fun e ↦ Stmt.atom (f e)) = true := by
+  induction n with
+  | zero => rfl
+  | succ n ih => rw [List.range_succ, List.map_append, tb_noRetList_append, ih]; rfl
+
 section Slices
 
 variable {C : CallRel} {rd : Reader} {σ : Val} {kret : List E → Prop}
@@ -313,6 +329,82 @@ theorem tb_holds_dispatch {pre : List Stmt} (hnr : Stmt.noRetList pre = true)
   exact this
 
 end Slices
+
+/-- A block of atoms holds exactly when each of its atoms does. -/
+theorem tb_holdsList_atoms {C : CallRel} {rd : Reader} {σ : Val} {kret : List E → Prop} :
+    ∀ {l : List Stmt}, (∀ s ∈ l, ∃ a, s = .atom a) →
+      (Stmt.HoldsList C rd σ l True kret ↔ ∀ a, Stmt.atom a ∈ l → a.Holds rd σ)
+  | [], _ => by simp [Stmt.HoldsList]
+  | s :: l, h => by
+    obtain ⟨a, rfl⟩ := h s (by simp)
+    rw [Stmt.HoldsList, Stmt.Holds, tb_holdsList_atoms (fun s hs => h s (by simp [hs]))]
+    constructor
+    · rintro ⟨ha, hl⟩ b hb
+      rcases List.mem_cons.mp hb with e | hb
+      · cases e; exact ha
+      · exact hl b hb
+    · intro hall
+      exact ⟨hall a (by simp), fun b hb => hall b (by simp [hb])⟩
+
+section Blocks
+
+variable {C : CallRel} {rd : Reader} {σ : Val} {kret : List E → Prop}
+
+/-- Two `ret`-free blocks in sequence. -/
+theorem tb_holdsList_append_noRet {A B : List Stmt} (ha : Stmt.noRetList A = true) :
+    Stmt.HoldsList C rd σ (A ++ B) True kret ↔
+      Stmt.HoldsList C rd σ A True kret ∧ Stmt.HoldsList C rd σ B True kret := by
+  rw [holdsList_append, holdsList_noRet _ ha]
+
+/-- A block of atoms indexed by `e < n`. -/
+theorem tb_holdsList_mapAtoms (n : ℕ) (f : ℕ → Atom) :
+    Stmt.HoldsList C rd σ ((List.range n).map fun e ↦ Stmt.atom (f e)) True kret ↔
+      ∀ e < n, (f e).Holds rd σ := by
+  rw [tb_holdsList_atoms (fun s hs => by
+    obtain ⟨e, -, rfl⟩ := List.mem_map.mp hs; exact ⟨_, rfl⟩)]
+  constructor
+  · intro h e he
+    exact h _ (List.mem_map.mpr ⟨e, List.mem_range.mpr he, rfl⟩)
+  · intro h a ha
+    obtain ⟨e, he, he'⟩ := List.mem_map.mp ha
+    cases he'
+    exact h e (List.mem_range.mp he)
+
+/-- `ret`-free blocks indexed by `i < n`, in sequence. -/
+theorem tb_holdsList_flatten_range (n : ℕ) (g : ℕ → List Stmt)
+    (hg : ∀ i, Stmt.noRetList (g i) = true) :
+    Stmt.HoldsList C rd σ ((List.range n).map g).flatten True kret ↔
+      ∀ i < n, Stmt.HoldsList C rd σ (g i) True kret := by
+  rw [holdsList_flatten _ (fun b hb => by obtain ⟨i, -, rfl⟩ := List.mem_map.mp hb; exact hg i)]
+  constructor
+  · intro h i hi
+    exact h.1 _ (List.mem_map.mpr ⟨i, List.mem_range.mpr hi, rfl⟩)
+  · intro h
+    refine ⟨fun b hb => ?_, trivial⟩
+    obtain ⟨i, hi, rfl⟩ := List.mem_map.mp hb
+    exact h i (List.mem_range.mp hi)
+
+/-- Blocks without a return, one per index below `n`, hold exactly when each does, then `next`. -/
+theorem tb_holdsList_range_flatten (n : ℕ) (blk : ℕ → List Stmt)
+    (h : ∀ i, Stmt.noRetList (blk i) = true) (next : Prop) (kret : List E → Prop) :
+    Stmt.HoldsList C rd σ ((List.range n).map blk).flatten next kret ↔
+      (∀ i < n, Stmt.HoldsList C rd σ (blk i) True kret) ∧ next := by
+  rw [holdsList_flatten _ (fun b hb => by
+    obtain ⟨i, -, rfl⟩ := List.mem_map.mp hb
+    exact h i)]
+  simp only [List.mem_map, List.mem_range, forall_exists_index, and_imp,
+    forall_apply_eq_imp_iff₂]
+
+/-- A forward branch whose blocks have no `ret` holds, then its continuation. -/
+theorem tb_holds_ite_noRet (c : V) (z n : List Stmt)
+    (hz : Stmt.noRetList z = true) (hn : Stmt.noRetList n = true) (next : Prop) :
+    Stmt.Holds C rd σ (.ite c z n) next kret ↔
+      (IsInK (σ c) ∧ (σ c = 0 → Stmt.HoldsList C rd σ z True kret) ∧
+        (σ c ≠ 0 → Stmt.HoldsList C rd σ n True kret)) ∧ next := by
+  rw [holds_noRet (.ite c z n) (by simp [Stmt.noRet, hz, hn]) next kret]
+  rfl
+
+end Blocks
 
 /-! ## Building valuations -/
 
@@ -468,6 +560,39 @@ theorem tb_guarded_loop_iff {P : Core.Program} {rd : Reader} {f : String} {ps : 
       · exact absurd (show 1 + N = 0 by rw [hN, h, pow_zero]; exact e_add_self 1) h1
       · exact h
     exact hl.mpr ⟨m, hm0, hN, tb_first_hit_of_lt hm hN, fun j _ hj => hall j hj⟩
+
+/-- **A `mul_range` loop, soundness**: if `f`'s relation at depth `d + 1` gives its body's meaning
+`B x` and the next call, then `f` holding at `g^k` gives `N = g^m` for some `m > k` and `B` at every
+`g^j`, `k ≤ j < m`. -/
+theorem tb_loop_sound {P : Core.Program} {rd : Reader} {f : String} {ps : List E} {N : E}
+    {B : E → Prop}
+    (hstep : ∀ d x, P.relN rd (d + 1) f (x :: ps) [] →
+      B x ∧ (x * gen + N ≠ 0 → P.relN rd d f (x * gen :: ps) []))
+    (k : ℕ) (h : P.Rel rd f (gen ^ k :: ps) []) :
+    ∃ m, k < m ∧ N = gen ^ m ∧ ∀ j, k ≤ j → j < m → B (gen ^ j) := by
+  obtain ⟨d, hd⟩ := h
+  induction d generalizing k with
+  | zero => exact hd.elim
+  | succ d ih =>
+    obtain ⟨hB, hnext⟩ := hstep d _ hd
+    by_cases h0 : gen ^ k * gen + N = 0
+    · refine ⟨k + 1, by omega, (tb_gen_pow_add_eq_zero_iff k).mp h0, fun j h1 h2 => ?_⟩
+      rwa [show j = k by omega]
+    · have := hnext h0
+      rw [tb_gen_pow_mul_gen] at this
+      obtain ⟨m, hm, hN, hall⟩ := ih (k + 1) this
+      refine ⟨m, by omega, hN, fun j h1 h2 => ?_⟩
+      rcases Nat.lt_or_ge k j with h | h
+      · exact hall j (by omega) h2
+      · rwa [show j = k by omega]
+
+/-- Two runs of words read at one pointer, of one length, are equal. -/
+theorem tbReadsAt_unique {rd : Reader} {p : E} {l1 l2 : List E} (h1 : TbReadsAt rd p l1)
+    (h2 : TbReadsAt rd p l2) (hl : l1.length = l2.length) : l1 = l2 :=
+  List.ext_getElem hl fun k hk1 hk2 => tb_loadHolds_unique (h1 k hk1) (h2 k hk2)
+
+theorem tb_ite_neg'' {α : Type} {c : Prop} [Decidable c] {a b : α} (h : ¬c) :
+    (if c then a else b) = b := by simp [h]
 
 end
 end LeanVM.Guest.B1.Tables
