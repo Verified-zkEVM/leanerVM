@@ -137,39 +137,26 @@ theorem isOneE_iff (x : E) : isOneE x = true ↔ x = 1 := by
   have h1 : ∀ i : Fin 3, (1 : E).limb i = if (i : ℕ) = 0 then 1 else 0 :=
     CompPoly.Extension.Ext.coeff_one (P := BF64.ext3Params)
   rw [isOneE, decide_eq_true_iff]
-  constructor
-  · rintro ⟨e0, e1, e2⟩
-    apply E.ext
-    intro i
-    rw [h1]
-    fin_cases i
-    · exact e0
-    · exact e1
-    · exact e2
-  · rintro rfl
-    exact ⟨by rw [h1]; rfl, by rw [h1]; rfl, by rw [h1]; rfl⟩
+  refine ⟨fun ⟨e0, e1, e2⟩ ↦ E.ext fun i ↦ ?_, fun h ↦ ?_⟩
+  · rw [h1]
+    fin_cases i <;> assumption
+  · subst h
+    exact ⟨h1 0, h1 1, h1 2⟩
+
+/-- The loop of `boolIndexE`, with the test `isOneE`, is `boolIndexNat`. -/
+theorem foldr_isOneE {m : ℕ} (p : Vector E m) :
+    Fin.foldr m (fun i acc ↦ (if isOneE p[i] then 1 else 0) + 2 * acc) 0 = boolIndexNat p := by
+  simp only [boolIndexNat, isOneE_iff]
 
 /-- `boolIndex` over `E`, testing each coordinate limb by limb. -/
 def boolIndexE {m : ℕ} (p : Vector E m) : Fin (2 ^ m) :=
   ⟨Fin.foldr m (fun i acc ↦ (if isOneE p[i] then 1 else 0) + 2 * acc) 0, by
-    have h : Fin.foldr m (fun i acc ↦ (if isOneE p[i] then 1 else 0) + 2 * acc) 0 =
-        boolIndexNat p := by
-      unfold boolIndexNat
-      congr 1
-      funext i acc
-      simp only [isOneE_iff]
-    rw [h, boolIndexNat_eq]
+    rw [foldr_isOneE, boolIndexNat_eq]
     exact (boolIndex p).isLt⟩
 
 /-- `boolIndexE` is `boolIndex`. -/
-theorem boolIndexE_eq {m : ℕ} (p : Vector E m) : boolIndexE p = boolIndex p := by
-  apply Fin.ext
-  rw [← boolIndexNat_eq]
-  show Fin.foldr m (fun i acc ↦ (if isOneE p[i] then 1 else 0) + 2 * acc) 0 = _
-  unfold boolIndexNat
-  congr 1
-  funext i acc
-  simp only [isOneE_iff]
+theorem boolIndexE_eq {m : ℕ} (p : Vector E m) : boolIndexE p = boolIndex p :=
+  Fin.ext ((foldr_isOneE p).trans (boolIndexNat_eq p))
 
 end
 end LeanerVM.Protocol

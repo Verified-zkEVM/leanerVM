@@ -43,10 +43,7 @@ theorem evalMonomialFast_eq {n : ℕ} (vals : Fin n → R) (m : CMvMonomial n) :
   have h : ∀ (acc : R) (i : Fin n),
       (if m.get i = 0 then acc else if m.get i = 1 then acc * vals i else acc * vals i ^ m.get i) =
         acc * vals i ^ m.get i := fun acc i ↦ by
-    split_ifs with h0 h1
-    · rw [h0, pow_zero, mul_one]
-    · rw [h1, pow_one]
-    · rfl
+    split_ifs with h0 h1 <;> simp [*]
   simp only [evalMonomialFast, h]
   rw [foldl_mul_eq_mul_prod, one_mul]
   rfl

@@ -227,9 +227,7 @@ private theorem mulAffine_getElem_eq {d : ℕ} (v : Vector F (d + 1)) (a b : F) 
     (hi : i < d + 1) :
     (mulAffine v a b)[i] = if i = 0 then a * v[i] else a * v[i] + (b - a) * v[i - 1] := by
   have hz : ∀ (c x : F), (if x == 0 then 0 else c * x) = c * x := fun c x ↦ by
-    split_ifs with h
-    · rw [beq_iff_eq.mp h, mul_zero]
-    · rfl
+    split_ifs with h <;> simp_all
   unfold mulAffine
   rw [Vector.getElem_ofFn]
   simp only [hz]
@@ -307,12 +305,7 @@ theorem descendant_eq_slice (ctx : LayerCtx X F O nside m) {j : ℕ} (hj : j < m
     evalMle_append_boolVec]
   have hz : cv.push (boolVec zb : Vector F 1)[0] = cv ++ (boolVec zb : Vector F 1) := by
     rw [← Vector.append_singleton]
-    congr 1
-    apply Vector.ext
-    intro i hi
-    have : i = 0 := by omega
-    subst this
-    rfl
+    exact congrArg _ (Vector.ext fun i hi ↦ by obtain rfl : i = 0 := (by omega); rfl)
   rw [hz, evalMle_append_boolVec (k := j) (m := 1)]
 
 /-- `roundPoly`, computed once per round as above. -/

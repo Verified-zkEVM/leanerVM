@@ -88,9 +88,7 @@ theorem fingerprintWith_eq (α : Fin 4 → E) (t : Vector K 16) :
     have h : ∀ (acc : K) (i : Fin 16),
         (if t[i] = 0 then acc else acc + t[i] * ((fingerprintWeights α)[i.val]).limb l) =
           acc + t[i] * ((fingerprintWeights α)[i.val]).limb l := fun acc i ↦ by
-      split_ifs with h0
-      · rw [h0, zero_mul, add_zero]
-      · rfl
+      split_ifs with h0 <;> simp [h0]
     simp only [fingerprintLimb, h]
     rw [foldl_add_eq_add_sum, zero_add]
   have hm : ∀ (x : E) (a : K) (l : Fin 3), (x * ofK a).limb l = a * x.limb l := fun x a l ↦ by

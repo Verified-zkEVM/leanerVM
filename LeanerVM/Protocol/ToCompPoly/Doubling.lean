@@ -60,12 +60,7 @@ theorem size_doublingArray {n : ℕ} (f : Fin n → Bool → R) :
 private theorem testBit_two_pow_add {k r : ℕ} (hr : r < 2 ^ k) (j : ℕ) (hj : j ≤ k) :
     (2 ^ k + r).testBit j = if j < k then r.testBit j else true := by
   have h := Nat.testBit_two_pow_mul_add 1 hr j
-  rw [mul_one] at h
-  rw [h]
-  split_ifs with hjk
-  · rfl
-  · rw [show j - k = 0 by omega]
-    rfl
+  rwa [mul_one, show j - k = 0 by omega] at h
 
 /-- Entry `i` of the doubling on `k` coordinates is the product of the first `k` factors at the
 bits of `i`. -/
@@ -73,8 +68,7 @@ theorem getElem_doublingArray {n : ℕ} (f : Fin n → Bool → R) :
     ∀ (k : ℕ) (h : k ≤ n) (i : ℕ) (hi : i < (doublingArray f k h).size),
       (doublingArray f k h)[i] = ∏ j : Fin k, f ⟨j, by omega⟩ (i.testBit j)
   | 0, _, i, hi => by
-    have hi' : i = 0 := by simpa [doublingArray] using hi
-    subst hi'
+    obtain rfl : i = 0 := by simpa [doublingArray] using hi
     simp [doublingArray]
   | k + 1, h, i, hi => by
     have hs := size_doublingArray f k (Nat.le_of_succ_le h)
