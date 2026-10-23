@@ -125,6 +125,34 @@ theorem drop_eq_of_take {α : Type} {l r : List α} {a n : Nat}
   rw [← List.take_append_drop n (l.drop a), ← List.take_append_drop n (r.drop a), ht, List.drop_drop,
     List.drop_drop, hd]
 
+/-- Whether a statement is a `match`. -/
+def isMatch : Stmt → Bool
+  | .match_ _ _ => true
+  | _ => false
+
+/-- A `match`'s selector. -/
+def matchVar : Stmt → V
+  | .match_ x _ => x
+  | _ => default
+
+/-- A `match`'s arms: the data modules check a large `match` in chunks of arms. -/
+def matchArms : Stmt → List (List Stmt)
+  | .match_ _ as => as
+  | _ => []
+
+/-- Two `match`es with the same selector and arms are equal. -/
+theorem eq_of_match {s t : Stmt} (hs : isMatch s = true) (ht : isMatch t = true)
+    (hx : matchVar s = matchVar t) (ha : matchArms s = matchArms t) : s = t := by
+  cases s <;> cases t <;> simp_all [isMatch, matchVar, matchArms]
+
+/-- A one-element slice of two lists agreeing at the index. -/
+theorem take_one_of_getD {α : Type} [Inhabited α] {l r : List α} {i : Nat}
+    (h : l.getD i default = r.getD i default) (hl : i < l.length) (hr : i < r.length) :
+    (l.drop i).take 1 = (r.drop i).take 1 := by
+  rw [List.getD_eq_getElem _ _ hl, List.getD_eq_getElem _ _ hr] at h
+  rw [List.take_one_drop_eq_of_lt_length hl, List.take_one_drop_eq_of_lt_length hr]
+  simpa using h
+
 namespace Dec
 
 /-- Blocks' equality, for `decide +kernel`. -/
