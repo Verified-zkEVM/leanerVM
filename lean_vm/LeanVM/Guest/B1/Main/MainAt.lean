@@ -173,7 +173,8 @@ theorem main_relAtInT (fs : String → ℕ) (cert : String → V → ℕ) (fp : 
         LoadHolds rd gen 0 (digestScalars d.sdg).2 →
         RelAtInT coreProgram fs cert rd (fun i => i < 2) (fun _ => False) fp n "main" [] []
           (fun t => ∃ σ bufs ks, t = .node "main" σ bufs ks ∧ MVals rd σ (d.toIn fs fp) ∧
-            KidsT (mCalls σ (d.toIn fs fp)) ((fun _ => True) :: Ts) ks) := by
+            KidsT (mCalls σ (d.toIn fs fp)) ((fun _ => True) :: Ts) ks ∧
+            calls (mEvs σ) = mCalls σ (d.toIn fs fp)) := by
   set m := d.toIn fs fp with hmd
   set b0 := fp + fs "main" with hb0
   set Lown := bufL b0 (mSizes d) own with hLown
@@ -545,7 +546,7 @@ theorem main_relAtInT (fs : String → ℕ) (cert : String → V → ℕ) (fp : 
   · rw [hal] at h
     obtain ⟨t, ht, ks, rfl, hkT⟩ := h
     rw [hcalls] at hkT
-    exact ⟨_, ht, σ, _, ks, rfl, hv, hkT⟩
+    exact ⟨_, ht, σ, _, ks, rfl, hv, hkT, hes ▸ hcalls⟩
   · rw [hcalls, hal]
     refine ⟨fs "exponent_tables" + 68, Nk, fun _ => False,
       fun i => etB fs (mK0 d fs fp) ≤ i ∧ i < etB fs (mK0 d fs fp) + 68, rfl, fun i hi => hi.elim, ?_, ?_⟩
