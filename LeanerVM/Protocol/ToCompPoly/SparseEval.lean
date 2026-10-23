@@ -39,10 +39,7 @@ theorem evalMonomialSparse_eq {R : Type*} [CommSemiring R] {n : ℕ} (vals : Fin
   have h : (fun acc i ↦ if m.get i = 0 then acc else acc * vals i ^ m.get i) =
       fun (acc : R) i ↦ acc * vals i ^ m.get i := by
     funext acc i
-    split
-    · rename_i h
-      rw [h, pow_zero, mul_one]
-    · rfl
+    split <;> simp_all
   rw [evalMonomialSparse, h, MonoR.evalMonomial, ← prodFin_eq_prod, prodFin]
 
 /-- `CMvPolynomial.eval₂` with each monomial valued by `evalMonomialSparse`. -/

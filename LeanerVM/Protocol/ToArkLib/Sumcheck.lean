@@ -180,19 +180,11 @@ theorem point_push_boolVec {j : ℕ} (hj : j < n) (c : Vector F j) (a : F)
     (x : Fin (2 ^ (n - (j + 1)))) :
     point (Nat.succ_le_of_lt hj) (c.push a) (boolVec x) =
       Vector.cast (by omega) ((boolVec x : Vector F (n - (j + 1))).push a ++ c.reverse) := by
-  apply Vector.ext
-  intro k hk
-  simp only [point, Vector.getElem_ofFn, Vector.getElem_cast, Vector.getElem_append,
-    Vector.getElem_push, Vector.getElem_reverse]
-  by_cases h1 : k < n - (j + 1)
-  · simp [h1, show k < n - (j + 1) + 1 by omega]
-  · by_cases h2 : k = n - (j + 1)
-    · subst h2
-      simp [show n - 1 - (n - (j + 1)) = j by omega]
-    · simp only [h1, show ¬ k < n - (j + 1) + 1 by omega, dite_false,
-        show n - 1 - k < j by omega, dite_true]
-      congr 1
-      omega
+  rw [← highFix_push_append hj]
+  ext k hk
+  simp only [point, highFix, Vector.getElem_ofFn, Vector.getElem_cast, Vector.getElem_append,
+    Vector.getElem_reverse]
+  split <;> first | rfl | (congr 1; omega)
 
 /-- The tables with their top `j` coordinates bound to the challenges, the first challenge the
 highest coordinate, as tables of the round's coordinate and the free ones below it. -/
@@ -217,12 +209,10 @@ theorem claimFolded_boundTables (V : Virtual F X O W n m) (wt : CoordWeights F X
     claimFolded V wt ctx hj c (boundTables V ctx hj c) a = claim V wt ctx (j + 1) (c.push a) := by
   rw [claim, dite_eq_left (Nat.succ_le_of_lt hj), weightedCubeSum_eq_weightFold, claimFolded]
   congr 1
-  apply Vector.ext
-  intro x hx
+  refine Vector.ext fun x hx ↦ ?_
   simp only [Vector.getElem_ofFn, Virtual.summand, Virtual.values]
   congr 1
-  apply Vector.ext
-  intro i hi
+  refine Vector.ext fun i hi ↦ ?_
   simp only [Vector.getElem_ofFn, boundTables]
   rw [point_push_boolVec hj c a ⟨x, hx⟩, evalMle_cast_point, evalMle_push_append_boolVec,
     Fin.getElem_fin, Vector.getElem_ofFn, bindHighsNext]

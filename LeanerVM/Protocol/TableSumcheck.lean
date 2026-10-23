@@ -211,11 +211,9 @@ theorem rowValueFast_eq (x : Data I) (t : I.SumcheckTables) (e : Fin (I.width t.
     have hp : (constraintPos I ⟨t, i⟩ : ℕ) =
         offsetBefore I (fun j ↦ (I.constraints j).length) t.1 + i :=
       position_val' I (fun j ↦ (I.constraints j).length) t i
-    rw [hp, pow_add]
+    rw [hp]
     ring
-  · refine Finset.sum_congr rfl fun s _ ↦ ?_
-    rw [pow_add]
-    ring
+  · exact Finset.sum_congr rfl fun s _ ↦ by ring
 
 /-- A column's position through the table's offset is in range. -/
 theorem offset_add_lt (t : I.SumcheckTables) (i : Fin (I.width t.1)) :
@@ -255,9 +253,8 @@ def formulaFast (x : Data I) (z : Vector E I.τmax) (v : Vector E I.tableColumns
     intro t
     simp only [prodWeightFast_eq]
     split
-    · rename_i h
-      rw [beq_iff_eq.mp h, zero_mul]
-    · rw [hv, rowValueFast_eq]
+    next h => rw [beq_iff_eq.mp h, zero_mul]
+    next => rw [hv, rowValueFast_eq]
   let g : Fin I.ntab → E := fun j ↦ if h : I.SumcheckTable j then
     prodWeight (tableWeights I x.1.2.point ⟨j, h⟩) z *
       rowValue I x ⟨j, h⟩ (tableValues I v ⟨j, h⟩) else 0
@@ -270,9 +267,7 @@ def formulaFast (x : Data I) (z : Vector E I.τmax) (v : Vector E I.tableColumns
     ← Finset.sum_subtype (Finset.univ.filter I.SumcheckTable) (fun j ↦ by simp) g,
     Finset.sum_filter]
   refine Finset.sum_congr rfl fun j _ ↦ ?_
-  by_cases h : I.SumcheckTable j
-  · simp only [h, ite_true, g]
-  · simp only [h, ite_false, g, dite_false]
+  by_cases h : I.SumcheckTable j <;> simp only [h, ite_true, ite_false, g, dite_false]
 
 /-- The virtual polynomial of the table sumcheck: the sumcheck tables' columns and the formula. -/
 def tableSummand : Sumcheck.Virtual E (Data I) (TheOracle I) Unit I.τmax I.tableColumns where
