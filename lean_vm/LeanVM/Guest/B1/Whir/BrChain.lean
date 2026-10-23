@@ -110,8 +110,8 @@ theorem lvsH_sp {C : CallRel} {rd : Reader} {P : OsPtrs} {c : OsCfg} {logN lane 
     (∀ i < lvs.length, LvCallsOk C rd P c (lvl + i) (lvs.getD i default) (Ls.getD i default)
       (sq (lvl + i)) (wp (lvl + i))) →
     LvsH C rd P c lvl lvs (spDats Ls lvl sq wp) F ws.quad ws.target cur ∧
-      ∃ xsR, ChainEnd rd lane (lvsOut c lvl lvs (spDats Ls lvl sq wp) F ws.quad ws.target cur)
-        (Ls.getLastD default) xsR res
+      ChainEnd rd lane (lvsOut c lvl lvs (spDats Ls lvl sq wp) F ws.quad ws.target cur)
+        (Ls.getLastD default) (xs.drop (Ls.map SpLv.words).flatten.length) res
   | [lv], [level], lvl, ws, F, xs, os, R, [L], res, cur, hok, hch, hfo, hrd, hmem, hcal => by
     obtain ⟨hcfg, hfold, h4, hml, hlen, hfin⟩ := hok
     obtain ⟨e1, e2, e3, e4, e5, e6, hOk, xsR, osR, hxs, hos, htl, htnz, hres⟩ := hch
@@ -129,7 +129,10 @@ theorem lvsH_sp {C : CallRel} {rd : Reader} {P : OsPtrs} {c : OsCfg} {logN lane 
     have hm := hm0.withWords (cur := cur) (readsAt_left (xs := L.words) (by rw [← hxs]; exact hrd))
     have hH := lvH_sp (d := L.dn) (wp := wp lvl) hfit (e3 ▸ hcfg) (fun h ↦ absurd hfin h) (fun _ ↦ hlen) hOk
       (fun h ↦ by rw [e4] at h; cases h) hm hcl
-    refine ⟨⟨hH, trivial⟩, xsR, ?_⟩
+    have hdr : xs.drop ([L].map SpLv.words).flatten.length = xsR := by
+      rw [hxs]; simp
+    rw [hdr]
+    refine ⟨⟨hH, trivial⟩, ?_⟩
     have hO := lvOut_sp hfit L.dn (sq lvl) (wp lvl)
     simp only [spDats, lvsOut]
     rw [hO, show [L].getLastD default = L from rfl]
@@ -161,7 +164,7 @@ theorem lvsH_sp {C : CallRel} {rd : Reader} {P : OsPtrs} {c : OsCfg} {logN lane 
         hoff']
     have hrd' : ReadsAt rd (cur * gen ^ lvWords c lvl lv) xsR := by
       have := readsAt_right (by rw [← hxs]; exact hrd); rwa [hwl] at this
-    obtain ⟨hH', xe, hE⟩ := lvsH_sp sq wp (lv' :: lvs) (next :: cfg) (lvl + 1) L.wsEnd L.Fend xsR
+    obtain ⟨hH', hE⟩ := lvsH_sp sq wp (lv' :: lvs) (next :: cfg) (lvl + 1) L.wsEnd L.Fend xsR
       osR _ Ls res (cur * gen ^ lvWords c lvl lv) hrest hch' hfo' hrd'
       (fun i hi ↦ by
         have := hmem (i + 1) (by simp at hi ⊢; omega)
@@ -169,7 +172,11 @@ theorem lvsH_sp {C : CallRel} {rd : Reader} {P : OsPtrs} {c : OsCfg} {logN lane 
       (fun i hi ↦ by
         have := hcal (i + 1) (by simp at hi ⊢; omega)
         simpa [Nat.add_assoc, Nat.add_comm 1 i] using this)
-    refine ⟨⟨hH, ?_⟩, xe, ?_⟩
+    have hdr : xs.drop ((L :: Ls).map SpLv.words).flatten.length =
+        xsR.drop (Ls.map SpLv.words).flatten.length := by
+      rw [hxs]; simp [List.drop_append]
+    rw [hdr]
+    refine ⟨⟨hH, ?_⟩, ?_⟩
     · rw [hO]; exact hH'
     · simp only [spDats, lvsOut]
       rw [hO]
