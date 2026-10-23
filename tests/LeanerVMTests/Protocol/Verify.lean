@@ -17,7 +17,7 @@ grinding nonce moves the chain, so that level's grinding check rejects it before
 runs; only the last level's query message and tail rounds, read after the last grinding check,
 reach the algebra through the stream. The phases' own checks are exercised on the honest wire
 instead: `VerifyBus.lean`, `VerifyTables.lean`, `VerifyFlock.lean`, and `whirChecks` below for
-WHIR.
+WHIR, at the last level and at the levels before it.
 
 Interpreted, a run of `verify` that hashes the whole proof takes over a minute, so this module
 checks the honest proof and the mutations rejected before the chain walk passes its setup's
@@ -51,8 +51,6 @@ inductive Outcome where
   | table
   /-- The public input's check. -/
   | pub
-  /-- The fixed public polynomials' evaluations. -/
-  | settle
   /-- The Flock phase's algebra. -/
   | flock
   /-- WHIR's algebra and terminal check. -/
@@ -74,15 +72,12 @@ def algebraOutcome (prog : Program) (s : Sizes) (input : PublicInput) (shs : Lis
       match pubStep I t w.pub with
       | none => .pub
       | some p =>
-        match settleFixedClaims prog w with
-        | none => .settle
-        | some _ =>
-          match flockStep I (flockRegion prog s Blake2sFlock.blake2sFlockSpec) rfl blake2sRows
-            p w.flock with
-          | none => .flock
-          | some f =>
-            let (W, target) := openingClaim I f w.lam
-            if whirCheck I.μ shs W target w.whirFirst w.whir rows then .accepted else .whir
+        match flockStep I (flockRegion prog s Blake2sFlock.blake2sFlockSpec) rfl blake2sRows
+          p w.flock with
+        | none => .flock
+        | some f =>
+          let (W, target) := openingClaim I f w.lam
+          if whirCheck I.μ shs W target w.whirFirst w.whir rows then .accepted else .whir
 
 /-- `verify`'s stages on the fixture's program and input, naming the first that rejects `p`. -/
 def outcome (p : Proof PrunedMerklePaths) : Outcome :=
@@ -233,10 +228,13 @@ def mutations : List Mutation := cheap ++ [
 
 /-! ## WHIR's algebra on the honest transcript -/
 
-/-- WHIR's check on the honest wire, with the rows and the last level changed by each pair of
-`muts`, the phases before it run once. -/
-def whirChecks (muts : List ((List (List (List K)) → List (List (List K))) ×
-    (WhirLevel → WhirLevel))) : List Bool :=
+/-- A change of WHIR's honest inputs: the stored rows, and the level at an index. -/
+abbrev WhirMutation : Type :=
+  (List (List (List K)) → List (List (List K))) × ℕ × (WhirLevel → WhirLevel)
+
+/-- WHIR's check on the honest wire, with the rows and a level changed by each of `muts`, the
+phases before it run once. -/
+def whirChecks (muts : List WhirMutation) : List Bool :=
   let f := fx
   match setup? f.prog f.proof with
   | none => []
@@ -254,42 +252,33 @@ def whirChecks (muts : List ((List (List (List K)) → List (List (List K))) ×
         let b ← leanVmBus f.prog s f.input w.bus
         let t ← tableStep I b w.table
         let p ← pubStep I t w.pub
-        let _ ← settleFixedClaims f.prog w
         flockStep I (flockRegion f.prog s Blake2sFlock.blake2sFlockSpec) rfl blake2sRows p
           w.flock
       match fo with
       | none => []
       | some fo =>
         let (W, target) := openingClaim I fo w.lam
-        muts.map fun (fr, fl) ↦
-          whirCheck I.μ shs W target w.whirFirst (w.whir.modify 3 fl) (fr rows)
+        muts.map fun (fr, i, fl) ↦
+          whirCheck I.μ shs W target w.whirFirst (w.whir.modify i fl) (fr rows)
 
-/-- The honest transcript, then a word of a stored row of level 2, a residual value and the
-last level's batching challenge flipped, each with the verdict `whirCheck` must give. -/
-def whirMutations : List (((List (List (List K)) → List (List (List K))) ×
-    (WhirLevel → WhirLevel)) × Bool) := [
-  ((id, id), true),
-  ((fun rs ↦ rs.modify 2 (·.modify 4 (·.modify 7 (· + 1))), id), false),
-  ((id, fun l ↦ { l with residual := l.residual.modify 1 (· + 1) }), false),
-  ((id, fun l ↦ { l with lam := l.lam + 1 }), false)]
+/-- A fold round with its challenge changed. -/
+def bumpFold (f : Fold) : Fold := { f with chal := f.chal + 1 }
 
-/-- The bytecode multilinear settled as one evaluation is the program's share the bus phase
-evaluates column by column: `B̃(ζ_{<κ_bc}, α) = Σ_k eq(α, 3 + k)·P̃_k(ζ_{<κ_bc})`. -/
-def bytecodeAgrees : Bool :=
-  match wire with
-  | some w =>
-    let f := fx
-    match settleBytecode f.prog w,
-        vec? f.prog.logSize ((gkrPoint [] w.bus.layers).take f.prog.logSize),
-        vec? 4 w.bus.alpha with
-    | some v, some z, some α =>
-      let tw := (fingerprintWeights fun i ↦ α[i]).toArray
-      v == ∑ k : Fin 8, tw.getD (3 + k.val) 0 *
-        CompPoly.CMlPolynomialEval.eval₂Mle (LeanIsa.entryColumn f.prog k).values
-          (algebraMap K E) z
-    | _, _, _ => false
-  | none => false
-
-#guard bytecodeAgrees
+/-- The honest transcript, then changes at the last level and at the levels before it, each with
+the verdict `whirCheck` must give: a stored word of level 2 and of level 0, the last level's
+residual value and batching challenge; level 1's out-of-domain value, coordinate and round
+polynomial, level 0's fold challenge, level 2's batching challenge and query message. -/
+def whirMutations : List (WhirMutation × Bool) := [
+  ((id, 3, id), true),
+  ((fun rs ↦ rs.modify 2 (·.modify 4 (·.modify 7 (· + 1))), 3, id), false),
+  ((fun rs ↦ rs.modify 0 (·.modify 3 (·.modify 40 (· + 1))), 3, id), false),
+  ((id, 3, fun l ↦ { l with residual := l.residual.modify 1 (· + 1) }), false),
+  ((id, 3, fun l ↦ { l with lam := l.lam + 1 }), false),
+  ((id, 1, fun l ↦ { l with oodValue := l.oodValue + 1 }), false),
+  ((id, 1, fun l ↦ { l with ood := l.ood.modify 0 (· + 1) }), false),
+  ((id, 1, fun l ↦ { l with oodWire := l.oodWire.modify 0 (· + 1) }), false),
+  ((id, 0, fun l ↦ { l with folds := l.folds.modify 2 bumpFold }), false),
+  ((id, 2, fun l ↦ { l with lam := l.lam + 1 }), false),
+  ((id, 2, fun l ↦ { l with queryWire := l.queryWire.modify 1 (· + 1) }), false)]
 
 end LeanerVMTests.Protocol.Verify

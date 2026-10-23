@@ -356,9 +356,10 @@ lake build leanervm-verify          # compiles every transitive module to C, the
 It prints the honest proof's verdict, then each mutation of
 `LeanerVMTests.Protocol.Verify.mutations` with the stage that rejects it (`outcome`: the setup,
 the openings' shapes, a read with the reader's error, or a phase of the algebra) against the
-stage recorded for it, WHIR's algebra on the honest transcript (`whirChecks`), and the bytecode
-multilinear against the bus phase's column-by-column share (`bytecodeAgrees`); the exit code is
-`1` if any check fails. The timed runs exclude the fixture's parsing.
+stage recorded for it, WHIR's algebra on the honest transcript with its mutations at every
+level (`whirChecks`), and the BLAKE2s walk's two forms against the circuit's gates at all
+`2^14` rows (`LeanerVMTests.Protocol.VerifyFlock.walkMismatches`); the exit code is `1` if any
+check fails. The timed runs exclude the fixture's parsing.
 
 Recorded on 2026-10-23 at the fixture of leanVM `a386121f` (770 scalars, four openings of 223,
 56, 32 and 22 rows, a stack of `2^20` cells), on the machine of the table above: every check

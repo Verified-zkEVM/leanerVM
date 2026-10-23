@@ -1020,18 +1020,24 @@ Merkle trees', with the fast field arithmetic merged), the rest of Layer 12's ve
   104 column values) and its rejections.
 - **The bus phase** (`Protocol/Verify/Bus.lean`): `walkBus` reads `α`, `β`, the two roots, the
   combiners and the layers from the root down (`gkrRadices`: one binary layer first at an odd
-  depth) and the boundary values; `busStep` checks the count root, replays the layers
-  (`replayGkr`: each round decoded with the point's equality weights, the descendants checked
-  against the combined final claim as `Gkr.combineCheck` does, the next point `(u, c)`) and hands
-  on the oracle verifier's own `Bus.busOut`, generic over the instance (`leanVmBus` at leanISA's).
-  On the fixture the walk squeezes the second verifier's challenges, the nine layers replay to its
-  bus point and the three totals are its totals (`tests/LeanerVMTests/Protocol/VerifyBus.lean`,
-  with the zero count, a flipped descendant, a flipped round coefficient, a changed root and a
-  missing value rejected).
+  depth) and the boundary values; `busReplay` checks the count root and replays the layers at
+  the shapes the depth fixes (`replayGkr`: each round decoded with the point's equality weights,
+  the descendants checked by the oracle verifier's `Gkr.combineCheck`, the next statement its
+  `Gkr.interpDone`), and `busStep` hands on the oracle verifier's own `Bus.busOut`, generic over
+  the instance. At leanISA's instance (`leanVmBus`) the two bytecode blocks' entry columns enter
+  the totals as one value, the program's share `B̃(ζ_{<κ_bc}, α)`, which `settleFixedClaims`
+  evaluates (`busOutWith`; `bytecodeShare_eq`: it is `Σ_k eq(α, 3 + k)·P̃_k(ζ_{<κ_bc})`, what the
+  instance's known coordinates evaluate column by column), so a recursive verifier defers that
+  one claim. On the fixture the walk squeezes the second verifier's challenges, the nine layers
+  replay to its bus point, the three totals are its totals, and the totals with the settled
+  share are `Bus.busOut`'s (`tests/LeanerVMTests/Protocol/VerifyBus.lean`, with the zero count, a
+  flipped descendant, a flipped round coefficient, a changed root, a layer of another shape, a
+  missing layer, a missing value and another share rejected or changing the totals).
 - **The table sumcheck and the public input** (`Protocol/Verify/Tables.lean`): `walkTables` and
   `walkPub`; `tableStep` is the oracle verifier's (the target batched from the totals, the rounds
   decoded, `Sumcheck.finalCheck` of the table summand, `TableSumcheck.tableOut`), `pubStep` the
-  deployed one (`PublicInput.checkWords`, `pooledFrom`). The fixture found the `DEREF` table's
+  deployed one in its guarded form (`PublicInput.accepts` of `checkWords`, `verdict` of
+  `pooledFrom`). The fixture found the `DEREF` table's
   flush order differing from the Rust's ([leanvm-target.md](../leanvm-target.md#known-discrepancies-at-the-pin));
   the leanISA table now reads in the Rust's order, and on the fixture both phases pass
   (`VerifyTables.lean`, with a flipped column value, a flipped round coefficient, a missing value,
@@ -1040,13 +1046,17 @@ Merkle trees', with the fast field arithmetic merged), the rest of Layer 12's ve
   reads the zerocheck, the lincheck and the six ring-switching coefficients; `flockStep` replays
   the oracle verifier's steps (`skipClaim`, the normalized rounds, `termNext`, `alphaNext`, the
   lincheck rounds, `linNext`, `ringWeight` and `ringTarget`, `FlockPhase.finish`), the lincheck's
-  claim compared with its native terminal, settled outside the step (`flockTerminal`). The
-  region's block R1CS (`blake2sCircuit.toBlockR1CS`) evaluates its matrices entry by entry,
-  `2^28` terms each, which nothing can run; the terminal walks the circuit once instead
-  (`blake2sRows`, transcribed from `verifier.py:1167-1298`), as `Flock.linTerminalWith` with the
-  column weights built once. Owed: `blake2sRows = (blake2sCircuit.toBlockR1CS E).rows`, on which
-  the compiled verifier's equality with the oracle verifier rests; the tests check it at sampled
-  rows of every kind, and the Rust proof's lincheck passes on it. On the fixture the phase hands
+  check made as `Flock.linCheck` makes it, from the step's own statement, with the circuit's
+  matrices evaluated by a supplied walk (`Flock.linTerminalWith rows`). The region's block R1CS
+  (`blake2sCircuit.toBlockR1CS`) evaluates its matrices entry by entry, `2^28` terms each, which
+  nothing can run; the verifier walks the circuit once instead (`blake2sRows`, transcribed from
+  `verifier.py:1167-1298`, written once over any type with `+` and `0`). Owed, stated as an
+  unproved target in `Blake2sWalk.lean`: `blake2sRows w = (blake2sCircuit.toBlockR1CS E).rows w`,
+  on which the compiled verifier's equality with the oracle verifier rests. Both sides are
+  additive in `w`; on GF(2) forms the walk returns each row's two forms, and `leanervm-verify`
+  finds them equal to `rowOf blake2sCircuit` at all `2^14` rows (`VerifyFlock.walkMismatches`);
+  the tests check the walk at `E` at rows of every kind, and the Rust proof's lincheck passes on
+  it. On the fixture the phase hands
   on the Python verifier's ring-switching target (`VerifyFlock.lean`, with a flipped slice, skip
   value, zerocheck and lincheck coefficient, `â` and a missing coefficient rejected).
 - **WHIR, the openings and the verifier** (`Protocol/Verify/Whir.lean`, `Protocol/Verify.lean`):
@@ -1058,9 +1068,7 @@ Merkle trees', with the fast field arithmetic merged), the rest of Layer 12's ve
   reverse, one lane a word, as the Rust does); `whirCheck`, WHIR's algebra on the oracle
   reduction's weights (`relayoutWeight`, `Whir.foldWeight`, `Whir.gluedWeight`,
   `Whir.queryWeight`, `Whir.foldRow`, `Whir.batchMessage`) with the terminal check;
-  `openingClaim`, the pool of `Opening.poolList` batched by `λ`; `settleFixedClaims`, the bytecode
-  multilinear (computed and not compared, as the Rust hands it on, since the bus totals already
-  hold the program's share) and the lincheck terminal, which the Flock check compares; and
+  `openingClaim`, the pool of `Opening.poolList` batched by `λ`; and
   `verifyWith H prog input proof`, total and structurally recursive, in the four stages, with
   `verify := verifyWith (m := Id) blake2sBytes`. The wire transcript (`Wire`) holds, per phase,
   the scalars read (round wires raw, the dropped coefficient left to the algebra), the
@@ -1076,15 +1084,18 @@ Merkle trees', with the fast field arithmetic merged), the rest of Layer 12's ve
   level's grinding nonce moves the chain and is rejected by that level's grinding check; the
   last level's query message and the last round's coefficient come after the last grinding
   check and are rejected by WHIR's terminal check. The phases' own checks are exercised on the
-  honest wire: the phase tests above, and WHIR's algebra, which rejects a flipped stored row,
-  residual value and batching challenge. The test module checks the honest proof and the
+  honest wire: the phase tests above, and WHIR's algebra, which rejects a flipped stored word at
+  levels 0 and 2, the last level's residual value and batching challenge, level 1's out-of-domain
+  value, coordinate and round polynomial, a fold challenge of level 0, and level 2's batching
+  challenge and query message. One out-of-domain sample a level after the first is the Rust's
+  derived count: `scripts/whir-mca-budget.py` finds it at all 168 such levels of the window, one
+  sample giving 150.4 to 172.4 bits (`Parameters/Whir.lean`, `oodSamples`). The test module checks the honest proof and the
   mutations rejected before the walk passes its setup's reads. Owed: `verifierQueries`,
   `proofDigests`, `rounds` and their bounds, `verifyWith_simulateQ`, `decodePrefix` and
-  `verify_iff_compiled`, which
-  needs `blake2sRows = (blake2sCircuit.toBlockR1CS E).rows` and the instance's known-coordinate
-  evaluators equal to the extensions (they are, by the field `ext_eq`); and `settleFixedClaims` is
-  not yet the seam for the bytecode claim that a recursive verifier defers, since the bus phase
-  evaluates the program's share through the instance's known coordinates.
+  `verify_iff_compiled`, which needs `blake2sRows = (blake2sCircuit.toBlockR1CS E).rows`, the
+  instance's known-coordinate evaluators equal to the extensions (they are, by the field
+  `ext_eq`), and `busOutWith` at the settled share equal to `Bus.busOut` (by `bytecodeShare_eq`,
+  at the bytecode blocks' points; checked on the fixture).
 
 ## Upstream watch
 

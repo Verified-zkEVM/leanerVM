@@ -43,15 +43,15 @@ and `python-verifier/verifier.py:1365-1407` (`verify_execution`).
 structural recursion; a malformed proof is `false`.
 
 **The fixed public polynomials.** Two public polynomials are evaluated, which a recursive
-verifier defers instead (`VerifySummary`, `cpu/mod.rs:683-700`): the bytecode multilinear at the
-bus point and the fingerprint challenges, `B̃(ζ_{<κ_bc}, α)`, the program's share of the bytecode
-blocks' leaves (`settleFixedClaims`), and the BLAKE2s circuit's matrices at the lincheck's column
-weights, one forward walk of the circuit (`blake2sRows`), which the Flock step takes for the
-lincheck's check. The bus phase's totals evaluate the first through the leanISA
-instance's known coordinates, column by column as the Rust does (`leaf.rs:453`), so the verdict
-does not compare it again: `settleBytecode` is the same value as one multilinear, which the Rust
-computes too and hands on unchecked as the claim a recursive verifier defers
-(`leaf.rs:627-637`, `VerifySummary::bytecode_claims`).
+verifier defers instead (`VerifySummary`, `cpu/mod.rs:683-700`). The bytecode multilinear at the
+bus point and the fingerprint challenges, `B̃(ζ_{<κ_bc}, α)`, is the program's share of the two
+bytecode blocks' fingerprints (`bytecodeShare_eq`): `settleFixedClaims` evaluates it, and the bus
+phase's totals take it in place of the entry columns (`leanVmBus`, `busOutWith`), so a recursive
+verifier changes that one function. The Rust's native verifier evaluates the entry columns one by
+one inside the totals (`leaf.rs:453`) and computes the multilinear too, handing it on unchecked
+(`leaf.rs:627-637`); both give the same totals. The BLAKE2s circuit's matrices at the lincheck's
+column weights are one forward walk of the circuit (`blake2sRows`), which the Flock step takes
+for the lincheck's check.
 
 **Differences from the Rust.** None in what is accepted. The Rust reads and checks each phase as
 it goes and opens each WHIR level where its rows are needed; here the walk reads everything
@@ -112,31 +112,6 @@ def walkChain (prog : Program) (s : Sizes) (input : PublicInput) (shs : List Lev
 
 end Walk
 
-/-! ## The fixed public polynomials -/
-
-/-- The values of the claims on the fixed public polynomials. -/
-structure FixedClaims where
-  /-- The bytecode multilinear at the bus point and the fingerprint challenges. -/
-  bytecode : E
-
-/-- The bus phase's final point, from the grand product's challenges alone: each layer's
-combination challenges before the point its rounds drew. -/
-def gkrPoint : List E → List GkrLayer → List E
-  | point, [] => point
-  | _, l :: ls => gkrPoint (l.combos ++ l.rounds.map (·.chal)) ls
-
-/-- The bytecode multilinear at the bus point and the fingerprint challenges, `B̃(ζ_{<κ_bc}, α)`
-(`leaf.rs:627-637`, `bytecode_claim`; `verifier.py:563`). -/
-def settleBytecode (prog : Program) (w : Wire) : Option E := do
-  let z ← vec? prog.logSize ((gkrPoint [] w.bus.layers).take prog.logSize)
-  let α ← vec? 4 w.bus.alpha
-  return eval₂Mle (bytecodeColumn prog).values (algebraMap K E) (z ++ α)
-
-/-- The claims on the fixed public polynomials, settled by evaluating them from the wire
-transcript: the bytecode multilinear (`settleBytecode`). `none` on a wire of the wrong shape. -/
-def settleFixedClaims (prog : Program) (w : Wire) : Option FixedClaims := do
-  return ⟨← settleBytecode prog w⟩
-
 /-! ## The algebra -/
 
 /-- The opening's weight and target: the pool's weights and values batched by the powers of
@@ -147,7 +122,8 @@ def openingClaim (I : M3Instance) (s : I.Stmt × FlockOut I) (lam : E) : Weight 
     powerBatch (fun j : Fin pool.size ↦ pool[j].value) lam)
 
 /-- The algebra on the wire transcript and the rows, phase by phase: the oracle verifiers'
-checks and outputs, the opening's batch, and WHIR's sumcheck and terminal check. -/
+checks and outputs (the bus phase's with the program's share settled, `leanVmBus`), the
+opening's batch, and WHIR's sumcheck and terminal check. -/
 def algebra (prog : Program) (s : Sizes) (input : PublicInput) (shs : List LevelShape)
     (w : Wire) (rows : List (List (List K))) : Bool :=
   let I := leanVm prog s
@@ -160,9 +136,6 @@ def algebra (prog : Program) (s : Sizes) (input : PublicInput) (shs : List Level
       match pubStep I t w.pub with
       | none => false
       | some p =>
-        match settleFixedClaims prog w with
-        | none => false
-        | some _ =>
         match flockStep I (flockRegion prog s Blake2sFlock.blake2sFlockSpec) rfl blake2sRows p
           w.flock with
         | none => false

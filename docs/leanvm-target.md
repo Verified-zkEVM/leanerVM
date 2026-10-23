@@ -265,9 +265,11 @@ number and shapes of the openings before any hash, walks the whole chain before 
 opening and the openings before any algebra (the Rust interleaves them; openings are not
 absorbed, so no challenge moves), and computes WHIR's terminal weight as the oracle reduction's
 glued weight rather than the Rust's closed forms (`whir.rs:2264-2308`), equal on this proof. It
-computes the bytecode multilinear `B̃(ζ, α)` and, as the Rust does, does not compare it: the bus
-totals already hold the program's share, column by column (`leaf.rs:453`). This is
-implementation evidence about one proof, not a statement about the Rust.
+evaluates the program's share of the bus totals as one value, the bytecode multilinear
+`B̃(ζ_{<κ_bc}, α)` (`settleFixedClaims`), where the Rust's totals evaluate the eight entry columns
+one by one (`leaf.rs:453`) and hand the multilinear on unchecked for recursion
+(`leaf.rs:627-637`); the two are equal (`bytecodeShare_eq`), and a recursive verifier defers the
+one claim. This is implementation evidence about one proof, not a statement about the Rust.
 
 **Not a discrepancy.** The Python verifier checks the caps (`16 ≤ log_mem ≤ 32`, every height at
 most 32, `τ_BLAKE2S ≥ 3`, a power-of-two program: `py:856-864`, called at `py:1378`). The former

@@ -13,7 +13,9 @@ oracle verifier's `Bus.busOut` at the leanISA instance, has the Python verifier'
 (`verify_bus_balance`). Each check rejects its mutation: a zero count root, a descendant flipped,
 a round's wire coefficient flipped (the layer check fails), a changed root, a layer of another
 shape than the depth fixes (a round more, a combination challenge fewer), a missing layer, and
-a missing boundary value. The radices: one binary layer first at an odd depth.
+a missing boundary value. The radices: one binary layer first at an odd depth. The totals with
+the program's share settled as one multilinear (`settleFixedClaims`, `busOutWith`) are the oracle
+verifier's, which evaluates the entry columns one by one, and another share changes them.
 -/
 
 namespace LeanerVMTests.Protocol.VerifyBus
@@ -91,6 +93,27 @@ def withLayer (i : ℕ) (f : GkrLayer → GkrLayer) : BusWire :=
 #guard (replay (withLayer 4 fun l ↦ { l with combos := l.combos.dropLast }).layers).isNone
 -- A layer missing.
 #guard (replay wire.layers.dropLast).isNone
+/-! ## The program's share -/
+
+/-- The grand product's last statement and the boundary values on the fixture. -/
+def lastStatement :
+    Option (Gkr.LayerStmt (Bus.Data (leanVm fx.prog sizes.1)) E 3 (leanVm fx.prog sizes.1).μBus ×
+      Vector E (leanVm fx.prog sizes.1).busClaims) :=
+  busReplay (leanVm fx.prog sizes.1) fx.input wire
+
+-- The totals with the share `settleFixedClaims` evaluates are the oracle verifier's, which
+-- evaluates the entry columns one by one; with another share they are not.
+#guard match lastStatement with
+  | some (ℓ, vals) =>
+    let h := leanIsa_conditions Blake2sFlock.blake2sFlockSpec fx.prog sizes.1
+    match settleFixedClaims fx.prog ℓ.2.1 ℓ.1.2.1 with
+    | some fixed =>
+      let t := List.ofFn (Bus.busOut h ℓ vals).totals
+      List.ofFn (busOutWith h fixed.bytecode ℓ vals).totals == t &&
+        List.ofFn (busOutWith h (fixed.bytecode + 1) ℓ vals).totals != t
+    | none => false
+  | none => false
+
 -- A boundary value missing.
 #guard (leanVmBus fx.prog sizes.1 fx.input { wire with values := wire.values.dropLast }).isNone
 

@@ -252,8 +252,8 @@ def replayFolds : E → Vector E 3 → List Fold → Option (E × Vector E 3 × 
 /-- A stored row's lanes as elements of `E`: level 0's leaf image in reverse, one word a lane;
 a later level's three words a lane. -/
 def laneRow (first : Bool) (ℓ : ℕ) (image : List K) : Option (Vector E (2 ^ ℓ)) :=
-  if first then vec? (2 ^ ℓ) (image.reverse.map ofK)
-  else vec? (2 ^ ℓ) ((List.range (2 ^ ℓ)).map fun i ↦
+  if first then RoundPoly.ofList? (2 ^ ℓ) (image.reverse.map ofK)
+  else RoundPoly.ofList? (2 ^ ℓ) ((List.range (2 ^ ℓ)).map fun i ↦
     E.ofLimbs (image.getD (3 * i) 0) (image.getD (3 * i + 1) 0) (image.getD (3 * i + 2) 0))
 
 /-- The positions as indices of a word of `2 ^ b` positions. -/
@@ -285,14 +285,15 @@ def whirLevels : Bool → (n : ℕ) → Weight E n → E → Vector E 3 → List
               let claim := claim + l.lam * enforced
               let quad := Whir.batchMessage ![quad, p3] l.lam
               let W'' := Weight.batch ![W', Whir.queryWeight sh.msgLog sh.rate pos l.lam] l.lam
-              match replayFolds claim quad l.tail, vec? (2 ^ sh.msgLog) l.residual with
+              match replayFolds claim quad l.tail, RoundPoly.ofList? (2 ^ sh.msgLog) l.residual with
               | some (claim, _, tail), some f =>
-                match vec? sh.msgLog tail with
+                match RoundPoly.ofList? sh.msgLog tail with
                 | some t => decide (W''.mle t * evalMle f t = claim)
                 | none => false
               | _, _ => false
             else
-              match vec? sh.msgLog l.ood, RoundPoly.decode 2 l.oodValue none l.oodWire with
+              match RoundPoly.ofList? sh.msgLog l.ood,
+                RoundPoly.decode 2 l.oodValue none l.oodWire with
               | some z, some p2 =>
                 whirLevels false sh.msgLog (Whir.gluedWeight W' z pos l.lam)
                   (powerBatch ![claim, l.oodValue, enforced] l.lam)
