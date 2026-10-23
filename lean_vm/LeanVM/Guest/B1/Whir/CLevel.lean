@@ -92,7 +92,7 @@ theorem osLevel_nonfinal_complete {c : OsCfg} {lvl : ℕ} {lv : OsLv} {st : OsSt
     (sqz : E)
     (h0 : ∀ i < 5, LoadHolds rd sqz i ((capOf (cF2 (foldsTr lv.folds (st.F σ) (st.quad σ)
       (σ (.n st.t)) xs).1 ra rb lv.logCols y c0 c2 nonce).perm).getD i 0))
-    (hm : ∀ j < lv.squeezes, SqIterMem rd lv.depth lv.posOff sqz (σ (.n osQpos)) (σ (.n osQbp))
+    (hm : ∀ j < lv.squeezes, SqNextMem rd sqz
       (gen ^ j) ((⟨capOf (cF2 (foldsTr lv.folds (st.F σ) (st.quad σ) (σ (.n st.t)) xs).1 ra rb
         lv.logCols y c0 c2 nonce).perm, []⟩ : Fs).squeezeN j).2.cap)
     (hL : IsInK (1 + gen ^ lv.squeezes) ∧ (1 + gen ^ lv.squeezes ≠ 0 →
@@ -193,7 +193,7 @@ theorem osLevel_nonfinal_complete {c : OsCfg} {lvl : ℕ} {lv : OsLv} {st : OsSt
     σ2 hnf hn0 hn5 ao.fs ao.below (by have := ao.k; omega) ao.can hpadA
     (fun p hp ↦ by rw [ao.pad] at hp; have := hpk p hp; have := ao.k; omega) sqz
     (by rw [hfsvA]; exact h0)
-    (by rw [hfsvA, e2 osQpos (by unfold osQpos; omega), e2 osQbp (by unfold osQbp; omega)]; exact hm)
+    (by rw [hfsvA]; exact hm)
     (by rw [e2 osQpos (by unfold osQpos; omega), e2 osQbp (by unfold osQbp; omega)]; exact hL) hQ2
     (by rw [hfsvA, e2 osQw (by unfold osQw; omega)]; exact hqw) hbo wp r0 r1 sum ic0 ic2
     (by rw [e2 osFch (by unfold osFch; omega)]; exact hRW)
@@ -256,7 +256,7 @@ theorem osLevel_final_complete {c : OsCfg} {lvl : ℕ} {lv : OsLv} {st : OsSt} (
     (sqz : E)
     (h0 : ∀ i < 5, LoadHolds rd sqz i (((((foldsTr lv.folds (st.F σ) (st.quad σ) (σ (.n st.t))
       xs).1.absorbAll ms dsObserve).absorb nonce dsPowNonce).squeeze.2.cap).getD i 0))
-    (hm : ∀ j < lv.squeezes, SqIterMem rd lv.depth lv.posOff sqz (σ (.n osQpos)) (σ (.n osQbp))
+    (hm : ∀ j < lv.squeezes, SqNextMem rd sqz
       (gen ^ j) ((⟨((((foldsTr lv.folds (st.F σ) (st.quad σ) (σ (.n st.t)) xs).1.absorbAll ms
         dsObserve).absorb nonce dsPowNonce).squeeze.2.cap), []⟩ : Fs).squeezeN j).2.cap)
     (hL : IsInK (1 + gen ^ lv.squeezes) ∧ (1 + gen ^ lv.squeezes ≠ 0 →
@@ -354,7 +354,7 @@ theorem osLevel_final_complete {c : OsCfg} {lvl : ℕ} {lv : OsLv} {st : OsSt} (
     σ2 hfin hn0 hn5 ao.fs ao.below (by have := ao.k; omega) ao.can hpadA
     (fun p hp ↦ by rw [ao.pad] at hp; have := hpk p hp; have := ao.k; omega) sqz
     (by rw [hfsvA]; exact h0)
-    (by rw [hfsvA, e2 osQpos (by unfold osQpos; omega), e2 osQbp (by unfold osQbp; omega)]; exact hm)
+    (by rw [hfsvA]; exact hm)
     (by rw [e2 osQpos (by unfold osQpos; omega), e2 osQbp (by unfold osQbp; omega)]; exact hL) hQ2
     (by rw [hfsvA, e2 osQw (by unfold osQw; omega)]; exact hqw) hbo wp r0 r1 sum ic0 ic2
     (by rw [e2 osFch (by unfold osFch; omega)]; exact hRW)

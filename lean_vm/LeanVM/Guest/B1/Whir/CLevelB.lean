@@ -103,8 +103,7 @@ theorem osLevelB_final_complete {c : OsCfg} {lvl : ℕ} {lv : OsLv} {st : OsSt} 
     (hfs : st.fs.length = 5) (hb : st.Below) (hk : 34 ≤ st.k) (hcan : AllCanonical (st.fsv σ))
     (hpad : PadOk σ st.pad) (hpk : ∀ p, st.pad = some p → p + 4 < st.k)
     (sqz : E) (h0 : ∀ i < 5, LoadHolds rd sqz i ((st.fsv σ).getD i 0))
-    (hm : ∀ j < lv.squeezes, SqIterMem rd lv.depth lv.posOff sqz (σ (.n osQpos)) (σ (.n osQbp))
-      (gen ^ j) ((⟨st.fsv σ, []⟩ : Fs).squeezeN j).2.cap)
+    (hm : ∀ j < lv.squeezes, SqNextMem rd sqz (gen ^ j) ((⟨st.fsv σ, []⟩ : Fs).squeezeN j).2.cap)
     (hL : IsInK (1 + gen ^ lv.squeezes) ∧ (1 + gen ^ lv.squeezes ≠ 0 →
       C (c.sqLoop lvl) [1, gen ^ lv.squeezes, sqz, σ (.n osQpos), σ (.n osQbp)] []))
     (hQ2 : 2 ≤ lv.queries)

@@ -158,7 +158,7 @@ structure LvHN (C : CallRel) (rd : Reader) (P : OsPtrs) (c : OsCfg) (lvl : ℕ) 
   hn0 : 0 < lv.squeezes
   hn5 : lv.squeezes * 5 < u128Bound
   h0 : ∀ i < 5, LoadHolds rd D.sqz i ((capNon lv D F q t).getD i 0)
-  hm : ∀ j < lv.squeezes, SqIterMem rd lv.depth lv.posOff D.sqz (P.qpos) (P.qbp)
+  hm : ∀ j < lv.squeezes, SqNextMem rd D.sqz
     (gen ^ j) ((⟨capNon lv D F q t, []⟩ : Fs).squeezeN j).2.cap
   hL : IsInK (1 + gen ^ lv.squeezes) ∧ (1 + gen ^ lv.squeezes ≠ 0 →
     C (c.sqLoop lvl) [1, gen ^ lv.squeezes, D.sqz, P.qpos, P.qbp] [])
@@ -202,7 +202,7 @@ structure LvHF (C : CallRel) (rd : Reader) (P : OsPtrs) (c : OsCfg) (lvl : ℕ) 
   hn0 : 0 < lv.squeezes
   hn5 : lv.squeezes * 5 < u128Bound
   h0 : ∀ i < 5, LoadHolds rd D.sqz i ((capFin lv D F q t).getD i 0)
-  hm : ∀ j < lv.squeezes, SqIterMem rd lv.depth lv.posOff D.sqz (P.qpos) (P.qbp)
+  hm : ∀ j < lv.squeezes, SqNextMem rd D.sqz
     (gen ^ j) ((⟨capFin lv D F q t, []⟩ : Fs).squeezeN j).2.cap
   hL : IsInK (1 + gen ^ lv.squeezes) ∧ (1 + gen ^ lv.squeezes ≠ 0 →
     C (c.sqLoop lvl) [1, gen ^ lv.squeezes, D.sqz, P.qpos, P.qbp] [])
