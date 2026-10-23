@@ -33,6 +33,7 @@ import LeanerVMTests.Protocol.Fingerprint
 import LeanerVMTests.Protocol.FixedColumns
 import LeanerVMTests.Protocol.Flock
 import LeanerVMTests.Protocol.FlockCircuit
+import LeanerVMTests.Protocol.FlockFast
 import LeanerVMTests.Protocol.FlockSecurity
 import LeanerVMTests.Protocol.FlockSpec
 import LeanerVMTests.Protocol.GrandProduct

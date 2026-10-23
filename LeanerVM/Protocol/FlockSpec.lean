@@ -11,7 +11,7 @@ module
 
 public import LeanerVM.Protocol.Blake2sCircuit
 public import LeanerVM.Protocol.Spine.Instance
-public import LeanerVM.Protocol.ToArkLib.Flock.CircuitFast
+public import LeanerVM.Protocol.FlockWalks
 
 /-!
 # The Flock specification and its BLAKE2s inhabitant
@@ -34,19 +34,18 @@ A `FlockSpec` says what that predicate means, with no instance in sight:
 * `slots_gen`: the column carries every row that is a compression at its block's slots.
 
 `compress_of_region`, `region_holds_gen`: the two directions for a Flock region whose matrices
-are the specification's, whatever walks it evaluates them by. The inhabitant's `r1cs` carries the
-naive walks of `ProductCircuit.toBlockR1CS`, which sum `2 ^ 28` entries and do not run at
-leanVM's size; a region with fast walks of the same matrices inherits both directions through
-these two theorems.
+are the specification's, whatever walks it evaluates them by.
 
 `blake2sFlockSpec` is the inhabitant: the R1CS of `blake2sCircuit` and the deployed slots
 (Category B: `crates/lean_vm/src/hash_flock.rs:83-115` at leanVM
 `a386121f84292f6fa663aaa3e570c15bc0240ea2`, `SLOTS` in the order of
 `tables::BLAKE2S_VALUE_COLS`); its generator places each row's input limbs at their slots and
-runs the circuit's trace. Compiled code runs the generator as `genColumnFast`, by the `@[csimp]`
-theorem `genColumn_eq_genColumnFast`, registered before the inhabitant is: the circuit compiled
-once (`ProductCircuit.compile`), each block traced on its 64-bit words (`Compiled.traceW`), the
-cells read off the words (`cellOfW`).
+runs the circuit's trace. Its R1CS has the matrices of `ProductCircuit.toBlockR1CS` with the walks
+on words (`ProductCircuit.toBlockR1CSE`, equal to it by `toBlockR1CSE_eq`): the naive walks sum
+`2 ^ 28` entries and do not run at leanVM's size. Compiled code runs the generator as
+`genColumnFast`, by the `@[csimp]` theorem `genColumn_eq_genColumnFast`, registered before the
+inhabitant is: the circuit compiled once (`ProductCircuit.compile`), each block traced on its
+64-bit words (`Compiled.traceW`), the cells read off the words (`cellOfW`).
 -/
 
 namespace LeanerVM.Protocol
@@ -470,14 +469,14 @@ def genColumnFast (rows : Vector (Fin 18 → K) (2 ^ κ)) : Column (8 + κ) :=
 
 end Compiled
 
-/-- The BLAKE2s inhabitant of the Flock specification: the R1CS of `blake2sCircuit`, the deployed
-slots, and the honest column of the circuit's traces. -/
+/-- The BLAKE2s inhabitant of the Flock specification: the R1CS of `blake2sCircuit`, its walks on
+words, the deployed slots, and the honest column of the circuit's traces. -/
 def blake2sFlockSpec : FlockSpec where
-  r1cs := blake2sCircuit.toBlockR1CS E
+  r1cs := blake2sCircuit.toBlockR1CSE
   slot := slots
-  compress_of_holds := compress_of_holds
+  compress_of_holds := fun c h ↦ compress_of_holds c (by rwa [toBlockR1CSE_eq] at h)
   gen := genColumn
-  holds_gen := holds_gen
+  holds_gen := fun rows ↦ by rw [toBlockR1CSE_eq]; exact holds_gen rows
   slots_gen := slots_gen
 
 end Blake2sFlock

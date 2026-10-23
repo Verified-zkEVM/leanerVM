@@ -2,8 +2,9 @@
   LeanerVM.Protocol.HonestProver
 
   leanVM's honest prover with prover-only state: the bus phase's product trees built once from
-  the stack, the table sumcheck's tables read once and bound one challenge at a time, proved to
-  run as the honest prover of `leanVmPhases`, with the oracle protocol's completeness for it.
+  the stack, the table sumcheck's tables read once and bound one challenge at a time, the Flock
+  phase's tables built once, proved to run as the honest prover of `leanVmPhases`, with the
+  oracle protocol's completeness for it.
 -/
 
 module
@@ -12,6 +13,7 @@ public import LeanerVM.Protocol.Piop
 public import LeanerVM.Protocol.ToArkLib.CachedProver
 public import LeanerVM.Protocol.ToArkLib.GrandProductCached
 public import LeanerVM.Protocol.ToArkLib.SumcheckCached
+public import LeanerVM.Protocol.ToArkLib.Flock.Cached
 
 /-!
 # The honest prover, with state
@@ -23,8 +25,9 @@ layout and lifted to `E`, and their binding to the challenges. `leanVmCached` is
 of the whole protocol (`Component.Cached`): the bus phase builds the three trees once, after the
 fingerprint challenges, reads the roots off them and carries them through the grand-product
 argument (`busCached`, by `cachedGkr`); the table sumcheck reads its tables off the stack once
-and binds each challenge once (`tableCached`, by `Sumcheck.cachedRounds`); the other phases run
-their honest provers.
+and binds each challenge once (`tableCached`, by `Sumcheck.cachedRounds`); the Flock phase walks
+each block of its region once and builds its skip and lincheck tables once (`flockCached`, by
+`Flock.flockCached`); the other phases run their honest provers.
 
 `leanVmFastProver` is its prover. **`leanVmFastProver_run`**: its run is the run of
 `leanVmProver (leanVmPhases I h)`, on every statement, stack and challenge sequence. The oracle
@@ -63,12 +66,50 @@ def rootsCached : Component.Cached (rootsStep I) (fun _ ↦ ())
     (rootsFromTrees_treesOf I) fun _ ↦ rfl).adaptIn
     (fun p _ ↦ Gkr.treesOf 3 I.μBus (leaves I) p.1.1 p.1.2) fun _ ↦ rfl
 
+/-- A bus output with its forms and totals tabulated: computed once, read back at every use. The
+table sumcheck reads them at every point of every round. -/
+def memoOut (b : BusOut I) : BusOut I :=
+  let ft : Vector (Vector (Σ j : Fin I.ntab, I.Form j) I.ntab) 3 :=
+    Vector.ofFn fun k ↦ Vector.ofFn fun j ↦
+      ⟨j, if hj : I.SumcheckTable j then b.forms k ⟨j, hj⟩ else []⟩
+  let tv := Vector.ofFn b.totals
+  { point := b.point
+    forms := fun k j ↦ cast (congrArg I.Form (by simp [ft])) ft[k][j.1].2
+    totals := fun k ↦ tv[k]
+    columns := b.columns }
+
+/-- A value read back through a cast, from a pair with the index it was stored at. -/
+private theorem cast_snd_of_eq {α : Type} {β : α → Type} {i : α} {x : β i} :
+    ∀ (p : Σ i, β i) (_ : p = ⟨i, x⟩) (h : β p.1 = β i), cast h p.2 = x
+  | _, rfl, _ => rfl
+
+/-- The tabulated output is the output. -/
+theorem memoOut_eq (b : BusOut I) : memoOut I b = b := by
+  obtain ⟨pt, fs, ts, cs⟩ := b
+  simp only [memoOut, BusOut.mk.injEq, true_and, and_true]
+  refine ⟨funext fun k ↦ funext fun j ↦ cast_snd_of_eq (β := I.Form) (i := j.1) _ ?_ _,
+    funext fun k ↦ ?_⟩
+  · simp [j.2]
+  · simp
+
+/-- The cached boundary values: sent once, the output tabulated. -/
+def valuesCached (h : Conditions I) :
+    Component.Cached (valuesStep I h) (fun _ ↦ ()) (fun _ ↦ ()) :=
+  Component.Cached.sendCheckedOut (msg := fun p _ ↦ honestValues h (theStack p.1.2) p.1.1.2.1)
+    (upd := fun _ _ _ ↦ ()) (honest := fun p ↦ honestValues h (theStack p.1.2) p.1.1.2.1)
+    (check := fun _ _ ↦ true)
+    (out := fun (ℓ : Gkr.LayerStmt (Data I) E 3 I.μBus) (vals : Vector E I.busClaims) ↦
+      (ℓ.1.1, busOut h ℓ vals))
+    (cin := fun _ ↦ ()) (cout := fun _ ↦ ())
+    (fun ℓ vals ↦ (ℓ.1.1, memoOut I (busOut h ℓ vals))) (fun ℓ vals ↦ by rw [memoOut_eq])
+    (fun _ ↦ rfl) fun _ ↦ rfl
+
 /-- The cached bus phase: the fingerprint challenges, the roots off the trees, the grand-product
-argument carrying the trees, the boundary values. -/
+argument carrying the trees, the boundary values with the output built once. -/
 def busCached (h : Conditions I) :
     Component.Cached (busPhase I h).toDef (fun _ ↦ ()) (fun _ ↦ ()) :=
   (((Component.Cached.ofDef (challengeStep I)).append (rootsCached I)).append
-    (cachedGkr 3 I.μBus (leaves I))).append (Component.Cached.ofDef (valuesStep I h))
+    (cachedGkr 3 I.μBus (leaves I))).append (valuesCached I h)
 
 end Bus
 
@@ -85,15 +126,27 @@ def tableCached : Component.Cached (tableSumcheck I).toDef (fun _ ↦ ()) (fun _
 
 end TableSumcheck
 
+/-- The cached Flock phase on a slot: on a region, the Flock argument's cached prover. -/
+def flockCachedOpt : (o : Option (FlockRegion I.toShape)) → (h : I.flock = o) →
+    Component.Cached (flockPhaseOpt I o h).toDef (fun _ ↦ ()) (fun _ ↦ ())
+  | none, _ => Component.Cached.ofDef _
+  | some r, h => Flock.flockCached (flockParams r.kBatch) r.r1cs (FlockPhase.bits r)
+      FlockPhase.side 5 (algebraMap K E) g (FlockPhase.lift r) (FlockPhase.finish r h)
+
+/-- The cached Flock phase: the witness tables and products walked once, the skip tables and the
+lincheck's tables each built once. -/
+def flockCached : Component.Cached (flockPhase I).toDef (fun _ ↦ ()) (fun _ ↦ ()) :=
+  flockCachedOpt I I.flock rfl
+
 variable (h : Bus.Conditions I)
 
-/-- **leanVM's cached honest prover**: the commitment, the bus phase and the table sumcheck
-cached, the public-input check, the Flock phase and the opening as they are. -/
+/-- **leanVM's cached honest prover**: the commitment, the bus phase, the table sumcheck and the
+Flock phase cached, the public-input check and the opening as they are. -/
 def leanVmCached : Component.Cached (leanVmPhases I h).toDef (fun _ ↦ ()) (fun _ ↦ ()) :=
   (((((Component.Cached.ofDef (commitDef I)).append (Bus.busCached I h)).append
     (TableSumcheck.tableCached I)).append
     (Component.Cached.ofDef (deployedPublicInputPhase I).toDef)).append
-    (Component.Cached.ofDef (flockPhase I).toDef)).append
+    (flockCached I)).append
     (Component.Cached.ofDef (openingPhase I))
 
 /-- leanVM's honest prover with its state. -/
