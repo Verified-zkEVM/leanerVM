@@ -42,8 +42,14 @@ its rows' messages, table by table, and `exists_sendsOpcode` says every row of t
 tables sends some `OpcodeSends` with at most nine memory reads.
 
 The proofs evaluate each row circuit once over a row variable `x` with `eval env x = r` and
-specialize it at Clean's `varFromOffset` (`eval_varFromOffset_valueFromOffset`), the technique
-of `Completeness/Messages.lean` in leanerVM pull request #83.
+specialize it at Clean's `varFromOffset` (`eval_varFromOffset_valueFromOffset`). A parallel
+completeness development proves the same closed forms over a row variable, by the same
+technique; one of the two copies is to be removed when both land.
+
+**From rows to interactions.** `exists_interaction_of_mem_rowMessagesOn` reads a row's message
+as one of its table's interactions, and `mem_messagesOn_of_mem_rowMessagesOn` and
+`exists_interaction_of_mem_messagesOn` carry it to the witness: what a soundness proof needs to
+apply a lookup theorem, stated over `w.interactions`, to one row.
 
 ## Wrong readings excluded
 
@@ -134,7 +140,9 @@ def setSends (r : SetRow K) : OpcodeSends where
 
 /-- What a `DEREF` row sends (specification §7.4; `tables.rs:616-623`): the fall-through step,
 the bytecode tuple `(DEREF, o₁, o₂, o₃, f_pc, f_fp, 0, 0)`, and three memory reads, the pointer,
-the local word and the target, which carries the store coordinates of the flags. -/
+the local word and the target, which carries the store coordinates of the flags. The reads are
+in the specification's order; the Rust flushes the target before the local word, which balance,
+a multiset equality, does not see. -/
 def derefSends (r : DerefRow K) : OpcodeSends where
   pull := ⟨r.pc, r.fp⟩
   push := ⟨g * r.pc, r.fp⟩
@@ -522,5 +530,33 @@ theorem exists_sendsOpcode {prog : Program} (w : EnsembleWitness (leanIsaEnsembl
   · exact ⟨_, deref_sendsOpcode hc row, by simp [derefSends]⟩
   · exact ⟨_, jump_sendsOpcode hc row, by simp [jumpSends]⟩
   · exact ⟨_, blake2s_sendsOpcode hc row, by simp [blake2sSends]⟩
+
+/-- A message a row sends is the message of one of its table's interactions on a channel of that
+name. -/
+theorem exists_interaction_of_mem_rowMessagesOn {t : Air.Flat.Table K} {row : Array K}
+    (hrow : row ∈ t.table) {c : RawChannel K} {a : Array K} (ha : a ∈ rowMessagesOn t row c) :
+    ∃ i ∈ t.interactions, i.channel.name = c.name ∧ i.msg = a := by
+  rw [rowMessagesOn, List.mem_map] at ha
+  obtain ⟨i, hi, rfl⟩ := ha
+  rw [List.mem_filter] at hi
+  exact ⟨i, List.mem_flatMap.mpr ⟨row, hrow, hi.1⟩, of_decide_eq_true hi.2, rfl⟩
+
+/-- A message a row of a witness's table sends is a message of the witness on that channel. -/
+theorem mem_messagesOn_of_mem_rowMessagesOn {prog : Program}
+    {w : EnsembleWitness (leanIsaEnsemble prog)} {t : Air.Flat.Table K} (ht : t ∈ w.allTables)
+    {row : Array K} (hrow : row ∈ t.table) {c : RawChannel K} {a : Array K}
+    (ha : a ∈ rowMessagesOn t row c) : a ∈ messagesOn w c := by
+  rw [messagesOn_eq_flatMap, List.mem_flatMap]
+  exact ⟨t, ht, List.mem_flatMap.mpr ⟨row, hrow, ha⟩⟩
+
+/-- A message of a witness on a channel is the message of one of its interactions on a channel of
+that name. -/
+theorem exists_interaction_of_mem_messagesOn {prog : Program}
+    {w : EnsembleWitness (leanIsaEnsemble prog)} {c : RawChannel K} {a : Array K}
+    (ha : a ∈ messagesOn w c) : ∃ i ∈ w.interactions, i.channel.name = c.name ∧ i.msg = a := by
+  rw [messagesOn, List.mem_map] at ha
+  obtain ⟨i, hi, rfl⟩ := ha
+  rw [List.mem_filter] at hi
+  exact ⟨i, hi.1, of_decide_eq_true hi.2, rfl⟩
 
 end LeanerVM.Arithmetization
