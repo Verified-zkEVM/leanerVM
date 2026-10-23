@@ -14,17 +14,17 @@ namespace LeanVM.Guest.B2C.Shared
 @[expose] public section
 
 set_option maxRecDepth 100000 in
-/-- `verify_log2_ceil__L15_L34`, once. -/
-theorem st408 : shareStatic 408 = true := by decide +kernel
+/-- `grind_check__L17`, once. -/
+theorem st410 : shareStatic 410 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `verify_log2_ceil__L15_L34`, window 0. -/
-theorem w408_0 : shareWin 408 (snapsOf 408) 0 = true := by decide +kernel
+/-- `grind_check__L17`, window 0. -/
+theorem w410_0 : shareWin 410 (snapsOf 410) 0 = true := by decide +kernel
 
-theorem ok408 : ShareOk 408 := ⟨st408, fun i hi ↦ by
-  have h : (snapsOf 408).length = 0 := by decide +kernel
+theorem ok410 : ShareOk 410 := ⟨st410, fun i hi ↦ by
+  have h : (snapsOf 410).length = 0 := by decide +kernel
   obtain rfl : i = 0 := by omega
-  exact w408_0⟩
+  exact w410_0⟩
 
 end
 end LeanVM.Guest.B2C.Shared

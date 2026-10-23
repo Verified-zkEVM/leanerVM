@@ -91,6 +91,8 @@ lake exe node-vectors
 
 `lake build` at the repository root runs all of it, with the Rust checks below, for the five projects (`../check-all.sh`).
 
+The guest's kernel-checked certificates (`Guest/Checked`, `Guest/B2C/Shared`, `Guest/B2C/Cplw`, with their data `Guest/Data/{Cert*,Plumb*,Snaps*,Pows,FrameSizes,CplArms,CplParts}`) are written together, from the bytecode and the core IR, by `lake exe guest-cert` (`--check` fails when any is stale). A module checks a few windows of one function in 2 to 3.5 GB; the groups of arms of `verify_sig_lean_sphincs`'s `match`es (`Checked/G21_*`, `Cplw/D21_*`) take about 4.2 GB and `verify_tables`'s windows (`Checked/F11_*`) about 4.7 GB, so `ci-build.py` builds them two at a time on a 16 GB machine.
+
 The Rust checks run against leanVM at [`../leanvm-rev`](../leanvm-rev), which `../leanvm-tree.sh` checks out into `../.leanvm`, its `formal/lean_vm` a link to this directory. The Rust-vs-Lean differential, as CI runs it:
 
 ```sh

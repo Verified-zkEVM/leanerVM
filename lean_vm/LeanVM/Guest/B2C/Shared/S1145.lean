@@ -14,8 +14,12 @@ namespace LeanVM.Guest.B2C.Shared
 @[expose] public section
 
 set_option maxRecDepth 100000 in
-/-- `__loop389`, once. -/
-theorem st865 : shareStatic 865 = true := by decide +kernel
+/-- `__loop389`, window 1. -/
+theorem w865_1 : shareWin 865 (snapsOf 865) 1 = true := by decide +kernel
+
+set_option maxRecDepth 100000 in
+/-- `__loop390`, once. -/
+theorem st866 : shareStatic 866 = true := by decide +kernel
 
 end
 end LeanVM.Guest.B2C.Shared

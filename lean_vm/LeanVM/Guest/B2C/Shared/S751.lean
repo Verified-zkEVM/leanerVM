@@ -14,8 +14,8 @@ namespace LeanVM.Guest.B2C.Shared
 @[expose] public section
 
 set_option maxRecDepth 100000 in
-/-- `verify_merkle_cap__L8`, window 6. -/
-theorem w413_6 : shareWin 413 (snapsOf 413) 6 = true := by decide +kernel
+/-- `verify_merkle_cap__L8`, window 8. -/
+theorem w413_8 : shareWin 413 (snapsOf 413) 8 = true := by decide +kernel
 
 end
 end LeanVM.Guest.B2C.Shared

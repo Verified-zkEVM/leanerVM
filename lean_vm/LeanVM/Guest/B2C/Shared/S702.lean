@@ -14,17 +14,17 @@ namespace LeanVM.Guest.B2C.Shared
 @[expose] public section
 
 set_option maxRecDepth 100000 in
-/-- `child_claim_list_last__L12`, once. -/
-theorem st355 : shareStatic 355 = true := by decide +kernel
+/-- `child_claim_list_last__L14`, once. -/
+theorem st357 : shareStatic 357 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `child_claim_list_last__L12`, window 0. -/
-theorem w355_0 : shareWin 355 (snapsOf 355) 0 = true := by decide +kernel
+/-- `child_claim_list_last__L14`, window 0. -/
+theorem w357_0 : shareWin 357 (snapsOf 357) 0 = true := by decide +kernel
 
-theorem ok355 : ShareOk 355 := ⟨st355, fun i hi ↦ by
-  have h : (snapsOf 355).length = 0 := by decide +kernel
+theorem ok357 : ShareOk 357 := ⟨st357, fun i hi ↦ by
+  have h : (snapsOf 357).length = 0 := by decide +kernel
   obtain rfl : i = 0 := by omega
-  exact w355_0⟩
+  exact w357_0⟩
 
 end
 end LeanVM.Guest.B2C.Shared

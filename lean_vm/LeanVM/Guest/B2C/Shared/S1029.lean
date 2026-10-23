@@ -14,43 +14,43 @@ namespace LeanVM.Guest.B2C.Shared
 @[expose] public section
 
 set_option maxRecDepth 100000 in
-/-- `__loop331`, once. -/
-theorem st797 : shareStatic 797 = true := by decide +kernel
+/-- `__loop337`, once. -/
+theorem st803 : shareStatic 803 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `__loop331`, window 0. -/
-theorem w797_0 : shareWin 797 (snapsOf 797) 0 = true := by decide +kernel
+/-- `__loop337`, window 0. -/
+theorem w803_0 : shareWin 803 (snapsOf 803) 0 = true := by decide +kernel
 
-theorem ok797 : ShareOk 797 := ⟨st797, fun i hi ↦ by
-  have h : (snapsOf 797).length = 0 := by decide +kernel
+theorem ok803 : ShareOk 803 := ⟨st803, fun i hi ↦ by
+  have h : (snapsOf 803).length = 0 := by decide +kernel
   obtain rfl : i = 0 := by omega
-  exact w797_0⟩
+  exact w803_0⟩
 
 set_option maxRecDepth 100000 in
-/-- `__loop332`, once. -/
-theorem st798 : shareStatic 798 = true := by decide +kernel
+/-- `__loop338`, once. -/
+theorem st804 : shareStatic 804 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `__loop332`, window 0. -/
-theorem w798_0 : shareWin 798 (snapsOf 798) 0 = true := by decide +kernel
+/-- `__loop338`, window 0. -/
+theorem w804_0 : shareWin 804 (snapsOf 804) 0 = true := by decide +kernel
 
-theorem ok798 : ShareOk 798 := ⟨st798, fun i hi ↦ by
-  have h : (snapsOf 798).length = 0 := by decide +kernel
+theorem ok804 : ShareOk 804 := ⟨st804, fun i hi ↦ by
+  have h : (snapsOf 804).length = 0 := by decide +kernel
   obtain rfl : i = 0 := by omega
-  exact w798_0⟩
+  exact w804_0⟩
 
 set_option maxRecDepth 100000 in
-/-- `__loop333`, once. -/
-theorem st799 : shareStatic 799 = true := by decide +kernel
+/-- `__loop339`, once. -/
+theorem st805 : shareStatic 805 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `__loop333`, window 0. -/
-theorem w799_0 : shareWin 799 (snapsOf 799) 0 = true := by decide +kernel
+/-- `__loop339`, window 0. -/
+theorem w805_0 : shareWin 805 (snapsOf 805) 0 = true := by decide +kernel
 
-theorem ok799 : ShareOk 799 := ⟨st799, fun i hi ↦ by
-  have h : (snapsOf 799).length = 0 := by decide +kernel
+theorem ok805 : ShareOk 805 := ⟨st805, fun i hi ↦ by
+  have h : (snapsOf 805).length = 0 := by decide +kernel
   obtain rfl : i = 0 := by omega
-  exact w799_0⟩
+  exact w805_0⟩
 
 end
 end LeanVM.Guest.B2C.Shared

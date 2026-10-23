@@ -1252,8 +1252,6 @@ public import LeanVM.Guest.B2C.Shared.S1240
 public import LeanVM.Guest.B2C.Shared.S1241
 public import LeanVM.Guest.B2C.Shared.S1242
 public import LeanVM.Guest.B2C.Shared.S1243
-public import LeanVM.Guest.B2C.Shared.S1244
-public import LeanVM.Guest.B2C.Shared.S1245
 public import LeanVM.Guest.B2C.Shared.H21_2_0
 public import LeanVM.Guest.B2C.Shared.H21_2_1
 public import LeanVM.Guest.B2C.Shared.H21_2_2

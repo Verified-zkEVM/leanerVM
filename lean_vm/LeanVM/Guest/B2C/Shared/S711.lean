@@ -14,43 +14,43 @@ namespace LeanVM.Guest.B2C.Shared
 @[expose] public section
 
 set_option maxRecDepth 100000 in
-/-- `da_levels__L4_L2`, once. -/
-theorem st370 : shareStatic 370 = true := by decide +kernel
+/-- `da_levels__L512_L9`, once. -/
+theorem st376 : shareStatic 376 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `da_levels__L4_L2`, window 0. -/
-theorem w370_0 : shareWin 370 (snapsOf 370) 0 = true := by decide +kernel
+/-- `da_levels__L512_L9`, window 0. -/
+theorem w376_0 : shareWin 376 (snapsOf 376) 0 = true := by decide +kernel
 
-theorem ok370 : ShareOk 370 := ⟨st370, fun i hi ↦ by
-  have h : (snapsOf 370).length = 0 := by decide +kernel
+theorem ok376 : ShareOk 376 := ⟨st376, fun i hi ↦ by
+  have h : (snapsOf 376).length = 0 := by decide +kernel
   obtain rfl : i = 0 := by omega
-  exact w370_0⟩
+  exact w376_0⟩
 
 set_option maxRecDepth 100000 in
-/-- `da_levels__L8_L3`, once. -/
-theorem st371 : shareStatic 371 = true := by decide +kernel
+/-- `da_levels__L1024_L10`, once. -/
+theorem st377 : shareStatic 377 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `da_levels__L8_L3`, window 0. -/
-theorem w371_0 : shareWin 371 (snapsOf 371) 0 = true := by decide +kernel
+/-- `da_levels__L1024_L10`, window 0. -/
+theorem w377_0 : shareWin 377 (snapsOf 377) 0 = true := by decide +kernel
 
-theorem ok371 : ShareOk 371 := ⟨st371, fun i hi ↦ by
-  have h : (snapsOf 371).length = 0 := by decide +kernel
+theorem ok377 : ShareOk 377 := ⟨st377, fun i hi ↦ by
+  have h : (snapsOf 377).length = 0 := by decide +kernel
   obtain rfl : i = 0 := by omega
-  exact w371_0⟩
+  exact w377_0⟩
 
 set_option maxRecDepth 100000 in
-/-- `da_levels__L16_L4`, once. -/
-theorem st372 : shareStatic 372 = true := by decide +kernel
+/-- `da_hash_roots__L0`, once. -/
+theorem st378 : shareStatic 378 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `da_levels__L16_L4`, window 0. -/
-theorem w372_0 : shareWin 372 (snapsOf 372) 0 = true := by decide +kernel
+/-- `da_hash_roots__L0`, window 0. -/
+theorem w378_0 : shareWin 378 (snapsOf 378) 0 = true := by decide +kernel
 
-theorem ok372 : ShareOk 372 := ⟨st372, fun i hi ↦ by
-  have h : (snapsOf 372).length = 0 := by decide +kernel
+theorem ok378 : ShareOk 378 := ⟨st378, fun i hi ↦ by
+  have h : (snapsOf 378).length = 0 := by decide +kernel
   obtain rfl : i = 0 := by omega
-  exact w372_0⟩
+  exact w378_0⟩
 
 end
 end LeanVM.Guest.B2C.Shared
