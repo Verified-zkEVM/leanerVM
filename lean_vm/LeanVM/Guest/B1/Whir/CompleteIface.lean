@@ -25,7 +25,7 @@ waiting), the words `xs` and the openings `os`, the stack's root committed with 
   them: `μ = 1/λ` (`opening_queries`, G:1253) and the basis coefficients `(1 + c)/(c·inv)`
   (G:1560, 1565). It fails with probability about `(number of challenges)·2^-192` per proof.
 * `CapsAgree μ r target S xs os root` (DESIGN §5.2.3): at every query step of the run
-  (`queriesOf`, `Fs`-level `Compile.run`), two openings giving one node of the tree a digest
+  (`queryStepsOf`, `Fs`-level `Compile.run`), two openings giving one node of the tree a digest
   (`NodeIs`: on their climb or as a sibling) give it the same (`BatchAgrees`). The guest writes
   each level's Merkle cap once (write-once memory), so openings meeting in the cap must agree
   there; the Spec checks each opening alone against the root. One tree's openings agree; two that
@@ -139,23 +139,23 @@ structure FSt where
 
 /-- **The query steps of a run** (`Compile.run` on the carried sponge, Keccak-256): each `query`
 step as its tree's height and its positions, each with the opening it consumes. -/
-def queriesOf {α : Type} : Prog α → FSt → List (ℕ × List (ℕ × Opening))
+def queryStepsOf {α : Type} : Prog α → FSt → List (ℕ × List (ℕ × Opening))
   | .ret _, _ => []
   | .fail, _ => []
   | .read k, s => match s.stream with
     | [] => []
-    | x :: xs => queriesOf (k x) { s with sponge := s.sponge.absorb x dsObserve, stream := xs }
-  | .sample k, s => queriesOf (k s.sponge.squeeze.1) { s with sponge := s.sponge.squeeze.2 }
+    | x :: xs => queryStepsOf (k x) { s with sponge := s.sponge.absorb x dsObserve, stream := xs }
+  | .sample k, s => queryStepsOf (k s.sponge.squeeze.1) { s with sponge := s.sponge.squeeze.2 }
   | .grind bits k, s => match s.stream with
     | [] => []
     | n :: xs =>
       let sq := (s.sponge.absorb n dsPowNonce).squeeze
-      if powOk bits n sq.1 then queriesOf k { s with sponge := sq.2, stream := xs } else []
+      if powOk bits n sq.1 then queryStepsOf k { s with sponge := sq.2, stream := xs } else []
   | .commit height width k, s => match s.stream with
     | x0 :: x1 :: xs =>
       match digestOfScalars (x0, x1) with
       | some root =>
-        queriesOf k { s with
+        queryStepsOf k { s with
           sponge := (s.sponge.absorb x0 dsObserve).absorb x1 dsObserve
           stream := xs
           roots := s.roots ++ [(root, height, width)] }
@@ -166,7 +166,7 @@ def queriesOf {α : Type} : Prog α → FSt → List (ℕ × List (ℕ × Openin
     | some (root, height, width) =>
       match Id.run (Compile.openAll (m := Id) keccak256 root height width ps s.openings) with
       | some (rows, rest) =>
-        (height, ps.zip s.openings) :: queriesOf (k rows) { s with openings := rest }
+        (height, ps.zip s.openings) :: queryStepsOf (k rows) { s with openings := rest }
       | none => []
 
 /-- The heap index of the node at level `l` (the leaves at `0`) above the leaf `q` of a tree of
@@ -191,7 +191,7 @@ def BatchAgrees (depth : ℕ) (qs : List (ℕ × Opening)) : Prop :=
 openings agree wherever they meet. -/
 def CapsAgree (μ r : ℕ) (target : E) (S : KState) (xs : List E) (os : List Opening)
     (root : Digest) : Prop :=
-  ∀ b ∈ queriesOf (whirOpen μ r target) ⟨⟨capOf S, []⟩, xs, os, [(root, stackShape μ r)]⟩,
+  ∀ b ∈ queryStepsOf (whirOpen μ r target) ⟨⟨capOf S, []⟩, xs, os, [(root, stackShape μ r)]⟩,
     BatchAgrees b.1 b.2
 
 /-! ## Memory layouts -/
