@@ -32,7 +32,8 @@ deployed protocol.
   and a root of `proofRoots` past the first `k₀` queries), plus the probabilities of the groups
   `t` opens.
 * `potential_step`: at every fresh query, the expected potential after the uniform answer is at
-  most the potential before plus the charge, the step of `QueryHistory.potential_le_expected_charge`.
+  most the potential before plus the charge, the step of
+  `QueryHistory.potential_le_expected_charge`.
   An answer to avoid makes the potential `1`; any other answer keeps the log clean but for a flip,
   which is a group open before or opened by the query reaching probability `1`, and moves only the
   groups the query touches, each a step of a martingale (`lintegral_π_le`): the probability of a
@@ -107,27 +108,32 @@ private theorem cleanStep_of_not_mem (hfr : QueryLog.Fresh l t)
 
 /-- A query of a log whose cache is its log is fresh when the cache does not hold it. -/
 private theorem fresh_of_isFreshLog {s : OracleState} (hs : QueryHistory.IsFreshLog s)
-    (ht : s.1 t = none) : QueryLog.Fresh s.2 t := fun e he het ↦ by
-  have := hs.1 e he
-  obtain ⟨t', u'⟩ := e
+    (ht : s.1 t = none) : QueryLog.Fresh s.2 t := fun ⟨t', u'⟩ he het ↦ by
+  have := hs.1 _ he
   simp only at het this
   subst het
-  rw [ht] at this
-  cases this
+  simp [ht] at this
+
+/-- An entry past the first `k` of a log with one more query. -/
+private theorem mem_drop_concat {α : Type} {l : List α} {x e : α} {k : ℕ} :
+    e ∈ (l ++ [x]).drop k ↔ e ∈ l.drop k ∨ (k ≤ l.length ∧ e = x) := by
+  rw [List.drop_append, List.mem_append]
+  by_cases hk : k ≤ l.length
+  · simp [Nat.sub_eq_zero_of_le hk, hk]
+  · simp [List.drop_eq_nil_of_le (show [x].length ≤ k - l.length by simp; omega), hk]
 
 /-- A log clean after one more query is clean before it. -/
 private theorem SlotReader.Clean.of_append (h : R.Clean seedRoots proofRoots k₀ (l ++ [⟨t, u⟩])) :
     R.Clean seedRoots proofRoots k₀ l := by
   obtain ⟨hl, hh, hf, hr⟩ := h
   refine ⟨hl.of_append, fun e he ↦ hh e (List.mem_append_left _ he),
-    fun h ↦ hf (R.flipAt_append_of_flipAt hl h), fun e he ↦ hr e ?_⟩
-  rw [List.drop_append]
-  exact List.mem_append_left _ he
+    fun h ↦ hf (R.flipAt_append_of_flipAt hl h), fun e he ↦ hr e (mem_drop_concat.mpr (.inl he))⟩
 
 /-- One more query answered by a digest it need not avoid keeps a clean log clean, unless it makes
 a flip. -/
-private theorem SlotReader.Clean.append (h : R.Clean seedRoots proofRoots k₀ l) (hfr : QueryLog.Fresh l t)
-    (hu : u ∉ badDigests seedRoots proofRoots k₀ l t) (hf : ¬ R.FlipAt (l ++ [⟨t, u⟩])) :
+private theorem SlotReader.Clean.append (h : R.Clean seedRoots proofRoots k₀ l)
+    (hfr : QueryLog.Fresh l t) (hu : u ∉ badDigests seedRoots proofRoots k₀ l t)
+    (hf : ¬ R.FlipAt (l ++ [⟨t, u⟩])) :
     R.Clean seedRoots proofRoots k₀ (l ++ [⟨t, u⟩]) := by
   obtain ⟨hl, hh, -, hr⟩ := h
   have hs := cleanStep_of_not_mem hfr hu
@@ -136,18 +142,9 @@ private theorem SlotReader.Clean.append (h : R.Clean seedRoots proofRoots k₀ l
     · exact hh e he
     · obtain rfl := List.mem_singleton.mp he
       exact hs.notHalf
-  · rw [List.drop_append] at he
-    rcases List.mem_append.mp he with he | he
+  · rcases mem_drop_concat.mp he with he | ⟨hk, rfl⟩
     · exact hr e he
-    · have hk : k₀ ≤ l.length := by
-        by_contra hk
-        rw [List.drop_eq_nil_of_le (by simp only [List.length_singleton]; omega)] at he
-        simp at he
-      have hd : List.drop (k₀ - l.length) [(⟨t, u⟩ : (_ : List UInt8) × Digest)] =
-          [⟨t, u⟩] := by simp [show k₀ - l.length = 0 by omega]
-      rw [hd] at he
-      obtain rfl := List.mem_singleton.mp he
-      simp only [badDigests, hk, ↓reduceIte, List.mem_append, not_or] at hu
+    · simp only [badDigests, hk, ↓reduceIte, List.mem_append, not_or] at hu
       exact hu.2
 
 /-- An answer to avoid leaves no clean log. -/
@@ -163,10 +160,7 @@ private theorem SlotReader.not_clean_of_mem (hfr : QueryLog.Fresh l t)
   · exact hl'.notInPlay_of_append hu
   · exact hh ⟨t, u⟩ (by simp) hu
   · split at hu
-    · rename_i hk
-      refine hr ⟨t, u⟩ ?_ hu
-      rw [List.drop_append]
-      exact List.mem_append_right _ (by simp [show k₀ - l.length = 0 by omega])
+    · exact hr ⟨t, u⟩ (mem_drop_concat.mpr (.inr ⟨‹_›, rfl⟩)) hu
     · simp at hu
 
 /-! ## A group's probability is a martingale -/
@@ -181,19 +175,14 @@ private theorem prEvent_squeezes_succ (Q : Digest → List Digest → Prop) (r :
   simp only [List.ofFn_succ, Fin.cons_zero, Fin.cons_succ, List.append_assoc,
     List.singleton_append]
 
-/-- The fresh check, conditioned on. -/
-private theorem prEvent_check (Q : Digest → List Digest → Prop) (r : List Digest) (k : ℕ) :
-    Pr{let z ← $ᵗ (Digest × (Fin k → Digest))}[Q z.1 (r ++ List.ofFn z.2)] =
-      ∫⁻ p, p ∂𝒟[(fun x ↦ Pr{let w ← $ᵗ (Fin k → Digest)}[Q x (r ++ List.ofFn w)]) <$>
-        ($ᵗ Digest)] :=
-  prEvent_uniformSample_prod_eq_lintegral (fun z ↦ Q z.1 (r ++ List.ofFn z.2))
-
 /-- A squeeze is no grinding check. -/
-private theorem squeezeInput_ne_checkInput (x b : Digest) (n : E) : squeezeInput x ≠ checkInput b n :=
+private theorem squeezeInput_ne_checkInput (x b : Digest) (n : E) :
+    squeezeInput x ≠ checkInput b n :=
   fun h ↦ by simpa using (input_inj (h.trans (checkInput_eq b n))).2
 
 /-- A squeeze is no nonce step. -/
-private theorem squeezeInput_ne_absorbInput (x cv : Digest) (n : E) : squeezeInput x ≠ absorbInput cv n :=
+private theorem squeezeInput_ne_absorbInput (x cv : Digest) (n : E) :
+    squeezeInput x ≠ absorbInput cv n :=
   fun h ↦ by simpa using (input_inj h).2
 
 /-- A group's probability, at the challenge it fixes. -/
@@ -212,7 +201,6 @@ the squeeze's answer, of the probability with the answer logged. -/
 private theorem SlotReader.lintegral_π_le_of_squeeze (hfr : QueryLog.Fresh l t) {G : Group}
     {a : R.Ann} {i : (R.spec a).ChallengeIdx} {tr : (R.spec a).Transcript i.1.castSucc}
     (hg : R.groupSlot l G = some ⟨a, i, tr⟩)
-    (hstep : ∀ u, u ∉ badDigests seedRoots proofRoots k₀ l t → CleanStep seedRoots l t u)
     (hg' : ∀ u, u ∉ badDigests seedRoots proofRoots k₀ l t →
       R.groupSlot (l ++ [⟨t, u⟩]) G = some ⟨a, i, tr⟩)
     {s₀ : Digest} (hs₀ : G.start? l = some s₀)
@@ -233,14 +221,14 @@ private theorem SlotReader.lintegral_π_le_of_squeeze (hfr : QueryLog.Fresh l t)
   refine lintegral_id_evalDist_map_mono _ fun u ↦ ?_
   split_ifs with hu
   · exact zero_le
+  have hs := cleanStep_of_not_mem hfr hu
   have hc : G.check? (l ++ [⟨t, u⟩]) = G.check? l :=
-    Group.check?_append (hstep u hu) fun n b _ _ h ↦
-      squeezeInput_ne_checkInput _ b n (ht.symm.trans h)
+    Group.check?_append hs fun n b _ _ h ↦ squeezeInput_ne_checkInput _ b n (ht.symm.trans h)
   have hst : G.start? (l ++ [⟨t, u⟩]) = G.start? l :=
     Group.start?_append fun n _ h ↦ squeezeInput_ne_absorbInput _ G.cv n (ht.symm.trans h)
   have hr : G.run (l ++ [⟨t, u⟩]) (R.slot a i).m = G.run l (R.slot a i).m ++ [u] := by
     simp only [Group.run, hst, hs₀]
-    rw [squeezeRun_append (hstep u hu).logAnswer_squeezeInput hfr]
+    rw [squeezeRun_append hs.logAnswer_squeezeInput hfr]
     simp [hlen, ht]
   rw [R.π_eq_of_groupSlot (hg' u hu), hc, hr, List.length_append, List.length_singleton]
 
@@ -249,7 +237,6 @@ check's answer, of the probability with the answer logged. -/
 private theorem SlotReader.lintegral_π_le_of_check (hfr : QueryLog.Fresh l t) {G : Group}
     {a : R.Ann} {i : (R.spec a).ChallengeIdx} {tr : (R.spec a).Transcript i.1.castSucc}
     (hg : R.groupSlot l G = some ⟨a, i, tr⟩)
-    (hstep : ∀ u, u ∉ badDigests seedRoots proofRoots k₀ l t → CleanStep seedRoots l t u)
     (hg' : ∀ u, u ∉ badDigests seedRoots proofRoots k₀ l t →
       R.groupSlot (l ++ [⟨t, u⟩]) G = some ⟨a, i, tr⟩)
     {n : E} {b : Digest} (hn : G.nonce = some n) (hb : logAnswer l (baseInput G.cv) = some b)
@@ -258,42 +245,18 @@ private theorem SlotReader.lintegral_π_le_of_check (hfr : QueryLog.Fresh l t) {
       else R.π (l ++ [⟨t, u⟩]) G) <$> ($ᵗ Digest)] ≤ R.π l G := by
   have hc₀ : G.check? l = none := by
     simp [Group.check?, hn, hb, ← ht, logAnswer_eq_none_iff.mpr hfr]
-  have hrun : ∀ u, u ∉ badDigests seedRoots proofRoots k₀ l t →
-      G.run (l ++ [⟨t, u⟩]) (R.slot a i).m = G.run l (R.slot a i).m := by
-    intro u hu
-    unfold Group.run
-    cases hs₀ : G.start? l with
-    | none =>
-      have : G.start? (l ++ [⟨t, u⟩]) = none ∨ G.start? (l ++ [⟨t, u⟩]) = some u := by
-        simp only [Group.start?, hn] at hs₀ ⊢
-        by_cases hta : absorbInput G.cv n = t
-        · rw [hta, logAnswer_append_self hfr]; exact .inr rfl
-        · rw [logAnswer_append_of_ne hta, hs₀]; exact .inl rfl
-      rcases this with h | h <;> rw [h]
-      exact squeezeRun_eq_nil (hstep u hu).logAnswer_squeezeInput _
-    | some s₀ =>
-      have : G.start? (l ++ [⟨t, u⟩]) = some s₀ := by
-        simp only [Group.start?, hn] at hs₀ ⊢
-        exact logAnswer_append_of_eq_some hs₀
-      rw [this]
-      dsimp only
-      rw [squeezeRun_append (hstep u hu).logAnswer_squeezeInput hfr]
-      split
-      · rename_i hcond
-        exact absurd (hcond.2.symm.trans ht) (squeezeInput_ne_checkInput _ b n)
-      · exact List.append_nil _
   rw [R.π_eq_of_groupSlot hg, hc₀]
   simp only [Option.getD_none]
-  rw [prEvent_check (fun c ds ↦ (G.nonce.isSome = true →
-    FsState.lowBitsZero c R.powBits = true) ∧
-      (R.slot a i).assemble (fun j ↦ ds.getD j default) ∈ R.Bad a i tr)]
+  rw [prEvent_uniformSample_prod_eq_lintegral]
   refine lintegral_id_evalDist_map_mono _ fun u ↦ ?_
   split_ifs with hu
   · exact zero_le
   have hc : G.check? (l ++ [⟨t, u⟩]) = some u := by
-    simp only [Group.check?, hn, Option.bind_some]
-    rw [logAnswer_append_of_eq_some hb, Option.bind_some, ← ht, logAnswer_append_self hfr]
-  rw [R.π_eq_of_groupSlot (hg' u hu), hc, hrun u hu]
+    simp [Group.check?, hn, logAnswer_append_of_eq_some hb, ← ht, logAnswer_append_self hfr]
+  have hr : G.run (l ++ [⟨t, u⟩]) (R.slot a i).m = G.run l (R.slot a i).m :=
+    Group.run_append (cleanStep_of_not_mem hfr hu) fun _ _ _ h ↦
+      squeezeInput_ne_checkInput _ b n (h.symm.trans ht)
+  rw [R.π_eq_of_groupSlot (hg' u hu), hc, hr]
   simp only [Option.getD_some]
   exact (prEvent_uniformSample_snd (α := Digest)
     (fun w : Fin ((R.slot a i).m - (G.run l (R.slot a i).m).length) → Digest ↦
@@ -301,62 +264,18 @@ private theorem SlotReader.lintegral_π_le_of_check (hfr : QueryLog.Fresh l t) {
         (R.slot a i).assemble (fun j ↦ (G.run l (R.slot a i).m ++ List.ofFn w).getD j default) ∈
           R.Bad a i tr)).le
 
-/-- The martingale step at any other query: the group's check and squeezes stay as they were,
-its nonce step's answer included, which no squeeze follows. -/
-private theorem SlotReader.lintegral_π_le_of_other (hfr : QueryLog.Fresh l t) {G : Group}
-    {a : R.Ann} {i : (R.spec a).ChallengeIdx} {tr : (R.spec a).Transcript i.1.castSucc}
-    (hg : R.groupSlot l G = some ⟨a, i, tr⟩)
-    (hstep : ∀ u, u ∉ badDigests seedRoots proofRoots k₀ l t → CleanStep seedRoots l t u)
-    (hg' : ∀ u, u ∉ badDigests seedRoots proofRoots k₀ l t →
-      R.groupSlot (l ++ [⟨t, u⟩]) G = some ⟨a, i, tr⟩)
-    (hA : ¬ ∃ s₀, G.start? l = some s₀ ∧
-      (squeezeRun l s₀ (R.slot a i).m).length < (R.slot a i).m ∧
-        t = squeezeInput ((squeezeRun l s₀ (R.slot a i).m).getLastD s₀))
-    (hB : ¬ ∃ n b, G.nonce = some n ∧ logAnswer l (baseInput G.cv) = some b ∧
-      t = checkInput b n) :
-    ∫⁻ p, p ∂𝒟[(fun u ↦ if u ∈ badDigests seedRoots proofRoots k₀ l t then 0
-      else R.π (l ++ [⟨t, u⟩]) G) <$> ($ᵗ Digest)] ≤ R.π l G := by
-  refine lintegral_id_evalDist_map_le_of_le _ fun u ↦ ?_
-  split_ifs with hu
-  · exact zero_le
-  have hc : G.check? (l ++ [⟨t, u⟩]) = G.check? l :=
-    Group.check?_append (hstep u hu) fun n b hn hb h ↦ hB ⟨n, b, hn, hb, h⟩
-  have hr : G.run (l ++ [⟨t, u⟩]) (R.slot a i).m = G.run l (R.slot a i).m := by
-    unfold Group.run
-    by_cases hC : ∃ n, G.nonce = some n ∧ t = absorbInput G.cv n
-    · obtain ⟨n, hn, ht⟩ := hC
-      have h₀ : G.start? l = none := by
-        simp [Group.start?, hn, ← ht, logAnswer_eq_none_iff.mpr hfr]
-      have h₁ : G.start? (l ++ [⟨t, u⟩]) = some u := by
-        simp [Group.start?, hn, ← ht, logAnswer_append_self hfr]
-      rw [h₀, h₁]
-      exact squeezeRun_eq_nil (hstep u hu).logAnswer_squeezeInput _
-    · rw [Group.start?_append fun n hn h ↦ hC ⟨n, hn, h⟩]
-      cases hs₀ : G.start? l with
-      | none => rfl
-      | some s₀ =>
-        dsimp only
-        rw [squeezeRun_append (hstep u hu).logAnswer_squeezeInput hfr]
-        split
-        · rename_i hcond
-          exact absurd ⟨s₀, hs₀, hcond.1, hcond.2⟩ hA
-        · exact List.append_nil _
-  rw [R.π_eq_of_groupSlot (hg' u hu), R.π_eq_of_groupSlot hg, hc, hr]
-
 /-- **A group's probability is a martingale**: over a fresh answer to `t`, the expected probability
 that a group closes on a bad challenge after the answer, counting nothing on an answer to avoid, is
 at most its probability before. The answer is one of the group's unasked queries (its next
 squeeze, its check) or leaves the group as it was. -/
-theorem SlotReader.lintegral_π_le (hl : CleanLog seedRoots l) (hfr : QueryLog.Fresh l t)
+private theorem SlotReader.lintegral_π_le (hl : CleanLog seedRoots l) (hfr : QueryLog.Fresh l t)
     {G : Group} (hG : ∀ u, u ∉ badDigests seedRoots proofRoots k₀ l t → G.cv ≠ u) :
     ∫⁻ p, p ∂𝒟[(fun u ↦ if u ∈ badDigests seedRoots proofRoots k₀ l t then 0
       else R.π (l ++ [⟨t, u⟩]) G) <$> ($ᵗ Digest)] ≤ R.π l G := by
   classical
-  have hstep : ∀ u, u ∉ badDigests seedRoots proofRoots k₀ l t → CleanStep seedRoots l t u :=
-    fun u hu ↦ cleanStep_of_not_mem hfr hu
   have hslot : ∀ u, u ∉ badDigests seedRoots proofRoots k₀ l t →
       R.groupSlot (l ++ [⟨t, u⟩]) G = R.groupSlot l G :=
-    fun u hu ↦ R.groupSlot_append (hl.append (hstep u hu)) (hG u hu)
+    fun u hu ↦ R.groupSlot_append (hl.append (cleanStep_of_not_mem hfr hu)) (hG u hu)
   cases hg : R.groupSlot l G with
   | none =>
     refine lintegral_id_evalDist_map_le_of_le _ fun u ↦ ?_
@@ -371,36 +290,28 @@ theorem SlotReader.lintegral_π_le (hl : CleanLog seedRoots l) (hfr : QueryLog.F
         (squeezeRun l s₀ (R.slot a i).m).length < (R.slot a i).m ∧
           t = squeezeInput ((squeezeRun l s₀ (R.slot a i).m).getLastD s₀)
     · obtain ⟨s₀, hs₀, hlen, ht⟩ := hA
-      exact R.lintegral_π_le_of_squeeze hfr hg hstep hg' hs₀ hlen ht
+      exact R.lintegral_π_le_of_squeeze hfr hg hg' hs₀ hlen ht
     by_cases hB : ∃ n b, G.nonce = some n ∧ logAnswer l (baseInput G.cv) = some b ∧
         t = checkInput b n
     · obtain ⟨n, b, hn, hb, ht⟩ := hB
-      exact R.lintegral_π_le_of_check hfr hg hstep hg' hn hb ht
-    · exact R.lintegral_π_le_of_other hfr hg hstep hg' hA hB
+      exact R.lintegral_π_le_of_check hfr hg hg' hn hb ht
+    -- any other query leaves the group's check and squeezes as they were
+    refine lintegral_id_evalDist_map_le_of_le _ fun u ↦ ?_
+    split_ifs with hu
+    · exact zero_le
+    have hs := cleanStep_of_not_mem hfr hu
+    rw [R.π_eq_of_groupSlot (hg' u hu), R.π_eq_of_groupSlot hg,
+      Group.check?_append hs fun n b hn hb h ↦ hB ⟨n, b, hn, hb, h⟩,
+      Group.run_append hs fun s hs hlen h ↦ hA ⟨s, hs, hlen, h⟩]
 
 /-! ## The step of the potential -/
 
 /-- A uniform digest is one of `B` with probability at most `|B| / 2^256`. -/
-theorem prEvent_mem_le : ∀ (B : List Digest),
-    Pr{let u ← $ᵗ Digest}[u ∈ B] ≤ (B.length : ℝ≥0∞) / 2 ^ 256
-  | [] => by
-    have : Pr{let u ← $ᵗ Digest}[u ∈ ([] : List Digest)] = 0 :=
-      (SampleableType.prEvent_uniformSample_eq_zero_iff _).mpr fun _ h ↦ by cases h
-    rw [this]
-    exact zero_le
-  | b :: B => by
-    refine (prEvent_mono _ _ (fun u ↦ u = b ∨ u ∈ B) fun u hu ↦ List.mem_cons.mp hu).trans ?_
-    refine (prEvent_or_le _ _ _).trans ?_
-    rw [SampleableType.prEvent_uniformSample_eq_singleton, card_digest]
-    refine (add_le_add le_rfl (prEvent_mem_le B)).trans (le_of_eq ?_)
-    rw [List.length_cons, Nat.cast_add, Nat.cast_one, ENNReal.add_div, add_comm, Nat.cast_pow,
-      Nat.cast_ofNat, one_div]
-
-/-- A sum over a union is at most the two sums. -/
-private theorem sum_union_le {α : Type} [DecidableEq α] (A B : Finset α) (f : α → ℝ≥0∞) :
-    ∑ x ∈ A ∪ B, f x ≤ ∑ x ∈ A, f x + ∑ x ∈ B, f x := by
-  rw [← Finset.sum_union_inter]
-  exact le_self_add
+private theorem prEvent_mem_le (B : List Digest) :
+    Pr{let u ← $ᵗ Digest}[u ∈ B] ≤ (B.length : ℝ≥0∞) / 2 ^ 256 := by
+  have h := (SampleableType.prEvent_uniformSample_le_div_iff (· ∈ B) (c := B.length)).mpr
+    ((congrArg Finset.card (Finset.ext fun _ ↦ by simp)).trans_le B.toFinset_card_le)
+  rwa [card_digest, Nat.cast_pow, Nat.cast_ofNat] at h
 
 /-- A group open in a log starts from a digest in play. -/
 private theorem SlotReader.cv_mem_inPlay_of_mem_openGroups {G : Group} (h : G ∈ R.openGroups l) :
@@ -434,7 +345,7 @@ theorem SlotReader.potential_step (s : OracleState) (t : List UInt8) (ht : s.1 t
         simp [hu]
       · simp only [hu, ↓reduceIte, zero_add]
         have hs := cleanStep_of_not_mem hfr hu
-        refine le_trans ?_ (sum_union_le _ _ _)
+        refine le_trans ?_ (le_self_add.trans_eq Finset.sum_union_inter)
         by_cases hf : R.FlipAt (s.2 ++ [⟨t, u⟩])
         · rw [SlotReader.Φ, ite_eq_right_of_eq_false _ _ (eq_false fun h ↦ (hrec u ▸ h.2).2.2.1 hf)]
           obtain ⟨G, hG, -, hπ⟩ := R.flipAt_append hcl.1 hs hcl.2.2.1 hf
@@ -447,22 +358,17 @@ theorem SlotReader.potential_step (s : OracleState) (t : List UInt8) (ht : s.1 t
     rw [lintegral_id_evalDist_map_add, lintegral_id_evalDist_map_add,
       lintegral_id_evalDist_map_finset_sum, lintegral_id_evalDist_map_finset_sum,
       ← prEvent_eq_lintegral_id_evalDist_map_ite]
-    have h₁ := prEvent_mem_le B
-    have h₂ : ∑ G ∈ R.openGroups s.2, ∫⁻ p, p ∂𝒟[(fun u ↦ if u ∈ B then 0
-        else R.π (s.2 ++ [⟨t, u⟩]) G) <$> ($ᵗ Digest)] ≤ ∑ G ∈ R.openGroups s.2, R.π s.2 G :=
-      Finset.sum_le_sum fun G hG ↦ R.lintegral_π_le hcl.1 hfr fun u hu h ↦ hu (by
-        simp only [badDigests, List.mem_append]
-        exact .inl (.inl (.inr (h ▸ R.cv_mem_inPlay_of_mem_openGroups hG))))
-    have h₃ : ∑ G ∈ R.openedBy s.2 t, ∫⁻ p, p ∂𝒟[(fun u ↦ if u ∈ B then 0
-        else R.π (s.2 ++ [⟨t, u⟩]) G) <$> ($ᵗ Digest)] ≤ ∑ G ∈ R.openedBy s.2 t, R.π s.2 G :=
-      Finset.sum_le_sum fun G hG ↦ R.lintegral_π_le hcl.1 hfr fun u hu h ↦ hu (by
-        simp only [badDigests, List.mem_append]
-        rcases R.cv_mem_of_mem_touched (roots := seedRoots) (R.mem_openedBy_iff.mp hG).1 with
-          hc | hc
-        · exact .inl (.inr (h ▸ hc))
-        · exact .inl (.inl (.inr (h ▸ hc))))
+    -- every group summed over starts from a digest to avoid
+    have hcv : ∀ G : Group, G.cv ∈ halves t ∨ G.cv ∈ inPlay seedRoots s.2 →
+        ∀ u, u ∉ badDigests seedRoots proofRoots k₀ s.2 t → G.cv ≠ u := fun G hG u hu h ↦ hu (by
+      simp only [badDigests, List.mem_append]
+      exact hG.elim (fun hc ↦ .inl (.inr (h ▸ hc))) fun hc ↦ .inl (.inl (.inr (h ▸ hc))))
     calc _ ≤ (B.length : ℝ≥0∞) / 2 ^ 256 + ∑ G ∈ R.openGroups s.2, R.π s.2 G +
-          ∑ G ∈ R.openedBy s.2 t, R.π s.2 G := add_le_add (add_le_add h₁ h₂) h₃
+          ∑ G ∈ R.openedBy s.2 t, R.π s.2 G :=
+        add_le_add (add_le_add (prEvent_mem_le B) (Finset.sum_le_sum fun G hG ↦
+          R.lintegral_π_le hcl.1 hfr (hcv G (.inr (R.cv_mem_inPlay_of_mem_openGroups hG)))))
+          (Finset.sum_le_sum fun G hG ↦ R.lintegral_π_le hcl.1 hfr
+            (hcv G (R.cv_mem_of_mem_touched (R.mem_openedBy_iff.mp hG).1)))
       _ = _ := by ring
   · rw [SlotReader.Φ, ite_eq_right_of_eq_false _ _ (eq_false hgood), SlotReader.charge,
       ite_eq_right_of_eq_false _ _ (eq_false hgood), add_zero]
@@ -473,8 +379,9 @@ theorem SlotReader.potential_step (s : OracleState) (t : List UInt8) (ht : s.1 t
 /-! ## The charge's bound -/
 
 /-- A group keeps a challenge marked exactly when it has a nonce. -/
-private theorem SlotReader.mark_eq_of_groupSlot {G : Group} {a : R.Ann} {i : (R.spec a).ChallengeIdx}
-    {tr : (R.spec a).Transcript i.1.castSucc} (h : R.groupSlot l G = some ⟨a, i, tr⟩) :
+private theorem SlotReader.mark_eq_of_groupSlot {G : Group} {a : R.Ann}
+    {i : (R.spec a).ChallengeIdx} {tr : (R.spec a).Transcript i.1.castSucc}
+    (h : R.groupSlot l G = some ⟨a, i, tr⟩) :
     R.mark a i = G.nonce.isSome := by
   unfold SlotReader.groupSlot at h
   simp only [Option.bind_eq_bind, Option.bind_eq_some_iff] at h
@@ -507,24 +414,16 @@ theorem SlotReader.π_le_of_not_asked {ε : ℝ≥0∞}
         (fun j : Fin (R.slot a i).m ↦ (List.ofFn z).getD j default) = z := fun z ↦
       funext fun j ↦ by simp [List.getD_eq_getElem?_getD]
     simp only [hz]
-    have hmark := R.mark_eq_of_groupSlot hg
     have hb := hbad a i tr
-    rcases hn : G.nonce with _ | n
-    · rw [hn] at hmark
-      simp only [Option.isSome_none, Bool.false_eq_true, false_implies, true_and]
-      simp only [hmark, Option.isSome_none, Bool.false_eq_true, ↓reduceIte, one_mul] at hb
-      rw [prEvent_uniformSample_snd (α := Digest)
+    rw [R.mark_eq_of_groupSlot hg] at hb
+    rcases hn : G.nonce with _ | n <;> simp only [hn, Option.isSome_none, Option.isSome_some,
+      Bool.false_eq_true, ↓reduceIte, one_mul, false_implies, true_and, forall_const] at hb ⊢
+    · rwa [prEvent_uniformSample_snd (α := Digest)
         (fun w ↦ (R.slot a i).assemble w ∈ R.Bad a i tr), (R.slot a i).uniform]
-      exact hb
-    · rw [hn] at hmark
-      simp only [Option.isSome_some, forall_const]
-      simp only [hmark, Option.isSome_some, ↓reduceIte] at hb
-      rw [SampleableType.prEvent_uniformSample_prod]
-      have := prEvent_bind_bind_and ($ᵗ Digest) ($ᵗ (Fin (R.slot a i).m → Digest))
-        (fun d ↦ FsState.lowBitsZero d R.powBits = true)
-        (fun w ↦ (R.slot a i).assemble w ∈ R.Bad a i tr)
-      rw [this, (R.slot a i).uniform]
-      exact hb
+    · rwa [SampleableType.prEvent_uniformSample_prod,
+        prEvent_bind_bind_and ($ᵗ Digest) ($ᵗ (Fin (R.slot a i).m → Digest))
+          (fun d ↦ FsState.lowBitsZero d R.powBits = true)
+          (fun w ↦ (R.slot a i).assemble w ∈ R.Bad a i tr), (R.slot a i).uniform]
 
 /-- A sum over a finite set whose terms are nonzero at one member at most, each at most `ε`, is
 at most `ε`. -/
@@ -543,51 +442,42 @@ private theorem sum_le_of_unique {α : Type} {S : Finset α} {f : α → ℝ≥0
 most. -/
 private theorem baseStates_unique (hcoll : ¬ QueryLog.HasCollision l) {y cv cv' : Digest}
     (h : cv ∈ baseStates l y) (h' : cv' ∈ baseStates l y) : cv = cv' := by
-  obtain ⟨e, he, hb⟩ := List.mem_filterMap.mp h
-  obtain ⟨e', he', hb'⟩ := List.mem_filterMap.mp h'
-  split at hb
-  · split at hb'
-    · rename_i hc hc'
-      cases hb
-      cases hb'
-      by_contra hne
-      exact hcoll ⟨e, he, e', he', fun hq ↦ hne (by rw [hq]), hc.1.trans hc'.1.symm⟩
-    · cases hb'
-  · cases hb
+  simp only [baseStates, List.mem_filterMap, Option.ite_none_right_eq_some,
+    Option.some.injEq] at h h'
+  obtain ⟨e, he, ⟨hy, -⟩, rfl⟩ := h
+  obtain ⟨e', he', ⟨hy', -⟩, rfl⟩ := h'
+  by_contra hne
+  exact hcoll ⟨e, he, e', he', fun hq ↦ hne (by rw [hq]), hy.trans hy'.symm⟩
 
 /-- On a clean log, a base answer is no state's: a nonce step from it fixes no challenge. -/
 private theorem SlotReader.groupSlot_of_mem_baseStates (hl : CleanLog seedRoots l)
     (hseed : R.seed ∈ seedRoots) {y cv : Digest} (h : cv ∈ baseStates l y) (n : Option E) :
     R.groupSlot l ⟨y, n⟩ = none := by
-  obtain ⟨e, he, hb⟩ := List.mem_filterMap.mp h
-  split at hb
-  · rename_i hc
-    have hy : y ≠ R.seed := by
-      rintro rfl
-      obtain ⟨p, hp, hfresh, hpe⟩ := QueryLog.first_occurrence hl.consistent he
-      refine hl.noHit ⟨⟨p, hp⟩, by simpa [hpe] using hfresh, ?_⟩
-      simp only [Fin.getElem_fin, hpe, hc.1]
-      exact mem_inPlay_of_mem_roots hseed
-    have hpre : HashChain.preimages Block.parse? l y = [] := by
-      refine List.filterMap_eq_nil_iff.mpr fun e' he' ↦ ?_
-      split
-      · rename_i he'y
-        have : e'.1 = e.1 := by_contra fun hne ↦ hl.noCollision ⟨e', he', e, he, hne,
-          he'y.trans hc.1.symm⟩
-        rw [this, hc.2, parse?_baseInput]
-      · rfl
-    have : chainHistory l ⟨R.seed⟩ ⟨y⟩ = none := by
-      unfold chainHistory HashChain.history
-      cases hlen : l.length with
-      | zero => simp [HashChain.walk, hy]
-      | succ k => simp [HashChain.walk, hy, hpre, HashChain.unique?]
-    simp [SlotReader.groupSlot, this]
-  · cases hb
+  simp only [baseStates, List.mem_filterMap, Option.ite_none_right_eq_some] at h
+  obtain ⟨e, he, ⟨hey, hb⟩, -⟩ := h
+  have hy : y ≠ R.seed := by
+    rintro rfl
+    obtain ⟨p, hp, hfresh, hpe⟩ := QueryLog.first_occurrence hl.consistent he
+    refine hl.noHit ⟨⟨p, hp⟩, by simpa [hpe] using hfresh, ?_⟩
+    simp only [Fin.getElem_fin, hpe, hey]
+    exact mem_inPlay_of_mem_roots hseed
+  have hpre : HashChain.preimages Block.parse? l y = [] := by
+    refine List.filterMap_eq_nil_iff.mpr fun e' he' ↦ ?_
+    split
+    · rename_i he'y
+      have : e'.1 = e.1 :=
+        by_contra fun hne ↦ hl.noCollision ⟨e', he', e, he, hne, he'y.trans hey.symm⟩
+      rw [this, hb, parse?_baseInput]
+    · rfl
+  have : chainHistory l ⟨R.seed⟩ ⟨y⟩ = none := by
+    unfold chainHistory HashChain.history
+    cases l.length <;> simp [HashChain.walk, hy, hpre, HashChain.unique?]
+  simp [SlotReader.groupSlot, this]
 
 /-- **The groups a query opens** have probabilities summing to at most `ε` on a clean log: a
 squeeze opens the plain group at its state alone, and a nonce step the group it absorbs and the
 group it checks, of which the first fixes no challenge when the second exists. -/
-theorem SlotReader.sum_openedBy_le (hl : CleanLog seedRoots l) (hseed : R.seed ∈ seedRoots)
+private theorem SlotReader.sum_openedBy_le (hl : CleanLog seedRoots l) (hseed : R.seed ∈ seedRoots)
     {ε : ℝ≥0∞} (hε : ∀ G, G.asked l (R.size l G) = false → R.π l G ≤ ε) :
     ∑ G ∈ R.openedBy l t, R.π l G ≤ ε := by
   refine sum_le_of_unique (fun G hG G' hG' hπ hπ' ↦ ?_)
@@ -666,12 +556,8 @@ theorem SlotReader.Φ_start (s : OracleState) :
     R.Φ seedRoots proofRoots s.2.length s = R.Φ seedRoots [] 0 s := by
   have : R.Clean seedRoots proofRoots s.2.length s.2 ↔ R.Clean seedRoots [] 0 s.2 := by
     simp [SlotReader.Clean]
-  unfold SlotReader.Φ
-  by_cases h : QueryHistory.IsFreshLog s ∧ R.Clean seedRoots proofRoots s.2.length s.2
-  · rw [ite_eq_left_of_eq_true _ _ (eq_true h),
-      ite_eq_left_of_eq_true _ _ (eq_true ⟨h.1, this.mp h.2⟩)]
-  · rw [ite_eq_right_of_eq_false _ _ (eq_false h),
-      ite_eq_right_of_eq_false _ _ (eq_false fun h' ↦ h ⟨h'.1, this.mpr h'.2⟩)]
+  classical
+  exact if_congr (and_congr_right fun _ ↦ this) rfl rfl
 
 /-- The empty log has no flip. -/
 private theorem SlotReader.not_flipAt_nil : ¬ R.FlipAt [] := fun ⟨G, hG⟩ ↦ by

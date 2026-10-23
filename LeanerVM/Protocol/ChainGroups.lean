@@ -42,13 +42,13 @@ queries, that the group closes on a bad challenge, `1` on a group that flips
 
 **One more query** (`CleanLog`, `CleanStep`): a fresh query whose answer is no logged answer, not
 in play and not a half of the query. Then the history of every other state and the words read
-under it do not change (`chainHistory_append`, `SlotReader.wordsAt_append`,
+under it do not change, nor does the challenge a group fixes (`chainHistory_append`,
 `SlotReader.groupSlot_append`). `touched` lists the groups the query may advance or open; every
-other group (`unmoved`), and every closed group (`unmoved_of_complete`), keeps its challenge, its
-check and its squeezes, so its status, its flip and its probability (`status_of_unmoved`). The
-open groups after the query are open before it or opened by it (`openGroups_append_subset`), and a
-flip after the query, with none before, is a group open before it or opened by it, at probability
-`1` after it (`flipAt_append`).
+other group, and every closed group, keeps its challenge, its check and its squeezes
+(`Group.run_append`), so whether it is open and whether it flips. The open groups after the query
+are open before it or opened by it (`openGroups_append_subset`), and a flip after the query, with
+none before, is a group open before it or opened by it, at probability `1` after it
+(`flipAt_append`).
 -/
 
 namespace LeanerVM.Protocol
@@ -146,7 +146,8 @@ structure SlotReader where
   under a root to come, they may still change. -/
   wordsAt_congr : ∀ a (l l' : hashSpec.QueryLog) (hs : List (Block × Digest)),
     (∀ root ∈ historyRoots hs, ∀ depth rowWords leafWords p,
-      extractRows l' root depth rowWords leafWords p = extractRows l root depth rowWords leafWords p) →
+      extractRows l' root depth rowWords leafWords p =
+        extractRows l root depth rowWords leafWords p) →
     wordsAt a l' hs = wordsAt a l hs
   /-- A challenge reads its squeezes: a history decoded past the challenge has, at it, the
   challenge its squeezes' digests give. -/
@@ -355,17 +356,12 @@ end SlotReader
 
 /-! ## Inputs -/
 
-private theorem powBaseTag_ne_observeTag : FsState.powBaseTag ≠ FsState.observeTag := by
-  decide +kernel
-
-private theorem powBaseTag_ne_squeezeTag : FsState.powBaseTag ≠ FsState.squeezeTag := by
-  decide +kernel
-
-private theorem powBaseTag_ne_powNonceTag : FsState.powBaseTag ≠ FsState.powNonceTag := by
+private theorem powBaseTag_ne : FsState.powBaseTag ≠ FsState.observeTag ∧
+    FsState.powBaseTag ≠ FsState.squeezeTag ∧ FsState.powBaseTag ≠ FsState.powNonceTag := by
   decide +kernel
 
 /-- The state a 64-byte hash of the chain starts from is its first half. -/
-theorem digestOfBytes_stepBytes (cv : Digest) (x : E) (tag : K) :
+private theorem digestOfBytes_stepBytes (cv : Digest) (x : E) (tag : K) :
     digestOfBytes (FsState.stepBytes cv x tag) = cv :=
   digestOfBytes_append cv _
 
@@ -380,11 +376,7 @@ theorem parse?_baseInput (cv : Digest) : Block.parse? (baseInput cv) = none := b
   simp only [baseInput, FsState.stepBytes, FsState.block, List.append_assoc, List.drop_append,
     length_digestBytes, length_kBytes, List.drop_eq_nil_of_le, Nat.reduceLeDiff, Nat.reduceSub,
     List.drop_zero, List.nil_append, hk, Blake2sHash.kOfBytes_append, ht]
-  simp [powBaseTag_ne_observeTag, powBaseTag_ne_squeezeTag, powBaseTag_ne_powNonceTag]
-
-/-- The grinding base is no step's input. -/
-private theorem baseInput_ne_input (cv x : Digest) (b : Block) : baseInput cv ≠ Block.input x b :=
-  fun h ↦ by simpa [h, Block.parse?_input] using parse?_baseInput cv
+  simp [powBaseTag_ne]
 
 /-- A step's input determines the state and the block. -/
 theorem input_inj {x y : Digest} {b c : Block} (h : Block.input x b = Block.input y c) :
@@ -398,11 +390,11 @@ theorem checkInput_eq (base : Digest) (n : E) : checkInput base n = Block.input 
   rfl
 
 /-- A step from a state has the state as a half. -/
-theorem mem_halves_input (cv : Digest) (b : Block) : cv ∈ halves (Block.input cv b) :=
+private theorem mem_halves_input (cv : Digest) (b : Block) : cv ∈ halves (Block.input cv b) :=
   mem_halves_stepBytes cv b.elem b.tag
 
 /-- The grinding base from a state has the state as a half. -/
-theorem mem_halves_baseInput (cv : Digest) : cv ∈ halves (baseInput cv) :=
+private theorem mem_halves_baseInput (cv : Digest) : cv ∈ halves (baseInput cv) :=
   mem_halves_stepBytes cv 0 _
 
 /-! ## The answers of a log -/
@@ -433,12 +425,18 @@ theorem logAnswer_append_self {l : hashSpec.QueryLog} {t : List UInt8} {u : Dige
   simp only [logAnswer, Option.map_eq_none_iff] at h₀
   simp [logAnswer, List.find?_append, h₀]
 
+/-- The halves of a logged query are in play. -/
+private theorem mem_inPlay_of_mem {roots : List Digest} {l : hashSpec.QueryLog}
+    {e : (_ : List UInt8) × Digest} (he : e ∈ l) {x : Digest} (hx : x ∈ halves e.1) :
+    x ∈ inPlay roots l := by
+  simp only [inPlay, List.mem_append, List.mem_flatMap]
+  exact .inl (.inr ⟨e, he, hx⟩)
+
 /-- The halves of an answered query are in play. -/
 theorem mem_inPlay_of_logAnswer {roots : List Digest} {l : hashSpec.QueryLog} {q : List UInt8}
     {d : Digest} (h : logAnswer l q = some d) {x : Digest} (hx : x ∈ halves q) :
-    x ∈ inPlay roots l := by
-  simp only [inPlay, List.mem_append, List.mem_flatMap]
-  exact .inl (.inr ⟨⟨q, d⟩, MerkleTree.mem_of_logAnswer_eq_some h, hx⟩)
+    x ∈ inPlay roots l :=
+  mem_inPlay_of_mem (MerkleTree.mem_of_logAnswer_eq_some h) hx
 
 /-! ## Clean logs and one more clean query -/
 
@@ -468,14 +466,8 @@ structure CleanStep (roots : List Digest) (l : hashSpec.QueryLog) (t : List UInt
 variable {roots : List Digest} {l : hashSpec.QueryLog} {t : List UInt8} {u : Digest}
 
 /-- A log with each input once is consistent. -/
-theorem CleanLog.consistent (hl : CleanLog roots l) : QueryLog.Consistent l := by
-  intro e₁ h₁ e₂ h₂ h
-  obtain ⟨i, hi, rfl⟩ := List.mem_iff_getElem.mp h₁
-  obtain ⟨j, hj, rfl⟩ := List.mem_iff_getElem.mp h₂
-  have : i = j := (hl.nodup.getElem_inj_iff (hi := by simpa using hi)
-    (hj := by simpa using hj)).mp (by simpa using h)
-  subst this
-  rfl
+theorem CleanLog.consistent (hl : CleanLog roots l) : QueryLog.Consistent l :=
+  fun _ h₁ _ h₂ h ↦ by rw [List.inj_on_of_nodup_map hl.nodup h₁ h₂ h]
 
 /-- One more clean query keeps the log clean. -/
 theorem CleanLog.append (hl : CleanLog roots l) (hs : CleanStep roots l t u) :
@@ -512,7 +504,8 @@ theorem CleanLog.of_append (hl : CleanLog roots (l ++ [⟨t, u⟩])) : CleanLog 
   · simpa [List.take_append_of_le_length hi.le, List.getElem_append_left hi] using hin
 
 /-- A clean log's last query is fresh before it. -/
-theorem CleanLog.fresh_of_append (hl : CleanLog roots (l ++ [⟨t, u⟩])) : QueryLog.Fresh l t :=
+private theorem CleanLog.fresh_of_append (hl : CleanLog roots (l ++ [⟨t, u⟩])) :
+    QueryLog.Fresh l t :=
   fun e he het ↦ by
     have := hl.nodup
     rw [List.map_append, List.nodup_append] at this
@@ -538,7 +531,8 @@ private theorem last_take_succ {α : Type} : ∀ (cv : Digest) (hs : List (α ×
     exact last_take_succ c rest j (by simpa using hj)
 
 /-- Two consecutive observes of a history, and the root they absorb. -/
-private theorem mem_historyRoots : ∀ {hs : List (Block × Digest)} {r : Digest}, r ∈ historyRoots hs →
+private theorem mem_historyRoots :
+    ∀ {hs : List (Block × Digest)} {r : Digest}, r ∈ historyRoots hs →
     ∃ (j : ℕ) (hj : j + 1 < hs.length) (x₁ x₂ : E), hs[j].1 = .observe x₁ ∧
       hs[j + 1].1 = .observe x₂ ∧ digestOfScalars (x₁, x₂) = some r
   | [], _, h => by simp [historyRoots] at h
@@ -555,24 +549,20 @@ private theorem mem_historyRoots : ∀ {hs : List (Block × Digest)} {r : Digest
       exact ⟨j + 1, by simp; omega, x₁, x₂, h₁, h₂, h₃⟩
 
 /-- A search that finds one value or nothing along a list, and finds it somewhere, finds it. -/
-private theorem findSome?_eq_some_of {α γ : Type} {f : α → Option γ} {y : γ} :
-    ∀ {l : List α}, (∀ a ∈ l, f a = none ∨ f a = some y) → (∃ a ∈ l, f a = some y) →
-      l.findSome? f = some y
-  | [], _, ⟨_, ha, _⟩ => nomatch ha
-  | a :: l, hall, ⟨b, hb, hfb⟩ => by
-    rw [List.findSome?_cons]
-    rcases hall a List.mem_cons_self with ha | ha
-    · rw [ha]
-      rcases List.mem_cons.mp hb with rfl | hb
-      · rw [ha] at hfb; cases hfb
-      · exact findSome?_eq_some_of (fun c hc ↦ hall c (List.mem_cons_of_mem _ hc)) ⟨b, hb, hfb⟩
-    · rw [ha]
+private theorem findSome?_eq_some_of {α γ : Type} {f : α → Option γ} {y : γ} {l : List α}
+    (hall : ∀ a ∈ l, f a = none ∨ f a = some y) (h : ∃ a ∈ l, f a = some y) :
+    l.findSome? f = some y := by
+  obtain ⟨a, ha, hfa⟩ := h
+  have : (l.findSome? f).isSome := List.findSome?_isSome_iff.mpr ⟨a, ha, by simp [hfa]⟩
+  obtain ⟨z, hz⟩ := Option.isSome_iff_exists.mp this
+  obtain ⟨b, hb, hfb⟩ := List.exists_of_findSome?_eq_some hz
+  rcases hall b hb with h | h <;> simp_all
 
 /-- **The roots a history absorbs are rebuilt by the log**: on a log with no collision, two
 consecutive observes of a history are logged steps, the second from the state the first leads
 to, so the root they encode is one the log rebuilds. -/
-private theorem historyRoots_subset_rebuiltRoots (hcoll : ¬ QueryLog.HasCollision l) {seed s : FsState}
-    {hs : List (Block × Digest)} (h : chainHistory l seed s = some hs) :
+private theorem historyRoots_subset_rebuiltRoots (hcoll : ¬ QueryLog.HasCollision l)
+    {seed s : FsState} {hs : List (Block × Digest)} (h : chainHistory l seed s = some hs) :
     ∀ r ∈ historyRoots hs, r ∈ rebuiltRoots l := by
   intro r hr
   obtain ⟨j, hj, x₁, x₂, h₁, h₂, hr⟩ := mem_historyRoots hr
@@ -593,7 +583,7 @@ private theorem historyRoots_subset_rebuiltRoots (hcoll : ¬ QueryLog.HasCollisi
 /-- **The words read under a history do not change** with one more clean query: the history's
 roots are in play, so no fresh hit reaches them, and the rows under them are those of the log
 before the query. -/
-theorem SlotReader.wordsAt_append (R : SlotReader) (hl : CleanLog roots (l ++ [⟨t, u⟩]))
+private theorem SlotReader.wordsAt_append (R : SlotReader) (hl : CleanLog roots (l ++ [⟨t, u⟩]))
     {s : FsState} {h' : List (Block × Digest)} (h : chainHistory l ⟨R.seed⟩ s = some h')
     (a : R.Ann) : R.wordsAt a (l ++ [⟨t, u⟩]) h' = R.wordsAt a l h' := by
   have hcons := hl.consistent
@@ -614,12 +604,6 @@ theorem SlotReader.groupSlot_append (R : SlotReader) (hl : CleanLog roots (l ++ 
   · rfl
   · simp only [Option.bind_eq_bind, Option.bind_some, R.wordsAt_append hl h]
 
-/-- The size of a group's challenge does not change with one more clean query, unless the group
-starts from its answer. -/
-private theorem SlotReader.size_append (R : SlotReader) (hl : CleanLog roots (l ++ [⟨t, u⟩]))
-    {G : Group} (hG : G.cv ≠ u) : R.size (l ++ [⟨t, u⟩]) G = R.size l G := by
-  simp only [SlotReader.size, R.groupSlot_append hl hG]
-
 /-! ## A group's queries after one more query -/
 
 /-- A log asked no squeeze from `x` has no squeezes from it. -/
@@ -628,7 +612,7 @@ theorem squeezeRun_eq_nil {x : Digest} (h : logAnswer l (squeezeInput x) = none)
   cases m <;> simp [squeezeRun, h]
 
 /-- A run of all its squeezes is the same in a longer log. -/
-theorem squeezeRun_append_of_length {l' : hashSpec.QueryLog} :
+private theorem squeezeRun_append_of_length {l' : hashSpec.QueryLog} :
     ∀ {m : ℕ} {x : Digest}, (squeezeRun l x m).length = m →
       squeezeRun (l ++ l') x m = squeezeRun l x m
   | 0, _, _ => rfl
@@ -641,7 +625,7 @@ theorem squeezeRun_append_of_length {l' : hashSpec.QueryLog} :
       simp only [squeezeRun_append_of_length h]
 
 /-- After one more clean query, the log answers no query having its answer as a half. -/
-theorem CleanStep.logAnswer_eq_none (hs : CleanStep roots l t u) {q : List UInt8}
+private theorem CleanStep.logAnswer_eq_none (hs : CleanStep roots l t u) {q : List UInt8}
     (hq : u ∈ halves q) : logAnswer (l ++ [⟨t, u⟩]) q = none := by
   have hqt : q ≠ t := fun h ↦ hs.notHalf (h ▸ hq)
   rw [logAnswer_append_of_ne hqt]
@@ -677,7 +661,8 @@ theorem CleanStep.logAnswer_squeezeInput (hs : CleanStep roots l t u) :
   hs.logAnswer_eq_none (mem_halves_input u .squeeze)
 
 /-- A logged nonce step's group is among the log's absorptions. -/
-private theorem mem_nonceGroups {cv s : Digest} {n : E} (h : logAnswer l (absorbInput cv n) = some s) :
+private theorem mem_nonceGroups {cv s : Digest} {n : E}
+    (h : logAnswer l (absorbInput cv n) = some s) :
     (⟨cv, some n⟩ : Group) ∈ nonceGroups l :=
   List.mem_filterMap.mpr ⟨_, MerkleTree.mem_of_logAnswer_eq_some h, by
     simp [absorbInput, Block.parse?_input]⟩
@@ -715,67 +700,45 @@ private theorem powPasses_iff (bits : ℕ) (G : Group) :
     exact ⟨fun ⟨b, d, hb, hd, hz⟩ ↦ ⟨d, ⟨b, hb, hd⟩, hz⟩,
       fun ⟨d, ⟨b, hb, hd⟩, hz⟩ ↦ ⟨b, d, hb, hd, hz⟩⟩
 
+/-- A group with a logged query has its check, its nonce step or, with no nonce, its first
+squeeze logged. -/
+private theorem asked_cases {G : Group} {m : ℕ} (h : G.asked l m = true) :
+    (∃ n b d, G.nonce = some n ∧ logAnswer l (baseInput G.cv) = some b ∧
+      logAnswer l (checkInput b n) = some d) ∨
+    (∃ n s, G.nonce = some n ∧ logAnswer l (absorbInput G.cv n) = some s) ∨
+    (G.nonce = none ∧ ∃ d, logAnswer l (squeezeInput G.cv) = some d) := by
+  rcases hn : G.nonce with _ | n
+  · cases hx : logAnswer l (squeezeInput G.cv) with
+    | none => simp [asked, check?, run, start?, hn, squeezeRun_eq_nil hx] at h
+    | some d => exact .inr (.inr ⟨rfl, d, rfl⟩)
+  · cases hs : logAnswer l (absorbInput G.cv n) with
+    | some s => exact .inr (.inl ⟨n, s, rfl, hs⟩)
+    | none =>
+      simp only [asked, check?, run, start?, hn, hs, Option.bind_some, Option.isSome_some,
+        Option.isSome_none, Bool.and_false, Bool.or_false, List.isEmpty_nil, Bool.not_true,
+        Option.isSome_iff_exists, Option.bind_eq_some_iff] at h
+      obtain ⟨d, b, hb, hd⟩ := h
+      exact .inl ⟨n, b, d, rfl, hb, hd⟩
+
 /-- A group with a logged query starts from a half of a logged query. -/
 theorem exists_query_of_asked {G : Group} {m : ℕ} (h : G.asked l m = true) :
     ∃ q d, logAnswer l q = some d ∧ G.cv ∈ halves q := by
-  simp only [asked, Bool.or_eq_true, Bool.and_eq_true, Option.isSome_iff_exists] at h
-  rcases hn : G.nonce with _ | n
-  · rcases h with (⟨d, hd⟩ | ⟨⟨_, h⟩, -⟩) | h
-    · simp [check?, hn] at hd
-    · simp [hn] at h
-    · simp only [run, start?, hn] at h
-      cases hx : logAnswer l (squeezeInput G.cv) with
-      | none => simp [squeezeRun_eq_nil hx] at h
-      | some d => exact ⟨_, d, hx, mem_halves_input G.cv .squeeze⟩
-  · have habs : (G.start? l).isSome = true → ∃ q d, logAnswer l q = some d ∧ G.cv ∈ halves q :=
-      fun h ↦ by
-        obtain ⟨s, hs⟩ := Option.isSome_iff_exists.mp h
-        simp only [start?, hn] at hs
-        exact ⟨_, s, hs, mem_halves_input G.cv (.nonce n)⟩
-    rcases h with (⟨d, hd⟩ | ⟨-, ⟨s, hs⟩⟩) | h
-    · simp only [check?, hn, Option.bind_some, Option.bind_eq_some_iff] at hd
-      obtain ⟨b, hb, -⟩ := hd
-      exact ⟨_, b, hb, mem_halves_baseInput G.cv⟩
-    · exact habs (by simp [hs])
-    · refine habs ?_
-      simp only [run] at h
-      split at h
-      · simp at h
-      · rename_i s hs
-        simp [hs]
+  rcases asked_cases h with ⟨-, b, -, -, hb, -⟩ | ⟨n, s, -, hs⟩ | ⟨-, d, hd⟩
+  · exact ⟨_, b, hb, mem_halves_baseInput G.cv⟩
+  · exact ⟨_, s, hs, mem_halves_input G.cv (.nonce n)⟩
+  · exact ⟨_, d, hd, mem_halves_input G.cv .squeeze⟩
 
 /-- A group with a logged query is a candidate of the log. -/
 private theorem mem_candidates_of_asked {G : Group} {m : ℕ} (h : G.asked l m = true) :
     G ∈ candidates l := by
-  simp only [asked, Bool.or_eq_true, Bool.and_eq_true, Option.isSome_iff_exists] at h
   obtain ⟨cv, nonce⟩ := G
   simp only [candidates, List.mem_append, List.mem_map]
-  rcases nonce with _ | n
-  · rcases h with (⟨d, hd⟩ | ⟨⟨_, h⟩, -⟩) | h
-    · simp [check?] at hd
-    · simp at h
-    · simp only [run, start?] at h
-      cases hx : logAnswer l (squeezeInput cv) with
-      | none => simp [squeezeRun_eq_nil hx] at h
-      | some d =>
-        exact .inl (.inl ⟨_, MerkleTree.mem_of_logAnswer_eq_some hx,
-          by simp [squeezeInput, Block.input, digestOfBytes_stepBytes]⟩)
-  · have habs : (Group.start? l ⟨cv, some n⟩).isSome = true →
-        ((∃ a ∈ l, (⟨digestOfBytes a.1, none⟩ : Group) = ⟨cv, some n⟩) ∨
-          ⟨cv, some n⟩ ∈ nonceGroups l) ∨ ⟨cv, some n⟩ ∈ checkGroups l := fun h ↦ by
-      obtain ⟨s, hs⟩ := Option.isSome_iff_exists.mp h
-      exact .inl (.inr (mem_nonceGroups hs))
-    rcases h with (⟨d, hd⟩ | ⟨-, ⟨s, hs⟩⟩) | h
-    · simp only [check?, Option.bind_some, Option.bind_eq_some_iff] at hd
-      obtain ⟨b, hb, hc⟩ := hd
-      exact .inr (mem_checkGroups hb hc)
-    · exact habs (by simp [hs])
-    · refine habs ?_
-      simp only [run] at h
-      split at h
-      · simp at h
-      · rename_i s hs
-        simp [hs]
+  rcases asked_cases h with ⟨n, b, d, hn, hb, hd⟩ | ⟨n, s, hn, hs⟩ | ⟨hn, d, hd⟩ <;>
+    cases hn
+  · exact .inr (mem_checkGroups hb hd)
+  · exact .inl (.inr (mem_nonceGroups hs))
+  · exact .inl (.inl ⟨_, MerkleTree.mem_of_logAnswer_eq_some hd,
+      by simp [squeezeInput, Block.input, digestOfBytes_stepBytes]⟩)
 
 /-- The answer to a group's check does not change with one more clean query that is not the
 check. -/
@@ -803,6 +766,37 @@ theorem start?_append {G : Group} (ht : ∀ n, G.nonce = some n → t ≠ absorb
   · simp [start?, hn]
   · simp only [start?, hn]
     exact logAnswer_append_of_ne (Ne.symm (ht n hn))
+
+/-- A group's squeezes do not change with one more clean query that is not its next squeeze. -/
+theorem run_append (hs : CleanStep roots l t u) {G : Group} {m : ℕ}
+    (ht : ∀ s, G.start? l = some s → (squeezeRun l s m).length < m →
+      t ≠ squeezeInput ((squeezeRun l s m).getLastD s)) :
+    G.run (l ++ [⟨t, u⟩]) m = G.run l m := by
+  by_cases hC : ∃ n, G.nonce = some n ∧ t = absorbInput G.cv n
+  · obtain ⟨n, hn, rfl⟩ := hC
+    simp only [run, start?, hn, logAnswer_append_self hs.fresh,
+      logAnswer_eq_none_iff.mpr hs.fresh, squeezeRun_eq_nil hs.logAnswer_squeezeInput]
+  · rw [run, start?_append fun n hn h ↦ hC ⟨n, hn, h⟩, run]
+    cases hs₀ : G.start? l with
+    | none => rfl
+    | some s₀ =>
+      simp only [squeezeRun_append hs.logAnswer_squeezeInput hs.fresh]
+      split
+      · exact absurd ‹_ ∧ _›.2 (ht s₀ hs₀ ‹_ ∧ _›.1)
+      · exact List.append_nil _
+
+/-- A logged start stays the group's in a longer log. -/
+private theorem start?_append_of_eq_some {G : Group} {l' : hashSpec.QueryLog} {s : Digest}
+    (h : G.start? l = some s) : G.start? (l ++ l') = some s := by
+  rcases hn : G.nonce with _ | n <;> simp only [start?, hn] at h ⊢
+  exacts [h, logAnswer_append_of_eq_some h]
+
+/-- A logged check stays the group's in a longer log. -/
+private theorem check?_append_of_eq_some {G : Group} {l' : hashSpec.QueryLog} {d : Digest}
+    (h : G.check? l = some d) : G.check? (l ++ l') = some d := by
+  simp only [check?, Option.bind_eq_some_iff] at h ⊢
+  obtain ⟨n, hn, b, hb, hd⟩ := h
+  exact ⟨n, hn, b, logAnswer_append_of_eq_some hb, logAnswer_append_of_eq_some hd⟩
 
 end Group
 
@@ -863,109 +857,64 @@ private theorem mem_touched_of_awaits {G : Group} {x : Digest} (h : R.awaits l G
 
 /-! ## What one more query changes -/
 
+/-- A longer log leaves a group where it was: its challenge, its check, its start and its
+squeezes. -/
+private def Stays (l l' : hashSpec.QueryLog) (G : Group) : Prop :=
+  R.groupSlot l' G = R.groupSlot l G ∧ G.check? l' = G.check? l ∧ G.start? l' = G.start? l ∧
+    G.run l' (R.size l G) = G.run l (R.size l G)
+
 /-- **One more clean query moves an untouched group nowhere**: a group the query does not touch,
-not starting from its answer, keeps its challenge, its check, its start and its squeezes. -/
+not starting from its answer, stays where it was. -/
 private theorem unmoved (hl : CleanLog roots l) (hs : CleanStep roots l t u) {G : Group}
-    (hG : G.cv ≠ u) (hnot : G ∉ R.touched l t) :
-    R.groupSlot (l ++ [⟨t, u⟩]) G = R.groupSlot l G ∧ G.check? (l ++ [⟨t, u⟩]) = G.check? l ∧
-      G.start? (l ++ [⟨t, u⟩]) = G.start? l ∧
-      G.run (l ++ [⟨t, u⟩]) (R.size l G) = G.run l (R.size l G) := by
-  have hst : G.start? (l ++ [⟨t, u⟩]) = G.start? l :=
-    Group.start?_append fun n hn h ↦ hnot (h ▸ R.mem_touched_of_absorb hn)
-  refine ⟨R.groupSlot_append (hl.append hs) hG,
-    Group.check?_append hs fun n b hn hb h ↦ hnot (h ▸ R.mem_touched_of_check hn hb), hst, ?_⟩
-  unfold Group.run
-  rw [hst]
-  split
-  · rfl
-  · rename_i s hs'
-    rw [squeezeRun_append hs.logAnswer_squeezeInput hs.fresh]
-    split
-    · rename_i hc
-      refine absurd ?_ hnot
-      rw [hc.2]
-      refine R.mem_touched_of_awaits ?_
-      simp [awaits, hs', Group.run, hc.1]
-    · simp
+    (hG : G.cv ≠ u) (hnot : G ∉ R.touched l t) : R.Stays l (l ++ [⟨t, u⟩]) G :=
+  ⟨R.groupSlot_append (hl.append hs) hG,
+    Group.check?_append hs fun n b hn hb h ↦ hnot (h ▸ R.mem_touched_of_check hn hb),
+    Group.start?_append fun n hn h ↦ hnot (h ▸ R.mem_touched_of_absorb hn),
+    Group.run_append hs fun s hs' hlen h ↦
+      hnot (h ▸ R.mem_touched_of_awaits (by simp [awaits, hs', Group.run, hlen]))⟩
 
 /-- **One more clean query moves a closed group nowhere**: all its queries are logged, so it
-keeps its challenge, its check, its start and its squeezes. -/
+stays where it was. -/
 private theorem unmoved_of_complete (hl : CleanLog roots (l ++ [⟨t, u⟩])) {G : Group}
     (hG : G.cv ≠ u) (hslot : (R.groupSlot l G).isSome = true)
-    (hc : G.complete l (R.size l G) = true) :
-    R.groupSlot (l ++ [⟨t, u⟩]) G = R.groupSlot l G ∧ G.check? (l ++ [⟨t, u⟩]) = G.check? l ∧
-      G.start? (l ++ [⟨t, u⟩]) = G.start? l ∧
-      G.run (l ++ [⟨t, u⟩]) (R.size l G) = G.run l (R.size l G) := by
+    (hc : G.complete l (R.size l G) = true) : R.Stays l (l ++ [⟨t, u⟩]) G := by
   have hm : 0 < R.size l G := by
     obtain ⟨⟨a, i, tr⟩, hg⟩ := Option.isSome_iff_exists.mp hslot
     simpa [size, hg] using R.slot_pos a i
   simp only [Group.complete, Bool.and_eq_true, Bool.or_eq_true, beq_iff_eq] at hc
   obtain ⟨hchk, hlen⟩ := hc
-  have hst : G.start? (l ++ [⟨t, u⟩]) = G.start? l := by
-    rcases hn : G.nonce with _ | n
-    · simp [Group.start?, hn]
-    · have hsome : (G.start? l).isSome = true := by
-        cases h : G.start? l with
-        | none => simp [Group.run, h] at hlen; omega
-        | some s => rfl
-      obtain ⟨s, hs'⟩ := Option.isSome_iff_exists.mp hsome
-      simp only [Group.start?, hn] at hs' ⊢
-      rw [logAnswer_append_of_eq_some hs', hs']
-  refine ⟨R.groupSlot_append hl hG, ?_, hst, ?_⟩
-  · rcases hn : G.nonce with _ | n
-    · simp [Group.check?, hn]
-    · rw [hn] at hchk
-      simp only [Option.isNone_some, Bool.false_eq_true, false_or] at hchk
-      obtain ⟨d, hd⟩ := Option.isSome_iff_exists.mp hchk
-      simp only [Group.check?, hn, Option.bind_some, Option.bind_eq_some_iff] at hd ⊢
-      obtain ⟨b, hb, hcd⟩ := hd
-      rw [logAnswer_append_of_eq_some hb, Option.bind_some, logAnswer_append_of_eq_some hcd,
-        hb, Option.bind_some, hcd]
-  · unfold Group.run at hlen ⊢
-    rw [hst]
-    split
-    · rfl
-    · rename_i s hs'
-      rw [hs'] at hlen
-      exact squeezeRun_append_of_length hlen
+  obtain ⟨s, hs⟩ : ∃ s, G.start? l = some s := by
+    cases h : G.start? l with
+    | none => simp [Group.run, h] at hlen; omega
+    | some s => exact ⟨s, rfl⟩
+  have hst := Group.start?_append_of_eq_some (l' := [⟨t, u⟩]) hs
+  refine ⟨R.groupSlot_append hl hG, ?_, hst.trans hs.symm, ?_⟩
+  · rcases hchk with hn | hd
+    · simp [Group.check?, Option.isNone_iff_eq_none.mp hn]
+    · obtain ⟨d, hd⟩ := Option.isSome_iff_exists.mp hd
+      rw [hd, Group.check?_append_of_eq_some hd]
+  · simp only [Group.run, hst, hs] at hlen ⊢
+    exact squeezeRun_append_of_length hlen
 
-/-- **A group unmoved by a log's growth keeps its status**: the size of its challenge, whether
-it has a logged query, whether it is open or closed, whether it flips, and its probability. -/
-private theorem status_of_unmoved {l' : hashSpec.QueryLog} {G : Group}
-    (h : R.groupSlot l' G = R.groupSlot l G ∧ G.check? l' = G.check? l ∧
-      G.start? l' = G.start? l ∧ G.run l' (R.size l G) = G.run l (R.size l G)) :
-    R.size l' G = R.size l G ∧ G.asked l' (R.size l' G) = G.asked l (R.size l G) ∧
-      R.isOpen l' G = R.isOpen l G ∧ R.isClosed l' G = R.isClosed l G ∧
-      (R.Flips l' G ↔ R.Flips l G) ∧ R.π l' G = R.π l G := by
+/-- A group that stays where it was keeps whether it is open. -/
+private theorem isOpen_eq_of_stays {l' : hashSpec.QueryLog} {G : Group} (h : R.Stays l l' G) :
+    R.isOpen l' G = R.isOpen l G := by
   obtain ⟨hg, hc, hst, hr⟩ := h
   have hsize : R.size l' G = R.size l G := by simp only [size, hg]
-  have hasked : G.asked l' (R.size l' G) = G.asked l (R.size l G) := by
-    simp only [Group.asked, hsize, hc, hst, hr]
-  have hcomp : G.complete l' (R.size l' G) = G.complete l (R.size l G) := by
-    simp only [Group.complete, hsize, hc, hr]
-  refine ⟨hsize, hasked, ?_, ?_, ?_, ?_⟩
-  · simp only [isOpen, hg, hasked, hcomp]
-  · simp only [isClosed, hg, hcomp]
-  · unfold Flips
-    rw [hg]
-    cases hgs : R.groupSlot l G with
-    | none => exact Iff.rfl
-    | some x =>
-      obtain ⟨a, i, tr⟩ := x
-      have hm : R.size l G = (R.slot a i).m := by simp [size, hgs]
-      rw [hm] at hr
-      simp only
-      rw [Group.powPasses_iff, Group.powPasses_iff, hc, hr]
-  · unfold π
-    rw [hg]
-    cases hgs : R.groupSlot l G with
-    | none => rfl
-    | some x =>
-      obtain ⟨a, i, tr⟩ := x
-      have hm : R.size l G = (R.slot a i).m := by simp [size, hgs]
-      rw [hm] at hr
-      simp only
-      rw [hc, hr]
+  simp only [isOpen, Group.asked, Group.complete, hg, hsize, hc, hst, hr]
+
+/-- A group that stays where it was keeps whether it flips. -/
+private theorem flips_iff_of_stays {l' : hashSpec.QueryLog} {G : Group} (h : R.Stays l l' G) :
+    R.Flips l' G ↔ R.Flips l G := by
+  obtain ⟨hg, hc, -, hr⟩ := h
+  unfold Flips
+  rw [hg]
+  cases hgs : R.groupSlot l G with
+  | none => exact Iff.rfl
+  | some x =>
+    obtain ⟨a, i, tr⟩ := x
+    simp only [size, hgs] at hr
+    simp only [Group.powPasses_iff, hc, hr]
 
 /-- A group that flips is closed, with a logged query. -/
 theorem complete_of_flips {G : Group} (h : R.Flips l G) :
@@ -976,22 +925,15 @@ theorem complete_of_flips {G : Group} (h : R.Flips l G) :
   | none => simp [hgs] at h
   | some x =>
     obtain ⟨a, i, tr⟩ := x
-    simp only [hgs] at h
+    simp only [hgs, Group.powPasses_iff] at h
     obtain ⟨hlen, hpow, -⟩ := h
-    have hm : R.size l G = (R.slot a i).m := by simp [size, hgs]
-    have hpos := R.slot_pos a i
-    rw [Group.powPasses_iff] at hpow
-    refine ⟨rfl, ?_, ?_⟩
-    · simp only [Group.complete, hm, hlen, beq_self_eq_true, Bool.and_true, Bool.or_eq_true]
-      rcases hn : G.nonce with _ | n
-      · simp
-      · obtain ⟨d, hd, -⟩ := hpow (by simp [hn])
-        simp [hd]
-    · simp only [Group.asked, hm, Bool.or_eq_true]
-      right
-      cases hr : G.run l (R.slot a i).m with
-      | nil => rw [hr] at hlen; simp at hlen; omega
-      | cons _ _ => rfl
+    have hne : G.run l (R.slot a i).m ≠ [] :=
+      List.ne_nil_of_length_pos (by rw [hlen]; exact R.slot_pos a i)
+    refine ⟨rfl, ?_, by simp [Group.asked, size, hgs, hne]⟩
+    rcases hn : G.nonce with _ | n
+    · simp [Group.complete, size, hgs, hn, hlen]
+    · obtain ⟨d, hd, -⟩ := hpow (by simp [hn])
+      simp [Group.complete, size, hgs, hlen, hd]
 
 /-- **A group that flips has probability `1`** of closing on a bad challenge: nothing of it is
 left to draw. -/
@@ -1024,30 +966,35 @@ theorem mem_openedBy_iff {G : Group} :
     G ∈ R.openedBy l t ↔ G ∈ R.touched l t ∧ G.asked l (R.size l G) = false := by
   simp [openedBy, List.mem_toFinset]
 
+/-- After one more clean query, a group with a logged query that fixes a challenge is open
+before it, opened by it, or stays where it was. -/
+private theorem mem_or_stays (hl : CleanLog roots l) (hs : CleanStep roots l t u) {G : Group}
+    {m : ℕ} (hask : G.asked (l ++ [⟨t, u⟩]) m = true)
+    (hslot : (R.groupSlot (l ++ [⟨t, u⟩]) G).isSome = true) :
+    G ∈ R.openGroups l ∪ R.openedBy l t ∨ R.Stays l (l ++ [⟨t, u⟩]) G := by
+  have hcv : G.cv ≠ u := hs.cv_ne_of_asked hask
+  rw [R.groupSlot_append (hl.append hs) hcv] at hslot
+  rw [Finset.mem_union, mem_openGroups_iff, mem_openedBy_iff]
+  by_cases ht : G ∈ R.touched l t
+  · cases ha : G.asked l (R.size l G) with
+    | false => exact .inl (.inr ⟨ht, rfl⟩)
+    | true =>
+      cases hc : G.complete l (R.size l G) with
+      | false => exact .inl (.inl (by simp [isOpen, hslot, ha, hc]))
+      | true => exact .inr (R.unmoved_of_complete (hl.append hs) hcv hslot hc)
+  · exact .inr (R.unmoved hl hs hcv ht)
+
 /-- **The open groups after one more clean query** are open before it or opened by it. -/
 theorem openGroups_append_subset (hl : CleanLog roots l) (hs : CleanStep roots l t u) :
     R.openGroups (l ++ [⟨t, u⟩]) ⊆ R.openGroups l ∪ R.openedBy l t := by
   intro G hG
   rw [mem_openGroups_iff] at hG
-  have hG' := hG
-  simp only [isOpen, Bool.and_eq_true, Bool.not_eq_true'] at hG'
-  obtain ⟨⟨hslot', hask'⟩, hcomp'⟩ := hG'
-  have hcv : G.cv ≠ u := hs.cv_ne_of_asked hask'
-  have hslot : (R.groupSlot l G).isSome = true := by
-    rwa [R.groupSlot_append (hl.append hs) hcv] at hslot'
-  rw [Finset.mem_union, mem_openGroups_iff, mem_openedBy_iff]
-  by_cases ht : G ∈ R.touched l t
-  · cases ha : G.asked l (R.size l G) with
-    | false => exact .inr ⟨ht, rfl⟩
-    | true =>
-      refine .inl ?_
-      cases hc : G.complete l (R.size l G) with
-      | false => simp [isOpen, hslot, ha, hc]
-      | true =>
-        have := (R.status_of_unmoved (R.unmoved_of_complete (hl.append hs) hcv hslot hc)).2.2.1
-        rw [hG] at this
-        simp [isOpen, hc] at this
-  · exact .inl ((R.status_of_unmoved (R.unmoved hl hs hcv ht)).2.2.1 ▸ hG)
+  have h := hG
+  simp only [isOpen, Bool.and_eq_true] at h
+  rcases R.mem_or_stays hl hs h.1.2 h.1.1 with h | h
+  · exact h
+  · exact Finset.mem_union_left _
+      ((R.mem_openGroups_iff).mpr ((R.isOpen_eq_of_stays h).symm.trans hG))
 
 /-- A flip stays one when the log grows by a query and stays clean. -/
 theorem flipAt_append_of_flipAt (hl : CleanLog roots (l ++ [⟨t, u⟩])) (h : R.FlipAt l) :
@@ -1057,56 +1004,29 @@ theorem flipAt_append_of_flipAt (hl : CleanLog roots (l ++ [⟨t, u⟩])) (h : R
   obtain ⟨q, d, hq, hcv⟩ := Group.exists_query_of_asked ha
   have hne : G.cv ≠ u := fun h ↦
     hl.notInPlay_of_append (h ▸ mem_inPlay_of_logAnswer (roots := roots) hq hcv)
-  exact ⟨G, (R.status_of_unmoved (R.unmoved_of_complete hl hne hslot hc)).2.2.2.2.1.mpr hG⟩
+  exact ⟨G, (R.flips_iff_of_stays (R.unmoved_of_complete hl hne hslot hc)).mpr hG⟩
 
 /-- A group a query touches starts from a half of the query or from a digest in play. -/
 theorem cv_mem_of_mem_touched {G : Group} (h : G ∈ R.touched l t) :
     G.cv ∈ halves t ∨ G.cv ∈ inPlay roots l := by
   unfold touched at h
-  have hlog : ∀ e ∈ l, ∀ y b, Block.parse? e.1 = some (y, b) → y ∈ inPlay roots l :=
-    fun e he y b hp ↦ by
-      simp only [inPlay, List.mem_append, List.mem_flatMap]
-      exact .inl (.inr ⟨e, he, mem_halves_of_parse? hp⟩)
   split at h
   · rename_i x hx
-    simp only [List.mem_filter, List.mem_append, List.map_cons, List.mem_cons, List.mem_map] at h
-    obtain ⟨(rfl | ⟨y, hy, rfl⟩) | hn, -⟩ := h
+    simp only [List.mem_filter, List.mem_append, List.map_cons, List.mem_cons, List.mem_map,
+      squeezeStates, nonceGroups, List.mem_filterMap] at h
+    obtain ⟨(rfl | ⟨y, ⟨e, he, hy⟩, rfl⟩) | ⟨e, he, hg⟩, -⟩ := h
     · exact .inl (mem_halves_of_parse? hx)
-    · obtain ⟨e, he, hy⟩ := List.mem_filterMap.mp hy
-      split at hy
-      · rename_i y' hp
-        cases hy
-        exact .inr (hlog e he _ _ hp)
-      · cases hy
-    · obtain ⟨e, he, hg⟩ := List.mem_filterMap.mp hn
-      split at hg
-      · rename_i cv n hp
-        cases hg
-        exact .inr (hlog e he _ _ hp)
-      · cases hg
+    · split at hy <;> cases hy
+      exact .inr (mem_inPlay_of_mem he (mem_halves_of_parse? ‹_›))
+    · split at hg <;> cases hg
+      exact .inr (mem_inPlay_of_mem he (mem_halves_of_parse? ‹_›))
   · rename_i y n hy
-    simp only [List.mem_cons, List.mem_map] at h
-    rcases h with rfl | ⟨cv, hcv, rfl⟩
+    simp only [List.mem_cons, List.mem_map, baseStates, List.mem_filterMap,
+      Option.ite_none_right_eq_some, Option.some.injEq] at h
+    rcases h with rfl | ⟨cv, ⟨e, he, ⟨-, hb⟩, rfl⟩, rfl⟩
     · exact .inl (mem_halves_of_parse? hy)
-    · obtain ⟨e, he, hb⟩ := List.mem_filterMap.mp hcv
-      split at hb
-      · rename_i hcond
-        cases hb
-        refine .inr ?_
-        simp only [inPlay, List.mem_append, List.mem_flatMap]
-        refine .inl (.inr ⟨e, he, ?_⟩)
-        rw [show halves e.1 = halves (baseInput (digestOfBytes e.1)) from congrArg _ hcond.2]
-        exact mem_halves_baseInput _
-      · cases hb
+    · exact .inr (mem_inPlay_of_mem he (by rw [congrArg halves hb]; exact mem_halves_baseInput _))
   · simp at h
-
-/-- After one more clean query, no group it touches starts from its answer. -/
-private theorem CleanStep.cv_ne_of_mem_touched (hs : CleanStep roots l t u) {G : Group}
-    (h : G ∈ R.touched l t) : G.cv ≠ u := by
-  rintro rfl
-  rcases R.cv_mem_of_mem_touched (roots := roots) h with h | h
-  · exact hs.notHalf h
-  · exact hs.notInPlay h
 
 /-- **A flip after one more clean query** is a group open before it or opened by it, which flips
 after it, at probability `1`. -/
@@ -1115,23 +1035,10 @@ theorem flipAt_append (hl : CleanLog roots l) (hs : CleanStep roots l t u) (hno 
     ∃ G ∈ R.openGroups l ∪ R.openedBy l t,
       R.Flips (l ++ [⟨t, u⟩]) G ∧ R.π (l ++ [⟨t, u⟩]) G = 1 := by
   obtain ⟨G, hG⟩ := h
-  obtain ⟨hslot', -, hask'⟩ := R.complete_of_flips hG
-  have hcv : G.cv ≠ u := hs.cv_ne_of_asked hask'
-  have hslot : (R.groupSlot l G).isSome = true := by
-    rwa [R.groupSlot_append (hl.append hs) hcv] at hslot'
+  obtain ⟨hslot, -, hask⟩ := R.complete_of_flips hG
   refine ⟨G, ?_, hG, R.π_eq_one_of_flips hG⟩
-  rw [Finset.mem_union, mem_openGroups_iff, mem_openedBy_iff]
-  by_cases ht : G ∈ R.touched l t
-  · cases ha : G.asked l (R.size l G) with
-    | false => exact .inr ⟨ht, rfl⟩
-    | true =>
-      refine .inl ?_
-      cases hc : G.complete l (R.size l G) with
-      | false => simp [isOpen, hslot, ha, hc]
-      | true =>
-        exact absurd ⟨G, (R.status_of_unmoved
-          (R.unmoved_of_complete (hl.append hs) hcv hslot hc)).2.2.2.2.1.mp hG⟩ hno
-  · exact absurd ⟨G, (R.status_of_unmoved (R.unmoved hl hs hcv ht)).2.2.2.2.1.mp hG⟩ hno
+  exact (R.mem_or_stays hl hs hask hslot).resolve_right fun h ↦
+    hno ⟨G, (R.flips_iff_of_stays h).mp hG⟩
 
 end SlotReader
 

@@ -221,9 +221,7 @@ theorem queryChildren_mem_inPlay (roots : List Digest) (l : hashSpec.QueryLog)
       split at hnode
       · assumption
       · cases hnode
-    refine halves_mem_inPlay roots l e d ?_
-    simp only [List.mem_cons, List.not_mem_nil, or_false] at hd
-    rcases hd with rfl | rfl <;> simp [halves, hlen]
+    exact halves_mem_inPlay roots l e d (by simpa [halves, hlen] using hd)
   · cases hd
 
 /-- **No hit, no fresh hit.** In a consistent joint log with no hit on the digests in play, no

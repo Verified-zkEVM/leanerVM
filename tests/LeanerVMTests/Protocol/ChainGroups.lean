@@ -65,12 +65,14 @@ instance toySampleable (i : toySpec.ChallengeIdx) : SampleableType (toySpec.Chal
   | ⟨⟨0, _⟩, h⟩ => absurd h (by simp [toySpec])
   | ⟨⟨1, _⟩, _⟩ => inferInstanceAs (SampleableType Digest)
 
+/-- A digest challenge read off one squeeze. -/
+def oneSqueeze : SqueezeSlot Digest :=
+  ⟨1, fun ds ↦ ds 0, SampleableType.prEvent_uniformSample_equiv (Equiv.funUnique (Fin 1) Digest)⟩
+
 /-- The challenge is its one squeeze's digest. -/
 def toySlot : (i : toySpec.ChallengeIdx) → @SqueezeSlot (toySpec.Challenge i) (toySampleable i)
   | ⟨⟨0, _⟩, h⟩ => absurd h (by simp [toySpec])
-  | ⟨⟨1, _⟩, _⟩ =>
-    @SqueezeSlot.mk Digest (inferInstanceAs (SampleableType Digest)) 1 (fun ds ↦ ds 0)
-      fun p ↦ SampleableType.prEvent_uniformSample_equiv (Equiv.funUnique (Fin 1) Digest) p
+  | ⟨⟨1, _⟩, _⟩ => oneSqueeze
 
 /-- The bad challenges: those with a low zero bit. -/
 def toyBad (i : toySpec.ChallengeIdx) : Set (toySpec.Challenge i) :=
@@ -78,14 +80,11 @@ def toyBad (i : toySpec.ChallengeIdx) : Set (toySpec.Challenge i) :=
   | ⟨⟨0, _⟩, h⟩ => absurd h (by simp [toySpec])
   | ⟨⟨1, _⟩, _⟩ => {c : Digest | FsState.lowBitsZero c 1 = true}
 
-theorem toyDecode_digest_indep (hs : List (Block × Digest)) (b : Block) (d d' : Digest)
-    (rest : List (Block × Digest)) (hb : b ≠ .squeeze) :
-    toyDecode (hs ++ (b, d) :: rest) = toyDecode (hs ++ (b, d') :: rest) := by
-  have : readingView (b, d) = readingView (b, d') := by
-    cases b with
-    | squeeze => exact absurd rfl hb
-    | _ => rfl
-  simp [toyDecode, List.map_append, List.map_cons, this]
+/-- A reading other than a squeeze does not show its state. -/
+theorem readingView_indep {b : Block} (d d' : Digest) (hb : b ≠ .squeeze) :
+    readingView (b, d) = readingView (b, d') := by
+  cases b
+  exacts [rfl, absurd rfl hb, rfl]
 
 /-- The toy reads `hs` to the challenge exactly when `hs` is one nonce step. -/
 theorem toyDecode_one {hs : List (Block × Digest)} {tr : toySpec.Transcript 1}
@@ -132,7 +131,7 @@ def toyReader (seed : Digest) : SlotReader where
       · omega
     · rcases r with ⟨b, e⟩
       cases b <;> simp [toyDecode, toyDecodeView, squeezeBlocks, hds, readingView] at h'
-  decodePrefix_digest_indep _ _ hs b d d' rest hb := toyDecode_digest_indep hs b d d' rest hb
+  decodePrefix_digest_indep _ _ _ _ d d' _ hb := by simp [toyDecode, readingView_indep d d' hb]
   mark_afterNonce := by
     intro _ _ hs i tr h _
     obtain rfl := eq_chal i
@@ -351,12 +350,8 @@ instance pairSampleable (i : pairSpec.ChallengeIdx) : SampleableType (pairSpec.C
 def pairSlot : (i : pairSpec.ChallengeIdx) →
     @SqueezeSlot (pairSpec.Challenge i) (pairSampleable i)
   | ⟨⟨0, _⟩, h⟩ => absurd h (by simp [pairSpec])
-  | ⟨⟨1, _⟩, _⟩ =>
-    @SqueezeSlot.mk Digest (inferInstanceAs (SampleableType Digest)) 1 (fun ds ↦ ds 0)
-      fun p ↦ SampleableType.prEvent_uniformSample_equiv (Equiv.funUnique (Fin 1) Digest) p
-  | ⟨⟨2, _⟩, _⟩ =>
-    @SqueezeSlot.mk Digest (inferInstanceAs (SampleableType Digest)) 1 (fun ds ↦ ds 0)
-      fun p ↦ SampleableType.prEvent_uniformSample_equiv (Equiv.funUnique (Fin 1) Digest) p
+  | ⟨⟨1, _⟩, _⟩ => oneSqueeze
+  | ⟨⟨2, _⟩, _⟩ => oneSqueeze
 
 /-- The two challenge indices. -/
 def chal₁ : pairSpec.ChallengeIdx := ⟨⟨1, by decide⟩, rfl⟩
@@ -457,12 +452,7 @@ def pairReader (seed : Digest) : SlotReader where
           · rfl
           · omega
         · cases b <;> simp [pairDecode, pairDecodeView, squeezeBlocks, hds, readingView] at h'
-  decodePrefix_digest_indep _ _ hs b d d' rest hb := by
-    have : readingView (b, d) = readingView (b, d') := by
-      cases b with
-      | squeeze => exact absurd rfl hb
-      | _ => rfl
-    simp [pairDecode, List.map_append, List.map_cons, this]
+  decodePrefix_digest_indep _ _ _ _ d d' _ hb := by simp [pairDecode, readingView_indep d d' hb]
   mark_afterNonce _ _ _ _ _ _ h := absurd h Bool.false_ne_true
   slot_pos _ i := by
     rcases pair_cases i with rfl | rfl <;> decide

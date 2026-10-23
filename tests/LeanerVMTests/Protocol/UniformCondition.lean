@@ -3,11 +3,11 @@ import LeanerVM.Protocol.ToVCVio.UniformCondition
 /-!
 # Conditioning a uniform sample: tests
 
-The cons law at `Fin 2 → Fin 3`: a uniform pair of digits is a uniform first digit followed by a
-uniform second, so the first digit is `0` with probability `1/3`, read off the first digit alone.
-The integral form at `Fin 3 × (Fin 2 → Fin 3)`, conditioning on the tuple's first entry: that
-entry equals the pair's first coordinate with probability `1/3`, the expectation over the entry
-of the probability, `1/3` whatever the entry, that the coordinate is it.
+The second entry of a uniform pair in `Fin 2 × Fin 3` is `0` with probability `1/3`, read off
+the second entry alone. The integral form at `Fin 3 × (Fin 2 → Fin 3)`, conditioning on the
+tuple's first entry: that entry equals the pair's first coordinate with probability `1/3`, the
+expectation over the entry of the probability, `1/3` whatever the entry, that the coordinate is
+it.
 -/
 
 namespace LeanerVMTests.Protocol.UniformCondition
@@ -15,13 +15,10 @@ namespace LeanerVMTests.Protocol.UniformCondition
 open LeanerVM.Protocol OracleComp MeasureTheory
 open scoped ENNReal
 
--- The first digit of a uniform pair is uniform.
-example : Pr{let v ← $ᵗ (Fin 2 → Fin 3)}[v 0 = 0] = 3⁻¹ := by
-  rw [prEvent_uniformSample_finCons]
-  simp only [Fin.cons_zero]
-  have h := SampleableType.prEvent_uniformSample_fst (α := Fin 3) (β := Fin 1 → Fin 3) (· = 0)
-  rw [SampleableType.prEvent_uniformSample_prod] at h
-  rw [h, SampleableType.prEvent_uniformSample_eq_singleton, Fintype.card_fin]
+-- The second entry of a uniform pair is uniform.
+example : Pr{let z ← $ᵗ (Fin 2 × Fin 3)}[z.2 = 0] = 3⁻¹ := by
+  rw [prEvent_uniformSample_snd (· = 0), SampleableType.prEvent_uniformSample_eq_singleton,
+    Fintype.card_fin]
   norm_num
 
 -- Conditioning on the tuple's first entry.

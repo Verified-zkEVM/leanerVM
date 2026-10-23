@@ -216,8 +216,7 @@ theorem dedupKeys_append (l₁ l₂ : List ((q : Q) × β q)) :
 /-- Deduplicating a log with an entry in front. -/
 theorem dedupKeys_cons (e : (q : Q) × β q) (l : List ((q : Q) × β q)) :
     dedupKeys (e :: l) = e :: (dedupKeys l).filter fun x ↦ decide (x.1 ≠ e.1) := by
-  have := dedupKeys_append [e] l
-  simpa using this
+  simpa using dedupKeys_append [e] l
 
 /-- The deduplicated part of a log up to a point is a prefix of the deduplicated log. -/
 theorem dedupKeys_take_prefix (l : List ((q : Q) × β q)) (i : ℕ) :
