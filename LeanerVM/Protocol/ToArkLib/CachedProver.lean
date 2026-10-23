@@ -189,6 +189,19 @@ def Cached.sendChecked (hmsg : ∀ p, msg p (cin p) = honest p)
     simp only [cachedSendProver, Component.sendChecked, Component.sendCheckedProver, _root_.id,
       hmsg, hupd]
 
+/-- `Cached.sendChecked` with the output statement computed by `out'`, equal to `out`: a
+statement whose fields the next components read many times can be built once. -/
+def Cached.sendCheckedOut (out' : S → M → T) (hout : ∀ s m, out' s m = out s m)
+    (hmsg : ∀ p, msg p (cin p) = honest p)
+    (hupd : ∀ p, upd p (cin p) (honest p) = cout ((out p.1.1 (honest p), p.1.2), p.2)) :
+    Cached (Component.sendChecked O M honest check out) cin cout where
+  prover := cachedSendProver O M msg upd out'
+  run_eq s w := by
+    change (pure _ : OracleComp _ _) = _ <$> (pure _ : OracleComp _ _)
+    rw [map_pure]
+    simp only [cachedSendProver, Component.sendChecked, Component.sendCheckedProver, _root_.id,
+      hmsg, hupd, hout]
+
 end Send
 
 section Sample

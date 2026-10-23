@@ -61,6 +61,7 @@ import LeanerVM.Protocol.ToArkLib.AppendLazy
 import LeanerVM.Protocol.ToArkLib.Batch
 import LeanerVM.Protocol.ToArkLib.CachedProver
 import LeanerVM.Protocol.ToArkLib.CachedRounds
+import LeanerVM.Protocol.ToArkLib.CachedSteps
 import LeanerVM.Protocol.ToArkLib.Component
 import LeanerVM.Protocol.ToArkLib.ExtractIn
 import LeanerVM.Protocol.ToArkLib.Flock.BlockR1CS
@@ -90,6 +91,7 @@ import LeanerVM.Protocol.ToArkLib.Merkle
 import LeanerVM.Protocol.ToArkLib.Oracles
 import LeanerVM.Protocol.ToArkLib.PassCheck
 import LeanerVM.Protocol.ToArkLib.PassThrough
+import LeanerVM.Protocol.ToArkLib.ProductSumCached
 import LeanerVM.Protocol.ToArkLib.ProductSumcheck
 import LeanerVM.Protocol.ToArkLib.PushSecurity
 import LeanerVM.Protocol.ToArkLib.QueryCheck
