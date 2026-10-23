@@ -304,6 +304,32 @@ theorem hasHit_dedupKeys {inPlay : List ((_ : Q) × D) → List D}
   · simp only [Fin.getElem_fin, take_dedupKeys, hget]
     exact hplay i _ hin
 
+/-- **A first occurrence past a point** is past the deduplicated part before the point: entry
+`k ≥ k₀` of a log, at its input's first occurrence, is an entry of the deduplicated log after the
+deduplication of the first `k₀` entries. -/
+theorem mem_drop_dedupKeys {k₀ k : ℕ} (hk : k₀ ≤ k) (hlt : k < log.length)
+    (hfresh : Fresh (log.take k) log[k].1) :
+    log[k] ∈ (List.dedupKeys log).drop (List.dedupKeys (log.take k₀)).length := by
+  have hcat : List.dedupKeys (log.take (k + 1)) = List.dedupKeys (log.take k) ++ [log[k]] := by
+    rw [List.take_succ_eq_append_getElem hlt, dedupKeys_concat]
+    simp only [fresh_iff_not_mem_keys.mp hfresh, ↓reduceIte]
+  have hpre := hcat ▸ dedupKeys_take_prefix log (k + 1)
+  have hj : (List.dedupKeys (log.take k)).length < (List.dedupKeys log).length := by
+    have := hpre.length_le
+    simp only [List.length_append, List.length_singleton] at this
+    omega
+  have hget : (List.dedupKeys log)[(List.dedupKeys (log.take k)).length] = log[k] := by
+    rw [← hpre.getElem (by simp)]
+    simp
+  have hk₀ : (List.dedupKeys (log.take k₀)).length ≤ (List.dedupKeys (log.take k)).length := by
+    have := dedupKeys_take_prefix (log.take k) k₀
+    rw [List.take_take, Nat.min_eq_left hk] at this
+    exact this.length_le
+  rw [← hget]
+  refine List.mem_iff_getElem.mpr ⟨(List.dedupKeys (log.take k)).length -
+    (List.dedupKeys (log.take k₀)).length, by simp; omega, ?_⟩
+  simp only [List.getElem_drop, Nat.add_sub_cancel' hk₀]
+
 end DedupConsistent
 
 end

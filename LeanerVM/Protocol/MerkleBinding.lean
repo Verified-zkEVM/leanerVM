@@ -347,5 +347,16 @@ theorem extractRows_determined (logA logV : QueryLog (List UInt8) Digest) (roots
   @extractLeaf_determined _ _ _ Digest.decEq nodeOfBytes? (leafRow? rowWords leafWords) logA logV
     roots root hroot hcons hhit depth p
 
+/-- On a consistent log, the rows read off it are those read off its deduplication: each query at
+its first occurrence only. -/
+theorem extractRows_dedupKeys {log : QueryLog (List UInt8) Digest}
+    (hcons : LeanerVM.Protocol.QueryLog.Consistent log) (root : Digest)
+    (depth rowWords leafWords p : ℕ) :
+    extractRows (List.dedupKeys log) root depth rowWords leafWords p =
+      extractRows log root depth rowWords leafWords p :=
+  @extractLeaf_congr _ _ _ Digest.decEq _ _ _ _
+    (fun _ ↦ LeanerVM.Protocol.QueryLog.findSome?_dedupKeys hcons _)
+    (fun _ ↦ LeanerVM.Protocol.QueryLog.findSome?_dedupKeys hcons _) root depth p
+
 end
 end LeanerVM.Protocol

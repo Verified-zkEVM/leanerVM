@@ -230,6 +230,20 @@ def extractLeaf (node? : Q → Option (D × D)) (leaf? : Q → Option P) (log : 
     (root : D) (depth p : ℕ) : Option P :=
   (extractTree node? log root depth p).bind (leafPreimage leaf? log)
 
+/-- A tree read off two logs whose node preimages agree is the same. -/
+theorem extractTree_congr {node? : Q → Option (D × D)} {log log' : QueryLog Q D}
+    (h : ∀ d, nodePreimage node? log' d = nodePreimage node? log d) :
+    ∀ (top : D) (k p : ℕ), extractTree node? log' top k p = extractTree node? log top k p
+  | _, 0, _ => rfl
+  | top, k + 1, p => by simp only [extractTree, h, extractTree_congr h]
+
+/-- A leaf read off two logs whose node and leaf preimages agree is the same. -/
+theorem extractLeaf_congr {node? : Q → Option (D × D)} {leaf? : Q → Option P}
+    {log log' : QueryLog Q D} (hn : ∀ d, nodePreimage node? log' d = nodePreimage node? log d)
+    (hl : ∀ d, leafPreimage leaf? log' d = leafPreimage leaf? log d) (root : D) (depth p : ℕ) :
+    extractLeaf node? leaf? log' root depth p = extractLeaf node? leaf? log root depth p := by
+  simp only [extractLeaf, extractTree_congr hn, hl]
+
 end Extract
 
 /-! ## Extraction in one pass -/

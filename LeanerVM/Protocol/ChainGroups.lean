@@ -660,6 +660,28 @@ theorem CleanStep.logAnswer_squeezeInput (hs : CleanStep roots l t u) :
     logAnswer (l ++ [⟨t, u⟩]) (squeezeInput u) = none :=
   hs.logAnswer_eq_none (mem_halves_input u .squeeze)
 
+/-- A log's answer is the answer of the query's first occurrence, a search along the log. -/
+private theorem logAnswer_eq_findSome? (l : hashSpec.QueryLog) (q : List UInt8) :
+    logAnswer l q = l.findSome? fun e ↦ if e.1 = q then some e.2 else none := by
+  induction l with
+  | nil => rfl
+  | cons e l ih =>
+    by_cases h : e.1 = q
+    · simp [logAnswer, h]
+    · simpa [logAnswer, h] using ih
+
+/-- On a consistent log, the answers are those of its deduplication. -/
+theorem logAnswer_dedupKeys (hcons : QueryLog.Consistent l) (q : List UInt8) :
+    logAnswer (List.dedupKeys l) q = logAnswer l q := by
+  rw [logAnswer_eq_findSome?, logAnswer_eq_findSome?, QueryLog.findSome?_dedupKeys hcons]
+
+/-- Squeezes read off two logs with the same answers are the same. -/
+private theorem squeezeRun_congr {l' : hashSpec.QueryLog}
+    (h : ∀ q, logAnswer l' q = logAnswer l q) : ∀ (m : ℕ) (x : Digest),
+    squeezeRun l' x m = squeezeRun l x m
+  | 0, _ => rfl
+  | m + 1, x => by simp only [squeezeRun, h, squeezeRun_congr h m]
+
 /-- A logged nonce step's group is among the log's absorptions. -/
 private theorem mem_nonceGroups {cv s : Digest} {n : E}
     (h : logAnswer l (absorbInput cv n) = some s) :
@@ -1039,6 +1061,34 @@ theorem flipAt_append (hl : CleanLog roots l) (hs : CleanStep roots l t u) (hno 
   refine ⟨G, ?_, hG, R.π_eq_one_of_flips hG⟩
   exact (R.mem_or_stays hl hs hask hslot).resolve_right fun h ↦
     hno ⟨G, (R.flips_iff_of_stays h).mp hG⟩
+
+/-! ## The log with each query at its first occurrence -/
+
+/-- On a consistent log, the challenge a group fixes is the one it fixes in the deduplicated
+log. -/
+theorem groupSlot_dedupKeys (hcons : QueryLog.Consistent l) (G : Group) :
+    R.groupSlot (List.dedupKeys l) G = R.groupSlot l G := by
+  unfold groupSlot
+  rw [chainHistory_dedupKeys hcons]
+  cases h : chainHistory l ⟨R.seed⟩ ⟨G.cv⟩ with
+  | none => rfl
+  | some hs =>
+    simp only [Option.bind_eq_bind, Option.bind_some,
+      R.wordsAt_congr _ l _ hs fun root _ depth rowWords leafWords p ↦
+        extractRows_dedupKeys hcons root depth rowWords leafWords p]
+
+/-- **A flip of a consistent log is one of its deduplication**, the log of a lazy random
+oracle's fresh queries: the groups read the log through its histories, its rows and its answers,
+which deduplication keeps. -/
+theorem flipAt_dedupKeys (hcons : QueryLog.Consistent l) (h : R.FlipAt l) :
+    R.FlipAt (List.dedupKeys l) := by
+  obtain ⟨G, hG⟩ := h
+  have ha := logAnswer_dedupKeys hcons
+  have hst : R.Stays l (List.dedupKeys l) G :=
+    ⟨R.groupSlot_dedupKeys hcons G, by simp only [Group.check?, ha],
+      by cases hn : G.nonce <;> simp only [Group.start?, hn, ha],
+      by simp only [Group.run, Group.start?, ha, squeezeRun_congr ha]⟩
+  exact ⟨G, (R.flips_iff_of_stays hst).mpr hG⟩
 
 end SlotReader
 
