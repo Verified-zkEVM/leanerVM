@@ -169,6 +169,16 @@ def block_selector_tab_Spec : Prop :=
   ∀ n < 34, ∀ rd args rets,
     coreProgram.Rel rd (lName "block_selector_tab" n) args rets → BlockSelTabOut n rd args rets
 
+/-- The converse, for completeness: `n` bits pinned at `sel_bits` and the nibble tables of a run
+of `n` coordinates, complements and shares at `eq_tab`, `g_tab` give the relation, returning the
+bits' eq weight and `g`-power product. -/
+def block_selector_tab_complete_Spec : Prop :=
+  ∀ n < 34, ∀ (rd : Reader) (sb eqt gt : E) (bs : List Bool) (zs zs1 gs : List E),
+    bs.length = n → zs.length = n → zs1.length = n → gs.length = n →
+    TbReadsAt rd sb (bs.map bitE) → RunTables rd eqt gt n zs zs1 gs →
+    coreProgram.Rel rd (lName "block_selector_tab" n) [sb, eqt, gt]
+      [bitsEq bs zs zs1, bitsPow bs gs]
+
 /-- `block_selector__L{n}(sel_bits, zeta1_hi, idxc_hi)`: `n` bits pinned at `sel_bits`, the
 complements `zs1` at `zeta1_hi` and the weights `cs` at `idxc_hi`; the function returns
 `Π (b + z1)` and `Π (1 + b·c)`. -/
