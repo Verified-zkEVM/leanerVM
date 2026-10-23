@@ -40,13 +40,14 @@ theorem blake2sRows_eq (w : CMlPolynomialEval E (Flock.kSkip + Flock.kIn)) :
 ```
 
 the forward walk of `LeanerVM.Protocol.Blake2sCircuit`'s block R1CS: row `k` of each side is
-the sum of the weights at the set bits of `(blake2sCircuit.rowOf k).a` and `.b`. Both sides are
-additive in `w`, so it is the equality of the walk's forms with the gates' forms at every row.
-The `leanervm-verify` executable checks that at all `2^14` rows, both forms as bitsets against
-`rowOf` (`LeanerVMTests.Protocol.VerifyFlock.walkMismatches`); the tests check the walk at `E`
-against the gates at rows of every kind, and the Rust proof's lincheck passes on it. A proof
-goes gate by gate, the circuit's construction and the walk visiting the same gates in the same
-order.
+the sum of the weights at the set bits of `(blake2sCircuit.rowOf k).a` and `.b`. The walk uses
+only `+` and `0`, so each of its rows at `E` is a sum of weights with natural multiplicities,
+which characteristic two reduces to the form the walk returns on GF(2). The tests check those
+forms against `rowOf` at all `2^14` rows (`LeanerVMTests.Protocol.VerifyFlock.walkMismatches`)
+and the walk at `E` against the gates at rows of every kind, and the Rust proof's lincheck
+passes on it. The gates' rows cannot replace the walk: their forms have `89 303 622` set bits in
+all, against the walk's few additions a row. A proof goes gate by gate, the circuit's
+construction and the walk visiting the same gates in the same order.
 -/
 
 namespace LeanerVM.Protocol
