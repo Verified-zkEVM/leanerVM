@@ -39,6 +39,10 @@ def vecCOk (fn : Fn) : Bool :=
   | none => false
 
 set_option maxRecDepth 100000 in
+theorem vec_out : (vecSpec vecTail).outV ((vecSpec vecTail).nb - 1) 0 = .n 4448 ∧
+    (vecSpec vecTail).outV ((vecSpec vecTail).nb - 1) 1 = .n 4449 := by decide +kernel
+
+set_option maxRecDepth 100000 in
 theorem vecc_ok : vecCOk Data.core28 = true := by decide +kernel
 
 end
