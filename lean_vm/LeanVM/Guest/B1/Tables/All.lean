@@ -23,6 +23,10 @@ public import LeanVM.Guest.B1.Tables.VtC.SAll
 public import LeanVM.Guest.B1.Tables.VtC.SLoads
 public import LeanVM.Guest.B1.Tables.VtC.FComplete
 public import LeanVM.Guest.B1.Tables.VtC.FInBuf
+public import LeanVM.Guest.B1.Tables.VtC.ZSetup
+public import LeanVM.Guest.B1.Tables.VtC.ZTail
+public import LeanVM.Guest.B1.Tables.VtC.ZInBuf
+public import LeanVM.Guest.B1.Tables.VtC.ZLoop10
 public import LeanVM.Guest.B1.Tables.Interface
 public import LeanVM.Guest.B1.Tables.Padding
 public import LeanVM.Guest.B1.Placement.Certify
