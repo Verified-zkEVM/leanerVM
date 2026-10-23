@@ -14,8 +14,43 @@ namespace LeanVM.Guest.B2C.Shared
 @[expose] public section
 
 set_option maxRecDepth 100000 in
-/-- `da_verify_cell`, window 2. -/
-theorem w28_2 : shareWin 28 (snapsOf 28) 2 = true := by decide +kernel
+/-- `__loop5`, once. -/
+theorem st38 : shareStatic 38 = true := by decide +kernel
+
+set_option maxRecDepth 100000 in
+/-- `__loop5`, window 0. -/
+theorem w38_0 : shareWin 38 (snapsOf 38) 0 = true := by decide +kernel
+
+theorem ok38 : ShareOk 38 := ⟨st38, fun i hi ↦ by
+  have h : (snapsOf 38).length = 0 := by decide +kernel
+  obtain rfl : i = 0 := by omega
+  exact w38_0⟩
+
+set_option maxRecDepth 100000 in
+/-- `eq_prefix_run__L0`, once. -/
+theorem st39 : shareStatic 39 = true := by decide +kernel
+
+set_option maxRecDepth 100000 in
+/-- `eq_prefix_run__L0`, window 0. -/
+theorem w39_0 : shareWin 39 (snapsOf 39) 0 = true := by decide +kernel
+
+theorem ok39 : ShareOk 39 := ⟨st39, fun i hi ↦ by
+  have h : (snapsOf 39).length = 0 := by decide +kernel
+  obtain rfl : i = 0 := by omega
+  exact w39_0⟩
+
+set_option maxRecDepth 100000 in
+/-- `eq_prefix_run__L1`, once. -/
+theorem st40 : shareStatic 40 = true := by decide +kernel
+
+set_option maxRecDepth 100000 in
+/-- `eq_prefix_run__L1`, window 0. -/
+theorem w40_0 : shareWin 40 (snapsOf 40) 0 = true := by decide +kernel
+
+theorem ok40 : ShareOk 40 := ⟨st40, fun i hi ↦ by
+  have h : (snapsOf 40).length = 0 := by decide +kernel
+  obtain rfl : i = 0 := by omega
+  exact w40_0⟩
 
 end
 end LeanVM.Guest.B2C.Shared

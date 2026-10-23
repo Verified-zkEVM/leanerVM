@@ -14,43 +14,17 @@ namespace LeanVM.Guest.B2C.Shared
 @[expose] public section
 
 set_option maxRecDepth 100000 in
-/-- `sel_partial_nibble__L0`, once. -/
-theorem st84 : shareStatic 84 = true := by decide +kernel
+/-- `padding_weight__L20`, once. -/
+theorem st108 : shareStatic 108 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `sel_partial_nibble__L0`, window 0. -/
-theorem w84_0 : shareWin 84 (snapsOf 84) 0 = true := by decide +kernel
+/-- `padding_weight__L20`, window 0. -/
+theorem w108_0 : shareWin 108 (snapsOf 108) 0 = true := by decide +kernel
 
-theorem ok84 : ShareOk 84 := ⟨st84, fun i hi ↦ by
-  have h : (snapsOf 84).length = 0 := by decide +kernel
+theorem ok108 : ShareOk 108 := ⟨st108, fun i hi ↦ by
+  have h : (snapsOf 108).length = 0 := by decide +kernel
   obtain rfl : i = 0 := by omega
-  exact w84_0⟩
-
-set_option maxRecDepth 100000 in
-/-- `sel_partial_nibble__L1`, once. -/
-theorem st85 : shareStatic 85 = true := by decide +kernel
-
-set_option maxRecDepth 100000 in
-/-- `sel_partial_nibble__L1`, window 0. -/
-theorem w85_0 : shareWin 85 (snapsOf 85) 0 = true := by decide +kernel
-
-theorem ok85 : ShareOk 85 := ⟨st85, fun i hi ↦ by
-  have h : (snapsOf 85).length = 0 := by decide +kernel
-  obtain rfl : i = 0 := by omega
-  exact w85_0⟩
-
-set_option maxRecDepth 100000 in
-/-- `sel_partial_nibble__L2`, once. -/
-theorem st86 : shareStatic 86 = true := by decide +kernel
-
-set_option maxRecDepth 100000 in
-/-- `sel_partial_nibble__L2`, window 0. -/
-theorem w86_0 : shareWin 86 (snapsOf 86) 0 = true := by decide +kernel
-
-theorem ok86 : ShareOk 86 := ⟨st86, fun i hi ↦ by
-  have h : (snapsOf 86).length = 0 := by decide +kernel
-  obtain rfl : i = 0 := by omega
-  exact w86_0⟩
+  exact w108_0⟩
 
 end
 end LeanVM.Guest.B2C.Shared
