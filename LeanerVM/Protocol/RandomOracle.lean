@@ -55,7 +55,15 @@ roots the log's chains absorb as two consecutive observes (`rebuiltRoots`, one p
   digests in play, the history is already in the log before a query from the chain's last state
   that is none of its steps: the next step (`chainHistory_take_of_step`), the grinding base or the
   grinding check.
+* `chainHistory_take_of_mem_inPlay`: under the same hypotheses, a history whose last state is in
+  play after `m` entries is already in them.
 * `chainHistory_determined`: without a collision, a history once in the log does not change.
+* `chainHistory_append`: a query answered by a digest not in play leaves every other state's
+  history unchanged.
+* `chainHistory_dedupKeys`, `inPlay_dedupKeys`: in a consistent log, histories and the digests in
+  play are those of the log with each query at its first occurrence only (`QueryLog.dedupKeys`),
+  the fresh log of a lazy random oracle.
+* `length_inPlay_le`: at most the roots, two halves and one absorbed root per entry are in play.
 -/
 
 namespace LeanerVM.Protocol
@@ -284,7 +292,7 @@ def inPlay (roots : List Digest) (log : hashSpec.QueryLog) : List Digest :=
   roots ++ log.flatMap (fun e ↦ halves e.1) ++ rebuiltRoots log
 
 /-- The digests in play only grow along a log. -/
-private theorem inPlay_mono (roots : List Digest) :
+theorem inPlay_mono (roots : List Digest) :
     ∀ l₁ l₂ : hashSpec.QueryLog, l₁ <+: l₂ → ∀ d ∈ inPlay roots l₁, d ∈ inPlay roots l₂ := by
   rintro l₁ _ ⟨t, rfl⟩ d hd
   simp only [inPlay, List.flatMap_append, List.mem_append] at hd ⊢
@@ -299,7 +307,7 @@ private theorem inPlay_mono (roots : List Digest) :
   simp [hp, hx, hr]
 
 /-- The halves of a logged input are in play once it is asked. -/
-private theorem halves_mem_inPlay (roots : List Digest) :
+theorem halves_mem_inPlay (roots : List Digest) :
     ∀ (l : hashSpec.QueryLog) (e : (_ : List UInt8) × Digest), ∀ d ∈ halves e.1,
       d ∈ inPlay roots (l ++ [e]) :=
   fun _ e _ hd ↦ by simp [inPlay, hd]
@@ -359,6 +367,88 @@ theorem chainHistory_determined {log : hashSpec.QueryLog} {seed s : FsState} {k 
     {hs : List (Block × Digest)} (hcoll : ¬ QueryLog.HasCollision log)
     (h : chainHistory (log.take k) seed s = some hs) : chainHistory log seed s = some hs :=
   HashChain.history_determined hcoll h
+
+/-- **The history before a state is in play.** Under the hypotheses of
+`chainHistory_take_of_noCollision_noHit`, if the chain's last state is in play after the first
+`m` entries, its history in those entries is the chain. -/
+theorem chainHistory_take_of_mem_inPlay {log : hashSpec.QueryLog} {seed : FsState}
+    {roots : List Digest} (hcons : QueryLog.Consistent log) (hcoll : ¬ QueryLog.HasCollision log)
+    (hhit : ¬ QueryLog.HasHit (inPlay roots) log) (hseed : seed.cv ∈ roots)
+    (steps : List (Block × Digest))
+    (hchain : ∀ e ∈ HashChain.queries Block.input seed.cv steps, e ∈ log) {m : ℕ}
+    (hq : HashChain.last seed.cv steps ∈ inPlay roots (log.take m)) :
+    chainHistory (log.take m) seed ⟨HashChain.last seed.cv steps⟩ = some steps :=
+  HashChain.history_take_of_mem_inPlay Block.parse?_input
+    (fun cv b ↦ mem_halves_stepBytes cv b.elem b.tag) (halves_mem_inPlay roots)
+    (inPlay_mono roots) (by simp [inPlay, hseed]) hcons hcoll hhit steps hchain hq
+
+/-- The state a step parses from is a half of its input. -/
+theorem mem_halves_of_parse? {q : List UInt8} {x : Digest} {b : Block}
+    (h : Block.parse? q = some (x, b)) : x ∈ halves q := by
+  unfold Block.parse? at h
+  split at h
+  · rename_i hlen
+    have hx : x = digestOfBytes q := by
+      dsimp only at h
+      split at h
+      · cases h; rfl
+      · split at h
+        · cases h; rfl
+        · split at h
+          · cases h; rfl
+          · cases h
+    simp [halves, hlen, hx]
+  · cases h
+
+/-- **One more query.** An answer not in play before its query leaves the history of every other
+state unchanged. -/
+theorem chainHistory_append {log : hashSpec.QueryLog} {roots : List Digest}
+    {e : (_ : List UInt8) × Digest} (hu : e.2 ∉ inPlay roots log) (seed : FsState) {s : FsState}
+    (hs : s.cv ≠ e.2) : chainHistory (log ++ [e]) seed s = chainHistory log seed s := by
+  refine HashChain.history_append_of_not_start (fun e' he p hp hpu ↦ hu ?_) hs
+  obtain ⟨x, b⟩ := p
+  simp only at hpu
+  subst hpu
+  simp only [inPlay, List.mem_append, List.mem_flatMap]
+  exact .inl (.inr ⟨e', he, mem_halves_of_parse? hp⟩)
+
+/-- **Deduplication.** In a consistent log, a history is that of the log with each input at its
+first occurrence only. -/
+theorem chainHistory_dedupKeys {log : hashSpec.QueryLog} (hcons : QueryLog.Consistent log)
+    (seed s : FsState) : chainHistory (QueryLog.dedupKeys log) seed s = chainHistory log seed s :=
+  HashChain.history_dedupKeys hcons s.cv
+
+/-- In a consistent log, the observe step into a state is the one found after deduplication. -/
+theorem observedInto_dedupKeys {log : hashSpec.QueryLog} (hcons : QueryLog.Consistent log)
+    (cv : Digest) : observedInto (QueryLog.dedupKeys log) cv = observedInto log cv :=
+  QueryLog.findSome?_dedupKeys hcons _
+
+/-- In a consistent log, the digests in play are those of the log with each input at its first
+occurrence only. -/
+theorem inPlay_dedupKeys (roots : List Digest) {log : hashSpec.QueryLog}
+    (hcons : QueryLog.Consistent log) (d : Digest) :
+    d ∈ inPlay roots (QueryLog.dedupKeys log) ↔ d ∈ inPlay roots log := by
+  simp only [inPlay, rebuiltRoots, observedInto_dedupKeys hcons, List.mem_append,
+    List.mem_flatMap, List.mem_filterMap, QueryLog.mem_dedupKeys_iff hcons]
+
+/-- A query has at most two halves. -/
+theorem length_halves_le (q : List UInt8) : (halves q).length ≤ 2 := by
+  unfold halves
+  split <;> simp
+
+/-- At most the roots, two halves per entry and one absorbed root per entry are in play. -/
+theorem length_inPlay_le (roots : List Digest) (log : hashSpec.QueryLog) :
+    (inPlay roots log).length ≤ roots.length + 3 * log.length := by
+  have h1 : (log.flatMap fun e ↦ halves e.1).length ≤ 2 * log.length := by
+    induction log with
+    | nil => simp
+    | cons e log ih =>
+      simp only [List.flatMap_cons, List.length_append, List.length_cons]
+      have := length_halves_le e.1
+      omega
+  have h2 : (rebuiltRoots log).length ≤ log.length := List.length_filterMap_le _ _
+  simp only [inPlay, List.length_append]
+  omega
 
 end
 end LeanerVM.Protocol

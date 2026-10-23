@@ -157,6 +157,7 @@ import LeanerVM.Protocol.ToVCVio.Merkle
 import LeanerVM.Protocol.ToVCVio.MerkleLog
 import LeanerVM.Protocol.ToVCVio.QueryLog
 import LeanerVM.Protocol.ToVCVio.ScalarExpectation
+import LeanerVM.Protocol.ToVCVio.UniformCondition
 import LeanerVM.Protocol.ToVCVio.UniformSample
 import LeanerVM.Protocol.Transcript
 import LeanerVM.Protocol.Verify

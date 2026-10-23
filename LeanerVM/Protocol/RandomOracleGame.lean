@@ -42,7 +42,8 @@ zero prefix of the leaf image (`pcs/src/whir.rs:330-345, 1305-1316`).
   answered, at its input's first occurrence, by a digest already in play (`inPlay` from the
   seed's two digests) or, for the verifier's queries, by one of the proof's roots; or a flip.
   The proof's roots and the flip are parameters: both read the verifier's chain walk on the
-  proof, which is the transcript decoder's.
+  proof, which is the transcript decoder's. A log with no hit has no fresh hit on a root in play
+  (`not_freshHit_of_not_hasHit`), the condition of the Merkle binding by log replay.
 * **The bad challenges** (`Bad`, `bad_density`). At a prefix of the compiled transcript ending
   at a challenge, the challenges that turn the state function of `listBinding_deployed` from
   false to true, the extractor's witness given: the event of `rbrKnowledgeSoundnessWorstCaseWith`.
@@ -204,6 +205,37 @@ instance (rootsOf : Proof PrunedMerklePaths → List Digest) (prog : Program) (i
   letI := Digest.decEq
   unfold Hit
   infer_instance
+
+/-- The children of a logged query read as a node are in play once it is asked: they are its
+halves. -/
+theorem queryChildren_mem_inPlay (roots : List Digest) (l : hashSpec.QueryLog)
+    (e : (_ : List UInt8) × Digest) :
+    ∀ d ∈ MerkleTree.queryChildren nodeOfBytes? e.1, d ∈ inPlay roots (l ++ [e]) := by
+  intro d hd
+  unfold MerkleTree.queryChildren at hd
+  split at hd
+  · rename_i lc rc hnode
+    obtain ⟨rfl, rfl⟩ := nodeOfBytes?_eq_some hnode
+    have hlen : e.1.length = 64 := by
+      unfold nodeOfBytes? at hnode
+      split at hnode
+      · assumption
+      · cases hnode
+    refine halves_mem_inPlay roots l e d ?_
+    simp only [List.mem_cons, List.not_mem_nil, or_false] at hd
+    rcases hd with rfl | rfl <;> simp [halves, hlen]
+  · cases hd
+
+/-- **No hit, no fresh hit.** In a consistent joint log with no hit on the digests in play, no
+query of `logV` fresh with respect to `logA` is answered by a digest known from `logA` and a root
+in play after `logA`: the Merkle binding's condition on the log follows from the random-oracle
+game's. -/
+theorem not_freshHit_of_not_hasHit {roots : List Digest} {logA logV : hashSpec.QueryLog}
+    (hcons : QueryLog.Consistent (logA ++ logV))
+    (hhit : ¬ QueryLog.HasHit (inPlay roots) (logA ++ logV)) {root : Digest}
+    (hroot : root ∈ inPlay roots logA) : ¬ MerkleTree.FreshHit nodeOfBytes? [root] logA logV :=
+  MerkleTree.not_freshHit_of_not_hasHit (inPlay_mono roots) (queryChildren_mem_inPlay roots)
+    hcons hhit (by simpa using hroot)
 
 /-! ## The bad challenges -/
 

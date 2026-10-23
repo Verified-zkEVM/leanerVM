@@ -74,6 +74,7 @@ import LeanerVMTests.Protocol.Sumcheck
 import LeanerVMTests.Protocol.SumcheckFold
 import LeanerVMTests.Protocol.TableSumcheck
 import LeanerVMTests.Protocol.Transcript
+import LeanerVMTests.Protocol.UniformCondition
 import LeanerVMTests.Protocol.UniformSample
 import LeanerVMTests.Protocol.Verify
 import LeanerVMTests.Protocol.VerifyBus

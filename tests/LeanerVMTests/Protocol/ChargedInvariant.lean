@@ -38,6 +38,9 @@ probability at most `1/4` for the first run plus `1/4` for the second from any c
 `0` the first can leave. Both oracles answering `0` has probability at most `1/16 + 1/16` when the
 second run starts from the potential the first leaves, in expectation; from its largest value,
 `1/4` after a first answer `0`, the bound would be `1/4 + 1/16`.
+
+The fresh log of a logged run: a query asked twice from the empty state leaves its run's log with
+two equal entries and the fresh log with one, the run's log deduplicated.
 -/
 
 namespace LeanerVMTests.Protocol
@@ -343,6 +346,38 @@ example :
   refine (prEvent_bind_le_add_iSup ($ᵗ Fin 4) (fun _ ↦ $ᵗ Fin 4) (fun _ ↦ False) (· = 0)).trans
     (add_le_add (by simp) (iSup₂_le fun _ _ ↦ iSup_le fun _ ↦ ?_))
   simpa using (SampleableType.prEvent_uniformSample_eq_singleton (α := Fin 4) 0).le
+
+/-! ## The fresh log of a logged run -/
+
+/-- One query, asked twice. -/
+def repeatQuery : OracleComp TestSpec (Fin 4 × Fin 4) := do
+  let a ← (TestSpec.query 0 : OracleComp TestSpec (Fin 4))
+  let b ← (TestSpec.query 0 : OracleComp TestSpec (Fin 4))
+  return (a, b)
+
+-- Deduplication keeps each input's first occurrence.
+example : QueryLog.dedupKeys ([⟨0, 1⟩, ⟨1, 2⟩, ⟨0, 3⟩] : TestSpec.QueryLog) = [⟨0, 1⟩, ⟨1, 2⟩] := by
+  decide
+
+/-- From the empty state, the fresh log is the run's log deduplicated
+(`withQueryLog_freshLog_support`): the run's log has the query twice, with one answer, and the
+fresh log once, so the two logs differ. -/
+theorem repeatQuery_freshLog {z : ((Fin 4 × Fin 4) × TestSpec.QueryLog) ×
+    TestSpec.QueryCache × TestSpec.QueryLog}
+    (hz : z ∈ support ((simulateQ QueryHistory.freshLog.randomOracle
+      repeatQuery.withQueryLog).run (∅, []))) :
+    z.2.2 = QueryLog.dedupKeys z.1.2 ∧ z.1.2 = [⟨0, z.1.1.1⟩, ⟨0, z.1.1.1⟩] ∧ z.2.2 ≠ z.1.2 := by
+  have h₁ :=
+    (QueryHistory.withQueryLog_freshLog_support repeatQuery QueryHistory.isFreshLog_empty hz).1
+  simp only [QueryCache.empty_apply, Option.isNone_none, List.filter_true, List.nil_append]
+    at h₁
+  simp [repeatQuery, withQueryLog_bind, withQueryLog_query, QueryHistory.randomOracle,
+    map_eq_bind_pure_comp] at hz
+  obtain ⟨y, rfl⟩ := hz
+  refine ⟨h₁, rfl, ?_⟩
+  rw [h₁, show ([⟨0, y⟩, ⟨0, y⟩] : TestSpec.QueryLog) = [⟨0, y⟩] ++ [⟨0, y⟩] from rfl,
+    QueryLog.dedupKeys_concat]
+  simp
 
 end
 

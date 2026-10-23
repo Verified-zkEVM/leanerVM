@@ -18,7 +18,9 @@ import LeanerVMTests.Protocol.Proof
   top limb, before any decoding.
 * **Hits.** A verifier's fresh query answered by a root of the proof is a hit, and is none when
   the root is not the proof's; a prover's query answered by the chain's first state is a hit
-  through the digests in play; a verifier's query the prover asked first is not fresh.
+  through the digests in play; a verifier's query the prover asked first is not fresh. A
+  verifier's query answered by a child of the prover's node query is a fresh hit of the Merkle
+  binding and a hit of the game; answered by a new digest, neither.
 * **The game and the bad challenges** type-check at leanVM: `loggedGame` with any verifier of
   `verifyWith`'s shape, `bad_density` at every admissible announcement.
 
@@ -119,6 +121,21 @@ def runOf (logA logV : hashSpec.QueryLog) : Run := ⟨proofOf [], logA, logV, tr
 #guard ¬ Hit (fun _ ↦ [d 9]) program input (runOf [⟨[2], d 9⟩] [⟨[2], d 9⟩])
 /- An answer equal to the chain's first state is in play from the start. -/
 #guard Hit (fun _ ↦ []) program input (runOf [⟨[3], (FsState.seed program input).cv⟩] [])
+
+/-- The prover's node query on the children `d 1`, `d 2`. -/
+def nodeA : hashSpec.QueryLog := [⟨nodeBytes (d 1) (d 2), d 3⟩]
+
+/-- The verifier's fresh query answered by the node's left child. -/
+def nodeV : hashSpec.QueryLog := [⟨[7], d 1⟩]
+
+/- The node's children are its halves, so in play: the verifier's query is a fresh hit for the
+Merkle binding and a hit of the game, which `not_freshHit_of_not_hasHit` relates. -/
+#guard MerkleTree.queryChildren nodeOfBytes? nodeA[0]!.1 = halves nodeA[0]!.1
+#guard decide (MerkleTree.FreshHit nodeOfBytes? [d 1] nodeA nodeV)
+#guard decide (QueryLog.HasHit (inPlay (seedDigests program input)) (nodeA ++ nodeV))
+/- Answered by a digest known from nowhere, it is neither. -/
+#guard !decide (MerkleTree.FreshHit nodeOfBytes? [d 1] nodeA [⟨[7], d 8⟩])
+#guard !decide (QueryLog.HasHit (inPlay (seedDigests program input)) (nodeA ++ [⟨[7], d 8⟩]))
 
 /-! ## The game and the bad challenges -/
 

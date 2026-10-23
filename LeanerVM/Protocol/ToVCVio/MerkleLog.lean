@@ -11,6 +11,7 @@
 module
 
 public import LeanerVM.Protocol.ToVCVio.Merkle
+public import LeanerVM.Protocol.ToVCVio.QueryLog
 public import Std.Data.HashMap.Basic
 import Std.Data.HashMap.Lemmas
 
@@ -45,6 +46,10 @@ All three are decidable. An answer of `logA` need not be known, since a fresh qu
 one is a collision, and the opening's siblings need not be, since the extraction never descends
 into a sibling. Several commitments, each opened once, are the instance with `roots` all their
 roots: the hypotheses on the log are shared, and each opening is bound to its own root.
+
+`not_freshHit_of_not_hasHit`: a fresh hit is a hit (`QueryLog.HasHit`) on any values in play that
+grow along the log and hold every child of a logged node query and the roots, so a log with no hit
+has no fresh hit.
 
 `extractLeaf_determined`: with a consistent log and no fresh hit, the leaves read off the whole
 log under a root are those read off `logA`, so no leaf joins a root once the root is known.
@@ -164,6 +169,37 @@ theorem FreshHit.first (hcons : Consistent (logA ++ logV))
   refine ⟨_, hk, by rwa [hfirst], fun j hj ↦ by simpa [hfirst] using List.not_of_lt_findIdx hj, ?_⟩
   rwa [hcons _ (List.mem_append_right _ (List.getElem_mem hk)) e (List.mem_append_right _ he)
     hfirst]
+
+omit [DecidableEq D] in
+/-- **No hit, no fresh hit.** Let `inPlay` give the values in play after each prefix of a log,
+growing along it, every child of a logged query that parses as a node in play once the query is
+asked. In a consistent log `logA ++ logV` with no hit (`QueryLog.HasHit`), there is no fresh hit
+with respect to `logA` and roots in play after `logA`. -/
+theorem not_freshHit_of_not_hasHit {inPlay : QueryLog Q D → List D}
+    (hmono : ∀ l₁ l₂, l₁ <+: l₂ → ∀ d ∈ inPlay l₁, d ∈ inPlay l₂)
+    (hchild : ∀ l e, ∀ d ∈ queryChildren node? e.1, d ∈ inPlay (l ++ [e]))
+    (hcons : Consistent (logA ++ logV)) (hhit : ¬ QueryLog.HasHit inPlay (logA ++ logV))
+    (hroots : ∀ r ∈ roots, r ∈ inPlay logA) : ¬ FreshHit node? roots logA logV := by
+  intro h
+  obtain ⟨k, hk, hfresh, hfirst, hknown⟩ := h.first hcons
+  have htake : (logA ++ logV).take (logA.length + k) = logA ++ logV.take k := by
+    simp [List.take_append]
+  have hget : (logA ++ logV)[logA.length + k]'(by simp; omega) = logV[k] := by
+    simp [List.getElem_append_right]
+  refine hhit ⟨⟨logA.length + k, by simp; omega⟩, fun e he ↦ ?_, ?_⟩
+  · simp only [Fin.getElem_fin, htake, hget, List.mem_append] at he ⊢
+    rcases he with he | he
+    · exact hfresh e he
+    · obtain ⟨j, hj, rfl⟩ := List.mem_iff_getElem.mp he
+      simp only [List.length_take] at hj
+      simpa using hfirst j (by omega)
+  · simp only [Fin.getElem_fin, htake, hget]
+    rcases hknown with hr | ⟨e, he, hd⟩
+    · exact hmono _ _ (List.prefix_append _ _) _ (hroots _ hr)
+    · obtain ⟨p, hp, rfl⟩ := List.mem_iff_getElem.mp he
+      refine hmono (logA.take p ++ [logA[p]]) _ ?_ _ (hchild _ _ _ hd)
+      rw [← List.take_succ_eq_append_getElem hp]
+      exact (List.take_prefix _ _).trans (List.prefix_append _ _)
 
 end Log
 

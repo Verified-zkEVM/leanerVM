@@ -38,8 +38,14 @@ as many steps as the log has entries.
   log, hold `seed` from the start, and take in the chunks `chunks q` of each query, every state
   being a chunk of the steps from it. The chunks of a query are the values it carries: the
   chaining value of a step, the children of a Merkle node.
+* `history_take_of_mem_inPlay`: under the same hypotheses, the history of a chain whose last state
+  is in play after `m` entries is already in those `m` entries.
 * `history_determined`: without a collision, a history found in part of a log is the history in the
   whole log.
+* `history_append_of_not_start`: a new entry whose answer no logged step starts from leaves the
+  history of every other state unchanged.
+* `history_dedupKeys`: in a consistent log, a history is that of the log with each input at its
+  first occurrence only.
 
 What each hypothesis excludes: a collision makes a step ambiguous; an answer equal to `seed` cuts
 the history short; a state produced after a query that uses it puts the history after that
@@ -322,6 +328,22 @@ theorem history_take_of_step (henc : ∀ d b, step? (enc d b) = some (d, b))
   simp at this
   omega
 
+/-- **The history before a state is in play.** Under the hypotheses of
+`history_take_of_noCollision_noHit`, if the chain's last state is in play after the first `m`
+entries, its history in those entries is the chain. -/
+theorem history_take_of_mem_inPlay (henc : ∀ d b, step? (enc d b) = some (d, b))
+    (hchunk : ∀ d b, d ∈ chunks (enc d b))
+    (hplay : ∀ l e, ∀ d ∈ chunks e.1, d ∈ inPlay (l ++ [e]))
+    (hmono : ∀ l₁ l₂, l₁ <+: l₂ → ∀ d ∈ inPlay l₁, d ∈ inPlay l₂) (hseed : seed ∈ inPlay [])
+    (hcons : Consistent log) (hcoll : ¬ HasCollision log) (hhit : ¬ HasHit inPlay log)
+    (steps : List (B × D)) (hchain : ∀ e ∈ queries enc seed steps, e ∈ log) {m : ℕ}
+    (hq : last seed steps ∈ inPlay (log.take m)) :
+    history step? (log.take m) seed (last seed steps) = some steps :=
+  history_of_noCollision_noSeed henc (fun h ↦ hcoll (h.mono fun _ he ↦ List.mem_of_mem_take he))
+    (fun _ he h ↦ answer_not_mem_inPlay_nil hmono hcons hhit (List.mem_of_mem_take he)
+      (h ▸ hseed)) steps
+    (queries_mem_take hchunk hplay hmono hcons hhit steps hchain m hq)
+
 omit [DecidableEq Q] in
 /-- A walk found in part of a log is found in the whole log with more fuel, when the whole log has
 no collision. -/
@@ -350,6 +372,252 @@ theorem history_determined (hcoll : ¬ HasCollision log) {k : ℕ} {cv : D} {hs 
     (h : history step? (log.take k) seed cv = some hs) : history step? log seed cv = some hs :=
   walk_mono hcoll (fun _ he ↦ List.mem_of_mem_take he) _ _ cv hs
     (by rw [List.length_take]; exact Nat.min_le_right _ _) h
+
+/-! ## Walks with any fuel -/
+
+section Fuel
+
+omit [DecidableEq Q]
+
+/-- The state a successful walk ends in is the state it started from. -/
+private theorem last_of_walk : ∀ {f : ℕ} {cv : D} {hs : List (B × D)},
+    walk step? log seed f cv = some hs → last seed hs = cv
+  | 0, cv, hs, h => by
+    unfold walk at h
+    split at h
+    · cases h; exact (‹cv = seed›).symm
+    · cases h
+  | f + 1, cv, hs, h => by
+    unfold walk at h
+    split at h
+    · cases h; exact (‹cv = seed›).symm
+    · split at h
+      · obtain ⟨hs', -, rfl⟩ := Option.map_eq_some_iff.mp h
+        exact last_append _ _ _ _
+      · cases h
+
+/-- A successful walk passes at most as many steps as its fuel. -/
+private theorem length_le_of_walk : ∀ {f : ℕ} {cv : D} {hs : List (B × D)},
+    walk step? log seed f cv = some hs → hs.length ≤ f
+  | 0, cv, hs, h => by
+    unfold walk at h
+    split at h
+    · cases h; simp
+    · cases h
+  | f + 1, cv, hs, h => by
+    unfold walk at h
+    split at h
+    · cases h; simp
+    · split at h
+      · obtain ⟨hs', hw, rfl⟩ := Option.map_eq_some_iff.mp h
+        simpa using length_le_of_walk hw
+      · cases h
+
+/-- A successful walk succeeds, with the same steps, with any fuel at least its length. -/
+private theorem walk_of_length_le : ∀ {f f' : ℕ} {cv : D} {hs : List (B × D)},
+    walk step? log seed f cv = some hs → hs.length ≤ f' → walk step? log seed f' cv = some hs
+  | 0, f', cv, hs, h, _ => by
+    unfold walk at h
+    split at h
+    · cases h; cases f' <;> simp [walk, *]
+    · cases h
+  | f + 1, f', cv, hs, h, hle => by
+    unfold walk at h
+    split at h
+    · cases h; cases f' <;> simp [walk, *]
+    · rename_i hcv
+      split at h
+      · rename_i cv' b hu
+        obtain ⟨hs', hw, rfl⟩ := Option.map_eq_some_iff.mp h
+        cases f' with
+        | zero => simp at hle
+        | succ f' =>
+          simp only [List.length_append, List.length_singleton, Nat.add_le_add_iff_right] at hle
+          simp only [walk, hcv, ↓reduceIte, hu, walk_of_length_le hw hle, Option.map_some]
+      · cases h
+
+/-- The walk from a state a successful walk passes is the walk's prefix up to it. -/
+private theorem walk_take : ∀ {f : ℕ} {cv : D} {hs : List (B × D)},
+    walk step? log seed f cv = some hs →
+      ∀ j ≤ hs.length, walk step? log seed f (last seed (hs.take j)) = some (hs.take j)
+  | 0, cv, hs, h, j, hj => by
+    unfold walk at h
+    split at h
+    · cases h
+      obtain rfl : j = 0 := by simpa using hj
+      simp [walk, last]
+    · cases h
+  | f + 1, cv, hs, h, j, hj => by
+    have h' := h
+    unfold walk at h
+    split at h
+    · cases h
+      obtain rfl : j = 0 := by simpa using hj
+      simp [walk, last]
+    · split at h
+      · obtain ⟨hs', hw, rfl⟩ := Option.map_eq_some_iff.mp h
+        by_cases hjs : j ≤ hs'.length
+        · rw [List.take_append_of_le_length hjs]
+          exact walk_of_length_le (walk_take hw j hjs)
+            (Nat.le_trans (List.length_take_le _ _) (by have := length_le_of_walk hw; omega))
+        · rw [List.take_of_length_le (by simp at hj ⊢; omega), last_of_walk h']
+          exact h'
+      · cases h
+
+/-- The states a successful walk passes are distinct. -/
+private theorem nodup_of_walk : ∀ {f : ℕ} {cv : D} {hs : List (B × D)},
+    walk step? log seed f cv = some hs → (seed :: hs.map (·.2)).Nodup
+  | 0, cv, hs, h => by
+    unfold walk at h
+    split at h
+    · cases h; simp
+    · cases h
+  | f + 1, cv, hs, h => by
+    have h' := h
+    unfold walk at h
+    split at h
+    · cases h; simp
+    · split at h
+      · obtain ⟨hs', hw, rfl⟩ := Option.map_eq_some_iff.mp h
+        rw [List.map_append, ← List.cons_append, List.nodup_append]
+        refine ⟨nodup_of_walk hw, by simp, fun x hx y hy hxy ↦ ?_⟩
+        obtain rfl : y = cv := by simpa using hy
+        subst hxy
+        obtain ⟨j, hj, hlast⟩ := exists_take_of_mem seed hs' x hx
+        have := walk_of_length_le (hlast ▸ walk_take hw j hj)
+          (f' := f + 1) (Nat.le_trans (List.length_take_le _ _) (by have := length_le_of_walk hw; omega))
+        rw [h'] at this
+        have := congrArg List.length (Option.some.inj this)
+        simp at this
+        omega
+      · cases h
+
+/-- Every state but the seed that a successful walk passes is a logged answer. -/
+private theorem answered_of_walk : ∀ {f : ℕ} {cv : D} {hs : List (B × D)},
+    walk step? log seed f cv = some hs → ∀ x ∈ hs.map (·.2), ∃ e ∈ log, e.2 = x
+  | 0, cv, hs, h => by
+    unfold walk at h
+    split at h
+    · cases h; simp
+    · cases h
+  | f + 1, cv, hs, h => by
+    unfold walk at h
+    split at h
+    · cases h; simp
+    · split at h
+      · rename_i hu
+        obtain ⟨hs', hw, rfl⟩ := Option.map_eq_some_iff.mp h
+        intro x hx
+        simp only [List.map_append, List.map_cons, List.map_nil, List.mem_append,
+          List.mem_singleton] at hx
+        rcases hx with hx | rfl
+        · exact answered_of_walk hw x hx
+        · obtain ⟨e, he, hp⟩ := List.mem_filterMap.mp (unique?_eq_some_iff.mp hu).1
+          split at hp
+          · exact ⟨e, he, by assumption⟩
+          · cases hp
+      · cases h
+
+/-- A successful walk passes at most as many steps as the log has entries. -/
+private theorem length_le_length_of_walk {f : ℕ} {cv : D} {hs : List (B × D)}
+    (h : walk step? log seed f cv = some hs) : hs.length ≤ log.length := by
+  have hsub : hs.map (·.2) ⊆ log.map (·.2) := fun x hx ↦ by
+    obtain ⟨e, he, rfl⟩ := answered_of_walk h x hx
+    exact List.mem_map_of_mem he
+  simpa using ((nodup_of_walk h).of_cons.subperm hsub).length_le
+
+/-- A successful walk, with any fuel, is the history. -/
+private theorem history_of_walk {f : ℕ} {cv : D} {hs : List (B × D)}
+    (h : walk step? log seed f cv = some hs) : history step? log seed cv = some hs :=
+  walk_of_length_le h (length_le_length_of_walk h)
+
+/-- Lists with the same elements have the same unique element. -/
+private theorem unique?_congr {α : Type} [DecidableEq α] {l₁ l₂ : List α}
+    (h : ∀ x, x ∈ l₁ ↔ x ∈ l₂) : unique? l₁ = unique? l₂ := by
+  rcases h₁ : unique? l₁ with _ | x <;> rcases h₂ : unique? l₂ with _ | y
+  · rfl
+  · obtain ⟨hy, hall⟩ := unique?_eq_some_iff.mp h₂
+    have := unique?_eq_some_iff.mpr ⟨(h y).mpr hy, fun z hz ↦ hall z ((h z).mp hz)⟩
+    rw [h₁] at this
+    cases this
+  · obtain ⟨hx, hall⟩ := unique?_eq_some_iff.mp h₁
+    have := unique?_eq_some_iff.mpr ⟨(h x).mp hx, fun z hz ↦ hall z ((h z).mpr hz)⟩
+    rw [h₂] at this
+    cases this
+  · obtain ⟨hx, hall⟩ := unique?_eq_some_iff.mp h₁
+    obtain ⟨hy, -⟩ := unique?_eq_some_iff.mp h₂
+    rw [hall y ((h y).mpr hy)]
+
+/-- Walks on two logs agree when the logs show the same steps into every state but `avoid`, and
+no step shown into another state starts from `avoid`. -/
+private theorem walk_congr {log' : List ((_ : Q) × D)} (avoid : D)
+    (hpre : ∀ x, x ≠ avoid → ∀ p, p ∈ preimages step? log x ↔ p ∈ preimages step? log' x)
+    (hstart : ∀ x, x ≠ avoid → ∀ p ∈ preimages step? log x, p.1 ≠ avoid) :
+    ∀ (f : ℕ) (cv : D), cv ≠ avoid →
+      walk step? log seed f cv = walk step? log' seed f cv
+  | 0, cv, _ => rfl
+  | f + 1, cv, hcv => by
+    simp only [walk]
+    split
+    · rfl
+    · rw [← unique?_congr (hpre cv hcv)]
+      rcases hu : unique? (preimages step? log cv) with _ | ⟨cv', b⟩
+      · rfl
+      · simp only
+        rw [walk_congr avoid hpre hstart f cv'
+          (hstart cv hcv (cv', b) (unique?_eq_some_iff.mp hu).1)]
+
+end Fuel
+
+/-! ## The history after one more entry, and after deduplication -/
+
+omit [DecidableEq Q] in
+/-- **One more entry.** If no logged step starts from the new entry's answer, the history of
+every other state is unchanged by the entry. -/
+theorem history_append_of_not_start {e : (_ : Q) × D}
+    (hstart : ∀ e' ∈ log, ∀ p, step? e'.1 = some p → p.1 ≠ e.2) {cv : D} (hcv : cv ≠ e.2) :
+    history step? (log ++ [e]) seed cv = history step? log seed cv := by
+  have hpre : ∀ x, x ≠ e.2 → ∀ p,
+      p ∈ preimages step? log x ↔ p ∈ preimages step? (log ++ [e]) x := fun x hx p ↦ by
+    simp [preimages, List.filterMap_append, Ne.symm hx]
+  have hst : ∀ x, x ≠ e.2 → ∀ p ∈ preimages step? log x, p.1 ≠ e.2 := fun x _ p hp ↦ by
+    obtain ⟨e', he', hp⟩ := List.mem_filterMap.mp hp
+    split at hp
+    · exact hstart e' he' p hp
+    · cases hp
+  have hw := walk_congr (seed := seed) e.2 hpre hst
+  rcases h : history step? log seed cv with _ | hs
+  · rcases h' : history step? (log ++ [e]) seed cv with _ | hs'
+    · rfl
+    · have := history_of_walk ((hw _ cv hcv).trans h')
+      rw [h] at this
+      cases this
+  · exact history_of_walk ((hw _ cv hcv).symm.trans
+      (walk_of_length_le (f' := (log ++ [e]).length) h
+        (Nat.le_trans (length_le_length_of_walk h) (by simp))))
+
+/-- **Deduplication.** In a consistent log, every history is that of the log with each input at
+its first occurrence only. -/
+theorem history_dedupKeys (hcons : Consistent log) (cv : D) :
+    history step? (dedupKeys log) seed cv = history step? log seed cv := by
+  have hpre : ∀ x p, p ∈ preimages step? (dedupKeys log) x ↔ p ∈ preimages step? log x :=
+    fun x p ↦ by simp only [preimages, List.mem_filterMap, mem_dedupKeys_iff hcons]
+  have hw : ∀ f cv, walk step? (dedupKeys log) seed f cv = walk step? log seed f cv := by
+    intro f
+    induction f with
+    | zero => exact fun _ ↦ rfl
+    | succ f ih =>
+      intro cv
+      simp only [walk, ih, unique?_congr (hpre cv)]
+  rcases h : history step? log seed cv with _ | hs
+  · rcases h' : history step? (dedupKeys log) seed cv with _ | hs'
+    · rfl
+    · have := walk_of_length_le ((hw _ cv).symm.trans h') (f' := log.length)
+        (Nat.le_trans (length_le_of_walk h') (dedupKeys_sublist log).length_le)
+      rw [history] at h
+      rw [h] at this
+      cases this
+  · exact history_of_walk ((hw _ cv).trans h)
 
 end
 end LeanerVM.Protocol.HashChain
