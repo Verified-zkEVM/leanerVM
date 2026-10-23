@@ -66,6 +66,7 @@ import LeanerVM.Protocol.ToArkLib.Component
 import LeanerVM.Protocol.ToArkLib.ExtractIn
 import LeanerVM.Protocol.ToArkLib.Flock.BlockR1CS
 import LeanerVM.Protocol.ToArkLib.Flock.Builder
+import LeanerVM.Protocol.ToArkLib.Flock.Cached
 import LeanerVM.Protocol.ToArkLib.Flock.Circuit
 import LeanerVM.Protocol.ToArkLib.Flock.CircuitFast
 import LeanerVM.Protocol.ToArkLib.Flock.FrobeniusMap
