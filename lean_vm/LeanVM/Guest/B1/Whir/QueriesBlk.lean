@@ -7,7 +7,7 @@
 
 module
 
-public import LeanVM.Guest.B1.Whir.QueriesOpen
+public import LeanVM.Guest.B1.Whir.QueriesOpenW
 public import LeanVM.Guest.B1.Whir.Squeezes
 
 /-!
@@ -90,17 +90,26 @@ theorem oqCount_q (q : ℕ) (lvl : ℕ) :
   · simp only [h, ↓reduceIte, oqCount]; omega
   · simp [h, oqCount]
 
-/-- **A level's queries block.** -/
-theorem osQueries_sound {c : OsCfg} {lvl : ℕ} {lv : OsLv} {lam lamN : ℕ} {s : OsSt}
-    (hok : AllOk (coreProgram.Rel rd) rd σ (osQueries c lvl lv lam lamN s).1)
+/-- **A level's queries block**, its openings named: those the queries' witness `W` gives at the
+call's words (`lvOpenings`). -/
+theorem osQueries_sound {C : CallRel} (hle : CallRel.Le C (coreProgram.Rel rd)) {c : OsCfg}
+    {lvl : ℕ} {lv : OsLv} {lam lamN : ℕ} {s : OsSt}
+    (hok : AllOk C rd σ (osQueries c lvl lv lam lamN s).1)
     (hs : RowShape lvl lv) (hcd : 2 ≤ lv.capDepth) (hcdd : lv.capDepth ≤ lv.depth)
     (hRW : ∀ args rets, coreProgram.Rel rd ("opening_row_weights__L" ++ natStr lv.folds ++ "_L" ++
       natStr (if lvl = 0 then 1 else 0)) args rets →
         MeaningOpeningRowWeights lv.folds (if lvl = 0 then 1 else 0) rd args rets)
     (hCap : ∀ args rets, coreProgram.Rel rd ("verify_merkle_cap__L" ++ natStr lv.capDepth) args rets →
       MeaningVerifyMerkleCap lv.capDepth rd args rets)
-    (hQ : opening_queries_Spec (osQueriesName lvl lv) (lv.queries % 2 * (if lvl = 0 then 1 else 0))
-      (if lvl = 0 then 1 else 0) lv.interleave lv.depth lv.capDepth)
+    (W : List E → List E → List QW)
+    (hQW : ∀ args rets, C (osQueriesName lvl lv) args rets →
+      args.getD 6 0 = gen ^ (lv.queries / (1 + if lvl = 0 then 1 else 0)) →
+      lv.queries / (1 + if lvl = 0 then 1 else 0) < ordG → lv.capDepth ≤ lv.depth →
+      (∀ N, args.getD 6 0 = gen ^ N → N < ordG → QueryBitsBool rd (args.getD 4 0)
+        (oqCount (lv.queries % 2 * (if lvl = 0 then 1 else 0)) (if lvl = 0 then 1 else 0) N)
+        lv.depth) →
+      MeaningOpeningQueriesW (lv.queries % 2 * (if lvl = 0 then 1 else 0))
+        (if lvl = 0 then 1 else 0) lv.interleave lv.depth lv.capDepth rd (W args rets) args rets)
     {lf : List E} (hlf : lf.length = lv.folds)
     (hfch : ∀ j < lv.folds, LoadHolds rd (σ (.n osFch)) (lv.foldsOff + j) (lf.getD j 0))
     {root : Digest} (hr0 : LoadHolds rd (σ (.n osRoots)) (2 * lvl) (digestScalars root).1)
@@ -112,12 +121,14 @@ theorem osQueries_sound {c : OsCfg} {lvl : ℕ} {lv : OsLv} {lam lamN : ℕ} {s 
     (hbo : lv.foldsOff < u128Bound ∧ 4 * lv.capOff < u128Bound ∧ lv.capOff < u128Bound ∧
       lv.posOff < u128Bound ∧ lv.queries / (1 + if lvl = 0 then 1 else 0) < ordG ∧
       lv.queries / (1 + if lvl = 0 then 1 else 0) < u128Bound) :
-    ∃ (os : List Opening) (ic0 ic2 : E), os.length = lv.queries ∧
-      (∀ k (hk : k < qs.length) (ho : k < os.length),
+    ∃ (ic0 ic2 : E), (lvOpenings rd σ lv W (osQueriesCall lvl lv lam lamN s)).length = lv.queries ∧
+      (∀ k (hk : k < qs.length) (ho : k < (lvOpenings rd σ lv W (osQueriesCall lvl lv lam lamN s)).length),
         Id.run (Compile.openOne (m := Id) keccak256 root lv.depth
-          (if lvl = 0 then lv.interleave else 3 * lv.interleave) qs[k] os[k]) = true) ∧
+          (if lvl = 0 then lv.interleave else 3 * lv.interleave) qs[k]
+            (lvOpenings rd σ lv W (osQueriesCall lvl lv lam lamN s))[k]) = true) ∧
       σ (.n (osQueries c lvl lv lam lamN s).2.2.1) =
-        enforcedSum ((os.map (·.leaf)).map (specRow lvl)) lf (powers (σ (.n lam)) lv.queries) ∧
+        enforcedSum (((lvOpenings rd σ lv W (osQueriesCall lvl lv lam lamN s)).map (·.leaf)).map
+          (specRow lvl)) lf (powers (σ (.n lam)) lv.queries) ∧
       ReadsAt rd (s.cur σ) [ic0, ic2] ∧ σ (.n (osQueries c lvl lv lam lamN s).2.2.2.1) = ic0 ∧
       σ (.n (osQueries c lvl lv lam lamN s).2.2.2.2.2) = ic2 ∧
       σ (.n (osQueries c lvl lv lam lamN s).2.2.2.2.1) =
@@ -146,8 +157,10 @@ theorem osQueries_sound {c : OsCfg} {lvl : ℕ} {lv : OsLv} {lam lamN : ℕ} {s 
         .atom (.load (.n (g + 2)) (.n s.cb) s.co), .atom (.load (.n (g + 3)) (.n s.cb) (s.co + 1)),
         .atom (.add (.n (g + 4)) (.n (g + 1)) (.n (g + 3)))] := rfl
   have hr : (osQueries c lvl lv lam lamN s).2 = (g + 5, g + 1, g + 2, g + 4, g + 3) := rfl
+  have hcall : osQueriesCall lvl lv lam lamN s = (osQueriesName lvl lv, [.n cp2.2.1, .n flp2.2.1,
+      .n lam, .n lamN, .n bp.2.1, .n (k + 1), .n g], [.n (g + 1)]) := rfl
   rw [hst] at hok
-  rw [hr]
+  rw [hr, hcall]
   simp only [allOk_append, allOk_cons, allOk_nil, and_true, StmtOk, Atom.Holds, List.map_cons,
     List.map_nil, and_assoc] at hok
   obtain ⟨-, hfp, hrw, hcp, hflp, hcap, hs0, hs1, hcp2, hflp2, hbp, hcg, hq, hi0, hi2, hi1⟩ := hok
@@ -159,12 +172,10 @@ theorem osQueries_sound {c : OsCfg} {lvl : ℕ} {lv : OsLv} {lam lamN : ℕ} {s 
   have ebp := osMat_val hb4 hbp
   set N0 := lv.queries / (1 + if lvl = 0 then 1 else 0)
   have eg : σ (.n g) = gen ^ N0 := by rw [hcg, gw_eq hb6]
-  -- the root
   have er0 := loadHolds_unique hs0 hr0
   have er1 := loadHolds_unique hs1 hr1
   have hroot : (σ (.n r), σ (.n (r + 1))) = digestScalars root := by rw [er0, er1]
-  -- the row weights at the level's folds
-  obtain ⟨-, rs, hrsl, hrs, hlo, hhi⟩ := hRW _ _ hrw
+  obtain ⟨-, rs, hrsl, hrs, hlo, hhi⟩ := hRW _ _ (hle _ _ _ hrw)
   have hrsf : rs = lf := by
     apply List.ext_getElem (by rw [hrsl, hlf])
     intro j h1 h2
@@ -174,7 +185,6 @@ theorem osQueries_sound {c : OsCfg} {lvl : ℕ} {lv : OsLv} {lam lamN : ℕ} {s 
     rw [List.getD_eq_getElem _ _ h2] at b
     exact loadHolds_unique a b
   subst hrsf
-  -- the bits are bits
   have hbits : ∀ k' < lv.queries, ∃ bpv, LoadHolds rd (σ (.n bp.2.1)) k' bpv ∧ ∀ l < lv.depth,
       ∀ w, LoadHolds rd bpv l w → w = bitE ((qs.getD k' 0).testBit l) := by
     intro k' hk'
@@ -190,15 +200,18 @@ theorem osQueries_sound {c : OsCfg} {lvl : ℕ} {lv : OsLv} {lam lamN : ℕ} {s 
     rw [loadHolds_unique hbpv h1] at hb
     rw [h2 l hl b hb]
     cases (qs.getD k' 0).testBit l <;> simp [bitE]
-  have hm := (hQ rd _ _ _ _ _ _ _ _ hqb).mp hq
-  rw [ecp2, eflp2, ← ecp, ← eflp] at hm
-  obtain ⟨os, hol, hop, hsum⟩ := queries_open (q := lv.queries) (N0 := N0) hm (hCap _ _ hcap) hroot hcd hcdd
-    eg (by omega) (oqCount_q _ _) (by split_ifs <;> simp; omega)
-    (by by_cases h : lvl = 0 <;> simp [h]) qs hqlt hbits hlamN
+  have hm := hQW _ _ hq eg hb5 hcdd (fun N hN hNo ↦ hqb N hN hNo)
+  simp only [lvOpenings, List.map_cons, List.map_nil, List.headD_cons]
+  have hm' := meaningW_args hm (A' := [σ (.n cp.2.1), σ (.n flp.2.1), σ (.n lam), σ (.n lamN),
+    σ (.n bp.2.1), σ (.n (k + 1)), σ (.n g)]) (by rw [ecp2, eflp2, ← ecp, ← eflp])
+  obtain ⟨hol, hop, hsum⟩ := queries_open_w (q := lv.queries) (N0 := N0) (cap0 := σ (.n cp2.2.1))
+    (by rw [ecp2, ← ecp]) hm'
+    (hCap _ _ (hle _ _ _ hcap)) hroot hcd hcdd eg (by omega) (oqCount_q _ _)
+    (by split_ifs <;> simp; omega) (by by_cases h : lvl = 0 <;> simp [h]) qs hqlt hbits hlamN
     (width := if lvl = 0 then lv.interleave else 3 * lv.interleave) (width_eq lvl lv.interleave)
     (specRow lvl) rs (fun row w hrow hw ↦ rowDot_spec hs hrsl hlo hhi row w
       (hrow.trans (width_eq lvl lv.interleave).symm) hw)
-  refine ⟨os, σ (.n (g + 2)), σ (.n (g + 3)), hol, hop, hsum, ?_, rfl, rfl, hi1⟩
+  refine ⟨σ (.n (g + 2)), σ (.n (g + 3)), hol, hop, hsum, ?_, rfl, rfl, hi1⟩
   intro i hi
   rcases i with _ | _ | i
   · exact load_cur (by simpa using hi0)

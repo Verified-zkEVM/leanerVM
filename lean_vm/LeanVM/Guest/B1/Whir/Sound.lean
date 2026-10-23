@@ -18,6 +18,8 @@ public import LeanVM.Guest.B1.Opening.OodPoint
 public import LeanVM.Guest.B1.Opening.FinalMessage
 public import LeanVM.Guest.B1.Opening.RowWeights
 public import LeanVM.Guest.B1.Opening.QueriesAll
+public import LeanVM.Guest.B1.Opening.QueriesAllW
+public import LeanVM.Guest.B1.Opening.LoopsTable
 public import LeanVM.Guest.B1.Eq.FoldFinal
 
 /-!
@@ -42,15 +44,14 @@ open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Verifier
 theorem lvCallees_of {rd : Reader} {c : OsCfg} {lvl : ℕ} {lv : OsLv}
     (hsq : FnIs (c.sqLoop lvl) (osParams 5) (sqLoopBody lv (c.sqLoop lvl)))
     (hn : NamesOk c lvl lv) : LvCallees rd c lvl lv := by
-  obtain ⟨hood, hfm, hgr, hdec, hcap, hq, hrw, hfo⟩ := hn
+  obtain ⟨hood, hfm, hgr, hdec, hcap, -, hrw, hfo⟩ := hn
   refine ⟨fun a r h ↦ (opening_fold_holds rd a r).mp h,
     fun a r h ↦ (assert_canonical_holds rd a r).mp h,
     fun hnf a r h ↦ (opening_ood_point_holds _ (hood hnf) rd a r).mp h,
     fun a r h ↦ (opening_final_message_holds _ hfm rd a r).mp h,
     fun a r h ↦ by rw [hgr] at h; exact (grind_check_holds rd a r).mp h, hsq,
     fun a r h ↦ (decode_query_bits_all_holds _ hdec rd a r).mp h, fun a r h ↦ ?_,
-    fun a r h ↦ (verify_merkle_cap_holds _ hcap rd a r).mp h,
-    opening_queries_all_holds _ hq⟩
+    fun a r h ↦ (verify_merkle_cap_holds _ hcap rd a r).mp h⟩
   rw [hrw] at h
   by_cases h0 : lvl = 0
   · simp only [h0, ↓reduceIte] at h hfo ⊢
@@ -74,21 +75,95 @@ theorem osCfg_levels_getElem (m i : ℕ) (h : i < (osCfg m).levels.length) :
     (osCfg m).levels[i] = osLv m i := by
   simp [osCfg]
 
-/-- **`open_stacked` is sound at every candidate.** -/
-theorem open_stacked_sound_holds : open_stacked_sound_Spec := by
-  intro rd μ r h1 h2 h3 h4 root fs target root0 root1 cur rets hfs hroot hrel
+/-- **A level's `opening_queries` calls are sound with their queries named**: through the frame
+map, at the deployed shape the names' facts give. -/
+theorem lvQW_of {rd : Reader} {C : CallRel} {V : FrameMap} (hU : UnfoldsV rd C V)
+    (hle : CallRel.Le C (coreProgram.Rel rd)) {c : OsCfg} {lvl : ℕ} {lv : OsLv}
+    (hn : NamesOk c lvl lv) : LvQW rd C lvl lv (lvW rd V lvl lv (osQueriesName lvl lv)) := by
+  intro args rets hC hN hNo hcdd hbits
+  have hq := hn.2.2.2.2.2.1
+  have hp := opening_queries_all_sound_w _ (shapes_loops hq)
+  obtain ⟨fm, hf, hpm, hh⟩ := hU _ _ _ hC
+  have hdep : lv.depth - lv.capDepth + lv.capDepth = lv.depth := Nat.sub_add_cancel hcdd
+  have := hp rd C V hU hle fm (V (osQueriesName lvl lv) args rets) args rets
+    (lv.queries / (1 + if lvl = 0 then 1 else 0)) hf hpm hh hN hNo
+    (by simp only; rw [hdep]; exact hbits _ hN hNo)
+  simp only at this
+  rw [hdep] at this
+  exact this
+
+theorem qwOk_of {rd : Reader} {C : CallRel} {Wf : ℕ → OsLv → List E → List E → List QW} {c : OsCfg} :
+    ∀ (lvs : List OsLv) (lvl : ℕ),
+    (∀ i (hi : i < lvs.length), LvQW rd C (lvl + i) lvs[i] (Wf (lvl + i) lvs[i])) →
+      QWOk rd C Wf lvl lvs
+  | [], _, _ => trivial
+  | lv :: rest, lvl, h => ⟨h 0 (by simp), qwOk_of (c := c) rest (lvl + 1) fun i hi ↦ by
+      have := h (i + 1) (by simp; omega)
+      rwa [show lvl + (i + 1) = lvl + 1 + i by ring] at this⟩
+
+theorem osQCalls_name (c : OsCfg) : ∀ (lvl : ℕ) (lvs : List OsLv) (st : OsSt),
+    ∀ e ∈ osQCalls c lvl lvs st, e.2.2.1 = osQueriesName e.1 e.2.1
+  | _, [], _, e, he => by simp [osQCalls] at he
+  | lvl, lv :: rest, st, e, he => by
+    simp only [osQCalls, List.mem_cons] at he
+    rcases he with rfl | he
+    · rfl
+    · exact osQCalls_name c (lvl + 1) rest _ e he
+
+/-- **`open_stacked` is sound with its witness named**, at every candidate. -/
+theorem open_stacked_sound_w : open_stacked_sound_w_Spec open_stacked_osW := by
+  intro rd C V hU hle μ r h1 h2 h3 h4 root fs target root0 root1 cur rets fn σ hfs hroot hfind hp hh
   have hm : candidate μ r < 28 := by unfold candidate; omega
   obtain ⟨cfg, hF, hnames, hffm⟩ := candB_sound (candB_all μ r h1 h2 h3 h4)
   have hdata := osData_all _ hm
-  rw [openName_eq μ r hm] at hrel
-  refine open_generic hdata.1 (fun lvl h ↦ ?_) hF ?_ (fun a r h ↦ (opening_fold_holds rd a r).mp h)
-    (fun a r h ↦ (fold_final_msg_holds _ hffm rd a r).mp h) hfs hroot hrel
+  rw [openName_eq μ r hm] at hfind
+  have hcur : σ (.n 8) = cur := by
+    obtain ⟨fn0, hf0, hps, -⟩ := hdata.1
+    rw [hf0] at hfind
+    cases hfind
+    rw [hps] at hp
+    obtain ⟨f0, f1, f2, f3, f4, rfl⟩ : ∃ f0 f1 f2 f3 f4, fs = [f0, f1, f2, f3, f4] := by
+      match fs, hfs with
+      | [f0, f1, f2, f3, f4], _ => exact ⟨f0, f1, f2, f3, f4, rfl⟩
+    have := congrArg (·.getD 8 0) hp
+    simpa [osParams] using this
+  have hW := open_generic (Wf := fun lvl lv ↦ lvW rd V lvl lv (osQueriesName lvl lv)) hdata.1
+    (fun lvl h ↦ ?_) hF ?_ (fun a r h ↦ (opening_fold_holds rd a r).mp h)
+    (fun a r h ↦ (fold_final_msg_holds _ hffm rd a r).mp h) hfs hroot hle ?_ hfind hp hh
+  · unfold open_stacked_osW
+    rw [hcur]
+    have heq : (osQCalls (osCfg (candidate μ r)) 0 (osCfg (candidate μ r)).levels
+        (osHead (osCfg (candidate μ r))).2).flatMap (osLevelOs rd σ V) =
+        (osQCalls (osCfg (candidate μ r)) 0 (osCfg (candidate μ r)).levels
+        (osHead (osCfg (candidate μ r))).2).flatMap
+          (fun e ↦ lvOpenings rd σ e.2.1 (lvW rd V e.1 e.2.1 (osQueriesName e.1 e.2.1)) e.2.2) := by
+      refine List.flatMap_congr fun e he ↦ ?_
+      obtain ⟨lvl, lv, name, args, rets'⟩ := e
+      have := osQCalls_name _ _ _ _ _ he
+      simp only at this
+      subst this
+      rfl
+    rw [heq]
+    exact hW
   · rw [osCfg_levels_getElem _ _ h]; exact (hdata.2 lvl h).2
   · refine calleesOk_of _ 0 fun i hi ↦ ?_
     rw [Nat.zero_add, osCfg_levels_getElem _ _ hi]
     have hn := hnames i hi
     rw [lv_getD hi, osCfg_levels_getElem _ _ hi] at hn
     exact lvCallees_of (hdata.2 i hi).1 hn
+  · refine qwOk_of (c := osCfg (candidate μ r)) _ 0 fun i hi ↦ ?_
+    rw [Nat.zero_add]
+    have hn := hnames i hi
+    rw [lv_getD hi] at hn
+    exact lvQW_of hU hle hn
+
+/-- **`open_stacked` is sound at every candidate** (`open_stacked_sound_w` at the program's call
+relation, its frames chosen). -/
+theorem open_stacked_sound_holds : open_stacked_sound_Spec := by
+  intro rd μ r h1 h2 h3 h4 root fs target root0 root1 cur rets hfs hroot hrel
+  obtain ⟨fn, hf, σ, hp, hb⟩ := (rel_iff coreProgram _ _ _).mp hrel
+  exact (open_stacked_sound_w rd _ (relV rd) (unfoldsV_rel rd) (rel_le_rel rd) μ r h1 h2 h3 h4
+    root fs target root0 root1 cur rets fn σ hfs hroot hf hp hb).openOut
 
 end
 end LeanVM.Guest.B1.Whir

@@ -49,6 +49,11 @@ abbrev bS1 : OsSt :=
     w1 := (bQ c lvl lv st).2.2.2.2.2
     co := (bSq c lvl lv st).co + 2 }
 
+/-- The level's openings, named by the queries' witness `W`. -/
+abbrev bOs (rd : Reader) (σ : Val) (W : List E → List E → List QW) : List Opening :=
+  lvOpenings rd σ lv W (osQueriesCall lvl lv (bLam c lvl lv st) (bLamN c lvl lv st)
+    { bSq c lvl lv st with k := (bSq c lvl lv st).k + lv.queries })
+
 theorem osLevelB_eq : osLevelB c lvl lv st =
     if lvl = c.yrLevel then
       ((osSqueezes c lvl lv st).1 ++
@@ -97,12 +102,13 @@ theorem le_ceilDiv_mul {a b : ℕ} (hb : 1 ≤ b) : a ≤ ceilDiv a b * b := by
   omega
 
 /-- The squeezes, the weights and the queries of a level. -/
-theorem osLevelB_common {c : OsCfg} {lvl : ℕ} {lv : OsLv} {st : OsSt} {level : Whir.Level}
+theorem osLevelB_common {C : CallRel} (hle : CallRel.Le C (coreProgram.Rel rd)) {c : OsCfg}
+    {lvl : ℕ} {lv : OsLv} {st : OsSt} {level : Whir.Level}
     {ml : ℕ} (hcfg : LvB c lvl lv level ml)
     (hsq : AllOk (coreProgram.Rel rd) rd σ (osSqueezes c lvl lv st).1)
     (hlp : AllOk (coreProgram.Rel rd) rd σ
       (osLamPows (bLam c lvl lv st) (lvl * c.maxQ) (bSq c lvl lv st).k lv.queries))
-    (hq : AllOk (coreProgram.Rel rd) rd σ (bQ c lvl lv st).1)
+    (hq : AllOk C rd σ (bQ c lvl lv st).1)
     (hloop : FnIs (c.sqLoop lvl) (osParams 5) (sqLoopBody lv (c.sqLoop lvl)))
     (hdec : ∀ args rets, coreProgram.Rel rd ("decode_query_bits__L" ++ natStr lv.depth) args rets →
       MeaningDecodeQueryBits lv.depth rd args rets)
@@ -111,8 +117,15 @@ theorem osLevelB_common {c : OsCfg} {lvl : ℕ} {lv : OsLv} {st : OsSt} {level :
         MeaningOpeningRowWeights lv.folds (if lvl = 0 then 1 else 0) rd args rets)
     (hCap : ∀ args rets, coreProgram.Rel rd ("verify_merkle_cap__L" ++ natStr lv.capDepth) args rets →
       MeaningVerifyMerkleCap lv.capDepth rd args rets)
-    (hQ : opening_queries_Spec (osQueriesName lvl lv) (lv.queries % 2 * (if lvl = 0 then 1 else 0))
-      (if lvl = 0 then 1 else 0) lv.interleave lv.depth lv.capDepth)
+    (W : List E → List E → List QW)
+    (hQW : ∀ args rets, C (osQueriesName lvl lv) args rets →
+      args.getD 6 0 = gen ^ (lv.queries / (1 + if lvl = 0 then 1 else 0)) →
+      lv.queries / (1 + if lvl = 0 then 1 else 0) < ordG → lv.capDepth ≤ lv.depth →
+      (∀ N, args.getD 6 0 = gen ^ N → N < ordG → QueryBitsBool rd (args.getD 4 0)
+        (oqCount (lv.queries % 2 * (if lvl = 0 then 1 else 0)) (if lvl = 0 then 1 else 0) N)
+        lv.depth) →
+      MeaningOpeningQueriesW (lv.queries % 2 * (if lvl = 0 then 1 else 0))
+        (if lvl = 0 then 1 else 0) lv.interleave lv.depth lv.capDepth rd (W args rets) args rets)
     (hfs : st.fs.length = 5) (hpad : PadOk σ st.pad)
     {lf : List E} (hlf : lf.length = lv.folds)
     (hfch : ∀ j < lv.folds, LoadHolds rd (σ (.n osFch)) (lv.foldsOff + j) (lf.getD j 0))
@@ -128,7 +141,7 @@ theorem osLevelB_common {c : OsCfg} {lvl : ℕ} {lv : OsLv} {st : OsSt} {level :
     (∀ k < lv.queries, LoadHolds rd (σ (.n osQpos)) (lv.posOff + k) (eOfNat (qs.getD k 0))) ∧
     (∀ i < lv.queries, LoadHolds rd (σ (.n osQw)) (lvl * c.maxQ + i)
       (σ (.n (bLam c lvl lv st)) ^ i)) ∧
-    ∃ (os : List Opening) (ic0 ic2 : E), os.length = lv.queries ∧
+    ∃ (os : List Opening) (ic0 ic2 : E), os = bOs c lvl lv st rd σ W ∧ os.length = lv.queries ∧
       (∀ k (hk : k < qs.length) (ho : k < os.length),
         Id.run (Compile.openOne (m := Id) keccak256 root lv.depth
           (if lvl = 0 then lv.interleave else 3 * lv.interleave) qs[k] os[k]) = true) ∧
@@ -160,11 +173,11 @@ theorem osLevelB_common {c : OsCfg} {lvl : ℕ} {lv : OsLv} {st : OsSt} {level :
   have hqn : ¬ lv.queries ≤ 1 := by omega
   have hlamN' : σ (.n (bLamN c lvl lv st)) = σ (.n (bLam c lvl lv st)) ^ lv.queries := by
     simp only [bLamN, hqn, ↓reduceIte]; exact hlamN
-  obtain ⟨os, ic0, ic2, hol, hop, hsum, hrd, e0, e2, e1⟩ :=
-    osQueries_sound hq hrow hcd hcdd hRW hCap hQ hlf hfch hr0 hr1 qs hqlt
+  obtain ⟨ic0, ic2, hol, hop, hsum, hrd, e0, e2, e1⟩ :=
+    osQueries_sound hle hq hrow hcd hcdd hRW hCap W hQW hlf hfch hr0 hr1 qs hqlt
       (fun k hk ↦ (tab k hk).2) hlamN' hbo
   refine ⟨hlam, hfsv, hpad', hfs', by simp [qs, queriesOf], hqlt, fun k hk ↦ (tab k hk).1, hw,
-    os, ic0, ic2, hol, hop, hsum, ?_, e0, e2, e1⟩
+    _, ic0, ic2, rfl, hol, hop, hsum, ?_, e0, e2, e1⟩
   exact hrd
 
 theorem specRows_eq (lvl : ℕ) (words : List (List K)) :
@@ -221,9 +234,10 @@ theorem levelRest_run {ml lvl : ℕ} {level : Whir.Level} {lf : List E} {ws : Wh
     (runsWith_ret _ _ _))))) rfl (by simp) (by simp) rfl rfl rfl rfl
 
 /-- **A level's queries and glue.** -/
-theorem osLevelB_sound {c : OsCfg} {lvl : ℕ} {lv : OsLv} {st : OsSt} {level : Whir.Level}
+theorem osLevelB_sound {C : CallRel} (hle : CallRel.Le C (coreProgram.Rel rd)) {c : OsCfg}
+    {lvl : ℕ} {lv : OsLv} {st : OsSt} {level : Whir.Level}
     {ml : ℕ} (hcfg : LvB c lvl lv level ml)
-    (hok : AllOk (coreProgram.Rel rd) rd σ (osLevelB c lvl lv st).1)
+    (hok : AllOk C rd σ (osLevelB c lvl lv st).1)
     (hloop : FnIs (c.sqLoop lvl) (osParams 5) (sqLoopBody lv (c.sqLoop lvl)))
     (hdec : ∀ args rets, coreProgram.Rel rd ("decode_query_bits__L" ++ natStr lv.depth) args rets →
       MeaningDecodeQueryBits lv.depth rd args rets)
@@ -232,8 +246,15 @@ theorem osLevelB_sound {c : OsCfg} {lvl : ℕ} {lv : OsLv} {st : OsSt} {level : 
         MeaningOpeningRowWeights lv.folds (if lvl = 0 then 1 else 0) rd args rets)
     (hCap : ∀ args rets, coreProgram.Rel rd ("verify_merkle_cap__L" ++ natStr lv.capDepth) args rets →
       MeaningVerifyMerkleCap lv.capDepth rd args rets)
-    (hQ : opening_queries_Spec (osQueriesName lvl lv) (lv.queries % 2 * (if lvl = 0 then 1 else 0))
-      (if lvl = 0 then 1 else 0) lv.interleave lv.depth lv.capDepth)
+    (W : List E → List E → List QW)
+    (hQW : ∀ args rets, C (osQueriesName lvl lv) args rets →
+      args.getD 6 0 = gen ^ (lv.queries / (1 + if lvl = 0 then 1 else 0)) →
+      lv.queries / (1 + if lvl = 0 then 1 else 0) < ordG → lv.capDepth ≤ lv.depth →
+      (∀ N, args.getD 6 0 = gen ^ N → N < ordG → QueryBitsBool rd (args.getD 4 0)
+        (oqCount (lv.queries % 2 * (if lvl = 0 then 1 else 0)) (if lvl = 0 then 1 else 0) N)
+        lv.depth) →
+      MeaningOpeningQueriesW (lv.queries % 2 * (if lvl = 0 then 1 else 0))
+        (if lvl = 0 then 1 else 0) lv.interleave lv.depth lv.capDepth rd (W args rets) args rets)
     (hfs : st.fs.length = 5) (hpad : PadOk σ st.pad)
     {ws : WhirState} (hquad : ws.quad = st.quad σ) (ht : ws.target = σ (.n st.t))
     {lf : List E} (hlf : lf.length = lv.folds)
@@ -244,7 +265,7 @@ theorem osLevelB_sound {c : OsCfg} {lvl : ℕ} {lv : OsLv} {st : OsSt} {level : 
     (hr1 : LoadHolds rd (σ (.n osRoots)) (2 * lvl + 1) (digestScalars root).2)
     {pending : List (E × List E × (List E → E))} (hpend : PendOk rd σ c lvl pending) :
     ∃ (xs : List E) (os : List Opening) (ws' : WhirState) (lam : E) (qs : List ℕ),
-      ReadsAt rd (st.cur σ) xs ∧ xs.length = 2 ∧
+      os = bOs c lvl lv st rd σ W ∧ ReadsAt rd (st.cur σ) xs ∧ xs.length = 2 ∧
       RunsWith (levelRest ml lvl level lf ws pending) ⟨st.fsv σ, []⟩ xs os R ws'
         ((osLevelB c lvl lv st).2.F σ) R ∧
       ws'.quad = (osLevelB c lvl lv st).2.quad σ ∧ ws'.target = σ (.n (osLevelB c lvl lv st).2.t) ∧
@@ -265,8 +286,9 @@ theorem osLevelB_sound {c : OsCfg} {lvl : ℕ} {lv : OsLv} {st : OsSt} {level : 
     have hpend' : pending = [] := by
       have := hpend; unfold PendOk at this; simpa only [hc, ↓reduceIte] using this
     subst hpend'
-    obtain ⟨hlam, hfsv, hpad', hfs', hqlen, hqlt, hpos, hw, os, ic0, ic2, hol, hop, hsum, hrd, e0,
-      e2, e1⟩ := osLevelB_common hcfg hsq hlp hq hloop hdec hRW hCap hQ hfs hpad hlf hfch hr0 hr1
+    obtain ⟨hlam, hfsv, hpad', hfs', hqlen, hqlt, hpos, hw, os, ic0, ic2, hos, hol, hop, hsum, hrd, e0,
+      e2, e1⟩ := osLevelB_common hle hcfg (allOk_mono hle hsq) (allOk_mono hle hlp) hq hloop hdec hRW hCap W hQW hfs
+      hpad hlf hfch hr0 hr1
     obtain ⟨gq, gt⟩ := osGlue_sound hgl
     have hd := hcfg.depth.symm
     have hqq := hcfg.queries
@@ -277,7 +299,7 @@ theorem osLevelB_sound {c : OsCfg} {lvl : ℕ} {lv : OsLv} {st : OsSt} {level : 
     have hql : (queriesOf (192 / lv.depth) lv.depth
         (Fs.squeezeN lv.squeezes ⟨st.fsv σ, []⟩).1 lv.queries).length = lv.queries := by
       simp [queriesOf]
-    refine ⟨_, os, _, _, _, hrd, rfl, RunsWith.of_eq hrun rfl rfl rfl rfl rfl ?_ rfl, ?_, ?_,
+    refine ⟨_, os, _, _, _, hos, hrd, rfl, RunsWith.of_eq hrun rfl rfl rfl rfl rfl ?_ rfl, ?_, ?_,
       ⟨_, _, rfl⟩, ⟨hqlen, hqlt, hpos, fun i hi ↦ by rw [← hlam]; exact hw i hi,
         by simp only [hc, ↓reduceIte]; rw [← hlam]; exact hbeta, fun h ↦ absurd hfin h⟩, hfs',
       hpad', rfl, rfl⟩
@@ -304,8 +326,9 @@ theorem osLevelB_sound {c : OsCfg} {lvl : ℕ} {lv : OsLv} {st : OsSt} {level : 
         LoadHolds rd (σ (.n osOod)) ((lvl + 1) * oodSlots + 3) c2 := by
       have := hpend; unfold PendOk at this; simpa only [hc, ↓reduceIte] using this
     subst hpe
-    obtain ⟨hlam, hfsv, hpad', hfs', hqlen, hqlt, hpos, hw, os, ic0, ic2, hol, hop, hsum, hrd, e0,
-      e2, e1⟩ := osLevelB_common hcfg hsq hlp hq hloop hdec hRW hCap hQ hfs hpad hlf hfch hr0 hr1
+    obtain ⟨hlam, hfsv, hpad', hfs', hqlen, hqlt, hpos, hw, os, ic0, ic2, hos, hol, hop, hsum, hrd, e0,
+      e2, e1⟩ := osLevelB_common hle hcfg (allOk_mono hle hsq) (allOk_mono hle hlp) hq hloop hdec hRW hCap W hQW hfs
+      hpad hlf hfch hr0 hr1
     obtain ⟨y', c0', c2', hy', hc0', hc2', hlo, oq, ot, ob⟩ := osOodGlue_sound hog
     rw [loadHolds_unique hy' hy] at oq ot
     rw [loadHolds_unique hc0' hc0] at oq
@@ -323,7 +346,7 @@ theorem osLevelB_sound {c : OsCfg} {lvl : ℕ} {lv : OsLv} {st : OsSt} {level : 
     have hql : (queriesOf (192 / lv.depth) lv.depth
         (Fs.squeezeN lv.squeezes ⟨st.fsv σ, []⟩).1 lv.queries).length = lv.queries := by
       simp [queriesOf]
-    refine ⟨_, os, _, _, _, hrd, rfl, RunsWith.of_eq hrun rfl rfl rfl rfl rfl ?_ rfl, ?_, ?_,
+    refine ⟨_, os, _, _, _, hos, hrd, rfl, RunsWith.of_eq hrun rfl rfl rfl rfl rfl ?_ rfl, ?_, ?_,
       ⟨_, _, rfl⟩, ⟨hqlen, hqlt, hpos, fun i hi ↦ by rw [← hlam]; exact hw i hi,
         by simp only [hc, ↓reduceIte]; rw [← hlam, ← ob]; exact hbeta,
         fun _ ↦ by rw [← hlam]; exact hlo⟩, hfs', hpad', rfl, rfl⟩
