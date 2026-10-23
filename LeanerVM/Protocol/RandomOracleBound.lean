@@ -1,0 +1,693 @@
+/-
+  LeanerVM.Protocol.RandomOracleBound
+
+  The potential of the random-oracle bound: the sum, over the open groups of Fiat–Shamir queries,
+  of their probabilities of closing on a bad challenge, and `1` once the hash has misbehaved. At a
+  fresh query it grows in expectation by at most a charge: the chance the answer is a digest it
+  must avoid, and the probabilities of the groups the query opens.
+-/
+
+module
+
+public import LeanerVM.Protocol.ChainGroups
+public import LeanerVM.Protocol.ToVCVio.ChargedInvariant
+public import LeanerVM.Protocol.ToVCVio.UniformCondition
+
+/-!
+# The potential of the random-oracle bound
+
+The lazy random oracle's state, `QueryHistory.freshLog`'s, is its cache and the log of its fresh
+queries (`OracleState`). A log is `Clean` when it has no collision, no hit on the digests in play
+from `seedRoots`, no query answered by one of its own halves, no flip (`SlotReader.FlipAt`), and
+no query after the first `k₀` answered by one of `proofRoots`.
+
+* `Φ`: on a state whose log is its cache's (`QueryHistory.IsFreshLog`) and clean, the sum over the
+  open groups of their probabilities `π` of closing on a bad challenge; `1` on any other state.
+* `charge s t`: on such a state, the probability `|B| / 2^256` that the answer to `t` is one of the
+  digests `B` it must avoid (`badDigests`: an answer of the log, a digest in play, a half of `t`,
+  and a root of `proofRoots` past the first `k₀` queries), plus the probabilities of the groups
+  `t` opens.
+* `potential_step`: at every fresh query, the expected potential after the uniform answer is at
+  most the potential before plus the charge, the step of `QueryHistory.potential_le_expected_charge`.
+  An answer to avoid makes the potential `1`; any other answer keeps the log clean but for a flip,
+  which is a group open before or opened by the query reaching probability `1`, and moves only the
+  groups the query touches, each a step of a martingale (`lintegral_π_le`): the probability of a
+  group is the expectation, over the next answer, of its probability after it.
+* `π_le_of_not_asked`: a group with no logged query closes on a bad challenge with probability at
+  most `ε`, when every challenge is bad with probability at most `ε` (a marked one after a uniform
+  check passes); `sum_openedBy_le`: the groups one query opens are worth `ε` together;
+  `charge_le`: within `L` queries the charge is at most
+  `(4L + |seedRoots| + |proofRoots|) / 2^256 + ε`.
+* `Φ_empty`: the potential starts at `0`; `Φ_start`: with the roots past a whole log it is the
+  potential with no roots; `one_le_Φ`: it is at least `1` off a clean state.
+-/
+
+namespace LeanerVM.Protocol
+
+open LeanerVM.Parameters LeanerVM.Semantics Blake2sHash OracleComp OracleSpec ProtocolSpec
+  MeasureTheory
+open MerkleTree (logAnswer)
+open scoped ENNReal
+
+@[expose] public section
+
+/-- The state of the lazy random oracle that records its fresh queries: the cache and the log of
+fresh queries, in order. -/
+abbrev OracleState : Type := hashSpec.QueryCache × hashSpec.QueryLog
+
+/-- The digests the answer to a fresh query `t` must avoid: the log's answers, the digests in play,
+the halves of `t`, and, once the first `k₀` queries are asked, the roots `proofRoots`. -/
+def badDigests (seedRoots proofRoots : List Digest) (k₀ : ℕ) (l : hashSpec.QueryLog)
+    (t : List UInt8) : List Digest :=
+  l.map (·.2) ++ inPlay seedRoots l ++ halves t ++ if k₀ ≤ l.length then proofRoots else []
+
+namespace SlotReader
+
+variable (R : SlotReader) (seedRoots proofRoots : List Digest) (k₀ : ℕ)
+
+/-- **A clean log**: no collision, no hit, no query answered by one of its halves, no flip, and no
+query after the first `k₀` answered by a root of `proofRoots`. -/
+def Clean (l : hashSpec.QueryLog) : Prop :=
+  CleanLog seedRoots l ∧ (∀ e ∈ l, e.2 ∉ halves e.1) ∧ ¬ R.FlipAt l ∧
+    ∀ e ∈ l.drop k₀, e.2 ∉ proofRoots
+
+open Classical in
+/-- **The potential**: on a state whose log is its cache's and clean, the sum over the open groups
+of their probabilities of closing on a bad challenge; `1` on any other state. -/
+noncomputable def Φ (s : OracleState) : ℝ≥0∞ :=
+  if QueryHistory.IsFreshLog s ∧ R.Clean seedRoots proofRoots k₀ s.2 then
+    ∑ G ∈ R.openGroups s.2, R.π s.2 G
+  else 1
+
+open Classical in
+/-- **The charge of a fresh query**: on a state whose log is its cache's and clean, the chance that
+its answer is a digest to avoid, and the probabilities of the groups it opens. -/
+noncomputable def charge (s : OracleState) (t : List UInt8) : ℝ≥0∞ :=
+  if QueryHistory.IsFreshLog s ∧ R.Clean seedRoots proofRoots k₀ s.2 then
+    ((badDigests seedRoots proofRoots k₀ s.2 t).length : ℝ≥0∞) / 2 ^ 256 +
+      ∑ G ∈ R.openedBy s.2 t, R.π s.2 G
+  else 0
+
+end SlotReader
+
+/-! ## Clean logs and answers to avoid -/
+
+variable {R : SlotReader} {seedRoots proofRoots : List Digest} {k₀ : ℕ} {l : hashSpec.QueryLog}
+  {t : List UInt8} {u : Digest}
+
+/-- A fresh query answered by a digest it need not avoid is a clean step. -/
+theorem cleanStep_of_not_mem (hfr : QueryLog.Fresh l t)
+    (hu : u ∉ badDigests seedRoots proofRoots k₀ l t) : CleanStep seedRoots l t u := by
+  simp only [badDigests, List.mem_append, not_or] at hu
+  exact ⟨hfr, fun e he h ↦ hu.1.1.1 (h ▸ List.mem_map_of_mem he), hu.1.1.2, hu.1.2⟩
+
+/-- A query of a log whose cache is its log is fresh when the cache does not hold it. -/
+theorem fresh_of_isFreshLog {s : OracleState} (hs : QueryHistory.IsFreshLog s)
+    (ht : s.1 t = none) : QueryLog.Fresh s.2 t := fun e he het ↦ by
+  have := hs.1 e he
+  obtain ⟨t', u'⟩ := e
+  simp only at het this
+  subst het
+  rw [ht] at this
+  cases this
+
+/-- A log clean after one more query is clean before it. -/
+theorem SlotReader.Clean.of_append (h : R.Clean seedRoots proofRoots k₀ (l ++ [⟨t, u⟩])) :
+    R.Clean seedRoots proofRoots k₀ l := by
+  obtain ⟨hl, hh, hf, hr⟩ := h
+  refine ⟨hl.of_append, fun e he ↦ hh e (List.mem_append_left _ he),
+    fun h ↦ hf (R.flipAt_append_of_flipAt hl h), fun e he ↦ hr e ?_⟩
+  rw [List.drop_append]
+  exact List.mem_append_left _ he
+
+/-- One more query answered by a digest it need not avoid keeps a clean log clean, unless it makes
+a flip. -/
+theorem SlotReader.Clean.append (h : R.Clean seedRoots proofRoots k₀ l) (hfr : QueryLog.Fresh l t)
+    (hu : u ∉ badDigests seedRoots proofRoots k₀ l t) (hf : ¬ R.FlipAt (l ++ [⟨t, u⟩])) :
+    R.Clean seedRoots proofRoots k₀ (l ++ [⟨t, u⟩]) := by
+  obtain ⟨hl, hh, -, hr⟩ := h
+  have hs := cleanStep_of_not_mem hfr hu
+  refine ⟨hl.append hs, fun e he ↦ ?_, hf, fun e he ↦ ?_⟩
+  · rcases List.mem_append.mp he with he | he
+    · exact hh e he
+    · obtain rfl := List.mem_singleton.mp he
+      exact hs.notHalf
+  · rw [List.drop_append] at he
+    rcases List.mem_append.mp he with he | he
+    · exact hr e he
+    · have hk : k₀ ≤ l.length := by
+        by_contra hk
+        rw [List.drop_eq_nil_of_le (by simp only [List.length_singleton]; omega)] at he
+        simp at he
+      have hd : List.drop (k₀ - l.length) [(⟨t, u⟩ : (_ : List UInt8) × Digest)] =
+          [⟨t, u⟩] := by simp [show k₀ - l.length = 0 by omega]
+      rw [hd] at he
+      obtain rfl := List.mem_singleton.mp he
+      simp only [badDigests, hk, ↓reduceIte, List.mem_append, not_or] at hu
+      exact hu.2
+
+/-- An answer to avoid leaves no clean log. -/
+theorem SlotReader.not_clean_of_mem (hfr : QueryLog.Fresh l t)
+    (hu : u ∈ badDigests seedRoots proofRoots k₀ l t) :
+    ¬ R.Clean seedRoots proofRoots k₀ (l ++ [⟨t, u⟩]) := by
+  rintro ⟨hl', hh, -, hr⟩
+  simp only [badDigests, List.mem_append] at hu
+  rcases hu with ((hu | hu) | hu) | hu
+  · obtain ⟨e, he, rfl⟩ := List.mem_map.mp hu
+    refine hl'.noCollision ⟨e, List.mem_append_left _ he, ⟨t, e.2⟩, by simp, ?_, rfl⟩
+    exact fun h ↦ hfr e he h
+  · exact hl'.notInPlay_of_append hu
+  · exact hh ⟨t, u⟩ (by simp) hu
+  · split at hu
+    · rename_i hk
+      refine hr ⟨t, u⟩ ?_ hu
+      rw [List.drop_append]
+      exact List.mem_append_right _ (by simp [show k₀ - l.length = 0 by omega])
+    · simp at hu
+
+/-! ## A group's probability is a martingale -/
+
+/-- One more fresh squeeze, conditioned on: the probability over the unasked squeezes after the
+squeezes `r` is the expectation, over the next one, of the probability over the rest. -/
+theorem prEvent_squeezes_succ (Q : Digest → List Digest → Prop) (r : List Digest) (k : ℕ) :
+    Pr{let z ← $ᵗ (Digest × (Fin (k + 1) → Digest))}[Q z.1 (r ++ List.ofFn z.2)] =
+      ∫⁻ p, p ∂𝒟[(fun x ↦ Pr{let z ← $ᵗ (Digest × (Fin k → Digest))}[
+        Q z.1 (r ++ [x] ++ List.ofFn z.2)]) <$> ($ᵗ Digest)] := by
+  rw [prEvent_uniformSample_prod_finCons_eq_lintegral (fun z ↦ Q z.1 (r ++ List.ofFn z.2))]
+  simp only [List.ofFn_succ, Fin.cons_zero, Fin.cons_succ, List.append_assoc,
+    List.singleton_append]
+
+/-- The fresh check, conditioned on. -/
+theorem prEvent_check (Q : Digest → List Digest → Prop) (r : List Digest) (k : ℕ) :
+    Pr{let z ← $ᵗ (Digest × (Fin k → Digest))}[Q z.1 (r ++ List.ofFn z.2)] =
+      ∫⁻ p, p ∂𝒟[(fun x ↦ Pr{let w ← $ᵗ (Fin k → Digest)}[Q x (r ++ List.ofFn w)]) <$>
+        ($ᵗ Digest)] :=
+  prEvent_uniformSample_prod_eq_lintegral (fun z ↦ Q z.1 (r ++ List.ofFn z.2))
+
+/-- A squeeze is no grinding check. -/
+theorem squeezeInput_ne_checkInput (x b : Digest) (n : E) : squeezeInput x ≠ checkInput b n :=
+  fun h ↦ by simpa using (input_inj (h.trans (checkInput_eq b n))).2
+
+/-- A squeeze is no nonce step. -/
+theorem squeezeInput_ne_absorbInput (x cv : Digest) (n : E) : squeezeInput x ≠ absorbInput cv n :=
+  fun h ↦ by simpa using (input_inj h).2
+
+/-- A group's probability, at the challenge it fixes. -/
+theorem SlotReader.π_eq_of_groupSlot {l' : hashSpec.QueryLog} {G : Group} {a : R.Ann}
+    {i : (R.spec a).ChallengeIdx} {tr : (R.spec a).Transcript i.1.castSucc}
+    (h : R.groupSlot l' G = some ⟨a, i, tr⟩) :
+    R.π l' G = Pr{let z ← $ᵗ (Digest × (Fin ((R.slot a i).m -
+      (G.run l' (R.slot a i).m).length) → Digest))}[(G.nonce.isSome = true →
+        FsState.lowBitsZero ((G.check? l').getD z.1) R.powBits = true) ∧
+      (R.slot a i).assemble (fun j ↦ (G.run l' (R.slot a i).m ++ List.ofFn z.2).getD j
+        default) ∈ R.Bad a i tr] := by
+  simp only [SlotReader.π, h]
+
+/-- The martingale step at the group's next squeeze: the probability is the expectation, over
+the squeeze's answer, of the probability with the answer logged. -/
+private theorem SlotReader.lintegral_π_le_of_squeeze (hfr : QueryLog.Fresh l t) {G : Group}
+    {a : R.Ann} {i : (R.spec a).ChallengeIdx} {tr : (R.spec a).Transcript i.1.castSucc}
+    (hg : R.groupSlot l G = some ⟨a, i, tr⟩)
+    (hstep : ∀ u, u ∉ badDigests seedRoots proofRoots k₀ l t → CleanStep seedRoots l t u)
+    (hg' : ∀ u, u ∉ badDigests seedRoots proofRoots k₀ l t →
+      R.groupSlot (l ++ [⟨t, u⟩]) G = some ⟨a, i, tr⟩)
+    {s₀ : Digest} (hs₀ : G.start? l = some s₀)
+    (hlen : (squeezeRun l s₀ (R.slot a i).m).length < (R.slot a i).m)
+    (ht : t = squeezeInput ((squeezeRun l s₀ (R.slot a i).m).getLastD s₀)) :
+    ∫⁻ p, p ∂𝒟[(fun u ↦ if u ∈ badDigests seedRoots proofRoots k₀ l t then 0
+      else R.π (l ++ [⟨t, u⟩]) G) <$> ($ᵗ Digest)] ≤ R.π l G := by
+  have hrun : G.run l (R.slot a i).m = squeezeRun l s₀ (R.slot a i).m := by
+    simp [Group.run, hs₀]
+  have hk : (R.slot a i).m - (G.run l (R.slot a i).m).length =
+      ((R.slot a i).m - ((G.run l (R.slot a i).m).length + 1)) + 1 := by
+    rw [hrun]; omega
+  rw [R.π_eq_of_groupSlot hg, hk]
+  refine le_of_le_of_eq ?_ (prEvent_squeezes_succ (fun c ds ↦ (G.nonce.isSome = true →
+    FsState.lowBitsZero ((G.check? l).getD c) R.powBits = true) ∧
+      (R.slot a i).assemble (fun j ↦ ds.getD j default) ∈ R.Bad a i tr)
+        (G.run l (R.slot a i).m) ((R.slot a i).m - ((G.run l (R.slot a i).m).length + 1))).symm
+  refine lintegral_id_evalDist_map_mono _ fun u ↦ ?_
+  split_ifs with hu
+  · exact zero_le
+  have hc : G.check? (l ++ [⟨t, u⟩]) = G.check? l :=
+    Group.check?_append (hstep u hu) fun n b _ _ h ↦
+      squeezeInput_ne_checkInput _ b n (ht.symm.trans h)
+  have hst : G.start? (l ++ [⟨t, u⟩]) = G.start? l :=
+    Group.start?_append fun n _ h ↦ squeezeInput_ne_absorbInput _ G.cv n (ht.symm.trans h)
+  have hr : G.run (l ++ [⟨t, u⟩]) (R.slot a i).m = G.run l (R.slot a i).m ++ [u] := by
+    simp only [Group.run, hst, hs₀]
+    rw [squeezeRun_append (hstep u hu).logAnswer_squeezeInput hfr]
+    simp [hlen, ht]
+  rw [R.π_eq_of_groupSlot (hg' u hu), hc, hr, List.length_append, List.length_singleton]
+
+/-- The martingale step at the group's check: the probability is the expectation, over the
+check's answer, of the probability with the answer logged. -/
+private theorem SlotReader.lintegral_π_le_of_check (hfr : QueryLog.Fresh l t) {G : Group}
+    {a : R.Ann} {i : (R.spec a).ChallengeIdx} {tr : (R.spec a).Transcript i.1.castSucc}
+    (hg : R.groupSlot l G = some ⟨a, i, tr⟩)
+    (hstep : ∀ u, u ∉ badDigests seedRoots proofRoots k₀ l t → CleanStep seedRoots l t u)
+    (hg' : ∀ u, u ∉ badDigests seedRoots proofRoots k₀ l t →
+      R.groupSlot (l ++ [⟨t, u⟩]) G = some ⟨a, i, tr⟩)
+    {n : E} {b : Digest} (hn : G.nonce = some n) (hb : logAnswer l (baseInput G.cv) = some b)
+    (ht : t = checkInput b n) :
+    ∫⁻ p, p ∂𝒟[(fun u ↦ if u ∈ badDigests seedRoots proofRoots k₀ l t then 0
+      else R.π (l ++ [⟨t, u⟩]) G) <$> ($ᵗ Digest)] ≤ R.π l G := by
+  have hc₀ : G.check? l = none := by
+    simp [Group.check?, hn, hb, ← ht, logAnswer_eq_none_iff.mpr hfr]
+  have hrun : ∀ u, u ∉ badDigests seedRoots proofRoots k₀ l t →
+      G.run (l ++ [⟨t, u⟩]) (R.slot a i).m = G.run l (R.slot a i).m := by
+    intro u hu
+    unfold Group.run
+    cases hs₀ : G.start? l with
+    | none =>
+      have : G.start? (l ++ [⟨t, u⟩]) = none ∨ G.start? (l ++ [⟨t, u⟩]) = some u := by
+        simp only [Group.start?, hn] at hs₀ ⊢
+        by_cases hta : absorbInput G.cv n = t
+        · rw [hta, logAnswer_append_self hfr]; exact .inr rfl
+        · rw [logAnswer_append_of_ne hta, hs₀]; exact .inl rfl
+      rcases this with h | h <;> rw [h]
+      exact squeezeRun_eq_nil (hstep u hu).logAnswer_squeezeInput _
+    | some s₀ =>
+      have : G.start? (l ++ [⟨t, u⟩]) = some s₀ := by
+        simp only [Group.start?, hn] at hs₀ ⊢
+        exact logAnswer_append_of_eq_some hs₀
+      rw [this]
+      dsimp only
+      rw [squeezeRun_append (hstep u hu).logAnswer_squeezeInput hfr]
+      split
+      · rename_i hcond
+        exact absurd (hcond.2.symm.trans ht) (squeezeInput_ne_checkInput _ b n)
+      · exact List.append_nil _
+  rw [R.π_eq_of_groupSlot hg, hc₀]
+  simp only [Option.getD_none]
+  rw [prEvent_check (fun c ds ↦ (G.nonce.isSome = true →
+    FsState.lowBitsZero c R.powBits = true) ∧
+      (R.slot a i).assemble (fun j ↦ ds.getD j default) ∈ R.Bad a i tr)]
+  refine lintegral_id_evalDist_map_mono _ fun u ↦ ?_
+  split_ifs with hu
+  · exact zero_le
+  have hc : G.check? (l ++ [⟨t, u⟩]) = some u := by
+    simp only [Group.check?, hn, Option.bind_some]
+    rw [logAnswer_append_of_eq_some hb, Option.bind_some, ← ht, logAnswer_append_self hfr]
+  rw [R.π_eq_of_groupSlot (hg' u hu), hc, hrun u hu]
+  simp only [Option.getD_some]
+  exact (prEvent_uniformSample_snd (α := Digest)
+    (fun w : Fin ((R.slot a i).m - (G.run l (R.slot a i).m).length) → Digest ↦
+      (G.nonce.isSome = true → FsState.lowBitsZero u R.powBits = true) ∧
+        (R.slot a i).assemble (fun j ↦ (G.run l (R.slot a i).m ++ List.ofFn w).getD j default) ∈
+          R.Bad a i tr)).le
+
+/-- The martingale step at any other query: the group's check and squeezes stay as they were,
+its nonce step's answer included, which no squeeze follows. -/
+private theorem SlotReader.lintegral_π_le_of_other (hfr : QueryLog.Fresh l t) {G : Group}
+    {a : R.Ann} {i : (R.spec a).ChallengeIdx} {tr : (R.spec a).Transcript i.1.castSucc}
+    (hg : R.groupSlot l G = some ⟨a, i, tr⟩)
+    (hstep : ∀ u, u ∉ badDigests seedRoots proofRoots k₀ l t → CleanStep seedRoots l t u)
+    (hg' : ∀ u, u ∉ badDigests seedRoots proofRoots k₀ l t →
+      R.groupSlot (l ++ [⟨t, u⟩]) G = some ⟨a, i, tr⟩)
+    (hA : ¬ ∃ s₀, G.start? l = some s₀ ∧
+      (squeezeRun l s₀ (R.slot a i).m).length < (R.slot a i).m ∧
+        t = squeezeInput ((squeezeRun l s₀ (R.slot a i).m).getLastD s₀))
+    (hB : ¬ ∃ n b, G.nonce = some n ∧ logAnswer l (baseInput G.cv) = some b ∧
+      t = checkInput b n) :
+    ∫⁻ p, p ∂𝒟[(fun u ↦ if u ∈ badDigests seedRoots proofRoots k₀ l t then 0
+      else R.π (l ++ [⟨t, u⟩]) G) <$> ($ᵗ Digest)] ≤ R.π l G := by
+  refine lintegral_id_evalDist_map_le_of_le _ fun u ↦ ?_
+  split_ifs with hu
+  · exact zero_le
+  have hc : G.check? (l ++ [⟨t, u⟩]) = G.check? l :=
+    Group.check?_append (hstep u hu) fun n b hn hb h ↦ hB ⟨n, b, hn, hb, h⟩
+  have hr : G.run (l ++ [⟨t, u⟩]) (R.slot a i).m = G.run l (R.slot a i).m := by
+    unfold Group.run
+    by_cases hC : ∃ n, G.nonce = some n ∧ t = absorbInput G.cv n
+    · obtain ⟨n, hn, ht⟩ := hC
+      have h₀ : G.start? l = none := by
+        simp [Group.start?, hn, ← ht, logAnswer_eq_none_iff.mpr hfr]
+      have h₁ : G.start? (l ++ [⟨t, u⟩]) = some u := by
+        simp [Group.start?, hn, ← ht, logAnswer_append_self hfr]
+      rw [h₀, h₁]
+      exact squeezeRun_eq_nil (hstep u hu).logAnswer_squeezeInput _
+    · rw [Group.start?_append fun n hn h ↦ hC ⟨n, hn, h⟩]
+      cases hs₀ : G.start? l with
+      | none => rfl
+      | some s₀ =>
+        dsimp only
+        rw [squeezeRun_append (hstep u hu).logAnswer_squeezeInput hfr]
+        split
+        · rename_i hcond
+          exact absurd ⟨s₀, hs₀, hcond.1, hcond.2⟩ hA
+        · exact List.append_nil _
+  rw [R.π_eq_of_groupSlot (hg' u hu), R.π_eq_of_groupSlot hg, hc, hr]
+
+/-- **A group's probability is a martingale**: over a fresh answer to `t`, the expected probability
+that a group closes on a bad challenge after the answer, counting nothing on an answer to avoid, is
+at most its probability before. The answer is one of the group's unasked queries (its next
+squeeze, its check) or leaves the group as it was. -/
+theorem SlotReader.lintegral_π_le (hl : CleanLog seedRoots l) (hfr : QueryLog.Fresh l t)
+    {G : Group} (hG : ∀ u, u ∉ badDigests seedRoots proofRoots k₀ l t → G.cv ≠ u) :
+    ∫⁻ p, p ∂𝒟[(fun u ↦ if u ∈ badDigests seedRoots proofRoots k₀ l t then 0
+      else R.π (l ++ [⟨t, u⟩]) G) <$> ($ᵗ Digest)] ≤ R.π l G := by
+  classical
+  have hstep : ∀ u, u ∉ badDigests seedRoots proofRoots k₀ l t → CleanStep seedRoots l t u :=
+    fun u hu ↦ cleanStep_of_not_mem hfr hu
+  have hslot : ∀ u, u ∉ badDigests seedRoots proofRoots k₀ l t →
+      R.groupSlot (l ++ [⟨t, u⟩]) G = R.groupSlot l G :=
+    fun u hu ↦ R.groupSlot_append (hl.append (hstep u hu)) (hG u hu)
+  cases hg : R.groupSlot l G with
+  | none =>
+    refine lintegral_id_evalDist_map_le_of_le _ fun u ↦ ?_
+    split_ifs with hu
+    · exact zero_le
+    · simp [SlotReader.π, hslot u hu, hg]
+  | some x =>
+    obtain ⟨a, i, tr⟩ := x
+    have hg' : ∀ u, u ∉ badDigests seedRoots proofRoots k₀ l t →
+        R.groupSlot (l ++ [⟨t, u⟩]) G = some ⟨a, i, tr⟩ := fun u hu ↦ (hslot u hu).trans hg
+    by_cases hA : ∃ s₀, G.start? l = some s₀ ∧
+        (squeezeRun l s₀ (R.slot a i).m).length < (R.slot a i).m ∧
+          t = squeezeInput ((squeezeRun l s₀ (R.slot a i).m).getLastD s₀)
+    · obtain ⟨s₀, hs₀, hlen, ht⟩ := hA
+      exact R.lintegral_π_le_of_squeeze hfr hg hstep hg' hs₀ hlen ht
+    by_cases hB : ∃ n b, G.nonce = some n ∧ logAnswer l (baseInput G.cv) = some b ∧
+        t = checkInput b n
+    · obtain ⟨n, b, hn, hb, ht⟩ := hB
+      exact R.lintegral_π_le_of_check hfr hg hstep hg' hn hb ht
+    · exact R.lintegral_π_le_of_other hfr hg hstep hg' hA hB
+
+/-! ## The step of the potential -/
+
+/-- A uniform digest is one of `B` with probability at most `|B| / 2^256`. -/
+theorem prEvent_mem_le : ∀ (B : List Digest),
+    Pr{let u ← $ᵗ Digest}[u ∈ B] ≤ (B.length : ℝ≥0∞) / 2 ^ 256
+  | [] => by
+    have : Pr{let u ← $ᵗ Digest}[u ∈ ([] : List Digest)] = 0 :=
+      (SampleableType.prEvent_uniformSample_eq_zero_iff _).mpr fun _ h ↦ by cases h
+    rw [this]
+    exact zero_le
+  | b :: B => by
+    refine (prEvent_mono _ _ (fun u ↦ u = b ∨ u ∈ B) fun u hu ↦ List.mem_cons.mp hu).trans ?_
+    refine (prEvent_or_le _ _ _).trans ?_
+    rw [SampleableType.prEvent_uniformSample_eq_singleton, card_digest]
+    refine (add_le_add le_rfl (prEvent_mem_le B)).trans (le_of_eq ?_)
+    rw [List.length_cons, Nat.cast_add, Nat.cast_one, ENNReal.add_div, add_comm, Nat.cast_pow,
+      Nat.cast_ofNat, one_div]
+
+/-- A sum over a union is at most the two sums. -/
+private theorem sum_union_le {α : Type} [DecidableEq α] (A B : Finset α) (f : α → ℝ≥0∞) :
+    ∑ x ∈ A ∪ B, f x ≤ ∑ x ∈ A, f x + ∑ x ∈ B, f x := by
+  rw [← Finset.sum_union_inter]
+  exact le_self_add
+
+/-- A group open in a log starts from a digest in play. -/
+theorem SlotReader.cv_mem_inPlay_of_mem_openGroups {G : Group} (h : G ∈ R.openGroups l) :
+    G.cv ∈ inPlay seedRoots l := by
+  rw [R.mem_openGroups_iff] at h
+  simp only [SlotReader.isOpen, Bool.and_eq_true] at h
+  obtain ⟨q, d, hq, hcv⟩ := Group.exists_query_of_asked h.1.2
+  exact mem_inPlay_of_logAnswer hq hcv
+
+/-- **The step of the potential**: at a fresh query, the expected potential after the uniform
+answer is at most the potential before plus the query's charge. -/
+theorem SlotReader.potential_step (s : OracleState) (t : List UInt8) (ht : s.1 t = none) :
+    ∫⁻ p, p ∂𝒟[(fun u ↦ R.Φ seedRoots proofRoots k₀ (QueryHistory.freshLog.record s t u)) <$>
+      ($ᵗ Digest)] ≤ R.Φ seedRoots proofRoots k₀ s + R.charge seedRoots proofRoots k₀ s t := by
+  classical
+  by_cases hgood : QueryHistory.IsFreshLog s ∧ R.Clean seedRoots proofRoots k₀ s.2
+  · obtain ⟨hinv, hcl⟩ := hgood
+    have hfr := fresh_of_isFreshLog hinv ht
+    have hrec : ∀ u, (QueryHistory.freshLog.record s t u).2 = s.2 ++ [⟨t, u⟩] := fun _ ↦ rfl
+    rw [SlotReader.Φ, ite_eq_left_of_eq_true _ _ (eq_true ⟨hinv, hcl⟩), SlotReader.charge,
+      ite_eq_left_of_eq_true _ _ (eq_true ⟨hinv, hcl⟩)]
+    set B := badDigests seedRoots proofRoots k₀ s.2 t with hB
+    have hpt : ∀ u, R.Φ seedRoots proofRoots k₀ (QueryHistory.freshLog.record s t u) ≤
+        ((if u ∈ B then 1 else 0) + ∑ G ∈ R.openGroups s.2,
+          (if u ∈ B then 0 else R.π (s.2 ++ [⟨t, u⟩]) G)) +
+        ∑ G ∈ R.openedBy s.2 t, (if u ∈ B then 0 else R.π (s.2 ++ [⟨t, u⟩]) G) := by
+      intro u
+      by_cases hu : u ∈ B
+      · rw [SlotReader.Φ, ite_eq_right_of_eq_false _ _
+          (eq_false fun h ↦ R.not_clean_of_mem hfr hu (hrec u ▸ h.2))]
+        simp [hu]
+      · simp only [hu, ↓reduceIte, zero_add]
+        have hs := cleanStep_of_not_mem hfr hu
+        refine le_trans ?_ (sum_union_le _ _ _)
+        by_cases hf : R.FlipAt (s.2 ++ [⟨t, u⟩])
+        · rw [SlotReader.Φ, ite_eq_right_of_eq_false _ _ (eq_false fun h ↦ (hrec u ▸ h.2).2.2.1 hf)]
+          obtain ⟨G, hG, -, hπ⟩ := R.flipAt_append hcl.1 hs hcl.2.2.1 hf
+          exact hπ ▸ Finset.single_le_sum (f := fun G ↦ R.π (s.2 ++ [⟨t, u⟩]) G)
+            (fun _ _ ↦ zero_le) hG
+        · rw [SlotReader.Φ, ite_eq_left_of_eq_true _ _
+            (eq_true ⟨hinv.record ht u, hrec u ▸ hcl.append hfr hu hf⟩), hrec u]
+          exact Finset.sum_le_sum_of_subset (R.openGroups_append_subset hcl.1 hs)
+    refine (lintegral_id_evalDist_map_mono _ hpt).trans ?_
+    rw [lintegral_id_evalDist_map_add, lintegral_id_evalDist_map_add,
+      lintegral_id_evalDist_map_finset_sum, lintegral_id_evalDist_map_finset_sum,
+      ← prEvent_eq_lintegral_id_evalDist_map_ite]
+    have h₁ := prEvent_mem_le B
+    have h₂ : ∑ G ∈ R.openGroups s.2, ∫⁻ p, p ∂𝒟[(fun u ↦ if u ∈ B then 0
+        else R.π (s.2 ++ [⟨t, u⟩]) G) <$> ($ᵗ Digest)] ≤ ∑ G ∈ R.openGroups s.2, R.π s.2 G :=
+      Finset.sum_le_sum fun G hG ↦ R.lintegral_π_le hcl.1 hfr fun u hu h ↦ hu (by
+        simp only [badDigests, List.mem_append]
+        exact .inl (.inl (.inr (h ▸ R.cv_mem_inPlay_of_mem_openGroups hG))))
+    have h₃ : ∑ G ∈ R.openedBy s.2 t, ∫⁻ p, p ∂𝒟[(fun u ↦ if u ∈ B then 0
+        else R.π (s.2 ++ [⟨t, u⟩]) G) <$> ($ᵗ Digest)] ≤ ∑ G ∈ R.openedBy s.2 t, R.π s.2 G :=
+      Finset.sum_le_sum fun G hG ↦ R.lintegral_π_le hcl.1 hfr fun u hu h ↦ hu (by
+        simp only [badDigests, List.mem_append]
+        rcases R.cv_mem_of_mem_touched (roots := seedRoots) (R.mem_openedBy_iff.mp hG).1 with
+          hc | hc
+        · exact .inl (.inr (h ▸ hc))
+        · exact .inl (.inl (.inr (h ▸ hc))))
+    calc _ ≤ (B.length : ℝ≥0∞) / 2 ^ 256 + ∑ G ∈ R.openGroups s.2, R.π s.2 G +
+          ∑ G ∈ R.openedBy s.2 t, R.π s.2 G := add_le_add (add_le_add h₁ h₂) h₃
+      _ = _ := by ring
+  · rw [SlotReader.Φ, ite_eq_right_of_eq_false _ _ (eq_false hgood), SlotReader.charge,
+      ite_eq_right_of_eq_false _ _ (eq_false hgood), add_zero]
+    refine lintegral_id_evalDist_map_le_of_le _ fun u ↦ ?_
+    rw [SlotReader.Φ, ite_eq_right_of_eq_false _ _
+      (eq_false fun h ↦ hgood ⟨h.1.of_record ht, h.2.of_append⟩)]
+
+/-! ## The charge's bound -/
+
+/-- A group keeps a challenge marked exactly when it has a nonce. -/
+theorem SlotReader.mark_eq_of_groupSlot {G : Group} {a : R.Ann} {i : (R.spec a).ChallengeIdx}
+    {tr : (R.spec a).Transcript i.1.castSucc} (h : R.groupSlot l G = some ⟨a, i, tr⟩) :
+    R.mark a i = G.nonce.isSome := by
+  unfold SlotReader.groupSlot at h
+  simp only [Option.bind_eq_bind, Option.bind_eq_some_iff] at h
+  obtain ⟨hs, -, a', -, p, -, ⟨i', tr'⟩, -, h⟩ := h
+  split_ifs at h with hm
+  cases h
+  exact hm
+
+/-- **The opening bound**: a group with no logged query closes on a bad challenge with
+probability at most `ε`, when at every challenge a uniform challenge is bad with probability at
+most `ε`, times the probability that a uniform check passes for a challenge a proof of work
+precedes. -/
+theorem SlotReader.π_le_of_not_asked {ε : ℝ≥0∞}
+    (hbad : ∀ a i tr, (if R.mark a i then Pr{let d ← $ᵗ Digest}[
+      FsState.lowBitsZero d R.powBits = true] else 1) *
+        Pr{let c ← $ᵗ ((R.spec a).Challenge i)}[c ∈ R.Bad a i tr] ≤ ε)
+    {G : Group} (h : G.asked l (R.size l G) = false) : R.π l G ≤ ε := by
+  cases hg : R.groupSlot l G with
+  | none => simp [SlotReader.π, hg]
+  | some x =>
+    obtain ⟨a, i, tr⟩ := x
+    have hm : R.size l G = (R.slot a i).m := by simp [SlotReader.size, hg]
+    rw [hm] at h
+    simp only [Group.asked, Bool.or_eq_false_iff, Bool.and_eq_false_iff, Bool.not_eq_false',
+      Option.isSome_eq_false_iff, Option.isNone_iff_eq_none, List.isEmpty_iff] at h
+    obtain ⟨⟨hc, -⟩, hr⟩ := h
+    rw [R.π_eq_of_groupSlot hg, hc, hr]
+    simp only [List.length_nil, Nat.sub_zero, Option.getD_none, List.nil_append]
+    have hz : ∀ z : Fin (R.slot a i).m → Digest,
+        (fun j : Fin (R.slot a i).m ↦ (List.ofFn z).getD j default) = z := fun z ↦
+      funext fun j ↦ by simp [List.getD_eq_getElem?_getD]
+    simp only [hz]
+    have hmark := R.mark_eq_of_groupSlot hg
+    have hb := hbad a i tr
+    rcases hn : G.nonce with _ | n
+    · rw [hn] at hmark
+      simp only [Option.isSome_none, Bool.false_eq_true, false_implies, true_and]
+      simp only [hmark, Option.isSome_none, Bool.false_eq_true, ↓reduceIte, one_mul] at hb
+      rw [prEvent_uniformSample_snd (α := Digest)
+        (fun w ↦ (R.slot a i).assemble w ∈ R.Bad a i tr), (R.slot a i).uniform]
+      exact hb
+    · rw [hn] at hmark
+      simp only [Option.isSome_some, forall_const]
+      simp only [hmark, Option.isSome_some, ↓reduceIte] at hb
+      rw [SampleableType.prEvent_uniformSample_prod]
+      have := prEvent_bind_bind_and ($ᵗ Digest) ($ᵗ (Fin (R.slot a i).m → Digest))
+        (fun d ↦ FsState.lowBitsZero d R.powBits = true)
+        (fun w ↦ (R.slot a i).assemble w ∈ R.Bad a i tr)
+      rw [this, (R.slot a i).uniform]
+      exact hb
+
+/-- A sum over a finite set whose terms are nonzero at one member at most, each at most `ε`, is
+at most `ε`. -/
+private theorem sum_le_of_unique {α : Type} {S : Finset α} {f : α → ℝ≥0∞} {ε : ℝ≥0∞}
+    (h : ∀ x ∈ S, ∀ y ∈ S, f x ≠ 0 → f y ≠ 0 → x = y) (hε : ∀ x ∈ S, f x ≤ ε) :
+    ∑ x ∈ S, f x ≤ ε := by
+  by_cases hx : ∃ x ∈ S, f x ≠ 0
+  · obtain ⟨x, hx, hfx⟩ := hx
+    rw [Finset.sum_eq_single x (fun y hy hyx ↦ by_contra fun hfy ↦ hyx (h y hy x hx hfy hfx))
+      (fun hx' ↦ absurd hx hx')]
+    exact hε x hx
+  · rw [Finset.sum_eq_zero fun x hxS ↦ by_contra fun h ↦ hx ⟨x, hxS, h⟩]
+    exact zero_le
+
+/-- On a log with no collision, the states whose grinding base it answers by `y` are one at
+most. -/
+theorem baseStates_unique (hcoll : ¬ QueryLog.HasCollision l) {y cv cv' : Digest}
+    (h : cv ∈ baseStates l y) (h' : cv' ∈ baseStates l y) : cv = cv' := by
+  obtain ⟨e, he, hb⟩ := List.mem_filterMap.mp h
+  obtain ⟨e', he', hb'⟩ := List.mem_filterMap.mp h'
+  split at hb
+  · split at hb'
+    · rename_i hc hc'
+      cases hb
+      cases hb'
+      by_contra hne
+      exact hcoll ⟨e, he, e', he', fun hq ↦ hne (by rw [hq]), hc.1.trans hc'.1.symm⟩
+    · cases hb'
+  · cases hb
+
+/-- On a clean log, a base answer is no state's: a nonce step from it fixes no challenge. -/
+theorem SlotReader.groupSlot_of_mem_baseStates (hl : CleanLog seedRoots l)
+    (hseed : R.seed ∈ seedRoots) {y cv : Digest} (h : cv ∈ baseStates l y) (n : Option E) :
+    R.groupSlot l ⟨y, n⟩ = none := by
+  obtain ⟨e, he, hb⟩ := List.mem_filterMap.mp h
+  split at hb
+  · rename_i hc
+    have hy : y ≠ R.seed := by
+      rintro rfl
+      obtain ⟨p, hp, hfresh, hpe⟩ := QueryLog.first_occurrence hl.consistent he
+      refine hl.noHit ⟨⟨p, hp⟩, by simpa [hpe] using hfresh, ?_⟩
+      simp only [Fin.getElem_fin, hpe, hc.1]
+      exact mem_inPlay_of_mem_roots hseed
+    have hpre : HashChain.preimages Block.parse? l y = [] := by
+      refine List.filterMap_eq_nil_iff.mpr fun e' he' ↦ ?_
+      split
+      · rename_i he'y
+        have : e'.1 = e.1 := by_contra fun hne ↦ hl.noCollision ⟨e', he', e, he, hne,
+          he'y.trans hc.1.symm⟩
+        rw [this, hc.2, parse?_baseInput]
+      · rfl
+    have : chainHistory l ⟨R.seed⟩ ⟨y⟩ = none := by
+      unfold chainHistory HashChain.history
+      cases hlen : l.length with
+      | zero => simp [HashChain.walk, hy]
+      | succ k => simp [HashChain.walk, hy, hpre, HashChain.unique?]
+    simp [SlotReader.groupSlot, this]
+  · cases hb
+
+/-- **The groups a query opens** have probabilities summing to at most `ε` on a clean log: a
+squeeze opens the plain group at its state alone, and a nonce step the group it absorbs and the
+group it checks, of which the first fixes no challenge when the second exists. -/
+theorem SlotReader.sum_openedBy_le (hl : CleanLog seedRoots l) (hseed : R.seed ∈ seedRoots)
+    {ε : ℝ≥0∞} (hε : ∀ G, G.asked l (R.size l G) = false → R.π l G ≤ ε) :
+    ∑ G ∈ R.openedBy l t, R.π l G ≤ ε := by
+  refine sum_le_of_unique (fun G hG G' hG' hπ hπ' ↦ ?_)
+    fun G hG ↦ hε G (R.mem_openedBy_iff.mp hG).2
+  rw [R.mem_openedBy_iff] at hG hG'
+  obtain ⟨hG, ha⟩ := hG
+  obtain ⟨hG', ha'⟩ := hG'
+  unfold SlotReader.touched at hG hG'
+  split at hG
+  · rename_i x hx
+    rw [hx] at hG'
+    simp only [List.mem_filter] at hG hG'
+    -- an unasked group awaiting the squeeze from `x` is the plain group at `x`
+    have key : ∀ H : Group, H.asked l (R.size l H) = false → R.awaits l H x = true →
+        H = ⟨x, none⟩ := by
+      intro H hna haw
+      unfold SlotReader.awaits at haw
+      split at haw
+      · cases haw
+      · rename_i s hs
+        simp only [Group.asked, hs, Option.isSome_some, Bool.and_true, Bool.or_eq_false_iff,
+          Bool.not_eq_false', List.isEmpty_iff] at hna
+        obtain ⟨⟨-, hnn⟩, hr⟩ := hna
+        simp only [hr, List.length_nil, List.getLastD_nil, Bool.and_eq_true,
+          decide_eq_true_eq] at haw
+        obtain ⟨cv, nonce⟩ := H
+        rcases nonce with _ | n
+        · simp only [Group.start?, Option.some.injEq] at hs
+          rw [hs, haw.2]
+        · simp at hnn
+    rw [key G ha hG.2, key G' ha' hG'.2]
+  · rename_i y n hy
+    rw [hy] at hG'
+    simp only [List.mem_cons, List.mem_map] at hG hG'
+    have hzero : ∀ cv, cv ∈ baseStates l y → R.π l ⟨y, some n⟩ = 0 := fun cv hcv ↦ by
+      simp [SlotReader.π, R.groupSlot_of_mem_baseStates hl hseed hcv]
+    rcases hG with rfl | ⟨cv, hcv, rfl⟩ <;> rcases hG' with rfl | ⟨cv', hcv', rfl⟩
+    · rfl
+    · exact absurd (hzero cv' hcv') hπ
+    · exact absurd (hzero cv hcv) hπ'
+    · rw [baseStates_unique hl.noCollision hcv hcv']
+  · simp at hG
+
+/-- **The charge is bounded** at a state reached within `L` fresh queries: at most
+`(4L + |seedRoots| + |proofRoots|) / 2^256` for the answer, and `ε` for the groups the query
+opens. -/
+theorem SlotReader.charge_le (hseed : R.seed ∈ seedRoots) {ε : ℝ≥0∞}
+    (hbad : ∀ a i tr, (if R.mark a i then Pr{let d ← $ᵗ Digest}[
+      FsState.lowBitsZero d R.powBits = true] else 1) *
+        Pr{let c ← $ᵗ ((R.spec a).Challenge i)}[c ∈ R.Bad a i tr] ≤ ε)
+    {s : OracleState} {L : ℕ} (hL : s.1.enncard + 1 ≤ L) (t : List UInt8) :
+    R.charge seedRoots proofRoots k₀ s t ≤
+      ((4 * L + seedRoots.length + proofRoots.length : ℕ) : ℝ≥0∞) / 2 ^ 256 + ε := by
+  classical
+  unfold SlotReader.charge
+  split_ifs with hgood
+  · obtain ⟨hinv, hcl⟩ := hgood
+    refine add_le_add (ENNReal.div_le_div_right (Nat.cast_le.mpr ?_) _)
+      (R.sum_openedBy_le hcl.1 hseed fun G hG ↦ R.π_le_of_not_asked hbad hG)
+    have hl : s.2.length + 1 ≤ L := by
+      rw [hinv.enncard_eq] at hL
+      exact_mod_cast hL
+    have hp := length_inPlay_le seedRoots s.2
+    have hh := length_halves_le t
+    have hr : (if k₀ ≤ s.2.length then proofRoots else []).length ≤ proofRoots.length := by
+      split_ifs <;> simp
+    simp only [badDigests, List.length_append, List.length_map]
+    omega
+  · exact zero_le
+
+/-! ## The potential at the start -/
+
+/-- No root is asked after all of a log's queries: the potential with the roots past the whole
+log is the potential with none. -/
+theorem SlotReader.Φ_start (s : OracleState) :
+    R.Φ seedRoots proofRoots s.2.length s = R.Φ seedRoots [] 0 s := by
+  have : R.Clean seedRoots proofRoots s.2.length s.2 ↔ R.Clean seedRoots [] 0 s.2 := by
+    simp [SlotReader.Clean]
+  unfold SlotReader.Φ
+  by_cases h : QueryHistory.IsFreshLog s ∧ R.Clean seedRoots proofRoots s.2.length s.2
+  · rw [ite_eq_left_of_eq_true _ _ (eq_true h),
+      ite_eq_left_of_eq_true _ _ (eq_true ⟨h.1, this.mp h.2⟩)]
+  · rw [ite_eq_right_of_eq_false _ _ (eq_false h),
+      ite_eq_right_of_eq_false _ _ (eq_false fun h' ↦ h ⟨h'.1, this.mpr h'.2⟩)]
+
+/-- The empty log has no flip. -/
+theorem SlotReader.not_flipAt_nil : ¬ R.FlipAt [] := fun ⟨G, hG⟩ ↦ by
+  obtain ⟨-, -, ha⟩ := R.complete_of_flips hG
+  obtain ⟨q, d, hq, -⟩ := Group.exists_query_of_asked ha
+  simp [logAnswer] at hq
+
+/-- **The potential at the start** is `0`: the empty log is clean and has no open group. -/
+theorem SlotReader.Φ_empty : R.Φ seedRoots proofRoots k₀ ((∅ : hashSpec.QueryCache), []) = 0 := by
+  have hclean : R.Clean seedRoots proofRoots k₀ [] :=
+    ⟨⟨by simp, fun ⟨_, h, _⟩ ↦ by simp at h, fun ⟨⟨_, h⟩, _⟩ ↦ by simp at h⟩, by simp,
+      R.not_flipAt_nil, by simp⟩
+  rw [SlotReader.Φ, ite_eq_left_of_eq_true _ _ (eq_true ⟨QueryHistory.isFreshLog_empty, hclean⟩)]
+  simp [SlotReader.openGroups, candidates, nonceGroups, checkGroups]
+
+/-- The potential is at least `1` off a clean state. -/
+theorem SlotReader.one_le_Φ {s : OracleState}
+    (h : ¬ (QueryHistory.IsFreshLog s ∧ R.Clean seedRoots proofRoots k₀ s.2)) :
+    1 ≤ R.Φ seedRoots proofRoots k₀ s := by
+  rw [SlotReader.Φ, ite_eq_right_of_eq_false _ _ (eq_false h)]
+
+end
+end LeanerVM.Protocol

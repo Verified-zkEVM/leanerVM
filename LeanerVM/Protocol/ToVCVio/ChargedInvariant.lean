@@ -637,6 +637,25 @@ theorem IsFreshLog.record {s : spec.QueryCache × spec.QueryLog} (h : IsFreshLog
     exact hne e he (hab.trans (by simpa using hb))
 
 omit [∀ t, SampleableType (spec.Range t)] in
+/-- A state whose fresh query's record has its log the cache's has its log the cache's. -/
+theorem IsFreshLog.of_record {s : spec.QueryCache × spec.QueryLog} {t : spec.Domain}
+    (ht : s.1 t = none) {u : spec.Range t} (h : IsFreshLog (freshLog.record s t u)) :
+    IsFreshLog s := by
+  obtain ⟨h₁, h₂, h₃⟩ := h
+  simp only [freshLog_record, List.map_append, List.map_cons, List.map_nil] at h₁ h₂ h₃
+  have hne : ∀ e ∈ s.2, e.1 ≠ t := fun e he het ↦
+    (List.nodup_append.mp h₃).2.2 _ (List.mem_map_of_mem he) t (by simp) het
+  refine ⟨fun e he ↦ ?_, fun t' u' ht' ↦ ?_, (List.nodup_append.mp h₃).1⟩
+  · have := h₁ e (List.mem_append_left _ he)
+    rwa [QueryCache.cacheQuery_of_ne _ _ (hne e he)] at this
+  · have htt : t' ≠ t := fun h ↦ by subst h; rw [ht] at ht'; cases ht'
+    have := h₂ t' u' (by rwa [QueryCache.cacheQuery_of_ne _ _ htt])
+    rcases List.mem_append.mp this with h | h
+    · exact h
+    · obtain ⟨rfl, -⟩ := Sigma.mk.inj_iff.mp (List.mem_singleton.mp h)
+      exact absurd rfl htt
+
+omit [∀ t, SampleableType (spec.Range t)] in
 /-- A log that is the cache's has as many entries as the cache. -/
 theorem IsFreshLog.enncard_eq {s : spec.QueryCache × spec.QueryLog} (h : IsFreshLog s) :
     s.1.enncard = s.2.length := by

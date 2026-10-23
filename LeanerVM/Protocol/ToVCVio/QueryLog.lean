@@ -91,7 +91,7 @@ variable [DecidableEq Q] {inPlay : List ((_ : Q) × D) → List D} {log : List (
 
 /-- The first occurrence of a logged input: a position before which the log never asks it, and
 at which it is answered as everywhere else in a consistent log. -/
-private theorem first_occurrence (hcons : Consistent log) {e : (_ : Q) × D} (he : e ∈ log) :
+theorem first_occurrence (hcons : Consistent log) {e : (_ : Q) × D} (he : e ∈ log) :
     ∃ (p : ℕ) (hp : p < log.length), Fresh (log.take p) e.1 ∧ log[p] = e := by
   have hp := List.findIdx_lt_length_of_exists (p := fun x ↦ x.1 = e.1) ⟨e, he, by simp⟩
   have hq := of_decide_eq_true (List.findIdx_getElem (w := hp))

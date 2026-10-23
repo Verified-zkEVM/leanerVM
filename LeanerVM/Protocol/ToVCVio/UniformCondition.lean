@@ -58,6 +58,12 @@ theorem prEvent_uniformSample_eq_lintegral_of_bijective {g : α → β → γ}
   have := prEvent_bind_eq_lintegral_id_evalDist_map ($ᵗ α) (fun x ↦ g x <$> ($ᵗ β)) p
   simpa [map_eq_bind_pure_comp] using this
 
+/-- The second entry of a uniform pair is uniform. -/
+theorem prEvent_uniformSample_snd (p : β → Prop) :
+    Pr{let z ← $ᵗ (α × β)}[p z.2] = Pr{let y ← $ᵗ β}[p y] :=
+  (SampleableType.prEvent_uniformSample_comp_of_bijective (f := Prod.swap)
+    Prod.swap_bijective fun z ↦ p z.1).trans (SampleableType.prEvent_uniformSample_fst p)
+
 /-- An event of a uniform pair has as probability the expectation, over a uniform first entry, of
 its probability over a uniform second entry. -/
 theorem prEvent_uniformSample_prod_eq_lintegral (p : α × β → Prop) :
