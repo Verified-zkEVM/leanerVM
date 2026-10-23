@@ -115,9 +115,9 @@ theorem res_alloc_vals (c : OsCfg) (σ : Val) (ich bd ls : ℕ) (RC acc P W I L 
 
 theorem fin_alloc_vals (c : OsCfg) (σ : Val) (st : OsSt) (tch : ℕ) (Y PT PT1 BD LS ICH In : E)
     (Pp β : ℕ → E) (X : ℕ → ℕ → E) (RC acc Pq W I L : ℕ → E) (D : ℕ → ℕ → E) (Λ : ℕ → E)
-    (Z Yo : ℕ → ℕ → E) (σ3 : Val)
+    (Z Yo : ℕ → ℕ → E)
     (hσ : ∀ i, st.k ≤ i → i < osFinEnd c st tch →
-      σ (.n i) = finishF c st tch Y PT PT1 BD LS ICH In Pp β X RC acc Pq W I L D Λ Z Yo σ3 i) :
+      ∃ σ3, σ (.n i) = finishF c st tch Y PT PT1 BD LS ICH In Pp β X RC acc Pq W I L D Λ Z Yo σ3 i) :
     ((finAllocs c st tch).map Prod.fst).map σ =
         [PT, PT1, BD, LS, ICH] ++ (List.range c.levels.length).map RC ∧
       (finAllocs c st tch).map (vSz σ) = [gw pointCap, gw pointCap, gw (c.levels.length * ligColsCap),
@@ -139,39 +139,52 @@ theorem fin_alloc_vals (c : OsCfg) (σ : Val) (st : OsSt) (tch : ℕ) (Y PT PT1 
       ((osPtBlks c (st.k + 1) (st.k + 1 + 1) tch 0 pointCap (st.k + 1 + 2)).2 + 4)).2 = bs.2 := rfl
   have e3 : (osResiduals c (bs.2 + 1) (pts.2 + 1) (pts.2 + 3) 0 c.levels (bs.2 + 3)).2 = rs.2 := rfl
   have F : ∀ i, st.k ≤ i → i < od.2.2 + 6 →
-      σ (.n i) = finishF c st tch Y PT PT1 BD LS ICH In Pp β X RC acc Pq W I L D Λ Z Yo σ3 i :=
+      ∃ σ3, σ (.n i) = finishF c st tch Y PT PT1 BD LS ICH In Pp β X RC acc Pq W I L D Λ Z Yo σ3 i :=
     fun i h1 h2 ↦ hσ i h1 (by rw [hE]; exact h2)
   -- the point's buffers
-  have vPT : σ (.n (st.k + 1)) = PT := by
-    rw [F _ (by omega) (by omega)]; unfold finishF
-    rw [seqF_lt (by omega)]; simp
-  have vPT1 : σ (.n (st.k + 1 + 1)) = PT1 := by
-    rw [F _ (by omega) (by omega)]; unfold finishF
-    rw [seqF_lt (by omega)]; simp [show st.k + 1 + 1 - st.k = 2 by omega]
+  have G : ∀ i, st.k ≤ i → i < od.2.2 + 6 → ∀ v : E,
+      (∀ σ3, finishF c st tch Y PT PT1 BD LS ICH In Pp β X RC acc Pq W I L D Λ Z Yo σ3 i = v) →
+      σ (.n i) = v := fun i h1 h2 v hv ↦ by
+    obtain ⟨σ3, hF⟩ := F i h1 h2
+    rw [hF, hv]
+  have vPT : σ (.n (st.k + 1)) = PT := G _ (by omega) (by omega) _ fun σ3 ↦ by
+    unfold finishF; rw [seqF_lt (by omega)]; simp
+  have vPT1 : σ (.n (st.k + 1 + 1)) = PT1 := G _ (by omega) (by omega) _ fun σ3 ↦ by
+    unfold finishF; rw [seqF_lt (by omega)]; simp [show st.k + 1 + 1 - st.k = 2 by omega]
   -- `basis_d`, the scales
   have vBD : σ (.n pts.2) = gw (c.levels.length * ligColsCap) ∧ σ (.n (pts.2 + 1)) = BD := by
-    constructor <;>
-    · rw [F _ (by omega) (by omega)]; unfold finishF
-      rw [seqF_ge (by omega)]; rw [seqF_ge (by omega)]
-      rw [seqF_lt (by omega)]; simp [e1]
+    constructor
+    · refine G _ (by omega) (by omega) _ fun σ3 ↦ ?_
+      unfold finishF
+      rw [seqF_ge (by omega), seqF_ge (by omega), seqF_lt (by omega)]; simp [e1]
+    · refine G _ (by omega) (by omega) _ fun σ3 ↦ ?_
+      unfold finishF
+      rw [seqF_ge (by omega), seqF_ge (by omega), seqF_lt (by omega)]; simp [e1]
   have vLS : σ (.n (pts.2 + 2)) = gw c.levels.length ∧ σ (.n (pts.2 + 3)) = LS := by
-    constructor <;>
-    · rw [F _ (by omega) (by omega)]; unfold finishF
-      rw [seqF_ge (by omega)]; rw [seqF_ge (by omega)]
-      rw [seqF_ge (by omega)]; rw [seqF_lt (by omega)]
-      simp [e1]
+    constructor
+    · refine G _ (by omega) (by omega) _ fun σ3 ↦ ?_
+      unfold finishF
+      rw [seqF_ge (by omega), seqF_ge (by omega), seqF_ge (by omega), seqF_lt (by omega)]; simp [e1]
+    · refine G _ (by omega) (by omega) _ fun σ3 ↦ ?_
+      unfold finishF
+      rw [seqF_ge (by omega), seqF_ge (by omega), seqF_ge (by omega), seqF_lt (by omega)]; simp [e1]
   have vICH : σ (.n bs.2) = gw (c.levels.length + 1) ∧ σ (.n (bs.2 + 1)) = ICH := by
-    constructor <;>
-    · rw [F _ (by omega) (by omega)]; unfold finishF
-      rw [seqF_ge (by omega)]; rw [seqF_ge (by omega)]
-      rw [seqF_ge (by omega)]; rw [seqF_ge (by omega)]
-      rw [seqF_ge (by omega)]; rw [seqF_lt (by omega)]
+    constructor
+    · refine G _ (by omega) (by omega) _ fun σ3 ↦ ?_
+      unfold finishF
+      rw [seqF_ge (by omega), seqF_ge (by omega), seqF_ge (by omega), seqF_ge (by omega),
+        seqF_ge (by omega), seqF_lt (by omega)]
+      simp [e2]
+    · refine G _ (by omega) (by omega) _ fun σ3 ↦ ?_
+      unfold finishF
+      rw [seqF_ge (by omega), seqF_ge (by omega), seqF_ge (by omega), seqF_ge (by omega),
+        seqF_ge (by omega), seqF_lt (by omega)]
       simp [e2]
   -- the residual chains
   have h7 : ∀ i, bs.2 + 3 ≤ i → i < rs.2 →
       ∃ σ7, σ (.n i) = residualsF c (pts.2 + 1) RC acc Pq W I L D 0 c.levels (bs.2 + 3) σ7 i := by
     intro i h1 h2
-    rw [F _ (by omega) (by omega)]; unfold finishF
+    obtain ⟨σ3, hF⟩ := F i (by omega) (by omega); rw [hF]; unfold finishF
     rw [seqF_ge (by omega)]; rw [seqF_ge (by omega)]
     rw [seqF_ge (by omega)]; rw [seqF_ge (by omega)]
     rw [seqF_ge (by omega)]; rw [seqF_ge (by omega)]
@@ -184,6 +197,69 @@ theorem fin_alloc_vals (c : OsCfg) (σ : Val) (st : OsSt) (tch : ℕ) (Y PT PT1 
     hr.1, hr.2, vPT, vPT1, vBD.1, vBD.2, vLS.1, vLS.2, vICH.1, vICH.2, List.cons_append,
     List.nil_append]
   exact ⟨trivial, trivial⟩
+
+
+/-! ## The body -/
+
+section Body
+
+variable {c : OsCfg} {σ : Val} {P : OsPtrs} {c0 c2 : E} {Ds : List LvDat} {T : E} {xs : List E}
+  {Y PT PT1 BD LS ICH In : E} {Pp β : ℕ → E} {X : ℕ → ℕ → E} {RC acc Pq W I L : ℕ → E}
+  {D : ℕ → ℕ → E} {Λ : ℕ → E} {Z Yo : ℕ → ℕ → E}
+
+theorem bodyF_head {i : ℕ} (h : i < 34) :
+    bodyF c σ P c0 c2 Ds T xs Y PT PT1 BD LS ICH In Pp β X RC acc Pq W I L D Λ Z Yo i =
+      headF c σ P c0 c2 i := seqF_lt h
+
+theorem bodyF_lvs {i : ℕ} (h1 : 34 ≤ i) (h2 : i < (osLvSt c).k) :
+    bodyF c σ P c0 c2 Ds T xs Y PT PT1 BD LS ICH In Pp β X RC acc Pq W I L D Λ Z Yo i =
+      lvsF c 0 c.levels Ds (osHead c).2 (fill σ 9 34 (headF c σ P c0 c2)) i := by
+  unfold bodyF
+  rw [seqF_ge h1]
+  exact seqF_lt h2
+
+theorem bodyF_tail {i : ℕ} (h1 : (osLvSt c).k ≤ i) (h2 : i < (osTlSt c).2.1.k) (h0 : 34 ≤ (osLvSt c).k) :
+    ∃ σ2, bodyF c σ P c0 c2 Ds T xs Y PT PT1 BD LS ICH In Pp β X RC acc Pq W I L D Λ Z Yo i =
+      tailF c (osLvSt c) σ2 T xs i := by
+  unfold bodyF
+  rw [seqF_ge (by omega), seqF_ge h1]
+  exact ⟨_, seqF_lt h2⟩
+
+theorem bodyF_fin {i : ℕ} (h1 : (osTlSt c).2.1.k ≤ i) (h0 : 34 ≤ (osLvSt c).k)
+    (h3 : (osLvSt c).k ≤ (osTlSt c).2.1.k) :
+    ∃ σ3, bodyF c σ P c0 c2 Ds T xs Y PT PT1 BD LS ICH In Pp β X RC acc Pq W I L D Λ Z Yo i =
+      finishF c (osTlSt c).2.1 (osTlSt c).2.2 Y PT PT1 BD LS ICH In Pp β X RC acc Pq W I L D Λ Z Yo
+        σ3 i := by
+  unfold bodyF
+  rw [seqF_ge (by omega), seqF_ge (by omega), seqF_ge h1]
+  exact ⟨_, rfl⟩
+
+end Body
+
+theorem tailF_buf (c : OsCfg) (st : OsSt) (σ : Val) (T : E) (xs : List E) :
+    tailF c st σ T xs st.k = gw yrLogCap ∧ tailF c st σ T xs (st.k + 1) = T := by
+  unfold tailF
+  constructor
+  · rw [seqF_lt (by omega)]; simp
+  · rw [seqF_lt (by omega)]; simp
+
+theorem osTail_k2 (c : OsCfg) (st : OsSt) : st.k + 2 ≤ (osTail c st).2.1.k := by
+  rw [osTail_eq]
+  dsimp only
+  have h : st.k + 2 ≤ (osFolds (st.k + 1) 0 (c.yrLog - 1) { st with k := st.k + 2 }).2.k :=
+    osFolds_k (st.k + 1) (c.yrLog - 1) 0 { st with k := st.k + 2 }
+  omega
+
+theorem spDats_pairs (sq wp : ℕ → E) : ∀ (Ls : List SpLv) (i : ℕ),
+    (spDats Ls i sq wp).flatMap (fun D ↦ [D.sqz, D.wp]) =
+      (List.range Ls.length).flatMap (fun j ↦ [sq (i + j), wp (i + j)])
+  | [], _ => rfl
+  | L :: Ls, i => by
+    rw [spDats, List.flatMap_cons, spDats_pairs sq wp Ls (i + 1), List.length_cons,
+      List.range_succ_eq_map, List.flatMap_cons, List.flatMap_map]
+    simp only [spDat, Nat.add_zero]
+    congr 1
+    exact List.flatMap_congr fun j _ ↦ by rw [show i + j.succ = i + 1 + j by omega]
 
 end
 end LeanVM.Guest.B1
