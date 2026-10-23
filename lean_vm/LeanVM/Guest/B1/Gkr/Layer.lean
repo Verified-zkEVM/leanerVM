@@ -31,7 +31,7 @@ def lyEv (i : ℕ) : ℕ := if i < 4 then 81 + 11 * i else if i < 8 then 138 + 1
 
 /-- Child `i`'s read: `fs_next` at the tail cursor, its word copied. -/
 def lyEvT (i : ℕ) : List Stmt :=
-  tbxFsNextT (.n 79) i (lyEv i) ++ [.atom (.copy (.n (lyEv i + 10)) (.n (lyEv i)))]
+  fsNextT (.n 79) i (lyEv i) ++ [.atom (.copy (.n (lyEv i + 10)) (.n (lyEv i)))]
 
 /-- The rate cells of children `4m .. 4m + 3`. -/
 def lyRate (m : ℕ) : List V :=
@@ -65,9 +65,9 @@ def lyBody : List Stmt :=
   [.atom (.const (.n 25) (word 1 0 0)), .atom (.const (.n 26) (word 0 0 0)),
     .atom (.const (.n 27) (word 0 0 0)), .atom (.const (.n 28) (word 0 0 0)),
     .atom (.const (.n 29) (word 0 0 0)),
-    tbxKeccakA ([.n 21, .n 22, .n 23, .n 24, .n 26, .n 27, .n 28, .n 29] ++
+    keccakA ([.n 21, .n 22, .n 23, .n 24, .n 26, .n 27, .n 28, .n 29] ++
       (List.range 5).map fun k ↦ .n (16 + k)) (lyOuts 30)] ++
-  tbxChallengeT (.n 30) (.n 31) 43 ++
+  challengeT (.n 30) (.n 31) 43 ++
   [.atom (.load (.n 50) (.n 15) 9), .atom (.load (.n 51) (.n 15) 10),
     .atom (.mul (.n 52) (.n 5) (.n 51))] ++
   (List.range 5).map (fun k ↦ .atom (.load (.n (38 + k)) (.n 52) (862 * k))) ++
@@ -90,9 +90,9 @@ def lyBody : List Stmt :=
   (List.range 5).map (fun k ↦ .atom (.load (.n (74 + k)) (.n 73) (862 * k))) ++
   [.atom (.load (.n 79) (.n 73) 4310), .atom (.load (.n 80) (.n 73) 5172)] ++
   ((List.range 4).map lyEvT).flatten ++
-  [tbxKeccakA (lyRate 0 ++ (List.range 5).map fun k ↦ .n (74 + k)) (lyOuts 125)] ++
+  [keccakA (lyRate 0 ++ (List.range 5).map fun k ↦ .n (74 + k)) (lyOuts 125)] ++
   ((List.range 4).map fun i ↦ lyEvT (4 + i)).flatten ++
-  [tbxKeccakA (lyRate 1 ++ lyCap 125) (lyOuts 182)] ++
+  [keccakA (lyRate 1 ++ lyCap 125) (lyOuts 182)] ++
   ((List.range 4).map fun i ↦ lyEvT (8 + i)).flatten ++
   [.atom (.mul (.n 239) (.n 205) (.n 216)), .atom (.mul (.n 240) (.n 239) (.n 227)),
     .atom (.mul (.n 241) (.n 240) (.n 238)), .atom (.const (.n 242) (word 0 0 0)),
@@ -103,10 +103,10 @@ def lyBody : List Stmt :=
     .atom (.mul (.n 251) (.n 250) (.n 113)), .atom (.mul (.n 252) (.n 251) (.n 124)),
     .atom (.mul (.n 253) (.n 49) (.n 249)), .atom (.add (.n 254) (.n 252) (.n 253)),
     .atom (.assertEq (.n 80) (.n 254)),
-    tbxKeccakA (lyRate 2 ++ lyCap 182) (lyOuts 255)] ++
-  tbxChallengeT (.n 255) (.n 256) 268 ++
-  [tbxKeccakA ([.n 26, .n 26, .n 26, .n 26, .n 26, .n 27, .n 28, .n 29] ++ lyCap 255) (lyOuts 275)] ++
-  tbxChallengeT (.n 275) (.n 276) 288 ++
+    keccakA (lyRate 2 ++ lyCap 182) (lyOuts 255)] ++
+  challengeT (.n 255) (.n 256) 268 ++
+  [keccakA ([.n 26, .n 26, .n 26, .n 26, .n 26, .n 27, .n 28, .n 29] ++ lyCap 255) (lyOuts 275)] ++
+  challengeT (.n 275) (.n 276) 288 ++
   [.atom (.load (.n 274) (.n 50) 40), .atom (.load (.n 294) (.n 50) 41)] ++
   (List.range 5).map (fun k ↦ .atom (.load (.n (283 + k)) (.n 15) (34 + k))) ++
   ((List.range 4).map fun k ↦ [.atom (.const (.n (295 + k)) (word 0 0 0)),
@@ -157,12 +157,12 @@ theorem lyPre_noRet : Stmt.noRetList lyPre = true := by decide +kernel
 waiting cells of the sponge `s` (at most two scalars; the cells there, once canonical as the next
 permutation asks, are their rate cells), the cursor, the three trees' values, a row holding the
 point (of length `L`), the round position, `half` and `parity`. -/
-def GkSlot (rd : Reader) (layers : E) (L : ℕ) (s : TbxFs) (cur : E) (st : GkrState)
+def GkSlot (rd : Reader) (layers : E) (L : ℕ) (s : Fs) (cur : E) (st : GkrState)
     (row pos half parity : E) : Prop :=
   s.cap.length = 5 ∧
     (∀ j < 5, LoadHolds rd layers (17 * L + j) (s.cap.getD j 0)) ∧ s.pend.length ≤ 2 ∧
     (∀ c : ℕ → E, (∀ j < 4, LoadHolds rd layers (17 * L + 13 + j) (c j)) →
-      (∀ j < 4, IsCanonical128 (c j)) → ∀ j < 4, c j = (tbxRateOf s.pend).getD j 0) ∧
+      (∀ j < 4, IsCanonical128 (c j)) → ∀ j < 4, c j = (rateOf s.pend).getD j 0) ∧
     LoadHolds rd layers (17 * L + 5) cur ∧ st.values.length = 3 ∧
     (∀ t < 3, LoadHolds rd layers (17 * L + 6 + t) (st.values.getD t 0)) ∧
     LoadHolds rd layers (17 * L + 9) row ∧ st.point.length = L ∧ TbReadsAt rd row st.point ∧
@@ -174,10 +174,10 @@ from the slot of `L = 2j + sh`, its `half = g^(j/2)` and `parity = j % 2`, the s
 `gkrStep 2` to the slot of `L + 2`, the row `40` words on. -/
 def LyB (rd : Reader) (dsb gmu layers x : E) : Prop :=
   ∀ j sh : ℕ, x = gen ^ j → LoadHolds rd (dsb * gmu) 0 (gen ^ sh) → j < 2 ^ 30 → sh < 2 →
-    ∀ (s : TbxFs) (cur : E) (st : GkrState) (row pos : E),
+    ∀ (s : Fs) (cur : E) (st : GkrState) (row pos : E),
       GkSlot rd layers (2 * j + sh) s cur st row pos (gen ^ (j / 2)) (bitE (j % 2 = 1)) →
-      ∃ (xs : List E) (st' : GkrState) (s' : TbxFs) (pos' : E),
-        TbxRunsTo (gkrStep 2 st) s xs st' s' ∧ TbReadsAt rd cur xs ∧ s'.pend = [] ∧
+      ∃ (xs : List E) (st' : GkrState) (s' : Fs) (pos' : E),
+        RunsTo (gkrStep 2 st) s xs st' s' ∧ TbReadsAt rd cur xs ∧ s'.pend = [] ∧
         GkSlot rd layers (2 * j + sh + 2) s' (cur * gen ^ xs.length) st' (row * gen ^ 40) pos'
           (gen ^ ((j + 1) / 2)) (bitE ((j + 1) % 2 = 1))
 
@@ -197,30 +197,30 @@ theorem tb_eq_map_getD {l : List E} {n : ℕ} (h : l.length = n) :
 
 /-- The rate cells of at most two waiting scalars: past the fourth, zeros. -/
 theorem rateOf_getD_four {pend : List (E × ℕ)} (h : pend.length ≤ 2) {j : ℕ} (hj : 4 ≤ j)
-    (hj8 : j < 8) : (tbxRateOf pend).getD j 0 = 0 := by
-  have hl : (tbxPendCells pend).length = 2 * pend.length := by
-    simp [tbxPendCells, List.length_flatMap]; omega
-  rw [tbx_rateOf_eq_cells _ (by omega), List.getD_eq_getElem?_getD,
+    (hj8 : j < 8) : (rateOf pend).getD j 0 = 0 := by
+  have hl : (pendCells pend).length = 2 * pend.length := by
+    simp [pendCells, List.length_flatMap]; omega
+  rw [rateOf_eq_cells _ (by omega), List.getD_eq_getElem?_getD,
     List.getElem?_append_right (by omega), hl, List.getElem?_replicate]
   split <;> rfl
 
 /-- The capacity of a permutation's state is canonical. -/
-theorem tbxCapOf_canonical (S : KState) : TbxAllCanonical (tbxCapOf S) := by
+theorem tb_capOf_canonical (S : KState) : AllCanonical (capOf S) := by
   intro x hx
-  simp only [tbxCapOf, List.mem_cons, List.not_mem_nil, or_false] at hx
-  rcases hx with rfl | rfl | rfl | rfl | rfl <;> exact tbx_cellsOfState_canonical _ _ _
+  simp only [capOf, List.mem_cons, List.not_mem_nil, or_false] at hx
+  rcases hx with rfl | rfl | rfl | rfl | rfl <;> exact cellsOfState_canonical _ _ _
 
 /-- **The layer's head**: the combiner is the slot's sponge's challenge, and the first round
 record carries the sponge after it, the cursor and the combined claim. -/
 theorem ly_head (h : Stmt.HoldsList C rd σ lyPre True kret) {j sh : ℕ} (hx : σ (.n 0) = gen ^ j)
-    (hsh : LoadHolds rd (σ (.n 2) * σ (.n 3)) 0 (gen ^ sh)) {s : TbxFs} {cur : E} {st : GkrState}
+    (hsh : LoadHolds rd (σ (.n 2) * σ (.n 3)) 0 (gen ^ sh)) {s : Fs} {cur : E} {st : GkrState}
     {row pos half parity : E}
     (hslot : GkSlot rd (σ (.n 4)) (2 * j + sh) s cur st row pos half parity) :
     σ (.n 6) = gen ^ (2 * j) ∧ σ (.n 9) = gen ^ (2 * j + sh) ∧
       σ (.n 15) = σ (.n 4) * gen ^ (17 * (2 * j + sh)) ∧
       σ (.n 49) = s.squeeze.1 ∧ σ (.n 50) = row ∧ σ (.n 51) = pos ∧
       σ (.n 52) = σ (.n 5) * pos ∧ σ (.n 61) = half ∧ σ (.n 62) = parity ∧
-      TbCapAt rd (σ (.n 52)) 0 gkCap s.squeeze.2.cap ∧ TbxAllCanonical s.squeeze.2.cap ∧
+      TbCapAt rd (σ (.n 52)) 0 gkCap s.squeeze.2.cap ∧ AllCanonical s.squeeze.2.cap ∧
       LoadHolds rd (σ (.n 52)) (5 * gkCap) cur ∧
       LoadHolds rd (σ (.n 52)) (6 * gkCap) (polyEval st.values s.squeeze.1) := by
   have hnr := lyPre_noRet
@@ -263,16 +263,16 @@ theorem ly_head (h : Stmt.HoldsList C rd σ lyPre True kret) {j sh : ℕ} (hx : 
   have k1 := a 24 (.keccak ([.n 21, .n 22, .n 23, .n 24, .n 26, .n 27, .n 28, .n 29] ++
       (List.range 5).map fun k ↦ .n (16 + k)) (lyOuts 30) false false) (by decide +kernel)
   simp only [Atom.Holds, tb_word_zero] at c26 c27 c28 c29
-  obtain ⟨-, -, hcanI, hout⟩ := tbx_keccakA_perm k1
-  have epend : ∀ k < 4, σ (.n (21 + k)) = (tbxRateOf s.pend).getD k 0 := by
+  obtain ⟨-, -, hcanI, hout⟩ := keccakA_perm k1
+  have epend : ∀ k < 4, σ (.n (21 + k)) = (rateOf s.pend).getD k 0 := by
     refine hrate (fun k ↦ σ (.n (21 + k))) (fun k hk => ?_) (fun k hk => hcanI _ ?_)
     · rw [Nat.add_assoc]; exact (ld (13 + k) _).mp (hpendL k hk)
     · simp only [List.map_append, List.mem_append, List.map_cons, List.mem_cons, List.map_nil]
       left
       interval_cases k <;> simp
-  have hrl : (tbxRateOf s.pend).length = 8 := by simp [tbxRateOf]
+  have hrl : (rateOf s.pend).length = 8 := by simp [rateOf]
   have hins : (([.n 21, .n 22, .n 23, .n 24, .n 26, .n 27, .n 28, .n 29] ++
-      (List.range 5).map fun k ↦ V.n (16 + k)) : List V).map σ = tbxRateOf s.pend ++ s.cap := by
+      (List.range 5).map fun k ↦ V.n (16 + k)) : List V).map σ = rateOf s.pend ++ s.cap := by
     rw [tb_eq_map_getD hrl, tb_eq_map_getD hcl]
     simp only [List.range_succ, List.range_zero, List.map_cons, List.map_nil,
       List.nil_append, List.cons_append, List.cons.injEq, and_true]
@@ -286,11 +286,11 @@ theorem ly_head (h : Stmt.HoldsList C rd σ lyPre True kret) {j sh : ℕ} (hx : 
   rw [hins] at hout
   have hP : ∀ k (hk : k < 13), σ (.n (30 + k)) = cellsOfState s.perm false ⟨k, hk⟩ := by
     intro k hk
-    have := tbx_outs_eq hout ⟨k, hk⟩ (by simpa [lyOuts] using hk)
-    simpa [lyOuts, TbxFs.perm] using this
-  have hch := tb_holds_slice hnr h 25 (tbxChallengeT (.n 30) (.n 31) 43) (by decide +kernel)
-  rw [tbx_holds_challengeT] at hch
-  have e49 := tbx_challengeT_value hch.1 (hP 0 (by omega)) (hP 1 (by omega))
+    have := outs_eq hout ⟨k, hk⟩ (by simpa [lyOuts] using hk)
+    simpa [lyOuts, Fs.perm] using this
+  have hch := tb_holds_slice hnr h 25 (challengeT (.n 30) (.n 31) 43) (by decide +kernel)
+  rw [holds_challengeT] at hch
+  have e49 := challengeT_value hch.1 (hP 0 (by omega)) (hP 1 (by omega))
   -- the slot's row, position, half and parity
   have l50 := a 33 (.load (.n 50) (.n 15) 9) (by decide +kernel)
   have l51 := a 34 (.load (.n 51) (.n 15) 10) (by decide +kernel)
@@ -323,10 +323,10 @@ theorem ly_head (h : Stmt.HoldsList C rd σ lyPre True kret) {j sh : ℕ} (hx : 
   have e54 := tb_loadHolds_unique ((ld _ _).mp l54) (hval 0 (by omega))
   have e55 := tb_loadHolds_unique ((ld _ _).mp l55) (hval 1 (by omega))
   have e56 := tb_loadHolds_unique ((ld _ _).mp l56) (hval 2 (by omega))
-  refine ⟨e6, e9, e15, e49, e50, e51, m52, e61, e62, ⟨by simp [TbxFs.squeeze, tbxCapOf], ?_⟩,
-    tbxCapOf_canonical _, by rw [← e53]; exact l53', ?_⟩
+  refine ⟨e6, e9, e15, e49, e50, e51, m52, e61, e62, ⟨by simp [Fs.squeeze, capOf], ?_⟩,
+    tb_capOf_canonical _, by rw [← e53]; exact l53', ?_⟩
   · intro k hk
-    have hk5 : k < 5 := by simpa [TbxFs.squeeze, tbxCapOf] using hk
+    have hk5 : k < 5 := by simpa [Fs.squeeze, capOf] using hk
     have := hst k hk5
     rw [show 0 + k * gkCap = 862 * k by unfold gkCap; ring]
     interval_cases k
@@ -340,7 +340,7 @@ theorem ly_head (h : Stmt.HoldsList C rd σ lyPre True kret) {j sh : ℕ} (hx : 
       | [v0, v1, v2], _ => exact ⟨v0, v1, v2, rfl⟩
     have hv : polyEval st.values s.squeeze.1 = σ (.n 60) := by
       rw [a60, m59, a58, m57, e54, e55, e56, e49, hv3]
-      simp only [polyEval, List.foldr, List.getD_cons_zero, List.getD_cons_succ, TbxFs.squeeze]
+      simp only [polyEval, List.foldr, List.getD_cons_zero, List.getD_cons_succ, Fs.squeeze]
       ring
     rw [hv]; exact l60
 

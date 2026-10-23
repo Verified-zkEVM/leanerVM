@@ -117,15 +117,15 @@ theorem ly_parity_next (j : ℕ) : 1 + bitE (j % 2 = 1) = bitE ((j + 1) % 2 = 1)
       decide_false, Bool.false_eq_true]
     exact e_add_self 1
 
-theorem tbxRateOf_nil_getD (k : ℕ) : (tbxRateOf []).getD k 0 = 0 := by
-  rw [tbx_rateOf_eq_cells [] (by simp)]
-  simp only [tbxPendCells, List.flatMap_nil, List.nil_append, List.length_nil,
+theorem tb_rateOf_nil_getD (k : ℕ) : (rateOf []).getD k 0 = 0 := by
+  rw [rateOf_eq_cells [] (by simp)]
+  simp only [pendCells, List.flatMap_nil, List.nil_append, List.length_nil,
     List.getD_eq_getElem?_getD, List.getElem?_replicate]
   split <;> rfl
 
 /-- **An iteration of `__loop7`**: one step of two levels of the walk between two slots, and the
 next iteration below the bound. -/
-theorem ly_step (hGR : tbx_gkr_rounds_Spec) {N dsb gmu layers rounds : E} (d : ℕ) (x : E)
+theorem ly_step (hGR : tb_gkr_rounds_Spec) {N dsb gmu layers rounds : E} (d : ℕ) (x : E)
     (h : coreProgram.relN rd (d + 1) "__loop7" (x :: [N, dsb, gmu, layers, rounds]) []) :
     LyB rd dsb gmu layers x ∧
       (x * gen + N ≠ 0 →
@@ -168,7 +168,7 @@ theorem ly_step (hGR : tbx_gkr_rounds_Spec) {N dsb gmu layers rounds : E} (d : �
   rw [tb_holdsList_mapAtoms] at hlc
   simp only [Atom.Holds] at m73 l79 l80 hlc
   rw [m73, e9, tb_loadHolds_mul_gen_pow] at l79 l80
-  set run := tbxGkrRun cs st.point (polyEval st.values s.squeeze.1) ⟨s.squeeze.2.cap, []⟩ with hrun
+  set run := gkrRun cs st.point (polyEval st.values s.squeeze.1) ⟨s.squeeze.2.cap, []⟩ with hrun
   rw [m73, e9] at hlc
   have hcapEq : ((List.range 5).map fun k ↦ σ (.n (74 + k))) = run.2.2.cap := by
     apply List.ext_getElem (by simp [hcapT.1])
@@ -185,19 +185,19 @@ theorem ly_step (hGR : tbx_gkr_rounds_Spec) {N dsb gmu layers rounds : E} (d : �
   obtain ⟨treads, tcheck, tsq1, tsq2, tvals⟩ := ly_tail h
   have hsc := gkr_sumcheck_run cs st.point (polyEval st.values s.squeeze.1) s.squeeze.2
     (hlen.trans helen.symm) h4
-  have hsc' : TbxRunsTo (sumcheck (polyEval st.values s.squeeze.1) (2 ^ 2 + 1)
+  have hsc' : RunsTo (sumcheck (polyEval st.values s.squeeze.1) (2 ^ 2 + 1)
       (st.point.map some)) s.squeeze.2 cs.flatten (run.1, σ (.n 80))
       ⟨(List.range 5).map fun k ↦ σ (.n (74 + k)), []⟩ :=
-    hsc.of_eq rfl rfl (by rw [e80]; rfl) (by rw [hcapEq]; exact tbxGkrRun_eta _ _ _ _ rfl)
+    hsc.of_eq rfl rfl (by rw [e80]; rfl) (by rw [hcapEq]; exact tb_gkrRun_eta _ _ _ _ rfl)
   have hcheck : σ (.n 80) = polyEval [prodE (lyCh σ 0), prodE (lyCh σ 1), prodE (lyCh σ 2)]
       s.squeeze.1 := by rw [← e49]; exact tcheck
   have hstep := gkrStep_run (step := 2) hsc' (lyCh_length σ 0) (lyCh_length σ 1) (lyCh_length σ 2)
     hcheck
-  have hstep' : TbxRunsTo (gkrStep 2 st) s (cs.flatten ++ (lyCh σ 0 ++ (lyCh σ 1 ++ lyCh σ 2)))
+  have hstep' : RunsTo (gkrStep 2 st) s (cs.flatten ++ (lyCh σ 0 ++ (lyCh σ 1 ++ lyCh σ 2)))
       ⟨[lyCh σ 0, lyCh σ 1, lyCh σ 2].map (fun c ↦ multilinearEval c [σ (.n 274), σ (.n 294)]),
         [σ (.n 274), σ (.n 294)] ++ run.1⟩ ⟨(List.range 5).map fun k ↦ σ (.n (283 + k)), []⟩ := by
     have hh := hstep
-    rw [show ((((⟨(List.range 5).map fun k ↦ σ (.n (74 + k)), []⟩ : TbxFs).absorbAll (lyCh σ 0)
+    rw [show ((((⟨(List.range 5).map fun k ↦ σ (.n (74 + k)), []⟩ : Fs).absorbAll (lyCh σ 0)
       dsObserve).absorbAll (lyCh σ 1) dsObserve).absorbAll (lyCh σ 2) dsObserve) = lySponge σ
       from rfl, tsq1, tsq2] at hh
     exact hh
@@ -217,7 +217,7 @@ theorem ly_step (hGR : tbx_gkr_rounds_Spec) {N dsb gmu layers rounds : E} (d : �
   · intro c hc _ k hk
     have hck := hc k hk
     rw [show 17 * (L + 2) + 13 + k = 17 * L + (47 + k) by ring] at hck
-    rw [tbxRateOf_nil_getD]
+    rw [tb_rateOf_nil_getD]
     exact tb_loadHolds_unique hck (ld _ _ (s47 k hk))
   · simp only [List.length_append, flatten_length_four h4, hlen, lyCh_length]
     rw [show 17 * (L + 2) + 5 = 17 * L + 39 by ring,
@@ -233,7 +233,7 @@ theorem ly_step (hGR : tbx_gkr_rounds_Spec) {N dsb gmu layers rounds : E} (d : �
   · rw [show 17 * (L + 2) + 9 = 17 * L + 43 by ring]
     exact ld _ _ s43
   · simp only [List.length_append, List.length_cons, List.length_nil]
-    rw [hrun, tbxGkrRun_length _ _ _ _ (hlen.trans helen.symm), hlen]
+    rw [hrun, tb_gkrRun_length _ _ _ _ (hlen.trans helen.symm), hlen]
     omega
   · rw [tbReadsAt_append]
     refine ⟨fun k hk => ?_, ?_⟩

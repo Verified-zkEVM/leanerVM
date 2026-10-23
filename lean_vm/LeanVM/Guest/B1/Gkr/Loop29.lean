@@ -15,8 +15,8 @@ public import LeanVM.Guest.B1.Gkr.Rounds
 `for x4 in mul_range(1, half)` in a layer of `verify_bus_gkr`: the record at
 `rd = rounds·pos·x4^4`, the point row `pt = point_row·x4^4`, four rounds (`gkRoundT`, from values
 `15 + 74q`), and the record at `rd·g^4` written. `l29_step`: an iteration is
-`TbxGkrRoundsOut 4` from its record; `l29_holds`: the loop from `g^0` to `half = g^h` is
-`TbxGkrRoundsOut (4h)` from the first record.
+`TbGkrRoundsOut 4` from its record; `l29_holds`: the loop from `g^0` to `half = g^h` is
+`TbGkrRoundsOut (4h)` from the first record.
 -/
 
 namespace LeanVM.Guest.B1.Tables
@@ -72,15 +72,15 @@ theorem l29Found : ∃ fn : Fn, coreProgram.find? "__loop29" = some fn ∧
   · exact absurd h (by simp)
 
 /-- The sponge after a squeeze has nothing waiting. -/
-theorem tbx_squeeze_eta (s : TbxFs) : s.squeeze.2 = ⟨s.squeeze.2.cap, []⟩ := rfl
+theorem tb_squeeze_eta (s : Fs) : s.squeeze.2 = ⟨s.squeeze.2.cap, []⟩ := rfl
 
-/-- One round of `tbxGkrRun`, from what the guest's round gives. -/
-theorem tbxGkrRun_cons_of {c : List E} {cs : List (List E)} {e : E} {es : List E} {claim ch : E}
-    {cap cap' : List E} (hch : ch = ((⟨cap, []⟩ : TbxFs).absorbAll c dsObserve).squeeze.1)
-    (hcap : cap' = ((⟨cap, []⟩ : TbxFs).absorbAll c dsObserve).squeeze.2.cap) :
-    tbxGkrRun (c :: cs) (e :: es) claim ⟨cap, []⟩ =
-      (ch :: (tbxGkrRun cs es (polyEval ((claim + e * sumE c) :: c) ch) ⟨cap', []⟩).1,
-        (tbxGkrRun cs es (polyEval ((claim + e * sumE c) :: c) ch) ⟨cap', []⟩).2) := by
+/-- One round of `gkrRun`, from what the guest's round gives. -/
+theorem tb_gkrRun_cons_of {c : List E} {cs : List (List E)} {e : E} {es : List E} {claim ch : E}
+    {cap cap' : List E} (hch : ch = ((⟨cap, []⟩ : Fs).absorbAll c dsObserve).squeeze.1)
+    (hcap : cap' = ((⟨cap, []⟩ : Fs).absorbAll c dsObserve).squeeze.2.cap) :
+    gkrRun (c :: cs) (e :: es) claim ⟨cap, []⟩ =
+      (ch :: (gkrRun cs es (polyEval ((claim + e * sumE c) :: c) ch) ⟨cap', []⟩).1,
+        (gkrRun cs es (polyEval ((claim + e * sumE c) :: c) ch) ⟨cap', []⟩).2) := by
   subst hch hcap
   rfl
 
@@ -95,7 +95,7 @@ theorem l29_round_cap (q : ℕ) (σ : Val) :
 /-- **An iteration of `__loop29`**: four rounds from the record at `head·x^4`. -/
 theorem l29_step {N head ptrow : E} (d : ℕ) (x : E)
     (h : coreProgram.relN rd (d + 1) "__loop29" (x :: [N, head, ptrow]) []) :
-    TbxGkrRoundsOut 4 rd (head * x ^ 4) (ptrow * x ^ 4) ∧
+    TbGkrRoundsOut 4 rd (head * x ^ 4) (ptrow * x ^ 4) ∧
       (x * gen + N ≠ 0 → coreProgram.relN rd d "__loop29" (x * gen :: [N, head, ptrow]) []) := by
   obtain ⟨fn, hf, σ, hpar, hbody⟩ := h
   obtain ⟨fn', hf', hp, hb⟩ := l29Found
@@ -136,13 +136,13 @@ theorem l29_step {N head ptrow : E} (d : ℕ) (x : E)
     Nat.reduceMul, Nat.reduceSub, Nat.reduceEqDiff] at hs0 hs1 hs2 hs3 hcl0 hcl1 hcl2 hcl3
   simp only [Nat.mul_zero, Nat.mul_one, Nat.reduceMul] at hr0 hr1 hr2 hr3
   -- the run
-  have hrun : tbxGkrRun [xs0, xs1, xs2, xs3] [e0, e1, e2, e3] (σ (.n 14))
+  have hrun : gkrRun [xs0, xs1, xs2, xs3] [e0, e1, e2, e3] (σ (.n 14))
       ⟨[σ (.n 8), σ (.n 9), σ (.n 10), σ (.n 11), σ (.n 12)], []⟩ =
       ([σ (.n 74), σ (.n 148), σ (.n 222), σ (.n 296)], σ (.n 310),
         ⟨(List.range 5).map fun k ↦ σ (.n (285 + k)), []⟩) := by
-    rw [tbxGkrRun_cons_of hc0 hcap0, ← hcl0, tbxGkrRun_cons_of hc1 hcap1, ← hcl1,
-      tbxGkrRun_cons_of hc2 hcap2, ← hcl2, tbxGkrRun_cons_of hc3 hcap3, ← hcl3]
-    simp [tbxGkrRun]
+    rw [tb_gkrRun_cons_of hc0 hcap0, ← hcl0, tb_gkrRun_cons_of hc1 hcap1, ← hcl1,
+      tb_gkrRun_cons_of hc2 hcap2, ← hcl2, tb_gkrRun_cons_of hc3 hcap3, ← hcl3]
+    simp [gkrRun]
   have hx4 : ∀ l : List E, l.length = 4 → ∃ a b c d, l = [a, b, c, d] := fun l hl => by
     match l, hl with
     | [a, b, c, d], _ => exact ⟨a, b, c, d, rfl⟩
@@ -198,7 +198,7 @@ theorem l29_step {N head ptrow : E} (d : ℕ) (x : E)
     · simpa using hs1
     · simpa using hs2
     · simpa using hs3
-  · generalize hR : tbxGkrRun [[a0, b0, c0, d0], [a1, b1, c1, d1], [a2, b2, c2, d2],
+  · generalize hR : gkrRun [[a0, b0, c0, d0], [a1, b1, c1, d1], [a2, b2, c2, d2],
       [a3, b3, c3, d3]] [e0, e1, e2, e3] (σ (.n 14))
       ⟨[σ (.n 8), σ (.n 9), σ (.n 10), σ (.n 11), σ (.n 12)], []⟩ = R at hj ⊢
     rw [hrun] at hR
@@ -215,19 +215,19 @@ theorem l29_step {N head ptrow : E} (d : ℕ) (x : E)
 
 /-- No rounds: a record's facts. -/
 theorem gkrRoundsOut_zero {rd : Reader} {rec pt : E} {cap : List E} {cur claim : E}
-    (hc : TbCapAt rd rec 0 gkCap cap) (hcan : TbxAllCanonical cap)
+    (hc : TbCapAt rd rec 0 gkCap cap) (hcan : AllCanonical cap)
     (hcur : LoadHolds rd rec (5 * gkCap) cur) (hcl : LoadHolds rd rec (6 * gkCap) claim) :
-    TbxGkrRoundsOut 0 rd rec pt :=
+    TbGkrRoundsOut 0 rd rec pt :=
   ⟨cap, cur, claim, [], [], hc, hcan, hcur, hcl, rfl, by simp, tbReadsAt_nil _ _, rfl,
-    tbReadsAt_nil _ _, tbReadsAt_nil _ _, by simpa [tbxGkrRun] using hc,
-    by simpa using hcur, by simpa [tbxGkrRun] using hcl⟩
+    tbReadsAt_nil _ _, tbReadsAt_nil _ _, by simpa [gkrRun] using hc,
+    by simpa using hcur, by simpa [gkrRun] using hcl⟩
 
 /-- **`__loop29` behind its guard**: from the record at `head`, `half = g^h` iterations are the
 `4h` rounds to the record at `head·g^(4h)`. -/
 theorem l29_loop {rd : Reader} {half head ptrow : E} {h : ℕ} (hh : half = gen ^ h)
     (hhb : h < 2 ^ 62)
     (hcall : 1 + half ≠ 0 → coreProgram.Rel rd "__loop29" [1, half, head, ptrow] [])
-    (h0 : TbxGkrRoundsOut 0 rd head ptrow) : TbxGkrRoundsOut (4 * h) rd head ptrow := by
+    (h0 : TbGkrRoundsOut 0 rd head ptrow) : TbGkrRoundsOut (4 * h) rd head ptrow := by
   rcases Nat.eq_zero_or_pos h with rfl | hpos
   · simpa using h0
   have hne : 1 + half ≠ 0 := by
@@ -238,13 +238,13 @@ theorem l29_loop {rd : Reader} {half head ptrow : E} {h : ℕ} (hh : half = gen 
     omega
   have hrun := hcall hne
   rw [← pow_zero gen] at hrun
-  obtain ⟨m, -, hN, hall⟩ := tb_loop_sound (B := fun x ↦ TbxGkrRoundsOut 4 rd (head * x ^ 4)
+  obtain ⟨m, -, hN, hall⟩ := tb_loop_sound (B := fun x ↦ TbGkrRoundsOut 4 rd (head * x ^ 4)
     (ptrow * x ^ 4)) (fun d x hx => l29_step d x hx) 0 hrun
   have hmh : h ≤ m := by
     by_contra hc
     have := gen_pow_inj (by omega) (by omega) (hh.symm.trans hN)
     omega
-  have key : ∀ i ≤ h, TbxGkrRoundsOut (4 * i) rd head ptrow := by
+  have key : ∀ i ≤ h, TbGkrRoundsOut (4 * i) rd head ptrow := by
     intro i hi
     induction i with
     | zero => simpa using h0

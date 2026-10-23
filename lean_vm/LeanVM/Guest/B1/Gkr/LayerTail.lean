@@ -44,16 +44,16 @@ theorem lyCh_eq (σ : Val) (m : ℕ) : lyCh σ m = [σ (.n (lyEv (4 * m))), σ (
   simp [lyCh, List.range_succ]
 
 /-- Absorbing four scalars at a full queue: one permutation, then the four waiting. -/
-theorem tbx_absorbAll_full (s : TbxFs) (hs : s.pend.length = 4) (xs : List E) (hx : xs.length = 4)
-    (t : ℕ) : s.absorbAll xs t = ⟨tbxCapOf s.perm, xs.map (·, t)⟩ := by
+theorem tb_absorbAll_full (s : Fs) (hs : s.pend.length = 4) (xs : List E) (hx : xs.length = 4)
+    (t : ℕ) : s.absorbAll xs t = ⟨capOf s.perm, xs.map (·, t)⟩ := by
   match xs, hx with
   | x :: rest, hx =>
-    simp only [TbxFs.absorbAll, List.foldl_cons]
-    have h1 : s.absorb x t = ⟨tbxCapOf s.perm, [(x, t)]⟩ := by
-      simp [TbxFs.absorb, hs, rateScalars]
+    simp only [Fs.absorbAll, List.foldl_cons]
+    have h1 : s.absorb x t = ⟨capOf s.perm, [(x, t)]⟩ := by
+      simp [Fs.absorb, hs, rateScalars]
     rw [h1]
-    have := tbx_absorbAll_short ⟨tbxCapOf s.perm, [(x, t)]⟩ rest t (by simp at hx ⊢; omega)
-    simp only [TbxFs.absorbAll] at this
+    have := absorbAll_short ⟨capOf s.perm, [(x, t)]⟩ rest t (by simp at hx ⊢; omega)
+    simp only [Fs.absorbAll] at this
     rw [this]
     simp
 
@@ -63,16 +63,16 @@ variable {C : CallRel} {rd : Reader} {σ : Val} {kret : List E → Prop}
 
 /-- A permutation's thirteen outputs from `b`, and its capacity cells. -/
 theorem ly_keccak {ins : List V} {b : ℕ} (hk : (Atom.keccak ins (lyOuts b) false false).Holds rd σ) :
-    TbxAllCanonical (ins.map σ) ∧
-      (∀ k (hk : k < 13), σ (.n (b + k)) = cellsOfState (tbxPermOf (ins.map σ)) false ⟨k, hk⟩) ∧
-      (lyCap b).map σ = tbxCapOf (tbxPermOf (ins.map σ)) := by
-  obtain ⟨-, -, hcan, hout⟩ := tbx_keccakA_perm hk
-  have hP : ∀ k (hk : k < 13), σ (.n (b + k)) = cellsOfState (tbxPermOf (ins.map σ)) false ⟨k, hk⟩ := by
+    AllCanonical (ins.map σ) ∧
+      (∀ k (hk : k < 13), σ (.n (b + k)) = cellsOfState (permOf (ins.map σ)) false ⟨k, hk⟩) ∧
+      (lyCap b).map σ = capOf (permOf (ins.map σ)) := by
+  obtain ⟨-, -, hcan, hout⟩ := keccakA_perm hk
+  have hP : ∀ k (hk : k < 13), σ (.n (b + k)) = cellsOfState (permOf (ins.map σ)) false ⟨k, hk⟩ := by
     intro k hk
-    have := tbx_outs_eq hout ⟨k, hk⟩ (by simpa [lyOuts] using hk)
+    have := outs_eq hout ⟨k, hk⟩ (by simpa [lyOuts] using hk)
     simpa [lyOuts] using this
   refine ⟨hcan, hP, ?_⟩
-  simp only [lyCap, tbxCapOf, List.range_succ, List.range_zero, List.map_cons, List.map_nil,
+  simp only [lyCap, capOf, List.range_succ, List.range_zero, List.map_cons, List.map_nil,
     List.nil_append, List.cons_append]
   rw [hP (8 + 0) (by omega), hP (8 + 1) (by omega), hP (8 + 2) (by omega), hP (8 + 3) (by omega),
     hP (8 + 4) (by omega)]
@@ -81,20 +81,20 @@ theorem ly_keccak {ins : List V} {b : ℕ} (hk : (Atom.keccak ins (lyOuts b) fal
 /-- Child `i`'s read: its word at the cursor, packed, and copied. -/
 theorem ly_ev {i : ℕ} (h : Stmt.HoldsList C rd σ (lyEvT i) True kret) :
     LoadHolds rd (σ (.n 79)) i (σ (.n (lyEv i))) ∧
-      TbxFsPackOk σ (.n (lyEv i)) (lyEv i + 1) dsObserve ∧ σ (.n (lyEv i + 10)) = σ (.n (lyEv i)) := by
+      FsPackOk σ (.n (lyEv i)) (lyEv i + 1) dsObserve ∧ σ (.n (lyEv i + 10)) = σ (.n (lyEv i)) := by
   unfold lyEvT at h
-  rw [tb_holdsList_append_noRet (by simp [tbxFsNextT, tbxFsPackT]; rfl), tbx_holds_fsNextT] at h
+  rw [tb_holdsList_append_noRet (by simp [fsNextT, fsPackT]; rfl), holds_fsNextT] at h
   obtain ⟨⟨⟨hl, hp⟩, -⟩, hc⟩ := h
   simp only [Stmt.HoldsList, Stmt.Holds, Atom.Holds, and_true] at hc
   exact ⟨hl, hp, hc⟩
 
 /-- **Four children's permutation**: their cells over the carried capacity. -/
 theorem ly_perm_block {m b : ℕ} {cap : List V}
-    (hp : ∀ i < 4, TbxFsPackOk σ (.n (lyEv (4 * m + i))) (lyEv (4 * m + i) + 1) dsObserve)
+    (hp : ∀ i < 4, FsPackOk σ (.n (lyEv (4 * m + i))) (lyEv (4 * m + i) + 1) dsObserve)
     (hk : (Atom.keccak (lyRate m ++ cap) (lyOuts b) false false).Holds rd σ) :
     (∀ k (hk : k < 13), σ (.n (b + k)) =
-      cellsOfState (TbxFs.perm ⟨cap.map σ, (lyCh σ m).map (·, dsObserve)⟩) false ⟨k, hk⟩) ∧
-      (lyCap b).map σ = tbxCapOf (TbxFs.perm ⟨cap.map σ, (lyCh σ m).map (·, dsObserve)⟩) := by
+      cellsOfState (Fs.perm ⟨cap.map σ, (lyCh σ m).map (·, dsObserve)⟩) false ⟨k, hk⟩) ∧
+      (lyCap b).map σ = capOf (Fs.perm ⟨cap.map σ, (lyCh σ m).map (·, dsObserve)⟩) := by
   obtain ⟨hcan, hP, hcap⟩ := ly_keccak hk
   have hcell : ∀ i < 4, σ (.n (lyEv (4 * m + i) + 7)) =
       (Keccak.scalarCells (σ (.n (lyEv (4 * m + i)))) dsObserve).1 ∧
@@ -105,13 +105,13 @@ theorem ly_perm_block {m b : ℕ} {cap : List V}
       simp only [List.map_append, List.mem_append, lyRate, List.map_flatMap, List.mem_flatMap,
         List.mem_range, List.map_cons, List.map_nil, List.mem_cons]
       exact Or.inl ⟨i, hi, Or.inl rfl⟩
-    have := tbx_fsPackT_cells (hp i hi)
+    have := fsPackT_cells (hp i hi)
       (by rw [show lyEv (4 * m + i) + 1 + 6 = lyEv (4 * m + i) + 7 by omega]; exact hc)
     rw [show lyEv (4 * m + i) + 1 + 6 = lyEv (4 * m + i) + 7 by omega,
       show lyEv (4 * m + i) + 1 + 8 = lyEv (4 * m + i) + 9 by omega] at this
     exact Prod.ext_iff.mp this
-  have hrate : (lyRate m).map σ = tbxPendCells ((lyCh σ m).map (·, dsObserve)) := by
-    simp only [lyRate, lyCh, tbxPendCells, List.map_flatMap, List.flatMap_map, List.map_cons,
+  have hrate : (lyRate m).map σ = pendCells ((lyCh σ m).map (·, dsObserve)) := by
+    simp only [lyRate, lyCh, pendCells, List.map_flatMap, List.flatMap_map, List.map_cons,
       List.map_nil]
     rw [List.flatMap_def, List.flatMap_def]
     congr 1
@@ -120,8 +120,8 @@ theorem ly_perm_block {m b : ℕ} {cap : List V}
     rw [List.mem_range] at hi
     rw [(hcell i hi).1, (hcell i hi).2]
   have hins : (lyRate m ++ cap).map σ =
-      tbxRateOf ((lyCh σ m).map (·, dsObserve)) ++ cap.map σ := by
-    rw [List.map_append, hrate, tbx_rateOf_eq_cells _ (by simp [lyCh_length])]
+      rateOf ((lyCh σ m).map (·, dsObserve)) ++ cap.map σ := by
+    rw [List.map_append, hrate, rateOf_eq_cells _ (by simp [lyCh_length])]
     simp [lyCh_length]
   rw [hins] at hP hcap
   exact ⟨hP, hcap⟩
@@ -139,8 +139,8 @@ theorem ly_val {t b off : ℕ} (h : Stmt.HoldsList C rd σ (lyVal t b off) True 
   ring
 
 /-- The sponge after the twelve children, from the last record's capacity. -/
-def lySponge (σ : Val) : TbxFs :=
-  (((⟨(List.range 5).map fun k ↦ σ (.n (74 + k)), []⟩ : TbxFs).absorbAll (lyCh σ 0)
+def lySponge (σ : Val) : Fs :=
+  (((⟨(List.range 5).map fun k ↦ σ (.n (74 + k)), []⟩ : Fs).absorbAll (lyCh σ 0)
     dsObserve).absorbAll (lyCh σ 1) dsObserve).absorbAll (lyCh σ 2) dsObserve
 
 theorem tb_word_three : word 3 0 0 = 1 + gen := by
@@ -149,12 +149,12 @@ theorem tb_word_three : word 3 0 0 = 1 + gen := by
 
 /-- **The rounds of a layer**: `__loop29` (`4·(j/2)` rounds), `gkr_rounds__L2` at an odd `j`, and
 `gkr_rounds__L1` at an odd depth are the `2j + sh` rounds from the first record. -/
-theorem ly_rounds (hC : CallRel.Le C (coreProgram.Rel rd)) (hGR : tbx_gkr_rounds_Spec)
+theorem ly_rounds (hC : CallRel.Le C (coreProgram.Rel rd)) (hGR : tb_gkr_rounds_Spec)
     (h : Stmt.HoldsList C rd σ lyPre True kret) {j sh : ℕ} (hj : j < 2 ^ 30) (hsh : sh < 2)
     (e6 : σ (.n 6) = gen ^ (2 * j)) (e9 : σ (.n 9) = gen ^ (2 * j + sh))
     (e61 : σ (.n 61) = gen ^ (j / 2)) (e62 : σ (.n 62) = bitE (j % 2 = 1))
-    (h0 : TbxGkrRoundsOut 0 rd (σ (.n 52)) (σ (.n 50))) :
-    TbxGkrRoundsOut (2 * j + sh) rd (σ (.n 52)) (σ (.n 50)) := by
+    (h0 : TbGkrRoundsOut 0 rd (σ (.n 52)) (σ (.n 50))) :
+    TbGkrRoundsOut (2 * j + sh) rd (σ (.n 52)) (σ (.n 50)) := by
   have hnr := lyPre_noRet
   have a := fun n a heq => tb_holds_atom (C := C) (rd := rd) (σ := σ) (kret := kret) hnr h n a heq
   have c63 := a 53 (.const (.n 63) (word 1 0 0)) (by decide +kernel)
@@ -167,7 +167,7 @@ theorem ly_rounds (hC : CallRel.Le C (coreProgram.Rel rd)) (hGR : tbx_gkr_rounds
   simp only [List.map_cons, List.map_nil, c65] at hc29
   have R4 := l29_loop (h := j / 2) e61 (by omega)
     (fun hne => hC _ _ _ (hc29 (by rw [a64, c63]; exact hne))) h0
-  have R2 : TbxGkrRoundsOut (2 * j) rd (σ (.n 52)) (σ (.n 50)) := by
+  have R2 : TbGkrRoundsOut (2 * j) rd (σ (.n 52)) (σ (.n 50)) := by
     have hi := tb_holds_slice hnr h 57 [.ite (.n 62) [] [.atom (.mul (.n 66) (.n 61) (.n 61)),
       .atom (.mul (.n 67) (.n 66) (.n 66)), .atom (.mul (.n 68) (.n 52) (.n 67)),
       .atom (.mul (.n 69) (.n 50) (.n 67)), .call "gkr_rounds__L2" [.n 68, .n 69] []]]
@@ -217,7 +217,7 @@ theorem ly_tail (h : Stmt.HoldsList C rd σ lyPre True kret) :
     (lyEvs_check i hi))
   have cp : ∀ i < 12, σ (.n (lyEv i + 10)) = σ (.n (lyEv i)) := fun i hi => (EV i hi).2.2
   have hp : ∀ m < 3, ∀ i < 4,
-      TbxFsPackOk σ (.n (lyEv (4 * m + i))) (lyEv (4 * m + i) + 1) dsObserve :=
+      FsPackOk σ (.n (lyEv (4 * m + i))) (lyEv (4 * m + i) + 1) dsObserve :=
     fun m hm i hi => (EV (4 * m + i) (by omega)).2.1
   -- the reads
   have hreads : TbReadsAt rd (σ (.n 79)) (lyCh σ 0 ++ (lyCh σ 1 ++ lyCh σ 2)) := by
@@ -229,9 +229,9 @@ theorem ly_tail (h : Stmt.HoldsList C rd σ lyPre True kret) :
   -- the sponge
   have hS0 : ((List.range 5).map fun k ↦ V.n (74 + k)).map σ =
       (List.range 5).map fun k ↦ σ (.n (74 + k)) := by simp
-  have A0 : (⟨(List.range 5).map fun k ↦ σ (.n (74 + k)), []⟩ : TbxFs).absorbAll (lyCh σ 0)
+  have A0 : (⟨(List.range 5).map fun k ↦ σ (.n (74 + k)), []⟩ : Fs).absorbAll (lyCh σ 0)
       dsObserve = ⟨(List.range 5).map fun k ↦ σ (.n (74 + k)), (lyCh σ 0).map (·, dsObserve)⟩ := by
-    rw [tbx_absorbAll_short _ _ _ (by simp [lyCh_length])]
+    rw [absorbAll_short _ _ _ (by simp [lyCh_length])]
     simp
   have k2 := a 108 (.keccak (lyRate 0 ++ (List.range 5).map fun k ↦ .n (74 + k)) (lyOuts 125)
     false false) (by decide +kernel)
@@ -243,13 +243,13 @@ theorem ly_tail (h : Stmt.HoldsList C rd σ lyPre True kret) :
   obtain ⟨P2, B2⟩ := ly_perm_block (hp 2 (by omega)) k4
   have hA : lySponge σ = ⟨(lyCap 182).map σ, (lyCh σ 2).map (·, dsObserve)⟩ := by
     unfold lySponge
-    rw [A0, tbx_absorbAll_full _ (by simp [lyCh_length]) _ (lyCh_length σ 1), ← B0,
-      tbx_absorbAll_full _ (by simp [lyCh_length]) _ (lyCh_length σ 2), ← B1]
+    rw [A0, tb_absorbAll_full _ (by simp [lyCh_length]) _ (lyCh_length σ 1), ← B0,
+      tb_absorbAll_full _ (by simp [lyCh_length]) _ (lyCh_length σ 2), ← B1]
   rw [← hA] at P2 B2
   -- the first new coordinate
-  have hch2 := tb_holds_slice hnr h 208 (tbxChallengeT (.n 255) (.n 256) 268) (by decide +kernel)
-  rw [tbx_holds_challengeT] at hch2
-  have e274 := tbx_challengeT_value hch2.1 (P2 0 (by omega)) (P2 1 (by omega))
+  have hch2 := tb_holds_slice hnr h 208 (challengeT (.n 255) (.n 256) 268) (by decide +kernel)
+  rw [holds_challengeT] at hch2
+  have e274 := challengeT_value hch2.1 (P2 0 (by omega)) (P2 1 (by omega))
   -- the second
   have c26 := a 20 (.const (.n 26) (word 0 0 0)) (by decide +kernel)
   have c27 := a 21 (.const (.n 27) (word 0 0 0)) (by decide +kernel)
@@ -260,14 +260,14 @@ theorem ly_tail (h : Stmt.HoldsList C rd σ lyPre True kret) :
     (lyOuts 275) false false) (by decide +kernel)
   obtain ⟨-, P3, B3⟩ := ly_keccak k5
   have hz : (([.n 26, .n 26, .n 26, .n 26, .n 26, .n 27, .n 28, .n 29] ++ lyCap 255 : List V).map σ) =
-      tbxRateOf [] ++ tbxCapOf (lySponge σ).perm := by
-    rw [List.map_append, B2, tbx_rateOf_eq_cells [] (by simp)]
+      rateOf [] ++ capOf (lySponge σ).perm := by
+    rw [List.map_append, B2, rateOf_eq_cells [] (by simp)]
     simp only [List.map_cons, List.map_nil, c26, c27, c28, c29]
     rfl
   rw [hz] at P3 B3
-  have hch3 := tb_holds_slice hnr h 217 (tbxChallengeT (.n 275) (.n 276) 288) (by decide +kernel)
-  rw [tbx_holds_challengeT] at hch3
-  have e294 := tbx_challengeT_value hch3.1 (P3 0 (by omega)) (P3 1 (by omega))
+  have hch3 := tb_holds_slice hnr h 217 (challengeT (.n 275) (.n 276) 288) (by decide +kernel)
+  rw [holds_challengeT] at hch3
+  have e294 := challengeT_value hch3.1 (P3 0 (by omega)) (P3 1 (by omega))
   have hsq : ((lySponge σ).squeezeN 2).1 = [σ (.n 274), σ (.n 294)] := by
     rw [e274, e294]; rfl
   refine ⟨hreads, ?_, hsq, ?_, ?_⟩
@@ -310,7 +310,7 @@ theorem ly_tail (h : Stmt.HoldsList C rd σ lyPre True kret) :
     rw [hc0, hc1, hc2]
     simp only [polyEval, prodE, List.foldr, List.foldl]
     ring
-  · show (⟨tbxCapOf (tbxPermOf (tbxRateOf [] ++ tbxCapOf (lySponge σ).perm)), []⟩ : TbxFs) = _
+  · show (⟨capOf (permOf (rateOf [] ++ capOf (lySponge σ).perm)), []⟩ : Fs) = _
     rw [← B3]
     simp [lyCap]
   · intro t ht

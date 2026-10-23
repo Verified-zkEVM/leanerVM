@@ -214,7 +214,7 @@ def TablesOut (bytecode : List K) (pi : Digest) (logMem : ℕ) (alphas point val
         (∀ h ∈ tableHeightsOf rowsN, h < 29) ∧ TbReadsAt rd cur xs ∧
         (∀ ev, BytecodeAt ev bytecode
             (point.take (layoutOf bytecode logMem rowsN).logBytecode ++ alphas) bv →
-          TbxRunsTo (tablesSeg ev (layoutOf bytecode logMem rowsN) pi alphas beta point values)
+          RunsTo (tablesSeg ev (layoutOf bytecode logMem rowsN) pi alphas beta point values)
             ⟨[f0, f1, f2, f3, f4], []⟩ xs (bus, claims) ⟨cap', []⟩) ∧
         claims.length = nClaims ∧ TbReadsAt rd pool (claims.map (·.value)) ∧
         TCtx rd (layoutOf bytecode logMem rowsN) bus claims [zeta, chi, rm, gmu, gzcn, cplen] ∧
