@@ -88,7 +88,7 @@ theorem sx2_nb {atV n0 : V} (hlo : 206 ≤ lo) (ha : NBv lo atV) (hn : NBv lo n0
 
 /-- **The first arm completes**, allocating the two tops and the weight. -/
 theorem foldArm0_complete {atV : V} {adr : Nat → Sum V Nat} {height : Nat} {node0 markV : V}
-    {markC wC : E} {b : Nat} (hlo : 206 ≤ b) (hh : 1 ≤ height) (hadr : AdrOK adr) (hat : NBv b atV)
+    {markC wC : E} {b : Nat} (hlo : 206 ≤ b) (hh : 1 ≤ height) (hadr : AdrOK adr (height - 1)) (hat : NBv b atV)
     (hn0 : NBv b node0) (hmk : NBv b markV) (sibs : Nat → E) (hs : ∀ j < height, IsCanonical128 (sibs j))
     (σ : Val) (hX : ∀ v, SX atV node0 v → NBv b v → IsCanonical128 (σ v))
     (hmv : σ markV = markC) :
@@ -99,7 +99,7 @@ theorem foldArm0_complete {atV : V} {adr : Nat → Sum V Nat} {height : Nat} {no
         IsCanonical128 (σ' (.n (flBase adr 0 (height - 1) b))) ∧
         σ' (.n (flBase adr 0 (height - 1) b + 2)) = wC) := by
   obtain ⟨k1, k2, k3⟩ := foldLevels_kseq (lo := b) (a2 := node0) (index := 0) hlo hadr hat (height - 1) 0
-    node0 b le_rfl (sx_a2 hn0)
+    node0 b (by omega) le_rfl (sx_a2 hn0)
   set L := flBase adr 0 (height - 1) b with hL
   have hbL : b ≤ L := le_trans (by omega) (flBase_ge adr 0 (height - 1) b)
   have hks : KSeq b (SX atV node0) b ((foldLevels atV adr 0 (height - 1) 0 node0 b).1 ++
@@ -166,7 +166,7 @@ theorem foldArm0_complete {atV : V} {adr : Nat → Sum V Nat} {height : Nat} {no
 
 /-- A later arm, its copy into `d` and its hint into `o`, the two tops `L0`, `L0 + 1`. -/
 theorem foldArmN_aux {atV : V} {adr : Nat → Sum V Nat} {height index : Nat} {node0 markV : V}
-    {markC wC : E} {bI hi L0 d o : Nat} (hlo : 206 ≤ lo) (hb : lo ≤ bI) (hadr : AdrOK adr)
+    {markC wC : E} {bI hi L0 d o : Nat} (hlo : 206 ≤ lo) (hb : lo ≤ bI) (hadr : AdrOK adr (height - 1))
     (hat : NBv lo atV) (hn0 : NBv lo node0) (hmk : NBv lo markV) (hL0 : lo ≤ L0 ∧ L0 + 3 ≤ bI)
     (hdo : (d = L0 ∧ o = L0 + 1) ∨ (d = L0 + 1 ∧ o = L0))
     (hhi : flBase adr 0 (height - 1) bI ≤ hi) (sibs : Nat → E) (hs : ∀ j < height, IsCanonical128 (sibs j))
@@ -182,7 +182,7 @@ theorem foldArmN_aux {atV : V} {adr : Nat → Sum V Nat} {height index : Nat} {n
   have hn0b : NBv bI node0 := hn0.mono' hb
   have hatb : NBv bI atV := hat.mono' hb
   obtain ⟨k1, k2, k3⟩ := foldLevels_kseq (lo := bI) (a2 := node0) (index := index) (by omega) hadr hatb
-    (height - 1) 0 node0 bI le_rfl (sx_a2 hn0b)
+    (height - 1) 0 node0 bI (by omega) le_rfl (sx_a2 hn0b)
   set L := flBase adr 0 (height - 1) bI with hL
   have hbL : bI ≤ L := le_trans (by omega) (flBase_ge adr 0 (height - 1) bI)
   obtain ⟨hext, hval, hoth⟩ := foLoad_spec (adr := adr) (height := height) (b := bI) (other := .n o) sibs σ
@@ -270,7 +270,7 @@ theorem foldArmN_aux {atV : V} {adr : Nat → Sum V Nat} {height index : Nat} {n
 
 /-- **A later arm completes**, writing into the first arm's tops and weight. -/
 theorem foldArmN_complete {atV : V} {adr : Nat → Sum V Nat} {height index : Nat} {node0 markV : V}
-    {markC wC : E} {bI hi L0 : Nat} (hlo : 206 ≤ lo) (hb : lo ≤ bI) (hadr : AdrOK adr)
+    {markC wC : E} {bI hi L0 : Nat} (hlo : 206 ≤ lo) (hb : lo ≤ bI) (hadr : AdrOK adr (height - 1))
     (hat : NBv lo atV) (hn0 : NBv lo node0) (hmk : NBv lo markV) (hL0 : lo ≤ L0 ∧ L0 + 3 ≤ bI)
     (hhi : flBase adr 0 (height - 1) bI ≤ hi) (sibs : Nat → E) (hs : ∀ j < height, IsCanonical128 (sibs j))
     (hh : 1 ≤ height) (σ : Val) (hX : ∀ v, SX atV node0 v → NBv lo v → IsCanonical128 (σ v))
@@ -378,7 +378,7 @@ theorem foAB_mono {b : Nat} : ∀ t, b ≤ foAB atV adr height node0 markV markC
 
 /-- **The folds' dispatch completes** on `index`, its siblings and the other top loaded. -/
 theorem foldArms_complete {b index : Nat} {x : V} (hidx : index < 2 ^ height) (hh : 1 ≤ height)
-    (hlo : 206 ≤ b) (hadr : ∀ i, AdrOK (adr i)) (hat : NBv b atV) (hn0 : NBv b node0) (hmk : NBv b markV)
+    (hlo : 206 ≤ b) (hadr : ∀ i < 2 ^ height, AdrOK (adr i) (height - 1)) (hat : NBv b atV) (hn0 : NBv b node0) (hmk : NBv b markV)
     (hx : NBv b x) (sibs : Nat → E) (hs : ∀ j < height, IsCanonical128 (sibs j)) (σ : Val)
     (hX : ∀ v, SX atV node0 v → NBv b v → IsCanonical128 (σ v)) (hmv : σ markV = markC index)
     (hxv : σ x = ofK (gpow index)) :
@@ -407,7 +407,7 @@ theorem foldArms_complete {b index : Nat} {x : V} (hidx : index < 2 ^ height) (h
   simp only
   rcases Nat.eq_zero_or_pos index with rfl | hpos
   · refine (foldArm0_complete (C := C) (rd := rd) (atV := atV) (adr := adr 0) (height := height) (node0 := node0)
-      (markV := markV) (markC := markC 0) (wC := wC 0) hlo hh (hadr 0) hat hn0 hmk sibs hs σ hX hmv).mono le_rfl
+      (markV := markV) (markC := markC 0) (wC := wC 0) hlo hh (hadr 0 (by omega)) hat hn0 hmk sibs hs σ hX hmv).mono le_rfl
       (by omega) (fun σ' ⟨p1, p2, p3, p4⟩ => ⟨fun j hj => ?_, by simpa using p2, p3, by rw [p2]; exact hs _ (by omega), p4⟩)
     have : foAB atV adr height node0 markV markC wC b 0 = b := by unfold foAB; simp
     rw [this]; exact p1 j hj
@@ -419,13 +419,13 @@ theorem foldArms_complete {b index : Nat} {x : V} (hidx : index < 2 ^ height) (h
     simp only [Bool.false_eq_true, ↓reduceIte] at hnext
     have hend : foAB atV adr height node0 markV markC wC b (index + 1) ≤ (foldArms atV adr height node0 markV markC wC b).2.1 := by
       rw [foldArms_end b]; exact (hm (index + 1)).2 _ (by omega)
-    refine (foldArmN_complete (C := C) (rd := rd) (lo := b) (L0 := L0) hlo (hm index).1 (hadr index) hat hn0 hmk
+    refine (foldArmN_complete (C := C) (rd := rd) (lo := b) (L0 := L0) hlo (hm index).1 (hadr index hidx) hat hn0 hmk
       ⟨hbL, by omega⟩ (by omega) sibs hs hh σ hX hmv).mono le_rfl le_rfl
       (fun σ' ⟨p1, p2, p3, p4, p5⟩ => ⟨p1, ?_, p3, p4, p5⟩)
     by_cases h0 : index / 2 ^ (height - 1) = 0 <;> simp only [h0, ↓reduceIte] at p2 ⊢ <;> exact p2
 
 /-- **The folds' values lie below their end.** -/
-theorem foldArms_numBelow {b : Nat} (hh : 1 ≤ height) (hlo : 206 ≤ b) (hadr : ∀ i, AdrOK (adr i))
+theorem foldArms_numBelow {b : Nat} (hh : 1 ≤ height) (hlo : 206 ≤ b) (hadr : ∀ i < 2 ^ height, AdrOK (adr i) (height - 1))
     (hat : NBv b atV) (hn0 : NBv b node0) (hmk : NBv b markV) :
     NumBelow (foldArms atV adr height node0 markV markC wC b).2.1
       (Stmt.valsArms (foldArms atV adr height node0 markV markC wC b).1) := by
@@ -440,16 +440,16 @@ theorem foldArms_numBelow {b : Nat} (hh : 1 ≤ height) (hlo : 206 ≤ b) (hadr 
   have hp2 : 2 ≤ 2 ^ height := le_trans (by norm_num) (Nat.pow_le_pow_right (by norm_num) hh)
   have hend1 : foAB atV adr height node0 markV markC wC b 1 ≤ (foldArms atV adr height node0 markV markC wC b).2.1 := by
     rw [foldArms_end b]; exact (hm 1).2 _ (by omega)
-  have key : ∀ (i bI Bd : Nat), b ≤ bI → flBase (adr i) 0 (height - 1) bI ≤ Bd → ∀ (d o e : Nat),
+  have key : ∀ (i bI Bd : Nat), i < 2 ^ height → b ≤ bI → flBase (adr i) 0 (height - 1) bI ≤ Bd → ∀ (d o e : Nat),
       d < Bd → o < Bd → e < Bd →
       ∀ (mc w : E), NumBelow Bd
         (Stmt.valsList ((foldLevels atV (adr i) i (height - 1) 0 node0 bI).1 ++
           [copyS (.n d) (foldLevels atV (adr i) i (height - 1) 0 node0 bI).2.2, hintW "sp_forest_nodes" [.n o],
             .atom (.const markV mc), .atom (.const (.n e) w)])) := by
-    intro i bI Bd hbI hBd d o e hd ho he mc w
+    intro i bI Bd hi hbI hBd d o e hd ho he mc w
     have hgeI := flBase_ge (adr i) 0 (height - 1) bI
-    obtain ⟨k1, k2, k3⟩ := foldLevels_kseq (lo := bI) (a2 := node0) (index := i) (by omega) (hadr i)
-      (hat.mono' hbI) (height - 1) 0 node0 bI le_rfl (sx_a2 (hn0.mono' hbI))
+    obtain ⟨k1, k2, k3⟩ := foldLevels_kseq (lo := bI) (a2 := node0) (index := i) (by omega) (hadr i hi)
+      (hat.mono' hbI) (height - 1) 0 node0 bI (by omega) le_rfl (sx_a2 (hn0.mono' hbI))
     have hnd := k3.nb (show bI ≤ flBase (adr i) 0 (height - 1) bI by omega)
     rw [valsList_append]
     refine ((KSeq.numBelow le_rfl k1).mono hBd).append ?_
@@ -465,7 +465,7 @@ theorem foldArms_numBelow {b : Nat} (hh : 1 ≤ height) (hlo : 206 ≤ b) (hadr 
         (foldArm atV (adr 0) height 0 node0 (.n 0, .n 0, .n 0) markV (markC 0) (wC 0) true b).1 := rfl
     rw [e, foldArm_split, foldLevels_snd]
     simp only [Nat.zero_div, ↓reduceIte]
-    exact (key 0 b (L0 + 3) le_rfl (by omega) L0 (L0 + 1) (L0 + 2) (by omega) (by omega) (by omega) _ _).mono
+    exact (key 0 b (L0 + 3) (by omega) le_rfl (by omega) L0 (L0 + 1) (L0 + 2) (by omega) (by omega) (by omega) _ _).mono
       (by omega)
   · rw [foldArms_getN hpos ht, ho, foldArm_split]
     simp only [Bool.false_eq_true, ↓reduceIte]
@@ -480,7 +480,31 @@ theorem foldArms_numBelow {b : Nat} (hh : 1 ≤ height) (hlo : 206 ≤ b) (hadr 
       rw [foldArms_end b]; exact (hm (t + 1)).2 _ (by omega)
     have hge := flBase_ge (adr t) 0 (height - 1) (foAB atV adr height node0 markV markC wC b t)
     by_cases h0 : t / 2 ^ (height - 1) = 0 <;> simp only [h0, ↓reduceIte] <;>
-      exact (key t _ _ hbt le_rfl _ _ _ (by omega) (by omega) (by omega) _ _).mono (by omega)
+      exact (key t _ _ ht hbt le_rfl _ _ _ (by omega) (by omega) (by omega) _ _).mono (by omega)
+
+/-- **Arm `index`'s levels lie below the dispatch's end.** -/
+theorem foldPos_lt {b index : Nat} (hidx : index < 2 ^ height) {l : Nat} (hl : l < height - 1) :
+    b ≤ flBase (adr index) 0 l (foAB atV adr height node0 markV markC wC b index) ∧
+      flBase (adr index) 0 l (foAB atV adr height node0 markV markC wC b index) + 16 ≤
+        (foldArms atV adr height node0 markV markC wC b).2.1 := by
+  have hm := foAB_mono (atV := atV) (adr := adr) (height := height) (node0 := node0) (markV := markV)
+    (markC := markC) (wC := wC) (b := b)
+  have h1 := flBase_lt (adr index) 0 l (height - 1) (foAB atV adr height node0 markV markC wC b index) hl
+  have h2 := flBase_ge (adr index) 0 l (foAB atV adr height node0 markV markC wC b index)
+  have hbt := (hm index).1
+  have hnext : flBase (adr index) 0 (height - 1) (foAB atV adr height node0 markV markC wC b index) ≤
+      foAB atV adr height node0 markV markC wC b (index + 1) := by
+    rcases Nat.eq_zero_or_pos index with rfl | hpos
+    · rw [foAB_one, foldArm_snd, foldLevels_snd]
+      simp only [↓reduceIte]
+      have : foAB atV adr height node0 markV markC wC b 0 = b := by unfold foAB; simp
+      rw [this]
+      omega
+    · rw [foAB_succ hpos, foldArm_snd, foldLevels_snd]
+      simp only [Bool.false_eq_true, ↓reduceIte, le_refl]
+  have hend : foAB atV adr height node0 markV markC wC b (index + 1) ≤ (foldArms atV adr height node0 markV markC wC b).2.1 := by
+    rw [foldArms_end b]; exact (hm (index + 1)).2 _ (by omega)
+  exact ⟨by omega, by omega⟩
 
 end
 end LeanVM.Guest.B1.Sig

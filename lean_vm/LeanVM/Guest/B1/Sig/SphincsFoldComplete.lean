@@ -48,15 +48,16 @@ theorem k64_kseqS {m1 m2 m3 : V} {c : Nat} (hlo : 206 ≤ lo) (hc : lo ≤ c)
     · exact sx_pad (k := 4) (by omega) (by norm_num), rfl⟩, rfl⟩
 
 /-- A fold's addresses read the address constants, or are constants. -/
-def AdrOK (adr : Nat → Sum V Nat) : Prop := ∀ l a, adr l = .inl a → ∃ k < 41, a = .n (165 + k)
+def AdrOK (adr : Nat → Sum V Nat) (n : Nat) : Prop :=
+  ∀ l < n, ∀ a, adr l = .inl a → ∃ k < 41, a = .n (165 + k)
 
 theorem foldLevel_snd (atV : V) (adr : Nat → Sum V Nat) (l : Nat) (bit : Bool) (cur : V) (b : Nat) :
     (foldLevel atV (adr l) bit cur b).2.1 = flNext adr l b := by
   unfold foldLevel flNext; cases adr l <;> rfl
 
 /-- **A fold's level is sequential**, its node below its end. -/
-theorem foldLevel_kseq {atV : V} {adr : Nat → Sum V Nat} {l : Nat} {bit : Bool} {cur : V} {b : Nat}
-    (hlo : 206 ≤ lo) (hb : lo ≤ b) (hadr : AdrOK adr) (hat : NBv lo atV)
+theorem foldLevel_kseq {atV : V} {adr : Nat → Sum V Nat} {l n : Nat} {bit : Bool} {cur : V} {b : Nat}
+    (hlo : 206 ≤ lo) (hb : lo ≤ b) (hl : l < n) (hadr : AdrOK adr n) (hat : NBv lo atV)
     (hcur : KRd lo (SX atV a2) b cur) :
     KSeq lo (SX atV a2) b (foldLevel atV (adr l) bit cur b).1 (flNext adr l b) ∧
       (foldLevel atV (adr l) bit cur b).2.1 = flNext adr l b ∧
@@ -65,7 +66,7 @@ theorem foldLevel_kseq {atV : V} {adr : Nat → Sum V Nat} {l : Nat} {bit : Bool
   refine ⟨?_, foldLevel_snd atV adr l bit cur b, ?_, ?_⟩
   · cases ha : adr l with
     | inl a =>
-        obtain ⟨k, hk, rfl⟩ := hadr l a ha
+        obtain ⟨k, hk, rfl⟩ := hadr l hl a ha
         have hn : flNext adr l b = b + 16 := by simp [flNext, ha]
         rw [hn]
         refine ⟨b + 1, hint1_kseqA _ b, b + 2, ⟨rfl, sx_a1 hat, sx_cst hlo hk, rfl⟩,
@@ -110,18 +111,18 @@ theorem flBase_lt (adr : Nat → Sum V Nat) : ∀ (l j j' b : Nat), j < j' →
       exact this
 
 /-- **A fold's levels are sequential**, the node reached below their end. -/
-theorem foldLevels_kseq {atV : V} {adr : Nat → Sum V Nat} {index : Nat} (hlo : 206 ≤ lo)
-    (hadr : AdrOK adr) (hat : NBv lo atV) :
-    ∀ (m l : Nat) (cur : V) (b : Nat), lo ≤ b → KRd lo (SX atV a2) b cur →
+theorem foldLevels_kseq {atV : V} {adr : Nat → Sum V Nat} {index n : Nat} (hlo : 206 ≤ lo)
+    (hadr : AdrOK adr n) (hat : NBv lo atV) :
+    ∀ (m l : Nat) (cur : V) (b : Nat), l + m ≤ n → lo ≤ b → KRd lo (SX atV a2) b cur →
       KSeq lo (SX atV a2) b (foldLevels atV adr index m l cur b).1 (flBase adr l m b) ∧
         (foldLevels atV adr index m l cur b).2.1 = flBase adr l m b ∧
         KRd lo (SX atV a2) (flBase adr l m b) (foldLevels atV adr index m l cur b).2.2
-  | 0, _, cur, b, _, hcur => ⟨rfl, rfl, hcur⟩
-  | m + 1, l, cur, b, hb, hcur => by
+  | 0, _, cur, b, _, _, hcur => ⟨rfl, rfl, hcur⟩
+  | m + 1, l, cur, b, hln, hb, hcur => by
       obtain ⟨k1, k2, ⟨j, hj1, hj2, ej⟩, k4⟩ := foldLevel_kseq (l := l) (bit := index.testBit l) hlo hb
-        hadr hat hcur
+        (by omega) hadr hat hcur
       obtain ⟨r1, r2, r3⟩ := foldLevels_kseq hlo hadr hat m (l + 1)
-        (foldLevel atV (adr l) (index.testBit l) cur b).2.2 (flNext adr l b) (by omega)
+        (foldLevel atV (adr l) (index.testBit l) cur b).2.2 (flNext adr l b) (by omega) (by omega)
         (by rw [ej]; exact krd_in (by omega) hj2)
       simp only [foldLevels]
       rw [k2]

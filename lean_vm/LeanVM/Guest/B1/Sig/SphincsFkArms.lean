@@ -343,5 +343,31 @@ theorem fkArms_numBelow {w : Nat} {keyAt : V} {b : Nat} (hlo : 206 ≤ b) (hk : 
       List.nil_append]
     exact .cons ⟨_, by omega, rfl⟩ (.cons ⟨_, by omega, rfl⟩ (.cons ⟨_, by omega, rfl⟩ (.nil _)))
 
+/-- **Arm `t`'s chains' values lie below the dispatch's end.** -/
+theorem fkCB_lt_end {w t : Nat} {keyAt : V} {b : Nat} (hlo : 206 ≤ b) (hk : NBv b keyAt) (ht : t < 256)
+    {i : Nat} (hi : i < 6) : b ≤ fkCB t keyAt 0 (fkAB w keyAt b t) i ∧
+      fkCB t keyAt 0 (fkAB w keyAt b t) i < (fkArms w keyAt b).2.1 := by
+  have hm := fkAB_mono (w := w) hlo hk
+  have hbt := (hm t).1
+  have hkt : NBv (fkAB w keyAt b t) keyAt := hk.mono' hbt
+  have h6 : fkCB t keyAt 0 (fkAB w keyAt b t) i < (fkChains t keyAt 6 0 (fkAB w keyAt b t)).2.1 :=
+    fkCB_lt (lo := fkAB w keyAt b t) (by omega) le_rfl hkt i 6 hi le_rfl
+  have hge : fkAB w keyAt b t ≤ fkCB t keyAt 0 (fkAB w keyAt b t) i := by
+    rcases Nat.eq_zero_or_pos i with rfl | hpos
+    · exact le_rfl
+    · exact le_of_lt (fkCB_lt (lo := fkAB w keyAt b t) (by omega) le_rfl hkt 0 i hpos (by omega))
+  have hnext : (fkChains t keyAt 6 0 (fkAB w keyAt b t)).2.1 ≤ fkAB w keyAt b (t + 1) := by
+    rcases Nat.eq_zero_or_pos t with rfl | hpos
+    · rw [fkAB_one, fkArm_snd]
+      simp only [↓reduceIte]
+      unfold fkAB; simp only [↓reduceIte]
+      omega
+    · rw [fkAB_succ hpos, fkArm_snd]
+      simp only [Bool.false_eq_true, ↓reduceIte]
+      omega
+  have hend : fkAB w keyAt b (t + 1) ≤ (fkArms w keyAt b).2.1 := by
+    rw [fkArms_end]; exact (hm (t + 1)).2 256 (by omega)
+  exact ⟨by omega, by omega⟩
+
 end
 end LeanVM.Guest.B1.Sig
