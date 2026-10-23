@@ -113,7 +113,6 @@ def toyReader (seed : Digest) : SlotReader where
   mark _ _ := true
   Bad _ i _ := toyBad i
   wordsAt_congr _ _ _ _ _ := rfl
-  decodePrefix_announcement _ _ _ _ _ := rfl
   squeezeSlot_read := by
     intro _ _ hs i tr h ds rest k tr' h'
     obtain rfl := eq_chal i
@@ -274,5 +273,222 @@ example : ¬ R.Flips log₂ G₁ := fun h ↦ by
   have := (R.complete_of_flips h).2.1
   revert this
   decide
+
+/-! ## Interleaved groups and readings of one query -/
+
+-- A Merkle node whose right child is the squeeze block is the squeeze from its left child, and
+-- with tag `4` a nonce step: a node can be a group's query.
+/-- A right child equal to the squeeze block. -/
+def sqBlock : Digest := #v[0, 0, 0, 0, 0, 0, 2, 0]
+
+/-- A right child equal to the nonce block of the nonce `0`. -/
+def nonceBlock0 : Digest := #v[0, 0, 0, 0, 0, 0, 4, 0]
+
+#guard decide (Block.parse? (nodeBytes (d 5) sqBlock) = some (d 5, .squeeze))
+#guard decide (nodeBytes (d 5) sqBlock = squeezeInput (d 5))
+#guard decide (Block.parse? (nodeBytes (d 5) nonceBlock0) = some (d 5, .nonce 0))
+
+-- A grinding check is the nonce step from the base: one query, two readings.
+#guard checkInput (d 1) n₁ = absorbInput (d 1) n₁
+
+-- A squeeze answered by its own state is neither a hit nor a collision; `CleanStep` excludes it.
+/-- A squeeze answered by its own state. -/
+def selfLog : hashSpec.QueryLog := [⟨squeezeInput (d 3), d 3⟩]
+
+#guard !decide (QueryLog.HasHit (inPlay [s₀]) selfLog)
+#guard !decide (QueryLog.HasCollision selfLog)
+
+-- With the challenge marked, the plain group at the nonce's answer fixes nothing.
+#guard (R.groupSlot log₂ ⟨d 3, none⟩).isNone
+-- A squeeze from a state with no history touches and opens nothing.
+#guard R.touched log₀ (squeezeInput (d 42)) = []
+#guard R.openedBy log₀ (squeezeInput (d 42)) = ∅
+-- A squeeze straight from the seed, skipping the nonce: the plain group at the seed fixes
+-- nothing.
+#guard (R.groupSlot log₀ ⟨s₀, none⟩).isNone
+#guard R.openedBy log₀ (squeezeInput s₀) = ∅
+
+/-- Both nonces checked and absorbed, interleaved. -/
+def logI : hashSpec.QueryLog :=
+  log₀ ++ [⟨checkInput (d 1) n₁, d 2⟩, ⟨checkInput (d 1) n₂, d 6⟩, ⟨absorbInput s₀ n₂, d 7⟩,
+    ⟨absorbInput s₀ n₁, d 3⟩]
+
+-- Both groups are open; the squeeze of one touches it alone, closes it, and leaves the other
+-- open.
+#guard R.openGroups logI = {G₁, G₂}
+#guard G₁ ∈ R.touched logI (squeezeInput (d 3)) && G₂ ∉ R.touched logI (squeezeInput (d 3))
+#guard R.isOpen (logI ++ [⟨squeezeInput (d 3), d 4⟩]) G₂
+#guard R.isClosed (logI ++ [⟨squeezeInput (d 3), d 4⟩]) G₁
+
+/-! ## Consecutive challenges -/
+
+/-- A nonce message, then two challenge digests in a row. -/
+def pairSpec : ProtocolSpec 3 := ⟨![.P_to_V, .V_to_P, .V_to_P], ![E, Digest, Digest]⟩
+
+/-- The prefixes of the two-challenge protocol, read off the viewed readings. -/
+def pairDecodeView : List (Block × Option Digest) → Option (Σ k : Fin 4, pairSpec.Transcript k)
+  | [] => some ⟨0, fun i ↦ i.elim0⟩
+  | [(.nonce n, _)] => some ⟨1, fun i ↦ match i with | ⟨0, _⟩ => (n : E)⟩
+  | [(.nonce n, _), (.squeeze, some d)] =>
+    some ⟨2, fun i ↦ match i with | ⟨0, _⟩ => (n : E) | ⟨1, _⟩ => (d : Digest)⟩
+  | [(.nonce n, _), (.squeeze, some d), (.squeeze, some d')] =>
+    some ⟨3, fun i ↦ match i with
+      | ⟨0, _⟩ => (n : E) | ⟨1, _⟩ => (d : Digest) | ⟨2, _⟩ => (d' : Digest)⟩
+  | _ => none
+
+/-- The two-challenge decoder. -/
+def pairDecode (hs : List (Block × Digest)) : Option (Σ k : Fin 4, pairSpec.Transcript k) :=
+  pairDecodeView (hs.map readingView)
+
+/-- Both challenges are digests. -/
+instance pairSampleable (i : pairSpec.ChallengeIdx) : SampleableType (pairSpec.Challenge i) :=
+  match i with
+  | ⟨⟨0, _⟩, h⟩ => absurd h (by simp [pairSpec])
+  | ⟨⟨1, _⟩, _⟩ => inferInstanceAs (SampleableType Digest)
+  | ⟨⟨2, _⟩, _⟩ => inferInstanceAs (SampleableType Digest)
+
+/-- Each challenge is its one squeeze's digest. -/
+def pairSlot : (i : pairSpec.ChallengeIdx) →
+    @SqueezeSlot (pairSpec.Challenge i) (pairSampleable i)
+  | ⟨⟨0, _⟩, h⟩ => absurd h (by simp [pairSpec])
+  | ⟨⟨1, _⟩, _⟩ =>
+    @SqueezeSlot.mk Digest (inferInstanceAs (SampleableType Digest)) 1 (fun ds ↦ ds 0)
+      fun p ↦ SampleableType.prEvent_uniformSample_equiv (Equiv.funUnique (Fin 1) Digest) p
+  | ⟨⟨2, _⟩, _⟩ =>
+    @SqueezeSlot.mk Digest (inferInstanceAs (SampleableType Digest)) 1 (fun ds ↦ ds 0)
+      fun p ↦ SampleableType.prEvent_uniformSample_equiv (Equiv.funUnique (Fin 1) Digest) p
+
+/-- The two challenge indices. -/
+def chal₁ : pairSpec.ChallengeIdx := ⟨⟨1, by decide⟩, rfl⟩
+
+/-- The two challenge indices. -/
+def chal₂ : pairSpec.ChallengeIdx := ⟨⟨2, by decide⟩, rfl⟩
+
+theorem pair_cases : ∀ i : pairSpec.ChallengeIdx, i = chal₁ ∨ i = chal₂
+  | ⟨⟨0, _⟩, h⟩ => absurd h (by simp [pairSpec])
+  | ⟨⟨1, _⟩, _⟩ => .inl rfl
+  | ⟨⟨2, _⟩, _⟩ => .inr rfl
+
+/-- No challenge is bad. -/
+def pairBad (i : pairSpec.ChallengeIdx) : Set (pairSpec.Challenge i) := ∅
+
+/-- The prefixes ending before a challenge: the nonce step, then one squeeze more. -/
+theorem pairDecode_start {hs : List (Block × Digest)} {k : Fin 4} {tr : pairSpec.Transcript k}
+    (h : pairDecode hs = some ⟨k, tr⟩) (hk : k = 1 ∨ k = 2) :
+    (k = 1 ∧ ∃ n d, hs = [(.nonce n, d)]) ∨
+      (k = 2 ∧ ∃ n d e, hs = [(.nonce n, d), (.squeeze, e)]) := by
+  rcases hs with _ | ⟨⟨b, d⟩, _ | ⟨⟨b', d'⟩, _ | ⟨⟨b'', d''⟩, rest⟩⟩⟩
+  · simp only [pairDecode, pairDecodeView, List.map_nil, Option.some.injEq] at h
+    obtain ⟨rfl, -⟩ := Sigma.mk.inj h
+    simp at hk
+  · cases b <;> simp [pairDecode, pairDecodeView, readingView] at h
+    obtain ⟨rfl, -⟩ := h
+    exact .inl ⟨rfl, _, d, rfl⟩
+  · cases b <;> cases b' <;> simp [pairDecode, pairDecodeView, readingView] at h
+    obtain ⟨rfl, -⟩ := h
+    exact .inr ⟨rfl, _, d, d', rfl⟩
+  · cases b <;> cases b' <;> cases b'' <;> (try cases rest) <;>
+      simp [pairDecode, pairDecodeView, readingView] at h
+    obtain ⟨rfl, -⟩ := h
+    simp at hk
+
+/-- The two-challenge reader, both challenges unmarked. -/
+def pairReader (seed : Digest) : SlotReader where
+  seed := seed
+  powBits := 1
+  Ann := Unit
+  announcementOf _ := some ()
+  n _ := 3
+  spec _ := pairSpec
+  sampleable _ i := pairSampleable i
+  Words _ := Unit
+  wordsAt _ _ _ := ()
+  decodePrefix _ _ hs := pairDecode hs
+  slot _ i := pairSlot i
+  mark _ _ := false
+  Bad _ i _ := pairBad i
+  wordsAt_congr _ _ _ _ _ := rfl
+  squeezeSlot_read := by
+    intro _ _ hs i tr h ds rest k tr' h'
+    rcases pair_cases i with rfl | rfl
+    · obtain (⟨-, n, d, rfl⟩ | ⟨h2, -⟩) := pairDecode_start h (.inl rfl)
+      · have hds : List.ofFn ds = [ds ⟨0, by decide⟩] := List.ofFn_succ ..
+        rcases rest with _ | ⟨⟨b, e⟩, _ | ⟨r, rest⟩⟩
+        · simp only [pairDecode, pairDecodeView, squeezeBlocks, hds, List.map_cons,
+            List.map_nil, List.cons_append, List.nil_append, List.append_nil, readingView,
+            Option.some.injEq] at h h'
+          obtain ⟨rfl, htr'⟩ := Sigma.mk.inj h'
+          obtain ⟨-, htr⟩ := Sigma.mk.inj h
+          subst htr' htr
+          refine ⟨le_rfl, funext fun i ↦ ?_⟩
+          rcases i with ⟨_ | _ | _, hi⟩
+          · rfl
+          · rfl
+          · simp [chal₁] at hi
+        · cases b <;> simp [pairDecode, pairDecodeView, squeezeBlocks, hds, readingView] at h'
+          obtain ⟨rfl, htr'⟩ := h'
+          simp only [pairDecode, pairDecodeView, List.map_cons, List.map_nil, readingView,
+            Option.some.injEq] at h
+          obtain ⟨-, htr⟩ := Sigma.mk.inj h
+          subst htr' htr
+          refine ⟨by decide, funext fun i ↦ ?_⟩
+          rcases i with ⟨_ | _ | _, hi⟩
+          · rfl
+          · rfl
+          · simp [chal₁] at hi
+        · rcases r with ⟨b', e'⟩
+          cases b <;> cases b' <;>
+            simp [pairDecode, pairDecodeView, squeezeBlocks, hds, readingView] at h'
+      · simp [chal₁] at h2
+    · obtain (⟨h1, -⟩ | ⟨-, n, d, e, rfl⟩) := pairDecode_start h (.inr rfl)
+      · simp [chal₂] at h1
+      · have hds : List.ofFn ds = [ds ⟨0, by decide⟩] := List.ofFn_succ ..
+        rcases rest with _ | ⟨⟨b, e'⟩, rest⟩
+        · simp only [pairDecode, pairDecodeView, squeezeBlocks, hds, List.map_cons,
+            List.map_nil, List.cons_append, List.nil_append, List.append_nil, readingView,
+            Option.some.injEq] at h h'
+          obtain ⟨rfl, htr'⟩ := Sigma.mk.inj h'
+          obtain ⟨-, htr⟩ := Sigma.mk.inj h
+          subst htr' htr
+          refine ⟨le_rfl, funext fun i ↦ ?_⟩
+          rcases i with ⟨_ | _ | _ | _, hi⟩
+          · rfl
+          · rfl
+          · rfl
+          · omega
+        · cases b <;> simp [pairDecode, pairDecodeView, squeezeBlocks, hds, readingView] at h'
+  decodePrefix_digest_indep _ _ hs b d d' rest hb := by
+    have : readingView (b, d) = readingView (b, d') := by
+      cases b with
+      | squeeze => exact absurd rfl hb
+      | _ => rfl
+    simp [pairDecode, List.map_append, List.map_cons, this]
+  mark_afterNonce _ _ _ _ _ _ h := absurd h Bool.false_ne_true
+  slot_pos _ i := by
+    rcases pair_cases i with rfl | rfl <;> decide
+
+/-- The two-challenge reader from the seed. -/
+abbrev P₂ : SlotReader := pairReader s₀
+
+/-- The plain groups of the two challenges, at the nonce's answer and at the first squeeze's. -/
+def A : Group := ⟨d 3, none⟩
+
+/-- The plain groups of the two challenges, at the nonce's answer and at the first squeeze's. -/
+def B : Group := ⟨d 4, none⟩
+
+/-- The nonce step, then the first challenge's squeeze. -/
+def logC : hashSpec.QueryLog := [⟨absorbInput s₀ n₁, d 3⟩, ⟨squeezeInput (d 3), d 4⟩]
+
+-- The two challenges share one squeeze chain: the squeeze from `d 4` ends the first group's run
+-- and starts the second's. The first is closed and does not await it; the second does, and the
+-- squeeze touches and opens the second alone.
+#guard (P₂.groupSlot logC A).isSome && (P₂.groupSlot logC B).isSome
+#guard P₂.isClosed logC A
+#guard !P₂.awaits logC A (d 4) && P₂.awaits logC B (d 4)
+#guard P₂.touched logC (squeezeInput (d 4)) = [B]
+#guard P₂.openedBy logC (squeezeInput (d 4)) = {B}
+#guard P₂.isClosed (logC ++ [⟨squeezeInput (d 4), d 6⟩]) B
+-- Before the first squeeze, the second group fixes no challenge: its state has no history.
+#guard (P₂.groupSlot (logC.take 1) B).isNone
 
 end LeanerVMTests.Protocol.ChainGroups

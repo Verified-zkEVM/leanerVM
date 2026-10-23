@@ -896,8 +896,27 @@ challenges of `m` fresh digests are uniform on `Fin m → E`), `challengeBits` a
 the tests check of every deployed level), and `prEvent_positions_uniform` (with `t ≤ m⌊192/b⌋`, the
 `t` positions of `m` fresh squeezes are uniform on `Fin t → Fin (2^b)`). The tests check the
 positions against the Rust's two-limb read by hand-computed values. It still owes the lemma that
-the verifier's `walkPositions` reads `challengePositions` of its squeezes' challenges, the step of
-the potential for a group's later queries, and `misbehaves_rom` itself.
+the verifier's `walkPositions` reads `challengePositions` of its squeezes' challenges, and
+`misbehaves_rom` itself; the step of the potential is in the next paragraph.
+
+*On merge* of the random-oracle potential pull request, the potential and its step are on `main`.
+`Protocol/ChainGroups.lean` reads a chain history through a `SlotReader` (the protocol at an
+announcement, the longest transcript prefix a history reads, each challenge as a `SqueezeSlot`, the
+marks and the bad challenges, with the decoder facts as fields) and defines the group of queries
+fixing a challenge (its squeezes, and the base, check and nonce step before a marked one), its
+status in a log, `Flips`/`FlipAt` (a group closed on a bad challenge, its proof of work passing),
+the probability `π` that it closes on one, and what one more clean query changes
+(`flipAt_append`, `openGroups_append_subset`). `Protocol/RandomOracleBound.lean`: the potential
+`Φ` (the open groups' `π`, `1` off a clean log), the charge (`|B|/2^256` for the answers to avoid,
+plus the groups the query opens), `potential_step`, the step of
+`QueryHistory.potential_le_expected_charge`, and `charge_le`
+(`(4L + |seedRoots| + |proofRoots|)/2^256 + ε` under a density bound `ε` per challenge). The
+generic lemmas are in `ToVCVio/` (`QueryLog.dedupKeys`, `withQueryLog_freshLog_support`,
+`HashChain.history_dedupKeys`, `UniformCondition.lean`). Still owed: the `SlotReader` of the
+deployed protocol over the transcript decoder (with its `ε = 2^-128` from `bad_density` and the
+per-challenge budgets, and a check over the window that every challenge reads a squeeze), the
+verifier's query bound and the proof's roots, the deduplication bridge from the game's logs to the
+fresh log, and `misbehaves_rom`.
 
 *On merge* of the list-binding branch (`feat/protocol-list-binding`), the list-binding compilation
 is on `main` (`Protocol/ListBinding.lean`, `Protocol/Whir/Decode.lean`, the `K` word `KWord` in

@@ -26,9 +26,9 @@ the longest prefix of its transcript a history reads (`decodePrefix`), each chal
 `SqueezeSlot` (the number of squeezes, the challenge their digests give, and that uniform digests
 give a uniform challenge), the marked challenges, and the bad challenges at each prefix. It
 carries the facts about the decoder that tie a group's challenge to the protocol's: the words of
-the oracle messages depend on the log only under the roots the history absorbs, a history decodes
-at its own announcement, a challenge reads its squeezes, no slot reads the state an observe or a
-nonce step leads to, a marked challenge follows a nonce, and a challenge reads a squeeze at least.
+the oracle messages depend on the log only under the roots the history absorbs, a challenge reads
+its squeezes, no slot reads the state an observe or a nonce step leads to, a marked challenge
+follows a nonce, and a challenge reads a squeeze at least.
 
 **A group's status in a log** of fresh queries, read through first occurrences (`logAnswer`):
 `groupSlot` reads the group's challenge off the history of its state, with the group's nonce step
@@ -140,13 +140,14 @@ structure SlotReader where
   /-- The bad challenges at a prefix ending before a challenge. -/
   Bad : (a : Ann) → (i : (spec a).ChallengeIdx) → (spec a).Transcript i.1.castSucc →
     Set ((spec a).Challenge i)
-  /-- The words depend on the log only through the rows under the roots the history absorbs. -/
+  /-- The words depend on the log only through the rows under the roots the history absorbs:
+  the reader takes its roots off the history, and fills the words of a commitment the history has
+  not absorbed yet without the log. The rows under a root are fixed once the root is absorbed;
+  under a root to come, they may still change. -/
   wordsAt_congr : ∀ a (l l' : hashSpec.QueryLog) (hs : List (Block × Digest)),
     (∀ root ∈ historyRoots hs, ∀ depth rowWords leafWords p,
       extractRows l' root depth rowWords leafWords p = extractRows l root depth rowWords leafWords p) →
     wordsAt a l' hs = wordsAt a l hs
-  /-- A history decodes at its own announcement only. -/
-  decodePrefix_announcement : ∀ a W hs x, decodePrefix a W hs = some x → announcementOf hs = some a
   /-- A challenge reads its squeezes: a history decoded past the challenge has, at it, the
   challenge its squeezes' digests give. -/
   squeezeSlot_read : ∀ a W hs (i : (spec a).ChallengeIdx) tr,
@@ -162,7 +163,8 @@ structure SlotReader where
   mark_afterNonce : ∀ a W hs (i : (spec a).ChallengeIdx) tr,
     decodePrefix a W hs = some ⟨i.1.castSucc, tr⟩ → mark a i = true →
     ∃ hs₀ n d, hs = hs₀ ++ [(.nonce n, d)]
-  /-- Every challenge reads a squeeze at least. -/
+  /-- Every challenge reads a squeeze at least: a reader's instance checks it over its window of
+  announcements. -/
   slot_pos : ∀ a i, 0 < (slot a i).m
 
 attribute [instance] SlotReader.sampleable
@@ -221,7 +223,8 @@ def complete (m : ℕ) : Bool :=
 end Group
 
 /-- The proof of work of the nonce `n` from the state `cv` passes in the log: its base and check
-are answered, the check with `bits` low zero bits. -/
+are answered, the check with `bits` low zero bits. For `0 < bits` this is the verifier's
+`FsState.checkPow`; at `bits = 0` the verifier asks no check and accepts the nonce `0` alone. -/
 def PowPasses (bits : ℕ) (l : hashSpec.QueryLog) (cv : Digest) (n : E) : Prop :=
   ∃ base d, logAnswer l (baseInput cv) = some base ∧ logAnswer l (checkInput base n) = some d ∧
     FsState.lowBitsZero d bits = true
@@ -380,7 +383,7 @@ theorem parse?_baseInput (cv : Digest) : Block.parse? (baseInput cv) = none := b
   simp [powBaseTag_ne_observeTag, powBaseTag_ne_squeezeTag, powBaseTag_ne_powNonceTag]
 
 /-- The grinding base is no step's input. -/
-theorem baseInput_ne_input (cv x : Digest) (b : Block) : baseInput cv ≠ Block.input x b :=
+private theorem baseInput_ne_input (cv x : Digest) (b : Block) : baseInput cv ≠ Block.input x b :=
   fun h ↦ by simpa [h, Block.parse?_input] using parse?_baseInput cv
 
 /-- A step's input determines the state and the block. -/
@@ -527,7 +530,7 @@ theorem mem_inPlay_of_mem_roots {r : Digest} (hr : r ∈ roots) : r ∈ inPlay r
 /-! ## Histories and words after one more query -/
 
 /-- The state after the first `j + 1` steps of a chain is the state of step `j`. -/
-theorem last_take_succ {α : Type} : ∀ (cv : Digest) (hs : List (α × Digest)) (j : ℕ)
+private theorem last_take_succ {α : Type} : ∀ (cv : Digest) (hs : List (α × Digest)) (j : ℕ)
     (hj : j < hs.length), HashChain.last cv (hs.take (j + 1)) = hs[j].2
   | _, (_, c) :: rest, 0, _ => by simp [HashChain.last]
   | _, (_, c) :: rest, j + 1, hj => by
@@ -535,7 +538,7 @@ theorem last_take_succ {α : Type} : ∀ (cv : Digest) (hs : List (α × Digest)
     exact last_take_succ c rest j (by simpa using hj)
 
 /-- Two consecutive observes of a history, and the root they absorb. -/
-theorem mem_historyRoots : ∀ {hs : List (Block × Digest)} {r : Digest}, r ∈ historyRoots hs →
+private theorem mem_historyRoots : ∀ {hs : List (Block × Digest)} {r : Digest}, r ∈ historyRoots hs →
     ∃ (j : ℕ) (hj : j + 1 < hs.length) (x₁ x₂ : E), hs[j].1 = .observe x₁ ∧
       hs[j + 1].1 = .observe x₂ ∧ digestOfScalars (x₁, x₂) = some r
   | [], _, h => by simp [historyRoots] at h
@@ -568,7 +571,7 @@ private theorem findSome?_eq_some_of {α γ : Type} {f : α → Option γ} {y : 
 /-- **The roots a history absorbs are rebuilt by the log**: on a log with no collision, two
 consecutive observes of a history are logged steps, the second from the state the first leads
 to, so the root they encode is one the log rebuilds. -/
-theorem historyRoots_subset_rebuiltRoots (hcoll : ¬ QueryLog.HasCollision l) {seed s : FsState}
+private theorem historyRoots_subset_rebuiltRoots (hcoll : ¬ QueryLog.HasCollision l) {seed s : FsState}
     {hs : List (Block × Digest)} (h : chainHistory l seed s = some hs) :
     ∀ r ∈ historyRoots hs, r ∈ rebuiltRoots l := by
   intro r hr
@@ -613,7 +616,7 @@ theorem SlotReader.groupSlot_append (R : SlotReader) (hl : CleanLog roots (l ++ 
 
 /-- The size of a group's challenge does not change with one more clean query, unless the group
 starts from its answer. -/
-theorem SlotReader.size_append (R : SlotReader) (hl : CleanLog roots (l ++ [⟨t, u⟩]))
+private theorem SlotReader.size_append (R : SlotReader) (hl : CleanLog roots (l ++ [⟨t, u⟩]))
     {G : Group} (hG : G.cv ≠ u) : R.size (l ++ [⟨t, u⟩]) G = R.size l G := by
   simp only [SlotReader.size, R.groupSlot_append hl hG]
 
@@ -674,26 +677,26 @@ theorem CleanStep.logAnswer_squeezeInput (hs : CleanStep roots l t u) :
   hs.logAnswer_eq_none (mem_halves_input u .squeeze)
 
 /-- A logged nonce step's group is among the log's absorptions. -/
-theorem mem_nonceGroups {cv s : Digest} {n : E} (h : logAnswer l (absorbInput cv n) = some s) :
+private theorem mem_nonceGroups {cv s : Digest} {n : E} (h : logAnswer l (absorbInput cv n) = some s) :
     (⟨cv, some n⟩ : Group) ∈ nonceGroups l :=
   List.mem_filterMap.mpr ⟨_, MerkleTree.mem_of_logAnswer_eq_some h, by
     simp [absorbInput, Block.parse?_input]⟩
 
 /-- A state whose grinding base the log answers by `b` is among the base states of `b`. -/
-theorem mem_baseStates {cv b : Digest} (h : logAnswer l (baseInput cv) = some b) :
+private theorem mem_baseStates {cv b : Digest} (h : logAnswer l (baseInput cv) = some b) :
     cv ∈ baseStates l b :=
   List.mem_filterMap.mpr ⟨_, MerkleTree.mem_of_logAnswer_eq_some h, by
     simp [baseInput, digestOfBytes_stepBytes]⟩
 
 /-- A logged grinding check's group is among the log's checks. -/
-theorem mem_checkGroups {cv b d : Digest} {n : E} (hb : logAnswer l (baseInput cv) = some b)
+private theorem mem_checkGroups {cv b d : Digest} {n : E} (hb : logAnswer l (baseInput cv) = some b)
     (hc : logAnswer l (checkInput b n) = some d) : (⟨cv, some n⟩ : Group) ∈ checkGroups l :=
   List.mem_flatMap.mpr ⟨_, MerkleTree.mem_of_logAnswer_eq_some hc, by
     simp only [checkInput_eq, Block.parse?_input, List.mem_map]
     exact ⟨cv, mem_baseStates hb, rfl⟩⟩
 
 /-- A logged squeeze's state is among the log's squeeze states. -/
-theorem mem_squeezeStates {x d : Digest} (h : logAnswer l (squeezeInput x) = some d) :
+private theorem mem_squeezeStates {x d : Digest} (h : logAnswer l (squeezeInput x) = some d) :
     x ∈ squeezeStates l :=
   List.mem_filterMap.mpr ⟨_, MerkleTree.mem_of_logAnswer_eq_some h, by
     simp [squeezeInput, Block.parse?_input]⟩
@@ -702,7 +705,7 @@ namespace Group
 
 /-- The proof of work of a group's nonce passes exactly when its check is answered with the low
 zero bits. -/
-theorem powPasses_iff (bits : ℕ) (G : Group) :
+private theorem powPasses_iff (bits : ℕ) (G : Group) :
     (∀ n, G.nonce = some n → PowPasses bits l G.cv n) ↔
       (G.nonce.isSome = true → ∃ d, G.check? l = some d ∧ FsState.lowBitsZero d bits = true) := by
   rcases hn : G.nonce with _ | n
@@ -742,7 +745,7 @@ theorem exists_query_of_asked {G : Group} {m : ℕ} (h : G.asked l m = true) :
         simp [hs]
 
 /-- A group with a logged query is a candidate of the log. -/
-theorem mem_candidates_of_asked {G : Group} {m : ℕ} (h : G.asked l m = true) :
+private theorem mem_candidates_of_asked {G : Group} {m : ℕ} (h : G.asked l m = true) :
     G ∈ candidates l := by
   simp only [asked, Bool.or_eq_true, Bool.and_eq_true, Option.isSome_iff_exists] at h
   obtain ⟨cv, nonce⟩ := G
@@ -804,7 +807,7 @@ theorem start?_append {G : Group} (ht : ∀ n, G.nonce = some n → t ≠ absorb
 end Group
 
 /-- After one more clean query, a group with a logged query does not start from its answer. -/
-theorem CleanStep.cv_ne_of_asked (hs : CleanStep roots l t u) {G : Group} {m : ℕ}
+private theorem CleanStep.cv_ne_of_asked (hs : CleanStep roots l t u) {G : Group} {m : ℕ}
     (h : G.asked (l ++ [⟨t, u⟩]) m = true) : G.cv ≠ u := by
   obtain ⟨q, d, hq, hcv⟩ := Group.exists_query_of_asked h
   rintro rfl
@@ -821,7 +824,7 @@ variable (R : SlotReader)
 /-! ## The groups a query touches -/
 
 /-- A group's check touches it. -/
-theorem mem_touched_of_check {G : Group} {n : E} {b : Digest} (hn : G.nonce = some n)
+private theorem mem_touched_of_check {G : Group} {n : E} {b : Digest} (hn : G.nonce = some n)
     (hb : logAnswer l (baseInput G.cv) = some b) : G ∈ R.touched l (checkInput b n) := by
   obtain ⟨cv, nonce⟩ := G
   simp only at hn hb
@@ -830,7 +833,7 @@ theorem mem_touched_of_check {G : Group} {n : E} {b : Digest} (hn : G.nonce = so
   exact .inr ⟨cv, mem_baseStates hb, rfl⟩
 
 /-- A group's nonce step touches it. -/
-theorem mem_touched_of_absorb {G : Group} {n : E} (hn : G.nonce = some n) :
+private theorem mem_touched_of_absorb {G : Group} {n : E} (hn : G.nonce = some n) :
     G ∈ R.touched l (absorbInput G.cv n) := by
   obtain ⟨cv, nonce⟩ := G
   simp only at hn
@@ -838,7 +841,7 @@ theorem mem_touched_of_absorb {G : Group} {n : E} (hn : G.nonce = some n) :
   simp [touched, absorbInput, Block.parse?_input]
 
 /-- A group's next squeeze touches it. -/
-theorem mem_touched_of_awaits {G : Group} {x : Digest} (h : R.awaits l G x = true) :
+private theorem mem_touched_of_awaits {G : Group} {x : Digest} (h : R.awaits l G x = true) :
     G ∈ R.touched l (squeezeInput x) := by
   simp only [touched, squeezeInput, Block.parse?_input, List.mem_filter, h, and_true,
     List.mem_append, List.map_cons, List.mem_cons, List.mem_map]
@@ -862,7 +865,7 @@ theorem mem_touched_of_awaits {G : Group} {x : Digest} (h : R.awaits l G x = tru
 
 /-- **One more clean query moves an untouched group nowhere**: a group the query does not touch,
 not starting from its answer, keeps its challenge, its check, its start and its squeezes. -/
-theorem unmoved (hl : CleanLog roots l) (hs : CleanStep roots l t u) {G : Group}
+private theorem unmoved (hl : CleanLog roots l) (hs : CleanStep roots l t u) {G : Group}
     (hG : G.cv ≠ u) (hnot : G ∉ R.touched l t) :
     R.groupSlot (l ++ [⟨t, u⟩]) G = R.groupSlot l G ∧ G.check? (l ++ [⟨t, u⟩]) = G.check? l ∧
       G.start? (l ++ [⟨t, u⟩]) = G.start? l ∧
@@ -887,7 +890,7 @@ theorem unmoved (hl : CleanLog roots l) (hs : CleanStep roots l t u) {G : Group}
 
 /-- **One more clean query moves a closed group nowhere**: all its queries are logged, so it
 keeps its challenge, its check, its start and its squeezes. -/
-theorem unmoved_of_complete (hl : CleanLog roots (l ++ [⟨t, u⟩])) {G : Group}
+private theorem unmoved_of_complete (hl : CleanLog roots (l ++ [⟨t, u⟩])) {G : Group}
     (hG : G.cv ≠ u) (hslot : (R.groupSlot l G).isSome = true)
     (hc : G.complete l (R.size l G) = true) :
     R.groupSlot (l ++ [⟨t, u⟩]) G = R.groupSlot l G ∧ G.check? (l ++ [⟨t, u⟩]) = G.check? l ∧
@@ -928,7 +931,7 @@ theorem unmoved_of_complete (hl : CleanLog roots (l ++ [⟨t, u⟩])) {G : Group
 
 /-- **A group unmoved by a log's growth keeps its status**: the size of its challenge, whether
 it has a logged query, whether it is open or closed, whether it flips, and its probability. -/
-theorem status_of_unmoved {l' : hashSpec.QueryLog} {G : Group}
+private theorem status_of_unmoved {l' : hashSpec.QueryLog} {G : Group}
     (h : R.groupSlot l' G = R.groupSlot l G ∧ G.check? l' = G.check? l ∧
       G.start? l' = G.start? l ∧ G.run l' (R.size l G) = G.run l (R.size l G)) :
     R.size l' G = R.size l G ∧ G.asked l' (R.size l' G) = G.asked l (R.size l G) ∧
@@ -1098,7 +1101,7 @@ theorem cv_mem_of_mem_touched {G : Group} (h : G ∈ R.touched l t) :
   · simp at h
 
 /-- After one more clean query, no group it touches starts from its answer. -/
-theorem CleanStep.cv_ne_of_mem_touched (hs : CleanStep roots l t u) {G : Group}
+private theorem CleanStep.cv_ne_of_mem_touched (hs : CleanStep roots l t u) {G : Group}
     (h : G ∈ R.touched l t) : G.cv ≠ u := by
   rintro rfl
   rcases R.cv_mem_of_mem_touched (roots := roots) h with h | h

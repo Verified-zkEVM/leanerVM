@@ -19,7 +19,11 @@ public import LeanerVM.Protocol.ToVCVio.UniformCondition
 The lazy random oracle's state, `QueryHistory.freshLog`'s, is its cache and the log of its fresh
 queries (`OracleState`). A log is `Clean` when it has no collision, no hit on the digests in play
 from `seedRoots`, no query answered by one of its own halves, no flip (`SlotReader.FlipAt`), and
-no query after the first `k₀` answered by one of `proofRoots`.
+no query after the first `k₀` answered by one of `proofRoots`. Every theorem holds for every
+reader of histories (`SlotReader`); the flips bounded are those of the reader the bound is stated
+with, so a reader with no bad challenge makes the bound one on collisions and hits alone, and the
+bound means what the extraction needs only when both are stated with the one reader of the
+deployed protocol.
 
 * `Φ`: on a state whose log is its cache's (`QueryHistory.IsFreshLog`) and clean, the sum over the
   open groups of their probabilities `π` of closing on a bad challenge; `1` on any other state.
@@ -96,13 +100,13 @@ variable {R : SlotReader} {seedRoots proofRoots : List Digest} {k₀ : ℕ} {l :
   {t : List UInt8} {u : Digest}
 
 /-- A fresh query answered by a digest it need not avoid is a clean step. -/
-theorem cleanStep_of_not_mem (hfr : QueryLog.Fresh l t)
+private theorem cleanStep_of_not_mem (hfr : QueryLog.Fresh l t)
     (hu : u ∉ badDigests seedRoots proofRoots k₀ l t) : CleanStep seedRoots l t u := by
   simp only [badDigests, List.mem_append, not_or] at hu
   exact ⟨hfr, fun e he h ↦ hu.1.1.1 (h ▸ List.mem_map_of_mem he), hu.1.1.2, hu.1.2⟩
 
 /-- A query of a log whose cache is its log is fresh when the cache does not hold it. -/
-theorem fresh_of_isFreshLog {s : OracleState} (hs : QueryHistory.IsFreshLog s)
+private theorem fresh_of_isFreshLog {s : OracleState} (hs : QueryHistory.IsFreshLog s)
     (ht : s.1 t = none) : QueryLog.Fresh s.2 t := fun e he het ↦ by
   have := hs.1 e he
   obtain ⟨t', u'⟩ := e
@@ -112,7 +116,7 @@ theorem fresh_of_isFreshLog {s : OracleState} (hs : QueryHistory.IsFreshLog s)
   cases this
 
 /-- A log clean after one more query is clean before it. -/
-theorem SlotReader.Clean.of_append (h : R.Clean seedRoots proofRoots k₀ (l ++ [⟨t, u⟩])) :
+private theorem SlotReader.Clean.of_append (h : R.Clean seedRoots proofRoots k₀ (l ++ [⟨t, u⟩])) :
     R.Clean seedRoots proofRoots k₀ l := by
   obtain ⟨hl, hh, hf, hr⟩ := h
   refine ⟨hl.of_append, fun e he ↦ hh e (List.mem_append_left _ he),
@@ -122,7 +126,7 @@ theorem SlotReader.Clean.of_append (h : R.Clean seedRoots proofRoots k₀ (l ++ 
 
 /-- One more query answered by a digest it need not avoid keeps a clean log clean, unless it makes
 a flip. -/
-theorem SlotReader.Clean.append (h : R.Clean seedRoots proofRoots k₀ l) (hfr : QueryLog.Fresh l t)
+private theorem SlotReader.Clean.append (h : R.Clean seedRoots proofRoots k₀ l) (hfr : QueryLog.Fresh l t)
     (hu : u ∉ badDigests seedRoots proofRoots k₀ l t) (hf : ¬ R.FlipAt (l ++ [⟨t, u⟩])) :
     R.Clean seedRoots proofRoots k₀ (l ++ [⟨t, u⟩]) := by
   obtain ⟨hl, hh, -, hr⟩ := h
@@ -147,7 +151,7 @@ theorem SlotReader.Clean.append (h : R.Clean seedRoots proofRoots k₀ l) (hfr :
       exact hu.2
 
 /-- An answer to avoid leaves no clean log. -/
-theorem SlotReader.not_clean_of_mem (hfr : QueryLog.Fresh l t)
+private theorem SlotReader.not_clean_of_mem (hfr : QueryLog.Fresh l t)
     (hu : u ∈ badDigests seedRoots proofRoots k₀ l t) :
     ¬ R.Clean seedRoots proofRoots k₀ (l ++ [⟨t, u⟩]) := by
   rintro ⟨hl', hh, -, hr⟩
@@ -169,7 +173,7 @@ theorem SlotReader.not_clean_of_mem (hfr : QueryLog.Fresh l t)
 
 /-- One more fresh squeeze, conditioned on: the probability over the unasked squeezes after the
 squeezes `r` is the expectation, over the next one, of the probability over the rest. -/
-theorem prEvent_squeezes_succ (Q : Digest → List Digest → Prop) (r : List Digest) (k : ℕ) :
+private theorem prEvent_squeezes_succ (Q : Digest → List Digest → Prop) (r : List Digest) (k : ℕ) :
     Pr{let z ← $ᵗ (Digest × (Fin (k + 1) → Digest))}[Q z.1 (r ++ List.ofFn z.2)] =
       ∫⁻ p, p ∂𝒟[(fun x ↦ Pr{let z ← $ᵗ (Digest × (Fin k → Digest))}[
         Q z.1 (r ++ [x] ++ List.ofFn z.2)]) <$> ($ᵗ Digest)] := by
@@ -178,22 +182,22 @@ theorem prEvent_squeezes_succ (Q : Digest → List Digest → Prop) (r : List Di
     List.singleton_append]
 
 /-- The fresh check, conditioned on. -/
-theorem prEvent_check (Q : Digest → List Digest → Prop) (r : List Digest) (k : ℕ) :
+private theorem prEvent_check (Q : Digest → List Digest → Prop) (r : List Digest) (k : ℕ) :
     Pr{let z ← $ᵗ (Digest × (Fin k → Digest))}[Q z.1 (r ++ List.ofFn z.2)] =
       ∫⁻ p, p ∂𝒟[(fun x ↦ Pr{let w ← $ᵗ (Fin k → Digest)}[Q x (r ++ List.ofFn w)]) <$>
         ($ᵗ Digest)] :=
   prEvent_uniformSample_prod_eq_lintegral (fun z ↦ Q z.1 (r ++ List.ofFn z.2))
 
 /-- A squeeze is no grinding check. -/
-theorem squeezeInput_ne_checkInput (x b : Digest) (n : E) : squeezeInput x ≠ checkInput b n :=
+private theorem squeezeInput_ne_checkInput (x b : Digest) (n : E) : squeezeInput x ≠ checkInput b n :=
   fun h ↦ by simpa using (input_inj (h.trans (checkInput_eq b n))).2
 
 /-- A squeeze is no nonce step. -/
-theorem squeezeInput_ne_absorbInput (x cv : Digest) (n : E) : squeezeInput x ≠ absorbInput cv n :=
+private theorem squeezeInput_ne_absorbInput (x cv : Digest) (n : E) : squeezeInput x ≠ absorbInput cv n :=
   fun h ↦ by simpa using (input_inj h).2
 
 /-- A group's probability, at the challenge it fixes. -/
-theorem SlotReader.π_eq_of_groupSlot {l' : hashSpec.QueryLog} {G : Group} {a : R.Ann}
+private theorem SlotReader.π_eq_of_groupSlot {l' : hashSpec.QueryLog} {G : Group} {a : R.Ann}
     {i : (R.spec a).ChallengeIdx} {tr : (R.spec a).Transcript i.1.castSucc}
     (h : R.groupSlot l' G = some ⟨a, i, tr⟩) :
     R.π l' G = Pr{let z ← $ᵗ (Digest × (Fin ((R.slot a i).m -
@@ -399,7 +403,7 @@ private theorem sum_union_le {α : Type} [DecidableEq α] (A B : Finset α) (f :
   exact le_self_add
 
 /-- A group open in a log starts from a digest in play. -/
-theorem SlotReader.cv_mem_inPlay_of_mem_openGroups {G : Group} (h : G ∈ R.openGroups l) :
+private theorem SlotReader.cv_mem_inPlay_of_mem_openGroups {G : Group} (h : G ∈ R.openGroups l) :
     G.cv ∈ inPlay seedRoots l := by
   rw [R.mem_openGroups_iff] at h
   simp only [SlotReader.isOpen, Bool.and_eq_true] at h
@@ -469,7 +473,7 @@ theorem SlotReader.potential_step (s : OracleState) (t : List UInt8) (ht : s.1 t
 /-! ## The charge's bound -/
 
 /-- A group keeps a challenge marked exactly when it has a nonce. -/
-theorem SlotReader.mark_eq_of_groupSlot {G : Group} {a : R.Ann} {i : (R.spec a).ChallengeIdx}
+private theorem SlotReader.mark_eq_of_groupSlot {G : Group} {a : R.Ann} {i : (R.spec a).ChallengeIdx}
     {tr : (R.spec a).Transcript i.1.castSucc} (h : R.groupSlot l G = some ⟨a, i, tr⟩) :
     R.mark a i = G.nonce.isSome := by
   unfold SlotReader.groupSlot at h
@@ -537,7 +541,7 @@ private theorem sum_le_of_unique {α : Type} {S : Finset α} {f : α → ℝ≥0
 
 /-- On a log with no collision, the states whose grinding base it answers by `y` are one at
 most. -/
-theorem baseStates_unique (hcoll : ¬ QueryLog.HasCollision l) {y cv cv' : Digest}
+private theorem baseStates_unique (hcoll : ¬ QueryLog.HasCollision l) {y cv cv' : Digest}
     (h : cv ∈ baseStates l y) (h' : cv' ∈ baseStates l y) : cv = cv' := by
   obtain ⟨e, he, hb⟩ := List.mem_filterMap.mp h
   obtain ⟨e', he', hb'⟩ := List.mem_filterMap.mp h'
@@ -552,7 +556,7 @@ theorem baseStates_unique (hcoll : ¬ QueryLog.HasCollision l) {y cv cv' : Diges
   · cases hb
 
 /-- On a clean log, a base answer is no state's: a nonce step from it fixes no challenge. -/
-theorem SlotReader.groupSlot_of_mem_baseStates (hl : CleanLog seedRoots l)
+private theorem SlotReader.groupSlot_of_mem_baseStates (hl : CleanLog seedRoots l)
     (hseed : R.seed ∈ seedRoots) {y cv : Digest} (h : cv ∈ baseStates l y) (n : Option E) :
     R.groupSlot l ⟨y, n⟩ = none := by
   obtain ⟨e, he, hb⟩ := List.mem_filterMap.mp h
@@ -670,7 +674,7 @@ theorem SlotReader.Φ_start (s : OracleState) :
       ite_eq_right_of_eq_false _ _ (eq_false fun h' ↦ h ⟨h'.1, this.mpr h'.2⟩)]
 
 /-- The empty log has no flip. -/
-theorem SlotReader.not_flipAt_nil : ¬ R.FlipAt [] := fun ⟨G, hG⟩ ↦ by
+private theorem SlotReader.not_flipAt_nil : ¬ R.FlipAt [] := fun ⟨G, hG⟩ ↦ by
   obtain ⟨-, -, ha⟩ := R.complete_of_flips hG
   obtain ⟨q, d, hq, -⟩ := Group.exists_query_of_asked ha
   simp [logAnswer] at hq
