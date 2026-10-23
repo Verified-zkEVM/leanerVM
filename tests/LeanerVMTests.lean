@@ -98,6 +98,7 @@ import LeanerVMTests.Protocol.WhirJohnson
 import LeanerVMTests.Protocol.WhirLists
 import LeanerVMTests.Protocol.WhirOpen
 import LeanerVMTests.Protocol.WhirSound
+import LeanerVMTests.Protocol.WordArithmetic
 import LeanerVMTests.Semantics.Blake2s
 import LeanerVMTests.Semantics.Blake2sFast
 import LeanerVMTests.Semantics.Executable

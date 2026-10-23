@@ -43,6 +43,7 @@ import LeanerVM.Protocol.DecodeAgree
 import LeanerVM.Protocol.DecodeChain
 import LeanerVM.Protocol.DecodeWalk
 import LeanerVM.Protocol.DecodeWire
+import LeanerVM.Protocol.ExtWords
 import LeanerVM.Protocol.Field
 import LeanerVM.Protocol.Fingerprint
 import LeanerVM.Protocol.FixedColumns
@@ -69,6 +70,7 @@ import LeanerVM.Protocol.MerkleBinding
 import LeanerVM.Protocol.Opening
 import LeanerVM.Protocol.Padding
 import LeanerVM.Protocol.Piop
+import LeanerVM.Protocol.ProductSumWords
 import LeanerVM.Protocol.Proof
 import LeanerVM.Protocol.ProofRoots
 import LeanerVM.Protocol.Prove
