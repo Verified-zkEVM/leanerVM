@@ -173,6 +173,26 @@ theorem holds_cpInit (c : ℕ) (kret : List E → Prop) :
   split_ifs <;> subst_vars <;>
     simp_all [Stmt.HoldsList, Stmt.Holds, Atom.Holds, and_assoc]
 
+/-- The body's conditions on one valuation. -/
+theorem cp_body_iff (C : CallRel) (rd : Reader) (σ : Val) (rets : List E) :
+    Stmt.HoldsList C rd σ cpBody False (fun rs => rs = rets) ↔
+      (∀ c < 113, CpInitOk rd σ c) ∧
+      LoadHolds rd (σ (.n 120)) 0 (σ (.n 122)) ∧ σ (.n 123) = w112 ∧
+      TbRcHolds rd σ 122 124 125 126 123 ∧ σ (.n 127) = σ (.n 2) * σ (.n 122) ∧
+      LoadHolds rd (σ (.n 127)) 0 (σ (.n 128)) ∧ σ (.n 129) = word 1 0 0 ∧
+      σ (.n 130) = σ (.n 121) * σ (.n 122) ∧ LoadHolds rd (σ (.n 130)) 0 (σ (.n 129)) ∧
+      σ (.n 131) = w33 ∧ TbRcHolds rd σ 128 132 133 134 131 ∧
+      σ (.n 135) = σ (.n 1) * σ (.n 128) ∧ LoadHolds rd (σ (.n 135)) 0 (σ (.n 136)) ∧
+      (∀ r < 112, CpRankOk rd σ (r + 1)) ∧
+      σ (.n 3049) = σ (.n 3048) ∧ σ (.n 3050) = σ (.n 121) ∧ σ (.n 3051) = σ (.n 2) ∧
+      [σ (.n 3049), σ (.n 3050), σ (.n 3051)] = rets := by
+  rw [cpBody]
+  simp only [holdsList_append, tb_holdsList_range_flatten 113 cpInit (fun c => by
+      unfold cpInit; split_ifs <;> rfl),
+    tb_holdsList_range_flatten 112 (fun r => cpRank (r + 1)) (fun _ => rfl), holds_cpInit,
+    holds_cpRank, cpRank0, TbRcHolds, Stmt.HoldsList, Stmt.Holds, Atom.Holds, List.map_cons,
+    List.map_nil, true_and]
+
 /-- The function's body, simplified to its conditions. -/
 theorem cp_unfold (rd : Reader) (args rets : List E) :
     coreProgram.Rel rd "certify_placement" args rets ↔ ∃ σ : Val, [σ (.n 0), σ (.n 1)] = args ∧
