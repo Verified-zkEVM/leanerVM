@@ -12,7 +12,7 @@ public import LeanVM.Guest.Budget.LiftB
 /-!
 # The named callees within their bounds
 
-`OsLeafBounds fs Bnd`: each named callee `f`'s trees total at most `Bnd f args` words (G7-cnt's
+`OsLeafBounds fs Bnd`: each named callee `f`'s trees total at most `Bnd f` words (G7-cnt's
 certificates give it). `OsCalleesRegD.kindDB`: a named callee is complete placed on its meaning and
 regions within that bound (G7's `completeRelRegDB_of_iff`). `os_kid_namedB`: a named call of a body
 proved at `osCR` on every memory holding `Lk` is `CompleteAtB` on `Lk` within its bound.
@@ -29,13 +29,15 @@ open LeanVM.Guest.B1.Whir (AllOk StmtOk)
 
 variable {fs : String → ℕ} {cert : String → V → ℕ} {κ : ℕ}
 
-/-- **The named callees' words bounds**, fs-generic. -/
-def OsLeafBounds (fs : String → ℕ) (Bnd : String → List E → ℕ) : Prop :=
-  ∀ f K, osKindOf f = some K → TotalLe coreProgram fs f (Bnd f)
+/-- **The named callees' words bounds**, fs-generic: callee `f`'s trees total at most `Bnd f`
+words. -/
+def OsLeafBounds (fs : String → ℕ) (Bnd : String → ℕ) : Prop :=
+  ∀ f K, osKindOf f = some K → TotalLe coreProgram fs f (fun _ ↦ Bnd f)
 
 /-- **A named callee is complete placed on its meaning and regions, within its bound.** -/
-theorem kindDB {Bnd : String → List E → ℕ} (hT : OsLeafBounds fs Bnd) {f : String} {K : OsKind}
-    (hK : osKindOf f = some K) : CompleteRelRegDB fs cert κ f K.Pre (RegPtrs K.spec) (Bnd f) := by
+theorem kindDB {Bnd : String → ℕ} (hT : OsLeafBounds fs Bnd) {f : String} {K : OsKind}
+    (hK : osKindOf f = some K) :
+    CompleteRelRegDB fs cert κ f K.Pre (RegPtrs K.spec) (fun _ ↦ Bnd f) := by
   have hb := hT f K hK
   have hm := os_mem_of_lookup osKindTable hK
   simp only [osKindTable, List.mem_append, List.mem_cons, List.mem_map, Prod.mk.injEq,
@@ -60,13 +62,13 @@ theorem kindDB {Bnd : String → List E → ℕ} (hT : OsLeafBounds fs Bnd) {f :
 
 /-- **A named call of a body proved at `osCR` on every memory holding `Lk`** is complete placed on
 `Lk` within its bound. -/
-theorem os_kid_namedB {Bnd : String → List E → ℕ} (hT : OsLeafBounds fs Bnd) {Lk : Layout}
+theorem os_kid_namedB {Bnd : String → ℕ} (hT : OsLeafBounds fs Bnd) {Lk : Layout}
     {σ : Val} {pre : List Stmt} {Sp : String → List E → List E → Prop}
     (hall : ∀ rd, LowDef κ rd → MemL rd Lk → AllOk (osCR rd Sp (OsXOk κ Lk)) rd σ pre)
     (hex : ∃ rd0, LowDef κ rd0 ∧ MemL rd0 Lk)
     {c : Call} (hc : c ∈ (pre.filterMap Main.Stmt.callS).map (Main.mkCall σ)) (ht : c.taken = true)
     {K : OsKind} (hK : osKindOf c.f = some K) :
-    CompleteAtB fs cert κ c.f Lk (c.args.map σ) (Returns (c.rets.map σ)) (Bnd c.f (c.args.map σ)) := by
+    CompleteAtB fs cert κ c.f Lk (c.args.map σ) (Returns (c.rets.map σ)) (Bnd c.f) := by
   have hpre : ∀ rd, LowDef κ rd → MemL rd Lk → K.Pre rd (c.args.map σ) (c.rets.map σ) ∧
       OsXOk κ Lk K (c.args.map σ) := fun rd hl hm ↦ by
     have h := os_calls_of_allOk (hall rd hl hm) c hc ht
