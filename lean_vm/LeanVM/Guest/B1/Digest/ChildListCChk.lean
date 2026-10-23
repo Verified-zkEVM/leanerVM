@@ -87,7 +87,8 @@ def cccOk (k : ℕ) (f : Fn) : Bool :=
     canonChk (ccA (cclSt k) 6 k) (A.filter fun a => decide (a ∉ S)) &&
       A.all (fun a => !needsSide a || (isLoadBelow 0 13 a && decide (a ∉ S)) ||
         recSide F cclP 6 k S a) &&
-      (List.range k).all (fun j => recC A F S cclP 6 j)
+      (List.range k).all (fun j => recC A F S cclP 6 j) &&
+      stLoadsOk (A.filter fun a => decide (a ∉ S)) (.n 0) (cclSt k) 0
   | none => false
 
 /-- **`__loop17`, evaluated.** -/
