@@ -15,9 +15,9 @@ public import LeanerVM.Protocol.Whir.DeployedBudget
 # The compiled protocol's errors challenge by challenge, at leanVM
 
 Category A, on `listBindingError` and the instance and chains of
-`LeanerVM.Protocol.ListBindingDeployed`. A Fiat–Shamir challenge costs the random-oracle argument
-the error of its round, at most `2^-128` per challenge, except the query positions of each WHIR
-level, which a proof of work precedes.
+`LeanerVM.Protocol.ListBindingDeployed`. The result contributes to T4 in the random-oracle model:
+the Fiat–Shamir compilation charges each challenge its round's error, at most `2^-128` per
+challenge, except the query positions of each WHIR level, which a proof of work precedes.
 
 * `listBindingMark`: the compiled schedule's query positions, WHIR's (`openMark`).
 * The front phases, challenge by challenge (`busError_le`, `tableError_le`, `flockError_le_overE`):

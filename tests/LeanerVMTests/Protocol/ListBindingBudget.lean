@@ -50,12 +50,13 @@ def window : List LevelNumbers :=
   (List.range 14).flatMap fun i ↦ (List.range 4).flatMap fun r ↦
     ((deployed (i + 15) (r + 1)).map fun c ↦ levels c.ladder c.pars).getD []
 
-/-- The positions of a level at `2^-111` when counting `a` agreements: `a^t · 2^111 ≤ n^t`. -/
-def positions111 (x : LevelNumbers) : Bool := x.a ^ x.t * 2 ^ 111 ≤ (2 ^ (x.κ + x.R)) ^ x.t
+/-- The rejected count: the positions of a level at `2^-111` had they counted `a` agreements,
+`a^t · 2^111 ≤ n^t`. It fails at 48 levels, which is why the error counts `a - 1`. -/
+def positionsAtA111 (x : LevelNumbers) : Bool := x.a ^ x.t * 2 ^ 111 ≤ (2 ^ (x.κ + x.R)) ^ x.t
 
 example : window.length = 224 := by decide +kernel
 
-example : (window.filter fun x ↦ !positions111 x).length = 48 := by decide +kernel
+example : (window.filter fun x ↦ !positionsAtA111 x).length = 48 := by decide +kernel
 
 /-- The worst level: stack size `16`, rate `2⁻¹`, level `2`. -/
 example : ((deployed 16 1).map fun c ↦ (levels c.ladder c.pars)[2]?) =

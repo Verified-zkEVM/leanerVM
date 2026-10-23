@@ -18,12 +18,13 @@ public import VCVio.OracleComp.QueryTracking.LoggingOracle.Core
 /-!
 # The random-oracle game
 
-Category A: the definitions the random-oracle theorems of the compiled verifier are stated with.
-Two layouts are transcribed from the pinned leanVM (`a386121f84292f6fa663aaa3e570c15bc0240ea2`):
-the level-0 root is the stream's scalars `8, 9`, right after the eight announced sizes
-(`cpu/mod.rs:559-562`, `pcs::commit`, `read_commitment`); a level-0 row stores the committed
-lanes in reverse, lane `u` of `n` at word `n - 1 - u`, after a zero prefix of the leaf image
-(`pcs/src/whir.rs:330-345, 1305-1316`).
+Category A: the definitions the random-oracle theorems of the compiled verifier are stated with;
+they contribute to T4 in the random-oracle model, the Fiat–Shamir compilation of the list-binding
+protocol on the one hash oracle. Two layouts are transcribed from the pinned leanVM
+(`a386121f84292f6fa663aaa3e570c15bc0240ea2`): the level-0 root is the stream's scalars `8, 9`,
+right after the eight announced sizes (`cpu/mod.rs:558-561`, `pcs::commit`, `read_commitment`);
+a level-0 row stores the committed lanes in reverse, lane `u` of `n` at word `n - 1 - u`, after a
+zero prefix of the leaf image (`pcs/src/whir.rs:330-345, 1305-1316`).
 
 * **The game** (`loggedGame`). A cheating prover is a computation on the hash oracle alone,
   with no coins (`Adversary`). It runs, logged; then the verifier runs on its proof, logged on
@@ -111,9 +112,19 @@ def logWord (log : hashSpec.QueryLog) (root : Digest) (depth rowWords ℓ t : �
 
 /-- The lanes the level-0 rows carry at the sizes `s`, lanes of `2 ^ κ` cells: the committed
 columns' cells rounded up to whole lanes, at least one (`StackShape::n_lanes`,
-`witness.rs:97-101`). -/
+`witness.rs:97-101`). At `κ = deployedHeadKap μ ρ`, which is `μ - initialFold` on the window
+(`deployedHeadKap_eq`), it must equal the executable verifier's row width (`Verify.nLanes`). -/
 def level0Lanes (prog : Program) (s : Sizes) (κ : ℕ) : ℕ :=
   max 1 (((LeanIsa.blocks prog s).total + 2 ^ κ - 1) / 2 ^ κ)
+
+/-- Level 0 of every admissible chain leaves `μ - initialFold` variables: one decision on the
+window. -/
+theorem deployedHeadKap_eq {μ ρ : ℕ} (h : Parameters.Whir.Admissible μ ρ) :
+    deployedHeadKap μ ρ = μ - Parameters.Whir.initialFold := by
+  have key : ∀ μ < Parameters.Whir.maxLogStack + 1, ∀ r < Parameters.Whir.maxLogInvRate + 1,
+      Parameters.Whir.Admissible μ r → deployedHeadKap μ r = μ - Parameters.Whir.initialFold := by
+    decide +kernel
+  exact key μ (Nat.lt_succ_of_le h.2.1) ρ (Nat.lt_succ_of_le h.2.2.2) h
 
 /-- **The straight-line extractor**: the announced sizes when they pass the setup checks, the
 level-0 word read off `log` under the proof's level-0 root, and the stack the commitment's pick
@@ -174,7 +185,10 @@ def Hit (rootsOf : Proof PrunedMerklePaths → List Digest) (prog : Program) (in
       g.log[k].2 ∈ rootsOf g.proof
 
 /-- **The hash misbehaves** on a run: a collision on the joint log, a hit, or a flip (`Flip`, the
-proof's own chain choosing a bad challenge). -/
+proof's own chain choosing a bad challenge). `Flip` and `rootsOf` are parameters until the
+transcript decoder lands: `core` instantiates them with the decoder's flip clause and the proof's
+roots, and with `Flip := fun _ ↦ True` the event is trivial, so no statement here is evidence about
+the hash. -/
 def HashMisbehaves (rootsOf : Proof PrunedMerklePaths → List Digest) (Flip : Run → Prop)
     (prog : Program) (input : PublicInput) (g : Run) : Prop :=
   QueryLog.HasCollision g.log ∨ Hit rootsOf prog input g ∨ Flip g

@@ -15,8 +15,9 @@ public import LeanerVM.Protocol.ToArkLib.ScheduleBounds
 # The opening's errors challenge by challenge, at leanVM's parameters
 
 Category A, on the errors of `LeanerVM.Protocol.Whir.OpenSound` and the chains of
-`LeanerVM.Protocol.Whir.Deployed`. A random-oracle argument charges each Fiat–Shamir challenge
-the error of its round, so it needs a bound on every challenge, not on their sum.
+`LeanerVM.Protocol.Whir.Deployed`; it contributes to T4 in the random-oracle model. A
+random-oracle argument charges each Fiat–Shamir challenge the error of its round, so it needs a
+bound on every challenge, not on their sum.
 
 * `levelMark`, `finalMark`, `Ladder.mark`, `openMark` mark the query positions of each level,
   the one challenge a proof of work precedes, as `levelErr`, `finalErr`, `Ladder.err` and

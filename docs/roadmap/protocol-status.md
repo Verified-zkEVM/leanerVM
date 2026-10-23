@@ -975,19 +975,24 @@ scalars `8, 9`, every level-0 row under it by `extractAllRows` at `level0Lanes` 
 `2^ℓ` words, a missing row zero, the stored row's lanes reversed as the Rust stores them
 (`laneRow`, `whir.rs:1305-1316`), then `deployedPick`; `extracts_iff_isSome` makes `Extracts`'s
 `M3Holds` automatic. `Hit` and `HashMisbehaves` take the proof's roots and the flip as parameters,
-since both read the verifier's chain walk. `Bad` and `bad_density` are the event and the bound of
-`listBinding_deployed`'s `rbr` at the unit shared oracle. `Protocol/ListBindingBudget.lean`,
+since both read the verifier's chain walk; `core` instantiates the flip with the transcript
+decoder's clause. `Bad` and `bad_density` are the event and the bound of `listBinding_deployed`'s
+`rbr` at the unit shared oracle. `Protocol/ListBindingBudget.lean`,
 `Protocol/Whir/DeployedBudget.lean` and the generic `ToArkLib/ScheduleBounds.lean`:
 `listBindingMark` marks WHIR's query positions, and `listBindingError_deployed_le` bounds every
 other challenge by `2^-128` and the query positions by `2^-111`, so by `2^-128` after the 17 bits
 of grinding, at every admissible announcement and rate (`Whir.deployed_fits` decides the window,
 `L₀ ≤ 122`; `leanIsa_μBus_le`, `leanIsa_B_le`, `leanIsa_poolSize_le` bound the front at leanISA).
-The executable verifier owes the wire shape `extract` reads: level-0 rows of `level0Lanes prog s
-(deployedHeadKap μ ρ)` words, leaves of `2^ℓ` words for level 0's fold `ℓ`
-(`deployedHeadShape μ ρ`), depth `deployedHeadKap μ ρ + (deployedHeadShape μ ρ).R`; the row
-width is `Verify.nLanes` of the verifier branch, whose `μ − 6` is `deployedHeadKap` on the window,
-and their equality is owed at the merge. Still owed: the flip, the proof's roots, `core` and
-`misbehaves_rom`.
+The executable verifier must read the level-0 openings at the wire shape `extract` reads: rows of
+`level0Lanes prog s (deployedHeadKap μ ρ)` words, leaves of `2^ℓ` words for level 0's fold `ℓ`
+(`deployedHeadShape μ ρ`), depth `deployedHeadKap μ ρ + (deployedHeadShape μ ρ).R`.
+`deployedHeadKap_eq` decides `deployedHeadKap μ ρ = μ − initialFold` on the window, so
+`level0Lanes` is the verifier branch's `Verify.nLanes`, which `extract` takes at assembly. The
+blueprint owes three edits: Layer 11's threshold is `a = ⌈(1 − γ) 2^{κ+R}⌉`, not
+`(1 − γ) 2^{κ+R}`; its `thm:rbr` query entry is `((a − 1) / n)^t` (next paragraph); and Layer
+12's `Hit` and `HashMisbehaves` take the proof's roots and the flip as parameters, with no
+"earlier answer" in play (an earlier answer to another input is a collision). Still owed: the
+flip, the proof's roots, `core` and `misbehaves_rom`.
 
 ## Upstream watch
 
