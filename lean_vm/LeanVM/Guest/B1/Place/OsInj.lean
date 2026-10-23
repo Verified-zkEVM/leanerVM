@@ -21,6 +21,7 @@ namespace LeanVM.Guest.B1
 
 open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Value LeanVM.Guest.Memory
 open LeanVM.Guest.B1.Whir
+open LeanVM.Protocol.Verifier (gen)
 
 @[expose] public section
 
@@ -68,6 +69,21 @@ theorem osPtrAt_inj {c : OsCfg} {b j j' : ℕ} (hj : j < (osSizesL c).length)
     have h2 := take_sum_le_sum (osSizesL c) j
     exact gpow_ne_window (e := b + ((osSizesL c).take j').sum) (e' := b + ((osSizesL c).take j).sum)
       (by omega) (by omega) h'.symm
+
+
+/-- **`1 + g^n` is not zero** for `0 < n < 2^64 - 1`: `g^n ≠ 1` there, and `-1 = 1`. -/
+theorem one_add_gen_pow_ne_zero {n : ℕ} (hn0 : 0 < n) (hn : n < 2 ^ 64 - 1) : 1 + gen ^ n ≠ 0 := by
+  rw [LeanVM.Guest.Value.gen_pow_eq_ofK, ← ofK_one, ← ofK_add]
+  intro h
+  rw [← ofK_zero] at h
+  have h1 : (1 : K) + gpow n = 0 := ofK_injective h
+  have hg : gpow n = gpow 0 := by
+    have h2 : (2 : K) = 0 := by decide
+    show gpow n = 1
+    linear_combination h1 - h2
+  have := gpow_injOn (show n ∈ Set.Iio (2 ^ 64 - 1) from hn)
+    (show (0 : ℕ) ∈ Set.Iio (2 ^ 64 - 1) by simp) hg
+  omega
 
 end
 end LeanVM.Guest.B1
