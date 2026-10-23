@@ -54,9 +54,9 @@ checksums of both runs agree at 1%.
 | `E mul` | 424,513 | 3,163 | 134x |
 | `E inv` (not the production path) | 163,419,743 | 1,110,615 | 147x |
 | `E inv (Field dictionary)` | same path as `E inv` | 18,208 | about 9,000x |
-| `BLAKE2s 64 B` | 72,239 | 2,820 | 26x |
-| `BLAKE2s 512 B` | 587,110 | 31,366 | 19x |
-| `Merkle root 2^12 rows x 8 K` | 635,838,800 | 33,190,625 | 19x |
+| `BLAKE2s 64 B` | 72,239 | 1,406 | 51x |
+| `BLAKE2s 512 B` | 587,110 | 10,840 | 54x |
+| `Merkle root 2^12 rows x 8 K` | 635,838,800 | 18,701,567 | 34x |
 | `evalMle 2^16 E-table` | 59,858,789,990 | 568,452,830 | 105x |
 
 The `E inv` row is a monomorphic `x⁻¹ : E`, which names the ring-level `Ext.instInv` and
@@ -68,8 +68,12 @@ scalar products (`nnratCast`, `ratCast`, `nnqsmul`, `qsmul`) stay those of the o
 over the specification's multiplication: correct, and slow.
 
 "After" ran at 100%. The machine was shared with other builds, and single numbers moved by up to
-a third between runs; read the table as orders of magnitude. `K mul on words` includes the loop's
-boxing of the accumulator.
+a third between runs; read the table as orders of magnitude. The two BLAKE2s rows and the Merkle
+row were measured again on 2026-10-23 (median of three runs), after `compressFast` moved its
+working words into the fields of a structure, which compiled code keeps unboxed, and the hashers
+read blocks in place and leaves as words; the previous binary, run alternately in the same session,
+gave 2,921 ns, 31,484 ns and 33,300,309 ns for them, and the checksums agree. `K mul on words`
+includes the loop's boxing of the accumulator.
 
 Each `K` element is a `BitVec 64`, a natural number at run time, so an element with its top bit
 set is a heap-allocated big integer; converting to and from a machine word costs more than the

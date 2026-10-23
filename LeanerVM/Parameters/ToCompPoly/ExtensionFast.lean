@@ -82,11 +82,10 @@ theorem mulDeg3_eq [Ring F] {P : ExtensionParams F} (h : P.d = 3) (x y : Ext P) 
   obtain ⟨d, two_le, lower, q⟩ := P
   simp only at h
   subst h
-  apply Ext.ext; intro m
-  rw [coeff_mul]
-  simp only [Fin.sum_univ_three, Fin.val_zero, Fin.val_one, Fin.val_two, monomialMod,
+  ext m
+  simp only [coeff_mul, Fin.sum_univ_three, Fin.val_zero, Fin.val_one, Fin.val_two, monomialMod,
     Function.iterate_succ_apply', Function.iterate_zero, id, coeff_shiftReduce, coeff_one,
-    coeffNat, Nat.reduceAdd]
+    coeffNat, Nat.reduceAdd, Nat.reduceSub, Nat.reduceLT, ↓reduceDIte, ↓reduceIte, zero_sub]
   fin_cases m <;> simp [mulDeg3, coeff, ofVector, ExtensionParams.lowerCoeff] <;> noncomm_ring
 
 /-- Multiplication: Karatsuba in degree three, the reduction table otherwise. -/
@@ -187,6 +186,22 @@ theorem invFast_eq [Ring F] {P : ExtensionParams F} (x : Ext P) : invFast x = in
   funext F _ P
   exact CommRing.ext rfl (funext₂ fun a b ↦ (mulFast_eq a b).symm)
 
+/-- The element with coefficients `v 0, v 1, v 2`. -/
+private def vec3 {P : ExtensionParams F} (h : P.d = 3) (v : Fin 3 → F) : Ext P :=
+  ofVector ⟨#[v 0, v 1, v 2], by simp [h]⟩
+
+private theorem coeff_vec3 {P : ExtensionParams F} (h : P.d = 3) (v : Fin 3 → F) (j : Fin 3) :
+    (vec3 h v).coeff (Fin.cast h.symm j) = v j := by
+  obtain ⟨d, two_le, lower, q⟩ := P
+  simp only at h
+  subst h
+  fin_cases j <;> rfl
+
+private theorem vec3_eq_iff {P : ExtensionParams F} (h : P.d = 3) (v : Fin 3 → F) (z : Ext P) :
+    vec3 h v = z ↔ ∀ j, v j = z.coeff (Fin.cast h.symm j) :=
+  ⟨fun hz j ↦ hz ▸ (coeff_vec3 h v j).symm,
+    fun hz ↦ Ext.ext fun i ↦ (coeff_vec3 h v (Fin.cast h i)).trans (hz _)⟩
+
 section Inverse
 
 variable [Field F] {P : ExtensionParams F}
@@ -234,79 +249,28 @@ theorem mul_ofVector_eq_mulVec (h : P.d = 3) (x : Ext P) (v : Fin 3 → F) :
 nonzero kernel vector of `mulMatrix` would be a zero divisor. -/
 theorem invDeg3_eq (h : P.d = 3) [Finite F] [Fact (Nat.card F = P.q)]
     [Fact (Irreducible P.poly)] (x : Ext P) : invDeg3 h x = x⁻¹ := by
-  set M := mulMatrix h x with hM
+  set M := mulMatrix h x
+  set w : Fin 3 → F := ![M 1 1 * M 2 2 - M 1 2 * M 2 1, M 1 2 * M 2 0 - M 1 0 * M 2 2,
+    M 1 0 * M 2 1 - M 1 1 * M 2 0]
   have hdet : M.det = M 0 0 * (M 1 1 * M 2 2 - M 1 2 * M 2 1) +
       M 0 1 * (M 1 2 * M 2 0 - M 1 0 * M 2 2) + M 0 2 * (M 1 0 * M 2 1 - M 1 1 * M 2 0) := by
     rw [Matrix.det_fin_three]; ring
-  have hinv : invDeg3 h x = (ofVector ⟨#[M.det⁻¹ * (M 1 1 * M 2 2 - M 1 2 * M 2 1),
-      M.det⁻¹ * (M 1 2 * M 2 0 - M 1 0 * M 2 2), M.det⁻¹ * (M 1 0 * M 2 1 - M 1 1 * M 2 0)],
-      by simp [h]⟩ : Ext P) := by
-    rw [hdet]; rfl
+  have hinv : invDeg3 h x = vec3 h (M.det⁻¹ • w) := by rw [hdet]; rfl
+  have hmul (v : Fin 3 → F) : x * vec3 h v = vec3 h (M.mulVec v) := mul_ofVector_eq_mulVec h x v
   by_cases hd : M.det = 0
   · obtain ⟨v, hv0, hv⟩ := Matrix.exists_mulVec_eq_zero_iff.mpr hd
-    have hx := mul_ofVector_eq_mulVec h x v
-    rw [← hM, hv] at hx
-    have hV : (ofVector ⟨#[v 0, v 1, v 2], by simp [h]⟩ : Ext P) ≠ 0 := by
-      intro hV0
-      apply hv0
-      funext i
-      have := congrArg (fun z : Ext P ↦ z.coeffs.toArray) hV0
-      fin_cases i <;> simp_all [ofVector]
-    have h0 : (ofVector ⟨#[(0 : Fin 3 → F) 0, (0 : Fin 3 → F) 1, (0 : Fin 3 → F) 2],
-        by simp [h]⟩ : Ext P) = 0 := by
-      apply Ext.ext; intro m
-      obtain ⟨d, two_le, lower, q⟩ := P
-      simp only at h
-      subst h
-      rw [coeff_zero]
-      fin_cases m <;> simp [coeff, ofVector]
-    rw [h0] at hx
-    have hx0 : x = 0 := (mul_eq_zero.mp hx).resolve_right hV
-    rw [hinv, hd, inv_zero, hx0, inv_zero']
-    apply Ext.ext; intro m
-    obtain ⟨d, two_le, lower, q⟩ := P
-    simp only at h
-    subst h
-    rw [coeff_zero]
-    fin_cases m <;> simp [coeff, ofVector]
-  · have hw0 : M.mulVec ![M 1 1 * M 2 2 - M 1 2 * M 2 1,
-        M 1 2 * M 2 0 - M 1 0 * M 2 2, M 1 0 * M 2 1 - M 1 1 * M 2 0] = ![M.det, 0, 0] := by
+    have h0 : vec3 h 0 = (0 : Ext P) := (vec3_eq_iff h 0 0).mpr fun j ↦ (coeff_zero _).symm
+    have hx : x = 0 := (mul_eq_zero.mp ((hmul v).trans (hv ▸ h0))).resolve_right fun hV ↦
+      hv0 (funext fun j ↦ ((vec3_eq_iff h v 0).mp hV j).trans (coeff_zero _))
+    rw [hinv, hd, inv_zero, zero_smul, h0, hx, inv_zero']
+  · have hw : M.mulVec w = ![M.det, 0, 0] := by
       ext i
-      fin_cases i
-      · simp only [Matrix.mulVec, dotProduct, Fin.sum_univ_three]
-        simp [Matrix.cons_val_one, Matrix.cons_val_two]
-        linear_combination -hdet
-      · simp only [Matrix.mulVec, dotProduct, Fin.sum_univ_three]
-        simp [Matrix.cons_val_one, Matrix.cons_val_two]
-        ring
-      · simp only [Matrix.mulVec, dotProduct, Fin.sum_univ_three]
-        simp [Matrix.cons_val_one, Matrix.cons_val_two]
-        ring
-    have hw : M.mulVec (M.det⁻¹ • ![M 1 1 * M 2 2 - M 1 2 * M 2 1,
-        M 1 2 * M 2 0 - M 1 0 * M 2 2, M 1 0 * M 2 1 - M 1 1 * M 2 0]) = ![1, 0, 0] := by
-      rw [Matrix.mulVec_smul, hw0]
-      ext i
-      fin_cases i <;> simp [inv_mul_cancel₀ hd]
-    have hx := mul_ofVector_eq_mulVec h x (M.det⁻¹ • ![M 1 1 * M 2 2 - M 1 2 * M 2 1,
-        M 1 2 * M 2 0 - M 1 0 * M 2 2, M 1 0 * M 2 1 - M 1 1 * M 2 0])
-    rw [← hM, hw] at hx
-    have h1 : x * invDeg3 h x = 1 := by
-      have hv : invDeg3 h x = (ofVector ⟨#[(M.det⁻¹ • ![M 1 1 * M 2 2 - M 1 2 * M 2 1,
-          M 1 2 * M 2 0 - M 1 0 * M 2 2, M 1 0 * M 2 1 - M 1 1 * M 2 0]) 0,
-          (M.det⁻¹ • ![M 1 1 * M 2 2 - M 1 2 * M 2 1,
-          M 1 2 * M 2 0 - M 1 0 * M 2 2, M 1 0 * M 2 1 - M 1 1 * M 2 0]) 1,
-          (M.det⁻¹ • ![M 1 1 * M 2 2 - M 1 2 * M 2 1,
-          M 1 2 * M 2 0 - M 1 0 * M 2 2, M 1 0 * M 2 1 - M 1 1 * M 2 0]) 2],
-          by simp [h]⟩ : Ext P) := by
-        rw [hinv]; rfl
-      rw [hv, hx]
-      apply Ext.ext; intro m
-      obtain ⟨d, two_le, lower, q⟩ := P
-      simp only at h
-      subst h
-      rw [coeff_one]
-      fin_cases m <;> simp [coeff, ofVector]
-    exact (inv_eq_of_mul_eq_one_right h1).symm
+      fin_cases i <;> simp [Matrix.mulVec, dotProduct, Fin.sum_univ_three, w, hdet] <;> ring
+    refine (inv_eq_of_mul_eq_one_right ?_).symm
+    rw [hinv, hmul, Matrix.mulVec_smul, hw, vec3_eq_iff]
+    intro j
+    rw [coeff_one]
+    fin_cases j <;> simp [inv_mul_cancel₀ hd]
 
 /-- The inverse of a field extension: Cramer's rule in degree three, `invFast` otherwise. -/
 def fieldInv (x : Ext P) : Ext P := if h : P.d = 3 then invDeg3 h x else invFast x

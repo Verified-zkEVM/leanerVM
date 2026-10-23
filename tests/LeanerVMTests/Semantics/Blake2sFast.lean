@@ -5,7 +5,8 @@ import LeanerVM.Semantics.Blake2sFast
 
 `compress` compiles to `compressFast` (`LeanerVM.Semantics.Blake2sFast`), proved equal to it;
 these `#guard`s compare it on random-looking words with `compress` assembled from
-`Blake2s.round`, which no `@[csimp]` theorem replaces, with and without both flags.
+`Blake2s.round`, which no `@[csimp]` theorem replaces, with and without both flags, and one
+round on the working words with `Blake2s.round`.
 -/
 
 namespace LeanerVMTests.Semantics.Blake2sFast
@@ -39,6 +40,11 @@ private def compressSpec (h : Vector UInt32 8) (m : Vector UInt32 16) (t : UInt6
 
 #guard (compress (wordsOf 8 1) (wordsOf 16 2) 64 0xFFFFFFFF 0xFFFFFFFF).toList ==
   (compressSpec (wordsOf 8 1) (wordsOf 16 2) 64 0xFFFFFFFF 0xFFFFFFFF).toList
+
+-- One round on the working words, under every schedule row.
+#guard (List.range 10).all fun r ↦
+  (Blake2s.roundFast (wordsOf 16 r) (wordsOf 16 (r + 5)) (sigma.toList.getD r sigma[0])).toList ==
+    (Blake2s.round (wordsOf 16 r) (wordsOf 16 (r + 5)) (sigma.toList.getD r sigma[0])).toList
 
 -- Each rotation, against `BitVec.rotateRight`.
 #guard words.all fun w ↦

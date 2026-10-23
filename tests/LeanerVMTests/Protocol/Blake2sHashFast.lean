@@ -5,8 +5,9 @@ import LeanerVM.Protocol.Blake2sHashFast
 
 `blake2sBytes`, `hashWords` and `hashPair` compile to the functions of
 `LeanerVM.Protocol.Blake2sHashFast`, proved equal to them; these `#guard`s check them against
-`hashlib.blake2s` digests (as in the `Blake2sHash` tests), against `absorb`, which no `@[csimp]`
-theorem replaces, and the node hash against RFC 7693's one-compression form of 64 bytes.
+`hashlib.blake2s` digests (as in the `Blake2sHash` tests), the byte and leaf hashers against
+`absorb`, which no `@[csimp]` theorem replaces, and the node hash against RFC 7693's
+one-compression form of 64 bytes.
 -/
 
 namespace LeanerVMTests.Protocol.Blake2sHashFast
@@ -33,9 +34,14 @@ private def digestOf (seed : ℕ) : Digest :=
 #guard (hashWords [K.ofBits 1, K.ofBits 2]).toList ==
   [0x6b8928f2, 0x12389f83, 0xe4753c2b, 0x44f83b7f, 0x926dae68, 0xa0cb51b5, 0x1828562e, 0x44a89c61]
 
--- Every length from 0 to 69 bytes: one, two and the empty block.
-#guard ((List.range 70).map ramp).all fun d ↦
+-- Every length from 0 to 139 bytes: the empty block, one, two and three blocks.
+#guard ((List.range 140).map ramp).all fun d ↦
   (blake2sBytesFast d).toList == (absorb paramIv 0 ((d.length - 1) / 64) d).toList
+
+-- Leaves of 0 to 20 words, absorbed as words, against `absorb` over their bytes.
+#guard (List.range 21).all fun n ↦
+  let ws := (List.range n).map fun i ↦ K.ofBits (i * 0x9E3779B97F4A7C15 + n)
+  (hashWordsFast ws).toList == (absorb paramIv 0 ((8 * n - 1) / 64) (ws.flatMap kBytes)).toList
 
 -- A node is one compression of its children's sixteen words.
 #guard (List.range 4).all fun s ↦

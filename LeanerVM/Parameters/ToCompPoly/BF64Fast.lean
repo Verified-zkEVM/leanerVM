@@ -64,69 +64,26 @@ open Polynomial BinaryField BF64
 
 @[expose] public section
 
-/-- A sum of base-16 digits below 16 is below `16 ^ n`. -/
-private theorem sum_digits_lt (d : ℕ → ℕ) (hd : ∀ i, d i < 16) (n : ℕ) :
-    ∑ i ∈ Finset.range n, d i * 16 ^ i < 16 ^ n := by
-  induction n with
-  | zero => simp
-  | succ n ih =>
-    rw [Finset.sum_range_succ, pow_succ]
-    have h1 : d n * 16 ^ n ≤ 15 * 16 ^ n := Nat.mul_le_mul_right _ (by have := hd n; omega)
-    omega
-
-/-- Bit `4k + b` of a sum of base-16 digits below 16 is bit `b` of digit `k`. -/
-private theorem testBit_sum_digits (d : ℕ → ℕ) (hd : ∀ i, d i < 16) (n k b : ℕ) (hb : b < 4) :
-    (∑ i ∈ Finset.range n, d i * 16 ^ i).testBit (4 * k + b) =
-      (decide (k < n) && (d k).testBit b) := by
-  induction n with
-  | zero => simp
-  | succ n ih =>
-    rw [Finset.sum_range_succ, add_comm, mul_comm, show (16 : ℕ) ^ n = 2 ^ (4 * n) by
-      rw [pow_mul]; norm_num]
-    rw [Nat.testBit_two_pow_mul_add _
-      (sum_digits_lt d hd n |>.trans_eq (by rw [pow_mul]; norm_num))]
-    split_ifs with h4
-    · rw [ih]
-      have hk : k < n := by omega
-      simp [hk, show k < n + 1 by omega]
-    · by_cases hkn : k = n
-      · subst hkn
-        simp [show 4 * k + b - 4 * k = b by omega]
-      · have hk' : ¬ k < n + 1 := by omega
-        simp only [hk', decide_false, Bool.false_and]
-        apply Nat.testBit_lt_two_pow
-        calc d n < 2 ^ 4 := hd n
-          _ ≤ 2 ^ (4 * k + b - 4 * n) := Nat.pow_le_pow_right (by norm_num) (by omega)
-
-/-- The digit lemma for a polynomial with coefficients below 16, evaluated at 16. -/
+/-- Bit `4k + b` of a polynomial with coefficients below 16, evaluated at 16, is bit `b` of
+coefficient `k`. -/
 private theorem testBit_eval_sixteen (Q : ℕ[X]) (hQ : ∀ i, Q.coeff i < 16) (k b : ℕ) (hb : b < 4) :
     (Q.eval 16).testBit (4 * k + b) = (Q.coeff k).testBit b := by
-  rw [eval_eq_sum_range, testBit_sum_digits _ hQ _ _ _ hb]
-  by_cases hk : k < Q.natDegree + 1
-  · simp [hk]
-  · simp only [hk, decide_false, Bool.false_and]
-    rw [coeff_eq_zero_of_natDegree_lt (by omega)]
-    simp
+  induction k generalizing Q <;>
+    rw [show Q.eval 16 = 2 ^ 4 * (divX Q).eval 16 + Q.coeff 0 by
+      conv_lhs => rw [← divX_mul_X_add Q]
+      rw [eval_add, eval_mul_X, eval_C]; ring, Nat.testBit_two_pow_mul_add (i := 4) _ (hQ 0)]
+  case zero => simp [hb]
+  case succ k ih =>
+    simp only [show ¬ 4 * (k + 1) + b < 4 by omega, ↓reduceIte,
+      show 4 * (k + 1) + b - 4 = 4 * k + b by omega]
+    rw [ih _ fun i ↦ coeff_divX (p := Q) ▸ hQ _, coeff_divX]
 
 /-- Bit `p` of `2^r` times a digit polynomial at 16. -/
 private theorem testBit_two_pow_mul_eval (Q : ℕ[X]) (hQ : ∀ i, Q.coeff i < 16) (r p : ℕ) :
     (2 ^ r * Q.eval 16).testBit p =
       (decide (r ≤ p) && (Q.coeff ((p - r) / 4)).testBit ((p - r) % 4)) := by
-  rw [Nat.testBit_two_pow_mul]
-  congr 1
-  conv_lhs => rw [show p - r = 4 * ((p - r) / 4) + (p - r) % 4 from (Nat.div_add_mod _ _).symm]
-  exact testBit_eval_sixteen Q hQ _ _ (Nat.mod_lt _ (by norm_num))
-
-/-- The bits of a Boolean as a natural number. -/
-private theorem testBit_toNat (b : Bool) (j : ℕ) : b.toNat.testBit j = (b && j == 0) := by
-  cases b
-  · simp
-  · cases j
-    · simp
-    · simp only [Bool.toNat_true, Bool.true_and]
-      exact Nat.testBit_lt_two_pow (by
-        calc (1 : ℕ) < 2 ^ 1 := by norm_num
-          _ ≤ 2 ^ (_ + 1) := Nat.pow_le_pow_right (by norm_num) (by omega))
+  rw [Nat.testBit_two_pow_mul, ← testBit_eval_sixteen Q hQ _ _ (Nat.mod_lt _ (by norm_num)),
+    Nat.div_add_mod]
 
 /-- The digit polynomial of residue `r`: coefficient `i` is bit `4i + r` of `x`, for `i < 8`. -/
 private noncomputable def dig (x r : ℕ) : ℕ[X] :=
@@ -134,115 +91,73 @@ private noncomputable def dig (x r : ℕ) : ℕ[X] :=
 
 private theorem coeff_dig (x r k : ℕ) :
     (dig x r).coeff k = if k < 8 then (x.testBit (4 * k + r)).toNat else 0 := by
-  simp only [dig, finsetSum_coeff, coeff_C_mul, coeff_X_pow]
-  split_ifs with hk
-  · rw [Finset.sum_eq_single k]
-    · simp
-    · intro b _ hb; simp [Ne.symm hb]
-    · intro h; exact absurd (Finset.mem_range.mpr hk) h
-  · refine Finset.sum_eq_zero fun i hi ↦ ?_
-    have : k ≠ i := by simp at hi; omega
-    simp [this]
+  simp [dig, finsetSum_coeff]
 
 private theorem coeff_dig_le (x r k : ℕ) : (dig x r).coeff k ≤ 1 := by
   rw [coeff_dig]; split_ifs <;> simp [Bool.toNat_le]
 
-private theorem coeff_dig_eq_zero (x r k : ℕ) (hk : 8 ≤ k) : (dig x r).coeff k = 0 := by
-  rw [coeff_dig]; simp [show ¬ k < 8 by omega]
-
-private theorem coeff_dig_mul_le (x y r s k : ℕ) : (dig x r * dig y s).coeff k ≤ 8 := by
+/-- A product of two digit polynomials has coefficients at most 8, below 16. -/
+private theorem coeff_dig_mul_lt (x y r s k : ℕ) : (dig x r * dig y s).coeff k < 16 := by
   rw [coeff_mul, Finset.Nat.sum_antidiagonal_eq_sum_range_succ_mk]
-  calc ∑ i ∈ Finset.range k.succ, (dig x r).coeff i * (dig y s).coeff (k - i)
-      ≤ ∑ i ∈ Finset.range k.succ, if i < 8 then 1 else 0 := by
-        refine Finset.sum_le_sum fun i _ ↦ ?_
-        split_ifs with hi
-        · exact (Nat.mul_le_mul (coeff_dig_le x r i) (coeff_dig_le y s _)).trans (by norm_num)
-        · rw [coeff_dig_eq_zero x r i (by omega)]; simp
+  calc _ ≤ ∑ i ∈ Finset.range k.succ, if i < 8 then 1 else 0 :=
+        Finset.sum_le_sum fun i _ ↦ by
+          rw [coeff_dig x r i]
+          split_ifs
+          · exact Nat.mul_le_mul (Bool.toNat_le _) (coeff_dig_le y s _)
+          · simp
     _ = ((Finset.range k.succ).filter (· < 8)).card := by rw [Finset.sum_boole]; simp
-    _ ≤ (Finset.range 8).card := by
-        refine Finset.card_le_card fun i hi ↦ ?_
-        simp only [Finset.mem_filter] at hi; simpa using hi.2
-    _ = 8 := by simp
+    _ ≤ (Finset.range 8).card := Finset.card_le_card fun i ↦ by simp
+    _ < 16 := by simp
 
 /-- The all-ones digit polynomial with `n` digits. -/
 private noncomputable def onesN (n : ℕ) : ℕ[X] := ∑ i ∈ Finset.range n, X ^ i
 
 private theorem coeff_onesN (n k : ℕ) : (onesN n).coeff k = if k < n then 1 else 0 := by
-  simp only [onesN, finsetSum_coeff, coeff_X_pow]
-  split_ifs with hk
-  · rw [Finset.sum_eq_single k] <;> simp_all [eq_comm]
-  · refine Finset.sum_eq_zero fun i hi ↦ ?_
-    have : k ≠ i := by simp at hi; omega
-    simp [this]
+  simp [onesN, finsetSum_coeff]
+
+/-- Bit `p` of `2^r` times the mask with `n` digits `1`. -/
+private theorem testBit_mask (n r p : ℕ) :
+    (2 ^ r * (onesN n).eval 16).testBit p =
+      decide (r ≤ p ∧ (p - r) / 4 < n ∧ (p - r) % 4 = 0) := by
+  rw [testBit_two_pow_mul_eval _ (fun i ↦ by rw [coeff_onesN]; split_ifs <;> norm_num),
+    coeff_onesN]
+  split_ifs <;> simp [*, ← Bool.toNat_true, Nat.testBit_bool_toNat]
 
 /-- Masking with every fourth bit from `r` keeps the digits of residue `r`. -/
 private theorem and_mask (x r : ℕ) :
     x &&& (2 ^ r * 0x11111111) = 2 ^ r * (dig x r).eval 16 := by
-  apply Nat.eq_of_testBit_eq
-  intro p
-  have hd : ∀ i, (dig x r).coeff i < 16 := fun i ↦ (coeff_dig_le x r i).trans_lt (by norm_num)
-  have he : (onesN 8).eval 16 = 0x11111111 := by simp [onesN, Finset.sum_range_succ]
-  have ho : ∀ i, (onesN 8).coeff i < 16 := fun i ↦ by rw [coeff_onesN]; split_ifs <;> norm_num
-  rw [Nat.testBit_and, ← he, testBit_two_pow_mul_eval _ ho, testBit_two_pow_mul_eval _ hd,
-    coeff_onesN, coeff_dig]
-  by_cases hrp : r ≤ p
-  · simp only [hrp, decide_true, Bool.true_and]
-    by_cases h8 : (p - r) / 4 < 8
-    · simp only [h8, ite_true, testBit_toNat]
-      have h1 : Nat.testBit 1 ((p - r) % 4) = ((p - r) % 4 == 0) := by
-        simpa using testBit_toNat true ((p - r) % 4)
-      rw [h1]
-      by_cases hm : (p - r) % 4 = 0
-      · have : 4 * ((p - r) / 4) + r = p := by omega
-        simp [hm, this]
-      · have hb : ((p - r) % 4 == 0) = false := by simpa using hm
-        simp [hb]
-    · simp [h8]
-  · simp [hrp]
-
-/-- A digit polynomial has every coefficient below 16. -/
-private theorem coeff_X_pow_mul_dig_mul_lt (x y r s v k : ℕ) :
-    (X ^ v * (dig x r * dig y s)).coeff k < 16 := by
-  rw [coeff_X_pow_mul']
-  split_ifs
-  · exact (coeff_dig_mul_le x y r s _).trans_lt (by norm_num)
-  · norm_num
+  apply Nat.eq_of_testBit_eq fun p ↦ ?_
+  rw [Nat.testBit_and,
+    show (0x11111111 : ℕ) = (onesN 8).eval 16 by simp [onesN, Finset.sum_range_succ], testBit_mask,
+    testBit_two_pow_mul_eval _ fun i ↦ (coeff_dig_le x r i).trans_lt (by norm_num), coeff_dig]
+  by_cases h : r ≤ p ∧ (p - r) / 4 < 8 ∧ (p - r) % 4 = 0
+  · simp [h, show 4 * ((p - r) / 4) + r = p by omega]
+    cases x.testBit p <;> rfl
+  · rw [decide_eq_false h, Bool.and_false]
+    split_ifs <;> simp only [Nat.testBit_bool_toNat, Nat.zero_testBit, Bool.and_false]
+    by_cases h1 : r ≤ p <;> simp_all
 
 /-- Bit `4k + t` of a product of two masked words, `r + s = t + 4v`: the parity of coefficient
 `k` of the digit product shifted by `v`. -/
 private theorem testBit_and_mask_mul (x y r s t v k : ℕ) (h : r + s = t + 4 * v) :
     ((x &&& (2 ^ r * 0x11111111)) * (y &&& (2 ^ s * 0x11111111))).testBit (4 * k + t) =
-      decide ((X ^ v * (dig x r * dig y s)).coeff k % 2 = 1) := by
-  have he : (x &&& (2 ^ r * 0x11111111)) * (y &&& (2 ^ s * 0x11111111)) =
-      2 ^ t * (X ^ v * (dig x r * dig y s)).eval 16 := by
-    rw [and_mask, and_mask, eval_mul, eval_mul, eval_pow, eval_X]
-    rw [show (16 : ℕ) ^ v = 2 ^ (4 * v) by rw [pow_mul]; norm_num]
-    rw [show 2 ^ r * eval 16 (dig x r) * (2 ^ s * eval 16 (dig y s)) =
-      2 ^ (r + s) * (eval 16 (dig x r) * eval 16 (dig y s)) by rw [pow_add]; ring, h, pow_add]
-    ring
-  rw [he, testBit_two_pow_mul_eval _ (coeff_X_pow_mul_dig_mul_lt x y r s v) t]
-  simp only [show t ≤ 4 * k + t by omega, decide_true, Bool.true_and,
-    show (4 * k + t - t) / 4 = k by omega, show (4 * k + t - t) % 4 = 0 by omega, Nat.testBit_zero]
+      ((X ^ v * (dig x r * dig y s)).coeff k).bodd := by
+  rw [and_mask, and_mask, show 2 ^ r * eval 16 (dig x r) * (2 ^ s * eval 16 (dig y s)) =
+      2 ^ t * (X ^ v * (dig x r * dig y s)).eval 16 by
+    rw [eval_mul, eval_mul, eval_pow, eval_X, show (16 : ℕ) ^ v = 2 ^ (4 * v) by rw [pow_mul]; rfl]
+    calc _ = 2 ^ (r + s) * (eval 16 (dig x r) * eval 16 (dig y s)) := by ring
+      _ = _ := by rw [h]; ring,
+    testBit_two_pow_mul_eval _ fun i ↦ by
+      rw [coeff_X_pow_mul']; split_ifs <;> simp [coeff_dig_mul_lt]]
+  simp [Nat.bodd]
 
 /-- Coefficient `4k + t` of `X^c` times a polynomial in `X^4`. -/
 private theorem coeff_X_pow_mul_expand {R : Type*} [CommSemiring R] (Q : R[X]) (c k t : ℕ)
     (ht : t < 4) :
     (X ^ c * expand R 4 Q).coeff (4 * k + t) =
       if c % 4 = t then (X ^ (c / 4) * Q).coeff k else 0 := by
-  rw [coeff_X_pow_mul', coeff_X_pow_mul']
-  by_cases hc : c % 4 = t
-  · simp only [hc, ite_true]
-    by_cases hck : c ≤ 4 * k + t
-    · have h4 : 4 ∣ 4 * k + t - c := by omega
-      simp only [hck, ite_true, coeff_expand (show 0 < 4 by norm_num), h4,
-        show c / 4 ≤ k by omega]
-      congr 1; omega
-    · simp only [hck, ite_false, show ¬ c / 4 ≤ k by omega]
-  · simp only [hc, ite_false]
-    split_ifs with hck
-    · have h4 : ¬ 4 ∣ 4 * k + t - c := by omega
-      simp only [coeff_expand (show 0 < 4 by norm_num), h4, ite_false]
-    · rfl
+  rw [coeff_X_pow_mul', coeff_X_pow_mul', coeff_expand (by norm_num)]
+  split_ifs <;> first | omega | (congr 1; omega) | rfl
 
 /-- The bits of `x` below 32 as a polynomial, gathered by residue modulo 4. -/
 private noncomputable def bitPoly (x : ℕ) : ℕ[X] :=
@@ -250,30 +165,12 @@ private noncomputable def bitPoly (x : ℕ) : ℕ[X] :=
 
 private theorem coeff_bitPoly (x i : ℕ) :
     (bitPoly x).coeff i = if i < 32 then (x.testBit i).toNat else 0 := by
-  have hi : i = 4 * (i / 4) + i % 4 := (Nat.div_add_mod i 4).symm
-  have ht : i % 4 < 4 := Nat.mod_lt _ (by norm_num)
-  rw [bitPoly, finsetSum_coeff, hi]
-  simp only [Finset.sum_range_succ, Finset.sum_range_zero, zero_add,
+  obtain ⟨k, t, ht, rfl⟩ : ∃ k t, t < 4 ∧ i = 4 * k + t := ⟨i / 4, i % 4, by omega, by omega⟩
+  simp only [bitPoly, Finset.sum_range_succ, Finset.sum_range_zero, zero_add, coeff_add,
     coeff_X_pow_mul_expand _ _ _ _ ht]
-  generalize i / 4 = k
-  generalize hT : i % 4 = t at ht
-  interval_cases t <;> simp [coeff_dig] <;> split_ifs <;> first | rfl | omega
-
-/-- Bit `p` of the 64-bit mask with every fourth bit from `t`. -/
-private theorem testBit_mask64 (t p : ℕ) (hp : p < 64) :
-    (2 ^ t * 0x1111111111111111).testBit p = decide (t ≤ p ∧ (p - t) % 4 = 0) := by
-  have he : (onesN 16).eval 16 = 0x1111111111111111 := by
-    simp [onesN, Finset.sum_range_succ]
-  have ho : ∀ i, (onesN 16).coeff i < 16 := fun i ↦ by rw [coeff_onesN]; split_ifs <;> norm_num
-  rw [← he, testBit_two_pow_mul_eval _ ho, coeff_onesN]
-  by_cases htp : t ≤ p
-  · have h16 : (p - t) / 4 < 16 := by omega
-    simp only [htp, decide_true, Bool.true_and, h16, ite_true, true_and]
-    have h1 := testBit_toNat true ((p - t) % 4)
-    simp only [Bool.toNat_true, Bool.true_and] at h1
-    rw [h1]
-    exact Bool.eq_iff_iff.mpr (by simp)
-  · simp [htp]
+  simp only [Nat.reduceMod, Nat.reduceDiv, pow_zero, one_mul, coeff_dig,
+    show 4 * k + t < 32 ↔ k < 8 by omega]
+  obtain rfl | rfl | rfl | rfl : t = 0 ∨ t = 1 ∨ t = 2 ∨ t = 3 := (by omega) <;> simp
 
 /-- Carry-less product of the low 32 bits of two words, by integer multiplication of the words
 masked to every fourth bit: the four residues never carry into each other. -/
@@ -297,11 +194,8 @@ masked to every fourth bit: the four residues never carry into each other. -/
 private theorem toNat_and_mul_and (x y m n : UInt64) (hm : m.toNat < 2 ^ 32)
     (hn : n.toNat < 2 ^ 32) :
     ((x &&& m) * (y &&& n)).toNat = (x.toNat &&& m.toNat) * (y.toNat &&& n.toNat) := by
-  rw [UInt64.toNat_mul, UInt64.toNat_and, UInt64.toNat_and]
-  apply Nat.mod_eq_of_lt
-  calc (x.toNat &&& m.toNat) * (y.toNat &&& n.toNat) < 2 ^ 32 * 2 ^ 32 :=
-        Nat.mul_lt_mul'' (Nat.and_lt_two_pow _ hm) (Nat.and_lt_two_pow _ hn)
-    _ = 2 ^ 64 := by norm_num
+  rw [UInt64.toNat_mul, UInt64.toNat_and, UInt64.toNat_and, Nat.mod_eq_of_lt]
+  exact (Nat.mul_lt_mul'' (Nat.and_lt_two_pow _ hm) (Nat.and_lt_two_pow _ hn)).trans_eq rfl
 
 /-- `clmul32` on natural numbers. -/
 private theorem toNat_clmul32 (x y : UInt64) : (clmul32 x y).toNat =
@@ -310,12 +204,13 @@ private theorem toNat_clmul32 (x y : UInt64) : (clmul32 x y).toNat =
     let x2 := X &&& (2 ^ 2 * 0x11111111); let x3 := X &&& (2 ^ 3 * 0x11111111)
     let y0 := Y &&& (2 ^ 0 * 0x11111111); let y1 := Y &&& (2 ^ 1 * 0x11111111)
     let y2 := Y &&& (2 ^ 2 * 0x11111111); let y3 := Y &&& (2 ^ 3 * 0x11111111)
-    ((x0 * y0 ^^^ x1 * y3 ^^^ x2 * y2 ^^^ x3 * y1) &&& (2 ^ 0 * 0x1111111111111111)) |||
-    ((x0 * y1 ^^^ x1 * y0 ^^^ x2 * y3 ^^^ x3 * y2) &&& (2 ^ 1 * 0x1111111111111111)) |||
-    ((x0 * y2 ^^^ x1 * y1 ^^^ x2 * y0 ^^^ x3 * y3) &&& (2 ^ 2 * 0x1111111111111111)) |||
-    ((x0 * y3 ^^^ x1 * y2 ^^^ x2 * y1 ^^^ x3 * y0) &&& (2 ^ 3 * 0x1111111111111111)) := by
+    ((x0 * y0 ^^^ x1 * y3 ^^^ x2 * y2 ^^^ x3 * y1) &&& (2 ^ 0 * (onesN 16).eval 16)) |||
+    ((x0 * y1 ^^^ x1 * y0 ^^^ x2 * y3 ^^^ x3 * y2) &&& (2 ^ 1 * (onesN 16).eval 16)) |||
+    ((x0 * y2 ^^^ x1 * y1 ^^^ x2 * y0 ^^^ x3 * y3) &&& (2 ^ 2 * (onesN 16).eval 16)) |||
+    ((x0 * y3 ^^^ x1 * y2 ^^^ x2 * y1 ^^^ x3 * y0) &&& (2 ^ 3 * (onesN 16).eval 16)) := by
+  have he : (onesN 16).eval 16 = 0x1111111111111111 := by simp [onesN, Finset.sum_range_succ]
   simp (disch := decide) only [clmul32, UInt64.toNat_or, UInt64.toNat_and, UInt64.toNat_xor,
-    toNat_and_mul_and]
+    toNat_and_mul_and, he]
   rfl
 
 /-- The coefficients of the product of two bit polynomials, by residue. -/
@@ -323,55 +218,39 @@ private theorem coeff_bitPoly_mul (x y k t : ℕ) (ht : t < 4) :
     (bitPoly x * bitPoly y).coeff (4 * k + t) =
       ∑ r ∈ Finset.range 4, ∑ s ∈ Finset.range 4,
         if (r + s) % 4 = t then (X ^ ((r + s) / 4) * (dig x r * dig y s)).coeff k else 0 := by
-  rw [bitPoly, bitPoly, Finset.sum_mul_sum, finsetSum_coeff]
-  refine Finset.sum_congr rfl fun r _ ↦ ?_
-  rw [finsetSum_coeff]
-  refine Finset.sum_congr rfl fun s _ ↦ ?_
+  simp only [bitPoly, Finset.sum_mul_sum, finsetSum_coeff]
+  refine Finset.sum_congr rfl fun r _ ↦ Finset.sum_congr rfl fun s _ ↦ ?_
   rw [show X ^ r * expand ℕ 4 (dig x r) * (X ^ s * expand ℕ 4 (dig y s)) =
     X ^ (r + s) * expand ℕ 4 (dig x r * dig y s) by rw [map_mul, pow_add]; ring]
   exact coeff_X_pow_mul_expand _ _ _ _ ht
 
-private theorem mask_select (t' t k : ℕ) (ht' : t' < 4) (ht : t < 4) :
-    decide (t' ≤ 4 * k + t ∧ (4 * k + t - t') % 4 = 0) = decide (t' = t) := by
-  by_cases h : t' = t
-  · subst h; simp
-  · simp only [h, decide_false, decide_eq_false_iff_not, not_and]
-    omega
-
-private theorem xor_parity (a b c d : ℕ) :
-    (decide (a % 2 = 1) != (decide (b % 2 = 1) != (decide (c % 2 = 1) != decide (d % 2 = 1)))) =
-      decide ((a + b + c + d) % 2 = 1) := by
-  rcases Nat.mod_two_eq_zero_or_one a with ha | ha <;>
-  rcases Nat.mod_two_eq_zero_or_one b with hb | hb <;>
-  rcases Nat.mod_two_eq_zero_or_one c with hc | hc <;>
-  rcases Nat.mod_two_eq_zero_or_one d with hd | hd <;>
-  simp [Nat.add_mod, ha, hb, hc, hd]
+private theorem mask_select (t' t k : ℕ) (ht' : t' < 4) (ht : t < 4) (hk : 4 * k + t < 64) :
+    decide (t' ≤ 4 * k + t ∧ (4 * k + t - t') / 4 < 16 ∧ (4 * k + t - t') % 4 = 0) =
+      decide (t' = t) := by
+  rw [decide_eq_decide]; omega
 
 /-- Bit `p` of `clmul32 x y` is the parity of coefficient `p` of the product of the low 32 bits of
 `x` and `y` as polynomials. -/
 private theorem testBit_clmul32 (x y : UInt64) (p : ℕ) (hp : p < 64) :
-    (clmul32 x y).toNat.testBit p =
-      decide ((bitPoly x.toNat * bitPoly y.toNat).coeff p % 2 = 1) := by
-  rw [toNat_clmul32]
-  simp only [Nat.testBit_or, Nat.testBit_and, testBit_mask64 _ _ hp, Nat.testBit_xor]
-  obtain ⟨k, t, ht, rfl⟩ : ∃ k t, t < 4 ∧ p = 4 * k + t :=
-    ⟨p / 4, p % 4, Nat.mod_lt _ (by norm_num), (Nat.div_add_mod p 4).symm⟩
-  rw [coeff_bitPoly_mul _ _ _ _ ht]
-  simp only [mask_select _ t k (by norm_num : (0 : ℕ) < 4) ht,
-    mask_select _ t k (by norm_num : (1 : ℕ) < 4) ht,
-    mask_select _ t k (by norm_num : (2 : ℕ) < 4) ht,
-    mask_select _ t k (by norm_num : (3 : ℕ) < 4) ht]
-  interval_cases t <;>
-  simp only [testBit_and_mask_mul _ _ 0 0 _ 0 k rfl, testBit_and_mask_mul _ _ 1 3 _ 1 k rfl,
+    (clmul32 x y).toNat.testBit p = ((bitPoly x.toNat * bitPoly y.toNat).coeff p).bodd := by
+  obtain ⟨k, t, ht, rfl⟩ : ∃ k t, t < 4 ∧ p = 4 * k + t := ⟨p / 4, p % 4, by omega, by omega⟩
+  rw [toNat_clmul32, coeff_bitPoly_mul _ _ _ _ ht]
+  simp only [Nat.testBit_or, Nat.testBit_and, testBit_mask, Nat.testBit_xor,
+    mask_select _ t k (by norm_num : 0 < 4) ht hp, mask_select _ t k (by norm_num : 1 < 4) ht hp,
+    mask_select _ t k (by norm_num : 2 < 4) ht hp, mask_select _ t k (by norm_num : 3 < 4) ht hp]
+  obtain rfl | rfl | rfl | rfl : t = 0 ∨ t = 1 ∨ t = 2 ∨ t = 3 := (by omega)
+  all_goals simp only [
+    testBit_and_mask_mul _ _ 0 0 _ 0 k rfl, testBit_and_mask_mul _ _ 1 3 _ 1 k rfl,
     testBit_and_mask_mul _ _ 2 2 _ 1 k rfl, testBit_and_mask_mul _ _ 3 1 _ 1 k rfl,
     testBit_and_mask_mul _ _ 0 1 _ 0 k rfl, testBit_and_mask_mul _ _ 1 0 _ 0 k rfl,
     testBit_and_mask_mul _ _ 2 3 _ 1 k rfl, testBit_and_mask_mul _ _ 3 2 _ 1 k rfl,
     testBit_and_mask_mul _ _ 0 2 _ 0 k rfl, testBit_and_mask_mul _ _ 1 1 _ 0 k rfl,
     testBit_and_mask_mul _ _ 2 0 _ 0 k rfl, testBit_and_mask_mul _ _ 3 3 _ 1 k rfl,
     testBit_and_mask_mul _ _ 0 3 _ 0 k rfl, testBit_and_mask_mul _ _ 1 2 _ 0 k rfl,
-    testBit_and_mask_mul _ _ 2 1 _ 0 k rfl, testBit_and_mask_mul _ _ 3 0 _ 0 k rfl] <;>
-  simp only [Finset.sum_range_succ, Finset.sum_range_zero] <;> norm_num <;>
-  exact xor_parity _ _ _ _
+    testBit_and_mask_mul _ _ 2 1 _ 0 k rfl, testBit_and_mask_mul _ _ 3 0 _ 0 k rfl]
+  all_goals simp only [Nat.reduceEqDiff, decide_true, decide_false, Bool.and_true, Bool.and_false,
+    Bool.or_false, Bool.false_or, Finset.sum_range_succ, Finset.sum_range_zero, zero_add, add_zero,
+    Nat.reduceAdd, Nat.reduceMod, Nat.reduceDiv, ↓reduceIte, Nat.bodd_add]
 
 private theorem coeff_bitPoly_mul_eq_zero (x y p : ℕ) (hp : 64 ≤ p) :
     (bitPoly x * bitPoly y).coeff p = 0 := by
@@ -379,36 +258,23 @@ private theorem coeff_bitPoly_mul_eq_zero (x y p : ℕ) (hp : 64 ≤ p) :
   refine Finset.sum_eq_zero fun ij hij ↦ ?_
   rw [Finset.mem_antidiagonal] at hij
   rw [coeff_bitPoly, coeff_bitPoly]
-  by_cases hi : ij.1 < 32
-  · simp [show ¬ ij.2 < 32 by omega]
-  · simp [hi]
+  split_ifs <;> omega
 
 /-- A word below `2^32` denotes its bit polynomial. -/
 private theorem toPoly_eq_map_bitPoly (v : BitVec 64) (hv : v.toNat < 2 ^ 32) :
     toPoly v = (bitPoly v.toNat).map (Nat.castRingHom (ZMod 2)) := by
   ext i
+  have h := fun h : 32 ≤ i ↦
+    Nat.testBit_lt_two_pow (hv.trans_le (Nat.pow_le_pow_right (by norm_num) h))
   rw [toPoly_coeff, coeff_map, coeff_bitPoly]
-  by_cases hi : i < 32
-  · simp only [show i < 64 by omega, dite_true, hi, ite_true, BitVec.getLsb, eq_natCast]
-    by_cases h : v.toNat.testBit i <;> simp [h]
-  · simp only [hi, ite_false]
-    split_ifs with h64 hb
-    · exfalso
-      have : v.toNat.testBit i = false := Nat.testBit_lt_two_pow
-        (hv.trans_le (Nat.pow_le_pow_right (by norm_num) (by omega)))
-      simp [BitVec.getLsb, this] at hb
-    · simp
-    · simp
+  split_ifs <;> cases hb : v.toNat.testBit i <;> simp_all [BitVec.getLsb]
+  omega
 
 private theorem bitPoly_and_low (x : ℕ) : bitPoly (x &&& 0xFFFFFFFF) = bitPoly x := by
   ext i
-  rw [coeff_bitPoly, coeff_bitPoly]
-  split_ifs with hi
-  · congr 1
-    rw [Nat.testBit_and, show (0xFFFFFFFF : ℕ) = 2 ^ 32 - 1 by norm_num,
-      Nat.testBit_two_pow_sub_one]
-    simp [hi]
-  · rfl
+  simp only [coeff_bitPoly, Nat.testBit_and, show (0xFFFFFFFF : ℕ) = 2 ^ 32 - 1 from rfl,
+    Nat.testBit_two_pow_sub_one]
+  grind
 
 /-- `clmul32` is the carry-less product of the low halves. -/
 theorem toPoly_clmul32 (x y : UInt64) :
@@ -422,14 +288,13 @@ theorem toPoly_clmul32 (x y : UInt64) :
     show UInt64.toNat 4294967295 = 0xFFFFFFFF from rfl, bitPoly_and_low]
   ext p
   rw [toPoly_coeff, coeff_map]
-  split_ifs with hp hb
-  · simp only [BitVec.getLsb, UInt64.toNat_toBitVec, testBit_clmul32 x y p hp,
-      decide_eq_true_eq] at hb
-    rw [eq_natCast, ← ZMod.natCast_mod, hb]; simp
-  · simp only [BitVec.getLsb, UInt64.toNat_toBitVec, testBit_clmul32 x y p hp,
-      decide_eq_true_eq] at hb
-    rw [eq_natCast, ← ZMod.natCast_mod, show _ % 2 = 0 by omega]; simp
-  · rw [coeff_bitPoly_mul_eq_zero _ _ _ (by omega)]; simp
+  by_cases hp : p < 64
+  · simp only [hp, ↓reduceDIte, BitVec.getLsb, UInt64.toNat_toBitVec, testBit_clmul32 x y p hp,
+      Nat.coe_castRingHom]
+    rw [← ZMod.natCast_mod, Nat.mod_two_of_bodd]
+    cases Nat.bodd _ <;> rfl
+  · simp [hp, coeff_bitPoly_mul_eq_zero _ _ _ (not_lt.mp hp)]
+
 
 /-! ## Words and their polynomials -/
 
@@ -444,22 +309,33 @@ private theorem coeff_toPoly_word (a : UInt64) (n : ℕ) :
   · simp [hn, BitVec.getLsb]
   · simp [hn, testBit_word_ge a n (by omega)]
 
-private theorem testBit_shiftRight32 (a : UInt64) (j : ℕ) :
-    (a >>> 32).toNat.testBit j = a.toNat.testBit (j + 32) := by
-  rw [UInt64.toNat_shiftRight, Nat.testBit_shiftRight]
-  simp [Nat.add_comm]
+private theorem testBit_shiftRight_word (a s : UInt64) (hs : s.toNat < 64) (j : ℕ) :
+    (a >>> s).toNat.testBit j = a.toNat.testBit (j + s.toNat) := by
+  rw [UInt64.toNat_shiftRight, Nat.testBit_shiftRight, Nat.mod_eq_of_lt hs, Nat.add_comm]
 
-private theorem testBit_shiftLeft32 (a : UInt64) (j : ℕ) :
-    (a <<< 32).toNat.testBit j =
-      (decide (32 ≤ j) && decide (j < 64) && a.toNat.testBit (j - 32)) := by
-  rw [UInt64.toNat_shiftLeft, Nat.testBit_mod_two_pow, Nat.testBit_shiftLeft]
-  simp only [show (32 : UInt64).toNat % 64 = 32 from rfl]
-  cases decide (32 ≤ j) <;> cases decide (j < 64) <;> simp [Bool.and_comm]
+private theorem testBit_shiftLeft_word (a s : UInt64) (hs : s.toNat < 64) (j : ℕ) :
+    (a <<< s).toNat.testBit j =
+      (decide (s.toNat ≤ j) && decide (j < 64) && a.toNat.testBit (j - s.toNat)) := by
+  rw [UInt64.toNat_shiftLeft, Nat.testBit_mod_two_pow, Nat.testBit_shiftLeft, Nat.mod_eq_of_lt hs]
+  cases decide (s.toNat ≤ j) <;> cases decide (j < 64) <;> simp [Bool.and_comm]
 
 private theorem testBit_and_low32 (a : UInt64) (j : ℕ) :
     (a &&& 0xFFFFFFFF).toNat.testBit j = (decide (j < 32) && a.toNat.testBit j) := by
   rw [UInt64.toNat_and, Nat.testBit_and, show UInt64.toNat 0xFFFFFFFF = 2 ^ 32 - 1 from rfl,
     Nat.testBit_two_pow_sub_one, Bool.and_comm]
+
+/-- A word shifted left by `k` and right by `64 - k`: the two parts of `m * X^k`. -/
+private theorem toPoly_shift_pair (m s s' : UInt64) (hk : 0 < s.toNat) (hs : s.toNat < 64)
+    (hs' : s'.toNat = 64 - s.toNat) :
+    toPoly (m >>> s').toBitVec * X ^ 64 + toPoly (m <<< s).toBitVec =
+      toPoly m.toBitVec * X ^ s.toNat := by
+  ext n
+  rw [coeff_add, coeff_mul_X_pow', coeff_mul_X_pow', coeff_toPoly_word, coeff_toPoly_word,
+    coeff_toPoly_word, testBit_shiftRight_word _ _ (by omega), testBit_shiftLeft_word _ _ hs, hs']
+  by_cases h64 : 64 ≤ n
+  · simp [h64, show n - 64 + (64 - s.toNat) = n - s.toNat by omega, show ¬ n < 64 by omega,
+      show s.toNat ≤ n by omega]
+  · by_cases hsn : s.toNat ≤ n <;> simp [h64, hsn, show n < 64 by omega]
 
 /-- A word is its high half times `X^32` plus its low half. -/
 private theorem toPoly_word_split (a : UInt64) :
@@ -467,44 +343,27 @@ private theorem toPoly_word_split (a : UInt64) :
       toPoly (a >>> 32).toBitVec * X ^ 32 + toPoly (a &&& 0xFFFFFFFF).toBitVec := by
   ext n
   rw [coeff_add, coeff_mul_X_pow', coeff_toPoly_word, coeff_toPoly_word, coeff_toPoly_word,
-    testBit_and_low32]
-  rw [testBit_shiftRight32]
+    testBit_and_low32, testBit_shiftRight_word _ _ (by decide)]
   by_cases h32 : 32 ≤ n
   · simp [h32, show n - 32 + 32 = n by omega, show ¬ n < 32 by omega]
   · simp [h32, show n < 32 by omega]
-
-/-- A word shifted by 32 in both directions: the two parts of `m * X^32`. -/
-private theorem toPoly_shift32_pair (m : UInt64) :
-    toPoly (m >>> 32).toBitVec * X ^ 64 + toPoly (m <<< 32).toBitVec =
-      toPoly m.toBitVec * X ^ 32 := by
-  ext n
-  rw [coeff_add, coeff_mul_X_pow', coeff_mul_X_pow', coeff_toPoly_word, coeff_toPoly_word,
-    coeff_toPoly_word, testBit_shiftRight32, testBit_shiftLeft32]
-  by_cases h64 : 64 ≤ n
-  · have h32 : ¬ n < 64 := by omega
-    simp only [h64, ite_true, show n - 64 + 32 = n - 32 by omega, h32, decide_false,
-      Bool.and_false, Bool.false_and, Bool.false_eq_true, ite_false, add_zero,
-      show 32 ≤ n by omega]
-  · simp only [h64, ite_false, zero_add]
-    by_cases h32 : 32 ≤ n
-    · simp [h32, show n < 64 by omega]
-    · simp [h32]
 
 private theorem toPoly_xor_high_low (a : UInt64) :
     toPoly ((a ^^^ (a >>> 32)) &&& 0xFFFFFFFF).toBitVec =
       toPoly (a &&& 0xFFFFFFFF).toBitVec + toPoly (a >>> 32).toBitVec := by
   ext n
   rw [coeff_add, coeff_toPoly_word, coeff_toPoly_word, coeff_toPoly_word, testBit_and_low32,
-    testBit_and_low32, UInt64.toNat_xor, Nat.testBit_xor, testBit_shiftRight32]
+    testBit_and_low32, UInt64.toNat_xor, Nat.testBit_xor, testBit_shiftRight_word _ _ (by decide)]
   by_cases hn : n < 32
   · simp only [hn, decide_true, Bool.true_and]
-    cases a.toNat.testBit n <;> cases a.toNat.testBit (n + 32) <;> decide
+    cases a.toNat.testBit n <;> cases a.toNat.testBit (n + UInt64.toNat 32) <;> decide
   · simp [hn, testBit_word_ge a (n + 32) (by omega)]
 
 private theorem toPoly_high_low (a : UInt64) :
     toPoly ((a >>> 32) &&& 0xFFFFFFFF).toBitVec = toPoly (a >>> 32).toBitVec := by
   ext n
-  rw [coeff_toPoly_word, coeff_toPoly_word, testBit_and_low32, testBit_shiftRight32]
+  rw [coeff_toPoly_word, coeff_toPoly_word, testBit_and_low32,
+    testBit_shiftRight_word _ _ (by decide)]
   by_cases hn : n < 32
   · simp [hn]
   · simp [hn, testBit_word_ge a (n + 32) (by omega)]
@@ -524,42 +383,13 @@ theorem toPoly_clmul64 (a b : UInt64) :
     toPoly (clmul64 a b).1.toBitVec * X ^ 64 + toPoly (clmul64 a b).2.toBitVec =
       toPoly a.toBitVec * toPoly b.toBitVec := by
   simp only [clmul64, UInt64.toBitVec_xor, toPoly_xor]
-  have hm := toPoly_shift32_pair (clmul32 (a ^^^ a >>> 32) (b ^^^ b >>> 32) ^^^ clmul32 a b ^^^
-    clmul32 (a >>> 32) (b >>> 32))
+  have hm := toPoly_shift_pair (clmul32 (a ^^^ a >>> 32) (b ^^^ b >>> 32) ^^^ clmul32 a b ^^^
+    clmul32 (a >>> 32) (b >>> 32)) 32 32 (by decide) (by decide) (by decide)
   simp only [UInt64.toBitVec_xor, toPoly_xor, toPoly_clmul32, toPoly_xor_high_low,
-    toPoly_high_low] at hm ⊢
+    toPoly_high_low, show UInt64.toNat 32 = 32 from rfl] at hm ⊢
   rw [toPoly_word_split a, toPoly_word_split b]
-  have h2 : (2 : (ZMod 2)[X]) = 0 := ZMod2Poly.two_eq_zero
   linear_combination hm + (toPoly (a &&& 0xFFFFFFFF).toBitVec * toPoly (b &&& 0xFFFFFFFF).toBitVec +
-    toPoly (a >>> 32).toBitVec * toPoly (b >>> 32).toBitVec) * X ^ 32 * h2
-
-private theorem testBit_shiftRight_word (a s : UInt64) (hs : s.toNat < 64) (j : ℕ) :
-    (a >>> s).toNat.testBit j = a.toNat.testBit (j + s.toNat) := by
-  rw [UInt64.toNat_shiftRight, Nat.testBit_shiftRight, Nat.mod_eq_of_lt hs, Nat.add_comm]
-
-private theorem testBit_shiftLeft_word (a s : UInt64) (hs : s.toNat < 64) (j : ℕ) :
-    (a <<< s).toNat.testBit j =
-      (decide (s.toNat ≤ j) && decide (j < 64) && a.toNat.testBit (j - s.toNat)) := by
-  rw [UInt64.toNat_shiftLeft, Nat.testBit_mod_two_pow, Nat.testBit_shiftLeft, Nat.mod_eq_of_lt hs]
-  cases decide (s.toNat ≤ j) <;> cases decide (j < 64) <;> simp [Bool.and_comm]
-
-/-- A word shifted left by `k` and right by `64 - k`: the two parts of `m * X^k`. -/
-private theorem toPoly_shift_pair (m s s' : UInt64) (hk : 0 < s.toNat) (hs : s.toNat < 64)
-    (hs' : s'.toNat = 64 - s.toNat) :
-    toPoly (m >>> s').toBitVec * X ^ 64 + toPoly (m <<< s).toBitVec =
-      toPoly m.toBitVec * X ^ s.toNat := by
-  ext n
-  rw [coeff_add, coeff_mul_X_pow', coeff_mul_X_pow', coeff_toPoly_word, coeff_toPoly_word,
-    coeff_toPoly_word, testBit_shiftRight_word _ _ (by omega), testBit_shiftLeft_word _ _ hs, hs']
-  by_cases h64 : 64 ≤ n
-  · have h1 : ¬ n < 64 := by omega
-    simp only [h64, ite_true, show n - 64 + (64 - s.toNat) = n - s.toNat by omega, h1,
-      decide_false, Bool.and_false, Bool.false_and, Bool.false_eq_true, ite_false, add_zero,
-      show s.toNat ≤ n by omega]
-  · simp only [h64, ite_false, zero_add]
-    by_cases hsn : s.toNat ≤ n
-    · simp [hsn, show n < 64 by omega]
-    · simp [hsn]
+    toPoly (a >>> 32).toBitVec * toPoly (b >>> 32).toBitVec) * X ^ 32 * ZMod2Poly.two_eq_zero
 
 /-- Reduce `hi · X^64 + lo` modulo `X^64 + X^4 + X^3 + X + 1`: `X^64 = X^4 + X^3 + X + 1` folds
 `hi` down, and the at most four bits it pushes past `X^63` fold down once more. -/
@@ -569,55 +399,49 @@ private theorem toPoly_shift_pair (m s s' : UInt64) (hk : 0 < s.toNat) (hs : s.t
   lo ^^^ t ^^^ o ^^^ (o <<< 1) ^^^ (o <<< 3) ^^^ (o <<< 4)
 
 private theorem shiftRight_eq_zero_of_lt (o s : UInt64) (ho : o.toNat < 16) (hs : 4 ≤ s.toNat)
-    (hs' : s.toNat < 64) : o >>> s = 0 := by
-  apply UInt64.toNat_inj.mp
-  rw [UInt64.toNat_shiftRight, Nat.mod_eq_of_lt hs', Nat.shiftRight_eq_div_pow]
-  simp only [UInt64.toNat_zero]
-  exact Nat.div_eq_of_lt (ho.trans_le (by
-    calc 16 = 2 ^ 4 := by norm_num
-      _ ≤ 2 ^ s.toNat := Nat.pow_le_pow_right (by norm_num) hs))
+    (hs' : s.toNat < 64) : toPoly (o >>> s).toBitVec = 0 := by
+  rw [show o >>> s = 0 from UInt64.toNat_inj.mp <| by
+    rw [UInt64.toNat_shiftRight, Nat.mod_eq_of_lt hs', Nat.shiftRight_eq_div_pow,
+      UInt64.toNat_zero, Nat.div_eq_zero_iff_lt (by positivity)]
+    exact ho.trans_le (Nat.pow_le_pow_right (n := 2) (by norm_num) hs)]
+  exact toPoly_zero_eq_zero
 
 /-- `reduceWords` computes the remainder modulo `BF64.basePoly`. -/
 theorem toPoly_reduceWords (hi lo : UInt64) :
     toPoly (reduceWords hi lo).toBitVec =
       (toPoly hi.toBitVec * X ^ 64 + toPoly lo.toBitVec) % BF64.basePoly := by
-  have ho16 : ((hi >>> 63) ^^^ (hi >>> 61) ^^^ (hi >>> 60)).toNat < 16 := by
+  set o := (hi >>> 63) ^^^ (hi >>> 61) ^^^ (hi >>> 60) with ho
+  have ho16 : o.toNat < 16 := by
     have h := hi.toNat_lt
-    simp only [UInt64.toNat_xor, UInt64.toNat_shiftRight,
+    simp only [o, UInt64.toNat_xor, UInt64.toNat_shiftRight,
       show UInt64.toNat 63 % 64 = 63 from rfl, show UInt64.toNat 61 % 64 = 61 from rfl,
       show UInt64.toNat 60 % 64 = 60 from rfl, Nat.shiftRight_eq_div_pow]
-    rw [show (16 : ℕ) = 2 ^ 4 by norm_num]
-    refine Nat.xor_lt_two_pow (Nat.xor_lt_two_pow ?_ ?_) ?_ <;>
+    refine Nat.xor_lt_two_pow (n := 4) (Nat.xor_lt_two_pow ?_ ?_) ?_ <;>
       exact Nat.div_lt_of_lt_mul (by rw [← pow_add]; exact h.trans_le (Nat.pow_le_pow_right
         (by norm_num) (by norm_num)))
-  set o := (hi >>> 63) ^^^ (hi >>> 61) ^^^ (hi >>> 60) with ho
   have p1 := toPoly_shift_pair hi 1 63 (by decide) (by decide) (by decide)
   have p3 := toPoly_shift_pair hi 3 61 (by decide) (by decide) (by decide)
   have p4 := toPoly_shift_pair hi 4 60 (by decide) (by decide) (by decide)
   have q1 := toPoly_shift_pair o 1 63 (by decide) (by decide) (by decide)
   have q3 := toPoly_shift_pair o 3 61 (by decide) (by decide) (by decide)
   have q4 := toPoly_shift_pair o 4 60 (by decide) (by decide) (by decide)
-  rw [shiftRight_eq_zero_of_lt o 63 ho16 (by decide) (by decide)] at q1
-  rw [shiftRight_eq_zero_of_lt o 61 ho16 (by decide) (by decide)] at q3
-  rw [shiftRight_eq_zero_of_lt o 60 ho16 (by decide) (by decide)] at q4
-  have hz : toPoly (0 : UInt64).toBitVec = 0 := toPoly_zero_eq_zero
-  rw [hz, zero_mul, zero_add] at q1 q3 q4
-  have hO : toPoly o.toBitVec =
-      toPoly (hi >>> 63).toBitVec + toPoly (hi >>> 61).toBitVec + toPoly (hi >>> 60).toBitVec := by
-    simp only [ho, UInt64.toBitVec_xor, toPoly_xor]
+  simp only [shiftRight_eq_zero_of_lt o 63 ho16 (by decide) (by decide),
+    shiftRight_eq_zero_of_lt o 61 ho16 (by decide) (by decide),
+    shiftRight_eq_zero_of_lt o 60 ho16 (by decide) (by decide), zero_mul, zero_add,
+    show UInt64.toNat 1 = 1 from rfl, show UInt64.toNat 3 = 3 from rfl,
+    show UInt64.toNat 4 = 4 from rfl] at p1 p3 p4 q1 q3 q4
   have hdeg : (toPoly (reduceWords hi lo).toBitVec).degree < BF64.basePoly.degree := by
     rw [BF64.basePoly_degree]; exact toPoly_degree_lt_w (by norm_num) _
   rw [← (Polynomial.mod_eq_self_iff BF64.basePoly_ne_zero).mpr hdeg]
-  symm
-  apply CanonicalEuclideanDomain.mod_eq_of_eq_add_mul (q := toPoly hi.toBitVec + toPoly o.toBitVec)
-    _ BF64.basePoly_ne_zero
-  have h2 : (2 : (ZMod 2)[X]) = 0 := ZMod2Poly.two_eq_zero
+  have hO : toPoly o.toBitVec =
+      toPoly (hi >>> 63).toBitVec + toPoly (hi >>> 61).toBitVec + toPoly (hi >>> 60).toBitVec := by
+    simp only [o, UInt64.toBitVec_xor, toPoly_xor]
+  refine (CanonicalEuclideanDomain.mod_eq_of_eq_add_mul
+    (q := toPoly hi.toBitVec + toPoly o.toBitVec) ?_ BF64.basePoly_ne_zero).symm
   simp only [reduceWords, ← ho, UInt64.toBitVec_xor, toPoly_xor]
   rw [BF64.basePoly_eq]
-  simp only [show UInt64.toNat 1 = 1 from rfl, show UInt64.toNat 3 = 3 from rfl,
-    show UInt64.toNat 4 = 4 from rfl] at p1 p3 p4 q1 q3 q4
   linear_combination (-1 : (ZMod 2)[X]) * p1 - p3 - p4 - q1 - q3 - q4 - X ^ 64 * hO -
-    (toPoly hi.toBitVec + toPoly o.toBitVec) * (1 + X + X ^ 3 + X ^ 4) * h2
+    (toPoly hi.toBitVec + toPoly o.toBitVec) * (1 + X + X ^ 3 + X ^ 4) * ZMod2Poly.two_eq_zero
 
 /-- The product of two words in `GF(2^64)`. -/
 @[inline] def mulWord (a b : UInt64) : UInt64 :=
@@ -802,9 +626,12 @@ theorem powFast_eq (a : BF64) (n : ℕ) : powFast a n = a ^ n := by
       show mulFast a b = mulFast b a
       simp only [mulFast_eq]; exact mul_comm a b }
 
-/-- Compiled code passes `commRingFast` for `BF64`'s ring. -/
+/-- Compiled code passes `commRingFast` for `BF64`'s ring. The additions are compared through
+`BF64.instAdd` itself: `rfl` at the two rings' additions makes the kernel compare the rings whole,
+and unfold `BF64.mul` against `mulFast`, for a minute. -/
 @[csimp] theorem instCommRing_eq_commRingFast : @BF64.instCommRing = @commRingFast :=
-  CommRing.ext rfl (funext₂ fun a b ↦ (mulFast_eq a b).symm)
+  CommRing.ext (@rfl _ (@HAdd.hAdd _ _ _ (@instHAdd _ BF64.instAdd)))
+    (funext₂ fun a b ↦ (mulFast_eq a b).symm)
 
 /-- A field structure with the ring, the inverse, the division and the integer powers of
 `BF64.instField` replaced by equal ones. The rational casts and scalar products stay those of
