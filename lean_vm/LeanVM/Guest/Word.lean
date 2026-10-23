@@ -2,7 +2,7 @@
   LeanVM.Guest.Word
 
   The compile-time words of the zkDSL: literal embeddings, g-powers by square-and-multiply, field
-  powers, limbs and bits.
+  powers, limbs and bits, and the Keccak padding's words.
 -/
 
 module
@@ -20,7 +20,12 @@ What the compiler computes in `F192` while folding (`crates/lean_compiler/src/li
   embedding of a 128-bit source literal (`lit_field`);
 * `powBin`, square-and-multiply over the bits of the exponent, and `gpowK e = g^e` by it
   (`g_pow_u128`, proved equal to `gpow e` by `gpowK_eq`); `fieldPow` (`field_pow`);
-* `limbsOf` and `wordBit`, a word's limbs and bits as the hints read them.
+* `limbsOf` and `wordBit`, a word's limbs and bits as the hints read them;
+* the shape of a `KECCAK` state in cells (`stateCells`, `blockCells`) and the padding's words:
+  `byteWord pos v`, the byte `v` at byte `pos` of a message cell (`xor_byte`), and
+  `keccakPadValue`, the padding's first byte at the start of a cell (`keccak_pad_value`,
+  `crates/lean_compiler/src/lower/builtins.rs`); the bytes themselves are the Spec's
+  (`Protocol.KeccakHash.padFirst`, `padLast`, `rate`).
 -/
 
 namespace LeanVM.Guest
@@ -100,6 +105,23 @@ def wordBit (x : E) (i : Nat) : Bool :=
   let (c0, c1, c2) := limbsOf x
   let l := if i / 64 = 0 then c0 else if i / 64 = 1 then c1 else c2
   (l / 2 ^ (i % 64)) % 2 = 1
+
+/-- The cells of a Keccak state (`STATE_CELLS`, `crates/leanvm_core/src/keccak.rs:60`). -/
+def stateCells : Nat := 13
+
+/-- The rate cells a block of `136` bytes covers (`RATE_CELLS`,
+`crates/leanvm_core/src/keccak.rs:62`). -/
+def blockCells : Nat := 9
+
+/-- The byte `v < 256` at byte `pos % 16` of a message cell, little-endian in limb `0` then limb
+`1`, as the word XORed into the cell (`xor_byte`). -/
+def byteWord (pos v : Nat) : E :=
+  let byte := pos % 16
+  let w := v * 2 ^ (8 * (byte % 8))
+  if byte < 8 then word w 0 0 else word 0 w 0
+
+/-- A cell holding the padding's first byte at its start (`keccak_pad_value`). -/
+def keccakPadValue : E := word Protocol.KeccakHash.padFirst.toNat 0 0
 
 end
 end LeanVM.Guest
