@@ -68,11 +68,22 @@ def MeaningOpeningOodPoint (n : ℕ) (rd : Reader) : List E → List E → Prop
         ReadsAt rd point (challengeOf S :: rest.1) ∧ rets = rest.2.cap
   | _, _ => False
 
+/-- The deployed specializations, dimensions `6 .. 22`, by name (a name built by `++ toString`
+does not reduce in a `module`'s kernel). -/
+def oodPointNames : List (String × ℕ) :=
+  [("opening_ood_point__L6", 6), ("opening_ood_point__L7", 7), ("opening_ood_point__L8", 8),
+    ("opening_ood_point__L9", 9), ("opening_ood_point__L10", 10), ("opening_ood_point__L11", 11),
+    ("opening_ood_point__L12", 12), ("opening_ood_point__L13", 13),
+    ("opening_ood_point__L14", 14), ("opening_ood_point__L15", 15),
+    ("opening_ood_point__L16", 16), ("opening_ood_point__L17", 17),
+    ("opening_ood_point__L18", 18), ("opening_ood_point__L19", 19),
+    ("opening_ood_point__L20", 20), ("opening_ood_point__L21", 21),
+    ("opening_ood_point__L22", 22)]
+
 /-- `opening_ood_point__L{n}`'s core IR is its meaning, `6 ≤ n ≤ 22`. -/
 def opening_ood_point_Spec : Prop :=
-  ∀ n, 6 ≤ n → n ≤ 22 → ∀ (rd : Reader) (args rets : List E),
-    coreProgram.Rel rd ("opening_ood_point__L" ++ toString n) args rets ↔
-      MeaningOpeningOodPoint n rd args rets
+  ∀ p ∈ oodPointNames, ∀ (rd : Reader) (args rets : List E),
+    coreProgram.Rel rd p.1 args rets ↔ MeaningOpeningOodPoint p.2 rd args rets
 
 /-! ## `opening_final_message` (G:1132-1150, TRIAGE #37) -/
 
@@ -90,11 +101,15 @@ def MeaningOpeningFinalMessage (n : ℕ) (rd : Reader) : List E → List E → P
         rets = [cellsOfState s.perm false 0] ++ capOf s.perm ++ [cur * gen ^ (n + 1), nonce]
   | _, _ => False
 
+/-- The deployed specializations, by name. -/
+def finalMessageNames : List (String × ℕ) :=
+  [("opening_final_message__L4", 4), ("opening_final_message__L8", 8),
+    ("opening_final_message__L16", 16), ("opening_final_message__L32", 32)]
+
 /-- `opening_final_message__L{n}`'s core IR is its meaning, `n ∈ {4, 8, 16, 32}`. -/
 def opening_final_message_Spec : Prop :=
-  ∀ n ∈ [4, 8, 16, 32], ∀ (rd : Reader) (args rets : List E),
-    coreProgram.Rel rd ("opening_final_message__L" ++ toString n) args rets ↔
-      MeaningOpeningFinalMessage n rd args rets
+  ∀ p ∈ finalMessageNames, ∀ (rd : Reader) (args rets : List E),
+    coreProgram.Rel rd p.1 args rets ↔ MeaningOpeningFinalMessage p.2 rd args rets
 
 /-! ## `opening_row_weights` (G:1153-1176, TRIAGE #38) -/
 
