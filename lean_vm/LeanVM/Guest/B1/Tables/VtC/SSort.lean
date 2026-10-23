@@ -121,6 +121,85 @@ theorem vtSideW_get {rd : Reader} {p : E} (h : TbReadsAt rd p vtSideW) {b : ℕ}
   simpa [vtSideW] using this
 
 set_option maxHeartbeats 2000000 in
+/-- **The two sides' ranks**, rank by rank. -/
+theorem vtS_sides (hl : args.length = 22) (hlow : LowDefB 8 rd) (κ : ℕ → ℕ)
+    (hκ : ∀ b < 153, κ b < 34)
+    (hbk : ∀ b < 153, LoadHolds rd (args.getD 12 0) b (gen ^ κ b))
+    (hsq : ∀ j < 34, LoadHolds rd (args.getD 13 0) j (gen ^ 2 ^ j))
+    (hso : TbReadsAt rd (w 30) (vtSortW κ)) (hst : TbReadsAt rd (w 31) vtSideW)
+    (hoff : TbReadsAt rd (w 185) (vtOffW κ)) :
+    (∀ r < (vtKsP κ).length,
+        (if r = 0 then ∀ st ∈ vtRank0T 186 0 0, VSH (coreProgram.Rel rd) rd (vtσ rd w args) st
+          else ∀ st ∈ vtRankAt 186 0 0 r, VSH (coreProgram.Rel rd) rd (vtσ rd w args) st) ∧
+        RankOut (vtσ rd w args) 186 (fun r => 0 + (tbStackOrder (vtKsP κ)).getD r 0)
+          (fun b => (vtKsP κ).getD (b - 0) 0) (ordPre (vtKsP κ)) r) ∧
+      (∀ r < (vtKsC κ).length,
+        (if r = 0 then ∀ st ∈ vtRank0T 1525 108 2, VSH (coreProgram.Rel rd) rd (vtσ rd w args) st
+          else ∀ st ∈ vtRankAt 1525 108 2 r, VSH (coreProgram.Rel rd) rd (vtσ rd w args) st) ∧
+        RankOut (vtσ rd w args) 1525 (fun r => 108 + (tbStackOrder (vtKsC κ)).getD r 0)
+          (fun b => (vtKsC κ).getD (b - 108) 0) (ordPre (vtKsC κ)) r) := by
+  have e12 : vtσ rd w args (.n 12) = args.getD 12 0 := vt_param hl (by norm_num)
+  have e13 : vtσ rd w args (.n 13) = args.getD 13 0 := vt_param hl (by norm_num)
+  have e30 : vtσ rd w args (.n 30) = w 30 :=
+    vt_alloc hl 8 (sz := 153) (by decide +kernel)
+  have e31 : vtσ rd w args (.n 31) = w 31 :=
+    vt_alloc hl 10 (sz := 153) (by decide +kernel)
+  have e185 : vtσ rd w args (.n 185) = w 185 := vt_alloc hl 317 (sz := 153) vtSort_alloc185
+  have hsq' : ∀ j < 34, LoadHolds rd (vtσ rd w args (.n 13)) j (gen ^ 2 ^ j) := by
+    rw [e13]; exact hsq
+  have hkl : ∀ b < 153, LoadHolds rd (vtσ rd w args (.n 12)) b (gen ^ κ b) := by
+    rw [e12]; exact hbk
+  have hlP : (vtKsP κ).length = 54 := by simp [vtKsP]
+  have hlC : (vtKsC κ).length = 45 := by simp [vtKsC]
+  have H1 := side_ranks (rd := rd) (w := w) hl hlow (v0 := 186) (p0 := 318) (R0 := 0) (s := 0)
+    (base := 0) (vtKsP κ) (by norm_num)
+    vtPush0_check (by rw [hlP]; exact vtPush_check)
+    vtPush_reads0 (by rw [hlP]; exact vtPush_reads) (fun c hc => by
+      rw [hlP] at hc; simp [vtKsP, hc]; exact hκ c (by omega)) (by simp [hlP])
+    (fun r hr => by
+      rw [hlP] at hr; rw [e30]
+      have := hso r (by simp [vtSortW]; omega)
+      simpa [vtSortW, hr] using this)
+    (fun c hc => by
+      rw [hlP] at hc; rw [e31]
+      have := vtSideW_get hst (b := 0 + c) (by omega)
+      rwa [show vtBlockSide (0 + c) = 0 by simp [vtBlockSide]; omega] at this)
+    (fun c hc => by
+      rw [hlP] at hc
+      have := hkl (0 + c) (by omega)
+      simpa [vtKsP, hc] using this)
+    (fun c hc => by
+      rw [hlP] at hc; rw [e185]
+      have := hoff c (by simp [vtOffW]; omega)
+      simpa [vtOffW, hc] using this)
+    hsq'
+  have H2 := side_ranks (rd := rd) (w := w) hl hlow (v0 := 1525) (p0 := 1339) (R0 := 108)
+    (s := 2) (base := 108) (vtKsC κ) (by norm_num)
+    vtCount0_check (by rw [hlC]; exact vtCount_check)
+    vtCount_reads0 (by rw [hlC]; exact vtCount_reads) (fun c hc => by
+      rw [hlC] at hc; simp [vtKsC, hc]; exact hκ _ (by omega)) (by simp [hlC])
+    (fun r hr => by
+      rw [hlC] at hr; rw [e30]
+      have := hso (108 + r) (by simp [vtSortW]; omega)
+      simpa [vtSortW, hr, show ¬ (108 + r < 54) by omega, show ¬ (108 + r < 108) by omega]
+        using this)
+    (fun c hc => by
+      rw [hlC] at hc; rw [e31]
+      have := vtSideW_get hst (b := 108 + c) (by omega)
+      rwa [show vtBlockSide (108 + c) = 2 by simp [vtBlockSide]; omega] at this)
+    (fun c hc => by
+      rw [hlC] at hc
+      have := hkl (108 + c) (by omega)
+      simpa [vtKsC, hc] using this)
+    (fun c hc => by
+      rw [hlC] at hc; rw [e185]
+      have := hoff (108 + c) (by simp [vtOffW]; omega)
+      simpa [vtOffW, hc, show ¬ (108 + c < 54) by omega, show ¬ (108 + c < 108) by omega]
+        using this)
+    hsq'
+  exact ⟨H1, H2⟩
+
+set_option maxHeartbeats 2000000 in
 /-- **Statements `0 ..< 2189`.** -/
 theorem vtS_sort (hl : args.length = 22) (hlow : LowDefB 8 rd) (κ : ℕ → ℕ)
     (hκ : ∀ b < 153, κ b < 34)
@@ -142,6 +221,7 @@ theorem vtS_sort (hl : args.length = 22) (hlow : LowDefB 8 rd) (κ : ℕ → ℕ
     rw [e12]; exact hbk
   have hlP : (vtKsP κ).length = 54 := by simp [vtKsP]
   have hlC : (vtKsC κ).length = 45 := by simp [vtKsC]
+  have hsides := vtS_sides hl hlow κ hκ hbk hsq hso hst hoff
   -- the prelude, the side tab, the push and count sides
   refine forall_slice_split 0 11 2178 ?_ (forall_slice_split 11 306 1872 ?_
     (forall_slice_split 317 1 1871 ?_ (forall_slice_split 318 1021 850 ?_ ?_)))
@@ -176,28 +256,7 @@ theorem vtS_sort (hl : args.length = 22) (hlow : LowDefB 8 rd) (κ : ℕ → ℕ
   · -- the push side
     rw [← vtPushBlk_length]
     refine forall_slice_of vtPushBlk_check ?_
-    have H := side_ranks (rd := rd) (w := w) hl hlow (v0 := 186) (p0 := 318) (R0 := 0) (s := 0)
-      (base := 0) (vtKsP κ) (by norm_num)
-      vtPush0_check (by rw [hlP]; exact vtPush_check)
-      vtPush_reads0 (by rw [hlP]; exact vtPush_reads) (fun c hc => by
-        rw [hlP] at hc; simp [vtKsP, hc]; exact hκ c (by omega)) (by simp [hlP])
-      (fun r hr => by
-        rw [hlP] at hr; rw [e30]
-        have := hso r (by simp [vtSortW]; omega)
-        simpa [vtSortW, hr] using this)
-      (fun c hc => by
-        rw [hlP] at hc; rw [e31]
-        have := vtSideW_get hst (b := 0 + c) (by omega)
-        rwa [show vtBlockSide (0 + c) = 0 by simp [vtBlockSide]; omega] at this)
-      (fun c hc => by
-        rw [hlP] at hc
-        have := hkl (0 + c) (by omega)
-        simpa [vtKsP, hc] using this)
-      (fun c hc => by
-        rw [hlP] at hc; rw [e185]
-        have := hoff c (by simp [vtOffW]; omega)
-        simpa [vtOffW, hc] using this)
-      hsq'
+    have H := hsides.1
     intro st hst'
     simp only [vtSideBlk, List.mem_append, List.mem_flatten, List.mem_map, List.mem_range] at hst'
     rcases hst' with h0 | ⟨_, ⟨r, hr, rfl⟩, hm⟩
@@ -208,30 +267,7 @@ theorem vtS_sort (hl : args.length = 22) (hlow : LowDefB 8 rd) (κ : ℕ → ℕ
   · -- the count side
     rw [← vtCountBlk_length]
     refine forall_slice_of vtCountBlk_check ?_
-    have H := side_ranks (rd := rd) (w := w) hl hlow (v0 := 1525) (p0 := 1339) (R0 := 108)
-      (s := 2) (base := 108) (vtKsC κ) (by norm_num)
-      vtCount0_check (by rw [hlC]; exact vtCount_check)
-      vtCount_reads0 (by rw [hlC]; exact vtCount_reads) (fun c hc => by
-        rw [hlC] at hc; simp [vtKsC, hc]; exact hκ _ (by omega)) (by simp [hlC])
-      (fun r hr => by
-        rw [hlC] at hr; rw [e30]
-        have := hso (108 + r) (by simp [vtSortW]; omega)
-        simpa [vtSortW, hr, show ¬ (108 + r < 54) by omega, show ¬ (108 + r < 108) by omega]
-          using this)
-      (fun c hc => by
-        rw [hlC] at hc; rw [e31]
-        have := vtSideW_get hst (b := 108 + c) (by omega)
-        rwa [show vtBlockSide (108 + c) = 2 by simp [vtBlockSide]; omega] at this)
-      (fun c hc => by
-        rw [hlC] at hc
-        have := hkl (108 + c) (by omega)
-        simpa [vtKsC, hc] using this)
-      (fun c hc => by
-        rw [hlC] at hc; rw [e185]
-        have := hoff (108 + c) (by simp [vtOffW]; omega)
-        simpa [vtOffW, hc, show ¬ (108 + c < 54) by omega, show ¬ (108 + c < 108) by omega]
-          using this)
-      hsq'
+    have H := hsides.2
     intro st hst'
     simp only [vtSideBlk, List.mem_append, List.mem_flatten, List.mem_map, List.mem_range] at hst'
     rcases hst' with h0 | ⟨_, ⟨r, hr, rfl⟩, hm⟩
