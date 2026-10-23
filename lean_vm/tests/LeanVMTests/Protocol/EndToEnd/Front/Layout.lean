@@ -8,8 +8,9 @@ import LeanVM.Protocol.EndToEnd.Front.CommitDoom
   `tests/LeanVMTests/Protocol/LeanIsa.lean`, whose offsets were checked against the pinned
   Python's `build_layout`, announced as full tables, the verifier program builds its layout, its
   stacked size is the instance's, every committed column's placement is at the instance's block
-  offset with the instance's log-size, every `KECCAK` input lane is the column of `QKECCAK`'s
-  block at its slot, and every output lane has no placement (it is derived, never opened).
+  offset with the instance's log-size, every `KECCAK` input lane and every column riding a spare
+  slot (the table's columns `0 … 12` and `cnt_0`) is the column of `QKECCAK`'s block at its slot,
+  and every output lane has no placement (it is derived, never opened).
 * **Row counts.** Row counts that are not powers of two give the placements and the stacked size
   of the least powers of two holding them.
 * **The announced sizes.** `readSizes` returns on the announcement of admissible sizes, and
@@ -58,14 +59,17 @@ def s₃ : Sizes := ⟨18, by decide, ![3, 200000, 17, 0, 65, 5]⟩
 #guard decide ((verifierLayout prog4 s₃).placements = (verifierLayout prog4 s₂).placements)
 #guard decide (LayoutOk s₁)
 
-/-- The placement the instance gives a column: none for an output lane; for an input lane, the
-column of `QKECCAK`'s block at its slot; otherwise its block's offset. -/
+/-- The placement the instance gives a column: none for an output lane; for an input lane or a
+column riding a spare slot, the column of `QKECCAK`'s block at its slot (input lane `l`: `l`;
+the `KECCAK` table's columns `0 … 12`: `50 … 62`; its `cnt_0`: `63`, written out here rather
+than read off `qSlot`); otherwise its block's offset. -/
 def instancePlacement (prog : Program) (s : Sizes) (c : Col) : Option Placement :=
   if IsOut c then none
-  else if h : IsLane c then
+  else if h : IsVirtual c then
+    let slot := if c.2.val < 13 then 50 + c.2.val else if c.2.val = 63 then 63 else c.2.val - 13
     some
       { vars := s.τ 5,
-        index := (blocks prog s).offset (keccakBlock prog s) + (c.2.val - 13) * 2 ^ s.τ 5 }
+        index := (blocks prog s).offset (keccakBlock prog s) + slot * 2 ^ s.τ 5 }
   else some { vars := kappa prog s c, index := (blocks prog s).offset (blockOf c h) }
 
 /-- The verifier's placement of every column agrees with the instance's. -/
@@ -80,7 +84,7 @@ def placementsAgree (prog : Program) (s : Sizes) : Bool :=
 /-- The general statements, at the test's sizes. -/
 example : (verifierLayout prog4 s₁).stackLog = leanIsaμ prog4 s₁ := stackLog_verifierLayout _ _
 
-example (c : Col) (h : ¬ IsLane c) :
+example (c : Col) (h : ¬ IsVirtual c) :
     (verifierLayout prog4 s₂).placement (pyCol c) =
       { vars := kappa prog4 s₂ c, index := (blocks prog4 s₂).offset (blockOf c h) } :=
   placement_committed prog4 s₂ c h
