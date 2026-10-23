@@ -15,7 +15,8 @@ import LeanerVMTests.Protocol.VerifyFlock
 
 Runs, compiled, what `tests/LeanerVMTests/Protocol/Verify.lean` cannot afford to interpret: `verify`
 on the proof of `tests/LeanerVMTests/Protocol/RustProofData.lean` (`scripts/dump-proof-rust.sh`),
-on each of its `mutations`, with the stage `outcome` names for the rejection, then `whirChecks`
+on each of its `mutations` and `statementMutations`, with the stage `outcomeAt` names for the
+rejection, then `whirChecks`
 and the BLAKE2s walk's forms against the circuit's at every row (`VerifyFlock.walkMismatches`). It prints one line per check, then times `verify` on the honest
 proof the number of times given by the first argument (default `1`), the fixture's parsing
 excluded. The exit code is `1` if any check fails.
@@ -48,6 +49,15 @@ def main (args : List String) : IO UInt32 := do
     let stage := ((reprStr o).replace "LeanerVMTests.Protocol.Verify.Outcome." "").replace
       "LeanerVM.Protocol.ReadError." ""
     IO.println s!"{if ok then "ok  " else "FAIL"} {m.name}: verify = {v}, rejected at {stage}"
+  for m in statementMutations do
+    let v := verify m.prog m.input f.proof
+    let o := outcomeAt m.prog m.input f.proof
+    let ok := !v && o == m.expected
+    unless ok do failed := failed + 1
+    let stage := ((reprStr o).replace "LeanerVMTests.Protocol.Verify.Outcome." "").replace
+      "LeanerVM.Protocol.ReadError." ""
+    IO.println s!"{if ok then "ok  " else "FAIL"} the statement, {m.name}: verify = {v}, \
+      rejected at {stage}"
   let w := whirChecks (whirMutations.map (·.1))
   let wOk := w == whirMutations.map (·.2)
   unless wOk do failed := failed + 1

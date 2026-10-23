@@ -1089,8 +1089,10 @@ Merkle trees', with the fast field arithmetic merged), the rest of Layer 12's ve
   value, coordinate and round polynomial, a fold challenge of level 0, and level 2's batching
   challenge and query message. One out-of-domain sample a level after the first is the Rust's
   derived count: `scripts/whir-mca-budget.py` finds it at all 168 such levels of the window, one
-  sample giving 150.4 to 172.4 bits (`Parameters/Whir.lean`, `oodSamples`). The test module checks the honest proof and the
-  mutations rejected before the walk passes its setup's reads. Owed: `verifierQueries`,
+  sample giving 150.4 to 172.4 bits (`Parameters/Whir.lean`, `oodSamples`). The test module
+  checks the honest proof and the mutations rejected before the walk passes its setup's reads;
+  the executable also rejects a changed input lane and a changed instruction (the seed moves) and
+  two exchanged rows of a level, and WHIR's algebra a changed first round polynomial. Owed: `verifierQueries`,
   `proofDigests`, `rounds` and their bounds, `decodePrefix` and `verify_iff_compiled`, which
   needs `blake2sRows = (blake2sCircuit.toBlockR1CS E).rows` and the instance's known-coordinate
   evaluators equal to the extensions (they are, by the field `ext_eq`). The bus phase's algebra

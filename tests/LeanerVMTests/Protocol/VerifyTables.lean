@@ -11,7 +11,8 @@ table summand at the leanISA instance, passes with the Python verifier's final c
 (`python-verifier/verifier.py:577-610`, traced at leanVM
 `a386121f84292f6fa663aaa3e570c15bc0240ea2`), and the deployed public-input check passes. Each
 check rejects its mutation: a column value flipped, a round's wire coefficient flipped, a
-missing column value, a public value flipped, a third public value.
+missing column value, a public value flipped, a third public value, and a boundary value of the
+bus phase bumped.
 -/
 
 namespace LeanerVMTests.Protocol.VerifyTables
@@ -68,5 +69,12 @@ def checks (muts : List ((TableWire → TableWire) × (PubWire → PubWire))) : 
     (id, fun p ↦ { p with values := p.values.modify 1 (· + 1) }),
     (id, fun p ↦ { p with values := p.values ++ [0] })] ==
   [true, false, false, false, false, false]
+
+-- A boundary value bumped: the bus phase hands it on, and the table sumcheck rejects it.
+#guard match wires fx sizes.1 with
+  | .ok (b, t, _) =>
+    let b' := { b with values := b.values.modify 0 (· + 1) }
+    (leanVmBus fx.prog sizes.1 fx.input b').isSome && (tableOut fx sizes.1 b' t).isNone
+  | .error _ => false
 
 end LeanerVMTests.Protocol.VerifyTables

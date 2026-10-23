@@ -93,6 +93,11 @@ def withLayer (i : ℕ) (f : GkrLayer → GkrLayer) : BusWire :=
 #guard (replay (withLayer 4 fun l ↦ { l with combos := l.combos.dropLast }).layers).isNone
 -- A layer missing.
 #guard (replay wire.layers.dropLast).isNone
+-- Trees 0 and 1 exchanged at the root layer: the shared root passes the root's check, the next
+-- layer's rejects them.
+#guard (replay (withLayer 0 fun l ↦ { l with children := match l.children with
+    | [a, b, c] => [b, a, c]
+    | cs => cs }).layers).isNone
 /-! ## The program's share -/
 
 /-- The grand product's last statement and the boundary values on the fixture. -/

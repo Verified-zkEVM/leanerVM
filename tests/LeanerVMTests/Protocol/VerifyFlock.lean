@@ -13,7 +13,9 @@ the column claims with the switched weighted claim, whose value is the Python ve
 ring-switching target (`python-verifier/verifier.py:1336-1349`, traced at leanVM
 `a386121f84292f6fa663aaa3e570c15bc0240ea2`). Each check rejects its mutation: a slice flipped
 (the terminal moves), a skip value flipped, a zerocheck round's coefficient flipped, `â`
-flipped, a lincheck round's coefficient flipped, and a missing ring-switching coefficient.
+flipped, `â` and `b̂` exchanged (the zerocheck's terminal is symmetric in them, the lincheck's
+claim is not), a lincheck round's coefficient flipped, and a missing ring-switching
+coefficient.
 
 **The walk against the circuit.** At column weights from a seed, `blake2sRows` agrees with the
 rows of `blake2sCircuit`'s matrices, read off its gates entry by entry, at rows of every kind:
@@ -128,16 +130,17 @@ def flockValues (fws : List (FlockWire → FlockWire)) : List (Option E) :=
 def flipRound (r : Round) : Round := { r with wire := r.wire.modify 0 (· + 1) }
 
 -- The honest wire hands on the Python verifier's ring-switching target, and each mutation is
--- rejected: a slice, a skip value, a zerocheck round, `â`, a lincheck round, a missing
--- coefficient.
+-- rejected: a slice, a skip value, a zerocheck round, `â`, `â` and `b̂` exchanged, a lincheck
+-- round, a missing coefficient.
 #guard flockValues [id,
     fun w ↦ { w with slices := w.slices.modify 9 (· + 1) },
     fun w ↦ { w with skip := w.skip.modify 5 (· + 1) },
     fun w ↦ { w with zc := w.zc.modify 3 flipRound },
     fun w ↦ { w with ab := w.ab.modify 0 (· + 1) },
+    fun w ↦ { w with ab := w.ab.reverse },
     fun w ↦ { w with lin := w.lin.modify 6 flipRound },
     fun w ↦ { w with ring := w.ring.dropLast }] ==
   [some (e3 0x578bd01cf985cc5a 0x8e85bcf294c60233 0xe0c0c1a2f9ff485d),
-    none, none, none, none, none, none]
+    none, none, none, none, none, none, none]
 
 end LeanerVMTests.Protocol.VerifyFlock

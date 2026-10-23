@@ -12,7 +12,8 @@ algebra of every phase, WHIR's terminal check last.
 **Where a proof is rejected.** `outcome` reruns `verify`'s stages on the fixture's program and
 input and names the first that rejects: the setup, the openings' shapes, a read of the chain walk
 or of the openings (with the reader's error), or a phase of the algebra. `mutations` lists the
-mutations of the proof with the outcome each must have. A scalar changed before a level's
+mutations of the proof with the outcome each must have, and `statementMutations` the proof
+against a changed input lane or instruction. A scalar changed before a level's
 grinding nonce moves the chain, so that level's grinding check rejects it before any algebra
 runs; only the last level's query message and tail rounds, read after the last grinding check,
 reach the algebra through the stream. The phases' own checks are exercised on the honest wire
@@ -79,25 +80,28 @@ def algebraOutcome (prog : Program) (s : Sizes) (input : PublicInput) (shs : Lis
           let (W, target) := openingClaim I f w.lam
           if whirCheck I.μ shs W target w.whirFirst w.whir rows then .accepted else .whir
 
-/-- `verify`'s stages on the fixture's program and input, naming the first that rejects `p`. -/
-def outcome (p : Proof PrunedMerklePaths) : Outcome :=
-  let f := fx
-  match setup? f.prog p with
+/-- `verify`'s stages on the program `prog` and the input `input`, naming the first that rejects
+`p`. -/
+def outcomeAt (prog : Program) (input : PublicInput) (p : Proof PrunedMerklePaths) : Outcome :=
+  match setup? prog p with
   | none => .setup
   | some (s, ρ) =>
-    match ladderOf f.prog s ρ with
+    match ladderOf prog s ρ with
     | none => .setup
     | some levels =>
-      let shs := levelShapes (stackMu f.prog s) levels
-      if !openingsOk (nLanes f.prog s) true shs p.merkle then .openings
+      let shs := levelShapes (stackMu prog s) levels
+      if !openingsOk (nLanes prog s) true shs p.merkle then .openings
       else
         match ((do
-            let x ← walkProof (readerOps blake2sBytes) f.prog s f.input shs
+            let x ← walkProof (readerOps blake2sBytes) prog s input shs
             Reader.finish
             return x : Walk Id (Wire × List (List (List K)))).run'
-          ⟨FsState.seed f.prog f.input, p.stream, p.merkle⟩).run with
+          ⟨FsState.seed prog input, p.stream, p.merkle⟩).run with
         | .error e => .read e
-        | .ok (w, rows) => algebraOutcome f.prog s f.input shs w rows
+        | .ok (w, rows) => algebraOutcome prog s input shs w rows
+
+/-- `verify`'s stages on the fixture's program and input, naming the first that rejects `p`. -/
+def outcome (p : Proof PrunedMerklePaths) : Outcome := outcomeAt fx.prog fx.input p
 
 /-! ## The mutations -/
 
@@ -211,8 +215,32 @@ def mutations : List Mutation := cheap ++ [
     .read .invalidMerkleOpening⟩,
   ⟨"a stored word changed", opening 0 fun o ↦
     { o with leafData := o.leafData.modify 7 (·.modify 2 (· + 1)) }, .read .invalidMerkleOpening⟩,
+  ⟨"two rows of level 1 exchanged", opening 1 fun o ↦ { o with leafData := match o.leafData with
+    | r₀ :: r₁ :: rest => r₁ :: r₀ :: rest
+    | rs => rs }, .read .invalidMerkleOpening⟩,
   ⟨"a trailing scalar", fun p ↦ ⟨p.stream ++ [0], p.merkle⟩, .read .notFullyConsumed⟩,
   ⟨"a truncated stream", fun p ↦ ⟨p.stream.dropLast, p.merkle⟩, .read .exceededStream⟩]
+
+/-- A change of the statement, the proof kept: what it changes, the program and input, and where
+`verify` must reject the fixture's proof of the original statement. -/
+structure StatementMutation where
+  /-- What it changes. -/
+  name : String
+  /-- The program. -/
+  prog : Program
+  /-- The public input. -/
+  input : PublicInput
+  /-- Where `verify` rejects. -/
+  expected : Outcome
+
+/-- The statement changed: an input lane, an instruction. The seed moves, so the first grinding
+check rejects. -/
+def statementMutations : List StatementMutation := [
+  ⟨"an input lane bumped", fx.prog,
+    ⟨fun i ↦ if i = 0 then fx.input.lanes 0 + 1 else fx.input.lanes i⟩, .read .powFailed⟩,
+  ⟨"an instruction changed",
+    { fx.prog with code := fun i ↦ if i.val = 0 then .xor 1 1 1 else fx.prog.code i }, fx.input,
+    .read .powFailed⟩]
 
 /-! ## The honest proof and the cheap mutations -/
 
@@ -266,9 +294,10 @@ def isOpening : ChainEvent → Bool
 
 /-! ## WHIR's algebra on the honest transcript -/
 
-/-- A change of WHIR's honest inputs: the stored rows, and the level at an index. -/
+/-- A change of WHIR's honest inputs: the stored rows, the level at an index, and the first
+round polynomial's wire. -/
 abbrev WhirMutation : Type :=
-  (List (List (List K)) → List (List (List K))) × ℕ × (WhirLevel → WhirLevel)
+  (List (List (List K)) → List (List (List K))) × ℕ × (WhirLevel → WhirLevel) × (List E → List E)
 
 /-- WHIR's check on the honest wire, with the rows and a level changed by each of `muts`, the
 phases before it run once. -/
@@ -293,8 +322,8 @@ def whirChecks (muts : List WhirMutation) : List Bool :=
       | none => []
       | some fo =>
         let (W, target) := openingClaim I fo w.lam
-        muts.map fun (fr, i, fl) ↦
-          whirCheck I.μ shs W target w.whirFirst (w.whir.modify i fl) (fr rows)
+        muts.map fun (fr, i, fl, ff) ↦
+          whirCheck I.μ shs W target (ff w.whirFirst) (w.whir.modify i fl) (fr rows)
 
 /-- A fold round with its challenge changed. -/
 def bumpFold (f : Fold) : Fold := { f with chal := f.chal + 1 }
@@ -302,18 +331,20 @@ def bumpFold (f : Fold) : Fold := { f with chal := f.chal + 1 }
 /-- The honest transcript, then changes at the last level and at the levels before it, each with
 the verdict `whirCheck` must give: a stored word of level 2 and of level 0, the last level's
 residual value and batching challenge; level 1's out-of-domain value, coordinate and round
-polynomial, level 0's fold challenge, level 2's batching challenge and query message. -/
+polynomial, level 0's fold challenge, level 2's batching challenge and query message, and the
+first round polynomial's coefficient. -/
 def whirMutations : List (WhirMutation × Bool) := [
-  ((id, 3, id), true),
-  ((fun rs ↦ rs.modify 2 (·.modify 4 (·.modify 7 (· + 1))), 3, id), false),
-  ((fun rs ↦ rs.modify 0 (·.modify 3 (·.modify 40 (· + 1))), 3, id), false),
-  ((id, 3, fun l ↦ { l with residual := l.residual.modify 1 (· + 1) }), false),
-  ((id, 3, fun l ↦ { l with lam := l.lam + 1 }), false),
-  ((id, 1, fun l ↦ { l with oodValue := l.oodValue + 1 }), false),
-  ((id, 1, fun l ↦ { l with ood := l.ood.modify 0 (· + 1) }), false),
-  ((id, 1, fun l ↦ { l with oodWire := l.oodWire.modify 0 (· + 1) }), false),
-  ((id, 0, fun l ↦ { l with folds := l.folds.modify 2 bumpFold }), false),
-  ((id, 2, fun l ↦ { l with lam := l.lam + 1 }), false),
-  ((id, 2, fun l ↦ { l with queryWire := l.queryWire.modify 1 (· + 1) }), false)]
+  ((id, 3, id, id), true),
+  ((fun rs ↦ rs.modify 2 (·.modify 4 (·.modify 7 (· + 1))), 3, id, id), false),
+  ((fun rs ↦ rs.modify 0 (·.modify 3 (·.modify 40 (· + 1))), 3, id, id), false),
+  ((id, 3, fun l ↦ { l with residual := l.residual.modify 1 (· + 1) }, id), false),
+  ((id, 3, fun l ↦ { l with lam := l.lam + 1 }, id), false),
+  ((id, 1, fun l ↦ { l with oodValue := l.oodValue + 1 }, id), false),
+  ((id, 1, fun l ↦ { l with ood := l.ood.modify 0 (· + 1) }, id), false),
+  ((id, 1, fun l ↦ { l with oodWire := l.oodWire.modify 0 (· + 1) }, id), false),
+  ((id, 0, fun l ↦ { l with folds := l.folds.modify 2 bumpFold }, id), false),
+  ((id, 2, fun l ↦ { l with lam := l.lam + 1 }, id), false),
+  ((id, 2, fun l ↦ { l with queryWire := l.queryWire.modify 1 (· + 1) }, id), false),
+  ((id, 3, id, fun ws ↦ ws.modify 0 (· + 1)), false)]
 
 end LeanerVMTests.Protocol.Verify
