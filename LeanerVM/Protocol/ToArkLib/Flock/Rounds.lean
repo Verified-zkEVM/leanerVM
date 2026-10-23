@@ -12,6 +12,7 @@ public import LeanerVM.Protocol.ToArkLib.Flock.Tables
 public import LeanerVM.Protocol.ToArkLib.SumcheckRound
 public import LeanerVM.Protocol.ToCompPoly.HighSum
 public import LeanerVM.Protocol.ToCompPoly.PartialSum
+public import LeanerVM.Protocol.ToCompPoly.TableFold
 
 /-!
 # Quadratic round polynomials
@@ -30,7 +31,9 @@ coefficients are sums of products of the values at `0` and `1`.
   message evaluates to `highSum (linFun M Z) (j + 1) (c.push X)`, and `weightedSum_highRound` is
   the check `h(0) + h(1)`.
 
-Nothing here transcribes a source.
+Compiled code computes both messages from tables bound once to the challenges
+(`normRound_eq_normRoundFolded`, `highRound_eq_highRoundFolded`, `@[csimp]` theorems). Nothing here
+transcribes a source.
 -/
 
 namespace LeanerVM.Protocol
@@ -149,6 +152,88 @@ theorem weightedSum_highRound {s m : ℕ} (M Z : CMlPolynomialEval F (s + m)) {j
   rw [weightedSum, highSum_split _ hj]
   simp only [List.map_cons, List.map_nil, List.sum_cons, List.sum_nil, add_zero, one_mul,
     evaluate_highRound M Z hj]
+
+/-! ## The compiled rounds
+
+Both round messages evaluate the tables' extensions afresh at every point of the free
+coordinates, `4 ^ n` work per round. Compiled code runs `normRoundFolded` and `highRoundFolded`
+instead, through the `@[csimp]` theorems `normRound_eq_normRoundFolded` and
+`highRound_eq_highRoundFolded`: each table, or each low slice of one, is bound once to the
+challenges, and the three coefficients are one pass over the bound tables' entries. -/
+
+/-- The zerocheck round message from the tables bound to the challenges. -/
+def normRoundFolded {n : ℕ} (tA tB tC : CMlPolynomialEval F n) (r : Vector F n) (j : ℕ)
+    (c : Vector F j) : Message F 2 :=
+  if hj : j < n then
+    let L := lagrangeBasis (r.drop (j + 1))
+    let a := bindLowsBefore hj tA c
+    let b := bindLowsBefore hj tB c
+    let e := bindLowsBefore hj tC c
+    let s := sumFin fun x : Fin (2 ^ (n - (j + 1))) ↦
+      let i0 := 2 * x.val
+      have h0 : i0 < 2 ^ (n - (j + 1) + 1) := by have := two_mul_add_one_lt x.isLt; omega
+      have h1 : i0 + 1 < 2 ^ (n - (j + 1) + 1) := two_mul_add_one_lt x.isLt
+      let a0 := a[i0]
+      let a1 := a[i0 + 1]
+      let b0 := b[i0]
+      let b1 := b[i0 + 1]
+      let e0 := e[i0]
+      let e1 := e[i0 + 1]
+      let l := L[x]
+      (l * (a0 * b0 - e0), l * (a0 * (b1 - b0) + (a1 - a0) * b0 - (e1 - e0)),
+        l * ((a1 - a0) * (b1 - b0)))
+    #v[s.1, s.2.1, s.2.2]
+  else 0
+
+/-- The zerocheck round message from bound tables is the honest one. -/
+@[csimp] theorem normRound_eq_normRoundFolded : @normRound = @normRoundFolded := by
+  funext F _ n tA tB tC r j c
+  by_cases hj : j < n
+  · have h0 : ∀ (t : CMlPolynomialEval F n) (x : Fin (2 ^ (n - (j + 1)))),
+        evalMle t ((fixLow hj (c.push 0) (boolVec x)).set j 0 hj) =
+          (bindLowsBefore hj t c)[2 * x.val]'(by have := two_mul_add_one_lt x.isLt; omega) :=
+      fun t x ↦ by rw [← fixLow_push_set, evalMle_fixLow_push_zero]
+    have h1 : ∀ (t : CMlPolynomialEval F n) (x : Fin (2 ^ (n - (j + 1)))),
+        evalMle t ((fixLow hj (c.push 0) (boolVec x)).set j 1 hj) =
+          (bindLowsBefore hj t c)[2 * x.val + 1]'(two_mul_add_one_lt x.isLt) :=
+      fun t x ↦ by rw [← fixLow_push_set, evalMle_fixLow_push_one]
+    simp only [normRound, normRoundFolded, hj, dite_true, sumFin_eq_sum, Prod.fst_sum,
+      Prod.snd_sum, h0, h1]
+  · simp only [normRound, normRoundFolded, hj, dite_false]
+
+/-- The lincheck round message from the low slices of the tables bound to the challenges. -/
+def highRoundFolded {s m : ℕ} (M Z : CMlPolynomialEval F (s + m)) (j : ℕ) (c : Vector F j) :
+    Message F 2 :=
+  if hj : j < m then
+    let Ms := Vector.ofFn fun i : Fin (2 ^ s) ↦ bindHighsBefore hj (sliceLow M i) c
+    let Zs := Vector.ofFn fun i : Fin (2 ^ s) ↦ bindHighsBefore hj (sliceLow Z i) c
+    let tot := sumFin fun x : Fin (2 ^ (m - (j + 1))) ↦ sumFin fun i : Fin (2 ^ s) ↦
+      have h0 : x.val < 2 ^ (m - (j + 1) + 1) := lt_two_pow_succ_of_lt x.isLt
+      have h1 : x.val + 2 ^ (m - (j + 1)) < 2 ^ (m - (j + 1) + 1) := add_two_pow_lt x.isLt
+      let m0 := Ms[i][x.val]
+      let m1 := Ms[i][x.val + 2 ^ (m - (j + 1))]
+      let z0 := Zs[i][x.val]
+      let z1 := Zs[i][x.val + 2 ^ (m - (j + 1))]
+      (m0 * z0, m0 * (z1 - z0) + (m1 - m0) * z0, (m1 - m0) * (z1 - z0))
+    #v[tot.1, tot.2.1, tot.2.2]
+  else 0
+
+/-- The lincheck round message from bound slices is the honest one. -/
+@[csimp] theorem highRound_eq_highRoundFolded : @highRound = @highRoundFolded := by
+  funext F _ s m M Z j c
+  by_cases hj : j < m
+  · have hk : m - (j + 1) < m := by omega
+    have h0 : ∀ (t : CMlPolynomialEval F m) (x : Fin (2 ^ (m - (j + 1)))),
+        evalMle t ((highFix hj (c.push 0) (boolVec x)).set (m - (j + 1)) 0 hk) =
+          (bindHighsBefore hj t c)[x.val]'(lt_two_pow_succ_of_lt x.isLt) :=
+      fun t x ↦ by rw [← highFix_push_set, evalMle_highFix_push_zero]
+    have h1 : ∀ (t : CMlPolynomialEval F m) (x : Fin (2 ^ (m - (j + 1)))),
+        evalMle t ((highFix hj (c.push 0) (boolVec x)).set (m - (j + 1)) 1 hk) =
+          (bindHighsBefore hj t c)[x.val + 2 ^ (m - (j + 1))]'(add_two_pow_lt x.isLt) :=
+      fun t x ↦ by rw [← highFix_push_set, evalMle_highFix_push_one]
+    simp only [highRound, highRoundFolded, hj, dite_true, sumFin_eq_sum, Prod.fst_sum,
+      Prod.snd_sum, h0, h1, Fin.getElem_fin, Vector.getElem_ofFn]
+  · simp only [highRound, highRoundFolded, hj, dite_false]
 
 end
 

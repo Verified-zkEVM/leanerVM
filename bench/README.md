@@ -18,8 +18,9 @@ nanoseconds per operation of Lean code compiled to C by Lean's own compiler; the
 boundary. Build and run it with
 
 ```sh
-lake build leanervm-bench          # compiles every transitive module to C, then links
-.lake/build/bin/leanervm-bench 100 # iteration counts at 100% (the default)
+lake build leanervm-bench                   # compiles every transitive module to C, then links
+.lake/build/bin/leanervm-bench 100          # iteration counts at 100% (the default), every group
+.lake/build/bin/leanervm-bench 100 sumcheck # one group: `arith` or `sumcheck`
 ```
 
 Inputs come from a xorshift seeded by `LEANERVM_BENCH_SEED` (default `12345`), so nothing is
@@ -80,6 +81,61 @@ set is a heap-allocated big integer; converting to and from a machine word costs
 product on words itself (`K mul on words`). `E` is three such limbs. A faster carrier needs
 CompPoly to store a `BF64` as a `UInt64`, which changes a definition and is out of this suite's
 scope.
+
+### Sumcheck provers
+
+The `sumcheck` group computes the honest prover's message of every round once, at the log-sizes
+`4, 6, 8, 12, 16, 20` up to `LEANERVM_BENCH_MAXLOG` (default `20`), and the specification's
+algorithm, assembled in the bench from functions no `@[csimp]` theorem replaces (`Sumcheck.claim`,
+`ProductSum.coef0`, …), at `4, 6, 8` ("spec" lines). The fast and the specification's lines print
+the same checksums at the same size.
+
+| Workload | Prover |
+| --- | --- |
+| `interpolate 4 nodes over E` | `CLagrange.interpolate` of a cubic at the table sumcheck's nodes |
+| `Sumcheck.plain 2^n x 3 tables` | `Sumcheck.roundPoly` with unit weights, summand `t₀ · t₁ · t₂`, nodes `0, 1, y, y + 1` |
+| `Sumcheck.normalized 2^n x 3 tables` | the same with the weights of `eq(p, ·)` |
+| `ProductSum 2^n` | `ProductSum.roundPoly`, WHIR's product sumcheck of two tables |
+| `TableSumcheck 2^n rows x 4 columns` | the table sumcheck's rounds on one table of `2 ^ n` rows, four columns, three constraints of degree two and one push form |
+
+The fast paths are `Sumcheck.roundPoly_eq_roundPolyFolded`,
+`ProductSum.roundPoly_eq_roundPolyFolded`, `TableSumcheck.formula_eq_formulaFast`,
+`eval₂_eq_eval₂Sparse` and `SumcheckRound.evaluate_eq_evaluateHorner` (see
+`docs/architecture.md`). Recorded on 2026-10-22 on the same machine, shared with other builds; "before" is `6ebb3f2`, the same bench source
+compiled against the library without these fast paths, where the fast and the specification's
+lines run the same algorithm. Total milliseconds for all `n` rounds:
+
+| Workload | `n` | Before (ms) | After (ms) | Speedup |
+| --- | ---: | ---: | ---: | ---: |
+| `Sumcheck.plain` | 8 | 3,187 | 37 | 87x |
+| `Sumcheck.plain` | 12 | 783,379 | 857 | 910x |
+| `Sumcheck.plain` | 16 | about 2 · 10^8 (extrapolated) | 17,177 | about 10^4 |
+| `Sumcheck.plain` | 20 | about 5 · 10^10 (extrapolated) | 323,329 | about 10^5 |
+| `Sumcheck.normalized` | 8 | 3,290 | 42 | 79x |
+| `Sumcheck.normalized` | 12 | 735,646 | 863 | 850x |
+| `Sumcheck.normalized` | 16 | about 2 · 10^8 (extrapolated) | 19,171 | about 10^4 |
+| `Sumcheck.normalized` | 20 | about 5 · 10^10 (extrapolated) | 356,405 | about 10^5 |
+| `ProductSum` | 8 | 3,208 | 19 | 165x |
+| `ProductSum` | 12 | 768,698 | 406 | 1,900x |
+| `ProductSum` | 16 | about 2 · 10^8 (extrapolated) | 9,198 | about 2 · 10^4 |
+| `ProductSum` | 20 | about 5 · 10^10 (extrapolated) | 180,584 | about 3 · 10^5 |
+| `TableSumcheck` | 8 | 12,454 | 253 | 49x |
+| `TableSumcheck` | 12 | 3,693,962 | 5,471 | 680x |
+| `TableSumcheck` | 16 | about 9 · 10^8 (extrapolated) | 129,736 | about 7 · 10^3 |
+| `TableSumcheck` | 20 | about 2 · 10^11 (extrapolated) | 2,613,272 | about 10^5 |
+
+"Before" at `n = 16, 20` is extrapolated from `n = 12` by the factor `4` per variable its
+algorithm takes (every point of every next claim evaluates every table, `2 ^ n` work each, at
+`2 ^ (n - j - 1)` points); at `n = 12` it took 13 minutes for the plain sumcheck and an hour for
+the table sumcheck, with the same checksums as "after". The interpolation, twelve inverses through
+a field dictionary, takes 0.18 ms a round and is left as is.
+
+A round message is a function of the context and the challenges, so each round binds its tables
+afresh: `m · 2 ^ n` work per round, `n · m · 2 ^ n` over the sumcheck instead of `m · 2 ^ n`, which
+dominates the plain sumcheck at `2 ^ 20`. The rest is `E` arithmetic, about 3 µs a product (see
+above). The table sumcheck adds per point the formula: the weight of each table's coordinates,
+`τ_max` products, and its row polynomials; and per round the columns read off the stack through
+the layout (`Layout.readWith`, `μ` comparisons a cell).
 
 Further runtime benchmark groups belong here once leanerVM has executable semantics. Each such
 group must name the workload, parameter revision, expected result, and whether it measures Lean code

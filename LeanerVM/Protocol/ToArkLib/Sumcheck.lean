@@ -14,6 +14,7 @@ module
 public import LeanerVM.Protocol.ToArkLib.SumcheckRound
 public import LeanerVM.Protocol.ToArkLib.TranscriptMap
 public import LeanerVM.Protocol.ToCompPoly.IndividualDegree
+public import LeanerVM.Protocol.ToCompPoly.TableFold
 public import LeanerVM.Protocol.ToCompPoly.WeightedCube
 public import CompPoly.Univariate.Lagrange
 import Mathlib.Algebra.Polynomial.BigOperators
@@ -68,6 +69,12 @@ survives. `transport`: the round's verifier composed with the decoding, a verifi
 is round-by-round knowledge sound at the round's error, with the extractor and the state function
 read on the decoded transcript; it is `Verifier.rbrKnowledgeSoundnessWorstCaseWith_comap` on the
 map that decodes the round's wire (`roundDecoding`).
+
+*The compiled prover.* `roundPoly` evaluates every table's extension at every point. Compiled
+code runs `roundPolyFolded` instead, through the `@[csimp]` theorem
+`roundPoly_eq_roundPolyFolded`: the tables bound once per round to the challenges
+(`boundTables`), each next claim a weighted fold of the formula over the bound tables' entries
+(`claimFolded`, `claimFolded_boundTables`). No definition a theorem states changes.
 -/
 
 namespace LeanerVM.Protocol
@@ -156,6 +163,86 @@ def roundPoly (V : Virtual F X O W n m) (wt : CoordWeights F X n) {d : ℕ}
     SumcheckRound.ofCPolynomial d (CPolynomial.CLagrange.interpolate Finset.univ nodes
       fun i ↦ claim V wt ctx (j + 1) (c.push (nodes i)))
   else SumcheckRound.ofCPolynomial d 0
+
+/-! ## The honest round polynomial, from bound tables
+
+`roundPoly` evaluates every table's extension afresh at every point of every next claim, `4 ^ n`
+work per round. The compiled prover runs `roundPolyFolded` instead, through the `@[csimp]`
+theorem `roundPoly_eq_roundPolyFolded`: each table is bound once to the challenges
+(`boundTables`), and each next claim reads the bound tables at the Boolean points of the free
+coordinates (`claimFolded`), `m · 2 ^ n` work for the binding and `(d + 1) · 2 ^ (n - j - 1)`
+evaluations of the formula. -/
+
+omit [BEq F] [LawfulBEq F] in
+/-- The point that completes the challenges and the round's coordinate `a` with the Boolean point
+`x`: `x`, then `a`, then the challenges from the last drawn to the first. -/
+theorem point_push_boolVec {j : ℕ} (hj : j < n) (c : Vector F j) (a : F)
+    (x : Fin (2 ^ (n - (j + 1)))) :
+    point (Nat.succ_le_of_lt hj) (c.push a) (boolVec x) =
+      Vector.cast (by omega) ((boolVec x : Vector F (n - (j + 1))).push a ++ c.reverse) := by
+  apply Vector.ext
+  intro k hk
+  simp only [point, Vector.getElem_ofFn, Vector.getElem_cast, Vector.getElem_append,
+    Vector.getElem_push, Vector.getElem_reverse]
+  by_cases h1 : k < n - (j + 1)
+  · simp [h1, show k < n - (j + 1) + 1 by omega]
+  · by_cases h2 : k = n - (j + 1)
+    · subst h2
+      simp [show n - 1 - (n - (j + 1)) = j by omega]
+    · simp only [h1, show ¬ k < n - (j + 1) + 1 by omega, dite_false,
+        show n - 1 - k < j by omega, dite_true]
+      congr 1
+      omega
+
+/-- The tables with their top `j` coordinates bound to the challenges, the first challenge the
+highest coordinate, as tables of the round's coordinate and the free ones below it. -/
+def boundTables (V : Virtual F X O W n m) (ctx : SumcheckRound.Ctx X O W) {j : ℕ} (hj : j < n)
+    (c : Vector F j) : Vector (CMlPolynomialEval F (n - (j + 1) + 1)) m :=
+  Vector.ofFn fun i ↦ bindHighsBefore hj (V.tables ctx i) c
+
+/-- The next claim with the round's coordinate at `a`, from tables bound to the challenges: the
+weighted fold, over the free coordinates, of the formula at the point and at the bound tables'
+entries there. -/
+def claimFolded (V : Virtual F X O W n m) (wt : CoordWeights F X n)
+    (ctx : SumcheckRound.Ctx X O W) {j : ℕ} (hj : j < n) (c : Vector F j)
+    (ts : Vector (CMlPolynomialEval F (n - (j + 1) + 1)) m) (a : F) : F :=
+  let ca := c.push a
+  weightFold (fun b : Fin (n - (j + 1)) ↦ wt ctx.1.1 ⟨b, by omega⟩)
+    (Vector.ofFn fun x ↦ V.formula ctx.1.1 (point (Nat.succ_le_of_lt hj) ca (boolVec x))
+      (Vector.ofFn fun i ↦ bindHighAt ts[i] a x))
+
+/-- From the bound tables, the folded claim is the next claim. -/
+theorem claimFolded_boundTables (V : Virtual F X O W n m) (wt : CoordWeights F X n)
+    (ctx : SumcheckRound.Ctx X O W) {j : ℕ} (hj : j < n) (c : Vector F j) (a : F) :
+    claimFolded V wt ctx hj c (boundTables V ctx hj c) a = claim V wt ctx (j + 1) (c.push a) := by
+  rw [claim, dite_eq_left (Nat.succ_le_of_lt hj), weightedCubeSum_eq_weightFold, claimFolded]
+  congr 1
+  apply Vector.ext
+  intro x hx
+  simp only [Vector.getElem_ofFn, Virtual.summand, Virtual.values]
+  congr 1
+  apply Vector.ext
+  intro i hi
+  simp only [Vector.getElem_ofFn, boundTables]
+  rw [point_push_boolVec hj c a ⟨x, hx⟩, evalMle_cast_point, evalMle_push_append_boolVec,
+    Fin.getElem_fin, Vector.getElem_ofFn, bindHighsBefore]
+
+/-- The honest round polynomial, from tables bound once to the challenges: what the compiled
+prover runs for `roundPoly`. -/
+def roundPolyFolded (V : Virtual F X O W n m) (wt : CoordWeights F X n) {d : ℕ}
+    (nodes : Fin (d + 1) → F) : SumcheckRound.Polys F X O W d := fun ctx j c ↦
+  if hj : j < n then
+    let ts := boundTables V ctx hj c
+    SumcheckRound.ofCPolynomial d (CPolynomial.CLagrange.interpolate Finset.univ nodes
+      fun i ↦ claimFolded V wt ctx hj c ts (nodes i))
+  else SumcheckRound.ofCPolynomial d 0
+
+/-- The round polynomial from bound tables is the honest round polynomial. -/
+@[csimp] theorem roundPoly_eq_roundPolyFolded : @roundPoly = @roundPolyFolded := by
+  funext F _ X ι O W n m _ _ V wt d nodes ctx j c
+  by_cases hj : j < n
+  · simp only [roundPoly, roundPolyFolded, hj, ite_true, dite_true, claimFolded_boundTables]
+  · simp only [roundPoly, roundPolyFolded, hj, ite_false, dite_false]
 
 /-- The family of claims of the sumcheck: the running claims, the honest round polynomials, the
 domains, and the side condition on the context, which no challenge changes. -/

@@ -579,10 +579,18 @@ theorem, a kernel-checked equation the compiler uses to substitute one constant 
 code compiled after it; it changes no definition a theorem mentions and is not a native boundary.
 The substituted constant must be one that compiled call sites name: for an operation reached
 through a type-class instance that is the instance constant, since the instance's own compiled
-body is fixed in the module that defined it. `LeanerVM.Parameters.ToCompPoly.BF64Fast`,
-`LeanerVM.Parameters.ToCompPoly.ExtensionFast`, `LeanerVM.Semantics.Blake2sFast` and
-`LeanerVM.Protocol.Blake2sHashFast` are the current fast paths, timed by the `leanervm-bench`
-executable ([bench/README.md](../bench/README.md)).
+body is fixed in the module that defined it; for a function a component's prover closes over, it
+is that function, registered in its own module before the component that names it is compiled.
+`LeanerVM.Parameters.ToCompPoly.BF64Fast`, `LeanerVM.Parameters.ToCompPoly.ExtensionFast`,
+`LeanerVM.Semantics.Blake2sFast` and `LeanerVM.Protocol.Blake2sHashFast` are the field and hashing
+fast paths. The sumcheck provers' round messages run on tables bound once to the challenges
+(`LeanerVM.Protocol.ToCompPoly.TableFold`, through `Sumcheck.roundPoly_eq_roundPolyFolded` and
+`ProductSum.roundPoly_eq_roundPolyFolded`), and the table sumcheck's formula on precomputed
+offsets and powers (`TableSumcheck.formula_eq_formulaFast`, with the row polynomials evaluated by
+`LeanerVM.Protocol.ToCompPoly.SparseEval`). A round message is a function of the context and the
+challenges, so a prover binds its tables afresh each round: `m · 2 ^ n` per round, not `m · 2 ^ n`
+for the whole sumcheck. All are timed by the `leanervm-bench` executable
+([bench/README.md](../bench/README.md)).
 
 Rust FFI follows when a Lean caller needs a measured fast path and the ABI can be
 specified. CUDA follows when profiling identifies a stable parallel kernel boundary. A

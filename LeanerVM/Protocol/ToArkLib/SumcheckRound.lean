@@ -33,7 +33,9 @@ a protocol uses to carry facts the round does not touch. Two domains give the tw
 
 A round message is the `d + 1` coefficients of a polynomial of degree at most `d`, low degree
 first (`Message`, the type `roundSpec` names), read whole; `evaluate` is its value at a point,
-and `ofCPolynomial` reads the coefficients off a computable polynomial of that degree. The
+which compiled code computes by Horner's rule (`evaluateHorner`, through the `@[csimp]` theorem
+`evaluate_eq_evaluateHorner`), and `ofCPolynomial` reads the coefficients off a computable
+polynomial of that degree. The
 degree bound is the length of the message: a prover cannot send more coefficients.
 
 `round P wt j` is the round from stage `j` to stage `j + 1`, at the schedule `roundSpec F d`,
@@ -69,6 +71,22 @@ open scoped NNReal
 
 @[expose] public section
 
+/-- `Σ_i x ^ i · f i` by Horner's rule: `f 0 + x · (f 1 + x · (…))`. -/
+def hornerFin {R : Type*} [CommRing R] {n : ℕ} (f : Fin n → R) (x : R) : R :=
+  Fin.foldr n (fun i acc ↦ f i + x * acc) 0
+
+/-- Horner's rule is the sum of the powers. -/
+theorem hornerFin_eq_sum {R : Type*} [CommRing R] : {n : ℕ} → (f : Fin n → R) → (x : R) →
+    hornerFin f x = ∑ i : Fin n, x ^ i.val * f i
+  | 0, f, x => by simp [hornerFin]
+  | n + 1, f, x => by
+    rw [hornerFin, Fin.foldr_succ, ← hornerFin, hornerFin_eq_sum, Fin.sum_univ_succ,
+      Finset.mul_sum]
+    simp only [Fin.val_zero, pow_zero, one_mul, Fin.val_succ, pow_succ]
+    congr 1
+    refine Finset.sum_congr rfl fun i _ ↦ ?_
+    ring
+
 namespace SumcheckRound
 
 section Data
@@ -83,6 +101,16 @@ abbrev Message (F : Type) (d : ℕ) : Type := Vector F (d + 1)
 
 /-- The value of a message at a point, `Σ_i q_i · x^i`. -/
 def evaluate (d : ℕ) (q : Message F d) (x : F) : F := ∑ i : Fin (d + 1), q[i] * x ^ (i : ℕ)
+
+/-- `evaluate` by Horner's rule: what compiled code runs (`evaluate_eq_evaluateHorner`). -/
+def evaluateHorner (d : ℕ) (q : Message F d) (x : F) : F :=
+  hornerFin (fun i : Fin (d + 1) ↦ q[i]) x
+
+/-- Horner's rule is the message's value. -/
+@[csimp] theorem evaluate_eq_evaluateHorner : @evaluate = @evaluateHorner := by
+  funext F _ d q x
+  rw [evaluate, evaluateHorner, hornerFin_eq_sum]
+  exact Finset.sum_congr rfl fun i _ ↦ mul_comm _ _
 
 /-- The coefficients of a computable polynomial, as a message. -/
 def ofCPolynomial (d : ℕ) (p : CPolynomial F) : Message F d := Vector.ofFn fun i ↦ p.coeff i

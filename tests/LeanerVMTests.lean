@@ -56,6 +56,7 @@ import LeanerVMTests.Protocol.Spine
 import LeanerVMTests.Protocol.Stack
 import LeanerVMTests.Protocol.Stacking
 import LeanerVMTests.Protocol.Sumcheck
+import LeanerVMTests.Protocol.SumcheckFold
 import LeanerVMTests.Protocol.TableSumcheck
 import LeanerVMTests.Protocol.WhirDeployed
 import LeanerVMTests.Protocol.WhirFold

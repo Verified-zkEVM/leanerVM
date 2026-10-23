@@ -9,6 +9,7 @@ module
 
 public import LeanerVM.Protocol.ToArkLib.SumcheckRound
 public import LeanerVM.Protocol.ToCompPoly.PlainSum
+public import LeanerVM.Protocol.ToCompPoly.TableFold
 
 /-!
 # The sumcheck of a product of two tables
@@ -32,6 +33,10 @@ the round's context (the public data, the oracles, the witness): the weight is i
 and `f` is the witness. It is honest (`family_honest`): the honest polynomial passes the verifier's
 check on the unit-weight domain `0, 1` and evaluates at the challenge to the next claim. The rounds
 are `SumcheckRound.rounds` on it.
+
+Compiled code computes `roundPoly` as `roundPolyFolded`, through the `@[csimp]` theorem
+`roundPoly_eq_roundPolyFolded`: both tables bound once to the challenges (`boundLow`), the three
+coefficients one pass over the bound tables' entries.
 -/
 
 namespace LeanerVM.Protocol
@@ -88,6 +93,43 @@ def coef2 {j : ℕ} (hj : j < n) (c : Vector F j) : F :=
 round. -/
 def roundPoly (j : ℕ) (c : Vector F j) : SumcheckRound.Message F 2 :=
   if h : j < n then #v[coef0 A B h c, coef1 A B h c, coef2 A B h c] else #v[0, 0, 0]
+
+/-! ## The honest round polynomial, from bound tables
+
+`roundPoly` evaluates both extensions afresh at every point of the free coordinates, `4 ^ n`
+work per round. The compiled prover runs `roundPolyFolded` instead, through the `@[csimp]`
+theorem `roundPoly_eq_roundPolyFolded`: each table is bound once to the challenges
+(`boundLow`), and the three coefficients are one pass over the bound tables' entries. -/
+
+/-- A table with its low `j` coordinates bound to the challenges, the first challenge the lowest
+coordinate, as a table of the round's coordinate and the free ones above it. -/
+abbrev boundLow (T : CMlPolynomialEval F n) {j : ℕ} (hj : j < n) (c : Vector F j) :
+    CMlPolynomialEval F (n - (j + 1) + 1) :=
+  bindLowsBefore hj T c
+
+/-- The honest round polynomial's three coefficients, from the tables bound to the challenges:
+one pass over the free coordinates, summing the products of the bound tables' entries. -/
+def roundPolyFolded (j : ℕ) (c : Vector F j) : SumcheckRound.Message F 2 :=
+  if h : j < n then
+    let a := boundLow A h c
+    let b := boundLow B h c
+    let s := sumFin fun x : Fin (2 ^ (n - (j + 1))) ↦
+      let a0 := a[2 * x.val]'(by have := two_mul_add_one_lt x.isLt; omega)
+      let a1 := a[2 * x.val + 1]'(two_mul_add_one_lt x.isLt)
+      let b0 := b[2 * x.val]'(by have := two_mul_add_one_lt x.isLt; omega)
+      let b1 := b[2 * x.val + 1]'(two_mul_add_one_lt x.isLt)
+      (a0 * b0, a0 * (b1 - b0) + (a1 - a0) * b0, (a1 - a0) * (b1 - b0))
+    #v[s.1, s.2.1, s.2.2]
+  else #v[0, 0, 0]
+
+/-- The round polynomial from bound tables is the honest round polynomial. -/
+@[csimp] theorem roundPoly_eq_roundPolyFolded : @roundPoly = @roundPolyFolded := by
+  funext F _ n A B j c
+  by_cases h : j < n
+  · simp only [roundPoly, roundPolyFolded, h, dite_true, sumFin_eq_sum, Prod.fst_sum,
+      Prod.snd_sum, coef0, coef1, coef2, atFree, evalMle_fixLow_push_zero,
+      evalMle_fixLow_push_one]
+  · simp only [roundPoly, roundPolyFolded, h, dite_false]
 
 /-- A message of degree two evaluates as its three coefficients. -/
 private theorem evaluate_two (q : SumcheckRound.Message F 2) (x : F) :
