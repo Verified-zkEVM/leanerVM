@@ -91,7 +91,7 @@ theorem vsKnown_tail {κ : ℕ} (hκ : κ ≤ 32) (hκ6 : 6 ≤ κ) (L : MemImag
     {logMem : ℕ} {hs : List ℕ} (hm : logMem ≤ 32) (hl : hs.length = 6) (hh : ∀ x ∈ hs, x < 29)
     (hkb : ReadsAt L.read (σ (.n 141)) (1 :: gen ^ logMem :: hs.map (gen ^ ·)))
     (h : Stmt.HoldsList C L.read σ (vsTailT.take 14) next kret) :
-    ∀ c < 113, ∃ e < 29, LoadHolds L.read (σ (.n 1889)) c (ofK (gpow e)) := by
+    ∀ c < Tables.nCommittedCols, ∃ e < 29, LoadHolds L.read (σ (.n 1889)) c (ofK (gpow e)) := by
   simp only [vsTailT, List.cons_append, List.take_succ_cons, Stmt.HoldsList, Stmt.Holds, vsCall,
     vsConst, vsMul, vsRange, List.map_cons, List.map_nil, Atom.Holds] at h
   obtain ⟨c1, c2, e1891, m1892, e1893, r1892, -⟩ := h
