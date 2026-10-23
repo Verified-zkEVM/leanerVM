@@ -253,5 +253,14 @@ def column_selector_Spec : Prop :=
   ∀ κ < 29, ∀ rd args rets,
     coreProgram.Rel rd (lName "column_selector" κ) args rets → ColSelOut κ rd args rets
 
+/-- The converse, for completeness: an offset `g^o`, `o < 2^28` a multiple of `2^κ`, and the opening
+point's tables at `sel_eq`, `sel_g` give the relation, returning the eq weight of `o`'s bits above
+`κ`. -/
+def column_selector_complete_Spec : Prop :=
+  ∀ κ < 29, ∀ (rd : Reader) (o : ℕ) (se sg : E) (p p1 : List E), o < 2 ^ 28 → 2 ^ κ ∣ o →
+    p.length = 28 → p1.length = 28 → EqTabsAt rd se p p1 → GTabsAt rd sg →
+    coreProgram.Rel rd (lName "column_selector" κ) [gen ^ o, se, sg]
+      [bitsEq ((List.range (28 - κ)).map fun i ↦ o.testBit (κ + i)) (p.drop κ) (p1.drop κ)]
+
 end
 end LeanVM.Guest.B1.Tables
