@@ -195,14 +195,17 @@ def challengePositions (b t : ℕ) (xs : List E) : Fin t → Fin (2 ^ b) := fun 
   ⟨challengeBits (xs.getD (q / (192 / b)) 0) / 2 ^ (q % (192 / b) * b) % 2 ^ b,
     Nat.mod_lt _ (Nat.two_pow_pos b)⟩
 
+/-- A challenge's bits are below `2^192`. -/
+private theorem challengeBits_lt (x : E) : challengeBits x < 2 ^ 192 := by
+  have := (x.limb 0).toBitVec.isLt
+  have := (x.limb 1).toBitVec.isLt
+  have := (x.limb 2).toBitVec.isLt
+  simp only [challengeBits]
+  omega
+
 /-- A challenge is its 192 bits. -/
 private theorem challengeBits_bijective :
-    Function.Bijective fun x : E ↦ (⟨challengeBits x, by
-      have := (x.limb 0).toBitVec.isLt
-      have := (x.limb 1).toBitVec.isLt
-      have := (x.limb 2).toBitVec.isLt
-      simp only [challengeBits]
-      omega⟩ : Fin (2 ^ 192)) := by
+    Function.Bijective fun x : E ↦ (⟨challengeBits x, challengeBits_lt x⟩ : Fin (2 ^ 192)) := by
   rw [Fintype.bijective_iff_injective_and_card, card_E, Fintype.card_fin]
   refine ⟨fun x y h ↦ ?_, rfl⟩
   simp only [Fin.mk.injEq, challengeBits] at h
