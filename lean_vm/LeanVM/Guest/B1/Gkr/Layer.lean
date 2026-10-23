@@ -179,5 +179,167 @@ def LyB (rd : Reader) (dsb gmu layers x : E) : Prop :=
         GkSlot rd layers (2 * j + sh + 2) s' (cur * gen ^ xs.length) st' (row * gen ^ 40) pos'
           (gen ^ ((j + 1) / 2)) (bitE ((j + 1) % 2 = 1))
 
+/-! ## The layer's head -/
+
+section Sem
+
+variable {C : CallRel} {rd : Reader} {σ : Val} {kret : List E → Prop}
+
+/-- A list of length `n` is its `n` entries. -/
+theorem tb_eq_map_getD {l : List E} {n : ℕ} (h : l.length = n) :
+    l = (List.range n).map (l.getD · 0) := by
+  subst h
+  apply List.ext_getElem (by simp)
+  intro k h1 h2
+  simp [List.getD_eq_getElem?_getD, List.getElem?_eq_getElem h1]
+
+/-- The rate cells of at most two waiting scalars: past the fourth, zeros. -/
+theorem rateOf_getD_four {pend : List (E × ℕ)} (h : pend.length ≤ 2) {j : ℕ} (hj : 4 ≤ j)
+    (hj8 : j < 8) : (tbxRateOf pend).getD j 0 = 0 := by
+  have hl : (tbxPendCells pend).length = 2 * pend.length := by
+    simp [tbxPendCells, List.length_flatMap]; omega
+  rw [tbx_rateOf_eq_cells _ (by omega), List.getD_eq_getElem?_getD,
+    List.getElem?_append_right (by omega), hl, List.getElem?_replicate]
+  split <;> rfl
+
+/-- The capacity of a permutation's state is canonical. -/
+theorem tbxCapOf_canonical (S : KState) : TbxAllCanonical (tbxCapOf S) := by
+  intro x hx
+  simp only [tbxCapOf, List.mem_cons, List.not_mem_nil, or_false] at hx
+  rcases hx with rfl | rfl | rfl | rfl | rfl <;> exact tbx_cellsOfState_canonical _ _ _
+
+/-- **The layer's head**: the combiner is the slot's sponge's challenge, and the first round
+record carries the sponge after it, the cursor and the combined claim. -/
+theorem ly_head (h : Stmt.HoldsList C rd σ lyPre True kret) {j sh : ℕ} (hx : σ (.n 0) = gen ^ j)
+    (hsh : LoadHolds rd (σ (.n 2) * σ (.n 3)) 0 (gen ^ sh)) {s : TbxFs} {cur : E} {st : GkrState}
+    {row pos half parity : E}
+    (hslot : GkSlot rd (σ (.n 4)) (2 * j + sh) s cur st row pos half parity) :
+    σ (.n 6) = gen ^ (2 * j) ∧ σ (.n 9) = gen ^ (2 * j + sh) ∧
+      σ (.n 15) = σ (.n 4) * gen ^ (17 * (2 * j + sh)) ∧
+      σ (.n 49) = s.squeeze.1 ∧ σ (.n 50) = row ∧ σ (.n 51) = pos ∧
+      σ (.n 52) = σ (.n 5) * pos ∧ σ (.n 61) = half ∧ σ (.n 62) = parity ∧
+      TbCapAt rd (σ (.n 52)) 0 gkCap s.squeeze.2.cap ∧ TbxAllCanonical s.squeeze.2.cap ∧
+      LoadHolds rd (σ (.n 52)) (5 * gkCap) cur ∧
+      LoadHolds rd (σ (.n 52)) (6 * gkCap) (polyEval st.values s.squeeze.1) := by
+  have hnr := lyPre_noRet
+  obtain ⟨hcl, -, hcap, hpl, hrate, hcur, hvl, hval, hrow, -, -, hpos, hhalf, hpar⟩ := hslot
+  have a := fun n a heq => tb_holds_atom (C := C) (rd := rd) (σ := σ) (kret := kret) hnr h n a heq
+  have m6 := a 0 (.mul (.n 6) (.n 0) (.n 0)) (by decide +kernel)
+  have m7 := a 1 (.mul (.n 7) (.n 2) (.n 3)) (by decide +kernel)
+  have l8 := a 2 (.load (.n 8) (.n 7) 0) (by decide +kernel)
+  have m9 := a 3 (.mul (.n 9) (.n 6) (.n 8)) (by decide +kernel)
+  have m10 := a 4 (.mul (.n 10) (.n 9) (.n 9)) (by decide +kernel)
+  have m11 := a 5 (.mul (.n 11) (.n 10) (.n 10)) (by decide +kernel)
+  have m12 := a 6 (.mul (.n 12) (.n 11) (.n 11)) (by decide +kernel)
+  have m13 := a 7 (.mul (.n 13) (.n 12) (.n 12)) (by decide +kernel)
+  have m14 := a 8 (.mul (.n 14) (.n 13) (.n 9)) (by decide +kernel)
+  have m15 := a 9 (.mul (.n 15) (.n 4) (.n 14)) (by decide +kernel)
+  simp only [Atom.Holds] at m6 m7 l8 m9 m10 m11 m12 m13 m14 m15
+  rw [← m7] at hsh
+  have e8 := tb_loadHolds_unique l8 hsh
+  have e6 : σ (.n 6) = gen ^ (2 * j) := by rw [m6, hx, ← pow_add]; ring_nf
+  have e9 : σ (.n 9) = gen ^ (2 * j + sh) := by rw [m9, e6, e8, pow_add]
+  have e15 : σ (.n 15) = σ (.n 4) * gen ^ (17 * (2 * j + sh)) := by
+    rw [m15, m14, m13, m12, m11, m10, e9, ← pow_add, ← pow_add, ← pow_add, ← pow_add]; ring_nf
+  set L := 2 * j + sh
+  have ld : ∀ k w, LoadHolds rd (σ (.n 15)) k w ↔ LoadHolds rd (σ (.n 4)) (17 * L + k) w := by
+    intro k w; rw [e15, tb_loadHolds_mul_gen_pow]
+  -- the slot's capacity and waiting cells
+  have hcapL := tb_holds_slice hnr h 10 ((List.range 5).map fun k ↦
+    Stmt.atom (.load (.n (16 + k)) (.n 15) k)) (by decide +kernel)
+  rw [tb_holdsList_mapAtoms] at hcapL
+  have hpendL := tb_holds_slice hnr h 15 ((List.range 4).map fun k ↦
+    Stmt.atom (.load (.n (21 + k)) (.n 15) (13 + k))) (by decide +kernel)
+  rw [tb_holdsList_mapAtoms] at hpendL
+  simp only [Atom.Holds] at hcapL hpendL
+  have ecap : ∀ k < 5, σ (.n (16 + k)) = s.cap.getD k 0 := fun k hk =>
+    tb_loadHolds_unique ((ld k _).mp (hcapL k hk)) (hcap k hk)
+  have epend : ∀ k < 4, σ (.n (21 + k)) = (tbxRateOf s.pend).getD k 0 := fun k hk =>
+    tb_loadHolds_unique ((ld (13 + k) _).mp (hpendL k hk))
+      (by rw [← Nat.add_assoc]; exact hrate k hk)
+  have c26 := a 20 (.const (.n 26) (word 0 0 0)) (by decide +kernel)
+  have c27 := a 21 (.const (.n 27) (word 0 0 0)) (by decide +kernel)
+  have c28 := a 22 (.const (.n 28) (word 0 0 0)) (by decide +kernel)
+  have c29 := a 23 (.const (.n 29) (word 0 0 0)) (by decide +kernel)
+  have k1 := a 24 (.keccak ([.n 21, .n 22, .n 23, .n 24, .n 26, .n 27, .n 28, .n 29] ++
+      (List.range 5).map fun k ↦ .n (16 + k)) (lyOuts 30) false false) (by decide +kernel)
+  simp only [Atom.Holds, tb_word_zero] at c26 c27 c28 c29
+  obtain ⟨-, -, -, hout⟩ := tbx_keccakA_perm k1
+  have hrl : (tbxRateOf s.pend).length = 8 := by simp [tbxRateOf]
+  have hins : (([.n 21, .n 22, .n 23, .n 24, .n 26, .n 27, .n 28, .n 29] ++
+      (List.range 5).map fun k ↦ V.n (16 + k)) : List V).map σ = tbxRateOf s.pend ++ s.cap := by
+    rw [tb_eq_map_getD hrl, tb_eq_map_getD hcl]
+    simp only [List.range_succ, List.range_zero, List.map_cons, List.map_nil,
+      List.nil_append, List.cons_append, List.cons.injEq, and_true]
+    refine ⟨epend 0 (by omega), epend 1 (by omega), epend 2 (by omega), epend 3 (by omega),
+      ?_, ?_, ?_, ?_, ecap 0 (by omega), ecap 1 (by omega), ecap 2 (by omega), ecap 3 (by omega),
+      ecap 4 (by omega)⟩
+    · rw [c26, rateOf_getD_four hpl (by omega) (by omega)]
+    · rw [c27, rateOf_getD_four hpl (by omega) (by omega)]
+    · rw [c28, rateOf_getD_four hpl (by omega) (by omega)]
+    · rw [c29, rateOf_getD_four hpl (by omega) (by omega)]
+  rw [hins] at hout
+  have hP : ∀ k (hk : k < 13), σ (.n (30 + k)) = cellsOfState s.perm false ⟨k, hk⟩ := by
+    intro k hk
+    have := tbx_outs_eq hout ⟨k, hk⟩ (by simpa [lyOuts] using hk)
+    simpa [lyOuts, TbxFs.perm] using this
+  have hch := tb_holds_slice hnr h 25 (tbxChallengeT (.n 30) (.n 31) 43) (by decide +kernel)
+  rw [tbx_holds_challengeT] at hch
+  have e49 := tbx_challengeT_value hch.1 (hP 0 (by omega)) (hP 1 (by omega))
+  -- the slot's row, position, half and parity
+  have l50 := a 33 (.load (.n 50) (.n 15) 9) (by decide +kernel)
+  have l51 := a 34 (.load (.n 51) (.n 15) 10) (by decide +kernel)
+  have m52 := a 35 (.mul (.n 52) (.n 5) (.n 51)) (by decide +kernel)
+  have l61 := a 51 (.load (.n 61) (.n 15) 11) (by decide +kernel)
+  have l62 := a 52 (.load (.n 62) (.n 15) 12) (by decide +kernel)
+  simp only [Atom.Holds] at l50 l51 m52 l61 l62
+  have e50 := tb_loadHolds_unique ((ld _ _).mp l50) hrow
+  have e51 := tb_loadHolds_unique ((ld _ _).mp l51) hpos
+  have e61 := tb_loadHolds_unique ((ld _ _).mp l61) hhalf
+  have e62 := tb_loadHolds_unique ((ld _ _).mp l62) hpar
+  rw [e51] at m52
+  -- the first record
+  have hst := tb_holds_slice hnr h 36 ((List.range 5).map fun k ↦
+    Stmt.atom (.load (.n (38 + k)) (.n 52) (862 * k))) (by decide +kernel)
+  rw [tb_holdsList_mapAtoms] at hst
+  simp only [Atom.Holds] at hst
+  have l53 := a 41 (.load (.n 53) (.n 15) 5) (by decide +kernel)
+  have l53' := a 42 (.load (.n 53) (.n 52) 4310) (by decide +kernel)
+  have l54 := a 43 (.load (.n 54) (.n 15) 6) (by decide +kernel)
+  have l55 := a 44 (.load (.n 55) (.n 15) 7) (by decide +kernel)
+  have l56 := a 45 (.load (.n 56) (.n 15) 8) (by decide +kernel)
+  have m57 := a 46 (.mul (.n 57) (.n 49) (.n 56)) (by decide +kernel)
+  have a58 := a 47 (.add (.n 58) (.n 55) (.n 57)) (by decide +kernel)
+  have m59 := a 48 (.mul (.n 59) (.n 49) (.n 58)) (by decide +kernel)
+  have a60 := a 49 (.add (.n 60) (.n 54) (.n 59)) (by decide +kernel)
+  have l60 := a 50 (.load (.n 60) (.n 52) 5172) (by decide +kernel)
+  simp only [Atom.Holds] at l53 l53' l54 l55 l56 m57 a58 m59 a60 l60
+  have e53 := tb_loadHolds_unique ((ld _ _).mp l53) hcur
+  have e54 := tb_loadHolds_unique ((ld _ _).mp l54) (hval 0 (by omega))
+  have e55 := tb_loadHolds_unique ((ld _ _).mp l55) (hval 1 (by omega))
+  have e56 := tb_loadHolds_unique ((ld _ _).mp l56) (hval 2 (by omega))
+  refine ⟨e6, e9, e15, e49, e50, e51, m52, e61, e62, ⟨by simp [TbxFs.squeeze, tbxCapOf], ?_⟩,
+    tbxCapOf_canonical _, by rw [← e53]; exact l53', ?_⟩
+  · intro k hk
+    have hk5 : k < 5 := by simpa [TbxFs.squeeze, tbxCapOf] using hk
+    have := hst k hk5
+    rw [show 0 + k * gkCap = 862 * k by unfold gkCap; ring]
+    interval_cases k
+    · rw [hP 8 (by omega)] at this; exact this
+    · rw [hP 9 (by omega)] at this; exact this
+    · rw [hP 10 (by omega)] at this; exact this
+    · rw [hP 11 (by omega)] at this; exact this
+    · rw [hP 12 (by omega)] at this; exact this
+  · obtain ⟨v0, v1, v2, hv3⟩ : ∃ v0 v1 v2, st.values = [v0, v1, v2] := by
+      match st.values, hvl with
+      | [v0, v1, v2], _ => exact ⟨v0, v1, v2, rfl⟩
+    have hv : polyEval st.values s.squeeze.1 = σ (.n 60) := by
+      rw [a60, m59, a58, m57, e54, e55, e56, e49, hv3]
+      simp only [polyEval, List.foldr, List.getD_cons_zero, List.getD_cons_succ, TbxFs.squeeze]
+      ring
+    rw [hv]; exact l60
+
+end Sem
+
 end
 end LeanVM.Guest.B1.Tables
