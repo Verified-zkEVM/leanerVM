@@ -7,6 +7,7 @@
 module
 
 public import LeanVM.Guest.B1.Whir.BrFin3
+public import LeanVM.Guest.B1.Whir.BrHeight
 
 /-!
 # The body on the Spec's run
@@ -79,6 +80,14 @@ def osBodyF (c : OsCfg) (tr : OsTr) (σ : Val) (c0 c2 : E) (A : OsAt) : ℕ → 
     (Xof tr.rs tr.Fall tr.Tc) A.rc (finAcc c tr) (finPq c tr) (finW c tr) (finI c tr) (finL c tr)
     (finD c tr) (Λof tr.rs) (Zof tr.rs) (Yof tr.rs tr.Fall tr.Tc)
 
+/-- **What the run gives of its trace** beyond the body: each level's query step is one of the
+run's (so `CapsAgree` speaks of it), and each level's tree has height `L.D`. -/
+structure TrRun (μ r : ℕ) (target : E) (S : KState) (xs : List E) (os : List Opening)
+    (root : Digest) (tr : OsTr) : Prop where
+  qs : ∀ L ∈ tr.Ls, (L.height, L.qs.zip L.os) ∈
+    queryStepsOf (whirOpen μ r target) (osStart μ r S xs os root)
+  height : ∀ i < tr.Ls.length, (tr.L i).height = (tr.L i).D
+
 /-- **open_stacked's body, honestly, on the Spec's run.** -/
 theorem osBodyA_honest {c : OsCfg} {μ r : ℕ} {cfg : List Whir.Level} (hF : CandFacts c μ r cfg)
     (hs : OsSizes c) {S : KState} {root : Digest} {target : E} {xs : List E} {os : List Opening}
@@ -98,8 +107,7 @@ theorem osBodyA_honest {c : OsCfg} {μ r : ℕ} {cfg : List Whir.Level} (hF : Ca
           (osBodyA c)
           (fun σ' ↦ (osFinishRet c (osTlSt c).2.1 (osTlSt c).2.2).map σ' =
             [w.target, A.PT, A.PT1, w.inner, w.residual] ∧ AgreeBelow 9 σ σ')) ∧
-      ∀ L ∈ tr.Ls, (L.height, L.qs.zip L.os) ∈
-        queryStepsOf (whirOpen μ r target) (osStart μ r S xs os root) := by
+      TrRun μ r target S xs os root tr := by
   obtain ⟨c0, c2, xs', Ls, hxs, hlc, hch, hqs⟩ := nz_trace hF hrun hnz
   set lane := (cfg.head?.map (·.fold)).getD 0 with hlane
   obtain ⟨hlane', -⟩ := levelsOk_lane hF.lok
@@ -114,7 +122,26 @@ theorem osBodyA_honest {c : OsCfg} {μ r : ℕ} {cfg : List Whir.Level} (hF : Ca
     rw [point_length, hFl, hfit.tcLen, hF.mu]
   have hpoint : w.point = tr.point (c.levels.headD default).folds := by
     rw [hw, ← hlane', SpLv.wend]; rfl
-  refine ⟨c0, c2, tr, hfit, by rw [ptC, hpoint, hpl], by rw [pt1C, hpoint, hpl], ?_, hqs⟩
+  have hheight : ∀ i < tr.Ls.length, (tr.L i).height = (tr.L i).D := by
+    intro i hi
+    rcases i with _ | i
+    · have h0 := chain_height0 hch
+      simp only [List.getD_cons_zero, Prod.mk.injEq] at h0
+      have hi0 : 0 < c.levels.length := by omega
+      have hfit0 := hfit.fit 0 hi0
+      have hlvb0 := hfit.lvb 0 hi0
+      show (Ls.getD 0 default).height = (Ls.getD 0 default).D
+      have h1 : (Ls.getD 0 default).height = (stackShape μ r).1 := congrArg Prod.fst h0.2
+      have hml0 : (Ls.getD 0 default).ml = (lvAt c 0).logCols := hfit0.ml
+      have hd0 : (lvAt c 0).depth = (lvAt c 0).logCols + (Ls.getD 0 default).level.logInvRate :=
+        hlvb0.depth
+      have hhd : c.levels.headD default = lvAt c 0 := by
+        cases h' : c.levels with
+        | nil => simp [h'] at hn
+        | cons a b => simp [lvAt, h']
+      rw [h1, hF.shape, hhd, SpLv.D, hml0, ← hd0]
+    · exact chain_heights _ _ _ _ _ _ _ _ _ hch rfl i (by simpa using hi)
+  refine ⟨c0, c2, tr, hfit, by rw [ptC, hpoint, hpl], by rw [pt1C, hpoint, hpl], ?_, ⟨hqs, hheight⟩⟩
   intro C rd σ A hcap h5 h6 h7 hrd hm hc
   -- the head's words
   rw [hxs] at hrd
