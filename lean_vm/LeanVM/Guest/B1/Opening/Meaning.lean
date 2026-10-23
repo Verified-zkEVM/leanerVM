@@ -128,5 +128,112 @@ def opening_row_weights_Spec : Prop :=
     coreProgram.Rel rd "opening_row_weights__L4_L0" args rets ↔
       MeaningOpeningRowWeights 4 0 rd args rets
 
+/-! ## `opening_query`, `opening_queries` (G:1179-1269, TRIAGE #39, #40) -/
+
+/-- `climb` (V:492) at the deployed hash: the node a path reaches. -/
+def climbD (leaf : Digest) (q : ℕ) (sibs : List Digest) : Digest :=
+  Id.run (Compile.climb (m := Id) keccak256 leaf q sibs)
+
+/-- The row's `E` word `j`: the `K` word `j` at level 0 (`base = 1`), else the three limbs from
+`3j` (`extRow`, V:1627). -/
+def rowWord (base : ℕ) (row : List K) (j : ℕ) : E :=
+  if base = 1 then ofK (row.getD j 0)
+  else E.ofLimbs (row.getD (3 * j) 0) (row.getD (3 * j + 1) 0) (row.getD (3 * j + 2) 0)
+
+/-- The low factor's length of a row of `I` words: `min I 8`. -/
+def rowLo (I : ℕ) : ℕ := if I / 8 = 0 then I else 8
+
+/-- **A row's dot product with its tensor weights** (`opening_query`, G:1205-1222): run `h` of
+`lo` words, weighted by `w (lo + h)`, of the sums of its words weighted by `w l`, in the guest's
+order. -/
+def rowDot (base I : ℕ) (row : List K) (w : ℕ → E) : E :=
+  ((List.range (I / rowLo I)).map fun h ↦ w (rowLo I + h) *
+    ((List.range (rowLo I)).map fun l ↦ rowWord base row (rowLo I * h + l) * w l).foldl (· + ·) 0
+  ).foldl (· + ·) 0
+
+/-- **One query** (`opening_query`, G:1179-1243; TRIAGE #39) at the position `q`: the hinted row
+of `I` (`base = 1`) or `3I` words of `K`, hashed (`hashWords`, the leaf of `openOne`, V:501) and
+climbed `depth - cd` levels by hinted siblings (`climb`, V:492, the position's low bits), reaches
+a node written at the cap's cells of node `2^cd + q / 2^(depth - cd)`, whose parent is flagged; the
+query's value is the row's dot product with the weights at `wp`. -/
+def QueryOpens (rd : Reader) (base I depth cd : ℕ) (cap flags wp : E) (q : ℕ) (row : List K)
+    (d : E) : Prop :=
+  row.length = (if base = 1 then I else 3 * I) ∧
+    ∃ (sibs : List Digest) (w : ℕ → E), sibs.length = depth - cd ∧
+      (∀ l < rowLo I + I / rowLo I, LoadHolds rd wp l (w l)) ∧
+      LoadHolds rd cap (2 * (2 ^ cd + q / 2 ^ (depth - cd)))
+        (digestScalars (climbD (hashWords row) q sibs)).1 ∧
+      LoadHolds rd cap (2 * (2 ^ cd + q / 2 ^ (depth - cd)) + 1)
+        (digestScalars (climbD (hashWords row) q sibs)).2 ∧
+      LoadHolds rd flags (2 ^ (cd - 1) + q / 2 ^ (depth - cd + 1)) 1 ∧
+      d = rowDot base I row w
+
+/-- The number of queries of `opening_queries` at `n_iters_g = g^N`: `odd + 2N` at level 0, `N`
+deeper. -/
+def oqCount (odd base N : ℕ) : ℕ := if base = 1 then odd + 2 * N else N
+
+/-- The chain `h ← (h + d_k)·μ` over the queries' values, `μ = λ⁻¹`, after `i` iterations (two
+queries an iteration at level 0, an odd count's first alone before them). -/
+def oqChain (odd base : ℕ) (mu : E) (ds : ℕ → E) : ℕ → E
+  | 0 => if odd = 1 then ds 0 * mu else 0
+  | i + 1 =>
+    if base = 1 then ((oqChain odd base mu ds i + ds (odd + 2 * i)) * mu + ds (odd + 2 * i + 1)) * mu
+    else (oqChain odd base mu ds i + ds i) * mu
+
+/-- The bit pointers' words are bits: every pointer `qptrs[k]`, `k < Q`, points to `depth` words
+that are `0` or `1` (`decode_query_bits` writes them so). -/
+def QueryBitsBool (rd : Reader) (qptrs : E) (Q depth : ℕ) : Prop :=
+  ∀ k < Q, ∀ bp, LoadHolds rd qptrs k bp → ∀ l < depth, ∀ b, LoadHolds rd bp l b → b = 0 ∨ b = 1
+
+/-- **`opening_queries(cap, flags, lam, lam_n, query_bit_ptrs, row_eq_weights, n_iters_g, odd,
+base, I, leaf_cells, depth, cd)`** (G:1246-1269; TRIAGE #40): `n_iters_g = g^N`, `λ ≠ 0`; query
+`k < Q` (`oqCount`) reads its bit pointer and the bits of its position `q_k < 2^depth`, and opens
+(`QueryOpens`) to the value `d_k`; the chain `h ← (h + d_k)·λ⁻¹` is in a heap run, and the
+function returns its end times `lam_n`: `lam_n · Σ_k d_k λ^(k - Q)` (`Σ_k λ^k d_k` at
+`lam_n = λ^Q`, `enforcedSum`, V:1635). -/
+def MeaningOpeningQueries (odd base I depth cd : ℕ) (rd : Reader) : List E → List E → Prop
+  | [cap, flags, lam, lamN, qptrs, wp, nG], rets =>
+      ∃ N < ordG, nG = gen ^ N ∧ lam ≠ 0 ∧
+        ∃ (bps : ℕ → E) (qs : ℕ → ℕ) (rows : ℕ → List K) (ds : ℕ → E),
+          (∀ k < oqCount odd base N, LoadHolds rd qptrs k (bps k) ∧ qs k < 2 ^ depth ∧
+            (∀ l < depth, LoadHolds rd (bps k) l (bitE ((qs k).testBit l))) ∧
+            QueryOpens rd base I depth cd cap flags wp (qs k) (rows k) (ds k)) ∧
+          ∃ ch : E, (∀ i ≤ N, LoadHolds rd ch i (oqChain odd base lam⁻¹ ds i)) ∧
+            rets = [oqChain odd base lam⁻¹ ds N * lamN]
+  | _, _ => False
+
+/-- `opening_queries__L{odd}_L{base}_L{I}_L{leafCells}_L{depth}_L{cd}`'s core IR is its meaning,
+when the bit pointers point to bits. The deployed specializations: `base = 1`, `I = 64`,
+`leafCells = 32`, or `base = 0`, `odd = 0`, `I = 16`, `leafCells = 24`; `4 ≤ cd ≤ 8`. -/
+def opening_queries_Spec (odd base I leafCells depth cd : ℕ) : Prop :=
+  ∀ (rd : Reader) (cap flags lam lamN qptrs wp nG : E) (rets : List E),
+    (∀ N, nG = gen ^ N → N < ordG → QueryBitsBool rd qptrs (oqCount odd base N) depth) →
+    (coreProgram.Rel rd ("opening_queries__L" ++ toString odd ++ "_L" ++ toString base ++ "_L" ++
+        toString I ++ "_L" ++ toString leafCells ++ "_L" ++ toString depth ++ "_L" ++
+        toString cd) [cap, flags, lam, lamN, qptrs, wp, nG] rets ↔
+      MeaningOpeningQueries odd base I depth cd rd [cap, flags, lam, lamN, qptrs, wp, nG] rets)
+
+/-- The 56 deployed specializations (`(odd, base, I, leafCells, depth, cd)`). -/
+def openingQueriesShapes : List (ℕ × ℕ × ℕ × ℕ × ℕ × ℕ) :=
+  [(0, 1, 64, 32, 17, 8), (0, 1, 64, 32, 18, 7), (0, 1, 64, 32, 18, 8), (0, 1, 64, 32, 19, 7),
+    (0, 1, 64, 32, 19, 8), (0, 1, 64, 32, 20, 6), (0, 1, 64, 32, 20, 7), (0, 1, 64, 32, 20, 8),
+    (0, 1, 64, 32, 21, 6), (0, 1, 64, 32, 21, 7), (0, 1, 64, 32, 21, 8), (0, 1, 64, 32, 22, 6),
+    (0, 1, 64, 32, 22, 7), (0, 1, 64, 32, 23, 6), (0, 1, 64, 32, 23, 7), (0, 1, 64, 32, 24, 6),
+    (0, 1, 64, 32, 24, 7), (0, 1, 64, 32, 25, 6), (0, 1, 64, 32, 26, 6), (1, 1, 64, 32, 19, 7),
+    (1, 1, 64, 32, 20, 7), (1, 1, 64, 32, 21, 7), (1, 1, 64, 32, 22, 7), (1, 1, 64, 32, 22, 8),
+    (1, 1, 64, 32, 23, 7), (1, 1, 64, 32, 23, 8), (1, 1, 64, 32, 24, 7), (1, 1, 64, 32, 25, 7),
+    (0, 0, 16, 24, 14, 5), (0, 0, 16, 24, 15, 5), (0, 0, 16, 24, 16, 4), (0, 0, 16, 24, 16, 5),
+    (0, 0, 16, 24, 16, 6), (0, 0, 16, 24, 17, 4), (0, 0, 16, 24, 17, 5), (0, 0, 16, 24, 17, 6),
+    (0, 0, 16, 24, 18, 4), (0, 0, 16, 24, 18, 5), (0, 0, 16, 24, 18, 6), (0, 0, 16, 24, 19, 4),
+    (0, 0, 16, 24, 19, 5), (0, 0, 16, 24, 19, 6), (0, 0, 16, 24, 20, 4), (0, 0, 16, 24, 20, 5),
+    (0, 0, 16, 24, 20, 6), (0, 0, 16, 24, 21, 4), (0, 0, 16, 24, 21, 5), (0, 0, 16, 24, 21, 6),
+    (0, 0, 16, 24, 22, 4), (0, 0, 16, 24, 22, 5), (0, 0, 16, 24, 22, 6), (0, 0, 16, 24, 23, 5),
+    (0, 0, 16, 24, 23, 6), (0, 0, 16, 24, 24, 5), (0, 0, 16, 24, 24, 6), (0, 0, 16, 24, 25, 5)]
+
+/-- Every deployed specialization of `opening_queries` is its meaning. -/
+def opening_queries_all_Spec : Prop :=
+  ∀ sh ∈ openingQueriesShapes,
+    opening_queries_Spec sh.1 sh.2.1 sh.2.2.1 sh.2.2.2.1 sh.2.2.2.2.1 sh.2.2.2.2.2
+
 end
 end LeanVM.Guest.B1
