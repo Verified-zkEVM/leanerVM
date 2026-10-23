@@ -7,7 +7,7 @@
 
 module
 
-public import LeanVM.Guest.B1.VerifySub.Template
+public import LeanVM.Guest.B1.VerifySub.Front
 public import LeanVM.Guest.B1.Terminal.Interface
 public import LeanVM.Protocol.Keccak.Multilinear
 public import LeanVM.Protocol.Keccak.Rmfe
@@ -177,6 +177,24 @@ theorem vsLamT_holds_of {SQ : Prop}
     rw [show vsTg 140 = 1883 from rfl] at ht
     rw [show vsPw 140 = 1884 from rfl] at hp
     rw [ht, hp]
+
+/-- **The batching** (G:3281-3299): `λ`'s squeeze, claim `j`'s power `λ^(1 + poolRank j)` stored
+for every batched claim, `λ^141` at `1884`, and the batched target at `1886`. -/
+theorem vsLamT_holds (h10 : σ (.n 10) = 0) (h11 : σ (.n 11) = 0) (h12 : σ (.n 12) = 0)
+    (h13 : σ (.n 13) = 0) {claims : List ColumnClaim}
+    (hcol : claims.map (·.column) = Tables.claimColumns)
+    (hval : ReadsAt rd (σ (.n 7)) (claims.map (·.value)))
+    (h : Stmt.HoldsList C rd σ vsLamT next kret) :
+    (⟨[σ (.n 966), σ (.n 967), σ (.n 968), σ (.n 969), σ (.n 970)], []⟩ : Fs).squeeze =
+      (σ (.n 1323), ⟨[σ (.n 1312), σ (.n 1313), σ (.n 1314), σ (.n 1315), σ (.n 1316)], []⟩) ∧
+    (∀ j < Tables.nClaims, Tables.claimColumns.getD j 0 ∉ keccakOutputColumns →
+      LoadHolds rd (σ (.n 1324)) j (σ (.n 1323) ^ (1 + poolRank j))) ∧
+    σ (.n 1884) = σ (.n 1323) ^ (1 + poolRank Tables.nClaims) ∧
+    σ (.n 1886) = dot (powers (σ (.n 1323))
+      ((claims.filter fun c ↦ c.column ∉ keccakOutputColumns).length + 2))
+      (σ (.n 1303) :: ((claims.filter fun c ↦ c.column ∉ keccakOutputColumns).map (·.value) ++
+        [σ (.n 869)])) ∧ next :=
+  vsLamT_holds_of (fun hs ↦ vsSqzT_holds (capb := 966) (o := 1304) h10 h11 h12 h13 hs) hcol hval h
 
 end
 end LeanVM.Guest.B1.VerifySub
