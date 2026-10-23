@@ -1,20 +1,27 @@
 /-
   LeanerVM.Protocol.ToVCVio.EventExpectation
 
-  Events and constants in the expectation of a scalar observation. Candidate for VCVio.
+  Events and constants in the expectation of a scalar observation, and an event after a draw.
+  Candidate for VCVio.
 -/
 
 module
 
 public import LeanerVM.Protocol.ToVCVio.ScalarExpectation
-public import VCVio.EvalDist.ProbabilityNotation
+public import VCVio.EvalDist.ProbabilityBounds
 
 /-!
 # Events and constants in scalar expectations
 
-Two laws of the expectation `∫⁻ r, r ∂𝒟[f <$> mx]`, for any lawful measure semantics: the
-probability of an event is the expectation of its indicator, and a constant comes out of the
-expectation over a computation that does not fail.
+Laws of the expectation `∫⁻ r, r ∂𝒟[f <$> mx]`, for any lawful measure semantics: the
+probability of an event is the expectation of its indicator, a constant comes out of the
+expectation over a computation that does not fail, and the expectation is monotone in an
+observation bounded on the support (`lintegral_id_evalDist_map_mono_of_mem_support`).
+
+An event after a draw: its probability is the expectation over the draw of its probability after
+each output (`prEvent_bind_eq_lintegral_id_evalDist_map`), and at most the probability of an
+event of the draw plus the largest probability after an output outside it
+(`prEvent_bind_le_add_iSup`).
 -/
 
 namespace LeanerVM.Protocol
@@ -46,6 +53,39 @@ theorem lintegral_id_evalDist_map_const_add (mx : m α) (hmx : Pr{let _ ← mx}[
   let : MeasurableSpace α := ⊤
   rw [lintegral_id_evalDist_map, lintegral_const, ← prEvent_true_eq_evalDist_apply_univ, hmx,
     mul_one]
+
+/-- An event after a draw has as probability the expectation, over the draw, of its probability
+after each output. -/
+theorem prEvent_bind_eq_lintegral_id_evalDist_map {β : Type} (mx : m α) (f : α → m β)
+    (q : β → Prop) :
+    Pr{let y ← mx >>= f}[q y] = ∫⁻ r, r ∂𝒟[(fun a ↦ Pr{let y ← f a}[q y]) <$> mx] := by
+  let : MeasurableSpace α := ⊤
+  rw [prEvent_bind_eq_lintegral_of_discrete, lintegral_id_evalDist_map]
+
+section Support
+
+variable [MonadAttach m] [WeaklyLawfulMonadAttach m]
+
+/-- An observation at most another at every output in the support has at most its
+expectation. -/
+theorem lintegral_id_evalDist_map_mono_of_mem_support (mx : m α) {f g : α → ℝ≥0∞}
+    (hfg : ∀ x ∈ support mx, f x ≤ g x) :
+    ∫⁻ r, r ∂𝒟[f <$> mx] ≤ ∫⁻ r, r ∂𝒟[g <$> mx] := by
+  let : MeasurableSpace α := ⊤
+  rw [lintegral_id_evalDist_map, lintegral_id_evalDist_map]
+  exact lintegral_mono_ae (evalDist.ae_of_forall_mem_support mx _ MeasurableSet.of_discrete hfg)
+
+/-- **An event after a draw.** The event `q` after `mx >>= f` has probability at most that of
+`p` under `mx` plus the largest probability of `q` under `f a`, over the outputs `a` of `mx`
+outside `p`. -/
+theorem prEvent_bind_le_add_iSup {β : Type} (mx : m α) (f : α → m β) (p : α → Prop)
+    (q : β → Prop) :
+    Pr{let y ← mx >>= f}[q y] ≤
+      Pr{let a ← mx}[p a] + ⨆ a ∈ support mx, ⨆ (_ : ¬ p a), Pr{let y ← f a}[q y] :=
+  prEvent_bind_le_prEvent_add_of_support mx f p q fun a ha hp ↦
+    le_iSup₂_of_le a ha (le_iSup_of_le hp le_rfl)
+
+end Support
 
 end
 

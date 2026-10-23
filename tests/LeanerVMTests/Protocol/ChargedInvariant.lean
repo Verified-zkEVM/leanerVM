@@ -35,7 +35,9 @@ computation exceeds a budget of no query to oracle `0`, and a charge of `1/4` at
 
 Two runs in sequence: a cached `0` after a query to oracle `0` and then one to oracle `1` has
 probability at most `1/4` for the first run plus `1/4` for the second from any cache without a
-`0` the first can leave.
+`0` the first can leave. Both oracles answering `0` has probability at most `1/16 + 1/16` when the
+second run starts from the potential the first leaves, in expectation; from its largest value,
+`1/4` after a first answer `0`, the bound would be `1/4 + 1/16`.
 -/
 
 namespace LeanerVMTests.Protocol
@@ -312,6 +314,27 @@ example :
       fun c t _ hc _ ↦ noZero_step c t hc
   · simpa using prEvent_not_good_le_mul NoZero oneQueryOne_bound (not_not.mp hz)
       fun c t _ hc _ ↦ noZero_step c t hc
+
+-- Both oracles answer `0` with probability at most `1/16 + 1/16`: the first run's expected
+-- charge, then the second run's from the potential the first leaves.
+example :
+    Pr{let z ← (simulateQ TestSpec.randomOracle (oneQuery >>= fun _ ↦ oneQueryOne)).run ∅}[
+      BothZero z.2] ≤ 16⁻¹ + 16⁻¹ := by
+  have hpend : ∀ z : Fin 4 × TestSpec.QueryCache, BothZero z.2 → 1 ≤ pending z.2 :=
+    fun z hz ↦ by simp [pending, hz.1, hz.2]
+  rw [← QueryHistory.randomOracle_cache]
+  refine (QueryHistory.cache.prEvent_bind_le_of_potential oneQuery (fun _ ↦ oneQueryOne) ∅
+    (fun z ↦ BothZero z.2) (fun z ↦ BothZero z.2) (fun _ z ↦ BothZero z.2)
+    (fun _ _ _ _ h ↦ .inr h) pending (fun _ _ ↦ 16⁻¹) pending_step hpend (ε := 16⁻¹)
+    fun z₁ _ _ ↦ ?_).trans ?_
+  · refine (QueryHistory.cache.prEvent_le_of_potential (fun z ↦ BothZero z.2) pending hpend
+      (fun _ _ ↦ 16⁻¹) pending_step oneQueryOne z₁.2).trans (add_le_add le_rfl ?_)
+    simpa using QueryHistory.cache.expected_charge_le_mul oneQueryOne_bound z₁.2
+      (charge := fun _ _ ↦ 16⁻¹) fun _ _ _ _ ↦ le_rfl
+  · have h := QueryHistory.cache.expected_charge_le_mul oneQuery_bound (∅ : TestSpec.QueryCache)
+      (charge := fun _ _ ↦ 16⁻¹) fun _ _ _ _ ↦ le_rfl
+    simp only [Nat.cast_one, one_mul] at h
+    simpa [pending] using add_le_add_right h 16⁻¹
 
 -- The same composition for a draw: the second of two uniform draws is `0` with probability at
 -- most `1/4`, whatever the first.

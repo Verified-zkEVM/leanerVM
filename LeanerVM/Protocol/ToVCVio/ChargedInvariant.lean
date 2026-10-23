@@ -53,11 +53,13 @@ later queries completes. Its consequences, in the namespace `QueryHistory`:
   `∑ j, n j * κ j` when the computation makes at most `n j` queries satisfying `p j`
   (`IsQueryBoundP`); the budgets are combined by `isQueryBound_pi_of_isQueryBoundP`.
 
-Two runs in sequence: `prEvent_bind_le_add_iSup` bounds an event after a draw by an event of the
-draw plus the largest probability of the event after a draw outside it, and
-`prEvent_simulateQ_bind_le_add_iSup` states it for a run of `oa >>= ob` against a stateful
-implementation, so that a bound for the first run and one for the second from any state the first
-can leave outside its bad event compose.
+Two runs in sequence, `oa >>= ob` against a stateful implementation:
+`prEvent_simulateQ_bind_le_lintegral` bounds an event by the expectation over the first run's end
+of `1` on a bad event of it and of the second run's bound otherwise, and
+`prEvent_simulateQ_bind_le_add_iSup` by the bad event's probability plus the second run's largest
+bound. `QueryHistory.prEvent_bind_le_of_potential` composes the expectation form with the
+potential: the second run's bound from a good end of the first is the potential there plus `ε`,
+and the total is the initial potential, the first run's expected charge and `ε`.
 
 `potential_le_expected_charge`, `prEvent_le_of_potential`,
 `prEvent_not_good_le_expected_charge`, `prEvent_not_good_le_mul`, `enncard_le_of_mem_support`
@@ -77,8 +79,6 @@ namespace LeanerVM.Protocol
 
 open OracleComp OracleSpec MeasureTheory
 open scoped ENNReal
-
-universe v
 
 @[expose] public section
 
@@ -140,6 +140,55 @@ theorem isQueryBound_pi_of_isQueryBoundP {spec : OracleSpec.{0, 0} ι} {α J : T
     exact (isQueryBound_query_bind_iff _ _ _ _ _).mpr
       ⟨fun j hj hp ↦ (h' j hj).1.resolve_left (not_not.mpr hp),
         fun u ↦ ih u fun j hj ↦ (h' j hj).2 u⟩
+
+/-! ## Two runs in sequence -/
+
+section Sequence
+
+variable {spec : OracleSpec.{0, 0} ι} {τ β γ : Type} (impl : QueryImpl spec (StateT τ ProbComp))
+  (oa : OracleComp spec β) (ob : β → OracleComp spec γ) (s : τ) (E : γ × τ → Prop)
+  (E₁ : β × τ → Prop) (E₂ : β × τ → γ × τ → Prop)
+
+omit [DecidableEq ι] in
+/-- **Two runs in sequence.** Run `oa` from the state `s` against a stateful implementation, then
+`ob` on its output from the state it leaves. If on every pair of reachable runs an event `E` of
+the final output and state implies an event `E₁` of the first run's output and state or an event
+`E₂` of both, then `E` has probability at most the expectation, over the first run's end `z₁`, of
+`1` when `E₁ z₁` holds and of the probability of `E₂ z₁` over the second run otherwise. -/
+theorem prEvent_simulateQ_bind_le_lintegral [DecidablePred E₁]
+    (hE : ∀ z₁ ∈ support ((simulateQ impl oa).run s),
+      ∀ z₂ ∈ support ((simulateQ impl (ob z₁.1)).run z₁.2), E z₂ → E₁ z₁ ∨ E₂ z₁ z₂) :
+    Pr{let z ← (simulateQ impl (oa >>= ob)).run s}[E z] ≤
+      ∫⁻ r, r ∂𝒟[(fun z₁ ↦ if E₁ z₁ then 1 else
+        Pr{let z₂ ← (simulateQ impl (ob z₁.1)).run z₁.2}[E₂ z₁ z₂]) <$>
+          (simulateQ impl oa).run s] := by
+  rw [simulateQ_bind, StateT.run_bind, prEvent_bind_eq_lintegral_id_evalDist_map]
+  refine lintegral_id_evalDist_map_mono_of_mem_support _ fun z₁ hz₁ ↦ ?_
+  split_ifs with h
+  · exact prEvent_le_one _ _
+  · exact prEvent_mono_of_support _ _ _ fun z₂ hz₂ hE₂ ↦ (hE z₁ hz₁ z₂ hz₂ hE₂).resolve_left h
+
+omit [DecidableEq ι] in
+/-- **Two runs in sequence, at the worst end of the first.** Under the hypotheses of
+`prEvent_simulateQ_bind_le_lintegral`, `E` has probability at most that of `E₁` plus the largest
+probability of `E₂` over the second run, from an end of the first run outside `E₁`. A bound for
+the first run and one for the second from any good state it can leave compose; a bound for the
+second run that depends on the state the first leaves is better composed in expectation
+(`QueryHistory.prEvent_bind_le_of_potential`). -/
+theorem prEvent_simulateQ_bind_le_add_iSup
+    (hE : ∀ z₁ ∈ support ((simulateQ impl oa).run s),
+      ∀ z₂ ∈ support ((simulateQ impl (ob z₁.1)).run z₁.2), E z₂ → E₁ z₁ ∨ E₂ z₁ z₂) :
+    Pr{let z ← (simulateQ impl (oa >>= ob)).run s}[E z] ≤
+      Pr{let z₁ ← (simulateQ impl oa).run s}[E₁ z₁] +
+        ⨆ z₁ ∈ support ((simulateQ impl oa).run s), ⨆ (_ : ¬ E₁ z₁),
+          Pr{let z₂ ← (simulateQ impl (ob z₁.1)).run z₁.2}[E₂ z₁ z₂] := by
+  rw [simulateQ_bind, StateT.run_bind]
+  refine prEvent_bind_le_prEvent_add_of_support _ _ E₁ E fun z₁ hz₁ hn ↦ ?_
+  exact (prEvent_mono_of_support _ _ _ fun z₂ hz₂ hE₂ ↦
+    (hE z₁ hz₁ z₂ hz₂ hE₂).resolve_left hn).trans
+    (le_iSup₂_of_le z₁ hz₁ (le_iSup_of_le hn le_rfl))
+
+end Sequence
 
 namespace QueryHistory
 
@@ -491,7 +540,10 @@ theorem expected_charge_le_of_isQueryBound {B : Type*} {canQuery : spec.Domain �
 `S`, component `j` at most `κ j` at a fresh query satisfying `p j` and zero at any other, at the
 states reached within `N` queries. A computation making at most `N` queries, at most `n j` of them
 satisfying `p j`, has expected total charge at most `∑ j ∈ S, n j * κ j`. A component charged at
-every query takes `p j` true and `n j = N`. -/
+every query takes `p j` true and `n j = N`; when every query is of some kind, `N` may be
+`∑ j ∈ S, n j`. The kinds are read off the query input alone, as `IsQueryBoundP` counts every
+query of the computation's tree: a component nonzero only at inputs the state singles out, among
+inputs of one shape, is budgeted by all the queries of that shape. -/
 theorem expected_charge_le_sum {J : Type} (S : Finset J) (p : J → spec.Domain → Prop)
     [∀ j, DecidablePred (p j)] {charge : J → σ → spec.Domain → ℝ≥0∞} {κ : J → ℝ≥0∞}
     {oa : OracleComp spec α} {N : ℕ} (hN : IsTotalQueryBound oa N) {n : J → ℕ}
@@ -515,6 +567,38 @@ theorem expected_charge_le_sum {J : Type} (S : Finset J) (p : J → spec.Domain 
     · rw [cast_eq_one_add_pred (hcan j hj hp) (n := b j), add_mul, one_mul]
       exact add_le_add hc le_rfl
     · rw [nonpos_iff_eq_zero.mp hc, zero_add]
+
+/-- **Two runs, one potential.** Run `oa` from `s` on `H`'s lazy random oracle, then `ob` on its
+output. Let the potential `Φ` grow by at most `charge` in expectation at a fresh query, let it be
+at least `1` on a bad event `E₁` of the first run's end, and let the second run, from a reachable
+end `z₁` of the first outside `E₁`, give `E₂ z₁` probability at most `Φ z₁.2 + ε`. If `E`
+implies `E₁ ∨ E₂` on reachable runs, it has probability at most the initial potential, plus the
+first run's expected total charge, plus `ε`: the second run starts from the potential the first
+leaves, in expectation, not from its largest value. -/
+theorem prEvent_bind_le_of_potential {β γ : Type} (oa : OracleComp spec β)
+    (ob : β → OracleComp spec γ) (s : σ) (E : γ × σ → Prop) (E₁ : β × σ → Prop)
+    (E₂ : β × σ → γ × σ → Prop)
+    (hE : ∀ z₁ ∈ support ((simulateQ H.randomOracle oa).run s),
+      ∀ z₂ ∈ support ((simulateQ H.randomOracle (ob z₁.1)).run z₁.2),
+        E z₂ → E₁ z₁ ∨ E₂ z₁ z₂)
+    (Φ : σ → ℝ≥0∞) (charge : σ → spec.Domain → ℝ≥0∞)
+    (hstep : ∀ s t, H.view s t = none →
+      ∫⁻ r, r ∂𝒟[(fun u ↦ Φ (H.record s t u)) <$> ($ᵗ spec.Range t)] ≤ Φ s + charge s t)
+    (hE₁ : ∀ z₁, E₁ z₁ → 1 ≤ Φ z₁.2) {ε : ℝ≥0∞}
+    (hsecond : ∀ z₁ ∈ support ((simulateQ H.randomOracle oa).run s), ¬ E₁ z₁ →
+      Pr{let z₂ ← (simulateQ H.randomOracle (ob z₁.1)).run z₁.2}[E₂ z₁ z₂] ≤ Φ z₁.2 + ε) :
+    Pr{let z ← (simulateQ H.randomOracle (oa >>= ob)).run s}[E z] ≤
+      Φ s + ∫⁻ r, r ∂𝒟[(fun z ↦ z.2.2) <$>
+        (simulateQ (H.chargedOracle charge) oa).run (s, 0)] + ε := by
+  classical
+  refine (prEvent_simulateQ_bind_le_lintegral _ oa ob s E E₁ E₂ hE).trans <|
+    (lintegral_id_evalDist_map_mono_of_mem_support _ (g := fun z₁ ↦ Φ z₁.2 + ε)
+      fun z₁ hz₁ ↦ ?_).trans ?_
+  · split_ifs with h
+    exacts [(hE₁ z₁ h).trans le_self_add, hsecond z₁ hz₁ h]
+  · rw [lintegral_id_evalDist_map_add _ (fun z₁ : β × σ ↦ Φ z₁.2) fun _ ↦ ε]
+    exact add_le_add (H.potential_le_expected_charge Φ charge hstep oa s)
+      (lintegral_id_evalDist_map_le_of_le _ fun _ ↦ le_rfl)
 
 end QueryHistory
 
@@ -603,42 +687,6 @@ theorem expected_fresh_in_le {Y : Type} [SampleableType Y] [Fintype Y] (S : Fins
   simpa only [QueryHistory.cache_view, answersIn_empty, zero_add] using
     QueryHistory.cache.expected_fresh_le (fun _ (u : Y) ↦ u ∈ S)
       (fun _ ↦ (SampleableType.prEvent_uniformSample_le_div_iff (α := Y) _).2 (by simp)) hn ∅
-
-/-! ## Two computations in sequence -/
-
-/-- **An event after a draw.** The event `q` after `mx >>= f` has probability at most that of
-`p` under `mx` plus the largest probability of `q` under `f a`, over the outputs `a` of `mx`
-outside `p`. -/
-theorem prEvent_bind_le_add_iSup {m : Type → Type v} [Monad m] [LawfulMonad m] [MonadAttach m]
-    [WeaklyLawfulMonadAttach m] [EvalDistSemantics m] [LawfulEvalDistSemantics m] {β γ : Type}
-    (mx : m β) (f : β → m γ) (p : β → Prop) (q : γ → Prop) :
-    Pr{let y ← mx >>= f}[q y] ≤
-      Pr{let a ← mx}[p a] + ⨆ a ∈ support mx, ⨆ (_ : ¬ p a), Pr{let y ← f a}[q y] :=
-  prEvent_bind_le_prEvent_add_of_support mx f p q fun a ha hp ↦
-    le_iSup₂_of_le a ha (le_iSup_of_le hp le_rfl)
-
-omit [DecidableEq ι] in
-/-- **Two runs in sequence.** Run `oa` from the state `s` against a stateful implementation, then
-`ob` on its output from the state it leaves. If on every pair of reachable runs an event `E` of
-the final output and state implies an event `E₁` of the first run's output and state or an event
-`E₂` of both, then `E` has probability at most that of `E₁` plus the largest probability of `E₂`
-over the second run, from an end of the first run outside `E₁`. A bound for the first run and one
-for the second from any good state it can leave compose. -/
-theorem prEvent_simulateQ_bind_le_add_iSup {spec : OracleSpec.{0, 0} ι} {τ β γ : Type}
-    (impl : QueryImpl spec (StateT τ ProbComp)) (oa : OracleComp spec β)
-    (ob : β → OracleComp spec γ) (s : τ) (E : γ × τ → Prop) (E₁ : β × τ → Prop)
-    (E₂ : β × τ → γ × τ → Prop)
-    (hE : ∀ z₁ ∈ support ((simulateQ impl oa).run s),
-      ∀ z₂ ∈ support ((simulateQ impl (ob z₁.1)).run z₁.2), E z₂ → E₁ z₁ ∨ E₂ z₁ z₂) :
-    Pr{let z ← (simulateQ impl (oa >>= ob)).run s}[E z] ≤
-      Pr{let z₁ ← (simulateQ impl oa).run s}[E₁ z₁] +
-        ⨆ z₁ ∈ support ((simulateQ impl oa).run s), ⨆ (_ : ¬ E₁ z₁),
-          Pr{let z₂ ← (simulateQ impl (ob z₁.1)).run z₁.2}[E₂ z₁ z₂] := by
-  rw [simulateQ_bind, StateT.run_bind]
-  refine prEvent_bind_le_prEvent_add_of_support _ _ E₁ E fun z₁ hz₁ hn ↦ ?_
-  exact (prEvent_mono_of_support _ _ _ fun z₂ hz₂ hE₂ ↦
-    (hE z₁ hz₁ z₂ hz₂ hE₂).resolve_left hn).trans
-    (le_iSup₂_of_le z₁ hz₁ (le_iSup_of_le hn le_rfl))
 
 end
 

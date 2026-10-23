@@ -871,24 +871,32 @@ the `(1 − γ) n` the query counts were optimised for (worst `2^-110.34`: stack
 with `(a − 1)^t` every level is below `2^-111` (worst `2^-111.0002`, stack size `23`, rate `2⁻²`,
 level `0`), so `2^-128` after grinding.
 
-*On merge* of the charged-budgets pull request, the generic probability the random-oracle bound
-consumes is on `main` beside the charged invariant (`ToVCVio/ChargedInvariant.lean`,
-`ToVCVio/UniformSample.lean`). Budgets: `expected_charge_le_of_isQueryBound` (a charge paid by a
-query bound of VCVio's general form, its budget priced) and `expected_charge_le_sum` (a sum of
-components, component `j` at most `κ j` on the queries satisfying `p j` and zero elsewhere, has
-expected total at most `∑ j, n j * κ j` for at most `n j` such queries, `IsQueryBoundP`), so that
-the Fiat–Shamir components are counted at the queries of their kind and the collision and hit
-components at every query. Two runs in sequence: `prEvent_simulateQ_bind_le_add_iSup` bounds an
-event of `oa >>= ob` against a stateful oracle by the first run's bad event plus the largest
-second-run bound from a state the first leaves outside it. Uniform laws: the first half of a
-bijection, coordinatewise on tuples, low digits, first entries, and digits in chunks are uniform.
-In `RandomOracle.lean`: `prEvent_challengeOf_tuple` (the challenges of `m` fresh digests are
-uniform on `Fin m → E`), `challengeBits` and `challengePositions` (WHIR's positions,
-`sample_queries_ordered`), and `prEvent_positions_uniform` (with `t ≤ m⌊192/b⌋`, the `t` positions
-of `m` fresh squeezes are uniform on `Fin t → Fin (2^b)`). The tests check the positions against
-the Rust's two-limb read by hand-computed values. It still owes the lemma that the verifier's
-`walkPositions` reads `challengePositions` of its squeezes' challenges, the step of the potential
-for a group's later queries, and `misbehaves_rom` itself.
+*On merge* of the charged-budgets pull request, the generic probability the random-oracle bound of
+`verify_knowledgeSound` (Layer 12, toward T4) consumes is on `main` beside the charged invariant
+(`ToVCVio/ChargedInvariant.lean`, `ToVCVio/UniformSample.lean`, `ToVCVio/EventExpectation.lean`).
+Budgets: `expected_charge_le_of_isQueryBound` (a charge paid by a query bound of VCVio's general
+form, its budget priced) and `expected_charge_le_sum` (a sum of components, component `j` at most
+`κ j` on the queries satisfying `p j` and zero elsewhere, has expected total at most
+`∑ j, n j * κ j` for at most `n j` such queries, `IsQueryBoundP`). A kind is read off the query
+input, so it counts every query of its shape. The adversary's run is budgeted by its `Q` queries.
+The verifier's run can only be budgeted by its total `V`, not by `rounds`: a Merkle node query
+`left ++ right` with sibling bytes the prover chose can have a squeeze step's shape, so the
+blueprint's `niError_le` term `(Q + rounds)·2^-128` becomes `(Q + V)·2^-128`, beside a `hashTerm`
+that already carries `Q + V`. Two runs in sequence: `prEvent_simulateQ_bind_le_lintegral` bounds an
+event of `oa >>= ob` against a stateful oracle by the expectation over the first run's end of `1`
+on its bad event and of the second run's bound otherwise;
+`QueryHistory.prEvent_bind_le_of_potential` starts the second run from the potential the first
+leaves, so the groups the adversary leaves open are counted once; the supremum form
+`prEvent_simulateQ_bind_le_add_iSup` would count them twice.
+Uniform laws: the first half of a bijection, coordinatewise on tuples, low digits, first entries,
+and digits in chunks are uniform. In `RandomOracle.lean`: `prEvent_challengeOf_tuple` (the
+challenges of `m` fresh digests are uniform on `Fin m → E`), `challengeBits` and
+`challengePositions` (WHIR's positions, `sample_queries_ordered`, faithful for `1 ≤ b < 64`, which
+the tests check of every deployed level), and `prEvent_positions_uniform` (with `t ≤ m⌊192/b⌋`, the
+`t` positions of `m` fresh squeezes are uniform on `Fin t → Fin (2^b)`). The tests check the
+positions against the Rust's two-limb read by hand-computed values. It still owes the lemma that
+the verifier's `walkPositions` reads `challengePositions` of its squeezes' challenges, the step of
+the potential for a group's later queries, and `misbehaves_rom` itself.
 
 ## Upstream watch
 

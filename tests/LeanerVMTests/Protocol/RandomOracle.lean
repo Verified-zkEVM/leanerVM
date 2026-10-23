@@ -1,4 +1,5 @@
 import LeanerVM.Protocol.RandomOracle
+import LeanerVM.Parameters.Whir
 
 /-!
 # Hash oracle tests
@@ -99,6 +100,18 @@ example :
     challengePositions 20 10 [E.ofLimbs (K.ofBits 0xF000000000000000) (K.ofBits 0xF) 0,
       E.ofLimbs (K.ofBits 0xABCDE) 0 0] 9 = 0xABCDE := by
   decide
+
+-- Every deployed level's positions have `1 ≤ b < 64` bits, `b = κ_i + R_i` (`blockLogs`), where
+-- `challengePositions` reads the Rust's chunks: over the whole window, every ladder.
+#guard (List.range (Whir.maxLogStack + 1)).all fun μ ↦
+  (List.range (Whir.maxLogInvRate + 1)).all fun r ↦
+    match Whir.ladder μ r with
+    | some ls => (Whir.blockLogs μ ls).all fun b ↦ 1 ≤ b && b < 64
+    | none => !decide (Whir.Admissible μ r)
+-- The widest, at `(μ, R) = (28, 4)`: `22 + 4`, then per level `κ` down by the fold `4` and `R`
+-- up by `3` (the previous fold less the domain reduction).
+#guard (Whir.ladder Whir.maxLogStack Whir.maxLogInvRate).map (Whir.blockLogs Whir.maxLogStack) =
+  some [26, 25, 24, 23, 22, 21]
 
 -- Ten positions of `20` bits from two fresh squeezes are a given tuple with probability
 -- `2^-200`.

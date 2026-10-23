@@ -188,8 +188,9 @@ def challengeBits (x : E) : ℕ :=
 (`sample_queries_ordered`, `crates/pcs/src/whir.rs:1175-1193` at
 `a386121f84292f6fa663aaa3e570c15bc0240ea2`): `⌊192/b⌋` to a challenge, low bits first, so position
 `q` is bits `[c·b, c·b + b)` of the 192 bits of challenge `q / ⌊192/b⌋`, `c = q % ⌊192/b⌋`. The
-Rust reads a chunk off at most two limbs into a `usize`, which is these bits for `b ≤ 64`, the
-deployed `b` being a level's `κ + R`. A position past the challenges given reads `0`. -/
+Rust reads a chunk off at most two limbs into a `u64` and masks it with `2^b - 1`, which is these
+bits for `1 ≤ b < 64` (`b = 0` divides by zero, `b = 64` overflows the mask); the deployed `b`, a
+level's `κ + R`, is in that range. A position past the challenges given reads `0`. -/
 def challengePositions (b t : ℕ) (xs : List E) : Fin t → Fin (2 ^ b) := fun q ↦
   ⟨challengeBits (xs.getD (q / (192 / b)) 0) / 2 ^ (q % (192 / b) * b) % 2 ^ b,
     Nat.mod_lt _ (Nat.two_pow_pos b)⟩
