@@ -134,5 +134,50 @@ noncomputable def lyCheck : Bool :=
 
 theorem lyCheck_eq : lyCheck = true := by decide +kernel
 
+theorem lyFound : ∃ fn : Fn, coreProgram.find? "__loop7" = some fn ∧
+    fn.params = [.n 0, .n 1, .n 2, .n 3, .n 4, .n 5] ∧ fn.body = lyBody := by
+  have h := lyCheck_eq
+  unfold lyCheck at h
+  split at h
+  · rename_i fn hf
+    simp only [Bool.and_eq_true, decide_eq_true_eq] at h
+    exact ⟨fn, hf, h.1, tbStmtsEqb_sound h.2⟩
+  · exact absurd h (by simp)
+
+/-- `__loop7`'s statements before its `ret`. -/
+def lyPre : List Stmt := lyBody.take 295
+
+theorem lyBody_eq : lyBody = lyPre ++ [.ret []] := tbStmtsEqb_sound (by decide +kernel)
+
+theorem lyPre_noRet : Stmt.noRetList lyPre = true := by decide +kernel
+
+/-! ## The layer slot -/
+
+/-- **The slot of point length `L`** in `layers` (`LAYER_SLOTS = 17`): the carried capacity and the
+waiting cells of the sponge `s` (at most two scalars), the cursor, the three trees' values, a
+row holding the point (of length `L`), the round position, `half` and `parity`. -/
+def GkSlot (rd : Reader) (layers : E) (L : ℕ) (s : TbxFs) (cur : E) (st : GkrState)
+    (row pos half parity : E) : Prop :=
+  s.cap.length = 5 ∧ TbxAllCanonical s.cap ∧
+    (∀ j < 5, LoadHolds rd layers (17 * L + j) (s.cap.getD j 0)) ∧ s.pend.length ≤ 2 ∧
+    (∀ j < 4, LoadHolds rd layers (17 * L + 13 + j) ((tbxRateOf s.pend).getD j 0)) ∧
+    LoadHolds rd layers (17 * L + 5) cur ∧ st.values.length = 3 ∧
+    (∀ t < 3, LoadHolds rd layers (17 * L + 6 + t) (st.values.getD t 0)) ∧
+    LoadHolds rd layers (17 * L + 9) row ∧ st.point.length = L ∧ TbReadsAt rd row st.point ∧
+    LoadHolds rd layers (17 * L + 10) pos ∧ LoadHolds rd layers (17 * L + 11) half ∧
+    LoadHolds rd layers (17 * L + 12) parity
+
+/-- **A layer of two levels** at `x = g^j`, the depth's parity `sh` (`depth_shift[g_bus_mu]`):
+from the slot of `L = 2j + sh`, its `half = g^(j/2)` and `parity = j % 2`, the stream runs
+`gkrStep 2` to the slot of `L + 2`, the row `40` words on. -/
+def LyB (rd : Reader) (dsb gmu layers x : E) : Prop :=
+  ∀ j sh : ℕ, x = gen ^ j → LoadHolds rd (dsb * gmu) 0 (gen ^ sh) → j < 2 ^ 30 → sh < 2 →
+    ∀ (s : TbxFs) (cur : E) (st : GkrState) (row pos : E),
+      GkSlot rd layers (2 * j + sh) s cur st row pos (gen ^ (j / 2)) (bitE (j % 2 = 1)) →
+      ∃ (xs : List E) (st' : GkrState) (s' : TbxFs) (pos' : E),
+        TbxRunsTo (gkrStep 2 st) s xs st' s' ∧ TbReadsAt rd cur xs ∧
+        GkSlot rd layers (2 * j + sh + 2) s' (cur * gen ^ xs.length) st' (row * gen ^ 40) pos'
+          (gen ^ ((j + 1) / 2)) (bitE ((j + 1) % 2 = 1))
+
 end
 end LeanVM.Guest.B1.Tables
