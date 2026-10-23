@@ -94,11 +94,12 @@ theorem sqNext_of_rows {rd : Reader} {sqz : E} {F : Fs} (hF : F.pend = []) {n : 
 
 /-- **A level of the trace gives the level's hypotheses.** -/
 theorem lvH_sp {C : CallRel} {rd : Reader} {P : OsPtrs} {c : OsCfg} {lvl : ℕ} {lv : OsLv}
-    {L : SpLv} {R : List (Digest × ℕ × ℕ)} {d : Digest} {sqz wp cur : E}
+    {L : SpLv} {R : List (Digest × ℕ × ℕ)} {d d' : Digest} {sqz wp cur : E}
     (h : SpLvFit c lvl lv L) (hb : LvB c lvl lv L.level lv.logCols)
     (hlvl : lvl ≠ c.yrLevel → (lvl + 1) * ligColsCap < u128Bound)
     (hyl : lvl = c.yrLevel → 2 ^ lv.logCols = c.yrLen)
-    (hOk : L.Ok R d) (hm : LvMem rd P c lvl lv L sqz cur) (hc : LvCallsOk C rd P c lvl lv L sqz wp) :
+    (hOk : L.Ok R d') (hdd : L.fin = false → digestOfScalars (L.ra, L.rb) = some d)
+    (hm : LvMem rd P c lvl lv L sqz cur) (hc : LvCallsOk C rd P c lvl lv L sqz wp) :
     LvH C rd P c lvl lv (spDat L d sqz wp) L.F L.ws.quad L.ws.target cur := by
   have hR := spDat_lvR h.fold d sqz wp
   have hcap := spDat_cap h d sqz wp
@@ -161,7 +162,7 @@ theorem lvH_sp {C : CallRel} {rd : Reader} {P : OsPtrs} {c : OsCfg} {lvl : ℕ} 
     have hood := hm.ood hf
     refine ⟨hf, h.f1, hc.fold, hc.can, hc.ood hf, hc.grind, hlvl hf, hxl,
       readsAt_left (readsAt_left hwr), hst,
-      (digestScalars_digestOfScalars (hOk.digest hL)).symm, ?_, hm.r0' hf, hm.r1' hf, ?_,
+      (digestScalars_digestOfScalars (hdd hL)).symm, ?_, hm.r0' hf, hm.r1' hf, ?_,
       readsAt_off hood (k := 1) (by simp), readsAt_off hood (k := 2) (by simp),
       readsAt_off hood (k := 3) (by simp), ?_, hb.sq0, hb.sq5, ?_, ?_, ⟨hIn, hc.sq⟩, hb.q2, ?_, hbo,
       hc.rw, hc.cap, hm.r0, hm.r1, ?_, ?_, ?_, ?_⟩
