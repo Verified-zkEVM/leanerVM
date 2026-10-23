@@ -8,16 +8,18 @@
 
 import LeanerVM.Protocol.Verify
 import LeanerVMTests.Protocol.Verify
+import LeanerVMTests.Protocol.VerifyFlock
 
 /-!
 # The `leanervm-verify` executable
 
 Runs, compiled, what `tests/LeanerVMTests/Protocol/Verify.lean` cannot afford to interpret: `verify`
 on the proof of `tests/LeanerVMTests/Protocol/RustProofData.lean` (`scripts/dump-proof-rust.sh`),
-on each of its `mutations`, with the stage `outcome` names for the rejection, then `whirChecks`
-and `bytecodeAgrees`. It prints one line per check, then times `verify` on the honest proof the
-number of times given by the first argument (default `1`), the fixture's parsing excluded. The
-exit code is `1` if any check fails.
+on each of its `mutations`, with the stage `outcome` names for the rejection, then `whirChecks`,
+`bytecodeAgrees`, and the BLAKE2s walk's forms against the circuit's at every row
+(`VerifyFlock.walkMismatches`). It prints one line per check, then times `verify` on the honest
+proof the number of times given by the first argument (default `1`), the fixture's parsing
+excluded. The exit code is `1` if any check fails.
 -/
 
 open LeanerVM.Protocol LeanerVM.Protocol.Verify LeanerVMTests.Protocol.RustProof
@@ -54,6 +56,10 @@ def main (args : List String) : IO UInt32 := do
   let b := bytecodeAgrees
   unless b do failed := failed + 1
   IO.println s!"{if b then "ok  " else "FAIL"} the bytecode multilinear is the program's share"
+  let bad := LeanerVMTests.Protocol.VerifyFlock.walkMismatches
+  unless bad.isEmpty do failed := failed + 1
+  IO.println s!"{if bad.isEmpty then "ok  " else "FAIL"} the BLAKE2s walk is the circuit's \
+    matrices at all 16384 rows (mismatches: {bad.take 8})"
   for i in [0:runs] do
     let t0 ← IO.monoNanosNow
     let ok ← forceVerdict f

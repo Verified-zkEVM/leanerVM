@@ -4,7 +4,7 @@
   The tables of a Flock argument for a batch of Boolean R1CS blocks, and the identities its
   zerocheck and lincheck rest on: the constraint residuals, the univariate skip's polynomial and
   its interpolation, the lincheck's tables and the block-diagonal identity, and the native
-  lincheck terminal. Candidate for ArkLib.
+  lincheck terminal, also with a supplied walk of the matrices. Candidate for ArkLib.
 -/
 
 module
@@ -531,6 +531,33 @@ theorem linTerminal_eq (nodes : SkipDomain F s) (C : BlockR1CS F (s + m))
   simp only [← Finset.mul_sum]
   rw [← C.sum_mul_rows_snd, heq, Finset.sum_ite_eq']
   simp
+
+/-- `wCol` with the equality kernel at `p` built once. -/
+def wColWith (sv : Vector F (2 ^ s)) (p : Vector F m) : CMlPolynomialEval F (s + m) :=
+  let Lp := lagrangeBasis p
+  Vector.ofFn fun j ↦ sv[((cubeSplit s m).symm j).1] * Lp[((cubeSplit s m).symm j).2]
+
+theorem wColWith_eq (sv : Vector F (2 ^ s)) (p : Vector F m) : wColWith sv p = wCol sv p := rfl
+
+/-- The lincheck terminal with the circuit's matrices evaluated by the walk `rows`, which a
+verifier supplies when the block R1CS's own walk is too slow to run. -/
+def linTerminalWith (rows : CMlPolynomialEval F (s + m) →
+      CMlPolynomialEval F (s + m) × CMlPolynomialEval F (s + m))
+    (nodes : SkipDomain F s) (cpos : Fin (2 ^ (s + m))) (Y : F) (χin : Vector F m) (α : F)
+    (p : Vector F m) (sv : Vector F (2 ^ s)) : F :=
+  let e := eRow nodes Y χin
+  let w := wColWith sv p
+  let rw := rows w
+  let L := skipWeights nodes Y
+  (∑ k : Fin (2 ^ (s + m)), e[k] * rw.1[k]) + α * (∑ k : Fin (2 ^ (s + m)), e[k] * rw.2[k]) +
+    α ^ 2 * (eqTilde χin p * ∑ i : Fin (2 ^ s), L[i] * sv[i]) + α ^ 3 * w[cpos]
+
+/-- With the block R1CS's own walk it is the lincheck terminal. -/
+theorem linTerminalWith_rows (C : BlockR1CS F (s + m)) (nodes : SkipDomain F s)
+    (cpos : Fin (2 ^ (s + m))) (Y : F) (χin : Vector F m) (α : F) (p : Vector F m)
+    (sv : Vector F (2 ^ s)) :
+    linTerminalWith C.rows nodes cpos Y χin α p sv = linTerminal nodes C cpos Y χin α p sv :=
+  rfl
 
 end
 

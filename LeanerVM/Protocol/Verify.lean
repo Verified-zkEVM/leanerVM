@@ -42,12 +42,12 @@ and `python-verifier/verifier.py:1365-1407` (`verify_execution`).
 `verify := verifyWith (m := Id) blake2sBytes`. Every function is total and computable, by
 structural recursion; a malformed proof is `false`.
 
-**The fixed public polynomials** (`settleFixedClaims`). Two claims on public polynomials are
-settled by evaluating them, which a recursive verifier defers instead (`VerifySummary`,
-`cpu/mod.rs:683-700`): the bytecode multilinear at the bus point and the fingerprint challenges,
-`B̃(ζ_{<κ_bc}, α)`, the program's share of the bytecode blocks' leaves, and the lincheck's native
-terminal, one forward walk of the BLAKE2s circuit (`blake2sRows`). The Flock check compares the
-lincheck's claim with the second. The bus phase's totals evaluate the first through the leanISA
+**The fixed public polynomials.** Two public polynomials are evaluated, which a recursive
+verifier defers instead (`VerifySummary`, `cpu/mod.rs:683-700`): the bytecode multilinear at the
+bus point and the fingerprint challenges, `B̃(ζ_{<κ_bc}, α)`, the program's share of the bytecode
+blocks' leaves (`settleFixedClaims`), and the BLAKE2s circuit's matrices at the lincheck's column
+weights, one forward walk of the circuit (`blake2sRows`), which the Flock step takes for the
+lincheck's check. The bus phase's totals evaluate the first through the leanISA
 instance's known coordinates, column by column as the Rust does (`leaf.rs:453`), so the verdict
 does not compare it again: `settleBytecode` is the same value as one multilinear, which the Rust
 computes too and hands on unchecked as the claim a recursive verifier defers
@@ -118,8 +118,6 @@ end Walk
 structure FixedClaims where
   /-- The bytecode multilinear at the bus point and the fingerprint challenges. -/
   bytecode : E
-  /-- The lincheck's native terminal at the slices. -/
-  lincheck : E
 
 /-- The bus phase's final point, from the grand product's challenges alone: each layer's
 combination challenges before the point its rounds drew. -/
@@ -135,12 +133,9 @@ def settleBytecode (prog : Program) (w : Wire) : Option E := do
   return eval₂Mle (bytecodeColumn prog).values (algebraMap K E) (z ++ α)
 
 /-- The claims on the fixed public polynomials, settled by evaluating them from the wire
-transcript: the bytecode multilinear (`settleBytecode`) and the lincheck's native terminal, one
-forward walk of the BLAKE2s circuit (`flockTerminal` at `blake2sRows`; `verifier.py:1242-1250`).
-`none` on a wire of the wrong shape. -/
-def settleFixedClaims (prog : Program) (s : Sizes) (w : Wire) : Option FixedClaims := do
-  return ⟨← settleBytecode prog w,
-    ← flockTerminal (s.τ 5) blake2sRows w.flock⟩
+transcript: the bytecode multilinear (`settleBytecode`). `none` on a wire of the wrong shape. -/
+def settleFixedClaims (prog : Program) (w : Wire) : Option FixedClaims := do
+  return ⟨← settleBytecode prog w⟩
 
 /-! ## The algebra -/
 
@@ -165,10 +160,10 @@ def algebra (prog : Program) (s : Sizes) (input : PublicInput) (shs : List Level
       match pubStep I t w.pub with
       | none => false
       | some p =>
-        match settleFixedClaims prog s w with
+        match settleFixedClaims prog w with
         | none => false
-        | some fixed =>
-        match flockStep I (flockRegion prog s Blake2sFlock.blake2sFlockSpec) rfl fixed.lincheck p
+        | some _ =>
+        match flockStep I (flockRegion prog s Blake2sFlock.blake2sFlockSpec) rfl blake2sRows p
           w.flock with
         | none => false
         | some f =>

@@ -74,10 +74,10 @@ def algebraOutcome (prog : Program) (s : Sizes) (input : PublicInput) (shs : Lis
       match pubStep I t w.pub with
       | none => .pub
       | some p =>
-        match settleFixedClaims prog s w with
+        match settleFixedClaims prog w with
         | none => .settle
-        | some fixed =>
-          match flockStep I (flockRegion prog s Blake2sFlock.blake2sFlockSpec) rfl fixed.lincheck
+        | some _ =>
+          match flockStep I (flockRegion prog s Blake2sFlock.blake2sFlockSpec) rfl blake2sRows
             p w.flock with
           | none => .flock
           | some f =>
@@ -254,8 +254,8 @@ def whirChecks (muts : List ((List (List (List K)) → List (List (List K))) ×
         let b ← leanVmBus f.prog s f.input w.bus
         let t ← tableStep I b w.table
         let p ← pubStep I t w.pub
-        let fixed ← settleFixedClaims f.prog s w
-        flockStep I (flockRegion f.prog s Blake2sFlock.blake2sFlockSpec) rfl fixed.lincheck p
+        let _ ← settleFixedClaims f.prog w
+        flockStep I (flockRegion f.prog s Blake2sFlock.blake2sFlockSpec) rfl blake2sRows p
           w.flock
       match fo with
       | none => []

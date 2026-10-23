@@ -34,9 +34,10 @@ the claim `P(z_skip)` interpolated from the 64 assumed zeros and the values sent
 (`Flock.skipClaim`); the zerocheck rounds decoded against the running claim with the point's
 equality weights; `ĉ = â·b̂ − R` (`Flock.termNext`); the lincheck's claim
 `v_a + α v_b + α² v_c + α³` (`Flock.alphaNext`); its rounds decoded; the check of the running claim
-against the native terminal at the slices (`Flock.linCheck`, its terminal `flockTerminal` one
-forward walk of the region's circuit, `BlockR1CS.rows`: the evaluation of the BLAKE2s matrices,
-settled outside the step); the point it ends at
+against the native terminal at the slices, `Flock.linCheck`'s expression on the statement with
+the circuit's matrices evaluated by a supplied walk `rows` (`Flock.linTerminalWith`; the
+verifier's is `blake2sRows`, the region's block R1CS walking `2^28` terms a matrix); the point it
+ends at
 (`Flock.linNext`); and the switched weighted claim `⟨W, q⟩ = Σ_i g^i Φ(s_i)` lifted into the
 stack (`Flock.ringWeight`, `Flock.ringTarget`, `FlockPhase.finish`).
 -/
@@ -99,43 +100,33 @@ end Walk
 
 variable (I : M3Instance)
 
-/-- The lincheck's native terminal on the wire, for `2 ^ k` blocks of a circuit whose matrices
-the walk `rows` evaluates (`Flock.linTerminalWith`; the region's own `BlockR1CS.rows`, or a
-faster walk of the same matrices): at the skip challenge, the zerocheck's within-block point, the
-lincheck's `α` and point (its challenges reversed, the variables bound highest first), and the
-slices. -/
-def flockTerminal (k : ℕ)
+/-- The Flock phase's algebra on its wire, on the instance's region `r`, the circuit's matrices
+evaluated by the walk `rows` (the region's own `BlockR1CS.rows`, or a faster walk of the same
+matrices): the oracle verifier's steps, its lincheck check `Flock.linCheck` with
+`Flock.linTerminalWith rows` for the region's walk, and the column claims handed on with the
+switched weighted claim. -/
+def flockStep (r : FlockRegion I.toShape) (hr : I.flock = some r)
     (rows : CMlPolynomialEval E (Flock.kSkip + Flock.kIn) →
       CMlPolynomialEval E (Flock.kSkip + Flock.kIn) × CMlPolynomialEval E (Flock.kSkip + Flock.kIn))
-    (w : FlockWire) : Option E := do
-  let P := flockParams k
-  let χ ← vec? (P.m + P.κ) (w.zc.map (·.chal))
-  let p ← vec? P.m (w.lin.map (·.chal)).reverse
-  let sv ← vec? (2 ^ P.s) w.slices
-  return Flock.linTerminalWith rows P.nodes P.cpos w.zskip (lowVec χ) w.alpha p sv
-
-/-- The Flock phase's algebra on its wire, on the instance's region `r`, with the lincheck's
-native terminal `terminal` settled outside (`flockTerminal`): the oracle verifier's steps, and
-the column claims handed on with the switched weighted claim. -/
-def flockStep (r : FlockRegion I.toShape) (hr : I.flock = some r) (terminal : E)
     (s : I.Stmt × PubOut I) (w : FlockWire) : Option (I.Stmt × FlockOut I) := do
   let P := flockParams r.kBatch
-  let v ← vec? P.nRand w.point
-  let msg ← vec? (2 ^ P.s) w.skip
+  let v ← RoundPoly.ofList? P.nRand w.point
+  let msg ← RoundPoly.ofList? (2 ^ P.s) w.skip
   let pt := P.point v
   let (claimZ, χ) ← replayRounds 2 (fun j ↦ pt[j]?) 0 (Flock.skipClaim P.nodes msg w.zskip) w.zc
-  let χ ← vec? (P.m + P.κ) χ
-  let ab ← vec? 2 w.ab
+  let χ ← RoundPoly.ofList? (P.m + P.κ) χ
+  let ab ← RoundPoly.ofList? 2 w.ab
   let t := Flock.termNext (S := I.Stmt × PubOut I) ((s, pt, w.zskip), (χ, claimZ)) ab
   let st₀ := Flock.alphaNext t w.alpha
   let (claimL, c) ← replayRounds 2 (fun _ ↦ none) 0 st₀.2.2 w.lin
-  let c ← vec? P.m c
-  let sv ← vec? (2 ^ P.s) w.slices
+  let c ← RoundPoly.ofList? P.m c
+  let sv ← RoundPoly.ofList? (2 ^ P.s) w.slices
   let st : SumcheckRound.Stmt (Flock.LinX (I.Stmt × PubOut I) E (P.m + P.κ)) E P.m :=
     (st₀.1, (c, claimL))
-  if st.2.2 ≠ terminal then none
+  if st.2.2 ≠ Flock.linTerminalWith rows P.nodes P.cpos st.1.1.1.2.2 (lowVec st.1.1.2.1) st.1.2
+      st.2.1.reverse sv then none
   let out := Flock.linNext P st sv
-  let fs ← vec? 6 w.ring
+  let fs ← RoundPoly.ofList? 6 w.ring
   return FlockPhase.finish r hr out.1 (Flock.ringWeight P 5 (FlockPhase.lift r) out.2.1 fs)
     (Flock.ringTarget P 5 (algebraMap K E) g out.2.2 fs)
 

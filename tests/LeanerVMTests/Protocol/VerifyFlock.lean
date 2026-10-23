@@ -19,6 +19,8 @@ flipped, a lincheck round's coefficient flipped, and a missing ring-switching co
 rows of `blake2sCircuit`'s matrices, read off its gates entry by entry, at rows of every kind:
 the constant, a chaining-value input, a message input, a counter input, an output bit, the first
 majority, ripple and carry gates of a mixing step, a gate of the last step, and a padding row.
+On GF(2) forms the walk's rows are the gates' forms at the same rows (`walkMismatches`); the
+`leanervm-verify` executable checks them at all `2^14` rows.
 -/
 
 namespace LeanerVMTests.Protocol.VerifyFlock
@@ -38,8 +40,8 @@ def weights (seed : ℕ) : CMlPolynomialEval E (Flock.kSkip + Flock.kIn) :=
     ((seed * 31 + j.val) * 40503 % 2 ^ 64) ((j.val * j.val + seed) % 2 ^ 64)
 
 /-- A form at the weights: the sum of the weights of its positions. -/
-def formAt (L : Form (Flock.kSkip + Flock.kIn)) (w : CMlPolynomialEval E (Flock.kSkip + Flock.kIn)) :
-    E :=
+def formAt (L : Form (Flock.kSkip + Flock.kIn))
+    (w : CMlPolynomialEval E (Flock.kSkip + Flock.kIn)) : E :=
   ∑ j : Fin (2 ^ (Flock.kSkip + Flock.kIn)), if L.getLsbD j then w[j] else 0
 
 /-- Row `k` of the circuit's two matrices at the weights, read off its gates. -/
@@ -58,6 +60,33 @@ def sampleRows : List ℕ :=
   sampleRows.all fun k ↦
     if h : k < 2 ^ (Flock.kSkip + Flock.kIn) then circuitRow ⟨k, h⟩ w == (r.1[k], r.2[k])
     else false
+
+/-! ## The walk against the circuit, as forms -/
+
+/-- A GF(2) linear form over the block's positions, `+` its XOR. -/
+structure Gf2Form where
+  /-- The positions with coefficient `1`. -/
+  bits : Form (Flock.kSkip + Flock.kIn)
+
+instance : Add Gf2Form := ⟨fun a b ↦ ⟨a.bits ^^^ b.bits⟩⟩
+
+instance : Zero Gf2Form := ⟨⟨0⟩⟩
+
+/-- The walk on forms: input `j` the form of position `j`, so row `k` of each side is the form
+the walk sums there. -/
+def walkForms : Array Gf2Form × Array Gf2Form :=
+  blake2sRowsOf ((Array.range (2 ^ (Flock.kSkip + Flock.kIn))).map fun j ↦
+    ⟨Form.var (pos j)⟩)
+
+/-- The rows at which the walk's two forms are not the gates' (`rowOf`): none, checked by the
+`leanervm-verify` executable at every row. -/
+def walkMismatches (rows : List ℕ := List.range (2 ^ (Flock.kSkip + Flock.kIn))) : List ℕ :=
+  let r := walkForms
+  rows.filter fun k ↦
+    let g := blake2sCircuit.rowOf (pos k)
+    !((r.1.getD k 0).bits == g.a && (r.2.getD k 0).bits == g.b)
+
+#guard walkMismatches sampleRows == []
 
 /-! ## The phase on the fixture -/
 
@@ -88,9 +117,8 @@ def flockValues (fws : List (FlockWire → FlockWire)) : List (Option E) :=
     | none => []
     | some po => fws.map fun fw ↦ do
       let w := fw w
-      let term ← flockTerminal (s.τ 5) blake2sRows w
       let fo ← flockStep (leanVm f.prog s) (flockRegion f.prog s Blake2sFlock.blake2sFlockSpec)
-        rfl term po w
+        rfl blake2sRows po w
       match fo.2.weighted.toList with
       | [c] => some c.value
       | _ => none

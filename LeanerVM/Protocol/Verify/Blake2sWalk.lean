@@ -2,12 +2,12 @@
   LeanerVM.Protocol.Verify.Blake2sWalk
 
   The forward walk of the BLAKE2s circuit at a vector of column weights: the products `A w` and
-  `B w` of the circuit's two matrices, computed word by word, and the lincheck terminal on it.
+  `B w` of the circuit's two matrices, computed word by word, over any type with `+` and `0`.
 -/
 
 module
 
-public import LeanerVM.Protocol.ToArkLib.Flock.Tables
+public import CompPoly.Multilinear.Basic
 public import LeanerVM.Parameters.Blake2s
 public import LeanerVM.Parameters.Flock
 
@@ -28,12 +28,25 @@ carry gates' rows, `(x_i + c, y_i + c)` for `x + y` and the majority and ripple 
 `(out bit, w_c)` and the inputs' and the constant's `(w_j, w_c)`, `w_c` the constant's weight.
 The layout is `LeanerVM.Protocol.Blake2sCircuit`'s.
 
-`linTerminalWith rows` is `Flock.linTerminal` with the walk `rows` (`linTerminalWith_rows`), and
-the column weights' table built once (`wColWith`).
+The walk is written once over any type with `+` and `0` (`blake2sRowsOf`): at `E` it is
+`blake2sRows`, and on GF(2) linear forms over the positions, `+` their XOR and input `j` the form
+of position `j`, it returns each row's two forms, the rows of the circuit's matrices as bitsets.
 
-That `blake2sRows` is the circuit's `rows` is owed: the verifier's Flock check rests on it, and
-the Rust proof's acceptance is its test, with the differential `#guard`s of the tests on rows of
-each kind.
+**Unproved target: the walk is the circuit's.** The verifier's Flock check rests on
+
+```
+theorem blake2sRows_eq (w : CMlPolynomialEval E (Flock.kSkip + Flock.kIn)) :
+    blake2sRows w = (blake2sCircuit.toBlockR1CS E).rows w
+```
+
+the forward walk of `LeanerVM.Protocol.Blake2sCircuit`'s block R1CS: row `k` of each side is
+the sum of the weights at the set bits of `(blake2sCircuit.rowOf k).a` and `.b`. Both sides are
+additive in `w`, so it is the equality of the walk's forms with the gates' forms at every row.
+The `leanervm-verify` executable checks that at all `2^14` rows, both forms as bitsets against
+`rowOf` (`LeanerVMTests.Protocol.VerifyFlock.walkMismatches`); the tests check the walk at `E`
+against the gates at rows of every kind, and the Rust proof's lincheck passes on it. A proof
+goes gate by gate, the circuit's construction and the walk visiting the same gates in the same
+order.
 -/
 
 namespace LeanerVM.Protocol
@@ -44,39 +57,43 @@ open LeanerVM.Parameters CompPoly CMlPolynomialEval
 
 namespace Blake2sWalk
 
-/-- The constant position. -/
-abbrev cpos : ℕ := 512
+variable {α : Type} [Add α] [Zero α]
 
+variable (α) in
 /-- The products of the walk. -/
 structure Rows where
   /-- The left products `A w`. -/
-  left : Array E
+  left : Array α
   /-- The right products `B w`. -/
-  right : Array E
+  right : Array α
 
+variable (α) in
 /-- A word's 32 bits at the weights. -/
-abbrev W32 := Array E
+abbrev W32 := Array α
 
-variable (w : Array E)
+variable (w : Array α)
+
+/-- The weight of the constant position. -/
+def constWeight : α := w.getD Flock.constPos.val 0
 
 /-- The input word at `base`: its bits' weights. -/
-def slots (base : ℕ) : W32 := (Array.range 32).map fun i ↦ w.getD (base + i) 0
+def slots (base : ℕ) : W32 α := (Array.range 32).map fun i ↦ w.getD (base + i) 0
 
 /-- A literal word: the constant's weight at its set bits. -/
-def literal (v : UInt32) : W32 :=
-  (Array.range 32).map fun i ↦ if v.toNat.testBit i then w.getD cpos 0 else 0
+def literal (v : UInt32) : W32 α :=
+  (Array.range 32).map fun i ↦ if v.toNat.testBit i then constWeight w else 0
 
 /-- XOR of words. -/
-def xorW (x y : W32) : W32 := (Array.range 32).map fun i ↦ x.getD i 0 + y.getD i 0
+def xorW (x y : W32 α) : W32 α := (Array.range 32).map fun i ↦ x.getD i 0 + y.getD i 0
 
 /-- Rotation right. -/
-def rotr (x : W32) (n : ℕ) : W32 := (Array.range 32).map fun i ↦ x.getD ((i + n) % 32) 0
+def rotr (x : W32 α) (n : ℕ) : W32 α := (Array.range 32).map fun i ↦ x.getD ((i + n) % 32) 0
 
 /-- `x + y` with its carry gates at `base`: their rows, and the sum's bits. -/
-def add (r : Rows) (x y : W32) (base : ℕ) : Rows × W32 := Id.run do
+def add (r : Rows α) (x y : W32 α) (base : ℕ) : Rows α × W32 α := Id.run do
   let mut r := r
-  let mut carry : E := 0
-  let mut out : W32 := #[]
+  let mut carry : α := 0
+  let mut out : W32 α := #[]
   for bit in [0:32] do
     if bit < 31 then
       r := ⟨r.left.set! (base + bit) (x.getD bit 0 + carry),
@@ -87,16 +104,16 @@ def add (r : Rows) (x y : W32) (base : ℕ) : Rows × W32 := Id.run do
 
 /-- `x + y + z` with its 31 majority and 30 ripple gates at `base`: their rows, and the sum's
 bits. -/
-def add3 (r : Rows) (x y z : W32) (base : ℕ) : Rows × W32 := Id.run do
+def add3 (r : Rows α) (x y z : W32 α) (base : ℕ) : Rows α × W32 α := Id.run do
   let mut r := r
-  let mut maj : W32 := #[]
+  let mut maj : W32 α := #[]
   for bit in [0:31] do
     r := ⟨r.left.set! (base + bit) (x.getD bit 0 + z.getD bit 0),
       r.right.set! (base + bit) (y.getD bit 0 + z.getD bit 0)⟩
     maj := maj.push (w.getD (base + bit) 0 + z.getD bit 0)
   let rb := base + 31
-  let mut carry : E := 0
-  let mut out : W32 := #[]
+  let mut carry : α := 0
+  let mut out : W32 α := #[]
   for bit in [0:32] do
     let q := if bit = 0 then 0 else maj.getD (bit - 1) 0
     let l := x.getD bit 0 + y.getD bit 0 + z.getD bit 0 + carry
@@ -108,8 +125,8 @@ def add3 (r : Rows) (x y z : W32) (base : ℕ) : Rows × W32 := Id.run do
 
 /-- The mixing function `G` on lanes `a, b, c, d` with the message words `mx, my`, its gates at
 `base`. -/
-def mix (r : Rows) (v : Array W32) (a b c d : ℕ) (mx my : W32) (base : ℕ) :
-    Rows × Array W32 :=
+def mix (r : Rows α) (v : Array (W32 α)) (a b c d : ℕ) (mx my : W32 α) (base : ℕ) :
+    Rows α × Array (W32 α) :=
   let (r, a1) := add3 w r (v.getD a #[]) (v.getD b #[]) mx base
   let d1 := rotr (xorW (v.getD d #[]) a1) 16
   let (r, c1) := add w r (v.getD c #[]) d1 (base + 61)
@@ -128,21 +145,19 @@ def gLanes : List (ℕ × ℕ × ℕ × ℕ) :=
 end Blake2sWalk
 
 open Blake2sWalk in
-/-- The forward walk of the BLAKE2s circuit at the column weights `w`: `A w` and `B w`
-(`blake2s_row_values`, `verifier.py:1167-1298`). -/
-def blake2sRows (w : CMlPolynomialEval E (Flock.kSkip + Flock.kIn)) :
-    CMlPolynomialEval E (Flock.kSkip + Flock.kIn) × CMlPolynomialEval E (Flock.kSkip + Flock.kIn) :=
-  let wa := w.toArray
+/-- The forward walk of the BLAKE2s circuit at the column weights `wa`, over any type with `+`
+and `0`: the rows `A w` and `B w` (`blake2s_row_values`, `verifier.py:1167-1298`). -/
+def blake2sRowsOf {α : Type} [Add α] [Zero α] (wa : Array α) : Array α × Array α :=
   let size := 2 ^ (Flock.kSkip + Flock.kIn)
-  let wc := wa.getD cpos 0
+  let wc := constWeight wa
   Id.run do
-    let mut r : Rows := ⟨Array.replicate size 0, Array.replicate size 0⟩
+    let mut r : Rows α := ⟨Array.replicate size 0, Array.replicate size 0⟩
     -- The inputs: the chaining value, the message, the counter and the flags.
     for (base, len) in [(0, 256), (640, 512), (1152, 128)] do
       for row in [base:base + len] do
         r := ⟨r.left.set! row (wa.getD row 0), r.right.set! row wc⟩
     -- The working vector.
-    let mut v : Array W32 := Array.replicate 16 #[]
+    let mut v : Array (W32 α) := Array.replicate 16 #[]
     for i in [0:8] do
       v := v.set! i (slots wa (32 * i))
     for i in [0:4] do
@@ -165,40 +180,14 @@ def blake2sRows (w : CMlPolynomialEval E (Flock.kSkip + Flock.kIn)) :
       for bit in [0:32] do
         r := ⟨r.left.set! (256 + 32 * i + bit) (out.getD bit 0),
           r.right.set! (256 + 32 * i + bit) wc⟩
-    r := ⟨r.left.set! cpos wc, r.right.set! cpos wc⟩
-    return (Vector.ofFn fun k ↦ r.left.getD k 0, Vector.ofFn fun k ↦ r.right.getD k 0)
+    r := ⟨r.left.set! Flock.constPos.val wc, r.right.set! Flock.constPos.val wc⟩
+    return (r.left, r.right)
 
-namespace Flock
-
-variable {F : Type} [Field F] {s m : ℕ}
-
-/-- `wCol` with the equality kernel at `p` built once. -/
-def wColWith (sv : Vector F (2 ^ s)) (p : Vector F m) : CMlPolynomialEval F (s + m) :=
-  let Lp := lagrangeBasis p
-  Vector.ofFn fun j ↦ sv[((cubeSplit s m).symm j).1] * Lp[((cubeSplit s m).symm j).2]
-
-theorem wColWith_eq (sv : Vector F (2 ^ s)) (p : Vector F m) : wColWith sv p = wCol sv p := rfl
-
-/-- The lincheck terminal with the circuit's matrices evaluated by the walk `rows`. -/
-def linTerminalWith (rows : CMlPolynomialEval F (s + m) →
-      CMlPolynomialEval F (s + m) × CMlPolynomialEval F (s + m))
-    (nodes : SkipDomain F s) (cpos : Fin (2 ^ (s + m))) (Y : F) (χin : Vector F m) (α : F)
-    (p : Vector F m) (sv : Vector F (2 ^ s)) : F :=
-  let e := eRow nodes Y χin
-  let w := wColWith sv p
-  let rw := rows w
-  let L := skipWeights nodes Y
-  (∑ k : Fin (2 ^ (s + m)), e[k] * rw.1[k]) + α * (∑ k : Fin (2 ^ (s + m)), e[k] * rw.2[k]) +
-    α ^ 2 * (eqTilde χin p * ∑ i : Fin (2 ^ s), L[i] * sv[i]) + α ^ 3 * w[cpos]
-
-/-- With the circuit's own walk it is the lincheck terminal. -/
-theorem linTerminalWith_rows (C : BlockR1CS F (s + m)) (nodes : SkipDomain F s)
-    (cpos : Fin (2 ^ (s + m))) (Y : F) (χin : Vector F m) (α : F) (p : Vector F m)
-    (sv : Vector F (2 ^ s)) :
-    linTerminalWith C.rows nodes cpos Y χin α p sv = linTerminal nodes C cpos Y χin α p sv :=
-  rfl
-
-end Flock
+/-- The forward walk of the BLAKE2s circuit at the column weights `w`: `A w` and `B w`. -/
+def blake2sRows (w : CMlPolynomialEval E (Flock.kSkip + Flock.kIn)) :
+    CMlPolynomialEval E (Flock.kSkip + Flock.kIn) × CMlPolynomialEval E (Flock.kSkip + Flock.kIn) :=
+  let r := blake2sRowsOf w.toArray
+  (Vector.ofFn fun k ↦ r.1.getD k 0, Vector.ofFn fun k ↦ r.2.getD k 0)
 
 end
 end LeanerVM.Protocol
