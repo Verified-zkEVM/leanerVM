@@ -69,8 +69,8 @@ from collections import Counter, defaultdict
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
-PIN = "3375f7a137c50b803f3416f6466b5d4e0719708a"
-VERIFIER_SHA256 = "e5014b58c80121fee19cdd8a73ca876a3e0406975c3858b5b0de16cfbe977826"
+PIN = "4af2cdddd7cd41b9df2cc7e123e314a91b0b4462"
+VERIFIER_SHA256 = "f00067a397587c3db37782201977b91cabb7118be9e15656539fea7f44e913d6"
 FILES = ("bytecode.bin", "public_input.bin", "stream.bin", "merkle_openings.bin")
 ROOT = Path(__file__).resolve().parent.parent
 TREE = ROOT.parent / ".leanvm"

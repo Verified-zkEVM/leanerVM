@@ -24,7 +24,7 @@ stable under later events (`HDoom.append`), so prover moves that leave the state
 keep it. This module specifies, in the calculus of `LeanVM.Protocol.Compile.Spec`:
 
 * `readNSpec`: reading `n` scalars keeps any property stable under reads;
-* `wireSumcheckSpec`: the verifier program's `sumcheck` (`verifier.py:405-426`), round by round,
+* `wireSumcheckSpec`: the verifier program's `sumcheck` (`verifier.py:404-425`), round by round,
   from doom on stage `j` of a sumcheck family to doom on its last stage, each challenge charged
   `L₀ · d / |E|`: the wire's round polynomial (the coefficient the claim fixes left out) is
   decoded into the protocol's message, which passes the protocol's check by construction.
@@ -211,7 +211,7 @@ theorem hdoom_relMid {j : ℕ} {s : SumcheckRound.Stmt X E j} {h : List Ev}
 
 variable {εmax T : ENNReal}
 
-/-- **The wire's round polynomial** (`Transcript.sumcheck_round_poly`, `verifier.py:405-412`):
+/-- **The wire's round polynomial** (`Transcript.sumcheck_round_poly`, `verifier.py:404-411`):
 reading it keeps doom, and it returns the protocol's message, which passes the check and is
 doomed. It ends the group of challenges before it: its lead is `0`. -/
 noncomputable def wireRoundPolySpec (hd : 1 ≤ d) (j : ℕ) (s : SumcheckRound.Stmt X E j)
@@ -290,7 +290,7 @@ def SumcheckPost (x : X) (m : ℕ) {j : ℕ} (cv : Vector E j) (r : List E × E)
     Prop :=
   j + r.1.length = m ∧ HDoom cands (SumcheckRound.rel Φ m) (x, (vecOf m (cv.toList ++ r.1), r.2)) h
 
-/-- **The wire's sumcheck** (`sumcheck`, `verifier.py:419-426`) from stage `j`, the rounds' modes
+/-- **The wire's sumcheck** (`sumcheck`, `verifier.py:418-425`) from stage `j`, the rounds' modes
 given by `eqs`: from doom on stage `j` at the challenges `cv` so far and the running claim, to doom
 on the last stage `m`; each challenge charged `L₀ · d / |E|`, every group of challenges being one
 challenge followed by a read. -/

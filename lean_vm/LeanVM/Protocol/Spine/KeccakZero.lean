@@ -31,8 +31,8 @@ fresh coordinate keeps a failing test failing except at one value at most
 (`card_zeroOnHi_cons_le`), the escape the table sumcheck's rounds absorb within their own
 `3/|E|`.
 
-Written from the specification (the Keccak reduction's first claim, `verifier.py:1293-1320` at
-leanVM `3375f7a137c50b803f3416f6466b5d4e0719708a`); nothing here transcribes Rust.
+Written from the specification (the Keccak reduction's first claim, `verifier.py:1309-1336` at
+leanVM `4af2cdddd7cd41b9df2cc7e123e314a91b0b4462`); nothing here transcribes Rust.
 -/
 
 namespace LeanVM.Protocol

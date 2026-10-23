@@ -18,7 +18,7 @@ A level that is not the last reads the next commitment's root (two scalars, chec
 stored in `level_roots`), samples its out-of-domain point (`opening_ood_point`, stored in
 `ood_z`), reads the point's value and the claim's intro message (stored in `ood`), then the
 proof-of-work nonce, absorbs the three scalars and the nonce and permutes: `grind_check` reads
-the permutation's first cell. In the Spec (V:1739-1752) that is `levelMid` (the commitment,
+the permutation's first cell. In the Spec (V:1798-1811) that is `levelMid` (the commitment,
 `sampleN`, `readE`, `sumcheckRoundPoly`) and the level's `grindP`.
 
 * `allOk_fsPackT`, `allOk_fsNextT`, `allOk_challengeT`: B1-a's inline templates, flat.
@@ -92,7 +92,7 @@ theorem runsTo_round3 (s : Fs) (claim c0 c2 : E) :
       (runsTo_ret _ _))
   simpa [sumcheckRoundPoly, sumE_single] using this
 
-/-- **`levelMid` then `grindP`** (V:1739-1752) on the carried sponge with two scalars waiting:
+/-- **`levelMid` then `grindP`** (V:1798-1811) on the carried sponge with two scalars waiting:
 the root's two scalars, the out-of-domain point squeezed from the four waiting scalars, its value
 and intro read, the nonce's proof of work on the permutation after it. -/
 theorem levelMid_grind_run (F : Fs) (ra rb y c0 c2 nonce : E)

@@ -15,8 +15,8 @@ public import LeanVM.Protocol.Whir.Complete.Tables
 /-!
 # Stacked leaves
 
-The bus phase of the verifier program (`verifyBusBalance`, `python-verifier/verifier.py:548-640`
-at leanVM `3375f7a137c50b803f3416f6466b5d4e0719708a`) reads each side of the bus as one grand
+The bus phase of the verifier program (`verifyBusBalance`, `python-verifier/verifier.py:547-643`
+at leanVM `4af2cdddd7cd41b9df2cc7e123e314a91b0b4462`) reads each side of the bus as one grand
 product over a cube of leaves: the side's blocks placed by `stack_offsets` (`bus_layout`), the
 rest of the cube filled with ones. This module is that placement, for any block sizes and any
 block tables:

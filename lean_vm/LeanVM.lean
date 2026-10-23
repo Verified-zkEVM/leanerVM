@@ -4,7 +4,7 @@ import LeanVM.Guest.Batch.Children
 import LeanVM.Guest.Batch.Rom
 
 /-! The theorems: the verifier's, `LeanVM.KnowledgeSoundness` and `LeanVM.Completeness`
-(`LeanVM/Spec/Statement.lean`), for leanVM at `keccak-gkr` (Keccak-256 and Keccak-f[1600] as
+(`LeanVM/Spec/Statement.lean`), for leanVM at `main` (Keccak-256 and Keccak-f[1600] as
 independent random oracles), `LeanVM.KnowledgeSoundnessRpm` and `LeanVM.CompletenessRpm`
 (`LeanVM/Spec/Rpm.lean`: both built from one random permutation), and the guest's batching of its
 children's deferred claims (`LeanVM.Guest.Batch.children_sound`, `batch_rom`, `batch_rom_bits`).

@@ -34,7 +34,7 @@ verifier.
 ## Conventions
 
 * A committed matrix is a `Word`: position `p` holds the row `word (p % 2^height)`, the reading
-  the Merkle path gives a position (its low `height` bits pick the leaf, `verifier.py:397`).
+  the Merkle path gives a position (its low `height` bits pick the leaf, `verifier.py:396`).
 * A history records a commitment with its shape and word, an opening with the rows the words
   give (`answer`); `Reachable P h` says `h` is a run of `P` with every opening answered from the
   words committed before it, and every committed word well shaped.

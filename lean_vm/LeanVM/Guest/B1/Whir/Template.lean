@@ -16,7 +16,7 @@ public import LeanVM.Guest.B1.Whir.Interface
 # The template of `open_stacked` (TRIAGE G #42)
 
 `osBody c` is the body of `open_stacked__L{c.m}` (`lean_ethereum.py:1283-1613` at leanVM
-`3375f7a13`) at the configuration `c = osCfg m`, value by value as the expansion numbers it: every
+`4af2cdddd`) at the configuration `c = osCfg m`, value by value as the expansion numbers it: every
 block takes the first free value `k` and returns the next, the running sponge cells, the cursor
 (a base value and a word offset), the waiting scalars, the quadratic and the claim in `OsSt`.
 `sqLoopBody` (G:1428-1440, one squeeze and its `decode_query_bits` an iteration) and

@@ -106,11 +106,11 @@ def wordBit (x : E) (i : Nat) : Bool :=
   let l := if i / 64 = 0 then c0 else if i / 64 = 1 then c1 else c2
   (l / 2 ^ (i % 64)) % 2 = 1
 
-/-- The cells of a Keccak state (`STATE_CELLS`, `crates/leanvm_core/src/keccak.rs:60`). -/
+/-- The cells of a Keccak state (`STATE_CELLS`, `crates/leanvm_core/src/keccak.rs:62`). -/
 def stateCells : Nat := 13
 
 /-- The rate cells a block of `136` bytes covers (`RATE_CELLS`,
-`crates/leanvm_core/src/keccak.rs:62`). -/
+`crates/leanvm_core/src/keccak.rs:64`). -/
 def blockCells : Nat := 9
 
 /-- The byte `v < 256` at byte `pos % 16` of a message cell, little-endian in limb `0` then limb

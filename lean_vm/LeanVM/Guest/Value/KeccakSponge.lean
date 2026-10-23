@@ -12,8 +12,8 @@ public import LeanVM.Guest.Value.KeccakLayout
 /-!
 # The sponge over message cells
 
-The compiler's `emit_keccak_message` (`crates/lean_compiler/src/lower/builtins.rs:243-288` at
-leanVM `3375f7a13`) absorbs a message held in cells `P` in `B` blocks of `136` bytes, one
+The compiler's `emit_keccak_message` (`crates/lean_compiler/src/lower/builtins.rs:208-249` at
+leanVM `4af2cdddd`) absorbs a message held in cells `P` in `B` blocks of `136` bytes, one
 `KECCAK` each: block `k` reads the nine cells from `P[17k/2]` in the layout of `k`'s parity, XORed
 into the previous output (the zero state, or the `state=` run, for the first), and writes its
 output in the next block's layout, the last in the even layout. With a length `len=` (`final`,
@@ -211,22 +211,22 @@ theorem keccak_chain {P : List E} {S0 : KState} {B : ℕ} {I O : ℕ → Fin 13 
 /-! ## The padding cells -/
 
 /-- The cell `xor_byte` XORs byte `v` into a message cell with: `v` at byte `pos % 16`, in limb
-`0` or `1` (`F192::new(v << 8·(byte % 8), 0, 0)` or `F192::new(0, ·, 0)`, `builtins.rs:292-300`). -/
+`0` or `1` (`F192::new(v << 8·(byte % 8), 0, 0)` or `F192::new(0, ·, 0)`, `builtins.rs:253-261`). -/
 def byteCell (pos v : ℕ) : E :=
   if pos % 16 < 8 then LeanVM.Guest.word (v * 2 ^ (8 * (pos % 16))) 0 0
   else LeanVM.Guest.word 0 (v * 2 ^ (8 * (pos % 16 - 8))) 0
 
 /-- `xor_byte(cells, pos, v)`: the message cell holding byte `pos` plus `byteCell pos v`
-(`builtins.rs:290-307`; a `Zero` cell becomes the constant, a `Const` the constant's sum, a
+(`builtins.rs:251-268`; a `Zero` cell becomes the constant, a `Const` the constant's sum, a
 `Cell` one `XOR` with a constant cell: in each case the sum). -/
 def xorByte (cs : List E) (pos v : ℕ) : List E := cs.modify (pos / 16) (· + byteCell pos v)
 
-/-- The cells the last of the `len / 136 + 1` blocks reads up to (`read`, `builtins.rs:252`). -/
+/-- The cells the last of the `len / 136 + 1` blocks reads up to (`read`, `builtins.rs:217`). -/
 def padRead (len : ℕ) : ℕ := 17 * (len / rate) / 2 + 9
 
 /-- **`emit_keccak_message`'s cells for a message of `len` bytes**: the cells zero-extended to
 `padRead len`, `0x01` XORed into byte `len` and `0x80` into the last block's last byte
-(`builtins.rs:251-266`). -/
+(`builtins.rs:216-227`). -/
 def padCells (cells : List E) (len : ℕ) : List E :=
   xorByte (xorByte (cells ++ List.replicate (padRead len - cells.length) 0) len 0x01)
     (rate * (len / rate + 1) - 1) 0x80
@@ -490,7 +490,7 @@ theorem digestScalars_digestOf (S : KState) :
     digestScalars (digestOf S) = (cellsOfState S false 0, cellsOfState S false 1) := rfl
 
 /-- **A `final` chain computes Keccak-256** (`keccak(...)` and `keccak_cells(...)` with the
-default `final`, `builtins.rs:243-288`). The message is the first `len` bytes of `cells`, its
+default `final`, `builtins.rs:208-249`). The message is the first `len` bytes of `cells`, its
 bytes past `len` zero; it is absorbed after `pre`, whole blocks already absorbed into `O 0`
 (the zero state, `pre = []`, or a `state=` run); the chain is `keccak_chain`'s over
 `padCells cells len`, `len / 136 + 1` blocks. Then the last output is the cells of the state, and

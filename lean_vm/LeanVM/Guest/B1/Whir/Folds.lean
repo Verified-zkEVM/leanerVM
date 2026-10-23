@@ -17,7 +17,7 @@ The guest's running values, read through a valuation `σ` (`OsSt.F`, `OsSt.cur`,
 the sponge it carries (its five capacity cells, the two scalars waiting), the cursor
 `cb·g^co`, the running quadratic. `osFold_sound`: one `opening_fold` call (its meaning,
 `MeaningOpeningFold`) squeezes the challenge, folds the quadratic and reads the next one;
-`osFolds_sound`: `n` of them run `foldRounds n` (V:1691) on the Spec's state whose quadratic is the
+`osFolds_sound`: `n` of them run `foldRounds n` (V:1750) on the Spec's state whose quadratic is the
 guest's, reading the words at the cursor, the challenges stored at `p·g^off`.
 -/
 
