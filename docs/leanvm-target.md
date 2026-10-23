@@ -271,6 +271,19 @@ one by one (`leaf.rs:453`) and hand the multilinear on unchecked for recursion
 (`leaf.rs:627-637`); the two are equal (`bytecodeShare_eq`), and a recursive verifier defers the
 one claim. This is implementation evidence about one proof, not a statement about the Rust.
 
+**The honest prover.** `prove` (`Protocol/Prove.lean`) writes a proof that `verify` accepts, of
+the constraint statement tests' witness at the smallest admissible sizes (`tests/vectors/`). Its
+stream is the Rust's order of messages and challenges (`cpu/mod.rs:520-640`): the sizes and the
+rate announced, the commitment, the bus phase, the table sumcheck, the public input, the Flock
+phase, the opening's batching, WHIR; round polynomials without the dropped coefficient, roots as
+two scalars. It differs from the Rust prover in its witness, which is given rather than built from
+an execution, so the two agree on a proof only where the witnesses and the honest messages agree;
+in the grind, whose nonce is the smallest that clears the bits as the Rust's parallel search
+returns, but within a fuel of candidates; and in the openings, written after the stream in level
+order where the Rust hands each to the proof as it opens it (the list is the same). The dump of a
+proof differs from `scripts/dump-proof-rust.sh`'s only in its first line's tag. Agreement with the
+Rust prover on one witness is not checked.
+
 **Not a discrepancy.** The Python verifier checks the caps (`16 ≤ log_mem ≤ 32`, every height at
 most 32, `τ_BLAKE2S ≥ 3`, a power-of-two program: `py:856-864`, called at `py:1378`). The former
 finding F9, that it omits them, was false.

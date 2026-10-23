@@ -369,6 +369,44 @@ scalar of a phase is rejected by the next level's grinding check, since the chai
 last level's query message and tail rounds reach WHIR's terminal check through the stream. The
 phases' own checks are exercised on the honest wire by the phase test modules and `whirChecks`.
 
+## `leanervm-prove`: the honest prover
+
+`bench/LeanerVMProve.lean` is the `leanervm-prove` executable: the honest non-interactive prover
+(`LeanerVM.Protocol.Prove`) compiled, on the constraint statement tests' witness
+(`fillW 1 g memCnt`, the executor's `mul_192bit_word` with its fill blocks), whose sizes are the
+smallest admissible: memory `2^16`, a stack of `2^19` cells, `2^3` BLAKE2s blocks, three WHIR
+levels at rate `1/2`. It runs the prover's writer in `IO` with the time read at each phase's first
+squeeze, writes the proof in the dump format, reads it back, and checks it with `verify` and its
+mutations (`mutationsOf`); with `pure` it also runs `prove` in `Id`.
+
+```sh
+lake build leanervm-prove
+.lake/build/bin/leanervm-prove tests/vectors/fill.proof 1   # the proof, its checks, the times
+.lake/build/bin/leanervm-prove probe 1                      # the commitment's steps, one by one
+```
+
+Recorded on 2026-10-23 on the machine of the tables above, one thread, 6.1 GB at the peak:
+
+| Phase | Time |
+| --- | ---: |
+| the stack (`stackOf`) | 3.9 s |
+| the commitment: the level-0 word's rows by the transform, the tree, the root | 228 s |
+| bus phase (cached) | 9.0 s |
+| table sumcheck (cached) | 0.44 s |
+| public input | 6 ms |
+| Flock phase (cached) | 16.6 s |
+| the opening's batching and WHIR's first round polynomial | 129 s |
+| WHIR's levels (cached), their commitments and grinding, the openings | 47 s |
+| **the prover, from the witness** | **434 s** |
+| `verify` on the proof | 1.36 s |
+
+`prove` in `Id` takes 425 s and returns the same proof, byte for byte. Of the commitment, the
+probe gives 228 s to the 64 lanes' encodings by the additive transform over `K`, 0.04 s to the
+stored rows and 0.85 s to the Merkle tree of `2^14` leaves. Rust leanVM at the pin proves its
+smallest run in 3.5 s on one thread on the same machine, so the prover is about 125 times slower,
+outside the blueprint's one to two orders of magnitude: the transform's `K` products and the
+batched weight's table dominate. Every mutation is rejected at the stage it names.
+
 Further runtime benchmark groups belong here once leanerVM has executable semantics. Each such
 group must name the workload, parameter revision, expected result, and whether it measures Lean code
 or a native boundary. Smoke tests must not be presented as performance benchmarks.

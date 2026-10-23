@@ -623,7 +623,14 @@ its own (`Whir.whirOpenCached`, `LeanerVM.Protocol.Whir.Cached`, from the generi
 fold rounds' tables bound once per challenge and the next level's word encoded once by the
 additive transform (`Whir.wordFast_eq`, `LeanerVM.Protocol.Whir.Transform`). This is an
 honest-prover refinement, not a `@[csimp]` substitution: a caller runs `leanVmFastProver` or
-`whirOpenCached`. Running any prover through
+`whirOpenCached`. The non-interactive prover runs them together: `compiledProver`
+(`LeanerVM.Protocol.Prove.Compiled`) is the compiled protocol's cached prover, proved to run as
+`listBindingDef`'s honest prover (`compiledProver_run`), and `Prover.runWith`
+(`LeanerVM.Protocol.ToArkLib.RunCodec`) runs it round by round against the transcript writer. A
+word an honest prover sends must be built as data where its step starts and read through: compiled
+code expands a closure returning a word, a one-field structure of a function, to take the position
+as an argument, which rebuilds the word at every read (`commitWordCached`,
+`Whir.commitNextCached`). Running any prover through
 ArkLib's `Prover.run` needs the challenge samplers of its schedule, which ArkLib builds for an
 appended schedule with `Fin.fappend₂`, exponential in the depth of a schedule appended on the
 right when compiled; `LeanerVM.Protocol.ToArkLib.AppendLazy` substitutes lazy forms by

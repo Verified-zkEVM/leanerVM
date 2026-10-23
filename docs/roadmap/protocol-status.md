@@ -1143,6 +1143,41 @@ Merkle trees', with the fast field arithmetic merged), the rest of Layer 12's ve
   Merkle check (`MerkleTree.octopusRoot_hom`, generic); `verifyWith_simulateQ` is its instance at
   `simulateQ impl` for the hash oracle `List UInt8 →ₒ Digest` of the random-oracle game.
 
+*On merge* of the prover's branch (`feat/protocol-prover`, on the verifier's and the stateful
+provers'), Layer 13's honest prover and its test vectors are on `main`. No target theorem
+advances; `baseProver_complete` is owed.
+
+- **The prover** (`Protocol/Prove.lean`, `Protocol/Prove/`): `proveWith H fuel F prog input w ρ`
+  reads the sizes off the witness, checks them with the rate, announces them, runs the compiled
+  protocol's prover against the chain, and opens every committed word at its level's positions;
+  `prove` is it at BLAKE2s-256 and the deployed Flock specification, `honestAdversary` the prover
+  in the random-oracle game. The prover is `compiledProver`, the cached prover of `listBindingDef`
+  (the bus phase, the table sumcheck, the Flock phase and WHIR's opening cached, the level-0 word's
+  rows by the transform), whose run is `listBindingDef`'s honest prover's
+  (`compiledProver_run`). It runs against the wire of its schedule, `compiledCodec`, written over
+  the writer's primitives (`WireOps`) phase by phase as the verifier's walk reads it, by
+  `Prover.runWith` (`ToArkLib/RunCodec.lean`), which runs an ArkLib prover round by round in any
+  monad as `Prover.run` does. Where it differs from the sketch: `proveWith` takes the Flock
+  specification, which the stack's layout reads, and `prove` fixes the deployed one; the oracle
+  protocol's nonce message is replaced on the wire by the grind's nonce, which no oracle verifier
+  reads.
+- **Words as data.** Compiled code expands a closure that returns a word (a one-field structure
+  of a function) to take the position as one more argument, so an honest prover whose message is
+  such a closure rebuilds the word at every row read; the honest level-0 commitment did not finish
+  in 90 minutes. The commitment and WHIR's next words are built as data when their step starts and
+  read through (`commitWordCached`, `Cached.sendEncoded`, `Whir.commitNextCached`).
+- **The vectors** (`tests/vectors/`, `bench/LeanerVMProve.lean`): `leanervm-prove` proves the
+  constraint statement tests' witness at the smallest admissible sizes in 434 s, writes the proof
+  in the dump format, and checks that `verify` accepts it (1.4 s) and rejects every mutation of
+  `mutationsOf` at its stage; `prove` in `Id` returns the same proof. The blueprint names the
+  executable `leanervm-vectors` with its root under `tests/`; it is `leanervm-prove` under `bench/`,
+  beside `leanervm-verify`, and the witness is the hand-built one, since `checkSatisfiedBy` does
+  not exist yet (the witness's `SatisfiedBy` is a proved theorem instead). Owed: the prover within
+  two orders of magnitude of the Rust's (it is about 125 times slower: the level-0 encoding over
+  `K` and the batched weight's table, `bench/README.md`), and `baseProver_complete`, whose proof
+  composes `compiledProver_run`, `listBinding_deployed_perfectCompleteness`, the codec read back
+  by the walk, and `merkleVerifyWith_merkleOpen`.
+
 ## Upstream watch
 
 External work that may feed or replace a hole. The state of each is on GitHub.
