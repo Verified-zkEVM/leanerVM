@@ -1172,11 +1172,48 @@ advances; `baseProver_complete` is owed.
   `mutationsOf` at its stage; `prove` in `Id` returns the same proof. The blueprint names the
   executable `leanervm-vectors` with its root under `tests/`; it is `leanervm-prove` under `bench/`,
   beside `leanervm-verify`, and the witness is the hand-built one, since `checkSatisfiedBy` does
-  not exist yet (the witness's `SatisfiedBy` is a proved theorem instead). Owed: the prover within
-  two orders of magnitude of the Rust's (it is about 125 times slower: the level-0 encoding over
-  `K` and the batched weight's table, `bench/README.md`), and `baseProver_complete`, whose proof
-  composes `compiledProver_run`, `listBinding_deployed_perfectCompleteness`, the codec read back
-  by the walk, and `merkleVerifyWith_merkleOpen`.
+  not exist yet (the witness's `SatisfiedBy` is a proved theorem instead). Beside the proof's
+  mutations, both executables run the algebra on the honest wire with one message changed in each
+  front phase and in WHIR (`frontChecksOf`, `whirChecksOf`), and `leanervm-prove tamper` changes
+  one front phase's message as the prover sends it and checks that each phase rejects its own.
+  Owed: the prover within two orders of magnitude of the Rust's (it is about 125 times slower:
+  the level-0 encoding over `K` and the batched weight's table, `bench/README.md`).
+- **`baseProver_complete`, the generic half** (`ToArkLib/RunCodec.lean`): ArkLib's `Prover.run` is
+  not what the prover calls, and its challenge oracle cannot interleave the chain's sends, so the
+  oracle protocol's completeness reaches `runWith` through the run on given challenges,
+  `Prover.runWithChallenges`: `runWith_eq_runWithChallenges` (whatever the wire, a run's
+  transcript and output are the run on the transcript's own challenges),
+  `simulateQ_run_eq_runWithChallenges` (`Prover.run`, the challenge oracle answered off a vector,
+  is that run) and `accepts_of_perfectCompleteness` (a perfectly complete reduction with no shared
+  oracle accepts on every challenge vector: the run on given challenges is reachable under
+  uniform challenges, `mem_support_simulateQ_challenges`, and a probability-one event holds on
+  every reachable outcome).
+- **`baseProver_complete`, what remains.** For a witness with `SatisfiedBy` and admissible sizes,
+  `prove … = some proof → verify prog input proof = true`, composed as follows; each piece is owed.
+  - *The prover's run is the honest run on its challenges*: `compiledProver_run` and
+    `runWith_eq_runWithChallenges` at `writeProof`'s run, lifted through the prover's book.
+  - *The honest transcript is accepted*: `accepts_of_perfectCompleteness` at
+    `listBinding_deployed_perfectCompleteness`, on the stack's `M3Rel` (`m3Holds_stackOf`).
+  - *The nonce bridge*: the oracle prover sends `0` as each level's nonce (`sendNonce`,
+    `finalNonce`) where the wire carries the grind's nonce. Owed: the compiled verifier's verdict
+    does not depend on the nonce rounds, which their checks (`true`) and every later step of a
+    level (they read `pos`, `lam`, `cq`, `c`, `cood`, `p3`, never `nonce`) bear out, stated through
+    `listBindingDef` without changing the merged protocol.
+  - *The wire read back by the walk*: `ReadsBack` (`Proof.lean`) of `Prover.runWith
+    compiledCodec` against `walkChain`, phase by phase over `listBindingSpec`, from the
+    primitives' read-backs (`readsBack_scalar`, `readsBack_root`, `readsBack_sample`,
+    `readsBack_grind`) lifted along the book; the decoded wire is the honest transcript with the
+    dropped coefficients restored (`RoundPoly.decode_encode`).
+  - *The algebra on the decoded transcript*: `algebra` is `true` whenever the oracle verifier
+    accepts the transcript the wire decodes to: `busStep`, `tableStep`, `pubStep`, `flockStep`,
+    `openingClaim` and `whirCheck` each against its phase's guarded check and output. The largest
+    piece; no theorem relates the executable verifier to the oracle verifiers yet.
+  - *The openings and the setup*: `hintOpenings` against `walkOpenings` by
+    `merkleVerifyWith_merkleOpen` (positions below `2^depth`, rows `rowWords` wide), the
+    announcement by `decodeAnnouncement_announcement`, `ladderOf` and `openingsOk` at the proof's
+    shapes, and `Reader.finish`.
+  - *The random-oracle form*: `Pr[prove fails] ≤ levels · (1 − 2^-17)^(2^24)`, otherwise accepted,
+    on the logged game with the hash a uniform function.
 
 ## Upstream watch
 
