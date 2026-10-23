@@ -297,6 +297,8 @@ jobs:
         run: |
           lake build node-vectors
           .lake/build/bin/node-vectors
+      - name: The guest's core IR data is current
+        run: lake exe guest-core --check
       - name: Save the Lake build
         if: github.ref == 'refs/heads/main' && steps.lake-cache.outputs.cache-hit != 'true'
         uses: actions/cache/save@v4
