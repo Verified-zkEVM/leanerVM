@@ -218,6 +218,123 @@ theorem vtc_selblock (hl : args.length = 22) {v b t pos : ℕ} {prev : Option �
     · cases prev <;> simp only [vtSelTail, List.mem_cons, List.not_mem_nil, or_false] at hs <;>
         rcases hs with rfl | rfl <;> simp [autoB, pureB, hintB] at ha
 
+set_option maxHeartbeats 1000000 in
+/-- **A framework block's selector, complete.** -/
+theorem vtc_fwblock (hl : args.length = 22) {v b pos : ℕ} {prev : Option ℕ}
+    (hcheck : tbStmtsEqb (vtFwSelT v b prev) ((vtPre.drop pos).take (vtFwSelT v b prev).length) =
+      true) (hv : 2767 < v)
+    (hS : Atom.load (.n v) (.n 12) b ∉ vtSL ∧ Atom.load (.n (v + 7)) (.n 185) b ∉ vtSL ∧
+      Atom.load (.n (v + 18)) (.n 185) b ∉ vtSL)
+    {point : List E} (hmu : vtσ rd wo args (.n 9) = gen ^ point.length) (hml : point.length < 33)
+    (hz1 : TbReadsAt rd (vtσ rd wo args (.n 2767)) (point.map (1 + ·)))
+    (hidxc : TbReadsAt rd (vtσ rd wo args (.n 2732)) vtIdxcList)
+    {κ : ℕ} (hκ : LoadHolds rd (vtσ rd wo args (.n 12)) b (gen ^ κ)) (hκμ : κ ≤ point.length)
+    {off : ℕ} (hoff : LoadHolds rd (vtσ rd wo args (.n 185)) b (gen ^ off)) (hal : 2 ^ κ ∣ off)
+    (hob : off < 2 ^ point.length)
+    (hbits : TbReadsAt rd (vtσ rd wo args (.n (v + 6))) (offBits off))
+    (hw0 : wo (v + 16) = Placement.eqAbove ⟨κ, off, 0⟩ point) (hw1 : wo (v + 17) = gen ^ off)
+    (hlow : ∀ i < 34, (rd (Parameters.gpow i)).isSome) :
+    (∀ s ∈ vtFwSelT v b prev, VSH (coreProgram.Rel rd) rd (vtσ rd wo args) s) ∧
+      vtσ rd wo args (.n (v + 16)) = Placement.eqAbove ⟨κ, off, 0⟩ point ∧
+      vtσ rd wo args (.n (if prev.isNone then v + 19 else v + 20)) = vtσ rd wo args (.n (v + 16)) ∧
+      vtσ rd wo args (.n (if prev.isNone then v + 16 else v + 19)) =
+        (match prev with | none => 0 | some p => vtσ rd wo args (.n p)) +
+          vtσ rd wo args (.n (v + 16)) := by
+  have hmem : ∀ s ∈ vtFwSelT v b prev, s ∈ vtPre := fun s hs ↦ vt_mem_slice hcheck hs
+  obtain ⟨hS0, hS7, hSE⟩ := hS
+  obtain ⟨d, hpl⟩ : ∃ d, point.length = κ + d := ⟨point.length - κ, by omega⟩
+  have r0 := vt_readM hl (hmem _ (by simp [vtFwSelT])) hS0 hκ
+  have r7 := vt_readM hl (hmem _ (by simp [vtFwSelT])) hS7 hoff
+  have rE := vt_readM hl (hmem _ (by simp [vtFwSelT])) hSE hoff
+  have hG : ∀ s ∈ vtFwSelT v b prev, GoodS rd vtSL wo (vtσ rd wo args) (fixNe s) :=
+    fun s hs ↦ vt_goodS hl (hmem s hs)
+  have g1 := hG (.atom (.const (.n (v + 1)) vtW33)) (by simp [vtFwSelT])
+  have g8 := hG (.atom (.mul (.n 9) (.n (v + 8)) (.n v))) (by simp [vtFwSelT])
+  have g9 := hG (.atom (.const (.n (v + 9)) vtW33)) (by simp [vtFwSelT])
+  have g13 := hG (.atom (.mul (.n (v + 13)) (.n (v + 6)) (.n v))) (by simp [vtFwSelT])
+  have g14 := hG (.atom (.mul (.n (v + 14)) (.n 2767) (.n v))) (by simp [vtFwSelT])
+  have g15 := hG (.atom (.mul (.n (v + 15)) (.n 2732) (.n v))) (by simp [vtFwSelT])
+  simp only [fixNe, GoodS, Good] at g1 g8 g9 g13 g14 g15
+  rw [ite_neg' (by omega)] at g8
+  rw [ite_pos' (by simp)] at g13
+  rw [ite_pos' (by simp; omega)] at g14 g15
+  have e8 : vtσ rd wo args (.n (v + 8)) = gen ^ d := by
+    rw [g8, hmu, r0.1, hpl, ← pow_sub₀ _ gen_ne_zero (by omega : κ ≤ κ + d), Nat.add_sub_cancel_left]
+  have hrets := vt_retsM (rd := rd) (w := wo) hl (hmem _ (by simp [vtFwSelT] :
+    Stmt.dispatch (.n (v + 8)) vtBsNames [.n (v + 13), .n (v + 14), .n (v + 15)]
+      [.n (v + 16), .n (v + 17)] ∈ vtFwSelT v b prev))
+  have e16 : vtσ rd wo args (.n (v + 16)) = Placement.eqAbove ⟨κ, off, 0⟩ point := by
+    rw [hrets _ (by simp), ← hw0]
+  have e17 : vtσ rd wo args (.n (v + 17)) = gen ^ off := by rw [hrets _ (by simp), ← hw1]
+  -- the callee
+  have hbl : (selBitsOf off κ d).length = d := selBitsOf_length off κ d
+  have hval := selBitsOf_val hal (by rw [← hpl]; exact hob)
+  have hsb : TbReadsAt rd (vtσ rd wo args (.n (v + 13))) ((selBitsOf off κ d).map bitE) := by
+    rw [g13, r0.1]; exact selBits_reads (by omega) hbits
+  have hz1' : TbReadsAt rd (vtσ rd wo args (.n (v + 14))) ((point.map (1 + ·)).drop κ) := by
+    rw [g14, r0.1]; exact tbReadsAt_drop hz1 κ
+  have hic : TbReadsAt rd (vtσ rd wo args (.n (v + 15))) ((vtIdxcList.drop κ).take d) := by
+    rw [g15, r0.1]; exact tbReadsAt_take (tbReadsAt_drop hidxc κ) d
+  have hrel := block_selector_complete_holds d (by omega) rd
+    [vtσ rd wo args (.n (v + 13)), vtσ rd wo args (.n (v + 14)), vtσ rd wo args (.n (v + 15))]
+    [Placement.eqAbove ⟨κ, off, 0⟩ point, gen ^ off]
+    ⟨selBitsOf off κ d, (point.map (1 + ·)).drop κ, (vtIdxcList.drop κ).take d, hbl,
+      by simp; omega, by simp [vtIdxcList]; omega, hsb, hz1', hic, ?_, ?_⟩
+  rotate_left
+  · rw [← List.map_drop, vt_eq_plusOne, List.map_drop, vt_eqAbove (κ := κ) hbl hpl, hval]
+  · rw [vt_idxcProd (κ := κ) hbl (by omega), hval]
+  have hT : ∀ s ∈ vtFwTail v prev, GoodS rd vtSL wo (vtσ rd wo args) (fixNe s) :=
+    fun s hs ↦ hG s (by simp only [vtFwSelT, List.cons_append, List.mem_cons]; simp [hs])
+  refine ⟨?_, e16, ?_, ?_⟩
+  rotate_left
+  · cases prev with
+    | none =>
+      have := hT (.atom (.copy (.n (v + 19)) (.n (v + 16)))) (by simp [vtFwTail])
+      simpa [fixNe, GoodS, Good] using this
+    | some p =>
+      have := hT (.atom (.copy (.n (v + 20)) (.n (v + 16)))) (by simp [vtFwTail])
+      simpa [fixNe, GoodS, Good] using this
+  · cases prev with
+    | none =>
+      show vtσ rd wo args (.n (v + 16)) = 0 + _
+      rw [zero_add]
+    | some p =>
+      have := hT (.atom (.add (.n (v + 19)) (.n p) (.n (v + 16)))) (by simp [vtFwTail])
+      simpa [fixNe, GoodS, Good] using this
+  refine vt_blockA hl pos _ hcheck fun s hs ha ↦ ?_
+  simp only [vtFwSelT, List.cons_append, List.mem_cons] at hs
+  rcases hs with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl |
+    rfl | rfl | hs
+  · exact r0.2
+  · simp [autoB, pureB, hintB] at ha
+  · exact vsh_rcM hl (hmem _ (by simp [vtFwSelT])) (by simp) (K := 34) r0.1
+      (by rw [g1]; exact word_g33.trans (gen_pow_eq_ofK 33).symm) (by omega) hlow
+  · simp [autoB, pureB, hintB] at ha
+  · simp [autoB, pureB, hintB] at ha
+  · exact r7.2
+  · simp [autoB, pureB, hintB] at ha
+  · show vtσ rd wo args (.n 9) = vtσ rd wo args (.n (v + 8)) * vtσ rd wo args (.n v)
+    rw [hmu, e8, r0.1, hpl, ← pow_add, Nat.add_comm]
+  · simp [autoB, pureB, hintB] at ha
+  · exact vsh_rcM hl (hmem _ (by simp [vtFwSelT])) (by simp) (K := 34) e8
+      (by rw [g9]; exact word_g33.trans (gen_pow_eq_ofK 33).symm) (by omega) hlow
+  · simp [autoB, pureB, hintB] at ha
+  · simp [autoB, pureB, hintB] at ha; omega
+  · simp [autoB, pureB, hintB] at ha; omega
+  · refine vsh_dispatch (j := d) (by simp [vtBsNames]; omega) e8 ?_
+    simp only [vtBsNames, List.getElem_map, List.getElem_range, List.map_cons, List.map_nil]
+    rw [e16, e17]
+    exact hrel
+  · exact rE.2
+  · exact vsh_eq (by rw [e17, rE.1])
+  · cases prev with
+    | none =>
+      simp [vtFwTail] at hs
+      subst hs; simp [autoB, pureB, hintB] at ha
+    | some p =>
+      simp [vtFwTail] at hs
+      rcases hs with rfl | rfl <;> simp [autoB, pureB, hintB] at ha
+
 end
 
 end
