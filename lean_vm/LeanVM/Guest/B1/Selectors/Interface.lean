@@ -131,11 +131,12 @@ def RunTables (rd : Reader) (eqt gt : E) (n : ℕ) (zs zs1 gs : List E) : Prop :
     TbReadsAt rd (gt * gen ^ (16 * j)) (gTable (nib gs j))
 
 /-- `shared_selector_tables(eq_tab, g_tab, zeta_hi, zeta1_hi, gsq_hi, len_g)`: `len_g = g^n`,
-`n < 64`, and the tables of the `n` coordinates at `zeta_hi` are written. -/
+`n < 64`, and for the `n` coordinates, complements and shares read at `zeta_hi`, `zeta1_hi`,
+`gsq_hi`, their nibble tables are written. -/
 def SharedSelOut (rd : Reader) : List E → List E → Prop
   | [eqt, gt, z, z1, gsq, lenG], [] =>
-      ∃ n < 64, lenG = gen ^ n ∧ ∃ zs zs1 gs : List E, zs.length = n ∧ zs1.length = n ∧
-        gs.length = n ∧ TbReadsAt rd z zs ∧ TbReadsAt rd z1 zs1 ∧ TbReadsAt rd gsq gs ∧
+      ∃ n < 64, lenG = gen ^ n ∧ ∀ zs zs1 gs : List E, zs.length = n → zs1.length = n →
+        gs.length = n → TbReadsAt rd z zs → TbReadsAt rd z1 zs1 → TbReadsAt rd gsq gs →
         RunTables rd eqt gt n zs zs1 gs
   | _, _ => False
 

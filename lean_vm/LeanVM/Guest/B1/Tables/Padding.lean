@@ -39,8 +39,6 @@ theorem tb_ite_neg' {α : Type} {c : Prop} [Decidable c] {a b : α} (h : ¬c) :
 theorem tb_ite_pos' {α : Type} {c : Prop} [Decidable c] {a b : α} (h : c) :
     (if c then a else b) = a := by simp [h]
 
-theorem tb_word_gen : word 2 0 0 = gen := by rw [tb_word_eOfNat]; rfl
-
 /-- A prefix of the bits of `N` reconstructs `N mod 2^j`. -/
 theorem tb_sum_bits_mod (N j : ℕ) (hj : j ≤ 64) :
     ∑ t ∈ Finset.range j, bitE (N.testBit t) * coordBasis t = eOfNat (N % 2 ^ j) := by

@@ -66,6 +66,8 @@ theorem tb_word_zero : word 0 0 0 = 0 := by rw [tb_word_eOfNat, eOfNat_zero]
 
 theorem tb_word_one : word 1 0 0 = 1 := by rw [tb_word_eOfNat, eOfNat_one]
 
+theorem tb_word_gen : word 2 0 0 = gen := by rw [tb_word_eOfNat]; rfl
+
 /-- `E(2^a)` is `g^a` below the first reduction. -/
 theorem tb_word_two_pow {a : ℕ} (h : a < 64) : word (2 ^ a) 0 0 = gen ^ a := by
   rw [tb_word_eOfNat, gen_pow_eq_eOfNat h]
@@ -558,6 +560,39 @@ theorem tb_guarded_loop_iff {P : Core.Program} {rd : Reader} {f : String} {ps : 
       · exact absurd (show 1 + N = 0 by rw [hN, h, pow_zero]; exact e_add_self 1) h1
       · exact h
     exact hl.mpr ⟨m, hm0, hN, tb_first_hit_of_lt hm hN, fun j _ hj => hall j hj⟩
+
+/-- **A `mul_range` loop, soundness**: if `f`'s relation at depth `d + 1` gives its body's meaning
+`B x` and the next call, then `f` holding at `g^k` gives `N = g^m` for some `m > k` and `B` at every
+`g^j`, `k ≤ j < m`. -/
+theorem tb_loop_sound {P : Core.Program} {rd : Reader} {f : String} {ps : List E} {N : E}
+    {B : E → Prop}
+    (hstep : ∀ d x, P.relN rd (d + 1) f (x :: ps) [] →
+      B x ∧ (x * gen + N ≠ 0 → P.relN rd d f (x * gen :: ps) []))
+    (k : ℕ) (h : P.Rel rd f (gen ^ k :: ps) []) :
+    ∃ m, k < m ∧ N = gen ^ m ∧ ∀ j, k ≤ j → j < m → B (gen ^ j) := by
+  obtain ⟨d, hd⟩ := h
+  induction d generalizing k with
+  | zero => exact hd.elim
+  | succ d ih =>
+    obtain ⟨hB, hnext⟩ := hstep d _ hd
+    by_cases h0 : gen ^ k * gen + N = 0
+    · refine ⟨k + 1, by omega, (tb_gen_pow_add_eq_zero_iff k).mp h0, fun j h1 h2 => ?_⟩
+      rwa [show j = k by omega]
+    · have := hnext h0
+      rw [tb_gen_pow_mul_gen] at this
+      obtain ⟨m, hm, hN, hall⟩ := ih (k + 1) this
+      refine ⟨m, by omega, hN, fun j h1 h2 => ?_⟩
+      rcases Nat.lt_or_ge k j with h | h
+      · exact hall j (by omega) h2
+      · rwa [show j = k by omega]
+
+/-- Two runs of words read at one pointer, of one length, are equal. -/
+theorem tbReadsAt_unique {rd : Reader} {p : E} {l1 l2 : List E} (h1 : TbReadsAt rd p l1)
+    (h2 : TbReadsAt rd p l2) (hl : l1.length = l2.length) : l1 = l2 :=
+  List.ext_getElem hl fun k hk1 hk2 => tb_loadHolds_unique (h1 k hk1) (h2 k hk2)
+
+theorem tb_ite_neg'' {α : Type} {c : Prop} [Decidable c] {a b : α} (h : ¬c) :
+    (if c then a else b) = b := by simp [h]
 
 end
 end LeanVM.Guest.B1.Tables
