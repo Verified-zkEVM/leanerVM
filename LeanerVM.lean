@@ -36,6 +36,7 @@ import LeanerVM.Protocol.FixedColumns
 import LeanerVM.Protocol.Flock
 import LeanerVM.Protocol.FlockFields
 import LeanerVM.Protocol.FlockSpec
+import LeanerVM.Protocol.HonestProver
 import LeanerVM.Protocol.LeanIsa
 import LeanerVM.Protocol.LeanIsa.Bus
 import LeanerVM.Protocol.LeanIsa.Complete
@@ -58,6 +59,8 @@ import LeanerVM.Protocol.Stack
 import LeanerVM.Protocol.TableSumcheck
 import LeanerVM.Protocol.ToArkLib.AppendLazy
 import LeanerVM.Protocol.ToArkLib.Batch
+import LeanerVM.Protocol.ToArkLib.CachedProver
+import LeanerVM.Protocol.ToArkLib.CachedRounds
 import LeanerVM.Protocol.ToArkLib.Component
 import LeanerVM.Protocol.ToArkLib.ExtractIn
 import LeanerVM.Protocol.ToArkLib.Flock.BlockR1CS
@@ -74,6 +77,7 @@ import LeanerVM.Protocol.ToArkLib.Flock.Words
 import LeanerVM.Protocol.ToArkLib.Flock.Zerocheck
 import LeanerVM.Protocol.ToArkLib.FrontVerifier
 import LeanerVM.Protocol.ToArkLib.GrandProduct
+import LeanerVM.Protocol.ToArkLib.GrandProductCached
 import LeanerVM.Protocol.ToArkLib.GrandProductPoly
 import LeanerVM.Protocol.ToArkLib.GrandProductSecurity
 import LeanerVM.Protocol.ToArkLib.GuardedVerdict
@@ -98,6 +102,7 @@ import LeanerVM.Protocol.ToArkLib.SendOracle
 import LeanerVM.Protocol.ToArkLib.SendOracleBeside
 import LeanerVM.Protocol.ToArkLib.StepSchedule
 import LeanerVM.Protocol.ToArkLib.Sumcheck
+import LeanerVM.Protocol.ToArkLib.SumcheckCached
 import LeanerVM.Protocol.ToArkLib.SumcheckRound
 import LeanerVM.Protocol.ToArkLib.TranscriptMap
 import LeanerVM.Protocol.ToArkLib.WeightBatch
@@ -105,6 +110,7 @@ import LeanerVM.Protocol.ToArkLib.WeightCombination
 import LeanerVM.Protocol.ToClean.ComponentPolynomial
 import LeanerVM.Protocol.ToClean.ExpressionPolynomial
 import LeanerVM.Protocol.ToCompPoly.AmbientStacking
+import LeanerVM.Protocol.ToCompPoly.BindStep
 import LeanerVM.Protocol.ToCompPoly.BitProductTable
 import LeanerVM.Protocol.ToCompPoly.Doubling
 import LeanerVM.Protocol.ToCompPoly.FinLoop
@@ -118,6 +124,7 @@ import LeanerVM.Protocol.ToCompPoly.MvEval
 import LeanerVM.Protocol.ToCompPoly.PartialSum
 import LeanerVM.Protocol.ToCompPoly.PlainSum
 import LeanerVM.Protocol.ToCompPoly.PowerBatching
+import LeanerVM.Protocol.ToCompPoly.ProductLevels
 import LeanerVM.Protocol.ToCompPoly.ProductTree
 import LeanerVM.Protocol.ToCompPoly.Restriction
 import LeanerVM.Protocol.ToCompPoly.Stacking
