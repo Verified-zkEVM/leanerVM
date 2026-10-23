@@ -26,6 +26,7 @@ below the arm count). Then (`codewordT_sound`), with the digits `cwDigit σ i` o
 namespace LeanVM.Guest.B1.Sig
 
 open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest LeanVM.Guest.Core LeanVM.Guest.Value
+open LeanVM.Protocol.Verifier
 
 @[expose] public section
 
@@ -203,6 +204,180 @@ theorem digitSum_one (k : Nat) (hk : k < 4) : digitSum k 1 = k := by
 theorem eOfNat192_add_shift {S k s : Nat} (hS : S < 2 ^ s) :
     eOfNat192 S + eOfNat192 (2 ^ s * k) = eOfNat192 (S + 2 ^ s * k) := by
   rw [← eOfNat192_xor, Nat.xor_comm, two_pow_mul_xor hS, add_comm]
+
+theorem sum_lt_pow64 (K : Nat → Nat) (hK : ∀ q, K q < 64) :
+    ∀ p, ∑ q ∈ Finset.range p, K q * 4 ^ (3 * q) < 2 ^ (6 * p)
+  | 0 => by simp
+  | p + 1 => by
+      rw [Finset.sum_range_succ]
+      have ih := sum_lt_pow64 K hK p
+      have h1 : K p * 4 ^ (3 * p) ≤ 63 * 2 ^ (6 * p) := by
+        rw [show (4 : Nat) ^ (3 * p) = 2 ^ (6 * p) by rw [pow_mul, pow_mul]; norm_num]
+        exact Nat.mul_le_mul_right _ (by have := hK p; omega)
+      rw [show 6 * (p + 1) = 6 * p + 6 by ring, pow_add]
+      omega
+
+theorem group_lit_bound {k q : Nat} (hk : k < 64) (hq : q ≤ 20) : k * 4 ^ (3 * q) < 2 ^ 128 := by
+  have h1 : 4 ^ (3 * q) ≤ 4 ^ 60 := Nat.pow_le_pow_right (by norm_num) (by omega)
+  calc k * 4 ^ (3 * q) < 64 * 4 ^ (3 * q) := Nat.mul_lt_mul_of_pos_right hk (by positivity)
+    _ ≤ 64 * 4 ^ 60 := Nat.mul_le_mul_left _ h1
+    _ < 2 ^ 128 := by norm_num
+
+theorem last_lit_bound {k q : Nat} (hk : k < 4) (hq : q ≤ 21) : k * 4 ^ (3 * q) < 2 ^ 128 := by
+  have h1 : 4 ^ (3 * q) ≤ 4 ^ 63 := Nat.pow_le_pow_right (by norm_num) (by omega)
+  calc k * 4 ^ (3 * q) < 4 * 4 ^ (3 * q) := Nat.mul_lt_mul_of_pos_right hk (by positivity)
+    _ ≤ 4 * 4 ^ 63 := Nat.mul_le_mul_left _ h1
+    _ = 2 ^ 128 := by norm_num
+
+/-- **The codeword, sound.** With the digits `cwDigit` its dispatches choose, each chain's tip is
+its chain from its start, the digits sum to the target in the exponent, and the digest's first
+cell is their base-4 number. -/
+theorem codewordT_sound {W : WotsT} (hW : StepAtoms W) {f : Nat → Nat → E → E}
+    (hs : StepSound rd σ W f) (hpow : ∀ s < 10, σ (W.power s) = gen ^ s) {G : Nat} (hG : 0 < G)
+    (hG21 : G ≤ 21) {target : E} {d0 : V} {b : Nat} {rest : List Stmt} {next : Prop}
+    (h : Stmt.HoldsList C rd σ ((codewordT W G target d0 b).1 ++ rest) next kret) :
+    Stmt.HoldsList C rd σ rest next kret ∧
+      (∀ i < 3 * G + 1, cwDigit W G b σ i < 4 ∧
+        σ (cwTip W b i) = chainT f i (3 - cwDigit W G b σ i) (cwDigit W G b σ i)
+          (σ (cwStart W G b σ i))) ∧
+      gen ^ (∑ i ∈ Finset.range (3 * G + 1), cwDigit W G b σ i) = target ∧
+      σ d0 = lit (∑ i ∈ Finset.range (3 * G + 1), cwDigit W G b σ i * 4 ^ i) := by
+  obtain ⟨hrest, hgrp, hd0, hprod⟩ := codewordT_groups hW hG h
+  set K := cwK W G b σ with hKdef
+  have hK : ∀ p ≤ G, K p < 4 ^ cwN G p ∧ AtomsHold rd σ (cwArm W G b p (K p)).1 := by
+    intro p hp
+    obtain ⟨k, hk, hx, ha⟩ := hgrp p hp
+    have hn : 4 ^ cwN G p ≤ 2 ^ 64 - 1 := by
+      unfold cwN; split <;> norm_num
+    have e : K p = k := logG_eq hk hn hx
+    rw [e]
+    exact ⟨hk, ha⟩
+  have harm : ∀ p ≤ G, ArmOK W f σ (slotsT W (p == 0) (cwState W b p).2.2) (3 * p) (cwN G p) (p == 0)
+      (cwState W b p).1 (cwState W b p).2.1 (prodT W (p == 0) (cwN G p) (cwState W b p).2.2)
+      (encT W (p == 0) (cwN G p) (cwState W b p).2.2) (K p)
+      (armStart W (slotsT W (p == 0) (cwState W b p).2.2) (p == 0) (K p)
+        (armBase W (slotsT W (p == 0) (cwState W b p).2.2) (3 * p) (cwN G p) (p == 0)
+          (cwState W b p).1 (cwState W b p).2.1 (prodT W (p == 0) (cwN G p) (cwState W b p).2.2)
+          (encT W (p == 0) (cwN G p) (cwState W b p).2.2) 0 (K p) ((cwState W b p).2.2 + 5))) :=
+    fun p hp => armT_sound hs (hK p hp).2
+  have hK64 : ∀ q, q < G → K q < 64 := fun q hq => by
+    have := (hK q (by omega)).1
+    simpa [cwN, hq] using this
+  have hKG : K G < 4 := by simpa [cwN] using (hK G le_rfl).1
+  -- the digits
+  have hdig : ∀ i, cwDigit W G b σ i = K (i / 3) / 4 ^ (i % 3) % 4 := fun i => rfl
+  refine ⟨hrest, fun i hi => ⟨Nat.mod_lt _ (by norm_num), ?_⟩, ?_, ?_⟩
+  · have hp : i / 3 ≤ G := by omega
+    have hr : i % 3 < cwN G (i / 3) := by
+      unfold cwN
+      split
+      · omega
+      · omega
+    have := (harm (i / 3) hp).tip (i % 3) hr
+    rw [show 3 * (i / 3) + i % 3 = i by omega] at this
+    exact this
+  · -- the product
+    have hpr : ∀ p < G, σ (prodT W (p == 0) 3 (cwState W b p).2.2) =
+        gen ^ (∑ q ∈ Finset.range (p + 1), digitSum (K q) 3) := by
+      intro p hp
+      induction p with
+      | zero =>
+          have := (harm 0 (by omega)).prod
+          simp only [cwN, hp, ↓reduceIte, beq_self_eq_true] at this
+          simp only [beq_self_eq_true]
+          rw [this, hpow _ (by rw [digitSum_three]; omega)]
+          simp
+      | succ p ih =>
+          have := (harm (p + 1) (by omega)).prod
+          simp only [cwN, hp, ↓reduceIte, Nat.add_one_ne_zero, beq_iff_eq] at this
+          rw [this, hpow _ (by rw [digitSum_three]; omega), Finset.sum_range_succ, pow_add,
+            ← ih (by omega)]
+          rfl
+    have hlast := (harm G le_rfl).prod
+    simp only [cwN, lt_irrefl, ↓reduceIte, show (G == 0) = false by simp; omega,
+      Bool.false_eq_true] at hlast
+    rw [← hprod, hlast, hpow _ (by rw [digitSum_one _ hKG]; omega), digitSum_one _ hKG]
+    obtain ⟨G', rfl⟩ : ∃ G', G = G' + 1 := ⟨G - 1, by omega⟩
+    have e1 : σ (cwState W b (G' + 1)).1 = gen ^ (∑ q ∈ Finset.range (G' + 1), digitSum (K q) 3) :=
+      hpr G' (by omega)
+    rw [e1, ← pow_add, Finset.sum_range_succ, sum_range_three_mul]
+    congr 1
+    simp only [hdig, show ∀ q, (3 * q) / 3 = q from fun q => by omega,
+      show ∀ q, (3 * q + 1) / 3 = q from fun q => by omega, show ∀ q, (3 * q + 2) / 3 = q from fun q => by omega,
+      show ∀ q, (3 * q) % 3 = 0 from fun q => by omega, show ∀ q, (3 * q + 1) % 3 = 1 from fun q => by omega,
+      show ∀ q, (3 * q + 2) % 3 = 2 from fun q => by omega, digitSum_three]
+    congr 1
+    · apply Finset.sum_congr rfl
+      intro q _
+      simp
+    · simpa using hKG
+  · -- the encoding
+    have h4 : ∀ q, (4 : Nat) ^ (3 * q) = 2 ^ (6 * q) := fun q => by rw [pow_mul, pow_mul]; norm_num
+    let K' : Nat → Nat := fun q => if q < G then K q else 0
+    have hK' : ∀ q, K' q < 64 := fun q => by
+      simp only [K']; split
+      · exact hK64 q (by assumption)
+      · omega
+    have hsum : ∀ p, p ≤ G → ∑ q ∈ Finset.range p, K' q * 4 ^ (3 * q) =
+        ∑ q ∈ Finset.range p, K q * 4 ^ (3 * q) := fun p hp =>
+      Finset.sum_congr rfl fun q hq => by simp [K', show q < G by simp at hq; omega]
+    have hen : ∀ p < G, σ (encT W (p == 0) 3 (cwState W b p).2.2) =
+        eOfNat192 (∑ q ∈ Finset.range (p + 1), K q * 4 ^ (3 * q)) := by
+      intro p hp
+      induction p with
+      | zero =>
+          have := (harm 0 (by omega)).enc
+          simp only [cwN, hp, ↓reduceIte, beq_self_eq_true] at this
+          simp only [beq_self_eq_true]
+          rw [this, zero_add, lit_eq _ (group_lit_bound (hK64 0 hp) (by omega))]
+          simp
+      | succ p ih =>
+          have := (harm (p + 1) (by omega)).enc
+          simp only [cwN, hp, ↓reduceIte, Nat.add_one_ne_zero, beq_iff_eq] at this
+          have hlt := sum_lt_pow64 K' hK' (p + 1)
+          rw [hsum (p + 1) (by omega)] at hlt
+          rw [this, Finset.sum_range_succ,
+            lit_eq _ (group_lit_bound (hK64 (p + 1) hp) (by omega))]
+          show σ (encT W (p == 0) 3 (cwState W b p).2.2) + _ = _
+          rw [ih (by omega), show K (p + 1) * 4 ^ (3 * (p + 1)) = 2 ^ (6 * (p + 1)) * K (p + 1) by
+            rw [h4, mul_comm], eOfNat192_add_shift hlt]
+    have hlast := (harm G le_rfl).enc
+    simp only [cwN, lt_irrefl, ↓reduceIte, show (G == 0) = false by simp; omega,
+      Bool.false_eq_true] at hlast
+    rw [hd0, hlast]
+    obtain ⟨G', rfl⟩ : ∃ G', G = G' + 1 := ⟨G - 1, by omega⟩
+    have e1 : σ (cwState W b (G' + 1)).2.1 = eOfNat192 (∑ q ∈ Finset.range (G' + 1), K q * 4 ^ (3 * q)) :=
+      hen G' (by omega)
+    have hlt := sum_lt_pow64 K' hK' (G' + 1)
+    rw [hsum (G' + 1) (by omega)] at hlt
+    have hbound : K (G' + 1) * 4 ^ (3 * (G' + 1)) < 2 ^ 128 := last_lit_bound hKG (by omega)
+    rw [e1, lit_eq _ hbound, show K (G' + 1) * 4 ^ (3 * (G' + 1)) = 2 ^ (6 * (G' + 1)) * K (G' + 1) by
+      rw [h4, mul_comm], eOfNat192_add_shift hlt]
+    have hN : ∑ q ∈ Finset.range (G' + 1), K q * 4 ^ (3 * q) + 2 ^ (6 * (G' + 1)) * K (G' + 1) =
+        ∑ i ∈ Finset.range (3 * (G' + 1) + 1), cwDigit W (G' + 1) b σ i * 4 ^ i := by
+      rw [Finset.sum_range_succ (n := 3 * (G' + 1)), sum_range_three_mul]
+      simp only [hdig, show ∀ q, (3 * q) / 3 = q from fun q => by omega,
+        show ∀ q, (3 * q + 1) / 3 = q from fun q => by omega,
+        show ∀ q, (3 * q + 2) / 3 = q from fun q => by omega,
+        show ∀ q, (3 * q) % 3 = 0 from fun q => by omega, show ∀ q, (3 * q + 1) % 3 = 1 from fun q => by omega,
+        show ∀ q, (3 * q + 2) % 3 = 2 from fun q => by omega]
+      congr 1
+      · apply Finset.sum_congr rfl
+        intro q hq
+        have hq' := hK64 q (by simp at hq; omega)
+        have e := digits_three (K q) hq'
+        simp only [pow_zero, pow_one, Nat.div_one, pow_add, show (4 : Nat) ^ 2 = 16 by norm_num]
+        nth_rewrite 1 [← e]
+        ring
+      · rw [← h4]
+        simp [Nat.mod_eq_of_lt hKG, mul_comm]
+    rw [hN, lit_eq _ (by
+      rw [← hN]
+      have := Nat.mul_le_mul_left (2 ^ (6 * (G' + 1))) (show K (G' + 1) ≤ 3 by omega)
+      calc _ < 2 ^ (6 * (G' + 1)) + 2 ^ (6 * (G' + 1)) * 3 := by omega
+        _ = 2 ^ 2 * 2 ^ (6 * (G' + 1)) := by ring
+        _ ≤ 2 ^ 2 * 2 ^ 126 := Nat.mul_le_mul_left _ (Nat.pow_le_pow_right (by norm_num) (by omega))
+        _ = 2 ^ 128 := by norm_num)]
 
 end
 end LeanVM.Guest.B1.Sig
