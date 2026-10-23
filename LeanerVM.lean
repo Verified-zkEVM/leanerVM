@@ -36,6 +36,7 @@ import LeanerVM.Protocol.FixedColumns
 import LeanerVM.Protocol.Flock
 import LeanerVM.Protocol.FlockFields
 import LeanerVM.Protocol.FlockSpec
+import LeanerVM.Protocol.FlockSpecFast
 import LeanerVM.Protocol.HonestProver
 import LeanerVM.Protocol.LeanIsa
 import LeanerVM.Protocol.LeanIsa.Bus
@@ -66,6 +67,7 @@ import LeanerVM.Protocol.ToArkLib.ExtractIn
 import LeanerVM.Protocol.ToArkLib.Flock.BlockR1CS
 import LeanerVM.Protocol.ToArkLib.Flock.Builder
 import LeanerVM.Protocol.ToArkLib.Flock.Circuit
+import LeanerVM.Protocol.ToArkLib.Flock.CircuitFast
 import LeanerVM.Protocol.ToArkLib.Flock.FrobeniusMap
 import LeanerVM.Protocol.ToArkLib.Flock.Lincheck
 import LeanerVM.Protocol.ToArkLib.Flock.Reduction

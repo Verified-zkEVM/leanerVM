@@ -1,4 +1,5 @@
 import LeanerVM.Protocol.HonestProver
+import LeanerVM.Protocol.FlockSpecFast
 import LeanerVMTests.Protocol.Bus
 
 /-!
@@ -16,7 +17,11 @@ code at small sizes, against the stateless definitions it stands for.
   `Gkr.roundPoly`'s, and the children bound on every coordinate hold `Gkr.children`.
 * **Runs.** On the bus tests' instance, ArkLib's `Prover.run` of the cached bus phase and of the
   cached table sumcheck, at a fixed challenge sequence, outputs what the honest provers output.
-* **Mutations.** Binding a challenge at the low end of the sumcheck's tables changes the result.
+* **The compiled circuit.** On a small circuit, the words of the compiled trace are the trace's,
+  at every input; the words of a number by halving are its words; a form's value on words is its
+  value on the bitset.
+* **Mutations.** Binding a challenge at the low end of the sumcheck's tables, and taking the
+  halves of a number in the wrong order, change the result.
 -/
 
 namespace LeanerVMTests.Protocol.StatefulProvers
@@ -171,6 +176,36 @@ open LeanerVMTests.Protocol.Bus in
   tableRun (TableSumcheck.tableCached busToy).toProver seed ==
     tableRun (TableSumcheck.tableSumcheck busToy).toDef.red.prover seed
 
+/-! ## The compiled circuit -/
+
+open ProductCircuit
+
+/-- A circuit on `2 ^ 3` positions: the constant at `0`, inputs at `1, 2, 3`, and three gates
+reading forms of several terms. -/
+private def toyCircuit : ProductCircuit 3 where
+  cpos := 0
+  inputs := BitVec.ofNat _ 0b1110
+  gates := #[(4, ⟨BitVec.ofNat _ 0b0110, BitVec.ofNat _ 0b1001⟩),
+    (5, ⟨BitVec.ofNat _ 0b10010, BitVec.ofNat _ 0b1100⟩),
+    (6, ⟨BitVec.ofNat _ 0b110111, BitVec.ofNat _ 0b100001⟩)]
+
+-- Every input: the words of the compiled trace are those of the trace.
+#guard (List.range 256).all fun x ↦
+  (compile toyCircuit).traceW (BitVec.ofNat _ x) == wordsOf (toyCircuit.trace (BitVec.ofNat _ x))
+
+/-- The words of a number, one shift each. -/
+private def wordsSpec (x n : ℕ) : List UInt64 :=
+  (List.range n).map fun i ↦ ((x >>> (64 * i)) % 2 ^ 64).toUInt64
+
+-- The words of numbers of several words, by halving, against one shift per word.
+#guard [0, 1, 2 ^ 63, 2 ^ 64 + 5, 2 ^ 200 + 2 ^ 130 + 2 ^ 70 + 1, 2 ^ 256 - 1].all fun x ↦
+  (wordsAux 2 x #[]).toList == wordsSpec x 4
+
+-- A form's value on a block of four words, against the bitset evaluation.
+#guard [(2 ^ 200 + 2 ^ 70 + 3, 2 ^ 255 - 2 ^ 64 + 7), (2 ^ 256 - 1, 2 ^ 131 + 1)].all fun (a, b) ↦
+  evalW (wordsOf (BitVec.ofNat (2 ^ 8) a)) (wordsOf (BitVec.ofNat (2 ^ 8) b)) ==
+    Form.evalB (m := 8) (BitVec.ofNat _ a) (BitVec.ofNat _ b)
+
 /-! ## Mutations -/
 
 /-- The sumcheck's tables bound at the lowest coordinate instead of the highest. -/
@@ -189,5 +224,13 @@ private def chainLow {n m : ℕ} (V : Sumcheck.Virtual E Unit NoOracle Unit n m)
 
 #guard chainLow (cubic 3) (pt 3 7) 3 0 (Sumcheck.boundCache (cubic 3) ctx₀ 0 #v[]) !=
   (specMsgs (cubic 3) Sumcheck.unitWeights (pt 3 7)).1
+
+/-- The words with the halves taken in the wrong order. -/
+private def wordsSwapped : (k : ℕ) → ℕ → Array UInt64 → Array UInt64
+  | 0, x, acc => acc.push x.toUInt64
+  | k + 1, x, acc =>
+    wordsSwapped k (x % 2 ^ (64 * 2 ^ k)) (wordsSwapped k (x >>> (64 * 2 ^ k)) acc)
+
+#guard (wordsSwapped 1 (2 ^ 64 + 2) #[]).toList != wordsSpec (2 ^ 64 + 2) 2
 
 end LeanerVMTests.Protocol.StatefulProvers
