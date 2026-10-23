@@ -16,7 +16,7 @@ public import LeanVM.Guest.B1.Tables.HoldsC
 
 `vsKnown_holds`: on a memory image of `2^κ` words, `minLogMem ≤ κ ≤ maxLogMem`, over the exponent
 tables at `verify_sub`'s arguments `4`, `5`, the body's first `2098` statements (up to the call of
-`check_opening_terminal`) put the `113` entries of `col_kappas` (`1889`) among `g^e`, `e < 29`.
+`check_opening_terminal`) put the `nCommittedCols` entries of `col_kappas` (`1889`) among `g^e`, `e < 29`.
 They are the front (`vs_front`, through `verify_tables`: the tables' heights below `29` and
 `kappa_base`), the ring map, `c_table` and the batching (no `ret`, skipped), and the first `14`
 statements of the tail (`vsKnown_tail`). The callees are B1-c's proved specifications; the
@@ -48,7 +48,7 @@ theorem vsKnown_holds {κ : ℕ} (L : MemImage κ) (h16 : minLogMem ≤ κ) (h32
     (σ : Val) (hexp : B1.ExpTables L.read (σ (.n 4)) (σ (.n 5)))
     (h : Stmt.HoldsList (coreProgram.Rel L.read) L.read σ ((Fn.body Data.core18).take 2098) True
       (fun _ ↦ True)) :
-    ∀ c < 113, ∃ e < 29, LoadHolds L.read (σ (.n 1889)) c (ofK (gpow e)) := by
+    ∀ c < Tables.nCommittedCols, ∃ e < 29, LoadHolds L.read (σ (.n 1889)) c (ofK (gpow e)) := by
   have hκ : κ ≤ 32 := h32
   have hκ6 : 6 ≤ κ := by have : 16 ≤ κ := h16; omega
   have hle : CallRel.Le (coreProgram.Rel L.read) (coreProgram.Rel L.read) := fun _ _ _ h ↦ h
