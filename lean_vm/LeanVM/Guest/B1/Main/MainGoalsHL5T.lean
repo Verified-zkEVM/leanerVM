@@ -13,132 +13,13 @@ public import LeanVM.Guest.B1.Main.MainHonestT
 /-!
 # The children loop's trees
 
-`relAtInWT_of_walk_loop`: `relAtIn_of_walk_loop` (`Memory/Regions.lean`, same proof) by the node at
-the walk's valuation, its tail call's tree satisfying a predicate. `L5Node k b Tt`: a `__loop5`
+`L5Node k b Tt`: a `__loop5`
 node whose valuation holds child `k`'s hinted counts (`child_meta` at `v20`, `v21`;
 `child_da_count` at `v63`), its last child (the tail call's tree) satisfying `Tt` when `b`.
 `L5From ex es ed m c`: the `m` iterations from child `c`, each `L5Node`. `l5_stepAtT`,
 `l5_completeAtT`: `l5_stepAt`, `l5_completeAt` (same proofs) with those trees. `L5Hinted w`: the
 honest run's, child `c`'s counts its statement's lists' lengths. `mainGoalL5T`.
 -/
-
-namespace LeanVM.Guest.Memory
-
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core
-
-@[expose] public section
-
-variable {P : Core.Program} {fs : String → ℕ} {cert : String → V → ℕ} {rd : Reader} {σ : Val}
-
-theorem kidsValid_length : ∀ {cs : List Call} {ks : List Tree}, Tree.KidsValid P rd σ cs ks →
-    ks.length = cs.length
-  | [], [], _ => rfl
-  | _ :: _, _ :: _, h => by rw [List.length_cons, List.length_cons, kidsValid_length h.2.2]
-  | [], _ :: _, h => by simp [Tree.KidsValid] at h
-  | _ :: _, [], h => by simp [Tree.KidsValid] at h
-
-theorem kidsT_snoc {c : Call} {T : Tree → Prop} {k : Tree} : ∀ {cs : List Call}
-    {Ts : List (Tree → Prop)} {ks : List Tree}, Ts.length = cs.length → ks.length = cs.length →
-    KidsT cs Ts ks → (c.taken = true → T k) → KidsT (cs ++ [c]) (Ts ++ [T]) (ks ++ [k])
-  | [], [], [], _, _, _, hc => ⟨hc, trivial⟩
-  | [], [], _ :: _, _, h2, _, _ => by simp at h2
-  | [], _ :: _, _, h1, _, _, _ => by simp at h1
-  | _ :: _, [], _, h1, _, _, _ => by simp at h1
-  | _ :: _, _ :: _, [], _, h2, _, _ => by simp at h2
-  | _ :: _, _ :: _, _ :: _, h1, h2, h, hc =>
-    ⟨h.1, kidsT_snoc (by simpa using h1) (by simpa using h2) h.2 hc⟩
-
-/-- **Composition with regions, a loop helper, its callees' trees exposed**:
-`relAtIn_of_walk_loop` by the node at the walk's valuation, its children satisfying
-`KidsT (calls es) (Ts ++ [Tt])`: the other callees `Ts`, the tail call `Tt`. -/
-theorem relAtInWT_of_walk_loop (hP : P.Wf) {R D Dk Rt Dt : ℕ → Prop} {fp m N : ℕ} {f : String}
-    {args rets : List E} {fn : Fn} {es : List Ev} {vs : List V} {cs : List Call} {c : Call} {Ts : List (Tree → Prop)}
-    {Tt : Tree → Prop}
-    (hf : P.find? f = some fn) (hl : P.loop f = true) (hp : fn.params.map σ = args)
-    (hw : walk σ fn.body = .ret es vs) (hr : vs.map σ = rets) (hes : ∀ e ∈ es, e.Holds rd σ)
-    (hc : calls es = cs ++ [c])
-    (htail : if c.taken then RelAtInT P fs cert rd Rt Dt (fp + fs f) m c.f (c.args.map σ) (c.rets.map σ) Tt
-      else m = fs c.f)
-    (hbuf : (allocDsts es).map σ = (bases (fp + fs f + m) (allocs σ es)).map fun b => ofK (gpow b))
-    (haddr : ∀ q ∈ addrs es, σ q.1 = ofK (gpow (fp + cert f q.2)))
-    (hTs : Ts.length = cs.length)
-    (hk : KidsFromInT P fs cert rd σ (fun i => R i ∨ ownData cert fp (fp + fs f + m) f (allocs σ es) es i)
-      (fun _ => False) cs Ts (fp + fs f + m + (allocs σ es).sum) N Dk)
-    (hRt : ∀ i, Rt i → R i ∨ ownData cert fp (fp + fs f + m) f (allocs σ es) es i ∨ Dk i)
-    (hload : ∀ A ∈ loadAddrs σ es, ∃ i, A = gpow i ∧
-      (ownData cert fp (fp + fs f + m) f (allocs σ es) es i ∨ R i ∨ Dk i ∨ (c.taken = true ∧ Dt i)))
-    (hD : ∀ i, D i → ownData cert fp (fp + fs f + m) f (allocs σ es) es i ∨ Dk i ∨
-      (c.taken = true ∧ Dt i)) :
-    RelAtInT P fs cert rd R D fp (fs f + m + (allocs σ es).sum + N) f args rets
-      (fun t => ∃ ks, t = .node f σ (allocs σ es) ks ∧ KidsT (calls es) (Ts ++ [Tt]) ks) := by
-  have htk := takes_of_calls hP (List.mem_of_find?_eq_some hf) hw
-  rw [hc] at htk
-  obtain ⟨ks, hkv, hkTs, hkb, hkp, hks, hkd, hkl⟩ := kids_of_kidsFromInT _ _ _ _ _ _ _
-    (fun c' hc' => htk c' (List.mem_append_left _ hc')) hk
-  obtain ⟨k, hkv', hkb', hkp', hkt, hkl', hkd', hkT⟩ :=
-    kid_ofInT (htk c (List.mem_append_right _ List.mem_cons_self)) htail
-  have hns : (ks ++ [k]).map (Tree.total fs) = ks.map (Tree.total fs) ++ [m] := by
-    rw [List.map_append, List.map_singleton, hkt]
-  have hbb : bufBase fs P.loop fp f ((ks ++ [k]).map (Tree.total fs)) = fp + fs f + m := by
-    rw [hns]; simp [bufBase, hl]
-  have hkpos : kidPos fs P.loop fp f (allocs σ es) ((ks ++ [k]).map (Tree.total fs)) =
-      bases (fp + fs f + m + (allocs σ es).sum) (ks.map (Tree.total fs)) ++ [fp + fs f] := by
-    rw [kidPos, ite_eq_left hl, hbb, hns, List.dropLast_concat, List.getLast?_concat]
-    rfl
-  have hlen : (bases (fp + fs f + m + (allocs σ es).sum) (ks.map (Tree.total fs))).length = ks.length := by
-    rw [length_bases, List.length_map]
-  have hdata : ∀ i, (Tree.node f σ (allocs σ es) (ks ++ [k])).Data P fs cert fp i ↔
-      ownData cert fp (fp + fs f + m) f (allocs σ es) es i ∨
-        Tree.DataKids P fs cert (bases (fp + fs f + m + (allocs σ es).sum) (ks.map (Tree.total fs))) ks i ∨
-        k.Data P fs cert (fp + fs f) i := by
-    intro i
-    rw [data_node, events_node hf hw, hbb, hkpos, dataKids_append hlen, dataKids_cons]
-    simp only [not_dataKids_nil, or_false]
-  refine ⟨.node f σ (allocs σ es) (ks ++ [k]), ⟨rfl,
-    ⟨fn, hf, hp, es, vs, hw, hr, hes, by rw [hc]; exact kidsValid_append hkv hkv'⟩, ?_, ?_, ?_, ?_, ?_⟩,
-    ks ++ [k], rfl, by rw [hc]; exact kidsT_snoc hTs (kidsValid_length hkv) hkTs hkT⟩
-  · rw [Tree.BufsOk, events_node hf hw]
-    refine ⟨rfl, bufsOkKids_append hkb ?_⟩
-    rw [Tree.BufsOkKids, Tree.BufsOkKids]
-    exact ⟨hkb', trivial⟩
-  · rw [placed_node, events_node hf hw, NodeAt, hbb, hkpos]
-    refine ⟨⟨hbuf, haddr⟩, placedKids_append hlen hkp ?_⟩
-    rw [placedKids_cons]
-    exact ⟨hkp', placedKids_nil⟩
-  · rw [total_node, totalKids_eq_sum, hns, List.sum_append, hks]
-    simp only [List.sum_cons, List.sum_nil]
-    omega
-  · have hDk : ∀ i, Dk i → (Tree.node f σ (allocs σ es) (ks ++ [k])).Data P fs cert fp i := fun i h =>
-      (hkd i h).elim (fun h => h.elim) fun h => (hdata i).mpr (Or.inr (Or.inl h))
-    have hDt : ∀ i, c.taken = true ∧ Dt i → (Tree.node f σ (allocs σ es) (ks ++ [k])).Data P fs cert fp i :=
-      fun i h => (hdata i).mpr (Or.inr (Or.inr (hkd' h.1 i h.2)))
-    have hown : ∀ i, ownData cert fp (fp + fs f + m) f (allocs σ es) es i →
-        (Tree.node f σ (allocs σ es) (ks ++ [k])).Data P fs cert fp i := fun i h => (hdata i).mpr (Or.inl h)
-    rw [loadsIn_node, events_node hf hw, hkpos]
-    refine ⟨fun A hA => ?_, loadsInKids_append hlen ?_ ?_⟩
-    · obtain ⟨i, hi, h⟩ := hload A hA
-      refine ⟨i, hi, ?_⟩
-      rcases h with h | h | h | h
-      · exact Or.inl (hown i h)
-      · exact Or.inr h
-      · exact Or.inl (hDk i h)
-      · exact Or.inl (hDt i h)
-    · exact hkl _ (fun i hi => hi.elim Or.inr fun h => Or.inl (hown i h)) (fun _ h => h.elim)
-        (fun i hi => Or.inl ((hdata i).mpr (Or.inr (Or.inl hi))))
-    · rw [loadsInKids_cons]
-      refine ⟨loadsIn_mono k _ (fun i hi => ?_) hkl', loadsInKids_nil⟩
-      rcases hRt i hi with h | h | h
-      · exact Or.inr h
-      · exact Or.inl (hown i h)
-      · exact Or.inl (hDk i h)
-  · intro i hi
-    rcases hD i hi with h | h | h
-    · exact (hdata i).mpr (Or.inl h)
-    · exact (hkd i h).elim (fun h => h.elim) fun h => (hdata i).mpr (Or.inr (Or.inl h))
-    · exact (hdata i).mpr (Or.inr (Or.inr (hkd' h.1 i h.2)))
-
-end
-end LeanVM.Guest.Memory
 
 namespace LeanVM.Guest.B1.Main
 
@@ -186,36 +67,37 @@ theorem l5_calls (σ : Val) : calls (l5Evs σ) = l5CallList σ := by
   rfl
 
 /-- The predicates on the block's six calls' trees: `Pv` on `verify_sub`'s. -/
-def l5Ts6 (Pv : Tree → Prop) : List (Tree → Prop) :=
-  [fun _ => True, fun _ => True, fun _ => True, fun _ => True, fun _ => True, Pv]
+def l5Ts6 (Px Ps Pv : Tree → Prop) : List (Tree → Prop) :=
+  [Px, Ps, fun _ => True, fun _ => True, fun _ => True, Pv]
 
 /-- **The predicates on `__loop5`'s calls' trees**, aligned with `l5CallList`: `Pv` on
 `verify_sub`'s, `Tt` on the tail call's, none on the others'. -/
-def l5Ts (Pv Tt : Tree → Prop) : List (Tree → Prop) := l5Ts6 Pv ++ [Tt]
+def l5Ts (Px Ps Pv Tt : Tree → Prop) : List (Tree → Prop) := l5Ts6 Px Ps Pv ++ [Tt]
 
 /-- **A `__loop5` node for child `k`**: at a valuation `σ` holding `k`'s hinted counts
 (`child_meta`'s `g^ex`, `g^es` at `v20`, `v21`; `child_da_count`'s `g^ed` at `v63`), its walk's
 calls `l5CallList σ`, its children satisfying `KidsT (l5CallList σ) (l5Ts Pv Tt)`. -/
-def L5Node (k : KidH) (Pv Tt : Tree → Prop) (t : Tree) : Prop :=
+def L5Node (k : KidH) (Px Ps Pv Tt : Tree → Prop) (t : Tree) : Prop :=
   ∃ σ bufs ks, t = .node "__loop5" σ bufs ks ∧ σ (.n 20) = gen ^ k.ex ∧
-    σ (.n 21) = gen ^ k.es ∧ σ (.n 63) = gen ^ k.ed ∧ calls (l5Evs σ) = l5CallList σ ∧
-    KidsT (l5CallList σ) (l5Ts Pv Tt) ks
+    σ (.n 21) = gen ^ k.es ∧ σ (.n 63) = gen ^ k.ed ∧ σ (.n 73) = 1 ∧ k.ed ≤ 16 ∧
+    calls (l5Evs σ) = l5CallList σ ∧ KidsT (l5CallList σ) (l5Ts Px Ps Pv Tt) ks
 
 /-- **The `m` iterations from child `c`**: each a `__loop5` node at a valuation holding its
 child's hinted counts (`ex c`, `es c`, `ed c`), its walk's calls `l5CallList σ`, its
 `verify_sub` call's tree satisfying `Pvs c` and its tail call's the next iteration's. -/
-def L5From (ex es ed : ℕ → ℕ) (Pvs : ℕ → Tree → Prop) : ℕ → ℕ → Tree → Prop
-  | 0, _, _ => True
+def L5From (ex es ed : ℕ → ℕ) (Pxs Pss Pvs : ℕ → Tree → Prop) : ℕ → ℕ → Tree → Prop
+  | 0, _, _ => False
   | m + 1, c, t => ∃ σ bufs ks, t = .node "__loop5" σ bufs ks ∧ σ (.n 20) = gen ^ ex c ∧
-      σ (.n 21) = gen ^ es c ∧ σ (.n 63) = gen ^ ed c ∧ calls (l5Evs σ) = l5CallList σ ∧
-      KidsT (l5CallList σ) (l5Ts (Pvs c) (L5From ex es ed Pvs m (c + 1))) ks
+      σ (.n 21) = gen ^ es c ∧ σ (.n 63) = gen ^ ed c ∧ σ (.n 73) = 1 ∧ ed c ≤ 16 ∧
+      calls (l5Evs σ) = l5CallList σ ∧
+      KidsT (l5CallList σ) (l5Ts (Pxs c) (Pss c) (Pvs c) (L5From ex es ed Pxs Pss Pvs m (c + 1))) ks
 
 /-- **The honest children loop's trees**: iteration `c < nc` is a `__loop5` node whose hinted
 counts are child `c`'s statement's lists' lengths, in the exponent (`g^|xmss|`, `g^|sphincs|`,
 `g^|da|`), its `verify_sub` call's tree satisfying `Pvs c`, its tail call's the next
 iteration's. -/
-def L5Hinted (w : NodeWitness) (Pvs : ℕ → Tree → Prop) : Tree → Prop :=
-  L5From (hEx w) (hEs w) (hEd w) Pvs w.children.length 0
+def L5Hinted (w : NodeWitness) (Pxs Pss Pvs : ℕ → Tree → Prop) : Tree → Prop :=
+  L5From (hEx w) (hEs w) (hEd w) Pxs Pss Pvs w.children.length 0
 
 theorem completeAtDT_mono {fs : String → ℕ} {cert : String → V → ℕ} {κ : ℕ} {f : String}
     {Lin : Layout} {args : List E} {Out : List E → Layout → Prop} {T T' : Tree → Prop}
@@ -234,17 +116,21 @@ set_option maxHeartbeats 8000000 in
 at the block's valuation, its hinted counts `k`'s, its `verify_sub` call's tree satisfying `Pv`,
 its tail call's `Tt`. -/
 theorem l5_stepAtT {Lin : Layout} {W Pi Cr R C n nk c : ℕ}
-    {lxt cover lxs lst lss s0 s1 glp gsq cfresh : E} {k : KidH} {Pv Tt : Tree → Prop}
+    {lxt cover lxs lst lss s0 s1 glp gsq cfresh : E} {k : KidH} {Px Ps Pv Tt : Tree → Prop}
     (hn : n ≤ 2 ^ 16) (hnk : nk < 2 ^ 34) (hc : c + 1 ≤ nk) (hs01 : AllCanonical [s0, s1])
     (hk : KidOkC fs cert Lin W Pi Cr R C n lxt cover lxs lst lss s0 s1 glp gsq cfresh c k)
     (htail : c + 1 < nk → CompleteAtDT fs cert 16 "__loop5" Lin
       [gen ^ (c + 1), gen ^ nk, gen ^ W, lxt, cover, lxs, lst, lss, gen ^ Cr, gen ^ R, gen ^ C,
         gen ^ n, s0, s1, gen ^ Pi, glp, gsq, cfresh] (Returns []) Tt)
     (hVT : CompleteAtDT fs cert 16 "verify_sub" Lin
-      [(k.pi s0 s1).1, (k.pi s0 s1).2, s0, s1, glp, gsq, cfresh * gen ^ (24 * c)] (Returns []) Pv) :
+      [(k.pi s0 s1).1, (k.pi s0 s1).2, s0, s1, glp, gsq, cfresh * gen ^ (24 * c)] (Returns []) Pv)
+    (hXT : CompleteAtDT fs cert 16 "child_claim_list_digest" Lin [lxt, cover, k.base, 1, lxs, gen ^ k.ex]
+      (Returns [k.cx.1, k.cx.2]) Px)
+    (hST : CompleteAtDT fs cert 16 "child_claim_list_digest" Lin
+      [lst, cover, k.base * gen ^ k.ex, lxs, lss, gen ^ k.es] (Returns [k.cs.1, k.cs.2]) Ps) :
     CompleteAtDT fs cert 16 "__loop5" Lin
       [gen ^ c, gen ^ nk, gen ^ W, lxt, cover, lxs, lst, lss, gen ^ Cr, gen ^ R, gen ^ C,
-        gen ^ n, s0, s1, gen ^ Pi, glp, gsq, cfresh] (Returns []) (L5Node k Pv Tt) := by
+        gen ^ n, s0, s1, gen ^ Pi, glp, gsq, cfresh] (Returns []) (L5Node k Px Ps Pv Tt) := by
   intro fp
   -- the rest of the loop
   obtain ⟨nt, Lt, hWt, hDt, hRt⟩ : ∃ nt Lt, Within Lt (fp + fs "__loop5") nt ∧ DisjL Lt ∧
@@ -333,9 +219,8 @@ theorem l5_stepAtT {Lin : Layout} {W Pi Cr R C n nk c : ℕ}
       · exact (digestScalars_canonical _).1
       · exact (digestScalars_canonical _).2
     · exact hk.hV
-  have hokT : B1.KidsDT fs cert 16 ks (l5Ts6 Pv) :=
-    ⟨fun ht => (hok _ List.mem_cons_self ht).toT,
-      fun ht => (hok _ (List.mem_cons_of_mem _ List.mem_cons_self) ht).toT,
+  have hokT : B1.KidsDT fs cert 16 ks (l5Ts6 Px Ps Pv) :=
+    ⟨fun _ => hXT, fun _ => hST,
       fun ht => (hok _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ List.mem_cons_self)) ht).toT,
       fun ht => (hok _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _
         List.mem_cons_self))) ht).toT,
@@ -343,7 +228,7 @@ theorem l5_stepAtT {Lin : Layout} {W Pi Cr R C n nk c : ℕ}
         (List.mem_cons_of_mem _ List.mem_cons_self)))) ht).toT,
       fun _ => hVT, trivial⟩
   obtain ⟨Nk, Lk, outs, hoo, hW, hD, -, hKids⟩ :=
-    B1.kidsFromInT_of_kidsDT (fs := fs) (cert := cert) 16 ks (l5Ts6 Pv) hokT (P1 + [2, 4 * k.ed].sum)
+    B1.kidsFromInT_of_kidsDT (fs := fs) (cert := cert) 16 ks (l5Ts6 Px Ps Pv) hokT (P1 + [2, 4 * k.ed].sum)
   have hl0 : outs.length = 6 := hoo.length
   obtain ⟨o1, t1, rfl, hl1⟩ := exists_of_length_succ hl0
   obtain ⟨o2, t2, rfl, hl2⟩ := exists_of_length_succ hl1
@@ -451,7 +336,7 @@ theorem l5_stepAtT {Lin : Layout} {W Pi Cr R C n nk c : ℕ}
   have hown : ∀ i, RegionL Own i → ownData cert fp (fp + fs "__loop5" + nt) "__loop5" [2, 4 * k.ed]
       ((l5Pre ++ [l5Tail]).flatMap (Main.slEvs σ)) i :=
     fun i hi => Or.inl (bufL_region _ _ _ hfit i hi)
-  have h := relAtInWT_of_walk_loop (P := coreProgram) (Tt := Tt) (Ts := l5Ts6 Pv) (fs := fs) (cert := cert) (σ := σ) (rd := rd)
+  have h := relAtInWT_of_walk_loop (P := coreProgram) (Tt := Tt) (Ts := l5Ts6 Px Ps Pv) (fs := fs) (cert := cert) (σ := σ) (rd := rd)
     (R := RegionL Lin) (D := RegionL []) (Rt := RegionL Lin) (Dt := RegionL []) (fp := fp)
     (m := nt) (N := Nk) (args := args)
     (Dk := fun i => (fun _ => False) i ∨ outRegion ks [o1, o2, o3, o4, o5, o6] i)
@@ -480,7 +365,7 @@ theorem l5_stepAtT {Lin : Layout} {W Pi Cr R C n nk c : ℕ}
     rfl ?_ (fun i hi => Or.inl hi) ?_ (fun i hi => by obtain ⟨q, hq, -⟩ := hi; simp at hq)
   · rw [hal] at h
     obtain ⟨t, ht, ks', rfl, hk'⟩ := h
-    refine ⟨_, ht, σ, _, ks', rfl, hV.v20, hV.v21, hV.v63, l5_calls σ, ?_⟩
+    refine ⟨_, ht, σ, _, ks', rfl, hV.v20, hV.v21, hV.v63, hV.v73, hk.ed_le, l5_calls σ, ?_⟩
     rw [← l5_calls σ]
     exact hk'
   · rw [hal]
@@ -569,31 +454,38 @@ theorem l5_stepAtT {Lin : Layout} {W Pi Cr R C n nk c : ℕ}
 the `nk - c` iterations' nodes holding the children's hinted counts, child `c`'s `verify_sub` call
 by a tree satisfying `Pvs c`. -/
 theorem l5_completeAtT {Lin : Layout} {W Pi Cr R C n nk : ℕ}
-    {lxt cover lxs lst lss s0 s1 glp gsq cfresh : E} {kid : ℕ → KidH} {Pvs : ℕ → Tree → Prop}
+    {lxt cover lxs lst lss s0 s1 glp gsq cfresh : E} {kid : ℕ → KidH} {Pxs Pss Pvs : ℕ → Tree → Prop}
     (hn : n ≤ 2 ^ 16) (hnk : nk < 2 ^ 34) (hs01 : AllCanonical [s0, s1])
     (hk : ∀ c < nk, KidOkC fs cert Lin W Pi Cr R C n lxt cover lxs lst lss s0 s1 glp gsq cfresh c
       (kid c))
     (hVT : ∀ c < nk, CompleteAtDT fs cert 16 "verify_sub" Lin
       [((kid c).pi s0 s1).1, ((kid c).pi s0 s1).2, s0, s1, glp, gsq, cfresh * gen ^ (24 * c)]
-      (Returns []) (Pvs c)) :
+      (Returns []) (Pvs c))
+    (hXT : ∀ c < nk, CompleteAtDT fs cert 16 "child_claim_list_digest" Lin
+      [lxt, cover, (kid c).base, 1, lxs, gen ^ (kid c).ex] (Returns [(kid c).cx.1, (kid c).cx.2]) (Pxs c))
+    (hST : ∀ c < nk, CompleteAtDT fs cert 16 "child_claim_list_digest" Lin
+      [lst, cover, (kid c).base * gen ^ (kid c).ex, lxs, lss, gen ^ (kid c).es]
+      (Returns [(kid c).cs.1, (kid c).cs.2]) (Pss c)) :
     ∀ c < nk, CompleteAtDT fs cert 16 "__loop5" Lin
       [gen ^ c, gen ^ nk, gen ^ W, lxt, cover, lxs, lst, lss, gen ^ Cr, gen ^ R, gen ^ C,
         gen ^ n, s0, s1, gen ^ Pi, glp, gsq, cfresh] (Returns [])
-      (L5From (fun c => (kid c).ex) (fun c => (kid c).es) (fun c => (kid c).ed) Pvs (nk - c) c) := by
+      (L5From (fun c => (kid c).ex) (fun c => (kid c).es) (fun c => (kid c).ed) Pxs Pss Pvs (nk - c) c) := by
   have key : ∀ t c, c + 1 + t = nk → CompleteAtDT fs cert 16 "__loop5" Lin
       [gen ^ c, gen ^ nk, gen ^ W, lxt, cover, lxs, lst, lss, gen ^ Cr, gen ^ R, gen ^ C,
         gen ^ n, s0, s1, gen ^ Pi, glp, gsq, cfresh] (Returns [])
-      (L5From (fun c => (kid c).ex) (fun c => (kid c).es) (fun c => (kid c).ed) Pvs (t + 1) c) := by
+      (L5From (fun c => (kid c).ex) (fun c => (kid c).es) (fun c => (kid c).ed) Pxs Pss Pvs (t + 1) c) := by
     intro t
     induction t with
     | zero =>
       intro c hc
-      exact completeAtDT_mono (l5_stepAtT fs cert (Tt := fun _ => True) hn hnk (by omega) hs01
-        (hk c (by omega)) (fun h => absurd h (by omega)) (hVT c (by omega))) fun _ ht => ht
+      exact completeAtDT_mono (l5_stepAtT fs cert (Tt := fun _ => False) hn hnk (by omega) hs01
+        (hk c (by omega)) (fun h => absurd h (by omega)) (hVT c (by omega)) (hXT c (by omega))
+        (hST c (by omega))) fun _ ht => ht
     | succ t ih =>
       intro c hc
       exact completeAtDT_mono (l5_stepAtT fs cert hn hnk (by omega) hs01 (hk c (by omega))
-        (fun _ => ih (c + 1) (by omega)) (hVT c (by omega))) fun _ ht => ht
+        (fun _ => ih (c + 1) (by omega)) (hVT c (by omega)) (hXT c (by omega)) (hST c (by omega)))
+        fun _ ht => ht
   intro c hc
   rw [show nk - c = nk - c - 1 + 1 by omega]
   exact key (nk - c - 1) c (by omega)
@@ -619,13 +511,36 @@ theorem VerifySubGoalsT.goals {fp : ℕ} {seed : Digest} {s : NodeStatement} {w 
     VerifySubGoals fs cert fp seed s w :=
   fun c hc => (h c hc).toD
 
+/-- **Each child's claim lists' digests complete, by trees satisfying `Pxs c`, `Pss c`**, at the
+words `main`'s children loop passes them. -/
+def ChildListGoalsT (fs : String → ℕ) (cert : String → V → ℕ) (fp : ℕ) (seed : Digest)
+    (s : NodeStatement) (w : NodeWitness) (Pxs Pss : ℕ → Tree → Prop) : Prop :=
+  ∀ c, c < w.children.length →
+    CompleteAtDT fs cert 16 "child_claim_list_digest" (hLmain fs fp seed s w)
+      [(hm fs fp seed s w).a77, (hm fs fp seed s w).a117, (hKid s w c).base, 1,
+        gen ^ ((hm fs fp seed s w).nlx + (hm fs fp seed s w).nxd), gen ^ (hKid s w c).ex]
+      (Returns [(hKid s w c).cx.1, (hKid s w c).cx.2]) (Pxs c) ∧
+    CompleteAtDT fs cert 16 "child_claim_list_digest" (hLmain fs fp seed s w)
+      [(hm fs fp seed s w).a80, (hm fs fp seed s w).a117, (hKid s w c).base * gen ^ (hKid s w c).ex,
+        gen ^ ((hm fs fp seed s w).nlx + (hm fs fp seed s w).nxd),
+        gen ^ ((hm fs fp seed s w).nls + (hm fs fp seed s w).nsd), gen ^ (hKid s w c).es]
+      (Returns [(hKid s w c).cs.1, (hKid s w c).cs.2]) (Pss c)
+
+/-- The children's claim lists' digests complete (`kidOk`), by trees satisfying nothing more. -/
+theorem childListGoalsT_true {fp : ℕ} {seed : Digest} {s : NodeStatement} {w : NodeWitness}
+    {bytecode : List K} (hbl : bytecode.length = 2 ^ bytecodeVars)
+    (hrel : NodeRel bytecode seed s w) (hl : Limits bytecode s w)
+    (hV : VerifySubGoals fs cert fp seed s w) :
+    ChildListGoalsT fs cert fp seed s w (fun _ _ => True) (fun _ _ => True) := fun _ hc =>
+  ⟨(kidOk cert hbl hrel hl hV hc).hX.toT, (kidOk cert hbl hrel hl hV hc).hS.toT⟩
+
 /-- **`main`'s honest children loop is complete, its trees exposed** (`L5Hinted w Pvs`): under the
 hypotheses of `mainGoalL5`, each child's `verify_sub` call by a tree satisfying `Pvs c`. -/
 theorem mainGoalL5T {fp : ℕ} {seed : Digest} {s : NodeStatement} {w : NodeWitness}
-    {bytecode : List K} {Pvs : ℕ → Tree → Prop} (hbl : bytecode.length = 2 ^ bytecodeVars)
+    {bytecode : List K} {Pxs Pss Pvs : ℕ → Tree → Prop} (hbl : bytecode.length = 2 ^ bytecodeVars)
     (hrel : NodeRel bytecode seed s w) (hl : Limits bytecode s w)
-    (hV : VerifySubGoalsT fs cert fp seed s w Pvs) :
-    MainGoalL5T fs cert fp seed s w (L5Hinted w Pvs) := by
+    (hV : VerifySubGoalsT fs cert fp seed s w Pvs) (hX : ChildListGoalsT fs cert fp seed s w Pxs Pss) :
+    MainGoalL5T fs cert fp seed s w (L5Hinted w Pxs Pss Pvs) := by
   intro hnc
   have hcov := cover_bound hl
   have hnc16 := hl.children
@@ -634,7 +549,7 @@ theorem mainGoalL5T {fp : ℕ} {seed : Digest} {s : NodeStatement} {w : NodeWitn
     (C := hP fs fp seed s w 4 + (s.claims.xmss.length + (xPlan s w).dups.length +
       (s.claims.sphincs.length + (sPlan s w).dups.length)))
     (n := s.claims.da.length + (dPlan s w).dups.length) (nk := w.children.length)
-    (kid := hKid s w) (Pvs := Pvs) (by omega) (by omega)
+    (kid := hKid s w) (Pxs := Pxs) (Pss := Pss) (Pvs := Pvs) (by omega) (by omega)
     (fun x hx => by
       simp only [List.mem_cons, List.not_mem_nil, or_false] at hx
       rcases hx with rfl | rfl
@@ -644,7 +559,7 @@ theorem mainGoalL5T {fp : ℕ} {seed : Digest} {s : NodeStatement} {w : NodeWitn
     (fun c hc => by
       have hsh := kid_shapes hbl hrel _ (List.getElem_mem hc)
       rw [hKid_pi seed (s := s) hc (by simp [DeferredClaim.cells, hsh.2, bytecodeVars])]
-      exact hV c hc) 0 (by have : w.children.length ≠ 0 := hnc; omega)
+      exact hV c hc) (fun c hc => (hX c hc).1) (fun c hc => (hX c hc).2) 0 (by have : w.children.length ≠ 0 := hnc; omega)
   rw [show (hm fs fp seed s w).a117 * gen ^ ((hm fs fp seed s w).nlx + (hm fs fp seed s w).nxd +
       ((hm fs fp seed s w).nls + (hm fs fp seed s w).nsd)) = gen ^ (hP fs fp seed s w 4 +
       (s.claims.xmss.length + (xPlan s w).dups.length +
