@@ -9,6 +9,7 @@ module
 
 public import LeanVM.Guest.B1.Whir.CLevelBN
 public import LeanVM.Guest.B1.Whir.CCommit
+public import LeanVM.Guest.B1.Whir.SpecLevel
 
 /-!
 # A level up to its grinding check, honestly
@@ -27,27 +28,6 @@ open LeanVM.Protocol.Verifier
 @[expose] public section
 
 variable {C : CallRel} {rd : Reader}
-
-/-- The sponge before the out-of-domain point, from the rounds' sponge `F`. -/
-def cF1 (F : Fs) (ra rb : E) : Fs := ⟨F.cap, F.pend ++ [(ra, dsObserve), (rb, dsObserve)]⟩
-
-/-- The squeezes after the out-of-domain point's first coordinate. -/
-def cRest (F : Fs) (ra rb : E) (m : ℕ) : List E × Fs :=
-  (⟨capOf (cF1 F ra rb).perm, []⟩ : Fs).squeezeN (m - 1)
-
-/-- The sponge the nonce's permutation reads. -/
-def cF2 (F : Fs) (ra rb : E) (m : ℕ) (y c0 c2 nonce : E) : Fs :=
-  ⟨(cRest F ra rb m).2.cap, [(y, dsObserve), (c0, dsObserve), (c2, dsObserve),
-    (nonce, dsPowNonce)]⟩
-
-theorem commitF1_eq (σ : Val) (st : OsSt) (ra rb : E) : commitF1 σ st ra rb = cF1 (st.F σ) ra rb :=
-  rfl
-
-theorem commitRest_eq (σ : Val) (st : OsSt) (ra rb : E) (m : ℕ) :
-    commitRest σ st ra rb m = cRest (st.F σ) ra rb m := rfl
-
-theorem commitF2_eq (σ : Val) (st : OsSt) (ra rb : E) (m : ℕ) (y c0 c2 nonce : E) :
-    commitF2 σ st ra rb m y c0 c2 nonce = cF2 (st.F σ) ra rb m y c0 c2 nonce := rfl
 
 theorem osFolds_co (p : ℕ) : ∀ (n off : ℕ) (st : OsSt), 0 < n → (osFolds p off n st).2.co = 0
   | 0, _, _, h => absurd h (by omega)
