@@ -18,7 +18,8 @@ public import LeanVM.Guest.B1.Da.AtT
 
 `colLoopNH f col k m Tc Tt`: the loop's node at the counter `v0 = g^k`, its calls `colLoopCalls`
 (column `k`, then the loop at `k + 1` when `k + 1 ≠ m`), no `HeapBuf`, the column's tree
-satisfying `Tc` and the rest's `Tt`. `colFrom f col m Tc t k`: the `t` iterations from `k`.
+satisfying `Tc` and the rest's `Tt`. `colFrom f col m Tc t k`: the `t` iterations from `k` (`False` at `0`: the last iteration's tail
+call is not taken).
 `colLoop_stepAtT`, `colLoop_completeAtT`: `colLoop_stepAt`, `colLoop_completeAt` (same proofs) by
 such trees.
 -/
@@ -44,9 +45,10 @@ def colLoopNH (f col : String) (k m : ℕ) (Tc Tt : Tree → Prop) : Tree → Pr
   NodeHonest coreProgram f (fun σ => σ (.n 0) = gen ^ k) (fun _ => colLoopCalls col f k m)
     (fun _ => []) [Tc, Tt]
 
-/-- **A column loop's `t` iterations from `k`**, each of its honest shape. -/
+/-- **A column loop's `t` iterations from `k`**, each of its honest shape; none (`False`) past
+the last, so the last iteration's tail call is not taken. -/
 def colFrom (f col : String) (m : ℕ) (Tc : Tree → Prop) : ℕ → ℕ → Tree → Prop
-  | 0, _ => fun _ => True
+  | 0, _ => fun _ => False
   | t + 1, k => colLoopNH f col k m Tc (colFrom f col m Tc t (k + 1))
 
 variable (fs : String → ℕ) (cert : String → V → ℕ)
