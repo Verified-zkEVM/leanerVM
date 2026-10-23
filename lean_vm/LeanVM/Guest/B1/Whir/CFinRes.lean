@@ -125,5 +125,137 @@ theorem osResOdd_complete {c : OsCfg} {lvl : ℕ} {lv : OsLv} {bd k : ℕ} (σ :
     exact hW
   · rw [v2, e8, hv]
 
+/-- A level's sum's value: the pairs' sum, plus the last query's weighted at an odd count. -/
+def resSum (lv : OsLv) (acc W : E) (D : ℕ → E) (P : E) : E :=
+  if lv.queries % 2 = 1 then acc + W * lvRes lv D P else acc
+
+/-- The values after the level's sum: the inner value, the scale, the scaled sum, the new inner. -/
+def resEndVals (I L sum : E) : List E := [I, L, L * sum, I + L * sum]
+
+/-- The end of a level's residual: the inner value and the scale read, the new inner value
+stored. -/
+theorem resEnd_complete {ich ls e sv lvl : ℕ} (σ : Val) (hich : ich < e) (hls : ls < e)
+    (hsv : sv < e) {I L : E} (hI : LoadHolds rd (σ (.n ich)) lvl I)
+    (hL : LoadHolds rd (σ (.n ls)) lvl L)
+    (hout : LoadHolds rd (σ (.n ich)) (lvl + 1) (I + L * σ (.n sv))) :
+    BlkF C rd σ e (e + 4) (fun j ↦ (resEndVals I L (σ (.n sv))).getD (j - e) 0)
+      [.atom (.load (.n e) (.n ich) lvl), .atom (.load (.n (e + 1)) (.n ls) lvl),
+        .atom (.mul (.n (e + 2)) (.n (e + 1)) (.n sv)), .atom (.add (.n (e + 3)) (.n e) (.n (e + 2))),
+        .atom (.load (.n (e + 3)) (.n ich) (lvl + 1))]
+      (fun σ' ↦ AgreeBelow e σ σ') := by
+  intro σ' ha hr
+  have V : ∀ j < 4, σ' (.n (e + j)) = (resEndVals I L (σ (.n sv))).getD j 0 := fun j hj ↦ by
+    rw [hr _ (by omega) (by omega)]; simp only [Nat.add_sub_cancel_left]
+  have v0 := V 0 (by omega); have v1 := V 1 (by omega); have v2 := V 2 (by omega)
+  have v3 := V 3 (by omega)
+  simp only [resEndVals, List.getD_cons_zero, List.getD_cons_succ, Nat.add_zero] at v0 v1 v2 v3
+  refine ⟨?_, ha⟩
+  simp only [allOk_cons, allOk_nil, and_true, StmtOk, Atom.Holds]
+  refine ⟨by rw [v0, ha _ hich]; exact hI, by rw [v1, ha _ hls]; exact hL,
+    by rw [v2, v1, ha _ hsv], by rw [v3, v0, v2], by rw [v3, ha _ hich]; exact hout⟩
+
+/-- The value holding a level's sum and the level's last value before its end. -/
+def resSumIdx (lvl : ℕ) (lv : OsLv) (bd k : ℕ) : ℕ × ℕ :=
+  if lv.queries % 2 = 1 then
+    ((osResQuery (k + 9) bd (lvl * ligColsCap) lv.vanish lv.logCols (k + 10)).2.2 + 2,
+      (osResQuery (k + 9) bd (lvl * ligColsCap) lv.vanish lv.logCols (k + 10)).2.2 + 3)
+  else (k + 8, k + 9)
+
+/-- The values of a level's residual. -/
+def residualF (c : OsCfg) (lvl : ℕ) (lv : OsLv) (bd k : ℕ) (σ : Val) (RC acc P W I L : E)
+    (D : ℕ → E) : ℕ → E :=
+  seqF σ k (k + 9) (fun j ↦ (resPreVals c (lv.queries / 2) RC acc).getD (j - k) 0) fun σ1 ↦
+  seqF σ1 (k + 9) (resSumIdx lvl lv bd k).2
+    (if lv.queries % 2 = 1 then resOddF lvl lv bd k σ1 P W D else fun _ ↦ 0) fun σ2 ↦
+  fun j ↦ (resEndVals I L (σ2 (.n (resSumIdx lvl lv bd k).1))).getD (j - (resSumIdx lvl lv bd k).2) 0
+
+theorem osResidual_eq (c : OsCfg) (ich bd ls lvl : ℕ) (lv : OsLv) (k : ℕ) :
+    osResidual c ich bd ls lvl lv k =
+      ((osHeap (c.maxQ + 1) k ++
+        [.atom (.const (.n (k + 2)) (word 0 0 0)), .atom (.load (.n (k + 2)) (.n (k + 1)) 0)] ++
+        osLoopCall (c.resLoop lvl) (lv.queries / 2) [osQpos, osQw, bd, k + 1] (k + 3) ++
+        [.atom (.load (.n (k + 8)) (.n (k + 1)) (lv.queries / 2))]) ++
+        ((if lv.queries % 2 = 1 then
+          [.atom (.load (.n (k + 9)) (.n osQpos) (lv.posOff + lv.queries - 1))] ++
+            (osResQuery (k + 9) bd (lvl * ligColsCap) lv.vanish lv.logCols (k + 10)).1 ++
+            [.atom (.load (.n (osResQuery (k + 9) bd (lvl * ligColsCap) lv.vanish lv.logCols
+                (k + 10)).2.2) (.n osQw) (lvl * c.maxQ + lv.queries - 1)),
+              .atom (.mul (.n ((osResQuery (k + 9) bd (lvl * ligColsCap) lv.vanish lv.logCols
+                (k + 10)).2.2 + 1)) (.n (osResQuery (k + 9) bd (lvl * ligColsCap) lv.vanish lv.logCols
+                (k + 10)).2.2) (.n (osResQuery (k + 9) bd (lvl * ligColsCap) lv.vanish lv.logCols
+                (k + 10)).2.1)),
+              .atom (.add (.n ((osResQuery (k + 9) bd (lvl * ligColsCap) lv.vanish lv.logCols
+                (k + 10)).2.2 + 2)) (.n (k + 8)) (.n ((osResQuery (k + 9) bd (lvl * ligColsCap)
+                lv.vanish lv.logCols (k + 10)).2.2 + 1)))]
+          else []) ++
+        [.atom (.load (.n (resSumIdx lvl lv bd k).2) (.n ich) lvl),
+          .atom (.load (.n ((resSumIdx lvl lv bd k).2 + 1)) (.n ls) lvl),
+          .atom (.mul (.n ((resSumIdx lvl lv bd k).2 + 2)) (.n ((resSumIdx lvl lv bd k).2 + 1))
+            (.n (resSumIdx lvl lv bd k).1)),
+          .atom (.add (.n ((resSumIdx lvl lv bd k).2 + 3)) (.n (resSumIdx lvl lv bd k).2)
+            (.n ((resSumIdx lvl lv bd k).2 + 2))),
+          .atom (.load (.n ((resSumIdx lvl lv bd k).2 + 3)) (.n ich) (lvl + 1))]),
+        (resSumIdx lvl lv bd k).2 + 4) := by
+  unfold osResidual resSumIdx
+  split_ifs <;> simp [List.append_assoc]
+
+/-- **A level's residual sum, honestly.** -/
+theorem osResidual_complete {c : OsCfg} {lvl : ℕ} {lv : OsLv} {ich bd ls k : ℕ} (σ : Val)
+    (hk : 34 ≤ k) (hich : ich < k) (hbd : bd < k) (hls : ls < k) (hml : 1 ≤ lv.logCols)
+    (hn : lv.queries / 2 < u128Bound) (RC acc : E)
+    (hL : IsInK (1 + gen ^ (lv.queries / 2)) ∧ (1 + gen ^ (lv.queries / 2) ≠ 0 →
+      C (c.resLoop lvl) [1, gen ^ (lv.queries / 2), σ (.n osQpos), σ (.n osQw), σ (.n bd), RC] []))
+    (h0 : LoadHolds rd RC 0 0) (hacc : LoadHolds rd RC (lv.queries / 2) acc)
+    {P W : E} {D : ℕ → E}
+    (hP : lv.queries % 2 = 1 → LoadHolds rd (σ (.n osQpos)) (lv.posOff + lv.queries - 1) P)
+    (hD : lv.queries % 2 = 1 → ∀ s < lv.logCols, LoadHolds rd (σ (.n bd)) (lvl * ligColsCap + s) (D s))
+    (hW : lv.queries % 2 = 1 → LoadHolds rd (σ (.n osQw)) (lvl * c.maxQ + lv.queries - 1) W)
+    {I L : E} (hI : LoadHolds rd (σ (.n ich)) lvl I) (hLs : LoadHolds rd (σ (.n ls)) lvl L)
+    (hout : LoadHolds rd (σ (.n ich)) (lvl + 1) (I + L * resSum lv acc W D P)) :
+    BlkF C rd σ k (osResidual c ich bd ls lvl lv k).2 (residualF c lvl lv bd k σ RC acc P W I L D)
+      (osResidual c ich bd ls lvl lv k).1 (fun σ' ↦ AgreeBelow k σ σ') := by
+  rw [osResidual_eq]
+  dsimp only
+  unfold residualF
+  have hpre := osResPre_complete (C := C) (rd := rd) (c := c) (lvl := lvl) (lv := lv) (bd := bd)
+    (k := k) σ RC acc hk hbd hn hL h0 hacc
+  have hsi : k + 9 ≤ (resSumIdx lvl lv bd k).2 ∧ (resSumIdx lvl lv bd k).1 < (resSumIdx lvl lv bd k).2 := by
+    unfold resSumIdx
+    have := (osResQ_k (k + 9) bd (lvl * ligColsCap) lv.vanish (lv.logCols - 1) 1 (k + 11) (k + 12)).1
+    split_ifs
+    · show k + 9 ≤ (osResQ (k + 9) bd (lvl * ligColsCap) lv.vanish (lv.logCols - 1) 1 (k + 11)
+        (k + 12)).2.2 + 3 ∧ _
+      omega
+    · omega
+  refine BlkF.then (k1 := k + 9) (by omega) (by omega) hpre fun σ1 _ ⟨h8, h1, ha1⟩ ↦ ?_
+  refine BlkF.then (k1 := (resSumIdx lvl lv bd k).2) hsi.1 (by omega)
+    (OutA := fun σ' ↦ σ' (.n (resSumIdx lvl lv bd k).1) = resSum lv acc W D P ∧
+      AgreeBelow (k + 9) σ1 σ') ?_ fun σ2 _ ⟨hs, ha2⟩ ↦ ?_
+  · by_cases hodd : lv.queries % 2 = 1
+    · simp only [hodd, ↓reduceIte]
+      have := osResOdd_complete (C := C) (rd := rd) (c := c) (lvl := lvl) (lv := lv) (bd := bd) (k := k)
+        σ1 hk hbd hml (P := P) (W := W) (D := D)
+        (by rw [ha1 _ (show osQpos < k by unfold osQpos; omega)]; exact hP hodd)
+        (fun s hs ↦ by rw [ha1 _ hbd]; exact hD hodd s hs)
+        (by rw [ha1 _ (show osQw < k by unfold osQw; omega)]; exact hW hodd)
+      rw [h8] at this
+      have e : resSumIdx lvl lv bd k = ((osResQuery (k + 9) bd (lvl * ligColsCap) lv.vanish
+          lv.logCols (k + 10)).2.2 + 2, (osResQuery (k + 9) bd (lvl * ligColsCap) lv.vanish lv.logCols
+          (k + 10)).2.2 + 3) := by simp [resSumIdx, hodd]
+      rw [e]
+      refine BlkF.mono this fun σ' ⟨hv, ha⟩ ↦ ⟨?_, ha⟩
+      rw [hv]; simp [resSum, hodd]
+    · simp only [hodd, ↓reduceIte]
+      have e : resSumIdx lvl lv bd k = (k + 8, k + 9) := by simp [resSumIdx, hodd]
+      rw [e]
+      exact BlkF.nil fun σ' ha ↦ ⟨by rw [ha _ (by omega), h8]; simp [resSum, hodd], ha⟩
+  · have e2 : ∀ v, v < k → σ2 (.n v) = σ (.n v) := fun v hv ↦
+      (ha2 v (by omega)).trans (ha1 v hv)
+    refine BlkF.mono (resEnd_complete (C := C) (rd := rd) (ich := ich) (ls := ls)
+      (e := (resSumIdx lvl lv bd k).2) (sv := (resSumIdx lvl lv bd k).1) (lvl := lvl) σ2
+      (by omega) (by omega) hsi.2 (by rw [e2 _ hich]; exact hI) (by rw [e2 _ hls]; exact hLs)
+      (by rw [e2 _ hich, hs]; exact hout)) fun σ' ha3 i hi ↦
+        (ha3 i (by omega)).trans ((ha2 i (by omega)).trans (ha1 i hi))
+
 end
 end LeanVM.Guest.B1.Whir
