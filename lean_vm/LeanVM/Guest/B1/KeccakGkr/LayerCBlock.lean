@@ -111,6 +111,52 @@ theorem block_holds {B : List Stmt} (hall : B.all isAtom = true) (hσ : ∀ v, �
   exact (holdsList_atoms (allAtoms_of_all hall) next kret).2
     ⟨fun a ha ↦ H a (mem_atomsL.mpr ha), hn⟩
 
+/-- **`block_holds` after a prefix `P`**: the canonical `KECCAK` inputs checked along `P ++ B`,
+whose atoms satisfy their equations. -/
+theorem block_holdsP {P B : List Stmt} (hall : B.all isAtom = true)
+    (hσ : ∀ v, σ v = σ (.n v.idx)) {A : List ℕ} (hk : canonChk A (atomsL (P ++ B)) = true)
+    (hg : ∀ s ∈ P ++ B, GoodS rd S w σ s) (hA : ∀ i ∈ A, IsCanonical128 (σ (.n i)))
+    (hR : ∀ a ∈ resid (atomsL B), a.Holds rd σ ∨ Side rd S σ a) :
+    ∀ {next : Prop} {kret : List E → Prop}, next → Stmt.HoldsList C rd σ B next kret := by
+  intro next kret hn
+  have hgA : ∀ a ∈ atomsL (P ++ B), Good rd S w σ a := fun a ha ↦ hg _ (mem_atomsL.mp ha)
+  have hgB : ∀ a ∈ atomsL B, Good rd S w σ a :=
+    fun a ha ↦ hg _ (List.mem_append_right _ (mem_atomsL.mp ha))
+  have H : ∀ a ∈ atomsL B, a.Holds rd σ := by
+    intro a ha
+    cases hns : needsSide a
+    · refine holds_of_good (hgB a ha) ?_
+      cases a with
+      | mul d x y =>
+        simp only [needsSide, Bool.not_eq_false', Bool.and_eq_true, decide_eq_true_eq] at hns
+        simp only [Side]
+        rw [ite_pos' hns]
+        trivial
+      | keccak ins outs i o =>
+        intro c
+        obtain ⟨hl, -, -⟩ := (hgB _ ha : Good rd S w σ (.keccak ins outs i o))
+        have := canonGo_sound hσ A _ hk hgA hA ins outs i o
+          (mem_atomsL.mpr (List.mem_append_right _ (mem_atomsL.mp ha)))
+        simp only [cells13, List.getD_eq_getElem?_getD, List.getElem?_map,
+          List.getElem?_eq_getElem (show c.val < ins.length by omega), Option.map_some,
+          Option.getD_some]
+        exact this _ (List.getElem_mem _)
+      | load | assertEq | assertInK | assertNe | rangeCheck | frameAddr => simp [needsSide] at hns
+      | _ => trivial
+    · cases hik : inkB (inKVals (atomsL B)) a
+      · rcases hR a (List.mem_filter.mpr ⟨ha, by simp [hns, hik]⟩) with h | h
+        · exact h
+        · exact holds_of_good (hgB a ha) h
+      · cases a with
+        | assertInK x y =>
+          simp only [inkB, Bool.and_eq_true, List.contains_iff_mem] at hik
+          show IsInK (σ x) ∧ IsInK (σ y)
+          rw [hσ x, hσ y]
+          exact ⟨inK_of_inKVals hσ hgB hik.1, inK_of_inKVals hσ hgB hik.2⟩
+        | _ => simp [inkB] at hik
+  exact (holdsList_atoms (allAtoms_of_all hall) next kret).2
+    ⟨fun a ha ↦ H a (mem_atomsL.mpr ha), hn⟩
+
 /-- A load that is not a store, through a pointer whose word the memory holds: its side
 condition. -/
 theorem side_load {d p : V} {off : ℕ} (hS : Atom.load d p off ∉ S) {v : E}
