@@ -365,5 +365,162 @@ theorem rsw_block {rd : Reader} {bz bp bc bb count : ℕ} {zs ps cs : List E} (h
   rw [(hterm k hk).2.2.1, (hterm k hk).1, (hterm k hk).2.1,
     rwProd_eq_ringRow k zs ps _ (by rw [hz, hp])]
 
+/-! ## Placed -/
+
+theorem rsw_noDisp : rswPre.all (fun s => match s with | .dispatch .. => false | _ => true) = true := by
+  decide +kernel
+
+/-- An atom or a call. -/
+def atomOrCall : Stmt → Bool
+  | .atom _ => true
+  | .call .. => true
+  | _ => false
+
+theorem rsw_kinds : rswPre.all atomOrCall = true := by decide +kernel
+
+theorem rsw_callS : rswPre.filterMap Main.Stmt.callS =
+    [(none, "rs_eq_run", [.n 12, .n 0, .n 1, .n 3], [.n 77])] := by decide +kernel
+
+theorem rsw_callSF (σ : Val) : rswPre.filterMap (Stmt.callSF σ) =
+    [(none, "rs_eq_run", [.n 12, .n 0, .n 1, .n 3], [.n 77])] := by
+  rw [← rsw_callS]
+  refine List.filterMap_congr fun s hs => ?_
+  have := List.all_eq_true.mp rsw_kinds s hs
+  cases s <;> simp_all [Stmt.callSF, atomOrCall]
+
+theorem rsw_loads_ok {q : V × ℕ} (hq : q ∈ rswPre.filterMap Stmt.loadS) :
+    q.2 < 64 ∧ (q.1 = .n 2 ∨ q.1 = .n 77 ∨ q.1 = .n 12) := by
+  obtain ⟨s, hs, hsq⟩ := List.mem_filterMap.mp hq
+  cases s with
+  | atom a =>
+    cases a with
+    | load d p off =>
+      simp only [Stmt.loadS, Option.some.injEq] at hsq
+      subst hsq
+      have := List.all_eq_true.mp rsw_loadOk _ (rsw_atom_mem hs)
+      simp only [rswLoadOk, Bool.and_eq_true, Bool.or_eq_true, decide_eq_true_eq] at this
+      exact ⟨this.1, by tauto⟩
+    | _ => simp [Stmt.loadS] at hsq
+  | _ => simp [Stmt.loadS] at hsq
+
+variable {fs : String → ℕ} {cert : String → V → ℕ}
+
+set_option maxHeartbeats 1000000 in
+/-- **`ring_switch_weight` is complete, placed**: on the coordinates, the point and the
+coefficients, at every frame pointer, its chain at the bump allocator's position, returning
+`ringWeight`. -/
+theorem rsw_completeAt (κ : ℕ) {bz bp bc count : ℕ} {zs ps cs : List E} (hcount : count < 64)
+    (hz : zs.length = count) (hp : ps.length = count) (hc : cs.length = 64) :
+    CompleteAtD fs cert κ "ring_switch_weight" [(bz, zs), (bp, ps), (bc, cs)]
+      [ofK (gpow bz), ofK (gpow bp), ofK (gpow bc), gen ^ count]
+      (Returns [ringWeight zs (ps.map (1 + ·)) cs]) := by
+  refine completeAt_flatD (fs := fs) (cert := cert) find_rsw rsw_not_loop κ _ _ _ rsw_body' rsw_flat
+    rsw_addrs [64 * (count + 1)] (fun _ ↦ [rswChain zs ps count])
+    (fun _ ↦ by simpa using rswChain_le zs ps count)
+    (fun fp ↦ [⟨"rs_eq_run", true, [ofK (gpow (fp + fs "ring_switch_weight")), ofK (gpow bz),
+      ofK (gpow bp), gen ^ count], rsLin (fp + fs "ring_switch_weight") bz bp count zs ps,
+      Returns [ofK (gpow (fp + fs "ring_switch_weight")) * gen ^ (64 * rswH count)]⟩]) ?_ ?_ ?_ ?_
+  · intro fp k hk _
+    rw [List.mem_singleton] at hk
+    subst hk
+    exact completeAt_of_rel_pureD rs_pure (by simp) (fun rd hL ↦ rs_rel hcount hz hp hL) κ
+  · intro fp k hk _ i hi
+    rw [List.mem_singleton] at hk
+    subst hk
+    obtain ⟨q, hq, hi⟩ := hi
+    simp only [rsLin, List.mem_cons, List.not_mem_nil, or_false] at hq
+    rcases hq with rfl | rfl | rfl
+    · exact Or.inr ⟨_, by simp [bufL, bases], hi⟩
+    · exact Or.inl ⟨_, by simp, hi⟩
+    · exact Or.inl ⟨_, by simp, hi⟩
+  · intro fp rd hB hLin k hk
+    rw [List.mem_singleton] at hk
+    subst hk
+    intro q hq
+    simp only [rsLin, List.mem_cons, List.not_mem_nil, or_false] at hq
+    rcases hq with rfl | rfl | rfl
+    · exact hB (fp + fs "ring_switch_weight", rswChain zs ps count) (by simp [bufL, bases])
+    · exact hLin (bz, zs) (by simp)
+    · exact hLin (bp, ps) (by simp)
+  · intro fp outs ho rd _ hB hLin
+    have hzs : ReadsAt rd (ofK (gpow bz)) zs := hLin (bz, zs) (by simp)
+    have hps : ReadsAt rd (ofK (gpow bp)) ps := hLin (bp, ps) (by simp)
+    have hcs : ReadsAt rd (ofK (gpow bc)) cs := hLin (bc, cs) (by simp)
+    have hch : ReadsAt rd (ofK (gpow (fp + fs "ring_switch_weight"))) (rswChain zs ps count) :=
+      hB (fp + fs "ring_switch_weight", rswChain zs ps count) (by simp [bufL, bases])
+    rcases outs with _ | ⟨o, _ | ⟨o', os⟩⟩
+    · exact absurd ho (by simp [OutsOk])
+    swap
+    · exact absurd ho.2 (by simp [OutsOk])
+    obtain ⟨ho', -⟩ := ho
+    obtain ⟨ho1, -⟩ := ho' rfl
+    obtain ⟨σ, hσdef⟩ : ∃ σ, σ = rswσ rd [ofK (gpow bz), ofK (gpow bp), ofK (gpow bc), gen ^ count]
+        (fp + fs "ring_switch_weight") (rswH count) := ⟨_, rfl⟩
+    obtain ⟨hat, h11, e12, e77, e333⟩ := rsw_block hcount hz hp hc hzs hps hcs hch
+    rw [← hσdef] at hat h11 e12 e77 e333
+    have hpar : ∀ i (hi : i < 4), σ (.n i) =
+        [ofK (gpow bz), ofK (gpow bp), ofK (gpow bc), gen ^ count].getD i 0 := by
+      intro i hi
+      rw [hσdef]
+      exact ev_params rd _ (l := [ofK (gpow bz), ofK (gpow bp), ofK (gpow bc), gen ^ count]) rsw_chk
+        (by simpa using hi)
+    have e0 := hpar 0 (by omega)
+    have e1 := hpar 1 (by omega)
+    have e2 := hpar 2 (by omega)
+    have e3 := hpar 3 (by omega)
+    simp only [List.getD_cons_zero, List.getD_cons_succ] at e0 e1 e2 e3
+    refine ⟨σ, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
+    · show [Core.V.n 0, .n 1, .n 2, .n 3].map σ = _
+      simp only [List.map_cons, List.map_nil, e0, e1, e2, e3]
+    · intro s hs
+      have := List.all_eq_true.mp rsw_noDisp s hs
+      cases s <;> simp_all [DispOk]
+    · rw [rsw_body']
+      refine Fwd.holdsList_straight _ _ _ _ (fun s hs ↦ ?_) (by simp [e333])
+      have hnd := List.all_eq_true.mp rsw_kinds s hs
+      cases s with
+      | atom a => exact hat a (rsw_atom_mem hs)
+      | call f args rets =>
+        have : Stmt.call f args rets = .call "rs_eq_run" [.n 12, .n 0, .n 1, .n 3] [.n 77] := by
+          have h := rsw_callSF σ
+          have hm : (Option.none, f, args, rets) ∈ rswPre.filterMap (Stmt.callSF σ) :=
+            List.mem_filterMap.mpr ⟨_, hs, rfl⟩
+          rw [h, List.mem_singleton] at hm
+          simp only [Prod.mk.injEq] at hm
+          obtain ⟨-, rfl, rfl, rfl⟩ := hm
+          rfl
+        rw [this]
+        show coreProgram.Rel rd "rs_eq_run" [σ (.n 12), σ (.n 0), σ (.n 1), σ (.n 3)] [σ (.n 77)]
+        rw [e12, e0, e1, e3, e77]
+        exact rs_rel hcount hz hp (fun q hq ↦ by
+          simp only [rsLin, List.mem_cons, List.not_mem_nil, or_false] at hq
+          rcases hq with rfl | rfl | rfl
+          · exact hch
+          · exact hzs
+          · exact hps)
+      | _ => simp [atomOrCall] at hnd
+    · rw [rsw_allocs]
+      simp only [List.map_cons, List.map_nil, Sum.elim_inr, h11, List.cons.injEq, and_true]
+      exact logG_spec (by omega)
+    · rw [rsw_allocs]
+      simp [bases, e12]
+    · rw [rsw_callSF]
+      refine ⟨rfl, rfl, fun _ ↦ ⟨?_, ?_⟩, trivial⟩
+      · show [σ (.n 12), σ (.n 0), σ (.n 1), σ (.n 3)] = _
+        rw [e12, e0, e1, e3]
+      · show [σ (.n 77)] = o.1
+        rw [ho1, e77]
+    · intro q hq
+      obtain ⟨hoff, hp'⟩ := rsw_loads_ok hq
+      rcases hp' with h | h | h <;> rw [h]
+      · rw [e2, Main.addr_ofK]
+        exact ⟨_, rfl, Or.inl ⟨(bc, cs), by simp, by simp [hc]; omega⟩⟩
+      · rw [e77, rt_addr_mul]
+        exact ⟨_, rfl, Or.inr ⟨(fp + fs "ring_switch_weight", rswChain zs ps count),
+          by simp [bufL, bases], by simp only [rswChain_length]; omega⟩⟩
+      · rw [e12, Main.addr_ofK]
+        exact ⟨_, rfl, Or.inr ⟨(fp + fs "ring_switch_weight", rswChain zs ps count),
+          by simp [bufL, bases], by simp only [rswChain_length]; omega⟩⟩
+
 end
 end LeanVM.Guest.B1.VerifySub
