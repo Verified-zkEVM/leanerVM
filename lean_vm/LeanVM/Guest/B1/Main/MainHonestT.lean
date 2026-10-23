@@ -109,7 +109,7 @@ theorem mainKidsDT {T5 : Tree → Prop} (hg : MainGoals fs cert fp seed s w)
 
 /-- **`main` at `fp` on the honest run, its children's loop's tree satisfying `T5`.** -/
 theorem main_honest_relAtInT {T5 : Tree → Prop} (hbl : bytecode.length = 2 ^ 23)
-    (hr : NodeRel bytecode seed s w) (hl : Limits bytecode s w) (hf : FreshShaped w)
+    (hr : NodeRel bytecode seed s w) (hl : Limits bytecode s w)
     (hxc : Sig.verify_lean_xmss_complete_Spec)
     (hsc : Sig.verify_sig_lean_sphincs_complete_loads_Spec) (hrf : Lift.RunsFit fs cert)
     (hl5 : MainGoalL5T fs cert fp seed s w T5) (hag : MainGoalAg fs cert fp seed s w) :
@@ -121,10 +121,10 @@ theorem main_honest_relAtInT {T5 : Tree → Prop} (hbl : bytecode.length = 2 ^ 2
         RelAtInT coreProgram fs cert rd (fun i => i < 2) (fun _ => False) fp n "main" [] []
           (fun t => ∃ σ bufs ks, t = .node "main" σ bufs ks ∧ MVals rd σ (hm fs fp seed s w) ∧
             KidsT (mCalls σ (hm fs fp seed s w)) ((fun _ => True) :: mTs (hm fs fp seed s w) T5) ks) :=
-  main_relAtInT fs cert fp (hData seed s w) (hOwn seed s w) (hOwn_fit (log2_of_length hbl) hr hf)
+  main_relAtInT fs cert fp (hData seed s w) (hOwn seed s w) (hOwn_fit (log2_of_length hbl) hr (freshShaped_of hbl hr))
     (hData_bounds hl fs fp) hData_daR _
     (mainKidsDT (mainGoals_of hbl hr hl hxc hsc hrf hl5.goal hag) hl5)
-    (fun rd hM h0 h1 => hMainMem (log2_of_length hbl) hr hf hl fs fp rd hM h0 h1)
+    (fun rd hM h0 h1 => hMainMem (log2_of_length hbl) hr (freshShaped_of hbl hr) hl fs fp rd hM h0 h1)
 
 end
 end LeanVM.Guest.B1.Main

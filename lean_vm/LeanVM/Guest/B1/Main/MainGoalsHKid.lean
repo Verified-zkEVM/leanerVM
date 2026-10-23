@@ -17,7 +17,7 @@ public import LeanVM.Protocol.Verifier.Load
 
 `cellsBytes_claimCells`: a claim's four cells are its 64 bytes; so the claim lists' and the DA
 list's digests are their cells' (`xmssList_cells`, `sphincsList_cells`, `daList_cells`).
-`segOf_sum`: the children's claim `base + j` is child `c`'s claim `j`. `hKid c`: child `c`'s
+`kid_segOf_sum`: the children's claim `base + j` is child `c`'s claim `j`. `hKid c`: child `c`'s
 `KidH`, whose statement digest (`hKid_pi`) is the child's statement's.
 -/
 
@@ -43,14 +43,14 @@ theorem cellBytes_cellOfBytes {b : List UInt8} (h : 16 ≤ b.length) :
 theorem length_claimBytes (r p : BitVec 128) (m : BitVec 256) : (claimBytes r p m).length = 64 := by
   simp [claimBytes, bytes16, LeanXmss.bytesLE]
 
-theorem claimCells_eq (r p : BitVec 128) (m : BitVec 256) :
+theorem kid_claimCells_eq (r p : BitVec 128) (m : BitVec 256) :
     claimCells r p m = [cellOfBytes (claimBytes r p m), cellOfBytes ((claimBytes r p m).drop 16),
       cellOfBytes ((claimBytes r p m).drop 32), cellOfBytes ((claimBytes r p m).drop 48)] := by
   rw [claimCells, cellsOfBytes, length_claimBytes]
   rfl
 
-theorem length_claimCells (r p : BitVec 128) (m : BitVec 256) : (claimCells r p m).length = 4 := by
-  rw [claimCells_eq]; rfl
+theorem kid_length_claimCells (r p : BitVec 128) (m : BitVec 256) : (claimCells r p m).length = 4 := by
+  rw [kid_claimCells_eq]; rfl
 
 theorem take16_chain {b : List UInt8} (h : b.length = 64) :
     b.take 16 ++ ((b.drop 16).take 16 ++ ((b.drop 32).take 16 ++ (b.drop 48).take 16)) = b := by
@@ -63,7 +63,7 @@ theorem take16_chain {b : List UInt8} (h : b.length = 64) :
 theorem cellsBytes_claimCells (r p : BitVec 128) (m : BitVec 256) :
     cellsBytes (claimCells r p m) = claimBytes r p m := by
   have hl := length_claimBytes r p m
-  rw [claimCells_eq]
+  rw [kid_claimCells_eq]
   simp only [cellsBytes, List.flatMap_cons, List.flatMap_nil, List.append_nil]
   rw [cellBytes_cellOfBytes (by omega), cellBytes_cellOfBytes (by rw [List.length_drop]; omega),
     cellBytes_cellOfBytes (by rw [List.length_drop]; omega),
@@ -73,11 +73,11 @@ theorem cellsBytes_claimCells (r p : BitVec 128) (m : BitVec 256) :
 theorem claimCells_canonical (r p : BitVec 128) (m : BitVec 256) :
     AllCanonical (claimCells r p m) := by
   intro x hx
-  rw [claimCells_eq] at hx
+  rw [kid_claimCells_eq] at hx
   simp only [List.mem_cons, List.not_mem_nil, or_false] at hx
   rcases hx with rfl | rfl | rfl | rfl <;> rfl
 
-theorem length_daCells (c : DaClaim) : (daCells c).length = 4 := rfl
+theorem kid_length_daCells (c : DaClaim) : (daCells c).length = 4 := rfl
 
 theorem daCells_canonical (c : DaClaim) : AllCanonical (daCells c) := by
   intro x hx
@@ -148,7 +148,7 @@ theorem flatMap_range_getD {α : Type} (l : List α) (f : α → List E) (x : Li
   rw [List.flatMap_def, this, ← List.flatMap_def]
 
 /-- **The children's claim `(sum of the first c lengths) + j`** is child `c`'s claim `j`. -/
-theorem segOf_sum : ∀ (ls : List ℕ) (c j : ℕ) (hc : c < ls.length), j < ls[c] →
+theorem kid_segOf_sum : ∀ (ls : List ℕ) (c j : ℕ) (hc : c < ls.length), j < ls[c] →
     segOf ls ((ls.take c).sum + j) = (c, j)
   | [], _, _, hc, _ => absurd hc (by simp)
   | l :: ls, 0, j, _, hj => by
@@ -157,7 +157,7 @@ theorem segOf_sum : ∀ (ls : List ℕ) (c j : ℕ) (hc : c < ls.length), j < ls
     · rfl
     · rename_i h; exact absurd (by simpa using hj) h
   | l :: ls, c + 1, j, hc, hj => by
-    have ih := segOf_sum ls c j (by simpa using hc) (by simpa using hj)
+    have ih := kid_segOf_sum ls c j (by simpa using hc) (by simpa using hj)
     have e : (List.take (c + 1) (l :: ls)).sum + j = (ls.take c).sum + j + l := by
       simp only [List.take_succ_cons, List.sum_cons]; omega
     rw [e]
