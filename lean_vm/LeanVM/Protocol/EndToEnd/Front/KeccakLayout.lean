@@ -36,7 +36,7 @@ offset. -/
 theorem placement_qkeccak (prog : Program) (s : Sizes) :
     (verifierLayout prog s).placement qkeccak =
       { vars := s.τ 5 + 6, index := (blocks prog s).offset (keccakBlock prog s) } := by
-  rw [← pyCol_keccakCol, placement_committed prog s keccakCol not_isLane_keccakCol]
+  rw [← pyCol_keccakCol, placement_committed prog s keccakCol not_isVirtual_keccakCol]
   rfl
 
 end

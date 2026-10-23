@@ -67,20 +67,20 @@ def prefixRun (s : List E) : Option (List E × St) :=
 /-! ## The sponge agrees with the Python's -/
 
 #guard ((prefixRun (stream 4 0)).map (·.1)) =
-    some [(e 0x148abcb87ca70219 0x846ba8835e623411 0xc0f612e8b6f385a4),
-     (e 0x34005b035dad2d3f 0x8289a20d49fadf57 0x835c9ba69fde4a06),
-     (e 0xf6080c476785ceaf 0x12955a6c3e660ffb 0xe3d4885dcf7e2b12),
-     (e 0xa6252d945f490912 0x7a6b42738c133b2d 0xd83ec4099168f0e9),
-     (e 0x57afc31da54ec6c1 0xa98880d53f79e4d0 0x04dbe9a04ab480bb)]
+    some [(e 0xd790895a57ecc448 0x1d3f6a34ba276267 0xd84f736a7ca14a72),
+     (e 0xd5e90535f68cfea9 0xbbc49cb20b116769 0x79a750f4c329c3d3),
+     (e 0xa77a8da5d12628f3 0x628f9f71648bb439 0xff7344540018cf53),
+     (e 0xd8ebb4231e51a997 0x36c7386d30fe9fcd 0x70b54020d618de60),
+     (e 0xc4c1773fb367cac6 0xae8c3da5fab70731 0xf44a7f14b39c8cca)]
 
 #guard ((prefixRun (stream 4 0)).map fun r ↦ (r.2.sponge.state.toList, r.2.sponge.pending.length)) =
-    some ([0x57afc31da54ec6c1, 0xa98880d53f79e4d0, 0x04dbe9a04ab480bb, 0x521e6822baa11f26,
-      0x49b22e1bd231c920, 0xf0b34eadc1f31287, 0x94d7a2d0c0929928, 0x134ae17ac741e0b4,
-      0x6b02f8410442b2c5, 0x6ad7f3e54ffe7e98, 0x65dba5a7d5b6f3e1, 0xb983308b08ad19f9,
-      0xcf73cd83c8956764, 0x01de8d0e3193f263, 0x178df8c81ea3d0c4, 0x36a5b7e37c9d3525,
-      0xb446301617bf2424, 0x0a9ab3ab72a91113, 0x792f3012ec741b67, 0xcb915e1661f1d526,
-      0x7bb10017f8d6be50, 0xf9de46766c961d10, 0x4fd52ca162e6f7b7, 0xcdf4f3a074fb8cb4,
-      0xaec1f5497894d0d3], 0)
+    some ([0xc4c1773fb367cac6, 0xae8c3da5fab70731, 0xf44a7f14b39c8cca, 0x5e9745ea05eef225,
+      0x487a8664795cfe0a, 0x5e4264d9289dfa7d, 0xe32f50eb1f5b7401, 0x5bbca26d605f030e,
+      0xa4af9fe4557d02a5, 0x10da4d4b578ef012, 0xecd37a4ba588b299, 0xdf7f4908d22e1734,
+      0x81eab84c9c062458, 0x70b4a1d3a309071b, 0xbd14d827401edcb5, 0xf269eb844eefd8af,
+      0xb8c5f0d786acf104, 0x54d43adbf6b12746, 0xa9d7ab15287a87d9, 0x5738a45fd96a22be,
+      0x4b96cebdc18d3dfc, 0xc3cfdcc776d936f1, 0xf5a34dd2e7f118ac, 0x70aab75027e95e95,
+      0x282ee27cc904a7e5], 0)
 
 /- The stack root is commitment `0`, of `2^(19 - 6 + 4)` leaves of `2^6` words. -/
 #guard ((prefixRun (stream 4 0)).map fun r ↦ r.2.roots.map fun c ↦ (c.2.1, c.2.2)) =

@@ -49,7 +49,7 @@ example {prog : Program} {input : PublicInput} {t : Trace prog} {ρ : ℕ}
 
 example (prog : Program) (s : Sizes) : (LeanVM.Protocol.LeanIsa.blocks prog s).total =
     4 * 2 ^ s.logMem + 2 ^ prog.logSize + 2 ^ (s.τ 5 + 6) + 15 * 2 ^ s.τ 0 + 15 * 2 ^ s.τ 1 +
-      8 * 2 ^ s.τ 2 + 15 * 2 ^ s.τ 3 + 14 * 2 ^ s.τ 4 + 40 * 2 ^ s.τ 5 :=
+      8 * 2 ^ s.τ 2 + 15 * 2 ^ s.τ 3 + 14 * 2 ^ s.τ 4 + 26 * 2 ^ s.τ 5 :=
   blocks_total_eq prog s
 
 /--
@@ -90,10 +90,10 @@ theorem keccakHeight_le {prog : Program} {t : Trace prog} {rf : Regs K} {n : ℕ
   · rw [max_eq_left hle]; omega
 
 /-- With at most `2^n` steps, the committed size is at most
-`4·2^κ + 2^logSize + 171·2^n + 53248`. -/
+`4·2^κ + 2^logSize + 157·2^n + 46080`. -/
 theorem committedSize_le {prog : Program} {t : Trace prog} {rf : Regs K} {n : ℕ}
     (h : run prog t.image t.steps Regs.initial = some rf) (hn : t.steps ≤ 2 ^ n) :
-    t.committedSize ≤ 4 * 2 ^ t.κ + 2 ^ prog.logSize + 171 * 2 ^ n + 53248 := by
+    t.committedSize ≤ 4 * 2 ^ t.κ + 2 ^ prog.logSize + 157 * 2 ^ n + 46080 := by
   have h0 := height_le h hn .xor
   have h1 := height_le h hn .mulNative
   have h2 := height_le h hn .setConstant
@@ -232,7 +232,7 @@ theorem count_eq_zero {op : Opcode} (hop : op ≠ .jump) : longTrace.count op = 
 kernel would evaluate its counts, a run of `2^20` steps, when comparing the sums. -/
 theorem committedSize_le_of_jumps {prog : Program} (t : Trace prog)
     (h0 : ∀ op, op ≠ .jump → t.count op = 0) {a : ℕ} (hj : 2 ^ Nat.clog 2 (t.count .jump) ≤ a) :
-    t.committedSize ≤ 4 * 2 ^ t.κ + 2 ^ prog.logSize + 14 * a + 53301 := by
+    t.committedSize ≤ 4 * 2 ^ t.κ + 2 ^ prog.logSize + 14 * a + 46133 := by
   simp only [Trace.committedSize, h0 .xor (by decide), h0 .mulNative (by decide),
     h0 .setConstant (by decide), h0 .deref (by decide), h0 .keccak (by decide),
     Nat.clog_zero_right, pow_zero, show max 0 9 = 9 from rfl]

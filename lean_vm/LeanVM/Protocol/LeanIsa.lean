@@ -50,13 +50,16 @@ parties, `Coord.known`; `bytecode_columns`, `layout.rs:291`). The index column i
 (`idxColumn`), as the Rust's `Coord::Index` is.
 
 **The stack** (`crates/leanvm_core/src/witness.rs:57-96`). Every committed column has a
-log-size, its table's; the fifty `KECCAK` value lanes have none (`Placement::VIRTUAL`,
-`witness.rs:20`; `layout.rs:227-239`). The committed columns, in global order, are sorted by
-log-size, largest first, ties in global order (`stack_offsets`), and laid end to end at aligned
-offsets (`Blocks.layout`); the stack has `μ = max(⌈log₂ total⌉, 15)` variables
-(`placements_of`). Input lane `l` of the `KECCAK` table is read at slot `l` of `QKECCAK`
-(`Blocks.sliceLayout`; `verifier.py:1009`): cell `x` of the lane is cell `x + l · 2^τ_KECCAK` of
-the region. The output lanes are *derived* (`derived`): lane `l` at row `x` is lane `l` of the
+log-size, its table's; the `KECCAK` table's columns `0 … 63` have none (`IsVirtual`: the fifty
+value lanes and the fourteen columns riding `QKECCAK`'s spare slots; `Placement::VIRTUAL`,
+`witness.rs:20`; `layout.rs:227-239`), so `99` of the `163` columns are committed. The committed
+columns, in global order, are sorted by log-size, largest first, ties in global order
+(`stack_offsets`), and laid end to end at aligned offsets (`Blocks.layout`); the stack has
+`μ = max(⌈log₂ total⌉, 15)` variables (`placements_of`). Input lane `l` of the `KECCAK` table is
+read at slot `l` of `QKECCAK`, and its columns `0 … 12` and `63` at slots `50 … 62` and `63`
+(`qSlot`, `Blocks.sliceLayout`; `KECCAK_SLOT_OF`, `verifier.py:951-953, 1009`): cell `x` of the
+column at slot `k` is cell `x + k · 2^τ_KECCAK` of the region. The output lanes are *derived*
+(`derived`): lane `l` at row `x` is lane `l` of the
 last twelve rounds of Keccak-f[1600] (`keccakSegment 1`) of the state after twelve rounds that
 `QKECCAK` commits for step `x` (slots `25 … 49`, `midState`), so a stack carries no output lane, as
 the Rust commits none. This is what the Keccak reduction proves of the claims on them: its first
@@ -73,11 +76,14 @@ limb's value on its line itself. The third line pins the top limbs, which the st
 have zero by type.
 
 **The Keccak region** is `QKECCAK`, with `2^τ_KECCAK` steps: `M3Holds` asks of it that every
-step's slots `25 … 49` hold the first twelve rounds of its slots `0 … 24`.
+step's slots `25 … 49` hold the first twelve rounds of its slots `0 … 24`. Its slots `50 … 63`
+are bound only by the table's claims on the columns they carry: the Keccak reduction weighs them
+nothing.
 
 **The maps.** `stackOf s w` stacks the columns a witness `w` carries: the memory and bytecode
 blocks' committed cells, the opcode tables' rows, and, as `QKECCAK`, the `KECCAK` rows' input
-lanes and their states after twelve rounds (padding steps: the zero state). `witnessOf prog s q`
+lanes, their states after twelve rounds (padding steps: the zero state) and their cells of the
+spare columns (`keccakWitness`). `witnessOf prog s q`
 reads a witness off any stack `q`: the six opcode tables from their rows, the memory block from
 the memory columns and the index `g^i`, the bytecode block from the program and `BFCNT`, the
 prover data's image from the memory columns, the public input from cells `0, 1` of `MEM_LO,
@@ -97,7 +103,8 @@ polynomials are Clean's, through `Component.toM3`.
 
 * The `KECCAK` value lanes are not committed columns: a stack carrying the input lanes twice
   would let a prover commit lanes different from `QKECCAK`'s, and nothing would tie the bus to
-  the permutation (the region is the sole copy, `layout.rs:18-25`).
+  the permutation (the region is the sole copy, `layout.rs:18-25`). Likewise the spare columns
+  have their one copy in `QKECCAK`'s slots `50 … 63`, as the Rust and the Python place them.
 * The output lanes are not free: an instance reading them off the stack would let a prover flush
   any output, since the Keccak reduction proves the permutation of the inputs, not a committed
   column.
@@ -279,11 +286,40 @@ def inCol (l : Fin 25) : Col := ⟨opIdx 5, ⟨13 + l, by rw [width_keccak]; ome
 /-- Output lane `l` of the `KECCAK` table: its column `38 + l`. -/
 def outCol (l : Fin 25) : Col := ⟨opIdx 5, ⟨38 + l, by rw [width_keccak]; omega⟩⟩
 
-/-- The column is a `KECCAK` value lane, input or output: not committed (`KECCAK_VALUE_COLS`,
-`crates/leanvm_core/src/tables.rs:428-440`). -/
+/-- The column is a `KECCAK` value lane, input or output: not committed in a block of its own
+(`KECCAK_IN … KECCAK_CNT`, `verifier.py:941`; `KeccakLane::Input`/`Output`,
+`crates/leanvm_core/src/cpu/layout.rs`). -/
 def IsLane (c : Col) : Prop := c.1 = opIdx 5 ∧ 13 ≤ c.2.val ∧ c.2.val < 63
 
 instance (c : Col) : Decidable (IsLane c) := inferInstanceAs (Decidable (_ ∧ _))
+
+/-- The column is one of the `KECCAK` table's first fourteen committed columns (its columns
+`0 … 12`, the operands, the layout flags and `free`, and `63`, `cnt_0`), which ride the spare
+slots `50 … 63` of `QKECCAK` (`KECCAK_SLOT_OF`, `verifier.py:951-953`; `KeccakLane::Slot`,
+`crates/leanvm_core/src/cpu/layout.rs:55-110`). -/
+def IsSpare (c : Col) : Prop := c.1 = opIdx 5 ∧ (c.2.val < 13 ∨ c.2.val = 63)
+
+instance (c : Col) : Decidable (IsSpare c) := inferInstanceAs (Decidable (_ ∧ _))
+
+/-- The column has no block of its own: a `KECCAK` value lane or a column riding a spare slot of
+`QKECCAK`, the `KECCAK` table's columns `0 … 63` (the Rust's virtual columns, `keccak_value`,
+`crates/leanvm_core/src/cpu/layout.rs:227-239`). -/
+def IsVirtual (c : Col) : Prop := c.1 = opIdx 5 ∧ c.2.val < 64
+
+instance (c : Col) : Decidable (IsVirtual c) := inferInstanceAs (Decidable (_ ∧ _))
+
+/-- A lane is virtual. -/
+theorem IsLane.isVirtual {c : Col} (h : IsLane c) : IsVirtual c := ⟨h.1, by have := h.2.2; omega⟩
+
+/-- A spare column is virtual. -/
+theorem IsSpare.isVirtual {c : Col} (h : IsSpare c) : IsVirtual c :=
+  ⟨h.1, by rcases h.2 with h' | h' <;> omega⟩
+
+/-- A virtual column is a lane or a spare column. -/
+theorem IsVirtual.lane_or_spare {c : Col} (h : IsVirtual c) : IsLane c ∨ IsSpare c := by
+  by_cases h' : 13 ≤ c.2.val ∧ c.2.val < 63
+  · exact .inl ⟨h.1, h'⟩
+  · exact .inr ⟨h.1, by have := h.2; omega⟩
 
 /-- The column is a `KECCAK` output lane: derived from the input lanes. -/
 def IsOut (c : Col) : Prop := c.1 = opIdx 5 ∧ 38 ≤ c.2.val ∧ c.2.val < 63
@@ -293,11 +329,12 @@ instance (c : Col) : Decidable (IsOut c) := inferInstanceAs (Decidable (_ ∧ _)
 /-- Every column, in global order: table by table, column by column. -/
 def columns : List Col := (List.finRange 9).flatMap fun j ↦ (List.finRange (width j)).map (⟨j, ·⟩)
 
-/-- The committed columns, in global order: every column but the `KECCAK` value lanes. -/
-def committedColumns : List Col := columns.filter fun c ↦ !decide (IsLane c)
+/-- The committed columns, in global order: every column but the virtual ones, the `KECCAK`
+value lanes and the columns riding `QKECCAK`'s spare slots. -/
+def committedColumns : List Col := columns.filter fun c ↦ !decide (IsVirtual c)
 
-/-- A column that is not a lane is committed. -/
-theorem mem_committedColumns {c : Col} (h : ¬ IsLane c) : c ∈ committedColumns := by
+/-- A column that is not virtual is committed. -/
+theorem mem_committedColumns {c : Col} (h : ¬ IsVirtual c) : c ∈ committedColumns := by
   simp only [committedColumns, columns, List.mem_filter, List.mem_flatMap, List.mem_finRange,
     List.mem_map, true_and, h, decide_false, Bool.not_false, and_true]
   exact ⟨c.1, c.2, rfl⟩
@@ -347,37 +384,49 @@ theorem blocks_fits : (blocks prog s).total ≤ 2 ^ leanIsaμ prog s :=
 
 variable {prog s} in
 /-- The block of a committed column. -/
-def blockOf (c : Col) (h : ¬ IsLane c) : Fin (blocks prog s).n :=
+def blockOf (c : Col) (h : ¬ IsVirtual c) : Fin (blocks prog s).n :=
   ⟨(stackOrder prog s).idxOf c,
     List.idxOf_lt_length_of_mem (List.mem_mergeSort.mpr (mem_committedColumns h))⟩
 
 /-- The block of a committed column holds that column. -/
-theorem stackOrder_blockOf (c : Col) (h : ¬ IsLane c) :
+theorem stackOrder_blockOf (c : Col) (h : ¬ IsVirtual c) :
     (stackOrder prog s)[(blockOf (prog := prog) (s := s) c h : ℕ)] = c :=
   List.getElem_idxOf _
 
 /-- A committed column's block has the column's log-height. -/
-theorem size_blockOf (c : Col) (h : ¬ IsLane c) :
+theorem size_blockOf (c : Col) (h : ¬ IsVirtual c) :
     (blocks prog s).size (blockOf c h) = kappa prog s c := by
   show kappa prog s (stackOrder prog s)[(blockOf (prog := prog) (s := s) c h : ℕ)] = _
   rw [stackOrder_blockOf]
 
 /-- `QKECCAK` is committed. -/
-theorem not_isLane_keccakCol : ¬ IsLane keccakCol := by decide
+theorem not_isVirtual_keccakCol : ¬ IsVirtual keccakCol := by decide
 
 /-- The block of `QKECCAK`. -/
-def keccakBlock : Fin (blocks prog s).n := blockOf keccakCol not_isLane_keccakCol
+def keccakBlock : Fin (blocks prog s).n := blockOf keccakCol not_isVirtual_keccakCol
 
 /-- The block of `QKECCAK` has `τ_KECCAK + 6` variables. -/
 theorem size_keccakBlock : (blocks prog s).size (keccakBlock prog s) = s.τ 5 + 6 :=
   size_blockOf prog s _ _
 
-/-- The slot of a lane: lane `l`'s, input or output. -/
-def laneSlot (c : Col) : Fin 25 := ⟨(c.2.val - 13) % 25, Nat.mod_lt _ (by omega)⟩
+/-- The slot of `QKECCAK` a virtual column is read at: input lane `l`'s is `l`, output lane `l`
+is routed to input lane `l`'s (a reading no one makes, `derived`), and the spare columns `0 … 12`
+and `63` are slots `50 … 62` and `63` (`KECCAK_SLOT_OF`, `verifier.py:951-953`). -/
+def qSlot (c : Col) : Fin 64 :=
+  ⟨if c.2.val < 13 then 50 + c.2.val else if c.2.val < 63 then (c.2.val - 13) % 25 else 63, by
+    split_ifs <;> omega⟩
 
-/-- Where a column is read: a committed column at its block, a lane at its slot of `QKECCAK`. -/
-def route (c : Col) : Fin (blocks prog s).n ⊕ Fin 25 :=
-  if h : IsLane c then .inr (laneSlot c) else .inl (blockOf c h)
+/-- Input lane `l` is read at slot `l`. -/
+theorem qSlot_inCol (l : Fin 25) : qSlot (inCol l) = ⟨l, by omega⟩ := by
+  apply Fin.ext
+  show (if 13 + l.val < 13 then 50 + (13 + l.val) else
+    if 13 + l.val < 63 then (13 + l.val - 13) % 25 else 63) = l.val
+  split_ifs <;> omega
+
+/-- Where a column is read: a committed column at its block, a virtual one at its slot of
+`QKECCAK`. -/
+def route (c : Col) : Fin (blocks prog s).n ⊕ Fin 64 :=
+  if h : IsVirtual c then .inr (qSlot c) else .inl (blockOf c h)
 
 /-- A route keeps the column's log-height. -/
 theorem route_kappa (c : Col) :
@@ -388,19 +437,23 @@ theorem route_kappa (c : Col) :
     rfl
   · simp only [Sum.elim_inl, size_blockOf]
 
-/-- The layout of the stack: the committed columns at their aligned blocks, lane `l` of the
-`KECCAK` table at slot `l` of `QKECCAK`. -/
+/-- The layout of the stack: the committed columns at their aligned blocks, a virtual column of
+the `KECCAK` table at its slot of `QKECCAK` (`qSlot`). -/
 def layout : Layout (leanIsaμ prog s) Col (kappa prog s) :=
   (((blocks prog s).layout (blocks_fits prog s)).piecewise
     ((blocks prog s).sliceLayout (blocks_fits prog s) (keccakBlock prog s) 6
-      (fun l : Fin 25 ↦ (⟨l, by omega⟩ : Fin (2 ^ 6)))
+      (fun l : Fin 64 ↦ (⟨l, by omega⟩ : Fin (2 ^ 6)))
       (κ := fun _ ↦ s.τ 5) fun _ ↦ size_keccakBlock prog s)).comap (route prog s)
     (route_kappa prog s)
 
-/-- A lane has `KECCAK`'s log-height. -/
-theorem kappa_of_isLane {c : Col} (h : IsLane c) : kappa prog s c = s.τ 5 := by
+/-- A virtual column has `KECCAK`'s log-height. -/
+theorem kappa_of_isVirtual {c : Col} (h : IsVirtual c) : kappa prog s c = s.τ 5 := by
   simp only [kappa, h.1]
   rfl
+
+/-- A lane has `KECCAK`'s log-height. -/
+theorem kappa_of_isLane {c : Col} (h : IsLane c) : kappa prog s c = s.τ 5 :=
+  kappa_of_isVirtual prog s h.isVirtual
 
 /-- The Keccak region: `QKECCAK`, `2 ^ τ_KECCAK` steps. -/
 def keccakRegion : KeccakRegion (shape prog s) := ⟨keccakCol, s.τ 5, rfl⟩
@@ -732,16 +785,31 @@ def memRowCell : Fin 4 → ℕ := ![2, 3, 4, 1]
 def inLaneOf (w : EnsembleWitness (leanIsaEnsemble prog)) (x : ℕ) (l : Fin 25) : K :=
   if x < s.rows 5 then cellOf (tableAt w 5) x (13 + l) else 0
 
-/-- `QKECCAK` of a witness (`crates/leanvm_core/src/keccak.rs`): slot `l < 25` of step `x` is
-input lane `l` of row `x`, slot `25 + l` lane `l` of its state after twelve rounds, the other
-slots zero. -/
+/-- The `KECCAK` column spare slot `50 + k` of `QKECCAK` carries: column `k` for `k < 13`, then
+column `63` (`cnt_0`), the table's first fourteen committed columns in order
+(`_KECCAK_COMMITTED[:QKECCAK_SPARE]`, `verifier.py:947-953`). -/
+def spareColumn (k : ℕ) : ℕ := if k < 13 then k else 63
+
+/-- A spare column's slot is `50` or above, and `spareColumn` names the column back. -/
+theorem qSlot_spare {c : Col} (h : IsSpare c) :
+    50 ≤ (qSlot c).val ∧ spareColumn ((qSlot c).val - 50) = c.2.val := by
+  show 50 ≤ (if c.2.val < 13 then 50 + c.2.val else
+      if c.2.val < 63 then (c.2.val - 13) % 25 else 63) ∧
+    spareColumn ((if c.2.val < 13 then 50 + c.2.val else
+      if c.2.val < 63 then (c.2.val - 13) % 25 else 63) - 50) = c.2.val
+  unfold spareColumn
+  rcases h.2 with h' | h' <;> split_ifs <;> omega
+
+/-- `QKECCAK` of a witness (`crates/leanvm_core/src/keccak.rs`, `cpu/layout.rs:55-110`): slot
+`l < 25` of step `x` is input lane `l` of row `x`, slot `25 + l` lane `l` of its state after
+twelve rounds, and slot `50 + k` the row's cell of the `KECCAK` column `spareColumn k`. -/
 def keccakWitness (w : EnsembleWitness (leanIsaEnsemble prog)) : Vector K (2 ^ (s.τ 5 + 6)) :=
   Vector.ofFn fun i ↦
     if h : i.val / 2 ^ s.τ 5 < 25 then inLaneOf prog s w (i.val % 2 ^ s.τ 5) ⟨_, h⟩
     else if h' : i.val / 2 ^ s.τ 5 < 50 then
       stateLanes (keccakSegment 0 (laneState (inLaneOf prog s w (i.val % 2 ^ s.τ 5))))
         ⟨i.val / 2 ^ s.τ 5 - 25, by omega⟩
-    else 0
+    else cellOf (tableAt w 5) (i.val % 2 ^ s.τ 5) (spareColumn (i.val / 2 ^ s.τ 5 - 50))
 
 /-- The column `c` a witness carries: the memory and bytecode blocks' committed cells,
 `QKECCAK` of the `KECCAK` rows, the opcode tables' cells. -/
