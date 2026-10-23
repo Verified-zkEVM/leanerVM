@@ -64,6 +64,9 @@ import LeanerVM.Protocol.Padding
 import LeanerVM.Protocol.Piop
 import LeanerVM.Protocol.Proof
 import LeanerVM.Protocol.ProofRoots
+import LeanerVM.Protocol.Prove
+import LeanerVM.Protocol.Prove.Compiled
+import LeanerVM.Protocol.Prove.Wire
 import LeanerVM.Protocol.PublicInput
 import LeanerVM.Protocol.RandomOracle
 import LeanerVM.Protocol.RandomOracleBound
@@ -125,6 +128,7 @@ import LeanerVM.Protocol.ToArkLib.QueryRecord
 import LeanerVM.Protocol.ToArkLib.Refinement
 import LeanerVM.Protocol.ToArkLib.Refutation
 import LeanerVM.Protocol.ToArkLib.Relist
+import LeanerVM.Protocol.ToArkLib.RunCodec
 import LeanerVM.Protocol.ToArkLib.SampleChallenge
 import LeanerVM.Protocol.ToArkLib.Schedule
 import LeanerVM.Protocol.ToArkLib.ScheduleBounds
@@ -210,6 +214,7 @@ import LeanerVM.Protocol.Whir.Stack
 import LeanerVM.Protocol.Whir.Stage
 import LeanerVM.Protocol.Whir.Transform
 import LeanerVM.Protocol.Whir.Word
+import LeanerVM.Protocol.Whir.WordFast
 import LeanerVM.Protocol.WhirFold
 import LeanerVM.Semantics.Basic
 import LeanerVM.Semantics.Blake2s
