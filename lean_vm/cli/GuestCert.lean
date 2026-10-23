@@ -2086,9 +2086,15 @@ def plumbOfFn (T : Tables) (fns : Array CompiledFn) (selfByEntry : Std.HashMap �
   let locA := locs.toArray
   let fm := firsts (fun v => locA.getD v.idx 0) {} cf.body
   let byCell : Std.HashMap ℕ (List ℕ) := locs.zipIdx.foldl (fun m (c, v) => m.insert c (v :: m.getD c [])) {}
-  let constCell (o : ℕ) (l : ℕ × ℕ × ℕ) : Bool := (byCell.getD o []).all fun v => match fm.get? v with
-    | some (k, _, imm, _) => k == "const" && imm == toString l
-    | none => true
+  -- a cell of constants `l`, and of loads the compiler put there as reading the same address as
+  -- one of them (the sharing check proves each load's value the constant)
+  let constCell (o : ℕ) (l : ℕ × ℕ × ℕ) : Bool :=
+    (byCell.getD o []).any (fun v => match fm.get? v with
+      | some (k, _, imm, _) => k == "const" && imm == toString l
+      | none => false) &&
+    (byCell.getD o []).all fun v => match fm.get? v with
+      | some (k, _, imm, _) => (k == "const" && imm == toString l) || k == "load"
+      | none => true
   let (plumb, errs) := plumbOf f F vcells T.pows constCell
   unless errs.isEmpty do throw s!"{errs}"
   -- cells past the frame are the next iteration's
