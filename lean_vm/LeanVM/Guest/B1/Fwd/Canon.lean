@@ -14,8 +14,9 @@ public import LeanVM.Guest.B1.Fwd.Eval
 # Holding an evaluated body
 
 * `canonChk A atoms`: walking the atoms, the values known canonical (`A`, then every `KECCAK`
-  output, a sum of two known ones, a copy of one) include every `KECCAK` input; `canon_side`:
-  then every `KECCAK`'s side condition holds once the values `A` are canonical.
+  output, a constant without `y²` limb, a sum of two known ones, a copy of one) include every
+  `KECCAK` input; `canonGo_sound`: then every `KECCAK` input is canonical once the values `A`
+  are.
 * `needsSide a`: the atoms whose side condition is not automatic (loads, assertions, a quotient,
   `frameAddr`); `atoms_holds`: with the equations of every atom (`Good`), the canonical values
   `A`, and for each atom needing it its relation or its side condition, every atom holds.
@@ -37,6 +38,7 @@ def canonGo : List Nat → List Atom → Bool
   | K, .keccak ins outs _ _ :: as => ins.all (fun v => K.contains v.idx) && canonGo (outs.map V.idx ++ K) as
   | K, .add d x y :: as => canonGo (if K.contains x.idx && K.contains y.idx then d.idx :: K else K) as
   | K, .copy d s :: as => canonGo (if K.contains s.idx then d.idx :: K else K) as
+  | K, .const d e :: as => canonGo (if decide (e.limb 2 = 0) then d.idx :: K else K) as
   | K, _ :: as => canonGo K as
 
 /-- **The canonical-input checker**, from the values `A`. -/
@@ -111,6 +113,21 @@ theorem canonGo_sound {σ : Val} (hσ : ∀ v, σ v = σ (.n v.idx)) :
         · have hd : σ d = σ s := hg _ List.mem_cons_self
           rw [← hσ, hd, hσ s]
           exact hK _ (by simpa using hc)
+        · exact hK j hj
+      · exact hK
+    | const d e =>
+      simp only [canonGo] at h
+      rcases List.mem_cons.mp hm with e' | hm
+      · cases e'
+      refine canonGo_sound hσ _ as h hg' ?_ ins outs i o hm
+      split
+      · rename_i hc
+        simp only [decide_eq_true_eq] at hc
+        intro j hj
+        rcases List.mem_cons.mp hj with rfl | hj
+        · have hd : σ d = e := hg _ List.mem_cons_self
+          rw [← hσ, hd]
+          exact hc
         · exact hK j hj
       · exact hK
     | _ =>
