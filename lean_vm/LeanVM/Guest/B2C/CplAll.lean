@@ -7,7 +7,7 @@
 module
 
 public import LeanVM.Guest.B2C.CplSites
-public import LeanVM.Guest.Sound
+public import LeanVM.Guest.SoundFacts
 
 /-!
 # Every function's run
