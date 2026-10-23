@@ -24,6 +24,8 @@ lake build leanervm-bench                   # compiles every transitive module t
 .lake/build/bin/leanervm-bench 1 provers GKR # the prover workloads whose name contains `GKR`
 .lake/build/bin/leanervm-bench 1 runs        # provers run through ArkLib's `Prover.run`
 .lake/build/bin/leanervm-bench 1 protocol pub 15 # leanVM's phases up to the public input
+.lake/build/bin/leanervm-bench 1 flockpieces 15  # the cached Flock prover's pieces
+.lake/build/bin/leanervm-bench 1 whir 16 1 spec  # WHIR's opening at mu = 16, rate 1/2
 ```
 
 Inputs come from a xorshift seeded by `LEANERVM_BENCH_SEED` (default `12345`), so nothing is
@@ -260,12 +262,83 @@ and once for its output statement). Recorded on 2026-10-23, each pair printing t
 
 The bus phase's output reads each block's selector weight; before
 `Blocks.selectorWeight_eq_selectorWeightFast` each weight built a Lagrange basis of up to `2^17`
-entries to read one, and reading the output took 64 s at the smallest size. The Flock phase does
-not run at leanVM's size: the BLAKE2s inhabitant's R1CS carries the naive walks of
+entries to read one, and reading the output took 64 s at the smallest size.
+
+The Flock phase did not finish: the BLAKE2s inhabitant's R1CS carried the naive walks of
 `ProductCircuit.toBlockR1CS` (`2^28` products a walk), and `Flock.leftTable` walks a block once
-per entry it reads, in every round. It needs walks on the compiled circuit's words and a cached
-prover of its own, as the bus phase has; until then the whole protocol's prover
-(`leanVmFastProver`) does not finish at leanVM's size.
+per entry it reads, in every round. The inhabitant's R1CS now walks the compiled circuit's words
+(`ProductCircuit.toBlockR1CSE`, `LeanerVM.Protocol.FlockWalks`): the forward walk reads each row's
+forms as 256 words each and, on a block of `0`s and `1`s, takes the parity of a form's AND with
+the packed block; the backward walk scatters each row's entry onto its forms' set bits, the
+entries' limbs as six half-words that an array holds unboxed. A first backward walk by columns
+took 247 s (each column reads a bit of every row's form) and a scatter on boxed words 10 s. The
+cached Flock prover (`Flock.flockCached`) walks each block once and builds its skip tables once
+at `z_skip` and its lincheck tables once at `α`; the skip message, which combines every table at
+each of the 64 coset nodes, adds the weights' subset sums a byte of tables at a time
+(`Flock.combBytes_eq`). With these and the bus phase's output tabulated once (`Bus.memoOut`),
+`leanervm-bench 1 protocol whole 15`, recorded on 2026-10-23 on the same machine, each phase's
+checksum the same as in the run before the byte sums (31.1 s in all, the Flock phase 23.8 s):
+
+| Phase, `2^19` cells, `2^17` leaves, `τ_max = 3`, `2^3` BLAKE2s blocks | With state |
+| --- | ---: |
+| the stack (`stackOf`) | 4.0 s |
+| bus phase | 9.3 s |
+| table sumcheck | 0.58 s (4.1 s before the output was tabulated) |
+| public input | 0.1 ms |
+| Flock phase | 16.7 s |
+| opening | 1.25 s |
+| whole protocol (`leanVmFastProver`, from the stack) | 24.9 s |
+
+`leanervm-bench 1 flockpieces 15` times the Flock prover's pieces once each on the same region:
+
+| Piece | Time |
+| --- | ---: |
+| the witness tables | 0.10 s |
+| a block's walk: first (builds the row table, every row's forms as words) / after | 3.28 s / 0.17 s |
+| the walked products, eight blocks | 1.55 s |
+| the skip message: by dot products / a byte of tables at a time | 11.2 s / 4.7 s |
+| one skip table | 0.07 s |
+| the backward walk | 5.0 s |
+| the folded witness / the slices | 0.15 s / 0.05 s |
+| the zerocheck's 11 messages / the lincheck's 8 | 0.28 s / 0.95 s |
+
+What is left is linear in the circuit's 89 million nonzero entries: the row table, the forward
+walks on words, and the backward walk, one `E` addition on half-words an entry.
+
+Rust leanVM at the pin (`a386121f`, its release build, `leanvm fibonacci --n 1000 --tracing` with
+`RAYON_NUM_THREADS=1`) proves its smallest run on the same machine in 3.5 s: memory `2^16`,
+`2^19.06` committed cells, a different program from the bench's witness at the same sizes.
+Execution and witness 16 ms, commitment 48 ms, bus 1.89 s (of which GKR 1.47 s), constraints
+0.20 s, Flock reduction 0.35 s, PCS opening 1.00 s. The Lean prover is about five times slower in
+the bus phase, three times in the table sumcheck and fifty times in the Flock phase.
+
+### WHIR's opening
+
+The `whir` group (`leanervm-bench 1 whir μ R [spec]`) commits a random table on `μ` variables at
+rate `1/2^R` with the deployed parameters' levels (`Whir.ladder`): the level-0 word's rows by the
+additive transform, checked against `wordOf` at two rows, and their Merkle root; then it runs
+WHIR's cached prover (`Whir.whirOpenCached`) on the equality kernel at a random point, with the
+word's rows stored, through `Prover.run`, the honest prover of `whirOpen` beside it when the fifth
+argument is `spec`, and the verifier on each transcript. The cached prover binds the fold rounds'
+tables once per challenge, carries each level's folded table to its messages, and encodes the next
+level's word once by the additive transform. Recorded on 2026-10-23 on the same machine, every
+transcript accepted:
+
+| Workload, rate `1/2`, 223 queries at the first level (224 at `μ = 19`) | `μ = 15` | `μ = 16` | `μ = 19` |
+| --- | ---: | ---: | ---: |
+| level-0 word by the transform | 1.9 s | 6.4 s | 256 s |
+| level-0 Merkle root | 0.29 s | 0.61 s | 5.0 s |
+| opening, with state (`whirOpenCached`) | 7.5 s | 19.5 s | 316 s |
+| opening, honest (`whirOpen`) | 14.3 s | 28.9 s | not run |
+| verifier on the transcript | 4.9 s | 13.0 s | 272 s |
+
+Before `batchWeight_eq_batchWeightFast` the openings at `μ = 15` took 213 s with state and 218 s
+without: the combination of the queried points' weights by powers built every weight's table at
+every entry it read. `μ = 19` is the size of the smallest leanVM stack (`2^19` cells); there Rust
+leanVM's commitment takes 48 ms and its PCS opening 1.00 s on one thread. From `μ = 16` to
+`μ = 19` the transform's work grows about tenfold and its time fortyfold. Its butterflies multiply
+by twiddles of `K` lifted to `E`, a full `E` product where three `K` products would do, and an `E`
+value's limbs above `2^63` are heap-allocated numbers; both are left for a later pass.
 
 Further runtime benchmark groups belong here once leanerVM has executable semantics. Each such
 group must name the workload, parameter revision, expected result, and whether it measures Lean code

@@ -612,15 +612,27 @@ cache on either side is a prover of the component's statements whose run is the 
 (`Component.Cached.complete`); no definition changes. The sumcheck's tables are bound once per
 challenge (`SumcheckRound.RoundCache`, `Sumcheck.cachedRounds`), the grand-product argument
 builds every tree's levels once and binds the children of each layer's level below once per
-challenge (`cachedGkr`), and `leanVmFastProver` (`LeanerVM.Protocol.HonestProver`) is the oracle
-protocol's prover with the bus phase and the table sumcheck cached, proved to run as
-`leanVmProver (leanVmPhases I h)` (`leanVmFastProver_run`). This is an honest-prover refinement,
-not a `@[csimp]` substitution: a caller runs `leanVmFastProver`. Running any prover through
+challenge (`cachedGkr`), and the Flock argument walks each block once and builds its skip tables
+once at `z_skip` and its lincheck tables once at `α` (`Flock.flockCached`,
+`LeanerVM.Protocol.ToArkLib.Flock.Cached`). `leanVmFastProver` (`LeanerVM.Protocol.HonestProver`)
+is the oracle protocol's prover with the bus phase, the table sumcheck and the Flock phase cached
+and the bus phase's output tabulated once (`Bus.memoOut_eq`), proved to run as
+`leanVmProver (leanVmPhases I h)` (`leanVmFastProver_run`). WHIR's opening has a cached prover of
+its own (`Whir.whirOpenCached`, `LeanerVM.Protocol.Whir.Cached`, from the generic steps of
+`LeanerVM.Protocol.ToArkLib.CachedSteps` and `LeanerVM.Protocol.ToArkLib.ProductSumCached`): the
+fold rounds' tables bound once per challenge and the next level's word encoded once by the
+additive transform (`Whir.wordFast_eq`, `LeanerVM.Protocol.Whir.Transform`). This is an
+honest-prover refinement, not a `@[csimp]` substitution: a caller runs `leanVmFastProver` or
+`whirOpenCached`. Running any prover through
 ArkLib's `Prover.run` needs the challenge samplers of its schedule, which ArkLib builds for an
 appended schedule with `Fin.fappend₂`, exponential in the depth of a schedule appended on the
 right when compiled; `LeanerVM.Protocol.ToArkLib.AppendLazy` substitutes lazy forms by
 `@[csimp]`, imported where the schedules are built. A block's selector weight is one product
-(`Blocks.selectorWeight_eq_selectorWeightFast`). All are timed by the `leanervm-bench` executable
+(`Blocks.selectorWeight_eq_selectorWeightFast`), and a combination of tables by powers builds each
+table once (`batchWeight_eq_batchWeightFast`). The BLAKE2s inhabitant's R1CS walks the compiled
+circuit's 64-bit words (`ProductCircuit.toBlockR1CSE`, `LeanerVM.Protocol.FlockWalks`): its
+matrices are `ProductCircuit.toBlockR1CS`'s by `rfl`, and its walks are proved equal to theirs
+(`toBlockR1CSE_eq`). All are timed by the `leanervm-bench` executable
 ([bench/README.md](../bench/README.md)).
 
 Rust FFI follows when a Lean caller needs a measured fast path and the ABI can be

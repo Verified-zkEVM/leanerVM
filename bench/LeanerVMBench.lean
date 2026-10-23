@@ -16,6 +16,9 @@ import LeanerVM.Protocol.ToArkLib.ProductSumcheck
 import LeanerVM.Protocol.LeanIsa
 import LeanerVM.Protocol.HonestProver
 import LeanerVM.Protocol.ToArkLib.AppendLazy
+import LeanerVM.Protocol.Whir.Cached
+import LeanerVM.Protocol.Whir.Transform
+import LeanerVM.Parameters.Whir
 import LeanerVMTests.Arithmetization.Statement
 
 /-!
@@ -389,6 +392,58 @@ def gkrLastLayerCached (seed : UInt64) (m : ℕ) (u : Unit) : E :=
   let T := Gkr.treesOf 3 (m + 2) leaves u (fun i ↦ i.elim0)
   gkrChainSum m ctx chal m 0 (Gkr.boundChildren 3 2 m T 0 #v[]) 0
 
+open Flock in
+/-- The pieces of the cached Flock prover on the leanISA instance's region at memory log-size
+`lm + 1`, each timed once: the witness tables, a block's walk, the walked products, a skip table,
+the skip message, the backward walk, the folded witness, the slices and the two sumchecks'
+messages. -/
+def flockPieces (seed : UInt64) (lm : ℕ) : IO Unit := do
+  let s := sizesAt lm
+  let I := leanIsaAt s
+  match I.flock with
+  | none => IO.println "Flock pieces: no region"
+  | some r =>
+    let q ← force (stackOf Blake2sFlock.blake2sFlockSpec fillProg s fillWitness)
+    let o : ∀ i, TheOracle I i := fun _ ↦ q
+    let P := flockParams r.kBatch
+    let tag := s!"2^{r.kBatch} blocks"
+    let zt ← timeOnceR s!"Flock: witness tables, {tag}" (fun _ ↦ Vector.ofFn (FlockPhase.bits r o))
+      fun zt ↦ toString (sumTable zt[0])
+    let blk ← timeOnceR s!"Flock: one block's walk, the row table built, {tag}"
+      (fun _ ↦ r.r1cs.rows (BlockR1CS.batchBlock (fun i ↦ zt[i]) ⟨0, Nat.two_pow_pos _⟩))
+      fun w ↦ toString (sumTable w.1)
+    let blk2 ← timeOnceR s!"Flock: one block's walk, {tag}"
+      (fun _ ↦ r.r1cs.rows (BlockR1CS.batchBlock (fun i ↦ zt[i]) ⟨0, Nat.two_pow_pos _⟩))
+      fun w ↦ toString (sumTable w.1)
+    let lr ← timeOnceR s!"Flock: walked products, {tag}" (fun _ ↦ walkedTables r.r1cs zt)
+      fun lr ↦ toString (sumTable lr.1[0] + sumTable lr.2[0])
+    let Y := eOf (xs (seed * 3))
+    timeOnce s!"Flock: skip weights" (fun _ ↦ skipWeights P.nodes Y) fun v ↦ toString (sumTable v)
+    timeOnce s!"Flock: one skip table, {tag}" (fun _ ↦ skipTableOf P.nodes lr.1 Y) fun v ↦ toString (sumTable v)
+    let pt : Vector E (P.m + P.κ) := Vector.ofFn fun i ↦ eOf (xs (seed * 5 + i.val.toUInt64))
+    timeOnce s!"Flock: skip message, {tag}" (fun _ ↦ skipMessageOf P.nodes lr.1 lr.2 zt pt) fun v ↦ toString (sumTable v)
+    let e : CMlPolynomialEval E (P.s + P.m) := Vector.ofFn fun i ↦ eOf (xs (seed + i.val.toUInt64))
+    timeOnce s!"Flock: backward walk, the column table built" (fun _ ↦ r.r1cs.cols e)
+      fun w ↦ toString (sumTable w.1)
+    timeOnce s!"Flock: backward walk" (fun _ ↦ r.r1cs.cols e) fun w ↦ toString (sumTable w.1)
+    let χ : Vector E r.kBatch := Vector.ofFn fun i ↦ eOf (xs (seed * 7 + i.val.toUInt64))
+    timeOnce s!"Flock: folded witness, {tag}" (fun _ ↦ zTableOf zt χ) fun v ↦ toString (sumTable v)
+    timeOnce s!"Flock: slices, {tag}" (fun _ ↦ evalsOf zt pt) fun v ↦ toString (sumTable v)
+    let tA := skipTableOf P.nodes lr.1 Y
+    let tB := skipTableOf P.nodes lr.2 Y
+    let tC := skipTableOf P.nodes zt Y
+    timeOnce s!"Flock: zerocheck messages, {P.m + P.κ} rounds" (fun _ ↦
+      (List.range (P.m + P.κ)).foldl (fun acc j ↦
+        acc + sumTable (normRound tA tB tC pt j (Vector.ofFn fun i : Fin j ↦ pt[i.val]!))) 0)
+      toString
+    let M := mTableOf r.r1cs P.cpos e Y
+    let Z := zTableOf zt χ
+    timeOnce s!"Flock: lincheck messages, {P.m} rounds" (fun _ ↦
+      (List.range P.m).foldl (fun acc j ↦
+        acc + sumTable (highRound M Z j (Vector.ofFn fun i : Fin j ↦ pt[i.val]!))) 0)
+      toString
+    discard <| force (blk, blk2)
+
 /-- The prover workloads, each run once. -/
 def runProvers (keep : String → Bool) (seed : UInt64) : IO Unit := do
   -- The Lagrange basis (the equality kernel's cube values) at an `E` point.
@@ -536,14 +591,20 @@ def runPub (I : M3Instance) (sd : ℕ) (tag : String)
     fun r ↦ toString (claimSum r.2.1.1.2.columns)
   pure r.2.1
 
-/-- The Flock phase's honest prover. -/
-def runFlock (I : M3Instance) (sd : ℕ) (tag : String)
+/-- A checksum of the Flock phase's output: the column claims and the switched claim. -/
+def flockSum {I : M3Instance} (f : FlockOut I) : E :=
+  claimSum f.columns + f.weighted.toList.foldl (fun a c ↦ a + c.value) 0
+
+/-- The Flock phase's provers: the one with state, and the honest one when `spec` holds. -/
+def runFlock (I : M3Instance) (sd : ℕ) (tag : String) (spec : Bool)
     (x : (I.Stmt × PubOut I) × ∀ i, TheOracle I i) :
     IO ((I.Stmt × FlockOut I) × ∀ i, TheOracle I i) := do
-  let r ← timeProver s!"Flock phase, honest, {tag}" sd
-    (fun _ ↦ runProver (flockPhase I).toDef.red.prover x ())
-    fun r ↦ toString (claimSum r.2.1.1.2.columns +
-      r.2.1.1.2.weighted.toList.foldl (fun a c ↦ a + c.value) 0)
+  let r ← timeProver s!"Flock phase, with state, {tag}" sd
+    (fun _ ↦ runProver (flockCached I).toProver x ()) fun r ↦ toString (flockSum r.2.1.1.2)
+  if spec then
+    discard <| timeProver s!"Flock phase, honest (spec), {tag}" sd
+      (fun _ ↦ runProver (flockPhase I).toDef.red.prover x ())
+      fun r ↦ toString (flockSum r.2.1.1.2)
   pure r.2.1
 
 /-- The opening's honest prover. -/
@@ -603,10 +664,76 @@ def runProtocol (seed : UInt64) (lm : ℕ) (spec whole : Bool) (last : String) :
   if last == "table" then return
   let pub ← wall "public input" (runPub I (sd + 2) tag tab)
   if last == "pub" then return
-  let flk ← wall "Flock phase" (runFlock I (sd + 3) tag pub)
+  let flk ← wall "Flock phase" (runFlock I (sd + 3) tag spec pub)
   if last == "flock" then return
   wall "opening" (runOpening I (sd + 4) tag flk)
   if whole then wall "whole protocol" (runWhole I h (sd + 5) tag spec stmt q)
+
+/-! ## WHIR -/
+
+open Whir in
+/-- The chain of the parameters' levels on `μ` variables, with their query counts. -/
+def whirLadder (one : Bool) : ℕ → List Whir.Level →
+    Option (Σ (sh : Whir.Shape) (κ : ℕ), Ladder sh κ)
+  | _, [] => none
+  | rem, [l] =>
+    match rem - l.fold with
+    | 0 => none
+    | nf + 1 =>
+      some ⟨Shape.ofFold l.fold l.logInvRate (if one then 1 else l.queries), nf + 1, .last _ nf⟩
+  | rem, l :: rest =>
+    (whirLadder one (rem - l.fold) rest).map fun L ↦
+      ⟨Shape.ofFold l.fold l.logInvRate (if one then 1 else l.queries), Kap L.1 L.2.1,
+        .cons _ L.2.2⟩
+
+open Whir in
+/-- The rows of the honest word of a table, its lanes encoded by the additive transform. -/
+def wordRowsFast (ℓ κ R : ℕ) (g : CMlPolynomialEval E (ℓ + κ)) :
+    Vector (Vector E (2 ^ ℓ)) (2 ^ (κ + R)) :=
+  let lanes := Vector.ofFn fun u : Fin (2 ^ ℓ) ↦ encodeFast (algebraMap K E) κ R (sliceLow g u)
+  Vector.ofFn fun y ↦ Vector.ofFn fun u ↦ lanes[u][y]
+
+/-- A row as the leaf of a Merkle tree: its entries' limbs. -/
+def rowLeaf {n : ℕ} (row : Vector E n) : List K :=
+  row.toList.flatMap fun x ↦ [x.limb 0, x.limb 1, x.limb 2]
+
+open Whir in
+/-- WHIR's opening at `(μ, R)`: the level-0 commitment (the word's rows by the transform, and their
+Merkle root), then the honest prover of `whirOpen` and its cached prover on a random table and the
+equality kernel at a random point, run through `Prover.run` with the committed word's rows stored,
+and the verifier on the cached prover's transcript. -/
+def runWhir (seed : UInt64) (μ R : ℕ) (spec one : Bool) : IO Unit := do
+  match (Whir.ladder μ R).bind (whirLadder one μ) with
+  | none => IO.println s!"WHIR: no ladder at mu {μ}, rate exponent {R}"
+  | some ⟨sh, κ, L⟩ =>
+    let tag := s!"mu {κ + sh.ℓ}, rate 1/2^{R}, first level {sh.ℓ} folds, {sh.t} queries"
+    IO.println s!"WHIR schedule: {L.steps.length} steps, {StepSchedule.seqRounds L.steps} rounds"
+    let f ← force (tableOf (seed + 101) (κ + sh.ℓ))
+    let p : Vector E (κ + sh.ℓ) := Vector.ofFn fun i ↦ eOf (xs (seed * 29 + i.val.toUInt64))
+    let W := eqWeight p
+    let c ← force (W.pair (RingHom.id E) f)
+    let rows ← timeOnceR s!"WHIR level-0 word by the transform, {tag}"
+      (fun _ ↦ wordRowsFast sh.ℓ κ sh.R (relayout f))
+      fun rows ↦ toString (rows.toList.foldl (fun a r ↦ a + sumTable r) 0)
+    timeOnce s!"WHIR level-0 Merkle root, 2^{κ + sh.R} leaves"
+      (fun _ ↦ merkleRoot (rows.map rowLeaf)) fun d ↦ toString (d.toList.take 2)
+    -- Two rows of the honest word, by the definition: the transform's agree.
+    let ow : ∀ i, OneW sh κ i := fun _ ↦ wordOf sh.ℓ κ sh.R sh.t (relayout f)
+    let y0 : Fin (2 ^ (κ + sh.R)) := ⟨0, Nat.two_pow_pos _⟩
+    let y1 : Fin (2 ^ (κ + sh.R)) :=
+      ⟨2 ^ (κ + sh.R) - 1, by have := Nat.two_pow_pos (κ + sh.R); omega⟩
+    let agree := (ow 0).row y0 == rows[y0] && (ow 0).row y1 == rows[y1]
+    IO.println s!"WHIR level-0 rows by the transform agree with the definition: {agree}"
+    let o : ∀ i, OneW sh κ i := fun _ ↦ ⟨fun y ↦ rows[y]⟩
+    let r ← timeProver s!"WHIR opening, with state, {tag}" seed.toNat
+      (fun _ ↦ runProver (whirOpenCached sh κ L).toProver ((W, c), o) f) fun _ ↦ "-"
+    timeOnce s!"WHIR verifier on the transcript, {tag}"
+      (fun _ ↦ (whirOpenComplete sh κ L).guarded.check ((W, c), o) r.1) toString
+    if spec then
+      let r' ← timeProver s!"WHIR opening, honest (spec), {tag}" seed.toNat
+        (fun _ ↦ runProver (whirOpen sh κ L).red.prover ((W, c), o) f) fun _ ↦ "-"
+      timeOnce s!"WHIR verifier on the honest transcript, {tag}"
+        (fun _ ↦ (whirOpenComplete sh κ L).guarded.check ((W, c), o) r'.1) toString
 
 end Provers
 
@@ -614,7 +741,8 @@ end LeanerVMBench
 
 /-- `leanervm-bench [percent] [group] [filter] [lm] [spec]`: run the workloads of `group` (`arith`,
 `sumcheck`, `provers` or `all`, the default; or `runs`, or `protocol` up to the phase `filter`, at
-memory log-size `lm + 1`, the stateless provers beside when the fifth argument is `spec`),
+memory log-size `lm + 1`, the stateless provers beside when the fifth argument is `spec`; or
+`flockpieces` at memory log-size `filter + 1`; or `whir` at `μ = filter` and rate exponent `lm`),
 arithmetic iteration counts scaled to `percent` per cent (default `100`), keeping only the prover
 workloads whose name contains `filter`. -/
 def main (args : List String) : IO Unit := do
@@ -638,6 +766,15 @@ def main (args : List String) : IO Unit := do
           (((), (#v[], 0)), LeanerVMBench.noO) ())
         fun r ↦ toString (r.2.1.1.2.1.toList.foldl (· + ·) 0)
     for n in [4, 8, 12, 16] do LeanerVMBench.runSumcheckProver seed n
+  if group == "flockpieces" then
+    LeanerVMBench.flockPieces seed (((args.drop 2).head?.bind String.toNat?).getD 15)
+  if group == "whir" then
+    -- `whir`: WHIR's opening and its level-0 commitment at `μ` (the third argument, default `15`)
+    -- and rate exponent `R` (the fourth, default `1`).
+    let μ := ((args.drop 2).head?.bind String.toNat?).getD 15
+    let R := ((args.drop 3).head?.bind String.toNat?).getD 1
+    LeanerVMBench.runWhir seed μ R ((args.drop 4).head? == some "spec")
+      ((args.drop 5).head? == some "one")
   if group == "protocol" then
     -- `protocol`: the leanISA phases' provers up to the phase named by the filter (`bus`,
     -- `table`, `pub`, `flock`, or `whole` for every phase and the whole protocol), at memory

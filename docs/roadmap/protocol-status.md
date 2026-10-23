@@ -651,10 +651,15 @@ pinned sources is [archived](../reviews/protocol-spine-revision.md).
   advances and no statement changes: `leanVmFastProver` (`Protocol/HonestProver.lean`) is an
   honest-prover refinement, a prover whose run is `leanVmProver (leanVmPhases I h)`'s
   (`leanVmFastProver_run`), so `leanVmFast_perfectCompleteness` is the master theorem's
-  completeness for it, with the same verifier. It carries prover state through the bus phase and
-  the table sumcheck (`Component.Cached`); the commitment, the public-input check, the Flock
-  phase and the opening run their honest provers. Owed: a cached prover for the Flock phase, whose
-  honest prover does not finish at leanVM's size (`bench/README.md`).
+  completeness for it, with the same verifier. It carries prover state through the bus phase, the
+  table sumcheck and the Flock phase (`Component.Cached`); the commitment, the public-input check
+  and the opening run their honest provers. The BLAKE2s inhabitant's R1CS walks the compiled
+  circuit's words (`ProductCircuit.toBlockR1CSE`, equal to the circuit's R1CS by
+  `toBlockR1CSE_eq`). WHIR's opening has a cached prover, `whirOpenCached`
+  (`Protocol/Whir/Cached.lean`), whose run is `whirOpen`'s. At the smallest admissible size the
+  whole oracle protocol's prover runs in 25 s; WHIR at that size (`μ = 19`) takes 4 min to encode
+  the committed word and 5 min to open (`bench/README.md`). Owed: a prover of the compiled
+  protocol (Layer 12) that runs `leanVmFastProver` and `whirOpenCached` together.
 
 ## What can start now
 
