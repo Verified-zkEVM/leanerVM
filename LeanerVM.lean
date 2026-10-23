@@ -159,7 +159,9 @@ import LeanerVM.Protocol.ToVCVio.QueryLog
 import LeanerVM.Protocol.ToVCVio.ScalarExpectation
 import LeanerVM.Protocol.ToVCVio.UniformSample
 import LeanerVM.Protocol.Transcript
+import LeanerVM.Protocol.Verify.Blake2sWalk
 import LeanerVM.Protocol.Verify.Bus
+import LeanerVM.Protocol.Verify.Flock
 import LeanerVM.Protocol.Verify.Setup
 import LeanerVM.Protocol.Verify.Tables
 import LeanerVM.Protocol.Whir.BoundarySound

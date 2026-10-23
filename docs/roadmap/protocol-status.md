@@ -1036,6 +1036,19 @@ Merkle trees', with the fast field arithmetic merged), the rest of Layer 12's ve
   the leanISA table now reads in the Rust's order, and on the fixture both phases pass
   (`VerifyTables.lean`, with a flipped column value, a flipped round coefficient, a missing value,
   a flipped public value and a third public value rejected).
+- **The Flock phase** (`Protocol/Verify/Flock.lean`, `Verify/Blake2sWalk.lean`): `walkFlock`
+  reads the zerocheck, the lincheck and the six ring-switching coefficients; `flockStep` replays
+  the oracle verifier's steps (`skipClaim`, the normalized rounds, `termNext`, `alphaNext`, the
+  lincheck rounds, `linNext`, `ringWeight` and `ringTarget`, `FlockPhase.finish`), the lincheck's
+  claim compared with its native terminal, settled outside the step (`flockTerminal`). The
+  region's block R1CS (`blake2sCircuit.toBlockR1CS`) evaluates its matrices entry by entry,
+  `2^28` terms each, which nothing can run; the terminal walks the circuit once instead
+  (`blake2sRows`, transcribed from `verifier.py:1167-1298`), as `Flock.linTerminalWith` with the
+  column weights built once. Owed: `blake2sRows = (blake2sCircuit.toBlockR1CS E).rows`, on which
+  the compiled verifier's equality with the oracle verifier rests; the tests check it at sampled
+  rows of every kind, and the Rust proof's lincheck passes on it. On the fixture the phase hands
+  on the Python verifier's ring-switching target (`VerifyFlock.lean`, with a flipped slice, skip
+  value, zerocheck and lincheck coefficient, `â` and a missing coefficient rejected).
 
 ## Upstream watch
 
