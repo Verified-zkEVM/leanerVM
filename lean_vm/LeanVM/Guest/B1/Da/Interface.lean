@@ -112,8 +112,11 @@ def da_verify_cell_sound_Spec : Prop :=
 
 /-! ## `da_levels` (G:4033-4041, TRIAGE #92) -/
 
-/-- The name of `da_levels`' specialization at `2^k` leaves. -/
-def daLevelsName (k : ℕ) : String := "da_levels__L" ++ toString (2 ^ k) ++ "_L" ++ toString k
+/-- The name of `da_levels`' specialization at `2^k` leaves, `da_levels__L{2^k}_L{k}`. -/
+def daLevelsName (k : ℕ) : String :=
+  ["da_levels__L1_L0", "da_levels__L2_L1", "da_levels__L4_L2", "da_levels__L8_L3",
+    "da_levels__L16_L4", "da_levels__L32_L5", "da_levels__L64_L6", "da_levels__L128_L7",
+    "da_levels__L256_L8", "da_levels__L512_L9", "da_levels__L1024_L10"].getD k ""
 
 /-- **`da_levels(tree, 2^k, k)`**: the `2^k` leaves at `tree` (two cells each, canonical when
 hashed), and the function returns the root's cells (`cellRoot`). -/
