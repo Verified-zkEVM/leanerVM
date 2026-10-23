@@ -92,20 +92,25 @@ theorem vtFound : ∃ fn : Fn, coreProgram.find? "verify_tables" = some fn ∧
     exact ⟨fn, hf, h.1, (tbStmtsEqb_sound h.2).trans core10_body⟩
   · exact absurd h (by simp)
 
-/-- The valuation `σ` satisfies every chunk of `verify_tables` before its `ret`. -/
-def VtH (rd : Reader) (σ : Val) : Prop :=
-  ∃ kret : List E → Prop, ∀ i < 24, Stmt.HoldsList (coreProgram.Rel rd) rd σ (vtChunk i) True kret
+/-- `verify_tables`' statements before its `ret`. -/
+noncomputable def vtPre : List Stmt := ((List.range 24).map vtChunk).flatten
 
-/-- **`verify_tables` unfolded**: a valuation of its parameters, satisfying its chunks, returning
+theorem vtPre_noRet : Stmt.noRetList vtPre = true :=
+  tb_noRetList_flatten_range 24 vtChunk vtChunk_noRet
+
+/-- The valuation `σ` satisfies every statement of `verify_tables` before its `ret`. -/
+def VtH (rd : Reader) (σ : Val) : Prop :=
+  ∃ kret : List E → Prop, Stmt.HoldsList (coreProgram.Rel rd) rd σ vtPre True kret
+
+/-- **`verify_tables` unfolded**: a valuation of its parameters, satisfying its body, returning
 `vtRets`. -/
 theorem vt_unfold {rd : Reader} {args rets : List E}
     (h : coreProgram.Rel rd "verify_tables" args rets) :
     ∃ σ : Val, (List.range 22).map (fun k ↦ σ (.n k)) = args ∧ VtH rd σ ∧
       vtRets.map σ = rets := by
-  have hnr := tb_noRetList_flatten_range 24 vtChunk vtChunk_noRet
   obtain ⟨fn, hf, hpar, hb⟩ := vtFound
-  obtain ⟨σ, hp, hbd, hr⟩ := (tb_rel_pre hf hb hnr args rets).mp h
-  refine ⟨σ, ?_, ⟨_, (tb_holdsList_flatten_range 24 vtChunk vtChunk_noRet).mp hbd⟩, hr⟩
+  obtain ⟨σ, hp, hbd, hr⟩ := (tb_rel_pre hf hb vtPre_noRet args rets).mp h
+  refine ⟨σ, ?_, ⟨_, hbd⟩, hr⟩
   rw [← hp, hpar, List.map_map]
   rfl
 
@@ -113,36 +118,36 @@ section Read
 
 variable {rd : Reader} {σ : Val}
 
-theorem VtH.atom (h : VtH rd σ) (i : ℕ) (hi : i < 24) (n : ℕ) (a : Atom)
-    (heq : tbStmtsEqb [.atom a] (((vtChunk i).drop n).take 1) = true) : a.Holds rd σ := by
+theorem VtH.atom (h : VtH rd σ) (n : ℕ) (a : Atom)
+    (heq : tbStmtsEqb [.atom a] ((vtPre.drop n).take 1) = true) : a.Holds rd σ := by
   obtain ⟨k, h⟩ := h
-  exact tb_holds_atom (vtChunk_noRet i) (h i hi) n a heq
+  exact tb_holds_atom vtPre_noRet h n a heq
 
-theorem VtH.slice (h : VtH rd σ) (i : ℕ) (hi : i < 24) (n : ℕ) (blk : List Stmt)
-    (heq : tbStmtsEqb blk (((vtChunk i).drop n).take blk.length) = true) :
+theorem VtH.slice (h : VtH rd σ) (n : ℕ) (blk : List Stmt)
+    (heq : tbStmtsEqb blk ((vtPre.drop n).take blk.length) = true) :
     ∃ kret : List E → Prop, Stmt.HoldsList (coreProgram.Rel rd) rd σ blk True kret := by
   obtain ⟨k, h⟩ := h
-  exact ⟨k, tb_holds_slice (vtChunk_noRet i) (h i hi) n blk heq⟩
+  exact ⟨k, tb_holds_slice vtPre_noRet h n blk heq⟩
 
-theorem VtH.call (h : VtH rd σ) (i : ℕ) (hi : i < 24) (n : ℕ) (f : String) (args rets : List V)
-    (heq : tbStmtsEqb [.call f args rets] (((vtChunk i).drop n).take 1) = true) :
+theorem VtH.call (h : VtH rd σ) (n : ℕ) (f : String) (args rets : List V)
+    (heq : tbStmtsEqb [.call f args rets] ((vtPre.drop n).take 1) = true) :
     coreProgram.Rel rd f (args.map σ) (rets.map σ) := by
   obtain ⟨k, h⟩ := h
-  exact tb_holds_call (vtChunk_noRet i) (h i hi) n f args rets heq
+  exact tb_holds_call vtPre_noRet h n f args rets heq
 
-theorem VtH.callIf (h : VtH rd σ) (i : ℕ) (hi : i < 24) (n : ℕ) (c : V) (f : String)
-    (args : List V) (heq : tbStmtsEqb [.callIf c f args] (((vtChunk i).drop n).take 1) = true) :
+theorem VtH.callIf (h : VtH rd σ) (n : ℕ) (c : V) (f : String)
+    (args : List V) (heq : tbStmtsEqb [.callIf c f args] ((vtPre.drop n).take 1) = true) :
     IsInK (σ c) ∧ (σ c ≠ 0 → coreProgram.Rel rd f (args.map σ) []) := by
   obtain ⟨k, h⟩ := h
-  exact tb_holds_callIf (vtChunk_noRet i) (h i hi) n c f args heq
+  exact tb_holds_callIf vtPre_noRet h n c f args heq
 
-theorem VtH.dispatch (h : VtH rd σ) (i : ℕ) (hi : i < 24) (n : ℕ) (x : V) (fs : List String)
+theorem VtH.dispatch (h : VtH rd σ) (n : ℕ) (x : V) (fs : List String)
     (args rets : List V)
-    (heq : tbStmtsEqb [.dispatch x fs args rets] (((vtChunk i).drop n).take 1) = true) :
+    (heq : tbStmtsEqb [.dispatch x fs args rets] ((vtPre.drop n).take 1) = true) :
     ∃ (j : ℕ) (h : j < fs.length), σ x = ofK (Parameters.gpow j) ∧
       coreProgram.Rel rd fs[j] (args.map σ) (rets.map σ) := by
   obtain ⟨k, h⟩ := h
-  exact tb_holds_dispatch (vtChunk_noRet i) (h i hi) n x fs args rets heq
+  exact tb_holds_dispatch vtPre_noRet h n x fs args rets heq
 
 end Read
 
