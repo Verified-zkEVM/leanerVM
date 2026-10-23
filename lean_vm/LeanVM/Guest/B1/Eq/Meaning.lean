@@ -52,10 +52,25 @@ def MeaningEqPrefixRun (n : ℕ) (rd : Reader) : List E → List E → Prop
   | [chain, seed, a, b1], rets => EqPrefix rd chain seed a b1 n ∧ rets = [0]
   | _, _ => False
 
+/-- The specializations' names, `eq_prefix_run__L{n}`, `n ≤ 40` (`eq_prefix_chain`'s dispatch
+list; a name built by `++ toString` does not reduce in a `module`'s kernel). -/
+def eqPrefixRunNames : List String :=
+    ["eq_prefix_run__L0", "eq_prefix_run__L1", "eq_prefix_run__L2", "eq_prefix_run__L3",
+      "eq_prefix_run__L4", "eq_prefix_run__L5", "eq_prefix_run__L6", "eq_prefix_run__L7",
+      "eq_prefix_run__L8", "eq_prefix_run__L9", "eq_prefix_run__L10", "eq_prefix_run__L11",
+      "eq_prefix_run__L12", "eq_prefix_run__L13", "eq_prefix_run__L14", "eq_prefix_run__L15",
+      "eq_prefix_run__L16", "eq_prefix_run__L17", "eq_prefix_run__L18", "eq_prefix_run__L19",
+      "eq_prefix_run__L20", "eq_prefix_run__L21", "eq_prefix_run__L22", "eq_prefix_run__L23",
+      "eq_prefix_run__L24", "eq_prefix_run__L25", "eq_prefix_run__L26", "eq_prefix_run__L27",
+      "eq_prefix_run__L28", "eq_prefix_run__L29", "eq_prefix_run__L30", "eq_prefix_run__L31",
+      "eq_prefix_run__L32", "eq_prefix_run__L33", "eq_prefix_run__L34", "eq_prefix_run__L35",
+      "eq_prefix_run__L36", "eq_prefix_run__L37", "eq_prefix_run__L38", "eq_prefix_run__L39",
+      "eq_prefix_run__L40"]
+
 /-- `eq_prefix_run__L{n}`'s core IR is its meaning, `n ≤ 40`. -/
 def eq_prefix_run_Spec : Prop :=
   ∀ n ≤ 40, ∀ (rd : Reader) (args rets : List E),
-    coreProgram.Rel rd ("eq_prefix_run__L" ++ toString n) args rets ↔
+    coreProgram.Rel rd (eqPrefixRunNames.getD n "") args rets ↔
       MeaningEqPrefixRun n rd args rets
 
 /-- **`eq_prefix_chain(chain, seed, a, b1, count_g)`**: `count_g = g^n` with `n < 41`
@@ -79,10 +94,22 @@ def MeaningPlusOneRun (n : ℕ) (rd : Reader) : List E → List E → Prop
       ReadsAt rd out (xs.map (1 + ·))) ∧ rets = [0]
   | _, _ => False
 
+/-- The specializations' names, `plus_one_run__L{n}`, `n ≤ 33`. -/
+def plusOneRunNames : List String :=
+    ["plus_one_run__L0", "plus_one_run__L1", "plus_one_run__L2", "plus_one_run__L3",
+      "plus_one_run__L4", "plus_one_run__L5", "plus_one_run__L6", "plus_one_run__L7",
+      "plus_one_run__L8", "plus_one_run__L9", "plus_one_run__L10", "plus_one_run__L11",
+      "plus_one_run__L12", "plus_one_run__L13", "plus_one_run__L14", "plus_one_run__L15",
+      "plus_one_run__L16", "plus_one_run__L17", "plus_one_run__L18", "plus_one_run__L19",
+      "plus_one_run__L20", "plus_one_run__L21", "plus_one_run__L22", "plus_one_run__L23",
+      "plus_one_run__L24", "plus_one_run__L25", "plus_one_run__L26", "plus_one_run__L27",
+      "plus_one_run__L28", "plus_one_run__L29", "plus_one_run__L30", "plus_one_run__L31",
+      "plus_one_run__L32", "plus_one_run__L33"]
+
 /-- `plus_one_run__L{n}`'s core IR is its meaning, `n ≤ 33`. -/
 def plus_one_run_Spec : Prop :=
   ∀ n ≤ 33, ∀ (rd : Reader) (args rets : List E),
-    coreProgram.Rel rd ("plus_one_run__L" ++ toString n) args rets ↔
+    coreProgram.Rel rd (plusOneRunNames.getD n "") args rets ↔
       MeaningPlusOneRun n rd args rets
 
 /-! ## `rs_eq_run` (TRIAGE #28) -/
@@ -122,11 +149,15 @@ def MeaningFoldFinalMsg (n : ℕ) (rd : Reader) : List E → List E → Prop
       ReadsAt rd point ps ∧ rets = [multilinearEval m ps]
   | _, _ => False
 
+/-- The specializations' names, `fold_final_msg__L{n}`, `2 ≤ n ≤ 5`. -/
+def foldFinalMsgNames : List (String × ℕ) :=
+  [("fold_final_msg__L2", 2), ("fold_final_msg__L3", 3), ("fold_final_msg__L4", 4),
+    ("fold_final_msg__L5", 5)]
+
 /-- `fold_final_msg__L{n}`'s core IR is its meaning, `2 ≤ n ≤ 5`. -/
 def fold_final_msg_Spec : Prop :=
-  ∀ n, 2 ≤ n → n ≤ 5 → ∀ (rd : Reader) (args rets : List E),
-    coreProgram.Rel rd ("fold_final_msg__L" ++ toString n) args rets ↔
-      MeaningFoldFinalMsg n rd args rets
+  ∀ p ∈ foldFinalMsgNames, ∀ (rd : Reader) (args rets : List E),
+    coreProgram.Rel rd p.1 args rets ↔ MeaningFoldFinalMsg p.2 rd args rets
 
 end
 end LeanVM.Guest.B1

@@ -186,5 +186,51 @@ theorem runsTo_grindP (bits : ℕ) (s : Fs) (n : E)
   rw [key, e1]
   simp only [hok, ↓reduceIte]
 
+/-! ## Cells of waiting scalars and permutations -/
+
+/-- The rate cells of the waiting scalars, scalar by scalar (`Keccak.scalarCells`). -/
+def pendCells (pend : List (E × ℕ)) : List E :=
+  pend.flatMap fun p => [(Keccak.scalarCells p.1 p.2).1, (Keccak.scalarCells p.1 p.2).2]
+
+/-- The rate cells of up to four waiting scalars: their cells, then zeros. -/
+theorem rateOf_eq_cells (pend : List (E × ℕ)) (h : pend.length ≤ 4) :
+    rateOf pend = pendCells pend ++ List.replicate (8 - 2 * pend.length) 0 := by
+  match pend, h with
+  | [], _ => simp [rateOf, List.range_succ, Keccak.rateCell, Compile.pendingLanes, pendCells,
+      zero_eq_ofLimbs]
+  | [a], _ => simp [rateOf, List.range_succ, Keccak.rateCell, Compile.pendingLanes, pendCells,
+      Keccak.scalarCells, zero_eq_ofLimbs]
+  | [a, b], _ => simp [rateOf, List.range_succ, Keccak.rateCell, Compile.pendingLanes, pendCells,
+      Keccak.scalarCells, zero_eq_ofLimbs]
+  | [a, b, c], _ => simp [rateOf, List.range_succ, Keccak.rateCell, Compile.pendingLanes,
+      pendCells, Keccak.scalarCells, zero_eq_ofLimbs]
+  | [a, b, c, d], _ => simp [rateOf, List.range_succ, Keccak.rateCell, Compile.pendingLanes,
+      pendCells, Keccak.scalarCells]
+
+/-- A sponge's next permutation, its cells written out. -/
+theorem perm_eq_cells (s : Fs) (h : s.pend.length ≤ 4) :
+    s.perm = permOf (pendCells s.pend ++ List.replicate (8 - 2 * s.pend.length) 0 ++ s.cap) := by
+  rw [Fs.perm, rateOf_eq_cells _ h]
+
+/-- Absorbing below a full queue appends. -/
+theorem absorbAll_short (s : Fs) (xs : List E) (t : ℕ) (h : s.pend.length + xs.length ≤ 4) :
+    s.absorbAll xs t = ⟨s.cap, s.pend ++ xs.map (·, t)⟩ := by
+  induction xs generalizing s with
+  | nil => simp [Fs.absorbAll]
+  | cons x xs ih =>
+    simp only [List.length_cons] at h
+    have hl : s.pend.length ≠ rateScalars := by unfold rateScalars; omega
+    simp only [Fs.absorbAll, List.foldl_cons] at ih ⊢
+    rw [show s.absorb x t = ⟨s.cap, s.pend ++ [(x, t)]⟩ by simp [Fs.absorb, hl],
+      ih _ (by simp; omega)]
+    simp
+
+/-- The cells of a `KECCAK` atom's outputs, one by one. -/
+theorem outs_eq {σ : Val} {outs : List V} {f : Fin 13 → E}
+    (h : cells13 (outs.map σ) = f) (k : Fin 13) (hk : k.val < outs.length) :
+    σ outs[k.val] = f k := by
+  rw [← h]
+  simp [cells13, List.getD_eq_getElem?_getD, List.getElem?_map, List.getElem?_eq_getElem hk]
+
 end
 end LeanVM.Guest.B1

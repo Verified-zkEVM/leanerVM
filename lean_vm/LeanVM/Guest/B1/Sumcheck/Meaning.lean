@@ -98,10 +98,12 @@ def MeaningGkrRounds (n : ℕ) (rd : Reader) : List E → List E → Prop
         LoadHolds rd rec (n + 6 * gkrRoundsCap) res.2.1
   | _, _ => False
 
-/-- `gkr_rounds__L{n}`'s core IR is its meaning, `n ∈ {1, 2}`. -/
+/-- `gkr_rounds__L1` and `gkr_rounds__L2`'s core IR are their meanings. -/
 def gkr_rounds_Spec : Prop :=
-  ∀ n, 1 ≤ n → n ≤ 2 → ∀ (rd : Reader) (args rets : List E),
-    coreProgram.Rel rd ("gkr_rounds__L" ++ toString n) args rets ↔ MeaningGkrRounds n rd args rets
+  (∀ (rd : Reader) (args rets : List E),
+    coreProgram.Rel rd "gkr_rounds__L1" args rets ↔ MeaningGkrRounds 1 rd args rets) ∧
+  ∀ (rd : Reader) (args rets : List E),
+    coreProgram.Rel rd "gkr_rounds__L2" args rets ↔ MeaningGkrRounds 2 rd args rets
 
 /-! ## `batch_sumcheck` (G:1007-1022, TRIAGE #32) -/
 
