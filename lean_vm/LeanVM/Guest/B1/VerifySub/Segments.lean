@@ -347,5 +347,58 @@ theorem announced_eq {bytecode : List K} {s : Fs} {T : List E} {O : List Opening
   rw [hr]
   rfl
 
+
+/-! ## Squeezes and the stack's root -/
+
+theorem runF_sampleN : ∀ (n : ℕ) (st : Whir.FSt) (xs : List E) (st' : Whir.FSt),
+    Whir.runF (Prog.sampleN n) st = some (xs, st') →
+      st.sponge.squeezeN n = (xs, st'.sponge) ∧ st'.stream = st.stream ∧
+        st'.openings = st.openings ∧ st'.roots = st.roots
+  | 0, st, xs, st', h => by
+    simp only [Prog.sampleN, Whir.runF, Option.some.injEq, Prod.mk.injEq] at h
+    obtain ⟨rfl, rfl⟩ := h
+    exact ⟨rfl, rfl, rfl, rfl⟩
+  | n + 1, st, xs, st', h => by
+    simp only [Prog.sampleN, Prog.bind_eq, Prog.pure_eq] at h
+    rw [show Prog.sampleE = Prog.sample Prog.ret from rfl] at h
+    simp only [Prog.bind, Whir.runF] at h
+    obtain ⟨ys, s2, h2, h⟩ := Whir.runF_bind_some h
+    simp only [Whir.runF, Option.some.injEq, Prod.mk.injEq] at h
+    obtain ⟨rfl, rfl⟩ := h
+    obtain ⟨e1, e2, e3, e4⟩ := runF_sampleN n _ ys s2 h2
+    refine ⟨?_, e2, e3, e4⟩
+    simp only [Fs.squeezeN, e1]
+
+/-- **The stack's commitment**: two words, the root their digest, absorbed. -/
+theorem commitStack_runF' {μ r : ℕ} {st : Whir.FSt} {u : Unit} {st' : Whir.FSt}
+    (h : Whir.runF (commitStack μ r) st = some (u, st')) :
+    ∃ (x0 x1 : E) (root : Digest), digestOfScalars (x0, x1) = some root ∧
+      st.stream = x0 :: x1 :: st'.stream ∧
+      st'.sponge = (st.sponge.absorb x0 dsObserve).absorb x1 dsObserve ∧
+      st'.roots = st.roots ++ [(root, Whir.stackShape μ r)] ∧ st'.openings = st.openings := by
+  cases hc : deriveConfig μ r with
+  | none =>
+    unfold commitStack at h
+    rw [hc] at h
+    exact absurd h (by simp [Verifier.liftOption, Prog.bind, Whir.runF])
+  | some cfg =>
+    cases cfg with
+    | nil =>
+      unfold commitStack at h
+      rw [hc] at h
+      exact absurd h (by simp [Verifier.liftOption, Prog.bind, Whir.runF])
+    | cons level rest =>
+      rw [Whir.commitStack_eq hc] at h
+      obtain ⟨s, stream, os, R⟩ := st
+      match stream, h with
+      | x0 :: x1 :: xs, h =>
+        simp only [Prog.commitP, Whir.runF] at h
+        split at h
+        · rename_i root hr
+          simp only [Option.some.injEq, Prod.mk.injEq] at h
+          obtain ⟨-, rfl⟩ := h
+          exact ⟨x0, x1, root, hr, rfl, rfl, rfl, rfl⟩
+        · simp at h
+
 end
 end LeanVM.Guest.B1.VerifySub
