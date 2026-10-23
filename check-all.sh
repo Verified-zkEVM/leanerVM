@@ -101,14 +101,20 @@ lean_vm() {
   (cd lean_vm && python3 -I scripts/ci-build.py)
   step "lean_vm: lake test"
   (cd lean_vm && lake test)
+  step "lean_vm: the Rust vectors' costly checks, compiled"
+  (cd lean_vm && lake build node-vectors && capped .lake/build/bin/node-vectors)
 }
 
 # Against leanVM at `leanvm-rev`, checked out by leanvm-tree.sh with its `formal/lean_vm` a link to
-# lean_vm: the Lean and Rust verifiers agree on the fixtures and their mutations.
+# lean_vm: the guest's data is the one leanVM's sources give, and the Lean and Rust verifiers agree
+# on the fixtures and their mutations.
 leanvm() {
   command -v cargo > /dev/null || fail "leanvm: needs cargo; name the other projects to skip it"
   local tree
   tree=$(./leanvm-tree.sh)
+  step "leanvm: the guest's data is leanVM's"
+  cargo build --release --manifest-path lean_vm/scripts/guest-export/Cargo.toml
+  capped lean_vm/scripts/guest-export/target/release/guest-export lean_vm --check
   step "leanvm: Rust-vs-Lean differential"
   (cd lean_vm && lake build leanvm-verify)
   cargo build --release --manifest-path lean_vm/scripts/rust-verifier-cli/Cargo.toml

@@ -1,5 +1,6 @@
 import LeanVM.Spec.Guest
 import LeanVM.Spec.NodeWith
+import LeanVMTests.Spec.NodeVectors
 
 /-!
 # The deferring verifier and the node's statement: inhabitants, known answers and mutations
@@ -22,10 +23,13 @@ import LeanVM.Spec.NodeWith
   Mutations: a wrong final value, or a child's false claim, and the batching rejects.
 * `batch` on no children is inhabited; `verifyAggregate`'s vector-digest condition rejects a
   digest other than the root's.
-
-At this pin leanVM has no Rust writer of node vectors (the former `node_spec_vectors`,
-`LEANVM_WRITE_NODE_VECTORS`, is gone with `crates/rec_aggregation/src/aggregation/`), so
-`NodeVectors.lean` is no longer read here; the known answers above are the Python's.
+* The Rust vectors (`NodeVectors.lean`, written by `scripts/guest-export` from the deployed
+  `crates/rec_aggregation/src/aggregation.rs` at the guest's shape, `bytecode_vars = 23`): the
+  statement's encodings and the batching of two children's true claims on the guest's stacked
+  bytecode are the Spec's, and a batching hint off by one rejects. What is slow in the
+  interpreter, `lake exe node-vectors` (`cli/NodeVectors.lean`) checks compiled: that their seed
+  is `deployedSeed guest` (the Keccak-256 IV of the guest's `2^23` bytecode words), and the DA
+  roots' vector digests.
 -/
 
 namespace LeanVMTests.Spec.Node
@@ -209,6 +213,32 @@ def batchedPoint : List E :=
 
 /- No children: the empty sumcheck closes on the zero claim. -/
 #guard (batch [] ⟨[], 0⟩).isSome
+
+/-! ## The Rust vectors -/
+
+#guard xmssListDigest NodeVectors.xmss = NodeVectors.xmssListDigest
+#guard sphincsListDigest NodeVectors.sphincs = NodeVectors.sphincsListDigest
+#guard signersDigest NodeVectors.xmss NodeVectors.sphincs = NodeVectors.signersDigest
+#guard daListDigest NodeVectors.da = NodeVectors.daListDigest
+
+/-- The statement of the vectors' claims, deferring their claim. -/
+def vectorStatement : NodeStatement :=
+  ⟨⟨NodeVectors.xmss, NodeVectors.sphincs, NodeVectors.da⟩, NodeVectors.defer⟩
+
+#guard statementDigest NodeVectors.seed vectorStatement = NodeVectors.statementDigest
+
+-- Mutation: another seed, another digest.
+#guard statementDigest seed0 vectorStatement ≠ NodeVectors.statementDigest
+
+/- The batching of the two children, with the Rust's hints, defers the Rust's claim. -/
+#guard (batch NodeVectors.children NodeVectors.hints).map (·.bytecodePoint) =
+  some NodeVectors.batched.bytecodePoint
+#guard (batch NodeVectors.children NodeVectors.hints).map (·.bytecodeValue) =
+  some NodeVectors.batched.bytecodeValue
+
+-- Mutation: a final value one off.
+#guard (batch NodeVectors.children { NodeVectors.hints with
+  bytecodeValue := NodeVectors.hints.bytecodeValue + 1 }).isNone
 
 /-! ## The DA claim -/
 

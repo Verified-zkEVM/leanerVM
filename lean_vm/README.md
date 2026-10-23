@@ -38,7 +38,13 @@ The verifier is the composition commit → bus (GKR grand products) → table su
 
 ## The aggregation guest
 
-The previous leanVM (BLAKE2s, Flock) had a formalized aggregation guest (`LeanVM/Guest/`: its compiled bytecode, program logic, a symbolic executor and kernel-checked certificates, `guest_knowledge`, `guest_complete`, `aggregate_sound_outer`, `children_sound`, `batch_rom`). It is not carried over: at `keccak-gkr` the guest (`crates/rec_aggregation/guests/lean_ethereum.py`) is a different program (it verifies the Keccak-GKR proof system, with ring switching and a duplex transcript), and leanVM has no `LEANVM_WRITE_*` tests at this pin to export its bytecode and source as Lean data. Porting it means a new export, a new mirror and new certificates; the statements it would prove are kept in `Spec/Guest.lean` and `Spec/Node.lean`. `Protocol/Verifier/Deferred.lean` (the deferring verifier with a true bytecode claim is the deployed one, `verify_of_verifyDeferred`) and `DeferredShape.lean` (`verifyDeferred_shaped`), which the guest's recursion step used, are ported.
+The previous leanVM (BLAKE2s, Flock) had a formalized aggregation guest (`LeanVM/Guest/`: its compiled bytecode, program logic, a symbolic executor and kernel-checked certificates, `guest_knowledge`, `guest_complete`, `aggregate_sound_outer`, `children_sound`, `batch_rom`). At `keccak-gkr` the guest (`crates/rec_aggregation/guests/lean_ethereum.py`) is a different program (it verifies the Keccak-GKR proof system, with ring switching and a duplex transcript), and its proofs are being re-ported; the statements they prove are kept in `Spec/Guest.lean` and `Spec/Node.lean`. `Protocol/Verifier/Deferred.lean` (the deferring verifier with a true bytecode claim is the deployed one, `verify_of_verifyDeferred`) and `DeferredShape.lean` (`verifyDeferred_shaped`), which the guest's recursion step uses, are ported.
+
+What is there so far:
+
+* **The data.** leanVM has no `LEANVM_WRITE_*` tests at this pin, so `scripts/guest-export` exports the guest from leanVM's own sources (it compiles `crates/rec_aggregation`'s sources as its own crate, with the exporters as a child module of `aggregation.rs`, reading `../.leanvm` and never writing it): the compiled guest (`LeanVM/Guest/Data/Bytecode*.lean`: `2^19` slots, 364,192 instructions in 900 functions, 45,830 of them `KECCAK`), its source AST after the deployed placeholders (`Data/Source.lean`; the exporter checks that it compiles to the same bytecode), the compiler's test programs (`tests/LeanVMTests/Guest/Programs.lean`), the Rust's figures for the guest (`tests/LeanVMTests/Guest/Manifest.lean`) and the node vectors (`tests/LeanVMTests/Spec/NodeVectors.lean`).
+* **The bytecode as a `Program`** (`Guest/Code.lean`, `Guest/Bytecode.lean`): instructions in offset form (`OInstr`, `KECCAK` as `.keccak m0 m1 m2 m3 tail b8 cap out inOdd outOdd`, its cells at the offsets `keccakIns`, `keccakOuts`), `guest`, and the fetch lemma at every pc of its functions. That `guest` is the bytecode the Rust proves is checked compiled: its Fiat-Shamir IV, the Keccak-256 hash of its `2^23` bytecode words (`deployedSeed guest`), is the Rust's `fs_seed` (`lake exe node-vectors`).
+* **The source AST** (`Guest/Source.lean`, with `[body for v in unroll(lo, hi)]`, `listComp`) and **the core IR** (`Guest/Core.lean`): one `Atom.keccak ins outs inOdd outOdd` per `KECCAK` instruction, its thirteen read and thirteen written cells, meaning `KeccakCells`.
 
 ## Layout
 
@@ -49,8 +55,9 @@ The previous leanVM (BLAKE2s, Flock) had a formalized aggregation guest (`LeanVM
 | `LeanVM/Arithmetization/` | the tables, the bus and the constraints, sound and complete for valid executions |
 | `LeanVM/Protocol/` | the proof system and its proofs; `Keccak/` the Keccak reduction; `To{ArkLib,Clean,CompPoly,VCVio}/` hold lemmas meant for those libraries |
 | `tests/` | `#guard`s and `example`s, checked by `lake test`; `fixtures/verifier/` are proofs of the Rust prover |
-| `cli/` | `leanvm-verify`, the compiled verifier on a proof's files |
-| `scripts/` | the Rust-vs-Lean fuzz, its Rust verifier CLI, the fixture exporter, and the WHIR parameter table generator |
+| `LeanVM/Guest/` | the aggregation guest: its compiled bytecode (`Data/Bytecode*`, generated) as a `Program` (`Code`, `Bytecode`), its source AST (`Source`, the generated `Data/Source`), the core IR (`Core`) and compile-time words (`Word`) |
+| `cli/` | `leanvm-verify`, the compiled verifier on a proof's files, and `node-vectors`, the costly checks of the Rust vectors |
+| `scripts/` | the Rust-vs-Lean fuzz, its Rust verifier CLI, the fixture exporter, the WHIR parameter table generator, and `guest-export`, the exporter of the guest's data from leanVM's sources |
 
 ## Building and testing
 
@@ -58,6 +65,7 @@ The previous leanVM (BLAKE2s, Flock) had a formalized aggregation guest (`LeanVM
 lake exe cache get
 python3 -I scripts/ci-build.py
 lake test
+lake exe node-vectors
 ```
 
 `lake build` at the repository root runs all of it, with the Rust checks below, for the five projects (`../check-all.sh`).
@@ -72,6 +80,22 @@ python3 -I scripts/fuzz-verifier.py tests/fixtures/verifier --jobs 4
 ```
 
 After a bump of `../leanvm-rev` to a protocol change, regenerate the fixtures with `scripts/export-verifier-fixtures-rust.sh tests/fixtures/verifier`.
+
+The guest's data (the bytecode, the source, the test programs, the manifest and the node vectors) is regenerated, after a bump of `../leanvm-rev` or a change to the exporter, by one command; `--check`, which CI runs, fails when any of it is stale:
+
+```sh
+cargo build --release --manifest-path scripts/guest-export/Cargo.toml
+scripts/guest-export/target/release/guest-export .           # write
+scripts/guest-export/target/release/guest-export . --check   # CI
+```
+
+An independent check of the bytecode data against leanVM's own disassembly: `DBG_DISASM=/tmp/disasm.txt scripts/guest-export/target/release/guest-export . --check`, then `python3 -I scripts/guest-export/roundtrip.py . /tmp/disasm.txt` compares every slot and every function's range.
+
+The guest-diff cases, real aggregations of the Rust (a one-signature leaf, a leaf of both schemes with a blob, one whose leanXMSS list is longer than a claim group, a node over them), each with its statement, seed, witness and installed hint streams, are written by the exporter's ignored tests; they are the input of the Lean mirror's differential check, `guest-diff`, once it is ported:
+
+```sh
+LEANVM_GUEST_DIFF=/tmp/guest-diff cargo test --release --manifest-path scripts/guest-export/Cargo.toml --lib guest_diff -- --ignored
+```
 
 ## Credits
 

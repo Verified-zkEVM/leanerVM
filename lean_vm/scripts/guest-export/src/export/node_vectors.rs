@@ -1,0 +1,239 @@
+//! Known answers of the deployed Rust for `LeanVM/Spec/Node.lean`, at the guest's real shape: the
+//! claim lists' digests, the signer set's, the DA list's, the statement's digest under the
+//! deployed seed, and a batching of two children with true claims on the guest's stacked
+//! bytecode (`aggregate_deferred_claims`, its sumcheck over all `bytecode_vars()` variables), as
+//! `tests/LeanVMTests/Spec/NodeVectors.lean`. The successor of the BLAKE2s-era
+//! `node_spec_vectors`; the Lean checks (`#guard`s against the Spec definitions, and the mutations)
+//! are hand-written in `tests/LeanVMTests/Spec/Node.lean`.
+
+use super::*;
+use rand::rngs::StdRng;
+use rand::{Rng, SeedableRng};
+use std::fmt::Write as _;
+
+fn element(rng: &mut StdRng) -> F192 {
+    F192::new(rng.random(), rng.random(), rng.random())
+}
+
+fn elements(rng: &mut StdRng, len: usize) -> Vec<F192> {
+    (0..len).map(|_| element(rng)).collect()
+}
+
+fn e(x: F192) -> String {
+    format!("e 0x{:x} 0x{:x} 0x{:x}", x.c0, x.c1, x.c2)
+}
+
+fn es(xs: &[F192]) -> String {
+    format!("[{}]", xs.iter().map(|&x| e(x)).collect::<Vec<_>>().join(",\n    "))
+}
+
+/// A 32-byte digest as the Spec's four little-endian lanes.
+fn digest(d: &[u8; 32]) -> String {
+    let lanes: Vec<String> = (0..4)
+        .map(|i| format!("0x{:016x}", u64::from_le_bytes(d[8 * i..8 * i + 8].try_into().unwrap())))
+        .collect();
+    format!("#v[{}]", lanes.join(", "))
+}
+
+/// Two canonical cells as a digest (`digestScalars`' inverse).
+fn cells_digest(c: &[F192; 2]) -> String {
+    assert!(c[0].c2 == 0 && c[1].c2 == 0);
+    format!("#v[0x{:016x}, 0x{:016x}, 0x{:016x}, 0x{:016x}]", c[0].c0, c[0].c1, c[1].c0, c[1].c1)
+}
+
+fn le_nat(bytes: &[u8]) -> String {
+    let mut hex = String::from("0x");
+    for b in bytes.iter().rev() {
+        write!(hex, "{b:02x}").unwrap();
+    }
+    hex
+}
+
+fn claim(pk: &[u8; 32], message: &[u8; 32]) -> String {
+    format!(
+        "(⟨BitVec.ofNat 128 {}, BitVec.ofNat 128 {}⟩, BitVec.ofNat 256 {})",
+        le_nat(&pk[..16]),
+        le_nat(&pk[16..]),
+        le_nat(message)
+    )
+}
+
+fn bytes32(rng: &mut StdRng) -> [u8; 32] {
+    let mut b = [0u8; 32];
+    rng.fill(&mut b);
+    b
+}
+
+pub fn file() -> File {
+    let mut rng = StdRng::seed_from_u64(0x6c65_616e_766d);
+    let kbcv = bytecode_vars();
+
+    // Claims as raw keys: the root and parameter halves the lists hash.
+    let xmss: Vec<([u8; 32], [u8; 32])> = (0..3).map(|_| (bytes32(&mut rng), bytes32(&mut rng))).collect();
+    let sphincs: Vec<([u8; 32], [u8; 32])> = (0..2).map(|_| (bytes32(&mut rng), bytes32(&mut rng))).collect();
+    let xmss_typed: Vec<LeanXmssClaim> = xmss
+        .iter()
+        .map(|(pk, m)| {
+            let key = LeanXmssPublicKey {
+                merkle_root: pk[..16].try_into().unwrap(),
+                public_param: pk[16..].try_into().unwrap(),
+            };
+            assert_eq!(&key.flatten(), pk);
+            (key, *m)
+        })
+        .collect();
+    let sphincs_typed: Vec<LeanSphincsClaim> = sphincs
+        .iter()
+        .map(|(pk, m)| {
+            let key = LeanSphincsPublicKey {
+                root: pk[..16].try_into().unwrap(),
+                public_param: pk[16..].try_into().unwrap(),
+            };
+            assert_eq!(&key.flatten(), pk);
+            (key, *m)
+        })
+        .collect();
+    let xmss_digest = claim_list_digest(xmss_typed.iter().map(lean_xmss_claim_cells));
+    let sphincs_digest = claim_list_digest(sphincs_typed.iter().map(lean_sphincs_claim_cells));
+    let signers = signers_hash(&xmss_typed, &sphincs_typed);
+    let roots: Vec<[u8; 32]> = (0..2).map(|_| bytes32(&mut rng)).collect();
+    let vector_digests: Vec<[u8; 32]> = roots
+        .iter()
+        .map(|r| lean_da::vector_digest(&lean_da::membership_vector(r)))
+        .collect();
+    let da_digest = da_list_digest(&roots);
+
+    // A deferred claim of the guest's shape, its value arbitrary (the digest does not care).
+    let defer = DeferredClaim {
+        bytecode_point: elements(&mut rng, kbcv),
+        bytecode_value: element(&mut rng),
+    };
+    let seed = leanvm_core::cpu::fs_seed(unified_guest());
+    let statement = statement_digest(signers, da_digest, &defer);
+
+    // Two children with true claims on the stacked bytecode.
+    let selectors = leanvm_core::leaf::N_BYTECODE_SELECTORS;
+    let subproofs: Vec<DeferredSubproof> = (0..2)
+        .map(|_| {
+            let point = elements(&mut rng, kbcv);
+            let value = mle_eval_par(stacked_bytecode(), &point);
+            let canonical = |rng: &mut StdRng| F192::new(rng.random(), rng.random(), 0);
+            DeferredSubproof {
+                public_input: [canonical(&mut rng), canonical(&mut rng)],
+                bytecode_row_point: point[..kbcv - selectors].to_vec(),
+                bytecode_selector_point: point[kbcv - selectors..].to_vec(),
+                bytecode_value: value,
+            }
+        })
+        .collect();
+    let carried: Vec<DeferredClaim> = (0..2)
+        .map(|_| DeferredClaim::recompute(elements(&mut rng, kbcv)).unwrap())
+        .collect();
+    let carried_refs: Vec<&DeferredClaim> = carried.iter().collect();
+    let (hints, batched) = aggregate_deferred_claims(&subproofs, &carried_refs);
+    let hint = |name: &str| &hints.iter().find(|(n, _)| *n == name).unwrap().1;
+    let msgs = hint("bc_sumcheck_msgs");
+    let star = hint("bc_star_hint");
+    assert_eq!(star.len(), 1);
+    assert_eq!(msgs.len(), 2 * kbcv);
+
+    let mut out = format!(
+        "/-\n  LeanVMTests.Spec.NodeVectors\n\n  Generated by `guest-export` (lean_vm/scripts/guest-export) from leanVM {rev}; do not\n  \
+         edit. The deployed Rust's encodings and batching on random inputs at the guest's shape\n  \
+         (`bytecode_vars = {kbcv}`), which `Node.lean` checks against the Spec.\n-/\n\n\
+         import LeanVM.Spec.Node\n\nnamespace LeanVMTests.Spec.NodeVectors\n\n\
+         open LeanVM.Parameters LeanVM.Semantics LeanVM.Protocol LeanVM.Protocol.Verifier LeanVM.Node\n\n\
+         /-- A field element from its limbs. -/\n\
+         def e (c0 c1 c2 : ℕ) : E := E.ofLimbs (K.ofBits c0) (K.ofBits c1) (K.ofBits c2)\n\n",
+        rev = env!("LEANVM_REV")
+    );
+    let list = |items: Vec<String>| format!("[{}]", items.join(",\n  "));
+    writeln!(out, "/-- The deployed seed (`fs_seed`). -/\ndef seed : Digest := {}\n", cells_digest(&seed)).unwrap();
+    writeln!(
+        out,
+        "/-- leanXMSS claims. -/\ndef xmss : List XmssClaim :=\n  {}\n",
+        list(xmss.iter().map(|(pk, m)| claim(pk, m)).collect())
+    )
+    .unwrap();
+    writeln!(out, "def xmssListDigest : Digest := {}\n", cells_digest(&xmss_digest)).unwrap();
+    writeln!(
+        out,
+        "/-- leanSPHINCS claims. -/\ndef sphincs : List SphincsClaim :=\n  {}\n",
+        list(sphincs.iter().map(|(pk, m)| claim(pk, m)).collect())
+    )
+    .unwrap();
+    writeln!(out, "def sphincsListDigest : Digest := {}\n", cells_digest(&sphincs_digest)).unwrap();
+    writeln!(out, "def signersDigest : Digest := {}\n", cells_digest(&signers)).unwrap();
+    writeln!(
+        out,
+        "/-- DA claims: each root with the vector digest the Rust derives from it. -/\ndef da : List DaClaim :=\n  {}\n",
+        list(
+            roots
+                .iter()
+                .zip(&vector_digests)
+                .map(|(r, v)| format!("({}, {})", digest(r), digest(v)))
+                .collect()
+        )
+    )
+    .unwrap();
+    writeln!(out, "def daListDigest : Digest := {}\n", digest(&da_digest)).unwrap();
+    writeln!(
+        out,
+        "/-- A deferred claim of the guest's shape. -/\ndef defer : DeferredClaim :=\n  ⟨{},\n   {}⟩\n",
+        es(&defer.bytecode_point),
+        e(defer.bytecode_value)
+    )
+    .unwrap();
+    writeln!(
+        out,
+        "/-- `statement_digest` of the claims and `defer` under `seed`. -/\ndef statementDigest : Digest := {}\n",
+        cells_digest(&statement)
+    )
+    .unwrap();
+    let children: Vec<String> = subproofs
+        .iter()
+        .zip(&carried)
+        .map(|(s, c)| {
+            let fresh: Vec<F192> = s
+                .bytecode_row_point
+                .iter()
+                .chain(&s.bytecode_selector_point)
+                .copied()
+                .collect();
+            format!(
+                "⟨{},\n   ⟨{},\n    {}⟩,\n   ⟨{},\n    {}⟩⟩",
+                cells_digest(&s.public_input),
+                es(&fresh),
+                e(s.bytecode_value),
+                es(&c.bytecode_point),
+                e(c.bytecode_value)
+            )
+        })
+        .collect();
+    writeln!(
+        out,
+        "/-- Two children, true claims on the guest's stacked bytecode. -/\ndef children : List ChildClaims :=\n  {}\n",
+        list(children)
+    )
+    .unwrap();
+    let rounds: Vec<String> = msgs.chunks(2).map(|p| format!("({}, {})", e(p[0]), e(p[1]))).collect();
+    writeln!(
+        out,
+        "/-- The Rust's batching hints (`bc_sumcheck_msgs`, `bc_star_hint`). -/\ndef hints : BatchHints :=\n  ⟨{},\n   {}⟩\n",
+        list(rounds),
+        e(star[0])
+    )
+    .unwrap();
+    writeln!(
+        out,
+        "/-- The claim the batching defers. -/\ndef batched : DeferredClaim :=\n  ⟨{},\n   {}⟩\n",
+        es(&batched.bytecode_point),
+        e(batched.bytecode_value)
+    )
+    .unwrap();
+    out.push_str("end LeanVMTests.Spec.NodeVectors\n");
+    File {
+        path: "tests/LeanVMTests/Spec/NodeVectors.lean".into(),
+        text: out,
+    }
+}

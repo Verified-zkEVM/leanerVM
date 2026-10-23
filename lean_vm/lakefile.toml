@@ -77,3 +77,10 @@ allowNonModules = true
 name = "leanvm-verify"
 root = "LeanvmVerify"
 srcDir = "cli"
+
+# The Rust vectors' costly checks, compiled (cli/NodeVectors.lean): the guest's seed against the
+# Spec's `deployedSeed guest`, and the DA vector digests; CI runs it after `lake test`.
+[[lean_exe]]
+name = "node-vectors"
+root = "NodeVectors"
+srcDir = "cli"
