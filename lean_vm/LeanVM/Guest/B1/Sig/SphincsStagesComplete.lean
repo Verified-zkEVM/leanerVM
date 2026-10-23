@@ -52,6 +52,7 @@ structure SP1 (rd : Reader) (σ : Val) (Pc m0 m1 rho : E) : Prop where
   dg : (σ (.n 17), σ (.n 18)) = hcell [Pc, word (tw 12) 0 0, m0, m1, rho]
   bits : ∀ l < 26, σ (.n (30 + l)) = if (cellNat (σ (.n 18))).testBit l then 1 else 0
   unused : σ (.n 158) = eOfNat (cellNat (σ (.n 18)) / 2 ^ 106)
+  marks : ∀ j < 3, σ (.n (132 + j)) = ofK (gpow (unusedBytes (cellNat (σ (.n 18))) j))
 
 /-- **The prologue completes** to `SP1`. -/
 theorem sP_stage (hm : MemOK rd 256) {bb p Pc m0 m1 rho : E} (hbb : ByteBits rd bb)
@@ -60,10 +61,10 @@ theorem sP_stage (hm : MemOK rd 256) {bb p Pc m0 m1 rho : E} (hbb : ByteBits rd 
     (hc0 : IsCanonical128 m0) (hc1 : IsCanonical128 m1) (hrho : IsCanonical128 rho) :
     Completes C rd 2 206 sPrologue σ (fun σ' => SP1 rd σ' Pc m0 m1 rho) := by
   refine (sPrologue_complete (C := C) hm hbb σ h0 h1 hldP hld2 hld3 hPc hc0 hc1 hrho).withHolds.mono
-    le_rfl le_rfl (fun σ' ⟨⟨e2, e3, e5, e6, eb, eu⟩, hh⟩ => ?_)
+    le_rfl le_rfl (fun σ' ⟨⟨e2, e3, e5, e6, eb, eu, em⟩, hh⟩ => ?_)
   have ha := atomsHold_of_holdsList sPrologue_atoms hh
   have hpre := sPrologue_sound ha
-  refine ⟨ha, e2, e3, e5, e6, ?_, eb, eu⟩
+  refine ⟨ha, e2, e3, e5, e6, ?_, eb, eu, em⟩
   rw [hpre.digest, e2, hpre.msgAdr, e5, e6, e3]
 
 theorem SP1.frame {σ σ' : Val} {Pc m0 m1 rho : E} (h : SP1 rd σ Pc m0 m1 rho) (hag : AgreeBelow 206 σ σ') :
@@ -73,7 +74,8 @@ theorem SP1.frame {σ σ' : Val} {Pc m0 m1 rho : E} (h : SP1 rd σ Pc m0 m1 rho)
     by rw [a 3 (by norm_num)]; exact h.r, by rw [a 5 (by norm_num)]; exact h.c5,
     by rw [a 6 (by norm_num)]; exact h.c6, by rw [a 17 (by norm_num), a 18 (by norm_num)]; exact h.dg,
     fun l hl => by rw [a (30 + l) (by omega), a 18 (by norm_num)]; exact h.bits l hl,
-    by rw [a 158 (by norm_num), a 18 (by norm_num)]; exact h.unused⟩
+    by rw [a 158 (by norm_num), a 18 (by norm_num)]; exact h.unused,
+    fun j hj => by rw [a (132 + j) (by omega), a 18 (by norm_num)]; exact h.marks j hj⟩
 
 /-- **The forest's hints of a signature**, from the digest's cells' integers. -/
 def sH (sig : Sphincs.Signature) (N17 N18 c : Nat) : CoordH :=
