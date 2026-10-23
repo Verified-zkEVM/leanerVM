@@ -29,10 +29,10 @@ type `CIn` before and `COut` after, and whose run from the cache `cin` of its in
 honest run with the cache `cout` of the output beside the output witness (`run_eq`). The two
 functions say what the cache holds; they are never computed by the prover, which builds its
 cache incrementally. Cached provers compose (`Cached.append`, by ArkLib's `Prover.append_run`),
-take a cache built from the statement (`Cached.adaptIn`), drop or reshape the one they hand on
-(`Cached.adaptOut`), and exist for every component with no cache at all (`Cached.ofDef`). The
-one-round components have cached forms that read the message from the cache and update it at the
-challenge (`Cached.sendChecked`, `Cached.sample`, `Cached.passThrough`).
+take a cache built from the statement (`Cached.adaptIn`), and exist for every component with no
+cache at all (`Cached.ofDef`). The one-round components have cached forms that read the message
+from the cache and update it at the challenge (`Cached.sendChecked`, `Cached.sample`,
+`Cached.passThrough`).
 
 A cached prover with no cache on either side is a prover for `D`'s statements and witnesses
 (`Cached.toProver`) whose run is `D`'s honest run (`Cached.toProver_run`): an honest-prover
@@ -125,30 +125,6 @@ def Cached.adaptIn {CIn CIn' COut : Type} {cin : (StmtIn × ∀ i, OStmtIn i) ×
     rw [adaptProver_run]
     simp only [hg, id_eq, Prod.mk.eta, id_map']
     exact Q.run_eq s w
-
-/-- A cached prover handing on `g` of its output and its cache, as long as `g` computes `cout'`
-from `cout`. -/
-def Cached.adaptOut {CIn COut COut' : Type} {cin : (StmtIn × ∀ i, OStmtIn i) × WitIn → CIn}
-    {cout : (StmtOut × ∀ i, OStmtOut i) × WitOut → COut}
-    {cout' : (StmtOut × ∀ i, OStmtOut i) × WitOut → COut'}
-    (g : (StmtOut × ∀ i, OStmtOut i) × WitOut → COut → COut') (hg : ∀ p, g p (cout p) = cout' p)
-    (Q : Cached D cin cout) : Cached D cin cout' where
-  prover := adaptProver id (fun y ↦ (y.1, (y.2.1, g (y.1, y.2.1) y.2.2))) Q.prover
-  run_eq s w := by
-    rw [adaptProver_run]
-    simp only [id_eq]
-    rw [Q.run_eq, Functor.map_map]
-    simp only [Prod.mk.eta, hg]
-
-/-- A cached prover for cache descriptions equal to the ones it was built for. -/
-def Cached.congr {CIn COut : Type} {cin cin' : (StmtIn × ∀ i, OStmtIn i) × WitIn → CIn}
-    {cout cout' : (StmtOut × ∀ i, OStmtOut i) × WitOut → COut}
-    (hin : ∀ p, cin p = cin' p) (hout : ∀ p, cout p = cout' p) (Q : Cached D cin cout) :
-    Cached D cin' cout' where
-  prover := Q.prover
-  run_eq s w := by
-    rw [← hin, Q.run_eq]
-    simp only [hout]
 
 /-! ## Composition -/
 

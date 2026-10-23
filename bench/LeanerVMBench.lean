@@ -15,7 +15,6 @@ import LeanerVM.Protocol.TableSumcheck
 import LeanerVM.Protocol.ToArkLib.ProductSumcheck
 import LeanerVM.Protocol.LeanIsa
 import LeanerVM.Protocol.HonestProver
-import LeanerVM.Protocol.FlockSpecFast
 import LeanerVM.Protocol.ToArkLib.AppendLazy
 import LeanerVMTests.Arithmetization.Statement
 

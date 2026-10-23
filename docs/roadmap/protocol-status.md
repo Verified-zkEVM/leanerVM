@@ -647,6 +647,14 @@ pinned sources is [archived](../reviews/protocol-spine-revision.md).
   computed collision. Owed by decision 32: the hash as a parameter (`merkleRootWith`,
   `merkleVerifyWith`), `merkleVerify` as a phase's pruned opening, the generic tree moved to
   `ToVCVio/Merkle.lean` beside `toBatchOpening`, `nodeModel`, and `merkle_fits`.
+- **The honest prover, compiled** (*on merge* of the stateful-provers branch). No target theorem
+  advances and no statement changes: `leanVmFastProver` (`Protocol/HonestProver.lean`) is an
+  honest-prover refinement, a prover whose run is `leanVmProver (leanVmPhases I h)`'s
+  (`leanVmFastProver_run`), so `leanVmFast_perfectCompleteness` is the master theorem's
+  completeness for it, with the same verifier. It carries prover state through the bus phase and
+  the table sumcheck (`Component.Cached`); the commitment, the public-input check, the Flock
+  phase and the opening run their honest provers. Owed: a cached prover for the Flock phase, whose
+  honest prover does not finish at leanVM's size (`bench/README.md`).
 
 ## What can start now
 
@@ -704,6 +712,7 @@ External work that may feed or replace a hole. The state of each is on GitHub.
 | ArkLib's computable sumcheck (#1214, #1242, #1243; at the pin) | the sumchecks; the GKR's rounds | the round of `ToArkLib/SumcheckRound.lean`, which sends the coefficients as one message and weights the domain | an adaptor to `OracleReduction` and a weighted domain exist (decision 33) |
 | ArkLib #818, #383, #992 | the GKR; WHIR | patterns for a layer and for a proximity test as reductions | never as they are |
 | ArkLib #1256, #1257 (and #615) | the Flock phase | the packing coordinates, observations and batching of Diamond–Posen ring switching, and the Flock paper's quirky layout | never as they are: leanVM's ring switching is the Frobenius-map variant (Annex A), whose soundness needs none of them; `ToArkLib/Flock/` is the candidate instead |
+| ArkLib's appended-schedule instances (`ProtocolSpec.instSampleableTypeChallengeAppend`, the `Inhabited` and `OracleInterface` instances, `OracleReduction/Composition/Sequential/SeqCompose.lean:448-483` at the pin; upstream `main` unchanged on 2026-10-23) | every phase run through `Prover.run` | `ToArkLib/AppendLazy.lean`: the instances are `Fin.fappend₂`, whose strict compiled code reads entry `i` at right length `n` in about `C(n + i, i)` reads of the level below, exponential in the depth of a schedule appended on the right (261 s for 9 trivial sumcheck rounds); `Fin.dappend` and `Fin.happend` have the same shape | ArkLib redefines the instances by a comparison at the seam; then delete `AppendLazy.lean` |
 | ArkLib #848, #469, #627 | the compiled verifier | Fiat–Shamir and BCS statements | a chain-based transform with proof of work, which none of them is |
 | ArkLib issues #900, #901 | tables and stacking; the fingerprint | the requests for stacking and fingerprints upstream | when the pull requests open |
 | VCVio #571 | Merkle binding by log replay | `ToVCVio/MerkleLog.lean` | VCVio proves extraction with hashed leaves on one shared oracle |

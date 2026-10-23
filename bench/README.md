@@ -205,8 +205,8 @@ keeps no state between messages, so every round rebuilds its trees' level below,
 phase the leaves. `E` products, about 3 µs each, dominate every row of this table.
 
 With prover state and the BLAKE2s column traced on words (`Blake2sFlock.genColumnFast`, through
-`Blake2sFlock.blake2sFlockSpec_eq_blake2sFlockSpecFast`), recorded on 2026-10-23, each pair
-printing the same checksum:
+`Blake2sFlock.genColumn_eq_genColumnFast`), recorded on 2026-10-23, each pair printing the same
+checksum:
 
 | Workload | Stateless | With state |
 | --- | ---: | ---: |

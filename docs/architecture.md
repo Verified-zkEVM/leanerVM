@@ -598,8 +598,9 @@ virtual tables, the bus leaves and the grand-product prover's messages
 (`Flock.normRound_eq_normRoundFolded`, `Flock.highRound_eq_highRoundFolded`) and a round
 message's value (`SumcheckRound.evaluate_eq_evaluateHorner`) take the same route, and the
 BLAKE2s inhabitant's honest column traces the circuit on 64-bit words
-(`LeanerVM.Protocol.ToArkLib.Flock.CircuitFast`,
-`Blake2sFlock.blake2sFlockSpec_eq_blake2sFlockSpecFast`).
+(`LeanerVM.Protocol.ToArkLib.Flock.CircuitFast`, `Blake2sFlock.genColumn_eq_genColumnFast`,
+registered in `LeanerVM.Protocol.FlockSpec` before the inhabitant, so that the inhabitant's own
+compiled body is the fast one; no `@[csimp]` theorem is about a `FlockSpec` value).
 
 A round message is a function of the context and the challenges, so an honest prover that is a
 composition of one-round components rebuilds what it reads each round. Prover-only state is

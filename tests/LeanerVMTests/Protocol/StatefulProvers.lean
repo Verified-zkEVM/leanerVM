@@ -1,5 +1,5 @@
 import LeanerVM.Protocol.HonestProver
-import LeanerVM.Protocol.FlockSpecFast
+import LeanerVM.Protocol.FlockSpec
 import LeanerVMTests.Protocol.Bus
 
 /-!

@@ -99,7 +99,7 @@ def boundChildren (T : Vector (Levels F μ) nside) (j : ℕ) (cv : Vector F j) :
 
 omit [BEq F] [LawfulBEq F] in
 /-- An even index of a table on `m - j` variables, `j < m`. -/
-theorem two_mul_lt {m j : ℕ} (hj : j < m) (x : Fin (2 ^ (m - (j + 1)))) :
+private theorem two_mul_lt {m j : ℕ} (hj : j < m) (x : Fin (2 ^ (m - (j + 1)))) :
     2 * x.val < 2 ^ (m - j) := by
   have h := two_mul_add_one_lt x.isLt
   rw [show m - (j + 1) + 1 = m - j by omega] at h
@@ -107,7 +107,7 @@ theorem two_mul_lt {m j : ℕ} (hj : j < m) (x : Fin (2 ^ (m - (j + 1)))) :
 
 omit [BEq F] [LawfulBEq F] in
 /-- An odd index of a table on `m - j` variables, `j < m`. -/
-theorem two_mul_add_one_lt' {m j : ℕ} (hj : j < m) (x : Fin (2 ^ (m - (j + 1)))) :
+private theorem two_mul_add_one_lt' {m j : ℕ} (hj : j < m) (x : Fin (2 ^ (m - (j + 1)))) :
     2 * x.val + 1 < 2 ^ (m - j) := by
   have h := two_mul_add_one_lt x.isLt
   rwa [show m - (j + 1) + 1 = m - j by omega] at h
@@ -125,7 +125,8 @@ def roundFromBound (ctx : LayerCtx X F O nside m) (j : ℕ)
     let pows : Vector F nside := Vector.ofFn fun s ↦ lam ^ s.val
     let inner (x' : Fin (2 ^ (m - (j + 1)))) : SumcheckRound.Message F (2 ^ ρ) :=
       Fin.foldl nside (fun acc s ↦ axpy acc pows[s] (affineProd (2 ^ ρ) fun c ↦
-        (B[s][c][2 * x'.val]'(two_mul_lt h x'), B[s][c][2 * x'.val + 1]'(two_mul_add_one_lt' h x'))))
+        (B[s][c][2 * x'.val]'(by exact two_mul_lt h x'),
+          B[s][c][2 * x'.val + 1]'(by exact two_mul_add_one_lt' h x'))))
         (Vector.replicate _ 0)
     Fin.foldl (2 ^ (m - (j + 1))) (fun acc x' ↦ axpy acc w[x'] (inner x')) (Vector.replicate _ 0)
   else SumcheckRound.ofCPolynomial _ 0
