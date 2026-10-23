@@ -7,6 +7,7 @@
 module
 
 public import LeanVM.Guest.B1.Whir.Open
+public import LeanVM.Guest.B1.Whir.RootsN
 public import LeanVM.Guest.B1.Bits.Meaning
 public import LeanVM.Guest.B1.Merkle.Meaning
 
@@ -87,13 +88,13 @@ def lvStaticB (c : OsCfg) (i : ℕ) (lv : OsLv) : Bool :=
   decide (lv.prefixLen + c.yrLog = lv.logCols) && decide (lv.resFoldOff = lv.foldsOff + lv.folds) &&
   decide (lv.foldsOff + lv.folds ≤ c.nFolds) &&
   decide (c.nFolds - (lv.foldsOff + lv.folds) + c.yrLog = lv.logCols) &&
-  vanishOk lv.vanish lv.logCols
+  vanishOkC lv.vanish lv.logCols
 
 theorem lvStaticB_sound {c : OsCfg} {i : ℕ} {lv : OsLv} (h : lvStaticB c i lv = true) :
     LvStatic c i lv := by
   simp only [lvStaticB, Bool.and_eq_true, decide_eq_true_eq] at h
   obtain ⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨h1, h2⟩, h3⟩, h4⟩, h5⟩, h6⟩, h7⟩, h8⟩, h9⟩, h10⟩, h11⟩ := h
-  exact ⟨h1, h2, h3, h4, h5, h6, h7, h8, h9, h10, h11⟩
+  exact ⟨h1, h2, h3, h4, h5, h6, h7, h8, h9, h10, vanishOk_of_C h11⟩
 
 /-- A level's callees are in B1-a's tables. -/
 def NamesOk (c : OsCfg) (lvl : ℕ) (lv : OsLv) : Prop :=
