@@ -28,6 +28,7 @@ import LeanerVMTests.Protocol.BusSecurity
 import LeanerVMTests.Protocol.ChargedInvariant
 import LeanerVMTests.Protocol.ClaimWeights
 import LeanerVMTests.Protocol.ComponentPolynomial
+import LeanerVMTests.Protocol.DecodeTranscript
 import LeanerVMTests.Protocol.FastProvers
 import LeanerVMTests.Protocol.Field
 import LeanerVMTests.Protocol.Fingerprint
