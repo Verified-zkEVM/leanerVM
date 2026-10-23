@@ -51,6 +51,24 @@ structure OsSpecials (fs : String → ℕ) (cert : String → V → ℕ) (κ : �
 theorem lvAt_eq {c : OsCfg} {i : ℕ} (hi : i < c.levels.length) : c.levels[i] = lvAt c i :=
   (List.getD_eq_getElem _ _ hi).symm
 
+/-- The body's frames under `σ`. -/
+@[irreducible] noncomputable def osBodyCalls (σ : Val) (c : OsCfg) : List Call :=
+  ((osBodyA c).filterMap Main.Stmt.callS).map (Main.mkCall σ)
+
+theorem osBodyCalls_eq (σ : Val) (c : OsCfg) :
+    osBodyCalls σ c = ((osBodyA c).filterMap Main.Stmt.callS).map (Main.mkCall σ) := by
+  unfold osBodyCalls; rfl
+
+/-- What the callees, placed from `bk` in `N` words of layout `L`, the squeeze loops at `ps`, give. -/
+def OsKidsOk (fs : String → ℕ) (cert : String → V → ℕ) (κ : ℕ) (c : OsCfg) (tr : OsTr) (σ0 : Val)
+    (c0 c2 : E) (b0 : ℕ) (Lin L : Layout) (ps : List ℕ) (bk N : ℕ) : Prop :=
+  ∀ (rd : Reader) (R Dacc : ℕ → Prop), LowDef κ rd → MemL rd L → MemL rd (osLk c tr b0 Lin) →
+    (∀ i (h : i < ps.length), MemL rd (osW fs cert c b0 i ps[i])) →
+    (∀ i, RegionL (osLk c tr b0 Lin) i → R i) →
+    (∀ l, l < c.levels.length → ∀ p i, RegionL (osW fs cert c b0 l p) i → R i) →
+    KidsFromIn coreProgram fs cert rd (osSigma c tr σ0 c0 c2 b0) R Dacc
+      (osBodyCalls (osSigma c tr σ0 c0 c2 b0) c) bk N (fun _ ↦ False)
+
 /-- **The callees, placed.** -/
 theorem os_kids_at (hk : OsCalleesAtD fs cert κ) {c : OsCfg} (hN : OsNames c) {tr : OsTr}
     (hlen : tr.Ls.length = c.levels.length) (hfit : TrFit c tr)
@@ -60,13 +78,7 @@ theorem os_kids_at (hk : OsCalleesAtD fs cert κ) {c : OsCfg} (hN : OsNames c) {
       AllOk (osCR rd (osSp c tr (osAtOf c b0))) rd (osSigma c tr σ0 c0 c2 b0) (osBodyA c))
     (hex : ∃ rd0, LowDef κ rd0 ∧ MemL rd0 (osLk c tr b0 Lin)) (bk : ℕ) :
     ∃ (N : ℕ) (L : Layout) (ps : List ℕ), ps.length = c.levels.length ∧ Within L bk N ∧ DisjL L ∧
-      ∀ (rd : Reader) (R Dacc : ℕ → Prop), LowDef κ rd → MemL rd L → MemL rd (osLk c tr b0 Lin) →
-        (∀ i (h : i < ps.length), MemL rd (osW fs cert c b0 i ps[i])) →
-        (∀ i, RegionL (osLk c tr b0 Lin) i → R i) →
-        (∀ l, l < c.levels.length → ∀ p i, RegionL (osW fs cert c b0 l p) i → R i) →
-        KidsFromIn coreProgram fs cert rd (osSigma c tr σ0 c0 c2 b0) R Dacc
-          (((osBodyA c).filterMap Main.Stmt.callS).map (Main.mkCall (osSigma c tr σ0 c0 c2 b0))) bk N
-          (fun _ ↦ False) := by
+      OsKidsOk fs cert κ c tr σ0 c0 c2 b0 Lin L ps bk N := by
   set σ := osSigma c tr σ0 c0 c2 b0 with hσ
   set A := osAtOf c b0 with hA
   set Lk := osLk c tr b0 Lin with hLk
@@ -192,11 +204,33 @@ theorem os_kids_at (hk : OsCalleesAtD fs cert κ) {c : OsCfg} (hN : OsNames c) {
   · exact disj_append hD1 hD2 hW1 hW2 le_rfl
   · intro rd R Dacc hl hL hLk hWm hR hRW
     have hL12 : MemL rd L1 ∧ MemL rd L2 := Main.memL_append.mp hL
-    rw [hcs]
+    rw [osBodyCalls_eq, hcs]
     refine kidsFromIn_append _ _ Dacc bk N1 N2 (fun _ ↦ False) (fun _ ↦ False) ?_ fun Dacc' _ ↦ ?_
     · exact hK1 rd R Dacc hl hL12.1 hLk (fun i h ↦ by simpa using hWm i (by rw [hps] at h ⊢; exact h)) hR
         (fun l h1 h2 p i hi ↦ hRW l (by rw [hksl] at h2; omega) p i hi)
     · exact hK2 rd R Dacc' hl hL12.2 hLk fun i hi ↦ Or.inl (hR i hi)
+
+
+/-- **The callees placed, on a memory holding the own buffers** (the bit pointers the decoders'
+at `ps`), the callees' layout and the caller's words. -/
+theorem os_kids_apply {c : OsCfg} {tr : OsTr} {σ0 : Val} {c0 c2 : E} {b0 : ℕ} {Lin L : Layout}
+    {ps : List ℕ} {bk N : ℕ} (hK : OsKidsOk fs cert κ c tr σ0 c0 c2 b0 Lin L ps bk N)
+    (hps : ps.length = c.levels.length) (hs : OsSizes c)
+    (hpt : (tr.point (c.levels.headD default).folds).length ≤ pointCap) (htl : tr.Lf.ml ≤ yrLogCap)
+    {rd : Reader} (hl : LowDef κ rd)
+    (hmB : MemL rd (bufL b0 (osSizesL c) (osOwnL c tr (osBp fs cert c fun l ↦ ps.getD l 0))))
+    (hmL : MemL rd L) (hmLin : MemL rd Lin) :
+    KidsFromIn coreProgram fs cert rd (osSigma c tr σ0 c0 c2 b0)
+      (fun i ↦ RegionL Lin i ∨ RegionL (bufL b0 (osSizesL c)
+        (osOwnL c tr (osBp fs cert c fun l ↦ ps.getD l 0))) i)
+      (fun _ ↦ False) (osBodyCalls (osSigma c tr σ0 c0 c2 b0) c) bk N (fun _ ↦ False) := by
+  have hmLk : MemL rd (osLk c tr b0 Lin) := osLk_memL hmB hmLin
+  refine hK rd _ _ hl hmL hmLk (fun i h ↦ ?_) (fun i hi ↦ ?_) (fun l hl' p i hi ↦ ?_)
+  · have := osW_memL (fs := fs) (cert := cert) hpt htl hs (l := i) (by rw [← hps]; exact h) hmB
+    beta_reduce at this
+    rwa [List.getD_eq_getElem _ _ h] at this
+  · exact (regionL_osLk _ hi).imp id id
+  · exact Or.inr (regionL_osW _ hs hl' hi)
 
 end
 end LeanVM.Guest.B1
