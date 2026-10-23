@@ -65,6 +65,58 @@ def rounds {C σ : Type} {d : ℕ} (poly : σ → Slot α (Vector C (d + 1))) (c
         fun _ ↦ single (chal s))
       fun t ↦ rounds poly chal next (next s t) m
 
+/-- A run of `k + 1` challenges as one slot: the first `k`, then the last. -/
+theorem toSlot_draws_succ {C : Type} (s : Slot α C) (k : ℕ) :
+    (draws s (k + 1)).toSlot = do
+      let t ← (draws s k).toSlot
+      let x ← s
+      return t ++ₜ oneTranscript (pSpec := draw C) x := by
+  have h := toSlot_append (pSpec₁ := Protocol.draws C k) (pSpec₂ := draw C) (draws s k)
+    fun _ ↦ single s
+  rw [toSlot_single] at h
+  simp only [bind_map_left] at h
+  exact h
+
+/-- A run of `m + 1` sumcheck rounds as one slot: the first round's polynomial and challenge, then
+the rest from the state they lead to. -/
+theorem toSlot_rounds_succ {C σ : Type} {d : ℕ} (poly : σ → Slot α (Vector C (d + 1)))
+    (chal : σ → Slot α C) (next : σ → (roundSpec C d).FullTranscript → σ) (a : σ) (m : ℕ) :
+    (rounds poly chal next a (m + 1)).toSlot = do
+      let p ← poly a
+      let c ← chal a
+      let t ← (rounds poly chal next (next a (oneTranscript (pSpec := say (Vector C (d + 1))) p ++ₜ
+        oneTranscript (pSpec := draw C) c)) m).toSlot
+      return (oneTranscript (pSpec := say (Vector C (d + 1))) p ++ₜ
+        oneTranscript (pSpec := draw C) c) ++ₜ t := by
+  have h := toSlot_append (pSpec₁ := roundSpec C d) (pSpec₂ := roundsSpec C d m)
+    (append (pSpec₁ := say (Vector C (d + 1))) (pSpec₂ := draw C) (single (poly a))
+      fun _ ↦ single (chal a)) fun t ↦ rounds poly chal next (next a t) m
+  rw [toSlot_append (pSpec₁ := say (Vector C (d + 1))) (pSpec₂ := draw C), toSlot_single,
+    toSlot_single] at h
+  simp only [bind_map_left, bind_assoc, pure_bind] at h
+  exact h
+
+/-- Runs of challenges read alike when their slots do. -/
+theorem readsAlike_draws {C : Type} {s s' : Slot α C} (h : Slot.Agree (fun _ _ ↦ True) s s') :
+    (k : ℕ) → ReadsAlike (draws s k) (draws s' k)
+  | 0 => readsAlike_empty
+  | k + 1 => readsAlike_append (readsAlike_draws h k) fun _ _ ↦ readsAlike_single h
+
+/-- Runs of sumcheck rounds read alike when their polynomials' and challenges' slots do, whatever
+states they carry. -/
+theorem readsAlike_rounds {C σ σ' : Type} {d : ℕ} {poly : σ → Slot α (Vector C (d + 1))}
+    {poly' : σ' → Slot α (Vector C (d + 1))} {chal : σ → Slot α C} {chal' : σ' → Slot α C}
+    {next : σ → (roundSpec C d).FullTranscript → σ}
+    {next' : σ' → (roundSpec C d).FullTranscript → σ'}
+    (hp : ∀ a b, Slot.Agree (fun _ _ ↦ True) (poly a) (poly' b))
+    (hc : ∀ a b, Slot.Agree (fun _ _ ↦ True) (chal a) (chal' b)) :
+    ∀ (a : σ) (b : σ') (m : ℕ),
+      ReadsAlike (rounds poly chal next a m) (rounds poly' chal' next' b m)
+  | _, _, 0 => readsAlike_empty
+  | a, b, m + 1 => readsAlike_append
+      (readsAlike_append (readsAlike_single (hp a b)) fun _ _ ↦ readsAlike_single (hc a b))
+      fun t t' ↦ readsAlike_rounds hp hc (next a t) (next' b t') m
+
 end SlotDecoder
 
 /-- Decoders of the steps of a list, each given the transcripts of the steps before it. -/
@@ -94,6 +146,34 @@ theorem decode_cons {a : Step} {l : List Step} (D : SeqDecoder α (a :: l)) (r :
     D.toDecoder.decode r =
       (D.1.runFull r).bind fun p ↦ ((D.2 p.1).toDecoder.decode p.2).map (p.1 ++ₜ ·) :=
   SlotDecoder.decode_append _ _ r
+
+/-- The decoder of a list of steps as one slot: the first step, then the rest. -/
+theorem toSlot_cons {a : Step} {l : List Step} (D : SeqDecoder α (a :: l)) :
+    D.toDecoder.toSlot = do
+      let t ← D.1.toSlot
+      let t' ← (D.2 t).toDecoder.toSlot
+      return t ++ₜ t' :=
+  SlotDecoder.toSlot_append _ _
+
+/-- Two decoders of a list of steps read alike: step by step, whatever the steps before read. -/
+def ReadsAlike : {l : List Step} → SeqDecoder α l → SeqDecoder α l → Prop
+  | [], _, _ => True
+  | _ :: _, D, D' => D.1.ReadsAlike D'.1 ∧ ∀ t t', ReadsAlike (D.2 t) (D'.2 t')
+
+/-- Two decoders of a list of steps read alike when their first steps do and, whatever those
+read, the rest do. -/
+theorem ReadsAlike.cons {a : Step} {l : List Step} {D D' : SeqDecoder α (a :: l)}
+    (h₁ : D.1.ReadsAlike D'.1) (h₂ : ∀ t t', ReadsAlike (D.2 t) (D'.2 t')) : D.ReadsAlike D' :=
+  ⟨h₁, h₂⟩
+
+/-- Decoders of no step read alike. -/
+theorem ReadsAlike.nil {D D' : SeqDecoder α []} : D.ReadsAlike D' := trivial
+
+/-- Decoders of a list of steps that read alike step by step read alike as decoders. -/
+theorem ReadsAlike.toDecoder : {l : List Step} → {D D' : SeqDecoder α l} → D.ReadsAlike D' →
+    D.toDecoder.ReadsAlike D'.toDecoder
+  | [], _, _, _ => SlotDecoder.readsAlike_empty
+  | _ :: _, _, _, h => SlotDecoder.readsAlike_append h.1 fun t t' ↦ (h.2 t t').toDecoder
 
 end SeqDecoder
 

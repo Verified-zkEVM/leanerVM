@@ -158,6 +158,7 @@ import LeanerVM.Protocol.ToVCVio.EventExpectation
 import LeanerVM.Protocol.ToVCVio.HashChain
 import LeanerVM.Protocol.ToVCVio.Merkle
 import LeanerVM.Protocol.ToVCVio.MerkleLog
+import LeanerVM.Protocol.ToVCVio.MonadRel
 import LeanerVM.Protocol.ToVCVio.QueryLog
 import LeanerVM.Protocol.ToVCVio.ScalarExpectation
 import LeanerVM.Protocol.ToVCVio.UniformCondition
@@ -168,6 +169,7 @@ import LeanerVM.Protocol.Verify.Blake2sWalk
 import LeanerVM.Protocol.Verify.Bus
 import LeanerVM.Protocol.Verify.Flock
 import LeanerVM.Protocol.Verify.Hom
+import LeanerVM.Protocol.Verify.Rel
 import LeanerVM.Protocol.Verify.Setup
 import LeanerVM.Protocol.Verify.Tables
 import LeanerVM.Protocol.Verify.Whir
