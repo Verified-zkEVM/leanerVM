@@ -9,6 +9,7 @@ module
 
 public import LeanVM.Guest.B1.VerifySub.Template
 public import LeanVM.Protocol.Keccak.Multilinear
+public import LeanVM.Guest.B1.VerifySub.CtabCheck
 
 /-!
 # `fp_w` and `c_table`
@@ -109,6 +110,64 @@ theorem vsFpwT_holds {alphas : List E} (hl : alphas.length = 4)
     rw [List.getD_eq_getElem _ _ hk, ite_eq_left_of_eq_true _ _ (eq_true (by simpa using hk'))] at e
     rw [e]
     exact hw k (List.mem_range.2 hk')
+
+/-! ## `c_table` -/
+
+theorem foldl_filter_mul {α : Type} (F : E → α → E) (hF : ∀ acc x, F acc x = acc * F 1 x)
+    (p : α → Bool) : ∀ (L : List α) (acc : E),
+      (L.filter p).foldl F acc = acc * (L.map fun x ↦ if p x then F 1 x else 1).prod
+  | [], acc => by simp
+  | x :: L, acc => by
+    rw [List.filter_cons, List.map_cons, List.prod_cons]
+    by_cases hp : p x
+    · simp only [hp, ↓reduceIte, List.foldl_cons]
+      rw [foldl_filter_mul F hF p L, hF acc x, mul_assoc]
+    · simp only [hp, Bool.false_eq_true, ↓reduceIte, one_mul]
+      exact foldl_filter_mul F hF p L acc
+
+theorem specEV_getD {k i : ℕ} (hi : i < 6) : (specEV k).getD i 0 =
+    if k &&& ringMapShifts.getD i 0 ≠ 0 then 2 ^ (k % ringMapShifts.getD i 0) else 0 := by
+  rw [specEV, List.getD_eq_getElem _ _ (by simpa using hi), List.getElem_map, List.getElem_range]
+
+/-- `ringCoefficients`' `k`-th product is the monomial `specEV k`. -/
+theorem ringCoefficients_getElem {chs : List E} (hl : chs.length = 6) {k : ℕ} (hk : k < 64) :
+    (ringCoefficients chs)[k]'(by simp [ringCoefficients, kBits]; exact hk) =
+      evVal chs (specEV k) := by
+  match chs, hl with
+  | [c0, c1, c2, c3, c4, c5], _ =>
+    simp only [ringCoefficients, List.getElem_map, List.getElem_range]
+    rw [foldl_filter_mul _ (fun acc x ↦ by rcases x with ⟨f, s⟩; simp)]
+    rw [show evVal [c0, c1, c2, c3, c4, c5] (specEV k) = ∏ i ∈ range 6,
+        (if k &&& ringMapShifts.getD i 0 ≠ 0 then
+          [c0, c1, c2, c3, c4, c5].getD i 0 ^ (2 ^ (k % ringMapShifts.getD i 0)) else 1) from
+      Finset.prod_congr rfl fun i hi ↦ by
+        rw [specEV_getD (mem_range.1 hi)]
+        split_ifs <;> simp]
+    simp only [Finset.prod_range_succ, Finset.prod_range_zero, ringMapShifts, List.zip_cons_cons,
+      List.zip_nil_right, List.map_cons, List.map_nil, List.prod_cons, List.prod_nil,
+      List.getD_cons_zero, List.getD_cons_succ, one_mul, mul_one, decide_eq_true_eq]
+    ring
+
+/-- **`c_table`** (G:3271-3280): the ring map's Frobenius coefficients are `ringCoefficients` of
+its six challenges, then `ring_switch_target` is called. -/
+theorem vsCtabT_holds {chs : List E} (hl : chs.length = 6) (hc : ReadsAt rd (σ (.n 876)) chs)
+    (h : Stmt.HoldsList C rd σ vsCtabT next kret) :
+    ReadsAt rd (σ (.n 877)) (ringCoefficients chs) ∧
+      C "ring_switch_target" [σ (.n 860), σ (.n 876)] [σ (.n 1303)] ∧ next := by
+  rw [vsCtabT_eq, holdsList_append] at h
+  have hc0 := ct_check
+  generalize hr : ctRun ⟨[], []⟩ ctPre = r at hc0
+  rcases r with _ | st
+  · cases hc0
+  simp only [Option.map_some, Option.some.injEq, List.all_eq_true, List.mem_range, beq_iff_eq]
+    at hc0
+  obtain ⟨⟨-, hm⟩, h⟩ := ctRun_sound hl hc hr ⟨fun _ hp ↦ absurd hp (by simp),
+    fun _ hp ↦ absurd hp (by simp)⟩ h
+  simp only [Stmt.HoldsList, Stmt.Holds, vsCall, List.map_cons, List.map_nil] at h
+  refine ⟨fun k hk ↦ ?_, h⟩
+  have hk' : k < 64 := by simpa [ringCoefficients, kBits] using hk
+  rw [ringCoefficients_getElem hl hk']
+  exact (hm _ (lookup_mem (hc0 k hk'))).1
 
 end
 end LeanVM.Guest.B1.VerifySub
