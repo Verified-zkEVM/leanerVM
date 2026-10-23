@@ -141,7 +141,7 @@ def MeaningPlainRounds (n k0 : ℕ) (rd : Reader) : List E → List E → Prop
   | [f0, f1, f2, f3, f4, p0, p1, cur, value, point], rets =>
       AllCanonical [f0, f1, f2, f3, f4] ∧ ∃ rounds : List (E × E), rounds.length = n ∧
         ReadsAt rd cur (rounds.flatMap fun c ↦ [c.1, c.2]) ∧
-        ∀ w : E, (k0 = 1 → (p0, p1) = Keccak.scalarCells w dsObserve) →
+        ∀ w : E, (k0 = 1 → IsCanonical128 p0 → (p0, p1) = Keccak.scalarCells w dsObserve) →
           let r := plainRun rounds value (plainStart k0 [f0, f1, f2, f3, f4] w)
           ReadsAt rd point r.1 ∧ rets = r.2.2.cap ++ [cur * gen ^ (2 * n), r.2.1]
   | _, _ => False
@@ -228,7 +228,7 @@ def MeaningKeccakLayer (first odd : ℕ) (rd : Reader) : List E → List E → P
   | [f0, f1, f2, f3, f4, p0, p1, cur, yg, hg, yl, claim, out, iota], rets =>
       ∀ (y step : ℕ) (c : KeccakClaim) (w : E), y % 2 = odd → 1 ≤ y → y < 32 → yg = gen ^ y →
         hg = gen ^ (y / 2) → yl = gen ^ (y / 2 + odd) → ClaimRec rd (first = 1) claim c y →
-        (first = 1 → (p0, p1) = Keccak.scalarCells w dsObserve) →
+        (first = 1 → IsCanonical128 p0 → (p0, p1) = Keccak.scalarCells w dsObserve) →
         iota = keccakIota (y + 3) step c →
         ∃ (xs : List E) (c' : KeccakClaim) (cap' : List E), ReadsAt rd cur xs ∧
           RunsTo (verifyKeccakLayer (y + 3) step c) (plainStart first [f0, f1, f2, f3, f4] w) xs c'

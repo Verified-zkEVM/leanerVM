@@ -126,7 +126,7 @@ theorem sqT_holds {first : ℕ} (hf : first < 2) {next : Prop} {kret : List E �
 /-- **The product and `s`** (G:2480-2520 against V:1983-1997). -/
 theorem layerA_holds {first : ℕ} (hf : first < 2) {y : ℕ} {c : KeccakClaim} {w : E}
     (hcr : ClaimRec rd (first = 1) (σ (.n 11)) c y)
-    (hw : first = 1 → (σ (.n 5), σ (.n 6)) = Keccak.scalarCells w dsObserve)
+    (hw : first = 1 → IsCanonical128 (σ (.n 5)) → (σ (.n 5), σ (.n 6)) = Keccak.scalarCells w dsObserve)
     {next : Prop} {kret : List E → Prop}
     (h : Stmt.HoldsList C rd σ (headT first ++ prodT (.n 7) (19 + 2 * first) (prodTab first) ++
       checkT (accL first) ++ sqT first) next kret) :
@@ -148,9 +148,10 @@ theorem layerA_holds {first : ℕ} (hf : first < 2) {y : ℕ} {c : KeccakClaim} 
     · interval_cases first
       · simp [plainStart, pend0, PendOk]
       · simp only [plainStart, pend0, ↓reduceIte, PendOk, and_true]
-        intro _
+        intro hc
         rw [hcp 5 (by omega), hcp 6 (by omega)]
-        exact hw rfl
+        rw [hcp 5 (by omega)] at hc
+        exact hw rfl hc
   obtain ⟨hrd, hsp, hacc', h⟩ := prodT_sound hch hacc hall hs h
   simp only [checkT, Stmt.HoldsList, Stmt.Holds, Atom.Holds] at h
   obtain ⟨hk, e2, e3, hv, heq, h⟩ := h
