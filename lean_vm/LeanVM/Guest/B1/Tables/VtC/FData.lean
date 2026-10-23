@@ -18,9 +18,9 @@ public import LeanVM.Guest.B1.Tables.Vt.EvalsT
 `vtAirD[t]`: table `t`'s `dims` read (position, value `τv`) and weight block (position, value
 `x`): `g^n = x·τv` (a division), `cprod` read at `zc_cprod·x`, `peq` read at `zc_peq·τv`
 (`vtAirT`). `vtEvTab k`: evaluation `k`'s table. `vtEvRest k`: evaluation `k`'s read at the
-cursor, limb check, `claim_pool` and `claim_cplen_g` stores. `vtFR`: all of them, the
-permutations and the tables' statements; `vtF_cover`: every statement of the window is settled by
-evaluation (`autoB`), a read of `fp_w` (`rd14`) or one of `vtFR`. `noStoreB p`: no store goes
+cursor, limb check, `claim_pool` and `claim_cplen_g` stores. `vtF_cover`: the window's statements
+not settled by evaluation (`autoB`) nor reads of `fp_w` (`rd14`) are, in order, those of
+`vtFTags` (evaluations, permutations, `dims` reads, weight blocks). `noStoreB p`: no store goes
 through the pointer `.n p`.
 -/
 
