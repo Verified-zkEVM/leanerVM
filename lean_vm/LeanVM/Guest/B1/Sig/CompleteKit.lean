@@ -274,5 +274,76 @@ theorem kMsg_le {pad : Nat} {cells : List KC} {len : Nat} {tailRun : Bool} {b : 
     (kBlocksOf len) 0 none x2.2.2 (by omega) b2 (fun s hs => by simp at hs)
   omega
 
+theorem numBelow_of_all {hi : Nat} {vs : List V} (h : vs.all (nbB hi) = true) : NumBelow hi vs :=
+  fun v hv => nbB_ok (List.all_eq_true.mp h v hv)
+
+/-- **The message's values lie below its end.** -/
+theorem kMsg_numBelow {pad : Nat} {cells : List KC} {len : Nat} {tailRun : Bool} {b : Nat}
+    (hpb : pad + 5 ≤ b) (hc : ∀ c ∈ cells, KCb b c) :
+    NumBelow (kMsg pad cells len tailRun none b).2.1 (Stmt.valsList (kMsg pad cells len tailRun none b).1) := by
+  rw [kMsg_eq]
+  dsimp only
+  set cs0 := cells ++ List.replicate (17 * (kBlocksOf len - 1) / 2 + 9 - cells.length) KC.zero with hcs0
+  have hc0 : ∀ c ∈ cs0, KCb b c := by
+    intro c hc'
+    rcases List.mem_append.mp hc' with h | h
+    · exact hc c h
+    · rw [List.eq_of_mem_replicate h]
+      trivial
+  obtain ⟨a1, a2, a3⟩ := kXorByte_seq (cs := cs0) (pos := len) (v := 1) (b := b) hc0
+  set x1 := kXorByte cs0 len 1 b with hx1
+  obtain ⟨b1, b2, b3⟩ := kXorByte_seq (cs := x1.2.1) (pos := 136 * kBlocksOf len - 1) (v := 0x80)
+    (b := x1.2.2) a2
+  set x2 := kXorByte x1.2.1 (136 * kBlocksOf len - 1) 0x80 x1.2.2 with hx2
+  have hs := SeqOK.append a1 b1
+  have := hs.le
+  obtain ⟨n1, n2⟩ := kBlocks_nb (pad := pad) (cs := x2.2.1) (B := kBlocksOf len) (tailRun := tailRun)
+    (kBlocksOf len) 0 none x2.2.2 (by omega) b2 (fun s hs => by simp at hs)
+  rw [valsList_append]
+  exact (hs.numBelow.mono n2).append n1
+
+/-- **A path's values lie below its end.** -/
+theorem merkleT_numBelow {pad : Nat} {pp : V} {bitOf : Nat → V} {nodeOf : Nat → Option V}
+    {addrOf : Nat → Nat} :
+    ∀ (m l : Nat) (cur : V) (b : Nat), pad + 5 ≤ b → NBv b pp → NBv b cur →
+      (∀ j < m, NBv b (bitOf (l + j))) → (∀ l' nd, nodeOf l' = some nd → NBv b nd) →
+      NumBelow (merkleT pad pp bitOf nodeOf addrOf m l cur b).2.1
+        (Stmt.valsList (merkleT pad pp bitOf nodeOf addrOf m l cur b).1)
+  | 0, _, _, _, _, _, _, _, _ => NumBelow.nil _
+  | m + 1, l, cur, b, hpb, hpp, hcur, hbits, hnodes => by
+      have h0 := hbits 0 (by omega)
+      rw [Nat.add_zero] at h0
+      have hall : ∀ (c : Nat) (nodeL : List Stmt), b + 5 ≤ c →
+          SeqOK (b + 4) ([cst (b + 4) (word (addrOf l) 0 0)] ++ nodeL) c →
+          merkleT pad pp bitOf nodeOf addrOf (m + 1) l cur b =
+            ([hintW "siblings" [.n b, .n (b + 1)], addS (.n (b + 2)) cur (.n b),
+              addS (.n (b + 3)) (.n b) (.n (b + 1)), mulS (.n (b + 2)) (bitOf l) (.n (b + 3)),
+              cst (b + 4) (word (addrOf l) 0 0)] ++ nodeL ++ k64 pad pp (.n (c - 1)) (.n b) (.n (b + 1)) c (c + 1) ++
+              (merkleT pad pp bitOf nodeOf addrOf m (l + 1) (.n (c + 1)) (c + 14)).1,
+              (merkleT pad pp bitOf nodeOf addrOf m (l + 1) (.n (c + 1)) (c + 14)).2.1,
+              (merkleT pad pp bitOf nodeOf addrOf m (l + 1) (.n (c + 1)) (c + 14)).2.2) →
+          NumBelow (merkleT pad pp bitOf nodeOf addrOf (m + 1) l cur b).2.1
+            (Stmt.valsList (merkleT pad pp bitOf nodeOf addrOf (m + 1) l cur b).1) := by
+        intro c nodeL hc hseq heq
+        rw [heq]
+        have hl := level_numBelow hpb hpp h0 hcur hseq hc
+        have hr := merkleT_numBelow (pad := pad) (pp := pp) (bitOf := bitOf) (nodeOf := nodeOf)
+          (addrOf := addrOf) m (l + 1) (.n (c + 1)) (c + 14) (by omega) (hpp.mono' (by omega))
+          ⟨c + 1, by omega, rfl⟩
+          (fun j hj => by
+            rw [show l + 1 + j = l + (j + 1) by omega]
+            exact NBv.mono' (hbits (j + 1) (by omega)) (show b ≤ c + 14 by omega))
+          (fun l' nd h => NBv.mono' (hnodes l' nd h) (show b ≤ c + 14 by omega))
+        have hge := merkleT_snd_ge pad pp bitOf nodeOf addrOf m (l + 1) (.n (c + 1)) (c + 14)
+        dsimp only
+        rw [valsList_append]
+        exact (hl.mono hge).append hr
+      cases hn : nodeOf l with
+      | none => exact hall (b + 5) [] (by omega) ⟨rfl, rfl⟩ (by simp [merkleT, hn])
+      | some nd =>
+          exact hall (b + 6) [addS (.n (b + 5)) (.n (b + 4)) nd] (by omega)
+            ⟨rfl, ⟨rfl, ⟨b + 4, by omega, rfl⟩, (hnodes l nd hn).mono' (by omega)⟩, rfl⟩
+            (by simp [merkleT, hn])
+
 end
 end LeanVM.Guest.B1.Sig
