@@ -14,9 +14,9 @@ the step `(g^4, g^5) → (g^5, g^5)`, which is not on the run: the fill blocks a
 of steps. `no_row_at_sentinel` applies, the fixture's sentinel slot being an `XOR`.
 
 **The sentinel hypothesis.** A program whose sentinel slot holds a `JUMP` is not
-`SentinelSafe`; there a row may pull the sentinel counter and jump on, which is why the
-hypothesis is there. A full counter-witness, a balanced bus whose walk passes the sentinel, is
-not built here.
+`SentinelSafe`; there a row may pull the sentinel counter and jump on. The counter-witness, a
+satisfying witness of such a program that represents no valid execution, is
+`LeanerVMTests.Arithmetization.Sentinel`.
 -/
 
 namespace LeanerVMTests.Arithmetization.Steps
