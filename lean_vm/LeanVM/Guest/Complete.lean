@@ -124,7 +124,7 @@ def sizeOf (words : ℕ) (instrs : Opcode → ℕ) : ℕ :=
   let keccakHeight : ℕ := 2 ^ max (Nat.clog 2 (instrs .keccak)) 9
   4 * 2 ^ Memory.logMem words + 2 ^ guest.logSize +
     15 * height .xor + 15 * height .mulNative + 8 * height .setConstant + 15 * height .deref +
-    14 * height .jump + 40 * keccakHeight + 2 ^ 6 * keccakHeight
+    14 * height .jump + 26 * keccakHeight + 2 ^ 6 * keccakHeight
 
 /-- The committed size of a run within the budget at the work `u`. -/
 def Budget.size (b : Budget) (u : Work) : ℕ := sizeOf (b.words.eval u) fun op ↦ (b.instrs op).eval u
