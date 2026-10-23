@@ -41,6 +41,8 @@ theorem bt_loads : ∀ n < 34, (btPre n).all (loadsViaB (btTbl n)) = true := by 
 
 theorem bt_flat : ∀ n < 34, (btPre n).all Stmt.flat = true := by decide +kernel
 
+theorem bt_noLoadIte : ∀ n < 34, (btPre n).all noLoadIte = true := by decide +kernel
+
 theorem bt_noCall : ∀ n < 34, (btPre n).all noCallSB = true := by decide +kernel
 
 section
@@ -89,7 +91,7 @@ theorem block_selector_tab_relIn {n : ℕ} (hn : n < 34) {rd : Reader} {R : ℕ 
     (h : coreProgram.Rel rd (lName "block_selector_tab" n) [sb, eqt, gt] rets) :
     coreProgram.RelIn rd R (lName "block_selector_tab" n) [sb, eqt, gt] rets := by
   obtain ⟨fn, hf, hp, hb⟩ := btFound hn
-  refine relIn_of_flatRel hf hb (bt_flat n hn) h fun σ hpar hh ↦ ?_
+  refine relIn_of_flatRel (hnl := bt_noLoadIte n hn) hf hb (bt_flat n hn) h fun σ hpar hh ↦ ?_
   rw [hp] at hpar
   simp only [List.map_cons, List.map_nil, List.cons.injEq, and_true] at hpar
   obtain ⟨p0, p1, p2⟩ := hpar
