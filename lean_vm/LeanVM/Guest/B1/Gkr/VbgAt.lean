@@ -120,6 +120,11 @@ noncomputable def vbgσ (rd : Reader) (depth : ℕ) (cap0 : List E) (ec ez eL eR
   vbgFlat.σ rd (vbgW (ofK (gpow eL)) (ofK (gpow eR)) (ofK (gpow eP)) (ofK (gpow ePa)) (ofK (gpow eD)))
     (cap0 ++ [ofK (gpow ec), gen ^ depth, ofK (gpow ez)])
 
+/-- The values the calls of `__loop7` and `__loop8` start and end at, and `__loop7`'s buffers. -/
+def VbgVals (σ : Val) (depth eL eR eD : ℕ) : Prop :=
+  σ (.n 304) = 1 ∧ σ (.n 306) = gen ^ (depth / 2) ∧ σ (.n 317) = 1 ∧ σ (.n 6) = gen ^ depth ∧
+    σ (.n 57) = ofK (gpow eD) ∧ σ (.n 15) = ofK (gpow eL) ∧ σ (.n 16) = ofK (gpow eR)
+
 set_option maxHeartbeats 1000000 in
 /-- **`verify_bus_gkr`'s honest valuation on a memory holding its words**: every statement holds,
 its calls loading from `R`; its loads land inside its buffers; its allocations are the buffers; it
@@ -147,7 +152,8 @@ theorem vbg_run {depth κ : ℕ} (hd1 : 1 ≤ depth) (hd : depth ≤ 32) (hκ : 
     ((vbgPre.filterMap Main.Stmt.allocSz).map Prod.fst).map (vbgσ rd depth cap0 ec ez eL eR eP ePa eD) =
       [ofK (gpow eL), ofK (gpow eR), ofK (gpow eP), ofK (gpow ePa), ofK (gpow eD)] ∧
     vbgRets.map (vbgσ rd depth cap0 ec ez eL eR eP ePa eD) =
-      cap' ++ [ofK (gpow ec) * gen ^ xs.length] ++ r.2.2 := by
+      cap' ++ [ofK (gpow ec) * gen ^ xs.length] ++ r.2.2 ∧
+    VbgVals (vbgσ rd depth cap0 ec ez eL eR eP ePa eD) depth eL eR eD := by
   obtain ⟨hcnt, hx2, hodd, hsteps, hend, hsF, hr, hplm⟩ := gk_walk hrun hc
   obtain ⟨sp, hsp⟩ := hc
   have hsc : capOf sp.state = cap0 := hsp.1
@@ -222,7 +228,7 @@ theorem vbg_run {depth κ : ℕ} (hd1 : 1 ≤ depth) (hd : depth ≤ 32) (hκ : 
     simp only [and_self, le_refl, ↓reduceIte, vbgSlotW] at this
     rwa [gkSlotWords_getD9 inv.1 inv.2.2.2] at this
   have r314 := good_read (g (.load (.n 314) (.n 312) 9) (by decide +kernel)) (by decide +kernel) hrow
-  refine ⟨fun s hs ↦ ?_, fun d p off hm ↦ ?_, ?_, ?_, hrt⟩
+  refine ⟨fun s hs ↦ ?_, fun d p off hm ↦ ?_, ?_, ?_, hrt, c304, r306.1, c317, e6, e57, e15, e16⟩
   · -- the statements
     have hv := vsh_of_holdsList vbgPre vbg_iteOk hh s hs
     have hk := List.all_eq_true.mp vbg_kinds s hs
@@ -440,7 +446,7 @@ theorem verify_bus_gkr_completeAt {κ depth : ℕ} (hd1 : 1 ≤ depth) (hd : dep
       refine regionL_append_right ⟨(fp + fs f + 17 * (depth + 2) + 6034 + 1640 + 33, vbgDshW),
         by simp, by simp, ?_⟩
       simp only [vbgDshW, List.length_map, List.length_range]; omega
-    obtain ⟨h1, h2, h3, h4, h5⟩ := vbg_run (R := RegionL (vbgL fs depth cap0 xs r.2.1 ec ez fp))
+    obtain ⟨h1, h2, h3, h4, h5, -⟩ := vbg_run (R := RegionL (vbgL fs depth cap0 xs r.2.1 ec ez fp))
       hd1 hd hκ hrun hc hlow hx hz hLw hRw hPw hPaw hDw hRz hRr hRx hRL hRR hRD
     exact ⟨h1, h2, h3, h4.trans (by simp [bases, vbgSizes]; exact ⟨rfl, rfl, rfl, rfl, rfl⟩), h5⟩
 end
