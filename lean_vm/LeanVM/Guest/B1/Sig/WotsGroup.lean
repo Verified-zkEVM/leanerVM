@@ -153,5 +153,94 @@ theorem arm0_lay (W : WotsT) {B : Nat} (fold : Bool) {b n : Nat} (hB : B ≤ b) 
       Nat.add_le_add_left (Nat.mul_le_mul_left _ ht) _
     exact ⟨j, rfl, by omega, by omega⟩
 
+theorem walkBase_succ (S k t b : Nat) :
+    walkBase S k 0 (t + 1) b = walkBase S k 0 t b + walkSize S (dig k t) := by
+  rw [walkBase_eq, walkBase_eq, walkSum_succ]
+  simp only [Nat.zero_add]
+  omega
+
+theorem walkBase_le (S k b : Nat) {t t' : Nat} (h : t ≤ t') : walkBase S k 0 t b ≤ walkBase S k 0 t' b := by
+  rw [walkBase_eq, walkBase_eq]
+  have := walkSum_le S k 0 h
+  omega
+
+/-- **A later arm's walks are laid out**, above the product and the encoding. -/
+theorem armPos_lay (W : WotsT) {B : Nat} (fold : Bool) {b n k a : Nat} (hB : B ≤ b)
+    (ha : groupStart fold b + chainStride W * n + 2 ≤ a) :
+    (∀ t < n, WalkLay W B (slotsT W fold b t) W.size (dig k t)
+      (walkBase W.size k 0 t (if fold then a + 1 else a))) ∧
+    (∀ t < n, ∀ t' < n, t ≠ t' → ∀ x,
+      WalkR (slotsT W fold b t) W.size (dig k t) (walkBase W.size k 0 t (if fold then a + 1 else a)) x →
+      ¬ WalkR (slotsT W fold b t') W.size (dig k t') (walkBase W.size k 0 t' (if fold then a + 1 else a)) x) ∧
+    (∀ x, WalksR (slotsT W fold b) W.size k n (if fold then a + 1 else a) x →
+      ∃ j, x = .n j ∧ ((groupStart fold b ≤ j ∧ j < groupStart fold b + chainStride W * n) ∨
+        ((if fold then a + 1 else a) ≤ j ∧ j < walkBase W.size k 0 n (if fold then a + 1 else a)))) := by
+  set b0 := if fold then a + 1 else a with hb0
+  have hab : a ≤ b0 := by rw [hb0]; split <;> omega
+  have hslot : ∀ t < n, ∀ s < 3, slotsT W fold b t s + 13 ≤ groupStart fold b + chainStride W * n := by
+    intro t ht s hs
+    have h1 := slot_bounds W fold b t s hs
+    have h2 : groupStart fold b + chainStride W * (t + 1) ≤ groupStart fold b + chainStride W * n :=
+      Nat.add_le_add_left (Nat.mul_le_mul_left _ ht) _
+    omega
+  have hb0B : b0 ≤ walkBase W.size k 0 0 b0 := le_rfl
+  have hreg : ∀ t < n, ∀ x, WalkR (slotsT W fold b t) W.size (dig k t) (walkBase W.size k 0 t b0) x →
+      ∃ j, x = .n j ∧ ((groupStart fold b + chainStride W * t ≤ j ∧
+        j < groupStart fold b + chainStride W * (t + 1)) ∨
+        (walkBase W.size k 0 t b0 ≤ j ∧ j < walkBase W.size k 0 (t + 1) b0)) := by
+    rintro t ht x (⟨u, hu, rfl⟩ | ⟨s, hs, u, hu, rfl⟩)
+    · rw [walkBase_succ]
+      exact ⟨_, rfl, Or.inr ⟨by omega, by omega⟩⟩
+    · have := slot_bounds W fold b t s hs
+      exact ⟨_, rfl, Or.inl ⟨by omega, by omega⟩⟩
+  have hwbge : ∀ t, b0 ≤ walkBase W.size k 0 t b0 := fun t => by
+    have := walkBase_le W.size k b0 (Nat.zero_le t); simpa [walkBase] using this
+  refine ⟨fun t ht => ⟨?_, ?_, ?_, le_rfl, ?_, ?_⟩, fun t ht t' ht' hne x hx hx' => ?_, fun x hx => ?_⟩
+  · have := hwbge t; rw [groupStart_eq] at ha; omega
+  · intro s hs; have := slot_bounds W fold b t s hs; rw [groupStart_eq] at this; omega
+  · intro s s' h hs'; exact slot_mono W fold b t h hs'
+  · intro s hs j hj
+    left
+    have := hslot t ht s hs
+    have := hwbge t
+    omega
+  · intro s hs
+    left
+    have := hslot t ht s hs
+    have := hwbge t
+    omega
+  · obtain ⟨j, rfl, h1⟩ := hreg t ht x hx
+    obtain ⟨j', e, h1'⟩ := hreg t' ht' _ hx'
+    simp only [V.mk.injEq, true_and] at e
+    subst e
+    have d1 : groupStart fold b + chainStride W * (t + 1) ≤ groupStart fold b + chainStride W * n :=
+      Nat.add_le_add_left (Nat.mul_le_mul_left _ ht) _
+    have d2 : groupStart fold b + chainStride W * (t' + 1) ≤ groupStart fold b + chainStride W * n :=
+      Nat.add_le_add_left (Nat.mul_le_mul_left _ ht') _
+    have d3 := hwbge t
+    have d4 := hwbge t'
+    rcases Nat.lt_or_gt_of_ne hne with h | h
+    · have c1 := chain_le W fold b h
+      have c2 := walkBase_le W.size k b0 (show t + 1 ≤ t' by omega)
+      have c3 := hwbge t
+      have c4 : groupStart fold b + chainStride W * (t' + 1) ≤ groupStart fold b + chainStride W * n :=
+        Nat.add_le_add_left (Nat.mul_le_mul_left _ ht') _
+      rcases h1 with h1 | h1 <;> rcases h1' with h1' | h1' <;> omega
+    · have c1 := chain_le W fold b h
+      have c2 := walkBase_le W.size k b0 (show t' + 1 ≤ t by omega)
+      have c3 := hwbge t'
+      have c4 : groupStart fold b + chainStride W * (t + 1) ≤ groupStart fold b + chainStride W * n :=
+        Nat.add_le_add_left (Nat.mul_le_mul_left _ ht) _
+      rcases h1 with h1 | h1 <;> rcases h1' with h1' | h1' <;> omega
+  · obtain ⟨t, ht, hx⟩ := hx
+    obtain ⟨j, rfl, h1⟩ := hreg t ht x hx
+    have c4 : groupStart fold b + chainStride W * (t + 1) ≤ groupStart fold b + chainStride W * n :=
+      Nat.add_le_add_left (Nat.mul_le_mul_left _ ht) _
+    have c2 := walkBase_le W.size k b0 (show t + 1 ≤ n by omega)
+    have c3 := hwbge t
+    rcases h1 with h1 | h1
+    · exact ⟨j, rfl, Or.inl ⟨by omega, by omega⟩⟩
+    · exact ⟨j, rfl, Or.inr ⟨by omega, by omega⟩⟩
+
 end
 end LeanVM.Guest.B1.Sig
