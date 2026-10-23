@@ -14,8 +14,8 @@ namespace LeanVM.Guest.B2C.Shared
 @[expose] public section
 
 set_option maxRecDepth 100000 in
-/-- `decode_query_bits__L18`, once. -/
-theorem st835 : shareStatic 835 = true := by decide +kernel
+/-- `decode_query_bits__L18`, window 1. -/
+theorem w835_1 : shareWin 835 (snapsOf 835) 1 = true := by decide +kernel
 
 end
 end LeanVM.Guest.B2C.Shared

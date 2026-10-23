@@ -103,6 +103,28 @@ def Stmt.leafOkArms (lok : Atom → Bool) : List (List Stmt) → Bool
   | a :: as => Stmt.leafOkList lok a && Stmt.leafOkArms lok as
 end
 
+/-- No condition on an atom but placing nothing. -/
+def anyAtom : Atom → Bool := fun _ ↦ true
+
+theorem leafOkList_append (lok : Atom → Bool) : ∀ (l l' : List Stmt),
+    Stmt.leafOkList lok (l ++ l') = (Stmt.leafOkList lok l && Stmt.leafOkList lok l')
+  | [], _ => by simp [Stmt.leafOkList]
+  | s :: l, l' => by
+    rw [List.cons_append, Stmt.leafOkList, Stmt.leafOkList, leafOkList_append lok l l',
+      Bool.and_assoc]
+
+/-- A leaf body checked by ranges of statements: the range from `a` and the rest from `a + n`
+make the rest from `a`. -/
+theorem leafOk_drop {lok : Atom → Bool} {l : List Stmt} {a n : ℕ}
+    (h : Stmt.leafOkList lok ((l.drop a).take n) = true)
+    (h' : Stmt.leafOkList lok (l.drop (a + n)) = true) : Stmt.leafOkList lok (l.drop a) = true := by
+  rw [← List.take_append_drop n (l.drop a), leafOkList_append, List.drop_drop]
+  exact Bool.and_eq_true_iff.mpr ⟨h, h'⟩
+
+theorem leafOk_end {lok : Atom → Bool} {l : List Stmt} {a : ℕ} (ha : l.length ≤ a) :
+    Stmt.leafOkList lok (l.drop a) = true := by
+  rw [List.drop_eq_nil_of_le ha]; rfl
+
 /-- An event of a leaf body's walk: an atom passing `lok`, or a branch condition. -/
 def EvLeafOk (lok : Atom → Bool) : Ev → Prop
   | .atom a => lok a = true
@@ -239,6 +261,34 @@ theorem relIn_of_leaf {lok : Atom → Bool} {g : String} {fn : Fn} {rd : Reader}
       ∀ A ∈ loadAddrs σ es, ∃ i, A = gpow i ∧ R i)
     (h : coreProgram.Rel rd g args rets) : coreProgram.RelIn rd R g args rets :=
   relIn_of_leaf' hf hleaf (fun σ es vs hp hw _ ↦ hload σ es vs hp hw) h
+
+/-! ## Frame runs fitting their frames -/
+
+mutual
+/-- The atoms of a statement, its branches' and arms' included. -/
+def stmtAtoms : Stmt → List Atom
+  | .atom a => [a]
+  | .ite _ z n => blockAtoms z ++ blockAtoms n
+  | .match_ _ arms => armsAtoms arms
+  | _ => []
+
+/-- The atoms of a block. -/
+def blockAtoms : List Stmt → List Atom
+  | [] => []
+  | s :: ss => stmtAtoms s ++ blockAtoms ss
+
+/-- The atoms of arms. -/
+def armsAtoms : List (List Stmt) → List Atom
+  | [] => []
+  | a :: as => blockAtoms a ++ armsAtoms as
+end
+
+/-- **Every frame run fits its frame**: a `frameAddr` run of a function's body has its cells, from
+the certificate's cell of its first value on, within the function's frame. The certificates'
+fact, discharged for the deployed instance from the checker's (`B2C.FnStatic`). -/
+def RunsFit (fs : String → ℕ) (cert : String → V → ℕ) : Prop :=
+  ∀ f fn, coreProgram.find? f = some fn → ∀ p r rs, Atom.frameAddr p (r :: rs) ∈ blockAtoms fn.body →
+    cert f r + (rs.length + 1) ≤ fs f
 
 end
 end LeanVM.Guest.Lift

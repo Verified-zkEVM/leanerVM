@@ -14,43 +14,30 @@ namespace LeanVM.Guest.B2C.Shared
 @[expose] public section
 
 set_option maxRecDepth 100000 in
-/-- `index_mle__L0`, once. -/
-theorem st185 : shareStatic 185 = true := by decide +kernel
+/-- `index_mle__L6`, once. -/
+theorem st191 : shareStatic 191 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `index_mle__L0`, window 0. -/
-theorem w185_0 : shareWin 185 (snapsOf 185) 0 = true := by decide +kernel
+/-- `index_mle__L6`, window 0. -/
+theorem w191_0 : shareWin 191 (snapsOf 191) 0 = true := by decide +kernel
 
-theorem ok185 : ShareOk 185 := ⟨st185, fun i hi ↦ by
-  have h : (snapsOf 185).length = 0 := by decide +kernel
+theorem ok191 : ShareOk 191 := ⟨st191, fun i hi ↦ by
+  have h : (snapsOf 191).length = 0 := by decide +kernel
   obtain rfl : i = 0 := by omega
-  exact w185_0⟩
+  exact w191_0⟩
 
 set_option maxRecDepth 100000 in
-/-- `index_mle__L1`, once. -/
-theorem st186 : shareStatic 186 = true := by decide +kernel
+/-- `index_mle__L7`, once. -/
+theorem st192 : shareStatic 192 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `index_mle__L1`, window 0. -/
-theorem w186_0 : shareWin 186 (snapsOf 186) 0 = true := by decide +kernel
+/-- `index_mle__L7`, window 0. -/
+theorem w192_0 : shareWin 192 (snapsOf 192) 0 = true := by decide +kernel
 
-theorem ok186 : ShareOk 186 := ⟨st186, fun i hi ↦ by
-  have h : (snapsOf 186).length = 0 := by decide +kernel
+theorem ok192 : ShareOk 192 := ⟨st192, fun i hi ↦ by
+  have h : (snapsOf 192).length = 0 := by decide +kernel
   obtain rfl : i = 0 := by omega
-  exact w186_0⟩
-
-set_option maxRecDepth 100000 in
-/-- `index_mle__L2`, once. -/
-theorem st187 : shareStatic 187 = true := by decide +kernel
-
-set_option maxRecDepth 100000 in
-/-- `index_mle__L2`, window 0. -/
-theorem w187_0 : shareWin 187 (snapsOf 187) 0 = true := by decide +kernel
-
-theorem ok187 : ShareOk 187 := ⟨st187, fun i hi ↦ by
-  have h : (snapsOf 187).length = 0 := by decide +kernel
-  obtain rfl : i = 0 := by omega
-  exact w187_0⟩
+  exact w192_0⟩
 
 end
 end LeanVM.Guest.B2C.Shared

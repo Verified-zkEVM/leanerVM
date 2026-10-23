@@ -42,7 +42,6 @@ public import LeanVM.Guest.Checked.F18_0
 public import LeanVM.Guest.Checked.F18_1
 public import LeanVM.Guest.Checked.F18_2
 public import LeanVM.Guest.Checked.F18_3
-public import LeanVM.Guest.Checked.F18_4
 public import LeanVM.Guest.Checked.F19_0
 public import LeanVM.Guest.Checked.F19_1
 public import LeanVM.Guest.Checked.F20_0
@@ -279,14 +278,13 @@ theorem plain16 : Plain 16 := by
 theorem plain17 : Plain 17 := plain_of_nil (by decide +kernel)
 
 theorem ok18 : CheckOk 18 := fun i hi ↦ by
-  have h : (certOf 18).cuts.length = 4 := by decide +kernel
+  have h : (certOf 18).cuts.length = 3 := by decide +kernel
   rw [h] at hi
   interval_cases i
   · exact w18_0
   · exact w18_1
   · exact w18_2
   · exact w18_3
-  · exact w18_4
 
 theorem plain18 : Plain 18 := by
   unfold Plain

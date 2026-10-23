@@ -14,43 +14,43 @@ namespace LeanVM.Guest.B2C.Shared
 @[expose] public section
 
 set_option maxRecDepth 100000 in
-/-- `plus_one_run__L0`, once. -/
-theorem st117 : shareStatic 117 = true := by decide +kernel
+/-- `plus_one_run__L6`, once. -/
+theorem st123 : shareStatic 123 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `plus_one_run__L0`, window 0. -/
-theorem w117_0 : shareWin 117 (snapsOf 117) 0 = true := by decide +kernel
+/-- `plus_one_run__L6`, window 0. -/
+theorem w123_0 : shareWin 123 (snapsOf 123) 0 = true := by decide +kernel
 
-theorem ok117 : ShareOk 117 := ⟨st117, fun i hi ↦ by
-  have h : (snapsOf 117).length = 0 := by decide +kernel
+theorem ok123 : ShareOk 123 := ⟨st123, fun i hi ↦ by
+  have h : (snapsOf 123).length = 0 := by decide +kernel
   obtain rfl : i = 0 := by omega
-  exact w117_0⟩
+  exact w123_0⟩
 
 set_option maxRecDepth 100000 in
-/-- `plus_one_run__L1`, once. -/
-theorem st118 : shareStatic 118 = true := by decide +kernel
+/-- `plus_one_run__L7`, once. -/
+theorem st124 : shareStatic 124 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `plus_one_run__L1`, window 0. -/
-theorem w118_0 : shareWin 118 (snapsOf 118) 0 = true := by decide +kernel
+/-- `plus_one_run__L7`, window 0. -/
+theorem w124_0 : shareWin 124 (snapsOf 124) 0 = true := by decide +kernel
 
-theorem ok118 : ShareOk 118 := ⟨st118, fun i hi ↦ by
-  have h : (snapsOf 118).length = 0 := by decide +kernel
+theorem ok124 : ShareOk 124 := ⟨st124, fun i hi ↦ by
+  have h : (snapsOf 124).length = 0 := by decide +kernel
   obtain rfl : i = 0 := by omega
-  exact w118_0⟩
+  exact w124_0⟩
 
 set_option maxRecDepth 100000 in
-/-- `plus_one_run__L2`, once. -/
-theorem st119 : shareStatic 119 = true := by decide +kernel
+/-- `plus_one_run__L8`, once. -/
+theorem st125 : shareStatic 125 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `plus_one_run__L2`, window 0. -/
-theorem w119_0 : shareWin 119 (snapsOf 119) 0 = true := by decide +kernel
+/-- `plus_one_run__L8`, window 0. -/
+theorem w125_0 : shareWin 125 (snapsOf 125) 0 = true := by decide +kernel
 
-theorem ok119 : ShareOk 119 := ⟨st119, fun i hi ↦ by
-  have h : (snapsOf 119).length = 0 := by decide +kernel
+theorem ok125 : ShareOk 125 := ⟨st125, fun i hi ↦ by
+  have h : (snapsOf 125).length = 0 := by decide +kernel
   obtain rfl : i = 0 := by omega
-  exact w119_0⟩
+  exact w125_0⟩
 
 end
 end LeanVM.Guest.B2C.Shared

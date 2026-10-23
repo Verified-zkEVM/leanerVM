@@ -14,17 +14,17 @@ namespace LeanVM.Guest.B2C.Shared
 @[expose] public section
 
 set_option maxRecDepth 100000 in
-/-- `eq_prefix_run__L34`, once. -/
-theorem st73 : shareStatic 73 = true := by decide +kernel
+/-- `eq_prefix_run__L36`, once. -/
+theorem st75 : shareStatic 75 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `eq_prefix_run__L34`, window 0. -/
-theorem w73_0 : shareWin 73 (snapsOf 73) 0 = true := by decide +kernel
+/-- `eq_prefix_run__L36`, window 0. -/
+theorem w75_0 : shareWin 75 (snapsOf 75) 0 = true := by decide +kernel
 
-theorem ok73 : ShareOk 73 := ⟨st73, fun i hi ↦ by
-  have h : (snapsOf 73).length = 0 := by decide +kernel
+theorem ok75 : ShareOk 75 := ⟨st75, fun i hi ↦ by
+  have h : (snapsOf 75).length = 0 := by decide +kernel
   obtain rfl : i = 0 := by omega
-  exact w73_0⟩
+  exact w75_0⟩
 
 end
 end LeanVM.Guest.B2C.Shared

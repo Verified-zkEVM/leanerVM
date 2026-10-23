@@ -766,7 +766,7 @@ def bounds (name : String) :
   else if name == "verify_log2_ceil__L0_L34" || name == "verify_log2_ceil__L15_L34" ||
     name == "log2_ceil_in_the_exponent__L0_L34" || name == "log2_ceil_in_the_exponent__L15_L34" then
     ([], [(5, 34)], [], [])
-  else if name == "check_opening_terminal" then ([], [], [(13, 113, 29)], [])
+  else if name == "check_opening_terminal" then ([], [], [(13, 99, 29)], [])
   else if name == "__loop20" || name == "__loop21" || name == "da_verify_column__L0" ||
     name == "da_verify_column__L1" then ([(6, 11)], [], [], [])
   else ([], [], [], [])
