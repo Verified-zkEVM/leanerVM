@@ -257,5 +257,91 @@ theorem osResidual_complete {c : OsCfg} {lvl : ℕ} {lv : OsLv} {ich bd ls k : �
       (by rw [e2 _ hich, hs]; exact hout)) fun σ' ha3 i hi ↦
         (ha3 i (by omega)).trans ((ha2 i (by omega)).trans (ha1 i hi))
 
+/-- What a level's residual reads and stores, its honest data named. -/
+structure ResMem (C : CallRel) (rd : Reader) (σ : Val) (c : OsCfg) (ich bd ls lvl : ℕ) (lv : OsLv)
+    (RC acc P W I L : E) (D : ℕ → E) : Prop where
+  hml : 1 ≤ lv.logCols
+  hn : lv.queries / 2 < u128Bound
+  hL : IsInK (1 + gen ^ (lv.queries / 2)) ∧ (1 + gen ^ (lv.queries / 2) ≠ 0 →
+    C (c.resLoop lvl) [1, gen ^ (lv.queries / 2), σ (.n osQpos), σ (.n osQw), σ (.n bd), RC] [])
+  h0 : LoadHolds rd RC 0 0
+  hacc : LoadHolds rd RC (lv.queries / 2) acc
+  hP : lv.queries % 2 = 1 → LoadHolds rd (σ (.n osQpos)) (lv.posOff + lv.queries - 1) P
+  hD : lv.queries % 2 = 1 → ∀ s < lv.logCols, LoadHolds rd (σ (.n bd)) (lvl * ligColsCap + s) (D s)
+  hW : lv.queries % 2 = 1 → LoadHolds rd (σ (.n osQw)) (lvl * c.maxQ + lv.queries - 1) W
+  hI : LoadHolds rd (σ (.n ich)) lvl I
+  hLs : LoadHolds rd (σ (.n ls)) lvl L
+  hout : LoadHolds rd (σ (.n ich)) (lvl + 1) (I + L * resSum lv acc W D P)
+
+/-- The values of every level's residual. -/
+def residualsF (c : OsCfg) (bd : ℕ) (RC acc P W I L : ℕ → E) (D : ℕ → ℕ → E) :
+    ℕ → List OsLv → ℕ → Val → ℕ → E
+  | lvl, lv :: rest, k, σ =>
+    seqF σ k (osResidual c 0 bd 0 lvl lv k).2
+      (residualF c lvl lv bd k σ (RC lvl) (acc lvl) (P lvl) (W lvl) (I lvl) (L lvl) (D lvl))
+      fun σ1 ↦ residualsF c bd RC acc P W I L D (lvl + 1) rest (osResidual c 0 bd 0 lvl lv k).2 σ1
+  | _, [], _, _ => fun _ ↦ 0
+
+theorem osResidual_k_eq (c : OsCfg) (ich bd ls lvl : ℕ) (lv : OsLv) (k : ℕ) :
+    (osResidual c ich bd ls lvl lv k).2 = (osResidual c 0 bd 0 lvl lv k).2 := by
+  rw [osResidual_eq, osResidual_eq]
+
+theorem osResidual_k (c : OsCfg) (ich bd ls lvl : ℕ) (lv : OsLv) (k : ℕ) :
+    k + 13 ≤ (osResidual c ich bd ls lvl lv k).2 := by
+  rw [osResidual_eq]
+  have := (osResQ_k (k + 9) bd (lvl * ligColsCap) lv.vanish (lv.logCols - 1) 1 (k + 11) (k + 12)).1
+  unfold resSumIdx
+  split_ifs
+  · show k + 13 ≤ (osResQ (k + 9) bd (lvl * ligColsCap) lv.vanish (lv.logCols - 1) 1 (k + 11)
+      (k + 12)).2.2 + 3 + 4
+    omega
+  · simp
+
+theorem osResiduals_k (c : OsCfg) (ich bd ls : ℕ) : ∀ (lvl : ℕ) (levels : List OsLv) (k : ℕ),
+    k ≤ (osResiduals c ich bd ls lvl levels k).2
+  | _, [], _ => le_rfl
+  | lvl, lv :: rest, k => by
+    simp only [osResiduals]
+    have := osResidual_k c ich bd ls lvl lv k
+    have := osResiduals_k c ich bd ls (lvl + 1) rest (osResidual c ich bd ls lvl lv k).2
+    omega
+
+/-- **Every level's residual sum, honestly.** -/
+theorem osResiduals_complete {c : OsCfg} {ich bd ls : ℕ} (RC acc P W I L : ℕ → E)
+    (D : ℕ → ℕ → E) : ∀ (levels : List OsLv) (lvl k : ℕ) (σ : Val), 34 ≤ k → ich < k → bd < k →
+      ls < k → (∀ i (hi : i < levels.length), ResMem C rd σ c ich bd ls (lvl + i) levels[i]
+        (RC (lvl + i)) (acc (lvl + i)) (P (lvl + i)) (W (lvl + i)) (I (lvl + i)) (L (lvl + i))
+        (D (lvl + i))) →
+      BlkF C rd σ k (osResiduals c ich bd ls lvl levels k).2
+        (residualsF c bd RC acc P W I L D lvl levels k σ) (osResiduals c ich bd ls lvl levels k).1
+        (fun σ' ↦ AgreeBelow k σ σ')
+  | [], lvl, k, σ, _, _, _, _, _ => by
+    simp only [osResiduals]; exact BlkF.nil fun _ h ↦ h
+  | lv :: rest, lvl, k, σ, hk, hich, hbd, hls, h => by
+    have h0 := h 0 (by simp)
+    simp only [Nat.add_zero, List.getElem_cons_zero] at h0
+    have hA := osResidual_complete (C := C) (rd := rd) (c := c) (lvl := lvl) (lv := lv) (ich := ich)
+      (bd := bd) (ls := ls) (k := k) σ hk hich hbd hls h0.hml h0.hn (RC lvl) (acc lvl) h0.hL h0.h0
+      h0.hacc h0.hP h0.hD h0.hW h0.hI h0.hLs h0.hout
+    simp only [osResiduals, residualsF]
+    rw [← osResidual_k_eq c ich bd ls lvl lv k]
+    have hk1 := osResidual_k c ich bd ls lvl lv k
+    have hk2 := osResiduals_k c ich bd ls (lvl + 1) rest (osResidual c ich bd ls lvl lv k).2
+    refine BlkF.then (k1 := (osResidual c ich bd ls lvl lv k).2) (by omega) hk2 hA
+      fun σ1 _ ha1 ↦ ?_
+    refine BlkF.mono (osResiduals_complete RC acc P W I L D rest (lvl + 1) _ σ1 (by omega) (by omega)
+      (by omega) (by omega) fun i hi ↦ ?_) fun σ' ha2 i hi ↦ (ha2 i (by omega)).trans (ha1 i hi)
+    have := h (i + 1) (by simp; omega)
+    rw [show lvl + (i + 1) = lvl + 1 + i by ring] at this
+    have e : ∀ v, v < k → σ1 (.n v) = σ (.n v) := ha1
+    obtain ⟨g1, g2, g3, g4, g5, g6, g7, g8, g9, g10, g11⟩ := this
+    exact ⟨g1, g2, by
+      rw [e _ (show osQpos < k by unfold osQpos; omega), e _ (show osQw < k by unfold osQw; omega),
+        e _ hbd]; exact g3, g4, g5,
+      fun h ↦ by rw [e _ (show osQpos < k by unfold osQpos; omega)]; exact g6 h,
+      fun h ↦ by rw [e _ hbd]; exact g7 h,
+      fun h ↦ by rw [e _ (show osQw < k by unfold osQw; omega)]; exact g8 h,
+      by rw [e _ hich]; exact g9, by rw [e _ hls]; exact g10, by rw [e _ hich]; exact g11⟩
+
 end
 end LeanVM.Guest.B1.Whir
