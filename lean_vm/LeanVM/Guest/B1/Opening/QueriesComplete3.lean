@@ -281,6 +281,142 @@ theorem oqPath_complete (hs : d.s.RowShape) (hpd : 4 * d.s.pd ≤ 80) (hsl : d.s
     · exact s3
     · exact d.level_keccak hpd hv hpad hz hl
 
+
+/-! ## The cap leaf -/
+
+/-- **The cap leaf holds at the honest values.** -/
+theorem oqCap_complete (hs : d.s.RowShape) (hpd : 4 * d.s.pd ≤ 80) (hsl : d.sibs.length = d.s.pd)
+    (hrow : d.row.length = d.s.R) (hcd : 2 ≤ d.s.cd) (hcd8 : d.s.cd ≤ 8)
+    (hq : d.q < 2 ^ (d.s.pd + d.s.cd)) {bp cap flags : V}
+    (hv : ∀ i, d.b ≤ i → i < d.z + 11 → σ (.n i) = d.val i)
+    (hpad : σ (.n d.prV) = word 1 0 0) (hz : ∀ i < 4, σ (.n (d.prV + 1 + i)) = word 0 0 0)
+    (hbits : ∀ l < d.s.pd + d.s.cd, LoadHolds rd (σ bp) l (d.bit l)) (hm : d.MemOk rd)
+    (hcap : σ cap = d.capv) (hflags : σ flags = d.flagsv) :
+    ∀ a, Stmt.atom a ∈ oqCapT d.s bp cap flags d.kL d.ch → a.Holds rd σ := by
+  obtain ⟨p1, p2, p3, p4, p5⟩ := d.places
+  have hCq : oqCq d.s d.ch = d.Cq := rfl
+  have sH : ∀ o < 5, σ (.n (d.Cq + o)) = d.capHeadV o := fun o ho => by
+    rw [hv _ (by omega) (by omega), val_capHead d ho]
+  have sB : ∀ j, 1 ≤ j → j ≤ d.s.cd - 2 → ∀ o < 6,
+      σ (.n (d.Cq + 5 + 6 * (j - 1) + o)) = d.capBitV j o := fun j hj1 hj o ho => by
+    rw [hv _ (by omega) (by omega), val_capBit d hj1 hj ho]
+  have sT : ∀ o < 11, σ (.n (d.z + o)) = d.capTailV o := fun o ho => by
+    rw [hv _ (by omega) (by omega), val_capTail d ho]
+  have sQ : ∀ j ≤ d.s.cd - 2, σ (.n (oqQ d.s d.ch j)) = d.capQ j := fun j hj => by
+    rcases Nat.eq_zero_or_pos j with rfl | hpos
+    · rw [show oqQ d.s d.ch 0 = d.Cq + 4 by simp [oqQ, hCq], sH 4 (by omega)]; rfl
+    · rw [show oqQ d.s d.ch j = d.Cq + 5 + 6 * (j - 1) + 5 by simp [oqQ, hCq]; omega,
+        sB j hpos hj 5 (by omega)]; rfl
+  set Q := d.q / 2 ^ (d.s.pd + 1) with hQdef
+  have hQlt : Q < 2 ^ (d.s.cd - 1) := by
+    rw [hQdef, Nat.div_lt_iff_lt_mul (by positivity), ← pow_add]
+    calc d.q < 2 ^ (d.s.pd + d.s.cd) := hq
+      _ = 2 ^ (d.s.cd - 1 + (d.s.pd + 1)) := by congr 1; omega
+  have hqv : d.capQ (d.s.cd - 2) = gen ^ Q := by
+    rw [capQ_eq d _ (by omega), show d.s.cd - 2 + 1 = d.s.cd - 1 by omega, Nat.mod_eq_of_lt hQlt]
+  have hsplit : d.q / 2 ^ d.s.pd = 2 * Q + (if d.q.testBit d.s.pd then 1 else 0) := by
+    rw [hQdef, Nat.testBit_eq_decide_div_mod_eq, pow_succ, ← Nat.div_div_eq_div_mul]
+    by_cases h : d.q / 2 ^ d.s.pd % 2 = 1
+    · simp [h]; omega
+    · simp [h]; omega
+  have hnd := d.nodes_eq hs hpd hsl hrow hv hpad hz d.s.pd le_rfl
+  rw [← hsl, climbNode_length, hsl] at hnd
+  have t := fun o (ho : o < 11) => sT o ho
+  have hz10 : σ (.n (d.z + 10)) = d.capv * gen ^ (4 * Q + (if d.q.testBit d.s.pd then 2 else 0)) := by
+    rw [t 10 (by omega)]
+    simp only [capTailV, List.getD_cons_succ, List.getD_cons_zero]
+    rw [hqv, word_one, word_five, QD.bit, bit_factor, ← pow_add, mul_assoc, ← pow_add, mul_assoc,
+      ← pow_add]
+    congr 2; ring
+  intro a ha
+  simp only [oqCapT, hCq, ← z_eq, List.mem_append, List.mem_cons, List.not_mem_nil, or_false,
+    List.mem_flatten, List.mem_map, List.mem_range, Stmt.atom.injEq] at ha
+  rcases ha with ((rfl | rfl | rfl | rfl | rfl) | ⟨_, ⟨j, hj, rfl⟩, ha⟩) |
+    (rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl)
+  · show σ _ = _
+    have := sH 0 (by omega); simpa [capHeadV] using this
+  · show LoadHolds _ _ _ _
+    have := sH 1 (by omega); simp only [capHeadV, List.getD_cons_succ, List.getD_cons_zero] at this
+    rw [this]; exact hbits _ (by omega)
+  · show σ _ = _
+    have := sH 2 (by omega); simpa [capHeadV] using this
+  · show σ _ = σ _ * σ _
+    rw [sH 3 (by omega), sH 1 (by omega), sH 2 (by omega)]; rfl
+  · show σ _ = σ _ + σ _
+    rw [sH 4 (by omega), show d.Cq = d.Cq + 0 from rfl, sH 0 (by omega), sH 3 (by omega)]; rfl
+  · -- a cap bit
+    have hj1 : 1 ≤ j + 1 := by omega
+    have hjj : j + 1 ≤ d.s.cd - 2 := by omega
+    have b := fun o (ho : o < 6) => sB (j + 1) hj1 hjj o ho
+    simp only [oqCapBitT, hCq, Nat.add_sub_cancel, List.mem_cons, List.not_mem_nil, or_false,
+      Stmt.atom.injEq] at ha
+    rcases ha with rfl | rfl | rfl | rfl | rfl | rfl
+    · show σ _ = _
+      have := b 0 (by omega); simpa [capBitV] using this
+    · show LoadHolds _ _ _ _
+      have := b 1 (by omega); simp only [capBitV, List.getD_cons_succ, List.getD_cons_zero] at this
+      rw [Nat.add_sub_cancel] at this
+      rw [this]; exact hbits _ (by omega)
+    · show σ _ = _
+      have := b 2 (by omega); simpa [capBitV] using this
+    · show σ _ = σ _ * σ _
+      have b3 := b 3 (by omega); have b1 := b 1 (by omega); have b2 := b 2 (by omega)
+      simp only [Nat.add_sub_cancel] at b3 b1 b2
+      rw [b3, b1, b2]; rfl
+    · show σ _ = σ _ + σ _
+      have b4 := b 4 (by omega); have b0 := b 0 (by omega); have b3 := b 3 (by omega)
+      simp only [Nat.add_sub_cancel, Nat.add_zero] at b4 b0 b3
+      rw [b4, b0, b3]; rfl
+    · show σ _ = σ _ * σ _
+      have b5 := b 5 (by omega); have b4 := b 4 (by omega)
+      simp only [Nat.add_sub_cancel] at b5 b4
+      rw [b5, b4, sQ j (by omega)]
+      simp [capBitV, capQ, show d.s.pd + 2 + j = d.s.pd + 1 + (j + 1) by omega]
+  · show σ _ = σ _ * σ _
+    rw [show d.z = d.z + 0 from rfl, t 0 (by omega), hflags, sQ _ le_rfl]; rfl
+  · show σ _ = _
+    have := t 1 (by omega); simpa [capTailV] using this
+  · show LoadHolds _ _ _ _
+    rw [t 1 (by omega), show d.z = d.z + 0 from rfl, t 0 (by omega)]
+    simp only [capTailV, List.getD_cons_succ, List.getD_cons_zero, hqv, word_one]
+    rw [loadHolds_mul_gen_pow, add_comm]
+    exact hm.flag
+  · show σ _ = σ _ * σ _
+    rw [t 2 (by omega), sQ _ le_rfl]; rfl
+  · show σ _ = σ _ * σ _
+    rw [t 3 (by omega), hcap, t 2 (by omega)]; rfl
+  · show σ _ = σ _ * σ _
+    rw [t 4 (by omega), t 3 (by omega), t 2 (by omega)]; rfl
+  · show σ _ = _
+    have := t 5 (by omega); simpa [capTailV] using this
+  · show LoadHolds _ _ _ _
+    have := t 6 (by omega); simp only [capTailV, List.getD_cons_succ, List.getD_cons_zero] at this
+    rw [this]; exact hbits _ (by omega)
+  · show σ _ = _
+    have := t 7 (by omega); simpa [capTailV] using this
+  · show σ _ = σ _ * σ _
+    rw [t 8 (by omega), t 6 (by omega), t 7 (by omega)]; rfl
+  · show σ _ = σ _ + σ _
+    rw [t 9 (by omega), t 5 (by omega), t 8 (by omega)]; rfl
+  · show σ _ = σ _ * σ _
+    rw [t 10 (by omega), t 4 (by omega), t 9 (by omega)]; rfl
+  · show LoadHolds _ _ _ _
+    rw [hz10, show σ (.n (oqNode d.s d.kL d.ch d.s.pd 0)) = (digestScalars (climbD d.leaf d.q d.sibs)).1
+      by rw [← hnd], loadHolds_mul_gen_pow]
+    have := hm.cap0
+    rw [hsplit, show 2 * (2 ^ d.s.cd + (2 * Q + (if d.q.testBit d.s.pd then 1 else 0))) =
+      4 * Q + (if d.q.testBit d.s.pd then 2 else 0) + 2 ^ (d.s.cd + 1) by
+        rw [pow_succ]; split <;> ring] at this
+    exact this
+  · show LoadHolds _ _ _ _
+    rw [hz10, show σ (.n (oqNode d.s d.kL d.ch d.s.pd 1)) = (digestScalars (climbD d.leaf d.q d.sibs)).2
+      by rw [← hnd], loadHolds_mul_gen_pow]
+    have := hm.cap1
+    rw [hsplit, show 2 * (2 ^ d.s.cd + (2 * Q + (if d.q.testBit d.s.pd then 1 else 0))) + 1 =
+      4 * Q + (if d.q.testBit d.s.pd then 2 else 0) + (2 ^ (d.s.cd + 1) + 1) by
+        rw [pow_succ]; split <;> ring] at this
+    exact this
+
 end QD
 
 end
