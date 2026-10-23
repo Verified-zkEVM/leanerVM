@@ -33,9 +33,9 @@ def lamVals (lv : E) (k i : ℕ) : E := if i = k then 1 else lv ^ (i - k + 1)
 /-- **The query weights, honestly.** -/
 theorem osLamPows_complete {lam base k Q : ℕ} (hQ : 2 ≤ Q) (σ : Val) (hl : lam < k)
     (hqw : osQw < k) (hmem : ∀ i < Q, LoadHolds rd (σ (.n osQw)) (base + i) (σ (.n lam) ^ i)) :
-    Blk C rd σ k (k + Q) (osLamPows lam base k Q)
+    BlkF C rd σ k (k + Q) (lamVals (σ (.n lam)) k) (osLamPows lam base k Q)
       (fun σ' ↦ σ' (.n (k + Q - 1)) = σ (.n lam) ^ Q ∧ AgreeBelow k σ σ') := by
-  refine ⟨lamVals (σ (.n lam)) k, fun σ' ha hv ↦ ?_⟩
+  intro σ' ha hv
   obtain ⟨q, rfl⟩ : ∃ q, Q = q + 2 := ⟨Q - 2, by omega⟩
   have el : σ' (.n lam) = σ (.n lam) := ha _ hl
   have eq : σ' (.n osQw) = σ (.n osQw) := ha _ hqw
@@ -71,14 +71,15 @@ theorem osOodGlue_complete {lvl lam : ℕ} {s : OsSt} (σ : Val) (hb : s.Below) 
     (hc0 : LoadHolds rd (σ (.n osOod)) ((lvl + 1) * oodSlots + 2) c0)
     (hc2 : LoadHolds rd (σ (.n osOod)) ((lvl + 1) * oodSlots + 3) c2)
     (hlam : LoadHolds rd (σ (.n osOod)) ((lvl + 1) * oodSlots) (σ (.n lam))) :
-    Blk C rd σ s.k (osOodGlue lvl lam s).2.k (osOodGlue lvl lam s).1
+    BlkF C rd σ s.k (osOodGlue lvl lam s).2.k
+      (fun i ↦ (oodGlueVals σ s lam y c0 c2).getD (i - s.k) 0) (osOodGlue lvl lam s).1
       (fun σ' ↦ (osOodGlue lvl lam s).2.quad σ' =
           [σ (.n s.c) + σ (.n lam) * c0, σ (.n s.b) + σ (.n lam) * (y + c2),
             σ (.n s.a) + σ (.n lam) * c2] ∧
         σ' (.n (osOodGlue lvl lam s).2.t) = σ (.n s.t) + σ (.n lam) * y ∧
         σ' (.n (s.k + 12)) = σ (.n lam) * σ (.n lam) ∧ (osOodGlue lvl lam s).2.Below ∧
         AgreeBelow s.k σ σ') := by
-  refine ⟨fun i ↦ (oodGlueVals σ s lam y c0 c2).getD (i - s.k) 0, fun σ' ha hv ↦ ?_⟩
+  intro σ' ha hv
   have V : ∀ j < 13, σ' (.n (s.k + j)) = (oodGlueVals σ s lam y c0 c2).getD j 0 := fun j hj ↦ by
     rw [hv _ (by omega) (by simp [osOodGlue]; omega)]
     simp only [Nat.add_sub_cancel_left]
@@ -105,28 +106,33 @@ theorem osOodGlue_complete {lvl lam : ℕ} {s : OsSt} (σ : Val) (hb : s.Below) 
     all_goals simp [osOodGlue] at *
     all_goals first | omega | exact Nat.lt_add_right _ (hb.fs f hf)
 
+/-- The values of the level's glue. -/
+def glueVals (σ : Val) (s : OsSt) (beta v c0 c1 c2 : ℕ) : List E :=
+  [σ (.n beta) * σ (.n c0), σ (.n s.c) + σ (.n beta) * σ (.n c0),
+    σ (.n beta) * σ (.n c1), σ (.n s.b) + σ (.n beta) * σ (.n c1), σ (.n beta) * σ (.n c2),
+    σ (.n s.a) + σ (.n beta) * σ (.n c2), σ (.n beta) * σ (.n v),
+    σ (.n s.t) + σ (.n beta) * σ (.n v)]
+
 /-- **The level's batch glued, honestly.** -/
 theorem osGlue_complete {beta v c0 c1 c2 : ℕ} {s : OsSt} (σ : Val) (hb : s.Below)
     (hv0 : beta < s.k ∧ v < s.k ∧ c0 < s.k ∧ c1 < s.k ∧ c2 < s.k) :
-    Blk C rd σ s.k (osGlue beta v c0 c1 c2 s).2.k (osGlue beta v c0 c1 c2 s).1
+    BlkF C rd σ s.k (osGlue beta v c0 c1 c2 s).2.k
+      (fun i ↦ (glueVals σ s beta v c0 c1 c2).getD (i - s.k) 0) (osGlue beta v c0 c1 c2 s).1
       (fun σ' ↦ (osGlue beta v c0 c1 c2 s).2.quad σ' =
           [σ (.n s.c) + σ (.n beta) * σ (.n c0), σ (.n s.b) + σ (.n beta) * σ (.n c1),
             σ (.n s.a) + σ (.n beta) * σ (.n c2)] ∧
         σ' (.n (osGlue beta v c0 c1 c2 s).2.t) = σ (.n s.t) + σ (.n beta) * σ (.n v) ∧
         (osGlue beta v c0 c1 c2 s).2.Below ∧ AgreeBelow s.k σ σ') := by
   obtain ⟨hbe, hvv, h0, h1, h2⟩ := hv0
-  set vals := [σ (.n beta) * σ (.n c0), σ (.n s.c) + σ (.n beta) * σ (.n c0),
-    σ (.n beta) * σ (.n c1), σ (.n s.b) + σ (.n beta) * σ (.n c1), σ (.n beta) * σ (.n c2),
-    σ (.n s.a) + σ (.n beta) * σ (.n c2), σ (.n beta) * σ (.n v),
-    σ (.n s.t) + σ (.n beta) * σ (.n v)] with hvals
-  refine ⟨fun i ↦ vals.getD (i - s.k) 0, fun σ' ha hv ↦ ?_⟩
+  set vals := glueVals σ s beta v c0 c1 c2 with hvals
+  intro σ' ha hv
   have V : ∀ j < 8, σ' (.n (s.k + j)) = vals.getD j 0 := fun j hj ↦ by
     rw [hv _ (by omega) (by simp [osGlue]; omega)]
     simp only [Nat.add_sub_cancel_left]
   have v0 := V 0 (by omega); have v1 := V 1 (by omega); have v2 := V 2 (by omega)
   have v3 := V 3 (by omega); have v4 := V 4 (by omega); have v5 := V 5 (by omega)
   have v6 := V 6 (by omega); have v7 := V 7 (by omega)
-  simp only [hvals, List.getD_cons_zero, List.getD_cons_succ, Nat.add_zero] at v0 v1 v2 v3 v4 v5 v6 v7
+  simp only [hvals, glueVals, List.getD_cons_zero, List.getD_cons_succ, Nat.add_zero] at v0 v1 v2 v3 v4 v5 v6 v7
   have eb := ha _ hbe; have evv := ha _ hvv; have e0 := ha _ h0; have e1 := ha _ h1
   have e2 := ha _ h2
   have ec := ha _ hb.c; have ebb := ha _ hb.b; have ea := ha _ hb.a; have et := ha _ hb.t

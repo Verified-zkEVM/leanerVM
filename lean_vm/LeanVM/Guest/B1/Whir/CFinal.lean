@@ -78,13 +78,13 @@ theorem osFinal_complete {c : OsCfg}
     (hout : ReadsAt rd (σ (.n osFmsg)) ms)
     (hpow : powOk Whir.queryGrindingBits nonce
       (((st.F σ).absorbAll ms dsObserve).absorb nonce dsPowNonce).squeeze.1 = true) :
-    Blk C rd σ st.k (osFinal c st).2.1.k
+    BlkF C rd σ st.k (osFinal c st).2.1.k (osFinalF σ st ms nonce)
       ((osFinal c st).1 ++ [.call ("grind_check__L" ++ natStr g) [.n (osFinal c st).2.2] []])
       (fun σ' ↦ FinalOut σ' st (osFinal c st).2.1
         (((st.F σ).absorbAll ms dsObserve).absorb nonce dsPowNonce) c.yrLen ∧
         AgreeBelow st.k σ σ') := by
   obtain ⟨f0, f1, f2, f3, f4, hf⟩ := fold_args st hfs
-  refine ⟨osFinalF σ st ms nonce, fun σ' ha hv ↦ ?_⟩
+  intro σ' ha hv
   have hk' : (osFinal c st).2.1.k = (osMat st.cb st.co st.k).2.2 + 8 := rfl
   have hmk : st.k ≤ (osMat st.cb st.co st.k).2.2 := osMat_next _ _ _
   have hmv : RangeVals σ' st.k (osMat st.cb st.co st.k).2.2 (matVal σ st.cb st.co st.k) :=

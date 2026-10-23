@@ -97,6 +97,58 @@ theorem Blk.nil {σ : Val} {k : ℕ} {Out : Val → Prop} (hO : ∀ σ', AgreeBe
     Blk C rd σ k k [] Out :=
   ⟨fun _ ↦ 0, fun σ' ha _ ↦ ⟨allOk_nil, hO σ' ha⟩⟩
 
+
+/-! ## Blocks with their values named -/
+
+/-- **A block at the values `f`**: every valuation agreeing with `σ` below `k` and holding `f` on
+`[k, k')` holds `ss` and `Out`. -/
+def BlkF (C : CallRel) (rd : Reader) (σ : Val) (k k' : ℕ) (f : ℕ → E) (ss : List Stmt)
+    (Out : Val → Prop) : Prop :=
+  ∀ σ', AgreeBelow k σ σ' → RangeVals σ' k k' f → AllOk C rd σ' ss ∧ Out σ'
+
+theorem BlkF.blk {σ : Val} {k k' : ℕ} {f : ℕ → E} {ss : List Stmt} {Out : Val → Prop}
+    (h : BlkF C rd σ k k' f ss Out) : Blk C rd σ k k' ss Out := ⟨f, h⟩
+
+/-- The values of two blocks in sequence: the first's, then the second's from the valuation the
+first leaves. -/
+def seqF (σ : Val) (k k1 : ℕ) (fA : ℕ → E) (fB : Val → ℕ → E) : ℕ → E :=
+  fun i ↦ if i < k1 then fA i else fB (fill σ k k1 fA) i
+
+/-- **Two blocks in sequence, their values named.** -/
+theorem BlkF.seq {σ : Val} {k k1 k2 : ℕ} {A B : List Stmt} {OutA OutB : Val → Prop}
+    {fA : ℕ → E} {fB : Val → ℕ → E}
+    (h1 : k ≤ k1) (h2 : k1 ≤ k2) (hA : BlkF C rd σ k k1 fA A OutA)
+    (hB : ∀ σ1, AgreeBelow k σ σ1 → OutA σ1 → BlkF C rd σ1 k1 k2 (fB σ1) B OutB) :
+    BlkF C rd σ k k2 (seqF σ k k1 fA fB) (A ++ B) (fun σ' ↦ OutA σ' ∧ OutB σ') := by
+  set σ1 := fill σ k k1 fA with hσ1
+  have ⟨_, hO1⟩ := hA σ1 (agree_fill _ _ _ _) (range_fill _ _ _ _)
+  have hfB := hB σ1 (agree_fill _ _ _ _) hO1
+  intro σ' ha hr
+  have hrA : RangeVals σ' k k1 fA := fun i hi1 hi2 ↦ by
+    rw [hr i hi1 (by omega)]; simp only [seqF, hi2, ↓reduceIte]
+  have hrB : RangeVals σ' k1 k2 (fB σ1) := fun i hi1 hi2 ↦ by
+    rw [hr i (by omega) hi2]; simp only [seqF, show ¬ i < k1 by omega, ↓reduceIte, hσ1]
+  have hab : AgreeBelow k1 σ1 σ' := fun i hi ↦ by
+    by_cases hk : i < k
+    · rw [ha i hk, hσ1, fill_lt hk]
+    · rw [hrA i (by omega) hi, hσ1, fill_in (by omega) hi]
+  obtain ⟨okA, oA⟩ := hA σ' ha hrA
+  obtain ⟨okB, oB⟩ := hfB σ' hab hrB
+  exact ⟨allOk_append.mpr ⟨okA, okB⟩, oA, oB⟩
+
+theorem BlkF.mono {σ : Val} {k k' : ℕ} {f : ℕ → E} {ss : List Stmt} {Out Out' : Val → Prop}
+    (h : BlkF C rd σ k k' f ss Out) (hO : ∀ σ', Out σ' → Out' σ') : BlkF C rd σ k k' f ss Out' :=
+  fun σ' ha hr ↦ ⟨(h σ' ha hr).1, hO _ (h σ' ha hr).2⟩
+
+theorem BlkF.nil {σ : Val} {k : ℕ} {f : ℕ → E} {Out : Val → Prop}
+    (hO : ∀ σ', AgreeBelow k σ σ' → Out σ') : BlkF C rd σ k k f [] Out :=
+  fun σ' ha _ ↦ ⟨allOk_nil, hO σ' ha⟩
+
+theorem BlkF.congr {σ : Val} {k k' : ℕ} {f g : ℕ → E} {ss : List Stmt} {Out : Val → Prop}
+    (h : BlkF C rd σ k k' f ss Out) (e : ∀ i, k ≤ i → i < k' → f i = g i) :
+    BlkF C rd σ k k' g ss Out :=
+  fun σ' ha hr ↦ h σ' ha fun i h1 h2 ↦ (hr i h1 h2).trans (e i h1 h2).symm
+
 /-! ## Values by segments -/
 
 /-- Values given as consecutive segments `(length, values)`. -/

@@ -83,10 +83,10 @@ theorem osFold_complete
     (hb : st.Below) (hp : p < st.k) (hcan : AllCanonical (st.fsv σ)) {d0 d2 : E}
     (hrd : ReadsAt rd (st.cur σ) [d0, d2])
     (hst : LoadHolds rd (σ (.n p)) off (st.F σ).squeeze.1) :
-    Blk C rd σ st.k (osFold p off st).2.k (osFold p off st).1
+    BlkF C rd σ st.k (osFold p off st).2.k (osFoldF σ st d0 d2) (osFold p off st).1
       (fun σ' ↦ FoldOut σ' st (osFold p off st).2 d0 d2 ∧ AgreeBelow st.k σ σ') := by
   obtain ⟨f0, f1, f2, f3, f4, hf⟩ := fold_args st hfs
-  refine ⟨osFoldF σ st d0 d2, fun σ' ha hv ↦ ?_⟩
+  intro σ' ha hv
   have hk' : (osFold p off st).2.k = (osMat st.cb st.co st.k).2.2 + 11 := rfl
   have hmk : st.k ≤ (osMat st.cb st.co st.k).2.2 := osMat_next _ _ _
   have hmv : RangeVals σ' st.k (osMat st.cb st.co st.k).2.2 (matVal σ st.cb st.co st.k) :=
@@ -234,6 +234,13 @@ theorem squeeze_cap_canonical (F : Fs) : AllCanonical F.squeeze.2.cap := by
   simp only [Fs.squeeze, capOf, List.mem_cons, List.mem_nil_iff, or_false] at hc
   rcases hc with rfl | rfl | rfl | rfl | rfl <;> exact cellsOfState_canonical _ _ _
 
+/-- The values of `n` rounds from `off`. -/
+def foldsF (p : ℕ) : ℕ → ℕ → OsSt → Val → List E → ℕ → E
+  | 0, _, _, _, _ => fun _ ↦ 0
+  | n + 1, off, st, σ, xs =>
+    seqF σ st.k (osFold p off st).2.k (osFoldF σ st (xs.getD 0 0) (xs.getD 1 0))
+      (fun σ1 ↦ foldsF p n (off + 1) (osFold p off st).2 σ1 (xs.drop 2))
+
 /-- **`n` rounds, honestly.** -/
 theorem osFolds_complete
     (hC : ∀ args rets, MeaningOpeningFold rd args rets → C "opening_fold" args rets) (p : ℕ) :
@@ -242,7 +249,7 @@ theorem osFolds_complete
       ReadsAt rd (st.cur σ) xs →
       (∀ j, j < n → LoadHolds rd (σ (.n p)) (off + j)
         ((foldsTr n (st.F σ) (st.quad σ) (σ (.n st.t)) xs).2.1.getD j 0)) →
-      Blk C rd σ st.k (osFolds p off n st).2.k (osFolds p off n st).1
+      BlkF C rd σ st.k (osFolds p off n st).2.k (foldsF p n off st σ xs) (osFolds p off n st).1
         (fun σ' ↦ FoldsOut σ' st (osFolds p off n st).2
           (foldsTr n (st.F σ) (st.quad σ) (σ (.n st.t)) xs) n ∧ AgreeBelow st.k σ σ') := by
   intro n
@@ -250,7 +257,7 @@ theorem osFolds_complete
   | zero =>
     intro off st σ xs hfs hco hb _ hcan _ _ _
     simp only [osFolds]
-    refine Blk.nil fun σ' ha ↦ ⟨?_, ha⟩
+    refine BlkF.nil fun σ' ha ↦ ⟨?_, ha⟩
     obtain ⟨e1, e2, e3, e4, e5⟩ := OsSt.agree hb ha
     exact ⟨e2, e3, e4, by rw [e5]; simp, hfs, by rw [e1]; exact hcan, hco, hb, rfl⟩
   | succ n ih =>
@@ -277,7 +284,8 @@ theorem osFolds_complete
     have hR : foldsTr (n + 1) (st.F σ) (st.quad σ) (σ (.n st.t)) (d0 :: d2 :: ys) =
         (R'.1, (st.F σ).squeeze.1 :: R'.2.1, R'.2.2.1, R'.2.2.2) := rfl
     have hB : ∀ σ1, AgreeBelow st.k σ σ1 → (FoldOut σ1 st st1 d0 d2 ∧ AgreeBelow st.k σ σ1) →
-        Blk C rd σ1 st1.k (osFolds p (off + 1) n st1).2.k (osFolds p (off + 1) n st1).1
+        BlkF C rd σ1 st1.k (osFolds p (off + 1) n st1).2.k (foldsF p n (off + 1) st1 σ1 ys)
+          (osFolds p (off + 1) n st1).1
           (fun σ' ↦ FoldsOut σ' st1 (osFolds p (off + 1) n st1).2 R' n ∧
             st1.cur σ' = st.cur σ * gen ^ 2) := by
       intro σ1 _ ⟨fo, ha1'⟩
@@ -299,10 +307,10 @@ theorem osFolds_complete
           rw [hR] at this
           simpa using this)
       rw [eF1, eq1, et1] at hih
-      refine Blk.mono hih fun σ' ⟨ho, ha'⟩ ↦ ⟨ho, ?_⟩
+      refine BlkF.mono hih fun σ' ⟨ho, ha'⟩ ↦ ⟨ho, ?_⟩
       rw [← ec1]
       exact (OsSt.agree (osFold_below p off st) ha').2.2.2.2
-    refine Blk.mono (Blk.seq hk1 hk2 hA hB) fun σ' ⟨⟨fo, ha'⟩, ho, hc⟩ ↦ ⟨?_, ha'⟩
+    refine BlkF.mono (BlkF.seq hk1 hk2 hA hB) fun σ' ⟨⟨fo, ha'⟩, ho, hc⟩ ↦ ⟨?_, ha'⟩
     rw [hR]
     exact ⟨ho.F, ho.quad, ho.t, by
       rw [ho.cur, hc, (OsSt.agree hb ha').2.2.2.2, mul_assoc, ← pow_add]; ring_nf, ho.fs, ho.can,

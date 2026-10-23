@@ -58,22 +58,19 @@ def sqzSegs (c : OsCfg) (lv : OsLv) (st : OsSt) (sqz : E) (F : Fs) : List (ℕ �
       word 0 0 0].getD i 0),
     (13, cells13F S), (7, challengeVals (cells13F S 0) (cells13F S 1))]
 
-theorem osSqueezes_complete {c : OsCfg} {lvl : ℕ} {lv : OsLv} {st : OsSt} (σ : Val)
-    (hloop : FnIs (c.sqLoop lvl) (osParams 5) (sqLoopBody lv (c.sqLoop lvl)))
-    (hpw : digitsVal (osPowDigits (192 / lv.depth)) 1 = 192 / lv.depth)
-    (hpo : lv.posOff < u128Bound)
-    (hdec : ∀ args rets, MeaningDecodeQueryBits lv.depth rd args rets →
-      coreProgram.Rel rd ("decode_query_bits__L" ++ natStr lv.depth) args rets)
+theorem osSqueezes_completeC {C : CallRel} {c : OsCfg} {lvl : ℕ} {lv : OsLv} {st : OsSt} (σ : Val)
     (hn0 : 0 < lv.squeezes) (hn5 : lv.squeezes * 5 < u128Bound)
     (hfs : st.fs.length = 5) (hb : st.Below) (hk : 34 ≤ st.k) (hcan : AllCanonical (st.fsv σ))
     (hpad : PadOk σ st.pad) (hpk : ∀ p, st.pad = some p → p + 4 < st.k)
     (sqz : E) (h0 : ∀ i < 5, LoadHolds rd sqz i ((st.fsv σ).getD i 0))
     (hm : ∀ j < lv.squeezes, SqIterMem rd lv.depth lv.posOff sqz (σ (.n osQpos)) (σ (.n osQbp))
-      (gen ^ j) ((⟨st.fsv σ, []⟩ : Fs).squeezeN j).2.cap) :
-    Blk (coreProgram.Rel rd) rd σ st.k (osSqueezes c lvl lv st).2.k (osSqueezes c lvl lv st).1
+      (gen ^ j) ((⟨st.fsv σ, []⟩ : Fs).squeezeN j).2.cap)
+    (hL : IsInK (1 + gen ^ lv.squeezes) ∧ (1 + gen ^ lv.squeezes ≠ 0 →
+      C (c.sqLoop lvl) [1, gen ^ lv.squeezes, sqz, σ (.n osQpos), σ (.n osQbp)] [])) :
+    BlkF C rd σ st.k (osSqueezes c lvl lv st).2.k
+      (fun i ↦ segLookup (sqzSegs c lv st sqz ⟨st.fsv σ, []⟩) (i - st.k)) (osSqueezes c lvl lv st).1
       (fun σ' ↦ SqzOut σ' st (osSqueezes c lvl lv st).2
         ((⟨st.fsv σ, []⟩ : Fs).squeezeN lv.squeezes).2 ∧ AgreeBelow st.k σ σ') := by
-  obtain ⟨fn, hfind, hps, hbody⟩ := hloop
   obtain ⟨f0, f1, f2, f3, f4, hf⟩ := fold_args st hfs
   set n := lv.squeezes with hn
   set F0 : Fs := ⟨st.fsv σ, []⟩ with hF0
@@ -89,7 +86,7 @@ theorem osSqueezes_complete {c : OsCfg} {lvl : ℕ} {lv : OsLv} {st : OsSt} (σ 
     rw [hpl, padLenOf]; cases st.pad <;> rfl
   have hk' : (osSqueezes c lvl lv st).2.k = st.k + 14 + padLen + 20 := by
     show (osPad st.pad (st.k + 14)).2.2 + 20 = _; rw [hpd]
-  refine ⟨fun i ↦ segLookup segs (i - st.k), fun σ' ha hv ↦ ?_⟩
+  intro σ' ha hv
   have HV : ∀ j < segLen segs, σ' (.n (st.k + j)) = segLookup segs j := fun j hj ↦ by
     rw [hv _ (by omega) (by rw [hk']; omega)]
     show segLookup segs (st.k + j - st.k) = _
@@ -150,7 +147,7 @@ theorem osSqueezes_complete {c : OsCfg} {lvl : ℕ} {lv : OsLv} {st : OsSt} (σ 
     rw [loadHolds_mul_gen_pow, show 5 * n = n' * 5 + 5 by omega, Nat.add_assoc]
     exact hnx
   set pd := osPad st.pad (k + 14) with hpdd
-  have hpz : PadOk σ' (some pd.2.1) ∧ AllOk (coreProgram.Rel rd) rd σ' pd.1 ∧ pd.2.1 + 4 < pd.2.2 + 20 := by
+  have hpz : PadOk σ' (some pd.2.1) ∧ AllOk C rd σ' pd.1 ∧ pd.2.1 + 4 < pd.2.2 + 20 := by
     rw [hpdd]
     cases hp : st.pad with
     | none =>
@@ -188,7 +185,7 @@ theorem osSqueezes_complete {c : OsCfg} {lvl : ℕ} {lv : OsLv} {st : OsSt} (σ 
   have hcanF : AllCanonical Fn.cap := squeezeN_cap_canonical _ _ (by rw [hF0]; exact hcan)
   have hSF : (⟨[k + 9, k + 10, k + 11, k + 12, k + 13].map fun i ↦ σ' (.n i), []⟩ : Fs).perm = S := by
     rw [← hcm, hS, ← hFnp]
-  have hsq := osSqueeze0_complete (C := coreProgram.Rel rd) (rd := rd) (σ := σ') (p := pd.2.1)
+  have hsq := osSqueeze0_complete (C := C) (rd := rd) (σ := σ') (p := pd.2.1)
     (cap := [k + 9, k + 10, k + 11, k + 12, k + 13]) (j := pd.2.2) rfl hpz.1
     (by rw [← hcm]; exact hcanF) (fun c hc ↦ by rw [hSF, hj]; exact vk c hc)
     (fun i hi ↦ by
@@ -228,8 +225,7 @@ theorem osSqueezes_complete {c : OsCfg} {lvl : ℕ} {lv : OsLv} {st : OsSt} (σ 
       have l0 := vl 0 (by omega); have l1 := vl 1 (by omega); have l2 := vl 2 (by omega)
       have l3 := vl 3 (by omega); have l4 := vl 4 (by omega)
       simp only [List.getD_cons_zero, List.getD_cons_succ, Nat.add_zero] at l0 l1 l2 l3 l4
-      have hloop := sqLoop_complete hfind lv hps hbody hpw hpo hdec hn0 sqz (σ (.n osQpos))
-        (σ (.n osQbp)) (st.fsv σ) (by simp [OsSt.fsv, hfs]) hcan hm
+      have hloop := hL
       have hqp : σ' (.n osQpos) = σ (.n osQpos) := hagree osQpos (by unfold osQpos; omega)
       have hqb : σ' (.n osQbp) = σ (.n osQbp) := hagree osQbp (by unfold osQbp; omega)
       refine ⟨l0, l1, by rw [l2, l0, l1], l3, l4, by rw [l2, word_one, hgn]; exact hloop.1,
@@ -256,3 +252,28 @@ theorem osSqueezes_complete {c : OsCfg} {lvl : ℕ} {lv : OsLv} {st : OsSt} (σ 
     refine ⟨fun f hf ↦ ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
     all_goals simp [osSqueezes] at *
     all_goals omega
+
+/-- **A level's squeezes, honestly**, the loop helper run by the program's call relation. -/
+theorem osSqueezes_complete {c : OsCfg} {lvl : ℕ} {lv : OsLv} {st : OsSt} (σ : Val)
+    (hloop : FnIs (c.sqLoop lvl) (osParams 5) (sqLoopBody lv (c.sqLoop lvl)))
+    (hpw : digitsVal (osPowDigits (192 / lv.depth)) 1 = 192 / lv.depth)
+    (hpo : lv.posOff < u128Bound)
+    (hdec : ∀ args rets, MeaningDecodeQueryBits lv.depth rd args rets →
+      coreProgram.Rel rd ("decode_query_bits__L" ++ natStr lv.depth) args rets)
+    (hn0 : 0 < lv.squeezes) (hn5 : lv.squeezes * 5 < u128Bound)
+    (hfs : st.fs.length = 5) (hb : st.Below) (hk : 34 ≤ st.k) (hcan : AllCanonical (st.fsv σ))
+    (hpad : PadOk σ st.pad) (hpk : ∀ p, st.pad = some p → p + 4 < st.k)
+    (sqz : E) (h0 : ∀ i < 5, LoadHolds rd sqz i ((st.fsv σ).getD i 0))
+    (hm : ∀ j < lv.squeezes, SqIterMem rd lv.depth lv.posOff sqz (σ (.n osQpos)) (σ (.n osQbp))
+      (gen ^ j) ((⟨st.fsv σ, []⟩ : Fs).squeezeN j).2.cap) :
+    BlkF (coreProgram.Rel rd) rd σ st.k (osSqueezes c lvl lv st).2.k
+      (fun i ↦ segLookup (sqzSegs c lv st sqz ⟨st.fsv σ, []⟩) (i - st.k)) (osSqueezes c lvl lv st).1
+      (fun σ' ↦ SqzOut σ' st (osSqueezes c lvl lv st).2
+        ((⟨st.fsv σ, []⟩ : Fs).squeezeN lv.squeezes).2 ∧ AgreeBelow st.k σ σ') := by
+  obtain ⟨fn, hfind, hps, hbody⟩ := hloop
+  exact osSqueezes_completeC σ hn0 hn5 hfs hb hk hcan hpad hpk sqz h0 hm
+    (sqLoop_complete hfind lv hps hbody hpw hpo hdec hn0 sqz (σ (.n osQpos))
+      (σ (.n osQbp)) (st.fsv σ) (by simp [OsSt.fsv, hfs]) hcan hm)
+
+end
+end LeanVM.Guest.B1.Whir

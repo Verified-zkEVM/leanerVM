@@ -117,7 +117,8 @@ theorem osCommit_complete
     (hc2 : LoadHolds rd (σ (.n osOod)) ((lvl + 1) * oodSlots + 3) c2)
     (hpow : powOk Whir.queryGrindingBits nonce
       (commitF2 σ st ra rb lv.logCols y c0 c2 nonce).squeeze.1 = true) :
-    Blk C rd σ st.k (osCommit lvl lv st).2.1.k
+    BlkF C rd σ st.k (osCommit lvl lv st).2.1.k
+      (fun j ↦ segLookup (commitSegs σ st lvl lv.logCols ra rb y c0 c2 nonce) (j - st.k))
       ((osCommit lvl lv st).1 ++
         [.call ("grind_check__L" ++ natStr lv.grind) [.n (osCommit lvl lv st).2.2] []])
       (fun σ' ↦ CommitOutC σ' st (osCommit lvl lv st).2.1
@@ -125,7 +126,7 @@ theorem osCommit_complete
   obtain ⟨f0, f1, f2, f3, f4, hf⟩ := fold_args st hfs
   set segs := commitSegs σ st lvl lv.logCols ra rb y c0 c2 nonce with hsegs
   have hlen : segLen segs = 110 := by simp [hsegs, commitSegs, segLen]
-  refine ⟨fun j ↦ segLookup segs (j - st.k), fun σ' ha hv ↦ ?_⟩
+  intro σ' ha hv
   have HV : ∀ j < segLen segs, σ' (.n (st.k + j)) = segLookup segs j := fun j hj ↦ by
     rw [hv _ (by omega) (by simp only [osCommit]; omega)]
     show segLookup segs (st.k + j - st.k) = _

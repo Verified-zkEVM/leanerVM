@@ -47,6 +47,29 @@ theorem osQueries_k (c : OsCfg) (lvl : ℕ) (lv : OsLv) (lam lamN : ℕ) (s : Os
         ((osMat osFlags lv.capOff (osMat osCaps (4 * lv.capOff)
           (osMat osFch lv.foldsOff (s.k + 2)).2.2).2.2).2.2 + 2)).2.2).2.2).2.2 + 5 := rfl
 
+/-- The values of a level's queries block. -/
+def queriesF (c : OsCfg) (lvl : ℕ) (lv : OsLv) (s : OsSt) (σ : Val)
+    (wp r0 r1 sum ic0 ic2 : E) : ℕ → E :=
+  let k := s.k
+  let fp := osMat osFch lv.foldsOff (k + 2)
+  let cp := osMat osCaps (4 * lv.capOff) fp.2.2
+  let flp := osMat osFlags lv.capOff cp.2.2
+  let r := flp.2.2
+  let cp2 := osMat osCaps (4 * lv.capOff) (r + 2)
+  let flp2 := osMat osFlags lv.capOff cp2.2.2
+  let bp := osMat osQbp lv.posOff flp2.2.2
+  let g := bp.2.2
+  fun i ↦
+    if i = k then gw c.maxIl else if i = k + 1 then wp
+    else if i < fp.2.2 then matVal σ osFch lv.foldsOff (k + 2) i
+    else if i < cp.2.2 then matVal σ osCaps (4 * lv.capOff) fp.2.2 i
+    else if i < r then matVal σ osFlags lv.capOff cp.2.2 i
+    else if i = r then r0 else if i = r + 1 then r1
+    else if i < cp2.2.2 then matVal σ osCaps (4 * lv.capOff) (r + 2) i
+    else if i < flp2.2.2 then matVal σ osFlags lv.capOff cp2.2.2 i
+    else if i < g then matVal σ osQbp lv.posOff flp2.2.2 i
+    else [gw (lv.queries / (1 + if lvl = 0 then 1 else 0)), sum, ic0, ic2, sum + ic2].getD (i - g) 0
+
 /-- **A level's queries block, honestly.** -/
 theorem osQueries_complete {c : OsCfg} {lvl : ℕ} {lv : OsLv} {lam lamN : ℕ} {s : OsSt} (σ : Val)
     (hb : s.Below) (hk : 34 ≤ s.k) (hl : lam < s.k) (hlN : lamN < s.k)
@@ -63,7 +86,8 @@ theorem osQueries_complete {c : OsCfg} {lvl : ℕ} {lv : OsLv} {lam lamN : ℕ} 
       σ (.n osFlags) * gen ^ lv.capOff, σ (.n lam), σ (.n lamN), σ (.n osQbp) * gen ^ lv.posOff, wp,
       gen ^ (lv.queries / (1 + if lvl = 0 then 1 else 0))] [sum])
     (hi0 : LoadHolds rd (σ (.n s.cb)) s.co ic0) (hi2 : LoadHolds rd (σ (.n s.cb)) (s.co + 1) ic2) :
-    Blk C rd σ s.k (osQueries c lvl lv lam lamN s).2.1 (osQueries c lvl lv lam lamN s).1
+    BlkF C rd σ s.k (osQueries c lvl lv lam lamN s).2.1
+      (queriesF c lvl lv s σ wp r0 r1 sum ic0 ic2) (osQueries c lvl lv lam lamN s).1
       (fun σ' ↦ σ' (.n (osQueries c lvl lv lam lamN s).2.2.1) = sum ∧
         σ' (.n (osQueries c lvl lv lam lamN s).2.2.2.1) = ic0 ∧
         σ' (.n (osQueries c lvl lv lam lamN s).2.2.2.2.2) = ic2 ∧
@@ -105,17 +129,19 @@ theorem osQueries_complete {c : OsCfg} {lvl : ℕ} {lv : OsLv} {lam lamN : ℕ} 
         .atom (.add (.n (g + 4)) (.n (g + 1)) (.n (g + 3)))] := rfl
   have hr : (osQueries c lvl lv lam lamN s).2 = (g + 5, g + 1, g + 2, g + 4, g + 3) := rfl
   rw [hst, hr]
-  let f : ℕ → E := fun i ↦
-    if i = k then gw c.maxIl else if i = k + 1 then wp
-    else if i < fp.2.2 then matVal σ osFch lv.foldsOff (k + 2) i
-    else if i < cp.2.2 then matVal σ osCaps (4 * lv.capOff) fp.2.2 i
-    else if i < r then matVal σ osFlags lv.capOff cp.2.2 i
-    else if i = r then r0 else if i = r + 1 then r1
-    else if i < cp2.2.2 then matVal σ osCaps (4 * lv.capOff) (r + 2) i
-    else if i < flp2.2.2 then matVal σ osFlags lv.capOff cp2.2.2 i
-    else if i < g then matVal σ osQbp lv.posOff flp2.2.2 i
-    else [gw N0, sum, ic0, ic2, sum + ic2].getD (i - g) 0
-  refine ⟨f, fun σ' ha hv ↦ ?_⟩
+  set f := queriesF c lvl lv s σ wp r0 r1 sum ic0 ic2 with hfdef
+  have hfv : ∀ i, f i =
+      if i = k then gw c.maxIl else if i = k + 1 then wp
+      else if i < fp.2.2 then matVal σ osFch lv.foldsOff (k + 2) i
+      else if i < cp.2.2 then matVal σ osCaps (4 * lv.capOff) fp.2.2 i
+      else if i < r then matVal σ osFlags lv.capOff cp.2.2 i
+      else if i = r then r0 else if i = r + 1 then r1
+      else if i < cp2.2.2 then matVal σ osCaps (4 * lv.capOff) (r + 2) i
+      else if i < flp2.2.2 then matVal σ osFlags lv.capOff cp2.2.2 i
+      else if i < g then matVal σ osQbp lv.posOff flp2.2.2 i
+      else [gw N0, sum, ic0, ic2, sum + ic2].getD (i - g) 0 :=
+    fun i ↦ rfl
+  intro σ' ha hv
   have eF : σ' (.n osFch) = σ (.n osFch) := ha _ (by unfold osFch; omega)
   have eC : σ' (.n osCaps) = σ (.n osCaps) := ha _ (by unfold osCaps; omega)
   have eL : σ' (.n osFlags) = σ (.n osFlags) := ha _ (by unfold osFlags; omega)
@@ -128,32 +154,32 @@ theorem osQueries_complete {c : OsCfg} {lvl : ℕ} {lv : OsLv} {lam lamN : ℕ} 
   -- the pointers
   have rF : RangeVals σ' (k + 2) fp.2.2 (matVal σ' osFch (lv.foldsOff) (k + 2)) :=
     rangeVals_sub (k' := g + 5) hv (by omega) (by omega) fun i h1 h2 ↦ by
-      rw [← matVal_congr eF]; simp only [f]
+      rw [← matVal_congr eF]; rw [hfv]
       simp only [show i ≠ k by omega, show i ≠ k + 1 by omega, show i < fp.2.2 by omega,
         ↓reduceIte]
   obtain ⟨okF, vF⟩ := osMat_complete (C := C) (rd := rd) (base := osFch) (off := lv.foldsOff) (k := k + 2) hb1 (by omega) (hself (k + 2)) rF
   have rC : RangeVals σ' (fp.2.2) cp.2.2 (matVal σ' osCaps (4 * lv.capOff) (fp.2.2)) :=
     rangeVals_sub (k' := g + 5) hv (by omega) (by omega) fun i h1 h2 ↦ by
-      rw [← matVal_congr eC]; simp only [f]
+      rw [← matVal_congr eC]; rw [hfv]
       simp only [show i ≠ k by omega, show i ≠ k + 1 by omega, show ¬ i < fp.2.2 by omega,
         show i < cp.2.2 by omega, ↓reduceIte]
   obtain ⟨okC, vC⟩ := osMat_complete (C := C) (rd := rd) (base := osCaps) (off := 4 * lv.capOff) (k := fp.2.2) hb2 (by omega) (hself (fp.2.2)) rC
   have rL : RangeVals σ' (cp.2.2) r (matVal σ' osFlags (lv.capOff) (cp.2.2)) :=
     rangeVals_sub (k' := g + 5) hv (by omega) (by omega) fun i h1 h2 ↦ by
-      rw [← matVal_congr eL]; simp only [f]
+      rw [← matVal_congr eL]; rw [hfv]
       simp only [show i ≠ k by omega, show i ≠ k + 1 by omega, show ¬ i < fp.2.2 by omega,
         show ¬ i < cp.2.2 by omega, show i < r from h2, ↓reduceIte]
   obtain ⟨okL, vL⟩ := osMat_complete (C := C) (rd := rd) (base := osFlags) (off := lv.capOff) (k := cp.2.2) hb3 (by omega) (hself (cp.2.2)) rL
   have rC2 : RangeVals σ' (r + 2) cp2.2.2 (matVal σ' osCaps (4 * lv.capOff) (r + 2)) :=
     rangeVals_sub (k' := g + 5) hv (by omega) (by omega) fun i h1 h2 ↦ by
-      rw [← matVal_congr eC]; simp only [f]
+      rw [← matVal_congr eC]; rw [hfv]
       simp only [show i ≠ k by omega, show i ≠ k + 1 by omega, show ¬ i < fp.2.2 by omega,
         show ¬ i < cp.2.2 by omega, show ¬ i < r by omega, show i ≠ r by omega,
         show i ≠ r + 1 by omega, show i < cp2.2.2 by omega, ↓reduceIte]
   obtain ⟨okC2, vC2⟩ := osMat_complete (C := C) (rd := rd) (base := osCaps) (off := 4 * lv.capOff) (k := r + 2) hb2 (by omega) (hself (r + 2)) rC2
   have rL2 : RangeVals σ' (cp2.2.2) flp2.2.2 (matVal σ' osFlags (lv.capOff) (cp2.2.2)) :=
     rangeVals_sub (k' := g + 5) hv (by omega) (by omega) fun i h1 h2 ↦ by
-      rw [← matVal_congr eL]; simp only [f]
+      rw [← matVal_congr eL]; rw [hfv]
       simp only [show i ≠ k by omega, show i ≠ k + 1 by omega, show ¬ i < fp.2.2 by omega,
         show ¬ i < cp.2.2 by omega, show ¬ i < r by omega, show i ≠ r by omega,
         show i ≠ r + 1 by omega, show ¬ i < cp2.2.2 by omega, show i < flp2.2.2 by omega,
@@ -161,7 +187,7 @@ theorem osQueries_complete {c : OsCfg} {lvl : ℕ} {lv : OsLv} {lam lamN : ℕ} 
   obtain ⟨okL2, vL2⟩ := osMat_complete (C := C) (rd := rd) (base := osFlags) (off := lv.capOff) (k := cp2.2.2) hb3 (by omega) (hself (cp2.2.2)) rL2
   have rQ : RangeVals σ' (flp2.2.2) g (matVal σ' osQbp (lv.posOff) (flp2.2.2)) :=
     rangeVals_sub (k' := g + 5) hv (by omega) (by omega) fun i h1 h2 ↦ by
-      rw [← matVal_congr eQ]; simp only [f]
+      rw [← matVal_congr eQ]; rw [hfv]
       simp only [show i ≠ k by omega, show i ≠ k + 1 by omega, show ¬ i < fp.2.2 by omega,
         show ¬ i < cp.2.2 by omega, show ¬ i < r by omega, show i ≠ r by omega,
         show i ≠ r + 1 by omega, show ¬ i < cp2.2.2 by omega, show ¬ i < flp2.2.2 by omega,
@@ -170,7 +196,7 @@ theorem osQueries_complete {c : OsCfg} {lvl : ℕ} {lv : OsLv} {lam lamN : ℕ} 
   rw [eF] at vF; rw [eC] at vC vC2; rw [eL] at vL vL2; rw [eQ] at vQ
   -- the single values
   have tail : ∀ j < 5, σ' (.n (g + j)) = [gw N0, sum, ic0, ic2, sum + ic2].getD j 0 := fun j hj ↦ by
-    rw [hv (g + j) (by omega) (by omega)]; simp only [f]
+    rw [hv (g + j) (by omega) (by omega)]; rw [hfv]
     simp only [show g + j ≠ k by omega, show g + j ≠ k + 1 by omega, show ¬ g + j < fp.2.2 by omega,
       show ¬ g + j < cp.2.2 by omega, show ¬ g + j < r by omega, show g + j ≠ r by omega,
       show g + j ≠ r + 1 by omega, show ¬ g + j < cp2.2.2 by omega,
@@ -179,14 +205,14 @@ theorem osQueries_complete {c : OsCfg} {lvl : ℕ} {lv : OsLv} {lam lamN : ℕ} 
   have v0 := tail 0 (by omega); have v1 := tail 1 (by omega); have v2 := tail 2 (by omega)
   have v3 := tail 3 (by omega); have v4 := tail 4 (by omega)
   simp only [List.getD_cons_zero, List.getD_cons_succ, Nat.add_zero] at v0 v1 v2 v3 v4
-  have vk : σ' (.n k) = gw c.maxIl := by rw [hv k le_rfl (by omega)]; simp [f]
-  have vk1 : σ' (.n (k + 1)) = wp := by rw [hv (k + 1) (by omega) (by omega)]; simp [f]
+  have vk : σ' (.n k) = gw c.maxIl := by rw [hv k le_rfl (by omega)]; simp [hfv]
+  have vk1 : σ' (.n (k + 1)) = wp := by rw [hv (k + 1) (by omega) (by omega)]; simp [hfv]
   have vr : σ' (.n r) = r0 := by
-    rw [hv r (by omega) (by omega)]; simp only [f]
+    rw [hv r (by omega) (by omega)]; rw [hfv]
     simp only [show r ≠ k by omega, show r ≠ k + 1 by omega, show ¬ r < fp.2.2 by omega,
       show ¬ r < cp.2.2 by omega, lt_irrefl, ↓reduceIte]
   have vr1 : σ' (.n (r + 1)) = r1 := by
-    rw [hv (r + 1) (by omega) (by omega)]; simp only [f]
+    rw [hv (r + 1) (by omega) (by omega)]; rw [hfv]
     simp only [show r + 1 ≠ k by omega, show r + 1 ≠ k + 1 by omega,
       show ¬ r + 1 < fp.2.2 by omega, show ¬ r + 1 < cp.2.2 by omega, show ¬ r + 1 < r by omega,
       show r + 1 ≠ r by omega, ↓reduceIte]
