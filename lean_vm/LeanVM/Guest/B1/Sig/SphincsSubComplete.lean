@@ -94,7 +94,7 @@ theorem g63W_k : g63W = ofK (gpow (64 - 1)) := g63W_eq
 
 /-- What a sub-tree's valuation holds: its hints, its level-2 nodes canonical, its encoding and
 bound updated. -/
-def SubPost (σ0 : Val) (c j : Nat) (enc : Option V) (bound : V) (b : Nat) (h : SubH)
+def SubPost (encIn boundIn : E) (c j : Nat) (enc : Option V) (b : Nat) (h : SubH)
     (σ : Val) : Prop :=
   σ (.n b) = ofK (gpow h.a) ∧ σ (.n (b + 1)) = subMark j h.a ∧ σ (.n (b + 6)) = ofK (gpow h.t) ∧
     (∀ i < 6, σ (.n (fkCB h.t (.n (b + 11)) 0 (fkAB (2 * c + j) (.n (b + 11)) (b + 12) h.t) i)) = h.vals i) ∧
@@ -102,8 +102,8 @@ def SubPost (σ0 : Val) (c j : Nat) (enc : Option V) (bound : V) (b : Nat) (h : 
       (subMark j) (fun a => cbMul a (58 + 3 * (2 * c + j))) (subE c j enc b).2.2 h.a))) = h.sibs l) ∧
     σ (if h.a / 2 ^ 2 = 0 then (subFd c j enc b).2.2.2.1 else (subFd c j enc b).2.2.1) = h.sibs 2 ∧
     IsCanonical128 (σ (subFd c j enc b).2.2.1) ∧ IsCanonical128 (σ (subFd c j enc b).2.2.2.1) ∧
-    σ (subE c j enc b).2.1 = encVal σ0 enc + fkWeight h.t (2 * c + j) ∧
-    σ (.n (subFd c j enc b).2.1) = σ0 bound + cbMul h.a (58 + 3 * (2 * c + j))
+    σ (subE c j enc b).2.1 = encIn + fkWeight h.t (2 * c + j) ∧
+    σ (.n (subFd c j enc b).2.1) = boundIn + cbMul h.a (58 + 3 * (2 * c + j))
 
 theorem subFd_eq (c j : Nat) (enc : Option V) (b : Nat) :
     subFd c j enc b = foldArms (.n (b + 11)) subAdr 3 (subFk c j b).2.2.1 (.n (b + 1)) (subMark j)
@@ -133,7 +133,7 @@ theorem sSubtree_complete {c j : Nat} {leafAt : V} {enc : Option V} {bound : V}
       σ (.n 17) = encVal σ enc + fkWeight h.t (2 * c + j)) :
     Completes C rd b (sSubtree c j leafAt enc bound b).2.1 (sSubtree c j leafAt enc bound b).1 σ
       (fun σ' => ∀ σ'', AgreeBelow (sSubtree c j leafAt enc bound b).2.1 σ' σ'' →
-        SubPost σ c j enc bound b h σ'') := by
+        SubPost (encVal σ enc) (σ bound) c j enc b h σ'') := by
   obtain ⟨ht, ha, hv, hs⟩ := hh
   have hend : (sSubtree c j leafAt enc bound b).2.1 = (subFd c j enc b).2.1 + 1 := by rw [sSubtree_eq]
   rw [sSubtree_split, hend]
@@ -359,6 +359,126 @@ theorem sSubtree_complete {c j : Nat} {leafAt : V} {enc : Option V} {bound : V}
   · rw [hag.apply ⟨_, by omega, rfl⟩, h9]
     obtain ⟨kb, hkb, rfl⟩ := hbd
     rw [h87 kb (by omega), h75 kb (by omega), hlow5 kb hkb, f5]
+
+/-- **A sub-tree's shape**: its end past its base, its encoding's cell below its end, its bound's cell
+last, its two level-2 nodes adjacent below. -/
+theorem sSubtree_shape (c j : Nat) (leafAt : V) (enc : Option V) (bound : V) {b : Nat} (hb : 206 ≤ b) :
+    b + 12 ≤ (sSubtree c j leafAt enc bound b).2.1 ∧
+      (∃ k, (sSubtree c j leafAt enc bound b).2.2.1 = .n k ∧ k < (sSubtree c j leafAt enc bound b).2.1) ∧
+      (sSubtree c j leafAt enc bound b).2.2.2.1 = .n ((sSubtree c j leafAt enc bound b).2.1 - 1) ∧
+      ∃ L, (sSubtree c j leafAt enc bound b).2.2.2.2 = (.n L, .n (L + 1)) ∧ b ≤ L ∧
+        L + 4 ≤ (sSubtree c j leafAt enc bound b).2.1 := by
+  have hka : NBv (b + 12) (V.n (b + 11)) := ⟨b + 11, by omega, rfl⟩
+  have hfk := fkAB_mono (w := 2 * c + j) (b := b + 12) (by omega) hka
+  have hfkE : b + 12 ≤ (subFk c j b).2.1 := by rw [subFk_eq, fkArms_end]; exact (hfk 256).1
+  obtain ⟨hE1, hE2⟩ := subE_snd c j enc b
+  obtain ⟨o1, o2⟩ := fkArms_outs (2 * c + j) (.n (b + 11)) (b + 12)
+  have hB0 : b + 12 ≤ (fkChains 0 (.n (b + 11)) 6 0 (b + 12)).2.1 :=
+    KSeq.le (fkChains_kseq (t := 0) (lo := b + 12) (by omega) hka 6 0 (b + 12) (by omega) le_rfl).1
+  have hB0E : (fkChains 0 (.n (b + 11)) 6 0 (b + 12)).2.1 + 17 ≤ (subFk c j b).2.1 := by
+    have h1 : fkAB (2 * c + j) (.n (b + 11)) (b + 12) 1 = (fkChains 0 (.n (b + 11)) 6 0 (b + 12)).2.1 + 17 := by
+      rw [fkAB_one, fkArm_snd]; rfl
+    rw [← h1, subFk_eq, fkArms_end]; exact (hfk 1).2 256 (by omega)
+  have hfw : (subFk c j b).2.2.2 = .n ((fkChains 0 (.n (b + 11)) 6 0 (b + 12)).2.1 + 16) := by
+    rw [subFk_eq]; exact o2
+  have hfo := foAB_mono (atV := .n (b + 11)) (adr := subAdr) (height := 3) (node0 := (subFk c j b).2.2.1)
+    (markV := .n (b + 1)) (markC := subMark j) (wC := fun a => cbMul a (58 + 3 * (2 * c + j)))
+    (b := (subE c j enc b).2.2)
+  have hfo3 := foldArms_outs (atV := .n (b + 11)) (adr := subAdr) (height := 3) (node0 := (subFk c j b).2.2.1)
+    (markV := .n (b + 1)) (markC := subMark j) (wC := fun a => cbMul a (58 + 3 * (2 * c + j)))
+    (subE c j enc b).2.2
+  have hL0 := flBase_ge (subAdr 0) 0 (3 - 1) (subE c j enc b).2.2
+  have hL0E : flBase (subAdr 0) 0 (3 - 1) (subE c j enc b).2.2 + 3 ≤ (subFd c j enc b).2.1 := by
+    have h1 : foAB (.n (b + 11)) subAdr 3 (subFk c j b).2.2.1 (.n (b + 1)) (subMark j)
+        (fun a => cbMul a (58 + 3 * (2 * c + j))) (subE c j enc b).2.2 1 =
+        flBase (subAdr 0) 0 (3 - 1) (subE c j enc b).2.2 + 3 := by
+      rw [foAB_one, foldArm_snd, foldLevels_snd]; rfl
+    rw [← h1, subFd_eq, foldArms_end]; exact (hfo 1).2 8 (by omega)
+  rw [sSubtree_eq]
+  simp only
+  refine ⟨by omega, ?_, by simp, flBase (subAdr 0) 0 (3 - 1) (subE c j enc b).2.2, ?_, by omega, by omega⟩
+  · unfold subE
+    by_cases h16 : 2 * c + j + 1 = 16
+    · simp only [h16, ↓reduceIte]; exact ⟨17, rfl, by omega⟩
+    · simp only [h16, ↓reduceIte]
+      cases enc with
+      | none => exact ⟨_, hfw, by omega⟩
+      | some en => exact ⟨_, rfl, by omega⟩
+  · rw [subFd_eq, hfo3]
+
+/-- **A sub-tree's values lie below its end.** -/
+theorem sSubtree_numBelow (c j : Nat) {leafAt : V} {enc : Option V} {bound : V} {b : Nat} (hb : 206 ≤ b)
+    (hla : NBv b leafAt) (henc : ∀ en, enc = some en → NBv b en) (hbd : NBv b bound) :
+    NumBelow (sSubtree c j leafAt enc bound b).2.1 (Stmt.valsList (sSubtree c j leafAt enc bound b).1) := by
+  have hka : NBv (b + 12) (V.n (b + 11)) := ⟨b + 11, by omega, rfl⟩
+  have hfk := fkAB_mono (w := 2 * c + j) (b := b + 12) (by omega) hka
+  have hfkE : b + 12 ≤ (subFk c j b).2.1 := by rw [subFk_eq, fkArms_end]; exact (hfk 256).1
+  obtain ⟨hE1, hE2⟩ := subE_snd c j enc b
+  obtain ⟨o1, o2⟩ := fkArms_outs (2 * c + j) (.n (b + 11)) (b + 12)
+  have hB0 : b + 12 ≤ (fkChains 0 (.n (b + 11)) 6 0 (b + 12)).2.1 :=
+    KSeq.le (fkChains_kseq (t := 0) (lo := b + 12) (by omega) hka 6 0 (b + 12) (by omega) le_rfl).1
+  have hB0E : (fkChains 0 (.n (b + 11)) 6 0 (b + 12)).2.1 + 17 ≤ (subFk c j b).2.1 := by
+    have h1 : fkAB (2 * c + j) (.n (b + 11)) (b + 12) 1 = (fkChains 0 (.n (b + 11)) 6 0 (b + 12)).2.1 + 17 := by
+      rw [fkAB_one, fkArm_snd]; rfl
+    rw [← h1, subFk_eq, fkArms_end]; exact (hfk 1).2 256 (by omega)
+  have hfl : (subFk c j b).2.2.1 = .n ((fkChains 0 (.n (b + 11)) 6 0 (b + 12)).2.1 + 15) := by
+    rw [subFk_eq]; exact o1
+  have hfw : (subFk c j b).2.2.2 = .n ((fkChains 0 (.n (b + 11)) 6 0 (b + 12)).2.1 + 16) := by
+    rw [subFk_eq]; exact o2
+  have hfo := foAB_mono (atV := .n (b + 11)) (adr := subAdr) (height := 3) (node0 := (subFk c j b).2.2.1)
+    (markV := .n (b + 1)) (markC := subMark j) (wC := fun a => cbMul a (58 + 3 * (2 * c + j)))
+    (b := (subE c j enc b).2.2)
+  have hfdE : (subE c j enc b).2.2 ≤ (subFd c j enc b).2.1 := by
+    rw [subFd_eq, foldArms_end]; exact (hfo 8).1
+  have hfo3 := foldArms_outs (atV := .n (b + 11)) (adr := subAdr) (height := 3) (node0 := (subFk c j b).2.2.1)
+    (markV := .n (b + 1)) (markC := subMark j) (wC := fun a => cbMul a (58 + 3 * (2 * c + j)))
+    (subE c j enc b).2.2
+  have hL0 := flBase_ge (subAdr 0) 0 (3 - 1) (subE c j enc b).2.2
+  have hL0E : flBase (subAdr 0) 0 (3 - 1) (subE c j enc b).2.2 + 3 ≤ (subFd c j enc b).2.1 := by
+    have h1 : foAB (.n (b + 11)) subAdr 3 (subFk c j b).2.2.1 (.n (b + 1)) (subMark j)
+        (fun a => cbMul a (58 + 3 * (2 * c + j))) (subE c j enc b).2.2 1 =
+        flBase (subAdr 0) 0 (3 - 1) (subE c j enc b).2.2 + 3 := by
+      rw [foAB_one, foldArm_snd, foldLevels_snd]; rfl
+    rw [← h1, subFd_eq, foldArms_end]; exact (hfo 1).2 8 (by omega)
+  have hend : (sSubtree c j leafAt enc bound b).2.1 = (subFd c j enc b).2.1 + 1 := by rw [sSubtree_eq]
+  rw [sSubtree_split, hend]
+  simp only [valsList_append]
+  have hfw' : NBv (subFk c j b).2.1 (subFk c j b).2.2.2 := by rw [hfw]; exact ⟨_, by omega, rfl⟩
+  refine NumBelow.append ?_ (NumBelow.append ?_ (NumBelow.append ?_ (NumBelow.append ?_ (NumBelow.append ?_
+    (NumBelow.append ?_ (NumBelow.append ?_ (NumBelow.append ?_ ?_)))))))
+  · rw [valsList_hint]; exact .cons ⟨b, by omega, rfl⟩ (.cons ⟨b + 1, by omega, rfl⟩ (.nil _))
+  · exact (rangeS_nb _ _ _ ⟨b, by omega, rfl⟩).mono (by omega)
+  · rw [valsList_hint]; exact .cons ⟨b + 6, by omega, rfl⟩ (.nil _)
+  · exact (rangeS_nb _ _ _ ⟨b + 6, by omega, rfl⟩).mono (by omega)
+  · simp only [addS, valsList_cons, valsList_nil, Stmt.vals, Atom.vals, List.append_nil]
+    exact .cons ⟨b + 11, by omega, rfl⟩ (.cons (hla.mono' (by omega)) (.cons ⟨b + 1, by omega, rfl⟩ (.nil _)))
+  · simp only [valsList_cons, valsList_nil, Stmt.vals, List.append_nil]
+    exact .cons ⟨b + 6, by omega, rfl⟩ ((by rw [subFk_eq]; exact fkArms_numBelow (by omega) hka :
+      NumBelow (subFk c j b).2.1 _).mono (by omega))
+  · unfold subE
+    by_cases h16 : 2 * c + j + 1 = 16
+    · simp only [h16, ↓reduceIte, addS, valsList_cons, valsList_nil, Stmt.vals, Atom.vals, List.append_nil]
+      refine .cons ⟨17, by omega, rfl⟩ (.cons ?_ (.cons (hfw'.mono' (by omega)) (.nil _)))
+      cases enc with
+      | none => exact ⟨0, by omega, rfl⟩
+      | some en => exact (henc en rfl).mono' (by omega)
+    · simp only [h16, ↓reduceIte]
+      cases enc with
+      | none => exact .nil _
+      | some en =>
+          simp only [addS, valsList_cons, valsList_nil, Stmt.vals, Atom.vals, List.append_nil]
+          exact .cons ⟨_, by omega, rfl⟩ (.cons ((henc en rfl).mono' (by omega)) (.cons (hfw'.mono' (by omega))
+            (.nil _)))
+  · simp only [valsList_cons, valsList_nil, Stmt.vals, List.append_nil]
+    refine .cons ⟨b, by omega, rfl⟩ ((?_ : NumBelow (subFd c j enc b).2.1 _).mono (by omega))
+    rw [subFd_eq]
+    exact foldArms_numBelow (by norm_num) (by omega) (fun i hi => subAdr_ok i (by norm_num at hi; omega))
+      ⟨b + 11, by omega, rfl⟩ (by rw [hfl]; exact ⟨_, by omega, rfl⟩) ⟨b + 1, by omega, rfl⟩
+  · have hw8 : (subFd c j enc b).2.2.2.2 = .n (flBase (subAdr 0) 0 (3 - 1) (subE c j enc b).2.2 + 2) := by
+      rw [subFd_eq, hfo3]
+    simp only [addS, valsList_cons, valsList_nil, Stmt.vals, Atom.vals, List.append_nil]
+    exact .cons ⟨_, by omega, rfl⟩ (.cons (hbd.mono' (by omega)) (.cons (by rw [hw8]; exact ⟨_, by omega, rfl⟩)
+      (.nil _)))
 
 end
 end LeanVM.Guest.B1.Sig
