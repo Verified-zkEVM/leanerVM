@@ -142,8 +142,10 @@ theorem osFinish_sound {c : OsCfg} {st : OsSt} {tch : ℕ} {ms T Pt : List E} {�
     (hok : AllOk (coreProgram.Rel rd) rd σ (osFinishA c st tch)) :
     (osFinishRet c st tch).map σ = [σ (.n st.t), σ (.n (st.k + 1)), σ (.n (st.k + 1 + 1)),
       finInner c β X P W Λ Z Y, multilinearEval ms T] ∧
-    ∀ i < pointCap, LoadHolds rd (σ (.n (st.k + 1))) i (Pt.getD i 0) ∧
-      LoadHolds rd (σ (.n (st.k + 1 + 1))) i (1 + Pt.getD i 0) := by
+    (∀ i < pointCap, LoadHolds rd (σ (.n (st.k + 1))) i (Pt.getD i 0) ∧
+      LoadHolds rd (σ (.n (st.k + 1 + 1))) i (1 + Pt.getD i 0)) ∧
+    ∀ i (hi : i < c.levels.length), ∀ t < c.levels[i].prefixLen + c.yrLog,
+      X i t * invW c.levels[i] t ≠ 0 := by
   simp only [osFinishA, osFinishRet] at hok ⊢
   set pts := osPtBlks c (st.k + 1) (st.k + 1 + 1) tch 0 pointCap (st.k + 1 + 2) with hpts
   set bs := osBases c tch (pts.2 + 1) (pts.2 + 3) 0 c.levels (pts.2 + 4) with hbs
@@ -192,7 +194,8 @@ theorem osFinish_sound {c : OsCfg} {st : OsSt} {tch : ℕ} {ms T Pt : List E} {�
   simp only [allOk_cons, allOk_nil, and_true, StmtOk, Atom.Holds] at hE
   obtain ⟨e0, e1, e2, l3, a4, e5⟩ := hE
   rw [hx, Option.getD_some, hxv, loadHolds_unique l3 (by simpa using hich)] at a4
-  refine ⟨?_, fun i hi ↦ by simpa using hpoint i hi⟩
+  refine ⟨?_, fun i hi ↦ by simpa using hpoint i hi, fun i hi t ht ↦ by
+    simpa using ((hbo i hi).1 t ht).1⟩
   simp only [List.map_cons, List.map_nil, e0, e1, e2, a4, e5, hy, em, ep, accVal, zero_add,
     finInner, List.getD_eq_getElem?_getD]
 
