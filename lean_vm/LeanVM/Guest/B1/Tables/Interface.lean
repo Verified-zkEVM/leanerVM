@@ -8,7 +8,7 @@
 
 module
 
-public import LeanVM.Guest.B1.Tables.Base
+public import LeanVM.Guest.B1.Gkr.Fs
 public import LeanVM.Guest.B1.Placement.Interface
 public import LeanVM.Guest.B1.Selectors.Interface
 
@@ -45,13 +45,11 @@ open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile LeanVM.P
 /-! ## `padding_weight` -/
 
 /-- `lead` of `padding_weight` at `τ`: `1` at `τ = 0`, else bit `τ` of `n` plus bit `τ - 1`. -/
-def PadLead (τ n : ℕ) : E :=
-  if τ = 0 then 1 else eOfNat (n / 2 ^ τ % 2) + eOfNat (n / 2 ^ (τ - 1) % 2)
+def PadLead (τ n : ℕ) : E := if τ = 0 then 1 else bitE (n.testBit τ) + bitE (n.testBit (τ - 1))
 
 /-- `rest` of `padding_weight` at `τ`: `1` at `τ = 0`, else bit `τ` of `n` plus the word of its
 bits below `τ - 1`. -/
-def PadRest (τ n : ℕ) : E :=
-  if τ = 0 then 1 else eOfNat (n / 2 ^ τ % 2) + eOfNat (n % 2 ^ (τ - 1))
+def PadRest (τ n : ℕ) : E := if τ = 0 then 1 else bitE (n.testBit τ) + eOfNat (n % 2 ^ (τ - 1))
 
 /-- `padding_weight__L{τ}(rows, zeta)`: `rows` is the word of `n ≤ 2^τ`, and the function returns
 `pad_n` at the first `τ` words at `zeta`, `lead` and `rest`. -/
@@ -216,8 +214,8 @@ def TablesOut (bytecode : List K) (pi : Digest) (logMem : ℕ) (alphas point val
         (∀ h ∈ tableHeightsOf rowsN, h < 29) ∧ TbReadsAt rd cur xs ∧
         (∀ ev, BytecodeAt ev bytecode
             (point.take (layoutOf bytecode logMem rowsN).logBytecode ++ alphas) bv →
-          SpRuns (tablesSeg ev (layoutOf bytecode logMem rowsN) pi alphas beta point values)
-            [f0, f1, f2, f3, f4] xs (bus, claims) cap') ∧
+          RunsTo (tablesSeg ev (layoutOf bytecode logMem rowsN) pi alphas beta point values)
+            ⟨[f0, f1, f2, f3, f4], []⟩ xs (bus, claims) ⟨cap', []⟩) ∧
         claims.length = nClaims ∧ TbReadsAt rd pool (claims.map (·.value)) ∧
         TCtx rd (layoutOf bytecode logMem rowsN) bus claims [zeta, chi, rm, gmu, gzcn, cplen] ∧
         [f0', f1', f2', f3', f4'] = cap' ∧ cur' = cur * gen ^ xs.length

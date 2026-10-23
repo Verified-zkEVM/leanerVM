@@ -7,7 +7,7 @@
 
 module
 
-public import LeanVM.Guest.B1.Tables.Base
+public import LeanVM.Guest.B1.Gkr.Fs
 
 /-!
 # `verify_bus_gkr` (TRIAGE G #43): the interface
@@ -45,7 +45,7 @@ def GkrOut (rd : Reader) : List E → List E → Prop
   | [f0, f1, f2, f3, f4, cur, gmu, zeta], rets =>
       ∃ (depth : ℕ) (xs : List E) (r : E × List E × List E) (cap' : List E),
         gmu = gen ^ depth ∧ depth < 33 ∧ TbReadsAt rd cur xs ∧
-        SpRuns (gkrPhase depth) [f0, f1, f2, f3, f4] xs r cap' ∧
+        RunsTo (gkrPhase depth) ⟨[f0, f1, f2, f3, f4], []⟩ xs r ⟨cap', []⟩ ∧
         r.2.1.length = depth ∧ r.2.2.length = 3 ∧ TbReadsAt rd zeta r.2.1 ∧
         rets = cap' ++ [cur * gen ^ xs.length] ++ r.2.2
   | _, _ => False
