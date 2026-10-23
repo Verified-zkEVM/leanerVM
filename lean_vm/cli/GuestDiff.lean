@@ -1,4 +1,5 @@
 import LeanVM.Guest.Hints
+import LeanVM.Guest.Limits
 import LeanVM.Guest.Interp
 import LeanVM.Guest.Renumber
 import LeanVM.Guest.Expand
@@ -14,7 +15,9 @@ aggregation's statement `s`, seed, node witness `w`, the streams `aggregate` ins
 through `aggregation.rs`'s test-only `FORGE` hook) and its public input. For each case it checks
 
 * that `w` holds `s` (`NodeRel`'s computable parts: every child's proof verifies, every claim is
-  held, the batching closes, the shapes);
+  held, the batching closes, the shapes), within the deployed limits (`Limits`' parts) and with no
+  zero challenge where the guest divides (`NoZeroChallenge`: `verifyDeferredNZ` accepts every
+  child's proof);
 * (i) that `Hints.honestStreams` is the Rust streams, stream by stream and entry by entry;
 * (iii) that the public input is `statementDigest seed s`;
 * (ii) that the interpreter accepts the guest's core IR (`coreProgram`: the renumbered expansion
@@ -235,6 +238,41 @@ def nodeRel (c : Case) : List (String × Bool) :=
       (batch (w.children.map fun ch => ⟨statementDigest c.seed ch.statement, ch.fresh, ch.statement.defer⟩)
         w.hints).map DeferredClaim.cells == some s.defer.cells)]
 
+/-- `Limits`' parts and `NoZeroChallenge`, each by name. -/
+def limits (c : Case) : List (String × Bool) :=
+  let s := c.statement
+  let w := c.witness
+  let rawX := Hints.direct s.claims.xmss w.xmss
+  let rawS := Hints.direct s.claims.sphincs w.sphincs
+  let rawD := Hints.direct s.claims.da w.da
+  let daEq := fun (a b : DaClaim) => digestEq a.1 b.1 && digestEq a.2 b.2
+  let countDa := fun (l : List DaClaim) (x : DaClaim) => (l.filter (daEq x)).length
+  w.children.zipIdx.flatMap (fun (ch, i) => ([(s!"child {i}'s stack log is at least {muMin}",
+        match announced bytecode ch.proof.stream with
+        | some (layout, _) => decide (muMin ≤ layout.stackLog)
+        | none => true),
+      (s!"child {i}'s stream is at most {streamCap} scalars", ch.proof.stream.length ≤ streamCap),
+      (s!"child {i}'s proof has no zero challenge where the guest divides",
+        Limits.verifyDeferredNZ bytecode c.seed (statementDigest c.seed ch.statement) ch.fresh ch.proof),
+      (s!"child {i} has at most 16 DA claims", ch.statement.claims.da.length ≤ 16),
+      (s!"child {i}'s lists are below 2^16", ch.statement.claims.xmss.length < 2 ^ 16 &&
+        ch.statement.claims.sphincs.length < 2 ^ 16)] : List (String × Bool))) ++
+  ([("at most one DA claim held directly", rawD.length ≤ 1),
+    ("leanXMSS claims held as often as declared", s.claims.xmss.all fun x =>
+      s.claims.xmss.count x ≤ (rawX.map (·.1)).count x +
+        (w.children.map fun ch => ch.statement.claims.xmss.count x).sum),
+    ("leanSPHINCS claims held as often as declared", s.claims.sphincs.all fun x =>
+      s.claims.sphincs.count x ≤ (rawS.map (·.1)).count x +
+        (w.children.map fun ch => ch.statement.claims.sphincs.count x).sum),
+    ("DA claims held as often as declared", s.claims.da.all fun x =>
+      countDa s.claims.da x ≤ countDa (rawD.map (·.1)) x +
+        (w.children.map fun ch => countDa ch.statement.claims.da x).sum),
+    ("at most 16 children", w.children.length ≤ 16),
+    ("at most 16 DA claims", s.claims.da.length ≤ 16),
+    ("the coverage table below 2^16", coverage s w < 2 ^ 16),
+    ("at least one declared claim", 0 < s.claims.xmss.length + s.claims.sphincs.length + s.claims.da.length)] :
+    List (String × Bool))
+
 def showLimbs (x : E) : String :=
   let (c0, c1, c2) := limbsOf x
   s!"({c0}, {c1}, {c2})"
@@ -329,6 +367,8 @@ def main (args : List String) : IO UInt32 := do
     if "--no-rel" ∉ flags then
       let (bad, time) ← timed fun _ => ((nodeRel c).find? (!·.2)).map (·.1 ++ " fails")
       failed := (← report "the witness holds the statement" bad time) || failed
+      let (badL, timeL) ← timed fun _ => ((limits c).find? (!·.2)).map (·.1 ++ " fails")
+      failed := (← report "the witness is within the limits, no zero challenge" badL timeL) || failed
     let (streams, time) ← timed fun _ => honestStreams bytecode c.seed c.statement c.witness
     let (diff, time') ← timed fun _ => (streamDiffs streams c.streams).head?
     failed := (← report "(i) the honest streams are Rust's" diff (time + time')) || failed

@@ -15,9 +15,9 @@ open LeanVM.Guest.Check
 
 @[expose] public section
 
-/-- `verify_sig_lean_sphincs`, window 38, arms 1 to 16. -/
-theorem wg21_38_0 : checkWinS glob 21 (coreOf 21) (certOf 21) false 38 1 17
-    [(0, 100), (100, 1563)] = true := by
+/-- `verify_sig_lean_sphincs`, window 38, arms 1 to 8. -/
+theorem wg21_38_0 : checkWinS glob 21 (coreOf 21) (certOf 21) false 38 1 9
+    [(0, 100), (100, 784)] = true := by
   decide +kernel
 
 end

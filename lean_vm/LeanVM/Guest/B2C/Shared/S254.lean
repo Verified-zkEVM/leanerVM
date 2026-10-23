@@ -14,30 +14,8 @@ namespace LeanVM.Guest.B2C.Shared
 @[expose] public section
 
 set_option maxRecDepth 100000 in
-/-- `list_split`, once. -/
-theorem st23 : shareStatic 23 = true := by decide +kernel
-
-set_option maxRecDepth 100000 in
-/-- `list_split`, window 0. -/
-theorem w23_0 : shareWin 23 (snapsOf 23) 0 = true := by decide +kernel
-
-theorem ok23 : ShareOk 23 := ⟨st23, fun i hi ↦ by
-  have h : (snapsOf 23).length = 0 := by decide +kernel
-  obtain rfl : i = 0 := by omega
-  exact w23_0⟩
-
-set_option maxRecDepth 100000 in
-/-- `claim_list_digest`, once. -/
-theorem st24 : shareStatic 24 = true := by decide +kernel
-
-set_option maxRecDepth 100000 in
-/-- `claim_list_digest`, window 0. -/
-theorem w24_0 : shareWin 24 (snapsOf 24) 0 = true := by decide +kernel
-
-theorem ok24 : ShareOk 24 := ⟨st24, fun i hi ↦ by
-  have h : (snapsOf 24).length = 0 := by decide +kernel
-  obtain rfl : i = 0 := by omega
-  exact w24_0⟩
+/-- `da_vector_cell`, window 8. -/
+theorem w29_8 : shareWin 29 (snapsOf 29) 8 = true := by decide +kernel
 
 end
 end LeanVM.Guest.B2C.Shared

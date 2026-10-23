@@ -14,17 +14,8 @@ namespace LeanVM.Guest.B2C.Shared
 @[expose] public section
 
 set_option maxRecDepth 100000 in
-/-- `block_selector_tab__L21`, once. -/
-theorem st240 : shareStatic 240 = true := by decide +kernel
-
-set_option maxRecDepth 100000 in
-/-- `block_selector_tab__L21`, window 0. -/
-theorem w240_0 : shareWin 240 (snapsOf 240) 0 = true := by decide +kernel
-
-theorem ok240 : ShareOk 240 := ⟨st240, fun i hi ↦ by
-  have h : (snapsOf 240).length = 0 := by decide +kernel
-  obtain rfl : i = 0 := by omega
-  exact w240_0⟩
+/-- `keccak_layer__L1_L0`, window 3. -/
+theorem w255_3 : shareWin 255 (snapsOf 255) 3 = true := by decide +kernel
 
 end
 end LeanVM.Guest.B2C.Shared

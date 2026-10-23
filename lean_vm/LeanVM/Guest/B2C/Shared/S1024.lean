@@ -14,30 +14,43 @@ namespace LeanVM.Guest.B2C.Shared
 @[expose] public section
 
 set_option maxRecDepth 100000 in
-/-- `__loop295`, once. -/
-theorem st757 : shareStatic 757 = true := by decide +kernel
+/-- `__loop322`, once. -/
+theorem st788 : shareStatic 788 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `__loop295`, window 0. -/
-theorem w757_0 : shareWin 757 (snapsOf 757) 0 = true := by decide +kernel
+/-- `__loop322`, window 0. -/
+theorem w788_0 : shareWin 788 (snapsOf 788) 0 = true := by decide +kernel
 
-theorem ok757 : ShareOk 757 := ⟨st757, fun i hi ↦ by
-  have h : (snapsOf 757).length = 0 := by decide +kernel
+theorem ok788 : ShareOk 788 := ⟨st788, fun i hi ↦ by
+  have h : (snapsOf 788).length = 0 := by decide +kernel
   obtain rfl : i = 0 := by omega
-  exact w757_0⟩
+  exact w788_0⟩
 
 set_option maxRecDepth 100000 in
-/-- `opening_queries__L0_L0_L16_L24_L25_L5`, once. -/
-theorem st758 : shareStatic 758 = true := by decide +kernel
+/-- `__loop323`, once. -/
+theorem st789 : shareStatic 789 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `opening_queries__L0_L0_L16_L24_L25_L5`, window 0. -/
-theorem w758_0 : shareWin 758 (snapsOf 758) 0 = true := by decide +kernel
+/-- `__loop323`, window 0. -/
+theorem w789_0 : shareWin 789 (snapsOf 789) 0 = true := by decide +kernel
 
-theorem ok758 : ShareOk 758 := ⟨st758, fun i hi ↦ by
-  have h : (snapsOf 758).length = 0 := by decide +kernel
+theorem ok789 : ShareOk 789 := ⟨st789, fun i hi ↦ by
+  have h : (snapsOf 789).length = 0 := by decide +kernel
   obtain rfl : i = 0 := by omega
-  exact w758_0⟩
+  exact w789_0⟩
+
+set_option maxRecDepth 100000 in
+/-- `__loop324`, once. -/
+theorem st790 : shareStatic 790 = true := by decide +kernel
+
+set_option maxRecDepth 100000 in
+/-- `__loop324`, window 0. -/
+theorem w790_0 : shareWin 790 (snapsOf 790) 0 = true := by decide +kernel
+
+theorem ok790 : ShareOk 790 := ⟨st790, fun i hi ↦ by
+  have h : (snapsOf 790).length = 0 := by decide +kernel
+  obtain rfl : i = 0 := by omega
+  exact w790_0⟩
 
 end
 end LeanVM.Guest.B2C.Shared

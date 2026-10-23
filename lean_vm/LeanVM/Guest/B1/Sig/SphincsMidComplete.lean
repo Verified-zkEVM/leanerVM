@@ -114,7 +114,8 @@ theorem sMid_complete (hm : MemOK rd 256) {bb : E} (hbb : ByteBits rd bb) (σ : 
     (hd : (digestScalars (keccak256 ((cellsBytes (σ (.n 162) :: σ (.n 164) ::
       (List.range 16).map (sT σ) ++ [eOfNat ctr])).take 292))).1 = lit N) :
     Completes C rd sB (sEnc.2.1 + 10) sMid σ (fun σ' => σ' (.n sFb.2.1) = eOfNat ctr ∧
-      σ' (.n sEnc.2.2) = lit N ∧ SGood sEnc.2.1 σ') := by
+      σ' (.n sEnc.2.2) = lit N ∧ SGood sEnc.2.1 σ' ∧
+      ∀ j < 4, σ' (.n (sB + j)) = ofK (gpow (ctrByte ctr j))) := by
   have hB := sB_ge
   obtain ⟨f1, f2, f3⟩ := sFb_shape
   -- the encoding's cells and bounds
@@ -217,7 +218,11 @@ theorem sMid_complete (hm : MemOK rd 256) {bb : E} (hbb : ByteBits rd bb) (σ : 
   -- the powers
   refine Completes.seq (m := sEnc.2.1 + 10) (csts_seq sEnc.2.1 (fun s => word (2 ^ s) 0 0) 10) le_rfl
     (fun σ6 he6 hh6 => ?_)
-  refine ⟨σ6, Ext.refl _ _ _, ⟨?_, ?_, ?_⟩, fun _ _ hn => hn⟩
+  refine ⟨σ6, Ext.refl _ _ _, ⟨?_, ?_, ?_, fun j hj => ?_⟩, fun _ _ hn => hn⟩
+  rotate_left 3
+  · rw [he6.apply (Or.inl (by omega)), tr5 _ (by omega), he4.apply (Or.inl (by omega)),
+      he3.apply (Or.inl (by omega))]
+    exact hbyte j hj
   · rw [he6.apply (Or.inl (by omega))]; exact hx5
   · rw [he6.apply (Or.inl (by omega))]; exact henc
   · have tr6 : ∀ k < sB, σ6 (.n k) = σ (.n k) := fun k hk => by

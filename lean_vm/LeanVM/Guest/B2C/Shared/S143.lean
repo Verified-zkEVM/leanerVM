@@ -14,8 +14,8 @@ namespace LeanVM.Guest.B2C.Shared
 @[expose] public section
 
 set_option maxRecDepth 100000 in
-/-- `verify_lean_xmss`, window 19. -/
-theorem w20_19 : shareWin 20 (snapsOf 20) 19 = true := by decide +kernel
+/-- `verify_lean_xmss`, window 21. -/
+theorem w20_21 : shareWin 20 (snapsOf 20) 21 = true := by decide +kernel
 
 end
 end LeanVM.Guest.B2C.Shared

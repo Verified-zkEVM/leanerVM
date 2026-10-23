@@ -14,17 +14,30 @@ namespace LeanVM.Guest.B2C.Shared
 @[expose] public section
 
 set_option maxRecDepth 100000 in
-/-- `child_claim_list_last__L8`, once. -/
-theorem st351 : shareStatic 351 = true := by decide +kernel
+/-- `da_hash_roots__L6`, once. -/
+theorem st384 : shareStatic 384 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `child_claim_list_last__L8`, window 0. -/
-theorem w351_0 : shareWin 351 (snapsOf 351) 0 = true := by decide +kernel
+/-- `da_hash_roots__L6`, window 0. -/
+theorem w384_0 : shareWin 384 (snapsOf 384) 0 = true := by decide +kernel
 
-theorem ok351 : ShareOk 351 := ⟨st351, fun i hi ↦ by
-  have h : (snapsOf 351).length = 0 := by decide +kernel
+theorem ok384 : ShareOk 384 := ⟨st384, fun i hi ↦ by
+  have h : (snapsOf 384).length = 0 := by decide +kernel
   obtain rfl : i = 0 := by omega
-  exact w351_0⟩
+  exact w384_0⟩
+
+set_option maxRecDepth 100000 in
+/-- `da_hash_roots__L7`, once. -/
+theorem st385 : shareStatic 385 = true := by decide +kernel
+
+set_option maxRecDepth 100000 in
+/-- `da_hash_roots__L7`, window 0. -/
+theorem w385_0 : shareWin 385 (snapsOf 385) 0 = true := by decide +kernel
+
+theorem ok385 : ShareOk 385 := ⟨st385, fun i hi ↦ by
+  have h : (snapsOf 385).length = 0 := by decide +kernel
+  obtain rfl : i = 0 := by omega
+  exact w385_0⟩
 
 end
 end LeanVM.Guest.B2C.Shared

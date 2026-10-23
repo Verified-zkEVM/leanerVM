@@ -14,43 +14,30 @@ namespace LeanVM.Guest.B2C.Shared
 @[expose] public section
 
 set_option maxRecDepth 100000 in
-/-- `__loop148`, once. -/
-theorem st586 : shareStatic 586 = true := by decide +kernel
+/-- `__loop168`, once. -/
+theorem st612 : shareStatic 612 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `__loop148`, window 0. -/
-theorem w586_0 : shareWin 586 (snapsOf 586) 0 = true := by decide +kernel
+/-- `__loop168`, window 0. -/
+theorem w612_0 : shareWin 612 (snapsOf 612) 0 = true := by decide +kernel
 
-theorem ok586 : ShareOk 586 := ⟨st586, fun i hi ↦ by
-  have h : (snapsOf 586).length = 0 := by decide +kernel
+theorem ok612 : ShareOk 612 := ⟨st612, fun i hi ↦ by
+  have h : (snapsOf 612).length = 0 := by decide +kernel
   obtain rfl : i = 0 := by omega
-  exact w586_0⟩
+  exact w612_0⟩
 
 set_option maxRecDepth 100000 in
-/-- `opening_queries__L0_L1_L64_L32_L23_L7`, once. -/
-theorem st587 : shareStatic 587 = true := by decide +kernel
+/-- `__loop169`, once. -/
+theorem st613 : shareStatic 613 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `opening_queries__L0_L1_L64_L32_L23_L7`, window 0. -/
-theorem w587_0 : shareWin 587 (snapsOf 587) 0 = true := by decide +kernel
+/-- `__loop169`, window 0. -/
+theorem w613_0 : shareWin 613 (snapsOf 613) 0 = true := by decide +kernel
 
-theorem ok587 : ShareOk 587 := ⟨st587, fun i hi ↦ by
-  have h : (snapsOf 587).length = 0 := by decide +kernel
+theorem ok613 : ShareOk 613 := ⟨st613, fun i hi ↦ by
+  have h : (snapsOf 613).length = 0 := by decide +kernel
   obtain rfl : i = 0 := by omega
-  exact w587_0⟩
-
-set_option maxRecDepth 100000 in
-/-- `__loop149`, once. -/
-theorem st588 : shareStatic 588 = true := by decide +kernel
-
-set_option maxRecDepth 100000 in
-/-- `__loop149`, window 0. -/
-theorem w588_0 : shareWin 588 (snapsOf 588) 0 = true := by decide +kernel
-
-theorem ok588 : ShareOk 588 := ⟨st588, fun i hi ↦ by
-  have h : (snapsOf 588).length = 0 := by decide +kernel
-  obtain rfl : i = 0 := by omega
-  exact w588_0⟩
+  exact w613_0⟩
 
 end
 end LeanVM.Guest.B2C.Shared

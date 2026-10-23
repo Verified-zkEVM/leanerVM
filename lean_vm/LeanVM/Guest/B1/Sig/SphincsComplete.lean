@@ -57,7 +57,8 @@ def SFinal (rd : Reader) (σ : Val) (Pc m0 m1 rho : E) (sig : Sphincs.Signature)
     (∃ Ncw, (∀ q ≤ 21, σ (.n (cwState sW (sEnc.2.1 + 10) q).2.2) = ofK (gpow (nDigits 21 Ncw q))) ∧
       ∀ i < 64, σ (cwPos sW 21 (sEnc.2.1 + 10) (nDigits 21 Ncw) i) = sVals sig i) ∧
     (∀ l < 26, mSib σ sBit l (mBase sNodeOf 0 l sLeaf.2.1) = sSibs sig l) ∧
-    IsCanonical128 (σ sMk.2.2)
+    IsCanonical128 (σ sMk.2.2) ∧
+    ∀ j < 4, σ (.n (sB + j)) = ofK (gpow (ctrByte ctr j))
 
 theorem sPre_bounds : 206 ≤ sB ∧ sB ≤ sEnc.2.1 + 10 ∧ sEnc.2.1 + 10 ≤ sMk.2.1 := by
   have := sB_ge
@@ -81,7 +82,8 @@ theorem sBack_stage (hm : MemOK rd 256) {bb : E} (hbb : ByteBits rd bb) (sig : S
       (∀ q ≤ 21, σ' (.n (cwState sW (sEnc.2.1 + 10) q).2.2) = ofK (gpow (nDigits 21 Ncw q))) ∧
       (∀ i < 64, σ' (cwPos sW 21 (sEnc.2.1 + 10) (nDigits 21 Ncw) i) = sVals sig i) ∧
       (∀ l < 26, mSib σ' sBit l (mBase sNodeOf 0 l sLeaf.2.1) = sSibs sig l) ∧
-      IsCanonical128 (σ' sMk.2.2)) := by
+      IsCanonical128 (σ' sMk.2.2) ∧
+      ∀ j < 4, σ' (.n (sB + j)) = ofK (gpow (ctrByte (sig.layers topLayer).counter.toNat j))) := by
   obtain ⟨hB, hBE, hEM⟩ := sPre_bounds
   have hpre := sPrologue_sound hp.atoms
   have hn0 : IsCanonical128 (σ2 (sNode 0)) := by
@@ -91,7 +93,7 @@ theorem sBack_stage (hm : MemOK rd 256) {bb : E} (hbb : ByteBits rd bb) (sig : S
     (sMid_complete hm hbb σ2 h1 hP hn0 (by rw [hpre.top0]; exact hP)
       (by rw [hpre.top1]; exact canon_add hn0 (canon_word _ _)) (sT_canon hpost) hpre.pad
       (sig.layers topLayer).counter.isLt hd) (fun σ3 he3 hp3 => ?_)
-  obtain ⟨m1', m2', m3'⟩ := hp3
+  obtain ⟨m1', m2', m3', m4'⟩ := hp3
   have hag : AgreeBelow sB σ2 σ3 := he3.agree
   have hp3 := hp.frame (hag.mono hB)
   have hpre3 := sPrologue_sound hp3.atoms
@@ -103,7 +105,9 @@ theorem sBack_stage (hm : MemOK rd 256) {bb : E} (hbb : ByteBits rd bb) (sig : S
   obtain ⟨b1, -, -⟩ := sEnd_bounds
   have hfb : sFb.2.1 < sEnc.2.1 + 10 := by
     obtain ⟨f1, -, -⟩ := sFb_shape; obtain ⟨e1, -⟩ := sEnc_ge; omega
-  exact ⟨σ4, he4, ⟨by rw [he4.apply (Or.inl hfb)]; exact m1', k1, k2, k3, hc4⟩, hh4⟩
+  exact ⟨σ4, he4, ⟨by rw [he4.apply (Or.inl hfb)]; exact m1', k1, k2, k3, hc4,
+    fun j hj => by
+      rw [he4.apply (Or.inl (by obtain ⟨e1, -⟩ := sEnc_ge; omega))]; exact m4' j hj⟩, hh4⟩
 
 theorem sCellPairVal_cellOf128 (m : Sphincs.Message) :
     cellPairVal (cellOf128 (m.extractLsb' 0 128)) (cellOf128 (m.extractLsb' 128 128)) = m := by
@@ -211,8 +215,8 @@ theorem sStages (hm : MemOK rd 256) {p bb : E} (hbb : ByteBits rd bb) (pk : Sphi
     (by rw [← hag2 1 (by norm_num), he1.apply (Or.inl (by norm_num))]; exact h1) hpost2
     (by rw [hpre2.top0, hp12.pp]; exact hlit) hs
   refine (hback.keep (Q := fun _ => True) (Q' := fun σ' => AgreeBelow sB σ2 σ') trivial
-    (fun σ' he _ => he.agree)).mono le_rfl le_rfl (fun σ4 ⟨⟨k0, k1, k2, k3, k4⟩, hag4⟩ => ?_)
-  exact ⟨hp12.frame (hag4.mono hB), fun k hk => ⟨_, _, hp2 σ4 hag4 k hk⟩, k0, ⟨_, k1, k2⟩, k3, k4⟩
+    (fun σ' he _ => he.agree)).mono le_rfl le_rfl (fun σ4 ⟨⟨k0, k1, k2, k3, k4, k5⟩, hag4⟩ => ?_)
+  exact ⟨hp12.frame (hag4.mono hB), fun k hk => ⟨_, _, hp2 σ4 hag4 k hk⟩, k0, ⟨_, k1, k2⟩, k3, k4, k5⟩
 
 /-- **The root the final valuation reaches is the key's.** -/
 theorem sRoot_final {pk : Sphincs.PublicKey} {m : Sphincs.Message} {sig : Sphincs.Signature}
@@ -222,7 +226,7 @@ theorem sRoot_final {pk : Sphincs.PublicKey} {m : Sphincs.Message} {sig : Sphinc
       (sig.layers topLayer).counter.toNat)
     (hh : Stmt.HoldsList C rd σ sPre True (fun _ => True)) :
     σ sMk.2.2 = cellOf128 pk.root := by
-  obtain ⟨hsp, hcp, hfb, ⟨Ncw, hdg, hst⟩, hsb, hcan⟩ := hf
+  obtain ⟨hsp, hcp, hfb, ⟨Ncw, hdg, hst⟩, hsb, hcan, -⟩ := hf
   have hpre := sPrologue_sound hsp.atoms
   have hNu : cellNat (σ (.n 18)) / 2 ^ 106 < 2 ^ 22 := by have := cellNat_lt (σ (.n 18)); omega
   have h161 : σ (.n 161) = σ (sNode 0) + word 0 (cellNat (σ (.n 18)) / 2 ^ 106 * 2 ^ 42) 0 := by
@@ -262,9 +266,23 @@ theorem sRoot_final {pk : Sphincs.PublicKey} {m : Sphincs.Message} {sig : Sphinc
   rw [← hr]
   exact (cellOf128_cellVal hcan).symm
 
-/-- **`verify_sig_lean_sphincs` is complete.** -/
-theorem verify_sig_lean_sphincs_complete_holds : verify_sig_lean_sphincs_complete_Spec := by
-  intro C rd p bb pk m sig hm hbb hat hv
+/-- **The valuation completeness builds**: its arguments, the body holding, and what the final
+valuation holds (for the loads' addresses, `SphincsLoads`). -/
+theorem sphincs_complete_val (C : CallRel) (rd : Reader) (p bb : E) (pk : Sphincs.PublicKey)
+    (m : Sphincs.Message) (sig : Sphincs.Signature) (hm : MemOK rd 256) (hbb : ByteBits rd bb)
+    (hat : ClaimAt rd p (cellOf128 pk.root) (cellOf128 pk.parameter) (cellOf128 (m.extractLsb' 0 128))
+      (cellOf128 (m.extractLsb' 128 128)))
+    (hv : Node.sphincsVerify pk m sig = true) :
+    ∃ σf : Val, σf (.n 0) = p ∧ σf (.n 1) = bb ∧
+      Stmt.HoldsList C rd σf Data.core20.body False (fun rs => rs = []) ∧
+      SFinal rd σf (cellOf128 pk.parameter) (cellOf128 (m.extractLsb' 0 128))
+        (cellOf128 (m.extractLsb' 128 128)) (cellOf128 sig.randomness) sig
+        (cellNat (hcell [cellOf128 pk.parameter, word (tw 12) 0 0, cellOf128 (m.extractLsb' 0 128),
+          cellOf128 (m.extractLsb' 128 128), cellOf128 sig.randomness]).1)
+        (cellNat (hcell [cellOf128 pk.parameter, word (tw 12) 0 0, cellOf128 (m.extractLsb' 0 128),
+          cellOf128 (m.extractLsb' 128 128), cellOf128 sig.randomness]).2)
+        (sig.layers topLayer).counter.toNat ∧
+      Stmt.HoldsList C rd σf sPre True (fun _ => True) := by
   obtain ⟨hldR, hldP, hldLo, hldHi⟩ := hat
   rw [sphincsVerify_SRoot] at hv
   obtain ⟨hB, hBE, hEM⟩ := sPre_bounds
@@ -278,7 +296,7 @@ theorem verify_sig_lean_sphincs_complete_holds : verify_sig_lean_sphincs_complet
   obtain ⟨σf, hef, hpf, hhf⟩ := sStages (C := C) hm hbb pk m sig hv σ0 i0 i1 hldP hldLo hldHi
   have hroot := sRoot_final hv hpf (hhf True _ trivial)
   refine ⟨σf, by rw [hef.apply (Or.inl (by norm_num))]; exact i0,
-    by rw [hef.apply (Or.inl (by norm_num))]; exact i1, ?_⟩
+    by rw [hef.apply (Or.inl (by norm_num))]; exact i1, ?_, hpf, hhf True _ trivial⟩
   rw [sBody_eq, sBody_split, sEnd_split]
   rw [show sPrologue ++ (sCs.1 ++ (sMid ++ (sCw.1 ++ (sEndPre ++ [loadS (.n sMk.2.1) (.n 0) 0,
       .atom (.assertEq sMk.2.2 (.n sMk.2.1)), .ret []])))) =
@@ -297,6 +315,12 @@ theorem verify_sig_lean_sphincs_complete_holds : verify_sig_lean_sphincs_complet
   · show σf sMk.2.2 + σf (.n sMk.2.1) = 0
     rw [hroot, hEf]
     exact e_add_self _
+
+/-- **`verify_sig_lean_sphincs` is complete.** -/
+theorem verify_sig_lean_sphincs_complete_holds : verify_sig_lean_sphincs_complete_Spec := by
+  intro C rd p bb pk m sig hm hbb hat hv
+  obtain ⟨σf, h0, h1, hb, -⟩ := sphincs_complete_val C rd p bb pk m sig hm hbb hat hv
+  exact ⟨σf, h0, h1, hb⟩
 
 end
 end LeanVM.Guest.B1.Sig
