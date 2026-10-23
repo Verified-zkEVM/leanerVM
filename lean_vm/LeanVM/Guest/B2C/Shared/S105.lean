@@ -17,5 +17,13 @@ set_option maxRecDepth 100000 in
 /-- `certify_placement`, window 7. -/
 theorem w16_7 : shareWin 16 (snapsOf 16) 7 = true := by decide +kernel
 
+set_option maxRecDepth 100000 in
+/-- `certify_placement`, window 8. -/
+theorem w16_8 : shareWin 16 (snapsOf 16) 8 = true := by decide +kernel
+
+set_option maxRecDepth 100000 in
+/-- `selector_tables`, once. -/
+theorem st17 : shareStatic 17 = true := by decide +kernel
+
 end
 end LeanVM.Guest.B2C.Shared

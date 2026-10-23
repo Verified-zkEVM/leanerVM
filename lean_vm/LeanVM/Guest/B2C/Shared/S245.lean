@@ -14,8 +14,8 @@ namespace LeanVM.Guest.B2C.Shared
 @[expose] public section
 
 set_option maxRecDepth 100000 in
-/-- `da_verify_cell`, window 2. -/
-theorem w28_2 : shareWin 28 (snapsOf 28) 2 = true := by decide +kernel
+/-- `da_vector_cell`, once. -/
+theorem st29 : shareStatic 29 = true := by decide +kernel
 
 end
 end LeanVM.Guest.B2C.Shared

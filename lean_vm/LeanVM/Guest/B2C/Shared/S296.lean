@@ -14,30 +14,30 @@ namespace LeanVM.Guest.B2C.Shared
 @[expose] public section
 
 set_option maxRecDepth 100000 in
-/-- `padding_weight__L4`, once. -/
-theorem st92 : shareStatic 92 = true := by decide +kernel
+/-- `padding_weight__L8`, once. -/
+theorem st96 : shareStatic 96 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `padding_weight__L4`, window 0. -/
-theorem w92_0 : shareWin 92 (snapsOf 92) 0 = true := by decide +kernel
+/-- `padding_weight__L8`, window 0. -/
+theorem w96_0 : shareWin 96 (snapsOf 96) 0 = true := by decide +kernel
 
-theorem ok92 : ShareOk 92 := ⟨st92, fun i hi ↦ by
-  have h : (snapsOf 92).length = 0 := by decide +kernel
+theorem ok96 : ShareOk 96 := ⟨st96, fun i hi ↦ by
+  have h : (snapsOf 96).length = 0 := by decide +kernel
   obtain rfl : i = 0 := by omega
-  exact w92_0⟩
+  exact w96_0⟩
 
 set_option maxRecDepth 100000 in
-/-- `padding_weight__L5`, once. -/
-theorem st93 : shareStatic 93 = true := by decide +kernel
+/-- `padding_weight__L9`, once. -/
+theorem st97 : shareStatic 97 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `padding_weight__L5`, window 0. -/
-theorem w93_0 : shareWin 93 (snapsOf 93) 0 = true := by decide +kernel
+/-- `padding_weight__L9`, window 0. -/
+theorem w97_0 : shareWin 97 (snapsOf 97) 0 = true := by decide +kernel
 
-theorem ok93 : ShareOk 93 := ⟨st93, fun i hi ↦ by
-  have h : (snapsOf 93).length = 0 := by decide +kernel
+theorem ok97 : ShareOk 97 := ⟨st97, fun i hi ↦ by
+  have h : (snapsOf 97).length = 0 := by decide +kernel
   obtain rfl : i = 0 := by omega
-  exact w93_0⟩
+  exact w97_0⟩
 
 end
 end LeanVM.Guest.B2C.Shared

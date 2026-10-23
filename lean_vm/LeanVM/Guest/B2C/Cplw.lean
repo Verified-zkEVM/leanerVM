@@ -49,7 +49,8 @@ public import LeanVM.Guest.B2C.Cplw.C18_0_0
 public import LeanVM.Guest.B2C.Cplw.C18_1_0
 public import LeanVM.Guest.B2C.Cplw.C18_2_0
 public import LeanVM.Guest.B2C.Cplw.C18_3_0
-public import LeanVM.Guest.B2C.Cplw.C18_4_0
+public import LeanVM.Guest.B2C.Cplw.C18_3_1
+public import LeanVM.Guest.B2C.Cplw.C18_3_2
 public import LeanVM.Guest.B2C.Cplw.C19_0_0
 public import LeanVM.Guest.B2C.Cplw.C19_1_0
 public import LeanVM.Guest.B2C.Cplw.C20_0_0
@@ -1267,7 +1268,7 @@ theorem ok16 : CplOk 16 := by
 
 theorem ok18 : CplOk 18 := by
   intro i hi k hk
-  have hc : (certOf 18).cuts.length = 4 := by decide +kernel
+  have hc : (certOf 18).cuts.length = 3 := by decide +kernel
   rw [hc] at hi
   interval_cases i
   · have hn : nParts 18 0 = 1 := by decide +kernel
@@ -1282,14 +1283,12 @@ theorem ok18 : CplOk 18 := by
     rw [hn] at hk
     interval_cases k
     · exact cw18_2_0
-  · have hn : nParts 18 3 = 1 := by decide +kernel
+  · have hn : nParts 18 3 = 3 := by decide +kernel
     rw [hn] at hk
     interval_cases k
     · exact cw18_3_0
-  · have hn : nParts 18 4 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw18_4_0
+    · exact cw18_3_1
+    · exact cw18_3_2
 
 theorem ok19 : CplOk 19 := by
   intro i hi k hk

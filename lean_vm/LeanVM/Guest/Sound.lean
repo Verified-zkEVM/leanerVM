@@ -19,7 +19,7 @@ The contracts are checker K's over `glob`: function `j`'s entry, `Check.Pre glob
   shorter than `n` (`checkWins_run` on its checked windows, `Checked.all_ok`). Each window after
   the first takes its memory bounds and semantic pairs from the statements before it: none but in
   `verify_sub` (function `19`), whose second window, before `check_opening_terminal`, takes the
-  bound of the `113` column logs `col_kappas` holds from `VsKnown`, over the exponent tables its
+  bound of the `99` column logs `col_kappas` holds from `VsKnown`, over the exponent tables its
   precondition carries.
 * `b2_main`: `main`'s relation from a halting run from its entry at `fp = 1`, the jump table
   written. Its second window starts after `exponent_tables`, whose returns it knows to be the
@@ -45,13 +45,13 @@ open LeanVM.Guest.Exec
 
 /-- **`verify_sub`'s obligation** (B1's): on every memory image, over the exponent tables at
 `verify_sub`'s arguments `4`, `5`, its first `2098` statements, up to its call of
-`check_opening_terminal`, put the `113` entries of `col_kappas` (the value `1889`) among the `29`
+`check_opening_terminal`, put the `99` entries of `col_kappas` (the value `1889`) among the `29`
 arms of `column_selector`. -/
 def VsKnown : Prop :=
   ∀ {κ : ℕ} (L : MemImage κ), minLogMem ≤ κ → κ ≤ maxLogMem → ∀ σ : Val,
     B1.ExpTables L.read (σ (.n 4)) (σ (.n 5)) →
     Stmt.HoldsList (coreProgram.Rel L.read) L.read σ ((coreOf 19).body.take 2098) True (fun _ ↦ True) →
-      ∀ c < 113, ∃ e < 29, LoadHolds L.read (σ (.n 1889)) c (ofK (gpow e))
+      ∀ c < 99, ∃ e < 29, LoadHolds L.read (σ (.n 1889)) c (ofK (gpow e))
 
 /-- **`exponent_tables`' relation** (B1's): its two returned pointers hold the exponent tables. -/
 def ExpTablesSound : Prop :=
