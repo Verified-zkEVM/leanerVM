@@ -198,7 +198,7 @@ theorem point_push_boolVec {j : ℕ} (hj : j < n) (c : Vector F j) (a : F)
 highest coordinate, as tables of the round's coordinate and the free ones below it. -/
 def boundTables (V : Virtual F X O W n m) (ctx : SumcheckRound.Ctx X O W) {j : ℕ} (hj : j < n)
     (c : Vector F j) : Vector (CMlPolynomialEval F (n - (j + 1) + 1)) m :=
-  Vector.ofFn fun i ↦ bindHighsBefore hj (V.tables ctx i) c
+  Vector.ofFn fun i ↦ bindHighsNext hj (V.tables ctx i) c
 
 /-- The next claim with the round's coordinate at `a`, from tables bound to the challenges: the
 weighted fold, over the free coordinates, of the formula at the point and at the bound tables'
@@ -225,7 +225,7 @@ theorem claimFolded_boundTables (V : Virtual F X O W n m) (wt : CoordWeights F X
   intro i hi
   simp only [Vector.getElem_ofFn, boundTables]
   rw [point_push_boolVec hj c a ⟨x, hx⟩, evalMle_cast_point, evalMle_push_append_boolVec,
-    Fin.getElem_fin, Vector.getElem_ofFn, bindHighsBefore]
+    Fin.getElem_fin, Vector.getElem_ofFn, bindHighsNext]
 
 /-- The honest round polynomial, from tables bound once to the challenges: what the compiled
 prover runs for `roundPoly`. -/

@@ -166,9 +166,9 @@ def normRoundFolded {n : ℕ} (tA tB tC : CMlPolynomialEval F n) (r : Vector F n
     (c : Vector F j) : Message F 2 :=
   if hj : j < n then
     let L := lagrangeBasis (r.drop (j + 1))
-    let a := bindLowsBefore hj tA c
-    let b := bindLowsBefore hj tB c
-    let e := bindLowsBefore hj tC c
+    let a := bindLowsNext hj tA c
+    let b := bindLowsNext hj tB c
+    let e := bindLowsNext hj tC c
     let s := sumFin fun x : Fin (2 ^ (n - (j + 1))) ↦
       let i0 := 2 * x.val
       have h0 : i0 < 2 ^ (n - (j + 1) + 1) := by have := two_mul_add_one_lt x.isLt; omega
@@ -191,11 +191,11 @@ def normRoundFolded {n : ℕ} (tA tB tC : CMlPolynomialEval F n) (r : Vector F n
   by_cases hj : j < n
   · have h0 : ∀ (t : CMlPolynomialEval F n) (x : Fin (2 ^ (n - (j + 1)))),
         evalMle t ((fixLow hj (c.push 0) (boolVec x)).set j 0 hj) =
-          (bindLowsBefore hj t c)[2 * x.val]'(by have := two_mul_add_one_lt x.isLt; omega) :=
+          (bindLowsNext hj t c)[2 * x.val]'(by have := two_mul_add_one_lt x.isLt; omega) :=
       fun t x ↦ by rw [← fixLow_push_set, evalMle_fixLow_push_zero]
     have h1 : ∀ (t : CMlPolynomialEval F n) (x : Fin (2 ^ (n - (j + 1)))),
         evalMle t ((fixLow hj (c.push 0) (boolVec x)).set j 1 hj) =
-          (bindLowsBefore hj t c)[2 * x.val + 1]'(two_mul_add_one_lt x.isLt) :=
+          (bindLowsNext hj t c)[2 * x.val + 1]'(two_mul_add_one_lt x.isLt) :=
       fun t x ↦ by rw [← fixLow_push_set, evalMle_fixLow_push_one]
     simp only [normRound, normRoundFolded, hj, dite_true, sumFin_eq_sum, Prod.fst_sum,
       Prod.snd_sum, h0, h1]
@@ -205,8 +205,8 @@ def normRoundFolded {n : ℕ} (tA tB tC : CMlPolynomialEval F n) (r : Vector F n
 def highRoundFolded {s m : ℕ} (M Z : CMlPolynomialEval F (s + m)) (j : ℕ) (c : Vector F j) :
     Message F 2 :=
   if hj : j < m then
-    let Ms := Vector.ofFn fun i : Fin (2 ^ s) ↦ bindHighsBefore hj (sliceLow M i) c
-    let Zs := Vector.ofFn fun i : Fin (2 ^ s) ↦ bindHighsBefore hj (sliceLow Z i) c
+    let Ms := Vector.ofFn fun i : Fin (2 ^ s) ↦ bindHighsNext hj (sliceLow M i) c
+    let Zs := Vector.ofFn fun i : Fin (2 ^ s) ↦ bindHighsNext hj (sliceLow Z i) c
     let tot := sumFin fun x : Fin (2 ^ (m - (j + 1))) ↦ sumFin fun i : Fin (2 ^ s) ↦
       have h0 : x.val < 2 ^ (m - (j + 1) + 1) := lt_two_pow_succ_of_lt x.isLt
       have h1 : x.val + 2 ^ (m - (j + 1)) < 2 ^ (m - (j + 1) + 1) := add_two_pow_lt x.isLt
@@ -225,11 +225,11 @@ def highRoundFolded {s m : ℕ} (M Z : CMlPolynomialEval F (s + m)) (j : ℕ) (c
   · have hk : m - (j + 1) < m := by omega
     have h0 : ∀ (t : CMlPolynomialEval F m) (x : Fin (2 ^ (m - (j + 1)))),
         evalMle t ((highFix hj (c.push 0) (boolVec x)).set (m - (j + 1)) 0 hk) =
-          (bindHighsBefore hj t c)[x.val]'(lt_two_pow_succ_of_lt x.isLt) :=
+          (bindHighsNext hj t c)[x.val]'(lt_two_pow_succ_of_lt x.isLt) :=
       fun t x ↦ by rw [← highFix_push_set, evalMle_highFix_push_zero]
     have h1 : ∀ (t : CMlPolynomialEval F m) (x : Fin (2 ^ (m - (j + 1)))),
         evalMle t ((highFix hj (c.push 0) (boolVec x)).set (m - (j + 1)) 1 hk) =
-          (bindHighsBefore hj t c)[x.val + 2 ^ (m - (j + 1))]'(add_two_pow_lt x.isLt) :=
+          (bindHighsNext hj t c)[x.val + 2 ^ (m - (j + 1))]'(add_two_pow_lt x.isLt) :=
       fun t x ↦ by rw [← highFix_push_set, evalMle_highFix_push_one]
     simp only [highRound, highRoundFolded, hj, dite_true, sumFin_eq_sum, Prod.fst_sum,
       Prod.snd_sum, h0, h1, Fin.getElem_fin, Vector.getElem_ofFn]

@@ -2,8 +2,8 @@
   LeanerVM.Protocol.ToCompPoly.TableFold
 
   Binding the coordinates of a hypercube table to values one at a time, from the highest or from
-  the lowest, and weighted sums over the cube by halving a table of values: the linear-time steps
-  of a sumcheck prover, each proved equal to the evaluation it replaces. Candidate for CompPoly.
+  the lowest, and weighted sums over the cube by halving a table of values: linear-time
+  evaluations, each proved equal to the evaluation it replaces. Candidate for CompPoly.
 -/
 
 module
@@ -16,9 +16,9 @@ public import LeanerVM.Protocol.ToCompPoly.WeightedCube
 /-!
 # Folding hypercube tables
 
-A sumcheck prover that evaluates a table's multilinear extension afresh at every point of the
-cube pays `2 ^ n` per point. Binding once the coordinates the challenges have fixed, and reading
-the bound table at the remaining Boolean points, pays `2 ^ n` for all of them. Over an arbitrary
+Evaluating a table's multilinear extension afresh at every point of a subcube, the other
+coordinates fixed, costs `2 ^ n` per point. Binding the fixed coordinates once, and reading the
+bound table at the subcube's Boolean points, costs `2 ^ n` for all of them. Over an arbitrary
 commutative ring, on CompPoly's tables (`CMlPolynomialEval R n`, bit `k` of the index being
 coordinate `k`):
 
@@ -32,9 +32,9 @@ coordinate `k`):
   one product instead of two (`bindLow_eq_evalMleLayer`); `bindLows t s` binds the low
   coordinates to `s`, lowest first (`evalMle_append_eq_bindLows`), and
   `evalMle_fixLow_push_boolVec` is the low mirror of `evalMle_push_append_boolVec`.
-* **Bound before a round.** `bindLowsBefore` and `bindHighsBefore` bind a table to a round's
-  challenges, lowest or highest first, as a table of the round's coordinate and the free ones;
-  the extension at the round's coordinate `0` or `1` and a Boolean point is one entry
+* **Bound up to the next coordinate.** `bindLowsNext` and `bindHighsNext` bind a table's low or
+  top `j` coordinates to `c`, as a table of the next coordinate and the free ones beyond it; the
+  extension at `c`, the next coordinate `0` or `1` and a Boolean point is one entry
   (`evalMle_fixLow_push_zero`, `evalMle_highFix_push_one`, …).
 * **Sums.** `weightFold w v` is the weighted sum `Σ_x (∏_k w_k(x_k)) · v[x]` of a table of values,
   by halving from the highest coordinate (`weightFold_eq_sum`), so that the weighted sum of a
@@ -262,24 +262,24 @@ theorem evalMle_fixLow_push_boolVec {n j : ℕ} (hj : j < n) (t : CMlPolynomialE
   rw [hp, evalMle_cast_point, evalMle_append_eq_bindLows, evalMle_cons, evalMle_boolVec, bindLow,
     Fin.getElem_fin, Vector.getElem_ofFn]
 
-/-! ## Bound before a round
+/-! ## Bound up to the next coordinate
 
-A sumcheck round binding one coordinate reads every table at the round's coordinate and the
-Boolean points of the free ones, the challenges fixed. Bound once to the challenges, a table is a
-table of the round's coordinate and the free ones, and each such read is one or two entries. -/
+Reading a table's extension with `j` coordinates fixed to `c`, the next one at `0` or `1` and the
+rest Boolean: bound once to `c`, the table is a table of the next coordinate and the free ones
+beyond it, and each such read is one entry. -/
 
 /-- A table with its low `j` coordinates bound to `c`, lowest first, as a table of the next
 coordinate, `j`, and the `n - (j + 1)` above it. -/
-def bindLowsBefore {n j : ℕ} (hj : j < n) (t : CMlPolynomialEval R n) (c : Vector R j) :
+def bindLowsNext {n j : ℕ} (hj : j < n) (t : CMlPolynomialEval R n) (c : Vector R j) :
     CMlPolynomialEval R (n - (j + 1) + 1) :=
   bindLows (k := n - (j + 1) + 1) (Vector.cast (congrArg (2 ^ ·) (by omega)) t) c
 
-/-- The extension at the challenges, the next coordinate `0` and a Boolean point above is an even
-entry of the bound table. -/
+/-- The extension at `c`, the next coordinate `0` and a Boolean point above is an even entry of
+the bound table. -/
 theorem evalMle_fixLow_push_zero {n j : ℕ} (hj : j < n) (t : CMlPolynomialEval R n)
     (c : Vector R j) (x : Fin (2 ^ (n - (j + 1)))) :
     evalMle t (fixLow hj (c.push 0) (boolVec x)) =
-      (bindLowsBefore hj t c)[2 * x.val]'(by have := two_mul_add_one_lt x.isLt; omega) := by
+      (bindLowsNext hj t c)[2 * x.val]'(by have := two_mul_add_one_lt x.isLt; omega) := by
   rw [evalMle_fixLow_push_boolVec, bindLowAt, zero_mul, add_zero]
   rfl
 
@@ -287,19 +287,19 @@ theorem evalMle_fixLow_push_zero {n j : ℕ} (hj : j < n) (t : CMlPolynomialEval
 theorem evalMle_fixLow_push_one {n j : ℕ} (hj : j < n) (t : CMlPolynomialEval R n)
     (c : Vector R j) (x : Fin (2 ^ (n - (j + 1)))) :
     evalMle t (fixLow hj (c.push 1) (boolVec x)) =
-      (bindLowsBefore hj t c)[2 * x.val + 1]'(two_mul_add_one_lt x.isLt) := by
+      (bindLowsNext hj t c)[2 * x.val + 1]'(two_mul_add_one_lt x.isLt) := by
   rw [evalMle_fixLow_push_boolVec, bindLowAt, one_mul, add_sub_cancel]
   rfl
 
-/-- A table with its top `j` coordinates bound to `c`, the first challenge the highest
-coordinate, as a table of the next coordinate, `n - 1 - j`, and the `n - (j + 1)` below it. -/
-def bindHighsBefore {n j : ℕ} (hj : j < n) (t : CMlPolynomialEval R n) (c : Vector R j) :
+/-- A table with its top `j` coordinates bound to `c`, `c`'s first value the highest coordinate,
+as a table of the next coordinate, `n - 1 - j`, and the `n - (j + 1)` below it. -/
+def bindHighsNext {n j : ℕ} (hj : j < n) (t : CMlPolynomialEval R n) (c : Vector R j) :
     CMlPolynomialEval R (n - (j + 1) + 1) :=
   bindHighs (Vector.cast (congrArg (2 ^ ·) (by omega)) t) c.reverse
 
 omit [CommRing R] in
-/-- The point that completes the challenges and the next coordinate `a` with the Boolean point
-`x`: `x`, then `a`, then the challenges from the last drawn to the first. -/
+/-- The point with the top coordinates `c` (the first the highest), the next coordinate `a` and
+the low ones `x`: `x`, then `a`, then `c` reversed. -/
 theorem highFix_push_append {n j : ℕ} (hj : j < n) (c : Vector R j) (a : R)
     (x : Vector R (n - (j + 1))) :
     highFix (Nat.succ_le_of_lt hj) (c.push a) x =
@@ -318,26 +318,26 @@ theorem highFix_push_append {n j : ℕ} (hj : j < n) (c : Vector R j) (a : R)
       congr 1
       omega
 
-/-- The extension at a Boolean point below the next coordinate `a` and the challenges above is an
-entry of the line through two entries of the bound table. -/
+/-- The extension at a Boolean point below the next coordinate `a` and `c` above is an entry of
+the line through two entries of the bound table. -/
 theorem evalMle_highFix_push_boolVec {n j : ℕ} (hj : j < n) (t : CMlPolynomialEval R n)
     (c : Vector R j) (a : R) (x : Fin (2 ^ (n - (j + 1)))) :
     evalMle t (highFix (Nat.succ_le_of_lt hj) (c.push a) (boolVec x)) =
-      bindHighAt (bindHighsBefore hj t c) a x := by
-  rw [highFix_push_append hj, evalMle_cast_point, evalMle_push_append_boolVec, bindHighsBefore]
+      bindHighAt (bindHighsNext hj t c) a x := by
+  rw [highFix_push_append hj, evalMle_cast_point, evalMle_push_append_boolVec, bindHighsNext]
 
 /-- At the next coordinate `0`: an entry of the low half of the bound table. -/
 theorem evalMle_highFix_push_zero {n j : ℕ} (hj : j < n) (t : CMlPolynomialEval R n)
     (c : Vector R j) (x : Fin (2 ^ (n - (j + 1)))) :
     evalMle t (highFix (Nat.succ_le_of_lt hj) (c.push 0) (boolVec x)) =
-      (bindHighsBefore hj t c)[x.val]'(lt_two_pow_succ_of_lt x.isLt) := by
+      (bindHighsNext hj t c)[x.val]'(lt_two_pow_succ_of_lt x.isLt) := by
   rw [evalMle_highFix_push_boolVec, bindHighAt, zero_mul, add_zero]
 
 /-- At the next coordinate `1`: the entry of the high half. -/
 theorem evalMle_highFix_push_one {n j : ℕ} (hj : j < n) (t : CMlPolynomialEval R n)
     (c : Vector R j) (x : Fin (2 ^ (n - (j + 1)))) :
     evalMle t (highFix (Nat.succ_le_of_lt hj) (c.push 1) (boolVec x)) =
-      (bindHighsBefore hj t c)[x.val + 2 ^ (n - (j + 1))]'(add_two_pow_lt x.isLt) := by
+      (bindHighsNext hj t c)[x.val + 2 ^ (n - (j + 1))]'(add_two_pow_lt x.isLt) := by
   rw [evalMle_highFix_push_boolVec, bindHighAt, one_mul, add_sub_cancel]
 
 /-! ## Sums -/

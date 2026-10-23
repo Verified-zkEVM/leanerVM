@@ -14,6 +14,7 @@ public import LeanerVM.Protocol.ToArkLib.SampleChallenge
 public import LeanerVM.Protocol.ToArkLib.SendChecked
 public import LeanerVM.Protocol.ToArkLib.PassThrough
 public import CompPoly.Univariate.ToPoly.Impl
+public import LeanerVM.Protocol.ToCompPoly.FinLoop
 
 /-!
 # A sumcheck round
@@ -70,22 +71,6 @@ open CompPoly OracleComp OracleSpec ProtocolSpec
 open scoped NNReal
 
 @[expose] public section
-
-/-- `Σ_i x ^ i · f i` by Horner's rule: `f 0 + x · (f 1 + x · (…))`. -/
-def hornerFin {R : Type*} [CommRing R] {n : ℕ} (f : Fin n → R) (x : R) : R :=
-  Fin.foldr n (fun i acc ↦ f i + x * acc) 0
-
-/-- Horner's rule is the sum of the powers. -/
-theorem hornerFin_eq_sum {R : Type*} [CommRing R] : {n : ℕ} → (f : Fin n → R) → (x : R) →
-    hornerFin f x = ∑ i : Fin n, x ^ i.val * f i
-  | 0, f, x => by simp [hornerFin]
-  | n + 1, f, x => by
-    rw [hornerFin, Fin.foldr_succ, ← hornerFin, hornerFin_eq_sum, Fin.sum_univ_succ,
-      Finset.mul_sum]
-    simp only [Fin.val_zero, pow_zero, one_mul, Fin.val_succ, pow_succ]
-    congr 1
-    refine Finset.sum_congr rfl fun i _ ↦ ?_
-    ring
 
 namespace SumcheckRound
 

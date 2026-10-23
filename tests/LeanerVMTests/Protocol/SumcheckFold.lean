@@ -1,5 +1,6 @@
 import LeanerVM.Protocol.ToArkLib.Flock.Rounds
 import LeanerVM.Protocol.ToArkLib.ProductSumcheck
+import LeanerVMTests.Protocol.Sumcheck
 import LeanerVMTests.Protocol.TableSumcheck
 
 /-!
@@ -22,7 +23,12 @@ every round of small instances, past the last round included:
   argument's zerocheck and lincheck rounds over `ℚ`;
 * the table sumcheck's formula (`formulaFast`) at Boolean points, a point that zeroes one table's
   weight and others; the sparse evaluation of a row polynomial against CompPoly's Horner
-  evaluator; `SumcheckRound.evaluate` against the sum of its powers.
+  evaluator; `SumcheckRound.evaluate` against the sum of its powers;
+* the empty sizes: a summand on no variable, a single node (degree zero), and the loops on no
+  coordinate or term.
+
+The specification's round polynomial, the challenges and the empty context are the `Sumcheck`
+tests' (`specRoundPoly`, `firstChals`, `ctx`).
 
 A mutation shows that the order in which the challenges bind the coordinates is load-bearing:
 binding the tables in the order drawn, the first challenge on the lowest bound coordinate, misses
@@ -34,21 +40,7 @@ A plain file, so `#guard` evaluates the compiled definitions.
 namespace LeanerVMTests.Protocol.SumcheckFold
 
 open LeanerVM.Parameters LeanerVM.Protocol LeanerVM.Protocol.Sumcheck CompPoly CMlPolynomialEval
-
-/-- The specification's round polynomial: `roundPoly`'s body, compiled here, where it names
-`claim`, which no `@[csimp]` theorem replaces. -/
-def specRoundPoly {F : Type} [Field F] [BEq F] [LawfulBEq F] {X ι : Type} {O : ι → Type}
-    {W : Type} {n m d : ℕ} (V : Virtual F X O W n m) (wt : CoordWeights F X n)
-    (nodes : Fin (d + 1) → F) (ctx : SumcheckRound.Ctx X O W) (j : ℕ) (c : Vector F j) :
-    SumcheckRound.Message F d :=
-  if j < n then
-    SumcheckRound.ofCPolynomial d (CPolynomial.CLagrange.interpolate Finset.univ nodes
-      fun i ↦ claim V wt ctx (j + 1) (c.push (nodes i)))
-  else SumcheckRound.ofCPolynomial d 0
-
-/-- The first `j` of a list of challenges. -/
-def firstChals {F : Type} [Zero F] (cs : List F) (j : ℕ) : Vector F j :=
-  Vector.ofFn fun i ↦ cs.getD i.val 0
+open LeanerVMTests.Protocol.Sumcheck (ctx firstChals specRoundPoly)
 
 /-- The compiled prover and the specification agree at every round `0, …, n`. -/
 def agree {F : Type} [Field F] [BEq F] [LawfulBEq F] {X ι : Type} {O : ι → Type} {W : Type}
@@ -57,12 +49,6 @@ def agree {F : Type} [Field F] [BEq F] [LawfulBEq F] {X ι : Type} {O : ι → T
   (List.range (n + 1)).all fun j ↦
     (roundPoly V wt nodes ctx j (firstChals cs j)).toList ==
       (specRoundPoly V wt nodes ctx j (firstChals cs j)).toList
-
-/-- No oracle. -/
-def noO : ∀ i, NoOracle i := fun i ↦ i.elim0
-
-/-- The context with no public data, oracle or witness. -/
-def unitCtx : SumcheckRound.Ctx Unit NoOracle Unit := (((), noO), ())
 
 /-! ## Over `ℚ` -/
 
@@ -84,12 +70,31 @@ def qChals : List ℚ := [7, -2, 1 / 3, 5]
 /-- Weights that are neither unit nor an equality polynomial's. -/
 def qWeights : CoordWeights ℚ Unit 4 := fun _ k ↦ ((k.val + 1 : ℚ), (2 * k.val - 1 : ℚ))
 
-#guard agree qV unitWeights qNodes unitCtx qChals
-#guard agree qV (eqWeights fun _ ↦ #v[1 / 2, 2, -1, 3]) qNodes unitCtx qChals
-#guard agree qV qWeights qNodes unitCtx qChals
-#guard agree qV unitWeights qNodesRep unitCtx qChals
+#guard agree qV unitWeights qNodes ctx qChals
+#guard agree qV (eqWeights fun _ ↦ #v[1 / 2, 2, -1, 3]) qNodes ctx qChals
+#guard agree qV qWeights qNodes ctx qChals
+#guard agree qV unitWeights qNodesRep ctx qChals
 -- A round message is not trivially zero: the comparison sees the values.
-#guard (roundPoly qV unitWeights qNodes unitCtx 1 (firstChals qChals 1)).toList.any (· ≠ 0)
+#guard (roundPoly qV unitWeights qNodes ctx 1 (firstChals qChals 1)).toList.any (· ≠ 0)
+
+/-! ## Empty sizes -/
+
+/-- A summand on no variable: one table of one entry. -/
+def qV0 : Virtual ℚ Unit NoOracle Unit 0 1 where
+  tables := fun _ _ ↦ #v[5]
+  formula := fun _ _ v ↦ 2 * v[0] - 1
+
+-- No variable (`n = 0`): no round, the message past the end on both sides.
+#guard agree qV0 unitWeights qNodes ctx []
+-- One node (`d = 0`): the round polynomial is the constant next claim.
+#guard agree qV unitWeights ![(3 : ℚ)] ctx qChals
+#guard SumcheckRound.evaluate 0 (#v[(3 : ℚ)]) 9 = 3
+-- The loops at size zero (`k = 0`): the value at the empty point, the empty product, no term.
+#guard weightFold (k := 0) (fun i ↦ i.elim0) (#v[(7 : ℚ)]) = 7
+#guard prodWeightFast (k := 0) (fun i ↦ i.elim0) (#v[] : Vector ℚ 0) = 1
+#guard hornerFin (n := 0) (fun i ↦ i.elim0) (5 : ℚ) = 0
+-- The product sumcheck on no variable.
+#guard (ProductSum.roundPoly (n := 0) (#v[(2 : ℚ)]) (#v[3]) 0 #v[]).toList = [0, 0, 0]
 
 /-! ## Over `E` -/
 
@@ -109,7 +114,7 @@ def eV : Virtual E Unit NoOracle Unit 3 3 where
 
 def eChals : List E := [c, a + 1, b * c]
 
-#guard agree eV (eqWeights fun _ ↦ #v[a, b, c]) TableSumcheck.nodes unitCtx eChals
+#guard agree eV (eqWeights fun _ ↦ #v[a, b, c]) TableSumcheck.nodes ctx eChals
 
 -- The table sumcheck's summand on the two-table instance, at both rounds and past them.
 #guard agree (TableSumcheck.tableSummand TableSumcheck.twoTab) unitWeights TableSumcheck.nodes
@@ -221,16 +226,16 @@ def rowPoly : CPoly.CMvPolynomial 3 K :=
 on the lowest bound coordinate instead of the highest. -/
 def claimDrawnOrder {n m : ℕ} (V : Virtual ℚ Unit NoOracle Unit n m) (wt : CoordWeights ℚ Unit n)
     {j : ℕ} (hj : j < n) (c : Vector ℚ j) (x : ℚ) : ℚ :=
-  claimFolded V wt unitCtx hj c
-    (Vector.ofFn fun i ↦ bindHighs (Vector.cast (congrArg (2 ^ ·) (by omega)) (V.tables unitCtx i))
+  claimFolded V wt ctx hj c
+    (Vector.ofFn fun i ↦ bindHighs (Vector.cast (congrArg (2 ^ ·) (by omega)) (V.tables ctx i))
       c) x
 
 -- With the challenges reversed, as `boundTables` binds them, the folded claim is the next claim;
 -- in the order drawn, it is not.
-#guard claimFolded qV unitWeights unitCtx (j := 2) (by decide) (firstChals qChals 2)
-    (boundTables qV unitCtx (by decide) (firstChals qChals 2)) 4 =
-  claim qV unitWeights unitCtx 3 ((firstChals qChals 2).push 4)
+#guard claimFolded qV unitWeights ctx (j := 2) (by decide) (firstChals qChals 2)
+    (boundTables qV ctx (by decide) (firstChals qChals 2)) 4 =
+  claim qV unitWeights ctx 3 ((firstChals qChals 2).push 4)
 #guard claimDrawnOrder qV unitWeights (j := 2) (by decide) (firstChals qChals 2) 4 ≠
-  claim qV unitWeights unitCtx 3 ((firstChals qChals 2).push 4)
+  claim qV unitWeights ctx 3 ((firstChals qChals 2).push 4)
 
 end LeanerVMTests.Protocol.SumcheckFold

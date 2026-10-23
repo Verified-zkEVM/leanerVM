@@ -105,7 +105,7 @@ theorem `roundPoly_eq_roundPolyFolded`: each table is bound once to the challeng
 coordinate, as a table of the round's coordinate and the free ones above it. -/
 abbrev boundLow (T : CMlPolynomialEval F n) {j : ℕ} (hj : j < n) (c : Vector F j) :
     CMlPolynomialEval F (n - (j + 1) + 1) :=
-  bindLowsBefore hj T c
+  bindLowsNext hj T c
 
 /-- The honest round polynomial's three coefficients, from the tables bound to the challenges:
 one pass over the free coordinates, summing the products of the bound tables' entries. -/

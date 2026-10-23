@@ -588,9 +588,11 @@ fast paths. The sumcheck provers' round messages run on tables bound once to the
 `ProductSum.roundPoly_eq_roundPolyFolded`), and the table sumcheck's formula on precomputed
 offsets and powers (`TableSumcheck.formula_eq_formulaFast`, with the row polynomials evaluated by
 `LeanerVM.Protocol.ToCompPoly.SparseEval`). A round message is a function of the context and the
-challenges, so a prover binds its tables afresh each round: `m · 2 ^ n` per round, not `m · 2 ^ n`
-for the whole sumcheck. All are timed by the `leanervm-bench` executable
-([bench/README.md](../bench/README.md)).
+challenges, so a prover binds its tables afresh each round: `m · 2 ^ n` per round and
+`n · m · 2 ^ n` over the sumcheck, not `m · 2 ^ n`. The Flock rounds
+(`Flock.normRound_eq_normRoundFolded`, `Flock.highRound_eq_highRoundFolded`) and a round message's
+value (`SumcheckRound.evaluate_eq_evaluateHorner`) take the same route. All are timed by the
+`leanervm-bench` executable ([bench/README.md](../bench/README.md)).
 
 Rust FFI follows when a Lean caller needs a measured fast path and the ABI can be
 specified. CUDA follows when profiling identifies a stable parallel kernel boundary. A
