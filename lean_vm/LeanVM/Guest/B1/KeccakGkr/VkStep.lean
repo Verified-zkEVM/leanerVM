@@ -195,5 +195,189 @@ theorem laterWeights_low (lanes a6 : List E) (ha : a6.length = 6) {i : ℕ} (hi 
   simp only [show (0 % 5 + 1) % 5 = 1 from rfl, show (0 % 5 + 4) % 5 = 4 from rfl]
   rw [hs, Nat.mod_add_mod]
 
+/-! ## The flips -/
+
+theorem flipsT_noRet (s b : ℕ) (j : ℕ) :
+    Stmt.noRetList (flipT s ((iotaUsed s).getD j 0) (b + flipSz s * j)) = true := by
+  unfold flipT
+  split
+  · rfl
+  · rw [noRetList_append, noRetList_append, pairsDotT, noRetList_flatten_map _ (fun k ↦ by
+      split <;> rfl)]
+    rfl
+
+theorem flipOf_mem {s b i : ℕ} (hi : i ∈ iotaUsed s) :
+    flipOf s b i = flipV s b ((iotaUsed s).idxOf i) ∧ (iotaUsed s).idxOf i < (iotaUsed s).length ∧
+      (iotaUsed s).getD ((iotaUsed s).idxOf i) 0 = i := by
+  refine ⟨rfl, List.idxOf_lt_length_of_mem hi, ?_⟩
+  rw [List.getD_eq_getElem _ _ (List.idxOf_lt_length_of_mem hi), List.getElem_idxOf]
+
+/-- **The first claim's flips** (G:2866-2867): lane `0`'s weight times `x^(2^i - 1)`. -/
+theorem flipsT_holds0 {b : ℕ} {L0 : E} (hL : ∀ v, LoadHolds rd (σ (.n 274)) 30 v → v = L0)
+    {next : Prop} {kret : List E → Prop} (h : Stmt.HoldsList C rd σ (flipsT 0 b) next kret) :
+    (∀ i ∈ iotaUsed 0, σ (.n (flipOf 0 b i)) = L0 * gen ^ (2 ^ i - 1)) ∧ next := by
+  rw [flipsT, holdsList_range_flatten _ _ (flipsT_noRet 0 b)] at h
+  obtain ⟨hall, hn⟩ := h
+  refine ⟨fun i hi ↦ ?_, hn⟩
+  obtain ⟨e, hj, hgi⟩ := flipOf_mem (b := b) hi
+  have hb := hall _ hj
+  simp only [flipT, ↓reduceIte, Stmt.HoldsList, Stmt.Holds, Atom.Holds, and_true, hgi,
+    show flipSz 0 = 3 from rfl] at hb
+  obtain ⟨l, c, m⟩ := hb
+  have hi7 : i < 7 := by
+    have := List.mem_filter.1 hi; exact List.mem_range.1 this.1
+  have hz : 2 ^ i - 1 < 64 := by
+    have : 2 ^ i ≤ 2 ^ 6 := Nat.pow_le_pow_right (by norm_num) (by omega)
+    omega
+  rw [e, flipV, show flipSz 0 = 3 from rfl, show b + 3 * (iotaUsed 0).idxOf i + 3 - 1 =
+    b + 3 * (iotaUsed 0).idxOf i + 2 by omega, m, c, hL _ l, word_two_pow hz]
+
+theorem flipOffs_length (i : ℕ) : (flipOffs i).length = 11 := by
+  simp [flipOffs, List.length_flatMap]
+
+theorem flipOffs_lt (i : ℕ) : ∀ o ∈ flipOffs i, o.1 < 25 ∧ o.2 < 64 := by
+  intro o ho
+  simp only [flipOffs, List.mem_cons, List.mem_flatMap, List.mem_range, List.not_mem_nil,
+    or_false] at ho
+  rcases ho with rfl | ⟨y, hy, rfl | rfl⟩
+  · exact ⟨keccakPi_lt 0 (by norm_num), Nat.mod_lt _ (by norm_num)⟩
+  · exact ⟨keccakPi_lt _ (by omega), Nat.mod_lt _ (by norm_num)⟩
+  · exact ⟨keccakPi_lt _ (by omega), Nat.mod_lt _ (by norm_num)⟩
+
+theorem sum_map_getD {l : List (ℕ × ℕ)} (F : ℕ × ℕ → E) :
+    (l.map F).sum = ∑ k ∈ range l.length, F (l.getD k (0, 0)) := by
+  rw [list_sum_eq_range, List.length_map]
+  refine Finset.sum_congr rfl fun k hk ↦ ?_
+  have := Finset.mem_range.1 hk
+  rw [List.getD_eq_getElem _ _ (by simpa using this), List.getElem_map,
+    List.getD_eq_getElem _ _ this]
+
+/-- **A later claim's flips** (G:2868-2874): lane `0`'s weight at `2^i - 1` through `θ`'s
+transpose, from the claim's lanes and slices. -/
+theorem flipsT_holdsL {s b : ℕ} (hs : s ≠ 0) {lp sl : E} {lanes eZ : List E}
+    (hlp : LoadHolds rd (σ (.n 201)) (22 * s + 3) lp) (hsl : LoadHolds rd (σ (.n 201)) (22 * s + 5) sl)
+    (hlanes : ReadsAt rd lp lanes) (hlen : lanes.length = 25) (heZ : ReadsAt rd sl eZ)
+    (heL : eZ.length = 64) {next : Prop} {kret : List E → Prop}
+    (h : Stmt.HoldsList C rd σ (flipsT s b) next kret) :
+    (∀ i ∈ iotaUsed s, σ (.n (flipOf s b i)) =
+      ((flipOffs i).map fun o ↦ lanes.getD o.1 0 * eZ.getD o.2 0).sum) ∧ next := by
+  rw [flipsT, holdsList_range_flatten _ _ (flipsT_noRet s b)] at h
+  obtain ⟨hall, hn⟩ := h
+  refine ⟨fun i hi ↦ ?_, hn⟩
+  obtain ⟨e, hj, hgi⟩ := flipOf_mem (b := b) hi
+  have hb := hall _ hj
+  simp only [flipT, hs, ↓reduceIte, holdsList_append, Stmt.HoldsList, Stmt.Holds, Atom.Holds,
+    hgi, show flipSz s = 46 by simp [flipSz, hs]] at hb
+  obtain ⟨l1, l2, hb⟩ := hb
+  have eL := loadHolds_unique l1 hlp
+  have eS := loadHolds_unique l2 hsl
+  set B := b + 46 * (iotaUsed s).idxOf i with hB
+  obtain ⟨hd, hc⟩ := pairsDotT_holds (p := .n B) (q := .n (B + 1))
+    (P := fun k ↦ lanes.getD ((flipOffs i).getD k (0, 0)).1 0)
+    (Q := fun k ↦ eZ.getD ((flipOffs i).getD k (0, 0)).2 0) (fun k hk v hv ↦ by
+      have hlt := (flipOffs_lt i ((flipOffs i).getD k (0, 0)) (by rw [List.getD_eq_getElem _ _ hk]; exact List.getElem_mem hk)).1
+      rw [eL] at hv
+      rw [List.getD_eq_getElem _ _ (by omega)]
+      exact loadHolds_unique hv (hlanes _ (by omega)))
+    (fun k hk v hv ↦ by
+      have hlt := (flipOffs_lt i ((flipOffs i).getD k (0, 0)) (by rw [List.getD_eq_getElem _ _ hk]; exact List.getElem_mem hk)).2
+      rw [eS] at hv
+      rw [List.getD_eq_getElem _ _ (by omega)]
+      exact loadHolds_unique hv (heZ _ (by omega))) (by rw [flipOffs_length]; omega) hb
+  rw [flipOffs_length] at hd
+  rw [e, flipV, show flipSz s = 46 by simp [flipSz, hs], show b + 46 * (iotaUsed s).idxOf i + 46 - 1 =
+    B + 45 by omega, hc.1, hd, sum_map_getD, flipOffs_length]
+
+/-! ## The layer's call -/
+
+theorem dispatch_layer {first : ℕ} (hf : first < 2) {x : V} {o : ℕ} (ho : o < 2)
+    (hx : σ x = gen ^ o) {args rets : List E}
+    (hd : ∃ (j : ℕ) (h : j < [layerName first 0, layerName first 1].length),
+      σ x = ofK (gpow j) ∧ coreProgram.Rel rd [layerName first 0, layerName first 1][j] args rets) :
+    MeaningKeccakLayer first o rd args rets := by
+  obtain ⟨j, hj, e, hc⟩ := hd
+  simp only [List.length_cons, List.length_nil] at hj
+  rw [hx, gen_pow_eq_ofK] at e
+  have := gen_pow_inj (a := o) (b := j) (by omega) (by omega)
+    (by rw [gen_pow_eq_ofK, gen_pow_eq_ofK, e])
+  subst this
+  have hn : [layerName first 0, layerName first 1][o] = layerName first o := by
+    interval_cases o <;> rfl
+  rw [hn] at hc
+  exact keccak_layer_holds first hf o ho rd args rets hc
+
+/-! ## A later step -/
+
+theorem claimRec_loads {P : ℕ} {k : ℕ} {v : E} (h : LoadHolds rd (σ (.n 201) * gen ^ (22 * k)) P v) :
+    LoadHolds rd (σ (.n 201)) (22 * k + P) v := (loadHolds_mul_gen_pow rd _ _ _ _).1 h
+
+/-- **Step `s ≥ 1`** (G:2853-2886): the claim at `claims·g^(22 s)`, its `ι` term, and
+`keccak_layer` on it. -/
+theorem stepT_holdsL {s b : ℕ} (hs1 : 1 ≤ s) (hs : s < 12) {c0 c1 c2 c3 c4 cur : ℕ} {τ : ℕ}
+    (hτ1 : 9 ≤ τ) (hτ2 : τ ≤ 28) (h17 : σ (.n 17) = gen ^ (τ - 4))
+    (h43 : σ (.n 43) = gen ^ ((τ - 3) / 2)) (h47 : σ (.n 47) = gen ^ ((τ - 3) % 2))
+    (h48 : σ (.n 48) = gen ^ ((τ - 3) / 2 + (τ - 3) % 2)) {c : KeccakClaim}
+    (hcr : ClaimRec rd ((0 : ℕ) = 1) (σ (.n 201) * gen ^ (22 * s)) c (τ - 3))
+    {next : Prop} {kret : List E → Prop}
+    (h : Stmt.HoldsList (coreProgram.Rel rd) rd σ (stepT s b [c0, c1, c2, c3, c4] cur vkGw) next
+      kret) :
+    ∃ (xs : List E) (c' : KeccakClaim) (cap' : List E), ReadsAt rd (σ (.n cur)) xs ∧
+      RunsTo (verifyKeccakLayer τ s c) ⟨[σ (.n c0), σ (.n c1), σ (.n c2), σ (.n c3), σ (.n c4)], []⟩
+        xs c' ⟨cap', []⟩ ∧
+      ClaimRec rd ((0 : ℕ) = 1) (σ (.n 201) * gen ^ (22 * (s + 1))) c' (τ - 3) ∧
+      ((List.range 6).map fun j ↦ σ (.n (stepEnd s b - 6 + j))) = cap' ++ [σ (.n cur) * gen ^ xs.length] ∧
+      next := by
+  have hs0 : s ≠ 0 := by omega
+  obtain ⟨hmuL, hptL, hval, hkap, hmus, ⟨pp, hpp, hpt⟩, lp, lanes, hlp, hlen, hlanes, hrest⟩ := hcr
+  simp only [show ((0 : ℕ) = 1) = False by decide, decide_false, Bool.false_eq_true,
+    ↓reduceIte] at hrest
+  obtain ⟨lc, sl, loc, hlc, hlocL, hloc, hsl, hslices, hw⟩ := hrest
+  simp only [stepT, holdsList_append, Stmt.HoldsList, Stmt.Holds, Atom.Holds] at h
+  obtain ⟨lcp, -, ecp, h⟩ := h
+  have ecp' : σ (.n b) = pp := loadHolds_unique lcp (claimRec_loads hpp)
+  -- the segment weights
+  have hr : LoadHolds rd (σ (.n (b + 2))) (0 + 0) (c.point.getD (τ - 4) 0) := by
+    rw [ecp, ecp', h17, loadHolds_mul_gen_pow, List.getD_eq_getElem _ _ (by omega)]
+    exact hpt _ (by omega)
+  obtain ⟨hseg, h⟩ := eqtreeT_last (rs := [c.point.getD (τ - 4) 0]) (n := 1) le_rfl rfl
+    (fun t ht ↦ by obtain rfl : t = 0 := (by omega); simpa using hr) h
+  -- the flips
+  obtain ⟨hfl, h⟩ := flipsT_holdsL hs0 (claimRec_loads hlp) (claimRec_loads hsl) hlanes hlen
+    hslices (by simp [eqKernel_length, hlocL, keccakLocalBits]) h
+  -- the ι term
+  obtain ⟨hio, h⟩ := iotaSegT_holds (F := fun i ↦ c.weights.getD (2 ^ i - 1) 0)
+    (g0 := (eqKernel [c.point.getD (τ - 4) 0]).getD 0 0)
+    (g1 := (eqKernel [c.point.getD (τ - 4) 0]).getD 1 0) hs (fun i hi ↦ by
+      rw [hfl i hi, hw, laterWeights_low lanes (loc.take 6) (by simp [hlocL, keccakLocalBits])
+        (List.mem_range.1 (List.mem_filter.1 hi).1)])
+    (fun v hv ↦ loadHolds_unique hv (by simpa using hseg 0 (by norm_num)))
+    (fun v hv ↦ loadHolds_unique hv (by simpa using hseg 1 (by norm_num))) h
+  rw [← keccakIota_eq hs (by omega) hptL] at hio
+  -- the call
+  set T := iotaSegEnd s (b + 6 + flipSz s * (iotaUsed s).length) with hT
+  simp only [stepTailT, hs0, ↓reduceIte, Stmt.HoldsList, Stmt.Holds, Atom.Holds] at h
+  obtain ⟨z0, z1, e2, e3, e4, e5, e6, e7, e8, e9, hd, hn⟩ := h
+  have hyg : σ (.n (T + 3)) = gen ^ (τ - 3) := by
+    rw [e3, h17, e2, word_gen, ← pow_succ]; congr 1; omega
+  have hcl : σ (.n (T + 5)) = σ (.n 201) * gen ^ (22 * s) := by rw [e5, e4, vkGw_eq s hs1 hs]
+  have hout : σ (.n (T + 9)) = σ (.n 201) * gen ^ (22 * (s + 1)) := by
+    rw [e9, e7, e6, e8, vkGw_eq s hs1 hs, vkGw_eq 1 le_rfl (by omega), mul_assoc, ← pow_add]
+    congr 2
+  have hm := dispatch_layer (first := 0) (by omega) (o := (τ - 3) % 2) (by omega) h47 hd
+  simp only [List.map_cons, List.map_nil, List.map_append, z0, z1, word_zero, hyg, h43, h48, hcl,
+    hout, hio] at hm
+  simp only [MeaningKeccakLayer] at hm
+  obtain ⟨xs, c', cap', hxs, hrun, hcr', hrets⟩ := hm (τ - 3) s c 0 rfl (by omega) (by omega) rfl
+    rfl rfl ⟨hmuL, hptL, hval, hkap, hmus, ⟨pp, hpp, hpt⟩, lp, lanes, hlp, hlen, hlanes,
+      by simp only [show ((0 : ℕ) = 1) = False by decide, decide_false, Bool.false_eq_true,
+        ↓reduceIte]; exact ⟨lc, sl, loc, hlc, hlocL, hloc, hsl, hslices, hw⟩⟩
+    (fun h ↦ absurd h (by decide)) rfl
+  rw [show τ - 3 + 3 = τ by omega] at hrun
+  refine ⟨xs, c', cap', hxs, by simpa [plainStart] using hrun, hcr', ?_, hn⟩
+  rw [← hrets]
+  simp only [stepEnd, ← hT, stepTailSz, hs0, ↓reduceIte, List.range_succ, List.range_zero,
+    List.map_cons, List.map_nil, List.nil_append, List.map_append]
+  rfl
+
 end
 end LeanVM.Guest.B1.VerifySub
