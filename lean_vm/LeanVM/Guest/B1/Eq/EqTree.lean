@@ -165,5 +165,167 @@ theorem eqtree_sound {p o : V} {po b n : ℕ} (hn : 1 ≤ n)
           show 2 ^ (t + 1) - 2 + (2 ^ t + j) = 2 ^ (t + 1) - 2 + 2 ^ t + j by omega]
         exact w4
 
+/-! ## The honest values -/
+
+/-- The honest value at offset `o` of level `t ≥ 1`'s block: `r_t`, `1`, `1 + r_t`, then per word
+`e`, `e·(1 + r_t)`, `e·r_t`, `e` entry `i` of `eqKernel (rs.take t)`. -/
+def eqtreeLvlVal (rs : List E) (t o : ℕ) : E :=
+  if o = 0 then rs.getD t 0 else if o = 1 then 1 else if o = 2 then 1 + rs.getD t 0
+  else
+    let e := (eqKernel (rs.take t)).getD ((o - 3) / 3) 0
+    if (o - 3) % 3 = 0 then e else if (o - 3) % 3 = 1 then e * (1 + rs.getD t 0)
+    else e * rs.getD t 0
+
+theorem eqtreeLvlVal_word (rs : List E) (t i j : ℕ) (hj : j < 3) :
+    eqtreeLvlVal rs t (3 + 3 * i + j) =
+      [(eqKernel (rs.take t)).getD i 0, (eqKernel (rs.take t)).getD i 0 * (1 + rs.getD t 0),
+        (eqKernel (rs.take t)).getD i 0 * rs.getD t 0].getD j 0 := by
+  have e1 : (3 + 3 * i + j - 3) / 3 = i := by omega
+  have e2 : (3 + 3 * i + j - 3) % 3 = j := by omega
+  simp only [eqtreeLvlVal, show ¬ 3 + 3 * i + j = 0 by omega, show ¬ 3 + 3 * i + j = 1 by omega,
+    show ¬ 3 + 3 * i + j = 2 by omega, ↓reduceIte, e1, e2]
+  interval_cases j <;> simp
+
+/-- The honest valuation of `eqtreeT … b n` over `σ`, through level `m`. -/
+def eqtreeSig (σ : Val) (rs : List E) (b : ℕ) : ℕ → Val
+  | 0 => setv σ b 3 fun o ↦ [rs.getD 0 0, 1, 1 + rs.getD 0 0].getD o 0
+  | m + 1 => setv (eqtreeSig σ rs b m) (eqtreeS b (m + 1)) (3 + 3 * 2 ^ (m + 1))
+      (eqtreeLvlVal rs (m + 1))
+
+theorem eqtreeS_succ (b t : ℕ) (ht : 1 ≤ t) :
+    eqtreeS b (t + 1) = eqtreeS b t + 3 + 3 * 2 ^ t := by
+  unfold eqtreeS
+  have : 3 * 2 ^ (t + 1) = 3 * 2 ^ t + 3 * 2 ^ t := by rw [pow_succ]; ring
+  have h2 : 2 ≤ 2 ^ t := by
+    calc 2 = 2 ^ 1 := rfl
+      _ ≤ 2 ^ t := Nat.pow_le_pow_right (by decide) ht
+  omega
+
+theorem eqtreeS_one (b : ℕ) : eqtreeS b 1 = b + 3 := by simp [eqtreeS]
+
+theorem eqtreeS_mono (b : ℕ) {t u : ℕ} (ht : 1 ≤ t) (h : t ≤ u) : eqtreeS b t ≤ eqtreeS b u := by
+  induction u with
+  | zero => omega
+  | succ u ih =>
+    rcases Nat.lt_or_ge t (u + 1) with h' | h'
+    · rw [eqtreeS_succ b u (by omega)]; have := ih (by omega); omega
+    · rw [show t = u + 1 by omega]
+
+/-- Below `b` the valuation is `σ`'s. -/
+theorem eqtreeSig_lt (σ : Val) (rs : List E) (b : ℕ) : ∀ m k, k < b →
+    eqtreeSig σ rs b m (.n k) = σ (.n k)
+  | 0, k, hk => set_n_lt hk
+  | m + 1, k, hk => by
+    have h1 := eqtreeS_mono b (le_refl 1) (show 1 ≤ m + 1 by omega)
+    rw [eqtreeS_one] at h1
+    rw [eqtreeSig, set_n_lt (by omega), eqtreeSig_lt σ rs b m k hk]
+
+/-- The head's values. -/
+theorem eqtreeSig_head (σ : Val) (rs : List E) (b : ℕ) : ∀ m o, o < 3 →
+    eqtreeSig σ rs b m (.n (b + o)) = [rs.getD 0 0, 1, 1 + rs.getD 0 0].getD o 0
+  | 0, o, ho => by rw [eqtreeSig, set_n_in (by omega) (by omega), Nat.add_sub_cancel_left]
+  | m + 1, o, ho => by
+    have h1 := eqtreeS_mono b (le_refl 1) (show 1 ≤ m + 1 by omega)
+    rw [eqtreeS_one] at h1
+    rw [eqtreeSig, set_n_lt (by omega), eqtreeSig_head σ rs b m o ho]
+
+/-- Level `t`'s values, through any later level. -/
+theorem eqtreeSig_lvl (σ : Val) (rs : List E) (b : ℕ) : ∀ m t o, 1 ≤ t → t ≤ m →
+    o < 3 + 3 * 2 ^ t → eqtreeSig σ rs b m (.n (eqtreeS b t + o)) = eqtreeLvlVal rs t o
+  | 0, t, o, h1, h2, _ => absurd h2 (by omega)
+  | m + 1, t, o, h1, h2, ho => by
+    rw [eqtreeSig]
+    rcases Nat.lt_or_ge t (m + 1) with h | h
+    · have h3 := eqtreeS_mono b (show 1 ≤ t + 1 by omega) (show t + 1 ≤ m + 1 by omega)
+      rw [eqtreeS_succ b t h1] at h3
+      rw [set_n_lt (by omega), eqtreeSig_lvl σ rs b m t o h1 (by omega) ho]
+    · obtain rfl : t = m + 1 := by omega
+      rw [set_n_in (by omega) (by omega), Nat.add_sub_cancel_left]
+
+/-- **The honest values satisfy `eqtree`**: with the point's words at `p`, the run `o` holding
+every level's `eqKernel` entries, and the template's values those of `eqtreeSig`. -/
+theorem eqtreeT_complete {p o : V} {po b n : ℕ} (hn : 1 ≤ n) {rs : List E} (hrs : rs.length = n)
+    (hpt : ∀ t < n, LoadHolds rd (σ p) (po + t) (rs.getD t 0))
+    (hout : ∀ t, 1 ≤ t → t ≤ n → ∀ i < 2 ^ t,
+      LoadHolds rd (σ o) (2 ^ t - 2 + i) ((eqKernel (rs.take t)).getD i 0))
+    (hhead : ∀ k < 3, σ (.n (b + k)) = [rs.getD 0 0, 1, 1 + rs.getD 0 0].getD k 0)
+    (hlvl : ∀ t, 1 ≤ t → t < n → ∀ k < 3 + 3 * 2 ^ t,
+      σ (.n (eqtreeS b t + k)) = eqtreeLvlVal rs t k) :
+    ∀ a, Stmt.atom a ∈ eqtreeT p o po b n → a.Holds rd σ := by
+  intro a ha
+  have h0 : σ (.n b) = rs.getD 0 0 := hhead 0 (by omega)
+  have h1 : σ (.n (b + 1)) = 1 := hhead 1 (by omega)
+  have h2 : σ (.n (b + 2)) = 1 + rs.getD 0 0 := hhead 2 (by omega)
+  simp only [eqtreeT, List.mem_append, List.mem_cons, List.not_mem_nil, or_false,
+    List.mem_flatten, List.mem_map, List.mem_range] at ha
+  rcases ha with (h | h | h | h | h) | ⟨blk, ⟨t', ht', rfl⟩, hb⟩
+  all_goals try (obtain rfl := Stmt.atom.inj h)
+  · show LoadHolds rd (σ p) po (σ (.n b)); rw [h0]; simpa using hpt 0 (by omega)
+  · show σ (.n (b + 1)) = word 1 0 0; rw [h1, word_one]
+  · show σ (.n (b + 2)) = σ (.n (b + 1)) + σ (.n b); rw [h2, h1, h0]
+  · show LoadHolds rd (σ o) 0 (σ (.n (b + 2)))
+    have := hout 1 le_rfl hn 0 (by norm_num)
+    rcases rs with _ | ⟨r0, rest⟩
+    · simp at hrs; omega
+    simpa [h2, eqKernel] using this
+  · show LoadHolds rd (σ o) 1 (σ (.n b))
+    have := hout 1 le_rfl hn 1 (by norm_num)
+    rcases rs with _ | ⟨r0, rest⟩
+    · simp at hrs; omega
+    simpa [h0, eqKernel] using this
+  · -- a level
+    set t := t' + 1 with ht
+    have htn : t < n := by omega
+    set S := eqtreeS b t with hS
+    have v : ∀ k < 3 + 3 * 2 ^ t, σ (.n (S + k)) = eqtreeLvlVal rs t k := hlvl t (by omega) htn
+    have vr : σ (.n S) = rs.getD t 0 := by simpa [eqtreeLvlVal] using v 0 (by omega)
+    have v1 : σ (.n (S + 1)) = 1 := by simpa [eqtreeLvlVal] using v 1 (by omega)
+    have v2 : σ (.n (S + 2)) = 1 + rs.getD t 0 := by simpa [eqtreeLvlVal] using v 2 (by omega)
+    have htake : rs.take (t + 1) = rs.take t ++ [rs.getD t 0] := by
+      rw [List.take_add_one, List.getD_eq_getElem?_getD, List.getElem?_eq_getElem (by omega)]
+      simp
+    have hlen : (eqKernel (rs.take t)).length = 2 ^ t := by
+      rw [length_eqKernel_eq]; simp [hrs]; omega
+    simp only [eqtreeLevelT, ← hS, List.mem_append, List.mem_cons, List.not_mem_nil, or_false,
+      List.mem_flatten, List.mem_map, List.mem_range] at hb
+    rcases hb with (h | h | h) | ⟨w, ⟨i, hi, rfl⟩, hw⟩
+    all_goals try (obtain rfl := Stmt.atom.inj h)
+    · show LoadHolds rd (σ p) (po + t) (σ (.n S)); rw [vr]; exact hpt t htn
+    · show σ (.n (S + 1)) = word 1 0 0; rw [v1, word_one]
+    · show σ (.n (S + 2)) = σ (.n (S + 1)) + σ (.n S); rw [v2, v1, vr]
+    · have wv : ∀ j < 3, σ (.n (S + 3 + 3 * i + j)) = [(eqKernel (rs.take t)).getD i 0,
+          (eqKernel (rs.take t)).getD i 0 * (1 + rs.getD t 0),
+          (eqKernel (rs.take t)).getD i 0 * rs.getD t 0].getD j 0 := fun j hj => by
+        rw [show S + 3 + 3 * i + j = S + (3 + 3 * i + j) by ring, v _ (by omega),
+          eqtreeLvlVal_word rs t i j hj]
+      have e0 : σ (.n (S + 3 + 3 * i)) = (eqKernel (rs.take t)).getD i 0 := wv 0 (by omega)
+      have e1 : σ (.n (S + 3 + 3 * i + 1)) = (eqKernel (rs.take t)).getD i 0 * (1 + rs.getD t 0) :=
+        wv 1 (by omega)
+      have e2 : σ (.n (S + 3 + 3 * i + 2)) = (eqKernel (rs.take t)).getD i 0 * rs.getD t 0 :=
+        wv 2 (by omega)
+      have hlo : (eqKernel (rs.take (t + 1))).getD i 0 =
+          (eqKernel (rs.take t)).getD i 0 * (1 + rs.getD t 0) := by
+        rw [htake, eqKernel_snoc, List.getD_append _ _ _ _ (by rw [List.length_map, hlen]; exact hi),
+          getD_map_mul_eq]
+      have hhi : (eqKernel (rs.take (t + 1))).getD (2 ^ t + i) 0 =
+          (eqKernel (rs.take t)).getD i 0 * rs.getD t 0 := by
+        rw [htake, eqKernel_snoc, List.getD_append_right _ _ _ _ (by rw [List.length_map, hlen]; omega),
+          List.length_map, hlen, Nat.add_sub_cancel_left, getD_map_mul_eq]
+      simp only [eqtreeWordT, List.mem_cons, List.not_mem_nil, or_false] at hw
+      rcases hw with h | h | h | h | h <;> obtain rfl := Stmt.atom.inj h
+      · show LoadHolds rd (σ o) (2 ^ t - 2 + i) (σ (.n (S + 3 + 3 * i)))
+        rw [e0]; exact hout t (by omega) (by omega) i hi
+      · show σ (.n (S + 3 + 3 * i + 1)) = σ (.n (S + 3 + 3 * i)) * σ (.n (S + 2))
+        rw [e1, e0, v2]
+      · show LoadHolds rd (σ o) (2 ^ (t + 1) - 2 + i) (σ (.n (S + 3 + 3 * i + 1)))
+        have hp2 : 2 ^ (t + 1) = 2 * 2 ^ t := by ring
+        rw [e1, ← hlo]; exact hout (t + 1) (by omega) (by omega) i (by omega)
+      · show σ (.n (S + 3 + 3 * i + 2)) = σ (.n (S + 3 + 3 * i)) * σ (.n S)
+        rw [e2, e0, vr]
+      · show LoadHolds rd (σ o) (2 ^ (t + 1) - 2 + 2 ^ t + i) (σ (.n (S + 3 + 3 * i + 2)))
+        rw [e2, ← hhi, Nat.add_assoc]
+        have hp2 : 2 ^ (t + 1) = 2 * 2 ^ t := by ring
+        exact hout (t + 1) (by omega) (by omega) (2 ^ t + i) (by omega)
+
 end
 end LeanVM.Guest.B1
