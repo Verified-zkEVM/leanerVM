@@ -965,6 +965,25 @@ branch's field arithmetic (the specification's; the compiled fast paths are anot
 force behind the exact path is exact but runs on toy words only, so a dishonest word at a deployed
 size has no executable extraction. Still owed: an efficient list decoder for words off the code.
 
+*On merge* of the random-oracle definitions pull request, the game and the per-challenge budgets
+are on `main`. `Protocol/RandomOracleGame.lean`: `loggedGame V prog input A` runs the adversary
+(`A : OracleComp hashSpec (Proof PrunedMerklePaths)`) logged, then `V hashQuery prog input proof`
+logged, with `V` any function of `verifyWith`'s shape (`VerifierWith`) until the executable
+verifier lands; `Run` holds the proof, the two logs and the verdict. `extract F prog input proof
+log` is computable: the announcement through `setupOk`'s checks, the level-0 root from stream
+scalars `8, 9`, every level-0 row under it by `extractAllRows` at `level0Lanes` words in leaves of
+`2^ℓ` words, a missing row zero, the stored row's lanes reversed as the Rust stores them
+(`laneRow`, `whir.rs:1305-1316`), then `deployedPick`; `extracts_iff_isSome` makes `Extracts`'s
+`M3Holds` automatic. `Hit` and `HashMisbehaves` take the proof's roots and the flip as parameters,
+since both read the verifier's chain walk. `Bad` and `bad_density` are the event and the bound of
+`listBinding_deployed`'s `rbr` at the unit shared oracle. `Protocol/ListBindingBudget.lean`,
+`Protocol/Whir/DeployedBudget.lean` and the generic `ToArkLib/ScheduleBounds.lean`:
+`listBindingMark` marks WHIR's query positions, and `listBindingError_deployed_le` bounds every
+other challenge by `2^-128` and the query positions by `2^-110`, at every admissible announcement
+and rate (`Whir.deployed_fits` decides the window, `L₀ ≤ 122`; `leanIsa_μBus_le`, `leanIsa_B_le`,
+`leanIsa_poolSize_le` bound the front at leanISA). Still owed: the flip, the proof's roots, `core`
+and `misbehaves_rom`.
+
 ## Upstream watch
 
 External work that may feed or replace a hole. The state of each is on GitHub.

@@ -44,6 +44,7 @@ import LeanerVMTests.Protocol.LeanIsa
 import LeanerVMTests.Protocol.LeanIsaComplete
 import LeanerVMTests.Protocol.LeanIsaSound
 import LeanerVMTests.Protocol.ListBinding
+import LeanerVMTests.Protocol.ListBindingBudget
 import LeanerVMTests.Protocol.ListBindingDeployed
 import LeanerVMTests.Protocol.Merkle
 import LeanerVMTests.Protocol.MerkleBinding
@@ -60,6 +61,7 @@ import LeanerVMTests.Protocol.Proof
 import LeanerVMTests.Protocol.PublicInput
 import LeanerVMTests.Protocol.QueryRecord
 import LeanerVMTests.Protocol.RandomOracle
+import LeanerVMTests.Protocol.RandomOracleGame
 import LeanerVMTests.Protocol.SideProduct
 import LeanerVMTests.Protocol.Spine
 import LeanerVMTests.Protocol.Stack
