@@ -70,5 +70,86 @@ theorem specPre_flat (c : FixedClaims) (bytecode : List K) (pi : Digest) :
   refine congrArg _ (funext fun m ↦ congrArg _ (funext fun chs ↦ ?_))
   rfl
 
+
+/-! ## Carried runs without commitments are `RunsTo` -/
+
+/-- The deployed run from a carried one, on a sponge the start carries. -/
+theorem runId_of_runF {α : Type} {p : Prog α} {st : Whir.FSt} {a : α} {st' : Whir.FSt}
+    (h : Whir.runF p st = some (a, st')) {sp : Sponge} (hs : st.sponge.Carries sp) :
+    ∃ sp', st'.sponge.Carries sp' ∧
+      runId p ⟨sp, st.stream, st.openings, st.roots⟩ =
+        some (a, ⟨sp', st'.stream, st'.openings, st'.roots⟩) := by
+  rw [runF_eq_runT] at h
+  obtain ⟨⟨a', t⟩, ht, he⟩ := Option.map_eq_some_iff.1 h
+  simp only [Prod.mk.injEq] at he
+  obtain ⟨rfl, rfl⟩ := he
+  exact Tables.runId_of_runT p (toT st) sp hs _ t ht
+
+/-- A carried run keeps the words past what it reads, on any rest. -/
+theorem runF_frame {α : Type} {p : Prog α} {st : Whir.FSt} {a : α} {st' : Whir.FSt}
+    (h : Whir.runF p st = some (a, st')) :
+    ∃ pre opre, st.stream = pre ++ st'.stream ∧ st.openings = opre ++ st'.openings ∧
+      ∀ zs orest, Whir.runF p { st with stream := pre ++ zs, openings := opre ++ orest } =
+        some (a, { st' with stream := zs, openings := orest }) := by
+  rw [runF_eq_runT] at h
+  obtain ⟨⟨a', t⟩, ht, he⟩ := Option.map_eq_some_iff.1 h
+  simp only [Prod.mk.injEq] at he
+  obtain ⟨rfl, rfl⟩ := he
+  obtain ⟨pre, opre, hs, ho, hf⟩ := Tables.runT_frame p (toT st) a' t ht
+  refine ⟨pre, opre, hs, ho, fun zs orest ↦ ?_⟩
+  rw [runF_eq_runT]
+  have e := hf zs orest
+  simp only [toT] at e ⊢
+  rw [e]
+  rfl
+
+theorem NoCommitA.runF_any {α : Type} (p : Prog α) : NoCommitA p → ∀ (s : Fs) (T : List E)
+    (O : List Opening) (R : List (Digest × ℕ × ℕ)) (a : α) (st' : Whir.FSt),
+    Whir.runF p ⟨s, T, O, R⟩ = some (a, st') →
+      ∀ O2 R2, Whir.runF p ⟨s, T, O2, R2⟩ = some (a, { st' with openings := O2, roots := R2 }) := by
+  induction p with
+  | ret b =>
+    intro _ s T O R a st' h O2 R2
+    simp only [Whir.runF, Option.some.injEq, Prod.mk.injEq] at h ⊢
+    obtain ⟨rfl, rfl⟩ := h
+    exact ⟨rfl, rfl⟩
+  | fail => intro _ s T O R a st' h; simp [Whir.runF] at h
+  | read k ih =>
+    intro hp s T O R a st' h O2 R2
+    cases T with
+    | nil => simp [Whir.runF] at h
+    | cons x xs =>
+      simp only [Whir.runF] at h ⊢
+      exact ih x (hp x) _ xs O R a st' h O2 R2
+  | sample k ih =>
+    intro hp s T O R a st' h O2 R2
+    exact ih _ (hp _) _ T O R a st' h O2 R2
+  | grind b k ih =>
+    intro hp s T O R a st' h O2 R2
+    cases T with
+    | nil => simp [Whir.runF] at h
+    | cons n xs =>
+      simp only [Whir.runF] at h ⊢
+      split at h
+      · rename_i hpow
+        simp only [hpow, ↓reduceIte]
+        exact ih hp _ xs O R a st' h O2 R2
+      · simp at h
+  | commit _ _ _ _ => intro hp; exact hp.elim
+  | query _ _ _ _ => intro hp; exact hp.elim
+
+/-- **A carried run of a program without commitments is a `RunsTo`** on the words it reads. -/
+theorem runsTo_of_runF {α : Type} {p : Prog α} (hp : NoCommit p) {s : Fs} {T : List E}
+    {O : List Opening} {R : List (Digest × ℕ × ℕ)} {a : α} {st' : Whir.FSt}
+    (h : Whir.runF p ⟨s, T, O, R⟩ = some (a, st')) :
+    ∃ xs, T = xs ++ st'.stream ∧ RunsTo p s xs a st'.sponge := by
+  obtain ⟨pre, opre, hs, ho, hf⟩ := runF_frame h
+  obtain ⟨-, hO⟩ := NoCommit.runF hp h
+  refine ⟨pre, hs, fun sp hsp rest os roots ↦ ?_⟩
+  have e := hf rest []
+  have e2 := NoCommitA.runF_any p ((noCommit_iff _).1 hp) s _ _ R a _ e os roots
+  obtain ⟨sp', hc, hr⟩ := runId_of_runF e2 hsp
+  exact ⟨sp', hc, hr⟩
+
 end
 end LeanVM.Guest.B1.VerifySub
