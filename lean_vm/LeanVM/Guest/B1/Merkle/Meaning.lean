@@ -58,11 +58,16 @@ def MeaningVerifyMerkleCap (D : ℕ) (rd : Reader) : List E → List E → Prop
         rets = [cell 2, cell 3]
   | _, _ => False
 
+/-- The deployed specializations, cap depths `4 .. 8`, by name (a name built by `++ toString`
+does not reduce in a `module`'s kernel). -/
+def merkleCapNames : List (String × ℕ) :=
+  [("verify_merkle_cap__L4", 4), ("verify_merkle_cap__L5", 5), ("verify_merkle_cap__L6", 6),
+    ("verify_merkle_cap__L7", 7), ("verify_merkle_cap__L8", 8)]
+
 /-- `verify_merkle_cap__L{D}`'s core IR is its meaning, `4 ≤ D ≤ 8`. -/
 def verify_merkle_cap_Spec : Prop :=
-  ∀ D, 4 ≤ D → D ≤ 8 → ∀ (rd : Reader) (args rets : List E),
-    coreProgram.Rel rd ("verify_merkle_cap__L" ++ toString D) args rets ↔
-      MeaningVerifyMerkleCap D rd args rets
+  ∀ p ∈ merkleCapNames, ∀ (rd : Reader) (args rets : List E),
+    coreProgram.Rel rd p.1 args rets ↔ MeaningVerifyMerkleCap p.2 rd args rets
 
 end
 end LeanVM.Guest.B1
