@@ -144,13 +144,23 @@ def MeaningDecodeQueryBits (d : ℕ) (rd : Reader) : List E → List E → Prop
   | _, _ => False
 
 /-- `decode_query_bits__L{d}`'s core IR is its meaning. -/
-def decode_query_bits_Spec (d : ℕ) : Prop :=
+def decode_query_bits_Spec (name : String) (d : ℕ) : Prop :=
   ∀ (rd : Reader) (args rets : List E),
-    coreProgram.Rel rd ("decode_query_bits__L" ++ toString d) args rets ↔
-      MeaningDecodeQueryBits d rd args rets
+    coreProgram.Rel rd name args rets ↔ MeaningDecodeQueryBits d rd args rets
 
-/-- The deployed depths, `14 .. 26`. -/
-def decode_query_bits_all_Spec : Prop := ∀ d, 14 ≤ d → d ≤ 26 → decode_query_bits_Spec d
+/-- The deployed depths, `14 .. 26`, by name (a name built by `++ toString` does not reduce in a
+`module`'s kernel). -/
+def decodeQueryBitsNames : List (String × ℕ) :=
+  (List.range 13).map fun i ↦
+    (["decode_query_bits__L14", "decode_query_bits__L15", "decode_query_bits__L16",
+      "decode_query_bits__L17", "decode_query_bits__L18", "decode_query_bits__L19",
+      "decode_query_bits__L20", "decode_query_bits__L21", "decode_query_bits__L22",
+      "decode_query_bits__L23", "decode_query_bits__L24", "decode_query_bits__L25",
+      "decode_query_bits__L26"].getD i "", 14 + i)
+
+/-- Every deployed depth. -/
+def decode_query_bits_all_Spec : Prop :=
+  ∀ p ∈ decodeQueryBitsNames, decode_query_bits_Spec p.1 p.2
 
 /-! ## `grind_check` (G:781-807, TRIAGE #21) -/
 

@@ -110,6 +110,19 @@ theorem fsPackVals_cells (x : E) (t : ℕ) :
   simp only [fsPackVals, word_yy, word_y_mul]
   exact this
 
+/-- The scalar's rate cells are canonical. -/
+theorem scalarCells_canonical (x : E) (t : ℕ) :
+    IsCanonical128 (Keccak.scalarCells x t).1 ∧ IsCanonical128 (Keccak.scalarCells x t).2 :=
+  ⟨(isCanonical128_ofLimbs_iff _ _ _).mpr rfl, (isCanonical128_ofLimbs_iff _ _ _).mpr rfl⟩
+
+/-- The honest cells are canonical. -/
+theorem fsPackVals_canonical (x : E) (t : ℕ) :
+    IsCanonical128 (fsPackVals x t 6) ∧ IsCanonical128 (fsPackVals x t 8) := by
+  have h := fsPackVals_cells x t
+  simp only [Prod.ext_iff] at h
+  rw [h.1, h.2]
+  exact scalarCells_canonical x t
+
 /-! ## `fs_next` -/
 
 /-- `fs_next(rate, k, cursor)`'s atoms from the value `b`: the word at `cur·g^off` into `b`, then
@@ -178,6 +191,16 @@ theorem challengeOk_of_vals {s0 s1 : V} {b : ℕ} (hc : IsCanonical128 (σ s1))
     rw [word_y_inv, ← e0]; exact hhi.2
   · rw [e 5 (by omega), e 4 (by omega), e0]; rfl
   · rw [e 6 (by omega), e 5 (by omega)]; rfl
+
+/-- A state's cells are canonical. -/
+theorem cellsOfState_canonical (S : KState) (odd : Bool) (c : Fin 13) :
+    IsCanonical128 (cellsOfState S odd c) := (isCanonical128_ofLimbs_iff _ _ _).mpr rfl
+
+/-- The honest challenge is the state's. -/
+theorem challengeVals_six (S : KState) :
+    challengeVals (cellsOfState S false 0) (cellsOfState S false 1) 6 = challengeOf S := by
+  rw [Keccak.challengeOf_cells]
+  simp [challengeVals, word_yy]
 
 /-! ## One permutation -/
 
