@@ -12,11 +12,11 @@ public import LeanVM.Guest.B1.Sig.CompleteKit
 /-!
 # Sequential blocks with `KECCAK`s and hints
 
-`KSeq b ss b'`: each atom of `ss` defines the next fresh values from `b` (a canonical constant, a sum
-or a copy of one value, a `KECCAK`'s thirteen, a hint's run) from values below it, ending at `b'`.
-`kseq_complete`: from a valuation whose values the block reads from below `b` and whose hinted values
-are canonical, the block holds of an extension on `b ..< b'` keeping the hints, all its values
-canonical.
+`KSeq lo X b ss b'`: each atom of `ss` defines the next fresh values from `b` (a canonical constant, a
+sum or a copy of one value, a `KECCAK`'s thirteen, a hint's run) from the block's own values from
+`lo` or external ones of `X` below `lo`, ending at `b'`. `kseq_completes`: from a valuation whose
+external values of `X` and hinted values are canonical, the block holds of an extension on
+`lo ..< b'` keeping the hints, all its values canonical.
 -/
 
 namespace LeanVM.Guest.B1.Sig
@@ -27,19 +27,24 @@ open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest LeanVM.Guest.Core LeanVM.Gu
 
 variable {C : CallRel} {rd : Reader}
 
-/-- An atom defining the values from `b` up to `m`, from values below `b`. -/
-def KSeqA (b : Nat) : Atom → Nat → Prop
+/-- A value a block from `lo` reads at `b`: one of its own, from `lo`, or an external one of `X` below
+`lo`. -/
+def KRd (lo : Nat) (X : V → Prop) (b : Nat) (v : V) : Prop :=
+  (∃ k, lo ≤ k ∧ k < b ∧ v = .n k) ∨ (X v ∧ NBv lo v)
+
+/-- An atom defining the values from `b` up to `m`, from values the block reads. -/
+def KSeqA (lo : Nat) (X : V → Prop) (b : Nat) : Atom → Nat → Prop
   | .const d c, m => d = .n b ∧ IsCanonical128 c ∧ m = b + 1
-  | .add d x y, m => d = .n b ∧ NBv b x ∧ NBv b y ∧ m = b + 1
-  | .copy d x, m => d = .n b ∧ NBv b x ∧ m = b + 1
-  | .keccak ins outs _ _, m => outs = runV b 13 ∧ ins.length = 13 ∧ (∀ v ∈ ins, NBv b v) ∧ m = b + 13
+  | .add d x y, m => d = .n b ∧ KRd lo X b x ∧ KRd lo X b y ∧ m = b + 1
+  | .copy d x, m => d = .n b ∧ KRd lo X b x ∧ m = b + 1
+  | .keccak ins outs _ _, m => outs = runV b 13 ∧ ins.length = 13 ∧ (∀ v ∈ ins, KRd lo X b v) ∧ m = b + 13
   | .hint (.witness _ (.stack vs)), m => vs = runV b (m - b) ∧ b ≤ m
   | _, _ => False
 
 /-- A block of such atoms from `b` to `b'`. -/
-def KSeq : Nat → List Stmt → Nat → Prop
+def KSeq (lo : Nat) (X : V → Prop) : Nat → List Stmt → Nat → Prop
   | b, [], b' => b' = b
-  | b, .atom a :: ss, b' => ∃ m, KSeqA b a m ∧ KSeq m ss b'
+  | b, .atom a :: ss, b' => ∃ m, KSeqA lo X b a m ∧ KSeq lo X m ss b'
   | _, _ :: _, _ => False
 
 /-- The hinted values of a block are canonical. -/
@@ -50,7 +55,19 @@ def HintsCan (σ : Val) (ss : List Stmt) : Prop :=
 def HintsKept (σ σ' : Val) (ss : List Stmt) : Prop :=
   ∀ s vs, Stmt.atom (.hint (.witness s (.stack vs))) ∈ ss → ∀ v ∈ vs, σ' v = σ v
 
-theorem KSeqA.le {b m : Nat} {a : Atom} (h : KSeqA b a m) : b ≤ m := by
+variable {lo : Nat} {X : V → Prop}
+
+theorem KRd.mono {b b' : Nat} {v : V} (h : KRd lo X b v) (hle : b ≤ b') : KRd lo X b' v := by
+  rcases h with ⟨k, h1, h2, e⟩ | h
+  · exact Or.inl ⟨k, h1, by omega, e⟩
+  · exact Or.inr h
+
+theorem KRd.nb {b : Nat} {v : V} (h : KRd lo X b v) (hlo : lo ≤ b) : NBv b v := by
+  rcases h with ⟨k, -, h2, e⟩ | ⟨-, k, hk, e⟩
+  · exact ⟨k, h2, e⟩
+  · exact ⟨k, by omega, e⟩
+
+theorem KSeqA.le {b m : Nat} {a : Atom} (h : KSeqA lo X b a m) : b ≤ m := by
   cases a with
   | const d c => obtain ⟨-, -, rfl⟩ := h; omega
   | add d x y => obtain ⟨-, -, -, rfl⟩ := h; omega
@@ -61,21 +78,21 @@ theorem KSeqA.le {b m : Nat} {a : Atom} (h : KSeqA b a m) : b ≤ m := by
       | .witness _ (.stack _), ⟨_, hbm⟩ => exact hbm
   | _ => exact h.elim
 
-theorem KSeq.le : ∀ {b : Nat} {ss : List Stmt} {b' : Nat}, KSeq b ss b' → b ≤ b'
+theorem KSeq.le : ∀ {b : Nat} {ss : List Stmt} {b' : Nat}, KSeq lo X b ss b' → b ≤ b'
   | _, [], _, h => by simp only [KSeq] at h; omega
   | _, .atom _ :: _, _, ⟨_, h1, h2⟩ => le_trans h1.le (KSeq.le h2)
   | _, .ite .. :: _, _, h | _, .match_ .. :: _, _, h | _, .call .. :: _, _, h
   | _, .callIf .. :: _, _, h | _, .dispatch .. :: _, _, h | _, .ret _ :: _, _, h => h.elim
 
-theorem KSeq.append : ∀ {b m b' : Nat} {xs ys : List Stmt}, KSeq b xs m → KSeq m ys b' →
-    KSeq b (xs ++ ys) b'
+theorem KSeq.append : ∀ {b m b' : Nat} {xs ys : List Stmt}, KSeq lo X b xs m → KSeq lo X m ys b' →
+    KSeq lo X b (xs ++ ys) b'
   | _, _, _, [], _, h1, h2 => by simp only [KSeq] at h1; subst h1; exact h2
   | _, _, _, .atom _ :: _, _, ⟨m', h1, h2⟩, h3 => ⟨m', h1, KSeq.append h2 h3⟩
   | _, _, _, .ite .. :: _, _, h, _ | _, _, _, .match_ .. :: _, _, h, _
   | _, _, _, .call .. :: _, _, h, _ | _, _, _, .callIf .. :: _, _, h, _
   | _, _, _, .dispatch .. :: _, _, h, _ | _, _, _, .ret _ :: _, _, h, _ => h.elim
 
-theorem KSeq.atoms : ∀ {b : Nat} {ss : List Stmt} {b' : Nat}, KSeq b ss b' → atomsOnly ss = true
+theorem KSeq.atoms : ∀ {b : Nat} {ss : List Stmt} {b' : Nat}, KSeq lo X b ss b' → atomsOnly ss = true
   | _, [], _, _ => rfl
   | _, .atom _ :: ss, _, ⟨_, _, h⟩ => (KSeq.atoms h : atomsOnly ss = true)
   | _, .ite .. :: _, _, h | _, .match_ .. :: _, _, h | _, .call .. :: _, _, h
@@ -86,7 +103,7 @@ theorem runV_mem_nb {o n m : Nat} (h : o + n ≤ m) {v : V} (hv : v ∈ runV o n
   obtain ⟨k, hk, rfl⟩ := hv
   exact ⟨o + k, by omega, rfl⟩
 
-theorem KSeqA.vals {b m : Nat} {a : Atom} (h : KSeqA b a m) : NumBelow m a.vals := by
+theorem KSeqA.vals {b m : Nat} {a : Atom} (hlo : lo ≤ b) (h : KSeqA lo X b a m) : NumBelow m a.vals := by
   have hle := h.le
   intro v hv
   cases a with
@@ -99,19 +116,19 @@ theorem KSeqA.vals {b m : Nat} {a : Atom} (h : KSeqA b a m) : NumBelow m a.vals 
       simp only [Atom.vals, List.mem_cons, List.not_mem_nil, or_false] at hv
       rcases hv with rfl | rfl | rfl
       · exact ⟨b, by omega, rfl⟩
-      · exact hx.mono' (by omega)
-      · exact hy.mono' (by omega)
+      · exact (hx.nb hlo).mono' (by omega)
+      · exact (hy.nb hlo).mono' (by omega)
   | copy d x =>
       obtain ⟨rfl, hx, rfl⟩ := h
       simp only [Atom.vals, List.mem_cons, List.not_mem_nil, or_false] at hv
       rcases hv with rfl | rfl
       · exact ⟨b, by omega, rfl⟩
-      · exact hx.mono' (by omega)
+      · exact (hx.nb hlo).mono' (by omega)
   | keccak ins outs i o =>
       obtain ⟨rfl, -, hin, rfl⟩ := h
       simp only [Atom.vals, List.mem_append] at hv
       rcases hv with hv | hv
-      · exact (hin v hv).mono' (by omega)
+      · exact ((hin v hv).nb hlo).mono' (by omega)
       · exact runV_mem_nb (by omega) hv
   | hint hh =>
       match hh, h with
@@ -121,17 +138,17 @@ theorem KSeqA.vals {b m : Nat} {a : Atom} (h : KSeqA b a m) : NumBelow m a.vals 
           exact runV_mem_nb (by omega) hv
   | _ => exact h.elim
 
-theorem KSeq.numBelow : ∀ {b : Nat} {ss : List Stmt} {b' : Nat}, KSeq b ss b' →
+theorem KSeq.numBelow : ∀ {b : Nat} {ss : List Stmt} {b' : Nat}, lo ≤ b → KSeq lo X b ss b' →
     NumBelow b' (Stmt.valsList ss)
-  | _, [], _, _ => NumBelow.nil _
-  | _, .atom _ :: _, _, ⟨_, h1, h2⟩ => by
+  | _, [], _, _, _ => NumBelow.nil _
+  | _, .atom _ :: _, _, hlo, ⟨_, h1, h2⟩ => by
       rw [valsList_cons]
-      exact (h1.vals.mono (KSeq.le h2)).append (KSeq.numBelow h2)
-  | _, .ite .. :: _, _, h | _, .match_ .. :: _, _, h | _, .call .. :: _, _, h
-  | _, .callIf .. :: _, _, h | _, .dispatch .. :: _, _, h | _, .ret _ :: _, _, h => h.elim
+      exact ((h1.vals hlo).mono (KSeq.le h2)).append (KSeq.numBelow (le_trans hlo h1.le) h2)
+  | _, .ite .. :: _, _, _, h | _, .match_ .. :: _, _, _, h | _, .call .. :: _, _, _, h
+  | _, .callIf .. :: _, _, _, h | _, .dispatch .. :: _, _, _, h | _, .ret _ :: _, _, _, h => h.elim
 
 /-- A block's hints lie in its range. -/
-theorem KSeq.hint_range : ∀ {b : Nat} {ss : List Stmt} {b' : Nat}, KSeq b ss b' →
+theorem KSeq.hint_range : ∀ {b : Nat} {ss : List Stmt} {b' : Nat}, KSeq lo X b ss b' →
     ∀ s vs, Stmt.atom (.hint (.witness s (.stack vs))) ∈ ss → ∀ v ∈ vs, ∃ k, b ≤ k ∧ k < b' ∧ v = .n k
   | _, [], _, _, _, _, h, _, _ => absurd h (by simp)
   | b, .atom a :: ss, b', ⟨m, h1, h2⟩, s, vs, hm, v, hv => by
@@ -149,9 +166,15 @@ theorem KSeq.hint_range : ∀ {b : Nat} {ss : List Stmt} {b' : Nat}, KSeq b ss b
   | _, .call .. :: _, _, h, _, _, _, _, _ | _, .callIf .. :: _, _, h, _, _, _, _, _
   | _, .dispatch .. :: _, _, h, _, _, _, _, _ | _, .ret _ :: _, _, h, _, _, _, _, _ => h.elim
 
+theorem KRd.canon {b : Nat} {v : V} {σ : Val} (h : KRd lo X b v) (hX : ∀ v, X v → NBv lo v → IsCanonical128 (σ v))
+    (hin : ∀ j, lo ≤ j → j < b → IsCanonical128 (σ (.n j))) : IsCanonical128 (σ v) := by
+  rcases h with ⟨k, h1, h2, rfl⟩ | ⟨hx, hn⟩
+  · exact hin k h1 h2
+  · exact hX v hx hn
+
 /-- **One atom of a sequential block completes**, its values canonical, a hint keeping its own. -/
-theorem kseqA_complete {b m : Nat} {a : Atom} (h : KSeqA b a m) (σ : Val)
-    (hc : ∀ v ∈ a.vals, NBv b v → IsCanonical128 (σ v))
+theorem kseqA_complete {b m : Nat} {a : Atom} (hlo : lo ≤ b) (h : KSeqA lo X b a m) (σ : Val)
+    (hX : ∀ v, X v → NBv lo v → IsCanonical128 (σ v)) (hin : ∀ j, lo ≤ j → j < b → IsCanonical128 (σ (.n j)))
     (hh : ∀ s vs, a = .hint (.witness s (.stack vs)) → ∀ v ∈ vs, IsCanonical128 (σ v)) :
     ∃ σ', Ext b m σ σ' ∧ a.Holds rd σ' ∧ (∀ j, b ≤ j → j < m → IsCanonical128 (σ' (.n j))) ∧
       ∀ s vs, a = .hint (.witness s (.stack vs)) → ∀ v ∈ vs, σ' v = σ v := by
@@ -166,26 +189,29 @@ theorem kseqA_complete {b m : Nat} {a : Atom} (h : KSeqA b a m) (σ : Val)
       rw [show j = b by omega, hp]; exact hcan
   | add d x y =>
       obtain ⟨rfl, hx, hy, rfl⟩ := h
-      obtain ⟨σ', he, hp, ha⟩ := hat (σ' := σ) (addS_complete (C := fun _ _ _ => True) (rd := rd) σ b hx hy)
+      obtain ⟨σ', he, hp, ha⟩ := hat (σ' := σ)
+        (addS_complete (C := fun _ _ _ => True) (rd := rd) σ b (hx.nb hlo) (hy.nb hlo))
       refine ⟨σ', he, ha, fun j h1 h2 => ?_, fun s vs e => by cases e⟩
       rw [show j = b by omega, hp]
-      exact canon_add (hc x (by simp [Atom.vals]) hx) (hc y (by simp [Atom.vals]) hy)
+      exact canon_add (hx.canon hX hin) (hy.canon hX hin)
   | copy d x =>
       obtain ⟨rfl, hx, rfl⟩ := h
-      obtain ⟨σ', he, hp, ha⟩ := hat (σ' := σ) (copyS_complete (C := fun _ _ _ => True) (rd := rd) σ b hx)
+      obtain ⟨σ', he, hp, ha⟩ := hat (σ' := σ)
+        (copyS_complete (C := fun _ _ _ => True) (rd := rd) σ b (hx.nb hlo))
       refine ⟨σ', he, ha, fun j h1 h2 => ?_, fun s vs e => by cases e⟩
       rw [show j = b by omega, hp]
-      exact hc x (by simp [Atom.vals]) hx
+      exact hx.canon hX hin
   | keccak ins outs i o =>
-      obtain ⟨rfl, hl, hin, rfl⟩ := h
+      obtain ⟨rfl, hl, hin', rfl⟩ := h
       have hcan : ∀ cc : Fin 13, IsCanonical128 (cells13 (ins.map σ) cc) := by
         intro cc
         simp only [cells13]
         rw [List.getD_eq_getElem?_getD, List.getElem?_map,
           List.getElem?_eq_getElem (by rw [hl]; exact cc.isLt)]
         simp only [Option.map_some, Option.getD_some]
-        exact hc _ (by simp [Atom.vals, List.getElem_mem]) (hin _ (List.getElem_mem _))
-      obtain ⟨σ', he, hp, ha⟩ := hat (σ' := σ) (kecS_complete (C := fun _ _ _ => True) (rd := rd) σ b hl hin hcan i o)
+        exact (hin' _ (List.getElem_mem _)).canon hX hin
+      obtain ⟨σ', he, hp, ha⟩ := hat (σ' := σ) (kecS_complete (C := fun _ _ _ => True) (rd := rd) σ b hl
+        (fun v hv => (hin' v hv).nb hlo) hcan i o)
       refine ⟨σ', he, ha, fun j h1 h2 => ?_, fun s vs e => by cases e⟩
       rw [show j = b + (j - b) by omega, hp (j - b) (by omega)]
       exact canon_kOut _ _ _ _
@@ -205,42 +231,41 @@ theorem kseqA_complete {b m : Nat} {a : Atom} (h : KSeqA b a m) (σ : Val)
   | _ => exact h.elim
 
 /-- **A sequential block completes** on canonical cells, keeping its hints. -/
-theorem kseq_complete : ∀ {b : Nat} {ss : List Stmt} {b' : Nat}, KSeq b ss b' → ∀ σ : Val,
-    (∀ v ∈ Stmt.valsList ss, NBv b v → IsCanonical128 (σ v)) → HintsCan σ ss →
-    ∃ σ', Ext b b' σ σ' ∧ AtomsHold rd σ' ss ∧ (∀ j, b ≤ j → j < b' → IsCanonical128 (σ' (.n j))) ∧
+theorem kseq_complete : ∀ {b : Nat} {ss : List Stmt} {b' : Nat}, lo ≤ b → KSeq lo X b ss b' → ∀ σ : Val,
+    (∀ v, X v → NBv lo v → IsCanonical128 (σ v)) → (∀ j, lo ≤ j → j < b → IsCanonical128 (σ (.n j))) →
+    HintsCan σ ss →
+    ∃ σ', Ext b b' σ σ' ∧ AtomsHold rd σ' ss ∧ (∀ j, lo ≤ j → j < b' → IsCanonical128 (σ' (.n j))) ∧
       HintsKept σ σ' ss
-  | _, [], _, h, σ, _, _ => by
+  | _, [], _, _, h, σ, _, hin, _ => by
       simp only [KSeq] at h; subst h
-      exact ⟨σ, Ext.refl _ _ _, fun _ ha => absurd ha (by simp), fun j h1 h2 => by omega,
-        fun _ _ h => absurd h (by simp)⟩
-  | b, .atom a :: ss, b', ⟨m, h1, h2⟩, σ, hc, hh => by
+      exact ⟨σ, Ext.refl _ _ _, fun _ ha => absurd ha (by simp), hin, fun _ _ h => absurd h (by simp)⟩
+  | b, .atom a :: ss, b', hlo, ⟨m, h1, h2⟩, σ, hX, hin, hh => by
       have hbm := h1.le
       have hmb := KSeq.le h2
-      obtain ⟨σ1, he1, ha1, hc1, hk1⟩ := kseqA_complete (rd := rd) h1 σ
-        (fun v hv hb => hc v (by rw [valsList_cons]; exact List.mem_append_left _ (by simpa [Stmt.vals] using hv)) hb)
+      obtain ⟨σ1, he1, ha1, hc1, hk1⟩ := kseqA_complete (rd := rd) hlo h1 σ hX hin
         (fun s vs e v hv => hh s vs (by rw [e]; exact List.mem_cons_self ..) v hv)
       have hag1 : AgreeBelow b σ σ1 := he1.agree
-      obtain ⟨σ2, he2, ha2, hc2, hk2⟩ := kseq_complete h2 σ1 (fun v hv hm => by
-          obtain ⟨k, hk, rfl⟩ := hm
-          by_cases hkb : k < b
-          · rw [← hag1 k hkb]
-            exact hc _ (by rw [valsList_cons]; exact List.mem_append_right _ hv) ⟨k, hkb, rfl⟩
-          · exact hc1 k (by omega) hk)
+      have hX1 : ∀ v, X v → NBv lo v → IsCanonical128 (σ1 v) := by
+        rintro v hv ⟨k, hk, rfl⟩
+        rw [← hag1 k (by omega)]
+        exact hX _ hv ⟨k, hk, rfl⟩
+      obtain ⟨σ2, he2, ha2, hc2, hk2⟩ := kseq_complete (le_trans hlo hbm) h2 σ1 hX1
+        (fun j hj1 hj2 => by
+          by_cases hjb : j < b
+          · rw [← hag1 j hjb]; exact hin j hj1 hjb
+          · exact hc1 j (by omega) hj2)
         (fun s vs hm v hv => by
           obtain ⟨k, hk1, hk2, rfl⟩ := KSeq.hint_range h2 s vs hm v hv
           rw [he1.apply (Or.inr hk1)]
           exact hh s vs (List.mem_cons_of_mem _ hm) _ hv)
       have hag2 : AgreeBelow m σ1 σ2 := he2.agree
-      refine ⟨σ2, he1.trans he2 hbm hmb, fun x hx => ?_, fun j hj1 hj2 => ?_, fun s vs hm v hv => ?_⟩
+      refine ⟨σ2, he1.trans he2 hbm hmb, fun x hx => ?_, hc2, fun s vs hm v hv => ?_⟩
       · rcases List.mem_cons.mp hx with e | hx
         · cases e
           exact (atom_congr a fun v hv => by
-            obtain ⟨k, hk, rfl⟩ := h1.vals v hv
+            obtain ⟨k, hk, rfl⟩ := h1.vals hlo v hv
             exact hag2 k hk).mp ha1
         · exact ha2 x hx
-      · by_cases hjm : j < m
-        · rw [← hag2 j hjm]; exact hc1 j hj1 hjm
-        · exact hc2 j (by omega) hj2
       · rcases List.mem_cons.mp hm with e | hm
         · obtain ⟨k, hj1, hj2, rfl⟩ : ∃ k, b ≤ k ∧ k < m ∧ v = .n k := by
             cases e
@@ -253,16 +278,16 @@ theorem kseq_complete : ∀ {b : Nat} {ss : List Stmt} {b' : Nat}, KSeq b ss b' 
           exact hk1 s vs (Stmt.atom.inj e).symm _ hv
         · obtain ⟨k, hj1, hj2, rfl⟩ := KSeq.hint_range h2 s vs hm v hv
           rw [hk2 s vs hm _ hv, he1.apply (Or.inr hj1)]
-  | _, .ite .. :: _, _, h, _, _, _ | _, .match_ .. :: _, _, h, _, _, _ | _, .call .. :: _, _, h, _, _, _
-  | _, .callIf .. :: _, _, h, _, _, _ | _, .dispatch .. :: _, _, h, _, _, _ | _, .ret _ :: _, _, h, _, _, _ =>
-      h.elim
+  | _, .ite .. :: _, _, _, h, _, _, _, _ | _, .match_ .. :: _, _, _, h, _, _, _, _
+  | _, .call .. :: _, _, _, h, _, _, _, _ | _, .callIf .. :: _, _, _, h, _, _, _, _
+  | _, .dispatch .. :: _, _, _, h, _, _, _, _ | _, .ret _ :: _, _, _, h, _, _, _, _ => h.elim
 
 /-- **A sequential block completes**, as `Completes`. -/
-theorem kseq_completes {b b' : Nat} {ss : List Stmt} (h : KSeq b ss b') (σ : Val)
-    (hc : ∀ v ∈ Stmt.valsList ss, NBv b v → IsCanonical128 (σ v)) (hh : HintsCan σ ss) :
-    Completes C rd b b' ss σ (fun σ' => AtomsHold rd σ' ss ∧
-      (∀ j, b ≤ j → j < b' → IsCanonical128 (σ' (.n j))) ∧ HintsKept σ σ' ss) := by
-  obtain ⟨σ', he, ha, hc', hk⟩ := kseq_complete (rd := rd) h σ hc hh
+theorem kseq_completes {b' : Nat} {ss : List Stmt} (h : KSeq lo X lo ss b') (σ : Val)
+    (hX : ∀ v, X v → NBv lo v → IsCanonical128 (σ v)) (hh : HintsCan σ ss) :
+    Completes C rd lo b' ss σ (fun σ' => AtomsHold rd σ' ss ∧
+      (∀ j, lo ≤ j → j < b' → IsCanonical128 (σ' (.n j))) ∧ HintsKept σ σ' ss) := by
+  obtain ⟨σ', he, ha, hc', hk⟩ := kseq_complete (rd := rd) le_rfl h σ hX (fun j h1 h2 => by omega) hh
   exact completes_atoms h.atoms he ⟨ha, hc', hk⟩ ha
 
 end
