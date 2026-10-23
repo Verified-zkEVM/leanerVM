@@ -47,7 +47,7 @@ theorem main_honest_fullT (hbl : bytecode.length = 2 ^ 23) (hr : NodeRel bytecod
           (fun t => ∃ σ bufs ks, t = .node "main" σ bufs ks ∧ MVals rd σ (hm fs fp seed s w) ∧
             KidsT (mCalls σ (hm fs fp seed s w))
               ((fun _ => True) :: mTs (hm fs fp seed s w) (L5Hinted w)) ks ∧
-            calls (mEvs σ) = mCalls σ (hm fs fp seed s w)) :=
+            calls (mEvs σ) = mCalls σ (hm fs fp seed s w) ∧ bufs = mSizes (hData seed s w)) :=
   main_honest_relAtInT hbl hr hl hxc hsc hrf (mainGoalL5T hbl hr hl hV)
     (mainGoalAg (fs := fs) (fp := fp) (cert := cert) hbl hr hl)
 
