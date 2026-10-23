@@ -86,7 +86,7 @@ cursor past `xs`, the word and the challenge. -/
 def VkCompleteAt (fs : String → ℕ) (cert : String → V → ℕ) (κ : ℕ) : Prop :=
   ∀ (τ : ℕ) (f chis outs xs op point slices cap' : List E) (word m0 : E)
     (curE chiE olE zvE slE : ℕ), 9 ≤ τ → τ ≤ 28 → τ ≤ chis.length → outs.length = 25 →
-    f.length = 5 → AllCanonical f →
+    f.length = 5 → AllCanonical f → (∃ sp, (⟨f, []⟩ : Fs).Carries sp) →
     RunsTo (keccakSeg τ (chis.take τ) outs) ⟨f, []⟩ xs
       (([⟨qkeccak, op, word⟩], point, slices), m0) ⟨cap', []⟩ →
     CompleteAtD fs cert κ "verify_keccak"
