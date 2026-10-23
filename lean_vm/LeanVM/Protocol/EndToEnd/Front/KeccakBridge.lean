@@ -370,7 +370,7 @@ theorem keccakCol_getD (q : Column (verifierLayout prog s).stackLog) {n : ℕ}
   have hfit := blocks_fits prog s
   have h2 : 2 ^ (s.τ 5 + 6) = 2 ^ (blocks prog s).size (keccakBlock prog s) := by
     rw [size_keccakBlock]
-  have h := column_committed prog s (toI prog s q) keccakCol not_isLane_keccakCol ⟨n, hn⟩
+  have h := column_committed prog s (toI prog s q) keccakCol not_isVirtual_keccakCol ⟨n, hn⟩
   rw [Vector.getD, Array.getD_eq_getD_getElem?, Array.getElem?_eq_getElem
     (by rw [Vector.size_toArray]; exact hn), Option.getD_some, qkOf_eq,
     Array.getD_eq_getD_getElem?, Array.getElem?_eq_getElem
