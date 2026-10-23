@@ -56,16 +56,16 @@ theorem rc_holds (hm : MemOk rd) {k K : ℕ} (hk : k ≤ K) (hK : K < 2 ^ 16) :
       LoadHolds rd (gen ^ (K - k)) 0 t2 :=
   rc_holds' (memOK_of_memOk hm) hk hK
 
-/-- **`list_split` is complete.** -/
-theorem list_split_complete : list_split_complete_Spec := by
-  intro rd hm args rets h
+/-- **`list_split` is complete** on a memory defined below `2^16`. -/
+theorem list_split_complete' (rd : Reader) (hm : Sig.MemOK rd (2 ^ 16)) (args rets : List E)
+    (h : MeaningListSplit args rets) : coreProgram.Rel rd "list_split" args rets := by
   match args, h with
   | [ng], h =>
     obtain ⟨a, ha, b, hb, hng, hrets⟩ := h
     simp only [maxKeys] at ha
     simp only [claimGroup] at hb hng
-    obtain ⟨t1, t2, h1, e1, h2⟩ := rc_holds hm (k := b) (K := 16) (by omega) (by norm_num)
-    obtain ⟨t3, t4, h3, e2, h4⟩ := rc_holds hm (k := a) (K := 65535) (by omega) (by norm_num)
+    obtain ⟨t1, t2, h1, e1, h2⟩ := rc_holds' hm (k := b) (K := 16) (by omega) (by norm_num)
+    obtain ⟨t3, t4, h3, e2, h4⟩ := rc_holds' hm (k := a) (K := 65535) (by omega) (by norm_num)
     refine (rel_iff_sem find_list_split _ _).mpr ⟨Val.ofArgs [ng, gen ^ a, gen ^ b, word 65536 0 0,
       gen ^ (16 - b), t1, t2, word 9272771591053052074 0 0, gen ^ (65535 - a), t3, t4, gen ^ (2 * a),
       gen ^ (4 * a), gen ^ (8 * a), gen ^ (16 * a), gen ^ (17 * a), gen ^ (17 * a + b), gen ^ a,
@@ -85,6 +85,10 @@ theorem list_split_complete : list_split_complete_Spec := by
     · exact hrets.symm
   | [], h => exact h.elim
   | _ :: _ :: _, h => exact h.elim
+
+/-- **`list_split` is complete.** -/
+theorem list_split_complete : list_split_complete_Spec := fun rd hm args rets h =>
+  list_split_complete' rd (memOK_of_memOk hm) args rets h
 
 end
 end LeanVM.Guest.B1.Digest
