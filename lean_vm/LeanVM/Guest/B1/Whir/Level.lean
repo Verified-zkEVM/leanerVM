@@ -109,8 +109,9 @@ structure LvCallees (rd : Reader) (c : OsCfg) (lvl : ℕ) (lv : OsLv) : Prop whe
   fold : ∀ args rets, coreProgram.Rel rd "opening_fold" args rets → MeaningOpeningFold rd args rets
   can : ∀ args rets, coreProgram.Rel rd "assert_canonical" args rets →
     MeaningAssertCanonical args rets
-  ood : ∀ args rets, coreProgram.Rel rd ("opening_ood_point__L" ++ natStr lv.logCols) args rets →
-    MeaningOpeningOodPoint lv.logCols rd args rets
+  ood : lvl ≠ c.yrLevel → ∀ args rets,
+    coreProgram.Rel rd ("opening_ood_point__L" ++ natStr lv.logCols) args rets →
+      MeaningOpeningOodPoint lv.logCols rd args rets
   fm : ∀ args rets, coreProgram.Rel rd ("opening_final_message__L" ++ natStr c.yrLen) args rets →
     MeaningOpeningFinalMessage c.yrLen rd args rets
   grind : ∀ args rets, coreProgram.Rel rd ("grind_check__L" ++ natStr lv.grind) args rets →
@@ -162,7 +163,7 @@ theorem osLevel_nonfinal_sound {c : OsCfg} {lvl : ℕ} {lv lv' : OsLv} {logN : �
   have hco1' : st1.co = 0 := hco1.resolve_left (by omega)
   -- the commitment
   obtain ⟨ra, rb, y, c0, c2, nonce, d, z, F', hrd2, hco, hrun2⟩ :=
-    osCommit_sound hcb.can hcb.ood hcb.grind hfs1 hm hlvl (allOk_append.mpr ⟨hC, hG⟩) next rest R
+    osCommit_sound hcb.can (hcb.ood hnf) hcb.grind hfs1 hm hlvl (allOk_append.mpr ⟨hC, hG⟩) next rest R
   set st2 := (osCommit lvl lv st1).2.1
   have hpad2 : st2.pad = st.pad := (osFolds_state osFch lv.folds lv.foldsOff st).1
   have hR2 : (R ++ [(d, levelShape lv.logCols next (3 * 2 ^ next.fold))])[lvl]? =
