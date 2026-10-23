@@ -150,6 +150,13 @@ former code in parentheses is for reading older pull requests.
   least `τ_max` coordinates (`constraints.rs:250-253`). §8 states none of these. (F15)
 - *The program in the Python verifier.* It takes the program as the stacked table and does not
   check that the unused slots are zero (`py:566, 857`).
+- *The order of `DEREF`'s flushes.* §7.4 lists the three memory reads pointer, local, target
+  (`07-instruction-tables.tex:87-90`, against its own prose, `:72-74`); the Rust flushes them
+  pointer, target, local (`lean_vm/src/tables.rs:641-643`, `py:779-781`). The order places the
+  blocks in the bus's leaf stacks, ties falling to flush order, so the table sumcheck's forms
+  depend on it. The leanISA table followed §7.4, and the executable verifier rejected the Rust
+  proof at the table sumcheck's final check, every other table's forms equal to the Python
+  verifier's; the table now reads in the Rust's order (`Arithmetization/Tables/Deref.lean`).
 
 **The specification leaves it to the code** (the blueprint transcribes these).
 

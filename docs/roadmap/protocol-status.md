@@ -1028,6 +1028,14 @@ Merkle trees', with the fast field arithmetic merged), the rest of Layer 12's ve
   bus point and the three totals are its totals (`tests/LeanerVMTests/Protocol/VerifyBus.lean`,
   with the zero count, a flipped descendant, a flipped round coefficient, a changed root and a
   missing value rejected).
+- **The table sumcheck and the public input** (`Protocol/Verify/Tables.lean`): `walkTables` and
+  `walkPub`; `tableStep` is the oracle verifier's (the target batched from the totals, the rounds
+  decoded, `Sumcheck.finalCheck` of the table summand, `TableSumcheck.tableOut`), `pubStep` the
+  deployed one (`PublicInput.checkWords`, `pooledFrom`). The fixture found the `DEREF` table's
+  flush order differing from the Rust's ([leanvm-target.md](../leanvm-target.md#known-discrepancies-at-the-pin));
+  the leanISA table now reads in the Rust's order, and on the fixture both phases pass
+  (`VerifyTables.lean`, with a flipped column value, a flipped round coefficient, a missing value,
+  a flipped public value and a third public value rejected).
 
 ## Upstream watch
 
