@@ -199,6 +199,10 @@ theorem holds_bsRound (j : ℕ) (kret : List E → Prop) :
   simp only [bsRound, keccakA, holdsList_append, holds_fsNextT, holds_challengeT, holds_bsFold,
     Stmt.HoldsList, Stmt.Holds, and_true]
 
+theorem cells13_bsRun13 (σ : Val) (b : ℕ) (c : Fin 13) :
+    cells13 ((bsRun13 b).map σ) c = σ (.n (b + c.val)) := by
+  simp [cells13, bsRun13, List.getD_eq_getElem?_getD]
+
 theorem keccak_bsRun13 {ins : List V} {b : ℕ}
     (h : (Atom.keccak ins (bsRun13 b) false false).Holds rd σ) :
     AllCanonical (ins.map σ) ∧
@@ -410,8 +414,393 @@ theorem bs_sound {name : String} {f : Fn} (n : ℕ) (hn : 1 ≤ n)
       rfl
 
 
+/-! ## Completeness -/
+
+/-- A cell index, reduced. -/
+def bsFin (x : ℕ) : Fin 13 := ⟨x % 13, Nat.mod_lt _ (by decide)⟩
+
+theorem bsFin_eq {x : ℕ} {c : Fin 13} (h : x % 13 = c.val) : bsFin x = c := Fin.ext h
+
+/-- A fold's seven values from the claim, the words and the challenge. -/
+def bsFoldVals (c g1 gInf r : E) : List E :=
+  [c + g1, c + g1 + g1, c + g1 + g1 + gInf, gInf * r, gInf * r + (c + g1 + g1 + gInf),
+    (gInf * r + (c + g1 + g1 + gInf)) * r, (gInf * r + (c + g1 + g1 + gInf)) * r + (c + g1)]
+
+/-- The honest values of `batch_sumcheck` at `n` rounds, by index, on the rounds' words `g`, the
+claims `cl` and the permutations `P`. -/
+def bsVals (as : List E) (g : ℕ → E × E) (cl : ℕ → E) (P : ℕ → KState) (n k : ℕ) : E :=
+  if k < 8 then as.getD k 0
+  else if k < 13 then as.getD (k - 8) 0
+  else if k = 13 then (g 0).1
+  else if k < 23 then fsPackVals (g 0).1 dsObserve (k - 14)
+  else if k = 23 then (g 0).2
+  else if k < 33 then fsPackVals (g 0).2 dsObserve (k - 24)
+  else if k = 33 then 1
+  else if k < 38 then 0
+  else if k < 51 then cellsOfState (P 0) false (bsFin (k - 38))
+  else if k < 58 then challengeVals (cellsOfState (P 0) false 0) (cellsOfState (P 0) false 1) (k - 51)
+  else if k < 65 then (bsFoldVals (cl 0) (g 0).1 (g 0).2 (challengeOf (P 0))).getD (k - 58) 0
+  else if (k - 65) / 47 + 1 < n then
+    (if (k - 65) % 47 = 0 then (g ((k - 65) / 47 + 1)).1
+    else if (k - 65) % 47 < 10 then
+      fsPackVals (g ((k - 65) / 47 + 1)).1 dsObserve ((k - 65) % 47 - 1)
+    else if (k - 65) % 47 = 10 then (g ((k - 65) / 47 + 1)).2
+    else if (k - 65) % 47 < 20 then
+      fsPackVals (g ((k - 65) / 47 + 1)).2 dsObserve ((k - 65) % 47 - 11)
+    else if (k - 65) % 47 < 33 then
+      cellsOfState (P ((k - 65) / 47 + 1)) false (bsFin ((k - 65) % 47 - 20))
+    else if (k - 65) % 47 < 40 then
+      challengeVals (cellsOfState (P ((k - 65) / 47 + 1)) false 0)
+        (cellsOfState (P ((k - 65) / 47 + 1)) false 1) ((k - 65) % 47 - 33)
+    else (bsFoldVals (cl ((k - 65) / 47 + 1)) (g ((k - 65) / 47 + 1)).1 (g ((k - 65) / 47 + 1)).2
+      (challengeOf (P ((k - 65) / 47 + 1)))).getD ((k - 65) % 47 - 40) 0)
+  else if (k - 65) % 47 < 5 then cellsOfState (P (n - 1)) false (bsFin (8 + (k - 65) % 47))
+  else cl n
+
+/-- Decide the next `if` of an unfolded index function by `omega`. -/
+macro "bs_if" : tactic => `(tactic| first
+  | (rw [ite_eq_right_of_eq_false]; rotate_left; exact eq_false (by omega))
+  | (rw [ite_eq_left_of_eq_true]; rotate_left; exact eq_true (by omega)))
+
+section
+variable (as : List E) (g : ℕ → E × E) (cl : ℕ → E) (P : ℕ → KState)
+
+theorem bsVals_round {n j i : ℕ} (hj : j + 1 < n) (hi : i < 47) :
+    bsVals as g cl P n (65 + 47 * j + i) =
+      if i = 0 then (g (j + 1)).1
+      else if i < 10 then fsPackVals (g (j + 1)).1 dsObserve (i - 1)
+      else if i = 10 then (g (j + 1)).2
+      else if i < 20 then fsPackVals (g (j + 1)).2 dsObserve (i - 11)
+      else if i < 33 then cellsOfState (P (j + 1)) false (bsFin (i - 20))
+      else if i < 40 then
+        challengeVals (cellsOfState (P (j + 1)) false 0) (cellsOfState (P (j + 1)) false 1) (i - 33)
+      else (bsFoldVals (cl (j + 1)) (g (j + 1)).1 (g (j + 1)).2 (challengeOf (P (j + 1)))).getD
+        (i - 40) 0 := by
+  rw [bsVals, show (65 + 47 * j + i - 65) / 47 = j by omega,
+    show (65 + 47 * j + i - 65) % 47 = i by omega]
+  repeat bs_if
+
+theorem bsVals_suffix {n i : ℕ} (hn : 1 ≤ n) (hi : i < 6) :
+    bsVals as g cl P n (18 + 47 * n + i) =
+      if i < 5 then cellsOfState (P (n - 1)) false (bsFin (8 + i)) else cl n := by
+  rw [bsVals, show (18 + 47 * n + i - 65) / 47 = n - 1 by omega,
+    show (18 + 47 * n + i - 65) % 47 = i by omega]
+  repeat bs_if
+
+theorem bsVals_cellsAt {n j : ℕ} (hj : j < n) (c : Fin 13) :
+    bsVals as g cl P n (38 + 47 * j + c.val) = cellsOfState (P j) false c := by
+  have hc := c.isLt
+  cases j with
+  | zero =>
+    rw [bsVals]
+    repeat bs_if
+    congr 1; apply bsFin_eq; omega
+  | succ i =>
+    rw [show 38 + 47 * (i + 1) + c.val = 65 + 47 * i + (20 + c.val) by ring,
+      bsVals_round as g cl P hj (by omega)]
+    repeat bs_if
+    congr 1; apply bsFin_eq; omega
+
+theorem bsVals_chalAt {n j u : ℕ} (hj : j < n) (hu : u < 7) :
+    bsVals as g cl P n (38 + 47 * j + 13 + u) =
+      challengeVals (cellsOfState (P j) false 0) (cellsOfState (P j) false 1) u := by
+  cases j with
+  | zero =>
+    rw [bsVals]
+    repeat bs_if
+    congr 1; omega
+  | succ i =>
+    rw [show 38 + 47 * (i + 1) + 13 + u = 65 + 47 * i + (33 + u) by ring,
+      bsVals_round as g cl P hj (by omega)]
+    repeat bs_if
+    congr 1; omega
+
+theorem bsVals_foldAt {n j u : ℕ} (hj : j < n) (hu : u < 7) :
+    bsVals as g cl P n (38 + 47 * j + 20 + u) =
+      (bsFoldVals (cl j) (g j).1 (g j).2 (challengeOf (P j))).getD u 0 := by
+  cases j with
+  | zero =>
+    rw [bsVals]
+    repeat bs_if
+    congr 1; omega
+  | succ i =>
+    rw [show 38 + 47 * (i + 1) + 20 + u = 65 + 47 * i + (40 + u) by ring,
+      bsVals_round as g cl P hj (by omega)]
+    repeat bs_if
+    congr 1; omega
+
+end
+
+theorem bs_complete {name : String} {f : Fn} (n : ℕ) (hn : 1 ≤ n)
+    (hfind : coreProgram.find? name = some f) (hparams : f.params = bsParams)
+    (hbody : f.body = bsBody n) (rd : Reader) (args rets : List E)
+    (h : MeaningBatchSumcheck n rd args rets) : coreProgram.Rel rd name args rets := by
+  obtain ⟨f0, f1, f2, f3, f4, msgs, running, point, rfl⟩ : ∃ f0 f1 f2 f3 f4 msgs running point,
+      args = [f0, f1, f2, f3, f4, msgs, running, point] := by
+    match args, h with
+    | [f0, f1, f2, f3, f4, msgs, running, point], _ =>
+      exact ⟨f0, f1, f2, f3, f4, msgs, running, point, rfl⟩
+  obtain ⟨hcan, rounds, hlen, hmsgs, hres⟩ := h
+  let g : ℕ → E × E := fun j ↦ rounds.getD j (0, 0)
+  have hrounds : rounds = (List.range n).map g := by
+    apply List.ext_getElem (by simp [hlen])
+    intro i h1 h2
+    simp [g, List.getD_eq_getElem?_getD, List.getElem?_eq_getElem h1]
+  rw [hrounds, flatMap_pairs] at hmsgs
+  have hm : ∀ j, j < n → LoadHolds rd msgs (2 * j) (g j).1 ∧ LoadHolds rd msgs (2 * j + 1) (g j).2 := by
+    intro j hj
+    have a := hmsgs (2 * j) (by simp; omega)
+    have b := hmsgs (2 * j + 1) (by simp; omega)
+    simp only [List.getElem_map, List.getElem_range, show 2 * j % 2 = 0 by omega,
+      show 2 * j / 2 = j by omega, ↓reduceIte] at a
+    simp only [List.getElem_map, List.getElem_range, show (2 * j + 1) % 2 = 1 by omega,
+      show (2 * j + 1) / 2 = j by omega, one_ne_zero, ↓reduceIte] at b
+    exact ⟨a, b⟩
+  let cap := [f0, f1, f2, f3, f4]
+  let St := bsSt g running ⟨cap, []⟩
+  let P := bsP g running ⟨cap, []⟩
+  let cl : ℕ → E := fun j ↦ (St j).1
+  simp only [hrounds, bsRun_range1, bsRun_range2, bsRun_range3] at hres
+  obtain ⟨hpt, hret⟩ := hres
+  have hpt : ∀ j, j < n → LoadHolds rd point j (challengeOf (P j)) := by
+    intro j hj
+    have := hpt j (by simp; omega)
+    simp only [List.getElem_map, List.getElem_range] at this
+    exact this
+  let as := [f0, f1, f2, f3, f4, msgs, running, point]
+  let σ : Val := fun v ↦ bsVals as g cl P n v.idx
+  have ev : ∀ k, σ (.n k) = bsVals as g cl P n k := fun _ ↦ rfl
+  have idx : ∀ a b, a = b → σ (.n a) = σ (.n b) := fun a b h ↦ by rw [h]
+  have pc : ∀ x t, (fsPackVals x t 6, fsPackVals x t 8) = Keccak.scalarCells x t := fsPackVals_cells
+  have pcan : ∀ x t, IsCanonical128 (fsPackVals x t 6) ∧ IsCanonical128 (fsPackVals x t 8) :=
+    fsPackVals_canonical
+  have zc : IsCanonical128 (0 : E) := by
+    rw [zero_eq_ofLimbs]; exact (isCanonical128_ofLimbs_iff _ _ _).mpr rfl
+  have kcan : ∀ (L : List E), (∀ x ∈ L, IsCanonical128 x) → ∀ c : Fin 13,
+      IsCanonical128 (cells13 L c) := by
+    intro L hL c
+    simp only [cells13, List.getD_eq_getElem?_getD]
+    cases h : L[c.val]? with
+    | none => exact zc
+    | some x => exact hL x (List.mem_of_getElem? h)
+  have e5 : σ (.n 5) = msgs := by simp [ev, bsVals, as]
+  have e7 : σ (.n 7) = point := by simp [ev, bsVals, as]
+  have vr : ∀ j i, j + 1 < n → i < 47 → σ (.n (65 + 47 * j + i)) = _ :=
+    fun j i hj hi ↦ bsVals_round as g cl P hj hi
+  have vc : ∀ j, j < n → ∀ c : Fin 13, σ (.n (38 + 47 * j + c.val)) = cellsOfState (P j) false c :=
+    fun j hj c ↦ bsVals_cellsAt as g cl P hj c
+  have vch : ∀ j u, j < n → u < 7 → σ (.n (38 + 47 * j + 13 + u)) =
+      challengeVals (cellsOfState (P j) false 0) (cellsOfState (P j) false 1) u :=
+    fun j u hj hu ↦ bsVals_chalAt as g cl P hj hu
+  have vf : ∀ j u, j < n → u < 7 → σ (.n (38 + 47 * j + 20 + u)) =
+      (bsFoldVals (cl j) (g j).1 (g j).2 (challengeOf (P j))).getD u 0 :=
+    fun j u hj hu ↦ bsVals_foldAt as g cl P hj hu
+  -- what one round asks, on its words at `b`, `b + 10`
+  have roundOk : ∀ j, j < n → ∀ b, b = bsG j →
+      σ (.n (b + 0)) = (g j).1 → σ (.n (b + 10)) = (g j).2 →
+      (∀ u, u < 9 → σ (.n (b + 1 + u)) = fsPackVals (g j).1 dsObserve u) →
+      (∀ u, u < 9 → σ (.n (b + 11 + u)) = fsPackVals (g j).2 dsObserve u) →
+      (LoadHolds rd (σ (.n 5)) (2 * j) (σ (.n b)) ∧ FsPackOk σ (.n b) (b + 1) dsObserve) ∧
+      (LoadHolds rd (σ (.n 5)) (2 * j + 1) (σ (.n (b + 10))) ∧
+        FsPackOk σ (.n (b + 10)) (b + 10 + 1) dsObserve) ∧
+      ChallengeOk σ (.n (38 + 47 * j)) (.n (38 + 47 * j + 1)) (38 + 47 * j + 13) ∧
+      BsFoldOk rd σ (38 + 47 * j) (bsC j) b j := by
+    intro j hj b hb g1 g2 p1 p2
+    have g1' : σ (.n b) = (g j).1 := g1
+    have c0 : σ (.n (38 + 47 * j)) = cellsOfState (P j) false 0 := vc j hj 0
+    have c1 : σ (.n (38 + 47 * j + 1)) = cellsOfState (P j) false 1 := vc j hj 1
+    have hr : σ (.n (38 + 47 * j + 19)) = challengeOf (P j) := by
+      rw [← challengeVals_six, ← vch j 6 hj (by omega)]
+    have hcl : σ (.n (bsC j)) = cl j := by
+      cases j with
+      | zero => simp [bsC, ev, bsVals, as, cl, St, bsSt]
+      | succ i =>
+        rw [show bsC (i + 1) = 38 + 47 * i + 20 + 6 by simp only [bsC]; ring, vf i 6 (by omega) (by omega)]
+        rfl
+    refine ⟨⟨by rw [e5, g1']; exact (hm j hj).1, fsPackOk_of_vals fun u hu ↦ by rw [p1 u hu, g1']⟩,
+      ⟨by rw [e5, g2]; exact (hm j hj).2, fsPackOk_of_vals fun u hu ↦ ?_⟩,
+      challengeOk_of_vals (by rw [c1]; exact cellsOfState_canonical _ _ _) fun u hu ↦ ?_, ?_⟩
+    · rw [show b + 10 + 1 + u = b + 11 + u by ring, p2 u hu, g2]
+    · rw [c0, c1]; exact vch j u hj hu
+    · have f : ∀ u, u < 7 → σ (.n (38 + 47 * j + 20 + u)) = _ := fun u hu ↦ vf j u hj hu
+      have f0 := f 0 (by omega)
+      have f1 := f 1 (by omega)
+      have f2 := f 2 (by omega)
+      have f3 := f 3 (by omega)
+      have f4 := f 4 (by omega)
+      have f5 := f 5 (by omega)
+      have f6 := f 6 (by omega)
+      simp only [bsFoldVals, List.getD_cons_succ, List.getD_cons_zero,
+        Nat.add_zero] at f0 f1 f2 f3 f4 f5 f6
+      refine ⟨by rw [e7, hr]; exact hpt j hj, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
+      · rw [f0, hcl, g1']
+      · rw [show 38 + 47 * j + 21 = 38 + 47 * j + 20 + 1 by ring, f1, f0, g1']
+      · rw [show 38 + 47 * j + 22 = 38 + 47 * j + 20 + 2 by ring, f2,
+          show 38 + 47 * j + 21 = 38 + 47 * j + 20 + 1 by ring, f1, g2]
+      · rw [show 38 + 47 * j + 23 = 38 + 47 * j + 20 + 3 by ring, f3, g2, hr]
+      · rw [show 38 + 47 * j + 24 = 38 + 47 * j + 20 + 4 by ring, f4,
+          show 38 + 47 * j + 23 = 38 + 47 * j + 20 + 3 by ring, f3,
+          show 38 + 47 * j + 22 = 38 + 47 * j + 20 + 2 by ring, f2]
+      · rw [show 38 + 47 * j + 25 = 38 + 47 * j + 20 + 5 by ring, f5,
+          show 38 + 47 * j + 24 = 38 + 47 * j + 20 + 4 by ring, f4, hr]
+      · rw [show 38 + 47 * j + 26 = 38 + 47 * j + 20 + 6 by ring, f6,
+          show 38 + 47 * j + 25 = 38 + 47 * j + 20 + 5 by ring, f5, f0]
+  have capCan : ∀ j, j < n → (St j).2.cap.length = 5 ∧ AllCanonical (St j).2.cap := by
+    intro j hj
+    cases j with
+    | zero => exact ⟨rfl, hcan⟩
+    | succ i =>
+      refine ⟨rfl, fun x hx ↦ ?_⟩
+      simp only [St, bsSt_cap_succ, capOf, List.mem_cons, List.not_mem_nil, or_false] at hx
+      rcases hx with rfl | rfl | rfl | rfl | rfl <;> exact cellsOfState_canonical _ _ _
+  have keccakOk : ∀ j, j < n → ∀ ins : List V, ins.map σ =
+      [fsPackVals (g j).1 dsObserve 6, fsPackVals (g j).1 dsObserve 8, fsPackVals (g j).2 dsObserve 6,
+        fsPackVals (g j).2 dsObserve 8, 0, 0, 0, 0] ++ (St j).2.cap →
+      (Atom.keccak ins (bsRun13 (38 + 47 * j)) false false).Holds rd σ := by
+    intro j hj ins hins
+    obtain ⟨hl, hc⟩ := capCan j hj
+    have hlen : ins.length = 13 := by
+      have := congrArg List.length hins
+      simp only [List.length_map, List.length_append, hl] at this
+      simpa using this
+    refine ⟨hlen, rfl, kcan _ fun x hx ↦ ?_, fun c ↦ ?_⟩
+    · rw [hins] at hx
+      simp only [List.mem_append, List.mem_cons, List.not_mem_nil, or_false] at hx
+      rcases hx with (rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl) | h
+      · exact (pcan _ _).1
+      · exact (pcan _ _).2
+      · exact (pcan _ _).1
+      · exact (pcan _ _).2
+      all_goals first | exact zc | exact hc x h
+    · rw [cells13_bsRun13, vc j hj c]
+      refine congrArg (fun S ↦ cellsOfState S false c) ?_
+      show _ = permOf _
+      rw [hins]
+      show bsP g running ⟨cap, []⟩ j = _
+      rw [bsP_eq]
+      simp only [pendCells, List.flatMap_cons, List.flatMap_nil, List.cons_append, List.nil_append,
+        ← pc]
+      rfl
+  have hg0 : ∀ u, u < 9 → σ (.n (13 + 1 + u)) = fsPackVals (g 0).1 dsObserve u := by
+    intro u hu; interval_cases u <;> simp [ev, bsVals]
+  have hg0' : ∀ u, u < 9 → σ (.n (13 + 11 + u)) = fsPackVals (g 0).2 dsObserve u := by
+    intro u hu; interval_cases u <;> simp [ev, bsVals]
+  have hgj : ∀ j, j + 1 < n → σ (.n (65 + 47 * j + 0)) = (g (j + 1)).1 ∧
+      σ (.n (65 + 47 * j + 10)) = (g (j + 1)).2 ∧
+      (∀ u, u < 9 → σ (.n (65 + 47 * j + 1 + u)) = fsPackVals (g (j + 1)).1 dsObserve u) ∧
+      (∀ u, u < 9 → σ (.n (65 + 47 * j + 11 + u)) = fsPackVals (g (j + 1)).2 dsObserve u) := by
+    intro j hj
+    refine ⟨?_, ?_, fun u hu ↦ ?_, fun u hu ↦ ?_⟩
+    · rw [vr j 0 hj (by omega)]; simp
+    · rw [vr j 10 hj (by omega)]; simp
+    · rw [show 65 + 47 * j + 1 + u = 65 + 47 * j + (1 + u) by ring, vr j (1 + u) hj (by omega)]
+      simp only [show ¬ (1 + u = 0) by omega, show 1 + u < 10 by omega, ↓reduceIte,
+        show 1 + u - 1 = u by omega]
+    · rw [show 65 + 47 * j + 11 + u = 65 + 47 * j + (11 + u) by ring, vr j (11 + u) hj (by omega)]
+      simp only [show ¬ (11 + u = 0) by omega, show ¬ (11 + u < 10) by omega,
+        show ¬ (11 + u = 10) by omega, show 11 + u < 20 by omega, ↓reduceIte,
+        show 11 + u - 11 = u by omega]
+  rw [rel_iff_sem hfind, hbody, hparams, bsBody, bsRound0]
+  simp only [holdsList_append, holdsList_range_flatten (n - 1) bsRound (fun _ => rfl),
+    holds_bsRound, holds_fsNextT, holds_challengeT, holds_bsFold, keccakA, Stmt.HoldsList,
+    Stmt.Holds, List.map_cons, List.map_nil]
+  obtain ⟨m, rfl⟩ : ∃ m, n = m + 1 := ⟨n - 1, by omega⟩
+  obtain ⟨⟨l0, p0⟩, ⟨l1, p1⟩, ch0, fo0⟩ := roundOk 0 hn 13 rfl (by simp [ev, bsVals])
+    (by simp [ev, bsVals]) hg0 hg0'
+  have hsuf : ∀ i, i < 6 → σ (.n (18 + 47 * (m + 1) + i)) =
+      if i < 5 then cellsOfState (P m) false (bsFin (8 + i)) else cl (m + 1) :=
+    fun i hi ↦ bsVals_suffix as g cl P (by omega) hi
+  have sc : ∀ i (hi : i < 5), σ (.n (18 + 47 * (m + 1) + i)) = cellsOfState (P m) false ⟨8 + i, by omega⟩ := by
+    intro i hi
+    rw [hsuf i (by omega)]
+    simp only [hi, ↓reduceIte]
+    congr 1; apply bsFin_eq; simp; omega
+  have scl : σ (.n (18 + 47 * (m + 1) + 5)) = cl (m + 1) := by
+    rw [hsuf 5 (by omega)]; rfl
+  have fl : σ (.n (38 + 47 * m + 20 + 6)) = cl (m + 1) := by
+    rw [vf m 6 (by omega) (by omega)]; rfl
+  refine ⟨σ, by simp [ev, bsVals, as], ?_, ?_, ?_, ?_, ?_, ⟨l0, p0⟩, ⟨l1, p1⟩, ?_, ?_, ?_, ?_, ?_,
+    keccakOk 0 hn _ (by simp [ev, bsVals, as, St, bsSt, cap]), ch0, fo0, fun j hj ↦ ?_,
+    ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
+  all_goals try (show σ _ = _; simp [ev, bsVals, as, word_one, word_zero]; done)
+  · obtain ⟨e0, e10, ep1, ep2⟩ := hgj j (by omega)
+    obtain ⟨⟨la, pa⟩, ⟨lb, pb⟩, chj, foj⟩ :=
+      roundOk (j + 1) (by omega) (65 + 47 * j) (by simp only [bsG]) e0 e10 ep1 ep2
+    have e1 : 38 + 47 * (j + 1) = 85 + 47 * j := by ring
+    rw [e1] at chj foj
+    refine ⟨⟨by simpa [show 2 * (j + 1) = 2 * j + 2 by ring] using la, pa⟩,
+      ⟨by simpa [show 2 * (j + 1) + 1 = 2 * j + 3 by ring,
+          show 65 + 47 * j + 10 = 75 + 47 * j by ring] using lb,
+        by simpa [show 65 + 47 * j + 10 = 75 + 47 * j by ring] using pb⟩, ?_, ?_, ?_⟩
+    · rw [show 85 + 47 * j = 38 + 47 * (j + 1) by ring]
+      apply keccakOk (j + 1) (by omega)
+      have a6 : σ (.n (72 + 47 * j)) = _ := (idx _ (65 + 47 * j + 1 + 6) (by ring)).trans (ep1 6 (by omega))
+      have a8 : σ (.n (74 + 47 * j)) = _ := (idx _ (65 + 47 * j + 1 + 8) (by ring)).trans (ep1 8 (by omega))
+      have b6 : σ (.n (82 + 47 * j)) = _ := (idx _ (65 + 47 * j + 11 + 6) (by ring)).trans (ep2 6 (by omega))
+      have b8 : σ (.n (84 + 47 * j)) = _ := (idx _ (65 + 47 * j + 11 + 8) (by ring)).trans (ep2 8 (by omega))
+      have z : ∀ k, 34 ≤ k → k < 38 → σ (.n k) = 0 := by
+        intro k h1 h2; interval_cases k <;> simp [ev, bsVals]
+      have q8 : σ (.n (46 + 47 * j)) = cellsOfState (P j) false 8 :=
+        (idx _ (38 + 47 * j + (8 : Fin 13).val) (by simp; ring)).trans (vc j (by omega) 8)
+      have q9 : σ (.n (47 + 47 * j)) = cellsOfState (P j) false 9 :=
+        (idx _ (38 + 47 * j + (9 : Fin 13).val) (by simp; ring)).trans (vc j (by omega) 9)
+      have q10 : σ (.n (48 + 47 * j)) = cellsOfState (P j) false 10 :=
+        (idx _ (38 + 47 * j + (10 : Fin 13).val) (by simp; ring)).trans (vc j (by omega) 10)
+      have q11 : σ (.n (49 + 47 * j)) = cellsOfState (P j) false 11 :=
+        (idx _ (38 + 47 * j + (11 : Fin 13).val) (by simp; ring)).trans (vc j (by omega) 11)
+      have q12 : σ (.n (50 + 47 * j)) = cellsOfState (P j) false 12 :=
+        (idx _ (38 + 47 * j + (12 : Fin 13).val) (by simp; ring)).trans (vc j (by omega) 12)
+      simp only [List.map_cons, List.map_nil, a6, a8, b6, b8, z 34 (by omega) (by omega),
+        z 35 (by omega) (by omega), z 36 (by omega) (by omega), z 37 (by omega) (by omega), q8, q9,
+        q10, q11, q12]
+      rfl
+    · simpa [show 85 + 47 * j + 1 = 86 + 47 * j by ring, show 85 + 47 * j + 13 = 98 + 47 * j by ring]
+        using chj
+    · simpa [bsC] using foj
+  · show σ (.n (18 + 47 * (m + 1))) = σ (.n (38 + 47 * (m + 1 - 1) + 8))
+    rw [idx (18 + 47 * (m + 1)) (18 + 47 * (m + 1) + 0) (by ring), sc 0 (by omega),
+      idx (38 + 47 * (m + 1 - 1) + 8) (38 + 47 * m + (8 : Fin 13).val) (by simp), vc m (by omega)]
+    rfl
+  · show σ (.n (19 + 47 * (m + 1))) = σ (.n (38 + 47 * (m + 1 - 1) + 9))
+    rw [idx (19 + 47 * (m + 1)) (18 + 47 * (m + 1) + 1) (by ring), sc 1 (by omega),
+      idx (38 + 47 * (m + 1 - 1) + 9) (38 + 47 * m + (9 : Fin 13).val) (by simp), vc m (by omega)]
+    rfl
+  · show σ (.n (20 + 47 * (m + 1))) = σ (.n (38 + 47 * (m + 1 - 1) + 10))
+    rw [idx (20 + 47 * (m + 1)) (18 + 47 * (m + 1) + 2) (by ring), sc 2 (by omega),
+      idx (38 + 47 * (m + 1 - 1) + 10) (38 + 47 * m + (10 : Fin 13).val) (by simp), vc m (by omega)]
+    rfl
+  · show σ (.n (21 + 47 * (m + 1))) = σ (.n (38 + 47 * (m + 1 - 1) + 11))
+    rw [idx (21 + 47 * (m + 1)) (18 + 47 * (m + 1) + 3) (by ring), sc 3 (by omega),
+      idx (38 + 47 * (m + 1 - 1) + 11) (38 + 47 * m + (11 : Fin 13).val) (by simp), vc m (by omega)]
+    rfl
+  · show σ (.n (22 + 47 * (m + 1))) = σ (.n (38 + 47 * (m + 1 - 1) + 12))
+    rw [idx (22 + 47 * (m + 1)) (18 + 47 * (m + 1) + 4) (by ring), sc 4 (by omega),
+      idx (38 + 47 * (m + 1 - 1) + 12) (38 + 47 * m + (12 : Fin 13).val) (by simp), vc m (by omega)]
+    rfl
+  · show σ (.n (23 + 47 * (m + 1))) = σ (.n (38 + 47 * (m + 1 - 1) + 26))
+    rw [idx (23 + 47 * (m + 1)) (18 + 47 * (m + 1) + 5) (by ring), scl,
+      idx (38 + 47 * (m + 1 - 1) + 26) (38 + 47 * m + 20 + 6) (by simp), fl]
+  · rw [hret]
+    rw [idx (19 + 47 * (m + 1)) (18 + 47 * (m + 1) + 1) (by ring),
+      idx (20 + 47 * (m + 1)) (18 + 47 * (m + 1) + 2) (by ring),
+      idx (21 + 47 * (m + 1)) (18 + 47 * (m + 1) + 3) (by ring),
+      idx (22 + 47 * (m + 1)) (18 + 47 * (m + 1) + 4) (by ring),
+      idx (23 + 47 * (m + 1)) (18 + 47 * (m + 1) + 5) (by ring),
+      show σ (.n (18 + 47 * (m + 1))) = _ from sc 0 (by omega), sc 1 (by omega), sc 2 (by omega),
+      sc 3 (by omega), sc 4 (by omega), scl]
+    rfl
+
 set_option maxRecDepth 100000 in
 theorem core396_body : Fn.body Data.core396 = bsBody 23 := stmtsEqb_sound (by decide +kernel)
+
+set_option maxRecDepth 100000 in
+/-- **`batch_sumcheck`'s core IR is its meaning.** -/
+theorem batch_sumcheck_holds : batch_sumcheck_Spec := by
+  intro rd args rets
+  have hfind : coreProgram.find? "batch_sumcheck__L23" = some Data.core396 :=
+    Program.find?_of_indexOf? (j := 396) (by decide +kernel) rfl
+  exact ⟨bs_sound 23 (by decide) hfind rfl core396_body rd args rets,
+    bs_complete 23 (by decide) hfind rfl core396_body rd args rets⟩
 
 end
 end LeanVM.Guest.B1
