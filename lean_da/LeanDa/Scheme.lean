@@ -38,15 +38,18 @@ The erasure code commitment of `crates/lean_da` at leanVM `b64b3d41f`, specified
   `da_verify`). The challenges are a BLAKE2s chain from the label over the root
   (`membership_challenges`); the security game models them as one random oracle on the root.
 * **The deployed algorithms** (`commit.rs:55-145`, `verifier/src/da.rs:14-101`). The crate's
-  computations, transcribed computably on lists, for `formal/lean_vm` to state the aggregation
+  computations, transcribed computably on lists, for `lean_vm` to state the aggregation
   node's DA claim with: `commitCodewords`, the commitment level by level, which is `commitCells`
   of the matrix (`commitCodewords_eq_commitCells`, `LeanDa.Commitment`); the challenges' BLAKE2s
   chain (`membershipChallenges`); the dual codeword by the additive NTT (`membershipVector`),
-  whose agreement with `dual` is not proved; and the vector's digest (`vectorDigest`).
+  which computes `dual` (`membershipVector_eq_dual`, `LeanDa.Dual`); and the vector's digest (`vectorDigest`).
 
 The row count `r` is a parameter. The crate takes `1 ≤ r ≤ 1024` (`row_count`, `lib.rs:41-46`);
 the statements hold for every `r ≥ 1`. So is the hash `H`: the crate's is BLAKE2s-256, which
-`formal/lean_vm` supplies (`LeanVM.Da.blake2s`), and the statements hold for every `H`.
+`lean_vm` supplies (`LeanVM.Da.blake2s`), and the statements hold for every `H`.
+
+Part of `lean_da`, which instantiates Benedikt Wagner's framework for erasure code commitments
+(`PqDas`, ported from https://github.com/b-wagn/fv-pq-da) with LeanDA.
 -/
 
 open Polynomial
@@ -282,8 +285,8 @@ def cellsOfRows (rows : List (List K)) : Fin (rows.length * 128) → Cell :=
 /-! ## The deployed membership vector (`verifier/src/da.rs:14-101`)
 
 The challenges, drawn from the root by the BLAKE2s chain the security game models as a random
-oracle, and the dual codeword as the crate computes it, by the additive NTT. That the NTT computes
-`dual` is not proved here (Annex D, Proposition prop:ntt). -/
+oracle, and the dual codeword as the crate computes it, by the additive NTT, which computes `dual`
+(`membershipVector_eq_dual`, `LeanDa.Dual`). -/
 
 /-- `leanDA/rs-membership/v1`, the label of the challenges' transcript (`LABEL`). -/
 def label : List UInt8 := "leanDA/rs-membership/v1".toUTF8.toList

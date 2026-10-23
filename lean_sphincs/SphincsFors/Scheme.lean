@@ -6,7 +6,8 @@ import VCVio.OracleComp.QueryTracking.RandomOracle.Simulation
 
 Adapted from leanVM, commit b7a107256, and the previous port draft.
 The seeded signer models failure after 2^32 attempts explicitly. The Rust randomizer loop
-is unbounded at the source level over a u32 counter; see PROOF.md for that mismatch.
+is unbounded at the source level over a u32 counter; the two agree on every run that finds a
+randomizer within `2^32` attempts.
 
 Parameters, serialized hash inputs, key generation, signing, and verification of the scheme in
 `leanSPHINCS.tex`, with the hash inputs of `crates/sphincs`: the 16-byte public parameter, the

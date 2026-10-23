@@ -15,8 +15,9 @@ public import Mathlib.Algebra.Order.Floor.Ring
 /-!
 # The knowledge extractor
 
-Knowledge soundness (`KnowledgeSoundness`, `LeanVM/Spec/Statement.lean`) is stated for the one
-extractor defined here, `extract`. It is straight-line: it reads the proof and the random
+Knowledge soundness (`KnowledgeSoundness`, `LeanVM/Spec/Statement.lean`) is stated for the
+extractor defined here, `extract`, through `LeanVM.extractor` (`Statement.lean`), which applies it
+to the program's bytecode. It is straight-line: it reads the proof and the random
 oracle's answers to the adversary's own queries (the queries the adversary made before it output
 the proof, with the digests the oracle returned), and nothing else. It neither queries the
 oracle, nor sees the verifier's queries, nor runs the adversary again. It does four things.
@@ -26,7 +27,8 @@ oracle, nor sees the verifier's queries, nor runs the adversary again. It does f
    the announced sizes and the layout they build (`readSizes`), then the stack's Merkle root and
    the shape level 0 of the opening commits it at (`commitStack`). These steps read scalars and
    absorb them into the Fiat-Shamir chain; what they read does not depend on the chain, so the
-   extractor does not compute it (it runs them with every hash taken to be `0`).
+   extractor does not compute it (it runs them with every hash answered by a constant,
+   `fun _ ↦ default`).
 2. **The committed word** (`commitment`, `committedWord`). It inverts the Merkle tree under the
    root through the adversary's answers: leaf `v` of the word is the leaf of an opening at
    position `v` that climbs to the root through the adversary's queries (`openOne`, the check of
@@ -144,8 +146,7 @@ def johnsonSlack : List (List ℕ) := [
 agreement `⌈(√(D/n) + η)·n⌉`, the Johnson radius `√(D/n)` plus the slack `η` (`johnsonSlack`).
 The table's default `0` is never read: the extractor reaches the threshold only through
 `commitment`, which is `none` unless `readSizes` accepted the sizes, so `1 ≤ R ≤ 4` and
-`15 ≤ μ ≤ 28`, the table's range. Even `η = 0` would not be degenerate: the threshold would be
-the Johnson radius, above which the list is still polynomially bounded. -/
+`15 ≤ μ ≤ 28`, the table's range. -/
 noncomputable def johnsonThreshold (μ R : ℕ) : ℕ :=
   let κ := μ - initialFold
   let n : ℕ := 2 ^ (κ + R)

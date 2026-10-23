@@ -35,7 +35,7 @@ hints the top limb `l2` and lands the scalar in two canonical cells, `x + y²·l
 `BLAKE2S` reads as zero, which pins `l2`: `Tower.top_pin_iff`) and `l2 + y·tail`. The tags are
 the guest's `DS_*` (G:51-54), integers below 256 (`kBytes_ofBits_tag`).
 
-**Under a hash model** (`HashModel`, `docs/roadmap/w2-guest-model.md` (removed; in git at `6ffa1d1f`)): each gadget's soundness
+**Under a hash model** (`HashModel`): each gadget's soundness
 holds of any model, its digest an answered one (`fs_compress_model`, `squeeze_state_model`,
 `squeeze_spec_model`, `grind_check_model`): the model's canonical cells pin the hinted limb as
 `BLAKE2S` does, and one block under the IV is answered (`HashModel.one_block`). The deployed

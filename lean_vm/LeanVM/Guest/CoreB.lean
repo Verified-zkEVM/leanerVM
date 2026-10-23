@@ -14,8 +14,8 @@ public import LeanVM.Spec.IsaWith
 /-!
 # The core semantics under any `BLAKE2S` semantics
 
-`Core.lean` gives a `BLAKE2S` atom the deployed relation, `CompressCells`. The guest's end-to-end
-security theorem (`docs/roadmap/e2e-security.md` (removed; in git at `6ffa1d1f`), T2) needs its proofs under a hash model's
+`Core.lean` gives a `BLAKE2S` atom the deployed relation, `CompressCells`. The guest's proofs over
+a hash model (`Value/HashModel.lean`) need them under the model's
 semantics (`Value.HashModel.sem`), so every definition here is `Core.lean`'s with the relation a
 parameter `S : BlakeSem` (`Atom.HoldsB`, `Stmt.HoldsB`, `Fn.SemB`, `Program.relNB`,
 `Program.RelB`, named as `Spec/IsaWith.lean` names `executeWithB`, `runB`), and every lemma of
@@ -30,7 +30,7 @@ proved as there.
   a B1 lemma about it carries over unchanged.
 
 The deployed modules are not changed: the generated kernel-checked families import `Core.lean`,
-and this module only adds beside it (`docs/roadmap/w2-guest-model.md` (removed; in git at `6ffa1d1f`)).
+and this module only adds beside it.
 -/
 
 namespace LeanVM.Guest.Core

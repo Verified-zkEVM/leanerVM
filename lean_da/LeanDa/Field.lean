@@ -17,6 +17,9 @@ The domain of the Reed-Solomon code is spanned over `GF(2)` by `e_c = x^c`
 (`doc/leanvm/body/d-novel-basis.tex`, the basis of Annex D), so its point of index `b` is the
 element whose bits are `b` (`point`). The novel basis of CompPoly's `AdditiveNTT` is built on
 the first sixteen of them (`basis`).
+
+Part of `lean_da`, which instantiates Benedikt Wagner's framework for erasure code commitments
+(`PqDas`, ported from https://github.com/b-wagn/fv-pq-da) with LeanDA.
 -/
 
 namespace LeanDa

@@ -14,7 +14,7 @@ public import LeanVM.Spec.Field
 /-!
 # The compiled membership vector
 
-`formal/lean_da` compiles `LeanDa.membershipVector` with CompPoly's arithmetic: a `@[csimp]` lemma
+`lean_da` compiles `LeanDa.membershipVector` with CompPoly's arithmetic: a `@[csimp]` lemma
 acts where code is compiled, so the word products of `LeanVM.Spec.Field` do not reach it there.
 The NTT's butterflies and layers, the encoding, the dual codeword and the membership vector are
 restated here word for word, each equal to its definition by `rfl`, so that every module importing

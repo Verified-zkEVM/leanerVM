@@ -22,7 +22,7 @@ open scoped ENNReal
 /-- **B2, proved**: checker K's two contracts for the deployed bytecode. -/
 theorem b2Sound : B2Sound := ⟨b2_step vsKnown_proved, b2_main⟩
 
-/-- **Soundness of the deployed guest** (GOAL.txt, checkpoint 5): a valid execution of the guest on
+/-- **Soundness of the deployed guest**: a valid execution of the guest on
 public input `statementDigest seed s` gives `seed'`, `s'` with the same digest, `s'.defer` shaped,
 and `NodeRel seed' s'`. -/
 theorem guest_sound : GuestSound := guest_sound_of_b2 b2Sound

@@ -23,10 +23,7 @@ semantics of `BLAKE2S` (`sem`) and an answered hash of byte strings (`H`, `none`
 does not answer):
 
 * `deployed`: the compression function, every string answered by `blake2sBytes`; a prefix's
-  chaining value is `absorbBlocks` of its blocks (`Value/Hash.lean`);
-* (an oracle model, the Flock-blind semantics restricted to an execution's rows with `H` a log's
-  lookup, served a removed end-to-end theorem: `docs/roadmap/e2e-security.md` in git at
-  `6ffa1d1f`).
+  chaining value is `absorbBlocks` of its blocks (`Value/Hash.lean`).
 
 The model fixes what a proof may use: a guest proof over `HashModel` never reads an intermediate
 chaining value, which the oracle model leaves free, and every hash it concludes is one the model

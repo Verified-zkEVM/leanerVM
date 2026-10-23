@@ -18,7 +18,7 @@ The aggregation guest, proved for its deployed bytecode: `guest_knowledge` and `
 9. [`Node.lean`](Node.lean): a node's statement and its digest, the batching of deferred claims, `NodeRel` and `NodeSpec` (what a node establishes, with a witness and with some witness) and the outer verifier.
 10. [`Guest.lean`](Guest.lean): a decoder (a seed, a statement and a witness read off a memory), and what a proof of the guest establishes with it: `AggregateSound` (what the outer verifier's acceptance of a statement establishes, the headline), `GuestKnowledge` (every valid execution decodes to a statement of its input's digest and a witness holding it); the collision candidates of two statements' digests.
 
-The same statements with the hash and the `BLAKE2S` relation as parameters, each recovering the deployed one (bridge lemmas `…_deployed`, `…_id`); the guest's proofs run over them. They were written for an end-to-end theorem since removed (`docs/roadmap/e2e-security.md` in git at `6ffa1d1f`):
+The same statements with the hash and the `BLAKE2S` relation as parameters, each recovering the deployed one (bridge lemmas `…_deployed`, `…_id`); the guest's proofs run over them:
 
 11. [`IsaWith.lean`](IsaWith.lean): leanISA with the relation `BLAKE2S` checks a parameter (`BlakeSem`): the deployed one (`blakeDeployed`, the compression) and the Flock-blind one (`blakeFree`, canonical cells).
 12. [`NodeWith.lean`](NodeWith.lean) and [`DaWith.lean`](DaWith.lean): the node's digests, signature verification, batching (from a start state) and DA claim with the hash in any monad, and `NodeRelWith`, `Witness.OpensWith` over an answered (`Option`-valued) hash.

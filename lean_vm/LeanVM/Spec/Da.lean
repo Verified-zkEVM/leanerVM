@@ -1,7 +1,7 @@
 /-
   LeanVM.Spec.Da
 
-  What an aggregate's DA claim on a root says, in terms of LeanDA as `formal/lean_da` defines it.
+  What an aggregate's DA claim on a root says, in terms of LeanDA as `lean_da` defines it.
 -/
 
 module
@@ -14,7 +14,7 @@ public import LeanVM.Spec.Fast.Hash
 # The DA claim
 
 LeanDA, the commitment to a blob matrix and the Reed-Solomon membership vector its root
-determines, is `formal/lean_da`'s, imported from its `Scheme` module: the security of the scheme
+determines, is `lean_da`'s, imported from its `Scheme` module: the security of the scheme
 is proved there, and its deployed algorithms (`LeanDa.commitCodewords`,
 `LeanDa.membershipVector`, `LeanDa.vectorDigest`) are transcribed there, generic in the hash. Here
 the hash is this project's BLAKE2s-256 (`blake2s`), its digest read as LeanDA's 32 bytes
@@ -24,9 +24,10 @@ An aggregate's DA claim is a pair of a root and a vector digest; it is held by a
 to the root whose rows are orthogonal to a vector of that digest (`Witness.Opens`,
 `lean_ethereum.py:2888-3082` at `3f7dc219`). The guest takes the vector digest from the
 statement; the outer verifier derives it from the root (`vectorDigestOf`). Orthogonality to the
-one vector the root determines makes the rows codewords only with high probability (a
-random-oracle argument, about `14/2^192` per root), and that this vector is the code's dual
-codeword, and the link to `formal/lean_da`'s code binding, are not proved here. The prover's
+one vector the root determines makes the rows codewords except with the membership test's
+soundness error (`14/2^192` for a fixed matrix, `lean_da`'s `checker_sound`); that vector is the
+code's dual codeword (`lean_da`'s `membershipVector_eq_dual`). The link from this check to
+`lean_da`'s code binding is not proved. The prover's
 copy of the membership vector (`lean_da/src/{encode,membership}.rs`) is not transcribed; that it
 agrees with `verifier/src/da.rs` is an implementation fact, which honest aggregates rely on.
 -/

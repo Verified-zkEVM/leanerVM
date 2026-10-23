@@ -737,7 +737,7 @@ def semsOf (body : List Core.Stmt) : List (ℕ × ℕ × ℕ) :=
     | (.call "exponent_tables" [] [p, q], i) => some (i + 1, p.idx, q.idx)
     | _ => none
 
-/-- The bounds of the functions whose table jumps are bounded outside them (DESIGN.md): before,
+/-- The bounds of the functions whose table jumps are bounded outside them (the guest's design, `lean_vm/README.md`): before,
 after, and on memory, and the memory bounds they take from named obligations. -/
 def bounds (name : String) :
     List (ℕ × ℕ) × List (ℕ × ℕ) × List (ℕ × ℕ × ℕ) × List (ℕ × ℕ × ℕ) :=

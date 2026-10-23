@@ -62,7 +62,7 @@ allocator's, its `frameAddr`s in its frames):
 * `size`: that run's committed size is at most the tree's cost (K, counting the instructions of
   each instance).
 
-`Limits` transcribes the six findings of `TRIAGE.md`; they do not bound the run's size, so the
+`Limits` transcribes the six findings of the guest's triage (`lean_vm/README.md`); they do not bound the run's size, so the
 size is a seventh limit, `budget s w ≤ 2^28`. An eighth is on the children's proofs: their
 openings agree in the guest's write-once Merkle caps (`CapsAgree`). The deployed budget is linear in the node's work
 (`Budget`: the words a run allocates and the instructions of each opcode it executes, each a
@@ -296,7 +296,7 @@ def coverage (s : NodeStatement) (w : NodeWitness) : ℕ :=
       (ch.map (·.statement.claims.da))).dups.length
 
 open Hints in
-/-- **The deployed limits** (`TRIAGE.md`'s findings), where `NodeRel` admits witnesses the guest
+/-- **The deployed limits** (the triage's findings, `lean_vm/README.md`), where `NodeRel` admits witnesses the guest
 cannot run. -/
 structure Limits (s : NodeStatement) (w : NodeWitness) : Prop where
   /-- 1. A child's stack log is in `[22, 28]` (G:2246). -/

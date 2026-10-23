@@ -195,7 +195,7 @@ theorem exists_opRecs (w : EnsembleWitness (leanIsaEnsemble prog)) : ∃ f, OpRe
 
 /-- **The constraint statement without the BLAKE2s validity**: every conjunct of `SatisfiedBy`
 but `blake2s_valid`, what a proof establishes when nothing binds the `BLAKE2S` rows to the
-compression (the Flock-blind verifier, `docs/roadmap/e2e-security.md` (removed; in git at `6ffa1d1f`) D3). The bus, the channels
+compression (the Flock-blind instance). The bus, the channels
 and the state walk need no more. -/
 structure SatisfiedByB (prog : Program) (input : PublicInput)
     (w : EnsembleWitness (leanIsaEnsemble prog)) : Prop where

@@ -19,7 +19,7 @@ public import LeanVM.Guest.Value.Pigeonhole
 
 Lemmas about Lean values (field words, cells, bytes, digests, integers, lists), independent of
 how the guest's code is represented, on which the per-function refinement lemmas (B1,
-`Guest/DESIGN.md`) rest:
+the guest's design in `lean_vm/README.md`) rest:
 
 | module | what |
 |---|---|
