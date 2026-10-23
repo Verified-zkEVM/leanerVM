@@ -307,5 +307,122 @@ theorem vbg_walk {rd : Reader} {σ : Val} {kret : List E → Prop}
     rw [mul_assoc c0, ← pow_add, ← List.length_append] at hsl
     exact ⟨xs1 ++ xs, st, s, _, _, _, _, hrun', hrd', hp (Or.inl hp1), hsl⟩
 
+
+/-- **`verify_bus_gkr` is sound** (TRIAGE G #43): on any memory of at most `2^32` words, at a depth
+other than `0`, it runs the specification's GKR walk and count check (`gkrPhase`) on the words it
+reads, writes the point to `zeta` and returns the sponge's capacity, the cursor past the words
+and the three values. -/
+theorem verify_bus_gkr_holds {μ : ℕ} (hμ : μ ≤ 32) (Lm : MemImage μ) :
+    verify_bus_gkr_Spec Lm.read := by
+  intro args rets hne hrel
+  obtain ⟨fn, hf, hp, hb⟩ := vbgFound
+  obtain ⟨σ, hpar, h, hret⟩ := (tb_rel_pre hf hb vbgPre_noRet args rets).mp hrel
+  rw [hp] at hpar
+  have hargs : args = [σ (.n 0), σ (.n 1), σ (.n 2), σ (.n 3), σ (.n 4), σ (.n 5), σ (.n 6),
+      σ (.n 7)] := by rw [← hpar]; rfl
+  have hrets : rets = [σ (.n 318), σ (.n 319), σ (.n 320), σ (.n 321), σ (.n 322), σ (.n 323),
+      σ (.n 324), σ (.n 325), σ (.n 326)] := by rw [← hret]; rfl
+  subst hargs hrets
+  simp only [List.getD_cons_succ, List.getD_cons_zero] at hne
+  have hnr := vbgPre_noRet
+  have a := fun n a heq => tb_holds_atom hnr h n a heq
+  -- the depth
+  have c18 := a 10 (.const (.n 18) (word 4294967296 0 0)) (by decide +kernel)
+  have rc := a 11 (.rangeCheck (.n 6) (.n 19) (.n 20) (.n 21) (.n 18)) (by decide +kernel)
+  simp only [Atom.Holds] at c18 rc
+  obtain ⟨depth, hd, hg⟩ := tb_rc_sound' hμ Lm (K := 33) (by omega) (by norm_num)
+    (by rw [c18, show (4294967296 : ℕ) = 2 ^ 32 by norm_num, tb_word_two_pow (by norm_num),
+      gen_pow_eq_ofK]) rc.1 rc.2.1 rc.2.2
+  have hd0 : depth ≠ 0 := by rintro rfl; exact hne (by rw [hg, pow_zero])
+  -- the root slot and the walk
+  obtain ⟨l27, l37, hcnt, hslot0⟩ := vbg_root h
+  obtain ⟨xs, st, s, row, pos, half, par, hrun, hrd, hpe, hsl⟩ := vbg_walk h hg hd hd0 hslot0
+  obtain ⟨hcl, hcap, -, -, hcur, hvl, hval, hrow, hpl, hpt, -, -, -⟩ := hsl
+  -- the final slot
+  have m307 := a 208 (.mul (.n 307) (.n 6) (.n 6)) (by decide +kernel)
+  have m308 := a 209 (.mul (.n 308) (.n 307) (.n 307)) (by decide +kernel)
+  have m309 := a 210 (.mul (.n 309) (.n 308) (.n 308)) (by decide +kernel)
+  have m310 := a 211 (.mul (.n 310) (.n 309) (.n 309)) (by decide +kernel)
+  have m311 := a 212 (.mul (.n 311) (.n 310) (.n 6)) (by decide +kernel)
+  have m312 := a 213 (.mul (.n 312) (.n 15) (.n 311)) (by decide +kernel)
+  have l313 := a 214 (.load (.n 313) (.n 312) 5) (by decide +kernel)
+  have l314 := a 215 (.load (.n 314) (.n 312) 9) (by decide +kernel)
+  have c315 := a 216 (.const (.n 315) (word 1 0 0)) (by decide +kernel)
+  have a316 := a 217 (.add (.n 316) (.n 315) (.n 6)) (by decide +kernel)
+  have c317 := a 218 (.const (.n 317) (word 1 0 0)) (by decide +kernel)
+  have q323 := a 225 (.copy (.n 323) (.n 313)) (by decide +kernel)
+  simp only [Atom.Holds] at m307 m308 m309 m310 m311 m312 l313 l314 c315 a316 c317 q323
+  rw [tb_word_one] at c315 c317
+  have e312 : σ (.n 312) = σ (.n 15) * gen ^ (17 * depth) := by
+    rw [m312, m311, m310, m309, m308, m307, hg, ← pow_add, ← pow_add, ← pow_add, ← pow_add,
+      ← pow_add]
+    ring_nf
+  have ld : ∀ k w, LoadHolds Lm.read (σ (.n 312)) k w →
+      LoadHolds Lm.read (σ (.n 15)) (17 * depth + k) w := fun k w hw => by
+    rw [e312, tb_loadHolds_mul_gen_pow] at hw; exact hw
+  have hcs := tb_holds_slice hnr h 220 ((List.range 5).map fun k ↦
+    Stmt.atom (.load (.n (318 + k)) (.n 312) k)) (by decide +kernel)
+  have hvs := tb_holds_slice hnr h 226 ((List.range 3).map fun k ↦
+    Stmt.atom (.load (.n (324 + k)) (.n 312) (6 + k))) (by decide +kernel)
+  rw [tb_holdsList_mapAtoms] at hcs hvs
+  simp only [Atom.Holds] at hcs hvs
+  have ecap : ∀ k < 5, σ (.n (318 + k)) = s.cap.getD k 0 := fun k hk =>
+    tb_loadHolds_unique (ld _ _ (hcs k hk)) (hcap k hk)
+  have eval : ∀ k < 3, σ (.n (324 + k)) = st.values.getD k 0 := fun k hk =>
+    tb_loadHolds_unique (by have := ld _ _ (hvs k hk); rwa [← Nat.add_assoc] at this) (hval k hk)
+  have e313 := tb_loadHolds_unique (ld _ _ l313) hcur
+  have e314 := tb_loadHolds_unique (ld _ _ l314) hrow
+  -- the point's copy
+  obtain ⟨-, h8⟩ := tb_holds_callIf hnr h 219 (.n 316) "__loop8" [.n 317, .n 6, .n 7, .n 314]
+    (by decide +kernel)
+  have hne8 : σ (.n 316) ≠ 0 := by
+    rw [a316, c315, hg]
+    intro h0
+    have := gen_pow_inj (by omega) (by omega)
+      ((e_add_eq_zero_iff.mp h0).symm.trans (pow_zero gen).symm)
+    omega
+  have hrel8 := h8 hne8
+  simp only [List.map_cons, List.map_nil, c317, e314] at hrel8
+  have hz := l8_loop hg (by omega) (by omega) hrel8 hpl hpt
+  -- the specification's run
+  have hs : s = ⟨s.cap, []⟩ := by cases s; simp only at hpe; rw [hpe]
+  have r1 := runsTo_readE ⟨[σ (.n 0), σ (.n 1), σ (.n 2), σ (.n 3), σ (.n 4)], []⟩ (σ (.n 27))
+  have r2 := runsTo_readE ⟨[σ (.n 0), σ (.n 1), σ (.n 2), σ (.n 3), σ (.n 4)],
+    [(σ (.n 27), dsObserve)]⟩ (σ (.n 37))
+  have ea1 : (⟨[σ (.n 0), σ (.n 1), σ (.n 2), σ (.n 3), σ (.n 4)], []⟩ : Fs).absorb (σ (.n 27))
+      dsObserve = ⟨[σ (.n 0), σ (.n 1), σ (.n 2), σ (.n 3), σ (.n 4)], [(σ (.n 27), dsObserve)]⟩ := by
+    simp [Fs.absorb, rateScalars]
+  have ea2 : (⟨[σ (.n 0), σ (.n 1), σ (.n 2), σ (.n 3), σ (.n 4)], [(σ (.n 27), dsObserve)]⟩ :
+      Fs).absorb (σ (.n 37)) dsObserve = ⟨[σ (.n 0), σ (.n 1), σ (.n 2), σ (.n 3), σ (.n 4)],
+        [(σ (.n 27), dsObserve), (σ (.n 37), dsObserve)]⟩ := by
+    simp [Fs.absorb, rateScalars]
+  rw [ea1] at r1
+  rw [ea2] at r2
+  have hv : RunsTo (verifyGkrGrandProducts depth)
+      ⟨[σ (.n 0), σ (.n 1), σ (.n 2), σ (.n 3), σ (.n 4)], []⟩
+      ([σ (.n 27)] ++ ([σ (.n 37)] ++ (xs ++ []))) (σ (.n 37), st.point, st.values) s :=
+    r1.bind (r2.bind (hrun.bind (runsTo_ret _ _)))
+  have hph : RunsTo (gkrPhase depth) ⟨[σ (.n 0), σ (.n 1), σ (.n 2), σ (.n 3), σ (.n 4)], []⟩
+      ([σ (.n 27)] ++ ([σ (.n 37)] ++ (xs ++ [])) ++ ([] ++ []))
+      (σ (.n 37), st.point, st.values) s :=
+    hv.bind ((tb_runsTo_require hcnt s).bind (runsTo_ret _ _))
+  rw [hs] at hph
+  refine ⟨depth, _, _, s.cap, hg, hd, ?_, hph, hpl, hvl, hz, ?_⟩
+  · simp only [List.append_nil, List.singleton_append]
+    rw [tbReadsAt_cons, tbReadsAt_cons]
+    have l37' := (tb_loadHolds_mul_gen_pow Lm.read (σ (.n 5)) 1 0 (σ (.n 37))).mpr l37
+    rw [pow_one] at l37'
+    refine ⟨l27, l37', ?_⟩
+    rw [mul_assoc, ← pow_two]
+    exact hrd
+  · rw [tb_eq_map_getD hcl, tb_eq_map_getD hvl]
+    simp only [List.range_succ, List.range_zero, List.map_cons, List.map_nil, List.nil_append,
+      List.cons_append, List.length_append, List.length_cons,
+      List.length_nil, List.cons.injEq, and_true]
+    refine ⟨ecap 0 (by omega), ecap 1 (by omega), ecap 2 (by omega), ecap 3 (by omega),
+      ecap 4 (by omega), ?_, eval 0 (by omega), eval 1 (by omega), eval 2 (by omega)⟩
+    rw [q323, e313]
+    ring
+
 end
 end LeanVM.Guest.B1.Tables
