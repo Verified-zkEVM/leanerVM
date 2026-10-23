@@ -96,21 +96,21 @@ theorem gkr_rounds_relIn {n : ℕ} (hn : n = 1 ∨ n = 2) {rd : Reader} {R : ℕ
 /-! ## `__loop29` -/
 
 /-- `__loop29`'s statements before its `ret`. -/
-def l29Pre : List Stmt := l29Body.dropLast
+def l29PreK : List Stmt := l29Body.dropLast
 
-theorem l29Body_pre_eq : l29Body = l29Pre ++ [.ret []] :=
+theorem l29Body_pre_eq : l29Body = l29PreK ++ [.ret []] :=
   (List.dropLast_append_getLast? (l := l29Body) (.ret []) rfl).symm
 
-theorem l29_flat : l29Pre.all Stmt.flat = true := by decide +kernel
+theorem l29_flat : l29PreK.all Stmt.flat = true := by decide +kernel
 
-theorem l29_noDisp : l29Pre.all noDispB = true := by decide +kernel
+theorem l29_noDisp : l29PreK.all noDispB = true := by decide +kernel
 
-theorem l29_seq : l29Pre.all seqB = true := by decide +kernel
+theorem l29_seq : l29PreK.all seqB = true := by decide +kernel
 
-theorem l29_loads : l29Pre.all (loadsViaB [(6, 5177), (7, 46), (13, 16)]) = true := by
+theorem l29_loads : l29PreK.all (loadsViaB [(6, 5177), (7, 46), (13, 16)]) = true := by
   decide +kernel
 
-theorem l29_calls : l29Pre.filterMap Main.Stmt.callS =
+theorem l29_calls : l29PreK.filterMap Main.Stmt.callS =
     [(some (.n 315), "__loop29", [.n 317, .n 1, .n 2, .n 3], [])] := by decide +kernel
 
 /-- **`__loop29` loads from `R`**, every iteration `k < K`. -/

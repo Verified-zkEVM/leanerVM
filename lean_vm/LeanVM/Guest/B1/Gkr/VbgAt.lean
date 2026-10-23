@@ -7,6 +7,7 @@
 module
 
 public import LeanVM.Guest.B1.Gkr.VbgLoads
+public import LeanVM.Guest.B1.Gkr.VbgL7
 public import LeanVM.Guest.B1.Tables.Kids.Loop8
 
 /-!
@@ -15,10 +16,10 @@ public import LeanVM.Guest.B1.Tables.Kids.Loop8
 `vbg_run`: on a memory defined below `2^κ` (`κ ≥ 6`, the range check of `g^depth`) holding the
 cursor's words, the point at `zeta` and the five buffers whole (`vbgOwnW`), the honest valuation
 (`vbgFlat.σ`, the allocations answered by the buffers' pointers) satisfies every statement with
-its calls by relations loading from a region `R` holding the point and the rows, its loads land
-inside the buffers (`vbg_loadOk`, `vbg_ptrs`), its allocations are the buffers and it returns the
-accepting run's capacity, cursor and values. `__loop8`'s relation loads from `R`
-(`loop8_relIn`); `__loop7`'s is a hypothesis (`hL7`).
+its calls by relations loading from a region `R` holding the cursor's words, the point and the
+buffers, its loads land inside the buffers (`vbg_loadOk`, `vbg_ptrs`), its allocations are the
+buffers and it returns the accepting run's capacity, cursor and values. `__loop8`'s relation
+loads from `R` (`loop8_relIn`), and `__loop7`'s (`vbg_loop7_relIn`).
 
 `verify_bus_gkr_completeAt`: `flat_completeAt` for `vbgFlat`, the buffers at the bump allocator's
 positions from `fp + fs "verify_bus_gkr"`.
@@ -134,10 +135,8 @@ theorem vbg_run {depth κ : ℕ} (hd1 : 1 ≤ depth) (hd : depth ≤ 32) (hκ : 
     (hP : TbReadsAt rd (ofK (gpow eP)) (vbgRowsW depth cap0 xs))
     (hPa : TbReadsAt rd (ofK (gpow ePa)) vbgPairsW) (hD : TbReadsAt rd (ofK (gpow eD)) vbgDshW)
     (hRz : ∀ i < depth, R (ez + i)) (hRr : ∀ i < 1640, R (eP + i))
-    (hL7 : coreProgram.Rel rd "__loop7" [1, gen ^ (depth / 2), ofK (gpow eD), gen ^ depth,
-        ofK (gpow eL), ofK (gpow eR)] [] →
-      coreProgram.RelIn rd R "__loop7" [1, gen ^ (depth / 2), ofK (gpow eD), gen ^ depth,
-        ofK (gpow eL), ofK (gpow eR)] []) :
+    (hRx : ∀ i < xs.length, R (ec + i)) (hRL : ∀ i < 17 * (depth + 2), R (eL + i))
+    (hRR : ∀ i < 6034, R (eR + i)) (hRD : ∀ i < 33, R (eD + i)) :
     (∀ s ∈ vbgPre, VSH (coreProgram.RelIn rd R) rd (vbgσ rd depth cap0 ec ez eL eR eP ePa eD) s) ∧
     LoadsInBuf (vbgσ rd depth cap0 ec ez eL eR eP ePa eD)
       [(ofK (gpow ec), xs.length), (ofK (gpow eL), 17 * (depth + 2)), (ofK (gpow eR), 6034),
@@ -206,6 +205,11 @@ theorem vbg_run {depth κ : ℕ} (hd1 : 1 ≤ depth) (hd : depth ≤ 32) (hκ : 
     have := hPa depth (by simp [vbgPairsW]; omega)
     simpa [vbgPairsW] using this
   have r306 := good_read (g (.load (.n 306) (.n 305) 0) (by decide +kernel)) (by decide +kernel) hpd
+  have r302 := good_read (g (.load (.n 302) (.n 301) 0) (by decide +kernel)) (by decide +kernel)
+    (by rw [e301, ← e305]; exact hpd)
+  have c300 := one 300 (by decide +kernel)
+  have a303 : σ (.n 303) = σ (.n 300) + σ (.n 302) :=
+    g (.add (.n 303) (.n 300) (.n 302)) (by decide +kernel)
   -- the last slot's row
   have hdb := hLb depth (by omega)
   have hrow : LoadHolds rd (σ (.n 312)) 9
@@ -230,8 +234,13 @@ theorem vbg_run {depth κ : ℕ} (hd1 : 1 ≤ depth) (hd : depth ≤ 32) (hκ : 
       subst e
       refine ⟨hv.1, fun hne ↦ ?_⟩
       have h := hv.2 hne
+      have hm0 : 0 < depth / 2 := by
+        rcases Nat.eq_zero_or_pos (depth / 2) with h0 | h0
+        · exfalso; apply hne
+          rw [a303, c300, r302.1, h0, pow_zero, e_add_self]
+        · exact h0
       simp only [List.map_cons, List.map_nil, c304, r306.1, e57, e6, e15, e16] at h ⊢
-      exact hL7 h
+      exact vbg_loop7_relIn hd hrun ⟨sp, hsp⟩ hm hRx hRL hRR hRr hRD hm0 h
     · have e := tbStmtsEqb_sound h8
       simp only [List.cons.injEq, and_true] at e
       subst e
@@ -298,23 +307,12 @@ noncomputable def vbgL (fs : String → ℕ) (depth : ℕ) (cap0 xs point : List
 /-- **`verify_bus_gkr` is complete, placed** (TRIAGE G #43): at `1 ≤ depth ≤ 32`, on memories
 defined below `2^κ`, `κ ≥ 6`, an accepting run of `gkrPhase depth` from a carried capacity `cap0`
 reading the words `xs` at the cursor `g^ec`, the run's point at `zeta = g^ez`, its five buffers at
-the bump allocator's positions holding their honest words (`vbgOwnW`); `__loop7`'s relation
-loading from the layout (`hL7`). It returns the run's capacity, the cursor past `xs` and the three
-values. -/
+the bump allocator's positions holding their honest words (`vbgOwnW`). It returns the run's
+capacity, the cursor past `xs` and the three values. -/
 theorem verify_bus_gkr_completeAt {κ depth : ℕ} (hd1 : 1 ≤ depth) (hd : depth ≤ 32) (hκ : 6 ≤ κ)
     {cap0 xs : List E} {r : E × List E × List E} {cap' : List E}
     (hrun : RunsTo (gkrPhase depth) ⟨cap0, []⟩ xs r ⟨cap', []⟩)
-    (hc : ∃ sp, (⟨cap0, []⟩ : Fs).Carries sp) (ec ez : ℕ)
-    (hL7 : ∀ fp rd, LowDef κ rd → MemL rd (vbgL fs depth cap0 xs r.2.1 ec ez fp) →
-      coreProgram.Rel rd "__loop7" [1, gen ^ (depth / 2),
-        ofK (gpow (fp + fs "verify_bus_gkr" + 17 * (depth + 2) + 6034 + 1640 + 33)), gen ^ depth,
-        ofK (gpow (fp + fs "verify_bus_gkr")),
-        ofK (gpow (fp + fs "verify_bus_gkr" + 17 * (depth + 2)))] [] →
-      coreProgram.RelIn rd (RegionL (vbgL fs depth cap0 xs r.2.1 ec ez fp)) "__loop7"
-        [1, gen ^ (depth / 2),
-          ofK (gpow (fp + fs "verify_bus_gkr" + 17 * (depth + 2) + 6034 + 1640 + 33)), gen ^ depth,
-          ofK (gpow (fp + fs "verify_bus_gkr")),
-          ofK (gpow (fp + fs "verify_bus_gkr" + 17 * (depth + 2)))] []) :
+    (hc : ∃ sp, (⟨cap0, []⟩ : Fs).Carries sp) (ec ez : ℕ) :
     CompleteAtD fs cert κ "verify_bus_gkr" [(ec, xs), (ez, r.2.1)]
       (cap0 ++ [ofK (gpow ec), gen ^ depth, ofK (gpow ez)])
       (Returns (cap' ++ [ofK (gpow ec) * gen ^ xs.length] ++ r.2.2)) := by
@@ -416,8 +414,34 @@ theorem verify_bus_gkr_completeAt {κ depth : ℕ} (hd1 : 1 ≤ depth) (hd : dep
       refine regionL_append_right ⟨(fp + fs f + 17 * (depth + 2) + 6034, vbgRowsW depth cap0 xs),
         by simp, by simp, ?_⟩
       simp only [hlp]; omega
+    have hRx : ∀ i < xs.length, RegionL (vbgL fs depth cap0 xs r.2.1 ec ez fp) (ec + i) :=
+      fun i hi ↦ by
+        rw [hreg]; exact regionL_append_left ⟨(ec, xs), by simp, by simp, by simpa using hi⟩
+    have hRL : ∀ i < 17 * (depth + 2), RegionL (vbgL fs depth cap0 xs r.2.1 ec ez fp)
+        (fp + fs f + i) := by
+      intro i hi
+      rw [hreg, hbuf]
+      refine regionL_append_right ⟨(fp + fs f, vbgLayersW depth cap0 xs (ofK (gpow ec))
+        (fp + fs f + 17 * (depth + 2) + 6034)), by simp, by simp, ?_⟩
+      simp only [vbgLayersW_length hcl hcan]; omega
+    have hRR : ∀ i < 6034, RegionL (vbgL fs depth cap0 xs r.2.1 ec ez fp)
+        (fp + fs f + 17 * (depth + 2) + i) := by
+      intro i hi
+      have hlr : (vbgRoundsW depth cap0 xs (ofK (gpow ec))).length = 6034 := by
+        unfold vbgRoundsW; rw [flatMap_const_length (fun c _ ↦ vbgRecBlock_length hd c)]
+      rw [hreg, hbuf]
+      refine regionL_append_right ⟨(fp + fs f + 17 * (depth + 2),
+        vbgRoundsW depth cap0 xs (ofK (gpow ec))), by simp, by simp, ?_⟩
+      simp only [hlr]; omega
+    have hRD : ∀ i < 33, RegionL (vbgL fs depth cap0 xs r.2.1 ec ez fp)
+        (fp + fs f + 17 * (depth + 2) + 6034 + 1640 + 33 + i) := by
+      intro i hi
+      rw [hreg, hbuf]
+      refine regionL_append_right ⟨(fp + fs f + 17 * (depth + 2) + 6034 + 1640 + 33, vbgDshW),
+        by simp, by simp, ?_⟩
+      simp only [vbgDshW, List.length_map, List.length_range]; omega
     obtain ⟨h1, h2, h3, h4, h5⟩ := vbg_run (R := RegionL (vbgL fs depth cap0 xs r.2.1 ec ez fp))
-      hd1 hd hκ hrun hc hlow hx hz hLw hRw hPw hPaw hDw hRz hRr (hL7 fp rd hlow hL)
+      hd1 hd hκ hrun hc hlow hx hz hLw hRw hPw hPaw hDw hRz hRr hRx hRL hRR hRD
     exact ⟨h1, h2, h3, h4.trans (by simp [bases, vbgSizes]; exact ⟨rfl, rfl, rfl, rfl, rfl⟩), h5⟩
 end
 end LeanVM.Guest.B1.Tables
