@@ -9,6 +9,7 @@
 module
 
 public import LeanerVM.Protocol.Whir.Lanes
+public import LeanerVM.Protocol.Whir.Transform
 public import LeanerVM.Protocol.ToCompPoly.LinearSolve
 public import Mathlib.Data.List.Sublists
 
@@ -66,10 +67,10 @@ section Interpolation
 
 variable {S : Type} [Field S] (φ : K →+* S) (κ R : ℕ)
 
-/-- The encoder's matrix at the positions `T`: row `i` holds the column weight of the position
+/-- The encoder's matrix at the positions `T`: row `i` holds the novel polynomials at the position
 `T i`, so that the row times a message is the message's encoding there. -/
 def encodeMatrix {N : ℕ} (T : Fin N → Fin (2 ^ (κ + R))) : Fin N → Fin (2 ^ κ) → S :=
-  fun i u ↦ ∏ k : Fin κ, if u.val.testBit k then φ (normW k (domainPt (T i))) else 1
+  fun i u ↦ novelAt φ κ (domainPt (T i)) u
 
 /-- A row of the matrix times a message is the message's encoding at the row's position. -/
 theorem sum_encodeMatrix {N : ℕ} (T : Fin N → Fin (2 ^ (κ + R)))
@@ -99,7 +100,8 @@ theorem encodeMatrix_algebraMap {N : ℕ} (T : Fin N → Fin (2 ^ (κ + R))) (i 
     (u : Fin (2 ^ κ)) :
     encodeMatrix (algebraMap K E) κ R T i u =
       algebraMap K E (encodeMatrix (RingHom.id K) κ R T i u) := by
-  simp only [encodeMatrix, map_prod, apply_ite (algebraMap K E), map_one, RingHom.id_apply]
+  simp only [encodeMatrix, novelAt, map_prod, apply_ite (algebraMap K E), map_one,
+    RingHom.id_apply]
 
 /-- A message over `E` encodes at `T i` to the row of the matrix over `K` acting on it. -/
 theorem encode_eq_sum_smul {N : ℕ} (T : Fin N → Fin (2 ^ (κ + R))) (m : CMlPolynomialEval E κ)
@@ -193,7 +195,7 @@ def encodeRows (κ R : ℕ) (T : Fin (2 ^ κ) → Fin (2 ^ (κ + R))) :
 theorem encodeRows_eq (T : Fin (2 ^ κ) → Fin (2 ^ (κ + R))) :
     (fun i j : Fin (2 ^ κ) ↦ (encodeRows κ R T)[i][j]) = encodeMatrix (RingHom.id K) κ R T := by
   funext i u
-  simp [encodeRows, encodeMatrix, Fin.getElem_fin]
+  simp [encodeRows, encodeMatrix, novelAt, Fin.getElem_fin]
 
 /-- The lanes' values at a position: one entry of `E` per lane, the right-hand side of one
 elimination for all lanes. Its operations are entry by entry, on a stored vector. -/

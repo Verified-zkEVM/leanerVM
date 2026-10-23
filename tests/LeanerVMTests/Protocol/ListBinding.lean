@@ -159,12 +159,12 @@ def toyExtractor := toyCompile.extractor
 
 /-- Past the commitment, the state function at the toy is the commitment's extraction. -/
 example {σ : Type} (init : ProbComp σ) (impl : QueryImpl []ₒ (StateT σ ProbComp))
-    (s : toy.Stmt × ∀ i, NoOracle i) (h1 : 1 < _)
-    (tr : (listBindingSpec toy lb0 (Kap lb1 (0 + 1)) lbLadder).Transcript ⟨1, h1⟩)
-    (w : toyCompile.witMid ⟨1, h1⟩) :
-    (toyCompile.kSF init impl).toFun ⟨1, h1⟩ s tr w ↔
-      (commitPick toy toyDecoder lb_height s.1 (committedWord tr Nat.one_pos)).isSome :=
-  listBinding_kSF_one _ _ _ _ _ _ init impl s h1 tr w
+    (s : toy.Stmt × ∀ i, NoOracle i) (k : Fin _) (hk : k.val = 1)
+    (tr : (listBindingSpec toy lb0 (Kap lb1 (0 + 1)) lbLadder).Transcript k)
+    (w : toyCompile.witMid k) :
+    (toyCompile.kSF init impl).toFun k s tr w ↔
+      (commitPick toy toyDecoder lb_height s.1 (committedWord tr (by omega))).isSome :=
+  listBinding_kSF_one _ _ _ _ _ _ init impl s k hk tr w
 
 /-- The stack the compilation extracts at the toy is the commitment's pick. -/
 example (s : toy.Stmt × ∀ i, NoOracle i)

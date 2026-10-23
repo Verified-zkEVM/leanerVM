@@ -419,6 +419,20 @@ def committedWord {L : Ladder sh κ} {k : Fin _} (tr : (listBindingSpec I sh κ 
     (hk : 0 < k.val) : KWord sh.ℓ (κ + sh.R) sh.t :=
   cast (listBindingSpec_type_zero L (by omega)) (tr ⟨0, hk⟩)
 
+/-- The commitment's extractor succeeds on a word exactly when some stack of its list satisfies
+`M3Holds`. -/
+theorem commitPick_isSome_iff {a : ℕ} (D : ListDecoder κ sh.R a sh.ℓ) (hμ : κ + sh.ℓ = I.μ)
+    (s : I.Stmt) (x : KWord sh.ℓ (κ + sh.R) sh.t) :
+    (commitPick I D hμ s x).isSome ↔ ∃ q ∈ stackList I D hμ (fun _ ↦ x), M3Holds I s (q 0) := by
+  simp only [commitPick, Option.isSome_map, List.find?_isSome, decide_eq_true_eq]
+
+/-- What the commitment's extractor returns satisfies `M3Holds`. -/
+theorem commitPick_eq_some {a : ℕ} {D : ListDecoder κ sh.R a sh.ℓ} {hμ : κ + sh.ℓ = I.μ}
+    {s : I.Stmt} {x : KWord sh.ℓ (κ + sh.R) sh.t} {q : Column I.μ}
+    (h : commitPick I D hμ s x = some q) : M3Holds I s q := by
+  obtain ⟨r, hr, rfl⟩ := Option.map_eq_some_iff.mp h
+  simpa using List.find?_some hr
+
 /-- The commitment's relation holds of a word exactly when the commitment's extractor succeeds on
 it. -/
 private theorem mem_relist_commit_iff {a : ℕ} (D : ListDecoder κ sh.R a sh.ℓ)
@@ -426,21 +440,22 @@ private theorem mem_relist_commit_iff {a : ℕ} (D : ListDecoder κ sh.R a sh.�
     (w : Column I.μ) :
     ((s.1, fun _ ↦ x), w) ∈ Component.relistRel (stackList I D hμ) (Seam.commit I) ↔
       (commitPick I D hμ s.1 x).isSome := by
-  simp only [Component.relistRel, Seam.commit, Seam.of, Set.mem_ofPred_eq, commitPick,
-    Option.isSome_map, List.find?_isSome, decide_eq_true_eq, exists_const]
+  rw [commitPick_isSome_iff]
+  simp only [Component.relistRel, Seam.commit, Seam.of, Set.mem_ofPred_eq, exists_const]
 
 /-- **Past the commitment, the state function holds exactly when extraction succeeds**: at round
 `1`, for every witness, it is "the commitment's extractor finds a stack with `M3Holds`". -/
 theorem listBinding_kSF_one (P : Phases I) (S : P.Security) (hμ : κ + sh.ℓ = I.μ)
     (L : Ladder sh κ) (ps : L.Pars) (D : ListDecoder κ sh.R (L.headPar ps).a sh.ℓ) {σ : Type}
     (init : ProbComp σ) (impl : QueryImpl []ₒ (StateT σ ProbComp))
-    (s : I.Stmt × ∀ i, NoOracle i) (h1 : 1 < _)
-    (tr : (listBindingSpec I sh κ L).Transcript ⟨1, h1⟩)
-    (w : (listBinding_compile P S hμ L ps D).witMid ⟨1, h1⟩) :
-    ((listBinding_compile P S hμ L ps D).kSF init impl).toFun ⟨1, h1⟩ s tr w ↔
-      (commitPick I D hμ s.1 (committedWord tr Nat.one_pos)).isSome := by
+    (s : I.Stmt × ∀ i, NoOracle i) (k : Fin _) (hk : k.val = 1)
+    (tr : (listBindingSpec I sh κ L).Transcript k)
+    (w : (listBinding_compile P S hμ L ps D).witMid k) :
+    ((listBinding_compile P S hμ L ps D).kSF init impl).toFun k s tr w ↔
+      (commitPick I D hμ s.1 (committedWord tr (by omega))).isSome := by
   unfold listBinding_compile
-  iterate 7 refine (Component.Security.append_kSF_left _ _ _ _ ⟨1, by omega⟩ rfl _ _ _).trans ?_
+  refine (Component.Security.append_kSF_left _ _ _ _ ⟨1, by omega⟩ hk _ _ _).trans ?_
+  iterate 6 refine (Component.Security.append_kSF_left _ _ _ _ ⟨1, by omega⟩ rfl _ _ _).trans ?_
   simp only [commitWordSecurity, Component.sendEncodedSecurity,
     Component.sendEncodedStateFunction, one_ne_zero, dite_false]
   refine (mem_relist_commit_iff D hμ s _ _).trans ?_

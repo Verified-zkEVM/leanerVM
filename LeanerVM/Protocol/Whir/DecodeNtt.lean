@@ -8,7 +8,6 @@
 module
 
 public import LeanerVM.Protocol.Whir.Decode
-public import LeanerVM.Protocol.Whir.Transform
 
 /-!
 # The exact path by the transform

@@ -26,7 +26,9 @@ parameters of every level (`Ladder.Pars`): `johnsonPar` at the level's slack, th
 (`Fits`) leaves no chain; `deployed_isSome` decides that every level of every admissible ladder
 fits, so `deployedChain` is total on the window and `deployed_rbrSoundness` is
 `whirOpen_rbrSoundness` at leanVM's parameters with no hypothesis. `deployed_vars` checks that
-the opening's stack has `μ` variables.
+the opening's stack has `μ` variables. Level 0 is also computed on its own (`deployedHeadShape`,
+`deployedHeadKap`, `deployedHeadThreshold`), and `deployedChain_head` decides that the chain's
+level 0 is that one.
 -/
 
 namespace LeanerVM.Protocol
@@ -107,6 +109,73 @@ def deployed_rbrSoundness (μ logInvRate : ℕ) (h : Admissible μ logInvRate) :
       Set.univ
       (openErr (deployedChain μ logInvRate h).ladder (deployedChain μ logInvRate h).pars) :=
   whirOpen_rbrSoundness _ _
+
+/-! ## Level 0 of the deployed chain -/
+
+/-- Level 0 of the ladder of a stack size and rate, with its slack. -/
+def deployedLevel0 (μ r : ℕ) : Level × ℚ :=
+  (((ladder μ r).getD []).zip ((slacks μ r).getD [])).headD (⟨1, 1, 1⟩, 1)
+
+/-- The shape of level 0. -/
+def deployedHeadShape (μ r : ℕ) : Shape :=
+  Shape.ofFold (deployedLevel0 μ r).1.fold (deployedLevel0 μ r).1.logInvRate
+    (deployedLevel0 μ r).1.queries
+
+/-- The variables level 0 leaves. -/
+def deployedHeadKap (μ r : ℕ) : ℕ := μ - (deployedLevel0 μ r).1.fold
+
+/-- The threshold of level 0. -/
+def deployedHeadThreshold (μ r : ℕ) : ℕ :=
+  threshold (deployedHeadKap μ r) (deployedHeadShape μ r).R (deployedLevel0 μ r).2
+
+/-- The chain's level 0 matches the computed one, as a check. -/
+private def headMatches (μ r : ℕ) (c : Chain) : Bool :=
+  c.sh.lm1 == (deployedHeadShape μ r).lm1 && c.sh.R == (deployedHeadShape μ r).R &&
+    c.sh.t == (deployedHeadShape μ r).t && c.κ == deployedHeadKap μ r &&
+    (c.ladder.headPar c.pars).a == deployedHeadThreshold μ r
+
+/-- Every admissible chain's level 0 is the computed one: one decision on the window. -/
+private theorem deployed_head {μ r : ℕ} (h : Admissible μ r) :
+    (deployed μ r).all (headMatches μ r) := by
+  have key : ∀ μ < maxLogStack + 1, ∀ r < maxLogInvRate + 1, Admissible μ r →
+      (deployed μ r).all (headMatches μ r) := by decide +kernel
+  exact key μ (Nat.lt_succ_of_le h.2.1) r (Nat.lt_succ_of_le h.2.2.2) h
+
+/-- A property every member of `deployed` has, the deployed chain has. -/
+private theorem deployedChain_of_all {μ r : ℕ} (h : Admissible μ r) {p : Chain → Bool}
+    (hp : (deployed μ r).all p) : p (deployedChain μ r h) :=
+  (Option.all_eq_true_iff_get p _).mp hp (deployed_isSome h)
+
+/-- Shapes with equal fields are equal. -/
+private theorem shape_ext {a b : Shape} (h₁ : a.lm1 = b.lm1) (h₂ : a.R = b.R) (h₃ : a.t = b.t) :
+    a = b := by
+  cases a
+  cases b
+  simp_all
+
+/-- **Level 0 of the deployed chain** is the computed one: its shape, the variables it leaves and
+its threshold. -/
+theorem deployedChain_head {μ r : ℕ} (h : Admissible μ r) :
+    (deployedChain μ r h).sh = deployedHeadShape μ r ∧
+      (deployedChain μ r h).κ = deployedHeadKap μ r ∧
+      ((deployedChain μ r h).ladder.headPar (deployedChain μ r h).pars).a =
+        deployedHeadThreshold μ r := by
+  have hm := deployedChain_of_all h (deployed_head h)
+  simp only [headMatches, Bool.and_eq_true, beq_iff_eq] at hm
+  obtain ⟨⟨⟨⟨h1, h2⟩, h3⟩, h4⟩, h5⟩ := hm
+  exact ⟨shape_ext h1 h2 h3, h4, h5⟩
+
+/-- The deployed chain's stack has `μ` variables. -/
+theorem deployedChain_height {μ r : ℕ} (h : Admissible μ r) :
+    (deployedChain μ r h).κ + (deployedChain μ r h).sh.ℓ = μ := by
+  have := deployedChain_of_all h (deployed_vars h)
+  simpa using this
+
+/-- Level 0's stack has `μ` variables: the computed fold and the variables it leaves. -/
+theorem deployedHead_height {μ r : ℕ} (h : Admissible μ r) :
+    deployedHeadKap μ r + (deployedHeadShape μ r).ℓ = μ := by
+  rw [← (deployedChain_head h).1, ← (deployedChain_head h).2.1]
+  exact deployedChain_height h
 
 end Whir
 

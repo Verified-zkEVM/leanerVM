@@ -939,25 +939,31 @@ the list-binding and Johnson-regime branches), the compilation holds at leanVM w
 leanISA instance of every program and admissible announcement, at every valid rate, with
 `leanVmPhases`, `leanVmSecurity` (`leanIsa_conditions`, `I.d ≤ 2`), WHIR's `deployedChain` and its
 parameters, and `deployedDecoder`; `listBinding_deployed_rbrKnowledgeSoundness` and
-`listBinding_deployed_perfectCompleteness` are its halves. Level 0 of the chain is computed
-(`deployedChain_head`, decided on the window: six folds, `μ − 6` variables left, `johnsonPar`'s
-threshold), so `deployedDecoder` is a definition with no `noncomputable`: `ListDecoder.nttFirst`
-over `ListDecoder.bruteForce`. The fast exact path is the additive transform
+`listBinding_deployed_perfectCompleteness` are its halves. Since the Johnson branch computes each
+level's bad-fold count (`mcaCount`), the chain is data and `listBinding_deployed` is a definition
+with no `noncomputable`: its extractor compiles. Level 0 of the chain is also computed on its own
+(`deployedHeadShape`, `deployedHeadKap`, `deployedHeadThreshold` in `Protocol/Whir/Deployed.lean`;
+`deployedChain_head` decides on the window that the chain's level 0 is that one: six folds,
+`μ − 6` variables left, `johnsonPar`'s threshold, 726 at `μ = 15` and rate `2⁻¹`).
+`deployedDecoder` is `ListDecoder.nttFirst` over `ListDecoder.bruteForce`, built at those indices,
+and `deployedPick` is the commitment's extractor there, which compiles without building the chain
+(`deployedPick_eq_commitPick`); `listBinding_deployed_kSF_one` (at round `1`, for every witness,
+the state function holds exactly when `deployedPick` succeeds) and
+`listBinding_deployed_extractedStack_eq` (the extracted stack is the pick) are stated with it, and
+`commitPick_eq_some` gives `M3Holds` of what it returns. The generic `listBinding_kSF_one` takes a
+symbolic round `k` with `k.val = 1`: a literal round makes the elaborator evaluate the schedule's
+length, through the chain, at the deployed instance. The fast exact path is the additive transform
 (`Protocol/Whir/Transform.lean`: `fwd`, `inv`, `encodeFast`, proved against `encode` by
-`fwd_getElem`, `fwd_inv`, `inv_fwd`, `encodeFast_getElem`), and `exactNtt`
-(`Protocol/Whir/DecodeNtt.lean`) interpolates each lane on the first coset and checks it on every
-coset; `ListDecoder.decode_eq_of_codeword` makes its candidate the whole list. `kwordOfFast` is the
-honest word by the same transform (`kwordOfFast_eq`). Measured in compiled code (a local harness,
-not committed) on the honest word of a random stack, with this branch's field arithmetic (the
-specification's; the compiled fast paths are another branch): at `μ = 15` the decode takes 45 s at
-rate `2⁻¹` and 80 s at `2⁻²`, the honest word 7 s and 14 s; at `μ = 16`, 106 s and 192 s, the word
-17 s and 38 s; the list is the stack every time. `listBinding_deployed` is `noncomputable`, as
-`deployed_rbrSoundness` is: a level's parameters carry `⌊mcaConstant n D η⌋₊`, a real number's
-floor, and WHIR's security takes them as data, so the composed extractor is not compiled even
-though the decoder, the extractor's work beyond `M3Holds`, is. The brute force behind the exact
-path is exact but runs on toy words only, so a dishonest word at a deployed size has no executable
-extraction. Still owed: a computable `N` (or WHIR's security without it as data) for a compiled
-extractor, and an efficient list decoder for words off the code.
+`fwd_getElem`, `fwd_inv`, `inv_fwd`, `encodeFast_getElem`; `encodeMatrix` is its row
+`novelAt`), and `exactNtt` (`Protocol/Whir/DecodeNtt.lean`) interpolates each lane on the first
+coset and checks it on every coset; `ListDecoder.decode_eq_of_codeword` makes its candidate the
+whole list. `kwordOfFast` is the honest word by the same transform (`kwordOfFast_eq`). Measured in
+compiled code (a local harness, not committed) on the honest word of a random stack, with this
+branch's field arithmetic (the specification's; the compiled fast paths are another branch): at
+`μ = 15` the decode takes 45 s at rate `2⁻¹` and 80 s at `2⁻²`, the honest word 7 s and 14 s; at
+`μ = 16`, 106 s and 192 s, the word 17 s and 38 s; the list is the stack every time. The brute
+force behind the exact path is exact but runs on toy words only, so a dishonest word at a deployed
+size has no executable extraction. Still owed: an efficient list decoder for words off the code.
 
 ## Upstream watch
 
