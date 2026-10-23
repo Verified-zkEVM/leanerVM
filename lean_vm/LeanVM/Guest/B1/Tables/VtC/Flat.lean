@@ -8,7 +8,7 @@
 module
 
 public import LeanVM.Guest.B1.Tables.Vt.Base
-public import LeanVM.Guest.B1.Tables.EvM
+public import LeanVM.Guest.B1.Fwd.Canon
 
 /-!
 # The evaluation list

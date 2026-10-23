@@ -18,7 +18,7 @@ public import LeanVM.Guest.B1.Selectors.SelectorTablesComplete
 public import LeanVM.Guest.B1.Placement.CertifyComplete
 public import LeanVM.Guest.B1.Gkr.Loop8Complete
 public import LeanVM.Guest.B1.Gkr.Loop29Complete
-public import LeanVM.Guest.B1.Tables.VtC.Val
+public import LeanVM.Guest.B1.Tables.VtC.Hon
 public import LeanVM.Guest.B1.Tables.Interface
 public import LeanVM.Guest.B1.Tables.Padding
 public import LeanVM.Guest.B1.Placement.Certify
