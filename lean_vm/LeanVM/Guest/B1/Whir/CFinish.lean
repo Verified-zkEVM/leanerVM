@@ -147,6 +147,43 @@ def finishF (c : OsCfg) (st : OsSt) (tch : ℕ) (Y PT PT1 BD LS ICH In : E) (Pp 
   fun i ↦ [σ9 (.n st.t), σ9 (.n (st.k + 1)), σ9 (.n (st.k + 1 + 1)), In,
     In + σ9 (.n (od.2.1.getD 0)), σ9 (.n st.k)].getD (i - od.2.2) 0
 
+/-- The value after the body's last. -/
+def osFinEnd (c : OsCfg) (st : OsSt) (tch : ℕ) : ℕ :=
+  let pts := osPtBlks c (st.k + 1) (st.k + 1 + 1) tch 0 pointCap (st.k + 1 + 2)
+  let bs := osBases c tch (pts.2 + 1) (pts.2 + 3) 0 c.levels (pts.2 + 4)
+  let rs := osResiduals c (bs.2 + 1) (pts.2 + 1) (pts.2 + 3) 0 c.levels (bs.2 + 3)
+  (osOodWeights c tch ((c.levels.headD default).logCols) 1 c.levels.tail none rs.2).2.2 + 6
+
+theorem osFinEnd_ge (c : OsCfg) (st : OsSt) (tch : ℕ) : st.k + 6 ≤ osFinEnd c st tch := by
+  unfold osFinEnd
+  dsimp only
+  have o1 : st.k + 1 + 2 ≤ (osPtBlks c (st.k + 1) (st.k + 1 + 1) tch 0 pointCap (st.k + 1 + 2)).2 :=
+    osPtBlks_k _ _ _ _ _ _ _
+  have o2 := osBases_k c tch ((osPtBlks c (st.k + 1) (st.k + 1 + 1) tch 0 pointCap
+    (st.k + 1 + 2)).2 + 1) ((osPtBlks c (st.k + 1) (st.k + 1 + 1) tch 0 pointCap
+    (st.k + 1 + 2)).2 + 3) 0 c.levels ((osPtBlks c (st.k + 1) (st.k + 1 + 1) tch 0 pointCap
+    (st.k + 1 + 2)).2 + 4)
+  have o3 := osResiduals_k c ((osBases c tch ((osPtBlks c (st.k + 1) (st.k + 1 + 1) tch 0 pointCap
+    (st.k + 1 + 2)).2 + 1) ((osPtBlks c (st.k + 1) (st.k + 1 + 1) tch 0 pointCap
+    (st.k + 1 + 2)).2 + 3) 0 c.levels ((osPtBlks c (st.k + 1) (st.k + 1 + 1) tch 0 pointCap
+    (st.k + 1 + 2)).2 + 4)).2 + 1) ((osPtBlks c (st.k + 1) (st.k + 1 + 1) tch 0 pointCap
+    (st.k + 1 + 2)).2 + 1) ((osPtBlks c (st.k + 1) (st.k + 1 + 1) tch 0 pointCap
+    (st.k + 1 + 2)).2 + 3) 0 c.levels ((osBases c tch ((osPtBlks c (st.k + 1) (st.k + 1 + 1) tch 0
+    pointCap (st.k + 1 + 2)).2 + 1) ((osPtBlks c (st.k + 1) (st.k + 1 + 1) tch 0 pointCap
+    (st.k + 1 + 2)).2 + 3) 0 c.levels ((osPtBlks c (st.k + 1) (st.k + 1 + 1) tch 0 pointCap
+    (st.k + 1 + 2)).2 + 4)).2 + 3)
+  have o4 := osOodWeights_k c tch c.levels.tail ((c.levels.headD default).logCols) 1 none
+    (osResiduals c ((osBases c tch ((osPtBlks c (st.k + 1) (st.k + 1 + 1) tch 0 pointCap
+    (st.k + 1 + 2)).2 + 1) ((osPtBlks c (st.k + 1) (st.k + 1 + 1) tch 0 pointCap
+    (st.k + 1 + 2)).2 + 3) 0 c.levels ((osPtBlks c (st.k + 1) (st.k + 1 + 1) tch 0 pointCap
+    (st.k + 1 + 2)).2 + 4)).2 + 1) ((osPtBlks c (st.k + 1) (st.k + 1 + 1) tch 0 pointCap
+    (st.k + 1 + 2)).2 + 1) ((osPtBlks c (st.k + 1) (st.k + 1 + 1) tch 0 pointCap
+    (st.k + 1 + 2)).2 + 3) 0 c.levels ((osBases c tch ((osPtBlks c (st.k + 1) (st.k + 1 + 1) tch 0
+    pointCap (st.k + 1 + 2)).2 + 1) ((osPtBlks c (st.k + 1) (st.k + 1 + 1) tch 0 pointCap
+    (st.k + 1 + 2)).2 + 3) 0 c.levels ((osPtBlks c (st.k + 1) (st.k + 1 + 1) tch 0 pointCap
+    (st.k + 1 + 2)).2 + 4)).2 + 3)).2
+  omega
+
 /-- **The body after the tail, honestly.** -/
 theorem osFinishA_complete {c : OsCfg} {st : OsSt} {tch : ℕ} (σ : Val) (hk : 34 ≤ st.k)
     (htch : tch < st.k) (ht : st.t < st.k) (htail : c.levels.tail ≠ [])
@@ -163,22 +200,14 @@ theorem osFinishA_complete {c : OsCfg} {st : OsSt} {tch : ℕ} (σ : Val) (hk : 
     (hIn : LoadHolds rd ICH c.levels.length In)
     (hood : OodAllP rd (ptrsOf σ) (σ (.n tch)) c Λ Z Yo ((c.levels.headD default).logCols) 1
       c.levels.tail) :
-    BlkF C rd σ st.k
-      ((osOodWeights c tch ((c.levels.headD default).logCols) 1 c.levels.tail none
-        (osResiduals c ((osBases c tch ((osPtBlks c (st.k + 1) (st.k + 1 + 1) tch 0 pointCap
-          (st.k + 1 + 2)).2 + 1) ((osPtBlks c (st.k + 1) (st.k + 1 + 1) tch 0 pointCap
-          (st.k + 1 + 2)).2 + 3) 0 c.levels ((osPtBlks c (st.k + 1) (st.k + 1 + 1) tch 0 pointCap
-          (st.k + 1 + 2)).2 + 4)).2 + 1) ((osPtBlks c (st.k + 1) (st.k + 1 + 1) tch 0 pointCap
-          (st.k + 1 + 2)).2 + 1) ((osPtBlks c (st.k + 1) (st.k + 1 + 1) tch 0 pointCap
-          (st.k + 1 + 2)).2 + 3) 0 c.levels ((osBases c tch ((osPtBlks c (st.k + 1) (st.k + 1 + 1)
-          tch 0 pointCap (st.k + 1 + 2)).2 + 1) ((osPtBlks c (st.k + 1) (st.k + 1 + 1) tch 0
-          pointCap (st.k + 1 + 2)).2 + 3) 0 c.levels ((osPtBlks c (st.k + 1) (st.k + 1 + 1) tch 0
-          pointCap (st.k + 1 + 2)).2 + 4)).2 + 3)).2).2.2 + 6)
+    BlkF C rd σ st.k (osFinEnd c st tch)
       (finishF c st tch Y PT PT1 BD LS ICH In Pp β X RC acc Pq W I L D Λ Z Yo σ)
       (osFinishA c st tch)
       (fun σ' ↦ (osFinishRet c st tch).map σ' = [σ (.n st.t), PT, PT1,
         In + oodSum c Λ Z Yo ((c.levels.headD default).logCols) 1 c.levels.tail, Y] ∧
         AgreeBelow st.k σ σ') := by
+  unfold osFinEnd
+  dsimp only
   set pts := osPtBlks c (st.k + 1) (st.k + 1 + 1) tch 0 pointCap (st.k + 1 + 2) with hpts
   set bs := osBases c tch (pts.2 + 1) (pts.2 + 3) 0 c.levels (pts.2 + 4) with hbsd
   set rs := osResiduals c (bs.2 + 1) (pts.2 + 1) (pts.2 + 3) 0 c.levels (bs.2 + 3) with hrsd
