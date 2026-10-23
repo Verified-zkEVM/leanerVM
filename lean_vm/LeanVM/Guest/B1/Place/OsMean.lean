@@ -105,7 +105,7 @@ theorem OsCalleesAtD.kindD (h : OsCalleesAtD fs cert κ) {f : String} {K : OsKin
   · exact h.foldFinal p hp
 
 /-- **The call relation of a memory**: a named callee's meaning there, else `Sp`. -/
-def osCR (rd : Reader) (Sp : String → List E → List E → Prop) : CallRel := fun f a r ↦
+@[irreducible] def osCR (rd : Reader) (Sp : String → List E → List E → Prop) : CallRel := fun f a r ↦
   match osKindOf f with
   | some K => K.Pre rd a r
   | none => Sp f a r

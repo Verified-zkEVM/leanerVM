@@ -6,7 +6,7 @@
 
 module
 
-public import LeanVM.Guest.B1.Place.OsLkMem
+public import LeanVM.Guest.B1.Place.OsLkMem6
 public import LeanVM.Guest.B1.Place.ResAt
 public import LeanVM.Guest.B1.Whir.BrFin2
 
@@ -47,7 +47,7 @@ theorem osOwnL_getD_fixed (c : OsCfg) (tr : OsTr) (bp : ℕ → ℕ → E) :
     (osOwnL c tr bp).getD 2 [] = fmsgC c tr ∧ (osOwnL c tr bp).getD 3 [] = rootsC c tr ∧
       (osOwnL c tr bp).getD 4 [] = fchC c tr ∧ (osOwnL c tr bp).getD 5 [] = betasC c tr ∧
       (osOwnL c tr bp).getD 9 [] = oodzC c tr ∧ (osOwnL c tr bp).getD 10 [] = oodC c tr := by
-  rw [osOwnL_eq]
+  rw [osOwnL_eq6]
   exact ⟨rfl, rfl, rfl, rfl, rfl, rfl⟩
 
 /-- **The fixed buffers' honest words** on every memory holding `osLk`. -/
@@ -56,7 +56,7 @@ theorem osLk_fixed {c : OsCfg} {tr : OsTr} {b : ℕ} {Lin : Layout} {rd : Reader
   have r : ∀ j, j < 11 → j ≠ 8 → ReadsAt rd (osPtrAt c b j) ((osOwnL c tr fun _ _ ↦ 0).getD j []) :=
     fun j hj h8 ↦ osLk_reads hm _ (by omega) h8
   obtain ⟨g2, g3, g4, g5, g9, g10⟩ := osOwnL_getD_fixed c tr fun _ _ ↦ 0
-  obtain ⟨-, -, g6, g7, -⟩ := osOwnL_getD_head c tr fun _ _ ↦ 0
+  obtain ⟨-, -, g6, g7, -⟩ := osOwnL_getD_head6 c tr fun _ _ ↦ 0
   refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
   · have := r 4 (by omega) (by omega); rwa [g4] at this
   · have := r 3 (by omega) (by omega); rwa [g3] at this
@@ -134,7 +134,7 @@ theorem os_res_completeAtD (fs : String → ℕ) (cert : String → V → ℕ) (
   refine resLoop_completeAtD fs cert κ hf c l (lvAt c l) hps hb hst.ml1 hst.posOff hst.wo
     (D := finD c tr l) (by omega) hne fun rd hm ↦ ⟨fun s hs' ↦ ?_, fun j hj ↦ ?_⟩
   · -- the row's `d` words
-    obtain ⟨hBD, -⟩ := osOwnL_getD_fin c tr (fun _ _ ↦ 0) hl
+    obtain ⟨hBD, -⟩ := osOwnL_getD_fin6 c tr (fun _ _ ↦ 0) hl
     have hr := osLk_reads hm (fun _ _ ↦ 0) (j := osIxBD c) (by unfold osIxBD; omega)
       (by unfold osIxBD; omega)
     rw [hBD] at hr
@@ -145,7 +145,7 @@ theorem os_res_completeAtD (fs : String → ℕ) (cert : String → V → ℕ) (
     exact this
   · -- iteration `j`
     have hfix := osLk_fixed hm
-    obtain ⟨-, hRC⟩ := osOwnL_getD_fin c tr (fun _ _ ↦ 0) hl
+    obtain ⟨-, hRC⟩ := osOwnL_getD_fin6 c tr (fun _ _ ↦ 0) hl
     have hr := osLk_reads hm (fun _ _ ↦ 0) (j := osIxRC c l) (by unfold osIxRC; omega)
       (by unfold osIxRC; omega)
     rw [hRC] at hr

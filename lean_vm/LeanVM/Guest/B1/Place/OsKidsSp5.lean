@@ -146,11 +146,11 @@ theorem os_q_completeAtD (fs : String → ℕ) (cert : String → V → ℕ) (κ
       (span := fun i ↦ 2 ^ (lvAt c i).capDepth) hs.flags (c.levels.length - 1 - l) l (by omega)
     have hendC := off_end (off := fun i ↦ 4 * (lvAt c i).capOff)
       (span := fun i ↦ 2 ^ ((lvAt c i).capDepth + 2)) hs.caps (c.levels.length - 1 - l) l (by omega)
-    obtain ⟨g0, g1, -, -, -⟩ := osOwnL_getD_head c tr fun _ _ ↦ 0
+    obtain ⟨g0, g1, -, -, -⟩ := osOwnL_getD_head6 c tr fun _ _ ↦ 0
     refine ⟨fun l' hl' ↦ ?_, fun k hk ↦ ⟨?_, fun t ht ↦ ?_, ?_, fun e he ↦ ?_⟩⟩
     · refine regionL_append_left (regionL_append_left (osLk_region c tr b Lin (fun _ _ ↦ 0)
         (j := osIxWp l) (by unfold osIxWp; omega) (by unfold osIxWp; omega) ?_))
-      rw [(osOwnL_getD_lv c tr (fun _ _ ↦ 0) hl).2]
+      rw [(osOwnL_getD_lv6 c tr (fun _ _ ↦ 0) hl).2]
       simp only [wpC, List.length_map, List.length_range]
       simp only [osQShape, Oq.lo] at hl'
       omega
@@ -190,7 +190,7 @@ theorem os_q_completeAtD (fs : String → ℕ) (cert : String → V → ℕ) (κ
     obtain ⟨hm12, hmS⟩ := Main.memL_append.mp hm
     obtain ⟨hmk, hmW⟩ := Main.memL_append.mp hm12
     rw [osQShape_base, hQ]
-    obtain ⟨g0, g1, -, -, -⟩ := osOwnL_getD_head c tr fun _ _ ↦ 0
+    obtain ⟨g0, g1, -, -, -⟩ := osOwnL_getD_head6 c tr fun _ _ ↦ 0
     have hC : ReadsAt rd (osPtrAt c b 0) (capsC c tr) := by
       have := osLk_reads hmk (fun _ _ ↦ 0) (j := 0) (by omega) (by omega); rwa [g0] at this
     have hFl : ReadsAt rd (osPtrAt c b 1) (flagsC c tr) := by
@@ -198,7 +198,7 @@ theorem os_q_completeAtD (fs : String → ℕ) (cert : String → V → ℕ) (κ
     refine ⟨fun l' hl' ↦ ?_, fun k hk ↦ ⟨?_, fun t ht ↦ ?_, ?_⟩⟩
     · have hr := osLk_reads hmk (fun _ _ ↦ 0) (j := osIxWp l) (by unfold osIxWp; omega)
         (by unfold osIxWp; omega)
-      rw [(osOwnL_getD_lv c tr (fun _ _ ↦ 0) hl).2] at hr
+      rw [(osOwnL_getD_lv6 c tr (fun _ _ ↦ 0) hl).2] at hr
       simp only [osQShape, Oq.lo] at hl'
       have hl2 : l' < (wpC c tr l).length := by
         simp only [wpC, List.length_map, List.length_range]

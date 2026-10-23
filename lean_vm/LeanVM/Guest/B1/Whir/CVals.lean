@@ -225,5 +225,77 @@ theorem lvsF_bufs (c : OsCfg) : ∀ (lvs : List OsLv) (Ds : List LvDat) (lvl : �
     rw [seqF_ge (by omega), seqF_ge (by omega), seqF_ge (by omega), seqF_ge (by omega)]
     exact ih
 
+
+/-! ## The squeeze loop's call -/
+
+/-- The squeeze loop's guard and arguments: `1`, `g^n`, `1 + g^n`, `1`, `g^n` from `k + 2`. -/
+def sqGuardVals (lv : OsLv) : List E :=
+  [word 1 0 0, gw lv.squeezes, word 1 0 0 + gw lv.squeezes, word 1 0 0, gw lv.squeezes]
+
+theorem lvBFinF_guard {c : OsCfg} {lvl : ℕ} {lv : OsLv} {a : OsSt} {σ : Val}
+    {sqz wp r0 r1 sum ic0 ic2 : E} {j : ℕ} (hj : j < 5) :
+    lvBFinF c lvl lv a σ sqz wp r0 r1 sum ic0 ic2 (a.k + 2 + j) = (sqGuardVals lv).getD j 0 := by
+  have h1 := osSqueezes_k c lvl lv a
+  unfold lvBFinF
+  dsimp only
+  rw [seqF_lt (by omega)]
+  simp only [show a.k + 2 + j - a.k = 2 + j by omega]
+  interval_cases j <;> simp [segLookup, sqzSegs, sqGuardVals]
+
+theorem lvBNonF_guard {c : OsCfg} {lvl : ℕ} {lv : OsLv} {a : OsSt} {σ : Val}
+    {sqz wp r0 r1 sum ic0 ic2 y oc0 oc2 : E} {j : ℕ} (hj : j < 5) :
+    lvBNonF c lvl lv a σ sqz wp r0 r1 sum ic0 ic2 y oc0 oc2 (a.k + 2 + j) =
+      (sqGuardVals lv).getD j 0 := by
+  have h1 := osSqueezes_k c lvl lv a
+  unfold lvBNonF
+  dsimp only
+  rw [seqF_lt (by omega)]
+  simp only [show a.k + 2 + j - a.k = 2 + j by omega]
+  interval_cases j <;> simp [segLookup, sqzSegs, sqGuardVals]
+
+theorem lvF_guard (c : OsCfg) (lvl : ℕ) (lv : OsLv) (st : OsSt) (σ : Val) (D : LvDat) {j : ℕ}
+    (hj : j < 5) :
+    lvF c lvl lv st σ D ((osLevelA c lvl lv st).2.1.k + 2 + j) = (sqGuardVals lv).getD j 0 := by
+  unfold lvF
+  split_ifs
+  · unfold lvFinF
+    rw [seqF_ge (by omega)]
+    exact lvBFinF_guard hj
+  · unfold lvNonF
+    rw [seqF_ge (by omega)]
+    exact lvBNonF_guard hj
+
+theorem lvsF_guard (c : OsCfg) : ∀ (lvs : List OsLv) (Ds : List LvDat) (lvl : ℕ) (st : OsSt) (σ : Val)
+    (j : ℕ) (hj : j < lvs.length) (_ : j < Ds.length) {t : ℕ} (_ : t < 5),
+    lvsF c lvl lvs Ds st σ
+        ((osLevelA c (lvl + j) lvs[j] (osLevels c lvl (lvs.take j) st).2).2.1.k + 2 + t) =
+      (sqGuardVals lvs[j]).getD t 0
+  | [], _, _, _, _, _, hj, _, _, _ => absurd hj (by simp)
+  | _ :: _, [], _, _, _, _, _, hD, _, _ => absurd hD (by simp)
+  | lv :: rest, D :: Ds, lvl, st, σ, 0, _, _, t, ht => by
+    have hk := osLevel_k_le c lvl lv st
+    have h3 := osSqueezes_k c lvl lv (osLevelA c lvl lv st).2.1
+    have e0 : osLevels c lvl [] st = ([], st) := rfl
+    simp only [List.take_zero, e0, Nat.add_zero, List.getElem_cons_zero]
+    show lvsF c lvl (lv :: rest) (D :: Ds) st σ _ = _
+    simp only [lvsF]
+    rw [seqF_lt (by unfold wpVar at hk; omega)]
+    exact lvF_guard c lvl lv st σ D ht
+  | lv :: rest, D :: Ds, lvl, st, σ, j + 1, hj, hD, t, ht => by
+    have ih := lvsF_guard c rest Ds (lvl + 1) (osLevel c lvl lv st).2
+      (fill σ st.k (osLevel c lvl lv st).2.k (lvF c lvl lv st σ D)) j (by simpa using hj)
+      (by simpa using hD) ht
+    have hj' : j < rest.length := by simpa using hj
+    have e1 : (osLevels c lvl ((lv :: rest).take (j + 1)) st).2 =
+        (osLevels c (lvl + 1) (rest.take j) (osLevel c lvl lv st).2).2 := rfl
+    have hge := osLevels_k_ge c (lvl + 1) (rest.take j) (osLevel c lvl lv st).2
+    have hA := osLevelA_k_le c (lvl + 1 + j) rest[j]
+      (osLevels c (lvl + 1) (rest.take j) (osLevel c lvl lv st).2).2
+    simp only [List.getElem_cons_succ, e1, show lvl + (j + 1) = lvl + 1 + j by omega]
+    show lvsF c lvl (lv :: rest) (D :: Ds) st σ _ = _
+    simp only [lvsF]
+    rw [seqF_ge (by omega)]
+    exact ih
+
 end
 end LeanVM.Guest.B1.Whir

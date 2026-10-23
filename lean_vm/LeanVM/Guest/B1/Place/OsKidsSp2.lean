@@ -76,7 +76,7 @@ theorem os_sq_completeAtP (fs : String → ℕ) (cert : String → V → ℕ) (�
     fun rd hm ↦ by
       have := osLk_reads hm (fun _ _ ↦ 0) (j := osIxSqz l) (by unfold osIxSqz; omega)
         (by unfold osIxSqz; omega)
-      rwa [(osOwnL_getD_lv c tr (fun _ _ ↦ 0) hl).1] at this
+      rwa [(osOwnL_getD_lv6 c tr (fun _ _ ↦ 0) hl).1] at this
   refine (fun ⟨Lown, hW, hD, hR⟩ ↦ ⟨_, Lown, hW, hD, hR⟩) (sqLoop_relAtIn fs cert κ hfind hp hb hlp
     hlv.digits hst.posOff hdec hlv.sq0 hlv.sqOrd hcl hcan (Lin := osLk c tr b Lin ++ osW fs cert c b l fp)
     fp (fun rd hl' hm j hj ↦ ?_) (fun rd hl' hm j hj i hi ↦ ?_) (fun j hj t ht ↦ ?_))
@@ -121,7 +121,7 @@ theorem os_sq_completeAtP (fs : String → ℕ) (cert : String → V → ℕ) (�
   · -- the squeeze run's addresses
     obtain ⟨q, hq, h1, h2⟩ := osLk_region c tr b Lin (fun _ _ ↦ 0) (j := osIxSqz l)
       (by unfold osIxSqz; omega) (by unfold osIxSqz; omega) (k := j * 5 + t) (by
-        rw [(osOwnL_getD_lv c tr (fun _ _ ↦ 0) hl).1]
+        rw [(osOwnL_getD_lv6 c tr (fun _ _ ↦ 0) hl).1]
         simp only [sqzC, List.length_map, List.length_range]
         have : j + 2 ≤ c.maxSq + 1 := by omega
         nlinarith)
