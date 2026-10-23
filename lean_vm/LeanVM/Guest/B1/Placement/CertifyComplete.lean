@@ -415,14 +415,15 @@ theorem cp_rank (hlow : LowDefB 7 rd)
 end
 
 set_option maxHeartbeats 1000000 in
-/-- **`certify_placement` is complete**: on a memory holding its base and squares table, its
+/-- **`certify_placement`'s body holds** of the honest valuation: on a memory holding its base and squares table, its
 three buffers holding the columns' `g^κ`, `stackOffsets`'s order and `g^offset`, defined below
 `2^7`, the relation holds with the stack's total and the buffers. -/
-theorem cp_holds {lm : ℕ} {hs : List ℕ} (hl : hs.length = 6) (hlm : lm ≤ 32)
+theorem cp_body_holds {lm : ℕ} {hs : List ℕ} (hl : hs.length = 6) (hlm : lm ≤ 32)
     (hhs : ∀ h ∈ hs, h < 29) (h5 : hs.getD 5 0 ≤ 27) (ekb esq e2 e120 e121 : ℕ) (rd : Reader)
     (hm : MemLay rd (cpOwn lm hs e2 e120 e121 ++ cpLin lm hs ekb esq)) (hlow : LowDefB 7 rd) :
-    coreProgram.Rel rd "certify_placement" [ofK (gpow ekb), ofK (gpow esq)]
-      [gen ^ stackTotal (columnKappas lm guestLogBytecode hs), ofK (gpow e121), ofK (gpow e2)] := by
+    Stmt.HoldsList (coreProgram.Rel rd) rd (cpσ lm hs ekb esq e2 e120 e121 rd) cpBody False
+      (fun rs => rs = [gen ^ stackTotal (columnKappas lm guestLogBytecode hs), ofK (gpow e121),
+        ofK (gpow e2)]) := by
   obtain ⟨rK, rO, rF, rB, rS⟩ := cp_reads hl hm
   have hK : ∀ r < 113, cpKF lm hs r < 34 := fun r hr => cpKs_lt hl hlm hhs h5 (cpColF_lt hr)
   set σ := cpσ lm hs ekb esq e2 e120 e121 rd with hσ
@@ -523,8 +524,8 @@ theorem cp_holds {lm : ℕ} {hs : List ℕ} (hl : hs.length = 6) (hlm : lm ≤ 3
   have s3048 : σ (.n 3048) = gen ^ cpPre lm hs 113 :=
     cpσ_rank lm hs ekb esq e2 e120 e121 rd (r := 112) (j := 25) (by norm_num) (by norm_num)
       (by norm_num)
-  rw [cp_unfold]
-  refine ⟨σ, by rw [v0, v1], hinit, ?_, r0 1 (by norm_num), ⟨?_, ?_, ?_⟩, r0 5 (by norm_num), ?_,
+  rw [cp_body_iff]
+  refine ⟨hinit, ?_, r0 1 (by norm_num), ⟨?_, ?_, ?_⟩, r0 5 (by norm_num), ?_,
     r0 7 (by norm_num), r0 8 (by norm_num), ?_, r0 9 (by norm_num), ⟨?_, ?_, ?_⟩,
     r0 13 (by norm_num), ?_, hranks, ?_, rfl, rfl, ?_⟩
   · rw [v120, s122]; exact rO 0 (by norm_num)
@@ -555,6 +556,19 @@ theorem cp_holds {lm : ℕ} {hs : List ℕ} (hl : hs.length = 6) (hlm : lm ≤ 3
   · rw [s3048]; rfl
   · show [gen ^ cpPre lm hs 113, ofK (gpow e121), ofK (gpow e2)] = _
     rw [cpPre_total]
+
+/-- **`certify_placement` is complete**: on a memory holding its base and squares table, its
+three buffers holding the columns' `g^κ`, `stackOffsets`'s order and `g^offset`, defined below
+`2^7`, the relation holds with the stack's total and the buffers. -/
+theorem cp_holds {lm : ℕ} {hs : List ℕ} (hl : hs.length = 6) (hlm : lm ≤ 32)
+    (hhs : ∀ h ∈ hs, h < 29) (h5 : hs.getD 5 0 ≤ 27) (ekb esq e2 e120 e121 : ℕ) (rd : Reader)
+    (hm : MemLay rd (cpOwn lm hs e2 e120 e121 ++ cpLin lm hs ekb esq)) (hlow : LowDefB 7 rd) :
+    coreProgram.Rel rd "certify_placement" [ofK (gpow ekb), ofK (gpow esq)]
+      [gen ^ stackTotal (columnKappas lm guestLogBytecode hs), ofK (gpow e121), ofK (gpow e2)] := by
+  rw [tb_rel_iff_sem (by exact Program.find?_of_indexOf? (j := 15) (by decide +kernel) rfl),
+    core15_body]
+  exact ⟨cpσ lm hs ekb esq e2 e120 e121 rd, rfl,
+    cp_body_holds hl hlm hhs h5 ekb esq e2 e120 e121 rd hm hlow⟩
 
 /-- **The buffers satisfy `PCtx`** on any memory holding them. -/
 theorem cp_ctx {lm : ℕ} {hs : List ℕ} {e2 e120 e121 : ℕ} {rd : Reader}

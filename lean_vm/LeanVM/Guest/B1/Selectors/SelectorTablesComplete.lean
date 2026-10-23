@@ -121,6 +121,61 @@ theorem st_rdAt {rd : Reader} {L : TLay} (hm : MemLay rd L) {q : ℕ × List E} 
   rfl
 
 set_option maxRecDepth 10000 in
+/-- **Every statement holds** on the honest valuation, on every memory holding the buffers and the point. -/
+theorem st_sholds (ept ept1 ese esg : ℕ) (p p1 : List E) (hl : p.length = 28)
+    (hl1 : p1.length = 28) (rd : Reader)
+    (hm : MemLay rd (stOwn ept ept1 ese esg p p1 ++ stLin ept ept1 p p1)) :
+    ∀ s ∈ stPre, SHolds (coreProgram.Rel rd) rd (stVal ept ept1 ese esg p p1) s := by
+  have hg : ∀ s ∈ stPre, GoodS (layRd (stLin ept ept1 p p1)) (storesOf 2 stPre) (stW ese esg)
+      (stVal ept ept1 ese esg p p1) s :=
+    (ev_spec (layRd (stLin ept ept1 p p1)) (stW ese esg) stPre
+      [ofK (gpow ept), ofK (gpow ept1)] st_chk).2.2
+  have e0 : stVal ept ept1 ese esg p p1 (.n 0) = ofK (gpow ept) :=
+    ev_params _ _ (l := [ofK (gpow ept), ofK (gpow ept1)]) st_chk (by norm_num)
+  have e1 : stVal ept ept1 ese esg p p1 (.n 1) = ofK (gpow ept1) :=
+    ev_params _ _ (l := [ofK (gpow ept), ofK (gpow ept1)]) st_chk (by norm_num)
+  set σ := stVal ept ept1 ese esg p p1 with hσ
+  have e2 : σ (.n 2) = ofK (gpow ese) := by
+    have := hg _ st_alloc_mem.1
+    simpa [GoodS, Good, stW] using this
+  have e3 : σ (.n 3) = ofK (gpow esg) := by
+    have := hg _ st_alloc_mem.2
+    simpa [GoodS, Good, stW] using this
+  obtain ⟨hmo, hmi⟩ := memLay_append.mp hm
+  have hS : ∀ a ∈ storesOf 2 stPre, stStoreOk a = true := fun a ha =>
+    List.all_eq_true.mp st_stores a ha
+  show ∀ s ∈ stPre, SHolds (coreProgram.Rel rd) rd σ s
+  intro s hs
+  have hgs := hg s hs
+  rcases stKind_cases (List.all_eq_true.mp st_kinds s hs) with
+    ⟨hn, rfl⟩ | ⟨d, o, hld, ho⟩ | ⟨o, rfl, ho⟩ | ⟨o, rfl, ho⟩ | ⟨a, rfl, ha⟩
+  · trivial
+  · rcases hld with rfl | rfl
+    · simp only [GoodS, Good] at hgs
+      rcases hgs with hgs | hgs
+      · exact absurd (hS _ hgs) (by simp [stStoreOk])
+      · have := st_rdAt hmi (q := (ept, p)) (by simp [stLin]) (o := o) (by simp [hl, ho])
+        show LoadHolds rd (σ (.n 0)) o (σ (.n d))
+        rw [hgs, e0, this.1]; exact this.2
+    · simp only [GoodS, Good] at hgs
+      rcases hgs with hgs | hgs
+      · exact absurd (hS _ hgs) (by simp [stStoreOk])
+      · have := st_rdAt hmi (q := (ept1, p1)) (by simp [stLin]) (o := o) (by simp [hl1, ho])
+        show LoadHolds rd (σ (.n 1)) o (σ (.n d))
+        rw [hgs, e1, this.1]; exact this.2
+  · show LoadHolds rd (σ (.n 2)) o (σ (.n (stEq (o / 30) (o % 30))))
+    have h := hmo (ese, stEqWords σ) (by unfold stOwn; exact List.mem_cons_self) o (by simp [stEqWords, ho])
+    rw [e2]
+    simpa [stEqWords] using h
+  · show LoadHolds rd (σ (.n 3)) o (σ (.n (stB (o / 16) + 36 + o % 16)))
+    have hc := hg _ (st_const_mem (j := o / 16) (u := o % 16) (by omega) (by omega))
+    simp only [GoodS, Good] at hc
+    have h := hmo (esg, stGWords) (by unfold stOwn; exact List.mem_cons_of_mem _ List.mem_cons_self) o (by simp [stGWords, ho])
+    rw [e3, hc]
+    simpa [stGWords] using h
+  · exact pure_holds_rd ha (holds_of_pure ha (by simpa only [GoodS] using hgs))
+
+set_option maxRecDepth 10000 in
 /-- **Every statement holds** on a memory holding the buffers and the point. -/
 theorem st_holds (ept ept1 ese esg : ℕ) (p p1 : List E) (hl : p.length = 28)
     (hl1 : p1.length = 28) (rd : Reader)
@@ -146,36 +201,8 @@ theorem st_holds (ept ept1 ese esg : ℕ) (p p1 : List E) (hl : p.length = 28)
   obtain ⟨hmo, hmi⟩ := memLay_append.mp hm
   have hS : ∀ a ∈ storesOf 2 stPre, stStoreOk a = true := fun a ha =>
     List.all_eq_true.mp st_stores a ha
-  have hat : ∀ s ∈ stPre, SHolds (coreProgram.Rel rd) rd σ s := by
-    intro s hs
-    have hgs := hg s hs
-    rcases stKind_cases (List.all_eq_true.mp st_kinds s hs) with
-      ⟨hn, rfl⟩ | ⟨d, o, hld, ho⟩ | ⟨o, rfl, ho⟩ | ⟨o, rfl, ho⟩ | ⟨a, rfl, ha⟩
-    · trivial
-    · rcases hld with rfl | rfl
-      · simp only [GoodS, Good] at hgs
-        rcases hgs with hgs | hgs
-        · exact absurd (hS _ hgs) (by simp [stStoreOk])
-        · have := st_rdAt hmi (q := (ept, p)) (by simp [stLin]) (o := o) (by simp [hl, ho])
-          show LoadHolds rd (σ (.n 0)) o (σ (.n d))
-          rw [hgs, e0, this.1]; exact this.2
-      · simp only [GoodS, Good] at hgs
-        rcases hgs with hgs | hgs
-        · exact absurd (hS _ hgs) (by simp [stStoreOk])
-        · have := st_rdAt hmi (q := (ept1, p1)) (by simp [stLin]) (o := o) (by simp [hl1, ho])
-          show LoadHolds rd (σ (.n 1)) o (σ (.n d))
-          rw [hgs, e1, this.1]; exact this.2
-    · show LoadHolds rd (σ (.n 2)) o (σ (.n (stEq (o / 30) (o % 30))))
-      have h := hmo (ese, stEqWords σ) (by unfold stOwn; exact List.mem_cons_self) o (by simp [stEqWords, ho])
-      rw [e2]
-      simpa [stEqWords] using h
-    · show LoadHolds rd (σ (.n 3)) o (σ (.n (stB (o / 16) + 36 + o % 16)))
-      have hc := hg _ (st_const_mem (j := o / 16) (u := o % 16) (by omega) (by omega))
-      simp only [GoodS, Good] at hc
-      have h := hmo (esg, stGWords) (by unfold stOwn; exact List.mem_cons_of_mem _ List.mem_cons_self) o (by simp [stGWords, ho])
-      rw [e3, hc]
-      simpa [stGWords] using h
-    · exact pure_holds_rd ha (holds_of_pure ha (by simpa only [GoodS] using hgs))
+  have hat : ∀ s ∈ stPre, SHolds (coreProgram.Rel rd) rd σ s :=
+    st_sholds ept ept1 ese esg p p1 hl hl1 rd hm
   refine (tb_rel_iff_sem hf _ _).mpr ⟨σ, by rw [hp]; simp [e0, e1], ?_⟩
   rw [hb]
   refine holdsList_straight stPre _ _ _ hat ?_
