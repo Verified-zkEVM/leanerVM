@@ -23,10 +23,11 @@ gives `w`'s opcode tables within their widths, its two blocks, its public input 
 
 The stack agrees with the witness (`agrees_stackOf`): its committed columns are the witness's
 cells (`column_stackOf`); its input lanes are the slots `0 … 24` of the honest `QKECCAK`, which
-are the witness's input lanes (`word_stackOf`, `keccakWitness_getElem`); its output lanes are the
+are the witness's input lanes (`word_stackOf`, `keccakWitness_getElem`), and the columns riding
+its spare slots `50 … 63` are the witness's cells of them (`column_spare`); its output lanes are the
 permutation of those, which are the witness's output lanes because every `KECCAK` row permutes
 (`SatisfiedBy.keccak_valid`). Past a table's rows the stack holds the padding row
-(`paddingHonest_stackOf`): zero committed cells and input lanes, and output lanes Keccak-f[1600] of
+(`paddingHonest_stackOf`): zero committed cells, spare columns and input lanes, and output lanes Keccak-f[1600] of
 the zero state (`padRow_outCol`). Then the bus and count clauses follow from the equivalences of
 `LeanIsa/Relation.lean`, the constraint clause from them on the executed rows and from the padding
 row on the others (`padRow_constraints`); the public lines from the two public words of the image
@@ -71,7 +72,7 @@ private theorem witnessColumn_congr {c c' : Col} (h : c' = c) (x : Fin (2 ^ kapp
   rfl
 
 /-- A committed column of the stack of a witness is the witness's column. -/
-theorem column_stackOf (c : Col) (h : ¬ IsLane c) (x : Fin (2 ^ kappa prog s c)) :
+theorem column_stackOf (c : Col) (h : ¬ IsVirtual c) (x : Fin (2 ^ kappa prog s c)) :
     ((leanIsaInstance prog s).column (stackOf prog s w) c).values.get x =
       (witnessColumn prog s w c)[x] := by
   refine (column_committed prog s _ c h x).trans ?_
@@ -87,17 +88,17 @@ theorem word_stackOf (slot : ℕ) (hslot : slot < 64) (x : Fin (2 ^ s.τ 5)) :
         ((leanIsaInstance prog s).keccakColumn (keccakRegion prog s) (stackOf prog s w)) slot x =
       (keccakWitness prog s w)[x.val + 2 ^ s.τ 5 * slot]'(slot_lt x slot hslot) :=
   (word_eq_column prog s _ slot hslot x).trans
-    (column_stackOf prog s w keccakCol not_isLane_keccakCol _)
+    (column_stackOf prog s w keccakCol not_isVirtual_keccakCol _)
 
 /-- The witness's `QKECCAK` at word `x` of slot `slot`: an input lane, a lane after twelve
-rounds, or zero. -/
+rounds, or the row's cell of a spare column. -/
 theorem keccakWitness_getElem (slot : ℕ) (hslot : slot < 64) (x : ℕ) (hx : x < 2 ^ s.τ 5)
     (h : x + 2 ^ s.τ 5 * slot < 2 ^ (s.τ 5 + 6)) :
     (keccakWitness prog s w)[x + 2 ^ s.τ 5 * slot]'h =
       if h : slot < 25 then inLaneOf prog s w x ⟨slot, h⟩
       else if h' : slot < 50 then
         stateLanes (keccakSegment 0 (laneState (inLaneOf prog s w x))) ⟨slot - 25, by omega⟩
-      else 0 := by
+      else cellOf (tableAt w 5) x (spareColumn (slot - 50)) := by
   have hp : 0 < 2 ^ s.τ 5 := Nat.two_pow_pos _
   have hd : (x + 2 ^ s.τ 5 * slot) / 2 ^ s.τ 5 = slot := by
     rw [Nat.add_mul_div_left _ _ hp, Nat.div_eq_of_lt hx, Nat.zero_add]
@@ -265,8 +266,21 @@ private theorem cells_stackOf {input : PublicInput} (h : SatisfiedBy prog input 
         (lt_of_lt_of_le x.isLt ((witnessSizes w hp).rows_le 5)) _).symm
       rw [dite_eq_left l.isLt]
       exact (inLaneOf_executed x x.isLt l).symm
-  · refine Eq.symm ((column_stackOf prog _ w ⟨opIdx j, i⟩ hl _).trans ?_)
-    exact Vector.getElem_ofFn _
+  · by_cases hsp : IsSpare ⟨opIdx j, i⟩
+    · have hj : j = 5 := Fin.ext (by have := congrArg Fin.val hsp.1; simp [opIdx] at this; omega)
+      subst hj
+      obtain ⟨h50, hcol⟩ := qSlot_spare hsp
+      have hx : x.val < 2 ^ (witnessSizes w hp).τ 5 :=
+        lt_of_lt_of_le x.isLt ((witnessSizes w hp).rows_le 5)
+      refine Eq.trans ?_ (column_spare prog _ _ _ hsp
+        (Fin.castLE ((witnessSizes w hp).rows_le 5) x)).symm
+      refine Eq.trans ?_ (word_stackOf prog _ w _ (qSlot _).isLt _).symm
+      refine Eq.trans ?_ (keccakWitness_getElem prog _ w _ (qSlot _).isLt x.val hx _).symm
+      rw [dite_eq_right (by omega), dite_eq_right (by omega), hcol]
+      rfl
+    · refine Eq.symm ((column_stackOf prog _ w ⟨opIdx j, i⟩
+        (fun hv ↦ hv.lane_or_spare.elim hl hsp) _).trans ?_)
+      exact Vector.getElem_ofFn _
 
 /-- The memory block of a witness satisfying the constraint system is the stack's. -/
 private theorem memRows_stackOf {input : PublicInput} (h : SatisfiedBy prog input w)
@@ -451,10 +465,23 @@ theorem paddingHonest_stackOf (hs : Sizes.ofWitness w = some s) :
         refine (word_stackOf prog _ w l (by omega) _).trans ?_
         rw [keccakWitness_getElem prog _ w l (by omega) _ x'.isLt, dite_eq_left l.isLt, hzero]
         exact (padRow_of_not_isOut 5 _ fun h ↦ by have := h.2.1; simp at this; omega).symm
-    · refine (column_stackOf prog (witnessSizes w hp) w ⟨⟨j + 3, hj⟩, i⟩ hl x).trans ?_
-      refine Eq.trans ?_ (padRow_of_not_isOut ⟨j, by omega⟩ i fun ho ↦ hl ho.isLane).symm
-      refine (Vector.getElem_ofFn _).trans ?_
-      simp [cellOf, List.getElem?_eq_none hrows]
+    · by_cases hsp : IsSpare ⟨⟨j + 3, hj⟩, i⟩
+      · have hj5 : j = 5 := by have := congrArg Fin.val hsp.1; simp [opIdx] at this; omega
+        subst hj5
+        obtain ⟨h50, hcol⟩ := qSlot_spare hsp
+        let x' : Fin (2 ^ (witnessSizes w hp).τ 5) := x
+        refine (column_spare prog _ _ _ hsp x').trans ?_
+        refine (word_stackOf prog _ w _ (qSlot _).isLt x').trans ?_
+        rw [keccakWitness_getElem prog _ w _ (qSlot _).isLt _ x'.isLt, dite_eq_right (by omega),
+          dite_eq_right (by omega), hcol]
+        refine Eq.trans ?_ (padRow_of_not_isOut 5 _ hsp.not_isOut).symm
+        have hnone : (tableAt w 5).table[x.val]? = none := List.getElem?_eq_none hrows
+        simp [cellOf, x', hnone]
+      · refine (column_stackOf prog (witnessSizes w hp) w ⟨⟨j + 3, hj⟩, i⟩
+          (fun hv ↦ hv.lane_or_spare.elim hl hsp) x).trans ?_
+        refine Eq.trans ?_ (padRow_of_not_isOut ⟨j, by omega⟩ i fun ho ↦ hl ho.isLane).symm
+        refine (Vector.getElem_ofFn _).trans ?_
+        simp [cellOf, List.getElem?_eq_none hrows]
 
 /-- The constraint polynomials of the opcode tables but `JUMP` are none. -/
 theorem opcode_constraints_nil :
