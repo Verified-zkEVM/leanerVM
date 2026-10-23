@@ -14,17 +14,17 @@ namespace LeanVM.Guest.B2C.Shared
 @[expose] public section
 
 set_option maxRecDepth 100000 in
-/-- `da_hash_roots__L8`, once. -/
-theorem st386 : shareStatic 386 = true := by decide +kernel
+/-- `__loop29`, once. -/
+theorem st400 : shareStatic 400 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `da_hash_roots__L8`, window 0. -/
-theorem w386_0 : shareWin 386 (snapsOf 386) 0 = true := by decide +kernel
+/-- `__loop29`, window 0. -/
+theorem w400_0 : shareWin 400 (snapsOf 400) 0 = true := by decide +kernel
 
-theorem ok386 : ShareOk 386 := ⟨st386, fun i hi ↦ by
-  have h : (snapsOf 386).length = 0 := by decide +kernel
+theorem ok400 : ShareOk 400 := ⟨st400, fun i hi ↦ by
+  have h : (snapsOf 400).length = 0 := by decide +kernel
   obtain rfl : i = 0 := by omega
-  exact w386_0⟩
+  exact w400_0⟩
 
 end
 end LeanVM.Guest.B2C.Shared

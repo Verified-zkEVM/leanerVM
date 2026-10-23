@@ -158,6 +158,26 @@ public import LeanVM.Guest.Checked.F21_69
 public import LeanVM.Guest.Checked.F21_70
 public import LeanVM.Guest.Checked.F21_71
 public import LeanVM.Guest.Checked.F21_72
+public import LeanVM.Guest.Checked.F21_73
+public import LeanVM.Guest.Checked.F21_74
+public import LeanVM.Guest.Checked.F21_75
+public import LeanVM.Guest.Checked.F21_76
+public import LeanVM.Guest.Checked.F21_77
+public import LeanVM.Guest.Checked.F21_78
+public import LeanVM.Guest.Checked.F21_79
+public import LeanVM.Guest.Checked.F21_80
+public import LeanVM.Guest.Checked.F21_81
+public import LeanVM.Guest.Checked.F21_82
+public import LeanVM.Guest.Checked.F21_83
+public import LeanVM.Guest.Checked.F21_84
+public import LeanVM.Guest.Checked.F21_85
+public import LeanVM.Guest.Checked.F21_86
+public import LeanVM.Guest.Checked.F21_87
+public import LeanVM.Guest.Checked.F21_88
+public import LeanVM.Guest.Checked.F21_89
+public import LeanVM.Guest.Checked.F21_90
+public import LeanVM.Guest.Checked.F21_91
+public import LeanVM.Guest.Checked.F21_92
 public import LeanVM.Guest.Checked.F28_0
 public import LeanVM.Guest.Checked.F28_1
 public import LeanVM.Guest.Checked.F29_0
@@ -329,7 +349,7 @@ theorem plain20 : Plain 20 := by
   decide +kernel
 
 theorem ok21 : CheckOk 21 := fun i hi ↦ by
-  have h : (certOf 21).cuts.length = 72 := by decide +kernel
+  have h : (certOf 21).cuts.length = 92 := by decide +kernel
   rw [h] at hi
   interval_cases i
   · exact w21_0
@@ -405,6 +425,26 @@ theorem ok21 : CheckOk 21 := fun i hi ↦ by
   · exact w21_70
   · exact w21_71
   · exact w21_72
+  · exact w21_73
+  · exact w21_74
+  · exact w21_75
+  · exact w21_76
+  · exact w21_77
+  · exact w21_78
+  · exact w21_79
+  · exact w21_80
+  · exact w21_81
+  · exact w21_82
+  · exact w21_83
+  · exact w21_84
+  · exact w21_85
+  · exact w21_86
+  · exact w21_87
+  · exact w21_88
+  · exact w21_89
+  · exact w21_90
+  · exact w21_91
+  · exact w21_92
 
 theorem plain21 : Plain 21 := by
   unfold Plain

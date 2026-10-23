@@ -14,8 +14,30 @@ namespace LeanVM.Guest.B2C.Shared
 @[expose] public section
 
 set_option maxRecDepth 100000 in
-/-- `da_vector_cell`, window 0. -/
-theorem w29_0 : shareWin 29 (snapsOf 29) 0 = true := by decide +kernel
+/-- `eq_prefix_run__L8`, once. -/
+theorem st47 : shareStatic 47 = true := by decide +kernel
+
+set_option maxRecDepth 100000 in
+/-- `eq_prefix_run__L8`, window 0. -/
+theorem w47_0 : shareWin 47 (snapsOf 47) 0 = true := by decide +kernel
+
+theorem ok47 : ShareOk 47 := ⟨st47, fun i hi ↦ by
+  have h : (snapsOf 47).length = 0 := by decide +kernel
+  obtain rfl : i = 0 := by omega
+  exact w47_0⟩
+
+set_option maxRecDepth 100000 in
+/-- `eq_prefix_run__L9`, once. -/
+theorem st48 : shareStatic 48 = true := by decide +kernel
+
+set_option maxRecDepth 100000 in
+/-- `eq_prefix_run__L9`, window 0. -/
+theorem w48_0 : shareWin 48 (snapsOf 48) 0 = true := by decide +kernel
+
+theorem ok48 : ShareOk 48 := ⟨st48, fun i hi ↦ by
+  have h : (snapsOf 48).length = 0 := by decide +kernel
+  obtain rfl : i = 0 := by omega
+  exact w48_0⟩
 
 end
 end LeanVM.Guest.B2C.Shared

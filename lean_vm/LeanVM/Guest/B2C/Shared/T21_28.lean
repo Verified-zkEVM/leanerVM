@@ -24,17 +24,33 @@ public import LeanVM.Guest.B2C.Shared.H21_28_12
 public import LeanVM.Guest.B2C.Shared.H21_28_13
 public import LeanVM.Guest.B2C.Shared.H21_28_14
 public import LeanVM.Guest.B2C.Shared.H21_28_15
+public import LeanVM.Guest.B2C.Shared.H21_28_16
+public import LeanVM.Guest.B2C.Shared.H21_28_17
+public import LeanVM.Guest.B2C.Shared.H21_28_18
+public import LeanVM.Guest.B2C.Shared.H21_28_19
+public import LeanVM.Guest.B2C.Shared.H21_28_20
+public import LeanVM.Guest.B2C.Shared.H21_28_21
+public import LeanVM.Guest.B2C.Shared.H21_28_22
+public import LeanVM.Guest.B2C.Shared.H21_28_23
+public import LeanVM.Guest.B2C.Shared.H21_28_24
+public import LeanVM.Guest.B2C.Shared.H21_28_25
+public import LeanVM.Guest.B2C.Shared.H21_28_26
+public import LeanVM.Guest.B2C.Shared.H21_28_27
+public import LeanVM.Guest.B2C.Shared.H21_28_28
+public import LeanVM.Guest.B2C.Shared.H21_28_29
+public import LeanVM.Guest.B2C.Shared.H21_28_30
+public import LeanVM.Guest.B2C.Shared.H21_28_31
 
 namespace LeanVM.Guest.B2C.Shared
 
 @[expose] public section
 
-/-- `verify_sig_lean_sphincs`, window 28: one `match`, by 16 groups of arms. -/
+/-- `verify_sig_lean_sphincs`, window 28: one `match`, by 32 groups of arms. -/
 theorem w21_28 : shareWin 21 (snapsOf 21) 28 = true :=
-  shareWin_of_split [(1, 17, 100, 1563, 0, 100), (17, 33, 1663, 1553, 0, 100), (33, 49, 3216, 1561, 0, 100), (49, 65, 4777, 1560, 0, 100), (65, 81, 6337, 1575, 0, 100), (81, 97, 7912, 1568, 0, 100), (97, 113, 9480, 1560, 0, 100), (113, 129, 11040, 1573, 0, 100), (129, 145, 12613, 1571, 0, 100), (145, 161, 14184, 1564, 0, 100), (161, 177, 15748, 1563, 0, 100), (177, 193, 17311, 1582, 0, 100), (193, 209, 18893, 1584, 0, 100), (209, 225, 20477, 1571, 0, 100), (225, 241, 22048, 1552, 0, 100), (241, 256, 23600, 1466, 0, 100)]
-    (1, 17, 100, 1563, 0, 100) List.mem_cons_self (by decide +kernel) (by decide +kernel) fun g hg ↦ by
+  shareWin_of_split [(1, 9, 100, 784, 0, 100), (9, 17, 884, 779, 0, 100), (17, 25, 1663, 775, 0, 100), (25, 33, 2438, 778, 0, 100), (33, 41, 3216, 784, 0, 100), (41, 49, 4000, 777, 0, 100), (49, 57, 4777, 775, 0, 100), (57, 65, 5552, 785, 0, 100), (65, 73, 6337, 791, 0, 100), (73, 81, 7128, 784, 0, 100), (81, 89, 7912, 784, 0, 100), (89, 97, 8696, 784, 0, 100), (97, 105, 9480, 781, 0, 100), (105, 113, 10261, 779, 0, 100), (113, 121, 11040, 781, 0, 100), (121, 129, 11821, 792, 0, 100), (129, 137, 12613, 787, 0, 100), (137, 145, 13400, 784, 0, 100), (145, 153, 14184, 784, 0, 100), (153, 161, 14968, 780, 0, 100), (161, 169, 15748, 784, 0, 100), (169, 177, 16532, 779, 0, 100), (177, 185, 17311, 790, 0, 100), (185, 193, 18101, 792, 0, 100), (193, 201, 18893, 792, 0, 100), (201, 209, 19685, 792, 0, 100), (209, 217, 20477, 787, 0, 100), (217, 225, 21264, 784, 0, 100), (225, 233, 22048, 777, 0, 100), (233, 241, 22825, 775, 0, 100), (241, 249, 23600, 780, 0, 100), (249, 256, 24380, 686, 0, 100)]
+    (1, 9, 100, 784, 0, 100) List.mem_cons_self (by decide +kernel) (by decide +kernel) fun g hg ↦ by
       simp only [List.mem_cons, List.not_mem_nil, or_false] at hg
-      rcases hg with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl
+      rcases hg with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl
       · exact sg21_28_0
       · exact sg21_28_1
       · exact sg21_28_2
@@ -51,6 +67,22 @@ theorem w21_28 : shareWin 21 (snapsOf 21) 28 = true :=
       · exact sg21_28_13
       · exact sg21_28_14
       · exact sg21_28_15
+      · exact sg21_28_16
+      · exact sg21_28_17
+      · exact sg21_28_18
+      · exact sg21_28_19
+      · exact sg21_28_20
+      · exact sg21_28_21
+      · exact sg21_28_22
+      · exact sg21_28_23
+      · exact sg21_28_24
+      · exact sg21_28_25
+      · exact sg21_28_26
+      · exact sg21_28_27
+      · exact sg21_28_28
+      · exact sg21_28_29
+      · exact sg21_28_30
+      · exact sg21_28_31
 
 end
 end LeanVM.Guest.B2C.Shared
