@@ -161,3 +161,152 @@ theorem osFold_complete
 
 end
 end LeanVM.Guest.B1.Whir
+
+namespace LeanVM.Guest.B1.Whir
+
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest LeanVM.Guest.B1
+open LeanVM.Guest.Value LeanVM.Protocol LeanVM.Protocol.Compile LeanVM.Protocol.Verifier
+
+@[expose] public section
+
+variable {C : CallRel} {rd : Reader}
+
+/-- A round's next sponge: the squeeze's capacity, the next quadratic's two words waiting. -/
+def foldStep (F : Fs) (d0 d2 : E) : Fs := ⟨F.squeeze.2.cap, [(d0, dsObserve), (d2, dsObserve)]⟩
+
+/-- **The honest rounds**: from the sponge `F`, the quadratic `q` and the claim `t`, on the
+words `xs`, `n` rounds' sponge, challenges, quadratic and claim. -/
+def foldsTr : ℕ → Fs → List E → E → List E → Fs × List E × List E × E
+  | 0, F, q, t, _ => (F, [], q, t)
+  | n + 1, F, q, _, xs =>
+    let c := F.squeeze.1
+    let cl := polyEval q c
+    let r := foldsTr n (foldStep F (xs.getD 0 0) (xs.getD 1 0))
+      [xs.getD 0 0, cl + xs.getD 1 0, xs.getD 1 0] cl (xs.drop 2)
+    (r.1, c :: r.2.1, r.2.2.1, r.2.2.2)
+
+theorem foldsTr_chs_length : ∀ (n : ℕ) (F : Fs) (q : List E) (t : E) (xs : List E),
+    (foldsTr n F q t xs).2.1.length = n
+  | 0, _, _, _, _ => rfl
+  | n + 1, F, q, t, xs => by simp [foldsTr, foldsTr_chs_length n]
+
+/-- What the rounds leave. -/
+structure FoldsOut (σ : Val) (st st' : OsSt) (r : Fs × List E × List E × E) (n : ℕ) : Prop where
+  F : st'.F σ = r.1
+  quad : st'.quad σ = r.2.2.1
+  t : σ (.n st'.t) = r.2.2.2
+  cur : st'.cur σ = st.cur σ * gen ^ (2 * n)
+  fs : st'.fs.length = 5
+  can : AllCanonical (st'.fsv σ)
+  co : st'.co < u128Bound
+  below : st'.Below
+  pad : st'.pad = st.pad
+
+theorem osFold_below (p off : ℕ) (st : OsSt) : (osFold p off st).2.Below := by
+  have := osMat_next st.cb st.co st.k
+  refine ⟨fun f hf ↦ ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
+  all_goals simp [osFold] at *
+  all_goals omega
+
+theorem osFold_k (p off : ℕ) (st : OsSt) : st.k ≤ (osFold p off st).2.k := by
+  have := osMat_next st.cb st.co st.k
+  simp only [osFold]; omega
+
+theorem osFolds_k (p : ℕ) : ∀ (n off : ℕ) (st : OsSt), st.k ≤ (osFolds p off n st).2.k
+  | 0, _, _ => le_rfl
+  | n + 1, off, st => le_trans (osFold_k p off st) (osFolds_k p n (off + 1) _)
+
+/-- A state's values agree with an earlier valuation's below its next free value. -/
+theorem OsSt.agree {st : OsSt} (hb : st.Below) {σ σ' : Val} (ha : AgreeBelow st.k σ σ') :
+    st.fsv σ' = st.fsv σ ∧ st.F σ' = st.F σ ∧ st.quad σ' = st.quad σ ∧
+      σ' (.n st.t) = σ (.n st.t) ∧ st.cur σ' = st.cur σ := by
+  have hfsv : st.fsv σ' = st.fsv σ := by
+    simp only [OsSt.fsv]
+    exact List.map_congr_left fun f hf ↦ ha f (hb.fs f hf)
+  refine ⟨hfsv, ?_, ?_, ha _ hb.t, ?_⟩
+  · simp only [OsSt.F, hfsv, ha _ hb.w0, ha _ hb.w1]
+  · simp only [OsSt.quad, ha _ hb.c, ha _ hb.b, ha _ hb.a]
+  · simp only [OsSt.cur, ha _ hb.cb]
+
+/-- The capacity of a squeeze is canonical. -/
+theorem squeeze_cap_canonical (F : Fs) : AllCanonical F.squeeze.2.cap := by
+  intro c hc
+  simp only [Fs.squeeze, capOf, List.mem_cons, List.mem_nil_iff, or_false] at hc
+  rcases hc with rfl | rfl | rfl | rfl | rfl <;> exact cellsOfState_canonical _ _ _
+
+/-- **`n` rounds, honestly.** -/
+theorem osFolds_complete
+    (hC : ∀ args rets, MeaningOpeningFold rd args rets → C "opening_fold" args rets) (p : ℕ) :
+    ∀ (n off : ℕ) (st : OsSt) (σ : Val) (xs : List E), st.fs.length = 5 → st.co < u128Bound →
+      st.Below → p < st.k → AllCanonical (st.fsv σ) → xs.length = 2 * n →
+      ReadsAt rd (st.cur σ) xs →
+      (∀ j, j < n → LoadHolds rd (σ (.n p)) (off + j)
+        ((foldsTr n (st.F σ) (st.quad σ) (σ (.n st.t)) xs).2.1.getD j 0)) →
+      Blk C rd σ st.k (osFolds p off n st).2.k (osFolds p off n st).1
+        (fun σ' ↦ FoldsOut σ' st (osFolds p off n st).2
+          (foldsTr n (st.F σ) (st.quad σ) (σ (.n st.t)) xs) n ∧ AgreeBelow st.k σ σ') := by
+  intro n
+  induction n with
+  | zero =>
+    intro off st σ xs hfs hco hb _ hcan _ _ _
+    simp only [osFolds]
+    refine Blk.nil fun σ' ha ↦ ⟨?_, ha⟩
+    obtain ⟨e1, e2, e3, e4, e5⟩ := OsSt.agree hb ha
+    exact ⟨e2, e3, e4, by rw [e5]; simp, hfs, by rw [e1]; exact hcan, hco, hb, rfl⟩
+  | succ n ih =>
+    intro off st σ xs hfs hco hb hp hcan hxl hrd hst
+    obtain ⟨d0, d2, ys, rfl⟩ : ∃ d0 d2 ys, xs = d0 :: d2 :: ys := by
+      match xs, hxl with
+      | d0 :: d2 :: ys, _ => exact ⟨d0, d2, ys, rfl⟩
+    have hrd0 : ReadsAt rd (st.cur σ) [d0, d2] := readsAt_left (xs := [d0, d2]) (ys := ys) hrd
+    have hrd1 : ReadsAt rd (st.cur σ * gen ^ 2) ys := fun j hj ↦ by
+      have := hrd (j + 2) (by simp; omega)
+      rw [loadHolds_mul_gen_pow, show 2 + j = j + 2 by ring]
+      simpa using this
+    have hst0 := hst 0 (by omega)
+    simp only [foldsTr, List.getD_cons_zero, Nat.add_zero] at hst0
+    have hA := osFold_complete (C := C) hC (p := p) (off := off) σ hfs hco hb hp hcan hrd0 hst0
+    set st1 := (osFold p off st).2 with hst1
+    have hk1 : st.k ≤ st1.k := osFold_k p off st
+    have hk2 : st1.k ≤ (osFolds p (off + 1) n st1).2.k := osFolds_k p n (off + 1) st1
+    have e : osFolds p off (n + 1) st = ((osFold p off st).1 ++ (osFolds p (off + 1) n st1).1,
+        (osFolds p (off + 1) n st1).2) := rfl
+    rw [e]
+    set cl := polyEval (st.quad σ) (st.F σ).squeeze.1 with hcl
+    set R' := foldsTr n (foldStep (st.F σ) d0 d2) [d0, cl + d2, d2] cl ys with hR'
+    have hR : foldsTr (n + 1) (st.F σ) (st.quad σ) (σ (.n st.t)) (d0 :: d2 :: ys) =
+        (R'.1, (st.F σ).squeeze.1 :: R'.2.1, R'.2.2.1, R'.2.2.2) := rfl
+    have hB : ∀ σ1, AgreeBelow st.k σ σ1 → (FoldOut σ1 st st1 d0 d2 ∧ AgreeBelow st.k σ σ1) →
+        Blk C rd σ1 st1.k (osFolds p (off + 1) n st1).2.k (osFolds p (off + 1) n st1).1
+          (fun σ' ↦ FoldsOut σ' st1 (osFolds p (off + 1) n st1).2 R' n ∧
+            st1.cur σ' = st.cur σ * gen ^ 2) := by
+      intro σ1 _ ⟨fo, ha1'⟩
+      obtain ⟨-, eF, eQ, -, eC⟩ := OsSt.agree hb ha1'
+      have eF1 : st1.F σ1 = foldStep (st.F σ) d0 d2 := by rw [fo.sponge, eF]; rfl
+      have eq1 : st1.quad σ1 = [d0, cl + d2, d2] := by
+        rw [fo.quad, fo.claim, eF, eQ]
+      have et1 : σ1 (.n st1.t) = cl := by rw [fo.claim, eF, eQ]
+      have ec1 : st1.cur σ1 = st.cur σ * gen ^ 2 := by rw [fo.cur, eC]
+      have hih := ih (off + 1) st1 σ1 ys fo.fs (by simp [st1, osFold, u128Bound])
+        (osFold_below p off st) (by omega)
+        (by rw [show st1.fsv σ1 = (st1.F σ1).cap from rfl, fo.sponge]
+            exact squeeze_cap_canonical _)
+        (by simp at hxl; omega)
+        (by rw [ec1]; exact hrd1)
+        (fun j hj ↦ by
+          have := hst (j + 1) (by omega)
+          rw [ha1' p hp, show off + 1 + j = off + (j + 1) by ring, eF1, eq1, et1]
+          rw [hR] at this
+          simpa using this)
+      rw [eF1, eq1, et1] at hih
+      refine Blk.mono hih fun σ' ⟨ho, ha'⟩ ↦ ⟨ho, ?_⟩
+      rw [← ec1]
+      exact (OsSt.agree (osFold_below p off st) ha').2.2.2.2
+    refine Blk.mono (Blk.seq hk1 hk2 hA hB) fun σ' ⟨⟨fo, ha'⟩, ho, hc⟩ ↦ ⟨?_, ha'⟩
+    rw [hR]
+    exact ⟨ho.F, ho.quad, ho.t, by
+      rw [ho.cur, hc, (OsSt.agree hb ha').2.2.2.2, mul_assoc, ← pow_add]; ring_nf, ho.fs, ho.can,
+      ho.co, ho.below, by rw [ho.pad]; rfl⟩
+
+end
+end LeanVM.Guest.B1.Whir
