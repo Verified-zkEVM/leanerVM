@@ -237,18 +237,18 @@ def cap5 (b : ℕ) : List V := [.n b, .n (b + 1), .n (b + 2), .n (b + 3), .n (b 
 
 /-- The last record read, the local point allocated. -/
 def lastT (d : ℕ) : List Stmt :=
-  [.atom (.mul (.n (1317 + d)) (.n 1310) (.n 10))] ++
-    (List.range 5).map (fun j ↦ .atom (.load (.n (1318 + d + j)) (.n (1317 + d)) (16 * j))) ++
-    [.atom (.load (.n (1323 + d)) (.n (1317 + d)) 80), .atom (.load (.n (1324 + d)) (.n (1317 + d)) 96),
-      .atom (.hint (.alloc (.n (1325 + d)) 11))]
+  [.atom (.mul (.n (d + 1317)) (.n 1310) (.n 10))] ++
+    (List.range 5).map (fun j ↦ .atom (.load (.n (d + 1318 + j)) (.n (d + 1317)) (16 * j))) ++
+    [.atom (.load (.n (d + 1323)) (.n (d + 1317)) 80), .atom (.load (.n (d + 1324)) (.n (d + 1317)) 96),
+      .atom (.hint (.alloc (.n (d + 1325)) 11))]
 
 /-- `t`'s three words. -/
 def tReadsT (d : ℕ) : List Stmt :=
-  fsNextT (.n (1323 + d)) 33 (1986 + d) ++ fsNextT (.n (1323 + d)) 34 (1996 + d) ++
-    fsNextT (.n (1323 + d)) 35 (2006 + d)
+  fsNextT (.n (d + 1323)) 33 (d + 1986) ++ fsNextT (.n (d + 1323)) 34 (d + 1996) ++
+    fsNextT (.n (d + 1323)) 35 (d + 2006)
 
 /-- The lane weights of the local point (`f_lanes[LANE_OFF + i]`). -/
-def laneW (d i : ℕ) : ℕ := eqfVal (2016 + d) 5 25 4 i
+def laneW (d i : ℕ) : ℕ := eqfVal (d + 2016) 5 25 4 i
 
 /-! ## The first claim's weight -/
 
@@ -438,22 +438,22 @@ def formAll (lp : V) (sh f : ℕ → ℕ) (B : ℕ) : List Stmt × ℕ × ℕ :=
 /-- The weight section. -/
 def weightT (first d : ℕ) : List Stmt :=
   if first = 1 then
-    .atom (.load (.n (2085 + d)) (.n 11) 3) ::
-      lanesEqT (.n (2085 + d)) (.n (1325 + d)) (laneW d) (2086 + d)
+    .atom (.load (.n (d + 2085)) (.n 11) 3) ::
+      lanesEqT (.n (d + 2085)) (.n (d + 1325)) (laneW d) (d + 2086)
   else
-    [.atom (.load (.n (2085 + d)) (.n 11) 3), .atom (.load (.n (2086 + d)) (.n 11) 4)] ++
-      shiftsT (.n (2086 + d)) (.n (1325 + d)) (2087 + d) ++
-      (formAll (.n (2085 + d)) (shiftsV (2087 + d)) (laneW d) (shiftsEnd (2087 + d))).1
+    [.atom (.load (.n (d + 2085)) (.n 11) 3), .atom (.load (.n (d + 2086)) (.n 11) 4)] ++
+      shiftsT (.n (d + 2086)) (.n (d + 1325)) (d + 2087) ++
+      (formAll (.n (d + 2085)) (shiftsV (d + 2087)) (laneW d) (shiftsEnd (d + 2087))).1
 
 /-- The weight's value. -/
 def weightVal (first d : ℕ) : ℕ :=
-  if first = 1 then 2195 + d else (formAll (.n (2085 + d)) (shiftsV (2087 + d)) (laneW d)
-    (shiftsEnd (2087 + d))).2.2
+  if first = 1 then d + 2195 else (formAll (.n (d + 2085)) (shiftsV (d + 2087)) (laneW d)
+    (shiftsEnd (d + 2087))).2.2
 
 /-- The value after the weight section. -/
 def weightEnd (first d : ℕ) : ℕ :=
-  if first = 1 then 2196 + d else (formAll (.n (2085 + d)) (shiftsV (2087 + d)) (laneW d)
-    (shiftsEnd (2087 + d))).2.1
+  if first = 1 then d + 2196 else (formAll (.n (d + 2085)) (shiftsV (d + 2087)) (laneW d)
+    (shiftsEnd (d + 2087))).2.1
 
 /-- The next claim's lanes: `f[x] + β (f[x - 1] + β f[x - 2])` in each row, from `B`. -/
 def lanesOutT (beta : ℕ) (f : ℕ → ℕ) (lp B : ℕ) : List Stmt :=
@@ -467,34 +467,34 @@ def lanesOutT (beta : ℕ) (f : ℕ → ℕ) (lp B : ℕ) : List Stmt :=
 /-- The final check, the squeeze of `β`, the next claim's record, the return; `W` the first value,
 `wv` the weight's. -/
 def tailT (d W wv : ℕ) : List Stmt :=
-  [.atom (.copy (.n W) (.n wv)), .atom (.load (.n (W + 1)) (.n (1317 + d)) 112),
+  [.atom (.copy (.n W) (.n wv)), .atom (.load (.n (W + 1)) (.n (d + 1317)) 112),
     .atom (.mul (.n (W + 2)) (.n (W + 1)) (.n W)),
-    .atom (.mul (.n (W + 3)) (.n 1215) (.n (1986 + d))),
-    .atom (.add (.n (W + 4)) (.n 1215) (.n (1996 + d))),
-    .atom (.mul (.n (W + 5)) (.n (W + 4)) (.n (2006 + d))),
+    .atom (.mul (.n (W + 3)) (.n 1215) (.n (d + 1986))),
+    .atom (.add (.n (W + 4)) (.n 1215) (.n (d + 1996))),
+    .atom (.mul (.n (W + 5)) (.n (W + 4)) (.n (d + 2006))),
     .atom (.add (.n (W + 6)) (.n (W + 3)) (.n (W + 5))),
     .atom (.mul (.n (W + 7)) (.n (W + 2)) (.n (W + 6))),
-    .atom (.assertEq (.n (W + 7)) (.n (1985 + d))),
+    .atom (.assertEq (.n (W + 7)) (.n (d + 1985))),
     .atom (.const (.n (W + 8)) (word 0 0 0)), .atom (.const (.n (W + 9)) (word 0 0 0)),
-    keccakA ([.n (1993 + d), .n (1995 + d), .n (2003 + d), .n (2005 + d), .n (2013 + d),
-      .n (2015 + d), .n (W + 8), .n (W + 9)] ++ cap5 (1966 + d))
+    keccakA ([.n (d + 1993), .n (d + 1995), .n (d + 2003), .n (d + 2005), .n (d + 2013),
+      .n (d + 2015), .n (W + 8), .n (W + 9)] ++ cap5 (d + 1966))
       ((List.range 13).map fun k ↦ .n (W + 10 + k))] ++
   challengeT (.n (W + 10)) (.n (W + 11)) (W + 23) ++
-  [.atom (.mul (.n (W + 30)) (.n (W + 29)) (.n (2006 + d))),
-    .atom (.add (.n (W + 31)) (.n (1996 + d)) (.n (W + 30))),
+  [.atom (.mul (.n (W + 30)) (.n (W + 29)) (.n (d + 2006))),
+    .atom (.add (.n (W + 31)) (.n (d + 1996)) (.n (W + 30))),
     .atom (.mul (.n (W + 32)) (.n (W + 29)) (.n (W + 31))),
-    .atom (.add (.n (W + 33)) (.n (1986 + d)) (.n (W + 32))),
+    .atom (.add (.n (W + 33)) (.n (d + 1986)) (.n (W + 32))),
     .atom (.load (.n (W + 33)) (.n 12) 0), .atom (.load (.n 1309) (.n 12) 2),
-    .atom (.load (.n (1325 + d)) (.n 12) 4), .atom (.hint (.alloc (.n (W + 34)) 25))] ++
+    .atom (.load (.n (d + 1325)) (.n 12) 4), .atom (.hint (.alloc (.n (W + 34)) 25))] ++
   lanesOutT (W + 29) (laneW d) (W + 34) (W + 35) ++
   [.atom (.load (.n (W + 34)) (.n 12) 3)] ++
-  eqfT (.n (1325 + d)) 0 6 64 (W + 135) ++
+  eqfT (.n (d + 1325)) 0 6 64 (W + 135) ++
   [.atom (.hint (.alloc (.n (W + 278)) 64))] ++
   (List.range 64).map (fun z ↦ .atom (.load (.n (eqfVal (W + 135) 6 64 5 z)) (.n (W + 278)) z)) ++
   [.atom (.load (.n (W + 278)) (.n 12) 5)] ++
   (List.range 5).map (fun j ↦ .atom (.copy (.n (W + 279 + j)) (.n (W + 18 + j)))) ++
   [.atom (.const (.n (W + 284)) (word 68719476736 0 0)),
-    .atom (.mul (.n (W + 285)) (.n (1323 + d)) (.n (W + 284))),
+    .atom (.mul (.n (W + 285)) (.n (d + 1323)) (.n (W + 284))),
     .atom (.copy (.n (W + 286)) (.n (W + 285))),
     .ret [.n (W + 279), .n (W + 280), .n (W + 281), .n (W + 282), .n (W + 283), .n (W + 286)]]
 
@@ -505,9 +505,9 @@ def layerT (first odd : ℕ) : List Stmt :=
   headT first ++ prodT (.n 7) (19 + 2 * first) (prodTab first) ++ checkT (accL first) ++
     sqT first ++ rmfeBlockT ++ hornerT (fun k ↦ ((prodTab first).getD k default).a) 1089 1216 ++
     packSetupT first odd ++ lastT (4 * odd) ++
-    localRoundsT (.n (1323 + 4 * odd)) (.n (1325 + 4 * odd)) (.n (1324 + 4 * odd))
-      (cap5 (1318 + 4 * odd)) (1326 + 4 * odd) 11 ++
-    tReadsT (4 * odd) ++ eqfT (.n (1325 + 4 * odd)) 6 5 25 (2016 + 4 * odd) ++
+    localRoundsT (.n (4 * odd + 1323)) (.n (4 * odd + 1325)) (.n (4 * odd + 1324))
+      (cap5 (4 * odd + 1318)) (4 * odd + 1326) 11 ++
+    tReadsT (4 * odd) ++ eqfT (.n (4 * odd + 1325)) 6 5 25 (4 * odd + 2016) ++
     weightT first (4 * odd) ++
     tailT (4 * odd) (weightEnd first (4 * odd)) (weightVal first (4 * odd))
 

@@ -113,10 +113,10 @@ theorem packSetupT_holds {first odd : ℕ} {next : Prop} {kret : List E → Prop
 and claim. -/
 theorem lastT_holds {d : ℕ} {next : Prop} {kret : List E → Prop}
     (h : Stmt.HoldsList C rd σ (lastT d) next kret) :
-    σ (.n (1317 + d)) = σ (.n 1310) * σ (.n 10) ∧
-      CapAt rd (σ (.n (1317 + d))) 0 krCap ((cap5 (1318 + d)).map σ) ∧
-      LoadHolds rd (σ (.n (1317 + d))) (0 + 5 * krCap) (σ (.n (1323 + d))) ∧
-      LoadHolds rd (σ (.n (1317 + d))) (0 + 6 * krCap) (σ (.n (1324 + d))) ∧ next := by
+    σ (.n (d + 1317)) = σ (.n 1310) * σ (.n 10) ∧
+      CapAt rd (σ (.n (d + 1317))) 0 krCap ((cap5 (d + 1318)).map σ) ∧
+      LoadHolds rd (σ (.n (d + 1317))) (0 + 5 * krCap) (σ (.n (d + 1323))) ∧
+      LoadHolds rd (σ (.n (d + 1317))) (0 + 6 * krCap) (σ (.n (d + 1324))) ∧ next := by
   rw [lastT, holdsList_append, holdsList_append, holdsList_map_atoms] at h
   simp only [Stmt.HoldsList, Stmt.Holds, Atom.Holds] at h
   obtain ⟨e, ⟨hc, lcur, lv, -, hn⟩⟩ := h
