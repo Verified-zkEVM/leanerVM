@@ -132,8 +132,8 @@ theorem groupsT_complete {W : WotsT} {B : Nat} {good : Val → Prop} (hW : StepS
     ∀ m p, p + m ≤ G → ∀ σ, good σ → (∀ q, p ≤ q → q < p + m → GroupHyp W G b K σ q) →
       Completes C rd (cwState W b p).2.2 (cwState W b (p + m)).2.2
         (groupsT W m p (cwState W b p).1 (cwState W b p).2.1 (cwState W b p).2.2).1 σ
-        (fun σ' => good σ' ∧ ∀ q, p ≤ q → q < p + m → ∀ t < 3,
-          IsCanonical128 (σ' (.n (slotsT W (q == 0) (cwState W b q).2.2 t 2))))
+        (fun σ' => good σ' ∧ ∀ q, p ≤ q → q < p + m → σ' (.n (cwState W b q).2.2) = ofK (gpow (K q)) ∧
+          ∀ t < 3, IsCanonical128 (σ' (.n (slotsT W (q == 0) (cwState W b q).2.2 t 2))))
   | 0, p, _, σ, hg, _ => ⟨σ, Ext.refl _ _ _, ⟨hg, fun q h1 h2 => by omega⟩, fun _ _ hn => hn⟩
   | m + 1, p, hpm, σ, hg, hh => by
       have hbp := cwState_mono W b p
@@ -158,16 +158,21 @@ theorem groupsT_complete {W : WotsT} {B : Nat} {good : Val → Prop} (hW : StepS
           rw [show p + 1 + (q - (p + 1)) = q by omega] at this
           exact this))
       rw [show p + (m + 1) = p + 1 + m by omega]
-      refine (ih.keep (Q := fun σ => ∀ t < 3,
+      refine (ih.keep (Q := fun σ => σ (.n (cwState W b p).2.2) = ofK (gpow (K p)) ∧ ∀ t < 3,
           IsCanonical128 (σ (.n (slotsT W (p == 0) (cwState W b p).2.2 t 2))))
-        (Q' := fun σ => ∀ t < 3, IsCanonical128 (σ (.n (slotsT W (p == 0) (cwState W b p).2.2 t 2))))
-        hp1 (fun σ' he' hq t ht => ?_)).mono le_rfl le_rfl (fun σ' ⟨⟨hg', hr⟩, hq'⟩ =>
+        (Q' := fun σ => σ (.n (cwState W b p).2.2) = ofK (gpow (K p)) ∧
+          ∀ t < 3, IsCanonical128 (σ (.n (slotsT W (p == 0) (cwState W b p).2.2 t 2))))
+        hp1 (fun σ' he' hq => ⟨?_, fun t ht => ?_⟩)).mono le_rfl le_rfl (fun σ' ⟨⟨hg', hr⟩, hq'⟩ =>
         ⟨hg', fun q h1 h2 => ?_⟩)
+      · have := cwState_le W b p 1
+        have := groupT_end W (3 * p) 3 (p == 0) (cwState W b p).1 (cwState W b p).2.1 (cwState W b p).2.2
+        rw [he'.apply (Or.inl (by rw [cwState_succ]; rw [groupStart_eq] at this; omega))]
+        exact hq.1
       · have hs := (slot_bounds W (p == 0) (cwState W b p).2.2 t 2 (by norm_num)).2
         have := groupT_end W (3 * p) 3 (p == 0) (cwState W b p).1 (cwState W b p).2.1 (cwState W b p).2.2
         have : chainStride W * (t + 1) ≤ chainStride W * 3 := Nat.mul_le_mul_left _ (by omega)
         rw [he'.apply (Or.inl (by rw [cwState_succ]; omega))]
-        exact hq t ht
+        exact hq.2 t ht
       · rcases Nat.lt_or_ge q (p + 1) with hq | hq
         · have : q = p := by omega
           subst this

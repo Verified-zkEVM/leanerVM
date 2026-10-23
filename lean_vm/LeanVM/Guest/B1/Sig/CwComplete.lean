@@ -111,7 +111,7 @@ theorem groupT_complete {W : WotsT} {B : Nat} {good : Val → Prop} (hW : StepSh
       (walkBase (if k = 0 then W.size + 13 else W.size) k 0 t
         (if fold then armB W first n fold prodIn encIn b k + 1 else armB W first n fold prodIn encIn b k))) :
     Completes C rd b (groupT W first n fold prodIn encIn b).2 (groupT W first n fold prodIn encIn b).1 σ
-      (fun σ' => ∀ t < n, IsCanonical128 (σ' (.n (slotsT W fold b t 2)))) := by
+      (fun σ' => σ' (.n b) = ofK (gpow k) ∧ ∀ t < n, IsCanonical128 (σ' (.n (slotsT W fold b t 2)))) := by
   have h4n : 4 ^ n ≤ 64 := by
     calc 4 ^ n ≤ 4 ^ 3 := Nat.pow_le_pow_right (by norm_num) hn
       _ = 64 := by norm_num
@@ -167,7 +167,7 @@ theorem groupT_complete {W : WotsT} {B : Nat} {good : Val → Prop} (hW : StepSh
       rw [e] at this ⊢
       rw [he2.apply (Or.inr hj)]
       exact this)
-  exact ⟨σ', he', hp'.2, hh'⟩
+  exact ⟨σ', he', ⟨by rw [he'.apply (Or.inl (by omega))]; exact hb2, hp'.2⟩, hh'⟩
 
 end
 end LeanVM.Guest.B1.Sig
