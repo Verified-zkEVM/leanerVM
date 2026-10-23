@@ -137,5 +137,43 @@ theorem kids_total_leT (fs : String → ℕ) (T : Call → ℕ) :
       rw [Tree.total]
       omega
 
+/-! ## A node -/
+
+/-- A valid node's callees, at the calls `cs` its walk makes. -/
+theorem node_kids {f : String} {bufs : List ℕ} {ks : List Tree} {args rets : List E} {cs : List Call}
+    (hv : (Memory.Tree.node f σ bufs ks).Valid P rd args rets) (hb : (Memory.Tree.node f σ bufs ks).BufsOk P)
+    (hc : ∀ fn es vs, P.find? f = some fn → walk σ fn.body = .ret es vs → calls es = cs) :
+    Tree.KidsValid P rd σ cs ks ∧ Tree.BufsOkKids P ks := by
+  obtain ⟨fn, hf, -, es, vs, hw, -, -, hk⟩ := hv
+  rw [hc fn es vs hf hw] at hk
+  exact ⟨hk, hb.2⟩
+
+/-- **A node's weight**: its frame's, and its callees' bounds call by call. -/
+theorem node_weight_le (ω : String → ℕ) (W : Call → ℕ) (Ts : List (Tree → Prop)) {f : String}
+    {bufs : List ℕ} {ks : List Tree} {args rets : List E} {cs : List Call}
+    (hv : (Memory.Tree.node f σ bufs ks).Valid P rd args rets) (hb : (Memory.Tree.node f σ bufs ks).BufsOk P)
+    (hc : ∀ fn es vs, P.find? f = some fn → walk σ fn.body = .ret es vs → calls es = cs)
+    (hl : cs.length ≤ Ts.length) (hT : KidsT cs Ts ks)
+    (hB : ∀ c T, (c, T) ∈ cs.zip Ts → c.taken = true → ∀ (t : Tree) (rets : List E), t.name = c.f →
+      t.Valid P rd (c.args.map σ) rets → t.BufsOk P → T t → t.weight ω ≤ W c) :
+    (Memory.Tree.node f σ bufs ks).weight ω ≤ ω f + callsW W cs := by
+  obtain ⟨hk, hbk⟩ := node_kids hv hb hc
+  rw [Tree.weight]
+  exact Nat.add_le_add_left (kids_weight_leT ω W cs Ts ks hk hbk hl hT hB) _
+
+/-- **A node's words**: its frame, its `HeapBuf`s, and its callees' bounds call by call. -/
+theorem node_total_le (fs : String → ℕ) (T : Call → ℕ) (Ts : List (Tree → Prop)) {f : String}
+    {bufs : List ℕ} {ks : List Tree} {args rets : List E} {cs : List Call}
+    (hv : (Memory.Tree.node f σ bufs ks).Valid P rd args rets) (hb : (Memory.Tree.node f σ bufs ks).BufsOk P)
+    (hc : ∀ fn es vs, P.find? f = some fn → walk σ fn.body = .ret es vs → calls es = cs)
+    (hl : cs.length ≤ Ts.length) (hT : KidsT cs Ts ks)
+    (hB : ∀ c Q, (c, Q) ∈ cs.zip Ts → c.taken = true → ∀ (t : Tree) (rets : List E), t.name = c.f →
+      t.Valid P rd (c.args.map σ) rets → t.BufsOk P → Q t → t.total fs ≤ T c) :
+    (Memory.Tree.node f σ bufs ks).total fs ≤ fs f + callsT fs T cs + bufs.sum := by
+  obtain ⟨hk, hbk⟩ := node_kids hv hb hc
+  rw [Tree.total]
+  have := kids_total_leT fs T cs Ts ks hk hbk hl hT hB
+  omega
+
 end
 end LeanVM.Guest.Budget
