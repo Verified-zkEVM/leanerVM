@@ -69,11 +69,8 @@ def logAnswer [DecidableEq Q] (log : QueryLog Q D) (q : Q) : Option D :=
 /-- An answer the log gives is a logged entry. -/
 theorem mem_of_logAnswer_eq_some [DecidableEq Q] {log : QueryLog Q D} {q : Q} {d : D}
     (h : logAnswer log q = some d) : ⟨q, d⟩ ∈ log := by
-  unfold logAnswer at h
   obtain ⟨e, he, rfl⟩ := Option.map_eq_some_iff.mp h
-  have hq := List.find?_some he
-  simp only [decide_eq_true_eq] at hq
-  subst hq
+  obtain rfl : e.1 = q := by simpa using List.find?_some he
   exact List.mem_of_find?_eq_some he
 
 /-- A log is consistent when no input appears in it with two answers: it is the trace of a
@@ -164,11 +161,9 @@ theorem FreshHit.first (hcons : Consistent (logA ++ logV))
   have hk := List.findIdx_lt_length_of_exists (p := fun x ↦ decide (x.1 = e.1)) ⟨e, he, by simp⟩
   have hfirst : logV[logV.findIdx fun x ↦ decide (x.1 = e.1)].1 = e.1 := by
     simpa using List.findIdx_getElem (w := hk)
-  refine ⟨_, hk, by rw [hfirst]; exact hf, fun j hj ↦ ?_, ?_⟩
-  · rw [hfirst]
-    simpa using List.not_of_lt_findIdx hj
-  · rwa [hcons _ (List.mem_append_right _ (List.getElem_mem hk)) e (List.mem_append_right _ he)
-      hfirst]
+  refine ⟨_, hk, by rwa [hfirst], fun j hj ↦ by simpa [hfirst] using List.not_of_lt_findIdx hj, ?_⟩
+  rwa [hcons _ (List.mem_append_right _ (List.getElem_mem hk)) e (List.mem_append_right _ he)
+    hfirst]
 
 end Log
 
@@ -216,9 +211,9 @@ def indexStep {R : Type} (parse : Q → Option R) (index : Std.HashMap D R) (e :
   | none => index
 
 /-- Each answer of a log mapped to the parse of the first logged query it answers that parses,
-in one pass over the log. -/
+in one pass over the log, into a map with room for every entry. -/
 def parseIndex {R : Type} (parse : Q → Option R) (log : QueryLog Q D) : Std.HashMap D R :=
-  log.foldl (indexStep parse) ∅
+  log.foldl (indexStep parse) (.emptyWithCapacity log.length)
 
 /-- The digests of the `2^h` leaves of the subtree of height `h` under `top`, in position order,
 read off a node index. -/
@@ -242,9 +237,8 @@ private theorem getElem?_foldl_indexStep {R : Type} (parse : Q → Option R) (d 
         index[d]?.or (log.findSome? fun e ↦ if e.2 = d then parse e.1 else none)
   | [], index => by simp
   | e :: log, index => by
-    rw [List.foldl_cons, getElem?_foldl_indexStep parse d log, List.findSome?_cons]
-    unfold indexStep
-    rcases hp : parse e.1 with _ | c
+    rw [List.foldl_cons, getElem?_foldl_indexStep parse d log, List.findSome?_cons, indexStep]
+    rcases parse e.1 with _ | c
     · simp
     · rw [Std.HashMap.getElem?_insertIfNew]
       by_cases he : e.2 = d
@@ -255,8 +249,7 @@ private theorem getElem?_foldl_indexStep {R : Type} (parse : Q → Option R) (d 
 /-- The index maps an answer to the parse of the first logged query it answers that parses. -/
 theorem getElem?_parseIndex {R : Type} (parse : Q → Option R) (log : QueryLog Q D) (d : D) :
     (parseIndex parse log)[d]? = log.findSome? fun e ↦ if e.2 = d then parse e.1 else none := by
-  rw [parseIndex, getElem?_foldl_indexStep]
-  simp
+  simp [parseIndex, getElem?_foldl_indexStep]
 
 omit [Hashable D] in
 private theorem extractTree_two_pow_add (node? : Q → Option (D × D)) (log : QueryLog Q D)
@@ -265,30 +258,22 @@ private theorem extractTree_two_pow_add (node? : Q → Option (D × D)) (log : Q
   | 0, _, _ => rfl
   | h + 1, top, hh => by
     simp only [extractTree, Nat.testBit_two_pow_add_gt (show h < H by omega)]
-    congr 1; funext c
-    exact extractTree_two_pow_add node? log H p h _ (by omega)
+    exact congrArg _ (funext fun _ ↦ extractTree_two_pow_add node? log H p h _ (by omega))
 
 private theorem leafDigests_eq (node? : Q → Option (D × D)) (log : QueryLog Q D) :
     ∀ (h : ℕ) (top : D), leafDigests (parseIndex node? log) top h =
       (List.range (2 ^ h)).map (extractTree node? log top h)
   | 0, top => by simp [leafDigests, extractTree]
   | h + 1, top => by
-    have hpre := getElem?_parseIndex node? log top
-    rw [← nodePreimage] at hpre
-    rw [leafDigests, hpre]
+    rw [leafDigests, getElem?_parseIndex, ← nodePreimage]
     rcases hn : nodePreimage node? log top with _ | ⟨l, r⟩
     · simp [extractTree, hn, List.map_const']
     · dsimp only
       rw [leafDigests_eq node? log h l, leafDigests_eq node? log h r, Nat.pow_succ, Nat.mul_two,
         List.range_add, List.map_append, List.map_map]
-      congr 1
-      · refine List.map_congr_left fun p hp ↦ ?_
-        rw [List.mem_range] at hp
-        simp [extractTree, hn, Nat.testBit_lt_two_pow hp]
-      · refine List.map_congr_left fun p hp ↦ ?_
-        rw [List.mem_range] at hp
-        simp [extractTree, hn, Nat.testBit_two_pow_add_eq, Nat.testBit_lt_two_pow hp,
-          extractTree_two_pow_add node? log h p h r le_rfl]
+      congr 1 <;> refine List.map_congr_left fun p hp ↦ ?_ <;>
+        simp [extractTree, hn, Nat.testBit_two_pow_add_eq, Nat.testBit_lt_two_pow
+          (List.mem_range.mp hp), extractTree_two_pow_add node? log h p h r le_rfl]
 
 /-- The one-pass extraction is `extractLeaf` at every position. -/
 theorem extractLeaves_eq (node? : Q → Option (D × D)) (leaf? : Q → Option P)
@@ -316,15 +301,8 @@ private theorem consParent_eq_some {U : Type} {i : ℕ} {parent : Option U}
     {rest : Option (Option (List (ℕ × U) × List D))} {ps : List (ℕ × U)} {sibs : List D}
     (h : consParent i parent rest = some (some (ps, sibs))) :
     ∃ p ps', parent = some p ∧ rest = some (some (ps', sibs)) ∧ ps = (i, p) :: ps' := by
-  rcases parent with _ | p
-  · cases h
-  rcases rest with _ | _ | ⟨ps', sibs'⟩
-  · cases h
-  · cases h
-  · simp only [consParent, Option.bind_eq_bind, Option.bind_some, Option.pure_def,
-      Option.map_some, Option.some.injEq, Prod.mk.injEq] at h
-    obtain ⟨rfl, rfl⟩ := h
-    exact ⟨p, ps', rfl, rfl, rfl⟩
+  rcases parent with _ | p <;> rcases rest with _ | _ | ⟨ps', sibs'⟩ <;> cases h
+  exact ⟨p, ps', rfl, rfl, rfl⟩
 
 private theorem withNext_eq_some {X : Type} {sibs : List D}
     {k : D → List D → Option (Option X)} {x : X} (h : withNext sibs k = some (some x)) :
@@ -340,8 +318,8 @@ private theorem withSupplied_eq_some {hash : D → D → Option D} {h i : ℕ} {
     ∃ l r, hash l r = some v ∧ (if i % 2 = 1 then r else l) = a := by
   unfold withSupplied at hv
   split at hv
-  · exact ⟨a, s, hv, by split <;> first | rfl | omega⟩
-  · exact ⟨s, a, hv, by split <;> first | rfl | omega⟩
+  · exact ⟨a, s, hv, ite_eq_right (by omega)⟩
+  · exact ⟨s, a, hv, ite_eq_left (by omega)⟩
 
 /-- One level of the walk in `Option`: each parent has a child among the nodes, the parents
 strictly increase when the nodes do, and every node's parent is answered by `hash` on two
@@ -354,68 +332,53 @@ private theorem levelStep_parents (hash : D → D → Option D) {h : ℕ} :
       ∀ x ∈ nodes, ∃ v, (x.1 / 2, v) ∈ ps ∧
         ∃ l r, hash l r = some v ∧ (if x.1 % 2 = 1 then r else l) = x.2
   | [], sibs, ps, rest, hs => by
-    simp only [levelStep, Option.pure_def, Option.some.injEq, Prod.mk.injEq] at hs
-    obtain ⟨rfl, -⟩ := hs
-    simp
+    cases hs
+    exact ⟨nofun, fun _ ↦ .nil, nofun⟩
   | (i, a) :: (j, b) :: tl, sibs, ps, rest, hs => by
     by_cases hp : i % 2 = 0 ∧ j = i + 1
     · simp only [levelStep, hp, and_self, ↓reduceIte] at hs
       obtain ⟨p, ps', hpar, hrest, rfl⟩ := consParent_eq_some hs
       obtain ⟨ih1, ih2, ih3⟩ := levelStep_parents hash tl sibs ps' rest hrest
-      refine ⟨?_, ?_, ?_⟩
-      · intro y hy
-        rcases List.mem_cons.mp hy with rfl | hy
-        · exact ⟨(i, a), by simp, rfl⟩
-        · obtain ⟨x, hx, hxy⟩ := ih1 y hy
-          exact ⟨x, by simp [hx], hxy⟩
-      · intro hsort
-        simp only [List.pairwise_cons, List.mem_cons, forall_eq_or_imp] at hsort
-        refine List.Pairwise.cons (fun y hy ↦ ?_) (ih2 hsort.2.2)
-        obtain ⟨x, hx, hxy⟩ := ih1 y hy
-        have := hsort.2.1 x hx
+      refine ⟨List.forall_mem_cons.mpr ⟨⟨_, List.mem_cons_self, rfl⟩, fun y hy ↦ ?_⟩,
+        fun hsort ↦ .cons (fun y hy ↦ ?_) (ih2 hsort.tail.tail), List.forall_mem_cons.mpr
+          ⟨⟨p, List.mem_cons_self, a, b, hpar, ite_eq_right (by omega)⟩, List.forall_mem_cons.mpr
+            ⟨⟨p, by rw [show j / 2 = i / 2 by omega]; exact List.mem_cons_self, a, b, hpar,
+              ite_eq_left (by omega)⟩, fun x hx ↦ ?_⟩⟩⟩
+      · obtain ⟨x, hx, hxy⟩ := ih1 y hy
+        exact ⟨x, List.mem_cons_of_mem _ (List.mem_cons_of_mem _ hx), hxy⟩
+      · obtain ⟨x, hx, hxy⟩ := ih1 y hy
+        have := List.rel_of_pairwise_cons hsort.tail hx
         dsimp only at this ⊢
         omega
-      · simp only [List.mem_cons, forall_eq_or_imp]
-        refine ⟨⟨p, by simp, a, b, hpar, by split <;> first | rfl | omega⟩,
-          ⟨p, by simp [show j / 2 = i / 2 by omega], a, b, hpar, by split <;> first | rfl | omega⟩,
-          fun x hx ↦ ?_⟩
-        obtain ⟨v, hv, hc⟩ := ih3 x hx
-        exact ⟨v, Or.inr hv, hc⟩
+      · obtain ⟨v, hv, hc⟩ := ih3 x hx
+        exact ⟨v, List.mem_cons_of_mem _ hv, hc⟩
     · simp only [levelStep, hp, ↓reduceIte] at hs
       obtain ⟨s, sibs', rfl, hs⟩ := withNext_eq_some hs
       obtain ⟨p, ps', hpar, hrest, rfl⟩ := consParent_eq_some hs
       obtain ⟨ih1, ih2, ih3⟩ := levelStep_parents hash ((j, b) :: tl) sibs' ps' rest hrest
-      refine ⟨?_, ?_, ?_⟩
-      · intro y hy
-        rcases List.mem_cons.mp hy with rfl | hy
-        · exact ⟨(i, a), by simp, rfl⟩
-        · obtain ⟨x, hx, hxy⟩ := ih1 y hy
-          exact ⟨x, List.mem_cons_of_mem _ hx, hxy⟩
-      · intro hsort
-        rw [List.pairwise_cons] at hsort
-        refine List.Pairwise.cons (fun y hy ↦ ?_) (ih2 hsort.2)
-        obtain ⟨x, hx, hxy⟩ := ih1 y hy
-        have hix := hsort.1 x hx
-        have hij := hsort.1 (j, b) (by simp)
+      refine ⟨List.forall_mem_cons.mpr ⟨⟨_, List.mem_cons_self, rfl⟩, fun y hy ↦ ?_⟩,
+        fun hsort ↦ .cons (fun y hy ↦ ?_) (ih2 hsort.tail), List.forall_mem_cons.mpr
+          ⟨⟨p, List.mem_cons_self, withSupplied_eq_some hpar⟩, fun x hx ↦ ?_⟩⟩
+      · obtain ⟨x, hx, hxy⟩ := ih1 y hy
+        exact ⟨x, List.mem_cons_of_mem _ hx, hxy⟩
+      · obtain ⟨x, hx, hxy⟩ := ih1 y hy
+        have hij := List.rel_of_pairwise_cons hsort List.mem_cons_self
         have hjx : j ≤ x.1 := by
           rcases List.mem_cons.mp hx with rfl | hx
-          · exact le_refl _
-          · exact (List.rel_of_pairwise_cons hsort.2 hx).le
-        dsimp only at hix hij ⊢
+          · exact le_rfl
+          · exact (List.rel_of_pairwise_cons hsort.tail hx).le
+        dsimp only at hij ⊢
         omega
-      · rw [List.forall_mem_cons]
-        exact ⟨⟨p, by simp, withSupplied_eq_some hpar⟩, fun x hx ↦ by
-          obtain ⟨v, hv, hc⟩ := ih3 x hx
-          exact ⟨v, List.mem_cons_of_mem _ hv, hc⟩⟩
+      · obtain ⟨v, hv, hc⟩ := ih3 x hx
+        exact ⟨v, List.mem_cons_of_mem _ hv, hc⟩
   | [(i, a)], sibs, ps, rest, hs => by
     simp only [levelStep] at hs
     obtain ⟨s, sibs', rfl, hs⟩ := withNext_eq_some hs
     obtain ⟨p, ps', hpar, hrest, rfl⟩ := consParent_eq_some hs
-    simp only [Option.pure_def, Option.some.injEq, Prod.mk.injEq] at hrest
-    obtain ⟨rfl, -⟩ := hrest
-    refine ⟨?_, fun _ ↦ List.pairwise_singleton _ _, ?_⟩
-    · simp
-    · simpa using withSupplied_eq_some hpar
+    cases hrest
+    exact ⟨List.forall_mem_singleton.mpr ⟨_, List.mem_singleton_self _, rfl⟩,
+      fun _ ↦ List.pairwise_singleton _ _,
+      List.forall_mem_singleton.mpr ⟨p, List.mem_singleton_self _, withSupplied_eq_some hpar⟩⟩
 
 /-- The walk in `Option`: if it reaches `r` from nodes that strictly increase and stand above
 the leaves, then every leaf in the tree has a chain up to `r`. -/
@@ -429,88 +392,75 @@ private theorem fold_chains (hash : D → D → Option D) (leaves : List (ℕ ×
     subst e
     intro x hx hlt
     obtain ⟨v, hv, hc⟩ := hinv x hx
-    rw [Nat.add_zero] at hlt ⊢
+    rw [Nat.add_zero] at hlt
     rw [Nat.div_eq_of_lt hlt] at hv
     rcases nodes with _ | ⟨⟨i₀, a⟩, tl⟩
     · cases hv
     rcases sibs with _ | _
-    · simp only [fold, Option.pure_def, Option.some.injEq] at hf
-      subst hf
+    · cases hf
       rcases List.mem_cons.mp hv with hv | hv
-      · cases hv; exact hc
-      · have := List.rel_of_pairwise_cons hsort hv
-        dsimp only at this
-        omega
-    · simp [fold] at hf
+      · cases hv
+        exact hc
+      · exact absurd (List.rel_of_pairwise_cons hsort hv) (Nat.not_lt_zero _)
+    · cases hf
   | k + 1, h, t, e, nodes, sibs, r, hf, hsort, hinv => by
     simp only [fold, Option.bind_eq_bind] at hf
     obtain ⟨res, hres, hf⟩ := Option.bind_eq_some_iff.mp hf
     rcases res with _ | ⟨ps, rest⟩
     · cases hf
     obtain ⟨_, hps, hpar⟩ := levelStep_parents hash nodes sibs ps rest hres
-    refine fold_chains hash leaves k (h + 1) t (by omega) ps rest r hf (hps hsort) ?_
-    intro x hx
+    refine fold_chains hash leaves k (h + 1) t (by omega) ps rest r hf (hps hsort) fun x hx ↦ ?_
     obtain ⟨v, hv, hc⟩ := hinv x hx
     obtain ⟨v', hv', l, r', hlr, hside⟩ := hpar _ hv
     refine ⟨v', by rwa [Nat.pow_succ, ← Nat.div_div_eq_div_mul], l, r', hlr, ?_⟩
-    rw [Nat.testBit_eq_decide_div_mod_eq]
     dsimp only at hside
     rw [← hside] at hc
-    by_cases hb : x.1 / 2 ^ h % 2 = 1 <;> simp [hb] at hc ⊢ <;> exact hc
+    simpa only [Nat.testBit_eq_decide_div_mod_eq, decide_eq_true_eq] using hc
 
 /-- A search that every element answers with `none` or `c`, and some element with `c`,
 returns `c`. -/
 private theorem findSome?_eq_of_forall {α β : Type} {f : α → Option β} {c : Option β}
     {l : List α} (hall : ∀ x ∈ l, f x = none ∨ f x = c) (hex : ∃ x ∈ l, f x = c) :
     l.findSome? f = c := by
-  cases c with
-  | none => exact List.findSome?_eq_none_iff.mpr fun x hx ↦ (hall x hx).elim id id
+  cases hfs : l.findSome? f with
+  | none =>
+    obtain ⟨x, hx, rfl⟩ := hex
+    exact (List.findSome?_eq_none_iff.mp hfs x hx).symm
   | some b =>
-    obtain ⟨x, hx, hfx⟩ := hex
-    cases hfs : l.findSome? f with
-    | none =>
-      rw [List.findSome?_eq_none_iff] at hfs
-      rw [hfs x hx] at hfx
-      cases hfx
-    | some b' =>
-      obtain ⟨y, hy, hfy⟩ := List.exists_of_findSome?_eq_some hfs
-      rcases hall y hy with h | h
-      · rw [h] at hfy; cases hfy
-      · rw [h] at hfy; exact hfy.symm
-
-/-- With every input answered by `v` equal to `q`, the first logged query answered by `v` that
-parses is `q`'s parse. -/
-private theorem preimage_eq [DecidableEq D] {R : Type} (parse : Q → Option R)
-    {log : QueryLog Q D} {q : Q} {v : D} (hmem : ⟨q, v⟩ ∈ log)
-    (huniq : ∀ e ∈ log, e.2 = v → e.1 = q) :
-    log.findSome? (fun e ↦ if e.2 = v then parse e.1 else none) = parse q := by
-  refine findSome?_eq_of_forall (fun e he ↦ ?_) ⟨⟨q, v⟩, hmem, by simp⟩
-  by_cases hv : e.2 = v
-  · right; simp [hv, huniq e he hv]
-  · left; simp [hv]
+    obtain ⟨y, hy, hfy⟩ := List.exists_of_findSome?_eq_some hfs
+    exact hfy.symm.trans ((hall y hy).resolve_left (hfy ▸ Option.some_ne_none b))
 
 variable {node? : Q → Option (D × D)} {logA logV : QueryLog Q D} {ans : Q → Option D}
   {roots : List D}
 
-/-- A query answered by a known digest is a query of `logA`. -/
-private theorem mem_logA (hans : ∀ q d, ans q = some d → ⟨q, d⟩ ∈ logA ++ logV)
-    (hcons : Consistent (logA ++ logV)) (hhit : ¬ FreshHit node? roots logA logV) {q : Q} {v : D}
-    (hq : ans q = some v) (hk : Known node? roots logA v) : ⟨q, v⟩ ∈ logA := by
-  rcases List.mem_append.mp (hans q v hq) with h | h
-  · exact h
-  by_cases hf : Fresh logA q
-  · exact absurd ⟨⟨q, v⟩, h, hf, hk⟩ hhit
-  · simp only [Fresh, not_forall, not_not] at hf
-    obtain ⟨e, he, rfl⟩ := hf
-    have := hcons e (List.mem_append_left _ he) ⟨e.1, v⟩ (List.mem_append_right _ h) rfl
-    rwa [show (⟨e.1, v⟩ : (_ : Q) × D) = e from Sigma.ext rfl (heq_of_eq this.symm)]
+/-- With no collision, the first query of `logA` answered by the answer `v` of its query `q`
+that parses is `q`'s parse. -/
+private theorem findSome?_eq_parse [DecidableEq D] (hcoll : ¬ HasCollision (logA ++ logV))
+    {R : Type} (parse : Q → Option R) {q : Q} {v : D} (hmem : ⟨q, v⟩ ∈ logA) :
+    logA.findSome? (fun e ↦ if e.2 = v then parse e.1 else none) = parse q := by
+  refine findSome?_eq_of_forall (fun e he ↦ ?_) ⟨⟨q, v⟩, hmem, ite_eq_left rfl⟩
+  by_cases hv : e.2 = v
+  · refine .inr ?_
+    rw [ite_eq_left hv, Classical.not_not.mp fun hne ↦
+      hcoll ⟨e, List.mem_append_left _ he, ⟨q, v⟩, List.mem_append_left _ hmem, hne, hv⟩]
+  · exact .inl (ite_eq_right hv)
 
-/-- With no collision, a logged query of `logA` is the only input of `logA` with its answer. -/
-private theorem unique_answer (hcoll : ¬ HasCollision (logA ++ logV)) {q : Q} {v : D}
-    (hmem : ⟨q, v⟩ ∈ logA) : ∀ e ∈ logA, e.2 = v → e.1 = q := by
-  intro e he hv
-  by_contra hne
-  exact hcoll ⟨e, List.mem_append_left _ he, ⟨q, v⟩, List.mem_append_left _ hmem, hne, hv⟩
+/-- An entry of the log answered by a known digest is an entry of `logA`. -/
+private theorem mem_logA (hcons : Consistent (logA ++ logV))
+    (hhit : ¬ FreshHit node? roots logA logV) {e : (_ : Q) × D} (he : e ∈ logA ++ logV)
+    (hk : Known node? roots logA e.2) : e ∈ logA := by
+  rcases List.mem_append.mp he with h | h
+  · exact h
+  by_cases hf : Fresh logA e.1
+  · exact absurd ⟨e, h, hf, hk⟩ hhit
+  simp only [Fresh, not_forall, not_not] at hf
+  obtain ⟨e', he', h1⟩ := hf
+  exact Sigma.ext h1 (heq_of_eq (hcons _ (List.mem_append_left _ he') _ he h1)) ▸ he'
+
+/-- A child of a query of `logA` that parses as a node is known. -/
+private theorem known_child {e : (_ : Q) × D} (he : e ∈ logA) {l r : D}
+    (hn : node? e.1 = some (l, r)) (b : Bool) : Known node? roots logA (if b then r else l) :=
+  .inr ⟨e, he, by cases b <;> simp [queryChildren, hn]⟩
 
 /-- Down a chain from a known digest, `extractTree` reads the chain's leaf digest off `logA`,
 and that digest is known. -/
@@ -521,19 +471,14 @@ private theorem extractTree_of_chain [DecidableEq D] {nodeEnc : D → D → Q}
     (hhit : ¬ FreshHit node? roots logA logV) (p : ℕ) (d : D) :
     ∀ (h : ℕ) (v : D), Chain (fun l r ↦ ans (nodeEnc l r)) h v p d →
       Known node? roots logA v → extractTree node? logA v h p = some d ∧ Known node? roots logA d
-  | 0, v, hc, hk => by
-    cases (hc : v = d)
-    exact ⟨rfl, hk⟩
+  | 0, _, rfl, hk => ⟨rfl, hk⟩
   | h + 1, v, ⟨l, r, hlr, hc⟩, hk => by
-    have hmem := mem_logA hans hcons hhit hlr hk
+    have hmem := mem_logA hcons hhit (hans _ _ hlr) hk
     have hpre : nodePreimage node? logA v = some (l, r) := by
-      rw [nodePreimage, preimage_eq node? hmem (unique_answer hcoll hmem), hnode]
-    have hchild : Known node? roots logA (if p.testBit h then r else l) := by
-      refine Or.inr ⟨⟨nodeEnc l r, v⟩, hmem, ?_⟩
-      simp only [queryChildren, hnode]
-      split <;> simp
+      rw [nodePreimage, findSome?_eq_parse hcoll node? hmem, hnode]
     simp only [extractTree, hpre, Option.bind_some]
-    exact extractTree_of_chain hnode hans hcons hcoll hhit p d h _ hc hchild
+    exact extractTree_of_chain hnode hans hcons hcoll hhit p d h _ hc
+      (known_child hmem (hnode l r) _)
 
 /-- Binding by log replay. A pruned opening of a tree of depth `depth` under `root`: payloads at
 strictly increasing positions in the tree, each hashed by a query that parses back to it, and
@@ -556,11 +501,9 @@ theorem binding_of_log [DecidableEq D] (node? : Q → Option (D × D)) (nodeEnc 
     positions.map (extractLeaf node? leaf? logA root depth) = payloads.map some := by
   have hld : positions.length = digests.length := hlen.trans hleaves.length_eq
   have hsort : (positions.zip digests).Pairwise (fun x y ↦ x.1 < y.1) := by
-    rw [← List.pairwise_map (f := Prod.fst), List.map_fst_zip (le_of_eq hld)]
-    exact hsorted
+    rwa [← List.pairwise_map (f := Prod.fst), List.map_fst_zip (le_of_eq hld)]
   have hchains := fold_chains (fun l r ↦ ans (nodeEnc l r)) (positions.zip digests) depth 0 depth
-    (Nat.zero_add depth) _ sibs root hwalk hsort
-    (fun x hx ↦ ⟨x.2, by simpa using hx, rfl⟩)
+    (Nat.zero_add depth) _ sibs root hwalk hsort (fun x hx ↦ ⟨x.2, by simpa using hx, rfl⟩)
   refine List.ext_getElem (by simp [hlen]) fun i h₁ h₂ ↦ ?_
   simp only [List.length_map] at h₁ h₂
   have hd : i < digests.length := hld ▸ h₁
@@ -568,12 +511,11 @@ theorem binding_of_log [DecidableEq D] (node? : Q → Option (D × D)) (nodeEnc 
     rw [← List.getElem_zip (h := by simp [h₁, hd])]
     exact List.getElem_mem _
   obtain ⟨hext, hk⟩ := extractTree_of_chain hnode hans hcons hcoll hhit positions[i] digests[i]
-    depth root (hchains _ hx (hlt _ (List.getElem_mem _))) (Or.inl hroot)
+    depth root (hchains _ hx (hlt _ (List.getElem_mem _))) (.inl hroot)
   obtain ⟨q, hq, ha⟩ := List.forall₂_iff_get.mp hleaves |>.2 i h₂ hd
   simp only [List.get_eq_getElem] at hq ha
-  have hmem := mem_logA hans hcons hhit ha hk
   simp only [List.getElem_map, extractLeaf, hext, Option.bind_some, leafPreimage]
-  rw [preimage_eq leaf? hmem (unique_answer hcoll hmem), hq]
+  rw [findSome?_eq_parse hcoll leaf? (mem_logA hcons hhit (hans _ _ ha) hk), hq]
 
 /-- With no fresh hit, the first query answered by a known digest that parses is in `logA`. -/
 private theorem findSome?_append_of_known [DecidableEq D] {R : Type} (parse : Q → Option R)
@@ -583,36 +525,31 @@ private theorem findSome?_append_of_known [DecidableEq D] {R : Type} (parse : Q 
       logA.findSome? (fun e ↦ if e.2 = v then parse e.1 else none) := by
   rw [List.findSome?_append]
   rcases hA : logA.findSome? (fun e ↦ if e.2 = v then parse e.1 else none) with _ | x
-  · rw [hA, Option.none_or, List.findSome?_eq_none_iff]
-    intro e he
-    by_contra hne
-    obtain ⟨x, hx⟩ := Option.ne_none_iff_exists'.mp hne
-    have hv : e.2 = v := by by_contra h; simp [h] at hx
-    simp only [hv, ↓reduceIte] at hx
-    by_cases hf : Fresh logA e.1
-    · exact hhit ⟨e, he, hf, hv ▸ hk⟩
-    · simp only [Fresh, not_forall, not_not] at hf
-      obtain ⟨e', he', he'1⟩ := hf
-      have hv' : e'.2 = v :=
-        (hcons e' (List.mem_append_left _ he') e (List.mem_append_right _ he) he'1).trans hv
-      have := List.findSome?_eq_none_iff.mp hA e' he'
-      simp [hv', he'1, hx] at this
+  · rw [hA, Option.none_or]
+    refine List.findSome?_eq_none_iff.mpr fun e he ↦ ?_
+    by_cases hv : e.2 = v
+    · exact List.findSome?_eq_none_iff.mp hA e
+        (mem_logA hcons hhit (List.mem_append_right _ he) (hv ▸ hk))
+    · exact ite_eq_right hv
   · rw [hA, Option.some_or]
 
-/-- Down the tree from a known digest, the digests `extractTree` reads off `logA` are known. -/
-private theorem extractTree_known [DecidableEq D] (p : ℕ) :
-    ∀ (h : ℕ) (top d : D), Known node? roots logA top →
-      extractTree node? logA top h p = some d → Known node? roots logA d
-  | 0, top, d, hk, hd => by cases (hd : some top = some d); exact hk
-  | h + 1, top, d, hk, hd => by
-    simp only [extractTree] at hd
-    obtain ⟨⟨l, r⟩, hc, hd⟩ := Option.bind_eq_some_iff.mp hd
-    obtain ⟨e, he, hfe⟩ := List.exists_of_findSome?_eq_some hc
-    have hnode : node? e.1 = some (l, r) := by
-      by_cases hv : e.2 = top <;> simp [hv] at hfe; exact hfe
-    refine extractTree_known p h _ d (Or.inr ⟨e, he, ?_⟩) hd
-    simp only [queryChildren, hnode]
-    split <;> simp
+/-- Down the tree from a known digest, `extractTree` reads the same off the log as off `logA`,
+and the digests it reads off `logA` are known. -/
+private theorem extractTree_append [DecidableEq D] (hcons : Consistent (logA ++ logV))
+    (hhit : ¬ FreshHit node? roots logA logV) (p : ℕ) :
+    ∀ (h : ℕ) (top : D), Known node? roots logA top →
+      extractTree node? (logA ++ logV) top h p = extractTree node? logA top h p ∧
+        ∀ d, extractTree node? logA top h p = some d → Known node? roots logA d
+  | 0, _, hk => ⟨rfl, fun _ hd ↦ Option.some_injective _ hd ▸ hk⟩
+  | h + 1, top, hk => by
+    simp only [extractTree, nodePreimage, findSome?_append_of_known node? hcons hhit hk]
+    rcases hc : logA.findSome? (fun e ↦ if e.2 = top then node? e.1 else none) with _ | ⟨l, r⟩
+    · rw [hc]
+      exact ⟨rfl, nofun⟩
+    · obtain ⟨e, he, hfe⟩ := List.exists_of_findSome?_eq_some hc
+      rw [hc]
+      exact extractTree_append hcons hhit p h _
+        (known_child he (Option.ite_none_right_eq_some.mp hfe).2 _)
 
 /-- The leaves read off a log are those read off `logA`, its part up to a point, when the
 log is consistent and has no fresh hit with respect to `logA` and roots containing `root`: no
@@ -623,29 +560,11 @@ theorem extractLeaf_determined [DecidableEq D] (node? : Q → Option (D × D))
     (hhit : ¬ FreshHit node? roots logA logV) (depth p : ℕ) :
     extractLeaf node? leaf? (logA ++ logV) root depth p =
       extractLeaf node? leaf? logA root depth p := by
-  have htree : ∀ (h : ℕ) (top : D), Known node? roots logA top →
-      extractTree node? (logA ++ logV) top h p = extractTree node? logA top h p := by
-    intro h
-    induction h with
-    | zero => intro _ _; rfl
-    | succ h ih =>
-      intro top hk
-      simp only [extractTree, nodePreimage, findSome?_append_of_known node? hcons hhit hk]
-      rcases hc : logA.findSome? (fun e ↦ if e.2 = top then node? e.1 else none) with _ | ⟨l, r⟩
-      · rw [hc]; rfl
-      · rw [hc, Option.bind_some, Option.bind_some]
-        obtain ⟨e, he, hfe⟩ := List.exists_of_findSome?_eq_some hc
-        have hnode : node? e.1 = some (l, r) := by
-          by_cases hv : e.2 = top <;> simp [hv] at hfe; exact hfe
-        refine ih _ (Or.inr ⟨e, he, ?_⟩)
-        simp only [queryChildren, hnode]
-        split <;> simp
-  rw [extractLeaf, extractLeaf, htree depth root (Or.inl hroot)]
+  obtain ⟨htree, hknown⟩ := extractTree_append hcons hhit p depth root (.inl hroot)
+  rw [extractLeaf, extractLeaf, htree]
   rcases hd : extractTree node? logA root depth p with _ | d
   · rfl
-  · simp only [Option.bind_some, leafPreimage]
-    exact findSome?_append_of_known leaf? hcons hhit
-      (extractTree_known p depth root d (Or.inl hroot) hd)
+  · exact findSome?_append_of_known leaf? hcons hhit (hknown d hd)
 
 end Binding
 

@@ -46,17 +46,44 @@ open MerkleTreeExtractor (QueryLog)
 
 /-! ## Parsing queries -/
 
-/-- A query read as a node: a 64-byte input as its two 32-byte halves, left first. -/
+/-- The little-endian words of a byte string, four bytes each, a trailing partial word dropped;
+it inverts `List.flatMap wordBytes`. -/
+def leWords : List UInt8 → List UInt32
+  | b0 :: b1 :: b2 :: b3 :: rest => leWord b0 b1 b2 b3 :: leWords rest
+  | _ => []
+
+private theorem length_leWords : ∀ q : List UInt8, (leWords q).length = q.length / 4
+  | _ :: _ :: _ :: _ :: rest => by
+    simp only [leWords, List.length_cons, length_leWords rest]
+    omega
+  | [] | [_] | [_, _] | [_, _, _] => by simp only [leWords, List.length_nil, List.length_cons]
+
+private theorem leWords_flatMap_wordBytes :
+    ∀ ws : List UInt32, leWords (ws.flatMap wordBytes) = ws
+  | [] => rfl
+  | w :: ws => by
+    simp only [List.flatMap_cons, wordBytes, List.cons_append, List.nil_append, leWords,
+      leWord_wordBytes, leWords_flatMap_wordBytes ws]
+
+/-- A query read as a node: a 64-byte input as its two 32-byte halves, left first, each eight
+little-endian words. -/
 def nodeOfBytes? (q : List UInt8) : Option (Digest × Digest) :=
-  if q.length = 64 then some (digestOfBytes (q.take 32), digestOfBytes (q.drop 32)) else none
+  if h : q.length = 64 then
+    let w := (leWords q).toArray
+    have hw : w.size = 16 := by simp [w, length_leWords, h]
+    some (⟨w.extract 0 8, by simp [hw]⟩, ⟨w.extract 8 16, by simp [hw]⟩)
+  else none
 
 /-- A node query is read back as its two children. -/
 theorem nodeOfBytes?_nodeBytes (left right : Digest) :
     nodeOfBytes? (nodeBytes left right) = some (left, right) := by
-  have hl := length_digestBytes left
-  have hr := length_digestBytes right
-  simp only [nodeOfBytes?, nodeBytes, List.length_append, hl, hr, ↓reduceIte]
-  rw [← hl, List.take_left, List.drop_left, digestOfBytes_digestBytes, digestOfBytes_digestBytes]
+  have hb : nodeBytes left right = (left.toList ++ right.toList).flatMap wordBytes := by
+    rw [nodeBytes, digestBytes, digestBytes, List.flatMap_append]
+  have hlen : (nodeBytes left right).length = 64 := by
+    simp [nodeBytes, length_digestBytes]
+  rw [hb] at hlen ⊢
+  simp only [nodeOfBytes?, hlen, ↓reduceDIte, leWords_flatMap_wordBytes]
+  simp [Vector.ext_iff]
 
 /-- The `K` word of eight little-endian bytes. -/
 def kOfBytes (b0 b1 b2 b3 b4 b5 b6 b7 : UInt8) : K :=
@@ -70,14 +97,15 @@ def wordsOfBytes : List UInt8 → List K
   | _ => []
 
 /-- The row of `rowWords` words whose leaf image in leaves of `leafWords` words has the bytes
-`q`: the words of `q` after the zero prefix, or `none` if `q` is not such a leaf. A row wider
-than the leaf is its own image, as in `leafImage`; the check rejects that width. The length is
-checked first, so a query of another length is skipped without decoding. -/
+`q`: the words of `q` after a prefix of `8 * (leafWords - rowWords)` zero bytes, or `none` if `q`
+is not such a leaf (another length, or a nonzero byte in the prefix). A row wider than the leaf
+is its own image, as in `leafImage`; the check rejects that width. The length is checked first,
+so a query of another length is skipped without decoding. -/
 def leafRow? (rowWords leafWords : ℕ) (q : List UInt8) : Option (List K) :=
-  if q.length ≠ 8 * (leafWords - rowWords + rowWords) then none
-  else
-    let row := (wordsOfBytes q).drop (leafWords - rowWords)
-    if row.length = rowWords ∧ leafBytes (leafImage leafWords row) = q then some row else none
+  let pad := 8 * (leafWords - rowWords)
+  if q.length = pad + 8 * rowWords ∧ (q.take pad).all (· == 0) then
+    some (wordsOfBytes (q.drop pad))
+  else none
 
 /-- Splitting a `K` word into its two words and joining them again is the identity. -/
 private theorem ofWords_lowWord_highWord (a : K) : ofWords (lowWord a) (highWord a) = a := by
@@ -90,33 +118,27 @@ private theorem ofWords_lowWord_highWord (a : K) : ofWords (lowWord a) (highWord
 theorem wordsOfBytes_leafBytes : ∀ words : List K, wordsOfBytes (leafBytes words) = words
   | [] => rfl
   | a :: words => by
-    have h : leafBytes (a :: words) = kBytes a ++ leafBytes words := by
-      simp [leafBytes, List.flatMap_cons]
-    rw [h]
-    simp only [kBytes, wordBytes, List.cons_append, List.nil_append, wordsOfBytes, kOfBytes,
-      leWord_wordBytes, ofWords_lowWord_highWord, wordsOfBytes_leafBytes words]
+    simp only [leafBytes, List.flatMap_cons, kBytes, wordBytes, List.cons_append, List.nil_append,
+      wordsOfBytes, kOfBytes, leWord_wordBytes, ofWords_lowWord_highWord]
+    exact congrArg _ (wordsOfBytes_leafBytes words)
 
 /-- A leaf of `n` words has `8n` bytes. -/
-theorem length_leafBytes : ∀ words : List K, (leafBytes words).length = 8 * words.length
-  | [] => rfl
-  | a :: words => by
-    have h : leafBytes (a :: words) = kBytes a ++ leafBytes words := by
-      simp [leafBytes, List.flatMap_cons]
-    rw [h, List.length_append, length_leafBytes words, List.length_cons]
-    simp only [kBytes, wordBytes, List.length_append, List.length_cons, List.length_nil]
-    omega
+theorem length_leafBytes (words : List K) : (leafBytes words).length = 8 * words.length := by
+  simp [leafBytes, List.length_flatMap, kBytes, wordBytes, Nat.mul_comm]
 
 /-- A row of `rowWords` words is read back from its leaf's bytes. -/
 theorem leafRow?_leafBytes {rowWords leafWords : ℕ} {row : List K}
     (hrow : row.length = rowWords) :
     leafRow? rowWords leafWords (leafBytes (leafImage leafWords row)) = some row := by
-  have hdrop : (leafImage leafWords row).drop (leafWords - rowWords) = row := by
-    rw [leafImage, hrow, List.drop_left' (List.length_replicate ..)]
-  have hlen : (leafBytes (leafImage leafWords row)).length =
-      8 * (leafWords - rowWords + rowWords) := by
-    rw [length_leafBytes, leafImage, List.length_append, List.length_replicate, hrow]
-  simp only [leafRow?, hlen, ne_eq, not_true_eq_false, ↓reduceIte, wordsOfBytes_leafBytes, hdrop,
-    hrow, and_self]
+  have hpad : (leafBytes (List.replicate (leafWords - rowWords) 0)).length =
+      8 * (leafWords - rowWords) := by
+    rw [length_leafBytes, List.length_replicate]
+  have hzero : (leafBytes (List.replicate (leafWords - rowWords) 0)).all (· == 0) := by
+    rw [leafBytes, List.all_flatMap, List.all_replicate]
+    split <;> rfl
+  rw [leafImage, hrow, leafBytes, List.flatMap_append, ← leafBytes, ← leafBytes]
+  simp only [leafRow?, List.length_append, hpad, length_leafBytes, hrow, List.take_left' hpad,
+    List.drop_left' hpad, hzero, wordsOfBytes_leafBytes, and_self, ↓reduceIte]
 
 /-! ## The rows read off a log -/
 
@@ -149,21 +171,17 @@ private theorem hashRowsWith_eq_some {ans : List UInt8 → Option Digest} {rowWo
       hashRowsWith ans rowWords leafWords rows = some (some ds) →
       List.Forall₂ (fun row d ↦ row.length = rowWords ∧
         ans (leafBytes (leafImage leafWords row)) = some d) rows ds
-  | [], ds, h => by
-    simp only [hashRowsWith, Option.pure_def, Option.some.injEq] at h
-    subst h
+  | [], _, h => by
+    cases h
     exact .nil
-  | row :: rest, ds, h => by
+  | row :: rest, _, h => by
     unfold hashRowsWith at h
     split at h
     · next hwidth =>
-      simp only [Option.bind_eq_bind, Option.pure_def] at h
       obtain ⟨d, hd, h⟩ := Option.bind_eq_some_iff.mp h
-      obtain ⟨ds', hds', h⟩ := Option.bind_eq_some_iff.mp h
-      rcases ds' with _ | ds'
+      obtain ⟨_ | ds', hds', h⟩ := Option.bind_eq_some_iff.mp h
       · cases h
-      simp only [Option.map_some, Option.some.injEq] at h
-      subst h
+      cases h
       exact .cons ⟨hwidth, hd⟩ (hashRowsWith_eq_some hds')
     · cases h
 
@@ -186,25 +204,21 @@ theorem merkleVerifyWith_option_eq_some {ans : List UInt8 → Option Digest} {ro
   split at h
   · cases h
   next h1 =>
-  obtain ⟨res, hres, h⟩ := Option.bind_eq_some_iff.mp h
-  rcases res with _ | leaves
+  obtain ⟨_ | leaves, hres, h⟩ := Option.bind_eq_some_iff.mp h
   · cases h
   dsimp only at h
   split at h
   · cases h
   next h2 =>
-  obtain ⟨res', hres', h⟩ := Option.bind_eq_some_iff.mp h
-  rcases res' with _ | r
+  obtain ⟨_ | r, hres', h⟩ := Option.bind_eq_some_iff.mp h
   · cases h
   dsimp only at h
   split at h
   · next hr =>
     cases h
-    have hr' : r = root := @of_decide_eq_true _ (Digest.decEq r root) hr
-    subst hr'
-    refine ⟨leaves, by omega, by omega, hashRowsWith_eq_some hres, fun p hp ↦ ?_, hres', rfl⟩
-    by_contra hge
-    exact h2 ⟨p, hp, by omega⟩
+    obtain rfl : r = root := @of_decide_eq_true _ (Digest.decEq r root) hr
+    exact ⟨leaves, by omega, by omega, hashRowsWith_eq_some hres,
+      fun p hp ↦ Nat.lt_of_not_le fun hge ↦ h2 ⟨p, hp, hge⟩, hres', rfl⟩
   · cases h
 
 /-! ## Binding -/

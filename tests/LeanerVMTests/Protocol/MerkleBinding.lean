@@ -186,6 +186,7 @@ def w (n : ℕ) : K := K.ofBits n
 a leaf image of a row of the announced width. -/
 #guard leafRow? 3 4 (leafBytes [0, w 5, w 6, w 7]) = some [w 5, w 6, w 7]
 #guard leafRow? 3 4 (leafBytes [w 1, w 5, w 6, w 7]) = none
+#guard leafRow? 3 4 ((leafBytes [0, w 5, w 6, w 7]).set 3 1) = none
 #guard leafRow? 3 4 (leafBytes [w 5, w 6, w 7]) = none
 #guard leafRow? 4 4 (leafBytes [0, w 5, w 6, w 7]) = some [0, w 5, w 6, w 7]
 #guard leafRow? 4 4 ((leafBytes [w 4, w 5, w 6, w 7]).drop 1) = none

@@ -225,35 +225,31 @@ theorem levelStep_map (A : NodeAlgebra m D T) (B : NodeAlgebra m D T')
     ∀ (nodes : List (ℕ × T h)) (sibs : List D),
       levelStep B (nodes.map fun x ↦ (x.1, φ x.2)) sibs = mapLevel φ <$> levelStep A nodes sibs
   | [], sibs => by simp [levelStep, mapLevel]
-  | (i, a) :: (j, b) :: rest, sibs => by
-    have hsup : ∀ s, withSupplied B i (φ a) s = φ <$> withSupplied A i a s := fun s ↦ by
-      unfold withSupplied; split
+  | (i, a) :: tl, sibs => by
+    have hsup (s : D) : withSupplied B i (φ a) s = φ <$> withSupplied A i a s := by
+      unfold withSupplied
+      split
       · exact hright a s
       · exact hleft s a
-    simp only [List.map_cons]
-    by_cases hp : i % 2 = 0 ∧ j = i + 1
-    · simp only [levelStep, hp, and_self, ↓reduceIte]
-      rw [hboth, levelStep_map A B φ hboth hright hleft rest sibs, consParent_map]
-    · simp only [levelStep, hp, ↓reduceIte]
-      cases sibs with
-      | nil => simp [withNext, mapLevel]
-      | cons s sibs =>
-        have ih := levelStep_map A B φ hboth hright hleft ((j, b) :: rest) sibs
-        simp only [List.map_cons] at ih
-        simp only [withNext]
-        rw [hsup, ih, consParent_map]
-  | [(i, a)], sibs => by
-    cases sibs with
-    | nil => simp [levelStep, withNext, mapLevel]
-    | cons s sibs =>
-      have hsup : withSupplied B i (φ a) s = φ <$> withSupplied A i a s := by
-        unfold withSupplied; split
-        · exact hright a s
-        · exact hleft s a
-      simp only [List.map_cons, List.map_nil, levelStep, withNext]
-      rw [hsup]
+    match tl, sibs with
+    | [], [] => simp [levelStep, withNext, mapLevel]
+    | [], s :: sibs =>
+      simp only [List.map_cons, List.map_nil, levelStep, withNext, hsup]
       simpa [mapLevel] using
         consParent_map (D := D) φ (i / 2) (withSupplied A i a s) (pure (some ([], sibs)))
+    | (j, b) :: rest, sibs =>
+      simp only [List.map_cons]
+      by_cases hp : i % 2 = 0 ∧ j = i + 1
+      · simp only [levelStep, hp, and_self, ↓reduceIte]
+        rw [hboth, levelStep_map A B φ hboth hright hleft rest sibs, consParent_map]
+      · simp only [levelStep, hp, ↓reduceIte]
+        cases sibs with
+        | nil => simp [withNext, mapLevel]
+        | cons s sibs =>
+          have ih := levelStep_map A B φ hboth hright hleft ((j, b) :: rest) sibs
+          simp only [List.map_cons] at ih
+          simp only [withNext]
+          rw [hsup, ih, consParent_map]
 
 /-- The walk commutes with a map `φ` of node algebras: walking the images of the opened nodes
 under `B` gives the image of `A`'s walk. -/
