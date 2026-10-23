@@ -384,7 +384,7 @@ theorem main_core {rd : Reader} {m : MainIn} (hl : Sig.MemOK rd (2 ^ 16)) (hb : 
     one 90 (by simp [mDefAtoms]), gd 377 376 2 _ (by simp [mDefAtoms]) (by simp [mDefAtoms]) v2,
     one 378 (by simp [mDefAtoms]), gd 380 379 5 _ (by simp [mDefAtoms]) (by simp [mDefAtoms]) v5,
     one 381 (by simp [mDefAtoms]), v383, gd 413 412 6 _ (by simp [mDefAtoms]) (by simp [mDefAtoms]) v6,
-    one 414 (by simp [mDefAtoms]), v419⟩
+    one 414 (by simp [mDefAtoms]), v419, v415, v446, v450⟩
 
 end
 end LeanVM.Guest.B1.Main

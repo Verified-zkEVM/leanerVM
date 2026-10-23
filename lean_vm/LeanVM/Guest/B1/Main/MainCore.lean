@@ -158,6 +158,9 @@ structure MVals (rd : Reader) (σ : Val) (m : MainIn) : Prop where
   g413 : σ (.n 413) = 1 + gen ^ m.nc
   g414 : σ (.n 414) = 1
   v419 : σ (.n 419) = gen ^ m.nc + 1
+  v415 : σ (.n 415) = m.a409 * gen ^ m.nc
+  v446 : σ (.n 446) = 1
+  v450 : σ (.n 450) = gen
 
 /-! ## Helpers -/
 
