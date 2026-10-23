@@ -36,7 +36,7 @@ namespace LeanVM.Guest.B1
 
 open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Value LeanVM.Guest.Memory
 open LeanVM.Guest.B1.Main (Layout MemL RegionL)
-open LeanVM.Protocol.Verifier (eToNat eOfNat gen)
+open LeanVM.Protocol.Verifier hiding Layout
 
 @[expose] public section
 
