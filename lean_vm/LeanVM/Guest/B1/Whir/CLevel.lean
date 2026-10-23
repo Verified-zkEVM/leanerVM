@@ -224,5 +224,162 @@ theorem osLevel_nonfinal_complete {c : OsCfg} {lvl : ℕ} {lv : OsLv} {st : OsSt
     rw [hcurA, mul_assoc, ← pow_add]
   · rw [bo.co, ao.co]
 
+/-- The values of the last level. -/
+def lvFinF (c : OsCfg) (lvl : ℕ) (lv : OsLv) (st : OsSt) (σ : Val) (xs ms : List E)
+    (nonce sqz wp r0 r1 sum ic0 ic2 : E) : ℕ → E :=
+  seqF σ st.k (osLevelA c lvl lv st).2.1.k
+    (seqF σ st.k (osFolds osFch lv.foldsOff lv.folds st).2.k
+      (foldsF osFch lv.folds lv.foldsOff st σ xs)
+      fun σ1 ↦ osFinalF σ1 (osFolds osFch lv.foldsOff lv.folds st).2 ms nonce)
+    fun σ2 ↦ lvBFinF c lvl lv (osLevelA c lvl lv st).2.1 σ2 sqz wp r0 r1 sum ic0 ic2
+
+/-- **The last level, honestly.** -/
+theorem osLevel_final_complete {c : OsCfg} {lvl : ℕ} {lv : OsLv} {st : OsSt} (σ : Val)
+    (hfin : lvl = c.yrLevel)
+    (hC : ∀ args rets, MeaningOpeningFold rd args rets → C "opening_fold" args rets)
+    (hFm : ∀ args rets, MeaningOpeningFinalMessage c.yrLen rd args rets →
+      C ("opening_final_message__L" ++ natStr c.yrLen) args rets)
+    (hGr : ∀ args rets, MeaningGrindCheck Whir.queryGrindingBits args rets →
+      C ("grind_check__L" ++ natStr lv.grind) args rets)
+    (hfs : st.fs.length = 5) (hco : st.co < u128Bound) (hb : st.Below) (hk : 34 ≤ st.k)
+    (hcan : AllCanonical (st.fsv σ)) (hpad : PadOk σ st.pad) (hpk : ∀ p, st.pad = some p → p + 4 < st.k)
+    {xs : List E} (hxl : xs.length = 2 * lv.folds) (hrd : ReadsAt rd (st.cur σ) xs)
+    (hst : ∀ j, j < lv.folds → LoadHolds rd (σ (.n osFch)) (lv.foldsOff + j)
+      ((foldsTr lv.folds (st.F σ) (st.quad σ) (σ (.n st.t)) xs).2.1.getD j 0))
+    {ms : List E} {nonce : E} (hml : ms.length = c.yrLen)
+    (hrd2 : ReadsAt rd (st.cur σ * gen ^ (2 * lv.folds)) (ms ++ [nonce]))
+    (hout : ReadsAt rd (σ (.n osFmsg)) ms)
+    (hpow : powOk Whir.queryGrindingBits nonce
+      ((((foldsTr lv.folds (st.F σ) (st.quad σ) (σ (.n st.t)) xs).1.absorbAll ms dsObserve).absorb
+        nonce dsPowNonce).squeeze.1) = true)
+    (hn0 : 0 < lv.squeezes) (hn5 : lv.squeezes * 5 < u128Bound)
+    (sqz : E)
+    (h0 : ∀ i < 5, LoadHolds rd sqz i (((((foldsTr lv.folds (st.F σ) (st.quad σ) (σ (.n st.t))
+      xs).1.absorbAll ms dsObserve).absorb nonce dsPowNonce).squeeze.2.cap).getD i 0))
+    (hm : ∀ j < lv.squeezes, SqIterMem rd lv.depth lv.posOff sqz (σ (.n osQpos)) (σ (.n osQbp))
+      (gen ^ j) ((⟨((((foldsTr lv.folds (st.F σ) (st.quad σ) (σ (.n st.t)) xs).1.absorbAll ms
+        dsObserve).absorb nonce dsPowNonce).squeeze.2.cap), []⟩ : Fs).squeezeN j).2.cap)
+    (hL : IsInK (1 + gen ^ lv.squeezes) ∧ (1 + gen ^ lv.squeezes ≠ 0 →
+      C (c.sqLoop lvl) [1, gen ^ lv.squeezes, sqz, σ (.n osQpos), σ (.n osQbp)] []))
+    (hQ2 : 2 ≤ lv.queries)
+    (hqw : ∀ i < lv.queries, LoadHolds rd (σ (.n osQw)) (lvl * c.maxQ + i)
+      (((⟨((((foldsTr lv.folds (st.F σ) (st.quad σ) (σ (.n st.t)) xs).1.absorbAll ms
+        dsObserve).absorb nonce dsPowNonce).squeeze.2.cap), []⟩ : Fs).squeezeN lv.squeezes).2.squeeze.1 ^ i))
+    (hbo : lv.foldsOff < u128Bound ∧ 4 * lv.capOff < u128Bound ∧ lv.capOff < u128Bound ∧
+      lv.posOff < u128Bound ∧ lv.queries / (1 + if lvl = 0 then 1 else 0) < u128Bound)
+    (wp r0 r1 sum ic0 ic2 : E)
+    (hRW : C ("opening_row_weights__L" ++ natStr lv.folds ++ "_L" ++ natStr (if lvl = 0 then 1 else 0))
+      [σ (.n osFch) * gen ^ lv.foldsOff, wp] [])
+    (hCap : C ("verify_merkle_cap__L" ++ natStr lv.capDepth)
+      [σ (.n osCaps) * gen ^ (4 * lv.capOff), σ (.n osFlags) * gen ^ lv.capOff] [r0, r1])
+    (hr0 : LoadHolds rd (σ (.n osRoots)) (2 * lvl) r0)
+    (hr1 : LoadHolds rd (σ (.n osRoots)) (2 * lvl + 1) r1)
+    (hQ : C (osQueriesName lvl lv) [σ (.n osCaps) * gen ^ (4 * lv.capOff),
+      σ (.n osFlags) * gen ^ lv.capOff,
+      ((⟨((((foldsTr lv.folds (st.F σ) (st.quad σ) (σ (.n st.t)) xs).1.absorbAll ms
+        dsObserve).absorb nonce dsPowNonce).squeeze.2.cap), []⟩ : Fs).squeezeN lv.squeezes).2.squeeze.1,
+      ((⟨((((foldsTr lv.folds (st.F σ) (st.quad σ) (σ (.n st.t)) xs).1.absorbAll ms
+        dsObserve).absorb nonce dsPowNonce).squeeze.2.cap), []⟩ : Fs).squeezeN lv.squeezes).2.squeeze.1 ^ lv.queries,
+      σ (.n osQbp) * gen ^ lv.posOff, wp,
+      gen ^ (lv.queries / (1 + if lvl = 0 then 1 else 0))] [sum])
+    (hi : ReadsAt rd (st.cur σ * gen ^ (2 * lv.folds + c.yrLen + 1)) [ic0, ic2])
+    (hbeta : LoadHolds rd (σ (.n osBetas)) lvl
+      ((⟨((((foldsTr lv.folds (st.F σ) (st.quad σ) (σ (.n st.t)) xs).1.absorbAll ms
+        dsObserve).absorb nonce dsPowNonce).squeeze.2.cap), []⟩ : Fs).squeezeN lv.squeezes).2.squeeze.1) :
+    BlkF C rd σ st.k (osLevel c lvl lv st).2.k
+      (lvFinF c lvl lv st σ xs ms nonce sqz wp r0 r1 sum ic0 ic2)
+      (osLevel c lvl lv st).1
+      (fun σ' ↦ LvOut σ' st (osLevel c lvl lv st).2
+        ⟨((⟨((((foldsTr lv.folds (st.F σ) (st.quad σ) (σ (.n st.t)) xs).1.absorbAll ms
+        dsObserve).absorb nonce dsPowNonce).squeeze.2.cap), []⟩ : Fs).squeezeN lv.squeezes).2.squeeze.2.cap,
+          [(ic0, dsObserve), (ic2, dsObserve)]⟩
+        (let L := ((⟨((((foldsTr lv.folds (st.F σ) (st.quad σ) (σ (.n st.t)) xs).1.absorbAll ms
+        dsObserve).absorb nonce dsPowNonce).squeeze.2.cap), []⟩ : Fs).squeezeN lv.squeezes).2.squeeze.1;
+          let Q := (foldsTr lv.folds (st.F σ) (st.quad σ) (σ (.n st.t)) xs).2.2.1;
+          [Q.getD 0 0 + L * ic0, Q.getD 1 0 + L * (sum + ic2),
+            Q.getD 2 0 + L * ic2])
+        (let L := ((⟨((((foldsTr lv.folds (st.F σ) (st.quad σ) (σ (.n st.t)) xs).1.absorbAll ms
+        dsObserve).absorb nonce dsPowNonce).squeeze.2.cap), []⟩ : Fs).squeezeN lv.squeezes).2.squeeze.1;
+          (foldsTr lv.folds (st.F σ) (st.quad σ) (σ (.n st.t)) xs).2.2.2 + L * sum)
+        (st.cur σ * gen ^ (2 * lv.folds + c.yrLen + 3)) 2 ∧ AgreeBelow st.k σ σ') := by
+  set R := foldsTr lv.folds (st.F σ) (st.quad σ) (σ (.n st.t)) xs with hR
+  set capA := ((R.1.absorbAll ms dsObserve).absorb nonce dsPowNonce).squeeze.2.cap with hcapA
+  set stA := (osLevelA c lvl lv st).2.1 with hstA
+  have hc : (lvl = c.yrLevel) = True := eq_true hfin
+  have e : osLevel c lvl lv st = ((osLevelA c lvl lv st).1 ++ (osLevelB c lvl lv stA).1,
+      (osLevelB c lvl lv stA).2) := osLevel_split c lvl lv st
+  rw [e]
+  dsimp only
+  have hA := osLevelA_final_complete (C := C) (rd := rd) (c := c) σ hfin hC hFm hGr hfs hco
+    hb hk hcan hxl hrd hst hml hrd2 hout hpow
+  have hkA : st.k ≤ stA.k := by
+    have := osFolds_k osFch lv.folds lv.foldsOff st
+    have := osMat_next (osFolds osFch lv.foldsOff lv.folds st).2.cb
+      (osFolds osFch lv.foldsOff lv.folds st).2.co (osFolds osFch lv.foldsOff lv.folds st).2.k
+    simp only [hstA, osLevelA, hc, ↓reduceIte, osFinal]
+    omega
+  have hkB : stA.k ≤ (osLevelB c lvl lv stA).2.k := by
+    have hd := osPad_next stA.pad (stA.k + 14)
+    have := (osQueries_rets c lvl lv ((osSqueezes c lvl lv stA).2.k - 1)
+      (if lv.queries ≤ 1 then (osSqueezes c lvl lv stA).2.k - 1
+        else (osSqueezes c lvl lv stA).2.k + lv.queries - 1)
+      { (osSqueezes c lvl lv stA).2 with k := (osSqueezes c lvl lv stA).2.k + lv.queries })
+    obtain ⟨g, hg, hgk⟩ := this
+    rw [osLevelB_eq]
+    simp only [hc, ↓reduceIte]
+    show stA.k ≤ _ + 8
+    simp only [hg]
+    have : (osSqueezes c lvl lv stA).2.k = (osPad stA.pad (stA.k + 14)).2.2 + 20 := rfl
+    simp only at hgk
+    omega
+  refine BlkF.then (k1 := stA.k) (k2 := (osLevelB c lvl lv stA).2.k) hkA hkB hA
+    fun σ2 ha2 ⟨ao, ha2'⟩ ↦ ?_
+  have e2 : ∀ v, v < st.k → σ2 (.n v) = σ (.n v) := fun v hv ↦ ha2' v hv
+  have hfsvA : stA.fsv σ2 = capA := ao.fsv
+  have hpadA : PadOk σ2 stA.pad := by
+    rw [ao.pad]
+    cases hp : st.pad with
+    | none => trivial
+    | some p =>
+      rw [hp] at hpad
+      have := hpk p hp
+      obtain ⟨z1, z2, z3, z4⟩ := hpad
+      exact ⟨by rw [e2 _ (by omega)]; exact z1, by rw [e2 _ (by omega)]; exact z2,
+        by rw [e2 _ (by omega)]; exact z3, by rw [e2 _ (by omega)]; exact z4⟩
+  have hcurA : stA.cur σ2 = st.cur σ * gen ^ (2 * lv.folds + c.yrLen + 1) := ao.cur
+  have hi' : ReadsAt rd (σ2 (.n stA.cb) * gen ^ stA.co) [ic0, ic2] := by
+    rw [show σ2 (.n stA.cb) * gen ^ stA.co = stA.cur σ2 from rfl, hcurA]; exact hi
+  obtain ⟨hi0, hi2⟩ := loads_of_readsAt hi'
+  have hB := osLevelB_final_complete (C := C) (rd := rd) (c := c) (lvl := lvl) (lv := lv) (st := stA)
+    σ2 hfin hn0 hn5 ao.fs ao.below (by have := ao.k; omega) ao.can hpadA
+    (fun p hp ↦ by rw [ao.pad] at hp; have := hpk p hp; have := ao.k; omega) sqz
+    (by rw [hfsvA]; exact h0)
+    (by rw [hfsvA, e2 osQpos (by unfold osQpos; omega), e2 osQbp (by unfold osQbp; omega)]; exact hm)
+    (by rw [e2 osQpos (by unfold osQpos; omega), e2 osQbp (by unfold osQbp; omega)]; exact hL) hQ2
+    (by rw [hfsvA, e2 osQw (by unfold osQw; omega)]; exact hqw) hbo wp r0 r1 sum ic0 ic2
+    (by rw [e2 osFch (by unfold osFch; omega)]; exact hRW)
+    (by rw [e2 osCaps (by unfold osCaps; omega), e2 osFlags (by unfold osFlags; omega)]; exact hCap)
+    (by rw [e2 osRoots (by unfold osRoots; omega)]; exact hr0)
+    (by rw [e2 osRoots (by unfold osRoots; omega)]; exact hr1)
+    (by rw [hfsvA, e2 osCaps (by unfold osCaps; omega), e2 osFlags (by unfold osFlags; omega),
+          e2 osQbp (by unfold osQbp; omega)]; exact hQ) hi0 hi2
+    (by rw [hfsvA, e2 osBetas (by unfold osBetas; omega)]; exact hbeta)
+  rw [hfsvA] at hB
+  have hqA : [σ2 (.n stA.c), σ2 (.n stA.b), σ2 (.n stA.a)] = R.2.2.1 := ao.quad
+  have htA := ao.t
+  refine BlkF.mono hB fun σ' ⟨bo, ha3⟩ ↦ ⟨⟨?_, ?_, ?_, ?_, ?_, bo.fs, bo.can, bo.below, bo.pad,
+    bo.padSome, by have := bo.k; have := ao.k; omega⟩, fun i hi ↦ (ha3 i (by have := ao.k; omega)).trans
+      (ha2' i hi)⟩
+  · show (⟨_, [(σ' (.n _), dsObserve), (σ' (.n _), dsObserve)]⟩ : Fs) = _
+    rw [bo.fsv, bo.w0, bo.w1]
+  · rw [bo.quad, ← hqA]
+    simp only [List.getD_cons_zero, List.getD_cons_succ]
+  · rw [bo.t, htA]
+  · show σ' (.n _) * gen ^ _ = _
+    rw [bo.cb, bo.co, ha3 _ ao.below.cb, pow_add, ← mul_assoc]
+    show stA.cur σ2 * gen ^ 2 = _
+    rw [hcurA, mul_assoc, ← pow_add]
+  · rw [bo.co, ao.co]
+
 end
 end LeanVM.Guest.B1.Whir
