@@ -8,7 +8,7 @@
 
 module
 
-public import LeanVM.Guest.B1.Tables.VtC.Val
+public import LeanVM.Guest.B1.Tables.VtC.Hon
 public import LeanVM.Guest.B1.Gkr.Fs
 
 /-!
@@ -119,14 +119,14 @@ theorem keccak_good {ins outs : List V} (hg : Good rd S w σ (.keccak ins outs f
 /-! ## Blocks of pure atoms -/
 
 /-- A pure atom or a hint. -/
-def autoB : Stmt → Bool
+def autoBG : Stmt → Bool
   | .atom (.hint _) => true
   | .atom a => pureB a
   | _ => false
 
 /-- **A block of pure atoms and hints holds** on its equations. -/
 theorem holdsList_auto {C : CallRel} {kret : List E → Prop} :
-    ∀ (blk : List Stmt), blk.all autoB = true → (∀ s ∈ blk, GoodS rd S w σ s) →
+    ∀ (blk : List Stmt), blk.all autoBG = true → (∀ s ∈ blk, GoodS rd S w σ s) →
       ∀ {next : Prop}, next → Stmt.HoldsList C rd σ blk next kret
   | [], _, _, _, hn => hn
   | s :: blk, ha, hg, next, hn => by
@@ -139,8 +139,8 @@ theorem holdsList_auto {C : CallRel} {kret : List E → Prop} :
       refine ⟨?_, ih⟩
       cases a with
       | hint h => trivial
-      | _ => exact holds_of_pure (S := S) (w := w) (by simpa [autoB] using ha.1) g0
-    | _ => simp [autoB] at ha
+      | _ => exact holds_of_pure (S := S) (w := w) (by simpa [autoBG] using ha.1) g0
+    | _ => simp [autoBG] at ha
 
 /-! ## The Fiat-Shamir templates -/
 
