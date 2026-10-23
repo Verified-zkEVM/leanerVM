@@ -98,13 +98,13 @@ theorem kappas_small {lm lb : ℕ} {hs : List ℕ} (hl : hs.length = 6) :
   rw [Tables.columnKappas_eq]
   rfl
 
-theorem committedKappas_small {kappas : List ℕ} (hl : kappas.length = 163) {c : ℕ} (hc : c < 86) :
+theorem committedKappas_small {kappas : List ℕ} (hl : kappas.length = 163) {c : ℕ} (hc : c < 73) :
     (Tables.committedKappas kappas).getD c 0 = kappas.getD c 0 := by
   have hlen : c < (Tables.committedCols 163).length := by
-    rw [Tables.committedCols_163_length]; show c < 113; omega
+    rw [Tables.committedCols_163_length]; show c < 99; omega
   rw [Tables.committedKappas, hl, List.getD_eq_getElem _ _ (by simpa using hlen), List.getElem_map,
-    ← List.getD_eq_getElem _ 0 hlen, committedCols_getD (by omega)]
-  simp [hc]
+    ← List.getD_eq_getElem _ 0 hlen, committedCols_getD (show c < 99 by omega)]
+  simp [colOfCommitted, hc]
 
 theorem stackOffsets_length (sizes : List ℕ) : (stackOffsets sizes).1.length = sizes.length := by
   unfold stackOffsets

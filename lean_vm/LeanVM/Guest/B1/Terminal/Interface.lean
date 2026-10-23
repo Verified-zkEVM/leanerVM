@@ -1,8 +1,8 @@
 /-
   LeanVM.Guest.B1.Terminal.Interface
 
-  B1 of `check_opening_terminal`: the stacked opening's transparent weight (V:1795-1798,
-  2251-2253), what `verify_sub` hands the terminal, and the statement of its soundness.
+  B1 of `check_opening_terminal`: the stacked opening's transparent weight (V:1453-1459,
+  1514-1517), what `verify_sub` hands the terminal, and the statement of its soundness.
 -/
 
 module
@@ -17,11 +17,11 @@ public import LeanVM.Guest.B1.KeccakGkr.Interface
 `check_opening_terminal(zeta, chi, rm, g_bus_mu, g_zc_n, g_log_mem, tau_keccak_g, claim_cplen_g,
 lam_out, lam_pool, col_offsets, col_kappas, z_vals, c_table, point, point1, inner_total,
 yr_at_tail, sumcheck_target)` (G:3078-3144) evaluates the stacked opening's transparent weight at
-the WHIR terminal point and checks the terminal (`whirLevels`' last `require`, V:1767-1772):
+the WHIR terminal point and checks the terminal (`whirLevels`' last `require`, V:1195-1198):
 `(inner + basis(point)) · residual = target`, `basis` the weight `verifyStackedOpening` hands WHIR
-(V:1795-1798) for the claims `verifyExecution` opens (V:2251-2253): the ring switch's, then every
+(V:1453-1459) for the claims `verifyExecution` opens (V:1514-1517): the ring switch's, then every
 column claim but the `KECCAK` output lanes' (which the Keccak reduction consumed, `keccakPhase`,
-V:2214), then the reduction's claim on its committed outputs, batched by the powers of one
+V:1505-1509), then the reduction's claim on its committed outputs, batched by the powers of one
 challenge `λ`.
 
 * `openedClaims claims outs`: the column claims the opening batches;
@@ -45,12 +45,12 @@ open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile LeanVM.P
 
 /-! ## The opening's weight -/
 
-/-- The column claims the stacked opening batches after the Keccak phase (V:2218-2219): every
+/-- The column claims the stacked opening batches after the Keccak phase (V:1505-1509): every
 claim but the output lanes', then the Keccak reduction's. -/
 def openedClaims (claims outs : List ColumnClaim) : List ColumnClaim :=
   claims.filter (fun c ↦ c.column ∉ keccakOutputColumns) ++ outs
 
-/-- The stacked opening's transparent weight at `x` (V:1795-1798, 2251-2253): the ring switch's
+/-- The stacked opening's transparent weight at `x` (V:1453-1459, 1514-1517): the ring switch's
 claim (`ringSwitchClaim`, its weight `ringWeight ringPoint · coeffs`), then every column claim on
 the stack, batched by the powers of `lam`. -/
 def stackWeight (layout : Layout) (claims : List ColumnClaim) (ringPoint coeffs : List E)
