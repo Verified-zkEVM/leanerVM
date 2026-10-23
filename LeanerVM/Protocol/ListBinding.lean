@@ -408,10 +408,7 @@ theorem listBinding_rbrKnowledgeSoundness (P : Phases I) (S : P.Security) (hμ :
 theorem listBindingSpec_type_zero (L : Ladder sh κ) (h : 0 < _) :
     (listBindingSpec I sh κ L).«Type» ⟨0, h⟩ = KWord sh.ℓ (κ + sh.R) sh.t := by
   unfold listBindingSpec listBindingFrontSpec
-  rw [Component.append_Type_zero (by omega), Component.append_Type_zero (by omega),
-    Component.append_Type_zero (by omega), Component.append_Type_zero (by omega),
-    Component.append_Type_zero (by omega), Component.append_Type_zero (by omega),
-    Component.append_Type_zero (by omega)]
+  iterate 7 rw [Component.append_Type_zero (by omega)]
   rfl
 
 /-- The committed word of a transcript of the compiled protocol past the commitment. -/
@@ -473,9 +470,8 @@ private theorem commit_decodesFirst {a : ℕ} (D : ListDecoder κ sh.R a sh.ℓ)
     Extractor.RoundByRound.DecodesFirst (commitWordSecurity I D hμ).extractor Nat.one_pos
       (fun s x ↦ commitPick I D hμ s.1 x) := by
   intro s tr w q hq
-  have hq' : commitPick I D hμ s.1 (tr ⟨0, Nat.zero_lt_one⟩) = some q := hq
   show HEq ((commitPick I D hμ s.1 (tr ⟨0, Nat.zero_lt_one⟩)).getD w) q
-  rw [hq']
+  rw [show commitPick I D hμ s.1 (tr ⟨0, Nat.zero_lt_one⟩) = some q from hq]
   rfl
 
 /-- The stack the compilation's extractor returns on a full transcript. -/

@@ -79,15 +79,12 @@ def deployedHeadDecoder {μ r : ℕ} (h : Admissible μ r) :
     ListDecoder (deployedHeadKap μ r) (deployedHeadShape μ r).R (deployedHeadThreshold μ r)
       (deployedHeadShape μ r).ℓ :=
   have hd := deployedChain_head h
-  have hdist : 2 ^ deployedHeadKap μ r ≤ deployedHeadThreshold μ r := by
-    rw [← hd.2.1, ← hd.2.2]
-    exact ((deployedChain μ r h).ladder.headPar (deployedChain μ r h).pars).hdist
-  have hle : deployedHeadThreshold μ r ≤ 2 ^ (deployedHeadKap μ r + (deployedHeadShape μ r).R) := by
-    rw [← hd.1, ← hd.2.1, ← hd.2.2]
-    exact ((deployedChain μ r h).ladder.headPar (deployedChain μ r h).pars).hle
-  have hb : deployedHeadKap μ r + (deployedHeadShape μ r).R ≤ 64 := by
-    rw [← hd.1, ← hd.2.1]
-    exact ((deployedChain μ r h).ladder.headPar (deployedChain μ r h).pars).hb
+  have hdist : 2 ^ deployedHeadKap μ r ≤ deployedHeadThreshold μ r :=
+    hd.2.1 ▸ hd.2.2 ▸ ((deployedChain μ r h).ladder.headPar (deployedChain μ r h).pars).hdist
+  have hle : deployedHeadThreshold μ r ≤ 2 ^ (deployedHeadKap μ r + (deployedHeadShape μ r).R) :=
+    hd.1 ▸ hd.2.1 ▸ hd.2.2 ▸ ((deployedChain μ r h).ladder.headPar (deployedChain μ r h).pars).hle
+  have hb : deployedHeadKap μ r + (deployedHeadShape μ r).R ≤ 64 :=
+    hd.1 ▸ hd.2.1 ▸ ((deployedChain μ r h).ladder.headPar (deployedChain μ r h).pars).hb
   (ListDecoder.bruteForce hdist hb).nttFirst hdist hle hb
 
 /-- **The decoder at level 0 of the deployed chain**, at the chain's indices: computable, by the
