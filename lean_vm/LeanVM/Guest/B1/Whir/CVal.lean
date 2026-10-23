@@ -97,6 +97,57 @@ theorem Blk.nil {σ : Val} {k : ℕ} {Out : Val → Prop} (hO : ∀ σ', AgreeBe
     Blk C rd σ k k [] Out :=
   ⟨fun _ ↦ 0, fun σ' ha _ ↦ ⟨allOk_nil, hO σ' ha⟩⟩
 
+/-! ## Values by segments -/
+
+/-- Values given as consecutive segments `(length, values)`. -/
+def segLookup : List (ℕ × (ℕ → E)) → ℕ → E
+  | [], _ => 0
+  | (n, g) :: rest, j => if j < n then g j else segLookup rest (j - n)
+
+/-- The total length of segments. -/
+def segLen (segs : List (ℕ × (ℕ → E))) : ℕ := (segs.map (·.1)).sum
+
+theorem segLookup_at : ∀ (pre : List (ℕ × (ℕ → E))) (n : ℕ) (g : ℕ → E)
+    (post : List (ℕ × (ℕ → E))) (i : ℕ), i < n →
+    segLookup (pre ++ (n, g) :: post) (segLen pre + i) = g i
+  | [], n, g, post, i, h => by simp [segLookup, segLen, h]
+  | (m, h') :: pre, n, g, post, i, hi => by
+    have := segLookup_at pre n g post i hi
+    simp only [List.cons_append, segLookup, segLen, List.map_cons, List.sum_cons] at this ⊢
+    simp only [show ¬ (m + (pre.map (·.1)).sum + i < m) by omega, ↓reduceIte]
+    rw [show m + (pre.map (·.1)).sum + i - m = (pre.map (·.1)).sum + i by omega]
+    exact this
+
+theorem segLookup_get : ∀ (segs : List (ℕ × (ℕ → E))) (m : ℕ) (hm : m < segs.length) (i : ℕ)
+    (_ : i < segs[m].1), segLookup segs (segLen (segs.take m) + i) = segs[m].2 i
+  | (n, g) :: _, 0, _, i, hi => by simp [segLookup, segLen, show i < n from hi]
+  | (n, g) :: rest, m + 1, hm, i, hi => by
+    have := segLookup_get rest m (by simpa using hm) i (by simpa using hi)
+    simp only [List.take_succ_cons, segLen, List.map_cons, List.sum_cons, segLookup,
+      List.getElem_cons_succ] at this ⊢
+    simp only [show ¬ (n + (List.map (·.1) (List.take m rest)).sum + i < n) by omega, ↓reduceIte]
+    rw [show n + (List.map (·.1) (List.take m rest)).sum + i - n =
+      (List.map (·.1) (List.take m rest)).sum + i by omega]
+    exact this
+
+theorem segLen_take_add_le : ∀ (segs : List (ℕ × (ℕ → E))) (m : ℕ) (hm : m < segs.length),
+    segLen (segs.take m) + segs[m].1 ≤ segLen segs
+  | (n, g) :: rest, 0, _ => by simp [segLen]
+  | (n, g) :: rest, m + 1, hm => by
+    have := segLen_take_add_le rest m (by simpa using hm)
+    simp only [segLen, List.take_succ_cons, List.map_cons, List.sum_cons,
+      List.getElem_cons_succ] at this ⊢
+    omega
+
+/-- **A segment's values** in a valuation holding the segments from `k`. -/
+theorem seg_val {σ : Val} {k : ℕ} {segs : List (ℕ × (ℕ → E))}
+    (hv : ∀ j < segLen segs, σ (.n (k + j)) = segLookup segs j) (m : ℕ) (hm : m < segs.length)
+    (o : ℕ) (ho : segLen (segs.take m) = o) (i : ℕ) (hi : i < segs[m].1) :
+    σ (.n (k + o + i)) = segs[m].2 i := by
+  have := segLen_take_add_le segs m hm
+  rw [Nat.add_assoc, hv _ (by omega), ← ho]
+  exact segLookup_get segs m hm i hi
+
 /-- A block whose outcome holds of every later valuation agreeing below `k'`. -/
 def Stable (k' : ℕ) (Out : Val → Prop) : Prop := ∀ σ σ', Out σ → AgreeBelow k' σ σ' → Out σ'
 
