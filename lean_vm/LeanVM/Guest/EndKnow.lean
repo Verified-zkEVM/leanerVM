@@ -1,0 +1,139 @@
+/-
+  LeanVM.Guest.EndKnow
+
+  The aggregation guest's soundness, its witness named: the decoder that reads a statement and
+  its witness off a valid execution's memory, and the statements `GuestKnowledge` and
+  `AggregateSound` of `LeanVM/Spec/Guest.lean` for the deployed bytecode, from B2 and B1's
+  statements.
+-/
+
+module
+
+public import LeanVM.Guest.EndLoc
+public import LeanVM.Guest.Located.Interface
+public import LeanVM.Guest.Binding
+public import LeanVM.Protocol.LeanVMSound
+
+/-!
+# The guest's witness, named
+
+The decoder `decodeWith W` reads, off a memory `L`:
+
+* the seed and the statement from `main`'s frame (`fp = 1`, the words of `main`'s certificate's
+  cells `σ = Check.valG L 1 (certOf 1)`: `B1.Main.decSeed σ`, `B1.Main.decStmt σ L.read`);
+* the witness `W σ L.read (Located.frameV L)`: `main`'s witness as a function of its valuation, the
+  memory and the frame map of the memory, which gives each call the valuation of its frame, the
+  first frame of the memory at which the callee's code holds on the call's words
+  (`Located.frameOf`). With B1-f's `decWitV σ rd V piOf` for `W`, each signature, matrix, child
+  proof and the batching's hints is read off the frames of the functions that checked them.
+
+`SoundHyps W` gathers what the theorems rest on: B2 (`B2SoundL`, proved from the certificates
+and B1's two statements about the core IR in `EndSound.lean`) and `main`'s soundness with the witness `W` over any
+call relation that unfolds along a frame map (`Located.MainSoundV`).
+
+* `guest_knowledge_of`: every valid execution of the guest on a public input decodes to a
+  statement of that input's digest under the decoded seed, and a witness holding it (`NodeRel`).
+  B2 gives `main`'s body at its frame with every call located (`mainBodyL_of`); the located
+  relation unfolds along the memory's frame map (`Located.unfoldsV_RL`), so B1 applies to it.
+* `aggregate_knowledge_of`: in the random-oracle experiment, the verifier accepts a proof of the
+  guest whose execution the extractor (`LeanVM.extractor`) reads off the adversary's answers and
+  the proof does not decode so with probability at most `soundnessError Q`
+  (`knowledgeSoundness`).
+* `decode_binds_of`: a consumer whose own statement `s₀` (its deferred claim true) has, under the
+  seed `iv`, the public input's digest learns that the decoded seed and statement are `iv` and
+  `s₀`, or holds an explicit Keccak-256 collision (`collisionCandidates`).
+* `aggregate_sound_outer_of : AggregateSound guest (decodeWith W)`, the two composed.
+-/
+
+namespace LeanVM.Guest.End
+
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Check LeanVM.Node
+open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Guest.B1 LeanVM.Guest.B1.Digest
+open LeanVM.Guest.Binding
+open scoped ENNReal
+
+@[expose] public section
+
+/-- **The guest's decoder, for `main`'s witness function `W`**: the seed and the statement
+`main`'s frame holds, and the witness `W` reads off `main`'s valuation, the memory and the
+memory's frame map. -/
+noncomputable def decodeWith (W : Val → Reader → FrameMap → NodeWitness) : Decoder := fun {_} L ↦
+  let σ := valG L 1 (certOf 1)
+  ⟨B1.Main.decSeed σ, B1.Main.decStmt σ L.read, W σ L.read (Located.frameV L)⟩
+
+/-- **What the guest's soundness rests on**, for `main`'s witness function `W`: B2, and `main`'s soundness over any call relation that unfolds along a
+frame map. -/
+structure SoundHyps (W : Val → Reader → FrameMap → NodeWitness) : Prop where
+  /-- B2 (`b2_step`, `b2_mainL`; `EndSound.b2SoundL_of`). -/
+  b2 : B2SoundL
+  /-- `main`'s soundness with the witness `W` (B1-f, B1-d, B1-b). -/
+  main : Located.MainSoundV bytecode W
+
+variable {W : Val → Reader → FrameMap → NodeWitness}
+
+/-- **Soundness of the deployed guest, its witness named**: every valid execution of the guest on
+a public input decodes, from its memory, to a statement of the input's digest under the decoded
+seed and a witness holding it. -/
+theorem guest_knowledge_of (h : SoundHyps W) : GuestKnowledge guest (decodeWith W) := by
+  intro input t hv
+  obtain ⟨hb, h0, h1⟩ := mainBodyL_of h.b2 hv
+  have hm : MemOk t.image.read := ⟨t.κ, hv.1.1, hv.1.2.1, t.image, rfl⟩
+  exact h.main bytecode_length t.image.read hm _ _ (Located.unfoldsV_RL t.image)
+    (Located.rlg_le_rel t.image) _ _ h0 h1 hb
+
+/-- **The aggregate's soundness against the random oracle, its witness named**: the verifier
+accepts a proof of the guest whose extracted execution does not decode (`DecodesOn`) with
+probability at most `soundnessError Q`. -/
+theorem aggregate_knowledge_of (h : SoundHyps W) (A : Adversary) (Q : ℕ)
+    (hA : A.IsTotalQueryBound Q) :
+    Pr{let z ← experiment A}[z.accepted ∧ z.program = guest ∧
+      ¬ ∃ t, extractor z.program z.input z.adversaryCache z.proof = some t ∧
+        DecodesOn guest z.input (decodeWith W t.image)] ≤ soundnessError Q := by
+  refine le_trans (prEvent_mono _ _ _ ?_) (knowledgeSoundness hA)
+  rintro ⟨⟨⟨⟨prog, input⟩, π⟩, b⟩, c⟩ ⟨hb, hprog, hno⟩
+  dsimp only [Outcome.program] at hprog
+  subst hprog
+  refine ⟨hb, guest_sentinelSafe, ?_⟩
+  rintro ⟨t, hx, hv⟩
+  exact hno ⟨t, hx, guest_knowledge_of h input t hv⟩
+
+/-- **What a consumer learns**: a valid execution of the guest on the digest of its statement
+`s₀` under the seed `iv` (`s₀`'s deferred claim true, as the outer verifier checks) decodes to
+`iv` and `s₀`, or its memory and `s₀` give a Keccak-256 collision among the explicit
+candidates. -/
+theorem decode_binds_of (h : SoundHyps W) {input : PublicInput} {t : Trace guest}
+    (hv : ValidExecution guest input t) {iv : Digest} {s₀ : NodeStatement}
+    (hs₀ : s₀.defer.Holds bytecode) (hpub : publicDigest input = statementDigest iv s₀) :
+    ((decodeWith W t.image).seed = iv ∧ (decodeWith W t.image).statement = s₀) ∨
+      HasCollision (collisionCandidates (decodeWith W t.image).seed
+        (decodeWith W t.image).statement iv s₀) := by
+  obtain ⟨hd, hrel⟩ := guest_knowledge_of h input t hv
+  exact decoded_binds_of_nodeRel hs₀ hrel hpub hd
+
+/-- **What the outer verifier's acceptance establishes** (`AggregateSound`): except with
+probability `soundnessError Q`, an accepted aggregate's statement `s`, under the deployed seed
+and passing the outer verifier's other checks, is the one the execution the extractor reads off
+the proof decodes, with a witness holding it, or that execution's decoding and `s` give an
+explicit Keccak-256 collision. -/
+theorem aggregate_sound_outer_of (h : SoundHyps W) : AggregateSound guest (decodeWith W) := by
+  intro A Q hA
+  refine le_trans (prEvent_mono _ _ _ ?_) (aggregate_knowledge_of h A Q hA)
+  rintro z ⟨s, hb, hprog, hpub, ⟨-, hs⟩, hno⟩
+  refine ⟨hb, hprog, ?_⟩
+  rintro ⟨t, hx, hd, hrel⟩
+  refine hno ⟨t, hx, ?_⟩
+  rcases decoded_binds_of_nodeRel hs hrel hpub hd with ⟨h1, h2⟩ | hc
+  · exact Or.inl ⟨h1, h2, h1 ▸ h2 ▸ hrel⟩
+  · exact Or.inr hc
+
+/-- **Soundness, the existential form**: a valid execution of the guest on `input` gives a seed
+and a statement of the input's digest of the guest's shape that a witness holds (`NodeSpec`). -/
+theorem guest_sound_of (h : SoundHyps W) (input : PublicInput) (t : Trace guest)
+    (hv : ValidExecution guest input t) :
+    ∃ seed s, statementDigest seed s = publicDigest input ∧ s.defer.Shaped bytecode ∧
+      NodeSpec bytecode seed s := by
+  obtain ⟨hd, hrel⟩ := guest_knowledge_of h input t hv
+  exact ⟨_, _, hd, hrel.1, _, hrel⟩
+
+end
+end LeanVM.Guest.End

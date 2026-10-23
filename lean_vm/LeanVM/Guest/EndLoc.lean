@@ -1,0 +1,80 @@
+/-
+  LeanVM.Guest.EndLoc
+
+  B2, located: a valid execution's memory holds `main`'s body at its frame, its calls located.
+-/
+
+module
+
+public import LeanVM.Guest.End
+public import LeanVM.Guest.JumpTable
+public import LeanVM.Guest.Glob
+public import LeanVM.Guest.Located.Basic
+
+/-!
+# `main` at its frame
+
+A run of `guest` starts in `__jump_tables`, which writes the jump table into `main`'s frame and
+falls through into `main` at `fp = 1` (`safe_jumpTables`). B2 (`b2_step`, `b2_mainL`, checker K's
+contracts over `glob`, proved from the kernel-checked certificates) then gives `main`'s body
+under the valuation of its certificate's cells at `fp = 1` (`Check.valG L 1 (certOf 1)`), each
+call located at a frame of the memory (`Located.RLg`), the contracts of every function holding
+for runs of any length (`funSpec_induction` over `b2_step`).
+
+`B2SoundL` states B2 as `Sound.lean` proves it (`b2_step`, `b2_mainL`), so that this module and
+the assembly above it do not import the certificates; `EndSound.lean` proves it, from B1's two
+statements about the core IR there (`VsKnown`, `ExpTablesSound`).
+-/
+
+namespace LeanVM.Guest.End
+
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Check LeanVM.Node
+open LeanVM.Protocol LeanVM.Protocol.KeccakHash
+
+@[expose] public section
+
+theorem coreOf_1 : coreOf 1 = Data.core0 := rfl
+
+/-- Every contract of `glob`, for runs shorter than `n`. -/
+abbrev GlobLt {κ : ℕ} (L : MemImage κ) (n : ℕ) : Prop :=
+  ∀ j, FunSpecLt guest L n (glob.sig j).entry (Check.Pre glob L j)
+    (Check.Post coreProgram glob L certByName j)
+
+/-- **B2, as checker K states it** (`b2_step`, `b2_mainL` of `Sound.lean`). -/
+structure B2SoundL : Prop where
+  /-- Every function's contract for runs shorter than `n + 1`, given all of them for runs shorter
+  than `n`. -/
+  step : ∀ {κ : ℕ} (L : MemImage κ), minLogMem ≤ κ → κ ≤ maxLogMem → ∀ n, GlobLt L n →
+    ∀ i, FunSpecLt guest L (n + 1) (glob.sig i).entry (Check.Pre glob L i)
+      (Check.Post coreProgram glob L certByName i)
+  /-- From `main`'s entry at `fp = 1`, the jump table written and the contracts holding for runs
+  shorter than `k`, a halting run gives `main`'s body at its frame, its calls located. -/
+  mainL : ∀ {κ : ℕ} (L : MemImage κ), minLogMem ≤ κ → κ ≤ maxLogMem → JumpTables L → ∀ k,
+    GlobLt L k → Safe guest L k ⟨gpow mainEntry, 1⟩ →
+      Stmt.HoldsList (RL coreProgram L certByName) L.read (valG L 1 (certOf 1)) (coreOf 1).body
+        False (fun rs ↦ rs = [])
+
+/-- **B2 at `main`, located, for a halting run from `(g^0, 1)`**. -/
+theorem mainBodyL_of_safe (hb2 : B2SoundL) {κ : ℕ} {L : MemImage κ}
+    (h16 : minLogMem ≤ κ) (h32 : κ ≤ maxLogMem) {k : ℕ} (hs : Safe guest L k ⟨gpow 0, 1⟩) :
+    Stmt.HoldsList (Located.RLg L) L.read (valG L 1 (certOf 1)) Data.core0.body False
+      (fun rs ↦ rs = []) := by
+  obtain ⟨hjt, k', hk'⟩ := safe_jumpTables hs
+  have hall : ∀ j, FunSpec guest L (glob.sig j).entry (Check.Pre glob L j)
+      (Check.Post coreProgram glob L certByName j) :=
+    funSpec_induction (P := fun j ↦ Check.Pre glob L j)
+      (Q := fun j ↦ Check.Post coreProgram glob L certByName j) (hb2.step L h16 h32)
+  exact hb2.mainL L h16 h32 hjt k' (fun j ↦ (hall j).lt k') hk'
+
+/-- **B2 at `main`, located, for a valid execution**: `main`'s body under its frame's valuation,
+its calls located, and the public input's cells at `g^0`, `g^1`. -/
+theorem mainBodyL_of (hb2 : B2SoundL) {input : PublicInput}
+    {t : Trace guest} (hv : ValidExecution guest input t) :
+    Stmt.HoldsList (Located.RLg t.image) t.image.read (valG t.image 1 (certOf 1)) Data.core0.body
+      False (fun rs ↦ rs = []) ∧
+    LoadHolds t.image.read 1 0 (digestScalars (publicDigest input)).1 ∧
+    LoadHolds t.image.read 1 1 (digestScalars (publicDigest input)).2 :=
+  ⟨mainBodyL_of_safe hb2 hv.1.1 hv.1.2.1 (safe_of_validExecution hv), pub_loads hv⟩
+
+end
+end LeanVM.Guest.End
