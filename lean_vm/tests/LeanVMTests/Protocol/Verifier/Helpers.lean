@@ -4,7 +4,7 @@ import LeanVM.Protocol.Verifier
 # Verifier helper tests: differential against the Python verifier
 
 Every expected value below was printed by `python-verifier/verifier.py` at leanVM
-`3375f7a137c50b803f3416f6466b5d4e0719708a` (CPython, the verifier imported as a module) on
+`4af2cdddd7cd41b9df2cc7e123e314a91b0b4462` (CPython, the verifier imported as a module) on
 inputs drawn from the word generator `fw`, which the driver mirrors exactly; the driver lives in
 the port's scratch, not in the repository. Compiled checks (`#guard`): `E` multiplication does not
 reduce in the kernel from module files.
@@ -175,7 +175,7 @@ On each input the driver ran `build_layout` and recorded whether it raised. -/
 #guard (deriveConfig 14 1).isNone ∧ (deriveConfig 29 1).isNone
 #guard (deriveConfig 20 0).isNone ∧ (deriveConfig 20 5).isNone
 
-/-! ## Field and multilinear arithmetic (`verifier.py:184-332`, `716`) -/
+/-! ## Field and multilinear arithmetic (`verifier.py:184-331`, `723`) -/
 
 #guard (powers (fe 1) 6) =
     [(e 0x1 0x0 0x0), (e 0x9f9ad90ed849d843 0x71502341a9dcc546 0x43056d747b6fb249),
@@ -232,7 +232,7 @@ On each input the driver ran `build_layout` and recorded whether it raised. -/
     [(e 0x1 0x0 0x0), (e 0x0 0x0 0x0), (e 0x1 0x0 0x0), (e 0x1 0x0 0x0), (e 0x0 0x0 0x0),
      (e 0x0 0x0 0x0)]
 
-/-! ## WHIR helpers (`verifier.py:1040-1092`) -/
+/-! ## WHIR helpers (`verifier.py:1056-1108`) -/
 
 #guard (subspaceRoots 12) =
     [(e 0x1 0x0 0x0), (e 0x6 0x0 0x0), (e 0x168 0x0 0x0), (e 0x1166880 0x0 0x0),
@@ -254,7 +254,7 @@ On each input the driver ran `build_layout` and recorded whether it raised. -/
 #guard (enforcedSum kRows [fe 66, fe 67] [fe 68, fe 69, fe 70]) =
     (e 0xda0d62a8fab09447 0xf78fdc7451a4bb0a 0x2bb794332b986985)
 
-/-! ## Ring switching (`verifier.py:1400-1433`) -/
+/-! ## Ring switching (`verifier.py:1411-1444`) -/
 
 /- `ring_switch`'s Frobenius coefficients, read off its weight closure -/
 #guard (ringCoefficients (fes 80 6)) =
@@ -335,7 +335,7 @@ On each input the driver ran `build_layout` and recorded whether it raised. -/
 #guard (polyEval ((fes 130 64).map (phiMap · (fes 80 6))) gen) =
     (e 0xb69e86537be854df 0xc66fc5b97b11e1ed 0x80a34c7b2b8c9e71)
 
-/-! ## Placements (`verifier.py:302-327`) -/
+/-! ## Placements (`verifier.py:304-326`) -/
 
 #guard (stackOffsets [3, 5, 5, 0, 2, 5, 1]) =
     ([96, 0, 32, 110, 104, 64, 108], 7)
@@ -349,7 +349,7 @@ On each input the driver ran `build_layout` and recorded whether it raised. -/
 #guard (samplePlacement.eqAbove (fes 93 9)) =
     (e 0xde054c747e1b6da3 0x6695c3146656e56c 0xa8e74e9510e94f3b)
 
-/-! ## The tables (`verifier.py:768-954`) -/
+/-! ## The tables (`verifier.py:775-970`) -/
 
 #guard (tables.map Table.columns) =
     [["pc", "fp", "o_a", "o_b", "o_c", "va_0", "va_1", "va_2", "vb_0", "vb_1", "vb_2", "cnt_a",
@@ -445,7 +445,7 @@ On each input the driver ran `build_layout` and recorded whether it raised. -/
     [111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 128, 129,
      130, 131, 132, 133, 134, 135]
 
-/-! ## `build_layout` on the sample (`verifier.py:548-553, 957-997`) -/
+/-! ## `build_layout` on the sample (`verifier.py:547-552, 973-1013`) -/
 
 #guard (sampleLayout.tableLogHeights) =
     [2, 1, 1, 2, 2, 9]
@@ -678,7 +678,7 @@ On each input the driver ran `build_layout` and recorded whether it raised. -/
       (9, 6144), (9, 6656), (9, 7168), (9, 7680), (9, 8192), (9, 8704), (9, 9216), (9, 9728),
       (9, 10240), (9, 10752), (9, 11264), (9, 11776), (9, 12288), (9, 12800), (9, 13312)])
 
-/-! ## `derive_config` (`verifier.py:1002-1037`) -/
+/-! ## `derive_config` (`verifier.py:1018-1053`) -/
 
 /-- `derive_config(log_n, rate)` for every admissible pair: folds, rates, queries. -/
 def pythonConfigs : List (ℕ × ℕ × List ℕ × List ℕ × List ℕ) :=
@@ -736,7 +736,7 @@ def pythonConfigs : List (ℕ × ℕ × List ℕ × List ℕ × List ℕ) :=
   decide ((deriveConfig n r).map (fun ls ↦
     (ls.map (·.fold), ls.map (·.logInvRate), ls.map (·.queries))) = some (folds, rates, queries))
 
-/-! ## Keccak GKR and the RMFE (`verifier.py:1191-1292, 1341-1349`) -/
+/-! ## Keccak GKR and the RMFE (`verifier.py:1207-1308, 1357-1360`) -/
 
 #guard (alongPairs.map fun (j, k) ↦ keccakAlong j k) =
     [64, 319, 192, 127, 1064, 1535, 1280]
@@ -796,7 +796,7 @@ def pythonConfigs : List (ℕ × ℕ × List ℕ × List ℕ × List ℕ) :=
 #guard (ringMapShifts) =
     [32, 16, 8, 4, 2, 1]
 
-/-! ## Keccak-f, Keccak-256 and the sponge (`verifier.py:193-208, 355-395`) -/
+/-! ## Keccak-f, Keccak-256 and the sponge (`verifier.py:193-210, 354-394`) -/
 
 #guard (keccakRC) =
     [0x1, 0x8082, 0x800000000000808a, 0x8000000080008000, 0x808b, 0x80000001, 0x8000000080008081,
@@ -874,7 +874,7 @@ def pythonConfigs : List (ℕ × ℕ × List ℕ × List ℕ × List ℕ) :=
       0xc423cd04d2d6b248, 0x2e89040fcc61f189, 0x75c84d5504e01c28, 0xbf54aece417c3beb,
       0x4d44fe1a93147d07], (e 0x64dc67f1e0409331 0x2bbdabde4d11810f 0x5f84b465ed2dc183))
 
-/-! ## The relation, the IV and the seed (`verifier.py:678, 1452-1456`) -/
+/-! ## The relation, the IV and the seed (`verifier.py:681-683, 1463-1467`) -/
 
 #guard (relationLabel) =
     [108, 101, 97, 110, 86, 77, 32, 107, 101, 99, 99, 97, 107, 32, 71, 75, 82, 58, 32, 107, 101, 99,

@@ -11,7 +11,7 @@ public import LeanVM.Guest.B1.Whir.InnerSpec
 /-!
 # The vanishing tables (`LIG_VANISH_VALS`, `LIG_VANISH_INVS`)
 
-`subspaceRoots` (V:1650) lies in `K` (`subspaceRoots_ofK`: it is `kRoots` embedded), so the
+`subspaceRoots` (V:1709) lies in `K` (`subspaceRoots_ofK`: it is `kRoots` embedded), so the
 tables are checked against it by computing in `K` (`vanishOk`, decided by the kernel per level);
 `vanish_val`, `vanish_inv` give the facts `inner_eq` takes.
 -/

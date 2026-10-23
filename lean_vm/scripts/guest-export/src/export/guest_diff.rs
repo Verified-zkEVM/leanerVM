@@ -185,12 +185,7 @@ fn export(
             .collect();
         let (_, fresh) = gen_verify(unified_guest(), pi, &child.proof.stream, summary).expect("the child fits");
         out.tag("fresh");
-        let point: Vec<F192> = fresh
-            .bytecode_row_point
-            .iter()
-            .chain(&fresh.bytecode_selector_point)
-            .copied()
-            .collect();
+        let point: Vec<F192> = fresh.bytecode_point.clone();
         out.es(&point);
         out.e(fresh.bytecode_value);
         out.tag("proof");

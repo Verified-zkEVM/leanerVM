@@ -13,7 +13,7 @@ public import LeanVM.Semantics.Lemmas
 # Offset-form bytecode
 
 The compiler's `Op` (`crates/leanvm_core/src/cpu/isa.rs`) names a frame cell by its offset `o`,
-whose bytecode slot is `g^o` (`crates/leanvm_core/src/cpu/layout.rs:221-300`), and holds a `SET`
+whose bytecode slot is `g^o` (`crates/leanvm_core/src/cpu/layout.rs:288-367`), and holds a `SET`
 immediate as three `u64` limbs. `OInstr` is that form, and `OInstr.toInstr` its meaning in
 `LeanVM.Spec.Isa`: the kernel never evaluates a power of `g`, which costs one multiplication per
 unit of the exponent, because every offset stays a `ℕ` until `toInstr` wraps it in `gpow`.

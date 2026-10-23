@@ -13,7 +13,7 @@ public import LeanVM.Protocol.Verifier
 /-!
 # The table sumcheck's final values
 
-`tableTerms` (`verifier.py:617-626`) reads each table's row evaluations, in table order, and
+`tableTerms` (`verifier.py:620-629`) reads each table's row evaluations, in table order, and
 accumulates the final check's value and the column claims. `pyTableTerms` is the same computation
 on the evaluations read, a pure function; `tableTermsSpec` says the loop reads them (one list per
 table, of the table's width) and returns `pyTableTerms` of them, keeping any property of the

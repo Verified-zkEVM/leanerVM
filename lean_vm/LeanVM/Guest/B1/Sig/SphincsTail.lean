@@ -105,6 +105,51 @@ theorem sStep_sound (hp : PadOK σ sPad) :
 
 theorem sW_atoms : StepAtoms sW := fun _ _ _ _ _ => rfl
 
+/-- The end before the root's check: the leaf address, the leaf and the tree. -/
+def sEndPre : List Stmt :=
+  [cst sCw.2.1 (word (tw 2) 0 0), addS (.n (sCw.2.1 + 1)) (sNode 0) (.n sCw.2.1)] ++ sLeaf.1 ++ sMk.1
+
+theorem sEnd_split : sEnd = sEndPre ++
+    [loadS (.n sMk.2.1) (.n 0) 0, .atom (.assertEq sMk.2.2 (.n sMk.2.1)), .ret []] := by
+  simp only [sEnd, sEndPre, List.append_assoc]
+
+theorem sEndPre_atoms : atomsOnly sEndPre = true := by
+  simp only [sEndPre, atomsOnly_append, sLeaf, sMk, kMsg_atoms, merkleT_atoms]
+  rfl
+
+/-- **After the coordinates, up to the root's check**: the middle atoms hold, the codeword is sound,
+the leaf address is the index's plus `tw(2)`, the leaf's and the tree's atoms hold. -/
+theorem sTailPre_sound (hp : PadOK σ sPad) {rest : List Stmt} {next : Prop}
+    (h : Stmt.HoldsList C rd σ (sMid ++ (sCw.1 ++ (sEndPre ++ rest))) next kret) :
+    Stmt.HoldsList C rd σ rest next kret ∧ AtomsHold rd σ sMid ∧
+      (∀ i < 3 * 21 + 1, cwDigit sW 21 (sEnc.2.1 + 10) σ i < 4 ∧
+        σ (cwTip sW (sEnc.2.1 + 10) i) =
+          chainT (fun i s y => (hcell [σ sPP, σ (sNode 0) + word (tw 1 + i * hiMul + s * stepMul) 0 0,
+            y]).1) i (3 - cwDigit sW 21 (sEnc.2.1 + 10) σ i) (cwDigit sW 21 (sEnc.2.1 + 10) σ i)
+            (σ (cwStart sW 21 (sEnc.2.1 + 10) σ i))) ∧
+      gen ^ (∑ i ∈ Finset.range (3 * 21 + 1), cwDigit sW 21 (sEnc.2.1 + 10) σ i) = sTarget ∧
+      σ (.n sEnc.2.2) = lit (∑ i ∈ Finset.range (3 * 21 + 1),
+        cwDigit sW 21 (sEnc.2.1 + 10) σ i * 4 ^ i) ∧
+      σ (.n (sCw.2.1 + 1)) = σ (sNode 0) + word (tw 2) 0 0 ∧
+      AtomsHold rd σ sLeaf.1 ∧ AtomsHold rd σ sMk.1 := by
+  have s1 := holdsList_split_atoms sMid_atoms h
+  have hm := atomsHold_of_holdsList sMid_atoms s1.1
+  have hpow : ∀ s < 10, σ (sW.power s) = gen ^ s := by
+    intro s hs
+    have e : σ (.n (sEnc.2.1 + s)) = word (2 ^ s) 0 0 :=
+      hm.atom (a := .const (.n (sEnc.2.1 + s)) _) (by
+        simp only [sMid, List.mem_append, List.mem_map, List.mem_range]
+        exact Or.inr ⟨s, hs, rfl⟩)
+    show σ (.n (sEnc.2.1 + s)) = _
+    rw [e, word_eq_eOfNat, Value.gen_pow_eq_eOfNat (by omega)]
+  obtain ⟨s3, hcw, hsum, hd0⟩ := codewordT_sound sW_atoms (sStep_sound hp) hpow (by norm_num) (le_refl _) s1.2
+  have s4 := holdsList_split_atoms sEndPre_atoms s3
+  have he := atomsHold_of_holdsList sEndPre_atoms s4.1
+  have c1 : σ (.n sCw.2.1) = word (tw 2) 0 0 := he.atom (a := .const (.n sCw.2.1) _) (by simp [sEndPre, cst])
+  have c2 : σ (.n (sCw.2.1 + 1)) = σ (sNode 0) + σ (.n sCw.2.1) :=
+    he.atom (a := .add (.n (sCw.2.1 + 1)) (sNode 0) (.n sCw.2.1)) (by simp [sEndPre, addS])
+  exact ⟨s4.2, hm, hcw, hsum, hd0, by rw [c2, c1], he.left.right, he.right⟩
+
 /-- **After the coordinates**: the body returns no words; the middle atoms hold, the codeword is
 sound, the leaf address is the index's plus `tw(2)`, the leaf's and the tree's atoms hold and the
 root is checked against the claim's first word. -/
@@ -122,41 +167,19 @@ theorem sTail_sound (hp : PadOK σ sPad) {rets : List E}
       σ (.n (sCw.2.1 + 1)) = σ (sNode 0) + word (tw 2) 0 0 ∧
       AtomsHold rd σ sLeaf.1 ∧ AtomsHold rd σ sMk.1 ∧
       LoadHolds rd (σ (.n 0)) 0 (σ (.n sMk.2.1)) ∧ σ sMk.2.2 + σ (.n sMk.2.1) = 0 := by
-  have s1 := holdsList_split_atoms sMid_atoms h
-  have hm := atomsHold_of_holdsList sMid_atoms s1.1
-  have hpow : ∀ s < 10, σ (sW.power s) = gen ^ s := by
-    intro s hs
-    have e : σ (.n (sEnc.2.1 + s)) = word (2 ^ s) 0 0 :=
-      hm.atom (a := .const (.n (sEnc.2.1 + s)) _) (by
-        simp only [sMid, List.mem_append, List.mem_map, List.mem_range]
-        exact Or.inr ⟨s, hs, rfl⟩)
-    show σ (.n (sEnc.2.1 + s)) = _
-    rw [e, word_eq_eOfNat, Value.gen_pow_eq_eOfNat (by omega)]
-  have s2 := codewordT_sound sW_atoms (sStep_sound hp) hpow (by norm_num) (le_refl _) s1.2
-  obtain ⟨s3, hcw, hsum, hd0⟩ := s2
-  have hEnd : Stmt.HoldsList C rd σ (([cst sCw.2.1 (word (tw 2) 0 0),
-      addS (.n (sCw.2.1 + 1)) (sNode 0) (.n sCw.2.1)] ++ sLeaf.1 ++ sMk.1 ++
-      [loadS (.n sMk.2.1) (.n 0) 0, .atom (.assertEq sMk.2.2 (.n sMk.2.1))]) ++ [.ret []])
-      False (fun rs => rs = rets) := by
-    simpa only [sEnd, List.append_assoc, List.cons_append, List.singleton_append, List.nil_append]
-      using s3
-  have hat : atomsOnly ([cst sCw.2.1 (word (tw 2) 0 0),
-      addS (.n (sCw.2.1 + 1)) (sNode 0) (.n sCw.2.1)] ++ sLeaf.1 ++ sMk.1 ++
-      [loadS (.n sMk.2.1) (.n 0) 0, .atom (.assertEq sMk.2.2 (.n sMk.2.1))]) = true := by
-    simp only [atomsOnly_append, sLeaf, sMk, kMsg_atoms, merkleT_atoms]
-    rfl
-  have s4 := holdsList_split_atoms hat hEnd
-  have he := atomsHold_of_holdsList hat s4.1
+  rw [sEnd_split] at h
+  obtain ⟨s4, hm, hcw, hsum, hd0, hla, hl, hk⟩ := sTailPre_sound hp h
+  have hat : atomsOnly [loadS (.n sMk.2.1) (.n 0) 0, .atom (.assertEq sMk.2.2 (.n sMk.2.1))] = true := rfl
+  have s5 := holdsList_split_atoms (xs := [loadS (.n sMk.2.1) (.n 0) 0, .atom (.assertEq sMk.2.2 (.n sMk.2.1))])
+    (ys := [.ret []]) hat s4
+  have he := atomsHold_of_holdsList hat s5.1
   have hret : rets = [] := by
-    have := s4.2
+    have := s5.2
     simp only [Stmt.HoldsList, Stmt.Holds, List.map_nil] at this
     exact this.symm
-  have c1 : σ (.n sCw.2.1) = word (tw 2) 0 0 := he.atom (a := .const (.n sCw.2.1) _) (by simp [cst])
-  have c2 : σ (.n (sCw.2.1 + 1)) = σ (sNode 0) + σ (.n sCw.2.1) :=
-    he.atom (a := .add (.n (sCw.2.1 + 1)) (sNode 0) (.n sCw.2.1)) (by simp [addS])
-  refine ⟨hret, hm, hcw, hsum, hd0, by rw [c2, c1], he.left.left.right, he.left.right,
-    he.right.atom (a := .load (.n sMk.2.1) (.n 0) 0) (by simp [loadS]),
-    he.right.atom (a := .assertEq sMk.2.2 (.n sMk.2.1)) (by simp)⟩
+  exact ⟨hret, hm, hcw, hsum, hd0, hla, hl, hk,
+    he.atom (a := .load (.n sMk.2.1) (.n 0) 0) (by simp [loadS]),
+    he.atom (a := .assertEq sMk.2.2 (.n sMk.2.1)) (by simp)⟩
 
 end
 end LeanVM.Guest.B1.Sig

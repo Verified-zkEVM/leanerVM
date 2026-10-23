@@ -14,13 +14,13 @@ public import LeanVM.Protocol.BusSecurity
 /-!
 # The bus phase on doom
 
-`verifyBusBalance layout` (`verifier.py:534-593`) is the oracle protocol's `busPhase`
+`verifyBusBalance layout` (`verifier.py:533-596`) is the oracle protocol's `busPhase`
 (`LeanVM.Protocol.Bus`) on the wire. This module specifies its parts on the protocol's
 relations, in the calculus of verifier programs:
 
 * `alwaysSpec`: a sub-program from a fact that already decides its postcondition (the count root
   `0`, which the later `require` rejects);
-* `gkrSpec`: `verify_gkr_grand_products` (`verifier.py:432-455`), from doom on the relation after
+* `gkrSpec`: `verify_gkr_grand_products` (`verifier.py:431-454`), from doom on the relation after
   the fingerprint challenges (`Bus.afterChallenge`) to "the count root is `0`, or doom on the
   argument's output relation": the roots' message is the protocol's (`Bus.rootsSecurity`), the
   roots are the layer-`0` statement (`Gkr.relIn_iff_layerRel_zero`), and the walk, each step
@@ -218,7 +218,7 @@ variable {εmax : ℝ≥0∞}
 
 open Classical in
 /-- **The fingerprint challenges** (`alphas = sample_n(BUS_BITS)`, `beta = sample()`,
-`verifier.py:540-542`): one group of five challenges, the protocol's one challenge `(α, β)`,
+`verifier.py:539-541`): one group of five challenges, the protocol's one challenge `(α, β)`,
 escaping the commitment's doom with probability at most `L₀ · 4 · 2^{μ_bus} / |E|`. -/
 noncomputable def abSpec (hI : Bus.Conditions I) {L₀ : ℕ} (hfin : ∀ W, (cands W).Finite)
     (hcard : ∀ W, (cands W).ncard ≤ L₀) (hlt : abError I L₀ < 1) {T : ℝ≥0∞} :
@@ -340,7 +340,7 @@ end Gkr
 
 section Phase
 
-/-- The pure part of `verify_bus_balance` after the reads (`verifier.py:548-593`): the claims, the
+/-- The pure part of `verify_bus_balance` after the reads (`verifier.py:547-596`): the claims, the
 fingerprints, and the leaf decomposition of the three sides. -/
 def pyBusResult (layout : Verifier.Layout) (alphas : List E) (beta : E)
     (point treeValues memory : List E) (memoryFinal bytecodeFinal : E) : BusResult :=
@@ -469,7 +469,7 @@ noncomputable def busTailSpec {β : Type} {k : BusWit → Prog β} {Q : β → L
         exact ⟨hl, hv, hm, W, firstWord_append hW _, values_keep I hI hR _⟩) hLk).bind'
       fun bf ↦ K ⟨alphas, beta, point, values, memory, mf, bf⟩
 
-/-- **The bus phase, then a continuation** (`verify_bus_balance`, `verifier.py:534-593`): from
+/-- **The bus phase, then a continuation** (`verify_bus_balance`, `verifier.py:533-596`): from
 the commitment's doom (no candidate satisfies `M3Holds`, `Seam.commit`) to the bus seam at what
 was read, then `f` of the result, specified from there by `K`, at the depth `μ_bus` of the push
 side. The fingerprint challenges are charged `L₀ · 4 · 2^{μ_bus} / |E|`; every later group of

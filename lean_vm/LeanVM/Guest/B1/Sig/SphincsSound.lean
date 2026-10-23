@@ -67,28 +67,42 @@ theorem bound_cell {σ : Val} (hS : ∀ c < 8, cS σ c < 16) (hA : ∀ w < 16, w
     eOfNat192_add_shift (by omega), ← hm, show 2 ^ 64 * (N * 2 ^ 42) = 2 ^ 106 * N by ring,
     eOfNat192_add_shift (by rw [hm]; omega)]
 
-variable {C : CallRel}
+/-- **What leanSPHINCS's verification checks**, the root `R` given to the digest and the tree
+reaching `root`. -/
+def SRoot (pp : PublicParameter) (R : Sphincs.Digest) (m : Sphincs.Message) (sig : Sphincs.Signature)
+    (root : Sphincs.Digest) : Prop :=
+  ∃ leaf, @otsLeaf Id _ ⟨Node.keccakBits⟩ pp topLayer 0
+      (leafIndexAt (digestIndex (@messageDigest Id _ ⟨Node.keccakBits⟩ pp R m sig.randomness)) topLayer)
+      (@forestRecover Id _ ⟨Node.keccakBits⟩ pp
+        (digestIndex (@messageDigest Id _ ⟨Node.keccakBits⟩ pp R m sig.randomness))
+        (digestMarks (@messageDigest Id _ ⟨Node.keccakBits⟩ pp R m sig.randomness)) sig.forest)
+      (sig.layers topLayer).counter (sig.layers topLayer).chainValues = some leaf ∧
+    @treeFold Id _ ⟨Node.keccakBits⟩ pp topLayer 0
+      (leafIndexAt (digestIndex (@messageDigest Id _ ⟨Node.keccakBits⟩ pp R m sig.randomness)) topLayer)
+      (signaturePath sig topLayer) (layerHeight topLayer) leaf = root
 
-/-- **`verify_sig_lean_sphincs` is sound**, for the signature its frame holds. -/
-theorem verify_sig_lean_sphincs_sound_holds : verify_sig_lean_sphincs_sound_Spec sphincsSigOf := by
-  intro C κ L hκ σ rets h
-  rw [sBody_eq, sBody_split] at h
+theorem sphincsVerify_SRoot (pk : PublicKey) (m : Sphincs.Message) (sig : Sphincs.Signature) :
+    Node.sphincsVerify pk m sig = true ↔ SRoot pk.parameter pk.root m sig pk.root :=
+  sphincsVerify_iff pk m sig
+
+variable {C : CallRel} {rd : Reader} {kret : List E → Prop}
+
+/-- **The root `verify_sig_lean_sphincs` reaches**: the statements up to the root's check holding,
+the counter a word below `2^32` and the unused bytes a word below `2^22`, the signature its frame
+holds reaches the tree's root `σ sMk.2.2`. -/
+theorem sphincs_root {σ : Val} {rest : List Stmt} {next : Prop}
+    (h : Stmt.HoldsList C rd σ (sPrologue ++ (sCs.1 ++ (sMid ++ (sCw.1 ++ (sEndPre ++ rest))))) next kret)
+    {Nc Nu : Nat} (hx : σ (.n sFb.2.1) = eOfNat Nc) (hNc32 : Nc < 2 ^ 32) (hNu : Nu < 2 ^ 22)
+    (h161 : σ (.n 161) = σ (sNode 0) + word 0 (Nu * 2 ^ 42) 0) (R : Sphincs.Digest) :
+    Stmt.HoldsList C rd σ rest next kret ∧ SPre rd σ ∧
+      SRoot (spp (σ sPP)) R (smsg (σ (.n 5)) (σ (.n 6))) (sphincsSigOf σ) (sv (σ sMk.2.2)) := by
   have s0 := holdsList_split_atoms sPrologue_atoms h
   have hpa := atomsHold_of_holdsList sPrologue_atoms s0.1
   have hpre := sPrologue_sound hpa
-  obtain ⟨s2, hcf⟩ := sCoords_sound (C := C) (rd := L.read) (σ := σ) hpre.pad hpre.tws 8 0 s0.2
-  obtain ⟨hrets, hmid, hcw, hsum, hd0, hla, hleafA, hmkA, hld0, hroot⟩ := sTail_sound hpre.pad s2
-  refine ⟨hrets, fun hbb => ?_⟩
+  obtain ⟨s2, hcf⟩ := sCoords_sound (C := C) (rd := rd) (σ := σ) hpre.pad hpre.tws 8 0 s0.2
+  obtain ⟨hrest, hmid, hcw, hsum, hd0, hla, hleafA, hmkA⟩ := sTailPre_sound hpre.pad s2
+  refine ⟨hrest, hpre, ?_⟩
   have hidx26 := sIdx_lt σ
-  -- the counter and the unused bytes
-  have hfb : AtomsHold L.read σ sFb.1 := hmid.left.left.left.right
-  have hcp : σ (.n sFb.2.1) = σ sFb.2.2 :=
-    hmid.left.left.right.atom (a := .copy (.n sFb.2.1) sFb.2.2) (by simp [copyS])
-  obtain ⟨Nc, hNc, hNclt⟩ := sFromBytes_sound hκ hbb (K := 256) (by norm_num) (by norm_num) g255W_eq
-    (by norm_num) hfb
-  have hNc32 : Nc < 2 ^ 32 := by simpa using hNclt
-  have hx : σ (.n sFb.2.1) = eOfNat Nc := hcp.trans hNc
-  obtain ⟨Nu, hNu, h161⟩ := sPrologue_bound hκ hbb hpa
   -- the coordinates
   have hf : ∀ c < 8, CoordFacts σ c (cSt c).1 (cSt c).2.1 (cSt c).2.2 := fun c hc => by
     simpa using hcf c hc
@@ -118,12 +132,7 @@ theorem verify_sig_lean_sphincs_sound_holds : verify_sig_lean_sphincs_sound_Spec
   set Vb := sIdx σ + marksNat σ + 2 ^ 106 * Nu with hVbdef
   have c17 : cellNat (σ (.n 17)) = encNat σ := by rw [h17, cellNat_eOfNat192 hEnc]
   have c18 : cellNat (σ (.n 18)) = Vb := by rw [acc2, cellNat_eOfNat192 hVb]
-  -- the claim and the digest
-  refine ⟨σ (.n sMk.2.1), σ sPP, σ (.n 5), σ (.n 6), ⟨hld0, hpre.ldP, hpre.ld2, hpre.ld3⟩, ?_⟩
-  show Node.sphincsVerify ⟨sv (σ (.n sMk.2.1)), spp (σ sPP)⟩ (smsg (σ (.n 5)) (σ (.n 6)))
-    (sphincsSigOf σ) = true
-  rw [sphincsVerify_iff]
-  have hmd : @messageDigest Id _ ⟨Node.keccakBits⟩ (spp (σ sPP)) (sv (σ (.n sMk.2.1)))
+  have hmd : @messageDigest Id _ ⟨Node.keccakBits⟩ (spp (σ sPP)) R
       (smsg (σ (.n 5)) (σ (.n 6))) (sv (σ (.n 3))) =
       BitVec.ofNat messageDigestBits (encNat σ + 2 ^ 128 * Vb) := by
     rw [sMessageDigest_cells sq_keccak (a := σ (.n 4)) (m := smsg (σ (.n 5)) (σ (.n 6)))
@@ -132,21 +141,22 @@ theorem verify_sig_lean_sphincs_sound_holds : verify_sig_lean_sphincs_sound_Spec
         Sphincs.bytesLE 32 (smsg (σ (.n 5)) (σ (.n 6))) = _), ← hpre.digest]
     simp only
     rw [c17, c18]
+  unfold SRoot
   show ∃ leaf, @otsLeaf Id _ ⟨Node.keccakBits⟩ (spp (σ sPP)) topLayer 0
       (leafIndexAt (digestIndex (@messageDigest Id _ ⟨Node.keccakBits⟩ (spp (σ sPP))
-        (sv (σ (.n sMk.2.1))) (smsg (σ (.n 5)) (σ (.n 6))) (sv (σ (.n 3))))) topLayer)
+        R (smsg (σ (.n 5)) (σ (.n 6))) (sv (σ (.n 3))))) topLayer)
       (@forestRecover Id _ ⟨Node.keccakBits⟩ (spp (σ sPP))
         (digestIndex (@messageDigest Id _ ⟨Node.keccakBits⟩ (spp (σ sPP))
-          (sv (σ (.n sMk.2.1))) (smsg (σ (.n 5)) (σ (.n 6))) (sv (σ (.n 3)))))
+          R (smsg (σ (.n 5)) (σ (.n 6))) (sv (σ (.n 3)))))
         (digestMarks (@messageDigest Id _ ⟨Node.keccakBits⟩ (spp (σ sPP))
-          (sv (σ (.n sMk.2.1))) (smsg (σ (.n 5)) (σ (.n 6))) (sv (σ (.n 3)))))
+          R (smsg (σ (.n 5)) (σ (.n 6))) (sv (σ (.n 3)))))
         (sphincsSigOf σ).forest)
       ((sphincsSigOf σ).layers topLayer).counter ((sphincsSigOf σ).layers topLayer).chainValues =
         some leaf ∧
       @treeFold Id _ ⟨Node.keccakBits⟩ (spp (σ sPP)) topLayer 0
         (leafIndexAt (digestIndex (@messageDigest Id _ ⟨Node.keccakBits⟩ (spp (σ sPP))
-          (sv (σ (.n sMk.2.1))) (smsg (σ (.n 5)) (σ (.n 6))) (sv (σ (.n 3))))) topLayer)
-        (signaturePath (sphincsSigOf σ) topLayer) (layerHeight topLayer) leaf = sv (σ (.n sMk.2.1))
+          R (smsg (σ (.n 5)) (σ (.n 6))) (sv (σ (.n 3))))) topLayer)
+        (signaturePath (sphincsSigOf σ) topLayer) (layerHeight topLayer) leaf = sv (σ sMk.2.2)
   rw [hmd]
   set D := BitVec.ofNat messageDigestBits (encNat σ + 2 ^ 128 * Vb) with hD
   have hDidx : (digestIndex D).val = sIdx σ := by rw [hD, digestIndex_ofNat hEnc]; exact hVidx
@@ -257,13 +267,41 @@ theorem verify_sig_lean_sphincs_sound_holds : verify_sig_lean_sphincs_sound_Spec
     rw [hleafI]
     exact nodeAdr_bytes hidx26 hl26
   rw [hpath, sTreeFold_cells sq_keccak (pp := σ sPP) hA _ (layerHeight topLayer) le_rfl]
-  have hr : σ sMk.2.2 = σ (.n sMk.2.1) := e_add_eq_zero_iff.mp hroot
-  rw [← hr, sTree_sound hpre hmkA]
+  rw [sTree_sound hpre hmkA]
   refine congrArg sv (xFold_congr 26 (fun l hl => ⟨rfl, ?_, ?_⟩) _)
   · rw [hleafI, sIdx, bitsOf, testBit_bitsVal]
     simp only [hl, decide_true, Bool.true_and, sBit]
     congr
   · simp [hl]
+
+
+/-- **`verify_sig_lean_sphincs` is sound**, for the signature its frame holds. -/
+theorem verify_sig_lean_sphincs_sound_holds : verify_sig_lean_sphincs_sound_Spec sphincsSigOf := by
+  intro C κ L hκ σ rets h
+  rw [sBody_eq, sBody_split] at h
+  have s0 := holdsList_split_atoms sPrologue_atoms h
+  have hpa := atomsHold_of_holdsList sPrologue_atoms s0.1
+  have hpre := sPrologue_sound hpa
+  obtain ⟨s2, -⟩ := sCoords_sound (C := C) (rd := L.read) (σ := σ) hpre.pad hpre.tws 8 0 s0.2
+  obtain ⟨hrets, hmid, -, -, -, -, -, -, hld0, hroot⟩ := sTail_sound hpre.pad s2
+  refine ⟨hrets, fun hbb => ?_⟩
+  -- the counter and the unused bytes
+  have hfb : AtomsHold L.read σ sFb.1 := hmid.left.left.left.right
+  have hcp : σ (.n sFb.2.1) = σ sFb.2.2 :=
+    hmid.left.left.right.atom (a := .copy (.n sFb.2.1) sFb.2.2) (by simp [copyS])
+  obtain ⟨Nc, hNc, hNclt⟩ := sFromBytes_sound hκ hbb (K := 256) (by norm_num) (by norm_num) g255W_eq
+    (by norm_num) hfb
+  have hNc32 : Nc < 2 ^ 32 := by simpa using hNclt
+  obtain ⟨Nu, hNu, h161⟩ := sPrologue_bound hκ hbb hpa
+  rw [sEnd_split] at h
+  obtain ⟨-, -, hR⟩ := sphincs_root h (hcp.trans hNc) hNc32 hNu h161 (sv (σ (.n sMk.2.1)))
+  refine ⟨σ (.n sMk.2.1), σ sPP, σ (.n 5), σ (.n 6), ⟨hld0, hpre.ldP, hpre.ld2, hpre.ld3⟩, ?_⟩
+  show Node.sphincsVerify ⟨sv (σ (.n sMk.2.1)), spp (σ sPP)⟩ (smsg (σ (.n 5)) (σ (.n 6)))
+    (sphincsSigOf σ) = true
+  rw [sphincsVerify_SRoot]
+  have hr : σ sMk.2.2 = σ (.n sMk.2.1) := e_add_eq_zero_iff.mp hroot
+  rw [hr] at hR
+  exact hR
 
 end
 end LeanVM.Guest.B1.Sig
