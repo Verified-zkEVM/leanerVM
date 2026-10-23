@@ -7,7 +7,7 @@
 
 module
 
-public import LeanVM.Guest.B1.Tables.Vt.SpecPhase
+public import LeanVM.Guest.B1.Tables.Vt.AsmRun
 
 /-!
 # The column claims (G:2084-2120, 2231-2245, 2301-2312)
@@ -66,11 +66,6 @@ def vtAllClaims (bc : List K) (lm : ℕ) (rows : List ℕ) (pi : Digest) (point 
     (termsPure cp fp pts.reverse (List.zip (vtRows (tableHeightsOf rows) forms3 point pts)
       (vtEvsC σ)) 0 0 []).2 ++
     vtPubClaims (layoutOf bc lm rows) pi (σ (.n 11217))
-
-theorem vt_six {α : Type} (l : List α) (h : l.length = 6) (d : α) :
-    l = [l.getD 0 d, l.getD 1 d, l.getD 2 d, l.getD 3 d, l.getD 4 d, l.getD 5 d] := by
-  match l, h with
-  | [_, _, _, _, _, _], _ => rfl
 
 theorem vt_rows_length {rows : List ℕ} (hr : rows.length = 6) {forms3 : List (List Form)}
     (hf : forms3.length = 6) (e pts : List E) :
@@ -171,7 +166,7 @@ theorem vt_tabOf_lt (k : ℕ) : vtTabOf k < 6 := by
 theorem vt_mle_zero (r : E) : multilinearEval [ofK 0, ofK 0] [r] = 0 := by
   simp [multilinearEval, foldPairs]
 
-theorem vt_readsAt_append {rd : Reader} {p : E} {a b : List E} (ha : TbReadsAt rd p a)
+theorem vt_readsAt_append' {rd : Reader} {p : E} {a b : List E} (ha : TbReadsAt rd p a)
     (hb : ∀ k (hk : k < b.length), LoadHolds rd p (a.length + k) b[k]) : TbReadsAt rd p (a ++ b) := by
   intro k hk
   rcases Nat.lt_or_ge k a.length with h1 | h1
@@ -258,7 +253,7 @@ theorem vt_asm_claims {σ : Val} (h : VtH Lm.read σ) {bc : List K} (hbc : bc.le
   · -- the values
     simp only [List.map_append, List.map_cons, List.map_nil, vtTabClaims, List.map_map,
       Function.comp_def]
-    refine vt_readsAt_append (vt_readsAt_append ?_ ?_) ?_
+    refine vt_readsAt_append' (vt_readsAt_append' ?_ ?_) ?_
     · intro k hk
       simp only [List.length_cons, List.length_nil] at hk
       interval_cases k
