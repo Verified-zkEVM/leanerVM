@@ -191,5 +191,139 @@ theorem vlEvs_parts (fl : ℕ) (σ : Val) :
         c3, c4, d1, d2, d3, d4]
       exact ⟨rfl, rfl, rfl, rfl⟩
 
+/-! ## `verify_log2_ceil`, placed -/
+
+theorem vlTail_loads (fl : ℕ) : (vlTailPre fl).filterMap Stmt.loadS = [(.n 420, 0), (.n 425, 0)] :=
+  rfl
+
+theorem regionL_single {b i : ℕ} {w : List E} (h1 : b ≤ i) (h2 : i < b + w.length) :
+    RegionL [(b, w)] i := ⟨(b, w), List.mem_singleton_self _, h1, h2⟩
+
+theorem regionL_app_left {L L' : Main.Layout} {i : ℕ} (h : RegionL L i) : RegionL (L ++ L') i :=
+  let ⟨q, hq, h1, h2⟩ := h; ⟨q, List.mem_append_left _ hq, h1, h2⟩
+
+theorem regionL_app_right {L L' : Main.Layout} {i : ℕ} (h : RegionL L' i) : RegionL (L ++ L') i :=
+  let ⟨q, hq, h1, h2⟩ := h; ⟨q, List.mem_append_right _ hq, h1, h2⟩
+
+/-- **`verify_log2_ceil` at the floor `fl`, placed**: on the bits of `N` at `bitsE` and the exponent
+tables, it returns `[g^L, g^N]`, `L = max fl (log2Ceil N)`, its prefix sums in its one buffer,
+within its frame and `35` words. -/
+theorem vlc_completeAtB (fl : ℕ) (hfl : fl < 34) {name : String} {fn : Fn}
+    (hf : coreProgram.find? name = some fn) (hp : fn.params = [.n 0, .n 1, .n 2])
+    (hb : fn.body = vlBody fl) (hl : coreProgram.loop name = false) (κ : ℕ) (hκ6 : 6 ≤ κ)
+    (bitsE lpE sqE N : ℕ) (hN : N < 2 ^ 34) (hL : max fl (log2Ceil N) < 34) :
+    CompleteAtB fs cert κ name ([(bitsE, bitWords N)] ++ log2Lin lpE sqE)
+      [ofK (Parameters.gpow bitsE), ofK (Parameters.gpow lpE), ofK (Parameters.gpow sqE)]
+      (Returns [gen ^ max fl (log2Ceil N), gen ^ N]) (fs name + 35) := by
+  have h := completeAt_leafB (fs := fs) (cert := cert) hf hl κ
+    ([(bitsE, bitWords N)] ++ log2Lin lpE sqE)
+    [ofK (Parameters.gpow bitsE), ofK (Parameters.gpow lpE), ofK (Parameters.gpow sqE)]
+    [gen ^ max fl (log2Ceil N), gen ^ N] [35] (fun _ => [psWords N])
+    (fun _ => List.Forall₂.cons (by simp [psWords]) List.Forall₂.nil) ?_
+  · exact h
+  intro fp rd hlow hown hLin
+  have hps0 : ReadsAt rd (ofK (Parameters.gpow (fp + fs name))) (psWords N) := memL_single hown
+  have hps : ∀ j ≤ 34, LoadHolds rd (ofK (Parameters.gpow (fp + fs name))) j (eOfNat (N % 2 ^ j)) :=
+    fun j hj => by
+      have := hps0 j (by simp [psWords]; omega)
+      simpa [psWords] using this
+  obtain ⟨hbL, hlin⟩ := Main.memL_append.mp hLin
+  have hbits0 := memL_single hbL
+  have hbits : ∀ j < 34, LoadHolds rd (ofK (Parameters.gpow bitsE)) j (bitE (N.testBit j)) :=
+    fun j hj => by
+      have := hbits0 j (by simp [bitWords]; omega)
+      simpa [bitWords] using this
+  obtain ⟨τ, e0, e1, e2, e3, e409, hh⟩ := vl_holds_low fl hfl hκ6 hlow hN hbits hL hps
+    (expTables_of_memL hlin) (coreProgram.Rel rd)
+  have hh' : Stmt.HoldsList (coreProgram.Rel rd) rd τ fn.body False
+      (fun rs => rs = [gen ^ max fl (log2Ceil N), gen ^ N]) := by rw [hb]; exact hh
+  have hsat := walk_sat (P := coreProgram) fn.body (coreProgram_wf fn (List.mem_of_find?_eq_some hf)) hh'
+  rw [hb, vl_walk] at hsat
+  obtain ⟨p1, p2, p3, p4⟩ := vlEvs_parts fl τ
+  have hev : ∀ a, Ev.atom a ∈ vlEvs fl τ → a.Holds rd τ := fun a ha => (hsat.1 _ ha).1
+  refine ⟨τ, vlEvs fl τ, [.n 449, .n 450], by rw [hp]; simp [e0, e1, e2], by rw [hb, vl_walk],
+    hsat.2, fun e he => (hsat.1 e he).1, p4, p3, p2, by rw [p1]; simp [bases, e3], ?_⟩
+  -- the loads
+  have hpre : ∀ a, Stmt.atom a ∈ vlHead ++ vlTailPre fl → Ev.atom a ∈ vlEvs fl τ := fun a ha =>
+    List.mem_append_left _ (List.mem_append_left _
+      (List.mem_flatMap.mpr ⟨_, ha, by simp [Main.slEvs]⟩))
+  have m420 : τ (.n 420) = τ (.n 3) * τ (.n 409) :=
+    hev (.mul (.n 420) (.n 3) (.n 409)) (hpre _ (List.mem_append_right _ (by simp [vlTailPre, vlTail])))
+  have m425 : τ (.n 425) = τ (.n 1) * τ (.n 409) :=
+    hev (.mul (.n 425) (.n 1) (.n 409)) (hpre _ (List.mem_append_right _ (by simp [vlTailPre, vlTail])))
+  intro A hA
+  set L := max fl (log2Ceil N) with hLdef
+  set b := fp + fs name
+  have hown : ∀ off ≤ 34, RegionL (bufL b [35] [psWords N]) (b + off) := fun off ho =>
+    regionL_single (by omega) (by simp [psWords]; omega)
+  have hlp : ∀ off < 34, RegionL ([(bitsE, bitWords N)] ++ log2Lin lpE sqE) (lpE + off) :=
+    fun off ho => regionL_app_right ⟨_, List.mem_cons_self .., by omega, by simp; omega⟩
+  -- the straight part
+  unfold vlEvs at hA
+  rw [loadAddrs_app, loadAddrs_app, loadAddrs_inK, List.mem_append, List.mem_append] at hA
+  rcases hA with (hA | hA) | hA
+  · rw [loadAddrs_straight τ _ (vlPre_straight fl), List.filterMap_append, vlTail_loads,
+      List.map_append, List.mem_append] at hA
+    rcases hA with hA | hA
+    · obtain ⟨q, hq, rfl⟩ := List.mem_map.mp hA
+      have hok := List.all_eq_true.mp vlHead_loads q hq
+      obtain ⟨p, off⟩ := q
+      simp only [vlLoadOk, Bool.or_eq_true, Bool.and_eq_true, beq_iff_eq, decide_eq_true_eq]
+        at hok
+      rcases hok with (⟨rfl, ho⟩ | ⟨rfl, ho⟩) | ⟨rfl, ho⟩
+      · refine ⟨bitsE + off, by rw [e0]; exact limb_ofK_gpow_mul _ _, Or.inr ?_⟩
+        exact regionL_app_left (regionL_single (by omega) (by simp [bitWords]; omega))
+      · refine ⟨sqE + off, by rw [e2]; exact limb_ofK_gpow_mul _ _, Or.inr ?_⟩
+        exact regionL_app_right ⟨_, List.mem_cons_of_mem _ (List.mem_singleton_self _), by omega,
+          by simp [Tables.gSquaresList]; omega⟩
+      · exact ⟨b + off, by rw [e3]; exact limb_ofK_gpow_mul _ _, Or.inl (hown off ho)⟩
+    · simp only [List.map_cons, List.map_nil, List.mem_cons, List.not_mem_nil, or_false] at hA
+      rcases hA with rfl | rfl
+      · exact ⟨b + L, by rw [m420, e3, e409]; exact limb_ofK_gpow_gen _ _, Or.inl (hown L (by omega))⟩
+      · exact ⟨lpE + L, by rw [m425, e1, e409]; exact limb_ofK_gpow_gen _ _,
+          Or.inr (hlp L (by omega))⟩
+  · by_cases h1 : τ (.n 431) = 0
+    · simp only [h1, ↓reduceIte, loadAddrs, List.filterMap_nil, List.not_mem_nil] at hA
+    · simp only [h1, ↓reduceIte] at hA
+      rw [loadAddrs_app, loadAddrs_inK, List.mem_append] at hA
+      rcases hA with hA | hA
+      · rw [loadAddrs_straight τ vlMinA rfl] at hA; simp [vlMinA, Stmt.loadS] at hA
+      by_cases h2 : τ (.n 433) = 0
+      · simp only [h2, ↓reduceIte, loadAddrs, List.filterMap_nil, List.not_mem_nil] at hA
+      simp only [h2, ↓reduceIte] at hA
+      rw [loadAddrs_straight τ vlMinIn rfl] at hA
+      have hin : ∀ a, Stmt.atom a ∈ vlMinIn → Ev.atom a ∈ vlEvs fl τ := fun a ha => by
+        unfold vlEvs
+        simp only [h1, h2, ↓reduceIte]
+        exact List.mem_append_left _ (List.mem_append_right _ (List.mem_cons_of_mem _
+          (List.mem_append_right _ (List.mem_cons_of_mem _
+            (List.mem_flatMap.mpr ⟨_, ha, by simp [Main.slEvs]⟩)))))
+      have hA' : ∀ a, Stmt.atom a ∈ vlMinA → Ev.atom a ∈ vlEvs fl τ := fun a ha => by
+        unfold vlEvs
+        simp only [h1, ↓reduceIte]
+        exact List.mem_append_left _ (List.mem_append_right _ (List.mem_cons_of_mem _
+          (List.mem_append_left _ (List.mem_flatMap.mpr ⟨_, ha, by simp [Main.slEvs]⟩))))
+      have m432 : τ (.n 432) = word 1 0 0 := hev (.const (.n 432) (word 1 0 0)) (hA' _ (by simp [vlMinA]))
+      have m433 : τ (.n 433) = τ (.n 409) + τ (.n 432) := hev (.add (.n 433) (.n 409) (.n 432)) (hA' _ (by simp [vlMinA]))
+      have m434 : τ (.n 434) = invGenWord := hev (.const (.n 434) invGenWord) (hin _ (by simp [vlMinIn]))
+      have m435 : τ (.n 435) = τ (.n 409) * τ (.n 434) := hev (.mul (.n 435) (.n 409) (.n 434)) (hin _ (by simp [vlMinIn]))
+      have m436 : τ (.n 436) = τ (.n 3) * τ (.n 435) := hev (.mul (.n 436) (.n 3) (.n 435)) (hin _ (by simp [vlMinIn]))
+      have m438 : τ (.n 438) = invGenWord := hev (.const (.n 438) invGenWord) (hin _ (by simp [vlMinIn]))
+      have m439 : τ (.n 439) = τ (.n 409) * τ (.n 438) := hev (.mul (.n 439) (.n 409) (.n 438)) (hin _ (by simp [vlMinIn]))
+      have m440 : τ (.n 440) = τ (.n 1) * τ (.n 439) := hev (.mul (.n 440) (.n 1) (.n 439)) (hin _ (by simp [vlMinIn]))
+      have hL0 : L ≠ 0 := fun he => by
+        rw [m433, m432, word_one, e409, he, pow_zero] at h2
+        exact h2 (e_add_self _)
+      obtain ⟨L', hL'⟩ : ∃ L', L = L' + 1 := ⟨L - 1, by omega⟩
+      have hinv : τ (.n 409) * invGenWord = gen ^ L' := by rw [e409, hL', gen_pow_mul_invGen]
+      simp only [Stmt.loadS, vlMinIn, List.filterMap_cons, List.filterMap_nil, List.map_cons,
+        List.map_nil, List.mem_cons, List.not_mem_nil, or_false] at hA
+      rcases hA with rfl | rfl
+      · exact ⟨b + L', by rw [m436, m435, m434, hinv, e3]; exact limb_ofK_gpow_gen _ _,
+          Or.inl (hown L' (by omega))⟩
+      · exact ⟨lpE + L', by rw [m440, m439, m438, hinv, e1]; exact limb_ofK_gpow_gen _ _,
+          Or.inr (hlp L' (by omega))⟩
+  · rw [loadAddrs_straight τ vlCp rfl] at hA; simp [vlCp, Stmt.loadS] at hA
+
 end
 end LeanVM.Guest.B1
