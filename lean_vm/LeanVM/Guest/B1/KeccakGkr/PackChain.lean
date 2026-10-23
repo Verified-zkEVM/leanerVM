@@ -232,5 +232,81 @@ theorem packInv_succ {rec pp pt cur hv : E} {capS pts : List E} {j : ℕ}
     exact h2.1
   · rw [take_two_more pts hj, e0, e1, h2.2, eqRound_pend]
 
+/-- **The pack rounds**: the loop's records and, with `y` odd, `keccak_round`'s, chain into
+`packRunF` of the claim's point `pts`, the messages read from the cursor and the challenges
+stored at `point`; the last record (`rounds·y_last`) holds its result. -/
+theorem pack_chain {first odd : ℕ} (hfirst : first < 2) (hoddlt : odd < 2)
+    {rec pp pt hg yl cur hv curL vL scL : E} {capS pts capL : List E} {y : ℕ}
+    (hy : y % 2 = odd) (hhg : hg = gen ^ (y / 2)) (hyl : yl = gen ^ (y / 2 + odd)) (hy32 : y < 32)
+    (hpts : pts.length = y) (hpp : ReadsAt rd pp pts)
+    (h0 : RoundRec rd rec 0 capS cur hv 1) (hcan : AllCanonical capS)
+    (hloop : IsInK (1 + hg) ∧
+      (1 + hg ≠ 0 → coreProgram.Rel rd (packLoopName first odd) [1, hg, rec, pp, pt] []))
+    (hoddc : odd = 1 → coreProgram.Rel rd "keccak_round" [rec * hg, pp * hg ^ 2, pt * hg ^ 2] [])
+    (hlast : RoundRec rd (rec * yl) 0 capL curL vL scL) :
+    ∃ (msgs : List (E × E)) (chs : List E), msgs.length = y ∧
+      ReadsAt rd cur (msgs.flatMap fun m ↦ [m.1, m.2]) ∧ ReadsAt rd pt chs ∧ chs.length = y ∧
+      curL = cur * gen ^ (2 * y) ∧ (packRunF pts msgs hv 1 ⟨capS, []⟩).1 = (vL, scL, chs) ∧
+      (packRunF pts msgs hv 1 ⟨capS, []⟩).2 = ⟨capL, []⟩ ∧ AllCanonical capL := by
+  have hsteps : ∀ j < y / 2, PackStep rd rec pp pt (gen ^ j) := by
+    intro j hj
+    have hlt : y / 2 < ordG := by unfold ordG; omega
+    have hne := gen_pow_ne_one (h := y / 2) (by omega) hlt
+    obtain ⟨fn, hf, hb, hp⟩ := packLoop_fn hfirst hoddlt
+    have hrel := hloop.2 (by rw [hhg]; exact hne)
+    exact loop_sound (P := coreProgram) (f := packLoopName first odd) (ps := [hg, rec, pp, pt])
+      (N := hg) (m := y / 2) (B := PackStep rd rec pp pt)
+      (fun d x h' => packLoop_step hf hb hp d x hg rec pp pt h') hhg hlt 0
+      (by rw [pow_zero]; exact hrel) j (Nat.zero_le _) hj
+  have hinv : ∀ j ≤ y / 2, PackInv rd rec pt cur hv capS pts j := by
+    intro j hj
+    induction j with
+    | zero => exact packInv_zero h0 hcan
+    | succ j ih => exact packInv_succ (ih (by omega)) (hsteps j (by omega)) hpp (by omega)
+  obtain ⟨msgs, chs, cap, cl, sc, hml, hcl, hrm, hrc, hrec, hcanc, hrun, hrcap⟩ :=
+    hinv (y / 2) le_rfl
+  rcases Nat.lt_or_ge odd 1 with h0' | h1'
+  · -- even: the last record is record `y / 2`
+    have hodd0 : odd = 0 := by omega
+    subst hodd0
+    rw [hyl, Nat.add_zero] at hlast
+    obtain ⟨rfl, rfl, rfl, rfl⟩ := roundRec_unique hrec hlast
+    have hy2 : 2 * (y / 2) = y := by omega
+    rw [hy2, List.take_of_length_le (by omega)] at hrun hrcap
+    refine ⟨msgs, chs, by omega, hrm, hrc, by omega, ?_, hrun, hrcap, hcanc⟩
+    congr 2; omega
+  · -- odd: one more round, `keccak_round` at `rounds·g^(y/2)`
+    have hodd1 : odd = 1 := by omega
+    subst hodd1
+    obtain ⟨-, cap', cur', cl', sc', r, g1, g2, hrec', -, hr, hmsg, hst, hnext⟩ :=
+      keccak_round_holds rd _ _ (hoddc rfl)
+    rw [hhg] at hrec' hr hst hnext
+    obtain ⟨rfl, hcur, rfl, rfl⟩ := roundRec_unique hrec hrec'
+    rw [gen_sq, loadHolds_mul_gen_pow, Nat.add_zero] at hr
+    rw [gen_sq] at hst
+    have e0 : pts[2 * (y / 2)]'(by omega) = r := loadHolds_unique (hpp _ (by omega)) hr
+    have hnext' := roundRec_succ hnext
+    rw [hyl] at hlast
+    obtain ⟨rfl, rfl, rfl, rfl⟩ := roundRec_unique hnext' hlast
+    have htake : pts = pts.take (2 * (y / 2)) ++ [pts[2 * (y / 2)]'(by omega)] := by
+      conv_lhs => rw [← List.take_of_length_le (show pts.length ≤ 2 * (y / 2) + 1 by omega)]
+      rw [List.take_add_one, List.getElem?_eq_getElem (by omega)]
+      simp
+    refine ⟨msgs ++ [(g1, g2)], chs ++ [(eqRound ⟨cap, []⟩ g1 g2 r cl sc).1], by simp [hml]; omega,
+      ?_, ?_, by simp [hcl]; omega, ?_, ?_, ?_, by simp only [eqRound]; exact squeeze_cap_canonical _⟩
+    · rw [List.flatMap_append, readsAt_append, flatMap_pairs_length, hml]
+      refine ⟨hrm, ?_⟩
+      rw [show 2 * (2 * (y / 2)) = 4 * (y / 2) by ring, hcur]
+      simpa using hmsg
+    · rw [readsAt_append, hcl]
+      exact ⟨hrc, fun k hk => by
+        simp only [List.length_cons, List.length_nil] at hk
+        interval_cases k; exact hst⟩
+    · rw [← hcur, mul_assoc, ← pow_add]; congr 2; omega
+    · rw [htake, e0, packRunF_append _ _ _ _ _ _ _ (by simp [hml]; omega), hrun, hrcap,
+        packRunF_eqRound, packRunF_nil]
+    · rw [htake, e0, packRunF_append _ _ _ _ _ _ _ (by simp [hml]; omega), hrun, hrcap,
+        packRunF_eqRound, packRunF_nil, eqRound_pend]
+
 end
 end LeanVM.Guest.B1.VerifySub
