@@ -216,9 +216,8 @@ theorem tail_complete (hS : StoresAt25 S) {b0 : ℕ} {outs : List (List E × Mai
     (hg : ∀ s ∈ termTailPre, GoodS rd S (termW b0 outs) σ s) {τ : ℕ} {v : E}
     (e6 : σ (.n 6) = gen ^ τ) (hkap : LoadHolds rd (σ (.n 11)) 5 (gen ^ (τ + 6)))
     (akap : AddrIn R (σ (.n 11)) 5)
-    (hch : LoadHolds rd (ofK (gpow (b0 + 105))) (τ + 6) v) (ach : R (b0 + 105 + (τ + 6)))
-    (hfin : σ (.n 2008) = σ (.n 18)) :
-    (∀ s ∈ termTailPre, Fwd.SHolds TrivC rd σ s) ∧
+    (hch : LoadHolds rd (ofK (gpow (b0 + 105))) (τ + 6) v) (ach : R (b0 + 105 + (τ + 6))) :
+    (σ (.n 2008) = σ (.n 18) → ∀ s ∈ termTailPre, Fwd.SHolds TrivC rd σ s) ∧
       (∀ q ∈ termTailPre.filterMap Stmt.loadS, AddrIn R (σ q.1) q.2) ∧
       σ (.n 1993) = ofK (gpow (b0 + 105)) ∧ σ (.n 1994) = word 1 0 0 ∧
       σ (.n 1996) = gen ^ τ * word 64 0 0 ∧ σ (.n 1998) = σ (.n 12) * word 549755813888 0 0 ∧
@@ -255,7 +254,7 @@ theorem tail_complete (hS : StoresAt25 S) {b0 : ℕ} {outs : List (List E × Mai
   have e18 := good_mul g18 (by omega) (by omega)
   have e19 := good_add g19
   have e20 := good_mul g20 (by omega) (by omega)
-  refine ⟨fun s hs => ?_, fun q hq => ?_, e4, e5, by rw [e7, e6', e6], by rw [e10, e9],
+  refine ⟨fun hfin s hs => ?_, fun q hq => ?_, e4, e5, by rw [e7, e6', e6], by rw [e10, e9],
     by rw [e12, e11, e6], e13, e15, by rw [e20, e19, e18, e17, e16]⟩
   · simp only [termTailPre_eq, List.mem_cons, List.not_mem_nil, or_false] at hs
     rcases hs with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl |
