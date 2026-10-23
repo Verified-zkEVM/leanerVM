@@ -2,12 +2,17 @@ import LeanVM.Protocol.LeanVM
 import LeanVM.Protocol.LeanVMRpm
 import LeanVM.Guest.Batch.Children
 import LeanVM.Guest.Batch.Rom
+import LeanVM.Guest.EndFinal
 
 /-! The theorems: the verifier's, `LeanVM.KnowledgeSoundness` and `LeanVM.Completeness`
 (`LeanVM/Spec/Statement.lean`), for leanVM at `main` (Keccak-256 and Keccak-f[1600] as
 independent random oracles), `LeanVM.KnowledgeSoundnessRpm` and `LeanVM.CompletenessRpm`
 (`LeanVM/Spec/Rpm.lean`: both built from one random permutation), and the guest's batching of its
-children's deferred claims (`LeanVM.Guest.Batch.children_sound`, `batch_rom`, `batch_rom_bits`).
+children's deferred claims (`LeanVM.Guest.Batch.children_sound`, `batch_rom`, `batch_rom_bits`),
+and the guest's soundness with its witness named (`LeanVM.Guest.End.guest_knowledge`,
+`decode_binds`, `aggregate_sound_outer`: `LeanVM.Node.GuestKnowledge` and `LeanVM.Node.AggregateSound`
+of `LeanVM/Spec/Guest.lean` for the deployed bytecode and the decoder `LeanVM.Guest.End.decode`;
+`guest_sentinelSafe`).
 The build fails if their axiom footprint ever grows beyond Lean's three standard axioms. -/
 
 /-- info: 'LeanVM.knowledgeSoundness_holds' depends on axioms: [propext, Classical.choice, Quot.sound] -/
@@ -77,3 +82,19 @@ The build fails if their axiom footprint ever grows beyond Lean's three standard
 /-- info: 'LeanVM.Guest.Batch.batch_rom_bits' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms LeanVM.Guest.Batch.batch_rom_bits
+
+/-- info: 'LeanVM.Guest.End.guest_knowledge' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms LeanVM.Guest.End.guest_knowledge
+
+/-- info: 'LeanVM.Guest.End.decode_binds' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms LeanVM.Guest.End.decode_binds
+
+/-- info: 'LeanVM.Guest.End.aggregate_sound_outer' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms LeanVM.Guest.End.aggregate_sound_outer
+
+/-- info: 'LeanVM.Guest.guest_sentinelSafe' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms LeanVM.Guest.guest_sentinelSafe

@@ -1,10 +1,10 @@
-import LeanVM.Guest.EndKnow
+import LeanVM.Guest.EndFinal
 
 /-!
 # Tests: the decoder chooses nothing
 
-Every definition of this repository that the guest's decoder `LeanVM.Guest.End.decodeWith`
-unfolds to (its value, not the proofs it carries) is checked not to mention `Classical.choose`,
+Every definition of this repository that the guest's decoder `LeanVM.Guest.End.decode` (and
+`decodeWith`, `decodeV`, which it instantiates) unfolds to (its value, not the proofs it carries) is checked not to mention `Classical.choose`,
 `Classical.epsilon`, `Exists.choose` or `Classical.indefiniteDescription`: the decoder reads its
 witness off the memory, it does not pick one. The one exception is the memory read itself,
 `LeanVM.Semantics.gLog?` (the index `i` with `a = g^i`, unique by the generator's order): the
@@ -12,8 +12,9 @@ specification's definition of an address, not a witness. Deciding a test
 (`Classical.propDecidable`) and the field arithmetic are not choices of a witness, and are
 outside the check. `main`'s witness function `W` is a parameter of `decodeWith`; `decodeV piOf`
 instantiates it with B1's (`B1.Main.decWitV`: the signatures, the DA matrix and the batching's
-hints read off the frames of the functions that checked them), the child proof `piOf` a
-parameter until B1-d's lands.
+hints read off the frames of the functions that checked them), and `decode` the child proof with
+`VerifySub.vsPiOf` (the stream words `verify_sub` reads, the openings `open_stacked`'s queries
+hash).
 -/
 
 open Lean Meta Elab Command
@@ -48,11 +49,12 @@ run_meta do
   let stop : NameSet := [``LeanVM.Semantics.gLog?].foldl NameSet.insert {}
   let bad ← choiceUses ``LeanVM.Guest.End.decodeWith stop forbidden
   let bad' ← choiceUses ``LeanVM.Guest.End.decodeV stop forbidden
-  logInfo m!"{(bad ++ bad').toList}"
+  let bad'' ← choiceUses ``LeanVM.Guest.End.decode stop forbidden
+  logInfo m!"{(bad ++ bad' ++ bad'').toList}"
 
 /-! ## The decoder verifies nothing
 
-No definition `decodeWith` unfolds to, through this repository and the schemes it imports,
+No definition `decode` unfolds to, through this repository and the schemes it imports,
 mentions a hash, the permutation or a verification function (Keccak-256, Keccak-f[1600], a
 signature scheme's `verify`, the deferring verifier, the DA opening, the batching). The traversal
 stops at the guest's own semantics (`Core.Stmt.HoldsList`, `Core.Program.RelL`,
@@ -97,4 +99,5 @@ run_meta do
     "Verifier.verify", "verifyWith", "Witness.Opens", "Node.batch"]
   let bad ← verifyUses ``LeanVM.Guest.End.decodeWith follow stop forbidden
   let bad' ← verifyUses ``LeanVM.Guest.End.decodeV follow stop forbidden
-  logInfo m!"{(bad ++ bad').toList}"
+  let bad'' ← verifyUses ``LeanVM.Guest.End.decode follow stop forbidden
+  logInfo m!"{(bad ++ bad' ++ bad'').toList}"
