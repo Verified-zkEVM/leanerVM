@@ -10,8 +10,10 @@ witness off the memory, it does not pick one. The one exception is the memory re
 `LeanVM.Semantics.gLog?` (the index `i` with `a = g^i`, unique by the generator's order): the
 specification's definition of an address, not a witness. Deciding a test
 (`Classical.propDecidable`) and the field arithmetic are not choices of a witness, and are
-outside the check. `main`'s witness function `W` is a parameter of `decodeWith`; the decoder of
-the end theorems instantiates it with B1's, and this test is then run on that decoder too.
+outside the check. `main`'s witness function `W` is a parameter of `decodeWith`; `decodeV piOf`
+instantiates it with B1's (`B1.Main.decWitV`: the signatures, the DA matrix and the batching's
+hints read off the frames of the functions that checked them), the child proof `piOf` a
+parameter until B1-d's lands.
 -/
 
 open Lean Meta Elab Command
@@ -45,7 +47,8 @@ run_meta do
     ``Classical.indefiniteDescription].foldl NameSet.insert {}
   let stop : NameSet := [``LeanVM.Semantics.gLog?].foldl NameSet.insert {}
   let bad ← choiceUses ``LeanVM.Guest.End.decodeWith stop forbidden
-  logInfo m!"{bad.toList}"
+  let bad' ← choiceUses ``LeanVM.Guest.End.decodeV stop forbidden
+  logInfo m!"{(bad ++ bad').toList}"
 
 /-! ## The decoder verifies nothing
 
@@ -93,4 +96,5 @@ run_meta do
     "sphincsVerify", "LeanXmss.verify", "Sphincs.verify", "verifyDeferred", "verifyDeferredWith",
     "Verifier.verify", "verifyWith", "Witness.Opens", "Node.batch"]
   let bad ← verifyUses ``LeanVM.Guest.End.decodeWith follow stop forbidden
-  logInfo m!"{bad.toList}"
+  let bad' ← verifyUses ``LeanVM.Guest.End.decodeV follow stop forbidden
+  logInfo m!"{(bad ++ bad').toList}"

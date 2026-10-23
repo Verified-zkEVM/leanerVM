@@ -31,6 +31,18 @@ open LeanVM.Guest.End LeanVM.Node LeanVM.Protocol LeanVM.Protocol.KeccakHash Lea
 #guard_msgs in
 #print axioms LeanVM.Guest.End.decode_binds_of
 
+/-- info: 'LeanVM.Guest.End.guest_knowledge_V' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms LeanVM.Guest.End.guest_knowledge_V
+
+/-- info: 'LeanVM.Guest.End.aggregate_sound_outer_V' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms LeanVM.Guest.End.aggregate_sound_outer_V
+
+/-- info: 'LeanVM.Guest.End.decode_binds_V' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms LeanVM.Guest.End.decode_binds_V
+
 /-- info: 'LeanVM.Guest.Binding.statementDigest_binds' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms LeanVM.Guest.Binding.statementDigest_binds

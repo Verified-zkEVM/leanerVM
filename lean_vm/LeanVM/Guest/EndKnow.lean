@@ -11,6 +11,7 @@ module
 
 public import LeanVM.Guest.EndLoc
 public import LeanVM.Guest.Located.Interface
+public import LeanVM.Guest.B1.Main.SoundV
 public import LeanVM.Guest.Binding
 public import LeanVM.Protocol.LeanVMSound
 
@@ -43,6 +44,13 @@ call relation that unfolds along a frame map (`Located.MainSoundV`).
   seed `iv`, the public input's digest learns that the decoded seed and statement are `iv` and
   `s₀`, or holds an explicit Keccak-256 collision (`collisionCandidates`).
 * `aggregate_sound_outer_of : AggregateSound guest (decodeWith W)`, the two composed.
+
+**With B1's witnesses** (`decodeV piOf`): `W σ rd V = B1.Main.decWitV σ rd V piOf`, `main`'s
+witness with each callee's read off the frame map (B1-f), the child proof by `piOf` (B1-d). Then
+`main`'s soundness is B1-f's `main_sound_V_of_sub`, from `verify_sub`'s statement with its proof
+named (`B1.Main.SubSoundW bytecode piOf`), and the theorems rest on `B2SoundL` and
+`SubSoundW bytecode piOf` alone (`soundHyps_of_sub`, `guest_knowledge_V`, `decode_binds_V`,
+`aggregate_sound_outer_V`).
 -/
 
 namespace LeanVM.Guest.End
@@ -134,6 +142,42 @@ theorem guest_sound_of (h : SoundHyps W) (input : PublicInput) (t : Trace guest)
       NodeSpec bytecode seed s := by
   obtain ⟨hd, hrel⟩ := guest_knowledge_of h input t hv
   exact ⟨_, _, hd, hrel.1, _, hrel⟩
+
+/-! ## With B1's witnesses -/
+
+/-- **The guest's decoder, for the child proof `piOf`**: the seed and the statement off `main`'s
+frame, the witness `B1.Main.decWitV` off `main`'s valuation, the memory and the memory's frame
+map. -/
+noncomputable def decodeV (piOf : Reader → Val → FrameMap → Proof) : Decoder :=
+  decodeWith fun σ rd V ↦ B1.Main.decWitV σ rd V piOf
+
+/-- **What the theorems rest on, with B1's witnesses**: B2, and `verify_sub`'s statement with its
+proof named by `piOf`. -/
+theorem soundHyps_of_sub {piOf : Reader → Val → FrameMap → Proof} (hb2 : B2SoundL)
+    (hv : B1.Main.SubSoundW bytecode piOf) :
+    SoundHyps fun σ rd V ↦ B1.Main.decWitV σ rd V piOf :=
+  ⟨hb2, B1.Main.main_sound_V_of_sub hv⟩
+
+/-- **Soundness of the deployed guest, its witness named**, from B2 and `verify_sub`'s statement. -/
+theorem guest_knowledge_V {piOf : Reader → Val → FrameMap → Proof} (hb2 : B2SoundL)
+    (hv : B1.Main.SubSoundW bytecode piOf) : GuestKnowledge guest (decodeV piOf) :=
+  guest_knowledge_of (soundHyps_of_sub hb2 hv)
+
+/-- **What a consumer learns**, from B2 and `verify_sub`'s statement. -/
+theorem decode_binds_V {piOf : Reader → Val → FrameMap → Proof} (hb2 : B2SoundL)
+    (hv : B1.Main.SubSoundW bytecode piOf) {input : PublicInput} {t : Trace guest}
+    (hvt : ValidExecution guest input t) {iv : Digest} {s₀ : NodeStatement}
+    (hs₀ : s₀.defer.Holds bytecode) (hpub : publicDigest input = statementDigest iv s₀) :
+    ((decodeV piOf t.image).seed = iv ∧ (decodeV piOf t.image).statement = s₀) ∨
+      HasCollision (collisionCandidates (decodeV piOf t.image).seed
+        (decodeV piOf t.image).statement iv s₀) :=
+  decode_binds_of (soundHyps_of_sub hb2 hv) hvt hs₀ hpub
+
+/-- **What the outer verifier's acceptance establishes**, from B2 and `verify_sub`'s
+statement. -/
+theorem aggregate_sound_outer_V {piOf : Reader → Val → FrameMap → Proof} (hb2 : B2SoundL)
+    (hv : B1.Main.SubSoundW bytecode piOf) : AggregateSound guest (decodeV piOf) :=
+  aggregate_sound_outer_of (soundHyps_of_sub hb2 hv)
 
 end
 end LeanVM.Guest.End
