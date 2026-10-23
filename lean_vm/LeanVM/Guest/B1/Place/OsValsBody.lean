@@ -183,5 +183,81 @@ theorem body_alloc_vals (c : OsCfg) (tr : OsTr) (σ0 : Val) (c0 c2 : E) (b0 : �
     simp only [osSizesL, List.map_append, List.map_cons, List.map_nil, List.map_flatMap,
       List.map_replicate, List.append_assoc, List.cons_append, List.nil_append]
 
+
+/-! ## In the placed lift's form -/
+
+theorem logG_gw {e : ℕ} (he : e < 2 ^ 64 - 1) : logG (gw e) = e := by
+  rw [gw_eq (by unfold u128Bound; omega), logG_gen_pow he]
+
+theorem lvsAllocs_heap (c : OsCfg) : ∀ (lvl : ℕ) (lvs : List OsLv) (s : OsSt),
+    ∀ x ∈ lvsAllocs c lvl lvs s, ∃ k, x = osHeapA k
+  | _, [], _, x, hx => by simp [lvsAllocs] at hx
+  | lvl, lv :: rest, s, x, hx => by
+    simp only [lvsAllocs, lvAllocs, List.cons_append, List.nil_append, List.mem_cons] at hx
+    rcases hx with rfl | rfl | hx
+    · exact ⟨_, rfl⟩
+    · exact ⟨_, rfl⟩
+    · exact lvsAllocs_heap c (lvl + 1) rest _ x hx
+
+theorem resAllocs_heap (c : OsCfg) (ich bd ls : ℕ) : ∀ (lvl : ℕ) (levels : List OsLv) (k : ℕ),
+    ∀ x ∈ resAllocs c ich bd ls lvl levels k, ∃ k', x = osHeapA k'
+  | _, [], _, x, hx => by simp [resAllocs] at hx
+  | lvl, lv :: rest, k, x, hx => by
+    simp only [resAllocs, List.mem_cons] at hx
+    rcases hx with rfl | hx
+    · exact ⟨_, rfl⟩
+    · exact resAllocs_heap c ich bd ls (lvl + 1) rest _ x hx
+
+/-- The hints sized by a constant are the point's buffers. -/
+theorem osAllocsOf_inl (c : OsCfg) : ∀ x ∈ osAllocsOf c, ∀ n, x.2 = .inl n → n = pointCap := by
+  intro x hx n hn
+  have hh : ∀ k, (osHeapA k).2 ≠ .inl n := fun k h ↦ by simp [osHeapA] at h
+  simp only [osAllocsOf, finAllocs, List.mem_append, List.mem_cons,
+    List.not_mem_nil, or_false] at hx
+  rcases hx with ((hx | hx) | hx) | hx
+  · simp only [headAllocs, List.mem_map] at hx
+    obtain ⟨t, -, rfl⟩ := hx; exact absurd hn (hh _)
+  · obtain ⟨k, rfl⟩ := lvsAllocs_heap c 0 c.levels _ x hx; exact absurd hn (hh _)
+  · subst hx; exact absurd hn (hh _)
+  · rcases hx with (rfl | rfl | rfl | rfl | rfl) | hx
+    · simpa using hn.symm
+    · simpa using hn.symm
+    · exact absurd hn (hh _)
+    · exact absurd hn (hh _)
+    · exact absurd hn (hh _)
+    · obtain ⟨k, rfl⟩ := resAllocs_heap c _ _ _ 0 c.levels _ x hx; exact absurd hn (hh _)
+
+/-- **The two facts the placed lift asks of the body's allocation hints.** -/
+theorem body_allocs_placed (c : OsCfg) (tr : OsTr) (σ0 : Val) (c0 c2 : E) (b0 : ℕ)
+    (hlen : tr.Ls.length = c.levels.length) (hsz : ∀ e ∈ osSizesL c, e < 2 ^ 64 - 1) :
+    ((osBodyA c).filterMap Main.Stmt.allocSz).map (fun x ↦ x.2.elim id fun s ↦ logG
+        (fill σ0 9 (osFinEnd c (osTlSt c).2.1 (osTlSt c).2.2) (osBodyF c tr σ0 c0 c2 (osAtOf c b0)) s)) =
+      osSizesL c ∧
+    (((osBodyA c).filterMap Main.Stmt.allocSz).map Prod.fst).map
+        (fill σ0 9 (osFinEnd c (osTlSt c).2.1 (osTlSt c).2.2) (osBodyF c tr σ0 c0 c2 (osAtOf c b0))) =
+      (bases b0 (osSizesL c)).map (fun b ↦ ofK (gpow b)) := by
+  obtain ⟨h1, h2⟩ := body_alloc_vals c tr σ0 c0 c2 b0 hlen
+  rw [osBodyA_allocs]
+  generalize fill σ0 9 (osFinEnd c (osTlSt c).2.1 (osTlSt c).2.2) (osBodyF c tr σ0 c0 c2 (osAtOf c b0)) = σ
+    at h1 h2 ⊢
+  refine ⟨?_, ?_⟩
+  · have e : (osAllocsOf c).map (fun x ↦ x.2.elim id fun s ↦ logG (σ s)) =
+        ((osAllocsOf c).map (vSz σ)).map logG := by
+      rw [List.map_map]
+      refine List.map_congr_left fun x hx ↦ ?_
+      rcases hx2 : x.2 with n | s
+      · have := osAllocsOf_inl c x hx n hx2
+        subst this
+        simp only [Function.comp_apply, vSz, hx2, Sum.elim_inl, id]
+        rw [logG_gw (by unfold pointCap; omega)]
+      · simp [vSz, hx2]
+    rw [e, h2, List.map_map]
+    conv_rhs => rw [← List.map_id (osSizesL c)]
+    exact List.map_congr_left fun e he ↦ logG_gw (hsz e he)
+  · rw [h1]
+    refine List.ext_getElem (by simp [os_length_bases, osSizesL_length]) fun j hj1 hj2 ↦ ?_
+    simp only [List.getElem_map, List.getElem_range, osPtrAt, osBase]
+    rw [List.getD_eq_getElem _ _ (by simpa [os_length_bases, osSizesL_length] using hj1)]
+
 end
 end LeanVM.Guest.B1
