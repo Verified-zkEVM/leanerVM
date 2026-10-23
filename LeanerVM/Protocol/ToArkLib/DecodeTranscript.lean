@@ -94,17 +94,12 @@ def next (f : α → Option β) : Slot α β where
     | a :: r => (f a).map (·, r)
   read_iff {l x r} := by
     constructor
-    · intro h
-      cases l with
-      | nil => cases h
-      | cons a l =>
-        obtain ⟨y, hy, he⟩ := Option.map_eq_some_iff.mp h
-        obtain ⟨rfl, rfl⟩ := Prod.mk.inj he
+    · rcases l with _ | ⟨a, l⟩
+      · nofun
+      · intro h
+        obtain ⟨y, hy, ⟨⟩⟩ := Option.map_eq_some_iff.mp h
         exact ⟨[a], rfl, by simp [hy]⟩
-    · rintro ⟨_ | ⟨a, _ | ⟨b, c⟩⟩, rfl, h⟩
-      · cases h
-      · simpa using h
-      · simp at h
+    · rintro ⟨_ | ⟨a, _ | ⟨b, c⟩⟩, rfl, h⟩ <;> simp_all
 
 /-- `k` readings, through a partial map of the list of them. -/
 def take (k : ℕ) (f : List α → Option β) : Slot α β where
@@ -112,31 +107,15 @@ def take (k : ℕ) (f : List α → Option β) : Slot α β where
   read_iff {l x r} := by
     constructor
     · intro h
-      by_cases hk : k ≤ l.length
-      · rw [ite_eq_left hk] at h
-        obtain ⟨y, hy, he⟩ := Option.map_eq_some_iff.mp h
-        obtain ⟨rfl, rfl⟩ := Prod.mk.inj he
-        refine ⟨l.take k, (List.take_append_drop k l).symm, ?_⟩
-        rw [ite_eq_left (by simp; omega), List.take_take, Nat.min_self, hy,
-          List.drop_eq_nil_of_le (by simp)]
-        rfl
-      · rw [ite_eq_right hk] at h
-        cases h
+      split_ifs at h with hk
+      obtain ⟨y, hy, ⟨⟩⟩ := Option.map_eq_some_iff.mp h
+      exact ⟨l.take k, (List.take_append_drop k l).symm, by simp [hk, List.take_take, hy]⟩
     · rintro ⟨c, rfl, h⟩
-      by_cases hk : k ≤ c.length
-      · rw [ite_eq_left hk] at h
-        obtain ⟨y, hy, he⟩ := Option.map_eq_some_iff.mp h
-        obtain ⟨rfl, hd⟩ := Prod.mk.inj he
-        have hc : c.length = k := by
-          have := List.length_drop (i := k) (l := c)
-          rw [hd] at this
-          simp at this
-          omega
-        rw [ite_eq_left (by simp; omega), List.take_append_of_le_length hk,
-          List.drop_append_of_le_length hk, hd, hy]
-        rfl
-      · rw [ite_eq_right hk] at h
-        cases h
+      split_ifs at h with hk
+      obtain ⟨y, hy, he⟩ := Option.map_eq_some_iff.mp h
+      obtain ⟨rfl, hd⟩ := Prod.mk.inj he
+      have hc : c.length = k := by have := List.drop_eq_nil_iff.mp hd; omega
+      simp [hc, hy, List.take_append_of_le_length hk, List.drop_append_of_le_length hk, hd]
 
 /-- The value of `s`, mapped by `g`. -/
 def map (g : β → γ) (s : Slot α β) : Slot α γ where
@@ -419,15 +398,11 @@ theorem decodePrefix_of_run_append {l l' : List α} {t : pSpec.FullTranscript} {
       D.decodePrefix l = some ⟨j, FullTranscript.take j.val j.is_le t⟩ := by
   have hl : D.decodeAt ⟨i, by omega⟩ l = some tr :=
     D.decodeAt_eq_some.mpr (D.run_of_run_append (r := []) (by simpa using hr))
-  cases hp : D.decodePrefix l with
-  | none => exact absurd ((D.decodePrefix_eq_none_iff.mp hp) ⟨i, by omega⟩) (by rw [hl]; simp)
-  | some p =>
-    obtain ⟨j, tr'⟩ := p
-    have hj := (D.decodePrefix_eq_some_iff.mp hp).2
-    refine ⟨j, not_lt.mp fun hji ↦ ?_, ?_⟩
-    · have := hj ⟨i, by omega⟩ (Fin.lt_def.mpr hji)
-      simp [hl] at this
-    · rw [D.decode_eq_of_decodePrefix ht hp]
+  obtain ⟨⟨j, tr'⟩, hp⟩ := (Option.ne_none_iff_exists' (o := D.decodePrefix l)).mp
+    fun hp ↦ by simp [(D.decodePrefix_eq_none_iff.mp hp) ⟨i, by omega⟩] at hl
+  obtain rfl := D.decode_eq_of_decodePrefix ht hp
+  refine ⟨j, not_lt.mp fun hji ↦ ?_, hp⟩
+  simp [(D.decodePrefix_eq_some_iff.mp hp).2 ⟨i, by omega⟩ (Fin.lt_def.mpr hji)] at hl
 
 end Run
 
@@ -505,11 +480,7 @@ theorem run_append_left (i : ℕ) (hi : i ≤ m) (l : List α) :
     ((D₁.append D₂).run i (by omega) l).map (fun p ↦ (left p.1 ⟨i, by omega⟩ le_rfl, p.2)) =
       D₁.run i hi l := by
   induction i with
-  | zero =>
-    simp only [run, Option.map_some]
-    congr 2
-    funext a
-    exact a.elim0
+  | zero => exact congrArg some (Prod.ext (funext fun a ↦ a.elim0) rfl)
   | succ i ih =>
     have ih := ih (by omega)
     simp only [run]
@@ -555,11 +526,8 @@ private theorem run_append_right_aux (j : ℕ) (hj : j ≤ n) (l : List α) (i :
       rfl
     | some p =>
       rw [ho, Option.map_some] at hl
-      rw [← hl, Option.map_some, Option.bind_some]
-      simp only [run, Option.map_some]
-      refine congrArg some (Prod.ext rfl (Prod.ext ?_ rfl))
-      funext a
-      exact a.elim0
+      rw [← hl]
+      exact congrArg some (Prod.ext rfl (Prod.ext (funext fun a ↦ a.elim0) rfl))
   | succ j ih =>
     obtain ⟨i, rfl⟩ : ∃ i', i = i' + 1 := ⟨i - 1, by omega⟩
     obtain rfl : i = m + j := by omega
