@@ -241,7 +241,7 @@ def oqPathT (s : Oq) (bp : V) (pr kL ch : ℕ) : List Stmt :=
   [.atom (.hint (.witness "merkle_children" (.stack ((List.range (4 * s.pd)).map fun j ↦ .n (ch + j))))),
     .atom (.frameAddr (.n pp) (((List.range (4 * s.pd)).map fun j ↦ .n (ch + j)) ++
       ((List.range (80 - 4 * s.pd)).map fun j ↦ .n (pp + 1 + j)))),
-    .atom (.const (.n (pp + 81 - 4 * s.pd)) (word 5 0 0)),
+    .atom (.const (.n (ch + 81)) (word 5 0 0)),
     .atom (.mul (.n (ch + 82)) (.n pp) (.n (ch + 81)))] ++
     ((List.range s.pd).map (oqLevelT s bp pr kL ch)).flatten
 
