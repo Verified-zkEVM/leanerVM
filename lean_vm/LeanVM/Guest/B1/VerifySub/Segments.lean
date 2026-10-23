@@ -249,5 +249,103 @@ theorem readSizes_inv {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) {st :
       rfl
     · simp at hcond
 
+
+/-! ## The announced sizes are `Verifier.announced`'s -/
+
+/-- Only reads (the run is a parse of the stream). -/
+def ReadOnlyA {α : Type} : Prog α → Prop
+  | .ret _ => True
+  | .fail => True
+  | .read k => ∀ x, ReadOnlyA (k x)
+  | .sample _ => False
+  | .grind _ _ => False
+  | .commit _ _ _ => False
+  | .query _ _ _ => False
+
+/-- **Only reads.** Irreducible, as `NoCommit`. -/
+@[irreducible] def ReadOnly {α : Type} (p : Prog α) : Prop := ReadOnlyA p
+
+theorem readOnly_iff {α : Type} (p : Prog α) : ReadOnly p ↔ ReadOnlyA p := by
+  unfold ReadOnly; rfl
+
+theorem ReadOnly.bind {α β : Type} {p : Prog α} {f : α → Prog β} (hp : ReadOnly p)
+    (hf : ∀ a, ReadOnly (f a)) : ReadOnly (p.bind f) := by
+  rw [readOnly_iff] at hp ⊢
+  have hf' : ∀ a, ReadOnlyA (f a) := fun a ↦ (readOnly_iff _).1 (hf a)
+  clear hf
+  induction p with
+  | ret a => exact hf' a
+  | fail => trivial
+  | read k ih => exact fun x ↦ ih x (hp x)
+  | sample _ _ => exact hp.elim
+  | grind _ _ _ => exact hp.elim
+  | commit _ _ _ _ => exact hp.elim
+  | query _ _ _ _ => exact hp.elim
+
+theorem readOnly_ret {α : Type} (a : α) : ReadOnly (Prog.ret a) := (readOnly_iff _).2 trivial
+
+theorem readOnly_fail {α : Type} : ReadOnly (Prog.fail : Prog α) := (readOnly_iff _).2 trivial
+
+theorem readOnly_readN : ∀ n, ReadOnly (Prog.readN n)
+  | 0 => readOnly_ret _
+  | n + 1 => by
+    simp only [Prog.readN, Prog.bind_eq, Prog.pure_eq]
+    refine ReadOnly.bind ((readOnly_iff _).2 fun _ ↦ trivial) fun _ ↦ ?_
+    exact ReadOnly.bind (readOnly_readN n) fun _ ↦ readOnly_ret _
+
+theorem readOnly_require (c : Prop) [Decidable c] : ReadOnly (Prog.require c) := by
+  unfold Prog.require
+  split
+  · exact readOnly_ret _
+  · exact readOnly_fail
+
+theorem readOnly_liftOption {α : Type} (o : Option α) : ReadOnly (Verifier.liftOption o) := by
+  cases o
+  · exact readOnly_fail
+  · exact readOnly_ret _
+
+theorem readOnly_readSizes (bytecode : List K) : ReadOnly (readSizes bytecode) := by
+  unfold readSizes
+  simp only [Prog.bind_eq, Prog.pure_eq]
+  refine ReadOnly.bind (readOnly_readN _) fun _ ↦ ?_
+  refine ReadOnly.bind (readOnly_require _) fun _ ↦ ?_
+  refine ReadOnly.bind (readOnly_require _) fun _ ↦ ?_
+  refine ReadOnly.bind (readOnly_liftOption _) fun _ ↦ ?_
+  refine ReadOnly.bind (readOnly_require _) fun _ ↦ ?_
+  exact readOnly_ret _
+
+/-- A run that only reads returns what the stream gives, whatever the hashes and the sponge. -/
+theorem ReadOnlyA.run_eq {α : Type} (p : Prog α) : ReadOnlyA p →
+    ∀ (H H' : Bytes → Id Digest) (F F' : KState → Id KState) (sp sp' : Sponge) (T : List E)
+      (O O' : List Opening) (R R' : List (Digest × ℕ × ℕ)),
+      (Id.run (Compile.run (m := Id) H F p ⟨sp, T, O, R⟩)).map (·.1) =
+        (Id.run (Compile.run (m := Id) H' F' p ⟨sp', T, O', R'⟩)).map (·.1) := by
+  induction p with
+  | ret a => intros; rfl
+  | fail => intros; rfl
+  | read k ih =>
+    intro hp H H' F F' sp sp' T O O' R R'
+    cases T with
+    | nil => rfl
+    | cons x xs => exact ih x (hp x) H H' F F' _ _ xs O O' R R'
+  | sample _ _ => intro hp; exact hp.elim
+  | grind _ _ _ => intro hp; exact hp.elim
+  | commit _ _ _ _ => intro hp; exact hp.elim
+  | query _ _ _ _ => intro hp; exact hp.elim
+
+/-- **The run's sizes are `Verifier.announced`'s.** -/
+theorem announced_eq {bytecode : List K} {s : Fs} {T : List E} {O : List Opening}
+    {R : List (Digest × ℕ × ℕ)} {L : Layout} {r : ℕ} {st' : Whir.FSt} {sp : Sponge}
+    (hs : s.Carries sp) (h : Whir.runF (readSizes bytecode) ⟨s, T, O, R⟩ = some ((L, r), st')) :
+    Verifier.announced bytecode T = some (L, r) := by
+  obtain ⟨sp', -, hr⟩ := runId_of_runF h hs
+  have e := ReadOnlyA.run_eq _ ((readOnly_iff _).1 (readOnly_readSizes bytecode))
+    (fun _ ↦ pure default) keccak256 (fun _ ↦ pure default) keccakF ⟨default, []⟩ sp T [] O [] R
+  unfold Verifier.announced
+  rw [e]
+  change (runId (readSizes bytecode) ⟨sp, T, O, R⟩).map (·.1) = _
+  rw [hr]
+  rfl
+
 end
 end LeanVM.Guest.B1.VerifySub
