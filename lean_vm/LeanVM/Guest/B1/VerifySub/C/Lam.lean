@@ -93,5 +93,42 @@ theorem vsLam_loop (hl : args.length = 7) {vals : ℕ → E}
         (fun i ↦ vsLamStep (n + i))) nx kret) (by simpa using hstep)).2.2 |> fun h ↦ by
           simpa using h
 
+/-- **The batching, honestly.** -/
+theorem vsLamT_complete (hl : args.length = 7)
+    (hz : ∀ i ∈ [10, 11, 12, 13], vsσ rd w args (.n i) = 0)
+    (hcap : ∀ i < 5, IsCanonical128 (vsσ rd w args (.n (966 + i)))) {vals : ℕ → E}
+    (hpool : ∀ i < 140, LoadHolds rd (vsσ rd w args (.n 7)) (vsKept i) (vals i))
+    (hlam : ∀ i < 140, LoadHolds rd (vsσ rd w args (.n 1324)) (vsKept i)
+      (vsσ rd w args (.n 1323) ^ (i + 1)))
+    {C : CallRel} {next : Prop} {kret : List E → Prop} (hn : next) :
+    vsσ rd w args (.n 1884) = vsσ rd w args (.n 1323) ^ 141 ∧
+      vsσ rd w args (.n 1886) = vsσ rd w args (.n 1303) +
+        ∑ i ∈ range 140, vsσ rd w args (.n 1323) ^ (i + 1) * vals i +
+          vsσ rd w args (.n 1323) ^ 141 * vsσ rd w args (.n 869) ∧
+      Stmt.HoldsList C rd (vsσ rd w args) vsLamT next kret := by
+  have hG := vsLamT_good (rd := rd) (w := w) hl
+  have g1 : Good rd vsSL w (vsσ rd w args) (.mul (.n 1885) (.n 1884) (.n 869)) :=
+    hG (vsMul 1885 1884 869) (by rw [vsLamT]; simp)
+  have g2 : Good rd vsSL w (vsσ rd w args) (.add (.n 1886) (.n 1883) (.n 1885)) :=
+    hG (vsAdd 1886 1883 1885) (by rw [vsLamT]; simp)
+  simp only [Good] at g1 g2
+  rw [ite_eq_left_of_eq_true _ _ (eq_true ⟨show 1884 < 1885 by norm_num,
+    show 869 < 1885 by norm_num⟩)] at g1
+  obtain ⟨ep, et, -⟩ := vsLam_loop (C := C) (kret := kret) hl hpool hlam 140 le_rfl (nx := True)
+    trivial
+  rw [show vsPw 140 = 1884 from rfl] at ep
+  rw [show vsTg 140 = 1883 from rfl] at et
+  refine ⟨ep, by rw [g2, g1, et, ep], ?_⟩
+  rw [vsLamT, holdsList_append, holdsList_append, holdsList_append]
+  refine vsSqzT_complete hl (capb := 966) (o := 1304)
+    (fun s hs ↦ vs_mem_slice (n := 1372) (blk := vsLamT) (by decide +kernel)
+      (by rw [vsLamT]; exact List.mem_append_left _ (List.mem_append_left _
+        (List.mem_append_left _ hs)))) hz hcap ?_
+  simp only [Stmt.HoldsList, Stmt.Holds, vsAlloc]
+  refine ⟨trivial, ?_⟩
+  refine (vsLam_loop hl hpool hlam 140 le_rfl ?_).2.2
+  simp only [Stmt.Holds, vsMul, vsAdd]
+  exact ⟨g1, g2, hn⟩
+
 end
 end LeanVM.Guest.B1.VerifySub
