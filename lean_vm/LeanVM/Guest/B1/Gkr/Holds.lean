@@ -230,5 +230,82 @@ theorem vbg_tables (h : Stmt.HoldsList C rd σ vbgPre True kret) {depth : ℕ}
 
 end Sem
 
+/-- **The walk**: from the root slot, the binary layer at an odd depth and the layer loop run
+`gkrLayers depth` to the slot of `L = depth`, nothing waiting. -/
+theorem vbg_walk {rd : Reader} {σ : Val} {kret : List E → Prop}
+    (h : Stmt.HoldsList (coreProgram.Rel rd) rd σ vbgPre True kret) {depth : ℕ}
+    (hg : σ (.n 6) = gen ^ depth) (hd : depth < 33) (hd0 : depth ≠ 0) {s0 : Fs} {c0 : E}
+    {st0 : GkrState} {row0 pos0 : E}
+    (hslot0 : GkSlot rd (σ (.n 15)) 0 s0 c0 st0 row0 pos0 1 0) :
+    ∃ (xs : List E) (st : GkrState) (s : Fs) (row pos half par : E),
+      RunsTo (gkrLayers depth st0) s0 xs st s ∧ TbReadsAt rd c0 xs ∧ s.pend = [] ∧
+      GkSlot rd (σ (.n 15)) depth s (c0 * gen ^ xs.length) st row pos half par := by
+  have hnr := vbgPre_noRet
+  have a := fun n a heq => tb_holds_atom hnr h n a heq
+  obtain ⟨hsh, e125, e302, e306⟩ := vbg_tables h hg hd
+  -- the layer loop's iterations
+  have c300 := a 200 (.const (.n 300) (word 1 0 0)) (by decide +kernel)
+  have a303 := a 203 (.add (.n 303) (.n 300) (.n 302)) (by decide +kernel)
+  have c304 := a 204 (.const (.n 304) (word 1 0 0)) (by decide +kernel)
+  simp only [Atom.Holds, tb_word_one] at c300 a303 c304
+  obtain ⟨-, h7⟩ := tb_holds_callIf hnr h 207 (.n 303) "__loop7"
+    [.n 304, .n 306, .n 57, .n 6, .n 15, .n 16] (by decide +kernel)
+  have hB : ∀ j < depth / 2, LyB rd (σ (.n 57)) (σ (.n 6)) (σ (.n 15)) (gen ^ j) := by
+    intro j hj
+    have hne7 : σ (.n 303) ≠ 0 := by
+      rw [a303, c300, e302]
+      intro h0
+      have := gen_pow_inj (by omega) (by omega)
+        ((e_add_eq_zero_iff.mp h0).symm.trans (pow_zero gen).symm)
+      omega
+    have hrel7 := h7 hne7
+    simp only [List.map_cons, List.map_nil, c304] at hrel7
+    rw [← pow_zero gen] at hrel7
+    obtain ⟨m', -, hN, hall⟩ := tb_loop_sound
+      (B := LyB rd (σ (.n 57)) (σ (.n 6)) (σ (.n 15)))
+      (fun d x hx => ly_step tb_gkr_rounds_holds d x hx) 0 hrel7
+    have hm : depth / 2 ≤ m' := by
+      by_contra hc
+      have := gen_pow_inj (by omega) (by omega) (e306.symm.trans hN)
+      omega
+    exact hall j (by omega) (by omega)
+  rcases Nat.mod_two_eq_zero_or_one depth with h2 | h2
+  · -- an even depth: the layers from the root slot
+    rw [h2] at hsh
+    obtain ⟨xs, st, s, pos, hrun, hrd, hp, hsl⟩ := ly_chain hsh (by omega) (by omega) hB hslot0
+      (depth / 2) le_rfl
+    have hrun' : RunsTo (gkrLayers depth st0) s0 xs st s := by
+      rw [show depth = 2 * (depth / 2) by omega, gkrLayers_even]
+      exact hrun
+    rw [show 2 * (depth / 2) + 0 = depth by omega] at hsl
+    exact ⟨xs, st, s, _, _, _, _, hrun', hrd, hp (Or.inr (by omega)), hsl⟩
+  · -- an odd depth: the binary layer, then the layers
+    rw [h2] at hsh e125
+    have hi := tb_holds_slice hnr h 199 [.ite (.n 127) [] odBody] (by decide +kernel)
+    simp only [Stmt.HoldsList] at hi
+    rw [tb_holds_ite_noRet _ _ _ rfl odBody_noRet] at hi
+    obtain ⟨⟨-, -, hodd⟩, -⟩ := hi
+    have c126 := a 197 (.const (.n 126) (word 1 0 0)) (by decide +kernel)
+    have a127 := a 198 (.add (.n 127) (.n 125) (.n 126)) (by decide +kernel)
+    simp only [Atom.Holds, tb_word_one] at c126 a127
+    have hne : σ (.n 127) ≠ 0 := by
+      rw [a127, c126, e125]
+      intro h0
+      have := gen_pow_inj (by omega) (by omega)
+        ((e_add_eq_zero_iff.mp h0).trans (pow_zero gen).symm)
+      omega
+    obtain ⟨xs1, st1, s1, hrun1, hrd1, hp1, hsl1⟩ := od_step (hodd hne) hslot0
+    obtain ⟨xs, st, s, pos, hrun, hrd, hp, hsl⟩ := ly_chain hsh (by omega) (by omega) hB
+      (by simpa using hsl1) (depth / 2) le_rfl
+    have hrun' : RunsTo (gkrLayers depth st0) s0 (xs1 ++ xs) st s := by
+      rw [show depth = 2 * (depth / 2) + 1 by omega, gkrLayers_odd]
+      exact hrun1.bind hrun
+    have hrd' : TbReadsAt rd c0 (xs1 ++ xs) := by
+      rw [tbReadsAt_append]
+      exact ⟨hrd1, hrd⟩
+    rw [show 2 * (depth / 2) + 1 = depth by omega] at hsl
+    rw [mul_assoc c0, ← pow_add, ← List.length_append] at hsl
+    exact ⟨xs1 ++ xs, st, s, _, _, _, _, hrun', hrd', hp (Or.inl hp1), hsl⟩
+
 end
 end LeanVM.Guest.B1.Tables
