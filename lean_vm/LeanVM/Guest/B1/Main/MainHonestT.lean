@@ -121,7 +121,7 @@ theorem main_honest_relAtInT {T5 : Tree → Prop} (hbl : bytecode.length = 2 ^ 2
         RelAtInT coreProgram fs cert rd (fun i => i < 2) (fun _ => False) fp n "main" [] []
           (fun t => ∃ σ bufs ks, t = .node "main" σ bufs ks ∧ MVals rd σ (hm fs fp seed s w) ∧
             KidsT (mCalls σ (hm fs fp seed s w)) ((fun _ => True) :: mTs (hm fs fp seed s w) T5) ks ∧
-            calls (mEvs σ) = mCalls σ (hm fs fp seed s w)) :=
+            calls (mEvs σ) = mCalls σ (hm fs fp seed s w) ∧ bufs = mSizes (hData seed s w)) :=
   main_relAtInT fs cert fp (hData seed s w) (hOwn seed s w) (hOwn_fit (log2_of_length hbl) hr (freshShaped_of hbl hr))
     (hData_bounds hl fs fp) hData_daR _
     (mainKidsDT (mainGoals_of hbl hr hl hxc hsc hrf hl5.goal hag) hl5)
