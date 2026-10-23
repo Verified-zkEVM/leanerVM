@@ -33,6 +33,8 @@ open LeanVM.Guest.B1.Digest LeanVM.Node
 
 @[expose] public section
 
+variable {C : CallRel}
+
 variable {rd : Reader} {σ : Val} {K : ℕ → KidRec} {sl : ℕ → ℕ}
 
 theorem digestBytes_decSeed (σ : Val) :
@@ -43,7 +45,7 @@ theorem gLog_lg (σ : Val) (v : ℕ) : gLog (σ (.n v)) = lg σ v := (lg_eq_gLog
 /-! ## The statement's digest -/
 
 /-- **The decoded statement's digest** is the one `statement_digest` computes. -/
-theorem own_digest (MF : MainFacts rd σ) :
+theorem own_digest (MF : MainFacts C rd σ) :
     [σ (.n 444), σ (.n 445)] = digestCells (statementDigest (decSeed σ) (decStmt σ rd)) := by
   obtain ⟨h0, h1, cells, hl0, hl1, hlen, hreads, -, hrets⟩ := statement_digest_sound rd _ _ MF.own
   obtain ⟨cx, hlx, hrx, -, hdx⟩ := MF.xlist
@@ -81,11 +83,13 @@ open LeanVM.Guest.B1.Digest LeanVM.Node
 
 @[expose] public section
 
+variable {C : CallRel}
+
 variable {rd : Reader} {σ : Val} {K : ℕ → KidRec} {sl : ℕ → ℕ}
 
 /-! ## A child's statement's digest -/
 
-theorem kid_slots_d {c : ℕ} (k : KidOk rd σ c (K c)) :
+theorem kid_slots_d {c : ℕ} (k : KidOk C rd σ c (K c)) :
     SlotsHold rd (σ (.n 69)) (K c).di (K c).ed (K c).cellsd := by
   refine ⟨k.dlen, fun d hd i hi => ?_⟩
   obtain ⟨hl4, -, -, hload, hreads⟩ := k.drec d hd
@@ -103,7 +107,7 @@ theorem kid_slots_d {c : ℕ} (k : KidOk rd σ c (K c)) :
   exact h1
 
 /-- **Child `c`'s statement's digest** is the one its `statement_digest` call computes. -/
-theorem kid_digest (MF : MainFacts rd σ) (hK : ∀ c < lg σ 6, KidOk rd σ c (K c))
+theorem kid_digest (MF : MainFacts C rd σ) (hK : ∀ c < lg σ 6, KidOk C rd σ c (K c))
     (hW : Writers rd (σ (.n 117)) (segsOf σ K) (LXS σ) (LSS σ) (DAS σ))
     (hC : Cover rd (σ (.n 117)) (segsOf σ K) (LXS σ) (LSS σ) (DAS σ) sl) {c : ℕ}
     (hc : c < lg σ 6) :

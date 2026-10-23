@@ -30,6 +30,8 @@ open LeanVM.Guest.B1.Digest LeanVM.Node
 
 @[expose] public section
 
+variable {C : CallRel}
+
 variable {rd : Reader}
 
 /-! ## Slots -/

@@ -28,6 +28,8 @@ open LeanVM.Guest.B1.Digest LeanVM.Node
 
 @[expose] public section
 
+variable {C : CallRel}
+
 /-- A child's records. -/
 structure KidRec where
   base : E
@@ -56,7 +58,7 @@ structure KidRec where
   defer : List E
 
 /-- **What child `c` establishes.** -/
-structure KidOk (rd : Reader) (σ : Val) (c : ℕ) (k : KidRec) : Prop where
+structure KidOk (C : CallRel) (rd : Reader) (σ : Val) (c : ℕ) (k : KidRec) : Prop where
   base : LoadHolds rd (σ (.n 409)) c k.base
   next : LoadHolds rd (σ (.n 409)) (c + 1) (k.base * (gen ^ k.ex * gen ^ k.es) * gen ^ k.ed)
   bounds : k.ex ≤ 65535 ∧ k.es ≤ 65535 ∧ k.ed ≤ 16
@@ -92,7 +94,7 @@ structure KidOk (rd : Reader) (σ : Val) (c : ℕ) (k : KidRec) : Prop where
     digestCells (keccak256 (stmtBytes [σ (.n 63), σ (.n 64), k.h0, k.h1, k.d0, k.d1] k.defer))
   pi0 : LoadHolds rd (σ (.n 394)) (2 * c) k.p0
   pi1 : LoadHolds rd (σ (.n 394)) (2 * c + 1) k.p1
-  sub : coreProgram.Rel rd "verify_sub"
+  sub : C "verify_sub"
     [k.p0, k.p1, σ (.n 63), σ (.n 64), σ (.n 65), σ (.n 66), σ (.n 400) * gen ^ (24 * c)] []
 
 theorem loadHolds_gen_pow_iff {rd : Reader} {p : E} {c k : ℕ} {w : E} :
@@ -100,8 +102,8 @@ theorem loadHolds_gen_pow_iff {rd : Reader} {p : E} {c k : ℕ} {w : E} :
   loadHolds_mul_gen_pow rd p c k w
 
 /-- **Each child's records.** -/
-theorem kid_rec {rd : Reader} (hm : MemOk rd) {σ : Val} (MF : MainFacts rd σ) :
-    ∀ c < lg σ 6, ∃ k : KidRec, KidOk rd σ c k := by
+theorem kid_rec {rd : Reader} (hm : MemOk rd) {σ : Val} (MF : MainFacts C rd σ) :
+    ∀ c < lg σ 6, ∃ k : KidRec, KidOk C rd σ c k := by
   intro c hc
   obtain ⟨base, sp, cx0, cx1, cs0, cs1, d0, d1, p0, p1, cda, ex, es, ed, hb, hex, hes, hed, hcx,
     hcs, hcan, hsp0, hsp1, hdas, hdl, hsd, hp0, hp1, hsub, hnext⟩ := MF.children c hc

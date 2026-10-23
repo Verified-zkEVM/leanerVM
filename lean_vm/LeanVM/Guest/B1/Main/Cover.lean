@@ -34,6 +34,8 @@ open LeanVM.Guest.B1.Digest LeanVM.Node
 
 @[expose] public section
 
+variable {C : CallRel}
+
 /-! ## Searches over a range -/
 
 /-- The first index below `n` at which a monotone `A` passes `e` is the `c` with
