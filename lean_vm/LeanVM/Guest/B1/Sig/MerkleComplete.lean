@@ -204,6 +204,39 @@ theorem mBase_ge (nodeOf : Nat → Option V) : ∀ (l j b : Nat), b ≤ mBase no
       simp only [mBase]
       omega
 
+theorem merkleT_snd_ge (pad : Nat) (pp : V) (bitOf : Nat → V) (nodeOf : Nat → Option V)
+    (addrOf : Nat → Nat) : ∀ (m l : Nat) (cur : V) (b : Nat), b ≤ (merkleT pad pp bitOf nodeOf addrOf m l cur b).2.1
+  | 0, _, _, _ => le_rfl
+  | m + 1, l, cur, b => by
+      simp only [merkleT]
+      split <;>
+        exact le_trans (Nat.le_trans (Nat.le_add_right b _) (Nat.le_add_right _ 14))
+          (merkleT_snd_ge pad pp bitOf nodeOf addrOf m (l + 1) _ _)
+
+theorem level_numBelow {pad : Nat} {pp bit cur : V} {b c w : Nat} {nodeL : List Stmt}
+    (hpb : pad + 5 ≤ b) (hpp : NBv b pp) (hbit : NBv b bit) (hcur : NBv b cur)
+    (hseq : SeqOK (b + 4) ([cst (b + 4) (word w 0 0)] ++ nodeL) c) (hcb : b + 5 ≤ c) :
+    NumBelow (c + 14) (Stmt.valsList ([hintW "siblings" [.n b, .n (b + 1)], addS (.n (b + 2)) cur (.n b),
+      addS (.n (b + 3)) (.n b) (.n (b + 1)), mulS (.n (b + 2)) bit (.n (b + 3)), cst (b + 4) (word w 0 0)] ++
+      nodeL ++ k64 pad pp (.n (c - 1)) (.n b) (.n (b + 1)) c (c + 1))) := by
+  have hn := hseq.numBelow
+  rw [valsList_append] at hn
+  intro x hx
+  simp only [valsList_append, List.mem_append] at hx
+  rcases hx with (hx | hx) | hx
+  · simp only [hintW, addS, mulS, cst, valsList_cons, valsList_nil, Stmt.vals, Atom.vals, Hint.vals,
+      Dest.vals, List.append_nil, List.cons_append, List.nil_append, List.mem_cons, List.not_mem_nil,
+      or_false] at hx
+    rcases hx with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl
+    all_goals first | exact ⟨_, by omega, rfl⟩ | exact hcur.mono' (by omega) | exact hbit.mono' (by omega)
+  · obtain ⟨j, hj, rfl⟩ := hn x (List.mem_append_right _ hx)
+    exact ⟨j, by omega, rfl⟩
+  · simp only [k64, cst, kecS, valsList_cons, valsList_nil, Stmt.vals, Atom.vals, List.append_nil,
+      List.cons_append, List.nil_append, List.mem_cons] at hx
+    rcases hx with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | hx
+    all_goals first | exact ⟨_, by omega, rfl⟩ | exact hpp.mono' (by omega) |
+      exact runV_nb (o := c + 1) (n := 13) (by omega) _ hx
+
 /-- **A Merkle path completes**: its children hinted in order, its node at each level the forward
 fold of the siblings. -/
 theorem merkleT_complete {pad : Nat} {pp : V} {bitOf : Nat → V} {nodeOf : Nat → Option V}
@@ -268,7 +301,48 @@ theorem merkleT_complete {pad : Nat} {pp : V} {bitOf : Nat → V} {nodeOf : Nat 
             he1.apply (k := mBase nodeOf (l + 1) j (c + 14) + 1) (Or.inr (by omega)), e1, e2, hstepj j,
             show l + (j + 1) = l + 1 + j by omega]
           exact ⟨rfl, rfl⟩
-      sorry
+      have hall : ∀ (c : Nat) (nodeL : List Stmt), b + 5 ≤ c → mNext nodeOf l b = c + 14 →
+          SeqOK (b + 4) ([cst (b + 4) (word (addrOf l) 0 0)] ++ nodeL) c →
+          (∀ σ', AgreeBelow b σ σ' → AtomsHold rd σ' ([cst (b + 4) (word (addrOf l) 0 0)] ++ nodeL) →
+            σ' (.n (c - 1)) = mA σ nodeOf addrOf l) →
+          merkleT pad pp bitOf nodeOf addrOf (m + 1) l cur b =
+            ([hintW "siblings" [.n b, .n (b + 1)], addS (.n (b + 2)) cur (.n b),
+              addS (.n (b + 3)) (.n b) (.n (b + 1)), mulS (.n (b + 2)) (bitOf l) (.n (b + 3)),
+              cst (b + 4) (word (addrOf l) 0 0)] ++ nodeL ++ k64 pad pp (.n (c - 1)) (.n b) (.n (b + 1)) c (c + 1) ++
+              (merkleT pad pp bitOf nodeOf addrOf m (l + 1) (.n (c + 1)) (c + 14)).1,
+              (merkleT pad pp bitOf nodeOf addrOf m (l + 1) (.n (c + 1)) (c + 14)).2.1,
+              (merkleT pad pp bitOf nodeOf addrOf m (l + 1) (.n (c + 1)) (c + 14)).2.2) →
+          Completes C rd b (merkleT pad pp bitOf nodeOf addrOf (m + 1) l cur b).2.1
+            (merkleT pad pp bitOf nodeOf addrOf (m + 1) l cur b).1 σ
+            (fun σ' => σ' (merkleT pad pp bitOf nodeOf addrOf (m + 1) l cur b).2.2 =
+              mFold (σ pp) (mA σ nodeOf addrOf) bits sibs (m + 1) l (σ cur) ∧
+              IsCanonical128 (σ' (merkleT pad pp bitOf nodeOf addrOf (m + 1) l cur b).2.2)) := by
+        intro c nodeL hc hnx hseq hA heq
+        rw [heq]
+        have hge := merkleT_snd_ge pad pp bitOf nodeOf addrOf m (l + 1) (.n (c + 1)) (c + 14)
+        refine Completes.append (m := c + 14) (by omega) hge
+          (level_numBelow hpb hpp h0.1 hcur hseq hc)
+          (merkle_level_complete (C := C) (rd := rd) σ hp hpb hpp h0.1 hcur hseq hc hA
+            (canon_mA (fun nd h => (hnodes l nd h).2)) h0.2 (hsibs 0 (by omega)) hcc hppc hh0)
+          (fun σ1 he1 ⟨hv, hc1⟩ => hrest c hc hnx σ1 he1 hv hc1)
+      cases hn : nodeOf l with
+      | none =>
+          refine hall (b + 5) [] (by omega) (by simp [mNext, hn]) ⟨rfl, rfl⟩ (fun σ' _ hat => ?_)
+            (by simp [merkleT, hn])
+          have := hat.atom (a := .const (.n (b + 4)) (word (addrOf l) 0 0)) (by simp [cst])
+          simp only [mA, hn, add_zero]
+          exact this
+      | some nd =>
+          have hnd := hnodes l nd hn
+          refine hall (b + 6) [addS (.n (b + 5)) (.n (b + 4)) nd] (by omega) (by simp [mNext, hn])
+            ⟨rfl, ⟨rfl, ⟨b + 4, by omega, rfl⟩, hnd.1.mono' (by omega)⟩, rfl⟩ (fun σ' hag hat => ?_)
+            (by simp [merkleT, hn])
+          have e1 := hat.atom (a := .const (.n (b + 4)) (word (addrOf l) 0 0)) (by simp [cst])
+          have e2 := hat.atom (a := .add (.n (b + 5)) (.n (b + 4)) nd) (by simp [addS])
+          simp only [Atom.Holds] at e1 e2
+          simp only [mA, hn]
+          show σ' (.n (b + 5)) = _
+          rw [e2, e1, hag.apply hnd.1]
 
 end
 end LeanVM.Guest.B1.Sig
