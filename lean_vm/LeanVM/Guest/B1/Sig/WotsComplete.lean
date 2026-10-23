@@ -360,5 +360,104 @@ theorem walkSteps_canon {W : WotsT} {B : Nat} {good : Val → Prop} (hW : StepSh
           · have := hl.inc s (d + m) (by omega) (by omega)
             omega
 
+theorem fwd_hint (s : String) (vs : List V) (σ : Val) : fwd [hintW s vs] σ = σ := rfl
+
+/-- A walk's start or hinted tip is canonical. -/
+def StartCanon (σ : Val) (slot : Nat → Nat) (d b : Nat) : Prop :=
+  IsCanonical128 (σ (walkStartV slot d b))
+
+/-- **A walk's `KECCAK`s read canonical inputs**, and its tip is canonical. -/
+theorem walkT_canon {W : WotsT} {B : Nat} {good : Val → Prop} (hW : StepShape W B)
+    (hc : StepCanon W B good) {i : Nat} {slot : Nat → Nat} {stride d b : Nat} (hd : d ≤ 3)
+    (hl : WalkLay W B slot stride d b) (σ : Val) (hg : good σ) (hs : StartCanon σ slot d b) :
+    KCanon (fwd (walkT W i slot stride d b) σ) (walkT W i slot stride d b) ∧
+      IsCanonical128 (fwd (walkT W i slot stride d b) σ (.n (slot 2))) := by
+  by_cases h3 : d = 3
+  · subst h3
+    simp only [walkT, ↓reduceIte, fwd_hint]
+    refine ⟨fun _ _ _ _ h => by simp [hintW] at h, ?_⟩
+    simpa [StartCanon, walkStartV] using hs
+  · have hs' : IsCanonical128 (σ (.n b)) := by simpa [StartCanon, walkStartV, h3] using hs
+    rw [walkT_eq_steps W i slot stride d b h3, fwd_append, fwd_hint]
+    obtain ⟨k1, k2⟩ := walkSteps_canon (i := i) hW hc (show d < 3 by omega) hl (3 - d) le_rfl σ hg hs'
+    refine ⟨KCanon.append (xs := [hintW "chain_starts" [.n b]]) (fun _ _ _ _ h => by simp [hintW] at h)
+      k1 (SSA.disj (walkT_eq_steps W i slot stride d b h3 ▸ (walkT_ssa (i := i) hW hd hl).1)), ?_⟩
+    simpa using k2 2 (by omega) (by omega) 0 (by omega)
+
+/-- **The walks' `KECCAK`s read canonical inputs**, and their tips are canonical. -/
+theorem walksT_canon {W : WotsT} {B : Nat} {good : Val → Prop} (hW : StepShape W B)
+    (hc : StepCanon W B good) (slots : Nat → Nat → Nat) (first k stride : Nat) :
+    ∀ (m r b : Nat),
+      (∀ t < m, WalkLay W B (slots (r + t)) stride (dig k (r + t)) (walkBase stride k r t b)) →
+      (∀ t < m, ∀ t' < m, t ≠ t' → ∀ x,
+        WalkR (slots (r + t)) stride (dig k (r + t)) (walkBase stride k r t b) x →
+        ¬ WalkR (slots (r + t')) stride (dig k (r + t')) (walkBase stride k r t' b) x) →
+      ∀ σ, good σ →
+      (∀ t < m, StartCanon σ (slots (r + t)) (dig k (r + t)) (walkBase stride k r t b)) →
+      KCanon (fwd (walksT W slots first k stride m r b).1 σ) (walksT W slots first k stride m r b).1 ∧
+        ∀ t < m, IsCanonical128 (fwd (walksT W slots first k stride m r b).1 σ (.n (slots (r + t) 2)))
+  | 0, _, _, _, _, σ, _, _ => ⟨fun _ _ _ _ h => by simp [walksT] at h, fun t ht => by omega⟩
+  | m + 1, r, b, hl, hd, σ, hg, hs => by
+      have hl0 := hl 0 (by omega)
+      simp only [Nat.add_zero, walkBase] at hl0
+      have hs0 := hs 0 (by omega)
+      simp only [Nat.add_zero, walkBase] at hs0
+      have hbase : ∀ t, walkBase stride k (r + 1) t (b + walkSize stride (dig k r)) =
+          walkBase stride k r (t + 1) b := fun t => rfl
+      obtain ⟨a1, a2, a3⟩ := walkT_ssa (i := first + r) hW (dig_le k r) hl0
+      obtain ⟨c1, c2⟩ := walkT_canon (i := first + r) hW hc (dig_le k r) hl0 σ hg hs0
+      set σ1 := fwd (walkT W (first + r) (slots r) stride (dig k r) b) σ with hσ1
+      have hnb : ∀ v ∈ outsList (walkT W (first + r) (slots r) stride (dig k r) b), ¬ NBvF B v := by
+        intro v hv ⟨j, hj, e⟩
+        subst e
+        rcases a2 _ hv with ⟨u, hu, e⟩ | ⟨s, hs', u, hu, e⟩ <;> simp only [V.mk.injEq, true_and] at e
+        · have := hl0.base; omega
+        · have := hl0.slotB s hs'; omega
+      have hg1 : good σ1 := hc.1 _ _ (fwd_agree hnb σ) hg
+      have hwr : ∀ t, t + 1 < m + 1 → ∀ v ∈ outsList (walkT W (first + r) (slots r) stride (dig k r) b),
+          ¬ WalkR (slots (r + (t + 1))) stride (dig k (r + (t + 1))) (walkBase stride k r (t + 1) b) v := by
+        intro t ht v hv hw
+        exact hd 0 (by omega) (t + 1) ht (by omega) v (by simpa [walkBase] using a2 v hv) hw
+      obtain ⟨r1, r2⟩ := walksT_canon hW hc slots first k stride m (r + 1) (b + walkSize stride (dig k r))
+        (fun t ht => by
+          rw [hbase, show r + 1 + t = r + (t + 1) by omega]
+          exact hl (t + 1) (by omega))
+        (fun t ht t' ht' hne x hx => by
+          rw [hbase, show r + 1 + t = r + (t + 1) by omega] at hx
+          rw [hbase, show r + 1 + t' = r + (t' + 1) by omega]
+          exact hd (t + 1) (by omega) (t' + 1) (by omega) (by omega) x hx)
+        σ1 hg1 (fun t ht => by
+          rw [hbase, show r + 1 + t = r + (t + 1) by omega]
+          have := hs (t + 1) (by omega)
+          unfold StartCanon at this ⊢
+          rw [hσ1, fwd_of_not_mem _ _ fun hm => hwr t (by omega) _ hm ?_]
+          · exact this
+          · unfold walkStartV
+            split
+            · exact Or.inr ⟨2, by omega, 0, by omega, by simp⟩
+            · rename_i h3
+              exact Or.inl ⟨0, by simp [walkSize, h3], by simp⟩)
+      obtain ⟨-, rs2, -⟩ := walksT_ssa hW slots first k stride m (r + 1) (b + walkSize stride (dig k r))
+        (fun t ht => by
+          rw [hbase, show r + 1 + t = r + (t + 1) by omega]
+          exact hl (t + 1) (by omega))
+        (fun t ht t' ht' hne x hx => by
+          rw [hbase, show r + 1 + t = r + (t + 1) by omega] at hx
+          rw [hbase, show r + 1 + t' = r + (t' + 1) by omega]
+          exact hd (t + 1) (by omega) (t' + 1) (by omega) (by omega) x hx)
+      have hdisj := SSA.disj (walksT_ssa hW slots first k stride (m + 1) r b hl hd).1
+      simp only [walksT] at hdisj ⊢
+      refine ⟨KCanon.append c1 r1 hdisj, fun t ht => ?_⟩
+      rw [fwd_append]
+      rcases t with _ | t
+      · rw [fwd_of_not_mem _ _ fun hm => ?_]
+        · simpa using c2
+        · obtain ⟨t', ht', hw⟩ := rs2 _ hm
+          rw [hbase, show r + 1 + t' = r + (t' + 1) by omega] at hw
+          exact hd (t' + 1) (by omega) 0 (by omega) (by omega) _ hw
+            (Or.inr ⟨2, by omega, 0, by omega, by simp⟩)
+      · have := r2 t (by omega)
+        rwa [show r + 1 + t = r + (t + 1) by omega] at this
+
 end
 end LeanVM.Guest.B1.Sig
