@@ -3,7 +3,7 @@
 # each in its own directory with its own manifest, then lean_vm against leanVM at `leanvm-rev`
 # (`leanvm`, which needs cargo). `lake build` at the root runs it.
 #
-#   ./check-all.sh [lean_xmss] [lean_sphincs] [lean_da] [lean_vm] [leanvm]   (default: all five)
+#   ./check-all.sh [lean_rpm] [lean_xmss] [lean_sphincs] [lean_da] [lean_vm] [leanvm]   (default: all six)
 #
 # The compiled checks and `lean` run under a virtual-memory cap of LEAN_VMEM_KB (default 40 GB);
 # `lake` itself cannot, as it reserves about 1 GB of address space per job. WIDTH is passed to
@@ -46,6 +46,14 @@ axioms() {
     grep -qF "'$t' depends on axioms: [propext, Classical.choice, Quot.sound]" "$log/axioms.txt" \
       || fail "$dir: $t depends on more axioms"
   done
+}
+
+lean_rpm() {
+  no_escapes lean_rpm
+  (cd lean_rpm && lake exe cache get)
+  build lean_rpm 'LeanRpm'
+  axioms lean_rpm LeanRpm LeanRpm.indifferentiability LeanRpm.transfer LeanRpm.transfer2 \
+    LeanRpm.keccak256_indifferentiable LeanRpm.keccak256_transfer LeanRpm.keccak256_transfer2
 }
 
 lean_xmss() {
@@ -121,10 +129,10 @@ leanvm() {
 }
 
 projects=("$@")
-[ ${#projects[@]} -gt 0 ] || projects=(lean_xmss lean_sphincs lean_da lean_vm leanvm)
+[ ${#projects[@]} -gt 0 ] || projects=(lean_rpm lean_xmss lean_sphincs lean_da lean_vm leanvm)
 for p in "${projects[@]}"; do
   case $p in
-    lean_xmss | lean_sphincs | lean_da | lean_vm | leanvm) "$p" ;;
+    lean_rpm | lean_xmss | lean_sphincs | lean_da | lean_vm | leanvm) "$p" ;;
     *) fail "unknown project $p" ;;
   esac
 done

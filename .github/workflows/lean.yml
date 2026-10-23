@@ -14,6 +14,32 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  lean-rpm-formalization:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Forbid proof escapes
+        run: |
+          ! grep -rnE '\b(sorry|sorryAx|admit|native_decide|unsafe|implemented_by)\b|#exit' \
+              --include='*.lean' --exclude-dir=.lake lean_rpm | grep -vE ':[0-9]+: *(--|/-)'
+      - uses: leanprover/lean-action@v1
+        with:
+          lake-package-directory: lean_rpm
+      - name: Forbid deprecated API
+        working-directory: lean_rpm
+        run: |
+          lake build 2>&1 | tee "$RUNNER_TEMP/build.log"
+          ! grep -E '^warning: LeanRpm.*has been deprecated' "$RUNNER_TEMP/build.log"
+      - name: Check the axiom footprint
+        working-directory: lean_rpm
+        run: |
+          theorems="LeanRpm.indifferentiability LeanRpm.transfer LeanRpm.transfer2 LeanRpm.keccak256_indifferentiable LeanRpm.keccak256_transfer LeanRpm.keccak256_transfer2"
+          { echo 'import LeanRpm'; for t in $theorems; do echo "#print axioms $t"; done; } > "$RUNNER_TEMP/axioms.lean"
+          lake env lean "$RUNNER_TEMP/axioms.lean" | tee "$RUNNER_TEMP/axioms.txt"
+          for t in $theorems; do
+            grep -qF "'$t' depends on axioms: [propext, Classical.choice, Quot.sound]" "$RUNNER_TEMP/axioms.txt"
+          done
+
   lean-xmss-formalization:
     runs-on: ubuntu-latest
     steps:
