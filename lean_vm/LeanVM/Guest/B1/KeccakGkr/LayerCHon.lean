@@ -187,7 +187,8 @@ theorem run_add (hpm : D.packMsgs.length = D.y) {k n : ℕ} (hk : k + n ≤ D.y)
 theorem run_pair (hpm : D.packMsgs.length = D.y) {j : ℕ} (hj : 2 * j + 2 ≤ D.y) :
     D.run first (2 * (j + 1)) = cont (D.run first (2 * j))
       [D.c.point.getD (2 * j) 0, D.c.point.getD (2 * j + 1) 0]
-      [D.packMsgs.getD (2 * j) (0, 0), D.packMsgs.getD (2 * j + 1) (0, 0)] := by
+      [((D.packMsgs.getD (2 * j) (0, 0)).1, (D.packMsgs.getD (2 * j) (0, 0)).2),
+        ((D.packMsgs.getD (2 * j + 1) (0, 0)).1, (D.packMsgs.getD (2 * j + 1) (0, 0)).2)] := by
   have hy : D.y = D.c.point.length := rfl
   rw [show 2 * (j + 1) = 2 * j + 2 by ring, run_add hpm hj]
   congr 1
@@ -211,7 +212,7 @@ theorem run_pair (hpm : D.packMsgs.length = D.y) {j : ℕ} (hj : 2 * j + 2 ≤ D
 /-- **One more pack round** (`y` odd). -/
 theorem run_one (hpm : D.packMsgs.length = D.y) {j : ℕ} (hj : 2 * j + 1 = D.y) :
     D.run first D.y = cont (D.run first (2 * j)) [D.c.point.getD (2 * j) 0]
-      [D.packMsgs.getD (2 * j) (0, 0)] := by
+      [((D.packMsgs.getD (2 * j) (0, 0)).1, (D.packMsgs.getD (2 * j) (0, 0)).2)] := by
   have hy : D.y = D.c.point.length := rfl
   rw [← hj, run_add hpm (by omega)]
   congr 1
@@ -249,6 +250,15 @@ theorem run_chs (hpm : D.packMsgs.length = D.y) {k : ℕ} (hk : k ≤ D.y) {i : 
   simp only [e]
   rw [List.getElem_append_left hi]
 
+theorem run_chsD (hpm : D.packMsgs.length = D.y) {k : ℕ} (hk : k ≤ D.y) {i : ℕ} (hi : i < k) :
+    (D.chs first).getD i 0 = (D.run first k).1.2.2.getD i 0 := by
+  have hl : (D.run first k).1.2.2.length = k := by
+    have hy : D.y = D.c.point.length := rfl
+    exact (packRunF_chs_length _ _ _ _ _ (by simp only [List.length_take]; omega)).trans
+      (by simp only [List.length_take]; omega)
+  obtain ⟨h1, h2⟩ := run_chs (D := D) (first := first) hpm hk (i := i) (by omega)
+  rw [List.getD_eq_getElem _ _ h1, List.getD_eq_getElem _ _ (by omega), h2]
+
 theorem run_chs_length (hpm : D.packMsgs.length = D.y) {k : ℕ} (hk : k ≤ D.y) :
     (D.run first k).1.2.2.length = k := by
   have hy : D.y = D.c.point.length := rfl
@@ -257,5 +267,12 @@ theorem run_chs_length (hpm : D.packMsgs.length = D.y) {k : ℕ} (hk : k ≤ D.y
 
 end LayerData
 
+namespace LayerData
+variable {D : LayerData} {first : ℕ}
+
+theorem chs_length (hpm : D.packMsgs.length = D.y) : (D.chs first).length = D.y := by
+  rw [chs, ← run_full hpm]; exact run_chs_length hpm le_rfl
+
+end LayerData
 end
 end LeanVM.Guest.B1.VerifySub
