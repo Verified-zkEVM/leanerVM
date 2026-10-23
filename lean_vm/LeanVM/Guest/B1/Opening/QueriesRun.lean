@@ -10,7 +10,7 @@ module
 public import LeanVM.Guest.B1.Opening.Meaning
 
 /-!
-# `opening_queries` against `enforcedSum` (V:1635)
+# `opening_queries` against `enforcedSum` (V:1694)
 
 * `oqChain_powers`: the chain `h ← (h + d_k)·λ⁻¹` times `λ^Q` is `Σ_k λ^k d_k`, in the order
   `enforcedSum` sums (its weights `powers λ Q`, V:184): `enforcedSum_eq`.
@@ -19,7 +19,7 @@ public import LeanVM.Guest.B1.Opening.Meaning
 * `rowDot_level0`, `rowDot_deeper`: with the weights `opening_row_weights` writes
   (`MeaningOpeningRowWeights 6 1`, `… 4 0`), a row's `rowDot` is `dot (row.reverse.map ofK)
   (eqKernel folds)` at level 0 and `dot (extRow row) (eqKernel folds)` deeper, the Spec's
-  `enforcedSum` terms (`whirLevels`, V:1752-1754).
+  `enforcedSum` terms (`whirLevels`, V:1811-1813).
 -/
 
 namespace LeanVM.Guest.B1
@@ -87,7 +87,7 @@ theorem length_powersFrom (acc base : E) : ∀ n, (powersFrom acc base n).length
   | 0 => rfl
   | n + 1 => by simp [powersFrom, length_powersFrom _ _ n]
 
-/-- **`enforcedSum` with the powers of `λ`** (V:1635): `Σ_k λ^k ⟨row_k, eqKernel folds⟩`. -/
+/-- **`enforcedSum` with the powers of `λ`** (V:1694): `Σ_k λ^k ⟨row_k, eqKernel folds⟩`. -/
 theorem enforcedSum_eq (rows : List (List E)) (folds : List E) (lam : E) :
     enforcedSum rows folds (powers lam rows.length) =
       powSum lam (fun k ↦ dot (rows.getD k []) (eqKernel folds)) rows.length := by
@@ -217,7 +217,7 @@ theorem rowLo_64 : rowLo 64 = 8 := rfl
 theorem rowLo_16 : rowLo 16 = 8 := rfl
 
 /-- **Level 0** (`base = 1`, the weights `opening_row_weights__L6_L1` writes, reversed): the row's
-dot product is `dot (row.reverse.map ofK) (eqKernel folds)` (`whirLevels`' rows, V:1752). -/
+dot product is `dot (row.reverse.map ofK) (eqKernel folds)` (`whirLevels`' rows, V:1811). -/
 theorem rowDot_level0 {row : List K} (hrow : row.length = 64) {rs : List E} (hrs : rs.length = 6)
     {w : ℕ → E} (hlo : ∀ i < 8, w i = (eqKernel (rs.take 3)).getD (7 - i) 0)
     (hhi : ∀ i < 8, w (8 + i) = (eqKernel (rs.drop 3)).getD (7 - i) 0) :
@@ -264,7 +264,7 @@ theorem length_extRow_mul3 : ∀ (row : List K) (n : ℕ), row.length = 3 * n �
     simp only [List.length_cons, List.length_nil] at h; omega
 
 /-- **Deeper levels** (`base = 0`, the weights `opening_row_weights__L4_L0` writes): the row's
-dot product is `dot (extRow row) (eqKernel folds)` (`whirLevels`' rows, V:1754). -/
+dot product is `dot (extRow row) (eqKernel folds)` (`whirLevels`' rows, V:1813). -/
 theorem rowDot_deeper {row : List K} (hrow : row.length = 48) {rs : List E} (hrs : rs.length = 4)
     {w : ℕ → E} (hlo : ∀ i < 8, w i = (eqKernel (rs.take 3)).getD i 0)
     (hhi : ∀ i < 2, w (8 + i) = (eqKernel (rs.drop 3)).getD i 0) :

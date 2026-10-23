@@ -19,7 +19,7 @@ public import LeanVM.Protocol.ToArkLib.Merkle
 # The honest prover and the completeness of the compilation
 
 The prover is transcribed from the pinned leanVM
-(`3375f7a137c50b803f3416f6466b5d4e0719708a`):
+(`4af2cdddd7cd41b9df2cc7e123e314a91b0b4462`):
 
 * the Fiat-Shamir sponge is the one `run` checks (`crates/fiat_shamir/src/lib.rs`, `observe`,
   `sample`): a scalar sent is absorbed with tag `1`, a challenge squeezed by a permutation;

@@ -16,10 +16,10 @@ public import LeanVM.Spec.Isa
 The opcodes, their codes and the
 memory and bytecode caps are defined in `LeanVM.Spec.Isa`; the two table-height caps are here.
 Transcribed at leanVM
-pin `127510d14c98ade4e8a97646c44fa7f1ff5e752d`, the opcodes checked again at `3375f7a1`:
+pin `127510d14c98ade4e8a97646c44fa7f1ff5e752d`, the opcodes checked again at `4af2cddd`:
 
 * the opcode codes `g^0, …, g^5` in the order XOR, MUL_NATIVE, SET_CONSTANT, DEREF, JUMP,
-  KECCAK: `crates/leanvm_core/src/tables.rs:99-104` at `3375f7a1` (`OP_XOR`, …, `OP_KECCAK`; the
+  KECCAK: `crates/leanvm_core/src/tables.rs:99-104` at `4af2cddd` (`OP_XOR`, …, `OP_KECCAK`; the
   sixth was `OP_BLAKE2S` at `127510d1`);
 * the memory bounds `16 ≤ κ_mem ≤ 32`: specification §2 (`02-vm-specification.tex:49`) and
   §6.3 (`06-bus-interactions.tex:86`); `crates/leanvm_core/src/cpu/mod.rs:51-52`;

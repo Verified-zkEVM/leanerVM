@@ -112,7 +112,6 @@ pub fn file() -> File {
     let statement = statement_digest(signers, da_digest, &defer);
 
     // Two children with true claims on the stacked bytecode.
-    let selectors = leanvm_core::leaf::N_BYTECODE_SELECTORS;
     let subproofs: Vec<DeferredSubproof> = (0..2)
         .map(|_| {
             let point = elements(&mut rng, kbcv);
@@ -120,8 +119,7 @@ pub fn file() -> File {
             let canonical = |rng: &mut StdRng| F192::new(rng.random(), rng.random(), 0);
             DeferredSubproof {
                 public_input: [canonical(&mut rng), canonical(&mut rng)],
-                bytecode_row_point: point[..kbcv - selectors].to_vec(),
-                bytecode_selector_point: point[kbcv - selectors..].to_vec(),
+                bytecode_point: point,
                 bytecode_value: value,
             }
         })
@@ -194,12 +192,7 @@ pub fn file() -> File {
         .iter()
         .zip(&carried)
         .map(|(s, c)| {
-            let fresh: Vec<F192> = s
-                .bytecode_row_point
-                .iter()
-                .chain(&s.bytecode_selector_point)
-                .copied()
-                .collect();
+            let fresh: Vec<F192> = s.bytecode_point.clone();
             format!(
                 "⟨{},\n   ⟨{},\n    {}⟩,\n   ⟨{},\n    {}⟩⟩",
                 cells_digest(&s.public_input),

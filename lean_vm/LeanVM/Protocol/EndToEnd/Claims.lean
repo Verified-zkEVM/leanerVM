@@ -23,7 +23,7 @@ them and WHIR checks the batch against the committed word.
 `StackClaim.Holds μ c q` is the claim's meaning for a stack `q` on `μ` variables: the inner product
 of the weight's values on the cube with the stack is the value. `boolPoint μ x` is the cube point
 of index `x`, bit `0` first, as the verifier writes points (`eq_eval`, `_selector_point`,
-`verifier.py:256-318`). A weight function means what WHIR checks of it only if it is the
+`verifier.py:258-317`). A weight function means what WHIR checks of it only if it is the
 multilinear extension of its values on the cube (`IsMultilinearFn`): WHIR's terminal check
 evaluates it at a random point.
 

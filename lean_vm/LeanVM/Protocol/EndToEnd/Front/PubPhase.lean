@@ -19,8 +19,8 @@ public import LeanVM.Protocol.EndToEnd.Front.InstanceWith
 /-!
 # The public-input phase as a specification
 
-Step 5 of `verify_execution` (`publicInputPhase`, `python-verifier/verifier.py:1484-1490` at leanVM
-`3375f7a137c50b803f3416f6466b5d4e0719708a`): sample `r`, and claim for each memory column `ℓ`
+Step 5 of `verify_execution` (`publicInputPhase`, `python-verifier/verifier.py:1497-1503` at leanVM
+`4af2cdddd7cd41b9df2cc7e123e314a91b0b4462`): sample `r`, and claim for each memory column `ℓ`
 the line through limb `ℓ` of the public-input digest's two halves `(h₀, h₁)` at `r`,
 `(1 + r)·h₀,ℓ + r·h₁,ℓ` (`pubLimb`), at `(r, 0, …, 0)`. The prover sends nothing. It is a sample
 followed by a return (`publicInputPhase_eq`).
@@ -72,18 +72,18 @@ open scoped ENNReal NNReal
 /-! ## The program -/
 
 /-- The point of the public claims, `(r, 0, …, 0)` on the memory's variables
-(`verifier.py:1395`). -/
+(`verifier.py:1406`). -/
 def pubPoint (layout : Verifier.Layout) (r : E) : List E :=
   r :: List.replicate ((layout.placement memory0).vars - 1) 0
 
 /-- The program's value of memory limb `ℓ` at the challenge: the line through limb `ℓ` of the
-digest's two halves, `multilinear_eval((first.c_ℓ, second.c_ℓ), [r])` (`verifier.py:1393-1394`). -/
+digest's two halves, `multilinear_eval((first.c_ℓ, second.c_ℓ), [r])` (`verifier.py:1404-1405`). -/
 def pubLimb (publicInput : Digest) (r : E) (ℓ : Fin 3) : E :=
   multilinearEval [ofK ((digestScalars publicInput).1.limb ℓ),
     ofK ((digestScalars publicInput).2.limb ℓ)] [r]
 
 /-- The program's claims: the three limbs on the three memory columns at the public point
-(`verifier.py:1394-1396`). -/
+(`verifier.py:1405-1407`). -/
 def pubClaims (layout : Verifier.Layout) (publicInput : Digest) (r : E) :
     List Verifier.ColumnClaim :=
   List.zipWith (fun column value ↦ ⟨column, pubPoint layout r, value⟩)
@@ -105,7 +105,7 @@ theorem pubLimb_eq (publicInput : Digest) (r : E) (ℓ : Fin 3) :
 /-! ## The statement of the instance -/
 
 /-- The public input a digest gives the instance: its four `u64` lanes as `K` words
-(`digest_scalars`, verifier.py:200-203; the memory's first two words are the digest's halves). -/
+(`digest_scalars`, verifier.py:202-205; the memory's first two words are the digest's halves). -/
 def publicInputOfDigest (d : Digest) : PublicInput :=
   ⟨![K.ofLane d[0], K.ofLane d[1], K.ofLane d[2], K.ofLane d[3]]⟩
 

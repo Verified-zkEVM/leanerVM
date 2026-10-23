@@ -13,7 +13,7 @@ public import LeanVM.Guest.B1.Common.Basic
 # Bits, logs and the exponent: meanings (TRIAGE G #2, #16-21)
 
 For each function of the guest (`crates/rec_aggregation/guests/lean_ethereum.py` at leanVM
-`3375f7a13`, G below) its meaning `Meaning…` on its argument and return words, and `…_Spec`, the
+`4af2cdddd`, G below) its meaning `Meaning…` on its argument and return words, and `…_Spec`, the
 statement that its core IR relation (`coreProgram.Rel`) is that meaning. A `…_Spec` is a
 definition (a `Prop`); its proof is the theorem `…_holds : …_Spec` of the family's modules.
 
@@ -24,7 +24,7 @@ definition (a `Prop`); its proof is the theorem `…_holds : …_Spec` of the fa
 | `g_power_of_word` | 670-683 | `v = E(n)`, `n < 64`, returns `g^n` |
 | `verify_log2_ceil` | 686-720 | the bits of `W < 2^34`, returns `g^max(floor, log2Ceil W)` (V:661) and `g^W` |
 | `log2_ceil_in_the_exponent` | 723-731 | the same from `g^N` |
-| `decode_query_bits` | 734-778 | one sample's chunks of `sampleQueriesAux` (V:1611), and pointers to their bits |
+| `decode_query_bits` | 734-778 | one sample's chunks of `sampleQueriesAux` (V:1670), and pointers to their bits |
 | `grind_check` | 781-807 | `powOk` (V:427): the low `bits` bits of the first limb are zero |
 
 The range checks (`verify_log2_ceil`) are stated on a memory image of at most `2^32` words
@@ -135,7 +135,7 @@ def FrameBits192 (rd : Reader) (p : E) (W : ℕ) : Prop :=
 
 /-- **`decode_query_bits(word, positions, bit_ptrs, d)`**: the frame run `p` of the word's 192
 bits, and for each group `j < 192 / d` the position `j`, the word's `d` bits from `j·d` (one chunk
-of `sampleQueriesAux`, V:1611, `bits = eToNat word`), and the pointer `j`, `p·g^(j·d)`, to its
+of `sampleQueriesAux`, V:1670, `bits = eToNat word`), and the pointer `j`, `p·g^(j·d)`, to its
 bits (the Merkle direction bits). -/
 def MeaningDecodeQueryBits (d : ℕ) (rd : Reader) : List E → List E → Prop
   | [w, pos, ptrs], rets => rets = [] ∧ ∃ p, FrameBits192 rd p (eToNat w) ∧

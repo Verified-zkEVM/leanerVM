@@ -9,7 +9,7 @@ module
 public import LeanVM.Guest.B1.Whir.Run
 
 /-!
-# Query positions (V:1611-1623)
+# Query positions (V:1670-1682)
 
 `sampleQueriesAux depth fuel count` squeezes a challenge, takes up to `per = 192 / depth`
 positions of `depth` bits from it, low bits first, and recurs on the rest. `queriesOf per d ws q`

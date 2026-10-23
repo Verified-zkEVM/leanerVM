@@ -7,7 +7,7 @@ public import LeanVM.Parameters.Isa
 
 Kernel checks that the six codes are the words `1, 2, 4, 8, 16, 32`, bits `0` to `5` since `g = x`,
 in the order of `crates/leanvm_core/src/tables.rs:99-104`, and that the caps carry the values of
-`cpu/mod.rs:51-60`, `crates/verifier/src/layout.rs:393` and `crates/flock/src/hash.rs:281-284`. The
+`cpu/mod.rs:51-60`, `crates/verifier/src/layout.rs:487` and `crates/flock/src/hash.rs:281-284`. The
 caps are checked against each other so that an announcement at the floor is admissible.
 -/
 

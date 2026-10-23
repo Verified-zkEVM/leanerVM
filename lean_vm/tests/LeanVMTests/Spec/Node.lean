@@ -16,7 +16,7 @@ import LeanVMTests.Spec.NodeVectors
   (`batchSeed`) and the batching of two children (`batch`): computed by an independent Python
   transcription of `claim_list_digest`, `signers_hash`, `statement_digest`, `FiatShamirState` and
   `aggregate_deferred_claims` (`crates/rec_aggregation/src/aggregation.rs`,
-  `crates/fiat_shamir/src/lib.rs` at leanVM `3375f7a137c50b803f3416f6466b5d4e0719708a`) over the
+  `crates/fiat_shamir/src/lib.rs` at leanVM `4af2cdddd7cd41b9df2cc7e123e314a91b0b4462`) over the
   Python verifier's Keccak and field arithmetic (`python-verifier/verifier.py`). The batching's
   hints are the Python's honest sumcheck messages; Lean's transcript must squeeze the same
   challenges for the claim to close at the Python's point, which is a true claim on the table.

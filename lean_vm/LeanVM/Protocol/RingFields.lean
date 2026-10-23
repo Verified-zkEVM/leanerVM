@@ -18,8 +18,8 @@ import Mathlib.LinearAlgebra.Vandermonde
 /-!
 # Field facts for ring switching
 
-Ring switching (`ringSwitch`, `python-verifier/verifier.py:1397-1433` at leanVM
-`3375f7a137c50b803f3416f6466b5d4e0719708a`; `crates/pcs/src/ring_switch.rs`) packs the `64` bit
+Ring switching (`ringSwitch`, `python-verifier/verifier.py:1408-1444` at leanVM
+`4af2cdddd7cd41b9df2cc7e123e314a91b0b4462`; `crates/pcs/src/ring_switch.rs`) packs the `64` bit
 slices of `q_keccak` by the powers of `x = g` and draws a random `F_2`-linear map. Its soundness
 rests on two facts about `K = GF(2^64)` and `E = K[y]/(y^3 + y + 1)` (`LeanVM.Parameters.Field`):
 
