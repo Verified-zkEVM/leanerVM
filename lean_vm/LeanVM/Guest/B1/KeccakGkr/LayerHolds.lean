@@ -1,13 +1,13 @@
 /-
   LeanVM.Guest.B1.KeccakGkr.LayerHolds
 
-  `keccak_layer`'s four specializations meet `MeaningKeccakLayer`, given the later claims' weight
-  section (`WeightOk 0`).
+  `keccak_layer`'s four specializations meet `MeaningKeccakLayer`.
 -/
 
 module
 
 public import LeanVM.Guest.B1.KeccakGkr.LayerProof
+public import LeanVM.Guest.B1.KeccakGkr.LayerWeight0
 public import LeanVM.Guest.B1.KeccakGkr.LayerBody254
 public import LeanVM.Guest.B1.KeccakGkr.LayerBody255
 public import LeanVM.Guest.B1.KeccakGkr.LayerBody256
@@ -41,6 +41,10 @@ theorem keccak_layer_holds_of (hW0 : WeightOk 0) : keccak_layer_Spec := by
       layer_body254 rfl rd args rets h
   · exact layer_sound (first := 1) (odd := 1) (by decide) (by decide) weightOk_one find_layer255
       layer_body255 rfl rd args rets h
+
+/-- **`keccak_layer`** (G:2480-2725; TRIAGE #60): its four specializations compute their
+meanings. -/
+theorem keccak_layer_holds : keccak_layer_Spec := keccak_layer_holds_of weightOk_zero
 
 end
 end LeanVM.Guest.B1.VerifySub
