@@ -397,6 +397,426 @@ theorem ofm_sound {name : String} {f : Fn} (m : ℕ) (hm1 : 1 ≤ m) (hm : m ≤
     rfl
 
 
+/-! ## Completeness -/
+
+/-- A cell index, reduced. -/
+def fin13 (x : ℕ) : Fin 13 := ⟨x % 13, Nat.mod_lt _ (by decide)⟩
+
+theorem fin13_eq {x : ℕ} {c : Fin 13} (h : x % 13 = c.val) : fin13 x = c := Fin.ext h
+
+/-- The honest values of `opening_final_message` at `4m` words, by index, on the message `ms`,
+the nonce, the block states `Q` and the final state `S`. -/
+def ofmVals (as : List E) (ms : ℕ → E) (nonce : E) (m : ℕ) (Q : ℕ → KState) (S : KState)
+    (k : ℕ) : E :=
+  if k < 9 then as.getD k 0
+  else if k < 14 then as.getD (k - 9) 0
+  else if k < 23 then fsPackVals (as.getD 5 0) dsObserve (k - 14)
+  else if k < 32 then fsPackVals (as.getD 6 0) dsObserve (k - 23)
+  else if k < 12 + 53 * m then
+    (if (k - 12) % 53 < 40 then
+      (if (k - 12) % 53 % 10 = 0 then ms (4 * ((k - 12) / 53) + (k - 12) % 53 / 10 - 2)
+      else fsPackVals (ms (4 * ((k - 12) / 53) + (k - 12) % 53 / 10 - 2)) dsObserve
+        ((k - 12) % 53 % 10 - 1))
+    else cellsOfState (Q ((k - 12) / 53)) false (fin13 ((k - 12) % 53 - 40)))
+  else if k - (12 + 53 * m) < 20 then
+    (if (k - (12 + 53 * m)) % 10 = 0 then ms (4 * m - 2 + (k - (12 + 53 * m)) / 10)
+    else fsPackVals (ms (4 * m - 2 + (k - (12 + 53 * m)) / 10)) dsObserve
+      ((k - (12 + 53 * m)) % 10 - 1))
+  else if k - (12 + 53 * m) = 20 then nonce
+  else if k - (12 + 53 * m) < 30 then fsPackVals nonce dsPowNonce (k - (12 + 53 * m) - 21)
+  else if k - (12 + 53 * m) < 32 then 0
+  else if k - (12 + 53 * m) < 45 then
+    cellsOfState S false (fin13 (k - (12 + 53 * m) - 32))
+  else if k - (12 + 53 * m) = 45 then cellsOfState S false 0
+  else if k - (12 + 53 * m) < 51 then
+    cellsOfState S false (fin13 (k - (12 + 53 * m) - 38))
+  else [word (2 ^ (4 * m)) 0 0, as.getD 7 0 * word (2 ^ (4 * m)) 0 0, word 2 0 0,
+    as.getD 7 0 * word (2 ^ (4 * m)) 0 0 * word 2 0 0, nonce].getD (k - (12 + 53 * m) - 51) 0
+
+/-- Decide the next `if` of an unfolded index function by `omega`. -/
+macro "ofm_if" : tactic => `(tactic| first
+  | (rw [ite_eq_right_of_eq_false]; rotate_left; exact eq_false (by omega))
+  | (rw [ite_eq_left_of_eq_true]; rotate_left; exact eq_true (by omega)))
+
+section
+variable (as : List E) (ms : ℕ → E) (nonce : E) (Q : ℕ → KState) (S : KState)
+
+theorem ofmVals_msg {m j t : ℕ} (hj : j < m) (ht : t < 4) (h0 : j = 0 → 2 ≤ t) :
+    ofmVals as ms nonce m Q S (12 + 53 * j + 10 * t) = ms (4 * j + t - 2) := by
+  rw [ofmVals, show (12 + 53 * j + 10 * t - 12) / 53 = j by omega,
+    show (12 + 53 * j + 10 * t - 12) % 53 = 10 * t by omega]
+  repeat ofm_if
+  congr 1; omega
+
+theorem ofmVals_pack {m j t u : ℕ} (hj : j < m) (ht : t < 4) (h0 : j = 0 → 2 ≤ t) (hu : u < 9) :
+    ofmVals as ms nonce m Q S (12 + 53 * j + 10 * t + 1 + u) =
+      fsPackVals (ms (4 * j + t - 2)) dsObserve u := by
+  rw [ofmVals, show (12 + 53 * j + 10 * t + 1 + u - 12) / 53 = j by omega,
+    show (12 + 53 * j + 10 * t + 1 + u - 12) % 53 = 10 * t + 1 + u by omega]
+  repeat ofm_if
+  rw [show (10 * t + 1 + u) / 10 = t by omega, show (10 * t + 1 + u) % 10 - 1 = u by omega]
+
+theorem ofmVals_cells {m j : ℕ} (hj : j < m) (c : Fin 13) :
+    ofmVals as ms nonce m Q S (52 + 53 * j + c.val) = cellsOfState (Q j) false c := by
+  have hc := c.isLt
+  rw [ofmVals, show (52 + 53 * j + c.val - 12) / 53 = j by omega,
+    show (52 + 53 * j + c.val - 12) % 53 = 40 + c.val by omega]
+  repeat ofm_if
+  congr 1; apply fin13_eq; simp; try omega
+
+theorem ofmVals_fmsg {m t : ℕ} (hm : 1 ≤ m) (ht : t < 2) :
+    ofmVals as ms nonce m Q S (12 + 53 * m + 10 * t) = ms (4 * m - 2 + t) := by
+  rw [ofmVals, show 12 + 53 * m + 10 * t - (12 + 53 * m) = 10 * t by omega]
+  repeat ofm_if
+  congr 1; omega
+
+theorem ofmVals_fpack {m t u : ℕ} (hm : 1 ≤ m) (ht : t < 2) (hu : u < 9) :
+    ofmVals as ms nonce m Q S (12 + 53 * m + 10 * t + 1 + u) =
+      fsPackVals (ms (4 * m - 2 + t)) dsObserve u := by
+  rw [ofmVals, show 12 + 53 * m + 10 * t + 1 + u - (12 + 53 * m) = 10 * t + 1 + u by omega]
+  repeat ofm_if
+  rw [show (10 * t + 1 + u) / 10 = t by omega, show (10 * t + 1 + u) % 10 - 1 = u by omega]
+
+theorem ofmVals_nonce {m : ℕ} : ofmVals as ms nonce m Q S (32 + 53 * m) = nonce := by
+  rw [ofmVals, show 32 + 53 * m - (12 + 53 * m) = 20 by omega]
+  repeat ofm_if
+
+theorem ofmVals_npack {m u : ℕ} (hu : u < 9) :
+    ofmVals as ms nonce m Q S (33 + 53 * m + u) = fsPackVals nonce dsPowNonce u := by
+  rw [ofmVals, show 33 + 53 * m + u - (12 + 53 * m) = 21 + u by omega]
+  repeat ofm_if
+  rw [show 21 + u - 21 = u by omega]
+
+theorem ofmVals_zero {m u : ℕ} (hu : u < 2) : ofmVals as ms nonce m Q S (42 + 53 * m + u) = 0 := by
+  rw [ofmVals, show 42 + 53 * m + u - (12 + 53 * m) = 30 + u by omega]
+  repeat ofm_if
+
+theorem ofmVals_fcells {m : ℕ} (c : Fin 13) :
+    ofmVals as ms nonce m Q S (44 + 53 * m + c.val) = cellsOfState S false c := by
+  have hc := c.isLt
+  rw [ofmVals, show 44 + 53 * m + c.val - (12 + 53 * m) = 32 + c.val by omega]
+  repeat ofm_if
+  congr 1; apply fin13_eq; simp; try omega
+
+theorem ofmVals_out0 {m : ℕ} : ofmVals as ms nonce m Q S (57 + 53 * m) = cellsOfState S false 0 := by
+  rw [ofmVals, show 57 + 53 * m - (12 + 53 * m) = 45 by omega]
+  repeat ofm_if
+
+theorem ofmVals_outcap {m i : ℕ} (hi : i < 5) :
+    ofmVals as ms nonce m Q S (58 + 53 * m + i) = cellsOfState S false ⟨8 + i, by omega⟩ := by
+  rw [ofmVals, show 58 + 53 * m + i - (12 + 53 * m) = 46 + i by omega]
+  repeat ofm_if
+  congr 1; apply fin13_eq; simp; try omega
+
+theorem ofmVals_tail {m i : ℕ} (hi : i < 5) :
+    ofmVals as ms nonce m Q S (63 + 53 * m + i) =
+      [word (2 ^ (4 * m)) 0 0, as.getD 7 0 * word (2 ^ (4 * m)) 0 0, word 2 0 0,
+        as.getD 7 0 * word (2 ^ (4 * m)) 0 0 * word 2 0 0, nonce].getD i 0 := by
+  rw [ofmVals, show 63 + 53 * m + i - (12 + 53 * m) = 51 + i by omega]
+  repeat ofm_if
+  rw [show 51 + i - 51 = i by omega]
+
+end
+
+theorem cells13_ofmRun (σ : Val) (b : ℕ) (c : Fin 13) :
+    cells13 ((ofmRun b).map σ) c = σ (.n (b + c.val)) := by
+  simp [cells13, ofmRun, List.getD_eq_getElem?_getD]
+
+theorem zero_canonical : IsCanonical128 (0 : E) := by
+  rw [zero_eq_ofLimbs]; exact (isCanonical128_ofLimbs_iff _ _ _).mpr rfl
+
+/-- **`opening_final_message` at `4m` words is complete.** -/
+theorem ofm_complete {name : String} {f : Fn} (m : ℕ) (hm1 : 1 ≤ m) (hm : m ≤ 8)
+    (hfind : coreProgram.find? name = some f) (hparams : f.params = ofmParams)
+    (hbody : f.body = ofmBody m) (rd : Reader) (args rets : List E)
+    (h : MeaningOpeningFinalMessage (4 * m) rd args rets) : coreProgram.Rel rd name args rets := by
+  obtain ⟨f0, f1, f2, f3, f4, w0, w1, cur, out, rfl⟩ : ∃ f0 f1 f2 f3 f4 w0 w1 cur out,
+      args = [f0, f1, f2, f3, f4, w0, w1, cur, out] := by
+    match args, h with
+    | [f0, f1, f2, f3, f4, w0, w1, cur, out], _ => exact ⟨f0, f1, f2, f3, f4, w0, w1, cur, out, rfl⟩
+  obtain ⟨hcan, msl, nonce, hlen, hrc, hro, hret⟩ := h
+  obtain ⟨m', rfl⟩ : ∃ m', m = m' + 1 := ⟨m - 1, by omega⟩
+  let ms : ℕ → E := fun i ↦ msl.getD i 0
+  have hmsl : msl = (List.range (4 * (m' + 1))).map ms := by
+    apply List.ext_getElem (by simp [hlen])
+    intro i h1 h2
+    simp [ms, List.getD_eq_getElem?_getD, List.getElem?_eq_getElem h1]
+  let as := [f0, f1, f2, f3, f4, w0, w1, cur, out]
+  let Q := ofmQ [f0, f1, f2, f3, f4] w0 w1 ms
+  let S := (⟨capOf (Q m'), [(ms (4 * (m' + 1) - 2), dsObserve), (ms (4 * (m' + 1) - 1), dsObserve),
+    (nonce, dsPowNonce)]⟩ : Fs).perm
+  have hs : ((⟨[f0, f1, f2, f3, f4], [(w0, dsObserve), (w1, dsObserve)]⟩ : Fs).absorbAll msl
+      dsObserve).absorb nonce
+      dsPowNonce = ⟨capOf (Q m'), [(ms (4 * (m' + 1) - 2), dsObserve),
+        (ms (4 * (m' + 1) - 1), dsObserve), (nonce, dsPowNonce)]⟩ := by
+    rw [hmsl, ofm_absorb]
+    simp [Fs.absorb, rateScalars, show 4 * (m' + 1) - 2 = 4 * m' + 2 by omega,
+      show 4 * (m' + 1) - 1 = 4 * m' + 3 by omega]
+    rfl
+  simp only at hret
+  rw [hs] at hret
+  let σ : Val := fun v ↦ ofmVals as ms nonce (m' + 1) Q S v.idx
+  have ev : ∀ k, σ (.n k) = ofmVals as ms nonce (m' + 1) Q S k := fun _ ↦ rfl
+  have idx : ∀ a b, a = b → σ (.n a) = σ (.n b) := fun a b h ↦ by rw [h]
+  have vm : ∀ j t, j < m' + 1 → t < 4 → (j = 0 → 2 ≤ t) →
+      σ (.n (12 + 53 * j + 10 * t)) = ms (4 * j + t - 2) := fun j t hj ht h0 ↦
+    ofmVals_msg as ms nonce Q S hj ht h0
+  have vp : ∀ j t u, j < m' + 1 → t < 4 → (j = 0 → 2 ≤ t) → u < 9 →
+      σ (.n (12 + 53 * j + 10 * t + 1 + u)) = fsPackVals (ms (4 * j + t - 2)) dsObserve u :=
+    fun j t u hj ht h0 hu ↦ ofmVals_pack as ms nonce Q S hj ht h0 hu
+  have vc : ∀ j, j < m' + 1 → ∀ c : Fin 13, σ (.n (52 + 53 * j + c.val)) = cellsOfState (Q j) false c :=
+    fun j hj c ↦ ofmVals_cells as ms nonce Q S hj c
+  have hall : ∀ k, k < 4 * (m' + 1) → LoadHolds rd cur k (ms k) ∧ LoadHolds rd out k (ms k) := by
+    intro k hk
+    have h1 := hrc k (by simp [hlen]; omega)
+    have h2 := hro k (by simp [hlen]; omega)
+    rw [List.getElem_append_left (by simp [hlen]; omega)] at h1
+    simp only [ms, List.getD_eq_getElem?_getD, List.getElem?_eq_getElem (show k < msl.length by
+      simp [hlen]; omega), Option.getD_some]
+    exact ⟨h1, h2⟩
+  have e7 : σ (.n 7) = cur := by simp [ev, ofmVals, as]
+  have e8 : σ (.n 8) = out := by simp [ev, ofmVals, as]
+  -- a message word, read, packed and stored
+  have nextOk : ∀ j t, j < m' + 1 → t < 4 → (j = 0 → 2 ≤ t) → ∀ i b, i = 4 * j + t - 2 →
+      b = 12 + 53 * j + 10 * t →
+      LoadHolds rd (σ (.n 7)) i (σ (.n b)) ∧ FsPackOk σ (.n b) (b + 1) dsObserve ∧
+        LoadHolds rd (σ (.n 8)) i (σ (.n b)) := by
+    intro j t hj ht h0 i b hi hb
+    have eb : σ (.n b) = ms i := by rw [hb, hi]; exact vm j t hj ht h0
+    have hik : i < 4 * (m' + 1) := by omega
+    refine ⟨by rw [e7, eb]; exact (hall i hik).1, ?_, by rw [e8, eb]; exact (hall i hik).2⟩
+    refine fsPackOk_of_vals fun u hu ↦ ?_
+    rw [eb, idx _ _ (show b + 1 + u = 12 + 53 * j + 10 * t + 1 + u by omega), vp j t u hj ht h0 hu,
+      hi]
+  have vf : ∀ t, t < 2 → σ (.n (12 + 53 * (m' + 1) + 10 * t)) = ms (4 * (m' + 1) - 2 + t) :=
+    fun t ht ↦ ofmVals_fmsg as ms nonce Q S (by omega) ht
+  have vfp : ∀ t u, t < 2 → u < 9 → σ (.n (12 + 53 * (m' + 1) + 10 * t + 1 + u)) =
+      fsPackVals (ms (4 * (m' + 1) - 2 + t)) dsObserve u :=
+    fun t u ht hu ↦ ofmVals_fpack as ms nonce Q S (by omega) ht hu
+  have nextF : ∀ t, t < 2 → ∀ i b, i = 4 * (m' + 1) - 2 + t → b = 12 + 53 * (m' + 1) + 10 * t →
+      LoadHolds rd (σ (.n 7)) i (σ (.n b)) ∧ FsPackOk σ (.n b) (b + 1) dsObserve ∧
+        LoadHolds rd (σ (.n 8)) i (σ (.n b)) := by
+    intro t ht i b hi hb
+    have eb : σ (.n b) = ms i := by rw [hb, hi]; exact vf t ht
+    have hik : i < 4 * (m' + 1) := by omega
+    refine ⟨by rw [e7, eb]; exact (hall i hik).1, ?_, by rw [e8, eb]; exact (hall i hik).2⟩
+    refine fsPackOk_of_vals fun u hu ↦ ?_
+    rw [eb, idx _ _ (show b + 1 + u = 12 + 53 * (m' + 1) + 10 * t + 1 + u by omega), vfp t u ht hu,
+      hi]
+  have eN : σ (.n (32 + 53 * (m' + 1))) = nonce := ofmVals_nonce as ms nonce Q S
+  have vN : ∀ u, u < 9 → σ (.n (32 + 53 * (m' + 1) + 1 + u)) = fsPackVals nonce dsPowNonce u :=
+    fun u hu ↦ (idx _ _ (by omega)).trans (ofmVals_npack as ms nonce Q S hu)
+  have pc : ∀ x t, (fsPackVals x t 6, fsPackVals x t 8) = Keccak.scalarCells x t := fsPackVals_cells
+  have pcan : ∀ x t, IsCanonical128 (fsPackVals x t 6) ∧ IsCanonical128 (fsPackVals x t 8) :=
+    fsPackVals_canonical
+  rw [rel_iff_sem hfind, hbody, hparams, ofmBody]
+  simp only [holdsList_append, holdsList_range_flatten (m' + 1 - 1) ofmBlock (fun _ => rfl),
+    holds_ofmBlock, holds_ofmNext, holds_fsPackT, keccakA, Stmt.HoldsList, Stmt.Holds,
+    List.map_cons, List.map_nil]
+  -- the first permutation
+  have hin0 : [σ (.n 20), σ (.n 22), σ (.n 29), σ (.n 31), σ (.n 39), σ (.n 41), σ (.n 49),
+      σ (.n 51), σ (.n 9), σ (.n 10), σ (.n 11), σ (.n 12), σ (.n 13)] =
+      [fsPackVals w0 dsObserve 6, fsPackVals w0 dsObserve 8, fsPackVals w1 dsObserve 6,
+        fsPackVals w1 dsObserve 8, fsPackVals (ms 0) dsObserve 6, fsPackVals (ms 0) dsObserve 8,
+        fsPackVals (ms 1) dsObserve 6, fsPackVals (ms 1) dsObserve 8, f0, f1, f2, f3, f4] := by
+    have e39 := (idx 39 _ (by omega)).trans (vp 0 2 6 (by omega) (by omega) (by omega) (by omega))
+    have e41 := (idx 41 _ (by omega)).trans (vp 0 2 8 (by omega) (by omega) (by omega) (by omega))
+    have e49 := (idx 49 _ (by omega)).trans (vp 0 3 6 (by omega) (by omega) (by omega) (by omega))
+    have e51 := (idx 51 _ (by omega)).trans (vp 0 3 8 (by omega) (by omega) (by omega) (by omega))
+    rw [e39, e41, e49, e51]
+    simp [ev, ofmVals, as]
+  have hK0 : permOf [fsPackVals w0 dsObserve 6, fsPackVals w0 dsObserve 8, fsPackVals w1 dsObserve 6,
+        fsPackVals w1 dsObserve 8, fsPackVals (ms 0) dsObserve 6, fsPackVals (ms 0) dsObserve 8,
+        fsPackVals (ms 1) dsObserve 6, fsPackVals (ms 1) dsObserve 8, f0, f1, f2, f3, f4] = Q 0 :=
+    perm_four (pc w0 _) (pc w1 _) (pc _ _) (pc _ _) rfl
+  -- the blocks
+  have hinB : ∀ j, j < m' → (ofmRate (65 + 53 * j) ++ capIns (52 + 53 * j)).map σ =
+      [fsPackVals (ms (4 * j + 2)) dsObserve 6, fsPackVals (ms (4 * j + 2)) dsObserve 8,
+        fsPackVals (ms (4 * j + 3)) dsObserve 6, fsPackVals (ms (4 * j + 3)) dsObserve 8,
+        fsPackVals (ms (4 * j + 4)) dsObserve 6, fsPackVals (ms (4 * j + 4)) dsObserve 8,
+        fsPackVals (ms (4 * j + 5)) dsObserve 6, fsPackVals (ms (4 * j + 5)) dsObserve 8,
+        cellsOfState (Q j) false 8, cellsOfState (Q j) false 9, cellsOfState (Q j) false 10,
+        cellsOfState (Q j) false 11, cellsOfState (Q j) false 12] := by
+    intro j hj
+    have r : ∀ t u, t < 4 → u < 9 → σ (.n (65 + 53 * j + 10 * t + 1 + u)) =
+        fsPackVals (ms (4 * j + 2 + t)) dsObserve u := fun t u ht hu ↦ by
+      rw [idx _ _ (show 65 + 53 * j + 10 * t + 1 + u = 12 + 53 * (j + 1) + 10 * t + 1 + u by ring),
+        vp (j + 1) t u (by omega) ht (by omega) hu]
+      congr 2; omega
+    have c : ∀ c : Fin 13, σ (.n (52 + 53 * j + c.val)) = cellsOfState (Q j) false c :=
+      vc j (by omega)
+    simp only [ofmRate, capIns, List.cons_append, List.nil_append, List.map_cons, List.map_nil]
+    rw [show 65 + 53 * j + 7 = 65 + 53 * j + 10 * 0 + 1 + 6 by ring, r 0 6 (by omega) (by omega),
+      show 65 + 53 * j + 9 = 65 + 53 * j + 10 * 0 + 1 + 8 by ring, r 0 8 (by omega) (by omega),
+      show 65 + 53 * j + 17 = 65 + 53 * j + 10 * 1 + 1 + 6 by ring, r 1 6 (by omega) (by omega),
+      show 65 + 53 * j + 19 = 65 + 53 * j + 10 * 1 + 1 + 8 by ring, r 1 8 (by omega) (by omega),
+      show 65 + 53 * j + 27 = 65 + 53 * j + 10 * 2 + 1 + 6 by ring, r 2 6 (by omega) (by omega),
+      show 65 + 53 * j + 29 = 65 + 53 * j + 10 * 2 + 1 + 8 by ring, r 2 8 (by omega) (by omega),
+      show 65 + 53 * j + 37 = 65 + 53 * j + 10 * 3 + 1 + 6 by ring, r 3 6 (by omega) (by omega),
+      show 65 + 53 * j + 39 = 65 + 53 * j + 10 * 3 + 1 + 8 by ring, r 3 8 (by omega) (by omega)]
+    rw [show (52 + 53 * j + 8) = 52 + 53 * j + (8 : Fin 13).val from rfl, c 8,
+      show (52 + 53 * j + 9) = 52 + 53 * j + (9 : Fin 13).val from rfl, c 9,
+      show (52 + 53 * j + 10) = 52 + 53 * j + (10 : Fin 13).val from rfl, c 10,
+      show (52 + 53 * j + 11) = 52 + 53 * j + (11 : Fin 13).val from rfl, c 11,
+      show (52 + 53 * j + 12) = 52 + 53 * j + (12 : Fin 13).val from rfl, c 12]
+  -- the final permutation
+  have hinF : (([.n (19 + 53 * (m' + 1)), .n (21 + 53 * (m' + 1)), .n (29 + 53 * (m' + 1)),
+      .n (31 + 53 * (m' + 1)), .n (39 + 53 * (m' + 1)), .n (41 + 53 * (m' + 1)),
+      .n (42 + 53 * (m' + 1)), .n (43 + 53 * (m' + 1))] : List V) ++
+      capIns (53 * (m' + 1) - 1)).map σ =
+      [fsPackVals (ms (4 * (m' + 1) - 2)) dsObserve 6, fsPackVals (ms (4 * (m' + 1) - 2)) dsObserve 8,
+        fsPackVals (ms (4 * (m' + 1) - 1)) dsObserve 6, fsPackVals (ms (4 * (m' + 1) - 1)) dsObserve 8,
+        fsPackVals nonce dsPowNonce 6, fsPackVals nonce dsPowNonce 8, 0, 0,
+        cellsOfState (Q m') false 8, cellsOfState (Q m') false 9, cellsOfState (Q m') false 10,
+        cellsOfState (Q m') false 11, cellsOfState (Q m') false 12] := by
+    have r0 : ∀ u, u < 9 → σ (.n (12 + 53 * (m' + 1) + 1 + u)) =
+        fsPackVals (ms (4 * (m' + 1) - 2)) dsObserve u := fun u hu ↦
+      (idx _ _ (by omega)).trans ((vfp 0 u (by omega) hu).trans (by rw [Nat.add_zero]))
+    have r1 : ∀ u, u < 9 → σ (.n (22 + 53 * (m' + 1) + 1 + u)) =
+        fsPackVals (ms (4 * (m' + 1) - 1)) dsObserve u := fun u hu ↦
+      (idx _ _ (by omega)).trans ((vfp 1 u (by omega) hu).trans (by congr 2))
+    have z : ∀ u, u < 2 → σ (.n (42 + 53 * (m' + 1) + u)) = 0 := fun u hu ↦
+      ofmVals_zero as ms nonce Q S hu
+    have c : ∀ c : Fin 13, σ (.n (52 + 53 * m' + c.val)) = cellsOfState (Q m') false c :=
+      vc m' (by omega)
+    simp only [capIns, List.cons_append, List.nil_append, List.map_cons, List.map_nil]
+    rw [idx (19 + 53 * (m' + 1)) (12 + 53 * (m' + 1) + 1 + 6) (by omega), r0 6 (by omega),
+      idx (21 + 53 * (m' + 1)) (12 + 53 * (m' + 1) + 1 + 8) (by omega), r0 8 (by omega),
+      idx (29 + 53 * (m' + 1)) (22 + 53 * (m' + 1) + 1 + 6) (by omega), r1 6 (by omega),
+      idx (31 + 53 * (m' + 1)) (22 + 53 * (m' + 1) + 1 + 8) (by omega), r1 8 (by omega),
+      idx (39 + 53 * (m' + 1)) _ (show _ = 32 + 53 * (m' + 1) + 1 + 6 by omega), vN 6 (by omega),
+      idx (41 + 53 * (m' + 1)) _ (show _ = 32 + 53 * (m' + 1) + 1 + 8 by omega), vN 8 (by omega),
+      idx (42 + 53 * (m' + 1)) _ (show _ = 42 + 53 * (m' + 1) + 0 by omega), z 0 (by omega),
+      idx (43 + 53 * (m' + 1)) _ (show _ = 42 + 53 * (m' + 1) + 1 by omega), z 1 (by omega),
+      idx (53 * (m' + 1) - 1 + 8) _ (show _ = 52 + 53 * m' + (8 : Fin 13).val by simp; omega), c 8,
+      idx (53 * (m' + 1) - 1 + 9) _ (show _ = 52 + 53 * m' + (9 : Fin 13).val by simp; omega), c 9,
+      idx (53 * (m' + 1) - 1 + 10) _ (show _ = 52 + 53 * m' + (10 : Fin 13).val by simp; omega),
+      c 10,
+      idx (53 * (m' + 1) - 1 + 11) _ (show _ = 52 + 53 * m' + (11 : Fin 13).val by simp; omega),
+      c 11,
+      idx (53 * (m' + 1) - 1 + 12) _ (show _ = 52 + 53 * m' + (12 : Fin 13).val by simp; omega),
+      c 12]
+  have hKF : permOf [fsPackVals (ms (4 * (m' + 1) - 2)) dsObserve 6,
+      fsPackVals (ms (4 * (m' + 1) - 2)) dsObserve 8,
+      fsPackVals (ms (4 * (m' + 1) - 1)) dsObserve 6, fsPackVals (ms (4 * (m' + 1) - 1)) dsObserve 8,
+      fsPackVals nonce dsPowNonce 6, fsPackVals nonce dsPowNonce 8, 0, 0,
+      cellsOfState (Q m') false 8, cellsOfState (Q m') false 9, cellsOfState (Q m') false 10,
+      cellsOfState (Q m') false 11, cellsOfState (Q m') false 12] = S := by
+    show _ = Fs.perm _
+    rw [perm_eq_cells _ (by simp)]
+    simp only [pendCells, List.flatMap_cons, List.flatMap_nil, ← pc]
+    rfl
+  have cf : ∀ c : Fin 13, σ (.n (44 + 53 * (m' + 1) + c.val)) = cellsOfState S false c :=
+    fun c ↦ ofmVals_fcells as ms nonce Q S c
+  have kcan : ∀ (L : List E), (∀ x ∈ L, IsCanonical128 x) → ∀ c : Fin 13,
+      IsCanonical128 (cells13 L c) := by
+    intro L hL c
+    simp only [cells13, List.getD_eq_getElem?_getD]
+    cases h : L[c.val]? with
+    | none => exact zero_canonical
+    | some x => exact hL x (List.mem_of_getElem? h)
+  have tl : ∀ i, i < 5 → σ (.n (63 + 53 * (m' + 1) + i)) =
+      [word (2 ^ (4 * (m' + 1))) 0 0, cur * word (2 ^ (4 * (m' + 1))) 0 0, word 2 0 0,
+        cur * word (2 ^ (4 * (m' + 1))) 0 0 * word 2 0 0, nonce].getD i 0 :=
+    fun i hi ↦ ofmVals_tail as ms nonce Q S hi
+  have e57 : σ (.n (57 + 53 * (m' + 1))) = cellsOfState S false 0 :=
+    ofmVals_out0 as ms nonce Q S (m := m' + 1)
+  have ecap : ∀ i (hi : i < 5), σ (.n (58 + 53 * (m' + 1) + i)) =
+      cellsOfState S false ⟨8 + i, by omega⟩ :=
+    fun i hi ↦ ofmVals_outcap as ms nonce Q S (m := m' + 1) hi
+  have oc : ∀ i (hi : i < 5), σ (.n (58 + 53 * (m' + 1) + i)) = σ (.n (52 + 53 * (m' + 1) + i)) :=
+    fun i hi ↦ (ecap i hi).trans ((idx _ (44 + 53 * (m' + 1) + (⟨8 + i, by omega⟩ : Fin 13).val)
+      (by simp; omega)).trans (cf ⟨8 + i, by omega⟩)).symm
+  have t : ∀ i (hi : i < 5) k, k = 63 + 53 * (m' + 1) + i → σ (.n k) =
+      [word (2 ^ (4 * (m' + 1))) 0 0, cur * word (2 ^ (4 * (m' + 1))) 0 0, word 2 0 0,
+        cur * word (2 ^ (4 * (m' + 1))) 0 0 * word 2 0 0, nonce].getD i 0 :=
+    fun i hi k hk ↦ by rw [hk]; exact tl i hi
+  refine ⟨σ, by simp [ev, ofmVals, as], ?_, ?_, ?_, ?_, ?_,
+    fsPackOk_of_vals fun i hi ↦ by interval_cases i <;> simp [ev, ofmVals, as],
+    fsPackOk_of_vals fun i hi ↦ by interval_cases i <;> simp [ev, ofmVals, as],
+    nextOk 0 2 (by omega) (by omega) (by omega) 0 32 (by omega) (by omega),
+    nextOk 0 3 (by omega) (by omega) (by omega) 1 42 (by omega) (by omega),
+    ⟨rfl, rfl, ?_, ?_⟩, ?_,
+    nextF 0 (by omega) _ _ rfl (by omega), nextF 1 (by omega) _ _ (by omega) (by omega),
+    ?_, fsPackOk_of_vals fun u hu ↦ ?_, ?_, ?_, ⟨rfl, rfl, ?_, ?_⟩,
+    ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
+  all_goals try (show σ _ = σ _; simp [ev, ofmVals, as]; done)
+  · simp only [List.map_cons, List.map_nil, hin0]
+    refine kcan _ ?_
+    simp only [List.mem_cons, List.not_mem_nil, or_false, forall_eq_or_imp, forall_eq]
+    exact ⟨(pcan _ _).1, (pcan _ _).2, (pcan _ _).1, (pcan _ _).2, (pcan _ _).1, (pcan _ _).2,
+      (pcan _ _).1, (pcan _ _).2, hcan _ (by simp), hcan _ (by simp), hcan _ (by simp),
+      hcan _ (by simp), hcan _ (by simp)⟩
+  · intro c
+    simp only [List.map_cons, List.map_nil, hin0, cells13_ofmRun]
+    rw [show keccakF (stateOfCells (cells13 _) false) = permOf _ from rfl, hK0]
+    exact vc 0 (by omega) c
+  · intro j hj
+    have hj' : j < m' := by simpa using hj
+    refine ⟨fun t ht ↦ nextOk (j + 1) t (by omega) ht (by omega) _ _ (by omega) (by ring),
+      by simp [ofmRate, capIns], by simp [ofmRun], ?_, ?_⟩
+    · rw [hinB j hj']
+      refine kcan _ ?_
+      simp only [List.mem_cons, List.not_mem_nil, or_false, forall_eq_or_imp, forall_eq]
+      exact ⟨(pcan _ _).1, (pcan _ _).2, (pcan _ _).1, (pcan _ _).2, (pcan _ _).1, (pcan _ _).2,
+        (pcan _ _).1, (pcan _ _).2, cellsOfState_canonical _ _ _, cellsOfState_canonical _ _ _,
+        cellsOfState_canonical _ _ _, cellsOfState_canonical _ _ _, cellsOfState_canonical _ _ _⟩
+    · intro c
+      rw [cells13_ofmRun, hinB j hj',
+        show keccakF (stateOfCells (cells13 _) false) = permOf _ from rfl,
+        perm_four (pc _ _) (pc _ _) (pc _ _) (pc _ _) rfl,
+        idx _ _ (show 105 + 53 * j + c.val = 52 + 53 * (j + 1) + c.val by ring),
+        vc (j + 1) (by omega) c]
+      rfl
+  · show LoadHolds rd (σ (.n 7)) (4 * (m' + 1)) (σ (.n (32 + 53 * (m' + 1))))
+    rw [e7, eN]
+    have := hrc (4 * (m' + 1)) (by simp [hlen])
+    rwa [List.getElem_append_right (by simp [hlen]), List.getElem_singleton] at this
+  · rw [idx _ (32 + 53 * (m' + 1) + 1 + u) (by omega), vN u hu, eN]
+  · show σ _ = word 0 0 0
+    rw [word_zero]; exact ofmVals_zero as ms nonce Q S (m := m' + 1) (u := 0) (by omega)
+  · show σ _ = word 0 0 0
+    rw [word_zero]
+    exact (idx _ (42 + 53 * (m' + 1) + 1) (by omega)).trans
+      (ofmVals_zero as ms nonce Q S (m := m' + 1) (u := 1) (by omega))
+  · rw [hinF]
+    refine kcan _ ?_
+    simp only [List.mem_cons, List.not_mem_nil, or_false, forall_eq_or_imp, forall_eq]
+    exact ⟨(pcan _ _).1, (pcan _ _).2, (pcan _ _).1, (pcan _ _).2, (pcan _ _).1, (pcan _ _).2,
+      zero_canonical, zero_canonical, cellsOfState_canonical _ _ _, cellsOfState_canonical _ _ _,
+      cellsOfState_canonical _ _ _, cellsOfState_canonical _ _ _, cellsOfState_canonical _ _ _⟩
+  · intro c
+    rw [cells13_ofmRun, hinF, show keccakF (stateOfCells (cells13 _) false) = permOf _ from rfl,
+      hKF, cf c]
+  · show σ _ = σ _
+    exact (ofmVals_out0 as ms nonce Q S (m := m' + 1)).trans (cf 0).symm
+  · exact oc 0 (by omega)
+  · exact (idx _ _ (by omega)).trans ((oc 1 (by omega)).trans (idx _ _ (by omega)))
+  · exact (idx _ _ (by omega)).trans ((oc 2 (by omega)).trans (idx _ _ (by omega)))
+  · exact (idx _ _ (by omega)).trans ((oc 3 (by omega)).trans (idx _ _ (by omega)))
+  · exact (idx _ _ (by omega)).trans ((oc 4 (by omega)).trans (idx _ _ (by omega)))
+  · exact t 0 (by omega) _ (by omega)
+  · show σ _ = σ _ * σ _
+    rw [t 1 (by omega) (64 + 53 * (m' + 1)) (by omega), t 0 (by omega) (63 + 53 * (m' + 1)) (by omega), e7]
+    rfl
+  · exact t 2 (by omega) (65 + 53 * (m' + 1)) (by omega)
+  · show σ _ = σ _ * σ _
+    rw [t 3 (by omega) (66 + 53 * (m' + 1)) (by omega), t 1 (by omega) (64 + 53 * (m' + 1)) (by omega), t 2 (by omega) (65 + 53 * (m' + 1)) (by omega)]
+    rfl
+  · show σ _ = σ _
+    rw [t 4 (by omega) (67 + 53 * (m' + 1)) (by omega), eN]
+    rfl
+  · rw [hret, e57, (idx (58 + 53 * (m' + 1)) _ (by omega)).trans (ecap 0 (by omega)),
+      (idx (59 + 53 * (m' + 1)) _ (by omega)).trans (ecap 1 (by omega)),
+      (idx (60 + 53 * (m' + 1)) _ (by omega)).trans (ecap 2 (by omega)), (idx (61 + 53 * (m' + 1)) _ (by omega)).trans (ecap 3 (by omega)),
+      (idx (62 + 53 * (m' + 1)) _ (by omega)).trans (ecap 4 (by omega)), t 3 (by omega) (66 + 53 * (m' + 1)) (by omega),
+      t 4 (by omega) (67 + 53 * (m' + 1)) (by omega)]
+    simp only [List.getD_cons_succ, List.getD_cons_zero]
+    rw [word_two_pow (by omega), word_gen, mul_assoc, ← pow_succ]
+    rfl
+
+
+
 set_option maxRecDepth 100000 in
 theorem core458_body : Fn.body Data.core458 = ofmBody 1 := stmtsEqb_sound (by decide +kernel)
 set_option maxRecDepth 100000 in
@@ -405,6 +825,48 @@ set_option maxRecDepth 100000 in
 theorem core423_body : Fn.body Data.core423 = ofmBody 4 := stmtsEqb_sound (by decide +kernel)
 set_option maxRecDepth 100000 in
 theorem core440_body : Fn.body Data.core440 = ofmBody 8 := stmtsEqb_sound (by decide +kernel)
+
+theorem ofm_iff {name : String} {f : Fn} (m : ℕ) (hm1 : 1 ≤ m) (hm : m ≤ 8)
+    (hfind : coreProgram.find? name = some f) (hparams : f.params = ofmParams)
+    (hbody : f.body = ofmBody m) (rd : Reader) (args rets : List E) :
+    coreProgram.Rel rd name args rets ↔ MeaningOpeningFinalMessage (4 * m) rd args rets :=
+  ⟨ofm_sound m hm1 hm hfind hparams hbody rd args rets,
+    ofm_complete m hm1 hm hfind hparams hbody rd args rets⟩
+
+set_option maxRecDepth 100000 in
+theorem ofm_L4_iff (rd : Reader) (args rets : List E) :
+    coreProgram.Rel rd "opening_final_message__L4" args rets ↔
+      MeaningOpeningFinalMessage 4 rd args rets :=
+  ofm_iff 1 (by decide) (by decide) (Program.find?_of_indexOf? (j := 458) (by decide +kernel) rfl)
+    rfl core458_body rd args rets
+
+set_option maxRecDepth 100000 in
+theorem ofm_L8_iff (rd : Reader) (args rets : List E) :
+    coreProgram.Rel rd "opening_final_message__L8" args rets ↔
+      MeaningOpeningFinalMessage 8 rd args rets :=
+  ofm_iff 2 (by decide) (by decide) (Program.find?_of_indexOf? (j := 477) (by decide +kernel) rfl)
+    rfl core477_body rd args rets
+
+set_option maxRecDepth 100000 in
+theorem ofm_L16_iff (rd : Reader) (args rets : List E) :
+    coreProgram.Rel rd "opening_final_message__L16" args rets ↔
+      MeaningOpeningFinalMessage 16 rd args rets :=
+  ofm_iff 4 (by decide) (by decide) (Program.find?_of_indexOf? (j := 423) (by decide +kernel) rfl)
+    rfl core423_body rd args rets
+
+set_option maxRecDepth 100000 in
+theorem ofm_L32_iff (rd : Reader) (args rets : List E) :
+    coreProgram.Rel rd "opening_final_message__L32" args rets ↔
+      MeaningOpeningFinalMessage 32 rd args rets :=
+  ofm_iff 8 (by decide) (by decide) (Program.find?_of_indexOf? (j := 440) (by decide +kernel) rfl)
+    rfl core440_body rd args rets
+
+/-- **`opening_final_message`'s core IR is its meaning**, at every deployed length. -/
+theorem opening_final_message_holds : opening_final_message_Spec := by
+  intro p hp
+  simp only [finalMessageNames, List.mem_cons, List.not_mem_nil, or_false] at hp
+  rcases hp with rfl | rfl | rfl | rfl
+  exacts [ofm_L4_iff, ofm_L8_iff, ofm_L16_iff, ofm_L32_iff]
 
 end
 end LeanVM.Guest.B1
