@@ -13,6 +13,15 @@ public import LeanVM.Guest.Checked.F413_1
 public import LeanVM.Guest.Checked.F413_2
 public import LeanVM.Guest.Checked.F413_3
 public import LeanVM.Guest.Checked.F413_4
+public import LeanVM.Guest.Checked.F413_5
+public import LeanVM.Guest.Checked.F413_6
+public import LeanVM.Guest.Checked.F413_7
+public import LeanVM.Guest.Checked.F413_8
+public import LeanVM.Guest.Checked.F413_9
+public import LeanVM.Guest.Checked.F413_10
+public import LeanVM.Guest.Checked.F413_11
+public import LeanVM.Guest.Checked.F413_12
+public import LeanVM.Guest.Checked.F413_13
 
 namespace LeanVM.Guest.Checked
 
@@ -43,7 +52,7 @@ theorem plain411 : Plain 411 := plain_of_nil (by decide +kernel)
 theorem plain412 : Plain 412 := plain_of_nil (by decide +kernel)
 
 theorem ok413 : CheckOk 413 := fun i hi ↦ by
-  have h : (certOf 413).cuts.length = 4 := by decide +kernel
+  have h : (certOf 413).cuts.length = 13 := by decide +kernel
   rw [h] at hi
   interval_cases i
   · exact w413_0
@@ -51,6 +60,15 @@ theorem ok413 : CheckOk 413 := fun i hi ↦ by
   · exact w413_2
   · exact w413_3
   · exact w413_4
+  · exact w413_5
+  · exact w413_6
+  · exact w413_7
+  · exact w413_8
+  · exact w413_9
+  · exact w413_10
+  · exact w413_11
+  · exact w413_12
+  · exact w413_13
 
 theorem plain413 : Plain 413 := by
   unfold Plain

@@ -14,30 +14,30 @@ namespace LeanVM.Guest.B2C.Shared
 @[expose] public section
 
 set_option maxRecDepth 100000 in
-/-- `__loop40`, once. -/
-theorem st430 : shareStatic 430 = true := by decide +kernel
+/-- `__loop50`, once. -/
+theorem st449 : shareStatic 449 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `__loop40`, window 0. -/
-theorem w430_0 : shareWin 430 (snapsOf 430) 0 = true := by decide +kernel
+/-- `__loop50`, window 0. -/
+theorem w449_0 : shareWin 449 (snapsOf 449) 0 = true := by decide +kernel
 
-theorem ok430 : ShareOk 430 := ⟨st430, fun i hi ↦ by
-  have h : (snapsOf 430).length = 0 := by decide +kernel
+theorem ok449 : ShareOk 449 := ⟨st449, fun i hi ↦ by
+  have h : (snapsOf 449).length = 0 := by decide +kernel
   obtain rfl : i = 0 := by omega
-  exact w430_0⟩
+  exact w449_0⟩
 
 set_option maxRecDepth 100000 in
-/-- `__loop41`, once. -/
-theorem st431 : shareStatic 431 = true := by decide +kernel
+/-- `opening_queries__L0_L1_L64_L32_L19_L8`, once. -/
+theorem st450 : shareStatic 450 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `__loop41`, window 0. -/
-theorem w431_0 : shareWin 431 (snapsOf 431) 0 = true := by decide +kernel
+/-- `opening_queries__L0_L1_L64_L32_L19_L8`, window 0. -/
+theorem w450_0 : shareWin 450 (snapsOf 450) 0 = true := by decide +kernel
 
-theorem ok431 : ShareOk 431 := ⟨st431, fun i hi ↦ by
-  have h : (snapsOf 431).length = 0 := by decide +kernel
+theorem ok450 : ShareOk 450 := ⟨st450, fun i hi ↦ by
+  have h : (snapsOf 450).length = 0 := by decide +kernel
   obtain rfl : i = 0 := by omega
-  exact w431_0⟩
+  exact w450_0⟩
 
 end
 end LeanVM.Guest.B2C.Shared

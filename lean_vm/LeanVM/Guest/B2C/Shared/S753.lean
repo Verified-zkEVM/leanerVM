@@ -14,17 +14,8 @@ namespace LeanVM.Guest.B2C.Shared
 @[expose] public section
 
 set_option maxRecDepth 100000 in
-/-- `__loop32`, once. -/
-theorem st405 : shareStatic 405 = true := by decide +kernel
-
-set_option maxRecDepth 100000 in
-/-- `__loop32`, window 0. -/
-theorem w405_0 : shareWin 405 (snapsOf 405) 0 = true := by decide +kernel
-
-theorem ok405 : ShareOk 405 := ⟨st405, fun i hi ↦ by
-  have h : (snapsOf 405).length = 0 := by decide +kernel
-  obtain rfl : i = 0 := by omega
-  exact w405_0⟩
+/-- `verify_merkle_cap__L8`, window 8. -/
+theorem w413_8 : shareWin 413 (snapsOf 413) 8 = true := by decide +kernel
 
 end
 end LeanVM.Guest.B2C.Shared

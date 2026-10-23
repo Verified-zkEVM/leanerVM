@@ -14,17 +14,17 @@ namespace LeanVM.Guest.B2C.Shared
 @[expose] public section
 
 set_option maxRecDepth 100000 in
-/-- `__loop115`, once. -/
-theorem st548 : shareStatic 548 = true := by decide +kernel
+/-- `opening_queries__L0_L0_L16_L24_L17_L4`, once. -/
+theorem st569 : shareStatic 569 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `__loop115`, window 0. -/
-theorem w548_0 : shareWin 548 (snapsOf 548) 0 = true := by decide +kernel
+/-- `opening_queries__L0_L0_L16_L24_L17_L4`, window 0. -/
+theorem w569_0 : shareWin 569 (snapsOf 569) 0 = true := by decide +kernel
 
-theorem ok548 : ShareOk 548 := ⟨st548, fun i hi ↦ by
-  have h : (snapsOf 548).length = 0 := by decide +kernel
+theorem ok569 : ShareOk 569 := ⟨st569, fun i hi ↦ by
+  have h : (snapsOf 569).length = 0 := by decide +kernel
   obtain rfl : i = 0 := by omega
-  exact w548_0⟩
+  exact w569_0⟩
 
 end
 end LeanVM.Guest.B2C.Shared
