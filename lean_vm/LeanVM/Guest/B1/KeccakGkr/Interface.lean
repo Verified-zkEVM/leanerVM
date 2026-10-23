@@ -132,18 +132,23 @@ def plainStart (k0 : ℕ) (cap : List E) (w : E) : Fs :=
   ⟨cap, if k0 = 1 then [(w, dsObserve)] else []⟩
 
 /-- **`keccak_plain_rounds(fs0..fs4, p0, p1, cursor, value, point, n, k0)`** (G:2728-2754;
-TRIAGE #61): the capacity is canonical; with `k0 = 1`, `p0`, `p1` are the rate cells of a scalar
-`w` waiting (`Keccak.scalarCells w dsObserve`); the `2n` stream words at the cursor are the rounds'
-`c₀`, `c₂`; the rounds (`plainRun`) store their challenges at `point`, and the function returns
-the final capacity, the cursor `2n` words on and the final claim. -/
+TRIAGE #61): the capacity is canonical; the `2n` stream words at the cursor are the rounds' `c₀`,
+`c₂`; and for every scalar `w` whose rate cells are `p0`, `p1` with `k0 = 1`
+(`Keccak.scalarCells w dsObserve`, the scalar waiting), the rounds (`plainRun`) store their
+challenges at `point`, and the function returns the final capacity, the cursor `2n` words on and
+the final claim. -/
 def MeaningPlainRounds (n k0 : ℕ) (rd : Reader) : List E → List E → Prop
   | [f0, f1, f2, f3, f4, p0, p1, cur, value, point], rets =>
-      AllCanonical [f0, f1, f2, f3, f4] ∧ ∃ (w : E) (rounds : List (E × E)),
-        (k0 = 1 → (p0, p1) = Keccak.scalarCells w dsObserve) ∧ rounds.length = n ∧
+      AllCanonical [f0, f1, f2, f3, f4] ∧ ∃ rounds : List (E × E), rounds.length = n ∧
         ReadsAt rd cur (rounds.flatMap fun c ↦ [c.1, c.2]) ∧
-        let r := plainRun rounds value (plainStart k0 [f0, f1, f2, f3, f4] w)
-        ReadsAt rd point r.1 ∧ rets = r.2.2.cap ++ [cur * gen ^ (2 * n), r.2.1]
+        ∀ w : E, (k0 = 1 → (p0, p1) = Keccak.scalarCells w dsObserve) →
+          let r := plainRun rounds value (plainStart k0 [f0, f1, f2, f3, f4] w)
+          ReadsAt rd point r.1 ∧ rets = r.2.2.cap ++ [cur * gen ^ (2 * n), r.2.1]
   | _, _ => False
+
+/-- With `k0 = 1`, the cells `p0`, `p1` (arguments `5`, `6`) are a scalar's rate cells. -/
+def PlainCellsOk (k0 : ℕ) (args : List E) : Prop :=
+  k0 = 1 → ∃ w : E, (args.getD 5 0, args.getD 6 0) = Keccak.scalarCells w dsObserve
 
 /-- The two specializations: `(n, k0) = (6, 0)` (the slot, `QKECCAK_SLOT_LOG = 6`) and `(4, 1)`
 (the pack, `KECCAK_PACK_LOG = 4`, after the committed outputs' word). -/
@@ -159,9 +164,9 @@ def keccak_plain_rounds_Spec : Prop :=
   ∀ k0 < 2, ∀ (rd : Reader) (args rets : List E),
     coreProgram.Rel rd (plainName k0) args rets → MeaningPlainRounds (plainCount k0) k0 rd args rets
 
-/-- The converse, for completeness. -/
+/-- The converse, for completeness, the waiting cells being a scalar's. -/
 def keccak_plain_rounds_complete_Spec : Prop :=
-  ∀ k0 < 2, ∀ (rd : Reader) (args rets : List E),
+  ∀ k0 < 2, ∀ (rd : Reader) (args rets : List E), PlainCellsOk k0 args →
     MeaningPlainRounds (plainCount k0) k0 rd args rets → coreProgram.Rel rd (plainName k0) args rets
 
 /-! ## Claim records -/
