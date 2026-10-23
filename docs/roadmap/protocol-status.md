@@ -912,11 +912,18 @@ plus the groups the query opens), `potential_step`, the step of
 `QueryHistory.potential_le_expected_charge`, and `charge_le`
 (`(4L + |seedRoots| + |proofRoots|)/2^256 + ε` under a density bound `ε` per challenge). The
 generic lemmas are in `ToVCVio/` (`QueryLog.dedupKeys`, `withQueryLog_freshLog_support`,
-`HashChain.history_dedupKeys`, `UniformCondition.lean`). Still owed: the `SlotReader` of the
-deployed protocol over the transcript decoder (with its `ε = 2^-128` from `bad_density` and the
-per-challenge budgets, and a check over the window that every challenge reads a squeeze), the
-verifier's query bound and the proof's roots, the deduplication bridge from the game's logs to the
-fresh log, and `misbehaves_rom`.
+`HashChain.history_dedupKeys`, `UniformCondition.lean`). `Protocol/HashMisbehaves.lean`:
+`misbehaves_rom`, for any reader `R` whose challenges are bad with probability at most `2^-128`
+(a marked one after a uniform check passes), a prover of `Q` queries, a verifier of at most `V`
+queries on every proof and proofs of at most six roots, bounds the probability of
+`HashMisbehaves rootsOf R.Flip` in `loggedGame` by `niError V Q = (Q + V)·2^-128 +
+(Q + V)(4(Q + V) + 8)/2^256`: the game's fresh log is its joint log deduplicated
+(`loggedGame_support`, Mathlib's `List.dedupKeys`), a misbehaving hash leaves it unclean
+(`badLog_of_hashMisbehaves`, through `flipAt_dedupKeys`, `extractRows_dedupKeys` and
+`mem_drop_dedupKeys`), and the potential bounds the two runs in sequence. Still owed: the
+`SlotReader` of the deployed protocol over the transcript decoder (its density bound from
+`bad_density` and the per-challenge budgets, and a check over the window that every challenge reads
+a squeeze), the executable verifier's query bound and the proof's roots.
 
 *On merge* of the list-binding branch (`feat/protocol-list-binding`), the list-binding compilation
 is on `main` (`Protocol/ListBinding.lean`, `Protocol/Whir/Decode.lean`, the `K` word `KWord` in

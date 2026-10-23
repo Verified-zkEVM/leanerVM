@@ -38,6 +38,7 @@ import LeanerVM.Protocol.Flock
 import LeanerVM.Protocol.FlockFields
 import LeanerVM.Protocol.FlockSpec
 import LeanerVM.Protocol.FlockWalks
+import LeanerVM.Protocol.HashMisbehaves
 import LeanerVM.Protocol.HonestProver
 import LeanerVM.Protocol.LeanIsa
 import LeanerVM.Protocol.LeanIsa.Bus

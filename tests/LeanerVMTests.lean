@@ -42,6 +42,7 @@ import LeanerVMTests.Protocol.FlockSpec
 import LeanerVMTests.Protocol.GrandProduct
 import LeanerVMTests.Protocol.GrandProductPoly
 import LeanerVMTests.Protocol.GrandProductSecurity
+import LeanerVMTests.Protocol.HashMisbehaves
 import LeanerVMTests.Protocol.LeanIsa
 import LeanerVMTests.Protocol.LeanIsaComplete
 import LeanerVMTests.Protocol.LeanIsaSound
