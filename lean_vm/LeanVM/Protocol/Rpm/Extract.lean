@@ -1,0 +1,266 @@
+/-
+  LeanVM.Protocol.Rpm.Extract
+
+  The Keccak-256 evaluations of the adversary's transcript are, in the transfer's random-oracle
+  world, exactly the random oracle's answers to the simulator's hash queries.
+-/
+
+import LeanVM.Protocol.Rpm.Game
+import LeanRpm.Keccak
+
+/-!
+# The transcript's hashes are the adversary's cache
+
+In the transfer's random-oracle world the adversary of `LeanVM/Spec/Rpm.lean` runs with the
+two-oracle simulator of `lean_rpm` (`LeanRpm.advS2`). It makes no hash query itself: the
+simulator queries `H m` only when a fresh forward query completes a rooted sponge path that pads
+`m`, and books the path. So the hash answers in the cache when the adversary returns are exactly
+the Keccak-256 evaluations of its transcript (`transcriptHashes`, through `LeanRpm.pathsOf`):
+
+* `advS2_advR`: the transcript the adversary records on lanes is the byte transcript `lean_rpm`
+  logs in the simulator's state (`LeanRpm.advImplLog2`), read on lanes;
+* `LeanRpm.pathsOf_ideal2`: every evaluation of the transcript is cached;
+* `cacheInv_run`: every cached hash answer is an evaluation of the simulator's rooted paths;
+* `transcriptHashes_eq_of_mem_support`: hence the two agree.
+-/
+
+namespace LeanVM.Rpm
+
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Protocol LeanVM.Protocol.Compile
+open LeanVM.Protocol.Verifier LeanVM.Protocol.KeccakHash
+open OracleComp OracleSpec
+
+/-- The simulator's bookkeeping on Keccak states. -/
+abbrev KSim := LeanRpm.SimState LeanRpm.KDigest LeanRpm.KRest LeanRpm.KCap
+
+/-- A byte transcript. -/
+abbrev RLog := List (LeanRpm.PermQuery LeanRpm.KState × LeanRpm.KState)
+
+/-- A transcript entry, on bytes. -/
+def entryToRpm (e : LeanRpm.PermQuery KState × KState) :
+    LeanRpm.PermQuery LeanRpm.KState × LeanRpm.KState :=
+  (permQueryToRpm e.1, KState.toRpm e.2)
+
+/-- A byte transcript entry, on lanes. -/
+def entryOfRpm (e : LeanRpm.PermQuery LeanRpm.KState × LeanRpm.KState) :
+    LeanRpm.PermQuery KState × KState :=
+  (permQueryOfRpm e.1, KState.ofRpm e.2)
+
+theorem permQueryToRpm_ofRpm (q : LeanRpm.PermQuery LeanRpm.KState) :
+    permQueryToRpm (permQueryOfRpm q) = q := by
+  cases q <;> simp [permQueryToRpm, permQueryOfRpm, toRpm_ofRpm]
+
+theorem permQueryOfRpm_toRpm (q : LeanRpm.PermQuery KState) :
+    permQueryOfRpm (permQueryToRpm q) = q := by
+  cases q <;> simp [permQueryToRpm, permQueryOfRpm, ofRpm_toRpm]
+
+theorem entryToRpm_ofRpm (e : LeanRpm.PermQuery LeanRpm.KState × LeanRpm.KState) :
+    entryToRpm (entryOfRpm e) = e := by
+  simp [entryToRpm, entryOfRpm, permQueryToRpm_ofRpm, toRpm_ofRpm]
+
+theorem entryOfRpm_toRpm (e : LeanRpm.PermQuery KState × KState) :
+    entryOfRpm (entryToRpm e) = e := by
+  simp [entryToRpm, entryOfRpm, permQueryOfRpm_toRpm, ofRpm_toRpm]
+
+/-! ## The two logs -/
+
+/-- **The lane transcript is the byte log**: the adversary recording its transcript on lanes,
+with the simulator, is the adversary with the simulator logging the byte queries in its state. -/
+theorem advImpl2_logRel {α : Type} (A : OracleComp PermSpec α) (T : Transcript) (σ : KSim) :
+    (fun x ↦ (x.1.1, (x.2, x.1.2.map entryToRpm))) <$>
+        (simulateQ (LeanRpm.advImpl2 LeanRpm.keccakPadding) ((simulateQ logRel A).run T)).run σ =
+      (simulateQ (LeanRpm.advImplLog2 LeanRpm.keccakPadding) (simulateQ relP A)).run
+        (σ, T.map entryToRpm) := by
+  induction A using OracleComp.inductionOn generalizing T σ with
+  | pure a => simp
+  | query_bind q k ih =>
+    simp only [StateT.run_bind, OracleQuery.input_query, relP, logRel,
+      StateT.run_mk, bind_map_left, simulateQ_bind, simulateQ_query,
+      OracleQuery.cont_query, id_map, map_bind]
+    have h1 : (LeanRpm.advImpl2 LeanRpm.keccakPadding (.inr (.inr (permQueryToRpm q)))).run σ =
+        (LeanRpm.simulator2 (Msg := Bytes) LeanRpm.keccakPadding (permQueryToRpm q)).run σ := rfl
+    have h2 : (LeanRpm.advImplLog2 LeanRpm.keccakPadding (.inr (.inr (permQueryToRpm q)))).run
+        (σ, T.map entryToRpm) = (fun z ↦ (z.1, (z.2, T.map entryToRpm ++ [(permQueryToRpm q, z.1)])))
+          <$> (LeanRpm.simulator2 (Msg := Bytes) LeanRpm.keccakPadding (permQueryToRpm q)).run σ :=
+      rfl
+    rw [h1, h2, bind_map_left]
+    refine bind_congr fun z ↦ ?_
+    have e : T.map entryToRpm ++ [(permQueryToRpm q, z.1)] =
+        (T ++ [(q, KState.ofRpm z.1)]).map entryToRpm := by
+      simp [entryToRpm, toRpm_ofRpm]
+    rw [e, ← ih]
+
+/-- The transfer's adversary is the adversary with the simulator logging the byte queries, its
+log read on lanes. -/
+theorem advS2_advR (A : RpmAdversary) :
+    LeanRpm.advS2 LeanRpm.keccakPadding LeanRpm.KState.zero (advR A) =
+      (fun y ↦ (y.1, y.2.2.map entryOfRpm)) <$>
+        (simulateQ (LeanRpm.advImplLog2 LeanRpm.keccakPadding) (simulateQ relP A)).run
+          (LeanRpm.SimState.init LeanRpm.KState.zero, []) := by
+  have h := advImpl2_logRel A [] (LeanRpm.SimState.init LeanRpm.KState.zero)
+  rw [List.map_nil] at h
+  rw [← h, Functor.map_map, LeanRpm.advS2, advR, StateT.run'_eq]
+  congr 1
+  funext x
+  simp only [List.map_map]
+  have e : entryOfRpm ∘ entryToRpm = id := funext entryOfRpm_toRpm
+  rw [e, List.map_id]
+
+/-! ## The cache holds only the transcript's hashes -/
+
+/-- Every cached hash answer is an evaluation of the simulator's rooted paths. -/
+def CacheInv (σ : KSim) (c : HFS.QueryCache) : Prop :=
+  ∀ m d, c (.inl m) = some d → (m, d) ∈ LeanRpm.simPaths LeanRpm.keccakPadding σ
+
+/-- A new chain keeps the old rooted paths' evaluations. -/
+theorem mem_simPaths_cons {σ : KSim} {e : LeanRpm.PermLog LeanRpm.KState}
+    {p : LeanRpm.KState × List LeanRpm.KBlock} {md : Bytes × LeanRpm.KDigest}
+    (h : md ∈ LeanRpm.simPaths LeanRpm.keccakPadding σ) :
+    md ∈ LeanRpm.simPaths LeanRpm.keccakPadding (⟨e, p :: σ.chains⟩ : KSim) := by
+  simp only [LeanRpm.simPaths, List.filterMap_cons] at h ⊢
+  split <;> simp_all
+
+/-- **One step of the simulator keeps the invariant**: it queries `H m` only to answer a fresh
+forward query completing a rooted path that pads `m`, which it books. -/
+theorem cacheInv_step (q : LeanRpm.PermQuery LeanRpm.KState) (σ : KSim) (c : HFS.QueryCache)
+    (h : CacheInv σ c) {v : (LeanRpm.KState × KSim) × HFS.QueryCache}
+    (hv : v ∈ support ((simulateQ HFS.romImpl
+      ((LeanRpm.simulator2 (Msg := Bytes) LeanRpm.keccakPadding q).run σ)).run c)) :
+    CacheInv v.1.2 v.2 := by
+  cases q with
+  | inv y =>
+    simp only [LeanRpm.simulator2, StateT.run_mk] at hv
+    split at hv
+    · simp at hv; subst hv; exact h
+    · simp only [simulateQ_bind, StateT.run_bind, simulateQ_romImpl_liftM_run, simulateQ_pure,
+        StateT.run_pure, bind_map_left, support_bind, support_pure, Set.mem_iUnion,
+        Set.mem_singleton_iff] at hv
+      obtain ⟨_, -, rfl⟩ := hv
+      exact h
+  | fwd x =>
+    simp only [LeanRpm.simulator2, StateT.run_mk] at hv
+    split at hv
+    · simp at hv; subst hv; exact h
+    · split at hv
+      · next s β hch =>
+        simp only [simulateQ_bind, StateT.run_bind, simulateQ_pure, StateT.run_pure,
+          mem_support_bind_iff, support_pure, Set.mem_singleton_iff] at hv
+        obtain ⟨w, hw, rfl⟩ := hv
+        rcases hm : LeanRpm.keccakPadding.unpad (β ++ [LeanRpm.blockTo s x]) with _ | m
+        · rw [LeanRpm.rootedAnswer2_run_none _ hm] at hw
+          obtain ⟨-, -, hc⟩ := LeanRpm.roStep_support _ c hw
+          intro m' d hd
+          rw [hc _ (by simp)] at hd
+          exact mem_simPaths_cons (h m' d hd)
+        · rw [LeanRpm.rootedAnswer2_run_some _ hm] at hw
+          simp only [mem_support_bind_iff, support_uniformSample, Set.mem_univ, true_and,
+            support_pure, Set.mem_singleton_iff] at hw
+          obtain ⟨w', hw', ec, rfl⟩ := hw
+          obtain ⟨-, hself, hc⟩ := LeanRpm.roStep_support _ c hw'
+          intro m' d hd
+          by_cases hmm : m' = m
+          · subst hmm
+            rw [hself, Option.some_inj] at hd
+            subst hd
+            simp [LeanRpm.simPaths, hm]
+          · rw [hc _ (by simpa using hmm)] at hd
+            exact mem_simPaths_cons (h m' d hd)
+      · simp only [simulateQ_bind, StateT.run_bind, simulateQ_pure, StateT.run_pure,
+          LeanRpm.fQuery_run, mem_support_bind_iff, support_pure, Set.mem_singleton_iff] at hv
+        obtain ⟨w, hw, rfl⟩ := hv
+        obtain ⟨-, -, hc⟩ := LeanRpm.roStep_support _ c hw
+        intro m' d hd
+        rw [hc _ (by simp)] at hd
+        exact h m' d hd
+
+/-- **The invariant along the adversary's run**: the adversary makes permutation queries only, so
+every cached hash answer is an evaluation of the simulator's rooted paths. -/
+theorem cacheInv_run {α : Type} (A : OracleComp PermSpec α)
+    (s : (KSim × RLog) × HFS.QueryCache) (hs : CacheInv s.1.1 s.2) :
+    ∀ w ∈ support ((simulateQ (LeanRpm.foldRO
+        (LeanRpm.advImplLog2 (Msg := Bytes) LeanRpm.keccakPadding)) (simulateQ relP A)).run s),
+      CacheInv w.2.1.1 w.2.2 := by
+  induction A using OracleComp.inductionOn generalizing s with
+  | pure a =>
+    intro w hw
+    simp only [simulateQ_pure, StateT.run_pure, support_pure, Set.mem_singleton_iff] at hw
+    subst hw
+    exact hs
+  | query_bind q k ih =>
+    intro w hw
+    simp only [simulateQ_bind, simulateQ_query, OracleQuery.input_query, OracleQuery.cont_query,
+      id_map, relP, bind_map_left, StateT.run_bind, mem_support_bind_iff] at hw
+    obtain ⟨v, hv, hw⟩ := hw
+    refine ih _ v.2 ?_ w hw
+    rw [LeanRpm.foldRO_run] at hv
+    simp only [support_map, Set.mem_image] at hv
+    obtain ⟨y, hy, rfl⟩ := hv
+    have e : (LeanRpm.advImplLog2 (Msg := Bytes) LeanRpm.keccakPadding
+        (.inr (.inr (permQueryToRpm q)))).run s.1 =
+        (fun z ↦ (z.1, (z.2, s.1.2 ++ [(permQueryToRpm q, z.1)]))) <$>
+          (LeanRpm.simulator2 (Msg := Bytes) LeanRpm.keccakPadding (permQueryToRpm q)).run
+            s.1.1 := rfl
+    rw [e, simulateQ_map, StateT.run_map, support_map] at hy
+    obtain ⟨u, hu, rfl⟩ := hy
+    exact cacheInv_step _ _ _ hs hu
+
+/-! ## The transcript's hashes -/
+
+/-- On every reachable state of the transfer's ROM adversary (from the empty cache), the
+Keccak-256 evaluations of the adversary's transcript are the random oracle's cached hash answers. -/
+theorem transcriptHashes_eq_of_mem_support (A : RpmAdversary)
+    {z : ((Statement × Proof) × Transcript) ×
+      (LeanRpm.hfSpec Bytes LeanRpm.KDigest LeanRpm.KState).QueryCache}
+    (hz : z ∈ support ((simulateQ (LeanRpm.hfSpec Bytes LeanRpm.KDigest LeanRpm.KState).romImpl
+      (LeanRpm.advS2 LeanRpm.keccakPadding LeanRpm.KState.zero (advR A))).run ∅)) :
+    transcriptHashes z.1.2 = fun m ↦ (z.2 (.inl m)).map Digest.ofRpm := by
+  rw [advS2_advR, simulateQ_map, StateT.run_map, LeanRpm.run_simulateQ_foldRO, Functor.map_map,
+    support_map] at hz
+  obtain ⟨w, hw, rfl⟩ := hz
+  have hfwd := LeanRpm.pathsOf_ideal2 LeanRpm.keccakPadding LeanRpm.KState.zero
+    (simulateQ relP A) hw
+  have hinv := cacheInv_run A _ (fun m d hd ↦ by simp at hd) w hw
+  have hrep : w.2.1.1 = LeanRpm.replay LeanRpm.KState.zero w.2.1.2 := by
+    have h1 := LeanRpm.run_simulateQ_foldRO
+      (LeanRpm.advImplLog2 (Msg := Bytes) LeanRpm.keccakPadding) (simulateQ relP A)
+      (LeanRpm.SimState.init LeanRpm.KState.zero, []) (∅ : HFS.QueryCache)
+    have hz' : ((w.1, w.2.1), w.2.2) ∈ support ((simulateQ HFS.romImpl
+        ((simulateQ (LeanRpm.advImplLog2 (Msg := Bytes) LeanRpm.keccakPadding)
+          (simulateQ relP A)).run (LeanRpm.SimState.init LeanRpm.KState.zero, []))).run ∅) := by
+      rw [h1, support_map]
+      exact ⟨w, hw, rfl⟩
+    exact LeanRpm.simulator2_state_eq_replay _ _ _
+      (LeanRpm.fst_mem_support_of_mem_support_ro2 hz')
+  have hrev : ∀ m d, w.2.2 (.inl m) = some d →
+      (m, d) ∈ LeanRpm.pathsOf LeanRpm.keccakPadding LeanRpm.KState.zero w.2.1.2 := by
+    intro m d hd
+    rw [LeanRpm.pathsOf, ← hrep]
+    exact hinv m d hd
+  have eT : (w.2.1.2.map entryOfRpm).map (fun e ↦ (permQueryToRpm e.1, KState.toRpm e.2)) =
+      w.2.1.2 := by
+    rw [List.map_map]
+    conv_rhs => rw [← List.map_id w.2.1.2]
+    exact List.map_congr_left fun e _ ↦ entryToRpm_ofRpm e
+  funext m
+  simp only [transcriptHashes, eT]
+  rcases hc : w.2.2 (.inl m) with _ | d
+  · have hn : (LeanRpm.pathsOf LeanRpm.keccakPadding LeanRpm.KState.zero w.2.1.2).find?
+        (·.1 = m) = none := by
+      refine List.find?_eq_none.mpr fun p hp hpm ↦ ?_
+      have h' := hfwd p hp
+      simp only [decide_eq_true_eq] at hpm
+      rw [hpm, hc] at h'
+      cases h'
+    rw [hn]
+    rfl
+  · obtain ⟨p, hp⟩ : ∃ p, (LeanRpm.pathsOf LeanRpm.keccakPadding LeanRpm.KState.zero
+        w.2.1.2).find? (·.1 = m) = some p :=
+      Option.isSome_iff_exists.mp (List.find?_isSome.mpr ⟨(m, d), hrev m d hc, by simp⟩)
+    have hp1 := List.find?_some hp
+    have h' := hfwd p (List.mem_of_find?_eq_some hp)
+    simp only [decide_eq_true_eq] at hp1
+    rw [hp1, hc, Option.some_inj] at h'
+    rw [hp, h']
+    rfl
+
+end LeanVM.Rpm
