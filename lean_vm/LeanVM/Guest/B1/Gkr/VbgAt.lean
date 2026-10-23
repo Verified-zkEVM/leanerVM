@@ -94,5 +94,176 @@ theorem gk_xs_len {depth : ℕ} (hd1 : 1 ≤ depth) {cap0 xs : List E} {r : E ×
     have := tb_drop_le hdr (by rw [h6]) (by omega)
     omega
 
+theorem vbg_load_cls {d p : V} {off : ℕ} (hm : Stmt.atom (.load d p off) ∈ vbgEvL) :
+    p = .n p.idx ∧ ((p.idx = 5 ∧ off < 2) ∨ (p.idx = 15 ∧ off < 34) ∨
+      ((p.idx = 56 ∨ p.idx = 57) ∧ off < 33) ∨ (p.idx = 124 ∧ off = 0) ∨
+      (p.idx = 162 ∧ off < 6) ∨ (p.idx = 172 ∧ off = 0) ∨ ((p.idx = 301 ∨ p.idx = 305) ∧ off = 0) ∨
+      (p.idx = 312 ∧ off < 10)) := by
+  have hok := List.all_eq_true.mp vbg_loadOk _ hm
+  obtain ⟨path, tag, k⟩ := p
+  cases path with
+  | nil =>
+    cases tag with
+    | zero =>
+      refine ⟨rfl, ?_⟩
+      simp only [vbgLoadOk, Bool.or_eq_true, Bool.and_eq_true, beq_iff_eq, decide_eq_true_eq]
+        at hok
+      dsimp only
+      omega
+    | succ t => simp [vbgLoadOk] at hok
+  | cons a l => simp [vbgLoadOk] at hok
+
+/-- The honest valuation of `verify_bus_gkr` on its buffers at `g^eL .. g^eD`, the cursor at
+`g^ec`, `zeta` at `g^ez`. -/
+noncomputable def vbgσ (rd : Reader) (depth : ℕ) (cap0 : List E) (ec ez eL eR eP ePa eD : ℕ) : Val :=
+  vbgFlat.σ rd (vbgW (ofK (gpow eL)) (ofK (gpow eR)) (ofK (gpow eP)) (ofK (gpow ePa)) (ofK (gpow eD)))
+    (cap0 ++ [ofK (gpow ec), gen ^ depth, ofK (gpow ez)])
+
+set_option maxHeartbeats 1000000 in
+/-- **`verify_bus_gkr`'s honest valuation on a memory holding its words**: every statement holds,
+its calls loading from `R`; its loads land inside its buffers; its allocations are the buffers; it
+returns the accepting run's capacity, cursor and values. -/
+theorem vbg_run {depth κ : ℕ} (hd1 : 1 ≤ depth) (hd : depth ≤ 32) (hκ : 6 ≤ κ)
+    {cap0 xs : List E} {r : E × List E × List E} {cap' : List E}
+    (hrun : RunsTo (gkrPhase depth) ⟨cap0, []⟩ xs r ⟨cap', []⟩)
+    (hc : ∃ sp, (⟨cap0, []⟩ : Fs).Carries sp) {ec ez eL eR eP ePa eD : ℕ} {rd : Reader}
+    {R : ℕ → Prop} (hlow : LowDef κ rd) (hx : TbReadsAt rd (ofK (gpow ec)) xs)
+    (hz : TbReadsAt rd (ofK (gpow ez)) r.2.1)
+    (hL : TbReadsAt rd (ofK (gpow eL)) (vbgLayersW depth cap0 xs (ofK (gpow ec)) eP))
+    (hR : TbReadsAt rd (ofK (gpow eR)) (vbgRoundsW depth cap0 xs (ofK (gpow ec))))
+    (hP : TbReadsAt rd (ofK (gpow eP)) (vbgRowsW depth cap0 xs))
+    (hPa : TbReadsAt rd (ofK (gpow ePa)) vbgPairsW) (hD : TbReadsAt rd (ofK (gpow eD)) vbgDshW)
+    (hRz : ∀ i < depth, R (ez + i)) (hRr : ∀ i < 1640, R (eP + i))
+    (hL7 : coreProgram.Rel rd "__loop7" [1, gen ^ (depth / 2), ofK (gpow eD), gen ^ depth,
+        ofK (gpow eL), ofK (gpow eR)] [] →
+      coreProgram.RelIn rd R "__loop7" [1, gen ^ (depth / 2), ofK (gpow eD), gen ^ depth,
+        ofK (gpow eL), ofK (gpow eR)] []) :
+    (∀ s ∈ vbgPre, VSH (coreProgram.RelIn rd R) rd (vbgσ rd depth cap0 ec ez eL eR eP ePa eD) s) ∧
+    LoadsInBuf (vbgσ rd depth cap0 ec ez eL eR eP ePa eD)
+      [(ofK (gpow ec), xs.length), (ofK (gpow eL), 17 * (depth + 2)), (ofK (gpow eR), 6034),
+        (ofK (gpow eP), 1640), (ofK (gpow ePa), 33), (ofK (gpow eD), 33)] vbgEvL ∧
+    (vbgPre.filterMap Main.Stmt.allocSz).map
+      (fun x => x.2.elim id fun s => logG (vbgσ rd depth cap0 ec ez eL eR eP ePa eD s)) =
+        vbgSizes depth ∧
+    ((vbgPre.filterMap Main.Stmt.allocSz).map Prod.fst).map (vbgσ rd depth cap0 ec ez eL eR eP ePa eD) =
+      [ofK (gpow eL), ofK (gpow eR), ofK (gpow eP), ofK (gpow ePa), ofK (gpow eD)] ∧
+    vbgRets.map (vbgσ rd depth cap0 ec ez eL eR eP ePa eD) =
+      cap' ++ [ofK (gpow ec) * gen ^ xs.length] ++ r.2.2 := by
+  obtain ⟨hcnt, hx2, hodd, hsteps, hend, hsF, hr, hplm⟩ := gk_walk hrun hc
+  obtain ⟨sp, hsp⟩ := hc
+  have hsc : capOf sp.state = cap0 := hsp.1
+  have hcl : cap0.length = 5 := by rw [← hsc]; simp [capOf]
+  have hcan : AllCanonical cap0 := by rw [← hsc]; exact tb_capOf_canonical _
+  have hpl : ∀ j ≤ depth / 2, (gkSl cap0 xs (depth % 2) j).2.1.point.length = 2 * j + depth % 2 :=
+    gkSl_point_len (gkSl0_point_len cap0 xs (depth % 2) (by omega)) fun j hj ↦ (hsteps j hj).1
+  have hm := vbg_memLay (eL := eL) (eR := eR) (eP := eP) (ePa := ePa) (eD := eD) hd hcl hcan hpl
+    hL hR hP hPa hD
+  have h64 : (64 : ℕ) ≤ 2 ^ κ := by
+    calc (64 : ℕ) = 2 ^ 6 := by norm_num
+      _ ≤ 2 ^ κ := Nat.pow_le_pow_right (by norm_num) hκ
+  have hrc : (rd (gpow depth)).isSome = true ∧ (rd (gpow (32 - depth))).isSome = true :=
+    ⟨hlow depth (by omega), hlow (32 - depth) (by omega)⟩
+  obtain ⟨hh, hrt⟩ := verify_bus_gkr_body hd1 hd hrun ⟨sp, hsp⟩ hx hz hm hrc
+  have hx8 := gk_xs_len hd1 hrun ⟨sp, hsp⟩
+  set args : List E := cap0 ++ [ofK (gpow ec), gen ^ depth, ofK (gpow ez)] with hargs
+  set W := vbgW (ofK (gpow eL)) (ofK (gpow eR)) (ofK (gpow eP)) (ofK (gpow ePa)) (ofK (gpow eD))
+    with hW
+  have hσe : vbgσ rd depth cap0 ec ez eL eR eP ePa eD = B1.Val.ofArgs (ev rd W args vbgEvL) := rfl
+  rw [hσe]
+  set σ := B1.Val.ofArgs (ev rd W args vbgEvL) with hσ
+  have hl : args.length = 8 := by rw [hargs]; simp [hcl]
+  obtain ⟨c', hc'⟩ := Option.isSome_iff_exists.mp vb_chk
+  have hG : ∀ s ∈ vbgEvL, GoodS rd vbgS W σ s := by
+    have h := (ev_spec rd W vbgEvL args (by rw [hl]; exact hc')).2.2
+    rw [hl] at h
+    exact h
+  -- the level-0 slot's cursor and row
+  have hLb := tbReadsAt_flatMap_eq (w := 17) _ (depth + 2)
+    (fun c _ ↦ vbgLayBlock_length hcl hcan c) hL
+  have hb0 := hLb 0 (by omega)
+  simp only [Nat.mul_zero, pow_zero, mul_one] at hb0
+  obtain ⟨w5, w9⟩ := vbgLayBlock0 (depth := depth) (xs := xs) (cur := ofK (gpow ec)) (eP := eP)
+    hcl hcan
+  have h5 : LoadHolds rd (ofK (gpow eL)) 5 (ofK (gpow ec) * gen ^ 2) := by
+    have := hb0 5 (by rw [vbgLayBlock_length hcl hcan]; omega)
+    rwa [← List.getD_eq_getElem _ 0, w5] at this
+  have h9 : LoadHolds rd (ofK (gpow eL)) 9 (ofK (gpow eP)) := by
+    have := hb0 9 (by rw [vbgLayBlock_length hcl hcan]; omega)
+    rwa [← List.getD_eq_getElem _ 0, w9] at this
+  obtain ⟨e5, e6, e14, e15, e16, e17, e56, e57, e124, e162, e172, e301, e305, e312⟩ :=
+    vbg_ptrs hσ hG hcl hargs hW h5 h9
+  have g : ∀ a : Atom, vbgEvL.any (fun t ↦ tbStmtsEqb [.atom a] [t]) = true → Good rd vbgS W σ a :=
+    fun a h ↦ hG _ (vbg_mem h)
+  have e7 : σ (.n 7) = ofK (gpow ez) := by
+    rw [hσ, ev_params rd W (by rw [hl]; exact hc') (by rw [hl]; omega), hargs]; simp [hcl]
+  have one : ∀ d : ℕ, vbgEvL.any (fun t ↦ tbStmtsEqb [.atom (.const (.n d) (word 1 0 0))] [t]) =
+      true → σ (.n d) = 1 := fun d h ↦ by rw [← tb_word_one]; exact g _ h
+  have c304 := one 304 (by decide +kernel)
+  have c317 := one 317 (by decide +kernel)
+  -- `pairs[depth]`
+  have hpd : LoadHolds rd (σ (.n 305)) 0 (gen ^ (depth / 2)) := by
+    rw [e305, tb_loadHolds_mul_gen_pow, Nat.add_zero]
+    have := hPa depth (by simp [vbgPairsW]; omega)
+    simpa [vbgPairsW] using this
+  have r306 := good_read (g (.load (.n 306) (.n 305) 0) (by decide +kernel)) (by decide +kernel) hpd
+  -- the last slot's row
+  have hdb := hLb depth (by omega)
+  have hrow : LoadHolds rd (σ (.n 312)) 9
+      (ofK (gpow eP) * gen ^ (40 * ((depth - depth % 2) / 2 + depth % 2))) := by
+    rw [e312, show (17 * depth) = 17 * depth from rfl]
+    have := hdb 9 (by rw [vbgLayBlock_length hcl hcan]; omega)
+    rw [← List.getD_eq_getElem _ 0] at this
+    have inv := gkSl_inv (xs := xs) (sh := depth % 2) hcl hcan ((depth - depth % 2) / 2)
+    unfold vbgLayBlock at this
+    simp only [and_self, le_refl, ↓reduceIte, vbgSlotW] at this
+    rwa [gkSlotWords_getD9 inv.1 inv.2.2.2] at this
+  have r314 := good_read (g (.load (.n 314) (.n 312) 9) (by decide +kernel)) (by decide +kernel) hrow
+  refine ⟨fun s hs ↦ ?_, fun d p off hm ↦ ?_, ?_, ?_, hrt⟩
+  · -- the statements
+    have hv := vsh_of_holdsList vbgPre vbg_iteOk hh s hs
+    have hk := List.all_eq_true.mp vbg_kinds s hs
+    simp only [vbgKindB, Bool.or_eq_true] at hk
+    rcases hk with (ha | h7) | h8
+    · exact vsh_atomsDeep ha hv
+    · have e := tbStmtsEqb_sound h7
+      simp only [List.cons.injEq, and_true] at e
+      subst e
+      refine ⟨hv.1, fun hne ↦ ?_⟩
+      have h := hv.2 hne
+      simp only [List.map_cons, List.map_nil, c304, r306.1, e57, e6, e15, e16] at h ⊢
+      exact hL7 h
+    · have e := tbStmtsEqb_sound h8
+      simp only [List.cons.injEq, and_true] at e
+      subst e
+      refine ⟨hv.1, fun hne ↦ ?_⟩
+      obtain ⟨n, h⟩ := hv.2 hne
+      simp only [List.map_cons, List.map_nil, c317, e6, e7, r314.1] at h ⊢
+      rw [show (1 : E) = gen ^ 0 from (pow_zero _).symm] at h ⊢
+      rw [tb_ofK_gpow_mul] at h ⊢
+      exact loop8_relIn (ptrIn_ofK hRz) (ptrIn_ofK fun i hi ↦ by
+        rw [Nat.add_assoc]; exact hRr _ (by omega)) n 0 (by omega) h
+  · -- the loads
+    obtain ⟨hp, hcls⟩ := vbg_load_cls hm
+    rw [hp]
+    rcases hcls with ⟨h1, h2⟩ | ⟨h1, h2⟩ | ⟨h1 | h1, h2⟩ | ⟨h1, h2⟩ | ⟨h1, h2⟩ | ⟨h1, h2⟩ |
+      ⟨h1 | h1, h2⟩ | ⟨h1, h2⟩ <;> rw [h1]
+    · exact ⟨(ofK (gpow ec), xs.length), List.mem_cons_self, 0, by rw [e5]; simp, by omega⟩
+    · exact ⟨(ofK (gpow eL), 17 * (depth + 2)), by simp, 0, by rw [e15]; simp, by omega⟩
+    · exact ⟨(ofK (gpow ePa), 33), by simp, 0, by rw [e56]; simp, by omega⟩
+    · exact ⟨(ofK (gpow eD), 33), by simp, 0, by rw [e57]; simp, by omega⟩
+    · exact ⟨(ofK (gpow eD), 33), by simp, depth, e124, by omega⟩
+    · exact ⟨(ofK (gpow ec), xs.length), List.mem_cons_self, 2, e162, by omega⟩
+    · exact ⟨(ofK (gpow eP), 1640), by simp, 40, e172, by omega⟩
+    · exact ⟨(ofK (gpow ePa), 33), by simp, depth, e301, by omega⟩
+    · exact ⟨(ofK (gpow ePa), 33), by simp, depth, e305, by omega⟩
+    · exact ⟨(ofK (gpow eL), 17 * (depth + 2)), by simp, 17 * depth, e312, by omega⟩
+  · -- the sizes
+    rw [vbg_allocs]
+    simp only [List.map_cons, List.map_nil, Sum.elim_inr, Sum.elim_inl, id, e14, vbgSizes]
+    rw [gen_pow_eq_ofK, logG_spec (by omega)]
+  · -- the bases
+    rw [vbg_allocs]
+    simp only [List.map_cons, List.map_nil, e15, e16, e17, e56, e57]
+
 end
 end LeanVM.Guest.B1.Tables
