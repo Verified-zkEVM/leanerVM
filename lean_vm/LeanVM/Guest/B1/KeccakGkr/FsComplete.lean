@@ -65,11 +65,11 @@ theorem fsPack_vals_of_good {x : V} {b t : ℕ} (hg : ∀ s ∈ fsPackT x b t, G
 /-- **`fs_next` on an evaluated valuation**: the word read from memory, its packed cells
 canonical and the scalar's rate cells, and the template holds. -/
 theorem fsNext_complete {cur : V} {off b : ℕ} (hg : ∀ s ∈ fsNextT cur off b, GoodS rd S w σ s)
-    (hnS : Atom.load (.n b) cur off ∉ S) {v : E} (hv : LoadHolds rd (σ cur) off v)
-    {next : Prop} {kret : List E → Prop} :
+    (hnS : Atom.load (.n b) cur off ∉ S) {v : E} (hv : LoadHolds rd (σ cur) off v) :
     σ (.n b) = v ∧ IsCanonical128 (σ (.n (b + 7))) ∧ IsCanonical128 (σ (.n (b + 9))) ∧
       (σ (.n (b + 7)), σ (.n (b + 9))) = Keccak.scalarCells v dsObserve ∧
-      (next → Stmt.HoldsList C rd σ (fsNextT cur off b) next kret) := by
+      ∀ {next : Prop} {kret : List E → Prop},
+        next → Stmt.HoldsList C rd σ (fsNextT cur off b) next kret := by
   have hl : GoodS rd S w σ (.atom (.load (.n b) cur off)) := hg _ (List.mem_cons_self ..)
   have hp : ∀ s ∈ fsPackT (.n b) (b + 1) dsObserve, GoodS rd S w σ s :=
     fun s hs ↦ hg s (List.mem_cons_of_mem _ hs)
@@ -83,15 +83,15 @@ theorem fsNext_complete {cur : V} {off b : ℕ} (hg : ∀ s ∈ fsNextT cur off 
   have v8 : σ (.n (b + 9)) = fsPackVals (σ (.n b)) dsObserve 8 := hvals 8 (by norm_num)
   have hc := fsPackVals_canonical (σ (.n b)) dsObserve
   have hcells := fsPackVals_cells (σ (.n b)) dsObserve
-  refine ⟨eb, by rw [v6]; exact hc.1, by rw [v8]; exact hc.2, ?_, fun hn ↦ ?_⟩
+  refine ⟨eb, by rw [v6]; exact hc.1, by rw [v8]; exact hc.2, ?_, fun {next kret} hn ↦ ?_⟩
   · rw [v6, v8, ← eb]; exact hcells
   · exact (holds_fsNextT cur off b next kret).2 ⟨⟨by rw [eb]; exact hv, fsPackOk_of_vals hvals⟩, hn⟩
 
 /-- **`challenge_from_state` on an evaluated valuation** of a canonical cell. -/
 theorem challenge_complete {s0 s1 : V} {b : ℕ}
-    (hg : ∀ s ∈ challengeT s0 s1 b, GoodS rd S w σ s) (hc : IsCanonical128 (σ s1))
-    {next : Prop} {kret : List E → Prop} :
-    ChallengeOk σ s0 s1 b ∧ (next → Stmt.HoldsList C rd σ (challengeT s0 s1 b) next kret) := by
+    (hg : ∀ s ∈ challengeT s0 s1 b, GoodS rd S w σ s) (hc : IsCanonical128 (σ s1)) :
+    ChallengeOk σ s0 s1 b ∧ ∀ {next : Prop} {kret : List E → Prop},
+      next → Stmt.HoldsList C rd σ (challengeT s0 s1 b) next kret := by
   simp only [challengeT, List.forall_mem_cons, List.not_mem_nil, IsEmpty.forall_iff,
     implies_true, and_true, GoodS, Good] at hg
   obtain ⟨hl, e1, e2, e3, -, e4, e5, e6⟩ := hg
@@ -111,7 +111,7 @@ theorem challenge_complete {s0 s1 : V} {b : ℕ}
     · exact e4
     · show σ (.n (b + 5)) = word 0 0 1 * ofK ((σ s1).limb 0); rw [m5, e4, l0]
     · show σ (.n (b + 6)) = σ s0 + word 0 0 1 * ofK ((σ s1).limb 0); rw [e6, m5, e4, l0]
-  exact ⟨hok, fun hn ↦ (holds_challengeT s0 s1 b next kret).2 ⟨hok, hn⟩⟩
+  exact ⟨hok, fun {next kret} hn ↦ (holds_challengeT s0 s1 b next kret).2 ⟨hok, hn⟩⟩
 
 /-- **A `KECCAK` atom on an evaluated valuation** with canonical inputs holds. -/
 theorem keccakA_complete {ins outs : List V} (hg : Good rd S w σ (.keccak ins outs false false))
