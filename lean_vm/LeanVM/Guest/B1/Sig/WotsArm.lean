@@ -321,5 +321,51 @@ theorem armT_canon {W : WotsT} {B : Nat} {good : Val → Prop} (hW : StepShape W
     have hr := hR (.n (slots t 2)) ⟨t, ht, Or.inr ⟨2, by omega, 0, by omega, by simp⟩⟩
     revert hv
     split <;> cases fold <;> simp [mulS, copyS, cst, addS, outsList, aOuts] <;> simp_all
+/-- **An arm's values**: below `B`, in its walks' region, its product's and encoding's cells, its
+base and its walks' end. -/
+theorem armT_vals {W : WotsT} {B : Nat} (hW : StepShape W B) {slots : Nat → Nat → Nat}
+    {first n : Nat} {fold : Bool} {prodIn encIn : V} {po eo k b : Nat}
+    (hwl : ∀ t < n, WalkLay W B (slots t) (if k = 0 then W.size + 13 else W.size) (dig k t)
+      (walkBase (if k = 0 then W.size + 13 else W.size) k 0 t (if fold then b + 1 else b)))
+    (hwd : ∀ t < n, ∀ t' < n, t ≠ t' → ∀ x,
+      WalkR (slots t) (if k = 0 then W.size + 13 else W.size) (dig k t)
+        (walkBase (if k = 0 then W.size + 13 else W.size) k 0 t (if fold then b + 1 else b)) x →
+      ¬ WalkR (slots t') (if k = 0 then W.size + 13 else W.size) (dig k t')
+        (walkBase (if k = 0 then W.size + 13 else W.size) k 0 t' (if fold then b + 1 else b)) x)
+    {P : V → Prop} (hP1 : ∀ x, NBv B x → P x)
+    (hP2 : ∀ x, WalksR slots (if k = 0 then W.size + 13 else W.size) k n (if fold then b + 1 else b) x → P x)
+    (hP3 : P (.n po) ∧ P (.n eo) ∧ P (.n b) ∧ P prodIn ∧ P encIn ∧ P (W.power (digitSum k n)) ∧
+      P (.n (walksT W slots first k W.size n 0 (if fold then b + 1 else b)).2)) :
+    ∀ x ∈ Stmt.valsList (armT W slots first n fold prodIn encIn (.n po) (.n eo) k b).1, P x := by
+  obtain ⟨-, -, w3⟩ := walksT_ssa hW slots first k (if k = 0 then W.size + 13 else W.size) n 0
+    (if fold then b + 1 else b) (by simpa using hwl) (by simpa using hwd)
+  simp only [Nat.zero_add] at w3
+  obtain ⟨p1, p2, p3, p4, p5, p6, p7⟩ := hP3
+  have hw : ∀ x ∈ Stmt.valsList (walksT W slots first k (if k = 0 then W.size + 13 else W.size) n 0
+      (if fold then b + 1 else b)).1, P x := fun x hx => by
+    rcases w3 x hx with h | h
+    · exact hP1 x h
+    · exact hP2 x h
+  unfold armT
+  split
+  · rename_i hk
+    subst hk
+    intro x hx
+    simp only [valsList_append, List.mem_append] at hx
+    rcases hx with (h | h) | h
+    · cases fold <;> simp [cst, Stmt.vals, Atom.vals] at h; subst h; exact p3
+    · exact hw x h
+    · cases fold <;> simp [mulS, copyS, Stmt.vals, Atom.vals] at h <;> rcases h with h | h | h | h <;>
+        first | (subst h; assumption) | skip
+      all_goals (rcases h with rfl | rfl <;> assumption)
+  · rename_i hk
+    intro x hx
+    simp only [valsList_append, List.mem_append] at hx
+    rcases hx with (h | h) | h
+    · cases fold <;> simp [cst, Stmt.vals, Atom.vals] at h; subst h; exact p3
+    · exact hw x (by simpa [hk] using h)
+    · cases fold <;> simp [mulS, copyS, cst, addS, Stmt.vals, Atom.vals] at h <;>
+        rcases h with h | h | h | h | h | h | h <;> (try subst h) <;> assumption
+
 end
 end LeanVM.Guest.B1.Sig
