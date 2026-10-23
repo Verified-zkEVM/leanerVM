@@ -239,6 +239,88 @@ theorem regionL_append_left {L L' : Layout} {i : ℕ} (h : RegionL L i) : Region
 theorem regionL_append_right {L L' : Layout} {i : ℕ} (h : RegionL L' i) : RegionL (L ++ L') i :=
   let ⟨q, hq, h1, h2⟩ := h; ⟨q, List.mem_append_right _ hq, h1, h2⟩
 
+/-! ## Statements from a body's relation -/
+
+theorem sholds_of_straight {C : CallRel} {rd : Reader} {σ : Val} {kret : List E → Prop} :
+    ∀ (ss : List Stmt) {next : Prop}, ss.all straightB = true →
+      Stmt.HoldsList C rd σ ss next kret → ∀ s ∈ ss, SHolds C rd σ s
+  | [], _, _, _ => fun _ h ↦ absurd h (by simp)
+  | s :: ss, _, hst, h => by
+    simp only [List.all_cons, Bool.and_eq_true] at hst
+    simp only [Stmt.HoldsList] at h
+    intro t ht
+    cases s with
+    | atom a =>
+      rcases List.mem_cons.mp ht with rfl | ht
+      · exact h.1
+      · exact sholds_of_straight ss hst.2 h.2 t ht
+    | call f a r =>
+      rcases List.mem_cons.mp ht with rfl | ht
+      · exact h.1
+      · exact sholds_of_straight ss hst.2 h.2 t ht
+    | callIf c f a =>
+      rcases List.mem_cons.mp ht with rfl | ht
+      · exact ⟨h.1, h.2.1⟩
+      · exact sholds_of_straight ss hst.2 h.2.2 t ht
+    | dispatch x fs a r =>
+      rcases List.mem_cons.mp ht with rfl | ht
+      · exact h.1
+      · exact sholds_of_straight ss hst.2 h.2 t ht
+    | _ => simp [straightB] at hst
+
+/-- **Each statement of a body whose relation holds holds**, an `ite` by its taken branch. -/
+theorem vsh_of_holdsList {C : CallRel} {rd : Reader} {σ : Val} {kret : List E → Prop} :
+    ∀ (ss : List Stmt) {next : Prop}, ss.all iteOk = true →
+      Stmt.HoldsList C rd σ ss next kret → ∀ s ∈ ss, VSH C rd σ s
+  | [], _, _, _ => fun _ h ↦ absurd h (by simp)
+  | s :: ss, next, hok, h => by
+    simp only [List.all_cons, Bool.and_eq_true] at hok
+    simp only [Stmt.HoldsList] at h
+    intro t ht
+    cases s with
+    | atom a =>
+      rcases List.mem_cons.mp ht with rfl | ht
+      · exact h.1
+      · exact vsh_of_holdsList ss hok.2 h.2 t ht
+    | call f a r =>
+      rcases List.mem_cons.mp ht with rfl | ht
+      · exact h.1
+      · exact vsh_of_holdsList ss hok.2 h.2 t ht
+    | callIf c f a =>
+      rcases List.mem_cons.mp ht with rfl | ht
+      · exact ⟨h.1, h.2.1⟩
+      · exact vsh_of_holdsList ss hok.2 h.2.2 t ht
+    | dispatch x fs a r =>
+      rcases List.mem_cons.mp ht with rfl | ht
+      · exact h.1
+      · exact vsh_of_holdsList ss hok.2 h.2 t ht
+    | ite c z n =>
+      simp only [iteOk, Bool.and_eq_true] at hok
+      obtain ⟨hk, hz, hn⟩ := h
+      have tail : Stmt.HoldsList C rd σ ss next kret := by
+        by_cases hc : σ c = 0
+        · exact holdsList_tail z hok.1.1 (hz hc)
+        · exact holdsList_tail n hok.1.2 (hn hc)
+      rcases List.mem_cons.mp ht with rfl | ht
+      · exact ⟨hk, fun hc ↦ sholds_of_straight z hok.1.1 (hz hc),
+          fun hc ↦ sholds_of_straight n hok.1.2 (hn hc)⟩
+      · exact vsh_of_holdsList ss hok.2 tail t ht
+    | _ => simp [iteOk, straightB] at hok
+where
+  holdsList_tail {C : CallRel} {rd : Reader} {σ : Val} {kret : List E → Prop} :
+      ∀ (z : List Stmt) {next : Prop}, z.all straightB = true →
+        Stmt.HoldsList C rd σ z next kret → next
+    | [], _, _, h => h
+    | s :: ss, _, hst, h => by
+      simp only [List.all_cons, Bool.and_eq_true] at hst
+      simp only [Stmt.HoldsList] at h
+      cases s with
+      | atom a => exact holdsList_tail ss hst.2 h.2
+      | call f a r => exact holdsList_tail ss hst.2 h.2
+      | callIf c f a => exact holdsList_tail ss hst.2 h.2.2
+      | dispatch x fs a r => exact holdsList_tail ss hst.2 h.2
+      | _ => simp [straightB] at hst
+
 variable {fs : String → ℕ} {cert : String → V → ℕ}
 
 set_option maxRecDepth 20000 in
