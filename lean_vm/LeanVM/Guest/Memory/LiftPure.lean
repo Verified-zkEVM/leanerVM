@@ -103,6 +103,28 @@ def Stmt.leafOkArms (lok : Atom → Bool) : List (List Stmt) → Bool
   | a :: as => Stmt.leafOkList lok a && Stmt.leafOkArms lok as
 end
 
+/-- No condition on an atom but placing nothing. -/
+def anyAtom : Atom → Bool := fun _ ↦ true
+
+theorem leafOkList_append (lok : Atom → Bool) : ∀ (l l' : List Stmt),
+    Stmt.leafOkList lok (l ++ l') = (Stmt.leafOkList lok l && Stmt.leafOkList lok l')
+  | [], _ => by simp [Stmt.leafOkList]
+  | s :: l, l' => by
+    rw [List.cons_append, Stmt.leafOkList, Stmt.leafOkList, leafOkList_append lok l l',
+      Bool.and_assoc]
+
+/-- A leaf body checked by ranges of statements: the range from `a` and the rest from `a + n`
+make the rest from `a`. -/
+theorem leafOk_drop {lok : Atom → Bool} {l : List Stmt} {a n : ℕ}
+    (h : Stmt.leafOkList lok ((l.drop a).take n) = true)
+    (h' : Stmt.leafOkList lok (l.drop (a + n)) = true) : Stmt.leafOkList lok (l.drop a) = true := by
+  rw [← List.take_append_drop n (l.drop a), leafOkList_append, List.drop_drop]
+  exact Bool.and_eq_true_iff.mpr ⟨h, h'⟩
+
+theorem leafOk_end {lok : Atom → Bool} {l : List Stmt} {a : ℕ} (ha : l.length ≤ a) :
+    Stmt.leafOkList lok (l.drop a) = true := by
+  rw [List.drop_eq_nil_of_le ha]; rfl
+
 /-- An event of a leaf body's walk: an atom passing `lok`, or a branch condition. -/
 def EvLeafOk (lok : Atom → Bool) : Ev → Prop
   | .atom a => lok a = true
