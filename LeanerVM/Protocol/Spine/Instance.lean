@@ -85,63 +85,9 @@ def Layout.readWith {μ : ℕ} {ι : Type} {κ : ι → ℕ}
 /-! ### Reading a column, compiled
 
 A generic `boolVec` or `boolIndex` over `E` builds `1 : E`, and `boolVec` `0 : E`, again for
-every coordinate. `boolVecE` and `boolIndexE` read the two words off constants computed once;
+every coordinate. `Layout.readWithFast` goes through `boolVecE` and `boolIndexE`
+(`LeanerVM.Protocol.Field`), which read the two words off constants computed once;
 `Layout.readWith_eq_readWithFast` is a `@[csimp]` theorem. -/
-
-/-- The word `1`, computed once. -/
-def oneE : E := 1
-
-/-- The word `0`, computed once. -/
-def zeroE : E := 0
-
-/-- `boolVec` over `E`, its coordinates the constants `oneE` and `zeroE`. -/
-def boolVecE {m : ℕ} (j : Fin (2 ^ m)) : Vector E m :=
-  Vector.ofFn fun b ↦ if j.val.testBit b then oneE else zeroE
-
-/-- `boolVecE` is `boolVec`. -/
-theorem boolVecE_eq {m : ℕ} (j : Fin (2 ^ m)) : boolVecE j = boolVec j := rfl
-
-/-- Whether a word is `1`, limb by limb. -/
-def isOneE (x : E) : Bool := decide (x.limb 0 = 1 ∧ x.limb 1 = 0 ∧ x.limb 2 = 0)
-
-/-- `isOneE` decides `x = 1`. -/
-theorem isOneE_iff (x : E) : isOneE x = true ↔ x = 1 := by
-  have h1 : ∀ i : Fin 3, (1 : E).limb i = if (i : ℕ) = 0 then 1 else 0 :=
-    CompPoly.Extension.Ext.coeff_one (P := BF64.ext3Params)
-  rw [isOneE, decide_eq_true_iff]
-  constructor
-  · rintro ⟨e0, e1, e2⟩
-    apply E.ext
-    intro i
-    rw [h1]
-    fin_cases i
-    · exact e0
-    · exact e1
-    · exact e2
-  · rintro rfl
-    exact ⟨by rw [h1]; rfl, by rw [h1]; rfl, by rw [h1]; rfl⟩
-
-/-- `boolIndex` over `E`, testing each coordinate limb by limb. -/
-def boolIndexE {m : ℕ} (p : Vector E m) : Fin (2 ^ m) :=
-  ⟨Fin.foldr m (fun i acc ↦ (if isOneE p[i] then 1 else 0) + 2 * acc) 0, by
-    have h : Fin.foldr m (fun i acc ↦ (if isOneE p[i] then 1 else 0) + 2 * acc) 0 =
-        boolIndexNat p := by
-      unfold boolIndexNat
-      congr 1
-      funext i acc
-      simp only [isOneE_iff]
-    rw [h, boolIndexNat_eq]
-    exact (boolIndex p).isLt⟩
-
-/-- `boolIndexE` is `boolIndex`. -/
-theorem boolIndexE_eq {m : ℕ} (p : Vector E m) : boolIndexE p = boolIndex p := by
-  apply Fin.ext
-  rw [← boolIndexNat_eq]
-  show Fin.foldr m (fun i acc ↦ (if isOneE p[i] then 1 else 0) + 2 * acc) 0 = _
-  unfold boolIndexNat
-  congr 1
-  funext i acc
-  simp only [isOneE_iff]
 
 /-- `Layout.readWith` through `boolVecE` and `boolIndexE`. -/
 def Layout.readWithFast {μ : ℕ} {ι : Type} {κ : ι → ℕ}

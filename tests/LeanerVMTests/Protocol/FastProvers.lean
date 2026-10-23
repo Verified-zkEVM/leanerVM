@@ -11,10 +11,12 @@ The `@[csimp]` theorems of `LeanerVM.Protocol.ToCompPoly.Doubling`, `…MvEval`,
 `Protocol.LeanIsa`), the rows and virtual tables of an instance (`Spine.Instance`,
 `Spine.Seams`), the bus leaves (`Protocol.Bus`) and the grand-product prover
 (`ToArkLib.GrandProduct`) are proved; these `#guard`s check the compiled code at small sizes.
-The specification side of each guard is the definition's body written out, or a function the
-substitution does not touch (CompPoly's `CMlPolynomialEval.eval`, `CMvPolynomial.eval₂`,
-`Gkr.roundPolyRaw`, `Bus.Source.leaf`, `LeanIsa.cellOf`). Two mutations show what the doubling
-and the coefficient recurrence depend on.
+The specification side of each guard is the definition's body written out, or the definition the
+substitution replaces evaluated through others (`Gkr.roundPolyRaw`, `Bus.Source.leaf`,
+`LeanIsa.cellOf`, themselves compiled through the substituted `evalMle`, `lagrangeBasis` and `E`
+arithmetic). The independent anchors are CompPoly's own compiled `CMlPolynomialEval.eval` and
+`CMvPolynomial.eval₂Horner`, which no `@[csimp]` theorem replaces. Two mutations show what the
+doubling and the coefficient recurrence depend on.
 -/
 
 namespace LeanerVMTests.Protocol.FastProvers
@@ -138,13 +140,15 @@ open LeanerVMTests.Protocol.Bus in
       q.values.get (boolIndex (busToy.layout.extend ⟨j, i⟩ (boolVec x)))
 
 open LeanerVMTests.Protocol.Bus in
--- The virtual table of the constraint and of the flush's coordinates, against `eval₂`.
+-- The virtual table of the constraint and of the flush's coordinates, against CompPoly's Horner
+-- evaluator.
 #guard [honest, wild].all fun q ↦ (constraint :: flush.2.toList).all fun P ↦
-  busToy.virtualTable q 0 P == Vector.ofFn fun x ↦
-    ofK (CMvPolynomial.eval₂ (RingHom.id K) (fun i ↦ (busToy.column q ⟨0, i⟩).values.get x) P)
+  busToy.virtualTable q 0 P == Vector.ofFn fun x ↦ ofK (CMvPolynomial.eval₂Horner (RingHom.id K)
+    (fun i ↦ (busToy.column q ⟨0, i⟩).values.get x) P)
 
 #guard (List.range 8).all fun s ↦
-  let t : Vector K 16 := Vector.ofFn fun i ↦ if i.val % (s + 2) = 0 then 0 else kOf (s + i.val).toUInt64
+  let t : Vector K 16 :=
+    Vector.ofFn fun i ↦ if i.val % (s + 2) = 0 then 0 else kOf (s + i.val).toUInt64
   let α : Fin 4 → E := fun i ↦ eOf (s.toUInt64 + i.val.toUInt64)
   fingerprintWith (fingerprintWeights α) t == fingerprint α t
 

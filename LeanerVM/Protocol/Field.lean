@@ -11,6 +11,7 @@ module
 public import LeanerVM.Parameters.Field
 public import LeanerVM.Protocol.ToArkLib.InnerProduct
 public import CompPoly.Multilinear.Basic
+public import LeanerVM.Protocol.ToCompPoly.Multilinear
 public import VCVio.OracleComp.Constructions.SampleableType
 
 /-!
@@ -35,6 +36,10 @@ leanVM's columns take values in `K` and its challenges in `E`, the cubic extensi
   (`answer_eqWeight`).
 The scalars and coefficient lists a phase sends need no interface of their own: a one-message
 schedule (`LeanerVM.Protocol.ToArkLib.Schedule`) reads its message whole.
+
+Compiled code reads cube points over `E` through `boolVecE` and `boolIndexE`, `boolVec` and
+`boolIndex` with the words `0` and `1` computed once (`oneE`, `zeroE`), where the generic
+functions build them again for every coordinate.
 
 ## Wrong readings excluded
 
@@ -108,6 +113,63 @@ theorem answer_eqWeight {n : ℕ} (q : Column n) (p : Vector E n) :
     OracleInterface.answer q (eqWeight p) =
       CMlPolynomialEval.eval₂Mle q.values (algebraMap K E) p :=
   Weight.pair_eqWeight (algebraMap K E) p q.values
+
+/-! ## Cube points over `E`, compiled -/
+
+/-- The word `1`, computed once. -/
+def oneE : E := 1
+
+/-- The word `0`, computed once. -/
+def zeroE : E := 0
+
+/-- `boolVec` over `E`, its coordinates the constants `oneE` and `zeroE`. -/
+def boolVecE {m : ℕ} (j : Fin (2 ^ m)) : Vector E m :=
+  Vector.ofFn fun b ↦ if j.val.testBit b then oneE else zeroE
+
+/-- `boolVecE` is `boolVec`. -/
+theorem boolVecE_eq {m : ℕ} (j : Fin (2 ^ m)) : boolVecE j = boolVec j := rfl
+
+/-- Whether a word is `1`, limb by limb. -/
+def isOneE (x : E) : Bool := decide (x.limb 0 = 1 ∧ x.limb 1 = 0 ∧ x.limb 2 = 0)
+
+/-- `isOneE` decides `x = 1`. -/
+theorem isOneE_iff (x : E) : isOneE x = true ↔ x = 1 := by
+  have h1 : ∀ i : Fin 3, (1 : E).limb i = if (i : ℕ) = 0 then 1 else 0 :=
+    CompPoly.Extension.Ext.coeff_one (P := BF64.ext3Params)
+  rw [isOneE, decide_eq_true_iff]
+  constructor
+  · rintro ⟨e0, e1, e2⟩
+    apply E.ext
+    intro i
+    rw [h1]
+    fin_cases i
+    · exact e0
+    · exact e1
+    · exact e2
+  · rintro rfl
+    exact ⟨by rw [h1]; rfl, by rw [h1]; rfl, by rw [h1]; rfl⟩
+
+/-- `boolIndex` over `E`, testing each coordinate limb by limb. -/
+def boolIndexE {m : ℕ} (p : Vector E m) : Fin (2 ^ m) :=
+  ⟨Fin.foldr m (fun i acc ↦ (if isOneE p[i] then 1 else 0) + 2 * acc) 0, by
+    have h : Fin.foldr m (fun i acc ↦ (if isOneE p[i] then 1 else 0) + 2 * acc) 0 =
+        boolIndexNat p := by
+      unfold boolIndexNat
+      congr 1
+      funext i acc
+      simp only [isOneE_iff]
+    rw [h, boolIndexNat_eq]
+    exact (boolIndex p).isLt⟩
+
+/-- `boolIndexE` is `boolIndex`. -/
+theorem boolIndexE_eq {m : ℕ} (p : Vector E m) : boolIndexE p = boolIndex p := by
+  apply Fin.ext
+  rw [← boolIndexNat_eq]
+  show Fin.foldr m (fun i acc ↦ (if isOneE p[i] then 1 else 0) + 2 * acc) 0 = _
+  unfold boolIndexNat
+  congr 1
+  funext i acc
+  simp only [isOneE_iff]
 
 end
 end LeanerVM.Protocol
