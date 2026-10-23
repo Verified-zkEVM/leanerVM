@@ -10,6 +10,7 @@ module
 public import LeanVM.Guest.B1.Main.MainAtDefs
 public import LeanVM.Guest.B1.Main.MainCoreThm
 public import LeanVM.Guest.B1.Da.AtBase
+public import LeanVM.Guest.B1.Main.RelAtW
 
 /-!
 # `main`, placed
@@ -135,8 +136,9 @@ set_option maxRecDepth 40000 in
 set_option maxHeartbeats 16000000 in
 /-- **`main` at `fp`**: its honest valuation on a memory holding its buffers `own`,
 `exponent_tables`' tables, its callees' layouts and its header holds by a tree placed at `fp`,
-loading outside its own data only its header (words `0`, `1`). -/
-theorem main_relAtIn (fs : String → ℕ) (cert : String → V → ℕ) (fp : ℕ) (d : MainData)
+loading outside its own data only its header (words `0`, `1`); the tree is `main`'s node at a
+valuation with `main`'s honest values (`MVals`). -/
+theorem main_relAtInW (fs : String → ℕ) (cert : String → V → ℕ) (fp : ℕ) (d : MainData)
     (own : List (List E)) (hfit : List.Forall₂ (fun c s => c.length ≤ s) own (mSizes d))
     (hb : MainBounds (d.toIn fs fp)) (hdaR : d.daR.length = 4)
     (hok : ∀ k ∈ mKids (d.toIn fs fp) (bufL (fp + fs "main") (mSizes d) own ++ etL d fs fp),
@@ -148,7 +150,8 @@ theorem main_relAtIn (fs : String → ℕ) (cert : String → V → ℕ) (fp : �
       (∀ q ∈ bufL (fp + fs "main") (mSizes d) own ++ etL d fs fp, q ∈ L) ∧
       ∀ rd, LowDef 16 rd → B1.Main.MemL rd L → LoadHolds rd 1 0 (digestScalars d.sdg).1 →
         LoadHolds rd gen 0 (digestScalars d.sdg).2 →
-        RelAtIn coreProgram fs cert rd (fun i => i < 2) (fun _ => False) fp n "main" [] [] := by
+        RelAtInW coreProgram fs cert rd (fun i => i < 2) (fun _ => False) fp n "main" [] []
+          (fun σ => MVals rd σ (d.toIn fs fp)) := by
   set m := d.toIn fs fp with hmd
   set b0 := fp + fs "main" with hb0
   set Lown := bufL b0 (mSizes d) own with hLown
@@ -507,7 +510,7 @@ theorem main_relAtIn (fs : String → ℕ) (cert : String → V → ℕ) (fp : �
     rcases List.mem_append.mp hq with hq | hq
     · exact hLo q hq
     · exact hLe q hq
-  have h := relAtIn_of_walk (P := coreProgram) (fs := fs) (cert := cert) (σ := σ) (rd := rd)
+  have h := relAtInW_of_walk (P := coreProgram) (fs := fs) (cert := cert) (σ := σ) (rd := rd)
     (R := fun i => i < 2) (D := fun _ => False) (fp := fp) (N := fs "exponent_tables" + 68 + Nk)
     (args := []) (rets := [])
     (Dk := fun i => ((fun _ => False) i ∨ ((⟨"exponent_tables", [], [.n 65, .n 66], true⟩ : Call).taken
@@ -532,7 +535,7 @@ theorem main_relAtIn (fs : String → ℕ) (cert : String → V → ℕ) (fp : �
       simp at hq)
     ?_ ?_ (fun i hi => hi.elim)
   · rw [hal] at h
-    exact h
+    exact h.mono fun σ' (h' : σ' = σ) => h' ▸ hv
   · rw [hcalls, hal]
     refine ⟨fs "exponent_tables" + 68, Nk, fun _ => False,
       fun i => etB fs (mK0 d fs fp) ≤ i ∧ i < etB fs (mK0 d fs fp) + 68, rfl, fun i hi => hi.elim, ?_, ?_⟩
@@ -592,6 +595,23 @@ theorem main_relAtIn (fs : String → ℕ) (cert : String → V → ℕ) (fp : �
         rw [hv.v446, ← pow_zero gen, limb0_gen_pow_mul]
       · refine ⟨1, ?_, Or.inr (Or.inl (by norm_num))⟩
         rw [hv.v450, ← pow_one gen, limb0_gen_pow_mul]
+
+/-- **`main` at `fp`** (`main_relAtInW` without the valuation). -/
+theorem main_relAtIn (fs : String → ℕ) (cert : String → V → ℕ) (fp : ℕ) (d : MainData)
+    (own : List (List E)) (hfit : List.Forall₂ (fun c s => c.length ≤ s) own (mSizes d))
+    (hb : MainBounds (d.toIn fs fp)) (hdaR : d.daR.length = 4)
+    (hok : ∀ k ∈ mKids (d.toIn fs fp) (bufL (fp + fs "main") (mSizes d) own ++ etL d fs fp),
+      k.taken = true → CompleteAtD fs cert 16 k.f k.Lin k.args k.Out)
+    (hmm : ∀ rd, B1.Main.MemL rd (bufL (fp + fs "main") (mSizes d) own) →
+      LoadHolds rd 1 0 (digestScalars d.sdg).1 → LoadHolds rd gen 0 (digestScalars d.sdg).2 →
+        MainMem rd (d.toIn fs fp)) :
+    ∃ (n : ℕ) (L : B1.Main.Layout), Within L fp n ∧ DisjL L ∧
+      (∀ q ∈ bufL (fp + fs "main") (mSizes d) own ++ etL d fs fp, q ∈ L) ∧
+      ∀ rd, LowDef 16 rd → B1.Main.MemL rd L → LoadHolds rd 1 0 (digestScalars d.sdg).1 →
+        LoadHolds rd gen 0 (digestScalars d.sdg).2 →
+        RelAtIn coreProgram fs cert rd (fun i => i < 2) (fun _ => False) fp n "main" [] [] :=
+  let ⟨n, L, h1, h2, h3, h4⟩ := main_relAtInW fs cert fp d own hfit hb hdaR hok hmm
+  ⟨n, L, h1, h2, h3, fun rd hl hm h0 h1 => (h4 rd hl hm h0 h1).relAtIn⟩
 
 end
 end LeanVM.Guest.B1.Main
