@@ -9,6 +9,7 @@ module
 
 public import LeanVM.Guest.B1.Ring.Target
 public import LeanVM.Guest.B1.Fwd.Canon
+public import LeanVM.Guest.Memory.Uniform
 
 /-!
 # `__loop14`, completely
@@ -29,7 +30,7 @@ namespace LeanVM.Guest.B1.VerifySub
 
 open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Value LeanVM.Guest.B1
 open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile LeanVM.Protocol.Verifier
-open LeanVM.Guest.B1.Fwd
+open LeanVM.Guest.B1.Fwd LeanVM.Guest.Memory
 
 @[expose] public section
 
@@ -48,6 +49,10 @@ def chainWords (s chs : List E) : List E :=
   (List.range 18).map fun k ↦ if k % 2 = 0 then gen ^ (8 * (k / 2)) else runL s chs (k / 2)
 
 theorem chainWords_length (s chs : List E) : (chainWords s chs).length = 18 := by
+  simp [chainWords]
+
+theorem chainWords_get (s chs : List E) {k : ℕ} (hk : k < (chainWords s chs).length) :
+    (chainWords s chs)[k] = if k % 2 = 0 then gen ^ (8 * (k / 2)) else runL s chs (k / 2) := by
   simp [chainWords]
 
 theorem chainWords_even (s chs : List E) {j : ℕ} (hj : j ≤ 8) :
@@ -159,7 +164,8 @@ theorem l14_block {rd : Reader} {x sl mc ch : E} {vs chs : List E} {xp run : E}
       l14σ rd x sl mc ch (.n 0) = x ∧ l14σ rd x sl mc ch (.n 1) = sl ∧
       l14σ rd x sl mc ch (.n 2) = mc ∧ l14σ rd x sl mc ch (.n 3) = ch ∧
       l14σ rd x sl mc ch (.n 696) = x * gen + gen ^ 8 ∧
-      l14σ rd x sl mc ch (.n 698) = x * gen := by
+      l14σ rd x sl mc ch (.n 698) = x * gen ∧ l14σ rd x sl mc ch (.n 7) = sl * x ^ 8 ∧
+      l14σ rd x sl mc ch (.n 686) = ch * x ^ 2 := by
   obtain ⟨σ, hσdef⟩ : ∃ σ, σ = l14σ rd x sl mc ch := ⟨_, rfl⟩
   rw [← hσdef]
   set S : List Atom := [.load (.n 689) (.n 686) 2, .load (.n 692) (.n 686) 3] with hS
@@ -314,7 +320,7 @@ theorem l14_block {rd : Reader} {x sl mc ch : E} {vs chs : List E} {xp run : E}
   have e697 := constE 697 (word 2 0 0) (mA _ (by simp [l14Tail]))
   have e698 := mulE 698 0 697 (by omega) (by omega) (mA _ (by simp [l14Tail]))
   have w256 : word 256 0 0 = gen ^ 8 := word_two_pow (a := 8) (by decide)
-  refine ⟨fun a ha => ?_, e0, e1, e2, e3, ?_, ?_⟩
+  refine ⟨fun a ha => ?_, e0, e1, e2, e3, ?_, ?_, hσ7, hσ686⟩
   · by_cases haS : a ∈ S
     · rw [hS] at haS
       simp only [List.mem_cons, List.not_mem_nil, or_false] at haS
@@ -328,6 +334,163 @@ theorem l14_block {rd : Reader} {x sl mc ch : E} {vs chs : List E} {xp run : E}
     · exact hnon a ha haS
   · rw [e696, e694, e695, e693, e0, word_gen, w256]
   · rw [e698, e697, e0, word_gen]
+
+/-! ## The loop, loading the slices, the challenges and the chain -/
+
+/-- The loads of `__loop14`'s block: the slices' eight (`7`), the six challenges (`2`), the
+chain's row and the next (`686`). -/
+def l14LoadIn : Atom → Bool
+  | .load _ (.n 7) off => decide (off < 8)
+  | .load _ (.n 2) off => decide (off < 6)
+  | .load _ (.n 686) off => decide (off < 4)
+  | .load .. => false
+  | _ => true
+
+theorem l14LoadIn_load {d p : V} {off : ℕ} (h : l14LoadIn (.load d p off) = true) :
+    (p = .n 7 ∧ off < 8) ∨ (p = .n 2 ∧ off < 6) ∨ (p = .n 686 ∧ off < 4) := by
+  unfold l14LoadIn at h
+  split at h <;> simp_all
+
+theorem l14_loadIn : (rtAtoms (l14Main ++ l14Tail)).all l14LoadIn = true := by decide +kernel
+
+/-- `__loop14`'s statements before its `ret`. -/
+def l14Pre : List Stmt :=
+  (l14Main ++ l14Tail) ++ [Stmt.callIf (.n 696) "__loop14" [.n 698, .n 1, .n 2, .n 3]]
+
+theorem l14_body_pre : Data.core262.body = l14Pre ++ [.ret []] := by
+  simp only [loop14_body, loop14T_split, l14Pre, List.append_assoc, List.cons_append,
+    List.nil_append]
+
+theorem l14_straight : l14Pre.all Main.Stmt.straight = true := by
+  decide +kernel
+
+theorem l14_callS : l14Pre.filterMap Main.Stmt.callS =
+    [(some (.n 696), "__loop14", [.n 698, .n 1, .n 2, .n 3], [])] := by decide +kernel
+
+theorem rt_addr_mul (b c k : ℕ) : (ofK (Parameters.gpow b) * gen ^ c).limb 0 * Parameters.gpow k =
+    Parameters.gpow (b + c + k) := by
+  have e : ofK (Parameters.gpow b) * gen ^ c = ofK (Parameters.gpow (b + c)) := by
+    rw [gen_pow_eq_ofK, ← ofK_mul, Parameters.gpow, Parameters.gpow, Parameters.gpow, pow_add]
+  rw [e, Main.addr_ofK]
+
+/-- **One iteration of `__loop14`, loading its regions**: at `g^j`, `j < 8`, over the honest
+chain, the next iteration's relation (while `j < 7`) gives this one's. -/
+theorem l14_iter {rd : Reader} {bs bm bc : ℕ} {s chs : List E} (hs : s.length = 64)
+    (hc : chs.length = 6) (hsl : ReadsAt rd (ofK (Parameters.gpow bs)) s)
+    (hmc : ReadsAt rd (ofK (Parameters.gpow bm)) chs)
+    (hch : ReadsAt rd (ofK (Parameters.gpow bc)) (chainWords s chs)) {R : ℕ → Prop}
+    (hR : ∀ i, (bs ≤ i ∧ i < bs + 64) ∨ (bm ≤ i ∧ i < bm + 6) ∨ (bc ≤ i ∧ i < bc + 18) → R i)
+    {j : ℕ} (hj : j < 8)
+    (hnext : j < 7 → coreProgram.RelIn rd R "__loop14" [gen ^ (j + 1), ofK (Parameters.gpow bs),
+      ofK (Parameters.gpow bm), ofK (Parameters.gpow bc)] []) :
+    coreProgram.RelIn rd R "__loop14" [gen ^ j, ofK (Parameters.gpow bs), ofK (Parameters.gpow bm),
+      ofK (Parameters.gpow bc)] [] := by
+  -- the row's facts
+  have hvl : ((s.drop (8 * j)).take 8).length = 8 := by simp [hs]; omega
+  have hvs : ReadsAt rd (ofK (Parameters.gpow bs) * (gen ^ j) ^ 8) ((s.drop (8 * j)).take 8) := by
+    intro k hk
+    rw [← pow_mul, show j * 8 = 8 * j by ring, loadHolds_mul_gen_pow]
+    simp only [List.getElem_take, List.getElem_drop]
+    exact hsl _ (by rw [hs]; rw [hvl] at hk; omega)
+  have hrow : ∀ k, (hk : 2 * j + k < 18) → LoadHolds rd (ofK (Parameters.gpow bc) * (gen ^ j) ^ 2) k
+      ((chainWords s chs)[2 * j + k]'(by rw [chainWords_length]; exact hk)) := by
+    intro k hk
+    rw [← pow_mul, show j * 2 = 2 * j by ring, loadHolds_mul_gen_pow]
+    exact hch _ _
+  have h0 := hrow 0 (by omega)
+  have h1 := hrow 1 (by omega)
+  have h2 := hrow 2 (by omega)
+  have h3 := hrow 3 (by omega)
+  simp only [chainWords_get, Nat.add_zero, show 2 * j % 2 = 0 by omega, show 2 * j / 2 = j by omega,
+    ↓reduceIte] at h0
+  simp only [chainWords_get, show (2 * j + 1) % 2 = 1 by omega, show (2 * j + 1) / 2 = j by omega,
+    one_ne_zero, ↓reduceIte] at h1
+  simp only [chainWords_get, show (2 * j + 2) % 2 = 0 by omega,
+    show (2 * j + 2) / 2 = j + 1 by omega, ↓reduceIte, show 8 * (j + 1) = 8 * j + 8 by ring,
+    pow_add] at h2
+  simp only [chainWords_get, show (2 * j + 3) % 2 = 1 by omega,
+    show (2 * j + 3) / 2 = j + 1 by omega, one_ne_zero, ↓reduceIte, runL] at h3
+  obtain ⟨hat, e0, e1, e2, e3, e696, e698, e7, e686⟩ := l14_block hvl hc hvs hmc h0 h1 h2 h3
+  obtain ⟨σ, hσdef⟩ : ∃ σ, σ = l14σ rd (gen ^ j) (ofK (Parameters.gpow bs))
+      (ofK (Parameters.gpow bm)) (ofK (Parameters.gpow bc)) := ⟨_, rfl⟩
+  rw [← hσdef] at hat e0 e1 e2 e3 e696 e698 e7 e686
+  have hw := Main.walk_straight σ [] l14Pre l14_straight
+  rw [← l14_body_pre] at hw
+  -- the events of the block and the guard
+  have hev : ∀ e ∈ l14Pre.flatMap (Main.slEvs σ), (∃ a ∈ rtAtoms (l14Main ++ l14Tail), e = .atom a) ∨
+      e = .inK (.n 696) ∨ e = .skip "__loop14" [.n 698, .n 1, .n 2, .n 3] ∨
+      e = .call "__loop14" [.n 698, .n 1, .n 2, .n 3] [] := by
+    intro e he
+    obtain ⟨st, hst, he⟩ := List.mem_flatMap.mp he
+    rw [l14Pre, List.mem_append] at hst
+    rcases hst with hst | hst
+    · have := List.all_eq_true.mp l14_allAtoms st hst
+      cases st <;> simp only [Bool.false_eq_true] at this
+      rename_i a
+      simp only [Main.slEvs, List.mem_singleton] at he
+      exact Or.inl ⟨a, rt_atoms_mem hst, he⟩
+    · simp only [List.mem_singleton] at hst
+      subst hst
+      simp only [Main.slEvs, List.mem_cons, List.not_mem_nil, or_false] at he
+      rcases he with rfl | he
+      · exact Or.inr (Or.inl rfl)
+      · split at he <;> subst he <;> simp
+  refine relIn_of_walk coreProgram_wf find_loop14 ?_ hw rfl ?_ ?_ ?_
+  · show [Core.V.n 0, .n 1, .n 2, .n 3].map σ = _
+    simp only [List.map_cons, List.map_nil, e0, e1, e2, e3]
+  · intro e he
+    rcases hev e he with ⟨a, ha, rfl⟩ | rfl | rfl | rfl
+    · exact hat a ha
+    · show IsInK (σ (.n 696))
+      rw [e696]
+      exact isInK_add (isInK_mul (gen_pow_isInK j) (by simpa using gen_pow_isInK 1))
+        (gen_pow_isInK 8)
+    · trivial
+    · trivial
+  · intro A hA
+    obtain ⟨e, he, hea⟩ := List.mem_filterMap.mp hA
+    rcases hev e he with ⟨a, ha, rfl⟩ | rfl | rfl | rfl
+    · have hok := List.all_eq_true.mp l14_loadIn a ha
+      cases a with
+      | load d p off =>
+        simp only [Ev.loadAddr?, Option.some.injEq] at hea
+        subst hea
+        rcases l14LoadIn_load hok with ⟨rfl, ho⟩ | ⟨rfl, ho⟩ | ⟨rfl, ho⟩
+        · rw [e7, ← pow_mul, rt_addr_mul]
+          exact ⟨_, rfl, hR _ (Or.inl ⟨by omega, by omega⟩)⟩
+        · rw [e2, Main.addr_ofK]
+          exact ⟨_, rfl, hR _ (Or.inr (Or.inl ⟨by omega, by omega⟩))⟩
+        · rw [e686, ← pow_mul, rt_addr_mul]
+          exact ⟨_, rfl, hR _ (Or.inr (Or.inr ⟨by omega, by omega⟩))⟩
+      | _ => simp [Ev.loadAddr?] at hea
+    · simp [Ev.loadAddr?] at hea
+    · simp [Ev.loadAddr?] at hea
+    · simp [Ev.loadAddr?] at hea
+  · intro c hc htaken
+    rw [(Main.straight_parts σ l14Pre l14_straight).2.2.2, l14_callS] at hc
+    simp only [List.map_cons, List.map_nil, List.mem_singleton] at hc
+    subst hc
+    simp only [Main.mkCall, decide_eq_true_eq] at htaken ⊢
+    have hj7 : j < 7 := by
+      by_contra hj7
+      have : j = 7 := by omega
+      subst this
+      exact htaken (by rw [e696, gen_pow_mul_gen]; exact e_add_self _)
+    simp only [List.map_cons, List.map_nil, e698, e1, e2, e3, gen_pow_mul_gen]
+    exact hnext hj7
+
+/-- **`__loop14`, completely, loading its regions**: over the honest chain, from `g^j`, `j ≤ 7`. -/
+theorem l14_relIn {rd : Reader} {bs bm bc : ℕ} {s chs : List E} (hs : s.length = 64)
+    (hc : chs.length = 6) (hsl : ReadsAt rd (ofK (Parameters.gpow bs)) s)
+    (hmc : ReadsAt rd (ofK (Parameters.gpow bm)) chs)
+    (hch : ReadsAt rd (ofK (Parameters.gpow bc)) (chainWords s chs)) {R : ℕ → Prop}
+    (hR : ∀ i, (bs ≤ i ∧ i < bs + 64) ∨ (bm ≤ i ∧ i < bm + 6) ∨ (bc ≤ i ∧ i < bc + 18) → R i) :
+    ∀ t j, j + t = 7 → coreProgram.RelIn rd R "__loop14"
+      [gen ^ j, ofK (Parameters.gpow bs), ofK (Parameters.gpow bm), ofK (Parameters.gpow bc)] [] := by
+  intro t
+  induction t with
+  | zero => exact fun j hj ↦ l14_iter hs hc hsl hmc hch hR (by omega) fun h ↦ absurd h (by omega)
+  | succ t ih => exact fun j hj ↦ l14_iter hs hc hsl hmc hch hR (by omega) fun _ ↦ ih (j + 1) (by omega)
 
 end
 end LeanVM.Guest.B1.VerifySub
