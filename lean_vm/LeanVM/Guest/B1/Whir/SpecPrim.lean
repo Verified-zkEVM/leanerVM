@@ -31,26 +31,23 @@ variable {α β : Type}
 theorem runF_ret_some {a : α} {st : FSt} {r : α × FSt} (h : runF (Prog.ret a) st = some r) :
     r = (a, st) := (Option.some.inj h).symm
 
-theorem runF_readE_bind {k : E → Prog β} {st : FSt} {r : β × FSt}
-    (h : runF (Prog.readE.bind k) st = some r) :
-    ∃ x xs, st.stream = x :: xs ∧
-      runF (k x) { st with sponge := st.sponge.absorb x dsObserve, stream := xs } = some r := by
-  obtain ⟨F, s, os, R⟩ := st
-  cases s with
+theorem runF_readE_bind {k : E → Prog β} {F : Fs} {xs : List E} {os : List Opening}
+    {R : List (Digest × ℕ × ℕ)} {r : β × FSt} (h : runF (Prog.readE.bind k) ⟨F, xs, os, R⟩ = some r) :
+    ∃ x xs', xs = x :: xs' ∧ runF (k x) ⟨F.absorb x dsObserve, xs', os, R⟩ = some r := by
+  cases xs with
   | nil => simp [Prog.readE, Prog.bind, runF] at h
   | cons x xs => exact ⟨x, xs, rfl, h⟩
 
-theorem runF_sampleE_bind (k : E → Prog β) (st : FSt) :
-    runF (Prog.sampleE.bind k) st =
-      runF (k st.sponge.squeeze.1) { st with sponge := st.sponge.squeeze.2 } := rfl
+theorem runF_sampleE_bind (k : E → Prog β) (F : Fs) (xs : List E) (os : List Opening)
+    (R : List (Digest × ℕ × ℕ)) :
+    runF (Prog.sampleE.bind k) ⟨F, xs, os, R⟩ = runF (k F.squeeze.1) ⟨F.squeeze.2, xs, os, R⟩ := rfl
 
-theorem runF_grindP_bind {bits : ℕ} {k : Unit → Prog β} {st : FSt} {r : β × FSt}
-    (h : runF ((Prog.grindP bits).bind k) st = some r) :
-    ∃ n xs, st.stream = n :: xs ∧ powOk bits n (st.sponge.absorb n dsPowNonce).squeeze.1 = true ∧
-      runF (k ()) { st with sponge := (st.sponge.absorb n dsPowNonce).squeeze.2, stream := xs } =
-        some r := by
-  obtain ⟨F, s, os, R⟩ := st
-  cases s with
+theorem runF_grindP_bind {bits : ℕ} {k : Unit → Prog β} {F : Fs} {xs : List E} {os : List Opening}
+    {R : List (Digest × ℕ × ℕ)} {r : β × FSt}
+    (h : runF ((Prog.grindP bits).bind k) ⟨F, xs, os, R⟩ = some r) :
+    ∃ n xs', xs = n :: xs' ∧ powOk bits n (F.absorb n dsPowNonce).squeeze.1 = true ∧
+      runF (k ()) ⟨(F.absorb n dsPowNonce).squeeze.2, xs', os, R⟩ = some r := by
+  cases xs with
   | nil => simp [Prog.grindP, Prog.bind, runF] at h
   | cons n xs =>
     simp only [Prog.grindP, Prog.bind, runF] at h
@@ -59,15 +56,13 @@ theorem runF_grindP_bind {bits : ℕ} {k : Unit → Prog β} {st : FSt} {r : β 
       exact ⟨n, xs, rfl, hp, h⟩
     · simp at h
 
-theorem runF_commitP_bind {hh ww : ℕ} {k : Unit → Prog β} {st : FSt} {r : β × FSt}
-    (h : runF ((Prog.commitP hh ww).bind k) st = some r) :
-    ∃ x0 x1 xs d, st.stream = x0 :: x1 :: xs ∧ digestOfScalars (x0, x1) = some d ∧
-      runF (k ()) { st with
-        sponge := (st.sponge.absorb x0 dsObserve).absorb x1 dsObserve
-        stream := xs
-        roots := st.roots ++ [(d, hh, ww)] } = some r := by
-  obtain ⟨F, s, os, R⟩ := st
-  match s with
+theorem runF_commitP_bind {hh ww : ℕ} {k : Unit → Prog β} {F : Fs} {xs : List E}
+    {os : List Opening} {R : List (Digest × ℕ × ℕ)} {r : β × FSt}
+    (h : runF ((Prog.commitP hh ww).bind k) ⟨F, xs, os, R⟩ = some r) :
+    ∃ x0 x1 xs' d, xs = x0 :: x1 :: xs' ∧ digestOfScalars (x0, x1) = some d ∧
+      runF (k ()) ⟨(F.absorb x0 dsObserve).absorb x1 dsObserve, xs', os, R ++ [(d, hh, ww)]⟩ =
+        some r := by
+  match xs with
   | [] => simp [Prog.commitP, Prog.bind, runF] at h
   | [_] => simp [Prog.commitP, Prog.bind, runF] at h
   | x0 :: x1 :: xs =>
@@ -77,14 +72,13 @@ theorem runF_commitP_bind {hh ww : ℕ} {k : Unit → Prog β} {st : FSt} {r : �
       exact ⟨x0, x1, xs, d, rfl, hd, h⟩
     · simp at h
 
-theorem runF_queryP_bind {i : ℕ} {ps : List ℕ} {k : List (List K) → Prog β} {st : FSt}
-    {r : β × FSt} (h : runF ((Prog.queryP i ps).bind k) st = some r) :
+theorem runF_queryP_bind {i : ℕ} {ps : List ℕ} {k : List (List K) → Prog β} {F : Fs}
+    {xs : List E} {os : List Opening} {R : List (Digest × ℕ × ℕ)} {r : β × FSt}
+    (h : runF ((Prog.queryP i ps).bind k) ⟨F, xs, os, R⟩ = some r) :
     ∃ (root : Digest) (height width : ℕ) (rows : List (List K)) (rest : List Opening),
-      st.roots[i]? = some (root, height, width) ∧
-      Id.run (Compile.openAll (m := Id) keccak256 root height width ps st.openings) =
-        some (rows, rest) ∧
-      runF (k rows) { st with openings := rest } = some r := by
-  obtain ⟨F, s, os, R⟩ := st
+      R[i]? = some (root, height, width) ∧
+      Id.run (Compile.openAll (m := Id) keccak256 root height width ps os) = some (rows, rest) ∧
+      runF (k rows) ⟨F, xs, rest, R⟩ = some r := by
   simp only [Prog.queryP, Prog.bind, runF] at h
   split at h
   · simp at h
@@ -102,35 +96,32 @@ theorem runF_require_bind {c : Prop} [Decidable c] {k : Unit → Prog β} {st : 
   · simp [Prog.require, hc, Prog.bind, runF] at h
 
 /-- **`readN n`, backwards**: the next `n` words, absorbed. -/
-theorem runF_readN_bind : ∀ (n : ℕ) {k : List E → Prog β} {st : FSt} {r : β × FSt},
-    runF ((Prog.readN n).bind k) st = some r →
-      n ≤ st.stream.length ∧
-      runF (k (st.stream.take n)) { st with
-        sponge := st.sponge.absorbAll (st.stream.take n) dsObserve
-        stream := st.stream.drop n } = some r
-  | 0, k, st, r, h => by
+theorem runF_readN_bind : ∀ (n : ℕ) {k : List E → Prog β} {F : Fs} {xs : List E}
+    {os : List Opening} {R : List (Digest × ℕ × ℕ)} {r : β × FSt},
+    runF ((Prog.readN n).bind k) ⟨F, xs, os, R⟩ = some r →
+      n ≤ xs.length ∧
+      runF (k (xs.take n)) ⟨F.absorbAll (xs.take n) dsObserve, xs.drop n, os, R⟩ = some r
+  | 0, k, F, xs, os, R, r, h => by
     refine ⟨Nat.zero_le _, ?_⟩
     simpa [Prog.readN, Fs.absorbAll] using h
-  | n + 1, k, st, r, h => by
+  | n + 1, k, F, xs, os, R, r, h => by
     have e : (Prog.readN (n + 1)).bind k =
         Prog.readE.bind fun x ↦ (Prog.readN n).bind fun xs ↦ k (x :: xs) := by
       simp only [Prog.readN, Prog.bind_eq, Prog.pure_eq, Prog.bind_assoc, Prog.ret_bind]
     rw [e] at h
-    obtain ⟨x, xs, hs, h⟩ := runF_readE_bind h
-    obtain ⟨hl, h⟩ := runF_readN_bind n h
-    obtain ⟨F, s, os, R⟩ := st
-    simp only at hs
+    obtain ⟨x, xs', hs, h1⟩ := runF_readE_bind h
+    obtain ⟨hl, h2⟩ := runF_readN_bind n h1
     subst hs
-    simp only at hl h ⊢
     refine ⟨by simp; omega, ?_⟩
-    simpa [Fs.absorbAll, List.take_succ_cons, List.drop_succ_cons] using h
+    simpa [Fs.absorbAll, List.take_succ_cons, List.drop_succ_cons] using h2
 
 /-- **`sampleN n`**: the next `n` challenges. -/
-theorem runF_sampleN_bind : ∀ (n : ℕ) (k : List E → Prog β) (st : FSt),
-    runF ((Prog.sampleN n).bind k) st =
-      runF (k (st.sponge.squeezeN n).1) { st with sponge := (st.sponge.squeezeN n).2 }
-  | 0, k, st => by simp [Prog.sampleN, Fs.squeezeN]
-  | n + 1, k, st => by
+theorem runF_sampleN_bind : ∀ (n : ℕ) (k : List E → Prog β) (F : Fs) (xs : List E)
+    (os : List Opening) (R : List (Digest × ℕ × ℕ)),
+    runF ((Prog.sampleN n).bind k) ⟨F, xs, os, R⟩ =
+      runF (k (F.squeezeN n).1) ⟨(F.squeezeN n).2, xs, os, R⟩
+  | 0, k, F, xs, os, R => by simp [Prog.sampleN, Fs.squeezeN]
+  | n + 1, k, F, xs, os, R => by
     have e : (Prog.sampleN (n + 1)).bind k =
         Prog.sampleE.bind fun x ↦ (Prog.sampleN n).bind fun xs ↦ k (x :: xs) := by
       simp only [Prog.sampleN, Prog.bind_eq, Prog.pure_eq, Prog.bind_assoc, Prog.ret_bind]
@@ -139,16 +130,17 @@ theorem runF_sampleN_bind : ∀ (n : ℕ) (k : List E → Prog β) (st : FSt),
 
 /-- **The query positions**: `ceilDiv rem (192/d)` challenges, cut into positions. -/
 theorem runF_sampleQueriesAux_bind (d : ℕ) (hd : 1 ≤ 192 / d) :
-    ∀ (fuel rem : ℕ) (k : List ℕ → Prog β) (st : FSt), ceilDiv rem (192 / d) ≤ fuel →
-      runF ((sampleQueriesAux d fuel rem).bind k) st =
-        runF (k (queriesOf (192 / d) d (st.sponge.squeezeN (ceilDiv rem (192 / d))).1 rem))
-          { st with sponge := (st.sponge.squeezeN (ceilDiv rem (192 / d))).2 }
-  | fuel, 0, k, st, _ => by
+    ∀ (fuel rem : ℕ) (k : List ℕ → Prog β) (F : Fs) (xs : List E) (os : List Opening)
+      (R : List (Digest × ℕ × ℕ)), ceilDiv rem (192 / d) ≤ fuel →
+      runF ((sampleQueriesAux d fuel rem).bind k) ⟨F, xs, os, R⟩ =
+        runF (k (queriesOf (192 / d) d (F.squeezeN (ceilDiv rem (192 / d))).1 rem))
+          ⟨(F.squeezeN (ceilDiv rem (192 / d))).2, xs, os, R⟩
+  | fuel, 0, k, F, xs, os, R, _ => by
     rw [ceilDiv_zero]
     rcases fuel with _ | fuel <;> simp [sampleQueriesAux, queriesOf, Fs.squeezeN]
-  | 0, rem + 1, k, st, h => by
+  | 0, rem + 1, k, F, xs, os, R, h => by
     have := ceilDiv_step (a := rem + 1) hd (Nat.succ_pos rem); omega
-  | fuel + 1, rem + 1, k, st, h => by
+  | fuel + 1, rem + 1, k, F, xs, os, R, h => by
     have hs := ceilDiv_step (a := rem + 1) hd (Nat.succ_pos rem)
     have hp : (sampleQueriesAux d (fuel + 1) (rem + 1)).bind k = Prog.sampleE.bind fun w ↦
         (sampleQueriesAux d fuel (rem + 1 - min (192 / d) (rem + 1))).bind fun rest ↦
@@ -156,15 +148,16 @@ theorem runF_sampleQueriesAux_bind (d : ℕ) (hd : 1 ≤ 192 / d) :
             (eToNat w >>> (c * d)) % 2 ^ d) ++ rest) := by
       simp only [sampleQueriesAux, Nat.add_one_ne_zero, ↓reduceIte, Prog.bind_eq, Prog.pure_eq,
         Prog.bind_assoc, Prog.ret_bind]
-    rw [hp, runF_sampleE_bind, runF_sampleQueriesAux_bind d hd fuel _ _ _ (by omega), hs,
+    rw [hp, runF_sampleE_bind, runF_sampleQueriesAux_bind d hd fuel _ _ _ _ _ _ (by omega), hs,
       queriesOf_cons _ _ hd]
     rfl
 
-theorem runF_sampleQueries_bind {d q : ℕ} (hd : 1 ≤ 192 / d) (k : List ℕ → Prog β) (st : FSt) :
-    runF ((sampleQueries d q).bind k) st =
-      runF (k (queriesOf (192 / d) d (st.sponge.squeezeN (ceilDiv q (192 / d))).1 q))
-        { st with sponge := (st.sponge.squeezeN (ceilDiv q (192 / d))).2 } :=
-  runF_sampleQueriesAux_bind d hd q q k st (ceilDiv_le' hd)
+theorem runF_sampleQueries_bind {d q : ℕ} (hd : 1 ≤ 192 / d) (k : List ℕ → Prog β) (F : Fs)
+    (xs : List E) (os : List Opening) (R : List (Digest × ℕ × ℕ)) :
+    runF ((sampleQueries d q).bind k) ⟨F, xs, os, R⟩ =
+      runF (k (queriesOf (192 / d) d (F.squeezeN (ceilDiv q (192 / d))).1 q))
+        ⟨(F.squeezeN (ceilDiv q (192 / d))).2, xs, os, R⟩ :=
+  runF_sampleQueriesAux_bind d hd q q k F xs os R (ceilDiv_le' hd)
 where
   ceilDiv_le' {a b : ℕ} (hb : 1 ≤ b) : ceilDiv a b ≤ a := by
     unfold ceilDiv
