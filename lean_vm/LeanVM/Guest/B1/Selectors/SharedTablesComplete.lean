@@ -326,5 +326,125 @@ theorem lp_iter {rd : Reader} {eqt z z1 gt gsq : E} {q j : ℕ} (hj : j < q)
     rw [e76]
     simpa [hF, lpVal] using this
 
+/-- **The loop**: from `g^j`, `j < q`, the iterations run to `g^q`. -/
+theorem lp_chain {rd : Reader} {eqt z z1 gt gsq : E} {q : ℕ} {zs zs1 gs : List E}
+    (hlz : 4 * q ≤ zs.length) (hlz1 : 4 * q ≤ zs1.length) (hlg : 4 * q ≤ gs.length)
+    (hz : TbReadsAt rd z zs) (hz1 : TbReadsAt rd z1 zs1) (hg : TbReadsAt rd gsq gs)
+    (htab : ∀ j < q, TbReadsAt rd (eqt * gen ^ (32 * j)) (eqLevels (nib zs j) (nib zs1 j)) ∧
+      TbReadsAt rd (gt * gen ^ (16 * j)) (gTable (nib gs j))) :
+    ∀ j < q, coreProgram.Rel rd "__loop9" [gen ^ j, gen ^ q, eqt, z, z1, gt, gsq] [] := by
+  intro j hj
+  obtain ⟨m, hm⟩ : ∃ m, q = j + 1 + m := ⟨q - j - 1, by omega⟩
+  induction m generalizing j with
+  | zero =>
+    exact lp_iter hj hlz hlz1 hlg hz hz1 hg (htab j hj) (fun h ↦ absurd h (by omega))
+  | succ m ih =>
+    exact lp_iter hj hlz hlz1 hlg hz hz1 hg (htab j hj) (fun _ ↦ ih (j + 1) (by omega) (by omega))
+
+/-! ## The function -/
+
+/-- Bit `k` of `n` as a word. -/
+def ssB (n k : ℕ) : E := bitE (n.testBit k)
+
+/-- The factor of bit `k` of `n` at share `t`. -/
+def ssF (n k t : ℕ) : E := word 1 0 0 + ssB n k * word (imFactor t) 0 0
+
+/-- **Value `x` of `shared_selector_tables`.** -/
+def ssVal (eqt gt z z1 gsq : E) (n x : ℕ) : E :=
+  let v20 := ssF n 0 0 * ssF n 1 1
+  let v39 := ssF n 2 0 * ssF n 3 1 * ssF n 4 2 * ssF n 5 3
+  let v41 := v39 * v39 * (v39 * v39)
+  let v47 := v41 * v41 * (v41 * v41)
+  [eqt, gt, z, z1, gsq, gen ^ n, ssB n 0, ssB n 1, ssB n 2, ssB n 3, ssB n 4, ssB n 5,
+    word 1 0 0, word (imFactor 0) 0 0, ssB n 0 * word (imFactor 0) 0 0, ssF n 0 0,
+    word 1 0 0, word (imFactor 1) 0 0, ssB n 1 * word (imFactor 1) 0 0, ssF n 1 1, v20,
+    word 1 0 0, word (imFactor 0) 0 0, ssB n 2 * word (imFactor 0) 0 0, ssF n 2 0,
+    word 1 0 0, word (imFactor 1) 0 0, ssB n 3 * word (imFactor 1) 0 0, ssF n 3 1,
+    ssF n 2 0 * ssF n 3 1,
+    word 1 0 0, word (imFactor 2) 0 0, ssB n 4 * word (imFactor 2) 0 0, ssF n 4 2,
+    ssF n 2 0 * ssF n 3 1 * ssF n 4 2,
+    word 1 0 0, word (imFactor 3) 0 0, ssB n 5 * word (imFactor 3) 0 0, ssF n 5 3, v39,
+    v39 * v39, v41, v41 * v20, word 1 0 0, word 1 0 0 + v39, word 1 0 0, v41 * v41, v47,
+    eqt * v47, eqt * v47 * v47, gt * v47, z * v41, z1 * v41, gsq * v41, 0].getD x 0
+
+theorem ssF_eq (n k t : ℕ) (ht : t < 34) :
+    ssF n k t = gen ^ (2 ^ t * (n.testBit k).toNat) := by
+  rw [ssF, ssB, imFactor_eq ht, tb_word_one]
+  cases n.testBit k
+  · simp [bitE]
+  · simp only [bitE, ↓reduceIte, one_mul, Bool.toNat_true, mul_one]
+    rw [← add_assoc, e_add_self, zero_add]
+
+theorem ss_bits {n : ℕ} (hn : n < 64) :
+    n % 4 = (n.testBit 0).toNat + 2 * (n.testBit 1).toNat ∧
+      n / 4 = (n.testBit 2).toNat + 2 * (n.testBit 3).toNat + 4 * (n.testBit 4).toNat +
+        8 * (n.testBit 5).toNat := by
+  have h := bitsVal_testBit (n := 6) hn
+  simp only [bitsVal, Nat.reducePow, one_mul, zero_add] at h
+  have b0 := Bool.toNat_le (n.testBit 0); have b1 := Bool.toNat_le (n.testBit 1)
+  have b2 := Bool.toNat_le (n.testBit 2); have b3 := Bool.toNat_le (n.testBit 3)
+  have b4 := Bool.toNat_le (n.testBit 4); have b5 := Bool.toNat_le (n.testBit 5)
+  omega
+
+theorem ssB_mul_self (n k : ℕ) : ssB n k = ssB n k * ssB n k := by rw [ssB, bitE_mul_self]
+
+/-- **`shared_selector_tables` is complete.** -/
+theorem shared_selector_tables_complete_holds : shared_selector_tables_complete_Spec := by
+  intro rd eqt gt z z1 gsq n zs zs1 gs hn hzl hz1l hgl hz hz1 hg hrt
+  obtain ⟨fn, hf, hp, hb⟩ := ssFound
+  obtain ⟨hr, hq⟩ := ss_bits hn
+  have v20 : ssF n 0 0 * ssF n 1 1 = gen ^ (n % 4) := by
+    rw [ssF_eq n 0 0 (by norm_num), ssF_eq n 1 1 (by norm_num), ← pow_add, hr]; ring_nf
+  have v39 : ssF n 2 0 * ssF n 3 1 * ssF n 4 2 * ssF n 5 3 = gen ^ (n / 4) := by
+    rw [ssF_eq n 2 0 (by norm_num), ssF_eq n 3 1 (by norm_num), ssF_eq n 4 2 (by norm_num),
+      ssF_eq n 5 3 (by norm_num), ← pow_add, ← pow_add, ← pow_add, hq]; ring_nf
+  have hn4 : n = 4 * (n / 4) + n % 4 := by omega
+  refine (tb_rel_pre hf hb ssPre_noRet _ _).mpr ⟨fun x ↦ ssVal eqt gt z z1 gsq n x.idx,
+    by rw [hp]; rfl, ?_, rfl⟩
+  simp only [ssPre, Stmt.HoldsList, Stmt.Holds, Atom.Holds, true_and, and_true, List.map_cons,
+    List.map_nil]
+  simp (config := { decide := true }) only [ssVal, List.getD_eq_getElem?_getD,
+    List.getElem?_cons_zero, List.getElem?_cons_succ, Option.getD_some, true_and, v20, v39]
+  set q := n / 4 with hqd
+  have p4 : gen ^ q * gen ^ q * (gen ^ q * gen ^ q) = gen ^ (4 * q) := by
+    simp only [← pow_add]; congr 1; omega
+  have p16 : gen ^ (4 * q) * gen ^ (4 * q) * (gen ^ (4 * q) * gen ^ (4 * q)) = gen ^ (16 * q) := by
+    simp only [← pow_add]; congr 1; omega
+  rw [p4, p16]
+  have hlz : 4 * q ≤ zs.length := by omega
+  have hlz1 : 4 * q ≤ zs1.length := by omega
+  have hlg : 4 * q ≤ gs.length := by omega
+  refine ⟨ssB_mul_self n 0, ssB_mul_self n 1, ssB_mul_self n 2, ssB_mul_self n 3, ssB_mul_self n 4,
+    ssB_mul_self n 5, rfl, rfl, rfl, rfl, rfl, rfl, ?_, ?_, fun hne ↦ ?_, ?_⟩
+  · -- the assertion `q_g^4·r_g = len_g`
+    rw [← pow_add, show 4 * q + n % 4 = n by omega]
+    exact e_add_self _
+  · rw [tb_word_one, ← pow_zero gen]; exact lp_isInK_add_pow 0 _
+  · -- the loop over the full nibbles
+    have hq0 : 0 < q := by
+      rcases Nat.eq_zero_or_pos q with h0 | h0
+      · exfalso; apply hne; rw [h0, tb_word_one, pow_zero]; exact e_add_self 1
+      · exact h0
+    rw [tb_word_one, ← pow_zero gen]
+    exact lp_chain hlz hlz1 hlg hz hz1 hg (fun j hj ↦ hrt j (by omega)) 0 hq0
+  · -- the partial nibble
+    have hr4 : n % 4 < 4 := by omega
+    refine ⟨n % 4, by simpa using hr4, gen_pow_eq_ofK _, ?_⟩
+    rw [lName_sel_partial (n % 4) hr4, mul_assoc, ← pow_add, show 16 * q + 16 * q = 32 * q by omega]
+    have hlen : ∀ l : List E, l.length = n → (nib l q).length = n % 4 := fun l hl ↦ by
+      simp [nib, hl]; omega
+    refine sel_partial_nibble_complete_holds (n % 4) hr4 rd _ _
+      ⟨rfl, nib zs q, nib zs1 q, nib gs q, hlen zs hzl, hlen zs1 hz1l, hlen gs hgl,
+        tbReadsAt_nib hz q, tbReadsAt_nib hz1 q, tbReadsAt_nib hg q, ?_, ?_⟩
+    · rcases Nat.eq_zero_or_pos (n % 4) with h0 | h0
+      · have e0 : nib zs q = [] := List.length_eq_zero_iff.mp ((hlen zs hzl).trans h0)
+        have e1 : nib zs1 q = [] := List.length_eq_zero_iff.mp ((hlen zs1 hz1l).trans h0)
+        rw [e0, e1]
+        exact fun k hk ↦ absurd hk (by simp [eqLevels])
+      · exact (hrt q (by omega)).1
+    · rcases Nat.eq_zero_or_pos (n % 4) with h0 | h0
+      · rw [h0]; exact tbReadsAt_nil _ _
+      · rw [tb_ite_neg'' (show ¬ n % 4 = 0 by omega)]; exact (hrt q (by omega)).2
+
 end
 end LeanVM.Guest.B1.Tables

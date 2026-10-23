@@ -144,6 +144,15 @@ def SharedSelOut (rd : Reader) : List E → List E → Prop
 def shared_selector_tables_Spec : Prop :=
   ∀ rd args rets, coreProgram.Rel rd "shared_selector_tables" args rets → SharedSelOut rd args rets
 
+/-- The converse, for completeness: `n < 64` coordinates, complements and shares at `zeta_hi`,
+`zeta1_hi`, `gsq_hi`, with their nibble tables at `eq_tab`, `g_tab`, give the relation. -/
+def shared_selector_tables_complete_Spec : Prop :=
+  ∀ (rd : Reader) (eqt gt z z1 gsq : E) (n : ℕ) (zs zs1 gs : List E), n < 64 →
+    zs.length = n → zs1.length = n → gs.length = n →
+    TbReadsAt rd z zs → TbReadsAt rd z1 zs1 → TbReadsAt rd gsq gs →
+    RunTables rd eqt gt n zs zs1 gs →
+    coreProgram.Rel rd "shared_selector_tables" [eqt, gt, z, z1, gsq, gen ^ n] []
+
 /-! ## The bus blocks' selectors -/
 
 /-- The eq weight of bits against coordinates with their complements: `Π (b ? z : z1)`. -/
