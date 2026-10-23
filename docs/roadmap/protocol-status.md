@@ -783,17 +783,26 @@ probability `2^-bits`. The chain's steps are `Block`s, an observe, a squeeze or 
 `absorbNonce`, the parser `Block.parse?` with `parse?_input`, over the byte decoders
 `digestOfBytes` and `kOfBytes` of `Blake2sHash.lean`). `chainHistory` reads a chain back from a
 state to the seed through the generic `HashChain.history` (`ToVCVio/HashChain.lean`), over the
-generic log predicates `Consistent`, `HasCollision`, `Fresh`, `Known` and `HasHit`
-(`ToVCVio/QueryLog.lean`), which have the shapes of the Merkle log replay's and are for it to
-reuse: `chainHistory_of_noCollision_noHit` (a logged chain is its history when the log has no
-collision and no answer is the seed), `chainHistory_take_of_noCollision_noHit` (in a consistent
-log with no hit on the seed or a half of an earlier input, the history is in the log before the
-chain's next query) and `chainHistory_determined`. A Merkle node, a 64-byte input of the same
-oracle, may parse as a step and is one more entry of the log. The tests: the random oracle's
-answer to a fresh query is uniform, a repeated query is answered from the cache, the log of an
-honest chain (with a node beside it) gives back its blocks and states, and a collision, an answer
-equal to the seed and a state produced after the query using it each break the history. It still
-owes `decodePrefix`, and the lemma that the verifier's chain walk logs its chain.
+generic log predicates `Consistent`, `HasCollision`, `Fresh` and `HasHit` (`ToVCVio/QueryLog.lean`;
+a hit is a fresh answer in play after the entries before it, for an in-play function of the
+prefix), which have the shapes of the Merkle log replay's and are for it to reuse. The digests in
+play (`inPlay`) are fixed roots (the seed among them), the halves of every logged 64-byte input,
+and the Merkle roots the log's chains absorb as two consecutive observes (`rebuiltRoots`), so the
+hit is a function of the prefix, as the charged invariant needs.
+`chainHistory_of_noCollision_noSeed` (a logged chain is its history when the log has no collision
+and no answer is the seed); `chainHistory_take_of_noCollision_noHit` (in a consistent log with no
+collision and no hit, the history is in the log before any query from the chain's last state that
+is none of its steps: the next step, `chainHistory_take_of_step`, the grinding base or the
+grinding check); `chainHistory_determined`. A Merkle node, a 64-byte input of the same oracle, may
+parse as a step and is one more entry of the log. The tests: the random oracle's answer to a fresh
+query is uniform, a repeated query is answered from the cache, the log of an honest chain (with a
+node beside it) gives back its blocks and states, also before the grinding base, and a collision,
+an answer equal to the seed, a state produced after the query using it, and a fresh node answered
+by an absorbed root each break the history or are a hit. It still owes `decodePrefix`, the lemma
+that the verifier's chain walk logs its chain, and the lemma that `HasCollision`, `HasHit` and
+`chainHistory` read the same on the game's `withQueryLog` log (repeats included) and on the
+charged invariant's log of fresh queries, given `Consistent`; it is stated once both branches are
+on `main`.
 
 ## Upstream watch
 

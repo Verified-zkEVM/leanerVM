@@ -2,8 +2,8 @@
   LeanerVM.Protocol.ToVCVio.QueryLog
 
   What a finite log of queries to one function shows: whether it is the trace of a function,
-  whether it has a collision, which queries are fresh, which digests are in play, and whether a
-  fresh answer hits one of them. Candidate for VCVio.
+  whether it has a collision, which queries are fresh, and whether a fresh answer hits a value
+  already in play. Candidate for VCVio.
 -/
 
 module
@@ -20,15 +20,13 @@ both unfold. Every predicate here is decidable.
 * `Consistent`: no input appears with two answers; the log is the trace of a function.
 * `HasCollision`: two different inputs have one answer.
 * `Fresh log q`: the log never asks `q`.
-* `Known chunks roots log d`: `d` is one of `roots`, or a chunk of a logged input, where `chunks q`
-  lists the digests an input carries (the children of a Merkle node, the chaining value of a
-  chain step).
-* `HasHit chunks roots log`: some entry, at its input's first occurrence, is answered by a digest
-  known from the entries before it.
+* `HasHit inPlay log`: some entry, at its input's first occurrence, is answered by a value in play
+  before it, `inPlay` giving the values in play after each prefix of the log.
 
-`mem_take_of_chunk` is what the last two buy: in a consistent log with no hit, a query whose answer
-is a chunk of the input at position `r` was asked before `r`, unless it is that input. A digest
-cannot be used before the query that produces it. `answer_not_mem_roots`: no answer is a root.
+`mem_take_of_inPlay` is what a hit buys: when `inPlay` only grows along the log, a consistent log
+with no hit asks every query whose answer is in play after `n` entries within those `n` entries;
+a value cannot be used before the query that produces it. `answer_not_mem_inPlay_nil`: no answer
+is in play before the first query.
 -/
 
 namespace LeanerVM.Protocol.QueryLog
@@ -48,14 +46,10 @@ def HasCollision (log : List ((_ : Q) × D)) : Prop :=
 /-- A query is fresh with respect to a log when the log never asks it. -/
 def Fresh (log : List ((_ : Q) × D)) (q : Q) : Prop := ∀ e ∈ log, e.1 ≠ q
 
-/-- A digest is known from a log when it is one of `roots` or a chunk of a logged input. -/
-def Known (chunks : Q → List D) (roots : List D) (log : List ((_ : Q) × D)) (d : D) : Prop :=
-  d ∈ roots ∨ ∃ e ∈ log, d ∈ chunks e.1
-
-/-- A hit: an entry, at its input's first occurrence, answered by a digest known from the entries
-before it. -/
-def HasHit (chunks : Q → List D) (roots : List D) (log : List ((_ : Q) × D)) : Prop :=
-  ∃ i : Fin log.length, Fresh (log.take i) log[i].1 ∧ Known chunks roots (log.take i) log[i].2
+/-- A hit: an entry, at its input's first occurrence, answered by a value in play after the
+entries before it. -/
+def HasHit (inPlay : List ((_ : Q) × D) → List D) (log : List ((_ : Q) × D)) : Prop :=
+  ∃ i : Fin log.length, Fresh (log.take i) log[i].1 ∧ log[i].2 ∈ inPlay (log.take i)
 
 section Decidable
 
@@ -70,12 +64,8 @@ instance (log : List ((_ : Q) × D)) : Decidable (HasCollision log) := by
 instance (log : List ((_ : Q) × D)) (q : Q) : Decidable (Fresh log q) := by
   unfold Fresh; infer_instance
 
-instance (chunks : Q → List D) (roots : List D) (log : List ((_ : Q) × D)) (d : D) :
-    Decidable (Known chunks roots log d) := by
-  unfold Known; infer_instance
-
-instance (chunks : Q → List D) (roots : List D) (log : List ((_ : Q) × D)) :
-    Decidable (HasHit chunks roots log) := by
+instance (inPlay : List ((_ : Q) × D) → List D) (log : List ((_ : Q) × D)) :
+    Decidable (HasHit inPlay log) := by
   unfold HasHit; infer_instance
 
 end Decidable
@@ -106,34 +96,29 @@ private theorem first_occurrence [DecidableEq Q] {log : List ((_ : Q) × D)}
     simp only [decide_eq_true_eq] at hp
     exact Sigma.ext hp (heq_of_eq (hcons _ (List.getElem_mem _) e he hp))
 
-/-- An entry at a position before `r` is in the log's first `r` entries. -/
-private theorem getElem_mem_take {log : List ((_ : Q) × D)} {p r : ℕ} (hp : p < log.length)
-    (hpr : p < r) : log[p] ∈ log.take r :=
-  List.mem_iff_getElem.mpr ⟨p, by rw [List.length_take]; exact Nat.lt_min.mpr ⟨hpr, hp⟩,
-    by simp⟩
+variable [DecidableEq Q] {inPlay : List ((_ : Q) × D) → List D} {log : List ((_ : Q) × D)}
 
-variable [DecidableEq Q] {chunks : Q → List D} {roots : List D} {log : List ((_ : Q) × D)}
-
-/-- In a consistent log with no hit, no answer is one of the roots. -/
-theorem answer_not_mem_roots (hcons : Consistent log) (hhit : ¬ HasHit chunks roots log)
-    {e : (_ : Q) × D} (he : e ∈ log) : e.2 ∉ roots := by
-  intro hr
+/-- In a consistent log with no hit, a logged query whose answer is in play after `n` entries is
+asked within them, when `inPlay` grows along the log. -/
+theorem mem_take_of_inPlay (hmono : ∀ l₁ l₂, l₁ <+: l₂ → ∀ d ∈ inPlay l₁, d ∈ inPlay l₂)
+    (hcons : Consistent log) (hhit : ¬ HasHit inPlay log) {e : (_ : Q) × D} (he : e ∈ log)
+    {n : ℕ} (hn : e.2 ∈ inPlay (log.take n)) : e ∈ log.take n := by
   obtain ⟨p, hp, hfresh, he'⟩ := first_occurrence hcons he
-  exact hhit ⟨⟨p, hp⟩, by simp only [Fin.getElem_fin, he']; exact hfresh,
-    by simp only [Fin.getElem_fin, he']; exact Or.inl hr⟩
-
-/-- In a consistent log with no hit, a query answered by a chunk of the input at position `r` is
-asked before `r`, unless it is that input. -/
-theorem mem_take_of_chunk (hcons : Consistent log) (hhit : ¬ HasHit chunks roots log)
-    {e : (_ : Q) × D} (he : e ∈ log) {r : ℕ} (hr : r < log.length) (hne : log[r].1 ≠ e.1)
-    (hk : e.2 ∈ chunks log[r].1) : e ∈ log.take r := by
-  obtain ⟨p, hp, hfresh, he'⟩ := first_occurrence hcons he
-  have hpr : p ≠ r := fun h ↦ hne (by subst h; rw [he'])
-  rcases Nat.lt_or_gt_of_ne hpr with hlt | hgt
+  by_cases hpn : p < n
   · rw [← he']
-    exact getElem_mem_take hp hlt
-  · refine absurd ⟨⟨p, hp⟩, by simp only [Fin.getElem_fin, he']; exact hfresh,
-      Or.inr ⟨log[r], getElem_mem_take hr hgt, by simp only [Fin.getElem_fin, he']; exact hk⟩⟩ hhit
+    exact List.mem_iff_getElem.mpr ⟨p, by rw [List.length_take]; exact Nat.lt_min.mpr ⟨hpn, hp⟩,
+      by simp⟩
+  · have hpre : log.take n <+: log.take p := by
+      rw [show log.take n = (log.take p).take n by rw [List.take_take, Nat.min_eq_left (by omega)]]
+      exact List.take_prefix _ _
+    exact absurd ⟨⟨p, hp⟩, by simp only [Fin.getElem_fin, he']; exact hfresh,
+      by simp only [Fin.getElem_fin, he']; exact hmono _ _ hpre _ hn⟩ hhit
+
+/-- In a consistent log with no hit, no answer is in play before the first query. -/
+theorem answer_not_mem_inPlay_nil (hmono : ∀ l₁ l₂, l₁ <+: l₂ → ∀ d ∈ inPlay l₁, d ∈ inPlay l₂)
+    (hcons : Consistent log) (hhit : ¬ HasHit inPlay log) {e : (_ : Q) × D} (he : e ∈ log) :
+    e.2 ∉ inPlay [] := fun h ↦ by
+  simpa using mem_take_of_inPlay hmono hcons hhit he (n := 0) (by simpa using h)
 
 end
 end LeanerVM.Protocol.QueryLog

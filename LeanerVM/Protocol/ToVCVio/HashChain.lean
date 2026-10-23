@@ -3,7 +3,8 @@
 
   A hash chain read back off a query log: from a state, the unique logged step into it, back to
   the seed. Without a collision the history of an honest chain is its steps, and without a hit it
-  is already in the log when the chain's next query is first asked. Candidate for VCVio.
+  is already in the log when a query using the chain's last state is first asked. Candidate for
+  VCVio.
 -/
 
 module
@@ -28,12 +29,15 @@ logged queries answered by it must agree, and the walk moves to the parsed state
 `seed` with the steps it passed, and returns `none` when a step is missing or ambiguous, or after
 as many steps as the log has entries.
 
-* `history_of_noCollision_noHit`: if every step of a chain is logged, the log has no collision, and
+* `history_of_noCollision_noSeed`: if every step of a chain is logged, the log has no collision, and
   no answer is `seed`, the history of the chain's last state is the chain.
-* `history_take_of_noCollision_noHit`: if the log is also consistent and has no hit (an answer equal
-  to a root or to a chunk of an earlier input, with `seed` a root and every state a chunk of the
-  queries it starts), then the history is already in the log before the chain's next query is
-  first asked.
+* `history_take_of_noCollision_noHit`: if the log is also consistent and has no hit, the history is
+  already in the log before any query that has the chain's last state as a chunk and is not one
+  of the chain's own queries; `history_take_of_step` is the case of the chain's next step. A hit
+  is read off `inPlay`, the values in play after each prefix of the log, which must grow along the
+  log, hold `seed` from the start, and take in the chunks `chunks q` of each query, every state
+  being a chunk of the steps from it. The chunks of a query are the values it carries: the
+  chaining value of a step, the children of a Merkle node.
 * `history_determined`: without a collision, a history found in part of a log is the history in the
   whole log.
 
@@ -165,6 +169,23 @@ private theorem unique?_eq_some_iff {α : Type} [DecidableEq α] {l : List α} {
       rintro - rfl hall
       exact hne (hall y hy)
 
+/-- The first `p + 1` entries of a list are the first `p` and the entry at `p`. -/
+private theorem take_succ_eq {α : Type} {l : List α} {p : ℕ} (hp : p < l.length) :
+    l.take (p + 1) = l.take p ++ [l[p]] := by
+  rw [List.take_add_one, List.getElem?_eq_getElem hp]
+  rfl
+
+/-- Every query of a chain starts from one of its states. -/
+private theorem mem_queries (enc : D → B → Q) :
+    ∀ (cv : D) (steps : List (B × D)) (e : (_ : Q) × D), e ∈ queries enc cv steps →
+      ∃ d ∈ cv :: steps.map (·.2), ∃ b, e.1 = enc d b
+  | _, [], _, he => by simp [queries] at he
+  | cv, (b, c) :: steps, e, he => by
+    rcases List.mem_cons.mp he with rfl | he
+    · exact ⟨cv, List.mem_cons_self .., b, rfl⟩
+    · obtain ⟨d, hd, b', hb'⟩ := mem_queries enc c steps e he
+      exact ⟨d, List.mem_cons_of_mem _ (by simpa using hd), b', hb'⟩
+
 end Bookkeeping
 
 /-! ## The history of a chain -/
@@ -230,7 +251,7 @@ private theorem nodup_states (henc : ∀ d b, step? (enc d b) = some (d, b))
 /-- **The history of a logged chain.** If every step of a chain from `seed` is in the log, the log
 has no collision, and no answer is `seed`, then the history of the chain's last state is the
 chain. -/
-theorem history_of_noCollision_noHit (henc : ∀ d b, step? (enc d b) = some (d, b))
+theorem history_of_noCollision_noSeed (henc : ∀ d b, step? (enc d b) = some (d, b))
     (hcoll : ¬ HasCollision log) (hseed : ∀ e ∈ log, e.2 ≠ seed) (steps : List (B × D))
     (hchain : ∀ e ∈ queries enc seed steps, e ∈ log) :
     history step? log seed (last seed steps) = some steps := by
@@ -243,58 +264,98 @@ theorem history_of_noCollision_noHit (henc : ∀ d b, step? (enc d b) = some (d,
     exact List.mem_map_of_mem (hchain e he)
   simpa using (List.Nodup.subperm hnd hsub).length_le
 
-variable [DecidableEq Q] {chunks : Q → List D} {roots : List D}
+variable [DecidableEq Q] {chunks : Q → List D} {inPlay : List ((_ : Q) × D) → List D}
 
-/-- **The history before the next query.** If every step of a chain from `seed` is in a
-consistent log with no collision and no hit, with `seed` a root and every state a chunk of the
-queries that start from it, then at a position where the chain's next query is asked, the history
-of the chain's last state in the entries before it is the chain. -/
+omit [DecidableEq D] [DecidableEq B] in
+/-- With no hit, every query of a logged chain whose last state is in play after `n` entries is
+asked within them. -/
+private theorem queries_mem_take (hchunk : ∀ d b, d ∈ chunks (enc d b))
+    (hplay : ∀ l e, ∀ d ∈ chunks e.1, d ∈ inPlay (l ++ [e]))
+    (hmono : ∀ l₁ l₂, l₁ <+: l₂ → ∀ d ∈ inPlay l₁, d ∈ inPlay l₂) (hcons : Consistent log)
+    (hhit : ¬ HasHit inPlay log) (steps : List (B × D)) :
+    (∀ e ∈ queries enc seed steps, e ∈ log) → ∀ n, last seed steps ∈ inPlay (log.take n) →
+      ∀ e ∈ queries enc seed steps, e ∈ log.take n := by
+  induction steps using List.reverseRecOn with
+  | nil => intro _ _ _ e he; simp [queries] at he
+  | append_singleton init x ih =>
+    obtain ⟨b, cv⟩ := x
+    intro hchain n hn e he
+    rw [queries_append] at hchain he
+    rw [last_append] at hn
+    have hlast :=
+      mem_take_of_inPlay hmono hcons hhit (hchain ⟨enc (last seed init) b, cv⟩ (by simp)) hn
+    obtain ⟨p, hp, hpe⟩ := List.mem_iff_getElem.mp hlast
+    rw [List.length_take] at hp
+    rw [List.getElem_take] at hpe
+    have hpl : p < log.length := (Nat.lt_min.mp hp).2
+    have hinit : last seed init ∈ inPlay (log.take (p + 1)) := by
+      rw [take_succ_eq hpl]
+      exact hplay _ _ _ (by rw [hpe]; exact hchunk _ _)
+    rcases List.mem_append.mp he with he | he
+    · have := ih (fun e he ↦ hchain e (List.mem_append_left _ he)) (p + 1) hinit e he
+      obtain ⟨i, hi, rfl⟩ := List.mem_iff_getElem.mp this
+      rw [List.length_take] at hi
+      rw [List.getElem_take]
+      exact List.mem_iff_getElem.mpr ⟨i, by simp; omega, by simp⟩
+    · obtain rfl := List.mem_singleton.mp he
+      exact hlast
+
+/-- **The history before a query.** Let a log be consistent, with no collision and no hit, where
+the values in play grow along the log, start with `seed`, and take in the chunks of each query,
+every state being a chunk of the steps from it. If every step of a chain from `seed` is in the
+log, then at a position whose query has the chain's last state as a chunk and is none of the
+chain's own queries, the history of the last state in the entries before it is the chain. -/
 theorem history_take_of_noCollision_noHit (henc : ∀ d b, step? (enc d b) = some (d, b))
-    (hchunk : ∀ d b, d ∈ chunks (enc d b)) (hcons : Consistent log)
-    (hcoll : ¬ HasCollision log) (hhit : ¬ HasHit chunks roots log) (hseed : seed ∈ roots)
+    (hchunk : ∀ d b, d ∈ chunks (enc d b))
+    (hplay : ∀ l e, ∀ d ∈ chunks e.1, d ∈ inPlay (l ++ [e]))
+    (hmono : ∀ l₁ l₂, l₁ <+: l₂ → ∀ d ∈ inPlay l₁, d ∈ inPlay l₂) (hseed : seed ∈ inPlay [])
+    (hcons : Consistent log) (hcoll : ¬ HasCollision log) (hhit : ¬ HasHit inPlay log)
+    (steps : List (B × D)) (hchain : ∀ e ∈ queries enc seed steps, e ∈ log) {m : ℕ}
+    (hm : m < log.length) (hq : last seed steps ∈ chunks log[m].1)
+    (hnew : ∀ e ∈ queries enc seed steps, e.1 ≠ log[m].1) :
+    history step? (log.take m) seed (last seed steps) = some steps := by
+  have hin := queries_mem_take hchunk hplay hmono hcons hhit steps hchain (m + 1)
+    (by rw [take_succ_eq hm]; exact hplay _ _ _ hq)
+  refine history_of_noCollision_noSeed henc
+    (fun h ↦ hcoll (h.mono fun e he ↦ List.mem_of_mem_take he))
+    (fun e he h ↦ answer_not_mem_inPlay_nil hmono hcons hhit (List.mem_of_mem_take he)
+      (h ▸ hseed)) steps fun e he ↦ ?_
+  have := hin e he
+  rw [take_succ_eq hm] at this
+  rcases List.mem_append.mp this with h | h
+  · exact h
+  · exact absurd (by rw [List.mem_singleton.mp h]) (hnew e he)
+
+/-- **The history before the next step.** Under the hypotheses of
+`history_take_of_noCollision_noHit`, at a position where the chain's next step is asked, the
+history of the chain's last state in the entries before it is the chain. -/
+theorem history_take_of_step (henc : ∀ d b, step? (enc d b) = some (d, b))
+    (hchunk : ∀ d b, d ∈ chunks (enc d b))
+    (hplay : ∀ l e, ∀ d ∈ chunks e.1, d ∈ inPlay (l ++ [e]))
+    (hmono : ∀ l₁ l₂, l₁ <+: l₂ → ∀ d ∈ inPlay l₁, d ∈ inPlay l₂) (hseed : seed ∈ inPlay [])
+    (hcons : Consistent log) (hcoll : ¬ HasCollision log) (hhit : ¬ HasHit inPlay log)
     (steps : List (B × D)) (hchain : ∀ e ∈ queries enc seed steps, e ∈ log) {m : ℕ}
     (hm : m < log.length) {b : B} (hq : log[m].1 = enc (last seed steps) b) :
     history step? (log.take m) seed (last seed steps) = some steps := by
+  refine history_take_of_noCollision_noHit henc hchunk hplay hmono hseed hcons hcoll hhit steps
+    hchain hm (by rw [hq]; exact hchunk _ _) fun e he heq ↦ ?_
   have hns : ∀ e ∈ log, e.2 ≠ seed := fun e he h ↦
-    answer_not_mem_roots hcons hhit he (h ▸ hseed)
-  have hin : ∀ (steps : List (B × D)), (∀ e ∈ queries enc seed steps, e ∈ log) →
-      ∀ (r : ℕ) (hr : r < log.length) (b : B), log[r].1 = enc (last seed steps) b →
-        ∀ e ∈ queries enc seed steps, e ∈ log.take r := by
-    intro steps
-    induction steps using List.reverseRecOn with
-    | nil => intro _ _ _ _ _ e he; simp [queries] at he
-    | append_singleton init x ih =>
-      obtain ⟨b', cv⟩ := x
-      intro hchain r hr b hq e he
-      have hnd := nodup_states henc hcoll hns _ hchain
-      rw [queries_append] at hchain he
-      rw [last_append] at hq
-      have hmem : (⟨enc (last seed init) b', cv⟩ : (_ : Q) × D) ∈ log := hchain _ (by simp)
-      have hne : log[r].1 ≠ enc (last seed init) b' := by
-        intro h
-        rw [hq] at h
-        have h' := congrArg step? h
-        simp only [henc, Option.some.injEq, Prod.mk.injEq] at h'
-        rw [List.map_append, ← List.cons_append, List.nodup_append] at hnd
-        exact hnd.2.2 _ (h'.1 ▸ last_mem seed init) cv (by simp) rfl
-      have hlast := mem_take_of_chunk hcons hhit hmem hr hne (by rw [hq]; exact hchunk cv b)
-      obtain ⟨p, hp, hpe⟩ := List.mem_iff_getElem.mp hlast
-      rw [List.length_take] at hp
-      have hpr : p < r := (Nat.lt_min.mp hp).1
-      have hpl : p < log.length := (Nat.lt_min.mp hp).2
-      rw [List.getElem_take] at hpe
-      rcases List.mem_append.mp he with he | he
-      · have := ih (fun e he ↦ hchain e (List.mem_append_left _ he)) p hpl b'
-          (by rw [hpe]) e he
-        obtain ⟨i, hi, rfl⟩ := List.mem_iff_getElem.mp this
-        rw [List.length_take] at hi
-        rw [List.getElem_take]
-        exact List.mem_iff_getElem.mpr ⟨i, by simp; omega, by simp⟩
-      · obtain rfl := List.mem_singleton.mp he
-        exact hlast
-  refine history_of_noCollision_noHit henc
-    (fun h ↦ hcoll (h.mono fun e he ↦ List.mem_of_mem_take he))
-    (fun e he ↦ hns e (List.mem_of_mem_take he)) steps (hin steps hchain m hm b hq)
+    answer_not_mem_inPlay_nil hmono hcons hhit he (h ▸ hseed)
+  have hnd := nodup_states henc hcoll hns steps hchain
+  -- the query would start from the last state, which no earlier step starts from
+  rcases List.eq_nil_or_concat steps with rfl | ⟨init, ⟨b', cv⟩, rfl⟩
+  · simp [queries] at he
+  simp only [List.concat_eq_append] at hnd he hq
+  rw [List.map_append, ← List.cons_append, List.nodup_append] at hnd
+  rw [queries_append] at he
+  rw [last_append, ← heq] at hq
+  obtain ⟨d, hd, b'', hde⟩ : ∃ d ∈ seed :: init.map (·.2), ∃ b'', e.1 = enc d b'' := by
+    rcases List.mem_append.mp he with he | he
+    · exact mem_queries enc seed init e he
+    · exact ⟨last seed init, last_mem seed init, b', by rw [List.mem_singleton.mp he]⟩
+  have h' := congrArg step? (hde.symm.trans hq)
+  simp only [henc, Option.some.injEq, Prod.mk.injEq] at h'
+  exact hnd.2.2 d hd cv (by simp) h'.1
 
 /-- A walk found in part of a log is found in the whole log with more fuel, when the whole log has
 no collision. -/

@@ -10,11 +10,12 @@ probability `2^-192`, a 17-bit grinding check passes with probability `2^-17`.
 
 Then the chain read off a log: the log of an honest chain (two observes, a squeeze, the grinding
 base, a nonce and a squeeze, every query answered by BLAKE2s) gives back its blocks and states,
-also with a Merkle node that parses as a step beside it, and already before the last query; the
-byte decoders invert the encoders, and the step parser rejects the grinding base, a squeeze with
-an element and a 65-byte input. Then one mutation per hypothesis: a collision makes a step
-ambiguous, an answer equal to the seed cuts the history short, and a state produced after the query
-that uses it leaves the history out of the log before that query.
+also with a Merkle node that parses as a step beside it, and already before the last squeeze and
+before the grinding base; the byte decoders invert the encoders, and the step parser rejects the
+grinding base, a squeeze with an element and a 65-byte input. Then one mutation per hypothesis:
+a collision makes a step ambiguous, an answer equal to the seed cuts the history short, and a
+state produced after the query that uses it leaves the history out of the log before that query.
+A root absorbed as two observes is in play, so a fresh node answered by it is a hit.
 -/
 
 namespace LeanerVMTests.Protocol.RandomOracle
@@ -130,7 +131,7 @@ def blocks : List Block :=
 -- The log is consistent, with no collision and no hit on the seed or a half of an earlier input.
 #guard decide (QueryLog.Consistent honestLog)
 #guard !decide (QueryLog.HasCollision honestLog)
-#guard !decide (QueryLog.HasHit halves [seed.cv] honestLog)
+#guard !decide (QueryLog.HasHit (inPlay [seed.cv]) honestLog)
 
 -- The history of the last state is the chain: its blocks, and the answers of its step queries.
 #guard (chainHistory honestLog seed final).map (·.map (·.1)) = some blocks
@@ -140,6 +141,12 @@ def blocks : List Block :=
 -- Before the last squeeze is asked, the history of the state it squeezes is the chain so far.
 #guard (chainHistory (honestLog.take 5) seed ⟨honestLog[4]!.2⟩).map (·.map (·.1)) =
   some (blocks.take 4)
+
+-- The grinding base is not a step but starts from the state after the first squeeze: before it
+-- is asked, that state's history is the chain so far.
+#guard honestLog[2]!.2 ∈ halves honestLog[3]!.1
+#guard (chainHistory (honestLog.take 3) seed ⟨honestLog[2]!.2⟩).map (·.map (·.1)) =
+  some (blocks.take 3)
 
 /-- A digest whose last 64-bit lane is the observe tag. -/
 def right : Digest := #v[9, 9, 9, 9, 9, 9, 1, 0]
@@ -202,8 +209,27 @@ def lateLog : Log :=
 
 #guard decide (QueryLog.Consistent lateLog)
 #guard !decide (QueryLog.HasCollision lateLog)
-#guard decide (QueryLog.HasHit halves [seed.cv] lateLog)
+#guard decide (QueryLog.HasHit (inPlay [seed.cv]) lateLog)
 #guard chainHistory lateLog seed ⟨d 1⟩ = some [(.observe x, d 1)]
 #guard chainHistory (lateLog.take 0) seed ⟨d 1⟩ = none
+
+-- A root absorbed as two observes is in play: a fresh node answered by it is a hit, which the
+-- halves of the inputs alone do not show.
+/-- The test's root. -/
+def root : Digest := d 77
+
+/-- A chain absorbing `root` as its two scalars and squeezing, then a fresh node answered by
+`root`. -/
+def rootLog : Log :=
+  [⟨Block.input seed.cv (.observe (digestScalars root).1), d 1⟩,
+    ⟨Block.input (d 1) (.observe (digestScalars root).2), d 2⟩,
+    ⟨Block.input (d 2) .squeeze, d 3⟩,
+    ⟨digestBytes (d 4) ++ digestBytes (d 5), root⟩]
+
+#guard rebuiltRoots rootLog = [root]
+#guard decide (QueryLog.Consistent rootLog)
+#guard !decide (QueryLog.HasCollision rootLog)
+#guard decide (QueryLog.HasHit (inPlay [seed.cv]) rootLog)
+#guard !decide (QueryLog.HasHit (fun l ↦ seed.cv :: l.flatMap fun e ↦ halves e.1) rootLog)
 
 end LeanerVMTests.Protocol.RandomOracle
