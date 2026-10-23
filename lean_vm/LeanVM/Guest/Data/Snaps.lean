@@ -18,6 +18,7 @@ public import LeanVM.Guest.Data.Snaps07
 public import LeanVM.Guest.Data.Snaps08
 public import LeanVM.Guest.Data.Snaps09
 public import LeanVM.Guest.Data.Snaps10
+public import LeanVM.Guest.Data.Snaps11
 public import LeanVM.Guest.B2C.Types
 
 namespace LeanVM.Guest.Data
@@ -63,7 +64,7 @@ noncomputable def snaps20 : List B2C.Snap :=
 
 /-- Function 21's windows after the first start from these. -/
 noncomputable def snaps21 : List B2C.Snap :=
-  [snap21_1, snap21_2, snap21_3, snap21_4, snap21_5, snap21_6, snap21_7, snap21_8, snap21_9, snap21_10, snap21_11, snap21_12, snap21_13, snap21_14, snap21_15, snap21_16, snap21_17, snap21_18, snap21_19, snap21_20, snap21_21, snap21_22, snap21_23, snap21_24, snap21_25, snap21_26, snap21_27, snap21_28, snap21_29, snap21_30, snap21_31, snap21_32, snap21_33, snap21_34, snap21_35, snap21_36, snap21_37, snap21_38, snap21_39, snap21_40, snap21_41, snap21_42, snap21_43, snap21_44, snap21_45, snap21_46, snap21_47, snap21_48, snap21_49, snap21_50, snap21_51, snap21_52, snap21_53, snap21_54, snap21_55, snap21_56, snap21_57, snap21_58, snap21_59, snap21_60, snap21_61, snap21_62, snap21_63, snap21_64, snap21_65, snap21_66, snap21_67, snap21_68, snap21_69, snap21_70, snap21_71, snap21_72]
+  [snap21_1, snap21_2, snap21_3, snap21_4, snap21_5, snap21_6, snap21_7, snap21_8, snap21_9, snap21_10, snap21_11, snap21_12, snap21_13, snap21_14, snap21_15, snap21_16, snap21_17, snap21_18, snap21_19, snap21_20, snap21_21, snap21_22, snap21_23, snap21_24, snap21_25, snap21_26, snap21_27, snap21_28, snap21_29, snap21_30, snap21_31, snap21_32, snap21_33, snap21_34, snap21_35, snap21_36, snap21_37, snap21_38, snap21_39, snap21_40, snap21_41, snap21_42, snap21_43, snap21_44, snap21_45, snap21_46, snap21_47, snap21_48, snap21_49, snap21_50, snap21_51, snap21_52, snap21_53, snap21_54, snap21_55, snap21_56, snap21_57, snap21_58, snap21_59, snap21_60, snap21_61, snap21_62, snap21_63, snap21_64, snap21_65, snap21_66, snap21_67, snap21_68, snap21_69, snap21_70, snap21_71, snap21_72, snap21_73, snap21_74, snap21_75, snap21_76, snap21_77, snap21_78, snap21_79, snap21_80, snap21_81, snap21_82, snap21_83, snap21_84, snap21_85, snap21_86, snap21_87, snap21_88, snap21_89, snap21_90, snap21_91, snap21_92]
 
 /-- Function 26's windows after the first start from these. -/
 noncomputable def snaps26 : List B2C.Snap :=
@@ -223,7 +224,7 @@ noncomputable def snaps397 : List B2C.Snap :=
 
 /-- Function 413's windows after the first start from these. -/
 noncomputable def snaps413 : List B2C.Snap :=
-  [snap413_1, snap413_2, snap413_3, snap413_4, snap413_5, snap413_6, snap413_7, snap413_8, snap413_9, snap413_10]
+  [snap413_1, snap413_2, snap413_3, snap413_4, snap413_5, snap413_6, snap413_7, snap413_8, snap413_9, snap413_10, snap413_11, snap413_12, snap413_13]
 
 /-- Function 418's windows after the first start from these. -/
 noncomputable def snaps418 : List B2C.Snap :=

@@ -24,6 +24,22 @@ public import LeanVM.Guest.Checked.G21_44_12
 public import LeanVM.Guest.Checked.G21_44_13
 public import LeanVM.Guest.Checked.G21_44_14
 public import LeanVM.Guest.Checked.G21_44_15
+public import LeanVM.Guest.Checked.G21_44_16
+public import LeanVM.Guest.Checked.G21_44_17
+public import LeanVM.Guest.Checked.G21_44_18
+public import LeanVM.Guest.Checked.G21_44_19
+public import LeanVM.Guest.Checked.G21_44_20
+public import LeanVM.Guest.Checked.G21_44_21
+public import LeanVM.Guest.Checked.G21_44_22
+public import LeanVM.Guest.Checked.G21_44_23
+public import LeanVM.Guest.Checked.G21_44_24
+public import LeanVM.Guest.Checked.G21_44_25
+public import LeanVM.Guest.Checked.G21_44_26
+public import LeanVM.Guest.Checked.G21_44_27
+public import LeanVM.Guest.Checked.G21_44_28
+public import LeanVM.Guest.Checked.G21_44_29
+public import LeanVM.Guest.Checked.G21_44_30
+public import LeanVM.Guest.Checked.G21_44_31
 
 namespace LeanVM.Guest.Checked
 
@@ -31,12 +47,12 @@ open LeanVM.Guest.Check
 
 @[expose] public section
 
-/-- `verify_sig_lean_sphincs`, window 44: one `match`, by 16 groups of arms. -/
+/-- `verify_sig_lean_sphincs`, window 44: one `match`, by 32 groups of arms. -/
 theorem w21_44 : WinOk 21 44 :=
-  winOk_of_split [(1, 17, [(0, 100), (100, 1563)]), (17, 33, [(0, 100), (1663, 1553)]), (33, 49, [(0, 100), (3216, 1561)]), (49, 65, [(0, 100), (4777, 1560)]), (65, 81, [(0, 100), (6337, 1575)]), (81, 97, [(0, 100), (7912, 1568)]), (97, 113, [(0, 100), (9480, 1560)]), (113, 129, [(0, 100), (11040, 1573)]), (129, 145, [(0, 100), (12613, 1571)]), (145, 161, [(0, 100), (14184, 1564)]), (161, 177, [(0, 100), (15748, 1563)]), (177, 193, [(0, 100), (17311, 1582)]), (193, 209, [(0, 100), (18893, 1584)]), (209, 225, [(0, 100), (20477, 1571)]), (225, 241, [(0, 100), (22048, 1552)]), (241, 256, [(0, 100), (23600, 1466)])]
-    (1, 17, [(0, 100), (100, 1563)]) List.mem_cons_self (by decide +kernel) (by decide +kernel) fun g hg ↦ by
+  winOk_of_split [(1, 9, [(0, 100), (100, 784)]), (9, 17, [(0, 100), (884, 779)]), (17, 25, [(0, 100), (1663, 775)]), (25, 33, [(0, 100), (2438, 778)]), (33, 41, [(0, 100), (3216, 784)]), (41, 49, [(0, 100), (4000, 777)]), (49, 57, [(0, 100), (4777, 775)]), (57, 65, [(0, 100), (5552, 785)]), (65, 73, [(0, 100), (6337, 791)]), (73, 81, [(0, 100), (7128, 784)]), (81, 89, [(0, 100), (7912, 784)]), (89, 97, [(0, 100), (8696, 784)]), (97, 105, [(0, 100), (9480, 781)]), (105, 113, [(0, 100), (10261, 779)]), (113, 121, [(0, 100), (11040, 781)]), (121, 129, [(0, 100), (11821, 792)]), (129, 137, [(0, 100), (12613, 787)]), (137, 145, [(0, 100), (13400, 784)]), (145, 153, [(0, 100), (14184, 784)]), (153, 161, [(0, 100), (14968, 780)]), (161, 169, [(0, 100), (15748, 784)]), (169, 177, [(0, 100), (16532, 779)]), (177, 185, [(0, 100), (17311, 790)]), (185, 193, [(0, 100), (18101, 792)]), (193, 201, [(0, 100), (18893, 792)]), (201, 209, [(0, 100), (19685, 792)]), (209, 217, [(0, 100), (20477, 787)]), (217, 225, [(0, 100), (21264, 784)]), (225, 233, [(0, 100), (22048, 777)]), (233, 241, [(0, 100), (22825, 775)]), (241, 249, [(0, 100), (23600, 780)]), (249, 256, [(0, 100), (24380, 686)])]
+    (1, 9, [(0, 100), (100, 784)]) List.mem_cons_self (by decide +kernel) (by decide +kernel) fun g hg ↦ by
       simp only [List.mem_cons, List.not_mem_nil, or_false] at hg
-      rcases hg with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl
+      rcases hg with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl
       · exact wg21_44_0
       · exact wg21_44_1
       · exact wg21_44_2
@@ -53,6 +69,22 @@ theorem w21_44 : WinOk 21 44 :=
       · exact wg21_44_13
       · exact wg21_44_14
       · exact wg21_44_15
+      · exact wg21_44_16
+      · exact wg21_44_17
+      · exact wg21_44_18
+      · exact wg21_44_19
+      · exact wg21_44_20
+      · exact wg21_44_21
+      · exact wg21_44_22
+      · exact wg21_44_23
+      · exact wg21_44_24
+      · exact wg21_44_25
+      · exact wg21_44_26
+      · exact wg21_44_27
+      · exact wg21_44_28
+      · exact wg21_44_29
+      · exact wg21_44_30
+      · exact wg21_44_31
 
 end
 end LeanVM.Guest.Checked

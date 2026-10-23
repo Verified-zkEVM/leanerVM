@@ -14,30 +14,43 @@ namespace LeanVM.Guest.B2C.Shared
 @[expose] public section
 
 set_option maxRecDepth 100000 in
-/-- `__loop296`, once. -/
-theorem st759 : shareStatic 759 = true := by decide +kernel
+/-- `__loop319`, once. -/
+theorem st785 : shareStatic 785 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `__loop296`, window 0. -/
-theorem w759_0 : shareWin 759 (snapsOf 759) 0 = true := by decide +kernel
+/-- `__loop319`, window 0. -/
+theorem w785_0 : shareWin 785 (snapsOf 785) 0 = true := by decide +kernel
 
-theorem ok759 : ShareOk 759 := ⟨st759, fun i hi ↦ by
-  have h : (snapsOf 759).length = 0 := by decide +kernel
+theorem ok785 : ShareOk 785 := ⟨st785, fun i hi ↦ by
+  have h : (snapsOf 785).length = 0 := by decide +kernel
   obtain rfl : i = 0 := by omega
-  exact w759_0⟩
+  exact w785_0⟩
 
 set_option maxRecDepth 100000 in
-/-- `__loop297`, once. -/
-theorem st760 : shareStatic 760 = true := by decide +kernel
+/-- `__loop320`, once. -/
+theorem st786 : shareStatic 786 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `__loop297`, window 0. -/
-theorem w760_0 : shareWin 760 (snapsOf 760) 0 = true := by decide +kernel
+/-- `__loop320`, window 0. -/
+theorem w786_0 : shareWin 786 (snapsOf 786) 0 = true := by decide +kernel
 
-theorem ok760 : ShareOk 760 := ⟨st760, fun i hi ↦ by
-  have h : (snapsOf 760).length = 0 := by decide +kernel
+theorem ok786 : ShareOk 786 := ⟨st786, fun i hi ↦ by
+  have h : (snapsOf 786).length = 0 := by decide +kernel
   obtain rfl : i = 0 := by omega
-  exact w760_0⟩
+  exact w786_0⟩
+
+set_option maxRecDepth 100000 in
+/-- `__loop321`, once. -/
+theorem st787 : shareStatic 787 = true := by decide +kernel
+
+set_option maxRecDepth 100000 in
+/-- `__loop321`, window 0. -/
+theorem w787_0 : shareWin 787 (snapsOf 787) 0 = true := by decide +kernel
+
+theorem ok787 : ShareOk 787 := ⟨st787, fun i hi ↦ by
+  have h : (snapsOf 787).length = 0 := by decide +kernel
+  obtain rfl : i = 0 := by omega
+  exact w787_0⟩
 
 end
 end LeanVM.Guest.B2C.Shared
