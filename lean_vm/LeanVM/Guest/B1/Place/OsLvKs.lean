@@ -8,6 +8,7 @@ module
 
 public import LeanVM.Guest.B1.Place.OsNamesL
 public import LeanVM.Guest.B1.Place.OsCallsOk
+public import LeanVM.Guest.B1.Whir.CVals
 
 /-!
 # The levels' frames, one at a time
@@ -100,6 +101,50 @@ theorem finish_named {c : OsCfg} (hN : OsNames c) {st : OsSt} {tch : ℕ} {f : S
   rcases hf with rfl | ⟨l, hl, rfl⟩
   · exact ⟨_, hN.ffm⟩
   · exact absurd rfl (hr l (by simpa using hl))
+
+
+theorem callS_nil_of_cnames {l : List Stmt} (h : cnames l = []) : l.filterMap Main.Stmt.callS = [] := by
+  unfold cnames at h; exact List.map_eq_nil_iff.mp h
+
+/-- The calls of a level's queries block: the row weights', the cap's, and `opening_queries`, its
+sixth argument the row weights' pointer. -/
+theorem osQueries_calls (c : OsCfg) (lvl : ℕ) (lv : OsLv) (lam lamN : ℕ) (s : OsSt)
+    {x : Option V × String × List V × List V}
+    (hx : x ∈ (osQueries c lvl lv lam lamN s).1.filterMap Main.Stmt.callS) :
+    x.2.1 = "opening_row_weights__L" ++ natStr lv.folds ++ "_L" ++ natStr (if lvl = 0 then 1 else 0) ∨
+      x.2.1 = "verify_merkle_cap__L" ++ natStr lv.capDepth ∨
+      (x.2.1 = osQueriesName lvl lv ∧ x.2.2.1.getD 5 (.n 0) = .n (s.k + 1)) := by
+  have hm : ∀ b o k, (osMat b o k).1.filterMap Main.Stmt.callS = [] := fun b o k ↦
+    callS_nil_of_cnames (cnames_osMat b o k)
+  simp only [osQueries, osHeap, List.filterMap_append, hm, List.filterMap_cons, Main.Stmt.callS,
+    List.filterMap_nil, List.nil_append, List.append_nil, List.mem_append, List.mem_cons,
+    List.not_mem_nil, or_false] at hx
+  rcases hx with (hx | hx) | hx <;> subst hx <;> simp
+
+/-- **The call after a level's squeezes that names no kind is its `opening_queries`**, its sixth
+argument the row weights' pointer. -/
+theorem lvB_qcall {c : OsCfg} (hN : OsNames c) {l : ℕ} (hl : l < c.levels.length) {s : OsSt}
+    {x : Option V × String × List V × List V}
+    (hx : x ∈ (lvB c l (lvAt c l) s).filterMap Main.Stmt.callS) (hK : osKindOf x.2.1 = none) :
+    x.2.1 = osQueriesName l (lvAt c l) ∧
+      x.2.2.1.getD 5 (.n 0) = .n (wpVar c l (lvAt c l) (osLevelA c l (lvAt c l) s).2.1) := by
+  unfold lvB at hx
+  dsimp only at hx
+  simp only [List.filterMap_append, List.mem_append] at hx
+  have hl0 := callS_nil_of_cnames (cnames_osLamPows ((osSqueezes c l (lvAt c l)
+    (lvM c l (lvAt c l) s).2.1).2.k - 1) (l * c.maxQ) (osSqueezes c l (lvAt c l)
+    (lvM c l (lvAt c l) s).2.1).2.k (lvAt c l).queries)
+  rw [hl0] at hx
+  rcases hx with (((hx | hx) | hx) | hx) | hx
+  · simp at hx
+  · rcases osQueries_calls _ _ _ _ _ _ hx with h | h | ⟨h1, h2⟩
+    · rw [h, hN.rw l hl] at hK; cases hK
+    · rw [h, hN.cap l hl] at hK; cases hK
+    · refine ⟨h1, ?_⟩
+      rw [h2, wpVar, lvM_state]
+  · split_ifs at hx <;> simp [osOodGlue, Main.Stmt.callS] at hx
+  · simp [Main.Stmt.callS] at hx
+  · simp [osGlue, Main.Stmt.callS] at hx
 
 end
 end LeanVM.Guest.B1
