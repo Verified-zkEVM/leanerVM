@@ -1174,10 +1174,10 @@ theorem selBound_sound (hB : BookHolds L fp B) :
             exact ⟨e₁ + e₂, by omega, by rw [hc, ofK_gpow_mul]⟩
       · simp at hp
 
-theorem boundOk_sound {mem : List (ℕ × ℕ × ℕ)} (hm : MemPre L fp mem) (hB : BookHolds L fp B)
-    {bnd : List (ℕ × ℕ)} (hb : BndHolds L fp bnd) {c n : ℕ} (h : boundOk mem B bnd c n = true) :
+theorem boundOk0_sound {mem : List (ℕ × ℕ × ℕ)} (hm : MemPre L fp mem) (hB : BookHolds L fp B)
+    {bnd : List (ℕ × ℕ)} (hb : BndHolds L fp bnd) {c n : ℕ} (h : boundOk0 mem B bnd c n = true) :
     ∃ e < n, L.read (fp * gpow c) = some (ofK (gpow e)) := by
-  simp only [boundOk, Bool.or_eq_true] at h
+  simp only [boundOk0, Bool.or_eq_true] at h
   rcases h with (h | h) | h
   · obtain ⟨a, ha, hp⟩ := List.any_eq_true.mp h
     have hh := hB c a ha
@@ -1211,6 +1211,25 @@ theorem boundOk_sound {mem : List (ℕ × ℕ × ℕ)} (hm : MemPre L fp mem) (h
       intro h
       obtain ⟨e, he, hr⟩ := selBound_sound hB selFuel hm
       exact ⟨e, by simp only [Nat.ble_eq] at h; omega, hr⟩
+
+theorem boundOk_sound {mem : List (ℕ × ℕ × ℕ)} (hm : MemPre L fp mem) (hB : BookHolds L fp B)
+    {bnd : List (ℕ × ℕ)} (hb : BndHolds L fp bnd) {c n : ℕ} (h : boundOk mem B bnd c n = true) :
+    ∃ e < n, L.read (fp * gpow c) = some (ofK (gpow e)) := by
+  simp only [boundOk, Bool.or_eq_true] at h
+  rcases h with h | h
+  · exact boundOk0_sound hm hB hb h
+  · obtain ⟨a, ha, hp⟩ := List.any_eq_true.mp h
+    have hh := hB c a ha
+    split at hp
+    · rename_i d s
+      simp only [Bool.or_eq_true, Bool.and_eq_true, beq_iff_eq] at hp
+      obtain ⟨v, hs, hd⟩ := hh
+      rcases hp with ⟨rfl, hp⟩ | ⟨rfl, hp⟩
+      · obtain ⟨e, he, hr⟩ := boundOk0_sound hm hB hb hp
+        exact ⟨e, he, by rw [hd, ← hs, hr]⟩
+      · obtain ⟨e, he, hr⟩ := boundOk0_sound hm hB hb hp
+        exact ⟨e, he, by rw [hs, ← hd, hr]⟩
+    · simp at hp
 
 /-- Memory bounded through cells of the frame: for each `(c, len, n)`, every word at
 `fp[c]·g^i`, `i < len`, is `g^e` with `e < n`. -/

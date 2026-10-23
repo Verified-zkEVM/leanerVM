@@ -553,16 +553,27 @@ def Cur.close (c : Cur) (its : List Item) (x : Exit) : Seg :=
 the environments of its edges so far. -/
 abbrev Pend := List (ℕ × Trie Sym)
 
-/-- Add an edge into `t` with environment `e`. -/
+/-- `k p`, the head of `p` evaluated first (its producers build the rest evaluated). -/
+def headSeq {α β : Type} (p : List α) (k : List α → β) : β :=
+  match p with
+  | [] => k []
+  | a :: as => k (a :: as)
+
+theorem headSeq_eq {α β : Type} (p : List α) (k : List α → β) : headSeq p k = k p := by
+  cases p <;> rfl
+
+/-- Add an edge into `t` with environment `e`. The result's spine is evaluated as it is built,
+each cell once (`headSeq` on the rest, itself built so): a table jump adds an edge per arm. -/
 noncomputable def addEdge (t : ℕ) (e : Trie Sym) : Pend → Pend
   | [] => [(t, e)]
   | (u, a) :: ps =>
     if t < u then (t, e) :: (u, a) :: ps
     else if t = u then (u, Trie.inter Sym.beq a e) :: ps
-    else listSeq (addEdge t e ps) fun ps ↦ (u, a) :: ps
+    else headSeq (addEdge t e ps) fun ps ↦ (u, a) :: ps
 
-/-- Add the edges of an exit. -/
-noncomputable def addExit (x : Exit) (p : Pend) : Pend := x.succ.foldl (fun p t ↦ addEdge t x.env p) p
+/-- Add the edges of an exit, the last first: a table jump's arms are increasing, so each goes in
+front of those added before it. -/
+noncomputable def addExit (x : Exit) (p : Pend) : Pend := x.succ.foldr (fun t p ↦ addEdge t x.env p) p
 
 /-- Add the edges of the branches among `its`. -/
 noncomputable def addItems : List Item → Pend → Pend
@@ -586,15 +597,6 @@ noncomputable def atJoin (i : ℕ) (cur : Option Cur) (pend : Pend) (out : List 
       | none => a.seq fun e ↦ (some (Cur.init i e), ps, out)
     else (cur, pend, out)
   | [] => (cur, pend, out)
-
-/-- `k p`, the head of `p` evaluated first (its producers build the rest evaluated). -/
-def headSeq {α β : Type} (p : List α) (k : List α → β) : β :=
-  match p with
-  | [] => k []
-  | a :: as => k (a :: as)
-
-theorem headSeq_eq {α β : Type} (p : List α) (k : List α → β) : headSeq p k = k p := by
-  cases p <;> rfl
 
 /-- One offset of the walk, `w` walking the rest. -/
 noncomputable def passStep (F : Facts) (entry len : ℕ) (ins : OInstr)

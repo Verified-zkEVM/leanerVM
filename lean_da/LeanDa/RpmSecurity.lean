@@ -18,10 +18,9 @@ challenges' duplex follow the duplex discipline, so the two-oracle transfer
   the cached answers (`posBindingPost_win`, by `openingsCollision_spec`), at most
   `Q² / 2^256` (`prob_hCollision_le`); in all `Q² / 2^256 + Q² / 2^508`.
 * **Code binding** (`leanDa_codeBinding_rpm`): the RPM probability is within `Q² / 2^508` of the
-  two-oracle ROM one against the simulated adversary. Wagner's code-binding bound is not proved
-  for that game: it fixes `H` (a parameter of the relation and of the reductions; here a random
-  oracle) and reprograms a random oracle on roots by forking (here the duplex over `F`, which the
-  adversary evaluates through `π`).
+  two-oracle ROM one against the simulated adversary. From there, the duplex lemma makes the
+  challenges a random oracle of the roots (`LeanDa.RpmCodeBinding`), and sampling `H` in advance
+  makes the game Wagner's for each hash (`LeanDa.RpmWagner`): `leanDa_codeBinding_rpm_bound`.
 
 This module is part of the instantiation of Benedikt Wagner's framework for erasure code
 commitments (`PqDas`, ported from https://github.com/b-wagn/fv-pq-da) with LeanDA.

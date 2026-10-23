@@ -663,10 +663,10 @@ end Sel
 /-- The depth of the products `boundOk` follows in `selBound`. -/
 def selFuel : ℕ := 3
 
-/-- A bound `e < n` on `fp[c]`: a range check of it against a bound at most `n`, a read through a
-frame cell whose memory is bounded (`mem`), a known bound, or a selector bounded by booleanity
-(`selBound`). -/
-noncomputable def boundOk (mem : List (ℕ × ℕ × ℕ)) (B : Book) (bnd : List (ℕ × ℕ)) (c n : ℕ) :
+/-- A bound `e < n` on `fp[c]` from its own facts: a range check of it against a bound at most
+`n`, a read through a frame cell whose memory is bounded (`mem`), a known bound, or a selector
+bounded by booleanity (`selBound`). -/
+noncomputable def boundOk0 (mem : List (ℕ × ℕ × ℕ)) (B : Book) (bnd : List (ℕ × ℕ)) (c n : ℕ) :
     Bool :=
   (look B c).any (fun a ↦ match a with
     | .range x _ k => x == c && Nat.ble k n
@@ -677,6 +677,16 @@ noncomputable def boundOk (mem : List (ℕ × ℕ × ℕ)) (B : Book) (bnd : Lis
   (match selBound B selFuel c with
     | some m => Nat.ble m n
     | none => false)
+
+/-- A bound `e < n` on `fp[c]`: `boundOk0` of it, or of a cell it is a copy of (a returned word
+copied into a return cell, as `list_split` and `log2_ceil_in_the_exponent` return a checked
+one). -/
+noncomputable def boundOk (mem : List (ℕ × ℕ × ℕ)) (B : Book) (bnd : List (ℕ × ℕ)) (c n : ℕ) :
+    Bool :=
+  boundOk0 mem B bnd c n ||
+  (look B c).any (fun a ↦ match a with
+    | .copy d s => (d == c && boundOk0 mem B bnd s n) || (s == c && boundOk0 mem B bnd d n)
+    | _ => false)
 
 /-- The argument cells, stored into the callee frame `fp[q]` from offset `o`. -/
 noncomputable def storesOk (B : Book) (q : ℕ) : ℕ → List ℕ → Bool
