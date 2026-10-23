@@ -7,7 +7,7 @@
 
 module
 
-public import LeanVM.Guest.B1.Tables.Vt.SpecPhase
+public import LeanVM.Guest.B1.Tables.Vt.AsmRun
 public import LeanVM.Guest.B1.Tables.Vt.FormsT0
 public import LeanVM.Guest.B1.Tables.Vt.FormsT1
 public import LeanVM.Guest.B1.Tables.Vt.FormsT2
@@ -80,30 +80,11 @@ theorem vt_evsT_widths (σ : Val) {α : Type} (X : List α) :
   simp only [List.getElem_zip]
   interval_cases i <;> rfl
 
-theorem vt_length_eqKernel (pt : List E) : (eqKernel pt).length = 2 ^ pt.length := by
-  have key : ∀ (pt out : List E), (pt.foldl (fun out r ↦ out.map (· * (1 + r)) ++
-      out.map (· * r)) out).length = out.length * 2 ^ pt.length := by
-    intro pt
-    induction pt with
-    | nil => simp
-    | cons r pt ih =>
-      intro out
-      rw [List.foldl_cons, ih]
-      simp only [List.length_append, List.length_map, List.length_cons, pow_succ]
-      ring
-  simpa [eqKernel] using key pt [1]
-
 /-- A list of length `3`, by its entries. -/
 theorem vt_three {α : Type} (l : List α) (h : l.length = 3) (d : α) :
     l = [l.getD 0 d, l.getD 1 d, l.getD 2 d] := by
   match l, h with
   | [a, b, c], _ => rfl
-
-/-- A list of length `6`, by its entries. -/
-theorem vt_six {α : Type} (l : List α) (h : l.length = 6) (d : α) :
-    l = [l.getD 0 d, l.getD 1 d, l.getD 2 d, l.getD 3 d, l.getD 4 d, l.getD 5 d] := by
-  match l, h with
-  | [a, b, c, e, f, g], _ => rfl
 
 /-- The bus forms' shape: six tables, three sides. -/
 theorem vt_forms3_shape (bc : List K) (lm : ℕ) {rows : List ℕ} (hr : rows.length = 6)

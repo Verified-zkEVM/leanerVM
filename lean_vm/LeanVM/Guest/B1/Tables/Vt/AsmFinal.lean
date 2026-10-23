@@ -74,7 +74,7 @@ theorem vt_xi_pow {rd : Reader} {σ : Val} (h : VtH rd σ) :
   refine ⟨a0, by rw [a1, a0, one_mul], by rw [a2, a1, a0]; ring, by rw [a3, a2, a1, a0]; ring,
     by rw [a4, a3, a2, a1, a0]; ring⟩
 
-theorem vt_nConstraints : (tables.getD 0 default).nConstraints = 0 ∧
+theorem vt_nConstraints_each : (tables.getD 0 default).nConstraints = 0 ∧
     (tables.getD 1 default).nConstraints = 0 ∧ (tables.getD 2 default).nConstraints = 0 ∧
     (tables.getD 3 default).nConstraints = 0 ∧ (tables.getD 4 default).nConstraints = 2 ∧
     (tables.getD 5 default).nConstraints = 0 := by
@@ -159,7 +159,7 @@ theorem vt_asm_final {σ : Val} (h : VtH Lm.read σ) (bc : List K) (hbc : bc.len
   have f5 := hFv 5 (by norm_num)
   simp only [vtFV, List.getD_cons_zero, List.getD_cons_succ, List.map_cons,
     List.map_nil] at f0 f1 f2 f3 f4 f5
-  obtain ⟨n0, n1, n2, n3, n4, n5⟩ := vt_nConstraints
+  obtain ⟨n0, n1, n2, n3, n4, n5⟩ := vt_nConstraints_each
   obtain ⟨xp0, xp1, xp2, xp3, xp4⟩ := vt_xi_pow h
   rw [vtRows, ← hWt, vt_six Wt hW6 0, vt_tables_six, vt_six (tableHeightsOf rows) hH6 0,
     vt_six F hF6 [], vtEvsT]
