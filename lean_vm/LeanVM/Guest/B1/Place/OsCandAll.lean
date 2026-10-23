@@ -17,7 +17,7 @@ public import LeanVM.Guest.B1.Whir.Sound
 
 `placedP_all`: every candidate's decided placed facts. **`open_stacked_completeAtD`** proves
 `open_stacked_completeAtD_Spec`: for every stack log `μ ∈ [22, 28]` and rate `r ∈ [1, 4]`, with the
-callees complete placed (`OsCalleesAtD`) and the frame certificates of the candidate's
+frame runs fitting their frames (`Lift.RunsFit`) and the frame certificates of the candidate's
 `opening_queries` frames (`OsFitsAt`), on every accepting run of `whirOpen μ r target` from
 `⟨capOf S, []⟩` with no zero challenge and openings that agree in the caps, the words at the cursor
 among the caller's words, the candidate's specialization is complete placed (`CompleteAtD`),
@@ -70,7 +70,7 @@ theorem placedP_all (m : ℕ) (h : m < 28) : PlacedP (osCfg m) := by
 /-- **`open_stacked` is complete placed at every candidate.** -/
 def open_stacked_completeAtD_Spec : Prop :=
   ∀ (μ r : ℕ), 22 ≤ μ → μ ≤ 28 → 1 ≤ r → r ≤ 4 →
-    ∀ (fs : String → ℕ) (cert : String → V → ℕ) (κ : ℕ), OsCalleesAtD fs cert κ →
+    ∀ (fs : String → ℕ) (cert : String → V → ℕ) (κ : ℕ), Lift.RunsFit fs cert →
       OsFitsAt fs cert (osCfg (candidate μ r)) →
       ∀ (S : KState) (root : Digest) (target cur : E) (xs : List E) (os : List Opening)
         (w : WhirEnd) (s' : Fs) (roots' : List (Digest × ℕ × ℕ)),

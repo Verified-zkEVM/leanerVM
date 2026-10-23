@@ -11,6 +11,7 @@ public import LeanVM.Guest.B1.Place.OsKidsSp1
 public import LeanVM.Guest.B1.Place.OsKidsSp2
 public import LeanVM.Guest.B1.Place.OsKidsSp5
 public import LeanVM.Guest.B1.Place.OsBodyFacts
+public import LeanVM.Guest.Lift.Decode
 
 /-!
 # `open_stacked`, placed
@@ -19,7 +20,8 @@ public import LeanVM.Guest.B1.Place.OsBodyFacts
 names', its buffers' sizes, its loop helpers' and `opening_queries`' frames).
 
 **`os_completeAtD_cfg`**: a function whose body is `osBody c`, at a configuration with those facts,
-its decoders complete placed (`OsDecodeAtD`), its other callees by G7's `osCalleesRegD_holds`, is complete placed on every accepting run of
+its frame runs fitting their frames (`Lift.RunsFit`; its callees by G7's `osCalleesRegD_holds`,
+`osDecodeRegAtD_holds`), is complete placed on every accepting run of
 `whirOpen μ r target` from `⟨capOf S, []⟩` with no zero challenge and openings that agree in the
 caps, the words at the cursor among the caller's: it returns the run's claim, the pointers of its
 two point buffers, its glued weight and its residual's value, the buffers the run's point
@@ -70,8 +72,7 @@ theorem lf_ml {c : OsCfg} {μ r : ℕ} {cfg : List Whir.Level} (hF : CandFacts c
     (h : TrFit c tr) : tr.Lf.ml = c.yrLog := lf_ml' hF h
 
 /-- **`open_stacked` at a configuration is complete, placed.** -/
-theorem os_completeAtD_cfg
-    (hdec : ∀ p ∈ decodeQueryBitsNames, OsDecodeAtD fs cert κ p.2 p.1) {c : OsCfg} {μ r : ℕ}
+theorem os_completeAtD_cfg (hrf : Lift.RunsFit fs cert) {c : OsCfg} {μ r : ℕ}
     {cfg : List Whir.Level} (hF : CandFacts c μ r cfg) (hP : OsCfgPlaced fs cert c) {name : String}
     {fn : Fn} (hfind : coreProgram.find? name = some fn) (hp : fn.params = osParams 9)
     (hb : fn.body = osBody c) (hloop : coreProgram.loop name = false) {S : KState} {root : Digest}
@@ -125,7 +126,7 @@ theorem os_completeAtD_cfg
         completeAtD_lin_mono h fun q hq ↦ List.mem_append_left _ hq⟩
       · obtain ⟨fn', h1, h2, h3, h4⟩ := hP.sqFn l hl
         exact os_sq_completeAtP fs cert κ hF hfit hP.sizes hl h1 h2 h3 h4
-          (hdec _ (hP.dec l hl)) (fp + fs name) Lin
+          (osDecodeRegAtD_holds hrf κ _ (hP.dec l hl)) (fp + fs name) Lin
       · exact os_q_completeAtD fs cert κ hfit hP.sizes hrunT hcaps hl (hP.qnames l hl) (hP.fits l hl)
           (hrunT.index l (by rw [hlen]; exact hl)) (hrunT.width l (by rw [hlen]; exact hl))
           (hP.il l hl) (hP.qo l hl) (fp + fs name) Lin p

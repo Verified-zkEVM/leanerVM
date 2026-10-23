@@ -16,15 +16,18 @@ public import LeanVM.Guest.B1.Whir.Commit
 /-!
 # The callees' meanings, by name
 
-`osKindOf f`: the kind of callee `f` names, read from `osKindTable` (the names `OsCalleesAtD`
-covers, each with its meaning `OsKind.Pre`). `OsCalleesAtD.kindD`: a named callee is complete
-placed on its meaning.
+`osKindOf f`: the kind of callee `f` names, read from `osKindTable` (the names G7's
+`OsCalleesRegD` covers, each with its meaning `OsKind.Pre` and its loads `OsKind.spec`).
+`OsCalleesRegD.kindD`: a named callee is complete placed on its meaning, its loads in the caller's
+words. `FixedReads`, `fixedReads_region`: loads whose words every memory holding the caller's words
+holds the same lie in their region; `kind_fixed`: a named callee's are, by its meaning and `OsXOk`
+(the read words its meaning does not fix).
 
-`osCR rd Sp`: the call relation of the memory `rd`, each named callee's meaning, the other callees
-`Sp` (the squeeze loops, `opening_queries`, the residual loops, placed apart).
+`osCR rd Sp X`: the call relation of the memory `rd`, each named callee's meaning and `X`, the
+other callees `Sp` (the squeeze loops, `opening_queries`, the residual loops, placed apart).
 
 `os_calls_of_allOk`: a block holding at a relation `C` makes `C` hold of each taken call's frame.
-`os_kid_named`, `os_kid_special`: a body holding at `osCR rd Sp` on every memory holding `Lk`
+`os_kid_named`, `os_kid_special`: a body holding at `osCR rd Sp X` on every memory holding `Lk`
 (and one such memory existing) makes each taken call with a name complete placed on `Lk`, and
 each other one satisfy `Sp`.
 -/
