@@ -51,7 +51,7 @@ noncomputable def claimTerm (rd : Reader) (σ : Val) (cp : ℕ → ℕ) (j : ℕ
   match termKind j with
   | 0 => valOf rd (σ (.n 9)) j * valOf rd (σ (.n 19)) (cp j) * σ (.n (selV (termCol j)))
   | 1 => valOf rd (σ (.n 9)) j * valOf rd (σ (.n 21)) (cp j) * σ (.n (selV (termCol j)))
-  | 2 => valOf rd (σ (.n 9)) j * (slotProd (valOf rd (σ (.n 23))) (valOf rd (σ (.n 24))) (j - 85) *
+  | 2 => valOf rd (σ (.n 9)) j * (slotProd (valOf rd (σ (.n 23))) (valOf rd (σ (.n 24))) (termSlot j) *
       valOf rd (σ (.n 21)) (cp j)) * σ (.n (selV 5))
   | 3 => valOf rd (σ (.n 9)) j * σ (.n 33) * σ (.n (selV (termCol j)))
   | _ => 0
