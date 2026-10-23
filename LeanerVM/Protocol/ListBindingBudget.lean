@@ -69,12 +69,13 @@ theorem tableError_le : ∀ i, tableError I i ≤ overE (I.B + 3) :=
     fun i ↦ (roundsError_le E 3 _ _ i).trans (overE_mono (by omega))) (sayError_le _ _)
 
 /-- The ring switching's challenges have error at most `2^31 / |E|`. -/
-private theorem ringError_le : ∀ i, ringError i ≤ overE (2 ^ 31) :=
-  errAppend_le_const (errAppend_le_const (errAppend_le_const (errAppend_le_const
-    (errAppend_le_const (errAppend_le_const (fun i ↦ Fin.elim0 i.1)
-    fun _ ↦ le_rfl) fun _ ↦ overE_mono (by norm_num)) fun _ ↦ overE_mono (by norm_num))
-    fun _ ↦ overE_mono (by norm_num)) fun _ ↦ overE_mono (by norm_num))
-    fun _ ↦ overE_mono (by norm_num)
+private theorem ringError_le : ∀ i, ringError i ≤ overE (2 ^ 31) := by
+  have h : ∀ c, c ≤ 2 ^ 31 → ∀ i : (draw E).ChallengeIdx,
+      drawError E (overE c) i ≤ overE (2 ^ 31) := fun _ hc _ ↦ overE_mono hc
+  exact errAppend_le_const (errAppend_le_const (errAppend_le_const (errAppend_le_const
+    (errAppend_le_const (errAppend_le_const (fun i ↦ Fin.elim0 i.1) (h _ le_rfl))
+    (h _ (by norm_num))) (h _ (by norm_num))) (h _ (by norm_num))) (h _ (by norm_num)))
+    (h _ (by norm_num))
 
 /-- Every challenge of a Flock slot has error at most `2^31 / |E|`. -/
 private theorem flockErrorOpt_le :
@@ -113,13 +114,11 @@ theorem listBindingError_le_budget {sh : Whir.Shape} {κ : ℕ} (L : Ladder sh �
   have hle : ∀ {c : ℕ}, c ≤ frontNumerator I → ∀ {e : ℝ≥0}, e ≤ overE c →
       (L.headPar ps).L • e ≤ budget false := fun hc _ he ↦
     (nsmul_le_nsmul_right (he.trans (overE_mono hc)) _).trans (nsmul_overE_le hfront)
-  have h1 : 4 * 2 ^ I.μBus ≤ frontNumerator I := le_max_left _ _
-  have h2 : I.B + 3 ≤ frontNumerator I := (le_max_left _ _).trans (le_max_right _ _)
-  have h3 : 2 ^ 31 ≤ frontNumerator I :=
-    ((le_max_left _ _).trans (le_max_right _ _)).trans (le_max_right _ _)
-  have h4 : I.poolSize - 1 ≤ frontNumerator I :=
-    (Nat.sub_le _ _).trans (((le_max_right _ _).trans (le_max_right _ _)).trans (le_max_right _ _))
-  have h5 : 1 ≤ frontNumerator I := (Nat.one_le_two_pow).trans h3
+  have h1 : 4 * 2 ^ I.μBus ≤ frontNumerator I := by unfold frontNumerator; omega
+  have h2 : I.B + 3 ≤ frontNumerator I := by unfold frontNumerator; omega
+  have h3 : 2 ^ 31 ≤ frontNumerator I := by unfold frontNumerator; omega
+  have h4 : I.poolSize - 1 ≤ frontNumerator I := by unfold frontNumerator; omega
+  have h5 : 1 ≤ frontNumerator I := by unfold frontNumerator; omega
   unfold listBindingError listBindingMark
   refine errAppend_le_mark _ ?_ (openErr_le_budget L ps hfit)
   exact errAppend_le_const (errAppend_le_const (errAppend_le_const (errAppend_le_const

@@ -106,14 +106,12 @@ theorem oddError_le [SampleableType C] (nside : ℕ) {u c : ℝ≥0}
 `max (nside − 1) 4 · u`. -/
 theorem gkrError_le [SampleableType C] (u : ℝ≥0) (nside μ : ℕ) :
     ∀ i, gkrError C u nside μ i ≤ ((max (nside - 1) 4 : ℕ) : ℝ≥0) * u := by
-  have hc : ((nside - 1 : ℕ) : ℝ≥0) * u ≤ ((max (nside - 1) 4 : ℕ) : ℝ≥0) * u :=
-    mul_le_mul_of_nonneg_right (Nat.cast_le.mpr (le_max_left _ _)) zero_le
-  have h4 : ((2 ^ 2 : ℕ) : ℝ≥0) * u ≤ ((max (nside - 1) 4 : ℕ) : ℝ≥0) * u :=
-    mul_le_mul_of_nonneg_right (Nat.cast_le.mpr (le_max_right _ _)) zero_le
-  have h2 : ((2 ^ 1 : ℕ) : ℝ≥0) * u ≤ ((max (nside - 1) 4 : ℕ) : ℝ≥0) * u :=
-    (mul_le_mul_of_nonneg_right (Nat.cast_le.mpr (by norm_num)) zero_le).trans h4
-  have hu : u ≤ ((max (nside - 1) 4 : ℕ) : ℝ≥0) * u :=
-    le_mul_of_one_le_left zero_le (by exact_mod_cast (show 1 ≤ max (nside - 1) 4 by omega))
+  have h : ∀ k ≤ max (nside - 1) 4, ((k : ℕ) : ℝ≥0) * u ≤ ((max (nside - 1) 4 : ℕ) : ℝ≥0) * u :=
+    fun _ hk ↦ mul_le_mul_of_nonneg_right (Nat.cast_le.mpr hk) zero_le
+  have hc := h (nside - 1) (le_max_left _ _)
+  have h4 := h (2 ^ 2) (le_max_right _ _)
+  have h2 := h (2 ^ 1) (by omega)
+  have hu : u ≤ ((max (nside - 1) 4 : ℕ) : ℝ≥0) * u := by simpa using h 1 (by omega)
   exact errAppend_le_const (errAppend_le_const (oddError_le C nside hc h2 hu _)
     (stepsError_le C nside hc h4 hu _ _)) fun _ ↦ zero_le
 

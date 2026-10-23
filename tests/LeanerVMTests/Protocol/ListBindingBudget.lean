@@ -54,37 +54,30 @@ def window : List LevelNumbers :=
 `a^t · 2^111 ≤ n^t`. It fails at 48 levels, which is why the error counts `a - 1`. -/
 def positionsAtA111 (x : LevelNumbers) : Bool := x.a ^ x.t * 2 ^ 111 ≤ (2 ^ (x.κ + x.R)) ^ x.t
 
-example : window.length = 224 := by decide +kernel
+/-- The window in one decision: 224 levels; 48 above `2^-111` had they counted `a` agreements;
+every level below `2^-111` at `a - 1`, and not every level below `2^-112`, so the budget is
+tight. -/
+example : window.length = 224 ∧ (window.filter fun x ↦ !positionsAtA111 x).length = 48 ∧
+    (window.all fun x ↦ (x.a - 1) ^ x.t * 2 ^ 111 ≤ (2 ^ (x.κ + x.R)) ^ x.t) ∧
+    ¬ (window.all fun x ↦ (x.a - 1) ^ x.t * 2 ^ 112 ≤ (2 ^ (x.κ + x.R)) ^ x.t) := by
+  decide +kernel
 
-example : (window.filter fun x ↦ !positionsAtA111 x).length = 48 := by decide +kernel
-
-/-- The worst level: stack size `16`, rate `2⁻¹`, level `2`. -/
+/-- The worst level had they counted `a`: stack size `16`, rate `2⁻¹`, level `2`, where `a`
+agreements exceed `2^-111` and `a - 1` do not. -/
 example : ((deployed 16 1).map fun c ↦ (levels c.ladder c.pars)[2]?) =
     some (some ⟨4, 2, 7, 30, 40⟩) := by
   decide +kernel
 
-/-- There `a` agreements exceed `2^-111`, and `a - 1` do not. -/
 example : ¬ 40 ^ 30 * 2 ^ 111 ≤ (2 ^ (2 + 7)) ^ 30 ∧ 39 ^ 30 * 2 ^ 111 ≤ (2 ^ (2 + 7)) ^ 30 := by
   decide
 
-/-- With `a - 1` agreements every level is below `2^-111`. -/
-example : window.all fun x ↦ (x.a - 1) ^ x.t * 2 ^ 111 ≤ (2 ^ (x.κ + x.R)) ^ x.t := by
-  decide +kernel
+/-- The level-0 list bounds of the window. -/
+def headLists : List ℕ :=
+  (List.range 14).flatMap fun i ↦ (List.range 4).flatMap fun r ↦
+    ((deployed (i + 15) (r + 1)).map fun c ↦ [(c.ladder.headPar c.pars).L]).getD []
 
-/-- The budget is tight: some level is above `2^-112`. -/
-example : ¬ window.all fun x ↦ (x.a - 1) ^ x.t * 2 ^ 112 ≤ (2 ^ (x.κ + x.R)) ^ x.t := by
-  decide +kernel
-
-/-- The level-0 list bound over the window. -/
-example : ((List.range 14).flatMap fun i ↦ (List.range 4).flatMap fun r ↦
-      ((deployed (i + 15) (r + 1)).map fun c ↦ [(c.ladder.headPar c.pars).L]).getD []).max? =
-    some 122 := by
-  decide +kernel
-
-example : ((List.range 14).flatMap fun i ↦ (List.range 4).flatMap fun r ↦
-      ((deployed (i + 15) (r + 1)).map fun c ↦ [(c.ladder.headPar c.pars).L]).getD []).min? =
-    some 23 := by
-  decide +kernel
+/-- They range over `23..122`. -/
+example : headLists.max? = some 122 ∧ headLists.min? = some 23 := by decide +kernel
 
 /-! ## The statements at leanVM -/
 
