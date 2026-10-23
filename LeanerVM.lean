@@ -59,6 +59,7 @@ import LeanerVM.Protocol.Opening
 import LeanerVM.Protocol.Padding
 import LeanerVM.Protocol.Piop
 import LeanerVM.Protocol.Proof
+import LeanerVM.Protocol.ProofRoots
 import LeanerVM.Protocol.PublicInput
 import LeanerVM.Protocol.RandomOracle
 import LeanerVM.Protocol.RandomOracleBound
