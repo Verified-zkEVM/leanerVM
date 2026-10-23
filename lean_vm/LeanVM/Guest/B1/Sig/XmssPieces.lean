@@ -90,7 +90,8 @@ theorem xDigest0_split : xDigest0 196 = [hintW "randomizer" [.n 196]] ++
 theorem xDigest0_complete (σ : Val) {rho c d : E} (hrho : IsCanonical128 rho) (hc : IsCanonical128 c)
     (hd : IsCanonical128 d) (hld2 : LoadHolds rd (σ (.n 0)) 2 c) (hld3 : LoadHolds rd (σ (.n 0)) 3 d)
     (hP : IsCanonical128 (σ (.n 1))) (hn0 : IsCanonical128 (σ (xNode 0))) :
-    Completes C rd 196 224 (xDigest0 196) σ (fun σ' => σ' (.n 196) = rho) := by
+    Completes C rd 196 224 (xDigest0 196) σ
+      (fun σ' => σ' (.n 196) = rho ∧ σ' (.n 199) = c ∧ σ' (.n 200) = d) := by
   have hext : Ext 196 197 σ (Function.update σ (.n 196) rho) := fun v hv =>
     Function.update_of_ne (hv 196 le_rfl (by norm_num)) _ _
   refine Completes.reload (hext.mono le_rfl (by norm_num)) ?_
@@ -166,8 +167,11 @@ theorem xDigest0_complete (σ : Val) {rho c d : E} (hrho : IsCanonical128 rho) (
   refine ((kecS_complete (C := C) (rd := rd) σ5 211 rfl (fun v hv => by
       simp only [List.mem_cons, List.not_mem_nil, or_false] at hv
       rcases hv with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl <;>
-        exact ⟨_, by norm_num, rfl⟩) hcan false false).keep (Q := fun σ' => σ' (.n 196) = rho) v196
-    (fun σ' he h => by rw [he.apply (Or.inl (by norm_num))]; exact h)).mono le_rfl le_rfl
+        exact ⟨_, by norm_num, rfl⟩) hcan false false).keep
+    (Q := fun σ' => σ' (.n 196) = rho ∧ σ' (.n 199) = c ∧ σ' (.n 200) = d) ⟨v196, v199, v200⟩
+    (fun σ' he h => ⟨by rw [he.apply (Or.inl (by norm_num))]; exact h.1,
+      by rw [he.apply (Or.inl (by norm_num))]; exact h.2.1,
+      by rw [he.apply (Or.inl (by norm_num))]; exact h.2.2⟩)).mono le_rfl le_rfl
     (fun σ' h => h.2)
 
 /-! ## The top layer's digest -/
