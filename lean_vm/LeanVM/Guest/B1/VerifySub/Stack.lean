@@ -64,7 +64,7 @@ theorem vs_stack {κ : ℕ} (hκ : κ ≤ 32) (hκ6 : 6 ≤ κ) (L : MemImage κ
   -- the placement
   obtain ⟨off, kap, hrets, hP⟩ := Tables.certify_placement_holdsC hκ L hLe F.logMem
     (Tables.tableHeightsOf F.rowsN) _ _ _ F.hm32 hsL F.hh29 F.hkb (gSquares_of_exp hexp) hcp
-  simp only [List.cons.injEq, and_true] at hrets
+  simp only [List.cons.injEq, and_true, Tables.guestLogBytecode] at hrets hP
   obtain ⟨e1887, rfl, rfl⟩ := hrets
   -- the stack's log
   obtain ⟨N, hN, hgN, hm34, -, -, hret⟩ := ((log2_holds.2.2.2 hκ hκ6 L _ _ _ hexp _).1
@@ -72,8 +72,8 @@ theorem vs_stack {κ : ℕ} (hκ : κ ≤ 32) (hκ6 : 6 ≤ κ) (L : MemImage κ
   simp only [List.cons.injEq, and_true] at hret
   have hT := stackTotal_lt F.hm32 hsL F.hh29
   have eN : N = Tables.stackTotal (columnKappas F.logMem 19 (Tables.tableHeightsOf F.rowsN)) :=
-    gen_pow_inj (by omega) (by omega) (hgN.symm.trans e1887)
-  subst eN
+    gen_pow_inj (lt_trans hN (by norm_num)) (lt_trans hT (by norm_num)) (hgN.symm.trans e1887)
+  rw [eN] at hm34 hret
   rw [← stackLog_eq hbl] at hret hm34
   set μ := (Tables.layoutOf bytecode F.logMem F.rowsN).stackLog with hμ
   -- the size selector
@@ -82,8 +82,8 @@ theorem vs_stack {κ : ℕ} (hκ : κ ≤ 32) (hκ6 : 6 ≤ κ) (L : MemImage κ
   -- the candidate
   obtain ⟨c, hc, hcx⟩ := rc_lt28 hκ hκ6 L r2.1 (by simpa using r2.2.1) r2.2.2
   have hcand : σ (.n 1901) = gen ^ B1.Whir.candidate μ F.lir := by
-    rw [e1901, hx, F.e124, ← pow_mul, ← pow_mul, ← pow_mul, ← pow_add, ← pow_add, ← pow_add,
-      ← pow_add, ← pow_add, ← pow_add]
+    rw [e1901, hx, F.e124]
+    simp only [← pow_add]
     congr 1
     unfold B1.Whir.candidate
     omega
