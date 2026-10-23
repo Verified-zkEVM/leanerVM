@@ -2,7 +2,8 @@
   LeanerVM.Protocol.ListBindingBudget
 
   The errors of the list-binding compilation at leanVM, one challenge at a time: every challenge
-  below `2^-128` but WHIR's query positions, which are below `2^-110`.
+  below `2^-128` but WHIR's query positions, which are below `2^-111`, and `2^-128` after the
+  grinding that precedes them.
 -/
 
 module
@@ -30,7 +31,7 @@ level, which a proof of work precedes.
   (`Whir.deployedChain_fits`), `listBindingError_deployed_le` holds with no hypothesis beyond the
   announcement's admissibility: `listBindingError_deployed_le_of_not_mark` (every challenge but
   the query positions, `2^-128`) and `listBindingError_deployed_le_of_mark` (the query
-  positions, `2^-110`, so `2^-127` after 17 bits of grinding).
+  positions, `2^-111`, so `2^-128` after 17 bits of grinding).
 -/
 
 namespace LeanerVM.Protocol
@@ -104,7 +105,7 @@ def frontNumerator : ℕ := max (4 * 2 ^ I.μBus) (max (I.B + 3) (max (2 ^ 31) I
 
 /-- **The compiled protocol, challenge by challenge.** On a chain that fits the budgets
 (`Whir.Ladder.fits`), with `L₀` times the front's largest numerator at most `2^64`, every
-challenge's error is within the budget its mark selects: `2^-128`, or `2^-110` for WHIR's query
+challenge's error is within the budget its mark selects: `2^-128`, or `2^-111` for WHIR's query
 positions. -/
 theorem listBindingError_le_budget {sh : Whir.Shape} {κ : ℕ} (L : Ladder sh κ) (ps : L.Pars)
     (hfit : L.fits ps = true) (hfront : (L.headPar ps).L * frontNumerator I ≤ 2 ^ 64) :
@@ -255,7 +256,7 @@ variable (F : FlockSpec) (prog : Program) (s : Sizes) (hs : s.Admissible prog) (
   (hρ : validRate ρ)
 
 /-- **Every challenge of the compiled protocol at leanVM within its budget**, at every admissible
-announcement and rate: `2^-128`, or `2^-110` for WHIR's query positions. -/
+announcement and rate: `2^-128`, or `2^-111` for WHIR's query positions. -/
 theorem listBindingError_deployed_le :
     ∀ i, listBindingError (leanIsaInstance F prog s) (leanIsaChain prog s hs ρ hρ).ladder
         (leanIsaChain prog s hs ρ hρ).pars i ≤
@@ -281,21 +282,21 @@ theorem listBindingError_deployed_le_of_not_mark
   have := listBindingError_deployed_le F prog s hs ρ hρ i
   rwa [hi] at this
 
-/-- WHIR's query positions have error at most `2^-110`, and at most `2^-127` after the 17 bits
+/-- WHIR's query positions have error at most `2^-111`, and at most `2^-128` after the 17 bits
 of grinding that precede them. -/
 theorem listBindingError_deployed_le_of_mark
     (i : (listBindingSpec (leanIsaInstance F prog s) (leanIsaChain prog s hs ρ hρ).sh
       (leanIsaChain prog s hs ρ hρ).κ (leanIsaChain prog s hs ρ hρ).ladder).ChallengeIdx)
     (hi : listBindingMark _ (leanIsaChain prog s hs ρ hρ).ladder i = true) :
     listBindingError (leanIsaInstance F prog s) (leanIsaChain prog s hs ρ hρ).ladder
-        (leanIsaChain prog s hs ρ hρ).pars i ≤ (2 ^ 110)⁻¹ ∧
+        (leanIsaChain prog s hs ρ hρ).pars i ≤ (2 ^ 111)⁻¹ ∧
       (2 ^ Parameters.Whir.queryGrindingBits)⁻¹ * listBindingError (leanIsaInstance F prog s)
         (leanIsaChain prog s hs ρ hρ).ladder (leanIsaChain prog s hs ρ hρ).pars i ≤
-        (2 ^ 127)⁻¹ := by
+        (2 ^ 128)⁻¹ := by
   have h := listBindingError_deployed_le F prog s hs ρ hρ i
   rw [hi] at h
   refine ⟨h, (mul_le_mul_of_nonneg_left h zero_le).trans (le_of_eq ?_)⟩
-  show (2 ^ 17 : ℝ≥0)⁻¹ * (2 ^ 110)⁻¹ = (2 ^ 127)⁻¹
+  show (2 ^ 17 : ℝ≥0)⁻¹ * (2 ^ 111)⁻¹ = (2 ^ 128)⁻¹
   rw [← mul_inv, ← pow_add]
 
 end Deployed

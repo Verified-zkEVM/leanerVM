@@ -2,7 +2,8 @@
   LeanerVM.Protocol.Whir.DeployedBudget
 
   The errors of WHIR's opening at leanVM's parameters, one challenge at a time: every challenge
-  below `2^-128` but the query positions, which are below `2^-110`.
+  below `2^-128` but the query positions, which are below `2^-111`, and `2^-128` after the
+  grinding that precedes them.
 -/
 
 module
@@ -22,14 +23,16 @@ the error of its round, so it needs a bound on every challenge, not on their sum
   `openErr` assign the errors.
 * `Ladder.fits` checks a chain's numbers against the budgets (`budget`): with `|E| = 2^192`, a
   fold challenge `2 L + 2^(ℓ-1) N ≤ 2^64`, an out-of-domain coordinate `L'^2 ≤ 2^64`, a batching
-  challenge `(t + 1) L' ≤ 2^64`, and the positions `(a - 1)^t · 2^110 ≤ (2^(κ+R))^t`.
+  challenge `(t + 1) L' ≤ 2^64`, and the positions `(a - 1)^t · 2^111 ≤ (2^(κ+R))^t`.
 * `openErr_le_budget`: on a chain that fits, every challenge's error is at most the budget its
-  mark selects: `2^-128`, or `2^-110` for the query positions.
+  mark selects: `2^-128`, or `2^-111` for the query positions.
 * `deployed_fits`: every admissible chain fits, and its level-0 list bound is at most `128`; one
   decision on the window. `deployedChain_openErr_le` is the bound with no hypothesis.
 
 The query positions' error is `((a - 1) / n)^t` for a level's threshold `a` and its `n` positions:
-a word outside the list relation agrees with each codeword on fewer than `a` positions.
+a word outside the list relation agrees with each codeword on fewer than `a` positions. It is
+below `2^-111` at every deployed level, the least margin `0.00024` bits (stack size `23`, rate
+`2⁻²`, level `0`), so with the 17 bits of grinding before them the positions cost `2^-128`.
 -/
 
 namespace LeanerVM.Protocol
@@ -74,24 +77,25 @@ def openMark {sh : Shape} {κ : ℕ} (L : Ladder sh κ) :
 
 /-! ## The budgets -/
 
-/-- The budget of a challenge: `2^-110` for the query positions, `2^-128` for every other. -/
+/-- The budget of a challenge: `2^-111` for the query positions, `2^-128` for every other. -/
 noncomputable def budget : Bool → ℝ≥0
-  | true => (2 ^ 110)⁻¹
+  | true => (2 ^ 111)⁻¹
   | false => (2 ^ 128)⁻¹
 
 /-- A level's numbers within the budgets, with `|E| = 2^192`: a fold challenge,
 `2 L + 2^(ℓ-1) N ≤ 2^64`; an out-of-domain coordinate, `L'^2 ≤ 2^64` for the next level's list
 bound `L'`; the batching challenge, `(t + 1) L' ≤ 2^64`; the positions,
-`(a - 1)^t · 2^110 ≤ (2^(κ+R))^t`. -/
+`(a - 1)^t · 2^111 ≤ (2^(κ+R))^t`. -/
 def levelFits {sh : Shape} {κ : ℕ} (P : Par sh κ) (L' : ℕ) : Bool :=
   decide (2 * P.L + 2 ^ (sh.ℓ - 1) * P.N ≤ 2 ^ 64) && decide (L' * L' ≤ 2 ^ 64) &&
-    decide ((sh.t + 1) * L' ≤ 2 ^ 64) && decide ((P.a - 1) ^ sh.t * 2 ^ 110 ≤ (2 ^ (κ + sh.R)) ^ sh.t)
+    decide ((sh.t + 1) * L' ≤ 2 ^ 64) &&
+    decide ((P.a - 1) ^ sh.t * 2 ^ 111 ≤ (2 ^ (κ + sh.R)) ^ sh.t)
 
 /-- The last level's numbers within the budgets: a fold challenge, the batching challenge
 `t ≤ 2^64`, and the positions. -/
 def finalFits {sh : Shape} {nf : ℕ} (P : Par sh (nf + 1)) : Bool :=
   decide (2 * P.L + 2 ^ (sh.ℓ - 1) * P.N ≤ 2 ^ 64) && decide (sh.t ≤ 2 ^ 64) &&
-    decide ((P.a - 1) ^ sh.t * 2 ^ 110 ≤ (2 ^ (nf + 1 + sh.R)) ^ sh.t)
+    decide ((P.a - 1) ^ sh.t * 2 ^ 111 ≤ (2 ^ (nf + 1 + sh.R)) ^ sh.t)
 
 /-- Every level of a chain within the budgets. -/
 def Ladder.fits : {sh : Shape} → {κ : ℕ} → (L : Ladder sh κ) → L.Pars → Bool
@@ -109,9 +113,9 @@ theorem natCast_div_card_le {x : ℕ} (h : x ≤ 2 ^ 64) :
       rw [Nat.cast_pow, Nat.cast_ofNat, show (2 : ℝ≥0) ^ 192 = 2 ^ 128 * 2 ^ 64 by ring,
         ← mul_assoc, inv_mul_cancel₀ (by positivity), one_mul]
 
-/-- The positions' error `a^t / (2^b)^t ≤ 2^-110` when `a^t · 2^110 ≤ (2^b)^t`. -/
-theorem positions_div_le {a t b : ℕ} (h : a ^ t * 2 ^ 110 ≤ (2 ^ b) ^ t) :
-    ((a ^ t : ℕ) : ℝ≥0) / (Nat.card (Fin t → Fin (2 ^ b)) : ℝ≥0) ≤ (2 ^ 110)⁻¹ := by
+/-- The positions' error `a^t / (2^b)^t ≤ 2^-111` when `a^t · 2^111 ≤ (2^b)^t`. -/
+theorem positions_div_le {a t b : ℕ} (h : a ^ t * 2 ^ 111 ≤ (2 ^ b) ^ t) :
+    ((a ^ t : ℕ) : ℝ≥0) / (Nat.card (Fin t → Fin (2 ^ b)) : ℝ≥0) ≤ (2 ^ 111)⁻¹ := by
   rw [Nat.card_fun, Nat.card_eq_fintype_card, Nat.card_eq_fintype_card, Fintype.card_fin,
     Fintype.card_fin, div_le_iff₀ (by positivity), ← div_eq_inv_mul,
     le_div_iff₀ (by positivity)]
@@ -193,7 +197,7 @@ theorem Ladder.err_le_budget : {sh : Shape} → {κ : ℕ} → (L : Ladder sh κ
     exact levelErr_le_budget P.1 (L.headPar P.2) h.1 (Ladder.err_le_budget L P.2 h.2)
 
 /-- **The opening within the budgets**: on a chain that fits, every challenge of the opening has
-at most `2^-128`, its query positions at most `2^-110`. -/
+at most `2^-128`, its query positions at most `2^-111`. -/
 theorem openErr_le_budget {sh : Shape} {κ : ℕ} (L : Ladder sh κ) (ps : L.Pars)
     (h : L.fits ps = true) : ∀ i, openErr L ps i ≤ budget (openMark L i) :=
   errAppend_le_mark _ (fun x ↦ Fin.elim0 x.1) <|
@@ -221,7 +225,7 @@ theorem deployedChain_fits {μ r : ℕ} (h : Admissible μ r) :
   exact this
 
 /-- **The opening at leanVM's parameters, challenge by challenge**: every challenge's error is at
-most `2^-128`, the query positions' at most `2^-110`, at every admissible stack size and rate. -/
+most `2^-128`, the query positions' at most `2^-111`, at every admissible stack size and rate. -/
 theorem deployedChain_openErr_le {μ r : ℕ} (h : Admissible μ r) :
     ∀ i, openErr (deployedChain μ r h).ladder (deployedChain μ r h).pars i ≤
       budget (openMark (deployedChain μ r h).ladder i) :=

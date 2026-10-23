@@ -9,7 +9,8 @@ import LeanerVMTests.Protocol.ListBinding
 * **The deployed levels.** The query positions' error counts `a - 1` agreements. Counting `a`
   would leave 48 of the 224 levels of the 56 admissible chains above `2^-111`, the worst at stack
   size `16`, rate `2⁻¹`, level `2` (`t = 30`, `a = 40`, `n = 2^9`: `(40/512)^30 ≈ 2^-110.34`);
-  with `a - 1` every level is below `2^-111`.
+  with `a - 1` every level is below `2^-111`, the least margin `0.00024` bits, so `2^-128` after
+  the 17 bits of grinding: `Whir.budget` gives the positions `2^-111`.
 * **The list bound of level 0** ranges over `23..122` on the window, within the `128` the front's
   bound uses.
 * **The statements** type-check at every admissible announcement and rate.
@@ -69,6 +70,10 @@ example : ¬ 40 ^ 30 * 2 ^ 111 ≤ (2 ^ (2 + 7)) ^ 30 ∧ 39 ^ 30 * 2 ^ 111 ≤ 
 example : window.all fun x ↦ (x.a - 1) ^ x.t * 2 ^ 111 ≤ (2 ^ (x.κ + x.R)) ^ x.t := by
   decide +kernel
 
+/-- The budget is tight: some level is above `2^-112`. -/
+example : ¬ window.all fun x ↦ (x.a - 1) ^ x.t * 2 ^ 112 ≤ (2 ^ (x.κ + x.R)) ^ x.t := by
+  decide +kernel
+
 /-- The level-0 list bound over the window. -/
 example : ((List.range 14).flatMap fun i ↦ (List.range 4).flatMap fun r ↦
       ((deployed (i + 15) (r + 1)).map fun c ↦ [(c.ladder.headPar c.pars).L]).getD []).max? =
@@ -98,7 +103,7 @@ example (i : (listBindingSpec (leanIsaInstance F prog s) (leanIsaChain prog s hs
       (leanIsaChain prog s hs ρ hρ).κ (leanIsaChain prog s hs ρ hρ).ladder).ChallengeIdx)
     (hi : listBindingMark _ (leanIsaChain prog s hs ρ hρ).ladder i = true) :
     (2 ^ queryGrindingBits)⁻¹ * listBindingError (leanIsaInstance F prog s)
-      (leanIsaChain prog s hs ρ hρ).ladder (leanIsaChain prog s hs ρ hρ).pars i ≤ (2 ^ 127)⁻¹ :=
+      (leanIsaChain prog s hs ρ hρ).ladder (leanIsaChain prog s hs ρ hρ).pars i ≤ (2 ^ 128)⁻¹ :=
   (listBindingError_deployed_le_of_mark F prog s hs ρ hρ i hi).2
 
 example : (leanIsaInstance F prog s).μBus ≤ 55 := leanIsa_μBus_le F hs
