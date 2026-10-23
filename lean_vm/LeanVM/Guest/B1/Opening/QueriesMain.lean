@@ -354,5 +354,78 @@ theorem oqMain1_sound {s : Oq} (hs : s.RowShape) (hb1 : s.base = 1) (hcd : 2 ≤
   · rw [← p2]; exact hchain i hi
   · rw [← hret, e5, hv, p3, p2]
 
+/-- **`opening_queries` deeper is sound** (G:1246-1269, `base = 0`, `odd = 0`): with the bit
+pointers pointing to bits, its relation is `MeaningOpeningQueries`. -/
+theorem oqMain0_sound {s : Oq} (hs : s.RowShape) (hb0 : s.base = 0) (hcd : 2 ≤ s.cd)
+    (hcd8 : s.cd ≤ 8) {name loop : String} {fm fl : Fn}
+    (hfm : coreProgram.find? name = some fm)
+    (hpm : fm.params = [.n 0, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6])
+    (hbm : fm.body = oqMainT s 0 loop)
+    (hfl : coreProgram.find? loop = some fl) (hpl : fl.params = oqLoopParams)
+    (hbl : fl.body = oqLoop0T s loop)
+    {cap flags lam lamN qptrs wp nG : E} {rets : List E}
+    (hbits : ∀ N, nG = gen ^ N → N < ordG →
+      QueryBitsBool rd qptrs (oqCount 0 s.base N) (s.pd + s.cd))
+    (h : coreProgram.Rel rd name [cap, flags, lam, lamN, qptrs, wp, nG] rets) :
+    MeaningOpeningQueries 0 s.base s.I (s.pd + s.cd) s.cd rd
+      [cap, flags, lam, lamN, qptrs, wp, nG] rets := by
+  rw [rel_iff_sem hfm, hbm, hpm] at h
+  obtain ⟨σ, hp, h⟩ := h
+  simp only [List.map_cons, List.map_nil, List.cons.injEq] at hp
+  obtain ⟨p0, p1, p2, p3, p4, p5, p6, -⟩ := hp
+  rw [oqMainT, holdsList_append, holdsList_atoms (oqMainA_atoms s 0)] at h
+  obtain ⟨hA, h⟩ := h
+  simp only [Stmt.HoldsList, Stmt.Holds, Atom.Holds, List.map_cons, List.map_nil] at h
+  obtain ⟨hK, hcall, e3, e4, e5, hret⟩ := h
+  obtain ⟨hmu, hg, hst, h0even⟩ := oqMainA_basic hA
+  have hlam : σ (.n 2) ≠ 0 := fun h0 => by rw [h0, mul_zero] at hmu; exact zero_ne_one hmu
+  have hmuinv : σ (.n 8) = (σ (.n 2))⁻¹ := eq_inv_of_mul_eq_one_left hmu
+  set ps : List E := [σ (.n 6), σ (.n 4), σ (.n 0), σ (.n 1), σ (.n 5), σ (.n 11), σ (.n 8)]
+    with hps
+  have hstep := oqLoop0_step (rd := rd) hfl hpl hbl ps (by simp [hps])
+  obtain ⟨m, hm, hnG, hB⟩ := (guarded_loop_iff hstep).mp ⟨by
+    show IsInK (1 + σ (.n 6)); rw [← hg]; exact hK, fun hne => by
+    have := hcall (by rw [hg]; exact hne)
+    rwa [hst] at this⟩
+  have hnG' : σ (.n 6) = gen ^ m := hnG
+  have hbool := hbits m (by rw [← p6]; exact hnG) hm
+  rw [hb0] at hbool
+  simp only [oqCount, show (0 : ℕ) ≠ 1 by decide, ↓reduceIte] at hbool
+  have hit : ∀ j < m, ∃ (bp : E) (q : ℕ) (r : List K) (d v : E),
+      LoadHolds rd qptrs j bp ∧ q < 2 ^ (s.pd + s.cd) ∧
+      (∀ l < s.pd + s.cd, LoadHolds rd bp l (bitE (q.testBit l))) ∧
+      QueryOpens rd s.base s.I (s.pd + s.cd) s.cd cap flags wp q r d ∧
+      LoadHolds rd (σ (.n 11)) j v ∧ LoadHolds rd (σ (.n 11)) (j + 1) ((v + d) * σ (.n 8)) := by
+    intro j hj
+    obtain ⟨τ, hτ, t0, t1, t2, t3, t4, t5, t6, t7⟩ := atomsBody_params hpl (hB j hj)
+    have := oqIter0_sound hs hcd hcd8 (i := j) hτ t0 (fun bp hbp => by
+      rw [t2, p4] at hbp
+      exact hbool j hj bp hbp)
+    rwa [t2, t3, t4, t5, t6, t7, p0, p1, p4, p5] at this
+  choose! bp q r d v hit using hit
+  have hchain : ∀ i ≤ m, LoadHolds rd (σ (.n 11)) i (oqChain 0 s.base (σ (.n 2))⁻¹ d i) := by
+    intro i hi
+    induction i with
+    | zero =>
+      simp only [oqChain, show (0 : ℕ) ≠ 1 by decide, ↓reduceIte]
+      exact h0even (by decide)
+    | succ i ih =>
+      obtain ⟨-, -, -, -, hv, hv1⟩ := hit i (by omega)
+      have e := loadHolds_unique hv (ih (by omega))
+      rw [e] at hv1
+      simp only [oqChain, hb0, show (0 : ℕ) ≠ 1 by decide, ↓reduceIte]
+      rw [hmuinv, hb0] at hv1
+      exact hv1
+  have hlast := e4
+  rw [e3, hnG', loadHolds_mul_gen_pow, Nat.add_zero] at hlast
+  have hv := loadHolds_unique hlast (hchain m le_rfl)
+  refine ⟨m, hm, by rw [← p6]; exact hnG, by rw [← p2]; exact hlam, bp, q, r, d, fun k hk => ?_,
+    σ (.n 11), fun i hi => ?_, ?_⟩
+  · simp only [oqCount, hb0, show (0 : ℕ) ≠ 1 by decide, ↓reduceIte] at hk
+    obtain ⟨a1, a2, a3, a4, -⟩ := hit k hk
+    exact ⟨a1, a2, a3, a4⟩
+  · rw [← p2]; exact hchain i hi
+  · rw [← hret, e5, hv, p3, p2]
+
 end
 end LeanVM.Guest.B1
