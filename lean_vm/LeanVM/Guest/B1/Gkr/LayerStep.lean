@@ -143,7 +143,7 @@ theorem ly_step (hGR : tbx_gkr_rounds_Spec) {N dsb gmu layers rounds : E} (d : �
   refine ⟨?_, hcall⟩
   intro j sh hx hsh hj hsh2 s cur st row pos hslot
   have hslot' := hslot
-  obtain ⟨-, -, -, -, -, -, hvl, -, -, hpl, hpt, -, -, -⟩ := hslot'
+  obtain ⟨-, -, -, -, -, hvl, -, -, hpl, hpt, -, -, -⟩ := hslot'
   obtain ⟨e6, e9, e15, e49, e50, e51, -, e61, e62, hcap0, hcan0, hcur0, hcl0⟩ :=
     ly_head h hx hsh hslot
   have R := ly_rounds (relN_le_rel coreProgram d) hGR h hj hsh2 e6 e9 e61 e62
@@ -204,22 +204,21 @@ theorem ly_step (hGR : tbx_gkr_rounds_Spec) {N dsb gmu layers rounds : E} (d : �
   have ld : ∀ k w, LoadHolds rd (σ (.n 15)) k w → LoadHolds rd (σ (.n 4)) (17 * L + k) w :=
     fun k w hw => by rw [e15, tb_loadHolds_mul_gen_pow] at hw; exact hw
   rw [e50] at s40 s41 s43
-  refine ⟨_, _, _, σ (.n 51) * σ (.n 9) * gen, hstep', ?_, ?_⟩
+  refine ⟨_, _, _, σ (.n 51) * σ (.n 9) * gen, hstep', ?_, rfl, ?_⟩
   · rw [tbReadsAt_append, flatten_length_four h4, hlen, ← e79]
     exact ⟨hrd, treads⟩
-  refine ⟨by simp, ?_, ?_, by simp, ?_, ?_, by simp, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
-  · have hh := tbxCapOf_canonical (lySponge σ).squeeze.2.perm
-    rwa [show tbxCapOf (lySponge σ).squeeze.2.perm = ((lySponge σ).squeezeN 2).2.cap from rfl,
-      tsq2] at hh
+  refine ⟨by simp, ?_, by simp, ?_, ?_, by simp, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
   · intro k hk
     rw [show 17 * (L + 2) + k = 17 * L + (34 + k) by ring]
     have hg : ((List.range 5).map fun k ↦ σ (.n (283 + k))).getD k 0 = σ (.n (283 + k)) := by
       simp [List.getD_eq_getElem?_getD, hk]
     rw [hg]
     exact ld _ _ (s34 k hk)
-  · intro k hk
-    rw [tbxRateOf_nil_getD, show 17 * (L + 2) + 13 + k = 17 * L + (47 + k) by ring]
-    exact ld _ _ (s47 k hk)
+  · intro c hc _ k hk
+    have hck := hc k hk
+    rw [show 17 * (L + 2) + 13 + k = 17 * L + (47 + k) by ring] at hck
+    rw [tbxRateOf_nil_getD]
+    exact tb_loadHolds_unique hck (ld _ _ (s47 k hk))
   · simp only [List.length_append, flatten_length_four h4, hlen, lyCh_length]
     rw [show 17 * (L + 2) + 5 = 17 * L + 39 by ring,
       show cur' * gen ^ (4 * L + (4 + (4 + 4))) = σ (.n 79) * gen ^ 12 by rw [e79]; ring]
