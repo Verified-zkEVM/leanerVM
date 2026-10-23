@@ -47,13 +47,6 @@ def callOk (kids : List String) : Stmt → Bool
   | .dispatch _ fs _ _ => fs.all kids.contains && decide (fs.length < 2 ^ 64 - 1)
   | _ => true
 
-/-- No load in a branch. -/
-def noLoadIte : Stmt → Bool
-  | .ite _ z n => (z ++ n).all fun t ↦ match t with
-    | .atom (.load ..) => false
-    | _ => true
-  | _ => true
-
 /-- **A flat function's kernel facts.** -/
 structure FlatFn where
   name : String
@@ -75,7 +68,6 @@ structure FlatFn where
   hflat : pre.all Stmt.flat = true
   haddrs : pre.filterMap Main.Stmt.addrS = []
   hiteOk : pre.all iteOk = true
-  hnoLoad : pre.all noLoadIte = true
   hcall : pre.all (callOk kids) = true
   hpure : coreProgram.PureIn kids
 
@@ -105,39 +97,31 @@ theorem params {rd : Reader} {w : ℕ → E} {args : List E} (hl : args.length =
 theorem evL_mem {s : Stmt} (hs : s ∈ F.pre) (hni : ∀ c z n, s ≠ .ite c z n) : fixNe s ∈ F.evL := by
   rw [F.hevL]; exact List.mem_map_of_mem (mem_flatIte_of hni hs)
 
-/-- A load of the evaluation list is a statement of the body. -/
-theorem evL_load_mem {d p : V} {off : ℕ} (h : Stmt.atom (.load d p off) ∈ F.evL) :
-    Stmt.atom (.load d p off) ∈ F.pre := by
-  rw [F.hevL] at h
-  obtain ⟨s, hs, hfs⟩ := List.mem_map.mp h
-  have hs' : s = .atom (.load d p off) := by
-    cases s with
-    | atom a => cases a <;> simp_all [fixNe]
-    | _ => simp_all [fixNe]
-  subst hs'
-  have key : ∀ ss : List Stmt, ss.all noLoadIte = true →
-      Stmt.atom (.load d p off) ∈ flatIte ss → Stmt.atom (.load d p off) ∈ ss := by
-    intro ss
-    induction ss with
-    | nil => simp [flatIte]
-    | cons t ts ih =>
-      intro hok hm
-      simp only [List.all_cons, Bool.and_eq_true] at hok
-      cases t with
-      | ite c z n =>
-        simp only [flatIte, List.mem_append] at hm
-        rcases hm with (hm | hm) | hm
-        · have := List.all_eq_true.mp hok.1 _ (List.mem_append_left _ hm)
-          simp at this
-        · have := List.all_eq_true.mp hok.1 _ (List.mem_append_right _ hm)
-          simp at this
-        · exact List.mem_cons_of_mem _ (ih hok.2 hm)
-      | _ =>
-        simp only [flatIte, List.mem_cons] at hm
-        rcases hm with hm | hm
-        · rw [hm]; exact List.mem_cons_self
-        · exact List.mem_cons_of_mem _ (ih hok.2 hm)
-  exact key F.pre F.hnoLoad hs
+/-- A load the walk makes is a load of the evaluation list. -/
+theorem loadsEv_mem {σ : Val} {q : V × ℕ} (h : q ∈ F.pre.flatMap (loadsEv σ)) :
+    ∃ d, Stmt.atom (.load d q.1 q.2) ∈ F.evL := by
+  obtain ⟨s, hs, hq⟩ := List.mem_flatMap.mp h
+  have hld : ∀ t : Stmt, Stmt.loadS t = some q → ∃ d, t = .atom (.load d q.1 q.2) := by
+    intro t ht
+    match t, ht with
+    | .atom (.load d p off), ht =>
+      simp only [Stmt.loadS, Option.some.injEq] at ht
+      subst ht; exact ⟨d, rfl⟩
+  rw [F.hevL]
+  cases s with
+  | ite c z n =>
+    simp only [loadsEv] at hq
+    obtain ⟨t, ht, htq⟩ := List.mem_filterMap.mp hq
+    have htm : t ∈ z ++ n := by split at ht <;> simp [ht]
+    obtain ⟨d, rfl⟩ := hld t htq
+    exact ⟨d, List.mem_map_of_mem (f := fixNe) (mem_flatIte_ite hs _ htm)⟩
+  | _ =>
+    simp only [loadsEv, Option.mem_toList] at hq
+    obtain ⟨d, e⟩ := hld _ hq
+    refine ⟨d, ?_⟩
+    have := List.mem_map_of_mem (f := fixNe) (mem_flatIte_of (fun c z n h ↦ by cases h) hs)
+    rw [e] at this
+    exact this
 
 end FlatFn
 
@@ -211,13 +195,13 @@ theorem FlatFn.agree (F : FlatFn) {rd1 rd2 : Reader} {w : ℕ → E} {args : Lis
     (hl : args.length = F.k)
     {L : Layout} (h1 : MemL rd1 L) (h2 : MemL rd2 L) {bufs : List (E × ℕ)}
     (hbufs : ∀ q ∈ bufs, ∃ b, q.1 = ofK (gpow b) ∧ ∀ i < q.2, RegionL L (b + i))
-    (hld : LoadsInBuf (F.σ rd1 w args) bufs F.pre) {v : V} (hv : F.aux v.idx = false) :
+    (hld : LoadsInBuf (F.σ rd1 w args) bufs F.evL) {v : V} (hv : F.aux v.idx = false) :
     F.σ rd1 w args v = F.σ rd2 w args v := by
   have hrd : ∀ d p off, Stmt.atom (.load d p off) ∈ F.evL →
       rd1 ((B1.Val.ofArgs (ev rd1 w args F.evL) p).limb 0 * gpow off) =
         rd2 ((B1.Val.ofArgs (ev rd1 w args F.evL) p).limb 0 * gpow off) := by
     intro d p off hm
-    obtain ⟨i, hi, hr⟩ := inBuf_region hbufs (hld d p off (F.evL_load_mem hm))
+    obtain ⟨i, hi, hr⟩ := inBuf_region hbufs (hld d p off hm)
     have hi' : (B1.Val.ofArgs (ev rd1 w args F.evL) p).limb 0 * gpow off = gpow i := hi
     rw [hi']
     exact Main.memL_agree h1 h2 i hr
@@ -271,7 +255,7 @@ theorem flat_completeAt (F : FlatFn) {κ : ℕ} (Lin : Layout) (args rets : List
     (hrun : ∀ fp rd, LowDef κ rd → MemL rd (flatL F.name Lin sizes own fs fp) →
       (∀ s ∈ F.pre, VSH (coreProgram.RelIn rd (RegionL (flatL F.name Lin sizes own fs fp))) rd
         (F.σ rd (w fp) args) s) ∧
-      LoadsInBuf (F.σ rd (w fp) args) (bufs fp) F.pre ∧
+      LoadsInBuf (F.σ rd (w fp) args) (bufs fp) F.evL ∧
       (F.pre.filterMap Main.Stmt.allocSz).map
         (fun x => x.2.elim id fun s => logG (F.σ rd (w fp) args s)) = sizes ∧
       ((F.pre.filterMap Main.Stmt.allocSz).map Prod.fst).map (F.σ rd (w fp) args) =
@@ -428,17 +412,9 @@ theorem flat_completeAt (F : FlatFn) {κ : ℕ} (Lin : Layout) (args rets : List
         exact hag' _ hs rfl v (by simp_all [Main.mkCall, Stmt.vals])
       | _ => simp [Stmt.callSF, Main.Stmt.callS] at hst
     · intro q hq
-      obtain ⟨s, hs, hsq⟩ := List.mem_filterMap.mp hq
-      cases s with
-      | atom a =>
-        cases a with
-        | load d p off =>
-          simp only [Stmt.loadS, Option.some.injEq] at hsq
-          subst hsq
-          obtain ⟨i, hi, hr⟩ := inBuf_region (hbufs fp) (hld d p off hs)
-          exact ⟨i, hi, regionL_append hr⟩
-        | _ => simp [Stmt.loadS] at hsq
-      | _ => simp [Stmt.loadS] at hsq
+      obtain ⟨d, hd⟩ := F.loadsEv_mem hq
+      obtain ⟨i, hi, hr⟩ := inBuf_region (hbufs fp) (hld d q.1 q.2 hd)
+      exact ⟨i, hi, regionL_append hr⟩
 
 end
 end LeanVM.Guest.B1.Tables
