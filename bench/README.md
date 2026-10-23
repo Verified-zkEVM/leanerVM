@@ -281,13 +281,22 @@ checksum the same as in the run before the byte sums (31.1 s in all, the Flock p
 
 | Phase, `2^19` cells, `2^17` leaves, `τ_max = 3`, `2^3` BLAKE2s blocks | With state |
 | --- | ---: |
-| the stack (`stackOf`) | 4.0 s |
-| bus phase | 9.3 s |
-| table sumcheck | 0.58 s (4.1 s before the output was tabulated) |
+| the stack (`stackOf`) | 3.8 s |
+| bus phase | 9.4 s |
+| table sumcheck | 0.59 s (4.1 s before the output was tabulated) |
 | public input | 0.1 ms |
-| Flock phase | 16.7 s |
-| opening | 1.25 s |
-| whole protocol (`leanVmFastProver`, from the stack) | 24.9 s |
+| Flock phase | 16.6 s |
+| opening | 1.18 s |
+| whole protocol (`leanVmFastProver`, from the stack) | 25.3 s |
+| the opening's batched weight's values (WHIR's input), 113 claims | 4.2 s (95.4 s before) |
+
+The opening's prover never reads the batched weight's values; WHIR's prover does, at the start of
+the commitment's opening. The weight combines 112 column claims and the switched claim. A column
+claim's point is read through the layout, so its coordinates include the block's selector bits
+and its equality kernel vanishes off the block: `eqBatch` combines the kernels coordinate by
+coordinate, dropping a term on the half where its factor is zero (`Opening.weight_eq_weightFast`,
+`@[csimp]`), and the switched claim's kernels likewise (`Flock.ringWeightFast`, in the cached
+Flock prover). Built from the `2 ^ 19`-entry Lagrange bases, the column claims alone took 48.7 s.
 
 `leanervm-bench 1 flockpieces 15` times the Flock prover's pieces once each on the same region:
 
@@ -316,29 +325,51 @@ the bus phase, three times in the table sumcheck and fifty times in the Flock ph
 
 The `whir` group (`leanervm-bench 1 whir μ R [spec]`) commits a random table on `μ` variables at
 rate `1/2^R` with the deployed parameters' levels (`Whir.ladder`): the level-0 word's rows by the
-additive transform, checked against `wordOf` at two rows, and their Merkle root; then it runs
-WHIR's cached prover (`Whir.whirOpenCached`) on the equality kernel at a random point, with the
-word's rows stored, through `Prover.run`, the honest prover of `whirOpen` beside it when the fifth
-argument is `spec`, and the verifier on each transcript. The cached prover binds the fold rounds'
-tables once per challenge, carries each level's folded table to its messages, and encodes the next
-level's word once by the additive transform. Recorded on 2026-10-23 on the same machine, every
+additive transform (`Whir.wordRows`), checked against `wordOf` at two rows, and their Merkle
+root; then it runs WHIR's cached prover (`Whir.whirOpenCached`) on the equality kernel at a
+random point, with the word's rows stored, through `Prover.run`, the honest prover of `whirOpen`
+beside it when the fifth argument is `spec`, and the verifier on each transcript. The cached
+prover binds the fold rounds' tables once per challenge, carries each level's folded table to its
+messages, and encodes the next level's word once, its rows kept as data. `whiropen κ t` times
+the first level's pieces at `μ = κ + 6`, and `whirpieces κ R` the transform's on `2^κ`
+coefficients. Recorded on 2026-10-23 on the same machine, every
 transcript accepted:
 
 | Workload, rate `1/2`, 223 queries at the first level (224 at `μ = 19`) | `μ = 15` | `μ = 16` | `μ = 19` |
 | --- | ---: | ---: | ---: |
-| level-0 word by the transform | 1.9 s | 6.4 s | 256 s |
-| level-0 Merkle root | 0.29 s | 0.61 s | 5.0 s |
-| opening, with state (`whirOpenCached`) | 7.5 s | 19.5 s | 316 s |
-| opening, honest (`whirOpen`) | 14.3 s | 28.9 s | not run |
-| verifier on the transcript | 4.9 s | 13.0 s | 272 s |
+| level-0 word by the transform | 0.40 s | 0.71 s | 7.1 s |
+| level-0 Merkle root | 0.32 s | 0.60 s | 4.4 s |
+| opening, with state (`whirOpenCached`) | 1.1 s | 2.2 s | 17.6 s |
+| opening, honest (`whirOpen`) | 12.0 s | 25.7 s | not run |
+| verifier on the transcript | 0.15 s | 0.17 s | 0.27 s |
 
-Before `batchWeight_eq_batchWeightFast` the openings at `μ = 15` took 213 s with state and 218 s
-without: the combination of the queried points' weights by powers built every weight's table at
-every entry it read. `μ = 19` is the size of the smallest leanVM stack (`2^19` cells); there Rust
-leanVM's commitment takes 48 ms and its PCS opening 1.00 s on one thread. From `μ = 16` to
-`μ = 19` the transform's work grows about tenfold and its time fortyfold. Its butterflies multiply
-by twiddles of `K` lifted to `E`, a full `E` product where three `K` products would do, and an `E`
-value's limbs above `2^63` are heap-allocated numbers; both are left for a later pass.
+Each line came from its own fix. Before them, at `μ = 19`: the word took 256 s, the opening
+316 s and the verifier 272 s.
+
+* The additive transform `fwd` reads each node's halves inside the closures that build the node's
+  outputs, so compiled code rebuilt a half at every entry: 2.1 s for one coset of `2^13`
+  coefficients over `E` and 2.0 s over `K`. `fwd_eq_fwdLet` (`@[csimp]`) reads them once, over
+  any ring, and over `E` the transform runs as three transforms of the limbs' 64-bit words,
+  `xor` and `mulWord` (`Whir.encodeE`): 13 ms a limb, 87 ms a lane of `2^13` coefficients onto
+  `2^14` positions.
+* A word is a function in compiled code, and a closure returning one is expanded to take the
+  position as one more argument: the next level's word, a message computed by a closure, was
+  rebuilt at every row the queries and the verifier read (0.64 s a row at the second level of
+  `μ = 19`). Its rows are now data, built when the step starts (`Whir.wordRows`).
+* The query batch's weight takes `2^κ` products of `E` per column and `t` more per entry, on
+  values in `K`; on words (`Whir.queryCubeW`, `queryWeight_eq_queryWeightFast`) it takes 0.97 s
+  for 224 positions on `2^13` entries, 9.7 s before.
+* The fold rounds and the first message run `E`'s products on the limbs' words
+  (`ProductSum.roundCacheW`, `ExtWords.mulW`): 5.3 s for the six fold rounds on `2^19` entries,
+  12.6 s through the field instances.
+* Before `batchWeight_eq_batchWeightFast`, the combination by powers rebuilt every table at every
+  entry: 213 s at `μ = 15`.
+
+`μ = 19` is the size of the smallest leanVM stack (`2^19` cells); there Rust leanVM's commitment
+takes 48 ms and its PCS opening 1.00 s on one thread. What is left at `μ = 19` is `E` arithmetic:
+the fold rounds (5.3 s, of which most is converting limbs between bit vectors and words), the
+level-0 word (7.1 s, 20 million word products and the vectors around them), and the Merkle
+tree's leaves (4.4 s, each row's limbs listed and hashed).
 
 ## `leanervm-verify`: the verifier on the Rust proof
 
