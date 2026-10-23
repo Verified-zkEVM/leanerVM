@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.VerifySub.Always
 
-  What every successful run of a program returns, and the output lanes' claims of `tablesSeg`.
+  What every successful run of a program returns.
 -/
 
 module
@@ -16,8 +16,7 @@ public import LeanVM.Guest.B1.Common.Run
 (structurally, on `Prog`). `Always.run`: a run that returns `a` returns one such value;
 `RunsTo.always`: so does a run from a carried sponge.
 
-`tablesSeg_lanes`: every claim of `tablesSeg` on a `KECCAK` output lane is at the table
-sumcheck's point (of `max` of the heights coordinates) cut to the `KECCAK` table's height.
+`tablesSeg_lanes` (in `Lanes`) uses it on `tablesSeg`.
 -/
 
 namespace LeanVM.Guest.B1.VerifySub
