@@ -12,10 +12,10 @@ public import LeanVM.Guest.B1.Common.Run
 /-!
 # The sumcheck rounds as Spec runs
 
-* `runsTo_roundPolyNone`, `runsTo_roundPolySome`: `sumcheckRoundPoly` (V:1330) reads its
+* `runsTo_roundPolyNone`, `runsTo_roundPolySome`: `sumcheckRoundPoly` (V:1386) reads its
   coefficients, absorbing each.
-* `sumcheck_round4_run`: `MeaningSumcheckRound4`'s values are `sumcheck claim 4 [none]` (V:1342).
-* `gkrRun_run`: `gkrRun` is `sumcheck claim 5 (es.map some)`, the rounds of `gkrStep 2` (V:1379).
+* `sumcheck_round4_run`: `MeaningSumcheckRound4`'s values are `sumcheck claim 4 [none]` (V:1398).
+* `gkrRun_run`: `gkrRun` is `sumcheck claim 5 (es.map some)`, the rounds of `gkrStep 2` (V:1435).
 * `batchRounds_run`: `bsRun` is `Node.batchRounds` (N:226) on a sponge it carries.
 -/
 

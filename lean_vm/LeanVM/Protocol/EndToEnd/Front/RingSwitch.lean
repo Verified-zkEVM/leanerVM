@@ -12,11 +12,11 @@ public import LeanVM.Protocol.EndToEnd.Front.RingFidelity
 /-!
 # Ring switching as a specification
 
-`ringSwitch point s` (`python-verifier/verifier.py:1424-1433` at leanVM
-`3375f7a137c50b803f3416f6466b5d4e0719708a`; `crates/pcs/src/ring_switch.rs`) draws the six
+`ringSwitch point s` (`python-verifier/verifier.py:1435-1444` at leanVM
+`4af2cdddd7cd41b9df2cc7e123e314a91b0b4462`; `crates/pcs/src/ring_switch.rs`) draws the six
 coefficients `f_0, …, f_5` of the staged map `Φ` (shifts `32, 16, 8, 4, 2, 1`) and returns the
 target `Σ_i x^i Φ(s_i)` and the weight `W(u) = Σ_k c_k eq(point^(2^k), u)`; the program claims
-`⟨eqAbove · W, q⟩ = target` on the stack (`ringSwitchClaim`, `verifier.py:1504-1506`).
+`⟨eqAbove · W, q⟩ = target` on the stack (`ringSwitchClaim`, `verifier.py:1514-1516`).
 
 The Keccak reduction leaves 64 claims `s_i = ẑ_i(point)` on the bit slices of `q_keccak`
 (`KeccakGkr.slicesTrue`). With the errors `δ_i = s_i - ẑ_i(point)` and

@@ -22,7 +22,7 @@ public import LeanVM.Arithmetization.Completeness.Theorem
 
 The verifier is the program `leanVmProgram` (`LeanVM.Protocol.Verifier`), the transcription of
 `verify_execution` of `python-verifier/verifier.py` at leanVM
-`3375f7a137c50b803f3416f6466b5d4e0719708a`. Its honest prover (`honestStrategy`) is assembled
+`4af2cdddd7cd41b9df2cc7e123e314a91b0b4462`. Its honest prover (`honestStrategy`) is assembled
 (`Complete.Assemble`) from the phases' honest scripts: the announcement and the commitment
 (`Complete.Sizes`), the bus (`Complete.Bus`), the table sumcheck (`Complete.Table`), the public
 input (`Complete.Public`), the Keccak phase (`Complete.KeccakPhase`, the Keccak reduction's honest

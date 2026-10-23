@@ -15,7 +15,7 @@ public import LeanVM.Protocol.Verifier
 # The Python tables are the instance's
 
 Fidelity of the six instruction tables of `python-verifier/verifier.py` at leanVM
-`3375f7a137c50b803f3416f6466b5d4e0719708a`, lines 737-943 (`Flushes`, `_flushes_arith`,
+`4af2cdddd7cd41b9df2cc7e123e314a91b0b4462`, lines 744-963 (`Flushes`, `_flushes_arith`,
 `_flushes_set`, `_flushes_deref`, `_flushes_jump`, `_jump_constraints`, `_keccak_cell_lanes`,
 `_layout_limb`, `_flushes_keccak`, `TABLES`), transcribed as `LeanVM.Protocol.Verifier.tables`, against the leanISA instance's
 opcode tables (`LeanIsa.flushes`, `LeanIsa.counts`, `LeanIsa.constraints` at `opIdx t`), which are

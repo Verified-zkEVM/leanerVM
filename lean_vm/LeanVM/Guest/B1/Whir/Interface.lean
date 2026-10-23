@@ -15,9 +15,9 @@ public import LeanVM.Protocol.Compile.Prog
 # `open_stacked` (TRIAGE G #42): the interface
 
 `open_stacked(m_idx, fs0..fs4, target, commit_root_0, commit_root_1, cursor)`
-(`crates/rec_aggregation/guests/lean_ethereum.py:1283-1613` at leanVM `3375f7a13`, G below) runs
-the stacked WHIR opening of one child's proof, `verifyWhir` (`Spec/Verifier.lean`, V:1777;
-`verifier.py:1108-1186`) from `verifyStackedOpening` (V:1795), up to its terminal: the terminal's
+(`crates/rec_aggregation/guests/lean_ethereum.py:1283-1613` at leanVM `4af2cdddd`, G below) runs
+the stacked WHIR opening of one child's proof, `verifyWhir` (`Spec/Verifier.lean`, V:1836;
+`verifier.py:1124-1202`) from `verifyStackedOpening` (V:1854), up to its terminal: the terminal's
 check `(inner + evaluateBasis point) · residual = target` is `check_opening_terminal`'s (G:3078,
 TRIAGE #70), which evaluates the transparent weight `evaluateBasis`. It has 28 specializations
 `open_stacked__L{m}`, one per candidate `m = (μ - 22) + 7·(r - 1)` of the stack log `22 ≤ μ ≤ 28`
@@ -52,7 +52,7 @@ open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile LeanVM.P
 
 @[expose] public section
 
-/-! ## The opening up to its terminal (V:1732-1783) -/
+/-! ## The opening up to its terminal (V:1791-1842) -/
 
 /-- What the stacked opening leaves for its terminal: the point in witness order, the glued
 claims' weight there, the residual's value at the tail challenges, and the running claim. -/
@@ -66,7 +66,7 @@ structure WhirEnd where
   /-- The final running claim. -/
   target : E
 
-/-- `whirLevels` (V:1732) without the final `require`: it returns what the terminal reads. -/
+/-- `whirLevels` (V:1791) without the final `require`: it returns what the terminal reads. -/
 def whirLevelsOpen (logN laneFolds : ℕ) : ℕ → List Whir.Level → WhirState → Prog WhirEnd
   | _, [], _ => Prog.fail
   | index, level :: rest, s => do
@@ -106,7 +106,7 @@ def whirLevelsOpen (logN laneFolds : ℕ) : ℕ → List Whir.Level → WhirStat
         multilinearEval residual tailFolds, target⟩
     | _ :: _ => whirLevelsOpen logN laneFolds (index + 1) rest s
 
-/-- `verifyWhir` (V:1777) up to its terminal: what `open_stacked` runs. -/
+/-- `verifyWhir` (V:1836) up to its terminal: what `open_stacked` runs. -/
 def whirOpen (logN logInvRate : ℕ) (target : E) : Prog WhirEnd := do
   let config ← liftOption (deriveConfig logN logInvRate)
   let quad ← sumcheckRoundPoly 3 target none
@@ -151,7 +151,7 @@ theorem verifyWhir_split (logN logInvRate : ℕ) (target : E) (eb : List E → E
       Prog.require (w.Accepts eb)) := by
   simp only [verifyWhir, whirOpen, Prog.bind_eq, Prog.bind_assoc, whirLevels_split]
 
-/-- The shape `commitStack` gives the stack's root (V:1785): `(height, width)`. -/
+/-- The shape `commitStack` gives the stack's root (V:1844): `(height, width)`. -/
 def stackShape (logN logInvRate : ℕ) : ℕ × ℕ :=
   match deriveConfig logN logInvRate with
   | some (level :: _) => levelShape logN level (2 ^ level.fold)

@@ -12,7 +12,7 @@ public import LeanVM.Guest.B1.Whir.InnerSpec
 public import LeanVM.Guest.B1.Whir.Level
 
 /-!
-# The glued weight (V:1767-1769)
+# The glued weight (V:1826-1828)
 
 The Spec sums `scalar·weightAt(point)` over the glued claims, each level gluing its
 out-of-domain claim (`λ·eqEval z`, not at the last level) and its query claim

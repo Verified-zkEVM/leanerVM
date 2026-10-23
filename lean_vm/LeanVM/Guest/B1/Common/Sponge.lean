@@ -14,7 +14,7 @@ public import LeanVM.Guest.B1.Common.Basic
 
 The verifier's transcript (`Spec/Verifier.lean`, `Sponge`, `absorb`, `squeeze`, `duplex`) is a
 duplex over Keccak-f[1600]: a state of 25 lanes and up to four waiting scalars, each with a tag.
-The guest (`crates/rec_aggregation/guests/lean_ethereum.py` at leanVM `3375f7a13`, G below,
+The guest (`crates/rec_aggregation/guests/lean_ethereum.py` at leanVM `4af2cdddd`, G below,
 G:540-650) carries between permutations only the capacity, the cells `8..12` of the last
 permutation's output in the even layout (lanes `16..24`, `fs0 .. fs4`), and the waiting scalars
 as rate cells (`fs_pack`) or as values its callers re-pack. A duplex reads nothing else of the

@@ -8,7 +8,7 @@ prover data serves the three blocks, a four-word image (`κ = 2`) read through `
 literal indices as in the channel and table tests, beside a two-slot program `bProg` (`logSize =
 1`), a `Program` value: the program is public and no table of the data.
 
-The three components are pinned to the Rust blocks (`layout.rs:351-394`) as data: each is a
+The three components are pinned to the Rust blocks (`layout.rs:418-461`) as data: each is a
 push at count `1` and a pull at the finalize count, on its channel pair, with the pull's
 multiplicity `-1` and its guarantee assumed; the verifier of a program has no local witness (the
 `verifier_length_zero` field of `leanIsaEnsemble`), is complete for every public input, and
@@ -73,7 +73,7 @@ theorem fetch_at (i : ℕ) (ins : Instr) (hi : i < 2 ^ bProg.logSize := by decid
   rw [show gpow i = gpow ((⟨i, hi⟩ : Fin (2 ^ bProg.logSize)) : ℕ) from rfl,
     Program.fetch_gpow, hd]
 
-/-! ## The three blocks are their flushes (`layout.rs:351-394`) -/
+/-! ## The three blocks are their flushes (`layout.rs:418-461`) -/
 
 /-- The memory block: the seed push at count `1`, the finalize pull at `cntFin`, on the memory
 pair. -/
@@ -92,7 +92,7 @@ example (r : Var BytecodeRow K) : (bytecodeTable.main r).operations 0 =
   rfl
 
 /-- The verifier of `prog`: push `(1, 1)`, pull `(prog.finalPc, 1)`, both constants, on the state
-pair (specification §6.1; `layout.rs:353-357`). -/
+pair (specification §6.1; `layout.rs:420-424`). -/
 example (prog : Program) (pi : Var PublicIO K) : ((leanIsaVerifier prog).main pi).operations 0 =
     [.interact ⟨StatePush.toRaw, 1, toElements (⟨1, 1⟩ : Regs (Expression K)), false⟩,
      .interact ⟨StatePull.toRaw, -1,
