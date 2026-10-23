@@ -400,5 +400,167 @@ theorem commitStack_runF' {μ r : ℕ} {st : Whir.FSt} {u : Unit} {st' : Whir.FS
           exact ⟨x0, x1, root, hr, rfl, rfl, rfl, rfl⟩
         · simp at h
 
+
+/-! ## The segments -/
+
+/-- **An honest child's accepted run, cut into `verify_sub`'s segments** (`pi` the child's
+statement's digest, `S0` the seed's state): the announced sizes, the stack's root, the bus
+challenges, the bus's GKR, `tablesSeg`, the lanes' check, `keccakSeg`, the ring map's other five
+challenges, then the batching challenge and the stacked opening. -/
+structure ChildSegs (bytecode : List K) (seed : Digest) (c : Node.Child) : Type where
+  /-- The memory's log-size, the six tables' row counts, the rate. -/
+  logMem : ℕ
+  rowsN : List ℕ
+  rate : ℕ
+  /-- The layout. -/
+  layout : Layout
+  hlayout : layout = Tables.layoutOf bytecode logMem rowsN
+  h16 : 16 ≤ logMem
+  h32 : logMem ≤ 32
+  hrowsL : rowsN.length = 6
+  hrows32 : ∀ n ∈ rowsN, n ≤ 2 ^ 32
+  hr1 : 1 ≤ rate
+  hr4 : rate ≤ 4
+  hmu22 : 22 ≤ layout.stackLog
+  hmu28 : layout.stackLog ≤ 28
+  /-- The announced sizes. -/
+  s1 : Fs
+  runS : RunsTo (readSizes bytecode) ⟨capOf (keccakF (seedInput seed
+    (Node.statementDigest seed c.statement))), []⟩
+    (eOfNat logMem :: rowsN.map eOfNat ++ [eOfNat rate]) (layout, rate) s1
+  /-- The stack's root. -/
+  x0 : E
+  x1 : E
+  root : Digest
+  hroot : digestOfScalars (x0, x1) = some root
+  /-- The bus challenges. -/
+  alphas : List E
+  s3 : Fs
+  halphas : ((s1.absorb x0 dsObserve).absorb x1 dsObserve).squeezeN busBits = (alphas, s3)
+  /-- The bus's GKR. -/
+  xsG : List E
+  rG : E × List E × List E
+  s5 : Fs
+  runG : RunsTo (Tables.gkrPhase (busLayout [0, layout.logMemory, layout.logBytecode]
+    layout.push).depth) s3.squeeze.2 xsG rG s5
+  /-- The bus's rest, the tables, the public input. -/
+  xsT : List E
+  bus : BusResult
+  claims : List ColumnClaim
+  s6 : Fs
+  runT : RunsTo (Tables.tablesSeg (.claimed c.fresh) layout (Node.statementDigest seed c.statement)
+    alphas s3.squeeze.1 rG.2.1 rG.2.2) s5 xsT (bus, claims) s6
+  /-- The output lanes: the table's columns, one point. -/
+  hlanes : (lanesOf claims).map (·.column) = keccakOutputColumns ∧
+    ∀ c' ∈ lanesOf claims, c'.point = ((lanesOf claims).headD default).point
+  /-- The Keccak reduction and the ring map's first challenge. -/
+  xsK : List E
+  km : (List ColumnClaim × List E × List E) × E
+  s7 : Fs
+  runK : RunsTo (keccakSeg (layout.tableLogHeights.getD opKeccak 0)
+    ((lanesOf claims).headD default).point ((lanesOf claims).map (·.value))) s6 xsK km s7
+  /-- The ring map's other five challenges. -/
+  chs : List E
+  s8 : Fs
+  hchs : s7.squeezeN 5 = (chs, s8)
+  /-- The stacked opening: from the batching challenge's state, on the stream's rest and the
+  proof's openings, with no zero challenge and openings agreeing in the caps, to an end passing
+  the terminal's check. -/
+  xsW : List E
+  w : Whir.WhirEnd
+  s' : Fs
+  roots' : List (Digest × ℕ × ℕ)
+  runW : Whir.RunsWith (Whir.whirOpen layout.stackLog rate
+    (batchTarget (stackClaims layout claims km.1.1 km.1.2.1 km.1.2.2 (km.2 :: chs)) s8.squeeze.1))
+    ⟨capOf s8.perm, []⟩ xsW c.proof.openings [(root, Whir.stackShape layout.stackLog rate)] w s'
+    roots'
+  nzW : Whir.NoZeroChallenge layout.stackLog rate
+    (batchTarget (stackClaims layout claims km.1.1 km.1.2.1 km.1.2.2 (km.2 :: chs)) s8.squeeze.1)
+    s8.perm xsW c.proof.openings root
+  capsW : Whir.CapsAgree layout.stackLog rate
+    (batchTarget (stackClaims layout claims km.1.1 km.1.2.1 km.1.2.2 (km.2 :: chs)) s8.squeeze.1)
+    s8.perm xsW c.proof.openings root
+  acc : w.Accepts
+    (batchBasis (stackClaims layout claims km.1.1 km.1.2.1 km.1.2.2 (km.2 :: chs)) s8.squeeze.1)
+  /-- The stream is the segments' words. -/
+  hstream : c.proof.stream = (eOfNat logMem :: rowsN.map eOfNat ++ [eOfNat rate]) ++ [x0, x1] ++
+    xsG ++ xsT ++ xsK ++ xsW
+
+/-- **An honest child's run, in segments** (G7's per-child hypotheses; the guest's bytecode of
+`2^23` words). -/
+theorem child_segments {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) (seed : Digest)
+    (c : Node.Child)
+    (hmu : ∀ layout r, Verifier.announced bytecode c.proof.stream = some (layout, r) →
+      Hints.muMin ≤ layout.stackLog)
+    (hnz : Limits.verifyDeferredNZ bytecode seed (Node.statementDigest seed c.statement) c.fresh
+      c.proof = true)
+    (hcaps : ∀ b ∈ Limits.queriesOf
+      (deferredProgram c.fresh bytecode (Node.statementDigest seed c.statement))
+      (Hints.childStart seed c), Limits.BatchAgrees b.1 b.2) :
+    Nonempty (ChildSegs bytecode seed c) := by
+  obtain ⟨q, sq, root, xsW, w, s', roots', hpre, hrun, hnzW, hcapsW, hacc⟩ :=
+    child_open seed c hnz hcaps
+  rw [specPre_flat] at hpre
+  unfold flatPre at hpre
+  -- the announced sizes
+  obtain ⟨ls, sA, hA, h⟩ := Whir.runF_bind_some hpre
+  obtain ⟨L, r⟩ := ls
+  obtain ⟨logMem, rowsN, hsA, hL, h16, h32, hrowsL, hrows32, hr1, hr4, -, hst28⟩ :=
+    readSizes_inv hbl hA
+  obtain ⟨xs1, hxs1, runS⟩ := runsTo_of_runF (noCommit_readSizes _) hA
+  have exs1 : xs1 = eOfNat logMem :: rowsN.map eOfNat ++ [eOfNat r] := by
+    have := hsA.symm.trans hxs1
+    exact (List.append_cancel_right this).symm
+  subst exs1
+  have hmu22 : Hints.muMin ≤ L.stackLog := hmu L r (announced_eq (sp := ⟨keccakF (seedInput seed
+    (Node.statementDigest seed c.statement)), []⟩) ⟨rfl, rfl⟩ hA)
+  obtain ⟨rA, oA⟩ := NoCommit.runF (noCommit_readSizes _) hA
+  -- the stack's root
+  obtain ⟨u, sB, hB, h⟩ := Whir.runF_bind_some h
+  obtain ⟨x0, x1, root', hroot, hsB, hspB, hrB, hoB⟩ := commitStack_runF' hB
+  -- the bus challenges
+  obtain ⟨alphas, sC, hC, h⟩ := Whir.runF_bind_some h
+  obtain ⟨hal, hsC, hoC, hrC⟩ := runF_sampleN _ _ _ _ hC
+  rw [runF_sample_bind] at h
+  -- the bus's GKR
+  obtain ⟨rG, sD, hD, h⟩ := Whir.runF_bind_some h
+  obtain ⟨xsG, hxsG, runG⟩ := runsTo_of_runF (noCommit_gkrPhase _) hD
+  obtain ⟨rD, oD⟩ := NoCommit.runF (noCommit_gkrPhase _) hD
+  -- the tables
+  obtain ⟨bc, sE, hE, h⟩ := Whir.runF_bind_some h
+  obtain ⟨bus, claims⟩ := bc
+  obtain ⟨xsT, hxsT, runT⟩ := runsTo_of_runF (noCommit_tablesSeg _ _ _ _ _ _ _) hE
+  obtain ⟨rE, oE⟩ := NoCommit.runF (noCommit_tablesSeg _ _ _ _ _ _ _) hE
+  -- the lanes
+  obtain ⟨hlanes, h⟩ := runF_require_bind h
+  -- the Keccak reduction
+  obtain ⟨km, sF, hF, h⟩ := Whir.runF_bind_some h
+  obtain ⟨xsK, hxsK, runK⟩ := runsTo_of_runF (noCommit_keccakSeg _ _ _) hF
+  obtain ⟨rF, oF⟩ := NoCommit.runF (noCommit_keccakSeg _ _ _) hF
+  -- the ring map's other challenges
+  obtain ⟨chs, sG, hG, h⟩ := Whir.runF_bind_some h
+  obtain ⟨hch, hsG, hoG, hrG⟩ := runF_sampleN _ _ _ _ hG
+  simp only [Whir.runF, Option.some.injEq, Prod.mk.injEq] at h
+  obtain ⟨rfl, rfl⟩ := h
+  -- the root is the opening's
+  have hroot' : root' = root := by
+    have e := hrG
+    simp only at e
+    rw [rF, rE, rD, hrC, hrB, rA] at e
+    simp only [deferStart, List.nil_append, List.cons.injEq, Prod.mk.injEq, and_true] at e
+    exact e.symm
+  subst hroot'
+  refine ⟨⟨logMem, rowsN, r, L, hL, h16, h32, hrowsL, hrows32, hr1, hr4, hmu22, hst28, sA.sponge,
+    runS, x0, x1, root', hroot, alphas, sC.sponge, ?_, xsG, rG, sD.sponge, ?_, xsT, bus, claims,
+    sE.sponge, runT, hlanes, xsK, km, sF.sponge, runK, chs, _, hch, xsW, w, s', roots', hrun,
+    hnzW, hcapsW, hacc, ?_⟩⟩
+  · rw [← hspB]; exact hal
+  · exact runG
+  · -- the stream
+    have h0 : c.proof.stream = (deferStart seed (Node.statementDigest seed c.statement)
+        c.proof).stream := rfl
+    rw [h0, hsA, hsB, ← hsC, hxsG, hxsT, hxsK, ← hsG]
+    simp only [List.append_assoc, List.cons_append, List.nil_append]
+
 end
 end LeanVM.Guest.B1.VerifySub
