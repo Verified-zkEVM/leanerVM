@@ -9,6 +9,7 @@ module
 
 public import LeanVM.Guest.B1.VerifySub.NZBridge
 public import LeanVM.Guest.B1.VerifySub.CompleteSpec
+public import LeanVM.Guest.B1.VerifySub.Sizes
 
 /-!
 # The segments of an honest child's run
@@ -150,6 +151,103 @@ theorem runsTo_of_runF {α : Type} {p : Prog α} (hp : NoCommit p) {s : Fs} {T :
   have e2 := NoCommitA.runF_any p ((noCommit_iff _).1 hp) s _ _ R a _ e os roots
   obtain ⟨sp', hc, hr⟩ := runId_of_runF e2 hsp
   exact ⟨sp', hc, hr⟩
+
+
+/-! ## The announced sizes -/
+
+theorem runF_readN : ∀ (n : ℕ) (st : Whir.FSt) (xs : List E) (st' : Whir.FSt),
+    Whir.runF (Prog.readN n) st = some (xs, st') →
+      st.stream = xs ++ st'.stream ∧ xs.length = n
+  | 0, st, xs, st', h => by
+    simp only [Prog.readN, Whir.runF, Option.some.injEq, Prod.mk.injEq] at h
+    obtain ⟨rfl, rfl⟩ := h
+    exact ⟨rfl, rfl⟩
+  | n + 1, st, xs, st', h => by
+    simp only [Prog.readN, Prog.bind_eq, Prog.pure_eq] at h
+    obtain ⟨x, s1, h1, h⟩ := Whir.runF_bind_some h
+    obtain ⟨ys, s2, h2, h⟩ := Whir.runF_bind_some h
+    simp only [Whir.runF, Option.some.injEq, Prod.mk.injEq] at h
+    obtain ⟨rfl, rfl⟩ := h
+    obtain ⟨e2, l2⟩ := runF_readN n s1 ys s2 h2
+    obtain ⟨sp, stream, os, R⟩ := st
+    cases stream with
+    | nil => simp [Prog.readE, Whir.runF] at h1
+    | cons y rest =>
+      simp only [Prog.readE, Whir.runF, Option.some.injEq, Prod.mk.injEq] at h1
+      obtain ⟨rfl, rfl⟩ := h1
+      refine ⟨?_, by simp [l2]⟩
+      simp only at e2 ⊢
+      rw [e2, List.cons_append]
+
+theorem runF_liftOption_bind {α β : Type} {o : Option α} {k : α → Prog β} {st : Whir.FSt}
+    {r : β × Whir.FSt} (h : Whir.runF ((liftOption o).bind k) st = some r) :
+    ∃ a, o = some a ∧ Whir.runF (k a) st = some r := by
+  cases o with
+  | none => simp [Verifier.liftOption, Prog.bind, Whir.runF] at h
+  | some a => exact ⟨a, rfl, h⟩
+
+theorem word_eOfNat_of {v : E} (h1 : v.limb 1 = 0) (h2 : v.limb 2 = 0) :
+    v = eOfNat (kToNat (v.limb 0)) := by
+  apply E.ext
+  intro i
+  fin_cases i
+  · simp [eOfNat, ofBits_kToNat]
+  · simp [eOfNat, h1]
+  · simp [eOfNat, h2]
+
+/-- **The announced sizes' run**: the words `eOfNat logMem`, the row counts, `eOfNat r`, and the
+layout `layoutOf bytecode logMem rows`. -/
+theorem readSizes_inv {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) {st : Whir.FSt}
+    {L : Layout} {r : ℕ} {st' : Whir.FSt}
+    (h : Whir.runF (readSizes bytecode) st = some ((L, r), st')) :
+    ∃ (logMem : ℕ) (rowsN : List ℕ),
+      st.stream = (eOfNat logMem :: rowsN.map eOfNat ++ [eOfNat r]) ++ st'.stream ∧
+      L = Tables.layoutOf bytecode logMem rowsN ∧ 16 ≤ logMem ∧ logMem ≤ 32 ∧
+      rowsN.length = 6 ∧ (∀ n ∈ rowsN, n ≤ 2 ^ 32) ∧ 1 ≤ r ∧ r ≤ 4 ∧
+      minStackedLog ≤ L.stackLog ∧ L.stackLog ≤ maxStackedLog := by
+  unfold readSizes at h
+  simp only [Prog.bind_eq, Prog.pure_eq] at h
+  obtain ⟨xs, s1, h1, h⟩ := Whir.runF_bind_some h
+  obtain ⟨hs1, hl⟩ := runF_readN _ _ _ _ h1
+  obtain ⟨hall, h⟩ := runF_require_bind h
+  obtain ⟨hr, h⟩ := runF_require_bind h
+  obtain ⟨L', hL', h⟩ := runF_liftOption_bind h
+  obtain ⟨hst, h⟩ := runF_require_bind h
+  simp only [Whir.runF, Option.some.injEq, Prod.mk.injEq] at h
+  obtain ⟨⟨rfl, rfl⟩, rfl⟩ := h
+  have hl8 : xs.length = 8 := by rw [hl]; rfl
+  match xs, hl8, hall, hs1, hL', hr with
+  | [v0, v1, v2, v3, v4, v5, v6, v7], _, hall, hs1, hL', hr =>
+    simp only [List.all_cons, List.all_nil, Bool.and_true, Bool.and_eq_true, decide_eq_true_eq]
+      at hall
+    obtain ⟨⟨a0, b0⟩, ⟨a1, b1⟩, ⟨a2, b2⟩, ⟨a3, b3⟩, ⟨a4, b4⟩, ⟨a5, b5⟩, ⟨a6, b6⟩, ⟨a7, b7⟩⟩ :=
+      hall
+    set rowsN := [kToNat (v1.limb 0), kToNat (v2.limb 0), kToNat (v3.limb 0), kToNat (v4.limb 0),
+      kToNat (v5.limb 0), kToNat (v6.limb 0)] with hrowsN
+    have hrows : ((([v0, v1, v2, v3, v4, v5, v6, v7].drop 1).take tables.length).map
+        fun value ↦ kToNat (value.limb 0)) = rowsN := rfl
+    have e7 : [v0, v1, v2, v3, v4, v5, v6, v7].getLastD 0 = v7 := rfl
+    simp only [List.headD_cons, hrows, e7] at hL' hr hst ⊢
+    -- the layout's conditions
+    have hcond := hL'
+    unfold buildLayout at hcond
+    rw [hbl, show log2Strict (2 ^ 23) = some 23 by decide] at hcond
+    simp only at hcond
+    split at hcond
+    · rename_i hc
+      obtain ⟨-, h16, h32, hall32, -, hlen⟩ := hc
+      have hlen' : rowsN.length = 6 := by rw [hlen]; rfl
+      have hr32 : ∀ n ∈ rowsN, n ≤ 2 ^ 32 := by simpa using hall32
+      have hLe := buildLayout_eq hbl h16 h32 hlen' hr32
+      rw [hL'] at hLe
+      obtain rfl := Option.some.inj hLe
+      refine ⟨kToNat (v0.limb 0), rowsN, ?_, rfl, h16, h32, hlen', hr32, hr.1, hr.2, hst.1, hst.2⟩
+      rw [hs1, ← word_eOfNat_of a0 b0, ← word_eOfNat_of a7 b7]
+      simp only [hrowsN, List.map_cons, List.map_nil, ← word_eOfNat_of a1 b1,
+        ← word_eOfNat_of a2 b2, ← word_eOfNat_of a3 b3, ← word_eOfNat_of a4 b4,
+        ← word_eOfNat_of a5 b5, ← word_eOfNat_of a6 b6]
+      rfl
+    · simp at hcond
 
 end
 end LeanVM.Guest.B1.VerifySub
