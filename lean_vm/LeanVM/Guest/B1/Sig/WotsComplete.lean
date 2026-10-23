@@ -284,5 +284,81 @@ theorem walksT_ssa {W : WotsT} {B : Nat} (hW : StepShape W B) (slots : Nat → N
           · rw [hbase, show r + 1 + t = r + (t + 1) by omega] at h
             exact Or.inr ⟨t + 1, by omega, h⟩
 
+/-- A step's canonical inputs and outputs, from canonical external values (`good`, a property of
+the values below `B`) and a canonical input. -/
+def StepCanon (W : WotsT) (B : Nat) (good : Val → Prop) : Prop :=
+  (∀ σ σ', AgreeBelow B σ σ' → good σ → good σ') ∧
+  ∀ i s v c o σ, B ≤ c → B ≤ o → (c + W.size ≤ o ∨ o + 13 ≤ c) → ¬ InR c W.size v →
+    ¬ InR o 13 v → good σ → IsCanonical128 (σ v) →
+    KCanon (fwd (W.step i s v c o) σ) (W.step i s v c o) ∧
+      ∀ j < 13, IsCanonical128 (fwd (W.step i s v c o) σ (.n (o + j)))
+
+theorem walk_step_conds {W : WotsT} {B : Nat} {slot : Nat → Nat} {stride d b m : Nat} (hd : d < 3)
+    (hl : WalkLay W B slot stride d b) (hm : m < 3 - d) :
+    B ≤ b + 1 + m * stride ∧ B ≤ slot (d + m) ∧
+      (b + 1 + m * stride + W.size ≤ slot (d + m) ∨ slot (d + m) + 13 ≤ b + 1 + m * stride) ∧
+      ¬ InR (b + 1 + m * stride) W.size (if m = 0 then .n b else .n (slot (d + m - 1))) ∧
+      ¬ InR (slot (d + m)) 13 (if m = 0 then .n b else .n (slot (d + m - 1))) := by
+  refine ⟨by have := hl.base; omega, hl.slotB (d + m) (by omega), ?_, ?_, ?_⟩
+  · rcases hl.apart (d + m) (by omega) m hm with h | h <;> omega
+  · rintro ⟨j, hj, e⟩
+    split at e
+    · simp only [V.mk.injEq, true_and] at e; omega
+    · simp only [V.mk.injEq, true_and] at e
+      rcases hl.apart (d + m - 1) (by omega) m hm with h | h <;> omega
+  · rintro ⟨j, hj, e⟩
+    split at e
+    · simp only [V.mk.injEq, true_and] at e
+      rcases hl.start (d + m) (by omega) with h | h <;> omega
+    · simp only [V.mk.injEq, true_and] at e
+      have := hl.inc (d + m - 1) (d + m) (by omega) (by omega)
+      omega
+
+/-- **A walk's `KECCAK`s read canonical inputs** and its slots hold canonical cells. -/
+theorem walkSteps_canon {W : WotsT} {B : Nat} {good : Val → Prop} (hW : StepShape W B)
+    (hc : StepCanon W B good) {i : Nat} {slot : Nat → Nat} {stride d b : Nat} (hd : d < 3)
+    (hl : WalkLay W B slot stride d b) :
+    ∀ m, m ≤ 3 - d → ∀ σ, good σ → IsCanonical128 (σ (.n b)) →
+      KCanon (fwd (walkSteps W i slot stride d b m) σ) (walkSteps W i slot stride d b m) ∧
+      ∀ s, d ≤ s → s < d + m → ∀ j < 13, IsCanonical128 (fwd (walkSteps W i slot stride d b m) σ (.n (slot s + j)))
+  | 0, _, σ, _, _ => ⟨fun _ _ _ _ h => by simp [walkSteps] at h, fun s h1 h2 => by omega⟩
+  | m + 1, hm, σ, hg, hb => by
+      obtain ⟨i1, i2⟩ := walkSteps_canon (i := i) hW hc hd hl m (by omega) σ hg hb
+      obtain ⟨c1, c2, c3, c4, c5⟩ := walk_step_conds hd hl (show m < 3 - d by omega)
+      have hsplit : walkSteps W i slot stride d b (m + 1) = walkSteps W i slot stride d b m ++
+          W.step i (d + m) (if m = 0 then .n b else .n (slot (d + m - 1))) (b + 1 + m * stride)
+            (slot (d + m)) := by
+        simp only [walkSteps, List.range_succ, List.flatMap_append, List.flatMap_cons,
+          List.flatMap_nil, List.append_nil]
+      have hs := (walkSteps_ssa (i := i) hW hd hl (m + 1) hm)
+      rw [hsplit] at hs ⊢
+      have hdisj := SSA.disj hs.1
+      obtain ⟨-, i2s, -⟩ := walkSteps_ssa (i := i) hW hd hl m (by omega)
+      have hag : AgreeBelow B σ (fwd (walkSteps W i slot stride d b m) σ) := fwd_agree (fun v hv ⟨j, hj, e⟩ => by
+        subst e
+        rcases i2s _ hv with ⟨t, ht, u, hu, e⟩ | ⟨s, h1, h2, u, hu, e⟩ <;> simp only [V.mk.injEq, true_and] at e
+        · have := hl.base; omega
+        · have := hl.slotB s (by omega); omega) σ
+      have hv : IsCanonical128 (fwd (walkSteps W i slot stride d b m) σ
+          (if m = 0 then .n b else .n (slot (d + m - 1)))) := by
+        split
+        · rename_i h0; subst h0; simpa [walkSteps, fwd] using hb
+        · have := i2 (d + m - 1) (by omega) (by omega) 0 (by omega)
+          simpa using this
+      obtain ⟨k1, k2⟩ := hc.2 i (d + m) _ _ _ (fwd (walkSteps W i slot stride d b m) σ) c1 c2 c3 c4 c5
+        (hc.1 _ _ hag hg) hv
+      obtain ⟨-, so, -⟩ := hW i (d + m) _ _ _ c1 c2 c3 c4 c5
+      refine ⟨KCanon.append i1 k1 hdisj, fun s h1 h2 j hj => ?_⟩
+      rw [fwd_append]
+      by_cases hs' : s = d + m
+      · subst hs'
+        exact k2 j hj
+      · rw [fwd_of_not_mem _ _ fun hm => ?_]
+        · exact i2 s h1 (by omega) j hj
+        · rcases so _ hm with ⟨u, hu, e⟩ | ⟨u, hu, e⟩ <;> simp only [V.mk.injEq, true_and] at e
+          · rcases hl.apart s (by omega) m (by omega) with h | h <;> omega
+          · have := hl.inc s (d + m) (by omega) (by omega)
+            omega
+
 end
 end LeanVM.Guest.B1.Sig

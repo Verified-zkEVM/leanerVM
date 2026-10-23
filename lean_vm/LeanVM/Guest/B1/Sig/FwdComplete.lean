@@ -28,6 +28,9 @@ open LeanVM.Guest.Value.Keccak
 
 variable {rd : Reader}
 
+/-- `v` is numbered below `b`. -/
+def NBvF (b : Nat) (v : V) : Prop := ∃ j < b, v = .n j
+
 /-- The values an atom defines. -/
 def aOuts : Atom → List V
   | .const d _ | .add d _ _ | .mul d _ _ | .copy d _ => [d]
@@ -268,6 +271,39 @@ theorem KCanon.append {xs ys : List Stmt} {σ : Val} (h1 : KCanon (fwd xs σ) xs
     rw [e]
     exact h1 ins outs i o hm c
   · exact h2 ins outs i o hm c
+
+theorem SSA.disj : ∀ {xs ys : List Stmt}, SSA (xs ++ ys) → ∀ v ∈ outsList ys, v ∉ Stmt.valsList xs
+  | [], _, _, _, _, h => by simp at h
+  | .atom a :: xs, ys, h, v, hv, hm => by
+      obtain ⟨-, -, hl, hs⟩ := h
+      simp only [valsList_cons, Stmt.vals, List.mem_append] at hm
+      rcases hm with hm | hm
+      · exact hl v (outsList_append xs ys ▸ List.mem_append_right _ hv : v ∈ outsList (xs ++ ys)) hm
+      · exact SSA.disj hs v hv hm
+  | .ite .. :: _, _, h, _, _, _ | .match_ .. :: _, _, h, _, _, _ | .call .. :: _, _, h, _, _, _
+  | .callIf .. :: _, _, h, _, _, _ | .dispatch .. :: _, _, h, _, _, _ | .ret _ :: _, _, h, _, _, _ =>
+      h.elim
+
+theorem SSA.left : ∀ {xs ys : List Stmt}, SSA (xs ++ ys) → SSA xs
+  | [], _, _ => trivial
+  | .atom a :: xs, ys, h => by
+      obtain ⟨h1, h2, h3, h4⟩ := h
+      exact ⟨h1, h2, fun v hv => h3 v (outsList_append xs ys ▸ List.mem_append_left _ hv :
+        v ∈ outsList (xs ++ ys)),
+        SSA.left h4⟩
+  | .ite .. :: _, _, h | .match_ .. :: _, _, h | .call .. :: _, _, h
+  | .callIf .. :: _, _, h | .dispatch .. :: _, _, h | .ret _ :: _, _, h => h.elim
+
+theorem SSA.right : ∀ {xs ys : List Stmt}, SSA (xs ++ ys) → SSA ys
+  | [], _, h => h
+  | .atom _ :: xs, _, h => SSA.right (xs := xs) h.2.2.2
+  | .ite .. :: _, _, h | .match_ .. :: _, _, h | .call .. :: _, _, h
+  | .callIf .. :: _, _, h | .dispatch .. :: _, _, h | .ret _ :: _, _, h => h.elim
+
+/-- Evaluation keeps the values below every definition. -/
+theorem fwd_agree {ss : List Stmt} {B : Nat} (h : ∀ v ∈ outsList ss, ¬ NBvF B v) (σ : Val) :
+    AgreeBelow B σ (fwd ss σ) := fun k hk =>
+  (fwd_of_not_mem ss σ fun hm => h _ hm ⟨k, hk, rfl⟩).symm
 
 end
 end LeanVM.Guest.B1.Sig
