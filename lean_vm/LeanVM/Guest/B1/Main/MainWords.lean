@@ -258,8 +258,8 @@ theorem l5B_le (Bv : ℕ → ℕ) {bytecode : List K} {s : NodeStatement} {w : N
         hEx w c * ccS fs + hEs w c * ccS fs + hEd w c * ccS fs := by ring
     omega
   have hs := Finset.sum_le_sum fun c (_ : c ∈ Finset.range w.children.length) => hK c
-  simp only [Finset.sum_add_distrib, Finset.sum_const, Finset.card_range, smul_eq_mul,
-    ← Finset.mul_sum] at hs
+  rw [Finset.sum_add_distrib, Finset.sum_add_distrib, Finset.sum_const, Finset.card_range,
+    smul_eq_mul, ← Finset.mul_sum] at hs
   have hcc : ∑ c ∈ Finset.range w.children.length, (hEx w c + hEs w c + hEd w c) =
       (End.work s w).childClaims := by
     simp only [kid_counts]

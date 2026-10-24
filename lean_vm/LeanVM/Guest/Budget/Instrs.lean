@@ -95,12 +95,12 @@ theorem mainCount_le (H : MainCounts ω fs) (SB SK : String → ℕ) (Bvf : ℕ 
   -- the ratios at the linear bounds
   have rX : H.αcl * (mainBsH fs SB SK (childBv Bvf w) s w).Bx / 1000 ≤ (H.αcl * clC fs SB / 1000 + 1) +
       s.claims.xmss.length * (H.αcl * clS SK / 1000 + 1) := by
-    have := div_aff3 H.αcl (clC fs SB) clS SK 0 s.claims.xmss.length 0
+    have := div_aff3 H.αcl (clC fs SB) (clS SK) 0 s.claims.xmss.length 0
     simp only [Nat.zero_mul, Nat.add_zero, Nat.mul_zero] at this
     exact le_trans (Nat.div_le_div_right (Nat.mul_le_mul_left _ hX)) this
   have rS : H.αcl * (mainBsH fs SB SK (childBv Bvf w) s w).Bs / 1000 ≤ (H.αcl * clC fs SB / 1000 + 1) +
       s.claims.sphincs.length * (H.αcl * clS SK / 1000 + 1) := by
-    have := div_aff3 H.αcl (clC fs SB) clS SK 0 s.claims.sphincs.length 0
+    have := div_aff3 H.αcl (clC fs SB) (clS SK) 0 s.claims.sphincs.length 0
     simp only [Nat.zero_mul, Nat.add_zero, Nat.mul_zero] at this
     exact le_trans (Nat.div_le_div_right (Nat.mul_le_mul_left _ hS)) this
   have hdecl : s.claims.xmss.length + s.claims.sphincs.length ≤ (work s w).declared := by

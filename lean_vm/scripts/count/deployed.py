@@ -175,7 +175,6 @@ theorem deployedBudget_words (Bvf : ℕ → ℕ → ℕ) :
   simp only [Budget.deployedBudget, Budget.mainBudget, mainWords, deployedWords]
   rw [clC_eq, clS_eq, dvC_eq, dvS_eq, l5A0_eq, l5A1_eq, l5A2_eq, agA0_eq, agA1_eq]
   congr 1
-  all_goals omega
 
 set_option maxRecDepth 100000 in
 /-- **`deployedBudget`'s instructions.** -/
@@ -184,7 +183,7 @@ theorem deployedBudget_instrs (Bvf : ℕ → ℕ → ℕ) (op : Opcode) :
   simp only [Budget.deployedBudget, Budget.mainBudget, Budget.mainInstrs]
   rw [clC_eq, clS_eq, dvC_eq, dvS_eq, l5A0_eq, l5A1_eq, l5A2_eq]
   cases op <;> simp only [deployedInstrs, mainCounts, kcExp, kcDl, kcSd, kcCov, kcL0, kcL1, kcL2, kcL3,
-    kcL4, kcAggC, kcAggD, krClA, krDvA, krL5A, B2C.jtSets] <;> congr 1 <;> omega
+    kcL4, kcAggC, kcAggD, krClA, krDvA, krL5A, B2C.jtSets] <;> congr 1
 '''
     mod('Deployed', 'The numbers of the deployed budget: `deployedBudget_words`, `deployedBudget_instrs`.',
         'public import LeanVM.Guest.Count.DeployedB\npublic import LeanVM.Guest.Count.DeployedC\n', body)
