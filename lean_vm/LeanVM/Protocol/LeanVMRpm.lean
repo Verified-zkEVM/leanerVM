@@ -1,8 +1,9 @@
 /-
   LeanVM.Protocol.LeanVMRpm
 
-  The proofs of the two statements of `LeanVM/Spec/Rpm.lean`: knowledge soundness and
-  completeness of the leanVM verifier in the random-permutation model.
+  The proofs of the two statements of `LeanVM/Spec/Rpm.lean`, `LeanVM.KnowledgeSoundness` and
+  `LeanVM.Completeness`: knowledge soundness and completeness of the leanVM verifier in the
+  random-permutation model, from the two-oracle random-oracle model.
 -/
 
 import LeanVM.Protocol.LeanVM
@@ -21,10 +22,10 @@ permutation `π` of the Keccak state, Keccak-f[1600] `π` itself, the adversary 
 
 **Knowledge soundness** (`knowledgeSoundnessRpm`): for an adversary of at most `Q` queries, the
 probability that the verifier accepts while the program's last instruction is not a `JUMP` and
-the extractor `extractorRpm` (the extractor of `Statement.lean` on the Keccak-256 evaluations of
+the extractor `extractorRpm` (the extractor of `Extractor.lean` on the Keccak-256 evaluations of
 the adversary's transcript) does not return a valid execution is at most
 `soundnessError Q + (Q + 12008 · 2^32)² / 2^508`, which is at most `(Q + 2^14) · 2^-127` for
-`Q ≤ 2^120` (`soundnessRpm_le_bits`, `knowledgeSoundnessRpm_bits`) and at most `2^-63` for
+`Q ≤ 2^120` (`soundnessRpm_le_bits`, `knowledgeSoundness_bits`) and at most `2^-63` for
 `Q ≤ 2^64` (`soundnessRpm_le`). The proof:
 
 1. the experiment is `lean_rpm`'s real world of a transfer game (`rpmExperiment_evalDistEq`,
@@ -33,16 +34,18 @@ the adversary's transcript) does not return a valid execution is at most
    `Duplex.lean`), and the game makes at most `Q + verifierPermCalls` permutation calls
    (`isWeightBound_game`, from `Cost.lean`);
 3. `LeanRpm.keccak256_transfer2` moves the event to the two-oracle random-oracle model, against
-   the adversary with the indifferentiability simulator, at a cost of `q² / 2^508`;
+   the adversary with the indifferentiability simulator, at a cost of `q² / 2^508`, which is where
+   the random-permutation model meets the random-oracle model;
 4. there, the adversary's cached Keccak-256 answers are exactly the evaluations of its transcript
    (`transcriptHashes_eq_of_mem_support`, `Extract.lean`), so the event is the event of
-   `Statement.lean` against the random-oracle adversary `romAdv` (`romGame_le`), which makes at
+   `KnowledgeSoundnessRom` (`LeanVM/Protocol/Rom/Statement.lean`) against the random-oracle
+   adversary `romAdv` (`romGame_le`), which makes at
    most `Q` oracle queries (`isWeightBound_romAdv`) and flips coins;
-5. coins do not help (`knowledgeSoundness_coins`, `Coins.lean`), and `knowledgeSoundness_holds`
-   bounds the rest by `soundnessError Q`.
+5. coins do not help (`knowledgeSoundness_coins`, `Coins.lean`), and
+   `knowledgeSoundnessRom_holds` bounds the rest by `soundnessError Q`.
 
 **Completeness** (`completenessRpm`): the same game with no adversary and, after it, the honest
-prover of `Statement.lean` followed by the verifier, both following the duplex discipline
+prover of `CompletenessRom` followed by the verifier, both following the duplex discipline
 (`duplexVm_honest`), of at most `completenessPermCalls fuel` permutation calls
 (`isWeightBound_honest`): the rejection probability is at most
 `completenessError fuel + completenessPermCalls fuel² / 2^508`, below `2^-127` at a fuel of `2^25`
@@ -72,10 +75,10 @@ theorem admissible_toRpm {hist : List KState} {x : KState} (h : AdmissibleVm his
   · right
     exact ⟨KState.toRpm y, List.mem_map_of_mem hy, keccakNF_of_keep x y h⟩
 
-/-- **The discipline on lanes is the discipline on bytes**: a computation over the two oracles of
-`Statement.lean` whose permutation calls follow the duplex discipline on lanes, read on bytes,
-follows `lean_rpm`'s duplex discipline (`LeanRpm.Duplex`, at the zero state, for the non-final
-blocks `LeanRpm.keccakNF`). -/
+/-- **The discipline on lanes is the discipline on bytes**: a computation over the calls of
+`Statement.lean` (`HashSpec`) whose permutation calls follow the duplex discipline on lanes, read
+on bytes, follows `lean_rpm`'s duplex discipline (`LeanRpm.Duplex`, at the zero state, for the
+non-final blocks `LeanRpm.keccakNF`). -/
 theorem duplex_toRHF {β : Type} (V : OracleComp HashSpec β) (hist : List KState)
     (hV : DuplexVm V hist) :
     LeanRpm.Duplex LeanRpm.KState.zero LeanRpm.keccakNF (simulateQ toRHF V)
@@ -197,7 +200,7 @@ theorem experimentCoins_eq (B : OracleComp CSpec (Statement × Proof)) :
 /-- **The random-oracle game of the transfer is bounded by the random-oracle experiment of the
 transfer's adversary**: the transcript's Keccak-256 evaluations are the adversary's cached hash
 answers (`transcriptHashes_eq_of_mem_support`), so the extractor in the random-permutation model
-sees what the extractor of `Statement.lean` sees. -/
+sees what the extractor of the random-oracle model (`LeanVM.extractor`) sees. -/
 theorem romGame_le (A : RpmAdversary) :
     Pr{let a ← LeanRpm.romRun2 (simulateQ LeanRpm.hInF (pure ()) >>= fun x ↦
         LeanRpm.advS2 LeanRpm.keccakPadding LeanRpm.KState.zero ((fun _ ↦ advR A) x) >>= fun a ↦
@@ -273,8 +276,8 @@ theorem isWeightBound_honestGame (prog : Program) (input : PublicInput) (t : Tra
   rw [honestGame, LeanRpm.rpmGame2, simulateQ_pure, pure_bind, simulateQ_pure, pure_bind]
   exact isWeightBound_hfEmbed_toRHF (isWeightBound_honest prog input t ρ fuel)
 
-/-- **Completeness in the random-permutation model**, for the honest prover of `Statement.lean`
-(`LeanVM.Protocol.EndToEnd.Complete.honestComp`). -/
+/-- **Completeness in the random-permutation model**, for the honest prover
+`LeanVM.Protocol.EndToEnd.Complete.honestComp`. -/
 theorem completenessRpm {prog : Program} {input : PublicInput} {t : Trace prog}
     (hv : ValidExecution prog input t) (hbudget : t.committedSize ≤ 2 ^ 28) {ρ : ℕ}
     (hρ : 1 ≤ ρ ∧ ρ ≤ 4) {fuel : ℕ} (hfuel : fuel ≤ 2 ^ 64) :
@@ -290,7 +293,7 @@ theorem completenessRpm {prog : Program} {input : PublicInput} {t : Trace prog}
     (fun _ _ ↦ simulateQ toRHF (honestRun prog input t ρ fuel))
     (fun _ _ ↦ duplex_toRHF _ [] (duplexVm_honest prog input t ρ fuel))
     (completenessPermCalls fuel) (isWeightBound_honestGame prog input t ρ fuel) (· = false)
-  refine h1.trans (add_le_add (le_of_eq_of_le ?_ (completeness hv hbudget hρ hfuel)) le_rfl)
+  refine h1.trans (add_le_add (le_of_eq_of_le ?_ (completenessRom hv hbudget hρ hfuel)) le_rfl)
   have e1 : LeanRpm.romRun2 (simulateQ LeanRpm.hInF (pure ()) >>= fun x ↦
       LeanRpm.advS2 LeanRpm.keccakPadding LeanRpm.KState.zero
         ((fun _ ↦ (pure () : OracleComp RSpec Unit)) x) >>= fun a ↦
@@ -393,25 +396,25 @@ namespace LeanVM
 
 /-! ## The statements of `LeanVM/Spec/Rpm.lean` -/
 
-/-- **Knowledge soundness in the random-permutation model holds**, for the extractor
+/-- **Knowledge soundness holds** (in the random-permutation model), for the extractor
 `extractorRpm`. -/
-theorem knowledgeSoundnessRpm_holds : KnowledgeSoundnessRpm :=
+theorem knowledgeSoundness_holds : KnowledgeSoundness :=
   fun _ _ hA ↦ Rpm.knowledgeSoundnessRpm hA
 
 open OracleComp OracleSpec in
 open scoped ENNReal in
-/-- **Knowledge soundness in bits in the random-permutation model**: an adversary of at most
+/-- **Knowledge soundness in bits** (in the random-permutation model): an adversary of at most
 `Q ≤ 2^120` queries to `π` and `π⁻¹` breaks soundness, for the extractor `extractorRpm`, with
 probability at most `(Q + 2^14) · 2^-127`. -/
-theorem knowledgeSoundnessRpm_bits : ∀ (A : RpmAdversary) (Q : ℕ), A.IsTotalQueryBound Q →
+theorem knowledgeSoundness_bits : ∀ (A : RpmAdversary) (Q : ℕ), A.IsTotalQueryBound Q →
     Q ≤ 2 ^ 120 →
       Pr{let z ← rpmExperiment A}[BreaksRpm extractorRpm z] ≤
         (Q + 2 ^ 14 : ℝ≥0∞) * (2 : ℝ≥0∞)⁻¹ ^ 127 :=
   fun _ _ hA hQ ↦ (Rpm.knowledgeSoundnessRpm hA).trans (Rpm.soundnessRpm_le_bits hQ)
 
-/-- **Completeness in the random-permutation model holds**, with the honest prover of
-`Statement.lean`. -/
-theorem completenessRpm_holds : CompletenessRpm :=
+/-- **Completeness holds** (in the random-permutation model), with the honest prover
+`LeanVM.Protocol.EndToEnd.Complete.honestComp`. -/
+theorem completeness_holds : Completeness :=
   ⟨fun prog input t ρ fuel ↦ Protocol.EndToEnd.Complete.honestComp prog input t ρ fuel,
     fun _ _ _ _ _ hv hbudget hρ hfuel ↦ Rpm.completenessRpm hv hbudget hρ hfuel⟩
 

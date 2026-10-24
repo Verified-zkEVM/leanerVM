@@ -1,21 +1,21 @@
 /-
   LeanVM.Spec.Rpm
 
-  What is proved about the leanVM verifier in the random-permutation model: knowledge soundness
-  and completeness, stated as two propositions, with Keccak-256 and Keccak-f[1600] both built from
-  one uniformly random permutation of the Keccak state.
+  What is proved about the leanVM verifier: knowledge soundness and completeness in the
+  random-permutation model, stated as two propositions, with Keccak-256 and Keccak-f[1600] both
+  built from one uniformly random permutation of the Keccak state.
 -/
 
 import LeanVM.Spec.Statement
 import LeanRpm.Transfer
 
 /-!
-# The statements in the random-permutation model
+# The statements, in the random-permutation model
 
-`LeanVM/Spec/Statement.lean` states knowledge soundness and completeness with Keccak-256 and
-Keccak-f[1600] as two independent random oracles. Here both are built from one permutation `π` of
-the Keccak state (`KState`, 1600 bits), sampled uniformly and queried forward (`π x`) and inverse
-(`π⁻¹ y`): the random-permutation model (RPM).
+The model: one permutation `π` of the Keccak state (`KState`, 1600 bits), sampled uniformly and
+queried forward (`π x`) and inverse (`π⁻¹ y`), the random-permutation model (RPM). Keccak-256
+and Keccak-f[1600], which the verifier calls (`verifier H F`, `LeanVM/Spec/Statement.lean`), are
+both built from it.
 
 * **The permutation** is `LeanRpm.lazyPerm`, the lazily sampled uniform permutation of
   `lean_rpm` (`lean_rpm/LeanRpm/Model.lean`): its state is the list of edges `(x, π x)` fixed so
@@ -25,9 +25,9 @@ the Keccak state (`KState`, 1600 bits), sampled uniformly and queried forward (`
 * **Keccak-256** (`keccak256With π`) is `keccak256` (`LeanVM/Spec/Keccak.lean`, `keccak_hash`,
   `verifier.py:191-209`) with `π` in place of Keccak-f[1600]: the sponge of rate 136 bytes and
   capacity 512 bits, the padding `0x01 ‖ 0^* ‖ 0x80`, the zero initial state, the first four lanes
-  as the digest. **Keccak-f[1600]**, the Fiat-Shamir duplex's permutation, is `π` itself. The two
-  oracles of `Statement.lean` are implemented so (`rpmImpl`), and the verifier and the honest
-  prover run against this implementation.
+  as the digest. **Keccak-f[1600]**, the Fiat-Shamir duplex's permutation, is `π` itself. The
+  verifier's and the honest prover's calls (`HashSpec`, `Statement.lean`) are answered so
+  (`rpmImpl`).
 * **The adversary** (`RpmAdversary`) queries `π` and `π⁻¹` only, and outputs a statement and a
   proof; a Keccak-256 evaluation is a sequence of forward queries, which it makes itself. Every
   query and its answer is recorded, in order (`Transcript`, `loggedPerm`).
@@ -36,37 +36,57 @@ the Keccak state (`KState`, 1600 bits), sampled uniformly and queried forward (`
   sponge over `π`, `F = π`); the outcome is the statement and the proof, the verdict, and the
   adversary's transcript.
 
-**Knowledge soundness** (`KnowledgeSoundnessRpm`) is stated for one extractor, `extractorRpm`,
-which is straight-line: it reads the proof and the adversary's transcript, and nothing else (not
-the verifier's queries, not the permutation's other values; it neither queries `π` nor rewinds the
-adversary). It is the extractor of `Statement.lean` (`LeanVM.Extraction.extract`) run on the
+**Knowledge soundness** (`KnowledgeSoundness`) is stated for one extractor, `extractorRpm`, which
+is straight-line: it reads the proof and the adversary's transcript, and nothing else (not the
+verifier's queries, not the permutation's other values; it neither queries `π` nor rewinds the
+adversary). It is the extractor of `Extractor.lean` (`LeanVM.Extraction.extract`) run on the
 Keccak-256 evaluations the transcript contains (`transcriptHashes`): a byte string `m` has digest
 `d` when the transcript holds the whole padded sponge path of `m`, a chain of forward queries from
 the zero state, each one absorbing the next block into the answer of the one before and each the
 query that first fixed its edge (an edge first fixed by an inverse query extends no path), as the
 indifferentiability simulator of `lean_rpm` books it (`LeanRpm.pathsOf`, on the bytes of the
-states, `KState.toRpm`); `d` is the first four lanes of the path's last answer. The bound is the
-random-oracle bound at the adversary's query count, plus `q² / 2^508` for `q` the permutation
-calls of the whole experiment (`rpmError`): the adversary's `Q`, and at most `verifierPermCalls`
-of the verifier.
+states, `KState.toRpm`); `d` is the first four lanes of the path's last answer. It reads the
+announced sizes and the stack's Merkle root off the proof; reads the word the root commits to off
+those evaluations (each leaf the preimage, among them, of a path climbing to the root); and
+returns the halting run of the memory image of a stack in the word's Johnson list (a stack whose
+Reed–Solomon encoding agrees with the word on at least the Johnson threshold of columns), one that
+is a valid execution if there is one. For every adversary of at most `Q` queries to `π` and `π⁻¹`,
+the probability that the verifier accepts while the program's last instruction is not a `JUMP`
+(`SentinelSafe`) and the extractor does not return a valid execution of the program on the public
+input is at most `soundnessError Q + rpmError (Q + verifierPermCalls)`: `soundnessError Q`
+(`Statement.lean`) plus `q² / 2^508` for `q` the permutation calls of the whole experiment, the
+adversary's `Q` and at most `verifierPermCalls` of the verifier. So an accepted proof commits,
+except with that probability, to a stack whose memory columns hold a valid execution, among the at
+most `2^18` stacks the word the adversary hashed is close to (proved, for every admissible shape
+and word: `LeanVM.candidates_ncard_le`). The choice among them is classical: the extractor is a
+definition, not an algorithm with a running time.
 
-**Completeness** (`CompletenessRpm`): there is an honest prover (an oracle computation over the
-two oracles of `Statement.lean`, run here with both built from `π`) which, given a valid
-execution within the verifier's size cap, makes the verifier reject with probability at most the
-random-oracle error plus `q² / 2^508`, `q` the permutation calls of the prover and the verifier
-(`completenessPermCalls`).
+**Completeness** (`Completeness`): there is an honest prover (an oracle computation over the
+calls of `Statement.lean`, answered here with both functions built from `π`) which, given a valid
+execution whose committed size is at most `2^28`, the most the verifier admits
+(`Trace.committedSize`), at an inverse rate `2^ρ` with `1 ≤ ρ ≤ 4`, trying at most `fuel ≤ 2^64`
+nonces per proof of work, makes the verifier reject with probability at most
+`completenessError fuel` plus `q² / 2^508`, `q` the permutation calls of the prover and the
+verifier (`completenessPermCalls`). The honest prover is not required to be efficient.
 
 **Scope and trust.** The permutation is uniformly random; the deployed Keccak-f[1600] is a fixed
 permutation, and that it behaves as a random one is the assumption of this model. Inside the
-executed program the `KECCAK` instruction computes the deployed Keccak-f[1600], not `π`, as in
-`Statement.lean`. The definitions rest on `lean_rpm` (the lazily sampled permutation, the sponge's
-padding and `pathsOf`), VCVio and the files of `LeanVM/Spec/`. The `lean_rpm` definitions they
-use are in `Model.lean` (`lazyPerm`, `uniformAvoiding`, the edge lookups), `Sponge.lean` (the byte
-state, `ofBytes`, `zero`, `keccakPadding`, `blockTo`, `rxor`), `Indiff/Defs.lean`
-(`SimState.init`, `chainOf`) and `Transfer.lean` (`replayStep`, `replay`, `simPaths`,
-`pathsOf`); the rest of `lean_rpm` is proof.
+executed program the `KECCAK` instruction computes the deployed Keccak-f[1600], not `π`. The
+definitions rest on `lean_rpm` (the lazily sampled permutation, the sponge's padding and
+`pathsOf`), VCVio and the files of `LeanVM/Spec/`. The `lean_rpm` definitions they use are in
+`Model.lean` (`lazyPerm`, `uniformAvoiding`, the edge lookups), `Sponge.lean` (the byte state,
+`ofBytes`, `zero`, `keccakPadding`, `blockTo`, `rxor`), `Indiff/Defs.lean` (`SimState.init`,
+`chainOf`) and `Transfer.lean` (`replayStep`, `replay`, `simPaths`, `pathsOf`); the rest of
+`lean_rpm` is proof.
 
-The proofs are `LeanVM.knowledgeSoundnessRpm_holds` and `LeanVM.completenessRpm_holds`
+**How the proofs reach this model** (not part of the statement). The proofs first prove both
+statements with Keccak-256 and Keccak-f[1600] two independent random oracles
+(`LeanVM/Protocol/Rom/Statement.lean`, `LeanVM.knowledgeSoundnessRom_holds`,
+`LeanVM.completenessRom_holds`), then move them here with `lean_rpm`'s indifferentiability of the
+sponge from a random oracle, with the duplex's direct permutation calls
+(`LeanRpm.keccak256_transfer2`, `q² / 2^508`).
+
+The proofs are `LeanVM.knowledgeSoundness_holds` and `LeanVM.completeness_holds`
 (`LeanVM/Protocol/LeanVMRpm.lean`).
 -/
 
@@ -125,7 +145,7 @@ abbrev PermLog : Type := LeanRpm.PermLog KState
 noncomputable def perm (x : KState) : StateT PermLog ProbComp KState :=
   LeanRpm.lazyPerm (.fwd x)
 
-/-- **The two oracles of `Statement.lean` in the random-permutation model**: Keccak-256 is the
+/-- **The verifier's calls (`Statement.lean`) in the random-permutation model**: Keccak-256 is the
 sponge over the random permutation, Keccak-f[1600] is the random permutation. -/
 noncomputable def rpmImpl : QueryImpl HashSpec (StateT PermLog ProbComp)
   | .inl x => keccak256With perm x
@@ -208,9 +228,8 @@ proof, an execution of the program. -/
 abbrev RpmExtractor : Type :=
   (prog : Program) → PublicInput → Transcript → Proof → Option (Trace prog)
 
-/-- **The extractor in the random-permutation model**: the extractor of `Statement.lean`
-(`LeanVM.Extraction.extract`, `LeanVM/Spec/Extractor.lean`) on the Keccak-256 evaluations of the
-adversary's transcript. -/
+/-- **The extractor in the random-permutation model**: the extractor of `Extractor.lean`
+(`LeanVM.Extraction.extract`) on the Keccak-256 evaluations of the adversary's transcript. -/
 noncomputable def extractorRpm : RpmExtractor := fun prog input T proof ↦
   Extraction.extract prog input (bytecodeWords prog) (transcriptHashes T) proof
 
@@ -230,14 +249,15 @@ bytes (the bytecode: `16` words of `8` bytes per instruction, at most `2^32` ins
 is at most `⌊2^39 / 136⌋ + 1 ≤ 2^32` blocks, one permutation each. -/
 def verifierPermCalls : ℕ := verifierQueries * 2 ^ 32
 
-/-- The cost of replacing the two random oracles by one random permutation, for an experiment of
-`q` permutation calls (`LeanRpm.keccak256_transfer2`). -/
+/-- The second term of the bounds, for an experiment of `q` permutation calls: `q² / 2^508`, the
+cost of building Keccak-256 and Keccak-f[1600] from one random permutation rather than taking them
+independent random functions (`LeanRpm.keccak256_transfer2`). -/
 noncomputable def rpmError (q : ℕ) : ℝ≥0∞ := (q ^ 2 : ℝ≥0∞) / 2 ^ 508
 
 /-- **Knowledge soundness in the random-permutation model**, for the extractor `extractorRpm`:
 an adversary of at most `Q` queries to `π` and `π⁻¹` breaks soundness with probability at most
-the random-oracle error at `Q` queries plus `rpmError` of the experiment's permutation calls. -/
-def KnowledgeSoundnessRpm : Prop :=
+`soundnessError Q` plus `rpmError` of the experiment's permutation calls. -/
+def KnowledgeSoundness : Prop :=
   ∀ (A : RpmAdversary) (Q : ℕ), A.IsTotalQueryBound Q →
     Pr{let z ← rpmExperiment A}[BreaksRpm extractorRpm z] ≤
       soundnessError Q + rpmError (Q + verifierPermCalls)
@@ -259,7 +279,7 @@ blocks. -/
 def completenessPermCalls (fuel : ℕ) : ℕ := (12012 + 48017 * (2 ^ 27 + 2 * fuel + 2)) * 2 ^ 32
 
 /-- **Completeness in the random-permutation model.** -/
-def CompletenessRpm : Prop :=
+def Completeness : Prop :=
   ∃ prover : HonestProver, ∀ (prog : Program) (input : PublicInput) (t : Trace prog) (ρ fuel : ℕ),
     ValidExecution prog input t →
     t.committedSize ≤ 2 ^ 28 → 1 ≤ ρ ∧ ρ ≤ 4 → fuel ≤ 2 ^ 64 →

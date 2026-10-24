@@ -1,4 +1,4 @@
-import LeanVM.Guest.EndKnow
+import LeanVM.Guest.EndRpm
 
 /-!
 # Tests: the guest's soundness, its witness named

@@ -1,8 +1,8 @@
 /-
   LeanVM.Spec.Extractor
 
-  The knowledge extractor of `LeanVM/Spec/Statement.lean`: from the random oracle's answers and a
-  proof, the execution the proof's stack commitment binds.
+  The knowledge extractor of `LeanVM/Spec/Rpm.lean`: from the adversary's Keccak-256 evaluations
+  and a proof, the execution the proof's stack commitment binds.
 -/
 
 module
@@ -15,12 +15,14 @@ public import Mathlib.Algebra.Order.Floor.Ring
 /-!
 # The knowledge extractor
 
-Knowledge soundness (`KnowledgeSoundness`, `LeanVM/Spec/Statement.lean`) is stated for the
-extractor defined here, `extract`, through `LeanVM.extractor` (`Statement.lean`), which applies it
-to the program's bytecode. It is straight-line: it reads the proof and the random
-oracle's answers to the adversary's own hash queries (the queries to Keccak-256 the adversary made
-before it output the proof, with the digests the oracle returned), and nothing else. It neither queries the
-oracle, nor sees the verifier's queries, nor runs the adversary again. It does four things.
+Knowledge soundness (`KnowledgeSoundness`, `LeanVM/Spec/Rpm.lean`) is stated for the extractor
+defined here, `extract`, through `LeanVM.extractorRpm` (`Rpm.lean`), which applies it to the
+program's bytecode and to the Keccak-256 evaluations of the adversary's transcript of queries to
+the random permutation (`transcriptHashes`: the byte strings whose whole sponge path the
+adversary queried, with their digests). It is straight-line: it reads the proof and those
+evaluations (a partial function from byte strings to digests, `answers`), and nothing else. It
+neither queries the permutation, nor sees the verifier's queries, nor runs the adversary again.
+It does four things.
 
 1. **The announced sizes and the stack's root** (`afterRoot`). It reads them off the proof as the
    verifier's first two steps do, `verify_execution` steps 1 and 2 (`verifier.py:1469-1480`):

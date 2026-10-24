@@ -1,26 +1,31 @@
 import LeanVM.Protocol.LeanVM
 import LeanVM.Protocol.LeanVMRpm
 import LeanVM.Guest.Batch.Children
-import LeanVM.Guest.Batch.Rom
-import LeanVM.Guest.EndFinal
+import LeanVM.Guest.Batch.Rpm
+import LeanVM.Guest.EndRpm
 import LeanVM.Guest.Budget.ClosedN
 import LeanVM.Guest.Budget.Covered
 
 /-! The theorems: the verifier's, `LeanVM.KnowledgeSoundness` and `LeanVM.Completeness`
-(`LeanVM/Spec/Statement.lean`), for leanVM at `main` (Keccak-256 and Keccak-f[1600] as
-independent random oracles), `LeanVM.KnowledgeSoundnessRpm` and `LeanVM.CompletenessRpm`
-(`LeanVM/Spec/Rpm.lean`: both built from one random permutation), and the guest's batching of its
-children's deferred claims (`LeanVM.Guest.Batch.children_sound`, `batch_rom`, `batch_rom_bits`),
-and the guest's soundness with its witness named (`LeanVM.Guest.End.guest_knowledge`,
-`decode_binds`, `aggregate_sound_outer`, `aggregate_knowledge`, `guest_sound`:
-`LeanVM.Node.GuestKnowledge` and `LeanVM.Node.AggregateSound`
-of `LeanVM/Spec/Guest.lean` for the deployed bytecode and the decoder `LeanVM.Guest.End.decode`;
+(`LeanVM/Spec/Rpm.lean`), for leanVM at `main`, in the random-permutation model (Keccak-256 and
+Keccak-f[1600] both built from one random permutation `π`, the adversary querying `π` and `π⁻¹`),
+with the bounds' numbers; and the guest's batching of its children's deferred claims
+(`LeanVM.Guest.Batch.children_sound`, and in the random-permutation model `batch_rpm`,
+`batch_rpm_bits`), and the guest's soundness
+with its witness named (`LeanVM.Guest.End.guest_knowledge`, `decode_binds`, `guest_sound`, and in
+the random-permutation model `aggregate_sound_outer`, `aggregate_knowledge`:
+`LeanVM.Node.GuestKnowledge` of `LeanVM/Spec/Guest.lean` and `LeanVM.Node.AggregateSound` of
+`LeanVM/Spec/Aggregate.lean` for the deployed bytecode and the decoder `LeanVM.Guest.End.decode`;
 `guest_sentinelSafe`), and the guest's completeness within its deployed budget
 (`LeanVM.Guest.Budget.guest_complete`, `guest_complete_numeric`), with what it covers
 (`guest_complete_recursion`: every node of at most `16` children, `2048` declared claims,
 coverage slots and children's claims, holding no signature or blob directly;
 `guest_complete_leaf`: every leaf of at most `2048` raw signatures, declared claims and coverage
 slots, holding no blob directly).
+The two-oracle random-oracle model the proofs pass through (`LeanVM/Protocol/Rom/Statement.lean`:
+`LeanVM.knowledgeSoundnessRom_holds`, `LeanVM.completenessRom_holds`; the batching's
+`LeanVM.Guest.Batch.batch_rom`, `batch_rom_bits`) is a proof step: its theorems are not pinned here
+(`tests/LeanVMTests/Protocol/` and `tests/LeanVMTests/Guest/Batch.lean` check their footprints).
 The build fails if their axiom footprint ever grows beyond Lean's three standard axioms. -/
 
 /-- info: 'LeanVM.knowledgeSoundness_holds' depends on axioms: [propext, Classical.choice, Quot.sound] -/
@@ -51,10 +56,6 @@ The build fails if their axiom footprint ever grows beyond Lean's three standard
 #guard_msgs in
 #print axioms LeanVM.completeness_holds
 
-/-- info: 'LeanVM.knowledgeSoundnessRpm_holds' depends on axioms: [propext, Classical.choice, Quot.sound] -/
-#guard_msgs in
-#print axioms LeanVM.knowledgeSoundnessRpm_holds
-
 /-- info: 'LeanVM.Rpm.soundnessRpm_le' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms LeanVM.Rpm.soundnessRpm_le
@@ -62,14 +63,6 @@ The build fails if their axiom footprint ever grows beyond Lean's three standard
 /-- info: 'LeanVM.Rpm.soundnessRpm_le_bits' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms LeanVM.Rpm.soundnessRpm_le_bits
-
-/-- info: 'LeanVM.knowledgeSoundnessRpm_bits' depends on axioms: [propext, Classical.choice, Quot.sound] -/
-#guard_msgs in
-#print axioms LeanVM.knowledgeSoundnessRpm_bits
-
-/-- info: 'LeanVM.completenessRpm_holds' depends on axioms: [propext, Classical.choice, Quot.sound] -/
-#guard_msgs in
-#print axioms LeanVM.completenessRpm_holds
 
 /-- info: 'LeanVM.Rpm.completenessRpm_le' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
@@ -83,13 +76,13 @@ The build fails if their axiom footprint ever grows beyond Lean's three standard
 #guard_msgs in
 #print axioms LeanVM.Guest.Batch.children_sound
 
-/-- info: 'LeanVM.Guest.Batch.batch_rom' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+/-- info: 'LeanVM.Guest.Batch.batch_rpm' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
-#print axioms LeanVM.Guest.Batch.batch_rom
+#print axioms LeanVM.Guest.Batch.batch_rpm
 
-/-- info: 'LeanVM.Guest.Batch.batch_rom_bits' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+/-- info: 'LeanVM.Guest.Batch.batch_rpm_bits' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
-#print axioms LeanVM.Guest.Batch.batch_rom_bits
+#print axioms LeanVM.Guest.Batch.batch_rpm_bits
 
 /-- info: 'LeanVM.Guest.End.guest_knowledge' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in

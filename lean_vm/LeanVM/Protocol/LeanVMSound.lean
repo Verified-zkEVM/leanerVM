@@ -1,8 +1,9 @@
 /-
   LeanVM.Protocol.LeanVMSound
 
-  The proof of knowledge soundness, the first statement of `LeanVM/Spec/Statement.lean`: the
-  leanVM verifier in the random-oracle model, at 128 bits per query.
+  Knowledge soundness of the leanVM verifier in the two-oracle random-oracle model
+  (`LeanVM/Protocol/Rom/Statement.lean`), at 128 bits per query: the step of the proof of
+  `LeanVM.KnowledgeSoundness` (`LeanVM/Spec/Rpm.lean`) before the random-permutation model.
 -/
 
 module
@@ -13,16 +14,18 @@ public import LeanVM.Protocol.EndToEnd.Sound.Extractor
 /-!
 # leanVM, knowledge soundness
 
-The statements are in `LeanVM/Spec/` (the ISA, the verifier, the extractor and
-`Statement.lean`), which imports nothing else from the repository. This page proves the first,
-`knowledgeSoundness_holds`, and gives the numbers; `LeanVM.Protocol.LeanVM` proves the second,
-completeness.
+The statements are in `LeanVM/Spec/` (the ISA, the verifier, the extractor, `Statement.lean` and,
+in the random-permutation model, `Rpm.lean`), which imports nothing else from the repository.
+This page proves knowledge soundness in the two-oracle random-oracle model of
+`LeanVM/Protocol/Rom/Statement.lean`, `knowledgeSoundnessRom_holds`, and gives the numbers;
+`LeanVM.Protocol.LeanVM` proves completeness there, and `LeanVM.Protocol.LeanVMRpm` moves both to
+the random-permutation model.
 
 The verifier is leanVM's at `4af2cdddd7cd41b9df2cc7e123e314a91b0b4462` (`verifier.py`), its
 Fiat-Shamir sponge a duplex sponge over Keccak-f[1600] and its Merkle hash Keccak-256. Both are
 modelled as independent random oracles (`HashSpec = (Bytes →ₒ Digest) + (KState →ₒ KState)`).
 
-**Knowledge soundness** (`knowledgeSoundness`): an adversary making at most `Q` queries to the
+**Knowledge soundness** (`knowledgeSoundnessRom`): an adversary making at most `Q` queries to the
 random oracles outputs a statement (a program and a public input) and a proof, choosing all three
 after querying the oracles. The probability that the verifier accepts while the program's last
 instruction is not a `JUMP` and the extractor (`extractor`, `LeanVM/Spec/Extractor.lean`: from
@@ -36,7 +39,7 @@ most `2^-128`, certified for every admissible size and rate (`Whir.Params.Deploy
 `12008` bounds the verifier's queries on every statement and proof
 (`Verifier.leanVmQueryBound_eq`).
 
-The proof (`knowledgeSoundness`) runs the experiment over the ordered log of fresh queries, the
+The proof (`knowledgeSoundnessRom`) runs the experiment over the ordered log of fresh queries, the
 adversary's part first (`experiment_eq`, `Sound.logged2`). The proof's own extractor
 (`Sound.extractStack`) reads the whole log and picks a stack satisfying the leanISA relation; an
 accepted proof on which it fails is doomed, or the log fails (a fresh answer collides with or
@@ -50,7 +53,8 @@ probability at most `12008/2^256` (`Sound.prEvent_logged2_root_le`, the second t
 
 **Scope and trust.**
 
-* Keccak-256 and Keccak-f[1600] are modelled as independent random oracles.
+* Keccak-256 and Keccak-f[1600] are independent random oracles here, the step of the proof before
+  the random-permutation model of the statements (`LeanVM/Protocol/LeanVMRpm.lean`).
 * The extractor is straight-line (it reads the proof and the answers to the adversary's
   queries, never the verifier's, and does not rewind) but information-theoretic, not
   efficient: a classical choice in the list of codewords near the committed word.
@@ -111,7 +115,7 @@ queries, which chooses the program, the public input and the proof, the verifier
 the program's last instruction is not a `JUMP` and the extractor `extractor`
 (`LeanVM/Spec/Extractor.lean`) does not return a valid execution of the program on the public
 input with probability at most `soundnessError Q`. -/
-theorem knowledgeSoundness {A : Adversary} {Q : ℕ} (hA : A.IsTotalQueryBound Q) :
+theorem knowledgeSoundnessRom {A : Adversary} {Q : ℕ} (hA : A.IsTotalQueryBound Q) :
     Pr{let z ← experiment A}[Breaks extractor z] ≤ soundnessError Q := by
   -- Doom or failure, read off the final log.
   have h1 := romSound_log Sound.anyProgram Sound.anyCert Sound.leanVmSeeds
@@ -184,11 +188,12 @@ theorem soundnessError_le {Q : ℕ} (hQ : Q ≤ 2 ^ 64) : soundnessError Q ≤ (
           (Nat.mul_le_mul_left 7 hN) _)) _
     _ ≤ 2 ^ 193 := by norm_num
 
-/-! ## The statement of `LeanVM/Spec/Statement.lean` -/
+/-! ## The statement of `LeanVM/Protocol/Rom/Statement.lean` -/
 
-/-- **Knowledge soundness holds**, for the extractor `extractor`. -/
-theorem knowledgeSoundness_holds : KnowledgeSoundness :=
-  fun _ _ hA ↦ knowledgeSoundness hA
+/-- **Knowledge soundness in the two-oracle random-oracle model holds**, for the extractor
+`extractor`. -/
+theorem knowledgeSoundnessRom_holds : KnowledgeSoundnessRom :=
+  fun _ _ hA ↦ knowledgeSoundnessRom hA
 
 end
 end LeanVM

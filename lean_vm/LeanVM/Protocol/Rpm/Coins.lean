@@ -1,8 +1,8 @@
 /-
   LeanVM.Protocol.Rpm.Coins
 
-  Knowledge soundness of `LeanVM/Spec/Statement.lean` for adversaries that also have private
-  coins: the coins do not help.
+  Knowledge soundness in the two-oracle random-oracle model (`LeanVM/Protocol/Rom/Statement.lean`)
+  for adversaries that also have private coins: the coins do not help.
 -/
 
 import LeanVM.Protocol.LeanVMSound
@@ -11,13 +11,13 @@ import LeanRpm.Prob
 /-!
 # Adversaries with coins
 
-`KnowledgeSoundness` (`LeanVM/Spec/Statement.lean`) quantifies over adversaries querying the two
+`KnowledgeSoundnessRom` (`LeanVM/Protocol/Rom/Statement.lean`) quantifies over adversaries querying the two
 random oracles only. The random-oracle adversary that the random-permutation transfer produces
 (`LeanRpm.advS2`: the adversary with the indifferentiability simulator) also flips coins. Against
 the lazily sampled random oracles such an adversary does no better than some deterministic
 adversary with the same number of oracle queries (`exists_det`): at a coin, the best of the finitely
 many continuations; at an oracle query, the query followed by the best continuation at each answer.
-So the bound of `knowledgeSoundness_holds` holds for it (`knowledgeSoundness_coins`), coins not
+So the bound of `knowledgeSoundnessRom_holds` holds for it (`knowledgeSoundness_coins`), coins not
 counted.
 -/
 
@@ -101,7 +101,7 @@ theorem exists_det {α γ : Type} (g : α × HashSpec.QueryCache → ProbComp γ
         rw [hz']
         exact hle z.1
 
-/-- The experiment of `Statement.lean` against an adversary that also has private coins. -/
+/-- The random-oracle experiment (`LeanVM/Protocol/Rom/Statement.lean`) against an adversary that also has private coins. -/
 noncomputable def experimentCoins (B : OracleComp (unifSpec + HashSpec) (Statement × Proof)) :
     ProbComp Outcome := do
   let (z, adversaryCache) ← (simulateQ HashSpec.romImpl B).run ∅
@@ -110,7 +110,7 @@ noncomputable def experimentCoins (B : OracleComp (unifSpec + HashSpec) (Stateme
   return ((z, verdict), cache, adversaryCache)
 
 /-- **Knowledge soundness against adversaries with coins**: private coins do not help, so the
-bound of `knowledgeSoundness_holds` holds for every adversary with coins of at most `Q` oracle
+bound of `knowledgeSoundnessRom_holds` holds for every adversary with coins of at most `Q` oracle
 calls. -/
 theorem knowledgeSoundness_coins {B : OracleComp (unifSpec + HashSpec) (Statement × Proof)} {Q : ℕ}
     (hB : LeanRpm.IsWeightBound B hashCalls Q) :
@@ -119,6 +119,6 @@ theorem knowledgeSoundness_coins {B : OracleComp (unifSpec + HashSpec) (Statemen
       let (verdict, cache) ←
         (simulateQ HashSpec.randomOracle (verifier queryH queryF p.1.1.1 p.1.1.2 p.1.2)).run p.2
       return ((p.1, verdict), cache, p.2)) (Breaks extractor) B Q hB ∅
-  exact hle.trans (knowledgeSoundness_holds A Q hA)
+  exact hle.trans (knowledgeSoundnessRom_holds A Q hA)
 
 end LeanVM.Rpm

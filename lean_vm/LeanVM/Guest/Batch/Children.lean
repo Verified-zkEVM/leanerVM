@@ -26,7 +26,8 @@ the node's batching is bad (`BatchBad`).
 A child whose proof verifies and whose deferred claim holds passes the outer verifier's checks but
 the DA digests'. That its statement then holds is the child proof's soundness under Keccak as the
 guest computes it, the in-guest hash heuristic, as is that no batching challenge is bad; the
-latter is bounded with Keccak-256 and Keccak-f[1600] random oracles by `batch_rom`.
+latter is bounded with Keccak-256 and Keccak-f[1600] built from one random permutation by
+`batch_rpm` (`Batch/Rpm.lean`), from the random-oracle bound `batch_rom`.
 -/
 
 namespace LeanVM.Guest.Batch
