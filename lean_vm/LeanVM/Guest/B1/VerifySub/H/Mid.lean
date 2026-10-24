@@ -156,5 +156,20 @@ theorem keccakSeg_end {τ : ℕ} {inst out : List E} {s t : Fs} {xs : List E}
   rw [et, eu1]
   rfl
 
+/-- **`keccakSeg` ends on a permutation's capacity**, nothing waiting. -/
+theorem keccakSeg_capOf {τ : ℕ} {inst out : List E} {s t : Fs} {xs : List E}
+    {km : (List ColumnClaim × List E × List E) × E}
+    (h : RunsTo (keccakSeg τ inst out) s xs km t) (hc : ∃ sp, s.Carries sp) :
+    ∃ K, t = ⟨capOf K, []⟩ := by
+  unfold keccakSeg at h
+  simp only [Prog.bind_eq] at h
+  obtain ⟨r, xs1, xs2, t1, -, h1, h2⟩ := Tables.RunsTo.unbind h hc
+  have c1 := Tables.RunsTo.carries h1 hc
+  obtain ⟨m, ys1, ys2, u1, hy, q1, q2⟩ := Tables.RunsTo.unbind h2 c1
+  obtain ⟨-, eu1, -⟩ := Tables.runsTo_det q1 (runsTo_sampleE _) c1 (r1 := ys2) (r2 := ys1 ++ ys2)
+    (by simp)
+  obtain ⟨-, et, -⟩ := Tables.runsTo_ret_inv q2 (Tables.RunsTo.carries q1 c1)
+  exact ⟨t1.perm, by rw [et, eu1]; rfl⟩
+
 end
 end LeanVM.Guest.B1.VerifySub

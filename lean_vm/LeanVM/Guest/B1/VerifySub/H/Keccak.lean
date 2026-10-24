@@ -131,6 +131,11 @@ theorem runK' (hbl : bytecode.length = 2 ^ 23) :
   simp only [ChildSegs.op, hk]
   exact hop
 
+theorem s7_capOf (hbl : bytecode.length = 2 ^ 23) : ∃ K, S.s7.cap = capOf K := by
+  obtain ⟨h, -, -, -, hc6⟩ := S.runK' hbl
+  obtain ⟨K, hK⟩ := keccakSeg_capOf h hc6
+  exact ⟨K, by rw [show S.s7.cap = (⟨S.s7.cap, []⟩ : Fs).cap from rfl, hK]⟩
+
 end ChildSegs
 
 end
