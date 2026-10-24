@@ -27,9 +27,9 @@ The proof:
    transcript (`Prover.runWith_runsAs`), and that transcript is the run of the compiled protocol's
    honest prover on its own challenges (`Prover.runWith_eq_runWithChallenges`,
    `compiledProver_run`);
-2. by the compiled protocol's perfect completeness, its verifier accepts that transcript on every
-   challenge vector (`Prover.accepts_of_perfectCompleteness`), so `PhasesAgree` gives that the
-   algebra accepts the transcript's wire and rows;
+2. by the compiled protocol's perfect completeness, its verifier accepts that transcript
+   (`Prover.accepts_of_run`), so `PhasesAgree` gives that the algebra accepts the transcript's wire
+   and rows;
 3. the chain walk reads the prover's stream back as the transcript's wire, but for the roots,
    the nonces and the positions' reduction (`walkChain_reads`), which the algebra does not read
    (`Verify.algebra_erase`); the openings are read back as the transcript's rows
@@ -45,6 +45,9 @@ are not admissible, the rate is not valid, or a grind finds no nonce within its 
 state. Every round of the wire runs when the grinds do (`Prover.runWith_total`), and the book
 keeps as many commitments as positions (`book_compiled`), so the openings' size check never
 fails. So the hypothesis that the prover returned a proof is met whenever the grinds succeed.
+
+Transcripts are passed in explicit mode (`@t`, `@Prod.fst _ _ r`), which spares the elaborator
+reducing their types (see `LeanerVM.Protocol.Prove.ReadBack`).
 
 The grinding nonce shows where the oracle transcript and the proof differ: the oracle protocol's
 honest prover sends zero, the proof carries the nonce the grind finds. The algebra reads neither,
@@ -82,10 +85,10 @@ def PhasesAgree (prog : Program) (s : Sizes) (hs : s.Admissible prog) (ρ : ℕ)
     (so : Unit × ∀ i, OneW (leanIsaChain prog s hs ρ hρ).ladder.finShape
       (leanIsaChain prog s hs ρ hρ).ladder.finN i),
     Id.run (runNoOracle ((compiledDef prog s hs ρ hρ).red.toReduction.verifier.run
-      (input, fun i ↦ i.elim0) tr).run) = some so →
+      (input, fun i ↦ i.elim0) @tr).run) = some so →
     Verify.algebra prog s input (leanIsaChain prog s hs ρ hρ).ladder.shapes
-      (wireOf (Verify.leanVm prog s) (leanIsaChain prog s hs ρ hρ).ladder tr)
-      (rowsOf (Verify.leanVm prog s) (leanIsaChain prog s hs ρ hρ).ladder tr) = true
+      (wireOf (Verify.leanVm prog s) (leanIsaChain prog s hs ρ hρ).ladder @tr)
+      (rowsOf (Verify.leanVm prog s) (leanIsaChain prog s hs ρ hρ).ladder @tr) = true
 
 /-- An accepted wire carries one public value per sent line. -/
 private theorem pubLength_of_algebra {prog : Program} {s : Sizes} {input : PublicInput}
@@ -94,40 +97,23 @@ private theorem pubLength_of_algebra {prog : Program} {s : Sizes} {input : Publi
     w.pub.values.length =
       PublicInput.sentCount (Verify.leanVm prog s) ((Verify.leanVm prog s).publicLines input) := by
   unfold Verify.algebra at h
-  dsimp only at h
-  rcases hb : Verify.leanVmBus prog s input w.bus with _ | b
-  · rw [hb] at h
-    cases h
-  rw [hb] at h
-  dsimp only at h
-  rcases ht : Verify.tableStep (Verify.leanVm prog s) b w.table with _ | t
-  · rw [ht] at h
-    cases h
-  rw [ht] at h
-  dsimp only at h
-  rcases hp : Verify.pubStep (Verify.leanVm prog s) t w.pub with _ | p
-  · rw [hp] at h
-    cases h
-  have hb₁ : b.1 = input := by
-    simp only [Verify.leanVmBus, Option.bind_eq_bind, Option.bind_eq_some_iff] at hb
-    obtain ⟨_, -, _, -, hb⟩ := hb
-    cases hb
-    rfl
-  have ht₁ : t.1 = b.1 := by
-    simp only [Verify.tableStep, Option.bind_eq_bind, Option.bind_eq_some_iff] at ht
-    obtain ⟨_, -, _, -, _, -, ht⟩ := ht
-    split_ifs at ht
-    cases ht
-    rfl
+  rcases hb : Verify.leanVmBus prog s input w.bus with _ | b <;> simp only [hb] at h
+  · cases h
+  rcases ht : Verify.tableStep (Verify.leanVm prog s) b w.table with _ | t <;> simp only [ht] at h
+  · cases h
+  rcases hp : Verify.pubStep (Verify.leanVm prog s) t w.pub with _ | p <;> simp only [hp] at h
+  · cases h
+  simp only [Verify.leanVmBus, Option.bind_eq_bind, Option.bind_eq_some_iff] at hb
+  obtain ⟨_, -, _, -, hb⟩ := hb
+  cases hb
+  simp only [Verify.tableStep, Option.bind_eq_bind, Option.bind_eq_some_iff] at ht
+  obtain ⟨_, -, _, -, _, -, ht⟩ := ht
+  split_ifs at ht
+  cases ht
   simp only [Verify.pubStep] at hp
   split_ifs at hp with hacc
   simp only [PublicInput.accepts, Bool.and_eq_true, decide_eq_true_eq] at hacc
-  rw [hacc.1, ht₁, hb₁]
-
-/-- The public values a transcript's wire carries are its public-input message. -/
-private theorem wireOf_pub_values (I : M3Instance) {sh : Whir.Shape} {κ : ℕ} (L : Ladder sh κ)
-    (t : (listBindingSpec I sh κ L).FullTranscript) :
-    (wireOf I L t).pub.values = pubMessage t := rfl
+  exact hacc.1
 
 /-- The run on given challenges of two components in sequence begins with the first's. -/
 private theorem runWithChallenges_def_append_fst {StmtIn ι₁ ι₂ ι₃ : Type} {O₁ : ι₁ → Type}
@@ -149,7 +135,8 @@ private theorem level0Word_honest (prog : Program) (s : Sizes) (hs : s.Admissibl
       (leanIsaChain prog s hs ρ hρ).sh (leanIsaChain prog s hs ρ hρ).κ
       (leanIsaChain prog s hs ρ hρ).ladder).Challenges)
     (stmt : PublicInput × ∀ i, NoOracle i) (q : Column (Verify.leanVm prog s).μ) :
-    level0Word (Prover.runWithChallenges (compiledDef prog s hs ρ hρ).red.prover ch stmt q).1 =
+    level0Word (@Prod.fst _ _ (Prover.runWithChallenges (compiledDef prog s hs ρ hρ).red.prover @ch
+      stmt q)) =
       kwordOf (leanIsaChain prog s hs ρ hρ).sh.ℓ (leanIsaChain prog s hs ρ hρ).κ
         (leanIsaChain prog s hs ρ hρ).sh.R (leanIsaChain prog s hs ρ hρ).sh.t
         ((leanIsaChain_height Blake2sFlock.blake2sFlockSpec prog s hs ρ hρ).symm ▸ q.values) := by
@@ -267,6 +254,15 @@ private theorem verifyWith_of_run {H : List UInt8 → Digest} {prog : Program} {
   rw [hrun]
   rfl
 
+/-- The rows the openings read of a level-0 word whose lanes past the committed ones vanish are
+the rows of the transcript. -/
+private theorem rowsOf_eq {I : M3Instance} {sh : Whir.Shape} {κ n : ℕ} {L : Ladder sh κ}
+    {t : (listBindingSpec I sh κ L).FullTranscript} (hn : n ≤ 2 ^ sh.ℓ)
+    (hz : ∀ p (u : Fin (2 ^ sh.ℓ)), n ≤ u.val → ((level0Word t).row p)[u] = 0) :
+    ladderRows L (fun p ↦ leafImage (2 ^ sh.ℓ) (level0Rows n (level0Word t))[p]) (ladderPart t) =
+      rowsOf I L t :=
+  congrArg (ladderRows L · _) (funext fun p ↦ leafImage_level0Rows hn (hz p))
+
 /-- **Completeness of the honest prover**, modulo the phases' agreement: for every byte hash `H`
 and fuel, a proof `proveWith` returns for a witness satisfying leanISA's constraint statement on
 the public input, at the deployed Flock specification, is accepted by the executable verifier at
@@ -293,69 +289,33 @@ theorem baseProver_complete (H : List UInt8 → Digest) (fuel : ℕ) {prog : Pro
   obtain ⟨s₃, hrun, rfl⟩ := runs_of_runProof hp
   obtain ⟨u₁, s₁, hann, h₁⟩ := proveSem.bind_inv hrun
   obtain ⟨r, s₂, hrw, hho⟩ := proveSem.bind_inv h₁
-  have hras := Prover.runWith_runsAs proveSem _ _ _ _ hrw
-  have hrr := proveSem.satisfies (Prover.runWith_eq_runWithChallenges _ _ _ _) hrw
-  have hhon := Prover.runWithChallenges_eq_of_run_eq _
-    (P' := (compiledDef prog s hs ρ hρ).red.prover)
-    (compiledProver_run (Verify.leanVm prog s)
+  have hr := (proveSem.satisfies (Prover.runWith_eq_runWithChallenges _ _ _ _) hrw).trans
+    (Prover.runWithChallenges_eq_of_run_eq _ (compiledProver_run (Verify.leanVm prog s)
       (leanIsa_conditions Blake2sFlock.blake2sFlockSpec prog s)
       (leanIsaChain_height Blake2sFlock.blake2sFlockSpec prog s hs ρ hρ)
       (leanIsaChain prog s hs ρ hρ).ladder
       ((leanIsaChain prog s hs ρ hρ).ladder.headPar (leanIsaChain prog s hs ρ hρ).pars).hb
-      (input, fun i ↦ i.elim0) (stackOf Blake2sFlock.blake2sFlockSpec prog s w)) r.1.challenges
-  have hin : ((input, fun i ↦ i.elim0), stackOf Blake2sFlock.blake2sFlockSpec prog s w) ∈
-      M3Rel (Verify.leanVm prog s) := m3Holds_stackOf hsat hws
-  obtain ⟨so, hacc, -, -⟩ := Prover.accepts_of_perfectCompleteness (pure ())
-    (fun t ↦ isEmptyElim t) _ (listBinding_deployed_perfectCompleteness
-      Blake2sFlock.blake2sFlockSpec prog s hs ρ hρ (pure ()) (fun t ↦ isEmptyElim t)) hin
-    r.1.challenges
-  have hr1 : (Prover.runWithChallenges (compiledDef prog s hs ρ hρ).red.toReduction.prover
-      r.1.challenges (input, fun i ↦ i.elim0)
-      (stackOf Blake2sFlock.blake2sFlockSpec prog s w)).1 = r.1 := by
-    change (Prover.runWithChallenges (compiledDef prog s hs ρ hρ).red.prover
-      r.1.challenges (input, fun i ↦ i.elim0)
-      (stackOf Blake2sFlock.blake2sFlockSpec prog s w)).1 = r.1
-    rw [← hhon, ← hrr]
-  have halg := hagree s hs hρ r.1 so (by rw [← hr1]; exact hacc)
+      (input, fun i ↦ i.elim0) (stackOf Blake2sFlock.blake2sFlockSpec prog s w)) _)
+  obtain ⟨so, hacc⟩ := Prover.accepts_of_run (pure ()) (fun t ↦ isEmptyElim t)
+    (listBinding_deployed_perfectCompleteness Blake2sFlock.blake2sFlockSpec prog s hs ρ hρ (pure ())
+      (fun t ↦ isEmptyElim t)) (R := (compiledDef prog s hs ρ hρ).red.toReduction)
+    (stmt := (input, fun i ↦ i.elim0)) hr (m3Holds_stackOf hsat hws)
+  have halg := hagree s hs hρ _ so hacc
   obtain ⟨levels, hl, hsh, hok, hℓ⟩ := leanIsaChain_walk hs hρ
   obtain ⟨wire, cs, pss, hR, herase, hroot, hcm, hpos, hmk, ⟨ys, hys⟩, hLR⟩ :=
     walkChain_reads H fuel input (leanIsaChain prog s hs ρ hρ).ladder (Verify.nLanes prog s)
-      (fun x hx ↦ (hok x hx).2) hann hras (wireOf_pub_values _ _ r.1 ▸ pubLength_of_algebra halg)
+      (fun x hx ↦ (hok x hx).2) hann (Prover.runWith_runsAs proveSem _ _ _ _ hrw)
+      (by simpa only [wireOf, pubWireOf] using pubLength_of_algebra halg)
   obtain ⟨-, hfs₃, hst₃, hm₃⟩ := runs_hintOpenings hho
-  have hn : Verify.nLanes prog s ≤ 2 ^ (leanIsaChain prog s hs ρ hρ).sh.ℓ :=
-    hℓ ▸ nLanes_le prog s
-  have hw₀ := length_level0Rows hn (level0Word r.1)
-  have hx : level0Word r.1 = kwordOf (leanIsaChain prog s hs ρ hρ).sh.ℓ
-      (leanIsaChain prog s hs ρ hρ).κ (leanIsaChain prog s hs ρ hρ).sh.R
-      (leanIsaChain prog s hs ρ hρ).sh.t
-      ((leanIsaChain_height Blake2sFlock.blake2sFlockSpec prog s hs ρ hρ).symm ▸
-        (stackOf Blake2sFlock.blake2sFlockSpec prog s w).values) := by
-    rw [← hr1]
-    exact level0Word_honest prog s hs ρ hρ _ _ _
-  have hO := reads_openings H (Verify.nLanes prog s) (leanIsaChain prog s hs ρ hρ).ladder true
-    (level0Rows (Verify.nLanes prog s) (level0Word r.1)) hn hw₀ (fun x hx ↦ (hok x hx).1) hLR
-    (w := s₂.2) (w' := s₃.2) hfs₃ hst₃ (by rw [hm₃, hcm, hpos]; simp [Verify.leafWordsOf])
-  have hlw : Verify.leafWordsOf true ⟨(leanIsaChain prog s hs ρ hρ).sh.ℓ,
-      (leanIsaChain prog s hs ρ hρ).κ, (leanIsaChain prog s hs ρ hρ).sh.R,
-      (leanIsaChain prog s hs ρ hρ).sh.t, false⟩ = 2 ^ (leanIsaChain prog s hs ρ hρ).sh.ℓ := by
-    simp only [Verify.leafWordsOf, ite_true]
-  rw [hlw] at hO
-  have hleaf : (fun p ↦ leafImage (2 ^ (leanIsaChain prog s hs ρ hρ).sh.ℓ)
-      (level0Rows (Verify.nLanes prog s) (level0Word r.1))[p]) =
-      fun p ↦ ((level0Word r.1).row p).toList.reverse := by
-    funext p
-    exact leafImage_level0Rows (ℓ := (leanIsaChain prog s hs ρ hρ).sh.ℓ) (x := level0Word r.1)
-      (p := p) hn fun u hu ↦ by
-        rw [hx]
-        exact kwordOf_stackOf_high hs hρ w p u hu
-  rw [hleaf] at hO
-  have hW : Reads (Verify.walkProof (Verify.readerOps (m := Id) H) prog s input
-      (leanIsaChain prog s hs ρ hρ).ladder.shapes) ⟨FsState.seed prog input, #[], #[]⟩ s₃.2
-      (wire, rowsOf (Verify.leanVm prog s) (leanIsaChain prog s hs ρ hρ).ladder r.1) := by
-    unfold Verify.walkProof
-    refine hR.bind (Reads.bind_ret ?_ rfl)
-    rw [hroot]
-    exact hO
+  have hn : Verify.nLanes prog s ≤ 2 ^ (leanIsaChain prog s hs ρ hρ).sh.ℓ := hℓ ▸ nLanes_le prog s
+  have hw₀ := length_level0Rows hn (level0Word (@Prod.fst _ _ r))
+  have hO := reads_openings H (Verify.nLanes prog s) (leanIsaChain prog s hs ρ hρ).ladder true _ hn
+    hw₀ (fun x hx ↦ (hok x hx).1) hLR (w := s₂.2) (w' := s₃.2) hfs₃ hst₃
+    (by rw [hm₃, hcm, hpos]; simp [Verify.leafWordsOf])
+  rw [show ∀ sh, Verify.leafWordsOf true sh = 2 ^ sh.fold from fun _ ↦ rfl,
+    rowsOf_eq (t := @Prod.fst _ _ r) hn fun p u hu ↦ by
+      rw [hr, level0Word_honest]
+      exact kwordOf_stackOf_high hs hρ w p u hu] at hO
   have hstream : s₃.2.proof.stream.take 8 = announcement s ρ := by
     obtain ⟨hs₁, -⟩ := stream_addScalars H _ (runs_lift.mp hann).2
     change s₃.2.stream.toList.take 8 = _
@@ -369,8 +329,8 @@ theorem baseProver_complete (H : List UInt8 → Digest) (fuel : ℕ) {prog : Pro
     simpa [Verify.leafWordsOf] using openingsOk_openings H (Verify.nLanes prog s)
       (leanIsaChain prog s hs ρ hρ).ladder true _ hw₀ hLR
   rw [verifyWith_of_run (setup?_of_announce (decide_eq_true ⟨hs, hρ⟩) hstream) hl hokm
-    (by rw [hsh]; exact run_of_reads hW), hsh, ← Verify.algebra_erase, herase,
-    Verify.algebra_erase]
+    (by rw [hsh]; exact run_of_reads (hR.bind (Reads.bind_ret (by rw [hroot]; exact hO) rfl))),
+    hsh, ← Verify.algebra_erase, herase, Verify.algebra_erase]
   exact halg
 
 /-! ## When the prover returns a proof -/
@@ -385,20 +345,15 @@ private theorem total_pure {α : Type} (a : α) : proveSem.Total (pure a : Prove
 
 /-- A bound computation runs from every state when its parts do. -/
 private theorem total_bind {α β : Type} {x : ProveM Id α} {f : α → ProveM Id β}
-    (hx : proveSem.Total x) (hf : ∀ a, proveSem.Total (f a)) : proveSem.Total (x >>= f) := by
-  intro s
-  obtain ⟨a, sm, h₁⟩ := hx s
-  obtain ⟨b, s', h₂⟩ := hf a sm
-  exact ⟨b, s', runs_bind h₁ h₂⟩
+    (hx : proveSem.Total x) (hf : ∀ a, proveSem.Total (f a)) : proveSem.Total (x >>= f) :=
+  fun s ↦ let ⟨a, sm, h₁⟩ := hx s; let ⟨b, s', h₂⟩ := hf a sm; ⟨b, s', runs_bind h₁ h₂⟩
 
 /-- A writer's step lifted to the prover runs from every state when it runs from every writer
 state. -/
 private theorem total_lift {α : Type} {y : WriteM Id PrunedMerklePaths α}
     (h : ∀ ws, ∃ a ws', (y.run ws).run = some (a, ws')) :
-    proveSem.Total (StateT.lift y : ProveM Id α) := by
-  intro s
-  obtain ⟨a, ws', h⟩ := h s.2
-  exact ⟨a, (s.1, ws'), runs_lift.mpr ⟨rfl, h⟩⟩
+    proveSem.Total (StateT.lift y : ProveM Id α) :=
+  fun s ↦ let ⟨a, ws', h⟩ := h s.2; ⟨a, (s.1, ws'), runs_lift.mpr ⟨rfl, h⟩⟩
 
 /-- Sending scalars never fails. -/
 private theorem addScalars_some : ∀ (xs : List E) (ws : WriterState PrunedMerklePaths),

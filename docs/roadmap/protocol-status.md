@@ -1201,9 +1201,9 @@ advances; `baseProver_complete` holds modulo `PhasesAgree`.
     `RoundCodec.RunsAs.append_inv`, `ToArkLib/RunTrace.lean`), and the transcript is the honest
     prover's on its own challenges (`runWith_eq_runWithChallenges`, `compiledProver_run`,
     `runWithChallenges_eq_of_run_eq`).
-  - *The honest transcript is accepted*: `accepts_of_perfectCompleteness` at
-    `listBinding_deployed_perfectCompleteness`, on the stack's `M3Rel` (`m3Holds_stackOf`); then
-    `PhasesAgree`.
+  - *The honest transcript is accepted*: `accepts_of_run` (by `accepts_of_perfectCompleteness`)
+    at `listBinding_deployed_perfectCompleteness`, on the stack's `M3Rel` (`m3Holds_stackOf`);
+    then `PhasesAgree`.
   - *The nonces, the roots and the positions*: the walk's wire is the transcript's but for the
     roots (the transcript carries words), the grinding nonces (the oracle prover sends `0`, the
     proof the grind's nonce) and the positions' reduction, none of which the algebra reads
@@ -1219,8 +1219,7 @@ advances; `baseProver_complete` holds modulo `PhasesAgree`.
     by `merkleVerifyWith_merkleOpen` (`reads_openings`), `openingsOk` at the honest openings
     (`openingsOk_openings`, the siblings at most the queries' paths' nodes), the announcement
     (`setup?_of_announce`), the verifier's ladder walking the deployed chain's shapes
-    (`ladderOf_leanIsaChain`, `leanIsaChain_walk`, by `chainOf`'s structure and a decision on the
-    window), the stream and openings consumed (`run_of_reads`). Level 0's rows carry only the
+    (`leanIsaChain_walk`, by `chainOf`'s structure and one decision on the window), the stream and openings consumed (`run_of_reads`). Level 0's rows carry only the
     committed lanes; the honest word's lanes past them vanish (`level0Word_honest`, by
     `runWithChallenges_append_fst`; `kwordOf_stackOf_high`), so the rows read are the word's.
   - *When the prover returns a proof* (`proveWith_ne_none`, `proveWith_eq_none`): every round of

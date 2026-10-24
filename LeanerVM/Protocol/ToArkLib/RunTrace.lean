@@ -361,48 +361,29 @@ theorem runToRoundWith_runsAs (stmt : St) (wit : Wt) :
     rw [runToRoundWith_succ, processRoundWith] at h
     obtain ⟨⟨tr, stP⟩, sm, h₁, h₂⟩ := sem.bind_inv h
     obtain ⟨st, h0, hj, hs⟩ := ih h₁
-    have key : ∀ (x : pSpec.Type j), c.StepAs sem j x sm s' →
-        r.1 = tr.concat x → ∃ st' : Fin (n + 1) → σ, st' 0 = s ∧ st' j.succ = s' ∧
-          ∀ (k : Fin n) (hk : k.val < j.succ.val),
-            c.StepAs sem k (r.1 ⟨k.val, hk⟩) (st' k.castSucc) (st' k.succ) := by
-      intro x hx hr
-      refine ⟨Function.update st j.succ s', ?_, by simp, fun k hk ↦ ?_⟩
-      · rw [Function.update_of_ne (Fin.succ_ne_zero j).symm, h0]
-      · have hk' : k.val ≤ j.val := by simp only [Fin.val_succ] at hk; omega
-        have hc : k.castSucc ≠ j.succ := by
-          intro he
-          have := congrArg Fin.val he
-          simp only [Fin.val_castSucc, Fin.val_succ] at this
-          omega
-        rw [Function.update_of_ne hc]
-        rcases Nat.lt_or_eq_of_le hk' with hlt | heq
-        · have hs' : k.succ ≠ j.succ := fun he ↦ by
-            have := congrArg Fin.val he
-            simp only [Fin.val_succ] at this
-            omega
-          rw [Function.update_of_ne hs', hr]
-          have hv := eq_of_heq (Transcript.concat_apply_lt tr x k.val hlt hk)
-          rw [hv]
-          exact hs k hlt
-        · obtain rfl : k = j := Fin.ext heq
-          rw [Function.update_self, hj, hr]
-          have hv := eq_of_heq (Transcript.concat_apply_last tr x k.val rfl hk)
-          rw [hv]
-          exact hx
-    unfold stepWith at h₂
-    split at h₂
-    · rename_i hDir
-      obtain ⟨x, sm₂, h₃, h₄⟩ := sem.bind_inv h₂
-      rw [runNoOracle_eq_pure (w := w), pure_bind] at h₄
-      obtain ⟨hr, rfl⟩ := sem.pure_inv h₄
-      refine key x ⟨fun h' ↦ absurd (h'.symm.trans hDir) (by decide), fun _ ↦ h₃⟩ ?_
-      rw [hr]
-    · rename_i hDir
-      rw [runNoOracle_eq_pure (w := w), pure_bind] at h₂
-      obtain ⟨u, sm₂, h₃, h₄⟩ := sem.bind_inv h₂
-      obtain ⟨hr, rfl⟩ := sem.pure_inv h₄
-      refine key _ ⟨fun _ ↦ h₃, fun h' ↦ absurd (h'.symm.trans hDir) (by decide)⟩ ?_
-      rw [hr]
+    obtain ⟨x, hx, hr⟩ : ∃ x, c.StepAs sem j x sm s' ∧ r.1 = tr.concat x := by
+      unfold stepWith at h₂
+      split at h₂
+      · rename_i hDir
+        obtain ⟨x, sm₂, h₃, h₄⟩ := sem.bind_inv h₂
+        rw [runNoOracle_eq_pure (w := w), pure_bind] at h₄
+        obtain ⟨hr, rfl⟩ := sem.pure_inv h₄
+        exact ⟨x, ⟨fun h' ↦ absurd (h'.symm.trans hDir) (by decide), fun _ ↦ h₃⟩, by rw [hr]⟩
+      · rename_i hDir
+        rw [runNoOracle_eq_pure (w := w), pure_bind] at h₂
+        obtain ⟨u, sm₂, h₃, h₄⟩ := sem.bind_inv h₂
+        obtain ⟨hr, rfl⟩ := sem.pure_inv h₄
+        exact ⟨_, ⟨fun _ ↦ h₃, fun h' ↦ absurd (h'.symm.trans hDir) (by decide)⟩, by rw [hr]⟩
+    refine ⟨Function.update st j.succ s', ?_, by simp, fun k hk ↦ ?_⟩
+    · rw [Function.update_of_ne (Fin.succ_ne_zero j).symm, h0]
+    have hk' : k ≤ j := Fin.le_iff_val_le_val.mpr (by simp only [Fin.val_succ] at hk; omega)
+    rw [Function.update_of_ne (Fin.castSucc_lt_succ_iff.mpr hk').ne, hr]
+    rcases hk'.lt_or_eq with hlt | rfl
+    · rw [Function.update_of_ne (Fin.succ_lt_succ_iff.mpr hlt).ne,
+        eq_of_heq (Transcript.concat_apply_lt tr x k.val hlt hk)]
+      exact hs k hlt
+    · rw [Function.update_self, hj, eq_of_heq (Transcript.concat_apply_last tr x k.val rfl hk)]
+      exact hx
 
 /-- **Every run against a wire steps through the wire on the transcript it returns**: a message
 round writes the transcript's message, a challenge round reads the transcript's challenge,

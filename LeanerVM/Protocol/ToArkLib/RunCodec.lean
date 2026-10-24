@@ -46,7 +46,8 @@ wire:
   on every challenge vector: the verifier run on the transcript of the prover's run on any
   challenges returns a statement, the prover's, related to its output witness. The run on given
   challenges is reachable under uniform challenges (`mem_support_simulateQ_challenges`), and a
-  probability-one event holds on every reachable outcome.
+  probability-one event holds on every reachable outcome. So the verifier accepts any run equal to
+  the run on its own challenges (`accepts_of_run`).
 -/
 
 namespace LeanerVM.Protocol
@@ -255,9 +256,15 @@ theorem runToRoundWith_isRunTo (stmt : S) (wit : W) (i : Fin (n + 1)) :
   induction i using Fin.induction with
   | zero => exact SatisfiesM.pure fun _ _ ↦ rfl
   | succ j ih =>
-    rw [runToRoundWith, Fin.induction_succ]
+    rw [runToRoundWith_succ]
     refine SatisfiesM.bind_pre (ih.imp fun {r} hr ↦ ?_)
     obtain ⟨tr, st⟩ := r
+    have key : ∀ ch, ChallengesAgree tr ch →
+        Id.run (runToRoundWith (RoundCodec.ofChallenges ch) P j.succ stmt wit) =
+          Id.run (stepWith (RoundCodec.ofChallenges ch) P j tr st) := fun ch hch ↦ by
+      rw [runToRoundWith_succ, processRoundWith, show runToRoundWith (RoundCodec.ofChallenges ch) P
+        j.castSucc stmt wit = pure (tr, st) from hr ch hch]
+      rfl
     unfold stepWith
     split
     · rename_i hDir
@@ -265,17 +272,9 @@ theorem runToRoundWith_isRunTo (stmt : S) (wit : W) (i : Fin (n + 1)) :
       refine SatisfiesM.bind_pre (SatisfiesM.of_true fun x ↦ ?_)
       simp only [pure_bind]
       refine SatisfiesM.pure fun ch hch ↦ ?_
-      have h₀ := hr ch hch.of_concat
-      rw [runToRoundWith, Fin.induction_succ]
-      change Id.run (processRoundWith _ P j
-        (runToRoundWith (RoundCodec.ofChallenges ch) P j.castSucc stmt wit)) = _
-      rw [processRoundWith, show runToRoundWith (RoundCodec.ofChallenges ch) P j.castSucc stmt wit =
-        pure (tr, st) from h₀]
-      simp only [pure_bind, stepWith]
+      rw [key ch hch.of_concat, stepWith]
       split
-      · rename_i hDir'
-        simp only [RoundCodec.ofChallenges, pure_bind]
-        rw [hch.last hDir']
+      · simp only [RoundCodec.ofChallenges, pure_bind, hch.last ‹_›]
         rfl
       · rename_i hDir'
         exact absurd (hDir'.symm.trans hDir) (by decide)
@@ -284,13 +283,7 @@ theorem runToRoundWith_isRunTo (stmt : S) (wit : W) (i : Fin (n + 1)) :
       simp only [pure_bind]
       refine SatisfiesM.bind_pre (SatisfiesM.of_true fun _ ↦ ?_)
       refine SatisfiesM.pure fun ch hch ↦ ?_
-      have h₀ := hr ch hch.of_concat
-      rw [runToRoundWith, Fin.induction_succ]
-      change Id.run (processRoundWith _ P j
-        (runToRoundWith (RoundCodec.ofChallenges ch) P j.castSucc stmt wit)) = _
-      rw [processRoundWith, show runToRoundWith (RoundCodec.ofChallenges ch) P j.castSucc stmt wit =
-        pure (tr, st) from h₀]
-      simp only [pure_bind, stepWith]
+      rw [key ch hch.of_concat, stepWith]
       split
       · rename_i hDir'
         exact absurd (hDir'.symm.trans hDir) (by decide)
@@ -344,12 +337,6 @@ theorem simulateQ_liftM_getChallenge (ch : pSpec.Challenges) (i : pSpec.Challeng
   exact (simulateQ_spec_query (challengesImpl ch) ⟨i, ()⟩).trans rfl
 
 omit [LawfulMonad r] in
-/-- ArkLib's rounds up to `j + 1`: round `j` after the rounds before it. -/
-theorem runToRound_succ' (stmt : S) (wit : W) (j : Fin n) :
-    P.runToRound j.succ stmt wit = Prover.processRound j P (P.runToRound j.castSucc stmt wit) := by
-  simp only [Prover.runToRound, Fin.induction_succ]
-
-omit [LawfulMonad r] in
 /-- ArkLib's round `j` binds the rounds before it. -/
 theorem processRound_eq_bind (j : Fin n)
     (cur : OracleComp ([]ₒ + [pSpec.Challenge]ₒ)
@@ -366,7 +353,7 @@ theorem simulateQ_runToRound (ch : pSpec.Challenges) (stmt : S) (wit : W) (i : F
   induction i using Fin.induction with
   | zero => simp [Prover.runToRound, runToRoundWith]
   | succ j ih =>
-    rw [runToRound_succ', runToRoundWith_succ, processRound_eq_bind, simulateQ_bind, ih,
+    rw [Prover.runToRound_succ, runToRoundWith_succ, processRound_eq_bind, simulateQ_bind, ih,
       pure_bind]
     unfold processRoundWith
     generalize runToRoundWith (RoundCodec.ofChallenges ch) P j.castSucc stmt wit = Y
@@ -500,6 +487,21 @@ theorem accepts_of_perfectCompleteness [∀ i, SampleableType (pSpec.Challenge i
   · rw [hv] at hx
     cases hx
     exact ⟨so, rfl, hp⟩
+
+/-- **A perfectly complete reduction accepts a run on its own challenges**: on an input of the
+input relation, the verifier accepts the transcript of any run of the prover equal to the run on
+that transcript's challenges. -/
+theorem accepts_of_run [∀ i, SampleableType (pSpec.Challenge i)]
+    {StmtIn WitIn StmtOut WitOut σ : Type} (init : ProbComp σ)
+    (impl : QueryImpl []ₒ (StateT σ ProbComp)) {relIn : Set (StmtIn × WitIn)}
+    {relOut : Set (StmtOut × WitOut)} {R : Reduction []ₒ StmtIn WitIn StmtOut WitOut pSpec}
+    (h : R.perfectCompleteness init impl relIn relOut) {stmt : StmtIn} {wit : WitIn}
+    {r : pSpec.FullTranscript × StmtOut × WitOut}
+    (hr : r = runWithChallenges R.prover r.1.challenges stmt wit) (hin : (stmt, wit) ∈ relIn) :
+    ∃ so, Id.run (runNoOracle (R.verifier.run stmt r.1).run) = some so := by
+  obtain ⟨so, h₁, -, -⟩ := accepts_of_perfectCompleteness init impl R h hin r.1.challenges
+  rw [← hr] at h₁
+  exact ⟨so, h₁⟩
 
 end Complete
 
