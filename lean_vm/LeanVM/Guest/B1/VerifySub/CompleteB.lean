@@ -87,7 +87,7 @@ structure VsWords (fs : String → ℕ) : Type where
   Kf : String → ℕ
   Ksh : ℕ
   K10 : ℕ
-  hKf : ∀ g ∈ Tables.vtKidS, g ≠ "__loop10" → g ≠ "shared_selector_tables" →
+  hKf : ∀ g ∈ Tables.vtKidS, g ≠ "__loop10" → g ≠ "__loop9" → g ≠ "shared_selector_tables" →
     TotalLe coreProgram fs g (fun _ ↦ Kf g)
   hsh : TotalLeOn coreProgram fs "shared_selector_tables"
     (fun a ↦ ∃ n < 64, a.getD 5 0 = gen ^ n) (fun _ ↦ Ksh)
