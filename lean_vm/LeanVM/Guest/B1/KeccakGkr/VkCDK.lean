@@ -80,5 +80,30 @@ theorem vkSlices_ker :
     (resid (atomsL (slicesPre (.n 4115) 4117 4122))).all slRes = true := by
   decide +kernel
 
+/-- The inputs' lane weights. -/
+abbrev vkFinSL : List Stmt := slotLanesT 4107 4978 4979 0 2
+
+/-- The shifts of the slices. -/
+abbrev vkFinFT : List Stmt := foldT (fun j ↦ 5213 + j) 5277 (.n 5212)
+
+/-- `keccak_form`. -/
+abbrev vkFinFA : List Stmt := (formAll (.n 6363) vkSh (slotLaneV 4979 2) 6364).1
+
+theorem vkFin_ker :
+    noneIn ([.load (.n 4977) (.n 201) 266, .load (.n 5212) (.n 201) 268,
+      .load (.n 6363) (.n 201) 267] ++ (List.range 64).map fun z ↦ .load (.n (5213 + z)) (.n 10) z)
+      vkSt = true ∧
+    vkFinSL.all isAtom = true ∧ canonChk [] (atomsL ([] ++ vkFinSL)) = true ∧
+    (resid (atomsL vkFinSL)).all (ldR [(.n 4107, 0, 6), (.n 4978, 0, 1)]) = true ∧
+    noneIn (resid (atomsL vkFinSL)) vkSt = true ∧
+    vkFinFT.all isAtom = true ∧ canonChk [] (atomsL ([] ++ vkFinFT)) = true ∧
+    (resid (atomsL vkFinFT)).all (ldR [(.n 5212, 0, 6)]) = true ∧
+    noneIn (resid (atomsL vkFinFT)) vkSt = true ∧
+    vkFinFA.all isAtom = true ∧ canonChk [] (atomsL ([] ++ vkFinFA)) = true ∧
+    (resid (atomsL vkFinFA)).all (ldR [(.n 6363, 0, 25)]) = true ∧
+    noneIn (resid (atomsL vkFinFA)) vkSt = true ∧
+    (formAll (.n 6363) vkSh (slotLaneV 4979 2) 6364).2.2 = 6577 := by
+  decide +kernel
+
 end
 end LeanVM.Guest.B1.VerifySub
