@@ -99,6 +99,38 @@ theorem all_range_get {p : ℕ → Bool} {n : ℕ} (h : (List.range n).all p = t
     p k = true :=
   List.all_eq_true.mp h k (List.mem_range.mpr hk)
 
+/-- `B2C.fs` by core index. -/
+theorem fs_idx {j : ℕ} {f : String} (h : (coreProgram[j]?).map Fn.name = some f) :
+    B2C.fs f = wfsJ j := by
+  rcases hj : coreProgram[j]? with _ | fn
+  · rw [hj] at h; cases h
+  · rw [hj] at h
+    obtain ⟨hlt, hfn⟩ := List.getElem?_eq_some_iff.mp hj
+    simp only [Option.map_some, Option.some.injEq] at h
+    rw [← h, ← hfn]
+    exact wfs_eq hlt
+
+/-- `wSB` of core function `j`. -/
+noncomputable def wSBJ (j : ℕ) : ℕ :=
+  match wcertJ j with
+  | .stat _ b _ => b.c
+  | _ => 0
+
+/-- `wSK` of core function `j`. -/
+noncomputable def wSKJ (j : ℕ) : ℕ :=
+  match wcertJ j with
+  | .loop _ _ b _ => b.c
+  | _ => 0
+
+/-- `wSB` by core index. -/
+theorem wSB_idx {j : ℕ} {f : String} (h : (coreProgram[j]?).map Fn.name = some f) : wSB f = wSBJ j := by
+  unfold wSB wSBJ; rw [wcertOf_of_idx h]
+
+/-- `wSK` by core index. -/
+theorem wSK_idx {j : ℕ} {f : String} (h : (coreProgram[j]?).map Fn.name = some f) : wSK f = wSKJ j := by
+  unfold wSK wSKJ; rw [wcertOf_of_idx h]
+
+
 @TABLES@
 /-- The core index of a function by name, from `wIdxN`. -/
 def wIdx (f : String) : ℕ := (wIdxN.lookup f).getD 0
