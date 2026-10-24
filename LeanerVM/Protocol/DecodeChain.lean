@@ -10,6 +10,7 @@
 module
 
 public import LeanerVM.Protocol.Verify
+public import LeanerVM.Protocol.Verify.WireOf
 public import LeanerVM.Protocol.RandomOracleGame
 public import LeanerVM.Protocol.ToArkLib.DecodeSteps
 
@@ -122,19 +123,7 @@ def polySlot (d : ℕ) (claim : Thunk E) (eq? : Thunk (Option E)) :
 def positionsSlot (b t : ℕ) : Slot Reading (Fin t → Fin (2 ^ b)) :=
   positionsOf t b <$> walkPositions historyOps b t t
 
-/-! ## Runs of challenges and of rounds -/
-
-/-- The challenge of a schedule of one challenge. -/
-abbrev drawOf {C : Type} (t : (draw C).FullTranscript) : C := t 0
-
-/-- The message of a schedule of one message. -/
-abbrev msgOf {M : Type} (t : (say M).FullTranscript) : M := t 0
-
-/-- The challenges of a run of draws, in order. -/
-def drawsList : (k : ℕ) → (draws E k).FullTranscript → List E
-  | 0, _ => []
-  | k + 1, t => drawsList k (FullTranscript.fst (pSpec₁ := draws E k) (pSpec₂ := draw E) t) ++
-      [drawOf (FullTranscript.snd (pSpec₁ := draws E k) (pSpec₂ := draw E) t)]
+/-! ## Runs of rounds -/
 
 /-- After a round from the claim `σ.1` at round `σ.2`: its polynomial at its challenge, at the
 next round. -/

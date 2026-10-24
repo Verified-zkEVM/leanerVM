@@ -186,6 +186,7 @@ import LeanerVM.Protocol.Verify.Rel
 import LeanerVM.Protocol.Verify.Setup
 import LeanerVM.Protocol.Verify.Tables
 import LeanerVM.Protocol.Verify.Whir
+import LeanerVM.Protocol.Verify.WireOf
 import LeanerVM.Protocol.Whir.BoundarySound
 import LeanerVM.Protocol.Whir.Cached
 import LeanerVM.Protocol.Whir.Counting
