@@ -11,7 +11,9 @@ written under `LeanVM/Guest/`. `CMD` is one of
 * `cnt`: `Memory/GuestCnt{X,M,S,D,J,K}/`, their tops and `Memory/GuestCntPm.lean`, the
   certificates counting each opcode's instructions at `B2C.ωArm B2C.xmssArmC op` (`pathMax`, and
   `verify_lean_xmss`'s separately counted arms), over the closure of `ROOTS`;
-* `static`: `Count/Static.lean`, the bounds of `ROOTS` the families give, per opcode and in words;
+* `static`: `Count/Static.lean`, the bounds of `ROOTS` the families give, per opcode and in words,
+  and `Count/Words.lean`, every function's words by name (`wSB`, `wSK`; `Count/Instances.lean`
+  instantiates the budget's hypotheses with them);
 * `ratio`: `Count/RatioData.lean`, `Count/RatioChk*.lean` and `Count/Ratio.lean`, the counts of
   `RATIO_ROOTS` (no static bound) within ratios of their words, per opcode (`ratio.py`);
 * `all`: `words`, `cnt`, `static` and `ratio`.
@@ -256,6 +258,28 @@ theorem kcAgg_le (op : Opcode) : ∀ (rd : Reader) (t : Tree) (args rets : List 
     os.makedirs(os.path.dirname(path), exist_ok=True)
     write_tpl(path, '\n'.join(o))
     print('static: wrote', path)
+    cmd_words_by_name(g, wcert)
+
+
+# Functions the words tables index by name (`Count/Words.lean`, `wIdxN`): open_stacked's named
+# callees (`B1.osKindTable`) and the static callees of main's non-static ones.
+WORDS_PREFIXES = ('opening_fold', 'assert_canonical', 'grind_check__L', 'opening_row_weights__L',
+                  'opening_ood_point__L', 'opening_final_message__L', 'verify_merkle_cap__L',
+                  'fold_final_msg__L', 'claim_list_last__L', 'da_levels__L', 'list_split',
+                  'batch_sumcheck__L', 'da_list_digest', 'statement_digest', 'exponent_tables',
+                  'cover_da_root')
+
+
+def cmd_words_by_name(g, wcert):
+    names = sorted(n for n in g.by if n.startswith(WORDS_PREFIXES) and n in wcert)
+    loops = sorted((int(n[6:]), g.by[n]) for n in g.by if re.fullmatch(r'__loop\d+', n) and n in wcert)
+    tab = ('/-- The core indices of the functions the checks name, by name. -/\n'
+           + ratio.wrap('def wIdxN : List (String × ℕ) := [', ['("%s", %d)' % (n, g.by[n]) for n in names]) + '\n\n'
+           + '/-- The core indices of the loop helpers `__loop{n}`, by `n`. -/\n'
+           + ratio.wrap('def wIdxLoop : List (ℕ × ℕ) := [', ['(%d, %d)' % q for q in loops]) + '\n')
+    path = os.path.join(g.lv, 'LeanVM', 'Guest', 'Count', 'Words.lean')
+    write_tpl(path, tpl('Words.lean').replace('@TABLES@', tab))
+    print('words by name: %d names, %d loops' % (len(names), len(loops)))
 
 
 def show(c):
