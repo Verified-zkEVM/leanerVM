@@ -43,36 +43,54 @@ variable (fs SB SK : String → ℕ)
 
 /-! ## `da_verify` -/
 
+/-- The selected DA level's words per padded row, at most: the largest over the `11` levels of
+`⌈SB (da_levels at j) / 2^j⌉`. -/
+def dlK : ℕ := (Finset.range 11).sup fun j => (SB Da.dlNames[j]! + 2 ^ j - 1) / 2 ^ j
+
+theorem le_cdiv_mul (a d : ℕ) (hd : 0 < d) : a ≤ (a + d - 1) / d * d := by
+  have h1 := Nat.div_add_mod (a + d - 1) d
+  have h2 := Nat.mod_lt (a + d - 1) hd
+  have h3 : d * ((a + d - 1) / d) = (a + d - 1) / d * d := Nat.mul_comm _ _
+  omega
+
+/-- **The selected DA level within `dlK` words per padded row.** -/
+theorem dl_le {L : ℕ} (hL : L < 11) : SB Da.dlNames[L]! ≤ dlK SB * 2 ^ L := by
+  have h1 := le_cdiv_mul (SB Da.dlNames[L]!) (2 ^ L) (Nat.two_pow_pos L)
+  have h2 : (SB Da.dlNames[L]! + 2 ^ L - 1) / 2 ^ L ≤ dlK SB :=
+    Finset.le_sup (f := fun j => (SB Da.dlNames[j]! + 2 ^ j - 1) / 2 ^ j)
+      (Finset.mem_range.mpr hL)
+  exact le_trans h1 (Nat.mul_le_mul_right _ h2)
+
 /-- A DA column's constant words. -/
-def colC (fname gl : String) : ℕ :=
-  fs fname + fs "da_vector_cell" + fs gl + nameSum SB Da.dlNames 34
+def colC (fname gl : String) : ℕ := fs fname + fs "da_vector_cell" + fs gl
 
 /-- A DA column's words per row. -/
-def colS (rl gl : String) : ℕ := 8 + SK rl + SK gl
+def colS (rl gl : String) : ℕ := 8 + SK rl + SK gl + 2 * dlK SB
 
-theorem colB_le {fname rl gl : String} {r L : ℕ} (hP : 2 ^ L ≤ 2 * r) (hL : L < 34) :
-    Da.colB fs SB SK fname rl gl r L ≤ colC fs SB fname gl + r * colS SK rl gl := by
+theorem colB_le {fname rl gl : String} {r L : ℕ} (hP : 2 ^ L ≤ 2 * r) (hL : L < 11) :
+    Da.colB fs SB SK fname rl gl r L ≤ colC fs fname gl + r * colS SB SK rl gl := by
   unfold Da.colB colC colS
   have h1 : (if 2 ^ L - r ≠ 0 then (2 ^ L - r) * SK gl else fs gl) ≤ r * SK gl + fs gl := by
     split
     · have : (2 ^ L - r) * SK gl ≤ r * SK gl := Nat.mul_le_mul_right _ (by omega)
       omega
     · omega
-  have h2 := le_nameSum (g := SB) (names := Da.dlNames) hL
-  have h3 : r * (8 + SK rl + SK gl) = 8 * r + r * SK rl + r * SK gl := by ring
+  have h2 := dl_le SB hL
+  have h4 : dlK SB * 2 ^ L ≤ dlK SB * (2 * r) := Nat.mul_le_mul_left _ hP
+  have h3 : r * (8 + SK rl + SK gl + 2 * dlK SB) =
+      8 * r + r * SK rl + r * SK gl + dlK SB * (2 * r) := by ring
   omega
 
 /-- `da_verify`'s constant words. -/
 def dvC : ℕ :=
   fs "da_verify" + 768 + fs "da_row_shape" + fs "__loop24" + SB "da_levels__L128_L7" +
-    nameSum SB Da.dlNames 34 +
-    (65 * fs "__loop20" + 64 * colC fs SB "da_verify_column__L1" "__loop418") +
-    (65 * fs "__loop21" + 64 * colC fs SB "da_verify_column__L0" "__loop420")
+    (65 * fs "__loop20" + 64 * colC fs "da_verify_column__L1" "__loop418") +
+    (65 * fs "__loop21" + 64 * colC fs "da_verify_column__L0" "__loop420")
 
 /-- `da_verify`'s words per row. -/
 def dvS : ℕ :=
   395 + SK "__loop18" + SK "__loop19" + SK "__loop22" + SK "__loop23" + SK "__loop24" +
-    64 * colS SK "__loop417" "__loop418" + 64 * colS SK "__loop419" "__loop420"
+    2 * dlK SB + 64 * colS SB SK "__loop417" "__loop418" + 64 * colS SB SK "__loop419" "__loop420"
 
 theorem clLoop_le {f : String} {Bc C S r : ℕ} (h : Bc ≤ C + r * S) :
     Da.clB fs f Bc 64 ≤ 65 * fs f + 64 * C + r * (64 * S) := by
@@ -80,8 +98,8 @@ theorem clLoop_le {f : String} {Bc C S r : ℕ} (h : Bc ≤ C + r * S) :
   have : r * (64 * S) = 64 * (r * S) := by ring
   omega
 
-theorem dvB_le {r L : ℕ} (hr : 1 ≤ r) (hP : 2 ^ L ≤ 2 * r) (hL : L < 34) :
-    Da.dvB fs SB SK r L ≤ dvC fs SB + r * dvS SK := by
+theorem dvB_le {r L : ℕ} (hr : 1 ≤ r) (hP : 2 ^ L ≤ 2 * r) (hL : L < 11) :
+    Da.dvB fs SB SK r L ≤ dvC fs SB + r * dvS SB SK := by
   unfold Da.dvB Da.dvKB dvC dvS Da.dvSizes
   have c1 := clLoop_le fs (f := "__loop20") (colB_le fs SB SK (fname := "da_verify_column__L1")
     (rl := "__loop417") (gl := "__loop418") hP hL)
@@ -93,13 +111,15 @@ theorem dvB_le {r L : ℕ} (hr : 1 ≤ r) (hP : 2 ^ L ≤ 2 * r) (hL : L < 34) :
     · have : (2 ^ L - r) * SK "__loop24" ≤ r * SK "__loop24" := Nat.mul_le_mul_right _ (by omega)
       omega
     · omega
-  have hd := le_nameSum (g := SB) (names := Da.dlNames) hL
+  have hd := dl_le SB hL
+  have h4 : dlK SB * 2 ^ L ≤ dlK SB * (2 * r) := Nat.mul_le_mul_left _ hP
   simp only [List.sum_cons, List.sum_nil]
   have e : r * (395 + SK "__loop18" + SK "__loop19" + SK "__loop22" + SK "__loop23" +
-      SK "__loop24" + 64 * colS SK "__loop417" "__loop418" + 64 * colS SK "__loop419" "__loop420") =
+      SK "__loop24" + 2 * dlK SB + 64 * colS SB SK "__loop417" "__loop418" +
+      64 * colS SB SK "__loop419" "__loop420") =
       395 * r + r * SK "__loop18" + r * SK "__loop19" + r * SK "__loop22" + r * SK "__loop23" +
-      r * SK "__loop24" + r * (64 * colS SK "__loop417" "__loop418") +
-      r * (64 * colS SK "__loop419" "__loop420") := by ring
+      r * SK "__loop24" + dlK SB * (2 * r) + r * (64 * colS SB SK "__loop417" "__loop418") +
+      r * (64 * colS SB SK "__loop419" "__loop420") := by ring
   omega
 
 /-! ## The claim lists -/
@@ -241,20 +261,28 @@ theorem l5B_le (Bv : ℕ) (s : NodeStatement) (w : NodeWitness) (hnc : w.childre
 
 theorem hDvB_le {bytecode : List K} {seed : Digest} {s : NodeStatement} {w : NodeWitness}
     (hr : NodeRel bytecode seed s w) (hl : Limits bytecode s w) :
-    hDvB fs SB SK s w ≤ dvC fs SB + (End.work s w).rawDaRows * dvS SK := by
+    hDvB fs SB SK s w ≤ (End.work s w).rawDa * dvC fs SB + (End.work s w).rawDaRows * dvS SB SK := by
   have h1 := hl.directDa
   unfold hDvB
-  show _ ≤ dvC fs SB + ((hRawD s w).map fun p => p.2.rows.length).sum * dvS SK
+  show _ ≤ (hRawD s w).length * dvC fs SB +
+    ((hRawD s w).map fun p => p.2.rows.length).sum * dvS SB SK
   match hp : hRawD s w, h1 with
   | [], _ => simp
   | [p], _ =>
     have hw : p.2.Opens p.1.1 p.1.2 :=
       direct_held (H := DaHeld w.children) (P := fun c x => x.Opens c.1 c.2) (fun _ _ h => h)
         hr.2.2.2.2.1 p (show p ∈ hRawD s w by rw [hp]; exact List.mem_singleton_self p)
-    have hL := wLog_lt hw
     have hb := Da.nPad_bounds hw.1
-    simp only [List.map_cons, List.map_nil, List.headD_cons, List.sum_cons, List.sum_nil, Nat.add_zero]
-    exact dvB_le fs SB SK hw.1 (by unfold Da.wLog; unfold LeanDa.nPad at hb; omega) hL
+    have hm := hw.2.1
+    unfold LeanDa.maxRows at hm
+    unfold LeanDa.nPad at hb
+    have hL : Da.wLog p.2 < 11 := by
+      unfold Da.wLog
+      have : 2 ^ LeanDa.logPad p.2.rows.length < 2 ^ 11 := by omega
+      exact (Nat.pow_lt_pow_iff_right (by norm_num)).mp this
+    simp only [List.map_cons, List.map_nil, List.headD_cons, List.sum_cons, List.sum_nil, Nat.add_zero,
+      List.length_singleton, Nat.one_mul]
+    exact dvB_le fs SB SK hw.1 (by unfold Da.wLog; omega) hL
   | _ :: _ :: _, h =>
     exact absurd h (by rw [show Hints.direct s.claims.da w.da = hRawD s w from rfl, hp]; simp)
 
@@ -301,15 +329,14 @@ and each callee's frame and bound. -/
 def mainWords (Bv : ℕ) : End.Linear where
   base := fs "main" + 283 + fs "exponent_tables" + 68 + fs "__loop0" + SB "da_list_digest" +
     fs "da_list_digest" + 2 * (clC fs SB + fs "claim_list_digest") + fs "__loop1" + fs "__loop2" +
-    fs "__loop3" + fs "__loop4" + (dvC fs SB + fs "da_verify") + 2 * fs "cover_da_root" +
-    2 * l5A0 fs + (agA0 fs SB + fs "aggregate_claims") + SB "statement_digest" +
+    fs "__loop3" + fs "__loop4" + 2 * l5A0 fs + (agA0 fs SB + fs "aggregate_claims") + SB "statement_digest" +
     fs "statement_digest"
   declared := 13 + SK "__loop16"
   coverage := 5 + SK "__loop0" + SK "__loop1" + SK "__loop2"
   rawXmss := SK "__loop3"
   rawSphincs := SK "__loop4"
-  rawDa := 0
-  rawDaRows := dvS SK
+  rawDa := dvC fs SB + fs "da_verify" + 2 * fs "cover_da_root"
+  rawDaRows := dvS SB SK
   children := 51 + l5A1 fs SB + Bv + agA1 SK
   childClaims := l5A2 fs
 
@@ -397,7 +424,12 @@ theorem Bmain_le (Bv : ℕ) {bytecode : List K} {seed : Digest} {s : NodeStateme
     Nat.mul_comm _ _
   have r5 : SK "__loop4" * (End.work s w).rawSphincs = (End.work s w).rawSphincs * SK "__loop4" :=
     Nat.mul_comm _ _
-  have r6 : dvS SK * (End.work s w).rawDaRows = (End.work s w).rawDaRows * dvS SK := Nat.mul_comm _ _
+  have r6 : dvS SB SK * (End.work s w).rawDaRows = (End.work s w).rawDaRows * dvS SB SK :=
+    Nat.mul_comm _ _
+  have r8 : (dvC fs SB + fs "da_verify" + 2 * fs "cover_da_root") * (End.work s w).rawDa =
+      (End.work s w).rawDa * dvC fs SB + (End.work s w).rawDa * (fs "da_verify" + 2 * fs "cover_da_root") :=
+    by ring
+  have erd : (End.work s w).rawDa = (hm fs 0 seed s w).nd := rfl
   have r7 : (51 + l5A1 fs SB + Bv + agA1 SK) * (End.work s w).children =
       51 * (End.work s w).children + (End.work s w).children * (l5A1 fs SB + Bv) +
         agA1 SK * (End.work s w).children := by ring
@@ -406,17 +438,21 @@ theorem Bmain_le (Bv : ℕ) {bytecode : List K} {seed : Digest} {s : NodeStateme
     rw [e6] at hnc
     simp only [hnc', ↓reduceIte] at hK
     rw [hnc]
-    simp only [Nat.mul_zero, Nat.zero_mul, Nat.add_zero]
-    split_ifs at hK
-    · omega
+    simp only [Nat.mul_zero, Nat.add_zero]
+    split_ifs at hK with hnd
+    · have r9 : (End.work s w).rawDa * (fs "da_verify" + 2 * fs "cover_da_root") =
+          fs "da_verify" + 2 * fs "cover_da_root" := by rw [erd, hnd, Nat.one_mul]
+      omega
     · omega
   · have hnc' : ¬ (hm fs 0 seed s w).nc = 0 := hnc
     have h5 := l5B_le fs SB Bv s w hnc
     simp only [l5A0] at h5
     simp only [hnc', ↓reduceIte] at hK
     rw [e6] at hA h5 hK
-    split_ifs at hK
-    · omega
+    split_ifs at hK with hnd
+    · have r9 : (End.work s w).rawDa * (fs "da_verify" + 2 * fs "cover_da_root") =
+          fs "da_verify" + 2 * fs "cover_da_root" := by rw [erd, hnd, Nat.one_mul]
+      omega
     · omega
 end
 end LeanVM.Guest.B1.Main
