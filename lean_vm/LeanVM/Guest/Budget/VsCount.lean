@@ -17,18 +17,19 @@ public import LeanVM.Guest.Count.VsCountChkK
 public import LeanVM.Guest.Count.RatioV
 public import LeanVM.Guest.Budget.FlatShape
 public import LeanVM.Guest.B1.Whir.Interface
+public import LeanVM.Guest.B1.VerifySub.CompleteBT
 
 /-!
 # `verify_sub`'s instructions per candidate
 
-`vsNamesL μ r`: `verify_sub`'s thirteen callees in call order, its opening arm `openName μ r`
+`B1.VerifySub.vsNames μ r`: `verify_sub`'s thirteen callees in call order, its opening arm `openName μ r`
 twelfth. `vsWs op c Bs`: a bound on each callee's instructions of `op`, the static ones' and the
 arm's (candidate `c`) from the `V` certificates, `verify_bus_gkr`'s, `verify_tables`',
 `verify_keccak`'s and `check_opening_terminal`'s within their ratios of their words `Bs[5]`,
 `Bs[6]`, `Bs[7]`, `Bs[12]`. `vs_weight_le`: a `verify_sub` node whose callees are those names
 within the words `Bs` (`FlatShape`, `NamedWithin`) weighs at most its frame's weight and
 `vsWs`. `vs_weight_le_num`: with the four words within `49403`, `59762`, `87672`, `38888`, at most
-`vsCountT op c`.
+`vsCountT op c`; `vs_weight_le_vsTs`: the same of B1-d's `vsTs` (its bounds `vsBsAt`).
 -/
 
 namespace LeanVM.Guest.Budget
@@ -37,14 +38,6 @@ open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Memory Le
 open LeanVM.Guest.Count
 
 @[expose] public section
-
-/-- **`verify_sub`'s callees in call order**, its opening arm at the stack log `μ` and the rate
-`r`. -/
-def vsNamesL (μ r : ℕ) : List String :=
-  ["g_power_of_word", "g_power_of_word", "log2_ceil_in_the_exponent__L0_L34", "assert_canonical",
-    "assert_canonical", "verify_bus_gkr", "verify_tables", "verify_keccak", "ring_switch_target",
-    "certify_placement", "log2_ceil_in_the_exponent__L15_L34", B1.Whir.openName μ r,
-    "check_opening_terminal"]
 
 /-- **The callees' instructions of `op`** at the candidate `c`, the four ratio-bounded ones
 within the words `Bs`. -/
@@ -152,15 +145,15 @@ theorem div_of_ratio {w A t B : ℕ} (h : 1000 * w ≤ A * t) (ht : t ≤ B) : w
     have := Nat.mul_le_mul_left A ht; rw [Nat.mul_comm w]; omega)
 
 set_option maxHeartbeats 1000000 in
-/-- **`verify_sub`'s instructions of `op`**: a node whose callees are `vsNamesL μ r` within the
+/-- **`verify_sub`'s instructions of `op`**: a node whose callees are `B1.VerifySub.vsNames μ r` within the
 words `Bs` weighs at most its frame's weight and `vsWs op (candidate μ r) Bs`. -/
 theorem vs_weight_le (op : Opcode) {μ r : ℕ} (hc : B1.Whir.candidate μ r < 28) (Bs : List ℕ)
     {rd : Reader} {t : Tree} {args rets : List E}
-    (h : FlatShape coreProgram "verify_sub" (List.zipWith (NamedWithin B2C.fs) (vsNamesL μ r) Bs) t)
+    (h : FlatShape coreProgram "verify_sub" (List.zipWith (NamedWithin B2C.fs) (B1.VerifySub.vsNames μ r) Bs) t)
     (hv : t.Valid coreProgram rd args rets) (hb : t.BufsOk coreProgram) :
     t.weight (B2C.ωArm B2C.xmssArmC op) ≤
       B2C.ωArm B2C.xmssArmC op "verify_sub" + (vsWs op (B1.Whir.candidate μ r) Bs).sum := by
-  refine FlatShape.weight_le _ _ h hv hb (by simp [vsNamesL, vsWs]) ?_
+  refine FlatShape.weight_le _ _ h hv hb (by simp [B1.VerifySub.vsNames, vsWs]) ?_
   intro i hT hW rd' t' args' rets' hv' hb' hTi
   have hi : i < 13 := by simpa [vsWs] using hW
   have hBs : i < Bs.length := by simp at hT; omega
@@ -170,7 +163,7 @@ theorem vs_weight_le (op : Opcode) {μ r : ℕ} (hc : B1.Whir.candidate μ r < 2
   rw [hg] at htot
   have st := fun (k : ℕ) (hk : k < 6) (hnk : t'.name = vsStNames.getD k "") =>
     vsSt_weightLe op hk rd' t' args' rets' hnk hv' hb'
-  interval_cases i <;> simp only [vsNamesL, vsWs, List.getElem_cons_zero, List.getElem_cons_succ] at hn ⊢
+  interval_cases i <;> simp only [B1.VerifySub.vsNames, vsWs, List.getElem_cons_zero, List.getElem_cons_succ] at hn ⊢
   · exact st 0 (by norm_num) hn
   · exact st 0 (by norm_num) hn
   · exact st 1 (by norm_num) hn
@@ -205,7 +198,7 @@ callees within `49403`, `59762`, `87672`, `38888` words. -/
 theorem vs_weight_le_num (op : Opcode) {μ r : ℕ} (hc : B1.Whir.candidate μ r < 28) (Bs : List ℕ)
     (h5 : Bs.getD 5 0 ≤ 49403) (h6 : Bs.getD 6 0 ≤ 59762) (h7 : Bs.getD 7 0 ≤ 87672)
     (h12 : Bs.getD 12 0 ≤ 38888) {rd : Reader} {t : Tree} {args rets : List E}
-    (h : FlatShape coreProgram "verify_sub" (List.zipWith (NamedWithin B2C.fs) (vsNamesL μ r) Bs) t)
+    (h : FlatShape coreProgram "verify_sub" (List.zipWith (NamedWithin B2C.fs) (B1.VerifySub.vsNames μ r) Bs) t)
     (hv : t.Valid coreProgram rd args rets) (hb : t.BufsOk coreProgram) :
     t.weight (B2C.ωArm B2C.xmssArmC op) ≤ (vsCountT op).getD (B1.Whir.candidate μ r) 0 := by
   have h1 := vs_weight_le op hc Bs h hv hb
@@ -215,6 +208,20 @@ theorem vs_weight_le_num (op : Opcode) {μ r : ℕ} (hc : B1.Whir.candidate μ r
   have h4 := om_eq op (i := 0) (by norm_num)
   simp only [omNames, List.getD_cons_zero] at h4
   omega
+
+/-- **`verify_sub`'s instructions of `op` on a tree of B1-d's shape** (`vsTs`, the callees within
+`vsBsAt`), its four ratio-bounded callees' bounds within `49403`, `59762`, `87672`, `38888`
+words. -/
+theorem vs_weight_le_vsTs (op : Opcode) {W : B1.VerifySub.VsWords B2C.fs} {Bvk μ r : ℕ}
+    (hc : B1.Whir.candidate μ r < 28)
+    (h5 : B1.VerifySub.vbgMax B2C.fs W.K29 W.R W.K8 ≤ 49403)
+    (h6 : B1.VerifySub.vtMax B2C.fs W.Kf W.Ksh W.K10 ≤ 59762) (h7 : Bvk ≤ 87672)
+    (h12 : B1.VerifySub.termBound B2C.fs W.Beqc W.K15 W.Bcs W.Brs ≤ 38888)
+    {rd : Reader} {t : Tree} {args rets : List E}
+    (h : FlatShape coreProgram "verify_sub" (B1.VerifySub.vsTs B2C.fs W Bvk μ r) t)
+    (hv : t.Valid coreProgram rd args rets) (hb : t.BufsOk coreProgram) :
+    t.weight (B2C.ωArm B2C.xmssArmC op) ≤ (vsCountT op).getD (B1.Whir.candidate μ r) 0 :=
+  vs_weight_le_num op hc (B1.VerifySub.vsBsAt W Bvk μ r) h5 h6 h7 h12 h hv hb
 
 end
 end LeanVM.Guest.Budget

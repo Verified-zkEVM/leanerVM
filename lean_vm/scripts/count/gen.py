@@ -11,6 +11,13 @@ written under `LeanVM/Guest/`. `CMD` is one of
 * `cnt`: `Memory/GuestCnt{X,M,S,D,J,K}/`, their tops and `Memory/GuestCntPm.lean`, the
   certificates counting each opcode's instructions at `B2C.ωArm B2C.xmssArmC op` (`pathMax`, and
   `verify_lean_xmss`'s separately counted arms), over the closure of `ROOTS`;
+* `cntv`: `Memory/GuestCntV{X,M,S,D,J,K}/`, their tops and `Memory/GuestCntVPm.lean`, the same
+  over the closure of `VROOTS` (`verify_sub`'s statically bounded callees, each child's opening arm
+  among them, and `child_claim_list_digest`'s callees);
+* `ratiov`: `Count/RatioVData.lean`, `Count/RatioVChk*.lean`, `Count/RatioV.lean`, the counts of
+  `RATIOV_ROOTS` (`verify_sub`'s callees with no static bound) within ratios of their words;
+* `vscount`: `Count/VsCountData.lean`, `Count/VsCountChk*.lean`, the `V` families' counts as tables
+  (`vscount.py`, used by `Budget/VsCount.lean`, `Budget/L5Count.lean`);
 * `static`: `Count/Static.lean`, the bounds of `ROOTS` the families give, per opcode and in words,
   and `Count/Words.lean`, every function's words by name (`wSB`, `wSK`; `Count/Instances.lean`
   instantiates the budget's hypotheses with them);
