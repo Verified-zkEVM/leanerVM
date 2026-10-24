@@ -15,7 +15,7 @@ public import LeanVM.Protocol.Verifier.DeferredShape
 # The limits of the guest's completeness
 
 `NodeRel bytecode seed s w` (`Spec/Node.lean`) admits witnesses on which the deployed guest
-(`crates/rec_aggregation/guests/lean_ethereum.py` at leanVM `3375f7a13`, `G:N` its lines) does
+(`crates/rec_aggregation/guests/lean_ethereum.py` at leanVM `4af2cddd`, `G:N` its lines) does
 not run to completion. Completeness assumes three hypotheses beside `NodeRel`, each a precise
 predicate on the witness:
 
@@ -28,7 +28,7 @@ predicate on the witness:
   Merkle cap once (write-once memory), so two openings of one query step meeting at a node of the
   tree must give it one digest; the Spec checks each opening alone against the root. One tree's
   openings agree; two that disagree at a node give a Keccak-256 collision (the root's
-  preimages). Stated, as `B1.Whir.CapsAgree` is for one opening, at every node of the tree, which
+  preimages; an argument in prose, not proved here). Stated, as `B1.Whir.CapsAgree` is for one opening, at every node of the tree, which
   is stronger than the cap levels alone and fails on the same collisions.
 * **`NoZeroChallenge bytecode seed w`, no zero challenge where the guest divides** (new at
   `keccak-gkr`): the guest computes `μ = 1/λ` for each WHIR level's batching challenge `λ`
@@ -38,7 +38,7 @@ predicate on the witness:
   whose stacked opening also rejects a zero fold, tail or level batching challenge
   (`verifyDeferredNZ`). Each challenge is a squeeze of Keccak-f[1600] (three lanes, `2^192`
   values), so in the random-permutation model an honest child's proof meets one with probability
-  about `(number of those challenges)·2^-192`.
+  about `(number of those challenges)·2^-192` (an estimate in prose, not proved here).
 
 `NoZeroChallenge` is the node-level form of `B1.Whir.NoZeroChallenge` (the opening's run from a
 sponge state, `B1/Whir/CompleteIface.lean`); `verifyDeferredNZ`'s opening is `whirLevelsNZ`, the
