@@ -966,7 +966,9 @@ def laneNames (pre : String) : List String := (List.range 25).map fun l ↦ pre 
 
 /-- `KECCAK_COLUMNS` (`verifier.py:931-940`): the operands, the layout flags, the read limb that
 holds no lane (`free`), the fifty value lanes (`in_l`, one of `q_keccak`'s slots each; `out_l`,
-claimed by the Keccak reduction, committed nowhere), then the read counts. -/
+claimed by the Keccak reduction, committed nowhere), then the read counts. The first
+`QKECCAK_SPARE` (`14`) committed columns, `pc` through `free` and `cnt_0`, ride `q_keccak`'s spare
+slots `50…63` (`keccakSlotOf`). -/
 def keccakColumns : List String :=
   ["pc", "fp", "o_m0", "o_m1", "o_m2", "o_m3", "o_tail", "o_b8", "o_cap", "o_out", "odd_in",
     "odd_out", "free"] ++ laneNames "in" ++ laneNames "out" ++
@@ -1002,10 +1004,17 @@ theorem qkeccakSpare_le_length_keccakCommitted : qkeccakSpare ≤ keccakCommitte
 /-- `KECCAK_SLOT_OF` (`verifier.py:951-953`): the `q_keccak` slot of a local `KECCAK` column, if
 it has one: input lane `l` (local column `KECCAK_IN + l`) is slot `l`, and the first
 `QKECCAK_SPARE` committed columns take the slots from `QKECCAK_SLOTS` on, in order. The two
-parts of the Python's dictionary union have disjoint keys. -/
+parts of the Python's dictionary union have disjoint keys (`keccakSlotOf_disjoint`), so the order
+in which they are tried does not matter. -/
 def keccakSlotOf (l : ℕ) : Option ℕ :=
   if keccakIn ≤ l ∧ l < keccakIn + 25 then some (l - keccakIn)
   else ((keccakCommitted.take qkeccakSpare).idxOf? l).map (qkeccakSlots + ·)
+
+/-- The two parts of `KECCAK_SLOT_OF` have disjoint keys: no spare-carrying committed column is an
+input lane. -/
+theorem keccakSlotOf_disjoint :
+    ∀ l ∈ keccakCommitted.take qkeccakSpare, ¬ (keccakIn ≤ l ∧ l < keccakIn + 25) := by
+  decide +kernel
 
 /-- `TOWER_LANES`: the limb products of `E` multiplication folded by `y³ = y + 1`. -/
 def towerLanes : List (List (ℕ × ℕ)) :=
@@ -1860,10 +1869,10 @@ def verifyStackedOpening (stackLog logInvRate : ℕ) (claims : List StackClaim) 
 ## Keccak, by GKR over its rounds
 
 From `verifier.py`, lines 1205-1405: the constants (`KECCAK_RC`, `KECCAK_RHO`, `KECCAK_PI`, which
-are `LeanVM.Parameters.keccakRC`, `keccakRho`, `keccakPi` of `LeanVM.Spec.Keccak`; `PACK`,
+are `LeanVM.Parameters.keccakRC`, `keccakRho`, `keccakPi` of `LeanVM.Spec.Keccak`; `PACK_BITS`,
 `EMBED_BITS`, `PRODUCT_BITS`, `RMFE_FACTORS`), the embedding (`_carryless`,
 `_carryless_divmod`, `_rmfe`), `KeccakClaim`, `keccak_along`, `keccak_linear_transpose`,
-`keccak_instance_weights`, `verify_keccak_layer`, `_keccak_slot_weights`, `_keccak_open` and
+`keccak_instance_weights`, `verify_keccak_layer`, `_keccak_open` and
 `verify_keccak`; the protocol is `doc/leanvm/body/c-keccak-gkr.tex`.
 
 A claim is a weighted sum of the bits of one state per segment, `(value, mu, point, weights)`,
@@ -1884,14 +1893,19 @@ carries to the round's input.
   forever at `f = 0`, which it never passes).
 * The Python's `next(g for g in range(1, 2**degree) if …)` is `List.find?`, `0` if none (the
   Python raises; every factor of `RMFE_FACTORS` is irreducible, so one is found).
-* The mutable arrays of `keccak_linear_transpose` and `_keccak_slot_weights` are arrays here,
+* The mutable arrays of `keccak_linear_transpose` and of `_keccak_open`'s slot weights are arrays here,
   set where the Python sets them.
 -/
 
 /-! ### Constants (`verifier.py:1223-1227`) -/
 
-/-- `PACK`: a pack is sixteen consecutive steps. -/
+/-- `PACK_BITS` (`verifier.py:1223`): a pack is `2 ^ PACK_BITS` consecutive steps. -/
+def packBits : ℕ := 4
+
+/-- The steps of a pack, `2 ^ PACK_BITS = 16` (`pack_eq`). -/
 def pack : ℕ := 16
+
+theorem pack_eq : pack = 2 ^ packBits := rfl
 
 /-- `EMBED_BITS`: a pack's bits embed in a polynomial of `24` coefficients. -/
 def embedBits : ℕ := 24
