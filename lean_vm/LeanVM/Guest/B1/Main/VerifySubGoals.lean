@@ -42,7 +42,7 @@ theorem verifySubGoalsTB_of (hbl : bytecode.length = 2 ^ 23) (hrf : Lift.RunsFit
     (hap : Lift.RunsApart cert) (W : VsWords fs) {Bvk : ℕ} (hvk : VkCompleteAtB fs cert 16 Bvk)
     (hr : NodeRel bytecode seed s w) (hl : Limits bytecode s w) (hca : CapsAgree bytecode seed w)
     (hnz : NoZeroChallenge bytecode seed w) :
-    VerifySubGoalsTB fs cert fp seed s w (fun _ _ => True) (vsBound W Bvk) := by
+    VerifySubGoalsTB fs cert fp seed s w (fun _ _ => True) (fun _ => vsBound W Bvk) := by
   intro c hc
   have hmem := List.getElem_mem hc
   set e := etB fs (mK0 (hData seed s w) fs fp) with he

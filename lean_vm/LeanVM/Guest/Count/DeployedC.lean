@@ -12,7 +12,8 @@ public import LeanVM.Guest.Count.DeployedA2
 namespace LeanVM.Guest.Count
 
 open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Memory LeanVM.Guest
-open LeanVM.Guest.B1.Main (nameSum dlK colC colS clC ccC dvC dvS l5A0 l5A1 l5A2 agA0 agA1 mainWords)
+open LeanVM.Guest.B1.Main (nameSum dlK colC colS clC clS ccC ccS dvC dvS l5A0 l5A1 l5A2 agA0 agA1
+  mainWords)
 
 @[expose] public section
 
@@ -37,20 +38,24 @@ theorem l5A0_eq : l5A0 B2C.fs = 100 := by
   rw [fs_idx (j := 37) (f := "__loop5") (by decide +kernel)]
   decide +kernel
 
-theorem l5A1_eq : l5A1 B2C.fs wSB = 11450 := by
+theorem clS_eq : clS wSK = 35 := by
+  unfold clS
+  rw [wSK_idx (j := 323) (f := "__loop16") (by decide +kernel)]
+  decide +kernel
+
+theorem l5A1_eq : l5A1 B2C.fs wSB = 12314 := by
   unfold l5A1
   rw [ccC_eq,
     fs_idx (j := 37) (f := "__loop5") (by decide +kernel),
     fs_idx (j := 398) (f := "__loop28") (by decide +kernel),
+    fs_idx (j := 30) (f := "cover_da_root") (by decide +kernel),
     wSB_idx (j := 29) (f := "da_list_digest") (by decide +kernel),
     wSB_idx (j := 21) (f := "statement_digest") (by decide +kernel)]
   decide +kernel
 
-theorem l5A2_eq : l5A2 B2C.fs = 555 := by
-  unfold l5A2
-  rw [fs_idx (j := 341) (f := "__loop17") (by decide +kernel),
-    fs_idx (j := 398) (f := "__loop28") (by decide +kernel),
-    fs_idx (j := 30) (f := "cover_da_root") (by decide +kernel)]
+theorem l5A2_eq : l5A2 B2C.fs = 30 := by
+  unfold l5A2 ccS
+  rw [fs_idx (j := 341) (f := "__loop17") (by decide +kernel)]
   decide +kernel
 
 theorem agA0_eq : agA0 B2C.fs wSB = 1406 := by

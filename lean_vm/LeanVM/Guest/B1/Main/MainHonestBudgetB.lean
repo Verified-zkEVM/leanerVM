@@ -50,8 +50,8 @@ structure MainStatics (fs : String → ℕ) (SB SK : String → ℕ) : Prop wher
 
 /-- **The bounds of `main`'s non-static callees** on the honest run: its claim lists' digests
 (`clB`), `da_verify` (`hDvB`), `aggregate_claims` (`aggB`), the children's loop (`l5B`, each
-child's claim lists' digests within `ccB`, `verify_sub` within `Bv`). -/
-def mainBsH (fs : String → ℕ) (SB SK : String → ℕ) (Bv : ℕ) (s : NodeStatement) (w : NodeWitness) :
+child's claim lists' digests within `ccB`, child `c`'s `verify_sub` within `Bv c`). -/
+def mainBsH (fs : String → ℕ) (SB SK : String → ℕ) (Bv : ℕ → ℕ) (s : NodeStatement) (w : NodeWitness) :
     MainBs :=
   ⟨B1.Digest.clB fs SB SK s.claims.xmss.length, B1.Digest.clB fs SB SK s.claims.sphincs.length,
     hDvB fs SB SK s w, aggB fs SB SK w.children.length,
@@ -60,7 +60,7 @@ def mainBsH (fs : String → ℕ) (SB SK : String → ℕ) (Bv : ℕ) (s : NodeS
 
 /-- **`main`'s words on the honest run** at `fp`: its frame and buffers, `exponent_tables`', every
 other callee's bound (`mBs`, `kidsBoundL` over `mKids`). -/
-def Bmain (fs : String → ℕ) (SB SK : String → ℕ) (Bv fp : ℕ) (seed : Digest) (s : NodeStatement)
+def Bmain (fs : String → ℕ) (SB SK : String → ℕ) (Bv : ℕ → ℕ) (fp : ℕ) (seed : Digest) (s : NodeStatement)
     (w : NodeWitness) : ℕ :=
   mainBH fs SB SK (hData seed s w) (hm fs fp seed s w) (hLmain fs fp seed s w) (mainBsH fs SB SK Bv s w)
 
@@ -69,7 +69,7 @@ variable {fs : String → ℕ} {cert : String → V → ℕ} {fp : ℕ} {seed : 
 
 /-- **`main`'s non-static callees on the honest run within their bounds, by trees of honest
 shape.** -/
-theorem mainGoalsTB_honest {SB SK : String → ℕ} {Pvs : ℕ → Tree → Prop} {Bv : ℕ}
+theorem mainGoalsTB_honest {SB SK : String → ℕ} {Pvs : ℕ → Tree → Prop} {Bv : ℕ → ℕ}
     (hbl : bytecode.length = 2 ^ 23) (hr : NodeRel bytecode seed s w) (hl : Limits bytecode s w)
     (hrf : Lift.RunsFit fs cert) (hS : MainStatics fs SB SK)
     (hV : VerifySubGoalsTB fs cert fp seed s w Pvs Bv) :
@@ -82,13 +82,13 @@ theorem mainGoalsTB_honest {SB SK : String → ℕ} {Pvs : ℕ → Tree → Prop
 
 /-- **`main`'s completeness on the honest run within its words**: for `NodeRel` within `Limits`
 and a bytecode of `2^23` words, from the signature schemes' completeness (B1-e), the frame runs'
-certificate facts, the static bounds (`MainStatics`) and each child's `verify_sub` within `Bv` by a
+certificate facts, the static bounds (`MainStatics`) and child `c`'s `verify_sub` within `Bv c` by a
 tree satisfying `Pvs c` (B1-d): a size `n ≤ Bmain` and a layout `L` within `[fp, fp + n)`, above
 `main`'s frame, pairwise disjoint, containing `main`'s honest words; on every memory holding `L`
 and the statement's digest at words `0`, `1`, `main` holds at `fp` by its node at its honest
 values, its walk's calls and buffers, its callees' trees satisfying `mainPredsH` and, the
 non-static ones, within their bounds. -/
-theorem main_honest_budgetB {SB SK : String → ℕ} {Pvs : ℕ → Tree → Prop} {Bv : ℕ}
+theorem main_honest_budgetB {SB SK : String → ℕ} {Pvs : ℕ → Tree → Prop} {Bv : ℕ → ℕ}
     (hbl : bytecode.length = 2 ^ 23) (hr : NodeRel bytecode seed s w) (hl : Limits bytecode s w)
     (hxc : Sig.verify_lean_xmss_complete_Spec)
     (hsc : Sig.verify_sig_lean_sphincs_complete_loads_Spec) (hrf : Lift.RunsFit fs cert)

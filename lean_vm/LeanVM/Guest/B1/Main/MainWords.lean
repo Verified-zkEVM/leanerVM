@@ -122,24 +122,36 @@ theorem dvB_le {r L : ℕ} (hr : 1 ≤ r) (hP : 2 ^ L ≤ 2 * r) (hL : L < 11) :
       r * (64 * colS SB SK "__loop419" "__loop420") := by ring
   omega
 
-/-! ## The claim lists -/
+/-! ## The claim lists
+
+A claim list's digest takes `13` words and a loop iteration per `17` claims (`CLAIM_GROUP`):
+`(n / 17) · K ≤ n · ⌈K / 17⌉` (`div17_mul_le`), so the words per claim are `1 + ⌈K / 17⌉`. -/
+
+theorem div17_mul_le (n K : ℕ) : n / 17 * K ≤ n * ((K + 16) / 17) := by
+  have h1 : K ≤ 17 * ((K + 16) / 17) := by omega
+  have h2 : n / 17 * 17 ≤ n := Nat.div_mul_le_self n 17
+  calc n / 17 * K ≤ n / 17 * (17 * ((K + 16) / 17)) := Nat.mul_le_mul_left _ h1
+    _ = n / 17 * 17 * ((K + 16) / 17) := by ring
+    _ ≤ n * ((K + 16) / 17) := Nat.mul_le_mul_right _ h2
 
 /-- A claim list's digest's constant words. -/
 def clC : ℕ :=
   fs "claim_list_digest" + 13 + SB "list_split" + fs "__loop16" + nameSum SB B1.Digest.clNames 17
 
-theorem clB_le (n : ℕ) : B1.Digest.clB fs SB SK n ≤ clC fs SB + n * (13 + SK "__loop16") := by
-  unfold B1.Digest.clB clC
+/-- A claim list's digest's words per claim: `13` and a `__loop16` iteration per `17` claims. -/
+def clS : ℕ := 1 + (SK "__loop16" + 16) / 17
+
+theorem clB_le (n : ℕ) : B1.Digest.clB fs SB SK n ≤ clC fs SB + n * clS SK := by
+  unfold B1.Digest.clB clC clS
   split
   · omega
   · have h1 := le_nameSum (g := SB) (names := B1.Digest.clNames) (j := n % 17) (Nat.mod_lt _ (by omega))
-    have h2 : n / 17 ≤ n := Nat.div_le_self _ _
+    have h2 := div17_mul_le n (SK "__loop16")
     have h3 : (if n / 17 ≠ 0 then n / 17 * SK "__loop16" else fs "__loop16") ≤
-        n * SK "__loop16" + fs "__loop16" := by
-      split
-      · have := Nat.mul_le_mul_right (SK "__loop16") h2; omega
-      · omega
-    have e : n * (13 + SK "__loop16") = 13 * n + n * SK "__loop16" := by ring
+        n * ((SK "__loop16" + 16) / 17) + fs "__loop16" := by
+      split <;> omega
+    have h4 : 13 * (n / 17) ≤ n := by omega
+    have e : n * (1 + (SK "__loop16" + 16) / 17) = n + n * ((SK "__loop16" + 16) / 17) := by ring
     omega
 
 /-- A child's claim list's digest's constant words. -/
@@ -147,8 +159,11 @@ def ccC : ℕ :=
   fs "child_claim_list_digest" + 13 + SB "list_split" + fs "__loop17" +
     nameSum (fun g => fs g) B1.Digest.cclNames 17
 
-theorem ccB_le (n : ℕ) : B1.Digest.ccB fs SB n ≤ ccC fs SB + n * (13 + fs "__loop17") := by
-  unfold B1.Digest.ccB ccC
+/-- A child's claim list's digest's words per claim: `13` and a `__loop17` frame per `17` claims. -/
+def ccS : ℕ := 1 + (fs "__loop17" + 16) / 17
+
+theorem ccB_le (n : ℕ) : B1.Digest.ccB fs SB n ≤ ccC fs SB + n * ccS fs := by
+  unfold B1.Digest.ccB ccC ccS
   split
   · omega
   · have h1 := le_nameSum (g := fun g => fs g) (names := B1.Digest.cclNames) (j := n % 17)
@@ -157,25 +172,28 @@ theorem ccB_le (n : ℕ) : B1.Digest.ccB fs SB n ≤ ccC fs SB + n * (13 + fs "_
       simp only [List.getD_eq_getElem?_getD, getElem!_def]
       cases B1.Digest.cclNames[n % 17]? <;> rfl
     rw [hg]
-    have h2 : n / 17 ≤ n := Nat.div_le_self _ _
+    have h2 := div17_mul_le n (fs "__loop17")
     have h3 : (if n / 17 ≠ 0 then (n / 17 + 1) * fs "__loop17" else fs "__loop17") ≤
-        n * fs "__loop17" + fs "__loop17" := by
+        n * ((fs "__loop17" + 16) / 17) + fs "__loop17" := by
       split
-      · have := Nat.mul_le_mul_right (fs "__loop17") h2
-        have e : (n / 17 + 1) * fs "__loop17" = n / 17 * fs "__loop17" + fs "__loop17" := by ring
+      · have e : (n / 17 + 1) * fs "__loop17" = n / 17 * fs "__loop17" + fs "__loop17" := by ring
         omega
       · omega
-    have e : n * (13 + fs "__loop17") = 13 * n + n * fs "__loop17" := by ring
+    have h4 : 13 * (n / 17) ≤ n := by omega
+    have e : n * (1 + (fs "__loop17" + 16) / 17) = n + n * ((fs "__loop17" + 16) / 17) := by ring
     omega
 
 /-! ## The children's loop -/
 
-/-- A child's constant words in the children's loop (but `verify_sub`'s). -/
+/-- A child's constant words in the children's loop (but `verify_sub`'s): the iteration's frame and
+`HeapBuf`s, its claim lists' digests' constants, `__loop28` over at most `16` DA roots
+(`MAX_DA_ROOTS`, `Limits.daRoots`), `da_list_digest`, `statement_digest`. -/
 def l5A1 : ℕ :=
-  fs "__loop5" + 2 + 2 * ccC fs SB + fs "__loop28" + SB "da_list_digest" + SB "statement_digest"
+  fs "__loop5" + 2 + 2 * ccC fs SB + (64 + 16 * (fs "__loop28" + fs "cover_da_root") +
+    fs "__loop28") + SB "da_list_digest" + SB "statement_digest"
 
 /-- The children's loop's words per child's claim. -/
-def l5A2 : ℕ := 17 + fs "__loop17" + fs "__loop28" + fs "cover_da_root"
+def l5A2 : ℕ := ccS fs
 
 /-- The children's loop's constant words. -/
 def l5A0 : ℕ := fs "__loop5"
@@ -206,37 +224,42 @@ theorem kid_counts (w : NodeWitness) (c : ℕ) : hEx w c + hEs w c + hEd w c =
   simp only [hEx, hEs, hEd, List.getD_eq_getElem?_getD, List.getElem?_map]
   cases w.children[c]? <;> rfl
 
-/-- **The children's loop's words**: a constant, each child's constant and `verify_sub`'s bound,
-and a slope per child's claim. -/
-theorem l5B_le (Bv : ℕ) (s : NodeStatement) (w : NodeWitness) (hnc : w.children.length ≠ 0) :
+/-- A child's DA roots are at most `16` (`MAX_DA_ROOTS`). -/
+theorem hEd_le {bytecode : List K} {s : NodeStatement} {w : NodeWitness} (hl : Limits bytecode s w)
+    (c : ℕ) : hEd w c ≤ 16 := by
+  simp only [hEd, List.getD_eq_getElem?_getD, List.getElem?_map]
+  cases h : w.children[c]? with
+  | none => simp
+  | some ch => simpa using hl.daRoots.2 ch (List.mem_of_getElem? h)
+
+/-- **The children's loop's words**: a constant, each child's constant and `verify_sub`'s bound
+`Bv c`, and a slope per child's claim. -/
+theorem l5B_le (Bv : ℕ → ℕ) {bytecode : List K} {s : NodeStatement} {w : NodeWitness}
+    (hl : Limits bytecode s w) (hnc : w.children.length ≠ 0) :
     l5B fs SB (fun c => B1.Digest.ccB fs SB (hKid s w c).ex) (fun c => B1.Digest.ccB fs SB (hKid s w c).es)
-      Bv s w ≤ l5A0 fs + w.children.length * (l5A1 fs SB + Bv) +
-        l5A2 fs * (End.work s w).childClaims := by
+      Bv s w ≤ l5A0 fs + w.children.length * l5A1 fs SB +
+        ∑ c ∈ Finset.range w.children.length, Bv c + l5A2 fs * (End.work s w).childClaims := by
   unfold l5B
   have h := l5Chain_le fs (fun c => l5K fs SB (B1.Digest.ccB fs SB (hKid s w c).ex)
-    (B1.Digest.ccB fs SB (hKid s w c).es) Bv (hKid s w c).ed) (w.children.length - 1) 0
+    (B1.Digest.ccB fs SB (hKid s w c).es) (Bv c) (hKid s w c).ed) (w.children.length - 1) 0
   rw [show w.children.length - 1 + 1 = w.children.length by omega] at h
   have hK : ∀ c, l5K fs SB (B1.Digest.ccB fs SB (hKid s w c).ex) (B1.Digest.ccB fs SB (hKid s w c).es)
-      Bv (hKid s w c).ed ≤ (l5A1 fs SB - fs "__loop5" + Bv) +
-        l5A2 fs * (hEx w c + hEs w c + hEd w c) := by
+      (Bv c) (hKid s w c).ed ≤ ((l5A1 fs SB - fs "__loop5" + Bv c) +
+        l5A2 fs * (hEx w c + hEs w c + hEd w c)) := by
     intro c
     have h1 := ccB_le fs SB (hKid s w c).ex
     have h2 := ccB_le fs SB (hKid s w c).es
+    have hd := hEd_le hl c
+    have h3 : hEd w c * (fs "__loop28" + fs "cover_da_root") ≤
+        16 * (fs "__loop28" + fs "cover_da_root") := Nat.mul_le_mul_right _ hd
     unfold l5K l28B l5A1 l5A2
-    simp only [List.sum_cons, List.sum_nil, hKid]
-    have e : (17 + fs "__loop17" + fs "__loop28" + fs "cover_da_root") * (hEx w c + hEs w c + hEd w c) =
-        17 * hEx w c + 17 * hEs w c + 17 * hEd w c + fs "__loop17" * hEx w c + fs "__loop17" * hEs w c +
-        fs "__loop17" * hEd w c + (fs "__loop28" + fs "cover_da_root") * hEx w c +
-        (fs "__loop28" + fs "cover_da_root") * hEs w c + (fs "__loop28" + fs "cover_da_root") * hEd w c := by
-      ring
-    have e1 : hEx w c * (13 + fs "__loop17") = 13 * hEx w c + fs "__loop17" * hEx w c := by ring
-    have e2 : hEs w c * (13 + fs "__loop17") = 13 * hEs w c + fs "__loop17" * hEs w c := by ring
-    have e3 : hEd w c * (fs "__loop28" + fs "cover_da_root") =
-        (fs "__loop28" + fs "cover_da_root") * hEd w c := by ring
-    simp only [hKid] at h1 h2
+    simp only [List.sum_cons, List.sum_nil, hKid] at h1 h2 ⊢
+    have e : ccS fs * (hEx w c + hEs w c + hEd w c) =
+        hEx w c * ccS fs + hEs w c * ccS fs + hEd w c * ccS fs := by ring
     omega
   have hs := Finset.sum_le_sum fun c (_ : c ∈ Finset.range w.children.length) => hK c
-  rw [Finset.sum_add_distrib, Finset.sum_const, Finset.card_range, smul_eq_mul, ← Finset.mul_sum] at hs
+  simp only [Finset.sum_add_distrib, Finset.sum_const, Finset.card_range, smul_eq_mul,
+    ← Finset.mul_sum] at hs
   have hcc : ∑ c ∈ Finset.range w.children.length, (hEx w c + hEs w c + hEd w c) =
       (End.work s w).childClaims := by
     simp only [kid_counts]
@@ -248,13 +271,13 @@ theorem l5B_le (Bv : ℕ) (s : NodeStatement) (w : NodeWitness) (hnc : w.childre
   simp only [Nat.zero_add] at h
   have hA : fs "__loop5" ≤ l5A1 fs SB := by unfold l5A1; omega
   unfold l5A0
-  have e : w.children.length * (l5A1 fs SB + Bv) =
-      w.children.length * (l5A1 fs SB - fs "__loop5" + Bv) + w.children.length * fs "__loop5" := by
+  have e : w.children.length * l5A1 fs SB =
+      w.children.length * (l5A1 fs SB - fs "__loop5") + w.children.length * fs "__loop5" := by
     rw [← Nat.mul_add]; congr 1; omega
   have e2 : (w.children.length + 1) * fs "__loop5" = w.children.length * fs "__loop5" + fs "__loop5" := by
     ring
   rw [show w.children.length - 1 + 2 = w.children.length + 1 by omega] at h
-  beta_reduce
+  beta_reduce at h hs ⊢
   omega
 
 /-! ## `da_verify` at the direct witness, `aggregate_claims` -/
@@ -324,21 +347,43 @@ theorem kidsBoundL_append (b : List Kid) (Bb : List ℕ) : ∀ (a : List Kid) (B
   | [], _ :: _, h => by simp at h
   | _ :: _, [], h => by simp at h
 
+/-- Child `c`'s `verify_sub` words, `Bvf` at its announced stack log and rate (`childShape`). -/
+def childBv (Bvf : ℕ → ℕ → ℕ) (w : NodeWitness) (c : ℕ) : ℕ :=
+  (w.children.map fun ch => Bvf (childShape End.bytecode ch).1 (childShape End.bytecode ch).2).getD c 0
+
+theorem childBv_of_lt (Bvf : ℕ → ℕ → ℕ) (w : NodeWitness) {c : ℕ} (hc : c < w.children.length) :
+    childBv Bvf w c = Bvf (childShape End.bytecode w.children[c]).1
+      (childShape End.bytecode w.children[c]).2 := by
+  simp [childBv, List.getD_eq_getElem?_getD, hc]
+
+theorem sum_childBv (Bvf : ℕ → ℕ → ℕ) (s : NodeStatement) (w : NodeWitness) :
+    ∑ c ∈ Finset.range w.children.length, childBv Bvf w c =
+      ((End.work s w).childShapes.map fun p => Bvf p.1 p.2).sum := by
+  have h := sum_range_getD (w.children.map fun ch =>
+    Bvf (childShape End.bytecode ch).1 (childShape End.bytecode ch).2)
+  simp only [List.length_map] at h
+  unfold childBv
+  rw [h]
+  simp only [End.work, List.map_map]
+  rfl
+
 /-- **`main`'s words budget**, linear in the work: `main`'s frame and buffers, `exponent_tables`',
-and each callee's frame and bound. -/
-def mainWords (Bv : ℕ) : End.Linear where
+and each callee's frame and bound, child `c`'s `verify_sub` within `Bvf` at its announced stack log
+and rate. -/
+def mainWords (Bvf : ℕ → ℕ → ℕ) : End.Linear where
   base := fs "main" + 283 + fs "exponent_tables" + 68 + fs "__loop0" + SB "da_list_digest" +
     fs "da_list_digest" + 2 * (clC fs SB + fs "claim_list_digest") + fs "__loop1" + fs "__loop2" +
     fs "__loop3" + fs "__loop4" + 2 * l5A0 fs + (agA0 fs SB + fs "aggregate_claims") + SB "statement_digest" +
     fs "statement_digest"
-  declared := 13 + SK "__loop16"
+  declared := clS SK
   coverage := 5 + SK "__loop0" + SK "__loop1" + SK "__loop2"
   rawXmss := SK "__loop3"
   rawSphincs := SK "__loop4"
   rawDa := dvC fs SB + fs "da_verify" + 2 * fs "cover_da_root"
   rawDaRows := dvS SB SK
-  children := 51 + l5A1 fs SB + Bv + agA1 SK
+  children := 51 + l5A1 fs SB + agA1 SK
   childClaims := l5A2 fs
+  childShape := Bvf
 
 theorem mSizes_sum (seed : Digest) (s : NodeStatement) (w : NodeWitness) :
     (mSizes (hData seed s w)).sum = 5 * coverage s w + 51 * w.children.length + 283 := by
@@ -365,10 +410,11 @@ theorem kidsBoundL_mKids (m : MainIn) (L : Layout) (b : MainBs) :
       decide_false, decide_true, Bool.false_eq_true] <;>
     split_ifs <;> omega
 
-/-- **`main`'s words on the honest run within the budget.** -/
-theorem Bmain_le (Bv : ℕ) {bytecode : List K} {seed : Digest} {s : NodeStatement} {w : NodeWitness}
-    (hr : NodeRel bytecode seed s w) (hl : Limits bytecode s w) :
-    Bmain fs SB SK Bv 0 seed s w ≤ (mainWords fs SB SK Bv).eval (End.work s w) := by
+/-- **`main`'s words on the honest run within the budget**, child `c`'s `verify_sub` within
+`childBv Bvf w c`. -/
+theorem Bmain_le (Bvf : ℕ → ℕ → ℕ) {bytecode : List K} {seed : Digest} {s : NodeStatement}
+    {w : NodeWitness} (hr : NodeRel bytecode seed s w) (hl : Limits bytecode s w) :
+    Bmain fs SB SK (childBv Bvf w) 0 seed s w ≤ (mainWords fs SB SK Bvf).eval (End.work s w) := by
   have hmsz := mSizes_sum seed s w
   have hX := clB_le fs SB SK s.claims.xmss.length
   have hS := clB_le fs SB SK s.claims.sphincs.length
@@ -382,17 +428,18 @@ theorem Bmain_le (Bv : ℕ) {bytecode : List K} {seed : Digest} {s : NodeStateme
     Nat.mul_le_mul_right _ (by omega)
   have c2 : (sPlan s w).dups.length * SK "__loop2" ≤ coverage s w * SK "__loop2" :=
     Nat.mul_le_mul_right _ (by omega)
-  have hK := kidsBoundL_mKids fs SB SK (hm fs 0 seed s w) (hLmain fs 0 seed s w) (mainBsH fs SB SK Bv s w)
-  have hB : Bmain fs SB SK Bv 0 seed s w = fs "main" + (mSizes (hData seed s w)).sum +
+  have hK := kidsBoundL_mKids fs SB SK (hm fs 0 seed s w) (hLmain fs 0 seed s w)
+    (mainBsH fs SB SK (childBv Bvf w) s w)
+  have hB : Bmain fs SB SK (childBv Bvf w) 0 seed s w = fs "main" + (mSizes (hData seed s w)).sum +
       (fs "exponent_tables" + 68 + kidsBoundL fs (mKids (hm fs 0 seed s w) (hLmain fs 0 seed s w))
-        (mBs fs SB SK (hm fs 0 seed s w) (mainBsH fs SB SK Bv s w))) := rfl
+        (mBs fs SB SK (hm fs 0 seed s w) (mainBsH fs SB SK (childBv Bvf w) s w))) := rfl
   generalize kidsBoundL fs (mKids (hm fs 0 seed s w) (hLmain fs 0 seed s w))
-    (mBs fs SB SK (hm fs 0 seed s w) (mainBsH fs SB SK Bv s w)) = KB at hK hB
+    (mBs fs SB SK (hm fs 0 seed s w) (mainBsH fs SB SK (childBv Bvf w) s w)) = KB at hK hB
   rw [hB, hmsz]
   have hd : (hm fs 0 seed s w).nd ≤ 1 := hl.directDa
   have hcl : s.claims.xmss.length + s.claims.sphincs.length ≤ (End.work s w).declared := by
     simp only [End.work]; omega
-  have hcl2 := Nat.mul_le_mul_right (13 + SK "__loop16") hcl
+  have hcl2 := Nat.mul_le_mul_right (clS SK) hcl
   have hcov' : coverage s w = (End.work s w).coverage := rfl
   have e0 : (hm fs 0 seed s w).nda + (hm fs 0 seed s w).ndd =
       s.claims.da.length + (dPlan s w).dups.length := rfl
@@ -400,23 +447,22 @@ theorem Bmain_le (Bv : ℕ) {bytecode : List K} {seed : Digest} {s : NodeStateme
   have e2 : (hm fs 0 seed s w).nsd = (sPlan s w).dups.length := rfl
   have e3 : (hm fs 0 seed s w).nrx = (End.work s w).rawXmss := rfl
   have e4 : (hm fs 0 seed s w).nrs = (End.work s w).rawSphincs := rfl
-  have e5 : (hm fs 0 seed s w).nc = (End.work s w).children := rfl
   have e6 : w.children.length = (End.work s w).children := rfl
-  have e7 : (mainBsH fs SB SK Bv s w).Bx = B1.Digest.clB fs SB SK s.claims.xmss.length := rfl
-  have e8 : (mainBsH fs SB SK Bv s w).Bs = B1.Digest.clB fs SB SK s.claims.sphincs.length := rfl
-  have e9 : (mainBsH fs SB SK Bv s w).Bd = hDvB fs SB SK s w := rfl
-  have e10 : (mainBsH fs SB SK Bv s w).Ba = aggB fs SB SK w.children.length := rfl
-  have e11 : (mainBsH fs SB SK Bv s w).B5 = l5B fs SB (fun c => B1.Digest.ccB fs SB (hKid s w c).ex)
-      (fun c => B1.Digest.ccB fs SB (hKid s w c).es) Bv s w := rfl
+  have e7 : (mainBsH fs SB SK (childBv Bvf w) s w).Bx = B1.Digest.clB fs SB SK s.claims.xmss.length := rfl
+  have e8 : (mainBsH fs SB SK (childBv Bvf w) s w).Bs = B1.Digest.clB fs SB SK s.claims.sphincs.length :=
+    rfl
+  have e9 : (mainBsH fs SB SK (childBv Bvf w) s w).Bd = hDvB fs SB SK s w := rfl
+  have e10 : (mainBsH fs SB SK (childBv Bvf w) s w).Ba = aggB fs SB SK w.children.length := rfl
+  have e11 : (mainBsH fs SB SK (childBv Bvf w) s w).B5 = l5B fs SB
+      (fun c => B1.Digest.ccB fs SB (hKid s w c).ex) (fun c => B1.Digest.ccB fs SB (hKid s w c).es)
+      (childBv Bvf w) s w := rfl
   rw [e0, e1, e2, e3, e4, e7, e8, e9, e10, e11] at hK
   rw [hcov'] at c0 c1 c2 ⊢
   rw [e6]
   simp only [End.Linear.eval, mainWords, l5A0]
-  have r1 : (13 + SK "__loop16") * (End.work s w).declared =
-      (End.work s w).declared * (13 + SK "__loop16") := Nat.mul_comm _ _
-  have r2 : (s.claims.xmss.length + s.claims.sphincs.length) * (13 + SK "__loop16") =
-      s.claims.xmss.length * (13 + SK "__loop16") + s.claims.sphincs.length * (13 + SK "__loop16") :=
-    Nat.add_mul _ _ _
+  have r1 : clS SK * (End.work s w).declared = (End.work s w).declared * clS SK := Nat.mul_comm _ _
+  have r2 : (s.claims.xmss.length + s.claims.sphincs.length) * clS SK =
+      s.claims.xmss.length * clS SK + s.claims.sphincs.length * clS SK := Nat.add_mul _ _ _
   have r3 : (5 + SK "__loop0" + SK "__loop1" + SK "__loop2") * (End.work s w).coverage =
       5 * (End.work s w).coverage + (End.work s w).coverage * SK "__loop0" +
         (End.work s w).coverage * SK "__loop1" + (End.work s w).coverage * SK "__loop2" := by ring
@@ -430,8 +476,8 @@ theorem Bmain_le (Bv : ℕ) {bytecode : List K} {seed : Digest} {s : NodeStateme
       (End.work s w).rawDa * dvC fs SB + (End.work s w).rawDa * (fs "da_verify" + 2 * fs "cover_da_root") :=
     by ring
   have erd : (End.work s w).rawDa = (hm fs 0 seed s w).nd := rfl
-  have r7 : (51 + l5A1 fs SB + Bv + agA1 SK) * (End.work s w).children =
-      51 * (End.work s w).children + (End.work s w).children * (l5A1 fs SB + Bv) +
+  have r7 : (51 + l5A1 fs SB + agA1 SK) * (End.work s w).children =
+      51 * (End.work s w).children + (End.work s w).children * l5A1 fs SB +
         agA1 SK * (End.work s w).children := by ring
   by_cases hnc : w.children.length = 0
   · have hnc' : (hm fs 0 seed s w).nc = 0 := hnc
@@ -445,7 +491,8 @@ theorem Bmain_le (Bv : ℕ) {bytecode : List K} {seed : Digest} {s : NodeStateme
       omega
     · omega
   · have hnc' : ¬ (hm fs 0 seed s w).nc = 0 := hnc
-    have h5 := l5B_le fs SB Bv s w hnc
+    have h5 := l5B_le fs SB (childBv Bvf w) hl hnc
+    rw [sum_childBv Bvf s w] at h5
     simp only [l5A0] at h5
     simp only [hnc', ↓reduceIte] at hK
     rw [e6] at hA h5 hK

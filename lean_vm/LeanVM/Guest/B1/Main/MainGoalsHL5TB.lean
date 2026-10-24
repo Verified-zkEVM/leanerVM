@@ -400,14 +400,14 @@ iteration's callees within their bounds. -/
 theorem l5_completeAtTB (SB : String → ℕ)
     (hSD : TotalLe coreProgram fs "statement_digest" (fun _ => SB "statement_digest"))
     (hDL : TotalLe coreProgram fs "da_list_digest" (fun _ => SB "da_list_digest"))
-    {Bv : ℕ} {Bxs Bss : ℕ → ℕ} {Lin : Layout} {W Pi Cr R C n nk : ℕ}
+    {Bv Bxs Bss : ℕ → ℕ} {Lin : Layout} {W Pi Cr R C n nk : ℕ}
     {lxt cover lxs lst lss s0 s1 glp gsq cfresh : E} {kid : ℕ → KidH} {Pxs Pss Pvs : ℕ → Tree → Prop}
     (hn : n ≤ 2 ^ 16) (hnk : nk < 2 ^ 34) (hs01 : AllCanonical [s0, s1])
     (hk : ∀ c < nk, KidOkC fs cert Lin W Pi Cr R C n lxt cover lxs lst lss s0 s1 glp gsq cfresh c
       (kid c))
     (hVT : ∀ c < nk, CompleteAtDTB fs cert 16 "verify_sub" Lin
       [((kid c).pi s0 s1).1, ((kid c).pi s0 s1).2, s0, s1, glp, gsq, cfresh * gen ^ (24 * c)]
-      (Returns []) (Pvs c) Bv)
+      (Returns []) (Pvs c) (Bv c))
     (hXT : ∀ c < nk, CompleteAtDTB fs cert 16 "child_claim_list_digest" Lin
       [lxt, cover, (kid c).base, 1, lxs, gen ^ (kid c).ex] (Returns [(kid c).cx.1, (kid c).cx.2])
       (Pxs c) (Bxs c))
@@ -418,12 +418,12 @@ theorem l5_completeAtTB (SB : String → ℕ)
       [gen ^ c, gen ^ nk, gen ^ W, lxt, cover, lxs, lst, lss, gen ^ Cr, gen ^ R, gen ^ C,
         gen ^ n, s0, s1, gen ^ Pi, glp, gsq, cfresh] (Returns [])
       (L5From (fun c => (kid c).ex) (fun c => (kid c).es) (fun c => (kid c).ed) Pxs Pss Pvs (nk - c) c)
-      (l5ChainB fs (fun c => l5K fs SB (Bxs c) (Bss c) Bv (kid c).ed) (nk - c - 1) c) := by
+      (l5ChainB fs (fun c => l5K fs SB (Bxs c) (Bss c) (Bv c) (kid c).ed) (nk - c - 1) c) := by
   have key : ∀ t c, c + 1 + t = nk → CompleteAtDTB fs cert 16 "__loop5" Lin
       [gen ^ c, gen ^ nk, gen ^ W, lxt, cover, lxs, lst, lss, gen ^ Cr, gen ^ R, gen ^ C,
         gen ^ n, s0, s1, gen ^ Pi, glp, gsq, cfresh] (Returns [])
       (L5From (fun c => (kid c).ex) (fun c => (kid c).es) (fun c => (kid c).ed) Pxs Pss Pvs (t + 1) c)
-      (l5ChainB fs (fun c => l5K fs SB (Bxs c) (Bss c) Bv (kid c).ed) t c) := by
+      (l5ChainB fs (fun c => l5K fs SB (Bxs c) (Bss c) (Bv c) (kid c).ed) t c) := by
     intro t
     induction t with
     | zero =>
@@ -444,22 +444,27 @@ theorem l5_completeAtTB (SB : String → ℕ)
 
 variable {fs cert}
 
-/-- **Each child's `verify_sub` call complete within `Bv`, by a tree satisfying `Pvs c`.** -/
+/-- **Each child's `verify_sub` call complete within `Bv c`, by a tree satisfying `Pvs c`.** -/
 def VerifySubGoalsTB (fs : String → ℕ) (cert : String → V → ℕ) (fp : ℕ) (seed : Digest)
-    (s : NodeStatement) (w : NodeWitness) (Pvs : ℕ → Tree → Prop) (Bv : ℕ) : Prop :=
+    (s : NodeStatement) (w : NodeWitness) (Pvs : ℕ → Tree → Prop) (Bv : ℕ → ℕ) : Prop :=
   ∀ c (hc : c < w.children.length), CompleteAtDTB fs cert 16 "verify_sub" (hLmain fs fp seed s w)
     [(digestScalars (statementDigest seed w.children[c].statement)).1,
       (digestScalars (statementDigest seed w.children[c].statement)).2,
       (digestScalars seed).1, (digestScalars seed).2, (hm fs fp seed s w).et1,
-      (hm fs fp seed s w).et2, (hm fs fp seed s w).a400 * gen ^ (24 * c)] (Returns []) (Pvs c) Bv
+      (hm fs fp seed s w).et2, (hm fs fp seed s w).a400 * gen ^ (24 * c)] (Returns []) (Pvs c) (Bv c)
 
 theorem VerifySubGoalsTB.toT {fp : ℕ} {seed : Digest} {s : NodeStatement} {w : NodeWitness}
-    {Pvs : ℕ → Tree → Prop} {Bv : ℕ} (h : VerifySubGoalsTB fs cert fp seed s w Pvs Bv) :
+    {Pvs : ℕ → Tree → Prop} {Bv : ℕ → ℕ} (h : VerifySubGoalsTB fs cert fp seed s w Pvs Bv) :
     VerifySubGoalsT fs cert fp seed s w Pvs := fun c hc => (h c hc).toDT
 
 theorem VerifySubGoalsTB.goals {fp : ℕ} {seed : Digest} {s : NodeStatement} {w : NodeWitness}
-    {Pvs : ℕ → Tree → Prop} {Bv : ℕ} (h : VerifySubGoalsTB fs cert fp seed s w Pvs Bv) :
+    {Pvs : ℕ → Tree → Prop} {Bv : ℕ → ℕ} (h : VerifySubGoalsTB fs cert fp seed s w Pvs Bv) :
     VerifySubGoals fs cert fp seed s w := h.toT.goals
+
+theorem VerifySubGoalsTB.mono {fp : ℕ} {seed : Digest} {s : NodeStatement} {w : NodeWitness}
+    {Pvs : ℕ → Tree → Prop} {Bv Bv' : ℕ → ℕ} (h : VerifySubGoalsTB fs cert fp seed s w Pvs Bv)
+    (hB : ∀ c < w.children.length, Bv c ≤ Bv' c) : VerifySubGoalsTB fs cert fp seed s w Pvs Bv' :=
+  fun c hc => (h c hc).mono (hB c hc) fun _ ht => ht
 
 /-- The children's loop complete within `B5` by trees satisfying `T5`. -/
 def MainGoalL5TB (fs : String → ℕ) (cert : String → V → ℕ) (fp : ℕ) (seed : Digest)
@@ -483,9 +488,9 @@ theorem MainGoalL5TB.toT {fp : ℕ} {seed : Digest} {s : NodeStatement} {w : Nod
 
 /-- **The honest children loop's words bound**: `l5ChainB` over the `nc` children, child `c`'s
 iteration within its frame, its `HeapBuf`s `[2, 4·ed]` and its callees' bounds (`l5K`). -/
-def l5B (fs : String → ℕ) (SB : String → ℕ) (Bxs Bss : ℕ → ℕ) (Bv : ℕ) (s : NodeStatement)
+def l5B (fs : String → ℕ) (SB : String → ℕ) (Bxs Bss Bv : ℕ → ℕ) (s : NodeStatement)
     (w : NodeWitness) : ℕ :=
-  l5ChainB fs (fun c => l5K fs SB (Bxs c) (Bss c) Bv (hKid s w c).ed) (w.children.length - 1) 0
+  l5ChainB fs (fun c => l5K fs SB (Bxs c) (Bss c) (Bv c) (hKid s w c).ed) (w.children.length - 1) 0
 
 variable (fs cert)
 
@@ -494,7 +499,7 @@ hypotheses of `mainGoalL5`, each child's `verify_sub` call by a tree satisfying 
 theorem mainGoalL5TB (SB : String → ℕ)
     (hSD : TotalLe coreProgram fs "statement_digest" (fun _ => SB "statement_digest"))
     (hDL : TotalLe coreProgram fs "da_list_digest" (fun _ => SB "da_list_digest"))
-    {Bv : ℕ} {Bxs Bss : ℕ → ℕ} {fp : ℕ} {seed : Digest} {s : NodeStatement} {w : NodeWitness}
+    {Bv Bxs Bss : ℕ → ℕ} {fp : ℕ} {seed : Digest} {s : NodeStatement} {w : NodeWitness}
     {bytecode : List K} {Pxs Pss Pvs : ℕ → Tree → Prop} (hbl : bytecode.length = 2 ^ bytecodeVars)
     (hrel : NodeRel bytecode seed s w) (hl : Limits bytecode s w)
     (hV : VerifySubGoalsTB fs cert fp seed s w Pvs Bv)

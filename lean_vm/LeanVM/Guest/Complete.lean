@@ -12,6 +12,7 @@ public import LeanVM.Protocol.LeanVM
 public import LeanVM.Guest.Start
 public import LeanVM.Guest.Limits
 public import LeanVM.Guest.CoreData
+public import LeanVM.Guest.ChildShape
 
 /-!
 # Completeness
@@ -25,8 +26,10 @@ there is a valid execution of the guest on the statement's digest whose committe
 is a seventh limit, the size of the run, which the others do not bound. The deployed budget is
 linear in the node's work (`Budget`: the words a run allocates and the instructions of each
 opcode it executes, each a constant plus a coefficient per declared claim, coverage slot, raw
-signature or blob, blob row, child and child's claim, `work s w`), at `Trace.committedSize`'s
-formula (`Budget.size`), so the final statement is `GuestCompleteWithin b`.
+signature or blob, blob row, child and child's claim, and a function of each child's announced
+stack log and rate, the opening arm its `verify_sub` takes, `work s w`), at
+`Trace.committedSize`'s formula (`Budget.size`), so the final statement is
+`GuestCompleteWithin b`.
 
 **The pieces** (`CompletePieces`, `guest_complete_of`). The memory is the honest memory of a call
 tree (`Memory.honest`) at the certificates' frame sizes `fs`, headers `H` and cells `C`, the tree
@@ -78,6 +81,8 @@ structure Work where
   children : ℕ
   /-- The children's declared claims, of the three lists. -/
   childClaims : ℕ
+  /-- Each child's announced stack log and rate (`childShape`). -/
+  childShapes : List (ℕ × ℕ)
 
 /-- The work of the node `s` with the witness `w`. -/
 def work (s : NodeStatement) (w : NodeWitness) : Work where
@@ -90,8 +95,10 @@ def work (s : NodeStatement) (w : NodeWitness) : Work where
   children := w.children.length
   childClaims := (w.children.map fun c ↦ c.statement.claims.xmss.length +
     c.statement.claims.sphincs.length + c.statement.claims.da.length).sum
+  childShapes := w.children.map (childShape bytecode)
 
-/-- A bound linear in the work: a constant and a coefficient per unit. -/
+/-- A bound linear in the work: a constant and a coefficient per unit, and a charge per child by
+its announced stack log and rate. -/
 structure Linear where
   base : ℕ
   declared : ℕ
@@ -102,12 +109,14 @@ structure Linear where
   rawDaRows : ℕ
   children : ℕ
   childClaims : ℕ
+  childShape : ℕ → ℕ → ℕ
 
 /-- The bound at the work `u`. -/
 def Linear.eval (l : Linear) (u : Work) : ℕ :=
   l.base + l.declared * u.declared + l.coverage * u.coverage + l.rawXmss * u.rawXmss +
     l.rawSphincs * u.rawSphincs + l.rawDa * u.rawDa + l.rawDaRows * u.rawDaRows +
-    l.children * u.children + l.childClaims * u.childClaims
+    l.children * u.children + l.childClaims * u.childClaims +
+    (u.childShapes.map fun p ↦ l.childShape p.1 p.2).sum
 
 /-- **A size budget**: bounds on the words a run allocates and on the instructions of each opcode
 it executes. -/

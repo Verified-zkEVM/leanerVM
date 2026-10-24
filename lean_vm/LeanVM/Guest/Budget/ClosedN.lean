@@ -23,33 +23,25 @@ theorem guestComplete_mono {b b' : NodeStatement → NodeWitness → ℕ} (h : E
   fun seed s w hr hl hca hnz hb => h seed s w hr hl hca hnz ((hle s w).trans hb)
 
 /-- The deployed budget grows with `verify_sub`'s words. -/
-theorem deployedBudget_size_mono {Bv Bv' : ℕ} (h : Bv ≤ Bv') (u : End.Work) :
-    (deployedBudget Bv).size u ≤ (deployedBudget Bv').size u := by
+theorem deployedBudget_size_mono {Bvf Bvf' : ℕ → ℕ → ℕ} (h : ∀ μ r, Bvf μ r ≤ Bvf' μ r)
+    (u : End.Work) : (deployedBudget Bvf).size u ≤ (deployedBudget Bvf').size u := by
   apply End.sizeOf_mono
   · simp only [deployedBudget, mainBudget, End.Linear.eval, B1.Main.mainWords]
-    have := Nat.mul_le_mul_right u.children
-      (show 51 + B1.Main.l5A1 B2C.fs Count.wSB + Bv + B1.Main.agA1 Count.wSK ≤
-        51 + B1.Main.l5A1 B2C.fs Count.wSB + Bv' + B1.Main.agA1 Count.wSK by omega)
+    have := List.sum_le_sum (l := u.childShapes) (f := fun p => Bvf p.1 p.2)
+      (g := fun p => Bvf' p.1 p.2) fun p _ => h p.1 p.2
     omega
   · intro op
     simp only [deployedBudget, mainBudget, End.Linear.eval, mainInstrs]
-    have h1 : (Count.mainCounts op).α5 * (B1.Main.l5A1 B2C.fs Count.wSB + Bv) / 1000 ≤
-        (Count.mainCounts op).α5 * (B1.Main.l5A1 B2C.fs Count.wSB + Bv') / 1000 :=
-      Nat.div_le_div_right (Nat.mul_le_mul_left _ (by omega))
-    have := Nat.mul_le_mul_right u.children
-      (show ((Count.mainCounts op).α5 * B1.Main.l5A0 B2C.fs / 1000 + 1) +
-          ((Count.mainCounts op).α5 * (B1.Main.l5A1 B2C.fs Count.wSB + Bv) / 1000 + 1) +
-          (Count.mainCounts op).aggC + (Count.mainCounts op).aggD ≤
-        ((Count.mainCounts op).α5 * B1.Main.l5A0 B2C.fs / 1000 + 1) +
-          ((Count.mainCounts op).α5 * (B1.Main.l5A1 B2C.fs Count.wSB + Bv') / 1000 + 1) +
-          (Count.mainCounts op).aggC + (Count.mainCounts op).aggD by omega)
+    have := List.sum_le_sum (l := u.childShapes)
+      (f := fun p => (Count.mainCounts op).α5 * Bvf p.1 p.2 / 1000 + 1)
+      (g := fun p => (Count.mainCounts op).α5 * Bvf' p.1 p.2 / 1000 + 1)
+      fun p _ => Nat.add_le_add_right (Nat.div_le_div_right (Nat.mul_le_mul_left _ (h p.1 p.2))) 1
     omega
 
-
 /-- **The aggregation guest is complete within the deployed budget**, `verify_sub`'s words per
-child `661678`: the budget's words `Count.deployedWords 661678`, its instructions
-`Count.deployedInstrs 661678 op`. -/
-theorem guest_complete_numeric : GuestCompleteWithin (deployedBudget 661678) :=
+child `661678`: the budget's words `Count.deployedWords fun _ _ => 661678`, its instructions
+`Count.deployedInstrs (fun _ _ => 661678) op`. -/
+theorem guest_complete_numeric : GuestCompleteWithin (deployedBudget fun _ _ => 661678) :=
   Count.deployedBv_eq ▸ guest_complete
 
 end
