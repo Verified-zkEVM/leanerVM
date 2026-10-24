@@ -129,7 +129,7 @@ theorem locPt_length (h : D.Ok) {s : ℕ} (hs : s < 12) :
   rw [LayerData.locPt, LayerData.loc, layerLocal, localRunF_length, hlm]
 
 /-- **Claim `s`'s record and buffers hold what `ClaimLay.Ok` asks.** -/
-theorem CL_ok (h : D.Ok) (B : ℕ) (ls : ℕ → ℕ) {s : ℕ} (hs : s < 12) :
+theorem CL_ok (h : D.Ok) (B : ℕ) (ls : ℕ → ℕ) {s : ℕ} (hs : s ≤ 12) :
     (D.CL B ls s).Ok (firstOf s) (D.layer s).c (D.layer s).y := by
   rcases s with _ | k
   · have hmu := c0_mu h

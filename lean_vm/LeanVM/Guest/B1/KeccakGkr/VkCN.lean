@@ -143,7 +143,7 @@ theorem step_on (h : D.Ok) (hm : D.Mem rd B curE chiE olE zvE slE ls) {σ : Val}
   have hgT := fun st hst ↦ hg st (List.mem_append_right _ hst)
   obtain ⟨hbT, hbB⟩ := step_bounds s hs
   -- the claim's record
-  have hcr := ClaimLay.claimRec (D.CL_ok h B ls hs) (CL_mem h hm hs)
+  have hcr := ClaimLay.claimRec (D.CL_ok h B ls hs.le) (CL_mem h hm hs)
   have hbc : (D.CL B ls s).bclaim = B + D.o201 + 22 * s := by cases s <;> rfl
   rw [hbc, ← ptr_mul_gen, ← h201] at hcr
   have hyL : (D.layer s).y = D.τ - 3 := D.layer_y h (by omega)

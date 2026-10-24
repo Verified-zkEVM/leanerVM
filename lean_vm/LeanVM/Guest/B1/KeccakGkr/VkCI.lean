@@ -303,7 +303,7 @@ theorem kids_complete (h : D.Ok) (κ : ℕ) (B curE chiE olE zvE slE : ℕ) :
       (p0 := (D.cells s).1) (p1 := (D.cells s).2) hcl hcap (fun hf1 ↦ by
         obtain rfl : s = 0 := by unfold firstOf at hf1; split at hf1 <;> omega
         rfl) (by rw [hy]; rfl) (by rw [hy]; omega) (by rw [hy]; omega) hpl hpm hlm hproj hfin
-      (D.CL_ok h B _ hs)
+      (D.CL_ok h B _ hs.le)
     have hb : (D.CL B (D.lsOf fs ps) s).bclaim = B + D.o201 + 22 * s := by cases s <;> rfl
     rw [hb] at H
     simp only [layKid, List.dropLast_concat, List.getLast?_concat, Option.getD_some]
