@@ -78,7 +78,7 @@ def cast {C' : Type} (e : C = C') (u : UniformSlot C) : UniformSlot C' where
 
 @[simp] theorem m_cast {C' : Type} (e : C = C') (u : UniformSlot C) : (u.cast e).m = u.m := rfl
 
-theorem assemble_cast {C' : Type} (e : C = C') (u : UniformSlot C) (ds : Fin u.m → Digest) :
+private theorem assemble_cast {C' : Type} (e : C = C') (u : UniformSlot C) (ds : Fin u.m → Digest) :
     (u.cast e).assemble ds = _root_.cast e (u.assemble ds) := rfl
 
 /-- The squeeze slot of `u` on any sampler of its type: uniform samplers agree. -/
@@ -91,11 +91,11 @@ end UniformSlot
 
 /-! ## Families over a schedule's challenges -/
 
-theorem append_dir_castAdd {m n : ℕ} {pSpec₁ : ProtocolSpec m} {pSpec₂ : ProtocolSpec n}
+private theorem append_dir_castAdd {m n : ℕ} {pSpec₁ : ProtocolSpec m} {pSpec₂ : ProtocolSpec n}
     (i : Fin m) : (pSpec₁ ++ₚ pSpec₂).dir (Fin.castAdd n i) = pSpec₁.dir i := by
   simp only [Fin.vappend_eq_append, Fin.append_left]
 
-theorem append_dir_natAdd {m n : ℕ} {pSpec₁ : ProtocolSpec m} {pSpec₂ : ProtocolSpec n}
+private theorem append_dir_natAdd {m n : ℕ} {pSpec₁ : ProtocolSpec m} {pSpec₂ : ProtocolSpec n}
     (j : Fin n) : (pSpec₁ ++ₚ pSpec₂).dir (Fin.natAdd m j) = pSpec₂.dir j := by
   simp only [Fin.vappend_eq_append, Fin.append_right]
 
@@ -174,7 +174,7 @@ def ReadsSqueezes {C : Type} (s : Slot (Block × Digest) C) (u : UniformSlot C) 
     s.read (squeezeBlocks (List.ofFn ds) ++ rest) = some (u.assemble ds, rest)
 
 /-- A slot of a decoder that reads its squeezes, its value carried along an equality of types. -/
-theorem ReadsSqueezes.map_cast {C C' : Type} (e : C = C') {s : Slot (Block × Digest) C}
+private theorem ReadsSqueezes.map_cast {C C' : Type} (e : C = C') {s : Slot (Block × Digest) C}
     {u : UniformSlot C} (h : ReadsSqueezes s u) :
     ReadsSqueezes (s.map (_root_.cast e)) (u.cast e) :=
   fun ds rest ↦ by
@@ -197,7 +197,7 @@ theorem squeezeReads_empty {pSpec : ProtocolSpec 0} (f : ChalSlots pSpec) :
 theorem squeezeReads_say {M : Type} (s : Slot (Block × Digest) M) :
     SqueezeReads (single (pSpec := say M) s) (ChalSlots.say M) := fun ⟨0, _⟩ h ↦ nomatch h
 
-theorem squeezeReads_sayO {M : Type} [OracleInterface M] (s : Slot (Block × Digest) M) :
+private theorem squeezeReads_sayO {M : Type} [OracleInterface M] (s : Slot (Block × Digest) M) :
     SqueezeReads (single (pSpec := Component.sayO M) s) (ChalSlots.sayO M) :=
   fun ⟨0, _⟩ h ↦ nomatch h
 
@@ -299,7 +299,7 @@ def view : Block × Digest → Block × Digest
   | (b, _) => (b, default)
 
 /-- Readings that differ only in the state of an observe or a nonce step have one view. -/
-theorem view_eq_of_ne_squeeze {b : Block} (d d' : Digest) (hb : b ≠ .squeeze) :
+private theorem view_eq_of_ne_squeeze {b : Block} (d d' : Digest) (hb : b ≠ .squeeze) :
     view (b, d) = view (b, d') := by
   cases b
   · rfl
@@ -458,13 +458,14 @@ variable {n : ℕ} {pSpec : ProtocolSpec n}
 def SlotDecoder.NonceRounds (D : SlotDecoder (Block × Digest) pSpec) (N : Fin n → Bool) : Prop :=
   ∀ k tr, N k = true → (D.slot k tr).ReadsNonce
 
-theorem nonceRounds_none (D : SlotDecoder (Block × Digest) pSpec) :
+private theorem nonceRounds_none (D : SlotDecoder (Block × Digest) pSpec) :
     D.NonceRounds fun _ ↦ false := fun _ _ h ↦ nomatch h
 
-theorem nonceRounds_single {pSpec : ProtocolSpec 1} {s : Slot (Block × Digest) (pSpec.«Type» 0)}
-    (hs : s.ReadsNonce) : (single s).NonceRounds fun _ ↦ true := fun ⟨0, _⟩ _ _ ↦ hs
+private theorem nonceRounds_single {pSpec : ProtocolSpec 1}
+    {s : Slot (Block × Digest) (pSpec.«Type» 0)} (hs : s.ReadsNonce) :
+    (single s).NonceRounds fun _ ↦ true := fun ⟨0, _⟩ _ _ ↦ hs
 
-theorem nonceRounds_append {m n : ℕ} {pSpec₁ : ProtocolSpec m} {pSpec₂ : ProtocolSpec n}
+private theorem nonceRounds_append {m n : ℕ} {pSpec₁ : ProtocolSpec m} {pSpec₂ : ProtocolSpec n}
     {D₁ : SlotDecoder (Block × Digest) pSpec₁}
     {D₂ : pSpec₁.FullTranscript → SlotDecoder (Block × Digest) pSpec₂} {N₁ : Fin m → Bool}
     {N₂ : Fin n → Bool} (h₁ : D₁.NonceRounds N₁) (h₂ : ∀ t, (D₂ t).NonceRounds N₂) :
@@ -638,6 +639,16 @@ theorem readsWell_append {m n : ℕ} {pSpec₁ : ProtocolSpec m} {pSpec₂ : Pro
 theorem SlotDecoder.ReadsWell.of_squeezes {D : SlotDecoder (Block × Digest) pSpec}
     {f : ChalSlots pSpec} (hS : SqueezeReads D f) (hB : D.Blind) : D.ReadsWell f fun _ ↦ false :=
   ⟨hS, hB, nonceRounds_none D⟩
+
+/-- Appended decoders that read well with no nonce read well with no nonce. -/
+theorem readsWell_append_none {m n : ℕ} {pSpec₁ : ProtocolSpec m} {pSpec₂ : ProtocolSpec n}
+    {D₁ : SlotDecoder (Block × Digest) pSpec₁}
+    {D₂ : pSpec₁.FullTranscript → SlotDecoder (Block × Digest) pSpec₂} {f₁ : ChalSlots pSpec₁}
+    {f₂ : ChalSlots pSpec₂} (h₁ : D₁.ReadsWell f₁ fun _ ↦ false)
+    (h₂ : ∀ t, (D₂ t).ReadsWell f₂ fun _ ↦ false) :
+    (D₁.append D₂).ReadsWell (f₁.append f₂) fun _ ↦ false :=
+  .of_squeezes (squeezeReads_append h₁.squeezes fun t ↦ (h₂ t).squeezes)
+    (blind_append h₁.blind fun t ↦ (h₂ t).blind)
 
 end Well
 

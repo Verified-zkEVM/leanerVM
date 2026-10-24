@@ -46,37 +46,26 @@ section Generic
 variable {n : ℕ} {pSpec : ProtocolSpec n}
 
 /-- A decoder every full run of which reads exactly `N` readings. -/
-def ReadsN (D : SlotDecoder Reading pSpec) (N : ℕ) : Prop :=
-  ∀ l t r, D.runFull l = some (t, r) → ∃ c, l = c ++ r ∧ c.length = N
+def ReadsN (D : SlotDecoder Reading pSpec) (N : ℕ) : Prop := readGrade.P D.toSlot N
 
 theorem ReadsN.of_eq {D : SlotDecoder Reading pSpec} {N N' : ℕ} (h : ReadsN D N) (e : N = N') :
     ReadsN D N' := e ▸ h
 
-theorem readsN_empty {pSpec : ProtocolSpec 0} : ReadsN (empty : SlotDecoder Reading pSpec) 0 := by
-  intro l t r h
-  rw [runFull_empty] at h
-  obtain ⟨-, rfl⟩ := Prod.mk.inj (Option.some.inj h)
-  exact ⟨[], rfl, rfl⟩
+theorem readsN_empty {pSpec : ProtocolSpec 0} : ReadsN (empty : SlotDecoder Reading pSpec) 0 :=
+  readGrade.pure _
 
 theorem readsN_single {pSpec : ProtocolSpec 1} {s : Slot Reading (pSpec.«Type» 0)} {k : ℕ}
     (hs : readGrade.P s k) : ReadsN (single s) k := by
-  intro l t r h
-  have h' := runFull_single s l
-  rw [h, Option.map_some] at h'
-  exact hs _ _ _ h'.symm
+  rw [ReadsN, toSlot_single]
+  exact readGrade.map hs _
 
 theorem readsN_append {m n₂ : ℕ} {pSpec₁ : ProtocolSpec m} {pSpec₂ : ProtocolSpec n₂}
     {D₁ : SlotDecoder Reading pSpec₁} {D₂ : pSpec₁.FullTranscript → SlotDecoder Reading pSpec₂}
     {N₁ N₂ : ℕ} (h₁ : ReadsN D₁ N₁) (h₂ : ∀ t, ReadsN (D₂ t) N₂) :
     ReadsN (D₁.append D₂) (N₁ + N₂) := by
-  intro l t r h
-  rw [runFull_append, Option.bind_eq_some_iff] at h
-  obtain ⟨⟨t₁, r₁⟩, hf, hq⟩ := h
-  obtain ⟨⟨t₂, r₂⟩, hq', he⟩ := Option.map_eq_some_iff.mp hq
-  obtain ⟨-, rfl⟩ := Prod.mk.inj he
-  obtain ⟨c₁, rfl, hc₁⟩ := h₁ _ _ _ hf
-  obtain ⟨c₂, rfl, hc₂⟩ := h₂ _ _ _ _ hq'
-  exact ⟨c₁ ++ c₂, by simp, by rw [List.length_append, hc₁, hc₂]⟩
+  rw [ReadsN, toSlot_append]
+  exact readGrade.of_eq (readGrade.bind h₁ fun t ↦ readGrade.bind (h₂ t) fun _ ↦ readGrade.pure _)
+    rfl
 
 theorem readsN_draws {C : Type} {s : Slot Reading C} (hs : readGrade.P s 1) :
     ∀ k, ReadsN (SlotDecoder.draws s k) k
@@ -93,7 +82,7 @@ theorem readsN_rounds {C σ : Type} {d : ℕ} {poly : σ → Slot Reading (Vecto
       fun t ↦ readsN_rounds hp hc (next a t) m).of_eq (by ring)
 
 /-- The runs of a decoder whose round `k` reads `g k` readings read the counts of their rounds. -/
-theorem run_length_of_slots {D : SlotDecoder Reading pSpec} {g : Fin n → ℕ}
+private theorem run_length_of_slots {D : SlotDecoder Reading pSpec} {g : Fin n → ℕ}
     (hg : ∀ k tr, readGrade.P (D.slot k tr) (g k)) :
     ∀ i (hi : i ≤ n) l tr r, D.run i hi l = some (tr, r) →
       ∃ c, l = c ++ r ∧ c.length = ∑ k : Fin i, g (Fin.castLE hi k)
@@ -109,7 +98,7 @@ theorem run_length_of_slots {D : SlotDecoder Reading pSpec} {g : Fin n → ℕ}
     exact ⟨c₁ ++ c₂, by simp, by rw [List.length_append, hc₁, hc₂, Fin.sum_univ_castSucc]; rfl⟩
 
 /-- A graded slot reads nothing off fewer readings than its count. -/
-theorem read_eq_none_of_lt {β : Type} {s : Slot Reading β} {k : ℕ} (hs : readGrade.P s k)
+private theorem read_eq_none_of_lt {β : Type} {s : Slot Reading β} {k : ℕ} (hs : readGrade.P s k)
     {r : List Reading} (h : r.length < k) : s.read r = none := by
   rcases hr : s.read r with _ | ⟨x, r'⟩
   · rfl
@@ -125,11 +114,11 @@ def AgreeAt (D D' : SlotDecoder Reading pSpec) (p N : ℕ) : Prop :=
   ∀ (k : ℕ) (hk : k < n) (l : List Reading) tr r, p + l.length = N →
     D.run k hk.le l = some (tr, r) → (D.slot ⟨k, hk⟩ tr).read r = (D'.slot ⟨k, hk⟩ tr).read r
 
-theorem agreeAt_refl (D : SlotDecoder Reading pSpec) (p N : ℕ) : AgreeAt D D p N :=
+private theorem agreeAt_refl (D : SlotDecoder Reading pSpec) (p N : ℕ) : AgreeAt D D p N :=
   fun _ _ _ _ _ _ _ ↦ rfl
 
 /-- Past the end of the history, any decoders agree. -/
-theorem agreeAt_of_lt {D D' : SlotDecoder Reading pSpec} {p N : ℕ} (h : N < p) :
+private theorem agreeAt_of_lt {D D' : SlotDecoder Reading pSpec} {p N : ℕ} (h : N < p) :
     AgreeAt D D' p N :=
   fun _ _ _ _ _ hl _ ↦ absurd hl (by omega)
 
@@ -150,7 +139,7 @@ theorem AgreeAt.run {D D' : SlotDecoder Reading pSpec} {p N : ℕ} (h : AgreeAt 
       rw [h k hk l tr r hl hr]
 
 /-- Decoders that run alike decode the same rounds. -/
-theorem decodeAt_congr {D D' : SlotDecoder Reading pSpec} {l : List Reading}
+private theorem decodeAt_congr {D D' : SlotDecoder Reading pSpec} {l : List Reading}
     (h : ∀ k (hk : k ≤ n), D.run k hk l = D'.run k hk l) (i : Fin (n + 1)) :
     D.decodeAt i l = D'.decodeAt i l :=
   Option.ext fun tr ↦ by
@@ -171,7 +160,8 @@ theorem decodePrefix_congr {D D' : SlotDecoder Reading pSpec} {l : List Reading}
     · rw [← hd]
       exact (D.decodePrefix_eq_some_iff.mp hD).2 j hj
 
-theorem agreeAt_single {pSpec : ProtocolSpec 1} {s s' : Slot Reading (pSpec.«Type» 0)} {p N : ℕ}
+private theorem agreeAt_single {pSpec : ProtocolSpec 1} {s s' : Slot Reading (pSpec.«Type» 0)}
+    {p N : ℕ}
     (h : ∀ r : List Reading, p + r.length = N → s.read r = s'.read r) :
     AgreeAt (single s) (single s') p N := by
   intro k hk l tr r hl hr
@@ -207,7 +197,7 @@ theorem agreeAt_append {D₁ D₁' : SlotDecoder Reading pSpec₁}
     rw [h₂ _ j (by omega) r₁ _ r₂ (by simp only [List.length_append] at hl; omega) hq']
 
 /-- Appended decoders with one second part agree when the first parts do. -/
-theorem agreeAt_append_same {D₁ D₁' : SlotDecoder Reading pSpec₁}
+private theorem agreeAt_append_same {D₁ D₁' : SlotDecoder Reading pSpec₁}
     {D₂ : pSpec₁.FullTranscript → SlotDecoder Reading pSpec₂} {p N : ℕ} (h₁ : AgreeAt D₁ D₁' p N) :
     AgreeAt (D₁.append D₂) (D₁'.append D₂) p N := by
   intro k hk l tr r hl hr
@@ -224,48 +214,50 @@ end Generic
 
 /-! ## The readings of leanVM's slots -/
 
-theorem rg_sample : readGrade.P historyOps.sample 1 := historyOps_readGraded.sample
+private theorem rg_sample : readGrade.P historyOps.sample 1 := historyOps_readGraded.sample
 
-theorem rg_nextScalar : readGrade.P historyOps.nextScalar 1 := historyOps_readGraded.nextScalar
+private theorem rg_nextScalar : readGrade.P historyOps.nextScalar 1 :=
+  historyOps_readGraded.nextScalar
 
-theorem rg_nextRoot : readGrade.P historyOps.nextRoot 2 := historyOps_readGraded.nextRoot
+private theorem rg_nextRoot : readGrade.P historyOps.nextRoot 2 := historyOps_readGraded.nextRoot
 
-theorem rg_checkPow (bits : ℕ) : readGrade.P (historyOps.checkPow bits) 1 :=
+private theorem rg_checkPow (bits : ℕ) : readGrade.P (historyOps.checkPow bits) 1 :=
   historyOps_readGraded.checkPow bits
 
-theorem rg_fail {β : Type} (k : ℕ) : readGrade.P (Slot.fail : Slot Reading β) k :=
+private theorem rg_fail {β : Type} (k : ℕ) : readGrade.P (Slot.fail : Slot Reading β) k :=
   fun _ _ _ h ↦ nomatch h
 
-theorem rg_nextScalars (k : ℕ) : readGrade.P (historyOps.nextScalars k) k :=
+private theorem rg_nextScalars (k : ℕ) : readGrade.P (historyOps.nextScalars k) k :=
   readGrade.of_eq (nextScalars_grade historyOps_readGraded k) (by simp [readingCounts])
 
-theorem rg_samples (k : ℕ) : readGrade.P (samples historyOps k) k :=
+private theorem rg_samples (k : ℕ) : readGrade.P (samples historyOps k) k :=
   readGrade.of_eq (samples_grade historyOps_readGraded k) (by simp [readingCounts])
 
-theorem rg_vecSlot (k : ℕ) : readGrade.P (vecSlot k) k := readGrade.map (rg_nextScalars k) _
+private theorem rg_vecSlot (k : ℕ) : readGrade.P (vecSlot k) k := readGrade.map (rg_nextScalars k) _
 
-theorem rg_polySlot (d : ℕ) (claim : Thunk E) (eq? : Thunk (Option E)) :
+private theorem rg_polySlot (d : ℕ) (claim : Thunk E) (eq? : Thunk (Option E)) :
     readGrade.P (polySlot d claim eq?) d := by
   refine readGrade.of_eq (readGrade.bind (k := 0) (rg_nextScalars d) fun w ↦ ?_) (Nat.add_zero d)
   split
   · exact readGrade.pure _
   · exact rg_fail _
 
-theorem rg_positionsSlot (b t : ℕ) :
+private theorem rg_positionsSlot (b t : ℕ) :
     readGrade.P (positionsSlot b t) (readingCounts.positions b t t) :=
   readGrade.map (walkPositions_grade historyOps_readGraded b t t) _
 
-theorem rg_fingerprintSlot : readGrade.P fingerprintSlot 5 :=
+private theorem rg_fingerprintSlot : readGrade.P fingerprintSlot 5 :=
   readGrade.bind (rg_samples 4) fun _ ↦ readGrade.bind rg_sample fun _ ↦ readGrade.pure _
 
-theorem rg_rootsSlot : readGrade.P rootsSlot 2 :=
+private theorem rg_rootsSlot : readGrade.P rootsSlot 2 :=
   readGrade.bind rg_nextScalar fun _ ↦ readGrade.bind rg_nextScalar fun _ ↦ readGrade.pure _
 
-theorem rg_childrenSlot (ρ : ℕ) : readGrade.P (childrenSlot ρ) (3 * 2 ^ ρ) :=
+private theorem rg_childrenSlot (ρ : ℕ) : readGrade.P (childrenSlot ρ) (3 * 2 ^ ρ) :=
   readGrade.of_eq (readGrade.bind (rg_vecSlot _) fun _ ↦ readGrade.bind (rg_vecSlot _) fun _ ↦
     readGrade.bind (rg_vecSlot _) fun _ ↦ readGrade.pure _) (by ring)
 
-theorem rg_commitSlot {M : Type} (ann : List E) (w : M) : readGrade.P (commitSlot ann w) 10 := by
+private theorem rg_commitSlot {M : Type} (ann : List E) (w : M) :
+    readGrade.P (commitSlot ann w) 10 := by
   refine readGrade.bind (k := 2) (rg_nextScalars 8) fun xs ↦ ?_
   split
   · exact readGrade.map rg_nextRoot _
@@ -273,49 +265,50 @@ theorem rg_commitSlot {M : Type} (ann : List E) (w : M) : readGrade.P (commitSlo
 
 /-! ## The readings of leanVM's decoder, phase by phase -/
 
-theorem readsN_roundsDec (d : ℕ) (eq? : ℕ → Option E) (σ : Thunk E × ℕ) (m : ℕ) :
+private theorem readsN_roundsDec (d : ℕ) (eq? : ℕ → Option E) (σ : Thunk E × ℕ) (m : ℕ) :
     ReadsN (roundsDec d eq? σ m) (m * (d + 1)) :=
   readsN_rounds (fun _ ↦ rg_polySlot _ _ _) (fun _ ↦ rg_sample) σ m
 
-theorem readsN_layerDec (st : GkrState) (ρ m : ℕ) :
+private theorem readsN_layerDec (st : GkrState) (ρ m : ℕ) :
     ReadsN (layerDec st ρ m) (readingCounts.layer ρ m) :=
   (readsN_append (readsN_append (readsN_append (readsN_single rg_sample)
     fun _ ↦ readsN_roundsDec _ _ _ _) fun _ ↦ readsN_single (rg_childrenSlot ρ))
     fun _ ↦ readsN_draws rg_sample ρ).of_eq
     (by simp only [StepCounts.layer, StepCounts.rounds, StepCounts.round, readingCounts]; ring)
 
-theorem readsN_stepsDec : ∀ (st : GkrState) (k m : ℕ),
+private theorem readsN_stepsDec : ∀ (st : GkrState) (k m : ℕ),
     ReadsN (stepsDec st k m) (readingCounts.layers (List.replicate k 2) m)
   | _, 0, _ => readsN_empty
   | st, k + 1, m => (readsN_append (readsN_layerDec st 2 m)
       fun t ↦ readsN_stepsDec (layerNext t) k (m + 2)).of_eq (by
         simp only [List.replicate_succ, StepCounts.layers])
 
-theorem readsN_oddDec (st : GkrState) :
+private theorem readsN_oddDec (st : GkrState) :
     ∀ r, ReadsN (oddDec st r) (if r = 0 then 0 else readingCounts.layer 1 0)
   | 0 => readsN_empty
   | _ + 1 => readsN_layerDec st 1 0
 
-theorem readsN_gkrDec (st : GkrState) (μ : ℕ) :
+private theorem readsN_gkrDec (st : GkrState) (μ : ℕ) :
     ReadsN (gkrDec st μ) (readingCounts.layers (gkrRadices μ) 0 + 1) :=
   (readsN_append (readsN_append (readsN_oddDec st _) fun _ ↦ readsN_stepsDec _ _ _)
     fun _ ↦ readsN_single rg_sample).of_eq (by
       rcases Nat.mod_two_eq_zero_or_one μ with h | h <;>
         simp [h, gkrRadices, StepCounts.layers])
 
-theorem readsN_busDec (I : M3Instance) : ReadsN (busDec I) (readingCounts.bus I.μBus I.busClaims) :=
+private theorem readsN_busDec (I : M3Instance) :
+    ReadsN (busDec I) (readingCounts.bus I.μBus I.busClaims) :=
   (readsN_append (readsN_append (readsN_append (readsN_single rg_fingerprintSlot)
     fun _ ↦ readsN_single rg_rootsSlot) fun _ ↦ readsN_gkrDec _ _)
     fun _ ↦ readsN_single (rg_vecSlot _)).of_eq
     (by simp only [StepCounts.bus, readingCounts]; ring)
 
-theorem readsN_tableDec (I : M3Instance) (s : Thunk (I.Stmt × BusOut I)) :
+private theorem readsN_tableDec (I : M3Instance) (s : Thunk (I.Stmt × BusOut I)) :
     ReadsN (tableDec I s) (readingCounts.tables I.τmax I.tableColumns) :=
   (readsN_append (readsN_append (readsN_single rg_sample) fun _ ↦ readsN_roundsDec _ _ _ _)
     fun _ ↦ readsN_single (rg_vecSlot _)).of_eq
     (by simp only [StepCounts.tables, StepCounts.rounds, StepCounts.round, readingCounts]; ring)
 
-theorem readsN_pubDec (k : ℕ) : ReadsN (pubDec k) (readingCounts.pub k) := by
+private theorem readsN_pubDec (k : ℕ) : ReadsN (pubDec k) (readingCounts.pub k) := by
   intro l t r h
   obtain ⟨c, hc, hlen⟩ := run_length_of_slots (D := pubDec k)
     (g := fun j ↦ if j.val = 0 then 1 else k) (fun j tr ↦ by
@@ -325,7 +318,7 @@ theorem readsN_pubDec (k : ℕ) : ReadsN (pubDec k) (readingCounts.pub k) := by
   refine ⟨c, hc, hlen.trans ?_⟩
   simp [Fin.sum_univ_two, StepCounts.pub, readingCounts]
 
-theorem readsN_flockDecOf (k : ℕ) : ReadsN (flockDecOf k) (readingCounts.flock k) :=
+private theorem readsN_flockDecOf (k : ℕ) : ReadsN (flockDecOf k) (readingCounts.flock k) :=
   (readsN_append (readsN_append (readsN_append (readsN_append (readsN_append (readsN_append
     (readsN_append (readsN_append (readsN_append (readsN_draws rg_sample (k + 1))
     fun _ ↦ readsN_single (rg_vecSlot 64)) fun _ ↦ readsN_single rg_sample)
@@ -342,7 +335,7 @@ def flockReadings {I : M3Instance} : Option (FlockRegion I.toShape) → ℕ
   | none => 0
   | some r => readingCounts.flock r.kBatch
 
-theorem readsN_flockDec (I : M3Instance) :
+private theorem readsN_flockDec (I : M3Instance) :
     ∀ o, ReadsN (flockDec I o) (flockReadings o)
   | none => readsN_empty
   | some r => readsN_flockDecOf r.kBatch
@@ -354,8 +347,8 @@ def frontReadings (I : M3Instance) (input : I.Stmt) : ℕ :=
     readingCounts.pub (PublicInput.sentCount I (I.publicLines input)) + flockReadings I.flock +
     readingCounts.sample + 0
 
-theorem readsN_frontDec (I : M3Instance) (h : Bus.Conditions I) (input : I.Stmt) (ann : List E)
-    {sh : Whir.Shape} {κ : ℕ} (w₀ : KWord sh.ℓ (κ + sh.R) sh.t) :
+private theorem readsN_frontDec (I : M3Instance) (h : Bus.Conditions I) (input : I.Stmt)
+    (ann : List E) {sh : Whir.Shape} {κ : ℕ} (w₀ : KWord sh.ℓ (κ + sh.R) sh.t) :
     ReadsN (frontDec I h input ann w₀) (frontReadings I input) :=
   readsN_append (readsN_append (readsN_append (readsN_append (readsN_append (readsN_append
     (readsN_single (rg_commitSlot ann w₀)) fun _ ↦ readsN_busDec I) fun _ ↦ readsN_tableDec I _)
@@ -374,7 +367,7 @@ def LaterAgree (N : ℕ) : {sh : Whir.Shape} → {κ : ℕ} → (L : Ladder sh �
 
 /-! ## The decoder agrees at the words it has read -/
 
-theorem agreeAt_levelDec (sh sh' : Whir.Shape) (κ' : ℕ) {k : List Step}
+private theorem agreeAt_levelDec (sh sh' : Whir.Shape) (κ' : ℕ) {k : List Step}
     (σ : Thunk E × Thunk (Vector E 3)) (w : WordOf sh (Kap sh' κ')) (next next' : WordOf sh' κ')
     {cont cont' : Thunk E × Thunk (Vector E 3) → SeqDecoder Reading k} {p N : ℕ}
     (hnext : next = next' ∨ N < p + readingCounts.folds sh.ℓ + 2)
@@ -408,7 +401,7 @@ theorem agreeAt_levelDec (sh sh' : Whir.Shape) (κ' : ℕ) {k : List Step}
       Bool.false_eq_true, ↓reduceIte]
     ring
 
-theorem agreeAt_ladderDec : ∀ {sh : Whir.Shape} {κ : ℕ} (L : Ladder sh κ)
+private theorem agreeAt_ladderDec : ∀ {sh : Whir.Shape} {κ : ℕ} (L : Ladder sh κ)
     (σ : Thunk E × Thunk (Vector E 3)) (w : WordOf sh κ) (ws ws' : L.Words) {p N : ℕ},
     LaterAgree N L (levelRootOffsets readingCounts p L.shapes) ws ws' →
     AgreeAt (ladderDec L σ w ws).toDecoder (ladderDec L σ w ws').toDecoder p N
@@ -427,7 +420,7 @@ theorem agreeAt_ladderDec : ∀ {sh : Whir.Shape} {κ : ℕ} (L : Ladder sh κ)
         ↓reduceIte] at hlt ⊢
       omega
 
-theorem agreeAt_whirDec {sh : Whir.Shape} {κ : ℕ} (L : Ladder sh κ) (target : Thunk E)
+private theorem agreeAt_whirDec {sh : Whir.Shape} {κ : ℕ} (L : Ladder sh κ) (target : Thunk E)
     (w : WordOf sh κ) (ws ws' : L.Words) {p N : ℕ}
     (h : LaterAgree N L (levelRootOffsets readingCounts (p + 2) L.shapes) ws ws') :
     AgreeAt (whirDec L target w ws).toDecoder (whirDec L target w ws').toDecoder p N := by
@@ -480,7 +473,7 @@ def WordsAgree (N : ℕ) (W W' : LeanWords prog s hs ρ hρ) : Prop :=
         (leanIsaChain prog s hs ρ hρ).ladder.shapes) W.later W'.later
 
 /-- WHIR starts where the front of the decoder ends, after the first round polynomial. -/
-theorem whirStart_eq_frontReadings :
+private theorem whirStart_eq_frontReadings :
     whirStart readingCounts prog s input = frontReadings (leanVm prog s) input + 2 := by
   simp only [whirStart, frontReadings, flockReadings, readingCounts]
   rfl

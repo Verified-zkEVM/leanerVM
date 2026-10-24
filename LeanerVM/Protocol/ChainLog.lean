@@ -47,7 +47,7 @@ abbrev runReplay {α : Type} (a : RW α) (st : ReaderState PrunedMerklePaths)
       (List UInt8 →ₒ Digest).QueryLog) :=
   ((a.run st).run).run log
 
-theorem runReplay_bind {α β : Type} (a : RW α) (f : α → RW β) (st log) :
+private theorem runReplay_bind {α β : Type} (a : RW α) (f : α → RW β) (st log) :
     runReplay (a >>= f) st log = match runReplay a st log with
       | some (.ok (x, st'), log') => runReplay (f x) st' log'
       | some (.error e, log') => some (.error e, log')
@@ -63,7 +63,7 @@ def hashOf (t : List UInt8) : Id Digest := (ans t).getD default
 /-- **The replayed walk asks its chain**: whenever the replayed reader succeeds, the logged reader
 at the log's hash succeeds with the same value and state, appending a history whose steps the
 replay asked, from the starting state to the final one. -/
-def logRel : MonadRel RW (LoggedWalk Id) where
+private def logRel : MonadRel RW (LoggedWalk Id) where
   R a b := ∀ st log x st' log', runReplay a st log = some (.ok (x, st'), log') →
     ∀ hist₀, ∃ hist, runLogged b hist₀ st = .ok ((x, hist₀ ++ hist), st') ∧
       (∃ L, log' = log ++ L ∧ ∀ e ∈ HashChain.queries Block.input st.fs.cv hist, e ∈ L) ∧
@@ -92,20 +92,21 @@ def logRel : MonadRel RW (LoggedWalk Id) where
 
 /-! ## The primitives -/
 
-theorem runReplay_get (st : ReaderState PrunedMerklePaths) (log) :
+private theorem runReplay_get (st : ReaderState PrunedMerklePaths) (log) :
     runReplay (get : RW (ReaderState PrunedMerklePaths)) st log = some (.ok (st, st), log) := rfl
 
-theorem runReplay_modify (g : ReaderState PrunedMerklePaths → ReaderState PrunedMerklePaths)
+private theorem runReplay_modify (g : ReaderState PrunedMerklePaths → ReaderState PrunedMerklePaths)
     (st : ReaderState PrunedMerklePaths) (log) :
     runReplay (modify g : RW Unit) st log = some (.ok ((), g st), log) := rfl
 
-theorem runReplay_throw {α : Type} (e : ReadError) (st : ReaderState PrunedMerklePaths) (log) :
+private theorem runReplay_throw {α : Type} (e : ReadError) (st : ReaderState PrunedMerklePaths)
+    (log) :
     runReplay (throw e : RW α) st log = some (.error e, log) := rfl
 
-theorem runReplay_pure {α : Type} (x : α) (st : ReaderState PrunedMerklePaths) (log) :
+private theorem runReplay_pure {α : Type} (x : α) (st : ReaderState PrunedMerklePaths) (log) :
     runReplay (pure x : RW α) st log = some (.ok (x, st), log) := rfl
 
-theorem runReplay_liftM {α : Type} (c : StateT (List UInt8 →ₒ Digest).QueryLog Option α)
+private theorem runReplay_liftM {α : Type} (c : StateT (List UInt8 →ₒ Digest).QueryLog Option α)
     (st : ReaderState PrunedMerklePaths) (log) :
     runReplay (liftM c : RW α) st log = (c.run log).bind fun p ↦ some (.ok (p.1, st), p.2) := by
   simp only [runReplay, liftM, monadLift, MonadLift.monadLift, StateT.run_lift, ExceptT.lift,
@@ -115,15 +116,15 @@ theorem runReplay_liftM {α : Type} (c : StateT (List UInt8 →ₒ Digest).Query
   simp only [StateT.run_bind, StateT.run_map]
   rcases c.run log with _ | ⟨a, log'⟩ <;> rfl
 
-theorem run_replayImpl (t : List UInt8) (log : (List UInt8 →ₒ Digest).QueryLog) :
+private theorem run_replayImpl (t : List UInt8) (log : (List UInt8 →ₒ Digest).QueryLog) :
     (QueryLog.replayImpl ans t).run log = (ans t).bind fun u ↦ some (u, log ++ [⟨t, u⟩]) := by
   rcases h : ans t with _ | u
   · simp [QueryLog.replayImpl, h]
   · simp [QueryLog.replayImpl, h]
 
 /-- A replayed scalar: one observe step, answered from the log and recorded. -/
-theorem replay_nextScalar (fs : FsState) (y : E) (rest : List E) (ms : List PrunedMerklePaths)
-    (log : (List UInt8 →ₒ Digest).QueryLog) :
+private theorem replay_nextScalar (fs : FsState) (y : E) (rest : List E)
+    (ms : List PrunedMerklePaths) (log : (List UInt8 →ₒ Digest).QueryLog) :
     runReplay (Reader.nextScalar (QueryLog.replayImpl ans)) ⟨fs, y :: rest, ms⟩ log =
       (ans (Block.input fs.cv (.observe y))).bind fun u ↦
         some (.ok (y, ⟨⟨u⟩, rest, ms⟩), log ++ [⟨Block.input fs.cv (.observe y), u⟩]) := by
@@ -134,7 +135,8 @@ theorem replay_nextScalar (fs : FsState) (y : E) (rest : List E) (ms : List Prun
   rcases ans (Block.input fs.cv (.observe y)) with _ | u <;> rfl
 
 /-- A replayed challenge: one squeeze step, answered from the log and recorded. -/
-theorem replay_sample (st : ReaderState PrunedMerklePaths) (log : (List UInt8 →ₒ Digest).QueryLog) :
+private theorem replay_sample (st : ReaderState PrunedMerklePaths)
+    (log : (List UInt8 →ₒ Digest).QueryLog) :
     runReplay (Reader.sample (QueryLog.replayImpl ans)) st log =
       (ans (Block.input st.fs.cv .squeeze)).bind fun u ↦
         some (.ok (FsState.challengeOf u, { st with fs := ⟨u⟩ }),
@@ -146,7 +148,7 @@ theorem replay_sample (st : ReaderState PrunedMerklePaths) (log : (List UInt8 �
   rcases ans (Block.input st.fs.cv .squeeze) with _ | u <;> rfl
 
 /-- A scalar's step is asked by the replay. -/
-theorem log_scalar :
+private theorem log_scalar :
     logRel.R (Reader.nextScalar (QueryLog.replayImpl ans)) (loggedScalar (hashOf ans)) := by
   intro st log x st' log' h hist₀
   rcases st with ⟨fs, _ | ⟨y, rest⟩, ms⟩
@@ -168,7 +170,7 @@ theorem log_scalar :
   rfl
 
 /-- A challenge's step is asked by the replay. -/
-theorem log_sample :
+private theorem log_sample :
     logRel.R (Reader.sample (QueryLog.replayImpl ans)) (stepOps (hashOf ans)).sample := by
   intro st log x st' log' h hist₀
   rw [replay_sample] at h
@@ -195,7 +197,7 @@ private theorem id_map {α β : Type} (f : α → β) (x : Id α) : f <$> x = f 
 private theorem id_pure {α : Type} (x : α) : (pure x : Id α) = x := rfl
 
 /-- A grinding check's nonce step is asked by the replay, after its base and check. -/
-theorem log_checkPow (bits : ℕ) :
+private theorem log_checkPow (bits : ℕ) :
     logRel.R (Reader.checkPow (QueryLog.replayImpl ans) bits)
       ((stepOps (hashOf ans)).checkPow bits) := by
   intro st log x st' log' h hist₀
@@ -243,12 +245,12 @@ theorem log_checkPow (bits : ℕ) :
         simp [Block.input, Block.elem, Block.tag]
     · exact nomatch h
 
-theorem log_throw {α : Type} (e : ReadError) : logRel.R (throw e : RW α) (throw e) := by
+private theorem log_throw {α : Type} (e : ReadError) : logRel.R (throw e : RW α) (throw e) := by
   intro st log x st' log' h
   exact nomatch h
 
 /-- The replayed reader's primitives and the logged reader's at the log's hash are related. -/
-theorem related_log :
+private theorem related_log :
     ChainOps.Related logRel (readerOps (QueryLog.replayImpl ans)) (stepOps (hashOf ans)) where
   nextScalar := log_scalar ans
   sample := log_sample ans
@@ -278,18 +280,18 @@ theorem walkChain_log {prog : Program} {s : Sizes} {input : PublicInput} {shs : 
 
 /-- The replay as a morphism of the readers' monads: the oracle reader's run, every query
 answered from the log and recorded. -/
-abbrev replayHom : Walk (OracleComp hashSpec) →ᵐ RW :=
+private abbrev replayHom : Walk (OracleComp hashSpec) →ᵐ RW :=
   ReadM.mapHom (simulateQ' (QueryLog.replayImpl ans))
 
-theorem readerOps_replay :
+private theorem readerOps_replay :
     (readerOps hashQuery).map (replayHom ans) = readerOps (QueryLog.replayImpl ans) := by
   rw [readerOps_hom]
   congr
   funext t
   simp [hashQuery]
 
-theorem walkOpenings_replay (nLanes : ℕ) (first : Bool) (root : Digest) (shs : List LevelShape)
-    (ls : List WhirLevel) :
+private theorem walkOpenings_replay (nLanes : ℕ) (first : Bool) (root : Digest)
+    (shs : List LevelShape) (ls : List WhirLevel) :
     replayHom ans (walkOpenings (readerOps hashQuery) nLanes first root shs ls) =
       walkOpenings (readerOps (QueryLog.replayImpl ans)) nLanes first root shs ls := by
   rw [← readerOps_replay]

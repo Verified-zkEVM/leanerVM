@@ -85,7 +85,7 @@ def walkChainLogged (prog : Program) (s : Sizes) (input : PublicInput) (shs : Li
     Except ReadError ((Wire × List Reading) × ReaderState PrunedMerklePaths) :=
   runLogged (walkChain (stepOps H) prog s input shs) [] st
 
-theorem runPlain_bind {α β : Type} (b : Walk Id α) (f : α → Walk Id β) (st) :
+private theorem runPlain_bind {α β : Type} (b : Walk Id α) (f : α → Walk Id β) (st) :
     runPlain (b >>= f) st = match runPlain b st with
       | .ok (x, st') => runPlain (f x) st'
       | .error e => .error e := by
@@ -102,7 +102,7 @@ theorem runLogged_bind {α β : Type} (a : LoggedWalk Id α) (f : α → LoggedW
 theorem runLogged_pure {α : Type} (x : α) (log st) :
     runLogged (pure x : LoggedWalk Id α) log st = .ok ((x, log), st) := rfl
 
-theorem runPlain_pure {α : Type} (x : α) (st) :
+private theorem runPlain_pure {α : Type} (x : α) (st) :
     runPlain (pure x : Walk Id α) st = .ok (x, st) := rfl
 
 /-- A reader step, then its block logged with the chain state after it. -/
@@ -134,7 +134,7 @@ section Steps
 
 variable (H : List UInt8 → Id Digest)
 
-theorem runPlain_nextScalar {st : ReaderState PrunedMerklePaths} {x : E}
+private theorem runPlain_nextScalar {st : ReaderState PrunedMerklePaths} {x : E}
     {st' : ReaderState PrunedMerklePaths}
     (h : runPlain (Reader.nextScalar H) st = .ok (x, st')) : st.stream = x :: st'.stream := by
   rcases st with ⟨fs, _ | ⟨y, rest⟩, ms⟩
@@ -143,7 +143,7 @@ theorem runPlain_nextScalar {st : ReaderState PrunedMerklePaths} {x : E}
     obtain ⟨rfl, rfl⟩ := h
     rfl
 
-theorem runPlain_sample {st : ReaderState PrunedMerklePaths} {x : E}
+private theorem runPlain_sample {st : ReaderState PrunedMerklePaths} {x : E}
     {st' : ReaderState PrunedMerklePaths}
     (h : runPlain (Reader.sample H) st = .ok (x, st')) :
     x = FsState.challengeOf st'.fs.cv ∧ st'.stream = st.stream := by
@@ -151,7 +151,7 @@ theorem runPlain_sample {st : ReaderState PrunedMerklePaths} {x : E}
   obtain ⟨rfl, rfl⟩ := h
   exact ⟨rfl, rfl⟩
 
-theorem runPlain_checkPow (bits : ℕ) {st : ReaderState PrunedMerklePaths} {x : E}
+private theorem runPlain_checkPow (bits : ℕ) {st : ReaderState PrunedMerklePaths} {x : E}
     {st' : ReaderState PrunedMerklePaths}
     (h : runPlain (Reader.checkPow H bits) st = .ok (x, st')) : st.stream = x :: st'.stream := by
   rcases st with ⟨fs, _ | ⟨y, rest⟩, ms⟩
@@ -173,7 +173,7 @@ end Steps
 
 /-- `a` simulates the slot `b` on its log: whenever the logged reader succeeds, it appends steps
 that account for the scalars it read and that `b` reads back as the same value. -/
-def simRel : MonadRel (LoggedWalk Id) (Slot Reading) where
+private def simRel : MonadRel (LoggedWalk Id) (Slot Reading) where
   R a b := ∀ log st x log' st', runLogged a log st = .ok ((x, log'), st') →
     ∃ c, log' = log ++ c ∧ st.stream = streamOf c ++ st'.stream ∧
       ∀ rest, b.read (c ++ rest) = some (x, rest)
@@ -195,7 +195,7 @@ def simRel : MonadRel (LoggedWalk Id) (Slot Reading) where
     · cases h
 
 /-- `b` succeeds only where the logged `a` succeeds, with the same value and reader state. -/
-def backRel : MonadRel (LoggedWalk Id) (Walk Id) where
+private def backRel : MonadRel (LoggedWalk Id) (Walk Id) where
   R a b := ∀ st x st', runPlain b st = .ok (x, st') → ∀ log, ∃ log',
     runLogged a log st = .ok ((x, log'), st')
   pure x := by
@@ -213,73 +213,57 @@ def backRel : MonadRel (LoggedWalk Id) (Walk Id) where
       exact ⟨log'', by rw [runLogged_bind, hl']; exact hl''⟩
     · cases h
 
-variable (H : List UInt8 → Id Digest)
-
-theorem sim_scalar : simRel.R (loggedScalar H) historyOps.nextScalar := by
+/-- A reader step, its block logged, simulates a slot that reads that block back. -/
+private theorem sim_logged {α : Type} {b : Walk Id α} {g : α → Block} {s : Slot Reading α}
+    (hb : ∀ {st x st'}, runPlain b st = .ok (x, st') →
+      st.stream = streamOf [(g x, st'.fs.cv)] ++ st'.stream ∧
+        ∀ rest, s.read ((g x, st'.fs.cv) :: rest) = some (x, rest)) :
+    simRel.R (do let x ← b; logStep (g x); return x) s := by
   intro log st x log' st' h
-  rw [loggedScalar, runLogged_logged] at h
+  rw [runLogged_logged] at h
   split at h
   · rename_i y st'' hy
     simp only [Except.ok.injEq, Prod.mk.injEq] at h
     obtain ⟨⟨rfl, rfl⟩, rfl⟩ := h
-    exact ⟨_, rfl, by simp [runPlain_nextScalar H hy, streamOf], fun _ ↦ rfl⟩
+    exact ⟨_, rfl, (hb hy).1, (hb hy).2⟩
   · cases h
 
-theorem back_scalar : backRel.R (loggedScalar H) (Reader.nextScalar H) := by
+/-- A reader step, its block logged, succeeds where the step does. -/
+private theorem back_logged {α : Type} (b : Walk Id α) (g : α → Block) :
+    backRel.R (do let x ← b; logStep (g x); return x) b := by
   intro st x st' h log
-  rw [loggedScalar, runLogged_logged, h]
+  rw [runLogged_logged, h]
   exact ⟨_, rfl⟩
 
+variable (H : List UInt8 → Id Digest)
+
+private theorem sim_scalar : simRel.R (loggedScalar H) historyOps.nextScalar :=
+  sim_logged fun hy ↦ ⟨by simp [runPlain_nextScalar H hy, streamOf], fun _ ↦ rfl⟩
+
 /-- The logged reader simulates the walk on its history. -/
-theorem related_sim : ChainOps.Related simRel (stepOps H) historyOps where
+private theorem related_sim : ChainOps.Related simRel (stepOps H) historyOps where
   nextScalar := sim_scalar H
-  sample := by
-    intro log st x log' st' h
-    simp only [stepOps] at h
-    rw [runLogged_logged] at h
-    split at h
-    · rename_i y st'' hy
-      simp only [Except.ok.injEq, Prod.mk.injEq] at h
-      obtain ⟨⟨rfl, rfl⟩, rfl⟩ := h
-      obtain ⟨rfl, hs⟩ := runPlain_sample H hy
-      exact ⟨_, rfl, by simp [hs, streamOf], fun _ ↦ rfl⟩
-    · cases h
+  sample := sim_logged fun hy ↦ by
+    obtain ⟨rfl, hs⟩ := runPlain_sample H hy
+    exact ⟨by simp [hs, streamOf], fun _ ↦ rfl⟩
   nextRoot := by
     refine simRel.bind (sim_scalar H) fun a ↦ simRel.bind (sim_scalar H) fun b ↦ ?_
     rcases digestOfScalars (a, b) with _ | d
-    · intro log st x log' st' h
-      cases h
+    · exact fun _ _ _ _ _ h ↦ nomatch h
     · exact simRel.pure d
-  checkPow bits := by
-    intro log st x log' st' h
-    simp only [stepOps] at h
-    rw [runLogged_logged] at h
-    split at h
-    · rename_i y st'' hy
-      simp only [Except.ok.injEq, Prod.mk.injEq] at h
-      obtain ⟨⟨rfl, rfl⟩, rfl⟩ := h
-      exact ⟨_, rfl, by simp [runPlain_checkPow H bits hy, streamOf], fun _ ↦ rfl⟩
-    · cases h
+  checkPow bits := sim_logged fun hy ↦
+    ⟨by simp [runPlain_checkPow H bits hy, streamOf], fun _ ↦ rfl⟩
 
 /-- The logged reader succeeds wherever the proof reader does. -/
-theorem related_back : ChainOps.Related backRel (stepOps H) (readerOps H) where
-  nextScalar := back_scalar H
-  sample := by
-    intro st x st' h log
-    simp only [stepOps]
-    rw [runLogged_logged, show runPlain (Reader.sample H) st = .ok (x, st') from h]
-    exact ⟨_, rfl⟩
+private theorem related_back : ChainOps.Related backRel (stepOps H) (readerOps H) where
+  nextScalar := back_logged _ _
+  sample := back_logged _ _
   nextRoot := by
-    refine backRel.bind (back_scalar H) fun a ↦ backRel.bind (back_scalar H) fun b ↦ ?_
+    refine backRel.bind (back_logged _ _) fun a ↦ backRel.bind (back_logged _ _) fun b ↦ ?_
     rcases digestOfScalars (a, b) with _ | d
-    · intro st x st' h
-      cases h
+    · exact fun _ _ _ h ↦ nomatch h
     · exact backRel.pure d
-  checkPow bits := by
-    intro st x st' h log
-    simp only [stepOps]
-    rw [runLogged_logged, show runPlain (Reader.checkPow H bits) st = .ok (x, st') from h]
-    exact ⟨_, rfl⟩
+  checkPow _ := back_logged _ _
 
 /-- **The logged walk reads its own history**: if the chain walk succeeds on the logged reader,
 the walk on the history it logged reads the same wire, and the history accounts for the stream's

@@ -147,34 +147,6 @@ theorem decode_cons {a : Step} {l : List Step} (D : SeqDecoder α (a :: l)) (r :
       (D.1.runFull r).bind fun p ↦ ((D.2 p.1).toDecoder.decode p.2).map (p.1 ++ₜ ·) :=
   SlotDecoder.decode_append _ _ r
 
-/-- The decoder of a list of steps as one slot: the first step, then the rest. -/
-theorem toSlot_cons {a : Step} {l : List Step} (D : SeqDecoder α (a :: l)) :
-    D.toDecoder.toSlot = do
-      let t ← D.1.toSlot
-      let t' ← (D.2 t).toDecoder.toSlot
-      return t ++ₜ t' :=
-  SlotDecoder.toSlot_append _ _
-
-/-- Two decoders of a list of steps read alike: step by step, whatever the steps before read. -/
-def ReadsAlike : {l : List Step} → SeqDecoder α l → SeqDecoder α l → Prop
-  | [], _, _ => True
-  | _ :: _, D, D' => D.1.ReadsAlike D'.1 ∧ ∀ t t', ReadsAlike (D.2 t) (D'.2 t')
-
-/-- Two decoders of a list of steps read alike when their first steps do and, whatever those
-read, the rest do. -/
-theorem ReadsAlike.cons {a : Step} {l : List Step} {D D' : SeqDecoder α (a :: l)}
-    (h₁ : D.1.ReadsAlike D'.1) (h₂ : ∀ t t', ReadsAlike (D.2 t) (D'.2 t')) : D.ReadsAlike D' :=
-  ⟨h₁, h₂⟩
-
-/-- Decoders of no step read alike. -/
-theorem ReadsAlike.nil {D D' : SeqDecoder α []} : D.ReadsAlike D' := trivial
-
-/-- Decoders of a list of steps that read alike step by step read alike as decoders. -/
-theorem ReadsAlike.toDecoder : {l : List Step} → {D D' : SeqDecoder α l} → D.ReadsAlike D' →
-    D.toDecoder.ReadsAlike D'.toDecoder
-  | [], _, _, _ => SlotDecoder.readsAlike_empty
-  | _ :: _, _, _, h => SlotDecoder.readsAlike_append h.1 fun t t' ↦ (h.2 t t').toDecoder
-
 end SeqDecoder
 
 end

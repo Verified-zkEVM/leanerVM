@@ -59,7 +59,7 @@ def eSlot : UniformSlot E where
       uniform := fun p ↦ (prEvent_challengeOf_tuple 1 fun x ↦ p (x 0)).trans
         (SampleableType.prEvent_uniformSample_equiv (Equiv.funUnique (Fin 1) E) p) }
 
-theorem readsSqueezes_sample : ReadsSqueezes historyOps.sample eSlot := by
+private theorem readsSqueezes_sample : ReadsSqueezes historyOps.sample eSlot := by
   show ∀ (ds : Fin 1 → Digest) rest, (Slot.next challengeOf).read
     (squeezeBlocks (List.ofFn ds) ++ rest) = some (FsState.challengeOf (ds 0), rest)
   intro ds rest
@@ -102,7 +102,7 @@ def fingerprintUSlot : UniformSlot ((Fin 4 → E) × E) where
       uniform := fun p ↦ (prEvent_challengeOf_tuple 5 fun x ↦ p (fiveEquiv x)).trans
         (SampleableType.prEvent_uniformSample_equiv fiveEquiv p) }
 
-theorem readsSqueezes_fingerprintSlot : ReadsSqueezes fingerprintSlot fingerprintUSlot := by
+private theorem readsSqueezes_fingerprintSlot : ReadsSqueezes fingerprintSlot fingerprintUSlot := by
     show ∀ (ds : Fin 5 → Digest) rest, fingerprintSlot.read (squeezeBlocks (List.ofFn ds) ++ rest) =
       some (fingerprintUSlot.assemble ds, rest)
     intro ds rest
@@ -143,7 +143,7 @@ def posChunks (depth : ℕ) : (fuel need : ℕ) → List E → List ℕ
       posChunks depth fuel (need + 1 - min (192 / depth) (need + 1)) xs.tail
 
 /-- The walk's positions, read off its squeezes. -/
-theorem read_walkPositions (depth : ℕ) : ∀ (fuel need : ℕ) (ds : List Digest)
+private theorem read_walkPositions (depth : ℕ) : ∀ (fuel need : ℕ) (ds : List Digest)
     (rest : List (Block × Digest)), ds.length = posSqueezes depth fuel need →
     (walkPositions historyOps depth fuel need).read (squeezeBlocks ds ++ rest) =
       some (posChunks depth fuel need (ds.map FsState.challengeOf), rest)
@@ -222,7 +222,7 @@ def positionsUSlot (b t : ℕ) (hK : 0 < 192 / b) : UniformSlot (Fin t → Fin (
         simp only [positionsOf_posChunks hK]
         exact prEvent_positions_uniform (le_posSqueezes_mul hK t t le_rfl) p }
 
-theorem readsSqueezes_positionsSlot (b t : ℕ) (hK : 0 < 192 / b) :
+private theorem readsSqueezes_positionsSlot (b t : ℕ) (hK : 0 < 192 / b) :
     ReadsSqueezes (positionsSlot b t) (positionsUSlot b t hK) := fun ds rest ↦ by
   rw [positionsSlot, Slot.read_mapM,
     read_walkPositions b t t (List.ofFn ds) rest (List.length_ofFn), Option.map_some, List.map_ofFn]
@@ -249,45 +249,46 @@ private theorem historyOps_blind (c : StepCounts) : ChainOps.Graded blindGrade h
     · exact Slot.Blind.fail
   checkPow _ := Slot.Blind.next fun ⟨b, d⟩ ↦ by cases b <;> rfl
 
-theorem blind_nextScalars (k : ℕ) : (historyOps.nextScalars k).Blind :=
+private theorem blind_nextScalars (k : ℕ) : (historyOps.nextScalars k).Blind :=
   nextScalars_grade (historyOps_blind ⟨0, 0, 0, fun _ ↦ 0⟩) k
 
-theorem blind_samples (k : ℕ) : (samples historyOps k).Blind :=
+private theorem blind_samples (k : ℕ) : (samples historyOps k).Blind :=
   samples_grade (historyOps_blind ⟨0, 0, 0, fun _ ↦ 0⟩) k
 
-theorem blind_sample : historyOps.sample.Blind := (historyOps_blind ⟨0, 0, 0, fun _ ↦ 0⟩).sample
+private theorem blind_sample : historyOps.sample.Blind :=
+  (historyOps_blind ⟨0, 0, 0, fun _ ↦ 0⟩).sample
 
-theorem blind_nextScalar : historyOps.nextScalar.Blind :=
+private theorem blind_nextScalar : historyOps.nextScalar.Blind :=
   (historyOps_blind ⟨0, 0, 0, fun _ ↦ 0⟩).nextScalar
 
-theorem blind_checkPow (bits : ℕ) : (historyOps.checkPow bits).Blind :=
+private theorem blind_checkPow (bits : ℕ) : (historyOps.checkPow bits).Blind :=
   (historyOps_blind ⟨0, 0, 0, fun _ ↦ 0⟩).checkPow bits
 
-theorem blind_vecSlot (n : ℕ) : (vecSlot n).Blind := (blind_nextScalars n).mapM _
+private theorem blind_vecSlot (n : ℕ) : (vecSlot n).Blind := (blind_nextScalars n).mapM _
 
-theorem blind_polySlot (d : ℕ) (claim : Thunk E) (eq? : Thunk (Option E)) :
+private theorem blind_polySlot (d : ℕ) (claim : Thunk E) (eq? : Thunk (Option E)) :
     (polySlot d claim eq?).Blind := by
   refine Slot.Blind.bind (blind_nextScalars d) fun w ↦ ?_
   split
   · exact Slot.Blind.pure _
   · exact Slot.Blind.fail
 
-theorem blind_positionsSlot (b t : ℕ) : (positionsSlot b t).Blind :=
+private theorem blind_positionsSlot (b t : ℕ) : (positionsSlot b t).Blind :=
   (walkPositions_grade (historyOps_blind ⟨0, 0, 0, fun _ ↦ 0⟩) b t t).mapM _
 
-theorem blind_fingerprintSlot : fingerprintSlot.Blind :=
+private theorem blind_fingerprintSlot : fingerprintSlot.Blind :=
   Slot.Blind.bind (blind_samples 4) fun _ ↦ Slot.Blind.bind blind_sample fun _ ↦
     Slot.Blind.pure _
 
-theorem blind_rootsSlot : rootsSlot.Blind :=
+private theorem blind_rootsSlot : rootsSlot.Blind :=
   Slot.Blind.bind blind_nextScalar fun _ ↦ Slot.Blind.bind blind_nextScalar fun _ ↦
     Slot.Blind.pure _
 
-theorem blind_childrenSlot (ρ : ℕ) : (childrenSlot ρ).Blind :=
+private theorem blind_childrenSlot (ρ : ℕ) : (childrenSlot ρ).Blind :=
   Slot.Blind.bind (blind_vecSlot _) fun _ ↦ Slot.Blind.bind (blind_vecSlot _) fun _ ↦
     Slot.Blind.bind (blind_vecSlot _) fun _ ↦ Slot.Blind.pure _
 
-theorem blind_commitSlot {M : Type} (ann : List E) (w : M) : (commitSlot ann w).Blind := by
+private theorem blind_commitSlot {M : Type} (ann : List E) (w : M) : (commitSlot ann w).Blind := by
   refine Slot.Blind.bind (blind_nextScalars 8) fun xs ↦ ?_
   split
   · exact ((historyOps_blind ⟨0, 0, 0, fun _ ↦ 0⟩).nextRoot).mapM _
@@ -299,88 +300,78 @@ section Front
 
 open ChalSlots SlotDecoder
 
-theorem eSlot_pos : 0 < eSlot.m := Nat.one_pos
+private theorem eSlot_pos : 0 < eSlot.m := Nat.one_pos
 
-theorem squeezeReads_roundsDec (d : ℕ) (eq? : ℕ → Option E) (σ : Thunk E × ℕ) (m : ℕ) :
-    SqueezeReads (roundsDec d eq? σ m) (ChalSlots.rounds eSlot d m) :=
-  squeezeReads_rounds (fun _ ↦ readsSqueezes_sample) σ m
+private theorem readsWell_roundsDec (d : ℕ) (eq? : ℕ → Option E) (σ : Thunk E × ℕ) (m : ℕ) :
+    (roundsDec d eq? σ m).ReadsWell (ChalSlots.rounds eSlot d m) fun _ ↦ false :=
+  .of_squeezes (squeezeReads_rounds (fun _ ↦ readsSqueezes_sample) σ m)
+    (blind_rounds (fun _ ↦ blind_polySlot _ _ _) (fun _ ↦ blind_sample) σ m)
 
-theorem blind_roundsDec (d : ℕ) (eq? : ℕ → Option E) (σ : Thunk E × ℕ) (m : ℕ) :
-    (roundsDec d eq? σ m).Blind :=
-  blind_rounds (fun _ ↦ blind_polySlot _ _ _) (fun _ ↦ blind_sample) σ m
+private theorem readsWell_samples (k : ℕ) :
+    (SlotDecoder.draws historyOps.sample k).ReadsWell (ChalSlots.draws eSlot k) fun _ ↦ false :=
+  .of_squeezes (squeezeReads_draws readsSqueezes_sample k) (blind_draws blind_sample k)
+
+private theorem readsWell_sample :
+    (single (pSpec := Protocol.draw E) historyOps.sample).ReadsWell (ChalSlots.draw eSlot)
+      fun _ ↦ false :=
+  readsWell_draw readsSqueezes_sample blind_sample
 
 /-- The challenges of a layer of the grand product. -/
 def stepFam (ρ m : ℕ) : ChalSlots (stepSpec E 3 ρ m) :=
   ChalSlots.append (ChalSlots.append (ChalSlots.append (ChalSlots.draw eSlot)
     (ChalSlots.rounds eSlot (2 ^ ρ) m)) (ChalSlots.say _)) (ChalSlots.draws eSlot ρ)
 
-theorem pos_stepFam (ρ m : ℕ) : (stepFam ρ m).Pos :=
+private theorem pos_stepFam (ρ m : ℕ) : (stepFam ρ m).Pos :=
   pos_append (pos_append (pos_append (pos_draw eSlot_pos) (pos_rounds eSlot_pos _ _))
     (pos_say _)) (pos_draws eSlot_pos _)
 
-theorem squeezeReads_layerDec (st : GkrState) (ρ m : ℕ) :
-    SqueezeReads (layerDec st ρ m) (stepFam ρ m) :=
-  squeezeReads_append (squeezeReads_append (squeezeReads_append
-    (squeezeReads_draw readsSqueezes_sample) fun _ ↦ squeezeReads_roundsDec _ _ _ _)
-    fun _ ↦ squeezeReads_say _) fun _ ↦ squeezeReads_draws readsSqueezes_sample ρ
-
-theorem blind_layerDec (st : GkrState) (ρ m : ℕ) : (layerDec st ρ m).Blind :=
-  blind_append (blind_append (blind_append (blind_single blind_sample)
-    fun _ ↦ blind_roundsDec _ _ _ _) fun _ ↦ blind_single (blind_childrenSlot ρ))
-    fun _ ↦ blind_draws blind_sample ρ
+private theorem readsWell_layerDec (st : GkrState) (ρ m : ℕ) :
+    (layerDec st ρ m).ReadsWell (stepFam ρ m) fun _ ↦ false :=
+  readsWell_append_none (readsWell_append_none (readsWell_append_none readsWell_sample
+    fun _ ↦ readsWell_roundsDec _ _ _ _) fun _ ↦ readsWell_say (blind_childrenSlot ρ))
+    fun _ ↦ readsWell_samples ρ
 
 /-- The challenges of `k` layers of radix four. -/
 def stepsFam : (k m : ℕ) → ChalSlots (stepsSpec E 3 k m)
   | 0, _ => ChalSlots.empty
   | k + 1, m => ChalSlots.append (stepFam 2 m) (stepsFam k (m + 2))
 
-theorem pos_stepsFam : ∀ k m, (stepsFam k m).Pos
+private theorem pos_stepsFam : ∀ k m, (stepsFam k m).Pos
   | 0, _ => pos_empty
   | k + 1, m => pos_append (pos_stepFam 2 m) (pos_stepsFam k (m + 2))
 
-theorem squeezeReads_stepsDec : ∀ (st : GkrState) (k m : ℕ),
-    SqueezeReads (stepsDec st k m) (stepsFam k m)
-  | _, 0, _ => squeezeReads_empty _
-  | st, k + 1, m => squeezeReads_append (squeezeReads_layerDec st 2 m)
-      fun t ↦ squeezeReads_stepsDec (layerNext t) k (m + 2)
-
-theorem blind_stepsDec : ∀ (st : GkrState) (k m : ℕ), (stepsDec st k m).Blind
-  | _, 0, _ => blind_empty
-  | st, k + 1, m => blind_append (blind_layerDec st 2 m)
-      fun t ↦ blind_stepsDec (layerNext t) k (m + 2)
+private theorem readsWell_stepsDec : ∀ (st : GkrState) (k m : ℕ),
+    (stepsDec st k m).ReadsWell (stepsFam k m) fun _ ↦ false
+  | _, 0, _ => readsWell_empty
+  | st, k + 1, m => readsWell_append_none (readsWell_layerDec st 2 m)
+      fun t ↦ readsWell_stepsDec (layerNext t) k (m + 2)
 
 /-- The challenges of the binary layer, if there is one. -/
 def oddFam : (r : ℕ) → ChalSlots (oddSpec E 3 r)
   | 0 => ChalSlots.empty
   | _ + 1 => stepFam 1 0
 
-theorem pos_oddFam : ∀ r, (oddFam r).Pos
+private theorem pos_oddFam : ∀ r, (oddFam r).Pos
   | 0 => pos_empty
   | _ + 1 => pos_stepFam 1 0
 
-theorem squeezeReads_oddDec (st : GkrState) : ∀ r, SqueezeReads (oddDec st r) (oddFam r)
-  | 0 => squeezeReads_empty _
-  | _ + 1 => squeezeReads_layerDec st 1 0
-
-theorem blind_oddDec (st : GkrState) : ∀ r, (oddDec st r).Blind
-  | 0 => blind_empty
-  | _ + 1 => blind_layerDec st 1 0
+private theorem readsWell_oddDec (st : GkrState) :
+    ∀ r, (oddDec st r).ReadsWell (oddFam r) fun _ ↦ false
+  | 0 => readsWell_empty
+  | _ + 1 => readsWell_layerDec st 1 0
 
 /-- The challenges of the grand product. -/
 def gkrFam (μ : ℕ) : ChalSlots (gkrSpec E 3 μ) :=
   ChalSlots.append (ChalSlots.append (oddFam (μ % 2)) (stepsFam (μ / 2) (μ % 2)))
     (ChalSlots.draw eSlot)
 
-theorem pos_gkrFam (μ : ℕ) : (gkrFam μ).Pos :=
+private theorem pos_gkrFam (μ : ℕ) : (gkrFam μ).Pos :=
   pos_append (pos_append (pos_oddFam _) (pos_stepsFam _ _)) (pos_draw eSlot_pos)
 
-theorem squeezeReads_gkrDec (st : GkrState) (μ : ℕ) : SqueezeReads (gkrDec st μ) (gkrFam μ) :=
-  squeezeReads_append (squeezeReads_append (squeezeReads_oddDec st _)
-    fun _ ↦ squeezeReads_stepsDec _ _ _) fun _ ↦ squeezeReads_draw readsSqueezes_sample
-
-theorem blind_gkrDec (st : GkrState) (μ : ℕ) : (gkrDec st μ).Blind :=
-  blind_append (blind_append (blind_oddDec st _) fun _ ↦ blind_stepsDec _ _ _)
-    fun _ ↦ blind_single blind_sample
+private theorem readsWell_gkrDec (st : GkrState) (μ : ℕ) :
+    (gkrDec st μ).ReadsWell (gkrFam μ) fun _ ↦ false :=
+  readsWell_append_none (readsWell_append_none (readsWell_oddDec st _)
+    fun _ ↦ readsWell_stepsDec _ _ _) fun _ ↦ readsWell_sample
 
 variable (I : M3Instance)
 
@@ -389,53 +380,41 @@ def busFam : ChalSlots (busSpec I) :=
   ChalSlots.append (ChalSlots.append (ChalSlots.append (ChalSlots.draw fingerprintUSlot)
     (ChalSlots.say _)) (gkrFam I.μBus)) (ChalSlots.say _)
 
-theorem pos_busFam : (busFam I).Pos :=
+private theorem pos_busFam : (busFam I).Pos :=
   pos_append (pos_append (pos_append (pos_draw (Nat.succ_pos 4)) (pos_say _)) (pos_gkrFam _))
     (pos_say _)
 
-theorem squeezeReads_busDec : SqueezeReads (busDec I) (busFam I) :=
-  squeezeReads_append (squeezeReads_append (squeezeReads_append
-    (squeezeReads_draw readsSqueezes_fingerprintSlot) fun _ ↦ squeezeReads_say _)
-    fun _ ↦ squeezeReads_gkrDec _ _) fun _ ↦ squeezeReads_say _
-
-theorem blind_busDec : (busDec I).Blind :=
-  blind_append (blind_append (blind_append (blind_single blind_fingerprintSlot)
-    fun _ ↦ blind_single blind_rootsSlot) fun _ ↦ blind_gkrDec _ _)
-    fun _ ↦ blind_single (blind_vecSlot _)
+private theorem readsWell_busDec : (busDec I).ReadsWell (busFam I) fun _ ↦ false :=
+  readsWell_append_none (readsWell_append_none (readsWell_append_none
+    (readsWell_draw readsSqueezes_fingerprintSlot blind_fingerprintSlot)
+    fun _ ↦ readsWell_say blind_rootsSlot) fun _ ↦ readsWell_gkrDec _ _)
+    fun _ ↦ readsWell_say (blind_vecSlot _)
 
 /-- The challenges of the table sumcheck. -/
 def tableFam : ChalSlots (tableSpec I) :=
   ChalSlots.append (ChalSlots.append (ChalSlots.draw eSlot) (ChalSlots.rounds eSlot 3 I.τmax))
     (ChalSlots.say _)
 
-theorem pos_tableFam : (tableFam I).Pos :=
+private theorem pos_tableFam : (tableFam I).Pos :=
   pos_append (pos_append (pos_draw eSlot_pos) (pos_rounds eSlot_pos _ _)) (pos_say _)
 
-theorem squeezeReads_tableDec (s : Thunk (I.Stmt × BusOut I)) :
-    SqueezeReads (tableDec I s) (tableFam I) :=
-  squeezeReads_append (squeezeReads_append (squeezeReads_draw readsSqueezes_sample)
-    fun _ ↦ squeezeReads_roundsDec _ _ _ _) fun _ ↦ squeezeReads_say _
-
-theorem blind_tableDec (s : Thunk (I.Stmt × BusOut I)) : (tableDec I s).Blind :=
-  blind_append (blind_append (blind_single blind_sample) fun _ ↦ blind_roundsDec _ _ _ _)
-    fun _ ↦ blind_single (blind_vecSlot _)
+private theorem readsWell_tableDec (s : Thunk (I.Stmt × BusOut I)) :
+    (tableDec I s).ReadsWell (tableFam I) fun _ ↦ false :=
+  readsWell_append_none (readsWell_append_none readsWell_sample
+    fun _ ↦ readsWell_roundsDec _ _ _ _) fun _ ↦ readsWell_say (blind_vecSlot _)
 
 /-- The challenge of the public input. -/
 def pubFam : ChalSlots pubSpec
   | ⟨0, _⟩, _ => eSlot
   | ⟨1, _⟩, h => nomatch h
 
-theorem pos_pubFam : pubFam.Pos
+private theorem pos_pubFam : pubFam.Pos
   | ⟨0, _⟩, _ => eSlot_pos
   | ⟨1, _⟩, h => nomatch h
 
-theorem squeezeReads_pubDec (n : ℕ) : SqueezeReads (pubDec n) pubFam
-  | ⟨0, _⟩, _, _ => readsSqueezes_sample
-  | ⟨1, _⟩, h, _ => nomatch h
-
-theorem blind_pubDec (n : ℕ) : (pubDec n).Blind
-  | ⟨0, _⟩, _ => blind_sample
-  | ⟨1, _⟩, _ => blind_nextScalars n
+private theorem readsWell_pubDec (n : ℕ) : (pubDec n).ReadsWell pubFam fun _ ↦ false :=
+  .of_squeezes (fun | ⟨0, _⟩, _, _ => readsSqueezes_sample | ⟨1, _⟩, h, _ => nomatch h)
+    fun | ⟨0, _⟩, _ => blind_sample | ⟨1, _⟩, _ => blind_nextScalars n
 
 /-- The challenges of the Flock phase for `2 ^ k` compressions. -/
 def flockFamOf (k : ℕ) : ChalSlots (flockSpecOf k) :=
@@ -446,48 +425,35 @@ def flockFamOf (k : ℕ) : ChalSlots (flockSpecOf k) :=
     (ChalSlots.draw eSlot)) (ChalSlots.rounds eSlot 2 8)) (ChalSlots.say _))
     (ChalSlots.draws eSlot 6)
 
-theorem pos_flockFamOf (k : ℕ) : (flockFamOf k).Pos :=
+private theorem pos_flockFamOf (k : ℕ) : (flockFamOf k).Pos :=
   pos_append (pos_append (pos_append (pos_append (pos_append (pos_append (pos_append
     (pos_append (pos_append (pos_draws eSlot_pos _) (pos_say _)) (pos_draw eSlot_pos))
     (pos_rounds eSlot_pos _ _)) (pos_rounds eSlot_pos _ _)) (pos_say _)) (pos_draw eSlot_pos))
     (pos_rounds eSlot_pos _ _)) (pos_say _)) (pos_draws eSlot_pos _)
 
-theorem squeezeReads_flockDecOf (k : ℕ) : SqueezeReads (flockDecOf k) (flockFamOf k) := by
+private theorem readsWell_flockDecOf (k : ℕ) :
+    (flockDecOf k).ReadsWell (flockFamOf k) fun _ ↦ false := by
   unfold flockDecOf flockFamOf
-  exact squeezeReads_append (squeezeReads_append (squeezeReads_append (squeezeReads_append
-    (squeezeReads_append (squeezeReads_append (squeezeReads_append (squeezeReads_append
-    (squeezeReads_append (squeezeReads_draws readsSqueezes_sample _)
-    fun _ ↦ squeezeReads_say _) fun _ ↦ squeezeReads_draw readsSqueezes_sample)
-    fun _ ↦ squeezeReads_roundsDec _ _ _ _) fun _ ↦ squeezeReads_roundsDec _ _ _ _)
-    fun _ ↦ squeezeReads_say _) fun _ ↦ squeezeReads_draw readsSqueezes_sample)
-    fun _ ↦ squeezeReads_roundsDec _ _ _ _) fun _ ↦ squeezeReads_say _)
-    fun _ ↦ squeezeReads_draws readsSqueezes_sample _
-
-theorem blind_flockDecOf (k : ℕ) : (flockDecOf k).Blind :=
-  blind_append (blind_append (blind_append (blind_append (blind_append (blind_append
-    (blind_append (blind_append (blind_append (blind_draws blind_sample _)
-    fun _ ↦ blind_single (blind_vecSlot _)) fun _ ↦ blind_single blind_sample)
-    fun _ ↦ blind_roundsDec _ _ _ _) fun _ ↦ blind_roundsDec _ _ _ _)
-    fun _ ↦ blind_single (blind_vecSlot _)) fun _ ↦ blind_single blind_sample)
-    fun _ ↦ blind_roundsDec _ _ _ _) fun _ ↦ blind_single (blind_vecSlot _))
-    fun _ ↦ blind_draws blind_sample _
+  exact readsWell_append_none (readsWell_append_none (readsWell_append_none (readsWell_append_none
+    (readsWell_append_none (readsWell_append_none (readsWell_append_none (readsWell_append_none
+    (readsWell_append_none (readsWell_samples _) fun _ ↦ readsWell_say (blind_vecSlot _))
+    fun _ ↦ readsWell_sample) fun _ ↦ readsWell_roundsDec _ _ _ _)
+    fun _ ↦ readsWell_roundsDec _ _ _ _) fun _ ↦ readsWell_say (blind_vecSlot _))
+    fun _ ↦ readsWell_sample) fun _ ↦ readsWell_roundsDec _ _ _ _)
+    fun _ ↦ readsWell_say (blind_vecSlot _)) fun _ ↦ readsWell_samples _
 
 /-- The challenges of the Flock slot. -/
 def flockFam : (o : Option (FlockRegion I.toShape)) → ChalSlots (flockSpecOpt I o)
   | none => ChalSlots.empty
   | some r => flockFamOf r.kBatch
 
-theorem pos_flockFam : ∀ o, (flockFam I o).Pos
+private theorem pos_flockFam : ∀ o, (flockFam I o).Pos
   | none => pos_empty
   | some r => pos_flockFamOf r.kBatch
 
-theorem squeezeReads_flockDec : ∀ o, SqueezeReads (flockDec I o) (flockFam I o)
-  | none => squeezeReads_empty _
-  | some r => squeezeReads_flockDecOf r.kBatch
-
-theorem blind_flockDec : ∀ o, (flockDec I o).Blind
-  | none => blind_empty
-  | some r => blind_flockDecOf r.kBatch
+private theorem readsWell_flockDec : ∀ o, (flockDec I o).ReadsWell (flockFam I o) fun _ ↦ false
+  | none => readsWell_empty
+  | some r => readsWell_flockDecOf r.kBatch
 
 end Front
 
@@ -498,7 +464,7 @@ section Compiled
 open ChalSlots SlotDecoder Whir
 
 /-- A nonce step's slot reads exactly the nonce step. -/
-theorem readsNonce_checkPow (bits : ℕ) : (historyOps.checkPow bits).ReadsNonce := by
+private theorem readsNonce_checkPow (bits : ℕ) : (historyOps.checkPow bits).ReadsNonce := by
   rintro (_ | ⟨⟨b, d⟩, r⟩) x r' h
   · simp [historyOps] at h
   · change (nonceOf (b, d)).map (·, r) = some (x, r') at h
@@ -508,24 +474,12 @@ theorem readsNonce_checkPow (bits : ℕ) : (historyOps.checkPow bits).ReadsNonce
     · simp only [nonceOf, Option.map_some, Option.some.injEq, Prod.mk.injEq] at h
       exact ⟨n, d, by rw [h.2]⟩
 
-theorem readsWell_roundsDec (d : ℕ) (eq? : ℕ → Option E) (σ : Thunk E × ℕ) (m : ℕ) :
-    (roundsDec d eq? σ m).ReadsWell (ChalSlots.rounds eSlot d m) fun _ ↦ false :=
-  .of_squeezes (squeezeReads_roundsDec d eq? σ m) (blind_roundsDec d eq? σ m)
-
-theorem readsWell_samples (k : ℕ) :
-    (SlotDecoder.draws historyOps.sample k).ReadsWell (ChalSlots.draws eSlot k) fun _ ↦ false :=
-  .of_squeezes (squeezeReads_draws readsSqueezes_sample k) (blind_draws blind_sample k)
-
-theorem readsWell_sample :
-    (single (pSpec := Protocol.draw E) historyOps.sample).ReadsWell (ChalSlots.draw eSlot)
-      fun _ ↦ false :=
-  readsWell_draw readsSqueezes_sample blind_sample
-
 /-- The commitment: a message. -/
 def commitFam (sh : Whir.Shape) (κ : ℕ) : ChalSlots (commitWordSpec sh κ) :=
   fun ⟨0, _⟩ h ↦ nomatch h
 
-theorem pos_commitFam (sh : Whir.Shape) (κ : ℕ) : (commitFam sh κ).Pos := fun ⟨0, _⟩ h ↦ nomatch h
+private theorem pos_commitFam (sh : Whir.Shape) (κ : ℕ) : (commitFam sh κ).Pos :=
+  fun ⟨0, _⟩ h ↦ nomatch h
 
 variable (I : M3Instance)
 
@@ -535,24 +489,19 @@ def frontFam (sh : Whir.Shape) (κ : ℕ) : ChalSlots (listBindingFrontSpec I sh
     (ChalSlots.append (commitFam sh κ) (busFam I)) (tableFam I)) pubFam) (flockFam I I.flock))
     (ChalSlots.draw eSlot)) ChalSlots.empty
 
-theorem pos_frontFam (sh : Whir.Shape) (κ : ℕ) : (frontFam I sh κ).Pos :=
+private theorem pos_frontFam (sh : Whir.Shape) (κ : ℕ) : (frontFam I sh κ).Pos :=
   pos_append (pos_append (pos_append (pos_append (pos_append (pos_append (pos_commitFam sh κ)
     (pos_busFam I)) (pos_tableFam I)) pos_pubFam) (pos_flockFam I _)) (pos_draw eSlot_pos))
     pos_empty
 
-theorem readsWell_frontDec (h : Bus.Conditions I) (input : I.Stmt) (ann : List E)
+private theorem readsWell_frontDec (h : Bus.Conditions I) (input : I.Stmt) (ann : List E)
     {sh : Whir.Shape} {κ : ℕ} (w₀ : KWord sh.ℓ (κ + sh.R) sh.t) :
     (frontDec I h input ann w₀).ReadsWell (frontFam I sh κ) fun _ ↦ false :=
-  .of_squeezes
-    (squeezeReads_append (squeezeReads_append (squeezeReads_append (squeezeReads_append
-      (squeezeReads_append (squeezeReads_append (fun ⟨0, _⟩ h ↦ nomatch h)
-      fun _ ↦ squeezeReads_busDec I) fun _ ↦ squeezeReads_tableDec I _)
-      fun _ ↦ squeezeReads_pubDec _) fun _ ↦ squeezeReads_flockDec I _)
-      fun _ ↦ squeezeReads_draw readsSqueezes_sample) fun _ ↦ squeezeReads_empty _)
-    (blind_append (blind_append (blind_append (blind_append (blind_append (blind_append
-      (blind_single (blind_commitSlot ann w₀)) fun _ ↦ blind_busDec I)
-      fun _ ↦ blind_tableDec I _) fun _ ↦ blind_pubDec _) fun _ ↦ blind_flockDec I _)
-      fun _ ↦ blind_single blind_sample) fun _ ↦ blind_empty)
+  readsWell_append_none (readsWell_append_none (readsWell_append_none (readsWell_append_none
+    (readsWell_append_none (readsWell_append_none
+    (.of_squeezes (fun ⟨0, _⟩ h ↦ nomatch h) (blind_single (blind_commitSlot ann w₀)))
+    fun _ ↦ readsWell_busDec I) fun _ ↦ readsWell_tableDec I _) fun _ ↦ readsWell_pubDec _)
+    fun _ ↦ readsWell_flockDec I _) fun _ ↦ readsWell_sample) fun _ ↦ readsWell_empty
 
 /-! ### WHIR's levels -/
 
@@ -572,7 +521,7 @@ theorem posOk_cons {sh sh' : Whir.Shape} {κ' : ℕ} {L : Ladder sh' κ'}
     (0 < 192 / (Kap sh' κ' + sh.R) ∧ 0 < sh.t) ∧ posOk L = true := by
   simpa only [posOk, Bool.and_eq_true, decide_eq_true_eq] using h
 
-theorem posSqueezes_pos (b : ℕ) {t : ℕ} (ht : 0 < t) : 0 < posSqueezes b t t := by
+private theorem posSqueezes_pos (b : ℕ) {t : ℕ} (ht : 0 < t) : 0 < posSqueezes b t t := by
   obtain ⟨t, rfl⟩ : ∃ t', t = t' + 1 := ⟨t - 1, by omega⟩
   rw [posSqueezes]
   omega
@@ -592,14 +541,14 @@ def levelFlags (sh sh' : Whir.Shape) (κ' : ℕ) {k : List Step} (rest : SeqFlag
     fun _ ↦ false, fun _ ↦ true, fun _ ↦ false, fun _ ↦ false, fun _ ↦ false, fun _ ↦ false,
     fun _ ↦ false, rest)
 
-theorem pos_levelFam (sh sh' : Whir.Shape) (κ' : ℕ) {k : List Step}
+private theorem pos_levelFam (sh sh' : Whir.Shape) (κ' : ℕ) {k : List Step}
     (hK : 0 < 192 / (Kap sh' κ' + sh.R)) (ht : 0 < sh.t) {rest : SeqSlots k} (hr : rest.Pos) :
     (levelFam sh sh' κ' hK rest).Pos :=
   ⟨pos_draw eSlot_pos, pos_rounds eSlot_pos _ _, pos_say _, pos_sayO _, pos_draws eSlot_pos _,
     pos_say _, pos_say _, pos_say _, pos_draw (posSqueezes_pos _ ht), pos_draw eSlot_pos,
     pos_empty, pos_say _, pos_empty, hr⟩
 
-theorem readsWell_levelDec (sh sh' : Whir.Shape) (κ' : ℕ) {k : List Step}
+private theorem readsWell_levelDec (sh sh' : Whir.Shape) (κ' : ℕ) {k : List Step}
     (hK : 0 < 192 / (Kap sh' κ' + sh.R)) (σ : Thunk E × Thunk (Vector E 3))
     (w : WordOf sh (Kap sh' κ')) (next : WordOf sh' κ')
     {cont : Thunk E × Thunk (Vector E 3) → SeqDecoder Reading k} {rest : SeqSlots k}
@@ -633,13 +582,13 @@ def finalFlags (sh : Whir.Shape) (nf : ℕ) : SeqFlags (finalSteps sh nf) :=
   (fun _ ↦ false, fun _ ↦ false, fun _ ↦ false, fun _ ↦ false, fun _ ↦ true, fun _ ↦ false,
     fun _ ↦ false, fun _ ↦ false, fun _ ↦ false, fun _ ↦ false, fun _ ↦ false, fun _ ↦ false, ⟨⟩)
 
-theorem pos_finalFam (sh : Whir.Shape) (nf : ℕ) (hK : 0 < 192 / (nf + 1 + sh.R))
+private theorem pos_finalFam (sh : Whir.Shape) (nf : ℕ) (hK : 0 < 192 / (nf + 1 + sh.R))
     (ht : 0 < sh.t) : (finalFam sh nf hK).Pos :=
   ⟨pos_draw eSlot_pos, pos_rounds eSlot_pos _ _, pos_say _, pos_say _, pos_say _,
     pos_draw (posSqueezes_pos _ ht), pos_draw eSlot_pos, pos_empty, pos_say _, pos_empty,
     pos_draw eSlot_pos, pos_rounds eSlot_pos _ _, trivial⟩
 
-theorem readsWell_finalDec (sh : Whir.Shape) (nf : ℕ) (hK : 0 < 192 / (nf + 1 + sh.R))
+private theorem readsWell_finalDec (sh : Whir.Shape) (nf : ℕ) (hK : 0 < 192 / (nf + 1 + sh.R))
     (σ : Thunk E × Thunk (Vector E 3)) (w : WordOf sh (nf + 1)) :
     (finalDec sh nf σ w).ReadsWell (finalFam sh nf hK) (finalFlags sh nf) := by
   dsimp only [finalDec, finalFam, finalFlags]
@@ -668,14 +617,14 @@ def ladderFlags : {sh : Whir.Shape} → {κ : ℕ} → (L : Ladder sh κ) → Se
   | _, _, .last sh nf => finalFlags sh nf
   | _, _, @Ladder.cons sh sh' κ' L => levelFlags sh sh' κ' (ladderFlags L)
 
-theorem pos_ladderFam : ∀ {sh : Whir.Shape} {κ : ℕ} (L : Ladder sh κ) (h : posOk L = true),
+private theorem pos_ladderFam : ∀ {sh : Whir.Shape} {κ : ℕ} (L : Ladder sh κ) (h : posOk L = true),
     (ladderFam L h).Pos
   | _, _, .last sh nf, h => pos_finalFam sh nf _ (posOk_last h).2
   | _, _, @Ladder.cons sh sh' κ' L, h =>
     pos_levelFam sh sh' κ' _ (posOk_cons h).1.2 (pos_ladderFam L _)
 
-theorem readsWell_ladderDec : ∀ {sh : Whir.Shape} {κ : ℕ} (L : Ladder sh κ) (h : posOk L = true)
-    (σ : Thunk E × Thunk (Vector E 3)) (w : WordOf sh κ) (ws : L.Words),
+private theorem readsWell_ladderDec : ∀ {sh : Whir.Shape} {κ : ℕ} (L : Ladder sh κ)
+    (h : posOk L = true) (σ : Thunk E × Thunk (Vector E 3)) (w : WordOf sh κ) (ws : L.Words),
     (ladderDec L σ w ws).ReadsWell (ladderFam L h) (ladderFlags L)
   | _, _, .last sh nf, _, σ, w, _ => readsWell_finalDec sh nf _ σ w
   | _, _, @Ladder.cons sh sh' κ' L, _, σ, w, ws =>

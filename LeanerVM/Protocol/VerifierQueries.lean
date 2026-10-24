@@ -49,10 +49,11 @@ abbrev runAt {α : Type} (a : W α) (st : ReaderState PrunedMerklePaths) :
     OracleComp hashSpec (Except ReadError (α × ReaderState PrunedMerklePaths)) :=
   (a.run st).run
 
-theorem runAt_pure {α : Type} (x : α) (st : ReaderState PrunedMerklePaths) :
+private theorem runAt_pure {α : Type} (x : α) (st : ReaderState PrunedMerklePaths) :
     runAt (pure x : W α) st = pure (.ok (x, st)) := rfl
 
-theorem runAt_bind {α β : Type} (a : W α) (f : α → W β) (st : ReaderState PrunedMerklePaths) :
+private theorem runAt_bind {α β : Type} (a : W α) (f : α → W β)
+    (st : ReaderState PrunedMerklePaths) :
     runAt (a >>= f) st = runAt a st >>= fun r ↦ match r with
       | .ok p => runAt (f p.1) p.2
       | .error e => pure (.error e) := by
@@ -62,7 +63,7 @@ theorem runAt_bind {α β : Type} (a : W α) (f : α → W β) (st : ReaderState
   cases r <;> rfl
 
 /-- `pure` asks no query. -/
-theorem isTotalQueryBound_pure {α : Type} (x : α) (n : ℕ) :
+private theorem isTotalQueryBound_pure {α : Type} (x : α) (n : ℕ) :
     IsTotalQueryBound (pure x : OracleComp hashSpec α) n :=
   isQueryBound_pure x n _ _
 
@@ -92,38 +93,33 @@ def queryGrade : MonadGrade W where
         subst hr
         cases hp
 
-theorem queryGrade_mono {α : Type} {a : W α} {n k : ℕ} (h : queryGrade.P a n) (hnk : n ≤ k) :
-    queryGrade.P a k := fun st ↦ ⟨(h st).1.mono hnk, (h st).2⟩
-
-theorem get_grade : queryGrade.P (get : W (ReaderState PrunedMerklePaths)) 0 := fun st ↦
-  ⟨isTotalQueryBound_pure _ _, fun r hr p hp ↦ by
-    rw [show runAt (get : W _) st = pure (.ok (st, st)) from rfl, mem_support_pure_iff] at hr
+/-- A walk that asks no query and keeps the openings. -/
+private theorem pure_grade {α : Type} {a : W α}
+    (f : ReaderState PrunedMerklePaths → Except ReadError (α × ReaderState PrunedMerklePaths))
+    (ha : ∀ st, runAt a st = pure (f st)) (hf : ∀ st p, f st = .ok p → p.2.merkle = st.merkle) :
+    queryGrade.P a 0 := fun st ↦
+  ⟨by rw [ha]; exact isTotalQueryBound_pure _ _, fun r hr p hp ↦ by
+    rw [ha, mem_support_pure_iff] at hr
     subst hr
-    cases hp
-    rfl⟩
+    exact hf st p hp⟩
 
-theorem modify_grade (f : ReaderState PrunedMerklePaths → ReaderState PrunedMerklePaths)
-    (hf : ∀ st, (f st).merkle = st.merkle) : queryGrade.P (modify f : W Unit) 0 := fun st ↦
-  ⟨isTotalQueryBound_pure _ _, fun r hr p hp ↦ by
-    rw [show runAt (modify f : W Unit) st = pure (.ok ((), f st)) from rfl,
-      mem_support_pure_iff] at hr
-    subst hr
-    cases hp
-    exact hf st⟩
+private theorem get_grade : queryGrade.P (get : W (ReaderState PrunedMerklePaths)) 0 :=
+  pure_grade (fun st ↦ .ok (st, st)) (fun _ ↦ rfl) fun _ _ h ↦ by cases h; rfl
 
-theorem throw_grade {α : Type} (e : ReadError) : queryGrade.P (throw e : W α) 0 := fun st ↦
-  ⟨isTotalQueryBound_pure _ _, fun r hr p hp ↦ by
-    rw [show runAt (throw e : W α) st = pure (.error e) from rfl, mem_support_pure_iff] at hr
-    subst hr
-    cases hp⟩
+private theorem modify_grade (f : ReaderState PrunedMerklePaths → ReaderState PrunedMerklePaths)
+    (hf : ∀ st, (f st).merkle = st.merkle) : queryGrade.P (modify f : W Unit) 0 :=
+  pure_grade (fun st ↦ .ok ((), f st)) (fun _ ↦ rfl) fun st _ h ↦ by cases h; exact hf st
+
+private theorem throw_grade {α : Type} (e : ReadError) : queryGrade.P (throw e : W α) 0 :=
+  pure_grade (fun _ ↦ .error e) (fun _ ↦ rfl) fun _ _ h ↦ nomatch h
 
 /-- Oracle computations that ask at most `n` queries. -/
-def ocGrade : MonadGrade (OracleComp hashSpec) where
+private def ocGrade : MonadGrade (OracleComp hashSpec) where
   P c n := IsTotalQueryBound c n
   pure x := isTotalQueryBound_pure x 0
   bind ha hf := isTotalQueryBound_bind ha hf
 
-theorem runAt_monadLift {α : Type} (c : OracleComp hashSpec α)
+private theorem runAt_monadLift {α : Type} (c : OracleComp hashSpec α)
     (st : ReaderState PrunedMerklePaths) :
     runAt (liftM c : W α) st = (fun x ↦ .ok (x, st)) <$> c := by
   simp only [runAt, liftM, monadLift, MonadLift.monadLift, ExceptT.lift, ExceptT.mk,
@@ -134,7 +130,7 @@ theorem runAt_monadLift {α : Type} (c : OracleComp hashSpec α)
   simp only [Function.comp, pure_bind]
   rfl
 
-theorem lift_grade {α : Type} {c : OracleComp hashSpec α} {n : ℕ} (hc : ocGrade.P c n) :
+private theorem lift_grade {α : Type} {c : OracleComp hashSpec α} {n : ℕ} (hc : ocGrade.P c n) :
     queryGrade.P (liftM c : W α) n := fun st ↦
   ⟨by rw [runAt_monadLift]; exact (isQueryBound_map_iff _ _ _ _ _).mpr hc, fun r hr p hp ↦ by
     rw [runAt_monadLift, support_map, Set.mem_image] at hr
@@ -143,16 +139,17 @@ theorem lift_grade {α : Type} {c : OracleComp hashSpec α} {n : ℕ} (hc : ocGr
     rfl⟩
 
 /-- A hash is one query. -/
-theorem isTotalQueryBound_hashQuery (t : List UInt8) : IsTotalQueryBound (hashQuery t) 1 := by
+private theorem isTotalQueryBound_hashQuery (t : List UInt8) :
+    IsTotalQueryBound (hashQuery t) 1 := by
   have h := (isTotalQueryBound_query_bind_iff (spec := hashSpec) (t := t)
     (mx := (pure : Digest → OracleComp hashSpec Digest)) (n := 1)).mpr
     ⟨Nat.one_pos, fun u ↦ isTotalQueryBound_pure u 0⟩
   rwa [bind_pure] at h
 
-theorem hashQuery_grade (t : List UInt8) : ocGrade.P (hashQuery t) 1 :=
+private theorem hashQuery_grade (t : List UInt8) : ocGrade.P (hashQuery t) 1 :=
   isTotalQueryBound_hashQuery t
 
-theorem takeRaw_grade : queryGrade.P (Reader.takeRaw (m := OracleComp hashSpec)
+private theorem takeRaw_grade : queryGrade.P (Reader.takeRaw (m := OracleComp hashSpec)
     (M := PrunedMerklePaths)) 0 := by
   unfold Reader.takeRaw
   refine queryGrade.of_eq (queryGrade.bind (k := 0) get_grade fun st ↦ ?_) rfl
@@ -161,25 +158,27 @@ theorem takeRaw_grade : queryGrade.P (Reader.takeRaw (m := OracleComp hashSpec)
   · exact queryGrade.of_eq (queryGrade.bind (modify_grade _ fun _ ↦ rfl) fun _ ↦
       queryGrade.pure _) rfl
 
-theorem observe_grade (x : E) :
+private theorem observe_grade (x : E) :
     queryGrade.P (Reader.observe (M := PrunedMerklePaths) hashQuery x) 1 := by
   unfold Reader.observe
   exact queryGrade.of_eq (queryGrade.bind get_grade fun st ↦ queryGrade.bind
     (lift_grade (ocGrade.map (hashQuery_grade _) _)) fun _ ↦
     modify_grade _ fun _ ↦ rfl) rfl
 
-theorem nextScalar_grade :
+private theorem nextScalar_grade :
     queryGrade.P (Reader.nextScalar (M := PrunedMerklePaths) hashQuery) 1 :=
   queryGrade.of_eq (queryGrade.bind takeRaw_grade fun x ↦ queryGrade.bind (observe_grade x)
     fun _ ↦ queryGrade.pure _) rfl
 
-theorem sample_grade : queryGrade.P (Reader.sample (M := PrunedMerklePaths) hashQuery) 1 := by
+private theorem sample_grade :
+    queryGrade.P (Reader.sample (M := PrunedMerklePaths) hashQuery) 1 := by
   unfold Reader.sample
   exact queryGrade.of_eq (queryGrade.bind get_grade fun st ↦ queryGrade.bind
     (lift_grade (ocGrade.bind (hashQuery_grade _) fun _ ↦ ocGrade.pure _)) fun _ ↦
     queryGrade.bind (modify_grade _ fun _ ↦ rfl) fun _ ↦ queryGrade.pure _) rfl
 
-theorem nextRoot_grade : queryGrade.P (Reader.nextRoot (M := PrunedMerklePaths) hashQuery) 2 := by
+private theorem nextRoot_grade :
+    queryGrade.P (Reader.nextRoot (M := PrunedMerklePaths) hashQuery) 2 := by
   unfold Reader.nextRoot
   refine queryGrade.of_eq (queryGrade.bind nextScalar_grade fun a ↦
     queryGrade.bind (k := 0) nextScalar_grade fun b ↦ ?_) (by omega)
@@ -187,7 +186,7 @@ theorem nextRoot_grade : queryGrade.P (Reader.nextRoot (M := PrunedMerklePaths) 
   · exact queryGrade.pure _
   · exact throw_grade _
 
-theorem isTotalQueryBound_checkPow (s : FsState) (bits : ℕ) (nonce : E) :
+private theorem isTotalQueryBound_checkPow (s : FsState) (bits : ℕ) (nonce : E) :
     IsTotalQueryBound (s.checkPow hashQuery bits nonce) 3 := by
   unfold FsState.checkPow FsState.powBase FsState.powOk FsState.absorbNonce
   refine (ocGrade.bind (hashQuery_grade _) fun _ ↦
@@ -196,7 +195,7 @@ theorem isTotalQueryBound_checkPow (s : FsState) (bits : ℕ) (nonce : E) :
     ocGrade.bind (ocGrade.map (hashQuery_grade _) _) fun _ ↦ ocGrade.pure _).mono ?_
   split <;> omega
 
-theorem checkPow_grade (bits : ℕ) :
+private theorem checkPow_grade (bits : ℕ) :
     queryGrade.P (Reader.checkPow (M := PrunedMerklePaths) hashQuery bits) 3 := by
   unfold Reader.checkPow
   refine queryGrade.of_eq (queryGrade.bind takeRaw_grade fun nonce ↦ queryGrade.bind get_grade
@@ -219,7 +218,7 @@ theorem readerOps_graded : ChainOps.Graded queryGrade (readerOps hashQuery) quer
 /-! ## The openings -/
 
 /-- Hashing rows asks one query per row and yields one leaf per row. -/
-theorem hashRowsWith_queries (rowWords leafWords : ℕ) : ∀ rows : List (List K),
+private theorem hashRowsWith_queries (rowWords leafWords : ℕ) : ∀ rows : List (List K),
     IsTotalQueryBound (hashRowsWith hashQuery rowWords leafWords rows) rows.length ∧
       ∀ r ∈ support (hashRowsWith hashQuery rowWords leafWords rows), ∀ ds,
         r = some ds → ds.length = rows.length
@@ -275,7 +274,8 @@ theorem isTotalQueryBound_merkleVerifyWith (root : Digest) (depth rowWords leafW
 
 /-- Taking the next opening and checking it asks the check's queries; on success the openings
 left are the rest. -/
-theorem nextOpening_queries {α : Type} (auth : PrunedMerklePaths → OracleComp hashSpec (Option α))
+private theorem nextOpening_queries {α : Type}
+    (auth : PrunedMerklePaths → OracleComp hashSpec (Option α))
     {st : ReaderState PrunedMerklePaths} {p : PrunedMerklePaths} {ps : List PrunedMerklePaths}
     (hst : st.merkle = p :: ps) {n : ℕ} (ha : IsTotalQueryBound (auth p) n) :
     IsTotalQueryBound (runAt (Reader.nextOpening auth) st) n ∧
@@ -352,7 +352,7 @@ theorem walkOpenings_queries (nLanes : ℕ) : ∀ (first : Bool) (root : Digest)
 
 /-! ## The verifier -/
 
-theorem finish_grade : queryGrade.P (Reader.finish (m := OracleComp hashSpec)
+private theorem finish_grade : queryGrade.P (Reader.finish (m := OracleComp hashSpec)
     (M := PrunedMerklePaths)) 0 := by
   unfold Reader.finish
   exact queryGrade.bind (k := 0) get_grade fun _ ↦
@@ -365,7 +365,7 @@ def queryCount (prog : Program) (input : PublicInput) (s : Sizes) (shs : List Le
 
 /-- The walk and the openings, then the check that the proof is consumed, ask at most
 `queryCount` queries from a state whose openings have the levels' shapes. -/
-theorem isTotalQueryBound_walk (prog : Program) (s : Sizes) (input : PublicInput)
+private theorem isTotalQueryBound_walk (prog : Program) (s : Sizes) (input : PublicInput)
     (shs : List LevelShape) (st : ReaderState PrunedMerklePaths)
     (hok : openingsOk (nLanes prog s) true shs st.merkle = true) :
     IsTotalQueryBound (runAt (do
@@ -445,7 +445,7 @@ theorem setupOk_of_setup {prog : Program} {proof : Proof PrunedMerklePaths} {s :
   · cases h
 
 /-- The queries at admissible sizes and a valid rate are at most the maximum. -/
-theorem queryCountAt_le {prog : Program} {input : PublicInput} {s : Sizes} {ρ : ℕ}
+private theorem queryCountAt_le {prog : Program} {input : PublicInput} {s : Sizes} {ρ : ℕ}
     (h : setupOk prog s ρ = true) : queryCountAt prog input s ρ ≤ verifierQueries prog input := by
   simp only [setupOk, decide_eq_true_eq] at h
   obtain ⟨⟨-, hmem, hτ, -, -⟩, -, hρ⟩ := h

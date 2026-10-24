@@ -518,24 +518,24 @@ section Alike
 open Slot
 
 /-- A slot reads like itself. -/
-theorem agree_self {β : Type} (s : Slot Reading β) : Agree (fun _ _ ↦ True) s s :=
+private theorem agree_self {β : Type} (s : Slot Reading β) : Agree (fun _ _ ↦ True) s s :=
   (Agree.refl s).mono fun _ _ _ ↦ trivial
 
 /-- The failing slots read alike. -/
-theorem agree_fail {β γ : Type} :
+private theorem agree_fail {β γ : Type} :
     Agree (fun _ _ ↦ True) (fail : Slot Reading β) (fail : Slot Reading γ) :=
   ⟨fun _ _ _ h ↦ (nomatch h), fun _ _ _ h ↦ (nomatch h)⟩
 
 /-- Whether a round polynomial decodes depends on its wire alone, not on the claim or the
 weight. -/
-theorem isSome_decode_eq (d : ℕ) (c c' : E) (e e' : Option E) (w : List E) :
+private theorem isSome_decode_eq (d : ℕ) (c c' : E) (e e' : Option E) (w : List E) :
     (RoundPoly.decode d c e w).isSome = (RoundPoly.decode d c' e' w).isSome := by
   by_cases h : 0 < d ∧ w.length = d
   · rw [RoundPoly.isSome_decode h.1 c e h.2, RoundPoly.isSome_decode h.1 c' e' h.2]
   · simp [RoundPoly.decode, h]
 
 /-- Round polynomials read alike, whatever the claims they are rebuilt from. -/
-theorem agree_polySlot (d : ℕ) (c c' : Thunk E) (e e' : Thunk (Option E)) :
+private theorem agree_polySlot (d : ℕ) (c c' : Thunk E) (e e' : Thunk (Option E)) :
     Agree (fun _ _ ↦ True) (polySlot d c e) (polySlot d c' e') := by
   refine (Agree.refl (historyOps.nextScalars d)).bind fun w w' hw ↦ ?_
   subst hw
@@ -547,53 +547,53 @@ theorem agree_polySlot (d : ℕ) (c c' : Thunk E) (e e' : Thunk (Option E)) :
   · exact Agree.pure trivial
 
 /-- A slot whose value is replaced reads like it. -/
-theorem agree_const {β γ δ : Type} (s : Slot Reading β) (x : γ) (y : δ) :
+private theorem agree_const {β γ δ : Type} (s : Slot Reading β) (x : γ) (y : δ) :
     Agree (fun _ _ ↦ True) ((fun _ ↦ x) <$> s) ((fun _ ↦ y) <$> s) :=
   ⟨((Agree.refl s).1.map _ _).mono fun _ _ _ ↦ trivial,
     ((Agree.refl s).2.map _ _).mono fun _ _ _ ↦ trivial⟩
 
-theorem readsAlike_roundsDec (d : ℕ) (e e' : ℕ → Option E) (σ σ' : Thunk E × ℕ) (m : ℕ) :
+private theorem readsAlike_roundsDec (d : ℕ) (e e' : ℕ → Option E) (σ σ' : Thunk E × ℕ) (m : ℕ) :
     (roundsDec d e σ m).ReadsAlike (roundsDec d e' σ' m) :=
   readsAlike_rounds (fun _ _ ↦ agree_polySlot _ _ _ _ _) (fun _ _ ↦ agree_self _) σ σ' m
 
-theorem readsAlike_layerDec (st st' : GkrState) (ρ m : ℕ) :
+private theorem readsAlike_layerDec (st st' : GkrState) (ρ m : ℕ) :
     (layerDec st ρ m).ReadsAlike (layerDec st' ρ m) :=
   readsAlike_append (readsAlike_append (readsAlike_append (readsAlike_single (agree_self _))
     fun _ _ ↦ readsAlike_roundsDec _ _ _ _ _ _) fun _ _ ↦ readsAlike_single (agree_self _))
     fun _ _ ↦ readsAlike_draws (agree_self _) ρ
 
-theorem readsAlike_stepsDec : ∀ (st st' : GkrState) (k m : ℕ),
+private theorem readsAlike_stepsDec : ∀ (st st' : GkrState) (k m : ℕ),
     (stepsDec st k m).ReadsAlike (stepsDec st' k m)
   | _, _, 0, _ => readsAlike_empty
   | st, st', k + 1, m => readsAlike_append (readsAlike_layerDec st st' 2 m) fun _ _ ↦
       readsAlike_stepsDec _ _ k (m + 2)
 
-theorem readsAlike_oddDec (st st' : GkrState) : ∀ r, (oddDec st r).ReadsAlike (oddDec st' r)
+private theorem readsAlike_oddDec (st st' : GkrState) : ∀ r, (oddDec st r).ReadsAlike (oddDec st' r)
   | 0 => readsAlike_empty
   | _ + 1 => readsAlike_layerDec st st' 1 0
 
-theorem readsAlike_gkrDec (st st' : GkrState) (μ : ℕ) :
+private theorem readsAlike_gkrDec (st st' : GkrState) (μ : ℕ) :
     (gkrDec st μ).ReadsAlike (gkrDec st' μ) :=
   readsAlike_append (readsAlike_append (readsAlike_oddDec st st' _) fun _ _ ↦
     readsAlike_stepsDec _ _ _ _) fun _ _ ↦ readsAlike_single (agree_self _)
 
-theorem readsAlike_busDec (I : M3Instance) : (busDec I).ReadsAlike (busDec I) :=
+private theorem readsAlike_busDec (I : M3Instance) : (busDec I).ReadsAlike (busDec I) :=
   readsAlike_append (readsAlike_append (readsAlike_append (readsAlike_single (agree_self _))
     fun _ _ ↦ readsAlike_single (agree_self _)) fun _ _ ↦ readsAlike_gkrDec _ _ _)
     fun _ _ ↦ readsAlike_single (agree_self _)
 
-theorem readsAlike_tableDec (I : M3Instance) (s s' : Thunk (I.Stmt × BusOut I)) :
+private theorem readsAlike_tableDec (I : M3Instance) (s s' : Thunk (I.Stmt × BusOut I)) :
     (tableDec I s).ReadsAlike (tableDec I s') :=
   readsAlike_append (readsAlike_append (readsAlike_single (agree_self _)) fun _ _ ↦
     readsAlike_roundsDec _ _ _ _ _ _) fun _ _ ↦ readsAlike_single (agree_self _)
 
-theorem readsAlike_pubDec (n : ℕ) : (pubDec n).ReadsAlike (pubDec n) := by
+private theorem readsAlike_pubDec (n : ℕ) : (pubDec n).ReadsAlike (pubDec n) := by
   rintro ⟨_ | _ | k, hk⟩ _ _
   · exact agree_self _
   · exact agree_self _
   · exact absurd hk (by omega)
 
-theorem readsAlike_flockDecOf (k : ℕ) : (flockDecOf k).ReadsAlike (flockDecOf k) := by
+private theorem readsAlike_flockDecOf (k : ℕ) : (flockDecOf k).ReadsAlike (flockDecOf k) := by
   unfold flockDecOf
   refine readsAlike_append (readsAlike_append (readsAlike_append (readsAlike_append
     (readsAlike_append (readsAlike_append (readsAlike_append (readsAlike_append (readsAlike_append
@@ -603,62 +603,67 @@ theorem readsAlike_flockDecOf (k : ℕ) : (flockDecOf k).ReadsAlike (flockDecOf 
     fun _ _ ↦ readsAlike_single (agree_self _)) fun _ _ ↦ readsAlike_roundsDec _ _ _ _ _ _)
     fun _ _ ↦ readsAlike_single (agree_self _)) fun _ _ ↦ readsAlike_draws (agree_self _) _
 
-theorem readsAlike_flockDec (I : M3Instance) :
+private theorem readsAlike_flockDec (I : M3Instance) :
     ∀ o, (flockDec I o).ReadsAlike (flockDec I o)
   | none => readsAlike_empty
   | some r => readsAlike_flockDecOf r.kBatch
 
-theorem readsAlike_levelDec (sh sh' : Whir.Shape) (κ' : ℕ) {k : List Step}
+private theorem readsAlike_levelDec (sh sh' : Whir.Shape) (κ' : ℕ) {k : List Step}
     (σ σ' : Thunk E × Thunk (Vector E 3))
     (w w' : WordOf sh (Kap sh' κ')) (next next' : WordOf sh' κ')
     {cont cont' : Thunk E × Thunk (Vector E 3) → SeqDecoder Reading k}
-    (hc : ∀ a b, (cont a).ReadsAlike (cont' b)) :
-    (levelDec sh sh' κ' σ w next cont).ReadsAlike (levelDec sh sh' κ' σ' w' next' cont') :=
-  .cons (readsAlike_single (agree_self _)) fun _ _ ↦
-  .cons (readsAlike_roundsDec _ _ _ _ _ _) fun _ _ ↦
-  .cons (readsAlike_single (agree_polySlot _ _ _ _ _)) fun _ _ ↦
-  .cons (readsAlike_single (agree_const _ _ _)) fun _ _ ↦
-  .cons (readsAlike_draws (agree_self _) _) fun _ _ ↦
-  .cons (readsAlike_single (agree_self _)) fun _ _ ↦
-  .cons (readsAlike_single (agree_polySlot _ _ _ _ _)) fun _ _ ↦
-  .cons (readsAlike_single (agree_self _)) fun _ _ ↦
-  .cons (readsAlike_single (agree_self _)) fun _ _ ↦
-  .cons (readsAlike_single (agree_self _)) fun _ _ ↦
-  .cons readsAlike_empty fun _ _ ↦
-  .cons (readsAlike_single (agree_polySlot _ _ _ _ _)) fun _ _ ↦
-  .cons readsAlike_empty fun _ _ ↦ hc _ _
+    (hc : ∀ a b, (cont a).toDecoder.ReadsAlike (cont' b).toDecoder) :
+    (levelDec sh sh' κ' σ w next cont).toDecoder.ReadsAlike
+      (levelDec sh sh' κ' σ' w' next' cont').toDecoder := by
+  dsimp only [levelDec, SeqDecoder.toDecoder]
+  exact readsAlike_append (readsAlike_single (agree_self _)) fun _ _ ↦
+    readsAlike_append (readsAlike_roundsDec _ _ _ _ _ _) fun _ _ ↦
+    readsAlike_append (readsAlike_single (agree_polySlot _ _ _ _ _)) fun _ _ ↦
+    readsAlike_append (readsAlike_single (agree_const _ _ _)) fun _ _ ↦
+    readsAlike_append (readsAlike_draws (agree_self _) _) fun _ _ ↦
+    readsAlike_append (readsAlike_single (agree_self _)) fun _ _ ↦
+    readsAlike_append (readsAlike_single (agree_polySlot _ _ _ _ _)) fun _ _ ↦
+    readsAlike_append (readsAlike_single (agree_self _)) fun _ _ ↦
+    readsAlike_append (readsAlike_single (agree_self _)) fun _ _ ↦
+    readsAlike_append (readsAlike_single (agree_self _)) fun _ _ ↦
+    readsAlike_append readsAlike_empty fun _ _ ↦
+    readsAlike_append (readsAlike_single (agree_polySlot _ _ _ _ _)) fun _ _ ↦
+    readsAlike_append readsAlike_empty fun _ _ ↦ hc _ _
 
-theorem readsAlike_finalDec (sh : Whir.Shape) (nf : ℕ) (σ σ' : Thunk E × Thunk (Vector E 3))
-    (w w' : WordOf sh (nf + 1)) : (finalDec sh nf σ w).ReadsAlike (finalDec sh nf σ' w') :=
-  .cons (readsAlike_single (agree_self _)) fun _ _ ↦
-  .cons (readsAlike_roundsDec _ _ _ _ _ _) fun _ _ ↦
-  .cons (readsAlike_single (agree_polySlot _ _ _ _ _)) fun _ _ ↦
-  .cons (readsAlike_single (agree_self _)) fun _ _ ↦
-  .cons (readsAlike_single (agree_self _)) fun _ _ ↦
-  .cons (readsAlike_single (agree_self _)) fun _ _ ↦
-  .cons (readsAlike_single (agree_self _)) fun _ _ ↦
-  .cons readsAlike_empty fun _ _ ↦
-  .cons (readsAlike_single (agree_polySlot _ _ _ _ _)) fun _ _ ↦
-  .cons readsAlike_empty fun _ _ ↦
-  .cons (readsAlike_single (agree_self _)) fun _ _ ↦
-  .cons (readsAlike_roundsDec _ _ _ _ _ _) fun _ _ ↦ .nil
+private theorem readsAlike_finalDec (sh : Whir.Shape) (nf : ℕ)
+    (σ σ' : Thunk E × Thunk (Vector E 3)) (w w' : WordOf sh (nf + 1)) :
+    (finalDec sh nf σ w).toDecoder.ReadsAlike (finalDec sh nf σ' w').toDecoder := by
+  dsimp only [finalDec, SeqDecoder.toDecoder]
+  exact readsAlike_append (readsAlike_single (agree_self _)) fun _ _ ↦
+    readsAlike_append (readsAlike_roundsDec _ _ _ _ _ _) fun _ _ ↦
+    readsAlike_append (readsAlike_single (agree_polySlot _ _ _ _ _)) fun _ _ ↦
+    readsAlike_append (readsAlike_single (agree_self _)) fun _ _ ↦
+    readsAlike_append (readsAlike_single (agree_self _)) fun _ _ ↦
+    readsAlike_append (readsAlike_single (agree_self _)) fun _ _ ↦
+    readsAlike_append (readsAlike_single (agree_self _)) fun _ _ ↦
+    readsAlike_append readsAlike_empty fun _ _ ↦
+    readsAlike_append (readsAlike_single (agree_polySlot _ _ _ _ _)) fun _ _ ↦
+    readsAlike_append readsAlike_empty fun _ _ ↦
+    readsAlike_append (readsAlike_single (agree_self _)) fun _ _ ↦
+    readsAlike_append (readsAlike_roundsDec _ _ _ _ _ _) fun _ _ ↦ readsAlike_empty
 
-theorem readsAlike_ladderDec : ∀ {sh : Whir.Shape} {κ : ℕ} (L : Ladder sh κ)
-    (σ σ' : Thunk E × Thunk (Vector E 3)) (w w' : WordOf sh κ) (ws ws' : L.Words),
-    (ladderDec L σ w ws).ReadsAlike (ladderDec L σ' w' ws')
-  | _, _, .last sh nf, σ, σ', w, w', _, _ => readsAlike_finalDec sh nf σ σ' w w'
-  | _, _, @Ladder.cons sh sh' κ' L, σ, σ', w, w', ws, ws' =>
-    readsAlike_levelDec sh sh' κ' σ σ' w w' ws.1 ws'.1 fun a b ↦
-      readsAlike_ladderDec L a b ws.1 ws'.1 ws.2 ws'.2
+private theorem readsAlike_ladderDec {sh : Whir.Shape} {κ : ℕ} (L : Ladder sh κ) :
+    ∀ (σ σ' : Thunk E × Thunk (Vector E 3)) (w w' : WordOf sh κ) (ws ws' : L.Words),
+      (ladderDec L σ w ws).toDecoder.ReadsAlike (ladderDec L σ' w' ws').toDecoder := by
+  induction L with
+  | last sh nf => exact fun σ σ' w w' _ _ ↦ readsAlike_finalDec sh nf σ σ' w w'
+  | cons sh L ih => exact fun σ σ' w w' ws ws' ↦
+      readsAlike_levelDec sh _ _ σ σ' w w' ws.1 ws'.1 fun a b ↦ ih a b ws.1 ws'.1 ws.2 ws'.2
 
-theorem readsAlike_whirDec {sh : Whir.Shape} {κ : ℕ} (L : Ladder sh κ) (target target' : Thunk E)
-    (w w' : WordOf sh κ) (ws ws' : L.Words) :
-    (whirDec L target w ws).ReadsAlike (whirDec L target' w' ws') :=
-  .cons readsAlike_empty fun _ _ ↦
-  .cons (readsAlike_single (agree_polySlot _ _ _ _ _)) fun _ _ ↦
-    readsAlike_ladderDec L _ _ w w' ws ws'
+private theorem readsAlike_whirDec {sh : Whir.Shape} {κ : ℕ} (L : Ladder sh κ)
+    (target target' : Thunk E) (w w' : WordOf sh κ) (ws ws' : L.Words) :
+    (whirDec L target w ws).toDecoder.ReadsAlike (whirDec L target' w' ws').toDecoder := by
+  dsimp only [whirDec, SeqDecoder.toDecoder]
+  exact readsAlike_append readsAlike_empty fun _ _ ↦
+    readsAlike_append (readsAlike_single (agree_polySlot _ _ _ _ _)) fun _ _ ↦
+      readsAlike_ladderDec L _ _ w w' ws ws'
 
-theorem agree_commitSlot {M : Type} (ann : List E) (w w' : M) :
+private theorem agree_commitSlot {M : Type} (ann : List E) (w w' : M) :
     Agree (fun _ _ ↦ True) (commitSlot ann w) (commitSlot ann w') := by
   refine (Agree.refl (historyOps.nextScalars 8)).bind fun xs xs' hx ↦ ?_
   subst hx
@@ -677,7 +682,7 @@ theorem readsAlike_compiledDec (I : M3Instance) (h : Bus.Conditions I) (input : 
     fun _ _ ↦ readsAlike_busDec I) fun _ _ ↦ readsAlike_tableDec I _ _)
     fun _ _ ↦ readsAlike_pubDec _) fun _ _ ↦ readsAlike_flockDec I _)
     fun _ _ ↦ readsAlike_single (agree_self _)) fun _ _ ↦ readsAlike_empty)
-    fun _ _ ↦ (readsAlike_whirDec _ _ _ _ _ _ _).toDecoder
+    fun _ _ ↦ readsAlike_whirDec _ _ _ _ _ _ _
 
 end Alike
 

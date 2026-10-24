@@ -846,29 +846,13 @@ variable {m n : ℕ} {pSpec₁ : ProtocolSpec m} {pSpec₂ : ProtocolSpec n}
 theorem readsAlike_append {D₁ D₁' : SlotDecoder α pSpec₁}
     {D₂ D₂' : pSpec₁.FullTranscript → SlotDecoder α pSpec₂} (h₁ : ReadsAlike D₁ D₁')
     (h₂ : ∀ t t', ReadsAlike (D₂ t) (D₂' t')) : ReadsAlike (D₁.append D₂) (D₁'.append D₂') := by
-  intro k tr tr'
-  induction k using Fin.addCases with
-  | left i =>
-    have e : ∀ (E₁ : SlotDecoder α pSpec₁) (E₂ : pSpec₁.FullTranscript → SlotDecoder α pSpec₂)
-        tr, (E₁.append E₂).slot (Fin.castAdd n i) tr =
-          (E₁.slot i (Verifier.KnowledgeAppend.left tr i.castSucc (by simp))).map
-            (cast (append_Type_castAdd (pSpec₂ := pSpec₂) i).symm) := fun E₁ E₂ tr ↦ by
-      dsimp only [append]
-      exact congrFun (Fin.addCases_left (motive := fun k ↦
-        (pSpec₁ ++ₚ pSpec₂).Transcript k.castSucc → Slot α ((pSpec₁ ++ₚ pSpec₂).«Type» k)) i) tr
-    rw [e, e]
-    exact (h₁ i _ _).map _ _
-  | right j =>
-    have e : ∀ (E₁ : SlotDecoder α pSpec₁) (E₂ : pSpec₁.FullTranscript → SlotDecoder α pSpec₂)
-        tr, (E₁.append E₂).slot (Fin.natAdd m j) tr =
-          ((E₂ (Verifier.KnowledgeAppend.leftFull tr (by simp))).slot j
-            (Verifier.KnowledgeAppend.right tr j.castSucc (by simp))).map
-            (cast (append_Type_natAdd (pSpec₁ := pSpec₁) j).symm) := fun E₁ E₂ tr ↦ by
-      dsimp only [append]
-      exact congrFun (Fin.addCases_right (motive := fun k ↦
-        (pSpec₁ ++ₚ pSpec₂).Transcript k.castSucc → Slot α ((pSpec₁ ++ₚ pSpec₂).«Type» k)) j) tr
-    rw [e, e]
-    exact (h₂ _ _ j _ _).map _ _
+  rintro ⟨k, hk⟩ tr tr'
+  by_cases hkm : k < m
+  · rw [append_slot_left D₁ D₂ k hkm hk tr, append_slot_left D₁' D₂' k hkm hk tr']
+    exact (h₁ _ _ _).map _ _
+  · obtain ⟨j, rfl⟩ : ∃ j, k = m + j := ⟨k - m, by omega⟩
+    rw [append_slot_right D₁ D₂ j (by omega) hk tr, append_slot_right D₁' D₂' j (by omega) hk tr']
+    exact (h₂ _ _ _ _ _).map _ _
 
 end AppendAlike
 

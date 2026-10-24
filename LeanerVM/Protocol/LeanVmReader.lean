@@ -89,7 +89,7 @@ private theorem deployed_posOk_shapes {μ r : ℕ} (h : Parameters.Whir.Admissib
     decide +kernel
   exact key μ (Nat.lt_succ_of_le h.2.1) r (Nat.lt_succ_of_le h.2.2.2) h
 
-theorem deployedChain_posOk_shapes {μ r : ℕ} (h : Parameters.Whir.Admissible μ r) :
+private theorem deployedChain_posOk_shapes {μ r : ℕ} (h : Parameters.Whir.Admissible μ r) :
     posOk (deployedChain μ r h).ladder = true ∧ ∀ ls, Parameters.Whir.ladder μ r = some ls →
       (deployedChain μ r h).ladder.shapes = levelShapes μ ls := by
   have := (Option.all_eq_true_iff_get _ _).mp (deployed_posOk_shapes h) (deployed_isSome h)
@@ -114,19 +114,15 @@ theorem shapes_leanIsaChain {levels : List Parameters.Whir.Level}
 /-! ## The words under a history's roots -/
 
 /-- A root a history carries is one of its roots. -/
-theorem mem_historyRoots_of_rootAt : ∀ {hist : List Reading} {o : ℕ} {d : Digest},
+private theorem mem_historyRoots_of_rootAt : ∀ {hist : List Reading} {o : ℕ} {d : Digest},
     rootAt hist o = some d → d ∈ historyRoots hist
   | [], _, _, h => by simp [rootAt] at h
   | r :: rest, o + 1, _, h =>
     List.mem_append_right _
       (mem_historyRoots_of_rootAt ((rootAt_cons_succ r rest o).symm.trans h))
-  | (.observe x₁, _) :: (.observe x₂, _) :: _, 0, _, h =>
-    List.mem_append_left _ (by simp_all [rootAt])
-  | [(.observe _, _)], 0, _, h => by simp [rootAt] at h
-  | (.observe _, _) :: (.squeeze, _) :: _, 0, _, h => by simp [rootAt] at h
-  | (.observe _, _) :: (.nonce _, _) :: _, 0, _, h => by simp [rootAt] at h
-  | (.squeeze, _) :: _, 0, _, h => by simp [rootAt] at h
-  | (.nonce _, _) :: _, 0, _, h => by simp [rootAt] at h
+  | r :: rest, 0, _, h => List.mem_append_left _ (by
+    rcases r with ⟨_ | _ | _, _⟩ <;> rcases rest with _ | ⟨⟨_ | _ | _, _⟩, _⟩ <;>
+      simp_all [rootAt])
 
 /-- The level-0 word under a root, read off a log: its rows' committed lanes; zero with no
 root. -/
@@ -140,7 +136,8 @@ root. -/
 def laterWord (l : hashSpec.QueryLog) (sh : Whir.Shape) (κ : ℕ) : Option Digest → WordOf sh κ
   | some root =>
     let rows := (extractAllRows l root (κ + sh.R) (3 * 2 ^ sh.ℓ) (3 * 2 ^ sh.ℓ)).toArray
-    ⟨fun y ↦ (((rows[y.val]?).bind id).bind (Verify.laneRow false sh.ℓ)).getD (Vector.replicate _ 0)⟩
+    ⟨fun y ↦
+      (((rows[y.val]?).bind id).bind (Verify.laneRow false sh.ℓ)).getD (Vector.replicate _ 0)⟩
   | none => ⟨fun _ ↦ Vector.replicate _ 0⟩
 
 /-- The later levels' words under their roots, in order. -/
@@ -163,8 +160,8 @@ def RowsAgree (l l' : hashSpec.QueryLog) (root : Digest) : Prop :=
   ∀ depth rowWords leafWords p, extractRows l' root depth rowWords leafWords p =
     extractRows l root depth rowWords leafWords p
 
-private theorem extractAllRows_congr {l l' : hashSpec.QueryLog} {root : Digest} (h : RowsAgree l l' root)
-    (depth rowWords leafWords : ℕ) :
+private theorem extractAllRows_congr {l l' : hashSpec.QueryLog} {root : Digest}
+    (h : RowsAgree l l' root) (depth rowWords leafWords : ℕ) :
     extractAllRows l' root depth rowWords leafWords =
       extractAllRows l root depth rowWords leafWords := by
   rw [extractAllRows_eq, extractAllRows_eq]
@@ -232,28 +229,27 @@ abbrev famAt (a : Ann prog) : ChalSlots (deployedSpec Blake2sFlock.blake2sFlockS
 
 /-! ## The marks follow the nonces -/
 
+/-- No marked challenge, then marks that follow their flags. -/
+private theorem markAfter_skip {m n : ℕ} {pSpec₁ : ProtocolSpec m} {pSpec₂ : ProtocolSpec n}
+    {pre : Bool} {b₂ : pSpec₂.ChallengeIdx → Bool} {N₁ : Fin m → Bool} {N₂ : Fin n → Bool}
+    (h : MarkAfter (lastFlag pre N₁) b₂ N₂) :
+    MarkAfter (pSpec := pSpec₁ ++ₚ pSpec₂) pre (markAppend (fun _ ↦ false) b₂) (Fin.append N₁ N₂) :=
+  markAfter_append (markAfter_none _ _) h
+
 private theorem markAfter_finalMark (sh : Whir.Shape) (nf : ℕ) (pre : Bool) :
     MarkAfter pre (finalMark (sh := sh) (nf := nf)) (finalFlags sh nf).toFlags :=
-  markAfter_append (markAfter_none _ _) <| markAfter_append (markAfter_none _ _) <|
-  markAfter_append (markAfter_none _ _) <| markAfter_append (markAfter_none _ _) <|
-  markAfter_append (markAfter_none _ _) <| markAfter_append (markAfter_draw rfl _) <|
-  markAfter_append (markAfter_none _ _) <| markAfter_append (markAfter_none _ _) <|
-  markAfter_append (markAfter_none _ _) <| markAfter_append (markAfter_none _ _) <|
-  markAfter_append (markAfter_none _ _) <| markAfter_append (markAfter_none _ _) <|
-  markAfter_none _ _
+  markAfter_skip <| markAfter_skip <| markAfter_skip <| markAfter_skip <| markAfter_skip <|
+  markAfter_append (markAfter_draw rfl _) <| markAfter_skip <| markAfter_skip <| markAfter_skip <|
+  markAfter_skip <| markAfter_skip <| markAfter_skip <| markAfter_none _ _
 
 private theorem markAfter_levelMark (sh sh' : Whir.Shape) (κ' : ℕ) {k : List Step}
     {bR : (seqSpec k).ChallengeIdx → Bool} {N : SeqFlags k} (hR : ∀ pre, MarkAfter pre bR N.toFlags)
     (pre : Bool) :
     MarkAfter pre (levelMark (sh := sh) (sh' := sh') (κ' := κ') bR)
       (levelFlags sh sh' κ' N).toFlags :=
-  markAfter_append (markAfter_none _ _) <| markAfter_append (markAfter_none _ _) <|
-  markAfter_append (markAfter_none _ _) <| markAfter_append (markAfter_none _ _) <|
-  markAfter_append (markAfter_none _ _) <| markAfter_append (markAfter_none _ _) <|
-  markAfter_append (markAfter_none _ _) <| markAfter_append (markAfter_none _ _) <|
-  markAfter_append (markAfter_draw rfl _) <| markAfter_append (markAfter_none _ _) <|
-  markAfter_append (markAfter_none _ _) <| markAfter_append (markAfter_none _ _) <|
-  markAfter_append (markAfter_none _ _) <| hR _
+  markAfter_skip <| markAfter_skip <| markAfter_skip <| markAfter_skip <| markAfter_skip <|
+  markAfter_skip <| markAfter_skip <| markAfter_skip <| markAfter_append (markAfter_draw rfl _) <|
+  markAfter_skip <| markAfter_skip <| markAfter_skip <| markAfter_skip <| hR _
 
 private theorem markAfter_ladder : ∀ {sh : Whir.Shape} {κ : ℕ} (L : Ladder sh κ) (pre : Bool),
     MarkAfter pre L.mark (ladderFlags L).toFlags
@@ -263,8 +259,7 @@ private theorem markAfter_ladder : ∀ {sh : Whir.Shape} {κ : ℕ} (L : Ladder 
 /-- **Every marked challenge of the compiled protocol follows a nonce round.** -/
 theorem markAfter_compiled (I : M3Instance) (c : Chain) :
     MarkAfter false (listBindingMark I c.ladder) (compiledFlags I c) :=
-  markAfter_append (markAfter_none _ _) <| markAfter_append (markAfter_none _ _) <|
-    markAfter_append (markAfter_none _ _) (markAfter_ladder c.ladder _)
+  markAfter_skip <| markAfter_skip <| markAfter_skip (markAfter_ladder c.ladder _)
 
 /-! ## The reader -/
 
@@ -321,18 +316,11 @@ theorem leanVmReader_density : (leanVmReader prog input).Density εquery := by
     simp only [hm, ↓reduceIte]
     dsimp only [leanVmReader]
     generalize (leanVmReader prog input).sampleable ⟨(s, ρ), hs, hρ⟩ i = I₀
-    replace hP := prEvent_le_of_inst _ hP I₀
     rw [prEvent_lowBitsZero (bits := Parameters.Whir.queryGrindingBits) (by decide)]
-    calc _ ≤ (2 ^ Parameters.Whir.queryGrindingBits : ℝ≥0∞)⁻¹ *
-          ↑(listBindingError (leanVm prog s) (leanIsaChain prog s hs ρ hρ).ladder
-            (leanIsaChain prog s hs ρ hρ).pars i) :=
-        mul_le_mul_of_nonneg_left hP (by positivity)
-      _ = ↑((2 ^ Parameters.Whir.queryGrindingBits : ℝ≥0)⁻¹ *
-          listBindingError (leanVm prog s) (leanIsaChain prog s hs ρ hρ).ladder
-            (leanIsaChain prog s hs ρ hρ).pars i) := by
-        rw [ENNReal.coe_mul, ENNReal.coe_inv (pow_ne_zero _ two_ne_zero), ENNReal.coe_pow,
-          ENNReal.coe_ofNat]
-      _ ≤ _ := ENNReal.coe_le_coe.mpr hm'
+    refine (mul_le_mul_of_nonneg_left (prEvent_le_of_inst _ hP I₀) (by positivity)).trans
+      (le_of_eq_of_le ?_ (ENNReal.coe_le_coe.mpr hm'))
+    rw [ENNReal.coe_mul, ENNReal.coe_inv (pow_ne_zero _ two_ne_zero), ENNReal.coe_pow,
+      ENNReal.coe_ofNat]
   · have hm' := listBindingError_deployed_le_of_not_mark _ prog s hs ρ hρ i
       (Bool.eq_false_iff.mpr hm)
     simp only [hm, Bool.false_eq_true, ↓reduceIte, one_mul]
@@ -360,7 +348,7 @@ theorem leanVm_misbehaves_rom (A : Adversary) {Q : ℕ} (hQ : IsTotalQueryBound 
 variable {prog input}
 
 /-- The sizes and the rate the setup accepts are the proof's announcement. -/
-theorem announced?_of_setup {M : Type} {p : Proof M} {s : Sizes} {ρ : ℕ}
+private theorem announced?_of_setup {M : Type} {p : Proof M} {s : Sizes} {ρ : ℕ}
     (h : setup? prog p = some (s, ρ)) : p.announced? = some (s, ρ) := by
   unfold setup? at h
   split at h
@@ -411,8 +399,8 @@ theorem walkChain_proof_decodes {proof : Proof PrunedMerklePaths} {s : Sizes} {�
 
 /-- **An accepted replay's history decodes**: if the verifier replayed on a log accepts a proof,
 recording `logV`, then at the sizes, rate and levels the proof announces, the chain walk with its
-steps logged at the log's hash succeeds on the proof with a wire `w` and a history in `logV` from the
-statement's seed, and the history decodes, with any words, to a transcript whose wire is `w`,
+steps logged at the log's hash succeeds on the proof with a wire `w` and a history in `logV` from
+the statement's seed, and the history decodes, with any words, to a transcript whose wire is `w`,
 viewed. -/
 theorem decodes_of_replay {log logV : hashSpec.QueryLog} {proof : Proof PrunedMerklePaths}
     (h : replay log prog input proof = some (true, logV)) :
@@ -497,7 +485,7 @@ theorem powPasses_of_checkPow {l : hashSpec.QueryLog} {cv : Digest} {bits : ℕ}
 def whirQueriesMax : ℕ := 8839
 
 /-- WHIR's walk and openings ask at most `whirQueriesMax` queries: one decision on the window. -/
-theorem whirQueries_le {μ ρ : ℕ} {levels : List Parameters.Whir.Level}
+private theorem whirQueries_le {μ ρ : ℕ} {levels : List Parameters.Whir.Level}
     (h : Parameters.Whir.ladder μ ρ = some levels) :
     queryCounts.whir (levelShapes μ levels) + openingsCount (levelShapes μ levels) ≤
       whirQueriesMax := by
@@ -520,7 +508,7 @@ def verifierQueriesBound : ℕ :=
     queryCounts.flock maxLogRows + queryCounts.sample + whirQueriesMax
 
 /-- The queries at sizes within the box are at most `verifierQueriesBound`. -/
-theorem queryCountAt_le_bound (prog : Program) (input : PublicInput) {s : Sizes} (ρ : ℕ)
+private theorem queryCountAt_le_bound (prog : Program) (input : PublicInput) {s : Sizes} (ρ : ℕ)
     (hm : s.logMem ≤ maxLogMem) (hτ : ∀ j, s.τ j ≤ maxLogRows) :
     queryCountAt prog input s ρ ≤ verifierQueriesBound := by
   unfold queryCountAt

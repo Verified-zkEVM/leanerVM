@@ -67,13 +67,10 @@ open Slot
     drawOf (oneTranscript (pSpec := draw C) x) = x := rfl
 
 /-- `k` scalars read off any reader of slots are `k`. -/
-theorem length_of_read_nextScalars {ops : ChainOps (Slot Reading)} :
+private theorem length_of_read_nextScalars {ops : ChainOps (Slot Reading)} :
     ∀ {k : ℕ} {l : List Reading} {xs : List E} {r : List Reading},
       (ops.nextScalars k).read l = some (xs, r) → xs.length = k
-  | 0, _, _, _, h => by
-    simp only [ChainOps.nextScalars, read_pure, Option.some.injEq, Prod.mk.injEq] at h
-    rw [← h.1]
-    rfl
+  | 0, _, _, _, h => by cases h; rfl
   | k + 1, l, xs, r, h => by
     simp only [ChainOps.nextScalars, read_bind, Option.bind_eq_some_iff, read_pure,
       Option.some.injEq, Prod.mk.injEq, Prod.exists] at h
@@ -81,13 +78,10 @@ theorem length_of_read_nextScalars {ops : ChainOps (Slot Reading)} :
     simp [length_of_read_nextScalars hys]
 
 /-- `k` challenges squeezed off any reader of slots are `k`. -/
-theorem length_of_read_samples {ops : ChainOps (Slot Reading)} :
+private theorem length_of_read_samples {ops : ChainOps (Slot Reading)} :
     ∀ {k : ℕ} {l : List Reading} {xs : List E} {r : List Reading},
       (samples ops k).read l = some (xs, r) → xs.length = k
-  | 0, _, _, _, h => by
-    simp only [samples, read_pure, Option.some.injEq, Prod.mk.injEq] at h
-    rw [← h.1]
-    rfl
+  | 0, _, _, _, h => by cases h; rfl
   | k + 1, l, xs, r, h => by
     simp only [samples, read_bind, Option.bind_eq_some_iff, read_pure,
       Option.some.injEq, Prod.mk.injEq, Prod.exists] at h
@@ -95,27 +89,20 @@ theorem length_of_read_samples {ops : ChainOps (Slot Reading)} :
     simp [length_of_read_samples hys]
 
 /-- A slot refines itself, keeping a property of what it reads. -/
-theorem refines_self_of {β : Type} {P : β → Prop} (s : Slot Reading β)
+private theorem refines_self_of {β : Type} {P : β → Prop} (s : Slot Reading β)
     (hP : ∀ l x r, s.read l = some (x, r) → P x) : Refines (fun x y ↦ x = y ∧ P x) s s :=
   fun l x r h ↦ ⟨x, h, rfl, hP l x r h⟩
 
-/-- A list of length `n` is the vector `toVec n` makes of it. -/
-theorem toList_toVec {n : ℕ} {l : List E} (h : l.length = n) : (toVec n l).toList = l := by
-  subst h
-  apply List.ext_getElem (by simp)
-  intro i h₁ h₂
-  simp [toVec]
-
 /-- `n` scalars read as a vector. -/
-theorem refines_vecSlot (n : ℕ) :
+private theorem refines_vecSlot (n : ℕ) :
     Refines (fun xs v ↦ v.toList = xs) (historyOps.nextScalars n) (vecSlot n) := by
   intro l xs r h
-  refine ⟨toVec n xs, ?_, toList_toVec (length_of_read_nextScalars h)⟩
-  rw [vecSlot, read_mapM, h]
-  rfl
+  refine ⟨toVec n xs, by rw [vecSlot, read_mapM, h]; rfl, ?_⟩
+  obtain rfl := length_of_read_nextScalars h
+  exact List.ext_getElem (by simp) fun _ _ _ ↦ by simp [toVec]
 
 /-- A round polynomial's wire, read as the polynomial it decodes to: its wire is the wire read. -/
-theorem refines_polySlot {d : ℕ} (hd : 0 < d) (claim : Thunk E) (e : Thunk (Option E)) :
+private theorem refines_polySlot {d : ℕ} (hd : 0 < d) (claim : Thunk E) (e : Thunk (Option E)) :
     Refines (fun w c ↦ RoundPoly.encode e.get c = w) (historyOps.nextScalars d)
       (polySlot d claim e) := by
   intro l w r h
@@ -127,7 +114,7 @@ theorem refines_polySlot {d : ℕ} (hd : 0 < d) (claim : Thunk E) (e : Thunk (Op
   rfl
 
 /-- `k + 1` challenges read by the walk are the first `k`, then the last. -/
-theorem samples_succ' {n : Type → Type} [Monad n] [LawfulMonad n] (ops : ChainOps n) :
+private theorem samples_succ' {n : Type → Type} [Monad n] [LawfulMonad n] (ops : ChainOps n) :
     ∀ k, samples ops (k + 1) = do
       let xs ← samples ops k
       let x ← ops.sample
@@ -139,7 +126,7 @@ theorem samples_succ' {n : Type → Type} [Monad n] [LawfulMonad n] (ops : Chain
     simp
 
 /-- `k` challenges, read as the walk reads them and as a run of draws. -/
-theorem refines_draws : ∀ k : ℕ,
+private theorem refines_draws : ∀ k : ℕ,
     Refines (fun xs t ↦ drawsList k t = xs) (samples historyOps k)
       (SlotDecoder.draws historyOps.sample k).toSlot
   | 0 => fun l x r h ↦ by
@@ -156,7 +143,7 @@ theorem refines_draws : ∀ k : ℕ,
 /-- Runs of rounds, read as the walk reads them and as the decoder decodes them: the wires the
 transcript carries are the walk's, the coefficient at `drop` left out where the round's weight
 drops it. -/
-theorem refines_roundsDec {d : ℕ} (hd : 0 < d) (eq? : ℕ → Option E) (drop : ℕ) :
+private theorem refines_roundsDec {d : ℕ} (hd : 0 < d) (eq? : ℕ → Option E) (drop : ℕ) :
     ∀ (m : ℕ) (σ : Thunk E × ℕ),
       (∀ j, σ.2 ≤ j → j < σ.2 + m → RoundPoly.dropped (eq? j) = drop) →
       Refines (fun rs t ↦ roundsWire drop m t = rs) (readRounds historyOps d m)
@@ -181,41 +168,18 @@ theorem refines_roundsDec {d : ℕ} (hd : 0 < d) (eq? : ℕ → Option E) (drop 
       ⟨p.toList.eraseIdx (RoundPoly.dropped (eq? σ.2)), c⟩
     rw [hdrop σ.2 le_rfl (by omega)]
 
-/-- Two programs of two steps each, related as pairs, are related through any map of the pairs. -/
-theorem Refines.bind_pair {α β γ α' β' γ' : Type} {R : α × β → α' × β' → Prop}
-    {R₂ : γ → γ' → Prop} {A : Slot Reading α} {B : α → Slot Reading β} {A' : Slot Reading α'}
-    {B' : α' → Slot Reading β'} {F : α → β → γ} {G : α' → β' → γ'}
-    (h : Refines R (do let a ← A; let b ← B a; return (a, b))
-      (do let a ← A'; let b ← B' a; return (a, b)))
-    (hF : ∀ p q, R p q → R₂ (F p.1 p.2) (G q.1 q.2)) :
-    Refines R₂ (do let a ← A; let b ← B a; return F a b)
-      (do let a ← A'; let b ← B' a; return G a b) := by
-  have e₁ : (do let a ← A; let b ← B a; return F a b) =
-      (do let p ← (do let a ← A; let b ← B a; return (a, b)); return F p.1 p.2) := by
-    simp only [bind_assoc, pure_bind]
-  have e₂ : (do let a ← A'; let b ← B' a; return G a b) =
-      (do let p ← (do let a ← A'; let b ← B' a; return (a, b)); return G p.1 p.2) := by
-    simp only [bind_assoc, pure_bind]
-  rw [e₁, e₂]
-  exact Refines.bind h fun p q hpq ↦ Refines.pure (hF p q hpq)
-
-theorem length_drawsList : ∀ (k : ℕ) (t : (draws E k).FullTranscript), (drawsList k t).length = k
+private theorem length_drawsList : ∀ (k : ℕ) (t : (draws E k).FullTranscript),
+    (drawsList k t).length = k
   | 0, _ => rfl
   | k + 1, t => by simp [drawsList, length_drawsList k]
 
-theorem length_roundsChals {d : ℕ} :
+private theorem length_roundsChals {d : ℕ} :
     ∀ (m : ℕ) (t : (roundsSpec E d m).FullTranscript), (roundsChals m t).length = m
   | 0, _ => rfl
   | m + 1, t => by simp [roundsChals, length_roundsChals m]
 
-/-- A decoder of a schedule of no round reads nothing. -/
-theorem exists_read_toSlot_of_zero {n : ℕ} {pSpec : ProtocolSpec n} (D : SlotDecoder Reading pSpec)
-    (hn : n = 0) (l : List Reading) : ∃ t, D.toSlot.read l = some (t, l) := by
-  subst hn
-  exact ⟨_, rfl⟩
-
 /-- A decoder of one round, then anything after, reads as its slot, then what comes after. -/
-theorem Refines.single_bind {β γ γ' : Type} {pSpec : ProtocolSpec 1}
+private theorem Refines.single_bind {β γ γ' : Type} {pSpec : ProtocolSpec 1}
     {R₀ : β → pSpec.«Type» 0 → Prop}
     {R : γ → γ' → Prop} {s : Slot Reading β} {s' : Slot Reading (pSpec.«Type» 0)}
     {K : β → Slot Reading γ} {K' : pSpec.FullTranscript → Slot Reading γ'} (h : Refines R₀ s s')
@@ -224,10 +188,19 @@ theorem Refines.single_bind {β γ γ' : Type} {pSpec : ProtocolSpec 1}
   rw [toSlot_single, bind_map_left]
   exact Refines.bind h hK
 
+/-- A decoder of one round, then anything after, reads as its slot read as the walk reads it,
+then what comes after. -/
+private theorem Refines.single_self {γ γ' : Type} (pSpec : ProtocolSpec 1) {R : γ → γ' → Prop}
+    {s : Slot Reading (pSpec.«Type» 0)} {K : pSpec.«Type» 0 → Slot Reading γ}
+    {K' : pSpec.FullTranscript → Slot Reading γ'}
+    (hK : ∀ x, Refines R (K x) (K' (oneTranscript x))) :
+    Refines R (s >>= K) ((single s).toSlot >>= K') :=
+  Refines.single_bind (Refines.refl s) fun x _ h ↦ h ▸ hK x
+
 /-- Appended decoders, then anything after, read as the first, then the second, then what comes
 after. -/
-theorem Refines.append_bind {γ γ' : Type} {R : γ → γ' → Prop} {m n : ℕ} {pSpec₁ : ProtocolSpec m}
-    {pSpec₂ : ProtocolSpec n} (D₁ : SlotDecoder Reading pSpec₁)
+private theorem Refines.append_bind {γ γ' : Type} {R : γ → γ' → Prop} {m n : ℕ}
+    {pSpec₁ : ProtocolSpec m} {pSpec₂ : ProtocolSpec n} (D₁ : SlotDecoder Reading pSpec₁)
     (D₂ : pSpec₁.FullTranscript → SlotDecoder Reading pSpec₂) {s : Slot Reading γ}
     {K' : (pSpec₁ ++ₚ pSpec₂).FullTranscript → Slot Reading γ'}
     (h : Refines R s (D₁.toSlot >>= fun t₁ ↦ (D₂ t₁).toSlot >>= fun t₂ ↦ K' (t₁ ++ₜ t₂))) :
@@ -236,25 +209,68 @@ theorem Refines.append_bind {γ γ' : Type} {R : γ → γ' → Prop} {m n : ℕ
   simpa only [bind_assoc, pure_bind] using h
 
 /-- A slot, then anything after, read as itself. -/
-theorem Refines.self_bind {β γ γ' : Type} {R : γ → γ' → Prop} (s : Slot Reading β)
+private theorem Refines.self_bind {β γ γ' : Type} {R : γ → γ' → Prop} (s : Slot Reading β)
     {K : β → Slot Reading γ} {K' : β → Slot Reading γ'} (hK : ∀ x, Refines R (K x) (K' x)) :
     Refines R (s >>= K) (s >>= K') :=
   Refines.bind (Refines.refl s) fun x _ h ↦ h ▸ hK x
 
 /-- Two reads, then anything after, read as the pair of them, then what comes after. -/
-theorem Refines.pair_left {α β γ γ' : Type} {R : γ → γ' → Prop} {s₁ : Slot Reading α}
+private theorem Refines.pair_left {α β γ γ' : Type} {R : γ → γ' → Prop} {s₁ : Slot Reading α}
     {s₂ : Slot Reading β} {K : α → β → Slot Reading γ} {T : Slot Reading γ'}
     (h : Refines R ((do let a ← s₁; let b ← s₂; return (a, b)) >>= fun p ↦ K p.1 p.2) T) :
     Refines R (do let a ← s₁; let b ← s₂; K a b) T := by
   simpa only [bind_assoc, pure_bind] using h
 
-/-- A list of length `n` is its entries, padded with zeros. -/
-theorem ofFn_getD {n : ℕ} {l : List E} (h : l.length = n) :
-    List.ofFn (fun i : Fin n ↦ l.getD i 0) = l := by
-  subst h
-  apply List.ext_getElem (by simp)
-  intro i h₁ h₂
-  simp
+/-- A decoder of no round, then anything after, reads as what comes after. -/
+private theorem Refines.bind_zero {γ γ' : Type} {R : γ → γ' → Prop} {n : ℕ} {pSpec : ProtocolSpec n}
+    (D : SlotDecoder Reading pSpec) (hn : n = 0) {s : Slot Reading γ}
+    {K' : pSpec.FullTranscript → Slot Reading γ'} (h : ∀ t, Refines R s (K' t)) :
+    Refines R s (D.toSlot >>= K') := by
+  subst hn
+  exact fun l x r hs ↦ h (fun i ↦ i.elim0) l x r hs
+
+section Append
+
+variable {β γ γ' : Type} {R : γ → γ' → Prop} {m n : ℕ} {pSpec₁ : ProtocolSpec m}
+  {pSpec₂ : ProtocolSpec n} {K : β → Slot Reading γ}
+  {D₂ : pSpec₁.FullTranscript → SlotDecoder Reading pSpec₂}
+  {K' : (pSpec₁ ++ₚ pSpec₂).FullTranscript → Slot Reading γ'}
+
+/-- Appended decoders, the first refined by a read `A`, then anything after. -/
+private theorem Refines.append_of {R₀ : β → pSpec₁.FullTranscript → Prop} {A : Slot Reading β}
+    {D₁ : SlotDecoder Reading pSpec₁} (h : Refines R₀ A D₁.toSlot)
+    (hK : ∀ x t, R₀ x t → Refines R (K x) ((D₂ t).toSlot >>= fun t₂ ↦ K' (t ++ₜ t₂))) :
+    Refines R (A >>= K) ((D₁.append D₂).toSlot >>= K') :=
+  Refines.append_bind _ _ (Refines.bind h hK)
+
+/-- Appended decoders, the first of one round refined by a read `s`, then anything after. -/
+private theorem Refines.append_single {pSpec : ProtocolSpec 1}
+    {D₂ : pSpec.FullTranscript → SlotDecoder Reading pSpec₂}
+    {K' : (pSpec ++ₚ pSpec₂).FullTranscript → Slot Reading γ'} {R₀ : β → pSpec.«Type» 0 → Prop}
+    {s : Slot Reading β} {s' : Slot Reading (pSpec.«Type» 0)} (h : Refines R₀ s s')
+    (hK : ∀ x y, R₀ x y →
+      Refines R (K x) ((D₂ (oneTranscript y)).toSlot >>= fun t₂ ↦ K' (oneTranscript y ++ₜ t₂))) :
+    Refines R (s >>= K) (((single s').append D₂).toSlot >>= K') :=
+  Refines.append_bind _ _ (Refines.single_bind h hK)
+
+/-- Appended decoders, the first of one round read by its slot as the walk reads it, then anything
+after. -/
+private theorem Refines.append_self (pSpec : ProtocolSpec 1)
+    {D₂ : pSpec.FullTranscript → SlotDecoder Reading pSpec₂}
+    {K' : (pSpec ++ₚ pSpec₂).FullTranscript → Slot Reading γ'} {s : Slot Reading (pSpec.«Type» 0)}
+    {K : pSpec.«Type» 0 → Slot Reading γ}
+    (hK : ∀ x, Refines R (K x)
+      ((D₂ (oneTranscript x)).toSlot >>= fun t₂ ↦ K' (oneTranscript x ++ₜ t₂))) :
+    Refines R (s >>= K) (((single s).append D₂).toSlot >>= K') :=
+  Refines.append_bind _ _ (Refines.single_self pSpec hK)
+
+/-- Appended decoders, the first of no round, then anything after. -/
+private theorem Refines.append_zero {s : Slot Reading γ} (D₁ : SlotDecoder Reading pSpec₁)
+    (hm : m = 0) (h : ∀ t, Refines R s ((D₂ t).toSlot >>= fun t₂ ↦ K' (t ++ₜ t₂))) :
+    Refines R s ((D₁.append D₂).toSlot >>= K') :=
+  Refines.append_bind _ _ (Refines.bind_zero D₁ hm h)
+
+end Append
 
 end Reads
 
@@ -264,8 +280,14 @@ section Bus
 
 open Slot
 
+/-- A list of length `n` is its entries, padded with zeros. -/
+private theorem ofFn_getD {n : ℕ} {l : List E} (h : l.length = n) :
+    List.ofFn (fun i : Fin n ↦ l.getD i 0) = l := by
+  subst h
+  exact List.ext_getElem (by simp) fun _ _ _ ↦ by simp
+
 /-- A layer's descendants, read as three runs of scalars, then anything after. -/
-theorem refines_childrenSlot {γ γ' : Type} {R : γ → γ' → Prop} (ρ : ℕ)
+private theorem refines_childrenSlot {γ γ' : Type} {R : γ → γ' → Prop} (ρ : ℕ)
     {K : List E → List E → List E → Slot Reading γ}
     {K' : (Fin 3 → Vector E (2 ^ ρ)) → Slot Reading γ'}
     (hK : ∀ a b c (ch : Fin 3 → Vector E (2 ^ ρ)),
@@ -286,7 +308,7 @@ theorem refines_childrenSlot {γ γ' : Type} {R : γ → γ' → Prop} (ρ : ℕ
 
 /-- The decoder of a layer as one slot: the combiner, the rounds, the descendants and the
 combination challenges. -/
-theorem toSlot_layerDec (st : GkrState) (ρ m : ℕ) :
+private theorem toSlot_layerDec (st : GkrState) (ρ m : ℕ) :
     (layerDec st ρ m).toSlot = do
       let x ← historyOps.sample
       let rs ← (roundsDec (2 ^ ρ) (fun j ↦ st.get.1[j]?)
@@ -302,7 +324,7 @@ theorem toSlot_layerDec (st : GkrState) (ρ m : ℕ) :
 rest) and as the decoder decodes it, then anything after: the combiner, the rounds, the descendants
 and the combination challenges are the walk's. The point the layer starts from has as many
 coordinates as its depth. -/
-theorem refines_layerDec {γ γ' : Type} {R : γ → γ' → Prop} (st : GkrState) (ρ m : ℕ)
+private theorem refines_layerDec {γ γ' : Type} {R : γ → γ' → Prop} (st : GkrState) (ρ m : ℕ)
     (hst : st.get.1.length = m)
     (K : E → List Round → List E → List E → List E → List E → Slot Reading γ)
     (K' : (stepSpec E 3 ρ m).FullTranscript → Slot Reading γ')
@@ -338,7 +360,7 @@ theorem refines_layerDec {γ γ' : Type} {R : γ → γ' → Prop} (st : GkrStat
 /-- **Layers of radix four**, read as the walk reads them (each layer's combiner after it, the first
 before) and as the decoder decodes them (each layer's combiner first, the last after), then anything
 after: the walk's layers. The point the layers start from has as many coordinates as the depth. -/
-theorem refines_stepsDec {γ γ' : Type} {R : γ → γ' → Prop} : ∀ (k m : ℕ) (st : GkrState),
+private theorem refines_stepsDec {γ γ' : Type} {R : γ → γ' → Prop} : ∀ (k m : ℕ) (st : GkrState),
     st.get.1.length = m → ∀ (K : E → List GkrLayer → Slot Reading γ)
       (K' : (stepsSpec E 3 k m).FullTranscript → E → Slot Reading γ'),
       (∀ c ls t c', stepsWire k m t c' = (c, ls) → Refines R (K c ls) (K' t c')) →
@@ -352,14 +374,9 @@ theorem refines_stepsDec {γ γ' : Type} {R : γ → γ' → Prop} : ∀ (k m : 
           let c ← historyOps.sample
           K' t c)
   | 0, m, st, _, K, K', hK => by
-    intro l x r h
-    simp only [List.replicate, walkLayers, pure_bind, read_bind, Option.bind_eq_some_iff] at h
-    obtain ⟨⟨c, l₁⟩, hc, hk⟩ := h
-    obtain ⟨t, ht⟩ := exists_read_toSlot_of_zero (stepsDec st 0 m) rfl l
-    obtain ⟨y, hy, hxy⟩ := hK c [] t c rfl l₁ x r hk
-    refine ⟨y, ?_, hxy⟩
-    rw [read_bind, ht, Option.bind_some, read_bind, hc, Option.bind_some]
-    exact hy
+    simp only [List.replicate, walkLayers, pure_bind]
+    exact Refines.bind_zero _ rfl fun t ↦
+      Refines.bind (Refines.refl _) fun c _ h ↦ h ▸ hK c [] t c rfl
   | k + 1, m, st, hst, K, K', hK => by
     show Refines R _ (do
       let t ← (SlotDecoder.append (pSpec₁ := stepSpec E 3 2 m) (pSpec₂ := stepsSpec E 3 k (m + 2))
@@ -376,21 +393,11 @@ theorem refines_stepsDec {γ γ' : Type} {R : γ → γ' → Prop} : ∀ (k m : 
     simp only [stepsWire, FullTranscript.append_fst, FullTranscript.append_snd, h, h₀,
       layerWire, hr, hu, hch]
 
-/-- A decoder of no round, then anything after, reads as what comes after. -/
-theorem Refines.bind_zero {γ γ' : Type} {R : γ → γ' → Prop} {n : ℕ} {pSpec : ProtocolSpec n}
-    (D : SlotDecoder Reading pSpec) (hn : n = 0) {s : Slot Reading γ}
-    {K' : pSpec.FullTranscript → Slot Reading γ'} (h : ∀ t, Refines R s (K' t)) :
-    Refines R s (D.toSlot >>= K') := by
-  intro l x r hs
-  obtain ⟨t, ht⟩ := exists_read_toSlot_of_zero D hn l
-  obtain ⟨y, hy, hxy⟩ := h t l x r hs
-  exact ⟨y, by rw [read_bind, ht, Option.bind_some, hy], hxy⟩
-
 /-- **The grand product**, read as the walk reads it (the combiner after the roots, the layers each
 with the combiner after it) and as the decoder decodes it, at a binary-layer count `r ≤ 1` and `k`
 layers of radix four, then anything after. The point starts empty. -/
-theorem refines_gkrAux {γ γ' : Type} {R : γ → γ' → Prop} (st : GkrState) (hst : st.get.1 = [])
-    (r k : ℕ) (hr : r ≤ 1) (K : E → List GkrLayer → Slot Reading γ)
+private theorem refines_gkrAux {γ γ' : Type} {R : γ → γ' → Prop} (st : GkrState)
+    (hst : st.get.1 = []) (r k : ℕ) (hr : r ≤ 1) (K : E → List GkrLayer → Slot Reading γ)
     (K' : (oddSpec E 3 r ++ₚ stepsSpec E 3 k r ++ₚ draw E).FullTranscript → Slot Reading γ')
     (hK : ∀ c ls t, oddWire r t.fst.fst (stepsWire k r t.fst.snd (drawOf t.snd)) = (c, ls) →
       Refines R (K c ls) (K' t)) :
@@ -424,8 +431,8 @@ theorem refines_gkrAux {γ γ' : Type} {R : γ → γ' → Prop} (st : GkrState)
 
 /-- **The grand product** for trees of `2 ^ μ` leaves, read as the walk reads it and as the
 decoder decodes it, then anything after. -/
-theorem refines_gkrDec {γ γ' : Type} {R : γ → γ' → Prop} (st : GkrState) (hst : st.get.1 = [])
-    (μ : ℕ) (K : E → List GkrLayer → Slot Reading γ)
+private theorem refines_gkrDec {γ γ' : Type} {R : γ → γ' → Prop} (st : GkrState)
+    (hst : st.get.1 = []) (μ : ℕ) (K : E → List GkrLayer → Slot Reading γ)
     (K' : (gkrSpec E 3 μ).FullTranscript → Slot Reading γ')
     (hK : ∀ c ls t, gkrWire μ t = (c, ls) → Refines R (K c ls) (K' t)) :
     Refines R
@@ -440,7 +447,7 @@ theorem refines_gkrDec {γ γ' : Type} {R : γ → γ' → Prop} (st : GkrState)
 
 /-- **The bus phase**, read as the walk reads it and as the decoder decodes it, then anything
 after: the walk's wire. -/
-theorem refines_busDec {γ γ' : Type} {R : γ → γ' → Prop} (I : M3Instance)
+private theorem refines_busDec {γ γ' : Type} {R : γ → γ' → Prop} (I : M3Instance)
     (K : BusWire → Slot Reading γ) (K' : (busSpec I).FullTranscript → Slot Reading γ')
     (hK : ∀ w t, busWireOf I t = w → Refines R (K w) (K' t)) :
     Refines R (walkBus historyOps I.μBus I.busClaims >>= K) ((busDec I).toSlot >>= K') := by
@@ -454,9 +461,7 @@ theorem refines_busDec {γ γ' : Type} {R : γ → γ' → Prop} (I : M3Instance
     obtain ⟨rfl, hl⟩ := ha
     exact ofFn_getD hl
   intro ⟨alpha, beta⟩ fp hfp
-  refine Refines.pair_left (Refines.single_bind (pSpec := say (E × E)) (R₀ := Eq)
-    (Refines.refl _) ?_)
-  rintro ⟨shared, count⟩ _ rfl
+  refine Refines.pair_left (Refines.single_self (say (E × E)) fun ⟨shared, count⟩ ↦ ?_)
   refine refines_gkrDec _ rfl I.μBus _ _ fun c ls g hg ↦ ?_
   refine Refines.single_bind (pSpec := say (Vector E I.busClaims)) (refines_vecSlot _)
     fun values vals hv ↦ hK _ _ ?_
@@ -475,15 +480,13 @@ variable {γ γ' : Type} {R : γ → γ' → Prop}
 
 /-- **The table sumcheck**, read as the walk reads it and as the decoder decodes it, then anything
 after: the walk's wire. -/
-theorem refines_tableDec (I : M3Instance) (s : Thunk (I.Stmt × BusOut I))
+private theorem refines_tableDec (I : M3Instance) (s : Thunk (I.Stmt × BusOut I))
     (K : TableWire → Slot Reading γ) (K' : (tableSpec I).FullTranscript → Slot Reading γ')
     (hK : ∀ w t, tableWireOf I t = w → Refines R (K w) (K' t)) :
     Refines R (walkTables historyOps I.τmax I.tableColumns >>= K)
       ((tableDec I s).toSlot >>= K') := by
   simp only [walkTables, bind_assoc, pure_bind]
-  refine Refines.append_bind _ _ (Refines.append_bind _ _ ?_)
-  refine Refines.single_bind (pSpec := draw E) (R₀ := Eq) (Refines.refl _) ?_
-  rintro xi _ rfl
+  refine Refines.append_bind _ _ (Refines.append_self (draw E) fun xi ↦ ?_)
   refine Refines.bind (refines_roundsDec (by norm_num) _ 1 _ _ fun _ _ _ ↦ rfl)
     fun rounds rs hrs ↦ ?_
   refine Refines.single_bind (pSpec := say (Vector E I.tableColumns)) (refines_vecSlot _)
@@ -492,7 +495,7 @@ theorem refines_tableDec (I : M3Instance) (s : Thunk (I.Stmt × BusOut I))
     drawOf_oneTranscript, msgOf_oneTranscript, hrs, hv]
 
 /-- The public input's decoder as one slot. -/
-theorem read_toSlot_pubDec (n : ℕ) (l : List Reading) :
+private theorem read_toSlot_pubDec (n : ℕ) (l : List Reading) :
     (pubDec n).toSlot.read l = (historyOps.sample.read l).bind fun p ↦
       ((historyOps.nextScalars n).read p.2).map fun q ↦
         ((fun | ⟨0, _⟩ => p.1 | ⟨1, _⟩ => q.1 : pubSpec.FullTranscript), q.2) := by
@@ -518,7 +521,7 @@ theorem read_toSlot_pubDec (n : ℕ) (l : List Reading) :
 
 /-- **The public input**, read as the walk reads it and as the decoder decodes it, then anything
 after: the walk's wire. -/
-theorem refines_pubDec (n : ℕ) (K : PubWire → Slot Reading γ)
+private theorem refines_pubDec (n : ℕ) (K : PubWire → Slot Reading γ)
     (K' : pubSpec.FullTranscript → Slot Reading γ')
     (hK : ∀ w t, pubWireOf t = w → Refines R (K w) (K' t)) :
     Refines R (walkPub historyOps n >>= K) ((pubDec n).toSlot >>= K') := by
@@ -532,8 +535,8 @@ theorem refines_pubDec (n : ℕ) (K : PubWire → Slot Reading γ)
   exact hy
 
 /-- `a + b` rounds read by the walk are the first `a`, then the next `b`. -/
-theorem readRounds_add {n : Type → Type} [Monad n] [LawfulMonad n] (ops : ChainOps n) (d b : ℕ) :
-    ∀ a, readRounds ops d (a + b) = do
+private theorem readRounds_add {n : Type → Type} [Monad n] [LawfulMonad n] (ops : ChainOps n)
+    (d b : ℕ) : ∀ a, readRounds ops d (a + b) = do
       let rs₁ ← readRounds ops d a
       let rs₂ ← readRounds ops d b
       return rs₁ ++ rs₂
@@ -542,7 +545,7 @@ theorem readRounds_add {n : Type → Type} [Monad n] [LawfulMonad n] (ops : Chai
     rw [Nat.add_right_comm, readRounds, readRounds_add ops d b a, readRounds]
     simp
 
-theorem roundsNext_snd {d : ℕ} :
+private theorem roundsNext_snd {d : ℕ} :
     ∀ (σ : Thunk E × ℕ) (m : ℕ) (t : (roundsSpec E d m).FullTranscript),
     (roundsNext σ m t).2 = σ.2 + m
   | _, 0, _ => rfl
@@ -553,7 +556,7 @@ theorem roundsNext_snd {d : ℕ} :
 
 /-- **The Flock phase** for `2 ^ k` compressions, read as the walk reads it and as the decoder
 decodes it, then anything after: the walk's wire. -/
-theorem refines_flockDecOf (k : ℕ) (K : FlockWire → Slot Reading γ)
+private theorem refines_flockDecOf (k : ℕ) (K : FlockWire → Slot Reading γ)
     (K' : (flockSpecOf k).FullTranscript → Slot Reading γ')
     (hK : ∀ w t, flockWireOf k t = w → Refines R (K w) (K' t)) :
     Refines R (walkFlock historyOps k >>= K) ((flockDecOf k).toSlot >>= K') := by
@@ -564,24 +567,17 @@ theorem refines_flockDecOf (k : ℕ) (K : FlockWire → Slot Reading γ)
   refine Refines.bind (refines_draws (k + 1)) fun point t₁ h₁ ↦ ?_
   refine Refines.single_bind (pSpec := say (Vector E 64)) (refines_vecSlot 64)
     fun skip v₂ h₂ ↦ ?_
-  refine Refines.single_bind (pSpec := draw E) (R₀ := Eq) (Refines.refl _) ?_
-  rintro zskip _ rfl
-  refine Refines.bind (refines_roundsDec (by norm_num) _ 0 8 _ fun j _ hj ↦ ?_)
-    fun zc₁ t₄ h₄ ↦ ?_
-  · have hj : j < 8 := by simpa using hj
+  refine Refines.single_self (draw E) fun zskip ↦ ?_
+  have hz : ∀ t j, j < 8 + k → RoundPoly.dropped (zcWeights k t j) = 0 := fun t j hj ↦ by
     have hb : j < (flockParams k).m + (flockParams k).κ := by
       simp only [flockParams, Flock.kIn]; omega
     simp [RoundPoly.dropped, zcWeights, Vector.getElem?_eq_getElem hb]
-  refine Refines.bind (refines_roundsDec (by norm_num) _ 0 k _ fun j hj₁ hj₂ ↦ ?_)
-    fun zc₂ t₅ h₅ ↦ ?_
-  · rw [zcMid, roundsNext_snd] at hj₁ hj₂
-    have hj : j < 8 + k := by simpa using hj₂
-    have hb : j < (flockParams k).m + (flockParams k).κ := by
-      simp only [flockParams, Flock.kIn]; omega
-    simp [RoundPoly.dropped, zcWeights, Vector.getElem?_eq_getElem hb]
+  refine Refines.bind (refines_roundsDec (by norm_num) _ 0 8 _ fun j _ hj ↦
+    hz _ j (by simp at hj; omega)) fun zc₁ t₄ h₄ ↦ ?_
+  refine Refines.bind (refines_roundsDec (by norm_num) _ 0 k _ fun j _ hj ↦
+    hz _ j (by rw [zcMid, roundsNext_snd] at hj; simp at hj; omega)) fun zc₂ t₅ h₅ ↦ ?_
   refine Refines.single_bind (pSpec := say (Vector E 2)) (refines_vecSlot 2) fun ab v₆ h₆ ↦ ?_
-  refine Refines.single_bind (pSpec := draw E) (R₀ := Eq) (Refines.refl _) ?_
-  rintro alpha _ rfl
+  refine Refines.single_self (draw E) fun alpha ↦ ?_
   refine Refines.bind (refines_roundsDec (by norm_num) _ 1 8 _ fun _ _ _ ↦ rfl)
     fun lin t₈ h₈ ↦ ?_
   refine Refines.single_bind (pSpec := say (Vector E 64)) (refines_vecSlot 64)
@@ -602,7 +598,7 @@ variable {γ γ' : Type} {R : γ → γ' → Prop}
 
 /-- `k + 1` fold rounds read by the walk: the first challenge, then `k` rounds of a polynomial
 and a challenge, then the last polynomial. -/
-theorem walkFolds_eq {n : Type → Type} [Monad n] [LawfulMonad n] (ops : ChainOps n) :
+private theorem walkFolds_eq {n : Type → Type} [Monad n] [LawfulMonad n] (ops : ChainOps n) :
     ∀ k, walkFolds ops (k + 1) = do
       let c ← ops.sample
       let rs ← readRounds ops 2 k
@@ -616,7 +612,7 @@ theorem walkFolds_eq {n : Type → Type} [Monad n] [LawfulMonad n] (ops : ChainO
 
 /-- `k + 1` tail rounds read by the walk: the first challenge, then `k` rounds of a polynomial and
 a challenge. -/
-theorem walkTail_eq {n : Type → Type} [Monad n] [LawfulMonad n] (ops : ChainOps n) :
+private theorem walkTail_eq {n : Type → Type} [Monad n] [LawfulMonad n] (ops : ChainOps n) :
     ∀ k, walkTail ops (k + 1) = do
       let c ← ops.sample
       let rs ← readRounds ops 2 k
@@ -628,33 +624,34 @@ theorem walkTail_eq {n : Type → Type} [Monad n] [LawfulMonad n] (ops : ChainOp
     simp [foldsWire]
 
 /-- The query positions, read as the walk reads them and as their slot does. -/
-theorem refines_positionsSlot (b t : ℕ) :
+private theorem refines_positionsSlot (b t : ℕ) :
     Refines (fun ps pos ↦ pos = positionsOf t b ps) (walkPositions historyOps b t t)
       (positionsSlot b t) := fun l x r h ↦
   ⟨positionsOf t b x, by rw [positionsSlot, read_mapM, h]; rfl, rfl⟩
 
 /-- The shape of a final level as the verifier walks it. -/
-abbrev finalShape (sh : Whir.Shape) (nf : ℕ) : LevelShape := ⟨sh.ℓ, nf + 1, sh.R, sh.t, true⟩
+private abbrev finalShape (sh : Whir.Shape) (nf : ℕ) : LevelShape :=
+  ⟨sh.ℓ, nf + 1, sh.R, sh.t, true⟩
 
 /-- The shape of a level with a successor as the verifier walks it. -/
 abbrev levelShape (sh sh' : Whir.Shape) (κ' : ℕ) : LevelShape :=
   ⟨sh.ℓ, Kap sh' κ', sh.R, sh.t, false⟩
 
 /-- A step's transcript before the rest's, as a transcript of the list of steps. -/
-abbrev seqCons {a : Step} {l : List Step} (t : a.spec.FullTranscript)
+private abbrev seqCons {a : Step} {l : List Step} (t : a.spec.FullTranscript)
     (t' : (seqSpec l).FullTranscript) : (seqSpec (a :: l)).FullTranscript :=
   FullTranscript.append (pSpec₁ := a.spec) (pSpec₂ := seqSpec l) t t'
 
-@[simp] theorem seqHead_seqCons {a : Step} {l : List Step} (t : a.spec.FullTranscript)
+@[simp] private theorem seqHead_seqCons {a : Step} {l : List Step} (t : a.spec.FullTranscript)
     (t' : (seqSpec l).FullTranscript) : seqHead (seqCons t t') = t :=
   FullTranscript.append_fst _ _
 
-@[simp] theorem seqTail_seqCons {a : Step} {l : List Step} (t : a.spec.FullTranscript)
+@[simp] private theorem seqTail_seqCons {a : Step} {l : List Step} (t : a.spec.FullTranscript)
     (t' : (seqSpec l).FullTranscript) : seqTail (seqCons t t') = t' :=
   FullTranscript.append_snd _ _
 
 /-- The wire of a final level's transcript, step by step. -/
-theorem finalWire_mk {sh : Whir.Shape} {nf : ℕ}
+private theorem finalWire_mk {sh : Whir.Shape} {nf : ℕ}
     (t₁ : (Step.chal E inferInstance).spec.FullTranscript)
     (t₂ : (Step.rds E inferInstance 2 sh.lm1).spec.FullTranscript)
     (t₃ : (Step.msg (SumcheckRound.Message E 2)).spec.FullTranscript)
@@ -675,53 +672,30 @@ theorem finalWire_mk {sh : Whir.Shape} {nf : ℕ}
 
 /-- **The final level**, read as the walk reads it and as the decoder decodes it, then anything
 after: the walk's level, viewed. -/
-theorem refines_finalDec (sh : Whir.Shape) (nf : ℕ) (σ : Thunk E × Thunk (Vector E 3))
+private theorem refines_finalDec (sh : Whir.Shape) (nf : ℕ) (σ : Thunk E × Thunk (Vector E 3))
     (w : WordOf sh (nf + 1)) (K : WhirLevel → Slot Reading γ)
     (K' : (seqSpec (finalSteps sh nf)).FullTranscript → Slot Reading γ')
     (hK : ∀ l t, finalWire t = WhirLevel.view (finalShape sh nf) l → Refines R (K l) (K' t)) :
     Refines R (walkLevel historyOps (finalShape sh nf) >>= K)
       ((finalDec sh nf σ w).toDecoder.toSlot >>= K') := by
   simp only [walkLevel, ↓reduceIte, walkFolds_eq, walkTail_eq, bind_assoc, pure_bind]
-  refine Refines.append_bind _ _ ?_
-  refine (Refines.single_bind (Refines.refl _) ?_)
-  rintro c₁ _ rfl
-  refine Refines.append_bind _ _ ?_
-  refine Refines.bind (refines_roundsDec (d := 2) (by norm_num) (fun _ ↦ none) 1 sh.lm1 _
+  refine Refines.append_self (draw E) fun c₁ ↦ ?_
+  refine Refines.append_of (refines_roundsDec (d := 2) (by norm_num) (fun _ ↦ none) 1 sh.lm1 _
     fun _ _ _ ↦ rfl) fun rs t₂ h₂ ↦ ?_
-  refine Refines.append_bind _ _ ?_
-  refine (Refines.single_bind (refines_polySlot (by norm_num) _ _)
-    fun wl p₃ h₃ ↦ ?_)
-  refine Refines.append_bind _ _ ?_
-  refine (Refines.single_bind (refines_vecSlot (2 ^ (nf + 1)))
-    fun residual v₄ h₄ ↦ ?_)
-  refine Refines.append_bind _ _ ?_
-  refine (Refines.single_bind (Refines.refl _) ?_)
-  rintro nonce _ rfl
-  refine Refines.append_bind _ _ ?_
-  refine (Refines.single_bind (refines_positionsSlot _ _)
-    fun positions pos h₆ ↦ ?_)
-  refine Refines.append_bind _ _ ?_
-  refine (Refines.single_bind (Refines.refl _) ?_)
-  rintro lam _ rfl
-  refine Refines.append_bind _ _ ?_
-  refine Refines.bind_zero _ rfl fun t₈ ↦ ?_
-  refine Refines.append_bind _ _ ?_
-  refine (Refines.single_bind (refines_polySlot (by norm_num) _ _)
-    fun qw p₉ h₉ ↦ ?_)
-  refine Refines.append_bind _ _ ?_
-  refine Refines.bind_zero _ rfl fun t₁₀ ↦ ?_
-  refine Refines.append_bind _ _ ?_
-  refine (Refines.single_bind (Refines.refl _) ?_)
-  rintro c' _ rfl
-  refine Refines.append_bind _ _ ?_
-  refine Refines.bind (refines_roundsDec (d := 2) (by norm_num) (fun _ ↦ none) 1 nf _
-    fun _ _ _ ↦ rfl) fun rs' t₁₂ h₁₂ ↦ ?_
-  refine Refines.bind_zero _ rfl fun t₁₃ ↦ hK _ _ ?_
+  refine Refines.append_single (refines_polySlot (by norm_num) _ _) fun wl p₃ h₃ ↦ ?_
+  refine Refines.append_single (refines_vecSlot (2 ^ (nf + 1))) fun residual v₄ h₄ ↦ ?_
+  refine Refines.append_self (say E) fun nonce ↦ ?_
+  refine Refines.append_single (refines_positionsSlot _ _) fun positions pos h₆ ↦ ?_
+  refine Refines.append_self (draw E) fun lam ↦ Refines.append_zero _ rfl fun t₈ ↦ ?_
+  refine Refines.append_single (refines_polySlot (by norm_num) _ _) fun qw p₉ h₉ ↦ ?_
+  refine Refines.append_zero _ rfl fun t₁₀ ↦ Refines.append_self (draw E) fun c' ↦ ?_
+  refine Refines.append_of (refines_roundsDec (d := 2) (by norm_num) (fun _ ↦ none) 1 nf _
+    fun _ _ _ ↦ rfl) fun rs' t₁₂ h₁₂ ↦ Refines.bind_zero _ rfl fun t₁₃ ↦ hK _ _ ?_
   subst h₂ h₃ h₄ h₉ h₁₂ h₆
   exact (finalWire_mk _ _ _ _ _ _ _ _ _ _ _ _ _).trans rfl
 
 /-- The wire of a level's transcript, a level after it, step by step. -/
-theorem levelWire_mk {sh sh' : Whir.Shape} {κ' : ℕ} {k : List Step}
+private theorem levelWire_mk {sh sh' : Whir.Shape} {κ' : ℕ} {k : List Step}
     (t₁ : (Step.chal E inferInstance).spec.FullTranscript)
     (t₂ : (Step.rds E inferInstance 2 sh.lm1).spec.FullTranscript)
     (t₃ : (Step.msg (SumcheckRound.Message E 2)).spec.FullTranscript)
@@ -743,81 +717,64 @@ theorem levelWire_mk {sh sh' : Whir.Shape} {κ' : ℕ} {k : List Step}
   simp only [levelWire, seqHead_seqCons, seqTail_seqCons]
 
 /-- A slot, read as itself with its value mapped. -/
-theorem refines_map_right {β β' : Type} (s : Slot Reading β) (g : β → β') :
+private theorem refines_map_right {β β' : Type} (s : Slot Reading β) (g : β → β') :
     Refines (fun _ _ ↦ True) s (g <$> s) := fun l x r h ↦
   ⟨g x, by rw [read_mapM, h]; rfl, trivial⟩
 
 /-- **A level with a successor**, read as the walk reads it and as the decoder decodes it, then
 the rest of the opening: the walk's level, viewed, and the transcript of the rest. -/
-theorem refines_levelDec (sh sh' : Whir.Shape) (κ' : ℕ) {k : List Step}
+private theorem refines_levelDec (sh sh' : Whir.Shape) (κ' : ℕ) {k : List Step}
     (σ : Thunk E × Thunk (Vector E 3)) (w : WordOf sh (Kap sh' κ')) (next : WordOf sh' κ')
     (cont : Thunk E × Thunk (Vector E 3) → SeqDecoder Reading k) (K : WhirLevel → Slot Reading γ)
     (K' : (seqSpec (levelSteps sh sh' κ' k)).FullTranscript → Slot Reading γ')
     (hK : ∀ l σ' (P : (seqSpec k).FullTranscript →
         (seqSpec (levelSteps sh sh' κ' k)).FullTranscript),
-      (∀ tr, levelWire (P tr) = (WhirLevel.view (levelShape sh sh' κ') l, tr)) →
-        Refines R (K l) ((cont σ').toDecoder.toSlot >>= fun tr ↦ K' (P tr))) :
+      (∀ tr, (levelWire ∘ P) tr = (WhirLevel.view (levelShape sh sh' κ') l, tr)) →
+        Refines R (K l) ((cont σ').toDecoder.toSlot >>= K' ∘ P)) :
     Refines R (walkLevel historyOps (levelShape sh sh' κ') >>= K)
       ((levelDec sh sh' κ' σ w next cont).toDecoder.toSlot >>= K') := by
   simp only [walkLevel, Bool.false_eq_true, ↓reduceIte, walkFolds_eq, bind_assoc, pure_bind,
     bind_map_left]
-  refine Refines.append_bind _ _ ?_
-  refine (Refines.single_bind (Refines.refl _) ?_)
-  rintro c₁ _ rfl
-  refine Refines.append_bind _ _ ?_
-  refine Refines.bind (refines_roundsDec (d := 2) (by norm_num) (fun _ ↦ none) 1 sh.lm1 _
+  refine Refines.append_self (draw E) fun c₁ ↦ ?_
+  refine Refines.append_of (refines_roundsDec (d := 2) (by norm_num) (fun _ ↦ none) 1 sh.lm1 _
     fun _ _ _ ↦ rfl) fun rs t₂ h₂ ↦ ?_
-  refine Refines.append_bind _ _ ?_
-  refine (Refines.single_bind (refines_polySlot (by norm_num) _ _) fun wl p₃ h₃ ↦ ?_)
-  refine Refines.append_bind _ _ ?_
-  refine (Refines.single_bind (refines_map_right _ _) fun root _ _ ↦ ?_)
-  refine Refines.append_bind _ _ ?_
-  refine Refines.bind (refines_draws _) fun ood t₅ h₅ ↦ ?_
-  refine Refines.append_bind _ _ ?_
-  refine (Refines.single_bind (Refines.refl _) ?_)
-  rintro oodValue _ rfl
-  refine Refines.append_bind _ _ ?_
-  refine (Refines.single_bind (refines_polySlot (by norm_num) _ _) fun ow p₇ h₇ ↦ ?_)
-  refine Refines.append_bind _ _ ?_
-  refine (Refines.single_bind (Refines.refl _) ?_)
-  rintro nonce _ rfl
-  refine Refines.append_bind _ _ ?_
-  refine (Refines.single_bind (refines_positionsSlot _ _) fun positions pos h₉ ↦ ?_)
-  refine Refines.append_bind _ _ ?_
-  refine (Refines.single_bind (Refines.refl _) ?_)
-  rintro lam _ rfl
-  refine Refines.append_bind _ _ ?_
-  refine Refines.bind_zero _ rfl fun t₁₁ ↦ ?_
-  refine Refines.append_bind _ _ ?_
-  refine (Refines.single_bind (refines_polySlot (by norm_num) _ _) fun qw p₁₂ h₁₂ ↦ ?_)
-  refine Refines.append_bind _ _ ?_
-  refine Refines.bind_zero _ rfl fun t₁₃ ↦ ?_
-  refine hK _ _ _ fun tr ↦ ?_
+  refine Refines.append_single (refines_polySlot (by norm_num) _ _) fun wl p₃ h₃ ↦ ?_
+  refine Refines.append_single (refines_map_right _ _) fun root _ _ ↦ ?_
+  refine Refines.append_of (refines_draws _) fun ood t₅ h₅ ↦
+    Refines.append_self (say E) fun oodValue ↦ ?_
+  refine Refines.append_single (refines_polySlot (by norm_num) _ _) fun ow p₇ h₇ ↦ ?_
+  refine Refines.append_self (say E) fun nonce ↦ ?_
+  refine Refines.append_single (refines_positionsSlot _ _) fun positions pos h₉ ↦ ?_
+  refine Refines.append_self (draw E) fun lam ↦ Refines.append_zero _ rfl fun t₁₁ ↦ ?_
+  refine Refines.append_single (refines_polySlot (by norm_num) _ _) fun qw p₁₂ h₁₂ ↦ ?_
+  refine Refines.append_zero _ rfl fun t₁₃ ↦ hK _ _ _ fun tr ↦ ?_
   subst h₂ h₃ h₅ h₇ h₉ h₁₂
   exact (levelWire_mk _ _ _ _ _ _ _ _ _ _ _ _ _ _).trans rfl
 
 /-- **A chain of levels**, read as the walk reads it and as the decoder decodes it, then anything
 after: the walk's levels, viewed. -/
-theorem refines_ladderDec : ∀ {sh : Whir.Shape} {κ : ℕ} (L : Whir.Ladder sh κ)
+private theorem refines_ladderDec : ∀ {sh : Whir.Shape} {κ : ℕ} (L : Whir.Ladder sh κ)
     (σ : Thunk E × Thunk (Vector E 3)) (w : WordOf sh κ) (ws : L.Words)
     (K : List WhirLevel → Slot Reading γ) (K' : (seqSpec L.steps).FullTranscript → Slot Reading γ'),
     (∀ ls t, ladderWire L t = List.zipWith WhirLevel.view L.shapes ls → Refines R (K ls) (K' t)) →
     Refines R (walkLevels historyOps L.shapes >>= K)
-      ((ladderDec L σ w ws).toDecoder.toSlot >>= K')
-  | _, _, .last sh nf, σ, w, _, K, K', hK => by
+      ((ladderDec L σ w ws).toDecoder.toSlot >>= K') := by
+  intro sh κ L
+  induction L with
+  | last sh nf =>
+    intro σ w _ K K' hK
     simp only [Whir.Ladder.shapes, walkLevels, bind_assoc, pure_bind]
-    exact refines_finalDec sh nf σ w _ K' fun l t h ↦
-      hK [l] t (congrArg (fun x ↦ [x]) h)
-  | _, _, @Whir.Ladder.cons sh sh' κ' L, σ, w, ws, K, K', hK => by
+    exact refines_finalDec sh nf σ w _ K' fun l _ h ↦ hK [l] _ (congrArg (fun x ↦ [x]) h)
+  | cons sh L ih =>
+    intro σ w ws K K' hK
     simp only [Whir.Ladder.shapes, walkLevels, bind_assoc, pure_bind]
-    refine refines_levelDec sh sh' κ' σ w ws.1 _ _ K' fun l σ' P hP ↦ ?_
-    exact refines_ladderDec L σ' ws.1 ws.2 _ _ fun ls tr h ↦
-      hK (l :: ls) (P tr) (by
-        show (levelWire (P tr)).1 :: ladderWire L (levelWire (P tr)).2 = _
-        rw [hP tr, h]; rfl)
+    exact refines_levelDec sh _ _ σ w ws.1 _ _ K' fun l σ' P hP ↦
+      ih σ' ws.1 ws.2 _ _ fun ls tr h ↦
+        hK (l :: ls) _ ((congrArg (fun p : WhirLevel × (seqSpec L.steps).FullTranscript ↦
+          p.1 :: ladderWire L p.2) (hP tr)).trans (congrArg _ h))
 
 /-- The wire of WHIR's opening transcript, step by step. -/
-theorem whirWireOf_mk {sh : Whir.Shape} {κ : ℕ} (L : Whir.Ladder sh κ)
+private theorem whirWireOf_mk {sh : Whir.Shape} {κ : ℕ} (L : Whir.Ladder sh κ)
     (t₁ : Step.skip.spec.FullTranscript)
     (t₂ : (Step.msg (SumcheckRound.Message E 2)).spec.FullTranscript)
     (t : (seqSpec L.steps).FullTranscript) :
@@ -826,7 +783,7 @@ theorem whirWireOf_mk {sh : Whir.Shape} {κ : ℕ} (L : Whir.Ladder sh κ)
 
 /-- **WHIR's opening**, read as the walk reads it and as the decoder decodes it, then anything
 after: the walk's reads, the levels viewed. -/
-theorem refines_whirDec {sh : Whir.Shape} {κ : ℕ} (L : Whir.Ladder sh κ) (target : Thunk E)
+private theorem refines_whirDec {sh : Whir.Shape} {κ : ℕ} (L : Whir.Ladder sh κ) (target : Thunk E)
     (w : WordOf sh κ) (ws : L.Words) (K : List E × List WhirLevel → Slot Reading γ)
     (K' : (seqSpec (.skip :: .msg (SumcheckRound.Message E 2) :: L.steps)).FullTranscript →
       Slot Reading γ')
@@ -835,10 +792,8 @@ theorem refines_whirDec {sh : Whir.Shape} {κ : ℕ} (L : Whir.Ladder sh κ) (ta
     Refines R (walkWhir historyOps L.shapes >>= K)
       ((whirDec L target w ws).toDecoder.toSlot >>= K') := by
   simp only [walkWhir, bind_assoc, pure_bind]
-  refine Refines.append_bind _ _ ?_
-  refine Refines.bind_zero _ rfl fun t₁ ↦ ?_
-  refine Refines.append_bind _ _ ?_
-  refine Refines.single_bind (refines_polySlot (by norm_num) _ _) fun first p h ↦ ?_
+  refine Refines.append_zero _ rfl fun t₁ ↦ ?_
+  refine Refines.append_single (refines_polySlot (by norm_num) _ _) fun first p h ↦ ?_
   refine refines_ladderDec L _ w ws _ _ fun ls t hl ↦ hK _ _ ?_
   subst h
   exact (whirWireOf_mk L _ _ _).trans (by rw [hl]; rfl)
@@ -854,7 +809,7 @@ open Slot
 variable {γ γ' : Type} {R : γ → γ' → Prop}
 
 /-- The setup's reads with the announcement `ann` checked, as the commitment's slot reads them. -/
-def walkSetupAt (ann : List E) : Slot Reading Digest := do
+private def walkSetupAt (ann : List E) : Slot Reading Digest := do
   let xs ← historyOps.nextScalars 8
   if xs = ann then historyOps.nextRoot else Slot.fail
 
@@ -878,17 +833,17 @@ theorem walkChain_eq_setup {n : Type → Type} [Monad n] (ops : ChainOps n) (pro
   rfl
 
 /-- Where the first eight scalars are `ann`, the setup reads as with the announcement checked. -/
-theorem read_walkSetupAt {β : Type} (ann : List E) (f : Digest → Slot Reading β)
+private theorem read_walkSetupAt {β : Type} (ann : List E) (f : Digest → Slot Reading β)
     {l r : List Reading} (h : (historyOps.nextScalars 8).read l = some (ann, r)) :
     (walkSetupAt ann >>= f).read l = (walkSetup historyOps >>= f).read l := by
   simp only [walkSetupAt, walkSetup, bind_assoc, read_bind, h, Option.bind_some, ↓reduceIte]
 
 /-- A failing slot reads nowhere. -/
-theorem Refines.fail_left {β β' : Type} {R : β → β' → Prop} (t : Slot Reading β') :
+private theorem Refines.fail_left {β β' : Type} {R : β → β' → Prop} (t : Slot Reading β') :
     Refines R (Slot.fail : Slot Reading β) t := fun _ _ _ h ↦ nomatch h
 
 /-- The setup's reads with the announcement checked, read as the commitment's slot. -/
-theorem refines_commitSlot {M : Type} (ann : List E) (w : M) :
+private theorem refines_commitSlot {M : Type} (ann : List E) (w : M) :
     Refines (fun _ _ ↦ True) (walkSetupAt ann) (commitSlot ann w) := by
   refine Refines.bind (Refines.refl _) fun xs _ h ↦ ?_
   subst h
@@ -900,7 +855,7 @@ theorem refines_commitSlot {M : Type} (ann : List E) (w : M) :
 
 /-- **The Flock slot** of a region, read as the walk reads its phase and as the decoder decodes
 it, then anything after: the walk's wire. -/
-theorem refines_flockDec (I : M3Instance) (o : Option (FlockRegion I.toShape))
+private theorem refines_flockDec (I : M3Instance) (o : Option (FlockRegion I.toShape))
     (r : FlockRegion I.toShape) (ho : o = some r) (K : FlockWire → Slot Reading γ)
     (K' : (flockSpecOpt I o).FullTranscript → Slot Reading γ')
     (hK : ∀ w t, flockWireOpt I o t = w → Refines R (K w) (K' t)) :
@@ -909,7 +864,7 @@ theorem refines_flockDec (I : M3Instance) (o : Option (FlockRegion I.toShape))
   exact refines_flockDecOf r.kBatch K K' hK
 
 /-- The wire of a transcript of the compiled protocol, phase by phase. -/
-theorem wireOf_mk (I : M3Instance) {sh : Whir.Shape} {κ : ℕ} (L : Whir.Ladder sh κ)
+private theorem wireOf_mk (I : M3Instance) {sh : Whir.Shape} {κ : ℕ} (L : Whir.Ladder sh κ)
     (t₁ : (commitWordSpec sh κ).FullTranscript) (t₂ : (busSpec I).FullTranscript)
     (t₃ : (tableSpec I).FullTranscript) (t₄ : pubSpec.FullTranscript)
     (t₅ : (flockSpec I).FullTranscript) (t₆ : openingSpec.FullTranscript)
@@ -922,7 +877,7 @@ theorem wireOf_mk (I : M3Instance) {sh : Whir.Shape} {κ : ℕ} (L : Whir.Ladder
 
 /-- **The compiled protocol**, read as the walk reads it after a checked announcement and as the
 decoder decodes it: the transcript's wire is the walk's, viewed. -/
-theorem refines_compiledDec (I : M3Instance) (h : Bus.Conditions I) (input : I.Stmt)
+private theorem refines_compiledDec (I : M3Instance) (h : Bus.Conditions I) (input : I.Stmt)
     (ann : List E) (c : Chain) (W : Words c) (r : FlockRegion I.toShape) (hr : I.flock = some r) :
     Refines (fun w t ↦ wireOf I c.ladder t = Wire.view c.ladder.shapes w)
       (walkSetupAt ann >>= walkAfterSetup historyOps I
@@ -930,21 +885,16 @@ theorem refines_compiledDec (I : M3Instance) (h : Bus.Conditions I) (input : I.S
       (compiledDec I h input ann c W).toSlot := by
   rw [← bind_pure (compiledDec I h input ann c W).toSlot]
   unfold compiledDec frontDec
-  refine Refines.append_bind _ _ ?_
-  refine Refines.append_bind _ _ ?_
-  refine Refines.append_bind _ _ ?_
-  refine Refines.append_bind _ _ ?_
-  refine Refines.append_bind _ _ ?_
-  refine Refines.append_bind _ _ ?_
-  refine Refines.append_bind _ _ ?_
+  refine Refines.append_bind _ _ (Refines.append_bind _ _ (Refines.append_bind _ _
+    (Refines.append_bind _ _ (Refines.append_bind _ _ (Refines.append_bind _ _
+    (Refines.append_bind _ _ ?_))))))
   refine Refines.single_bind (refines_commitSlot ann W.level0) fun root t₁ _ ↦ ?_
   simp only [walkAfterSetup]
   refine refines_busDec I _ _ fun bus t₂ h₂ ↦ ?_
   refine refines_tableDec I _ _ _ fun table t₃ h₃ ↦ ?_
   refine refines_pubDec _ _ _ fun pub t₄ h₄ ↦ ?_
   refine refines_flockDec I I.flock r hr _ _ fun flock t₅ h₅ ↦ ?_
-  refine Refines.single_bind (pSpec := openingSpec) (R₀ := Eq) (Refines.refl _) ?_
-  rintro lam _ rfl
+  refine Refines.single_self openingSpec fun lam ↦ ?_
   refine Refines.bind_zero _ rfl fun t₇ ↦ ?_
   refine refines_whirDec c.ladder _ _ _ _ _ fun x t₈ h₈ ↦ ?_
   obtain ⟨whirFirst, whir⟩ := x
@@ -976,7 +926,7 @@ theorem streamOf_of_read_nextScalar {l : List Reading} {x : E} {r : List Reading
     | nonce n => exact nomatch h
 
 /-- `k` scalars read off a history are its stream's first `k`. -/
-theorem streamOf_of_read_nextScalars :
+private theorem streamOf_of_read_nextScalars :
     ∀ {k : ℕ} {l : List Reading} {xs : List E} {r : List Reading},
       (historyOps.nextScalars k).read l = some (xs, r) → streamOf l = xs ++ streamOf r
   | 0, _, _, _, h => by
