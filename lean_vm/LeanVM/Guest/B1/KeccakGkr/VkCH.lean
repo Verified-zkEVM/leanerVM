@@ -108,6 +108,112 @@ theorem xs_reads (h : D.Ok) {rd : Reader} {curE : ℕ} (hr : ReadsAt rd (ptr cur
     · simpa [Nat.add_assoc] using r4
     · simpa [Nat.add_assoc, hmS] using r5
 
+theorem chain_zero : D.chain 0 = (D.c0, D.S0) := rfl
+
+theorem layer_zero_c : (D.layer 0).c = D.c0 := rfl
+
+theorem rl_length : D.rl.length = 5 := squeezeN_fst_length _ _
+
+theorem seg_length : D.seg.length = 1 := squeezeN_fst_length _ _
+
+theorem inst4 (h : D.Ok) : (D.inst.take 4).length = 4 := by
+  have := h.2.2.1; have := h.1
+  simp [inst]; omega
+
+theorem c0_mu (h : D.Ok) : D.c0.mu.length = 16 := by
+  simp only [c0, vkFirst, eqKernel_length, inst4 h]; rfl
+
+theorem locPt_length (h : D.Ok) {s : ℕ} (hs : s < 12) :
+    ((D.layer s).locPt (firstOf s)).length = 11 := by
+  obtain ⟨-, -, hlm, -, -⟩ := D.layer_facts h hs
+  rw [LayerData.locPt, LayerData.loc, layerLocal, localRunF_length, hlm]
+
+/-- **Claim `s`'s record and buffers hold what `ClaimLay.Ok` asks.** -/
+theorem CL_ok (h : D.Ok) (B : ℕ) (ls : ℕ → ℕ) {s : ℕ} (hs : s < 12) :
+    (D.CL B ls s).Ok (firstOf s) (D.layer s).c (D.layer s).y := by
+  rcases s with _ | k
+  · have hmu := c0_mu h
+    simp only [CL, ClaimLay.Ok, layer_zero_c, firstOf, ↓reduceIte, cw0]
+    refine ⟨by simp [hmu], hmu, rfl, rfl, by simp [c0, vkFirst, sumE_eqKernel], rfl, rfl,
+      fun i hi ↦ by simp [show 6 + i = i + 1 + 1 + 1 + 1 + 1 + 1 by omega], ?_, ?_⟩
+    · simp [eqKernel_length, rl_length]
+    · simp only [c0, vkFirst, firstWeights]
+      refine List.map_congr_left fun j hj ↦ ?_
+      have : j / 64 < 25 := by
+        have := List.mem_range.1 hj; simp only [keccakBits] at this; omega
+      simp [List.getD_eq_getElem?_getD, this]
+  · have hk : k < 12 := by omega
+    have hsucc := D.layer_succ h hk
+    have hc : (D.layer (k + 1)).c = (D.layer k).next (firstOf k) := by
+      show (D.chain (k + 1)).1 = _
+      rw [hsucc]
+    have hlocL := locPt_length h hk
+    have hmu : ((D.layer k).next (firstOf k)).mu.length = 16 := keccakInstanceWeights_length _
+    have hf : firstOf (k + 1) = 0 := rfl
+    simp only [CL, ClaimLay.Ok, hf, hc, outWs, LayerData.outW]
+    refine ⟨by simp [hmu], hmu, ?_, by simp, by simp, by simp, by simp,
+      fun i hi ↦ by simp [show 6 + i = i + 1 + 1 + 1 + 1 + 1 + 1 by omega], lanesOut_length _ _, ?_⟩
+    · simp only [LayerData.y, hc]
+    · simp only [show (0 : ℕ) = 1 ↔ False by decide, ↓reduceIte]
+      refine ⟨by simp, by simp, hlocL, ?_⟩
+      simp only [LayerData.next, layerClaim]
+      rw [laterWeights]
+      exact congrArg keccakLinearTranspose (batch_factor _ hlocL _)
+
+/-- A squeezed sponge: nothing waiting, a canonical capacity. -/
+theorem sq_ok (t : Fs) : t.squeeze.2 = ⟨t.squeeze.2.cap, []⟩ ∧ t.squeeze.2.cap.length = 5 ∧
+    AllCanonical t.squeeze.2.cap :=
+  ⟨squeeze_snd_eq t, by simp [Fs.squeeze, capOf], squeeze_cap_canonical _⟩
+
+theorem plainRun_sq : ∀ (ms : List (E × E)) (v : E) (s : Fs), ms ≠ [] →
+    ∃ t : Fs, (plainRun ms v s).2.2 = t.squeeze.2
+  | [], _, _, h => absurd rfl h
+  | [_], _, _, _ => ⟨_, rfl⟩
+  | m :: m' :: ms, v, s, _ => by
+    obtain ⟨c0, c2⟩ := m
+    rw [plainRun_cons_snd]
+    exact plainRun_sq (m' :: ms) _ _ (by simp)
+
+theorem plainRun_ok (ms : List (E × E)) (v : E) (s : Fs) (h : ms ≠ []) :
+    (plainRun ms v s).2.2 = ⟨(plainRun ms v s).2.2.cap, []⟩ ∧ (plainRun ms v s).2.2.cap.length = 5 ∧
+      AllCanonical (plainRun ms v s).2.2.cap := by
+  obtain ⟨t, ht⟩ := plainRun_sq ms v s h
+  rw [ht]; exact sq_ok t
+
+theorem L_eq (h : D.Ok) : D.L = D.chain 12 := by
+  simp only [chain, L, keccakDepth]
+  rw [List.take_of_length_le (by simp), List.take_of_length_le (by rw [ok_Ts h])]
+
+theorem L_ok (h : D.Ok) : D.L.2 = ⟨D.L.2.cap, []⟩ ∧ D.L.2.cap.length = 5 ∧ AllCanonical D.L.2.cap := by
+  rw [L_eq h, D.layer_succ h (by norm_num : 11 < 12)]
+  exact sq_ok _
+
+theorem O_ok (h : D.Ok) : D.O.2.2 = ⟨D.O.2.2.cap, []⟩ ∧ D.O.2.2.cap.length = 5 ∧
+    AllCanonical D.O.2.2.cap :=
+  plainRun_ok _ _ _ (by rw [← List.length_pos_iff_ne_nil, h.2.2.2.2.2.2.2.1]; norm_num)
+
+theorem I_ok (h : D.Ok) : D.I.2.2 = ⟨D.I.2.2.cap, []⟩ ∧ D.I.2.2.cap.length = 5 ∧
+    AllCanonical D.I.2.2.cap :=
+  plainRun_ok _ _ _ (by rw [← List.length_pos_iff_ne_nil, h.2.2.2.2.2.2.2.2.1]; norm_num)
+
+theorem S_ok (h : D.Ok) : D.S.2.2 = ⟨D.S.2.2.cap, []⟩ ∧ D.S.2.2.cap.length = 5 ∧
+    AllCanonical D.S.2.2.cap :=
+  plainRun_ok _ _ _ (by rw [← List.length_pos_iff_ne_nil, h.2.2.2.2.2.2.2.2.2.1]; norm_num)
+
+theorem O_run (h : D.Ok) (w : E) : plainRun D.mO D.committed (plainStart 0 D.L.2.cap w) = D.O := by
+  simp only [plainStart, show ¬ ((0 : ℕ) = 1) by decide, ↓reduceIte, O]
+  rw [← (L_ok h).1]
+
+theorem I_run (h : D.Ok) : plainRun D.mI D.L.1.value (plainStart 1 D.O.2.2.cap D.word) = D.I := by
+  simp only [plainStart, ↓reduceIte, I]
+  congr 1
+  conv_rhs => rw [(O_ok h).1]
+  simp [Fs.absorb, rateScalars]
+
+theorem S_run (h : D.Ok) (w : E) : plainRun D.mS D.I.2.1 (plainStart 0 D.I.2.2.cap w) = D.S := by
+  simp only [plainStart, show ¬ ((0 : ℕ) = 1) by decide, ↓reduceIte, S]
+  rw [← (I_ok h).1]
+
 end VkData
 
 end
