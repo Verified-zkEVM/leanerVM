@@ -66,6 +66,7 @@ import LeanerVM.Protocol.Proof
 import LeanerVM.Protocol.ProofRoots
 import LeanerVM.Protocol.Prove
 import LeanerVM.Protocol.Prove.Compiled
+import LeanerVM.Protocol.Prove.Openings
 import LeanerVM.Protocol.Prove.ReadBack
 import LeanerVM.Protocol.Prove.Wire
 import LeanerVM.Protocol.PublicInput
