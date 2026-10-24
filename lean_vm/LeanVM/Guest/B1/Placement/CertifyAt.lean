@@ -8,7 +8,7 @@
 module
 
 public import LeanVM.Guest.B1.Placement.CertifyComplete
-public import LeanVM.Guest.B1.Tables.FlatAt
+public import LeanVM.Guest.B1.Tables.FlatAtT
 
 /-!
 # `certify_placement`, placed (TRIAGE G #67)
@@ -156,7 +156,123 @@ theorem certify_placement_completeAt (fs : String → ℕ) (cert : String → V 
     rw [this]
     match outs, ho with
     | [], _ => exact True.intro
-  · intro q hq
+  · rw [flatMap_loadsEv _ cpPreL (by decide +kernel)]
+    intro q hq
+    have hOwn : ∀ j < 3, ∀ i, fp + fs f + 99 * j ≤ i → i < fp + fs f + 99 * j + 99 →
+        RegionL (bufL (fp + fs f) [99, 99, 99]
+        [(cpKs lm hs).map (gen ^ ·), (cpOrd lm hs).map (gen ^ ·),
+          (stackOffsets (cpKs lm hs)).1.map (gen ^ ·)]) i := by
+      intro j hj i hi1 hi2
+      rw [hbuf fp]
+      interval_cases j
+      · exact ⟨_, List.mem_cons_self, by omega, by simp [cpKs_length]; omega⟩
+      · exact ⟨_, List.mem_cons_of_mem _ List.mem_cons_self, by omega,
+          by simp [cpOrd_length]; omega⟩
+      · exact ⟨_, List.mem_cons_of_mem _ (List.mem_cons_of_mem _ List.mem_cons_self), by omega,
+          by simp [tb_stackOffsets_length, cpKs_length]; omega⟩
+    have hKb : ∀ s < 8, RegionL (cpLin lm hs ekb esq) (ekb + s) := fun s hs ↦
+      ⟨_, List.mem_cons_self, by omega, by simp only [hkb]; omega⟩
+    have hSq : ∀ s < 34, RegionL (cpLin lm hs ekb esq) (esq + s) := fun s hs ↦
+      ⟨_, List.mem_cons_of_mem _ List.mem_cons_self, by omega, by simp only [hsq]; omega⟩
+    have hc0 := cpColF_lt (lm := lm) (hs := hs) (r := 0) (by norm_num)
+    rcases cp_loads hq with ⟨c, hc, rfl | rfl⟩ | rfl | rfl | rfl | rfl | ⟨r, hr, rfl | rfl | rfl | rfl⟩
+    · exact ⟨ekb + colKappaSrc c, tb_addr_ofK _ _, Or.inl (hKb _ colKappaSrc_lt)⟩
+    · exact ⟨fp + fs f + c, by rw [show σ (.n 2) = ofK (gpow (fp + fs f)) from rfl,
+        tb_addr_ofK], Or.inr (hOwn 0 (by norm_num) _ (by omega) (by omega))⟩
+    · exact ⟨fp + fs f + 99 + 0, by rw [show σ (.n 106) = ofK (gpow (fp + fs f + 99)) from rfl,
+        tb_addr_ofK], Or.inr (hOwn 1 (by norm_num) _ (by omega) (by omega))⟩
+    · refine ⟨fp + fs f + cpColF lm hs 0, ?_, Or.inr (hOwn 0 (by norm_num) _
+        (by omega) (by omega))⟩
+      rw [show σ (.n 113) = ofK (gpow (fp + fs f)) * gen ^ cpColF lm hs 0 from
+        cpσ_rank0 lm hs ekb esq _ _ _ rd (j := 5) (by norm_num)]
+      rw [cp_limb_mul]
+    · refine ⟨fp + fs f + 99 + 99 + cpColF lm hs 0, ?_, Or.inr (hOwn 2 (by norm_num) _
+        (by omega) (by omega))⟩
+      rw [show σ (.n 116) = ofK (gpow (fp + fs f + 99 + 99)) * gen ^ cpColF lm hs 0 from
+        cpσ_rank0 lm hs ekb esq _ _ _ rd (j := 8) (by norm_num)]
+      rw [cp_limb_mul]
+    · refine ⟨esq + cpKF lm hs 0, ?_, Or.inl (hSq _ (hK 0 (by norm_num)))⟩
+      rw [show σ (.n 121) = ofK (gpow esq) * gen ^ cpKF lm hs 0 from
+        cpσ_rank0 lm hs ekb esq _ _ _ rd (j := 13) (by norm_num)]
+      rw [cp_limb_mul]
+    · exact ⟨fp + fs f + 99 + (r + 1), by rw [show σ (.n 106) = ofK (gpow (fp + fs f + 99))
+        from rfl, tb_addr_ofK], Or.inr (hOwn 1 (by norm_num) _ (by omega) (by omega))⟩
+    · have hcr := cpColF_lt (lm := lm) (hs := hs) (r := r + 1) (by omega)
+      refine ⟨fp + fs f + cpColF lm hs (r + 1), ?_, Or.inr (hOwn 0 (by norm_num) _
+        (by omega) (by omega))⟩
+      rw [show σ (.n (97 + 26 * (r + 1) + 5)) = ofK (gpow (fp + fs f)) * gen ^ cpColF lm hs (r + 1) from
+        cpσ_rank lm hs ekb esq _ _ _ rd (r := r + 1) (j := 5) (by omega) (by omega) (by norm_num)]
+      rw [cp_limb_mul]
+    · have hcr := cpColF_lt (lm := lm) (hs := hs) (r := r + 1) (by omega)
+      refine ⟨fp + fs f + 99 + 99 + cpColF lm hs (r + 1), ?_, Or.inr (hOwn 2 (by norm_num) _
+        (by omega) (by omega))⟩
+      rw [show σ (.n (97 + 26 * (r + 1) + 18)) = ofK (gpow (fp + fs f + 99 + 99)) * gen ^ cpColF lm hs (r + 1) from
+        cpσ_rank lm hs ekb esq _ _ _ rd (r := r + 1) (j := 18) (by omega) (by omega) (by norm_num)]
+      rw [cp_limb_mul]
+    · refine ⟨esq + cpKF lm hs (r + 1), ?_, Or.inl (hSq _ (hK (r + 1) (by omega)))⟩
+      rw [show σ (.n (97 + 26 * (r + 1) + 23)) = ofK (gpow esq) * gen ^ cpKF lm hs (r + 1) from
+        cpσ_rank lm hs ekb esq _ _ _ rd (r := r + 1) (j := 23) (by omega) (by omega) (by norm_num)]
+      rw [cp_limb_mul]
+
+
+/-- **Within its frame and buffers:** `certify_placement` is complete, placed**: on its base and squares runs, at every frame
+pointer, on memories defined below `2^κ`, `κ ≥ 7`, its buffers at the bump allocator's positions,
+returned. -/
+theorem certify_placement_completeAtB (fs : String → ℕ) (cert : String → V → ℕ) {k : ℕ}
+    (hk : 7 ≤ k) {lm : ℕ} {hs : List ℕ} (hl : hs.length = 6) (hlm : lm ≤ 32)
+    (hhs : ∀ h ∈ hs, h < 29) (h5 : hs.getD 5 0 ≤ 27) (ekb esq : ℕ) :
+    CompleteAtDTB fs cert k "certify_placement" (cpLin lm hs ekb esq)
+      [ofK (gpow ekb), ofK (gpow esq)] (cpOut lm hs) (fun _ ↦ True)
+      (fs "certify_placement" + [99, 99, 99].sum) := by
+  have hf : coreProgram.find? "certify_placement" = some Data.core15 :=
+    Program.find?_of_indexOf? (j := 15) (by decide +kernel) rfl
+  set f := "certify_placement"
+  have hb : Data.core15.body = cpPreL ++ [.ret [.n 2671, .n 2672, .n 2673]] :=
+    core15_body.trans cpBody_eq
+  have hown : List.Forall₂ (fun c s => c.length ≤ s)
+      [(cpKs lm hs).map (gen ^ ·), (cpOrd lm hs).map (gen ^ ·),
+        (stackOffsets (cpKs lm hs)).1.map (gen ^ ·)] [99, 99, 99] := by
+    simp [cpKs_length, cpOrd_length, tb_stackOffsets_length]
+  have hbuf : ∀ fp, bufL (fp + fs f) [99, 99, 99]
+      [(cpKs lm hs).map (gen ^ ·), (cpOrd lm hs).map (gen ^ ·),
+        (stackOffsets (cpKs lm hs)).1.map (gen ^ ·)] =
+        cpOwn lm hs (fp + fs f) (fp + fs f + 99) (fp + fs f + 99 + 99) := by
+    intro fp; simp [bufL, bases, cpOwn]
+  refine (completeAt_flatOutDTB (fs := fs) (cert := cert) hf cp_not_loop k (cpLin lm hs ekb esq) _
+    (fun fp ↦ [gen ^ stackTotal (columnKappas lm guestLogBytecode hs),
+      ofK (gpow (fp + fs f + 99 + 99)), ofK (gpow (fp + fs f))]) _ hb cp_flat cp_addrs
+    [99, 99, 99] (fun _ ↦ [(cpKs lm hs).map (gen ^ ·), (cpOrd lm hs).map (gen ^ ·),
+      (stackOffsets (cpKs lm hs)).1.map (gen ^ ·)])
+    (fun _ ↦ hown) (fun fp ↦ ⟨_, _, _, rfl, hbuf fp⟩) (fun _ ↦ []) (fun _ ↦ True) [] [] 0 (fun _ ↦ trivial) (fun _ ↦ le_rfl)
+    (fun _ ↦ le_rfl) (fun _ _ h ↦ absurd h (by simp)) (fun _ _ _ _ _ h ↦ absurd h (by simp)) ?_).mono
+    (by simp) fun _ _ ↦ trivial
+  intro fp outs ho rd hlow hB hLin
+  rw [hbuf fp] at hB
+  have hm : MemLay rd (cpOwn lm hs (fp + fs f) (fp + fs f + 99) (fp + fs f + 99 + 99) ++
+      cpLin lm hs ekb esq) := memLay_append.mpr ⟨hB, hLin⟩
+  have hbody := cp_body_holds hl hlm hhs h5 ekb esq (fp + fs f) (fp + fs f + 99)
+    (fp + fs f + 99 + 99) rd hm (hlow.mono hk)
+  set σ := cpσ lm hs ekb esq (fp + fs f) (fp + fs f + 99) (fp + fs f + 99 + 99) rd with hσ
+  have hnc : ∀ s ∈ cpPreL, noCallB s = true := fun s hs ↦ List.all_eq_true.mp cp_noCall s hs
+  have hK : ∀ r < 99, cpKF lm hs r < 34 := fun r hr ↦ cpKs_lt hl hlm hhs h5 (cpColF_lt hr)
+  have hsq : gSquaresList.length = 34 := by simp [gSquaresList]
+  have hkb : (1 :: gen ^ lm :: hs.map (gen ^ ·)).length = 8 := by simp [hl]
+  set_option maxRecDepth 4000 in
+  refine ⟨σ, rfl, fun s hs ↦ ?_, by rw [core15_body]; exact hbody, ?_, ?_, ?_, ?_, trivial⟩
+  · have := hnc s hs
+    cases s <;> first | exact True.intro | simp [noCallB] at this
+  · rw [cp_allocs]; rfl
+  · rw [cp_allocs]; rfl
+  · have : cpPreL.filterMap (Stmt.callSF σ) = [] := by
+      rw [List.filterMap_eq_nil_iff]
+      intro s hs
+      have := hnc s hs
+      cases s <;> first | rfl | simp [noCallB] at this
+    simp only [flatCalls, this, List.map_nil]
+    match outs, ho with
+    | [], _ => exact True.intro
+  · rw [flatMap_loadsEv _ cpPreL (by decide +kernel)]
+    intro q hq
     have hOwn : ∀ j < 3, ∀ i, fp + fs f + 99 * j ≤ i → i < fp + fs f + 99 * j + 99 →
         RegionL (bufL (fp + fs f) [99, 99, 99]
         [(cpKs lm hs).map (gen ^ ·), (cpOrd lm hs).map (gen ^ ·),

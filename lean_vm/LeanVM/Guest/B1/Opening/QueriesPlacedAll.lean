@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.Opening.QueriesPlacedAll
 
-  Every deployed specialization of `opening_queries` is `CompleteAtD`.
+  Every deployed specialization of `opening_queries` is `CompleteAtB`.
 -/
 
 module
@@ -12,11 +12,12 @@ public import LeanVM.Guest.B1.Opening.QueriesPlacedS2
 public import LeanVM.Guest.B1.Opening.QueriesPlacedS3
 
 /-!
-# `opening_queries`, `CompleteAtD`, every specialization
+# `opening_queries`, `CompleteAtB`, every specialization
 
-`opening_queries_completeAtD`: each of the 56 deployed specializations (`openingQueriesLoops`:
-name, loop helper, shape, `odd`) is `CompleteAtD` (`OqCompleteD`) at every frame size `fs` and
-frame certificate `cert` whose frames fit its frame runs (`OqFits`).
+`opening_queries_completeAtB`: each of the 56 deployed specializations (`openingQueriesLoops`:
+name, loop helper, shape, `odd`) is `CompleteAtB` (`OqCompleteDB`, by a tree of at most
+`oqBound fs name loop N` words) at every frame size `fs` and frame certificate `cert` whose frames
+fit its frame runs (`OqFits`); `opening_queries_completeAtD`, its `CompleteAtD`.
 -/
 
 namespace LeanVM.Guest.B1
@@ -25,9 +26,9 @@ open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Value
 
 @[expose] public section
 
-/-- **Every deployed `opening_queries` is `CompleteAtD`.** -/
-theorem opening_queries_completeAtD (fs : String → ℕ) (cert : String → V → ℕ) :
-    ∀ p ∈ openingQueriesLoops, OqCompleteD fs cert p.1 p.2.1 p.2.2.1 p.2.2.2 := by
+/-- **Every deployed `opening_queries` is `CompleteAtB`.** -/
+theorem opening_queries_completeAtB (fs : String → ℕ) (cert : String → V → ℕ) :
+    ∀ p ∈ openingQueriesLoops, OqCompleteDB fs cert p.1 p.2.1 p.2.2.1 p.2.2.2 := by
   intro p hp
   simp only [openingQueriesLoops, List.mem_cons, List.not_mem_nil, or_false] at hp
   rcases hp with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl
@@ -87,6 +88,11 @@ theorem opening_queries_completeAtD (fs : String → ℕ) (cert : String → V �
   · exact oqD_503 fs cert
   · exact oqD_680 fs cert
   · exact oqD_757 fs cert
+
+/-- **Every deployed `opening_queries` is `CompleteAtD`.** -/
+theorem opening_queries_completeAtD (fs : String → ℕ) (cert : String → V → ℕ) :
+    ∀ p ∈ openingQueriesLoops, OqCompleteD fs cert p.1 p.2.1 p.2.2.1 p.2.2.2 :=
+  fun p hp ↦ (opening_queries_completeAtB fs cert p hp).toD
 
 end
 end LeanVM.Guest.B1
