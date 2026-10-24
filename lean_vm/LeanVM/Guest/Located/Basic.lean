@@ -15,8 +15,10 @@ public import LeanVM.Guest.CertName
 A located call (`Check.RL coreProgram L certByName`, `RLg L` here) runs at a frame `g^a` of the
 memory, `a < 2^κ` (`Check.InMem`), under its certificate's valuation there (`valAt`). A witness is
 read off the first frame passing a Boolean test (`firstFrame`). The frame of a call (`frameOf`) is
-the first at which the callee's code holds on the call's words (`BodyAt`): the guest's own
-semantics is the only test, the decoder verifies nothing.
+the first at which the callee's code holds on the call's words (`BodyAt`), a classical test of the
+guest's own semantics (the callee's core IR body under the located relation, its in-circuit
+checks such as `KECCAK`'s `KeccakCells` included). The decoder computes no hash and runs no
+verifier of its own.
 
 * `frameDec L f wit args rets`: the witness `wit` reads off the valuation of the call's frame;
   `frameDec_spec`: whatever the callee's body gives at any of its frames, the decoded witness has.
@@ -80,7 +82,9 @@ theorem rl_frame {κ : ℕ} {L : MemImage κ} {f : String} {fn : Fn}
 
 open Classical in
 /-- **The frame of a call**: the first frame of the memory at which the callee's code holds on the
-call's words. It checks nothing itself: the only test is the guest's own semantics. -/
+call's words, decided classically: the test is the guest's own semantics (the callee's core IR
+body under the located relation, its in-circuit checks included); it computes no hash and runs no
+verifier of its own. -/
 noncomputable def frameOf {κ : ℕ} (L : MemImage κ) (f : String) (args rets : List E) : ℕ :=
   match firstFrame κ (fun a ↦ decide (BodyAt L f args rets a)) with
   | some a => a

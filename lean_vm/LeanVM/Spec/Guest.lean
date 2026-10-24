@@ -23,8 +23,9 @@ witness. A **decoder** reads a seed, a statement and a witness off a memory (`De
 * `AggregateSound guest decode`, what a consumer learns: in the random-oracle experiment, the
   verifier accepts a proof of `guest` on the digest of a statement `s` under the deployed seed,
   `s` passing the outer verifier's other checks (`OuterChecks`), while the execution the
-  knowledge extractor `extractor` (`Extractor.lean`) reads off the proof and the adversary's
-  answers does not explain `s` (`Explains`: decode to the deployed seed, `s` and a witness
+  knowledge extractor `extractor` (`Statement.lean`, wrapping `Extraction.extract` of
+  `Extractor.lean`) reads off the proof and the adversary's answers is none, or does not explain
+  `s` (`Explains`: decode to the deployed seed, `s` and a witness
   holding it, or give a Keccak-256 collision among `collisionCandidates`), with probability at
   most `soundnessError Q`. The experiment is `LeanVM.Spec.Statement`'s: Keccak-256 and
   Keccak-f[1600] outside the executed program are random oracles; the statement's digest and the
@@ -34,7 +35,10 @@ Both hold of any decoder that happens to output valid witnesses; their content i
 the theorems name (`LeanVM.Guest.End.decode`), which reads every component off the memory: the
 statement from `main`'s frame, each signature, matrix and child proof from the frame of the
 function that checked it, the first frame of the memory at which that function's code holds on
-the call's words. The decoder chooses nothing and verifies nothing. The seed is the guest's hint:
+the call's words. The decoder chooses nothing. It computes no hash and runs no verifier of its own;
+it finds each call's frame as the first of the memory's `2^κ` frames at which the guest's own code
+for the callee holds on the call's words (a classical test of the guest's semantics, which
+includes its in-circuit checks), and reads the witness there. The seed is the guest's hint:
 the statement's digest binds it, so a consumer comparing the digest with its own statement's under
 the deployed seed learns both, unless it holds a Keccak-256 collision.
 

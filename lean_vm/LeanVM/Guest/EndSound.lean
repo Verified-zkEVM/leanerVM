@@ -66,7 +66,7 @@ theorem guest_knowledge_sub (hv : B1.Main.SubSoundW bytecode piOf) :
 /-- **What a consumer learns**, from `verify_sub`'s statement. -/
 theorem decode_binds_sub (hv : B1.Main.SubSoundW bytecode piOf)
     {input : PublicInput} {t : Trace guest} (hvt : ValidExecution guest input t) {iv : Digest}
-    {s₀ : NodeStatement} (hs₀ : s₀.defer.Holds bytecode)
+    {s₀ : NodeStatement} (hs₀ : s₀.defer.Shaped bytecode)
     (hpub : publicDigest input = statementDigest iv s₀) :
     ((decodeV piOf t.image).seed = iv ∧ (decodeV piOf t.image).statement = s₀) ∨
       HasCollision (collisionCandidates (decodeV piOf t.image).seed

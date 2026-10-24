@@ -10,7 +10,8 @@ independent random oracles), `LeanVM.KnowledgeSoundnessRpm` and `LeanVM.Complete
 (`LeanVM/Spec/Rpm.lean`: both built from one random permutation), and the guest's batching of its
 children's deferred claims (`LeanVM.Guest.Batch.children_sound`, `batch_rom`, `batch_rom_bits`),
 and the guest's soundness with its witness named (`LeanVM.Guest.End.guest_knowledge`,
-`decode_binds`, `aggregate_sound_outer`: `LeanVM.Node.GuestKnowledge` and `LeanVM.Node.AggregateSound`
+`decode_binds`, `aggregate_sound_outer`, `aggregate_knowledge`, `guest_sound`:
+`LeanVM.Node.GuestKnowledge` and `LeanVM.Node.AggregateSound`
 of `LeanVM/Spec/Guest.lean` for the deployed bytecode and the decoder `LeanVM.Guest.End.decode`;
 `guest_sentinelSafe`).
 The build fails if their axiom footprint ever grows beyond Lean's three standard axioms. -/
@@ -98,3 +99,11 @@ The build fails if their axiom footprint ever grows beyond Lean's three standard
 /-- info: 'LeanVM.Guest.guest_sentinelSafe' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms LeanVM.Guest.guest_sentinelSafe
+
+/-- info: 'LeanVM.Guest.End.aggregate_knowledge' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms LeanVM.Guest.End.aggregate_knowledge
+
+/-- info: 'LeanVM.Guest.End.guest_sound' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms LeanVM.Guest.End.guest_sound
