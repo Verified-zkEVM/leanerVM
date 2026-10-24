@@ -518,6 +518,7 @@ pinned sources is [archived](../reviews/protocol-spine-revision.md).
     deployed `blake2s_row_values`, `verifier.py:1180-1295`, and the Rust `marginal_walk`) are owed
     by the leanISA instance, whose region they evaluate; they enter through
     `FlockSpec.compress_of_region` and `region_holds_gen`, which need only the matrices to agree.
+    The forward walk is the verifier's `blake2sRows`, proved equal (`blake2sRows_eq`).
   - The honest run is on a tiny argument (two skipped values, two blocks of four wires): an
     `E` multiplication costs about 2 ms in the interpreter and an inversion about 1 s, and
     leanVM's sizes are a block of `2^14` positions. The slot's typing, the constants and the zero
@@ -1049,13 +1050,12 @@ Merkle trees', with the fast field arithmetic merged), the rest of Layer 12's ve
   check made as `Flock.linCheck` makes it, from the step's own statement, with the circuit's
   matrices evaluated by a supplied walk (`Flock.linTerminalWith rows`). The region's block R1CS
   (`blake2sCircuit.toBlockR1CS`) evaluates its matrices entry by entry, `2^28` terms each, which
-  nothing can run; the verifier walks the circuit once instead (`blake2sRows`, transcribed from
-  `verifier.py:1167-1298`, written once over any type with `+` and `0`). Owed, stated as an
-  unproved target in `Blake2sWalk.lean`: `blake2sRows w = (blake2sCircuit.toBlockR1CS E).rows w`,
-  on which the compiled verifier's equality with the oracle verifier rests. Both sides are
-  additive in `w`; on GF(2) forms the walk returns each row's two forms, and `leanervm-verify`
-  finds them equal to `rowOf blake2sCircuit` at all `2^14` rows (`VerifyFlock.walkMismatches`);
-  the tests check the walk at `E` at rows of every kind, and the Rust proof's lincheck passes on
+  nothing can run; the verifier runs the circuit's own builder on the column weights instead
+  (`blake2sRows`: the gadgets are written over a carrier of linear values, and the circuit is
+  their run on GF(2) forms). `blake2sRows_eq` proves
+  `blake2sRows w = (blake2sCircuit.toBlockR1CS E).rows w` for every `w`, by the builder's
+  naturality under evaluation at `w` (`blake2sGates_map`, `evalAt_hom`, `toBlockR1CS_rows`); the
+  tests also check the walk at `E` at rows of every kind, and the Rust proof's lincheck passes on
   it. On the fixture the phase hands
   on the Python verifier's ring-switching target (`VerifyFlock.lean`, with a flipped slice, skip
   value, zerocheck and lincheck coefficient, `â` and a missing coefficient rejected).
@@ -1094,8 +1094,8 @@ Merkle trees', with the fast field arithmetic merged), the rest of Layer 12's ve
   the executable also rejects a changed input lane and a changed instruction (the seed moves) and
   two exchanged rows of a level, and WHIR's algebra a changed first round polynomial. Owed: `verifierQueries`,
   `proofDigests`, `rounds` and their bounds, `decodePrefix` and `verify_iff_compiled`, which
-  needs `blake2sRows = (blake2sCircuit.toBlockR1CS E).rows` and the instance's known-coordinate
-  evaluators equal to the extensions (they are, by the field `ext_eq`). The bus phase's algebra
+  rests on `blake2sRows_eq` and the instance's known-coordinate evaluators equal to the
+  extensions (they are, by the field `ext_eq`). The bus phase's algebra
   with the program's share settled is the oracle verifier's step (`leanVmBus_eq_busStep`).
 
 - **The walk's primitives and the transport** (`Protocol/Verify/Setup.lean`,

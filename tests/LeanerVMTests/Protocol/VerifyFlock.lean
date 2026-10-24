@@ -17,13 +17,11 @@ flipped, `â` and `b̂` exchanged (the zerocheck's terminal is symmetric in them
 claim is not), a lincheck round's coefficient flipped, and a missing ring-switching
 coefficient.
 
-**The walk against the circuit.** At column weights from a seed, `blake2sRows` agrees with the
-rows of `blake2sCircuit`'s matrices, read off its gates entry by entry, at rows of every kind:
-the constant, a chaining-value input, a message input, a counter input, an output bit, the first
+**The walk against the circuit.** `blake2sRows_eq` proves the walk is the circuit's forward walk.
+As a smoke test, at column weights from a seed, `blake2sRows` agrees with the rows of
+`blake2sCircuit`'s matrices, read off its gates entry by entry, at rows of every kind: the
+constant, a chaining-value input, a message input, a counter input, an output bit, the first
 majority, ripple and carry gates of a mixing step, a gate of the last step, and a padding row.
-On GF(2) forms the walk's rows are the gates' forms at all `2^14` rows (`walkMismatches`). The
-walk uses only `+` and `0`, so each of its rows at `E` is a sum of weights with natural
-multiplicities, which characteristic two reduces to the form the walk returns on GF(2).
 -/
 
 namespace LeanerVMTests.Protocol.VerifyFlock
@@ -42,16 +40,11 @@ def weights (seed : ℕ) : CMlPolynomialEval E (Flock.kSkip + Flock.kIn) :=
   Vector.ofFn fun j ↦ e3 ((seed + 7919 * j.val) * 2654435761 % 2 ^ 64)
     ((seed * 31 + j.val) * 40503 % 2 ^ 64) ((j.val * j.val + seed) % 2 ^ 64)
 
-/-- A form at the weights: the sum of the weights of its positions. -/
-def formAt (L : Form (Flock.kSkip + Flock.kIn))
-    (w : CMlPolynomialEval E (Flock.kSkip + Flock.kIn)) : E :=
-  ∑ j : Fin (2 ^ (Flock.kSkip + Flock.kIn)), if L.getLsbD j then w[j] else 0
-
 /-- Row `k` of the circuit's two matrices at the weights, read off its gates. -/
 def circuitRow (k : Fin (2 ^ (Flock.kSkip + Flock.kIn)))
     (w : CMlPolynomialEval E (Flock.kSkip + Flock.kIn)) : E × E :=
   let g := blake2sCircuit.rowOf k
-  (formAt g.a w, formAt g.b w)
+  (evalAt w g.a, evalAt w g.b)
 
 /-- The rows the walk is checked at. -/
 def sampleRows : List ℕ :=
@@ -63,32 +56,6 @@ def sampleRows : List ℕ :=
   sampleRows.all fun k ↦
     if h : k < 2 ^ (Flock.kSkip + Flock.kIn) then circuitRow ⟨k, h⟩ w == (r.1[k], r.2[k])
     else false
-
-/-! ## The walk against the circuit, as forms -/
-
-/-- A GF(2) linear form over the block's positions, `+` its XOR. -/
-structure Gf2Form where
-  /-- The positions with coefficient `1`. -/
-  bits : Form (Flock.kSkip + Flock.kIn)
-
-instance : Add Gf2Form := ⟨fun a b ↦ ⟨a.bits ^^^ b.bits⟩⟩
-
-instance : Zero Gf2Form := ⟨⟨0⟩⟩
-
-/-- The walk on forms: input `j` the form of position `j`, so row `k` of each side is the form
-the walk sums there. -/
-def walkForms : Array Gf2Form × Array Gf2Form :=
-  blake2sRowsOf ((Array.range (2 ^ (Flock.kSkip + Flock.kIn))).map fun j ↦
-    ⟨Form.var (pos j)⟩)
-
-/-- The rows at which the walk's two forms are not the gates' (`rowOf`): none. -/
-def walkMismatches (rows : List ℕ := List.range (2 ^ (Flock.kSkip + Flock.kIn))) : List ℕ :=
-  let r := walkForms
-  rows.filter fun k ↦
-    let g := blake2sCircuit.rowOf (pos k)
-    !((r.1.getD k 0).bits == g.a && (r.2.getD k 0).bits == g.b)
-
-#guard walkMismatches == []
 
 /-! ## The phase on the fixture -/
 

@@ -357,10 +357,9 @@ It prints the honest proof's verdict, then each mutation of
 `LeanerVMTests.Protocol.Verify.mutations` with the stage that rejects it (`outcome`: the setup,
 the openings' shapes, a read with the reader's error, or a phase of the algebra) against the
 stage recorded for it, the same for the statement's mutations (`statementMutations`: the proof
-of the fixture against a changed input or program), WHIR's algebra on the honest transcript with its mutations at every
-level (`whirChecks`), and the BLAKE2s walk's two forms against the circuit's gates at all
-`2^14` rows (`LeanerVMTests.Protocol.VerifyFlock.walkMismatches`); the exit code is `1` if any
-check fails. The timed runs exclude the fixture's parsing.
+of the fixture against a changed input or program), and WHIR's algebra on the honest transcript
+with its mutations at every level (`whirChecks`); the exit code is `1` if any check fails. The
+timed runs exclude the fixture's parsing.
 
 Recorded on 2026-10-23 at the fixture of leanVM `a386121f` (770 scalars, four openings of 223,
 56, 32 and 22 rows, a stack of `2^20` cells), on the machine of the table above: every check

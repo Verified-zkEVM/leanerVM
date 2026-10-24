@@ -36,10 +36,10 @@ equality weights; `ĉ = â·b̂ − R` (`Flock.termNext`); the lincheck's claim
 `v_a + α v_b + α² v_c + α³` (`Flock.alphaNext`); its rounds decoded; the check of the running claim
 against the native terminal at the slices, `Flock.linCheck`'s expression on the statement with
 the circuit's matrices evaluated by a supplied walk `rows` (`Flock.linTerminalWith`; the
-verifier's is `blake2sRows`, the region's block R1CS walking `2^28` terms a matrix); the point it
-ends at
-(`Flock.linNext`); and the switched weighted claim `⟨W, q⟩ = Σ_i g^i Φ(s_i)` lifted into the
-stack (`Flock.ringWeight`, `Flock.ringTarget`, `FlockPhase.finish`).
+verifier's is `blake2sRows`, equal to the region's block R1CS's walk of `2^28` terms a matrix by
+`blake2sRows_eq`); the point it ends at (`Flock.linNext`); and the switched weighted claim
+`⟨W, q⟩ = Σ_i g^i Φ(s_i)` lifted into the stack (`Flock.ringWeight`, `Flock.ringTarget`,
+`FlockPhase.finish`).
 -/
 
 namespace LeanerVM.Protocol
