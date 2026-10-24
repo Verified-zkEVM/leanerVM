@@ -18,7 +18,8 @@ written under `LeanVM/Guest/`. `CMD` is one of
   over the closure of `WROOTS` (`verify_tables`' and `check_opening_terminal`'s statically bounded
   callees, the rounds loop `__loop10`, `shared_selector_tables`' callees and `__loop15`);
 * `ratiov`: `Count/RatioVData.lean`, `Count/RatioVChk*.lean`, `Count/RatioV.lean`, the counts of
-  `RATIOV_ROOTS` (`verify_sub`'s callees with no static bound) within ratios of their words;
+  `RATIOV_ROOTS` (`verify_sub`'s callees with no static bound but `verify_tables` and the terminal,
+  and the terminal's `__loop15` and `ring_switch_weight`) within ratios of their words;
 * `vscount`: `Count/VsCountData.lean`, `Count/VsCountChk*.lean`, the `V` families' counts as tables
   (`vscount.py`, used by `Budget/VsCount.lean`, `Budget/L5Count.lean`);
 * `static`: `Count/Static.lean`, the bounds of `ROOTS` the families give, per opcode and in words,
@@ -65,9 +66,11 @@ WROOTS = (['block_selector__L%d' % k for k in range(34)] + ['block_selector_tab_
           ['padding_weight__L%d' % k for k in range(29)] + ['plus_one_run__L%d' % k for k in range(34)] +
           ['sel_partial_nibble__L%d' % k for k in range(4)] + ['column_selector__L%d' % k for k in range(29)] +
           ['eq_prefix_chain', 'sumcheck_round4', '__loop10', '__loop9', '__loop15', 'selector_tables'])
-# `verify_sub`'s callees with no static bound, within ratios of their words (`Count/RatioV*`).
-RATIOV_ROOTS = [('Vbg', 'verify_bus_gkr'), ('Vt', 'verify_tables'), ('Vk', 'verify_keccak'),
-                ('Vterm', 'check_opening_terminal')]
+# `verify_sub`'s callees with no static bound, and the terminal's `__loop15` and
+# `ring_switch_weight` (`verify_tables` and the terminal are bounded by their trees' shapes, the `W`
+# families), within ratios of their words (`Count/RatioV*`).
+RATIOV_ROOTS = [('Vbg', 'verify_bus_gkr'), ('Vk', 'verify_keccak'), ('Vl15', '__loop15'),
+                ('Vrsw', 'ring_switch_weight')]
 MAIN_CALLEES = ['exponent_tables', '__loop0', 'da_list_digest', 'claim_list_digest', '__loop1',
                 '__loop2', '__loop3', '__loop4', 'da_verify', 'cover_da_root', '__loop5',
                 AGG, 'statement_digest']

@@ -2,15 +2,53 @@
 opcode, of `verify_sub`'s statically bounded callees (each child's opening arm
 `open_stacked__L{c}` among them), of `child_claim_list_digest`'s callees, and the frame weights
 of `verify_sub`, `child_claim_list_digest` and `__loop5`, as tables checked against the `V`
-count certificates (`Count/StaticV.lean`) by `decide +kernel`, one module per opcode."""
+count certificates (`Count/StaticV.lean`) by `decide +kernel`, one module per opcode; and
+`verify_tables`' and the terminal's bounds (`kcVtW`, `kcTermW`, from the `W` certificates)."""
 import os
 
 VS_ST = ['g_power_of_word', 'log2_ceil_in_the_exponent__L0_L34', 'assert_canonical', 'ring_switch_target',
          'certify_placement', 'log2_ceil_in_the_exponent__L15_L34']
 OM = ['verify_sub', 'child_claim_list_digest', '__loop5']
-# `verify_sub`'s callees with no static bound, counted within a ratio of these words.
-RB = [('verify_bus_gkr', 49403), ('verify_tables', 59762), ('verify_keccak', 87672),
-      ('check_opening_terminal', 38888)]
+# `verify_sub`'s callees with no static bound but `verify_tables` and the terminal, counted within a
+# ratio of these words.
+RB = [('verify_bus_gkr', 49403), ('verify_keccak', 87672)]
+
+
+def vt_term(g):
+    """`verify_tables`' and the terminal's weight bounds per opcode index (`B1.VerifySub.vtWB`,
+    `termWB` at `Count.vsWords`), from the `W` certificates and the ratios of `__loop15` and
+    `ring_switch_weight`."""
+    import checker, gen
+    from ratio import blk_callees
+    S = g.closure(gen.WROOTS)
+    certs = [checker.gen(g.fns, g.omega_cnt(k), only=S)[1] for k in range(6)]
+    def stat(k, n):
+        c = certs[k][n]; assert c[0] == 'stat' and c[1] == [] and c[2][1] == [], (n, c); return c[2][0]
+    def loop(k, n):
+        c = certs[k][n]; assert c[0] == 'loop' and c[1] is None and c[2] == [] and c[3][1] == [], (n, c); return c[3][0]
+    om = [g.omega_cnt(k) for k in range(6)]
+    fsd = g.fs_words(); fs = lambda n: fsd.get(n, 2)
+    fsN = lambda j: g.main_frame if j == 1 else max(2, g.fsz[j])
+    def ratioA(r):
+        J = sorted(g.by[n] for n in g.closure([r]))
+        return [max(-(-1000 * g.pm[j + 1][k] // fsN(j + 1)) for j in J) for k in range(6)]
+    A15, Arsw = ratioA('__loop15'), ratioA('ring_switch_weight')
+    vtW, termW = [], []
+    for k in range(6):
+        wss = om[k]['shared_selector_tables'] + 15 * loop(k, '__loop9') + max(stat(k, 'sel_partial_nibble__L%d' % j) for j in range(4))
+        t = om[k]['verify_tables']
+        for st in g.fns[g.by['verify_tables']]['body']:
+            if st[0] == 'call': t += wss if st[1] == 'shared_selector_tables' else stat(k, st[1])
+            elif st[0] == 'callIf': assert st[2] == '__loop10'; t += 28 * loop(k, '__loop10')
+            elif st[0] == 'dispatch': t += max(stat(k, f) for f in st[2])
+            else: assert st[0] in ('atom', 'ret') or (st[0] == 'ite' and not blk_callees([st])), st[0]
+        vtW.append(t)
+        w15 = A15[k] * max(fs('__loop15'), 32 * 38) // 1000
+        wrsw = Arsw[k] * (fs('ring_switch_weight') + 2240 + 16433) // 1000
+        wcs = max(stat(k, 'column_selector__L%d' % j) for j in range(29))
+        termW.append(om[k]['check_opening_terminal'] + 3 * stat(k, 'eq_prefix_chain') + w15 + stat(k, 'selector_tables')
+                     + 99 * wcs + wrsw)
+    return vtW, termW
 
 HDR = '''/-
   LeanVM.Guest.Count.%s
@@ -49,11 +87,13 @@ def tables(g):
         J = sorted(g.by[n] for n in g.closure([r]))
         return [max(-(-1000 * g.pm[j + 1][k] // fsN(j + 1)) for j in J) for k in range(6)]
     RA = [ratioA(r) for r, _ in RB]
+    vtW, termW = vt_term(g)
     osN = ['open_stacked__L%d' % c for c in range(28)]
     def vsc(k, c):
         st = [stat(k, n) for n in VS_ST]
-        rr = [RA[i][k] * RB[i][1] // 1000 for i in range(4)]
-        return om[k]['verify_sub'] + 2 * st[0] + st[1] + 2 * st[2] + rr[0] + rr[1] + rr[2] + st[3] + st[4] + st[5] + stat(k, osN[c]) + rr[3]
+        rr = [RA[i][k] * RB[i][1] // 1000 for i in range(2)]
+        return om[k]['verify_sub'] + 2 * st[0] + st[1] + 2 * st[2] + rr[0] + vtW[k] + rr[1] + st[3] + st[4] + st[5] + stat(k, osN[c]) + termW[k]
+    vsc.vtW, vsc.termW = vtW, termW
     return stat, loop, om, vsc
 
 
@@ -98,8 +138,10 @@ def write(g, OPS):
     o.append(opdef('kcLs', '`list_split`\'s instructions.', lambda k: stat(k, 'list_split')))
     o.append(opdef('kcL17', '`__loop17`\'s instructions per iteration.', lambda k: loop(k, '__loop17')))
     o.append(opdefl('omT', 'The frame weights of `omNames`.', lambda k: [om[k][n] for n in OM]))
-    o.append(opdefl('vsCountT', '`verify_sub`\'s instructions at candidate `c`, its four ratio-bounded callees '
-                    'within `49403`, `59762`, `87672`, `38888` words.', lambda k: [vsc(k, c) for c in range(28)]))
+    o.append(opdef('kcVtW', '`verify_tables`\' instructions (`B1.VerifySub.vtWB Count.vsWords`).', lambda k: vsc.vtW[k]))
+    o.append(opdef('kcTermW', 'The terminal\'s instructions (`B1.VerifySub.termWB Count.vsWords`).', lambda k: vsc.termW[k]))
+    o.append(opdefl('vsCountT', '`verify_sub`\'s instructions at candidate `c`, its two ratio-bounded callees '
+                    'within `49403`, `87672` words.', lambda k: [vsc(k, c) for c in range(28)]))
     o.append('''/-- **The tables check** against the `V` certificates and `B2C.plumbOf`. -/
 noncomputable def vsTabOk (op : Opcode) : Bool :=
   (List.range 28).all (fun c => kvOkB op (osJ.getD c 0) ("open_stacked__L" ++ B1.Whir.natStr c) &&

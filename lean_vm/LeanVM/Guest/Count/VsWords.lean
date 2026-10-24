@@ -3,7 +3,9 @@
 
   `verify_sub`'s callees' words at the deployed frame sizes (`VsWords B2C.fs`), from the words
   certificates (`wSB`, `wSK`), B1-d's terminal words (`TermWordsFs`) and B1-c's
-  `shared_selector_tables` bound (`ss_totalLeOn`).
+  `shared_selector_tables` bound (`ss_totalLeOn`); `verify_tables`' and the terminal's callees'
+  weights from the `W` count certificates (`kuSB`, `kuSK`), `ss_weightLeOn` and the ratios of
+  `__loop15` and `ring_switch_weight` (`Count/RatioV`).
 -/
 
 module
@@ -12,6 +14,8 @@ public import LeanVM.Guest.Count.Instances
 public import LeanVM.Guest.B1.VerifySub.CompleteB
 public import LeanVM.Guest.B1.Terminal.TermWordsFs
 public import LeanVM.Guest.B1.Selectors.SharedTotal
+public import LeanVM.Guest.Count.StaticW
+public import LeanVM.Guest.Count.RatioV
 
 namespace LeanVM.Guest.Count
 
@@ -143,6 +147,66 @@ theorem sp_totalLe : ∀ j < 4,
   · rw [show B1.Tables.lName "sel_partial_nibble" 3 = "sel_partial_nibble__L3" by decide]
     exact totalLe_mono (wSB_totalLe (j := 86) (by decide +kernel)) (by unfold kSp; omega)
 
+/-! ## The weights of `verify_tables`' and the terminal's callees -/
+
+theorem vtPairs_okW (op : Opcode) : (vtPairs.all fun p => kuOkB op p.2 p.1) = true := by
+  cases op <;> decide +kernel
+
+theorem vt_kids_weightLe (op : Opcode) : ∀ g ∈ B1.Tables.vtKidS, g ≠ "__loop10" → g ≠ "__loop9" →
+    g ≠ "shared_selector_tables" →
+      WeightLe coreProgram (B2C.ωArm B2C.xmssArmC op) g (fun _ => kuSB op g) := by
+  intro g hg h1 h3 h2
+  have hm : g ∈ vtPairs.map Prod.fst := by
+    rw [← vtPairs_names, List.mem_filter]
+    exact ⟨hg, by simp [h1, h2, h3]⟩
+  obtain ⟨p, hp, rfl⟩ := List.mem_map.mp hm
+  exact kuSB_weightLe (List.all_eq_true.mp (vtPairs_okW op) p hp)
+
+/-- A loop's certificate per iteration, as `Budget.LoopW`. -/
+theorem loopW_of {ω : String → ℕ} {f : String} {K : ℕ} (h : LoopWeightLe ω f K) :
+    Budget.LoopW ω f K := fun rd t args rets a e hn hv hb ha he hae heo =>
+  h rd t args rets a e hn hv hb ha he hae heo
+
+/-- The four partial nibble selectors' weights, at most. -/
+noncomputable def kSpW (op : Opcode) : ℕ :=
+  max (max (kuSB op "sel_partial_nibble__L0") (kuSB op "sel_partial_nibble__L1"))
+    (max (kuSB op "sel_partial_nibble__L2") (kuSB op "sel_partial_nibble__L3"))
+
+theorem weightLe_mono {ω : String → ℕ} {f : String} {B B' : ℕ}
+    (h : WeightLe coreProgram ω f fun _ => B) (hB : B ≤ B') : WeightLe coreProgram ω f fun _ => B' :=
+  fun rd t args rets hn hv hb => (h rd t args rets hn hv hb).trans hB
+
+theorem sp_weightLe (op : Opcode) : ∀ j < 4, WeightLe coreProgram (B2C.ωArm B2C.xmssArmC op)
+    (B1.Tables.lName "sel_partial_nibble" j) (fun _ => kSpW op) := by
+  intro j hj
+  interval_cases j
+  · rw [show B1.Tables.lName "sel_partial_nibble" 0 = "sel_partial_nibble__L0" by decide]
+    exact weightLe_mono (kuSB_weightLe (j := 83) (by cases op <;> decide +kernel)) (by unfold kSpW; omega)
+  · rw [show B1.Tables.lName "sel_partial_nibble" 1 = "sel_partial_nibble__L1" by decide]
+    exact weightLe_mono (kuSB_weightLe (j := 84) (by cases op <;> decide +kernel)) (by unfold kSpW; omega)
+  · rw [show B1.Tables.lName "sel_partial_nibble" 2 = "sel_partial_nibble__L2" by decide]
+    exact weightLe_mono (kuSB_weightLe (j := 85) (by cases op <;> decide +kernel)) (by unfold kSpW; omega)
+  · rw [show B1.Tables.lName "sel_partial_nibble" 3 = "sel_partial_nibble__L3" by decide]
+    exact weightLe_mono (kuSB_weightLe (j := 86) (by cases op <;> decide +kernel)) (by unfold kSpW; omega)
+
+/-- The column selectors' weights, at most. -/
+noncomputable def kCsW (op : Opcode) : ℕ :=
+  ((List.range 29).map fun κ => kuSB op (B1.Tables.lName "column_selector" κ)).foldr max 0
+
+theorem cs_okW (op : Opcode) : (List.range 29).all (fun κ =>
+    kuOkB op (264 + κ) (B1.Tables.lName "column_selector" κ)) = true := by
+  cases op <;> decide +kernel
+
+theorem cs_weightLe (op : Opcode) : ∀ κ < 29, WeightLe coreProgram (B2C.ωArm B2C.xmssArmC op)
+    (B1.Tables.lName "column_selector" κ) (fun _ => kCsW op) := by
+  intro κ hκ
+  refine weightLe_mono (kuSB_weightLe (List.all_eq_true.mp (cs_okW op) κ (List.mem_range.mpr hκ))) ?_
+  exact B1.Tables.le_foldr_max (List.mem_map.mpr ⟨κ, List.mem_range.mpr hκ, rfl⟩)
+
+theorem ratio_le {w A t B : ℕ} (h : 1000 * w ≤ A * t) (ht : t ≤ B) : w ≤ A * B / 1000 :=
+  (Nat.le_div_iff_mul_le (by norm_num)).mpr (by
+    have := Nat.mul_le_mul_left A ht; rw [Nat.mul_comm w]; omega)
+
 /-- **`verify_sub`'s callees' words at `B2C.fs`.** -/
 noncomputable def vsWords : B1.VerifySub.VsWords B2C.fs where
   Bg := wSB "g_power_of_word"
@@ -178,6 +242,25 @@ noncomputable def vsWords : B1.VerifySub.VsWords B2C.fs where
   hCs := B1.VerifySub.cs_totalLe_fs
   hCsF := B1.VerifySub.cs_fs_le
   hrs := B1.VerifySub.rs_totalLeOn_fs
+  ωv := fun op => B2C.ωArm B2C.xmssArmC op
+  Kvw := kuSB
+  Wss := fun op => B2C.ωArm B2C.xmssArmC op "shared_selector_tables" + 15 * kuSK op "__loop9" +
+    kSpW op
+  Kw10 := fun op => kuSK op "__loop10"
+  hKvw := vt_kids_weightLe
+  hssw := fun op => B1.Tables.ss_weightLeOn _ _ _
+    (loopW_of (kuSK_loop (j := 82) (by cases op <;> decide +kernel))) (sp_weightLe op)
+  h10w := fun op => loopW_of (kuSK_loop (j := 252) (by cases op <;> decide +kernel))
+  Weqc := fun op => kuSB op "eq_prefix_chain"
+  W15 := fun op => krVl15A op * max (B2C.fs "__loop15") (32 * 38) / 1000
+  Wst := fun op => kuSB op "selector_tables"
+  Wcs := kCsW
+  Wrsw := fun op => krVrswA op * (B2C.fs "ring_switch_weight" + 2240 + 16433) / 1000
+  hEqcW := fun op => kuSB_weightLe (j := 4) (by cases op <;> decide +kernel)
+  hStW := fun op => kuSB_weightLe (j := 16) (by cases op <;> decide +kernel)
+  hCsW := cs_weightLe
+  h15W := fun op rd t args rets hn hv hb ht => ratio_le (krVl15_weight op rd t args rets hn hv hb) ht
+  hrswW := fun op rd t args rets hn hv hb ht => ratio_le (krVrsw_weight op rd t args rets hn hv hb) ht
 
 end
 end LeanVM.Guest.Count
