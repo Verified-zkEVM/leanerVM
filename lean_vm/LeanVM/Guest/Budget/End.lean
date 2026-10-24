@@ -49,21 +49,21 @@ theorem loadHolds_gen {rd : Reader} {x : E} (h : rd g = some x) : LoadHolds rd g
 /-- **`MainComplete` from `main`'s completeness within a words bound and its tree's counts.** -/
 theorem mainComplete_of_bounds (fs : String → ℕ) (cert : String → V → ℕ)
     (cnt : Tree → Opcode → ℕ) (b : Budget)
-    (T : Digest → NodeStatement → NodeWitness → Tree → Prop) (Bm : NodeStatement → NodeWitness → ℕ)
+    (T : Digest → NodeStatement → NodeWitness → Reader → Tree → Prop) (Bm : Digest → NodeStatement → NodeWitness → ℕ)
     (hfs : 2 ≤ fs "main")
     (hmain : ∀ seed s w, NodeRel bytecode seed s w → Limits bytecode s w → CapsAgree bytecode seed w →
       NoZeroChallenge bytecode seed w →
-      ∃ (n : ℕ) (L : B1.Main.Layout), n ≤ Bm s w ∧ Within L 0 n ∧ (∀ q ∈ L, fs "main" ≤ q.1) ∧
+      ∃ (n : ℕ) (L : B1.Main.Layout), n ≤ Bm seed s w ∧ Within L 0 n ∧ (∀ q ∈ L, fs "main" ≤ q.1) ∧
         DisjL L ∧ ∀ rd, LowDef 16 rd → B1.Main.MemL rd L →
           LoadHolds rd 1 0 (digestScalars (statementDigest seed s)).1 →
           LoadHolds rd gen 0 (digestScalars (statementDigest seed s)).2 →
           RelAtInT coreProgram fs cert rd (fun i => i < 2) (fun _ => False) 0 n "main" [] []
-            (T seed s w))
+            (T seed s w rd))
     (hcnt : ∀ seed s w, NodeRel bytecode seed s w → Limits bytecode s w →
-      ∀ (rd : Reader) (t : Tree), T seed s w t → t.Valid coreProgram rd [] [] →
+      ∀ (rd : Reader) (t : Tree), T seed s w rd t → t.Valid coreProgram rd [] [] →
         t.BufsOk coreProgram → ∀ op, cnt t op ≤ (b.instrs op).eval (work s w))
     (hwords : ∀ seed s w, NodeRel bytecode seed s w → Limits bytecode s w →
-      Bm s w ≤ b.words.eval (work s w)) :
+      Bm seed s w ≤ b.words.eval (work s w)) :
     MainComplete fs cert cnt b := by
   intro seed s w hrel hlim hcap hnz hbs
   obtain ⟨n, L, hnB, hW, hab, hD, hR⟩ := hmain seed s w hrel hlim hcap hnz
