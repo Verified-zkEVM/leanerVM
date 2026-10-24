@@ -2,7 +2,7 @@ import LeanVM.Protocol.LeanVM
 import LeanVM.Protocol.LeanVMRpm
 import LeanVM.Guest.Batch.Children
 import LeanVM.Guest.Batch.Rom
-import LeanVM.Guest.Budget.Closed
+import LeanVM.Guest.Budget.ClosedN
 
 /-! The theorems: the verifier's, `LeanVM.KnowledgeSoundness` and `LeanVM.Completeness`
 (`LeanVM/Spec/Statement.lean`), for leanVM at `main` (Keccak-256 and Keccak-f[1600] as
@@ -87,3 +87,7 @@ The build fails if their axiom footprint ever grows beyond Lean's three standard
 /-- info: 'LeanVM.Guest.Budget.guestComplete_mono' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms LeanVM.Guest.Budget.guestComplete_mono
+
+/-- info: 'LeanVM.Guest.Budget.guest_complete_numeric' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms LeanVM.Guest.Budget.guest_complete_numeric
