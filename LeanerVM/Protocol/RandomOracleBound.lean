@@ -40,7 +40,7 @@ deployed protocol.
   group is the expectation, over the next answer, of its probability after it.
 * `π_le_of_not_asked`: a group with no logged query closes on a bad challenge with probability at
   most `ε`, when every challenge is bad with probability at most `ε` (a marked one after a uniform
-  check passes); `sum_openedBy_le`: the groups one query opens are worth `ε` together;
+  check passes, `Density`); `sum_openedBy_le`: the groups one query opens are worth `ε` together;
   `charge_le`: within `L` queries the charge is at most
   `(4L + |seedRoots| + |proofRoots|) / 2^256 + ε`.
 * `Φ_empty`: the potential starts at `0`; `Φ_start`: with the roots past a whole log it is the
@@ -92,6 +92,14 @@ noncomputable def charge (s : OracleState) (t : List UInt8) : ℝ≥0∞ :=
     ((badDigests seedRoots proofRoots k₀ s.2 t).length : ℝ≥0∞) / 2 ^ 256 +
       ∑ G ∈ R.openedBy s.2 t, R.π s.2 G
   else 0
+
+/-- **The density of bad challenges** is at most `ε`: at every challenge, a uniform challenge is
+bad with probability at most `ε`, counted once a uniform check passes when a proof of work
+precedes the challenge. -/
+def Density (ε : ℝ≥0∞) : Prop :=
+  ∀ a i tr, (if R.mark a i then Pr{let d ← $ᵗ Digest}[
+    FsState.lowBitsZero d R.powBits = true] else 1) *
+      Pr{let c ← $ᵗ ((R.spec a).Challenge i)}[c ∈ R.Bad a i tr] ≤ ε
 
 end SlotReader
 
@@ -391,14 +399,9 @@ private theorem SlotReader.mark_eq_of_groupSlot {G : Group} {a : R.Ann}
   exact hm
 
 /-- **The opening bound**: a group with no logged query closes on a bad challenge with
-probability at most `ε`, when at every challenge a uniform challenge is bad with probability at
-most `ε`, times the probability that a uniform check passes for a challenge a proof of work
-precedes. -/
-theorem SlotReader.π_le_of_not_asked {ε : ℝ≥0∞}
-    (hbad : ∀ a i tr, (if R.mark a i then Pr{let d ← $ᵗ Digest}[
-      FsState.lowBitsZero d R.powBits = true] else 1) *
-        Pr{let c ← $ᵗ ((R.spec a).Challenge i)}[c ∈ R.Bad a i tr] ≤ ε)
-    {G : Group} (h : G.asked l (R.size l G) = false) : R.π l G ≤ ε := by
+probability at most `ε`, when the bad challenges have density at most `ε`. -/
+theorem SlotReader.π_le_of_not_asked {ε : ℝ≥0∞} (hbad : R.Density ε) {G : Group}
+    (h : G.asked l (R.size l G) = false) : R.π l G ≤ ε := by
   cases hg : R.groupSlot l G with
   | none => simp [SlotReader.π, hg]
   | some x =>
@@ -523,11 +526,8 @@ private theorem SlotReader.sum_openedBy_le (hl : CleanLog seedRoots l) (hseed : 
 
 /-- **The charge is bounded** at a state reached within `L` fresh queries: at most
 `(4L + |seedRoots| + |proofRoots|) / 2^256` for the answer, and `ε` for the groups the query
-opens. -/
-theorem SlotReader.charge_le (hseed : R.seed ∈ seedRoots) {ε : ℝ≥0∞}
-    (hbad : ∀ a i tr, (if R.mark a i then Pr{let d ← $ᵗ Digest}[
-      FsState.lowBitsZero d R.powBits = true] else 1) *
-        Pr{let c ← $ᵗ ((R.spec a).Challenge i)}[c ∈ R.Bad a i tr] ≤ ε)
+opens when the bad challenges have density at most `ε`. -/
+theorem SlotReader.charge_le (hseed : R.seed ∈ seedRoots) {ε : ℝ≥0∞} (hbad : R.Density ε)
     {s : OracleState} {L : ℕ} (hL : s.1.enncard + 1 ≤ L) (t : List UInt8) :
     R.charge seedRoots proofRoots k₀ s t ≤
       ((4 * L + seedRoots.length + proofRoots.length : ℕ) : ℝ≥0∞) / 2 ^ 256 + ε := by

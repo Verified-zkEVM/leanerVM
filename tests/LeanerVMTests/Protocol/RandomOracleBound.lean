@@ -39,12 +39,9 @@ example (s : OracleState) (t : List UInt8) (ht : s.1 t = none) :
 theorem half : Pr{let d ← $ᵗ Digest}[FsState.lowBitsZero d 1 = true] = 2⁻¹ := by
   rw [prEvent_lowBitsZero (by norm_num), pow_one]
 
-/-- **The toy's density**: a check passes with probability `1/2`, a challenge is bad with
-probability `1/2`, so at most `1/4` together. -/
-theorem toy_bad (a : R.Ann) (i : (R.spec a).ChallengeIdx)
-    (tr : (R.spec a).Transcript i.1.castSucc) :
-    (if R.mark a i then Pr{let d ← $ᵗ Digest}[FsState.lowBitsZero d R.powBits = true] else 1) *
-      Pr{let c ← $ᵗ ((R.spec a).Challenge i)}[c ∈ R.Bad a i tr] ≤ 4⁻¹ := by
+/-- **The toy's density**, from every seed: a check passes with probability `1/2`, a challenge is
+bad with probability `1/2`, so at most `1/4` together. -/
+theorem toy_bad (seed : Digest) : (toyReader seed).Density 4⁻¹ := fun _ i _ ↦ by
   obtain rfl := eq_chal i
   show Pr{let d ← $ᵗ Digest}[FsState.lowBitsZero d 1 = true] *
     Pr{let c ← $ᵗ Digest}[FsState.lowBitsZero c 1 = true] ≤ 4⁻¹
@@ -54,7 +51,7 @@ theorem toy_bad (a : R.Ann) (i : (R.spec a).ChallengeIdx)
 -- The nonce group before its check has no logged query, so it closes on a bad challenge with
 -- probability at most `1/4`.
 #guard !G₁.asked log₀ (R.size log₀ G₁)
-example : R.π log₀ G₁ ≤ 4⁻¹ := R.π_le_of_not_asked toy_bad (by decide)
+example : R.π log₀ G₁ ≤ 4⁻¹ := R.π_le_of_not_asked (toy_bad s₀) (by decide)
 
 -- Once its check passes, the opening bound no longer applies: the group has a logged query.
 #guard G₁.asked log₁ (R.size log₁ G₁)
@@ -62,6 +59,6 @@ example : R.π log₀ G₁ ≤ 4⁻¹ := R.π_le_of_not_asked toy_bad (by decide
 -- The charge within `L` queries.
 example (s : OracleState) (L : ℕ) (hL : s.1.enncard + 1 ≤ L) (t : List UInt8) :
     R.charge [s₀] [] 0 s t ≤ ((4 * L + 1 + 0 : ℕ) : ℝ≥0∞) / 2 ^ 256 + 4⁻¹ :=
-  R.charge_le (List.mem_singleton_self _) toy_bad hL t
+  R.charge_le (List.mem_singleton_self _) (toy_bad s₀) hL t
 
 end LeanerVMTests.Protocol.RandomOracleBound

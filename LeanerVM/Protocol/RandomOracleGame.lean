@@ -40,7 +40,7 @@ zero prefix of the leaf image (`pcs/src/whir.rs:330-345, 1305-1316`).
   the pick returns does (`extracts_iff_isSome`).
 * **The events** (`Hit`, `HashMisbehaves`). A collision on the joint log; a hit, a query
   answered, at its input's first occurrence, by a digest already in play (`inPlay` from the
-  seed's two digests) or, for the verifier's queries, by one of the proof's roots; or a flip.
+  chain's first state) or, for the verifier's queries, by one of the proof's roots; or a flip.
   The proof's roots and the flip are parameters: both read the verifier's chain walk on the
   proof, which is the transcript decoder's. A log with no hit has no fresh hit on a root in play
   (`not_freshHit_of_not_hasHit`), the condition of the Merkle binding by log replay.
@@ -179,9 +179,9 @@ theorem extracts_iff_isSome (F : FlockSpec) (prog : Program) (input : PublicInpu
 
 /-! ## What the hash must avoid -/
 
-/-- The digests in play before any query: the program's seed `iv` and the chain's first state. -/
+/-- The digests in play before any query: the chain's first state. -/
 def seedDigests (prog : Program) (input : PublicInput) : List Digest :=
-  [fsSeed prog, (FsState.seed prog input).cv]
+  [(FsState.seed prog input).cv]
 
 /-- **A hit**: a query answered, at its input's first occurrence in the joint log, by a digest in
 play before it, or, for a verifier's query, by one of the proof's roots (`rootsOf`). -/

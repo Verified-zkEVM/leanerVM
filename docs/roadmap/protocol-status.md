@@ -881,9 +881,9 @@ form, its budget priced) and `expected_charge_le_sum` (a sum of components, comp
 `∑ j, n j * κ j` for at most `n j` such queries, `IsQueryBoundP`). A kind is read off the query
 input, so it counts every query of its shape. The adversary's run is budgeted by its `Q` queries.
 The verifier's run can only be budgeted by its total `V`, not by `rounds`: a Merkle node query
-`left ++ right` with sibling bytes the prover chose can have a squeeze step's shape, so the
-blueprint's `niError_le` term `(Q + rounds)·2^-128` becomes `(Q + V)·2^-128`, beside a `hashTerm`
-that already carries `Q + V`. Two runs in sequence: `prEvent_simulateQ_bind_le_lintegral` bounds an
+`left ++ right` with sibling bytes the prover chose can have a squeeze step's shape, so
+`niError_le`'s term is `(Q + V)·2^-128`, not `(Q + rounds)·2^-128`, beside a `hashTerm` that
+already carries `Q + V`. Two runs in sequence: `prEvent_simulateQ_bind_le_lintegral` bounds an
 event of `oa >>= ob` against a stateful oracle by the expectation over the first run's end of `1`
 on its bad event and of the second run's bound otherwise;
 `QueryHistory.prEvent_bind_le_of_potential` starts the second run from the potential the first
@@ -913,17 +913,23 @@ plus the groups the query opens), `potential_step`, the step of
 (`(4L + |seedRoots| + |proofRoots|)/2^256 + ε` under a density bound `ε` per challenge). The
 generic lemmas are in `ToVCVio/` (`QueryLog.dedupKeys`, `withQueryLog_freshLog_support`,
 `HashChain.history_dedupKeys`, `UniformCondition.lean`). `Protocol/HashMisbehaves.lean`:
-`misbehaves_rom`, for any reader `R` whose challenges are bad with probability at most `2^-128`
-(a marked one after a uniform check passes), a prover of `Q` queries, a verifier of at most `V`
-queries on every proof and proofs of at most six roots, bounds the probability of
-`HashMisbehaves rootsOf R.Flip` in `loggedGame` by `niError V Q = (Q + V)·2^-128 +
-(Q + V)(4(Q + V) + 8)/2^256`: the game's fresh log is its joint log deduplicated
-(`loggedGame_support`, Mathlib's `List.dedupKeys`), a misbehaving hash leaves it unclean
+`misbehaves_rom`, for a statement fixed before the prover runs (selective: the chain's first state
+is BLAKE2s of the statement outside the oracle), any reader `R` from that first state whose bad
+challenges have density at most `ε` (`SlotReader.Density`, a marked one after a uniform check
+passes), a prover of `Q` queries, a verifier of at most `V` queries on every proof and proofs of at
+most six roots, bounds the probability of `HashMisbehaves rootsOf R.Flip` in `loggedGame` by
+`niError ε V Q = (Q + V)·ε + (Q + V)(4(Q + V) + 8)/2^256`, with `ε = 2^-128` at `εquery`;
+`misbehaves_rom_coins` gives a prover with coins the same bound. The game's fresh log is its joint
+log deduplicated (Mathlib's `List.dedupKeys`), a misbehaving hash leaves it unclean
 (`badLog_of_hashMisbehaves`, through `flipAt_dedupKeys`, `extractRows_dedupKeys` and
-`mem_drop_dedupKeys`), and the potential bounds the two runs in sequence. Still owed: the
-`SlotReader` of the deployed protocol over the transcript decoder (its density bound from
-`bad_density` and the per-challenge budgets, and a check over the window that every challenge reads
-a squeeze), the executable verifier's query bound and the proof's roots.
+`mem_drop_dedupKeys`), and the potential bounds the two runs in sequence. Under BLAKE2s, a prover
+that hashes in its own code rather than through the oracle makes a hit with probability `1` (the
+verifier's query on a node it hashed itself is fresh and answered by the proof's root), so it fails
+the headline's hypothesis. Still owed: the `SlotReader` of the deployed protocol over the
+transcript decoder (its density bound from `bad_density` and the per-challenge budgets, its
+`sampleable` the very instance of `bad_density`'s uniform challenge, and a check over the window
+that every challenge reads a squeeze), the executable verifier's query bound and the proof's
+roots.
 
 *On merge* of the list-binding branch (`feat/protocol-list-binding`), the list-binding compilation
 is on `main` (`Protocol/ListBinding.lean`, `Protocol/Whir/Decode.lean`, the `K` word `KWord` in
