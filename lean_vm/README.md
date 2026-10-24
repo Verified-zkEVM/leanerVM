@@ -78,7 +78,7 @@ The assembly is ported: `guest_complete_of` (the run's start, B2's run and count
 | `tests/` | `#guard`s and `example`s, checked by `lake test`; `fixtures/verifier/` are proofs of the Rust prover |
 | `LeanVM/Guest/` | the aggregation guest: its compiled bytecode (`Data/Bytecode*`, generated) as a `Program` (`Code`, `Bytecode`), its source AST (`Source`, the generated `Data/Source`), the core IR (`Core`) and compile-time words (`Word`) |
 | `cli/` | `leanvm-verify`, the compiled verifier on a proof's files; `node-vectors`, the costly checks of the Rust vectors; `guest-core`, `guest-cert`, `guest-memory`, the generators of the guest's core IR, certificates and memory-layer checks; `guest-diff`, the honest hint generator and the interpreter against Rust aggregations |
-| `scripts/` | the Rust-vs-Lean fuzz, its Rust verifier CLI, the fixture exporter, the WHIR parameter table generator, and `guest-export`, the exporter of the guest's data from leanVM's sources |
+| `scripts/` | the Rust-vs-Lean fuzz, its Rust verifier CLI, the fixture exporter, the WHIR parameter table generator, `guest-export`, the exporter of the guest's data from leanVM's sources, and `count`, the generator of the budget's static certificates |
 
 ## Building and testing
 
@@ -92,6 +92,8 @@ lake exe node-vectors
 `lake build` at the repository root runs all of it, with the Rust checks below, for the five projects (`../check-all.sh`).
 
 The guest's kernel-checked certificates (`Guest/Checked`, `Guest/B2C/Shared`, `Guest/B2C/Cplw`, with their data `Guest/Data/{Cert*,Plumb*,Snaps*,Pows,FrameSizes,CplArms,CplParts}`) are written together, from the bytecode and the core IR, by `lake exe guest-cert` (`--check` fails when any is stale). A module checks a few windows of one function in 2 to 3.5 GB; the groups of arms of `verify_sig_lean_sphincs`'s `match`es (`Checked/G21_*`, `Cplw/D21_*`) take about 4.2 GB and `verify_tables`'s windows (`Checked/F11_*`) about 4.7 GB, so `ci-build.py` builds them two at a time on a 16 GB machine.
+
+The completeness budget's static certificates are generated from the core IR and the certificate data by `python3 -I scripts/count/gen.py . all` (`scripts/count/checker.py` mirrors `Guest/Memory/Static.lean`'s checker): the words at the frame sizes `B2C.fs` (`Guest/Memory/GuestWords`), each opcode's instructions at `B2C.ωArm B2C.xmssArmC op` over the closure of `main`'s statically bounded callees (`Guest/Memory/GuestCnt{X,M,S,D,J,K}`, `GuestCntPm`), those callees' bounds (`Guest/Count/Static.lean`) and the others' counts within ratios of their words (`Guest/Count/Ratio*`). `python3 -I scripts/count/gen.py . report` prints the coverage. Their parts take 2 to 3.5 GB each.
 
 The Rust checks run against leanVM at [`../leanvm-rev`](../leanvm-rev), which `../leanvm-tree.sh` checks out into `../.leanvm`, its `formal/lean_vm` a link to this directory. The Rust-vs-Lean differential, as CI runs it:
 
