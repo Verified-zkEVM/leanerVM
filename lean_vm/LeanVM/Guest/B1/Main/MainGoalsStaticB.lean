@@ -109,7 +109,7 @@ theorem mainGoalL2B (hT : TotalLeOn coreProgram fs "__loop2" LoopPre (fun a => l
 theorem mainGoalDlB {bytecode : List K} (hL : Limits bytecode s w) {SB : String → ℕ}
     (hT : TotalLe coreProgram fs "da_list_digest" (fun _ => SB "da_list_digest")) :
     MainGoalDlB fs cert fp seed s w SB := by
-  refine daList_completeAtB fs cert hT fun rd h => ?_
+  refine daList_completeAtB fs cert _ hT fun rd h => ?_
   have h0 := mf_reads fs fp seed s w h (i := 0) (by omega)
   rw [show (hOwn seed s w).getD 0 [] = s.claims.da.flatMap daCells ++ (dPlan s w).dups.flatMap daCells
     by rw [← List.flatMap_append]; rfl] at h0
@@ -128,7 +128,7 @@ theorem mainGoalStB {bytecode : List K} (hR : NodeRel bytecode seed s w)
     have h1 : s.defer.bytecodePoint.length = Nat.log2 bytecode.length := hR.1
     rw [hbl, Nat.log2_two_pow] at h1
     simp [DeferredClaim.cells, h1, bytecodeVars]
-  refine statement_completeAtB fs cert hT fun rd h => ?_
+  refine statement_completeAtB fs cert _ hT fun rd h => ?_
   have h3 := mf_reads fs fp seed s w h (i := 3) (by omega)
   have h10 := mf_reads fs fp seed s w h (i := 10) (by omega)
   refine ⟨(digestScalars (signersDigest s.claims.xmss s.claims.sphincs)).1,
