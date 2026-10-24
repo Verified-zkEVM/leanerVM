@@ -65,15 +65,42 @@ theorem ownW_fits (hbl : bytecode.length = 2 ^ 23) (hst : c.proof.stream.length 
 end ChildSegs
 
 set_option maxHeartbeats 2000000 in
-/-- **`verify_sub` is complete on every honest child**, `verify_keccak` complete. -/
-theorem verify_sub_complete {bytecode : List K} (hbl : bytecode.length = 2 ^ 23)
-    (hvk : ∀ (fs : String → ℕ) (cert : String → V → ℕ), Lift.RunsFit fs cert →
-      Lift.RunsApart cert → ∀ κ, 16 ≤ κ → VkCompleteAt fs cert κ) :
-    verify_sub_complete_Spec bytecode := by
-  intro fs cert hrf hap seed c lpE sqE outE Lin κ hκ _ hmu hst hnz hcaps hexpL hout
-  obtain ⟨S⟩ := child_segments hbl seed c hmu hnz hcaps
-  have hfits := fun μ r h1 h2 h3 h4 ↦ osFitsAt_all fs cert hrf hap μ r h1 h2 h3 h4
-  have hvk' := hvk fs cert hrf hap κ hκ
+/-- **`verify_sub`'s lift obligations on an honest child**, but its callees' completeness: its
+callees read the caller's words, its own buffers and the results before them, those words are in
+memory, and its valuation is the honest one (`completeAt_flatDepR`'s and `completeAt_flatDepRB`'s
+`hkr`, `hkm`, `hσ`). -/
+theorem vs_obligations {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) {seed : Digest}
+    {c : Child} (S : ChildSegs bytecode seed c) (fs : String → ℕ) {lpE sqE outE : ℕ}
+    {Lin : Main.Layout} {κ : ℕ} (hκ : 16 ≤ κ) (hexpL : ∀ q ∈ log2Lin lpE sqE, q ∈ Lin)
+    (hout : (outE, fixedCells c.fresh) ∈ Lin) :
+    let K := fun fp ↦ S.kids (bases (fp + fs "verify_sub") (vsSizes S.μ)) lpE sqE
+    let own := fun fp ↦ bufL (fp + fs "verify_sub") (vsSizes S.μ) S.ownW
+    let args := [(digestScalars (statementDigest seed c.statement)).1,
+      (digestScalars (statementDigest seed c.statement)).2, (digestScalars seed).1,
+      (digestScalars seed).2, ofK (gpow lpE), ofK (gpow sqE), ofK (gpow outE)]
+    (∀ fp outs, OutsOk (kidsAt (K fp) [] outs) outs →
+      RegionsOk (fun i ↦ Main.RegionL Lin i ∨ Main.RegionL (own fp) i) (fun _ ↦ False)
+        (kidsAt (K fp) [] outs) outs) ∧
+    (∀ fp outs, OutsOk (kidsAt (K fp) [] outs) outs → ∀ rd, LowDef κ rd → Main.MemL rd (own fp) →
+      Main.MemL rd Lin → Main.MemL rd (outsL (kidsAt (K fp) [] outs) outs) →
+      Main.MemL rd (Kid.lins (kidsAt (K fp) [] outs))) ∧
+    (∀ fp (outs : List (List E × Main.Layout)), outs.length = (K fp).length →
+      OutsOk (kidsAt (K fp) [] outs) outs → ∀ rd, LowDef κ rd → Main.MemL rd (own fp) →
+      Main.MemL rd Lin →
+      Main.MemL rd (outsL (kidsAt (K fp) [] outs) outs) →
+      ∃ σ : Val, (Fn.params Data.core18).map σ = args ∧ (∀ s ∈ vsCPre, DispOk σ s) ∧
+        Stmt.HoldsList (fun _ _ _ ↦ True) rd σ (Fn.body Data.core18) False (fun r ↦ r = []) ∧
+        (vsCPre.filterMap Main.Stmt.allocSz).map (fun x ↦ x.2.elim id fun s ↦ logG (σ s)) =
+          vsSizes S.μ ∧
+        ((vsCPre.filterMap Main.Stmt.allocSz).map Prod.fst).map σ =
+          (bases (fp + fs "verify_sub") (vsSizes S.μ)).map (fun b ↦ ofK (gpow b)) ∧
+        CallsMatch σ ((vsCPre.filterMap (Stmt.callSF σ)).map (mkCall σ))
+          (kidsAt (K fp) [] outs) outs ∧
+        ∀ q ∈ vsCPre.filterMap Stmt.loadS, ∃ i, (σ q.1).limb 0 * Parameters.gpow q.2 = Parameters.gpow i ∧
+          (Main.RegionL Lin i ∨ Main.RegionL (own fp) i ∨
+            outRegion (kidsAt (K fp) [] outs) outs i)) := by
+  intro K own args
+  dsimp only [K, own, args]
   -- the terminal's own words
   have hterm : ∀ b, ∀ q ∈ S.termLin (bases b (vsSizes S.μ)), q ∈ bufL b (vsSizes S.μ) S.ownW := by
     intro b q hq
@@ -94,18 +121,7 @@ theorem verify_sub_complete {bytecode : List K} (hbl : bytecode.length = 2 ^ 23)
     show @ite _ (S.termOk (outs.take 12)) (Classical.propDecidable _) _ _ = _
     rw [@ite_pos' _ _ (Classical.propDecidable _) _ _ hok, ChildSegs.cpRes, ChildSegs.osRes,
       List.nil_append, take_getD _ _ (by norm_num : 9 < 12), take_getD _ _ (by norm_num : 11 < 12)]
-  refine completeAt_flatDepR find_vs vs_not_loop κ Lin _ [] (vs_body.trans vsT_splitPre) vs_cflat
-    vs_caddrs vs_notIte (vsSizes S.μ) (fun _ ↦ S.ownW) (fun _ ↦ S.ownW_fits hbl hst)
-    (fun fp ↦ S.kids (bases (fp + fs "verify_sub") (vsSizes S.μ)) lpE sqE) ?_ ?_ ?_ ?_
-  · -- the callees are complete
-    intro fp k hk pv ht
-    obtain ⟨j, hj, rfl⟩ := List.mem_iff_getElem.mp hk
-    have hj13 : j < 13 := by simpa [ChildSegs.kids_length] using hj
-    rw [← List.getD_eq_getElem _ noKid hj] at ht ⊢
-    by_cases h12 : j < 12
-    · exact kid_complete hbl S (by omega) hrf hvk' hfits _ lpE sqE h12 pv
-    · obtain rfl : j = 12 := by omega
-      exact term_complete hbl S hκ _ lpE sqE pv ht
+  refine ⟨?_, ?_, ?_⟩
   · -- the callees read the caller's words, the own buffers, the results before them
     intro fp outs ho
     refine regionsOk_kidsAt _ _ _ _ fun j hj _ ht i hi ↦ ?_
@@ -179,6 +195,29 @@ theorem verify_sub_complete {bytecode : List K} (hbl : bytecode.length = 2 ^ 23)
     · rw [show Fn.body Data.core18 = vsCPre ++ [.ret []] from vs_body.trans vsT_splitPre,
         holdsList_append]
       exact vsCPre_complete D (by simp [Stmt.HoldsList, Stmt.Holds])
+
+set_option maxHeartbeats 2000000 in
+/-- **`verify_sub` is complete on every honest child**, `verify_keccak` complete. -/
+theorem verify_sub_complete {bytecode : List K} (hbl : bytecode.length = 2 ^ 23)
+    (hvk : ∀ (fs : String → ℕ) (cert : String → V → ℕ), Lift.RunsFit fs cert →
+      Lift.RunsApart cert → ∀ κ, 16 ≤ κ → VkCompleteAt fs cert κ) :
+    verify_sub_complete_Spec bytecode := by
+  intro fs cert hrf hap seed c lpE sqE outE Lin κ hκ _ hmu hst hnz hcaps hexpL hout
+  obtain ⟨S⟩ := child_segments hbl seed c hmu hnz hcaps
+  have hfits := fun μ r h1 h2 h3 h4 ↦ osFitsAt_all fs cert hrf hap μ r h1 h2 h3 h4
+  have hvk' := hvk fs cert hrf hap κ hκ
+  obtain ⟨hkr, hkm, hσ⟩ := vs_obligations hbl S fs hκ hexpL hout
+  refine completeAt_flatDepR find_vs vs_not_loop κ Lin _ [] (vs_body.trans vsT_splitPre) vs_cflat
+    vs_caddrs vs_notIte (vsSizes S.μ) (fun _ ↦ S.ownW) (fun _ ↦ S.ownW_fits hbl hst)
+    (fun fp ↦ S.kids (bases (fp + fs "verify_sub") (vsSizes S.μ)) lpE sqE) ?_ hkr hkm hσ
+  intro fp k hk pv ht
+  obtain ⟨j, hj, rfl⟩ := List.mem_iff_getElem.mp hk
+  have hj13 : j < 13 := by simpa [ChildSegs.kids_length] using hj
+  rw [← List.getD_eq_getElem _ noKid hj] at ht ⊢
+  by_cases h12 : j < 12
+  · exact kid_complete hbl S (by omega) hrf hvk' hfits _ lpE sqE h12 pv
+  · obtain rfl : j = 12 := by omega
+    exact term_complete hbl S hκ _ lpE sqE pv ht
 
 end
 end LeanVM.Guest.B1.VerifySub
