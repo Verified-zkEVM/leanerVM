@@ -55,7 +55,7 @@ def mainInstrs (H : MainCounts ω fs) (SB SK : String → ℕ) (Bv jt : ℕ) : L
   rawXmss := H.kL3
   rawSphincs := H.kL4
   rawDa := H.αdv * dvC fs SB / 1000 + 1 + H.kCov
-  rawDaRows := H.αdv * dvS SK / 1000 + 1
+  rawDaRows := H.αdv * dvS SB SK / 1000 + 1
   children := (H.α5 * l5A0 fs / 1000 + 1) + (H.α5 * (l5A1 fs SB + Bv) / 1000 + 1) + H.aggC +
     H.aggD
   childClaims := H.α5 * l5A2 fs / 1000 + 1
@@ -85,11 +85,6 @@ theorem mainCount_le (H : MainCounts ω fs) (SB SK : String → ℕ) (Bv jt : �
     have := div_aff3 H.αcl (clC fs SB) (13 + SK "__loop16") 0 s.claims.sphincs.length 0
     simp only [Nat.zero_mul, Nat.add_zero, Nat.mul_zero] at this
     exact le_trans (Nat.div_le_div_right (Nat.mul_le_mul_left _ hS)) this
-  have rD : H.αdv * (mainBsH fs SB SK Bv s w).Bd / 1000 ≤ (H.αdv * dvC fs SB / 1000 + 1) +
-      (work s w).rawDaRows * (H.αdv * dvS SK / 1000 + 1) := by
-    have := div_aff3 H.αdv (dvC fs SB) (dvS SK) 0 (work s w).rawDaRows 0
-    simp only [Nat.zero_mul, Nat.add_zero, Nat.mul_zero] at this
-    exact le_trans (Nat.div_le_div_right (Nat.mul_le_mul_left _ hD)) this
   have hdecl : s.claims.xmss.length + s.claims.sphincs.length ≤ (work s w).declared := by
     simp only [work]; omega
   have hcov' : coverage s w = (work s w).coverage := rfl
@@ -117,15 +112,23 @@ theorem mainCount_le (H : MainCounts ω fs) (SB SK : String → ℕ) (Bv jt : �
   rw [e3, e4]
   have r3 : (work s w).rawXmss * H.kL3 = H.kL3 * (work s w).rawXmss := Nat.mul_comm _ _
   have r4 : (work s w).rawSphincs * H.kL4 = H.kL4 * (work s w).rawSphincs := Nat.mul_comm _ _
-  have r5 : (work s w).rawDaRows * (H.αdv * dvS SK / 1000 + 1) =
-      (H.αdv * dvS SK / 1000 + 1) * (work s w).rawDaRows := Nat.mul_comm _ _
+  have r5 : (work s w).rawDaRows * (H.αdv * dvS SB SK / 1000 + 1) =
+      (H.αdv * dvS SB SK / 1000 + 1) * (work s w).rawDaRows := Nat.mul_comm _ _
   -- the direct blob
   have hDa : (if (hm fs 0 seed s w).nd = 1 then
       H.αdv * (mainBsH fs SB SK Bv s w).Bd / 1000 + H.kCov else 0) ≤
       (H.αdv * dvC fs SB / 1000 + 1 + H.kCov) * (work s w).rawDa +
-        (H.αdv * dvS SK / 1000 + 1) * (work s w).rawDaRows := by
+        (H.αdv * dvS SB SK / 1000 + 1) * (work s w).rawDaRows := by
     split_ifs with h1
-    · rw [← e6, h1]; omega
+    · have hra : (work s w).rawDa = 1 := by rw [← e6, h1]
+      have hD1 : (mainBsH fs SB SK Bv s w).Bd ≤ dvC fs SB + (work s w).rawDaRows * dvS SB SK := by
+        have := hD; rw [hra, Nat.one_mul] at this; exact this
+      have rD : H.αdv * (mainBsH fs SB SK Bv s w).Bd / 1000 ≤ (H.αdv * dvC fs SB / 1000 + 1) +
+          (work s w).rawDaRows * (H.αdv * dvS SB SK / 1000 + 1) := by
+        have := div_aff3 H.αdv (dvC fs SB) (dvS SB SK) 0 (work s w).rawDaRows 0
+        simp only [Nat.zero_mul, Nat.add_zero, Nat.mul_zero] at this
+        exact le_trans (Nat.div_le_div_right (Nat.mul_le_mul_left _ hD1)) this
+      rw [hra]; omega
     · omega
   -- the children
   have hCh : (if (hm fs 0 seed s w).nc = 0 then 0 else
