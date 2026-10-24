@@ -181,5 +181,75 @@ theorem flipsL_complete {s b : ℕ} (hs1 : 1 ≤ s) (hσ : ∀ v, σ v = σ (.n 
   rw [hfl i hi, hw, laterWeights_low lanes (loc.take 6) (by simp [hlocL, keccakLocalBits])
     (List.mem_range.1 (List.mem_filter.1 hi).1)]
 
+/-- **The first step's call, completely.** -/
+theorem tail0_complete {T : ℕ} (hT : 202 ≤ T) {cap : List ℕ} {cur io : ℕ}
+    (hg : ∀ st ∈ stepTailT 0 T cap cur io vkGw, GoodS rd vkSt w σ st) {τ : ℕ}
+    (h17 : σ (.n 17) = gen ^ (τ - 4)) (hτ : 4 ≤ τ) (h47 : σ (.n 47) = gen ^ ((τ - 3) % 2)) :
+    σ (.n (T + 1)) = σ (.n 5) * gen ∧ σ (.n (T + 3)) = gen ^ (τ - 3) ∧
+      σ (.n (T + 5)) = σ (.n 201) * gen ^ (22 * 1) ∧
+      ∀ {next : Prop} {kret : List E → Prop}, next →
+        Stmt.HoldsList (fun _ _ _ ↦ True) rd σ (stepTailT 0 T cap cur io vkGw) next kret := by
+  have gA : ∀ a, Stmt.atom a ∈ stepTailT 0 T cap cur io vkGw → Good rd vkSt w σ a :=
+    fun a h ↦ hg _ h
+  have c0 : σ (.n T) = word 2 0 0 := gA (.const (.n T) (word 2 0 0)) (by simp [stepTailT])
+  have m1 := mulG (by omega) (by omega) (gA (.mul (.n (T + 1)) (.n 5) (.n T)) (by simp [stepTailT]))
+  have c2 : σ (.n (T + 2)) = word 2 0 0 := gA (.const (.n (T + 2)) (word 2 0 0)) (by simp [stepTailT])
+  have m3 := mulG (by omega) (by omega)
+    (gA (.mul (.n (T + 3)) (.n 17) (.n (T + 2))) (by simp [stepTailT]))
+  have c4 : σ (.n (T + 4)) = word (vkGw 1) 0 0 :=
+    gA (.const (.n (T + 4)) (word (vkGw 1) 0 0)) (by simp [stepTailT])
+  have m5 := mulG (by omega) (by omega)
+    (gA (.mul (.n (T + 5)) (.n 201) (.n (T + 4))) (by simp [stepTailT]))
+  have e1 : σ (.n (T + 1)) = σ (.n 5) * gen := by rw [m1, c0, word_gen]
+  have e3 : σ (.n (T + 3)) = gen ^ (τ - 3) := by
+    rw [m3, h17, c2, word_gen, ← pow_succ]; congr 1; omega
+  have e5 : σ (.n (T + 5)) = σ (.n 201) * gen ^ (22 * 1) := by
+    rw [m5, c4, vkGw_eq 1 le_rfl (by omega)]
+  refine ⟨e1, e3, e5, fun {next kret} hn ↦ ?_⟩
+  simp only [stepTailT, ↓reduceIte, Stmt.HoldsList, Stmt.Holds, Atom.Holds]
+  exact ⟨c0, m1, c2, m3, c4, m5, ⟨(τ - 3) % 2, by simp; omega, by rw [h47, gen_pow_eq_ofK], trivial⟩, hn⟩
+
+/-- **A later step's call, completely.** -/
+theorem tailL_complete {s T : ℕ} (hs1 : 1 ≤ s) (hs : s < 12) (hT : 202 ≤ T) {cap : List ℕ}
+    {cur io : ℕ} (hg : ∀ st ∈ stepTailT s T cap cur io vkGw, GoodS rd vkSt w σ st) {τ : ℕ}
+    (h17 : σ (.n 17) = gen ^ (τ - 4)) (hτ : 4 ≤ τ) (h47 : σ (.n 47) = gen ^ ((τ - 3) % 2)) :
+    σ (.n T) = 0 ∧ σ (.n (T + 1)) = 0 ∧ σ (.n (T + 3)) = gen ^ (τ - 3) ∧
+      σ (.n (T + 5)) = σ (.n 201) * gen ^ (22 * s) ∧
+      σ (.n (T + 9)) = σ (.n 201) * gen ^ (22 * (s + 1)) ∧
+      ∀ {next : Prop} {kret : List E → Prop}, next →
+        Stmt.HoldsList (fun _ _ _ ↦ True) rd σ (stepTailT s T cap cur io vkGw) next kret := by
+  have hs0 : s ≠ 0 := by omega
+  have gA : ∀ a, Stmt.atom a ∈ stepTailT s T cap cur io vkGw → Good rd vkSt w σ a :=
+    fun a h ↦ hg _ h
+  have c0 : σ (.n T) = word 0 0 0 := gA (.const (.n T) (word 0 0 0)) (by simp [stepTailT, hs0])
+  have c1 : σ (.n (T + 1)) = word 0 0 0 :=
+    gA (.const (.n (T + 1)) (word 0 0 0)) (by simp [stepTailT, hs0])
+  have c2 : σ (.n (T + 2)) = word 2 0 0 :=
+    gA (.const (.n (T + 2)) (word 2 0 0)) (by simp [stepTailT, hs0])
+  have m3 := mulG (by omega) (by omega)
+    (gA (.mul (.n (T + 3)) (.n 17) (.n (T + 2))) (by simp [stepTailT, hs0]))
+  have c4 : σ (.n (T + 4)) = word (vkGw s) 0 0 :=
+    gA (.const (.n (T + 4)) (word (vkGw s) 0 0)) (by simp [stepTailT, hs0])
+  have m5 := mulG (by omega) (by omega)
+    (gA (.mul (.n (T + 5)) (.n 201) (.n (T + 4))) (by simp [stepTailT, hs0]))
+  have c6 : σ (.n (T + 6)) = word (vkGw s) 0 0 :=
+    gA (.const (.n (T + 6)) (word (vkGw s) 0 0)) (by simp [stepTailT, hs0])
+  have m7 := mulG (by omega) (by omega)
+    (gA (.mul (.n (T + 7)) (.n 201) (.n (T + 6))) (by simp [stepTailT, hs0]))
+  have c8 : σ (.n (T + 8)) = word (vkGw 1) 0 0 :=
+    gA (.const (.n (T + 8)) (word (vkGw 1) 0 0)) (by simp [stepTailT, hs0])
+  have m9 := mulG (by omega) (by omega)
+    (gA (.mul (.n (T + 9)) (.n (T + 7)) (.n (T + 8))) (by simp [stepTailT, hs0]))
+  have e3 : σ (.n (T + 3)) = gen ^ (τ - 3) := by
+    rw [m3, h17, c2, word_gen, ← pow_succ]; congr 1; omega
+  have e5 : σ (.n (T + 5)) = σ (.n 201) * gen ^ (22 * s) := by rw [m5, c4, vkGw_eq s hs1 hs]
+  have e9 : σ (.n (T + 9)) = σ (.n 201) * gen ^ (22 * (s + 1)) := by
+    rw [m9, m7, c6, c8, vkGw_eq s hs1 hs, vkGw_eq 1 le_rfl (by omega), mul_assoc, ← pow_add]
+    congr 2
+  refine ⟨by rw [c0, word_zero], by rw [c1, word_zero], e3, e5, e9, fun {next kret} hn ↦ ?_⟩
+  simp only [stepTailT, hs0, ↓reduceIte, Stmt.HoldsList, Stmt.Holds, Atom.Holds]
+  exact ⟨c0, c1, c2, m3, c4, m5, c6, m7, c8, m9,
+    ⟨(τ - 3) % 2, by simp; omega, by rw [h47, gen_pow_eq_ofK], trivial⟩, hn⟩
+
 end
 end LeanVM.Guest.B1.VerifySub
