@@ -130,5 +130,11 @@ theorem committedSize_pad (t : Trace prog) (κ' : ℕ)
   simp only [Semantics.Trace.pad]
   omega
 
+/-- The memory alone commits `4` cells per word. -/
+theorem four_mul_le_committedSize (t : Trace prog) : 4 * 2 ^ t.κ ≤ t.committedSize := by
+  unfold Semantics.Trace.committedSize
+  simp only [Nat.add_assoc]
+  exact Nat.le_add_right _ _
+
 end
 end LeanVM.Guest
