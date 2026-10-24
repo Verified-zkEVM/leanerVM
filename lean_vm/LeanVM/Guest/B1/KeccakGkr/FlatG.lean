@@ -15,7 +15,9 @@ public import LeanVM.Guest.B1.KeccakGkr.FlatF
 `verify_keccak`'s layers each read the buffers the previous layer returned, which sit in that
 layer's frame; and `verify_keccak`'s own claim records hold pointers into them. So a callee's
 caller's words depend on the frame pointers of the callees up to it (`KidG.Lin ps`, `ps` the
-frame pointers so far, its own last), and the caller's own words on all of them.
+frame pointers so far, its own last), and the caller's own words on all of them. A callee's
+arguments may hold pointers into earlier callees' buffers too (`KidG.args ps`, `ps` the frame
+pointers before it).
 
 * `atAllG pre ks fps`: the calls placed at `fps`, each reading its words at the prefix of frame
   pointers so far (after `pre`).
@@ -32,18 +34,19 @@ open LeanVM.Guest.B1.Main (Layout MemL RegionL)
 
 @[expose] public section
 
-/-- A call whose caller's words depend on the frame pointers of the calls up to it. -/
+/-- A call whose arguments depend on the frame pointers of the calls before it, and whose caller's
+words on those up to it. -/
 structure KidG where
   f : String
   taken : Bool
-  args : List E
+  args : List ℕ → List E
   Lin : List ℕ → Layout
   Out : List ℕ → List E → Layout → Prop
 
 /-- The calls placed at `fps`, after the frame pointers `pre`. -/
 def atAllG : List ℕ → List KidG → List ℕ → List Kid
   | pre, k :: ks, p :: ps =>
-    ⟨k.f, k.taken, k.args, k.Lin (pre ++ [p]), k.Out (pre ++ [p])⟩ :: atAllG (pre ++ [p]) ks ps
+    ⟨k.f, k.taken, k.args pre, k.Lin (pre ++ [p]), k.Out (pre ++ [p])⟩ :: atAllG (pre ++ [p]) ks ps
   | _, _, _ => []
 
 /-- The buffers the entered calls return. -/
@@ -75,7 +78,8 @@ variable {fs : String → ℕ} {cert : String → V → ℕ}
 /-- **`kidsFromIn_of_kidsF` for calls reading at the frame pointers so far.** -/
 theorem kidsFromIn_of_kidsG (κ : ℕ) : ∀ (pre : List ℕ) (ks : List KidG),
     (∀ k ∈ ks, k.taken = true → ∀ ps,
-      CompleteAtF fs cert κ k.f (fun p => k.Lin (ps ++ [p])) k.args (fun p => k.Out (ps ++ [p]))) →
+      CompleteAtF fs cert κ k.f (fun p => k.Lin (ps ++ [p])) (k.args ps)
+        (fun p => k.Out (ps ++ [p]))) →
     ∀ b : ℕ, ∃ (N : ℕ) (L : Layout) (outs : List (List E × Layout)) (fps : List ℕ),
       fps.length = ks.length ∧ (∀ p ∈ fps, b ≤ p) ∧
       OutsOk (atAllG pre ks fps) outs ∧ Within L b N ∧ DisjL L ∧
@@ -158,7 +162,8 @@ theorem completeAt_flatG {f : String} {fn : Fn} (hf : coreProgram.find? f = some
     (hown : ∀ fp fps, List.Forall₂ (fun c s => c.length ≤ s) (own fp fps) sizes)
     (kids : ℕ → List KidG)
     (hkc : ∀ fp, ∀ k ∈ kids fp, k.taken = true → ∀ ps,
-      CompleteAtF fs cert κ k.f (fun p => k.Lin (ps ++ [p])) k.args (fun p => k.Out (ps ++ [p])))
+      CompleteAtF fs cert κ k.f (fun p => k.Lin (ps ++ [p])) (k.args ps)
+        (fun p => k.Out (ps ++ [p])))
     (hσ : ∀ fp (fps : List ℕ) (outs : List (List E × Layout)), fps.length = (kids fp).length →
       (∀ p ∈ fps, fp + fs f + sizes.sum ≤ p) → OutsOk (atAllG [] (kids fp) fps) outs →
       ∀ rd, LowDef κ rd → MemL rd (bufL (fp + fs f) sizes (own fp fps)) → MemL rd Lin →
