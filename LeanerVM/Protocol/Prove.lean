@@ -133,7 +133,7 @@ witness and checked with the rate, then the announcement, the compiled protocol'
 run against the chain with `fuel` candidate nonces per grind, and the openings. `none` at
 inadmissible sizes, when a grind runs out of fuel, or when the commitments and the positions
 recorded differ in number (`hintOpenings`), which cannot happen: each level commits one word and
-draws its positions once. -/
+draws its positions once (`Prove.proveWith_eq_none`). -/
 def proveWith {m : Type → Type} [Monad m] (H : List UInt8 → m Digest) (fuel : ℕ) (F : FlockSpec)
     (prog : Program) (input : PublicInput) (w : EnsembleWitness (leanIsaEnsemble prog)) (ρ : ℕ) :
     m (Option (Proof PrunedMerklePaths)) :=

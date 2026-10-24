@@ -27,7 +27,10 @@ challenge round reading `tr`'s challenge.
 * `RoundCodec.RunsAs.append_inv`: the steps of `c₁.append c₂` on a transcript are those of `c₁` on
   its first half, then those of `c₂` on its second half;
 * the steps of the one-round wires (`runsAs_msg`, `runsAs_sendOne`, `runsAs_chal`) and of the
-  empty one (`runsAs_empty`).
+  empty one (`runsAs_empty`);
+* `Prover.runWith_total`: in a reading where `pure` and `bind` also run forward, a run against a
+  wire every round of which runs from every state (`RoundCodec.Every`) runs from every state; the
+  property of every round is carried along `append` and the schedules' builders (`every_*`).
 
 So a property of what a run writes is proved on the wire's schedule, phase by phase, with the
 transcript in hand and no prover state.
@@ -38,14 +41,6 @@ namespace LeanerVM.Protocol
 open OracleComp OracleSpec ProtocolSpec
 
 @[expose] public section
-
-/-- The second half of a transcript of two schedules in sequence, at a round, is the transcript
-at that round, up to the cast of the schedule. -/
-theorem FullTranscript.snd_heq {m n : ℕ} {pSpec₁ : ProtocolSpec m} {pSpec₂ : ProtocolSpec n}
-    (T : FullTranscript (pSpec₁ ++ₚ pSpec₂)) (i : Fin n) :
-    HEq (T.snd i) (T (Fin.natAdd m i)) := by
-  unfold FullTranscript.snd
-  exact cast_heq _ _
 
 /-- A deterministic reading of a monad `w` on states `σ`: `Runs x s a s'` when `x`, run from `s`,
 returns `a` in `s'`. It inverts `pure` and `bind`, and a run returns a value of which the
@@ -61,6 +56,11 @@ structure RunSem (w : Type → Type) [Monad w] (σ : Type) where
   /-- A run returns a value of which the computation satisfies what it satisfies. -/
   satisfies : ∀ {α : Type} {p : α → Prop} {x : w α} {s s' : σ} {a : α},
     SatisfiesM p x → Runs x s a s' → p a
+
+/-- A computation that runs from every state. -/
+def RunSem.Total {w : Type → Type} [Monad w] {σ : Type} (sem : RunSem w σ) {α : Type}
+    (x : w α) : Prop :=
+  ∀ s, ∃ a s', sem.Runs x s a s'
 
 namespace RoundCodec
 
@@ -216,6 +216,123 @@ theorem runsAs_chal {C : Type} {smp : w C} {tr : (Protocol.draw C).FullTranscrip
   rw [← h0, ← hl]
   exact (hs 0).2 rfl
 
+/-! ## A property of every round of a wire -/
+
+/-- A property of every computation the wire runs: each message's write and each challenge's
+read. -/
+def Every (P : ∀ α : Type, w α → Prop) {n : ℕ} {pSpec : ProtocolSpec n}
+    (c : RoundCodec w pSpec) : Prop :=
+  (∀ i h x, P _ (c.send i h x)) ∧ ∀ i h, P _ (c.draw i h)
+
+variable {P : ∀ α : Type, w α → Prop}
+
+omit [Monad w] in
+/-- A property carried along an equality of value types. -/
+private theorem prop_heq {α β : Type} (hab : α = β) {x : w α} {y : w β} (hxy : HEq x y)
+    (hx : P α x) : P β y := by
+  subst hab
+  obtain rfl := eq_of_heq hxy
+  exact hx
+
+omit [Monad w] in
+/-- A source of a round's challenge, carried along equalities of its direction and type, reads
+as before. -/
+private theorem apply_heq_draw {A A' : Direction} {B B' : Type} {f : A = .V_to_P → w B}
+    {f' : A' = .V_to_P → w B'} (hA : A = A') (hB : B = B') (hf : HEq f f') (h : A = .V_to_P)
+    (h' : A' = .V_to_P) : HEq (f h) (f' h') := by
+  subst hA hB
+  obtain rfl := eq_of_heq hf
+  rfl
+
+omit [Monad w] in
+/-- Two wires in sequence have a property of every round when both do. -/
+theorem Every.append {m n : ℕ} {p₁ : ProtocolSpec m} {p₂ : ProtocolSpec n}
+    {c₁ : RoundCodec w p₁} {c₂ : RoundCodec w p₂} (h₁ : Every P c₁) (h₂ : Every P c₂) :
+    Every P (c₁.append c₂) := by
+  refine ⟨fun i h x ↦ ?_, fun i h ↦ ?_⟩
+  · induction i using Fin.addCases with
+    | left j =>
+      have hA : (p₁ ++ₚ p₂).dir (Fin.castAdd n j) = p₁.dir j := Fin.vappend_left _ _ _
+      have hB : (p₁ ++ₚ p₂).Type (Fin.castAdd n j) = p₁.Type j := Fin.vappend_left _ _ _
+      rw [apply_heq_send hA hB (send_append_left c₁ c₂ j) h (hA ▸ h) (cast_heq hB x).symm]
+      exact h₁.1 _ _ _
+    | right j =>
+      have hA : (p₁ ++ₚ p₂).dir (Fin.natAdd m j) = p₂.dir j := Fin.vappend_right _ _ _
+      have hB : (p₁ ++ₚ p₂).Type (Fin.natAdd m j) = p₂.Type j := Fin.vappend_right _ _ _
+      rw [apply_heq_send hA hB (send_append_right c₁ c₂ j) h (hA ▸ h) (cast_heq hB x).symm]
+      exact h₂.1 _ _ _
+  · induction i using Fin.addCases with
+    | left j =>
+      have hA : (p₁ ++ₚ p₂).dir (Fin.castAdd n j) = p₁.dir j := Fin.vappend_left _ _ _
+      have hB : (p₁ ++ₚ p₂).Type (Fin.castAdd n j) = p₁.Type j := Fin.vappend_left _ _ _
+      exact prop_heq hB.symm (apply_heq_draw hA hB (draw_append_left c₁ c₂ j) h (hA ▸ h)).symm
+        (h₁.2 _ _)
+    | right j =>
+      have hA : (p₁ ++ₚ p₂).dir (Fin.natAdd m j) = p₂.dir j := Fin.vappend_right _ _ _
+      have hB : (p₁ ++ₚ p₂).Type (Fin.natAdd m j) = p₂.Type j := Fin.vappend_right _ _ _
+      exact prop_heq hB.symm (apply_heq_draw hA hB (draw_append_right c₁ c₂ j) h (hA ▸ h)).symm
+        (h₂.2 _ _)
+
+omit [Monad w] in
+/-- The empty wire runs nothing. -/
+theorem every_empty : Every P (empty : RoundCodec w !p[]) :=
+  ⟨fun i ↦ i.elim0, fun i ↦ i.elim0⟩
+
+omit [Monad w] in
+/-- A message's wire has a property of every round when its encoder does. -/
+theorem every_msg {M : Type} {enc : M → w Unit} (h : ∀ x, P _ (enc x)) : Every P (msg enc) :=
+  ⟨fun i _ x ↦ (match i with | ⟨0, _⟩ => h x), fun i h ↦ match i, h with | ⟨0, _⟩, h => nomatch h⟩
+
+omit [Monad w] in
+/-- A message's wire of a literal schedule has a property of every round when its encoder
+does. -/
+theorem every_sendOne {M : Type} {enc : M → w Unit} (h : ∀ x, P _ (enc x)) :
+    Every P (sendOne enc) :=
+  ⟨fun i _ x ↦ (match i with | ⟨0, _⟩ => h x), fun i h ↦ match i, h with | ⟨0, _⟩, h => nomatch h⟩
+
+omit [Monad w] in
+/-- A challenge's wire has a property of every round when its source does. -/
+theorem every_chal {C : Type} {smp : w C} (h : P C smp) : Every P (chal smp) :=
+  ⟨fun i h ↦ (match i, h with | ⟨0, _⟩, h => nomatch h), fun i _ ↦ match i with | ⟨0, _⟩ => h⟩
+
+omit [Monad w] in
+/-- Runs of challenges. -/
+theorem every_chals {C : Type} {smp : w C} (h : P C smp) : ∀ k, Every P (chals smp k)
+  | 0 => every_empty
+  | k + 1 => (every_chals h k).append (every_chal h)
+
+omit [Monad w] in
+/-- Runs of rounds. -/
+theorem every_rounds {C : Type} {d : ℕ} {enc : Vector C (d + 1) → w Unit} {smp : w C}
+    (he : ∀ x, P _ (enc x)) (hs : P C smp) : ∀ m, Every P (rounds enc smp m)
+  | 0 => every_empty
+  | m + 1 => ((every_msg he).append (every_chal hs)).append (every_rounds he hs m)
+
+omit [Monad w] in
+/-- A grand-product layer. -/
+theorem every_step {C : Type} {nside : ℕ} (ρ m : ℕ) {enc : Vector C (2 ^ ρ + 1) → w Unit}
+    {children : (Fin nside → Vector C (2 ^ ρ)) → w Unit} {smp : w C} (he : ∀ x, P _ (enc x))
+    (hc : ∀ x, P _ (children x)) (hs : P C smp) : Every P (step ρ m enc children smp) :=
+  (((every_chal hs).append (every_rounds he hs m)).append (every_msg hc)).append
+    (every_chals hs ρ)
+
+omit [Monad w] in
+/-- The grand-product argument. -/
+theorem every_gkr {C : Type} {nside : ℕ} (μ : ℕ) {enc₁ : Vector C (2 ^ 1 + 1) → w Unit}
+    {children₁ : (Fin nside → Vector C (2 ^ 1)) → w Unit} {enc₂ : Vector C (2 ^ 2 + 1) → w Unit}
+    {children₂ : (Fin nside → Vector C (2 ^ 2)) → w Unit} {smp : w C} (he₁ : ∀ x, P _ (enc₁ x))
+    (hc₁ : ∀ x, P _ (children₁ x)) (he₂ : ∀ x, P _ (enc₂ x)) (hc₂ : ∀ x, P _ (children₂ x))
+    (hs : P C smp) : Every P (gkr μ enc₁ children₁ enc₂ children₂ smp) := by
+  have hsteps : ∀ k m, Every P (steps enc₂ children₂ smp k m) := by
+    intro k
+    induction k with
+    | zero => exact fun _ ↦ every_empty
+    | succ k ih => exact fun m ↦ (every_step 2 m he₂ hc₂ hs).append (ih (m + 2))
+  have hodd : ∀ r, Every P (odd enc₁ children₁ smp r) := fun r ↦ match r with
+    | 0 => every_empty
+    | _ + 1 => every_step 1 0 he₁ hc₁ hs
+  exact ((hodd _).append (hsteps _ _)).append (every_chal hs)
+
 end RoundCodec
 
 /-! ## Every run steps through the wire on its transcript -/
@@ -300,6 +417,43 @@ theorem runWith_runsAs (stmt : St) (wit : Wt) {s s' : σ}
   obtain ⟨st, h0, hl, hs⟩ := runToRoundWith_runsAs sem c P stmt wit (Fin.last n) h₁
   exact ⟨st, h0, hl, fun i ↦ hs i i.isLt⟩
 
+/-- **A run against a wire runs from every state** when every round of the wire does, in a
+reading where `pure` and `bind` run forward. -/
+theorem runWith_total (hpure : ∀ {α : Type} (a : α) (s : σ), sem.Runs (pure a) s a s)
+    (hbind : ∀ {α β : Type} {x : w α} {f : α → w β} {s sm s' : σ} {a : α} {b : β},
+      sem.Runs x s a sm → sem.Runs (f a) sm b s' → sem.Runs (x >>= f) s b s')
+    (hc : c.Every fun _ x ↦ sem.Total x) (stmt : St) (wit : Wt) :
+    sem.Total (runWith c P stmt wit) := by
+  have hstep : ∀ (j : Fin n) tr st, sem.Total (stepWith c P j tr st) := by
+    intro j tr st s
+    unfold stepWith
+    split
+    · rename_i hDir
+      obtain ⟨x, sm, h₁⟩ := hc.2 j hDir s
+      simp only [runNoOracle_eq_pure (w := w), pure_bind]
+      exact ⟨_, sm, hbind h₁ (hpure _ sm)⟩
+    · rename_i hDir
+      simp only [runNoOracle_eq_pure (w := w), pure_bind]
+      obtain ⟨u, sm, h₁⟩ := hc.1 j hDir _ s
+      exact ⟨_, sm, hbind h₁ (hpure _ sm)⟩
+  have hround : ∀ i : Fin (n + 1), sem.Total (runToRoundWith c P i stmt wit) := by
+    intro i
+    induction i using Fin.induction with
+    | zero =>
+      simp only [runToRoundWith, Fin.induction_zero]
+      exact fun s ↦ ⟨_, s, hpure _ s⟩
+    | succ j ih =>
+      intro s
+      rw [runToRoundWith_succ, processRoundWith]
+      obtain ⟨r, sm, h₁⟩ := ih s
+      obtain ⟨b, s', h₂⟩ := hstep j r.1 r.2 sm
+      exact ⟨b, s', hbind h₁ h₂⟩
+  intro s
+  unfold runWith
+  obtain ⟨r, sm, h₁⟩ := hround (Fin.last n) s
+  simp only [runNoOracle_eq_pure (w := w), pure_bind]
+  exact ⟨_, sm, hbind h₁ (hpure _ sm)⟩
+
 omit [LawfulMonad w] in
 /-- Two provers whose runs agree on an input run alike on it on every challenge vector. -/
 theorem runWithChallenges_eq_of_run_eq {P' : Prover []ₒ St Wt St' Wt' pSpec} {stmt : St}
@@ -340,7 +494,8 @@ theorem simulateQ_liftAppendLeft_challenges {r : Type → Type} [Monad r] [Lawfu
         (liftM (([]ₒ + [(pSpec₁ ++ₚ pSpec₂).Challenge]ₒ).query
           (Sum.inr ⟨ChallengeIdx.inl i, ()⟩)))) = _
     rw [simulateQ_map]
-    trans cast (challenge_append_inl (pSpec₂ := pSpec₂) i) <$> (pure (ch (ChallengeIdx.inl i)) : r _)
+    trans cast (challenge_append_inl (pSpec₂ := pSpec₂) i) <$>
+      (pure (ch (ChallengeIdx.inl i)) : r _)
     · congr 1
       exact (simulateQ_spec_query ((fun t ↦ isEmptyElim t : QueryImpl []ₒ r) +
         Prover.challengesImpl (r := r) ch) (Sum.inr ⟨ChallengeIdx.inl i, ()⟩ :

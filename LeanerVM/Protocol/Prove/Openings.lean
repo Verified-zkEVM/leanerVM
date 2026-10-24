@@ -98,7 +98,7 @@ private theorem runs_forIn_openings : ∀ (l : List ((Σ k, MerkleCommitment k) 
     simp
 
 /-- A failing computation does not run. -/
-theorem not_runs_failure {α : Type} {s s' : PState} {a : α} :
+private theorem not_runs_failure {α : Type} {s s' : PState} {a : α} :
     ¬ proveSem.Runs (failure : ProveM Id α) s a s' := by
   intro h
   change (((failure : ProveM Id α).run s.1).run s.2).run = _ at h
@@ -130,7 +130,7 @@ theorem runs_hintOpenings {s s' : PState} {u : Unit}
 
 /-- The rows at raw positions standing for a transcript's are the rows at the transcript's, in
 query order. -/
-theorem map_eq_ofFn_of_posRead {t b : ℕ} {ps : List ℕ} {pos : Fin t → Fin (2 ^ b)}
+private theorem map_eq_ofFn_of_posRead {t b : ℕ} {ps : List ℕ} {pos : Fin t → Fin (2 ^ b)}
     (h : PosRead ps pos) (rowsV : Vector (List K) (2 ^ b)) (f : List K → List K) :
     ps.map (fun q ↦ f (rowsV[q]?.getD [])) = List.ofFn fun q ↦ f rowsV[pos q] := by
   obtain ⟨hlt, hlen, rfl⟩ := h
@@ -143,7 +143,7 @@ theorem map_eq_ofFn_of_posRead {t b : ℕ} {ps : List ℕ} {pos : Fin t → Fin 
 
 /-- An opening of a commitment is read back as the leaf images of the rows at the positions,
 authenticated against the commitment's root. -/
-theorem reads_nextOpening {k rowWords leafWords : ℕ} (rows : Vector (List K) (2 ^ k))
+private theorem reads_nextOpening {k rowWords leafWords : ℕ} (rows : Vector (List K) (2 ^ k))
     (ps : List ℕ) (hrw : rowWords ≤ leafWords) (hw : ∀ row ∈ rows.toList, row.length = rowWords)
     (hne : ps ≠ []) (hlt : ∀ q ∈ ps, q < 2 ^ k) {w w' : WriterState PrunedMerklePaths}
     (hfs : w'.fs = w.fs) (hst : w'.stream = w.stream)
@@ -162,7 +162,7 @@ theorem reads_nextOpening {k rowWords leafWords : ℕ} (rows : Vector (List K) (
   rfl
 
 /-- Rows stored three limbs a lane are three words a lane wide. -/
-theorem length_laterRows {ℓ b t : ℕ} (x : Word ℓ b t) :
+private theorem length_laterRows {ℓ b t : ℕ} (x : Word ℓ b t) :
     ∀ row ∈ (laterRows x).toList, row.length = 3 * 2 ^ ℓ := by
   intro row hrow
   obtain ⟨y, rfl⟩ : ∃ y : Fin (2 ^ b), row = (laterRows x)[y] := by
@@ -415,7 +415,7 @@ private theorem chainOf_shapes : ∀ (rem : ℕ) (ps : List (Whir.Level × ℚ))
 /-- **The verifier's levels are the deployed chain's**: at an admissible announcement and rate,
 the verifier's ladder exists and its levels' shapes are the shapes the deployed chain of the
 compiled protocol walks. -/
-theorem ladderOf_leanIsaChain {prog : Program} {s : Sizes} (hs : s.Admissible prog) {ρ : ℕ}
+private theorem ladderOf_leanIsaChain {prog : Program} {s : Sizes} (hs : s.Admissible prog) {ρ : ℕ}
     (hρ : validRate ρ) : ∃ levels, Verify.ladderOf prog s ρ = some levels ∧
       Verify.levelShapes (Verify.stackMu prog s) levels =
         (leanIsaChain prog s hs ρ hρ).ladder.shapes ∧
@@ -447,7 +447,7 @@ theorem ladderOf_leanIsaChain {prog : Program} {s : Sizes} (hs : s.Admissible pr
   rw [h₁, List.map_fst_zip (by omega)]
 
 /-- A chain of levels walks at least one level; the first is the chain's first shape. -/
-theorem Ladder.shapes_cons : ∀ {sh : Whir.Shape} {κ : ℕ} (L : Ladder sh κ),
+private theorem Ladder.shapes_cons : ∀ {sh : Whir.Shape} {κ : ℕ} (L : Ladder sh κ),
     ∃ x xs, L.shapes = x :: xs ∧ x.fold = sh.ℓ
   | _, _, .last _ _ => ⟨_, _, rfl, rfl⟩
   | _, _, .cons _ _ => ⟨_, _, rfl, rfl⟩

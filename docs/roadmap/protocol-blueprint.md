@@ -1943,9 +1943,10 @@ with no hypothesis. It composes `m3Holds_stackOf`, the compiled protocol's compl
 transcript's wire but for the roots, the grinding nonces and the positions' reduction, which the
 algebra does not read: the oracle prover sends `0` where the wire carries the grind's nonce), the
 executable algebra's agreement with the oracle verifiers on the honest transcript, Merkle
-completeness and the determinism of the chain. From an execution, `baseProver_complete_of_execution` adds `constraintCompleteness`
-and takes `hfit`, the resource condition [architecture.md](../architecture.md) asks for: a valid
-execution may need `κ_mem = 32`, whose memory columns exceed the stack the verifier accepts.
+completeness and the determinism of the chain. From an execution,
+`baseProver_complete_of_execution` adds `constraintCompleteness` and takes `hfit`, the resource
+condition [architecture.md](../architecture.md) asks for: a valid execution may need
+`κ_mem = 32`, whose memory columns exceed the stack the verifier accepts.
 
 Perfect completeness does not survive the transform unconditionally. The honest prover's grinding
 is a search, so `prove` takes fuel. That the search succeeds within its fuel holds for a random

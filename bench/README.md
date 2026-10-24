@@ -388,9 +388,9 @@ lake build leanervm-prove
 
 Beside the mutations of the proof, both `leanervm-prove` and `leanervm-verify` run the algebra on
 the honest wire with one message changed in each front phase (a grand-product round coefficient
-and a child value, a table round coefficient and column value, a public value, a zerocheck and a
-lincheck round coefficient, a Flock slice; `frontChecksOf`) and in WHIR (`whirChecksOf`), each
-rejected by its own phase. A mutation of the proof's stream cannot reach the front phases'
+and a child value, a table round coefficient and column value, a public value and the number of
+public values, a zerocheck and a lincheck round coefficient, a Flock slice; `frontChecksOf`) and
+in WHIR (`whirChecksOf`), each rejected by its own phase. A mutation of the proof's stream cannot reach the front phases'
 algebra, since the next grinding check rejects it first; `tamper` reaches it through the stream:
 it runs the prover with one front phase's message changed as it is sent (`tamperOps`), so that
 the chain moves, every later nonce is ground and every word opened at the moved positions, and

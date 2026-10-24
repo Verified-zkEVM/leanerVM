@@ -1223,6 +1223,12 @@ advances; `baseProver_complete` holds modulo `PhasesAgree`.
     window), the stream and openings consumed (`run_of_reads`). Level 0's rows carry only the
     committed lanes; the honest word's lanes past them vanish (`level0Word_honest`, by
     `runWithChallenges_append_fst`; `kwordOf_stackOf_high`), so the rows read are the word's.
+  - *When the prover returns a proof* (`proveWith_ne_none`, `proveWith_eq_none`): every round of
+    the wire runs from every state when no grind runs out of fuel (`Prover.runWith_total`,
+    `RoundCodec.Every`, `ToArkLib/RunTrace.lean`), and the book keeps as many commitments as
+    positions (`book_compiled`), so the openings' size check never fails: `proveWith` returns
+    `none` only when the witness gives no sizes, its sizes are not admissible, the rate is not
+    valid, or a grind finds no nonce within its fuel at some chain state.
   - Owed: `PhasesAgree` (the executable verifier's phases against the oracle verifiers', the
     lemma the soundness direction needs too), after which `baseProver_complete` holds with no
     hypothesis; the random-oracle form, `Pr[prove fails] ≤ levels · (1 − 2^-17)^(2^24)`, otherwise

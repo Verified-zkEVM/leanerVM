@@ -16,7 +16,8 @@ which writes the test vectors and checks that `verify` accepts them. Here, inter
   later rows `Prove.laterRows` stores back to the word's lanes (`Verify.laneRow`).
 * **Completeness.** `baseProver_complete` as stated, modulo `PhasesAgree`; a stored level-0 row
   is read as the word's row exactly when the lanes past the stored ones vanish.
-* **The setup.** The prover returns no proof at a rate outside its window, before any hash.
+* **When the prover returns no proof.** `proveWith_eq_none` as stated; at a rate outside its
+  window the prover returns no proof, before any hash.
 -/
 
 namespace LeanerVMTests.Protocol.Prove
@@ -110,9 +111,21 @@ example (H : List UInt8 → Digest) (fuel : ℕ) {prog : Program} {input : Publi
     verifyWith (m := Id) H prog input proof = true :=
   baseProver_complete H fuel hsat hagree hp
 
+open LeanerVM.Protocol.LeanIsa in
+/-- When the honest prover returns no proof, as stated: the witness gives no sizes, or they are
+not admissible, or the rate is not valid, or a grind runs out of fuel; never the openings. -/
+example (H : List UInt8 → Digest) (fuel : ℕ) (F : FlockSpec) {prog : Program}
+    {input : PublicInput}
+    {w : Air.Flat.EnsembleWitness (LeanerVM.Arithmetization.leanIsaEnsemble prog)} {ρ : ℕ}
+    (h : proveWith (m := Id) H fuel F prog input w ρ = none) :
+    Sizes.ofWitness w = none ∨ ∃ s, Sizes.ofWitness w = some s ∧
+      (¬ s.Admissible prog ∨ ¬ validRate ρ ∨
+        ∃ fs : FsState, Id.run (fs.grind H fuel Whir.queryGrindingBits) = none) :=
+  proveWith_eq_none H fuel F h
+
 /-! ## The setup -/
 
--- A rate outside its window: no proof.
+-- A rate outside its window: no proof (the third case of `proveWith_eq_none`).
 #guard (prove 1 fillProg mulInput (fillW 1 g memCnt) 0).isNone
 #guard (prove 1 fillProg mulInput (fillW 1 g memCnt) 5).isNone
 

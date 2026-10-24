@@ -35,7 +35,7 @@ def reducePositions (t b : ℕ) (ps : List ℕ) : List ℕ :=
   List.ofFn fun q : Fin t ↦ (positionsOf t b ps q).val
 
 /-- Reduced positions index the word as the positions do. -/
-theorem positionsOf_reducePositions (t b : ℕ) (ps : List ℕ) :
+private theorem positionsOf_reducePositions (t b : ℕ) (ps : List ℕ) :
     positionsOf t b (reducePositions t b ps) = positionsOf t b ps := by
   funext q
   apply Fin.ext
@@ -59,7 +59,7 @@ def Wire.erase (shs : List LevelShape) (w : Wire) : Wire :=
 
 /-- WHIR's algebra does not read the levels' roots and nonces, and reads their positions
 reduced. -/
-theorem whirLevels_eraseLevels : ∀ (shs : List LevelShape) (first : Bool) (n : ℕ)
+private theorem whirLevels_eraseLevels : ∀ (shs : List LevelShape) (first : Bool) (n : ℕ)
     (W : Weight E n) (claim : E) (quad : Vector E 3) (ls : List WhirLevel)
     (rows : List (List (List K))),
     whirLevels first n W claim quad shs (eraseLevels shs ls) rows =

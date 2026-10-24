@@ -34,7 +34,9 @@ appended between `w` and `w'`, followed by anything, returns `b`, consumes exact
   (`back_ladder`), the walk's wire equal to the transcript's (`DecodeChain.wireOf`) but for the
   roots, the nonces and the positions' reduction (`Verify.Wire.erase`);
 * `walkChain_reads`: the chain walk reads the announcement and the whole wire back, and the book
-  holds the commitments and positions the openings need.
+  holds the commitments and positions the openings need;
+* `book_compiled`: whatever the instance, the run against the wire keeps as many commitments as
+  positions.
 -/
 
 namespace LeanerVM.Protocol
@@ -169,9 +171,6 @@ theorem bind_ret {rd : Verify.Walk Id β} {g : β → γ} {s s' : PState} {a : �
     (h : Back rd s s' a) (hb : g a = b) : Back (rd >>= fun x ↦ Pure.pure (g x)) s s' b :=
   h.bind (hb ▸ pure _ _)
 
-/-- A pure reader, of a value equal to the expected one. -/
-theorem pure_eq {s : PState} {a b : β} (h : a = b) : Back (Pure.pure a) s s b := h ▸ pure _ _
-
 end Back
 
 /-! ## The primitives read back -/
@@ -181,7 +180,7 @@ section Primitives
 variable (H : List UInt8 → Id Digest) (fuel : ℕ)
 
 /-- Sending a scalar leaves the openings. -/
-theorem merkle_addScalar {x : E} {w w' : WriterState PrunedMerklePaths} {u : Unit}
+private theorem merkle_addScalar {x : E} {w w' : WriterState PrunedMerklePaths} {u : Unit}
     (h : ((Writer.addScalar H x).run w).run = some (u, w')) : w'.merkle = w.merkle := by
   have h₀ : ((Writer.addScalar H x).run w).run = some ((), { w with
       fs := Id.run (w.fs.observe H x), stream := w.stream.push x }) := rfl
@@ -190,7 +189,8 @@ theorem merkle_addScalar {x : E} {w w' : WriterState PrunedMerklePaths} {u : Uni
   rfl
 
 /-- Sending scalars leaves the openings. -/
-theorem merkle_addScalars : ∀ (xs : List E) {w w' : WriterState PrunedMerklePaths} {u : Unit},
+private theorem merkle_addScalars :
+    ∀ (xs : List E) {w w' : WriterState PrunedMerklePaths} {u : Unit},
     ((Writer.addScalars H xs).run w).run = some (u, w') → w'.merkle = w.merkle
   | [], w, w', u, h => by
     cases h
@@ -204,7 +204,7 @@ theorem merkle_addScalars : ∀ (xs : List E) {w w' : WriterState PrunedMerklePa
       fs := Id.run (w.fs.observe H x), stream := w.stream.push x }) h
 
 /-- Squeezing a challenge leaves the openings. -/
-theorem merkle_sample {w w' : WriterState PrunedMerklePaths} {x : E}
+private theorem merkle_sample {w w' : WriterState PrunedMerklePaths} {x : E}
     (h : ((Writer.sample H).run w).run = some (x, w')) : w'.merkle = w.merkle := by
   have h₀ : ((Writer.sample H).run w).run = some ((Id.run (w.fs.sample H)).1,
       { w with fs := (Id.run (w.fs.sample H)).2 }) := rfl
@@ -213,7 +213,7 @@ theorem merkle_sample {w w' : WriterState PrunedMerklePaths} {x : E}
   rfl
 
 /-- Grinding leaves the openings. -/
-theorem merkle_grind {fuel bits : ℕ} {w w' : WriterState PrunedMerklePaths} {u : Unit}
+private theorem merkle_grind {fuel bits : ℕ} {w w' : WriterState PrunedMerklePaths} {u : Unit}
     (h : ((Writer.grind H fuel bits).run w).run = some (u, w')) : w'.merkle = w.merkle := by
   rcases hg : Id.run (w.fs.grind H fuel bits) with _ | ⟨nonce, fs'⟩ <;>
     simp [Writer.grind, StateT.run_bind, show w.fs.grind H fuel bits = Pure.pure _ from hg] at h
@@ -221,7 +221,7 @@ theorem merkle_grind {fuel bits : ℕ} {w w' : WriterState PrunedMerklePaths} {u
   rfl
 
 /-- A scalar sent is read back. -/
-theorem back_send {x : E} {s s' : PState} {u : Unit}
+private theorem back_send {x : E} {s s' : PState} {u : Unit}
     (h : proveSem.Runs ((proveOps H fuel).send x) s u s') :
     Back (Verify.readerOps H).nextScalar s s' x := by
   obtain ⟨hb, hw⟩ := runs_lift.mp h
@@ -230,7 +230,8 @@ theorem back_send {x : E} {s s' : PState} {u : Unit}
   exact ⟨hb, hm, xs, ms, h₁, h₂, h₃⟩
 
 /-- A challenge squeezed is read back. -/
-theorem back_sample {x : E} {s s' : PState} (h : proveSem.Runs (proveOps H fuel).sample s x s') :
+private theorem back_sample {x : E} {s s' : PState}
+    (h : proveSem.Runs (proveOps H fuel).sample s x s') :
     Back (Verify.readerOps H).sample s s' x := by
   obtain ⟨hb, hw⟩ := runs_lift.mp h
   have hm := merkle_sample H hw
@@ -238,7 +239,8 @@ theorem back_sample {x : E} {s s' : PState} (h : proveSem.Runs (proveOps H fuel)
   exact ⟨hb, hm, xs, ms, h₁, h₂, h₃⟩
 
 /-- The grinding nonce is read back, and passes the check. -/
-theorem back_grind {s s' : PState} {u : Unit} (h : proveSem.Runs (proveOps H fuel).grind s u s') :
+private theorem back_grind {s s' : PState} {u : Unit}
+    (h : proveSem.Runs (proveOps H fuel).grind s u s') :
     ∃ nonce, Back ((Verify.readerOps H).checkPow queryGrindingBits) s s' nonce := by
   obtain ⟨hb, hw⟩ := runs_lift.mp h
   have hm := merkle_grind H hw
@@ -247,8 +249,9 @@ theorem back_grind {s s' : PState} {u : Unit} (h : proveSem.Runs (proveOps H fue
   exact ⟨b, hb, hm, xs, ms, h₁, h₂, h₃⟩
 
 /-- A commitment is kept in the book, and its root is read back. -/
-theorem runs_commit {depth leafWords : ℕ} {rows : Vector (List K) (2 ^ depth)} {s s' : PState}
-    {u : Unit} (h : proveSem.Runs ((proveOps H fuel).commit depth leafWords rows) s u s') :
+private theorem runs_commit {depth leafWords : ℕ} {rows : Vector (List K) (2 ^ depth)}
+    {s s' : PState} {u : Unit}
+    (h : proveSem.Runs ((proveOps H fuel).commit depth leafWords rows) s u s') :
     s'.1 = { s.1 with commits := s.1.commits.push ⟨depth, merkleCommitWith H leafWords rows⟩ } ∧
       s'.2.merkle = s.2.merkle ∧
       Reads (Verify.readerOps H).nextRoot s.2 s'.2 (merkleCommitWith H leafWords rows).root := by
@@ -272,7 +275,7 @@ theorem runs_commit {depth leafWords : ℕ} {rows : Vector (List K) (2 ^ depth)}
     exact ⟨rfl, hm, xs, ms, h₁, h₂, h₃⟩
 
 /-- A level's positions are kept in the book; nothing is written. -/
-theorem runs_record {ps : List ℕ} {s s' : PState} {u : Unit}
+private theorem runs_record {ps : List ℕ} {s s' : PState} {u : Unit}
     (h : proveSem.Runs ((proveOps H fuel).record ps) s u s') :
     s'.1 = { s.1 with positions := s.1.positions.push ps } ∧ s'.2 = s.2 := by
   rcases s' with ⟨bk', ws'⟩
@@ -283,7 +286,7 @@ theorem runs_record {ps : List ℕ} {s s' : PState} {u : Unit}
   exact ⟨rfl, rfl⟩
 
 /-- Scalars sent are read back. -/
-theorem back_sendAll : ∀ (l : List E) {s s' : PState} {u : Unit},
+private theorem back_sendAll : ∀ (l : List E) {s s' : PState} {u : Unit},
     proveSem.Runs (sendAll (proveOps H fuel) l) s u s' →
     Back ((Verify.readerOps H).nextScalars l.length) s s' l
   | [], s, s', u, h => by
@@ -294,7 +297,7 @@ theorem back_sendAll : ∀ (l : List E) {s s' : PState} {u : Unit},
     exact (back_send H fuel h₁).bind ((back_sendAll xs h₂).bind (Back.pure _ _))
 
 /-- Challenges squeezed are read back, as many as squeezed. -/
-theorem back_samples : ∀ (k : ℕ) {s s' : PState} {xs : List E},
+private theorem back_samples : ∀ (k : ℕ) {s s' : PState} {xs : List E},
     proveSem.Runs (samples (proveOps H fuel) k) s xs s' →
     Back (Verify.samples (Verify.readerOps H) k) s s' xs ∧ xs.length = k
   | 0, s, s', xs, h => by
@@ -309,7 +312,7 @@ theorem back_samples : ∀ (k : ℕ) {s s' : PState} {xs : List E},
 
 /-- Positions squeezed by the verifier's function are read back by it; each lies in the tree,
 and there are as many as needed when a squeeze gives one. -/
-theorem back_positionsWith (depth : ℕ) : ∀ (f need : ℕ) {s s' : PState} {ps : List ℕ},
+private theorem back_positionsWith (depth : ℕ) : ∀ (f need : ℕ) {s s' : PState} {ps : List ℕ},
     proveSem.Runs (Verify.positionsWith (proveOps H fuel).sample depth f need) s ps s' →
     Back (Verify.positionsWith (Verify.readerOps H).sample depth f need) s s' ps ∧
       (∀ q ∈ ps, q < 2 ^ depth) ∧ (0 < 192 / depth → need ≤ f → ps.length = need)
@@ -337,7 +340,7 @@ theorem back_positionsWith (depth : ℕ) : ∀ (f need : ℕ) {s s' : PState} {p
       omega
 
 /-- A level's positions are squeezed, kept in the book and read back by the walk. -/
-theorem runs_positions {depth t : ℕ} {s s' : PState} {pos : Fin t → Fin (2 ^ depth)}
+private theorem runs_positions {depth t : ℕ} {s s' : PState} {pos : Fin t → Fin (2 ^ depth)}
     (h : proveSem.Runs (positions (proveOps H fuel) depth t) s pos s') :
     ∃ ps, pos = Verify.positionsOf t depth ps ∧
       s'.1 = { s.1 with positions := s.1.positions.push ps } ∧ s'.2.merkle = s.2.merkle ∧
@@ -353,16 +356,16 @@ theorem runs_positions {depth t : ℕ} {s s' : PState} {pos : Fin t → Fin (2 ^
   exact hr
 
 /-- A plain round polynomial of positive degree is read back as its wire. -/
-theorem back_sendPlain {d : ℕ} (hd : 0 < d) (c : Vector E (d + 1)) {s s' : PState} {u : Unit}
-    (h : proveSem.Runs (sendPlain (proveOps H fuel) c) s u s') :
+private theorem back_sendPlain {d : ℕ} (hd : 0 < d) (c : Vector E (d + 1)) {s s' : PState}
+    {u : Unit} (h : proveSem.Runs (sendPlain (proveOps H fuel) c) s u s') :
     Back ((Verify.readerOps H).nextScalars d) s s' (polyWire 1 c) := by
   have h₁ := back_sendAll H fuel _ h
   rwa [RoundPoly.length_encode hd] at h₁
 
 /-- A round polynomial with its equality weight factored out, of positive degree, is read back as
 its wire. -/
-theorem back_sendNormal {d : ℕ} (hd : 0 < d) (c : Vector E (d + 1)) {s s' : PState} {u : Unit}
-    (h : proveSem.Runs (sendNormal (proveOps H fuel) c) s u s') :
+private theorem back_sendNormal {d : ℕ} (hd : 0 < d) (c : Vector E (d + 1)) {s s' : PState}
+    {u : Unit} (h : proveSem.Runs (sendNormal (proveOps H fuel) c) s u s') :
     Back ((Verify.readerOps H).nextScalars d) s s' (polyWire 0 c) := by
   have h₁ := back_sendAll H fuel _ h
   rwa [RoundPoly.length_encode hd] at h₁
@@ -441,7 +444,7 @@ section Runs
 variable (H : List UInt8 → Id Digest) (fuel : ℕ)
 
 /-- A run of challenges is read back as its list. -/
-theorem back_chals : ∀ (k : ℕ) {t : (draws E k).FullTranscript} {s s' : PState},
+private theorem back_chals : ∀ (k : ℕ) {t : (draws E k).FullTranscript} {s s' : PState},
     (RoundCodec.chals (proveOps H fuel).sample k).RunsAs proveSem t s s' →
     Back (Verify.samples (Verify.readerOps H) k) s s' (drawsList k t)
   | 0, t, s, s', h => by
@@ -454,7 +457,7 @@ theorem back_chals : ∀ (k : ℕ) {t : (draws E k).FullTranscript} {s s' : PSta
       ((back_sample H fuel (RoundCodec.runsAs_chal h₂)).bind (Back.pure _ _))
 
 /-- A run of rounds is read back as its rounds' wires, each polynomial read back as its wire. -/
-theorem back_rounds {d : ℕ} (drop : ℕ) {enc : Vector E (d + 1) → ProveM Id Unit}
+private theorem back_rounds {d : ℕ} (drop : ℕ) {enc : Vector E (d + 1) → ProveM Id Unit}
     (henc : ∀ (c : Vector E (d + 1)) {s s' : PState} {u : Unit}, proveSem.Runs (enc c) s u s' →
       Back ((Verify.readerOps H).nextScalars d) s s' (polyWire drop c)) :
     ∀ (m : ℕ) {t : (roundsSpec E d m).FullTranscript} {s s' : PState},
@@ -471,7 +474,7 @@ theorem back_rounds {d : ℕ} (drop : ℕ) {enc : Vector E (d + 1) → ProveM Id
       ((back_rounds drop henc m h₂).bind_ret rfl)
 
 /-- Scalars sent in two parts are sent one part after the other. -/
-theorem runs_sendAll_append (l₁ l₂ : List E) {s s' : PState} {u : Unit}
+private theorem runs_sendAll_append (l₁ l₂ : List E) {s s' : PState} {u : Unit}
     (h : proveSem.Runs (sendAll (proveOps H fuel) (l₁ ++ l₂)) s u s') :
     ∃ sm, proveSem.Runs (sendAll (proveOps H fuel) l₁) s () sm ∧
       proveSem.Runs (sendAll (proveOps H fuel) l₂) sm () s' := by
@@ -491,7 +494,7 @@ section Front
 variable (H : List UInt8 → Id Digest) (fuel : ℕ)
 
 /-- **The table sumcheck read back**: `ξ`, the rounds' wires and the columns' values. -/
-theorem back_table (I : M3Instance) {t : (tableSpec I).FullTranscript} {s s' : PState}
+private theorem back_table (I : M3Instance) {t : (tableSpec I).FullTranscript} {s s' : PState}
     (h : (tableCodec (proveOps H fuel) I).RunsAs proveSem t s s') :
     Back (Verify.walkTables (Verify.readerOps H) I.τmax I.tableColumns) s s'
       (tableWireOf I t) := by
@@ -505,7 +508,7 @@ theorem back_table (I : M3Instance) {t : (tableSpec I).FullTranscript} {s s' : P
       h₁).bind (hv.bind_ret rfl))
 
 /-- **The public input read back**: `r` and the values sent, one per sent line. -/
-theorem back_pub {nSent : ℕ} {t : pubSpec.FullTranscript} {s s' : PState}
+private theorem back_pub {nSent : ℕ} {t : pubSpec.FullTranscript} {s s' : PState}
     (h : (pubCodec (proveOps H fuel)).RunsAs proveSem t s s') (hn : (t 1).length = nSent) :
     Back (Verify.walkPub (Verify.readerOps H) nSent) s s' (pubWireOf t) := by
   obtain ⟨st, h0, hl, hs⟩ := h
@@ -515,7 +518,7 @@ theorem back_pub {nSent : ℕ} {t : pubSpec.FullTranscript} {s s' : PState}
   exact (back_sample H fuel h₁).bind ((back_sendAll H fuel _ h₂).bind_ret rfl)
 
 /-- **The Flock phase read back**, for `2 ^ k` compressions. -/
-theorem back_flock (k : ℕ) {t : (flockSpecOf k).FullTranscript} {s s' : PState}
+private theorem back_flock (k : ℕ) {t : (flockSpecOf k).FullTranscript} {s s' : PState}
     (h : (flockCodecOf (proveOps H fuel) k).RunsAs proveSem t s s') :
     Back (Verify.walkFlock (Verify.readerOps H) k) s s' (flockWireOf k t) := by
   obtain ⟨s₉, h₉, hr⟩ := RoundCodec.RunsAs.append_inv proveSem h
@@ -670,7 +673,7 @@ private theorem back_gkrAux : ∀ (r k : ℕ), r < 2 →
       (back_sample H fuel (RoundCodec.runsAs_chal hl))).bind_ret rfl))
 
 /-- **The grand product read back**: the combiner after the roots, then the layers. -/
-theorem back_gkr (μ : ℕ) {t : (gkrSpec E 3 μ).FullTranscript} {s s' : PState}
+private theorem back_gkr (μ : ℕ) {t : (gkrSpec E 3 μ).FullTranscript} {s s' : PState}
     (h : (RoundCodec.gkr μ (sendNormal (proveOps H fuel)) (sendTables (proveOps H fuel))
       (sendNormal (proveOps H fuel)) (sendTables (proveOps H fuel))
       (proveOps H fuel).sample).RunsAs proveSem t s s') :
@@ -687,7 +690,7 @@ private theorem ofFn_getD : ∀ {l : List E}, l.length = 4 →
 
 /-- **The bus phase read back**: `α`, `β`, the roots, the grand product's combiner and layers,
 and the boundary values. -/
-theorem back_bus (I : M3Instance) {t : (busSpec I).FullTranscript} {s s' : PState}
+private theorem back_bus (I : M3Instance) {t : (busSpec I).FullTranscript} {s s' : PState}
     (h : (busCodec (proveOps H fuel) I).RunsAs proveSem t s s') :
     Back (Verify.walkBus (Verify.readerOps H) I.μBus I.busClaims) s s' (busWireOf I t) := by
   obtain ⟨s₃, h₃, hv⟩ := RoundCodec.RunsAs.append_inv proveSem h
@@ -749,20 +752,14 @@ abbrev finalPositions {sh : Whir.Shape} {nf : ℕ} (t : (seqSpec (finalSteps sh 
   drawOf (seqHead (seqTail (seqTail (seqTail (seqTail (seqTail t))))))
 
 /-- The positions reduced from a transcript's positions are them. -/
-theorem positionsOf_positionsList {t b : ℕ} (pos : Fin t → Fin (2 ^ b)) :
+private theorem positionsOf_positionsList {t b : ℕ} (pos : Fin t → Fin (2 ^ b)) :
     Verify.positionsOf t b (positionsList pos) = pos := by
   funext q
   apply Fin.ext
   simp [Verify.positionsOf, positionsList, Nat.mod_eq_of_lt (pos q).isLt]
 
-/-- Reducing a transcript's positions leaves them. -/
-theorem reducePositions_positionsList {t b : ℕ} (pos : Fin t → Fin (2 ^ b)) :
-    Verify.reducePositions t b (positionsList pos) = positionsList pos := by
-  rw [Verify.reducePositions, positionsOf_positionsList]
-  rfl
-
 /-- Raw positions standing for a transcript's reduce as the transcript's do. -/
-theorem reducePositions_of_posRead {t b : ℕ} {ps : List ℕ} {pos : Fin t → Fin (2 ^ b)}
+private theorem reducePositions_of_posRead {t b : ℕ} {ps : List ℕ} {pos : Fin t → Fin (2 ^ b)}
     (h : PosRead ps pos) :
     Verify.reducePositions t b ps = Verify.reducePositions t b (positionsList pos) := by
   simp only [Verify.reducePositions, positionsOf_positionsList, h.2.2]
@@ -784,7 +781,7 @@ variable (H : List UInt8 → Id Digest) (fuel : ℕ)
 what the algebra does not read; the next word's commitment and the level's positions kept in the
 book; the positions standing for the transcript's; the root the walk reads the commitment's; and
 the rest of the opening run on the rest of the transcript. -/
-theorem back_level (sh sh' : Whir.Shape) (κ' : ℕ) {k : List Step}
+private theorem back_level (sh sh' : Whir.Shape) (κ' : ℕ) {k : List Step}
     {rest : RoundCodec (ProveM Id) (seqSpec k)}
     (hd : 0 < 192 / (Kap sh' κ' + sh.R))
     {t : (seqSpec (levelSteps sh sh' κ' k)).FullTranscript} {s s' : PState}
@@ -867,7 +864,7 @@ theorem back_level (sh sh' : Whir.Shape) (κ' : ℕ) {k : List Step}
 
 /-- **The final level read back**: the walk's level, equal to the transcript's but for what the
 algebra does not read; the level's positions kept in the book and standing for the transcript's. -/
-theorem back_final (sh : Whir.Shape) (nf : ℕ) (hd : 0 < 192 / (nf + 1 + sh.R))
+private theorem back_final (sh : Whir.Shape) (nf : ℕ) (hd : 0 < 192 / (nf + 1 + sh.R))
     {t : (seqSpec (finalSteps sh nf)).FullTranscript} {s s' : PState}
     (h : (finalCodec (proveOps H fuel) sh nf).RunsAs proveSem t s s') :
     ∃ l, Reads (Verify.walkLevel (Verify.readerOps H) ⟨sh.ℓ, nf + 1, sh.R, sh.t, true⟩)
@@ -958,7 +955,7 @@ def LadderRead (H : List UInt8 → Id Digest) : {sh : Whir.Shape} → {κ : ℕ}
 /-- **A chain of levels read back**: the walk's levels, equal to the transcript's but for what the
 algebra does not read; the commitments and positions kept, in order; and what the openings
 need. -/
-theorem back_ladder : ∀ {sh : Whir.Shape} {κ : ℕ} (L : Ladder sh κ),
+private theorem back_ladder : ∀ {sh : Whir.Shape} {κ : ℕ} (L : Ladder sh κ),
     (∀ x ∈ L.shapes, 0 < 192 / (x.msgLog + x.rate)) →
     ∀ {t : (seqSpec L.steps).FullTranscript} {s s' : PState},
     (ladderCodec (proveOps H fuel) L).RunsAs proveSem t s s' →
@@ -993,7 +990,7 @@ section Chain
 variable (H : List UInt8 → Id Digest) (fuel : ℕ)
 
 /-- The proof reader's scalars are the reader's. -/
-theorem readerOps_nextScalars : ∀ k : ℕ,
+private theorem readerOps_nextScalars : ∀ k : ℕ,
     (Verify.readerOps H).nextScalars k = Reader.nextScalars (M := PrunedMerklePaths) H k
   | 0 => rfl
   | k + 1 => by
@@ -1001,7 +998,7 @@ theorem readerOps_nextScalars : ∀ k : ℕ,
     rfl
 
 /-- The announced sizes and rate are read back as the eight scalars of the announcement. -/
-theorem reads_announce {s : Sizes} {ρ : ℕ} {s₀ s₁ : PState} {u : Unit}
+private theorem reads_announce {s : Sizes} {ρ : ℕ} {s₀ s₁ : PState} {u : Unit}
     (h : proveSem.Runs (StateT.lift (Writer.announce H s ρ) : ProveM Id Unit) s₀ u s₁) :
     s₁.1 = s₀.1 ∧ s₁.2.merkle = s₀.2.merkle ∧
       Reads ((Verify.readerOps H).nextScalars 8) s₀.2 s₁.2 (announcement s ρ) := by
@@ -1117,6 +1114,64 @@ theorem walkChain_reads {prog : Program} {s : Sizes} {ρ : ℕ} (input : PublicI
     refine ⟨y₁ ++ (y₂ ++ (y₃ ++ (y₄ ++ (y₅ ++ (y₆ ++ (y₇ ++ y₈)))))), ?_⟩
     rw [e₈, e₇, e₆, e₅, e₄, e₃, e₂, e₁]
     simp only [List.append_assoc]
+
+/-- A chain of levels keeps one set of positions more than commitments. -/
+private theorem ladderRead_length : ∀ {sh : Whir.Shape} {κ : ℕ} (L : Ladder sh κ)
+    {t : (seqSpec L.steps).FullTranscript} {ls : List Verify.WhirLevel}
+    {cs : List (Σ k, MerkleCommitment k)} {pss : List (List ℕ)},
+    LadderRead H L t ls cs pss → pss.length = cs.length + 1
+  | _, _, .last _ _, _, _, _, _, h => by
+    obtain ⟨_, _, rfl, rfl, _⟩ := h
+    rfl
+  | _, _, @Ladder.cons _ _ _ L, _, _, _, _, h => by
+    obtain ⟨_, _, _, _, _, rfl, rfl, _, _, h⟩ := h
+    simp [ladderRead_length L h]
+
+/-- The Flock slot leaves the book. -/
+private theorem book_flockOpt (I : M3Instance) : ∀ (o : Option (FlockRegion I.toShape))
+    {t : (flockSpecOpt I o).FullTranscript} {s s' : PState},
+    (flockCodecOpt (proveOps H fuel) I o).RunsAs proveSem t s s' → s'.1 = s.1
+  | none, _, _, _, h => by rw [RoundCodec.runsAs_empty h]
+  | some r, _, _, _, h => (back_flock H fuel r.kBatch h).1
+
+/-- **The book keeps as many commitments as positions**: the prover's run against the wire of
+the compiled schedule commits the level-0 word and the word of each level with a successor, and
+draws each level's positions once. -/
+theorem book_compiled (I : M3Instance) (n : ℕ) {sh : Whir.Shape} {κ : ℕ}
+    (L : Ladder sh κ) (hd : ∀ x ∈ L.shapes, 0 < 192 / (x.msgLog + x.rate))
+    {t : (listBindingSpec I sh κ L).FullTranscript} {s s' : PState}
+    (h : (compiledCodec (proveOps H fuel) I n L).RunsAs proveSem t s s')
+    (hsz : s.1.commits.size = s.1.positions.size) :
+    s'.1.commits.size = s'.1.positions.size := by
+  obtain ⟨f₇, h₇, hwh⟩ := RoundCodec.RunsAs.append_inv proveSem h
+  obtain ⟨f₆, h₆, he⟩ := RoundCodec.RunsAs.append_inv proveSem h₇
+  obtain ⟨f₅, h₅, hlam⟩ := RoundCodec.RunsAs.append_inv proveSem h₆
+  obtain ⟨f₄, h₄, hfl⟩ := RoundCodec.RunsAs.append_inv proveSem h₅
+  obtain ⟨f₃, h₃, hpb⟩ := RoundCodec.RunsAs.append_inv proveSem h₄
+  obtain ⟨f₂, h₂, htb⟩ := RoundCodec.RunsAs.append_inv proveSem h₃
+  obtain ⟨f₁, hcm, hbs⟩ := RoundCodec.RunsAs.append_inv proveSem h₂
+  obtain ⟨g₁, hg₀, hg⟩ := RoundCodec.RunsAs.append_inv proveSem hwh
+  obtain ⟨g₂, hfirst, hlad⟩ := RoundCodec.RunsAs.append_inv proveSem hg
+  have rc : proveSem.Runs ((proveOps H fuel).commit (κ + sh.R) (2 ^ sh.ℓ)
+      (level0Rows n (level0Word t))) s () f₁ := RoundCodec.runsAs_sendOne hcm
+  have hk := (runs_commit H fuel rc).1
+  have e₂ := (back_bus H fuel _ hbs).1
+  have e₃ := (back_table H fuel _ htb).1
+  have e₄ := (back_pub H fuel hpb rfl).1
+  have e₅ := book_flockOpt H fuel I I.flock hfl
+  have e₆ := (back_sample H fuel (RoundCodec.runsAs_chal hlam)).1
+  have e₇ := RoundCodec.runsAs_empty he
+  have e₈ := RoundCodec.runsAs_empty hg₀
+  have e₉ := (back_sendPlain H fuel (by norm_num) _ (RoundCodec.runsAs_msg hfirst)).1
+  obtain ⟨_, cs, pss, -, -, hcl, hpl, -, hrl⟩ := back_ladder H fuel L hd hlad
+  have hc : g₂.1.commits.size = s.1.commits.size + 1 ∧ g₂.1.positions = s.1.positions := by
+    rw [e₉, e₈, e₇, e₆, e₅, e₄, e₃, e₂, hk]
+    simp
+  have h₁ := congrArg List.length hcl
+  have h₂ := congrArg List.length hpl
+  simp only [Array.length_toList, List.length_append] at h₁ h₂
+  rw [h₁, h₂, hc.1, hc.2, ladderRead_length H L hrl, hsz]
+  omega
 
 end Chain
 

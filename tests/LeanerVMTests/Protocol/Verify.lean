@@ -393,8 +393,9 @@ structure WireMutation where
   expected : Outcome
 
 /-- The honest wire, then a change in each front phase's messages: a grand-product round
-coefficient and a child value, a table round coefficient and column value, a public value, a
-zerocheck and a lincheck round coefficient and a slice, each rejected by its own phase's check. -/
+coefficient and a child value, a table round coefficient and column value, a public value and
+the number of public values, a zerocheck and a lincheck round coefficient and a slice, each
+rejected by its own phase's check. -/
 def wireMutations : List WireMutation := [
   ⟨"the honest wire", id, .accepted⟩,
   ⟨"a grand-product round coefficient", fun w ↦ { w with bus := { w.bus with
@@ -409,6 +410,10 @@ def wireMutations : List WireMutation := [
     finals := w.table.finals.modify 0 (· + 1) } }, .table⟩,
   ⟨"a public value", fun w ↦ { w with pub := { w.pub with
     values := w.pub.values.modify 0 (· + 1) } }, .pub⟩,
+  ⟨"a public value appended", fun w ↦ { w with pub := { w.pub with
+    values := w.pub.values ++ [0] } }, .pub⟩,
+  ⟨"the last public value dropped", fun w ↦ { w with pub := { w.pub with
+    values := w.pub.values.dropLast } }, .pub⟩,
   ⟨"a zerocheck round coefficient", fun w ↦ { w with flock := { w.flock with
     zc := w.flock.zc.modify 2 bumpRound } }, .flock⟩,
   ⟨"a lincheck round coefficient", fun w ↦ { w with flock := { w.flock with

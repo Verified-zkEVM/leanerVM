@@ -40,6 +40,12 @@ The proof:
 4. the announcement passes the setup, the ladder is the deployed chain's, the openings have their
    shapes and the stream and the openings are consumed.
 
+`proveWith_eq_none`: the prover returns no proof only when the witness gives no sizes, its sizes
+are not admissible, the rate is not valid, or a grind finds no nonce within its fuel at some chain
+state. Every round of the wire runs when the grinds do (`Prover.runWith_total`), and the book
+keeps as many commitments as positions (`book_compiled`), so the openings' size check never
+fails. So the hypothesis that the prover returned a proof is met whenever the grinds succeed.
+
 The grinding nonce shows where the oracle transcript and the proof differ: the oracle protocol's
 honest prover sends zero, the proof carries the nonce the grind finds. The algebra reads neither,
 so the agreement is applied at the honest transcript itself, and no lemma about the compiled
@@ -82,7 +88,7 @@ def PhasesAgree (prog : Program) (s : Sizes) (hs : s.Admissible prog) (ρ : ℕ)
       (rowsOf (Verify.leanVm prog s) (leanIsaChain prog s hs ρ hρ).ladder tr) = true
 
 /-- An accepted wire carries one public value per sent line. -/
-theorem pubLength_of_algebra {prog : Program} {s : Sizes} {input : PublicInput}
+private theorem pubLength_of_algebra {prog : Program} {s : Sizes} {input : PublicInput}
     {shs : List Verify.LevelShape} {w : Verify.Wire} {rows : List (List (List K))}
     (h : Verify.algebra prog s input shs w rows = true) :
     w.pub.values.length =
@@ -119,12 +125,12 @@ theorem pubLength_of_algebra {prog : Program} {s : Sizes} {input : PublicInput}
   rw [hacc.1, ht₁, hb₁]
 
 /-- The public values a transcript's wire carries are its public-input message. -/
-theorem wireOf_pub_values (I : M3Instance) {sh : Whir.Shape} {κ : ℕ} (L : Ladder sh κ)
+private theorem wireOf_pub_values (I : M3Instance) {sh : Whir.Shape} {κ : ℕ} (L : Ladder sh κ)
     (t : (listBindingSpec I sh κ L).FullTranscript) :
     (wireOf I L t).pub.values = pubMessage t := rfl
 
 /-- The run on given challenges of two components in sequence begins with the first's. -/
-theorem runWithChallenges_def_append_fst {StmtIn ι₁ ι₂ ι₃ : Type} {O₁ : ι₁ → Type}
+private theorem runWithChallenges_def_append_fst {StmtIn ι₁ ι₂ ι₃ : Type} {O₁ : ι₁ → Type}
     {O₂ : ι₂ → Type} {O₃ : ι₃ → Type} [∀ i, OracleInterface (O₁ i)]
     [∀ i, OracleInterface (O₂ i)] [∀ i, OracleInterface (O₃ i)] {W₁ S₂ W₂ S₃ W₃ : Type}
     {m n : ℕ} {p₁ : ProtocolSpec m} {p₂ : ProtocolSpec n}
@@ -138,7 +144,7 @@ theorem runWithChallenges_def_append_fst {StmtIn ι₁ ι₂ ι₃ : Type} {O₁
 
 /-- **The honest level-0 word**: on any challenges, the compiled protocol's honest prover sends
 the `K` word of its stack. -/
-theorem level0Word_honest (prog : Program) (s : Sizes) (hs : s.Admissible prog) (ρ : ℕ)
+private theorem level0Word_honest (prog : Program) (s : Sizes) (hs : s.Admissible prog) (ρ : ℕ)
     (hρ : validRate ρ) (ch : (listBindingSpec (Verify.leanVm prog s)
       (leanIsaChain prog s hs ρ hρ).sh (leanIsaChain prog s hs ρ hρ).κ
       (leanIsaChain prog s hs ρ hρ).ladder).Challenges)
@@ -157,7 +163,7 @@ private theorem getElem_cast_values {a b : ℕ} (h : b = a) (v : Vector K (2 ^ b
   rfl
 
 /-- A lane of the `K` word of a table vanishes where the table's slice for that lane does. -/
-theorem kwordOf_row_eq_zero {ℓ κ R t : ℕ} (q : CompPoly.CMlPolynomialEval K (κ + ℓ))
+private theorem kwordOf_row_eq_zero {ℓ κ R t : ℕ} (q : CompPoly.CMlPolynomialEval K (κ + ℓ))
     (y : Fin (2 ^ (κ + R))) (u : Fin (2 ^ ℓ)) (hz : ∀ x : Fin (2 ^ κ), q[cubeIndex x u] = 0) :
     ((kwordOf ℓ κ R t q).row y)[u] = 0 := by
   simp only [kwordOf, Fin.getElem_fin, Vector.getElem_ofFn, encode, Weight.pair]
@@ -170,7 +176,7 @@ theorem kwordOf_row_eq_zero {ℓ κ R t : ℕ} (q : CompPoly.CMlPolynomialEval K
 /-- **The honest word's lanes past the committed ones vanish**: lane `u` of the word of a
 witness's stack encodes the stack's cells from `u · 2 ^ κ` on, which lie past the last block when
 `u` is past the committed lanes. -/
-theorem kwordOf_stackOf_high {prog : Program} {s : Sizes} (hs : s.Admissible prog) {ρ : ℕ}
+private theorem kwordOf_stackOf_high {prog : Program} {s : Sizes} (hs : s.Admissible prog) {ρ : ℕ}
     (hρ : validRate ρ) (w : EnsembleWitness (leanIsaEnsemble prog))
     (y : Fin (2 ^ ((leanIsaChain prog s hs ρ hρ).κ + (leanIsaChain prog s hs ρ hρ).sh.R)))
     (u : Fin (2 ^ (leanIsaChain prog s hs ρ hρ).sh.ℓ)) (hu : Verify.nLanes prog s ≤ u.val) :
@@ -205,8 +211,8 @@ theorem kwordOf_stackOf_high {prog : Program} {s : Sizes} (hs : s.Admissible pro
 
 /-- A stored level-0 row whose lanes past the committed ones vanish has the full row, lanes in
 reverse, as its leaf image. -/
-theorem leafImage_level0Rows {ℓ b t n : ℕ} (hn : n ≤ 2 ^ ℓ) {x : KWord ℓ b t} {p : Fin (2 ^ b)}
-    (hz : ∀ u : Fin (2 ^ ℓ), n ≤ u.val → (x.row p)[u] = 0) :
+private theorem leafImage_level0Rows {ℓ b t n : ℕ} (hn : n ≤ 2 ^ ℓ) {x : KWord ℓ b t}
+    {p : Fin (2 ^ b)} (hz : ∀ u : Fin (2 ^ ℓ), n ≤ u.val → (x.row p)[u] = 0) :
     leafImage (2 ^ ℓ) (level0Rows n x)[p] = (x.row p).toList.reverse := by
   have hdrop : (x.row p).toList.drop n = List.replicate (2 ^ ℓ - n) 0 := by
     refine List.eq_replicate_iff.mpr ⟨by simp, fun a ha ↦ ?_⟩
@@ -218,7 +224,7 @@ theorem leafImage_level0Rows {ℓ b t n : ℕ} (hn : n ≤ 2 ^ ℓ) {x : KWord �
 
 /-- A prover's proof is the proof of a run of its writer from the statement's seed and an empty
 book. -/
-theorem runs_of_runProof {prog : Program} {input : PublicInput} {wr : ProveM Id Unit}
+private theorem runs_of_runProof {prog : Program} {input : PublicInput} {wr : ProveM Id Unit}
     {proof : Proof PrunedMerklePaths} (h : runProof (m := Id) prog input wr = some proof) :
     ∃ s', proveSem.Runs wr (⟨#[], #[]⟩, ⟨FsState.seed prog input, #[], #[]⟩) () s' ∧
       s'.2.proof = proof := by
@@ -233,7 +239,7 @@ theorem runs_of_runProof {prog : Program} {input : PublicInput} {wr : ProveM Id 
     exact ⟨(bk, ws), hr, rfl⟩
 
 /-- The stored level-0 rows hold the committed lanes, at most a leaf's. -/
-theorem length_level0Rows {ℓ b t n : ℕ} (hn : n ≤ 2 ^ ℓ) (x : KWord ℓ b t) :
+private theorem length_level0Rows {ℓ b t n : ℕ} (hn : n ≤ 2 ^ ℓ) (x : KWord ℓ b t) :
     ∀ row ∈ (level0Rows n x).toList, row.length = n := by
   intro row hrow
   obtain ⟨i, hi, rfl⟩ := List.getElem_of_mem hrow
@@ -242,7 +248,7 @@ theorem length_level0Rows {ℓ b t n : ℕ} (hn : n ≤ 2 ^ ℓ) (x : KWord ℓ 
 /-- The verifier on a proof that passes the setup, whose ladder exists and whose openings have
 their shapes, and on which the walk and the openings read a wire and rows and consume the proof:
 the algebra on them. -/
-theorem verifyWith_of_run {H : List UInt8 → Digest} {prog : Program} {input : PublicInput}
+private theorem verifyWith_of_run {H : List UInt8 → Digest} {prog : Program} {input : PublicInput}
     {proof : Proof PrunedMerklePaths} {s : Sizes} {ρ : ℕ} {levels : List Whir.Level}
     {w : Verify.Wire} {rows : List (List (List K))}
     (hsetup : Verify.setup? prog proof = some (s, ρ))
@@ -366,6 +372,264 @@ theorem baseProver_complete (H : List UInt8 → Digest) (fuel : ℕ) {prog : Pro
     (by rw [hsh]; exact run_of_reads hW), hsh, ← Verify.algebra_erase, herase,
     Verify.algebra_erase]
   exact halg
+
+/-! ## When the prover returns a proof -/
+
+section Total
+
+variable (H : List UInt8 → Digest) (fuel : ℕ)
+
+/-- A pure computation runs from every state. -/
+private theorem total_pure {α : Type} (a : α) : proveSem.Total (pure a : ProveM Id α) :=
+  fun s ↦ ⟨a, s, rfl⟩
+
+/-- A bound computation runs from every state when its parts do. -/
+private theorem total_bind {α β : Type} {x : ProveM Id α} {f : α → ProveM Id β}
+    (hx : proveSem.Total x) (hf : ∀ a, proveSem.Total (f a)) : proveSem.Total (x >>= f) := by
+  intro s
+  obtain ⟨a, sm, h₁⟩ := hx s
+  obtain ⟨b, s', h₂⟩ := hf a sm
+  exact ⟨b, s', runs_bind h₁ h₂⟩
+
+/-- A writer's step lifted to the prover runs from every state when it runs from every writer
+state. -/
+private theorem total_lift {α : Type} {y : WriteM Id PrunedMerklePaths α}
+    (h : ∀ ws, ∃ a ws', (y.run ws).run = some (a, ws')) :
+    proveSem.Total (StateT.lift y : ProveM Id α) := by
+  intro s
+  obtain ⟨a, ws', h⟩ := h s.2
+  exact ⟨a, (s.1, ws'), runs_lift.mpr ⟨rfl, h⟩⟩
+
+/-- Sending scalars never fails. -/
+private theorem addScalars_some : ∀ (xs : List E) (ws : WriterState PrunedMerklePaths),
+    ∃ a ws', ((Writer.addScalars (m := Id) H xs).run ws).run = some (a, ws')
+  | [], ws => ⟨(), ws, rfl⟩
+  | x :: xs, ws => addScalars_some xs
+      { ws with fs := Id.run (ws.fs.observe H x), stream := ws.stream.push x }
+
+/-- The writer's primitives but the grind run from every state; the grind does when it never
+runs out of fuel. -/
+private theorem total_send (x : E) : proveSem.Total ((proveOps H fuel).send x) :=
+  total_lift fun _ ↦ ⟨(), _, rfl⟩
+
+private theorem total_sample : proveSem.Total (proveOps H fuel).sample :=
+  total_lift fun _ ↦ ⟨_, _, rfl⟩
+
+private theorem total_grind
+    (hg : ∀ fs : FsState, Id.run (fs.grind H fuel queryGrindingBits) ≠ none) :
+    proveSem.Total (proveOps H fuel).grind := by
+  refine total_lift fun ws ↦ ?_
+  rcases hq : Id.run (ws.fs.grind H fuel queryGrindingBits) with _ | ⟨nonce, fs'⟩
+  · exact absurd hq (hg _)
+  · refine ⟨(), { ws with fs := fs', stream := ws.stream.push nonce }, ?_⟩
+    simp [Writer.grind, StateT.run_bind,
+      show ws.fs.grind (m := Id) H fuel queryGrindingBits = Pure.pure (some (nonce, fs'))
+        from hq]
+    rfl
+
+private theorem total_commit (depth leafWords : ℕ) (rows : Vector (List K) (2 ^ depth)) :
+    proveSem.Total ((proveOps H fuel).commit depth leafWords rows) :=
+  total_bind (fun s ↦ ⟨_, s, rfl⟩) fun _ ↦ total_bind (fun s ↦ ⟨(), (_, s.2), rfl⟩) fun _ ↦
+    total_lift (addScalars_some H _)
+
+private theorem total_record (ps : List ℕ) : proveSem.Total ((proveOps H fuel).record ps) :=
+  fun s ↦ ⟨(), (_, s.2), rfl⟩
+
+private theorem total_sendAll : ∀ l : List E, proveSem.Total (sendAll (proveOps H fuel) l)
+  | [] => total_pure _
+  | x :: xs => total_bind (total_send H fuel x) fun _ ↦ total_sendAll xs
+
+private theorem total_samples : ∀ k, proveSem.Total (samples (proveOps H fuel) k)
+  | 0 => total_pure _
+  | k + 1 => total_bind (total_sample H fuel) fun _ ↦
+      total_bind (total_samples k) fun _ ↦ total_pure _
+
+private theorem total_positionsWith (depth : ℕ) : ∀ f need,
+    proveSem.Total (Verify.positionsWith (proveOps H fuel).sample depth f need)
+  | 0, _ => total_pure _
+  | _ + 1, 0 => total_pure _
+  | f + 1, _ + 1 => total_bind (total_sample H fuel) fun _ ↦
+      total_bind (total_positionsWith depth f _) fun _ ↦ total_pure _
+
+private theorem total_positions (depth t : ℕ) :
+    proveSem.Total (positions (proveOps H fuel) depth t) :=
+  total_bind (total_positionsWith H fuel depth t t) fun ps ↦
+    total_bind (total_record H fuel ps) fun _ ↦ total_pure _
+
+/-- Every round of a wire runs from every state. -/
+private abbrev Every {n : ℕ} {pSpec : ProtocolSpec n} (c : RoundCodec (ProveM Id) pSpec) : Prop :=
+  RoundCodec.Every (fun _ x ↦ proveSem.Total x) c
+
+/-- Every round of each phase's wire runs from every state. -/
+private theorem every_bus (I : M3Instance) : Every (busCodec (proveOps H fuel) I) :=
+  (((RoundCodec.every_chal (total_bind (total_samples H fuel 4) fun _ ↦
+      total_bind (total_sample H fuel) fun _ ↦ total_pure _)).append
+    (RoundCodec.every_msg fun _ ↦ total_bind (total_send H fuel _) fun _ ↦
+      total_send H fuel _)).append
+    (RoundCodec.every_gkr I.μBus (fun _ ↦ total_sendAll H fuel _) (fun _ ↦ total_sendAll H fuel _)
+      (fun _ ↦ total_sendAll H fuel _) (fun _ ↦ total_sendAll H fuel _)
+      (total_sample H fuel))).append
+    (RoundCodec.every_msg fun _ ↦ total_sendAll H fuel _)
+
+private theorem every_table (I : M3Instance) : Every (tableCodec (proveOps H fuel) I) :=
+  ((RoundCodec.every_chal (total_sample H fuel)).append
+    (RoundCodec.every_rounds (fun _ ↦ total_sendAll H fuel _) (total_sample H fuel) _)).append
+    (RoundCodec.every_msg fun _ ↦ total_sendAll H fuel _)
+
+private theorem every_pub : Every (pubCodec (proveOps H fuel)) :=
+  ⟨fun i h x ↦ (match i, h, x with
+    | ⟨0, _⟩, h, _ => nomatch h
+    | ⟨1, _⟩, _, xs => total_sendAll H fuel xs), fun i h ↦ match i, h with
+    | ⟨0, _⟩, _ => total_sample H fuel
+    | ⟨1, _⟩, h => nomatch h⟩
+
+private theorem every_flockOf (k : ℕ) : Every (flockCodecOf (proveOps H fuel) k) :=
+  (((((((((RoundCodec.every_chals (total_sample H fuel) (k + 1)).append
+    (RoundCodec.every_msg fun _ ↦ total_sendAll H fuel _)).append
+    (RoundCodec.every_chal (total_sample H fuel))).append
+    (RoundCodec.every_rounds (fun _ ↦ total_sendAll H fuel _) (total_sample H fuel) 8)).append
+    (RoundCodec.every_rounds (fun _ ↦ total_sendAll H fuel _) (total_sample H fuel) k)).append
+    (RoundCodec.every_msg fun _ ↦ total_sendAll H fuel _)).append
+    (RoundCodec.every_chal (total_sample H fuel))).append
+    (RoundCodec.every_rounds (fun _ ↦ total_sendAll H fuel _) (total_sample H fuel) 8)).append
+    (RoundCodec.every_msg fun _ ↦ total_sendAll H fuel _)).append
+    (RoundCodec.every_chals (total_sample H fuel) 6)
+
+private theorem every_flockOpt (I : M3Instance) :
+    ∀ o, Every (flockCodecOpt (proveOps H fuel) I o)
+  | none => RoundCodec.every_empty
+  | some r => every_flockOf H fuel r.kBatch
+
+/-- The openings' loop runs from every state. -/
+private theorem total_forIn_openings : ∀ l : List ((Σ k, MerkleCommitment k) × List ℕ),
+    proveSem.Total (forIn l PUnit.unit fun x _ ↦ match x with
+        | (c, ps) => do
+          StateT.lift (Writer.hintOpening (m := Id) (merkleOpen c.2 ps))
+          return ForInStep.yield PUnit.unit)
+  | [] => total_pure _
+  | (c, ps) :: l => by
+    rw [List.forIn_cons]
+    exact total_bind (total_bind (total_lift fun _ ↦ ⟨(), _, rfl⟩) fun _ ↦ total_pure _)
+      fun r ↦ match r with
+        | .done _ => total_pure _
+        | .yield _ => total_forIn_openings l
+
+/-- The openings run when the commitments and the positions kept are as many. -/
+private theorem runs_hintOpenings_of_size {s : PState}
+    (h : s.1.commits.size = s.1.positions.size) :
+    ∃ s', proveSem.Runs (hintOpenings (m := Id)) s () s' := by
+  obtain ⟨u, s', h'⟩ := total_forIn_openings (s.1.commits.toList.zip s.1.positions.toList) s
+  refine ⟨s', ?_⟩
+  unfold hintOpenings
+  refine runs_bind (a := s.1) (sm := s) rfl ?_
+  simp only [h, ne_eq, not_true_eq_false, ↓reduceIte]
+  exact runs_bind h' rfl
+
+/-- The proof of a writer run from the statement's seed with an empty book. -/
+private theorem runProof_of_runs {prog : Program} {input : PublicInput} {wr : ProveM Id Unit}
+    {s' : PState} (h : proveSem.Runs wr (⟨#[], #[]⟩, ⟨FsState.seed prog input, #[], #[]⟩) () s') :
+    runProof (m := Id) prog input wr = some s'.2.proof := by
+  unfold runProof runWrite
+  simp only [StateT.run'_eq, StateT.run_map, OptionT.run_map]
+  rw [show ((wr.run ⟨#[], #[]⟩).run ⟨FsState.seed prog input, #[], #[]⟩).run =
+    some (((), s'.1), s'.2) from h]
+  rfl
+
+variable (hg : ∀ fs : FsState, Id.run (fs.grind H fuel queryGrindingBits) ≠ none)
+include hg
+
+/-- WHIR's levels run from every state when no grind runs out of fuel. -/
+private theorem every_ladder : ∀ {sh : Whir.Shape} {κ : ℕ} (L : Ladder sh κ),
+    Every (ladderCodec (proveOps H fuel) L)
+  | _, _, .last sh nf =>
+    (RoundCodec.every_chal (total_sample H fuel)).append <|
+    (RoundCodec.every_rounds (fun _ ↦ total_sendAll H fuel _) (total_sample H fuel) _).append <|
+    (RoundCodec.every_msg fun _ ↦ total_sendAll H fuel _).append <|
+    (RoundCodec.every_msg fun _ ↦ total_sendAll H fuel _).append <|
+    (RoundCodec.every_msg fun _ ↦ total_grind H fuel hg).append <|
+    (RoundCodec.every_chal (total_positions H fuel _ _)).append <|
+    (RoundCodec.every_chal (total_sample H fuel)).append <|
+    RoundCodec.every_empty.append <|
+    (RoundCodec.every_msg fun _ ↦ total_sendAll H fuel _).append <|
+    RoundCodec.every_empty.append <|
+    (RoundCodec.every_chal (total_sample H fuel)).append <|
+    (RoundCodec.every_rounds (fun _ ↦ total_sendAll H fuel _) (total_sample H fuel) _).append
+      RoundCodec.every_empty
+  | _, _, @Ladder.cons sh sh' κ' L =>
+    (RoundCodec.every_chal (total_sample H fuel)).append <|
+    (RoundCodec.every_rounds (fun _ ↦ total_sendAll H fuel _) (total_sample H fuel) _).append <|
+    (RoundCodec.every_msg fun _ ↦ total_sendAll H fuel _).append <|
+    (RoundCodec.every_msg fun _ ↦ total_commit H fuel _ _ _).append <|
+    (RoundCodec.every_chals (total_sample H fuel) _).append <|
+    (RoundCodec.every_msg (total_send H fuel)).append <|
+    (RoundCodec.every_msg fun _ ↦ total_sendAll H fuel _).append <|
+    (RoundCodec.every_msg fun _ ↦ total_grind H fuel hg).append <|
+    (RoundCodec.every_chal (total_positions H fuel _ _)).append <|
+    (RoundCodec.every_chal (total_sample H fuel)).append <|
+    RoundCodec.every_empty.append <|
+    (RoundCodec.every_msg fun _ ↦ total_sendAll H fuel _).append <|
+    RoundCodec.every_empty.append (every_ladder L)
+
+/-- Every round of the wire of the compiled schedule runs from every state when no grind runs out
+of fuel. -/
+private theorem every_compiled (I : M3Instance) (n : ℕ) {sh : Whir.Shape} {κ : ℕ}
+    (L : Ladder sh κ) : Every (compiledCodec (proveOps H fuel) I n L) :=
+  (((((((RoundCodec.every_sendOne fun _ ↦ total_commit H fuel _ _ _).append
+    (every_bus H fuel I)).append (every_table H fuel I)).append (every_pub H fuel)).append
+    (every_flockOpt H fuel I I.flock)).append
+    (RoundCodec.every_chal (total_sample H fuel))).append RoundCodec.every_empty).append
+    (RoundCodec.every_empty.append ((RoundCodec.every_msg fun _ ↦ total_sendAll H fuel _).append
+      (every_ladder H fuel hg L)))
+
+end Total
+
+/-- **The honest prover returns a proof** when the witness gives sizes admissible with the rate
+and no grind runs out of fuel, whatever the hash and the Flock specification. -/
+theorem proveWith_ne_none (H : List UInt8 → Digest) (fuel : ℕ) (F : FlockSpec) {prog : Program}
+    {input : PublicInput} {w : EnsembleWitness (leanIsaEnsemble prog)} {ρ : ℕ} {s : Sizes}
+    (hws : Sizes.ofWitness w = some s) (hs : s.Admissible prog) (hρ : validRate ρ)
+    (hg : ∀ fs : FsState, Id.run (fs.grind H fuel queryGrindingBits) ≠ none) :
+    proveWith (m := Id) H fuel F prog input w ρ ≠ none := by
+  unfold proveWith
+  rw [hws]
+  dsimp only
+  split_ifs with hsρ
+  swap
+  · exact absurd ⟨hs, hρ⟩ hsρ
+  obtain ⟨u₁, s₁, h₁⟩ := total_lift (fun ws ↦ addScalars_some H (announcement s ρ) ws)
+    ((⟨#[], #[]⟩, ⟨FsState.seed prog input, #[], #[]⟩) : PState)
+  obtain ⟨r, s₂, h₂⟩ := Prover.runWith_total proveSem _
+    (compiledProver (leanIsaInstance F prog s) (leanIsa_conditions F prog s)
+      (leanIsaChain_height F prog s hs ρ hρ) (leanIsaChain prog s hs ρ hρ).ladder
+      ((leanIsaChain prog s hs ρ hρ).ladder.headPar (leanIsaChain prog s hs ρ hρ).pars).hb)
+    (fun _ _ ↦ rfl) (fun h₁ h₂ ↦ runs_bind h₁ h₂)
+    (every_compiled H fuel hg _ (Verify.nLanes prog s) (leanIsaChain prog s hs ρ hρ).ladder)
+    (input, fun i ↦ i.elim0) (stackOf F prog s w) s₁
+  obtain ⟨-, -, -, hok, -⟩ := leanIsaChain_walk hs hρ
+  have hsz := book_compiled H fuel _ _ _ (fun x hx ↦ (hok x hx).2)
+    (Prover.runWith_runsAs proveSem _ _ _ _ h₂) (by rw [(runs_lift.mp h₁).1]; rfl)
+  obtain ⟨s₃, h₃⟩ := runs_hintOpenings_of_size hsz
+  have hrun : proveSem.Runs (writeProof (m := Id) H (proveOps H fuel) F prog s hs ρ hρ input
+      (stackOf F prog s w)) _ () s₃ := runs_bind h₁ (runs_bind h₂ h₃)
+  rw [runProof_of_runs hrun]
+  exact Option.some_ne_none _
+
+/-- **When the honest prover returns no proof**: the witness gives no sizes, or its sizes are
+not admissible, or the rate is not valid, or the grind runs out of fuel at some chain state. The
+openings' check that the commitments and the positions kept are as many never fails. -/
+theorem proveWith_eq_none (H : List UInt8 → Digest) (fuel : ℕ) (F : FlockSpec) {prog : Program}
+    {input : PublicInput} {w : EnsembleWitness (leanIsaEnsemble prog)} {ρ : ℕ}
+    (h : proveWith (m := Id) H fuel F prog input w ρ = none) :
+    Sizes.ofWitness w = none ∨ ∃ s, Sizes.ofWitness w = some s ∧
+      (¬ s.Admissible prog ∨ ¬ validRate ρ ∨
+        ∃ fs : FsState, Id.run (fs.grind H fuel queryGrindingBits) = none) := by
+  rcases hws : Sizes.ofWitness w with _ | s
+  · exact Or.inl rfl
+  refine Or.inr ⟨s, rfl, ?_⟩
+  by_contra hc
+  simp only [not_or, not_not, not_exists] at hc
+  obtain ⟨hs, hρ, hg⟩ := hc
+  exact proveWith_ne_none H fuel F hws hs hρ hg h
 
 end Prove
 
