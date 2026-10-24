@@ -97,11 +97,6 @@ theorem rets_cur (h : D.Ok) {s : ℕ} (hs : s < 12) :
 theorem L_cap (h : D.Ok) (j : ℕ) :
     D.L.2.cap.getD j 0 = (D.chain 12).2.cap.getD j 0 := by rw [L_eq h]
 
-theorem seg_eq : D.seg = [D.seg.getD 0 0] := by
-  have := seg_length (D := D)
-  match hs : D.seg, this with
-  | [x], _ => rfl
-
 set_option maxRecDepth 20000 in
 set_option maxHeartbeats 8000000 in
 /-- **The committed outputs' opening, on the layout.** -/

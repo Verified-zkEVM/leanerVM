@@ -82,21 +82,39 @@ variable {fs : String → ℕ} {cert : String → V → ℕ}
 open VkData in
 set_option maxRecDepth 20000 in
 set_option maxHeartbeats 4000000 in
-/-- **`verify_keccak` is complete, placed.** -/
-theorem verify_keccak_completeAt (κ : ℕ) : VkCompleteAt fs cert κ := by
-  intro τ f chis outs xs op point slices cap' word m0 curE chiE olE zvE slE hτ1 hτ2 hchis houts
-    hf hcan hc hrun
-  obtain ⟨D, rfl, rfl, rfl, rfl, rfl, rfl, h, rfl, rfl, rfl, hfin⟩ :=
-    vkData_of_run hτ1 hτ2 hchis houts hf hcan hc hrun
-  refine completeAt_flatG (fs := fs) (cert := cert) find_vk vk_loop κ
-    (D.lin curE chiE olE zvE slE) (D.args curE chiE olE zvE slE)
-    (cap' ++ [ptr curE * gen ^ D.xs.length, D.word, m0]) (vk_body.trans vkT_pre)
-    vkPre_kernel.1 vkPre_kernel.2.1 vk_noLoadIte D.sizes
-    (fun fp fps ↦ D.own (fp + fs "verify_keccak") (D.lsOf fs fps))
-    (fun fp fps ↦ own_fit h _ _)
-    (fun fp ↦ D.kids fs (fp + fs "verify_keccak") curE chiE olE zvE slE)
-    (fun fp ↦ kids_complete h κ _ curE chiE olE zvE slE) ?_
-  intro fp fps outs hlen _ hout rd _ hB hLin hto
+/-- **What `completeAt_flatG` asks of `verify_keccak`'s body**, on an honest run's data. -/
+theorem vk_obl {D : VkData} (h : D.Ok) {cap' : List E} {m0 : E} (hfin : D.fin = (m0, ⟨cap', []⟩))
+    (curE chiE olE zvE slE fp : ℕ) (fps : List ℕ) (outs : List (List E × Main.Layout))
+    (hlen : fps.length = (D.kids fs (fp + fs "verify_keccak") curE chiE olE zvE slE).length)
+    (hout : OutsOk (atAllG [] (D.kids fs (fp + fs "verify_keccak") curE chiE olE zvE slE) fps) outs)
+    (rd : Reader)
+    (hB : MemL rd (bufL (fp + fs "verify_keccak") D.sizes
+      (D.own (fp + fs "verify_keccak") (D.lsOf fs fps))))
+    (hLin : MemL rd (D.lin curE chiE olE zvE slE))
+    (hto : MemL rd (takenOuts
+      (atAllG [] (D.kids fs (fp + fs "verify_keccak") curE chiE olE zvE slE) fps) outs)) :
+    MemL rd (Kid.lins (atAllG [] (D.kids fs (fp + fs "verify_keccak") curE chiE olE zvE slE) fps)) ∧
+    RegionsOk (fun i ↦ RegionL (D.lin curE chiE olE zvE slE) i ∨
+        RegionL (bufL (fp + fs "verify_keccak") D.sizes
+          (D.own (fp + fs "verify_keccak") (D.lsOf fs fps))) i)
+      (fun _ ↦ False) (atAllG [] (D.kids fs (fp + fs "verify_keccak") curE chiE olE zvE slE) fps)
+      outs ∧
+    ∃ σ : Val, Data.core12.params.map σ = D.args curE chiE olE zvE slE ∧
+      (∀ s ∈ vkPre, DispOk σ s) ∧
+      Stmt.HoldsList (fun _ _ _ ↦ True) rd σ Data.core12.body False
+        (fun r ↦ r = cap' ++ [ptr curE * gen ^ D.xs.length, D.word, m0]) ∧
+      (vkPre.filterMap Main.Stmt.allocSz).map (fun x ↦ x.2.elim id fun s ↦ logG (σ s)) = D.sizes ∧
+      ((vkPre.filterMap Main.Stmt.allocSz).map Prod.fst).map σ =
+        (bases (fp + fs "verify_keccak") D.sizes).map (fun b ↦ ofK (Parameters.gpow b)) ∧
+      CallsMatch σ ((vkPre.filterMap (Stmt.callSF σ)).map (Main.mkCall σ))
+        (atAllG [] (D.kids fs (fp + fs "verify_keccak") curE chiE olE zvE slE) fps) outs ∧
+      ∀ q ∈ vkPre.filterMap Stmt.loadS, ∃ i, (σ q.1).limb 0 * Parameters.gpow q.2 =
+        Parameters.gpow i ∧
+        (RegionL (D.lin curE chiE olE zvE slE) i ∨
+          RegionL (bufL (fp + fs "verify_keccak") D.sizes
+            (D.own (fp + fs "verify_keccak") (D.lsOf fs fps))) i ∨
+          outRegion (atAllG [] (D.kids fs (fp + fs "verify_keccak") curE chiE olE zvE slE) fps)
+            outs i) := by
   generalize fp + fs "verify_keccak" = B at hB hout hto hlen ⊢
   have hk := kids_length (D := D) (fs := fs) (B := B) (curE := curE) (chiE := chiE) (olE := olE)
     (zvE := zvE) (slE := slE)
@@ -147,14 +165,32 @@ theorem verify_keccak_completeAt (κ : ℕ) : VkCompleteAt fs cert κ := by
     simp only [List.length_map, List.length_cons, List.length_nil] at h1
     rw [List.getElem_map, ← List.getD_eq_getElem _ 0 h2, ← hpar i (by omega)]
     interval_cases i <;> rfl
-  · rw [show Fn.body Data.core12 = vkT from vk_body]
-    exact body_holds h hm hσd hfin
+  · exact vk_body ▸ body_holds h hm hσd hfin
   · exact loads_in h hm hσd (T := fun i ↦ RegionL (D.lin curE chiE olE zvE slE) i ∨
         RegionL (bufL B D.sizes (D.own B (D.lsOf fs fps))) i ∨
         outRegion (atAllG [] (D.kids fs B curE chiE olE zvE slE) fps) outs i)
       (fun i hi ↦ Or.inl hi) (fun i hi ↦ Or.inr (Or.inl hi))
       (fun s hs i hi ↦ Or.inr (Or.inr (outRegion_ofI (s + 1) (by omega) (by omega)
         (by rw [atAllG_getElem]; simp [kids_lay hs, layKid]) (by rw [hlay s hs]; exact hi))))
+
+
+open VkData in
+/-- **`verify_keccak` is complete, placed.** -/
+theorem verify_keccak_completeAt (κ : ℕ) : VkCompleteAt fs cert κ := by
+  intro τ f chis outs xs op point slices cap' word m0 curE chiE olE zvE slE hτ1 hτ2 hchis houts
+    hf hcan hc hrun
+  obtain ⟨D, rfl, rfl, rfl, rfl, rfl, rfl, h, rfl, rfl, rfl, hfin⟩ :=
+    vkData_of_run hτ1 hτ2 hchis houts hf hcan hc hrun
+  exact completeAt_flatG (fs := fs) (cert := cert) find_vk vk_loop κ
+    (D.lin curE chiE olE zvE slE) (D.args curE chiE olE zvE slE)
+    (cap' ++ [ptr curE * gen ^ D.xs.length, D.word, m0]) (vk_body.trans vkT_pre)
+    vkPre_kernel.1 vkPre_kernel.2.1 vk_noLoadIte D.sizes
+    (fun fp fps ↦ D.own (fp + fs "verify_keccak") (D.lsOf fs fps))
+    (fun fp fps ↦ own_fit h _ _)
+    (fun fp ↦ D.kids fs (fp + fs "verify_keccak") curE chiE olE zvE slE)
+    (fun fp ↦ kids_complete h κ _ curE chiE olE zvE slE)
+    (fun fp fps outs hlen _ hout rd _ hB hLin hto ↦
+      vk_obl h hfin curE chiE olE zvE slE fp fps outs hlen hout rd hB hLin hto)
 
 end
 end LeanVM.Guest.B1.VerifySub
