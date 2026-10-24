@@ -12,30 +12,28 @@ public import LeanVM.Guest.Count.DeployedA
 namespace LeanVM.Guest.Count
 
 open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Memory LeanVM.Guest
-open LeanVM.Guest.B1.Main (nameSum colC colS clC ccC dvC dvS l5A0 l5A1 l5A2 agA0 agA1 mainWords)
+open LeanVM.Guest.B1.Main (nameSum dlK colC colS clC ccC dvC dvS l5A0 l5A1 l5A2 agA0 agA1 mainWords)
 
 @[expose] public section
 
-theorem colC1_eq : colC B2C.fs wSB "da_verify_column__L1" "__loop418" = 177262 := by
+theorem colC1_eq : colC B2C.fs "da_verify_column__L1" "__loop418" = 3627 := by
   unfold colC
-  rw [dl_sum,
-    fs_idx (j := 769) (f := "da_verify_column__L1") (by decide +kernel),
+  rw [fs_idx (j := 769) (f := "da_verify_column__L1") (by decide +kernel),
     fs_idx (j := 28) (f := "da_vector_cell") (by decide +kernel),
     fs_idx (j := 896) (f := "__loop418") (by decide +kernel)]
   decide +kernel
 
-theorem colC0_eq : colC B2C.fs wSB "da_verify_column__L0" "__loop420" = 177262 := by
+theorem colC0_eq : colC B2C.fs "da_verify_column__L0" "__loop420" = 3627 := by
   unfold colC
-  rw [dl_sum,
-    fs_idx (j := 770) (f := "da_verify_column__L0") (by decide +kernel),
+  rw [fs_idx (j := 770) (f := "da_verify_column__L0") (by decide +kernel),
     fs_idx (j := 28) (f := "da_vector_cell") (by decide +kernel),
     fs_idx (j := 898) (f := "__loop420") (by decide +kernel)]
   decide +kernel
 
 /-- **`da_verify`'s constant words.** -/
-theorem dvC_eq : dvC B2C.fs wSB = 22878855 := by
+theorem dvC_eq : dvC B2C.fs wSB = 479940 := by
   unfold dvC
-  rw [colC1_eq, colC0_eq, dl_sum,
+  rw [colC1_eq, colC0_eq,
     fs_idx (j := 25) (f := "da_verify") (by decide +kernel),
     fs_idx (j := 26) (f := "da_row_shape") (by decide +kernel),
     fs_idx (j := 366) (f := "__loop24") (by decide +kernel),
@@ -45,9 +43,10 @@ theorem dvC_eq : dvC B2C.fs wSB = 22878855 := by
   decide +kernel
 
 /-- **`da_verify`'s words per row.** -/
-theorem dvS_eq : dvS wSK = 224261 := by
+theorem dvS_eq : dvS wSB wSK = 247997 := by
   unfold dvS colS
-  rw [wSK_idx (j := 359) (f := "__loop18") (by decide +kernel),
+  rw [dlK_eq,
+    wSK_idx (j := 359) (f := "__loop18") (by decide +kernel),
     wSK_idx (j := 360) (f := "__loop19") (by decide +kernel),
     wSK_idx (j := 363) (f := "__loop22") (by decide +kernel),
     wSK_idx (j := 365) (f := "__loop23") (by decide +kernel),
