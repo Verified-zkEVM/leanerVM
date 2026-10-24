@@ -198,5 +198,75 @@ theorem plain_complete {k0 : ℕ} (hk : k0 < 2) (κ : ℕ) {L : Main.Layout} {ar
   completeAtD_of_relIn vkKidS_pure (by interval_cases k0 <;> simp [vkKidS, plainName])
     fun rd _ hmem ↦ keccak_plain_rounds_relIn hk hpc (hm rd hmem) hcur hpt
 
+namespace VkData
+
+variable {D : VkData}
+
+theorem ptr_mul_gen1 (b : ℕ) : ptr b * gen = ptr (b + 1) := by
+  rw [← ptr_mul_gen, pow_one]
+
+theorem L1_point (h : D.Ok) : D.L.1.point = (D.layer 11).chs (firstOf 11) := by
+  rw [L_eq h, D.layer_succ h (by norm_num : 11 < 12)]
+  rfl
+
+/-- The committed outputs' rounds, honestly. -/
+theorem oMeaning (h : D.Ok) {rd : Reader} {curE chiE olE zvE slE : ℕ}
+    (hm : MemL rd (D.lin curE chiE olE zvE slE)) :
+    MeaningPlainRounds (plainCount 0) 0 rd (D.oArgs curE zvE) (D.oRets curE) := by
+  obtain ⟨-, -, hmO, -⟩ := xs_reads h (memL_entry hm (b := curE) (ws := D.xs) (by simp [lin]))
+  have hop := memL_entry hm (b := zvE) (ws := D.op) (by simp [lin])
+  obtain ⟨hpd, -, hcan⟩ := L_ok h
+  obtain ⟨a, b, c, d, e, hc⟩ := five_of_length' (L_ok h).2.1
+  rw [oArgs, hc]
+  simp only [List.cons_append, List.nil_append, MeaningPlainRounds]
+  refine ⟨hc ▸ hcan, D.mO, h.2.2.2.2.2.2.2.1, by rw [cL]; exact hmO, fun w _ ↦ ?_⟩
+  rw [← hc, O_run h w]
+  refine ⟨?_, by simp [oRets, plainCount]⟩
+  rw [op_eq] at hop
+  have := (Digest.readsAt_append.1 hop).2
+  rwa [List.take_append_drop, inst_length h] at this
+
+/-- The inputs' rounds, honestly. -/
+theorem iMeaning (h : D.Ok) {rd : Reader} {curE chiE olE zvE slE : ℕ}
+    (hm : MemL rd (D.lin curE chiE olE zvE slE)) :
+    MeaningPlainRounds (plainCount 1) 1 rd (D.iArgs curE zvE) (D.iRets curE) := by
+  obtain ⟨-, -, -, -, hmI, -⟩ := xs_reads h (memL_entry hm (b := curE) (ws := D.xs) (by simp [lin]))
+  have hpt := memL_entry hm (b := zvE + qkeccakVarsCap) (ws := D.point) (by simp [lin])
+  obtain ⟨-, -, hcan⟩ := O_ok h
+  obtain ⟨a, b, c, d, e, hc⟩ := five_of_length' (O_ok h).2.1
+  rw [iArgs, hc]
+  simp only [List.cons_append, List.nil_append, MeaningPlainRounds]
+  refine ⟨hc ▸ hcan, D.mI, h.2.2.2.2.2.2.2.2.1, ?_, fun w hw ↦ ?_⟩
+  · rw [cL, ptr_mul_gen, ptr_mul_gen1]; exact hmI
+  have hw' : w = D.word := scalarCells_inj ((hw trivial (scalarCells_canonical _ _).1).symm)
+  subst hw'
+  rw [← hc, I_run h]
+  refine ⟨?_, by simp [iRets, plainCount]⟩
+  rw [show ptr zvE * gen ^ 39 = ptr (zvE + qkeccakVarsCap) from ptr_mul_gen _ _]
+  exact (Digest.readsAt_append.1 (Digest.readsAt_append.1 hpt).1).1
+
+/-- The inputs' opening's rounds, honestly. -/
+theorem sMeaning (h : D.Ok) {rd : Reader} {curE chiE olE zvE slE : ℕ}
+    (hm : MemL rd (D.lin curE chiE olE zvE slE)) :
+    MeaningPlainRounds (plainCount 0) 0 rd (D.sArgs curE zvE) (D.sRets curE) := by
+  obtain ⟨-, -, -, -, -, hmS, -⟩ := xs_reads h (memL_entry hm (b := curE) (ws := D.xs) (by simp [lin]))
+  have hpt := memL_entry hm (b := zvE + qkeccakVarsCap) (ws := D.point) (by simp [lin])
+  obtain ⟨-, -, hcan⟩ := I_ok h
+  obtain ⟨a, b, c, d, e, hc⟩ := five_of_length' (I_ok h).2.1
+  rw [sArgs, hc]
+  simp only [List.cons_append, List.nil_append, MeaningPlainRounds]
+  refine ⟨hc ▸ hcan, D.mS, h.2.2.2.2.2.2.2.2.2.1, ?_, fun w _ ↦ ?_⟩
+  · rw [cL, ptr_mul_gen, ptr_mul_gen1, ptr_mul_gen]; exact hmS
+  rw [← hc, S_run h w]
+  refine ⟨?_, by simp [sRets, plainCount]⟩
+  have := (Digest.readsAt_append.1 hpt).2
+  have hτ := h.1
+  rw [List.length_append, I1_length h, List.length_take, L_point h,
+    show min (D.τ - 4) (D.τ - 3) = D.τ - 4 by omega, ptr_mul_gen,
+    show zvE + qkeccakVarsCap + (4 + (D.τ - 4)) = zvE + 39 + D.τ by simp; omega] at this
+  rwa [ptr_mul_gen, ptr_mul_gen]
+
+end VkData
+
 end
 end LeanVM.Guest.B1.VerifySub
