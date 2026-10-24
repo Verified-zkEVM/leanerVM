@@ -9,7 +9,7 @@ DL = ["da_levels__L1_L0", "da_levels__L2_L1", "da_levels__L4_L2", "da_levels__L8
 CL = ['claim_list_last__L%d' % k for k in range(17)]
 CCL = ['child_claim_list_last__L%d' % k for k in range(17)]
 FIELDS = ['base', 'declared', 'coverage', 'rawXmss', 'rawSphincs', 'rawDa', 'rawDaRows', 'children',
-          'childClaims']
+          'childClaims', 'childShape']
 
 HDR = '''/-
   LeanVM.Guest.Count.%s
@@ -24,7 +24,8 @@ module
 namespace LeanVM.Guest.Count
 
 open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Memory LeanVM.Guest
-open LeanVM.Guest.B1.Main (nameSum dlK colC colS clC ccC dvC dvS l5A0 l5A1 l5A2 agA0 agA1 mainWords)
+open LeanVM.Guest.B1.Main (nameSum dlK colC colS clC clS ccC ccS dvC dvS l5A0 l5A1 l5A2 agA0 agA1
+  mainWords)
 
 @[expose] public section
 %s
@@ -56,16 +57,19 @@ def numbers(g, A, certs):
     v['dvS'] = (395 + SK('__loop18') + SK('__loop19') + SK('__loop22') + SK('__loop23') + SK('__loop24')
                 + 2 * v['dlK'] + 64 * colS('__loop417', '__loop418') + 64 * colS('__loop419', '__loop420'))
     v['ccC'] = fs('child_claim_list_digest') + 13 + SB('list_split') + fs('__loop17') + v['ccl']
+    v['clS'] = 1 + (SK('__loop16') + 16) // 17
+    v['ccS'] = 1 + (fs('__loop17') + 16) // 17
     v['l5A0'] = fs('__loop5')
-    v['l5A1'] = fs('__loop5') + 2 + 2 * v['ccC'] + fs('__loop28') + SB('da_list_digest') + SB('statement_digest')
-    v['l5A2'] = 17 + fs('__loop17') + fs('__loop28') + fs('cover_da_root')
+    v['l5A1'] = (fs('__loop5') + 2 + 2 * v['ccC'] + (64 + 16 * (fs('__loop28') + fs('cover_da_root'))
+                 + fs('__loop28')) + SB('da_list_digest') + SB('statement_digest'))
+    v['l5A2'] = v['ccS']
     v['agA0'] = fs('aggregate_claims') + 97 + SB('batch_sumcheck__L23')
     v['agA1'] = 32 + SK('__loop25') + SK('__loop26') + SK('__loop27')
     base = (fs('main') + 283 + fs('exponent_tables') + 68 + fs('__loop0') + SB('da_list_digest')
             + fs('da_list_digest') + 2 * (v['clC'] + fs('claim_list_digest')) + fs('__loop1') + fs('__loop2')
             + fs('__loop3') + fs('__loop4') + 2 * v['l5A0'] + (v['agA0'] + fs('aggregate_claims'))
             + SB('statement_digest') + fs('statement_digest'))
-    words = [base, 13 + SK('__loop16'), 5 + SK('__loop0') + SK('__loop1') + SK('__loop2'), SK('__loop3'),
+    words = [base, v['clS'], 5 + SK('__loop0') + SK('__loop1') + SK('__loop2'), SK('__loop3'),
              SK('__loop4'), v['dvC'] + fs('da_verify') + 2 * fs('cover_da_root'), v['dvS'], 51 + v['l5A1'] + v['agA1'], v['l5A2']]
     instrs = {}
     for lop, P, k in OPS_:
@@ -78,10 +82,10 @@ def numbers(g, A, certs):
         acl, adv, a5 = A['Cl'][k], A['Dv'][k], A['L5'][k]
         instrs[lop] = ([g.pm[1][k] + st('exponent_tables') + st('da_list_digest') + st('statement_digest') + jt
                         + 2 * (acl * v['clC'] // 1000 + 1),
-                        acl * (13 + SK('__loop16')) // 1000 + 1,
+                        acl * v['clS'] // 1000 + 1,
                         lp('__loop0') + lp('__loop1') + lp('__loop2'), lp('__loop3'), lp('__loop4'),
                         adv * v['dvC'] // 1000 + 1 + st('cover_da_root'), adv * v['dvS'] // 1000 + 1,
-                        (a5 * v['l5A0'] // 1000 + 1) + 1 + aggC + aggD,
+                        (a5 * v['l5A0'] // 1000 + 1) + (a5 * v['l5A1'] // 1000 + 1) + 1 + aggC + aggD,
                         a5 * v['l5A2'] // 1000 + 1], a5)
     return v, words, instrs
 
@@ -141,46 +145,45 @@ theorem ccl_sum : nameSum (fun g => B2C.fs g) B1.Digest.cclNames 17 = %d := by d
         thm('ccC_eq', 'ccC B2C.fs wSB', v['ccC'], 'ccC', ['ccl_sum'], fs=['child_claim_list_digest', '__loop17'],
             sb=['list_split']),
         thm('l5A0_eq', 'l5A0 B2C.fs', v['l5A0'], 'l5A0', [], fs=['__loop5']),
-        thm('l5A1_eq', 'l5A1 B2C.fs wSB', v['l5A1'], 'l5A1', ['ccC_eq'], fs=['__loop5', '__loop28'],
-            sb=['da_list_digest', 'statement_digest']),
-        thm('l5A2_eq', 'l5A2 B2C.fs', v['l5A2'], 'l5A2', [], fs=['__loop17', '__loop28', 'cover_da_root']),
+        thm('clS_eq', 'clS wSK', v['clS'], 'clS', [], sk=['__loop16']),
+        thm('l5A1_eq', 'l5A1 B2C.fs wSB', v['l5A1'], 'l5A1', ['ccC_eq'],
+            fs=['__loop5', '__loop28', 'cover_da_root'], sb=['da_list_digest', 'statement_digest']),
+        thm('l5A2_eq', 'l5A2 B2C.fs', v['l5A2'], 'l5A2 ccS', [], fs=['__loop17']),
         thm('agA0_eq', 'agA0 B2C.fs wSB', v['agA0'], 'agA0', [], fs=['aggregate_claims'],
             sb=['batch_sumcheck__L23']),
         thm('agA1_eq', 'agA1 wSK', v['agA1'], 'agA1', [], sk=['__loop25', '__loop26', '__loop27'])])
     mod('DeployedC', 'The claim lists\', the children\'s loop\'s and `aggregate_claims`\' words.',
         'public import LeanVM.Guest.Count.DeployedA2\n', '\n' + body)
-    wl = words[:]
-    wlit = '⟨%s⟩' % ', '.join(str(x) if i != 7 else '%d + Bv' % x for i, x in enumerate(wl))
+    wlit = '⟨%s, Bvf⟩' % ', '.join(str(x) for x in words)
     body = '''
-/-- **The deployed budget's words**, `Bv` per child for `verify_sub`. -/
-def deployedWords (Bv : ℕ) : End.Linear := %s
+/-- **The deployed budget's words**, `Bvf μ r` for `verify_sub` on a child of announced stack log
+`μ` and rate `r`. -/
+def deployedWords (Bvf : ℕ → ℕ → ℕ) : End.Linear := %s
 
-/-- **The deployed budget's instructions of each opcode**, `verify_sub`'s words `Bv` per child
-through `__loop5`'s ratio. -/
-def deployedInstrs (Bv : ℕ) : Opcode → End.Linear
+/-- **The deployed budget's instructions of each opcode**, `verify_sub`'s words `Bvf μ r` through
+`__loop5`'s ratio. -/
+def deployedInstrs (Bvf : ℕ → ℕ → ℕ) : Opcode → End.Linear
 ''' % wlit
     for lop, P, k in ops:
         f, a5 = instrs[lop]
-        parts = [str(x) for x in f]
-        parts[7] = '%d + %d * (%d + Bv) / 1000' % (f[7], a5, v['l5A1'])
-        body += '  | .%s => ⟨%s⟩\n' % (lop, ', '.join(parts))
+        body += '  | .%s => ⟨%s, fun μ r => %d * Bvf μ r / 1000 + 1⟩\n' % (lop, ', '.join(str(x) for x in f), a5)
     body += '''
 set_option maxRecDepth 100000 in
 /-- **`deployedBudget`'s words.** -/
-theorem deployedBudget_words (Bv : ℕ) : (Budget.deployedBudget Bv).words = deployedWords Bv := by
+theorem deployedBudget_words (Bvf : ℕ → ℕ → ℕ) :
+    (Budget.deployedBudget Bvf).words = deployedWords Bvf := by
   simp only [Budget.deployedBudget, Budget.mainBudget, mainWords, deployedWords]
-  rw [clC_eq, dvC_eq, dvS_eq, l5A0_eq, l5A1_eq, l5A2_eq, agA0_eq, agA1_eq]
+  rw [clC_eq, clS_eq, dvC_eq, dvS_eq, l5A0_eq, l5A1_eq, l5A2_eq, agA0_eq, agA1_eq]
   congr 1
-  all_goals omega
 
 set_option maxRecDepth 100000 in
 /-- **`deployedBudget`'s instructions.** -/
-theorem deployedBudget_instrs (Bv : ℕ) (op : Opcode) :
-    (Budget.deployedBudget Bv).instrs op = deployedInstrs Bv op := by
+theorem deployedBudget_instrs (Bvf : ℕ → ℕ → ℕ) (op : Opcode) :
+    (Budget.deployedBudget Bvf).instrs op = deployedInstrs Bvf op := by
   simp only [Budget.deployedBudget, Budget.mainBudget, Budget.mainInstrs]
-  rw [clC_eq, dvC_eq, dvS_eq, l5A0_eq, l5A1_eq, l5A2_eq]
+  rw [clC_eq, clS_eq, dvC_eq, dvS_eq, l5A0_eq, l5A1_eq, l5A2_eq]
   cases op <;> simp only [deployedInstrs, mainCounts, kcExp, kcDl, kcSd, kcCov, kcL0, kcL1, kcL2, kcL3,
-    kcL4, kcAggC, kcAggD, krClA, krDvA, krL5A, B2C.jtSets] <;> congr 1 <;> omega
+    kcL4, kcAggC, kcAggD, krClA, krDvA, krL5A, B2C.jtSets] <;> congr 1
 '''
     mod('Deployed', 'The numbers of the deployed budget: `deployedBudget_words`, `deployedBudget_instrs`.',
         'public import LeanVM.Guest.Count.DeployedB\npublic import LeanVM.Guest.Count.DeployedC\n', body)
