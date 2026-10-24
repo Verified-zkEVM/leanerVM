@@ -57,6 +57,28 @@ theorem gkr_end {depth : ℕ} (hd : 1 ≤ depth) {cap0 xs : List E} {r : E × Li
   · simp only [Tables.gkSl, Tables.GkStepD.s']
     exact squeezeN_pend 1 _
 
+theorem squeezeN_capOf (n : ℕ) : ∀ (s : Fs), ∃ K, (s.squeezeN (n + 1)).2 = ⟨capOf K, []⟩ := by
+  induction n with
+  | zero => intro s; exact ⟨s.perm, by simp only [Fs.squeezeN, Fs.squeeze]⟩
+  | succ n ih =>
+    intro s
+    obtain ⟨K, hK⟩ := ih s.squeeze.2
+    exact ⟨K, by rw [← hK, Fs.squeezeN]⟩
+
+/-- **A run of the bus's GKR ends on a permutation's capacity**, nothing waiting. -/
+theorem gkr_capOf {depth : ℕ} (hd : 1 ≤ depth) {cap0 xs : List E} {r : E × List E × List E}
+    {sF : Fs} (h : RunsTo (Tables.gkrPhase depth) ⟨cap0, []⟩ xs r sF)
+    (hc : ∃ sp, (⟨cap0, []⟩ : Fs).Carries sp) : ∃ K, sF = ⟨capOf K, []⟩ := by
+  obtain ⟨-, -, -, -, -, hsF, -, -⟩ := Tables.gk_walk h hc
+  rw [hsF]
+  rcases h2 : depth / 2 with _ | k
+  · have h1 : depth % 2 = 1 := by omega
+    rw [h1]
+    simp only [Tables.gkSl, Tables.gkSl0, ↓reduceIte, Tables.GkStepD.s']
+    exact squeezeN_capOf 0 _
+  · simp only [Tables.gkSl, Tables.GkStepD.s']
+    exact squeezeN_capOf 1 _
+
 /-- A property of nothing a program returns, after a step that ensures it. -/
 theorem always_const {α β : Type} {Q : Prop} {p : Prog α} {f : α → Prog β}
     (hp : Always p fun _ ↦ Q) : Always (p.bind f) fun _ ↦ Q :=
