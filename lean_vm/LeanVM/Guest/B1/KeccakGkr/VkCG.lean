@@ -119,7 +119,7 @@ def claims (B : ℕ) (ls : ℕ → ℕ) : List E := D.cw0 B ++ (List.range 12).f
 
 /-- **Where claim `s`'s record and buffers are.** -/
 def CL (B : ℕ) (ls : ℕ → ℕ) : ℕ → ClaimLay
-  | 0 => ⟨B + D.o201, D.cw0 B, B, B + D.o274 + 30, (eqKernel D.rl).take 25, 0, [], 0⟩
+  | 0 => ⟨B + D.o201 + 22 * 0, D.cw0 B, B, B + D.o274 + 30, (eqKernel D.rl).take 25, 0, [], 0⟩
   | k + 1 => ⟨B + D.o201 + 22 * (k + 1), D.outWs ls k, ls k, ls k + (D.layer k).y + 139,
       lanesOut ((D.layer k).locPt (firstOf k)) ((D.layer k).beta (firstOf k)).1,
       ls k + (D.layer k).y + 128, (D.layer k).locPt (firstOf k), ls k + (D.layer k).y + 164⟩
