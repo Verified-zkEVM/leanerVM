@@ -8,6 +8,7 @@ module
 
 public import LeanVM.Guest.B1.Gkr.Loop7T
 public import LeanVM.Guest.B1.Gkr.VbgAt
+public import LeanVM.Guest.B1.Tables.FlatLiftT
 
 /-!
 # `verify_bus_gkr`'s callees, within their words
@@ -16,12 +17,16 @@ public import LeanVM.Guest.B1.Gkr.VbgAt
   `depth_shift` word `g^(depth % 2)`, each slot's `half` and `parity`.
 * `vbg_loop7_total`: there, a valid tree of `__loop7` from `1` below `g^(depth/2)` has at most
   `ly7Total` words.
+* `verify_bus_gkr_completeAtTB`: `verify_bus_gkr` placed within `vbgBound`: its frame, its
+  buffers, `__loop7`'s chain and `__loop8`'s words (`depth · K8`), and the frames of its two
+  conditional calls (`flat_completeAtTB`).
 -/
 
 namespace LeanVM.Guest.B1.Tables
 
 open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Value LeanVM.Guest.Memory
 open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile LeanVM.Protocol.Verifier
+open LeanVM.Guest.B1.Main (MemL RegionL)
 
 @[expose] public section
 
@@ -81,6 +86,96 @@ theorem vbg_loop7_total {depth : ℕ} (hd : depth ≤ 32) {cap0 xs : List E}
   have hch := ly7_chain (rounds := ofK (gpow eR)) (by omega : depth % 2 < 2) (by omega)
     (vbg_ly7Mem hd hrun hc hm) (depth / 2) 0 t rets (by omega) hm0 hn hv hb
   exact ly7_total fs (by omega) h29 hR1 hR2 _ _ t _ rets hch hv hb
+
+theorem vbg_noDisp : vbgPre.all noDispB = true := by decide +kernel
+
+theorem vbg_callS : vbgPre.filterMap Main.Stmt.callS =
+    [(some (.n 303), "__loop7", [.n 304, .n 306, .n 57, .n 6, .n 15, .n 16], []),
+      (some (.n 316), "__loop8", [.n 317, .n 6, .n 7, .n 314], [])] := by decide +kernel
+
+/-- `verify_bus_gkr`'s frames: `__loop7`'s, then `__loop8`'s. -/
+theorem vbg_flatCalls (σ : Val) : flatCalls vbgPre σ =
+    [⟨"__loop7", [.n 304, .n 306, .n 57, .n 6, .n 15, .n 16], [], decide (σ (.n 303) ≠ 0)⟩,
+      ⟨"__loop8", [.n 317, .n 6, .n 7, .n 314], [], decide (σ (.n 316) ≠ 0)⟩] := by
+  have e : vbgPre.filterMap (Stmt.callSF σ) = vbgPre.filterMap Main.Stmt.callS := by
+    refine List.filterMap_congr fun s hs ↦ ?_
+    have := List.all_eq_true.mp vbg_noDisp s hs
+    cases s <;> first | rfl | simp [noDispB] at this
+  unfold flatCalls
+  rw [e, vbg_callS]
+  rfl
+
+/-- `verify_bus_gkr`'s words: its frame, its buffers, `__loop7`'s chain, `__loop8`'s `depth`
+iterations of at most `K8` words, and the frames of its two conditional calls. -/
+def vbgBound (fs : String → ℕ) (K29 R K8 depth : ℕ) : ℕ :=
+  fs "verify_bus_gkr" + (vbgSizes depth).sum +
+    ([ly7Total fs K29 R depth, depth * K8].sum + ifFrames fs vbgPre)
+
+variable {cert : String → V → ℕ}
+
+set_option maxHeartbeats 1000000 in
+/-- **`verify_bus_gkr` is complete, placed, within `vbgBound` words** (TRIAGE G #43), given the
+words of `__loop29` (linear in its end's exponent, `K29`), of the rounds (`R`) and of `__loop8`
+(linear in its end's exponent, `K8`), on every reader. -/
+theorem verify_bus_gkr_completeAtTB {κ depth : ℕ} (hd1 : 1 ≤ depth) (hd : depth ≤ 32)
+    (hκ : 6 ≤ κ) {cap0 xs : List E} {r : E × List E × List E} {cap' : List E}
+    (hrun : RunsTo (gkrPhase depth) ⟨cap0, []⟩ xs r ⟨cap', []⟩)
+    (hc : ∃ sp, (⟨cap0, []⟩ : Fs).Carries sp) (ec ez : ℕ) {K29 R K8 : ℕ}
+    (h29 : TotalLeOn coreProgram fs "__loop29" LoopPre (fun a ↦ logG (a.getD 1 0) * K29))
+    (hR1 : TotalLe coreProgram fs "gkr_rounds__L1" (fun _ ↦ R))
+    (hR2 : TotalLe coreProgram fs "gkr_rounds__L2" (fun _ ↦ R))
+    (h8 : TotalLeOn coreProgram fs "__loop8" LoopPre (fun a ↦ logG (a.getD 1 0) * K8)) :
+    CompleteAtDTB fs cert κ "verify_bus_gkr" [(ec, xs), (ez, r.2.1)]
+      (cap0 ++ [ofK (gpow ec), gen ^ depth, ofK (gpow ez)])
+      (Returns (cap' ++ [ofK (gpow ec) * gen ^ xs.length] ++ r.2.2)) (fun _ ↦ True)
+      (vbgBound fs K29 R K8 depth) := by
+  have hcl : cap0.length = 5 := by
+    obtain ⟨sp, hsp⟩ := hc
+    have hsc : capOf sp.state = cap0 := hsp.1
+    rw [← hsc]; simp [capOf]
+  obtain ⟨hown, hbufs, hfacts⟩ := vbg_lift_facts (fs := fs) hd1 hd hκ hrun hc ec ez
+  refine (flat_completeAtTB (cert := cert) vbgFlat [(ec, xs), (ez, r.2.1)] _ _
+    (by simp [vbgFlat, hcl]) (vbgSizes depth)
+    (fun fp ↦ vbgOwnW depth cap0 xs (ofK (gpow ec)) (fp + fs "verify_bus_gkr" + 17 * (depth + 2) + 6034))
+    hown
+    (fun fp ↦ vbgW (ofK (gpow (vbgEL fs fp))) (ofK (gpow (vbgER fs depth fp)))
+      (ofK (gpow (vbgEP fs depth fp))) (ofK (gpow (vbgEPa fs depth fp))) (ofK (gpow (vbgED fs depth fp))))
+    (vbgBufs fs depth xs ec) hbufs (fun fp rd hlow hL ↦ (hfacts fp rd hlow hL).1)
+    (fun _ ↦ True) [fun _ ↦ True, fun _ ↦ True] (fun _ _ _ _ ↦ trivial)
+    (by show (vbgPre.filter callB).length ≤ 2; decide +kernel)
+    (fun _ _ _ _ i _ _ _ _ _ _ _ _ ↦ by rcases i with _ | _ | _ <;> trivial)
+    [ly7Total fs K29 R depth, depth * K8] _ (fun fp rd hlow hL i c hci ht rd' hlow' hL' t rr hn hv hb ↦ ?_)
+    (fun σ ↦ callsBound_le vbgPre σ _)).mono le_rfl (fun _ _ ↦ trivial)
+  obtain ⟨-, hV, -⟩ := hfacts fp rd hlow hL
+  have hV' : VbgVals (vbgFlat.σ rd (vbgW (ofK (gpow (vbgEL fs fp))) (ofK (gpow (vbgER fs depth fp)))
+      (ofK (gpow (vbgEP fs depth fp))) (ofK (gpow (vbgEPa fs depth fp))) (ofK (gpow (vbgED fs depth fp))))
+      (cap0 ++ [ofK (gpow ec), gen ^ depth, ofK (gpow ez)])) depth (vbgEL fs fp) (vbgER fs depth fp)
+      (vbgED fs depth fp) := hV
+  obtain ⟨v304, v306, v317, v6, v57, v15, v16, v303⟩ := hV'
+  obtain ⟨-, -, hm'⟩ := hfacts fp rd' hlow' hL'
+  have hc' := hci
+  rw [show vbgFlat.pre = vbgPre from rfl, vbg_flatCalls] at hc'
+  rcases i with _ | _ | i
+  · simp only [List.getElem?_cons_zero, Option.some.injEq] at hc'
+    subst hc'
+    simp only [decide_eq_true_eq] at ht
+    have hm0 : 0 < depth / 2 := by
+      rcases Nat.eq_zero_or_pos (depth / 2) with h0 | h0
+      · exfalso; apply ht
+        rw [v303, h0, pow_zero, e_add_self]
+      · exact h0
+    simp only [List.map_cons, List.map_nil] at hv
+    rw [v304, v306, v57, v6, v15, v16] at hv
+    exact vbg_loop7_total hd hrun hc hm' h29 hR1 hR2 hm0 hn hv hb
+  · simp only [List.getElem?_cons_succ, List.getElem?_cons_zero, Option.some.injEq] at hc'
+    subst hc'
+    simp only [List.map_cons, List.map_nil] at hv
+    rw [v317, v6] at hv
+    have hb' := h8 rd' t _ rr hn (loopPre_gen (by omega) (by omega) _) hv hb
+    simp only [List.getD_cons_succ, List.getD_cons_zero, gen_pow_eq_ofK,
+      logG_spec (show depth < 2 ^ 64 - 1 by omega)] at hb'
+    simpa using hb'
+  · simp at hc'
 
 end
 end LeanVM.Guest.B1.Tables
