@@ -38,10 +38,10 @@ theorem relAtIn_named {rd : Reader} {R D : ℕ → Prop} {fp n : ℕ} {f : Strin
   ⟨t, ht, ht.1, by rw [ht.2.2.2.2.1]; exact hB⟩
 
 /-- Matching frames are as many as the callees. -/
-theorem callsMatch_length {σ : Val} : ∀ {cs : List Call} {ks : List Kid}
+theorem kdbt_callsMatch_length {σ : Val} : ∀ {cs : List Call} {ks : List Kid}
     {outs : List (List E × Layout)}, CallsMatch σ cs ks outs → cs.length = ks.length
   | [], [], [], _ => rfl
-  | _ :: _, _ :: _, _ :: _, h => by rw [List.length_cons, List.length_cons, callsMatch_length h.2.2.2]
+  | _ :: _, _ :: _, _ :: _, h => by rw [List.length_cons, List.length_cons, kdbt_callsMatch_length h.2.2.2]
   | [], [], _ :: _, h => h.elim
   | [], _ :: _, _, h => h.elim
   | _ :: _, [], _, h => h.elim
@@ -204,7 +204,7 @@ theorem completeAt_flatDepRBT {f : String} {fn : Fn} (hf : coreProgram.find? f =
   -- the number of calls
   have hcl : (calls (pre.flatMap (flEvs σ))).length ≤
       (List.zipWith (Budget.NamedWithin fs) names Bs).length := by
-    rw [i4, callsMatch_length hcm, kidsAt_length _ _ _ hlen, List.length_zipWith,
+    rw [i4, kdbt_callsMatch_length hcm, kidsAt_length _ _ _ hlen, List.length_zipWith,
       ← (hn fp).length_eq, (hkc fp).length, Nat.min_self]
   obtain ⟨t, ⟨htn, htv, htb, htp, htt, htl, htd⟩, ks, rfl, hkT⟩ :=
     relAtInWT_of_walk (P := coreProgram) (fs := fs) (cert := cert) (R := RegionL Lin)
