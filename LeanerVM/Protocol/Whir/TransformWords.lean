@@ -95,20 +95,22 @@ theorem fwdLet_eq : ∀ (j : ℕ) (m : Vector S (2 ^ j)) (s : K), fwdLet φ j m 
   | 0, _, _ => rfl
   | j + 1, m, s => by simp only [fwdLet, fwd, fwdLet_eq j]
 
-/-- `encodeFast`, compiled after `fwd_eq_fwdLet`. -/
-def encodeFastLet (κ R : ℕ) (m : Vector S (2 ^ κ)) : Vector S (2 ^ (κ + R)) :=
-  let cosets : Vector (Vector S (2 ^ κ)) (2 ^ R) :=
-    Vector.ofFn fun c ↦ fwd φ κ m (domainPt (c.val * 2 ^ κ))
-  Vector.ofFn fun y ↦
-    (cosets[y.val / 2 ^ κ]'(Nat.div_lt_of_lt_mul (by rw [← pow_add]; exact y.isLt)))[y.val % 2 ^ κ]'
-      (Nat.mod_lt _ (Nat.two_pow_pos κ))
-
 end Let
 
 /-- Compiled code runs `fwd` with each node's halves read once. -/
 @[csimp] theorem fwd_eq_fwdLet : @fwd = @fwdLet := by
   funext S _ φ j m s
   exact (fwdLet_eq φ j m s).symm
+
+/-- `encodeFast`, compiled after `fwd_eq_fwdLet`, so that its compiled body runs `fwdLet`:
+`encodeFast`'s own was compiled before. -/
+def encodeFastLet {S : Type*} [CommRing S] (φ : K →+* S) (κ R : ℕ) (m : Vector S (2 ^ κ)) :
+    Vector S (2 ^ (κ + R)) :=
+  let cosets : Vector (Vector S (2 ^ κ)) (2 ^ R) :=
+    Vector.ofFn fun c ↦ fwd φ κ m (domainPt (c.val * 2 ^ κ))
+  Vector.ofFn fun y ↦
+    (cosets[y.val / 2 ^ κ]'(Nat.div_lt_of_lt_mul (by rw [← pow_add]; exact y.isLt)))[y.val % 2 ^ κ]'
+      (Nat.mod_lt _ (Nat.two_pow_pos κ))
 
 /-- Compiled code runs `encodeFast` through `fwdLet`. -/
 @[csimp] theorem encodeFast_eq_encodeFastLet : @encodeFast = @encodeFastLet := rfl
