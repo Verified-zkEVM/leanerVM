@@ -32,6 +32,8 @@ import LeanerVM.Protocol.BusSecurity
 import LeanerVM.Protocol.ChainGroups
 import LeanerVM.Protocol.ChainLog
 import LeanerVM.Protocol.ClaimWeights
+import LeanerVM.Protocol.Compile.Bus
+import LeanerVM.Protocol.Compile.Rounds
 import LeanerVM.Protocol.DecodeAgree
 import LeanerVM.Protocol.DecodeChain
 import LeanerVM.Protocol.DecodeWalk
@@ -108,10 +110,12 @@ import LeanerVM.Protocol.ToArkLib.Flock.Security
 import LeanerVM.Protocol.ToArkLib.Flock.Tables
 import LeanerVM.Protocol.ToArkLib.Flock.Words
 import LeanerVM.Protocol.ToArkLib.Flock.Zerocheck
+import LeanerVM.Protocol.ToArkLib.FrontRun
 import LeanerVM.Protocol.ToArkLib.FrontVerifier
 import LeanerVM.Protocol.ToArkLib.GrandProduct
 import LeanerVM.Protocol.ToArkLib.GrandProductCached
 import LeanerVM.Protocol.ToArkLib.GrandProductPoly
+import LeanerVM.Protocol.ToArkLib.GrandProductRun
 import LeanerVM.Protocol.ToArkLib.GrandProductSecurity
 import LeanerVM.Protocol.ToArkLib.GuardedVerdict
 import LeanerVM.Protocol.ToArkLib.InnerProduct

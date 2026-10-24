@@ -28,6 +28,7 @@ import LeanerVMTests.Protocol.BusSecurity
 import LeanerVMTests.Protocol.ChainGroups
 import LeanerVMTests.Protocol.ChargedInvariant
 import LeanerVMTests.Protocol.ClaimWeights
+import LeanerVMTests.Protocol.Compile
 import LeanerVMTests.Protocol.ComponentPolynomial
 import LeanerVMTests.Protocol.DecodeChain
 import LeanerVMTests.Protocol.DecodeTranscript
