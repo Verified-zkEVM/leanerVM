@@ -12,7 +12,7 @@ public import LeanVM.Guest.B1.Tables.FlatLift
 /-!
 # `verify_sub`, flat
 
-`vsCPre`: `verify_sub`'s statements before its final `ret []` (`vsT_split`). They are flat
+`vsCPre`: `verify_sub`'s statements before its final `ret []` (`vsT_splitPre`). They are flat
 (`vs_cflat`: atoms, calls, `callIf`s and one fused `match` of calls, no `ite`), place no address
 by a frame cell (`vs_caddrs`), and `verify_sub` is no loop. `vsEvL`: the evaluation list (each
 `assertNe` read as the product it checks); the checker accepts it from the `7` parameters
@@ -29,7 +29,7 @@ open LeanVM.Guest.B1.Fwd LeanVM.Guest.B1.Tables
 /-- `verify_sub`'s statements before its `ret`. -/
 def vsCPre : List Stmt := vsT.dropLast
 
-theorem vsT_split : vsT = vsCPre ++ [.ret []] := stmtsEqb_sound (by decide +kernel)
+theorem vsT_splitPre : vsT = vsCPre ++ [.ret []] := stmtsEqb_sound (by decide +kernel)
 
 theorem vs_cflat : vsCPre.all Stmt.flat = true := by decide +kernel
 
