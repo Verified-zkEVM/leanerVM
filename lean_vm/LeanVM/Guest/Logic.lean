@@ -227,11 +227,11 @@ theorem safe_zero_iff {r : Regs K} : Safe prog L 0 r ↔ r = Regs.final prog := 
 
 theorem safe_succ_iff {k : ℕ} {r : Regs K} :
     Safe prog L (k + 1) r ↔
-      r.pc ≠ prog.finalPc ∧ ∃ r', step prog L r = some r' ∧ Safe prog L k r' := by
+      r ≠ Regs.final prog ∧ ∃ r', step prog L r = some r' ∧ Safe prog L k r' := by
   unfold Safe
-  by_cases h : r.pc = prog.finalPc
-  · simp [run_succ_of_eq h, h]
-  · simp [run_succ_of_ne h, h, Option.bind_eq_some_iff]
+  by_cases h : r = Regs.final prog
+  · rw [run_succ_of_eq h]; simp [h]
+  · rw [run_succ_of_ne_final h]; simp [h, Option.bind_eq_some_iff]
 
 /-- A halting run from a fetched instruction away from the last slot takes a step. -/
 theorem Safe.step {pc k : ℕ} {fp : K} {ins : OInstr}

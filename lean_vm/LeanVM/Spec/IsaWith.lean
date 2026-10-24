@@ -100,11 +100,11 @@ noncomputable def stepB (S : KeccakSem) {κ : ℕ} (prog : Program) (L : MemImag
     Option (Regs K) :=
   prog.fetch r.pc >>= executeWithB S L.read r
 
-/-- `n` steps under the semantics `S`. -/
+/-- `n` steps under the semantics `S`, halting in the final state. -/
 noncomputable def runB (S : KeccakSem) {κ : ℕ} (prog : Program) (L : MemImage κ) :
     ℕ → Regs K → Option (Regs K)
   | 0, r => some r
-  | n + 1, r => if r.pc = prog.finalPc then none else stepB S prog L r >>= runB S prog L n
+  | n + 1, r => if r = Regs.final prog then none else stepB S prog L r >>= runB S prog L n
 
 /-- **A valid execution under the semantics `S`.** -/
 def ValidExecutionB (S : KeccakSem) (prog : Program) (input : PublicInput) (t : Trace prog) :

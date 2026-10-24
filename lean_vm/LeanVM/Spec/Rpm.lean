@@ -51,9 +51,8 @@ those evaluations (each leaf the preimage, among them, of a path climbing to the
 returns the halting run of the memory image of a stack in the word's Johnson list (a stack whose
 Reed–Solomon encoding agrees with the word on at least the Johnson threshold of columns), one that
 is a valid execution if there is one. For every adversary of at most `Q` queries to `π` and `π⁻¹`,
-the probability that the verifier accepts while the program's last instruction is not a `JUMP`
-(`SentinelSafe`) and the extractor does not return a valid execution of the program on the public
-input is at most `soundnessError Q + rpmError (Q + verifierPermCalls)`: `soundnessError Q`
+the probability that the verifier accepts while the extractor does not return a valid execution
+of the program on the public input is at most `soundnessError Q + rpmError (Q + verifierPermCalls)`: `soundnessError Q`
 (`Statement.lean`) plus `q² / 2^508` for `q` the permutation calls of the whole experiment, the
 adversary's `Q` and at most `verifierPermCalls` of the verifier. So an accepted proof commits,
 except with that probability, to a stack whose memory columns hold a valid execution, among the at
@@ -235,13 +234,12 @@ noncomputable def extractorRpm : RpmExtractor := fun prog input T proof ↦
 
 /-! ## Knowledge soundness -/
 
-/-- **The adversary breaks soundness**: the verifier accepts its statement and proof, the
-program's last instruction is not a `JUMP`, and the execution extracted from the transcript and
-the proof is not a valid execution of the program on the public input. -/
+/-- **The adversary breaks soundness**: the verifier accepts its statement and proof, and the
+execution extracted from the transcript and the proof is not a valid execution of the program on
+the public input. -/
 def BreaksRpm (extract : RpmExtractor) (z : RpmOutcome) : Prop :=
-  z.accepted ∧ SentinelSafe z.program ∧
-    ¬ ∃ t, extract z.program z.input z.transcript z.proof = some t ∧
-      ValidExecution z.program z.input t
+  z.accepted ∧ ¬ ∃ t, extract z.program z.input z.transcript z.proof = some t ∧
+    ValidExecution z.program z.input t
 
 /-- The permutation calls of the verifier, at most, on every statement and proof: its
 `verifierQueries = 12008` queries, each a permutation or a Keccak-256 hash of at most `2^39`

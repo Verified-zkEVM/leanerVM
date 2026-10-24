@@ -14,13 +14,14 @@ public import LeanVM.Spec.Keccak
 # leanISA
 
 The leanVM instruction set, from §2 of the leanVM specification
-(`doc/leanvm/body/02-vm-specification.tex`) at `4af2cdddd7cd41b9df2cc7e123e314a91b0b4462` (branch
+(`doc/leanvm/body/02-vm-specification.tex`) at `94ee12ff6b2a3d42ba8328e22d09443692e4800b` (branch
 `main`).
 
 Words are elements of `E = K[y]/(y³ + y + 1)`, `K = GF(2^64)`. Addresses are powers of the
 generator `g` of `K*`: memory word `i` and bytecode slot `i` both sit at `g^i`. The machine has two
-registers, `pc` and `fp`. The memory is fixed before the run and only read: every instruction
-checks a relation on the words it reads, so all nondeterminism is the choice of the memory.
+registers, `pc` and `fp`, and halts in the final state `(g^(N_prog - 1), 1)`: the last slot in
+`main`'s frame. The memory is fixed before the run and only read: every instruction checks a
+relation on the words it reads, so all nondeterminism is the choice of the memory.
 
 The encoding of an instruction as sixteen `K` slots (specification §8.1) is how the verifier
 receives a program.
@@ -231,6 +232,13 @@ structure Regs (F : Type) where
   fp : F
   deriving Repr
 
+/-- Register equality is decided field by field. Not derived: the derived instance decides the
+second field under `h ▸` for the first, whose `Eq.rec` makes the kernel compare two register
+values by definitional unfolding instead of evaluation, and `g * 1 = g ^ 1` then never
+decides. -/
+instance {F : Type} [DecidableEq F] : DecidableEq (Regs F) := fun x y ↦
+  decidable_of_iff (x.pc = y.pc ∧ x.fp = y.fp) (by cases x; cases y; simp)
+
 /-- The next instruction, same frame: `(g · pc, fp)`. -/
 def Regs.next (r : Regs K) : Regs K := ⟨g * r.pc, r.fp⟩
 
@@ -292,16 +300,21 @@ noncomputable def step {κ : ℕ} (prog : Program) (L : MemImage κ) (r : Regs K
 /-- The machine starts at `(pc, fp) = (1, 1)`. -/
 def Regs.initial : Regs K := ⟨1, 1⟩
 
-/-- The last bytecode slot, `g^(2^logSize − 1)`: reaching it halts the machine. -/
+/-- The last bytecode slot, `g^(2^logSize − 1)`, the final state's `pc`. -/
 def Program.finalPc (prog : Program) : K := gpow (2 ^ prog.logSize - 1)
 
-/-- The machine halts at `(finalPc, 1)`. -/
+/-- The final state `(finalPc, 1)`: the last slot in `main`'s frame, `(g^(N_prog - 1), g^0)`. The
+machine halts there. -/
 def Regs.final (prog : Program) : Regs K := ⟨prog.finalPc, 1⟩
 
-/-- `n` steps from `r`, halting at `finalPc`: `none` if a step fails or the machine halts first. -/
+/-- `n` steps from `r`, halting in the final state: `none` if a step fails or the machine halts
+first. The machine halts when both registers are the final state's (specification §2, the loop's
+last step; `crates/leanvm_core/src/cpu/execute.rs:551-562`): the last slot reached in another
+frame executes like any other slot, and a step that falls through it, to `g^(2^logSize)`, which
+is no bytecode address, fails. -/
 noncomputable def run {κ : ℕ} (prog : Program) (L : MemImage κ) : ℕ → Regs K → Option (Regs K)
   | 0, r => some r
-  | n + 1, r => if r.pc = prog.finalPc then none else step prog L r >>= run prog L n
+  | n + 1, r => if r = Regs.final prog then none else step prog L r >>= run prog L n
 
 /-- An execution: a memory of `2^κ` words and a number of steps. -/
 structure Trace (prog : Program) where
@@ -318,16 +331,9 @@ def HasPublicBoundary {prog : Program} (input : PublicInput) (t : Trace prog) : 
     t.image.read (gpow 0) = some input.word0 ∧ t.image.read (gpow 1) = some input.word1
 
 /-- **A valid execution** of `prog` on `input`: the memory holds the public input, and `t.steps`
-steps from `(1, 1)` halt at `(finalPc, 1)`. -/
+steps from `(1, 1)` halt in the final state `(finalPc, 1)`. -/
 def ValidExecution (prog : Program) (input : PublicInput) (t : Trace prog) : Prop :=
   HasPublicBoundary input t ∧ run prog t.image t.steps Regs.initial = some (Regs.final prog)
-
-/-- The last instruction is not a `JUMP`: the one condition knowledge soundness puts on a
-program. leanVM's compiler always pads the last slot with a `SET`; the verifier does not check
-it, and for bytecode whose last instruction is a `JUMP` its constraints accept runs that are not
-valid executions. -/
-def SentinelSafe (prog : Program) : Prop :=
-  (prog.code ⟨2 ^ prog.logSize - 1, Nat.sub_lt (Nat.two_pow_pos _) (by decide)⟩).opcode ≠ .jump
 
 /-! ## Instruction counts -/
 

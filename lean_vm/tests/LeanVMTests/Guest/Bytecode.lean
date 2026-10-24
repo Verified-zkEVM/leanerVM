@@ -59,8 +59,6 @@ example : guest.fetch (gpow 0) = some (OInstr.set 427 16960105817094266212 0 0).
 example : guest.fetch (gpow (2 ^ 19 - 1)) = some OInstr.pad.toInstr :=
   guest_fetch_pad (by decide) (by decide)
 
-example : SentinelSafe guest := guest_sentinelSafe
-
 /-- The code list agrees with `instrAt`. -/
 example : Data.f21.code[100443]? = some (OInstr.jump 26 0 1) := by
   rw [CompiledFn.getElem?_code (CompiledFn.wellChunked_of_mem sphincs_mem) (by decide +kernel)]

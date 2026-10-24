@@ -690,7 +690,6 @@ with probability at most `(QA + 12008) · (2^-128 + failBound leanVmSeeds (QA + 
 theorem leanVm_execution (A : OracleComp HashSpec (Statement × Proof)) (QA : ℕ)
     (hA : IsTotalQueryBound A QA) :
     Pr{let z ← romExperiment A (verifierFam leanVmSeeds anyProgram)}[z.1.2 = true ∧
-      SentinelSafe z.1.1.1.1 ∧
       ¬ ∃ (s : Sizes) (q : Column (leanIsaμ z.1.1.1.1 s)),
         extractStack z.1.1.1.1 z.1.1.1.2 z.2 z.1.1.2 =
           some (⟨s, q⟩ : Σ s : Sizes, Column (leanIsaμ z.1.1.1.1 s)) ∧
@@ -699,13 +698,13 @@ theorem leanVm_execution (A : OracleComp HashSpec (Statement × Proof)) (QA : �
       ((QA + 12008 : ℕ) : ℝ≥0∞) * ((2 : ℝ≥0∞)⁻¹ ^ 128 + failBound leanVmSeeds (QA + 12008)) := by
   have h := romSound_of_imp anyProgram anyCert leanVmSeeds (fun x ↦ rootOk_stmtHistory x) εLean
     anyCert_bound A QA hA leanVmQueryBound isTotalQueryBound_leanVmFam
-    (fun z c ↦ SentinelSafe z.1.1 ∧ ¬ ∃ (s : Sizes) (q : Column (leanIsaμ z.1.1 s)),
+    (fun z c ↦ ¬ ∃ (s : Sizes) (q : Column (leanIsaμ z.1.1 s)),
         extractStack z.1.1 z.1.2 c z.2 = some ⟨s, q⟩ ∧
         ∃ t, AssignmentRepresents (witnessOf z.1.1 s q) t ∧ ValidExecution z.1.1 z.1.2 t)
     (fun z c hv hb ↦ by
       simp only [leanVmSeeds, nodeAt_stmtHistory] at hv
       exact doomed_of_doomedRun hv (doomed_of_not_extracted z.1.1 z.1.2 hv
-        fun ⟨s, q, hx, hs, hM⟩ ↦ hb.2 ⟨s, q, hx, execution_of_extracted hb.1 hs hM⟩))
+        fun ⟨s, q, hx, hs, hM⟩ ↦ hb ⟨s, q, hx, execution_of_extracted hs hM⟩))
   rwa [leanVmQueryBound_eq] at h
 
 /-! ## The numbers -/

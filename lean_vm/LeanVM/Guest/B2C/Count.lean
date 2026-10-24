@@ -50,8 +50,8 @@ theorem runCount_add_of_run {op : Opcode} : ∀ {n : ℕ} {s t : Regs K}, run pr
     subst h
     simp [runCount]
   | n + 1, s, t, h, m => by
-    have hne := pc_ne_finalPc_of_run_succ h
-    rw [run_succ_of_ne hne] at h
+    have hne := ne_final_of_run_succ h
+    rw [run_succ_of_ne_final hne] at h
     obtain ⟨s', hs', h'⟩ := Option.bind_eq_some_iff.mp h
     obtain ⟨ins, hins⟩ : ∃ ins, prog.fetch s.pc = some ins := by
       cases hf : prog.fetch s.pc with

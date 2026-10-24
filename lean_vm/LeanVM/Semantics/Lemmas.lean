@@ -83,17 +83,6 @@ noncomputable def MemImage.cellAt {κ : ℕ} (L : MemImage κ) (a : K) : Vector 
   | some v => #v[v.limb 0, v.limb 1]
   | none => #v[0, 0]
 
-/-- Register equality is decided field by field. Not derived: the derived instance decides the
-second field under `h ▸` for the first, whose `Eq.rec` makes the kernel compare two register
-values by definitional unfolding instead of evaluation, and `g * 1 = g ^ 1` then never
-decides. -/
-instance {F : Type} [DecidableEq F] : DecidableEq (Regs F) := fun x y ↦
-  decidable_of_iff (x.pc = y.pc ∧ x.fp = y.fp) (by cases x; cases y; simp)
-
-/-- Sentinel safety is checked from the last typed instruction, without an address search. -/
-instance (prog : Program) : Decidable (SentinelSafe prog) :=
-  inferInstanceAs (Decidable (_ ≠ Opcode.jump))
-
 /-! ## Memory -/
 
 /-! ### Load-bearing lemmas -/
@@ -237,18 +226,23 @@ variable {κ : ℕ} {prog : Program} {L : MemImage κ}
 /-- Zero steps go nowhere. -/
 @[simp] theorem run_zero (r : Regs K) : run prog L 0 r = some r := rfl
 
-/-- The loop: test for the sentinel, then fetch, execute, and continue. -/
+/-- The loop: test for the final state, then fetch, execute, and continue. -/
 theorem run_succ (n : ℕ) (r : Regs K) :
-    run prog L (n + 1) r = if r.pc = prog.finalPc then none else step prog L r >>= run prog L n :=
+    run prog L (n + 1) r = if r = Regs.final prog then none else step prog L r >>= run prog L n :=
   rfl
 
-/-- Away from the sentinel, a step is taken. -/
-theorem run_succ_of_ne {r : Regs K} (h : r.pc ≠ prog.finalPc) (n : ℕ) :
+/-- Away from the final state, a step is taken. -/
+theorem run_succ_of_ne_final {r : Regs K} (h : r ≠ Regs.final prog) (n : ℕ) :
     run prog L (n + 1) r = step prog L r >>= run prog L n := by
   rw [run_succ, ite_eq_right h]
 
-/-- At the sentinel, no step is taken. -/
-theorem run_succ_of_eq {r : Regs K} (h : r.pc = prog.finalPc) (n : ℕ) :
+/-- Away from the last slot, a step is taken. -/
+theorem run_succ_of_ne {r : Regs K} (h : r.pc ≠ prog.finalPc) (n : ℕ) :
+    run prog L (n + 1) r = step prog L r >>= run prog L n :=
+  run_succ_of_ne_final (fun hr ↦ h (congrArg Regs.pc hr)) n
+
+/-- In the final state, no step is taken. -/
+theorem run_succ_of_eq {r : Regs K} (h : r = Regs.final prog) (n : ℕ) :
     run prog L (n + 1) r = none := by
   rw [run_succ, ite_eq_left h]
 
@@ -270,18 +264,18 @@ theorem run_prefix {m n : ℕ} {r r'' : Regs K} (h : run prog L (m + n) r = some
   rw [run_add] at h
   exact Option.bind_eq_some_iff.mp h
 
-/-- A state that is stepped from is not at the sentinel. -/
-theorem pc_ne_finalPc_of_run_succ {n : ℕ} {r r' : Regs K} (h : run prog L (n + 1) r = some r') :
-    r.pc ≠ prog.finalPc :=
-  fun hpc ↦ by rw [run_succ_of_eq hpc] at h; exact Option.some_ne_none r' h.symm
+/-- A state that is stepped from is not the final state. -/
+theorem ne_final_of_run_succ {n : ℕ} {r r' : Regs K} (h : run prog L (n + 1) r = some r') :
+    r ≠ Regs.final prog :=
+  fun hr ↦ by rw [run_succ_of_eq hr] at h; exact Option.some_ne_none r' h.symm
 
-/-- Along a run, every state before the last is away from the sentinel: the halting test
-precedes every fetch. -/
+/-- Along a run, every state before the last is not the final state: the halting test precedes
+every fetch. -/
 theorem run_intermediate {n : ℕ} {r r' : Regs K} (h : run prog L n r = some r') {m : ℕ}
-    (hm : m < n) : ∃ r₁, run prog L m r = some r₁ ∧ r₁.pc ≠ prog.finalPc := by
+    (hm : m < n) : ∃ r₁, run prog L m r = some r₁ ∧ r₁ ≠ Regs.final prog := by
   obtain ⟨k, rfl⟩ : ∃ k, n = m + (k + 1) := ⟨n - m - 1, by omega⟩
   obtain ⟨r₁, h₁, h₂⟩ := run_prefix h
-  exact ⟨r₁, h₁, pc_ne_finalPc_of_run_succ h₂⟩
+  exact ⟨r₁, h₁, ne_final_of_run_succ h₂⟩
 
 end
 

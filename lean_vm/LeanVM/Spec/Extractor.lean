@@ -170,7 +170,7 @@ def memoryImage (layout : Layout) {μ : ℕ} (q : Vector K (2 ^ μ)) : MemImage 
 
 open Classical in
 /-- The execution of `prog` on a memory image: the image, run from `(1, 1)` for the least number
-of steps after which it halts at `(finalPc, 1)`; `none` if it never does. -/
+of steps after which it halts in the final state `(finalPc, 1)`; `none` if it never does. -/
 noncomputable def haltingRun (prog : Program) {κ : ℕ} (image : MemImage κ) : Option (Trace prog) :=
   if h : ∃ n, Semantics.run prog image n Regs.initial = some (Regs.final prog) then
     some ⟨κ, image, Nat.find h⟩

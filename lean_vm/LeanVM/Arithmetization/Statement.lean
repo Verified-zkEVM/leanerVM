@@ -144,7 +144,7 @@ represents, and `constraintCompleteness` a witness representing the trace.
 
 The bus-soundness statements, recorded at the end of this file as their original interface,
 are proved in `LeanVM.Arithmetization.Soundness` (`mem_channel_sound`,
-`bytecode_channel_sound`, `no_row_at_sentinel`, `exists_run_of_balanced`).
+`bytecode_channel_sound`, `exists_run_of_balanced`).
 
 ## Wrong readings excluded
 
@@ -447,9 +447,9 @@ theorem assignmentRepresents_image {w : EnsembleWitness (leanIsaEnsemble prog)} 
 
 /-! ## Bus soundness, the interface
 
-The four bus-soundness statements, as first specified; they are proved in
+The three bus-soundness statements, as first specified; they are proved in
 `LeanVM.Arithmetization.Soundness` (`Soundness/MemChannel.lean`, `BytecodeChannel.lean`,
-`StateWalk.lean`), with `SentinelSafe` as the program condition. Channels are identified by name
+`StateWalk.lean`), with no condition on the program. Channels are identified by name
 and a pulled message is read as its typed form, as the module does (`messagesOn`, `memRowAt`):
 
 ```lean
@@ -468,20 +468,15 @@ theorem bytecode_channel_sound (h : SatisfiedBy prog input w) :
       ∀ m : BytecodeMsg K, i.msg = (toElements m).toArray →
         ∃ k : Fin (2 ^ prog.logSize), m.pc = gpow k ∧ #v[m.opcode] ++ m.op = entry (prog.code k)
 
-/-- No row sits at the sentinel counter: its bytecode entry is not a `JUMP`, so the row would
-push `(g^N_prog, fp)`, a counter no bytecode read can balance. -/
-theorem no_row_at_sentinel (hsafe : SentinelSafe prog) (h : SatisfiedBy prog input w) :
-    ∀ i ∈ w.interactions, i.channel.name = StatePull.name →
-      ∀ pc fp : K, i.msg = #[pc, fp] → pc ≠ prog.finalPc
-
 /-- Specification Prop. 6.1: a balanced state channel over rows that are steps contains a run
-from `(1, 1)` to `(g^(N_prog - 1), 1)`; the remaining rows are closed walks. -/
-theorem exists_run_of_balanced (hsafe : SentinelSafe prog) (h : SatisfiedBy prog input w) :
+from `(1, 1)` to `(g^(N_prog - 1), 1)`, cut at its first visit of the final state; the remaining
+rows are closed walks. -/
+theorem exists_run_of_balanced (h : SatisfiedBy prog input w) :
     ∃ n, run prog (imageOf w.data).2 n Regs.initial = some (Regs.final prog)
 ```
 
 The read bound `mem_channel_sound` needs is derived from `Caps` (`≤ 27 · 6 · 2^32`), never
-assumed; `SentinelSafe prog` is the one hypothesis on the program, and only soundness takes it.
+assumed; there is no hypothesis on the program.
 -/
 
 end LeanVM.Arithmetization

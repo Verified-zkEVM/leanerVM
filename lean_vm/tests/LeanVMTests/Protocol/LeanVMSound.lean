@@ -17,7 +17,7 @@ example (prog : Program) (input : PublicInput) (proof : LeanVM.Proof) :
   rfl
 
 example {A : Adversary} {Q : ℕ} (hA : A.IsTotalQueryBound Q) :
-    Pr{let z ← experiment A}[z.1.2 = true ∧ SentinelSafe z.1.1.1.1 ∧
+    Pr{let z ← experiment A}[z.1.2 = true ∧
       ¬ ∃ t, extractor z.1.1.1.1 z.1.1.1.2 z.2.2 z.1.1.2 = some t ∧
         ValidExecution z.1.1.1.1 z.1.1.1.2 t] ≤
       soundnessError Q :=

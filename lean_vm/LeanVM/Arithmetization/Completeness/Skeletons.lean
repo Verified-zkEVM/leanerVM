@@ -87,8 +87,8 @@ theorem runCount_eq_length {κ : ℕ} {prog : Program} {L : MemImage κ} (op : O
   induction n generalizing r with
   | zero => rfl
   | succ n ih =>
-    have hpc := pc_ne_finalPc_of_run_succ h
-    rw [run_succ_of_ne hpc] at h
+    have hne := ne_final_of_run_succ h
+    rw [run_succ_of_ne_final hne] at h
     obtain ⟨r', hs, hr'⟩ := Option.bind_eq_some_iff.mp h
     obtain ⟨ins, hf⟩ : ∃ ins, prog.fetch r.pc = some ins := by
       cases hf : prog.fetch r.pc with
@@ -99,7 +99,7 @@ theorem runCount_eq_length {κ : ℕ} {prog : Program} {L : MemImage κ} (op : O
       rw [List.filterMap_map]
       congr 1
       funext m
-      simp only [Function.comp, run_succ_of_ne hpc, hs, Option.bind_eq_bind, Option.bind_some]
+      simp only [Function.comp, run_succ_of_ne_final hne, hs, Option.bind_eq_bind, Option.bind_some]
     rw [List.range_succ_eq_map, List.filterMap_cons, run_zero, htail]
     simp only [runCount, hf, hs, ih hr']
     by_cases ho : ins.opcode = op <;> simp [hf, ho, Nat.add_comm]

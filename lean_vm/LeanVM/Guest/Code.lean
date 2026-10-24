@@ -298,13 +298,6 @@ theorem assemble_fetch_pad (h : consecutive 0 fns e = true) {pc : ℕ} (hpc : e 
   rw [Program.fetch_gpow (assemble fns logSize hl) ⟨pc, hpc'⟩]
   exact congrArg (fun ins ↦ some (OInstr.toInstr ins)) (lookup_of_le h hpc)
 
-/-- A program whose functions end before its last slot is sentinel safe: that slot is padding. -/
-theorem assemble_sentinelSafe (h : consecutive 0 fns e = true) (he : e < 2 ^ logSize) :
-    SentinelSafe (assemble fns logSize hl) := by
-  show (OInstr.toInstr (lookup fns (2 ^ logSize - 1))).opcode ≠ .jump
-  rw [lookup_of_le h (by omega)]
-  decide
-
 end
 
 end

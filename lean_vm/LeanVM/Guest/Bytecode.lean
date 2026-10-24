@@ -83,8 +83,5 @@ theorem guest_fetch_pad {pc : ℕ} (hpc : Data.codeLen ≤ pc) (hpc' : pc < 2 ^ 
     guest.fetch (gpow pc) = some OInstr.pad.toInstr :=
   assemble_fetch_pad functions_consecutive hpc hpc'
 
-theorem guest_sentinelSafe : SentinelSafe guest :=
-  assemble_sentinelSafe functions_consecutive (by have := codeLen_lt; omega)
-
 end
 end LeanVM.Guest

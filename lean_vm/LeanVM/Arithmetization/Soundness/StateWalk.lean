@@ -2,8 +2,8 @@
   LeanVM.Arithmetization.Soundness.StateWalk
 
   The state channel of a satisfying witness: every row of the six tables is a step of the program
-  over the committed image, no row sits at the sentinel counter, and the balanced state pair
-  contains a run from the initial to the final registers.
+  over the committed image, and the balanced state pair contains a run from the initial to the
+  final registers.
 -/
 
 module
@@ -16,10 +16,10 @@ public import LeanVM.Arithmetization.Soundness.Walk
 /-!
 # The state channel
 
-At leanVM pin `127510d14c98ade4e8a97646c44fa7f1ff5e752d` and Clean pin `42fe4b26`. Specification
-Proposition 6.1 (`doc/leanvm/body/06-bus-interactions.tex`, §6.1), as `no_row_at_sentinel` and
-`exists_run_of_balanced`. They assume the constraint statement `SatisfiedBy` and `SentinelSafe`
-(the last instruction is not a `JUMP`), and serve `constraintSoundness`.
+At leanVM pin `94ee12ff6b2a3d42ba8328e22d09443692e4800b` and Clean pin `42fe4b26`. Specification
+Proposition 6.1 (`doc/leanvm/body/06-bus-interactions.tex`, §6.1), as `exists_run_of_balanced`. It
+assumes the constraint statement `SatisfiedBy` alone, nothing of the program, and serves
+`constraintSoundness`.
 
 **The rows are steps** (`opRecs_step`). For a row of the six tables, the table's `Assumptions`
 are `SatisfiedBy.keccak_valid` (`assumptions_of_keccakRowsValid`), its constraints are
@@ -29,37 +29,26 @@ are `SatisfiedBy.keccak_valid` (`assumptions_of_keccakRowsValid`), its constrain
 by its bytecode read, which `opRecs_bc_sound` makes the program's at the row's counter: the row is
 `step prog L` from its pulled state to its pushed state, `L` the image the data names.
 
-**No row at the sentinel** (`no_row_at_sentinel`). A row at the sentinel
-counter `g^(N_prog - 1)` executes the sentinel slot's instruction, which is not a `JUMP`
-(`SentinelSafe`), so it pushes `(g^N_prog, fp)`. Balance makes some pull carry that state: not the
-verifier's `(g^(N_prog - 1), 1)`, and not a row's, whose counter is `g^k` for a slot `k < N_prog`
-(the bytecode channel); both since `g` has order `2^64 - 1 > N_prog`.
-
 **The run** (`exists_run_of_balanced`, Proposition 6.1). The state pair pushes `(1, 1)` (the
 verifier) and the rows' successors, and pulls `(g^(N_prog - 1), 1)` (the verifier) and the rows'
 states; its balance is the hypothesis of `exists_run_of_perm` (`Soundness.Walk`) over the rows,
-which yields a run from `Regs.initial` to `Regs.final prog`, each of whose steps is a row
-(`exists_walk`, which `Soundness.Theorem` uses for `AssignmentRepresents`).
+which yields a run from `Regs.initial` to `Regs.final prog`, the walk from the initial state cut at
+its first visit of the final state, each of whose steps is a row (`exists_walk`, which
+`Soundness.Theorem` uses for `AssignmentRepresents`). Every state before the cut is not the final
+state, so `run`, which halts in the final state only, steps from it; a row at the last slot in
+another frame is a step like any other.
 
-**Under any semantics** (`RowsStep`, `opRecs_pc_ne_finalPcB`, `exists_walkB`): the same, for
+**Under any semantics** (`RowsStep`, `exists_walkB`): the same, for
 rows that are steps of a semantics `S` of `KECCAK`: the deployed one under the `KECCAK` validity
 (`rowsStep_deployed`), the reduction-blind one `keccakFree` without it (`rowsStep_free`).
-
-## Why the rows, not `w.interactions`
-
-`no_row_at_sentinel` is not stated over `w.interactions`, which includes the verifier's own
-pull of the final registers `(g^(N_prog - 1), 1)` (Clean's `EnsembleWitness.interactions` ranges
-over `allTables`, the verifier table first). Over those it is false for every witness, satisfying
-or not (`verifier_pulls_sentinel` in `tests/LeanVMTests/Arithmetization/Soundness/Theorem.lean`);
-the statement proved here quantifies over the rows of the witness's tables, `w.tables`, which is
-what "no row sits at the sentinel counter" means.
 
 ## Wrong readings excluded
 
 * The state pull carries no guarantee: nothing is claimed of a pulled state
   except through the walk; the rows not on the run are closed walks.
-* A row at the sentinel is not excluded locally: its table accepts it, and only the balance of
-  the state pair rejects it.
+* No row is excluded at the last slot: the machine halts in the final state, `(g^(N_prog - 1), 1)`,
+  and a row at the last slot in another frame is a step of the program, which a valid execution
+  may take (leanVM's `halts_in_the_final_state`, `crates/leanvm_core/src/cpu/mod.rs:885-923`).
 -/
 
 namespace LeanVM.Arithmetization
@@ -215,101 +204,12 @@ theorem statePull_eq (h : SatisfiedByB prog input w) {f : Air.Flat.Table K × Ar
   simp only [RowRec.sends, chanOf, sendsOf_statePull, List.append_nil, flatMap_singleton_eq_map']
   rfl
 
-/-! ## No row at the sentinel -/
-
-/-- The bytecode has at most `2^32` slots, fewer than the order of `g`. -/
-theorem two_pow_logSize_lt (prog : Program) : 2 ^ prog.logSize < 2 ^ 64 - 1 :=
-  lt_of_le_of_lt (Nat.pow_le_pow_right (by norm_num) prog.logSize_le) (by decide)
-
-/-- **No row of the six tables sits at the sentinel counter**, under any semantics its rows are
-steps of: its instruction is not a `JUMP`, so it would push `(g^N_prog, fp)`, which no pull
-balances. -/
-theorem opRecs_pc_ne_finalPcB {S : KeccakSem} (hsafe : SentinelSafe prog)
-    (h : SatisfiedByB prog input w) {f : Air.Flat.Table K × Array K → RowRec} (hf : OpRecs w f)
-    (hS : RowsStep S w f) {p : Air.Flat.Table K × Array K}
-    (hp : p ∈ opPairs w) : (f p).pc ≠ prog.finalPc := by
-  intro hfin
-  have hN := two_pow_logSize_lt prog
-  have hpos := Nat.two_pow_pos prog.logSize
-  obtain ⟨-, k, hk, hnj⟩ := hS p hp
-  have hkN : (k : ℕ) = 2 ^ prog.logSize - 1 := by
-    have : gpow k = gpow (2 ^ prog.logSize - 1) := hk.symm.trans hfin
-    exact gpow_injOn (by simp only [Set.mem_Iio]; have := k.isLt; omega)
-      (by simp only [Set.mem_Iio]; omega) this
-  have hsafe : (prog.code k).opcode ≠ .jump := by
-    have hk' : k = ⟨2 ^ prog.logSize - 1, Nat.sub_lt (Nat.two_pow_pos _) (by decide)⟩ :=
-      Fin.ext hkN
-    rw [hk']
-    exact hsafe
-  have hnext := hnj hsafe
-  have hpush : regsArr ⟨gpow (2 ^ prog.logSize), (f p).fp⟩ ∈ messagesOn w StatePush.toRaw := by
-    rw [statePush_eq h hf]
-    refine List.mem_cons_of_mem _ (List.mem_map.mpr ⟨p, hp, ?_⟩)
-    rw [hnext, hfin, Program.finalPc, ← gpow_succ, Nat.sub_add_cancel hpos]
-  have hpull := h.state_balanced.subset hpush
-  rw [statePull_eq h hf] at hpull
-  rcases List.mem_cons.mp hpull with heq | heq
-  · have h1 : gpow (2 ^ prog.logSize) = gpow (2 ^ prog.logSize - 1) :=
-      (by simpa [regsArr, Regs.final, Program.finalPc] using heq : _ ∧ _).1
-    have := gpow_injOn (by simp only [Set.mem_Iio]; omega) (by simp only [Set.mem_Iio]; omega) h1
-    omega
-  · obtain ⟨q, hq, hqe⟩ := List.mem_map.mp heq
-    obtain ⟨-, k', hk', -⟩ := hS q hq
-    have h1 : gpow (2 ^ prog.logSize) = gpow k' := by
-      rw [← hk']
-      exact (by simpa [regsArr, RowRec.src] using hqe.symm : _ ∧ _).1
-    have := gpow_injOn (by simp only [Set.mem_Iio]; omega)
-      (by simp only [Set.mem_Iio]; have := k'.isLt; omega) h1
-    have := k'.isLt
-    omega
-
-/-- **No row of the six tables sits at the sentinel counter** (`opRecs_pc_ne_finalPcB` at the
-deployed semantics). -/
-theorem opRecs_pc_ne_finalPc (hsafe : SentinelSafe prog) (h : SatisfiedBy prog input w)
-    {f : Air.Flat.Table K × Array K → RowRec} (hf : OpRecs w f) {p : Air.Flat.Table K × Array K}
-    (hp : p ∈ opPairs w) : (f p).pc ≠ prog.finalPc :=
-  opRecs_pc_ne_finalPcB hsafe h.toB hf (rowsStep_deployed h hf) hp
-
-/-- **No row sits at the sentinel counter**: no state pull of a row of the
-witness's tables carries the counter `g^(N_prog - 1)`. Its bytecode entry is not a `JUMP`, so the
-row would push `(g^N_prog, fp)`, a counter no bytecode read can balance. The verifier's own pull
-of the final registers is not a row (the module docstring). -/
-theorem no_row_at_sentinel (hsafe : SentinelSafe prog) (h : SatisfiedBy prog input w) :
-    ∀ t ∈ w.tables, ∀ i ∈ t.interactions, i.channel.name = StatePull.name →
-      ∀ pc fp : K, i.msg = #[pc, fp] → pc ≠ prog.finalPc := by
-  obtain ⟨f, hf⟩ := exists_opRecs w
-  intro t ht i hi hname pc fp hmsg
-  obtain ⟨row, hrow, hsend⟩ := mem_rowSends_of_mem_interactions hi
-  rw [hname] at hsend
-  rw [tables_eq w] at ht
-  rcases List.mem_append.mp ht with ht | ht
-  · have hp : (t, row) ∈ opPairs w :=
-      List.mem_flatMap.mpr ⟨t, ht, List.mem_map_of_mem hrow⟩
-    rw [(hf _ hp).1, RowRec.sends, chanOf, sendsOf_statePull, hmsg] at hsend
-    have : pc = (f (t, row)).pc := (by simpa using hsend : _ ∧ _).1
-    rw [this]
-    exact opRecs_pc_ne_finalPc hsafe h hf hp
-  · exfalso
-    have hblock : i.msg ∈ chanOf StatePull.name (tableSends t) :=
-      (chanOf_flatMap' _ _ _).symm ▸ List.mem_flatMap.mpr ⟨row, hrow, hsend⟩
-    rcases List.mem_cons.mp ht with rfl | ht
-    · obtain ⟨mfin, hmem⟩ := memBlock_sends_eq h.toB
-      rw [hmem, chanOf_memSeed_eq_nil _ _ (by simp [StatePull, MemPull])
-        (by simp [StatePull, MemPush])] at hblock
-      exact List.not_mem_nil hblock
-    · rw [List.mem_singleton] at ht
-      subst ht
-      obtain ⟨bfin, hbc⟩ := bcBlock_sends_eq h.toB
-      rw [hbc, chanOf_bcSeed_eq_nil _ (by simp [StatePull, BytecodePull])
-        (by simp [StatePull, BytecodePush])] at hblock
-      exact List.not_mem_nil hblock
-
 /-! ## The run -/
 
 /-- **The walk of a witness**, under any semantics `S` its rows are steps of: records for its
 rows and a run under `S` from the initial to the final registers over the image the data names,
 each of whose steps is a row. -/
-theorem exists_walkB (S : KeccakSem) (hsafe : SentinelSafe prog) (h : SatisfiedByB prog input w)
+theorem exists_walkB (S : KeccakSem) (h : SatisfiedByB prog input w)
     (hS : ∀ f, OpRecs w f → RowsStep S w f) :
     ∃ f, OpRecs w f ∧ ∃ n, runB S prog (imageOf w.data).2 n Regs.initial = some (Regs.final prog) ∧
       ∀ k < n, ∃ p ∈ opPairs w, runB S prog (imageOf w.data).2 k Regs.initial = some (f p).src ∧
@@ -322,23 +222,23 @@ theorem exists_walkB (S : KeccakSem) (hsafe : SentinelSafe prog) (h : SatisfiedB
   have hperm := hb.map arrRegs
   simp only [List.map_cons, List.map_map, Function.comp_def, arrRegs_regsArr] at hperm
   exact exists_runB_of_perm S (fun p ↦ (f p).src) (fun p ↦ (f p).next) (opPairs w)
-    (fun p hp ↦ ⟨opRecs_pc_ne_finalPcB hsafe h hf (hS f hf) hp, (hS f hf p hp).1⟩) Regs.initial
-    hperm
+    (fun p hp ↦ (hS f hf p hp).1) Regs.initial hperm
 
 /-- **The walk of a satisfying witness**: records for its rows and a run from the initial to the
 final registers over the image the data names, each of whose steps is a row. -/
-theorem exists_walk (hsafe : SentinelSafe prog) (h : SatisfiedBy prog input w) :
+theorem exists_walk (h : SatisfiedBy prog input w) :
     ∃ f, OpRecs w f ∧ ∃ n, run prog (imageOf w.data).2 n Regs.initial = some (Regs.final prog) ∧
       ∀ k < n, ∃ p ∈ opPairs w, run prog (imageOf w.data).2 k Regs.initial = some (f p).src ∧
         run prog (imageOf w.data).2 (k + 1) Regs.initial = some (f p).next := by
   simpa only [runB_deployed] using
-    exists_walkB keccakDeployed hsafe h.toB fun _ hf ↦ rowsStep_deployed h hf
+    exists_walkB keccakDeployed h.toB fun _ hf ↦ rowsStep_deployed h hf
 
 /-- **Specification Proposition 6.1**: a balanced state channel over rows that are steps contains a
-run from `(1, 1)` to `(g^(N_prog - 1), 1)`; the remaining rows are closed walks. -/
-theorem exists_run_of_balanced (hsafe : SentinelSafe prog) (h : SatisfiedBy prog input w) :
+run from `(1, 1)` to `(g^(N_prog - 1), 1)`, cut at its first visit of the final state; the remaining
+rows are closed walks. -/
+theorem exists_run_of_balanced (h : SatisfiedBy prog input w) :
     ∃ n, run prog (imageOf w.data).2 n Regs.initial = some (Regs.final prog) := by
-  obtain ⟨-, -, n, hn, -⟩ := exists_walk hsafe h
+  obtain ⟨-, -, n, hn, -⟩ := exists_walk h
   exact ⟨n, hn⟩
 
 end LeanVM.Arithmetization

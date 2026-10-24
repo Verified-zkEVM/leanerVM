@@ -600,7 +600,7 @@ candidate is a candidate of the specification's commitment, whose word is the hi
 (`committedWord_eq`), and its memory image runs to a valid execution
 (`execution_of_extracted`). -/
 theorem extractor_of_extracted {X : Type} (σ : Seeds X) {ℓ : Log} {k : ℕ} {π : Proof}
-    (hsafe : SentinelSafe prog) (hf : ¬ Fail σ ℓ)
+    (hf : ¬ Fail σ ℓ)
     (hv : Rom.verify (lookH ℓ) (lookF ℓ) (leanVmSeed (bytecodeWords prog) (publicDigest input))
       (leanVmProgram (bytecodeWords prog) (publicDigest input)) π = some true)
     (hroot : ∀ r, announcedRoot prog π = some r → ∀ x, .inl (x, r) ∉ ℓ.drop k)
@@ -617,7 +617,7 @@ theorem extractor_of_extracted {X : Type} (σ : Seeds X) {ℓ : Log} {k : ℕ} {
       obtain ⟨⟨root, ht, w, hroot', hW, hcomm⟩, hgood, level, rest, hcfg⟩ :=
         commitment_eq hv hann hfw
       obtain ⟨q, hqc, hM⟩ := hq
-      obtain ⟨t, hrep, htv⟩ := execution_of_extracted hsafe hgood.2.1 hM
+      obtain ⟨t, hrep, htv⟩ := execution_of_extracted hgood.2.1 hM
       obtain ⟨t', ht', hv'⟩ := haltingRun_valid hrep htv
       rw [haltingRun_imageOf s hgood.2.1.2.1] at ht'
       have hadm := hgood.2.2.1

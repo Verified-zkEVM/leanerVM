@@ -49,7 +49,7 @@ theorem executeWith_jump_taken {read : K → Option E} {r : Regs K} {oc od of : 
     exact hc0 this
   simp [executeWith, hc, hd, hf, hin, hne, limb_ofK]
 
-/-- One step from a state away from the sentinel is a run of one step. -/
+/-- One step from a state away from the last slot is a run of one step. -/
 theorem run_one {κ : ℕ} {prog : Program} {L : MemImage κ} {r r' : Regs K}
     (hpc : r.pc ≠ prog.finalPc) (h : step prog L r = some r') : run prog L 1 r = some r' := by
   rw [run_succ_of_ne hpc, h]
@@ -232,9 +232,6 @@ included. -/
 def jumpProg : Program :=
   ⟨11, by decide, fun i ↦
     if (i : ℕ) = 0 then .jump (gpow 2) (gpow 2) (gpow 3) else .setConstant (gpow 0) 0⟩
-
-/-- The sentinel slot is not a `JUMP`. -/
-theorem jumpProg_sentinelSafe : SentinelSafe jumpProg := by decide
 
 /-- Its first slot is the `JUMP`. -/
 theorem jumpProg_fetch_one : jumpProg.fetch 1 = some (.jump (gpow 2) (gpow 2) (gpow 3)) := by

@@ -15,8 +15,8 @@ with the bounds' numbers; and the guest's batching of its children's deferred cl
 with its witness named (`LeanVM.Guest.End.guest_knowledge`, `decode_binds`, `guest_sound`, and in
 the random-permutation model `aggregate_sound_outer`, `aggregate_knowledge`:
 `LeanVM.Node.GuestKnowledge` of `LeanVM/Spec/Guest.lean` and `LeanVM.Node.AggregateSound` of
-`LeanVM/Spec/Aggregate.lean` for the deployed bytecode and the decoder `LeanVM.Guest.End.decode`;
-`guest_sentinelSafe`), and the guest's completeness within its deployed budget
+`LeanVM/Spec/Aggregate.lean` for the deployed bytecode and the decoder `LeanVM.Guest.End.decode`),
+and the guest's completeness within its deployed budget
 (`LeanVM.Guest.Budget.guest_complete`, `guest_complete_numeric`), with what it covers
 (`guest_complete_recursion`: every node of at most `16` children, `2048` declared claims,
 coverage slots and children's claims, holding no signature or blob directly;
@@ -95,10 +95,6 @@ The build fails if their axiom footprint ever grows beyond Lean's three standard
 /-- info: 'LeanVM.Guest.End.aggregate_sound_outer' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms LeanVM.Guest.End.aggregate_sound_outer
-
-/-- info: 'LeanVM.Guest.guest_sentinelSafe' depends on axioms: [propext, Classical.choice, Quot.sound] -/
-#guard_msgs in
-#print axioms LeanVM.Guest.guest_sentinelSafe
 
 /-- info: 'LeanVM.Guest.End.aggregate_knowledge' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in

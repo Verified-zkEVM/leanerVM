@@ -15,11 +15,12 @@ public import LeanVM.Arithmetization.Completeness.Theorem
 /-!
 # Constraint soundness
 
-At leanVM pin `127510d14c98ade4e8a97646c44fa7f1ff5e752d` and Clean pin `42fe4b26`. The soundness
+At leanVM pin `94ee12ff6b2a3d42ba8328e22d09443692e4800b` and Clean pin `42fe4b26`. The soundness
 direction for the proof system's constraint statement (`SatisfiedBy`), `constraintSoundness`.
 It assumes that statement, whose three hypotheses Clean cannot yet express and whose `KECCAK`
-validity are conjuncts, and `SentinelSafe` (the last instruction is not a `JUMP`), the one
-condition on the program.
+validity are conjuncts, and nothing of the program: the machine halts in the final state
+`(g^(N_prog - 1), 1)`, so the walk the state channel contains, cut at its first visit of that
+state, is a run.
 
 **The trace.** The witness names its trace: the image the prover data names (`imageOf`), and as
 step count the length of the run `Soundness.StateWalk` extracts from the balanced state channel
@@ -56,10 +57,9 @@ constraint statement of well-formed bytecode on `input` represents a valid execu
 program on `input`: the trace is the image the data names and the run the state channel's balance
 contains, each of whose steps is a row of the witness. -/
 theorem constraintSoundness {prog : Program} {input : PublicInput}
-    {w : EnsembleWitness (leanIsaEnsemble prog)} (hsafe : SentinelSafe prog)
-    (h : SatisfiedBy prog input w) :
+    {w : EnsembleWitness (leanIsaEnsemble prog)} (h : SatisfiedBy prog input w) :
     ∃ t, AssignmentRepresents w t ∧ ValidExecution prog input t := by
-  obtain ⟨f, hf, n, hn, hsteps⟩ := exists_walk hsafe h
+  obtain ⟨f, hf, n, hn, hsteps⟩ := exists_walk h
   let t : Trace prog := ⟨(imageOf w.data).1, (imageOf w.data).2, n⟩
   have hv : run prog t.image t.steps Regs.initial = some (Regs.final prog) := hn
   refine ⟨t, ⟨rfl, fun _ _ ↦ rfl, ?_⟩,

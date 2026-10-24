@@ -38,7 +38,6 @@ example (A : OracleComp HashSpec (Statement × Proof)) (QA : ℕ) (hA : IsTotalQ
 
 example (A : OracleComp HashSpec (Statement × Proof)) (QA : ℕ) (hA : IsTotalQueryBound A QA) :
     Pr{let z ← romExperiment A (verifierFam leanVmSeeds anyProgram)}[z.1.2 = true ∧
-      SentinelSafe z.1.1.1.1 ∧
       ¬ ∃ (s : Sizes) (q : Column (leanIsaμ z.1.1.1.1 s)),
         extractStack z.1.1.1.1 z.1.1.1.2 z.2 z.1.1.2 =
           some (⟨s, q⟩ : Σ s : Sizes, Column (leanIsaμ z.1.1.1.1 s)) ∧

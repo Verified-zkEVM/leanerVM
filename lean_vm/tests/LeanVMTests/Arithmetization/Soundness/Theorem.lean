@@ -9,20 +9,14 @@ The instance is a round trip through completeness and soundness: the valid execu
 `Completeness.Fixture` (one `JUMP` to the sentinel) has, by `constraintCompleteness`, a witness
 satisfying the statement; `constraintSoundness` extracts from that witness a trace that is a valid
 execution on the witness's image, and its step count is the run's, `1` (runs are deterministic and
-halt at the sentinel, `run_steps_unique`).
-
-**`no_row_at_sentinel` is false over `w.interactions`** (`verifier_pulls_sentinel`), which
-includes the verifier's own pull of the final registers
-`(g^(N_prog - 1), 1)`, which is an interaction of every witness of every program; the round-trip
-witness shows its hypotheses are satisfiable, so the statement is not vacuous either. The proved
-statement quantifies over the rows of `w.tables`.
+halt in the final state, `run_steps_unique`).
 
 **The hypotheses of Lemma 6.3 are load-bearing.** A zero count is closed under multiplication by
 `g` (`zero_closed`), and so are the `2^64 - 1` powers of `g` (`powers_closed`): neither the nonzero
-count product nor the read bound can be dropped from the lookup argument. Soundness's one program
-condition, `SentinelSafe`, is shown load-bearing at the semantic level by
-`tests/LeanVMTests/Semantics/Execution.lean` (a `JUMP` at the sentinel chains two steps from the
-initial to the final registers, yet no run is a `ValidExecution`).
+count product nor the read bound can be dropped from the lookup argument. Soundness puts no
+condition on the program: the machine halts in the final state, so a `JUMP` in the last slot,
+reached in another frame, is a step of a valid execution
+(`tests/LeanVMTests/Semantics/Execution.lean`, leanVM's `halts_in_the_final_state`).
 -/
 
 namespace LeanVMTests.Arithmetization.Soundness.Theorem
@@ -53,13 +47,6 @@ info: 'LeanVM.Arithmetization.bytecode_channel_sound' depends on axioms:
 -/
 #guard_msgs (whitespace := lax) in
 #print axioms bytecode_channel_sound
-
-/--
-info: 'LeanVM.Arithmetization.no_row_at_sentinel' depends on axioms:
-  [propext, Classical.choice, Quot.sound]
--/
-#guard_msgs (whitespace := lax) in
-#print axioms no_row_at_sentinel
 
 /--
 info: 'LeanVM.Arithmetization.exists_run_of_balanced' depends on axioms:
@@ -95,7 +82,7 @@ theorem bad_roundtrip :
     ∃ w, SatisfiedBy jumpProg badInput w ∧
       ∃ t, AssignmentRepresents w t ∧ ValidExecution jumpProg badInput t ∧ t.steps = 1 := by
   obtain ⟨w, hs, hr'⟩ := constraintCompleteness badTrace_valid (by decide)
-  obtain ⟨t, hr, hv⟩ := constraintSoundness jumpProg_sentinelSafe hs
+  obtain ⟨t, hr, hv⟩ := constraintSoundness hs
   refine ⟨w, hs, t, hr, hv, ?_⟩
   have himg := (assignmentRepresents_image hr).symm.trans (assignmentRepresents_image hr')
   show t.steps = badTrace.steps
@@ -103,35 +90,6 @@ theorem bad_roundtrip :
   obtain ⟨rfl, himg⟩ := Sigma.mk.inj himg
   obtain rfl := eq_of_heq himg
   exact run_steps_unique hv.2 badTrace_valid.2
-
-/-! ## `no_row_at_sentinel` over the interactions -/
-
-/-- **`no_row_at_sentinel` over the interactions is false for every witness**: the verifier
-pulls the final registers `(g^(N_prog - 1), 1)` on the state pull channel, and its interaction
-is among `w.interactions`. -/
-theorem verifier_pulls_sentinel (prog : Program) (w : EnsembleWitness (leanIsaEnsemble prog)) :
-    ¬ ∀ i ∈ w.interactions, i.channel.name = StatePull.name →
-      ∀ pc fp : K, i.msg = #[pc, fp] → pc ≠ prog.finalPc := by
-  intro hall
-  have hmem : #[prog.finalPc, 1] ∈ messagesOn w StatePull.toRaw := by
-    rw [messagesOn_eq_chanOf]
-    unfold allSends EnsembleWitness.allTables
-    rw [List.flatMap_cons, EnsembleWitness.verifierTable_table, List.flatMap_singleton,
-      chanOf_append]
-    refine List.mem_append_left _ ?_
-    rw [show w.verifierTable.component = ⟨leanIsaVerifier prog⟩ from rfl, verifier_sends,
-      Channel.toRaw_name]
-    simp [chanOf, StatePull, StatePush]
-  obtain ⟨i, hi, hmsg⟩ := List.mem_map.mp hmem
-  obtain ⟨hi, hn⟩ := List.mem_filter.mp hi
-  exact hall i hi (of_decide_eq_true hn) _ _ hmsg rfl
-
-/-- That statement fails on the round-trip witness, which satisfies the statement. -/
-example : ∃ w, SatisfiedBy jumpProg badInput w ∧
-    ¬ ∀ i ∈ w.interactions, i.channel.name = StatePull.name →
-      ∀ pc fp : K, i.msg = #[pc, fp] → pc ≠ jumpProg.finalPc := by
-  obtain ⟨w, hs, -⟩ := bad_roundtrip
-  exact ⟨w, hs, verifier_pulls_sentinel _ w⟩
 
 /-! ## Lemma 6.3 needs its hypotheses -/
 

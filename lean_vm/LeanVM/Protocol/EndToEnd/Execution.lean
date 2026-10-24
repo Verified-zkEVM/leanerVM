@@ -31,10 +31,9 @@ open LeanVM.Parameters LeanVM.Semantics LeanVM.Arithmetization LeanVM.Protocol.L
 stack satisfying the leanISA instance's relation reads back to a witness that represents a valid
 execution of the program on the input. -/
 theorem execution_of_extracted {prog : Program} {input : PublicInput}
-    {s : Sizes} {q : Column (leanIsaμ prog s)} (hsafe : SentinelSafe prog)
-    (hs : s.Admissible prog) (h : M3Holds (leanIsaInstance prog s) input q) :
+    {s : Sizes} {q : Column (leanIsaμ prog s)} (hs : s.Admissible prog) (h : M3Holds (leanIsaInstance prog s) input q) :
     ∃ t, AssignmentRepresents (witnessOf prog s q) t ∧ ValidExecution prog input t :=
-  constraintSoundness hsafe (satisfiedBy_witnessOf prog s q hs h)
+  constraintSoundness (satisfiedBy_witnessOf prog s q hs h)
 
 end
 end LeanVM.Protocol.EndToEnd

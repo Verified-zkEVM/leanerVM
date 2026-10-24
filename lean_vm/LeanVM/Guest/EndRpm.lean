@@ -23,8 +23,7 @@ composed with the protocol's theorems in the random-permutation model (`LeanVM/S
   guest from which no execution is extracted (`extractorRpm`, on the adversary's transcript), or
   the extracted one does not decode (`DecodesOn`), with probability at most
   `soundnessError Q + rpmError (Q + verifierPermCalls)`: `KnowledgeSoundness`
-  (`knowledgeSoundness_holds`) and `guest_knowledge`, since the guest's last instruction is not a
-  `JUMP` (`guest_sentinelSafe`).
+  (`knowledgeSoundness_holds`) and `guest_knowledge`.
 * `aggregate_sound_outer : AggregateSound guest decode`: with `decode_binds`, an accepted
   aggregate's statement `s`, under the deployed seed and passing the outer verifier's other
   checks, is the one the extracted execution decodes, with a witness holding it, or that
@@ -57,7 +56,7 @@ theorem aggregate_knowledge_of (h : SoundHyps W) (A : RpmAdversary) (Q : ℕ)
   rintro ⟨⟨⟨⟨prog, input⟩, π⟩, b⟩, T⟩ ⟨hb, hprog, hno⟩
   dsimp only [RpmOutcome.program] at hprog
   subst hprog
-  refine ⟨hb, guest_sentinelSafe, ?_⟩
+  refine ⟨hb, ?_⟩
   rintro ⟨t, hx, hv⟩
   exact hno ⟨t, hx, guest_knowledge_of h input t hv⟩
 

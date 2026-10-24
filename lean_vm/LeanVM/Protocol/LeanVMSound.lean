@@ -112,7 +112,7 @@ theorem experiment_map (A : Adversary) :
 
 /-- **Knowledge soundness in the random-oracle model.** For an adversary making at most `Q`
 queries, which chooses the program, the public input and the proof, the verifier accepts while
-the program's last instruction is not a `JUMP` and the extractor `extractor`
+the extractor `extractor`
 (`LeanVM/Spec/Extractor.lean`) does not return a valid execution of the program on the public
 input with probability at most `soundnessError Q`. -/
 theorem knowledgeSoundnessRom {A : Adversary} {Q : ℕ} (hA : A.IsTotalQueryBound Q) :
@@ -121,14 +121,14 @@ theorem knowledgeSoundnessRom {A : Adversary} {Q : ℕ} (hA : A.IsTotalQueryBoun
   have h1 := romSound_log Sound.anyProgram Sound.anyCert Sound.leanVmSeeds
     (fun x ↦ Sound.rootOk_stmtHistory x) Sound.εLean Sound.anyCert_bound A Q hA
     leanVmQueryBound Sound.isTotalQueryBound_leanVmFam
-    (fun z ℓ ↦ SentinelSafe z.1.1 ∧ (Fail Sound.leanVmSeeds ℓ ∨
+    (fun z ℓ ↦ Fail Sound.leanVmSeeds ℓ ∨
       Rom.verify (lookH ℓ) (lookF ℓ)
         (leanVmSeed (bytecodeWords z.1.1) (publicDigest z.1.2))
         (leanVmProgram (bytecodeWords z.1.1) (publicDigest z.1.2)) z.2 ≠ some true ∨
-      ¬ Sound.Extracted z.1.1 z.1.2 (cacheOf ℓ) z.2))
+      ¬ Sound.Extracted z.1.1 z.1.2 (cacheOf ℓ) z.2)
     (fun z ℓ hf hv hb ↦ by
       simp only [Sound.leanVmSeeds, Sound.nodeAt_stmtHistory] at hv
-      rcases hb.2 with hb | hb | hb
+      rcases hb with hb | hb | hb
       · exact absurd hb hf
       · exact absurd hv hb
       · exact Sound.doomed_of_doomedRun hv (Sound.doomed_of_not_extracted z.1.1 z.1.2 hv hb))
@@ -139,25 +139,25 @@ theorem knowledgeSoundnessRom {A : Adversary} {Q : ℕ} (hA : A.IsTotalQueryBoun
   rw [experiment_eq, expVerifier_eq, prEvent_map, soundnessError]
   refine (prEvent_mono _ _ _ ?_).trans ((prEvent_or_le _ _ _).trans
     (add_le_add (h1.trans (le_of_eq ?_)) (h2.trans (le_of_eq ?_))))
-  · rintro w ⟨hacc, hsafe, hno⟩
-    dsimp only at hacc hsafe hno ⊢
+  · rintro w ⟨hacc, hno⟩
+    dsimp only at hacc hno ⊢
     by_contra hne
     rw [not_or] at hne
     obtain ⟨hn1, hn2⟩ := hne
-    have hf : ¬ Fail Sound.leanVmSeeds w.2.2 := fun h ↦ hn1 ⟨hacc, hsafe, Or.inl h⟩
+    have hf : ¬ Fail Sound.leanVmSeeds w.2.2 := fun h ↦ hn1 ⟨hacc, Or.inl h⟩
     have hv : Rom.verify (lookH w.2.2) (lookF w.2.2)
         (leanVmSeed (bytecodeWords w.1.1.1.1) (publicDigest w.1.1.1.2))
         (leanVmProgram (bytecodeWords w.1.1.1.1) (publicDigest w.1.1.1.2))
         w.1.1.2 = some true := by
       by_contra h
-      exact hn1 ⟨hacc, hsafe, Or.inr (Or.inl h)⟩
+      exact hn1 ⟨hacc, Or.inr (Or.inl h)⟩
     have hx : Sound.Extracted w.1.1.1.1 w.1.1.1.2 (cacheOf w.2.2) w.1.1.2 := by
       by_contra h
-      exact hn1 ⟨hacc, hsafe, Or.inr (Or.inr h)⟩
+      exact hn1 ⟨hacc, Or.inr (Or.inr h)⟩
     have hpre : w.1.2 <+: w.2.2 := by
       by_contra h
       exact hn2 (Or.inl h)
-    obtain ⟨t, ht, htv⟩ := Sound.extractor_of_extracted Sound.leanVmSeeds hsafe hf hv
+    obtain ⟨t, ht, htv⟩ := Sound.extractor_of_extracted Sound.leanVmSeeds hf hv
       (fun r hr x hx ↦ hn2 (Or.inr ⟨r, hr, x, hx⟩)) hx
     rw [← List.prefix_iff_eq_take.mp hpre] at ht
     exact hno ⟨t, ht, htv⟩

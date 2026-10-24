@@ -10,14 +10,17 @@ to reduce there; they do from a plain file and not from a `module`.
 Nothing here evaluates `gLog?`: every fetch and read is `Program.fetch_gpow` or
 `MemImage.read_gpow` at a literal index, or one of the failure lemmas.
 
-Fixtures: the executor test `mul_192bit_word` (`crates/leanvm_core/src/cpu/mod.rs:873-890` at
-the pin, operands and product as the test computes them with the executor's `F192` arithmetic at
-`a386121f`, the test unchanged since but for unwrapping the now fallible `execute`) as a
-`ValidExecution`; the first `KECCAK` row of `keccak_permutes_in_both_layouts` (`cpu/mod.rs:842-875`
-at `4af2cddd`) on that test's cells, with a mutation; a taken `JUMP`; a `DEREF` in `pc` mode; the rejections of
-failed reads, a step past the sentinel, a wrong final frame pointer, an out-of-range `DEREF`
-cell, a `JUMP` destination outside `K` and a non-canonical cell; and a `JUMP` sentinel, whose two
-rows are steps that chain to the final registers while `run` never reaches them.
+Fixtures, from leanVM's executor tests at the pin (`94ee12ff`): `mul_192bit_word`
+(`crates/leanvm_core/src/cpu/mod.rs:925-943`, operands and product as the test computes them with
+the executor's `F192` arithmetic at `a386121f`, the test unchanged since but for unwrapping the now
+fallible `execute`) as a `ValidExecution`; the first `KECCAK` row of
+`keccak_permutes_in_both_layouts` (`cpu/mod.rs:842-875`) on that test's cells, with a mutation;
+`halts_in_the_final_state` (`cpu/mod.rs:885-923`): the machine halts in the final state
+`(g^(N_prog - 1), 1)`, so a `JUMP` in the last slot, reached in another frame, is a step of a valid
+execution, and a `SET_CONSTANT` there leaves no valid execution, whatever the memory. Also a taken
+`JUMP`; a `DEREF` in `pc` mode; the rejections of failed reads, a step from the final state, the
+last slot reached with a wrong frame pointer, an out-of-range `DEREF` cell, a `JUMP` destination
+outside `K` and a non-canonical cell.
 -/
 
 namespace LeanVMTests.Semantics.Execution
@@ -68,7 +71,7 @@ example : (1: K) + 1 = 0 := by decide
 /-- Register equality decides in the kernel on a product against a power. -/
 example : Regs.next ⟨1, 1⟩ = ⟨gpow 1, 1⟩ := by decide +kernel
 
-/-! ## `mul_192bit_word` (`cpu/mod.rs:873-890`) -/
+/-! ## `mul_192bit_word` (`cpu/mod.rs:925-943`) -/
 
 -- The operands and product of the executor test `mul_192bit_word` at leanVM a386121f.
 def mulX : E :=
@@ -81,7 +84,7 @@ def mulXY : E :=
 /-- CompPoly's product of the two words is the executor's. -/
 example : mulX * mulY = mulXY := by decide +kernel
 
-/-- The bytecode: two `SET_CONSTANT`s, the `MUL_NATIVE`, and the never-executed sentinel. -/
+/-- The bytecode: two `SET_CONSTANT`s, the `MUL_NATIVE`, and the never-executed last slot. -/
 def mulProg : Program :=
   ⟨2, by decide, ![.setConstant (gpow 2) mulX, .setConstant (gpow 3) mulY,
     .mulNative (gpow 2) (gpow 3) (gpow 4), .xor 1 1 1]⟩
@@ -100,7 +103,7 @@ def mulImage : MemImage minLogMem := fun i ↦
   | 4 => mulXY
   | _ => 0
 
-/-- Three instructions execute before the sentinel. -/
+/-- Three instructions execute before the final state. -/
 def mulTrace : Trace mulProg := ⟨minLogMem, mulImage, 3⟩
 
 theorem mul_step0 : step mulProg mulImage ⟨1, 1⟩ = some ⟨gpow 1, 1⟩ := by
@@ -121,7 +124,7 @@ theorem mul_step2 : step mulProg mulImage ⟨gpow 2, 1⟩ = some ⟨gpow 3, 1⟩
   simp only [execute, executeWith, one_mul, read_lit mulImage 2, read_lit mulImage 3, read_lit mulImage 4]
   decide +kernel
 
-/-- The run: three steps from `(1, 1)`, halting at the sentinel `(g^3, 1)`. -/
+/-- The run: three steps from `(1, 1)`, halting in the final state `(g^3, 1)`. -/
 theorem mul_run : run mulProg mulImage 3 Regs.initial = some (Regs.final mulProg) := by
   show run mulProg mulImage 3 ⟨1, 1⟩ = some ⟨gpow 3, 1⟩
   simp (disch := decide +kernel) only [run_succ_of_ne, mul_step0, mul_step1, mul_step2,
@@ -142,31 +145,26 @@ example : ValidExecution mulProg mulInput mulTrace := ⟨mulImage_boundary 3, mu
 /-- Its register sequence has four states. -/
 example : mulTrace.regs.length = 4 := Trace.regs_length mul_run
 
-/-- A fourth step is refused: the sentinel is never executed. -/
+/-- A fourth step is refused: the machine halts in the final state. -/
 example : run mulProg mulImage 4 Regs.initial = none := by
   rw [show 4 = 3 + 1 by rfl, run_add, mul_run, Option.bind_eq_bind, Option.bind_some]
   exact run_succ_of_eq (r := Regs.final mulProg) rfl 0
 
 /-! ## `N_prog = 1`: the empty execution -/
 
-/-- One slot, the sentinel. -/
+/-- One slot, the last. -/
 def oneProg : Program := ⟨0, by decide, ![.xor 1 1 1]⟩
-
-/-- Sentinel safety is inhabited even for the zero-step program. -/
-example : SentinelSafe oneProg := by decide
 
 /-- Zero steps from `(1, 1)` reach `(g^0, 1)`, so the program has a valid execution... -/
 example : ValidExecution oneProg mulInput ⟨minLogMem, mulImage, 0⟩ :=
   ⟨mulImage_boundary 0, by rw [run_zero]; decide +kernel⟩
 
-/-- ...and its sentinel is not executed, whatever it holds. -/
+/-- ...and its one slot is not executed, whatever it holds: the initial state is the final one. -/
 example : run oneProg mulImage 1 Regs.initial = none := run_succ_of_eq (by decide +kernel) 0
 
-/-- A one-slot program also permits a `JUMP` in its unexecuted sentinel. Sentinel safety is
-needed by the current constraint-soundness theorem, not by ISA execution. -/
+/-- The same with a `JUMP` in that slot. -/
 def oneJumpProg : Program := ⟨0, by decide, ![.jump 0 0 0]⟩
 
-example : ¬ SentinelSafe oneJumpProg := by decide
 example : ValidExecution oneJumpProg mulInput ⟨minLogMem, mulImage, 0⟩ :=
   ⟨mulImage_boundary 0, by rw [run_zero]; decide +kernel⟩
 example : run oneJumpProg mulImage 1 Regs.initial = none :=
@@ -176,7 +174,7 @@ example : run oneJumpProg mulImage 1 Regs.initial = none :=
 
 /-- Sixteen cells. `JUMP` reads `c, d, f` at `2, 3, 4` (all in `K`), or `c = 0` at `12` and
 `d = y ∉ K` at `13`; `DEREF` reads the pointer `g^7` at `5`, its local cell at `6`, and the
-target `g² · pc` at `7`; the halting `JUMP` reads the sentinel `g` at `14`. -/
+target `g² · pc` at `7`; the `JUMP` to the last slot reads `g` at `14`. -/
 def ctlImage : MemImage 4 := fun i ↦
   match (i : ℕ) with
   | 2 => E.ofLimbs 1 0 0
@@ -189,7 +187,7 @@ def ctlImage : MemImage 4 := fun i ↦
   | 14 => E.ofLimbs g 0 0
   | _ => 0
 
-/-- A two-slot program: the instruction under test, then the sentinel. -/
+/-- A two-slot program: the instruction under test, then the last slot. -/
 def oneStep (i : Instr) : Program := ⟨1, by decide, ![i, .xor 1 1 1]⟩
 
 /-- A taken `JUMP`: `c = 1 ≠ 0`, so the registers become `(d, f) = (g^3, g^5)`. -/
@@ -330,7 +328,7 @@ example : step (oneStep (.xor 1 1 1)) ctlImage ⟨gpow 2, 1⟩ = none :=
 
 /-! ## The final frame pointer -/
 
-/-- A `JUMP` to the sentinel `g` with `fp ← g`. -/
+/-- A `JUMP` to the last slot `g` with `fp ← g`. -/
 def haltProg : Program := oneStep (.jump (gpow 2) (gpow 14) (gpow 14))
 
 theorem halt_step : step haltProg ctlImage Regs.initial = some ⟨g, g⟩ := by
@@ -339,8 +337,25 @@ theorem halt_step : step haltProg ctlImage Regs.initial = some ⟨g, g⟩ := by
   simp only [execute, executeWith, one_mul, read_lit ctlImage 2, read_lit ctlImage 14]
   decide +kernel
 
-/-- The run reaches the sentinel after one step with `fp = g`, and no number of steps reaches
-`(g, 1)`: no trace over this image is a valid execution. -/
+/-- The last slot in the frame `g` is not the final state `(g, 1)`. -/
+theorem halt_ne_final : (⟨g, g⟩ : Regs K) ≠ Regs.final haltProg := by decide +kernel
+
+/-- There the `XOR` executes (cell `g`, the word `0`, is `0 + 0`) and falls through to `g^2`. -/
+theorem halt_last : step haltProg ctlImage ⟨g, g⟩ = some ⟨gpow 2, g⟩ := by
+  rw [step_of_fetch_eq_some (r := ⟨g, g⟩) (haltProg.fetch_gpow 1)]
+  show execute ctlImage ⟨g, g⟩ (.xor 1 1 1) = _
+  simp only [execute, executeWith, mul_one, read_g ctlImage]
+  decide +kernel
+
+/-- `g^2` is no slot of a two-slot program: the run fails there. -/
+theorem halt_past : step haltProg ctlImage ⟨gpow 2, g⟩ = none :=
+  step_eq_none_of_fetch_eq_none (by
+    show haltProg.fetch (gpow 2) = none
+    rw [Program.fetch, gLog?_gpow_eq_none (by decide) (by decide), Option.map_none])
+
+/-- The run reaches the last slot after one step with `fp = g`, which is not the final state;
+it steps on to `(g^2, g)` and fails there, so no number of steps reaches `(g, 1)`: no trace over
+this image is a valid execution. -/
 example : ∀ n, run haltProg ctlImage n Regs.initial ≠ some (Regs.final haltProg) := by
   intro n
   match n with
@@ -348,16 +363,21 @@ example : ∀ n, run haltProg ctlImage n Regs.initial ≠ some (Regs.final haltP
   | 1 =>
     rw [run_succ_of_ne (prog := haltProg) (r := Regs.initial) (by decide +kernel) 0, halt_step]
     decide +kernel
-  | n + 2 =>
-    rw [show n + 2 = 2 + n by omega, run_add,
-      run_succ_of_ne (prog := haltProg) (r := Regs.initial) (by decide +kernel) 1, halt_step,
-      Option.bind_eq_bind, Option.bind_some,
-      run_succ_of_eq (prog := haltProg) (r := ⟨g, g⟩) (by decide +kernel) 0]
+  | 2 =>
+    rw [show (2 : ℕ) = 1 + 1 from rfl, run_succ_of_ne (prog := haltProg) (r := Regs.initial) (by decide +kernel) 1, halt_step,
+      Option.bind_eq_bind, Option.bind_some, run_succ_of_ne_final halt_ne_final 0, halt_last,
+      Option.bind_eq_bind, Option.bind_some, run_zero]
+    decide +kernel
+  | n + 3 =>
+    rw [show n + 3 = n + 2 + 1 from rfl, run_succ_of_ne (prog := haltProg) (r := Regs.initial) (by decide +kernel) (n + 2),
+      halt_step, Option.bind_eq_bind, Option.bind_some, run_succ_of_ne_final halt_ne_final (n + 1),
+      halt_last, Option.bind_eq_bind, Option.bind_some,
+      run_succ_of_ne (prog := haltProg) (r := ⟨gpow 2, g⟩) (by decide +kernel) n, halt_past]
     exact fun h ↦ Option.some_ne_none _ h.symm
 
 /-! ## `KECCAK` (`keccak_permutes_in_both_layouts`, `cpu/mod.rs:842-875`) -/
 
--- The input cells of the executor test `keccak_permutes_in_both_layouts` at leanVM `4af2cddd`:
+-- The input cells of the executor test `keccak_permutes_in_both_layouts` at leanVM `94ee12ff`:
 -- the words `a, b` (each read twice through the aliased `m` pairs), the padding's first byte in
 -- the tail, its last bit in `b8` (whose free high limb `0x5555` is ignored), and a zero capacity.
 def kA : E := E.ofLimbs (K.ofBits 0x0123456789abcdef) (K.ofBits 0xfedcba9876543210) 0
@@ -453,54 +473,210 @@ example : step (oneStep keccakIns) (keccakImage (kOut 0 + ofK 1)) ⟨1, 1⟩ = n
   rw [keccak_reads]
   decide +kernel
 
-/-! ## A `JUMP` sentinel -/
+/-! ## `halts_in_the_final_state` (`cpu/mod.rs:885-923`)
 
-/-- `haltProg` with a `JUMP` in the sentinel slot. Read in frame `fp = g`, its operands `g` and
-`g^13` name cells `2` and `14`: `c = 1`, `d = g` (the sentinel), `f = 1`. -/
-def jumpSentinelProg : Program :=
-  ⟨1, by decide, ![.jump (gpow 2) (gpow 14) (gpow 14), .jump g (gpow 13) g]⟩
+The machine halts in the final state `(g^7, 1)`, not at the last slot: leanVM's eight-slot program
+sets cell `2` to `1`, cell `3` to `g^7` and cell `4` to `g`, jumps to `(g^7, g)`, the last slot in
+the frame `g`, and executes the instruction there like any other. With a `JUMP` there (reading
+cells `2`, `3`, `2` in that frame) it lands in the final state: a valid execution of five steps,
+three `SET_CONSTANT`s and two `JUMP`s (leanVM's row counts), which leanVM proves and its verifier
+accepts. With a
+`SET_CONSTANT` there it falls through to `g^8`, no slot: no valid execution, whatever the
+memory. -/
 
-/-- The load-bearing soundness premise rejects the JUMP sentinel. -/
-example : ¬ SentinelSafe jumpSentinelProg := by decide
+/-- The words `1`, `g^7` (the last slot's counter) and `g` (a frame pointer other than
+`main`'s). -/
+def wOne : E := E.ofLimbs 1 0 0
+def wLast : E := E.ofLimbs (gpow 7) 0 0
+def wFp : E := E.ofLimbs g 0 0
 
-/-- Row 1: `(1, 1)` jumps to the sentinel counter with `fp = g`. -/
-theorem jumpSentinel_row1 : step jumpSentinelProg ctlImage Regs.initial = some ⟨g, g⟩ := by
+/-- leanVM's program with `last` in its last slot. -/
+def finalProg (last : Instr) : Program :=
+  ⟨3, by decide, ![.setConstant (gpow 2) wOne, .setConstant (gpow 3) wLast,
+    .setConstant (gpow 4) wFp, .jump (gpow 2) (gpow 3) (gpow 4), .xor 1 1 1, .xor 1 1 1,
+    .xor 1 1 1, last]⟩
+
+/-- The last slot a `JUMP`: in the frame `g` it reads cells `2`, `3`, `2`. -/
+abbrev jumpLast : Program := finalProg (.jump (gpow 1) (gpow 2) (gpow 1))
+
+/-- The last slot a `SET_CONSTANT` of cell `5` of its frame. -/
+abbrev setLast : Program := finalProg (.setConstant (gpow 5) wOne)
+
+/-- The public input `[w(7), w(11)]`. -/
+def finalInput : PublicInput := ⟨![K.ofBits 7, 0, K.ofBits 11, 0]⟩
+
+/-- The memory leanVM's executor writes: the public words and the three cells set. -/
+def finalImage : MemImage minLogMem := fun i ↦
+  match (i : ℕ) with
+  | 0 => finalInput.word0
+  | 1 => finalInput.word1
+  | 2 => wOne
+  | 3 => wLast
+  | 4 => wFp
+  | _ => 0
+
+theorem final_step0 (last : Instr) :
+    step (finalProg last) finalImage Regs.initial = some ⟨gpow 1, 1⟩ := by
   rw [step_of_fetch_eq_some (r := Regs.initial) (fetch_one _)]
-  show execute ctlImage ⟨1, 1⟩ (.jump (gpow 2) (gpow 14) (gpow 14)) = _
-  simp only [execute, executeWith, one_mul, read_lit ctlImage 2, read_lit ctlImage 14]
+  show execute finalImage ⟨1, 1⟩ (.setConstant (gpow 2) wOne) = _
+  simp only [execute, executeWith, one_mul, read_lit finalImage 2]
   decide +kernel
 
-/-- Row 2, at the sentinel counter: `(g, g)` jumps to the final registers `(g, 1)`. -/
-theorem jumpSentinel_row2 :
-    step jumpSentinelProg ctlImage ⟨g, g⟩ = some (Regs.final jumpSentinelProg) := by
-  rw [step_of_fetch_eq_some (r := ⟨g, g⟩) (jumpSentinelProg.fetch_gpow 1)]
-  show execute ctlImage ⟨g, g⟩ (.jump g (gpow 13) g) = some ⟨gpow 1, 1⟩
-  have hgg : g * g = gpow 2 := (pow_two g).symm
-  simp only [execute, executeWith, hgg, g_mul_gpow, read_lit ctlImage 2, read_lit ctlImage 14]
+theorem final_step1 (last : Instr) :
+    step (finalProg last) finalImage ⟨gpow 1, 1⟩ = some ⟨gpow 2, 1⟩ := by
+  rw [step_of_fetch_eq_some (r := ⟨gpow 1, 1⟩) (fetch_lit (finalProg last) 1 (show _ < 2 ^ 3 by decide))]
+  show execute finalImage ⟨gpow 1, 1⟩ (.setConstant (gpow 3) wLast) = _
+  simp only [execute, executeWith, one_mul, read_lit finalImage 3]
   decide +kernel
 
-/-- The two rows are steps that chain from the initial to the final registers, which is all the
-state channel asks of them. -/
-example : (step jumpSentinelProg ctlImage Regs.initial >>= step jumpSentinelProg ctlImage) =
-    some (Regs.final jumpSentinelProg) := by
-  rw [jumpSentinel_row1, Option.bind_eq_bind, Option.bind_some, jumpSentinel_row2]
+theorem final_step2 (last : Instr) :
+    step (finalProg last) finalImage ⟨gpow 2, 1⟩ = some ⟨gpow 3, 1⟩ := by
+  rw [step_of_fetch_eq_some (r := ⟨gpow 2, 1⟩) (fetch_lit (finalProg last) 2 (show _ < 2 ^ 3 by decide))]
+  show execute finalImage ⟨gpow 2, 1⟩ (.setConstant (gpow 4) wFp) = _
+  simp only [execute, executeWith, one_mul, read_lit finalImage 4]
+  decide +kernel
 
-/-- Yet `run` halts at `(g, g)`, so no step count is a `ValidExecution`: without
-`SentinelSafe`, constraint soundness would be false for this program. -/
-example :
-    ∀ n, run jumpSentinelProg ctlImage n Regs.initial ≠ some (Regs.final jumpSentinelProg) := by
-  intro n
-  match n with
-  | 0 => rw [run_zero]; decide +kernel
-  | 1 =>
-    rw [run_succ_of_ne (prog := jumpSentinelProg) (r := Regs.initial) (by decide +kernel) 0,
-      jumpSentinel_row1]
+/-- The `JUMP` to the last slot in the frame `g`. -/
+theorem final_step3 (last : Instr) :
+    step (finalProg last) finalImage ⟨gpow 3, 1⟩ = some ⟨gpow 7, g⟩ := by
+  rw [step_of_fetch_eq_some (r := ⟨gpow 3, 1⟩) (fetch_lit (finalProg last) 3 (show _ < 2 ^ 3 by decide))]
+  show execute finalImage ⟨gpow 3, 1⟩ (.jump (gpow 2) (gpow 3) (gpow 4)) = _
+  simp only [execute, executeWith, one_mul, read_lit finalImage 2, read_lit finalImage 3,
+    read_lit finalImage 4]
+  decide +kernel
+
+/-- The `JUMP` in the last slot, in the frame `g`, lands in the final state. -/
+theorem jumpLast_step4 : step jumpLast finalImage ⟨gpow 7, g⟩ = some (Regs.final jumpLast) := by
+  rw [step_of_fetch_eq_some (r := ⟨gpow 7, g⟩) (fetch_lit jumpLast 7)]
+  show execute finalImage ⟨gpow 7, g⟩ (.jump (gpow 1) (gpow 2) (gpow 1)) = some ⟨gpow 7, 1⟩
+  simp only [execute, executeWith, g_mul_gpow, read_lit finalImage 2, read_lit finalImage 3]
+  decide +kernel
+
+/-- The final state of the program is `(g^7, 1)`. -/
+theorem final_eq (last : Instr) : Regs.final (finalProg last) = ⟨gpow 7, 1⟩ := rfl
+
+/-- The last slot in the frame `g` is not the final state. -/
+theorem lastInG_ne_final (last : Instr) : (⟨gpow 7, g⟩ : Regs K) ≠ Regs.final (finalProg last) := by
+  rw [final_eq]
+  decide +kernel
+
+/-- Nor is the initial state. -/
+theorem initial_ne_final (last : Instr) : Regs.initial ≠ Regs.final (finalProg last) := by
+  rw [final_eq]
+  decide +kernel
+
+/-- Nor is any state of `main`'s frame before the last slot. -/
+theorem main_ne_final (last : Instr) (j : ℕ) (hj : j < 7) :
+    (⟨gpow j, 1⟩ : Regs K) ≠ Regs.final (finalProg last) := by
+  rw [final_eq]
+  interval_cases j <;> decide +kernel
+
+/-- **The run halts in the final state after five steps**, the last slot's `JUMP` among them. -/
+theorem jumpLast_run : run jumpLast finalImage 5 Regs.initial = some (Regs.final jumpLast) := by
+  simp (disch := decide +kernel) only [run_succ_of_ne, final_step0, final_step1, final_step2,
+    final_step3, Option.bind_eq_bind, Option.bind_some]
+  rw [run_succ_of_ne_final (lastInG_ne_final (.jump (gpow 1) (gpow 2) (gpow 1))), jumpLast_step4, Option.bind_eq_bind,
+    Option.bind_some, run_zero]
+
+/-- **`halts_in_the_final_state` is a valid execution.** -/
+theorem jumpLast_valid : ValidExecution jumpLast finalInput ⟨minLogMem, finalImage, 5⟩ := by
+  refine ⟨⟨le_rfl, (by decide : minLogMem ≤ maxLogMem), ?_, ?_⟩, jumpLast_run⟩
+  · show finalImage.read (gpow 0) = some (finalImage ⟨0, by decide⟩)
+    exact read_lit finalImage 0
+  · show finalImage.read (gpow 1) = some (finalImage ⟨1, by decide⟩)
+    exact read_lit finalImage 1
+
+/-! The `SET_CONSTANT` in the last slot: no valid execution, whatever the memory. -/
+
+/-- A step through a `SET_CONSTANT` that succeeds falls through, and the cell holds the
+constant. -/
+theorem set_step {κ : ℕ} {L : MemImage κ} {r r' : Regs K} {o : K} {k : E}
+    (h : execute L r (.setConstant o k) = some r') : L.read (r.fp * o) = some k ∧ r' = r.next := by
+  simp only [execute, executeWith, Option.bind_eq_bind] at h
+  cases hv : L.read (r.fp * o) with
+  | none => rw [hv] at h; cases h
+  | some v =>
+    rw [hv] at h
+    by_cases hk : v = k
+    · subst hk
+      refine ⟨rfl, ?_⟩
+      simpa [guard, eq_comm] using h
+    · simp [guard, hk] at h
+
+/-- From the last slot in the frame `g`, the `SET_CONSTANT` falls through to `g^8`, no slot: no
+number of steps reaches the final state, whatever the memory. -/
+theorem setLast_from_last {κ : ℕ} (L : MemImage κ) :
+    ∀ n, run setLast L n ⟨gpow 7, g⟩ ≠ some (Regs.final setLast)
+  | 0 => by
+    rw [run_zero]
+    exact fun h ↦ lastInG_ne_final (.setConstant (gpow 5) wOne) (Option.some.inj h)
+  | n + 1 => by
+    intro h
+    rw [run_succ_of_ne_final (lastInG_ne_final (.setConstant (gpow 5) wOne)),
+      step_of_fetch_eq_some (r := ⟨gpow 7, g⟩) (fetch_lit setLast 7)] at h
+    obtain ⟨r, hr, h⟩ := Option.bind_eq_some_iff.mp h
+    obtain ⟨-, rfl⟩ := set_step (r := ⟨gpow 7, g⟩) hr
+    have h8 : Regs.next ⟨gpow 7, g⟩ = ⟨gpow 8, g⟩ := by decide +kernel
+    rw [h8] at h
+    cases n with
+    | zero =>
+      rw [run_zero] at h
+      exact absurd (Option.some.inj h) (by rw [final_eq]; decide +kernel)
+    | succ n =>
+      rw [run_succ_of_ne (prog := setLast) (r := ⟨gpow 8, g⟩)
+          (by show gpow 8 ≠ gpow 7; decide +kernel),
+        step_eq_none_of_fetch_eq_none (by
+          show setLast.fetch (gpow 8) = none
+          rw [Program.fetch, gLog?_gpow_eq_none (by decide) (by decide), Option.map_none])] at h
+      cases h
+
+/-- **With a `SET_CONSTANT` in the last slot there is no valid execution**, on any memory: the
+first three steps fix cells `2`, `3`, `4`, the `JUMP` then goes to the last slot in the frame `g`,
+and from there no run reaches the final state; no state before it is the final state. -/
+theorem setLast_no_run {κ : ℕ} (L : MemImage κ) (n : ℕ) :
+    run setLast L n Regs.initial ≠ some (Regs.final setLast) := by
+  intro h
+  have hne := main_ne_final (.setConstant (gpow 5) wOne)
+  -- step 0
+  rcases n with _ | n
+  · exact initial_ne_final _ (Option.some.inj h)
+  rw [run_succ_of_ne_final (initial_ne_final (.setConstant (gpow 5) wOne)),
+    step_of_fetch_eq_some (r := Regs.initial) (fetch_one setLast)] at h
+  obtain ⟨r1, he, h⟩ := Option.bind_eq_some_iff.mp h
+  obtain ⟨h2, rfl⟩ := set_step (r := Regs.initial) he
+  have e1 : Regs.next Regs.initial = ⟨gpow 1, 1⟩ := by decide +kernel
+  rw [e1] at h
+  -- step 1
+  rcases n with _ | n
+  · exact hne 1 (by decide) (Option.some.inj h)
+  rw [run_succ_of_ne_final (hne 1 (by decide)),
+    step_of_fetch_eq_some (r := ⟨gpow 1, 1⟩) (fetch_lit setLast 1)] at h
+  obtain ⟨r2, he, h⟩ := Option.bind_eq_some_iff.mp h
+  obtain ⟨h3, rfl⟩ := set_step (r := ⟨gpow 1, 1⟩) he
+  have e2 : Regs.next ⟨gpow 1, 1⟩ = ⟨gpow 2, 1⟩ := by decide +kernel
+  rw [e2] at h
+  -- step 2
+  rcases n with _ | n
+  · exact hne 2 (by decide) (Option.some.inj h)
+  rw [run_succ_of_ne_final (hne 2 (by decide)),
+    step_of_fetch_eq_some (r := ⟨gpow 2, 1⟩) (fetch_lit setLast 2)] at h
+  obtain ⟨r3, he, h⟩ := Option.bind_eq_some_iff.mp h
+  obtain ⟨h4, rfl⟩ := set_step (r := ⟨gpow 2, 1⟩) he
+  have e3 : Regs.next ⟨gpow 2, 1⟩ = ⟨gpow 3, 1⟩ := by decide +kernel
+  rw [e3] at h
+  -- step 3, the `JUMP`, on the cells the `SET_CONSTANT`s fixed
+  rcases n with _ | n
+  · exact hne 3 (by decide) (Option.some.inj h)
+  rw [run_succ_of_ne_final (hne 3 (by decide)),
+    step_of_fetch_eq_some (r := ⟨gpow 3, 1⟩) (fetch_lit setLast 3)] at h
+  obtain ⟨r4, he, h⟩ := Option.bind_eq_some_iff.mp h
+  have hj : execute L ⟨gpow 3, 1⟩ (.jump (gpow 2) (gpow 3) (gpow 4)) = some ⟨gpow 7, g⟩ := by
+    simp only [Regs.initial, one_mul] at h2 h3 h4
+    simp only [execute, executeWith, one_mul, h2, h3, h4]
     decide +kernel
-  | n + 2 =>
-    rw [show n + 2 = 2 + n by omega, run_add,
-      run_succ_of_ne (prog := jumpSentinelProg) (r := Regs.initial) (by decide +kernel) 1,
-      jumpSentinel_row1, Option.bind_eq_bind, Option.bind_some,
-      run_succ_of_eq (prog := jumpSentinelProg) (r := ⟨g, g⟩) (by decide +kernel) 0]
-    exact fun h ↦ Option.some_ne_none _ h.symm
+  change execute L ⟨gpow 3, 1⟩ (.jump (gpow 2) (gpow 3) (gpow 4)) = some r4 at he
+  rw [hj] at he
+  obtain rfl := Option.some.inj he
+  exact setLast_from_last L n h
 
 end LeanVMTests.Semantics.Execution

@@ -82,17 +82,17 @@ theorem run_stateAt (hv : run prog t.image t.steps Regs.initial = some (Regs.fin
     (by rwa [Nat.add_sub_cancel' hk])
   simp [stateAt, hr]
 
-/-- Every step of a valid run is taken away from the sentinel, fetches and executes. -/
+/-- Every step of a valid run is taken away from the final state, fetches and executes. -/
 theorem stateAt_step (hv : run prog t.image t.steps Regs.initial = some (Regs.final prog))
     {k : ℕ} (hk : k < t.steps) :
-    (stateAt t k).pc ≠ prog.finalPc ∧ step prog t.image (stateAt t k) = some (stateAt t (k + 1)) := by
+    stateAt t k ≠ Regs.final prog ∧ step prog t.image (stateAt t k) = some (stateAt t (k + 1)) := by
   have h1 := run_stateAt hv (show k + 1 ≤ t.steps by omega)
   have h0 := run_stateAt hv hk.le
   rw [run_add, h0] at h1
   have h1' : run prog t.image 1 (stateAt t k) = some (stateAt t (k + 1)) := h1
-  have hpc := pc_ne_finalPc_of_run_succ h1'
-  refine ⟨hpc, ?_⟩
-  rw [run_succ_of_ne hpc] at h1'
+  have hne := ne_final_of_run_succ h1'
+  refine ⟨hne, ?_⟩
+  rw [run_succ_of_ne_final hne] at h1'
   generalize step prog t.image (stateAt t k) = s at h1' ⊢
   cases s with
   | none => simp at h1'

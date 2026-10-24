@@ -99,13 +99,13 @@ theorem run_ext (h : ReadExt L.read L'.read) :
       run prog L' n r = some r' ∧ ∀ op, runCount prog L' op n r = runCount prog L op n r
   | 0, r, r', hr => ⟨hr, fun _ ↦ rfl⟩
   | n + 1, r, r', hr => by
-    by_cases hp : r.pc = prog.finalPc
+    by_cases hp : r = Regs.final prog
     · rw [run_succ_of_eq hp] at hr; cases hr
-    · rw [run_succ_of_ne hp] at hr
+    · rw [run_succ_of_ne_final hp] at hr
       obtain ⟨r1, hs, hr1⟩ := Option.bind_eq_some_iff.mp hr
       obtain ⟨ih1, ih2⟩ := run_ext h n r1 r' hr1
       have hs' := step_ext h hs
-      refine ⟨by rw [run_succ_of_ne hp, hs']; exact ih1, fun op ↦ ?_⟩
+      refine ⟨by rw [run_succ_of_ne_final hp, hs']; exact ih1, fun op ↦ ?_⟩
       cases hf : prog.fetch r.pc with
       | none => rw [step_eq_none_of_fetch_eq_none hf] at hs; cases hs
       | some ins => simp only [runCount, hf, hs, hs', ih2 op]

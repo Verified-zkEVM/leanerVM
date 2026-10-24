@@ -30,8 +30,7 @@ one oracle, and records the verdict, the oracle's answers at the end, and the or
 the adversary's queries, as they stood when the adversary output its proof (`experiment`).
 
 * `KnowledgeSoundnessRom`: for every adversary of at most `Q` queries, the probability that the
-  verifier accepts while the program's last instruction is not a `JUMP` (`SentinelSafe`) and the
-  extractor (`extractor`: `LeanVM.Extraction.extract` of `LeanVM/Spec/Extractor.lean` on the
+  verifier accepts while the extractor (`extractor`: `LeanVM.Extraction.extract` of `LeanVM/Spec/Extractor.lean` on the
   adversary's cached Keccak-256 answers) does not return a valid execution of the program on the
   public input is at most `soundnessError Q`. Proved: `LeanVM.knowledgeSoundnessRom_holds`
   (`LeanVM/Protocol/LeanVMSound.lean`).
@@ -102,13 +101,12 @@ abbrev Extractor : Type :=
 noncomputable def extractor : Extractor := fun prog input answers proof ↦
   Extraction.extract prog input (bytecodeWords prog) (fun x ↦ answers (.inl x)) proof
 
-/-- **The adversary breaks soundness**: the verifier accepts its statement and proof, the
-program's last instruction is not a `JUMP`, and the execution extracted from the adversary's
-answers and the proof is not a valid execution of the program on the public input. -/
+/-- **The adversary breaks soundness**: the verifier accepts its statement and proof, and the
+execution extracted from the adversary's answers and the proof is not a valid execution of the
+program on the public input. -/
 def Breaks (extract : Extractor) (z : Outcome) : Prop :=
-  z.accepted ∧ SentinelSafe z.program ∧
-    ¬ ∃ t, extract z.program z.input z.adversaryCache z.proof = some t ∧
-      ValidExecution z.program z.input t
+  z.accepted ∧ ¬ ∃ t, extract z.program z.input z.adversaryCache z.proof = some t ∧
+    ValidExecution z.program z.input t
 
 /-- **Knowledge soundness in the two-oracle random-oracle model**, for the extractor
 `extractor`. -/

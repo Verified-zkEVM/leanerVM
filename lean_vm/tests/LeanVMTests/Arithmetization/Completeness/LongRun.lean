@@ -15,8 +15,7 @@ represents a trace has a row for every step of it, with the state it steps from:
 a run that halts are distinct states, so distinct rows. Hence a witness that satisfies `Caps` and
 represents a valid trace has at most `8 * 2^32` steps in the trace (`steps_le_rows`), and no
 witness represents the long run (`completeness_fails_on_long_run`). So the row cap `hrows` of
-`constraintCompleteness_rows` cannot be dropped (`completeness_needs_rows`), on a program whose
-sentinel slot is not a `JUMP`.
+`constraintCompleteness_rows` cannot be dropped (`completeness_needs_rows`).
 -/
 
 namespace LeanVMTests.Arithmetization.Completeness.LongRun
@@ -260,11 +259,11 @@ theorem long_run_valid (prog : Program) (sh : Shape prog) :
 
 /-! ## Distinct states -/
 
-/-- The register states of a run that halts at the sentinel are pairwise distinct. -/
+/-- The register states of a run that halts in the final state are pairwise distinct. -/
 theorem run_inj {κ : ℕ} {prog : Program} {L : MemImage κ} {n : ℕ} {r₀ rf : Regs K}
-    (h : run prog L n r₀ = some rf) (hf : rf.pc = prog.finalPc) {a b : ℕ} {r : Regs K}
+    (h : run prog L n r₀ = some rf) (hf : rf = Regs.final prog) {a b : ℕ} {r : Regs K}
     (ha : run prog L a r₀ = some r) (hb : run prog L b r₀ = some r) : a = b := by
-  -- no run continues past the sentinel
+  -- no run continues past the final state
   have hle : ∀ m s, run prog L m r₀ = some s → m ≤ n := by
     intro m s hm
     by_contra hlt
@@ -400,19 +399,14 @@ theorem shapeProg_shape : Shape shapeProg where
     simp [shapeProg]
   big := by decide
 
-/-- The sentinel slot is not a `JUMP`. -/
-theorem shapeProg_sentinelSafe : SentinelSafe shapeProg := by decide
-
-/-- **The row cap is load-bearing.** A program whose sentinel slot is not a `JUMP` has a valid
-execution that no witness of `SatisfiedBy` represents; its run has more than `2^32` rows of some
-opcode, so `constraintCompleteness_rows` needs `hrows`. -/
+/-- **The row cap is load-bearing.** A program with a valid execution that no witness of
+`SatisfiedBy` represents; its run has more than `2^32` rows of some opcode, so
+`constraintCompleteness_rows` needs `hrows`. -/
 theorem completeness_needs_rows :
-    SentinelSafe shapeProg ∧
-      ∃ (input : PublicInput) (t : Trace shapeProg), ValidExecution shapeProg input t ∧
-        ¬ (∀ op, t.runRows op ≤ 2 ^ maxLogRows) ∧
-        ¬ ∃ w : EnsembleWitness (leanIsaEnsemble shapeProg),
-            SatisfiedBy shapeProg input w ∧ AssignmentRepresents w t := by
-  refine ⟨shapeProg_sentinelSafe, ?_⟩
+    ∃ (input : PublicInput) (t : Trace shapeProg), ValidExecution shapeProg input t ∧
+      ¬ (∀ op, t.runRows op ≤ 2 ^ maxLogRows) ∧
+      ¬ ∃ w : EnsembleWitness (leanIsaEnsemble shapeProg),
+          SatisfiedBy shapeProg input w ∧ AssignmentRepresents w t := by
   obtain ⟨input, t, hv, hbig⟩ := long_run_valid shapeProg shapeProg_shape
   have hno : ¬ ∃ w : EnsembleWitness (leanIsaEnsemble shapeProg),
       SatisfiedBy shapeProg input w ∧ AssignmentRepresents w t := by
