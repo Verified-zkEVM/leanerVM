@@ -66,6 +66,7 @@ import LeanerVM.Protocol.Proof
 import LeanerVM.Protocol.ProofRoots
 import LeanerVM.Protocol.Prove
 import LeanerVM.Protocol.Prove.Compiled
+import LeanerVM.Protocol.Prove.ReadBack
 import LeanerVM.Protocol.Prove.Wire
 import LeanerVM.Protocol.PublicInput
 import LeanerVM.Protocol.RandomOracle
@@ -129,6 +130,7 @@ import LeanerVM.Protocol.ToArkLib.Refinement
 import LeanerVM.Protocol.ToArkLib.Refutation
 import LeanerVM.Protocol.ToArkLib.Relist
 import LeanerVM.Protocol.ToArkLib.RunCodec
+import LeanerVM.Protocol.ToArkLib.RunTrace
 import LeanerVM.Protocol.ToArkLib.SampleChallenge
 import LeanerVM.Protocol.ToArkLib.Schedule
 import LeanerVM.Protocol.ToArkLib.ScheduleBounds
