@@ -33,6 +33,8 @@ import LeanerVM.Protocol.ChainGroups
 import LeanerVM.Protocol.ChainLog
 import LeanerVM.Protocol.ClaimWeights
 import LeanerVM.Protocol.Compile.Bus
+import LeanerVM.Protocol.Compile.Flock
+import LeanerVM.Protocol.Compile.Front
 import LeanerVM.Protocol.Compile.Rounds
 import LeanerVM.Protocol.Compile.Tables
 import LeanerVM.Protocol.DecodeAgree
@@ -107,6 +109,7 @@ import LeanerVM.Protocol.ToArkLib.Flock.Lincheck
 import LeanerVM.Protocol.ToArkLib.Flock.Reduction
 import LeanerVM.Protocol.ToArkLib.Flock.RingSwitch
 import LeanerVM.Protocol.ToArkLib.Flock.Rounds
+import LeanerVM.Protocol.ToArkLib.Flock.Run
 import LeanerVM.Protocol.ToArkLib.Flock.Security
 import LeanerVM.Protocol.ToArkLib.Flock.Tables
 import LeanerVM.Protocol.ToArkLib.Flock.Words

@@ -24,7 +24,12 @@ unfolds one round at a time (`run_roundsFront_zero`, `run_roundsFront_succ`).
 
 The transcripts of the one-round schedules are built from their values (`msgTr`, `chalTr`), the
 empty schedule's is `nilTr`, and every transcript of these schedules is so built (`eq_msgTr`,
-`eq_chalTr`, `eq_nilTr`). `chalsTr` builds the transcript of `k` challenges, the first one first.
+`eq_chalTr`, `eq_nilTr`). `chalsTr` builds the transcript of `k` challenges, the first one first,
+and `chalsList` reads them back.
+
+Compiled code appends transcripts entry by entry (`appendFast`, `@[csimp]`): ArkLib's
+`FullTranscript.append` recurses on the second transcript's length at every read, which the
+nested appends of a long protocol cannot afford; the two are equal (`append_eq_appendFast`).
 -/
 
 namespace LeanerVM.Protocol
