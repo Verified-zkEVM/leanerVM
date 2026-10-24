@@ -65,6 +65,7 @@ import LeanerVM.Protocol.PublicInput
 import LeanerVM.Protocol.RandomOracle
 import LeanerVM.Protocol.RandomOracleBound
 import LeanerVM.Protocol.RandomOracleGame
+import LeanerVM.Protocol.ReaderSlots
 import LeanerVM.Protocol.Replay
 import LeanerVM.Protocol.Spine.Compose
 import LeanerVM.Protocol.Spine.Errors

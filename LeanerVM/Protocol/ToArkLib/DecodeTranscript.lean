@@ -458,7 +458,8 @@ def append (D₁ : SlotDecoder α pSpec₁) (D₂ : pSpec₁.FullTranscript → 
 
 variable (D₁ : SlotDecoder α pSpec₁) (D₂ : pSpec₁.FullTranscript → SlotDecoder α pSpec₂)
 
-private theorem append_slot_left (i : ℕ) (hi : i < m) (h : i < m + n)
+/-- A round of the first schedule is read by the first decoder's slot. -/
+theorem append_slot_left (i : ℕ) (hi : i < m) (h : i < m + n)
     (tr : (pSpec₁ ++ₚ pSpec₂).Transcript ⟨i, by omega⟩) :
     (D₁.append D₂).slot ⟨i, h⟩ tr = (D₁.slot ⟨i, hi⟩ (left tr ⟨i, by omega⟩ le_rfl)).map
       (cast (append_Type_castAdd (pSpec₂ := pSpec₂) ⟨i, hi⟩).symm) := by
@@ -466,7 +467,8 @@ private theorem append_slot_left (i : ℕ) (hi : i < m) (h : i < m + n)
   exact congrFun (Fin.addCases_left (motive := fun k ↦
     (pSpec₁ ++ₚ pSpec₂).Transcript k.castSucc → Slot α ((pSpec₁ ++ₚ pSpec₂).«Type» k)) ⟨i, hi⟩) tr
 
-private theorem append_slot_right (j : ℕ) (hj : j < n) (h : m + j < m + n)
+/-- A round of the second schedule is read by the second decoder's slot. -/
+theorem append_slot_right (j : ℕ) (hj : j < n) (h : m + j < m + n)
     (tr : (pSpec₁ ++ₚ pSpec₂).Transcript ⟨m + j, by omega⟩) :
     (D₁.append D₂).slot ⟨m + j, h⟩ tr =
       ((D₂ (leftFull tr (Nat.le_add_right m j))).slot ⟨j, hj⟩ (right tr ⟨j, by omega⟩ le_rfl)).map
