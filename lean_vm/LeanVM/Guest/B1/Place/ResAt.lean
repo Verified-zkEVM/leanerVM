@@ -19,7 +19,8 @@ row's words `D` at `bd`) holds at a valuation, with the guard `x·g + N` and the
 `resLoop_rel`: the loop entered at `1 :: g^n :: rest` holds (`loop_complete`).
 `resLoop_pure`: the loop helper places nothing and calls only itself, so it is complete placed
 on every memory holding the caller's words where every iteration's meaning holds
-(`resLoop_completeAtD`, `completeAt_of_rel_pureD`).
+(`resLoop_completeAtD`, `completeAt_of_rel_pureD`); `resLoop_completeAtB`, by a tree of at most `B`
+words when `B` bounds the loop's valid trees at the call's arguments (`completeAt_of_rel_pureBat`).
 -/
 
 namespace LeanVM.Guest.B1
@@ -320,6 +321,23 @@ theorem resLoop_completeAtD (fs : String → ℕ) (cert : String → V → ℕ) 
   completeAt_of_rel_pureD (resLoop_pureIn hf c lvl lv hb) (List.mem_singleton_self name)
     (fun rd hm ↦ (resLoop_rel hf c lvl lv hps hb hml hpo hwo hn0 qpos qw bd acc (hmem rd hm).1
       (hmem rd hm).2).2 hne) k
+
+/-- **The residual loop, placed, by a bounded tree**: as `resLoop_completeAtD`, by a tree of at
+most `B` words, `B` bounding the loop's valid trees at the call's arguments. -/
+theorem resLoop_completeAtB (fs : String → ℕ) (cert : String → V → ℕ) (k : ℕ) {name : String}
+    {fn : Fn} (hf : coreProgram.find? name = some fn) (c : OsCfg) (lvl : ℕ) (lv : OsLv)
+    (hps : fn.params = osParams 6) (hb : fn.body = resLoopBody c lvl lv name)
+    (hml : 1 ≤ lv.logCols) (hpo : lv.posOff < u128Bound) (hwo : lvl * c.maxQ < u128Bound)
+    {D : ℕ → E} {n : ℕ} (hn0 : 0 < n) (hne : 1 + gen ^ n ≠ 0) {qpos qw bd acc : E} {Lin : Layout}
+    (hmem : ∀ rd, MemL rd Lin → (∀ s < lv.logCols, LoadHolds rd bd (lvl * ligColsCap + s) (D s)) ∧
+      ∀ j < n, ResIter rd D lv.vanish lv.logCols lv.posOff (lvl * c.maxQ) qpos qw acc (gen ^ j))
+    {B : ℕ} (hB : ∀ rd (t : Tree), t.name = name →
+      t.Valid coreProgram rd [1, gen ^ n, qpos, qw, bd, acc] [] → t.BufsOk coreProgram →
+        t.total fs ≤ B) :
+    CompleteAtB fs cert k name Lin [1, gen ^ n, qpos, qw, bd, acc] (Returns []) B :=
+  completeAt_of_rel_pureBat (resLoop_pureIn hf c lvl lv hb) (List.mem_singleton_self name)
+    (fun rd hm ↦ (resLoop_rel hf c lvl lv hps hb hml hpo hwo hn0 qpos qw bd acc (hmem rd hm).1
+      (hmem rd hm).2).2 hne) k hB
 
 end
 end LeanVM.Guest.B1
