@@ -485,6 +485,8 @@ structure ChildSegs (bytecode : List K) (seed : Digest) (c : Node.Child) : Type 
   /-- The stream is the segments' words. -/
   hstream : c.proof.stream = (eOfNat logMem :: rowsN.map eOfNat ++ [eOfNat rate]) ++ [x0, x1] ++
     xsG ++ xsT ++ xsK ++ xsW
+  /-- The announced sizes are `Verifier.announced`'s. -/
+  hann : Verifier.announced bytecode c.proof.stream = some (layout, rate)
 
 /-- **An honest child's run, in segments** (G7's per-child hypotheses; the guest's bytecode of
 `2^23` words). -/
@@ -553,7 +555,7 @@ theorem child_segments {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) (see
   refine ⟨⟨logMem, rowsN, r, L, hL, h16, h32, hrowsL, hrows32, hr1, hr4, hmu22, hst28, sA.sponge,
     runS, x0, x1, root', hroot, alphas, sC.sponge, ?_, xsG, rG, sD.sponge, ?_, xsT, bus, claims,
     sE.sponge, runT, hlanes, xsK, km, sF.sponge, runK, chs, _, hch, xsW, w, s', roots', hrun,
-    hnzW, hcapsW, hacc, ?_⟩⟩
+    hnzW, hcapsW, hacc, ?_, ?_⟩⟩
   · rw [← hspB]; exact hal
   · exact runG
   · -- the stream
@@ -561,6 +563,8 @@ theorem child_segments {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) (see
         c.proof).stream := rfl
     rw [h0, hsA, hsB, ← hsC, hxsG, hxsT, hxsK, ← hsG]
     simp only [List.append_assoc, List.cons_append, List.nil_append]
+  · exact announced_eq (sp := ⟨keccakF (seedInput seed (Node.statementDigest seed c.statement)), []⟩)
+      ⟨rfl, rfl⟩ hA
 
 end
 end LeanVM.Guest.B1.VerifySub
