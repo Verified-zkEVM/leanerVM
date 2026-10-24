@@ -46,8 +46,7 @@ LOOP_ROOTS = [('L0', '__loop0'), ('L1', '__loop1'), ('L2', '__loop2'), ('L3', '_
 AGG = 'aggregate_claims'
 ROOTS = [n for _, n in CONST_ROOTS] + [n for _, n in LOOP_ROOTS] + [AGG]
 # Functions bounded by a ratio of their words: (name in Lean, function).
-RATIO_ROOTS = [('Cl', 'claim_list_digest'), ('Dv', 'da_verify'), ('Agg', 'aggregate_claims'),
-               ('L5', '__loop5')]
+RATIO_ROOTS = [('Cl', 'claim_list_digest'), ('Dv', 'da_verify'), ('Agg', 'aggregate_claims')]
 # `verify_sub`'s statically bounded callees (each child's opening arm among them) and
 # `child_claim_list_digest`'s callees: the `V` count families (`Memory/GuestCntV*`), apart from
 # `main`'s so that neither family's change rebuilds the other's dependents.

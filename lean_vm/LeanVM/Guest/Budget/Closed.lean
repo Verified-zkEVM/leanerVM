@@ -47,10 +47,11 @@ and witness with `NodeRel`, within the deployed limits, the caps agreeing, no ze
 the guest divides, and the node's committed size at the budget at most `2^28`, there is a valid
 execution of the guest on the statement's digest within the verifier's size cap; each child's
 `verify_sub` charged `vsBoundAt Count.vsWords vkBound` words at its announced stack log and
-rate. -/
+rate, and `vsCnt op` instructions of each opcode `op` there (`vs_weight_le_deployed`). -/
 theorem guest_complete : GuestCompleteWithin (deployedBudget (vsBoundAt Count.vsWords vkBound)) :=
-  guest_complete_deployed (Pvs := deployedVsT) fun _ _ _ hr hl hca hnz =>
-    verifySubGoals_deployed hr hl hca hnz
+  guest_complete_deployed (Pvs := deployedVsT)
+    (fun _ _ _ hr hl hca hnz => verifySubGoals_deployed hr hl hca hnz)
+    fun op _ _ hc _ _ _ _ hP hv hb => vs_weight_le_deployed op (hP hc).1 (hP hc).2 hv hb
 
 end
 end LeanVM.Guest.Budget

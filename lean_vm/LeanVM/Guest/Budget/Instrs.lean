@@ -13,21 +13,20 @@ public import LeanVM.Guest.B1.Main.MainWords
 /-!
 # The instruction budget
 
-`mainInstrs H fs SB SK Bvf jt`: per unit of work, `mainCount`'s terms at B1-f's linear words
-bounds (`clB_le`, `hDvB_le`, `l5B_le`), each ratio `α · B / 1000` rounded up term by term
-(`div_aff3`): a constant, `main`'s static callees, the claim lists' ratio per declared claim, the
-loops per coverage slot and raw signature, `da_verify`'s ratio per direct blob and row, the
-children's loop's ratio and `aggregate_claims` per child, and the loop's ratio per child's claim.
-`mainCount_le`: on the honest run within the limits, `mainCount` plus `jt` is at most it.
+`mainInstrs H SB SK c5 s5 v5 jt`: per unit of work, `mainCount`'s terms at B1-f's linear words
+bounds (`clB_le`, `hDvB_le`), each ratio `α · B / 1000` rounded up term by term (`div_aff3`): a
+constant, `main`'s static callees, the claim lists' ratio per declared claim, the loops per coverage
+slot and raw signature, `da_verify`'s ratio per direct blob and row, and the children's loop
+(`l5Lin`): `c5` and `aggregate_claims`' per child, `s5` per child's claim and `v5 μ r` per child of
+announced stack log `μ` and rate `r`. `mainCount_le`: on the honest run within the limits,
+`mainCount` at the children's loop's `l5Lin` plus `jt` is at most it.
 -/
-
 namespace LeanVM.Guest.Budget
 
 open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest LeanVM.Guest.Core LeanVM.Guest.Memory
 open LeanVM.Node LeanVM.Protocol LeanVM.Protocol.KeccakHash
 open LeanVM.Guest.End (Linear work)
-open LeanVM.Guest.B1.Main (hm mainBsH clC clS dvC dvS l5A0 l5A1 l5A2 clB_le hDvB_le l5B_le coverage_eq
-  xPlan sPlan dPlan childBv sum_range_getD)
+open LeanVM.Guest.B1.Main (hm mainBsH clC clS dvC dvS clB_le hDvB_le coverage_eq xPlan sPlan dPlan)
 
 @[expose] public section
 
@@ -61,11 +60,17 @@ theorem div_sum_le (α : ℕ) : ∀ l : List ℕ, α * l.sum / 1000 ≤ (l.map f
     simp only [List.sum_cons, List.map_cons]
     omega
 
+/-- **The children's loop's instructions** at the work `u`: `c5` per child, `s5` per child's
+claim, `v5 μ r` per child of announced stack log `μ` and rate `r`. -/
+def l5Lin (c5 s5 : ℕ) (v5 : ℕ → ℕ → ℕ) (u : End.Work) : ℕ :=
+  c5 * u.children + s5 * u.childClaims + (u.childShapes.map fun p => v5 p.1 p.2).sum
+
 variable {ω fs : String → ℕ}
 
-/-- **The instruction budget** at `ω`: `mainCount`'s terms, linearly in the work, child `c`'s
-`verify_sub` through the children's loop's ratio of `Bvf` at its announced stack log and rate. -/
-def mainInstrs (H : MainCounts ω fs) (SB SK : String → ℕ) (Bvf : ℕ → ℕ → ℕ) (jt : ℕ) : Linear where
+/-- **The instruction budget** at `ω`: `mainCount`'s terms, linearly in the work, the children's
+loop's at `l5Lin c5 s5 v5`. -/
+def mainInstrs (H : MainCounts ω fs) (SB SK : String → ℕ) (c5 s5 : ℕ) (v5 : ℕ → ℕ → ℕ) (jt : ℕ) :
+    Linear where
   base := ω "main" + H.kExp + H.kDl + H.kSd + jt + 2 * (H.αcl * clC fs SB / 1000 + 1)
   declared := H.αcl * clS SK / 1000 + 1
   coverage := H.kL0 + H.kL1 + H.kL2
@@ -73,18 +78,19 @@ def mainInstrs (H : MainCounts ω fs) (SB SK : String → ℕ) (Bvf : ℕ → �
   rawSphincs := H.kL4
   rawDa := H.αdv * dvC fs SB / 1000 + 1 + H.kCov
   rawDaRows := H.αdv * dvS SB SK / 1000 + 1
-  children := (H.α5 * l5A0 fs / 1000 + 1) + (H.α5 * l5A1 fs SB / 1000 + 1) + 1 + H.aggC + H.aggD
-  childClaims := H.α5 * l5A2 fs / 1000 + 1
-  childShape μ r := H.α5 * Bvf μ r / 1000 + 1
+  children := c5 + H.aggC + H.aggD
+  childClaims := s5
+  childShape := v5
 
 set_option maxHeartbeats 1000000 in
-/-- **`main`'s instruction bound within the budget** on the honest run within the limits. -/
-theorem mainCount_le (H : MainCounts ω fs) (SB SK : String → ℕ) (Bvf : ℕ → ℕ → ℕ) (jt : ℕ)
-    {bytecode : List K}
+/-- **`main`'s instruction bound within the budget** on the honest run within the limits, the
+children's loop within `l5Lin c5 s5 v5`. -/
+theorem mainCount_le (H : MainCounts ω fs) (SB SK : String → ℕ) (Bv : ℕ → ℕ) (c5 s5 : ℕ)
+    (v5 : ℕ → ℕ → ℕ) (jt : ℕ) {bytecode : List K}
     {seed : Digest} {s : NodeStatement} {w : NodeWitness} (hr : NodeRel bytecode seed s w)
     (hl : Limits bytecode s w) :
-    mainCount H (hm fs 0 seed s w) (mainBsH fs SB SK (childBv Bvf w) s w) + jt ≤
-      (mainInstrs H SB SK Bvf jt).eval (work s w) := by
+    mainCount H (hm fs 0 seed s w) (mainBsH fs SB SK Bv s w) (l5Lin c5 s5 v5 (work s w)) + jt ≤
+      (mainInstrs H SB SK c5 s5 v5 jt).eval (work s w) := by
   have hX := clB_le fs SB SK s.claims.xmss.length
   have hS := clB_le fs SB SK s.claims.sphincs.length
   have hD := hDvB_le fs SB SK hr hl
@@ -93,12 +99,12 @@ theorem mainCount_le (H : MainCounts ω fs) (SB SK : String → ℕ) (Bvf : ℕ 
   have hd : (hm fs 0 seed s w).nd ≤ 1 := hl.directDa
   have hncb : (hm fs 0 seed s w).nc ≤ 16 := hl.children
   -- the ratios at the linear bounds
-  have rX : H.αcl * (mainBsH fs SB SK (childBv Bvf w) s w).Bx / 1000 ≤ (H.αcl * clC fs SB / 1000 + 1) +
+  have rX : H.αcl * (mainBsH fs SB SK Bv s w).Bx / 1000 ≤ (H.αcl * clC fs SB / 1000 + 1) +
       s.claims.xmss.length * (H.αcl * clS SK / 1000 + 1) := by
     have := div_aff3 H.αcl (clC fs SB) (clS SK) 0 s.claims.xmss.length 0
     simp only [Nat.zero_mul, Nat.add_zero, Nat.mul_zero] at this
     exact le_trans (Nat.div_le_div_right (Nat.mul_le_mul_left _ hX)) this
-  have rS : H.αcl * (mainBsH fs SB SK (childBv Bvf w) s w).Bs / 1000 ≤ (H.αcl * clC fs SB / 1000 + 1) +
+  have rS : H.αcl * (mainBsH fs SB SK Bv s w).Bs / 1000 ≤ (H.αcl * clC fs SB / 1000 + 1) +
       s.claims.sphincs.length * (H.αcl * clS SK / 1000 + 1) := by
     have := div_aff3 H.αcl (clC fs SB) (clS SK) 0 s.claims.sphincs.length 0
     simp only [Nat.zero_mul, Nat.add_zero, Nat.mul_zero] at this
@@ -134,14 +140,14 @@ theorem mainCount_le (H : MainCounts ω fs) (SB SK : String → ℕ) (Bvf : ℕ 
       (H.αdv * dvS SB SK / 1000 + 1) * (work s w).rawDaRows := Nat.mul_comm _ _
   -- the direct blob
   have hDa : (if (hm fs 0 seed s w).nd = 1 then
-      H.αdv * (mainBsH fs SB SK (childBv Bvf w) s w).Bd / 1000 + H.kCov else 0) ≤
+      H.αdv * (mainBsH fs SB SK Bv s w).Bd / 1000 + H.kCov else 0) ≤
       (H.αdv * dvC fs SB / 1000 + 1 + H.kCov) * (work s w).rawDa +
         (H.αdv * dvS SB SK / 1000 + 1) * (work s w).rawDaRows := by
     split_ifs with h1
     · have hra : (work s w).rawDa = 1 := by rw [← e6, h1]
-      have hD1 : (mainBsH fs SB SK (childBv Bvf w) s w).Bd ≤ dvC fs SB + (work s w).rawDaRows * dvS SB SK := by
+      have hD1 : (mainBsH fs SB SK Bv s w).Bd ≤ dvC fs SB + (work s w).rawDaRows * dvS SB SK := by
         have := hD; rw [hra, Nat.one_mul] at this; exact this
-      have rD : H.αdv * (mainBsH fs SB SK (childBv Bvf w) s w).Bd / 1000 ≤ (H.αdv * dvC fs SB / 1000 + 1) +
+      have rD : H.αdv * (mainBsH fs SB SK Bv s w).Bd / 1000 ≤ (H.αdv * dvC fs SB / 1000 + 1) +
           (work s w).rawDaRows * (H.αdv * dvS SB SK / 1000 + 1) := by
         have := div_aff3 H.αdv (dvC fs SB) (dvS SB SK) 0 (work s w).rawDaRows 0
         simp only [Nat.zero_mul, Nat.add_zero, Nat.mul_zero] at this
@@ -150,45 +156,17 @@ theorem mainCount_le (H : MainCounts ω fs) (SB SK : String → ℕ) (Bvf : ℕ 
     · omega
   -- the children
   have hCh : (if (hm fs 0 seed s w).nc = 0 then 0 else
-      H.α5 * (mainBsH fs SB SK (childBv Bvf w) s w).B5 / 1000 + (H.aggC + H.aggD * (hm fs 0 seed s w).nc)) ≤
-      ((H.α5 * l5A0 fs / 1000 + 1) + (H.α5 * l5A1 fs SB / 1000 + 1) + 1 + H.aggC + H.aggD) *
-        (work s w).children + (H.α5 * l5A2 fs / 1000 + 1) * (work s w).childClaims +
-        ((work s w).childShapes.map fun p => H.α5 * Bvf p.1 p.2 / 1000 + 1).sum := by
+      l5Lin c5 s5 v5 (work s w) + (H.aggC + H.aggD * (hm fs 0 seed s w).nc)) ≤
+      (c5 + H.aggC + H.aggD) * (work s w).children + s5 * (work s w).childClaims +
+        ((work s w).childShapes.map fun p => v5 p.1 p.2).sum := by
     split_ifs with h0
     · omega
-    · set L := w.children.map fun ch =>
-        Bvf (childShape End.bytecode ch).1 (childShape End.bytecode ch).2 with hL
-      have hT : ∑ c ∈ Finset.range w.children.length, childBv Bvf w c = L.sum := by
-        have := sum_range_getD L
-        simp only [hL, List.length_map] at this
-        exact this
-      have hTs : (L.map fun x => H.α5 * x / 1000 + 1).sum =
-          ((work s w).childShapes.map fun p => H.α5 * Bvf p.1 p.2 / 1000 + 1).sum := by
-        simp only [hL, work, List.map_map]; rfl
-      have h5 : (mainBsH fs SB SK (childBv Bvf w) s w).B5 ≤
-          (l5A0 fs + w.children.length * l5A1 fs SB + l5A2 fs * (work s w).childClaims) + L.sum := by
-        have := l5B_le fs SB (childBv Bvf w) hl h0
-        rw [hT] at this
-        exact le_trans this (le_of_eq (by ring))
-      have r5' := le_trans (Nat.div_le_div_right (c := 1000) (Nat.mul_le_mul_left H.α5 h5))
-        (div_add_le H.α5 _ _)
-      have r5'' := div_aff3 H.α5 (l5A0 fs) (l5A1 fs SB) (l5A2 fs) w.children.length
-        (work s w).childClaims
-      have rT := div_sum_le H.α5 L
-      rw [hTs] at rT
-      have hn1 : 1 ≤ w.children.length := Nat.pos_of_ne_zero h0
-      have e5' : w.children.length = (work s w).children := rfl
-      rw [e5'] at r5' r5'' hn1
-      rw [e5]
-      have : (H.α5 * l5A0 fs / 1000 + 1) ≤ (H.α5 * l5A0 fs / 1000 + 1) * (work s w).children :=
-        Nat.le_mul_of_pos_right _ hn1
+    · have hn1 : 1 ≤ (work s w).children := Nat.pos_of_ne_zero (by rw [← e5]; exact h0)
       have : H.aggC ≤ H.aggC * (work s w).children := Nat.le_mul_of_pos_right _ hn1
-      have e7 : ((H.α5 * l5A0 fs / 1000 + 1) + (H.α5 * l5A1 fs SB / 1000 + 1) + 1 + H.aggC +
-          H.aggD) * (work s w).children = (H.α5 * l5A0 fs / 1000 + 1) * (work s w).children +
-          (work s w).children * (H.α5 * l5A1 fs SB / 1000 + 1) + (work s w).children +
+      have e7 : (c5 + H.aggC + H.aggD) * (work s w).children = c5 * (work s w).children +
           H.aggC * (work s w).children + H.aggD * (work s w).children := by ring
-      have e8 : (H.α5 * l5A2 fs / 1000 + 1) * (work s w).childClaims =
-          (work s w).childClaims * (H.α5 * l5A2 fs / 1000 + 1) := Nat.mul_comm _ _
+      rw [e5]
+      unfold l5Lin
       omega
   have ecov : (H.kL0 + H.kL1 + H.kL2) * (work s w).coverage = H.kL0 * (work s w).coverage +
       H.kL1 * (work s w).coverage + H.kL2 * (work s w).coverage := by ring

@@ -8,6 +8,9 @@ import os
 VS_ST = ['g_power_of_word', 'log2_ceil_in_the_exponent__L0_L34', 'assert_canonical', 'ring_switch_target',
          'certify_placement', 'log2_ceil_in_the_exponent__L15_L34']
 OM = ['verify_sub', 'child_claim_list_digest', '__loop5']
+# `verify_sub`'s callees with no static bound, counted within a ratio of these words.
+RB = [('verify_bus_gkr', 49403), ('verify_tables', 59762), ('verify_keccak', 87672),
+      ('check_opening_terminal', 38888)]
 
 HDR = '''/-
   LeanVM.Guest.Count.%s
@@ -30,15 +33,43 @@ set_option maxRecDepth 100000
 '''
 
 
-def write(g, OPS):
+def tables(g):
+    """The counts the tables hold, per opcode index `k`: `stat(k, n)`, `loop(k, n)`, the frame
+    weights `om[k]`, and `vsc(k, c)`, `verify_sub`'s instructions at candidate `c`."""
     import checker
-    D = os.path.join(g.lv, 'LeanVM', 'Guest', 'Count')
     S = g.closure(__import__('gen').VROOTS)
     certs = [checker.gen(g.fns, g.omega_cnt(k), only=S)[1] for k in range(6)]
     def stat(k, n):
         c = certs[k][n]; assert c[0] == 'stat' and c[1] == [] and c[2][1] == [], (n, c); return c[2][0]
     def loop(k, n):
         c = certs[k][n]; assert c[0] == 'loop' and c[1] is None and c[2] == [] and c[3][1] == [], (n, c); return c[3][0]
+    om = [g.omega_cnt(k) for k in range(6)]
+    fsN = lambda j: g.main_frame if j == 1 else max(2, g.fsz[j])
+    def ratioA(r):
+        J = sorted(g.by[n] for n in g.closure([r]))
+        return [max(-(-1000 * g.pm[j + 1][k] // fsN(j + 1)) for j in J) for k in range(6)]
+    RA = [ratioA(r) for r, _ in RB]
+    osN = ['open_stacked__L%d' % c for c in range(28)]
+    def vsc(k, c):
+        st = [stat(k, n) for n in VS_ST]
+        rr = [RA[i][k] * RB[i][1] // 1000 for i in range(4)]
+        return om[k]['verify_sub'] + 2 * st[0] + st[1] + 2 * st[2] + rr[0] + rr[1] + rr[2] + st[3] + st[4] + st[5] + stat(k, osN[c]) + rr[3]
+    return stat, loop, om, vsc
+
+
+def l5_parts(tbl, k):
+    """At the opcode index `k`: `__loop5`'s frame weight, `Budget.ccA` and `Budget.ccS` (the
+    children's claim lists' digests' constant and per-claim slope) and `vsCountT`, from
+    `tables`."""
+    stat, loop, om, vsc = tbl
+    cclN = ['child_claim_list_last__L%d' % j for j in range(17)]
+    ccA = om[k]['child_claim_list_digest'] + stat(k, 'list_split') + max(stat(k, n) for n in cclN)
+    return om[k]['__loop5'], ccA, (loop(k, '__loop17') + 16) // 17, [vsc(k, c) for c in range(28)]
+
+
+def write(g, OPS):
+    D = os.path.join(g.lv, 'LeanVM', 'Guest', 'Count')
+    stat, loop, om, vsc = tables(g)
     osN = ['open_stacked__L%d' % c for c in range(28)]
     cclN = ['child_claim_list_last__L%d' % k for k in range(17)]
     def lst(xs): return '[' + ', '.join(str(x) for x in xs) + ']'
@@ -66,19 +97,7 @@ def write(g, OPS):
     o.append(opdefl('kcCclT', '`child_claim_list_last__L{k}`\'s instructions, by `k`.', lambda k: [stat(k, n) for n in cclN]))
     o.append(opdef('kcLs', '`list_split`\'s instructions.', lambda k: stat(k, 'list_split')))
     o.append(opdef('kcL17', '`__loop17`\'s instructions per iteration.', lambda k: loop(k, '__loop17')))
-    om = [g.omega_cnt(k) for k in range(6)]
     o.append(opdefl('omT', 'The frame weights of `omNames`.', lambda k: [om[k][n] for n in OM]))
-    fsN = lambda j: g.main_frame if j == 1 else max(2, g.fsz[j])
-    def ratioA(r):
-        J = sorted(g.by[n] for n in g.closure([r]))
-        return [max(-(-1000 * g.pm[j + 1][k] // fsN(j + 1)) for j in J) for k in range(6)]
-    RB = [('verify_bus_gkr', 49403), ('verify_tables', 59762), ('verify_keccak', 87672),
-          ('check_opening_terminal', 38888)]
-    RA = [ratioA(r) for r, _ in RB]
-    def vsc(k, c):
-        st = [stat(k, n) for n in VS_ST]
-        rr = [RA[i][k] * RB[i][1] // 1000 for i in range(4)]
-        return om[k]['verify_sub'] + 2 * st[0] + st[1] + 2 * st[2] + rr[0] + rr[1] + rr[2] + st[3] + st[4] + st[5] + stat(k, osN[c]) + rr[3]
     o.append(opdefl('vsCountT', '`verify_sub`\'s instructions at candidate `c`, its four ratio-bounded callees '
                     'within `49403`, `59762`, `87672`, `38888` words.', lambda k: [vsc(k, c) for c in range(28)]))
     o.append('''/-- **The tables check** against the `V` certificates and `B2C.plumbOf`. -/

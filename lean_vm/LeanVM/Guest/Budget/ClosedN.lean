@@ -34,13 +34,7 @@ theorem deployedBudget_size_mono {Bvf Bvf' : ℕ → ℕ → ℕ} (u : End.Work)
     have := List.sum_le_sum (l := u.childShapes) (f := fun p => Bvf p.1 p.2)
       (g := fun p => Bvf' p.1 p.2) h
     omega
-  · intro op
-    simp only [deployedBudget, mainBudget, End.Linear.eval, mainInstrs]
-    have := List.sum_le_sum (l := u.childShapes)
-      (f := fun p => (Count.mainCounts op).α5 * Bvf p.1 p.2 / 1000 + 1)
-      (g := fun p => (Count.mainCounts op).α5 * Bvf' p.1 p.2 / 1000 + 1)
-      fun p hp => Nat.add_le_add_right (Nat.div_le_div_right (Nat.mul_le_mul_left _ (h p hp))) 1
-    omega
+  · exact fun _ => le_rfl
 
 /-- **`verify_sub`'s words for a child of announced stack log `μ` and rate `r`** at the deployed
 instance: row `r - 1`, column `μ - 22` for the guest's opening arms (`22 ≤ μ ≤ 28`, `1 ≤ r ≤ 4`,
@@ -98,7 +92,7 @@ theorem vsBoundAt_eq_deployedBvAt {μ r : ℕ} (h1 : 22 ≤ μ) (h2 : μ ≤ 28)
 
 /-- **The aggregation guest is complete within the deployed budget**, `verify_sub`'s words for a
 child of announced stack log `μ` and rate `r` `deployedBvAt μ r`: the budget's words
-`Count.deployedWords deployedBvAt`, its instructions `Count.deployedInstrs deployedBvAt op`. -/
+`Count.deployedWords deployedBvAt`, its instructions `Count.deployedInstrs op`. -/
 theorem guest_complete_numeric : GuestCompleteWithin (deployedBudget deployedBvAt) :=
   guestComplete_mono guest_complete fun seed s w _ hl hca hnz => deployedBudget_size_mono _
     fun p hp => by

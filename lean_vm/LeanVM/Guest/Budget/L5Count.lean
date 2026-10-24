@@ -12,6 +12,8 @@ public import LeanVM.Guest.Budget.VsCount
 public import LeanVM.Guest.Budget.Chain
 public import LeanVM.Guest.Budget.Static
 public import LeanVM.Guest.B1.Main.MainHonestBudget
+public import LeanVM.Guest.Budget.Instrs
+public import LeanVM.Guest.Count.VsMax
 
 /-!
 # The children loop's instructions
@@ -31,6 +33,7 @@ namespace LeanVM.Guest.Budget
 open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Memory LeanVM.Guest
 open LeanVM.Guest.Count
 open LeanVM.Protocol.Verifier (gen)
+open LeanVM.Node LeanVM.Protocol LeanVM.Protocol.KeccakHash
 open LeanVM.Guest.B1.Main (ccHonest L5From l5CallList l5Ts l5Ts6 l5Evs l5Pre l5Tail l5Body
   l5Body_split l5Pre_straight l5_body find_l5)
 
@@ -120,16 +123,16 @@ set_option maxRecDepth 10000 in
 /-- **The children loop's instructions**: the iterations from child `c` weigh at most the sum of
 their `l5B`. -/
 theorem l5_weight_le (op : Opcode) {ex es ed X S : ℕ → ℕ} {Pvs : ℕ → Tree → Prop} (V : ℕ → ℕ)
-    (hX : ∀ c, X c / 17 < 2 ^ 64 - 1) (hS : ∀ c, S c / 17 < 2 ^ 64 - 1)
-    (hV : ∀ c (rd : Reader) (t : Tree) (args rets : List E), Pvs c t →
+    (N : ℕ) (hX : ∀ c, X c / 17 < 2 ^ 64 - 1) (hS : ∀ c, S c / 17 < 2 ^ 64 - 1)
+    (hV : ∀ c, c < N → ∀ (rd : Reader) (t : Tree) (args rets : List E), Pvs c t →
       t.Valid coreProgram rd args rets → t.BufsOk coreProgram →
         t.weight (B2C.ωArm B2C.xmssArmC op) ≤ V c) :
-    ∀ m c (rd : Reader) (t : Tree) (args rets : List E),
+    ∀ m c (rd : Reader) (t : Tree) (args rets : List E), c + m ≤ N →
       L5From ex es ed (fun c => ccHonest (X c)) (fun c => ccHonest (S c)) Pvs m c t →
       t.Valid coreProgram rd args rets → t.BufsOk coreProgram →
         t.weight (B2C.ωArm B2C.xmssArmC op) ≤ iterSum (l5B op X S V) c m
-  | 0, _, _, _, _, _, h, _, _ => h.elim
-  | m + 1, c, rd, t, args, rets, h, hv, hb => by
+  | 0, _, _, _, _, _, _, h, _, _ => h.elim
+  | m + 1, c, rd, t, args, rets, hN, h, hv, hb => by
     obtain ⟨σ, bufs, ks, rfl, -, -, h63, h73, hed, hcalls, hKT⟩ := h
     have hv' := hv
     obtain ⟨fn, hf, -, es', vs', hw, -, hes, hk⟩ := hv'
@@ -169,8 +172,8 @@ theorem l5_weight_le (op : Opcode) {ex es ed X S : ℕ → ℕ} {Pvs : ℕ → T
           omega
         · exact kcDl_weightLe op rd t' _ rets' hn hv'' hb''
         · exact kcSd_weightLe op rd t' _ rets' hn hv'' hb''
-        · exact hV c rd t' _ rets' hT' hv'' hb''
-        · exact l5_weight_le op V hX hS hV m (c + 1) rd t' _ rets' hT' hv'' hb'')
+        · exact hV c (by omega) rd t' _ rets' hT' hv'' hb''
+        · exact l5_weight_le op V N hX hS hV m (c + 1) rd t' _ rets' (by omega) hT' hv'' hb'')
     have hom := om_eq op (i := 2) (by norm_num)
     simp only [omNames, List.getD_cons_succ, List.getD_cons_zero] at hom
     rw [Tree.weight, iterSum_succ, hom]
@@ -223,6 +226,121 @@ theorem iterSum_l5B_le (op : Opcode) (X S V : ℕ → ℕ) : ∀ c m,
     have e2 : ccS op * (X c + S c + iterSum (fun i => X i + S i) (c + 1) m) =
       ccS op * (X c + S c) + ccS op * iterSum (fun i => X i + S i) (c + 1) m := by ring
     omega
+
+/-! ## The honest children's loop -/
+
+/-- **`verify_sub`'s instructions of `op` on a child of announced stack log `μ` and rate `r`**:
+`vsCountT op` at its candidate. -/
+def vsCnt (op : Opcode) (μ r : ℕ) : ℕ := (vsCountT op).getD (B1.Whir.candidate μ r) 0
+
+/-- **`verify_sub`'s instructions of `op` on B1-d's tree at the deployed bounds** (`vsTs` at
+`Count.vsWords` and `vkBound`): at most `vsCnt op μ r`. -/
+theorem vs_weight_le_deployed (op : Opcode) {μ r : ℕ} (hc : B1.Whir.candidate μ r < 28)
+    {rd : Reader} {t : Tree} {args rets : List E}
+    (h : FlatShape coreProgram "verify_sub"
+      (B1.VerifySub.vsTs B2C.fs Count.vsWords B1.VerifySub.vkBound μ r) t)
+    (hv : t.Valid coreProgram rd args rets) (hb : t.BufsOk coreProgram) :
+    t.weight (B2C.ωArm B2C.xmssArmC op) ≤ vsCnt op μ r :=
+  vs_weight_le_vsTs op hc vbgMax_eq.le vtMax_eq.le vkBound_eq.le termBound_eq.le h hv hb
+
+theorem iterSum_le {A B : ℕ → ℕ} (h : ∀ i, A i ≤ B i) : ∀ c m, iterSum A c m ≤ iterSum B c m
+  | _, 0 => by simp [iterSum]
+  | c, m + 1 => by
+    rw [iterSum_succ, iterSum_succ]
+    have := iterSum_le h (c + 1) m
+    have := h c
+    omega
+
+theorem iterSum_getD : ∀ (l : List ℕ) (c : ℕ) (f : ℕ → ℕ),
+    (∀ i (hi : i < l.length), f (c + i) = l[i]) → iterSum f c l.length = l.sum
+  | [], _, _, _ => by simp [iterSum]
+  | a :: l, c, f, h => by
+    rw [List.length_cons, iterSum_succ, List.sum_cons]
+    have h0 := h 0 (by simp)
+    simp only [Nat.add_zero, List.getElem_cons_zero] at h0
+    rw [h0, iterSum_getD l (c + 1) f fun i hi => by
+      have := h (i + 1) (by simp; omega)
+      rw [show c + (i + 1) = c + 1 + i by omega] at this
+      simpa using this]
+
+theorem hEx_lt {bytecode : List K} {s : NodeStatement} {w : NodeWitness}
+    (hl : Limits bytecode s w) (c : ℕ) : B1.Main.hEx w c < 2 ^ 16 := by
+  unfold B1.Main.hEx
+  by_cases hc : c < w.children.length
+  · rw [B1.Main.getD_map_lt _ _ _ hc]
+    exact (hl.lists _ (List.getElem_mem hc)).1
+  · rw [List.getD_eq_default _ _ (by simpa using hc)]
+    norm_num
+
+theorem hEs_lt {bytecode : List K} {s : NodeStatement} {w : NodeWitness}
+    (hl : Limits bytecode s w) (c : ℕ) : B1.Main.hEs w c < 2 ^ 16 := by
+  unfold B1.Main.hEs
+  by_cases hc : c < w.children.length
+  · rw [B1.Main.getD_map_lt _ _ _ hc]
+    exact (hl.lists _ (List.getElem_mem hc)).2
+  · rw [List.getD_eq_default _ _ (by simpa using hc)]
+    norm_num
+
+set_option maxHeartbeats 1000000 in
+/-- **The honest children's loop's instructions of `op`**: on the tree `main`'s completeness gives
+it (`mainPredsH`'s `T5`), each child's `verify_sub` within `vsCnt op` at its announced stack log
+and rate, at most `l5C op` per child, `ccS op` per child's claim and `vsCnt op μ r` per child of
+announced shape `(μ, r)`. -/
+theorem l5_honest_weight_le (op : Opcode) {s : NodeStatement} {w : NodeWitness}
+    {Pd : Tree → Prop} {Pvs : ℕ → Tree → Prop} (hl : Limits End.bytecode s w)
+    (hPv : ∀ c (hc : c < w.children.length) (rd : Reader) (t : Tree) (args rets : List E),
+      Pvs c t → t.Valid coreProgram rd args rets → t.BufsOk coreProgram →
+        t.weight (B2C.ωArm B2C.xmssArmC op) ≤
+          vsCnt op (childShape End.bytecode w.children[c]).1 (childShape End.bytecode w.children[c]).2)
+    {rd : Reader} {t : Tree} {args rets : List E} (hv : t.Valid coreProgram rd args rets)
+    (hb : t.BufsOk coreProgram) (hT : (B1.Main.mainPredsH s w Pd Pvs).T5 t) :
+    t.weight (B2C.ωArm B2C.xmssArmC op) ≤ l5Lin (l5C op) (ccS op) (vsCnt op) (End.work s w) := by
+  let L : List ℕ := w.children.map fun ch =>
+    vsCnt op (childShape End.bytecode ch).1 (childShape End.bytecode ch).2
+  let V : ℕ → ℕ := fun c => L.getD c 0
+  have hV : ∀ c, c < w.children.length → ∀ (rd : Reader) (t : Tree) (args rets : List E),
+      Pvs c t → t.Valid coreProgram rd args rets → t.BufsOk coreProgram →
+        t.weight (B2C.ωArm B2C.xmssArmC op) ≤ V c := by
+    intro c hc rd t args rets hP hv hb
+    have := hPv c hc rd t args rets hP hv hb
+    simp only [V, L]
+    rw [B1.Main.getD_map_lt _ _ _ hc]
+    exact this
+  have h1 := l5_weight_le op (X := fun c => (B1.Main.hKid s w c).ex)
+    (S := fun c => (B1.Main.hKid s w c).es) V w.children.length
+    (fun c => by have := hEx_lt hl c; show B1.Main.hEx w c / 17 < _; omega)
+    (fun c => by have := hEs_lt hl c; show B1.Main.hEs w c / 17 < _; omega)
+    hV w.children.length 0 rd t args rets (by omega) hT hv hb
+  have h2 := iterSum_l5B_le op (fun c => (B1.Main.hKid s w c).ex) (fun c => (B1.Main.hKid s w c).es)
+    V 0 w.children.length
+  have hVs : iterSum V 0 w.children.length = ((End.work s w).childShapes.map fun p =>
+      vsCnt op p.1 p.2).sum := by
+    have := iterSum_getD L 0 V (fun i _ => by simp only [V, Nat.zero_add]; rw [List.getD_eq_getElem])
+    simp only [L, List.length_map] at this
+    rw [this]
+    simp only [End.work, List.map_map]
+    rfl
+  let C : List ℕ := w.children.map fun ch => ch.statement.claims.xmss.length +
+    ch.statement.claims.sphincs.length + ch.statement.claims.da.length
+  have hXS : iterSum (fun i => (B1.Main.hKid s w i).ex + (B1.Main.hKid s w i).es) 0
+      w.children.length ≤ (End.work s w).childClaims := by
+    have hle := iterSum_le (A := fun i => (B1.Main.hKid s w i).ex + (B1.Main.hKid s w i).es)
+      (B := fun i => C.getD i 0) (fun i => by
+        have := B1.Main.kid_counts w i
+        show B1.Main.hEx w i + B1.Main.hEs w i ≤ _
+        simp only [C]
+        omega) 0 w.children.length
+    have := iterSum_getD C 0 (fun i => C.getD i 0) (fun i _ => by
+      simp only [Nat.zero_add]; rw [List.getD_eq_getElem])
+    simp only [C, List.length_map] at this
+    rw [this] at hle
+    exact hle
+  have e : (End.work s w).children = w.children.length := rfl
+  unfold l5Lin
+  rw [e, ← hVs]
+  have := Nat.mul_le_mul_left (ccS op) hXS
+  rw [Nat.mul_comm (l5C op)]
+  omega
 
 end
 end LeanVM.Guest.Budget
