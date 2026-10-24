@@ -55,9 +55,6 @@ open scoped NNReal ENNReal
 /-- The error of one challenge, `2^-128`. -/
 noncomputable def εquery : ℝ≥0 := (2 ^ 128)⁻¹
 
-/-- The roots a proof carries for the verifier: at most six. -/
-def proofDigests : ℕ := 6
-
 /-- The chance of a collision or a hit within `Q + V` fresh queries. -/
 noncomputable def hashTerm (V Q : ℕ) : ℝ≥0 := (Q + V) * (4 * (Q + V) + 8) / 2 ^ 256
 
@@ -68,6 +65,13 @@ noncomputable def niError (ε : ℝ≥0) (V Q : ℕ) : ℝ≥0 := (Q + V) * ε +
 /-- The error at `εquery` in closed form. -/
 theorem niError_le (V Q : ℕ) : niError εquery V Q ≤ (Q + V) / 2 ^ 128 + hashTerm V Q := by
   simp [niError, εquery, div_eq_mul_inv]
+
+/-- The error grows with the verifier's queries. -/
+theorem niError_mono_left (ε : ℝ≥0) {V V' : ℕ} (h : V ≤ V') (Q : ℕ) :
+    niError ε V Q ≤ niError ε V' Q := by
+  have hV : (V : ℝ≥0) ≤ V' := by exact_mod_cast h
+  unfold niError hashTerm
+  gcongr
 
 /-! ## The game in two runs -/
 

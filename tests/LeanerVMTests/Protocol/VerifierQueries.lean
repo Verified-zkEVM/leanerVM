@@ -12,22 +12,15 @@ hashes: the chain walk's 1004 and the openings' 2932. The bound at the fixture's
 and per row and level of the tree, where the pruned openings share their upper nodes.
 
 The verifier replayed on its own log of hashes (`replay`) accepts and records that log, query for
-query; with one answer erased it fails at the query it no longer answers. The bound whatever the
-program and the input, `verifierQueriesBound`, is 13697.
+query; with an early answer erased it fails at the query it no longer answers. The bound whatever
+the program and the input, `verifierQueriesBound`, is 13697. The checks share one run of the
+interpreted verifier and two replays.
 -/
 
 namespace LeanerVMTests.Protocol.VerifierQueries
 
 open LeanerVM.Parameters LeanerVM.Protocol LeanerVM.Protocol.Blake2sHash LeanerVM.Protocol.Verify
 open LeanerVMTests.Protocol.RustProof
-
-/-- The fixture's verdict and the number of hashes the verifier asks. -/
-def queriesAsked : Bool × ℕ :=
-  (verifyWith (m := StateM ℕ) (fun t ↦ do modify (· + 1); pure (blake2sBytes t)) fx.prog fx.input
-    fx.proof).run 0
-
-#guard queriesAsked == (true, 3936)
-#guard queriesAsked.2 ≤ VerifierQueries.queryCountAt fx.prog fx.input sizes.1 sizes.2
 
 /-- The fixture's verdict and the log of its hashes, in order. -/
 def verifierLog : Bool × hashSpec.QueryLog :=
@@ -36,10 +29,15 @@ def verifierLog : Bool × hashSpec.QueryLog :=
     fx.proof).run []
   (ok, rev.reverse)
 
--- The replay on the verifier's own log accepts and records that log.
-#guard verifierLog.1 && replay verifierLog.2 fx.prog fx.input fx.proof == some (true, verifierLog.2)
--- With one answer erased, the replay stops at the query it no longer answers.
-#guard replay (verifierLog.2.eraseIdx 500) fx.prog fx.input fx.proof == none
+-- The verifier accepts after 3936 hashes, within the bound at the fixture's sizes; replayed on its
+-- own log it accepts and records that log; with an early answer erased, the replay stops at the
+-- query it no longer answers. One run of the verifier and two replays.
+#guard
+  let (ok, log) := verifierLog
+  ok && log.length == 3936 &&
+    decide (log.length ≤ VerifierQueries.queryCountAt fx.prog fx.input sizes.1 sizes.2) &&
+    replay log fx.prog fx.input fx.proof == some (true, log) &&
+    replay (log.eraseIdx 20) fx.prog fx.input fx.proof == none
 
 -- The bound whatever the program and the input, above the fixture's bound at its sizes.
 #guard LeanVmReader.verifierQueriesBound == 13697 &&

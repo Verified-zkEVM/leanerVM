@@ -183,6 +183,10 @@ theorem extracts_iff_isSome (F : FlockSpec) (prog : Program) (input : PublicInpu
 def seedDigests (prog : Program) (input : PublicInput) : List Digest :=
   [(FsState.seed prog input).cv]
 
+/-- The roots a proof carries for the verifier: at most six, a root per level of the deployed
+ladders (`ProofRoots.length_rootsOf_le`). -/
+def proofDigests : ℕ := 6
+
 /-- **A hit**: a query answered, at its input's first occurrence in the joint log, by a digest in
 play before it, or, for a verifier's query, by one of the proof's roots (`rootsOf`). -/
 def Hit (rootsOf : Proof PrunedMerklePaths → List Digest) (prog : Program) (input : PublicInput)

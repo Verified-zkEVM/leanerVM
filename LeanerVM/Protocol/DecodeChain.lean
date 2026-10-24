@@ -54,7 +54,10 @@ Transcribed for the stream order from the pinned leanVM
 (`a386121f84292f6fa663aaa3e570c15bc0240ea2`), through the executable verifier's walk.
 
 Classification: T4 in the random-oracle model, the deterministic core: the reader of chain
-histories that the random-oracle bound charges (`LeanerVM.Protocol.LeanVmReader`).
+histories that the random-oracle bound charges (`LeanerVM.Protocol.LeanVmReader`). The core's step
+from an accepted history to the compiled verifier's checks on its decoded transcript uses the
+compiled protocol's per-phase equations at the same `wireOf` projections (`busWireOf`,
+`tableWireOf`, `pubWireOf`, `flockWireOpt`, `whirWireOf` of the transcript's slices).
 -/
 
 namespace LeanerVM.Protocol

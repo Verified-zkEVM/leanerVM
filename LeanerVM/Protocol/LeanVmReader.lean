@@ -67,10 +67,10 @@ namespace LeanVmReader
 /-! ## The window -/
 
 /-- A level's shape as a tuple, for a decision. -/
-def shapeKey (sh : LevelShape) : ℕ × ℕ × ℕ × ℕ × Bool :=
+private def shapeKey (sh : LevelShape) : ℕ × ℕ × ℕ × ℕ × Bool :=
   (sh.fold, sh.msgLog, sh.rate, sh.queries, sh.final)
 
-theorem shapeKey_injective : Function.Injective shapeKey := by
+private theorem shapeKey_injective : Function.Injective shapeKey := by
   rintro ⟨_, _, _, _, _⟩ ⟨_, _, _, _, _⟩ h
   simp only [shapeKey, Prod.mk.injEq] at h
   obtain ⟨rfl, rfl, rfl, rfl, rfl⟩ := h
@@ -78,7 +78,7 @@ theorem shapeKey_injective : Function.Injective shapeKey := by
 
 /-- Every admissible chain's positions fit squeezes, and its levels are the ladder's: one decision
 on the window. -/
-theorem deployed_posOk_shapes {μ r : ℕ} (h : Parameters.Whir.Admissible μ r) :
+private theorem deployed_posOk_shapes {μ r : ℕ} (h : Parameters.Whir.Admissible μ r) :
     (deployed μ r).all fun c ↦ posOk c.ladder && (Parameters.Whir.ladder μ r).all fun ls ↦
       c.ladder.shapes.map shapeKey == (levelShapes μ ls).map shapeKey := by
   have key : ∀ μ < Parameters.Whir.maxLogStack + 1, ∀ r < Parameters.Whir.maxLogInvRate + 1,
@@ -111,18 +111,6 @@ theorem shapes_leanIsaChain {levels : List Parameters.Whir.Level}
   (deployedChain_posOk_shapes (admissible_of_sizes hs hρ)).2 levels hl
 
 /-! ## The words under a history's roots -/
-
-/-- The readings each primitive takes: a scalar one, a challenge one, a root two, a nonce one. -/
-def readingCounts : StepCounts := ⟨1, 1, 2, fun _ ↦ 1⟩
-
-/-- The root a history carries at reading `o`: two observes there, read as a digest. -/
-def rootAt (hist : List Reading) (o : ℕ) : Option Digest :=
-  match hist[o]?, hist[o + 1]? with
-  | some (.observe x₁, _), some (.observe x₂, _) => digestOfScalars (x₁, x₂)
-  | _, _ => none
-
-theorem rootAt_cons_succ (r : Reading) (hist : List Reading) (o : ℕ) :
-    rootAt (r :: hist) (o + 1) = rootAt hist o := rfl
 
 /-- A root a history carries is one of its roots. -/
 theorem mem_historyRoots_of_rootAt : ∀ {hist : List Reading} {o : ℕ} {d : Digest},
@@ -174,28 +162,28 @@ def RowsAgree (l l' : hashSpec.QueryLog) (root : Digest) : Prop :=
   ∀ depth rowWords leafWords p, extractRows l' root depth rowWords leafWords p =
     extractRows l root depth rowWords leafWords p
 
-theorem extractAllRows_congr {l l' : hashSpec.QueryLog} {root : Digest} (h : RowsAgree l l' root)
+private theorem extractAllRows_congr {l l' : hashSpec.QueryLog} {root : Digest} (h : RowsAgree l l' root)
     (depth rowWords leafWords : ℕ) :
     extractAllRows l' root depth rowWords leafWords =
       extractAllRows l root depth rowWords leafWords := by
   rw [extractAllRows_eq, extractAllRows_eq]
   exact List.map_congr_left fun p _ ↦ h depth rowWords leafWords p
 
-theorem level0Word_congr (c : Chain) {l l' : hashSpec.QueryLog} :
+private theorem level0Word_congr (c : Chain) {l l' : hashSpec.QueryLog} :
     ∀ {r : Option Digest}, (∀ root, r = some root → RowsAgree l l' root) →
       level0Word prog s c l' r = level0Word prog s c l r
   | none, _ => rfl
   | some root, h => by
     simp only [level0Word, logWord, wordRows, extractAllRows_congr (h root rfl)]
 
-theorem laterWord_congr {l l' : hashSpec.QueryLog} (sh : Whir.Shape) (κ : ℕ) :
+private theorem laterWord_congr {l l' : hashSpec.QueryLog} (sh : Whir.Shape) (κ : ℕ) :
     ∀ {r : Option Digest}, (∀ root, r = some root → RowsAgree l l' root) →
       laterWord l' sh κ r = laterWord l sh κ r
   | none, _ => rfl
   | some root, h => by
     simp only [laterWord, extractAllRows_congr (h root rfl)]
 
-theorem laterWords_congr {l l' : hashSpec.QueryLog} :
+private theorem laterWords_congr {l l' : hashSpec.QueryLog} :
     ∀ {sh : Whir.Shape} {κ : ℕ} (L : Ladder sh κ) {rs : List (Option Digest)},
       (∀ root, some root ∈ rs → RowsAgree l l' root) → laterWords l' L rs = laterWords l L rs
   | _, _, .last _ _, _, _ => rfl
@@ -243,7 +231,7 @@ abbrev famAt (a : Ann prog) : ChalSlots (deployedSpec Blake2sFlock.blake2sFlockS
 
 /-! ## The marks follow the nonces -/
 
-theorem markAfter_finalMark (sh : Whir.Shape) (nf : ℕ) (pre : Bool) :
+private theorem markAfter_finalMark (sh : Whir.Shape) (nf : ℕ) (pre : Bool) :
     MarkAfter pre (finalMark (sh := sh) (nf := nf)) (finalFlags sh nf).toFlags :=
   markAfter_append (markAfter_none _ _) <| markAfter_append (markAfter_none _ _) <|
   markAfter_append (markAfter_none _ _) <| markAfter_append (markAfter_none _ _) <|
@@ -253,7 +241,7 @@ theorem markAfter_finalMark (sh : Whir.Shape) (nf : ℕ) (pre : Bool) :
   markAfter_append (markAfter_none _ _) <| markAfter_append (markAfter_none _ _) <|
   markAfter_none _ _
 
-theorem markAfter_levelMark (sh sh' : Whir.Shape) (κ' : ℕ) {k : List Step}
+private theorem markAfter_levelMark (sh sh' : Whir.Shape) (κ' : ℕ) {k : List Step}
     {bR : (seqSpec k).ChallengeIdx → Bool} {N : SeqFlags k} (hR : ∀ pre, MarkAfter pre bR N.toFlags)
     (pre : Bool) :
     MarkAfter pre (levelMark (sh := sh) (sh' := sh') (κ' := κ') bR)
@@ -266,7 +254,7 @@ theorem markAfter_levelMark (sh sh' : Whir.Shape) (κ' : ℕ) {k : List Step}
   markAfter_append (markAfter_none _ _) <| markAfter_append (markAfter_none _ _) <|
   markAfter_append (markAfter_none _ _) <| hR _
 
-theorem markAfter_ladder : ∀ {sh : Whir.Shape} {κ : ℕ} (L : Ladder sh κ) (pre : Bool),
+private theorem markAfter_ladder : ∀ {sh : Whir.Shape} {κ : ℕ} (L : Ladder sh κ) (pre : Bool),
     MarkAfter pre L.mark (ladderFlags L).toFlags
   | _, _, .last sh nf, pre => markAfter_finalMark sh nf pre
   | _, _, @Ladder.cons sh sh' κ' L, pre => markAfter_levelMark sh sh' κ' (markAfter_ladder L) pre
@@ -317,7 +305,7 @@ def leanVmReader : SlotReader where
 /-! ## The density of the bad challenges -/
 
 /-- A uniform event's bound does not depend on the sampler. -/
-theorem prEvent_le_of_inst {C : Type} {p : C → Prop} {e : ℝ≥0∞} (i₂ : SampleableType C)
+private theorem prEvent_le_of_inst {C : Type} {p : C → Prop} {e : ℝ≥0∞} (i₂ : SampleableType C)
     (h : (letI := i₂; Pr{let x ← $ᵗ C}[p x]) ≤ e) (i₁ : SampleableType C) :
     (letI := i₁; Pr{let x ← $ᵗ C}[p x]) ≤ e :=
   (@SampleableType.prEvent_uniformSample_equiv C C i₁ i₂ (Equiv.refl C) p).trans_le h
@@ -356,7 +344,8 @@ theorem leanVmReader_density : (leanVmReader prog input).Density εquery := by
 /-- **The random-oracle bound at leanVM**: on every adversary asking at most `Q` queries, the hash
 misbehaves in the game of leanVM's verifier with probability at most
 `niError εquery (verifierQueries prog input) Q`: a collision, a hit on a digest in play, or a
-flip of a challenge to a bad one. -/
+flip of a challenge to a bad one. The bound is selective: the program and the public input are
+fixed before the adversary runs. -/
 theorem leanVm_misbehaves_rom (A : Adversary) {Q : ℕ} (hQ : IsTotalQueryBound A Q) :
     Pr{let z ← runRandom (loggedGame verifyWith prog input A)}[
       HashMisbehaves (rootsOf prog input) (leanVmReader prog input).Flip prog input z.1] ≤
@@ -420,20 +409,25 @@ theorem walkChain_proof_decodes {proof : Proof PrunedMerklePaths} {s : Sizes} {�
   exact ⟨hist, hlog, walkChainLogged_proof_decodes hsetup hl hlog⟩
 
 /-- **An accepted replay's history decodes**: if the verifier replayed on a log accepts a proof,
-recording `logV`, then at the sizes and rate the proof announces the history of its chain walk is
-in `logV` from the statement's seed and decodes, with any words. -/
+recording `logV`, then at the sizes, rate and levels the proof announces, the chain walk with its
+steps logged at the log's hash succeeds on the proof with a wire `w` and a history in `logV` from the
+statement's seed, and the history decodes, with any words, to a transcript whose wire is `w`,
+viewed. -/
 theorem decodes_of_replay {log logV : hashSpec.QueryLog} {proof : Proof PrunedMerklePaths}
     (h : replay log prog input proof = some (true, logV)) :
-    ∃ s ρ, setup? prog proof = some (s, ρ) ∧
-      ∃ (hs : s.Admissible prog) (hρ : validRate ρ) (hist : List Reading),
-        (∀ e ∈ HashChain.queries Block.input (FsState.seed prog input).cv hist, e ∈ logV) ∧
-        ∀ W : LeanWords prog s hs ρ hρ, (decode prog input s hs ρ hρ W hist).isSome := by
+    ∃ s ρ levels w st₁ hist, setup? prog proof = some (s, ρ) ∧
+      ladderOf prog s ρ = some levels ∧
+      walkChainLogged prog s input (levelShapes (stackMu prog s) levels)
+        (hashOf (MerkleTree.logAnswer log)) ⟨FsState.seed prog input, proof.stream, proof.merkle⟩ =
+        .ok ((w, hist), st₁) ∧
+      (∀ e ∈ HashChain.queries Block.input (FsState.seed prog input).cv hist, e ∈ logV) ∧
+      ∃ (hs : s.Admissible prog) (hρ : validRate ρ), ∀ W : LeanWords prog s hs ρ hρ,
+        ∃ tr, decode prog input s hs ρ hρ W hist = some tr ∧
+          wireOf (leanVm prog s) (leanIsaChain prog s hs ρ hρ).ladder tr =
+            Wire.view (levelShapes (stackMu prog s) levels) w := by
   obtain ⟨s, ρ, levels, w, st₁, hist, hsetup, hl, hw, hq⟩ := chain_in_log_of_replay h
-  obtain ⟨hs, hρ, hd⟩ := walkChainLogged_proof_decodes hsetup hl hw
-  refine ⟨s, ρ, hsetup, hs, hρ, hist, hq, fun W ↦ ?_⟩
-  obtain ⟨tr, htr, -⟩ := hd W
-  rw [htr]
-  rfl
+  exact ⟨s, ρ, levels, w, st₁, hist, hsetup, hl, hw, hq,
+    walkChainLogged_proof_decodes hsetup hl hw⟩
 
 /-! ## The verifier's queries, in closed form -/
 
@@ -515,6 +509,23 @@ theorem verifierQueries_le_bound (prog : Program) (input : PublicInput) :
   · exact queryCountAt_le_bound prog input _ (Nat.lt_succ_iff.mp hp.1)
       fun j ↦ Nat.lt_succ_iff.mp (p.2.1 j).isLt
   · exact Nat.zero_le _
+
+/-- `verifierQueriesBound` as a numeral. -/
+theorem verifierQueriesBound_eq : verifierQueriesBound = 13697 := by decide
+
+/-- **The random-oracle bound at leanVM, in closed form**: on every adversary asking at most `Q`
+queries, the hash misbehaves with probability at most `(Q + 13697) / 2^128` for the challenges and
+`hashTerm 13697 Q = (Q + 13697) (4 (Q + 13697) + 8) / 2^256` for collisions and hits, whatever the
+program and the public input, fixed before the adversary runs. -/
+theorem leanVm_misbehaves_rom_closed (prog : Program) (input : PublicInput) (A : Adversary)
+    {Q : ℕ} (hQ : IsTotalQueryBound A Q) :
+    Pr{let z ← runRandom (loggedGame verifyWith prog input A)}[
+      HashMisbehaves (rootsOf prog input) (leanVmReader prog input).Flip prog input z.1] ≤
+      ((Q + 13697 : ℕ) / 2 ^ 128 + hashTerm 13697 Q : ℝ≥0) := by
+  refine (leanVm_misbehaves_rom prog input A hQ).trans (ENNReal.coe_le_coe.mpr ?_)
+  refine (niError_mono_left _ (verifierQueries_le_bound prog input) Q).trans ?_
+  rw [verifierQueriesBound_eq]
+  exact (niError_le 13697 Q).trans (le_of_eq (by norm_num))
 
 end LeanVmReader
 

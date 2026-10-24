@@ -67,7 +67,7 @@ theorem readsSqueezes_sample : ReadsSqueezes historyOps.sample eSlot := by
   rfl
 
 /-- `k` squeezes read as their challenges. -/
-theorem read_samples : ∀ (ds : List Digest) (rest : List (Block × Digest)),
+private theorem read_samples : ∀ (ds : List Digest) (rest : List (Block × Digest)),
     (samples historyOps ds.length).read (squeezeBlocks ds ++ rest) =
       some (ds.map FsState.challengeOf, rest)
   | [], _ => rfl
@@ -170,7 +170,7 @@ theorem read_walkPositions (depth : ℕ) : ∀ (fuel need : ℕ) (ds : List Dige
 
 /-- The challenges of a schedule's position chunks: chunk `q % K` of challenge `q / K`, `K` the
 positions a squeeze gives. -/
-theorem getD_posChunks {depth : ℕ} (hK : 0 < 192 / depth) : ∀ (fuel need : ℕ) (xs : List E),
+private theorem getD_posChunks {depth : ℕ} (hK : 0 < 192 / depth) : ∀ (fuel need : ℕ) (xs : List E),
     need ≤ fuel → ∀ q < need, (posChunks depth fuel need xs).getD q 0 =
       chalBits (xs.getD (q / (192 / depth)) 0) / 2 ^ (q % (192 / depth) * depth) % 2 ^ depth
   | 0, _, _, hn, q, hq => absurd hq (by omega)
@@ -194,7 +194,7 @@ theorem getD_posChunks {depth : ℕ} (hK : 0 < 192 / depth) : ∀ (fuel need : �
       rcases xs with _ | ⟨x, xs⟩ <;> simp [hKdef]
 
 /-- Enough squeezes for the positions: `⌊192/depth⌋` to a squeeze. -/
-theorem le_posSqueezes_mul {depth : ℕ} (hK : 0 < 192 / depth) : ∀ fuel need, need ≤ fuel →
+private theorem le_posSqueezes_mul {depth : ℕ} (hK : 0 < 192 / depth) : ∀ fuel need, need ≤ fuel →
     need ≤ posSqueezes depth fuel need * (192 / depth)
   | 0, _, hn => by simp [posSqueezes]; omega
   | _ + 1, 0, _ => Nat.zero_le _
@@ -231,16 +231,12 @@ theorem readsSqueezes_positionsSlot (b t : ℕ) (hK : 0 < 192 / b) :
 /-! ## The history reader's slots are blind -/
 
 /-- Blindness, as a property of slots that `bind` keeps; its count is ignored. -/
-def blindGrade : MonadGrade (Slot Reading) where
+private def blindGrade : MonadGrade (Slot Reading) where
   P a _ := a.Blind
   pure x := Slot.Blind.pure x
   bind ha hf := Slot.Blind.bind ha hf
 
-theorem view_fst (a : Reading) : (view a).1 = a.1 := by
-  rcases a with ⟨b, d⟩
-  cases b <;> rfl
-
-theorem historyOps_blind (c : StepCounts) : ChainOps.Graded blindGrade historyOps c where
+private theorem historyOps_blind (c : StepCounts) : ChainOps.Graded blindGrade historyOps c where
   nextScalar := Slot.Blind.next fun ⟨b, d⟩ ↦ by cases b <;> rfl
   sample := Slot.Blind.next fun ⟨b, d⟩ ↦ by cases b <;> rfl
   nextRoot := by

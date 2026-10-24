@@ -19,12 +19,17 @@ alone: no walk's consumption of the stream depends on a value it reads (`walkCha
 offset `8`, after the announced sizes; each later level's root after the scalars of the levels
 before it and of its own fold rounds (`rootOffsets`). `rootsOf prog input proof` is the digests the
 proof's stream carries at those offsets, at the sizes and rate it announces; there are at most
-six (`length_rootsOf_le`): a root per level, the deployed ladders having at most six levels (six at
-`μ = 28`, the largest stack).
+`proofDigests = 6` (`length_rootsOf_le`): a root per level, the deployed ladders having at most six
+levels (six at `μ = 28`, the largest stack).
 
 `walkChain_roots`: the roots the chain walk reads on a history are the digests of the history's
 stream at the offsets, all present; `rootsOf_eq_of_walkChainLogged`: the roots the verifier's
 chain walk reads on a proof, its steps logged, are `rootsOf prog input proof`, in order.
+
+The same offsets counted in readings rather than scalars (`readingCounts`: a challenge and a nonce
+one reading each) locate the roots on the history itself: `walkChain_rootAt`, the roots at the
+reading offsets (`rootAt`) are the walk's, and a prefix reads the roots it carries whole
+(`rootAt_prefix`).
 -/
 
 namespace LeanerVM.Protocol
@@ -111,7 +116,7 @@ theorem length_ladder_le {μ ρ : ℕ} {levels : List Whir.Level}
 
 /-- **A proof has at most six roots.** -/
 theorem length_rootsOf_le (prog : Program) (input : PublicInput)
-    (proof : Proof PrunedMerklePaths) : (rootsOf prog input proof).length ≤ 6 := by
+    (proof : Proof PrunedMerklePaths) : (rootsOf prog input proof).length ≤ proofDigests := by
   unfold rootsOf
   rcases setup? prog proof with _ | ⟨s, ρ⟩
   · exact Nat.zero_le _
@@ -122,7 +127,7 @@ theorem length_rootsOf_le (prog : Program) (input : PublicInput)
       refine (List.length_filterMap_le _ _).trans ?_
       have := length_ladder_le hl
       simp only [rootOffsets, List.length_cons, length_levelRootOffsets,
-        length_filter_levelShapes]
+        length_filter_levelShapes, proofDigests]
       omega
 
 /-! ## The roots the walk reads -/
@@ -400,6 +405,220 @@ theorem rootsOf_eq_of_walkChainLogged {prog : Program} {input : PublicInput}
   obtain ⟨d, -, hd⟩ := List.mem_map.mp hmem
   rw [← hd]
   rfl
+
+/-! ## The roots the walk reads, by readings -/
+
+/-- The readings each primitive takes: a scalar one, a challenge one, a root two, a nonce one. -/
+def readingCounts : StepCounts := ⟨1, 1, 2, fun _ ↦ 1⟩
+
+/-- The root a history carries at reading `o`: two observes there, read as a digest. -/
+def rootAt (hist : List Reading) (o : ℕ) : Option Digest :=
+  match hist[o]?, hist[o + 1]? with
+  | some (.observe x₁, _), some (.observe x₂, _) => digestOfScalars (x₁, x₂)
+  | _, _ => none
+
+theorem rootAt_cons_succ (a : Reading) (hist : List Reading) (o : ℕ) :
+    rootAt (a :: hist) (o + 1) = rootAt hist o := rfl
+
+/-- Offsets past a prefix read the history after it. -/
+theorem rootAt_append (c l : List Reading) (o : ℕ) : rootAt (c ++ l) (c.length + o) = rootAt l o := by
+  induction c with
+  | nil => rw [List.nil_append, List.length_nil, Nat.zero_add]
+  | cons a c ih =>
+    rw [List.cons_append, List.length_cons, show c.length + 1 + o = c.length + o + 1 by omega,
+      rootAt_cons_succ, ih]
+
+/-- **A prefix reads the roots it carries whole.** -/
+theorem rootAt_prefix (hs rest : List Reading) {o : ℕ} (h : o + 1 < hs.length) :
+    rootAt (hs ++ rest) o = rootAt hs o := by
+  simp only [rootAt, List.getElem?_append_left (show o < hs.length by omega),
+    List.getElem?_append_left h]
+
+/-- The slots that read exactly `n` readings wherever they read. -/
+def readGrade : MonadGrade (Slot Reading) where
+  P a n := ∀ l x r, a.read l = some (x, r) → ∃ c, l = c ++ r ∧ c.length = n
+  pure x l y r h := by
+    rw [read_pure, Option.some.injEq, Prod.mk.injEq] at h
+    exact ⟨[], by simp [h.2], rfl⟩
+  bind {α β a f n k} ha hf l x r h := by
+    rw [read_bind, Option.bind_eq_some_iff] at h
+    obtain ⟨⟨y, l₁⟩, h₁, h₂⟩ := h
+    obtain ⟨c₁, rfl, hc₁⟩ := ha _ _ _ h₁
+    obtain ⟨c₂, rfl, hc₂⟩ := hf y _ _ _ h₂
+    exact ⟨c₁ ++ c₂, by simp, by rw [List.length_append, hc₁, hc₂]⟩
+
+private theorem next_readGrade {β : Type} {f : Reading → Option β} :
+    readGrade.P (Slot.next f) 1 := by
+  rintro (_ | ⟨a, l⟩) x r h
+  · exact nomatch h
+  · rw [read_next_cons, Option.map_eq_some_iff] at h
+    obtain ⟨y, -, he⟩ := h
+    obtain ⟨rfl, rfl⟩ := Prod.mk.inj he
+    exact ⟨[a], rfl, rfl⟩
+
+/-- **The history reader's primitives, counted** in the readings they take. -/
+theorem historyOps_readGraded : ChainOps.Graded readGrade historyOps readingCounts where
+  nextScalar := next_readGrade
+  sample := next_readGrade
+  nextRoot := readGrade.of_eq (readGrade.bind next_readGrade fun _ ↦
+    readGrade.bind (k := 0) next_readGrade fun _ ↦ by
+      split
+      · exact readGrade.pure _
+      · exact fun _ _ _ h ↦ nomatch h) rfl
+  checkPow _ := next_readGrade
+
+/-- A graded slot reads a prefix of exactly its count of readings. -/
+theorem read_bind_of_readGrade {α β : Type} {a : Slot Reading α} {f : α → Slot Reading β}
+    {n : ℕ} (ha : readGrade.P a n) {l : List Reading} {x : β} {r : List Reading}
+    (h : (a >>= f).read l = some (x, r)) :
+    ∃ y l₁, a.read l = some (y, l₁) ∧ (f y).read l₁ = some (x, r) ∧
+      ∃ c, l = c ++ l₁ ∧ c.length = n := by
+  rw [read_bind, Option.bind_eq_some_iff] at h
+  obtain ⟨⟨y, l₁⟩, h₁, h₂⟩ := h
+  obtain ⟨c, rfl, hc⟩ := ha _ _ _ h₁
+  exact ⟨y, l₁, h₁, h₂, c, rfl, hc⟩
+
+/-- A scalar read off a history is an observe step's. -/
+theorem eq_of_read_nextScalar {l : List Reading} {x : E} {r : List Reading}
+    (h : historyOps.nextScalar.read l = some (x, r)) : ∃ e, l = (.observe x, e) :: r := by
+  rcases l with _ | ⟨⟨b, e⟩, l⟩
+  · exact nomatch h
+  · change (scalarOf (b, e)).map (·, l) = some (x, r) at h
+    cases b with
+    | observe y =>
+      simp only [scalarOf, Option.map_some, Option.some.injEq, Prod.mk.injEq] at h
+      obtain ⟨rfl, rfl⟩ := h
+      exact ⟨e, rfl⟩
+    | squeeze => exact nomatch h
+    | nonce _ => exact nomatch h
+
+/-- A root read off a history is the root at its first reading. -/
+theorem rootAt_of_read_nextRoot {l : List Reading} {d : Digest} {r : List Reading}
+    (h : historyOps.nextRoot.read l = some (d, r)) : rootAt l 0 = some d := by
+  change ((historyOps.nextScalar >>= fun a ↦ historyOps.nextScalar >>= fun b ↦
+    match digestOfScalars (a, b) with
+    | some d => Pure.pure d
+    | none => Slot.fail).read l) = some (d, r) at h
+  rw [read_bind, Option.bind_eq_some_iff] at h
+  obtain ⟨⟨x₁, l₁⟩, h₁, h⟩ := h
+  rw [read_bind, Option.bind_eq_some_iff] at h
+  obtain ⟨⟨x₂, l₂⟩, h₂, h⟩ := h
+  obtain ⟨e₁, rfl⟩ := eq_of_read_nextScalar h₁
+  obtain ⟨e₂, rfl⟩ := eq_of_read_nextScalar h₂
+  show digestOfScalars (x₁, x₂) = some d
+  revert h
+  rcases digestOfScalars (x₁, x₂) with _ | d'
+  · exact fun h ↦ nomatch h
+  · intro h
+    rw [read_pure, Option.some.injEq, Prod.mk.injEq] at h
+    rw [h.1]
+
+/-- The setup's root is the root at reading `8`. -/
+theorem walkSetup_rootAt {l : List Reading} {d : Digest} {r : List Reading}
+    (h : (walkSetup historyOps).read l = some (d, r)) : rootAt l 8 = some d := by
+  obtain ⟨xs, l₁, -, h₂, c, rfl, hc⟩ :=
+    read_bind_of_readGrade (nextScalars_grade historyOps_readGraded 8) h
+  rw [show 8 = c.length + 0 by simp [readingCounts] at hc; omega, rootAt_append]
+  exact rootAt_of_read_nextRoot h₂
+
+/-- A level with a successor reads its root after its fold rounds. -/
+theorem walkLevel_rootAt (sh : LevelShape) (hf : sh.final = false) {l : List Reading}
+    {lv : WhirLevel} {r : List Reading} (h : (walkLevel historyOps sh).read l = some (lv, r)) :
+    ∃ d, lv.root = some d ∧ rootAt l (readingCounts.folds sh.fold) = some d := by
+  simp only [walkLevel, hf, Bool.false_eq_true, ↓reduceIte, pure_bind, bind_map_left] at h
+  obtain ⟨folds, l₁, -, h₂, c, rfl, hc⟩ :=
+    read_bind_of_readGrade (walkFolds_grade historyOps_readGraded _) h
+  rw [read_bind, Option.bind_eq_some_iff] at h₂
+  obtain ⟨⟨d, l₂⟩, h₃, h₄⟩ := h₂
+  refine ⟨d, ?_, ?_⟩
+  · refine (show AllOut _ fun lv : WhirLevel ↦ lv.root = some d from ?_) _ _ _ h₄
+    repeat' refine allOut_bind _ fun _ ↦ ?_
+    exact allOut_pure (Q := fun lv : WhirLevel ↦ lv.root = some d) rfl
+  · rw [← hc, show c.length = c.length + 0 from rfl, rootAt_append]
+    exact rootAt_of_read_nextRoot h₃
+
+/-- Offsets past a prefix read the history after it, offset by offset. -/
+theorem map_rootAt_shift (c l : List Reading) (offs : List ℕ) :
+    (offs.map (· + c.length)).map (rootAt (c ++ l)) = offs.map (rootAt l) := by
+  rw [List.map_map]
+  refine List.map_congr_left fun o _ ↦ ?_
+  simp only [Function.comp, Nat.add_comm o, rootAt_append]
+
+/-- The levels' roots are the roots at their reading offsets. -/
+theorem walkLevels_rootAt : ∀ (shs : List LevelShape) {l : List Reading} {ls : List WhirLevel}
+    {r : List Reading}, (walkLevels historyOps shs).read l = some (ls, r) →
+    (levelRootOffsets readingCounts 0 shs).map (rootAt l) = (ls.filterMap (·.root)).map some
+  | [], l, ls, r, h => by
+    rw [walkLevels, read_pure, Option.some.injEq, Prod.mk.injEq] at h
+    obtain ⟨rfl, -⟩ := h
+    rfl
+  | sh :: shs, l, ls, r, h => by
+    obtain ⟨lv, l₁, h₁, h₂, c, rfl, hc⟩ :=
+      read_bind_of_readGrade (walkLevel_grade historyOps_readGraded sh) h
+    rw [read_bind, Option.bind_eq_some_iff] at h₂
+    obtain ⟨⟨ls', l₂⟩, h₃, h₄⟩ := h₂
+    rw [read_pure, Option.some.injEq, Prod.mk.injEq] at h₄
+    obtain ⟨rfl, -⟩ := h₄
+    have ih := walkLevels_rootAt shs h₃
+    rw [levelRootOffsets, show 0 + readingCounts.level sh = 0 + c.length by rw [hc],
+      levelRootOffsets_add, List.map_append, map_rootAt_shift, ih, List.filterMap_cons]
+    cases hf : sh.final
+    · obtain ⟨d, hd, hdig⟩ := walkLevel_rootAt sh hf h₁
+      simp [hd, hdig]
+    · simp [walkLevel_root_of_final sh hf h₁]
+
+/-- WHIR's opening reads its levels' roots at their reading offsets, after the first round
+polynomial. -/
+theorem walkWhir_rootAt (shs : List LevelShape) {l : List Reading}
+    {x : List E × List WhirLevel} {r : List Reading}
+    (h : (walkWhir historyOps shs).read l = some (x, r)) :
+    (levelRootOffsets readingCounts 2 shs).map (rootAt l) = (x.2.filterMap (·.root)).map some := by
+  obtain ⟨first, l₁, -, h₂, c, rfl, hc⟩ :=
+    read_bind_of_readGrade (nextScalars_grade historyOps_readGraded 2) h
+  rw [read_bind, Option.bind_eq_some_iff] at h₂
+  obtain ⟨⟨levels, l₂⟩, h₃, h₄⟩ := h₂
+  rw [read_pure, Option.some.injEq, Prod.mk.injEq] at h₄
+  obtain ⟨rfl, -⟩ := h₄
+  have hc' : c.length = 2 := by simpa [readingCounts] using hc
+  rw [show 2 = 0 + c.length by omega, levelRootOffsets_add, map_rootAt_shift]
+  exact walkLevels_rootAt shs h₃
+
+/-- **The chain walk's roots, by readings**: on a history the chain walk reads, the roots at the
+reading offsets are the roots the walk reads, all present: the level-0 root, then the levels' roots
+in order. These are the offsets `wordsOf` reads the words' roots at. -/
+theorem walkChain_rootAt {prog : Program} {s : Sizes} {input : PublicInput}
+    {shs : List LevelShape} {l : List Reading} {w : Wire} {r : List Reading}
+    (h : (walkChain historyOps prog s input shs).read l = some (w, r)) :
+    (rootOffsets readingCounts prog s input shs).map (rootAt l) =
+      (w.root :: w.whir.filterMap (·.root)).map some := by
+  rw [walkChain_eq_setup] at h
+  obtain ⟨d, l₁, h₁, h₂, c₁, hl₁, hc₁⟩ :=
+    read_bind_of_readGrade (walkSetup_grade historyOps_readGraded) h
+  simp only [walkAfterSetup] at h₂
+  obtain ⟨_, l₂, -, h₃, c₂, rfl, hc₂⟩ :=
+    read_bind_of_readGrade (walkBus_grade historyOps_readGraded _ _) h₂
+  obtain ⟨_, l₃, -, h₄, c₃, rfl, hc₃⟩ :=
+    read_bind_of_readGrade (walkTables_grade historyOps_readGraded _ _) h₃
+  obtain ⟨_, l₄, -, h₅, c₄, rfl, hc₄⟩ :=
+    read_bind_of_readGrade (walkPub_grade historyOps_readGraded _) h₄
+  obtain ⟨_, l₅, -, h₆, c₅, rfl, hc₅⟩ :=
+    read_bind_of_readGrade (walkFlock_grade historyOps_readGraded _) h₅
+  obtain ⟨_, l₆, -, h₇, c₆, rfl, hc₆⟩ := read_bind_of_readGrade historyOps_readGraded.sample h₆
+  rw [read_bind, Option.bind_eq_some_iff] at h₇
+  obtain ⟨⟨⟨first, levels⟩, l₇⟩, h₈, h₉⟩ := h₇
+  rw [read_pure, Option.some.injEq, Prod.mk.injEq] at h₉
+  obtain ⟨rfl, -⟩ := h₉
+  have hl : l = (c₁ ++ c₂ ++ c₃ ++ c₄ ++ c₅ ++ c₆) ++ l₆ := by
+    rw [hl₁]
+    simp only [List.append_assoc]
+  have hstart : whirStart readingCounts prog s input =
+      2 + (c₁ ++ c₂ ++ c₃ ++ c₄ ++ c₅ ++ c₆).length := by
+    simp only [whirStart, List.length_append, hc₁, hc₂, hc₃, hc₄, hc₅, hc₆, readingCounts]
+    omega
+  rw [rootOffsets, show 8 * readingCounts.scalar = 8 from rfl, List.map_cons,
+    walkSetup_rootAt h₁, hstart, levelRootOffsets_add, hl, map_rootAt_shift, walkWhir_rootAt shs h₈]
+  rfl
+
 
 end Walk
 

@@ -236,7 +236,7 @@ theorem squeezeReads_rounds {C σ : Type} {d : ℕ}
       fun t ↦ squeezeReads_rounds hc (next a t) m
 
 /-- A run of `j + 1` rounds is a run of `j`, then round `j`'s slot. -/
-theorem run_succ_eq_some {D : SlotDecoder (Block × Digest) pSpec} {j : ℕ} {hj : j + 1 ≤ n}
+private theorem run_succ_eq_some {D : SlotDecoder (Block × Digest) pSpec} {j : ℕ} {hj : j + 1 ≤ n}
     {l : List (Block × Digest)} {tr : pSpec.Transcript ⟨j + 1, by omega⟩}
     {r : List (Block × Digest)} (h : D.run (j + 1) hj l = some (tr, r)) :
     ∃ t l₁ x, D.run j (by omega) l = some (t, l₁) ∧ (D.slot ⟨j, hj⟩ t).read l₁ = some (x, r) := by
@@ -693,10 +693,6 @@ end Seq
 theorem markAfter_draw {C : Type} {pre : Bool} (hp : pre = true) (N : Fin 1 → Bool) :
     MarkAfter (pSpec := draw C) pre (fun _ ↦ true) N :=
   fun i _ ↦ .inl ⟨Nat.lt_one_iff.mp i.1.isLt, hp⟩
-
-theorem lastFlag_one (pre : Bool) (b : Bool) : lastFlag pre (fun _ : Fin 1 ↦ b) = b := rfl
-
-theorem lastFlag_zero (pre : Bool) (N : Fin 0 → Bool) : lastFlag pre N = pre := rfl
 
 end
 
