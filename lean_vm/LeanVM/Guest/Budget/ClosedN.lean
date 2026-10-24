@@ -38,8 +38,8 @@ theorem deployedBudget_size_mono {Bvf Bvf' : ℕ → ℕ → ℕ} (u : End.Work)
 
 /-- **`verify_sub`'s words for a child of announced stack log `μ` and rate `r`** at the deployed
 instance: row `r - 1`, column `μ - 22` for the guest's opening arms (`22 ≤ μ ≤ 28`, `1 ≤ r ≤ 4`,
-`lean_ethereum.py:3314-3316`); `0` elsewhere, where no child of a node within `Limits` is
-(`B1.Main.childShape_bounds`). -/
+`lean_ethereum.py:3314-3316`); `0` elsewhere, where no child of a node within `Limits`, its caps agreeing and no zero
+challenge, is (`B1.Main.childShape_bounds`). -/
 def deployedBvAt (μ r : ℕ) : ℕ :=
   if 22 ≤ μ ∧ μ ≤ 28 ∧ 1 ≤ r ∧ r ≤ 4 then
     ([[562639, 574166, 596836, 609461, 620357, 634168, 656166],

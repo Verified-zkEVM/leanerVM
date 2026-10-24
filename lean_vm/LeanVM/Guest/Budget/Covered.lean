@@ -2,9 +2,10 @@
   LeanVM.Guest.Budget.Covered
 
   What the deployed budget covers, proved: every recursion node within the deployed limits (at
-  most `16` children, each at any of the guest's opening arms) of at most `2048` claims, with no
-  raw signature or blob held directly, and every leaf of at most `2048` raw signatures, with no
-  blob held directly, has a valid execution of the guest of committed size at most `2^28`.
+  most `16` children, each at any of the guest's opening arms) of at most `2048` declared claims,
+  coverage slots and children's claims, with no raw signature or blob held directly, and every
+  leaf of at most `2048` raw signatures, declared claims and coverage slots, with no blob held
+  directly, has a valid execution of the guest of committed size in `[2^22, 2^28]`.
 -/
 
 module

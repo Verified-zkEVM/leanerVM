@@ -17,8 +17,10 @@ and the guest's soundness with its witness named (`LeanVM.Guest.End.guest_knowle
 of `LeanVM/Spec/Guest.lean` for the deployed bytecode and the decoder `LeanVM.Guest.End.decode`;
 `guest_sentinelSafe`), and the guest's completeness within its deployed budget
 (`LeanVM.Guest.Budget.guest_complete`, `guest_complete_numeric`), with what it covers
-(`guest_complete_recursion`: every node of at most `16` children and `2048` claims holding no
-signature or blob directly; `guest_complete_leaf`: every leaf of at most `2048` raw signatures).
+(`guest_complete_recursion`: every node of at most `16` children, `2048` declared claims,
+coverage slots and children's claims, holding no signature or blob directly;
+`guest_complete_leaf`: every leaf of at most `2048` raw signatures, declared claims and coverage
+slots, holding no blob directly).
 The build fails if their axiom footprint ever grows beyond Lean's three standard axioms. -/
 
 /-- info: 'LeanVM.knowledgeSoundness_holds' depends on axioms: [propext, Classical.choice, Quot.sound] -/
