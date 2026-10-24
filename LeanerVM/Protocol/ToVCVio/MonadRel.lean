@@ -3,7 +3,9 @@
 
   Relations between the computations of two monads that `pure` and `bind` preserve, and
   properties of computations graded by a count that adds up along `bind`: what a program written
-  once over its primitives inherits from its primitives. Candidate for VCVio.
+  once over its primitives inherits from its primitives. Plain monad theory, importing only
+  `Mathlib.Init`; VCVio is its destination as the home of its first consumer, the query bounds
+  (`IsTotalQueryBound`) of programs written over oracle primitives.
 -/
 
 module

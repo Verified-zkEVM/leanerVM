@@ -16,6 +16,10 @@ history cut inside a group of squeezes, or whose announcement is changed, decode
 another word for level 0, which changes the query batch's claim, the history decodes to as many
 rounds (`decodePrefix_isSome_indep`).
 
+The verifiers of the bus phase, the table sumcheck and the public input (`Component.Front.check`
+of the phases of `leanVmPhases`) accept the decoded front, each on the statement the phase before
+hands it.
+
 The phases' ends are found by the verifier's walks run on the history (`historyOps`), independently
 of the decoder. Decoding is interpreted here, about half a minute for the whole history, most of it
 the algebra the claims need; the checks share one decoder.
@@ -117,6 +121,31 @@ def checks : List Bool :=
 
 -- The phases end where the walks on the history say.
 #guard phaseEnds == [10, 518, 639, 642, 841, 842, 844] && positionsStart == 882
+
+/-- The front phases' checks on the decoded front of the history, each on the statement the phase
+before hands it: the bus phase, the table sumcheck and the public input. The Flock phase's check,
+the specification's, does not finish in the interpreter within half an hour; the executable
+verifier's Flock algebra is checked on the fixture in `VerifyFlock`. -/
+def frontChecks : List Bool :=
+  if h : sizes.1.Admissible fx.prog ∧ validRate sizes.2 then
+    let I := leanVm fx.prog sizes.1
+    let hI := leanIsa_conditions _ fx.prog sizes.1
+    let c := leanIsaChain fx.prog sizes.1 h.1 sizes.2 h.2
+    let F := frontDec I hI fx.input (announcement sizes.1 sizes.2) (Words.zero c).level0
+    match F.decode (hist.take phaseEnds[5]!) with
+    | none => [false]
+    | some t =>
+      let P := leanVmPhases I hI
+      let t₅ := t.fst.fst
+      let sBus := P.bus.front.out fx.input t₅.fst.fst.fst.snd
+      let sTable := P.table.front.out sBus t₅.fst.fst.snd
+      [P.bus.front.check fx.input t₅.fst.fst.fst.snd, P.table.front.check sBus t₅.fst.fst.snd,
+        P.pub.front.check sTable t₅.fst.snd]
+  else [false]
+
+-- The bus phase's, the table sumcheck's and the public input's verifiers accept the front of the
+-- Rust proof, decoded.
+#guard frontChecks == [true, true, true]
 
 /-! ## The counts in closed form -/
 

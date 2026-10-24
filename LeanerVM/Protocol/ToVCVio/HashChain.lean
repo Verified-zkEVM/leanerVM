@@ -112,17 +112,18 @@ section Bookkeeping
 
 omit [DecidableEq D] [DecidableEq B]
 
-private theorem queries_append (enc : D → B → Q) (b : B) (cv' : D) :
-    ∀ (cv : D) (init : List (B × D)),
-      queries enc cv (init ++ [(b, cv')]) = queries enc cv init ++ [⟨enc (last cv init) b, cv'⟩]
-  | _, [] => rfl
-  | _, (_, c) :: init => by
-    simp only [List.cons_append, queries, last, queries_append enc b cv' c init]
+/-- The queries of two chains in sequence: the first's, then the second's from its last state. -/
+theorem queries_append (enc : D → B → Q) :
+    ∀ (cv : D) (s₁ s₂ : List (B × D)),
+      queries enc cv (s₁ ++ s₂) = queries enc cv s₁ ++ queries enc (last cv s₁) s₂
+  | _, [], _ => rfl
+  | _, (_, c) :: s₁, s₂ => by
+    simp only [List.cons_append, queries, last, queries_append enc c s₁ s₂]
 
-private theorem last_append (b : B) (cv' : D) :
-    ∀ (cv : D) (init : List (B × D)), last cv (init ++ [(b, cv')]) = cv'
-  | _, [] => rfl
-  | _, (_, c) :: init => last_append b cv' c init
+/-- The last state of two chains in sequence: the second's, from the first's. -/
+theorem last_append : ∀ (cv : D) (s₁ s₂ : List (B × D)), last cv (s₁ ++ s₂) = last (last cv s₁) s₂
+  | _, [], _ => rfl
+  | _, (_, c) :: s₁, s₂ => last_append c s₁ s₂
 
 private theorem queries_take (enc : D → B → Q) :
     ∀ (cv : D) (steps : List (B × D)) (j : ℕ),
@@ -202,8 +203,8 @@ private theorem walk_last (henc : ∀ d b, step? (enc d b) = some (d, b))
     rintro hchain (_ | f) hlen
     · simp at hlen
     rw [queries_append] at hchain
-    have hmem := hchain ⟨enc (last seed init) b, cv⟩ (by simp)
-    simp only [walk, last_append, hseed _ hmem, ↓reduceIte,
+    have hmem := hchain ⟨enc (last seed init) b, cv⟩ (by simp [queries])
+    simp only [walk, last_append, last, hseed _ hmem, ↓reduceIte,
       unique?_preimages hcoll hmem rfl (henc _ _),
       ih (fun e he ↦ hchain e (List.mem_append_left _ he)) f (by simpa using hlen), Option.map_some]
 
@@ -236,7 +237,7 @@ private theorem nodup_states (henc : ∀ d b, step? (enc d b) = some (d, b))
     obtain rfl := List.mem_singleton.mp hy
     obtain ⟨j, hj, rfl⟩ := exists_take_of_mem seed init x hx
     have := min_eq_of_last_take_eq henc hcoll hseed _ hchain (k := (init ++ [(b, y)]).length)
-      (by rwa [List.take_append_of_le_length hj, List.take_length, last_append])
+      (by rw [List.take_append_of_le_length hj, List.take_length, last_append]; simpa only [last])
     simp at this
     omega
 
@@ -269,9 +270,10 @@ private theorem queries_mem_take (hchunk : ∀ d b, d ∈ chunks (enc d b))
     obtain ⟨b, cv⟩ := x
     intro hchain n hn e he
     rw [queries_append] at hchain he
-    rw [last_append] at hn
+    simp only [last_append, last] at hn
     have hlast :=
-      mem_take_of_inPlay hmono hcons hhit (hchain ⟨enc (last seed init) b, cv⟩ (by simp)) hn
+      mem_take_of_inPlay hmono hcons hhit (hchain ⟨enc (last seed init) b, cv⟩ (by simp [queries]))
+        hn
     obtain ⟨p, hp, hpe⟩ := List.mem_take_iff_getElem.mp hlast
     have hinit : last seed init ∈ inPlay (log.take (p + 1)) := by
       rw [List.take_succ_eq_append_getElem (Nat.lt_min.mp hp).2]
@@ -402,7 +404,8 @@ private theorem last_of_walk {f : ℕ} {cv : D} {hs : List (B × D)}
     (h : walk step? log seed f cv = some hs) : last seed hs = cv := by
   rcases walk_eq_some h with ⟨rfl, rfl⟩ | ⟨_, _, _, _, -, -, -, -, rfl⟩
   · rfl
-  · exact last_append _ _ _ _
+  · rw [last_append]
+    rfl
 
 /-- A successful walk passes at most as many steps as its fuel. -/
 private theorem length_le_of_walk {f : ℕ} {cv : D} {hs : List (B × D)}

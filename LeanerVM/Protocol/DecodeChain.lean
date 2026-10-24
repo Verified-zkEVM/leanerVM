@@ -51,6 +51,9 @@ chain).
 
 Transcribed for the stream order from the pinned leanVM
 (`a386121f84292f6fa663aaa3e570c15bc0240ea2`), through the executable verifier's walk.
+
+Classification: T4 in the random-oracle model, the deterministic core: the reader of chain
+histories that the random-oracle bound charges (`LeanerVM.Protocol.LeanVmReader`).
 -/
 
 namespace LeanerVM.Protocol

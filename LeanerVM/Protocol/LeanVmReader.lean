@@ -14,6 +14,7 @@ public import LeanerVM.Protocol.ProofRoots
 public import LeanerVM.Protocol.VerifierQueries
 public import LeanerVM.Protocol.HashMisbehaves
 public import LeanerVM.Protocol.ListBindingBudget
+public import LeanerVM.Protocol.ChainLog
 
 /-!
 # The reader of leanVM's chain histories
@@ -42,6 +43,12 @@ query positions after their 17 bits of grinding (`bad_density`,
 `prEvent_lowBitsZero`). `leanVm_misbehaves_rom` is `misbehaves_rom` at the reader, the verifier
 `verifyWith`, its query bound `verifierQueries` and the proof's roots `rootsOf`.
 
+An accepted proof's history decodes, at the sizes and rate it announces
+(`walkChainLogged_proof_decodes`, `walkChain_proof_decodes`), and so does the history an accepted
+replay logs (`decodes_of_replay`). `verifierQueries_le_bound`: the verifier asks at most
+`verifierQueriesBound = 13697` queries whatever the program and the input, `μ_bus` at most `55`,
+the tables' heights at most `2^40`, and WHIR's walk and openings at most `8839` over the window.
+
 Classification: T4 (the non-interactive compilation), soundness direction; the random-oracle
 model's half, the hash's misbehaviour bounded for every adversary with a query bound.
 -/
@@ -50,6 +57,7 @@ namespace LeanerVM.Protocol
 
 open LeanerVM.Parameters LeanerVM.Semantics Blake2sHash LeanIsa OracleComp OracleSpec ProtocolSpec
 open StepSchedule Verify DecodeChain Whir LeanVmSlots ProofRoots SlotDecoder VerifierQueries
+  ChainLog
 open scoped NNReal ENNReal
 
 @[expose] public section
@@ -356,6 +364,157 @@ theorem leanVm_misbehaves_rom (A : Adversary) {Q : ℕ} (hQ : IsTotalQueryBound 
   misbehaves_rom (leanVmReader prog input) prog input rfl (leanVmReader_density prog input)
     verifyWith (verifierQueries_bound prog input) (rootsOf prog input)
     (length_rootsOf_le prog input) A hQ
+
+/-! ## An accepted proof's history decodes -/
+
+variable {prog input}
+
+/-- The sizes and the rate the setup accepts are the proof's announcement. -/
+theorem announced?_of_setup {M : Type} {p : Proof M} {s : Sizes} {ρ : ℕ}
+    (h : setup? prog p = some (s, ρ)) : p.announced? = some (s, ρ) := by
+  unfold setup? at h
+  split at h
+  · split at h
+    · cases h
+      assumption
+    · cases h
+  · cases h
+
+/-- **The verifier's logged chain walk on a proof decodes**: if the setup accepts the proof's
+announcement and the logged chain walk at the announced ladder succeeds on the proof from the
+statement's seed, the history it logged decodes, with any words, to a transcript whose wire is the
+walk's, viewed. -/
+theorem walkChainLogged_proof_decodes {proof : Proof PrunedMerklePaths} {s : Sizes} {ρ : ℕ}
+    {levels : List Parameters.Whir.Level} (hsetup : setup? prog proof = some (s, ρ))
+    (hl : ladderOf prog s ρ = some levels) {H : List UInt8 → Id Digest}
+    {st' : ReaderState PrunedMerklePaths} {w : Wire} {hist : List Reading}
+    (h : walkChainLogged prog s input (levelShapes (stackMu prog s) levels) H
+      ⟨FsState.seed prog input, proof.stream, proof.merkle⟩ = .ok ((w, hist), st')) :
+    ∃ (hs : s.Admissible prog) (hρ : validRate ρ), ∀ W : LeanWords prog s hs ρ hρ,
+      ∃ tr, decode prog input s hs ρ hρ W hist = some tr ∧
+        wireOf (leanVm prog s) (leanIsaChain prog s hs ρ hρ).ladder tr =
+          Wire.view (levelShapes (stackMu prog s) levels) w := by
+  obtain ⟨hs, hρ⟩ := of_decide_eq_true (setupOk_of_setup hsetup)
+  refine ⟨hs, hρ, fun W ↦ ?_⟩
+  rw [← shapes_leanIsaChain hs hρ hl] at h ⊢
+  exact walkChainLogged_decodes prog input s hs ρ hρ W h
+    (take_eq_announcement_of_announced? (announced?_of_setup hsetup))
+
+/-- **The verifier's chain walk on a proof decodes**: if the setup accepts the proof's
+announcement and the chain walk on the proof reader at the announced ladder succeeds from the
+statement's seed, the logged walk succeeds with the same wire, and its history decodes, with any
+words, to a transcript whose wire is the walk's, viewed. -/
+theorem walkChain_proof_decodes {proof : Proof PrunedMerklePaths} {s : Sizes} {ρ : ℕ}
+    {levels : List Parameters.Whir.Level} (hsetup : setup? prog proof = some (s, ρ))
+    (hl : ladderOf prog s ρ = some levels) {H : List UInt8 → Id Digest}
+    {st' : ReaderState PrunedMerklePaths} {w : Wire}
+    (h : runPlain (walkChain (readerOps H) prog s input (levelShapes (stackMu prog s) levels))
+      ⟨FsState.seed prog input, proof.stream, proof.merkle⟩ = .ok (w, st')) :
+    ∃ hist, walkChainLogged prog s input (levelShapes (stackMu prog s) levels) H
+        ⟨FsState.seed prog input, proof.stream, proof.merkle⟩ = .ok ((w, hist), st') ∧
+      ∃ (hs : s.Admissible prog) (hρ : validRate ρ), ∀ W : LeanWords prog s hs ρ hρ,
+        ∃ tr, decode prog input s hs ρ hρ W hist = some tr ∧
+          wireOf (leanVm prog s) (leanIsaChain prog s hs ρ hρ).ladder tr =
+            Wire.view (levelShapes (stackMu prog s) levels) w := by
+  obtain ⟨hist, hlog⟩ := walkChainLogged_of_walkChain H h
+  exact ⟨hist, hlog, walkChainLogged_proof_decodes hsetup hl hlog⟩
+
+/-- **An accepted replay's history decodes**: if the verifier replayed on a log accepts a proof,
+recording `logV`, then at the sizes and rate the proof announces the history of its chain walk is
+in `logV` from the statement's seed and decodes, with any words. -/
+theorem decodes_of_replay {log logV : hashSpec.QueryLog} {proof : Proof PrunedMerklePaths}
+    (h : replay log prog input proof = some (true, logV)) :
+    ∃ s ρ, setup? prog proof = some (s, ρ) ∧
+      ∃ (hs : s.Admissible prog) (hρ : validRate ρ) (hist : List Reading),
+        (∀ e ∈ HashChain.queries Block.input (FsState.seed prog input).cv hist, e ∈ logV) ∧
+        ∀ W : LeanWords prog s hs ρ hρ, (decode prog input s hs ρ hρ W hist).isSome := by
+  obtain ⟨s, ρ, levels, w, st₁, hist, hsetup, hl, hw, hq⟩ := chain_in_log_of_replay h
+  obtain ⟨hs, hρ, hd⟩ := walkChainLogged_proof_decodes hsetup hl hw
+  refine ⟨s, ρ, hsetup, hs, hρ, hist, hq, fun W ↦ ?_⟩
+  obtain ⟨tr, htr, -⟩ := hd W
+  rw [htr]
+  rfl
+
+/-! ## The verifier's queries, in closed form -/
+
+/-- The most queries WHIR's walk and openings ask over the window. -/
+def whirQueriesMax : ℕ := 8839
+
+/-- WHIR's walk and openings ask at most `whirQueriesMax` queries: one decision on the window. -/
+theorem whirQueries_le {μ ρ : ℕ} {levels : List Parameters.Whir.Level}
+    (h : Parameters.Whir.ladder μ ρ = some levels) :
+    queryCounts.whir (levelShapes μ levels) + openingsCount (levelShapes μ levels) ≤
+      whirQueriesMax := by
+  have hadm : Parameters.Whir.Admissible μ ρ := by
+    unfold Parameters.Whir.ladder at h
+    split_ifs at h with h'
+    exact h'
+  have key : ∀ μ < Parameters.Whir.maxLogStack + 1, ∀ ρ < Parameters.Whir.maxLogInvRate + 1,
+      ∀ ls ∈ Parameters.Whir.ladder μ ρ,
+        queryCounts.whir (levelShapes μ ls) + openingsCount (levelShapes μ ls) ≤
+          whirQueriesMax := by
+    decide +kernel
+  exact key μ (Nat.lt_succ_of_le hadm.2.1) ρ (Nat.lt_succ_of_le hadm.2.2.2) levels h
+
+/-- **A bound on the verifier's queries whatever the program and the input**: the setup, the bus
+phase at `μ_bus = 55`, the table sumcheck at `τ_max = 40`, the public input's two sent lines, the
+Flock phase at `τ_BLAKE2S = 32`, `λ`, and WHIR's most over the window. -/
+def verifierQueriesBound : ℕ :=
+  queryCounts.setup + queryCounts.bus 55 192 + queryCounts.tables 40 110 + queryCounts.pub 2 +
+    queryCounts.flock maxLogRows + queryCounts.sample + whirQueriesMax
+
+/-- The queries at sizes within the box are at most `verifierQueriesBound`. -/
+theorem queryCountAt_le_bound (prog : Program) (input : PublicInput) {s : Sizes} (ρ : ℕ)
+    (hm : s.logMem ≤ maxLogMem) (hτ : ∀ j, s.τ j ≤ maxLogRows) :
+    queryCountAt prog input s ρ ≤ verifierQueriesBound := by
+  unfold queryCountAt
+  split
+  · exact Nat.zero_le _
+  rename_i levels hl
+  have hw := whirQueries_le hl
+  have hbus : queryCounts.bus (leanVm prog s).μBus (leanVm prog s).busClaims ≤
+      queryCounts.bus 55 192 := by
+    have hμ : (leanVm prog s).μBus ≤ 55 :=
+      leanIsa_μBus_le_of Blake2sFlock.blake2sFlockSpec (prog := prog) hm hτ
+    have hc := busClaims_le (leanVm prog s)
+    rw [show (leanVm prog s).boundary.length = 6 from rfl] at hc
+    have key : ∀ m < 56, queryCounts.layers (gkrRadices m) 0 ≤
+        queryCounts.layers (gkrRadices 55) 0 := by decide +kernel
+    have := key _ (Nat.lt_succ_of_le hμ)
+    simp only [StepCounts.bus, queryCounts] at this ⊢
+    omega
+  have hτmax : (leanVm prog s).τmax ≤ 40 :=
+    Finset.sup_le fun j _ ↦ leanIsa_height_le_of hm hτ j.1
+  have htab : queryCounts.tables (leanVm prog s).τmax (leanVm prog s).tableColumns ≤
+      queryCounts.tables 40 110 := by
+    have hw : ∑ j, (leanVm prog s).width j = 110 := by
+      show ∑ j : Fin 9, LeanIsa.width j = 110
+      decide +kernel
+    have hc : (leanVm prog s).tableColumns ≤ 110 :=
+      (sum_sumcheckTables_le (leanVm prog s) (leanVm prog s).width).trans hw.le
+    simp only [StepCounts.tables, StepCounts.rounds, StepCounts.round, queryCounts]
+    omega
+  have hfl : queryCounts.flock (s.τ 5) ≤ queryCounts.flock maxLogRows := by
+    have := hτ 5
+    simp only [StepCounts.flock, StepCounts.rounds, StepCounts.round, queryCounts]
+    omega
+  have hpub : PublicInput.sentCount (leanVm prog s) ((leanVm prog s).publicLines input) = 2 := rfl
+  simp only [queryCount, StepCounts.chain, hpub, verifierQueriesBound]
+  omega
+
+/-- **The verifier asks at most `verifierQueriesBound` queries**, whatever the program and the
+input. -/
+theorem verifierQueries_le_bound (prog : Program) (input : PublicInput) :
+    verifierQueries prog input ≤ verifierQueriesBound := by
+  unfold verifierQueries
+  refine Finset.sup_le fun p hp ↦ ?_
+  unfold sizesBox at hp
+  simp only [Finset.mem_product, Finset.mem_range, Finset.mem_univ, true_and] at hp
+  unfold queryCountOf
+  split_ifs
+  · exact queryCountAt_le_bound prog input _ (Nat.lt_succ_iff.mp hp.1)
+      fun j ↦ Nat.lt_succ_iff.mp (p.2.1 j).isLt
+  · exact Nat.zero_le _
 
 end LeanVmReader
 

@@ -35,23 +35,6 @@ open LeanerVM.Parameters LeanerVM.Semantics Blake2sHash LeanIsa Verify DecodeCha
 
 @[expose] public section
 
-namespace HashChain
-
-variable {Q D B : Type}
-
-theorem queries_append' (enc : D → B → Q) :
-    ∀ (cv : D) (s₁ s₂ : List (B × D)),
-      queries enc cv (s₁ ++ s₂) = queries enc cv s₁ ++ queries enc (last cv s₁) s₂
-  | _, [], _ => rfl
-  | _, (b, c) :: s₁, s₂ => by
-    simp only [List.cons_append, queries, last, queries_append' enc c s₁ s₂]
-
-theorem last_append' : ∀ (cv : D) (s₁ s₂ : List (B × D)), last cv (s₁ ++ s₂) = last (last cv s₁) s₂
-  | _, [], _ => rfl
-  | _, (_, c) :: s₁, s₂ => last_append' c s₁ s₂
-
-end HashChain
-
 namespace ChainLog
 
 /-- The proof reader whose hash is answered from a log. -/
@@ -101,12 +84,11 @@ def logRel : MonadRel RW (LoggedWalk Id) where
     refine ⟨c₁ ++ c₂, ?_, ⟨L₁ ++ L₂, by rw [hlog₂, hlog₁, List.append_assoc], fun e he ↦ ?_⟩, ?_⟩
     · rw [runLogged_bind, hc₁]
       simpa using hc₂
-    · rw [HashChain.queries_append', ← hv₁, List.mem_append] at he
+    · rw [HashChain.queries_append, ← hv₁, List.mem_append] at he
       rcases he with he | he
       · exact List.mem_append_left _ (hL₁ e he)
       · exact List.mem_append_right _ (hL₂ e he)
-    · rw [HashChain.last_append', ← hv₁, hv₂]
-
+    · rw [HashChain.last_append, ← hv₁, hv₂]
 
 /-! ## The primitives -/
 
@@ -261,7 +243,6 @@ theorem log_checkPow (bits : ℕ) :
         simp [Block.input, Block.elem, Block.tag]
     · exact nomatch h
 
-
 theorem log_throw {α : Type} (e : ReadError) : logRel.R (throw e : RW α) (throw e) := by
   intro st log x st' log' h
   exact nomatch h
@@ -292,7 +273,6 @@ theorem walkChain_log {prog : Program} {s : Sizes} {input : PublicInput} {shs : 
   obtain ⟨hist, h₁, h₂, h₃⟩ :=
     walkChain_rel (related_log ans) prog s input shs st log w st' log' h []
   exact ⟨hist, by simpa [walkChainLogged] using h₁, h₂, h₃⟩
-
 
 /-! ## The verifier's replay -/
 
@@ -406,7 +386,6 @@ theorem chain_of_replay {log : (List UInt8 →ₒ Digest).QueryLog} {prog : Prog
   simp only [runReplay_pure, Option.some.injEq, Prod.mk.injEq] at hr'
   rw [← hr'.2]
   exact hpre
-
 
 /-- **An accepted replay's log holds the chain**: if the verifier replayed on a log accepts a
 proof, recording `logV`, the proof announces sizes and a rate with a ladder, the chain walk with its

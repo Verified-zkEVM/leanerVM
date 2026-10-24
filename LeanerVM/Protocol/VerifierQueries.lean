@@ -28,6 +28,9 @@ hash (`openingsOk`).
 `verifierQueries prog input` its maximum over the admissible sizes and rates, and
 `verifierQueries_bound`: for every proof, the verifier at the random oracle asks at most
 `verifierQueries prog input` queries.
+
+Classification: T4 in the random-oracle model, the budget: the verifier's query bound that the
+random-oracle bound's error is charged at (`misbehaves_rom`).
 -/
 
 namespace LeanerVM.Protocol
@@ -213,7 +216,6 @@ theorem readerOps_graded : ChainOps.Graded queryGrade (readerOps hashQuery) quer
   nextRoot := nextRoot_grade
   checkPow := checkPow_grade
 
-
 /-! ## The openings -/
 
 /-- Hashing rows asks one query per row and yields one leaf per row. -/
@@ -348,7 +350,6 @@ theorem walkOpenings_queries (nLanes : ℕ) : ∀ (first : Bool) (root : Digest)
     · simp only [openingsCount]
       exact Nat.add_le_add_right (Nat.mul_le_mul_right _ hq) _
 
-
 /-! ## The verifier -/
 
 theorem finish_grade : queryGrade.P (Reader.finish (m := OracleComp hashSpec)
@@ -408,7 +409,6 @@ theorem isTotalQueryBound_verifyWith {prog : Program} {input : PublicInput}
         (isTotalQueryBound_walk prog s input _ ⟨FsState.seed prog input, proof.stream,
           proof.merkle⟩ hok)
     · rcases r with _ | ⟨w, rows⟩ <;> exact isTotalQueryBound_pure _ _
-
 
 /-! ## The maximum over the admissible sizes -/
 

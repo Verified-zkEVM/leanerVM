@@ -19,7 +19,8 @@ alone: no walk's consumption of the stream depends on a value it reads (`walkCha
 offset `8`, after the announced sizes; each later level's root after the scalars of the levels
 before it and of its own fold rounds (`rootOffsets`). `rootsOf prog input proof` is the digests the
 proof's stream carries at those offsets, at the sizes and rate it announces; there are at most
-`proofDigests = 6` (`length_rootsOf_le`), the deployed ladders having at most five levels.
+six (`length_rootsOf_le`): a root per level, the deployed ladders having at most six levels (six at
+`μ = 28`, the largest stack).
 
 `walkChain_roots`: the roots the chain walk reads on a history are the digests of the history's
 stream at the offsets, all present; `rootsOf_eq_of_walkChainLogged`: the roots the verifier's
@@ -78,9 +79,6 @@ def rootsOf (prog : Program) (input : PublicInput) (proof : Proof PrunedMerklePa
       (rootOffsets scalarCounts prog s input (levelShapes (stackMu prog s) levels)).filterMap
         (digestAt proof.stream)
 
-/-- The most roots a proof has. -/
-def proofDigests : ℕ := 6
-
 /-- One root per level with a successor. -/
 theorem length_levelRootOffsets (c : StepCounts) : ∀ (o : ℕ) (shs : List LevelShape),
     (levelRootOffsets c o shs).length = (shs.filter fun sh ↦ !sh.final).length
@@ -113,7 +111,7 @@ theorem length_ladder_le {μ ρ : ℕ} {levels : List Whir.Level}
 
 /-- **A proof has at most six roots.** -/
 theorem length_rootsOf_le (prog : Program) (input : PublicInput)
-    (proof : Proof PrunedMerklePaths) : (rootsOf prog input proof).length ≤ proofDigests := by
+    (proof : Proof PrunedMerklePaths) : (rootsOf prog input proof).length ≤ 6 := by
   unfold rootsOf
   rcases setup? prog proof with _ | ⟨s, ρ⟩
   · exact Nat.zero_le _
@@ -124,9 +122,8 @@ theorem length_rootsOf_le (prog : Program) (input : PublicInput)
       refine (List.length_filterMap_le _ _).trans ?_
       have := length_ladder_le hl
       simp only [rootOffsets, List.length_cons, length_levelRootOffsets,
-        length_filter_levelShapes, proofDigests]
+        length_filter_levelShapes]
       omega
-
 
 /-! ## The roots the walk reads -/
 
@@ -308,7 +305,6 @@ theorem walkLevels_roots : ∀ (shs : List LevelShape) {l : List Reading} {ls : 
     · obtain ⟨d, hd, hdig⟩ := walkLevel_root sh hf h₁
       simp [hd, hdig]
     · simp [walkLevel_root_of_final sh hf h₁]
-
 
 /-- Offsets past a prefix of the stream read the stream after it. -/
 theorem map_digestAt_shift {l l₁ : List Reading} {s : List E} (hs : streamOf l = s ++ streamOf l₁)
