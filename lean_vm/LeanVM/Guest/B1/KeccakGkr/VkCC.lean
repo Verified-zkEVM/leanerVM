@@ -94,5 +94,92 @@ theorem stepCore_of_flips {s b : ℕ} (hs : s < 12) (hb : 17 ≤ b) (hσ : ∀ v
   simp only [Stmt.HoldsList, Stmt.Holds, Atom.Holds]
   exact ⟨by rw [e0]; exact hpp, trivial, m2, HE (HF (HI hn))⟩
 
+/-- A load of a block is residual. -/
+theorem load_mem_resid {B : List Stmt} {d p : V} {off : ℕ} (h : Stmt.atom (.load d p off) ∈ B) :
+    Atom.load d p off ∈ resid (atomsL B) :=
+  List.mem_filter.mpr ⟨mem_atomsL.mpr h, by simp [needsSide, inkB]⟩
+
+/-- **The first claim's flips, completely.** -/
+theorem flips0_complete {b : ℕ} (hσ : ∀ v, σ v = σ (.n v.idx))
+    (hg : ∀ st ∈ stepCore 0 b, GoodS rd vkSt w σ st) (hk : stepKer 0 b) {L0 : E}
+    (hL0 : LoadHolds rd (σ (.n 274)) 30 L0) {c : KeccakClaim}
+    (hw0 : ∀ z < 64, c.weights.getD z 0 = L0 * gen ^ z) :
+    (∀ i ∈ iotaUsed 0, σ (.n (flipOf 0 (b + 6) i)) = c.weights.getD (2 ^ i - 1) 0) ∧
+      ∀ {next : Prop} {kret : List E → Prop}, next →
+        Stmt.HoldsList C rd σ (flipsT 0 (b + 6)) next kret := by
+  obtain ⟨-, -, k3, k4, k5, k6, -⟩ := hk
+  have HF : ∀ {next : Prop} {kret : List E → Prop}, next →
+      Stmt.HoldsList C rd σ (flipsT 0 (b + 6)) next kret :=
+    fun hn ↦ loads_complete k3 hσ k4 (fun st h ↦ hg st (mem_stepCoreF h)) k5 k6
+      (fun q hq off h1 h2 ↦ by
+        simp only [flipPs, ↓reduceIte, List.mem_singleton] at hq
+        subst hq
+        obtain rfl : off = 30 := by simp only at h1 h2; omega
+        exact ⟨_, hL0⟩) hn
+  obtain ⟨hfl, -⟩ := flipsT_holds0 (C := C) (fun v hv ↦ loadHolds_unique hv hL0)
+    (HF (next := True) (kret := fun _ ↦ True) trivial)
+  refine ⟨fun i hi ↦ ?_, HF⟩
+  have hi7 := List.mem_range.1 (List.mem_filter.1 hi).1
+  have hz : 2 ^ i - 1 < 64 := by
+    have : 2 ^ i ≤ 2 ^ 6 := Nat.pow_le_pow_right (by norm_num) (by omega)
+    omega
+  rw [hfl i hi, hw0 _ hz]
+
+/-- **A later claim's flips, completely.** -/
+theorem flipsL_complete {s b : ℕ} (hs1 : 1 ≤ s) (hσ : ∀ v, σ v = σ (.n v.idx))
+    (hg : ∀ st ∈ stepCore s b, GoodS rd vkSt w σ st) (hk : stepKer s b) {lp lc sl : E}
+    {lanes loc : List E} (hlp : LoadHolds rd (σ (.n 201)) (22 * s + 3) lp)
+    (hlc : LoadHolds rd (σ (.n 201)) (22 * s + 4) lc)
+    (hsl : LoadHolds rd (σ (.n 201)) (22 * s + 5) sl) (hlanes : ReadsAt rd lp lanes)
+    (hlen : lanes.length = 25) (hlocL : loc.length = keccakLocalBits)
+    (heZ : ReadsAt rd sl (eqKernel (loc.take 6))) {c : KeccakClaim}
+    (hw : c.weights = laterWeights lanes (eqKernel (loc.take 6))) :
+    (∀ i ∈ iotaUsed s, σ (.n (flipOf s (b + 6) i)) = c.weights.getD (2 ^ i - 1) 0) ∧
+      ∀ {next : Prop} {kret : List E → Prop}, next →
+        Stmt.HoldsList C rd σ (flipsT s (b + 6)) next kret := by
+  obtain ⟨-, -, k3, k4, k5, k6, -⟩ := hk
+  have hs0 : s ≠ 0 := by omega
+  have heL : (eqKernel (loc.take 6)).length = 64 := by
+    simp [eqKernel_length, hlocL, keccakLocalBits]
+  -- the pointers each flip loads
+  have hptr : ∀ j < (iotaUsed s).length, σ (.n (b + 6 + 46 * j)) = lp ∧
+      σ (.n (b + 6 + 46 * j + 1)) = sl := by
+    intro j hj
+    have hm : ∀ a ∈ [Atom.load (.n (b + 6 + 46 * j)) (.n 201) (22 * s + 3),
+        .load (.n (b + 6 + 46 * j + 1)) (.n 201) (22 * s + 5)], Stmt.atom a ∈ flipsT s (b + 6) := by
+      intro a ha
+      simp only [flipsT, List.mem_flatten, List.mem_map, List.mem_range]
+      refine ⟨_, ⟨j, hj, rfl⟩, ?_⟩
+      simp only [List.mem_cons, List.not_mem_nil, or_false] at ha
+      rcases ha with rfl | rfl <;> simp [flipT, hs0, flipSz]
+    have m0 := hm (.load (.n (b + 6 + 46 * j)) (.n 201) (22 * s + 3)) (by simp)
+    have m1 := hm (.load (.n (b + 6 + 46 * j + 1)) (.n 201) (22 * s + 5)) (by simp)
+    exact ⟨load_val (w := w) (hg _ (mem_stepCoreF m0)) (not_mem_of_noneIn k6 _ (load_mem_resid m0)) hlp,
+      load_val (w := w) (hg _ (mem_stepCoreF m1)) (not_mem_of_noneIn k6 _ (load_mem_resid m1)) hsl⟩
+  have HF : ∀ {next : Prop} {kret : List E → Prop}, next →
+      Stmt.HoldsList C rd σ (flipsT s (b + 6)) next kret :=
+    fun hn ↦ loads_complete k3 hσ k4 (fun st h ↦ hg st (mem_stepCoreF h)) k5 k6
+      (fun q hq off h1 h2 ↦ by
+        simp only [flipPs, hs0, ↓reduceIte, List.mem_cons, List.mem_flatMap, List.mem_range,
+          List.not_mem_nil, or_false] at hq
+        rcases hq with rfl | ⟨j, hj, rfl | rfl⟩
+        · simp only at h1 h2 ⊢
+          rcases (show off = 22 * s + 3 ∨ off = 22 * s + 4 ∨ off = 22 * s + 5 by omega)
+            with rfl | rfl | rfl
+          · exact ⟨_, hlp⟩
+          · exact ⟨_, hlc⟩
+          · exact ⟨_, hsl⟩
+        · simp only at h2 ⊢
+          rw [(hptr j hj).1]
+          exact ⟨_, hlanes off (by omega)⟩
+        · simp only at h2 ⊢
+          rw [(hptr j hj).2]
+          exact ⟨_, heZ off (by omega)⟩) hn
+  obtain ⟨hfl, -⟩ := flipsT_holdsL (C := C) hs0 hlp hsl hlanes hlen heZ heL
+    (HF (next := True) (kret := fun _ ↦ True) trivial)
+  refine ⟨fun i hi ↦ ?_, HF⟩
+  rw [hfl i hi, hw, laterWeights_low lanes (loc.take 6) (by simp [hlocL, keccakLocalBits])
+    (List.mem_range.1 (List.mem_filter.1 hi).1)]
+
 end
 end LeanVM.Guest.B1.VerifySub
