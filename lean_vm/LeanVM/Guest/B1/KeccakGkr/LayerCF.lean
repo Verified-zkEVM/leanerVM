@@ -13,7 +13,7 @@ public import LeanVM.Guest.B1.KeccakGkr.LayerCD
 /-!
 # The tail, completely
 
-`tail_complete`: on an evaluated valuation, with the last record's scale in memory, `t`'s packed
+`layer_tail_complete`: on an evaluated valuation, with the last record's scale in memory, `t`'s packed
 cells and the capacity canonical, the lane weights of the local point (at `loc`, in memory), and
 the honest final check, `β` and the capacity are the squeeze's; and with the next claim's record
 (its value, its pointers, its lanes and slices) in memory, the tail holds and returns the
@@ -125,7 +125,7 @@ theorem good_at {B : List Stmt} (hg : ∀ s ∈ B, GoodS rd S w σ s) {a : Atom}
 set_option maxRecDepth 20000 in
 set_option maxHeartbeats 1000000 in
 /-- **The tail, completely.** -/
-theorem tail_complete {first odd : ℕ} (hf : first < 2) (ho : odd < 2)
+theorem layer_tail_complete {first odd : ℕ} (hf : first < 2) (ho : odd < 2)
     (hσ : ∀ v, σ v = σ (.n v.idx))
     (hg : ∀ s ∈ tailPre (4 * odd) (weightEnd first (4 * odd)) (weightVal first (4 * odd)),
       GoodS rd S w σ s)

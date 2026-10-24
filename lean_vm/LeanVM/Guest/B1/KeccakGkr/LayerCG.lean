@@ -44,7 +44,7 @@ theorem readsAt_drop {rd : Reader} {p : E} {xs : List E} (h : ReadsAt rd p xs) (
   rw [loadHolds_mul_gen_pow, List.getElem_drop]
   exact h _ _
 
-theorem readsAt_take {rd : Reader} {p : E} {xs : List E} (h : ReadsAt rd p xs) (k : ℕ) :
+theorem kk_readsAt_take {rd : Reader} {p : E} {xs : List E} (h : ReadsAt rd p xs) (k : ℕ) :
     ReadsAt rd p (xs.take k) := by
   intro i hi
   rw [List.getElem_take]
@@ -218,11 +218,11 @@ theorem layer_body_complete {first odd : ℕ} (hf : first < 2) (ho : odd < 2) (D
     fun hn ↦ rmfe_complete (C := coreProgram.Rel rd) hσ gR
     (fun i hi ↦ by
       rw [a12, e1089, ← outW_mu]
-      exact readsAt_getD hout (by simp [LayerData.outW, LayerData.next, layerClaim,
+      exact kk_readsAt_getD hout (by simp [LayerData.outW, LayerData.next, layerClaim,
         keccakInstanceWeights_length]; omega))
     (by
       rw [a12, e1089]
-      have := readsAt_getD hout (k := 1) (by simp [LayerData.outW])
+      have := kk_readsAt_getD hout (k := 1) (by simp [LayerData.outW])
       simpa [LayerData.outW, LayerData.next, layerClaim, LayerData.sv] using this) hn
   -- the product at `s`
   have HH : ∀ {next : Prop} {kret : List E → Prop}, next →
@@ -281,7 +281,7 @@ theorem layer_body_complete {first odd : ℕ} (hf : first < 2) (ho : odd < 2) (D
       ([D.t.1, D.t.2.1, D.t.2.2].getD k 0) := by
     intro k hk
     rw [e1323, ← loadHolds_mul_gen_pow, mul_assoc, ← pow_add]
-    exact readsAt_getD hxT (by simp; omega)
+    exact kk_readsAt_getD hxT (by simp; omega)
   obtain ⟨et0, et1, et2, HT⟩ := tReads_complete (C := coreProgram.Rel rd) gT (hS23 · ·)
     (by simpa using hT 0 (by norm_num)) (by simpa using hT 1 (by norm_num))
     (by simpa using hT 2 (by norm_num))
@@ -375,7 +375,7 @@ theorem layer_body_complete {first odd : ℕ} (hf : first < 2) (ho : odd < 2) (D
         σ (.n (4 * odd + 2006))) = σ (.n (4 * odd + 1985)) := by
     rw [hwv, hv1215, e1089, et0, et1, et2, ← hvR]
     exact hfin
-  obtain ⟨eβ, ecapB, HTl⟩ := tail_complete (C := coreProgram.Rel rd) hf ho hσ gTP (hS17 _ _)
+  obtain ⟨eβ, ecapB, HTl⟩ := layer_tail_complete (C := coreProgram.Rel rd) hf ho hσ gTP (hS17 _ _)
     (not_mem_of_noneIn hRt) hA
     (fsPackOk_of_vals v0) (fsPackOk_of_vals v1) (fsPackOk_of_vals v2) hlocL hlocσ hfw hsc hfin'
   have eTail : tailSq σ (4 * odd) = D.beta first := by
@@ -396,7 +396,7 @@ theorem layer_body_complete {first odd : ℕ} (hf : first < 2) (ho : odd < 2) (D
   have ho' : ∀ k < 6, LoadHolds rd (σ (.n 12)) k ((D.outW first (w 1309)
       (w (weightEnd first (4 * odd) + 34)) (w (4 * odd + 1325))
       (w (weightEnd first (4 * odd) + 278))).getD k 0) := fun k hk ↦ by
-    rw [a12]; exact readsAt_getD hout (by simp [LayerData.outW]; omega)
+    rw [a12]; exact kk_readsAt_getD hout (by simp [LayerData.outW]; omega)
   have e2085 : σ (.n (4 * odd + 2085)) = cw.getD 3 0 := by
     have g := gW (.atom (.load (.n (4 * odd + 2085)) (.n 11) 3)) (by unfold weightT; split <;> simp)
     exact load_val (w := w) g (hS11 _ _) (by rw [a11]; exact hcw' 3 (by norm_num))

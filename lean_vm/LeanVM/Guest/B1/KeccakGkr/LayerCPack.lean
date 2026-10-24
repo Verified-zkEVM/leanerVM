@@ -41,7 +41,7 @@ theorem flatPairs_get : ∀ (ms : List (E × E)) (k : ℕ) (hk : k < ms.length),
       List.getD_cons_succ, List.getD_cons_succ, List.getD_cons_succ, List.getD_cons_succ]
     exact this
 
-theorem readsAt_getD {p : E} {xs : List E} (h : ReadsAt rd p xs) {k : ℕ} (hk : k < xs.length) :
+theorem kk_readsAt_getD {p : E} {xs : List E} (h : ReadsAt rd p xs) {k : ℕ} (hk : k < xs.length) :
     LoadHolds rd p k (xs.getD k 0) := by
   rw [List.getD_eq_getElem _ _ hk]; exact h k hk
 
@@ -62,8 +62,8 @@ theorem xs_packReads (hpl : D.product.length = 47) {cur : E} (hxs : ReadsAt rd c
   obtain ⟨h, -⟩ := h
   obtain ⟨h1, h2⟩ := flatPairs_get D.packMsgs k hk
   have hl := flatMap_pairs_length D.packMsgs
-  have l1 := readsAt_getD h (k := 2 * k) (by omega)
-  have l2 := readsAt_getD h (k := 2 * k + 1) (by omega)
+  have l1 := kk_readsAt_getD h (k := 2 * k) (by omega)
+  have l2 := kk_readsAt_getD h (k := 2 * k + 1) (by omega)
   rw [h1, loadHolds_mul_gen_pow] at l1
   rw [h2, loadHolds_mul_gen_pow] at l2
   exact ⟨l1, by rwa [Nat.add_assoc]⟩
@@ -151,9 +151,9 @@ theorem packStep_honest (hpl : D.product.length = 47) (hpm : D.packMsgs.length =
     (D.packMsgs.getD (2 * j + 1) (0, 0)).1, (D.packMsgs.getD (2 * j + 1) (0, 0)).2,
     by simpa [recCur, hk0] using r0, (run_cap (2 * j)).1.2, ?_, ?_, ?_, ?_, ?_, ?_⟩
   · rw [gen_sq, loadHolds_mul_gen_pow, Nat.add_zero]
-    exact readsAt_getD hpp (by omega)
+    exact kk_readsAt_getD hpp (by omega)
   · rw [gen_sq, loadHolds_mul_gen_pow]
-    exact readsAt_getD hpp (by omega)
+    exact kk_readsAt_getD hpp (by omega)
   · rw [recCur, hk0]
     intro k hk
     simp only [List.length_cons, List.length_nil] at hk
@@ -164,9 +164,9 @@ theorem packStep_honest (hpl : D.product.length = 47) (hpm : D.packMsgs.length =
     · convert g1e' using 2; rfl
     · convert g2e' using 2; rfl
   · rw [gen_sq, loadHolds_mul_gen_pow, Nat.add_zero, ← c0]
-    exact readsAt_getD hpt (by omega)
+    exact kk_readsAt_getD hpt (by omega)
   · rw [gen_sq, loadHolds_mul_gen_pow, ← c1]
-    exact readsAt_getD hpt (by omega)
+    exact kk_readsAt_getD hpt (by omega)
   · refine roundRec_pred ?_
     simp only [recCur, hk1] at r1
     rw [recCur, hk0, mul_assoc, ← pow_add,
@@ -204,7 +204,7 @@ theorem round_honest (hpl : D.product.length = 47) (hpm : D.packMsgs.length = D.
       (D.packMsgs.getD (2 * j) (0, 0)).2, by simpa [recCur, hk0] using r0, (run_cap (2 * j)).1.2,
       ?_, ?_, ?_, ?_⟩
     · rw [gen_sq, loadHolds_mul_gen_pow, Nat.add_zero]
-      exact readsAt_getD hpp (by omega)
+      exact kk_readsAt_getD hpp (by omega)
     · rw [recCur, hk0]
       intro k hk
       simp only [List.length_cons, List.length_nil] at hk
@@ -213,7 +213,7 @@ theorem round_honest (hpl : D.product.length = 47) (hpm : D.packMsgs.length = D.
       · convert g1e using 2; rfl
       · convert g2e using 2; rfl
     · rw [gen_sq, loadHolds_mul_gen_pow, Nat.add_zero, ← c0]
-      exact readsAt_getD hpt (by omega)
+      exact kk_readsAt_getD hpt (by omega)
     · refine roundRec_pred ?_
       simp only [recCur, hk1] at r1
       rw [recCur, hk0, mul_assoc, ← pow_add, show 47 + 2 * (2 * j) + 2 = 47 + 2 * D.y by omega]

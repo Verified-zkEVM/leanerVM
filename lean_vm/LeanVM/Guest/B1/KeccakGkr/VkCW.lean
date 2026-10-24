@@ -12,7 +12,7 @@ public import LeanVM.Guest.B1.KeccakGkr.VkKidsBW
 /-!
 # `verify_keccak` within its words
 
-`VkCompleteAtB fs cert κ Bvk`: `VkCompleteAt` by trees of at most `Bvk` words.
+`VkCompleteAtBK fs cert κ Bvk`: `VkCompleteAtK` by trees of at most `Bvk` words.
 `verify_keccak_completeAtB_fs`: it holds at the deployed frame sizes `B2C.fs` with
 `vkBound = B2C.fs "verify_keccak" + 464 + 81723`: the frame, the nineteen buffers (`τ + 436`
 words, `τ ≤ 28`) and the callees (`kidsB_fs_le`), by `completeAt_flatGB` on the same
@@ -28,8 +28,8 @@ open LeanVM.Protocol.KeccakGkr
 
 @[expose] public section
 
-/-- **`verify_keccak`, placed, within `Bvk` words** (`VkCompleteAt` bounded). -/
-def VkCompleteAtB (fs : String → ℕ) (cert : String → V → ℕ) (κ Bvk : ℕ) : Prop :=
+/-- **`verify_keccak`, placed, within `Bvk` words** (`VkCompleteAtK` bounded). -/
+def VkCompleteAtBK (fs : String → ℕ) (cert : String → V → ℕ) (κ Bvk : ℕ) : Prop :=
   ∀ (τ : ℕ) (f chis outs xs op point slices cap' : List E) (word m0 : E)
     (curE chiE olE zvE slE : ℕ), 9 ≤ τ → τ ≤ 28 → τ ≤ chis.length → outs.length = 25 →
     f.length = 5 → AllCanonical f → (∃ sp, (⟨f, []⟩ : Fs).Carries sp) →
@@ -57,7 +57,7 @@ set_option maxRecDepth 20000 in
 set_option maxHeartbeats 4000000 in
 /-- **`verify_keccak` is complete, placed, within `vkBound` words at `B2C.fs`.** -/
 theorem verify_keccak_completeAtB_fs (κ : ℕ) :
-    VkCompleteAtB LeanVM.Guest.B2C.fs cert κ vkBound := by
+    VkCompleteAtBK LeanVM.Guest.B2C.fs cert κ vkBound := by
   intro τ f chis outs xs op point slices cap' word m0 curE chiE olE zvE slE hτ1 hτ2 hchis houts
     hf hcan hc hrun
   obtain ⟨D, rfl, rfl, rfl, rfl, rfl, rfl, h, rfl, rfl, rfl, hfin⟩ :=

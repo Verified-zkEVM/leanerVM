@@ -34,7 +34,7 @@ theorem plain60_stores : storesOf 10 Data.core258.body =
       .load (.n 194) (.n 9) 3, .load (.n 239) (.n 9) 4, .load (.n 284) (.n 9) 5] := by
   decide +kernel
 
-theorem six_of_length {α : Type} {l : List α} (h : l.length = 6) :
+theorem kk_six_of_length {α : Type} {l : List α} (h : l.length = 6) :
     ∃ a b c d e f, l = [a, b, c, d, e, f] := by
   match l, h with
   | [a, b, c, d, e, f], _ => exact ⟨a, b, c, d, e, f, rfl⟩
@@ -58,7 +58,7 @@ theorem plain60_complete (rd : Reader) (args rets : List E)
   match args, hm with
   | [f0, f1, f2, f3, f4, p0, p1, cur, value, point], hm =>
   obtain ⟨hcanF, rounds, hlen, hreads, hrun⟩ := hm
-  obtain ⟨⟨a0, b0⟩, ⟨a1, b1⟩, ⟨a2, b2⟩, ⟨a3, b3⟩, ⟨a4, b4⟩, ⟨a5, b5⟩, rfl⟩ := six_of_length hlen
+  obtain ⟨⟨a0, b0⟩, ⟨a1, b1⟩, ⟨a2, b2⟩, ⟨a3, b3⟩, ⟨a4, b4⟩, ⟨a5, b5⟩, rfl⟩ := kk_six_of_length hlen
   obtain ⟨hpt, hret⟩ := hrun 0 (fun h ↦ absurd h (by decide))
   simp only [plainStart, show ¬ (0 : ℕ) = 1 by decide, ↓reduceIte] at hpt hret
   have rd' : ∀ k (hk : k < 12), LoadHolds rd cur k ([a0, b0, a1, b1, a2, b2, a3, b3, a4, b4, a5,

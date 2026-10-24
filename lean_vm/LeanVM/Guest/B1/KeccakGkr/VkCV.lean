@@ -11,7 +11,7 @@ public import LeanVM.Guest.B1.KeccakGkr.VkCU
 /-!
 # `verify_keccak`, complete and placed
 
-`VkCompleteAt fs cert κ`: for every accepting run of `keccakSeg` from a carried capacity `f` (the
+`VkCompleteAtK fs cert κ`: for every accepting run of `keccakSeg` from a carried capacity `f` (the
 instance coordinates `chis`, the output lanes `outs`, the words read `xs`, the committed outputs'
 opening `op`, the inputs' point `point`, the slices), `verify_keccak` is complete at every frame
 pointer: the caller's words are the stream, the coordinates and lanes, `z_vals` and the slices'
@@ -36,7 +36,7 @@ open LeanVM.Guest.B1.Main (MemL RegionL)
 @[expose] public section
 
 /-- **`verify_keccak`, placed** (fork c4's shape, with the carried capacity). -/
-def VkCompleteAt (fs : String → ℕ) (cert : String → V → ℕ) (κ : ℕ) : Prop :=
+def VkCompleteAtK (fs : String → ℕ) (cert : String → V → ℕ) (κ : ℕ) : Prop :=
   ∀ (τ : ℕ) (f chis outs xs op point slices cap' : List E) (word m0 : E)
     (curE chiE olE zvE slE : ℕ), 9 ≤ τ → τ ≤ 28 → τ ≤ chis.length → outs.length = 25 →
     f.length = 5 → AllCanonical f → (∃ sp, (⟨f, []⟩ : Fs).Carries sp) →
@@ -176,7 +176,7 @@ theorem vk_obl {D : VkData} (h : D.Ok) {cap' : List E} {m0 : E} (hfin : D.fin = 
 
 open VkData in
 /-- **`verify_keccak` is complete, placed.** -/
-theorem verify_keccak_completeAt (κ : ℕ) : VkCompleteAt fs cert κ := by
+theorem verify_keccak_completeAt (κ : ℕ) : VkCompleteAtK fs cert κ := by
   intro τ f chis outs xs op point slices cap' word m0 curE chiE olE zvE slE hτ1 hτ2 hchis houts
     hf hcan hc hrun
   obtain ⟨D, rfl, rfl, rfl, rfl, rfl, rfl, h, rfl, rfl, rfl, hfin⟩ :=
