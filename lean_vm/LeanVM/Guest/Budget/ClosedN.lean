@@ -2,7 +2,7 @@
   LeanVM.Guest.Budget.ClosedN
 
   The guest's completeness within the deployed budget with every number explicit:
-  `verify_sub`'s words per child are `661678` (`Count.deployedBv_eq`).
+  `verify_sub`'s words per child are `656166` (`Count.deployedBv_eq`).
 -/
 
 module
@@ -39,9 +39,9 @@ theorem deployedBudget_size_mono {Bvf Bvf' : ℕ → ℕ → ℕ} (h : ∀ μ r,
     omega
 
 /-- **The aggregation guest is complete within the deployed budget**, `verify_sub`'s words per
-child `661678`: the budget's words `Count.deployedWords fun _ _ => 661678`, its instructions
-`Count.deployedInstrs (fun _ _ => 661678) op`. -/
-theorem guest_complete_numeric : GuestCompleteWithin (deployedBudget fun _ _ => 661678) :=
+child `656166`: the budget's words `Count.deployedWords fun _ _ => 656166`, its instructions
+`Count.deployedInstrs (fun _ _ => 656166) op`. -/
+theorem guest_complete_numeric : GuestCompleteWithin (deployedBudget fun _ _ => 656166) :=
   Count.deployedBv_eq ▸ guest_complete
 
 end

@@ -19,6 +19,14 @@ open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Memory Le
 
 @[expose] public section
 
+/-- **`open_stacked`'s named callees' words**: `wSB` on the names `osKindOf` knows, `0` on the
+others (the queries' callees and the loops, which `osBk` bounds by `osSpB`). -/
+noncomputable def osBnd (f : String) : ℕ := if (B1.osKindOf f).isSome then wSB f else 0
+
+theorem osLeafBoundsB : B1.OsLeafBounds B2C.fs osBnd := fun f K hK => by
+  have h := osLeafBounds f K hK
+  simpa [osBnd, hK] using h
+
 /-- `verify_tables`' callees but `__loop10` and `shared_selector_tables`, with their core
 indices. -/
 def vtPairs : List (String × ℕ) :=
@@ -157,9 +165,9 @@ noncomputable def vsWords : B1.VerifySub.VsWords B2C.fs where
   h10 := wSK_totalLeOn (j := 252) (by decide +kernel)
   B14 := 10576
   hl14 := B1.VerifySub.l14_totalLeOn_fs
-  Bnd := wSB
+  Bnd := osBnd
   Kr := wSK
-  hleaf := osLeafBounds
+  hleaf := osLeafBoundsB
   hloop := fun μ r h1 h2 h3 h4 => osLoopBounds _ (by unfold B1.Whir.candidate; omega)
   Beqc := 184
   K15 := 38
