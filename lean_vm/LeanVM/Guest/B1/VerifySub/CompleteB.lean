@@ -16,6 +16,8 @@ public import LeanVM.Guest.B1.Gkr.VbgB
 public import LeanVM.Guest.B1.Tables.VtC.ABound
 public import LeanVM.Guest.B1.Place.OsCandB
 public import LeanVM.Guest.Budget.Bounded
+public import LeanVM.Guest.B1.Tables.VtC.AWeight
+public import LeanVM.Guest.B1.VerifySub.H.TermCBW
 
 /-!
 # `verify_sub` within a bound
@@ -71,7 +73,9 @@ noncomputable def vtBnd (fs : String → ℕ) (Kf : String → ℕ) (Ksh K10 m n
 `assert_canonical`'s (`Bg`, `Ba`), `verify_bus_gkr`'s loops and rounds (`K29`, `R`, `K8`),
 `verify_tables`' callees (`Kf`, `Ksh`, `K10`), `ring_switch_target`'s loop (`B14`),
 `open_stacked`'s leaves and residual loops (`Bnd`, `Kr`), the terminal's pure callees (`Beqc`,
-`K15`, `Bcs`, `Brs`). -/
+`K15`, `Bcs`, `Brs`); and, at the weights `ωv op` (an opcode's instructions per frame), the weights
+of `verify_tables`' callees (`Kvw`, `Wss`, `Kw10`) and of the terminal's (`Weqc`, `W15`, `Wst`,
+`Wcs`, `Wrsw`), which bound those two callees' trees (`vtWB`, `termWB`). -/
 structure VsWords (fs : String → ℕ) : Type where
   Bg : ℕ
   hg : TotalLe coreProgram fs "g_power_of_word" fun _ ↦ Bg
@@ -109,6 +113,39 @@ structure VsWords (fs : String → ℕ) : Type where
   hCsF : ∀ κ' < 29, fs (Tables.lName "column_selector" κ') ≤ Bcs
   hrs : ∀ c ≤ 34, TotalLeOn coreProgram fs "rs_eq_run" (fun a ↦ a.getD 3 0 = gen ^ c)
     fun _ ↦ Brs
+  ωv : Opcode → String → ℕ
+  Kvw : Opcode → String → ℕ
+  Wss : Opcode → ℕ
+  Kw10 : Opcode → ℕ
+  hKvw : ∀ op, ∀ g ∈ Tables.vtKidS, g ≠ "__loop10" → g ≠ "__loop9" → g ≠ "shared_selector_tables" →
+    WeightLe coreProgram (ωv op) g (fun _ ↦ Kvw op g)
+  hssw : ∀ op (rd : Reader) (t : Tree) (args rets : List E), t.name = "shared_selector_tables" →
+    (∃ n < 64, args.getD 5 0 = gen ^ n) → t.Valid coreProgram rd args rets →
+    t.BufsOk coreProgram → t.weight (ωv op) ≤ Wss op
+  h10w : ∀ op, Budget.LoopW (ωv op) "__loop10" (Kw10 op)
+  Weqc : Opcode → ℕ
+  W15 : Opcode → ℕ
+  Wst : Opcode → ℕ
+  Wcs : Opcode → ℕ
+  Wrsw : Opcode → ℕ
+  hEqcW : ∀ op, WeightLe coreProgram (ωv op) "eq_prefix_chain" fun _ ↦ Weqc op
+  hStW : ∀ op, WeightLe coreProgram (ωv op) "selector_tables" fun _ ↦ Wst op
+  hCsW : ∀ op, ∀ κ' < 29, WeightLe coreProgram (ωv op) (Tables.lName "column_selector" κ')
+    fun _ ↦ Wcs op
+  h15W : ∀ op (rd : Reader) (t : Tree) (args rets : List E), t.name = "__loop15" →
+    t.Valid coreProgram rd args rets → t.BufsOk coreProgram →
+    t.total fs ≤ max (fs "__loop15") (32 * K15) → t.weight (ωv op) ≤ W15 op
+  hrswW : ∀ op (rd : Reader) (t : Tree) (args rets : List E), t.name = "ring_switch_weight" →
+    t.Valid coreProgram rd args rets → t.BufsOk coreProgram →
+    t.total fs ≤ fs "ring_switch_weight" + 2240 + Brs → t.weight (ωv op) ≤ Wrsw op
+
+/-- **`verify_tables`' weight bound** at `W.ωv op`: its frame's and its calls' (`vtBs`). -/
+noncomputable def vtWB {fs : String → ℕ} (W : VsWords fs) (op : Opcode) : ℕ :=
+  W.ωv op "verify_tables" + (Tables.vtBs (W.Kvw op) (W.Wss op) (28 * W.Kw10 op)).sum
+
+/-- **The terminal's weight bound** at `W.ωv op`: its frame's and its calls' (`termWs`). -/
+noncomputable def termWB {fs : String → ℕ} (W : VsWords fs) (op : Opcode) : ℕ :=
+  W.ωv op "check_opening_terminal" + (termWs W.Weqc W.W15 W.Wst W.Wcs W.Wrsw op).sum
 
 /-- **The callees' bounds**, in call order (`vs_calls`). -/
 noncomputable def vsBs {fs : String → ℕ} (W : VsWords fs) (Bvk : ℕ) : List ℕ :=
