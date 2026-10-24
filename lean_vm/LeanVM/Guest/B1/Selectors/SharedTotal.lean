@@ -87,8 +87,8 @@ theorem ss_totalLeOn (K9 Ksp : ℕ)
     rw [← h5, ← hpar, hp]; rfl
   -- the walk: the straight statements, then the dispatch
   have hws : walk σ fn.body =
-      (walk σ [ssDisp, .ret []]).pre (ssS.flatMap (Main.slEvs σ)) := by
-    rw [hbody, ssPre_eq, List.append_assoc]
+      (walk σ [ssDispV, .ret []]).pre (ssS.flatMap (Main.slEvs σ)) := by
+    rw [hbody, ssPre_eq_disp, List.append_assoc]
     exact walk_pre_straight σ _ ssS ssS_straight
   -- the atoms before the loop hold
   have hatoms : ∀ a, Stmt.atom a ∈ ssA → a.Holds rd σ := by
@@ -98,7 +98,7 @@ theorem ss_totalLeOn (K9 Ksp : ℕ)
       rw [← ssA_eq_take] at ha
       exact List.mem_of_mem_take ha
     rw [hws] at hw
-    cases hd : walk σ [ssDisp, .ret []] with
+    cases hd : walk σ [ssDispV, .ret []] with
     | ret es0 vs0 =>
       rw [hd, Out.pre, Out.ret.injEq] at hw
       exact hes _ (hw.1 ▸ List.mem_append_left _ hX)
@@ -107,7 +107,7 @@ theorem ss_totalLeOn (K9 Ksp : ℕ)
   obtain ⟨e39, e20, e44, e45⟩ := ss_body_vals
     (holdsList_of_atoms (C := fun _ _ _ ↦ True) ssA ssA_atoms hatoms) hn hσ5
   -- the dispatch enters `sel_partial_nibble__L{n % 4}`
-  have hdisp : walk σ [ssDisp, .ret []] =
+  have hdisp : walk σ [ssDispV, .ret []] =
       .ret [.call (lName "sel_partial_nibble" (n % 4)) [.n 49, .n 50, .n 51, .n 52, .n 53]
         [.n 54]] [] := by
     have hpk := LeanVM.Guest.B1.pick_eq σ (.n 20) [.n 49, .n 50, .n 51, .n 52, .n 53] [.n 54]
@@ -116,7 +116,7 @@ theorem ss_totalLeOn (K9 Ksp : ℕ)
       (by rw [e20, gen_pow_eq_ofK])
     simp only [Nat.sub_zero] at hpk
     rw [lName_sel_partial (n % 4) (by omega)] at hpk
-    simp only [ssDisp, walk, walk1, hpk, Out.seq, Out.pre, List.append_nil]
+    simp only [ssDispV, walk, walk1, hpk, Out.seq, Out.pre, List.append_nil]
   have hes : es = ssS.flatMap (Main.slEvs σ) ++
       [.call (lName "sel_partial_nibble" (n % 4)) [.n 49, .n 50, .n 51, .n 52, .n 53] [.n 54]] := by
     rw [hws, hdisp, Out.pre, Out.ret.injEq] at hw
