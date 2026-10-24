@@ -1,0 +1,308 @@
+"""The guest's static count and words certificate families, generated from the guest data.
+
+    python3 -I scripts/count/gen.py LEAN_VM CMD [--cache DIR]
+
+`LEAN_VM` is the `lean_vm` directory; the data is read from `LeanVM/Guest/Data/` and the modules
+written under `LeanVM/Guest/`. `CMD` is one of
+
+* `report`: the coverage, per family, and the bounds of `main`'s callees;
+* `words`: `Memory/GuestWords/` and `Memory/GuestWords.lean`, the certificates counting words at
+  the deployed frame sizes `B2C.fs`, over every function;
+* `cnt`: `Memory/GuestCnt{X,M,S,D,J,K}/`, their tops and `Memory/GuestCntPm.lean`, the
+  certificates counting each opcode's instructions at `B2C.ωArm B2C.xmssArmC op` (`pathMax`, and
+  `verify_lean_xmss`'s separately counted arms), over the closure of `ROOTS`;
+* `static`: `Count/Static.lean`, the bounds of `ROOTS` the families give, per opcode and in words;
+* `ratio`: `Count/RatioData.lean`, `Count/RatioChk*.lean` and `Count/Ratio.lean`, the counts of
+  `RATIO_ROOTS` (no static bound) within ratios of their words, per opcode (`ratio.py`);
+* `all`: `words`, `cnt`, `static` and `ratio`.
+
+The checker is `checker.py`, a mirror of `Memory/Static.lean`; `--cache` keeps the parsed core IR.
+Build the families' parts one module at a time (each is a few GB)."""
+import sys, os, re, argparse
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import core, checker, writelean, ratio
+
+HERE = os.path.dirname(os.path.abspath(__file__))
+# (Lean opcode, family letter, index in `Opcode`'s order)
+OPS = [('xor', 'X', 0), ('mulNative', 'M', 1), ('setConstant', 'S', 2), ('deref', 'D', 3),
+       ('jump', 'J', 4), ('keccak', 'K', 5)]
+XMSS = 'verify_lean_xmss'
+MAIN_FRAME = 427 + 8473  # B2C.mainFrame
+# `main`'s statically bounded callees, and `__loop5`'s loop over a child's DA roots.
+CONST_ROOTS = [('Exp', 'exponent_tables'), ('Dl', 'da_list_digest'), ('Cov', 'cover_da_root'),
+               ('Sd', 'statement_digest')]
+LOOP_ROOTS = [('L0', '__loop0'), ('L1', '__loop1'), ('L2', '__loop2'), ('L3', '__loop3'),
+              ('L4', '__loop4'), ('L28', '__loop28')]
+AGG = 'aggregate_claims'
+ROOTS = [n for _, n in CONST_ROOTS] + [n for _, n in LOOP_ROOTS] + [AGG]
+# Functions bounded by a ratio of their words: (name in Lean, function).
+RATIO_ROOTS = [('Cl', 'claim_list_digest'), ('Dv', 'da_verify'), ('Agg', 'aggregate_claims'),
+               ('L5', '__loop5')]
+MAIN_CALLEES = ['exponent_tables', '__loop0', 'da_list_digest', 'claim_list_digest', '__loop1',
+                '__loop2', '__loop3', '__loop4', 'da_verify', 'cover_da_root', '__loop5',
+                AGG, 'statement_digest']
+
+
+class G:
+    def __init__(self, lv, cache):
+        self.lv = lv
+        self.main_frame = MAIN_FRAME
+        self.D = os.path.join(lv, 'LeanVM', 'Guest', 'Data')
+        self.LD = os.path.join(lv, 'LeanVM', 'Guest', 'Memory')
+        self.fns = core.load(self.D, cache)
+        checker.set_pows(core.load_pows(self.D))
+        self.pm = core.load_pmax(self.D)
+        self.fsz = core.load_frame_sizes(self.D)
+        self.arms = core.load_cpl_arms(self.D)
+        self.by = {f['name']: i for i, f in self.fns.items()}
+        self.N = len(self.fns)
+        assert len(self.pm) == self.N and len(self.fsz) == self.N + 1, 'data out of step'
+        self.xj = self.by[XMSS]
+        for j, a in enumerate(self.arms):
+            assert not a or j == self.xj + 1, 'only verify_lean_xmss counts arms separately'
+        self.C = [self.arm_max(k) for k in range(6)]
+        lean = open(os.path.join(lv, 'LeanVM', 'Guest', 'B2C', 'ArmBound.lean'), encoding='utf-8').read()
+        m = re.search(r'def xmssArmC \(op : Opcode\) : ℕ := \[([\d, ]*)\]', lean)
+        assert m and [int(x) for x in m.group(1).split(',')] == self.C, \
+            'B2C.xmssArmC is not %s: update B2C/ArmBound.lean' % self.C
+
+    def arm_max(self, k):
+        """`B2C.costMaxW` of `verify_lean_xmss`'s body at opcode `k`."""
+        acs = self.arms[self.xj + 1]
+        def key(x):
+            for p in acs:
+                if p[0] == x: return max([l[k] if k < len(l) else 0 for l in p[1]] + [0])
+            return 0
+        def m1(s):
+            if s[0] == 'ite': return max(mw(s[2]), mw(s[3]))
+            if s[0] == 'match': return key(s[1]) + max([mw(a) for a in s[2]] + [0])
+            return 0
+        def mw(ss): return sum(m1(s) for s in ss)
+        return mw(self.fns[self.xj]['body'])
+
+    def omega_cnt(self, k):
+        """`B2C.ωArm B2C.xmssArmC op` by name, `op` the `k`-th opcode."""
+        return {f['name']: self.pm[i + 1][k] + (self.C[k] if i == self.xj else 0)
+                for i, f in self.fns.items()}
+
+    def fs_words(self):
+        """`B2C.fs` by name."""
+        return {f['name']: (MAIN_FRAME if i == 0 else max(2, self.fsz[i + 1]))
+                for i, f in self.fns.items()}
+
+    def closure(self, roots):
+        S = set(); st = list(roots)
+        while st:
+            n = st.pop()
+            if n in S: continue
+            S.add(n); st += list(checker.callees(self.fns[self.by[n]]['body'], set()))
+        return S
+
+    def words_certs(self):
+        return checker.gen(self.fns, self.fs_words(), alpha=True)[1]
+
+    def cnt_certs(self):
+        S = self.closure(ROOTS)
+        out = []
+        for lop, P, k in OPS:
+            om = self.omega_cnt(k)
+            cert = checker.gen(self.fns, om, only=S)[1]
+            miss = sorted(S - set(cert))
+            assert not miss, '%s: closure functions not certified: %s' % (lop, miss)
+            out.append((lop, P, k, om, cert))
+        return S, out
+
+
+def write_tpl(path, text):
+    open(path, 'w', encoding='utf-8').write(text)
+
+
+def tpl(name):
+    return open(os.path.join(HERE, 'templates', name), encoding='utf-8').read()
+
+
+def cmd_words(g):
+    fs = g.fs_words()
+    cert = g.words_certs()
+    gr, mods = writelean.write_lean(g.LD, g.fns, cert, fs, B=1200, alpha=True, fam='GuestWords',
+                                    mem=(700, 1500),
+                                    pre='w')
+    t = tpl('GuestWords.lean').replace('NFNS', str(g.N))
+    write_tpl(os.path.join(g.LD, 'GuestWords.lean'), t)
+    print('words: certified %d of %d; %d ranges, %d parts' % (len(cert), g.N, len(gr), len(mods)))
+    return cert
+
+
+def ntree(items, name, defs, depth=0):
+    if not items: return '.leaf'
+    m = len(items) // 2
+    k = items[m]
+    l = ntree(items[:m], name + 'l', defs, depth + 1)
+    r = ntree(items[m + 1:], name + 'r', defs, depth + 1)
+    s = '(.node %d %d %s %s)' % (k, k, l, r)
+    if depth == 3:
+        defs.append((name, s)); return name
+    return s
+
+
+def cmd_cnt(g):
+    S, fams = g.cnt_certs()
+    for lop, P, k, om, cert in fams:
+        gr, mods = writelean.write_lean(g.LD, g.fns, cert, om, B=1200, alpha=False, fam='GuestCnt' + P,
+                                        pre='kw' + P.lower(), mem=(700, 1500))
+        print('cnt %s: certified %d (closure %d); %d ranges, %d parts' % (lop, len(cert), len(S), len(gr), len(mods)))
+        H = '.'.join(['2'] * k + ['1']) if k < 5 else '.'.join(['2'] * 5)
+        t = (tpl('GuestCnt.lean').replace('@P@', P).replace('@p@', P.lower()).replace('@OP@', lop)
+             .replace('@K@', str(k)).replace('@H@', H))
+        write_tpl(os.path.join(g.LD, 'GuestCnt%s.lean' % P), t)
+    defs = []
+    top = ntree(sorted(g.by[n] for n in S), 'kcST', defs)
+    trees = ''.join('/-- A subtree. -/\ndef %s : NTree ℕ := %s\n\n' % d for d in defs)
+    imports = ''.join('public import LeanVM.Guest.Memory.GuestCnt%s.Data\n' % P for _, P, _ in OPS)
+    pmat = ' &&\n    '.join('kw%somegaJ j == (B2C.plumbOf (j + 1)).pmax.getD %d 0 + kcArmJ j %d' % (P.lower(), k, k)
+                           for _, P, k in OPS)
+    pmeq = ' ∧\n      '.join('kw%somegaJ j = (B2C.plumbOf (j + 1)).pmax.getD %d 0 + kcArmJ j %d' % (P.lower(), k, k)
+                             for _, P, k in OPS)
+    t = (tpl('GuestCntPm.lean').replace('@IMPORTS@', imports).replace('@TREES@', trees)
+         .replace('@KCST@', top).replace('@PMAT@', pmat).replace('@PMEQ@', pmeq)
+         .replace('@XJ@', str(g.xj)).replace('@ARMS@', '[' + ', '.join(map(str, g.C)) + ']'))
+    write_tpl(os.path.join(g.LD, 'GuestCntPm.lean'), t)
+    return S, fams
+
+
+def opdef(name, doc, vals):
+    s = '/-- %s -/\ndef %s : Opcode → ℕ\n' % (doc, name)
+    for lop, _, k in OPS: s += '  | .%s => %d\n' % (lop, vals[k])
+    return s
+
+
+def cmd_static(g, wcert=None, fams=None):
+    if wcert is None: wcert = g.words_certs()
+    if fams is None: fams = g.cnt_certs()[1]
+    certs = {P: cert for _, P, _, _, cert in fams}
+    lit = writelean.lean_cert
+    def hcf(P, n, c, pre='kw'):
+        p = pre + P.lower() if pre == 'kw' else pre
+        return ('(by rw [%scertOf_of_idx (j := %d) (by decide +kernel)]; rfl : %scertOf "%s" = %s)'
+                % (p, g.by[n], p, n, lit(c)))
+    o = [tpl('Static.lean')]
+    for N, n in CONST_ROOTS:
+        vals = {}
+        for lop, P, k in OPS:
+            c = certs[P][n]; assert c[0] == 'stat' and c[1] == [] and c[2][1] == [], (n, c); vals[k] = c[2][0]
+        o.append(opdef('kc' + N, '`%s`\'s instructions.' % n, vals))
+        s = ('/-- **`%s`\'s instructions.** -/\ntheorem kc%s_weightLe (op : Opcode) :\n'
+             '    WeightLe coreProgram (B2C.ωArm B2C.xmssArmC op) "%s" fun _ => kc%s op := by\n  cases op\n' % (n, N, n, N))
+        for lop, P, k in OPS:
+            s += '  · exact kw%s_weightLe %s\n' % (P.lower(), hcf(P, n, certs[P][n]))
+        o.append(s)
+    for N, n in LOOP_ROOTS:
+        vals = {}
+        for lop, P, k in OPS:
+            c = certs[P][n]
+            assert c[0] == 'loop' and c[1] is None and c[2] == [] and c[3][1] == [], (n, c); vals[k] = c[3][0]
+        o.append(opdef('kc' + N, '`%s`\'s instructions per iteration.' % n, vals))
+        s = ('/-- **`%s`\'s instructions.** -/\ntheorem kc%s_loop (op : Opcode) :\n'
+             '    LoopWeightLe (B2C.ωArm B2C.xmssArmC op) "%s" (kc%s op) := by\n'
+             '  intro rd t args rets a e hn hv hb ha he hae heo\n  cases op\n' % (n, N, n, N))
+        for lop, P, k in OPS:
+            s += ('  · exact kw%s_weight_le_of_loop %s hn hv hb ha he hae heo\n'
+                  '      (fun _ h => (List.not_mem_nil h).elim)\n' % (P.lower(), hcf(P, n, certs[P][n])))
+        o.append(s)
+    cv, dv = {}, {}
+    for lop, P, k in OPS:
+        c = certs[P][AGG]
+        assert c[0] == 'stat' and c[1] == [(0, 0)] and all(q == 0 for q, _ in c[2][1]), c
+        cv[k] = c[2][0]; dv[k] = sum(a for _, a in c[2][1])
+    o.append(opdef('kcAggC', '`aggregate_claims`\' instructions: the constant.', cv))
+    o.append(opdef('kcAggD', '`aggregate_claims`\' instructions: per unit of `n`.', dv))
+    s = '''/-- **`aggregate_claims`' instructions** on `g^n`. -/
+theorem kcAgg_le (op : Opcode) : ∀ (rd : Reader) (t : Tree) (args rets : List E) (n : ℕ),
+    t.name = "aggregate_claims" → t.Valid coreProgram rd args rets → t.BufsOk coreProgram →
+      args.getD 0 0 = ofK (gpow n) → 0 < n → n < 2 ^ 64 - 1 →
+        t.weight (B2C.ωArm B2C.xmssArmC op) ≤ kcAggC op + kcAggD op * n := by
+  intro rd t args rets n hn hv hb ha h0 h1
+  have hpre : ArgsPre [(0, 0)] args := by
+    intro q hq
+    simp only [List.mem_singleton] at hq
+    subst hq
+    exact ⟨n, h0, h1, ha⟩
+  have hx : argExp args 0 = n := by rw [argExp, ha, logG_ofK h1]
+  cases op
+'''
+    for lop, P, k in OPS:
+        s += '  · have := kw%s_weight_le_of_stat %s hn hv hb hpre\n' % (P.lower(), hcf(P, AGG, certs[P][AGG]))
+        s += '    simp only [Aff.eval, List.map_cons, List.map_nil, List.sum_cons, List.sum_nil, hx] at this\n'
+        s += '    simp only [kcAggC, kcAggD]; omega\n'
+    o.append(s)
+    o.append('/-! ## Words at the frame sizes `B2C.fs` -/\n')
+    for N, n in CONST_ROOTS:
+        c = wcert.get(n)
+        if c is None or not (c[0] == 'stat' and c[1] == [] and c[2][1] == []):
+            o.append('-- `%s`: no constant words certificate.\n' % n); continue
+        o.append('/-- **`%s`**: at most %d words. -/\ntheorem kw%s_totalLe : TotalLe coreProgram B2C.fs "%s" fun _ => %d :=\n'
+                 '  fs_totalLe %s\n' % (n, c[2][0], N, n, c[2][0], hcf(None, n, c, 'w')))
+    for N, n in LOOP_ROOTS:
+        c = wcert.get(n)
+        if c is None or not (c[0] == 'loop' and c[1] is None and c[2] == [] and c[3][1] == []):
+            o.append('-- `%s`: no words certificate per iteration.\n' % n); continue
+        o.append('/-- **`%s`**: at most %d words per iteration. -/\ntheorem kw%s_loopTotalLe : LoopTotalLe B2C.fs "%s" %d := by\n'
+                 '  intro rd t args rets a e hn hv hb ha he hae heo\n'
+                 '  have := fs_total_le_of_loop %s hn hv hb ha he hae heo\n'
+                 '    (fun _ h => (List.not_mem_nil h).elim)\n'
+                 '  simpa [Aff.eval] using this\n' % (n, c[3][0], N, n, c[3][0], hcf(None, n, c, 'w')))
+    o.append('end\nend LeanVM.Guest.Count\n')
+    path = os.path.join(g.lv, 'LeanVM', 'Guest', 'Count', 'Static.lean')
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    write_tpl(path, '\n'.join(o))
+    print('static: wrote', path)
+
+
+def show(c):
+    if c is None: return '-'
+    if c[0] == 'stat':
+        b = c[2]
+        return ('%d' % b[0]) + (' + %s on pre %s' % (b[1], c[1]) if b[1] or c[1] else '')
+    b = c[3]
+    return '%d/iter' % b[0] + (' + %s' % b[1] if b[1] else '') + ('' if c[1] is None else ' (end g^%d)' % c[1])
+
+
+def cmd_report(g):
+    wcert = g.words_certs()
+    print('functions', g.N, '; verify_lean_xmss arms (B2C.xmssArmC):', g.C)
+    print('words: certified %d of %d; not: %s' % (len(wcert), g.N,
+          [f['name'] for i, f in sorted(g.fns.items()) if f['name'] not in wcert]))
+    allc = []
+    for lop, P, k in OPS:
+        c = checker.gen(g.fns, g.omega_cnt(k))[1]
+        allc.append(c)
+        print('%s (whole program): certified %d of %d' % (lop, len(c), g.N))
+    print('not certified (xor):', [f['name'] for i, f in sorted(g.fns.items()) if f['name'] not in allc[0]])
+    S = g.closure(ROOTS)
+    print('closure of ROOTS:', len(S))
+    for n in MAIN_CALLEES + ['verify_sub', 'child_claim_list_digest', '__loop28', XMSS, 'verify_sig_lean_sphincs']:
+        print('  %-26s' % n, ' | '.join('%s %s' % (lop[:3], show(allc[k].get(n))) for lop, P, k in OPS),
+              '| words', show(wcert.get(n)))
+
+
+def main():
+    ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    ap.add_argument('lean_vm')
+    ap.add_argument('cmd', choices=['report', 'words', 'cnt', 'static', 'ratio', 'all'])
+    ap.add_argument('--cache', default=None)
+    a = ap.parse_args()
+    g = G(a.lean_vm, a.cache)
+    if a.cmd == 'report': cmd_report(g)
+    elif a.cmd == 'words': cmd_words(g)
+    elif a.cmd == 'cnt': cmd_cnt(g)
+    elif a.cmd == 'static': cmd_static(g)
+    elif a.cmd == 'ratio': ratio.write(g, RATIO_ROOTS, opdef)
+    else:
+        w = cmd_words(g)
+        _, fams = cmd_cnt(g)
+        cmd_static(g, w, fams)
+        ratio.write(g, RATIO_ROOTS, opdef)
+
+
+if __name__ == '__main__':
+    main()
