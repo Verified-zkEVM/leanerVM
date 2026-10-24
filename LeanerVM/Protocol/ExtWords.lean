@@ -30,20 +30,20 @@ open LeanerVM.Parameters CompPoly FastBF64
 namespace ExtWords
 
 /-- The words of an element's limbs. -/
-@[inline] def w0 (x : E) : UInt64 := toWord (x.limb 0)
+@[inline] private def w0 (x : E) : UInt64 := toWord (x.limb 0)
 
-@[inline, inherit_doc w0] def w1 (x : E) : UInt64 := toWord (x.limb 1)
+@[inline, inherit_doc w0] private def w1 (x : E) : UInt64 := toWord (x.limb 1)
 
-@[inline, inherit_doc w0] def w2 (x : E) : UInt64 := toWord (x.limb 2)
+@[inline, inherit_doc w0] private def w2 (x : E) : UInt64 := toWord (x.limb 2)
 
 /-- The element of three limb words. -/
-@[inline] def ofW (a b c : UInt64) : E := E.ofLimbs (ofWord a) (ofWord b) (ofWord c)
+@[inline] private def ofW (a b c : UInt64) : E := E.ofLimbs (ofWord a) (ofWord b) (ofWord c)
 
 /-- `E`'s sum on words. -/
-def addW (x y : E) : E := ofW (w0 x ^^^ w0 y) (w1 x ^^^ w1 y) (w2 x ^^^ w2 y)
+@[no_expose] def addW (x y : E) : E := ofW (w0 x ^^^ w0 y) (w1 x ^^^ w1 y) (w2 x ^^^ w2 y)
 
 /-- `E`'s product on words: Karatsuba's six products, `y^3 = y + 1` folded in. -/
-def mulW (x y : E) : E :=
+@[no_expose] def mulW (x y : E) : E :=
   let a0 := w0 x
   let a1 := w1 x
   let a2 := w2 x
@@ -57,11 +57,6 @@ def mulW (x y : E) : E :=
   let c2 := mulWord (a0 ^^^ a2) (b0 ^^^ b2) ^^^ p00 ^^^ p22 ^^^ p11
   let c3 := mulWord (a1 ^^^ a2) (b1 ^^^ b2) ^^^ p11 ^^^ p22
   ofW (p00 ^^^ c3) (c1 ^^^ p22 ^^^ c3) (c2 ^^^ p22)
-
-/-- The element of a `xor` is the sum of the elements. -/
-private theorem ofWord_xor (a b : UInt64) : ofWord (a ^^^ b) = ofWord a + ofWord b := by
-  rw [BF64.add_def]
-  rfl
 
 /-- `addW` is the sum. -/
 theorem addW_eq (x y : E) : addW x y = x + y := by

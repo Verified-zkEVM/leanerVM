@@ -51,7 +51,7 @@ namespace Whir
 /-! ## The word, encoded once -/
 
 /-- A word reading stored rows. -/
-def Word.ofRows {ℓ b t : ℕ} (rows : Vector (Vector E (2 ^ ℓ)) (2 ^ b)) : Word ℓ b t :=
+private def Word.ofRows {ℓ b t : ℕ} (rows : Vector (Vector E (2 ^ ℓ)) (2 ^ b)) : Word ℓ b t :=
   ⟨fun y ↦ rows[y]⟩
 
 /-- The rows of a table's honest word, each lane encoded once by the transform on words. -/
@@ -61,7 +61,7 @@ def wordRows (ℓ κ R : ℕ) (f : CMlPolynomialEval E (ℓ + κ)) :
   Vector.ofFn fun y ↦ Vector.ofFn fun u ↦ lanes[u][y]
 
 /-- The word reading the transform's rows is the honest word, on `κ + R ≤ 64` positions' bits. -/
-theorem ofRows_wordRows {ℓ κ R t : ℕ} (hb : κ + R ≤ 64) (f : CMlPolynomialEval E (ℓ + κ)) :
+private theorem ofRows_wordRows {ℓ κ R t : ℕ} (hb : κ + R ≤ 64) (f : CMlPolynomialEval E (ℓ + κ)) :
     (Word.ofRows (wordRows ℓ κ R f) : Word ℓ (κ + R) t) = wordOf ℓ κ R t f := by
   simp only [Word.ofRows, wordRows, wordOf, Word.mk.injEq]
   funext y
@@ -73,7 +73,7 @@ theorem ofRows_wordRows {ℓ κ R t : ℕ} (hb : κ + R ≤ 64) (f : CMlPolynomi
 otherwise. A word is a function in compiled code, so a prover builds its rows as data where its
 step starts and reads them through this word; a closure returning a word is expanded to take the
 position as one more argument, and would rebuild the rows at every read. -/
-def wordOfRows (ℓ κ R t : ℕ) (f : CMlPolynomialEval E (ℓ + κ))
+@[no_expose] def wordOfRows (ℓ κ R t : ℕ) (f : CMlPolynomialEval E (ℓ + κ))
     (rows : Vector (Vector E (2 ^ ℓ)) (2 ^ (κ + R))) : Word ℓ (κ + R) t :=
   if κ + R ≤ 64 then Word.ofRows rows else wordOf ℓ κ R t f
 
@@ -139,18 +139,18 @@ section Folds
 variable (sh : Shape) (κ : ℕ)
 
 /-- The first fold challenge, the tables bound at it. -/
-def foldFirstCached : Component.Cached (foldFirst sh κ) ((foldCache sh κ).atMid (j := 0))
+private def foldFirstCached : Component.Cached (foldFirst sh κ) ((foldCache sh κ).atMid (j := 0))
     ((foldCache sh κ).at (j := 1)) :=
   SumcheckRound.cachedDrawChallenge (foldCache sh κ) _ 0 (by simp [Shape.ℓ])
 
 /-- The other fold rounds. -/
-def foldRestCached : Component.Cached (foldRest sh κ) ((foldCache sh κ).at (j := 1))
+private def foldRestCached : Component.Cached (foldRest sh κ) ((foldCache sh κ).at (j := 1))
     ((foldCache sh κ).at (j := sh.ℓ)) :=
   SumcheckRound.cachedRounds (foldCache sh κ) _ sh.lm1 1 (by simp only [Shape.ℓ]; omega)
 
 /-- The residual claim's first-round polynomial, from the bound tables; the folded table handed
 on. -/
-def sendResidualCached : Component.Cached (sendResidual sh κ)
+private def sendResidualCached : Component.Cached (sendResidual sh κ)
     ((foldCache sh κ).at (j := sh.ℓ)) (fun p ↦ foldTable p.2 p.1.1.r) := by
   unfold sendResidual
   exact Component.Cached.sendChecked
@@ -174,14 +174,15 @@ section Level
 variable (sh sh' : Shape) (κ' : ℕ)
 
 /-- The oracles between a level's commitment and its reading: its word and the next one. -/
-abbrev BO : Fin 1 ⊕ Unit → Type := Component.besideOracles (OneW sh (Kap sh' κ')) (WordOf sh' κ')
+private abbrev BO : Fin 1 ⊕ Unit → Type :=
+  Component.besideOracles (OneW sh (Kap sh' κ')) (WordOf sh' κ')
 
 /-- The oracles after the reading: the next level's word. -/
-abbrev KO : Fin 1 → Type := Component.keptOracles (BO sh sh' κ') keepNew
+private abbrev KO : Fin 1 → Type := Component.keptOracles (BO sh sh' κ') keepNew
 
 /-- The commitment of the next level's word read off a cache holding the folded table and the
 word's rows. -/
-def commitNextPairCached : Component.Cached (commitNext sh sh' κ')
+private def commitNextPairCached : Component.Cached (commitNext sh sh' κ')
     (fun p ↦ (foldTable p.2 p.1.1.r, wordRows sh'.ℓ κ' sh'.R (foldTable p.2 p.1.1.r)))
     (fun p ↦ foldTable p.2 p.1.1.r) := by
   unfold commitNext
@@ -191,20 +192,20 @@ def commitNextPairCached : Component.Cached (commitNext sh sh' κ')
 
 /-- The commitment of the next level's word, encoded once from the folded table: the rows built
 as data beside the table when the step starts, the message reading them. -/
-def commitNextCached : Component.Cached (commitNext sh sh' κ')
+private def commitNextCached : Component.Cached (commitNext sh sh' κ')
     (fun p ↦ foldTable p.2 p.1.1.r) (fun p ↦ foldTable p.2 p.1.1.r) :=
   (commitNextPairCached sh sh' κ').adaptIn (fun _ g ↦ (g, wordRows sh'.ℓ κ' sh'.R g))
     fun _ ↦ rfl
 
 /-- The out-of-domain point, the folded table carried through. -/
-def drawPointCached : Component.Cached (drawPoint sh sh' κ')
+private def drawPointCached : Component.Cached (drawPoint sh sh' κ')
     (fun p ↦ foldTable p.2 p.1.1.r) (fun p ↦ foldTable p.2 p.1.1.1.r) := by
   unfold drawPoint
   exact Component.Cached.drawPushesKeep (BO sh sh' κ') E (S := Bd sh (Kap sh' κ'))
     (W := Tab (sh.ℓ + Kap sh' κ')) (fun p ↦ foldTable p.2 p.1.1.r) (Kap sh' κ')
 
 /-- The out-of-domain answer, from the folded table. -/
-def sendOodCached : Component.Cached (sendOod sh sh' κ')
+private def sendOodCached : Component.Cached (sendOod sh sh' κ')
     (fun p ↦ foldTable p.2 p.1.1.1.r) (fun p ↦ foldTable p.2 p.1.1.r) := by
   unfold sendOod
   exact Component.Cached.sendChecked (O := BO sh sh' κ')
@@ -213,7 +214,7 @@ def sendOodCached : Component.Cached (sendOod sh sh' κ')
       (fun _ ↦ rfl) fun _ ↦ rfl
 
 /-- The out-of-domain claim's first-round polynomial, from the folded table. -/
-def sendOodPolyCached : Component.Cached (sendOodPoly sh sh' κ')
+private def sendOodPolyCached : Component.Cached (sendOodPoly sh sh' κ')
     (fun p ↦ foldTable p.2 p.1.1.r) (fun p ↦ foldTable p.2 p.1.1.r) := by
   unfold sendOodPoly
   exact Component.Cached.sendChecked (O := BO sh sh' κ') (S := Bd sh (Kap sh' κ'))
@@ -221,7 +222,7 @@ def sendOodPolyCached : Component.Cached (sendOodPoly sh sh' κ')
       (upd := fun _ g _ ↦ g) (fun _ ↦ rfl) fun _ ↦ rfl
 
 /-- The grinding nonce. -/
-def sendNonceCached : Component.Cached (sendNonce (BO sh sh' κ') sh (Kap sh' κ'))
+private def sendNonceCached : Component.Cached (sendNonce (BO sh sh' κ') sh (Kap sh' κ'))
     (fun p ↦ foldTable p.2 p.1.1.r) (fun p ↦ foldTable p.2 p.1.1.r) := by
   unfold sendNonce
   exact Component.Cached.sendChecked (O := BO sh sh' κ') (S := Bd sh (Kap sh' κ'))
@@ -229,28 +230,28 @@ def sendNonceCached : Component.Cached (sendNonce (BO sh sh' κ') sh (Kap sh' κ
       (fun _ ↦ rfl) fun _ ↦ rfl
 
 /-- The sampled positions. -/
-def drawPositionsCached : Component.Cached (drawPositions (BO sh sh' κ') sh (Kap sh' κ'))
+private def drawPositionsCached : Component.Cached (drawPositions (BO sh sh' κ') sh (Kap sh' κ'))
     (fun p ↦ foldTable p.2 p.1.1.r) (fun p ↦ foldTable p.2 p.1.1.r) := by
   unfold drawPositions
   exact Component.Cached.sample (O := BO sh sh' κ') (S := Bd sh (Kap sh' κ'))
     (W := Tab (sh.ℓ + Kap sh' κ')) (upd := fun _ g _ ↦ g) fun _ _ ↦ rfl
 
 /-- The batching challenge. -/
-def drawBatchCached : Component.Cached (drawBatch (BO sh sh' κ') sh (Kap sh' κ'))
+private def drawBatchCached : Component.Cached (drawBatch (BO sh sh' κ') sh (Kap sh' κ'))
     (fun p ↦ foldTable p.2 p.1.1.r) (fun p ↦ foldTable p.2 p.1.1.r) := by
   unfold drawBatch
   exact Component.Cached.sample (O := BO sh sh' κ') (S := Bd sh (Kap sh' κ'))
     (W := Tab (sh.ℓ + Kap sh' κ')) (upd := fun _ g _ ↦ g) fun _ _ ↦ rfl
 
 /-- The reading of the level's word. -/
-def readOldCached : Component.Cached (readOld sh sh' κ')
+private def readOldCached : Component.Cached (readOld sh sh' κ')
     (fun p ↦ foldTable p.2 p.1.1.r) (fun p ↦ foldTable p.2 p.1.1.r) := by
   unfold readOld
   exact Component.Cached.queryRecord (O := BO sh sh' κ') (S := Bd sh (Kap sh' κ'))
     (W := Tab (sh.ℓ + Kap sh' κ')) (upd := fun _ g ↦ g) fun _ ↦ rfl
 
 /-- The query batch's first-round polynomial, from the folded table. -/
-def sendQueryPolyCached : Component.Cached (sendQueryPoly (KO sh sh' κ') sh (Kap sh' κ'))
+private def sendQueryPolyCached : Component.Cached (sendQueryPoly (KO sh sh' κ') sh (Kap sh' κ'))
     (fun p ↦ foldTable p.2 p.1.1.r) (fun p ↦ foldTable p.2 p.1.1.r) := by
   unfold sendQueryPoly
   exact Component.Cached.sendChecked (O := KO sh sh' κ') (S := Bd sh (Kap sh' κ'))
@@ -259,7 +260,7 @@ def sendQueryPolyCached : Component.Cached (sendQueryPoly (KO sh sh' κ') sh (Ka
       (upd := fun _ g _ ↦ g) (fun _ ↦ rfl) fun _ ↦ rfl
 
 /-- The glue: the folded table the next level's witness, and its fold rounds' tables started. -/
-def glueCached : Component.Cached (glue sh sh' κ')
+private def glueCached : Component.Cached (glue sh sh' κ')
     (fun p ↦ foldTable p.2 p.1.1.r) ((foldCache sh' κ').atMid (j := 0)) := by
   unfold glue
   exact Component.Cached.mapWitness (O := KO sh sh' κ') (S := Bd sh (Kap sh' κ'))
@@ -274,7 +275,7 @@ variable {ι₃ : Type} {O₃ : ι₃ → Type} [∀ i, OracleInterface (O₃ i)
 
 /-- **A level, cached**, followed by a cached rest of the opening: the fold rounds on bound
 tables, the folded table carried through the level, the next word encoded once. -/
-def levelCached
+private def levelCached
     {R : Component.Def (SumcheckRound.MidStmt (Weight E (sh'.ℓ + κ')) E 0 2) (OneW sh' κ')
       (Tab (sh'.ℓ + κ')) S₃ O₃ W₃ (seqSpec k)}
     (CR : Component.Cached R ((foldCache sh' κ').atMid (j := 0)) (fun _ ↦ ())) :
@@ -297,11 +298,11 @@ section Final
 variable (sh : Shape) (nf : ℕ)
 
 /-- The final level's oracles after its reading: its word. -/
-abbrev KF : Fin 1 → Type :=
+private abbrev KF : Fin 1 → Type :=
   Component.keptOracles (OneW sh (nf + 1)) (Function.Embedding.refl (Fin 1))
 
 /-- The plaintext table: the folded table. -/
-def sendTableCached : Component.Cached (sendTable sh nf)
+private def sendTableCached : Component.Cached (sendTable sh nf)
     (fun p ↦ foldTable p.2 p.1.1.r) (fun p ↦ foldTable p.2 p.1.1.r) := by
   unfold sendTable
   exact Component.Cached.sendChecked (O := OneW sh (nf + 1)) (S := Bd sh (nf + 1))
@@ -309,7 +310,7 @@ def sendTableCached : Component.Cached (sendTable sh nf)
       (fun _ ↦ rfl) fun _ ↦ rfl
 
 /-- The final level's nonce. -/
-def finalNonceCached : Component.Cached (finalNonce sh nf)
+private def finalNonceCached : Component.Cached (finalNonce sh nf)
     (fun p ↦ foldTable p.2 p.1.1.r) (fun p ↦ foldTable p.2 p.1.1.r) := by
   unfold finalNonce
   exact Component.Cached.sendChecked (O := OneW sh (nf + 1)) (S := FBd sh (nf + 1))
@@ -317,28 +318,28 @@ def finalNonceCached : Component.Cached (finalNonce sh nf)
       (fun _ ↦ rfl) fun _ ↦ rfl
 
 /-- The final level's positions. -/
-def finalPositionsCached : Component.Cached (finalPositions sh nf)
+private def finalPositionsCached : Component.Cached (finalPositions sh nf)
     (fun p ↦ foldTable p.2 p.1.1.r) (fun p ↦ foldTable p.2 p.1.1.r) := by
   unfold finalPositions
   exact Component.Cached.sample (O := OneW sh (nf + 1)) (S := FBd sh (nf + 1))
     (W := Tab (sh.ℓ + (nf + 1))) (upd := fun _ g _ ↦ g) fun _ _ ↦ rfl
 
 /-- The final level's batching challenge. -/
-def finalBatchCached : Component.Cached (finalBatch sh nf)
+private def finalBatchCached : Component.Cached (finalBatch sh nf)
     (fun p ↦ foldTable p.2 p.1.1.r) (fun p ↦ foldTable p.2 p.1.1.r) := by
   unfold finalBatch
   exact Component.Cached.sample (O := OneW sh (nf + 1)) (S := FBd sh (nf + 1))
     (W := Tab (sh.ℓ + (nf + 1))) (upd := fun _ g _ ↦ g) fun _ _ ↦ rfl
 
 /-- The reading of the last word. -/
-def readFinalCached : Component.Cached (readFinal sh nf)
+private def readFinalCached : Component.Cached (readFinal sh nf)
     (fun p ↦ foldTable p.2 p.1.1.r) (fun p ↦ foldTable p.2 p.1.1.r) := by
   unfold readFinal
   exact Component.Cached.queryRecord (O := OneW sh (nf + 1)) (S := FBd sh (nf + 1))
     (W := Tab (sh.ℓ + (nf + 1))) (upd := fun _ g ↦ g) fun _ ↦ rfl
 
 /-- The final query batch's first-round polynomial, from the folded table. -/
-def finalQueryPolyCached : Component.Cached (finalQueryPoly sh nf)
+private def finalQueryPolyCached : Component.Cached (finalQueryPoly sh nf)
     (fun p ↦ foldTable p.2 p.1.1.r) (fun _ ↦ ()) := by
   unfold finalQueryPoly
   exact Component.Cached.sendChecked (O := OneW sh (nf + 1)) (S := FBd sh (nf + 1))
@@ -347,7 +348,7 @@ def finalQueryPolyCached : Component.Cached (finalQueryPoly sh nf)
       (upd := fun _ _ _ ↦ ()) (fun _ ↦ rfl) fun _ ↦ rfl
 
 /-- The tail's glue: its tables started. -/
-def glueFinalCached : Component.Cached (glueFinal sh nf) (fun _ ↦ ())
+private def glueFinalCached : Component.Cached (glueFinal sh nf) (fun _ ↦ ())
     ((tailCache sh nf).atMid (j := 0)) := by
   unfold glueFinal
   exact Component.Cached.mapWitness (O := KF sh nf) (S := FBd sh (nf + 1))
@@ -359,7 +360,7 @@ def glueFinalCached : Component.Cached (glueFinal sh nf) (fun _ ↦ ())
       (fun _ ↦ rfl) fun _ ↦ rfl
 
 /-- The terminal check. -/
-def terminalCached : Component.Cached (terminal sh nf) ((tailCache sh nf).at (j := nf + 1))
+private def terminalCached : Component.Cached (terminal sh nf) ((tailCache sh nf).at (j := nf + 1))
     (fun _ ↦ ()) := by
   unfold terminal
   exact Component.Cached.passCheck (O := OneW sh (nf + 1))
@@ -367,7 +368,7 @@ def terminalCached : Component.Cached (terminal sh nf) ((tailCache sh nf).at (j 
     fun _ ↦ rfl
 
 /-- **The final level, cached.** -/
-def finalCached : Component.Cached (finalDef sh nf) ((foldCache sh (nf + 1)).atMid (j := 0))
+private def finalCached : Component.Cached (finalDef sh nf) ((foldCache sh (nf + 1)).atMid (j := 0))
     (fun _ ↦ ()) :=
   (foldFirstCached sh (nf + 1)).append <| (foldRestCached sh (nf + 1)).append <|
   (sendResidualCached sh (nf + 1)).append <| (sendTableCached sh nf).append <|
@@ -383,7 +384,7 @@ end Final
 /-! ## The opening -/
 
 /-- **The chain of levels, cached.** -/
-def Ladder.compCached : {sh : Shape} → {κ : ℕ} → (L : Ladder sh κ) →
+@[no_expose] def Ladder.compCached : {sh : Shape} → {κ : ℕ} → (L : Ladder sh κ) →
     Component.Cached L.comp ((foldCache sh κ).atMid (j := 0)) (fun _ ↦ ())
   | _, _, .last sh nf => finalCached sh nf
   | _, _, @Ladder.cons sh sh' κ' L => levelCached sh sh' κ' L.compCached
@@ -393,7 +394,7 @@ section Open
 variable (sh : Shape) (κ : ℕ)
 
 /-- The relayout, the first tables built. -/
-def stackRelayoutCached : Component.Cached (stackRelayout sh κ) (fun _ ↦ ())
+private def stackRelayoutCached : Component.Cached (stackRelayout sh κ) (fun _ ↦ ())
     (fun p ↦ (p.1.1.1.onCube, p.2)) := by
   unfold stackRelayout
   exact Component.Cached.mapWitness (O := OneW sh κ) (S := Weight E (κ + sh.ℓ) × E)
@@ -401,7 +402,7 @@ def stackRelayoutCached : Component.Cached (stackRelayout sh κ) (fun _ ↦ ())
       (upd := fun p _ ↦ ((relayoutWeight p.1.1.1).onCube, relayout p.2)) (fun _ ↦ rfl) fun _ ↦ rfl
 
 /-- The first-round polynomial of the opening claim, from its tables, `E`'s products on words. -/
-def sendFirstCached : Component.Cached (sendFirst sh κ) (fun p ↦ (p.1.1.1.onCube, p.2))
+private def sendFirstCached : Component.Cached (sendFirst sh κ) (fun p ↦ (p.1.1.1.onCube, p.2))
     ((foldCache sh κ).atMid (j := 0)) := by
   unfold sendFirst
   exact Component.Cached.sendChecked (O := OneW sh κ) (S := Weight E (sh.ℓ + κ) × E)
@@ -416,7 +417,7 @@ def sendFirstCached : Component.Cached (sendFirst sh κ) (fun p ↦ (p.1.1.1.onC
 
 /-- **The opening of WHIR, cached**: the relayout, the first-round polynomial and the chain of
 levels, each table built once. -/
-def whirOpenCached (L : Ladder sh κ) :
+@[no_expose] def whirOpenCached (L : Ladder sh κ) :
     Component.Cached (whirOpen sh κ L) (fun _ ↦ ()) (fun _ ↦ ()) :=
   (stackRelayoutCached sh κ).append <| (sendFirstCached sh κ).append L.compCached
 

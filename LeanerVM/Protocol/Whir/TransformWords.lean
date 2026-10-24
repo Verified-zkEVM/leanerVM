@@ -37,33 +37,13 @@ open LeanerVM.Parameters CompPoly FastBF64
 
 namespace Whir
 
-/-! ## Words -/
-
-/-- The word of a sum is the `xor` of the words. -/
-theorem toWord_add (a b : K) : toWord (a + b) = toWord a ^^^ toWord b := by
-  rw [BF64.add_def]
-  rfl
-
-/-- The word of a product is `mulWord` of the words. -/
-theorem toWord_mul (a b : K) : toWord (a * b) = mulWord (toWord a) (toWord b) := by
-  rw [← ofWord_toWord a, ← ofWord_toWord b, ← ofWord_mulWord]
-  rfl
-
 /-! ## Halves of mapped vectors -/
 
 section Halves
 
 variable {α β : Type} {j : ℕ} (f : α → β)
 
-theorem lowHalf_map (v : Vector α (2 ^ (j + 1))) : lowHalf (v.map f) = (lowHalf v).map f := by
-  ext i hi
-  simp
-
-theorem highHalf_map (v : Vector α (2 ^ (j + 1))) : highHalf (v.map f) = (highHalf v).map f := by
-  ext i hi
-  simp
-
-theorem joinHalves_map (a b : Vector α (2 ^ j)) :
+private theorem joinHalves_map (a b : Vector α (2 ^ j)) :
     joinHalves (a.map f) (b.map f) = (joinHalves a b).map f := by
   ext w hw
   rw [joinHalves_getElem, Vector.getElem_map, joinHalves_getElem]
@@ -91,7 +71,7 @@ def fwdLet : (j : ℕ) → Vector S (2 ^ j) → K → Vector S (2 ^ j)
     joinHalves (fwdLet j a s) (fwdLet j b (s + domainPt (2 ^ j)))
 
 /-- `fwdLet` is `fwd`. -/
-theorem fwdLet_eq : ∀ (j : ℕ) (m : Vector S (2 ^ j)) (s : K), fwdLet φ j m s = fwd φ j m s
+private theorem fwdLet_eq : ∀ (j : ℕ) (m : Vector S (2 ^ j)) (s : K), fwdLet φ j m s = fwd φ j m s
   | 0, _, _ => rfl
   | j + 1, m, s => by simp only [fwdLet, fwd, fwdLet_eq j]
 
@@ -130,7 +110,7 @@ def fwdW : (j : ℕ) → Vector UInt64 (2 ^ j) → K → Vector UInt64 (2 ^ j)
     joinHalves (fwdW j a s) (fwdW j b (s + domainPt (2 ^ j)))
 
 /-- **The transform on words is the transform over `K`.** -/
-theorem fwdW_map : ∀ (j : ℕ) (m : Vector K (2 ^ j)) (s : K),
+private theorem fwdW_map : ∀ (j : ℕ) (m : Vector K (2 ^ j)) (s : K),
     fwdW j (m.map toWord) s = (fwd (RingHom.id K) j m s).map toWord
   | 0, _, _ => rfl
   | j + 1, m, s => by
@@ -150,28 +130,8 @@ theorem fwdW_map : ∀ (j : ℕ) (m : Vector K (2 ^ j)) (s : K),
 
 /-! ## Limb by limb -/
 
-/-- A product by an element of `K` acts on each limb. -/
-theorem limb_ofK_mul (c : K) (x : E) (i : Fin 3) : (ofK c * x).limb i = c * x.limb i := by
-  have h : ofK c * x = E.ofLimbs (c * x.limb 0) (c * x.limb 1) (c * x.limb 2) := by
-    conv_lhs => rw [E.eq_sum_limbs x]
-    rw [ofLimbs_eq, ofK_mul, ofK_mul, ofK_mul]
-    ring
-  rw [h, limb_ofLimbs]
-  fin_cases i <;> rfl
-
-/-- Limb `l`, as an additive map. -/
-def limbAdd (l : Fin 3) : E →+ K where
-  toFun x := x.limb l
-  map_zero' := limb_zero l
-  map_add' x z := limb_add x z l
-
-/-- Limb `l` of a sum is the sum of the limbs. -/
-theorem limb_sum {ι : Type} (s : Finset ι) (f : ι → E) (l : Fin 3) :
-    (∑ i ∈ s, f i).limb l = ∑ i ∈ s, (f i).limb l :=
-  map_sum (limbAdd l) f s
-
 /-- The novel polynomials over `E` are those over `K`, embedded. -/
-theorem novelAt_algebraMap (j : ℕ) (x : K) (u : ℕ) :
+private theorem novelAt_algebraMap (j : ℕ) (x : K) (u : ℕ) :
     novelAt (algebraMap K E) j x u = ofK (novelAt (RingHom.id K) j x u) := by
   simp only [novelAt, RingHom.id_apply]
   change _ = algebraMap K E _
@@ -180,7 +140,7 @@ theorem novelAt_algebraMap (j : ℕ) (x : K) (u : ℕ) :
   split <;> simp
 
 /-- Limb `l` of a polynomial's value over `E` is the value of its coefficients' limbs. -/
-theorem limb_novelEval (j : ℕ) (m : Vector E (2 ^ j)) (x : K) (l : Fin 3) :
+private theorem limb_novelEval (j : ℕ) (m : Vector E (2 ^ j)) (x : K) (l : Fin 3) :
     (novelEval (algebraMap K E) j m x).limb l =
       novelEval (RingHom.id K) j (m.map fun z ↦ z.limb l) x := by
   simp only [novelEval, limb_sum]
@@ -188,8 +148,8 @@ theorem limb_novelEval (j : ℕ) (m : Vector E (2 ^ j)) (x : K) (l : Fin 3) :
   simp [novelAt_algebraMap, limb_ofK_mul]
 
 /-- **The transform acts on each limb.** -/
-theorem limb_fwd {j : ℕ} (hj : j ≤ 64) (m : Vector E (2 ^ j)) (s : K) (w : ℕ) (hw : w < 2 ^ j)
-    (l : Fin 3) :
+private theorem limb_fwd {j : ℕ} (hj : j ≤ 64) (m : Vector E (2 ^ j)) (s : K) (w : ℕ)
+    (hw : w < 2 ^ j) (l : Fin 3) :
     ((fwd (algebraMap K E) j m s)[w]).limb l =
       (fwd (RingHom.id K) j (m.map fun z ↦ z.limb l) s)[w] := by
   rw [fwd_getElem _ j hj _ _ w hw, fwd_getElem _ j hj _ _ w hw, limb_novelEval]

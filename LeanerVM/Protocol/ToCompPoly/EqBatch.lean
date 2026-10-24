@@ -29,11 +29,11 @@ open CompPoly CMlPolynomialEval
 variable {F : Type*} [Field F] [DecidableEq F]
 
 /-- `c · f`, nothing when `f` is `0`, no product when `f` is `1`. -/
-def scaleBy (c f : F) : Option F :=
+private def scaleBy (c f : F) : Option F :=
   if f = 0 then none else if f = 1 then some c else some (c * f)
 
 /-- `scaleBy` is the product, nothing standing for `0`. -/
-theorem getD_scaleBy (c f : F) : (scaleBy c f).getD 0 = c * f := by
+private theorem getD_scaleBy (c f : F) : (scaleBy c f).getD 0 = c * f := by
   unfold scaleBy
   split_ifs with h0 h1
   · simp [h0]
@@ -42,15 +42,16 @@ theorem getD_scaleBy (c f : F) : (scaleBy c f).getD 0 = c * f := by
 
 /-- The terms on the half of the cube where the top coordinate is `b`: each scaled by its factor
 there, the top coordinate dropped. -/
-def splitTerms {m : ℕ} (b : Bool) (ts : List (F × Vector F (m + 1))) : List (F × Vector F m) :=
+private def splitTerms {m : ℕ} (b : Bool) (ts : List (F × Vector F (m + 1))) :
+    List (F × Vector F m) :=
   ts.filterMap fun t ↦ (scaleBy t.1 (if b then t.2[m] else 1 - t.2[m])).map fun c ↦ (c, t.2.pop)
 
 /-- Two halves joined, the first at the low indices. -/
-def appendHalves {m : ℕ} (a b : CMlPolynomialEval F m) : CMlPolynomialEval F (m + 1) :=
+private def appendHalves {m : ℕ} (a b : CMlPolynomialEval F m) : CMlPolynomialEval F (m + 1) :=
   (a ++ b).cast (by rw [pow_succ]; omega)
 
 /-- **The combination of equality kernels**, coordinate by coordinate. -/
-def eqBatch : (m : ℕ) → List (F × Vector F m) → CMlPolynomialEval F m
+@[no_expose] def eqBatch : (m : ℕ) → List (F × Vector F m) → CMlPolynomialEval F m
   | 0, ts => #v[(ts.map Prod.fst).sum]
   | m + 1, ts =>
     match ts with

@@ -60,21 +60,22 @@ theorem stepLowW_eq {j : ℕ} (a : CMlPolynomialEval E (n - j)) (x : E) :
   · rfl
 
 /-- The summands of a round polynomial at a pair of entries, on words, added to `acc`. -/
-def pairStepW (acc : E × E × E) (a0 a1 b0 b1 : E) : E × E × E :=
+private def pairStepW (acc : E × E × E) (a0 a1 b0 b1 : E) : E × E × E :=
   let da := addW a1 a0
   let db := addW b1 b0
   (addW acc.1 (mulW a0 b0), addW acc.2.1 (addW (mulW a0 db) (mulW da b0)),
     addW acc.2.2 (mulW da db))
 
 /-- `pairStepW` adds the pair's summands. -/
-theorem pairStepW_eq (acc : E × E × E) (a0 a1 b0 b1 : E) :
+private theorem pairStepW_eq (acc : E × E × E) (a0 a1 b0 b1 : E) :
     pairStepW acc a0 a1 b0 b1 = acc + (a0 * b0, a0 * (b1 - b0) + (a1 - a0) * b0,
       (a1 - a0) * (b1 - b0)) := by
   simp only [pairStepW, addW_eq, mulW_eq, CharTwo.sub_eq_add]
   rfl
 
 /-- `roundOfBound` over `E` on words. -/
-def roundOfBoundW {j : ℕ} (a b : CMlPolynomialEval E (n - j)) : SumcheckRound.Message E 2 :=
+@[no_expose] def roundOfBoundW {j : ℕ} (a b : CMlPolynomialEval E (n - j)) :
+    SumcheckRound.Message E 2 :=
   if h : j < n then
     let a : CMlPolynomialEval E (n - (j + 1) + 1) := Vector.cast (congrArg (2 ^ ·) (by omega)) a
     let b : CMlPolynomialEval E (n - (j + 1) + 1) := Vector.cast (congrArg (2 ^ ·) (by omega)) b

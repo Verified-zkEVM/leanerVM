@@ -71,6 +71,20 @@ namespace BlockR1CS
 
 variable {m : ℕ} (C : BlockR1CS R m)
 
+/-- Two block R1CS with the same matrices are equal: the walks are determined by the matrices. -/
+theorem ext_of {C C' : BlockR1CS R m} (hA : C.A = C'.A) (hB : C.B = C'.B) : C = C' := by
+  obtain ⟨A, B, rows, cols, rf, rs, cf, cs⟩ := C
+  obtain ⟨A', B', rows', cols', rf', rs', cf', cs'⟩ := C'
+  obtain rfl : A = A' := hA
+  obtain rfl : B = B' := hB
+  obtain rfl : rows = rows' := funext fun W ↦ Prod.ext
+    (Vector.ext fun k hk ↦ (rf W ⟨k, hk⟩).trans (rf' W ⟨k, hk⟩).symm)
+    (Vector.ext fun k hk ↦ (rs W ⟨k, hk⟩).trans (rs' W ⟨k, hk⟩).symm)
+  obtain rfl : cols = cols' := funext fun e ↦ Prod.ext
+    (Vector.ext fun j hj ↦ (cf e ⟨j, hj⟩).trans (cf' e ⟨j, hj⟩).symm)
+    (Vector.ext fun j hj ↦ (cs e ⟨j, hj⟩).trans (cs' e ⟨j, hj⟩).symm)
+  rfl
+
 /-- The block satisfies the constraints: `(A z)_k · (B z)_k = z_k` at every position. -/
 def Holds (z : CMlPolynomialEval R m) : Prop :=
   ∀ k : Fin (2 ^ m), (C.rows z).1[k] * (C.rows z).2[k] = z[k]

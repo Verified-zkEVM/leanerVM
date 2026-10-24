@@ -29,18 +29,13 @@ open LeanerVM.Parameters CompPoly FastBF64
 
 namespace Whir
 
-/-- The element of a `xor` is the sum of the elements. -/
-private theorem ofWord_xor (a b : UInt64) : ofWord (a ^^^ b) = ofWord a + ofWord b := by
-  rw [BF64.add_def]
-  rfl
-
 /-- The values of the column weight at `y`, over `K`, its `κ` factors computed once. -/
-def columnTableK (κ R : ℕ) (v : Fin (2 ^ (κ + R))) : CMlPolynomialEval K κ :=
+private def columnTableK (κ R : ℕ) (v : Fin (2 ^ (κ + R))) : CMlPolynomialEval K κ :=
   let w := Vector.ofFn fun k : Fin κ ↦ normW k (domainPt v)
   bitProductTable fun k b ↦ if b then w[k] else 1
 
 /-- The column weight's values are those over `K`, embedded. -/
-theorem columnWeight_onCube_eq_map (κ R : ℕ) (v : Fin (2 ^ (κ + R))) :
+private theorem columnWeight_onCube_eq_map (κ R : ℕ) (v : Fin (2 ^ (κ + R))) :
     (columnWeight (algebraMap K E) κ R v).onCube = Vector.map ofK (columnTableK κ R v) := by
   rw [columnWeight_onCube]
   refine Vector.ext fun i hi ↦ ?_
@@ -52,18 +47,11 @@ theorem columnWeight_onCube_eq_map (κ R : ℕ) (v : Fin (2 ^ (κ + R))) :
   split <;> simp
 
 /-- `Σ_q p_q · c_q` on words: the `xor` of the `mulWord`s. -/
-def dotW {t : ℕ} (p : Vector UInt64 t) (c : Fin t → UInt64) : UInt64 :=
+private def dotW {t : ℕ} (p : Vector UInt64 t) (c : Fin t → UInt64) : UInt64 :=
   Fin.foldl t (fun acc q ↦ acc ^^^ mulWord p[q] (c q)) 0
 
-/-- A `xor` over `Fin t` is the sum of the elements. -/
-private theorem ofWord_foldl_xor : ∀ (t : ℕ) (g : Fin t → UInt64) (a : UInt64),
-    ofWord (Fin.foldl t (fun acc q ↦ acc ^^^ g q) a) = ofWord a + ∑ q, ofWord (g q)
-  | 0, _, a => by simp
-  | t + 1, g, a => by
-    rw [Fin.foldl_succ_last, ofWord_xor, ofWord_foldl_xor t, Fin.sum_univ_castSucc, add_assoc]
-
 /-- `dotW` is the dot product. -/
-theorem ofWord_dotW {t : ℕ} (p : Vector UInt64 t) (c : Fin t → UInt64) :
+private theorem ofWord_dotW {t : ℕ} (p : Vector UInt64 t) (c : Fin t → UInt64) :
     ofWord (dotW p c) = ∑ q, ofWord p[q] * ofWord (c q) := by
   rw [dotW, ofWord_foldl_xor]
   simp only [ofWord_mulWord]
@@ -71,7 +59,7 @@ theorem ofWord_dotW {t : ℕ} (p : Vector UInt64 t) (c : Fin t → UInt64) :
 
 /-- **The query batch's values on words**: each column's values over `K` once, the batch limb by
 limb. -/
-def queryCubeW (κ R : ℕ) {t : ℕ} (pos : Fin t → Fin (2 ^ (κ + R))) (lam : E) :
+@[no_expose] def queryCubeW (κ R : ℕ) {t : ℕ} (pos : Fin t → Fin (2 ^ (κ + R))) (lam : E) :
     CMlPolynomialEval E κ :=
   let cs : Vector (Vector UInt64 (2 ^ κ)) t :=
     Vector.ofFn fun q ↦ Vector.map toWord (columnTableK κ R (pos q))
