@@ -9,6 +9,7 @@ module
 public import LeanVM.Guest.B1.Tables.FlatLift
 public import LeanVM.Guest.B1.Tables.FlatAtT
 public import LeanVM.Guest.Budget.Strengthen
+public import LeanVM.Guest.Budget.LiftB
 
 /-!
 # Flat functions, placed, by a tree of honest shape
@@ -54,10 +55,72 @@ theorem kidsDT_of_getElem {κ : ℕ} {σS : Val} {L : Layout} :
     · have := h (i + 1) c' (by simpa using hc) ht
       cases Ts <;> simpa using this
 
+/-- The callees' words, call by call: an entered call's bound, another's frame. -/
+def callsBound (fs : String → ℕ) : List Call → List ℕ → ℕ
+  | c :: cs, Bs => (if c.taken then Bs.headD 0 else fs c.f) + callsBound fs cs Bs.tail
+  | [], _ => 0
+
+theorem kidsBoundL_map {σS : Val} {L : Layout} :
+    ∀ (cs : List Call) (Bs : List ℕ), kidsBoundL fs (cs.map (kidOf σS L)) Bs = callsBound fs cs Bs
+  | [], _ => rfl
+  | c :: cs, Bs => by
+    simp only [List.map_cons, kidsBoundL, callsBound, kidsBoundL_map cs Bs.tail]
+    rfl
+
+theorem kidsDTB_of_getElem {κ : ℕ} {σS : Val} {L : Layout} :
+    ∀ (cs : List Call) (Ts : List (Tree → Prop)) (Bs : List ℕ),
+      (∀ i (c : Call), cs[i]? = some c → c.taken = true →
+        CompleteAtDTB fs cert κ c.f L (c.args.map σS) (Returns (c.rets.map σS))
+          (Ts.getD i fun _ ↦ True) (Bs.getD i 0)) →
+      KidsDTB fs cert κ (cs.map (kidOf σS L)) Ts Bs
+  | [], _, _, _ => trivial
+  | c :: cs, Ts, Bs, h => by
+    refine ⟨fun ht ↦ ?_, kidsDTB_of_getElem cs Ts.tail Bs.tail fun i c' hc ht ↦ ?_⟩
+    · have := h 0 c rfl ht
+      cases Ts <;> cases Bs <;> exact this
+    · have := h (i + 1) c' (by simpa using hc) ht
+      cases Ts <;> cases Bs <;> simpa using this
+
+/-- `completeAtDTB_of_relIn` with the callee's words bounded on the memories it runs on only:
+defined below `2^κ` and holding `Lin` (its tree is built on `lowLin rd1 κ Lin`). -/
+theorem completeAtDTB_of_relIn_on {S : List String} (hS : coreProgram.PureIn S) {g : String}
+    (hg : g ∈ S) {κ : ℕ} {Lin : Layout} {args rets : List E} {B : ℕ}
+    (hB : ∀ rd, LowDef κ rd → MemL rd Lin → ∀ (t : Tree) (rets' : List E), t.name = g →
+      t.Valid coreProgram rd args rets' → t.BufsOk coreProgram → t.total fs ≤ B)
+    (h : ∀ rd, LowDef κ rd → MemL rd Lin → coreProgram.RelIn rd (RegionL Lin) g args rets) :
+    CompleteAtDTB fs cert κ g Lin args (Returns rets) (fun _ => True) B := by
+  intro fp
+  classical
+  by_cases hex : ∃ rd1, LowDef κ rd1 ∧ MemL rd1 Lin
+  swap
+  · refine ⟨0, [], rets, [], Nat.zero_le _, ⟨rfl, rfl⟩, by simp [Within], disj_nil,
+      fun rd hl hL => absurd ⟨rd, hl, ?_⟩ hex⟩
+    simpa using hL
+  obtain ⟨rd1, hl1, hL1⟩ := hex
+  obtain ⟨t, hn, hv, hb, hlr⟩ := h _ (Lift.lowLin_low (Lin := Lin) hl1) (Lift.lowLin_memL hL1)
+  refine ⟨t.total fs, [], rets, [], hB _ (Lift.lowLin_low (Lin := Lin) hl1) (Lift.lowLin_memL hL1)
+    t rets hn hv hb, ⟨rfl, rfl⟩, by simp [Within], disj_nil, fun rd hl hL => ?_⟩
+  have hL' : MemL rd Lin := by simpa using hL
+  have hr := relAtIn_transfer (fs := fs) (cert := cert) (D := fun _ => False) (fp := fp)
+    coreProgram_fresh hn hv hb (placed_of_pure hS t hv hb (hn ▸ hg) fp)
+    (loadsIn_of_loadsR t _ fp hlr) (fun _ h => h.elim) rd
+    (fun i hi => hi.elim (fun hi => ?_) fun hd => (not_data_of_pure hS t hv hb (hn ▸ hg) fp i hd).elim)
+    (fun A hA => ?_)
+  · refine (relAtIn_dmono hr fun i hi => ?_).relAtInT
+    obtain ⟨q, hq, _⟩ := hi; simp at hq
+  · rw [Lift.lowLin, B1.Main.restrict_of ⟨i, rfl, Or.inl hi⟩, B1.Main.memL_agree hL' hL1 i hi]
+  · obtain ⟨v, hv⟩ := Option.isSome_iff_exists.mp hA
+    obtain ⟨i, rfl, hi | hi⟩ := B1.Main.restrict_supp' rd1 _ _ _ hv
+    · rw [B1.Main.memL_agree hL' hL1 i hi, ← B1.Main.restrict_of (rd := rd1)
+        (S := fun i => RegionL Lin i ∨ i < 2 ^ κ) ⟨i, rfl, Or.inl hi⟩]
+      exact Option.isSome_iff_exists.mpr ⟨v, hv⟩
+    · exact hl i hi
+
 set_option maxRecDepth 20000 in
-set_option maxHeartbeats 2000000 in
-/-- **A flat function is complete, placed, by a tree of honest shape.** -/
-theorem flat_completeAtT (F : FlatFn) {κ : ℕ} (Lin : Layout) (args rets : List E)
+set_option maxHeartbeats 4000000 in
+/-- **A flat function is complete, placed, by a tree of honest shape, within its frame, its
+buffers and its callees' bounds.** -/
+theorem flat_completeAtTB (F : FlatFn) {κ : ℕ} (Lin : Layout) (args rets : List E)
     (hl : args.length = F.k)
     (sizes : List ℕ) (own : ℕ → List (List E))
     (hown : ∀ fp, List.Forall₂ (fun c s => c.length ≤ s) (own fp) sizes)
@@ -81,9 +144,17 @@ theorem flat_completeAtT (F : FlatFn) {κ : ℕ} (Lin : Layout) (args rets : Lis
       (flatCalls F.pre (F.σ rd (w fp) args))[i]? = some c → c.taken = true →
       ∀ (t : Tree) (r : List E), t.name = c.f →
         t.Valid coreProgram rd (c.args.map (F.σ rd (w fp) args)) r → t.BufsOk coreProgram →
-        (Ts.getD i fun _ ↦ True) t) :
-    CompleteAtDT fs cert κ F.name Lin args (Returns rets)
-      (Budget.NodeHonest coreProgram F.name Q (flatCalls F.pre) (fun _ ↦ sizes) Ts) := by
+        (Ts.getD i fun _ ↦ True) t)
+    (Bs : List ℕ) (KB : ℕ)
+    (hB : ∀ fp rd, LowDef κ rd → MemL rd (flatL F.name Lin sizes own fs fp) → ∀ i (c : Call),
+      (flatCalls F.pre (F.σ rd (w fp) args))[i]? = some c → c.taken = true →
+      ∀ rd', LowDef κ rd' → MemL rd' (flatL F.name Lin sizes own fs fp) → ∀ (t : Tree) (r : List E), t.name = c.f →
+        t.Valid coreProgram rd' (c.args.map (F.σ rd (w fp) args)) r → t.BufsOk coreProgram →
+        t.total fs ≤ Bs.getD i 0)
+    (hKB : ∀ σ, callsBound fs (flatCalls F.pre σ) Bs ≤ KB) :
+    CompleteAtDTB fs cert κ F.name Lin args (Returns rets)
+      (Budget.NodeHonest coreProgram F.name Q (flatCalls F.pre) (fun _ ↦ sizes) Ts)
+      (fs F.name + sizes.sum + KB) := by
   have hf := F.hf
   have hp := F.hp
   have hb' := F.hb
@@ -141,15 +212,12 @@ theorem flat_completeAtT (F : FlatFn) {κ : ℕ} (Lin : Layout) (args rets : Lis
       exact hag fp rd hlow hL _ hs rfl v (by simp_all [Main.mkCall, Stmt.vals])
     | _ => simp [Stmt.callSF, Main.Stmt.callS] at hst
   -- each entered callee is complete
-  have hkd : ∀ fp, ∀ c ∈ flatCalls F.pre (σS fp), c.taken = true →
-      CompleteAtD fs cert κ c.f (flatL F.name Lin sizes own fs fp) (c.args.map (σS fp))
-        (Returns (c.rets.map (σS fp))) := by
-    intro fp c hc ht
-    by_cases hex : ∃ rd, LowDef κ rd ∧ MemL rd (flatL F.name Lin sizes own fs fp)
-    swap
-    · intro fp'
-      exact ⟨0, [], c.rets.map (σS fp), [], ⟨rfl, rfl⟩, by simp [Within], disj_nil,
-        fun rd hlow hL ↦ absurd ⟨rd, hlow, by simpa using hL⟩ hex⟩
+  have hkd : ∀ fp, (∃ rd, LowDef κ rd ∧ MemL rd (flatL F.name Lin sizes own fs fp)) →
+      ∀ c ∈ flatCalls F.pre (σS fp), c.taken = true → c.f ∈ F.kids ∧
+        ∀ rd, LowDef κ rd → MemL rd (flatL F.name Lin sizes own fs fp) →
+          coreProgram.RelIn rd (RegionL (flatL F.name Lin sizes own fs fp)) c.f (c.args.map (σS fp))
+            (c.rets.map (σS fp)) := by
+    intro fp hex c hc ht
     obtain ⟨hlS, hLS⟩ := hS fp hex
     have hvS : ∀ s ∈ F.pre, VSH (coreProgram.RelIn (rdS fp)
         (RegionL (flatL F.name Lin sizes own fs fp))) (rdS fp) (σS fp) s := by
@@ -162,8 +230,8 @@ theorem flat_completeAtT (F : FlatFn) {κ : ℕ} (Lin : Layout) (args rets : Lis
       simp only [Stmt.callSF, Main.Stmt.callS, Option.some.injEq] at hst
       subst hst
       simp only [Main.mkCall]
-      refine Lift.completeAtD_of_relIn F.hpure (by simpa [callOk] using hok)
-        fun rd hlow hL ↦ ?_
+      refine ⟨(by simpa [callOk] using hok),
+        fun rd hlow hL ↦ ?_⟩
       have h : coreProgram.RelIn rd (RegionL (flatL F.name Lin sizes own fs fp)) f
           (a.map (F.σ rd (w fp) args)) (r.map (F.σ rd (w fp) args)) := (hrun fp rd hlow hL).1 _ hs
       rwa [hmap fp rd hlow hL _ hs rfl a (fun v hv ↦ by simp [Stmt.vals, hv]),
@@ -172,8 +240,8 @@ theorem flat_completeAtT (F : FlatFn) {κ : ℕ} (Lin : Layout) (args rets : Lis
       simp only [Stmt.callSF, Main.Stmt.callS, Option.some.injEq] at hst
       subst hst
       simp only [Main.mkCall, decide_eq_true_eq, List.map_nil] at ht ⊢
-      refine Lift.completeAtD_of_relIn F.hpure (by simpa [callOk] using hok)
-        fun rd hlow hL ↦ ?_
+      refine ⟨(by simpa [callOk] using hok),
+        fun rd hlow hL ↦ ?_⟩
       have h : IsInK (F.σ rd (w fp) args cnd) ∧ (F.σ rd (w fp) args cnd ≠ 0 →
           coreProgram.RelIn rd (RegionL (flatL F.name Lin sizes own fs fp)) f
             (a.map (F.σ rd (w fp) args)) []) := (hrun fp rd hlow hL).1 _ hs
@@ -187,8 +255,8 @@ theorem flat_completeAtT (F : FlatFn) {κ : ℕ} (Lin : Layout) (args rets : Lis
       obtain ⟨j, hj, hxj, -⟩ := hvS _ hs
       have hlog : logG (σS fp x) = j := by rw [hxj]; exact logG_spec (by omega)
       simp only [Main.mkCall, hlog, List.getD_eq_getElem _ _ hj]
-      refine Lift.completeAtD_of_relIn F.hpure (by simpa using hok.1 _ (List.getElem_mem hj))
-        fun rd hlow hL ↦ ?_
+      refine ⟨(by simpa using hok.1 _ (List.getElem_mem hj)),
+        fun rd hlow hL ↦ ?_⟩
       obtain ⟨j', hj', hxj', h⟩ := ((hrun fp rd hlow hL).1 _ hs :
         ∃ (j' : ℕ) (h : j' < fs'.length), F.σ rd (w fp) args x = ofK (gpow j') ∧
           coreProgram.RelIn rd (RegionL (flatL F.name Lin sizes own fs fp)) fs'[j']
@@ -201,10 +269,10 @@ theorem flat_completeAtT (F : FlatFn) {κ : ℕ} (Lin : Layout) (args rets : Lis
       rwa [hmap fp rd hlow hL _ hs rfl a (fun v hv ↦ by simp [Stmt.vals, hv]),
         hmap fp rd hlow hL _ hs rfl r (fun v hv ↦ by simp [Stmt.vals, hv])] at h
     | _ => simp [Stmt.callSF, Main.Stmt.callS] at hst
-  refine completeAt_flatDT (fs := fs) (cert := cert) hf F.hloop κ Lin args rets hb' F.hflat
+  refine completeAt_flatDTB (fs := fs) (cert := cert) hf F.hloop κ Lin args rets hb' F.hflat
     F.haddrs sizes own hown
     (fun fp ↦ (flatCalls F.pre (σS fp)).map (kidOf (σS fp) (flatL F.name Lin sizes own fs fp)))
-    Q Ts ?hkc ?hkl ?hkr ?hkm ?hσ
+    Q Ts Bs KB ?hkc ?hKB ?hkl ?hkr ?hkm ?hσ
   case hkl =>
     intro fp
     rw [List.length_map, flatCalls_length]; exact hTl
@@ -216,20 +284,41 @@ theorem flat_completeAtT (F : FlatFn) {κ : ℕ} (Lin : Layout) (args rets : Lis
     intro fp rd hB hLin k hk
     obtain ⟨c, -, rfl⟩ := List.mem_map.mp hk
     exact Main.memL_append.mpr ⟨hLin, hB⟩
+  case hKB =>
+    intro fp
+    rw [kidsBoundL_map]
+    exact hKB (σS fp)
   case hkc =>
     intro fp
-    refine kidsDT_of_getElem _ Ts fun i c hc ht ↦ ?_
+    refine kidsDTB_of_getElem _ Ts Bs fun i c hc ht ↦ ?_
+    by_cases hex : ∃ rd, LowDef κ rd ∧ MemL rd (flatL F.name Lin sizes own fs fp)
+    swap
+    · intro fp'
+      exact ⟨0, [], c.rets.map (σS fp), [], Nat.zero_le _, ⟨rfl, rfl⟩, by simp [Within], disj_nil,
+        fun rd hlow hL ↦ absurd ⟨rd, hlow, by simpa using hL⟩ hex⟩
+    obtain ⟨hlS, hLS⟩ := hS fp hex
     have hcm : c ∈ flatCalls F.pre (σS fp) := List.mem_of_getElem? hc
-    refine (hkd fp c hcm ht).toT_on fun rd hlow hL t r hn hv hbo ↦ ?_
+    obtain ⟨hmem, hrel⟩ := hkd fp hex c hcm ht
+    have hBi : ∀ rd', LowDef κ rd' → MemL rd' (flatL F.name Lin sizes own fs fp) → ∀ (t : Tree) (r : List E),
+        t.name = c.f → t.Valid coreProgram rd' (c.args.map (σS fp)) r → t.BufsOk coreProgram →
+        t.total fs ≤ Bs.getD i 0 := by
+      have hcS : (flatCalls F.pre (F.σ (rdS fp) (w fp) args))[i]? = some c := by
+        rw [show F.σ (rdS fp) (w fp) args = σS fp from by rw [← hσS]]; exact hc
+      have := hB fp (rdS fp) hlS hLS i c hcS ht
+      rwa [show F.σ (rdS fp) (w fp) args = σS fp from by rw [← hσS]] at this
+    refine ((completeAtDTB_of_relIn_on F.hpure hmem hBi hrel).and_valid_on
+      fun rd hlow hL t r hn hv hbo ↦ ?_).mono le_rfl fun t h ↦ h.2
     have hc' : (flatCalls F.pre (F.σ rd (w fp) args))[i]? = some c := by
       rw [hcs fp rd hlow hL]; exact hc
     have ha : c.args.map (σS fp) = c.args.map (F.σ rd (w fp) args) :=
-      List.map_congr_left fun v hv ↦ (hagc fp rd hlow hL c hcm v (List.mem_append_left _ hv)).symm
+      List.map_congr_left fun v hv ↦
+        (hagc fp rd hlow hL c hcm v (List.mem_append_left _ hv)).symm
     rw [ha] at hv
     exact hT fp rd hlow hL i c hc' ht t r hn hv hbo
   case hσ =>
     intro fp outs ho rd hlow hB hLin
     have hL : MemL rd (flatL F.name Lin sizes own fs fp) := Main.memL_append.mpr ⟨hLin, hB⟩
+
     obtain ⟨hv, hld, hsz, hbs, hrt⟩ := hrun fp rd hlow hL
     have hvR : ∀ s ∈ F.pre, VSH (coreProgram.Rel rd) rd (F.σ rd (w fp) args) s := fun s hs ↦
       vsh_mono (fun _ _ _ h ↦ Program.RelIn.rel h) (hv s hs)
@@ -249,7 +338,7 @@ theorem flat_completeAtT (F : FlatFn) {κ : ℕ} (Lin : Layout) (args rets : Lis
     · rw [hb', holdsList_append]
       exact holdsList_of_vsh F.pre F.hiteOk hvR hrt
     · rw [hcs']
-      exact callsMatch_kids _ outs hag' ho
+      exact callsMatch_kids (σS := σS fp) (L := (flatL F.name Lin sizes own fs fp)) _ outs hag' ho
     · intro q hq
       obtain ⟨d, hd⟩ := F.loadsEv_mem hq
       obtain ⟨i, hi, hr⟩ := inBuf_region (hbufs fp) (hld d q.1 q.2 hd)
