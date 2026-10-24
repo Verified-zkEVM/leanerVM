@@ -122,7 +122,14 @@ theorem vsSec {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) {seed : Diges
     (o7 : (outs.getD 7 ([], [])).1 =
       S.s7.cap ++ [ofK (gpow (S.cK bs)) * gen ^ S.xsK.length, S.word, S.m0])
     (o10 : (outs.getD 10 ([], [])).1 = [gen ^ max 15 (log2Ceil (Tables.stackTotal S.kappas))]) :
-    Nonempty (VsSecData rd (vsW bs outs) args) := by
+    ∃ D : VsSecData rd (vsW bs outs) args,
+      D.vals = (fun i ↦ S.H.poolW.getD (vsKept i) 0) ∧ D.m = S.μs ∧ D.r = S.rate ∧
+      D.τg = gen ^ S.τ ∧ VsFrontH S rd (vsσ rd (vsW bs outs) args) ∧
+      vsσ rd (vsW bs outs) args (.n 1323) = S.lam ∧
+      S.s8 = ⟨[vsσ rd (vsW bs outs) args (.n 966), vsσ rd (vsW bs outs) args (.n 967),
+        vsσ rd (vsW bs outs) args (.n 968), vsσ rd (vsW bs outs) args (.n 969),
+        vsσ rd (vsW bs outs) args (.n 970)], []⟩ ∧
+      vsσ rd (vsW bs outs) args (.n 870) = S.m0 ∧ vsChs (vsσ rd (vsW bs outs) args) = S.chs := by
   have hl : args.length = 7 := by rw [hargs]; rfl
   have ptr : ∀ i < 16, vsσ rd (vsW bs outs) args (.n (vsAllocVars.getD i 0)) =
       ofK (gpow (bs.getD i 0)) := fun i hi ↦ vs_alloc_ptr hl bs outs hi
@@ -370,7 +377,9 @@ theorem vsSec {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) {seed : Diges
         simp only [List.length_append, List.length_take, List.length_cons, List.length_nil, hpl, hal]
         omega)
       rw [List.getD_append_right _ _ _ _ (by simp only [List.length_append, List.length_take, hpl, hal]; omega)] at this
-      simpa [hpl, hal, show min 19 S.μ = 19 by omega] using this }⟩
+      simpa [hpl, hal, show min 19 S.μ = 19 by omega] using this }, ?_⟩
+  subst hσ
+  exact ⟨rfl, rfl, rfl, rfl, F, elam, es8.symm, e870, ech⟩
 
 end
 end LeanVM.Guest.B1.VerifySub
