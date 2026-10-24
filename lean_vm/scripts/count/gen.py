@@ -16,13 +16,14 @@ written under `LeanVM/Guest/`. `CMD` is one of
   instantiates the budget's hypotheses with them);
 * `ratio`: `Count/RatioData.lean`, `Count/RatioChk*.lean` and `Count/Ratio.lean`, the counts of
   `RATIO_ROOTS` (no static bound) within ratios of their words, per opcode (`ratio.py`);
-* `all`: `words`, `cnt`, `static` and `ratio`.
+* `deployed`: `Count/Deployed*.lean`, the numbers of `Budget.deployedBudget Bv` (`deployed.py`);
+* `all`: `words`, `cnt`, `static`, `ratio` and `deployed`.
 
 The checker is `checker.py`, a mirror of `Memory/Static.lean`; `--cache` keeps the parsed core IR.
 Build the families' parts one module at a time (each is a few GB)."""
 import sys, os, re, argparse
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-import core, checker, writelean, ratio
+import core, checker, writelean, ratio, deployed
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 # (Lean opcode, family letter, index in `Opcode`'s order)
@@ -282,6 +283,21 @@ def cmd_words_by_name(g, wcert):
     print('words by name: %d names, %d loops' % (len(names), len(loops)))
 
 
+def ratio_A(g):
+    """`kr<N>A`, as `ratio.write` computes it."""
+    fsN = lambda j: MAIN_FRAME if j == 1 else max(2, g.fsz[j])
+    out = {}
+    for N, r in RATIO_ROOTS:
+        J = sorted(g.by[n] for n in g.closure([r]))
+        out[N] = [max(-(-1000 * g.pm[j + 1][k] // fsN(j + 1)) for j in J) for k in range(6)]
+    return out
+
+
+def cmd_deployed(g, fams=None):
+    if fams is None: fams = g.cnt_certs()[1]
+    deployed.write(g, ratio_A(g), {P: c for _, P, _, _, c in fams}, OPS)
+
+
 def show(c):
     if c is None: return '-'
     if c[0] == 'stat':
@@ -312,7 +328,7 @@ def cmd_report(g):
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument('lean_vm')
-    ap.add_argument('cmd', choices=['report', 'words', 'cnt', 'static', 'ratio', 'all'])
+    ap.add_argument('cmd', choices=['report', 'words', 'cnt', 'static', 'ratio', 'deployed', 'all'])
     ap.add_argument('--cache', default=None)
     a = ap.parse_args()
     g = G(a.lean_vm, a.cache)
@@ -321,11 +337,13 @@ def main():
     elif a.cmd == 'cnt': cmd_cnt(g)
     elif a.cmd == 'static': cmd_static(g)
     elif a.cmd == 'ratio': ratio.write(g, RATIO_ROOTS, opdef)
+    elif a.cmd == 'deployed': cmd_deployed(g)
     else:
         w = cmd_words(g)
         _, fams = cmd_cnt(g)
         cmd_static(g, w, fams)
         ratio.write(g, RATIO_ROOTS, opdef)
+        cmd_deployed(g, fams)
 
 
 if __name__ == '__main__':
