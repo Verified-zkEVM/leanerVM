@@ -1,6 +1,6 @@
 # The specification
 
-What the project proves, in the files a reviewer reads. The model is the random-permutation model: one uniformly random permutation `π` of the Keccak state, which the adversary queries forward and inverse, with Keccak-256 the sponge over `π` and Keccak-f[1600] `π` itself; the two statements are `KnowledgeSoundness` and `Completeness` of `Rpm.lean`. They import nothing else from the project (CI checks it); the rest is proof. The sources are leanVM's at `4af2cdddd7cd41b9df2cc7e123e314a91b0b4462` (branch `main`).
+What the project proves, in the files a reviewer reads. The model is the random-permutation model: one uniformly random permutation `π` of the Keccak state, which the adversary queries forward and inverse, with Keccak-256 the sponge over `π` and Keccak-f[1600] `π` itself; the two statements are `KnowledgeSoundness` and `Completeness` of `Rpm.lean`. They import nothing else from the project (CI checks it); the rest is proof. The sources are leanVM's at `94ee12ff6b2a3d42ba8328e22d09443692e4800b` (branch `main`).
 
 Read in this order:
 

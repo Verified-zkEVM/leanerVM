@@ -39,7 +39,7 @@ includes its in-circuit checks), and reads the witness there. The seed is the gu
 the statement's digest binds it, so a consumer comparing the digest with its own statement's under
 the deployed seed learns both, unless it holds a Keccak-256 collision.
 
-At leanVM `4af2cdddd7cd41b9df2cc7e123e314a91b0b4462` the statement's preimage is hashed as it is,
+At leanVM `94ee12ff6b2a3d42ba8328e22d09443692e4800b` the statement's preimage is hashed as it is,
 without the zero fill to whole blocks that BLAKE2s had (`statement_digest`,
 `crates/rec_aggregation/src/aggregation.rs:347-368`): `statementPreimage` is those bytes, and the
 former `statementBytes` (the bytes before the fill) is gone.

@@ -22,7 +22,7 @@ proved there, and its deployed algorithms (`LeanDa.commitCodewords`, `LeanDa.mem
 of the challenges' duplex sponge. Here the hash is this project's Keccak-256 (`keccak`, from
 `keccak256`), its digest read as LeanDA's 32 bytes (`toBytes`), and the permutation is this
 project's Keccak-f[1600] on LeanDA's lanes (`keccakLanes`, from `keccakF`): the crate's, at leanVM
-`4af2cdddd7cd41b9df2cc7e123e314a91b0b4462` (`crates/lean_da`, `crates/verifier/src/da.rs`).
+`94ee12ff6b2a3d42ba8328e22d09443692e4800b` (`crates/lean_da`, `crates/verifier/src/da.rs`).
 `Fast.Da` compiles the membership vector with this project's field arithmetic, and `Fast.Keccak`
 Keccak-f[1600] and Keccak-256 with their lanes written out.
 

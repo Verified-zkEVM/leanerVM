@@ -14,7 +14,7 @@ public import LeanVM.Spec.Field
 # Keccak
 
 Transcribed from `python-verifier/verifier.py` at leanVM
-`4af2cdddd7cd41b9df2cc7e123e314a91b0b4462` (branch `main`): the round constants, rotation
+`94ee12ff6b2a3d42ba8328e22d09443692e4800b` (branch `main`): the round constants, rotation
 offsets and lane permutation (`KECCAK_RC`, `KECCAK_RHO`, `KECCAK_PI`, `verifier.py:1207-1214`),
 the permutation `keccak_f` (`verifier.py:360-375`), and the hash `keccak_hash`
 (`verifier.py:191-209`): Keccak-256 as Ethereum computes it, rate `136` bytes, the message padded

@@ -22,7 +22,7 @@ challenges' duplex sponge (`spongeNewWith`, `spongeDuplexWith`, `spongeAbsorbWit
 the two-level vector digest; and the deployed padding digests are parameters (`pc`, `pr`;
 deployed: the hashes of the zero cell and the zero row, which the guest bakes as constants,
 `DA_PAD_CELL_*`, `DA_PAD_ROW_*`, `crates/rec_aggregation/src/aggregation.rs:2575-2578` at leanVM
-`4af2cdddd7cd41b9df2cc7e123e314a91b0b4462`). At `m = Id` they are LeanDA's own
+`94ee12ff6b2a3d42ba8328e22d09443692e4800b`). At `m = Id` they are LeanDA's own
 (`commitCodewordsWith_id`, `membershipVectorWith_id`, `vectorDigestWith_id`), and at Keccak-256
 and Keccak-f[1600] the deployed DA claim (`vectorDigestOfWith_id`). `Witness.OpensWith` is
 `Witness.Opens` over an `Option`-valued hash: it hashes, but runs no sponge. The tree is built

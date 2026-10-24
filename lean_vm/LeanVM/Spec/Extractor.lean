@@ -52,7 +52,7 @@ It does four things.
    information-theoretic, not an algorithm with a running time.
 
 Every citation `verifier.py:N` is a line of `python-verifier/verifier.py` at leanVM
-`4af2cdddd7cd41b9df2cc7e123e314a91b0b4462`, the commit `Verifier.lean` transcribes; the Annexes
+`94ee12ff6b2a3d42ba8328e22d09443692e4800b`, the commit `Verifier.lean` transcribes; the Annexes
 are cited at leanVM `127510d14c98ade4e8a97646c44fa7f1ff5e752d`.
 -/
 

@@ -2,7 +2,7 @@
   LeanVM.Spec.Verifier
 
   The leanVM verifier: `python-verifier/verifier.py` at leanVM
-  `4af2cdddd7cd41b9df2cc7e123e314a91b0b4462` (branch `main`), transcribed into Lean, with the
+  `94ee12ff6b2a3d42ba8328e22d09443692e4800b` (branch `main`), transcribed into Lean, with the
   constants it reads (the WHIR parameters and the Keccak GKR constants) and the Fiat-Shamir sponge
   it runs on.
 -/
@@ -18,7 +18,7 @@ public import Mathlib.Algebra.BigOperators.Group.Finset.Basic
 # The leanVM verifier
 
 Transcribed from `python-verifier/verifier.py` at leanVM
-`4af2cdddd7cd41b9df2cc7e123e314a91b0b4462` (branch `main`); every citation `verifier.py:N`
+`94ee12ff6b2a3d42ba8328e22d09443692e4800b` (branch `main`); every citation `verifier.py:N`
 below is a line of that file. The sections follow the Python's:
 
 | Section | `verifier.py` |
@@ -67,7 +67,7 @@ outside the specification, in `LeanVM.Protocol.Verifier`.
 ## The WHIR parameters
 
 The constants are transcribed from `crates/pcs/src/whir_config.rs:38-86` of the
-pinned leanVM (`4af2cdddd7cd41b9df2cc7e123e314a91b0b4462`), the ladder geometry from its
+pinned leanVM (`94ee12ff6b2a3d42ba8328e22d09443692e4800b`), the ladder geometry from its
 `derive_ladder` and `derive_ladder_shape` (`:252-301`), the stacking window from
 `crates/leanvm_core/src/pcs.rs:49-51`, and the query counts from the second verifier,
 `python-verifier/verifier.py:1018-1053` (`WHIR_QUERIES`, `derive_config`), which the portable Rust
@@ -234,7 +234,7 @@ end LeanVM.Parameters.Whir
 ## The verifier language
 
 leanVM's verifier (`python-verifier/verifier.py` at leanVM
-`4af2cdddd7cd41b9df2cc7e123e314a91b0b4462`, class `Transcript`, lines 378-458) touches the proof
+`94ee12ff6b2a3d42ba8328e22d09443692e4800b`, class `Transcript`, lines 378-458) touches the proof
 through five operations, and computes everything else from their results:
 
 * `next_scalar`: read the next field element of the proof stream and absorb it into the
@@ -262,7 +262,7 @@ and the point of the language is that they are one program:
 ## Reading a program on a proof
 
 Transcribed from the Python verifier at leanVM
-`4af2cdddd7cd41b9df2cc7e123e314a91b0b4462` (`python-verifier/verifier.py:336-458`, `Proof`, the
+`94ee12ff6b2a3d42ba8328e22d09443692e4800b` (`python-verifier/verifier.py:336-458`, `Proof`, the
 sponge and `Transcript`), whose sponge is the Rust's (`crates/verifier/src/transcript.rs:34-91`,
 `Sponge`; the prover's `crates/fiat_shamir/src/lib.rs`):
 

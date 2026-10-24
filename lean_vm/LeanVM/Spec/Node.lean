@@ -16,7 +16,7 @@ public import LeanVM.Spec.Fast.Schemes
 /-!
 # The aggregation node
 
-Transcribed from leanVM `4af2cdddd7cd41b9df2cc7e123e314a91b0b4462` (branch `main`),
+Transcribed from leanVM `94ee12ff6b2a3d42ba8328e22d09443692e4800b` (branch `main`),
 `crates/rec_aggregation/src/aggregation.rs` (the statement, its digest, the batching, the outer
 verifier) and `crates/rec_aggregation/guests/lean_ethereum.py` (the guest); `aggregation.rs:N`
 and `lean_ethereum.py:N` below are lines of those files at that commit. The signature schemes,
