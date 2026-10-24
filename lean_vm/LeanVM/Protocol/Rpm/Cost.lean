@@ -7,7 +7,7 @@
 
 import LeanVM.Protocol.LeanVM
 import LeanVM.Spec.Rpm
-import LeanRpm.Prob
+import Common.Prob
 
 /-!
 # The permutation calls of the verifier and the honest prover
@@ -57,13 +57,13 @@ theorem hashBlocks_le_of_short {t : HashSpec.Domain} (h : Short t) : hashBlocks 
 /-- **A count bound and a per-query weight bound give a weight bound.** -/
 theorem isWeightBound_of_isTotalQueryBound {ι : Type} {spec : OracleSpec ι} {α : Type}
     (w : ι → ℕ) (B : ℕ) {X : OracleComp spec α} {N : ℕ} (hN : IsTotalQueryBound X N)
-    (hX : AllQueriesSatisfy X fun t ↦ w t ≤ B) : LeanRpm.IsWeightBound X w (N * B) := by
+    (hX : AllQueriesSatisfy X fun t ↦ w t ≤ B) : Common.IsWeightBound X w (N * B) := by
   induction X using OracleComp.inductionOn generalizing N with
   | pure a => trivial
   | query_bind t k ih =>
     rw [isTotalQueryBound_query_bind_iff] at hN
     rw [allQueriesSatisfy_query_bind_iff] at hX
-    rw [LeanRpm.isWeightBound_query_bind_iff]
+    rw [Common.isWeightBound_query_bind_iff]
     obtain ⟨N', rfl⟩ : ∃ N', N = N' + 1 := ⟨N - 1, by omega⟩
     have h1 := hX.1
     refine ⟨by rw [Nat.succ_mul]; omega, fun u ↦ (ih u (hN.2 u) (hX.2 u)).mono ?_⟩
@@ -401,7 +401,7 @@ theorem allQ_verifier (prog : Program) (input : PublicInput) (proof : Proof) :
 /-- **The verifier makes at most `verifierPermCalls` permutation calls** on every statement and
 proof. -/
 theorem isWeightBound_verifier (prog : Program) (input : PublicInput) (proof : Proof) :
-    LeanRpm.IsWeightBound (verifier queryH queryF prog input proof) hashBlocks
+    Common.IsWeightBound (verifier queryH queryF prog input proof) hashBlocks
       verifierPermCalls := by
   have hN := isTotalQueryBound_leanVm (bytecodeWords prog) (publicDigest input) proof
   rw [leanVmQueryBound_eq, ← verifier_eq] at hN
@@ -661,7 +661,7 @@ end Prover
 calls.** -/
 theorem isWeightBound_honest (prog : Program) (input : PublicInput) (t : Trace prog)
     (ρ fuel : ℕ) :
-    LeanRpm.IsWeightBound
+    Common.IsWeightBound
       (LeanVM.Protocol.EndToEnd.Complete.honestComp prog input t ρ fuel >>= fun proof ↦
         verifier queryH queryF prog input proof) hashBlocks (completenessPermCalls fuel) := by
   have hN : IsTotalQueryBound

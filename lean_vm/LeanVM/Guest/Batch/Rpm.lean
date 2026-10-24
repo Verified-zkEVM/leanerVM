@@ -103,7 +103,7 @@ theorem allQ_batch (M : ℕ) (bytecode : List K) (z : Unit × Proof) :
 /-- **The batching program makes at most `QV · 2^32` permutation calls**, `QV` its query
 bound. -/
 theorem isWeightBound_batch (M : ℕ) (bytecode : List K) (z : Unit × Proof) :
-    LeanRpm.IsWeightBound (verifierFam batchSeeds (batchAny M bytecode) z) hashBlocks
+    Common.IsWeightBound (verifierFam batchSeeds (batchAny M bytecode) z) hashBlocks
       (batchQueryBound bytecode M * 2 ^ 32) :=
   isWeightBound_of_isTotalQueryBound hashBlocks (2 ^ 32) (isTotalQueryBound_batchFam M bytecode z)
     ((allQ_batch M bytecode z).mono fun _ h ↦ hashBlocks_le_of_short h)

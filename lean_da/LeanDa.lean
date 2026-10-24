@@ -20,7 +20,7 @@ In the random-permutation model (`LeanDa.RpmSecurity`: `H` Keccak-256 over a ran
 `π`, the challenges the deployed duplex over `π`, the adversary querying `π` and `π⁻¹`), position
 binding holds with the bound `Q² / 2^256 + Q² / 2^508` for `Q` permutation calls
 (`leanDa_positionBinding_rpm`), and code binding moves to the two-oracle random-oracle model
-within `Q² / 2^508` (`leanDa_codeBinding_rpm`), where the duplex lemma (`LeanRpm.Duplex`) and
+within `Q² / 2^508` (`leanDa_codeBinding_rpm`), where the duplex lemma (`Common.Duplex`) and
 sampling `H` in advance give Wagner's bound, averaged over `H`, plus `2 (Q + 15)² / 2^576`
 (`leanDa_codeBinding_rpm_bound`).
 -/
@@ -83,7 +83,7 @@ theorem leanDa_codeBinding [NeZero r]
 
 section CodeBindingRpm
 
-open LeanRpm
+open Common
 
 variable (r : ℕ) {Crs Proof : Type} {rel : Unit × Digest × Challenges → (Fin (r * 128) → Cell) → Bool}
   (ps : Nark (Unit × Digest × Challenges) (Fin (r * 128) → Cell) Crs Proof rel)

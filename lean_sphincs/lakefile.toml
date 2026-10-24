@@ -4,8 +4,8 @@ defaultTargets = ["Sphincs"]
 
 # The random-permutation model and the ROM-to-RPM transfer for Keccak-256.
 [[require]]
-name = "lean-rpm"
-path = "../lean_rpm"
+name = "common"
+path = "../common"
 
 [[require]]
 name = "mathlib"

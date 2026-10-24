@@ -20,9 +20,9 @@ The statements are in the random-permutation model (`LeanVM/Spec/Rpm.lean`: `Kno
 `Completeness`). Their proofs (`LeanVM/Protocol/LeanVMRpm.lean`) go through the model defined here,
 in which Keccak-256 is a lazily sampled random function from byte strings to digests and
 Keccak-f[1600] an independent lazily sampled random function from states to states (the calls
-`HashSpec` of `LeanVM/Spec/Statement.lean`, answered by `HashSpec.randomOracle`): `lean_rpm`'s
+`HashSpec` of `LeanVM/Spec/Statement.lean`, answered by `HashSpec.randomOracle`): `common`'s
 sponge indifferentiability moves an event of the random-permutation experiment to this model at
-a cost of `q² / 2^508` for `q` permutation calls (`LeanRpm.keccak256_transfer2`).
+a cost of `q² / 2^508` for `q` permutation calls (`Common.keccak256_transfer2`).
 
 An adversary here is any computation with access to both oracles that outputs a statement and a
 proof (`Adversary`). The experiment runs the adversary, then the verifier on its output, against

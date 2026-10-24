@@ -3,10 +3,10 @@
  "packages":
  [{"type": "path",
    "scope": "",
-   "name": "«lean-rpm»",
+   "name": "common",
    "manifestFile": "lake-manifest.json",
    "inherited": false,
-   "dir": "../lean_rpm",
+   "dir": "../common",
    "configFile": "lakefile.toml"},
   {"url": "https://github.com/Verified-zkEVM/PolyFun",
    "type": "git",

@@ -19,7 +19,7 @@ commitments (`PqDas`, ported from https://github.com/b-wagn/fv-pq-da) with LeanD
 
 set_option linter.unusedSectionVars false
 
-open OracleComp OracleSpec LeanRpm LeanRpm.Duplex PqDas
+open OracleComp OracleSpec Common Common.Duplex PqDas
 open scoped ENNReal
 
 namespace LeanDa
@@ -417,7 +417,7 @@ theorem codeBindingExp_eq (H : List UInt8 → Digest) (ps : Argument r H Crs Pro
   have e1 : (monadLift (pure () : ProbComp Unit) : OracleComp WSpec Unit) = pure () := rfl
   rw [e1, pure_bind]
   erw [simulateRomWithCache_liftM_bind]
-  refine LeanRpm.prEvent_bind_congr _ _ _ _ _ fun crs ↦ ?_
+  refine Common.prEvent_bind_congr _ _ _ _ _ fun crs ↦ ?_
   simp only [simulateRomWithCache, map_eq_bind_pure_comp, Function.comp_def]
   rfl
 
@@ -567,7 +567,7 @@ theorem hashQueryBound_advH (A : CodeBindingAdvRpm r Crs Proof) (Q : ℕ)
     CommittedSoundness.HashQueryBound (advH r ps A h ck) Q := by
   apply hashQueryBound_of_isWeightBound
   have hB := isWeightBound_advS2 r ps A Q hQ _ (fixCrs_mem r ps ck.2)
-  have hP : IsWeightBound (LeanRpm.Duplex.hQ (St := KState) daDuplex.label >>= fun _ ↦
+  have hP : IsWeightBound (Common.Duplex.hQ (St := KState) daDuplex.label >>= fun _ ↦
       advS2 keccakPadding KState.zero (A ((), fixCrs r ps ck.2)))
       (fCalls (Msg := List UInt8) (Dg := KDigest) (St := KState)) Q := by
     simpa using (isWeightBound_hQ (Dg := KDigest) (St := KState) daDuplex.label).bind fun _ ↦ hB
@@ -668,7 +668,7 @@ theorem prT_gameW (A : CodeBindingAdvRpm r Crs Proof) (h : HTab) :
       (leanDa r (Hh h) (argH r ps (Hh h))).codeBindingExp (code r) (roRuntime Digest Challenges)
         (advH r ps A h) {true} := by
   rw [codeBindingExp_eq, prT]
-  refine LeanRpm.prEvent_bind_congr _ _ _ _ _ fun crs ↦ ?_
+  refine Common.prEvent_bind_congr _ _ _ _ _ fun crs ↦ ?_
   have e : ∀ K : ((Digest × Proof) × List (Fin (r * 128) × Cell × Opening)) → OracleComp WSpec Bool,
       (simulateQ (Digest →ₒ Challenges).romImpl (advH r ps A h ((), crs) >>= K)).run' ∅ =
         (simulateQ (Digest →ₒ Challenges).romImpl (advH r ps A h ((), crs))).run ∅ >>= fun z ↦
@@ -676,7 +676,7 @@ theorem prT_gameW (A : CodeBindingAdvRpm r Crs Proof) (h : HTab) :
     intro K
     simp only [StateT.run'_eq, simulateQ_bind, StateT.run_bind, map_bind]
   rw [gameW, e, e]
-  exact LeanRpm.prEvent_bind_congr _ _ _ _ _ fun z ↦ prob_postP_eq_verifyW r ps h crs z.1 z.2
+  exact Common.prEvent_bind_congr _ _ _ _ _ fun z ↦ prob_postP_eq_verifyW r ps h crs z.1 z.2
 
 /-- Wagner's knowledge-soundness experiment for the table `h`: his reduction `ksReduction` from
 `advH h`, against the argument `ps` for the relation with the hash `Hh h`. -/

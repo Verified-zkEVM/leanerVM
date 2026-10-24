@@ -1,11 +1,11 @@
 import LeanDa.Merkle
-import LeanRpm.Keccak
-import LeanRpm.Lemmas
+import Common.Keccak
+import Common.Lemmas
 
 /-!
 # LeanDA's hashing and challenges over a permutation oracle
 
-The random-permutation model (`LeanRpm`) instantiates LeanDA's hash `H` with Keccak-256, the
+The random-permutation model (`Common`) instantiates LeanDA's hash `H` with Keccak-256, the
 sponge over a permutation `π` of the 200-byte Keccak-f[1600] state, and the challenges' duplex
 sponge `P` with `π` itself. The definitions of `LeanDa.Scheme` take `H` and `P` as functions; here
 they are transcribed for oracles, in any monad (`Sponge.newM`, …, `membershipChallengesM`,
@@ -14,12 +14,12 @@ they are transcribed for oracles, in any monad (`Sponge.newM`, …, `membershipC
 
 **Lanes and bytes.** The sponge's state is `25` lanes of `K`, the permutation's `200` bytes; lane
 `i` is bytes `8 i … 8 i + 7`, little endian (`laneBytes`, which is `kBytes`: `laneBytes_toList`),
-as in Keccak-f[1600] (`LeanRpm.keccakF`, `lanesOfBytes`). `lanesToState` and `stateToLanes`
+as in Keccak-f[1600] (`Common.keccakF`, `lanesOfBytes`). `lanesToState` and `stateToLanes`
 convert, and a duplexing writes the rate lanes `0 … 15` and keeps lanes `16 … 24`, that is bytes
 `128 … 199`: the capacity and the last rate byte `135`, whose top bit no padded block has clear
-(`LeanRpm.keccakNF`). So every permutation call of the challenges' sponge absorbs a non-final
+(`Common.keccakNF`). So every permutation call of the challenges' sponge absorbs a non-final
 block into the zero state or into an earlier answer (`duplexP_membershipChallengesR`): the duplex
-discipline of the two-oracle transfer (`LeanRpm.keccak256_transfer2`).
+discipline of the two-oracle transfer (`Common.keccak256_transfer2`).
 
 This module is part of the instantiation of Benedikt Wagner's framework for erasure code
 commitments (`PqDas`, ported from https://github.com/b-wagn/fv-pq-da) with LeanDA.
@@ -27,7 +27,7 @@ commitments (`PqDas`, ported from https://github.com/b-wagn/fv-pq-da) with LeanD
 
 set_option linter.unusedSectionVars false
 
-open OracleComp OracleSpec LeanRpm
+open OracleComp OracleSpec Common
 
 namespace LeanDa
 
@@ -37,7 +37,7 @@ namespace LeanDa
 def laneBytes : K ≃ Vector UInt8 8 :=
   BF64.equivFin.trans <| (finCongr (show 2 ^ 64 = 256 ^ 8 by norm_num)).trans <|
     finFunctionFinEquiv.symm.trans <|
-      (Equiv.arrowCongr (Equiv.refl _) LeanRpm.uInt8EquivFin.symm).trans
+      (Equiv.arrowCongr (Equiv.refl _) Common.uInt8EquivFin.symm).trans
         (arrayVectorEquivFin UInt8 8).symm
 
 /-- A lane's bytes are the crate's (`kBytes`, `as_bytes`). -/

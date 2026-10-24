@@ -23,7 +23,7 @@ with probability at most the bound of `KnowledgeSoundness`,
 
 Keccak-256 and Keccak-f[1600] outside the executed program are built from the random permutation;
 the statement's digest and the collisions are of the deployed Keccak-256, which the guest
-computes. Not a `module`: it imports `Rpm.lean`, which imports `lean_rpm`.
+computes. Not a `module`: it imports `Rpm.lean`, which imports `common`.
 -/
 
 namespace LeanVM.Node

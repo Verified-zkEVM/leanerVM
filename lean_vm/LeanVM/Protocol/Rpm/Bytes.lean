@@ -1,30 +1,30 @@
 /-
   LeanVM.Protocol.Rpm.Bytes
 
-  The Keccak state, the digest and Keccak-256 of `LeanVM/Spec/` against those of `lean_rpm`:
-  the bijections, and Keccak-256 over a permutation as `lean_rpm`'s sponge over it.
+  The Keccak state, the digest and Keccak-256 of `LeanVM/Spec/` against those of `common`:
+  the bijections, and Keccak-256 over a permutation as `common`'s sponge over it.
 -/
 
 import LeanVM.Spec.Rpm
 import LeanVM.Protocol.Verifier.Load
-import LeanRpm.Keccak
+import Common.Keccak
 
 /-!
 # Lanes and bytes
 
 `LeanVM/Spec/` holds a Keccak state as `25` lanes of `64` bits (`KState`) and a digest as four
-lanes (`Digest`); `lean_rpm` holds them as bytes (`LeanRpm.KState`: 32 digest bytes, 104 more
-bytes of the rate, 64 bytes of capacity; `LeanRpm.KDigest`: 32 bytes). Byte `8i + k` is byte `k`
+lanes (`Digest`); `common` holds them as bytes (`Common.KState`: 32 digest bytes, 104 more
+bytes of the rate, 64 bytes of capacity; `Common.KDigest`: 32 bytes). Byte `8i + k` is byte `k`
 of lane `i`, little-endian (`KState.toRpm`, `Digest.ofRpm`, `LeanVM/Spec/Rpm.lean`).
 
 * `stateEquiv`, `digestEquiv`: the two bijections.
 * `keccak256With_rpm`: Keccak-256 over a permutation `π` of the lane states (`keccak256With`,
-  `LeanVM/Spec/Rpm.lean`) is `lean_rpm`'s Keccak-256 sponge (`LeanRpm.keccak256With`: rate 136
+  `LeanVM/Spec/Rpm.lean`) is `common`'s Keccak-256 sponge (`Common.keccak256With`: rate 136
   bytes, capacity 512 bits, the padding `0x01 ‖ 0^* ‖ 0x80`, the zero state, the first 32 bytes)
-  over `π` read on bytes, in every monad. In particular the deployed Keccak-256 is `lean_rpm`'s
+  over `π` read on bytes, in every monad. In particular the deployed Keccak-256 is `common`'s
   sponge over the deployed Keccak-f[1600] read on bytes (`keccak256_eq_rpm`).
 * `admissible_toRpm`: a state keeping lanes `16..24` of another keeps its capacity and its byte
-  `135`, so the block that leads from one to the other is non-final (`LeanRpm.keccakNF`).
+  `135`, so the block that leads from one to the other is non-final (`Common.keccakNF`).
 -/
 
 namespace LeanVM.Rpm
@@ -168,17 +168,17 @@ theorem lanesBytes_ofFn_leLane (bs : List UInt8) (n : ℕ) (h : bs.length = 8 * 
 
 /-! ## The state -/
 
-@[simp] theorem length_toBytes (x : LeanRpm.KState) : x.toBytes.length = 200 := by
-  simp [LeanRpm.KState.toBytes]
+@[simp] theorem length_toBytes (x : Common.KState) : x.toBytes.length = 200 := by
+  simp [Common.KState.toBytes]
 
 /-- Lengths of byte lists, for `omega`. -/
 macro "len_omega" : tactic =>
   `(tactic| (simp only [List.length_append, List.length_ofFn, Vector.length_toList,
-    LeanRpm.KState.toBytes] at *; omega))
+    Common.KState.toBytes] at *; omega))
 
-theorem ofBytes_toBytes (x : LeanRpm.KState) : LeanRpm.KState.ofBytes x.toBytes = x := by
+theorem ofBytes_toBytes (x : Common.KState) : Common.KState.ofBytes x.toBytes = x := by
   obtain ⟨⟨a, b⟩, c⟩ := x
-  simp only [LeanRpm.KState.ofBytes, LeanRpm.KState.toBytes, Prod.mk.injEq]
+  simp only [Common.KState.ofBytes, Common.KState.toBytes, Prod.mk.injEq]
   refine ⟨⟨Vector.ext fun i hi ↦ ?_, Vector.ext fun i hi ↦ ?_⟩, Vector.ext fun i hi ↦ ?_⟩ <;>
     simp only [Vector.getElem_ofFn] <;>
     rw [List.getD_eq_getElem _ _ (by len_omega)]
@@ -191,9 +191,9 @@ theorem ofBytes_toBytes (x : LeanRpm.KState) : LeanRpm.KState.ofBytes x.toBytes 
     simp only [List.length_append, Vector.length_toList, Nat.add_sub_cancel_left]
 
 theorem toBytes_ofBytes (bs : List UInt8) (h : bs.length = 200) :
-    (LeanRpm.KState.ofBytes bs).toBytes = bs := by
+    (Common.KState.ofBytes bs).toBytes = bs := by
   refine List.ext_getElem (by len_omega) fun j h1 h2 ↦ ?_
-  simp only [LeanRpm.KState.ofBytes, LeanRpm.KState.toBytes, Vector.toList_ofFn]
+  simp only [Common.KState.ofBytes, Common.KState.toBytes, Vector.toList_ofFn]
   by_cases j1 : j < 32
   · rw [List.getElem_append_left (by len_omega), List.getElem_append_left (by len_omega),
       List.getElem_ofFn, List.getD_eq_getElem _ _ (by omega)]
@@ -209,7 +209,7 @@ theorem toBytes_ofBytes (bs : List UInt8) (h : bs.length = 200) :
       simp only [e]
 
 /-- The lane state of 200 bytes: lane `i` is bytes `8i` to `8i + 7`, little-endian. -/
-def KState.ofRpm (x : LeanRpm.KState) : KState := Vector.ofFn fun i : Fin 25 ↦ leLane x.toBytes i
+def KState.ofRpm (x : Common.KState) : KState := Vector.ofFn fun i : Fin 25 ↦ leLane x.toBytes i
 
 theorem toBytes_toRpm (s : KState) : (KState.toRpm s).toBytes = lanesBytes s.toList :=
   toBytes_ofBytes (lanesBytes s.toList) (by simp)
@@ -219,12 +219,12 @@ theorem ofRpm_toRpm (s : KState) : KState.ofRpm (KState.toRpm s) = s := by
   rw [KState.ofRpm, Vector.getElem_ofFn, toBytes_toRpm, leLane_lanesBytes _ _ (by simpa)]
   simp
 
-theorem toRpm_ofRpm (x : LeanRpm.KState) : KState.toRpm (KState.ofRpm x) = x := by
-  show LeanRpm.KState.ofBytes (lanesBytes (KState.ofRpm x).toList) = x
+theorem toRpm_ofRpm (x : Common.KState) : KState.toRpm (KState.ofRpm x) = x := by
+  show Common.KState.ofBytes (lanesBytes (KState.ofRpm x).toList) = x
   rw [KState.ofRpm, Vector.toList_ofFn, lanesBytes_ofFn_leLane _ 25 (by simp), ofBytes_toBytes]
 
 /-- **The Keccak state as lanes and as bytes.** -/
-def stateEquiv : KState ≃ LeanRpm.KState where
+def stateEquiv : KState ≃ Common.KState where
   toFun := KState.toRpm
   invFun := KState.ofRpm
   left_inv := ofRpm_toRpm
@@ -232,7 +232,7 @@ def stateEquiv : KState ≃ LeanRpm.KState where
 
 @[simp] theorem stateEquiv_apply (s : KState) : stateEquiv s = KState.toRpm s := rfl
 
-@[simp] theorem stateEquiv_symm_apply (x : LeanRpm.KState) :
+@[simp] theorem stateEquiv_symm_apply (x : Common.KState) :
     stateEquiv.symm x = KState.ofRpm x := rfl
 
 /-- Byte `j` of a state is byte `j % 8` of lane `j / 8`. -/
@@ -254,17 +254,17 @@ theorem lanesBytes_replicate_zero (n : ℕ) :
       ← List.replicate_append_replicate]
     rfl
 
-theorem toRpm_zero : KState.toRpm (Vector.replicate 25 0) = LeanRpm.KState.zero := by
-  rw [← ofBytes_toBytes LeanRpm.KState.zero]
-  show LeanRpm.KState.ofBytes (lanesBytes (Vector.replicate 25 0).toList) = _
+theorem toRpm_zero : KState.toRpm (Vector.replicate 25 0) = Common.KState.zero := by
+  rw [← ofBytes_toBytes Common.KState.zero]
+  show Common.KState.ofBytes (lanesBytes (Vector.replicate 25 0).toList) = _
   rw [Vector.toList_replicate, lanesBytes_replicate_zero]
-  simp only [LeanRpm.KState.zero, LeanRpm.KState.toBytes, Vector.toList_replicate,
+  simp only [Common.KState.zero, Common.KState.toBytes, Vector.toList_replicate,
     List.replicate_append_replicate]
 
 /-! ## The digest -/
 
 /-- The 32 bytes of a digest. -/
-def Digest.toRpm (d : Digest) : LeanRpm.KDigest :=
+def Digest.toRpm (d : Digest) : Common.KDigest :=
   Vector.ofFn fun i : Fin 32 ↦ (lanesBytes d.toList).getD i 0
 
 theorem toList_digestToRpm (d : Digest) : (Digest.toRpm d).toList = lanesBytes d.toList := by
@@ -283,7 +283,7 @@ theorem digestOfRpm_toRpm (d : Digest) : Digest.ofRpm (Digest.toRpm d) = d := by
   · exact e 2 (by norm_num)
   · exact e 3 (by norm_num)
 
-theorem digestToRpm_ofRpm (d : LeanRpm.KDigest) : Digest.toRpm (Digest.ofRpm d) = d := by
+theorem digestToRpm_ofRpm (d : Common.KDigest) : Digest.toRpm (Digest.ofRpm d) = d := by
   apply Vector.toList_inj.mp
   rw [toList_digestToRpm]
   have e : (Digest.ofRpm d).toList = List.ofFn fun i : Fin 4 ↦ leLane d.toList i := by
@@ -291,7 +291,7 @@ theorem digestToRpm_ofRpm (d : LeanRpm.KDigest) : Digest.toRpm (Digest.ofRpm d) 
   rw [e, lanesBytes_ofFn_leLane _ 4 (by simp)]
 
 /-- **The digest as lanes and as bytes.** -/
-def digestEquiv : Digest ≃ LeanRpm.KDigest where
+def digestEquiv : Digest ≃ Common.KDigest where
   toFun := Digest.toRpm
   invFun := Digest.ofRpm
   left_inv := digestOfRpm_toRpm
@@ -299,7 +299,7 @@ def digestEquiv : Digest ≃ LeanRpm.KDigest where
 
 @[simp] theorem digestEquiv_apply (d : Digest) : digestEquiv d = Digest.toRpm d := rfl
 
-@[simp] theorem digestEquiv_symm_apply (d : LeanRpm.KDigest) :
+@[simp] theorem digestEquiv_symm_apply (d : Common.KDigest) :
     digestEquiv.symm d = Digest.ofRpm d := rfl
 
 /-! ## Absorbing a block -/
@@ -331,25 +331,25 @@ theorem lanesBytes_getD (s : KState) (j : ℕ) (hj : j < 200) :
 theorem toRpm_fst_fst (s : KState) (j : ℕ) (hj : j < 32) :
     (KState.toRpm s).1.1[j] = (wordBytes (s[j / 8]'(by omega))).getD (j % 8) 0 := by
   rw [← lanesBytes_getD s j (by omega)]
-  simp [KState.toRpm, LeanRpm.KState.ofBytes, lanesBytes]
+  simp [KState.toRpm, Common.KState.ofBytes, lanesBytes]
 
 theorem toRpm_fst_snd (s : KState) (j : ℕ) (hj : j < 104) :
     (KState.toRpm s).1.2[j] =
       (wordBytes (s[(32 + j) / 8]'(by omega))).getD ((32 + j) % 8) 0 := by
   rw [← lanesBytes_getD s (32 + j) (by omega)]
-  simp [KState.toRpm, LeanRpm.KState.ofBytes, lanesBytes]
+  simp [KState.toRpm, Common.KState.ofBytes, lanesBytes]
 
 theorem toRpm_snd (s : KState) (j : ℕ) (hj : j < 64) :
     (KState.toRpm s).2[j] =
       (wordBytes (s[(136 + j) / 8]'(by omega))).getD ((136 + j) % 8) 0 := by
   rw [← lanesBytes_getD s (136 + j) (by omega)]
-  simp [KState.toRpm, LeanRpm.KState.ofBytes, lanesBytes]
+  simp [KState.toRpm, Common.KState.ofBytes, lanesBytes]
 
 /-- **XORing a block's lanes into the rate is XORing its bytes** (`absorbBlock`, `absorb`). -/
 theorem toRpm_absorbInput (s : KState) (block : List UInt8) :
     KState.toRpm (Vector.ofFn fun i : Fin 25 ↦
         if i.val < 17 then Keccak.lane s i ^^^ leLane block i else Keccak.lane s i) =
-      LeanRpm.absorb (KState.toRpm s) (LeanRpm.KBlock.ofBytes block) := by
+      Common.absorb (KState.toRpm s) (Common.KBlock.ofBytes block) := by
   set v : KState := Vector.ofFn fun i : Fin 25 ↦
     if i.val < 17 then Keccak.lane s i ^^^ leLane block i else Keccak.lane s i with hv
   have hin : ∀ i (hi : i < 17), v[i]'(by omega) = s[i]'(by omega) ^^^ leLane block i := by
@@ -371,10 +371,10 @@ theorem toRpm_absorbInput (s : KState) (block : List UInt8) :
     (Vector.ext fun j hj ↦ ?_)
   · change _ = (Vector.zipWith (· ^^^ ·) (KState.toRpm s).1.1 _)[j]
     rw [Vector.getElem_zipWith, toRpm_fst_fst _ _ hj, toRpm_fst_fst _ _ hj, hblk j (by omega),
-      LeanRpm.KBlock.ofBytes, Vector.getElem_ofFn]
+      Common.KBlock.ofBytes, Vector.getElem_ofFn]
   · change _ = (Vector.zipWith (· ^^^ ·) (KState.toRpm s).1.2 _)[j]
     rw [Vector.getElem_zipWith, toRpm_fst_snd _ _ hj, toRpm_fst_snd _ _ hj,
-      hblk (32 + j) (by omega), LeanRpm.KBlock.ofBytes, Vector.getElem_ofFn]
+      hblk (32 + j) (by omega), Common.KBlock.ofBytes, Vector.getElem_ofFn]
   · change (KState.toRpm v).2[j] = (KState.toRpm s).2[j]
     rw [toRpm_snd _ _ hj, toRpm_snd _ _ hj, hout _ (by omega) (by omega)]
 
@@ -387,9 +387,9 @@ theorem length_padBlock (data : List UInt8) (h : data.length < 136) :
 
 /-- The last block: the padding of fewer than `136` bytes is `padBlock`. -/
 theorem keccakPadBytes_eq_padBlock (data : List UInt8) (h : data.length < 136) :
-    LeanRpm.keccakPadBytes data = padBlock data := by
+    Common.keccakPadBytes data = padBlock data := by
   have hm : data.length % 136 = data.length := Nat.mod_eq_of_lt h
-  unfold LeanRpm.keccakPadBytes
+  unfold Common.keccakPadBytes
   simp only [hm]
   apply List.ext_getElem?
   intro j
@@ -413,24 +413,24 @@ theorem keccakPadBytes_eq_padBlock (data : List UInt8) (h : data.length < 136) :
 /-- Long data: the padding of at least `136` bytes is the first block, then the padding of the
 rest. -/
 theorem keccakPadBytes_of_le (data : List UInt8) (h : 136 ≤ data.length) :
-    LeanRpm.keccakPadBytes data = data.take 136 ++ LeanRpm.keccakPadBytes (data.drop 136) := by
+    Common.keccakPadBytes data = data.take 136 ++ Common.keccakPadBytes (data.drop 136) := by
   have hm : (data.drop 136).length % 136 = data.length % 136 := by
     rw [List.length_drop]; omega
-  unfold LeanRpm.keccakPadBytes
+  unfold Common.keccakPadBytes
   rw [hm]
   split_ifs <;> simp only [List.append_assoc, ← List.append_assoc (data.take 136),
     List.take_append_drop]
 
 theorem toBlocks_of_le (l : List UInt8) (h : 136 ≤ l.length) :
-    LeanRpm.toBlocks l = LeanRpm.KBlock.ofBytes (l.take 136) :: LeanRpm.toBlocks (l.drop 136) := by
+    Common.toBlocks l = Common.KBlock.ofBytes (l.take 136) :: Common.toBlocks (l.drop 136) := by
   match l, h with
-  | b :: bs, _ => rw [LeanRpm.toBlocks]
+  | b :: bs, _ => rw [Common.toBlocks]
 
 /-! ## Keccak-256 over a permutation -/
 
 section Sponge
 
-variable {m : Type → Type} [Monad m] [LawfulMonad m] (π : LeanRpm.KState → m LeanRpm.KState)
+variable {m : Type → Type} [Monad m] [LawfulMonad m] (π : Common.KState → m Common.KState)
 
 /-- A permutation of the byte states, read on lane states. -/
 def lanePerm : KState → m KState := fun s ↦ KState.ofRpm <$> π (KState.toRpm s)
@@ -438,20 +438,20 @@ def lanePerm : KState → m KState := fun s ↦ KState.ofRpm <$> π (KState.toRp
 omit [LawfulMonad m] in
 theorem absorbBlockWith_lanePerm (s : KState) (block : List UInt8) :
     absorbBlockWith (lanePerm π) s block =
-      KState.ofRpm <$> π (LeanRpm.absorb (KState.toRpm s) (LeanRpm.KBlock.ofBytes block)) := by
+      KState.ofRpm <$> π (Common.absorb (KState.toRpm s) (Common.KBlock.ofBytes block)) := by
   rw [absorbBlockWith, lanePerm, toRpm_absorbInput]
 
 theorem absorbWith_lanePerm : ∀ (n : ℕ) (s : KState) (data : List UInt8), data.length / 136 = n →
     absorbWith (lanePerm π) n s data =
-      KState.ofRpm <$> LeanRpm.absorbAll π (KState.toRpm s)
-        (LeanRpm.toBlocks (LeanRpm.keccakPadBytes data))
+      KState.ofRpm <$> Common.absorbAll π (KState.toRpm s)
+        (Common.toBlocks (Common.keccakPadBytes data))
   | 0, s, data, h => by
     have hl : data.length < 136 := by omega
     rw [keccakPadBytes_eq_padBlock data hl, toBlocks_of_le _ (by rw [length_padBlock _ hl]),
       List.take_of_length_le (by rw [length_padBlock _ hl]),
       List.drop_of_length_le (by rw [length_padBlock _ hl])]
-    simp only [absorbWith, absorbBlockWith_lanePerm, LeanRpm.absorbAll_cons, LeanRpm.toBlocks,
-      LeanRpm.absorbAll_nil, bind_pure]
+    simp only [absorbWith, absorbBlockWith_lanePerm, Common.absorbAll_cons, Common.toBlocks,
+      Common.absorbAll_nil, bind_pure]
   | n + 1, s, data, h => by
     have hl : 136 ≤ data.length := by omega
     have hd : (data.drop 136).length / 136 = n := by rw [List.length_drop]; omega
@@ -461,7 +461,7 @@ theorem absorbWith_lanePerm : ∀ (n : ℕ) (s : KState) (data : List UInt8), da
       List.take_append_of_le_length (by rw [h136]), List.take_take, Nat.min_self,
       List.drop_append_of_le_length (by rw [h136]),
       List.drop_of_length_le (by rw [h136]), List.nil_append]
-    simp only [absorbWith, absorbBlockWith_lanePerm, LeanRpm.absorbAll_cons, bind_map_left,
+    simp only [absorbWith, absorbBlockWith_lanePerm, Common.absorbAll_cons, bind_map_left,
       map_bind, rate]
     refine bind_congr fun y ↦ ?_
     rw [absorbWith_lanePerm n _ _ hd, toRpm_ofRpm]
@@ -473,13 +473,13 @@ theorem leLane_append_left (l r : List UInt8) (i : ℕ) (h : 8 * i + 8 ≤ l.len
   simp only [List.mem_range] at hk
   rw [List.getD_append _ _ _ _ (by omega)]
 
-/-- **Keccak-256 over a permutation is `lean_rpm`'s Keccak-256 sponge over it**, in every
+/-- **Keccak-256 over a permutation is `common`'s Keccak-256 sponge over it**, in every
 monad: the sponge of rate 136 bytes and capacity 512 bits, with the Keccak padding, from the zero
 state, its first 32 bytes read as four little-endian lanes. -/
 theorem keccak256With_rpm (data : Bytes) :
-    keccak256With (lanePerm π) data = Digest.ofRpm <$> LeanRpm.keccak256With π data := by
-  rw [keccak256With, absorbWith_lanePerm π (data.length / rate) _ data rfl, toRpm_zero, LeanRpm.keccak256With,
-    LeanRpm.spongeWith, bind_map_left, Functor.map_map, map_eq_bind_pure_comp]
+    keccak256With (lanePerm π) data = Digest.ofRpm <$> Common.keccak256With π data := by
+  rw [keccak256With, absorbWith_lanePerm π (data.length / rate) _ data rfl, toRpm_zero, Common.keccak256With,
+    Common.spongeWith, bind_map_left, Functor.map_map, map_eq_bind_pure_comp]
   refine bind_congr fun y ↦ ?_
   have e : ∀ i (hi : i < 4), Keccak.lane (KState.ofRpm y) i = leLane y.1.1.toList i := by
     intro i hi
@@ -507,11 +507,11 @@ theorem keccak256With_keccakF (data : Bytes) :
   simp only [keccak256With, absorbWith_keccakF]
   rfl
 
-/-- **The deployed Keccak-256 is `lean_rpm`'s Keccak-256 sponge** (`LeanRpm.keccak256With`) over
+/-- **The deployed Keccak-256 is `common`'s Keccak-256 sponge** (`Common.keccak256With`) over
 the deployed Keccak-f[1600] read on bytes. -/
 theorem keccak256_eq_rpm (data : Bytes) :
     keccak256 data = Digest.ofRpm
-      (LeanRpm.keccak256With (m := Id) (fun x ↦ KState.toRpm (keccakF (KState.ofRpm x))) data) := by
+      (Common.keccak256With (m := Id) (fun x ↦ KState.toRpm (keccakF (KState.ofRpm x))) data) := by
   have h : lanePerm (m := Id) (fun x ↦ KState.toRpm (keccakF (KState.ofRpm x))) =
       (keccakF : KState → Id KState) := by
     funext s
@@ -536,10 +536,10 @@ theorem toRpm_keep (x y : KState) (h : ∀ i : Fin 25, 16 ≤ i.val → x[i] = y
       h' _ (by norm_num) (by norm_num)]
 
 /-- **A duplexing that keeps lanes `16..24` absorbs a non-final block**: from `y` to `x`, the
-capacity is kept and the block's last byte is zero (`LeanRpm.keccakNF_blockTo`). -/
+capacity is kept and the block's last byte is zero (`Common.keccakNF_blockTo`). -/
 theorem keccakNF_of_keep (x y : KState) (h : ∀ i : Fin 25, 16 ≤ i.val → x[i] = y[i]) :
     (KState.toRpm x).2 = (KState.toRpm y).2 ∧
-      LeanRpm.keccakNF (LeanRpm.blockTo (KState.toRpm y) (KState.toRpm x)) :=
-  ⟨(toRpm_keep x y h).1, LeanRpm.keccakNF_blockTo _ _ (toRpm_keep x y h).2⟩
+      Common.keccakNF (Common.blockTo (KState.toRpm y) (KState.toRpm x)) :=
+  ⟨(toRpm_keep x y h).1, Common.keccakNF_blockTo _ _ (toRpm_keep x y h).2⟩
 
 end LeanVM.Rpm

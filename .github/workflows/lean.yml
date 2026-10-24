@@ -14,27 +14,27 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  lean-rpm-formalization:
+  common:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - name: Forbid proof escapes
         run: |
           ! grep -rnE '\b(sorry|sorryAx|admit|native_decide|unsafe|implemented_by)\b|#exit' \
-              --include='*.lean' --exclude-dir=.lake lean_rpm | grep -vE ':[0-9]+: *(--|/-)'
+              --include='*.lean' --exclude-dir=.lake common | grep -vE ':[0-9]+: *(--|/-)'
       - uses: leanprover/lean-action@v1
         with:
-          lake-package-directory: lean_rpm
+          lake-package-directory: common
       - name: Forbid deprecated API
-        working-directory: lean_rpm
+        working-directory: common
         run: |
           lake build 2>&1 | tee "$RUNNER_TEMP/build.log"
-          ! grep -E '^warning: LeanRpm.*has been deprecated' "$RUNNER_TEMP/build.log"
+          ! grep -E '^warning: Common.*has been deprecated' "$RUNNER_TEMP/build.log"
       - name: Check the axiom footprint
-        working-directory: lean_rpm
+        working-directory: common
         run: |
-          theorems="LeanRpm.indifferentiability LeanRpm.transfer LeanRpm.transfer2 LeanRpm.keccak256_indifferentiable LeanRpm.keccak256_transfer LeanRpm.keccak256_transfer2 LeanRpm.SufCma.rpm_le_rom LeanRpm.SufCma.rpm_bound LeanRpm.SufCma.rpm_bound_perm LeanRpm.Duplex.duplex_le"
-          { echo 'import LeanRpm'; for t in $theorems; do echo "#print axioms $t"; done; } > "$RUNNER_TEMP/axioms.lean"
+          theorems="Common.indifferentiability Common.transfer Common.transfer2 Common.keccak256_indifferentiable Common.keccak256_transfer Common.keccak256_transfer2 Common.SufCma.rpm_le_rom Common.SufCma.rpm_bound Common.SufCma.rpm_bound_perm Common.Duplex.duplex_le"
+          { echo 'import Common'; for t in $theorems; do echo "#print axioms $t"; done; } > "$RUNNER_TEMP/axioms.lean"
           lake env lean "$RUNNER_TEMP/axioms.lean" | tee "$RUNNER_TEMP/axioms.txt"
           for t in $theorems; do
             grep -qF "'$t' depends on axioms: [propext, Classical.choice, Quot.sound]" "$RUNNER_TEMP/axioms.txt"
@@ -101,8 +101,8 @@ jobs:
           path: |
             lean_sphincs/.lake
             !lean_sphincs/.lake/packages/mathlib/.lake
-            lean_rpm/.lake/build
-          key: lake-lean-sphincs-${{ runner.os }}-${{ hashFiles('lean_sphincs/lean-toolchain', 'lean_sphincs/lake-manifest.json') }}-${{ hashFiles('lean_sphincs/**/*.lean', 'lean_rpm/**/*.lean') }}
+            common/.lake/build
+          key: lake-lean-sphincs-${{ runner.os }}-${{ hashFiles('lean_sphincs/lean-toolchain', 'lean_sphincs/lake-manifest.json') }}-${{ hashFiles('lean_sphincs/**/*.lean', 'common/**/*.lean') }}
           restore-keys: lake-lean-sphincs-${{ runner.os }}-${{ hashFiles('lean_sphincs/lean-toolchain', 'lean_sphincs/lake-manifest.json') }}-
       # Each kernel-checked table (`decide +kernel`) is built alone, before Lake
       # builds the rest in parallel. The largest needs more than the runner's
@@ -147,7 +147,7 @@ jobs:
           path: |
             lean_sphincs/.lake
             !lean_sphincs/.lake/packages/mathlib/.lake
-            lean_rpm/.lake/build
+            common/.lake/build
           key: ${{ steps.lake-cache.outputs.cache-primary-key }}
       - uses: actions/upload-artifact@v4
         with:
@@ -171,8 +171,8 @@ jobs:
           path: |
             lean_da/.lake
             !lean_da/.lake/packages/mathlib/.lake
-            lean_rpm/.lake/build
-          key: lake-lean-da-${{ runner.os }}-${{ hashFiles('lean_da/lean-toolchain', 'lean_da/lake-manifest.json') }}-${{ hashFiles('lean_da/**/*.lean', 'lean_rpm/**/*.lean') }}
+            common/.lake/build
+          key: lake-lean-da-${{ runner.os }}-${{ hashFiles('lean_da/lean-toolchain', 'lean_da/lake-manifest.json') }}-${{ hashFiles('lean_da/**/*.lean', 'common/**/*.lean') }}
           restore-keys: lake-lean-da-${{ runner.os }}-${{ hashFiles('lean_da/lean-toolchain', 'lean_da/lake-manifest.json') }}-
       # Builds the default target, whose root module checks the front-page theorems' axioms with
       # `#guard_msgs`.
@@ -202,7 +202,7 @@ jobs:
           path: |
             lean_da/.lake
             !lean_da/.lake/packages/mathlib/.lake
-            lean_rpm/.lake/build
+            common/.lake/build
           key: ${{ steps.lake-cache.outputs.cache-primary-key }}
       - uses: actions/upload-artifact@v4
         with:
@@ -211,7 +211,7 @@ jobs:
 
   # `lean_vm` models the verifier and the prover's proofs of the leanVM commit in
   # `leanvm-rev`, and imports the two signature schemes, LeanDA and the random-permutation model
-  # (`lean_rpm`), so a change to any of them re-checks it. A skipped job counts as
+  # (`common`), so a change to any of them re-checks it. A skipped job counts as
   # passed for branch protection.
   lean-vm-changes:
     runs-on: ubuntu-latest
@@ -225,7 +225,7 @@ jobs:
         run: |
           if [[ "$GITHUB_EVENT_NAME" == workflow_dispatch ]] || ! git fetch --quiet --depth=1 origin "$BASE"; then
             echo changed=true >> "$GITHUB_OUTPUT"
-          elif git diff --name-only "$BASE" HEAD -- lean_vm leanvm-rev leanvm-tree.sh lean_rpm \
+          elif git diff --name-only "$BASE" HEAD -- lean_vm leanvm-rev leanvm-tree.sh common \
               lean_xmss/LeanXmss/Scheme.lean \
               lean_sphincs/Sphincs/Scheme.lean lean_da/LeanDa/Scheme.lean lean_da/LeanDa/Field.lean \
               .github/workflows/lean.yml | grep -q .; then
@@ -261,8 +261,8 @@ jobs:
           path: |
             lean_vm/.lake
             !lean_vm/.lake/packages/mathlib/.lake
-            lean_rpm/.lake/build
-          key: lake-lean-vm-${{ runner.os }}-${{ hashFiles('lean_vm/lean-toolchain', 'lean_vm/lake-manifest.json') }}-${{ hashFiles('lean_vm/**/*.lean', 'lean_rpm/**/*.lean', 'lean_xmss/LeanXmss/Scheme.lean', 'lean_sphincs/Sphincs/Scheme.lean', 'lean_da/LeanDa/Scheme.lean', 'lean_da/LeanDa/Field.lean') }}
+            common/.lake/build
+          key: lake-lean-vm-${{ runner.os }}-${{ hashFiles('lean_vm/lean-toolchain', 'lean_vm/lake-manifest.json') }}-${{ hashFiles('lean_vm/**/*.lean', 'common/**/*.lean', 'lean_xmss/LeanXmss/Scheme.lean', 'lean_sphincs/Sphincs/Scheme.lean', 'lean_da/LeanDa/Scheme.lean', 'lean_da/LeanDa/Field.lean') }}
           restore-keys: lake-lean-vm-${{ runner.os }}-${{ hashFiles('lean_vm/lean-toolchain', 'lean_vm/lake-manifest.json') }}-
       - uses: leanprover/lean-action@v1
         with:
@@ -310,7 +310,7 @@ jobs:
           path: |
             lean_vm/.lake
             !lean_vm/.lake/packages/mathlib/.lake
-            lean_rpm/.lake/build
+            common/.lake/build
           key: ${{ steps.lake-cache.outputs.cache-primary-key }}
       - uses: dtolnay/rust-toolchain@stable
       # leanVM at `leanvm-rev`, in `.leanvm`, with its `formal/lean_vm` a link to this `lean_vm`.

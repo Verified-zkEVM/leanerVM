@@ -6,14 +6,14 @@
 -/
 
 import LeanVM.Protocol.LeanVMSound
-import LeanRpm.Prob
+import Common.Prob
 
 /-!
 # Adversaries with coins
 
 `KnowledgeSoundnessRom` (`LeanVM/Protocol/Rom/Statement.lean`) quantifies over adversaries querying the two
 random oracles only. The random-oracle adversary that the random-permutation transfer produces
-(`LeanRpm.advS2`: the adversary with the indifferentiability simulator) also flips coins. Against
+(`Common.advS2`: the adversary with the indifferentiability simulator) also flips coins. Against
 the lazily sampled random oracles such an adversary does no better than some deterministic
 adversary with the same number of oracle queries (`exists_det`): at a coin, the best of the finitely
 many continuations; at an oracle query, the query followed by the best continuation at each answer.
@@ -62,7 +62,7 @@ theorem snd_eq_stepCache {c : HashSpec.QueryCache} {t : HashSpec.Domain}
 some deterministic adversary of the same query budget, for any continuation and any event. -/
 theorem exists_det {α γ : Type} (g : α × HashSpec.QueryCache → ProbComp γ) (E : γ → Prop)
     (X : OracleComp (unifSpec + HashSpec) α) :
-    ∀ (Q : ℕ), LeanRpm.IsWeightBound X hashCalls Q → ∀ c : HashSpec.QueryCache,
+    ∀ (Q : ℕ), Common.IsWeightBound X hashCalls Q → ∀ c : HashSpec.QueryCache,
       ∃ A : OracleComp HashSpec α, IsTotalQueryBound A Q ∧
         Pr{let y ← (simulateQ HashSpec.romImpl X).run c >>= g}[E y] ≤
           Pr{let y ← (simulateQ HashSpec.randomOracle A).run c >>= g}[E y] := by
@@ -72,13 +72,13 @@ theorem exists_det {α γ : Type} (g : α × HashSpec.QueryCache → ProbComp γ
     exact ⟨pure a, trivial, by simp⟩
   | query_bind t k ih =>
     intro Q hX c
-    rw [LeanRpm.isWeightBound_query_bind_iff] at hX
+    rw [Common.isWeightBound_query_bind_iff] at hX
     obtain ⟨ht, hk⟩ := hX
     simp only [simulateQ_bind, simulateQ_query, OracleQuery.input_query,
       OracleQuery.cont_query, id_map, StateT.run_bind, bind_assoc]
     rcases t with n | t
     · -- a coin: average below the best continuation
-      have hk' : ∀ u, LeanRpm.IsWeightBound (k u) hashCalls Q := fun u ↦ by
+      have hk' : ∀ u, Common.IsWeightBound (k u) hashCalls Q := fun u ↦ by
         simpa [hashCalls] using hk u
       choose A hA hle using fun u ↦ ih u Q (hk' u) c
       let f : Fin (n + 1) → ℝ≥0∞ := fun u ↦
@@ -113,7 +113,7 @@ noncomputable def experimentCoins (B : OracleComp (unifSpec + HashSpec) (Stateme
 bound of `knowledgeSoundnessRom_holds` holds for every adversary with coins of at most `Q` oracle
 calls. -/
 theorem knowledgeSoundness_coins {B : OracleComp (unifSpec + HashSpec) (Statement × Proof)} {Q : ℕ}
-    (hB : LeanRpm.IsWeightBound B hashCalls Q) :
+    (hB : Common.IsWeightBound B hashCalls Q) :
     Pr{let z ← experimentCoins B}[Breaks extractor z] ≤ soundnessError Q := by
   obtain ⟨A, hA, hle⟩ := exists_det (fun p ↦ do
       let (verdict, cache) ←

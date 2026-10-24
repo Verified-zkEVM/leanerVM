@@ -5,7 +5,7 @@ import LeanDa.Security
 # LeanDA in the random-permutation model
 
 Position binding and code binding of LeanDA (`LeanDa.Security`, Benedikt Wagner's framework
-`PqDas`) with Keccak-f[1600] idealized as a uniformly random permutation `π` (`LeanRpm`): the hash
+`PqDas`) with Keccak-f[1600] idealized as a uniformly random permutation `π` (`Common`): the hash
 `H` is Keccak-256, the sponge over `π`, and the membership challenges are the deployed duplex over
 `π` (`membershipChallengesM`), while the adversary queries Keccak-256, `π` and `π⁻¹`. The
 verifier (`verifyRpm`) is the scheme's: the challenges of the root, the argument's verification,
@@ -28,7 +28,7 @@ commitments (`PqDas`, ported from https://github.com/b-wagn/fv-pq-da) with LeanD
 
 set_option linter.unusedSectionVars false
 
-open OracleComp OracleSpec LeanRpm PqDas MeasureTheory
+open OracleComp OracleSpec Common PqDas MeasureTheory
 open scoped ENNReal
 
 namespace LeanDa

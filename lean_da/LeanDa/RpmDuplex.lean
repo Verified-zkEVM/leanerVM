@@ -1,12 +1,12 @@
 import LeanDa.RpmScheme
-import LeanRpm.Duplex.Vec
-import LeanRpm.Rerun
+import Common.Duplex.Vec
+import Common.Rerun
 
 /-!
 # LeanDA's challenges as a duplex
 
 The challenges' sponge (`membershipChallengesM`) over the direct calls `F` of the two-oracle model
-is a duplex challenge derivation in the sense of `LeanRpm.Duplex` (`daDuplex`): the initial state
+is a duplex challenge derivation in the sense of `Common.Duplex` (`daDuplex`): the initial state
 is the label's hash in lanes `0 … 3` (`Sponge.new`), absorbing the root writes its words and tags
 over the rate (`first`), a later sample writes zeros over the rate (`next`), and a challenge is
 the three lanes `0 … 2` of an answer (`out`). Every one of these keeps lanes `16 … 24`, the bytes
@@ -20,7 +20,7 @@ commitments (`PqDas`, ported from https://github.com/b-wagn/fv-pq-da) with LeanD
 
 set_option linter.unusedSectionVars false
 
-open OracleComp OracleSpec LeanRpm LeanRpm.Duplex
+open OracleComp OracleSpec Common Common.Duplex
 open scoped ENNReal
 
 namespace LeanDa

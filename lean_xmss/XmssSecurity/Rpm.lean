@@ -5,14 +5,14 @@ import XmssSecurity.Proof.Bridge.Security
 # leanXMSS in the random-permutation model
 
 The ROM theorem (`Bridge.leanXmss_security`, 127 bits) moved to the random-permutation model by
-`LeanRpm.SufCma.rpm_bound`: the leanXMSS game is the generic SUF-CMA game of
-`LeanRpm.Signature` (`experiment_eq_romExperiment`), and an RPM adversary with the signing
+`Common.SufCma.rpm_bound`: the leanXMSS game is the generic SUF-CMA game of
+`Common.Signature` (`experiment_eq_romExperiment`), and an RPM adversary with the signing
 oracle, its permutation queries answered by the indifferentiability simulator, is a ROM
 adversary whose experiment makes at most as many hash calls as the RPM game makes calls of `H`,
 `π` and `π⁻¹`.
 -/
 
-open OracleComp OracleSpec ENNReal LeanRpm LeanRpm.SufCma
+open OracleComp OracleSpec ENNReal Common Common.SufCma
 
 namespace XmssSecurity
 
@@ -33,7 +33,7 @@ theorem experiment_eq_romExperiment
   rw [h]
   rfl
 
-/-- The ROM theorem in the form of `LeanRpm.SufCma.rpm_bound`. -/
+/-- The ROM theorem in the form of `Common.SufCma.rpm_bound`. -/
 theorem romBound : ∀ q, 1 ≤ q →
     ∀ main : LeanXmss.PublicKey →
       OracleComp (World LeanXmss.HashOutput + LeanXmss.SigningSpec) LeanXmss.Forgery,

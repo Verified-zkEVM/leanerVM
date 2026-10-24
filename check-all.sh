@@ -3,7 +3,7 @@
 # each in its own directory with its own manifest, then lean_vm against leanVM at `leanvm-rev`
 # (`leanvm`, which needs cargo). `lake build` at the root runs it.
 #
-#   ./check-all.sh [lean_rpm] [lean_xmss] [lean_sphincs] [lean_da] [lean_vm] [leanvm]   (default: all six)
+#   ./check-all.sh [common] [lean_xmss] [lean_sphincs] [lean_da] [lean_vm] [leanvm]   (default: all six)
 #
 # The compiled checks and `lean` run under a virtual-memory cap of LEAN_VMEM_KB (default 40 GB);
 # `lake` itself cannot, as it reserves about 1 GB of address space per job. WIDTH is passed to
@@ -48,14 +48,14 @@ axioms() {
   done
 }
 
-lean_rpm() {
-  no_escapes lean_rpm
-  (cd lean_rpm && lake exe cache get)
-  build lean_rpm 'LeanRpm'
-  axioms lean_rpm LeanRpm LeanRpm.indifferentiability LeanRpm.transfer LeanRpm.transfer2 \
-    LeanRpm.keccak256_indifferentiable LeanRpm.keccak256_transfer LeanRpm.keccak256_transfer2 \
-    LeanRpm.SufCma.rpm_le_rom LeanRpm.SufCma.rpm_bound LeanRpm.SufCma.rpm_bound_perm \
-    LeanRpm.Duplex.duplex_le
+common() {
+  no_escapes common
+  (cd common && lake exe cache get)
+  build common 'Common'
+  axioms common Common Common.indifferentiability Common.transfer Common.transfer2 \
+    Common.keccak256_indifferentiable Common.keccak256_transfer Common.keccak256_transfer2 \
+    Common.SufCma.rpm_le_rom Common.SufCma.rpm_bound Common.SufCma.rpm_bound_perm \
+    Common.Duplex.duplex_le
 }
 
 lean_xmss() {
@@ -137,10 +137,10 @@ leanvm() {
 }
 
 projects=("$@")
-[ ${#projects[@]} -gt 0 ] || projects=(lean_rpm lean_xmss lean_sphincs lean_da lean_vm leanvm)
+[ ${#projects[@]} -gt 0 ] || projects=(common lean_xmss lean_sphincs lean_da lean_vm leanvm)
 for p in "${projects[@]}"; do
   case $p in
-    lean_rpm | lean_xmss | lean_sphincs | lean_da | lean_vm | leanvm) "$p" ;;
+    common | lean_xmss | lean_sphincs | lean_da | lean_vm | leanvm) "$p" ;;
     *) fail "unknown project $p" ;;
   esac
 done

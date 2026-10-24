@@ -3,14 +3,14 @@ import Sphincs.Lifetimes
 
 /-!
 **The forest lifetimes in the random-permutation model.** The ROM theorems of `Lifetimes.lean`
-(127 bits at each subtree height) moved to the RPM by `LeanRpm.SufCma.rpm_bound`: the
-leanSPHINCS game is the generic SUF-CMA game of `LeanRpm.Signature` (`experimentDet_eq`), and an
+(127 bits at each subtree height) moved to the RPM by `Common.SufCma.rpm_bound`: the
+leanSPHINCS game is the generic SUF-CMA game of `Common.Signature` (`experimentDet_eq`), and an
 RPM adversary with the signing oracle, its permutation queries answered by the
 indifferentiability simulator, is a ROM adversary whose experiment makes at most as many hash
 calls as the RPM game makes calls of `H`, `π` and `π⁻¹`.
 -/
 
-open OracleComp OracleSpec ENNReal LeanRpm LeanRpm.SufCma
+open OracleComp OracleSpec ENNReal Common Common.SufCma
 
 namespace Sphincs.Lifetimes
 

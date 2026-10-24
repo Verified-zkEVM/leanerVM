@@ -7,7 +7,7 @@
 -/
 
 import LeanVM.Spec.Statement
-import LeanRpm.Transfer
+import Common.Transfer
 
 /-!
 # The statements, in the random-permutation model
@@ -17,8 +17,8 @@ queried forward (`π x`) and inverse (`π⁻¹ y`), the random-permutation model
 and Keccak-f[1600], which the verifier calls (`verifier H F`, `LeanVM/Spec/Statement.lean`), are
 both built from it.
 
-* **The permutation** is `LeanRpm.lazyPerm`, the lazily sampled uniform permutation of
-  `lean_rpm` (`lean_rpm/LeanRpm/Model.lean`): its state is the list of edges `(x, π x)` fixed so
+* **The permutation** is `Common.lazyPerm`, the lazily sampled uniform permutation of
+  `common` (`common/Common/Model.lean`): its state is the list of edges `(x, π x)` fixed so
   far (`PermLog`); a fresh forward query draws `π x` uniformly among the states that are not yet
   the output of an edge, a fresh inverse query `π⁻¹ y` uniformly among the states that are not yet
   the input of an edge.
@@ -44,7 +44,7 @@ Keccak-256 evaluations the transcript contains (`transcriptHashes`): a byte stri
 `d` when the transcript holds the whole padded sponge path of `m`, a chain of forward queries from
 the zero state, each one absorbing the next block into the answer of the one before and each the
 query that first fixed its edge (an edge first fixed by an inverse query extends no path), as the
-indifferentiability simulator of `lean_rpm` books it (`LeanRpm.pathsOf`, on the bytes of the
+indifferentiability simulator of `common` books it (`Common.pathsOf`, on the bytes of the
 states, `KState.toRpm`); `d` is the first four lanes of the path's last answer. It reads the
 announced sizes and the stack's Merkle root off the proof; reads the word the root commits to off
 those evaluations (each leaf the preimage, among them, of a path climbing to the root); and
@@ -71,19 +71,19 @@ verifier (`completenessPermCalls`). The honest prover is not required to be effi
 **Scope and trust.** The permutation is uniformly random; the deployed Keccak-f[1600] is a fixed
 permutation, and that it behaves as a random one is the assumption of this model. Inside the
 executed program the `KECCAK` instruction computes the deployed Keccak-f[1600], not `π`. The
-definitions rest on `lean_rpm` (the lazily sampled permutation, the sponge's padding and
-`pathsOf`), VCVio and the files of `LeanVM/Spec/`. The `lean_rpm` definitions they use are in
+definitions rest on `common` (the lazily sampled permutation, the sponge's padding and
+`pathsOf`), VCVio and the files of `LeanVM/Spec/`. The `common` definitions they use are in
 `Model.lean` (`lazyPerm`, `uniformAvoiding`, the edge lookups), `Sponge.lean` (the byte state,
 `ofBytes`, `zero`, `keccakPadding`, `blockTo`, `rxor`), `Indiff/Defs.lean` (`SimState.init`,
 `chainOf`) and `Transfer.lean` (`replayStep`, `replay`, `simPaths`, `pathsOf`); the rest of
-`lean_rpm` is proof.
+`common` is proof.
 
 **How the proofs reach this model** (not part of the statement). The proofs first prove both
 statements with Keccak-256 and Keccak-f[1600] two independent random oracles
 (`LeanVM/Protocol/Rom/Statement.lean`, `LeanVM.knowledgeSoundnessRom_holds`,
-`LeanVM.completenessRom_holds`), then move them here with `lean_rpm`'s indifferentiability of the
+`LeanVM.completenessRom_holds`), then move them here with `common`'s indifferentiability of the
 sponge from a random oracle, with the duplex's direct permutation calls
-(`LeanRpm.keccak256_transfer2`, `q² / 2^508`).
+(`Common.keccak256_transfer2`, `q² / 2^508`).
 
 The proofs are `LeanVM.knowledgeSoundness_holds` and `LeanVM.completeness_holds`
 (`LeanVM/Protocol/LeanVMRpm.lean`).
@@ -133,16 +133,16 @@ def keccak256With {m : Type → Type} [Monad m] (π : KState → m KState) (data
 /-! ## The random permutation -/
 
 /-- The oracle of the random-permutation model: `π` and `π⁻¹` on Keccak states
-(`LeanRpm.permSpec`; a query is `.fwd x` or `.inv y`). -/
-abbrev PermSpec : OracleSpec (LeanRpm.PermQuery KState) := LeanRpm.permSpec KState
+(`Common.permSpec`; a query is `.fwd x` or `.inv y`). -/
+abbrev PermSpec : OracleSpec (Common.PermQuery KState) := Common.permSpec KState
 
 /-- The state of the lazily sampled permutation: the edges `(x, π x)` fixed so far, newest
 first. -/
-abbrev PermLog : Type := LeanRpm.PermLog KState
+abbrev PermLog : Type := Common.PermLog KState
 
-/-- `π x`: a forward query to the lazily sampled uniform permutation (`LeanRpm.lazyPerm`). -/
+/-- `π x`: a forward query to the lazily sampled uniform permutation (`Common.lazyPerm`). -/
 noncomputable def perm (x : KState) : StateT PermLog ProbComp KState :=
-  LeanRpm.lazyPerm (.fwd x)
+  Common.lazyPerm (.fwd x)
 
 /-- **The verifier's calls (`Statement.lean`) in the random-permutation model**: Keccak-256 is the
 sponge over the random permutation, Keccak-f[1600] is the random permutation. -/
@@ -159,13 +159,13 @@ adversaries' probabilities, and one of them does at least as well. -/
 abbrev RpmAdversary : Type := OracleComp PermSpec (Statement × Proof)
 
 /-- A transcript: queries to `π` and `π⁻¹` with their answers, oldest first. -/
-abbrev Transcript : Type := List (LeanRpm.PermQuery KState × KState)
+abbrev Transcript : Type := List (Common.PermQuery KState × KState)
 
 /-- The adversary's oracle: the lazily sampled permutation, each query and its answer appended
 to the transcript. -/
 noncomputable def loggedPerm : QueryImpl PermSpec (StateT (PermLog × Transcript) ProbComp) :=
   fun q ↦ StateT.mk fun s ↦
-    (fun r ↦ (r.1, (r.2, s.2 ++ [(q, r.1)]))) <$> (LeanRpm.lazyPerm q).run s.1
+    (fun r ↦ (r.1, (r.2, s.2 ++ [(q, r.1)]))) <$> (Common.lazyPerm q).run s.1
 
 /-- An outcome of the experiment: the statement and the proof, the verdict, and the adversary's
 transcript. -/
@@ -196,29 +196,29 @@ noncomputable def rpmExperiment (A : RpmAdversary) : ProbComp RpmOutcome := do
 
 /-! ## The extractor -/
 
-/-- The 200 bytes of a Keccak state, as `lean_rpm` splits them (32 digest bytes, 104 more bytes
+/-- The 200 bytes of a Keccak state, as `common` splits them (32 digest bytes, 104 more bytes
 of the rate, 64 bytes of capacity): byte `8i + k` is byte `k` of lane `i`, little-endian
 (`keccak_hash`'s `unpack("<17Q", ...)`, `verifier.py:207`). -/
-def KState.toRpm (s : KState) : LeanRpm.KState :=
-  LeanRpm.KState.ofBytes (s.toList.flatMap wordBytes)
+def KState.toRpm (s : KState) : Common.KState :=
+  Common.KState.ofBytes (s.toList.flatMap wordBytes)
 
 /-- A digest of 32 bytes as four little-endian words (`Digest.words`, `verifier.py:221-223`). -/
-def Digest.ofRpm (d : LeanRpm.KDigest) : Digest :=
+def Digest.ofRpm (d : Common.KDigest) : Digest :=
   #v[leLane d.toList 0, leLane d.toList 1, leLane d.toList 2, leLane d.toList 3]
 
 /-- A query on the bytes of the states. -/
-def permQueryToRpm : LeanRpm.PermQuery KState → LeanRpm.PermQuery LeanRpm.KState
+def permQueryToRpm : Common.PermQuery KState → Common.PermQuery Common.KState
   | .fwd x => .fwd (KState.toRpm x)
   | .inv y => .inv (KState.toRpm y)
 
 /-- **The Keccak-256 evaluations a transcript contains**: the byte strings whose whole padded
 sponge path the transcript holds as a chain of forward queries from the zero state, each the query
 that first fixed its edge, each with the
-first four lanes of the path's last answer, as `lean_rpm` reads them (`LeanRpm.pathsOf`, the
+first four lanes of the path's last answer, as `common` reads them (`Common.pathsOf`, the
 indifferentiability simulator's bookkeeping replayed on the transcript, on the bytes of the
 states). -/
 noncomputable def transcriptHashes (T : Transcript) (x : Bytes) : Option Digest :=
-  ((LeanRpm.pathsOf LeanRpm.keccakPadding LeanRpm.KState.zero
+  ((Common.pathsOf Common.keccakPadding Common.KState.zero
       (T.map fun e ↦ (permQueryToRpm e.1, KState.toRpm e.2))).find? (·.1 = x)).map
     fun p ↦ Digest.ofRpm p.2
 
@@ -249,7 +249,7 @@ def verifierPermCalls : ℕ := verifierQueries * 2 ^ 32
 
 /-- The second term of the bounds, for an experiment of `q` permutation calls: `q² / 2^508`, the
 cost of building Keccak-256 and Keccak-f[1600] from one random permutation rather than taking them
-independent random functions (`LeanRpm.keccak256_transfer2`). -/
+independent random functions (`Common.keccak256_transfer2`). -/
 noncomputable def rpmError (q : ℕ) : ℝ≥0∞ := (q ^ 2 : ℝ≥0∞) / 2 ^ 508
 
 /-- **Knowledge soundness in the random-permutation model**, for the extractor `extractorRpm`:

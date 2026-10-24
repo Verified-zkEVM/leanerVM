@@ -11,8 +11,8 @@ import LeanVM.Protocol.LeanVM
 # The duplex discipline
 
 The transfer from the two-oracle random-oracle model to the random-permutation model
-(`LeanRpm.keccak256_transfer2`) asks of the honest parties' direct calls of the permutation a
-*duplex discipline* (`LeanRpm.Duplex`): every call absorbs a non-final block into the initial
+(`Common.keccak256_transfer2`) asks of the honest parties' direct calls of the permutation a
+*duplex discipline* (`Common.Duplex`): every call absorbs a non-final block into the initial
 state or into the answer of an earlier call, keeping the capacity. On leanVM's states this is
 `DuplexVm`: every query `F x` keeps lanes `16..24` of the zero state or of an earlier answer
 (`AdmissibleVm`); lane `16` holds the padding's last byte, lanes `17..24` the capacity.
@@ -40,8 +40,8 @@ keeps lanes `16..24` of the zero state or of an earlier answer. -/
 def AdmissibleVm (hist : List KState) (x : KState) : Prop :=
   (∀ i : Fin 25, 16 ≤ i.val → x[i] = 0) ∨ ∃ y ∈ hist, ∀ i : Fin 25, 16 ≤ i.val → x[i] = y[i]
 
-/-- The duplex discipline of an oracle computation (as `LeanRpm.Duplex`,
-`lean_rpm/LeanRpm/Transfer2.lean`): along every run, every permutation query is admissible after
+/-- The duplex discipline of an oracle computation (as `Common.Duplex`,
+`common/Common/Transfer2.lean`): along every run, every permutation query is admissible after
 the answers of the earlier ones (newest first). -/
 def DuplexVm {α : Type} : OracleComp HashSpec α → List KState → Prop
   | .pure _, _ => True

@@ -6,10 +6,10 @@ import LeanDa.RpmSecurity
 
 The two-oracle code-binding game (`codeBindingExpRom2`: `H` a random oracle, the challenges' sponge
 over an independent random function `F`) is brought to the form of the duplex lemma
-(`LeanRpm.Duplex.duplex_le`): the adversary, then the challenges of its root, computed once
+(`Common.Duplex.duplex_le`): the adversary, then the challenges of its root, computed once
 (`chalP daDuplex`), then the verification of the openings with `H` alone (`postV`). The verifier
 recomputes the same challenges for every opening; flipping no coins, they are recomputed from the
-cache (`LeanRpm.run_rerun`), so computing them once changes nothing (`prob_codeBindingPost`).
+cache (`Common.run_rerun`), so computing them once changes nothing (`prob_codeBindingPost`).
 
 This module is part of the instantiation of Benedikt Wagner's framework for erasure code
 commitments (`PqDas`, ported from https://github.com/b-wagn/fv-pq-da) with LeanDA.
@@ -17,7 +17,7 @@ commitments (`PqDas`, ported from https://github.com/b-wagn/fv-pq-da) with LeanD
 
 set_option linter.unusedSectionVars false
 
-open OracleComp OracleSpec LeanRpm LeanRpm.Duplex PqDas
+open OracleComp OracleSpec Common Common.Duplex PqDas
 open scoped ENNReal
 
 namespace LeanDa
@@ -294,7 +294,7 @@ theorem codeBindingExpRpm_le_G (A : CodeBindingAdvRpm r Crs Proof) (Q : ℕ)
       intro K
       simp only [StateT.run'_eq, simulateQ_bind, StateT.run_bind, map_bind]
     rw [romRun2, e, e]
-    exact LeanRpm.prEvent_bind_congr _ _ _ _ _ fun z ↦ prob_codeBindingPost r ps crs z.1 z.2
+    exact Common.prEvent_bind_congr _ _ _ _ _ fun z ↦ prob_codeBindingPost r ps crs z.1 z.2
   rw [h1]
   exact duplex_le (D := daDuplex) daDuplex_cap _ Q hB (fun out ↦ out.1.1)
     (fun out l ↦ postV r ps crs out l)
