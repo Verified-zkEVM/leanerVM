@@ -129,5 +129,92 @@ theorem vtH_tctx (h : H.Ok) (hs : VtShape H) {rd : Reader} {zeta chi cplen : E}
 
 end VtHonest
 
+/-- The columns' logs' codes over `[lm, 19, h₀, …, h₅, h₅ + 6]`. -/
+def colCode : List ℕ :=
+  [0, 0, 0, 0, 1, 8] ++ List.replicate 15 2 ++ List.replicate 15 3 ++ List.replicate 8 4 ++
+    List.replicate 15 5 ++ List.replicate 14 6 ++ List.replicate 90 7
+
+theorem colCode_length : colCode.length = 163 := by
+  simp only [colCode, List.length_append, List.length_replicate, List.length_cons, List.length_nil]
+
+theorem columnKappas_code (lm h0 h1 h2 h3 h4 h5 : ℕ) :
+    columnKappas lm 19 [h0, h1, h2, h3, h4, h5] =
+      colCode.map fun k ↦ [lm, 19, h0, h1, h2, h3, h4, h5, h5 + 6].getD k 0 := by
+  rw [columnKappas_eq]
+  simp [colCode]
+
+theorem claim_code : ∀ j < 165, claimColumns.getD j 0 < 163 ∧
+    colCode.getD (claimColumns.getD j 0) 9 =
+      (if j < 4 then 0 else if j = 4 then 1 else if j < 162 then vtEvTab (j - 5) + 2 else 0) := by
+  decide +kernel
+
+theorem committedCols_zero : (committedCols 163).getD 0 0 = 0 := by decide +kernel
+
+namespace VtHonest
+
+variable {H : VtHonest}
+
+/-- **Every honest claim's point has its column's number of variables.** -/
+theorem vtH_hlen (h : H.Ok) (hs : VtShape H) (hlm1 : 1 ≤ H.lm) :
+    ∀ c ∈ H.claims, c.point.length =
+      (columnKappas H.L.logMemory H.L.logBytecode H.L.tableLogHeights).getD c.column 0 := by
+  have hr := hs.hr
+  have hbc := hs.hbc
+  have hlb : H.L.logBytecode = 19 := by
+    show Nat.log2 H.bc.length - busBits = 19
+    rw [hbc, Nat.log2_two_pow]; rfl
+  have hlm : H.L.logMemory = H.lm := rfl
+  have hht : H.L.tableLogHeights = tableHeightsOf H.rows := rfl
+  have hsl : (tableHeightsOf H.rows).length = 6 := vt_tableHeights_length hr
+  have hcol := vtH_columns h hr
+  have hpts := vtH_ptsP h hr hbc
+  have hl : H.claims.length = 165 := by
+    rw [← List.length_map (f := (·.column)), hcol]; decide +kernel
+  -- the public input's point
+  have hmem0 : (H.L.placement memory0).vars = H.lm := by
+    have hk : (columnKappas H.L.logMemory H.L.logBytecode H.L.tableLogHeights).length = 163 :=
+      columnKappas_length _ _ _
+    have := VerifySub.placement_committed (layout := H.L) hk rfl (cc := 0) (by decide)
+    rw [committedCols_zero] at this
+    rw [show memory0 = 0 from rfl, this]
+    simp only [hlb, hht, hlm]
+    rw [committedKappas_columnKappas H.lm _ hsl]
+    rfl
+  intro c hc
+  obtain ⟨j, hj, rfl⟩ := List.getElem_of_mem hc
+  have ecol : H.claims[j].column = claimColumns.getD j 0 := by
+    rw [← hcol, List.getD_eq_getElem _ _ (by simp; omega), List.getElem_map]
+  have ept : H.claims[j].point = H.ptsP j := by
+    have := congrArg (·[j]?) hpts
+    simp only [List.getElem?_map, List.getElem?_eq_getElem hj,
+      List.getElem?_range (show j < 165 by omega), Option.map_some, Option.some.injEq] at this
+    exact this
+  rw [ecol, ept, hlb, hht, hlm]
+  obtain ⟨h0, h1, h2, h3, h4, h5, e6⟩ : ∃ h0 h1 h2 h3 h4 h5, tableHeightsOf H.rows =
+      [h0, h1, h2, h3, h4, h5] := by
+    match hm : tableHeightsOf H.rows, hsl with
+    | [h0, h1, h2, h3, h4, h5], _ => exact ⟨h0, h1, h2, h3, h4, h5, rfl⟩
+  obtain ⟨hlt, hcode⟩ := claim_code j (by omega)
+  rw [e6, columnKappas_code, List.getD_eq_getElem _ _ (by rw [List.length_map, colCode_length]; exact hlt),
+    List.getElem_map, ← List.getD_eq_getElem _ 9 (by rw [colCode_length]; exact hlt), hcode]
+  have hn : ∀ t < 6, vtHt H.rows t ≤ H.n := fun t ht ↦ vt_n_ge hr ht
+  have hv : ∀ t < 6, vtHt H.rows t = [h0, h1, h2, h3, h4, h5].getD t 0 := fun t _ ↦ by
+    rw [← e6]; rfl
+  unfold ptsP
+  by_cases hj4 : j < 4
+  · simp [hj4, min_eq_left hs.hlmμ]
+  by_cases hj5 : j = 4
+  · subst hj5; simp [min_eq_left (show 19 ≤ H.point.length from hs.h19)]
+  by_cases hj162 : j < 162
+  · have ht := vtEvTab_lt (j - 5) (by omega)
+    simp only [hj4, hj5, hj162, ↓reduceIte, List.length_take, chiW_length,
+      min_eq_left (hn _ ht)]
+    rw [hv _ ht]
+    interval_cases (vtEvTab (j - 5)) <;> rfl
+  · simp only [hj4, hj5, hj162, ↓reduceIte, List.length_cons, List.length_replicate, hmem0]
+    simp; omega
+
+end VtHonest
+
 end
 end LeanVM.Guest.B1.Tables
