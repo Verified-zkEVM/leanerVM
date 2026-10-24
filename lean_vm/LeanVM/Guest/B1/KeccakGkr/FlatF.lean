@@ -35,6 +35,7 @@ theorem completeAt_flatOutF {f : String} {fn : Fn} (hf : coreProgram.find? f = s
     (Out : ℕ → List E → Layout → Prop)
     {pre : List Stmt} {vs : List V} (hb : fn.body = pre ++ [.ret vs])
     (hst : pre.all Stmt.flat = true) (haddrs : pre.filterMap Main.Stmt.addrS = [])
+    (hnl : pre.all noLoadIte = true)
     (sizes : List ℕ) (own : ℕ → List (List E))
     (hown : ∀ fp, List.Forall₂ (fun c s => c.length ≤ s) (own fp) sizes)
     (hout : ∀ fp, Out fp (rets fp) (bufL (fp + fs f) sizes (own fp))) (kids : ℕ → List Kid)
@@ -90,7 +91,7 @@ theorem completeAt_flatOutF {f : String} {fn : Fn} (hf : coreProgram.find? f = s
     hk (fun A hA => ?_) (fun i hi => Or.inl (hown' i hi))
   · rw [hal] at h
     exact h
-  · rw [i5] at hA
+  · rw [i5, flatMap_loadsEv σ pre hnl] at hA
     obtain ⟨q, hq, rfl⟩ := List.mem_map.mp hA
     obtain ⟨i, hi, h | h⟩ := hld q hq
     · exact ⟨i, hi, Or.inr (Or.inl h)⟩

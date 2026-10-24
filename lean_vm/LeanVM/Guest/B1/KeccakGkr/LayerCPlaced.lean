@@ -124,6 +124,10 @@ theorem layerKids_lin {D : LayerData} {first odd : ℕ} {CL : ClaimLay} {bcur bo
     · simp only [List.mem_singleton] at hk; subst hk; rfl
     · simp at hk
 
+theorem layerPre_noLoadIte {first odd : ℕ} (hf : first < 2) (ho : odd < 2) :
+    (layerPre first odd).all noLoadIte = true := by
+  interval_cases first <;> interval_cases odd <;> decide +kernel
+
 variable {fs : String → ℕ} {cert : String → V → ℕ}
 
 set_option maxRecDepth 20000 in
@@ -150,6 +154,7 @@ theorem layer_completeAtF {first odd : ℕ} (hf : first < 2) (ho : odd < 2) (κ 
     rw [LayerData.locPt, LayerData.loc, layerLocal, localRunF_length, hlm]
   refine completeAt_flatOutF (fs := fs) (cert := cert) hfind (layer_loop hf ho) κ _ _
     (fun _ ↦ D.rets first (ptr bcur)) _ (hbody.trans (layerT_pre first odd)) hflat haddrs
+    (layerPre_noLoadIte hf ho)
     (layerSizes D) (fun _ ↦ layerOwn D first (ptr bcur)) (fun _ ↦ ?_) (fun _ ↦ ⟨rfl, rfl⟩)
     (fun fp ↦ layerKids D first odd CL bcur bout (fp + fs (layerName first odd))) ?_ ?_ ?_ ?_
   · -- the buffers' words fit

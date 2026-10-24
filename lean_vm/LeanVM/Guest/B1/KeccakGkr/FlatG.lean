@@ -158,6 +158,7 @@ theorem completeAt_flatG {f : String} {fn : Fn} (hf : coreProgram.find? f = some
     (hl : coreProgram.loop f = false) (κ : ℕ) (Lin : Layout) (args rets : List E)
     {pre : List Stmt} {vs : List V} (hb : fn.body = pre ++ [.ret vs])
     (hst : pre.all Stmt.flat = true) (haddrs : pre.filterMap Main.Stmt.addrS = [])
+    (hnl : pre.all noLoadIte = true)
     (sizes : List ℕ) (own : ℕ → List ℕ → List (List E))
     (hown : ∀ fp fps, List.Forall₂ (fun c s => c.length ≤ s) (own fp fps) sizes)
     (kids : ℕ → List KidG)
@@ -224,7 +225,7 @@ theorem completeAt_flatG {f : String} {fn : Fn} (hf : coreProgram.find? f = some
     (by rw [i3, haddrs]; simp) hk (fun A hA => ?_) (fun i hi => by obtain ⟨q, hq, _⟩ := hi; simp at hq)
   · rw [hal] at h
     exact h
-  · rw [i5] at hA
+  · rw [i5, flatMap_loadsEv σ pre hnl] at hA
     obtain ⟨q, hq, rfl⟩ := List.mem_map.mp hA
     obtain ⟨i, hi, h | h | h⟩ := hld q hq
     · exact ⟨i, hi, Or.inr (Or.inl h)⟩
