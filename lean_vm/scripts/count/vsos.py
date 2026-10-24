@@ -113,7 +113,7 @@ for c in range(28):
     mod('VsOs%02db' % c, '`open_stacked`\'s calls %d to %d at candidate %d, by the kernel.' % (k, k + m - 1, c),
         imp, '\n' + th % ('osC%d_b' % c, 'osPartF %d %d %d' % (c, k, m), b))
     mod('VsOs%02dc' % c, '`open_stacked`\'s calls from %d (of %d) at candidate %d, by the kernel.' % (k + m, n, c),
-        imp, '\n' + th % ('osC%d_c' % c, 'osRestF %d %d' % (c, k + m), r))
+        imp, '\n' + th % ('osC%d_c' % c, 'osRestF %d (%d + %d)' % (c, k, m), r))
     comb.append('/-- `open_stacked`\'s words at candidate %d. -/\ntheorem osC_%d : osC %d = %d := by\n'
                 '  rw [osC_eq_fast, osCF_split %d %d %d, osC%d_a, osC%d_b, osC%d_c]\n'
                 % (c, c, c, a + b + r, c, k, m, c, c, c))
