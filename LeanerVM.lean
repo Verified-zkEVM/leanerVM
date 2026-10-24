@@ -37,6 +37,7 @@ import LeanerVM.Protocol.Compile.Flock
 import LeanerVM.Protocol.Compile.Front
 import LeanerVM.Protocol.Compile.Rounds
 import LeanerVM.Protocol.Compile.Tables
+import LeanerVM.Protocol.Compile.Whir
 import LeanerVM.Protocol.DecodeAgree
 import LeanerVM.Protocol.DecodeChain
 import LeanerVM.Protocol.DecodeWalk

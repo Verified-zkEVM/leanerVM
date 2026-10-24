@@ -739,7 +739,7 @@ abbrev finalPositions {sh : Whir.Shape} {nf : ℕ} (t : (seqSpec (finalSteps sh 
   drawOf (seqHead (seqTail (seqTail (seqTail (seqTail (seqTail @t))))))
 
 /-- The positions reduced from a transcript's positions are them. -/
-private theorem positionsOf_positionsList {t b : ℕ} (pos : Fin t → Fin (2 ^ b)) :
+theorem positionsOf_positionsList {t b : ℕ} (pos : Fin t → Fin (2 ^ b)) :
     Verify.positionsOf t b (positionsList pos) = pos := by
   funext q
   apply Fin.ext
