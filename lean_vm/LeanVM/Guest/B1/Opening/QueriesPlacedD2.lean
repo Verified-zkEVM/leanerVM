@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.Opening.QueriesPlacedD2
 
-  `opening_queries` is `CompleteAtD`, one statement for every shape.
+  `opening_queries` is `CompleteAtB`, one statement for every shape.
 -/
 
 module
@@ -9,13 +9,14 @@ module
 public import LeanVM.Guest.B1.Opening.QueriesPlacedD0
 
 /-!
-# `opening_queries`, `CompleteAtD`, one statement
+# `opening_queries`, `CompleteAtB`, one statement
 
 `OqCompleteD fs cert name loop s odd`: when the frames fit (`OqFits`), on the honest data of a
 call (`N` iterations, the queries' positions, rows and siblings, the weights, the bit runs, the
 caller's buffers in `Lin`, `OqLinReg`, `OqLinMem`), the specialization `name` (loop helper `loop`)
-is `CompleteAtD`, returning the chain's end times `λ_n`. `oqCompleteD1`, `oqCompleteD0`: from a
-specialization's facts (its bodies the templates).
+is `CompleteAtD`, returning the chain's end times `λ_n`; `OqCompleteDB`: `CompleteAtB`, by a tree
+of at most `oqBound fs name loop N` words (its frame, its chain buffer and its iterations' frames).
+`oqCompleteDB1`, `oqCompleteDB0`: from a specialization's facts (its bodies the templates).
 -/
 
 namespace LeanVM.Guest.B1
@@ -49,6 +50,37 @@ def OqCompleteD (fs : String → ℕ) (cert : String → V → ℕ) (name loop :
           ofK (Parameters.gpow eqp), ofK (Parameters.gpow ewp), gen ^ N]
         (Returns [oqChain odd s.base lam⁻¹ (fun k ↦ rowDot s.base s.I (rows k) w) N * lamN])
 
+/-- `opening_queries`' tree bound: its frame, its chain buffer (`N + 1` cells) and its `N + 1`
+iterations' frames. -/
+def oqBound (fs : String → ℕ) (name loop : String) (N : ℕ) : ℕ :=
+  fs name + (N + 1) + (N + 1) * fs loop
+
+/-- **`opening_queries`, the specialization `name` of the shape `s`, `odd`, is `CompleteAtB`**,
+by a tree of at most `oqBound fs name loop N` words. -/
+def OqCompleteDB (fs : String → ℕ) (cert : String → V → ℕ) (name loop : String) (s : Oq)
+    (odd : ℕ) : Prop :=
+  OqFits fs cert name loop s odd →
+    ∀ (κ : ℕ) (Lin : Main.Layout) (N : ℕ) (ecap eflags eqp ewp : ℕ) (lam lamN : E) (w : ℕ → E)
+      (eb qs : ℕ → ℕ) (rows : ℕ → List K) (sibs : ℕ → List Digest), N + 1 < ordG → lam ≠ 0 →
+      (∀ k < oqCount odd s.base N, qs k < 2 ^ (s.pd + s.cd) ∧ (rows k).length = s.R ∧
+        (sibs k).length = s.pd) →
+      OqLinReg (RegionL Lin) s ecap eflags eqp ewp eb qs (oqCount odd s.base N) →
+      (∀ rd, LowDef κ rd → MemL rd Lin →
+        OqLinMem rd s (ofK (Parameters.gpow ecap)) (ofK (Parameters.gpow eflags))
+          (ofK (Parameters.gpow ewp)) (ofK (Parameters.gpow eqp)) w eb qs rows sibs
+          (oqCount odd s.base N)) →
+      CompleteAtB fs cert κ name Lin
+        [ofK (Parameters.gpow ecap), ofK (Parameters.gpow eflags), lam, lamN,
+          ofK (Parameters.gpow eqp), ofK (Parameters.gpow ewp), gen ^ N]
+        (Returns [oqChain odd s.base lam⁻¹ (fun k ↦ rowDot s.base s.I (rows k) w) N * lamN])
+        (oqBound fs name loop N)
+
+theorem OqCompleteDB.toD {fs : String → ℕ} {cert : String → V → ℕ} {name loop : String} {s : Oq}
+    {odd : ℕ} (h : OqCompleteDB fs cert name loop s odd) : OqCompleteD fs cert name loop s odd :=
+  fun hfit κ Lin N ecap eflags eqp ewp lam lamN w eb qs rows sibs hN hlam hst hreg hmem ↦
+    (h hfit κ Lin N ecap eflags eqp ewp lam lamN w eb qs rows sibs hN hlam hst hreg
+      hmem).toCompleteAtD
+
 theorem find_name {f : String} {fn : Fn} (h : coreProgram.find? f = some fn) : fn.name = f := by
   unfold Program.find? at h
   have := List.find?_some h
@@ -66,36 +98,36 @@ theorem loop0_true {s : Oq} {loop : String} {fl : Fn}
   rw [Program.loop_of_find? hfl, Fn.loop, hbl, find_name hfl]
   simp [oqLoop0T]
 
-/-- **A level-0 specialization is `CompleteAtD`.** -/
-theorem oqCompleteD1 (fs : String → ℕ) (cert : String → V → ℕ)
+/-- **A level-0 specialization is `CompleteAtB`.** -/
+theorem oqCompleteDB1 (fs : String → ℕ) (cert : String → V → ℕ)
     {s : Oq} (hs : s.RowShape) (hb1 : s.base = 1) (hpd : 4 * s.pd ≤ 80) (hpd1 : 1 ≤ s.pd)
     (hcd : 2 ≤ s.cd) (hcd8 : s.cd ≤ 8) {odd : ℕ} (hodd : odd ≤ 1) {name loop : String} {fm fl : Fn}
     (hfm : coreProgram.find? name = some fm)
     (hpm : fm.params = [.n 0, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6])
     (hbm : fm.body = oqMainT s odd loop)
     (hfl : coreProgram.find? loop = some fl) (hpl : fl.params = oqLoopParams)
-    (hbl : fl.body = oqLoop1T s odd loop) : OqCompleteD fs cert name loop s odd := by
+    (hbl : fl.body = oqLoop1T s odd loop) : OqCompleteDB fs cert name loop s odd := by
   intro hfit κ Lin N ecap eflags eqp ewp lam lamN w eb qs rows sibs hN hlam hst hreg hmem
   have hQ : oqCount odd s.base N = odd + 2 * N := by simp [oqCount, hb1]
   simp only [OqFits, hb1, ↓reduceIte] at hfit
   rw [hQ] at hst hreg hmem
-  exact oqMain1_completeAtD fs cert κ hs hb1 hpd hpd1 hcd hcd8 hodd hfm hpm hbm hfl hpl hbl
+  exact oqMain1_completeAtB fs cert κ hs hb1 hpd hpd1 hcd hcd8 hodd hfm hpm hbm hfl hpl hbl
     (loop1_true hfl hbl) hfit hN hlam hst hreg hmem
 
-/-- **A deeper specialization is `CompleteAtD`.** -/
-theorem oqCompleteD0 (fs : String → ℕ) (cert : String → V → ℕ)
+/-- **A deeper specialization is `CompleteAtB`.** -/
+theorem oqCompleteDB0 (fs : String → ℕ) (cert : String → V → ℕ)
     {s : Oq} (hs : s.RowShape) (hb0 : s.base = 0) (hpd : 4 * s.pd ≤ 80) (hpd1 : 1 ≤ s.pd)
     (hcd : 2 ≤ s.cd) (hcd8 : s.cd ≤ 8) {name loop : String} {fm fl : Fn}
     (hfm : coreProgram.find? name = some fm)
     (hpm : fm.params = [.n 0, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6])
     (hbm : fm.body = oqMainT s 0 loop)
     (hfl : coreProgram.find? loop = some fl) (hpl : fl.params = oqLoopParams)
-    (hbl : fl.body = oqLoop0T s loop) : OqCompleteD fs cert name loop s 0 := by
+    (hbl : fl.body = oqLoop0T s loop) : OqCompleteDB fs cert name loop s 0 := by
   intro hfit κ Lin N ecap eflags eqp ewp lam lamN w eb qs rows sibs hN hlam hst hreg hmem
   have hQ : oqCount 0 s.base N = N := by simp [oqCount, hb0]
   simp only [OqFits, hb0, show (0 : ℕ) ≠ 1 by decide, ↓reduceIte] at hfit
   rw [hQ] at hst hreg hmem
-  exact oqMain0_completeAtD fs cert κ hs hb0 hpd hpd1 hcd hcd8 hfm hpm hbm hfl hpl hbl
+  exact oqMain0_completeAtB fs cert κ hs hb0 hpd hpd1 hcd hcd8 hfm hpm hbm hfl hpl hbl
     (loop0_true hfl hbl) hfit hN hlam hst hreg hmem
 
 end

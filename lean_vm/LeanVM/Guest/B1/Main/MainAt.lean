@@ -11,6 +11,7 @@ public import LeanVM.Guest.B1.Main.MainAtDefs
 public import LeanVM.Guest.B1.Main.MainCoreThm
 public import LeanVM.Guest.B1.Da.AtBase
 public import LeanVM.Guest.B1.Main.KidsT
+public import LeanVM.Guest.Budget.Bounded
 
 /-!
 # `main`, placed
@@ -28,7 +29,7 @@ namespace LeanVM.Guest.B1.Main
 open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Value LeanVM.Guest.Memory
 open LeanVM.Protocol LeanVM.Protocol.Verifier LeanVM.Protocol.KeccakHash
 open LeanVM.Guest.B1.Digest LeanVM.Guest.B1.Fwd
-open LeanVM.Guest.B1 (CompleteAtD CompleteAtDT KidsDT kidsFromInT_of_kidsDT Returns Kid OutsOk CallsMatch RegionsOk outRegion DisjL Within LowDef
+open LeanVM.Guest.B1 (CompleteAtD CompleteAtDT KidsDT kidsFromInT_of_kidsDT KidsDTB kidsFromInT_of_kidsDTB kidsBoundL Returns Kid OutsOk CallsMatch RegionsOk outRegion DisjL Within LowDef
   disj_append kidsFromIn_of_kidsD regionsOk_of within_append bufL bufL_within bufL_disj bufL_region)
 open LeanVM.Guest.B1.Da (SlOk slEvs_holds limb0_gen_pow_mul exists_of_length_succ)
 
@@ -159,28 +160,38 @@ set_option maxHeartbeats 16000000 in
 `exponent_tables`' tables, its callees' layouts and its header holds by a tree placed at `fp`,
 loading outside its own data only its header (words `0`, `1`); the tree is `main`'s node at a
 valuation with `main`'s honest values (`MVals`). -/
-theorem main_relAtInT (fs : String → ℕ) (cert : String → V → ℕ) (fp : ℕ) (d : MainData)
+theorem main_relAtInT_core (fs : String → ℕ) (cert : String → V → ℕ) (fp : ℕ) (d : MainData)
     (own : List (List E)) (hfit : List.Forall₂ (fun c s => c.length ≤ s) own (mSizes d))
     (hb : MainBounds (d.toIn fs fp)) (hdaR : d.daR.length = 4)
-    (Ts : List (Tree → Prop))
-    (hok : KidsDT fs cert 16 (mKids (d.toIn fs fp) (bufL (fp + fs "main") (mSizes d) own ++ etL d fs fp)) Ts)
+    (Ts : List (Tree → Prop)) (Nk : ℕ) (Lk : B1.Main.Layout) (outs : List (List E × B1.Main.Layout))
+    (hoo : OutsOk (mKids (d.toIn fs fp) (bufL (fp + fs "main") (mSizes d) own ++ etL d fs fp)) outs)
+    (hW : Within Lk (etB fs (mK0 d fs fp) + 68) Nk) (hD : DisjL Lk)
+    (hKids : ∀ (rd : Reader) (σ : Val) (cs : List Call) (R Dacc : ℕ → Prop),
+      CallsMatch σ cs (mKids (d.toIn fs fp) (bufL (fp + fs "main") (mSizes d) own ++ etL d fs fp)) outs →
+      LowDef 16 rd → B1.Main.MemL rd Lk →
+      B1.Main.MemL rd (Kid.lins (mKids (d.toIn fs fp) (bufL (fp + fs "main") (mSizes d) own ++ etL d fs fp))) →
+      RegionsOk R Dacc (mKids (d.toIn fs fp) (bufL (fp + fs "main") (mSizes d) own ++ etL d fs fp)) outs →
+      KidsFromInT coreProgram fs cert rd σ R Dacc cs Ts (etB fs (mK0 d fs fp) + 68) Nk
+        (fun i => Dacc i ∨ outRegion (mKids (d.toIn fs fp) (bufL (fp + fs "main") (mSizes d) own ++
+          etL d fs fp)) outs i))
     (hmm : ∀ rd, B1.Main.MemL rd (bufL (fp + fs "main") (mSizes d) own) →
       LoadHolds rd 1 0 (digestScalars d.sdg).1 → LoadHolds rd gen 0 (digestScalars d.sdg).2 →
         MainMem rd (d.toIn fs fp)) :
-    ∃ (n : ℕ) (L : B1.Main.Layout), Within L fp n ∧ (∀ q ∈ L, fp + fs "main" ≤ q.1) ∧ DisjL L ∧
+    ∃ (L : B1.Main.Layout),
+      Within L fp (fs "main" + (mSizes d).sum + (fs "exponent_tables" + 68 + Nk)) ∧ (∀ q ∈ L, fp + fs "main" ≤ q.1) ∧ DisjL L ∧
       (∀ q ∈ bufL (fp + fs "main") (mSizes d) own ++ etL d fs fp, q ∈ L) ∧
       ∀ rd, LowDef 16 rd → B1.Main.MemL rd L → LoadHolds rd 1 0 (digestScalars d.sdg).1 →
         LoadHolds rd gen 0 (digestScalars d.sdg).2 →
-        RelAtInT coreProgram fs cert rd (fun i => i < 2) (fun _ => False) fp n "main" [] []
+        RelAtInT coreProgram fs cert rd (fun i => i < 2) (fun _ => False) fp (fs "main" + (mSizes d).sum + (fs "exponent_tables" + 68 + Nk)) "main"
+          [] []
           (fun t => ∃ σ bufs ks, t = .node "main" σ bufs ks ∧ MVals rd σ (d.toIn fs fp) ∧
-            KidsT (mCalls σ (d.toIn fs fp)) ((fun _ => True) :: Ts) ks) := by
+            KidsT (mCalls σ (d.toIn fs fp)) ((fun _ => True) :: Ts) ks ∧
+            calls (mEvs σ) = mCalls σ (d.toIn fs fp) ∧ bufs = mSizes d) := by
   set m := d.toIn fs fp with hmd
   set b0 := fp + fs "main" with hb0
   set Lown := bufL b0 (mSizes d) own with hLown
   set Lmain := Lown ++ etL d fs fp with hLmain
   have he : etB fs (mK0 d fs fp) = b0 + (mSizes d).sum + fs "exponent_tables" := rfl
-  obtain ⟨Nk, Lk, outs, hoo, hW, hD, -, hKids⟩ :=
-    kidsFromInT_of_kidsDT (fs := fs) (cert := cert) 16 (mKids m Lmain) Ts hok (etB fs (mK0 d fs fp) + 68)
   have hWo : Within Lown b0 (mSizes d).sum := bufL_within _ _ _ hfit
   have hWe : Within (etL d fs fp) (etB fs (mK0 d fs fp)) 68 := by
     intro q hq
@@ -193,7 +204,7 @@ theorem main_relAtInT (fs : String → ℕ) (cert : String → V → ℕ) (fp : 
     rw [within_append, within_append]
     exact ⟨⟨hWo.mono (by omega) (by omega), hWe.mono (by omega) (by omega)⟩,
       hW.mono (by omega) (by omega)⟩
-  refine ⟨fs "main" + (mSizes d).sum + (fs "exponent_tables" + 68 + Nk), Lmain ++ Lk,
+  refine ⟨Lmain ++ Lk,
     hWb.mono (by omega) (by omega), fun q hq => (hWb q hq).1, ?_,
     fun q hq => List.mem_append_left _ hq, fun rd hlow hL h0 h1 => ?_⟩
   · have hW1 : Within (Lown ++ etL d fs fp) b0 ((mSizes d).sum + fs "exponent_tables" + 68) :=
@@ -545,7 +556,7 @@ theorem main_relAtInT (fs : String → ℕ) (cert : String → V → ℕ) (fp : 
   · rw [hal] at h
     obtain ⟨t, ht, ks, rfl, hkT⟩ := h
     rw [hcalls] at hkT
-    exact ⟨_, ht, σ, _, ks, rfl, hv, hkT⟩
+    exact ⟨_, ht, σ, _, ks, rfl, hv, hkT, hes ▸ hcalls, rfl⟩
   · rw [hcalls, hal]
     refine ⟨fs "exponent_tables" + 68, Nk, fun _ => False,
       fun i => etB fs (mK0 d fs fp) ≤ i ∧ i < etB fs (mK0 d fs fp) + 68, rfl, fun i hi => hi.elim, ?_, ?_⟩
@@ -605,6 +616,57 @@ theorem main_relAtInT (fs : String → ℕ) (cert : String → V → ℕ) (fp : 
         rw [hv.v446, ← pow_zero gen, limb0_gen_pow_mul]
       · refine ⟨1, ?_, Or.inr (Or.inl (by norm_num))⟩
         rw [hv.v450, ← pow_one gen, limb0_gen_pow_mul]
+
+/-- **`main` at `fp`, its callees' trees satisfying `Ts`.** -/
+theorem main_relAtInT (fs : String → ℕ) (cert : String → V → ℕ) (fp : ℕ) (d : MainData)
+    (own : List (List E)) (hfit : List.Forall₂ (fun c s => c.length ≤ s) own (mSizes d))
+    (hb : MainBounds (d.toIn fs fp)) (hdaR : d.daR.length = 4)
+    (Ts : List (Tree → Prop))
+    (hok : KidsDT fs cert 16 (mKids (d.toIn fs fp) (bufL (fp + fs "main") (mSizes d) own ++ etL d fs fp)) Ts)
+    (hmm : ∀ rd, B1.Main.MemL rd (bufL (fp + fs "main") (mSizes d) own) →
+      LoadHolds rd 1 0 (digestScalars d.sdg).1 → LoadHolds rd gen 0 (digestScalars d.sdg).2 →
+        MainMem rd (d.toIn fs fp)) :
+    ∃ (n : ℕ) (L : B1.Main.Layout), Within L fp n ∧ (∀ q ∈ L, fp + fs "main" ≤ q.1) ∧ DisjL L ∧
+      (∀ q ∈ bufL (fp + fs "main") (mSizes d) own ++ etL d fs fp, q ∈ L) ∧
+      ∀ rd, LowDef 16 rd → B1.Main.MemL rd L → LoadHolds rd 1 0 (digestScalars d.sdg).1 →
+        LoadHolds rd gen 0 (digestScalars d.sdg).2 →
+        RelAtInT coreProgram fs cert rd (fun i => i < 2) (fun _ => False) fp n "main" [] []
+          (fun t => ∃ σ bufs ks, t = .node "main" σ bufs ks ∧ MVals rd σ (d.toIn fs fp) ∧
+            KidsT (mCalls σ (d.toIn fs fp)) ((fun _ => True) :: Ts) ks ∧
+            calls (mEvs σ) = mCalls σ (d.toIn fs fp) ∧ bufs = mSizes d) := by
+  obtain ⟨Nk, Lk, outs, hoo, hW, hD, -, hKids⟩ :=
+    kidsFromInT_of_kidsDT (fs := fs) (cert := cert) 16 _ Ts hok (etB fs (mK0 d fs fp) + 68)
+  obtain ⟨L, h⟩ := main_relAtInT_core fs cert fp d own hfit hb hdaR Ts Nk Lk outs hoo hW hD hKids hmm
+  exact ⟨_, L, h⟩
+
+/-- **`main`'s words**: its frame, its buffers, `exponent_tables`' frame and tables, its other
+callees' bounds (`kidsBoundL`). -/
+def mainB (fs : String → ℕ) (d : MainData) (ks : List Kid) (Bs : List ℕ) : ℕ :=
+  fs "main" + (mSizes d).sum + (fs "exponent_tables" + 68 + kidsBoundL fs ks Bs)
+
+/-- **`main` at `fp` within its words**: `main_relAtInT`, its callees within the bounds `Bs`, its
+size at most `mainB`. -/
+theorem main_relAtInTB (fs : String → ℕ) (cert : String → V → ℕ) (fp : ℕ) (d : MainData)
+    (own : List (List E)) (hfit : List.Forall₂ (fun c s => c.length ≤ s) own (mSizes d))
+    (hb : MainBounds (d.toIn fs fp)) (hdaR : d.daR.length = 4)
+    (Ts : List (Tree → Prop)) (Bs : List ℕ)
+    (hok : KidsDTB fs cert 16 (mKids (d.toIn fs fp) (bufL (fp + fs "main") (mSizes d) own ++ etL d fs fp)) Ts Bs)
+    (hmm : ∀ rd, B1.Main.MemL rd (bufL (fp + fs "main") (mSizes d) own) →
+      LoadHolds rd 1 0 (digestScalars d.sdg).1 → LoadHolds rd gen 0 (digestScalars d.sdg).2 →
+        MainMem rd (d.toIn fs fp)) :
+    ∃ (n : ℕ) (L : B1.Main.Layout), n ≤ mainB fs d (mKids (d.toIn fs fp)
+        (bufL (fp + fs "main") (mSizes d) own ++ etL d fs fp)) Bs ∧ Within L fp n ∧ (∀ q ∈ L, fp + fs "main" ≤ q.1) ∧ DisjL L ∧
+      (∀ q ∈ bufL (fp + fs "main") (mSizes d) own ++ etL d fs fp, q ∈ L) ∧
+      ∀ rd, LowDef 16 rd → B1.Main.MemL rd L → LoadHolds rd 1 0 (digestScalars d.sdg).1 →
+        LoadHolds rd gen 0 (digestScalars d.sdg).2 →
+        RelAtInT coreProgram fs cert rd (fun i => i < 2) (fun _ => False) fp n "main" [] []
+          (fun t => ∃ σ bufs ks, t = .node "main" σ bufs ks ∧ MVals rd σ (d.toIn fs fp) ∧
+            KidsT (mCalls σ (d.toIn fs fp)) ((fun _ => True) :: Ts) ks ∧
+            calls (mEvs σ) = mCalls σ (d.toIn fs fp) ∧ bufs = mSizes d) := by
+  obtain ⟨Nk, Lk, outs, hNk, hoo, hW, hD, -, hKids⟩ :=
+    kidsFromInT_of_kidsDTB (fs := fs) (cert := cert) 16 _ Ts Bs hok (etB fs (mK0 d fs fp) + 68)
+  obtain ⟨L, h⟩ := main_relAtInT_core fs cert fp d own hfit hb hdaR Ts Nk Lk outs hoo hW hD hKids hmm
+  exact ⟨_, L, by unfold mainB; omega, h⟩
 
 theorem kidsDT_nil {fs : String → ℕ} {cert : String → V → ℕ} {κ : ℕ} : ∀ (ks : List Kid),
     (∀ k ∈ ks, k.taken = true → CompleteAtD fs cert κ k.f k.Lin k.args k.Out) → KidsDT fs cert κ ks []

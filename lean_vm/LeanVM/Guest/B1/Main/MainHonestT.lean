@@ -43,10 +43,20 @@ theorem kidsDT_rep {κ : ℕ} : ∀ (ks : List Kid),
   | [], _ => trivial
   | k :: ks, h => ⟨fun ht => (h k (by simp) ht).toT, kidsDT_rep ks fun k' hk' => h k' (by simp [hk'])⟩
 
-/-- **The predicates on `main`'s callees' trees**: `T5` on the children's loop's. -/
-def mTs (m : MainIn) (T5 : Tree → Prop) : List (Tree → Prop) :=
-  List.replicate 8 (fun _ => True) ++ List.replicate (if m.nd = 1 then 2 else 0) (fun _ => True) ++
-    [T5] ++ List.replicate (if m.nc = 0 then 0 else 1) (fun _ => True) ++ [fun _ => True]
+/-- **The predicates on `main`'s callees' trees**: on its claim lists' digests (`Px`, `Ps`),
+`da_verify`'s (`Pd`), `aggregate_claims`' (`Pa`), the children's loop's (`T5`). -/
+structure MainPreds where
+  Px : Tree → Prop
+  Ps : Tree → Prop
+  Pd : Tree → Prop
+  Pa : Tree → Prop
+  T5 : Tree → Prop
+
+/-- **The predicates on `main`'s callees' trees**, aligned with `mKids`. -/
+def mTs (m : MainIn) (p : MainPreds) : List (Tree → Prop) :=
+  [fun _ => True, fun _ => True, p.Px, p.Ps, fun _ => True, fun _ => True, fun _ => True,
+    fun _ => True] ++ (if m.nd = 1 then [p.Pd, fun _ => True] else []) ++ [p.T5] ++
+    (if m.nc = 0 then [] else [p.Pa]) ++ [fun _ => True]
 
 variable {fp : ℕ} {seed : Digest} {s : NodeStatement} {w : NodeWitness} {bytecode : List K}
 
@@ -69,50 +79,60 @@ def MainGoalL5T (fs : String → ℕ) (cert : String → V → ℕ) (fp : ℕ) (
 theorem MainGoalL5T.goal {T5 : Tree → Prop} (h : MainGoalL5T fs cert fp seed s w T5) :
     MainGoalL5 fs cert fp seed s w := fun hn => (h hn).toD
 
-/-- **`main`'s callees, the children's loop by trees satisfying `T5`.** -/
-theorem mainKidsDT {T5 : Tree → Prop} (hg : MainGoals fs cert fp seed s w)
-    (h5 : MainGoalL5T fs cert fp seed s w T5) :
-    KidsDT fs cert 16 (mKids (hm fs fp seed s w) (hLmain fs fp seed s w))
-      (mTs (hm fs fp seed s w) T5) := by
-  have hall := mainKids_ok hg
-  unfold mTs
-  dsimp only [mKids]
-  refine kidsDT_append _ _ ?_ (kidsDT_append _ _ ?_ (kidsDT_append _ _ ?_
-    (kidsDT_append _ _ ?_ ?_ ?_) ?_) ?_) ?_
-  · split_ifs <;> simp
-  · split_ifs <;> simp
-  · split_ifs <;> simp
-  · rfl
-  · exact kidsDT_rep _ fun k hk => hall k (by
-      dsimp only [mKids]
-      exact List.mem_append_left _ (List.mem_append_left _ (List.mem_append_left _
-        (List.mem_append_left _ hk))))
-  · split
-    · next h =>
-      exact kidsDT_rep _ fun k hk => hall k (by
-        dsimp only [mKids]
-        simp only [h, ↓reduceIte]
-        exact List.mem_append_left _ (List.mem_append_left _ (List.mem_append_left _
-          (List.mem_append_right _ hk))))
-    · trivial
-  · exact ⟨fun ht => h5 (of_decide_eq_true ht), trivial⟩
-  · split
-    · trivial
-    · next h =>
-      exact kidsDT_rep _ fun k hk => hall k (by
-        dsimp only [mKids]
-        simp only [h, ↓reduceIte]
-        exact List.mem_append_left _ (List.mem_append_right _ hk))
-  · exact kidsDT_rep _ fun k hk => hall k (by
-      dsimp only [mKids]
-      exact List.mem_append_right _ hk)
+/-- **`main`'s callees complete by trees satisfying `p`**: its claim lists' digests, `da_verify`,
+`aggregate_claims`, the children's loop. -/
+structure MainGoalsT (fs : String → ℕ) (cert : String → V → ℕ) (fp : ℕ) (seed : Digest)
+    (s : NodeStatement) (w : NodeWitness) (p : MainPreds) : Prop where
+  clx : CompleteAtDT fs cert 16 "claim_list_digest" (hLmain fs fp seed s w)
+    [(hm fs fp seed s w).a77, gen ^ (hm fs fp seed s w).nlx]
+    (Returns (B1.Digest.digestCells (hm fs fp seed s w).xd)) p.Px
+  cls : CompleteAtDT fs cert 16 "claim_list_digest" (hLmain fs fp seed s w)
+    [(hm fs fp seed s w).a80, gen ^ (hm fs fp seed s w).nls]
+    (Returns (B1.Digest.digestCells (hm fs fp seed s w).sd)) p.Ps
+  dv : (hm fs fp seed s w).nd = 1 →
+    CompleteAtDT fs cert 16 "da_verify" (hLmain fs fp seed s w) [(hm fs fp seed s w).et2]
+      (Returns (hm fs fp seed s w).daR) p.Pd
+  ag : (hm fs fp seed s w).nc ≠ 0 →
+    CompleteAtDT fs cert 16 "aggregate_claims" (hLmain fs fp seed s w)
+      [gen ^ (hm fs fp seed s w).nc, (hm fs fp seed s w).a394, (hm fs fp seed s w).a400,
+        (hm fs fp seed s w).a406, (hm fs fp seed s w).a417] (Returns []) p.Pa
+  l5 : MainGoalL5T fs cert fp seed s w p.T5
 
-/-- **`main` at `fp` on the honest run, its children's loop's tree satisfying `T5`.** -/
-theorem main_honest_relAtInT {T5 : Tree → Prop} (hbl : bytecode.length = 2 ^ 23)
+/-- **`main`'s callees, by trees satisfying `p`.** -/
+theorem mainKidsDT {p : MainPreds} (hg : MainGoals fs cert fp seed s w)
+    (hT : MainGoalsT fs cert fp seed s w p) :
+    KidsDT fs cert 16 (mKids (hm fs fp seed s w) (hLmain fs fp seed s w))
+      (mTs (hm fs fp seed s w) p) := by
+  unfold mKids mTs
+  by_cases hnd : (hm fs fp seed s w).nd = 1 <;> by_cases hnc : (hm fs fp seed s w).nc = 0 <;>
+    simp only [hnd, hnc, ↓reduceIte]
+  · exact ⟨fun ht => (hg.l0 (of_decide_eq_true ht)).toT, fun _ => hg.dl.toT, fun _ => hT.clx,
+      fun _ => hT.cls, fun ht => (hg.l1 (of_decide_eq_true ht)).toT,
+      fun ht => (hg.l2 (of_decide_eq_true ht)).toT, fun ht => (hg.l3 (of_decide_eq_true ht)).toT,
+      fun ht => (hg.l4 (of_decide_eq_true ht)).toT, fun _ => hT.dv hnd, fun _ => (hg.cv hnd).toT,
+      fun ht => by simp at ht, fun _ => hg.st.toT, trivial⟩
+  · exact ⟨fun ht => (hg.l0 (of_decide_eq_true ht)).toT, fun _ => hg.dl.toT, fun _ => hT.clx,
+      fun _ => hT.cls, fun ht => (hg.l1 (of_decide_eq_true ht)).toT,
+      fun ht => (hg.l2 (of_decide_eq_true ht)).toT, fun ht => (hg.l3 (of_decide_eq_true ht)).toT,
+      fun ht => (hg.l4 (of_decide_eq_true ht)).toT, fun _ => hT.dv hnd, fun _ => (hg.cv hnd).toT,
+      fun ht => hT.l5 (of_decide_eq_true ht), fun _ => hT.ag hnc, fun _ => hg.st.toT, trivial⟩
+  · exact ⟨fun ht => (hg.l0 (of_decide_eq_true ht)).toT, fun _ => hg.dl.toT, fun _ => hT.clx,
+      fun _ => hT.cls, fun ht => (hg.l1 (of_decide_eq_true ht)).toT,
+      fun ht => (hg.l2 (of_decide_eq_true ht)).toT, fun ht => (hg.l3 (of_decide_eq_true ht)).toT,
+      fun ht => (hg.l4 (of_decide_eq_true ht)).toT,
+      fun ht => by simp at ht, fun _ => hg.st.toT, trivial⟩
+  · exact ⟨fun ht => (hg.l0 (of_decide_eq_true ht)).toT, fun _ => hg.dl.toT, fun _ => hT.clx,
+      fun _ => hT.cls, fun ht => (hg.l1 (of_decide_eq_true ht)).toT,
+      fun ht => (hg.l2 (of_decide_eq_true ht)).toT, fun ht => (hg.l3 (of_decide_eq_true ht)).toT,
+      fun ht => (hg.l4 (of_decide_eq_true ht)).toT,
+      fun ht => hT.l5 (of_decide_eq_true ht), fun _ => hT.ag hnc, fun _ => hg.st.toT, trivial⟩
+
+/-- **`main` at `fp` on the honest run, its callees' trees satisfying `p`.** -/
+theorem main_honest_relAtInT {p : MainPreds} (hbl : bytecode.length = 2 ^ 23)
     (hr : NodeRel bytecode seed s w) (hl : Limits bytecode s w)
     (hxc : Sig.verify_lean_xmss_complete_Spec)
     (hsc : Sig.verify_sig_lean_sphincs_complete_loads_Spec) (hrf : Lift.RunsFit fs cert)
-    (hl5 : MainGoalL5T fs cert fp seed s w T5) (hag : MainGoalAg fs cert fp seed s w) :
+    (hT : MainGoalsT fs cert fp seed s w p) :
     ∃ (n : ℕ) (L : B1.Main.Layout), Within L fp n ∧ (∀ q ∈ L, fp + fs "main" ≤ q.1) ∧ DisjL L ∧
       (∀ q ∈ hLmain fs fp seed s w, q ∈ L) ∧
       ∀ rd, LowDef 16 rd → B1.Main.MemL rd L →
@@ -120,10 +140,11 @@ theorem main_honest_relAtInT {T5 : Tree → Prop} (hbl : bytecode.length = 2 ^ 2
         LoadHolds rd gen 0 (digestScalars (statementDigest seed s)).2 →
         RelAtInT coreProgram fs cert rd (fun i => i < 2) (fun _ => False) fp n "main" [] []
           (fun t => ∃ σ bufs ks, t = .node "main" σ bufs ks ∧ MVals rd σ (hm fs fp seed s w) ∧
-            KidsT (mCalls σ (hm fs fp seed s w)) ((fun _ => True) :: mTs (hm fs fp seed s w) T5) ks) :=
+            KidsT (mCalls σ (hm fs fp seed s w)) ((fun _ => True) :: mTs (hm fs fp seed s w) p) ks ∧
+            calls (mEvs σ) = mCalls σ (hm fs fp seed s w) ∧ bufs = mSizes (hData seed s w)) :=
   main_relAtInT fs cert fp (hData seed s w) (hOwn seed s w) (hOwn_fit (log2_of_length hbl) hr (freshShaped_of hbl hr))
     (hData_bounds hl fs fp) hData_daR _
-    (mainKidsDT (mainGoals_of hbl hr hl hxc hsc hrf hl5.goal hag) hl5)
+    (mainKidsDT (mainGoals_of hbl hr hl hxc hsc hrf hT.l5.goal (fun hn => (hT.ag hn).toD)) hT)
     (fun rd hM h0 h1 => hMainMem (log2_of_length hbl) hr (freshShaped_of hbl hr) hl fs fp rd hM h0 h1)
 
 end
