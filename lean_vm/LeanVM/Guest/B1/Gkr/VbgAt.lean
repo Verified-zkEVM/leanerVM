@@ -312,18 +312,49 @@ noncomputable def vbgL (fs : String → ℕ) (depth : ℕ) (cap0 xs point : List
     (fun fp ↦ vbgOwnW depth cap0 xs (ofK (gpow ec))
       (fp + fs "verify_bus_gkr" + 17 * (depth + 2) + 6034)) fs fp
 
-/-- **`verify_bus_gkr` is complete, placed** (TRIAGE G #43): at `1 ≤ depth ≤ 32`, on memories
-defined below `2^κ`, `κ ≥ 6`, an accepting run of `gkrPhase depth` from a carried capacity `cap0`
-reading the words `xs` at the cursor `g^ec`, the run's point at `zeta = g^ez`, its five buffers at
-the bump allocator's positions holding their honest words (`vbgOwnW`). It returns the run's
-capacity, the cursor past `xs` and the three values. -/
-theorem verify_bus_gkr_completeAt {κ depth : ℕ} (hd1 : 1 ≤ depth) (hd : depth ≤ 32) (hκ : 6 ≤ κ)
+/-- `verify_bus_gkr`'s buffers' first words at `fp`: layers, rounds, rows, pairs, `depth_shift`. -/
+def vbgEL (fs : String → ℕ) (fp : ℕ) : ℕ := fp + fs "verify_bus_gkr"
+def vbgER (fs : String → ℕ) (depth fp : ℕ) : ℕ := vbgEL fs fp + 17 * (depth + 2)
+def vbgEP (fs : String → ℕ) (depth fp : ℕ) : ℕ := vbgER fs depth fp + 6034
+def vbgEPa (fs : String → ℕ) (depth fp : ℕ) : ℕ := vbgEP fs depth fp + 1640
+def vbgED (fs : String → ℕ) (depth fp : ℕ) : ℕ := vbgEPa fs depth fp + 33
+
+/-- The buffers `verify_bus_gkr` loads from, at `fp`. -/
+noncomputable def vbgBufs (fs : String → ℕ) (depth : ℕ) (xs : List E) (ec fp : ℕ) : List (E × ℕ) :=
+  [(ofK (gpow ec), xs.length), (ofK (gpow (fp + fs "verify_bus_gkr")), 17 * (depth + 2)),
+    (ofK (gpow (fp + fs "verify_bus_gkr" + 17 * (depth + 2))), 6034),
+    (ofK (gpow (fp + fs "verify_bus_gkr" + 17 * (depth + 2) + 6034)), 1640),
+    (ofK (gpow (fp + fs "verify_bus_gkr" + 17 * (depth + 2) + 6034 + 1640)), 33),
+    (ofK (gpow (fp + fs "verify_bus_gkr" + 17 * (depth + 2) + 6034 + 1640 + 33)), 33)]
+
+set_option maxHeartbeats 1000000 in
+/-- **What `verify_bus_gkr`'s placed lift needs**: its buffers' honest words fit their sizes, the
+buffers it loads from lie in its layout, and on every memory defined below `2^κ` holding the layout
+its honest valuation runs (`vbg_run` at the bump allocator's bases), its calls' values
+(`VbgVals`) and its buffers' words (`vbgLay`). -/
+theorem vbg_lift_facts {κ depth : ℕ} (hd1 : 1 ≤ depth) (hd : depth ≤ 32) (hκ : 6 ≤ κ)
     {cap0 xs : List E} {r : E × List E × List E} {cap' : List E}
     (hrun : RunsTo (gkrPhase depth) ⟨cap0, []⟩ xs r ⟨cap', []⟩)
     (hc : ∃ sp, (⟨cap0, []⟩ : Fs).Carries sp) (ec ez : ℕ) :
-    CompleteAtD fs cert κ "verify_bus_gkr" [(ec, xs), (ez, r.2.1)]
-      (cap0 ++ [ofK (gpow ec), gen ^ depth, ofK (gpow ez)])
-      (Returns (cap' ++ [ofK (gpow ec) * gen ^ xs.length] ++ r.2.2)) := by
+    (∀ fp, List.Forall₂ (fun c s => c.length ≤ s)
+      (vbgOwnW depth cap0 xs (ofK (gpow ec)) (fp + fs "verify_bus_gkr" + 17 * (depth + 2) + 6034))
+      (vbgSizes depth)) ∧
+    (∀ fp, ∀ q ∈ vbgBufs fs depth xs ec fp, ∃ b, q.1 = ofK (gpow b) ∧
+      ∀ i < q.2, RegionL (vbgL fs depth cap0 xs r.2.1 ec ez fp) (b + i)) ∧
+    (∀ fp rd, LowDef κ rd → MemL rd (vbgL fs depth cap0 xs r.2.1 ec ez fp) →
+      let σ := vbgσ rd depth cap0 ec ez (vbgEL fs fp) (vbgER fs depth fp) (vbgEP fs depth fp)
+        (vbgEPa fs depth fp) (vbgED fs depth fp)
+      ((∀ s ∈ vbgPre, VSH (coreProgram.RelIn rd (RegionL (vbgL fs depth cap0 xs r.2.1 ec ez fp)))
+          rd σ s) ∧
+        LoadsInBuf σ (vbgBufs fs depth xs ec fp) vbgEvL ∧
+        (vbgPre.filterMap Main.Stmt.allocSz).map (fun x => x.2.elim id fun s => logG (σ s)) =
+          vbgSizes depth ∧
+        ((vbgPre.filterMap Main.Stmt.allocSz).map Prod.fst).map σ =
+          (bases (fp + fs "verify_bus_gkr") (vbgSizes depth)).map (fun b => ofK (gpow b)) ∧
+        vbgRets.map σ = cap' ++ [ofK (gpow ec) * gen ^ xs.length] ++ r.2.2) ∧
+      VbgVals σ depth (vbgEL fs fp) (vbgER fs depth fp) (vbgED fs depth fp) ∧
+      MemLay rd (vbgLay depth cap0 xs (ofK (gpow ec)) (vbgEL fs fp) (vbgER fs depth fp)
+        (vbgEP fs depth fp) (vbgEPa fs depth fp) (vbgED fs depth fp))) := by
   obtain ⟨-, hx2, -, -, -, -, -, hplm⟩ := gk_walk hrun hc
   have hcl : cap0.length = 5 := by
     obtain ⟨sp, hsp⟩ := hc
@@ -339,47 +370,36 @@ theorem verify_bus_gkr_completeAt {κ depth : ℕ} (hd1 : 1 ≤ depth) (hd : dep
   have hrp : r.2.1.length = depth := by
     obtain ⟨-, -, -, -, -, -, hr, hpl'⟩ := gk_walk hrun hc
     rw [hr]; exact hpl'
-  set f := "verify_bus_gkr"
   have hown : ∀ fp, List.Forall₂ (fun c s => c.length ≤ s)
-      (vbgOwnW depth cap0 xs (ofK (gpow ec)) (fp + fs f + 17 * (depth + 2) + 6034))
+      (vbgOwnW depth cap0 xs (ofK (gpow ec)) (fp + fs "verify_bus_gkr" + 17 * (depth + 2) + 6034))
       (vbgSizes depth) := by
     intro fp
     simp only [vbgOwnW, vbgSizes, List.forall₂_cons, List.Forall₂.nil, and_true]
     refine ⟨by rw [vbgLayersW_length hcl hcan], ?_, ?_, by simp [vbgPairsW], by simp [vbgDshW]⟩
     · unfold vbgRoundsW; rw [flatMap_const_length (fun c _ ↦ vbgRecBlock_length hd c)]
     · unfold vbgRowsW; rw [flatMap_const_length (fun c _ ↦ vbgRowBlock_length hd hpl c)]
-  have hbuf : ∀ fp, bufL (fp + fs f) (vbgSizes depth)
-      (vbgOwnW depth cap0 xs (ofK (gpow ec)) (fp + fs f + 17 * (depth + 2) + 6034)) =
-      [(fp + fs f, vbgLayersW depth cap0 xs (ofK (gpow ec)) (fp + fs f + 17 * (depth + 2) + 6034)),
-        (fp + fs f + 17 * (depth + 2), vbgRoundsW depth cap0 xs (ofK (gpow ec))),
-        (fp + fs f + 17 * (depth + 2) + 6034, vbgRowsW depth cap0 xs),
-        (fp + fs f + 17 * (depth + 2) + 6034 + 1640, vbgPairsW),
-        (fp + fs f + 17 * (depth + 2) + 6034 + 1640 + 33, vbgDshW)] := by
+  have hbuf : ∀ fp, bufL (fp + fs "verify_bus_gkr") (vbgSizes depth)
+      (vbgOwnW depth cap0 xs (ofK (gpow ec)) (fp + fs "verify_bus_gkr" + 17 * (depth + 2) + 6034)) =
+      [(fp + fs "verify_bus_gkr", vbgLayersW depth cap0 xs (ofK (gpow ec)) (fp + fs "verify_bus_gkr" + 17 * (depth + 2) + 6034)),
+        (fp + fs "verify_bus_gkr" + 17 * (depth + 2), vbgRoundsW depth cap0 xs (ofK (gpow ec))),
+        (fp + fs "verify_bus_gkr" + 17 * (depth + 2) + 6034, vbgRowsW depth cap0 xs),
+        (fp + fs "verify_bus_gkr" + 17 * (depth + 2) + 6034 + 1640, vbgPairsW),
+        (fp + fs "verify_bus_gkr" + 17 * (depth + 2) + 6034 + 1640 + 33, vbgDshW)] := by
     intro fp; simp [bufL, bases, vbgSizes, vbgOwnW]
-  refine flat_completeAt vbgFlat [(ec, xs), (ez, r.2.1)] _ _ (by simp [vbgFlat, hcl]) (vbgSizes depth)
-    (fun fp ↦ vbgOwnW depth cap0 xs (ofK (gpow ec)) (fp + fs f + 17 * (depth + 2) + 6034)) hown
-    (fun fp ↦ vbgW (ofK (gpow (fp + fs f))) (ofK (gpow (fp + fs f + 17 * (depth + 2))))
-      (ofK (gpow (fp + fs f + 17 * (depth + 2) + 6034)))
-      (ofK (gpow (fp + fs f + 17 * (depth + 2) + 6034 + 1640)))
-      (ofK (gpow (fp + fs f + 17 * (depth + 2) + 6034 + 1640 + 33))))
-    (fun fp ↦ [(ofK (gpow ec), xs.length), (ofK (gpow (fp + fs f)), 17 * (depth + 2)),
-      (ofK (gpow (fp + fs f + 17 * (depth + 2))), 6034),
-      (ofK (gpow (fp + fs f + 17 * (depth + 2) + 6034)), 1640),
-      (ofK (gpow (fp + fs f + 17 * (depth + 2) + 6034 + 1640)), 33),
-      (ofK (gpow (fp + fs f + 17 * (depth + 2) + 6034 + 1640 + 33)), 33)]) ?_ ?_
+  refine ⟨hown, ?_, ?_⟩
   · -- the buffers lie in the layout
     intro fp q hq
-    have own : ∀ b (ws : List E), (b, ws) ∈ bufL (fp + fs f) (vbgSizes depth)
-        (vbgOwnW depth cap0 xs (ofK (gpow ec)) (fp + fs f + 17 * (depth + 2) + 6034)) →
-        ∀ i < ws.length, RegionL (flatL f [(ec, xs), (ez, r.2.1)] (vbgSizes depth)
-          (fun fp ↦ vbgOwnW depth cap0 xs (ofK (gpow ec)) (fp + fs f + 17 * (depth + 2) + 6034))
+    have own : ∀ b (ws : List E), (b, ws) ∈ bufL (fp + fs "verify_bus_gkr") (vbgSizes depth)
+        (vbgOwnW depth cap0 xs (ofK (gpow ec)) (fp + fs "verify_bus_gkr" + 17 * (depth + 2) + 6034)) →
+        ∀ i < ws.length, RegionL (flatL "verify_bus_gkr" [(ec, xs), (ez, r.2.1)] (vbgSizes depth)
+          (fun fp ↦ vbgOwnW depth cap0 xs (ofK (gpow ec)) (fp + fs "verify_bus_gkr" + 17 * (depth + 2) + 6034))
           fs fp) (b + i) := fun b ws hm i hi ↦
       regionL_append_right ⟨(b, ws), hm, by omega, by simpa using hi⟩
-    simp only [List.mem_cons, List.not_mem_nil, or_false] at hq
+    simp only [vbgBufs, List.mem_cons, List.not_mem_nil, or_false] at hq
     rw [hbuf] at own
     rcases hq with rfl | rfl | rfl | rfl | rfl | rfl
     · exact ⟨ec, rfl, fun i hi ↦ regionL_append_left ⟨(ec, xs), by simp, by omega, by simpa using hi⟩⟩
-    · exact ⟨_, rfl, fun i hi ↦ own _ (vbgLayersW depth cap0 xs (ofK (gpow ec)) (fp + fs f + 17 * (depth + 2) + 6034)) (by simp) i
+    · exact ⟨_, rfl, fun i hi ↦ own _ (vbgLayersW depth cap0 xs (ofK (gpow ec)) (fp + fs "verify_bus_gkr" + 17 * (depth + 2) + 6034)) (by simp) i
         (by rw [vbgLayersW_length hcl hcan]; exact hi)⟩
     · have hlr : (vbgRoundsW depth cap0 xs (ofK (gpow ec))).length = 6034 := by
         unfold vbgRoundsW; rw [flatMap_const_length (fun c _ ↦ vbgRecBlock_length hd c)]
@@ -392,8 +412,7 @@ theorem verify_bus_gkr_completeAt {κ depth : ℕ} (hd1 : 1 ≤ depth) (hd : dep
   · -- the run
     intro fp rd hlow hL
     have hL' := hL
-    rw [show vbgFlat.name = f from rfl] at hL'
-    simp only [flatL] at hL'
+    simp only [vbgL, flatL] at hL'
     obtain ⟨hLin, hB⟩ := Main.memL_append.mp hL'
     rw [hbuf] at hB
     have hx : TbReadsAt rd (ofK (gpow ec)) xs := hLin (ec, xs) (by simp)
@@ -408,48 +427,73 @@ theorem verify_bus_gkr_completeAt {κ depth : ℕ} (hd1 : 1 ≤ depth) (hd : dep
     have hlp : (vbgRowsW depth cap0 xs).length = 1640 := by
       unfold vbgRowsW; rw [flatMap_const_length (fun c _ ↦ vbgRowBlock_length hd hpl c)]
     have hreg : vbgL fs depth cap0 xs r.2.1 ec ez fp = [(ec, xs), (ez, r.2.1)] ++
-        bufL (fp + fs f) (vbgSizes depth)
-          (vbgOwnW depth cap0 xs (ofK (gpow ec)) (fp + fs f + 17 * (depth + 2) + 6034)) := rfl
+        bufL (fp + fs "verify_bus_gkr") (vbgSizes depth)
+          (vbgOwnW depth cap0 xs (ofK (gpow ec)) (fp + fs "verify_bus_gkr" + 17 * (depth + 2) + 6034)) := rfl
     have hRz : ∀ i < depth, RegionL (vbgL fs depth cap0 xs r.2.1 ec ez fp) (ez + i) := by
       intro i hi
       rw [hreg]
       refine regionL_append_left ⟨(ez, r.2.1), by simp, by simp, ?_⟩
       simp only [hrp]; omega
     have hRr : ∀ i < 1640, RegionL (vbgL fs depth cap0 xs r.2.1 ec ez fp)
-        (fp + fs f + 17 * (depth + 2) + 6034 + i) := by
+        (fp + fs "verify_bus_gkr" + 17 * (depth + 2) + 6034 + i) := by
       intro i hi
       rw [hreg, hbuf]
-      refine regionL_append_right ⟨(fp + fs f + 17 * (depth + 2) + 6034, vbgRowsW depth cap0 xs),
+      refine regionL_append_right ⟨(fp + fs "verify_bus_gkr" + 17 * (depth + 2) + 6034, vbgRowsW depth cap0 xs),
         by simp, by simp, ?_⟩
       simp only [hlp]; omega
     have hRx : ∀ i < xs.length, RegionL (vbgL fs depth cap0 xs r.2.1 ec ez fp) (ec + i) :=
       fun i hi ↦ by
         rw [hreg]; exact regionL_append_left ⟨(ec, xs), by simp, by simp, by simpa using hi⟩
     have hRL : ∀ i < 17 * (depth + 2), RegionL (vbgL fs depth cap0 xs r.2.1 ec ez fp)
-        (fp + fs f + i) := by
+        (fp + fs "verify_bus_gkr" + i) := by
       intro i hi
       rw [hreg, hbuf]
-      refine regionL_append_right ⟨(fp + fs f, vbgLayersW depth cap0 xs (ofK (gpow ec))
-        (fp + fs f + 17 * (depth + 2) + 6034)), by simp, by simp, ?_⟩
+      refine regionL_append_right ⟨(fp + fs "verify_bus_gkr", vbgLayersW depth cap0 xs (ofK (gpow ec))
+        (fp + fs "verify_bus_gkr" + 17 * (depth + 2) + 6034)), by simp, by simp, ?_⟩
       simp only [vbgLayersW_length hcl hcan]; omega
     have hRR : ∀ i < 6034, RegionL (vbgL fs depth cap0 xs r.2.1 ec ez fp)
-        (fp + fs f + 17 * (depth + 2) + i) := by
+        (fp + fs "verify_bus_gkr" + 17 * (depth + 2) + i) := by
       intro i hi
       have hlr : (vbgRoundsW depth cap0 xs (ofK (gpow ec))).length = 6034 := by
         unfold vbgRoundsW; rw [flatMap_const_length (fun c _ ↦ vbgRecBlock_length hd c)]
       rw [hreg, hbuf]
-      refine regionL_append_right ⟨(fp + fs f + 17 * (depth + 2),
+      refine regionL_append_right ⟨(fp + fs "verify_bus_gkr" + 17 * (depth + 2),
         vbgRoundsW depth cap0 xs (ofK (gpow ec))), by simp, by simp, ?_⟩
       simp only [hlr]; omega
     have hRD : ∀ i < 33, RegionL (vbgL fs depth cap0 xs r.2.1 ec ez fp)
-        (fp + fs f + 17 * (depth + 2) + 6034 + 1640 + 33 + i) := by
+        (fp + fs "verify_bus_gkr" + 17 * (depth + 2) + 6034 + 1640 + 33 + i) := by
       intro i hi
       rw [hreg, hbuf]
-      refine regionL_append_right ⟨(fp + fs f + 17 * (depth + 2) + 6034 + 1640 + 33, vbgDshW),
+      refine regionL_append_right ⟨(fp + fs "verify_bus_gkr" + 17 * (depth + 2) + 6034 + 1640 + 33, vbgDshW),
         by simp, by simp, ?_⟩
       simp only [vbgDshW, List.length_map, List.length_range]; omega
-    obtain ⟨h1, h2, h3, h4, h5, -⟩ := vbg_run (R := RegionL (vbgL fs depth cap0 xs r.2.1 ec ez fp))
+    obtain ⟨h1, h2, h3, h4, h5, h6⟩ := vbg_run (R := RegionL (vbgL fs depth cap0 xs r.2.1 ec ez fp))
       hd1 hd hκ hrun hc hlow hx hz hLw hRw hPw hPaw hDw hRz hRr hRx hRL hRR hRD
-    exact ⟨h1, h2, h3, h4.trans (by simp [bases, vbgSizes]; exact ⟨rfl, rfl, rfl, rfl, rfl⟩), h5⟩
+    exact ⟨⟨h1, h2, h3, h4.trans (by simp [bases, vbgSizes]), h5⟩,
+      h6, vbg_memLay hd hcl hcan hpl hLw hRw hPw hPaw hDw⟩
+
+/-- **`verify_bus_gkr` is complete, placed** (TRIAGE G #43): at `1 ≤ depth ≤ 32`, on memories
+defined below `2^κ`, `κ ≥ 6`, an accepting run of `gkrPhase depth` from a carried capacity `cap0`
+reading the words `xs` at the cursor `g^ec`, the run's point at `zeta = g^ez`, its five buffers at
+the bump allocator's positions holding their honest words (`vbgOwnW`). It returns the run's
+capacity, the cursor past `xs` and the three values. -/
+theorem verify_bus_gkr_completeAt {κ depth : ℕ} (hd1 : 1 ≤ depth) (hd : depth ≤ 32) (hκ : 6 ≤ κ)
+    {cap0 xs : List E} {r : E × List E × List E} {cap' : List E}
+    (hrun : RunsTo (gkrPhase depth) ⟨cap0, []⟩ xs r ⟨cap', []⟩)
+    (hc : ∃ sp, (⟨cap0, []⟩ : Fs).Carries sp) (ec ez : ℕ) :
+    CompleteAtD fs cert κ "verify_bus_gkr" [(ec, xs), (ez, r.2.1)]
+      (cap0 ++ [ofK (gpow ec), gen ^ depth, ofK (gpow ez)])
+      (Returns (cap' ++ [ofK (gpow ec) * gen ^ xs.length] ++ r.2.2)) := by
+  have hcl : cap0.length = 5 := by
+    obtain ⟨sp, hsp⟩ := hc
+    have hsc : capOf sp.state = cap0 := hsp.1
+    rw [← hsc]; simp [capOf]
+  obtain ⟨hown, hbufs, hfacts⟩ := vbg_lift_facts (fs := fs) hd1 hd hκ hrun hc ec ez
+  exact flat_completeAt vbgFlat [(ec, xs), (ez, r.2.1)] _ _ (by simp [vbgFlat, hcl]) (vbgSizes depth)
+    (fun fp ↦ vbgOwnW depth cap0 xs (ofK (gpow ec)) (fp + fs "verify_bus_gkr" + 17 * (depth + 2) + 6034)) hown
+    (fun fp ↦ vbgW (ofK (gpow (vbgEL fs fp))) (ofK (gpow (vbgER fs depth fp)))
+      (ofK (gpow (vbgEP fs depth fp))) (ofK (gpow (vbgEPa fs depth fp))) (ofK (gpow (vbgED fs depth fp))))
+    (vbgBufs fs depth xs ec) hbufs (fun fp rd hlow hL ↦ (hfacts fp rd hlow hL).1)
+
 end
 end LeanVM.Guest.B1.Tables
