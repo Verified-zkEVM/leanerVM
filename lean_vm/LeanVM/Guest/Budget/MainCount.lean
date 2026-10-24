@@ -1,0 +1,187 @@
+/-
+  LeanVM.Guest.Budget.MainCount
+
+  `main`'s weight at one opcode's instruction counts on the tree of its bounded completeness: its
+  frame's, its statically bounded callees' constants, and its other callees' ratios of their words.
+-/
+
+module
+
+public import LeanVM.Guest.Budget.Main
+public import LeanVM.Guest.Budget.Static
+public import LeanVM.Guest.B1.Main.MainHonestB
+
+/-!
+# `main`'s instruction counts
+
+`MainCounts ω fs`: per callee of `main`, a bound on every valid tree's weight at `ω` (an opcode's
+instructions per frame, `B2C.ωArm`):
+* `exponent_tables`, `da_list_digest`, `cover_da_root`, `statement_digest`: constants (`WeightLe`);
+* the loops `__loop0` .. `__loop4`: per iteration (`LoopW`), run from `1` to `g^n` at `main`'s
+  counts;
+* `aggregate_claims`: affine in its children's count;
+* `claim_list_digest`, `da_verify`, `__loop5`: a ratio of their words (`WeightRatio`), their
+  trees' words within B1-f's bounds `MainBs` (the predicates' `withTotal`).
+`main_weight_count`: on `main`'s node with `main`'s calls, honest values and callee predicates,
+the weight is at most `mainCount`.
+-/
+
+namespace LeanVM.Guest.Budget
+
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest LeanVM.Guest.Core LeanVM.Guest.Memory
+open LeanVM.Protocol.Verifier (gen)
+open LeanVM.Guest.B1.Main (MainIn MVals MainBounds mCalls mTs mEvs MainPreds MainBs mOrc)
+
+@[expose] public section
+
+/-- **The weights of `main`'s callees at `ω`.** -/
+structure MainCounts (ω fs : String → ℕ) : Type where
+  kExp : ℕ
+  exp : WeightLe coreProgram ω "exponent_tables" fun _ => kExp
+  kDl : ℕ
+  dl : WeightLe coreProgram ω "da_list_digest" fun _ => kDl
+  kCov : ℕ
+  cov : WeightLe coreProgram ω "cover_da_root" fun _ => kCov
+  kSd : ℕ
+  sd : WeightLe coreProgram ω "statement_digest" fun _ => kSd
+  kL0 : ℕ
+  l0 : LoopW ω "__loop0" kL0
+  kL1 : ℕ
+  l1 : LoopW ω "__loop1" kL1
+  kL2 : ℕ
+  l2 : LoopW ω "__loop2" kL2
+  kL3 : ℕ
+  l3 : LoopW ω "__loop3" kL3
+  kL4 : ℕ
+  l4 : LoopW ω "__loop4" kL4
+  aggC : ℕ
+  aggD : ℕ
+  agg : ∀ (rd : Reader) (t : Tree) (args rets : List E) (n : ℕ), t.name = "aggregate_claims" →
+    t.Valid coreProgram rd args rets → t.BufsOk coreProgram → args.getD 0 0 = ofK (gpow n) →
+    0 < n → n < 2 ^ 64 - 1 → t.weight ω ≤ aggC + aggD * n
+  αcl : ℕ
+  cl : WeightRatio fs ω "claim_list_digest" αcl
+  αdv : ℕ
+  dv : WeightRatio fs ω "da_verify" αdv
+  α5 : ℕ
+  l5 : WeightRatio fs ω "__loop5" α5
+
+variable {ω fs : String → ℕ}
+
+/-- **`main`'s weight bound** at the counts `m` and its callees' words `b`. -/
+def mainCount (H : MainCounts ω fs) (m : MainIn) (b : MainBs) : ℕ :=
+  ω "main" + (H.kExp + (m.nda + m.ndd) * H.kL0 + H.kDl + H.αcl * b.Bx / 1000 +
+    H.αcl * b.Bs / 1000 + m.nxd * H.kL1 + m.nsd * H.kL2 + m.nrx * H.kL3 + m.nrs * H.kL4 +
+    (if m.nd = 1 then H.αdv * b.Bd / 1000 + H.kCov else 0) + H.α5 * b.B5 / 1000 +
+    (if m.nc = 0 then 0 else H.aggC + H.aggD * m.nc) + H.kSd)
+
+/-- A call's bound, by its callee. -/
+def mainCallW (H : MainCounts ω fs) (m : MainIn) (b : MainBs) (c : Call) : ℕ :=
+  if c.f = "exponent_tables" then H.kExp
+  else if c.f = "__loop0" then (m.nda + m.ndd) * H.kL0
+  else if c.f = "da_list_digest" then H.kDl
+  else if c.f = "claim_list_digest" then
+    (if c.args = [.n 77, .n 0] then H.αcl * b.Bx / 1000 else H.αcl * b.Bs / 1000)
+  else if c.f = "__loop1" then m.nxd * H.kL1
+  else if c.f = "__loop2" then m.nsd * H.kL2
+  else if c.f = "__loop3" then m.nrx * H.kL3
+  else if c.f = "__loop4" then m.nrs * H.kL4
+  else if c.f = "da_verify" then H.αdv * b.Bd / 1000
+  else if c.f = "cover_da_root" then H.kCov
+  else if c.f = "__loop5" then H.α5 * b.B5 / 1000
+  else if c.f = "aggregate_claims" then H.aggC + H.aggD * m.nc
+  else if c.f = "statement_digest" then H.kSd
+  else 0
+
+theorem callsW_le_sum (W : Call → ℕ) : ∀ cs : List Call, callsW W cs ≤ (cs.map W).sum
+  | [] => le_rfl
+  | c :: cs => by
+    have := callsW_le_sum W cs
+    unfold callsW at this ⊢
+    rw [List.map_cons, List.sum_cons, List.map_cons, List.sum_cons]
+    split <;> omega
+
+set_option maxHeartbeats 1000000 in
+/-- `main`'s calls' bounds sum to `mainCount` past its frame. -/
+theorem mainCalls_sum (H : MainCounts ω fs) (σ : Val) (m : MainIn) (b : MainBs) :
+    ω "main" + ((mCalls σ m).map (mainCallW H m b)).sum ≤ mainCount H m b := by
+  unfold mCalls mainCount
+  by_cases hd : m.nd = 1 <;> by_cases hc : m.nc = 0 <;>
+    simp [hd, hc, mainCallW] <;> omega
+
+/-! ## The callees, by kind -/
+
+variable {rd : Reader} {σ : Val} {m : MainIn}
+
+theorem orc_cnt (hMV : MVals rd σ m) (j : ℕ) (hj : j < 8) :
+    σ (.n j) = gen ^ m.cnt.getD j 0 := by
+  rw [hMV.orc j (by simp; omega)]
+  simp [mOrc, hj]
+
+/-- A loop of `main` from `1` to `g^n`, entered. -/
+theorem loop_case {f : String} {K : ℕ} (hL : LoopW ω f K) {args : List V} {t : Tree} {rets : List E}
+    {n : ℕ} (hn : t.name = f) (hv : t.Valid coreProgram rd (args.map σ) rets)
+    (hb : t.BufsOk coreProgram) (h0 : σ (args.getD 0 (.n 0)) = 1)
+    (h1 : σ (args.getD 1 (.n 0)) = gen ^ n) (hn0 : n ≠ 0) (hn64 : n ≤ 65535)
+    (hlen : 2 ≤ args.length) : t.weight ω ≤ n * K := by
+  refine hL.at hn hv hb ?_ ?_ hn0 (by omega)
+  · rw [List.getD_eq_getElem?_getD, List.getElem?_map, List.getElem?_eq_getElem (by omega)]
+    rw [List.getD_eq_getElem?_getD, List.getElem?_eq_getElem (by omega)] at h0
+    simpa using h0
+  · rw [List.getD_eq_getElem?_getD, List.getElem?_map, List.getElem?_eq_getElem (by omega)]
+    rw [List.getD_eq_getElem?_getD, List.getElem?_eq_getElem (by omega)] at h1
+    simpa using h1
+
+set_option maxHeartbeats 4000000 in
+set_option maxRecDepth 10000 in
+/-- **`main`'s weight at `ω`** on its tree: its frame's and `mainCount`'s callees' bounds. -/
+theorem main_weight_count (H : MainCounts ω fs) {bufs : List ℕ} {ks : List Tree} {p : MainPreds}
+    {b : MainBs} (hv : (Memory.Tree.node "main" σ bufs ks).Valid coreProgram rd [] [])
+    (hb : (Memory.Tree.node "main" σ bufs ks).BufsOk coreProgram)
+    (hc : calls (mEvs σ) = mCalls σ m) (hMV : MVals rd σ m) (hB : MainBounds m)
+    (hT : KidsT (mCalls σ m) ((fun _ => True) :: mTs m (p.withTotal fs b)) ks) :
+    (Memory.Tree.node "main" σ bufs ks).weight ω ≤ mainCount H m b := by
+  have hl : (mCalls σ m).length ≤ ((fun _ => True) :: mTs m (p.withTotal fs b)).length := by
+    unfold mCalls mTs
+    by_cases hd : m.nd = 1 <;> by_cases hc0 : m.nc = 0 <;> simp [hd, hc0]
+  have h := main_weight_le ω (mainCallW H m b) _ hv hb hc hl hT ?_
+  · exact le_trans h (le_trans (Nat.add_le_add_left (callsW_le_sum _ _) _) (mainCalls_sum H σ m b))
+  intro c T hmem ht t rets hn hv' hb' hT'
+  have hx := orc_cnt hMV
+  unfold mCalls mTs at hmem
+  by_cases hd : m.nd = 1 <;> by_cases hc0 : m.nc = 0 <;>
+    simp only [hd, hc0, ↓reduceIte, List.cons_append, List.nil_append, List.zip_cons_cons,
+      List.zip_nil_right, List.mem_cons, List.not_mem_nil, or_false, Prod.mk.injEq,
+      MainPreds.withTotal] at hmem <;>
+    rcases hmem with ⟨rfl, rfl⟩ | ⟨rfl, rfl⟩ | ⟨rfl, rfl⟩ | ⟨rfl, rfl⟩ | ⟨rfl, rfl⟩ | ⟨rfl, rfl⟩ |
+      ⟨rfl, rfl⟩ | ⟨rfl, rfl⟩ | ⟨rfl, rfl⟩ | ⟨rfl, rfl⟩ | ⟨rfl, rfl⟩ | ⟨rfl, rfl⟩ | ⟨rfl, rfl⟩ |
+      ⟨rfl, rfl⟩ <;>
+    simp only [mainCallW, ↓reduceIte, String.reduceEq] at hn ⊢ <;>
+    first
+    | exact H.exp rd t _ rets hn hv' hb'
+    | exact H.dl rd t _ rets hn hv' hb'
+    | exact H.cov rd t _ rets hn hv' hb'
+    | exact H.sd rd t _ rets hn hv' hb'
+    | exact H.cl.le hn hv' hb' hT'.2
+    | exact H.dv.le hn hv' hb' hT'.2
+    | exact H.l5.le hn hv' hb' hT'.2
+    | exact loop_case H.l0 hn hv' hb' (by simpa using hMV.g72) (by simpa using hMV.v50)
+        (ne_zero_of_guard (by simpa [hMV.g71] using ht)) (by have := hB.slots; omega) (by simp)
+    | exact loop_case H.l1 hn hv' hb' (by simpa using hMV.g87)
+        (by simpa [MainIn.cnt] using hx 1 (by norm_num))
+        (ne_zero_of_guard (by simpa [hMV.g86] using ht)) hB.xd (by simp)
+    | exact loop_case H.l2 hn hv' hb' (by simpa using hMV.g90)
+        (by simpa [MainIn.cnt] using hx 4 (by norm_num))
+        (ne_zero_of_guard (by simpa [hMV.g89] using ht)) hB.sd (by simp)
+    | exact loop_case H.l3 hn hv' hb' (by simpa using hMV.g378)
+        (by simpa [MainIn.cnt] using hx 2 (by norm_num))
+        (ne_zero_of_guard (by simpa [hMV.g377] using ht)) hB.rx (by simp)
+    | exact loop_case H.l4 hn hv' hb' (by simpa using hMV.g381)
+        (by simpa [MainIn.cnt] using hx 5 (by norm_num))
+        (ne_zero_of_guard (by simpa [hMV.g380] using ht)) hB.rs (by simp)
+    | exact H.agg rd t _ rets m.nc hn hv' hb'
+        (by simpa [MainIn.cnt, Value.gen_pow_eq_ofK] using hx 6 (by norm_num))
+        (Nat.pos_of_ne_zero hc0) (by have := hB.nc; omega)
+
+end
+end LeanVM.Guest.Budget
