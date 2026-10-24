@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.Opening.QueriesPlacedD0
 
-  `opening_queries` deeper is `CompleteAtD`.
+  `opening_queries` deeper is `CompleteAtB`.
 -/
 
 module
@@ -9,10 +9,10 @@ module
 public import LeanVM.Guest.B1.Opening.QueriesPlacedD1
 
 /-!
-# `opening_queries` deeper, `CompleteAtD`
+# `opening_queries` deeper, `CompleteAtB`
 
-As at level 0 (`oqMain1_completeAtD`), a deeper specialization (`base = 0`, `odd = 0`, one query an
-iteration): `oqMain0_completeAtD`, its own layout its chain buffer and its iterations' frame runs
+As at level 0 (`oqMain1_completeAtB`), a deeper specialization (`base = 0`, `odd = 0`, one query an
+iteration): `oqMain0_completeAtB`, its own layout its chain buffer and its iterations' frame runs
 (`OqFits0`).
 -/
 
@@ -28,8 +28,8 @@ open LeanVM.Guest.B1.Main (MemL RegionL)
 def OqFits0 (fs : String → ℕ) (cert : String → V → ℕ) (loop : String) (s : Oq) : Prop :=
   cert loop (.n (oqCh s 10 true)) + 4 * s.pd ≤ fs loop
 
-/-- **`opening_queries` deeper is `CompleteAtD`.** -/
-theorem oqMain0_completeAtD (fs : String → ℕ) (cert : String → V → ℕ) (κ : ℕ)
+/-- **`opening_queries` deeper is `CompleteAtB`.** -/
+theorem oqMain0_completeAtB (fs : String → ℕ) (cert : String → V → ℕ) (κ : ℕ)
     {s : Oq} (hs : s.RowShape) (hb0 : s.base = 0) (hpd : 4 * s.pd ≤ 80) (hpd1 : 1 ≤ s.pd)
     (hcd : 2 ≤ s.cd) (hcd8 : s.cd ≤ 8) {name loop : String} {fm fl : Fn}
     (hfm : coreProgram.find? name = some fm)
@@ -45,10 +45,11 @@ theorem oqMain0_completeAtD (fs : String → ℕ) (cert : String → V → ℕ) 
     (hmem : ∀ rd, LowDef κ rd → MemL rd Lin →
       OqLinMem rd s (ofK (Parameters.gpow ecap)) (ofK (Parameters.gpow eflags))
         (ofK (Parameters.gpow ewp)) (ofK (Parameters.gpow eqp)) w eb qs rows sibs N) :
-    CompleteAtD fs cert κ name Lin
+    CompleteAtB fs cert κ name Lin
       [ofK (Parameters.gpow ecap), ofK (Parameters.gpow eflags), lam, lamN,
         ofK (Parameters.gpow eqp), ofK (Parameters.gpow ewp), gen ^ N]
-      (Returns [oqChain 0 s.base lam⁻¹ (fun k ↦ rowDot s.base s.I (rows k) w) N * lamN]) := by
+      (Returns [oqChain 0 s.base lam⁻¹ (fun k ↦ rowDot s.base s.I (rows k) w) N * lamN])
+      (fs name + (N + 1) + (N + 1) * fs loop) := by
   intro fp
   set ds : ℕ → E := fun k ↦ rowDot s.base s.I (rows k) w with hds
   set c1 := cert loop (.n (oqCh s 10 true)) with hc1
@@ -81,7 +82,7 @@ theorem oqMain0_completeAtD (fs : String → ℕ) (cert : String → V → ℕ) 
   have dAll : DisjL (chainL ++ iters) :=
     disj_append (by rw [hchainL]; exact List.pairwise_singleton _ _) dIt wChain wIt le_rfl
   refine ⟨n, chainL ++ iters, _, [], ⟨rfl, rfl⟩, by simpa using wAll,
-    by simpa using dAll, fun rd hlow hm ↦ ?_⟩
+    by simpa using dAll, le_rfl, fun rd hlow hm ↦ ?_⟩
   rw [List.nil_append, Main.memL_append, Main.memL_append] at hm
   obtain ⟨⟨hmChain, hmIt⟩, hmLin⟩ := hm
   obtain ⟨hw, hk⟩ := hmem rd hlow hmLin

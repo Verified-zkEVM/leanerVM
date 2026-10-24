@@ -9,6 +9,7 @@ module
 public import LeanVM.Guest.B1.Place.OsLkMem6
 public import LeanVM.Guest.B1.Place.ResAt
 public import LeanVM.Guest.B1.Whir.BrFin2
+public import LeanVM.Guest.Memory.Size
 
 /-!
 # The residual loops, placed
@@ -17,8 +18,11 @@ public import LeanVM.Guest.B1.Whir.BrFin2
   containing them.
 * `osLk_fixed`: a memory holding `osLk` holds the fixed buffers' honest words (`FixedMem`).
 * `qw_get`, `qpos_all`: the query weights and every decoded position, by level.
+* `os_res_mem`: a memory holding `osLk` holds level `l`'s row words and every iteration's meaning.
 * **`os_res_completeAtD`**: level `l`'s residual loop (`c.resLoop l`), at its honest arguments
-  (`ResCallOk`'s, the pointers `osAtOf c b`), is `CompleteAtD` on `osLk c tr b Lin`.
+  (`ResCallOk`'s, the pointers `osAtOf c b`), is `CompleteAtD` on `osLk c tr b Lin`;
+  **`os_res_completeAtB`**: `CompleteAtB`, by a tree of at most `B` words, `B` bounding the loop's
+  valid trees at those arguments (`os_res_completeAtB_of_totalLe`: from its `TotalLe`).
 -/
 
 namespace LeanVM.Guest.B1
@@ -119,20 +123,17 @@ theorem loadHolds_x2 {rd : Reader} {p : E} {po j k : ℕ} {w : E} :
 theorem loadHolds_x1 {rd : Reader} {p : E} {j k : ℕ} {w : E} :
     LoadHolds rd (p * gen ^ j) k w ↔ LoadHolds rd p (j + k) w := loadHolds_mul_gen_pow _ _ _ _ _
 
-/-- **Level `l`'s residual loop, placed**, at its honest arguments. -/
-theorem os_res_completeAtD (fs : String → ℕ) (cert : String → V → ℕ) (κ : ℕ) {μ r : ℕ}
-    {cfg : List Whir.Level} (hF : CandFacts c μ r cfg) (h : TrFit c tr) (hs : OsSizes c)
-    {l : ℕ} (hl : l < c.levels.length) {fn : Fn} (hf : coreProgram.find? (c.resLoop l) = some fn)
-    (hps : fn.params = osParams 6) (hb : fn.body = resLoopBody c l (lvAt c l) (c.resLoop l))
-    (hne : 1 + gen ^ ((lvAt c l).queries / 2) ≠ 0) (b : ℕ) (Lin : Layout) :
-    CompleteAtD fs cert κ (c.resLoop l) (osLk c tr b Lin)
-      [1, gen ^ ((lvAt c l).queries / 2), (osAtOf c b).P.qpos, (osAtOf c b).P.qw, (osAtOf c b).BD,
-        (osAtOf c b).rc l] (Returns []) := by
-  have hst := hF.lv l hl
+/-- **Level `l`'s residual loop's memory**: every memory holding `osLk` holds the row's `d` words
+and every iteration's meaning. -/
+theorem os_res_mem (h : TrFit c tr) (hs : OsSizes c) {l : ℕ} (hl : l < c.levels.length) (b : ℕ)
+    (Lin : Layout) : ∀ rd, MemL rd (osLk c tr b Lin) →
+      (∀ s < (lvAt c l).logCols,
+        LoadHolds rd (osAtOf c b).BD (l * ligColsCap + s) (finD c tr l s)) ∧
+      ∀ j < (lvAt c l).queries / 2, ResIter rd (finD c tr l) (lvAt c l).vanish (lvAt c l).logCols
+        (lvAt c l).posOff (l * c.maxQ) (osAtOf c b).P.qpos (osAtOf c b).P.qw ((osAtOf c b).rc l)
+        (gen ^ j) := by
   have hq : (lvAt c l).queries ≤ c.maxQ := hs.q l hl
-  have hq2 : 2 ≤ (lvAt c l).queries := hst.q2
-  refine resLoop_completeAtD fs cert κ hf c l (lvAt c l) hps hb hst.ml1 hst.posOff hst.wo
-    (D := finD c tr l) (by omega) hne fun rd hm ↦ ⟨fun s hs' ↦ ?_, fun j hj ↦ ?_⟩
+  refine fun rd hm ↦ ⟨fun s hs' ↦ ?_, fun j hj ↦ ?_⟩
   · -- the row's `d` words
     obtain ⟨hBD, -⟩ := osOwnL_getD_fin6 c tr (fun _ _ ↦ 0) hl
     have hr := osLk_reads hm (fun _ _ ↦ 0) (j := osIxBD c) (by unfold osIxBD; omega)
@@ -178,6 +179,55 @@ theorem os_res_completeAtD (fs : String → ℕ) (cert : String → V → ℕ) (
       rw [show 2 * (j + 1) = 2 * j + 1 + 1 by ring, Finset.sum_range_succ, Finset.sum_range_succ]
         at this
       exact this
+
+/-- **Level `l`'s residual loop, placed**, at its honest arguments. -/
+theorem os_res_completeAtD (fs : String → ℕ) (cert : String → V → ℕ) (κ : ℕ) {μ r : ℕ}
+    {cfg : List Whir.Level} (hF : CandFacts c μ r cfg) (h : TrFit c tr) (hs : OsSizes c)
+    {l : ℕ} (hl : l < c.levels.length) {fn : Fn} (hf : coreProgram.find? (c.resLoop l) = some fn)
+    (hps : fn.params = osParams 6) (hb : fn.body = resLoopBody c l (lvAt c l) (c.resLoop l))
+    (hne : 1 + gen ^ ((lvAt c l).queries / 2) ≠ 0) (b : ℕ) (Lin : Layout) :
+    CompleteAtD fs cert κ (c.resLoop l) (osLk c tr b Lin)
+      [1, gen ^ ((lvAt c l).queries / 2), (osAtOf c b).P.qpos, (osAtOf c b).P.qw, (osAtOf c b).BD,
+        (osAtOf c b).rc l] (Returns []) := by
+  have hst := hF.lv l hl
+  have hq2 : 2 ≤ (lvAt c l).queries := hst.q2
+  exact resLoop_completeAtD fs cert κ hf c l (lvAt c l) hps hb hst.ml1 hst.posOff hst.wo
+    (by omega) hne (os_res_mem h hs hl b Lin)
+
+/-- **Level `l`'s residual loop, placed, by a bounded tree**, at its honest arguments: by a tree of
+at most `B` words, `B` bounding the loop's valid trees there (`TotalLe` at the call's arguments;
+`os_res_completeAtB_of_totalLe`). -/
+theorem os_res_completeAtB (fs : String → ℕ) (cert : String → V → ℕ) (κ : ℕ) {μ r : ℕ}
+    {cfg : List Whir.Level} (hF : CandFacts c μ r cfg) (h : TrFit c tr) (hs : OsSizes c)
+    {l : ℕ} (hl : l < c.levels.length) {fn : Fn} (hf : coreProgram.find? (c.resLoop l) = some fn)
+    (hps : fn.params = osParams 6) (hb : fn.body = resLoopBody c l (lvAt c l) (c.resLoop l))
+    (hne : 1 + gen ^ ((lvAt c l).queries / 2) ≠ 0) (b : ℕ) (Lin : Layout) {B : ℕ}
+    (hB : ∀ rd (t : Tree), t.name = c.resLoop l →
+      t.Valid coreProgram rd [1, gen ^ ((lvAt c l).queries / 2), (osAtOf c b).P.qpos,
+        (osAtOf c b).P.qw, (osAtOf c b).BD, (osAtOf c b).rc l] [] →
+      t.BufsOk coreProgram → t.total fs ≤ B) :
+    CompleteAtB fs cert κ (c.resLoop l) (osLk c tr b Lin)
+      [1, gen ^ ((lvAt c l).queries / 2), (osAtOf c b).P.qpos, (osAtOf c b).P.qw, (osAtOf c b).BD,
+        (osAtOf c b).rc l] (Returns []) B := by
+  have hst := hF.lv l hl
+  have hq2 : 2 ≤ (lvAt c l).queries := hst.q2
+  exact resLoop_completeAtB fs cert κ hf c l (lvAt c l) hps hb hst.ml1 hst.posOff hst.wo
+    (by omega) hne (os_res_mem h hs hl b Lin) hB
+
+/-- `os_res_completeAtB` from the loop's `TotalLe`: by a tree of at most `B` at its arguments. -/
+theorem os_res_completeAtB_of_totalLe (fs : String → ℕ) (cert : String → V → ℕ) (κ : ℕ)
+    {μ r : ℕ} {cfg : List Whir.Level} (hF : CandFacts c μ r cfg) (h : TrFit c tr) (hs : OsSizes c)
+    {l : ℕ} (hl : l < c.levels.length) {fn : Fn} (hf : coreProgram.find? (c.resLoop l) = some fn)
+    (hps : fn.params = osParams 6) (hb : fn.body = resLoopBody c l (lvAt c l) (c.resLoop l))
+    (hne : 1 + gen ^ ((lvAt c l).queries / 2) ≠ 0) (b : ℕ) (Lin : Layout) {B : List E → ℕ}
+    (hB : TotalLe coreProgram fs (c.resLoop l) B) :
+    CompleteAtB fs cert κ (c.resLoop l) (osLk c tr b Lin)
+      [1, gen ^ ((lvAt c l).queries / 2), (osAtOf c b).P.qpos, (osAtOf c b).P.qw, (osAtOf c b).BD,
+        (osAtOf c b).rc l] (Returns [])
+      (B [1, gen ^ ((lvAt c l).queries / 2), (osAtOf c b).P.qpos, (osAtOf c b).P.qw,
+        (osAtOf c b).BD, (osAtOf c b).rc l]) :=
+  os_res_completeAtB fs cert κ hF h hs hl hf hps hb hne b Lin
+    fun rd t hn hv hbo ↦ hB rd t _ [] hn hv hbo
 
 end Honest
 
