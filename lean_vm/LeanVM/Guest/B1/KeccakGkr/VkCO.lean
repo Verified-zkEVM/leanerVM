@@ -94,6 +94,98 @@ theorem rets_cur (h : D.Ok) {s : ℕ} (hs : s < 12) :
   congr 1
   ring
 
+theorem L_cap (h : D.Ok) (j : ℕ) :
+    D.L.2.cap.getD j 0 = (D.chain 12).2.cap.getD j 0 := by rw [L_eq h]
+
+theorem seg_eq : D.seg = [D.seg.getD 0 0] := by
+  have := seg_length (D := D)
+  match hs : D.seg, this with
+  | [x], _ => rfl
+
+set_option maxRecDepth 20000 in
+set_option maxHeartbeats 8000000 in
+/-- **The committed outputs' opening, on the layout.** -/
+theorem out_on (h : D.Ok) (hm : D.Mem rd B curE chiE olE zvE slE ls) {σ : Val}
+    (hσd : σ = D.val rd B curE chiE olE zvE slE) (h6 : σ (.n 6) = gen ^ D.τ)
+    (h9 : σ (.n 9) = ptr zvE) (h17 : σ (.n 17) = gen ^ (D.τ - 4)) (h58 : σ (.n 58) = ptr B)
+    (h274 : σ (.n 274) = ptr (B + D.o274)) :
+    (cap5 3685).map σ = D.L.2.cap ∧ σ (.n 3690) = D.cL curE ∧
+      σ (.n 3691) = ptr zvE * gen ^ D.τ ∧ σ (.n 3692) = 0 ∧ σ (.n 3693) = 0 ∧
+      (∀ j < 7, σ (.n (3694 + j)) = (D.oRets curE).getD j 0) ∧ σ (.n 3701) = D.word ∧
+      (σ (.n 3708), σ (.n 3710)) = Keccak.scalarCells D.word dsObserve ∧
+      σ (.n 3971) = 1 + gen ^ (D.τ - 4) ∧ σ (.n 3972) = 1 ∧ σ (.n 3974) = ptr zvE * gen ^ 4 ∧
+      ∀ {next : Prop} {kret : List E → Prop}, next →
+        Stmt.HoldsList (fun _ _ _ ↦ True) rd σ vkOutT next kret := by
+  have hτ1 := h.1
+  have hσ : ∀ v, σ v = σ (.n v.idx) := by subst hσd; exact (val_good h).1
+  have hg : ∀ st ∈ vkOutT, GoodS rd vkSt (D.w B curE) σ st := fun st hst ↦ by
+    subst hσd
+    exact val_good' h (List.mem_append_left _ (List.mem_append_left _ (List.mem_append_right _ hst)))
+  -- the calls' returns
+  have hcg := calls_good h hσd
+  have eO : ∀ j < 7, σ (.n (3694 + j)) = (D.oRets curE).getD j 0 := fun j hj ↦ by
+    rw [hcg (none, "keccak_plain_rounds__L6_L0", [.n 3685, .n 3686, .n 3687, .n 3688, .n 3689,
+      .n 3692, .n 3693, .n 3690, .n 191, .n 3691], (List.range 7).map fun j ↦ .n (3694 + j))
+      (by simp [vkCalls]) _ (List.mem_map.mpr ⟨j, List.mem_range.mpr hj, rfl⟩)]
+    exact w_o hj
+  have hcL : D.L.2.cap.length = 5 := (L_ok h).2.1
+  have hoc : ∀ j < 5, (D.oRets curE).getD j 0 = D.O.2.2.cap.getD j 0 := fun j hj ↦ by
+    rw [oRets, List.getD_append _ _ _ _ (by rw [(O_ok h).2.1]; exact hj)]
+  have e3699 : σ (.n 3699) = ptr (curE + D.lcur 12 + 12) := by
+    have := eO 5 (by norm_num)
+    rw [this, oRets, List.getD_append_right _ _ _ _ (by rw [(O_ok h).2.1]), (O_ok h).2.1]
+    simp [cL, ptr_mul_gen]
+  have e3700 : σ (.n 3700) = D.O.2.1 := by
+    have := eO 6 (by norm_num)
+    rw [this, oRets, List.getD_append_right _ _ _ _ (by rw [(O_ok h).2.1]; norm_num), (O_ok h).2.1]
+    rfl
+  -- the memory
+  obtain ⟨m58, -, -, -, m274, -, -, -⟩ := own_mem (by omega) hm.own
+  have mop := memL_entry hm.lin (b := zvE) (ws := D.op) (by simp [lin])
+  obtain ⟨-, -, -, mword, -⟩ := xs_reads h (memL_entry hm.lin (b := curE) (ws := D.xs) (by simp [lin]))
+  have hslot : ReadsAt rd (σ (.n 9) * σ (.n 6)) D.O.1 := by
+    rw [h9, h6]
+    rw [op_eq] at mop
+    have := (Digest.readsAt_append.1 mop).2
+    rwa [List.take_append_drop, inst_length h] at this
+  have hr0 : LoadHolds rd (σ (.n 58) * σ (.n 17)) 0 (D.seg.getD 0 0) := by
+    rw [h58, h17, loadHolds_mul_gen_pow, add_zero, ← c0_point_seg h]
+    exact ClaimLay.getD_load m58 (by rw [c0_point_length h]; omega)
+  have hL : ∀ lane < 25, LoadHolds rd (σ (.n 274)) (30 + lane) ((eqKernel D.rl).getD lane 0) := by
+    intro lane hl
+    have := lanes_first m274 lane (by simp [eqKernel_length, rl_length]; omega)
+    rw [← ptr_mul_gen, loadHolds_mul_gen_pow] at this
+    rw [h274, List.getD_eq_getElem _ _ (by simp [eqKernel_length, rl_length]; omega)]
+    simpa using this
+  -- the check
+  have hchk : (∑ lane ∈ range 25, (∑ m ∈ range 1, eqAt [D.seg.getD 0 0] m *
+      eqAt D.O.1 (25 * (1 + m) + lane)) * (eqKernel D.rl).getD lane 0) * D.word = σ (.n 3700) := by
+    have hspec := vk_out_check (τ := D.τ) D.inst D.outs D.committed (D.seg.getD 0 0) D.rl
+      (by simp [inst_length h]) (O1_length h) (word := 1) (mul_one _)
+    rw [mul_one] at hspec
+    rw [← hspec, e3700]
+    have := h.2.2.2.2.2.2.2.2.2.2.2.1
+    rw [← this]
+    congr 4
+  obtain ⟨e3691, -, e3701, cells, -, -, e3971, e3972, e3974, H⟩ :=
+    vkOut_complete hσ hg h17 (by rw [e3699]; exact mword) hslot (O1_length h) hr0 hL hchk
+  have gA : ∀ a, Stmt.atom a ∈ vkOutT → Good rd vkSt (D.w B curE) σ a := fun a h ↦ hg _ h
+  have c3692 : σ (.n 3692) = Guest.word 0 0 0 :=
+    gA (.const (.n 3692) (Guest.word 0 0 0)) (by simp [vkOutT])
+  have c3693 : σ (.n 3693) = Guest.word 0 0 0 :=
+    gA (.const (.n 3693) (Guest.word 0 0 0)) (by simp [vkOutT])
+  refine ⟨?_, ?_, by rw [e3691, h9, h6], by rw [c3692, word_zero], by rw [c3693, word_zero], eO,
+    e3701, cells, by rw [e3971, h17], e3972, by rw [e3974, h9], H⟩
+  · apply List.ext_getElem (by simp [cap5, hcL])
+    intro j h1 h2
+    simp only [cap5, List.length_map, List.length_cons, List.length_nil] at h1
+    rw [← List.getD_eq_getElem _ 0 h2, L_cap h, ← rets_cap h (by norm_num : 11 < 12)
+      (cur := ptr (curE + D.lcur 11)) (by omega), ← step_rets h hσd (by norm_num) (by omega : j < 6)]
+    interval_cases j <;> rfl
+  · have := step_rets h hσd (by norm_num : 11 < 12) (j := 5) (by norm_num)
+    rw [rets_cur h (by norm_num)] at this
+    exact this
+
 end VkData
 
 end
