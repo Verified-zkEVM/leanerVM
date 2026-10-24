@@ -126,5 +126,132 @@ theorem slices_complete (hσ : ∀ v, σ v = σ (.n v.idx))
   rw [hm] at hsq
   exact ⟨fun z hz ↦ (R z hz).1, hsq, H⟩
 
+set_option maxRecDepth 20000 in
+set_option maxHeartbeats 4000000 in
+/-- **The inputs' opening, completely.** -/
+theorem vkIn_complete (hσ : ∀ v, σ v = σ (.n v.idx)) (hg : ∀ st ∈ vkInT, GoodS rd vkSt w σ st)
+    {v12 : E} (hv : LoadHolds rd (σ (.n 201)) 264 v12) {low : List E} (hlowL : low.length = 4)
+    (hlow : ∀ t < 4, LoadHolds rd (σ (.n 9)) (39 + t) (low.getD t 0))
+    (hT : ∀ t, 1 ≤ t → t ≤ 4 → ∀ i < 2 ^ t,
+      LoadHolds rd (σ (.n 3987)) (2 ^ t - 2 + i) ((eqKernel (low.take t)).getD i 0))
+    {mu : List E} (hmuL : mu.length = 16)
+    (hmu : ∀ k < 16, LoadHolds rd (σ (.n 201)) (270 + k) (mu.getD k 0))
+    (hcap : AllCanonical ((List.range 5).map fun j ↦ w (4110 + j))) {slices : List E}
+    (hslL : slices.length = 64) (hcur : ReadsAt rd (w 4115) slices)
+    (hsl : ReadsAt rd (σ (.n 10)) slices) :
+    σ (.n 3976) = σ (.n 3699) * gen ∧ σ (.n 3977) = v12 ∧ σ (.n 3979) = σ (.n 9) * gen ^ 39 ∧
+      (∀ j < 7, σ (.n (3980 + j)) = w (3980 + j)) ∧ σ (.n 4104) = multilinearEval mu low ∧
+      σ (.n 4107) = σ (.n 9) * gen ^ 39 * σ (.n 6) ∧ (∀ j < 7, σ (.n (4110 + j)) = w (4110 + j)) ∧
+      (∀ z < 64, σ (.n (slB 4122 z)) = slices.getD z 0) ∧
+      ((⟨(List.range 5).map fun j ↦ w (4110 + j), []⟩ : Fs).absorbAll slices dsObserve).squeeze =
+        (σ (.n 4976), ⟨(cap5 4965).map σ, []⟩) ∧
+      ∀ {next : Prop} {kret : List E → Prop}, next →
+        Stmt.HoldsList (fun _ _ _ ↦ True) rd σ vkInT next kret := by
+  obtain ⟨k1, k2, k3, k4, k5, k6⟩ := vkIn_ker
+  have mEQ : ∀ st ∈ eqtreeT (.n 9) (.n 3987) 39 3988 4, st ∈ vkInT := fun st h ↦ by
+    rw [vkInT]; exact List.mem_append_left _ (List.mem_append_left _ (List.mem_append_left _
+      (List.mem_append_left _ (List.mem_append_right _ h))))
+  have mPD : ∀ st ∈ vkInPD, st ∈ vkInT := fun st h ↦ by
+    rw [vkInT]; exact List.mem_append_left _ (List.mem_append_left _ (List.mem_append_left _
+      (List.mem_append_right _ h)))
+  have mCP : ∀ st ∈ (List.range 5).map (fun j ↦ Stmt.atom (.copy (.n (4117 + j)) (.n (4110 + j)))),
+      st ∈ vkInT := fun st h ↦ by
+    rw [vkInT]; exact List.mem_append_left _ (List.mem_append_right _ h)
+  have mSL : ∀ st ∈ slicesT (.n 4115) 4117 4122, st ∈ vkInT := fun st h ↦ by
+    rw [vkInT]; exact List.mem_append_right _ h
+  have gA : ∀ a, Stmt.atom a ∈ vkInT → Good rd vkSt w σ a := fun a h ↦ hg _ h
+  -- the atoms
+  have c3975 : σ (.n 3975) = word 2 0 0 := gA (.const (.n 3975) (word 2 0 0)) (by simp [vkInT])
+  have m3976 := mulG (by norm_num) (by norm_num)
+    (gA (.mul (.n 3976) (.n 3699) (.n 3975)) (by simp [vkInT]))
+  have e3977 : σ (.n 3977) = v12 :=
+    load_val (gA (.load (.n 3977) (.n 201) 264) (by simp [vkInT])) (not_mem_of_noneIn k1 _ (by simp)) hv
+  have c3978 : σ (.n 3978) = word 549755813888 0 0 :=
+    gA (.const (.n 3978) (word 549755813888 0 0)) (by simp [vkInT])
+  have m3979 := mulG (by norm_num) (by norm_num)
+    (gA (.mul (.n 3979) (.n 9) (.n 3978)) (by simp [vkInT]))
+  have gc1 := hg (.call "keccak_plain_rounds__L4_L1" [.n 3694, .n 3695, .n 3696, .n 3697, .n 3698,
+    .n 3708, .n 3710, .n 3976, .n 3977, .n 3979] ((List.range 7).map fun j ↦ .n (3980 + j)))
+    (by simp [vkInT])
+  have e3980 : ∀ j < 7, σ (.n (3980 + j)) = w (3980 + j) := fun j hj ↦
+    gc1 _ (List.mem_map.mpr ⟨j, List.mem_range.mpr hj, rfl⟩)
+  have c4105 : σ (.n 4105) = word 549755813888 0 0 :=
+    gA (.const (.n 4105) (word 549755813888 0 0)) (by simp [vkInT])
+  have m4106 := mulG (by norm_num) (by norm_num)
+    (gA (.mul (.n 4106) (.n 9) (.n 4105)) (by simp [vkInT]))
+  have m4107 := mulG (by norm_num) (by norm_num)
+    (gA (.mul (.n 4107) (.n 4106) (.n 6)) (by simp [vkInT]))
+  have c4108 : σ (.n 4108) = word 0 0 0 := gA (.const (.n 4108) (word 0 0 0)) (by simp [vkInT])
+  have c4109 : σ (.n 4109) = word 0 0 0 := gA (.const (.n 4109) (word 0 0 0)) (by simp [vkInT])
+  have gc2 := hg (.call "keccak_plain_rounds__L6_L0" [.n 3980, .n 3981, .n 3982, .n 3983, .n 3984,
+    .n 4108, .n 4109, .n 3985, .n 3986, .n 4107] ((List.range 7).map fun j ↦ .n (4110 + j)))
+    (by simp [vkInT])
+  have e4110 : ∀ j < 7, σ (.n (4110 + j)) = w (4110 + j) := fun j hj ↦
+    gc2 _ (List.mem_map.mpr ⟨j, List.mem_range.mpr hj, rfl⟩)
+  have ecp : ∀ j < 5, σ (.n (4117 + j)) = σ (.n (4110 + j)) := fun j hj ↦
+    hg _ (mCP _ (List.mem_map.mpr ⟨j, List.mem_range.mpr hj, rfl⟩))
+  -- the low tree and `μ` at the low point
+  have EQ : ∀ {next : Prop} {kret : List E → Prop}, next →
+      Stmt.HoldsList (fun _ _ _ ↦ True) rd σ (eqtreeT (.n 9) (.n 3987) 39 3988 4) next kret :=
+    fun hn ↦ eqtree_complete (by norm_num) (fun st h ↦ hg st (mEQ st h)) (not_mem_of_noneIn k2)
+      hlowL hlow hT hn
+  have PD : ∀ {next : Prop} {kret : List E → Prop}, next →
+      Stmt.HoldsList (fun _ _ _ ↦ True) rd σ vkInPD next kret :=
+    fun hn ↦ loads_complete k3 hσ k4 (fun st h ↦ hg st (mPD st h)) k5 k6 (fun q hq off h1 h2 ↦ by
+      simp only [List.mem_cons, List.not_mem_nil, or_false] at hq
+      rcases hq with rfl | rfl
+      · simp only at h1 h2 ⊢
+        have := hT 4 (by norm_num) le_rfl (off - 14) (by norm_num; omega)
+        rw [show 2 ^ 4 - 2 + (off - 14) = off by norm_num; omega] at this
+        exact ⟨_, this⟩
+      · simp only at h1 h2 ⊢
+        have := hmu (off - 270) (by omega)
+        rw [show 270 + (off - 270) = off by omega] at this
+        exact ⟨_, this⟩) hn
+  obtain ⟨hdot, -⟩ := pairsDotT_holds (C := fun _ _ _ ↦ True) (P := fun i ↦ (eqKernel low).getD i 0)
+    (Q := fun i ↦ mu.getD i 0) (fun k hk v hv ↦ by
+      simp only [consecOffs, List.length_map, List.length_range] at hk
+      simp only [consecOffs, List.getD_eq_getElem?_getD, List.getElem?_map, List.getElem?_range hk,
+        Option.map_some, Option.getD_some] at hv
+      have := hT 4 (by norm_num) le_rfl k (by norm_num; omega)
+      rw [show low.take 4 = low by rw [← hlowL]; exact List.take_length] at this
+      exact loadHolds_unique hv (by simpa using this))
+    (fun k hk v hv ↦ by
+      simp only [consecOffs, List.length_map, List.length_range] at hk
+      simp only [consecOffs, List.getD_eq_getElem?_getD, List.getElem?_map, List.getElem?_range hk,
+        Option.map_some, Option.getD_some] at hv
+      have := hmu k hk
+      rw [List.getD_eq_getElem?_getD] at this
+      exact loadHolds_unique hv this)
+    (by simp [consecOffs]) (PD (next := True) (kret := fun _ ↦ True) trivial)
+  simp only [consecOffs, List.length_map, List.length_range, pairsDotV] at hdot
+  have e4104 : σ (.n 4104) = multilinearEval mu low := by
+    rw [show (4104 : ℕ) = 4042 + 4 * (16 - 1) + 2 from rfl, hdot,
+      multilinearEval_eqAt mu low hmuL hlowL]
+    refine Finset.sum_congr rfl fun i hi ↦ ?_
+    have hi' : i < 16 := Finset.mem_range.1 hi
+    rw [eqKernel_getD]
+    simp [hlowL, hi']
+  -- the slices
+  have hc5 : (cap5 4117).map σ = (List.range 5).map fun j ↦ w (4110 + j) := by
+    simp only [cap5, List.map_cons, List.map_nil, List.range_succ, List.range_zero, List.nil_append]
+    rw [ecp 0 (by omega), ecp 1 (by omega), ecp 2 (by omega), ecp 3 (by omega), ecp 4 (by omega),
+      e4110 0 (by omega), e4110 1 (by omega), e4110 2 (by omega), e4110 3 (by omega),
+      e4110 4 (by omega)]
+    rfl
+  obtain ⟨esl, hsq, SL⟩ := slices_complete (C := fun _ _ _ ↦ True) hσ (fun st h ↦ hg st (mSL st h))
+    (by rw [hc5]; exact hcap) hslL (by rw [show (4115 : ℕ) = 4110 + 5 from rfl, e4110 5 (by omega)]; exact hcur) hsl
+  rw [hc5] at hsq
+  refine ⟨by rw [m3976, c3975, word_gen], e3977, by rw [m3979, c3978, word_2p39], e3980, e4104,
+    by rw [m4107, m4106, c4105, word_2p39], e4110, esl, hsq, fun {next kret} hn ↦ ?_⟩
+  rw [vkInT]
+  simp only [holdsList_append]
+  simp only [Stmt.HoldsList, Stmt.Holds, Atom.Holds]
+  refine ⟨c3975, m3976, ?_, c3978, m3979, trivial, trivial, EQ (PD ⟨c4105, m4106, m4107, c4108,
+    c4109, trivial, ?_⟩)⟩
+  · rw [e3977]; exact hv
+  rw [holdsList_map_atoms]
+  exact ⟨fun j hj ↦ ecp j hj, SL hn⟩
+
 end
 end LeanVM.Guest.B1.VerifySub
