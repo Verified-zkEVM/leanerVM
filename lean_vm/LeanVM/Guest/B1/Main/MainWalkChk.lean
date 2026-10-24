@@ -1,0 +1,109 @@
+/-
+  LeanVM.Guest.B1.Main.MainWalkChk
+
+  `main`'s path, read off its blocks by kernel evaluation: its `HeapBuf`s, frames, loads.
+-/
+
+module
+
+public import LeanVM.Guest.B1.Main.MainCChk
+public import LeanVM.Guest.Memory.Uniform
+
+/-!
+# `main`'s path, checked
+
+Every block of `main`'s body is straight (atoms, calls, conditional calls); the conditional calls
+are the guarded loops; the blocks' `HeapBuf` hints, frames and loads are the listed ones.
+-/
+
+namespace LeanVM.Guest.B1.Main
+
+open LeanVM.Guest.Core LeanVM.Guest.Memory LeanVM.Guest.B1.Digest
+
+@[expose] public section
+
+/-- A statement of `main`'s blocks: an atom, a call, or a guarded loop on one of `cs`. -/
+def mKind (cs : List ℕ) : Stmt → Bool
+  | .atom _ => true
+  | .call .. => true
+  | .callIf c _ _ => decide (c = .n c.idx) && decide (c.idx ∈ cs)
+  | _ => false
+
+set_option maxRecDepth 100000 in
+theorem mBlocks_straight : mPre.all Main.Stmt.straight = true ∧ mDa.all Main.Stmt.straight = true ∧
+    mMid.all Main.Stmt.straight = true ∧ mLeaf.all Main.Stmt.straight = true ∧
+    mAgg.all Main.Stmt.straight = true ∧ mPost.all Main.Stmt.straight = true := by decide +kernel
+
+set_option maxRecDepth 100000 in
+theorem mBlocks_kind : mPre.all (mKind [71, 86, 89, 377, 380]) = true ∧ mDa.all (mKind []) = true ∧
+    mMid.all (mKind [413]) = true ∧ mLeaf.all (mKind []) = true ∧ mAgg.all (mKind []) = true ∧
+    mPost.all (mKind []) = true := by decide +kernel
+
+set_option maxRecDepth 100000 in
+theorem mBlocks_allocs : mPre.filterMap Main.Stmt.allocSz = [(.n 69, .inr (.n 68)),
+      (.n 77, .inr (.n 76)), (.n 80, .inr (.n 79)), (.n 116, .inl 2), (.n 117, .inr (.n 58)),
+      (.n 119, .inl 256)] ∧ mDa.filterMap Main.Stmt.allocSz = [] ∧
+    mMid.filterMap Main.Stmt.allocSz = [(.n 394, .inr (.n 393)), (.n 400, .inr (.n 399)),
+      (.n 406, .inr (.n 405)), (.n 409, .inr (.n 408)), (.n 417, .inl 24)] ∧
+    mLeaf.filterMap Main.Stmt.allocSz = [] ∧ mAgg.filterMap Main.Stmt.allocSz = [] ∧
+    mPost.filterMap Main.Stmt.allocSz = [] := by decide +kernel
+
+set_option maxRecDepth 100000 in
+theorem mBlocks_addrs : mPre.filterMap Main.Stmt.addrS = [] ∧ mDa.filterMap Main.Stmt.addrS = [] ∧
+    mMid.filterMap Main.Stmt.addrS = [] ∧ mLeaf.filterMap Main.Stmt.addrS = [] ∧
+    mAgg.filterMap Main.Stmt.addrS = [] ∧ mPost.filterMap Main.Stmt.addrS = [] := by decide +kernel
+
+set_option maxRecDepth 100000 in
+theorem mPre_calls : mPre.filterMap Main.Stmt.callS =
+    [(none, "exponent_tables", [], [.n 65, .n 66]),
+      (some (.n 71), "__loop0", [.n 72, .n 50, .n 69], []),
+      (none, "da_list_digest", [.n 69, .n 40], [.n 73, .n 74]),
+      (none, "claim_list_digest", [.n 77, .n 0], [.n 81, .n 82]),
+      (none, "claim_list_digest", [.n 80, .n 3], [.n 83, .n 84]),
+      (some (.n 86), "__loop1", [.n 87, .n 1, .n 77, .n 0], []),
+      (some (.n 89), "__loop2", [.n 90, .n 4, .n 80, .n 3], []),
+      (some (.n 377), "__loop3", [.n 378, .n 2, .n 55, .n 117, .n 77], []),
+      (some (.n 380), "__loop4", [.n 381, .n 5, .n 56, .n 117, .n 55, .n 2, .n 80, .n 119], [])] := by
+  decide +kernel
+
+set_option maxRecDepth 100000 in
+theorem mDa_calls : mDa.filterMap Main.Stmt.callS =
+    [(none, "da_verify", [.n 66], [.n 384, .n 385, .n 386, .n 387]),
+      (none, "cover_da_root", [.n 69, .n 118, .n 50, .n 388], [.n 389, .n 390, .n 391, .n 392])] := by
+  decide +kernel
+
+set_option maxRecDepth 100000 in
+theorem mMid_calls : mMid.filterMap Main.Stmt.callS =
+    [(some (.n 413), "__loop5", [.n 414, .n 6, .n 409, .n 77, .n 117, .n 55, .n 80, .n 56, .n 406, .n 69,
+      .n 118, .n 50, .n 63, .n 64, .n 394, .n 65, .n 66, .n 400], [])] := by decide +kernel
+
+set_option maxRecDepth 100000 in
+theorem mLeaf_calls : mLeaf.filterMap Main.Stmt.callS = [] := by decide +kernel
+
+set_option maxRecDepth 100000 in
+theorem mAgg_calls : mAgg.filterMap Main.Stmt.callS =
+    [(none, "aggregate_claims", [.n 6, .n 394, .n 400, .n 406, .n 417], [])] := by decide +kernel
+
+set_option maxRecDepth 100000 in
+theorem mPost_calls : mPost.filterMap Main.Stmt.callS =
+    [(none, "statement_digest", [.n 63, .n 64, .n 116, .n 73, .n 74, .n 417], [.n 444, .n 445])] := by
+  decide +kernel
+
+set_option maxRecDepth 100000 in
+theorem mBlocks_loads : mPre.filterMap B1.Stmt.loadS =
+      [(.n 116, 0), (.n 116, 1)] ++ (List.range 256).map (fun v => (.n 119, v)) ∧
+    mDa.filterMap B1.Stmt.loadS = [] ∧
+    mMid.filterMap B1.Stmt.loadS = [(.n 409, 0), (.n 415, 0)] ∧
+    mLeaf.filterMap B1.Stmt.loadS = (List.range 24).map (fun k => (.n 417, k)) ∧
+    mAgg.filterMap B1.Stmt.loadS = [] ∧
+    mPost.filterMap B1.Stmt.loadS = [(.n 446, 0), (.n 450, 0)] := by decide +kernel
+
+set_option maxRecDepth 100000 in
+theorem mAgg_atoms : atomsIn mAgg = [] := by decide +kernel
+
+set_option maxRecDepth 100000 in
+theorem main_loop : coreProgram.loop "main" = false := by
+  rw [Program.loop_of_find? find_main]; decide +kernel
+
+end
+end LeanVM.Guest.B1.Main

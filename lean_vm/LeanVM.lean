@@ -3,6 +3,7 @@ import LeanVM.Protocol.LeanVMRpm
 import LeanVM.Guest.Batch.Children
 import LeanVM.Guest.Batch.Rom
 import LeanVM.Guest.EndFinal
+import LeanVM.Guest.Budget.ClosedN
 
 /-! The theorems: the verifier's, `LeanVM.KnowledgeSoundness` and `LeanVM.Completeness`
 (`LeanVM/Spec/Statement.lean`), for leanVM at `main` (Keccak-256 and Keccak-f[1600] as
@@ -13,7 +14,8 @@ and the guest's soundness with its witness named (`LeanVM.Guest.End.guest_knowle
 `decode_binds`, `aggregate_sound_outer`, `aggregate_knowledge`, `guest_sound`:
 `LeanVM.Node.GuestKnowledge` and `LeanVM.Node.AggregateSound`
 of `LeanVM/Spec/Guest.lean` for the deployed bytecode and the decoder `LeanVM.Guest.End.decode`;
-`guest_sentinelSafe`).
+`guest_sentinelSafe`), and the guest's completeness within its deployed budget
+(`LeanVM.Guest.Budget.guest_complete`, `guest_complete_numeric`).
 The build fails if their axiom footprint ever grows beyond Lean's three standard axioms. -/
 
 /-- info: 'LeanVM.knowledgeSoundness_holds' depends on axioms: [propext, Classical.choice, Quot.sound] -/
@@ -107,3 +109,15 @@ The build fails if their axiom footprint ever grows beyond Lean's three standard
 /-- info: 'LeanVM.Guest.End.guest_sound' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms LeanVM.Guest.End.guest_sound
+
+/-- info: 'LeanVM.Guest.Budget.guest_complete' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms LeanVM.Guest.Budget.guest_complete
+
+/-- info: 'LeanVM.Guest.Budget.guestComplete_mono' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms LeanVM.Guest.Budget.guestComplete_mono
+
+/-- info: 'LeanVM.Guest.Budget.guest_complete_numeric' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms LeanVM.Guest.Budget.guest_complete_numeric

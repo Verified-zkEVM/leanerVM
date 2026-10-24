@@ -9,12 +9,13 @@
 module
 
 public import LeanVM.Guest.Hints
+public import LeanVM.Protocol.Verifier.DeferredShape
 
 /-!
 # The limits of the guest's completeness
 
 `NodeRel bytecode seed s w` (`Spec/Node.lean`) admits witnesses on which the deployed guest
-(`crates/rec_aggregation/guests/lean_ethereum.py` at leanVM `3375f7a13`, `G:N` its lines) does
+(`crates/rec_aggregation/guests/lean_ethereum.py` at leanVM `4af2cddd`, `G:N` its lines) does
 not run to completion. Completeness assumes three hypotheses beside `NodeRel`, each a precise
 predicate on the witness:
 
@@ -27,7 +28,7 @@ predicate on the witness:
   Merkle cap once (write-once memory), so two openings of one query step meeting at a node of the
   tree must give it one digest; the Spec checks each opening alone against the root. One tree's
   openings agree; two that disagree at a node give a Keccak-256 collision (the root's
-  preimages). Stated, as `B1.Whir.CapsAgree` is for one opening, at every node of the tree, which
+  preimages; an argument in prose, not proved here). Stated, as `B1.Whir.CapsAgree` is for one opening, at every node of the tree, which
   is stronger than the cap levels alone and fails on the same collisions.
 * **`NoZeroChallenge bytecode seed w`, no zero challenge where the guest divides** (new at
   `keccak-gkr`): the guest computes `μ = 1/λ` for each WHIR level's batching challenge `λ`
@@ -37,7 +38,7 @@ predicate on the witness:
   whose stacked opening also rejects a zero fold, tail or level batching challenge
   (`verifyDeferredNZ`). Each challenge is a squeeze of Keccak-f[1600] (three lanes, `2^192`
   values), so in the random-permutation model an honest child's proof meets one with probability
-  about `(number of those challenges)·2^-192`.
+  about `(number of those challenges)·2^-192` (an estimate in prose, not proved here).
 
 `NoZeroChallenge` is the node-level form of `B1.Whir.NoZeroChallenge` (the opening's run from a
 sponge state, `B1/Whir/CompleteIface.lean`); `verifyDeferredNZ`'s opening is `whirLevelsNZ`, the
@@ -294,6 +295,25 @@ structure Limits (bytecode : List K) (s : NodeStatement) (w : NodeWitness) : Pro
   coverage : coverage s w < 2 ^ 16
   /-- 6. At least one declared claim (G:4174). -/
   nonempty : 0 < s.claims.xmss.length + s.claims.sphincs.length + s.claims.da.length
+
+
+/-! ## What `NodeRel` gives of the children's fresh claims -/
+
+/-- **Every child's fresh claim has the bytecode's shape**: the deferring verifier accepts each
+child's proof (`NodeRel`), and an accepted proof claims the bytecode at the verifier's own bus
+point, `bytecodeLow ++ alphas`, of the bytecode's log-length (`verifyDeferred_shaped`). Not a
+hypothesis: `NodeRel` implies it. -/
+theorem fresh_shaped_of_nodeRel {bytecode : List K} {seed : Digest} {s : NodeStatement}
+    {w : NodeWitness} (h : NodeRel bytecode seed s w) :
+    ∀ c ∈ w.children, c.fresh.bytecodePoint.length = Nat.log2 bytecode.length :=
+  fun c hc => verifyDeferred_shaped (h.2.1 c hc).2
+
+/-- **At the deployed guest's `2^23` words, every child's fresh point has 23 coordinates**
+(B1-f's `FreshShaped w`). -/
+theorem fresh_shaped_23 {bytecode : List K} {seed : Digest} {s : NodeStatement}
+    {w : NodeWitness} (h : NodeRel bytecode seed s w) (hb : bytecode.length = 2 ^ 23) :
+    ∀ c ∈ w.children, c.fresh.bytecodePoint.length = 23 := fun c hc => by
+  rw [fresh_shaped_of_nodeRel h c hc, hb, Nat.log2_two_pow]
 
 end
 end LeanVM.Guest
