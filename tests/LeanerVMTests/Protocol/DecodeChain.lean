@@ -121,10 +121,11 @@ def checks : List Bool :=
 /-! ## The counts in closed form -/
 
 -- WHIR's levels start, in the stream, where the walks on the history end the front phases.
-#guard ProofRoots.whirStart fx.prog sizes.1 fx.input ==
+#guard ProofRoots.whirStart ProofRoots.scalarCounts fx.prog sizes.1 fx.input ==
   (streamOf (hist.take phaseEnds.getLast!)).length
 -- The four roots' offsets: level 0's after the announcement, then the three later levels'.
-#guard ProofRoots.rootOffsets fx.prog sizes.1 fx.input shs == [8, 713, 729, 745]
+#guard ProofRoots.rootOffsets ProofRoots.scalarCounts fx.prog sizes.1 fx.input shs ==
+  [8, 713, 729, 745]
 -- The proof's roots are the roots the walk reads.
 #guard (logged.map fun p ↦ p.1.root :: p.1.whir.filterMap (·.root)) ==
   some (ProofRoots.rootsOf fx.prog fx.input fx.proof)

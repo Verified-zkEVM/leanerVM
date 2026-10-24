@@ -50,6 +50,7 @@ import LeanerVM.Protocol.LeanIsa.Complete
 import LeanerVM.Protocol.LeanIsa.Read
 import LeanerVM.Protocol.LeanIsa.Relation
 import LeanerVM.Protocol.LeanIsa.Sound
+import LeanerVM.Protocol.LeanVmReader
 import LeanerVM.Protocol.LeanVmSlots
 import LeanerVM.Protocol.ListBinding
 import LeanerVM.Protocol.ListBindingBudget

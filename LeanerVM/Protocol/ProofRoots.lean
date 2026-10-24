@@ -38,26 +38,26 @@ namespace ProofRoots
 nonce one. -/
 def scalarCounts : StepCounts := ⟨1, 0, 2, fun _ ↦ 1⟩
 
-/-- The offsets of the roots the levels `shs` read, the first level starting at offset `o`: one
-per level with a successor, after its fold rounds. -/
-def levelRootOffsets : ℕ → List LevelShape → List ℕ
+/-- The offsets of the roots the levels `shs` read, counted by `c`, the first level starting at
+offset `o`: one per level with a successor, after its fold rounds. -/
+def levelRootOffsets (c : StepCounts) : ℕ → List LevelShape → List ℕ
   | _, [] => []
-  | o, sh :: shs => (if sh.final then [] else [o + scalarCounts.folds sh.fold]) ++
-      levelRootOffsets (o + scalarCounts.level sh) shs
+  | o, sh :: shs => (if sh.final then [] else [o + c.folds sh.fold]) ++
+      levelRootOffsets c (o + c.level sh) shs
 
-/-- The offset at which WHIR's levels start: after the setup, the four front phases and the first
-round polynomial. -/
-def whirStart (prog : Program) (s : Sizes) (input : PublicInput) : ℕ :=
-  scalarCounts.setup + scalarCounts.bus (leanVm prog s).μBus (leanVm prog s).busClaims +
-    scalarCounts.tables (leanVm prog s).τmax (leanVm prog s).tableColumns +
-    scalarCounts.pub (PublicInput.sentCount (leanVm prog s) ((leanVm prog s).publicLines input)) +
-    scalarCounts.flock (s.τ 5) + scalarCounts.sample + 2 * scalarCounts.scalar
+/-- The offset, counted by `c`, at which WHIR's levels start: after the setup, the four front
+phases and the first round polynomial. -/
+def whirStart (c : StepCounts) (prog : Program) (s : Sizes) (input : PublicInput) : ℕ :=
+  c.setup + c.bus (leanVm prog s).μBus (leanVm prog s).busClaims +
+    c.tables (leanVm prog s).τmax (leanVm prog s).tableColumns +
+    c.pub (PublicInput.sentCount (leanVm prog s) ((leanVm prog s).publicLines input)) +
+    c.flock (s.τ 5) + c.sample + 2 * c.scalar
 
-/-- The offsets of the roots the chain walk reads: the level-0 root after the eight announced
-sizes, then the later levels' roots. -/
-def rootOffsets (prog : Program) (s : Sizes) (input : PublicInput) (shs : List LevelShape) :
-    List ℕ :=
-  8 :: levelRootOffsets (whirStart prog s input) shs
+/-- The offsets, counted by `c`, of the roots the chain walk reads: the level-0 root after the
+eight announced sizes, then the later levels' roots. -/
+def rootOffsets (c : StepCounts) (prog : Program) (s : Sizes) (input : PublicInput)
+    (shs : List LevelShape) : List ℕ :=
+  8 * c.scalar :: levelRootOffsets c (whirStart c prog s input) shs
 
 /-- The digest a stream carries at an offset: its two scalars there, when canonical. -/
 def digestAt (stream : List E) (o : ℕ) : Option Digest :=
@@ -75,15 +75,15 @@ def rootsOf (prog : Program) (input : PublicInput) (proof : Proof PrunedMerklePa
     match ladderOf prog s ρ with
     | none => []
     | some levels =>
-      (rootOffsets prog s input (levelShapes (stackMu prog s) levels)).filterMap
+      (rootOffsets scalarCounts prog s input (levelShapes (stackMu prog s) levels)).filterMap
         (digestAt proof.stream)
 
 /-- The most roots a proof has. -/
 def proofDigests : ℕ := 6
 
 /-- One root per level with a successor. -/
-theorem length_levelRootOffsets : ∀ (o : ℕ) (shs : List LevelShape),
-    (levelRootOffsets o shs).length = (shs.filter fun sh ↦ !sh.final).length
+theorem length_levelRootOffsets (c : StepCounts) : ∀ (o : ℕ) (shs : List LevelShape),
+    (levelRootOffsets c o shs).length = (shs.filter fun sh ↦ !sh.final).length
   | _, [] => rfl
   | o, sh :: shs => by
     rw [levelRootOffsets, List.length_append, length_levelRootOffsets, List.filter_cons]
@@ -271,19 +271,20 @@ theorem walkLevel_root_of_final (sh : LevelShape) (hf : sh.final = true) {l : Li
   repeat' refine allOut_bind _ fun _ ↦ ?_
   exact allOut_pure (Q := fun lv : WhirLevel ↦ lv.root = none) rfl
 
-theorem levelRootOffsets_add (n : ℕ) : ∀ (o : ℕ) (shs : List LevelShape),
-    levelRootOffsets (o + n) shs = (levelRootOffsets o shs).map (· + n)
+theorem levelRootOffsets_add (c : StepCounts) (n : ℕ) : ∀ (o : ℕ) (shs : List LevelShape),
+    levelRootOffsets c (o + n) shs = (levelRootOffsets c o shs).map (· + n)
   | _, [] => rfl
   | o, sh :: shs => by
     rw [levelRootOffsets, levelRootOffsets, List.map_append,
-      show o + n + scalarCounts.level sh = o + scalarCounts.level sh + n by omega,
-      levelRootOffsets_add n]
+      show o + n + c.level sh = o + c.level sh + n by omega,
+      levelRootOffsets_add c n]
     split <;> simp [Nat.add_right_comm]
 
 /-- The levels' roots are the digests at their offsets. -/
 theorem walkLevels_roots : ∀ (shs : List LevelShape) {l : List Reading} {ls : List WhirLevel}
     {r : List Reading}, (walkLevels historyOps shs).read l = some (ls, r) →
-    (levelRootOffsets 0 shs).map (digestAt (streamOf l)) = (ls.filterMap (·.root)).map some
+    (levelRootOffsets scalarCounts 0 shs).map (digestAt (streamOf l)) =
+      (ls.filterMap (·.root)).map some
   | [], l, ls, r, h => by
     rw [walkLevels, read_pure, Option.some.injEq, Prod.mk.injEq] at h
     obtain ⟨rfl, -⟩ := h
@@ -322,7 +323,8 @@ polynomial. -/
 theorem walkWhir_roots (shs : List LevelShape) {l : List Reading}
     {x : List E × List WhirLevel} {r : List Reading}
     (h : (walkWhir historyOps shs).read l = some (x, r)) :
-    (levelRootOffsets 2 shs).map (digestAt (streamOf l)) = (x.2.filterMap (·.root)).map some := by
+    (levelRootOffsets scalarCounts 2 shs).map (digestAt (streamOf l)) =
+      (x.2.filterMap (·.root)).map some := by
   obtain ⟨first, l₁, -, h₂, s, hs, hl⟩ :=
     read_bind_of_grade (nextScalars_grade historyOps_graded 2) h
   rw [read_bind, Option.bind_eq_some_iff] at h₂
@@ -338,7 +340,7 @@ offsets, all present: the level-0 root, then the levels' roots in order. -/
 theorem walkChain_roots {prog : Program} {s : Sizes} {input : PublicInput}
     {shs : List LevelShape} {l : List Reading} {w : Wire} {r : List Reading}
     (h : (walkChain historyOps prog s input shs).read l = some (w, r)) :
-    (rootOffsets prog s input shs).map (digestAt (streamOf l)) =
+    (rootOffsets scalarCounts prog s input shs).map (digestAt (streamOf l)) =
       (w.root :: w.whir.filterMap (·.root)).map some := by
   rw [walkChain_eq_setup] at h
   obtain ⟨d, l₁, h₁, h₂, s₁, hs₁, hl₁⟩ := read_bind_of_grade (walkSetup_grade historyOps_graded) h
@@ -357,10 +359,12 @@ theorem walkChain_roots {prog : Program} {s : Sizes} {input : PublicInput}
   have hS : streamOf l = (s₁ ++ s₂ ++ s₃ ++ s₄ ++ s₅ ++ s₆) ++ streamOf l₆ := by
     rw [hs₁, hs₂, hs₃, hs₄, hs₅, hs₆]
     simp only [List.append_assoc]
-  have hstart : whirStart prog s input = 2 + (s₁ ++ s₂ ++ s₃ ++ s₄ ++ s₅ ++ s₆).length := by
+  have hstart : whirStart scalarCounts prog s input =
+      2 + (s₁ ++ s₂ ++ s₃ ++ s₄ ++ s₅ ++ s₆).length := by
     simp only [whirStart, List.length_append, hl₁, hl₂, hl₃, hl₄, hl₅, hl₆, scalarCounts]
     omega
-  rw [rootOffsets, List.map_cons, hstart, levelRootOffsets_add, map_digestAt_shift hS,
+  rw [rootOffsets, show 8 * scalarCounts.scalar = 8 from rfl, List.map_cons, hstart,
+    levelRootOffsets_add, map_digestAt_shift hS,
     walkWhir_roots shs h₈, walkSetup_root h₁]
   rfl
 
