@@ -14,12 +14,13 @@ public import LeanerVM.Protocol.LeanIsa.Complete
 /-!
 # The honest prover is complete
 
-`baseProver_complete`: for every byte hash `H`, a proof the honest prover returns for a witness
-satisfying leanISA's constraint statement (`SatisfiedBy`) is accepted by the executable verifier
-at `H`, modulo one hypothesis, `PhasesAgree`: on the transcripts the compiled oracle protocol's
-verifier accepts, the executable verifier's algebra accepts the transcript's wire (`wireOf`) and
-rows (`rowsOf`). That hypothesis is the completeness half of the phase-by-phase agreement of the
-two verifiers, which the soundness direction needs too.
+`baseProver_complete_of_agree`: for every byte hash `H`, a proof the honest prover returns for a
+witness satisfying leanISA's constraint statement (`SatisfiedBy`) is accepted by the executable
+verifier at `H`, given `PhasesAgree`: on the transcripts the compiled oracle protocol's verifier
+accepts, the executable verifier's algebra accepts the transcript's wire (`wireOf`) and rows
+(`rowsOf`). That hypothesis is the completeness half of the phase-by-phase agreement of the two
+verifiers, proved as `Compile.phasesAgree` (`LeanerVM.Protocol.Compile.Agree`), where
+`Prove.baseProver_complete` drops it.
 
 The proof:
 
@@ -74,7 +75,8 @@ abbrev compiledDef (prog : Program) (s : Sizes) (hs : s.Admissible prog) (ρ : �
     (leanIsaChain_height Blake2sFlock.blake2sFlockSpec prog s hs ρ hρ)
     (leanIsaChain prog s hs ρ hρ).ladder
 
-/-- **The phases agree, on the accepted transcripts** (the hypothesis of `baseProver_complete`):
+/-- **The phases agree, on the accepted transcripts** (the hypothesis of
+`baseProver_complete_of_agree`):
 on every full transcript of the compiled protocol at leanVM's instance and WHIR's deployed chain
 that its verifier accepts on the public input, the executable verifier's algebra accepts the
 transcript's wire and the rows its words have at its positions, at the chain's levels. -/
@@ -268,7 +270,7 @@ and fuel, a proof `proveWith` returns for a witness satisfying leanISA's constra
 the public input, at the deployed Flock specification, is accepted by the executable verifier at
 `H`, if, at the announcement and rate the proof carries, the executable verifier's algebra accepts
 every transcript the compiled oracle protocol's verifier accepts (`PhasesAgree`). -/
-theorem baseProver_complete (H : List UInt8 → Digest) (fuel : ℕ) {prog : Program}
+theorem baseProver_complete_of_agree (H : List UInt8 → Digest) (fuel : ℕ) {prog : Program}
     {input : PublicInput} {w : EnsembleWitness (leanIsaEnsemble prog)} {ρ : ℕ}
     {proof : Proof PrunedMerklePaths} (hsat : SatisfiedBy prog input w)
     (hagree : ∀ (s : Sizes) (hs : s.Admissible prog) (hρ : validRate ρ),

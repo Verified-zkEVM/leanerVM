@@ -55,8 +55,9 @@ rejects. The Rust's search is unbounded over `u64` (`fiat_shamir/src/lib.rs:126-
 two nonces agree whenever the Rust's is below the fuel.
 
 **Target.** Layer 13's honest prover: the executable artefact of T4's completeness direction.
-Its theorem `baseProver_complete` (`LeanerVM.Protocol.Prove.Complete`) is proved modulo the
-agreement of the executable verifier's phases with the oracle verifiers'.
+Its theorem `baseProver_complete` (`LeanerVM.Protocol.Compile.Agree`) is
+`baseProver_complete_of_agree` (`LeanerVM.Protocol.Prove.Complete`) with the agreement of the
+executable verifier's phases with the oracle verifiers' (`Compile.phasesAgree`).
 -/
 
 namespace LeanerVM.Protocol

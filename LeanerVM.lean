@@ -32,6 +32,7 @@ import LeanerVM.Protocol.BusSecurity
 import LeanerVM.Protocol.ChainGroups
 import LeanerVM.Protocol.ChainLog
 import LeanerVM.Protocol.ClaimWeights
+import LeanerVM.Protocol.Compile.Agree
 import LeanerVM.Protocol.Compile.Bus
 import LeanerVM.Protocol.Compile.Flock
 import LeanerVM.Protocol.Compile.Front

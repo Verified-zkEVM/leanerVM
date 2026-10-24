@@ -1,4 +1,5 @@
 import LeanerVM.Protocol.Prove
+import LeanerVM.Protocol.Compile.Agree
 import LeanerVM.Protocol.Prove.Complete
 import LeanerVMTests.Arithmetization.Statement
 
@@ -14,8 +15,9 @@ which writes the test vectors and checks that `verify` accepts them. Here, inter
   that challenge.
 * **The committed rows.** The verifier reads the level-0 rows `Prove.level0Rows` stores and the
   later rows `Prove.laterRows` stores back to the word's lanes (`Verify.laneRow`).
-* **Completeness.** `baseProver_complete` as stated, modulo `PhasesAgree`; a stored level-0 row
-  is read as the word's row exactly when the lanes past the stored ones vanish.
+* **Completeness.** `baseProver_complete_of_agree` as stated, given `PhasesAgree`, and
+  `baseProver_complete` with it proved (`Compile.phasesAgree`); a stored level-0 row is read as
+  the word's row exactly when the lanes past the stored ones vanish.
 * **When the prover returns no proof.** `proveWith_eq_none` as stated; at a rate outside its
   window the prover returns no proof, before any hash.
 -/
@@ -98,18 +100,27 @@ def eword : Whir.Word 1 1 1 :=
   (Verify.laneRow false 1 (leafImage 6 ((laterRows eword)[y]))).map (·.toList) ==
     some ((eword.row y).toList)
 
-/-! ## Completeness, modulo the phases' agreement -/
+/-! ## Completeness -/
 
-/-- The honest prover's completeness as stated: for every hash and fuel, a proof the prover
-returns for a satisfying witness is accepted, given the phases' agreement at every admissible size
-and valid rate. -/
+/-- The honest prover's completeness given the phases' agreement: for every hash and fuel, a proof
+the prover returns for a satisfying witness is accepted, given the phases' agreement at every
+admissible size and valid rate. -/
 example (H : List UInt8 → Digest) (fuel : ℕ) {prog : Program} {input : PublicInput}
     {w : Air.Flat.EnsembleWitness (LeanerVM.Arithmetization.leanIsaEnsemble prog)} {ρ : ℕ}
     {proof : Proof PrunedMerklePaths} (hsat : LeanerVM.Arithmetization.SatisfiedBy prog input w)
     (hagree : ∀ s hs hρ, PhasesAgree prog s hs ρ hρ input)
     (hp : proveWith (m := Id) H fuel Blake2sFlock.blake2sFlockSpec prog input w ρ = some proof) :
     verifyWith (m := Id) H prog input proof = true :=
-  baseProver_complete H fuel hsat hagree hp
+  baseProver_complete_of_agree H fuel hsat hagree hp
+
+/-- The honest prover's completeness, the phases' agreement proved: for every hash and fuel, a
+proof the prover returns for a satisfying witness is accepted. -/
+example (H : List UInt8 → Digest) (fuel : ℕ) {prog : Program} {input : PublicInput}
+    {w : Air.Flat.EnsembleWitness (LeanerVM.Arithmetization.leanIsaEnsemble prog)} {ρ : ℕ}
+    {proof : Proof PrunedMerklePaths} (hsat : LeanerVM.Arithmetization.SatisfiedBy prog input w)
+    (hp : proveWith (m := Id) H fuel Blake2sFlock.blake2sFlockSpec prog input w ρ = some proof) :
+    verifyWith (m := Id) H prog input proof = true :=
+  baseProver_complete H fuel hsat hp
 
 open LeanerVM.Protocol.LeanIsa in
 /-- When the honest prover returns no proof, as stated: the witness gives no sizes, or they are
