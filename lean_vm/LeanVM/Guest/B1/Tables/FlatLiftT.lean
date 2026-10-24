@@ -67,6 +67,46 @@ theorem kidsBoundL_map {σS : Val} {L : Layout} :
     simp only [List.map_cons, kidsBoundL, callsBound, kidsBoundL_map cs Bs.tail]
     rfl
 
+/-- The frames of a body's conditional calls (the only calls a walk may skip). -/
+def ifFrames (fs : String → ℕ) (pre : List Stmt) : ℕ :=
+  (pre.filterMap fun s ↦ match s with
+    | .callIf _ f _ => some (fs f)
+    | _ => none).sum
+
+theorem headD_le_sum (Bs : List ℕ) : Bs.headD 0 ≤ Bs.sum := by
+  cases Bs <;> simp
+
+theorem sum_eq_headD_tail (Bs : List ℕ) : Bs.sum = Bs.headD 0 + Bs.tail.sum := by
+  cases Bs <;> simp
+
+/-- **The callees' words of a flat body are at most the bounds and the skipped frames.** -/
+theorem callsBound_le (pre : List Stmt) (σ : Val) :
+    ∀ Bs : List ℕ, callsBound fs (flatCalls pre σ) Bs ≤ Bs.sum + ifFrames fs pre := by
+  induction pre with
+  | nil => intro Bs; simp [flatCalls, callsBound]
+  | cons s ss ih =>
+    intro Bs
+    cases s with
+    | call f a r =>
+      have := ih Bs.tail
+      simp only [flatCalls, List.filterMap_cons, Stmt.callSF, Main.Stmt.callS, List.map_cons,
+        callsBound, Main.mkCall, ↓reduceIte, ifFrames] at this ⊢
+      rw [sum_eq_headD_tail Bs]; omega
+    | callIf c f a =>
+      have := ih Bs.tail
+      simp only [flatCalls, List.filterMap_cons, Stmt.callSF, Main.Stmt.callS, List.map_cons,
+        callsBound, Main.mkCall, ifFrames, List.sum_cons] at this ⊢
+      rw [sum_eq_headD_tail Bs]
+      split <;> omega
+    | dispatch x fs' a r =>
+      have := ih Bs.tail
+      simp only [flatCalls, List.filterMap_cons, Stmt.callSF, List.map_cons,
+        callsBound, Main.mkCall, ↓reduceIte, ifFrames] at this ⊢
+      rw [sum_eq_headD_tail Bs]; omega
+    | _ =>
+      have := ih Bs
+      simpa [flatCalls, List.filterMap_cons, Stmt.callSF, Main.Stmt.callS, ifFrames] using this
+
 theorem kidsDTB_of_getElem {κ : ℕ} {σS : Val} {L : Layout} :
     ∀ (cs : List Call) (Ts : List (Tree → Prop)) (Bs : List ℕ),
       (∀ i (c : Call), cs[i]? = some c → c.taken = true →
