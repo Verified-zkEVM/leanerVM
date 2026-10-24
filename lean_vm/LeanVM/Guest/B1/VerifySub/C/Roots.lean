@@ -80,9 +80,9 @@ theorem vsRootsT_complete (hl : args.length = 7)
     fun s hs ↦ hG s (by simp only [vsRootsT, List.mem_append]; tauto)
   have g9 : ∀ s ∈ fsNextT (.n 27) 9 547, GoodS rd vsSL w (vsσ rd w args) s :=
     fun s hs ↦ hG s (by simp only [vsRootsT, List.mem_append]; tauto)
-  obtain ⟨e8, c8a, c8b, -, -⟩ := fsNext_complete (C := C) (next := True) (kret := kret) g8
+  obtain ⟨e8, c8a, c8b, -, -⟩ := fsNext_complete (C := C) g8
     vsRoots_notS.1 hw8
-  obtain ⟨e9, c9a, c9b, -, -⟩ := fsNext_complete (C := C) (next := True) (kret := kret) g9
+  obtain ⟨e9, c9a, c9b, -, -⟩ := fsNext_complete (C := C) g9
     vsRoots_notS.2 hw9
   refine ⟨e8, e9, ?_, ?_⟩
   · intro i hi

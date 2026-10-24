@@ -69,7 +69,7 @@ theorem vsSqzT_complete (hl : args.length = 7) {capb o : ℕ}
     simp [cells13, vsRun] at this
     rw [this]
     exact canon_cellsOfState _ _ _
-  have hch := challenge_complete (C := C) (next := next) (kret := kret)
+  have hch := challenge_complete (C := C)
     (fun s hs ↦ hG s (List.mem_cons_of_mem _ hs)) h1
   simp only [vsSqzT, keccakA, Stmt.HoldsList, Stmt.Holds]
   exact ⟨hK, hch.2 hn⟩
@@ -116,7 +116,7 @@ theorem kc_complete (hl : args.length = 7) {ins : List V} {o : ℕ}
     simp [cells13, vsRun, List.getD_eq_getElem?_getD, hk13] at this
     rw [this]
     exact canon_cellsOfState _ _ _
-  have hch := challenge_complete (C := C) (next := next) (kret := kret)
+  have hch := challenge_complete (C := C)
     (fun s hs ↦ hG s (List.mem_cons_of_mem _ hs)) (hout 1 (by norm_num))
   simp only [keccakA, Stmt.HoldsList, Stmt.Holds]
   exact ⟨hout, hK, hch.2 hn⟩

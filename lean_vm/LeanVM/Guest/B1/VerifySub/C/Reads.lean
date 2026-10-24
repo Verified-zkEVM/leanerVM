@@ -67,10 +67,10 @@ theorem vs_word (hl : args.length = 7) {ws : List E}
   have hG := vsReadsT_good (rd := rd) (w := w) hl
   have hgs : ∀ s ∈ fsNextT (.n 27) i (vsX i), GoodS rd vsSL w (vsσ rd w args) s :=
     fun s hs ↦ hG s (vsReadsT_sub i hi s hs)
-  obtain ⟨e, c1, c2, -, -⟩ := fsNext_complete (C := fun _ _ _ ↦ True) (next := True)
-    (kret := fun _ ↦ True) hgs (vsReadsT_notS i hi) (hws i hi)
+  obtain ⟨e, c1, c2, -, -⟩ := fsNext_complete (C := fun _ _ _ ↦ True)
+    hgs (vsReadsT_notS i hi) (hws i hi)
   exact ⟨e, c1, c2, fun {C next kret} hn ↦
-    (fsNext_complete (C := C) (next := next) (kret := kret) hgs (vsReadsT_notS i hi)
+    (fsNext_complete (C := C) hgs (vsReadsT_notS i hi)
       (hws i hi)).2.2.2.2 hn⟩
 
 set_option maxRecDepth 100000 in
