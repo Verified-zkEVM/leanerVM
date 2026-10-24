@@ -2,8 +2,8 @@
   LeanVM.Guest.Budget.Closed
 
   **The guest is complete within the deployed budget**, with no hypothesis left: each child's
-  `verify_sub` within `vsBound Count.vsWords vkBound` words (B1-d's `verify_sub_completeB`, B1-f's
-  `verifySubGoalsTB_of`).
+  `verify_sub` within `vsBoundAt Count.vsWords vkBound` words at its announced stack log and rate
+  (B1-d's `verify_sub_completeBT`, B1-f's `verifySubGoalsTB_of`).
 -/
 
 module
@@ -16,22 +16,41 @@ public import LeanVM.Guest.B1.VerifySub.CompleteAll
 namespace LeanVM.Guest.Budget
 
 open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest LeanVM.Guest.Core LeanVM.Guest.Memory
+open LeanVM.Node
 open LeanVM.Guest.End (GuestCompleteWithin bytecode bytecode_length)
+open LeanVM.Guest.B1.Main (VerifySubGoalsTB childBv)
+open LeanVM.Guest.B1.VerifySub (vsBoundAt vsTs vkBound)
 
 @[expose] public section
 
-/-- **`verify_sub`'s words per child** at the deployed instance. -/
-noncomputable def deployedBv : ℕ := B1.VerifySub.vsBound Count.vsWords B1.VerifySub.vkBound
+/-- **Child `c`'s `verify_sub` tree at the deployed instance**: its callees calls of their names
+within their bounds at the child's announced stack log and rate (`Budget.FlatShape` for `vsTs`),
+the child's candidate among `open_stacked`'s 28. -/
+def deployedVsT (w : NodeWitness) (c : ℕ) (t : Tree) : Prop :=
+  ∀ hc : c < w.children.length,
+    B1.Whir.candidate (childShape bytecode w.children[c]).1 (childShape bytecode w.children[c]).2
+      < 28 ∧ FlatShape coreProgram "verify_sub" (vsTs B2C.fs Count.vsWords vkBound
+        (childShape bytecode w.children[c]).1 (childShape bytecode w.children[c]).2) t
+
+/-- **Each child's `verify_sub` call at the deployed instance**, within `vsBoundAt Count.vsWords
+vkBound` at its announced stack log and rate, by a tree of `deployedVsT`. -/
+theorem verifySubGoals_deployed {seed : LeanVM.Protocol.Digest} {s : NodeStatement} {w : NodeWitness}
+    (hr : NodeRel bytecode seed s w) (hl : Limits bytecode s w) (hca : CapsAgree bytecode seed w)
+    (hnz : NoZeroChallenge bytecode seed w) :
+    VerifySubGoalsTB B2C.fs B2C.cert 0 seed s w (deployedVsT w)
+      (childBv (vsBoundAt Count.vsWords vkBound) w) :=
+  B1.Main.verifySubGoalsTB_of bytecode_length B2C.runsFit B2C.runsApart Count.vsWords
+    (B1.VerifySub.verify_keccak_completeAtB_fs 16) hr hl hca hnz
 
 /-- **The aggregation guest is complete within the deployed budget**: for every seed, statement
 and witness with `NodeRel`, within the deployed limits, the caps agreeing, no zero challenge where
 the guest divides, and the node's committed size at the budget at most `2^28`, there is a valid
-execution of the guest on the statement's digest within the verifier's size cap. -/
-theorem guest_complete : GuestCompleteWithin (deployedBudget fun _ _ => deployedBv) :=
-  guest_complete_deployed (Pvs := fun _ _ _ => True) fun _ _ _ hr hl hca hnz =>
-    (B1.Main.verifySubGoalsTB_of bytecode_length B2C.runsFit B2C.runsApart Count.vsWords
-      (B1.VerifySub.verify_keccak_completeAtB_fs 16) hr hl hca hnz).mono fun c hc => by
-        rw [B1.Main.childBv_of_lt _ _ hc]; exact le_rfl
+execution of the guest on the statement's digest within the verifier's size cap; each child's
+`verify_sub` charged `vsBoundAt Count.vsWords vkBound` words at its announced stack log and
+rate. -/
+theorem guest_complete : GuestCompleteWithin (deployedBudget (vsBoundAt Count.vsWords vkBound)) :=
+  guest_complete_deployed (Pvs := deployedVsT) fun _ _ _ hr hl hca hnz =>
+    verifySubGoals_deployed hr hl hca hnz
 
 end
 end LeanVM.Guest.Budget
