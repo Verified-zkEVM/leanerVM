@@ -54,8 +54,9 @@ fuel clears the bits cannot be excluded; `prove` then returns `none`, never a pr
 rejects. The Rust's search is unbounded over `u64` (`fiat_shamir/src/lib.rs:126-156`), so the
 two nonces agree whenever the Rust's is below the fuel.
 
-**Target.** Layer 13's honest prover: the executable artefact of T4's completeness direction,
-whose theorem `baseProver_complete` is owed. No target theorem advances here.
+**Target.** Layer 13's honest prover: the executable artefact of T4's completeness direction.
+Its theorem `baseProver_complete` (`LeanerVM.Protocol.Prove.Complete`) is proved modulo the
+agreement of the executable verifier's phases with the oracle verifiers'.
 -/
 
 namespace LeanerVM.Protocol

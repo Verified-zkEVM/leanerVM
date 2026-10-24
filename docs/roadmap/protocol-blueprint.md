@@ -1939,10 +1939,11 @@ Completeness starts from a satisfying witness with admissible sizes and a valid 
 with no hypothesis. It composes `m3Holds_stackOf`, the compiled protocol's completeness
 (`listBinding_deployed_perfectCompleteness`), carried to every challenge vector
 (`accepts_of_perfectCompleteness`) and to the prover's run against the chain
-(`compiledProver_run`, `runWith_eq_runWithChallenges`), the compiled verifier's independence of
-the nonce rounds (the oracle prover sends `0` where the wire carries the grind's nonce), the wire
-read back by the walk, the executable algebra's agreement with the oracle verifiers on the decoded
-transcript, Merkle completeness and the determinism of the chain. From an execution, `baseProver_complete_of_execution` adds `constraintCompleteness`
+(`compiledProver_run`, `runWith_eq_runWithChallenges`), the wire read back by the walk (the
+transcript's wire but for the roots, the grinding nonces and the positions' reduction, which the
+algebra does not read: the oracle prover sends `0` where the wire carries the grind's nonce), the
+executable algebra's agreement with the oracle verifiers on the honest transcript, Merkle
+completeness and the determinism of the chain. From an execution, `baseProver_complete_of_execution` adds `constraintCompleteness`
 and takes `hfit`, the resource condition [architecture.md](../architecture.md) asks for: a valid
 execution may need `κ_mem = 32`, whose memory columns exceed the stack the verifier accepts.
 

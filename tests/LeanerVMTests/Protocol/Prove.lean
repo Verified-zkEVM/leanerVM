@@ -1,4 +1,5 @@
 import LeanerVM.Protocol.Prove
+import LeanerVM.Protocol.Prove.Complete
 import LeanerVMTests.Arithmetization.Statement
 
 /-!
@@ -13,6 +14,8 @@ which writes the test vectors and checks that `verify` accepts them. Here, inter
   that challenge.
 * **The committed rows.** The verifier reads the level-0 rows `Prove.level0Rows` stores and the
   later rows `Prove.laterRows` stores back to the word's lanes (`Verify.laneRow`).
+* **Completeness.** `baseProver_complete` as stated, modulo `PhasesAgree`; a stored level-0 row
+  is read as the word's row exactly when the lanes past the stored ones vanish.
 * **The setup.** The prover returns no proof at a rate outside its window, before any hash.
 -/
 
@@ -78,6 +81,13 @@ def kword : Whir.KWord 2 1 1 :=
   (Verify.laneRow true 2 (leafImage 4 ((level0Rows 3 kword)[y]))).map (·.toList) ==
     some ((kword.lift.row y).toList)
 
+-- Its last lane being zero, the stored row of three lanes has the full row, in reverse, as its
+-- leaf image (`leafImage_level0Rows`); stored with two lanes, the third, nonzero, is lost.
+#guard (List.finRange 2).all fun y ↦
+  leafImage 4 ((level0Rows 3 kword)[y]) == (kword.row y).toList.reverse
+#guard (List.finRange 2).all fun y ↦
+  leafImage 4 ((level0Rows 2 kword)[y]) != (kword.row y).toList.reverse
+
 /-- A word of two lanes in `E` on two positions. -/
 def eword : Whir.Word 1 1 1 :=
   ⟨fun y ↦ #v[E.ofLimbs (K.ofBits y.val) (K.ofBits 2) (K.ofBits 3), E.ofLimbs 1 (K.ofBits 5) 0]⟩
@@ -86,6 +96,19 @@ def eword : Whir.Word 1 1 1 :=
 #guard (List.finRange 2).all fun y ↦
   (Verify.laneRow false 1 (leafImage 6 ((laterRows eword)[y]))).map (·.toList) ==
     some ((eword.row y).toList)
+
+/-! ## Completeness, modulo the phases' agreement -/
+
+/-- The honest prover's completeness as stated: for every hash and fuel, a proof the prover
+returns for a satisfying witness is accepted, given the phases' agreement at every admissible size
+and valid rate. -/
+example (H : List UInt8 → Digest) (fuel : ℕ) {prog : Program} {input : PublicInput}
+    {w : Air.Flat.EnsembleWitness (LeanerVM.Arithmetization.leanIsaEnsemble prog)} {ρ : ℕ}
+    {proof : Proof PrunedMerklePaths} (hsat : LeanerVM.Arithmetization.SatisfiedBy prog input w)
+    (hagree : ∀ s hs hρ, PhasesAgree prog s hs ρ hρ input)
+    (hp : proveWith (m := Id) H fuel Blake2sFlock.blake2sFlockSpec prog input w ρ = some proof) :
+    verifyWith (m := Id) H prog input proof = true :=
+  baseProver_complete H fuel hsat hagree hp
 
 /-! ## The setup -/
 

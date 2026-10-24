@@ -1145,7 +1145,7 @@ Merkle trees', with the fast field arithmetic merged), the rest of Layer 12's ve
 
 *On merge* of the prover's branch (`feat/protocol-prover`, on the verifier's and the stateful
 provers'), Layer 13's honest prover and its test vectors are on `main`. No target theorem
-advances; `baseProver_complete` is owed.
+advances; `baseProver_complete` holds modulo `PhasesAgree`.
 
 - **The prover** (`Protocol/Prove.lean`, `Protocol/Prove/`): `proveWith H fuel F prog input w ρ`
   reads the sizes off the witness, checks them with the rate, announces them, runs the compiled
@@ -1188,32 +1188,45 @@ advances; `baseProver_complete` is owed.
   oracle accepts on every challenge vector: the run on given challenges is reachable under
   uniform challenges, `mem_support_simulateQ_challenges`, and a probability-one event holds on
   every reachable outcome).
-- **`baseProver_complete`, what remains.** For a witness with `SatisfiedBy` and admissible sizes,
-  `prove … = some proof → verify prog input proof = true`, composed as follows; each piece is owed.
-  - *The prover's run is the honest run on its challenges*: `compiledProver_run` and
-    `runWith_eq_runWithChallenges` at `writeProof`'s run, lifted through the prover's book.
+- **`baseProver_complete`, modulo the phases' agreement** (`Protocol/Prove/Complete.lean`): for
+  every byte hash `H` and fuel, `proveWith (m := Id) H fuel blake2sFlockSpec prog input w ρ = some
+  proof → verifyWith (m := Id) H prog input proof = true` for a witness with `SatisfiedBy`, given
+  `PhasesAgree prog s hs ρ hρ input` at every admissible `s` and valid `ρ`: on every full
+  transcript of the compiled protocol (`listBindingDef` at leanVM's instance and WHIR's deployed
+  chain) that its verifier accepts on the public input, `Verify.algebra` accepts the transcript's
+  wire (`DecodeChain.wireOf`, `Verify/WireOf.lean`, the chain-history decoder's functions) and
+  its words' rows at its positions (`rowsOf`). The proof composes:
+  - *The run is the honest run on its challenges*: every run against a wire, in a monad that runs
+    from state to state, steps through the wire on its transcript (`Prover.runWith_runsAs`,
+    `RoundCodec.RunsAs.append_inv`, `ToArkLib/RunTrace.lean`), and the transcript is the honest
+    prover's on its own challenges (`runWith_eq_runWithChallenges`, `compiledProver_run`,
+    `runWithChallenges_eq_of_run_eq`).
   - *The honest transcript is accepted*: `accepts_of_perfectCompleteness` at
-    `listBinding_deployed_perfectCompleteness`, on the stack's `M3Rel` (`m3Holds_stackOf`).
-  - *The nonce bridge*: the oracle prover sends `0` as each level's nonce (`sendNonce`,
-    `finalNonce`) where the wire carries the grind's nonce. Owed: the compiled verifier's verdict
-    does not depend on the nonce rounds, which their checks (`true`) and every later step of a
-    level (they read `pos`, `lam`, `cq`, `c`, `cood`, `p3`, never `nonce`) bear out, stated through
-    `listBindingDef` without changing the merged protocol.
-  - *The wire read back by the walk*: `ReadsBack` (`Proof.lean`) of `Prover.runWith
-    compiledCodec` against `walkChain`, phase by phase over `listBindingSpec`, from the
-    primitives' read-backs (`readsBack_scalar`, `readsBack_root`, `readsBack_sample`,
-    `readsBack_grind`) lifted along the book; the decoded wire is the honest transcript with the
-    dropped coefficients restored (`RoundPoly.decode_encode`).
-  - *The algebra on the decoded transcript*: `algebra` is `true` whenever the oracle verifier
-    accepts the transcript the wire decodes to: `busStep`, `tableStep`, `pubStep`, `flockStep`,
-    `openingClaim` and `whirCheck` each against its phase's guarded check and output. The largest
-    piece; no theorem relates the executable verifier to the oracle verifiers yet.
-  - *The openings and the setup*: `hintOpenings` against `walkOpenings` by
-    `merkleVerifyWith_merkleOpen` (positions below `2^depth`, rows `rowWords` wide), the
-    announcement by `decodeAnnouncement_announcement`, `ladderOf` and `openingsOk` at the proof's
-    shapes, and `Reader.finish`.
-  - *The random-oracle form*: `Pr[prove fails] ≤ levels · (1 − 2^-17)^(2^24)`, otherwise accepted,
-    on the logged game with the hash a uniform function.
+    `listBinding_deployed_perfectCompleteness`, on the stack's `M3Rel` (`m3Holds_stackOf`); then
+    `PhasesAgree`.
+  - *The nonces, the roots and the positions*: the walk's wire is the transcript's but for the
+    roots (the transcript carries words), the grinding nonces (the oracle prover sends `0`, the
+    proof the grind's nonce) and the positions' reduction, none of which the algebra reads
+    (`Verify.algebra_erase`, `Verify/Erase.lean`). So the agreement is applied at the honest
+    transcript and the compiled verifier's independence of the nonce rounds is not needed.
+  - *The wire read back by the walk* (`Prove/ReadBack.lean`): the writer's primitives read back by
+    the walk's (`back_send`, `back_sample`, `back_grind`, `runs_commit`, `runs_positions`), each
+    phase's wire by its walk (`back_bus`, `back_table`, `back_pub`, `back_flock`, `back_level`,
+    `back_final`, `back_ladder`), the whole chain (`walkChain_reads`), the book keeping the
+    commitments and positions in order. The public input's message has one value per sent line
+    because the algebra accepts it (`pubLength_of_algebra`).
+  - *The openings and the setup* (`Prove/Openings.lean`): `hintOpenings` against `walkOpenings`
+    by `merkleVerifyWith_merkleOpen` (`reads_openings`), `openingsOk` at the honest openings
+    (`openingsOk_openings`, the siblings at most the queries' paths' nodes), the announcement
+    (`setup?_of_announce`), the verifier's ladder walking the deployed chain's shapes
+    (`ladderOf_leanIsaChain`, `leanIsaChain_walk`, by `chainOf`'s structure and a decision on the
+    window), the stream and openings consumed (`run_of_reads`). Level 0's rows carry only the
+    committed lanes; the honest word's lanes past them vanish (`level0Word_honest`, by
+    `runWithChallenges_append_fst`; `kwordOf_stackOf_high`), so the rows read are the word's.
+  - Owed: `PhasesAgree` (the executable verifier's phases against the oracle verifiers', the
+    lemma the soundness direction needs too), after which `baseProver_complete` holds with no
+    hypothesis; the random-oracle form, `Pr[prove fails] ≤ levels · (1 − 2^-17)^(2^24)`, otherwise
+    accepted, on the logged game with the hash a uniform function.
 
 ## Upstream watch
 
