@@ -1,35 +1,53 @@
 import LeanVM.Guest.EndFinal
 
 /-!
-# Tests: the decoder chooses nothing
+# Tests: the decoder chooses nothing, computes no hash and runs no verifier
 
-Every definition of this repository that the guest's decoder `LeanVM.Guest.End.decode` (and
-`decodeWith`, `decodeV`, which it instantiates) unfolds to (its value, not the proofs it carries) is checked not to mention `Classical.choose`,
-`Classical.epsilon`, `Exists.choose` or `Classical.indefiniteDescription`: the decoder reads its
-witness off the memory, it does not pick one. The one exception is the memory read itself,
-`LeanVM.Semantics.gLog?` (the index `i` with `a = g^i`, unique by the generator's order): the
-specification's definition of an address, not a witness. Deciding a test
-(`Classical.propDecidable`) and the field arithmetic are not choices of a witness, and are
-outside the check. `main`'s witness function `W` is a parameter of `decodeWith`; `decodeV piOf`
-instantiates it with B1's (`B1.Main.decWitV`: the signatures, the DA matrix and the batching's
-hints read off the frames of the functions that checked them), and `decode` the child proof with
-`VerifySub.vsPiOf` (the stream words `verify_sub` reads, the openings `open_stacked`'s queries
-hash).
+`LeanVM.Guest.End.decode` reads its witness off the memory. The traversal below follows every
+definition `decode` unfolds to (its value, not the proofs it carries) through this repository and
+the schemes it imports (`LeanVM`, `LeanXmss`, `Sphincs`, `LeanDa`).
+
+* **Classical constructs.** The definitions that mention `Classical.choose`, `Classical.epsilon`,
+  `Exists.choose`, `Classical.indefiniteDescription`, `Classical.propDecidable`,
+  `Classical.choice` or `Nat.find` are exactly the reviewed two:
+  `LeanVM.Guest.Located.frameOf` (`Classical.propDecidable`: it decides, for each of the memory's
+  `2^κ` frames in order, whether the guest's own code for the callee holds there on the call's
+  words, and takes the first) and `LeanVM.Semantics.gLog?` (`Classical.choose`: the index `i`
+  with `a = g^i`, unique by the generator's order, the specification's definition of an address).
+  Neither picks a witness.
+* **Positive controls.** The traversal reaches `Located.frameOf` and B1-d's child proof
+  `VerifySub.piOfW`, and it flags a definition that does choose (`VerifySub.valOf`, the word at
+  an address by `Exists.choose`, which `decode` does not use).
+* **No hash, no verifier.** No definition `decode` unfolds to mentions Keccak-256, Keccak-f[1600],
+  a signature scheme's verifier, the deferring verifier, the DA opening or the batching. This
+  traversal stops at the guest's own semantics (`Core.Stmt.HoldsList`, `Core.Program.RelL`,
+  `Core.Program.locN`), which `frameOf`'s test evaluates and which includes the guest's
+  in-circuit checks (a `KECCAK` atom's `KeccakCells`): those checks are the guest's, the decoder
+  computes no hash and runs no verifier of its own.
 -/
 
 open Lean Meta Elab Command
 
-/-- The repository's definitions reachable from `root` through values, and those mentioning a
-forbidden constant. -/
-def choiceUses (root : Name) (stop : NameSet) (forbidden : NameSet) : MetaM (Array (Name × Name)) := do
+/-- The prefixes the traversals follow. -/
+def followed : List Name := [`LeanVM, `LeanXmss, `Sphincs, `LeanDa]
+
+/-- A name ends with one of the suffixes. -/
+def endsWithAny (n : Name) (suffixes : List String) : Bool :=
+  suffixes.any fun s ↦ n.toString.endsWith s
+
+/-- The definitions reachable from `root` through values, following `followed` and stopping at
+the names ending with a `stop` suffix, and the pairs (definition, constant) for every constant a
+visited definition's value mentions that `bad` flags. -/
+def traverse (root : Name) (stop : List String) (bad : Name → Bool) :
+    MetaM (NameSet × Array (Name × Name)) := do
   let env ← getEnv
   let mut seen : NameSet := {}
   let mut todo : Array Name := #[root]
-  let mut bad : Array (Name × Name) := #[]
+  let mut hits : Array (Name × Name) := #[]
   while h : todo.size > 0 do
     let n := todo.back
     todo := todo.pop
-    if seen.contains n || stop.contains n then continue
+    if seen.contains n || endsWithAny n stop then continue
     seen := seen.insert n
     let some ci := env.find? n | continue
     -- follow definitions (and instances), not theorems: a proof is not part of the decoder
@@ -37,67 +55,48 @@ def choiceUses (root : Name) (stop : NameSet) (forbidden : NameSet) : MetaM (Arr
     if ci matches .thmInfo _ then continue
     if ← isProp ci.type then continue
     for c in v.getUsedConstants do
-      if forbidden.contains c then bad := bad.push (n, c)
-      else if (`LeanVM).isPrefixOf c && !seen.contains c then todo := todo.push c
-  return bad
+      if bad c then hits := hits.push (n, c)
+      else if followed.any (·.isPrefixOf c) && !seen.contains c then todo := todo.push c
+  return (seen, hits)
+
+/-- The classical constructs that could pick a witness. -/
+def classical : NameSet :=
+  [``Classical.choose, ``Classical.epsilon, ``Exists.choose, ``Classical.indefiniteDescription,
+    ``Classical.propDecidable, ``Classical.choice, ``Nat.find].foldl NameSet.insert {}
+
+/-- The hits, sorted, as a string. -/
+def showHits (hits : Array (Name × Name)) : String :=
+  toString ((hits.map fun p ↦ s!"{p.1} uses {p.2}").qsort (· < ·)).toList
+
+/-- info: [LeanVM.Guest.Located.frameOf uses Classical.propDecidable, LeanVM.Semantics.gLog? uses Classical.choose] -/
+#guard_msgs in
+run_meta do
+  let (_, hits) ← traverse ``LeanVM.Guest.End.decode [] classical.contains
+  logInfo (showHits hits)
+
+/-! ## Positive controls -/
+
+/-- info: frameOf: true, piOfW: true -/
+#guard_msgs in
+run_meta do
+  let (seen, _) ← traverse ``LeanVM.Guest.End.decode [] classical.contains
+  logInfo s!"frameOf: {seen.contains ``LeanVM.Guest.Located.frameOf}, piOfW: {seen.contains ``LeanVM.Guest.B1.VerifySub.piOfW}"
+
+/-- info: [LeanVM.Guest.B1.VerifySub.valOf uses Classical.propDecidable, LeanVM.Guest.B1.VerifySub.valOf uses Exists.choose] -/
+#guard_msgs in
+run_meta do
+  let (_, hits) ← traverse ``LeanVM.Guest.B1.VerifySub.valOf [] classical.contains
+  logInfo (showHits hits)
+
+/-! ## No hash, no verifier -/
 
 /-- info: [] -/
 #guard_msgs in
 run_meta do
-  let forbidden : NameSet := [``Classical.choose, ``Classical.epsilon, ``Exists.choose,
-    ``Classical.indefiniteDescription].foldl NameSet.insert {}
-  let stop : NameSet := [``LeanVM.Semantics.gLog?].foldl NameSet.insert {}
-  let bad ← choiceUses ``LeanVM.Guest.End.decodeWith stop forbidden
-  let bad' ← choiceUses ``LeanVM.Guest.End.decodeV stop forbidden
-  let bad'' ← choiceUses ``LeanVM.Guest.End.decode stop forbidden
-  logInfo m!"{(bad ++ bad' ++ bad'').toList}"
-
-/-! ## The decoder verifies nothing
-
-No definition `decode` unfolds to, through this repository and the schemes it imports,
-mentions a hash, the permutation or a verification function (Keccak-256, Keccak-f[1600], a
-signature scheme's `verify`, the deferring verifier, the DA opening, the batching). The traversal
-stops at the guest's own semantics (`Core.Stmt.HoldsList`, `Core.Program.RelL`,
-`Core.Program.locN`): the decoder finds a callee's frame as the one at which the guest's code holds
-(`Located.frameOf`), and that code's checks are the guest's, not the decoder's. -/
-
-/-- A name ends with one of the suffixes. -/
-def endsWithAny (n : Name) (suffixes : List String) : Bool :=
-  suffixes.any fun s ↦ n.toString.endsWith s
-
-/-- The definitions reachable from `root` through values, following the given prefixes and
-stopping at the names ending with a `stop` suffix, that mention a name ending with a forbidden
-suffix. -/
-def verifyUses (root : Name) (follow : List Name) (stop forbidden : List String) :
-    MetaM (Array (Name × Name)) := do
-  let env ← getEnv
-  let mut seen : NameSet := {}
-  let mut todo : Array Name := #[root]
-  let mut bad : Array (Name × Name) := #[]
-  while h : todo.size > 0 do
-    let n := todo.back
-    todo := todo.pop
-    if seen.contains n || endsWithAny n stop then continue
-    seen := seen.insert n
-    let some ci := env.find? n | continue
-    let some v := ci.value? | continue
-    if ci matches .thmInfo _ then continue
-    if ← isProp ci.type then continue
-    for c in v.getUsedConstants do
-      if endsWithAny c forbidden then bad := bad.push (n, c)
-      else if follow.any (·.isPrefixOf c) && !seen.contains c then todo := todo.push c
-  return bad
-
-/-- info: [] -/
-#guard_msgs in
-run_meta do
-  let follow := [`LeanVM, `LeanXmss, `Sphincs, `LeanDa]
   let stop := ["Core.Stmt.HoldsList", "Core.Stmt.Holds", "Core.Stmt.HoldsArms",
     "Core.Program.RelL", "Core.Program.locN", "Semantics.gLog?"]
   let forbidden := ["keccak256", "keccakF", "Keccak.round", "absorbBlock", "xmssVerify",
     "sphincsVerify", "LeanXmss.verify", "Sphincs.verify", "verifyDeferred", "verifyDeferredWith",
     "Verifier.verify", "verifyWith", "Witness.Opens", "Node.batch"]
-  let bad ← verifyUses ``LeanVM.Guest.End.decodeWith follow stop forbidden
-  let bad' ← verifyUses ``LeanVM.Guest.End.decodeV follow stop forbidden
-  let bad'' ← verifyUses ``LeanVM.Guest.End.decode follow stop forbidden
-  logInfo m!"{(bad ++ bad' ++ bad'').toList}"
+  let (_, hits) ← traverse ``LeanVM.Guest.End.decode stop (endsWithAny · forbidden)
+  logInfo (showHits hits)

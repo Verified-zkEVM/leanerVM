@@ -18,8 +18,10 @@ public import LeanVM.Guest.B1.Main.Frames
 `LeanVM.Guest.End.decode` reads the seed, the statement and the witness off a valid execution's
 memory: `main`'s frame (`fp = 1`) and the frames of the calls `main` and its callees make, each
 the first frame of the memory at which the callee's code holds on the call's words (`frameOf`).
-It chooses nothing and verifies nothing (`Spec/Guest.lean`;
-`tests/LeanVMTests/Guest/DecodeNoChoice.lean`).
+It chooses nothing (`tests/LeanVMTests/Guest/DecodeNoChoice.lean`). It computes no hash and runs no
+verifier of its own; the frame of a call is found by a classical test of the guest's semantics
+(the callee's core IR body, its in-circuit checks included, holding at the frame), and the witness
+is read there (`Spec/Guest.lean`).
 
 The convention B1 states its witnesses in (agreed between B1-b, B1-d, B1-f and this assembly;
 `B1.FrameMap`, `B1.UnfoldsV` in `B1/Main/Frames.lean`):
