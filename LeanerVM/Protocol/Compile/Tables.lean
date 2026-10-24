@@ -24,9 +24,11 @@ verifier's run on the decoded transcript), `tableStep_eq_some_iff`, `tableTr?_ta
 accepted transcript is the one its wire decodes to), `tableWireOf_tableTr?` and
 `tableStep_tableWireOf`.
 
-**The public input** (`deployedPublicInputPhase`). Nothing is rebuilt: the wire is the
-transcript (`pubTr`, `pubWireOf`, the two inverse), and the executable's algebra is the oracle
-verifier's run on it (`pubStep_eq`).
+**The public input** (`deployedPublicInputPhase`). The wire is the transcript (`pubTr`,
+`pubWireOf`), and the executable's algebra is the oracle verifier's run on it (`pubStep_eq`), by
+definition: `Verify.pubStep` is the deployed phase's `accepts` and `verdict`, not a separate
+transcription. Its fidelity to the deployed verifier is therefore that of the phase's
+(`PublicInput.verify_simulated`).
 
 **The opening claim.** The opening phase (`openingPhase`) draws `λ` and asks the stack the pool's
 weights and values batched by its powers (`Opening.weight`, `Opening.values`); the compiled
@@ -39,6 +41,8 @@ namespace LeanerVM.Protocol
 open LeanerVM.Parameters LeanerVM.Semantics LeanIsa CompPoly ProtocolSpec SumcheckRound Verify
 
 @[expose] public section
+
+open RoundPoly (ofList?_toList toList_of_ofList?)
 
 namespace Compile
 
@@ -69,7 +73,7 @@ def tableWireOf (t : (tableSpec I).FullTranscript) : TableWire :=
   ⟨xi, roundsWire 1 I.τmax t₂.snd, Vector.toList (n := I.tableColumns) (vals 0)⟩
 
 /-- The wire of a table sumcheck's transcript in its parts. -/
-theorem tableWireOf_tableTrOf (ξ : E) (R : (roundsSpec E 3 I.τmax).FullTranscript)
+private theorem tableWireOf_tableTrOf (ξ : E) (R : (roundsSpec E 3 I.τmax).FullTranscript)
     (v : Vector E I.tableColumns) :
     tableWireOf I (tableTrOf I ξ R v) = ⟨ξ, roundsWire 1 I.τmax R, v.toList⟩ := by
   simp only [tableWireOf, tableTrOf, FullTranscript.append_fst, FullTranscript.append_snd,
@@ -210,11 +214,9 @@ theorem pubTr_pubWireOf (t : pubSpec.FullTranscript) : pubTr (pubWireOf t) = t :
     | ⟨1, _⟩ => rfl
     | ⟨k + 2, h⟩ => absurd h (by omega)
 
-/-- The wire of the public input's transcript is the wire. -/
-theorem pubWireOf_pubTr (w : PubWire) : pubWireOf (pubTr w) = w := rfl
-
 /-- **The executable verifier's public input is the oracle verifier's**: its algebra on the wire
-is the deployed phase's guarded verifier run on the wire's transcript. -/
+is the deployed phase's guarded verifier run on the wire's transcript. It holds by definition:
+`Verify.pubStep` is written as the phase's `accepts` and `verdict`. -/
 theorem pubStep_eq (s : I.Stmt × TableOut I) (w : PubWire) :
     pubStep I s w = (deployedPublicInputPhase I).front.run s (pubTr w) :=
   rfl

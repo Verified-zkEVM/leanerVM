@@ -81,21 +81,6 @@ theorem check_iff {d : ℕ} (claim : E) (eq? : Option E) (c : Vector E (d + 1)) 
   | some r =>
     simp [RoundPoly.Check, weightedSum, eqDomain, eval_eq_evaluate, CharTwo.sub_eq_add]
 
-/-- A wire decodes to a polynomial exactly when the polynomial carries the wire and passes its
-round's check, at a positive degree. -/
-theorem decode_eq_some_iff {d : ℕ} {claim : E} {eq? : Option E} {w : List E}
-    {c : Vector E (d + 1)} :
-    RoundPoly.decode d claim eq? w = some c ↔
-      0 < d ∧ RoundPoly.encode eq? c = w ∧ RoundPoly.Check claim eq? c := by
-  refine ⟨fun h ↦ ⟨?_, RoundPoly.encode_decode h, RoundPoly.check_of_decode h⟩, ?_⟩
-  · unfold RoundPoly.decode at h
-    split at h
-    · rename_i hd
-      exact hd.1
-    · cases h
-  · rintro ⟨hd, rfl, hc⟩
-    exact RoundPoly.decode_encode hd hc
-
 /-! ## Runs of rounds -/
 
 /-- A round polynomial's wire, the coefficient at `drop` left out. -/

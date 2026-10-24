@@ -48,24 +48,11 @@ open LeanerVM.Parameters LeanerVM.Semantics LeanIsa CompPoly CMlPolynomialEval P
 
 @[expose] public section
 
+open RoundPoly (ofList?_toList toList_of_ofList?)
+
 namespace Compile
 
 /-! ## Vectors read off lists -/
-
-/-- A vector's list reads back as the vector. -/
-theorem ofList?_toList {n : ℕ} (v : Vector E n) : RoundPoly.ofList? n v.toList = some v := by
-  rw [RoundPoly.ofList?, dite_eq_left_of_eq_true (eq_true v.length_toList)]
-  rcases v with ⟨a, rfl⟩
-  simp
-
-/-- A vector read off a list carries it. -/
-theorem toList_of_ofList? {n : ℕ} {l : List E} {v : Vector E n}
-    (h : RoundPoly.ofList? n l = some v) : v.toList = l := by
-  unfold RoundPoly.ofList? at h
-  split at h
-  · cases h
-    simp
-  · cases h
 
 /-- A list reads as a vector exactly when it has the vector's length. -/
 theorem isSome_ofList? {n : ℕ} {l : List E} : (RoundPoly.ofList? n l).isSome ↔ l.length = n := by
@@ -159,7 +146,7 @@ def gkrWire (μ : ℕ) (t : (gkrSpec E 3 μ).FullTranscript) : E × List GkrLaye
 
 /-- A layer's transcript is its combiner, its rounds, its descendants and its combination
 challenges. -/
-theorem exists_eq_stepTr {ρ m : ℕ} (t : (stepSpec E 3 ρ m).FullTranscript) :
+private theorem exists_eq_stepTr {ρ m : ℕ} (t : (stepSpec E 3 ρ m).FullTranscript) :
     ∃ (lam : E) (R : (roundsSpec E (2 ^ ρ) m).FullTranscript) (ch : Fin 3 → Vector E (2 ^ ρ))
       (u : Vector E ρ), t = ((chalTr lam ++ₜ R) ++ₜ msgTr ch) ++ₜ chalsTr ρ fun i ↦ u[i] := by
   obtain ⟨f, hf⟩ := exists_eq_chalsTr ρ t.snd
@@ -169,7 +156,7 @@ theorem exists_eq_stepTr {ρ m : ℕ} (t : (stepSpec E 3 ρ m).FullTranscript) :
   simp only [Fin.getElem_fin, Vector.getElem_ofFn, Fin.eta]
 
 /-- The wire of a layer's transcript in its parts. -/
-theorem layerWire_mk {ρ m : ℕ} (lam : E) (R : (roundsSpec E (2 ^ ρ) m).FullTranscript)
+private theorem layerWire_mk {ρ m : ℕ} (lam : E) (R : (roundsSpec E (2 ^ ρ) m).FullTranscript)
     (ch : Fin 3 → Vector E (2 ^ ρ)) (u : Vector E ρ) (next : E) :
     layerCombiner (((chalTr lam ++ₜ R) ++ₜ msgTr ch) ++ₜ chalsTr ρ fun i ↦ u[i]) = lam ∧
       layerWire (((chalTr lam ++ₜ R) ++ₜ msgTr ch) ++ₜ chalsTr ρ fun i ↦ u[i]) next =
@@ -200,12 +187,12 @@ def layerTr? (ρ m : ℕ) (ℓ : Gkr.LayerStmt X E 3 m) (lam : E) (l : GkrLayer)
           chalsTr ρ fun i ↦ u[i]
 
 /-- The point's equality weights are the oracle verifier's domains of a layer's rounds. -/
-theorem weights_eq (m : ℕ) (x : Gkr.LayerX X E 3 m) (k : ℕ) (hk : k < m) :
+private theorem weights_eq (m : ℕ) (x : Gkr.LayerX X E 3 m) (k : ℕ) (hk : k < m) :
     Gkr.weights 3 m x k = eqDomain (x.1.2.1[k]?) := by
   simp [Gkr.weights, SumcheckRound.normalizedWeights, hk, eqDomain]
 
 /-- A layer's rounds drop their constant coefficients. -/
-theorem dropped_eq (m : ℕ) (ℓ : Gkr.LayerStmt X E 3 m) (k : ℕ) (hk : k < m) :
+private theorem dropped_eq (m : ℕ) (ℓ : Gkr.LayerStmt X E 3 m) (k : ℕ) (hk : k < m) :
     RoundPoly.dropped (ℓ.2.1[k]?) = 0 := by
   simp [RoundPoly.dropped, hk]
 
@@ -251,7 +238,7 @@ theorem replayGkr_cons (ρ : ℕ) (ρs : List ℕ) (m : ℕ) {S : Type}
     · simp [hc]
 
 /-- The executable's grand product keeps the public data. -/
-theorem replayGkr_fst : ∀ (ρs : List ℕ) (m : ℕ) (ℓ : Gkr.LayerStmt X E 3 m) (lam : E)
+private theorem replayGkr_fst : ∀ (ρs : List ℕ) (m : ℕ) (ℓ : Gkr.LayerStmt X E 3 m) (lam : E)
     (ls : List GkrLayer) (r : Σ n, Gkr.LayerStmt X E 3 n),
     replayGkr ρs m ℓ lam ls = some r → r.2.1 = ℓ.1
   | [], m, ℓ, lam, [], r, h => by
@@ -577,7 +564,7 @@ def busWireOf (t : (busSpec I).FullTranscript) : BusWire :=
   ⟨List.ofFn fp.1, fp.2, roots.1, roots.2, g.1, g.2, Vector.toList (n := I.busClaims) (vals 0)⟩
 
 /-- The wire of a bus phase's transcript in its parts. -/
-theorem busWireOf_busTrOf (ab : (Fin 4 → E) × E) (r : E × E)
+private theorem busWireOf_busTrOf (ab : (Fin 4 → E) × E) (r : E × E)
     (g : (gkrSpec E 3 I.μBus).FullTranscript) (vals : Vector E I.busClaims) :
     busWireOf I (busTrOf I ab r g vals) =
       ⟨List.ofFn ab.1, ab.2, r.1, r.2, (gkrWire I.μBus g).1, (gkrWire I.μBus g).2,

@@ -2,9 +2,9 @@
   LeanerVM.Protocol.ToArkLib.FrontRun
 
   A front component's verifier run on one transcript, as an option: its verdict when its check
-  passes. Runs of appended components compose, the transcripts of the one-round and empty
-  schedules are built from their values, and a run of sumcheck rounds unfolds round by round.
-  Candidate for ArkLib.
+  passes; likewise a guarded component's, with its oracles. Runs of appended components compose,
+  the transcripts of the one-round and empty schedules are built from their values, and a run of
+  sumcheck rounds unfolds round by round. Candidate for ArkLib.
 -/
 
 module
@@ -19,8 +19,15 @@ transcript. `Front.run F s tr` is the verdict when the check passes and `none` o
 executable verifier computes from the same values. Runs compose along appends (`run_append`):
 the run of `F₁.append F₂` is the run of `F₁` on the first part of the transcript, followed by the
 run of `F₂` on the second from its verdict. The basic components run as their definitions say
-(`run_sampleFront`, `run_sendCheckedFront`, `run_passThroughFront`), and a run of sumcheck rounds
+(`run_sampleFront`, `run_sendCheckedFront`, `run_drawPushesFront`), and a run of sumcheck rounds
 unfolds one round at a time (`run_roundsFront_zero`, `run_roundsFront_succ`).
+
+A guarded component (`Component.Guarded`) has a check and a verdict on its statement, its oracles
+and its transcript, and may read the oracles. `Guarded.run G p tr` is the verdict with the output
+oracles when the check passes; the component's verifier, run as an oracle computation, returns it
+(`Guarded.verifier_run`; for a front component `Front.verifier_run`, its run with the oracles
+handed on). Guarded runs compose along appends (`Guarded.run_append`), so the verifier of a
+protocol assembled from components reduces to its components' runs.
 
 The transcripts of the one-round schedules are built from their values (`msgTr`, `chalTr`), the
 empty schedule's is `nilTr`, and every transcript of these schedules is so built (`eq_msgTr`,
@@ -54,13 +61,13 @@ def appendFast (T₁ : pSpec₁.FullTranscript) (T₂ : pSpec₂.FullTranscript)
     (fun j ↦ cast (by simp [Fin.vappend_eq_append]) (T₂ j)) i
 
 /-- The first part of two transcripts appended entry by entry is the first. -/
-theorem fst_appendFast (T₁ : pSpec₁.FullTranscript) (T₂ : pSpec₂.FullTranscript) :
+private theorem fst_appendFast (T₁ : pSpec₁.FullTranscript) (T₂ : pSpec₂.FullTranscript) :
     (appendFast T₁ T₂).fst = T₁ := by
   funext i
   simp [FullTranscript.fst, appendFast]
 
 /-- The second part of two transcripts appended entry by entry is the second. -/
-theorem snd_appendFast (T₁ : pSpec₁.FullTranscript) (T₂ : pSpec₂.FullTranscript) :
+private theorem snd_appendFast (T₁ : pSpec₁.FullTranscript) (T₂ : pSpec₂.FullTranscript) :
     (appendFast T₁ T₂).snd = T₂ := by
   funext i
   simp [FullTranscript.snd, appendFast]
@@ -111,11 +118,6 @@ theorem chalsList_chalsTr {C : Type} : ∀ (k : ℕ) (f : Fin k → C),
     rw [FullTranscript.append_fst, FullTranscript.append_snd, chalsList_chalsTr k,
       List.ofFn_succ_last]
     rfl
-
-/-- A vector is the vector of its entries. -/
-theorem ofFn_getElem_fin {C : Type} {n : ℕ} (u : Vector C n) :
-    (Vector.ofFn fun i : Fin n ↦ u[i]) = u :=
-  Vector.ext fun j hj ↦ by simp
 
 /-- A vector is its first entries with its last one pushed. -/
 theorem push_ofFn_castSucc {C : Type} {n : ℕ} (u : Vector C (n + 1)) :
@@ -210,6 +212,118 @@ theorem run_append {E₁ : Def Stmt₁ OStmt Wit₁ Stmt₂ OStmt Wit₂ pSpec�
 
 end Component.Front
 
+/-! ## Runs of guarded components -/
+
+namespace Component.Guarded
+
+section Run
+
+variable {StmtIn : Type} {ιi : Type} {OStmtIn : ιi → Type} {WitIn StmtOut : Type} {ιo : Type}
+  {OStmtOut : ιo → Type} {WitOut : Type} [∀ i, OracleInterface (OStmtIn i)]
+  [∀ i, OracleInterface (OStmtOut i)] {n : ℕ} {pSpec : ProtocolSpec n}
+  [∀ i, OracleInterface (pSpec.Message i)] [∀ i, SampleableType (pSpec.Challenge i)]
+  {D : Def StmtIn OStmtIn WitIn StmtOut OStmtOut WitOut pSpec}
+
+/-- The run of a guarded component on a statement, its oracles and a transcript: the verdict and
+the output oracles when the check passes. -/
+def run (G : Guarded D) (s : StmtIn × ∀ i, OStmtIn i) (tr : pSpec.FullTranscript) :
+    Option (StmtOut × ∀ i, OStmtOut i) :=
+  if G.guarded.check s tr then some (G.guarded.out s tr) else none
+
+/-- **The verifier's run is the guarded run**: run as an oracle computation, the component's
+verifier returns the guarded run. -/
+theorem verifier_run (G : Guarded D) (s : StmtIn × ∀ i, OStmtIn i)
+    (tr : pSpec.FullTranscript) :
+    (D.red.toReduction.verifier.run s tr).run = pure (G.run s tr) := by
+  change (D.red.toReduction.verifier.verify s tr).run = _
+  rw [G.guarded.verify_eq s tr, run]
+  cases G.guarded.check s tr <;> rfl
+
+/-- A run returns a verdict exactly when the check passes and the verdict is it. -/
+theorem run_eq_some_iff (G : Guarded D) {s : StmtIn × ∀ i, OStmtIn i}
+    {tr : pSpec.FullTranscript} {o : StmtOut × ∀ i, OStmtOut i} :
+    G.run s tr = some o ↔ G.guarded.check s tr = true ∧ G.guarded.out s tr = o := by
+  unfold run
+  cases G.guarded.check s tr <;> simp
+
+end Run
+
+variable {ι₁ ι₂ ι₃ : Type} {OStmt₁ : ι₁ → Type} {OStmt₂ : ι₂ → Type} {OStmt₃ : ι₃ → Type}
+  [∀ i, OracleInterface (OStmt₁ i)] [∀ i, OracleInterface (OStmt₂ i)]
+  [∀ i, OracleInterface (OStmt₃ i)] {Stmt₁ Stmt₂ Stmt₃ Wit₁ Wit₂ Wit₃ : Type} {m₁ m₂ : ℕ}
+  {pSpec₁ : ProtocolSpec m₁} {pSpec₂ : ProtocolSpec m₂}
+  [∀ i, OracleInterface (pSpec₁.Message i)] [∀ i, SampleableType (pSpec₁.Challenge i)]
+  [∀ i, OracleInterface (pSpec₂.Message i)] [∀ i, SampleableType (pSpec₂.Challenge i)]
+
+/-- **Guarded runs compose**: the run of two components in sequence is the first one's run on the
+first part of the transcript, then the second one's from its verdict on the second part. -/
+theorem run_append {D₁ : Def Stmt₁ OStmt₁ Wit₁ Stmt₂ OStmt₂ Wit₂ pSpec₁}
+    {D₂ : Def Stmt₂ OStmt₂ Wit₂ Stmt₃ OStmt₃ Wit₃ pSpec₂} (G₁ : Guarded D₁) (G₂ : Guarded D₂)
+    (s : Stmt₁ × ∀ i, OStmt₁ i) (tr : (pSpec₁ ++ₚ pSpec₂).FullTranscript) :
+    (G₁.append G₂).run s tr = (G₁.run s tr.fst).bind fun s' ↦ G₂.run s' tr.snd := by
+  simp only [run, Guarded.append, guardedAppend_check, guardedAppend_out]
+  by_cases h : G₁.guarded.check s tr.fst = true <;> simp [h]
+
+/-- A front component's guarded run is its run, the oracles handed on. -/
+theorem run_toGuarded {D : Def Stmt₁ OStmt₁ Wit₁ Stmt₂ OStmt₁ Wit₂ pSpec₁} (F : Front D)
+    (p : Stmt₁ × ∀ i, OStmt₁ i) (tr : pSpec₁.FullTranscript) :
+    F.toGuarded.run p tr = (F.run p.1 tr).map fun s' ↦ (s', p.2) := by
+  simp only [run, Front.toGuarded, Front.run]
+  by_cases hc : F.check p.1 tr = true <;> simp [hc]
+
+/-- A run of two components in sequence that returns a verdict: the first one's run on the first
+part of the transcript returns a verdict, from which the second one's returns the verdict. Applied
+to a hypothesis, it unfolds the components' definitions as unification needs. -/
+theorem run_append_eq_some {D₁ : Def Stmt₁ OStmt₁ Wit₁ Stmt₂ OStmt₂ Wit₂ pSpec₁}
+    {D₂ : Def Stmt₂ OStmt₂ Wit₂ Stmt₃ OStmt₃ Wit₃ pSpec₂} {G₁ : Guarded D₁} {G₂ : Guarded D₂}
+    {s : Stmt₁ × ∀ i, OStmt₁ i} {tr : (pSpec₁ ++ₚ pSpec₂).FullTranscript}
+    {o : Stmt₃ × ∀ i, OStmt₃ i} (h : (G₁.append G₂).run s tr = some o) :
+    ∃ x, G₁.run s tr.fst = some x ∧ G₂.run x tr.snd = some o := by
+  rwa [run_append, Option.bind_eq_some_iff] at h
+
+/-- A front component's guarded run that returns a verdict: its run returns it, the oracles
+handed on. -/
+theorem run_toGuarded_eq_some {D : Def Stmt₁ OStmt₁ Wit₁ Stmt₂ OStmt₁ Wit₂ pSpec₁} (F : Front D)
+    {p : Stmt₁ × ∀ i, OStmt₁ i} {tr : pSpec₁.FullTranscript} {x : Stmt₂ × ∀ i, OStmt₁ i}
+    (h : F.toGuarded.run p tr = some x) : ∃ y, F.run p.1 tr = some y ∧ (y, p.2) = x := by
+  rwa [run_toGuarded, Option.map_eq_some_iff] at h
+
+/-- A component whose verifier is pure, as a guarded one. -/
+def ofPure {D : Def Stmt₁ OStmt₁ Wit₁ Stmt₂ OStmt₂ Wit₂ pSpec₁}
+    (P : D.red.toReduction.verifier.PureForm) : Guarded D :=
+  ⟨P.toGuardedForm⟩
+
+/-- A pure component's run returns its verdict. -/
+theorem run_ofPure {D : Def Stmt₁ OStmt₁ Wit₁ Stmt₂ OStmt₂ Wit₂ pSpec₁}
+    (P : D.red.toReduction.verifier.PureForm) (s : Stmt₁ × ∀ i, OStmt₁ i)
+    (tr : pSpec₁.FullTranscript) : (ofPure P).run s tr = some (P.verify s tr) :=
+  rfl
+
+/-- A pure component's run that returns a verdict returns its verdict. -/
+theorem run_ofPure_eq_some {D : Def Stmt₁ OStmt₁ Wit₁ Stmt₂ OStmt₂ Wit₂ pSpec₁}
+    {P : D.red.toReduction.verifier.PureForm} {s : Stmt₁ × ∀ i, OStmt₁ i}
+    {tr : pSpec₁.FullTranscript} {x : Stmt₂ × ∀ i, OStmt₂ i} (h : (ofPure P).run s tr = some x) :
+    P.verify s tr = x :=
+  Option.some.inj h
+
+end Component.Guarded
+
+namespace Component.Front
+
+variable {ι : Type} {OStmt : ι → Type} [∀ i, OracleInterface (OStmt i)]
+  {StmtIn StmtOut WitIn WitOut : Type} {n : ℕ} {pSpec : ProtocolSpec n}
+  [∀ i, OracleInterface (pSpec.Message i)] [∀ i, SampleableType (pSpec.Challenge i)]
+  {D : Def StmtIn OStmt WitIn StmtOut OStmt WitOut pSpec}
+
+/-- **A front component's verifier is its run**: run as an oracle computation, the component's
+verifier returns the run, the oracles handed on. -/
+theorem verifier_run (F : Front D) (s : StmtIn) (o : ∀ i, OStmt i)
+    (tr : pSpec.FullTranscript) :
+    (D.red.toReduction.verifier.run (s, o) tr).run = pure ((F.run s tr).map fun s' ↦ (s', o)) := by
+  rw [F.toGuarded.verifier_run, Guarded.run_toGuarded]
+
+end Component.Front
+
 namespace Component
 
 variable {ι : Type} (OStmt : ι → Type) [∀ i, OracleInterface (OStmt i)] {StmtIn StmtOut W : Type}
@@ -241,12 +355,6 @@ theorem run_drawPushesFront (C : Type) [SampleableType C] :
     rw [Vector.ofFn_succ (f := f)]
     rfl
 
-/-- The pass-through component returns the mapped statement. -/
-theorem run_passThroughFront (f : StmtIn → StmtOut) (s : StmtIn)
-    (tr : (!p[] : ProtocolSpec 0).FullTranscript) :
-    (passThroughFront (W := W) OStmt f).run s tr = some (f s) :=
-  rfl
-
 end Component
 
 namespace SumcheckRound
@@ -259,16 +367,6 @@ variable {F : Type} {d : ℕ}
 def roundTr (q : Vector F (d + 1)) (c : F) : (roundSpec F d).FullTranscript :=
   msgTr q ++ₜ chalTr c
 
-/-- A transcript of rounds is its first round's message and challenge, then the rest. -/
-theorem eq_roundTr_append {i : ℕ} (t : (roundsSpec F d (i + 1)).FullTranscript) :
-    t = roundTr
-        ((FullTranscript.fst (pSpec₁ := roundSpec F d) (pSpec₂ := roundsSpec F d i) t).fst 0)
-        ((FullTranscript.fst (pSpec₁ := roundSpec F d) (pSpec₂ := roundsSpec F d i) t).snd 0) ++ₜ
-      FullTranscript.snd (pSpec₁ := roundSpec F d) (pSpec₂ := roundsSpec F d i) t := by
-  refine (FullTranscript.append_fst_snd (pSpec₁ := roundSpec F d) (pSpec₂ := roundsSpec F d i)
-    t).symm.trans ?_
-  rw [roundTr, ← eq_msgTr, ← eq_chalTr, FullTranscript.append_fst_snd]
-
 /-- The transcript of `i + 1` rounds: the first round's message and challenge, then the rest. -/
 def roundsCons {i : ℕ} (q : Vector F (d + 1)) (c : F) (t : (roundsSpec F d i).FullTranscript) :
     (roundsSpec F d (i + 1)).FullTranscript :=
@@ -279,8 +377,10 @@ theorem eq_roundsCons {i : ℕ} (t : (roundsSpec F d (i + 1)).FullTranscript) :
     t = roundsCons
         ((FullTranscript.fst (pSpec₁ := roundSpec F d) (pSpec₂ := roundsSpec F d i) t).fst 0)
         ((FullTranscript.fst (pSpec₁ := roundSpec F d) (pSpec₂ := roundsSpec F d i) t).snd 0)
-        (FullTranscript.snd (pSpec₁ := roundSpec F d) (pSpec₂ := roundsSpec F d i) t) :=
-  eq_roundTr_append t
+        (FullTranscript.snd (pSpec₁ := roundSpec F d) (pSpec₂ := roundsSpec F d i) t) := by
+  refine (FullTranscript.append_fst_snd (pSpec₁ := roundSpec F d) (pSpec₂ := roundsSpec F d i)
+    t).symm.trans ?_
+  rw [roundsCons, roundTr, ← eq_msgTr, ← eq_chalTr, FullTranscript.append_fst_snd]
 
 end Transcript
 

@@ -41,6 +41,8 @@ open LeanerVM.Parameters LeanerVM.Semantics LeanIsa CompPoly CMlPolynomialEval P
 
 @[expose] public section
 
+open RoundPoly (ofList?_toList toList_of_ofList?)
+
 namespace Compile
 
 /-! ## A replay in two parts -/
@@ -107,7 +109,7 @@ def flockWireOf (k : ℕ) (t : (Flock.flockSchedule E (flockParams k).s (flockPa
     roundsWire 1 (flockParams k).m t₈.snd, sv.toList, chalsList (5 + 1) t.snd⟩
 
 /-- The wire of a Flock transcript in its parts. -/
-theorem flockWireOf_flockTrOf (k : ℕ) (v : Vector E (flockParams k).nRand)
+private theorem flockWireOf_flockTrOf (k : ℕ) (v : Vector E (flockParams k).nRand)
     (msg : Vector E (2 ^ (flockParams k).s)) (zskip : E)
     (zcL : (roundsSpec E 2 (flockParams k).m).FullTranscript)
     (zcH : (roundsSpec E 2 (flockParams k).κ).FullTranscript) (ab : Vector E 2) (α : E)
@@ -122,7 +124,7 @@ theorem flockWireOf_flockTrOf (k : ℕ) (v : Vector E (flockParams k).nRand)
     chalTr_zero]
 
 /-- A Flock transcript is the transcript of its parts. -/
-theorem exists_eq_flockTrOf (k : ℕ) (t : (flockSpecOf k).FullTranscript) :
+private theorem exists_eq_flockTrOf (k : ℕ) (t : (flockSpecOf k).FullTranscript) :
     ∃ v msg zskip zcL zcH ab α lin sv fs, t = flockTrOf k v msg zskip zcL zcH ab α lin sv fs := by
   obtain ⟨v, msg, zskip, zcL, zcH, ab, α, lin, sv, fs, ht⟩ :=
     Flock.exists_eq_trOf (flockParams k) 5 t
@@ -158,19 +160,19 @@ def flockTr? (r : FlockRegion I.toShape) (s : I.Stmt × PubOut I) (w : FlockWire
 /-! ## The run of the oracle verifier -/
 
 /-- The zerocheck's family on the region `r`. -/
-abbrev zcFam (r : FlockRegion I.toShape) :=
+private abbrev zcFam (r : FlockRegion I.toShape) :=
   Flock.zcFamily (flockParams r.kBatch) r.r1cs (FlockPhase.bits r) (FlockPhase.side (I := I))
     (W := Unit)
 
 /-- The lincheck's family on the region `r`. -/
-abbrev linFam (r : FlockRegion I.toShape) :=
+private abbrev linFam (r : FlockRegion I.toShape) :=
   Flock.linFamily (flockParams r.kBatch) r.r1cs (FlockPhase.bits r) (FlockPhase.side (I := I))
     (W := Unit)
 
 /-- The Flock phase's run on a transcript in its parts (`Flock.run_flockFront` on the region `r`):
 the zerocheck's two runs of rounds from `P(z_skip)`, the lincheck's rounds from its batched claim,
 the lincheck's check of the slices, and the switched weighted claim handed on. -/
-theorem run_flockPhaseSome (r : FlockRegion I.toShape) (hr : I.flock = some r)
+private theorem run_flockPhaseSome (r : FlockRegion I.toShape) (hr : I.flock = some r)
     (s : I.Stmt × PubOut I) (v : Vector E (flockParams r.kBatch).nRand)
     (msg : Vector E (2 ^ (flockParams r.kBatch).s)) (zskip : E)
     (zcL : (roundsSpec E 2 (flockParams r.kBatch).m).FullTranscript)

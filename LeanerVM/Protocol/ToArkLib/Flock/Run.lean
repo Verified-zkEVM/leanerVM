@@ -113,7 +113,7 @@ theorem run_flockFront (s : S) (v : Vector F P.nRand) (msg : Vector F (2 ^ P.s))
   erw [Component.Front.run_append]
   simp only [FullTranscript.append_fst, FullTranscript.append_snd]
   erw [Component.run_drawPushesFront O F]
-  rw [Option.bind_some, ofFn_getElem_fin]
+  rw [Option.bind_some, show (Vector.ofFn fun i ↦ v[i]) = v from Vector.ofFn_getElem]
   erw [Component.run_sendCheckedFront O]
   simp only [ite_true, Option.bind_some]
   erw [Component.run_sampleFront O F]
