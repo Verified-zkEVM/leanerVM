@@ -14,6 +14,9 @@ written under `LeanVM/Guest/`. `CMD` is one of
 * `cntv`: `Memory/GuestCntV{X,M,S,D,J,K}/`, their tops and `Memory/GuestCntVPm.lean`, the same
   over the closure of `VROOTS` (`verify_sub`'s statically bounded callees, each child's opening arm
   among them, and `child_claim_list_digest`'s callees);
+* `cntw`: `Memory/GuestCntW{X,M,S,D,J,K}/`, their tops and `Memory/GuestCntWPm.lean`, the same
+  over the closure of `WROOTS` (`verify_tables`' and `check_opening_terminal`'s statically bounded
+  callees, the rounds loop `__loop10`, `shared_selector_tables`' callees and `__loop15`);
 * `ratiov`: `Count/RatioVData.lean`, `Count/RatioVChk*.lean`, `Count/RatioV.lean`, the counts of
   `RATIOV_ROOTS` (`verify_sub`'s callees with no static bound) within ratios of their words;
 * `vscount`: `Count/VsCountData.lean`, `Count/VsCountChk*.lean`, the `V` families' counts as tables
@@ -54,6 +57,14 @@ VROOTS = (['open_stacked__L%d' % c for c in range(28)] +
           ['g_power_of_word', 'assert_canonical', 'log2_ceil_in_the_exponent__L0_L34',
            'log2_ceil_in_the_exponent__L15_L34', 'certify_placement', 'ring_switch_target',
            'list_split', '__loop17'] + ['child_claim_list_last__L%d' % k for k in range(17)])
+# `verify_tables`' and `check_opening_terminal`'s statically bounded callees, `verify_tables`' rounds
+# loop, `shared_selector_tables`' callees and the terminal's `__loop15`: the `W` count families
+# (`Memory/GuestCntW*`), which bound those two callees of `verify_sub` by their trees' shapes.
+WROOTS = (['block_selector__L%d' % k for k in range(34)] + ['block_selector_tab__L%d' % k for k in range(34)] +
+          ['eq_prefix_run__L%d' % k for k in range(41)] + ['index_mle__L%d' % k for k in range(34)] +
+          ['padding_weight__L%d' % k for k in range(29)] + ['plus_one_run__L%d' % k for k in range(34)] +
+          ['sel_partial_nibble__L%d' % k for k in range(4)] + ['column_selector__L%d' % k for k in range(29)] +
+          ['eq_prefix_chain', 'sumcheck_round4', '__loop10', '__loop9', '__loop15', 'selector_tables'])
 # `verify_sub`'s callees with no static bound, within ratios of their words (`Count/RatioV*`).
 RATIOV_ROOTS = [('Vbg', 'verify_bus_gkr'), ('Vt', 'verify_tables'), ('Vk', 'verify_keccak'),
                 ('Vterm', 'check_opening_terminal')]
@@ -165,11 +176,12 @@ def ntree(items, name, defs, depth=0):
 
 
 def cmd_cnt(g, V=''):
-    """The count families of `main`'s static callees (`V = ''`: `GuestCnt*`, `kw*`, `kc*`) or of
-    `verify_sub`'s (`V = 'V'`: `GuestCntV*`, `kv*`, `kcv*`)."""
-    S, fams = g.cnt_certs(VROOTS if V else None)
-    w = 'kv' if V else 'kw'
-    kc = 'kcv' if V else 'kc'
+    """The count families of `main`'s static callees (`V = ''`: `GuestCnt*`, `kw*`, `kc*`), of
+    `verify_sub`'s (`V = 'V'`: `GuestCntV*`, `kv*`, `kcv*`) or of `verify_tables`' and the
+    terminal's (`V = 'W'`: `GuestCntW*`, `ku*`, `kcu*`)."""
+    S, fams = g.cnt_certs({'': None, 'V': VROOTS, 'W': WROOTS}[V])
+    w = {'': 'kw', 'V': 'kv', 'W': 'ku'}[V]
+    kc = {'': 'kc', 'V': 'kcv', 'W': 'kcu'}[V]
     rk = (lambda t: re.sub(r'\bkc(?=[A-Z_])', kc, t)) if V else (lambda t: t)
     for lop, P, k, om, cert in fams:
         gr, mods = writelean.write_lean(g.LD, g.fns, cert, om, B=1200, alpha=False, fam='GuestCnt' + V + P,
@@ -192,8 +204,10 @@ def cmd_cnt(g, V=''):
          .replace('@KCST@', top).replace('@PMAT@', pmat).replace('@PMEQ@', pmeq)
          .replace('@XJ@', str(g.xj)).replace('@ARMS@', '[' + ', '.join(map(str, g.C)) + ']'))
     if V:
-        t = t.replace('LeanVM.Guest.Memory.GuestCntPm', 'LeanVM.Guest.Memory.GuestCntVPm').replace(
-            "the closure of `main`'s statically bounded callees", "the closure of `verify_sub`'s statically bounded callees")
+        t = t.replace('LeanVM.Guest.Memory.GuestCntPm', 'LeanVM.Guest.Memory.GuestCnt%sPm' % V).replace(
+            "the closure of `main`'s statically bounded callees",
+            "the closure of `verify_sub`'s statically bounded callees" if V == 'V' else
+            "the closure of `verify_tables`' and `check_opening_terminal`'s statically bounded callees")
     write_tpl(os.path.join(g.LD, 'GuestCnt%sPm.lean' % V), rk(t))
     return S, fams
 
@@ -353,7 +367,7 @@ def cmd_report(g):
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument('lean_vm')
-    ap.add_argument('cmd', choices=['report', 'words', 'cnt', 'cntv', 'static', 'ratio', 'ratiov', 'vscount', 'deployed',
+    ap.add_argument('cmd', choices=['report', 'words', 'cnt', 'cntv', 'cntw', 'static', 'ratio', 'ratiov', 'vscount', 'deployed',
                                     'all'])
     ap.add_argument('--cache', default=None)
     a = ap.parse_args()
@@ -362,6 +376,7 @@ def main():
     elif a.cmd == 'words': cmd_words(g)
     elif a.cmd == 'cnt': cmd_cnt(g)
     elif a.cmd == 'cntv': cmd_cnt(g, 'V')
+    elif a.cmd == 'cntw': cmd_cnt(g, 'W')
     elif a.cmd == 'static': cmd_static(g)
     elif a.cmd == 'ratio': ratio.write(g, RATIO_ROOTS, opdef)
     elif a.cmd == 'ratiov': ratio.write(g, RATIOV_ROOTS, opdef, fam='RatioV', CH=24, W=450, two=True)
@@ -373,6 +388,7 @@ def main():
         cmd_static(g, w, fams)
         ratio.write(g, RATIO_ROOTS, opdef)
         cmd_cnt(g, 'V')
+        cmd_cnt(g, 'W')
         ratio.write(g, RATIOV_ROOTS, opdef, fam='RatioV', CH=24, W=450, two=True)
         vscount.write(g, OPS)
         cmd_deployed(g, fams)
