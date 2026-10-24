@@ -8,19 +8,51 @@
 
 module
 
-public import LeanVM.Guest.Count.RatioVChkVbg0
-public import LeanVM.Guest.Count.RatioVChkVt0
-public import LeanVM.Guest.Count.RatioVChkVt1
-public import LeanVM.Guest.Count.RatioVChkVt2
-public import LeanVM.Guest.Count.RatioVChkVt3
-public import LeanVM.Guest.Count.RatioVChkVt4
-public import LeanVM.Guest.Count.RatioVChkVt5
-public import LeanVM.Guest.Count.RatioVChkVt6
-public import LeanVM.Guest.Count.RatioVChkVk0
-public import LeanVM.Guest.Count.RatioVChkVterm0
-public import LeanVM.Guest.Count.RatioVChkVterm1
-public import LeanVM.Guest.Count.RatioVChkVterm2
-public import LeanVM.Guest.Count.RatioVChkVterm3
+public import LeanVM.Guest.Count.RatioVChkVbg0C
+public import LeanVM.Guest.Count.RatioVChkVbg0R
+public import LeanVM.Guest.Count.RatioVChkVt0C
+public import LeanVM.Guest.Count.RatioVChkVt0R
+public import LeanVM.Guest.Count.RatioVChkVt1P0
+public import LeanVM.Guest.Count.RatioVChkVt1P1
+public import LeanVM.Guest.Count.RatioVChkVt1P2
+public import LeanVM.Guest.Count.RatioVChkVt1P3
+public import LeanVM.Guest.Count.RatioVChkVt1C
+public import LeanVM.Guest.Count.RatioVChkVt1R
+public import LeanVM.Guest.Count.RatioVChkVt2C
+public import LeanVM.Guest.Count.RatioVChkVt2R
+public import LeanVM.Guest.Count.RatioVChkVt3C
+public import LeanVM.Guest.Count.RatioVChkVt3R
+public import LeanVM.Guest.Count.RatioVChkVt4C
+public import LeanVM.Guest.Count.RatioVChkVt4R
+public import LeanVM.Guest.Count.RatioVChkVt5C
+public import LeanVM.Guest.Count.RatioVChkVt5R
+public import LeanVM.Guest.Count.RatioVChkVt6C
+public import LeanVM.Guest.Count.RatioVChkVt6R
+public import LeanVM.Guest.Count.RatioVChkVt7C
+public import LeanVM.Guest.Count.RatioVChkVt7R
+public import LeanVM.Guest.Count.RatioVChkVt8C
+public import LeanVM.Guest.Count.RatioVChkVt8R
+public import LeanVM.Guest.Count.RatioVChkVt9C
+public import LeanVM.Guest.Count.RatioVChkVt9R
+public import LeanVM.Guest.Count.RatioVChkVt10C
+public import LeanVM.Guest.Count.RatioVChkVt10R
+public import LeanVM.Guest.Count.RatioVChkVk0C
+public import LeanVM.Guest.Count.RatioVChkVk0R
+public import LeanVM.Guest.Count.RatioVChkVk1C
+public import LeanVM.Guest.Count.RatioVChkVk1R
+public import LeanVM.Guest.Count.RatioVChkVterm0C
+public import LeanVM.Guest.Count.RatioVChkVterm0R
+public import LeanVM.Guest.Count.RatioVChkVterm1P0
+public import LeanVM.Guest.Count.RatioVChkVterm1P1
+public import LeanVM.Guest.Count.RatioVChkVterm1P2
+public import LeanVM.Guest.Count.RatioVChkVterm1C
+public import LeanVM.Guest.Count.RatioVChkVterm1R
+public import LeanVM.Guest.Count.RatioVChkVterm2C
+public import LeanVM.Guest.Count.RatioVChkVterm2R
+public import LeanVM.Guest.Count.RatioVChkVterm3C
+public import LeanVM.Guest.Count.RatioVChkVterm3R
+public import LeanVM.Guest.Count.RatioVChkVterm4C
+public import LeanVM.Guest.Count.RatioVChkVterm4R
 
 namespace LeanVM.Guest.Count
 
@@ -54,10 +86,10 @@ theorem krVbg_weight (op : Opcode) : ∀ (rd : Reader) (t : Tree) (args rets : L
     ⟨8, by decide +kernel, by decide +kernel⟩ op hn hv
 
 theorem krVt_closed : (krVtJ).all (krClosedAt krVtJ krVtC) = true :=
-  kr_all_append (kr_all_append (kr_all_append (kr_all_append (kr_all_append (kr_all_append (krVt_closed0) krVt_closed1) krVt_closed2) krVt_closed3) krVt_closed4) krVt_closed5) krVt_closed6
+  kr_all_append (kr_all_append (kr_all_append (kr_all_append (kr_all_append (kr_all_append (kr_all_append (kr_all_append (kr_all_append (kr_all_append (krVt_closed0) krVt_closed1) krVt_closed2) krVt_closed3) krVt_closed4) krVt_closed5) krVt_closed6) krVt_closed7) krVt_closed8) krVt_closed9) krVt_closed10
 
 theorem krVt_ratio : (krVtJ).all (krRatioAt krVtA) = true :=
-  kr_all_append (kr_all_append (kr_all_append (kr_all_append (kr_all_append (kr_all_append (krVt_ratio0) krVt_ratio1) krVt_ratio2) krVt_ratio3) krVt_ratio4) krVt_ratio5) krVt_ratio6
+  kr_all_append (kr_all_append (kr_all_append (kr_all_append (kr_all_append (kr_all_append (kr_all_append (kr_all_append (kr_all_append (kr_all_append (krVt_ratio0) krVt_ratio1) krVt_ratio2) krVt_ratio3) krVt_ratio4) krVt_ratio5) krVt_ratio6) krVt_ratio7) krVt_ratio8) krVt_ratio9) krVt_ratio10
 
 /-- **`verify_tables`'s counts within its ratios of its words.** -/
 theorem krVt_weight (op : Opcode) : ∀ (rd : Reader) (t : Tree) (args rets : List E),
@@ -67,10 +99,10 @@ theorem krVt_weight (op : Opcode) : ∀ (rd : Reader) (t : Tree) (args rets : Li
     ⟨10, by decide +kernel, by decide +kernel⟩ op hn hv
 
 theorem krVk_closed : (krVkJ).all (krClosedAt krVkJ krVkC) = true :=
-  krVk_closed0
+  kr_all_append (krVk_closed0) krVk_closed1
 
 theorem krVk_ratio : (krVkJ).all (krRatioAt krVkA) = true :=
-  krVk_ratio0
+  kr_all_append (krVk_ratio0) krVk_ratio1
 
 /-- **`verify_keccak`'s counts within its ratios of its words.** -/
 theorem krVk_weight (op : Opcode) : ∀ (rd : Reader) (t : Tree) (args rets : List E),
@@ -80,10 +112,10 @@ theorem krVk_weight (op : Opcode) : ∀ (rd : Reader) (t : Tree) (args rets : Li
     ⟨12, by decide +kernel, by decide +kernel⟩ op hn hv
 
 theorem krVterm_closed : (krVtermJ).all (krClosedAt krVtermJ krVtermC) = true :=
-  kr_all_append (kr_all_append (kr_all_append (krVterm_closed0) krVterm_closed1) krVterm_closed2) krVterm_closed3
+  kr_all_append (kr_all_append (kr_all_append (kr_all_append (krVterm_closed0) krVterm_closed1) krVterm_closed2) krVterm_closed3) krVterm_closed4
 
 theorem krVterm_ratio : (krVtermJ).all (krRatioAt krVtermA) = true :=
-  kr_all_append (kr_all_append (kr_all_append (krVterm_ratio0) krVterm_ratio1) krVterm_ratio2) krVterm_ratio3
+  kr_all_append (kr_all_append (kr_all_append (kr_all_append (krVterm_ratio0) krVterm_ratio1) krVterm_ratio2) krVterm_ratio3) krVterm_ratio4
 
 /-- **`check_opening_terminal`'s counts within its ratios of its words.** -/
 theorem krVterm_weight (op : Opcode) : ∀ (rd : Reader) (t : Tree) (args rets : List E),

@@ -7,7 +7,7 @@
 
 module
 
-public import LeanVM.Guest.Count.RatioBase
+public import LeanVM.Guest.Count.RatioSplit
 
 namespace LeanVM.Guest.Count
 
@@ -51,28 +51,39 @@ def krVtJ0 : List ℕ := [4, 6, 9]
 def krVtJ1 : List ℕ := [10]
 /-- Indices of the functions `verify_tables` reaches, part 2. -/
 def krVtJ2 : List ℕ := [38, 39,
-    40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63,
-    64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 82, 83, 84, 85, 86, 87, 88]
+    40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61]
 /-- Indices of the functions `verify_tables` reaches, part 3. -/
-def krVtJ3 : List ℕ := [89, 90,
-    91, 92, 93, 94, 95, 96, 97, 98, 99, 100, 101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111,
-    112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 128, 129, 130,
-    131, 132, 133, 134, 135, 136]
+def krVtJ3 : List ℕ := [62, 63,
+    64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 82, 83, 84, 85, 86, 87, 88]
 /-- Indices of the functions `verify_tables` reaches, part 4. -/
-def krVtJ4 : List ℕ := [137, 138,
-    139, 140, 141, 142, 143, 144, 145, 146, 147, 148, 149, 150, 151, 152, 153, 154, 155, 156, 157,
-    158, 159, 160, 161, 162, 163, 164, 165, 166, 167, 168, 169, 170, 171, 172, 173, 174, 175, 176,
-    177, 178, 179, 180, 181, 182, 183, 184]
+def krVtJ4 : List ℕ := [89, 90,
+    91, 92, 93, 94, 95, 96, 97, 98, 99, 100, 101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111,
+    112]
 /-- Indices of the functions `verify_tables` reaches, part 5. -/
-def krVtJ5 : List ℕ := [185, 186,
-    187, 188, 189, 190, 191, 192, 193, 194, 195, 196, 197, 198, 199, 200, 201, 202, 203, 204, 205,
-    206, 207, 208, 209, 210, 211, 212, 213, 214, 215, 216, 217, 218, 219, 220, 221, 222, 223, 224,
-    225, 226, 227, 228, 229, 230, 231, 232]
+def krVtJ5 : List ℕ := [113, 114,
+    115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 128, 129, 130, 131, 132, 133,
+    134, 135, 136]
 /-- Indices of the functions `verify_tables` reaches, part 6. -/
-def krVtJ6 : List ℕ := [233, 234,
-    235, 236, 237, 238, 239, 240, 241, 242, 243, 244, 245, 246, 247, 248, 249, 250, 251, 252]
+def krVtJ6 : List ℕ := [137, 138,
+    139, 140, 141, 142, 143, 144, 145, 146, 147, 148, 149, 150, 151, 152, 153, 154, 155, 156, 157,
+    158, 159, 160]
+/-- Indices of the functions `verify_tables` reaches, part 7. -/
+def krVtJ7 : List ℕ := [161, 162,
+    163, 164, 165, 166, 167, 168, 169, 170, 171, 172, 173, 174, 175, 176, 177, 178, 179, 180, 181,
+    182, 183, 184]
+/-- Indices of the functions `verify_tables` reaches, part 8. -/
+def krVtJ8 : List ℕ := [185, 186,
+    187, 188, 189, 190, 191, 192, 193, 194, 195, 196, 197, 198, 199, 200, 201, 202, 203, 204, 205,
+    206, 207, 208]
+/-- Indices of the functions `verify_tables` reaches, part 9. -/
+def krVtJ9 : List ℕ := [209, 210,
+    211, 212, 213, 214, 215, 216, 217, 218, 219, 220, 221, 222, 223, 224, 225, 226, 227, 228, 229,
+    230, 231, 232]
+/-- Indices of the functions `verify_tables` reaches, part 10. -/
+def krVtJ10 : List ℕ := [233,
+    234, 235, 236, 237, 238, 239, 240, 241, 242, 243, 244, 245, 246, 247, 248, 249, 250, 251, 252]
 /-- The core indices of the functions `verify_tables`'s paths reach. -/
-def krVtJ : List ℕ := krVtJ0 ++ krVtJ1 ++ krVtJ2 ++ krVtJ3 ++ krVtJ4 ++ krVtJ5 ++ krVtJ6
+def krVtJ : List ℕ := krVtJ0 ++ krVtJ1 ++ krVtJ2 ++ krVtJ3 ++ krVtJ4 ++ krVtJ5 ++ krVtJ6 ++ krVtJ7 ++ krVtJ8 ++ krVtJ9 ++ krVtJ10
 
 /-- Their calls, by index, part 0. -/
 def krVtCL0 : List (ℕ × List ℕ) := [
@@ -103,9 +114,12 @@ def krVtA : Opcode → ℕ
 
 /-- Indices of the functions `verify_keccak` reaches, part 0. -/
 def krVkJ0 : List ℕ := [11, 12,
-    253, 254, 255, 256, 257, 258, 259, 260, 261, 402, 403, 404, 405]
+    253, 254, 255]
+/-- Indices of the functions `verify_keccak` reaches, part 1. -/
+def krVkJ1 : List ℕ := [256, 257,
+    258, 259, 260, 261, 402, 403, 404, 405]
 /-- The core indices of the functions `verify_keccak`'s paths reach. -/
-def krVkJ : List ℕ := krVkJ0
+def krVkJ : List ℕ := krVkJ0 ++ krVkJ1
 
 /-- Their calls, by index, part 0. -/
 def krVkCL0 : List (ℕ × List ℕ) := [
@@ -137,15 +151,17 @@ def krVtermJ1 : List ℕ := [
     17]
 /-- Indices of the functions `check_opening_terminal` reaches, part 2. -/
 def krVtermJ2 : List ℕ := [
-    38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61,
-    62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 263, 264, 265, 266,
-    267, 268]
+    38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61]
 /-- Indices of the functions `check_opening_terminal` reaches, part 3. -/
 def krVtermJ3 : List ℕ := [
+    62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 263, 264, 265, 266,
+    267, 268]
+/-- Indices of the functions `check_opening_terminal` reaches, part 4. -/
+def krVtermJ4 : List ℕ := [
     269, 270, 271, 272, 273, 274, 275, 276, 277, 278, 279, 280, 281, 282, 283, 284, 285, 286, 287,
     288, 289, 290, 291, 292]
 /-- The core indices of the functions `check_opening_terminal`'s paths reach. -/
-def krVtermJ : List ℕ := krVtermJ0 ++ krVtermJ1 ++ krVtermJ2 ++ krVtermJ3
+def krVtermJ : List ℕ := krVtermJ0 ++ krVtermJ1 ++ krVtermJ2 ++ krVtermJ3 ++ krVtermJ4
 
 /-- Their calls, by index, part 0. -/
 def krVtermCL0 : List (ℕ × List ℕ) := [

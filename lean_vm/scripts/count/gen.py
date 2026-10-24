@@ -23,7 +23,7 @@ The checker is `checker.py`, a mirror of `Memory/Static.lean`; `--cache` keeps t
 Build the families' parts one module at a time (each is a few GB)."""
 import sys, os, re, argparse
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-import core, checker, writelean, ratio, deployed
+import core, checker, writelean, ratio, deployed, vscount
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 # (Lean opcode, family letter, index in `Opcode`'s order)
@@ -347,7 +347,7 @@ def cmd_report(g):
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument('lean_vm')
-    ap.add_argument('cmd', choices=['report', 'words', 'cnt', 'cntv', 'static', 'ratio', 'ratiov', 'deployed',
+    ap.add_argument('cmd', choices=['report', 'words', 'cnt', 'cntv', 'static', 'ratio', 'ratiov', 'vscount', 'deployed',
                                     'all'])
     ap.add_argument('--cache', default=None)
     a = ap.parse_args()
@@ -358,7 +358,8 @@ def main():
     elif a.cmd == 'cntv': cmd_cnt(g, 'V')
     elif a.cmd == 'static': cmd_static(g)
     elif a.cmd == 'ratio': ratio.write(g, RATIO_ROOTS, opdef)
-    elif a.cmd == 'ratiov': ratio.write(g, RATIOV_ROOTS, opdef, fam='RatioV')
+    elif a.cmd == 'ratiov': ratio.write(g, RATIOV_ROOTS, opdef, fam='RatioV', CH=24, W=450, two=True)
+    elif a.cmd == 'vscount': vscount.write(g, OPS)
     elif a.cmd == 'deployed': cmd_deployed(g)
     else:
         w = cmd_words(g)
@@ -366,7 +367,8 @@ def main():
         cmd_static(g, w, fams)
         ratio.write(g, RATIO_ROOTS, opdef)
         cmd_cnt(g, 'V')
-        ratio.write(g, RATIOV_ROOTS, opdef, fam='RatioV')
+        ratio.write(g, RATIOV_ROOTS, opdef, fam='RatioV', CH=24, W=450, two=True)
+        vscount.write(g, OPS)
         cmd_deployed(g, fams)
 
 
