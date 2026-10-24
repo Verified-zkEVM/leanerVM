@@ -299,6 +299,10 @@ jobs:
           .lake/build/bin/node-vectors
       - name: The guest's core IR data is current
         run: lake exe guest-core --check
+      - name: The guest's certificates are current
+        run: lake exe guest-cert --check
+      - name: The guest's memory-layer checks are current
+        run: lake exe guest-memory --check
       - name: Save the Lake build
         if: github.ref == 'refs/heads/main' && steps.lake-cache.outputs.cache-hit != 'true'
         uses: actions/cache/save@v4

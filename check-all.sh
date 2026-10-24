@@ -104,9 +104,13 @@ lean_vm() {
   step "lean_vm: lake test"
   (cd lean_vm && lake test)
   step "lean_vm: the Rust vectors' costly checks, compiled"
-  (cd lean_vm && lake build node-vectors guest-core && capped .lake/build/bin/node-vectors)
+  (cd lean_vm && lake build node-vectors guest-core guest-cert guest-memory && capped .lake/build/bin/node-vectors)
   step "lean_vm: the guest's core IR data is current"
   (cd lean_vm && capped .lake/build/bin/guest-core --check)
+  step "lean_vm: the guest's certificates are current"
+  (cd lean_vm && capped .lake/build/bin/guest-cert --check)
+  step "lean_vm: the guest's memory-layer checks are current"
+  (cd lean_vm && capped .lake/build/bin/guest-memory --check)
 }
 
 # Against leanVM at `leanvm-rev`, checked out by leanvm-tree.sh with its `formal/lean_vm` a link to
