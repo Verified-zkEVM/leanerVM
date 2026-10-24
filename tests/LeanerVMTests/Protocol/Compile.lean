@@ -29,6 +29,7 @@ namespace LeanerVMTests.Protocol.Compile
 
 open LeanerVM.Parameters LeanerVM.Semantics LeanerVM.Protocol LeanerVM.Protocol.Blake2sHash
 open LeanerVM.Protocol.LeanIsa LeanerVM.Protocol.Verify LeanerVM.Protocol.Compile
+open LeanerVM.Protocol.DecodeChain
 open LeanerVMTests.Protocol.RustProof
 
 /-- The fixture's instance. -/
@@ -125,6 +126,6 @@ def checks : List (String × Bool) :=
       | _, _ => bus ++ [("table: the wires decode", false)]
     | _, _ => [("bus: the wire decodes and the executable accepts", false)]
 
-#guard checks.all (·.2)
+#guard (checks.filter (!·.2)).map (·.1) == []
 
 end LeanerVMTests.Protocol.Compile

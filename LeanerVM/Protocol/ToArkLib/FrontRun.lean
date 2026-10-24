@@ -31,8 +31,8 @@ protocol assembled from components reduces to its components' runs.
 
 The transcripts of the one-round schedules are built from their values (`msgTr`, `chalTr`), the
 empty schedule's is `nilTr`, and every transcript of these schedules is so built (`eq_msgTr`,
-`eq_chalTr`, `eq_nilTr`). `chalsTr` builds the transcript of `k` challenges, the first one first,
-and `chalsList` reads them back.
+`eq_chalTr`, `eq_nilTr`). `chalsTr` builds the transcript of `k` challenges, the first one
+first.
 
 Compiled code appends transcripts entry by entry (`appendFast`, `@[csimp]`): ArkLib's
 `FullTranscript.append` recurses on the second transcript's length at every read, which the
@@ -99,25 +99,6 @@ def nilTr : (!p[] : ProtocolSpec 0).FullTranscript := fun i ↦ Fin.elim0 i
 def chalsTr {C : Type} : (k : ℕ) → (Fin k → C) → (draws C k).FullTranscript
   | 0, _ => nilTr
   | k + 1, f => chalsTr k (fun i ↦ f i.castSucc) ++ₜ chalTr (f (Fin.last k))
-
-/-- The challenges of a transcript of `k` challenges, the first one first. -/
-def chalsList {C : Type} : (k : ℕ) → (draws C k).FullTranscript → List C
-  | 0, _ => []
-  | k + 1, t => chalsList k (FullTranscript.fst (pSpec₁ := draws C k) (pSpec₂ := draw C) t) ++
-      ([FullTranscript.snd (pSpec₁ := draws C k) (pSpec₂ := draw C) t 0] : List C)
-
-/-- The challenges of the transcript of `k` challenges are its challenges. -/
-theorem chalsList_chalsTr {C : Type} : ∀ (k : ℕ) (f : Fin k → C),
-    chalsList k (chalsTr k f) = List.ofFn f
-  | 0, _ => rfl
-  | k + 1, f => by
-    show chalsList k (FullTranscript.fst
-        (chalsTr k (fun i ↦ f i.castSucc) ++ₜ chalTr (f (Fin.last k)))) ++
-      ([FullTranscript.snd (chalsTr k (fun i ↦ f i.castSucc) ++ₜ chalTr (f (Fin.last k))) 0] :
-        List C) = _
-    rw [FullTranscript.append_fst, FullTranscript.append_snd, chalsList_chalsTr k,
-      List.ofFn_succ_last]
-    rfl
 
 /-- A vector is its first entries with its last one pushed. -/
 theorem push_ofFn_castSucc {C : Type} {n : ℕ} (u : Vector C (n + 1)) :

@@ -20,14 +20,15 @@ on its statement and its transcript. The executable verifier's algebra (`Verify.
 four steps on the wire before the opening's claim: `leanVmBus`, `tableStep`, `pubStep` and
 `flockStep` with the BLAKE2s circuit's walk. On transcripts whose checks pass in sequence, each
 step accepts the transcript's wire with the oracle verifier's output (`leanVmFront_of_checks`),
-from the phase lemmas `busStep_busWireOf`, `tableStep_tableWireOf`, `pubStep_eq` and
-`flockStep_flockWireOf`. The four phases are the front slots of `leanVmPhases`, the Flock slot at
-leanVM's instance being the phase on the instance's region (`flockPhase_leanVm`).
+from the phase lemmas `busStep_busWireOf`, `tableStep_tableWireOf`, `pubStep_pubWireOf` and
+`flockStep_flockWireOf`, on the wire read off the transcripts (`LeanerVM.Protocol.Verify.WireOf`).
+The four phases are the front slots of `leanVmPhases`, the Flock slot at leanVM's instance being
+the phase on the instance's region (`flockPhase_leanVm`).
 -/
 
 namespace LeanerVM.Protocol
 
-open LeanerVM.Parameters LeanerVM.Semantics LeanIsa ProtocolSpec Verify
+open LeanerVM.Parameters LeanerVM.Semantics LeanIsa ProtocolSpec Verify DecodeChain
 
 @[expose] public section
 
@@ -73,7 +74,7 @@ theorem leanVmFront_of_checks (input : PublicInput)
             ((busPhase (leanVm prog sz) (leanIsa_conditions _ prog sz)).front.out input t₂) t₃)
           t₄) t₅) := by
   rw [leanVmBus_eq_busStep, busStep_busWireOf _ _ _ t₂ h₂, Option.bind_some,
-    tableStep_tableWireOf _ _ t₃ h₃, Option.bind_some, pubStep_eq, pubTr_pubWireOf,
+    tableStep_tableWireOf _ _ t₃ h₃, Option.bind_some, pubStep_pubWireOf,
     Component.Front.run_of_check _ h₄, Option.bind_some,
     flockStep_flockWireOf (leanVm prog sz) (flockRegion prog sz Blake2sFlock.blake2sFlockSpec) rfl
       blake2sRows (blake2sRows_eq_region prog sz) _ t₅ h₅]

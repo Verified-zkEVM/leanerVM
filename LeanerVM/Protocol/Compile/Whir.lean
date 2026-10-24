@@ -64,18 +64,9 @@ theorem decode_polyWire {claim : E} {p : Vector E 3} (h : Whir.chk p claim = tru
   rw [Whir.chk, decide_eq_true_iff, show unitDom = eqDomain none from rfl, ← check_iff] at h
   exact RoundPoly.decode_encode (by omega) h
 
-/-- The walk's reading of `k` draws is `chalsList`'s. -/
-theorem drawsList_eq_chalsList : ∀ (k : ℕ) (t : (draws E k).FullTranscript),
-    drawsList k t = chalsList k t
-  | 0, _ => rfl
-  | k + 1, t => by rw [drawsList, chalsList, drawsList_eq_chalsList k]
-
-/-- The challenges of `k` draws, built from their values, are those values. -/
-theorem drawsList_chalsTr (k : ℕ) (f : Fin k → E) : drawsList k (chalsTr k f) = List.ofFn f :=
-  (drawsList_eq_chalsList k _).trans (chalsList_chalsTr k f)
-
 /-- `k` draws carry `k` challenges. -/
-theorem length_drawsList : ∀ (k : ℕ) (t : (draws E k).FullTranscript), (drawsList k t).length = k
+private theorem length_drawsList : ∀ (k : ℕ) (t : (draws E k).FullTranscript),
+    (drawsList k t).length = k
   | 0, _ => rfl
   | k + 1, t => by simp [drawsList, length_drawsList k]
 

@@ -18,14 +18,17 @@ public import LeanerVM.Protocol.Verify
 executable reads `ξ`, the cubic rounds without their linear coefficients and the columns' values
 (`Verify.TableWire`). `tableTr? I s w` is the transcript the wire decodes to, every round
 polynomial rebuilt from its wire and the running claim from the claims of the bus phase's output
-`s` batched by `ξ`; `tableWireOf I t` reads the wire back. As for the bus phase
+`s` batched by `ξ`; `DecodeChain.tableWireOf I t` reads the wire back. As for the bus phase
 (`LeanerVM.Protocol.Compile.Bus`): `tableStep_eq` (the executable's algebra is the oracle
 verifier's run on the decoded transcript), `tableStep_eq_some_iff`, `tableTr?_tableWireOf` (an
 accepted transcript is the one its wire decodes to), `tableWireOf_tableTr?` and
-`tableStep_tableWireOf`.
+`tableStep_tableWireOf`; and for a transcript whose round polynomials pass their checks
+(`TableSolved`, `tableSolved_of_check`), `tableTr?_tableWireOf_of_solved` and
+`tableStep_tableWireOf_of_solved`.
 
 **The public input** (`deployedPublicInputPhase`). The wire is the transcript (`pubTr`,
-`pubWireOf`), and the executable's algebra is the oracle verifier's run on it (`pubStep_eq`), by
+`DecodeChain.pubWireOf`), and the executable's algebra is the oracle verifier's run on it, on the
+wire's transcript (`pubStep_eq`) and on every transcript's wire (`pubStep_pubWireOf`), by
 definition: `Verify.pubStep` is the deployed phase's `accepts` and `verdict`, not a separate
 transcription. Its fidelity to the deployed verifier is therefore that of the phase's
 (`PublicInput.verify_simulated`).
@@ -39,6 +42,7 @@ protocol opens the commitment at that weight against that value. The executable'
 namespace LeanerVM.Protocol
 
 open LeanerVM.Parameters LeanerVM.Semantics LeanIsa CompPoly ProtocolSpec SumcheckRound Verify
+  DecodeChain
 
 @[expose] public section
 
@@ -63,21 +67,12 @@ def tableTr? (s : I.Stmt × BusOut I) (w : TableWire) : Option (tableSpec I).Ful
     w.rounds).bind fun R ↦
     (RoundPoly.ofList? I.tableColumns w.finals).map (tableTrOf I w.xi R)
 
-/-- The table sumcheck's wire, read off its transcript. -/
-def tableWireOf (t : (tableSpec I).FullTranscript) : TableWire :=
-  let t₂ := FullTranscript.fst (pSpec₁ := draw E ++ₚ roundsSpec E 3 I.τmax)
-    (pSpec₂ := say (Vector E I.tableColumns)) t
-  let vals := FullTranscript.snd (pSpec₁ := draw E ++ₚ roundsSpec E 3 I.τmax)
-    (pSpec₂ := say (Vector E I.tableColumns)) t
-  let xi : E := t₂.fst 0
-  ⟨xi, roundsWire 1 I.τmax t₂.snd, Vector.toList (n := I.tableColumns) (vals 0)⟩
-
 /-- The wire of a table sumcheck's transcript in its parts. -/
 private theorem tableWireOf_tableTrOf (ξ : E) (R : (roundsSpec E 3 I.τmax).FullTranscript)
     (v : Vector E I.tableColumns) :
     tableWireOf I (tableTrOf I ξ R v) = ⟨ξ, roundsWire 1 I.τmax R, v.toList⟩ := by
-  simp only [tableWireOf, tableTrOf, FullTranscript.append_fst, FullTranscript.append_snd,
-    chalTr_zero, msgTr_zero]
+  simp only [tableWireOf, tableTrOf, drawOf, msgOf, FullTranscript.append_fst,
+    FullTranscript.append_snd, chalTr_zero, msgTr_zero]
 
 /-- The plain domain is the oracle verifier's domain of every table round. -/
 private theorem domain_eq (x : TableSumcheck.Data I) (k : ℕ) (hk : k < I.τmax) :
@@ -153,30 +148,46 @@ theorem tableStep_eq_some_iff (s : I.Stmt × BusOut I) (w : TableWire) (o : I.St
   rw [tableStep_eq, Option.bind_eq_some_iff]
   exact exists_congr fun t ↦ and_congr_right fun _ ↦ Component.Front.run_eq_some_iff _
 
-/-- A transcript of the table sumcheck the oracle verifier accepts is the one its wire decodes
-to. -/
-theorem tableTr?_tableWireOf (s : I.Stmt × BusOut I) (t : (tableSpec I).FullTranscript)
-    (hc : (TableSumcheck.tableSumcheck I).front.check s t = true) :
-    tableTr? I s (tableWireOf I t) = some t := by
+/-- The table sumcheck's round polynomials pass their checks, from the claims of the bus phase's
+output `s` batched by `ξ`. -/
+def TableSolved (s : I.Stmt × BusOut I) (t : (tableSpec I).FullTranscript) : Prop :=
+  ∃ ξ R v, t = tableTrOf I ξ R v ∧
+    RoundsSolved (fun _ ↦ none) I.τmax 0 (powerBatch (TableSumcheck.claimed I s) ξ) R
+
+/-- A transcript of the table sumcheck whose round polynomials pass their checks is the one its
+wire decodes to. -/
+theorem tableTr?_tableWireOf_of_solved (s : I.Stmt × BusOut I) (t : (tableSpec I).FullTranscript)
+    (hs : TableSolved I s t) : tableTr? I s (tableWireOf I t) = some t := by
+  obtain ⟨ξ, R, v, rfl, hR⟩ := hs
+  rw [tableWireOf_tableTrOf]
+  simp only [tableTr?]
+  rw [roundsTr?_roundsWire_of_solved _ (by norm_num) 1 I.τmax 0 _ R (fun _ _ _ ↦ rfl) hR,
+    Option.bind_some, ofList?_toList, Option.map_some]
+
+/-- A transcript of the table sumcheck the oracle verifier accepts has round polynomials that pass
+their checks. -/
+theorem tableSolved_of_check (s : I.Stmt × BusOut I) (t : (tableSpec I).FullTranscript)
+    (hc : (TableSumcheck.tableSumcheck I).front.check s t = true) : TableSolved I s t := by
   obtain ⟨t₂, vals, rfl⟩ := exists_eq_append (p₁ := draw E ++ₚ roundsSpec E 3 I.τmax)
     (p₂ := say (Vector E I.tableColumns)) t
   obtain ⟨tx, R, rfl⟩ := exists_eq_append (p₁ := draw E) (p₂ := roundsSpec E 3 I.τmax) t₂
   rw [eq_chalTr tx, eq_msgTr vals] at hc ⊢
   change (TableSumcheck.tableSumcheck I).front.check s (tableTrOf I (tx 0) R (vals 0)) = true at hc
-  change tableTr? I s (tableWireOf I (tableTrOf I (tx 0) R (vals 0))) =
-    some (tableTrOf I (tx 0) R (vals 0))
   have hrun := (TableSumcheck.tableSumcheck I).front.run_of_check hc
   rw [run_tableSumcheck] at hrun
   obtain ⟨st, hR, -⟩ := Option.bind_eq_some_iff.mp hrun
-  have hRt := roundsTr?_roundsWire
+  exact ⟨tx 0, R, vals 0, rfl, roundsSolved_of_check
     (Sumcheck.roundPoly (TableSumcheck.tableSummand I) Sumcheck.unitWeights TableSumcheck.nodes)
-    (Sumcheck.domain Sumcheck.unitWeights) (fun _ ↦ none) I.τmax (by norm_num) 1 I.τmax 0
-    (Nat.zero_add _) ((s, tx 0), (#v[], powerBatch (TableSumcheck.claimed I s) (tx 0)))
-    R (fun k _ hk ↦ domain_eq I _ k (by omega)) (fun _ _ _ ↦ rfl)
-    ((Component.Front.run_eq_some_iff _).mp hR).1
-  rw [tableWireOf_tableTrOf]
-  simp only [tableTr?]
-  rw [hRt, Option.bind_some, ofList?_toList, Option.map_some]
+    (Sumcheck.domain Sumcheck.unitWeights) (fun _ ↦ none) I.τmax I.τmax 0 (Nat.zero_add _)
+    ((s, tx 0), (#v[], powerBatch (TableSumcheck.claimed I s) (tx 0))) R
+    (fun k _ hk ↦ domain_eq I _ k (by omega)) ((Component.Front.run_eq_some_iff _).mp hR).1⟩
+
+/-- A transcript of the table sumcheck the oracle verifier accepts is the one its wire decodes
+to. -/
+theorem tableTr?_tableWireOf (s : I.Stmt × BusOut I) (t : (tableSpec I).FullTranscript)
+    (hc : (TableSumcheck.tableSumcheck I).front.check s t = true) :
+    tableTr? I s (tableWireOf I t) = some t :=
+  tableTr?_tableWireOf_of_solved I s t (tableSolved_of_check I s t hc)
 
 /-- The transcript the table sumcheck's wire decodes to carries the wire. -/
 theorem tableWireOf_tableTr? {s : I.Stmt × BusOut I} {w : TableWire}
@@ -196,6 +207,13 @@ theorem tableStep_tableWireOf (s : I.Stmt × BusOut I) (t : (tableSpec I).FullTr
   rw [tableStep_eq, tableTr?_tableWireOf I s t hc, Option.bind_some,
     (TableSumcheck.tableSumcheck I).front.run_of_check hc]
 
+/-- **On a transcript whose round polynomials pass their checks, the executable's verdict on its
+wire is the oracle verifier's** on the transcript. -/
+theorem tableStep_tableWireOf_of_solved (s : I.Stmt × BusOut I) (t : (tableSpec I).FullTranscript)
+    (hs : TableSolved I s t) :
+    tableStep I s (tableWireOf I t) = (TableSumcheck.tableSumcheck I).front.run s t := by
+  rw [tableStep_eq, tableTr?_tableWireOf_of_solved I s t hs, Option.bind_some]
+
 /-! ## The public input -/
 
 /-- The public input's transcript: its wire. -/
@@ -203,9 +221,6 @@ def pubTr (w : PubWire) : pubSpec.FullTranscript
   | ⟨0, _⟩ => w.r
   | ⟨1, _⟩ => w.values
   | ⟨k + 2, h⟩ => absurd h (by omega)
-
-/-- The public input's wire, read off its transcript. -/
-def pubWireOf (t : pubSpec.FullTranscript) : PubWire := ⟨t 0, t 1⟩
 
 /-- A transcript of the public input is the transcript of its wire. -/
 theorem pubTr_pubWireOf (t : pubSpec.FullTranscript) : pubTr (pubWireOf t) = t :=
@@ -220,6 +235,12 @@ is the deployed phase's guarded verifier run on the wire's transcript. It holds 
 theorem pubStep_eq (s : I.Stmt × TableOut I) (w : PubWire) :
     pubStep I s w = (deployedPublicInputPhase I).front.run s (pubTr w) :=
   rfl
+
+/-- **On every transcript the executable's public input is the oracle verifier's**: the public
+input drops nothing from its wire. -/
+theorem pubStep_pubWireOf (s : I.Stmt × TableOut I) (t : pubSpec.FullTranscript) :
+    pubStep I s (pubWireOf t) = (deployedPublicInputPhase I).front.run s t := by
+  rw [pubStep_eq, pubTr_pubWireOf]
 
 /-! ## The opening claim -/
 

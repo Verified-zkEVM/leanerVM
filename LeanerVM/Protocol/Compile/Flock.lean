@@ -24,20 +24,23 @@ within-block coordinates' and the batch coordinates'.
 
 * `flockTr? I r s w`: the transcript the wire decodes to, every round polynomial rebuilt from its
   wire and the oracle verifier's running claim; `none` when the wire has another shape;
-* `flockWireOf k t`: the wire read off a transcript.
+* `DecodeChain.flockWireOf k t` (`LeanerVM.Protocol.Verify.WireOf`): the wire read off a
+  transcript.
 
 **The Flock phase is the oracle verifier's** (`flockStep_eq`): when the walk `rows` the executable
 evaluates the circuit's matrices by is the region's (`r.r1cs.rows`), its algebra is the oracle
 verifier's guarded form run on the decoded transcript. At leanVM's instance the walk is
 `blake2sRows`, the region's by `blake2sRows_eq_region` (`leanVmFlock_eq`). `flockStep_eq_some_iff`,
 `flockTr?_flockWireOf` (an accepted transcript is the one its wire decodes to),
-`flockWireOf_flockTr?` and `flockStep_flockWireOf` follow as for the other phases.
+`flockWireOf_flockTr?` and `flockStep_flockWireOf` follow as for the other phases, and so do
+`flockTr?_flockWireOf_of_solved` and `flockStep_flockWireOf_of_solved` for a transcript whose round
+polynomials pass their checks (`FlockSolved`, `flockSolved_of_check`).
 -/
 
 namespace LeanerVM.Protocol
 
 open LeanerVM.Parameters LeanerVM.Semantics LeanIsa CompPoly CMlPolynomialEval ProtocolSpec
-  SumcheckRound Verify
+  SumcheckRound Verify DecodeChain
 
 @[expose] public section
 
@@ -88,8 +91,8 @@ def flockTrOf (k : ℕ) (v : Vector E (flockParams k).nRand) (msg : Vector E (2 
     (sv : Vector E (2 ^ (flockParams k).s)) (fs : Vector E 6) : (flockSpecOf k).FullTranscript :=
   Flock.trOf (flockParams k) 5 v msg zskip zcL zcH ab α lin sv fs
 
-/-- The Flock phase's wire for `2 ^ k` compressions, read off its transcript. -/
-def flockWireOf (k : ℕ) (t : (Flock.flockSchedule E (flockParams k).s (flockParams k).m
+/-- The Flock phase's wire, read off a transcript at the generic schedule's spelling. -/
+private def flockWireOf' (k : ℕ) (t : (Flock.flockSchedule E (flockParams k).s (flockParams k).m
     (flockParams k).κ (flockParams k).nRand 5).FullTranscript) : FlockWire :=
   let t₉ := t.fst
   let t₈ := t₉.fst
@@ -104,9 +107,15 @@ def flockWireOf (k : ℕ) (t : (Flock.flockSchedule E (flockParams k).s (flockPa
   let ab : Vector E 2 := t₆.snd 0
   let α : E := t₇.snd 0
   let sv : Vector E (2 ^ (flockParams k).s) := t₉.snd 0
-  ⟨chalsList (flockParams k).nRand t₂.fst, skip.toList, zskip,
+  ⟨drawsList (flockParams k).nRand t₂.fst, skip.toList, zskip,
     roundsWire 0 (flockParams k).m t₄.snd ++ roundsWire 0 (flockParams k).κ t₅.snd, ab.toList, α,
-    roundsWire 1 (flockParams k).m t₈.snd, sv.toList, chalsList (5 + 1) t.snd⟩
+    roundsWire 1 (flockParams k).m t₈.snd, sv.toList, drawsList (5 + 1) t.snd⟩
+
+/-- The wire reader of `Verify.WireOf` is the one at the generic schedule's spelling: the
+hard-coded `8` and `64` of `flockSpecOf` are `(flockParams k).m` and `2 ^ (flockParams k).s`. -/
+private theorem flockWireOf_eq (k : ℕ) (t : (flockSpecOf k).FullTranscript) :
+    flockWireOf k t = flockWireOf' k t :=
+  rfl
 
 /-- The wire of a Flock transcript in its parts. -/
 private theorem flockWireOf_flockTrOf (k : ℕ) (v : Vector E (flockParams k).nRand)
@@ -119,9 +128,9 @@ private theorem flockWireOf_flockTrOf (k : ℕ) (v : Vector E (flockParams k).nR
       ⟨v.toList, msg.toList, zskip,
         roundsWire 0 (flockParams k).m zcL ++ roundsWire 0 (flockParams k).κ zcH, ab.toList, α,
         roundsWire 1 (flockParams k).m lin, sv.toList, fs.toList⟩ := by
-  simp only [flockWireOf, flockTrOf, Flock.trOf, FullTranscript.append_fst,
-    FullTranscript.append_snd, chalsList_chalsTr, ofFn_getElem_eq_toList, msgTr_zero,
-    chalTr_zero]
+  rw [flockWireOf_eq]
+  simp only [flockWireOf', flockTrOf, Flock.trOf, FullTranscript.append_fst,
+    FullTranscript.append_snd, drawsList_chalsTr, ofFn_getElem_eq_toList, msgTr_zero, chalTr_zero]
 
 /-- A Flock transcript is the transcript of its parts. -/
 private theorem exists_eq_flockTrOf (k : ℕ) (t : (flockSpecOf k).FullTranscript) :
@@ -160,12 +169,12 @@ def flockTr? (r : FlockRegion I.toShape) (s : I.Stmt × PubOut I) (w : FlockWire
 /-! ## The run of the oracle verifier -/
 
 /-- The zerocheck's family on the region `r`. -/
-private abbrev zcFam (r : FlockRegion I.toShape) :=
+abbrev zcFam (r : FlockRegion I.toShape) :=
   Flock.zcFamily (flockParams r.kBatch) r.r1cs (FlockPhase.bits r) (FlockPhase.side (I := I))
     (W := Unit)
 
 /-- The lincheck's family on the region `r`. -/
-private abbrev linFam (r : FlockRegion I.toShape) :=
+abbrev linFam (r : FlockRegion I.toShape) :=
   Flock.linFamily (flockParams r.kBatch) r.r1cs (FlockPhase.bits r) (FlockPhase.side (I := I))
     (W := Unit)
 
@@ -369,28 +378,32 @@ theorem flockStep_eq_some_iff (r : FlockRegion I.toShape) (hr : I.flock = some r
   rw [flockStep_eq I r hr rows hrows, Option.bind_eq_some_iff]
   exact exists_congr fun t ↦ and_congr_right fun _ ↦ Component.Front.run_eq_some_iff _
 
-/-- A transcript of the Flock phase the oracle verifier accepts is the one its wire decodes
-to. -/
-theorem flockTr?_flockWireOf (r : FlockRegion I.toShape) (hr : I.flock = some r)
-    (s : I.Stmt × PubOut I) (t : (flockSpecOf r.kBatch).FullTranscript)
-    (hc : (flockPhaseSome I r hr).front.check s t = true) :
+/-- The Flock phase's round polynomials on the region `r` pass their checks: the zerocheck's
+within-block rounds from `P(z_skip)` and its batch rounds from their final claim, with the
+point's equality weights, and the lincheck's rounds from its batched claim, each from the oracle
+verifier's statement after the rounds before. -/
+def FlockSolved (r : FlockRegion I.toShape) (s : I.Stmt × PubOut I)
+    (t : (flockSpecOf r.kBatch).FullTranscript) : Prop :=
+  ∃ v msg zskip zcL zcH ab α lin sv fs,
+    t = flockTrOf r.kBatch v msg zskip zcL zcH ab α lin sv fs ∧
+    let P := flockParams r.kBatch
+    let stL := (roundsFront (zcFam I r).poly (zcFam I r).weight P.m P.m 0 (Nat.zero_add _)).out
+      (Flock.skipNext P ((s, v), msg) zskip) zcL
+    let stH := (roundsFront (zcFam I r).poly (zcFam I r).weight (P.m + P.κ) P.κ P.m rfl).out
+      stL zcH
+    RoundsSolved (fun j ↦ (P.point v)[j]?) P.m 0 (Flock.skipClaim P.nodes msg zskip) zcL ∧
+      RoundsSolved (fun j ↦ (P.point v)[j]?) P.κ P.m stL.2.2 zcH ∧
+      RoundsSolved (fun _ ↦ none) P.m 0 (Flock.alphaNext (Flock.termNext stH ab) α).2.2 lin
+
+/-- A transcript of the Flock phase whose round polynomials pass their checks is the one its wire
+decodes to. -/
+theorem flockTr?_flockWireOf_of_solved (r : FlockRegion I.toShape) (s : I.Stmt × PubOut I)
+    (t : (flockSpecOf r.kBatch).FullTranscript) (hs : FlockSolved I r s t) :
     flockTr? I r s (flockWireOf r.kBatch t) = some t := by
-  obtain ⟨v, msg, zskip, zcL, zcH, ab, α, lin, sv, fs, rfl⟩ := exists_eq_flockTrOf r.kBatch t
-  have hrun := (flockPhaseSome I r hr).front.run_of_check hc
-  rw [run_flockPhaseSome] at hrun
-  obtain ⟨st, hst, -⟩ := Option.bind_eq_some_iff.mp hrun
-  obtain ⟨stH, hstH, hLin⟩ := Option.bind_eq_some_iff.mp hst
-  obtain ⟨stL, hL, hH⟩ := Option.bind_eq_some_iff.mp hstH
-  have hRL := roundsTr?_roundsWire (zcFam I r).poly (zcFam I r).weight
-    (fun j ↦ ((flockParams r.kBatch).point v)[j]?) (flockParams r.kBatch).m (by norm_num) 0
-    (flockParams r.kBatch).m 0 (Nat.zero_add _)
-    (((s, (flockParams r.kBatch).point v, zskip),
-      (#v[], Flock.skipClaim (flockParams r.kBatch).nodes msg zskip)) :
-      Stmt (Flock.ZcX (I.Stmt × PubOut I) E ((flockParams r.kBatch).m + (flockParams r.kBatch).κ))
-        E 0) zcL
-    (fun k _ hk ↦ zc_weights_eq I r _ k (by omega))
-    (fun k _ hk ↦ zc_dropped I r _ k (by omega))
-    ((Component.Front.run_eq_some_iff _).mp hL).1
+  obtain ⟨v, msg, zskip, zcL, zcH, ab, α, lin, sv, fs, rfl, hL, hH, hLin⟩ := hs
+  have hRL := roundsTr?_roundsWire_of_solved (fun j ↦ ((flockParams r.kBatch).point v)[j]?)
+    (by norm_num) 0 (flockParams r.kBatch).m 0 _ zcL
+    (fun k _ hk ↦ zc_dropped I r _ k (by omega)) hL
   obtain ⟨cL, csL, hrL, vL, hvL, hrunL⟩ := run_roundsTr (zcFam I r).poly (zcFam I r).weight
     (fun j ↦ ((flockParams r.kBatch).point v)[j]?) (flockParams r.kBatch).m
     (flockParams r.kBatch).m 0 (Nat.zero_add _)
@@ -399,18 +412,11 @@ theorem flockTr?_flockWireOf (r : FlockRegion I.toShape) (hr : I.flock = some r)
       Stmt (Flock.ZcX (I.Stmt × PubOut I) E ((flockParams r.kBatch).m + (flockParams r.kBatch).κ))
         E 0) _ zcL
     (fun k _ hk ↦ zc_weights_eq I r _ k (by omega)) hRL
-  have hL' := hL
-  erw [hrunL, Option.some.injEq] at hL'
-  subst hL'
-  have hRH := roundsTr?_roundsWire (zcFam I r).poly (zcFam I r).weight
-    (fun j ↦ ((flockParams r.kBatch).point v)[j]?)
-    ((flockParams r.kBatch).m + (flockParams r.kBatch).κ) (by norm_num) 0
-    (flockParams r.kBatch).κ (flockParams r.kBatch).m rfl
-    (((s, (flockParams r.kBatch).point v, zskip), (vL, cL)) :
-      Stmt (Flock.ZcX (I.Stmt × PubOut I) E ((flockParams r.kBatch).m + (flockParams r.kBatch).κ))
-        E (flockParams r.kBatch).m) zcH
-    (fun k _ hk ↦ zc_weights_eq I r _ k hk) (fun k _ hk ↦ zc_dropped I r _ k hk)
-    ((Component.Front.run_eq_some_iff _).mp hH).1
+  erw [((Component.Front.run_eq_some_iff _).mp hrunL).2] at hH hLin
+  dsimp only at hH hLin
+  have hRH := roundsTr?_roundsWire_of_solved (fun j ↦ ((flockParams r.kBatch).point v)[j]?)
+    (by norm_num) 0 (flockParams r.kBatch).κ (flockParams r.kBatch).m cL zcH
+    (fun k _ hk ↦ zc_dropped I r _ k hk) hH
   obtain ⟨cH, csH, hrH, vH, hvH, hrunH⟩ := run_roundsTr (zcFam I r).poly (zcFam I r).weight
     (fun j ↦ ((flockParams r.kBatch).point v)[j]?)
     ((flockParams r.kBatch).m + (flockParams r.kBatch).κ) (flockParams r.kBatch).κ
@@ -419,15 +425,12 @@ theorem flockTr?_flockWireOf (r : FlockRegion I.toShape) (hr : I.flock = some r)
       Stmt (Flock.ZcX (I.Stmt × PubOut I) E ((flockParams r.kBatch).m + (flockParams r.kBatch).κ))
         E (flockParams r.kBatch).m) _ zcH
     (fun k _ hk ↦ zc_weights_eq I r _ k hk) hRH
-  have hH' := hH
-  erw [hrunH, Option.some.injEq] at hH'
-  subst hH'
-  have hRLin := roundsTr?_roundsWire (linFam I r).poly (linFam I r).weight (fun _ ↦ none)
-    (flockParams r.kBatch).m (by norm_num) 1 (flockParams r.kBatch).m 0 (Nat.zero_add _)
+  erw [((Component.Front.run_eq_some_iff _).mp hrunH).2] at hLin
+  have hRLin := roundsTr?_roundsWire_of_solved (fun _ ↦ none) (by norm_num) 1
+    (flockParams r.kBatch).m 0
     (Flock.alphaNext (Flock.termNext (S := I.Stmt × PubOut I)
-      ((s, (flockParams r.kBatch).point v, zskip), (vH, cH)) ab) α) lin
-    (fun k _ _ ↦ lin_weights_eq I r _ k) (fun _ _ _ ↦ rfl)
-    ((Component.Front.run_eq_some_iff _).mp hLin).1
+      ((s, (flockParams r.kBatch).point v, zskip), (vH, cH)) ab) α).2.2 lin
+    (fun _ _ _ ↦ rfl) hLin
   have hχ : RoundPoly.ofList? ((flockParams r.kBatch).m + (flockParams r.kBatch).κ)
       (csL ++ csH) = some vH := by
     rw [← ofList?_toList vH, hvH, hvL]
@@ -440,6 +443,53 @@ theorem flockTr?_flockWireOf (r : FlockRegion I.toShape) (hr : I.flock = some r)
     hRH, Option.bind_some, hrH, Option.bind_some, hχ, Option.bind_some, ofList?_toList ab,
     Option.bind_some, hRLin, Option.bind_some, ofList?_toList sv, Option.bind_some,
     ofList?_toList fs, Option.map_some]
+
+/-- A transcript of the Flock phase the oracle verifier accepts has round polynomials that pass
+their checks. -/
+theorem flockSolved_of_check (r : FlockRegion I.toShape) (hr : I.flock = some r)
+    (s : I.Stmt × PubOut I) (t : (flockSpecOf r.kBatch).FullTranscript)
+    (hc : (flockPhaseSome I r hr).front.check s t = true) : FlockSolved I r s t := by
+  obtain ⟨v, msg, zskip, zcL, zcH, ab, α, lin, sv, fs, rfl⟩ := exists_eq_flockTrOf r.kBatch t
+  have hrun := (flockPhaseSome I r hr).front.run_of_check hc
+  rw [run_flockPhaseSome] at hrun
+  obtain ⟨st, hst, -⟩ := Option.bind_eq_some_iff.mp hrun
+  obtain ⟨stH, hstH, hLin⟩ := Option.bind_eq_some_iff.mp hst
+  obtain ⟨stL, hL, hH⟩ := Option.bind_eq_some_iff.mp hstH
+  obtain ⟨hcL, hoL⟩ := (Component.Front.run_eq_some_iff _).mp hL
+  obtain ⟨hcH, hoH⟩ := (Component.Front.run_eq_some_iff _).mp hH
+  have hsL : RoundsSolved (fun j ↦ ((flockParams r.kBatch).point v)[j]?) (flockParams r.kBatch).m
+      0 (Flock.skipClaim (flockParams r.kBatch).nodes msg zskip) zcL :=
+    roundsSolved_of_check (zcFam I r).poly (zcFam I r).weight _ _ _ 0 (Nat.zero_add _)
+      (Flock.skipNext (flockParams r.kBatch) ((s, v), msg) zskip) zcL
+      (fun k _ hk ↦ zc_weights_eq I r _ k (by omega)) hcL
+  obtain ⟨cL, csL, -, vL, -, hrunL⟩ := run_roundsTr (zcFam I r).poly (zcFam I r).weight
+    (fun j ↦ ((flockParams r.kBatch).point v)[j]?) (flockParams r.kBatch).m
+    (flockParams r.kBatch).m 0 (Nat.zero_add _)
+    (((s, (flockParams r.kBatch).point v, zskip),
+      (#v[], Flock.skipClaim (flockParams r.kBatch).nodes msg zskip)) :
+      Stmt (Flock.ZcX (I.Stmt × PubOut I) E ((flockParams r.kBatch).m + (flockParams r.kBatch).κ))
+        E 0) _ zcL
+    (fun k _ hk ↦ zc_weights_eq I r _ k (by omega))
+    (roundsTr?_roundsWire_of_solved _ (by norm_num) 0 _ 0 _ zcL
+      (fun k _ hk ↦ zc_dropped I r _ k (by omega)) hsL)
+  obtain rfl : stL = ((s, (flockParams r.kBatch).point v, zskip), (vL, cL)) :=
+    Option.some.inj (hL.symm.trans hrunL)
+  refine ⟨v, msg, zskip, zcL, zcH, ab, α, lin, sv, fs, rfl, hsL, ?_, ?_⟩
+  · rw [hoL]
+    exact roundsSolved_of_check (zcFam I r).poly (zcFam I r).weight _ _ _
+      (flockParams r.kBatch).m rfl _ zcH (fun k _ hk ↦ zc_weights_eq I r _ k hk) hcH
+  · rw [hoL, hoH]
+    exact roundsSolved_of_check (linFam I r).poly (linFam I r).weight (fun _ ↦ none) _ _ 0
+      (Nat.zero_add _) _ lin (fun k _ _ ↦ lin_weights_eq I r _ k)
+      ((Component.Front.run_eq_some_iff _).mp hLin).1
+
+/-- A transcript of the Flock phase the oracle verifier accepts is the one its wire decodes
+to. -/
+theorem flockTr?_flockWireOf (r : FlockRegion I.toShape) (hr : I.flock = some r)
+    (s : I.Stmt × PubOut I) (t : (flockSpecOf r.kBatch).FullTranscript)
+    (hc : (flockPhaseSome I r hr).front.check s t = true) :
+    flockTr? I r s (flockWireOf r.kBatch t) = some t :=
+  flockTr?_flockWireOf_of_solved I r s t (flockSolved_of_check I r hr s t hc)
 
 /-- The transcript the Flock phase's wire decodes to carries the wire. -/
 theorem flockWireOf_flockTr? {r : FlockRegion I.toShape} {s : I.Stmt × PubOut I}
@@ -471,6 +521,16 @@ theorem flockStep_flockWireOf (r : FlockRegion I.toShape) (hr : I.flock = some r
       some ((flockPhaseSome I r hr).front.out s t) := by
   rw [flockStep_eq I r hr rows hrows, flockTr?_flockWireOf I r hr s t hc, Option.bind_some,
     (flockPhaseSome I r hr).front.run_of_check hc]
+
+/-- **On a transcript whose round polynomials pass their checks, the executable's verdict on its
+wire is the oracle verifier's** on the transcript, when its walk is the region's. -/
+theorem flockStep_flockWireOf_of_solved (r : FlockRegion I.toShape) (hr : I.flock = some r)
+    (rows : CMlPolynomialEval E (Flock.kSkip + Flock.kIn) →
+      CMlPolynomialEval E (Flock.kSkip + Flock.kIn) × CMlPolynomialEval E (Flock.kSkip + Flock.kIn))
+    (hrows : ∀ x, rows x = r.r1cs.rows x) (s : I.Stmt × PubOut I)
+    (t : (flockSpecOf r.kBatch).FullTranscript) (hs : FlockSolved I r s t) :
+    flockStep I r hr rows s (flockWireOf r.kBatch t) = (flockPhaseSome I r hr).front.run s t := by
+  rw [flockStep_eq I r hr rows hrows, flockTr?_flockWireOf_of_solved I r s t hs, Option.bind_some]
 
 /-- At leanVM's instance the verifier's BLAKE2s walk is the region's: the region carries the
 circuit's R1CS on words (`ProductCircuit.toBlockR1CSE`), equal to its block R1CS
