@@ -23,7 +23,9 @@ agreeing in the guest's Merkle caps (`CapsAgree`), no zero challenge where the g
 (`NoZeroChallenge`, new at `keccak-gkr`) and the node within the budget (`budget s w ≤ 2^28`),
 there is a valid execution of the guest on the statement's digest whose committed size is at least
 `2^22` and at most `2^28`: at most the most the verifier admits, and at least `2^MU_MIN`, so the
-honest proof of it has a stack log the guest's opening arms take, and completeness chains (the
+honest proof of it has a stack log the guest's opening arms take (an argument in prose, not proved
+here: the memory's four committed columns alone stack `2^22` cells, `placementsOf`), and
+completeness chains (the
 memory padded to `2^20` words at least, `Guest/Pad.lean`; leanVM grows the `SET` table instead,
 `aggregation.rs:1921-1925`). The three hypotheses are `Guest/Limits.lean`'s; the budget
 is a seventh limit, the size of the run, which the others do not bound. The deployed budget is
