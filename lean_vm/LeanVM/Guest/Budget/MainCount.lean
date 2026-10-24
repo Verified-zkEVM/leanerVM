@@ -72,8 +72,8 @@ variable {ω fs : String → ℕ}
 def mainCount (H : MainCounts ω fs) (m : MainIn) (b : MainBs) : ℕ :=
   ω "main" + (H.kExp + (m.nda + m.ndd) * H.kL0 + H.kDl + H.αcl * b.Bx / 1000 +
     H.αcl * b.Bs / 1000 + m.nxd * H.kL1 + m.nsd * H.kL2 + m.nrx * H.kL3 + m.nrs * H.kL4 +
-    (if m.nd = 1 then H.αdv * b.Bd / 1000 + H.kCov else 0) + H.α5 * b.B5 / 1000 +
-    (if m.nc = 0 then 0 else H.aggC + H.aggD * m.nc) + H.kSd)
+    (if m.nd = 1 then H.αdv * b.Bd / 1000 + H.kCov else 0) +
+    (if m.nc = 0 then 0 else H.α5 * b.B5 / 1000 + (H.aggC + H.aggD * m.nc)) + H.kSd)
 
 /-- A call's bound, by its callee. -/
 def mainCallW (H : MainCounts ω fs) (m : MainIn) (b : MainBs) (c : Call) : ℕ :=
@@ -88,7 +88,7 @@ def mainCallW (H : MainCounts ω fs) (m : MainIn) (b : MainBs) (c : Call) : ℕ 
   else if c.f = "__loop4" then m.nrs * H.kL4
   else if c.f = "da_verify" then H.αdv * b.Bd / 1000
   else if c.f = "cover_da_root" then H.kCov
-  else if c.f = "__loop5" then H.α5 * b.B5 / 1000
+  else if c.f = "__loop5" then (if m.nc = 0 then 0 else H.α5 * b.B5 / 1000)
   else if c.f = "aggregate_claims" then H.aggC + H.aggD * m.nc
   else if c.f = "statement_digest" then H.kSd
   else 0
@@ -156,7 +156,7 @@ theorem main_weight_count (H : MainCounts ω fs) {bufs : List ℕ} {ks : List Tr
     rcases hmem with ⟨rfl, rfl⟩ | ⟨rfl, rfl⟩ | ⟨rfl, rfl⟩ | ⟨rfl, rfl⟩ | ⟨rfl, rfl⟩ | ⟨rfl, rfl⟩ |
       ⟨rfl, rfl⟩ | ⟨rfl, rfl⟩ | ⟨rfl, rfl⟩ | ⟨rfl, rfl⟩ | ⟨rfl, rfl⟩ | ⟨rfl, rfl⟩ | ⟨rfl, rfl⟩ |
       ⟨rfl, rfl⟩ <;>
-    simp only [mainCallW, ↓reduceIte, String.reduceEq] at hn ⊢ <;>
+    simp only [mainCallW, ↓reduceIte, String.reduceEq, hc0] at hn ⊢ <;>
     first
     | exact H.exp rd t _ rets hn hv' hb'
     | exact H.dl rd t _ rets hn hv' hb'
@@ -165,6 +165,7 @@ theorem main_weight_count (H : MainCounts ω fs) {bufs : List ℕ} {ks : List Tr
     | exact H.cl.le hn hv' hb' hT'.2
     | exact H.dv.le hn hv' hb' hT'.2
     | exact H.l5.le hn hv' hb' hT'.2
+    | exact absurd hc0 (ne_zero_of_guard (by simpa [hMV.g413] using ht))
     | exact loop_case H.l0 hn hv' hb' (by simpa using hMV.g72) (by simpa using hMV.v50)
         (ne_zero_of_guard (by simpa [hMV.g71] using ht)) (by have := hB.slots; omega) (by simp)
     | exact loop_case H.l1 hn hv' hb' (by simpa using hMV.g87)
