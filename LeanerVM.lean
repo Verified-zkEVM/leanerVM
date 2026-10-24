@@ -34,6 +34,7 @@ import LeanerVM.Protocol.ChainLog
 import LeanerVM.Protocol.ClaimWeights
 import LeanerVM.Protocol.Compile.Bus
 import LeanerVM.Protocol.Compile.Rounds
+import LeanerVM.Protocol.Compile.Tables
 import LeanerVM.Protocol.DecodeAgree
 import LeanerVM.Protocol.DecodeChain
 import LeanerVM.Protocol.DecodeWalk
