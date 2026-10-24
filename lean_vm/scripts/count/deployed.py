@@ -2,6 +2,7 @@
 `B1.Main.mainWords` and `Budget.mainInstrs` define them, and proved by `decide +kernel` (each closed
 part in its own module, the kernel's string lookups being its cost)."""
 import os
+import vscount
 
 DL = ["da_levels__L1_L0", "da_levels__L2_L1", "da_levels__L4_L2", "da_levels__L8_L3",
       "da_levels__L16_L4", "da_levels__L32_L5", "da_levels__L64_L6", "da_levels__L128_L7",
@@ -72,6 +73,7 @@ def numbers(g, A, certs):
     words = [base, v['clS'], 5 + SK('__loop0') + SK('__loop1') + SK('__loop2'), SK('__loop3'),
              SK('__loop4'), v['dvC'] + fs('da_verify') + 2 * fs('cover_da_root'), v['dvS'], 51 + v['l5A1'] + v['agA1'], v['l5A2']]
     instrs = {}
+    tbl = vscount.tables(g)
     for lop, P, k in OPS_:
         c = certs[P]
         st = lambda n: c[n][2][0]
@@ -79,14 +81,16 @@ def numbers(g, A, certs):
         agg = c['aggregate_claims']
         aggC, aggD = agg[2][0], sum(a for _, a in agg[2][1])
         jt = 8473 if lop == 'setConstant' else 0
-        acl, adv, a5 = A['Cl'][k], A['Dv'][k], A['L5'][k]
+        acl, adv = A['Cl'][k], A['Dv'][k]
+        om5, ccA, ccS, vst = vscount.l5_parts(tbl, k)
+        # `Budget.l5C`: `__loop5`'s frame, two claim lists' constants, 16 DA roots, the digests.
+        l5C = om5 + 2 * ccA + 16 * lp('__loop28') + st('da_list_digest') + st('statement_digest')
         instrs[lop] = ([g.pm[1][k] + st('exponent_tables') + st('da_list_digest') + st('statement_digest') + jt
                         + 2 * (acl * v['clC'] // 1000 + 1),
                         acl * v['clS'] // 1000 + 1,
                         lp('__loop0') + lp('__loop1') + lp('__loop2'), lp('__loop3'), lp('__loop4'),
                         adv * v['dvC'] // 1000 + 1 + st('cover_da_root'), adv * v['dvS'] // 1000 + 1,
-                        (a5 * v['l5A0'] // 1000 + 1) + (a5 * v['l5A1'] // 1000 + 1) + 1 + aggC + aggD,
-                        a5 * v['l5A2'] // 1000 + 1], a5)
+                        l5C + aggC + aggD, ccS], vst)
     return v, words, instrs
 
 
@@ -160,13 +164,14 @@ theorem ccl_sum : nameSum (fun g => B2C.fs g) B1.Digest.cclNames 17 = %d := by d
 `μ` and rate `r`. -/
 def deployedWords (Bvf : ℕ → ℕ → ℕ) : End.Linear := %s
 
-/-- **The deployed budget's instructions of each opcode**, `verify_sub`'s words `Bvf μ r` through
-`__loop5`'s ratio. -/
-def deployedInstrs (Bvf : ℕ → ℕ → ℕ) : Opcode → End.Linear
+/-- **The deployed budget's instructions of each opcode**, `verify_sub`'s on a child of announced
+stack log `μ` and rate `r` at its candidate `B1.Whir.candidate μ r` (`Budget.vsCnt`). -/
+def deployedInstrs : Opcode → End.Linear
 ''' % wlit
     for lop, P, k in ops:
-        f, a5 = instrs[lop]
-        body += '  | .%s => ⟨%s, fun μ r => %d * Bvf μ r / 1000 + 1⟩\n' % (lop, ', '.join(str(x) for x in f), a5)
+        f, vst = instrs[lop]
+        body += '  | .%s => ⟨%s,\n    fun μ r => [%s].getD (B1.Whir.candidate μ r) 0⟩\n' % (
+            lop, ', '.join(str(x) for x in f), ', '.join(str(x) for x in vst))
     body += '''
 set_option maxRecDepth 100000 in
 /-- **`deployedBudget`'s words.** -/
@@ -179,11 +184,11 @@ theorem deployedBudget_words (Bvf : ℕ → ℕ → ℕ) :
 set_option maxRecDepth 100000 in
 /-- **`deployedBudget`'s instructions.** -/
 theorem deployedBudget_instrs (Bvf : ℕ → ℕ → ℕ) (op : Opcode) :
-    (Budget.deployedBudget Bvf).instrs op = deployedInstrs Bvf op := by
+    (Budget.deployedBudget Bvf).instrs op = deployedInstrs op := by
   simp only [Budget.deployedBudget, Budget.mainBudget, Budget.mainInstrs]
-  rw [clC_eq, clS_eq, dvC_eq, dvS_eq, l5A0_eq, l5A1_eq, l5A2_eq]
+  rw [clC_eq, clS_eq, dvC_eq, dvS_eq]
   cases op <;> simp only [deployedInstrs, mainCounts, kcExp, kcDl, kcSd, kcCov, kcL0, kcL1, kcL2, kcL3,
-    kcL4, kcAggC, kcAggD, krClA, krDvA, krL5A, B2C.jtSets] <;> congr 1
+    kcL4, kcAggC, kcAggD, krClA, krDvA, B2C.jtSets] <;> congr 1
 '''
     mod('Deployed', 'The numbers of the deployed budget: `deployedBudget_words`, `deployedBudget_instrs`.',
         'public import LeanVM.Guest.Count.DeployedB\npublic import LeanVM.Guest.Count.DeployedC\n', body)

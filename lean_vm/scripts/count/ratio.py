@@ -6,6 +6,9 @@ their calls by index, and `kr<N>A op` the largest `pathMax g op / fs g` over the
 rounded up; the closure and ratio checks are decided in chunks of the indices."""
 import os
 
+# A large function's closure check is split into pieces of at most this many callees.
+PIECE = 1000
+
 HDR = '''/-
   LeanVM.Guest.Count.%s
 
@@ -71,10 +74,10 @@ def wrap(prefix, items, w=100):
     return '\n'.join(out)
 
 
-def write(g, roots, opdef, CH=48, W=750):
+def write(g, roots, opdef, CH=48, W=750, fam='Ratio', two=False):
     D = os.path.join(g.lv, 'LeanVM', 'Guest', 'Count')
     for f in os.listdir(D):
-        if f.startswith('RatioChk') or f in ('RatioData.lean', 'Ratio.lean'): os.remove(os.path.join(D, f))
+        if f.startswith(fam + 'Chk') or f in (fam + 'Data.lean', fam + '.lean'): os.remove(os.path.join(D, f))
     fsN = lambda j: g.main_frame if j == 1 else max(2, g.fsz[j])
     data, chks, fin = [], [], []
     for N, r in roots:
@@ -110,14 +113,46 @@ def write(g, roots, opdef, CH=48, W=750):
         o.append(opdef('kr%sA' % N, '`%s`\'s ratios, in thousandths.' % r, A))
         data.append('\n'.join(o))
         for c in range(len(chunks)):
-            nm = 'RatioChk%s%d' % (N, c)
-            chks.append(nm)
-            body = ('theorem kr%s_closed%d : (kr%sJ%d).all (krClosedAt kr%sJ kr%sC) = true := by\n  decide +kernel\n\n'
-                    'theorem kr%s_ratio%d : (kr%sJ%d).all (krRatioAt kr%sA) = true := by\n  decide +kernel\n\n'
-                    'end\nend LeanVM.Guest.Count\n' % (N, c, N, c, N, N, N, c, N, c, N))
-            open(os.path.join(D, nm + '.lean'), 'w', encoding='utf-8').write(
-                HDR % (nm, 'The closure and ratio checks of one chunk of a ratio subtree.',
-                       'public import LeanVM.Guest.Count.RatioData\n', '') + body)
+            ch = chunks[c]
+            nm = '%sChk%s%d' % (fam, N, c)
+            ext = ''
+            cl = ('theorem kr%s_closed%d : (kr%sJ%d).all (krClosedAt kr%sJ kr%sC) = true := by\n  decide +kernel\n\n'
+                  % (N, c, N, c, N, N))
+            ra = ('theorem kr%s_ratio%d : (kr%sJ%d).all (krRatioAt kr%sA) = true := by\n  decide +kernel\n\n'
+                  % (N, c, N, c, N))
+            # With `two`, the closure and the ratio checks in modules of their own, and a large
+            # function's closure check in pieces of its body (`Count/RatioSplit.lean`).
+            parts = [(nm + 'C', cl), (nm + 'R', ra)] if two else [(nm, cl + ra)]
+            body0 = g.fns[ch[0]]['body'] if len(ch) == 1 else []
+            if two and len(blk_callees(body0)) > PIECE:
+                j = ch[0]; pcs = []; a = 0
+                while a < len(body0):
+                    n, k = 0, 0
+                    while a + n < len(body0) and (k == 0 or k + len(blk_callees([body0[a + n]])) <= PIECE):
+                        k += len(blk_callees([body0[a + n]])); n += 1
+                    pcs.append((a, n, [g.by[x] for x in blk_callees(body0[a:a + n])])); a += n
+                for q, (a, n, L) in enumerate(pcs):
+                    pn = '%sP%d' % (nm, q)
+                    chks.append(pn)
+                    open(os.path.join(D, pn + '.lean'), 'w', encoding='utf-8').write(
+                        HDR % (pn, 'One piece of a large function\'s closure check.',
+                               'public import LeanVM.Guest.Count.%sData\n' % fam, '')
+                        + wrap('theorem kr%s_piece%d_%d : krPiece kr%sJ %d %d %d [' % (N, c, q, N, j, a, n),
+                               [str(x) for x in L]) + ' = true := by\n  decide +kernel\n\n'
+                        + 'end\nend LeanVM.Guest.Count\n')
+                acc = 'kr%s_piece%d_0' % (N, c)
+                for q in range(1, len(pcs)): acc = 'krPiece_append (%s) kr%s_piece%d_%d' % (acc, N, c, q)
+                cl = ('theorem kr%s_closed%d : (kr%sJ%d).all (krClosedAt kr%sJ kr%sC) = true := by\n'
+                      '  have h := krClosedAt_of_piece (C := kr%sC) (i := %d) (%s) (by decide +kernel)\n'
+                      '  simpa [kr%sJ%d] using h\n\n' % (N, c, N, c, N, N, N, j, acc, N, c))
+                parts = [(nm + 'C', cl), (nm + 'R', ra)]
+                ext = ''.join('public import LeanVM.Guest.Count.%sP%d\n' % (nm, q) for q in range(len(pcs)))
+            for pn, body in parts:
+                chks.append(pn)
+                open(os.path.join(D, pn + '.lean'), 'w', encoding='utf-8').write(
+                    HDR % (pn, 'The closure and ratio checks of one chunk of a ratio subtree.',
+                           'public import LeanVM.Guest.Count.%sData\n' % fam + (ext if pn.endswith('C') else ''), '')
+                    + body + 'end\nend LeanVM.Guest.Count\n')
         def comb(k):
             acc = 'kr%s_%s0' % (N, k)
             for c in range(1, len(chunks)): acc = 'kr_all_append (%s) kr%s_%s%d' % (acc, N, k, c)
@@ -126,11 +161,11 @@ def write(g, roots, opdef, CH=48, W=750):
         fin.append('theorem kr%s_ratio : (kr%sJ).all (krRatioAt kr%sA) = true :=\n  %s\n' % (N, N, N, comb('ratio')))
         fin.append(WEIGHT % (r, N, r, N, N, N, g.by[r]))
         print('ratio %s: %d functions, %d chunks, A = %s' % (r, len(J), len(chunks), A))
-    open(os.path.join(D, 'RatioData.lean'), 'w', encoding='utf-8').write(
-        HDR % ('RatioData', 'The subtrees of the ratio bounds: their functions by index, their calls, their ratios.',
-               'public import LeanVM.Guest.Count.RatioBase\n', '') + '\n'.join(data) + '\nend\nend LeanVM.Guest.Count\n')
+    open(os.path.join(D, fam + 'Data.lean'), 'w', encoding='utf-8').write(
+        HDR % (fam + 'Data', 'The subtrees of the ratio bounds: their functions by index, their calls, their ratios.',
+               'public import LeanVM.Guest.Count.%s\n' % ('RatioSplit' if two else 'RatioBase'), '') + '\n'.join(data) + '\nend\nend LeanVM.Guest.Count\n')
     names = ', '.join('`%s`' % r for _, r in roots)
-    open(os.path.join(D, 'Ratio.lean'), 'w', encoding='utf-8').write(
-        HDR % ('Ratio', 'The instruction counts of %s\n  within ratios of their words, per opcode.' % names,
+    open(os.path.join(D, fam + '.lean'), 'w', encoding='utf-8').write(
+        HDR % (fam, 'The instruction counts of %s\n  within ratios of their words, per opcode.' % names,
                ''.join('public import LeanVM.Guest.Count.%s\n' % n for n in chks), DOC)
         + '\n'.join(fin) + '\nend\nend LeanVM.Guest.Count\n')

@@ -22,15 +22,21 @@ open LeanVM.Guest.B1.Main (nameSum dlK colC colS clC clS ccC ccS dvC dvS l5A0 l5
 `μ` and rate `r`. -/
 def deployedWords (Bvf : ℕ → ℕ → ℕ) : End.Linear := ⟨18123, 35, 109, 6459, 7328, 480986, 247997, 14257, 30, Bvf⟩
 
-/-- **The deployed budget's instructions of each opcode**, `verify_sub`'s words `Bvf μ r` through
-`__loop5`'s ratio. -/
-def deployedInstrs (Bvf : ℕ → ℕ → ℕ) : Opcode → End.Linear
-  | .xor => ⟨1742, 10, 3, 295, 604, 174219, 90023, 6170, 14, fun μ r => 459 * Bvf μ r / 1000 + 1⟩
-  | .mulNative => ⟨2675, 16, 37, 243, 361, 375800, 194182, 11141, 27, fun μ r => 870 * Bvf μ r / 1000 + 1⟩
-  | .setConstant => ⟨9851, 7, 12, 206, 481, 219335, 113335, 5014, 13, fun μ r => 400 * Bvf μ r / 1000 + 1⟩
-  | .deref => ⟨3639, 19, 0, 132, 220, 646967, 334300, 13223, 31, fun μ r => 1033 * Bvf μ r / 1000 + 1⟩
-  | .jump => ⟨508, 3, 6, 84, 128, 115187, 59520, 2624, 7, fun μ r => 200 * Bvf μ r / 1000 + 1⟩
-  | .keccak => ⟨202, 2, 0, 398, 390, 15839, 8184, 735, 2, fun μ r => 56 * Bvf μ r / 1000 + 1⟩
+/-- **The deployed budget's instructions of each opcode**, `verify_sub`'s on a child of announced
+stack log `μ` and rate `r` at its candidate `B1.Whir.candidate μ r` (`Budget.vsCnt`). -/
+def deployedInstrs : Opcode → End.Linear
+  | .xor => ⟨1742, 10, 3, 295, 604, 174219, 90023, 815, 5,
+    fun μ r => [137380, 139055, 142111, 143999, 145412, 147524, 150397, 114549, 115244, 118030, 118940, 120055, 120997, 123389, 105948, 106694, 109252, 110009, 110777, 111570, 114023, 101540, 102002, 104196, 104668, 105152, 106161, 108443].getD (B1.Whir.candidate μ r) 0⟩
+  | .mulNative => ⟨2675, 16, 37, 243, 361, 375800, 194182, 1184, 10,
+    fun μ r => [237101, 239393, 243253, 246024, 247691, 250625, 254244, 210777, 211474, 215264, 216405, 217944, 219113, 222233, 200534, 201506, 205048, 206017, 207014, 208037, 211445, 195512, 195988, 198926, 199410, 199908, 201380, 204607].getD (B1.Whir.candidate μ r) 0⟩
+  | .setConstant => ⟨9851, 7, 12, 206, 481, 219335, 113335, 264, 2,
+    fun μ r => [77931, 78405, 79019, 79599, 79722, 80487, 81050, 74604, 74637, 75424, 75544, 75912, 76046, 76544, 73267, 73484, 74092, 74350, 74481, 74573, 75343, 72437, 72480, 73115, 73178, 73227, 73532, 74139].getD (B1.Whir.candidate μ r) 0⟩
+  | .deref => ⟨3639, 19, 0, 132, 220, 646967, 334300, 1239, 9,
+    fun μ r => [172880, 174194, 176655, 178028, 179403, 180870, 183283, 164811, 165600, 167559, 168406, 169278, 170159, 172087, 161922, 162564, 164350, 165007, 165692, 166403, 168207, 159963, 160487, 162110, 162650, 163204, 163911, 165598].getD (B1.Whir.candidate μ r) 0⟩
+  | .jump => ⟨508, 3, 6, 84, 128, 115187, 59520, 265, 1,
+    fun μ r => [44986, 45027, 45572, 45607, 45659, 45738, 46172, 40417, 40443, 40935, 40955, 40984, 41016, 41422, 38808, 38839, 39303, 39323, 39347, 39379, 39790, 37725, 37751, 38184, 38199, 38218, 38281, 38666].getD (B1.Whir.candidate μ r) 0⟩
+  | .keccak => ⟨202, 2, 0, 398, 390, 15839, 8184, 70, 1,
+    fun μ r => [8009, 8355, 8949, 9311, 9686, 10070, 10685, 6515, 6729, 7198, 7427, 7658, 7890, 8369, 5946, 6112, 6532, 6711, 6891, 7073, 7516, 5628, 5765, 6154, 6303, 6453, 6627, 7035].getD (B1.Whir.candidate μ r) 0⟩
 
 set_option maxRecDepth 100000 in
 /-- **`deployedBudget`'s words.** -/
@@ -43,11 +49,11 @@ theorem deployedBudget_words (Bvf : ℕ → ℕ → ℕ) :
 set_option maxRecDepth 100000 in
 /-- **`deployedBudget`'s instructions.** -/
 theorem deployedBudget_instrs (Bvf : ℕ → ℕ → ℕ) (op : Opcode) :
-    (Budget.deployedBudget Bvf).instrs op = deployedInstrs Bvf op := by
+    (Budget.deployedBudget Bvf).instrs op = deployedInstrs op := by
   simp only [Budget.deployedBudget, Budget.mainBudget, Budget.mainInstrs]
-  rw [clC_eq, clS_eq, dvC_eq, dvS_eq, l5A0_eq, l5A1_eq, l5A2_eq]
+  rw [clC_eq, clS_eq, dvC_eq, dvS_eq]
   cases op <;> simp only [deployedInstrs, mainCounts, kcExp, kcDl, kcSd, kcCov, kcL0, kcL1, kcL2, kcL3,
-    kcL4, kcAggC, kcAggD, krClA, krDvA, krL5A, B2C.jtSets] <;> congr 1
+    kcL4, kcAggC, kcAggD, krClA, krDvA, B2C.jtSets] <;> congr 1
 
 end
 end LeanVM.Guest.Count

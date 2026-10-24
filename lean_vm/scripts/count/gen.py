@@ -11,6 +11,13 @@ written under `LeanVM/Guest/`. `CMD` is one of
 * `cnt`: `Memory/GuestCnt{X,M,S,D,J,K}/`, their tops and `Memory/GuestCntPm.lean`, the
   certificates counting each opcode's instructions at `B2C.ωArm B2C.xmssArmC op` (`pathMax`, and
   `verify_lean_xmss`'s separately counted arms), over the closure of `ROOTS`;
+* `cntv`: `Memory/GuestCntV{X,M,S,D,J,K}/`, their tops and `Memory/GuestCntVPm.lean`, the same
+  over the closure of `VROOTS` (`verify_sub`'s statically bounded callees, each child's opening arm
+  among them, and `child_claim_list_digest`'s callees);
+* `ratiov`: `Count/RatioVData.lean`, `Count/RatioVChk*.lean`, `Count/RatioV.lean`, the counts of
+  `RATIOV_ROOTS` (`verify_sub`'s callees with no static bound) within ratios of their words;
+* `vscount`: `Count/VsCountData.lean`, `Count/VsCountChk*.lean`, the `V` families' counts as tables
+  (`vscount.py`, used by `Budget/VsCount.lean`, `Budget/L5Count.lean`);
 * `static`: `Count/Static.lean`, the bounds of `ROOTS` the families give, per opcode and in words,
   and `Count/Words.lean`, every function's words by name (`wSB`, `wSK`; `Count/Instances.lean`
   instantiates the budget's hypotheses with them);
@@ -23,7 +30,7 @@ The checker is `checker.py`, a mirror of `Memory/Static.lean`; `--cache` keeps t
 Build the families' parts one module at a time (each is a few GB)."""
 import sys, os, re, argparse
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-import core, checker, writelean, ratio, deployed
+import core, checker, writelean, ratio, deployed, vscount
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 # (Lean opcode, family letter, index in `Opcode`'s order)
@@ -39,8 +46,17 @@ LOOP_ROOTS = [('L0', '__loop0'), ('L1', '__loop1'), ('L2', '__loop2'), ('L3', '_
 AGG = 'aggregate_claims'
 ROOTS = [n for _, n in CONST_ROOTS] + [n for _, n in LOOP_ROOTS] + [AGG]
 # Functions bounded by a ratio of their words: (name in Lean, function).
-RATIO_ROOTS = [('Cl', 'claim_list_digest'), ('Dv', 'da_verify'), ('Agg', 'aggregate_claims'),
-               ('L5', '__loop5')]
+RATIO_ROOTS = [('Cl', 'claim_list_digest'), ('Dv', 'da_verify'), ('Agg', 'aggregate_claims')]
+# `verify_sub`'s statically bounded callees (each child's opening arm among them) and
+# `child_claim_list_digest`'s callees: the `V` count families (`Memory/GuestCntV*`), apart from
+# `main`'s so that neither family's change rebuilds the other's dependents.
+VROOTS = (['open_stacked__L%d' % c for c in range(28)] +
+          ['g_power_of_word', 'assert_canonical', 'log2_ceil_in_the_exponent__L0_L34',
+           'log2_ceil_in_the_exponent__L15_L34', 'certify_placement', 'ring_switch_target',
+           'list_split', '__loop17'] + ['child_claim_list_last__L%d' % k for k in range(17)])
+# `verify_sub`'s callees with no static bound, within ratios of their words (`Count/RatioV*`).
+RATIOV_ROOTS = [('Vbg', 'verify_bus_gkr'), ('Vt', 'verify_tables'), ('Vk', 'verify_keccak'),
+                ('Vterm', 'check_opening_terminal')]
 MAIN_CALLEES = ['exponent_tables', '__loop0', 'da_list_digest', 'claim_list_digest', '__loop1',
                 '__loop2', '__loop3', '__loop4', 'da_verify', 'cover_da_root', '__loop5',
                 AGG, 'statement_digest']
@@ -104,8 +120,8 @@ class G:
     def words_certs(self):
         return checker.gen(self.fns, self.fs_words(), alpha=True)[1]
 
-    def cnt_certs(self):
-        S = self.closure(ROOTS)
+    def cnt_certs(self, roots=None):
+        S = self.closure(ROOTS if roots is None else roots)
         out = []
         for lop, P, k in OPS:
             om = self.omega_cnt(k)
@@ -148,28 +164,37 @@ def ntree(items, name, defs, depth=0):
     return s
 
 
-def cmd_cnt(g):
-    S, fams = g.cnt_certs()
+def cmd_cnt(g, V=''):
+    """The count families of `main`'s static callees (`V = ''`: `GuestCnt*`, `kw*`, `kc*`) or of
+    `verify_sub`'s (`V = 'V'`: `GuestCntV*`, `kv*`, `kcv*`)."""
+    S, fams = g.cnt_certs(VROOTS if V else None)
+    w = 'kv' if V else 'kw'
+    kc = 'kcv' if V else 'kc'
+    rk = (lambda t: re.sub(r'\bkc(?=[A-Z_])', kc, t)) if V else (lambda t: t)
     for lop, P, k, om, cert in fams:
-        gr, mods = writelean.write_lean(g.LD, g.fns, cert, om, B=1200, alpha=False, fam='GuestCnt' + P,
-                                        pre='kw' + P.lower(), mem=(700, 1500))
-        print('cnt %s: certified %d (closure %d); %d ranges, %d parts' % (lop, len(cert), len(S), len(gr), len(mods)))
+        gr, mods = writelean.write_lean(g.LD, g.fns, cert, om, B=1200, alpha=False, fam='GuestCnt' + V + P,
+                                        pre=w + P.lower(), mem=(700, 1500))
+        print('cnt%s %s: certified %d (closure %d); %d ranges, %d parts' % (V, lop, len(cert), len(S), len(gr), len(mods)))
         H = '.'.join(['2'] * k + ['1']) if k < 5 else '.'.join(['2'] * 5)
-        t = (tpl('GuestCnt.lean').replace('@P@', P).replace('@p@', P.lower()).replace('@OP@', lop)
+        t = (tpl('GuestCnt.lean').replace('GuestCnt@P@', 'GuestCnt' + V + '@P@').replace('GuestCntPm', 'GuestCnt' + V + 'Pm')
+             .replace('kw@p@', w + '@p@').replace('@P@', P).replace('@p@', P.lower()).replace('@OP@', lop)
              .replace('@K@', str(k)).replace('@H@', H))
-        write_tpl(os.path.join(g.LD, 'GuestCnt%s.lean' % P), t)
+        write_tpl(os.path.join(g.LD, 'GuestCnt%s%s.lean' % (V, P)), rk(t))
     defs = []
     top = ntree(sorted(g.by[n] for n in S), 'kcST', defs)
     trees = ''.join('/-- A subtree. -/\ndef %s : NTree ℕ := %s\n\n' % d for d in defs)
-    imports = ''.join('public import LeanVM.Guest.Memory.GuestCnt%s.Data\n' % P for _, P, _ in OPS)
-    pmat = ' &&\n    '.join('kw%somegaJ j == (B2C.plumbOf (j + 1)).pmax.getD %d 0 + kcArmJ j %d' % (P.lower(), k, k)
+    imports = ''.join('public import LeanVM.Guest.Memory.GuestCnt%s%s.Data\n' % (V, P) for _, P, _ in OPS)
+    pmat = ' &&\n    '.join('%s%somegaJ j == (B2C.plumbOf (j + 1)).pmax.getD %d 0 + kcArmJ j %d' % (w, P.lower(), k, k)
                            for _, P, k in OPS)
-    pmeq = ' ∧\n      '.join('kw%somegaJ j = (B2C.plumbOf (j + 1)).pmax.getD %d 0 + kcArmJ j %d' % (P.lower(), k, k)
+    pmeq = ' ∧\n      '.join('%s%somegaJ j = (B2C.plumbOf (j + 1)).pmax.getD %d 0 + kcArmJ j %d' % (w, P.lower(), k, k)
                              for _, P, k in OPS)
     t = (tpl('GuestCntPm.lean').replace('@IMPORTS@', imports).replace('@TREES@', trees)
          .replace('@KCST@', top).replace('@PMAT@', pmat).replace('@PMEQ@', pmeq)
          .replace('@XJ@', str(g.xj)).replace('@ARMS@', '[' + ', '.join(map(str, g.C)) + ']'))
-    write_tpl(os.path.join(g.LD, 'GuestCntPm.lean'), t)
+    if V:
+        t = t.replace('LeanVM.Guest.Memory.GuestCntPm', 'LeanVM.Guest.Memory.GuestCntVPm').replace(
+            "the closure of `main`'s statically bounded callees", "the closure of `verify_sub`'s statically bounded callees")
+    write_tpl(os.path.join(g.LD, 'GuestCnt%sPm.lean' % V), rk(t))
     return S, fams
 
 
@@ -328,21 +353,28 @@ def cmd_report(g):
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument('lean_vm')
-    ap.add_argument('cmd', choices=['report', 'words', 'cnt', 'static', 'ratio', 'deployed', 'all'])
+    ap.add_argument('cmd', choices=['report', 'words', 'cnt', 'cntv', 'static', 'ratio', 'ratiov', 'vscount', 'deployed',
+                                    'all'])
     ap.add_argument('--cache', default=None)
     a = ap.parse_args()
     g = G(a.lean_vm, a.cache)
     if a.cmd == 'report': cmd_report(g)
     elif a.cmd == 'words': cmd_words(g)
     elif a.cmd == 'cnt': cmd_cnt(g)
+    elif a.cmd == 'cntv': cmd_cnt(g, 'V')
     elif a.cmd == 'static': cmd_static(g)
     elif a.cmd == 'ratio': ratio.write(g, RATIO_ROOTS, opdef)
+    elif a.cmd == 'ratiov': ratio.write(g, RATIOV_ROOTS, opdef, fam='RatioV', CH=24, W=450, two=True)
+    elif a.cmd == 'vscount': vscount.write(g, OPS)
     elif a.cmd == 'deployed': cmd_deployed(g)
     else:
         w = cmd_words(g)
         _, fams = cmd_cnt(g)
         cmd_static(g, w, fams)
         ratio.write(g, RATIO_ROOTS, opdef)
+        cmd_cnt(g, 'V')
+        ratio.write(g, RATIOV_ROOTS, opdef, fam='RatioV', CH=24, W=450, two=True)
+        vscount.write(g, OPS)
         cmd_deployed(g, fams)
 
 

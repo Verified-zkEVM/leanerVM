@@ -104,8 +104,6 @@ noncomputable def mainCounts (op : Opcode) :
   cl := krCl_weight op
   αdv := krDvA op
   dv := krDv_weight op
-  α5 := krL5A op
-  l5 := krL5_weight op
 
 /-- `open_stacked`'s named callees, checked. -/
 theorem osKind_ok : B1.osKindTable.all (fun p => wOkB (wIdx p.1) p.1) = true := by
