@@ -153,6 +153,8 @@ theorem xs_length (h : D.Ok) : D.xs.length = D.lcur 12 + 97 := by
   simp only [List.length_append, List.length_singleton, flatMap_pairs_length, hmO, hmI, hmS, hsl,
     flatMap_range_length _ (fun k hk ↦ ltXs_length h hk), lcur]
 
+theorem c0_point_length (h : D.Ok) : D.c0.point.length = D.τ - 3 := c0_point h
+
 theorem c0_point_getD (h : D.Ok) {j : ℕ} (hj : j < D.τ - 4) :
     D.c0.point.getD j 0 = D.chis.getD (4 + j) 0 := by
   have hl := inst_length h
@@ -265,6 +267,119 @@ theorem sMeaning (h : D.Ok) {rd : Reader} {curE chiE olE zvE slE : ℕ}
     show min (D.τ - 4) (D.τ - 3) = D.τ - 4 by omega, ptr_mul_gen,
     show zvE + qkeccakVarsCap + (4 + (D.τ - 4)) = zvE + 39 + D.τ by simp; omega] at this
   rwa [ptr_mul_gen, ptr_mul_gen]
+
+variable {fs : String → ℕ} {cert : String → V → ℕ}
+
+set_option maxHeartbeats 4000000 in
+/-- **The calls, complete where `verify_keccak` places them.** -/
+theorem kids_complete (h : D.Ok) (κ : ℕ) (B curE chiE olE zvE slE : ℕ) :
+    ∀ k ∈ D.kids fs B curE chiE olE zvE slE, k.taken = true → ∀ ps,
+      CompleteAtF fs cert κ k.f (fun p ↦ k.Lin (ps ++ [p])) (k.args ps)
+        (fun p ↦ k.Out (ps ++ [p])) := by
+  have hτ1 := h.1
+  have hτ2 := h.2.1
+  have hchis := h.2.2.1
+  have hord : D.τ - 4 < ordG := by unfold ordG; omega
+  have hlin : ∀ {b ws}, (b, ws) ∈ [(curE, D.xs), (chiE, D.chis), (olE, D.outs), (zvE, D.op),
+      (zvE + qkeccakVarsCap, D.point), (slE, D.slices)] → (b, ws) ∈ D.lin curE chiE olE zvE slE :=
+    fun h ↦ h
+  intro k hk _ ps
+  simp only [kids, List.mem_append, List.mem_cons, List.mem_map, List.mem_range,
+    List.not_mem_nil, or_false] at hk
+  rcases hk with ((rfl | ⟨s, hs, rfl⟩) | rfl | rfl | rfl | rfl | rfl)
+  · -- `__loop11`
+    exact (loop_complete find_copyLoop11 copyLoop_body11 rfl (by simp [vkKidS]) κ
+      (L := [(chiE, D.chis), (B, D.c0.point)]) (dw := D.c0.point) (sw := D.chis)
+      (m := D.τ - 4) (by omega) hord (db := B) (dj := 0) (sb := chiE) (sj := 4)
+      (by simp) (by simp) (by rw [c0_point_length h]; omega) (by omega)
+      (fun j hj ↦ by rw [zero_add, c0_point_getD h hj]) (by simp) rfl).toF
+  · -- the layers
+    have hy := D.layer_y h (k := s) (by omega)
+    obtain ⟨hcl, hcap⟩ := D.layer_cap h hs
+    obtain ⟨hpl, hpm, hlm, hproj, hfin⟩ := D.layer_facts h hs
+    have H := layer_completeAtF (fs := fs) (cert := cert) (first := firstOf s) (odd := D.odd)
+      (by unfold firstOf; split <;> omega) (Nat.mod_lt _ (by norm_num)) κ (D.layer s)
+      (D.CL B (D.lsOf fs ps) s) (curE + D.lcur s) (B + D.o201 + 22 * (s + 1))
+      (p0 := (D.cells s).1) (p1 := (D.cells s).2) hcl hcap (fun hf1 ↦ by
+        obtain rfl : s = 0 := by unfold firstOf at hf1; split at hf1 <;> omega
+        rfl) (by rw [hy]; rfl) (by rw [hy]; omega) (by rw [hy]; omega) hpl hpm hlm hproj hfin
+      (D.CL_ok h B _ hs)
+    have hb : (D.CL B (D.lsOf fs ps) s).bclaim = B + D.o201 + 22 * s := by cases s <;> rfl
+    rw [hb] at H
+    simp only [layKid, List.dropLast_concat, List.getLast?_concat, Option.getD_some]
+    exact H
+  · -- the committed outputs' rounds
+    obtain ⟨a, b, c, d, e, hc⟩ := five_of_length' (L_ok h).2.1
+    refine (plain_complete (k0 := 0) (by norm_num) κ (L := D.lin curE chiE olE zvE slE)
+      (fun h0 ↦ absurd h0 (by decide)) (fun rd hm ↦ oMeaning h hm) (fun j hj ↦ ?_)
+      (fun j hj ↦ ?_)).toF
+    · have e : (D.oArgs curE zvE).getD 7 0 = ptr curE * gen ^ D.lcur 12 := by
+        rw [oArgs, hc, ← cL_eq]; rfl
+      rw [e]
+      exact inR_entry (ws := D.xs) (hlin (by simp)) (by rw [xs_length h]; simp [plainCount] at hj; omega)
+    · have e : (D.oArgs curE zvE).getD 9 0 = ptr zvE * gen ^ D.τ := by rw [oArgs, hc]; rfl
+      rw [e]
+      exact inR_entry (ws := D.op) (hlin (by simp)) (by rw [op_length h]; simp [plainCount] at hj; omega)
+  · -- `__loop12`
+    refine (loop_complete find_copyLoop12 copyLoop_body12 rfl (by simp [vkKidS]) κ
+      (L := [(zvE, D.op), (B, D.c0.point)]) (dw := D.op) (sw := D.c0.point) (m := D.τ - 4) (by omega) hord (db := zvE) (dj := 4) (sb := B) (sj := 0)
+      (by simp) (by simp) (by rw [op_length h]; omega) (by rw [c0_point_length h]; omega)
+      (fun j hj ↦ ?_) rfl (by simp)).toF
+    rw [zero_add, c0_point_getD h hj, op_eq, List.take_append_drop,
+      List.getD_append _ _ _ _ (by rw [inst_length h]; omega), inst_getD h (by omega)]
+  · -- the inputs' rounds
+    obtain ⟨a, b, c, d, e, hc⟩ := five_of_length' (O_ok h).2.1
+    refine (plain_complete (k0 := 1) (by norm_num) κ (L := D.lin curE chiE olE zvE slE)
+      (fun _ ↦ ⟨D.word, by rw [iArgs, hc]; rfl⟩) (fun rd hm ↦ iMeaning h hm) (fun j hj ↦ ?_)
+      (fun j hj ↦ ?_)).toF
+    · have e : (D.iArgs curE zvE).getD 7 0 = ptr curE * gen ^ (D.lcur 12 + 13) := by
+        rw [iArgs, hc]
+        show D.cL curE * gen ^ (2 * 6) * gen = _
+        rw [cL, ptr_mul_gen, ptr_mul_gen1, ptr_mul_gen]
+        congr 1
+      rw [e]
+      exact inR_entry (ws := D.xs) (hlin (by simp)) (by rw [xs_length h]; simp [plainCount] at hj; omega)
+    · have e : (D.iArgs curE zvE).getD 9 0 = ptr (zvE + qkeccakVarsCap) * gen ^ 0 := by
+        rw [iArgs, hc]
+        show ptr zvE * gen ^ 39 = _
+        rw [ptr_mul_gen, ptr_mul_gen]
+      rw [e]
+      exact inR_entry (ws := D.point) (hlin (by simp)) (by rw [point_length h]; simp [plainCount] at hj; omega)
+  · -- the inputs' opening's rounds
+    obtain ⟨a, b, c, d, e, hc⟩ := five_of_length' (I_ok h).2.1
+    refine (plain_complete (k0 := 0) (by norm_num) κ (L := D.lin curE chiE olE zvE slE)
+      (fun h0 ↦ absurd h0 (by decide)) (fun rd hm ↦ sMeaning h hm) (fun j hj ↦ ?_)
+      (fun j hj ↦ ?_)).toF
+    · have e : (D.sArgs curE zvE).getD 7 0 = ptr curE * gen ^ (D.lcur 12 + 21) := by
+        rw [sArgs, hc]
+        show D.cL curE * gen ^ (2 * 6) * gen * gen ^ (2 * 4) = _
+        rw [cL, ptr_mul_gen, ptr_mul_gen1, ptr_mul_gen, ptr_mul_gen]
+        congr 1
+      rw [e]
+      exact inR_entry (ws := D.xs) (hlin (by simp)) (by rw [xs_length h]; simp [plainCount] at hj; omega)
+    · have e : (D.sArgs curE zvE).getD 9 0 = ptr (zvE + qkeccakVarsCap) * gen ^ D.τ := by
+        rw [sArgs, hc]
+        show ptr zvE * gen ^ 39 * gen ^ D.τ = _
+        rw [ptr_mul_gen]
+      rw [e]
+      exact inR_entry (ws := D.point) (hlin (by simp)) (by rw [point_length h]; simp [plainCount] at hj; omega)
+  · -- `__loop13`
+    have hL : (fun p ↦ [(zvE + qkeccakVarsCap, D.point),
+        (D.lsOf fs (ps ++ [p]).dropLast 11, (D.layer 11).chs (firstOf 11))]) =
+        fun _ ↦ [(zvE + qkeccakVarsCap, D.point), (D.lsOf fs ps 11, (D.layer 11).chs (firstOf 11))] :=
+      funext fun p ↦ by rw [List.dropLast_concat]
+    simp only
+    rw [hL]
+    refine (loop_complete find_copyLoop13 copyLoop_body13 rfl (by simp [vkKidS]) κ
+      (L := [(zvE + qkeccakVarsCap, D.point), (D.lsOf fs ps 11, (D.layer 11).chs (firstOf 11))])
+      (dw := D.point) (sw := (D.layer 11).chs (firstOf 11)) (m := D.τ - 4) (by omega) hord (db := zvE + qkeccakVarsCap) (dj := 4)
+      (sb := D.lsOf fs ps 11) (sj := 0) (by simp) (by simp)
+      (by rw [point_length h]; omega) (by rw [← L1_point h, L_point h]; omega)
+      (fun j hj ↦ ?_) (by rw [ptr_mul_gen, ptr_mul_gen]) (by simp)).toF
+    rw [zero_add, ← L1_point h, point, List.getD_append _ _ _ _ (by simp [I1_length h, L_point h]; omega),
+      List.getD_append_right _ _ _ _ (by rw [I1_length h]; omega), I1_length h,
+      List.getD_eq_getElem?_getD, List.getElem?_take]
+    simp [show 4 + j - 4 = j by omega, hj, List.getD_eq_getElem?_getD]
 
 end VkData
 
