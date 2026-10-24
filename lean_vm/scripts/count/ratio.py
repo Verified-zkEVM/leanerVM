@@ -71,10 +71,10 @@ def wrap(prefix, items, w=100):
     return '\n'.join(out)
 
 
-def write(g, roots, opdef, CH=48, W=750):
+def write(g, roots, opdef, CH=48, W=750, fam='Ratio'):
     D = os.path.join(g.lv, 'LeanVM', 'Guest', 'Count')
     for f in os.listdir(D):
-        if f.startswith('RatioChk') or f in ('RatioData.lean', 'Ratio.lean'): os.remove(os.path.join(D, f))
+        if f.startswith(fam + 'Chk') or f in (fam + 'Data.lean', fam + '.lean'): os.remove(os.path.join(D, f))
     fsN = lambda j: g.main_frame if j == 1 else max(2, g.fsz[j])
     data, chks, fin = [], [], []
     for N, r in roots:
@@ -110,14 +110,14 @@ def write(g, roots, opdef, CH=48, W=750):
         o.append(opdef('kr%sA' % N, '`%s`\'s ratios, in thousandths.' % r, A))
         data.append('\n'.join(o))
         for c in range(len(chunks)):
-            nm = 'RatioChk%s%d' % (N, c)
+            nm = '%sChk%s%d' % (fam, N, c)
             chks.append(nm)
             body = ('theorem kr%s_closed%d : (kr%sJ%d).all (krClosedAt kr%sJ kr%sC) = true := by\n  decide +kernel\n\n'
                     'theorem kr%s_ratio%d : (kr%sJ%d).all (krRatioAt kr%sA) = true := by\n  decide +kernel\n\n'
                     'end\nend LeanVM.Guest.Count\n' % (N, c, N, c, N, N, N, c, N, c, N))
             open(os.path.join(D, nm + '.lean'), 'w', encoding='utf-8').write(
                 HDR % (nm, 'The closure and ratio checks of one chunk of a ratio subtree.',
-                       'public import LeanVM.Guest.Count.RatioData\n', '') + body)
+                       'public import LeanVM.Guest.Count.%sData\n' % fam, '') + body)
         def comb(k):
             acc = 'kr%s_%s0' % (N, k)
             for c in range(1, len(chunks)): acc = 'kr_all_append (%s) kr%s_%s%d' % (acc, N, k, c)
@@ -126,11 +126,11 @@ def write(g, roots, opdef, CH=48, W=750):
         fin.append('theorem kr%s_ratio : (kr%sJ).all (krRatioAt kr%sA) = true :=\n  %s\n' % (N, N, N, comb('ratio')))
         fin.append(WEIGHT % (r, N, r, N, N, N, g.by[r]))
         print('ratio %s: %d functions, %d chunks, A = %s' % (r, len(J), len(chunks), A))
-    open(os.path.join(D, 'RatioData.lean'), 'w', encoding='utf-8').write(
-        HDR % ('RatioData', 'The subtrees of the ratio bounds: their functions by index, their calls, their ratios.',
+    open(os.path.join(D, fam + 'Data.lean'), 'w', encoding='utf-8').write(
+        HDR % (fam + 'Data', 'The subtrees of the ratio bounds: their functions by index, their calls, their ratios.',
                'public import LeanVM.Guest.Count.RatioBase\n', '') + '\n'.join(data) + '\nend\nend LeanVM.Guest.Count\n')
     names = ', '.join('`%s`' % r for _, r in roots)
-    open(os.path.join(D, 'Ratio.lean'), 'w', encoding='utf-8').write(
-        HDR % ('Ratio', 'The instruction counts of %s\n  within ratios of their words, per opcode.' % names,
+    open(os.path.join(D, fam + '.lean'), 'w', encoding='utf-8').write(
+        HDR % (fam, 'The instruction counts of %s\n  within ratios of their words, per opcode.' % names,
                ''.join('public import LeanVM.Guest.Count.%s\n' % n for n in chks), DOC)
         + '\n'.join(fin) + '\nend\nend LeanVM.Guest.Count\n')
