@@ -712,10 +712,11 @@ pinned sources is [archived](../reviews/protocol-spine-revision.md).
   and the opening run their honest provers. The BLAKE2s inhabitant's R1CS, `blake2sR1CS`, runs
   on the compiled circuit's words (`blake2sR1CS_eq_blake2sR1CSFast`, `@[csimp]`). WHIR's opening
   has a cached prover, `whirOpenCached` (`Protocol/Whir/Cached.lean`), whose run is
-  `whirOpen`'s. At the smallest admissible size the whole oracle protocol's prover runs in 25 s,
-  the opening's batched weight takes 4 s, and WHIR at that size (`μ = 19`) 7 s to encode the
-  committed word and 18 s to open (`bench/README.md`). Owed: a prover of the compiled protocol
-  (Layer 12) that runs `leanVmFastProver` and `whirOpenCached` together.
+  `whirOpen`'s. At the smallest admissible size the whole oracle protocol's prover runs in 25 s in
+  a process that has compiled the BLAKE2s circuit and built its R1CS's row table (about 6.6 s, once
+  per process), the opening's batched weight takes 4 s, and WHIR at that size (`μ = 19`) 7 s to
+  encode the committed word and 18 s to open (`bench/README.md`). Owed: a prover of the compiled
+  protocol (Layer 12) that runs `leanVmFastProver` and `whirOpenCached` together.
 
 ## What can start now
 

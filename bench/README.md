@@ -277,7 +277,8 @@ at `z_skip` and its lincheck tables once at `α`; the skip message, which combin
 each of the 64 coset nodes, adds the weights' subset sums a byte of tables at a time
 (`Flock.combBytes_eq`). With these and the bus phase's output tabulated once (`Bus.memoOut`),
 `leanervm-bench 1 protocol whole 15`, recorded on 2026-10-23 on the same machine, each phase's
-checksum the same as in the run before the byte sums (31.1 s in all, the Flock phase 23.8 s):
+checksum the same as in the run before the byte sums, where the Flock phase took 23.8 s and the
+whole protocol 31.1 s:
 
 | Phase, `2^19` cells, `2^17` leaves, `τ_max = 3`, `2^3` BLAKE2s blocks | With state |
 | --- | ---: |
@@ -287,8 +288,13 @@ checksum the same as in the run before the byte sums (31.1 s in all, the Flock p
 | public input | 0.1 ms |
 | Flock phase | 16.6 s |
 | opening | 1.18 s |
-| whole protocol (`leanVmFastProver`, from the stack) | 25.3 s |
+| whole protocol (`leanVmFastProver`, from the stack), warm | 25.3 s |
 | the opening's batched weight's values (WHIR's input), 113 claims | 4.2 s (95.4 s before) |
+
+The whole protocol runs last, in the process that ran the phases, so it finds the BLAKE2s circuit
+compiled (3.5 s, which the stack pays) and the R1CS's row table built (3.1 s, which the Flock
+phase's first walk pays): each is built once per process, and its 25.3 s leaves both out. The rows
+above, the stack included, add up to 31.6 s.
 
 The opening's prover never reads the batched weight's values; WHIR's prover does, at the start of
 the commitment's opening. The weight combines 112 column claims and the switched claim. A column

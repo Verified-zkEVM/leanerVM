@@ -152,7 +152,8 @@ theorem weightCube_eq (s : I.Stmt × FlockOut I) (ρ : E) :
   rw [sum_pool I s.2 fun c j ↦ c.weight.onCube[x] * ρ ^ j, eqBatch_getElem _ _ x hx]
   exact congrArg₂ (· + ·) rfl ((hcols _).trans (Fin.sum_univ_def _).symm)
 
-/-- The batched weight with its values computed by `weightCube`. -/
+/-- The batched weight with its values computed by `weightCube`. It stays above its `@[csimp]`
+theorem: compiled after it, `mle`, which reads `weight`'s, would call `weightFast` itself. -/
 def weightFast (s : I.Stmt × FlockOut I) (ρ : E) : Weight E I.μ where
   cube := .mk fun _ ↦ weightCube I s ρ
   mle := (weight I s ρ).mle

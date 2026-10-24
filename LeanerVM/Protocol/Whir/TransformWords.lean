@@ -103,7 +103,7 @@ end Let
   exact (fwdLet_eq φ j m s).symm
 
 /-- `encodeFast`, compiled after `fwd_eq_fwdLet`, so that its compiled body runs `fwdLet`:
-`encodeFast`'s own was compiled before. -/
+`encodeFast`'s own was compiled before. It stays below that theorem. -/
 def encodeFastLet {S : Type*} [CommRing S] (φ : K →+* S) (κ R : ℕ) (m : Vector S (2 ^ κ)) :
     Vector S (2 ^ (κ + R)) :=
   let cosets : Vector (Vector S (2 ^ κ)) (2 ^ R) :=

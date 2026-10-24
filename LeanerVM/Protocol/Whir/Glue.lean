@@ -176,7 +176,9 @@ def queryWeight (κ R : ℕ) {t : ℕ} (pos : Fin t → Fin (2 ^ (κ + R))) (lam
     Weight E κ :=
   Weight.batch (fun q ↦ columnWeight (algebraMap K E) κ R (pos q)) lam
 
-/-- The query batch's weight with its values computed on words (`Whir.queryCubeW`). -/
+/-- The query batch's weight with its values computed on words (`Whir.queryCubeW`). It stays above
+its `@[csimp]` theorem: compiled after it, `mle`, which reads `queryWeight`'s, would call
+`queryWeightFast` itself. -/
 def queryWeightFast (κ R : ℕ) {t : ℕ} (pos : Fin t → Fin (2 ^ (κ + R))) (lam : E) :
     Weight E κ where
   cube := .mk fun _ ↦ Whir.queryCubeW κ R pos lam
