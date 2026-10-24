@@ -1,9 +1,10 @@
 /-
   LeanVM.Protocol.Rpm.RomRelabel
 
-  The random oracles of `lean_rpm` (on bytes) against those of `LeanVM/Spec/Statement.lean` (on
-  lanes): a computation read through the bijections of `Bytes.lean` has the same distribution,
-  the caches related by `cmap`; and the query count of the transfer's random-oracle adversary.
+  The random oracles of `lean_rpm` (on bytes) against those of
+  `LeanVM/Protocol/Rom/Statement.lean` (on lanes): a computation read through the bijections of
+  `Bytes.lean` has the same distribution, the caches related by `cmap`; and the query count of the
+  transfer's random-oracle adversary.
 -/
 
 import LeanVM.Protocol.Rpm.Game
@@ -14,10 +15,10 @@ import LeanRpm.RomComm
 # Relabelling the random oracles
 
 * `run'_toRHF`: the verifier's queries read on bytes, against `lean_rpm`'s two random oracles,
-  give the verifier's outputs against the two random oracles of `Statement.lean`, the starting
+  give the verifier's outputs against the two random oracles of `Rom/Statement.lean`, the starting
   caches related by `cmap`.
 * `run_ofRHF`: a computation on `lean_rpm`'s oracles, its queries read on lanes, against the
-  random oracles of `Statement.lean` (with coins), is the computation against `lean_rpm`'s, its
+  random oracles of `Rom/Statement.lean` (with coins), is the computation against `lean_rpm`'s, its
   final cache read through `cmap`.
 * `isWeightBound_romAdv`: the random-oracle adversary of the transfer (`romAdv`) makes at most
   one oracle query per query of the adversary to `π` or `π⁻¹`.
@@ -107,7 +108,7 @@ theorem step_toRHF (t : HashSpec.Domain) (c : HFS.QueryCache) :
       exact EvalDistEq.rfl
 
 /-- **(a) The verifier's queries read on bytes**: against `lean_rpm`'s two random oracles, the
-outputs are those against the two random oracles of `Statement.lean`, the caches related by
+outputs are those against the two random oracles of `Rom/Statement.lean`, the caches related by
 `cmap`. -/
 theorem run'_toRHF {β : Type} (V : OracleComp HashSpec β) (c : HFS.QueryCache) :
     (simulateQ HFS.romImpl (simulateQ toRHF V)).run' c =ᵈ
@@ -158,7 +159,7 @@ theorem step_ofRHF (t : HFSpec.Domain) (c : HFS.QueryCache) :
       exact EvalDistEq.rfl
 
 /-- **(b) A computation on the byte oracles, read on lanes**: against the random oracles of
-`Statement.lean` (with coins), it is the computation against `lean_rpm`'s two random oracles, the
+`Rom/Statement.lean` (with coins), it is the computation against `lean_rpm`'s two random oracles, the
 final cache read through `cmap`. -/
 theorem run_ofRHF {α : Type} (X : OracleComp HFSpec α) (c : HFS.QueryCache) :
     (simulateQ HashSpec.romImpl (simulateQ ofRHF X)).run (cmap c) =ᵈ

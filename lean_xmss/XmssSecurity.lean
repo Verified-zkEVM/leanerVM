@@ -4,7 +4,9 @@ import XmssSecurity.Rpm
 
 namespace XmssSecurity
 
-/-- leanXMSS has 127 bits of classical security. -/
+/-- leanXMSS has 127 bits of classical security in the random-oracle model: the step of the proof
+of the end statement, `leanXmss_rpm_security` (`XmssSecurity/Rpm.lean`), in the
+random-permutation model. -/
 theorem leanXmss_has_127_bits_of_classical_security : LeanXmss.LeanXmssSecurityStatement :=
   Bridge.leanXmss_security
 

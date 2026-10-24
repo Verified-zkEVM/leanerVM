@@ -1,9 +1,10 @@
-import LeanVM.Guest.EndFinal
+import LeanVM.Guest.EndRpm
 
 /-!
 # Tests: the end theorems' axioms
 
-The guest's soundness theorems for the deployed bytecode (`LeanVM.Guest.EndFinal`) and the pieces
+The guest's soundness theorems for the deployed bytecode (`LeanVM.Guest.EndFinal`, and in the
+random-permutation model `LeanVM.Guest.EndRpm`) and the pieces
 they rest on, B2 from the kernel-checked certificates (`LeanVM.Guest.EndSound`) and B1's
 statements, rest on Lean's three standard axioms only.
 -/

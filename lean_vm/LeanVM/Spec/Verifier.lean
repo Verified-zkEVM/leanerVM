@@ -43,8 +43,9 @@ The file has three parts:
    on the proof (read a scalar, sample a challenge, check a proof of work, read a Merkle root,
    open rows), and `runProof` reads such a program on a proof with a hash function
    `H : Bytes → m Digest` and a permutation `F : KState → m KState` in any monad `m`, as the
-   Python's `Transcript` does with Keccak-256 and Keccak-f[1600]. With `H` and `F` queries to
-   random oracles, it is the verifier of the random-oracle model (`LeanVM.Spec.Statement`).
+   Python's `Transcript` does with Keccak-256 and Keccak-f[1600]. With `H` and `F` the sponge
+   over a random permutation and the permutation, it is the verifier of the random-permutation
+   model (`LeanVM.Spec.Rpm`).
 3. **The verifier**, section by section as in the table above, ending with
    `verifyWith H F bytecode publicInput proof`, the verifier with the hash `H` and the permutation
    `F`, and `verify`, the deployed one, with Keccak-256 and Keccak-f[1600].
@@ -290,8 +291,8 @@ sponge and `Transcript`), whose sponge is the Rust's (`crates/verifier/src/trans
 The sponge starts at Keccak-f of the IV's and the public input's words, the other lanes zero
 (`Transcript.__init__`, `verifier.py:379-384`). The hash is a parameter `H : Bytes → m Digest`
 and the permutation a parameter `F : KState → m KState`, in any monad `m`: the deployed verifier
-is the `Id` instance at `keccak256` and `keccakF`, and the random-oracle theorem runs the same
-function with `H` and `F` queries to random oracles.
+is the `Id` instance at `keccak256` and `keccakF`, and the statements (`LeanVM.Spec.Rpm`) run the
+same function with `H` and `F` built from a random permutation.
 
 ### Deviation from the Python verifier
 

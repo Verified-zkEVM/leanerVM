@@ -20,16 +20,13 @@ witness. A **decoder** reads a seed, a statement and a witness off a memory (`De
 
 * `GuestKnowledge guest decode`: every valid execution of `guest` on a public input decodes to a
   statement of that input's digest under the decoded seed, and a witness holding it;
-* `AggregateSound guest decode`, what a consumer learns: in the random-oracle experiment, the
-  verifier accepts a proof of `guest` on the digest of a statement `s` under the deployed seed,
-  `s` passing the outer verifier's other checks (`OuterChecks`), while the execution the
-  knowledge extractor `extractor` (`Statement.lean`, wrapping `Extraction.extract` of
-  `Extractor.lean`) reads off the proof and the adversary's answers is none, or does not explain
-  `s` (`Explains`: decode to the deployed seed, `s` and a witness
-  holding it, or give a Keccak-256 collision among `collisionCandidates`), with probability at
-  most `soundnessError Q`. The experiment is `LeanVM.Spec.Statement`'s: Keccak-256 and
-  Keccak-f[1600] outside the executed program are random oracles; the statement's digest and the
-  collisions are of the deployed Keccak-256, which the guest computes.
+* `AggregateSound guest decode` (`Aggregate.lean`), what a consumer learns, in the
+  random-permutation model of `Rpm.lean`: the verifier accepts a proof of `guest` on the digest of
+  a statement `s` under the deployed seed, `s` passing the outer verifier's other checks
+  (`OuterChecks`), while the execution the knowledge extractor `extractorRpm` reads off the proof
+  and the adversary's transcript is none, or does not explain `s` (`Explains`: decode to the
+  deployed seed, `s` and a witness holding it, or give a Keccak-256 collision among
+  `collisionCandidates`), with probability at most the bound of `KnowledgeSoundness`.
 
 Both hold of any decoder that happens to output valid witnesses; their content is in the decoder
 the theorems name (`LeanVM.Guest.End.decode`), which reads every component off the memory: the
@@ -134,18 +131,6 @@ def Explains (guest : Program) (s : NodeStatement) (d : Decoded) : Prop :=
   (d.seed = deployedSeed guest ∧ d.statement = s ∧
       NodeRel (bytecodeWords guest) (deployedSeed guest) s d.witness) ∨
     HasCollision (collisionCandidates d.seed d.statement (deployedSeed guest) s)
-
-/-- **The outer verifier's acceptance, explained.** The adversary outputs a proof. The event: the
-verifier accepts it as a proof of `guest` on the digest, under the deployed seed, of a statement
-`s` that passes the outer verifier's other checks, and yet the execution the knowledge extractor
-`extractor` reads off the oracle's answers to the adversary's queries and the proof does not
-explain `s`. Its probability is at most `soundnessError Q`. -/
-def AggregateSound (guest : Program) (decode : Decoder) : Prop :=
-  ∀ (A : Adversary) (Q : ℕ), A.IsTotalQueryBound Q →
-    Pr{let z ← experiment A}[∃ s : NodeStatement, z.accepted ∧ z.program = guest ∧
-      publicDigest z.input = statementDigest (deployedSeed guest) s ∧ OuterChecks guest s ∧
-      ¬ ∃ t, extractor z.program z.input z.adversaryCache z.proof = some t ∧
-        Explains guest s (decode t.image)] ≤ soundnessError Q
 
 end
 end LeanVM.Node

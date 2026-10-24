@@ -42,9 +42,10 @@ placed at the certificates' cells `cert` (`Memory.HonestAt`):
 * `size`: that run's committed size is at most the tree's cost.
 
 `CompletePiecesWithin` splits the size at a call tree's instruction counts `cnt T op`, and
-`guest_complete_within` gives `GuestCompleteWithin b`. `aggregate_complete_of` composes with the
-protocol's `completeness`: the honest prover's proof of that execution is rejected with
-probability at most `completenessError fuel`.
+`guest_complete_within` gives `GuestCompleteWithin b`. `aggregate_complete_of`
+(`LeanVM/Guest/EndRpm.lean`) composes with the protocol's completeness in the random-permutation
+model: the honest prover's proof of that execution is rejected with probability at most the bound
+of `Completeness`.
 -/
 
 namespace LeanVM.Guest.End
@@ -275,23 +276,6 @@ theorem guest_complete_within {fs : String → ℕ} {H : Memory.Inst → ℕ →
     {C : Memory.Inst → List (ℕ × E)} {cert : String → V → ℕ} {cnt : Memory.Tree → Opcode → ℕ}
     {b : Budget} (h : CompletePiecesWithin fs H C cert cnt b) : GuestCompleteWithin b :=
   guest_complete_of h.pieces
-
-/-! ## Composition with the protocol -/
-
-/-- **The guest's completeness in the random-oracle experiment**: under the hypotheses, there is
-an execution of the guest on the statement's digest whose honest proof, at an inverse rate `2^ρ`,
-`1 ≤ ρ ≤ 4`, and a fuel of at most `2^64` nonces, the verifier rejects with probability at most
-`completenessError fuel` (`LeanVM.completeness`). -/
-theorem aggregate_complete_of {budget : NodeStatement → NodeWitness → ℕ}
-    (h : GuestComplete budget) {seed : Digest} {s : NodeStatement} {w : NodeWitness}
-    (hrel : NodeRel bytecode seed s w) (hlim : Limits bytecode s w) (hcap : CapsAgree bytecode seed w)
-    (hnz : NoZeroChallenge bytecode seed w) (hbudget : budget s w ≤ 2 ^ 28) :
-    ∃ t : Trace guest, ValidExecution guest (publicInputOf (statementDigest seed s)) t ∧
-      ∀ ρ fuel, 1 ≤ ρ ∧ ρ ≤ 4 → fuel ≤ 2 ^ 64 →
-        Pr{let z ← experiment (honestProver guest (publicInputOf (statementDigest seed s)) t ρ fuel)}[
-          z.1.2 = false] ≤ completenessError fuel := by
-  obtain ⟨t, hv, hsize⟩ := h seed s w hrel hlim hcap hnz hbudget
-  exact ⟨t, hv, fun _ _ hρ hfuel ↦ completeness hv hsize hρ hfuel⟩
 
 end
 end LeanVM.Guest.End

@@ -1,18 +1,19 @@
 /-
   LeanVM.Protocol.EndToEnd.Complete.Statement
 
-  The completeness statement of `LeanVM/Spec/Statement.lean` proved: the honest prover, run as
-  the adversary of the random-oracle experiment, makes the verifier reject with probability at
+  Completeness in the two-oracle random-oracle model (`LeanVM/Protocol/Rom/Statement.lean`, a step
+  of the proof of `LeanVM/Spec/Rpm.lean`'s) proved: the honest prover, run as the adversary of the
+  random-oracle experiment, makes the verifier reject with probability at
   most `completenessError fuel`.
 -/
 
 module
 
 public import LeanVM.Protocol.EndToEnd.Complete.Rom
-public import LeanVM.Spec.Statement
+public import LeanVM.Protocol.Rom.Statement
 
 /-!
-# Completeness, as `LeanVM/Spec/Statement.lean` states it
+# Completeness in the random-oracle model, as `LeanVM/Protocol/Rom/Statement.lean` states it
 
 The statement's experiment (`LeanVM.experiment`) runs the adversary, then the verifier, against
 one lazily sampled pair of random oracles (Keccak-256 and Keccak-f[1600]), and records the
@@ -25,7 +26,7 @@ evaluated (`completenessError_eq`):
   `completenessError fuel = (12012 + 48017 · (2^27 + 2·fuel + 2)) · (1 - 2^-17)^fuel`,
 
 below `2^-128` at a fuel of `2^25` nonces per proof of work (`statement_completenessError_le`).
-`completeness_holds` is `LeanVM.Completeness`, with the honest prover `honestProverRom`.
+`completeness_holds` is `LeanVM.CompletenessRom`, with the honest prover `honestProverRom`.
 -/
 
 namespace LeanVM.Protocol.EndToEnd.Complete
@@ -97,7 +98,7 @@ theorem statement_completenessError_le :
   exact completenessError_le
 
 /-- **Completeness holds**, with the honest prover `honestComp`. -/
-theorem completeness_holds : LeanVM.Completeness :=
+theorem completeness_holds : LeanVM.CompletenessRom :=
   ⟨honestComp, fun _ _ _ _ _ hv hbudget hρ hfuel ↦ completeness_le hv hbudget hρ hfuel⟩
 
 end

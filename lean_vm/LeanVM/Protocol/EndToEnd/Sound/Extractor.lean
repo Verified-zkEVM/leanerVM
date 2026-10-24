@@ -12,7 +12,7 @@ module
 public import LeanVM.Protocol.EndToEnd.Sound.Theorem
 public import LeanVM.Protocol.EndToEnd.Front.LayoutBridgeB
 public import LeanVM.Protocol.LeanIsa.Read
-public import LeanVM.Spec.Statement
+public import LeanVM.Protocol.Rom.Statement
 
 /-!
 # The specification's extractor

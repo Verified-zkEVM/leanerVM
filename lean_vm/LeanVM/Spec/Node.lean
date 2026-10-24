@@ -49,8 +49,8 @@ Keccak, as the guest computes it (`Guest.lean`: `GuestKnowledge`, with a decoder
 the knowledge content: `NodeSpec` alone, "some signature verifies", says little, since some
 signature verifies for almost every key and message. That the root's `NodeSpec` makes every
 claim held at the leaves is a separate argument, conditional on a heuristic: a child's proof is
-sound only if Keccak, computed inside the guest, behaves as the random oracles of
-`LeanVM.KnowledgeSoundness`.
+sound only if Keccak, computed inside the guest, behaves as Keccak-256 and Keccak-f[1600] built
+from the random permutation of `LeanVM.KnowledgeSoundness` (`Rpm.lean`).
 
 **Changes from the leanVM `3f7dc219` transcription.** BLAKE2s is replaced by Keccak-256 (the
 hashes) and Keccak-f[1600] (the batching's transcript, a duplex sponge). Flock is gone, so the

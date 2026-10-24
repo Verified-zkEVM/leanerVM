@@ -23,9 +23,9 @@ public import LeanVM.Guest.B1.VerifySub.KnownAll
 * `b2SoundL_of`, `b2SoundL`: checker K's B2 (`b2_step`, `b2_mainL`).
 * `soundHyps_of`: what `EndKnow`'s theorems rest on, from `VsKnown` and `main`'s soundness with
   the witness `W` (`Located.MainSoundV bytecode W`).
-* `guest_knowledge_sub`, `decode_binds_sub`, `aggregate_sound_outer_sub`: the end theorems for
-  the decoder `decodeV piOf`, from `verify_sub`'s statement with its proof named by `piOf`
-  (`B1.Main.SubSoundW bytecode piOf`, B1-d's).
+* `guest_knowledge_sub`, `decode_binds_sub`: the end theorems for the decoder `decodeV piOf`,
+  from `verify_sub`'s statement with its proof named by `piOf` (`B1.Main.SubSoundW bytecode piOf`,
+  B1-d's); `aggregate_sound_outer_sub` is in `EndRpm.lean`.
 -/
 
 namespace LeanVM.Guest.End
@@ -72,11 +72,6 @@ theorem decode_binds_sub (hv : B1.Main.SubSoundW bytecode piOf)
       HasCollision (collisionCandidates (decodeV piOf t.image).seed
         (decodeV piOf t.image).statement iv s₀) :=
   decode_binds_V b2SoundL hv hvt hs₀ hpub
-
-/-- **What the outer verifier's acceptance establishes**, from `verify_sub`'s statement. -/
-theorem aggregate_sound_outer_sub (hv : B1.Main.SubSoundW bytecode piOf) :
-    AggregateSound guest (decodeV piOf) :=
-  aggregate_sound_outer_V b2SoundL hv
 
 end
 end LeanVM.Guest.End

@@ -2,7 +2,8 @@
   LeanVM.Guest.EndFinal
 
   The aggregation guest's soundness for the deployed bytecode, with nothing assumed: the decoder
-  `decode` and the statements `GuestKnowledge` and `AggregateSound` of `LeanVM/Spec/Guest.lean`.
+  `decode` and the statement `GuestKnowledge` of `LeanVM/Spec/Guest.lean` (`AggregateSound`, in
+  the random-permutation model, is composed in `LeanVM/Guest/EndRpm.lean`).
 -/
 
 module
@@ -29,12 +30,12 @@ witness there.
 * `guest_knowledge : GuestKnowledge guest decode`: every valid execution of the guest on a public
   input decodes to a statement of that input's digest under the decoded seed, and a witness
   holding it (`NodeRel`).
-* `aggregate_sound_outer : AggregateSound guest decode`: in the random-oracle experiment, the
-  verifier accepts a proof of the guest on the digest of a statement `s` under the deployed seed,
-  `s` passing the outer verifier's other checks, while no execution is extracted from the proof
-  and the adversary's answers, or the extracted one does not decode to the deployed seed, `s` and
-  a witness holding it, nor give a Keccak-256 collision among `collisionCandidates`, with
-  probability at most `soundnessError Q`.
+* `aggregate_sound_outer : AggregateSound guest decode` (`EndRpm.lean`): in the
+  random-permutation experiment, the verifier accepts a proof of the guest on the digest of a
+  statement `s` under the deployed seed, `s` passing the outer verifier's other checks, while no
+  execution is extracted from the proof and the adversary's transcript, or the extracted one does
+  not decode to the deployed seed, `s` and a witness holding it, nor give a Keccak-256 collision
+  among `collisionCandidates`, with probability at most the bound of `KnowledgeSoundness`.
 * `decode_binds`: a consumer whose statement `s₀` (its deferred claim of the bytecode's shape) has,
   under the seed
   `iv`, the public input's digest learns that the decoded seed and statement are `iv` and `s₀`,
@@ -65,15 +66,6 @@ a public input decodes, from its memory, to a statement of the input's digest un
 seed and a witness holding it. -/
 theorem guest_knowledge : GuestKnowledge guest decode := guest_knowledge_sub subSoundW
 
-/-- **The aggregate's soundness against the random oracle, its witness named**: the verifier
-accepts a proof of the guest from which no execution is extracted, or the extracted one does not
-decode (`DecodesOn`), with probability at most `soundnessError Q`. -/
-theorem aggregate_knowledge (A : Adversary) (Q : ℕ) (hA : A.IsTotalQueryBound Q) :
-    Pr{let z ← experiment A}[z.accepted ∧ z.program = guest ∧
-      ¬ ∃ t, extractor z.program z.input z.adversaryCache z.proof = some t ∧
-        DecodesOn guest z.input (decode t.image)] ≤ soundnessError Q :=
-  aggregate_knowledge_of (soundHyps_of_sub b2SoundL subSoundW) A Q hA
-
 /-- **What a consumer learns**: a valid execution of the guest on the digest of its statement
 `s₀` under the seed `iv` (`s₀`'s deferred claim of the bytecode's shape: `bytecode`'s `23`
 coordinates, which the outer verifier's check that it holds implies) decodes to
@@ -85,14 +77,6 @@ theorem decode_binds {input : PublicInput} {t : Trace guest} (hv : ValidExecutio
     ((decode t.image).seed = iv ∧ (decode t.image).statement = s₀) ∨
       HasCollision (collisionCandidates (decode t.image).seed (decode t.image).statement iv s₀) :=
   decode_binds_sub subSoundW hv hs₀ hpub
-
-/-- **What the outer verifier's acceptance establishes** (`AggregateSound`): except with
-probability `soundnessError Q`, an accepted aggregate's statement `s`, under the deployed seed
-and passing the outer verifier's other checks, is the one the execution the extractor reads off
-the proof (one is extracted) decodes, with a witness holding it, or that execution's decoding and
-`s` give an
-explicit Keccak-256 collision. -/
-theorem aggregate_sound_outer : AggregateSound guest decode := aggregate_sound_outer_sub subSoundW
 
 /-- **Soundness, the existential form**: a valid execution of the guest on `input` gives a seed and
 a statement of the input's digest, of the guest's shape, that a witness holds (`NodeSpec`). -/

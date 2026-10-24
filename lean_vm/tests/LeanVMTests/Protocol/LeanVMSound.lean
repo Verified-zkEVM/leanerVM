@@ -4,8 +4,9 @@ import LeanVM.Protocol.LeanVMSound
 # leanVM's knowledge soundness, locked
 
 Statement locks of `LeanVM/Protocol/LeanVMSound.lean`: the verifier for any hash and permutation,
-the deployed verifier, knowledge soundness in the random-oracle model, and the numbers, with the
-axioms each depends on.
+the deployed verifier, knowledge soundness in the two-oracle random-oracle model (a step of the
+proof of `LeanVM.KnowledgeSoundness`, locked in `LeanVMTests.Protocol.LeanVMRpm`), and the
+numbers, with the axioms each depends on.
 -/
 
 open LeanVM.Semantics LeanVM.Arithmetization LeanVM.Protocol.LeanIsa LeanVM
@@ -20,7 +21,7 @@ example {A : Adversary} {Q : ℕ} (hA : A.IsTotalQueryBound Q) :
       ¬ ∃ t, extractor z.1.1.1.1 z.1.1.1.2 z.2.2 z.1.1.2 = some t ∧
         ValidExecution z.1.1.1.1 z.1.1.1.2 t] ≤
       soundnessError Q :=
-  knowledgeSoundness hA
+  knowledgeSoundnessRom hA
 
 /-- The adversary chooses the statement: a fixed statement is the special case of an adversary
 that outputs it. -/
@@ -28,7 +29,7 @@ example (prog : Program) (input : PublicInput) (P : OracleComp HashSpec LeanVM.P
     (hP : P.IsTotalQueryBound Q) :
     Pr{let z ← experiment ((fun proof ↦ ((prog, input), proof)) <$> P)}[Breaks extractor z] ≤
       soundnessError Q :=
-  knowledgeSoundness ((OracleComp.isQueryBound_map_iff P _ Q _ _).mpr hP)
+  knowledgeSoundnessRom ((OracleComp.isQueryBound_map_iff P _ Q _ _).mpr hP)
 
 /-- The numbers: `12008` verifier queries, a collision term of `7` per pair of queries. -/
 example (Q : ℕ) : soundnessError Q =
@@ -42,19 +43,19 @@ example {Q : ℕ} (hQ : Q ≤ 2 ^ 64) : soundnessError Q ≤ (2 : ENNReal)⁻¹ 
 /-- The proofs of work have `17` bits. -/
 example : LeanVM.Parameters.Whir.queryGrindingBits = 17 := rfl
 
-/-- info: 'LeanVM.knowledgeSoundness' depends on axioms: [propext, Classical.choice, Quot.sound] -/
-#guard_msgs in #print axioms knowledgeSoundness
+/-- info: 'LeanVM.knowledgeSoundnessRom' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in #print axioms knowledgeSoundnessRom
 
 /--
 info: 'LeanVM.soundnessError_le' depends on axioms: [propext, Classical.choice, Quot.sound]
 -/
 #guard_msgs in #print axioms soundnessError_le
 
-/-! ## The statement of `LeanVM/Spec/Statement.lean` -/
+/-! ## The statement of `LeanVM/Protocol/Rom/Statement.lean` -/
 
-example : KnowledgeSoundness := knowledgeSoundness_holds
+example : KnowledgeSoundnessRom := knowledgeSoundnessRom_holds
 
 /--
-info: 'LeanVM.knowledgeSoundness_holds' depends on axioms: [propext, Classical.choice, Quot.sound]
+info: 'LeanVM.knowledgeSoundnessRom_holds' depends on axioms: [propext, Classical.choice, Quot.sound]
 -/
-#guard_msgs in #print axioms knowledgeSoundness_holds
+#guard_msgs in #print axioms knowledgeSoundnessRom_holds

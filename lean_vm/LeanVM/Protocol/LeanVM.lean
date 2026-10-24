@@ -1,8 +1,9 @@
 /-
   LeanVM.Protocol.LeanVM
 
-  The proof of the two statements of `LeanVM/Spec/Statement.lean`: knowledge soundness of the
-  leanVM verifier in the random-oracle model (`LeanVM.Protocol.LeanVMSound`), and completeness.
+  Knowledge soundness (`LeanVM.Protocol.LeanVMSound`) and completeness of the leanVM verifier in
+  the two-oracle random-oracle model (`LeanVM/Protocol/Rom/Statement.lean`): the step of the proofs
+  of `LeanVM/Spec/Rpm.lean`'s statements before the random-permutation model.
 -/
 
 module
@@ -13,13 +14,15 @@ public import LeanVM.Protocol.EndToEnd.Complete.Statement
 /-!
 # leanVM, end to end
 
-The statements are in `LeanVM/Spec/` (the ISA, the verifier, the extractor and
-`Statement.lean`), which imports nothing else from the repository. Knowledge soundness,
-`knowledgeSoundness_holds`, and its numbers are proved in `LeanVM.Protocol.LeanVMSound`; this page
-proves completeness, `completeness_holds`, with an explicit honest prover, and the soundness bound
-in bits: at most `(Q + 2^14) · 2^-127` for `Q ≤ 2^120` queries (`knowledgeSoundness_bits`).
+The statements are in `LeanVM/Spec/` (the ISA, the verifier, the extractor, `Statement.lean` and
+`Rpm.lean`), which imports nothing else from the repository; their proofs
+(`LeanVM/Protocol/LeanVMRpm.lean`) go through the two-oracle random-oracle model of
+`LeanVM/Protocol/Rom/Statement.lean`. There, knowledge soundness, `knowledgeSoundnessRom_holds`,
+and its numbers are proved in `LeanVM.Protocol.LeanVMSound`; this page proves completeness,
+`completenessRom_holds`, with an explicit honest prover, and the soundness bound in bits: at most
+`(Q + 2^14) · 2^-127` for `Q ≤ 2^120` queries (`knowledgeSoundnessRom_bits`).
 
-**Completeness** (`completeness`): for a valid execution whose committed size
+**Completeness** (`completenessRom`): for a valid execution whose committed size
 (`Trace.committedSize`: the memory, the bytecode and a table per opcode, each at its height) is at
 most `2^28`, the most the verifier admits, the honest prover
 (`honestProver`), run in the same random-oracle experiment, makes the verifier reject with probability at most
@@ -28,7 +31,8 @@ most `2^28`, the most the verifier admits, the honest prover
 
 **Scope and trust.**
 
-* Keccak-256 and Keccak-f[1600] are modelled as independent random oracles.
+* Keccak-256 and Keccak-f[1600] are independent random oracles here, the step of the proof before
+  the random-permutation model of the statements.
 * A proof is the Python verifier's format: the scalar stream and one full Merkle path per query.
   The Rust prover ships pruned paths (shared siblings per batch, `MerkleOpenings::Pruned`), which
   the deployed `leanvm_core::cpu::verify` expands into these paths and checks more strictly; that
@@ -69,10 +73,10 @@ theorem completenessError_eq (fuel : ℕ) :
     completenessError fuel = Complete.completenessError fuel :=
   Complete.completenessError_eq fuel
 
-/-- **Completeness.** For a valid execution whose committed size is at most `2^28`, at an inverse
+/-- **Completeness in the two-oracle random-oracle model.** For a valid execution whose committed size is at most `2^28`, at an inverse
 rate `2^ρ` with `1 ≤ ρ ≤ 4`: the verifier rejects the honest prover's proof, in the random-oracle
 experiment, with probability at most `completenessError fuel`. -/
-theorem completeness {prog : Program} {input : PublicInput} {t : Trace prog}
+theorem completenessRom {prog : Program} {input : PublicInput} {t : Trace prog}
     (hv : ValidExecution prog input t) (hbudget : t.committedSize ≤ 2 ^ 28) {ρ : ℕ}
     (hρ : 1 ≤ ρ ∧ ρ ≤ 4) {fuel : ℕ} (hfuel : fuel ≤ 2 ^ 64) :
     Pr{let z ← experiment (honestProver prog input t ρ fuel)}[z.1.2 = false] ≤
@@ -110,17 +114,18 @@ theorem soundnessError_le_bits {Q : ℕ} (hQ : Q ≤ 2 ^ 120) :
     _ ≤ Q * 2 ^ 129 + 2 ^ 14 * 2 ^ 129 := Nat.add_le_add_left (by norm_num) _
     _ = (Q + 2 ^ 14) * 2 ^ 129 := by ring
 
-/-- **Knowledge soundness in bits**: an adversary of at most `Q ≤ 2^120` queries breaks
+/-- **Knowledge soundness in bits, in the two-oracle random-oracle model**: an adversary of at most `Q ≤ 2^120` queries breaks
 soundness, for the extractor `extractor`, with probability at most `(Q + 2^14) · 2^-127`. -/
-theorem knowledgeSoundness_bits : ∀ (A : Adversary) (Q : ℕ), A.IsTotalQueryBound Q →
+theorem knowledgeSoundnessRom_bits : ∀ (A : Adversary) (Q : ℕ), A.IsTotalQueryBound Q →
     Q ≤ 2 ^ 120 →
       Pr{let z ← experiment A}[Breaks extractor z] ≤ (Q + 2 ^ 14 : ℝ≥0∞) * (2 : ℝ≥0∞)⁻¹ ^ 127 :=
-  fun _ _ hA hQ ↦ (knowledgeSoundness hA).trans (soundnessError_le_bits hQ)
+  fun _ _ hA hQ ↦ (knowledgeSoundnessRom hA).trans (soundnessError_le_bits hQ)
 
-/-! ## The statement of `LeanVM/Spec/Statement.lean` -/
+/-! ## The statement of `LeanVM/Protocol/Rom/Statement.lean` -/
 
-/-- **Completeness holds**, with the honest prover `honestProver`. -/
-theorem completeness_holds : Completeness :=
+/-- **Completeness in the two-oracle random-oracle model holds**, with the honest prover
+`honestProver`. -/
+theorem completenessRom_holds : CompletenessRom :=
   Complete.completeness_holds
 
 end
