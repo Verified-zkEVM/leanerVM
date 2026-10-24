@@ -235,6 +235,7 @@ theorem vkHead_complete (hσ : ∀ v, σ v = σ (.n v.idx))
     (⟨(cap5 78).map σ, []⟩ : Fs).squeezeN 5 =
       ((List.range 5).map (fun i ↦ σ (.n (110 + 20 * i))), ⟨(cap5 179).map σ, []⟩) ∧
     σ (.n 191) = committed ∧ FsPackOk σ (.n 191) (191 + 1) dsObserve ∧
+    (σ (.n 198), σ (.n 200)) = Keccak.scalarCells committed dsObserve ∧
     ∀ {next : Prop} {kret : List E → Prop},
       (∀ i < 4, LoadHolds rd (σ (.n 9)) i (σ (.n (52 + i)))) →
       LoadHolds rd (σ (.n 64)) 0 (σ (.n 89)) →
@@ -360,10 +361,11 @@ theorem vkHead_complete (hσ : ∀ v, σ v = σ (.n v.idx))
   -- the committed word
   have gfs : ∀ s ∈ fsNextT (.n 5) 0 191, GoodS rd S w σ s := fun s hs ↦
     gx s (List.mem_append_right _ hs)
-  obtain ⟨fv, -, -, -, FN⟩ := fsNext_complete (C := fun _ _ _ ↦ True) gfs (hS5 _ _) hcur
+  obtain ⟨fv, -, -, fcells, FN⟩ := fsNext_complete (C := fun _ _ _ ↦ True) gfs (hS5 _ _) hcur
   have fpk : FsPackOk σ (.n 191) (191 + 1) dsObserve :=
     ((holds_fsNextT _ _ _ _ _).1 (FN (next := True) (kret := fun _ ↦ True) trivial)).1.2
   refine ⟨h17, h19, h43, h47, h48, e52, e60, by rw [c61, word_one], e63, m64', q1, q5, fv, fpk,
+    fcells,
     fun {next kret} lw l89 lr hn ↦ ?_⟩
   rw [vkHeadT, holdsList_append, holdsList_append, holdsList_append, holdsList_append,
     holdsList_append, holdsList_map_atoms]
