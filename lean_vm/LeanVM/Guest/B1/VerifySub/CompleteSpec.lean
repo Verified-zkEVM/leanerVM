@@ -11,6 +11,8 @@ public import LeanVM.Guest.B1.VerifySub.Interface
 public import LeanVM.Guest.Limits
 public import LeanVM.Guest.Hints
 public import LeanVM.Guest.Memory.LiftPure
+public import LeanVM.Guest.Lift.OqFits
+public import LeanVM.Guest.B1.Bits.Log2Placed
 
 /-!
 # `verify_sub` is complete
@@ -19,10 +21,12 @@ public import LeanVM.Guest.Memory.LiftPure
 its deferred claim shaped for the bytecode, its stack at least `2^muMin`, its stream at most
 `streamCap` words, the deferring verifier accepting it while refusing a zero challenge where the
 guest divides (`Limits.verifyDeferredNZ`), and its openings agreeing per batch over the run's query
-steps (`Limits.queriesOf`) — and every caller's words `Lin` holding the exponent tables at `lp`, `sq`
-and the child's fixed cells at `out = g^outE` (write-once: `verify_sub` writes them there),
-`verify_sub` on the statement's and the seed's cells, `lp`, `sq`, `out` is complete at every frame
-pointer (`CompleteAtD`), returning nothing. Its own buffers hold `Hints.childHints bytecode seed c`.
+steps (`Limits.queriesOf`) — and every caller's words `Lin` holding the exponent tables at
+`g^lpE`, `g^sqE` (`log2Lin`) and the child's fixed cells at `out = g^outE` (write-once:
+`verify_sub` writes them there), `verify_sub` on the statement's and the seed's cells, `g^lpE`,
+`g^sqE`, `out` is complete at every frame pointer (`CompleteAtD`), returning nothing, for
+certificates whose runs fit their frames and meet only at common values (`Lift.RunsFit`,
+`Lift.RunsApart`). Its own buffers hold `Hints.childHints bytecode seed c`.
 -/
 
 namespace LeanVM.Guest.B1.VerifySub
@@ -35,8 +39,8 @@ open LeanVM.Node LeanVM.Guest.B1.Main
 
 /-- **`verify_sub` is complete on every honest child** (G7's target). -/
 def verify_sub_complete_Spec (bytecode : List K) : Prop :=
-  ∀ (fs : String → ℕ) (cert : String → V → ℕ), Lift.RunsFit fs cert →
-  ∀ (seed : Digest) (c : Child) (lp sq : E) (outE : ℕ) (Lin : Main.Layout) (κ : ℕ), 16 ≤ κ →
+  ∀ (fs : String → ℕ) (cert : String → V → ℕ), Lift.RunsFit fs cert → Lift.RunsApart cert →
+  ∀ (seed : Digest) (c : Child) (lpE sqE outE : ℕ) (Lin : Main.Layout) (κ : ℕ), 16 ≤ κ →
     c.statement.defer.Shaped bytecode →
     (∀ layout r, Verifier.announced bytecode c.proof.stream = some (layout, r) →
       Hints.muMin ≤ layout.stackLog) →
@@ -44,12 +48,12 @@ def verify_sub_complete_Spec (bytecode : List K) : Prop :=
     Limits.verifyDeferredNZ bytecode seed (statementDigest seed c.statement) c.fresh c.proof = true →
     (∀ b ∈ Limits.queriesOf (deferredProgram c.fresh bytecode (statementDigest seed c.statement))
       (Hints.childStart seed c), Limits.BatchAgrees b.1 b.2) →
-    (∀ rd, LowDef κ rd → MemL rd Lin → ExpTables rd lp sq) →
+    (∀ q ∈ log2Lin lpE sqE, q ∈ Lin) →
     (outE, fixedCells c.fresh) ∈ Lin →
     CompleteAtD fs cert κ "verify_sub" Lin
       [(digestScalars (statementDigest seed c.statement)).1,
         (digestScalars (statementDigest seed c.statement)).2, (digestScalars seed).1,
-        (digestScalars seed).2, lp, sq, ofK (gpow outE)] (Returns [])
+        (digestScalars seed).2, ofK (gpow lpE), ofK (gpow sqE), ofK (gpow outE)] (Returns [])
 
 end
 end LeanVM.Guest.B1.VerifySub
