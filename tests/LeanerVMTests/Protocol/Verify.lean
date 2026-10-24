@@ -354,12 +354,15 @@ def whirChecks (muts : List WhirMutation) : List Bool := whirChecksOf fx muts
 def bumpFold (f : Fold) : Fold := { f with chal := f.chal + 1 }
 
 /-- The honest transcript of a proof of `k` levels, then changes at the last level and at the
-levels before it, each with the verdict `whirCheck` must give: a stored word of level 2 and of
-level 0, the last level's residual value and batching challenge; level 1's out-of-domain value,
-coordinate and round polynomial, level 0's fold challenge, level 2's batching challenge and query
-message, and the first round polynomial's coefficient. -/
+levels before it, each with the verdict `whirCheck` must give: level 1's grinding nonce and
+level 0's next root, which the algebra does not read (`Verify.algebra_erase`); a stored word of
+level 2 and of level 0, the last level's residual value and batching challenge; level 1's
+out-of-domain value, coordinate and round polynomial, level 0's fold challenge, level 2's batching
+challenge and query message, and the first round polynomial's coefficient. -/
 def whirMutationsOf (k : ℕ) : List (WhirMutation × Bool) := [
   ((id, k - 1, id, id), true),
+  ((id, 1, fun l ↦ { l with nonce := l.nonce + 1 }, id), true),
+  ((id, 0, fun l ↦ { l with root := none }, id), true),
   ((fun rs ↦ rs.modify 2 (·.modify 4 (·.modify 7 (· + 1))), k - 1, id, id), false),
   ((fun rs ↦ rs.modify 0 (·.modify 3 (·.modify 40 (· + 1))), k - 1, id, id), false),
   ((id, k - 1, fun l ↦ { l with residual := l.residual.modify 1 (· + 1) }, id), false),
