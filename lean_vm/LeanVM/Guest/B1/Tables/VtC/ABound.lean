@@ -68,9 +68,10 @@ noncomputable def vtBs (Kf : String → ℕ) (Ksh K10n : ℕ) : List ℕ := (vtP
 /-- The calls' kinds: a call is not the rounds loop, the shared tables' are of six arguments and
 no return, a dispatch's arms neither, the only conditional call the rounds loop's. -/
 def vtCallKindB : Stmt → Bool
-  | .call f a r => f != "__loop10" &&
+  | .call f a r => f != "__loop10" && f != "__loop9" &&
       (f != "shared_selector_tables" || (a.length == 6 && r.isEmpty))
-  | .dispatch _ fs' _ _ => fs'.all fun g ↦ g != "__loop10" && g != "shared_selector_tables"
+  | .dispatch _ fs' _ _ => fs'.all fun g ↦ g != "__loop10" && g != "__loop9" &&
+      g != "shared_selector_tables"
   | .callIf c f a => f == "__loop10" && c == .n 5920 &&
       a == [.n 5921, .n 5817, .n 5912, .n 18, .n 5817, .n 5915]
   | _ => true
@@ -102,7 +103,7 @@ memories defined below `2^κ`, `κ ≥ 8`, its tree of at most `fs "verify_table
 buffers, its callees' bounds and its skipped frames. -/
 theorem verify_tables_completeAtTB {κ : ℕ} (hκ : 8 ≤ κ) {H : VtHonest} (h : H.Ok)
     (hs : VtShape H) (B : VtBases) (Kf : String → ℕ) (Ksh K10 : ℕ)
-    (hKf : ∀ g ∈ vtKidS, g ≠ "__loop10" → g ≠ "shared_selector_tables" →
+    (hKf : ∀ g ∈ vtKidS, g ≠ "__loop10" → g ≠ "__loop9" → g ≠ "shared_selector_tables" →
       TotalLe coreProgram fs g (fun _ ↦ Kf g))
     (hsh : TotalLeOn coreProgram fs "shared_selector_tables"
       (fun a ↦ ∃ n < 64, a.getD 5 0 = gen ^ n) (fun _ ↦ Ksh))
@@ -219,7 +220,7 @@ theorem verify_tables_completeAtTB {κ : ℕ} (hκ : 8 ≤ κ) {H : VtHonest} (h
       simp only [callOk, List.contains_iff_mem] at hok
       simp only [vtCallKindB, Bool.and_eq_true, bne_iff_ne, ne_eq, Bool.or_eq_true,
         beq_iff_eq, List.isEmpty_iff] at hkind
-      obtain ⟨h10', hsh'⟩ := hkind
+      obtain ⟨⟨h10', h9'⟩, hsh'⟩ := hkind
       simp only [vtCallBnd]
       split
       · rename_i hfs
@@ -236,7 +237,7 @@ theorem verify_tables_completeAtTB {κ : ℕ} (hκ : 8 ≤ κ) {H : VtHonest} (h
         obtain ⟨m, hm, hlen, -⟩ := hout
         exact hsh rd' t _ r hn ⟨m, hm, by simpa using hlen⟩ hv hbo
       · rename_i hfs
-        exact hKf f hok h10' hfs rd' t _ r hn hv hbo
+        exact hKf f hok h10' h9' hfs rd' t _ r hn hv hbo
     | callIf cnd f a =>
       simp only [Stmt.callSF, Main.Stmt.callS, Option.some.injEq] at hst
       subst hst
@@ -265,8 +266,8 @@ theorem verify_tables_completeAtTB {κ : ℕ} (hκ : 8 ≤ κ) {H : VtHonest} (h
       have hlog : logG (σ x) = j := by rw [hxj]; exact logG_spec (by omega)
       simp only [mkCall, hlog, List.getD_eq_getElem _ _ hj] at hn hv ⊢
       simp only [vtCallBnd]
-      obtain ⟨k1, k2⟩ := hkind _ (List.getElem_mem hj)
-      exact (hKf _ (hok.1 _ (List.getElem_mem hj)) k1 k2 rd' t _ r hn hv hbo).trans
+      obtain ⟨⟨k1, k9⟩, k2⟩ := hkind _ (List.getElem_mem hj)
+      exact (hKf _ (hok.1 _ (List.getElem_mem hj)) k1 k9 k2 rd' t _ r hn hv hbo).trans
         (le_foldr_max (List.mem_map.mpr ⟨_, List.getElem_mem hj, rfl⟩))
     | _ => simp [Stmt.callSF, Main.Stmt.callS] at hst
 
