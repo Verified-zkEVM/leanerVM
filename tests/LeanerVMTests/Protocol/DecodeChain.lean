@@ -1,4 +1,6 @@
 import LeanerVM.Protocol.DecodeWalk
+import LeanerVM.Protocol.ProofRoots
+import LeanerVM.Protocol.VerifierQueries
 import LeanerVMTests.Protocol.RustProof
 
 /-!
@@ -115,5 +117,37 @@ def checks : List Bool :=
 
 -- The phases end where the walks on the history say.
 #guard phaseEnds == [10, 518, 639, 642, 841, 842, 844] && positionsStart == 882
+
+/-! ## The counts in closed form -/
+
+-- WHIR's levels start, in the stream, where the walks on the history end the front phases.
+#guard ProofRoots.whirStart fx.prog sizes.1 fx.input ==
+  (streamOf (hist.take phaseEnds.getLast!)).length
+-- The four roots' offsets: level 0's after the announcement, then the three later levels'.
+#guard ProofRoots.rootOffsets fx.prog sizes.1 fx.input shs == [8, 713, 729, 745]
+-- The proof's roots are the roots the walk reads.
+#guard (logged.map fun p ↦ p.1.root :: p.1.whir.filterMap (·.root)) ==
+  some (ProofRoots.rootsOf fx.prog fx.input fx.proof)
+-- A proof the setup rejects has no roots.
+#guard ProofRoots.rootsOf fx.prog fx.input
+  { fx.proof with stream := fx.proof.stream.set 0 (sizeScalar 99) } == []
+-- The chain walk asks a query per step of its history and two more per grinding check.
+#guard VerifierQueries.queryCounts.chain fx.prog sizes.1 fx.input shs ==
+  hist.length + 2 * shs.length
+#guard VerifierQueries.queryCounts.chain fx.prog sizes.1 fx.input shs == 1004
+-- The bound at the fixture's sizes and rate: the chain's queries and the openings'.
+#guard VerifierQueries.openingsCount shs == 5158 &&
+  VerifierQueries.queryCountAt fx.prog fx.input sizes.1 sizes.2 == 6162
+
+/-- Sizes with the memory's log-size `m` and every table's log-height `t`. -/
+def uniformSizes (m t : ℕ) (h : 0 < m := by decide) : Sizes := ⟨m, h, fun _ ↦ t⟩
+
+-- The bound at more sizes, every rate: the stack grows to `μ = 28` at the last, the largest the
+-- setup admits; past it there is no ladder and the verifier asks nothing.
+#guard [uniformSizes 20 10, uniformSizes 22 14, uniformSizes 24 18, uniformSizes 24 20].map
+    (fun s ↦ (stackMu fx.prog s, (List.range 4).map fun r ↦
+      VerifierQueries.queryCountAt fx.prog fx.input s (r + 1))) ==
+  [(23, [7465, 5214, 4406, 3958]), (25, [8612, 6098, 5167, 4681]),
+    (28, [10210, 7250, 6205, 5627]), (29, [0, 0, 0, 0])]
 
 end LeanerVMTests.Protocol.DecodeChain

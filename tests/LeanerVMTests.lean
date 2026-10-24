@@ -50,6 +50,7 @@ import LeanerVMTests.Protocol.LeanIsaSound
 import LeanerVMTests.Protocol.ListBinding
 import LeanerVMTests.Protocol.ListBindingBudget
 import LeanerVMTests.Protocol.ListBindingDeployed
+import LeanerVMTests.Protocol.LogReplay
 import LeanerVMTests.Protocol.Merkle
 import LeanerVMTests.Protocol.MerkleBinding
 import LeanerVMTests.Protocol.Multilinear
@@ -80,6 +81,7 @@ import LeanerVMTests.Protocol.TableSumcheck
 import LeanerVMTests.Protocol.Transcript
 import LeanerVMTests.Protocol.UniformCondition
 import LeanerVMTests.Protocol.UniformSample
+import LeanerVMTests.Protocol.VerifierQueries
 import LeanerVMTests.Protocol.Verify
 import LeanerVMTests.Protocol.VerifyBus
 import LeanerVMTests.Protocol.VerifyFlock
