@@ -118,6 +118,15 @@ noncomputable def vsBs {fs : String → ℕ} (W : VsWords fs) (Bvk : ℕ) : List
     fs "log2_ceil_in_the_exponent__L15_L34" + 34 + (fs "verify_log2_ceil__L15_L34" + 35),
     osMax fs W.Bnd W.Kr, termBound fs W.Beqc W.K15 W.Bcs W.Brs]
 
+/-- **The callees' bounds at one candidate**: `vsBs` with `open_stacked`'s bound at the stack log
+`μ` and the rate `r`. -/
+noncomputable def vsBsAt {fs : String → ℕ} (W : VsWords fs) (Bvk μ r : ℕ) : List ℕ :=
+  [W.Bg, W.Bg, fs "log2_ceil_in_the_exponent__L0_L34" + 34 + (fs "verify_log2_ceil__L0_L34" + 35),
+    W.Ba, W.Ba, vbgMax fs W.K29 W.R W.K8, vtMax fs W.Kf W.Ksh W.K10, Bvk,
+    fs "ring_switch_target" + 18 + W.B14, fs "certify_placement" + [99, 99, 99].sum,
+    fs "log2_ceil_in_the_exponent__L15_L34" + 34 + (fs "verify_log2_ceil__L15_L34" + 35),
+    osBosAt fs W.Bnd W.Kr μ r, termBound fs W.Beqc W.K15 W.Bcs W.Brs]
+
 /-- **`verify_sub`'s bound**: its frame, its own buffers (`9127 + μ`, `μ ≤ 29`), its callees. -/
 noncomputable def vsBound {fs : String → ℕ} (W : VsWords fs) (Bvk : ℕ) : ℕ :=
   fs "verify_sub" + 9156 + (vsBs W Bvk).sum
@@ -169,6 +178,19 @@ theorem kidsDepB_of {κ : ℕ} : ∀ (ks : List KidD) (Bs : List ℕ), ks.length
   | _ :: ks, _ :: Bs, hl, h =>
     ⟨h 0 (by simp), kidsDepB_of ks Bs (by simpa using hl) fun j hj ↦ h (j + 1) (by simp; omega)⟩
 
+/-- Callees within their bounds are within larger ones. -/
+theorem KidsDepB.mono {κ : ℕ} {Bs Bs' : List ℕ} (hle : List.Forall₂ (· ≤ ·) Bs Bs') :
+    ∀ {ks : List KidD}, KidsDepB fs cert κ ks Bs → KidsDepB fs cert κ ks Bs' := by
+  induction hle with
+  | nil => intro ks h; exact h
+  | @cons b b' Bs Bs' hb _ ih =>
+    intro ks h
+    cases ks with
+    | nil => exact h.elim
+    | cons k ks =>
+      exact ⟨fun pv ↦ ⟨fun ht ↦ ((h.1 pv).1 ht).mono le_rfl hb, fun ht ↦ ((h.1 pv).2 ht).trans hb⟩,
+        ih h.2⟩
+
 namespace ChildSegs
 
 variable {bytecode : List K} {seed : Digest} {c : Child} (S : ChildSegs bytecode seed c)
@@ -190,13 +212,14 @@ theorem vt_sizes_sum : S.H.sizes.sum = 6604 + S.H.μ + 9 * (S.H.n + 1) := by
 end ChildSegs
 
 set_option maxHeartbeats 2000000 in
-/-- **`verify_sub`'s callees on an honest child, each within its bound.** -/
-theorem vs_kidsDepB {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) {seed : Digest}
+/-- **`verify_sub`'s callees on an honest child, each within its bound**, `open_stacked` within its
+candidate's. -/
+theorem vs_kidsDepBAt {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) {seed : Digest}
     {c : Child} (S : ChildSegs bytecode seed c) {κ : ℕ} (hκ : 16 ≤ κ) (hrf : Lift.RunsFit fs cert)
     (hap : Lift.RunsApart cert) (W : VsWords fs) {Bvk : ℕ} (hvk : VkCompleteAtB fs cert κ Bvk)
     (bs : List ℕ) (lpE sqE : ℕ) :
-    KidsDepB fs cert κ (S.kids bs lpE sqE) (vsBs W Bvk) := by
-  refine kidsDepB_of _ _ (by rw [ChildSegs.kids_length]; simp [vsBs]) fun j hj pv ↦ ?_
+    KidsDepB fs cert κ (S.kids bs lpE sqE) (vsBsAt W Bvk S.μs S.rate) := by
+  refine kidsDepB_of _ _ (by rw [ChildSegs.kids_length]; simp [vsBsAt]) fun j hj pv ↦ ?_
   have hj13 : j < 13 := by simpa [ChildSegs.kids_length] using hj
   have hμ := S.μ_bounds hbl
   have hτ := S.τ_bounds hbl
@@ -249,20 +272,31 @@ theorem vs_kidsDepB {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) {seed :
     have : log2Ceil (Tables.stackTotal S.kappas) ≤ 28 := log2Ceil_le_iff.mpr hst
     exact ⟨fun _ ↦ log2_L15_completeAtB κ (by omega) _ lpE sqE (by omega) (by omega),
       fun h ↦ by cases h⟩
-  · have hB : osBosAt fs W.Bnd W.Kr S.μs S.rate ≤ osMax fs W.Bnd W.Kr := by
-      unfold osMax
-      exact le_lmax2 (osBosAt fs W.Bnd W.Kr) (by have : S.μs ≤ 28 := S.hmu28; omega)
-        (by have := S.hr4; omega)
-    exact ⟨fun _ ↦ (open_stacked_completeAtB S.μs S.rate S.hmu22 S.hmu28 S.hr1 S.hr4 fs cert κ
+  · exact ⟨fun _ ↦ open_stacked_completeAtB S.μs S.rate S.hmu22 S.hmu28 S.hr1 S.hr4 fs cert κ
       W.Bnd W.Kr hrf (hfits _ _ S.hmu22 S.hmu28 S.hr1 S.hr4) W.hleaf
       (W.hloop _ _ S.hmu22 S.hmu28 S.hr1 S.hr4) S.s8.perm S.root S.target _ S.xsW c.proof.openings
       S.w S.s' S.roots' S.runW S.nzW S.capsW [(S.cW bs, S.xsW)]
-      (fun rd _ hm ↦ hm _ List.mem_cons_self)).mono le_rfl hB, fun h ↦ by cases h⟩
+      (fun rd _ hm ↦ hm _ List.mem_cons_self), fun h ↦ by cases h⟩
   · refine ⟨fun ht ↦ term_completeB hbl S hκ _ lpE sqE pv ht W.hEqc W.hL15 W.hCs W.hCsF W.hrs,
       fun _ ↦ ?_⟩
     show fs "check_opening_terminal" ≤ termBound fs W.Beqc W.K15 W.Bcs W.Brs
     unfold termBound
     omega
+
+/-- **`verify_sub`'s callees on an honest child, each within its bound.** -/
+theorem vs_kidsDepB {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) {seed : Digest}
+    {c : Child} (S : ChildSegs bytecode seed c) {κ : ℕ} (hκ : 16 ≤ κ) (hrf : Lift.RunsFit fs cert)
+    (hap : Lift.RunsApart cert) (W : VsWords fs) {Bvk : ℕ} (hvk : VkCompleteAtB fs cert κ Bvk)
+    (bs : List ℕ) (lpE sqE : ℕ) :
+    KidsDepB fs cert κ (S.kids bs lpE sqE) (vsBs W Bvk) := by
+  have hB : osBosAt fs W.Bnd W.Kr S.μs S.rate ≤ osMax fs W.Bnd W.Kr := by
+    unfold osMax
+    exact le_lmax2 (osBosAt fs W.Bnd W.Kr) (by have : S.μs ≤ 28 := S.hmu28; omega)
+      (by have := S.hr4; omega)
+  refine KidsDepB.mono ?_ (vs_kidsDepBAt hbl S hκ hrf hap W hvk bs lpE sqE)
+  exact .cons le_rfl (.cons le_rfl (.cons le_rfl (.cons le_rfl (.cons le_rfl (.cons le_rfl
+    (.cons le_rfl (.cons le_rfl (.cons le_rfl (.cons le_rfl (.cons le_rfl (.cons hB
+      (.cons le_rfl .nil))))))))))))
 
 set_option maxHeartbeats 2000000 in
 /-- **`verify_sub` is complete on every honest child within `vsBound W Bvk` words**, its callees'
