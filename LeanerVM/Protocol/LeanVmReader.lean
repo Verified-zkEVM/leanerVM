@@ -15,6 +15,7 @@ public import LeanerVM.Protocol.VerifierQueries
 public import LeanerVM.Protocol.HashMisbehaves
 public import LeanerVM.Protocol.ListBindingBudget
 public import LeanerVM.Protocol.ChainLog
+public import LeanerVM.Protocol.DecodeAgree
 
 /-!
 # The reader of leanVM's chain histories
@@ -428,6 +429,67 @@ theorem decodes_of_replay {log logV : hashSpec.QueryLog} {proof : Proof PrunedMe
   obtain ⟨s, ρ, levels, w, st₁, hist, hsetup, hl, hw, hq⟩ := chain_in_log_of_replay h
   exact ⟨s, ρ, levels, w, st₁, hist, hsetup, hl, hw, hq,
     walkChainLogged_proof_decodes hsetup hl hw⟩
+
+/-! ## The reader's facts on the verifier's history -/
+
+private theorem laterWords_agree (l : hashSpec.QueryLog) {N : ℕ} {f g : ℕ → Option Digest} :
+    ∀ {sh : Whir.Shape} {κ : ℕ} (L : Ladder sh κ) (offs : List ℕ),
+      (∀ o ∈ offs, o + 2 ≤ N → f o = g o) →
+      DecodeAgree.LaterAgree N L offs (laterWords l L (offs.map f)) (laterWords l L (offs.map g))
+  | _, _, .last _ _, _, _ => trivial
+  | _, _, @Ladder.cons _ _ _ L, [], _ =>
+    ⟨(fun _ ho ↦ nomatch ho), laterWords_agree (f := f) (g := g) l L [] fun _ ho ↦ nomatch ho⟩
+  | _, _, @Ladder.cons _ _ _ L, o :: offs, h =>
+    ⟨fun o' ho hN ↦ by
+        obtain rfl : o = o' := Option.some.inj ho
+        show laterWord l _ _ (f o) = laterWord l _ _ (g o)
+        rw [h o List.mem_cons_self hN],
+      laterWords_agree l L offs fun o' ho hN ↦ h o' (List.mem_cons_of_mem _ ho) hN⟩
+
+/-- **A prefix of a history reads the words of the history** at every root it carries: the words
+read off a log under the roots of `hist` and of `hist ++ rest` agree within `hist`. -/
+theorem wordsOf_prefix (prog : Program) (input : PublicInput) (s : Sizes)
+    (hs : s.Admissible prog) (ρ : ℕ) (hρ : validRate ρ) (l : hashSpec.QueryLog)
+    (hist rest : List Reading) :
+    DecodeAgree.WordsAgree prog input s hs ρ hρ hist.length (wordsOf prog input s hs ρ hρ l hist)
+      (wordsOf prog input s hs ρ hρ l (hist ++ rest)) := by
+  refine ⟨fun h10 ↦ ?_,
+    laterWords_agree l _ _ fun o _ ho ↦ (rootAt_prefix hist rest (by omega)).symm⟩
+  show level0Word prog s _ l (rootAt hist 8) = level0Word prog s _ l (rootAt (hist ++ rest) 8)
+  rw [rootAt_prefix hist rest (by omega)]
+
+/-- **The history of a state on the verifier's chain**: on a log with no collision and no answer
+equal to the seed, holding every step of the verifier's history from the seed, the chain history of
+the state after any prefix of it is that prefix. -/
+theorem chainHistory_of_log {log : hashSpec.QueryLog} {seed : FsState}
+    (hcoll : ¬ QueryLog.HasCollision log) (hseed : ∀ e ∈ log, e.2 ≠ seed.cv)
+    {hist : List (Block × Digest)}
+    (hchain : ∀ e ∈ HashChain.queries Block.input seed.cv hist, e ∈ log) (j : ℕ) :
+    chainHistory log seed ⟨HashChain.last seed.cv (hist.take j)⟩ = some (hist.take j) := by
+  refine chainHistory_of_noCollision_noSeed hcoll hseed _ fun e he ↦ hchain e ?_
+  rw [← List.take_append_drop j hist, HashChain.queries_append]
+  exact List.mem_append_left _ he
+
+/-- **A grinding check passed on a log's answers passes in the log**: if the verifier's check of
+the nonce `n` at the state `cv`, its hash answered from the log `l`, passes, its base and its check
+are answered there and the check has `bits` low zero bits. -/
+theorem powPasses_of_checkPow {l : hashSpec.QueryLog} {cv : Digest} {bits : ℕ} (hb : bits ≠ 0)
+    {n : E} {pre post : hashSpec.QueryLog} {s' : FsState}
+    (h : (FsState.checkPow (QueryLog.replayImpl (MerkleTree.logAnswer l)) ⟨cv⟩ bits n).run pre =
+      some ((true, s'), post)) :
+    PowPasses bits l cv n := by
+  simp only [FsState.checkPow, FsState.powBase, FsState.powOk, FsState.absorbNonce, hb,
+    ↓reduceIte, QueryLog.replayImpl, StateT.run_bind] at h
+  rcases hbase : MerkleTree.logAnswer l (FsState.stepBytes cv 0 FsState.powBaseTag) with _ | base
+  · simp [hbase, StateT.run_lift] at h
+  rcases hchk : MerkleTree.logAnswer l (FsState.stepBytes base n FsState.powNonceTag) with _ | d
+  · simp [hbase, hchk, StateT.run_lift] at h
+  refine ⟨base, d, hbase, hchk, ?_⟩
+  simp [hbase, hchk, StateT.run_lift] at h
+  rcases habs : MerkleTree.logAnswer l (FsState.stepBytes cv n FsState.powNonceTag) with _ | u
+  · simp [habs] at h
+  · simp only [habs, Option.bind_some, Option.some.injEq, Prod.mk.injEq] at h
+    exact h.1.1
 
 /-! ## The verifier's queries, in closed form -/
 

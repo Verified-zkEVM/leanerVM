@@ -32,6 +32,7 @@ import LeanerVM.Protocol.BusSecurity
 import LeanerVM.Protocol.ChainGroups
 import LeanerVM.Protocol.ChainLog
 import LeanerVM.Protocol.ClaimWeights
+import LeanerVM.Protocol.DecodeAgree
 import LeanerVM.Protocol.DecodeChain
 import LeanerVM.Protocol.DecodeWalk
 import LeanerVM.Protocol.DecodeWire
