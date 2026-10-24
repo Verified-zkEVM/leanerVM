@@ -13,22 +13,22 @@ public import LeanVM.Guest.Count.DeployedC
 namespace LeanVM.Guest.Count
 
 open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Memory LeanVM.Guest
-open LeanVM.Guest.B1.Main (nameSum colC colS clC ccC dvC dvS l5A0 l5A1 l5A2 agA0 agA1 mainWords)
+open LeanVM.Guest.B1.Main (nameSum dlK colC colS clC ccC dvC dvS l5A0 l5A1 l5A2 agA0 agA1 mainWords)
 
 @[expose] public section
 
 /-- **The deployed budget's words**, `Bv` per child for `verify_sub`. -/
-def deployedWords (Bv : ℕ) : End.Linear := ⟨22898024, 581, 109, 6459, 7328, 0, 224261, 13393 + Bv, 555⟩
+def deployedWords (Bv : ℕ) : End.Linear := ⟨18123, 581, 109, 6459, 7328, 480986, 247997, 13393 + Bv, 555⟩
 
 /-- **The deployed budget's instructions of each opcode**, `verify_sub`'s words `Bv` per child
 through `__loop5`'s ratio. -/
 def deployedInstrs (Bv : ℕ) : Opcode → End.Linear
-  | .xor => ⟨1742, 154, 3, 295, 604, 8305025, 81407, 517 + 459 * (11450 + Bv) / 1000, 255⟩
-  | .mulNative => ⟨2675, 253, 37, 243, 361, 17914150, 175597, 427 + 870 * (11450 + Bv) / 1000, 483⟩
-  | .setConstant => ⟨9851, 102, 12, 206, 481, 10455639, 102488, 88 + 400 * (11450 + Bv) / 1000, 223⟩
-  | .deref => ⟨3639, 305, 0, 132, 220, 30840704, 302304, 502 + 1033 * (11450 + Bv) / 1000, 574⟩
-  | .jump => ⟨508, 45, 6, 84, 128, 5490927, 53823, 161 + 200 * (11450 + Bv) / 1000, 112⟩
-  | .keccak => ⟨202, 19, 0, 398, 390, 755003, 7401, 45 + 56 * (11450 + Bv) / 1000, 32⟩
+  | .xor => ⟨1742, 154, 3, 295, 604, 174219, 90023, 517 + 459 * (11450 + Bv) / 1000, 255⟩
+  | .mulNative => ⟨2675, 253, 37, 243, 361, 375800, 194182, 427 + 870 * (11450 + Bv) / 1000, 483⟩
+  | .setConstant => ⟨9851, 102, 12, 206, 481, 219335, 113335, 88 + 400 * (11450 + Bv) / 1000, 223⟩
+  | .deref => ⟨3639, 305, 0, 132, 220, 646967, 334300, 502 + 1033 * (11450 + Bv) / 1000, 574⟩
+  | .jump => ⟨508, 45, 6, 84, 128, 115187, 59520, 161 + 200 * (11450 + Bv) / 1000, 112⟩
+  | .keccak => ⟨202, 19, 0, 398, 390, 15839, 8184, 45 + 56 * (11450 + Bv) / 1000, 32⟩
 
 set_option maxRecDepth 100000 in
 /-- **`deployedBudget`'s words.** -/
