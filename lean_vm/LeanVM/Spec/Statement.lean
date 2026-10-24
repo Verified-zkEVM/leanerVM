@@ -115,7 +115,8 @@ def verifierQueries : ℕ := 12008
 (`Rpm.lean`; the second, `rpmError`, is the cost of building both functions from one
 permutation). It is the error the proof obtains with Keccak-256 and Keccak-f[1600] two independent
 random functions, counting the hash and permutation calls of the adversary (`Q`) and of the
-verifier (at most `verifierQueries = V`): one `2^-128` per call, plus, per call,
+verifier (at most `verifierQueries = V`; in `KnowledgeSoundness` the adversary's `Q` are its `π` and
+`π⁻¹` queries): one `2^-128` per call, plus, per call,
 `7 · (Q + V) / 2^256` for a fresh answer that collides with or predicts a value the answers
 already refer to (a digest, or a state's capacity), plus one `2^-256` per call of the verifier, for
 a fresh hash answer that is the stack's root the adversary announced without computing it (the
