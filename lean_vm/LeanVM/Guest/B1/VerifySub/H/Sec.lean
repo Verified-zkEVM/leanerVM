@@ -123,7 +123,8 @@ theorem vsSec {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) {seed : Diges
       S.s7.cap ++ [ofK (gpow (S.cK bs)) * gen ^ S.xsK.length, S.word, S.m0])
     (o10 : (outs.getD 10 ([], [])).1 = [gen ^ max 15 (log2Ceil (Tables.stackTotal S.kappas))]) :
     ∃ D : VsSecData rd (vsW bs outs) args,
-      D.vals = (fun i ↦ S.H.poolW.getD (vsKept i) 0) ∧ D.m = S.μs ∧ D.r = S.rate ∧
+      D.vals = (fun i ↦ S.H.poolW.getD (vsKept i) 0) ∧ D.lir = S.rate ∧ D.logMem = S.logMem ∧
+      D.hs = S.hs ∧ D.m = S.μs ∧ D.r = S.rate ∧
       D.τg = gen ^ S.τ ∧ VsFrontH S rd (vsσ rd (vsW bs outs) args) ∧
       vsσ rd (vsW bs outs) args (.n 1323) = S.lam ∧
       S.s8 = ⟨[vsσ rd (vsW bs outs) args (.n 966), vsσ rd (vsW bs outs) args (.n 967),
@@ -379,7 +380,7 @@ theorem vsSec {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) {seed : Diges
       rw [List.getD_append_right _ _ _ _ (by simp only [List.length_append, List.length_take, hpl, hal]; omega)] at this
       simpa [hpl, hal, show min 19 S.μ = 19 by omega] using this }, ?_⟩
   subst hσ
-  exact ⟨rfl, rfl, rfl, rfl, F, elam, es8.symm, e870, ech⟩
+  exact ⟨rfl, rfl, rfl, rfl, rfl, rfl, rfl, F, elam, es8.symm, e870, ech⟩
 
 end
 end LeanVM.Guest.B1.VerifySub
