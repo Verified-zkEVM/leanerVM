@@ -964,8 +964,9 @@ seam to `relOpen` (`relist_of_relOpen`); `listBinding_compile` takes the height 
 `κ + sh.ℓ = I.μ`; `exactFast_eq` holds at every threshold `2 ^ κ ≤ a ≤ 2 ^ (κ + R)`, with no
 unique-decoding condition. It still owes the inverse additive transform for a fast exact path at
 deployed sizes and the instantiation at the deployed chain with a Johnson list bound; and, since
-the committed word is a `K` word, `verify_iff_compiled` must read the level-0 rows of a proof as
-`K` symbols (the deployed commitment's leaves), not as `E` ones.
+the committed word is a `K` word, the links between `verify` and the compiled verifier must read
+the level-0 rows of a proof as `K` symbols (the deployed commitment's leaves), not as `E` ones
+(they do: `Compile.laneRow_level0`).
 
 *On merge* of the deployed list-binding branch (`feat/protocol-list-binding-deployed`, stacked on
 the list-binding and Johnson-regime branches), the compilation holds at leanVM with no hypothesis:
@@ -1125,10 +1126,18 @@ Merkle trees', with the fast field arithmetic merged), the rest of Layer 12's ve
   sample giving 150.4 to 172.4 bits (`Parameters/Whir.lean`, `oodSamples`). The test module
   checks the honest proof and the mutations rejected before the walk passes its setup's reads;
   the executable also rejects a changed input lane and a changed instruction (the seed moves) and
-  two exchanged rows of a level, and WHIR's algebra a changed first round polynomial. Owed: `verifierQueries`,
-  `proofDigests`, `rounds` and their bounds, `decodePrefix` and `verify_iff_compiled`, which
-  rests on `blake2sRows_eq` and the instance's known-coordinate evaluators equal to the
-  extensions (they are, by the field `ext_eq`). The bus phase's algebra
+  two exchanged rows of a level, and WHIR's algebra a changed first round polynomial. It owed
+  `verifierQueries`, `proofDigests`, `rounds` and their bounds, `decodePrefix` and
+  `verify_iff_compiled`. The branches below build `verifierQueries` with `verifierQueries_bound`
+  and `verifierQueries_le_bound` (`Protocol/VerifierQueries.lean`, `Protocol/LeanVmReader.lean`),
+  `proofDigests` with `ProofRoots.length_rootsOf_le`, and `DecodeChain.decodePrefix`
+  (`Protocol/DecodeChain.lean`). `rounds` and its bound are not needed: the random-oracle bound
+  charges `εquery` to every query. The biconditional `verify_iff_compiled` is not built, and
+  neither headline theorem needs it: soundness uses one direction on decoded transcripts, inside
+  `core` (`ChainLog.accepts_of_replay`, `Core.solved_of_decode`, `Compile.compiled_of_algebra`),
+  and completeness the other on accepted ones (`Compile.phasesAgree`). Both rest on
+  `blake2sRows_eq` and the instance's known-coordinate evaluators equal to the extensions (they
+  are, by the field `ext_eq`). The bus phase's algebra
   with the program's share settled is the oracle verifier's step (`leanVmBus_eq_busStep`).
 
 - **The walk's primitives and the transport** (`Protocol/Verify/Setup.lean`,
@@ -1261,10 +1270,13 @@ theorem advances.
 - **The phases agree** (`Compile/Agree.lean`): `phasesAgree` proves `PhasesAgree`, so
   `Prove.baseProver_complete` needs no hypothesis (`baseProver_complete_of_agree` is the form
   that takes it).
-- Owed: `verify_iff_compiled`. That the decoder's transcripts are solved (it decodes each dropped
-  coefficient from the running claim, `RoundPoly.check_of_decode`), so that on decoded transcripts
-  the algebra's acceptance is the compiled verifier's, is met on the core's branch below
-  (`Core.solved_of_decode`).
+- Not built: the biconditional `verify_iff_compiled`, which neither headline theorem needs. The
+  headline uses its two directions separately: on a solved transcript the compiled verifier
+  accepts what the algebra accepts (`compiled_of_algebra`, inside `core`, for soundness), and on
+  an accepted transcript the algebra accepts (`phasesAgree`, for completeness). That the
+  decoder's transcripts are solved (it decodes each dropped coefficient from the running claim,
+  `RoundPoly.check_of_decode`), which `compiled_of_algebra` needs, is met on the core's branch
+  below (`Core.solved_of_decode`).
 
 *On merge* of the core's branch (`feat/protocol-core`, on the compiled verifier's), the
 deterministic heart of the random-oracle theorems and knowledge soundness in the random-oracle

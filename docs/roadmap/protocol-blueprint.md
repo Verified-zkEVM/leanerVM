@@ -29,8 +29,10 @@ The adaptor (Layer 3) is the one place the proof system meets leanISA: `witnessO
 into `SatisfiedBy prog input (witnessOf q)`. Composed with `constraintSoundness` (leanISA Layer
 10) it gives "an accepted proof has an execution", the proof-system half of target T4 of
 [architecture.md](../architecture.md). The non-interactive verifier `verify`, the one Rust proofs
-are checked against, is specified in full and proved to be the compilation of the oracle
-verifier. The headline theorem (Layer 13) is its knowledge soundness, with a computable
+are checked against, is specified in full and tied to the compilation of the oracle verifier in
+the two directions the theorems use: an accepted proof decodes to a transcript the compiled
+verifier accepts, and every transcript the compiled verifier accepts passes `verify`'s algebra.
+The headline theorem (Layer 13) is its knowledge soundness, with a computable
 extractor of the witness, and of the execution through leanISA's trace interface:
 
 ```text
@@ -653,7 +655,7 @@ no other; the hole is built when the names in bold of its row are declared and m
 | the charged invariant | [Layer 12](#layer-12-compilation-the-transcript-the-proof-and-the-executable-verifier) | `chargedRandomOracle`, **`potential_le_expected_charge`**, **`prEvent_le_of_potential`**, **`prEvent_not_good_le_expected_charge`**, **`expected_charge_le_mul`**, **`expected_fresh_in_le`**; the logged form `chargedLoggingOracle`, **`potential_log_le_expected_charge`** | VCVio only |
 | Merkle binding by log replay | [Layer 12](#layer-12-compilation-the-transcript-the-proof-and-the-executable-verifier) | `nodePreimage`, `leafPreimage`, `extractTree`, `extractLeaf`, `extractLeaves`, `extractRows`, `extractAllRows`, `Consistent`, `HasCollision`, `Fresh`, `Known`, `FreshHit`, **`binding_of_log`** (generic `MerkleTree.binding_of_log` and leanVM's), **`extractRows_determined`** (generic `MerkleTree.extractLeaf_determined`) | Merkle trees (the generic walk `MerkleTree.fold`) |
 | list-binding compilation | [Layer 12](#layer-12-compilation-the-transcript-the-proof-and-the-executable-verifier) | `KWord`, `kwordOf`, `ListDecoder`, **`ListDecoder.bruteForce`**, `exactFast`, **`exactFast_eq`**, `ListDecoder.exactFirst`, `ListDecoder.exact`, **`isInK_of_cl`**, `stackOfMsgs`, `stackList`, `Component.relistRel`, **`Component.Front.relist`**, **`Component.Front.overComplete`**, `commitWord`, `commitPick`, **`commitWordSecurity`**, `openInput`, **`relist_of_relOpen`**, **`openInputSecurity`**, **`listBinding_compile`**, **`listBinding_kSF_one`**, **`listBinding_extractedStack_eq`**, **`listBinding_perfectCompleteness`**, `Whir.Transform` (`fwd`, `inv`, **`fwd_getElem`**, **`fwd_inv`**, **`inv_fwd`**, `encodeFast`, **`encodeFast_getElem`**), `exactNtt`, **`exactNtt_spec`**, **`exactNtt_of_codeword`**, `ListDecoder.nttFirst`, **`ListDecoder.decode_eq_of_codeword`**, `kwordOfFast`, **`kwordOfFast_eq`**, `deployedDecoder`, **`deployedChain_head`**, **`listBinding_deployed`**, **`listBinding_deployed_rbrKnowledgeSoundness`**, **`listBinding_deployed_perfectCompleteness`**, `deployedPick`, **`deployedPick_eq_commitPick`**, **`listBinding_deployed_kSF_one`**, **`listBinding_deployed_extractedStack_eq`**, **`commitPick_isSome_iff`**, **`commitPick_eq_some`** | the phases' knowledge soundness and completeness; WHIR opening; WHIR opening in the Johnson regime (`deployedChain`) |
-| transcript, proof object and compiled verifier | [Layer 12](#layer-12-compilation-the-transcript-the-proof-and-the-executable-verifier) | `Digest`, **`card_digest`**, `hashSpec`, `hashQuery`, `runBlake2s`, `runRandom`, `FsState`, `Block`, `FsState.checkPow`, **`FsState.challengeOf`**, `chainHistory`, **`chainHistory_determined`**, `Proof`, `Proof.sizes?`, `RoundPoly.decode`, `decodePrefix`, **`decodePrefix_mono`**, `decode`, `leanVmIopp`, **`verifyWith`**, **`verify`**, **`verifyWith_simulateQ`**, `rounds`, `verifierQueries`, `proofDigests`, **`rounds_bound`**, **`verifierQueries_bound`**, **`proofDigests_bound`**, **`verify_iff_compiled`**, `settleFixedClaims` | the phases' definitions; the Flock phase's definition; WHIR opening; Merkle trees |
+| transcript, proof object and compiled verifier | [Layer 12](#layer-12-compilation-the-transcript-the-proof-and-the-executable-verifier) | `Digest`, **`card_digest`**, `hashSpec`, `hashQuery`, `runBlake2s`, `runRandom`, `FsState`, `Block`, `FsState.checkPow`, **`FsState.challengeOf`**, `chainHistory`, **`chainHistory_determined`**, `Proof`, `Proof.sizes?`, `RoundPoly.decode`, `decodePrefix`, **`decodePrefix_mono`**, `decode`, `leanVmIopp`, **`verifyWith`**, **`verify`**, **`verifyWith_simulateQ`**, `verifierQueries`, `proofDigests`, **`verifierQueries_bound`**, **`length_rootsOf_le`**, **`compiled_of_algebra`**, **`phasesAgree`** (with `accepts_of_replay` and `solved_of_decode`, the two directions between `verify` and the compiled verifier; no biconditional is stated, and the headline needs none), `settleFixedClaims` | the phases' definitions; the Flock phase's definition; WHIR opening; Merkle trees |
 | the random-oracle theorems | [Layer 12](#layer-12-compilation-the-transcript-the-proof-and-the-executable-verifier) | `Adversary`, `Run`, `loggedGame`, `extract`, `Extracts`, `LogHasCollision`, `Hit`, `Bad`, **`bad_density`**, `Flip`, `HashMisbehaves`, **`core`**, `hashTerm`, `niError`, **`misbehaves_rom`**, `misbehaves_rom_coins`, **`niError_le`**, **`verify_knowledgeSound_rom`** | the compiled verifier; list-binding compilation; Merkle binding by log replay; the charged invariant in its logged form |
 | the honest prover and the test vectors | [Layer 13](#the-executable-prover-and-the-test-vectors) | `proveWith`, **`prove`**, `honestAdversary`, **`baseProver_complete`**, the executable `leanervm-vectors` and its vectors | the compiled verifier; the adaptor; for the vectors, leanISA's `checkSatisfiedBy` |
 | the base theorems (T4) | [Layer 13](#layer-13-the-base-theorems-t4-and-the-fixtures) | **`BlakeMisbehaves`**, `extractTrace`, **`baseVerifier_extractsWitness_rom`**, **`baseVerifier_extractsWitness`**, **`baseVerifier_extractsWitness_coins`**, **`baseVerifier_extractsExecution`**, `Blake2sActsAsRandomOracle`, **`blakeMisbehaves_of_comparison`**, **`prove_complete`**, `baseProver_complete_of_execution` (an unproved target) | the random-oracle theorems; the adaptor; the honest prover; leanISA's `TraceExtraction` (declared beside `SatisfiedBy`) and its inhabitant `leanIsaTraceExtraction`; for completeness from an execution, leanISA's constraint completeness at the trace level |
@@ -1432,17 +1434,26 @@ def verifyWith [Monad m] (H : List UInt8 → m Digest) (prog : Program) (input :
 def verify (prog input proof) : Bool := verifyWith (m := Id) blake2sBytes prog input proof
 theorem verifyWith_simulateQ [LawfulMonad m] (impl : QueryImpl hashSpec m) :
     simulateQ impl (verifyWith hashQuery prog input proof) = verifyWith impl prog input proof
-def rounds : ℕ ; verifierQueries : ℕ ; proofDigests : ℕ          -- numerals, at the largest admissible sizes
-theorem rounds_bound         -- a run of `verifyWith` closes at most `rounds` challenges (a query group once)
-theorem verifierQueries_bound (prog input proof) : IsTotalQueryBound (verifyWith hashQuery prog input proof) verifierQueries
-theorem proofDigests_bound   -- a run of `verifyWith` reads at most `proofDigests` digests of the proof
-theorem verify_iff_compiled (prog input proof) :
-    verify prog input proof = true ↔
-      ∃ s ρ tr rows, proof.sizes? = some s ∧ s.Admissible prog ∧ validRate ρ ∧
-        decode prog (the history of verify's chain walk) = some ⟨s, ρ, tr⟩ ∧ every grinding check passes ∧
-        merkleOpenings blake2sBytes proof tr = some rows ∧
-        (leanVmIopp F prog s ρ).verifier accepts (input, tr), its oracle queries answered by `rows`
+def verifierQueries (prog input) : ℕ   -- the most over the admissible sizes and rates; at most 13697 over the window
+theorem verifierQueries_bound (prog input proof) :
+    IsTotalQueryBound (verifyWith hashQuery prog input proof) (verifierQueries prog input)
+def proofDigests : ℕ := 6
+theorem length_rootsOf_le : (rootsOf prog input proof).length ≤ proofDigests   -- the roots the verifier reads
+-- No count of challenges: the random-oracle bound charges `εquery` to every query.
+-- `verify` and the compiled verifier, one direction at a time; no biconditional is stated, and neither
+-- headline theorem needs one. Soundness, inside `core`:
+theorem accepts_of_replay (h : replay log prog input proof = some (true, logV)) :    -- ChainLog.lean
+    ∃ s ρ levels w rows …, setup? prog proof = some (s, ρ) ∧ ladderOf prog s ρ = some levels ∧
+      the chain walk replayed on `log` reads the wire `w` ∧ the openings replayed after it read `rows` ∧
+      algebra prog s input (levelShapes …) w rows = true
   -- the level-0 rows read as `K` symbols (the committed word is a `KWord`), the other levels' as `E`
+theorem solved_of_decode (h : DecodeChain.decode prog input s hs ρ hρ W hist = some tr) :
+    Solved prog s hs ρ hρ input tr            -- the decoder derives each dropped coefficient from the running claim
+theorem compiled_of_algebra (hsol : Solved prog s hs ρ hρ input tr)
+    (h : algebra prog s input shapes (wireOf tr) (rowsOf tr) = true) :
+    the compiled verifier accepts (input, tr)
+-- Completeness: on a transcript the compiled verifier accepts, the algebra accepts its wire and rows
+theorem phasesAgree : PhasesAgree prog s hs ρ hρ input
 -- List binding (Whir/Word.lean, Whir/Decode.lean, ToArkLib/{Relist,SendEncoded,MapOracles,FirstRound}.lean,
 -- ToCompPoly/LinearSolve.lean, ListBinding.lean)
 structure KWord (ℓ b t : ℕ) where row : Fin (2 ^ b) → Vector K (2 ^ ℓ)   -- level 0's word: rows of `K` symbols
@@ -1655,13 +1666,22 @@ structural recursion on the stream, with no `partial` definition. A verifier wri
 for the random-oracle model would make every theorem below a statement about a model of `verify`
 (acceptance test 38).
 
-`verify_iff_compiled` is unconditional, a theorem about two definitions, and a check only because
-`verify` is written from §8.5 before the right-hand side is unfolded. Its right-hand side is the
-oracle verifier of `leanVmIopp` with its queries answered by the rows the openings authenticate,
-not ArkLib's `Verifier.fiatShamir` (which would hash whole oracle messages): messages are absorbed
-in their wire encoding (one round coefficient dropped, a root as two scalars, Merkle openings not
-absorbed), and the grinding checks read the chain state, which a verifier does not see, so they
-are conjoined. `verify`'s checks, each with a mutation of the dumped proof that it rejects
+`verify` and the compiled verifier are linked one direction at a time, and no biconditional
+`verify_iff_compiled` is stated: neither headline theorem needs one. Soundness, inside `core`, goes
+forward: an accepted replay walks the chain, reads the rows and has its algebra accept them
+(`accepts_of_replay`); the chain's history decodes to a transcript whose round polynomials pass
+their checks (`solved_of_decode`); and on a solved transcript the compiled verifier accepts what the
+algebra accepts (`compiled_of_algebra`). Completeness goes back: the algebra accepts every
+transcript the compiled verifier accepts (`phasesAgree`). The detour through `Solved` is forced:
+the wire drops a coefficient of each round polynomial and the algebra derives it from the running
+claim, so the algebra alone accepts round polynomials the oracle verifier rejects. Each link is
+unconditional, a theorem about definitions, and a check only because `verify` is written from §8.5
+before the compiled verifier is unfolded. The compiled verifier is the oracle verifier of
+`leanVmIopp` with its queries answered by the rows the openings authenticate, not ArkLib's
+`Verifier.fiatShamir` (which would hash whole oracle messages): messages are absorbed in their wire
+encoding (one round coefficient dropped, a root as two scalars, Merkle openings not absorbed), and
+the grinding checks read the chain state, which a verifier does not see, so `verify` makes them in
+its walk. `verify`'s checks, each with a mutation of the dumped proof that it rejects
 (convention *Load-bearing checks*): the setup's (upper limbs of the sizes zero, the caps, the
 stacking and rate windows, the number and shapes of the openings), each phase's, the Merkle
 openings' (one row per distinct sorted position, the row width the verifier's, no missing or
@@ -1779,7 +1799,9 @@ the first run's outcomes would count twice the groups the adversary left open. T
 counts the adversary's queries and the verifier's own, since a node the verifier recomputes is a
 fresh value too, and the digests of the proof the verifier reads,
 `proofDigests`, since the verifier's fresh answer equal to one of them is a hit, as the replayer's
-root is. `verifierQueries` and `proofDigests` are numerals, each with a proved bound on one run.
+root is. `verifierQueries prog input`, at most `13697` over the window (`verifierQueries_le_bound`),
+bounds one run's queries (`verifierQueries_bound`), and `proofDigests`, six, the roots the verifier
+reads (`length_rootsOf_le`).
 The bound is selective: the statement is fixed before the adversary runs. A program-hash collision
 does not enter, and the adaptive form would need more than that term: the chain's first state is
 BLAKE2s of the statement outside the oracle, so for an adversary picking the public input after
@@ -2039,8 +2061,9 @@ witness is executable it is a test under `tests/`.
    and pushes `(a, g·0, v) = (a, 0, v)`: balanced. Witness: the bus phase without the check has no
    knowledge soundness (the zero-count mutation).
 4. **One root, not two.** The push and pull roots are one stream scalar. A proof with two roots
-   and an equality check has a different stream and rejects every Rust proof.
-   `verify_iff_compiled` pins the shape.
+   and an equality check has a different stream and rejects every Rust proof. `verify` accepting
+   the dumped proof, with the soundness links to the compiled verifier (`accepts_of_replay`,
+   `solved_of_decode`, `compiled_of_algebra`), pins the shape.
 5. **Domain separators.** Without coordinate 0, a memory tuple `(a, c, v, 0…)` and a bytecode
    tuple with the same low coordinates coincide. Witness: two tuples equal after dropping
    coordinate 0, distinguished by the flush polynomials of the leanISA instance.
@@ -2068,8 +2091,8 @@ witness is executable it is a test under `tests/`.
     `L_0`. Per-claim soundness does not compose to a witness. Witness: `listBinding_compile`'s
     extractor selects one member.
 12. **Absorb before squeeze.** The sizes and the commitment root are observed before `α`; every
-    claim value before `λ`. A chain sampling `α` before the root is broken. `verify_iff_compiled`
-    fails otherwise.
+    claim value before `λ`. A chain sampling `α` before the root is broken. The decoding of
+    `verify`'s history into the compiled protocol's transcript (`solved_of_decode`) fails otherwise.
 13. **Index column bit order.** `∏ (1 + ζ_k (1 + g^(2^k)))` reads bit `k` as coordinate `k`.
     Witness: the `#guard`s on `idxColumn 2` in `tests/LeanerVMTests/Protocol/FixedColumns.lean`.
 14. **Bytecode slot bits.** The opcode is `P(z, 1, 1, 0, 0)`: slot 3 in low-first bits.
@@ -2085,8 +2108,8 @@ witness is executable it is a test under `tests/`.
 17. **Radix, parity and combiners.** For odd `μ` the first layer is radix 2; a combiner is drawn
     after every layer, the last included. From the seed to the end of the bus phase the stream
     holds `μ² + 4μ + 17` scalars (one more for odd `μ`) and the GKR draws `μ²/4 + μ + 1`
-    challenges for even `μ`. Witness: the counts against the Python verifier, and
-    `verify_iff_compiled` on the dumped proof.
+    challenges for even `μ`. Witness: the counts against the Python verifier, and `verify` on the
+    dumped proof.
 18. **Counts in the count tree.** The tables' count columns only, not the finalize counts;
     otherwise the leaf layout, and so `ζ`, differ. Witness: the dumped proof.
 19. **The extractor reads the stack.** The witness is `witnessOf` of the committed `q`, not of the
@@ -2103,7 +2126,8 @@ witness is executable it is a test under `tests/`.
 21. **Sizes are parameters.** The verifier reads the sizes from the stream; the protocol is a
     family indexed by them, and the error of `verify` does not depend on the prover's choice (the
     maximum over admissible sizes). A version that puts the sizes in the oracle message type
-    cannot state `OracleInterface`. `verify_iff_compiled` quantifies `∃ s`.
+    cannot state `OracleInterface`. `accepts_of_replay` returns the sizes `setup?` reads off the
+    proof (`∃ s ρ`).
 22. **Tags, not labels.** The chain has four numeric tags and no labels; a labelled transcript
     rejects every Rust proof. Witness: the dumped proof.
 23. **What the numbers are.** `Σ piopError I < 2^{-159}` at admissible sizes, ring switching's
@@ -2146,8 +2170,8 @@ witness is executable it is a test under `tests/`.
     error 1 satisfy knowledge soundness at their declared error. Witness: such phases do not
     inhabit the slots, whose errors are the spine's closed forms.
 33. **One opening query.** After `λ` the deployed transcript is WHIR's; a reduction sumcheck in
-    the opening phase adds `μ` rounds and a scalar, and `verify_iff_compiled` fails for every Rust
-    proof. Witness: `openingSpec` is one challenge.
+    the opening phase adds `μ` rounds and a scalar, and the links between `verify` and the
+    compiled verifier fail for every Rust proof. Witness: `openingSpec` is one challenge.
 34. **The proof of work is load-bearing.** The 128-bit level needs the 17 grinding bits. Witness:
     a wrong grinding nonce at each level rejected, and the passing check in the bad set of a query
     group, whose density `bad_density` bounds by `2^{−17}·((a_i − 1)/n_i)^{t_i}`, at most `2^{−128}` at
@@ -2294,8 +2318,9 @@ List binding:         KWord  kwordOf  kwordOf_lift  ListDecoder  ListDecoder.bru
 Compilation:          Digest  card_digest  hashSpec  hashQuery  Adversary  runBlake2s  runRandom  FsState  Block
                       FsState.seed  FsState.checkPow  FsState.challengeOf  chainHistory  chainHistory_determined
                       Proof  Proof.sizes?  RoundPoly.decode  decodePrefix  decodePrefix_mono  decode  leanVmIopp
-                      verifyWith  verify  verifyWith_simulateQ  rounds  verifierQueries  proofDigests
-                      rounds_bound  verifierQueries_bound  proofDigests_bound  verify_iff_compiled
+                      verifyWith  verify  verifyWith_simulateQ  verifierQueries  proofDigests
+                      verifierQueries_bound  length_rootsOf_le  accepts_of_replay  solved_of_decode
+                      compiled_of_algebra  phasesAgree
                       settleFixedClaims
 Random oracle:        Run  loggedGame  extract  Extracts  LogHasCollision  Hit  Bad  bad_density  Flip
                       HashMisbehaves  core  hashTerm  niError  misbehaves_rom  niError_le  verify_knowledgeSound_rom
