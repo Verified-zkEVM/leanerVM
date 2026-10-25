@@ -9,6 +9,8 @@ module
 
 public import LeanVM.Guest.CheckWinC
 
+set_option Elab.async false
+
 namespace LeanVM.Guest.Checked
 
 open LeanVM.Guest.Check
@@ -17,6 +19,27 @@ open LeanVM.Guest.Check
 
 /-- `open_stacked__L9`, window 2. -/
 theorem w305_2 : WinOk 305 2 := winOk_of_C (by decide +kernel)
+
+/-- `open_stacked__L9`, window 3. -/
+theorem w305_3 : WinOk 305 3 := winOk_of_C (by decide +kernel)
+
+/-- `open_stacked__L9`, window 4. -/
+theorem w305_4 : WinOk 305 4 := winOk_of_C (by decide +kernel)
+
+/-- `open_stacked__L10`, window 0. -/
+theorem w306_0 : WinOk 306 0 := winOk_of_C (by decide +kernel)
+
+/-- `open_stacked__L10`, window 1. -/
+theorem w306_1 : WinOk 306 1 := winOk_of_C (by decide +kernel)
+
+/-- `open_stacked__L10`, window 2. -/
+theorem w306_2 : WinOk 306 2 := winOk_of_C (by decide +kernel)
+
+/-- `open_stacked__L10`, window 3. -/
+theorem w306_3 : WinOk 306 3 := winOk_of_C (by decide +kernel)
+
+/-- `open_stacked__L10`, window 4. -/
+theorem w306_4 : WinOk 306 4 := winOk_of_C (by decide +kernel)
 
 end
 end LeanVM.Guest.Checked

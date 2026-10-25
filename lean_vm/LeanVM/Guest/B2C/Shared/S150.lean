@@ -9,13 +9,39 @@ module
 
 public import LeanVM.Guest.B2C.Share
 
+set_option Elab.async false
+
 namespace LeanVM.Guest.B2C.Shared
 
 @[expose] public section
 
 set_option maxRecDepth 100000 in
-/-- `verify_lean_xmss`, window 28. -/
-theorem w20_28 : shareWin 20 (snapsOf 20) 28 = true := by decide +kernel
+/-- `verify_merkle_cap__L8`, window 5. -/
+theorem w413_5 : shareWin 413 (snapsOf 413) 5 = true := by decide +kernel
+
+set_option maxRecDepth 100000 in
+/-- `verify_merkle_cap__L8`, window 6. -/
+theorem w413_6 : shareWin 413 (snapsOf 413) 6 = true := by decide +kernel
+
+set_option maxRecDepth 100000 in
+/-- `verify_merkle_cap__L8`, window 7. -/
+theorem w413_7 : shareWin 413 (snapsOf 413) 7 = true := by decide +kernel
+
+set_option maxRecDepth 100000 in
+/-- `verify_merkle_cap__L8`, window 8. -/
+theorem w413_8 : shareWin 413 (snapsOf 413) 8 = true := by decide +kernel
+
+set_option maxRecDepth 100000 in
+/-- `verify_merkle_cap__L8`, window 9. -/
+theorem w413_9 : shareWin 413 (snapsOf 413) 9 = true := by decide +kernel
+
+set_option maxRecDepth 100000 in
+/-- `verify_merkle_cap__L8`, window 10. -/
+theorem w413_10 : shareWin 413 (snapsOf 413) 10 = true := by decide +kernel
+
+set_option maxRecDepth 100000 in
+/-- `verify_merkle_cap__L8`, window 11. -/
+theorem w413_11 : shareWin 413 (snapsOf 413) 11 = true := by decide +kernel
 
 end
 end LeanVM.Guest.B2C.Shared

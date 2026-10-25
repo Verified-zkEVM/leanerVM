@@ -9,6 +9,8 @@ module
 
 public import LeanVM.Guest.CheckWinC
 
+set_option Elab.async false
+
 namespace LeanVM.Guest.Checked
 
 open LeanVM.Guest.Check
@@ -18,7 +20,42 @@ open LeanVM.Guest.Check
 /-- `__loop371`, window 0. -/
 theorem w844_0 : WinOk 844 0 := winOk_of_C (by decide +kernel)
 
+/-- `__loop372`, window 0. -/
+theorem w845_0 : WinOk 845 0 := winOk_of_C (by decide +kernel)
+
+/-- `__loop373`, window 0. -/
+theorem w846_0 : WinOk 846 0 := winOk_of_C (by decide +kernel)
+
+/-- `decode_query_bits__L21`, window 0. -/
+theorem w847_0 : WinOk 847 0 := winOk_of_C (by decide +kernel)
+
+/-- `__loop374`, window 0. -/
+theorem w848_0 : WinOk 848 0 := winOk_of_C (by decide +kernel)
+
+/-- `__loop375`, window 0. -/
+theorem w849_0 : WinOk 849 0 := winOk_of_C (by decide +kernel)
+
+/-- `__loop376`, window 0. -/
+theorem w850_0 : WinOk 850 0 := winOk_of_C (by decide +kernel)
+
+/-- `decode_query_bits__L22`, window 0. -/
+theorem w851_0 : WinOk 851 0 := winOk_of_C (by decide +kernel)
+
 theorem ok844 : CheckOk 844 := checkOk_one (by decide +kernel) w844_0
+
+theorem ok845 : CheckOk 845 := checkOk_one (by decide +kernel) w845_0
+
+theorem ok846 : CheckOk 846 := checkOk_one (by decide +kernel) w846_0
+
+theorem ok847 : CheckOk 847 := checkOk_one (by decide +kernel) w847_0
+
+theorem ok848 : CheckOk 848 := checkOk_one (by decide +kernel) w848_0
+
+theorem ok849 : CheckOk 849 := checkOk_one (by decide +kernel) w849_0
+
+theorem ok850 : CheckOk 850 := checkOk_one (by decide +kernel) w850_0
+
+theorem ok851 : CheckOk 851 := checkOk_one (by decide +kernel) w851_0
 
 end
 end LeanVM.Guest.Checked

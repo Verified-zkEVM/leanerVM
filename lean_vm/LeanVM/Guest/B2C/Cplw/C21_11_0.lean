@@ -10,12 +10,35 @@ module
 public import LeanVM.Guest.B2C.Cpl
 public import Mathlib.Tactic.IntervalCases
 
+set_option Elab.async false
+
 namespace LeanVM.Guest.B2C.Cplw
 
 @[expose] public section
 
 /-- `verify_sig_lean_sphincs`, window 11, part 0. -/
 theorem cw21_11_0 : cplWin 21 11 0 = true := by decide +kernel
+
+/-- `verify_sig_lean_sphincs`, window 12, part 0. -/
+theorem cw21_12_0 : cplWin 21 12 0 = true := by decide +kernel
+
+/-- `verify_sig_lean_sphincs`, window 13, part 0. -/
+theorem cw21_13_0 : cplWin 21 13 0 = true := by decide +kernel
+
+/-- `verify_sig_lean_sphincs`, window 15, part 0. -/
+theorem cw21_15_0 : cplWin 21 15 0 = true := by decide +kernel
+
+/-- `verify_sig_lean_sphincs`, window 17, part 0. -/
+theorem cw21_17_0 : cplWin 21 17 0 = true := by decide +kernel
+
+/-- `verify_sig_lean_sphincs`, window 18, part 0. -/
+theorem cw21_18_0 : cplWin 21 18 0 = true := by decide +kernel
+
+/-- `verify_sig_lean_sphincs`, window 19, part 0. -/
+theorem cw21_19_0 : cplWin 21 19 0 = true := by decide +kernel
+
+/-- `verify_sig_lean_sphincs`, window 21, part 0. -/
+theorem cw21_21_0 : cplWin 21 21 0 = true := by decide +kernel
 
 end
 end LeanVM.Guest.B2C.Cplw

@@ -9,6 +9,8 @@ module
 
 public import LeanVM.Guest.CheckWinC
 
+set_option Elab.async false
+
 namespace LeanVM.Guest.Checked
 
 open LeanVM.Guest.Check
@@ -39,21 +41,6 @@ theorem w369_0 : WinOk 369 0 := winOk_of_C (by decide +kernel)
 /-- `da_levels__L4_L2`, window 0. -/
 theorem w370_0 : WinOk 370 0 := winOk_of_C (by decide +kernel)
 
-/-- `da_levels__L8_L3`, window 0. -/
-theorem w371_0 : WinOk 371 0 := winOk_of_C (by decide +kernel)
-
-/-- `da_levels__L16_L4`, window 0. -/
-theorem w372_0 : WinOk 372 0 := winOk_of_C (by decide +kernel)
-
-/-- `da_levels__L32_L5`, window 0. -/
-theorem w373_0 : WinOk 373 0 := winOk_of_C (by decide +kernel)
-
-/-- `da_levels__L64_L6`, window 0. -/
-theorem w374_0 : WinOk 374 0 := winOk_of_C (by decide +kernel)
-
-/-- `da_levels__L256_L8`, window 0. -/
-theorem w375_0 : WinOk 375 0 := winOk_of_C (by decide +kernel)
-
 theorem ok363 : CheckOk 363 := checkOk_one (by decide +kernel) w363_0
 
 theorem ok364 : CheckOk 364 := checkOk_one (by decide +kernel) w364_0
@@ -69,16 +56,6 @@ theorem ok368 : CheckOk 368 := checkOk_one (by decide +kernel) w368_0
 theorem ok369 : CheckOk 369 := checkOk_one (by decide +kernel) w369_0
 
 theorem ok370 : CheckOk 370 := checkOk_one (by decide +kernel) w370_0
-
-theorem ok371 : CheckOk 371 := checkOk_one (by decide +kernel) w371_0
-
-theorem ok372 : CheckOk 372 := checkOk_one (by decide +kernel) w372_0
-
-theorem ok373 : CheckOk 373 := checkOk_one (by decide +kernel) w373_0
-
-theorem ok374 : CheckOk 374 := checkOk_one (by decide +kernel) w374_0
-
-theorem ok375 : CheckOk 375 := checkOk_one (by decide +kernel) w375_0
 
 end
 end LeanVM.Guest.Checked

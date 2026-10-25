@@ -9,13 +9,6 @@ module
 
 public import LeanVM.Guest.CheckSplit
 public import LeanVM.Guest.Checked.G21_56_0
-public import LeanVM.Guest.Checked.G21_56_1
-public import LeanVM.Guest.Checked.G21_56_2
-public import LeanVM.Guest.Checked.G21_56_3
-public import LeanVM.Guest.Checked.G21_56_4
-public import LeanVM.Guest.Checked.G21_56_5
-public import LeanVM.Guest.Checked.G21_56_6
-public import LeanVM.Guest.Checked.G21_56_7
 
 namespace LeanVM.Guest.Checked
 

@@ -9,6 +9,8 @@ module
 
 public import LeanVM.Guest.CheckWinC
 
+set_option Elab.async false
+
 namespace LeanVM.Guest.Checked
 
 open LeanVM.Guest.Check
@@ -21,9 +23,39 @@ theorem w395_0 : WinOk 395 0 := winOk_of_C (by decide +kernel)
 /-- `__loop26`, window 0. -/
 theorem w396_0 : WinOk 396 0 := winOk_of_C (by decide +kernel)
 
+/-- `batch_sumcheck__L23`, window 0. -/
+theorem w397_0 : WinOk 397 0 := winOk_of_C (by decide +kernel)
+
+/-- `__loop27`, window 0. -/
+theorem w398_0 : WinOk 398 0 := winOk_of_C (by decide +kernel)
+
+/-- `__loop28`, window 0. -/
+theorem w399_0 : WinOk 399 0 := winOk_of_C (by decide +kernel)
+
+/-- `__loop29`, window 0. -/
+theorem w400_0 : WinOk 400 0 := winOk_of_C (by decide +kernel)
+
+/-- `gkr_rounds__L2`, window 0. -/
+theorem w401_0 : WinOk 401 0 := winOk_of_C (by decide +kernel)
+
+/-- `gkr_rounds__L1`, window 0. -/
+theorem w402_0 : WinOk 402 0 := winOk_of_C (by decide +kernel)
+
 theorem ok395 : CheckOk 395 := checkOk_one (by decide +kernel) w395_0
 
 theorem ok396 : CheckOk 396 := checkOk_one (by decide +kernel) w396_0
+
+theorem ok397 : CheckOk 397 := checkOk_one (by decide +kernel) w397_0
+
+theorem ok398 : CheckOk 398 := checkOk_one (by decide +kernel) w398_0
+
+theorem ok399 : CheckOk 399 := checkOk_one (by decide +kernel) w399_0
+
+theorem ok400 : CheckOk 400 := checkOk_one (by decide +kernel) w400_0
+
+theorem ok401 : CheckOk 401 := checkOk_one (by decide +kernel) w401_0
+
+theorem ok402 : CheckOk 402 := checkOk_one (by decide +kernel) w402_0
 
 end
 end LeanVM.Guest.Checked

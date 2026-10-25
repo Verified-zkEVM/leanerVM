@@ -9,13 +9,61 @@ module
 
 public import LeanVM.Guest.B2C.Share
 
+set_option Elab.async false
+
 namespace LeanVM.Guest.B2C.Shared
 
 @[expose] public section
 
 set_option maxRecDepth 100000 in
-/-- `verify_tables`, window 9. -/
-theorem w11_9 : shareWin 11 (snapsOf 11) 9 = true := by decide +kernel
+/-- `verify_keccak`, window 30. -/
+theorem w13_30 : shareWin 13 (snapsOf 13) 30 = true := by decide +kernel
+
+set_option maxRecDepth 100000 in
+/-- `verify_keccak`, window 31. -/
+theorem w13_31 : shareWin 13 (snapsOf 13) 31 = true := by decide +kernel
+
+set_option maxRecDepth 100000 in
+/-- `verify_keccak`, window 32. -/
+theorem w13_32 : shareWin 13 (snapsOf 13) 32 = true := by decide +kernel
+
+set_option maxRecDepth 100000 in
+/-- `ring_switch_target`, once. -/
+theorem st14 : shareStatic 14 = true := by decide +kernel
+
+set_option maxRecDepth 100000 in
+/-- `ring_switch_target`, window 0. -/
+theorem w14_0 : shareWin 14 (snapsOf 14) 0 = true := by decide +kernel
+
+theorem ok14 : ShareOk 14 := ⟨st14, fun i hi ↦ by
+  have h : (snapsOf 14).length = 0 := by decide +kernel
+  obtain rfl : i = 0 := by omega
+  exact w14_0⟩
+
+set_option maxRecDepth 100000 in
+/-- `ring_switch_weight`, once. -/
+theorem st15 : shareStatic 15 = true := by decide +kernel
+
+set_option maxRecDepth 100000 in
+/-- `ring_switch_weight`, window 0. -/
+theorem w15_0 : shareWin 15 (snapsOf 15) 0 = true := by decide +kernel
+
+theorem ok15 : ShareOk 15 := ⟨st15, fun i hi ↦ by
+  have h : (snapsOf 15).length = 0 := by decide +kernel
+  obtain rfl : i = 0 := by omega
+  exact w15_0⟩
+
+set_option maxRecDepth 100000 in
+/-- `certify_placement`, once. -/
+theorem st16 : shareStatic 16 = true := by decide +kernel
+
+set_option maxRecDepth 100000 in
+/-- `certify_placement`, window 0. -/
+theorem w16_0 : shareWin 16 (snapsOf 16) 0 = true := by decide +kernel
+
+set_option maxRecDepth 100000 in
+/-- `certify_placement`, window 1. -/
+theorem w16_1 : shareWin 16 (snapsOf 16) 1 = true := by decide +kernel
 
 end
 end LeanVM.Guest.B2C.Shared

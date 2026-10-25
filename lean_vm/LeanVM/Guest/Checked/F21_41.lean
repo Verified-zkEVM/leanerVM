@@ -9,6 +9,8 @@ module
 
 public import LeanVM.Guest.CheckWinC
 
+set_option Elab.async false
+
 namespace LeanVM.Guest.Checked
 
 open LeanVM.Guest.Check
@@ -17,6 +19,12 @@ open LeanVM.Guest.Check
 
 /-- `verify_sig_lean_sphincs`, window 41. -/
 theorem w21_41 : WinOk 21 41 := winOk_of_C (by decide +kernel)
+
+/-- `verify_sig_lean_sphincs`, window 42. -/
+theorem w21_42 : WinOk 21 42 := winOk_of_C (by decide +kernel)
+
+/-- `verify_sig_lean_sphincs`, window 43. -/
+theorem w21_43 : WinOk 21 43 := winOk_of_C (by decide +kernel)
 
 end
 end LeanVM.Guest.Checked

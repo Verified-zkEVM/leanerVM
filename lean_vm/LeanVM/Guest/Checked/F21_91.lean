@@ -9,6 +9,8 @@ module
 
 public import LeanVM.Guest.CheckWinC
 
+set_option Elab.async false
+
 namespace LeanVM.Guest.Checked
 
 open LeanVM.Guest.Check
@@ -17,6 +19,39 @@ open LeanVM.Guest.Check
 
 /-- `verify_sig_lean_sphincs`, window 91. -/
 theorem w21_91 : WinOk 21 91 := winOk_of_C (by decide +kernel)
+
+/-- `verify_sig_lean_sphincs`, window 92. -/
+theorem w21_92 : WinOk 21 92 := winOk_of_C (by decide +kernel)
+
+/-- `statement_digest`, window 0. -/
+theorem w22_0 : WinOk 22 0 := winOk_of_C (by decide +kernel)
+
+/-- `list_split`, window 0. -/
+theorem w23_0 : WinOk 23 0 := winOk_of_C (by decide +kernel)
+
+/-- `claim_list_digest`, window 0. -/
+theorem w24_0 : WinOk 24 0 := winOk_of_C (by decide +kernel)
+
+/-- `child_claim_list_digest`, window 0. -/
+theorem w25_0 : WinOk 25 0 := winOk_of_C (by decide +kernel)
+
+/-- `da_verify`, window 0. -/
+theorem w26_0 : WinOk 26 0 := winOk_of_C (by decide +kernel)
+
+/-- `da_row_shape`, window 0. -/
+theorem w27_0 : WinOk 27 0 := winOk_of_C (by decide +kernel)
+
+theorem ok22 : CheckOk 22 := checkOk_one (by decide +kernel) w22_0
+
+theorem ok23 : CheckOk 23 := checkOk_one (by decide +kernel) w23_0
+
+theorem ok24 : CheckOk 24 := checkOk_one (by decide +kernel) w24_0
+
+theorem ok25 : CheckOk 25 := checkOk_one (by decide +kernel) w25_0
+
+theorem ok26 : CheckOk 26 := checkOk_one (by decide +kernel) w26_0
+
+theorem ok27 : CheckOk 27 := checkOk_one (by decide +kernel) w27_0
 
 end
 end LeanVM.Guest.Checked

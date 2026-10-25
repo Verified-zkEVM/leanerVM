@@ -9,22 +9,43 @@ module
 
 public import LeanVM.Guest.B2C.Share
 
+set_option Elab.async false
+
 namespace LeanVM.Guest.B2C.Shared
 
 @[expose] public section
 
 set_option maxRecDepth 100000 in
-/-- `statement_digest`, once. -/
-theorem st22 : shareStatic 22 = true := by decide +kernel
+/-- `__loop412`, window 2. -/
+theorem w890_2 : shareWin 890 (snapsOf 890) 2 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `statement_digest`, window 0. -/
-theorem w22_0 : shareWin 22 (snapsOf 22) 0 = true := by decide +kernel
+/-- `__loop412`, window 3. -/
+theorem w890_3 : shareWin 890 (snapsOf 890) 3 = true := by decide +kernel
 
-theorem ok22 : ShareOk 22 := ⟨st22, fun i hi ↦ by
-  have h : (snapsOf 22).length = 0 := by decide +kernel
-  obtain rfl : i = 0 := by omega
-  exact w22_0⟩
+set_option maxRecDepth 100000 in
+/-- `__loop413`, once. -/
+theorem st891 : shareStatic 891 = true := by decide +kernel
+
+set_option maxRecDepth 100000 in
+/-- `__loop413`, window 0. -/
+theorem w891_0 : shareWin 891 (snapsOf 891) 0 = true := by decide +kernel
+
+set_option maxRecDepth 100000 in
+/-- `__loop413`, window 1. -/
+theorem w891_1 : shareWin 891 (snapsOf 891) 1 = true := by decide +kernel
+
+set_option maxRecDepth 100000 in
+/-- `decode_query_bits__L26`, once. -/
+theorem st892 : shareStatic 892 = true := by decide +kernel
+
+set_option maxRecDepth 100000 in
+/-- `decode_query_bits__L26`, window 0. -/
+theorem w892_0 : shareWin 892 (snapsOf 892) 0 = true := by decide +kernel
+
+set_option maxRecDepth 100000 in
+/-- `decode_query_bits__L26`, window 1. -/
+theorem w892_1 : shareWin 892 (snapsOf 892) 1 = true := by decide +kernel
 
 end
 end LeanVM.Guest.B2C.Shared

@@ -10,12 +10,36 @@ module
 public import LeanVM.Guest.B2C.Cpl
 public import Mathlib.Tactic.IntervalCases
 
+set_option Elab.async false
+
 namespace LeanVM.Guest.B2C.Cplw
 
 @[expose] public section
 
 /-- `certify_placement`, window 3, part 0. -/
 theorem cw16_3_0 : cplWin 16 3 0 = true := by decide +kernel
+
+/-- `certify_placement`, window 4, part 0. -/
+theorem cw16_4_0 : cplWin 16 4 0 = true := by decide +kernel
+
+/-- `selector_tables`, window 0, part 0. -/
+theorem cw17_0_0 : cplWin 17 0 0 = true := by decide +kernel
+
+/-- `check_opening_terminal`, window 0, part 0. -/
+theorem cw18_0_0 : cplWin 18 0 0 = true := by decide +kernel
+
+/-- `check_opening_terminal`, window 1, part 0. -/
+theorem cw18_1_0 : cplWin 18 1 0 = true := by decide +kernel
+
+theorem ok17 : CplOk 17 := by
+  intro i hi k hk
+  have hc : (certOf 17).cuts.length = 0 := by decide +kernel
+  rw [hc] at hi
+  interval_cases i
+  · have hn : nParts 17 0 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw17_0_0
 
 end
 end LeanVM.Guest.B2C.Cplw

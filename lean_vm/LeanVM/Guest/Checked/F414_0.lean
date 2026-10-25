@@ -9,6 +9,8 @@ module
 
 public import LeanVM.Guest.CheckWinC
 
+set_option Elab.async false
+
 namespace LeanVM.Guest.Checked
 
 open LeanVM.Guest.Check
@@ -27,6 +29,18 @@ theorem w416_0 : WinOk 416 0 := winOk_of_C (by decide +kernel)
 /-- `opening_row_weights__L4_L0`, window 0. -/
 theorem w417_0 : WinOk 417 0 := winOk_of_C (by decide +kernel)
 
+/-- `verify_merkle_cap__L6`, window 0. -/
+theorem w418_0 : WinOk 418 0 := winOk_of_C (by decide +kernel)
+
+/-- `opening_queries__L0_L0_L16_L24_L16_L6`, window 0. -/
+theorem w419_0 : WinOk 419 0 := winOk_of_C (by decide +kernel)
+
+/-- `opening_ood_point__L8`, window 0. -/
+theorem w420_0 : WinOk 420 0 := winOk_of_C (by decide +kernel)
+
+/-- `__loop36`, window 0. -/
+theorem w421_0 : WinOk 421 0 := winOk_of_C (by decide +kernel)
+
 theorem ok414 : CheckOk 414 := checkOk_one (by decide +kernel) w414_0
 
 theorem ok415 : CheckOk 415 := checkOk_one (by decide +kernel) w415_0
@@ -34,6 +48,14 @@ theorem ok415 : CheckOk 415 := checkOk_one (by decide +kernel) w415_0
 theorem ok416 : CheckOk 416 := checkOk_one (by decide +kernel) w416_0
 
 theorem ok417 : CheckOk 417 := checkOk_one (by decide +kernel) w417_0
+
+theorem ok418 : CheckOk 418 := checkOk_one (by decide +kernel) w418_0
+
+theorem ok419 : CheckOk 419 := checkOk_one (by decide +kernel) w419_0
+
+theorem ok420 : CheckOk 420 := checkOk_one (by decide +kernel) w420_0
+
+theorem ok421 : CheckOk 421 := checkOk_one (by decide +kernel) w421_0
 
 end
 end LeanVM.Guest.Checked

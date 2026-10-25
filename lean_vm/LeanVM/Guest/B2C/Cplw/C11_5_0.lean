@@ -10,12 +10,20 @@ module
 public import LeanVM.Guest.B2C.Cpl
 public import Mathlib.Tactic.IntervalCases
 
+set_option Elab.async false
+
 namespace LeanVM.Guest.B2C.Cplw
 
 @[expose] public section
 
 /-- `verify_tables`, window 5, part 0. -/
 theorem cw11_5_0 : cplWin 11 5 0 = true := by decide +kernel
+
+/-- `verify_tables`, window 6, part 0. -/
+theorem cw11_6_0 : cplWin 11 6 0 = true := by decide +kernel
+
+/-- `verify_tables`, window 7, part 0. -/
+theorem cw11_7_0 : cplWin 11 7 0 = true := by decide +kernel
 
 end
 end LeanVM.Guest.B2C.Cplw

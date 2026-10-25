@@ -9,13 +9,43 @@ module
 
 public import LeanVM.Guest.B2C.Share
 
+set_option Elab.async false
+
 namespace LeanVM.Guest.B2C.Shared
 
 @[expose] public section
 
 set_option maxRecDepth 100000 in
-/-- `check_opening_terminal`, window 4. -/
-theorem w18_4 : shareWin 18 (snapsOf 18) 4 = true := by decide +kernel
+/-- `open_stacked__L2`, window 1. -/
+theorem w298_1 : shareWin 298 (snapsOf 298) 1 = true := by decide +kernel
+
+set_option maxRecDepth 100000 in
+/-- `open_stacked__L2`, window 2. -/
+theorem w298_2 : shareWin 298 (snapsOf 298) 2 = true := by decide +kernel
+
+set_option maxRecDepth 100000 in
+/-- `open_stacked__L2`, window 3. -/
+theorem w298_3 : shareWin 298 (snapsOf 298) 3 = true := by decide +kernel
+
+set_option maxRecDepth 100000 in
+/-- `open_stacked__L2`, window 4. -/
+theorem w298_4 : shareWin 298 (snapsOf 298) 4 = true := by decide +kernel
+
+set_option maxRecDepth 100000 in
+/-- `open_stacked__L2`, window 5. -/
+theorem w298_5 : shareWin 298 (snapsOf 298) 5 = true := by decide +kernel
+
+set_option maxRecDepth 100000 in
+/-- `open_stacked__L2`, window 6. -/
+theorem w298_6 : shareWin 298 (snapsOf 298) 6 = true := by decide +kernel
+
+set_option maxRecDepth 100000 in
+/-- `open_stacked__L2`, window 7. -/
+theorem w298_7 : shareWin 298 (snapsOf 298) 7 = true := by decide +kernel
+
+set_option maxRecDepth 100000 in
+/-- `open_stacked__L3`, once. -/
+theorem st299 : shareStatic 299 = true := by decide +kernel
 
 end
 end LeanVM.Guest.B2C.Shared

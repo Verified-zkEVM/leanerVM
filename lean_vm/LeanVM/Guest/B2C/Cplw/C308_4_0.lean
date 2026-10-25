@@ -10,12 +10,20 @@ module
 public import LeanVM.Guest.B2C.Cpl
 public import Mathlib.Tactic.IntervalCases
 
+set_option Elab.async false
+
 namespace LeanVM.Guest.B2C.Cplw
 
 @[expose] public section
 
 /-- `open_stacked__L12`, window 4, part 0. -/
 theorem cw308_4_0 : cplWin 308 4 0 = true := by decide +kernel
+
+/-- `open_stacked__L13`, window 0, part 0. -/
+theorem cw309_0_0 : cplWin 309 0 0 = true := by decide +kernel
+
+/-- `open_stacked__L13`, window 1, part 0. -/
+theorem cw309_1_0 : cplWin 309 1 0 = true := by decide +kernel
 
 end
 end LeanVM.Guest.B2C.Cplw

@@ -9,22 +9,115 @@ module
 
 public import LeanVM.Guest.B2C.Share
 
+set_option Elab.async false
+
 namespace LeanVM.Guest.B2C.Shared
 
 @[expose] public section
 
 set_option maxRecDepth 100000 in
-/-- `ring_switch_weight`, once. -/
-theorem st15 : shareStatic 15 = true := by decide +kernel
+/-- `index_mle__L32`, once. -/
+theorem st217 : shareStatic 217 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `ring_switch_weight`, window 0. -/
-theorem w15_0 : shareWin 15 (snapsOf 15) 0 = true := by decide +kernel
+/-- `index_mle__L32`, window 0. -/
+theorem w217_0 : shareWin 217 (snapsOf 217) 0 = true := by decide +kernel
 
-theorem ok15 : ShareOk 15 := ⟨st15, fun i hi ↦ by
-  have h : (snapsOf 15).length = 0 := by decide +kernel
+theorem ok217 : ShareOk 217 := ⟨st217, fun i hi ↦ by
+  have h : (snapsOf 217).length = 0 := by decide +kernel
   obtain rfl : i = 0 := by omega
-  exact w15_0⟩
+  exact w217_0⟩
+
+set_option maxRecDepth 100000 in
+/-- `index_mle__L33`, once. -/
+theorem st218 : shareStatic 218 = true := by decide +kernel
+
+set_option maxRecDepth 100000 in
+/-- `index_mle__L33`, window 0. -/
+theorem w218_0 : shareWin 218 (snapsOf 218) 0 = true := by decide +kernel
+
+theorem ok218 : ShareOk 218 := ⟨st218, fun i hi ↦ by
+  have h : (snapsOf 218).length = 0 := by decide +kernel
+  obtain rfl : i = 0 := by omega
+  exact w218_0⟩
+
+set_option maxRecDepth 100000 in
+/-- `block_selector_tab__L0`, once. -/
+theorem st219 : shareStatic 219 = true := by decide +kernel
+
+set_option maxRecDepth 100000 in
+/-- `block_selector_tab__L0`, window 0. -/
+theorem w219_0 : shareWin 219 (snapsOf 219) 0 = true := by decide +kernel
+
+theorem ok219 : ShareOk 219 := ⟨st219, fun i hi ↦ by
+  have h : (snapsOf 219).length = 0 := by decide +kernel
+  obtain rfl : i = 0 := by omega
+  exact w219_0⟩
+
+set_option maxRecDepth 100000 in
+/-- `block_selector_tab__L1`, once. -/
+theorem st220 : shareStatic 220 = true := by decide +kernel
+
+set_option maxRecDepth 100000 in
+/-- `block_selector_tab__L1`, window 0. -/
+theorem w220_0 : shareWin 220 (snapsOf 220) 0 = true := by decide +kernel
+
+theorem ok220 : ShareOk 220 := ⟨st220, fun i hi ↦ by
+  have h : (snapsOf 220).length = 0 := by decide +kernel
+  obtain rfl : i = 0 := by omega
+  exact w220_0⟩
+
+set_option maxRecDepth 100000 in
+/-- `block_selector_tab__L2`, once. -/
+theorem st221 : shareStatic 221 = true := by decide +kernel
+
+set_option maxRecDepth 100000 in
+/-- `block_selector_tab__L2`, window 0. -/
+theorem w221_0 : shareWin 221 (snapsOf 221) 0 = true := by decide +kernel
+
+theorem ok221 : ShareOk 221 := ⟨st221, fun i hi ↦ by
+  have h : (snapsOf 221).length = 0 := by decide +kernel
+  obtain rfl : i = 0 := by omega
+  exact w221_0⟩
+
+set_option maxRecDepth 100000 in
+/-- `block_selector_tab__L3`, once. -/
+theorem st222 : shareStatic 222 = true := by decide +kernel
+
+set_option maxRecDepth 100000 in
+/-- `block_selector_tab__L3`, window 0. -/
+theorem w222_0 : shareWin 222 (snapsOf 222) 0 = true := by decide +kernel
+
+theorem ok222 : ShareOk 222 := ⟨st222, fun i hi ↦ by
+  have h : (snapsOf 222).length = 0 := by decide +kernel
+  obtain rfl : i = 0 := by omega
+  exact w222_0⟩
+
+set_option maxRecDepth 100000 in
+/-- `block_selector_tab__L4`, once. -/
+theorem st223 : shareStatic 223 = true := by decide +kernel
+
+set_option maxRecDepth 100000 in
+/-- `block_selector_tab__L4`, window 0. -/
+theorem w223_0 : shareWin 223 (snapsOf 223) 0 = true := by decide +kernel
+
+theorem ok223 : ShareOk 223 := ⟨st223, fun i hi ↦ by
+  have h : (snapsOf 223).length = 0 := by decide +kernel
+  obtain rfl : i = 0 := by omega
+  exact w223_0⟩
+
+set_option maxRecDepth 100000 in
+/-- `block_selector_tab__L5`, once. -/
+theorem st224 : shareStatic 224 = true := by decide +kernel
+
+set_option maxRecDepth 100000 in
+/-- `block_selector_tab__L5`, window 0. -/
+theorem w224_0 : shareWin 224 (snapsOf 224) 0 = true := by decide +kernel
+
+theorem ok224 : ShareOk 224 := ⟨st224, fun i hi ↦ by
+  have h : (snapsOf 224).length = 0 := by decide +kernel
+  obtain rfl : i = 0 := by omega
+  exact w224_0⟩
 
 end
 end LeanVM.Guest.B2C.Shared

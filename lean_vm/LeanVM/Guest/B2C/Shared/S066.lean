@@ -9,13 +9,43 @@ module
 
 public import LeanVM.Guest.B2C.Share
 
+set_option Elab.async false
+
 namespace LeanVM.Guest.B2C.Shared
 
 @[expose] public section
 
 set_option maxRecDepth 100000 in
-/-- `verify_keccak`, window 4. -/
-theorem w13_4 : shareWin 13 (snapsOf 13) 4 = true := by decide +kernel
+/-- `verify_sig_lean_sphincs`, window 45. -/
+theorem w21_45 : shareWin 21 (snapsOf 21) 45 = true := by decide +kernel
+
+set_option maxRecDepth 100000 in
+/-- `verify_sig_lean_sphincs`, window 47. -/
+theorem w21_47 : shareWin 21 (snapsOf 21) 47 = true := by decide +kernel
+
+set_option maxRecDepth 100000 in
+/-- `verify_sig_lean_sphincs`, window 48. -/
+theorem w21_48 : shareWin 21 (snapsOf 21) 48 = true := by decide +kernel
+
+set_option maxRecDepth 100000 in
+/-- `verify_sig_lean_sphincs`, window 49. -/
+theorem w21_49 : shareWin 21 (snapsOf 21) 49 = true := by decide +kernel
+
+set_option maxRecDepth 100000 in
+/-- `verify_sig_lean_sphincs`, window 51. -/
+theorem w21_51 : shareWin 21 (snapsOf 21) 51 = true := by decide +kernel
+
+set_option maxRecDepth 100000 in
+/-- `verify_sig_lean_sphincs`, window 53. -/
+theorem w21_53 : shareWin 21 (snapsOf 21) 53 = true := by decide +kernel
+
+set_option maxRecDepth 100000 in
+/-- `verify_sig_lean_sphincs`, window 55. -/
+theorem w21_55 : shareWin 21 (snapsOf 21) 55 = true := by decide +kernel
+
+set_option maxRecDepth 100000 in
+/-- `verify_sig_lean_sphincs`, window 57. -/
+theorem w21_57 : shareWin 21 (snapsOf 21) 57 = true := by decide +kernel
 
 end
 end LeanVM.Guest.B2C.Shared

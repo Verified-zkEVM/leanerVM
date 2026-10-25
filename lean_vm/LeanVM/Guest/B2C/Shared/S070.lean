@@ -9,13 +9,52 @@ module
 
 public import LeanVM.Guest.B2C.Share
 
+set_option Elab.async false
+
 namespace LeanVM.Guest.B2C.Shared
 
 @[expose] public section
 
 set_option maxRecDepth 100000 in
-/-- `verify_keccak`, window 8. -/
-theorem w13_8 : shareWin 13 (snapsOf 13) 8 = true := by decide +kernel
+/-- `da_verify`, window 1. -/
+theorem w26_1 : shareWin 26 (snapsOf 26) 1 = true := by decide +kernel
+
+set_option maxRecDepth 100000 in
+/-- `da_row_shape`, once. -/
+theorem st27 : shareStatic 27 = true := by decide +kernel
+
+set_option maxRecDepth 100000 in
+/-- `da_row_shape`, window 0. -/
+theorem w27_0 : shareWin 27 (snapsOf 27) 0 = true := by decide +kernel
+
+theorem ok27 : ShareOk 27 := ⟨st27, fun i hi ↦ by
+  have h : (snapsOf 27).length = 0 := by decide +kernel
+  obtain rfl : i = 0 := by omega
+  exact w27_0⟩
+
+set_option maxRecDepth 100000 in
+/-- `da_verify_cell`, once. -/
+theorem st28 : shareStatic 28 = true := by decide +kernel
+
+set_option maxRecDepth 100000 in
+/-- `da_verify_cell`, window 0. -/
+theorem w28_0 : shareWin 28 (snapsOf 28) 0 = true := by decide +kernel
+
+set_option maxRecDepth 100000 in
+/-- `da_verify_cell`, window 1. -/
+theorem w28_1 : shareWin 28 (snapsOf 28) 1 = true := by decide +kernel
+
+set_option maxRecDepth 100000 in
+/-- `da_verify_cell`, window 2. -/
+theorem w28_2 : shareWin 28 (snapsOf 28) 2 = true := by decide +kernel
+
+set_option maxRecDepth 100000 in
+/-- `da_verify_cell`, window 3. -/
+theorem w28_3 : shareWin 28 (snapsOf 28) 3 = true := by decide +kernel
+
+set_option maxRecDepth 100000 in
+/-- `da_vector_cell`, once. -/
+theorem st29 : shareStatic 29 = true := by decide +kernel
 
 end
 end LeanVM.Guest.B2C.Shared

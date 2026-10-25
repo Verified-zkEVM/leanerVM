@@ -10,6 +10,8 @@ module
 public import LeanVM.Guest.B2C.Cpl
 public import Mathlib.Tactic.IntervalCases
 
+set_option Elab.async false
+
 namespace LeanVM.Guest.B2C.Cplw
 
 @[expose] public section
@@ -37,48 +39,6 @@ theorem cw722_0_0 : cplWin 722 0 0 = true := by decide +kernel
 
 /-- `__loop265`, window 0, part 0. -/
 theorem cw723_0_0 : cplWin 723 0 0 = true := by decide +kernel
-
-/-- `__loop266`, window 0, part 0. -/
-theorem cw724_0_0 : cplWin 724 0 0 = true := by decide +kernel
-
-/-- `__loop267`, window 0, part 0. -/
-theorem cw725_0_0 : cplWin 725 0 0 = true := by decide +kernel
-
-/-- `__loop268`, window 0, part 0. -/
-theorem cw726_0_0 : cplWin 726 0 0 = true := by decide +kernel
-
-/-- `__loop269`, window 0, part 0. -/
-theorem cw727_0_0 : cplWin 727 0 0 = true := by decide +kernel
-
-/-- `__loop270`, window 0, part 0. -/
-theorem cw728_0_0 : cplWin 728 0 0 = true := by decide +kernel
-
-/-- `__loop271`, window 0, part 0. -/
-theorem cw729_0_0 : cplWin 729 0 0 = true := by decide +kernel
-
-/-- `__loop272`, window 0, part 0. -/
-theorem cw730_0_0 : cplWin 730 0 0 = true := by decide +kernel
-
-/-- `__loop273`, window 0, part 0. -/
-theorem cw731_0_0 : cplWin 731 0 0 = true := by decide +kernel
-
-/-- `__loop274`, window 0, part 0. -/
-theorem cw732_0_0 : cplWin 732 0 0 = true := by decide +kernel
-
-/-- `opening_queries__L0_L1_L64_L32_L24_L6`, window 0, part 0. -/
-theorem cw733_0_0 : cplWin 733 0 0 = true := by decide +kernel
-
-/-- `__loop275`, window 0, part 0. -/
-theorem cw734_0_0 : cplWin 734 0 0 = true := by decide +kernel
-
-/-- `__loop276`, window 0, part 0. -/
-theorem cw735_0_0 : cplWin 735 0 0 = true := by decide +kernel
-
-/-- `__loop277`, window 0, part 0. -/
-theorem cw736_0_0 : cplWin 736 0 0 = true := by decide +kernel
-
-/-- `__loop278`, window 0, part 0. -/
-theorem cw737_0_0 : cplWin 737 0 0 = true := by decide +kernel
 
 theorem ok716 : CplOk 716 := by
   intro i hi k hk
@@ -159,146 +119,6 @@ theorem ok723 : CplOk 723 := by
     rw [hn] at hk
     interval_cases k
     · exact cw723_0_0
-
-theorem ok724 : CplOk 724 := by
-  intro i hi k hk
-  have hc : (certOf 724).cuts.length = 0 := by decide +kernel
-  rw [hc] at hi
-  interval_cases i
-  · have hn : nParts 724 0 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw724_0_0
-
-theorem ok725 : CplOk 725 := by
-  intro i hi k hk
-  have hc : (certOf 725).cuts.length = 0 := by decide +kernel
-  rw [hc] at hi
-  interval_cases i
-  · have hn : nParts 725 0 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw725_0_0
-
-theorem ok726 : CplOk 726 := by
-  intro i hi k hk
-  have hc : (certOf 726).cuts.length = 0 := by decide +kernel
-  rw [hc] at hi
-  interval_cases i
-  · have hn : nParts 726 0 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw726_0_0
-
-theorem ok727 : CplOk 727 := by
-  intro i hi k hk
-  have hc : (certOf 727).cuts.length = 0 := by decide +kernel
-  rw [hc] at hi
-  interval_cases i
-  · have hn : nParts 727 0 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw727_0_0
-
-theorem ok728 : CplOk 728 := by
-  intro i hi k hk
-  have hc : (certOf 728).cuts.length = 0 := by decide +kernel
-  rw [hc] at hi
-  interval_cases i
-  · have hn : nParts 728 0 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw728_0_0
-
-theorem ok729 : CplOk 729 := by
-  intro i hi k hk
-  have hc : (certOf 729).cuts.length = 0 := by decide +kernel
-  rw [hc] at hi
-  interval_cases i
-  · have hn : nParts 729 0 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw729_0_0
-
-theorem ok730 : CplOk 730 := by
-  intro i hi k hk
-  have hc : (certOf 730).cuts.length = 0 := by decide +kernel
-  rw [hc] at hi
-  interval_cases i
-  · have hn : nParts 730 0 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw730_0_0
-
-theorem ok731 : CplOk 731 := by
-  intro i hi k hk
-  have hc : (certOf 731).cuts.length = 0 := by decide +kernel
-  rw [hc] at hi
-  interval_cases i
-  · have hn : nParts 731 0 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw731_0_0
-
-theorem ok732 : CplOk 732 := by
-  intro i hi k hk
-  have hc : (certOf 732).cuts.length = 0 := by decide +kernel
-  rw [hc] at hi
-  interval_cases i
-  · have hn : nParts 732 0 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw732_0_0
-
-theorem ok733 : CplOk 733 := by
-  intro i hi k hk
-  have hc : (certOf 733).cuts.length = 0 := by decide +kernel
-  rw [hc] at hi
-  interval_cases i
-  · have hn : nParts 733 0 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw733_0_0
-
-theorem ok734 : CplOk 734 := by
-  intro i hi k hk
-  have hc : (certOf 734).cuts.length = 0 := by decide +kernel
-  rw [hc] at hi
-  interval_cases i
-  · have hn : nParts 734 0 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw734_0_0
-
-theorem ok735 : CplOk 735 := by
-  intro i hi k hk
-  have hc : (certOf 735).cuts.length = 0 := by decide +kernel
-  rw [hc] at hi
-  interval_cases i
-  · have hn : nParts 735 0 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw735_0_0
-
-theorem ok736 : CplOk 736 := by
-  intro i hi k hk
-  have hc : (certOf 736).cuts.length = 0 := by decide +kernel
-  rw [hc] at hi
-  interval_cases i
-  · have hn : nParts 736 0 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw736_0_0
-
-theorem ok737 : CplOk 737 := by
-  intro i hi k hk
-  have hc : (certOf 737).cuts.length = 0 := by decide +kernel
-  rw [hc] at hi
-  interval_cases i
-  · have hn : nParts 737 0 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw737_0_0
 
 end
 end LeanVM.Guest.B2C.Cplw
