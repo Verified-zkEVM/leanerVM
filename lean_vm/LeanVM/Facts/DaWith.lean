@@ -85,19 +85,21 @@ theorem commitCodewordsWith_id (rows : List (List K)) :
     rw [List.map_map]
     congr 1
 
-/-- The sponge's samples with the pure permutation are `LeanDa.Sponge.samples`. -/
+/-- The sponge's samples with the pure permutation are `LeanDa.Sponge.samplesM` over `Id`. -/
 theorem spongeSamplesWith_id : ∀ (n : ℕ) (s : LeanDa.Sponge),
-    Id.run (spongeSamplesWith (m := Id) P n s) = LeanDa.Sponge.samples P n s
+    Id.run (spongeSamplesWith (m := Id) P n s) =
+      Id.run (LeanDa.Sponge.samplesM (m := Id) (fun L ↦ pure (P L)) n s)
   | 0, _ => rfl
   | n + 1, s => by
     show _ :: Id.run (spongeSamplesWith (m := Id) P n _) = _
     rw [spongeSamplesWith_id n]
     rfl
 
-/-- Observing with the pure permutation is `LeanDa.Sponge.observe`. -/
+/-- Observing with the pure permutation is `LeanDa.Sponge.observeM` over `Id`. -/
 theorem spongeObserveWith_id (s : LeanDa.Sponge) (x : E) :
-    Id.run (spongeObserveWith (m := Id) P s x) = LeanDa.Sponge.observe P s x := by
-  simp only [spongeObserveWith, spongeAbsorbWith, LeanDa.Sponge.observe, LeanDa.Sponge.absorb]
+    Id.run (spongeObserveWith (m := Id) P s x) =
+      Id.run (LeanDa.Sponge.observeM (m := Id) (fun L ↦ pure (P L)) s x) := by
+  simp only [spongeObserveWith, spongeAbsorbWith, LeanDa.Sponge.observeM, LeanDa.Sponge.absorbM]
   split <;> rfl
 
 /-- The membership vector with the pure hash and permutation is `LeanDa.membershipVector`. -/
