@@ -11,7 +11,7 @@ import LeanVM.Protocol.LeanVMRpm
 /-!
 # The transfer, for any verifier
 
-`rpmRun A V`: an adversary `A` against the lazily sampled permutation (its queries recorded, as in
+`rpmRun A V` (`Statement/LeanVm.lean`): an adversary `A` against the lazily sampled permutation (its queries recorded, as in
 `rpmExperiment`), then a computation `V` on its output over the calls of `Statement.lean`, with
 Keccak-256 the sponge over the same permutation and Keccak-f[1600] the permutation. If `V` follows
 the duplex discipline (`DuplexVm`) and makes at most `QV` permutation calls, then for every event
@@ -33,15 +33,6 @@ open scoped ENNReal
 variable {α β : Type}
 
 /-! ## The experiment and its game -/
-
-/-- **The random-permutation experiment of an adversary and a computation**: the adversary
-against the lazily sampled permutation from no edge, its queries recorded; then `V` on its output,
-with Keccak-256 the sponge over the same permutation and Keccak-f[1600] the permutation. -/
-noncomputable def rpmRun (A : OracleComp PermSpec α) (V : α → OracleComp HashSpec β) :
-    ProbComp (α × β) := do
-  let (z, perms, _) ← (simulateQ loggedPerm A).run ([], [])
-  let v ← (simulateQ rpmImpl (V z)).run' perms
-  return (z, v)
 
 /-- The adversary on bytes, with its transcript. -/
 def advRG (A : OracleComp PermSpec α) : OracleComp RSpec (α × Transcript) :=

@@ -22,7 +22,11 @@ where an adversary is involved:
   that outputs valid witnesses, their content is in the decoder the theorems name);
 * `LeanVM.Guest.Budget.guest_complete_recursion : GuestCompleteRecursion` and
   `guest_complete_leaf : GuestCompleteLeaf` (`Statement/LeanVmGuest.lean`): the guest's
-  completeness on the covered nodes.
+  completeness on the covered nodes;
+* `LeanVM.Guest.Batch.batch_sound_rpm : BatchSoundRpm` and
+  `batch_sound_rpm_bits : BatchSoundRpmBits` (`Statement/LeanVmGuest.lean`): the recursion step,
+  the batching of the children's deferred claims, sound in the random-permutation model (from
+  `batch_rpm`, `batch_rpm_bits`).
 
 The other theorems pinned below are steps or corollaries: the bounds' numbers, the guest's batching
 of its children's deferred claims (`LeanVM.Guest.Batch.children_sound`, and in the
@@ -44,6 +48,8 @@ example : LeanVM.Node.AggregateSound LeanVM.Guest.guest LeanVM.Guest.End.decode 
   LeanVM.Guest.End.aggregate_sound_outer
 example : LeanVM.Guest.Budget.GuestCompleteRecursion := LeanVM.Guest.Budget.guest_complete_recursion
 example : LeanVM.Guest.Budget.GuestCompleteLeaf := LeanVM.Guest.Budget.guest_complete_leaf
+example : LeanVM.Guest.Batch.BatchSoundRpm := LeanVM.Guest.Batch.batch_sound_rpm
+example : LeanVM.Guest.Batch.BatchSoundRpmBits := LeanVM.Guest.Batch.batch_sound_rpm_bits
 
 /-- info: 'LeanVM.knowledgeSoundness_holds' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
@@ -100,6 +106,14 @@ example : LeanVM.Guest.Budget.GuestCompleteLeaf := LeanVM.Guest.Budget.guest_com
 /-- info: 'LeanVM.Guest.Batch.batch_rpm_bits' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms LeanVM.Guest.Batch.batch_rpm_bits
+
+/-- info: 'LeanVM.Guest.Batch.batch_sound_rpm' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms LeanVM.Guest.Batch.batch_sound_rpm
+
+/-- info: 'LeanVM.Guest.Batch.batch_sound_rpm_bits' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms LeanVM.Guest.Batch.batch_sound_rpm_bits
 
 /-- info: 'LeanVM.Guest.End.guest_knowledge' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in

@@ -435,12 +435,6 @@ theorem costs_batchAny (M : ℕ) (bytecode : List K) :
 
 end Costs
 
-/-- **The batching program's query bound** on child counts below `M`: the seed's two queries,
-then a quarter of the program's cost. -/
-def batchQueryBound (bytecode : List K) (M : ℕ) : ℕ :=
-  2 + (rateScalars + (M * (childLen (Nat.log2 bytecode.length) +
-    padLen (childLen (Nat.log2 bytecode.length)) + 8) + 6 * Nat.log2 bytecode.length + 1)) / 4
-
 /-- The verifier makes at most `batchQueryBound` queries. -/
 theorem isTotalQueryBound_batchFam (M : ℕ) (bytecode : List K) (z : Unit × Proof) :
     IsTotalQueryBound (verifierFam batchSeeds (batchAny M bytecode) z)
@@ -448,13 +442,6 @@ theorem isTotalQueryBound_batchFam (M : ℕ) (bytecode : List K) (z : Unit × Pr
   isTotalQueryBound_verifierComp (costs_batchAny M bytecode) batchSeedOf z.2
 
 /-! ## Doom on accepted runs -/
-
-/-- The proof's stream begins with the count's and the cells of fewer than `M` children of the
-bytecode's shapes, one of whose claims is false. -/
-def FalseChildren (bytecode : List K) (M : ℕ) (π : Proof) : Prop :=
-  ∃ cs : List ChildClaims, cs.length < M ∧ (∀ c ∈ cs, ChildShaped bytecode c) ∧
-    batchWords cs <+: π.stream ∧
-    ¬ ∀ c ∈ cs, c.fresh.Holds bytecode ∧ c.carried.Holds bytecode
 
 /-- **An accepted run records the reads of its stream's first scalars**: along scalars the
 program reads, the extracted history extends the start by their reads. -/

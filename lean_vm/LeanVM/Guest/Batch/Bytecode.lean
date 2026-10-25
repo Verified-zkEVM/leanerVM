@@ -34,11 +34,6 @@ open LeanVM.Parameters LeanVM.Protocol LeanVM.Protocol.Verifier LeanVM.Node
 
 @[expose] public section
 
-/-- The bytecode's batched weight at `y`. -/
-def bytecodeWeight (cs : List ChildClaims) (lB : List (E × E)) (y : List E) : E :=
-  sumE (List.zipWith (fun c l ↦
-    l.1 * eqEval c.fresh.bytecodePoint y + l.2 * eqEval c.carried.bytecodePoint y) cs lB)
-
 /-- **The polynomial the bytecode's batching sums**: the bytecode's multilinear extension times
 the batched weight. -/
 def bytecodePoly (bytecode : List K) (cs : List ChildClaims) (lB : List (E × E)) (y : List E) : E :=

@@ -469,6 +469,38 @@ end LeanVM
 
 end
 
+/-! ## The random-permutation experiment of any computation
+
+`rpmExperiment` with any computation `V` over the verifier's calls in place of the verifier: the
+experiment of the batching's end statements (`LeanVmGuest.lean`). -/
+
+section
+
+namespace LeanVM.Rpm
+
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Protocol LeanVM.Protocol.Compile
+open LeanVM.Protocol.Verifier LeanVM.Protocol.KeccakHash
+open OracleComp OracleSpec
+open scoped ENNReal
+
+@[expose] public section
+
+variable {α β : Type}
+
+/-- **The random-permutation experiment of an adversary and a computation**: the adversary
+against the lazily sampled permutation from no edge, its queries recorded; then `V` on its output,
+with Keccak-256 the sponge over the same permutation and Keccak-f[1600] the permutation. -/
+noncomputable def rpmRun (A : OracleComp PermSpec α) (V : α → OracleComp HashSpec β) :
+    ProbComp (α × β) := do
+  let (z, perms, _) ← (simulateQ loggedPerm A).run ([], [])
+  let v ← (simulateQ rpmImpl (V z)).run' perms
+  return (z, v)
+
+end
+end LeanVM.Rpm
+
+end
+
 /-! ## A digest as a public input -/
 
 section

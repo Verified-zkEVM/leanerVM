@@ -45,15 +45,6 @@ theorem sq_fst (sp : Sponge) : (sq sp).1 = challengeOf (sq sp).2.state := rfl
 
 /-! ## The transcript -/
 
-/-- The count's cells: the generator's power, padded to a whole rate. -/
-def headCells (n : ℕ) : List E := padRate [Verifier.gpow n]
-
-/-- A child's cells: its words, padded to a whole rate. -/
-def childCells (c : ChildClaims) : List E := padRate c.words
-
-/-- What the batching absorbs before its first challenge. -/
-def batchWords (cs : List ChildClaims) : List E := headCells cs.length ++ cs.flatMap childCells
-
 /-- The sponge after the batching's absorptions. -/
 def batchSponge (cs : List ChildClaims) : Sponge := obsAll ⟨batchSeed, []⟩ (batchWords cs)
 
@@ -70,11 +61,6 @@ theorem length_sq2 : ∀ (n : ℕ) (sp : Sponge), (sq2 n sp).1.length = n
   | n + 1, sp => by simp [sq2, length_sq2 n]
 
 /-! ## The rounds -/
-
-/-- **The round polynomial** from the claim before the round and its message `(g(1), g(∞))`:
-`g(0) = claim + g(1)`, and `g(x) = (g(∞)·x + g(0) + g(1) + g(∞))·x + g(0)`. -/
-def roundPoly (claim : E) (g : E × E) (x : E) : E :=
-  (g.2 * x + ((claim + g.1) + g.1 + g.2)) * x + (claim + g.1)
 
 /-- One round: absorb its message, squeeze the challenge, fold the claim. -/
 def rsStep (st : E × Sponge) (g : E × E) : E × Sponge :=
@@ -181,10 +167,6 @@ theorem forIn_lambdas_run {α : Type} (l : List α) (acc : List (E × E)) (sp : 
     simp only [List.forIn_cons, List.length_cons, sq2]
     rw [← List.singleton_append, ← List.append_assoc, ← ih]
     rfl
-
-/-- The bytecode's batched claim at the lambdas `lB`. -/
-def claimBOf (cs : List ChildClaims) (lB : List (E × E)) : E :=
-  sumE (List.zipWith (fun c l ↦ l.1 * c.fresh.bytecodeValue + l.2 * c.carried.bytecodeValue) cs lB)
 
 /-- **`Node.batch` on the sponge.** -/
 theorem batch_eq (cs : List ChildClaims) (h : BatchHints) :

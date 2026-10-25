@@ -14,8 +14,10 @@ The specification of a node of the aggregation (its statement, witness and relat
 leanXMSS and leanSPHINCS claims, DA claims, children verified by the leanVM verifier with deferred
 claims), what a proof of the guest establishes with its witness named (`GuestKnowledge`,
 `AggregateSound`), the deployed guest (`LeanVM.Guest.guest`, assembled from the generated
-`Statement/Data/`), and its completeness on the covered nodes (`GuestCompleteRecursion`,
-`GuestCompleteLeaf`, last section, with the deployed limits they assume).
+`Statement/Data/`), its completeness on the covered nodes (`GuestCompleteRecursion`,
+`GuestCompleteLeaf`, with the deployed limits they assume), and the recursion step, the batching of
+the children's deferred claims sound in the random-permutation model (`BatchSoundRpm`,
+`BatchSoundRpmBits`, last section).
 
 The soundness statements take the decoder as a parameter: the end theorems name
 `LeanVM.Guest.End.decode` (`lean_vm`), which reads the witness off the execution's memory; they
@@ -1506,5 +1508,233 @@ abbrev GuestCompleteLeaf : Prop :=
       2 ^ 22 ≤ t.committedSize ∧ t.committedSize ≤ 2 ^ 28
 
 end LeanVM.Guest.Budget
+
+end
+
+/-! ## The recursion step: the batching in the random-permutation model -/
+
+section
+
+/-!
+A node batches its children's claims on the bytecode (`batch`, above): one transcript absorbs
+the children's count and every child's public input and claims, squeezes two lambdas per child,
+and one sumcheck reduces every child's two claims to one claim at a point, which the node defers.
+`BatchSoundRpm` and `BatchSoundRpmBits` bound the probability that this reduction accepts while a
+child's claim is false: the recursion step, the guest's batching sound on its own.
+
+The batching is written as a program of the verifier's language (`Prog`, `LeanVmVerifier.lean`):
+`batchAny M bytecode` reads the count `n < M` as `g^n` then three zeros (`readCount`), `n`
+children of `bytecode`'s shapes, each its words then zeros to a whole rate (`readChildren`), then
+samples the lambdas, runs the sumcheck's `log₂ |bytecode|` rounds (`roundsProg`), reads the final
+value, and accepts if the final claim is the value times the batched weight and the deferred claim
+holds of `bytecode` (`batchRest`). It runs from the batching transcript's seed `F(H(label) ‖ 0)`
+(`batchVerifier`, `batchSeed` with any `H` and `F`). That the program, run with Keccak-256 and
+Keccak-f[1600] on the stream of a node's children and hints, accepts exactly where `batch` defers
+a claim that holds is proved in `lean_vm` (`LeanVM.Guest.Batch.runProof_batchAny`).
+
+The experiment (`rpmRun`, `LeanVm.lean`): an adversary querying `π` and `π⁻¹` outputs a proof (with the unit
+statement: the batching has no statement of its own), then the batching's verifier runs on it,
+Keccak-256 the sponge over `π` and Keccak-f[1600] `π`. The event: the verifier accepts, and the
+proof's stream begins with the count's and the cells of fewer than `M` children of the bytecode's
+shapes, one of whose claims is false (`FalseChildren`). The bound counts the adversary's `QA`
+queries and the program's query bound `QV = batchQueryBound bytecode M`: `(QA + QV) · (2/|E| +
+5 (QA + QV) / 2^256)`, the bound with Keccak-256 and Keccak-f[1600] independent random functions,
+plus `rpmError (QA + QV · 2^32)`, each of the program's queries at most `2^32` permutation calls;
+for `QA + QV ≤ 2^64` that is at most `(QA + QV) · 2^-188`. Proved by
+`LeanVM.Guest.Batch.batch_sound_rpm` and `batch_sound_rpm_bits` (`lean_vm`).
+-/
+
+namespace LeanVM.Guest.Batch
+
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Protocol LeanVM.Protocol.KeccakHash
+open LeanVM.Protocol.Compile LeanVM.Protocol.Verifier LeanVM.Node
+open scoped ENNReal
+
+@[expose] public section
+
+/-! ### A child's words -/
+
+/-- The words of a child at `nB` bytecode coordinates: its public input's two, its proof's
+claim, its statement's claim. -/
+def childLen (nB : ℕ) : ℕ := 2 + (nB + 1) + (nB + 1)
+
+/-- The zeros that pad `k` words to a whole rate. -/
+def padLen (k : ℕ) : ℕ := (rateScalars - k % rateScalars) % rateScalars
+
+/-- A child read off its words (`ChildClaims.words`), at `nB` bytecode coordinates; `none` where
+the public input does not decode. -/
+def parseChild (nB : ℕ) (xs : List E) : Option ChildClaims := do
+  let pi ← digestOfScalars (xs.getD 0 0, xs.getD 1 0)
+  let ys := xs.drop 2
+  let zs := ys.drop (nB + 1)
+  return ⟨pi, ⟨ys.take nB, ys.getD nB 0⟩, ⟨zs.take nB, zs.getD nB 0⟩⟩
+
+/-- A child has the bytecode's shapes: its proof's claim and its statement's are at points of
+`log₂` of the bytecode's length. -/
+def ChildShaped (bytecode : List K) (c : ChildClaims) : Prop :=
+  c.fresh.bytecodePoint.length = Nat.log2 bytecode.length ∧ c.carried.Shaped bytecode
+
+/-- Read a child: its words, then the zeros to a whole rate. -/
+def readChild (nB : ℕ) : Prog ChildClaims := do
+  let xs ← Prog.readN (childLen nB + padLen (childLen nB))
+  Prog.require (xs.drop (childLen nB) = List.replicate (padLen (childLen nB)) 0)
+  liftOption (parseChild nB xs)
+
+/-- Read `n` children. -/
+def readChildren (nB : ℕ) : ℕ → Prog (List ChildClaims)
+  | 0 => pure []
+  | n + 1 => do
+    let c ← readChild nB
+    let cs ← readChildren nB n
+    return c :: cs
+
+open Classical in
+/-- The count below `M` whose power of the generator is `x`, if any. -/
+noncomputable def countOf (M : ℕ) (x : E) : Option ℕ :=
+  if h : ∃ n, n < M ∧ Verifier.gpow n = x then some (Nat.find h) else none
+
+/-- Read the count: `g^n`, then three zeros. -/
+noncomputable def readCount (M : ℕ) : Prog ℕ := do
+  let xs ← Prog.readN rateScalars
+  Prog.require (xs.drop 1 = List.replicate (rateScalars - 1) 0)
+  liftOption (countOf M (xs.getD 0 0))
+
+/-! ### The lambdas and the rounds -/
+
+/-- Sample a pair of lambdas per child. -/
+def sampleL : ℕ → Prog (List (E × E))
+  | 0 => pure []
+  | n + 1 => do
+    let a ← Prog.sampleE
+    let b ← Prog.sampleE
+    let l ← sampleL n
+    return (a, b) :: l
+
+/-- **The round polynomial** from the claim before the round and its message `(g(1), g(∞))`:
+`g(0) = claim + g(1)`, and `g(x) = (g(∞)·x + g(0) + g(1) + g(∞))·x + g(0)`. -/
+def roundPoly (claim : E) (g : E × E) (x : E) : E :=
+  (g.2 * x + ((claim + g.1) + g.1 + g.2)) * x + (claim + g.1)
+
+/-- `k` rounds of the batching sumcheck from `claim`: read `g(1)` and `g(∞)`, sample the
+challenge, fold. The challenges and the final claim. -/
+def roundsProg : E → ℕ → Prog (List E × E)
+  | claim, 0 => pure ([], claim)
+  | claim, k + 1 => do
+    let g1 ← Prog.readE
+    let gInf ← Prog.readE
+    let r ← Prog.sampleE
+    let rest ← roundsProg (roundPoly claim (g1, gInf) r) k
+    return (r :: rest.1, rest.2)
+
+/-! ### The program -/
+
+/-- The bytecode's batched claim at the lambdas `lB`. -/
+def claimBOf (cs : List ChildClaims) (lB : List (E × E)) : E :=
+  sumE (List.zipWith (fun c l ↦ l.1 * c.fresh.bytecodeValue + l.2 * c.carried.bytecodeValue) cs lB)
+
+/-- The bytecode's batched weight at `y`. -/
+def bytecodeWeight (cs : List ChildClaims) (lB : List (E × E)) (y : List E) : E :=
+  sumE (List.zipWith (fun c l ↦
+    l.1 * eqEval c.fresh.bytecodePoint y + l.2 * eqEval c.carried.bytecodePoint y) cs lB)
+
+open Classical in
+/-- **The batching after its children**: the lambdas and the sumcheck, the final value, the
+final check, and the deferred claim true of `bytecode`. -/
+noncomputable def batchRest (bytecode : List K) (cs : List ChildClaims) : Prog Bool := do
+  let l ← sampleL cs.length
+  let rb ← roundsProg (claimBOf cs l) (Nat.log2 bytecode.length)
+  let bv ← Prog.readE
+  Prog.require (rb.2 = bv * bytecodeWeight cs l rb.1 ∧
+    DeferredClaim.Holds bytecode ⟨rb.1, bv⟩)
+  return true
+
+/-- **The batching of `n` children.** -/
+noncomputable def batchProg (bytecode : List K) (n : ℕ) : Prog Bool := do
+  let cs ← readChildren (Nat.log2 bytecode.length) n
+  batchRest bytecode cs
+
+/-- **The batching as a verifier program**, of fewer than `M` children: the count, then the
+batching of that many. -/
+noncomputable def batchAny (M : ℕ) (bytecode : List K) : Prog Bool := do
+  let n ← readCount M
+  batchProg bytecode n
+
+/-- **The batching's verifier**, for a hash function `H` and a permutation `F` in any monad: the
+batching transcript's seed `F(H(label) ‖ 0)` (`batchSeed`, with `H` and `F`), then the program
+`batchAny M bytecode` on the proof. -/
+noncomputable def batchVerifier {m : Type → Type} [Monad m] (H : Bytes → m Digest)
+    (F : KState → m KState) (M : ℕ) (bytecode : List K) (proof : Proof) : m Bool := do
+  let seed ← F (seedInput (← H batchLabel) (Vector.replicate 4 0))
+  runProof H F (batchAny M bytecode) seed proof
+
+/-! ### The event and the bound -/
+
+/-- The count's cells: the generator's power, padded to a whole rate. -/
+def headCells (n : ℕ) : List E := padRate [Verifier.gpow n]
+
+/-- A child's cells: its words, padded to a whole rate. -/
+def childCells (c : ChildClaims) : List E := padRate c.words
+
+/-- What the batching absorbs before its first challenge. -/
+def batchWords (cs : List ChildClaims) : List E := headCells cs.length ++ cs.flatMap childCells
+
+/-- The proof's stream begins with the count's and the cells of fewer than `M` children of the
+bytecode's shapes, one of whose claims is false. -/
+def FalseChildren (bytecode : List K) (M : ℕ) (π : Proof) : Prop :=
+  ∃ cs : List ChildClaims, cs.length < M ∧ (∀ c ∈ cs, ChildShaped bytecode c) ∧
+    batchWords cs <+: π.stream ∧
+    ¬ ∀ c ∈ cs, c.fresh.Holds bytecode ∧ c.carried.Holds bytecode
+
+/-- **The batching program's query bound** on child counts below `M`: the seed's two queries,
+then a quarter of the program's cost. -/
+def batchQueryBound (bytecode : List K) (M : ℕ) : ℕ :=
+  2 + (rateScalars + (M * (childLen (Nat.log2 bytecode.length) +
+    padLen (childLen (Nat.log2 bytecode.length)) + 8) + 6 * Nat.log2 bytecode.length + 1)) / 4
+
+/-- The batching's escape bound per group of challenges: `2/|E|`. -/
+noncomputable def batchε : ℝ≥0∞ := 2 / Fintype.card E
+
+end
+end LeanVM.Guest.Batch
+
+end
+
+@[expose] public section
+
+namespace LeanVM.Guest.Batch
+
+open LeanVM.Parameters LeanVM.Protocol LeanVM.Rpm OracleComp OracleSpec
+open scoped ENNReal
+
+/-- **The batching in the random-permutation model.** For a bytecode of power-of-two length and
+a bound `M ≤ 2^64 - 1` on the children's count: an adversary of `QA` queries to `π` and `π⁻¹`
+outputs a proof; the probability that the batching's verifier, Keccak-256 the sponge over `π` and
+Keccak-f[1600] `π`, accepts it while its stream begins with fewer than `M` children of the
+bytecode's shapes one of whose claims is false is at most
+`(QA + QV) · (2/|E| + 5 (QA + QV) / 2^256) + rpmError (QA + QV · 2^32)`, `QV` the program's
+query bound. Proved by `LeanVM.Guest.Batch.batch_sound_rpm`. -/
+def BatchSoundRpm : Prop :=
+  ∀ (M : ℕ) (bytecode : List K), bytecode.length = 2 ^ Nat.log2 bytecode.length →
+    M ≤ 2 ^ 64 - 1 → ∀ (A : OracleComp PermSpec (Unit × Proof)) (QA : ℕ),
+    A.IsTotalQueryBound QA →
+    Pr{let z ← rpmRun A fun z ↦ batchVerifier queryH queryF M bytecode z.2}[
+      z.2 = true ∧ FalseChildren bytecode M z.1.2] ≤
+      ((QA + batchQueryBound bytecode M : ℕ) : ℝ≥0∞) *
+          (batchε + ((5 * (QA + batchQueryBound bytecode M) : ℕ) : ℝ≥0∞) / 2 ^ 256) +
+        rpmError (QA + batchQueryBound bytecode M * 2 ^ 32)
+
+/-- **The batching in the random-permutation model, in bits**: as `BatchSoundRpm`, for
+`QA + QV ≤ 2^64` (the adversary's queries to `π` and `π⁻¹` and the program's query bound), the
+probability is at most `(QA + QV) · 2^-188`. Proved by
+`LeanVM.Guest.Batch.batch_sound_rpm_bits`. -/
+def BatchSoundRpmBits : Prop :=
+  ∀ (M : ℕ) (bytecode : List K), bytecode.length = 2 ^ Nat.log2 bytecode.length →
+    M ≤ 2 ^ 64 - 1 → ∀ (A : OracleComp PermSpec (Unit × Proof)) (QA : ℕ),
+    A.IsTotalQueryBound QA → QA + batchQueryBound bytecode M ≤ 2 ^ 64 →
+    Pr{let z ← rpmRun A fun z ↦ batchVerifier queryH queryF M bytecode z.2}[
+      z.2 = true ∧ FalseChildren bytecode M z.1.2] ≤
+      ((QA + batchQueryBound bytecode M : ℕ) : ℝ≥0∞) * (2 : ℝ≥0∞)⁻¹ ^ 188
+
+end LeanVM.Guest.Batch
 
 end

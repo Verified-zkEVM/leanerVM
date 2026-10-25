@@ -14,7 +14,8 @@ public import LeanVM.Guest.Batch.Sound
 
 `Node.batch` runs on the duplex sponge of the verifier language: `observe` is a read's
 absorption (tag `1`) and `sample` a sample's squeeze. So the batching is a program
-`batchAny M bytecode` (`LeanVM.Protocol.Compile.Prog`) whose prover sends the count `g^n` and
+`batchAny M bytecode` (`LeanVM.Protocol.Compile.Prog`; defined in `Statement/LeanVmGuest.lean`,
+with the batching's end statements `BatchSoundRpm`, `BatchSoundRpmBits`) whose prover sends the count `g^n` and
 three zeros, each child's words and the zeros to a whole rate (`childCells`), the sumcheck's
 messages and the final value, and whose challenges are the lambdas and the sumcheck's challenges.
 It reads the count as the `n < M` with `g^n` the first scalar (`countOf`), checks the padding,
@@ -36,98 +37,7 @@ open LeanVM.Protocol.Compile LeanVM.Protocol.Verifier LeanVM.Node
 
 @[expose] public section
 
-/-! ## Children -/
-
-/-- The words of a child at `nB` bytecode coordinates: its public input's two, its proof's
-claim, its statement's claim. -/
-def childLen (nB : ℕ) : ℕ := 2 + (nB + 1) + (nB + 1)
-
-/-- The zeros that pad `k` words to a whole rate. -/
-def padLen (k : ℕ) : ℕ := (rateScalars - k % rateScalars) % rateScalars
-
-/-- A child read off its words (`ChildClaims.words`), at `nB` bytecode coordinates; `none` where
-the public input does not decode. -/
-def parseChild (nB : ℕ) (xs : List E) : Option ChildClaims := do
-  let pi ← digestOfScalars (xs.getD 0 0, xs.getD 1 0)
-  let ys := xs.drop 2
-  let zs := ys.drop (nB + 1)
-  return ⟨pi, ⟨ys.take nB, ys.getD nB 0⟩, ⟨zs.take nB, zs.getD nB 0⟩⟩
-
-/-- A child has the bytecode's shapes: its proof's claim and its statement's are at points of
-`log₂` of the bytecode's length. -/
-def ChildShaped (bytecode : List K) (c : ChildClaims) : Prop :=
-  c.fresh.bytecodePoint.length = Nat.log2 bytecode.length ∧ c.carried.Shaped bytecode
-
-/-- Read a child: its words, then the zeros to a whole rate. -/
-def readChild (nB : ℕ) : Prog ChildClaims := do
-  let xs ← Prog.readN (childLen nB + padLen (childLen nB))
-  Prog.require (xs.drop (childLen nB) = List.replicate (padLen (childLen nB)) 0)
-  liftOption (parseChild nB xs)
-
-/-- Read `n` children. -/
-def readChildren (nB : ℕ) : ℕ → Prog (List ChildClaims)
-  | 0 => pure []
-  | n + 1 => do
-    let c ← readChild nB
-    let cs ← readChildren nB n
-    return c :: cs
-
-open Classical in
-/-- The count below `M` whose power of the generator is `x`, if any. -/
-noncomputable def countOf (M : ℕ) (x : E) : Option ℕ :=
-  if h : ∃ n, n < M ∧ Verifier.gpow n = x then some (Nat.find h) else none
-
-/-- Read the count: `g^n`, then three zeros. -/
-noncomputable def readCount (M : ℕ) : Prog ℕ := do
-  let xs ← Prog.readN rateScalars
-  Prog.require (xs.drop 1 = List.replicate (rateScalars - 1) 0)
-  liftOption (countOf M (xs.getD 0 0))
-
-/-! ## The lambdas and the rounds -/
-
-/-- Sample a pair of lambdas per child. -/
-def sampleL : ℕ → Prog (List (E × E))
-  | 0 => pure []
-  | n + 1 => do
-    let a ← Prog.sampleE
-    let b ← Prog.sampleE
-    let l ← sampleL n
-    return (a, b) :: l
-
-/-- `k` rounds of the batching sumcheck from `claim`: read `g(1)` and `g(∞)`, sample the
-challenge, fold. The challenges and the final claim. -/
-def roundsProg : E → ℕ → Prog (List E × E)
-  | claim, 0 => pure ([], claim)
-  | claim, k + 1 => do
-    let g1 ← Prog.readE
-    let gInf ← Prog.readE
-    let r ← Prog.sampleE
-    let rest ← roundsProg (roundPoly claim (g1, gInf) r) k
-    return (r :: rest.1, rest.2)
-
-/-! ## The program -/
-
-open Classical in
-/-- **The batching after its children**: the lambdas and the sumcheck, the final value, the
-final check, and the deferred claim true of `bytecode`. -/
-noncomputable def batchRest (bytecode : List K) (cs : List ChildClaims) : Prog Bool := do
-  let l ← sampleL cs.length
-  let rb ← roundsProg (claimBOf cs l) (Nat.log2 bytecode.length)
-  let bv ← Prog.readE
-  Prog.require (rb.2 = bv * bytecodeWeight cs l rb.1 ∧
-    DeferredClaim.Holds bytecode ⟨rb.1, bv⟩)
-  return true
-
-/-- **The batching of `n` children.** -/
-noncomputable def batchProg (bytecode : List K) (n : ℕ) : Prog Bool := do
-  let cs ← readChildren (Nat.log2 bytecode.length) n
-  batchRest bytecode cs
-
-/-- **The batching as a verifier program**, of fewer than `M` children: the count, then the
-batching of that many. -/
-noncomputable def batchAny (M : ℕ) (bytecode : List K) : Prog Bool := do
-  let n ← readCount M
-  batchProg bytecode n
+/-! ## The stream -/
 
 /-- The prover's stream of a batching: the count's and the children's cells, the rounds'
 messages, the final value. -/

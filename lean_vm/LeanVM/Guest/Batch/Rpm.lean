@@ -20,7 +20,10 @@ inverse (`Rpm.rpmRun`): `batch_rpm` bounds the probability that the batching pro
 `M` children of the bytecode's shapes one of whose claims is false (`FalseChildren`) by
 `batch_rom`'s bound at the adversary's `QA` queries, plus `rpmError (QA + QV · 2^32)`, `QV` the
 program's query bound, each query at most `2^32` permutation calls. `batch_rpm_bits`: for
-`QA + QV ≤ 2^64`, at most `(QA + QV) · 2^-188`.
+`QA + QV ≤ 2^64`, at most `(QA + QV) · 2^-188`. `batch_sound_rpm` and `batch_sound_rpm_bits`
+are the two as the end statements `BatchSoundRpm` and `BatchSoundRpmBits` of
+`Statement/LeanVmGuest.lean` state them: the verifier written out (`batchVerifier`, the seeding
+`F(H(label) ‖ 0)` then the program) and the failure term the explicit `5N/2^256`.
 
 The proof is `Rpm.rpmRun_le_rom` with `batch_rom`: the program follows the duplex discipline (its
 seed is the permutation of `seedInput`, zero from lane `8` on, then the duplex sponge,
@@ -185,5 +188,30 @@ theorem batch_rpm_bits (hb : bytecode.length = 2 ^ Nat.log2 bytecode.length)
         add_le_add (by gcongr; exact batchε_add_failBound_le hQ) (rpmError_batch_le hQ)
     _ = ((QA + batchQueryBound bytecode M : ℕ) : ℝ≥0∞) * (2 : ℝ≥0∞)⁻¹ ^ 188 := by
         rw [← mul_add, ← two_mul, two_mul_inv_pow_189]
+
+/-! ## The end statements -/
+
+/-- The batching's statement family run on a proof is the batching's verifier
+(`Statement/LeanVmGuest.lean`) with the oracle calls. -/
+theorem verifierFam_eq_batchVerifier (M : ℕ) (bytecode : List K) :
+    verifierFam batchSeeds (batchAny M bytecode) =
+      fun z ↦ batchVerifier queryH queryF M bytecode z.2 := by
+  funext z
+  rw [verifierFam_batch]
+  simp only [verifierComp, Rom.verify, Seed.run, batchSeedOf, Seed.hsRun, batchVerifier,
+    bind_assoc, pure_bind, List.nil_append, List.getD_cons_zero]
+
+/-- **`BatchSoundRpm`** (`Statement/LeanVmGuest.lean`): `batch_rpm`, its failure term
+`failBound batchSeeds` the explicit `5N/2^256`. -/
+theorem batch_sound_rpm : BatchSoundRpm := by
+  intro M bytecode hb hM A QA hA
+  rw [← verifierFam_eq_batchVerifier, ← failBound_batchSeeds]
+  exact batch_rpm hb hM A QA hA
+
+/-- **`BatchSoundRpmBits`** (`Statement/LeanVmGuest.lean`): `batch_rpm_bits`. -/
+theorem batch_sound_rpm_bits : BatchSoundRpmBits := by
+  intro M bytecode hb hM A QA hA hQ
+  rw [← verifierFam_eq_batchVerifier]
+  exact batch_rpm_bits hb hM A QA hA hQ
 
 end LeanVM.Guest.Batch
