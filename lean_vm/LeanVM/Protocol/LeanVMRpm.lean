@@ -425,7 +425,7 @@ theorem soundnessRpm_le_128 {Q : ℕ} (hQ : Q ≤ 2 ^ 128) :
           7 * ((Q + verifierQueries : ℕ) : ℝ≥0∞) ^ 2 * (2 : ℝ≥0∞)⁻¹ ^ 256 := by ring
     _ ≤ (Q + 2 ^ 14 : ℝ≥0∞) * (2 : ℝ≥0∞)⁻¹ ^ 128 +
           7 * (Q + 2 ^ 14 : ℝ≥0∞) ^ 2 * (2 : ℝ≥0∞)⁻¹ ^ 256 := by
-        gcongr ?_ * _ + 7 * ?_ ^ 2 * _ <;> assumption
+        gcongr ?_ * _ + 7 * ?_ ^ 2 * _
 
 theorem rpmError_completenessPermCalls_le :
     rpmError (completenessPermCalls (2 ^ 25)) ≤ (2 : ℝ≥0∞)⁻¹ ^ 128 := by
