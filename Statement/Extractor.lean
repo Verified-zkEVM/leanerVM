@@ -13,61 +13,45 @@ public import CompPoly.LinearAlgebra.PolynomialMatrix.MuldersStorjohannCorrectne
 /-!
 # The knowledge extractor
 
-The fixed straight-line extractor of `KnowledgeSoundness` (`Statement/LeanVm.lean`): from the
-announced sizes, the stack's Merkle root and the Keccak-256 evaluations it is given, the halting
-run of the memory image of a stack in the Johnson list of the committed word. It is an algorithm:
-every definition below is computable and deterministic (no coins), and its running time is
-polynomial in its input (the cost table below, a reading of its loops rather than a theorem).
--/
+The fixed straight-line extractor of `KnowledgeSoundness` (`Statement/LeanVm.lean`), `extract`,
+which `LeanVM.extractorRpm` applies to the program's bytecode and to the Keccak-256 evaluations of
+the adversary's transcript of queries to the random permutation (the byte strings whose whole
+sponge path the adversary queried, with their digests, and the list of those byte strings,
+`keys`). It reads the proof and those evaluations, and nothing else: it neither queries the
+permutation, nor sees the verifier's queries, nor runs the adversary again. It is deterministic
+and computable (no coins, no classical choice: every loop is a traversal of an explicitly sized
+list or array, or a recursion on an explicit natural number). Its running time is polynomial in
+the announced committed size `2^μ` and the number `N` of evaluations given, not in the proof's
+size, which is polylogarithmic in `2^μ`; it is infeasible at deployed sizes except on a word
+without errors (`fastStacks`). The cost table below is read off its loops, not proved.
 
-section
-
-/-!
-## The knowledge extractor
-
-Knowledge soundness (`KnowledgeSoundness`, `Statement/LeanVm.lean`) is stated for the extractor
-defined here, `extract`, through `LeanVM.extractorRpm`, which applies it to the program's
-bytecode and to the Keccak-256 evaluations of the adversary's transcript of queries to the random
-permutation (`transcriptHashes`: the byte strings whose whole sponge path the adversary queried,
-with their digests, and the list of those byte strings, `keys`). It is straight-line: it reads the
-proof and those evaluations, and nothing else. It neither queries the permutation, nor sees the
-verifier's queries, nor runs the adversary again. It does four things.
-
-1. **The announced sizes and the stack's root** (`afterRoot`). It reads them off the proof as the
-   verifier's first two steps do, `verify_execution` steps 1 and 2 (`verifier.py:1469-1480`):
-   the announced sizes and the layout they build (`readSizes`), then the stack's Merkle root and
-   the shape level 0 of the opening commits it at (`commitStack`). These steps read scalars and
-   absorb them into the Fiat-Shamir sponge; what they read does not depend on the sponge, so the
-   extractor does not compute it (it runs them with every hash and permutation answered by a
-   constant, `fun _ ↦ default`).
-2. **The committed word** (`committedLeaves`, `leafAt`). It inverts the Merkle tree under the root
+1. **The announced sizes and the stack's root** (`afterRoot`): read off the proof as the
+   verifier's steps 1 and 2 read them (`verifier.py:1469-1480`), with every hash and permutation
+   answered by a constant (`runPure`): what they read does not depend on the sponge.
+2. **The committed word** (`committedLeaves`, `leafAt`): the Merkle tree under the root inverted
    through the evaluations, top down: a node's children are the two digests its unique answered
-   64-byte preimage holds, a leaf the words of its unique answered preimage (`preimage`); an
-   unanswered node gives zero leaves. Leaf `v` is then the leaf of the opening at position `v`
-   that climbs to the root through the evaluations (`openOne`, the check of `Transcript.merkle`,
-   `verifier.py:433-445`), if there is one, and the zero row otherwise (proved when no two
-   strings have one digest).
+   64-byte preimage holds, a leaf the words of its unique answered preimage; an unanswered node
+   gives zero leaves. Leaf `v` is then the leaf of the opening at position `v` that climbs to the
+   root through the evaluations (the check of `Transcript.merkle`, `verifier.py:433-445`), if
+   there is one, and the zero row otherwise (proved when no two strings have one digest).
 3. **The candidates** (`decodeStacks`). Level 0 commits the stack (the committed columns, stacked,
    `2^μ` words of `K`) in `2^6` lanes: lane `u` is the stack's block `u`, its cells
    `j + 2^(μ−6)·u` for `j < 2^(μ−6)`, read as coefficients in the novel polynomial basis `X_j`,
    and column `v` of the word is the leaf holding the values of the `64` lanes at the domain point
    `x_v = K.ofBits v`, in reverse order (`verifier.py:1165-1166`, `tuple(reversed(row))`): the
    binary Reed–Solomon code of Annex B, §B.2 (`doc/leanvm/body/b-polynomial-commitment-scheme.tex`)
-   and the encoder of Annex D, `def:enc` (`doc/leanvm/body/d-novel-basis.tex`), `encode` below.
-   The candidates (`Candidates`) are the stacks whose encoding agrees with the word on at least
-   the Johnson threshold of columns (`johnsonThreshold`): the stacks of the Johnson list of the
-   word, at most `2^18` of them at every admissible shape. The extractor lists them: it decodes
-   each lane with the Guruswami–Sudan list decoder over `K` (`gsLaneAt`), and extends prefixes of
-   lanes one lane at a time, keeping a prefix while its lanes agree with the word on at least the
-   threshold of common columns (`pruneUpTo`). Every candidate is listed (proved). A word without
-   errors, an honest prover's, is decoded first by interpolation alone (`fastStacks`).
-4. **The execution** (`candidateExecutionIn`). For a listed stack, the memory image its memory
-   columns hold (`memoryImage`), run from the initial state `(pcInitial, fpInitial)` until it is in
-   the final state `(pcFinal, fpFinal)`, for at most as many steps as the announced tables have rows
-   (`stepCap`; a halting run never repeats a state and each of its steps takes a row of its own, so
-   a valid execution a stack represents halts within the cap, proved). It returns the first listed
-   stack's run that halts and has the public input at its boundary, so a valid execution of the
-   program on the public input; `none` if there is none.
+   and the encoder of Annex D, `def:enc` (`doc/leanvm/body/d-novel-basis.tex`). The candidates are
+   the stacks whose encoding agrees with the word on at least the Johnson threshold of columns
+   (`johnsonThreshold`), at most `2^18` at every admissible shape. The extractor lists them: it
+   decodes each lane with the Guruswami–Sudan list decoder over `K` (`gsLaneAt`), and extends
+   prefixes of lanes one lane at a time, keeping a prefix while its lanes agree with the word on at
+   least the threshold of common columns (`pruneUpTo`). Every candidate is listed (proved). A word
+   without errors, an honest prover's, is decoded first by interpolation alone (`fastStacks`).
+4. **The execution** (`candidateExecutionIn`): a listed stack's memory image run from the initial
+   state for at most as many steps as the announced tables have rows (`stepCap`; a halting run
+   never repeats a state and each of its steps takes a row of its own, so a valid execution a
+   stack represents halts within the cap, proved). The first listed stack's run that halts with
+   the public input at its boundary, a valid execution; `none` if there is none.
 
 **Cost**, in operations of `K` and byte comparisons; `N` the number of evaluations given, `n =
 2^(κ+R)` the columns (`κ = μ − 6 ≤ 22`, `R ≤ 4`), `L` the list size (at most `2^18` candidates,
@@ -84,15 +68,8 @@ decoder's multiplicity and `ℓ ≤ 12291` its `Y`-degree (`gsMultiplicityAt`), 
 | pruning (`pruneUpTo`), 64 lanes | `64·L²·n` comparisons |
 | a candidate's execution | `M + B` to index the addresses, at most `stepCap ≤ 2^μ` steps of a fetch and at most 26 reads |
 
-Every loop is a traversal of an explicitly sized list or array, or a recursion on an explicit
-natural number (the height, the number of lanes, the cap): there is no unbounded search, and no
-classical choice. The list decoder is CompPoly's, whose algorithms are cited below. The whole is
-polynomial, dominated by the interpolation, but far too slow to run at deployed sizes except on a
-word without errors (`fastStacks`).
-
-Every citation `verifier.py:N` is a line of `python-verifier/verifier.py` at leanVM
-`94ee12ff6b2a3d42ba8328e22d09443692e4800b`, the commit `LeanVmVerifier.lean` transcribes; the
-Annexes are cited at leanVM `127510d14c98ade4e8a97646c44fa7f1ff5e752d`.
+The whole is dominated by the interpolation. The Annexes are cited at leanVM
+`127510d14c98ade4e8a97646c44fa7f1ff5e752d`.
 
 **Credits.** The list decoder over `K` is CompPoly's (github.com/Verified-zkEVM/CompPoly at
 `572f997390aa4fc131ef30b1186fa1dcf292ca10`, Apache-2.0, "Copyright (c) 2026 CompPoly
@@ -119,13 +96,13 @@ it is copied. The list decoding is Guruswami and Sudan's (*Improved decoding of 
 algebraic-geometry codes*, IEEE Trans. Inf. Theory 45, 1999).
 -/
 
+@[expose] public section
+
 namespace LeanVM.Extraction
 
 open LeanVM.Parameters LeanVM.Semantics LeanVM.Protocol LeanVM.Protocol.Compile
 open LeanVM.Protocol.Verifier LeanVM.Parameters.Whir LeanVM.Protocol.KeccakHash
 open CompPoly CompPoly.GuruswamiSudan CompPoly.CPolynomial.Roots.FiniteField
-
-@[expose] public section
 
 /-! ### 1. The announced sizes and the stack's root -/
 
@@ -137,12 +114,9 @@ def announceSizesAndRoot (bytecode : List K) : Prog (Layout × ℕ) := do
   return (layout, logInverseRate)
 
 /-- The verifier's state after its steps 1 and 2 on the proof `π`: the announced layout and rate
-exponent, and the state, whose first root is the stack's. The steps only read scalars, so the
-sponge is not computed: every hash and every permutation is taken to be `0`. `none` if the steps
-reject. -/
+exponent, and the state, whose first root is the stack's; `none` if the steps reject. -/
 def afterRoot (bytecode : List K) (π : Proof) : Option ((Layout × ℕ) × St) :=
-  Id.run (run (m := Id) (fun _ ↦ default) (fun _ ↦ default) (announceSizesAndRoot bytecode)
-    ⟨⟨default, []⟩, π.stream, π.openings, []⟩)
+  runPure (announceSizesAndRoot bytecode) ⟨⟨default, []⟩, π.stream, π.openings, []⟩
 
 /-! ### 2. The committed word -/
 
@@ -201,38 +175,11 @@ def committedLeaves (answers : Bytes → Option Digest) (keys : List Bytes) (roo
 def leafAt (leaves : Array (List K)) (height width v : ℕ) : List K :=
   leaves.getD (v % 2 ^ height) (List.replicate width 0)
 
-/-! ### 3. The code and the candidates -/
+/-! ### 3. The Johnson threshold -/
 
 /-- The subspace polynomial `W_i(a) = ∏_{v < 2^i} (a + x_v)`, `x_v = K.ofBits v`: it vanishes
 exactly on `U_i = {x_v | v < 2^i}`. -/
 def subspacePoly (i : ℕ) (a : K) : K := ∏ v ∈ Finset.range (2 ^ i), (a + K.ofBits v)
-
-/-- The normalized subspace polynomial `Ŵ_i(a) = W_i(a) / W_i(x_{2^i})`. -/
-def normSubspacePoly (i : ℕ) (a : K) : K :=
-  subspacePoly i a * (subspacePoly i (K.ofBits (2 ^ i)))⁻¹
-
-/-- The novel basis polynomial `X_j(a) = ∏_{i < 64, bit i of j} Ŵ_i(a)`. -/
-def novelBasis (j : ℕ) (a : K) : K :=
-  ∏ i ∈ Finset.range 64, if j.testBit i then normSubspacePoly i a else 1
-
-/-- **The encoding of a stack** of `2^μ` words, at lane `u` and column `v`: with `κ = μ − 6`,
-lane `u` is the message of the `2^κ` cells `j + 2^κ·u`, `j < 2^κ`, as coefficients of the novel
-basis, evaluated at the domain point `x_v`: `Σ_j q[j + 2^κ·u] · X_j(x_v)`. -/
-def encode {μ : ℕ} (q : Vector K (2 ^ μ)) (u v : ℕ) : K :=
-  ∑ j ∈ Finset.range (2 ^ (μ - initialFold)),
-    q.getD (j + 2 ^ (μ - initialFold) * u) 0 * novelBasis j (K.ofBits v)
-
-/-- The columns, among the `2^(μ − 6 + R)` of the code at rate `2^-R`, at which the word `W`
-agrees with the encoding of `q` on every lane, a leaf holding lane `u` at word `63 − u`. -/
-def agreement {μ : ℕ} (R : ℕ) (W : ℕ → List K) (q : Vector K (2 ^ μ)) : Finset ℕ :=
-  (Finset.range (2 ^ (μ - initialFold + R))).filter fun v ↦
-    ∀ u : Fin (2 ^ initialFold), (W v).reverse.getD u 0 = encode q u v
-
-/-- **The candidates** of a committed word: the stacks of `2^μ` words whose encoding at rate
-`2^-R` agrees with the word on at least `A` columns. The extractor lists every one of them at the
-Johnson threshold (`decodeStacks`). -/
-def Candidates (μ R A : ℕ) (W : ℕ → List K) : Set (Vector K (2 ^ μ)) :=
-  {q | A ≤ (agreement R W q).card}
 
 /-- Level 0's Johnson slacks, `η = e / 2^22`: entry `[R − 1][μ − 15]` for the stack size `μ` and
 the rate exponent `R`. The soundness proof certifies the opening's `2^-128` per query at these
@@ -268,7 +215,8 @@ def johnsonThreshold (μ R : ℕ) : ℕ :=
 
 /-! ### 4. Novel-basis coefficients and evaluations
 
-The additive NTT in the novel basis `X_j`, on the points `x_v`. Stage `i` pairs the positions `p`
+The additive NTT in the novel basis `X_j(a) = ∏_{i < 64, bit i of j} Ŵ_i(a)`, `Ŵ_i` the
+normalized subspace polynomial `W_i(a) / W_i(x_{2^i})`, on the points `x_v`. Stage `i` pairs the positions `p`
 and `p + 2^i` (bit `i` of `p` clear) with the twiddle `t = Ŵ_i(x_{⌊p/2^(i+1)⌋·2^(i+1)})`: the
 forward stage maps `(lo, hi)` to `(lo + t·hi, lo + (t + 1)·hi)`, the inverse stage maps it back
 (characteristic two). -/
@@ -552,7 +500,6 @@ def extract (prog : Program) (input : PublicInput) (bytecode : List K)
   (fastStacks layout.stackLog logInverseRate word).findSome? execution <|>
     (decodeStacks layout.stackLog logInverseRate word).findSome? execution
 
-end
 end LeanVM.Extraction
 
 end

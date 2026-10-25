@@ -41,6 +41,35 @@ open LeanVM.Protocol.Verifier LeanVM.Parameters.Whir
 
 @[expose] public section
 
+/-! ## The code and the candidates (moved here from `Statement/Extractor.lean`, names kept) -/
+
+/-- The normalized subspace polynomial `Ŵ_i(a) = W_i(a) / W_i(x_{2^i})`. -/
+def normSubspacePoly (i : ℕ) (a : K) : K :=
+  subspacePoly i a * (subspacePoly i (K.ofBits (2 ^ i)))⁻¹
+
+/-- The novel basis polynomial `X_j(a) = ∏_{i < 64, bit i of j} Ŵ_i(a)`. -/
+def novelBasis (j : ℕ) (a : K) : K :=
+  ∏ i ∈ Finset.range 64, if j.testBit i then normSubspacePoly i a else 1
+
+/-- **The encoding of a stack** of `2^μ` words, at lane `u` and column `v`: with `κ = μ − 6`,
+lane `u` is the message of the `2^κ` cells `j + 2^κ·u`, `j < 2^κ`, as coefficients of the novel
+basis, evaluated at the domain point `x_v`: `Σ_j q[j + 2^κ·u] · X_j(x_v)`. -/
+def encode {μ : ℕ} (q : Vector K (2 ^ μ)) (u v : ℕ) : K :=
+  ∑ j ∈ Finset.range (2 ^ (μ - initialFold)),
+    q.getD (j + 2 ^ (μ - initialFold) * u) 0 * novelBasis j (K.ofBits v)
+
+/-- The columns, among the `2^(μ − 6 + R)` of the code at rate `2^-R`, at which the word `W`
+agrees with the encoding of `q` on every lane, a leaf holding lane `u` at word `63 − u`. -/
+def agreement {μ : ℕ} (R : ℕ) (W : ℕ → List K) (q : Vector K (2 ^ μ)) : Finset ℕ :=
+  (Finset.range (2 ^ (μ - initialFold + R))).filter fun v ↦
+    ∀ u : Fin (2 ^ initialFold), (W v).reverse.getD u 0 = encode q u v
+
+/-- **The candidates** of a committed word: the stacks of `2^μ` words whose encoding at rate
+`2^-R` agrees with the word on at least `A` columns. The extractor lists every one of them at the
+Johnson threshold (`decodeStacks`). -/
+def Candidates (μ R A : ℕ) (W : ℕ → List K) : Set (Vector K (2 ^ μ)) :=
+  {q | A ≤ (agreement R W q).card}
+
 /-! ## The committed word -/
 
 open Classical in

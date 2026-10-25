@@ -173,7 +173,7 @@ theorem keysCover_hashesOf (P : List (Bytes × Common.KDigest)) :
 /-- **The extractor of the random-permutation model is `extract` on the transcript's
 evaluations**, with the keys of their support: it depends on the evaluations only. -/
 theorem extractorRpm_eq_extract (prog : Program) (input : PublicInput) (T : LeanVM.Transcript)
-    (proof : Proof) {answers : Bytes → Option Digest} (h : LeanVM.transcriptHashes T = answers) :
+    (proof : Proof) {answers : Bytes → Option Digest} (h : LeanVM.hashesOf (LeanVM.transcriptPaths T) = answers) :
     LeanVM.extractorRpm prog input T proof =
       extract prog input (bytecodeWords prog) answers (supportKeys answers) proof := by
   have hc : KeysCover answers ((LeanVM.transcriptPaths T).map (·.1)) := by

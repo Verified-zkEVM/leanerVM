@@ -15,7 +15,7 @@ In the transfer's random-oracle world the adversary of `Statement/LeanVm.lean` r
 two-oracle simulator of `common` (`Common.advS2`). It makes no hash query itself: the
 simulator queries `H m` only when a fresh forward query completes a rooted sponge path that pads
 `m`, and books the path. So the hash answers in the cache when the adversary returns are exactly
-the Keccak-256 evaluations of its transcript (`transcriptHashes`, through `Common.pathsOf`):
+the Keccak-256 evaluations of its transcript (`hashesOf (transcriptPaths T)`, through `Common.pathsOf`):
 
 * `advS2_advR`: the transcript the adversary records on lanes is the byte transcript `common`
   logs in the simulator's state (`Common.advImplLog2`), read on lanes;
@@ -213,7 +213,7 @@ theorem transcriptHashes_eq_of_mem_support (A : RpmAdversary)
       (Common.hfSpec Bytes Common.KDigest Common.KState).QueryCache}
     (hz : z ∈ support ((simulateQ (Common.hfSpec Bytes Common.KDigest Common.KState).romImpl
       (Common.advS2 Common.keccakPadding Common.KState.zero (advR A))).run ∅)) :
-    transcriptHashes z.1.2 = fun m ↦ (z.2 (.inl m)).map Digest.ofRpm := by
+    hashesOf (transcriptPaths z.1.2) = fun m ↦ (z.2 (.inl m)).map Digest.ofRpm := by
   rw [advS2_advR, simulateQ_map, StateT.run_map, Common.run_simulateQ_foldRO, Functor.map_map,
     support_map] at hz
   obtain ⟨w, hw, rfl⟩ := hz
@@ -242,7 +242,7 @@ theorem transcriptHashes_eq_of_mem_support (A : RpmAdversary)
     conv_rhs => rw [← List.map_id w.2.1.2]
     exact List.map_congr_left fun e _ ↦ entryToRpm_ofRpm e
   funext m
-  simp only [transcriptHashes, hashesOf, transcriptPaths, eT]
+  simp only [hashesOf, transcriptPaths, eT]
   rcases hc : w.2.2 (.inl m) with _ | d
   · have hn : (Common.pathsOf Common.keccakPadding Common.KState.zero w.2.1.2).find?
         (·.1 = m) = none := by
