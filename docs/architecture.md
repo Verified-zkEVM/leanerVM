@@ -642,10 +642,8 @@ right when compiled; `LeanerVM.Protocol.ToArkLib.AppendLazy` substitutes lazy fo
 table once (`batchWeight_eq_batchWeightFast`). The BLAKE2s inhabitant's R1CS, `blake2sR1CS`, runs
 as `blake2sR1CSFast` (`blake2sR1CS_eq_blake2sR1CSFast`), the walks on the compiled circuit's
 64-bit words (`ProductCircuit.toBlockR1CSE`, `LeanerVM.Protocol.FlockWalks`), whose matrices are
-`ProductCircuit.toBlockR1CS`'s by `rfl` (`toBlockR1CSE_eq`). The additive transform reads each
-node's halves once (`fwd_eq_fwdLet`, `encodeFast_eq_encodeFastLet`, over any ring: `fwd` reads
-them inside the closures that build a node's outputs), and over `E` it runs as three transforms
-of the limbs' words (`Whir.encodeE`, `Whir.encodeE_getElem`,
+`ProductCircuit.toBlockR1CS`'s by `rfl` (`toBlockR1CSE_eq`). Over `E` the additive transform runs
+as three transforms of the limbs' words (`Whir.encodeE`, `Whir.encodeE_getElem`,
 `LeanerVM.Protocol.Whir.TransformWords`).
 The query batch's weight takes its values on words (`Whir.queryWeight_eq_queryWeightFast`,
 `LeanerVM.Protocol.Whir.QueryWords`), and the opening's batched weight its column claims' equality

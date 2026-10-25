@@ -354,11 +354,10 @@ Each line came from its own fix. Before them, at `μ = 19`: the word took 256 s,
 
 * The additive transform `fwd` reads each node's halves inside the closures that build the node's
   outputs, so compiled code rebuilt a half at every entry: 2.1 s for one coset of `2^13`
-  coefficients over `E` and 2.0 s over `K`. `fwd_eq_fwdLet` (`@[csimp]`) reads them once, over
-  any ring (0.17 s and 34 ms; `encodeFast` runs it through `encodeFastLet`, compiled after the
-  csimp), and over `E` the transform runs as three transforms of the limbs' 64-bit words,
-  `xor` and `mulWord` (`Whir.encodeE`): 13 ms a limb, 87 ms a lane of `2^13` coefficients onto
-  `2^14` positions.
+  coefficients over `E` and 2.0 s over `K`. `fwd_eq_fwdFast` (`@[csimp]`) reads them once, over
+  any ring (0.17 s and 34 ms), and over `E` the transform runs as three transforms of the limbs'
+  64-bit words, `xor` and `mulWord` (`Whir.encodeE`): 13 ms a limb, 87 ms a lane of `2^13`
+  coefficients onto `2^14` positions.
 * A word is a function in compiled code, and a closure returning one is expanded to take the
   position as one more argument: the next level's word, a message computed by a closure, was
   rebuilt at every row the queries and the verifier read (0.64 s a row at the second level of

@@ -23,6 +23,10 @@ variables: the additive NTT of Lin, Chung and Han (Annex B, `app:ntt`).
   inverse (`fwd_inv`, `inv_fwd`).
 * `encodeFast φ κ R m`: the encoder by one `fwd` per coset of `U_κ` (`encodeFast_getElem`).
 
+Compiled code runs `fwd` with each half built once a step (`fwd_eq_fwdFast`, a `@[csimp]`
+theorem): a half read inside the closure that builds the next vector is rebuilt at every entry,
+which makes a step quadratic in its length.
+
 Category A: the encoder `encode` of `LeanerVM.Protocol.NovelBasis` (Annex B, `def:enc`) is the
 specification, and `encodeFast_getElem` proves that the transform computes it; the recursion is
 Annex B's `app:ntt`, and nothing of an implementation is trusted.
@@ -130,6 +134,24 @@ def fwd : (j : ℕ) → Vector S (2 ^ j) → K → Vector S (2 ^ j)
     let a : Vector S (2 ^ j) := Vector.ofFn fun i ↦ (lowHalf m)[i] + t * (highHalf m)[i]
     let b : Vector S (2 ^ j) := Vector.ofFn fun i ↦ a[i] + (highHalf m)[i]
     joinHalves (fwd j a s) (fwd j b (s + domainPt (2 ^ j)))
+
+/-- `fwd` with each half built once a step. -/
+def fwdFast : (j : ℕ) → Vector S (2 ^ j) → K → Vector S (2 ^ j)
+  | 0, m, _ => m
+  | j + 1, m, s =>
+    let t := φ (twiddle j s)
+    let lo := lowHalf m
+    let hi := highHalf m
+    let a : Vector S (2 ^ j) := Vector.ofFn fun i ↦ lo[i] + t * hi[i]
+    let b : Vector S (2 ^ j) := Vector.ofFn fun i ↦ a[i] + hi[i]
+    joinHalves (fwdFast j a s) (fwdFast j b (s + domainPt (2 ^ j)))
+
+/-- Compiled code builds each half once a step. -/
+@[csimp] theorem fwd_eq_fwdFast : @fwd = @fwdFast := by
+  funext S _ φ j
+  induction j with
+  | zero => rfl
+  | succ j ih => funext m s; simp only [fwd, fwdFast, ih]
 
 /-- The novel-basis coefficients of the values `v` on the coset of `s`. -/
 def inv : (j : ℕ) → Vector S (2 ^ j) → K → Vector S (2 ^ j)
