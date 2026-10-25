@@ -643,7 +643,7 @@ no other; the hole is built when the names in bold of its row are declared and m
 | Merkle trees, the byte hasher and the WHIR parameters | [Layer 11](#layer-11-whir-over-binary-reedsolomon-codes-and-merkle-trees) | `merkleRootWith`, `merkleVerifyWith`, **`merkleRoot`**, **`merkleVerify`**, `MerkleTree.fold`, `MerkleTree.prunedRoot`, `nodeModel`, **`toBatchOpening`**, **`merkle_fits`** (a cross-check, kept as a test), **`blake2sBytes`**, **`ladder`** | leanISA Layer 1 (`compress`); VCVio's Merkle trees |
 | the charged invariant | [Layer 12](#layer-12-compilation-the-transcript-the-proof-and-the-executable-verifier) | `chargedRandomOracle`, **`potential_le_expected_charge`**, **`prEvent_le_of_potential`**, **`prEvent_not_good_le_expected_charge`**, **`expected_charge_le_mul`**, **`expected_fresh_in_le`**; the logged form `chargedLoggingOracle`, **`potential_log_le_expected_charge`** | VCVio only |
 | Merkle binding by log replay | [Layer 12](#layer-12-compilation-the-transcript-the-proof-and-the-executable-verifier) | `nodePreimage`, `leafPreimage`, `extractTree`, `extractLeaf`, `extractLeaves`, `extractRows`, `extractAllRows`, `Consistent`, `HasCollision`, `Fresh`, `Known`, `FreshHit`, **`binding_of_log`** (generic `MerkleTree.binding_of_log` and leanVM's), **`extractRows_determined`** (generic `MerkleTree.extractLeaf_determined`) | Merkle trees (the generic walk `MerkleTree.fold`) |
-| list-binding compilation | [Layer 12](#layer-12-compilation-the-transcript-the-proof-and-the-executable-verifier) | `ListDecoder`, **`ListDecoder.bruteForce`**, `exactFast`, **`exactFast_eq`**, **`kValued_of_cl`**, `Msgs.toColumn`, **`Component.Front.relist`**, `commitWord`, **`commitWordSecurity`**, **`listBinding_compile`** | the phases' knowledge soundness; WHIR opening |
+| list-binding compilation | [Layer 12](#layer-12-compilation-the-transcript-the-proof-and-the-executable-verifier) | `KWord`, `kwordOf`, `ListDecoder`, **`ListDecoder.bruteForce`**, `exactFast`, **`exactFast_eq`**, `ListDecoder.exactFirst`, `ListDecoder.exact`, **`isInK_of_cl`**, `stackOfMsgs`, `stackList`, `Component.relistRel`, **`Component.Front.relist`**, **`Component.Front.overComplete`**, `commitWord`, `commitPick`, **`commitWordSecurity`**, `openInput`, **`relist_of_relOpen`**, **`openInputSecurity`**, **`listBinding_compile`**, **`listBinding_kSF_one`**, **`listBinding_extractedStack_eq`**, **`listBinding_perfectCompleteness`** | the phases' knowledge soundness and completeness; WHIR opening |
 | transcript, proof object and compiled verifier | [Layer 12](#layer-12-compilation-the-transcript-the-proof-and-the-executable-verifier) | `Digest`, **`card_digest`**, `hashSpec`, `hashQuery`, `runBlake2s`, `runRandom`, `FsState`, `Block`, `FsState.checkPow`, **`FsState.challengeOf`**, `chainHistory`, **`chainHistory_determined`**, `Proof`, `Proof.sizes?`, `RoundPoly.decode`, `decodePrefix`, **`decodePrefix_mono`**, `decode`, `leanVmIopp`, **`verifyWith`**, **`verify`**, **`verifyWith_simulateQ`**, `rounds`, `verifierQueries`, `proofDigests`, **`rounds_bound`**, **`verifierQueries_bound`**, **`proofDigests_bound`**, **`verify_iff_compiled`**, `settleFixedClaims` | the phases' definitions; the Flock phase's definition; WHIR opening; Merkle trees |
 | the random-oracle theorems | [Layer 12](#layer-12-compilation-the-transcript-the-proof-and-the-executable-verifier) | `Adversary`, `Run`, `loggedGame`, `extract`, `Extracts`, `LogHasCollision`, `Hit`, `Bad`, **`bad_density`**, `Flip`, `HashMisbehaves`, **`core`**, `hashTerm`, `niError`, **`misbehaves_rom`**, **`niError_le`**, **`verify_knowledgeSound_rom`** | the compiled verifier; list-binding compilation; Merkle binding by log replay; the charged invariant in its logged form |
 | the honest prover and the test vectors | [Layer 13](#the-executable-prover-and-the-test-vectors) | `proveWith`, **`prove`**, `honestAdversary`, **`baseProver_complete`**, the executable `leanervm-vectors` and its vectors | the compiled verifier; the adaptor; for the vectors, leanISA's `checkSatisfiedBy` |
@@ -1369,7 +1369,9 @@ Tests:
 `LeanerVM/Protocol/Transcript.lean`, `Proof.lean`, `Compile.lean`, `Verify.lean`,
 `ListBinding.lean`, `RandomOracle.lean` (plain); `LeanerVM/Protocol/Whir/Decode.lean`; and the
 generic `ToVCVio/ChargedInvariant.lean` (with `ToVCVio/ScalarExpectation.lean`),
-`ToVCVio/MerkleLog.lean` (leanVM's half `Protocol/MerkleBinding.lean`) and `ToArkLib/Relist.lean`.
+`ToVCVio/MerkleLog.lean` (leanVM's half `Protocol/MerkleBinding.lean`), `ToArkLib/Relist.lean`,
+`ToArkLib/SendEncoded.lean`, `ToArkLib/MapOracles.lean`, `ToArkLib/FirstRound.lean` and
+`ToCompPoly/LinearSolve.lean`; the `K` word `KWord` is in `Whir/Word.lean`.
 `F` below is `blake2sFlockSpec`.
 
 ```lean
@@ -1408,7 +1410,8 @@ theorem decodePrefix_mono : decodePrefix prog hs = some ⟨s, ρ, i, tr⟩ →
     decodePrefix prog (hs ++ hs') = some ⟨s', ρ', j, tr'⟩ → s' = s ∧ ρ' = ρ ∧ i ≤ j ∧ tr' extends tr
 def decode (prog) (hs) : Option (Σ s ρ, (leanVmIopp F prog s ρ).FullTranscript)   -- `decodePrefix` at a full transcript
 -- The compiled oracle protocol: the level-0 word committed, WHIR in place of the opening's query (Compile.lean)
-def leanVmIopp (F) (prog) (s) (ρ) := commitWord ⟫ bus ⟫ table ⟫ pub ⟫ flock ⟫ batch ⟫ whirOpen (ladder (leanIsaμ prog s) ρ)
+def leanVmIopp (F) (prog) (s) (ρ) :=
+  commitWord ⟫ bus ⟫ table ⟫ pub ⟫ flock ⟫ batch ⟫ openInput ⟫ whirOpen (ladder (leanIsaμ prog s) ρ)
 -- One verifier, generic in how the hash is answered (Verify.lean; written from §8.5 first)
 def verifyWith [Monad m] (H : List UInt8 → m Digest) (prog : Program) (input : PublicInput) (proof : Proof) : m Bool
   -- 1. the sizes, the caps and the windows, and the number and shapes of `proof.merkle`: no query before them,
@@ -1429,26 +1432,69 @@ theorem verify_iff_compiled (prog input proof) :
         decode prog (the history of verify's chain walk) = some ⟨s, ρ, tr⟩ ∧ every grinding check passes ∧
         merkleOpenings blake2sBytes proof tr = some rows ∧
         (leanVmIopp F prog s ρ).verifier accepts (input, tr), its oracle queries answered by `rows`
--- List binding (Whir/Decode.lean, ToArkLib/Relist.lean, ListBinding.lean)
+  -- the level-0 rows read as `K` symbols (the committed word is a `KWord`), the other levels' as `E`
+-- List binding (Whir/Word.lean, Whir/Decode.lean, ToArkLib/{Relist,SendEncoded,MapOracles,FirstRound}.lean,
+-- ToCompPoly/LinearSolve.lean, ListBinding.lean)
+structure KWord (ℓ b t : ℕ) where row : Fin (2 ^ b) → Vector K (2 ^ ℓ)   -- level 0's word: rows of `K` symbols
+def KWord.lift (w : KWord ℓ b t) : Word E ℓ b t                         -- the same word read in `E`
+def kwordOf (ℓ κ R t) (q : Vector K (2 ^ (κ + ℓ))) : KWord ℓ (κ + R) t  -- the honest word of a stack
+theorem kwordOf_lift : (kwordOf ℓ κ R t q).lift = wordOf … (q in E)    -- what WHIR's honest prover commits
 structure ListDecoder (κ R a ℓ : ℕ) where           -- `a` is level 0's threshold `Par.a`
   decode : LW (κ + R) → List (Msgs ℓ κ)
   mem_iff : ∀ F V, V ∈ decode F ↔ Cl κ R a ℓ F V
-def ListDecoder.bruteForce (hdist : 2 ^ κ ≤ a) : ListDecoder κ R a ℓ   -- interpolate on every 2^κ positions; computable
-def exactFast (F : LW (κ + R)) : Option (Msgs ℓ κ)                     -- the messages, when `F` is a codeword
-theorem exactFast_eq (D : ListDecoder κ R a ℓ) (hdist : 2 ^ κ ≤ a) (h : exactFast F = some V) :
-    ∀ V', V' ∈ D.decode F ↔ V' = V
-theorem kValued_of_cl (hdist : 2 ^ κ ≤ a) (hF : F is K-valued) (h : Cl κ R a ℓ F V) : V is K-valued
-def Msgs.toColumn (V : Msgs ℓ κ) (hV : V is K-valued) : Column (κ + ℓ)   -- the stack a K-valued member stands for
-def Component.Front.relist (hF : Component.Front D) (S : Component.Security D relIn relOut ε)
-    (list : O' → Finset O) (hL : ∀ o, (list o).card ≤ L) :
-    Component.Security (D over O') {(x, o) | ∃ q ∈ list o, (x, q) ∈ relIn} {(y, o) | ∃ q ∈ list o, (y, q) ∈ relOut} (L • ε)
-  -- the same front verifier over another oracle; the extractor unchanged, the state function `∃ q ∈ list o, kSF q`
-def commitWord (prog s ρ) ; def commitWordSecurity (D : ListDecoder …)   -- error 0; extracts the member of `D.decode`
-                                         -- of the word that satisfies `M3Holds` (decidable), through `Msgs.toColumn`
-theorem listBinding_compile (P : Phases I) (S : P.Security) (L) (ps : L.Pars) (D : ListDecoder κ R ps.head.a ℓ) :
-    Component.Security (commitWord ⟫ fronts ⟫ batch ⟫ whirOpen L) (M3Rel I) univ (the error below)
-  -- `ps.head.L` times `piopError I` on every challenge up to `λ`, the opening's batching challenge included (its state
-  -- function is relisted too), then `openErr L ps`; `relist`'s `hL` is `Par.hlist`, `bruteForce`'s `hdist` `Par.hdist`
+  nodup : ∀ F, (decode F).Nodup                     -- so that `ListBound` bounds its length (`length_le`)
+def gaussSolve (n) (M : Fin n → Fin n → F) (y : Fin n → V) : Option (Vector V n)   -- `V` a module: all lanes at once
+def ListDecoder.bruteForce (hdist : 2 ^ κ ≤ a) (hb : κ + R ≤ 64) : ListDecoder κ R a ℓ
+  -- one elimination over `K` on every set of `2^κ` positions; computable, toy words only
+def exactFast (κ R ℓ) (F : LW (κ + R)) : Option (Msgs ℓ κ)
+  -- the elimination on the first `2^κ` positions, kept when its encoding is the whole word:
+  -- `O(2^(3κ) + 2^(2κ+ℓ))` for the elimination and `2^(κ+R+ℓ)` encodings of `O(κ·2^κ)` for the check
+theorem exactFast_eq (D : ListDecoder κ R a ℓ) (hdist : 2 ^ κ ≤ a) (hle : a ≤ 2 ^ (κ + R)) (hb)
+    (h : exactFast κ R ℓ F = some V) : ∀ V', V' ∈ D.decode F ↔ V' = V   -- no unique-decoding condition
+def ListDecoder.exactFirst (D) (hdist) (hle) (hb) : ListDecoder κ R a ℓ   -- `exactFast`, else `D`
+def ListDecoder.exact (hb) : ListDecoder κ R (2 ^ (κ + R)) ℓ             -- at exact agreement, `exactFast` alone
+theorem isInK_of_cl (hdist : 2 ^ κ ≤ a) (hb) (hF : ∀ y u, IsInK (F y u)) (h : Cl κ R a ℓ F V) :
+    ∀ u x, IsInK (V u)[x]
+def stackOfMsgs (hμ : κ + sh.ℓ = I.μ) (g : Msgs sh.ℓ κ) : Column I.μ     -- the lanes on top, the `K` limb of each symbol
+def stackList (D) (hμ) (o : ∀ i, KOracle sh κ i) : List (∀ i, TheOracle I i)   -- `D.decode`, each member a stack
+def Component.relistRel (list : (∀ i, O' i) → List (∀ i, O i)) (rel) := {((x, o'), w) | ∃ o ∈ list o', ((x, o), ()) ∈ rel}
+def Component.Front.relist (hF : Component.Front D) (hF' : Component.Front D') (hcheck : hF'.check = hF.check)
+    (hout : hF'.out = hF.out) (list : (∀ i, O' i) → List (∀ i, O i)) (S : Component.Security D relIn relOut ε)
+    (L) (hL : ∀ o, (list o).length ≤ L) :
+    Component.Security D' (relistRel list relIn) (relistRel list relOut) (fun i ↦ L • ε i)
+  -- `D'` the same front verifier over other oracles (`Front.over` builds it, answering the queries it never makes);
+  -- the extractor keeps the witness, the state function is `∃ q ∈ list o, kSF q`
+def Component.Front.overComplete (hF : Component.Front D) (C : Complete D relIn relOut) … :
+    Complete (hF.over o₀ (proverVia P read)) (viaRel good read relIn) (viaRel good read relOut)
+def commitWord (I) (hμ) : Component.Def I.Stmt NoOracle (Column I.μ) I.Stmt (KOracle sh κ) (Column I.μ) _
+  -- `Component.sendEncoded`: the prover sends `kwordOf` of its stack
+def commitPick (I) (D) (hμ) (s) (w : KWord …) : Option (Column I.μ)   -- the first of `stackList` with `M3Holds` (decidable)
+def commitWordSecurity (D) (hμ) : Component.Security (commitWord I hμ) (M3Rel I)
+    (relistRel (stackList I D hμ) (Seam.commit I)) 0                    -- extractor `commitPick`, else the witness
+def openInput (I) (hμ) : Component.Def (WeightedClaim I) (KOracle sh κ) _ (Weight E (κ + sh.ℓ) × E) (OneW sh κ) _ !p[]
+  -- `Component.mapOracles`: the batched claim, the word read in `E` (a virtual output oracle) and the stack read in `E`
+theorem relist_of_relOpen (P : Par sh κ) (D : ListDecoder κ sh.R P.a sh.ℓ) (c) (o)
+    (h : OpenLang P (c.weight at height κ + sh.ℓ) c.value (o 0).lift) : ∃ q ∈ stackList I D hμ o, c.Holds q
+def openInputSecurity (P) (D) : Component.Security (openInput I hμ)
+    (relistRel (stackList I D hμ) (Opening.BatchedHolds I)) (relOpen P) (no challenge)
+def listBinding_compile (P : Phases I) (S : P.Security) (hμ : κ + sh.ℓ = I.μ) (L : Ladder sh κ) (ps : L.Pars)
+    (D : ListDecoder κ sh.R (L.headPar ps).a sh.ℓ) :
+    Component.Security (commitWord ⟫ fronts.over ⟫ batch.over ⟫ openInput ⟫ whirOpen L) (M3Rel I) univ
+      (listBindingError I L ps)
+  -- 0 on the commitment; `(L.headPar ps).L` times the phase's error on every challenge of the four front phases and
+  -- of the opening's batching (its state function is relisted too); `openErr L ps` on WHIR's, not multiplied:
+  -- after `openInput` the state function is WHIR's, whose relation quantifies over the list.
+  -- `relist`'s `hL` is `Par.hlist` through `length_stackList`. The bundle's opening phase is not used.
+theorem listBinding_kSF_one … (tr : Transcript 1) (w) :
+    (listBinding_compile P S hμ L ps D).kSF.toFun 1 s tr w ↔ (commitPick I D hμ s.1 (committedWord tr)).isSome
+theorem listBinding_extractedStack_eq … (hq : commitPick I D hμ s.1 (committedWord tr) = some q) :
+    extractIn (listBinding_compile P S hμ L ps D).extractor s tr () = q
+theorem listBinding_perfectCompleteness (C : P.Complete) (L) (init impl) :
+    (listBindingDef P hμ L).red.perfectCompleteness init impl (M3Rel I) univ
+-- generic, for the two theorems above (ToArkLib/FirstRound.lean)
+theorem Component.Security.append_kSF_left : up to the seam, a sequence's state function is the first component's
+def Extractor.RoundByRound.DecodesFirst (E) (hn) (f : StmtIn → pSpec.Type 0 → Option WitIn) : Prop
+theorem Extractor.RoundByRound.decodesFirst_append ; theorem Extractor.RoundByRound.extractIn_eq_of_decodesFirst
 -- Merkle binding by log replay (ToVCVio/MerkleLog.lean, generic over the leaf and node encodings,
 -- which may overlap; Protocol/MerkleBinding.lean for leanVM's; deterministic, on `MerkleTree.fold`)
 def nodePreimage (node? : Q → Option (D × D)) (log : QueryLog Q D) (d : D) : Option (D × D)
@@ -1506,9 +1552,9 @@ def loggedGame (prog input) (A : Adversary) : OracleComp hashSpec Run := do
   let (ok, logV) ← (verifyWith hashQuery prog input proof).withQueryLog
   return ⟨proof, logA, logV, ok⟩
 def extract (prog input proof) (log : hashSpec.QueryLog) : Option (Σ s, Column (leanIsaμ prog s))
-  -- the admissible sizes off `proof`; the level-0 word off `log` by `extractAllRows` at the root in `proof`, at the
-  -- row widths of those sizes, a missing row read as zero; `exactFast`, else `ListDecoder.bruteForce`; the member
-  -- satisfying `M3Holds`, or `none`
+  -- the admissible sizes off `proof`; the level-0 `K` word off `log` by `extractAllRows` at the root in `proof`, at
+  -- the row widths of those sizes, a missing row read as zero; `ListDecoder.exactFirst` over `ListDecoder.bruteForce`
+  -- at level 0's threshold; the member satisfying `M3Holds`, or `none`
 def Extracts (prog input proof log) : Prop :=
   ∃ s q, extract prog input proof log = some ⟨s, q⟩ ∧ M3Holds (leanIsaInstance F prog s) input q
 /-- Two different inputs in the log with one answer. -/
@@ -1520,8 +1566,8 @@ def Hit (prog input) (g : Run) : Prop :=
   ∃ k, g.log[k] is its input's first query ∧
     (g.log[k].2 ∈ inPlay prog input (g.log.take k) ∨ (g.logA.length ≤ k ∧ g.log[k].2 ∈ readDigests g.proof))
 /-- The bad challenges at a prefix of the compiled transcript ending at a challenge `i`: those that turn the state
-function of `listBinding_compile` at `leanVmSecurity`, `ListDecoder.bruteForce` and `F` from false to true, the
-committed words given. A query group's challenge is the pair of the grinding check's digest and the positions, and a
+function of `listBinding_compile` at `leanVmSecurity`, `ListDecoder.exactFirst` over `ListDecoder.bruteForce` at level
+0's threshold and `F` from false to true, the committed words given. A query group's challenge is the pair of the grinding check's digest and the positions, and a
 bad one passes the check. -/
 def Bad (prog s ρ i) (tr : Transcript i) (words) : Set (Chal i) := {c | ¬ kSF i tr words ∧ kSF (i + 1) (tr.concat c) words}
 theorem bad_density (hs : s.Admissible prog) : Pr[fun c ↦ c ∈ Bad prog s ρ i tr words | $ᵗ Chal i] ≤ εquery
@@ -1575,19 +1621,34 @@ surplus sibling, the recomputed root), a zero third limb in each half of a root,
 each level, WHIR's terminal check, and the stream and openings fully consumed.
 
 The list-binding compilation is where the master theorems meet WHIR: the commitment binds a
-`K`-valued interleaved word that may be close to up to `L_0` codewords (from 23 to 122 at the
-deployed parameters, by the pairwise Johnson bound), every member of the list is `K`-valued
-(`kValued_of_cl`) and stands for a stack (`Msgs.toColumn`), and the challenges up to `λ` pay `L_0`
-times their error. `Component.Front.relist` is the generic step: a front component, whose verifier
-never reads the oracle (decision 31), keeps its knowledge soundness over any oracle read through a
-list of at most `L` candidates, at `L` times the error, with its extractor unchanged. `commitWord`
-commits the word, and its extractor list-decodes it and selects the member satisfying `M3Holds`,
-which is decidable. The decoder is an interface (decision 40): `ListDecoder`'s specification is the
-list relation `Cl` at level 0's threshold, so it meets WHIR's list relation by definition.
-`ListDecoder.bruteForce` inhabits it, and `exactFast` is the path every honest word takes: a
-codeword is at agreement `2^{κ+R}`, and any other codeword agrees with it on fewer than `2^κ`
-positions, so its list is the one message. A Guruswami–Sudan inhabitant (CompPoly's decoder with
-ArkLib's correctness proofs) is a later refinement.
+`K`-valued interleaved word (`KWord`, level 0's rows of `K` symbols) that may be close to up to
+`L_0` codewords (from 23 to 122 at the deployed parameters, by the pairwise Johnson bound), every
+member of the list is `K`-valued (`isInK_of_cl`) and stands for a stack (`stackOfMsgs`), and the
+challenges up to `λ` pay `L_0` times their error. `Component.Front.relist` is the generic step: a
+front component, whose verifier never reads the oracle (decision 31), keeps its knowledge soundness
+over any oracle read through a list of at most `L` candidates, at `L` times the error, with its
+extractor unchanged. It takes the component over the new oracles with a proof that its check and
+verdict are the old ones; `Front.over` builds that component, answering the oracle queries the
+front verifier never makes. `commitWord` commits the word, and its extractor list-decodes it and
+selects the first member satisfying `M3Holds`, which is decidable (`commitPick`). `openInput`, a
+step with no round, reads the word in `E` for WHIR's opening, whose relation is on `E` words; its
+security is the seam `relist_of_relOpen`: a codeword of WHIR's list relation is a member of the
+decoder's list, `K`-valued, and its claim is the batched claim on its stack. WHIR's own errors are
+not multiplied by `L_0`. The compiled extractor returns the decoded member whenever there is one
+(`listBinding_extractedStack_eq`), and past the commitment the state function holds exactly when
+there is one (`listBinding_kSF_one`), which is what `core` reads: a failed extraction leaves the
+state function false at round 1 for every witness. The decoder is an interface (decision 40):
+`ListDecoder`'s specification is the list relation `Cl` at level 0's threshold, with no
+repetition, so it meets WHIR's list relation by definition and its length is bounded by the list
+bound. `ListDecoder.bruteForce` inhabits it, and `exactFast` is the path every honest word takes:
+a codeword is at agreement `2^{κ+R}`, and any codeword within a threshold `a ≥ 2^κ` of it agrees
+with it on `2^κ` positions, so is it; its list is the one message at every threshold up to
+`2^{κ+R}`, with no unique-decoding condition. `ListDecoder.exactFirst` puts it in front of another
+decoder. The exact path is an elimination over `K`, not the deployed prover's inverse additive
+transform; a decoder by that transform and a Guruswami–Sudan inhabitant (CompPoly's decoder with
+ArkLib's correctness proofs) are later refinements. `listBinding_perfectCompleteness` is the other
+half, from the phases' completeness (`Component.Front.overComplete`) and WHIR's, which receives the
+honest word of the stack in `E` (`kwordOf_lift`).
 
 **Why the generic route is not taken.** The textbook route proves state-restoration knowledge
 soundness from round-by-round, keeps it through the BCS compilation, and gets the chain from a
@@ -1694,7 +1755,9 @@ query count within `verifierQueries`, its `chainHistory` the stream's blocks, ea
 by `decodePrefix`; `leafPreimage` on a log in which two leaf queries are answered by one digest
 (the first is returned) and on a digest no leaf query is answered by (`none`); `extractRows` on
 the honest toy log, and on a log missing one leaf (zero there); `ListDecoder.bruteForce` and
-`exactFast` on a toy codeword, a word at the threshold and a word far from every codeword;
+`exactFast` on a toy codeword, a word at the threshold and a word below unique decoding with several
+codewords in its list; `exactFirst`'s fallback on a word one symbol off a codeword; `commitPick`
+on the toy's honest word, on the word of a stack failing `M3Holds` and on a word one symbol off;
 `runRandom`'s answer to a fresh query uniform on `Digest`, and a repeated query answered from the
 cache; and `niError (2^64) ≤ 2^{−60}`. The fixture waits on the Flock phase's definition.
 
@@ -1723,7 +1786,8 @@ BLAKE2s answering its hash queries, then the verifier on its proof; the joint lo
   fixed by the prefix and the committed words, of density at most `2^{−128}` (`bad_density`; correlation
   intractability of the chain against a sparse relation).
 The bad sets are those of the deployed protocol, with `leanVmSecurity` (and so `flockSecurity`),
-`ListDecoder.bruteForce` and `blake2sFlockSpec` fixed inside this definition. -/
+`ListDecoder.exactFirst` over `ListDecoder.bruteForce` at level 0's threshold, and `blake2sFlockSpec`
+fixed inside this definition. -/
 def BlakeMisbehaves (prog input) (A : Adversary) (δ : ℝ≥0) : Prop :=
   Pr[HashMisbehaves prog input | runBlake2s (loggedGame prog input A)] ≤ δ
 -- The headline: the deployed verifier, the witness through the adaptor
@@ -1930,8 +1994,8 @@ witness is executable it is a test under `tests/`.
     an existential form (`rbrKnowledgeSoundness`, `rbrKnowledgeSoundnessWorstCase`) proves
     soundness only. Every interface and theorem here is in the `With` form, with a computable
     extractor checked by a `def` without `noncomputable` at each `Security`. The same holds for
-    the random-oracle extractor `extract`, whose list decoder is `ListDecoder.bruteForce` behind
-    `exactFast` (an efficient decoder is another inhabitant of `ListDecoder`), and for
+    the random-oracle extractor `extract`, whose list decoder is `ListDecoder.exactFirst` over
+    `ListDecoder.bruteForce` (an efficient decoder is another inhabitant of `ListDecoder`), and for
     `extractTrace`, whose `traceOf` leanISA's inhabitant of `TraceExtraction` defines without
     `noncomputable`. Witness: `piopExtractedStack_eq`, the `#guard` of Layer 3, and
     `extract` run on the honest prover's log on a toy instance (test 37).
@@ -2083,9 +2147,14 @@ Generic, Layer 12:    chargedRandomOracle  potential_le_expected_charge  prEvent
                       Consistent  HasCollision  Fresh  Known  FreshHit  MerkleTree.binding_of_log
                       MerkleTree.extractLeaf_determined  extractRows  extractAllRows  extractAllRows_eq
                       binding_of_log  extractRows_determined
-                      Component.Front.relist
-List binding:         ListDecoder  ListDecoder.bruteForce  exactFast  exactFast_eq  kValued_of_cl  Msgs.toColumn
-                      commitWord  commitWordSecurity  listBinding_compile
+                      Component.relistRel  Component.Front.relist  Component.Front.over  Component.Front.overComplete
+                      Component.sendEncoded  Component.sendEncodedSecurity  Component.mapOracles  Component.mapOraclesSecurity
+                      Component.Security.append_kSF_left  Extractor.RoundByRound.DecodesFirst  gaussSolve
+List binding:         KWord  kwordOf  kwordOf_lift  ListDecoder  ListDecoder.bruteForce  exactFast  exactFast_eq
+                      ListDecoder.exactFirst  ListDecoder.exact  isInK_of_cl  stackOfMsgs  stackList
+                      commitWord  commitPick  commitWordSecurity  openInput  relist_of_relOpen  openInputSecurity
+                      listBinding_compile  listBinding_kSF_one  listBinding_extractedStack_eq
+                      listBinding_perfectCompleteness
 Compilation:          Digest  card_digest  hashSpec  hashQuery  Adversary  runBlake2s  runRandom  FsState  Block
                       FsState.seed  FsState.checkPow  FsState.challengeOf  chainHistory  chainHistory_determined
                       Proof  Proof.sizes?  RoundPoly.decode  decodePrefix  decodePrefix_mono  decode  leanVmIopp
@@ -2118,8 +2187,8 @@ small, through `blakeMisbehaves_of_comparison`. Everything else it rests on is p
 interfaces `FlockSpec`, the Flock phase's `Security`, `McaJohnson` and `ListDecoder` are
 structures whose generic theorems take them as arguments. leanVM's instances of them are proved
 inhabitants: `blake2sFlockSpec`, `flockSecurity`, `mcaJohnson_annexB` and
-`ListDecoder.bruteForce`. `core` and the random-oracle bound are theorems of Layer 12, not
-interfaces. A hole not yet filled leaves the theorems that need it unstated; it is never taken as
+`ListDecoder.bruteForce` (and `ListDecoder.exactFirst` over it). `core` and the random-oracle bound
+are theorems of Layer 12, not interfaces. A hole not yet filled leaves the theorems that need it unstated; it is never taken as
 a hypothesis. The knowledge-soundness composition ArkLib admits is not in the trust surface
 either: the port proves it.
 
@@ -2217,7 +2286,7 @@ recorded here in one row. Each is reversible by a pull request to this document.
 | 37. The hypothesis is about the hash | the headline assumes `BlakeMisbehaves`, a bound on the collisions, the hits (the proof's digests against the verifier's queries only) and the flips (a challenge of the proof's own chain in a bad set of density at most `εquery`, `bad_density`) of BLAKE2s on the adversary's run, and the comparison with a random function becomes the corollary `blakeMisbehaves_of_comparison` (amends decision 34's form) | Layer 13; tests 36, 37, 40 |
 | 38. Adversaries draw no coins | an adversary is `OracleComp hashSpec Proof`, bounded by `IsTotalQueryBound`, and one with coins is a distribution over these | Layers 12, 13 |
 | 39. Merkle binding by log replay | the rows are read top-down off the adversary's log (`extractRows`, on `MerkleTree.fold`), `extract` reading a missing row as zero, and `binding_of_log` proves the opened rows equal to them unless the joint log shows a collision or a hit; VCVio's extraction is not consumed (amends decision 32) | Layer 12; the ledger |
-| 40. List binding through a decoder interface | the extractor list-decodes through `ListDecoder`, specified by WHIR's list relation at level 0's threshold and inhabited by brute force, with the `exactFast` path proved to agree and faster decoders as further inhabitants | Layer 12; *Extractors*; test 24 |
+| 40. List binding through a decoder interface | the extractor list-decodes through `ListDecoder`, specified by WHIR's list relation at level 0's threshold with no repetition, and inhabited by brute force; the `exactFast` path proved to agree at every threshold from `2^κ` to `2^{κ+R}` (`ListDecoder.exactFirst`), and faster decoders as further inhabitants. The committed word is a `K` word (`KWord`), so every member of its list is a stack (`isInK_of_cl`), read in `E` for WHIR by the zero-round `openInput`; `relist` takes the front component over the new oracles (`F'`) and a `List` with a length bound; the compilation takes the height equation `hμ : κ + sh.ℓ = I.μ` | Layer 12; *Extractors*; test 24 |
 | 41. leanISA's trace through an interface | the execution-level headline takes `TraceExtraction prog`, which leanISA declares beside `SatisfiedBy` and inhabits, and the witness-level headline is stated without it | Layer 13; *Boundaries* |
 
 Open:
