@@ -9,10 +9,10 @@ public import VCVio.OracleComp.QueryTracking.WriterCost
 # leanXMSS
 
 The leanXMSS scheme (key generation, signing, verification over a hash oracle `H`), the SUF-CMA
-game of `Statement/RandomPermutation.lean` instantiated with it, and the end statement:
-`LeanXmss.Rpm.LeanXmssRpmSecurityStatement`, in the random-permutation model, an adversary whose
-game makes at most `Q` permutation calls, `1 ≤ Q ≤ 2^128`, forges with probability at most
-`(Q + 1) · 2^-127`. Proved by `XmssSecurity.leanXmss_rpm_security` (`lean_xmss`).
+game of `Statement/RandomPermutation.lean` instantiated with it, and the end statement
+`LeanXmss.Rpm.LeanXmssRpmSecurityStatement`, proved by `XmssSecurity.leanXmss_rpm_security`
+(`lean_xmss`). Its budget `Q` counts the honest signer's permutation calls too, at their worst
+case: about `2^33` per signing request, so with all `2^32` leaves used the bound is about `2^-62`.
 -/
 
 @[expose] public section
@@ -126,7 +126,7 @@ def bytesLE (byteCount : Nat) (value : BitVec (8 * byteCount)) : List UInt8 :=
   List.ofFn fun index : Fin byteCount =>
     UInt8.ofBitVec (value.extractLsb' (8 * index.val) 8)
 
-/-- The address of a hash call (`Tweak` in `crates/signatures/src/lean_xmss`): its type `tag < 32`, a chain step
+/-- The address of a hash call (`Tweak`, `crates/signatures/src/tweak.rs`): its type `tag < 32`, a chain step
 `step < 8`, and two fields `hi < 2^24` and `lo < 2^32`. -/
 structure TweakFields where
   tag : BitVec 5
@@ -525,32 +525,14 @@ noncomputable def scheme :
   win log forgery :=
     decide (SigningTranscript.Valid log ∧ ¬SigningTranscript.Contains log forgery)
 
-/-- An adversary in the random-permutation model: private coins, Keccak-256 (32 bytes), `π`,
-`π⁻¹` and the signing oracle. -/
-structure Adversary where
-  main : PublicKey → OracleComp (KSpec + SigningSpec) Forgery
-
-/-- The game: the master seed, key generation, the adversary with the signing oracle, the final
-verification, all hashing with Keccak-256 over the permutation. -/
-noncomputable def game (adversary : Adversary) : OracleComp KSpec Bool :=
-  rpmGame (digestBitVec : KDigest ≃ HashOutput) scheme adversary.main
-
-/-- The probability of a successful forgery against the lazily sampled random permutation. -/
-noncomputable def forgeAdvantage (adversary : Adversary) : ℝ≥0∞ :=
-  Pr{let b ← rpmExperiment (digestBitVec : KDigest ≃ HashOutput) scheme adversary.main}[b = true]
-
-/-- Every path of the game makes at most `Q` permutation calls, the sponge's included. -/
-def HasPermutationBound (adversary : Adversary) (Q : Nat) : Prop :=
-  IsWeightBound (game adversary) permCalls Q
-
-/-- Every adversary whose game makes at most `Q` permutation calls, `1 ≤ Q ≤ 2^128`, wins with
-probability at most `(Q + 1) · 2^-bits`. -/
-def HasRpmSecurityBits (bits : Nat) : Prop :=
-  ∀ Q, 1 ≤ Q → Q ≤ 2 ^ 128 → ∀ adversary, HasPermutationBound adversary Q →
-    forgeAdvantage adversary ≤ ((Q : ℝ≥0∞) + 1) * (2 : ℝ≥0∞)⁻¹ ^ bits
-
-/-- The security claim in the random-permutation model. -/
-abbrev LeanXmssRpmSecurityStatement : Prop := HasRpmSecurityBits 127
+/-- **leanXMSS in the random-permutation model**: an adversary whose game makes at most `Q`
+permutation calls, `1 ≤ Q ≤ 2^128`, forges with probability at most `(Q + 1) · 2^-127`
+(`RpmSecure` at 127 bits). `Q` counts every call on the game's worst path, the honest signer's
+included (`IsWeightBound` is structural): a signing request costs about `2^33` calls (each layer's
+`2^32` grinding trials, and the paths and the bottom root rebuilt, about `2^25`), so `Q ≥ 2^65`
+once the adversary uses all `2^32` leaves, where the bound is about `2^-62`. -/
+abbrev LeanXmssRpmSecurityStatement : Prop :=
+  RpmSecure (digestBitVec : KDigest ≃ HashOutput) scheme 127
 
 end Rpm
 

@@ -12,29 +12,11 @@ public import VCVio.EvalDist.Monad.UniformTable
 /-!
 # Keccak and the random-permutation model
 
-Read first. Keccak-f[1600] and Keccak-256 as leanVM computes them, and the random-permutation model
-(RPM) every end statement with an adversary is stated in: one uniformly random permutation `π` of
-the 1600-bit Keccak state, which every party queries forward (`π x`) and inverse (`π⁻¹ y`),
-Keccak-256 the sponge over `π`.
-
-* **Keccak as deployed** (namespaces `LeanVM.Parameters`, `LeanVM.Semantics`, `LeanVM.Protocol`):
-  Keccak-f[1600] (`keccakF`) on `25` lanes of `64` bits, and Keccak-256 (`KeccakHash.keccak256`),
-  transcribed from `python-verifier/verifier.py` at leanVM `94ee12ff6b2a3d42ba8328e22d09443692e4800b`.
-* **The model** (namespace `Common`): a query to a permutation (`PermQuery`, `permSpec`), the
-  lazily sampled uniform permutation (`lazyPerm`: a fresh answer uniform among the points not yet
-  used), the sponge over any permutation on the 200-byte state (`spongeWith`, `KState`) with
-  Keccak-256's padding (`keccakPadding`), the hash as the sponge over the lazily sampled
-  permutation (`realImpl`, `realGame`), a bound on a cost along every path of a computation
-  (`IsWeightBound`), the Keccak-256 evaluations a transcript of permutation queries contains
-  (`pathsOf`), and the SUF-CMA game of a hash-based signature scheme (`SufCma.rpmGame`,
-  `rpmExperiment`, its permutation calls `permCalls`).
-* **Games with the verifier's direct calls** (the last sections): a game made of an honest part, an
-  adversary with Keccak-256, `π` and `π⁻¹`, and a verifier that hashes and calls `π` directly
-  (`rpmGame2`, over the oracles `dSpec2`), run against the lazily sampled permutation
-  (`realGame2`). LeanDA's games (`Statement/LeanDa.lean`) are of this form.
-
-Not definitions: `keccakPadding` carries the padding's laws, so the six lemmas before it
-(`keccakPad_ne_nil`, `keccakUnpad_keccakPad` and what they use) are proved here.
+Read first (`Statement/README.md` states the model): Keccak-f[1600] and Keccak-256 as leanVM
+computes them (namespaces `LeanVM.*`), then the model (namespace `Common`): `π` and `π⁻¹` lazily
+sampled, the sponge over a permutation, a cost bounded on every path, the SUF-CMA game of a
+signature scheme (`SufCma`), and the games with the verifier's direct calls of `π`
+(`rpmGame2`, `realGame2`), the form of LeanDA's games.
 -/
 
 @[expose] public section
@@ -55,10 +37,7 @@ the permutation `keccak_f` (`verifier.py:360-375`), and the hash `keccak_hash`
 with `0x01 ‖ 0^* ‖ 0x80` (FIPS 202's SHA3-256 would put `0x06` first). The Rust is
 `crates/verifier/src/hash.rs` and `crates/primitives/src/hash.rs`.
 
-A state is `25` lanes of `64` bits, lane `x + 5y` at index `x + 5y`. A lane is a `UInt64` here
-and a `K` word inside the machine (`K.ofLane`, `K.lane`: bit `i` of the lane is the coefficient
-of `x^i`). Then the byte and field encodings the verifier hashes: a `K` word as eight
-little-endian bytes, the Merkle leaf and node hashes, and a digest as two field elements.
+A state is `25` lanes of `64` bits, lane `x + 5y` at index `x + 5y`.
 -/
 
 namespace LeanVM.Parameters
@@ -252,8 +231,7 @@ noncomputable def lazyPerm : QueryImpl (permSpec S) (StateT (PermLog S) ProbComp
 
 /-! ## The sponge over a permutation; Keccak-256's state, blocks and padding -/
 
-/-- A type with an exclusive-or (`XorOp`): absorbing a block XORs it into the state. Byte vectors
-XOR bytewise. -/
+/-- Byte vectors XOR bytewise: absorbing a block XORs it into the state. -/
 instance (n : ℕ) : XorOp (Vector UInt8 n) where
   xor a b := Vector.zipWith (· ^^^ ·) a b
 
@@ -283,8 +261,9 @@ def absorbAll {m : Type → Type} [Monad m] (π : SpState Dg E C → m (SpState 
     absorbAll π y bs
 
 
-/-- A sponge padding: an injective map from messages to nonempty lists of blocks, with a decoder
-that recognises exactly the padded messages. -/
+/-- A sponge padding: messages to lists of blocks, with a decoder. The statement uses only `pad`
+and `unpad`; the laws (`Padding.Lawful`: the decoder recognises exactly the paddings, which are
+nonempty) are proved for `keccakPadding` in `common`. -/
 structure Padding (Msg Blk : Type) where
   /-- The padded message, as a list of blocks. -/
   pad : Msg → List Blk
@@ -374,16 +353,12 @@ def IsWeightBound {ι : Type} {spec : OracleSpec.{0, 0} ι} {α : Type} (oa : Or
     (w : ι → ℕ) (Q : ℕ) : Prop :=
   IsQueryBound oa Q (fun t b ↦ w t ≤ b) (fun t b ↦ b - w t)
 
-/-! ## Bytes as `Fin 256` -/
-
 /-- A byte as a residue. -/
 def uInt8EquivFin : UInt8 ≃ Fin 256 where
   toFun b := b.toFin
   invFun f := UInt8.ofFin f
   left_inv _ := rfl
   right_inv _ := rfl
-
-/-! ## A hash query -/
 
 /-- A query of `hs` among coins and `hs`. -/
 abbrev hq {ι : Type} [DecidableEq ι] {hs : OracleSpec.{0, 0} ι}
@@ -603,6 +578,14 @@ def permCalls : KSpec.Domain → ℕ
   | .inl _ => 0
   | .inr (.inl m) => m.length / 136 + 1
   | .inr (.inr _) => 1
+
+/-- **`bits` bits of SUF-CMA security in the random-permutation model**: every adversary `main`
+(coins, Keccak-256, `π`, `π⁻¹` and the signing oracle) whose game makes at most `Q` permutation
+calls on every path, `1 ≤ Q ≤ 2^128`, wins with probability at most `(Q + 1) · 2^-bits`. -/
+def RpmSecure (S : Scheme D Seed PK SK Req Resp F) (bits : ℕ) : Prop :=
+  ∀ Q, 1 ≤ Q → Q ≤ 2 ^ 128 → ∀ main : PK → OracleComp (KSpec + (Req →ₒ Resp)) F,
+    IsWeightBound (rpmGame e S main) permCalls Q →
+      Pr{let b ← rpmExperiment e S main}[b = true] ≤ ((Q : ℝ≥0∞) + 1) * (2 : ℝ≥0∞)⁻¹ ^ bits
 
 end SufCma
 

@@ -30,37 +30,11 @@ reductions) and his proofs in `lean_da/PqDas/`. The instantiation with LeanDA (`
 his framework, and the end statements are his completeness and binding notions moved to the
 random-permutation model.
 
-* **The scheme** (`LeanDa`): the fields, the Reed–Solomon encoding of the rows, the Merkle
-  commitment of the cells and the membership test, and the crate's deployed algorithms.
-* **Wagner's framework** (`PqDas`): erasure codes and the consistency of opened cells
-  (`ErasureCode.Consistent`), arguments of knowledge (`Nark`); LeanDA's code (`LeanDa.code`), the
-  relation its argument proves (`Relation`) and its arguments (`Argument`).
-* **The verifier over a permutation** (`LeanDa.verifyCellM`, `commitCellsM`,
-  `membershipChallengesM`): the opening's check, the commitment and the challenges' duplex with the
-  hash and the permutation as oracles.
-* **The games in the random-permutation model** (`posBindingExpRpm`, `codeBindingExpRpm`,
-  `ksExpRpm`, `completenessExpRpm`): `H` is Keccak-256 over `π`, the membership challenges the
-  deployed duplex over `π`, the adversary querying Keccak-256, `π` and `π⁻¹`; the argument's
-  knowledge soundness with the relation over `π`; completeness for each permutation `π`
-  (`keccakWith`, `permImpl`). No random oracle appears.
-* **The end statements** (last section): `LeanDa.PerfectlyCompleteRpm`,
-  `LeanDa.PositionBindingRpm`, `LeanDa.CodeBindingRpm`. Proved by
-  `LeanDa.leanDa_perfectlyComplete_rpm`, `leanDa_positionBinding_rpm` and
-  `leanDa_codeBinding_rpm_bound` (`lean_da`).
-
-**What code binding says.** `CodeBindingRpm` is conditional: if the argument is knowledge sound in
-the random-permutation model, with error `(q + c) · 2^-k` for adversaries of `q ≤ 2^128`
-permutation calls, LeanDA is code binding with error `(Q + c + 2^22) · 2^-k` plus explicit terms
-in `Q`. The hypothesis is the only term that depends on the argument. The argument (`Nark`)
-proves a relation that hashes with Keccak-256 over `π`, but its prover and verifier do not call
-`π`; so the hypothesis holds only for an argument that has, or simulates, access to `π`, and an
-oracle-free argument that accepts anything does not satisfy it. An argument complete for every
-`π` (as `PerfectlyCompleteRpm` asks) accepts false statements, so completeness and code binding
-cannot both be meaningful for one argument. The same holds in Wagner's random-oracle original.
-Giving the argument oracle access would close this; it is not done.
-
-Not definitions: the three `Statement.Fast` imports only make the compiled field arithmetic and
-Keccak fast (proved `@[csimp]` lemmas, `Fast/`); they change no definition.
+The file: Wagner's framework (`PqDas`: erasure codes and the consistency of opened cells,
+arguments of knowledge), LeanDA (`LeanDa`: the code, the commitment, the membership test, the
+deployed algorithms), the verifier over a permutation, the games in the random-permutation model
+(`H` Keccak-256 over `π`, the membership challenges the deployed duplex over `π`; no random
+oracle), and the end statements (last section).
 -/
 
 @[expose] public section
@@ -162,10 +136,8 @@ The erasure code commitment of `crates/lean_da` at leanVM
   additive NTT interpolates, the forward one evaluates, so the payload is the codeword's first
   half. Both transforms compute these maps (Annex D, Proposition prop:ntt); they are not
   transcribed here.
-* **Cells** (`lib.rs:23-39`). A codeword is `128` cells of `256` symbols, cell `j` its symbols
-  `256 j … 256 j + 255`. A matrix of `r` codewords has `128 r` cells, cell `j` of row `i` at
-  position `128 i + j`: the positions of the erasure code commitment are the cells sampling
-  opens.
+* **Cells** (`lib.rs:23-39`). A codeword is `128` cells of `256` symbols; cell `j` of row `i` is
+  at position `128 i + j`, the positions of the erasure code commitment.
 * **The commitment** (`commit.rs:55-151`). The rows are padded to `2^⌈log₂ r⌉` with zero
   codewords. A cell's digest is the hash of its symbols' little-endian bytes (`hash_cells`). The
   row tree is the Merkle tree over each row's digest of its first `64` cell digests (the payload),
@@ -176,7 +148,7 @@ The erasure code commitment of `crates/lean_da` at leanVM
 * **Openings.** A cell is opened by its authentication path in the column tree and the row root.
   The crate keeps the column tree for this (`DaWitness::column_tree`, `commit.rs:23-45`), whose
   level `⌈log₂ r⌉` holds the column roots (`column_roots`), but verifies no sample:
-  `verifyCell` is the check this path determines.
+  `verifyCellM` is the check this path determines.
 * **Membership** (`membership.rs:33-83`, `verifier/src/da.rs:15-85`). Challenges `z ∈ E^14` give
   the dual codeword `L`, the tensor `⊗_j (1, z_j)` read as novel-basis coefficients and encoded,
   that is `L(x) = ∏_j (1 + z_j Ŵ_j(x))` on the domain (Annex D, eq. dual-product), with
@@ -185,26 +157,13 @@ The erasure code commitment of `crates/lean_da` at leanVM
   `da_verify`). The challenges are drawn from the root by a duplex sponge over Keccak-f[1600]
   seeded with the label's hash (`membership_challenges`); the end statements draw them by this
   duplex over the permutation (`membershipChallengesM`).
-* **The deployed algorithms** (`commit.rs:55-145`, `verifier/src/da.rs:15-96`,
-  `verifier/src/transcript.rs:32-95`). The crate's computations, transcribed computably on lists,
-  for `lean_vm` to state the aggregation node's DA claim with: `commitCodewords`, the commitment
-  level by level, which is `commitCells` of the matrix (`commitCodewords_eq_commitCells`,
-  `LeanDa.Commitment`); the challenges' sponge (`Sponge`, `membershipChallenges`); the dual
-  codeword by the additive NTT (`membershipVector`), which computes `dual`
-  (`membershipVector_eq_dual`, `LeanDa.Dual`); and the vector's digest, the hash of its `128`
-  columns' hashes (`vectorDigest`).
 
-The row count `r` is a parameter. The crate takes `1 ≤ r ≤ 1024` (`row_count`, `lib.rs:41-46`);
-the statements hold for every `r ≥ 1`. The deployed algorithms take the hash `H` and the sponge's
-permutation `P` as parameters: the crate's are Keccak-256 (Ethereum's: rate `136` bytes, padding
-`0x01 ‖ 0^* ‖ 0x80`, `verifier/src/hash.rs:79-97`) and the Keccak-f[1600] it is built on, which
-`lean_vm` supplies for the aggregation node's DA claim. The end statements are in the
-random-permutation model: `H` is Keccak-256 over a permutation `π` and `P` is `π` itself
-(`keccakWith`, `permImpl`, the last sections), with `π` uniformly random for the binding
-statements and arbitrary for completeness.
-
-Part of `lean_da`, which instantiates Benedikt Wagner's framework for erasure code commitments
-(`PqDas`, ported from https://github.com/b-wagn/fv-pq-da) with LeanDA.
+The row count `r` is a parameter: the crate takes `1 ≤ r ≤ 1024` (`row_count`, `lib.rs:41-46`);
+completeness and position binding hold for every `r`, code binding for `1 ≤ r ≤ 1024`
+(`maxRows`). The deployed algorithms (last of this part, for `lean_vm`'s DA claims) take the hash
+`H` and the sponge's permutation `P` as parameters: the crate's are Keccak-256
+(`verifier/src/hash.rs:79-97`) and Keccak-f[1600]; in the end statements `H` is Keccak-256 over
+`π` and `P` is `π` itself.
 -/
 
 /-- A digest of the hash, 32 bytes (`fiat_shamir::merkle::Hash`, `[u8; 32]`). -/
@@ -468,50 +427,54 @@ structure Sponge where
 def rateWords (pending : List (E × K)) : List K :=
   pending.flatMap fun x ↦ [limb x.1 0, limb x.1 1, limb x.1 2, x.2]
 
+/-! The sponge, the challenges and the openings' check over a hash `H` and a permutation `P` in
+any monad: the games' oracles, or pure functions over `Id`. -/
+
 section Monadic
 
 variable {m : Type → Type} [Monad m] (H : List UInt8 → m Digest) (P : Lanes → m Lanes)
 
 /-- The lanes a duplexing permutes: the waiting scalars over the rate, the rest of the rate zero,
-the capacity kept (`Sponge.duplex`). -/
+the capacity kept. -/
 def duplexInput (s : Sponge) : Lanes :=
   Vector.ofFn fun i : Fin 25 ↦
     if (i : ℕ) < rateLanes then (rateWords s.pending).getD i 0 else s.state[i]
 
-/-- The lanes of a fresh sponge (`Sponge.new`). -/
+/-- The lanes of a fresh sponge: the IV's words in lanes `0 … 3`, the public input's in `4 … 7`. -/
 def newInput (iv publicInput : Digest) : Lanes :=
   Vector.ofFn fun i : Fin 25 ↦
     if (i : ℕ) < 4 then word iv i else if (i : ℕ) < 8 then word publicInput (i - 4) else 0
 
-/-- `Sponge.new` over an oracle. -/
+/-- A sponge seeded with one permutation of `newInput` (`Sponge::new`). -/
 def Sponge.newM (iv publicInput : Digest) : m Sponge := do
   let state ← P (newInput iv publicInput)
   pure ⟨state, []⟩
 
-/-- `Sponge.fromLabel` over oracles. -/
+/-- A sponge with no public input of its own, seeded from the hash of `label`
+(`Sponge::from_label`). -/
 def Sponge.fromLabelM (label : List UInt8) : m Sponge := do
   let iv ← H label
   Sponge.newM P iv (Vector.replicate 32 0)
 
-/-- `Sponge.duplex` over an oracle. -/
+/-- Permute `duplexInput` (`duplex`). -/
 def Sponge.duplexM (s : Sponge) : m Sponge := do
   let state ← P (duplexInput s)
   pure ⟨state, []⟩
 
-/-- `Sponge.absorb` over an oracle. -/
+/-- Absorb a scalar with a tag, permuting first when `rateScalars` wait (`absorb`). -/
 def Sponge.absorbM (s : Sponge) (x : E) (tag : K) : m Sponge :=
   (if s.pending.length = rateScalars then Sponge.duplexM P s else pure s) >>= fun s ↦
     pure ⟨s.state, s.pending ++ [(x, tag)]⟩
 
-/-- `Sponge.observe` over an oracle. -/
+/-- Observe a scalar (`observe`). -/
 def Sponge.observeM (s : Sponge) (x : E) : m Sponge := Sponge.absorbM P s x dsObserve
 
-/-- `Sponge.sample` over an oracle. -/
+/-- Draw a challenge: a permutation of its own, whose lanes `0 … 2` are its limbs (`sample`). -/
 def Sponge.sampleM (s : Sponge) : m (E × Sponge) := do
   let s ← Sponge.duplexM P s
   pure (ofLimbs s.state[0] s.state[1] s.state[2], s)
 
-/-- `Sponge.samples` over an oracle. -/
+/-- `n` challenges, in order. -/
 def Sponge.samplesM : ℕ → Sponge → m (List E)
   | 0, _ => pure []
   | n + 1, s => do
@@ -519,22 +482,24 @@ def Sponge.samplesM : ℕ → Sponge → m (List E)
     let zs ← Sponge.samplesM n s
     pure (z :: zs)
 
-/-- **The challenges of a root** (`membershipChallenges`) over oracles. -/
+/-- **The challenges `z_0 … z_13` of a root** (`membership_challenges`, `verifier/src/da.rs:15-22`):
+a sponge from the label, the root's words observed as two scalars `(w_0, w_1, 0)` and
+`(w_2, w_3, 0)`, then `14` samples. -/
 def membershipChallengesM (root : Digest) : m (List E) := do
   let s ← Sponge.fromLabelM H P label
   let s ← Sponge.observeM P s (ofLimbs (word root 0) (word root 1) 0)
   let s ← Sponge.observeM P s (ofLimbs (word root 2) (word root 3) 0)
   Sponge.samplesM P logK s
 
-/-- `walk` over an oracle. -/
+/-- Climb from `node` at index `idx` along the siblings `path`. -/
 def walkM : ℕ → Digest → List Digest → m Digest
   | _, node, [] => pure node
   | idx, node, s :: rest => do
     let d ← H (if idx % 2 = 0 then pairBytes node s else pairBytes s node)
     walkM (idx / 2) d rest
 
-/-- **Verification of a cell opening** (`verifyCell`) over an oracle: every hash of the climb is
-computed, then the checks. -/
+/-- **Verification of a cell opening**: a path of the column tree's height that climbs from the
+cell's digest to a column root, which hashed after the row root gives the commitment. -/
 def verifyCellM (r : ℕ) (com : Digest) (p : Fin (r * 128)) (x : Cell) (τ : Opening) : m Bool := do
   let d ← H (cellBytes x)
   let w ← walkM H (colIndex p) d τ.path
@@ -581,8 +546,7 @@ end Monadic
 
 variable (H : List UInt8 → Digest) (P : Lanes → Lanes)
 
-/-- **The challenges `z_0 … z_13` of a root** (`membership_challenges`, `verifier/src/da.rs:15-22`):
-`membershipChallengesM` with a pure hash and permutation. -/
+/-- The challenges of a root with a pure hash and permutation. -/
 def membershipChallenges (root : Digest) : List E :=
   Id.run (membershipChallengesM (fun a ↦ pure (H a)) (fun L ↦ pure (P L)) root)
 
@@ -830,11 +794,8 @@ perfectly complete argument `ps` for the relation with that hash: every position
 honest commitment to every message `msg` opens and verifies with probability one
 (`completenessExpRpm`, over the argument's setup). Holding for each `π`, it holds for every
 outcome of the binding statements' uniformly random permutation. The proof is Wagner's
-completeness proof, transferred. Proved by
-`LeanDa.leanDa_perfectlyComplete_rpm`. An argument complete for every `π` does not satisfy
-`CodeBindingRpm`'s hypothesis (it is not knowledge sound in the random-permutation model), so this
-and code binding are not both meaningful for one argument (the file's header, "What code binding
-says"). -/
+completeness proof, transferred. Proved by `LeanDa.leanDa_perfectlyComplete_rpm`. (Such an argument
+does not satisfy `CodeBindingRpm`'s hypothesis: see there.) -/
 abbrev PerfectlyCompleteRpm : Prop :=
   ∀ (r : ℕ) (π : KState → KState) {Crs Proof : Type} (ps : Argument r (keccakWith π) Crs Proof),
     ps.PerfectlyComplete →

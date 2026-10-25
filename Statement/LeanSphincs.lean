@@ -8,61 +8,38 @@ public import VCVio.OracleComp.QueryTracking.WriterCost
 /-!
 # leanSPHINCS
 
-The leanSPHINCS scheme for any key shape (`Params`: the kept subtree's height and the signature
-limit), the SUF-CMA game of `Statement/RandomPermutation.lean` instantiated with its
-deterministic signer, the proved lifetimes (`Sphincs.Lifetimes.full`, `pruned20`, …,
-`pruned8`), and the end statement: `Sphincs.Lifetimes.RequestedSecurityRpm`, at every proved
-lifetime, in the random-permutation model, an adversary whose game makes at most `Q`
-permutation calls, `1 ≤ Q ≤ 2^128`, forges with probability at most `(Q + 1) · 2^-127`. Proved by
-`Sphincs.Lifetimes.requestedSecurityRpm` (`lean_sphincs`).
+The scheme of `crates/signatures/src/lean_sphincs` (`wots.rs`, `forest.rs`, `scheme.rs`; the
+addresses in `crates/signatures/src/tweak.rs`), specified in `doc/lean_sphincs`, for any key
+shape (`Params`: the kept subtree's height `b` and the signature limit): one tree of height
+`h = 26` of WOTS+C keys (`v = 64` chains of 4 positions, target sum `T = 123`, §sec:ots), pruned
+to a kept subtree of height `b` with surrogate siblings (§sec:layer, §sec:pruning), the
+randomizer ground into the kept subtree and a counter for the encoding (§sec:sign), and under each
+leaf a WOTS forest (§sec:fts):
+
+* 8 trees of height 4 over 16 leaves, hashed up to height 3: the forest key is their sixteen
+  height-3 nodes, which no hash folds: the WOTS+C encoding absorbs them with its counter;
+* leaf `s` of a tree hashes the four height-2 nodes of its two subtrees of height 3;
+* a subtree leaf is a WOTS key of 6 chains of positions `0 … 4`; a codeword is `d ∈ {0..4}^6`
+  with `Σ d_i = 5`, named by an 8-bit index into the table `lut` (§sec:codewords);
+* one digest call gives `26 + 8 · 26 = 234` bits: the 16 codeword indices (bytes `0 … 15`), then
+  from bit 128 the index (26 bits), the 8 tree leaves (4 bits each) and the 16 subtree keys
+  (3 bits each, in the order `2c + j`).
+
+Every hash input is `P ‖ A ‖ payload` (§sec:parameters, §sec:tweaks), `P` the 16-byte public
+parameter and `A` the 16-byte address. Key generation hashes the seed `S0` into
+`S = H(leanSPHINCS ‖ S0)`, from which every secret derives. The message digest hashes `m ‖ ρ` (the
+root is not: `P` binds the key), the randomizer base `S ‖ m`.
+
+Then the SUF-CMA game of `Statement/RandomPermutation.lean` with the deterministic signer, the
+proved lifetimes (`Lifetimes.full`, `pruned20`, …, `pruned8`), and the end statement
+`Sphincs.Lifetimes.RequestedSecurityRpm`, proved by `Sphincs.Lifetimes.requestedSecurityRpm`
+(`lean_sphincs`). Its budget `Q` counts the honest signer's permutation calls too, at their worst
+case: about `2^35` per signature, so at the largest lifetime the bound is about `2^-62`.
 -/
 
 @[expose] public section
 
 open OracleComp OracleSpec ENNReal
-
-/-!
-## leanSPHINCS with a two-level WOTS forest
-
-The scheme of `SphincsFors.Scheme` (one height-26 tree of WOTS+C keys with 64 chains of length 4,
-pruning with surrogate siblings, randomizer grinding, tweakable hash with 16-byte outputs) with the
-WOTS+C target sum 123 where it has 120, and the few-time signature under each tree leaf replaced by
-a **two-level WOTS forest**:
-
-* 8 independent coordinates; a coordinate is a top Merkle tree of height 4 over 16 super-children,
-  hashed up to level 3 only: its two level-3 nodes `t_c[0]`, `t_c[1]` are not hashed into a root. The
-  forest key is the sixteen nodes `t_0[0], t_0[1], ..., t_7[0], t_7[1]` themselves, the message WOTS+C
-  signs: no hash folds them, and the WOTS+C encoding absorbs them with its counter,
-  `Th(enc(e), t_0[0] || t_0[1] || ... || t_7[0] || t_7[1] || ctr)`;
-* a sub-tree is a Merkle tree of height 3 over 8 children, hashed up to level 2 only; super-child `s`
-  is `Th(super(idx, c, s), m_0[0] || m_0[1] || m_1[0] || m_1[1])` where `m_j[0]`, `m_j[1]` are the two
-  level-2 nodes of sub-tree `j`;
-* a child is 6 hash chains of length 5: `x_{i,0}` is derived from the seed (one hash of the seed
-  gives the two starts `x_{2t,0}` and `x_{2t+1,0}`, its two 16-byte halves), `x_{i,t+1} = Th(x_{i,t})`,
-  and the child leaf hashes the 6 chain tops `x_{i,4}`;
-* a codeword is a deficit vector `d ∈ {0..4}^6` with `Σ d_i = 5` (246 of them); `lut` is a fixed list
-  of 256 of them (`codewordCodes`): the codewords sorted by decreasing `Σ d_i²`, then
-  lexicographically, entry `t` being codeword number `t mod 214`;
-* one digest call gives `26 + 8 · 26 = 234` bits. The first 16 bytes are the 16 codeword indices
-  (byte `2c + j` for sub-tree `j` of coordinate `c`); then, from bit 128, the index (26 bits), the 8
-  super-children (4 bits each, from bit 154) and the 16 children (3 bits each, from bit 186, in the
-  order `2c + j`). No field lies across two 64-bit words;
-* an opening reveals, per coordinate and sub-tree, `x_{i, 4 - d_i}` for the 6 chains and the 3 auth
-  nodes of the sub-tree, then the 4 auth nodes of the top tree. The last auth node of a tree is its
-  other top node: the verifier folds all levels but the last and hashes the two top nodes, in index
-  order, into the hash above.
-
-Everything that is not the forest (parameters, WOTS+C, the tree, pruning, grinding, key generation)
-is `SphincsFors.Scheme` verbatim, but for the target sum and the scheme seed: key generation first hashes the key's
-seed `S0` into `S = H(leanSPHINCS || S0)`, and everything else derives from `S`. Every other hash
-input is `P || A || payload`: the 16-byte public parameter, then the 16-byte address of the call (a
-32-bit field `lo`, a 24-bit field `hi`, one byte holding the type and a chain step, then 8 zero
-bytes), so the payload starts at byte 32. Forest hashes use types 14 (secret derivation) and 15 to
-19, with the instance `idx` in `lo` and the position inside the instance in `hi`; type 20 (`roots`,
-the former forest-key hash) is not hashed. The message digest hashes `m || rho` (the root is not
-hashed: `P` binds the key), 80 bytes in one block, and the randomizer base `S || m`: the
-randomizer, which changes between two grinding attempts, comes last.
--/
 
 namespace Sphincs
 
@@ -268,7 +245,7 @@ def bytesLE (byteCount : Nat) (value : BitVec (8 * byteCount)) : List UInt8 :=
   List.ofFn fun index : Fin byteCount =>
     UInt8.ofBitVec (value.extractLsb' (8 * index.val) 8)
 
-/-- The address of a hash call (`Tweak` in `crates/signatures/src/lean_sphincs`): its type `tag < 32`, a chain step
+/-- The address of a hash call (`Tweak`, `crates/signatures/src/tweak.rs`): its type `tag < 32`, a chain step
 `step < 8`, and two fields `hi < 2^24` and `lo < 2^32`. -/
 structure TweakFields where
   tag : BitVec 5
@@ -1065,55 +1042,20 @@ noncomputable def scheme :
   win log forgery :=
     decide (SigningTranscript.Valid log ∧ ¬SigningTranscript.Contains log forgery)
 
-/-- An adversary in the random-permutation model: private coins, Keccak-256 (32 bytes), `π`,
-`π⁻¹` and the signing oracle. -/
-structure Adversary where
-  main : PublicKey → OracleComp (KSpec + SigningSpec) Forgery
-
-/-- The game: the seed, key generation, the adversary with the signing oracle, the final
-verification, all hashing with Keccak-256 over the permutation. -/
-noncomputable def game (adversary : Adversary) : OracleComp KSpec Bool :=
-  rpmGame (digestBitVec : KDigest ≃ HashOutput) scheme adversary.main
-
-/-- The probability of a successful forgery against the lazily sampled random permutation. -/
-noncomputable def forgeAdvantage (adversary : Adversary) : ℝ≥0∞ :=
-  Pr{let b ← rpmExperiment (digestBitVec : KDigest ≃ HashOutput) scheme adversary.main}[b = true]
-
-/-- Every path of the game makes at most `Q` permutation calls, the sponge's included. -/
-def HasPermutationBound (adversary : Adversary) (Q : Nat) : Prop :=
-  IsWeightBound (game adversary) permCalls Q
-
-/-- Every adversary whose game makes at most `Q` permutation calls, `1 ≤ Q ≤ 2^128`, wins with
-probability at most `(Q + 1) · 2^-bits`. -/
-def HasRpmSecurityBits (bits : Nat) : Prop :=
-  ∀ Q, 1 ≤ Q → Q ≤ 2 ^ 128 → ∀ adversary, HasPermutationBound adversary Q →
-    forgeAdvantage adversary ≤ ((Q : ℝ≥0∞) + 1) * (2 : ℝ≥0∞)⁻¹ ^ bits
-
 end Rpm
 
-/-! ## The proved lifetimes -/
+/-! ## The proved lifetimes: `⟨b, N, _⟩`, subtree height `b` and `N` signatures -/
 
 namespace Lifetimes
 
-/-- Subtree height 26, 1383000000 signatures (96.1% of the cover attack's 1.44e+09; the FORS variant: 1156000000). -/
+open Common.SufCma
+
 abbrev full : Params := ⟨26, 1383000000, by decide⟩
-
-/-- Subtree height 20, 26030000 signatures (91.3% of the cover attack's 2.851e+07; the FORS variant: 22380000). -/
 abbrev pruned20 : Params := ⟨20, 26030000, by decide⟩
-
-/-- Subtree height 14, 480900 signatures (86.3% of the cover attack's 5.575e+05; the FORS variant: 412500). -/
 abbrev pruned14 : Params := ⟨14, 480900, by decide⟩
-
-/-- Subtree height 13, 247000 signatures (85.5% of the cover attack's 2.89e+05; the FORS variant: 211900). -/
 abbrev pruned13 : Params := ⟨13, 247000, by decide⟩
-
-/-- Subtree height 12, 126900 signatures (84.7% of the cover attack's 1.498e+05; the FORS variant: 108700). -/
 abbrev pruned12 : Params := ⟨12, 126900, by decide⟩
-
-/-- Subtree height 10, 33490 signatures (83.3% of the cover attack's 4.022e+04; the FORS variant: 28600). -/
 abbrev pruned10 : Params := ⟨10, 33490, by decide⟩
-
-/-- Subtree height 8, 8830 signatures (81.9% of the cover attack's 1.078e+04; the FORS variant: 7530). -/
 abbrev pruned8 : Params := ⟨8, 8830, by decide⟩
 
 /-! ### The end statement -/
@@ -1121,17 +1063,20 @@ abbrev pruned8 : Params := ⟨8, 8830, by decide⟩
 /-- **leanSPHINCS in the random-permutation model, at every proved lifetime**: at each subtree
 height (`b` = 26, 20, 14, 13, 12, 10, 8, the instances `full`, `pruned20`, …, `pruned8` with
 their signature limits), an adversary whose game makes at most `Q` permutation calls,
-`1 ≤ Q ≤ 2^128`, forges with probability at most `(Q + 1) · 2^-127`
-(`Rpm.HasRpmSecurityBits 127`). Proved by
-`Sphincs.Lifetimes.requestedSecurityRpm`. -/
+`1 ≤ Q ≤ 2^128`, forges with probability at most `(Q + 1) · 2^-127` (`RpmSecure` at 127 bits).
+`Q` counts every call on the game's worst path, the honest signer's included (`IsWeightBound` is
+structural): a signature costs about `2^35` calls at `b = 26` (`2^32` grinding attempts of one
+call, `2^32` encoding counters of three, and `treePath` rebuilding the kept subtree, about
+`2^33.9`), so at the largest lifetime, `N ≈ 2^30.4` signatures, `Q ≥ 2^65` and the bound is about
+`2^-62`. Proved by `Sphincs.Lifetimes.requestedSecurityRpm`. -/
 abbrev RequestedSecurityRpm : Prop :=
-  @Rpm.HasRpmSecurityBits full 127 ∧
-  @Rpm.HasRpmSecurityBits pruned20 127 ∧
-  @Rpm.HasRpmSecurityBits pruned14 127 ∧
-  @Rpm.HasRpmSecurityBits pruned13 127 ∧
-  @Rpm.HasRpmSecurityBits pruned12 127 ∧
-  @Rpm.HasRpmSecurityBits pruned10 127 ∧
-  @Rpm.HasRpmSecurityBits pruned8 127
+  RpmSecure digestBitVec (@Rpm.scheme full) 127 ∧
+  RpmSecure digestBitVec (@Rpm.scheme pruned20) 127 ∧
+  RpmSecure digestBitVec (@Rpm.scheme pruned14) 127 ∧
+  RpmSecure digestBitVec (@Rpm.scheme pruned13) 127 ∧
+  RpmSecure digestBitVec (@Rpm.scheme pruned12) 127 ∧
+  RpmSecure digestBitVec (@Rpm.scheme pruned10) 127 ∧
+  RpmSecure digestBitVec (@Rpm.scheme pruned8) 127
 
 end Lifetimes
 

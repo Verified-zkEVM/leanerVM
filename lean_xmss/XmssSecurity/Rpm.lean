@@ -61,8 +61,8 @@ permutation calls on every path, `1 ≤ Q ≤ 2^128`, forges with probability at
 `(Q + 1) · 2^-127`: `Q / 2^127 + Q² / 2^509` (`rpm_bound_perm`), at most `(Q + 1) · 2^-127`
 under the cap (`Common.bits_add_sq_le`). -/
 theorem leanXmss_rpm_security : LeanXmss.Rpm.LeanXmssRpmSecurityStatement :=
-  fun Q hQ hcap adversary hbound ↦
+  fun Q hQ hcap main hbound ↦
     (rpm_bound_perm (digestBitVec : KDigest ≃ LeanXmss.HashOutput) LeanXmss.Rpm.scheme 127
-      romBound adversary.main Q hQ hbound).trans (Common.bits_add_sq_le hcap (by norm_num))
+      romBound main Q hQ hbound).trans (Common.bits_add_sq_le hcap (by norm_num))
 
 end XmssSecurity

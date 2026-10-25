@@ -19,13 +19,15 @@ namespace `Common`; the files below keep their proofs and the definitions only t
 random-oracle games, the ideal worlds, the simulators of the one- and two-oracle transfers, the
 duplex and its simulator in `Common/SimDefs.lean`, `lazyFun`, …).
 
-
 - `Common/Model.lean`: the permutation oracle (`permSpec`: `π` and `π⁻¹`), the lazily sampled
   random permutation (`lazyPerm`) and its validity (a partial permutation, extendable to a
   permutation), the lazily sampled random function (`lazyFun`).
-- `Common/Sponge.lean`: the sponge over an arbitrary `π : S → m S` (`spongeWith`), its
-  Keccak-256 instance `keccak256With` (rate 136 bytes, capacity 512 bits, padding
-  `0x01 ‖ 0* ‖ 0x80`, the first 32 bytes as digest), Keccak-f[1600] (`keccakF`) and test vectors.
+- `Common/Sponge.lean`: the sponge over an arbitrary `π : S → m S` (`spongeWith`), the laws the
+  proofs need of its XOR and padding (`XorCancel`, `Padding.Lawful`; the statement uses only `^^^`,
+  `pad` and `unpad`), Keccak-256's padding's laws (its six lemmas, the instance for
+  `keccakPadding`), its Keccak-256 instance `keccak256With` (rate 136 bytes, capacity 512 bits,
+  padding `0x01 ‖ 0* ‖ 0x80`, the first 32 bytes as digest), Keccak-f[1600] (`keccakF`) and test
+  vectors.
 - `Common/Indiff/`: indifferentiability. `Defs.lean` has the real world (`realGame`), the
   simulator (`simulator`) and the ideal world (`idealGame`); `Main.lean` has the theorem.
 - `Common/Transfer.lean`: the ROM-to-RPM transfer, and `pathsOf`.
