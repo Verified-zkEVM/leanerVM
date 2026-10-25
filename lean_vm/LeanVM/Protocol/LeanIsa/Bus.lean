@@ -346,7 +346,7 @@ theorem bytecodeTable_messages (idx cnt opc o₁ o₂ o₃ o₄ o₅ o₆ o₇ o
 theorem verifier_messages (prog : Program) (env : Environment K) :
     ((leanIsaEnsemble prog).verifierTable.operations.interactionValues env).map
         (fun i ↦ (i.channel.name, i.msg)) =
-      [(StatePush.name, #[1, 1]), (StatePull.name, #[prog.finalPc, 1])] := by
+      [(StatePush.name, #[1, 1]), (StatePull.name, #[prog.pcFinal, 1])] := by
   rw [Air.Flat.Component.interactionsValues_eq]
   simp [Operations.interactionValues, Air.Flat.Component.rowOperations, leanIsaEnsemble,
     leanIsaVerifier, Ensemble.verifierTable, circuit_norm, AbstractInteraction.eval,
@@ -547,7 +547,7 @@ theorem boundaryTuples_push :
 /-- The pull side's boundary tuples: the final state, the memory finalize, the bytecode finalize. -/
 theorem boundaryTuples_pull :
     (leanIsaInstance prog s).boundaryTuples q .pull =
-      [tupleOf (gpow 0) #[prog.finalPc, 1]] ++
+      [tupleOf (gpow 0) #[prog.pcFinal, 1]] ++
       ((List.finRange (2 ^ s.logMem)).map fun x : Fin (2 ^ s.logMem) ↦
         tupleOf (gpow 1) (#[gpow x, cell prog s q (memCol 3) x] ++ (memLimbs s q x).toArray)) ++
       ((List.finRange (2 ^ prog.logSize)).map fun i : Fin (2 ^ prog.logSize) ↦
@@ -633,7 +633,7 @@ theorem tuplesOn_bytecodeBlock {w : EnsembleWitness (leanIsaEnsemble prog)} (h :
 /-- The verifier flushes the initial state and pulls the final state. -/
 theorem tuplesOn_verifier (w : EnsembleWitness (leanIsaEnsemble prog)) (side : Side) :
     tuplesOn w.verifierTable.interactions side =
-      [tupleOf (gpow 0) (if side = .push then #[1, 1] else #[prog.finalPc, 1])] := by
+      [tupleOf (gpow 0) (if side = .push then #[1, 1] else #[prog.pcFinal, 1])] := by
   rw [Air.Flat.Table.interactions, tuplesOn_flatMap]
   simp only [Air.Flat.EnsembleWitness.verifierTable, List.flatMap_cons, List.flatMap_nil,
     List.append_nil]

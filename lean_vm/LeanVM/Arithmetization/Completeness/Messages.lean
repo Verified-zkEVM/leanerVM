@@ -362,7 +362,7 @@ theorem bytecode_sends_gen (x : Var BytecodeRow K) (env : Environment K) (n : �
 every environment. -/
 theorem verifier_sends (prog : Program) (env : Environment K) :
     rowSends ⟨leanIsaVerifier prog⟩ env =
-      [(StatePush.name, #[1, 1]), (StatePull.name, #[prog.finalPc, 1])] := by
+      [(StatePush.name, #[1, 1]), (StatePull.name, #[prog.pcFinal, 1])] := by
   unfold rowSends
   simp only [Component.rowOperations_mk, circuit_norm, leanIsaVerifier, AbstractInteraction.eval,
     Vector.toArray_map, regs_toArray, -BitVec.reduceNeg]

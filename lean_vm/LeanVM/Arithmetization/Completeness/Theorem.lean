@@ -160,7 +160,7 @@ theorem nextOf_skAt (hv : run prog t.image t.steps Regs.initial = some (Regs.fin
 the final one pulled, and each state stepped to is stepped from. -/
 theorem runSkels_state_perm (hv : run prog t.image t.steps Regs.initial = some (Regs.final prog)) :
     (#[1, 1] :: t.runSkels.map fun sk ↦ #[(nextOf t.image sk).pc, (nextOf t.image sk).fp]).Perm
-      (#[prog.finalPc, 1] :: t.runSkels.map fun sk ↦ #[sk.pc, sk.fp]) := by
+      (#[prog.pcFinal, 1] :: t.runSkels.map fun sk ↦ #[sk.pc, sk.fp]) := by
   obtain ⟨f, hf⟩ : ∃ f : ℕ → Array K, f = fun k ↦ #[(stateAt t k).pc, (stateAt t k).fp] :=
     ⟨_, rfl⟩
   have hlast : stateAt t t.steps = Regs.final prog := by
@@ -168,7 +168,7 @@ theorem runSkels_state_perm (hv : run prog t.image t.steps Regs.initial = some (
     rw [hv] at this
     exact (Option.some.inj this).symm
   have h0 : f 0 = #[1, 1] := by rw [hf]; rfl
-  have hn : f t.steps = #[prog.finalPc, 1] := by
+  have hn : f t.steps = #[prog.pcFinal, 1] := by
     rw [hf]
     show #[(stateAt t t.steps).pc, (stateAt t t.steps).fp] = _
     rw [hlast]

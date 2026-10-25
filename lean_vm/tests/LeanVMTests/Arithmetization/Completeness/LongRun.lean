@@ -99,9 +99,9 @@ structure Shape (prog : Program) : Prop where
   big : 6 ≤ prog.logSize
 
 /-- The sentinel counter is none of the slots `0 … 33`. -/
-theorem Shape.finalPc_ne {prog : Program} (h : Shape prog) {s : ℕ} (hs : s ≤ 33) :
-    prog.finalPc ≠ gpow s := fun heq ↦
-  gpow_ne_finalPc prog (n := s) (by
+theorem Shape.pcFinal_ne {prog : Program} (h : Shape prog) {s : ℕ} (hs : s ≤ 33) :
+    prog.pcFinal ≠ gpow s := fun heq ↦
+  gpow_ne_pcFinal prog (n := s) (by
     have := Nat.pow_le_pow_right (show 0 < 2 by norm_num) h.big
     omega) heq.symm
 
@@ -178,8 +178,8 @@ theorem run_sets (prog : Program) (fin : K) (sh : Shape prog) {j : ℕ} (hj : j 
   | zero => intro s _; rfl
   | succ m ih =>
     intro s hs
-    have hpc : (⟨gpow s, gpow (4 * j)⟩ : Regs K).pc ≠ prog.finalPc :=
-      fun h ↦ sh.finalPc_ne (by omega) h.symm
+    have hpc : (⟨gpow s, gpow (4 * j)⟩ : Regs K).pc ≠ prog.pcFinal :=
+      fun h ↦ sh.pcFinal_ne (by omega) h.symm
     have h1 := run_one hpc (set_step prog fin (sh.sets s (by omega)) hj)
     have h2 := ih (s + 1) (by omega)
     have := run_trans h1 h2
@@ -193,8 +193,8 @@ theorem run_body (prog : Program) (fin : K) (sh : Shape prog) {j : ℕ} (hj : j 
 
 /-- Slot `33` is not the sentinel. -/
 theorem pc33_ne (prog : Program) (sh : Shape prog) (j : ℕ) :
-    (⟨gpow 33, gpow (4 * j)⟩ : Regs K).pc ≠ prog.finalPc :=
-  fun h ↦ sh.finalPc_ne (le_refl 33) h.symm
+    (⟨gpow 33, gpow (4 * j)⟩ : Regs K).pc ≠ prog.pcFinal :=
+  fun h ↦ sh.pcFinal_ne (le_refl 33) h.symm
 
 /-- One iteration that loops. -/
 theorem run_iter (prog : Program) (fin : K) (sh : Shape prog) {j : ℕ} (hj : j < J)
@@ -226,17 +226,17 @@ theorem run_iters (prog : Program) (fin : K) (sh : Shape prog) :
 
 /-- The whole run: slot `0`, then `J - 1` looping iterations, then the last one. -/
 theorem run_full (prog : Program) (sh : Shape prog) :
-    run prog (img prog.finalPc) (33 * J + 1) Regs.initial = some (Regs.final prog) := by
+    run prog (img prog.pcFinal) (33 * J + 1) Regs.initial = some (Regs.final prog) := by
   have hJ : 0 < J := by unfold J; omega
   have e : (Regs.initial : Regs K) = ⟨gpow 0, gpow (4 * 0)⟩ := by
     unfold Regs.initial
     rw [Nat.mul_zero]
     simp [gpow]
-  have hpc : (⟨gpow 0, gpow (4 * 0)⟩ : Regs K).pc ≠ prog.finalPc :=
-    fun h ↦ sh.finalPc_ne (by norm_num : 0 ≤ 33) h.symm
-  have h0 := run_one hpc (set_step prog prog.finalPc (sh.sets 0 (by norm_num)) hJ)
-  have h1 := run_trans h0 (run_iters prog prog.finalPc sh (J - 1) le_rfl)
-  have h2 := run_trans h1 (run_last prog prog.finalPc sh)
+  have hpc : (⟨gpow 0, gpow (4 * 0)⟩ : Regs K).pc ≠ prog.pcFinal :=
+    fun h ↦ sh.pcFinal_ne (by norm_num : 0 ≤ 33) h.symm
+  have h0 := run_one hpc (set_step prog prog.pcFinal (sh.sets 0 (by norm_num)) hJ)
+  have h1 := run_trans h0 (run_iters prog prog.pcFinal sh (J - 1) le_rfl)
+  have h2 := run_trans h1 (run_last prog prog.pcFinal sh)
   rw [e, show 33 * J + 1 = 1 + 33 * (J - 1) + 33 by omega]
   exact h2
 
@@ -245,14 +245,14 @@ than `2^35 = 8 * 2^32` steps. -/
 theorem long_run_valid (prog : Program) (sh : Shape prog) :
     ∃ (input : PublicInput) (t : Trace prog), ValidExecution prog input t ∧ 2 ^ 35 < t.steps := by
   have hJ : 0 < J := by unfold J; omega
-  refine ⟨⟨![g, 0, g, 0]⟩, ⟨32, img prog.finalPc, 33 * J + 1⟩, ⟨?_, run_full prog sh⟩, ?_⟩
+  refine ⟨⟨![g, 0, g, 0]⟩, ⟨32, img prog.pcFinal, 33 * J + 1⟩, ⟨?_, run_full prog sh⟩, ?_⟩
   · refine ⟨by show minLogMem ≤ 32; decide, by show 32 ≤ maxLogMem; decide, ?_, ?_⟩
-    · show (img prog.finalPc).read (gpow 0) = some (E.ofLimbs g 0 0)
-      have hc : img prog.finalPc ⟨0, by norm_num⟩ = ofK g := img_cell0 prog.finalPc 0 hJ
-      rw [read_img prog.finalPc 0 (by norm_num), hc, ofK_eq_ofLimbs]
-    · show (img prog.finalPc).read (gpow 1) = some (E.ofLimbs g 0 0)
-      have hc : img prog.finalPc ⟨1, by norm_num⟩ = ofK g := img_cell1 prog.finalPc 0 hJ
-      rw [read_img prog.finalPc 1 (by norm_num), hc, ofK_eq_ofLimbs]
+    · show (img prog.pcFinal).read (gpow 0) = some (E.ofLimbs g 0 0)
+      have hc : img prog.pcFinal ⟨0, by norm_num⟩ = ofK g := img_cell0 prog.pcFinal 0 hJ
+      rw [read_img prog.pcFinal 0 (by norm_num), hc, ofK_eq_ofLimbs]
+    · show (img prog.pcFinal).read (gpow 1) = some (E.ofLimbs g 0 0)
+      have hc : img prog.pcFinal ⟨1, by norm_num⟩ = ofK g := img_cell1 prog.pcFinal 0 hJ
+      rw [read_img prog.pcFinal 1 (by norm_num), hc, ofK_eq_ofLimbs]
   · show 2 ^ 35 < 33 * J + 1
     unfold J
     norm_num

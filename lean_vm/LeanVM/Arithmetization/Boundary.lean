@@ -44,7 +44,7 @@ which the verifier computes and which is a column here until Clean PR #446), the
 order of `BytecodeMsg`. `PublicIO` is what the verifier reads off the public data:
 the four lanes of the public input (§2, §8.2), and `PublicIO.ofInput input` is the public input
 of a run, which `SatisfiedBy` requires of the witness. The verifier is a function of the public
-program, `leanIsaVerifier prog`, and pulls `Expression.const prog.finalPc`: leanVM's
+program, `leanIsaVerifier prog`, and pulls `Expression.const prog.pcFinal`: leanVM's
 `layout(prog, …)` derives the counter from the program and writes it into the block as a
 constant, so here it is a constant of the component, never a column and never a public
 coordinate, and the statement's ensemble is `leanIsaEnsemble prog`.
@@ -312,7 +312,7 @@ run the boundary closes is `exists_run_of_balanced`. -/
 def leanIsaVerifier (prog : Program) : GeneralFormalCircuit K PublicIO unit where
   main _ := do
     StatePush.push ⟨1, 1⟩
-    StatePull.pull ⟨Expression.const prog.finalPc, 1⟩
+    StatePull.pull ⟨Expression.const prog.pcFinal, 1⟩
   -- The push channel: its requirement is vacuous.
   channelsWithRequirements := [StatePush.toRaw]
   requirementsChannelsLawful input offset := by
@@ -335,7 +335,7 @@ theorem verifier_push_eval (env : Environment K) :
 /-- The state the verifier pulls is `Regs.final prog`, in every environment: the
 counter is a constant of the component, not a column or a public coordinate. -/
 theorem verifier_pull_eval (prog : Program) (env : Environment K) :
-    eval env (⟨Expression.const prog.finalPc, 1⟩ : Regs (Expression K)) = Regs.final prog := by
+    eval env (⟨Expression.const prog.pcFinal, 1⟩ : Regs (Expression K)) = Regs.final prog := by
   simp only [circuit_norm]; rfl
 
 end LeanVM.Arithmetization

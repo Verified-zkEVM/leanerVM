@@ -497,7 +497,7 @@ def boundary : List (BoundaryBlock (shape prog s)) :=
       .const 1, .committed (memCol 0) rfl, .committed (memCol 1) rfl, .committed (memCol 2) rfl]⟩,
     ⟨prog.logSize, .push, coords ([.const (channelSep BytecodePush.toRaw),
       .known (idxColumn prog.logSize), .const 1] ++ entries)⟩,
-    ⟨0, .pull, coords [.const (channelSep StatePull.toRaw), .const prog.finalPc, .const 1]⟩,
+    ⟨0, .pull, coords [.const (channelSep StatePull.toRaw), .const prog.pcFinal, .const 1]⟩,
     ⟨s.logMem, .pull, coords [.const (channelSep MemPull.toRaw), .known (idxColumn s.logMem),
       .committed (memCol 3) rfl, .committed (memCol 0) rfl, .committed (memCol 1) rfl,
       .committed (memCol 2) rfl]⟩,

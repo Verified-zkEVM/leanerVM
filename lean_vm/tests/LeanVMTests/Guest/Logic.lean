@@ -64,7 +64,7 @@ theorem limb_imm_one : (OInstr.imm 1 0 0).limb 0 = gpow 0 := by decide +kernel
 theorem imm_one_ne_zero : OInstr.imm 1 0 0 ≠ 0 := by decide +kernel
 theorem limb_imm_seven : (OInstr.imm 0x80 0 0).limb 0 = gpow 7 := by decide +kernel
 theorem limb_imm_ten : (OInstr.imm 0x400 0 0).limb 0 = gpow 10 := by decide +kernel
-theorem limb_imm_final : (OInstr.imm 0x80000000 0 0).limb 0 = tiny.finalPc := by decide +kernel
+theorem limb_imm_final : (OInstr.imm 0x80000000 0 0).limb 0 = tiny.pcFinal := by decide +kernel
 theorem isInK_imm (k : ℕ) : IsInK (OInstr.imm k 0 0) := by
   have : K.ofBits 0 = 0 := by decide
   simp [IsInK, OInstr.imm, this]

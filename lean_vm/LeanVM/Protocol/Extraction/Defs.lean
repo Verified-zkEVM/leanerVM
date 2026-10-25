@@ -69,8 +69,9 @@ noncomputable def supportKeys (answers : Bytes → Option Digest) : List Bytes :
 /-! ## The halting run -/
 
 open Classical in
-/-- The execution of `prog` on a memory image: the image, run from `(1, 1)` for the least number
-of steps after which it halts in the final state `(finalPc, 1)`; `none` if it never does. -/
+/-- The execution of `prog` on a memory image: the image, run from the initial state
+`(pcInitial, fpInitial)` for the least number of steps after which it halts in the final state
+`(pcFinal, fpFinal)`; `none` if it never does. -/
 noncomputable def haltingRun (prog : Program) {κ : ℕ} (image : MemImage κ) : Option (Trace prog) :=
   if h : ∃ n, Semantics.run prog image n Regs.initial = some (Regs.final prog) then
     some ⟨κ, image, Nat.find h⟩

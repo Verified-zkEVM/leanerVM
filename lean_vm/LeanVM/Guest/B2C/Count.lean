@@ -84,7 +84,7 @@ theorem runC_step {pc : ℕ} {fp : K} {ins : OInstr} {r : Regs K}
   have hf' : prog.fetch (⟨gpow pc, fp⟩ : Regs K).pc = some ins.toInstr := hf
   have hs : step prog L ⟨gpow pc, fp⟩ = some r := by rw [step_of_fetch_eq_some hf', h]
   refine ⟨1, ?_, fun op ↦ ?_⟩
-  · rw [run_succ_of_ne (gpow_ne_finalPc hpc), hs]
+  · rw [run_succ_of_ne (gpow_ne_pcFinal hpc), hs]
     rfl
   · simp only [runCount, hf', hs, add_zero]
     by_cases ho : op = ins.toInstr.opcode

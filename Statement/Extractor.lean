@@ -62,10 +62,10 @@ verifier's queries, nor runs the adversary again. It does four things.
    threshold of common columns (`pruneUpTo`). Every candidate is listed (proved). A word without
    errors, an honest prover's, is decoded first by interpolation alone (`fastStacks`).
 4. **The execution** (`candidateExecutionIn`). For a listed stack, the memory image its memory
-   columns hold (`memoryImage`), run from `(pc, fp) = (1, 1)` until it is in the final state, for
-   at most as many steps as the announced tables have rows (`stepCap`; a halting run never repeats
-   a state and each of its steps takes a row of its own, so a valid execution a stack represents
-   halts within the cap, proved). It returns the first listed stack's run that halts and has the
+   columns hold (`memoryImage`), run from the initial state `(pcInitial, fpInitial)` until it is in
+   the final state `(pcFinal, fpFinal)`, for at most as many steps as the announced tables have
+   rows (`stepCap`; a halting run never repeats a state and each of its steps takes a row of its
+   own, so a valid execution a stack represents halts within the cap, proved). It returns the first listed stack's run that halts and has the
    public input at its boundary, so a valid execution of the program on the public input; `none`
    if there is none.
 
@@ -503,8 +503,8 @@ def haltLoop (memIdx codeIdx : Std.HashMap UInt64 ℕ) (prog : Program) {κ : �
       | none => none
       | some r' => haltLoop memIdx codeIdx prog L fuel (n + 1) r'
 
-/-- The image, run from `(1, 1)` for the least number `n ≤ cap` of steps after which it is in the
-final state `(finalPc, 1)`, if any. -/
+/-- The image, run from the initial state `(pcInitial, fpInitial)` for the least number `n ≤ cap`
+of steps after which it is in the final state `(pcFinal, fpFinal)`, if any. -/
 def haltingRunIn (memIdx codeIdx : Std.HashMap UInt64 ℕ) (prog : Program) {κ : ℕ}
     (image : MemImage κ) (cap : ℕ) : Option (Trace prog) :=
   (haltLoop memIdx codeIdx prog image cap 0 Regs.initial).map fun n ↦ ⟨κ, image, n⟩
