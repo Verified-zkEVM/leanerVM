@@ -9,7 +9,7 @@
 module
 
 public import LeanVM.Protocol.EndToEnd.Complete.Rom
-public import LeanVM.Guest.Child.Draft
+public import Statement.LeanVmGuest
 public import LeanVM.Guest.Child.Fresh
 
 /-!

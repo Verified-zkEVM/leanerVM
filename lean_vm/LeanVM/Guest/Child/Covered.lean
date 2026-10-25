@@ -8,7 +8,7 @@
 module
 
 public import LeanVM.Guest.Budget.Covered
-public import LeanVM.Guest.Child.Draft
+public import Statement.LeanVmGuest
 
 /-!
 # The covered nodes

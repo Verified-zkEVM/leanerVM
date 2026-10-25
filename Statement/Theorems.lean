@@ -45,6 +45,14 @@ structure Theorems (decode : LeanVM.Node.Decoder) : Prop where
   guestCompleteRecursion : LeanVM.Guest.Budget.GuestCompleteRecursion
   /-- The guest is complete on every covered leaf (`LeanVmGuest.lean`). -/
   guestCompleteLeaf : LeanVM.Guest.Budget.GuestCompleteLeaf
+  /-- The guest is complete on every covered node: recursion nodes, leaves, mixed nodes and nodes
+  checking a blob (`LeanVmGuest.lean`). -/
+  guestCompleteCovered : LeanVM.Guest.Budget.GuestCompleteCovered
+  /-- The honest proof of a guest execution is a child the guest accepts: rejected with
+  probability at most `2^-126` in the random-permutation model, and with the deployed Keccak,
+  where accepted, meeting every hypothesis the guest's completeness assumes of a child
+  (`LeanVmGuest.lean`). -/
+  guestChildComplete : LeanVM.Guest.Budget.GuestChildComplete
   /-- The batching run outside the circuit is sound: at most `(QA + QV + 1) · 2^-191 +
   5 (QA + QV)² · 2^-256` for `QA ≤ 2^128`, `QV ≤ 2^96`; it does not compose with the in-circuit
   statements (`LeanVmGuest.lean`). -/
