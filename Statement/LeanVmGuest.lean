@@ -427,6 +427,12 @@ def NodeRel (bytecode : List K) (seed : Digest) (s : NodeStatement) (w : NodeWit
 `crates/leanvm_core/src/cpu/mod.rs:68-80`). -/
 abbrev deployedSeed (guest : Program) : Digest := fiatShamirIv (bytecodeWords guest)
 
+/-- The deployed guest's seed, the value of `fs_seed` (`crates/leanvm_core/src/cpu/mod.rs:68-80`)
+on the guest at the pin, as `scripts/guest-export` reads it off the Rust: `deployedSeed guest`
+(`lake exe node-vectors` checks that the two agree). -/
+def fsSeed : Digest :=
+  #v[9284083069595081681, 2363718961664804005, 18391321528110328235, 16439801573991227313]
+
 /-! ## What a proof of the guest establishes, its witness named -/
 
 /-- **The candidate collisions** of two statements' digests: the pairs of inputs of the five

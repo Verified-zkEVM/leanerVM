@@ -256,4 +256,8 @@ def root : Digest := keccak256 []
 
 #guard LeanVM.Da.vectorDigestOf root != LeanVM.Da.toBytes root
 
+/-- The statement's `fsSeed` is the seed the Rust writes into the node vectors (`fs_seed`);
+`lake exe node-vectors` checks it against `deployedSeed guest`. -/
+example : LeanVMTests.Spec.NodeVectors.seed = fsSeed := rfl
+
 end LeanVMTests.Spec.Node

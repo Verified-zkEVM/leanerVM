@@ -9,8 +9,9 @@ import LeanVMTests.Spec.NodeVectors
 `lake exe node-vectors` checks what is slow in the interpreter, of the data
 `scripts/guest-export` writes from the deployed Rust:
 
-* the seed of the node vectors (`NodeVectors.seed`) and the guest's Fiat-Shamir IV the Rust reports
-  (`Manifest.fsSeed`, `fs_seed`) are `deployedSeed guest`, the Keccak-256 IV of the assembled
+* the seed of the node vectors (`NodeVectors.seed`), the guest's Fiat-Shamir IV the Rust reports
+  (`Manifest.fsSeed`, `fs_seed`) and the statement's constant `LeanVM.Node.fsSeed` are
+  `deployedSeed guest`, the Keccak-256 IV of the assembled
   guest's `2^23` bytecode words: so the Lean `guest` is the bytecode the Rust proves, every
   instruction (it is evaluated as `guestArray`, the same program, `guestArray_eq`);
 * each DA root's vector digest is the Rust's (`LeanVM.Da.vectorDigestOf`).
@@ -35,6 +36,7 @@ def manifestSeed : Option Digest :=
 
 /-- The checks, each by name. -/
 def checks : List (String × (Unit → Bool)) := [
+  ("seed: deployedSeed guest is the statement's fsSeed", fun _ ↦ guestSeed == fsSeed),
   ("seed: the vectors' seed is deployedSeed guest", fun _ ↦ guestSeed == Spec.NodeVectors.seed),
   ("seed: the manifest's fs_seed is deployedSeed guest", fun _ ↦ manifestSeed == some guestSeed),
   ("vectorDigest", fun _ ↦ Spec.NodeVectors.da.all fun c ↦
