@@ -9,13 +9,15 @@ public import VCVio.OracleComp.QueryTracking.WriterCost
 # leanXMSS
 
 The leanXMSS scheme (key generation, signing, verification over a hash oracle `H`), the SUF-CMA
-game of `Statement/RandomPermutation.lean` instantiated with it, and the end statement:
-`LeanXmss.Rpm.LeanXmssRpmSecurityStatement`, in the random-permutation model, an adversary whose
-game makes at most `Q` permutation calls, `1 ≤ Q ≤ 2^128`, forges with probability at most
-`(Q + 1) · 2^-127`. Proved by `XmssSecurity.leanXmss_rpm_security` (`lean_xmss`).
+game of `Statement/RandomPermutation.lean` instantiated with it, and the end statement
+`LeanXmss.Rpm.LeanXmssRpmSecurityStatement`, proved by `XmssSecurity.leanXmss_rpm_security`
+(`lean_xmss`). Its budget `Q` counts the honest signer's permutation calls too, at their worst
+case: about `2^33` per signing request, so with all `2^32` leaves used the bound is about `2^-62`.
 -/
 
-section
+@[expose] public section
+
+open OracleComp OracleSpec ENNReal
 
 /-!
 ## leanXMSS
@@ -38,13 +40,13 @@ WOTS+C one-time keys. Key `b` of the top tree signs the root of bottom tree `b`;
   `c < 2^32` such that `Th(P, A_msg(l, e), M || (R0 + c))` is a codeword.
 -/
 
-open OracleComp OracleSpec ENNReal
-
 namespace LeanXmss
 
-@[expose] public section
+/-! ### What leanXMSS and leanSPHINCS share
 
-/-! ### The instance: parameters, types, and hash-input layout -/
+The tweakable hash `Th(P, A, M) = Truncate_n(H(P ‖ A ‖ M))`, its 16-byte address and the types
+around it, which `crates/signatures/src/tweak.rs` gives both schemes (`Statement/LeanSphincs.lean`
+exports them into `Sphincs`). -/
 
 def digestBits : Nat := 128
 def hashOutputBits : Nat := 256
@@ -52,45 +54,15 @@ def messageBits : Nat := 256
 def publicParameterBits : Nat := 128
 def winternitzBits : Nat := 2
 def chainLength : Nat := 2 ^ winternitzBits
-/-- `v`, the chains of a one-time key. -/
-def numChains : Nat := 58
-/-- `T`, the sum of a codeword's `v` digits. -/
-def targetSum : Nat := 106
-def numLayers : Nat := 2
-/-- `h`, the height of each layer's trees. -/
-def layerHeight : Nat := 16
-/-- Leaf indices `idx < 2^32`. -/
-def lifetime : Nat := 2 ^ (numLayers * layerHeight)
-/-- Randomizer trials per one-time signature, `A_max`. -/
-def randomizerAttemptLimit : Nat := 2 ^ 32
-
 abbrev MasterSeed := BitVec 256
 abbrev Digest := BitVec digestBits
 abbrev HashOutput := BitVec hashOutputBits
 abbrev Message := BitVec messageBits
 abbrev PublicParameter := BitVec publicParameterBits
 abbrev Randomness := Digest
-/-- `l`: `0` the bottom layer, `1` the top. -/
-abbrev Layer := Fin numLayers
-/-- `idx`, a leaf index. -/
-abbrev LeafIndex := Fin lifetime
-/-- `e`, a one-time key of a layer: below `2^32` on the bottom layer, below `2^16` on the top. -/
-abbrev KeyIndex := Fin lifetime
-abbrev ChainIndex := Fin numChains
-/-- A pair of chains `(2t, 2t + 1)`, `t < 29`: one seed derivation. -/
-abbrev ChainPair := Fin (numChains / 2)
 abbrev Digit := Fin chainLength
 abbrev ChainStep := Fin (chainLength - 1)
-abbrev Encoding := ChainIndex → Digit
 abbrev HashInput := List UInt8
-
-def bottomLayer : Layer := ⟨0, by decide⟩
-def topLayer : Layer := ⟨1, by decide⟩
-
-/-- The key of layer `l` a leaf index signs with: `idx` at the bottom, `idx / 2^16` at the top. -/
-def keyAt (index : LeafIndex) (lay : Layer) : KeyIndex :=
-  ⟨index.val / 2 ^ (layerHeight * lay.val),
-    Nat.lt_of_le_of_lt (Nat.div_le_self _ _) index.isLt⟩
 
 /-- Keep the first 128 output bits, the low bits of the little-endian bit vector. -/
 def truncateHash (output : HashOutput) : Digest :=
@@ -110,26 +82,13 @@ structure PublicKey where
   parameter : PublicParameter
 deriving DecidableEq
 
-/-- One layer's signature: the randomizer, the `v` revealed chain values and the authentication path. -/
-structure LayerSignature where
-  randomness : Randomness
-  chainValues : ChainIndex → Digest
-  path : Fin layerHeight → Digest
-deriving DecidableEq
-
-/-- The leaf index, then the bottom layer's signature and the top layer's: 2404 bytes. -/
-structure Signature where
-  leafIndex : LeafIndex
-  layers : Layer → LayerSignature
-deriving DecidableEq
-
 /-- Serialize a bit vector into a fixed number of bytes, least significant byte first. -/
 def bytesLE (byteCount : Nat) (value : BitVec (8 * byteCount)) : List UInt8 :=
   List.ofFn fun index : Fin byteCount =>
     UInt8.ofBitVec (value.extractLsb' (8 * index.val) 8)
 
-/-- The address of a hash call (`Tweak` in `crates/signatures/src/lean_xmss`): its type `tag < 32`, a chain step
-`step < 8`, and two fields `hi < 2^24` and `lo < 2^32`. -/
+/-- The address of a hash call (`Tweak`, `crates/signatures/src/tweak.rs`): its type `tag < 32`, a
+chain step `step < 8`, and two fields `hi < 2^24` and `lo < 2^32`. -/
 structure TweakFields where
   tag : BitVec 5
   step : BitVec 3
@@ -144,6 +103,52 @@ def fieldBytes (fields : TweakFields) : HashInput :=
 /-- Convert the four integer fields to their fixed widths. -/
 def tweakFields (tag step hi lo : Nat) : TweakFields :=
   ⟨BitVec.ofNat 5 tag, BitVec.ofNat 3 step, BitVec.ofNat 24 hi, BitVec.ofNat 32 lo⟩
+
+/-! ### leanXMSS's parameters, types and hash-input layout -/
+
+/-- `v`, the chains of a one-time key. -/
+def numChains : Nat := 58
+/-- `T`, the sum of a codeword's `v` digits. -/
+def targetSum : Nat := 106
+def numLayers : Nat := 2
+/-- `h`, the height of each layer's trees. -/
+def layerHeight : Nat := 16
+/-- Leaf indices `idx < 2^32`. -/
+def lifetime : Nat := 2 ^ (numLayers * layerHeight)
+/-- Randomizer trials per one-time signature, `A_max`. -/
+def randomizerAttemptLimit : Nat := 2 ^ 32
+
+/-- `l`: `0` the bottom layer, `1` the top. -/
+abbrev Layer := Fin numLayers
+/-- `idx`, a leaf index. -/
+abbrev LeafIndex := Fin lifetime
+/-- `e`, a one-time key of a layer: below `2^32` on the bottom layer, below `2^16` on the top. -/
+abbrev KeyIndex := Fin lifetime
+abbrev ChainIndex := Fin numChains
+/-- A pair of chains `(2t, 2t + 1)`, `t < 29`: one seed derivation. -/
+abbrev ChainPair := Fin (numChains / 2)
+abbrev Encoding := ChainIndex → Digit
+
+def bottomLayer : Layer := ⟨0, by decide⟩
+def topLayer : Layer := ⟨1, by decide⟩
+
+/-- The key of layer `l` a leaf index signs with: `idx` at the bottom, `idx / 2^16` at the top. -/
+def keyAt (index : LeafIndex) (lay : Layer) : KeyIndex :=
+  ⟨index.val / 2 ^ (layerHeight * lay.val),
+    Nat.lt_of_le_of_lt (Nat.div_le_self _ _) index.isLt⟩
+
+/-- One layer's signature: the randomizer, the `v` revealed chain values and the authentication path. -/
+structure LayerSignature where
+  randomness : Randomness
+  chainValues : ChainIndex → Digest
+  path : Fin layerHeight → Digest
+deriving DecidableEq
+
+/-- The leaf index, then the bottom layer's signature and the top layer's: 2404 bytes. -/
+structure Signature where
+  leafIndex : LeafIndex
+  layers : Layer → LayerSignature
+deriving DecidableEq
 
 /-- `hi` on layer `l`: the top layer sets bit 23 (`layer_hi`). -/
 def layerHi (lay : Layer) (field : Nat) : Nat := field + 2 ^ 23 * lay.val
@@ -472,21 +477,7 @@ def sign (secretKey : SecretKey) (index : LeafIndex) (message : Message) : m (Op
 
 end Seeded
 
-end
-
-end LeanXmss
-
-end
-
 /-! ## Signing requests, forgeries and transcripts -/
-
-section
-
-open OracleComp OracleSpec ENNReal
-
-namespace LeanXmss
-
-@[expose] public section
 
 /-- A signing request: a leaf index and a 32-byte message. -/
 structure SignRequest where
@@ -523,19 +514,11 @@ instance (log : QueryLog SigningSpec) (forgery : Forgery) : Decidable (Contains 
 
 end SigningTranscript
 
-end
-
-end LeanXmss
-
-end
-
 /-! ## Security in the random-permutation model -/
 
-@[expose] public section
+namespace Rpm
 
-open OracleComp OracleSpec ENNReal Common Common.SufCma
-
-namespace LeanXmss.Rpm
+open Common Common.SufCma
 
 /-- leanXMSS in the generic SUF-CMA game: the seed, key generation, the signer of a request, the
 verifier, and the winning condition (`SigningTranscript`, above). -/
@@ -549,33 +532,17 @@ noncomputable def scheme :
   win log forgery :=
     decide (SigningTranscript.Valid log ∧ ¬SigningTranscript.Contains log forgery)
 
-/-- An adversary in the random-permutation model: private coins, Keccak-256 (32 bytes), `π`,
-`π⁻¹` and the signing oracle. -/
-structure Adversary where
-  main : PublicKey → OracleComp (KSpec + SigningSpec) Forgery
+/-- **leanXMSS in the random-permutation model**: an adversary whose game makes at most `Q`
+permutation calls, `1 ≤ Q ≤ 2^128`, forges with probability at most `(Q + 1) · 2^-127`
+(`RpmSecure` at 127 bits). `Q` counts every call on the game's worst path, the honest signer's
+included (`IsWeightBound` is structural): a signing request costs about `2^33` calls (each layer's
+`2^32` grinding trials, and the paths and the bottom root rebuilt, about `2^25`), so `Q ≥ 2^65`
+once the adversary uses all `2^32` leaves, where the bound is about `2^-62`. -/
+abbrev LeanXmssRpmSecurityStatement : Prop :=
+  RpmSecure (digestBitVec : KDigest ≃ HashOutput) scheme 127
 
-/-- The game: the master seed, key generation, the adversary with the signing oracle, the final
-verification, all hashing with Keccak-256 over the permutation. -/
-noncomputable def game (adversary : Adversary) : OracleComp KSpec Bool :=
-  rpmGame (digestBitVec : KDigest ≃ HashOutput) scheme adversary.main
+end Rpm
 
-/-- The probability of a successful forgery against the lazily sampled random permutation. -/
-noncomputable def forgeAdvantage (adversary : Adversary) : ℝ≥0∞ :=
-  Pr{let b ← rpmExperiment (digestBitVec : KDigest ≃ HashOutput) scheme adversary.main}[b = true]
-
-/-- Every path of the game makes at most `Q` permutation calls, the sponge's included. -/
-def HasPermutationBound (adversary : Adversary) (Q : Nat) : Prop :=
-  IsWeightBound (game adversary) permCalls Q
-
-/-- Every adversary whose game makes at most `Q` permutation calls, `1 ≤ Q ≤ 2^128`, wins with
-probability at most `(Q + 1) · 2^-bits`. -/
-def HasRpmSecurityBits (bits : Nat) : Prop :=
-  ∀ Q, 1 ≤ Q → Q ≤ 2 ^ 128 → ∀ adversary, HasPermutationBound adversary Q →
-    forgeAdvantage adversary ≤ ((Q : ℝ≥0∞) + 1) * (2 : ℝ≥0∞)⁻¹ ^ bits
-
-/-- The security claim in the random-permutation model. -/
-abbrev LeanXmssRpmSecurityStatement : Prop := HasRpmSecurityBits 127
-
-end LeanXmss.Rpm
+end LeanXmss
 
 end

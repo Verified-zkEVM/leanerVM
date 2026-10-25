@@ -5,7 +5,8 @@ import Common.SimDefs
 # LeanDA in Benedikt Wagner's framework: the definitions of the proofs
 
 LeanDA's code checker and vector commitment, the collision of two openings and the reduction that
-computes it, the challenges' duplex (`daDuplex`, a `Common.Duplex.DuplexSpec`), and Wagner's
+computes it, the challenges' duplex (`daDuplex`, a `Common.Duplex.DuplexSpec`), the opening's
+check with a pure hash (`verifyCell`), the uniform samplers of `K` and `E`, and Wagner's
 terms for a uniformly random table of the hash (`ksExpH`, `wpbCollExpH`, `forkCollExpH`), moved
 here from `Statement/LeanDa.lean`: they are steps of the proofs, and no end statement names them.
 
@@ -19,7 +20,26 @@ section
 
 namespace LeanDa
 
+/-- Uniform sampling of `K` through its bits. -/
+instance : SampleableType K := SampleableType.ofEquiv BF64.equivFin.symm
+
+/-- Uniform sampling of `E` limb by limb. -/
+instance : SampleableType E := SampleableType.ofEquiv (CompPoly.Extension.Ext.equivFn _).symm
+
 variable (H : List UInt8 → Digest)
+
+/-- Climb from `node` at index `idx` along the siblings `path`. -/
+def walk : ℕ → Digest → List Digest → Digest
+  | _, node, [] => node
+  | idx, node, s :: rest =>
+    walk (idx / 2) (if idx % 2 = 0 then H (pairBytes node s) else H (pairBytes s node)) rest
+
+/-- **Verification of a cell opening** with a pure hash (`verifyCellM` over `Id`): a path of the
+column tree's height that climbs from the cell's digest to a column root, which hashed after the
+row root gives the commitment. -/
+def verifyCell (r : ℕ) (com : Digest) (p : Fin (r * 128)) (x : Cell) (τ : Opening) : Bool :=
+  decide (τ.path.length = 7 + logPad r) &&
+    decide (H (pairBytes τ.rowRoot (walk H (colIndex p) (cellDigest H x) τ.path)) = com)
 
 /-- The hash inputs from a cell's bytes `a` at index `idx` up to the root, the last one
 `rowRoot ‖ colRoot`. -/

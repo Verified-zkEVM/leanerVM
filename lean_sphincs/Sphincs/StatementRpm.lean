@@ -24,6 +24,37 @@ namespace Sphincs.Rpm
 
 variable [Params]
 
+/-- An adversary in the random-permutation model: private coins, Keccak-256 (32 bytes), `π`,
+`π⁻¹` and the signing oracle. -/
+structure Adversary where
+  main : PublicKey → OracleComp (KSpec + SigningSpec) Forgery
+
+/-- The game: the seed, key generation, the adversary with the signing oracle, the final
+verification, all hashing with Keccak-256 over the permutation. -/
+noncomputable def game (adversary : Adversary) : OracleComp KSpec Bool :=
+  rpmGame (digestBitVec : KDigest ≃ HashOutput) scheme adversary.main
+
+/-- The probability of a successful forgery against the lazily sampled random permutation. -/
+noncomputable def forgeAdvantage (adversary : Adversary) : ℝ≥0∞ :=
+  Pr{let b ← rpmExperiment (digestBitVec : KDigest ≃ HashOutput) scheme adversary.main}[b = true]
+
+/-- Every path of the game makes at most `Q` permutation calls, the sponge's included. -/
+def HasPermutationBound (adversary : Adversary) (Q : Nat) : Prop :=
+  IsWeightBound (game adversary) permCalls Q
+
+/-- Every adversary whose game makes at most `Q` permutation calls, `1 ≤ Q ≤ 2^128`, wins with
+probability at most `(Q + 1) · 2^-bits`. -/
+def HasRpmSecurityBits (bits : Nat) : Prop :=
+  ∀ Q, 1 ≤ Q → Q ≤ 2 ^ 128 → ∀ adversary, HasPermutationBound adversary Q →
+    forgeAdvantage adversary ≤ ((Q : ℝ≥0∞) + 1) * (2 : ℝ≥0∞)⁻¹ ^ bits
+
+/- A weight bound of a concrete game must not be unfolded: it recurses through the whole game. -/
+attribute [local irreducible] IsWeightBound in
+/-- `HasRpmSecurityBits` is the statement's `RpmSecure`. -/
+theorem rpmSecure_of_bits {bits : Nat} (h : HasRpmSecurityBits bits) :
+    RpmSecure (digestBitVec : KDigest ≃ HashOutput) scheme bits :=
+  fun Q hQ hcap main hbound ↦ h Q hQ hcap ⟨main⟩ hbound
+
 /-- Every path of the game makes at most `q` calls of `H`, `π` and `π⁻¹` in all. -/
 def HasCallBound (adversary : Adversary) (q : Nat) : Prop :=
   IsWeightBound (game adversary) oracleCalls q

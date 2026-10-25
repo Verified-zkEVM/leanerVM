@@ -1,6 +1,6 @@
 module
 
-public import Statement.RandomPermutation
+public import Statement.LeanXmss
 public import VCVio.OracleComp.QueryTracking.LoggingOracle.Core
 public import VCVio.OracleComp.QueryTracking.RandomOracle.Simulation
 public import VCVio.OracleComp.QueryTracking.WriterCost
@@ -8,75 +8,49 @@ public import VCVio.OracleComp.QueryTracking.WriterCost
 /-!
 # leanSPHINCS
 
-The leanSPHINCS scheme for any key shape (`Params`: the kept subtree's height and the signature
-limit), the SUF-CMA game of `Statement/RandomPermutation.lean` instantiated with its
-deterministic signer, the proved lifetimes (`Sphincs.Lifetimes.full`, `pruned20`, …,
-`pruned8`), and the end statement: `Sphincs.Lifetimes.RequestedSecurityRpm`, at every proved
-lifetime, in the random-permutation model, an adversary whose game makes at most `Q`
-permutation calls, `1 ≤ Q ≤ 2^128`, forges with probability at most `(Q + 1) · 2^-127`. Proved by
-`Sphincs.Lifetimes.requestedSecurityRpm` (`lean_sphincs`).
+The scheme of `crates/signatures/src/lean_sphincs` (`wots.rs`, `forest.rs`, `scheme.rs`; the
+addresses in `crates/signatures/src/tweak.rs`), specified in `doc/lean_sphincs`, for any key
+shape (`Params`: the kept subtree's height `b` and the signature limit): one tree of height
+`h = 26` of WOTS+C keys (`v = 64` chains of 4 positions, target sum `T = 123`, §sec:ots), pruned
+to a kept subtree of height `b` with surrogate siblings (§sec:layer, §sec:pruning), the
+randomizer ground into the kept subtree and a counter for the encoding (§sec:sign), and under each
+leaf a WOTS forest (§sec:fts):
+
+* 8 trees of height 4 over 16 leaves, hashed up to height 3: the forest key is their sixteen
+  height-3 nodes, which no hash folds: the WOTS+C encoding absorbs them with its counter;
+* leaf `s` of a tree hashes the four height-2 nodes of its two subtrees of height 3;
+* a subtree leaf is a WOTS key of 6 chains of positions `0 … 4`; a codeword is `d ∈ {0..4}^6`
+  with `Σ d_i = 5`, named by an 8-bit index into the table `lut` (§sec:codewords);
+* one digest call gives `26 + 8 · 26 = 234` bits: the 16 codeword indices (bytes `0 … 15`), then
+  from bit 128 the index (26 bits), the 8 tree leaves (4 bits each) and the 16 subtree keys
+  (3 bits each, in the order `2c + j`).
+
+Every hash input is `P ‖ A ‖ payload` (§sec:parameters, §sec:tweaks), `P` the 16-byte public
+parameter and `A` the 16-byte address. Key generation hashes the seed `S0` into
+`S = H(leanSPHINCS ‖ S0)`, from which every secret derives. The message digest hashes `m ‖ ρ` (the
+root is not: `P` binds the key), the randomizer base `S ‖ m`.
+
+Then the SUF-CMA game of `Statement/RandomPermutation.lean` with the deterministic signer, the
+proved lifetimes (`Lifetimes.full`, `pruned20`, …, `pruned8`), and the end statement
+`Sphincs.Lifetimes.RequestedSecurityRpm`, proved by `Sphincs.Lifetimes.requestedSecurityRpm`
+(`lean_sphincs`). Its budget `Q` counts the honest signer's permutation calls too, at their worst
+case: about `2^35` per signature, so at the largest lifetime the bound is about `2^-62`.
 -/
 
-section
-
-/-!
-## leanSPHINCS with a two-level WOTS forest
-
-The scheme of `SphincsFors.Scheme` (one height-26 tree of WOTS+C keys with 64 chains of length 4,
-pruning with surrogate siblings, randomizer grinding, tweakable hash with 16-byte outputs) with the
-WOTS+C target sum 123 where it has 120, and the few-time signature under each tree leaf replaced by
-a **two-level WOTS forest**:
-
-* 8 independent coordinates; a coordinate is a top Merkle tree of height 4 over 16 super-children,
-  hashed up to level 3 only: its two level-3 nodes `t_c[0]`, `t_c[1]` are not hashed into a root. The
-  forest key is the sixteen nodes `t_0[0], t_0[1], ..., t_7[0], t_7[1]` themselves, the message WOTS+C
-  signs: no hash folds them, and the WOTS+C encoding absorbs them with its counter,
-  `Th(enc(e), t_0[0] || t_0[1] || ... || t_7[0] || t_7[1] || ctr)`;
-* a sub-tree is a Merkle tree of height 3 over 8 children, hashed up to level 2 only; super-child `s`
-  is `Th(super(idx, c, s), m_0[0] || m_0[1] || m_1[0] || m_1[1])` where `m_j[0]`, `m_j[1]` are the two
-  level-2 nodes of sub-tree `j`;
-* a child is 6 hash chains of length 5: `x_{i,0}` is derived from the seed (one hash of the seed
-  gives the two starts `x_{2t,0}` and `x_{2t+1,0}`, its two 16-byte halves), `x_{i,t+1} = Th(x_{i,t})`,
-  and the child leaf hashes the 6 chain tops `x_{i,4}`;
-* a codeword is a deficit vector `d ∈ {0..4}^6` with `Σ d_i = 5` (246 of them); `lut` is a fixed list
-  of 256 of them (`codewordCodes`): the codewords sorted by decreasing `Σ d_i²`, then
-  lexicographically, entry `t` being codeword number `t mod 214`;
-* one digest call gives `26 + 8 · 26 = 234` bits. The first 16 bytes are the 16 codeword indices
-  (byte `2c + j` for sub-tree `j` of coordinate `c`); then, from bit 128, the index (26 bits), the 8
-  super-children (4 bits each, from bit 154) and the 16 children (3 bits each, from bit 186, in the
-  order `2c + j`). No field lies across two 64-bit words;
-* an opening reveals, per coordinate and sub-tree, `x_{i, 4 - d_i}` for the 6 chains and the 3 auth
-  nodes of the sub-tree, then the 4 auth nodes of the top tree. The last auth node of a tree is its
-  other top node: the verifier folds all levels but the last and hashes the two top nodes, in index
-  order, into the hash above.
-
-Everything that is not the forest (parameters, WOTS+C, the tree, pruning, grinding, key generation)
-is `SphincsFors.Scheme` verbatim, but for the target sum and the scheme seed: key generation first hashes the key's
-seed `S0` into `S = H(leanSPHINCS || S0)`, and everything else derives from `S`. Every other hash
-input is `P || A || payload`: the 16-byte public parameter, then the 16-byte address of the call (a
-32-bit field `lo`, a 24-bit field `hi`, one byte holding the type and a chain step, then 8 zero
-bytes), so the payload starts at byte 32. Forest hashes use types 14 (secret derivation) and 15 to
-19, with the instance `idx` in `lo` and the position inside the instance in `hi`; type 20 (`roots`,
-the former forest-key hash) is not hashed. The message digest hashes `m || rho` (the root is not
-hashed: `P` binds the key), 80 bytes in one block, and the randomizer base `S || m`: the
-randomizer, which changes between two grinding attempts, comes last.
--/
+@[expose] public section
 
 open OracleComp OracleSpec ENNReal
 
 namespace Sphincs
 
-@[expose] public section
-
 /-! ### The instance: parameters, types, and hash-input layout -/
 
-def digestBits : Nat := 128
-def hashOutputBits : Nat := 256
-def messageBits : Nat := 256
-def publicParameterBits : Nat := 128
+export LeanXmss (digestBits hashOutputBits messageBits publicParameterBits winternitzBits
+  chainLength MasterSeed Digest HashOutput Message PublicParameter Randomness Digit ChainStep
+  HashInput truncateHash upperHash hashHalf PublicKey bytesLE TweakFields fieldBytes tweakFields
+  HashSpec sampleMasterSeed)
+
 def counterBits : Nat := 32
-def winternitzBits : Nat := 2
-def chainLength : Nat := 2 ^ winternitzBits
 def numChains : Nat := 64
 def targetSum : Nat := 123
 def numLayers : Nat := 1
@@ -97,13 +71,6 @@ class Params where
 
 export Params (subtreeHeight signatureLimit)
 
-abbrev MasterSeed := BitVec 256
-
-abbrev Digest := BitVec digestBits
-abbrev HashOutput := BitVec hashOutputBits
-abbrev Message := BitVec messageBits
-abbrev PublicParameter := BitVec publicParameterBits
-abbrev Randomness := Digest
 abbrev Counter := BitVec counterBits
 abbrev Layer := Fin numLayers
 /-- `idx`, the leaf and the forest instance a digest selects. -/
@@ -115,10 +82,7 @@ abbrev LeafIndex := Fin (2 ^ maxLayerHeight)
 abbrev ChainIndex := Fin numChains
 /-- A pair of chains `(2t, 2t + 1)` of a one-time key, `t < 32`: one seed derivation. -/
 abbrev ChainPair := Fin 32
-abbrev Digit := Fin chainLength
-abbrev ChainStep := Fin (chainLength - 1)
 abbrev Encoding := ChainIndex → Digit
-abbrev HashInput := List UInt8
 
 /-! #### Forest parameters and types -/
 
@@ -159,19 +123,6 @@ def heightAbove (lay : Layer) : Nat := ∑ j : Layer, if j.val < lay.val then la
 
 /-- `sum_{j > lay} h_j`, the index bits below layer `lay`. -/
 def heightBelow (lay : Layer) : Nat := totalHeight - heightAbove lay - layerHeight lay
-
-/-- Keep the first 128 output bits, the low bits of the little-endian bit vector. -/
-def truncateHash (output : HashOutput) : Digest :=
-  output.extractLsb' 0 digestBits
-
-/-- The second 16 bytes of a hash output (bytes 16 to 31). Only the seed derivations of chain starts
-use them. -/
-def upperHash (output : HashOutput) : Digest :=
-  output.extractLsb' digestBits digestBits
-
-/-- The half of a hash output that starts chain `n`: the first for even `n`, the second for odd `n`. -/
-def hashHalf (n : Nat) (output : HashOutput) : Digest :=
-  if n % 2 = 0 then truncateHash output else upperHash output
 
 /-! #### The codeword table -/
 
@@ -233,12 +184,6 @@ deriving DecidableEq
 not hashed: the WOTS+C encoding absorbs the sixteen nodes (`Concrete.encode`). -/
 abbrev ForestKey := Coord → Digest × Digest
 
-/-- `pk = (root, P)`. -/
-structure PublicKey where
-  root : Digest
-  parameter : PublicParameter
-deriving DecidableEq
-
 /-- The WOTS+C signature and authentication path. -/
 structure LayerSignature (lay : Layer) where
   counter : Counter
@@ -264,29 +209,6 @@ structure Signature where
   forest : Coord → CoordOpening
   layers : (lay : Layer) → LayerSignature lay
 deriving DecidableEq
-
-/-- Serialize a bit vector into a fixed number of bytes, least significant byte first. -/
-def bytesLE (byteCount : Nat) (value : BitVec (8 * byteCount)) : List UInt8 :=
-  List.ofFn fun index : Fin byteCount =>
-    UInt8.ofBitVec (value.extractLsb' (8 * index.val) 8)
-
-/-- The address of a hash call (`Tweak` in `crates/signatures/src/lean_sphincs`): its type `tag < 32`, a chain step
-`step < 8`, and two fields `hi < 2^24` and `lo < 2^32`. -/
-structure TweakFields where
-  tag : BitVec 5
-  step : BitVec 3
-  hi : BitVec 24
-  lo : BitVec 32
-deriving DecidableEq
-
-/-- The 16 address bytes `lo || hi || (tag + 32 * step) || 0^8`: `lo` on 4 bytes, `hi` on 3 bytes,
-each least significant byte first, then the type byte, then 8 zero bytes. -/
-def fieldBytes (fields : TweakFields) : HashInput :=
-  bytesLE 4 fields.lo ++ bytesLE 3 fields.hi ++ bytesLE 1 (fields.step ++ fields.tag) ++ bytesLE 8 0
-
-/-- Convert the four integer fields to their fixed widths. -/
-def tweakFields (tag step hi lo : Nat) : TweakFields :=
-  ⟨BitVec.ofNat 5 tag, BitVec.ofNat 3 step, BitVec.ofNat 24 hi, BitVec.ofNat 32 lo⟩
 
 /-! #### Forest addresses -/
 
@@ -432,26 +354,11 @@ end TargetSum
 `Concrete` contains the hash and verification routines; `Seeded` contains key generation and
 signing. Hashing routines work in any monad with access to `HashSpec`. -/
 
-/-- A hash query takes an arbitrary byte string and returns 32 bytes. -/
-abbrev HashSpec := HashInput →ₒ HashOutput
-
 namespace Concrete
 
-/-- Run the `n` computations in index order and collect their results. -/
-def sequenceFin {m : Type → Type} [Monad m] {α : Type} {n : Nat}
-    (computation : Fin n → m α) : m (Fin n → α) :=
-  match n with
-  | 0 => pure Fin.elim0
-  | n + 1 => do
-      let head ← computation 0
-      let tail ← sequenceFin fun index : Fin n => computation index.succ
-      return Fin.cases head tail
+export LeanXmss.Concrete (sequenceFin oracleHash nodePayload)
 
 variable {m : Type → Type} [Monad m] [HasQuery HashSpec m]
-
-/-- One query to the hash `H` (`HashSpec`), which the model answers. -/
-def oracleHash (input : HashInput) : m HashOutput :=
-  HasQuery.query (spec := HashSpec) (m := m) input
 
 /-- `Th(P, tw, M) = Truncate_n(H(P || tw || M))`. -/
 def tweakableHash (parameter : PublicParameter) (domain : HashDomain) (payload : HashInput) :
@@ -501,10 +408,6 @@ def leafPayload (endpoints : ChainIndex → Digest) : HashInput :=
 def leafHash (parameter : PublicParameter) (lay : Layer) (tree : TreeIndex) (leaf : LeafIndex)
     (endpoints : ChainIndex → Digest) : m Digest :=
   tweakableHash parameter (.leaf lay tree leaf) (leafPayload endpoints)
-
-/-- The two children of a Merkle node. -/
-def nodePayload (left right : Digest) : HashInput :=
-  bytesLE 16 left ++ bytesLE 16 right
 
 /-- `t_0[0] || t_0[1] || ... || t_7[0] || t_7[1]`, the forest key as bytes: the level-3 nodes of the 8
 top trees. -/
@@ -787,19 +690,11 @@ def deriveRandomizer {m : Type → Type} [Monad m] [HasQuery HashSpec m]
 def schemeSeed {m : Type → Type} [Monad m] [HasQuery HashSpec m] (seed : MasterSeed) : m MasterSeed :=
   Concrete.oracleHash (schemeSeedInput seed)
 
-noncomputable def sampleMasterSeed : ProbComp MasterSeed :=
-  letI := SampleableType.ofFintype MasterSeed
-  $ᵗ MasterSeed
-
 namespace Seeded
 
 open Concrete
 
-/-- What the signer reads: `seed` is the scheme seed `S`, not the key's seed `S0`. -/
-structure SecretKey where
-  seed : MasterSeed
-  parameter : PublicParameter
-  root : Digest
+export LeanXmss.Seeded (SecretKey)
 
 variable {m : Type → Type} [Monad m] [HasQuery HashSpec m]
 
@@ -846,52 +741,6 @@ def treeNode (parameter : PublicParameter) (lay : Layer) (tree : TreeIndex)
       let left ← treeNode parameter lay tree seed level (2 * nodeIdx)
       let right ← treeNode parameter lay tree seed level (2 * nodeIdx + 1)
       tweakableHash parameter (.node lay tree (level + 1) nodeIdx) (nodePayload left right)
-
-variable [Params]
-
-/-- The surrogate sibling at `level >= b`, derived from the seed (`TWEAK_SURROGATE`). Honest calls
-have `level < h`. -/
-def surrogate (parameter : PublicParameter) (seed : MasterSeed) (level : Nat) : m Digest :=
-  if hlevel : level < totalHeight then deriveKey parameter (.surrogate ⟨level, hlevel⟩) seed else pure 0
-
-/-- The node at level `b + steps` above the kept subtree: the subtree root folded with the first
-`steps` surrogates (`XmssTree::from_leaves`). -/
-def spineNode (parameter : PublicParameter) (lay : Layer) (tree : TreeIndex) (seed : MasterSeed) :
-    Nat → m Digest
-  | 0 => treeNode parameter lay tree seed subtreeHeight (subtreePosition parameter)
-  | steps + 1 => do
-      let below ← spineNode parameter lay tree seed steps
-      let sibling ← surrogate parameter seed (subtreeHeight + steps)
-      let nodeIdx := subtreePosition parameter / 2 ^ steps
-      if nodeIdx.testBit 0 then
-        tweakableHash parameter (.node lay tree (subtreeHeight + steps + 1) (nodeIdx / 2))
-          (nodePayload sibling below)
-      else
-        tweakableHash parameter (.node lay tree (subtreeHeight + steps + 1) (nodeIdx / 2))
-          (nodePayload below sibling)
-
-/-- The root: the spine's top. -/
-def treeRoot (parameter : PublicParameter) (lay : Layer) (tree : TreeIndex)
-    (seed : MasterSeed) : m Digest :=
-  spineNode parameter lay tree seed (totalHeight - subtreeHeight)
-
-/-- The authentication path of a kept leaf (`XmssTree::path`): subtree nodes below level `b`,
-surrogates from level `b` on. -/
-def treePath (parameter : PublicParameter) (lay : Layer) (tree : TreeIndex)
-    (seed : MasterSeed) (leaf : LeafIndex) : m (Fin (layerHeight lay) → Digest) :=
-  sequenceFin fun level =>
-    if level.val < subtreeHeight then
-      treeNode parameter lay tree seed level.val (Nat.xor (leaf.val / 2 ^ level.val) 1)
-    else
-      surrogate parameter seed level.val
-
-end Seeded
-
-namespace Seeded
-
-open Concrete
-
-variable {m : Type → Type} [Monad m] [HasQuery HashSpec m]
 
 /-- The starts `x_{i,0}` of the 6 chains of a child, from 3 seed derivations. Chains `2t` and
 `2t + 1` start at the two halves of derivation `t`. -/
@@ -972,6 +821,42 @@ def forestOpen (parameter : PublicParameter) (index : Index) (marks : Coord → 
 
 variable [Params]
 
+/-- The surrogate sibling at `level >= b`, derived from the seed (`TWEAK_SURROGATE`). Honest calls
+have `level < h`. -/
+def surrogate (parameter : PublicParameter) (seed : MasterSeed) (level : Nat) : m Digest :=
+  if hlevel : level < totalHeight then deriveKey parameter (.surrogate ⟨level, hlevel⟩) seed else pure 0
+
+/-- The node at level `b + steps` above the kept subtree: the subtree root folded with the first
+`steps` surrogates (`XmssTree::from_leaves`). -/
+def spineNode (parameter : PublicParameter) (lay : Layer) (tree : TreeIndex) (seed : MasterSeed) :
+    Nat → m Digest
+  | 0 => treeNode parameter lay tree seed subtreeHeight (subtreePosition parameter)
+  | steps + 1 => do
+      let below ← spineNode parameter lay tree seed steps
+      let sibling ← surrogate parameter seed (subtreeHeight + steps)
+      let nodeIdx := subtreePosition parameter / 2 ^ steps
+      if nodeIdx.testBit 0 then
+        tweakableHash parameter (.node lay tree (subtreeHeight + steps + 1) (nodeIdx / 2))
+          (nodePayload sibling below)
+      else
+        tweakableHash parameter (.node lay tree (subtreeHeight + steps + 1) (nodeIdx / 2))
+          (nodePayload below sibling)
+
+/-- The root: the spine's top. -/
+def treeRoot (parameter : PublicParameter) (lay : Layer) (tree : TreeIndex)
+    (seed : MasterSeed) : m Digest :=
+  spineNode parameter lay tree seed (totalHeight - subtreeHeight)
+
+/-- The authentication path of a kept leaf (`XmssTree::path`): subtree nodes below level `b`,
+surrogates from level `b` on. -/
+def treePath (parameter : PublicParameter) (lay : Layer) (tree : TreeIndex)
+    (seed : MasterSeed) (leaf : LeafIndex) : m (Fin (layerHeight lay) → Digest) :=
+  sequenceFin fun level =>
+    if level.val < subtreeHeight then
+      treeNode parameter lay tree seed level.val (Nat.xor (leaf.val / 2 ^ level.val) 1)
+    else
+      surrogate parameter seed level.val
+
 /-- Key generation from the scheme seed `S`: derive the public parameter, which places the kept
 subtree, and build the root. -/
 def keygenFromMaster (seed : MasterSeed) : OracleComp HashSpec (PublicKey × SecretKey) := do
@@ -1030,21 +915,7 @@ def sign (secretKey : SecretKey) (message : Message) : m (Option Signature) := d
 
 end Seeded
 
-end
-
-end Sphincs
-
-end
-
 /-! ## Forgeries and transcripts -/
-
-section
-
-open OracleComp OracleSpec ENNReal
-
-namespace Sphincs
-
-@[expose] public section
 
 structure Forgery where
   message : Message
@@ -1053,9 +924,9 @@ deriving DecidableEq
 
 abbrev SigningSpec := Message →ₒ Option Signature
 
-variable [Params]
-
 namespace SigningTranscript
+
+variable [Params]
 
 def Valid (log : QueryLog SigningSpec) : Prop := log.length ≤ signatureLimit
 
@@ -1071,19 +942,11 @@ instance (log : QueryLog SigningSpec) (forgery : Forgery) : Decidable (Contains 
 
 end SigningTranscript
 
-end
-
-end Sphincs
-
-end
-
 /-! ## Security in the random-permutation model -/
 
-@[expose] public section
+namespace Rpm
 
-open OracleComp OracleSpec ENNReal Common Common.SufCma
-
-namespace Sphincs.Rpm
+open Common Common.SufCma
 
 variable [Params]
 
@@ -1099,88 +962,44 @@ noncomputable def scheme :
   win log forgery :=
     decide (SigningTranscript.Valid log ∧ ¬SigningTranscript.Contains log forgery)
 
-/-- An adversary in the random-permutation model: private coins, Keccak-256 (32 bytes), `π`,
-`π⁻¹` and the signing oracle. -/
-structure Adversary where
-  main : PublicKey → OracleComp (KSpec + SigningSpec) Forgery
+end Rpm
 
-/-- The game: the seed, key generation, the adversary with the signing oracle, the final
-verification, all hashing with Keccak-256 over the permutation. -/
-noncomputable def game (adversary : Adversary) : OracleComp KSpec Bool :=
-  rpmGame (digestBitVec : KDigest ≃ HashOutput) scheme adversary.main
+/-! ## The proved lifetimes: `⟨b, N, _⟩`, subtree height `b` and `N` signatures -/
 
-/-- The probability of a successful forgery against the lazily sampled random permutation. -/
-noncomputable def forgeAdvantage (adversary : Adversary) : ℝ≥0∞ :=
-  Pr{let b ← rpmExperiment (digestBitVec : KDigest ≃ HashOutput) scheme adversary.main}[b = true]
+namespace Lifetimes
 
-/-- Every path of the game makes at most `Q` permutation calls, the sponge's included. -/
-def HasPermutationBound (adversary : Adversary) (Q : Nat) : Prop :=
-  IsWeightBound (game adversary) permCalls Q
+open Common.SufCma
 
-/-- Every adversary whose game makes at most `Q` permutation calls, `1 ≤ Q ≤ 2^128`, wins with
-probability at most `(Q + 1) · 2^-bits`. -/
-def HasRpmSecurityBits (bits : Nat) : Prop :=
-  ∀ Q, 1 ≤ Q → Q ≤ 2 ^ 128 → ∀ adversary, HasPermutationBound adversary Q →
-    forgeAdvantage adversary ≤ ((Q : ℝ≥0∞) + 1) * (2 : ℝ≥0∞)⁻¹ ^ bits
-
-end Sphincs.Rpm
-
-end
-
-/-! ## The proved lifetimes -/
-
-@[expose] public section
-
-open OracleComp OracleSpec ENNReal
-
-namespace Sphincs.Lifetimes
-
-/-- Subtree height 26, 1383000000 signatures (96.1% of the cover attack's 1.44e+09; the FORS variant: 1156000000). -/
 abbrev full : Params := ⟨26, 1383000000, by decide⟩
-
-/-- Subtree height 20, 26030000 signatures (91.3% of the cover attack's 2.851e+07; the FORS variant: 22380000). -/
 abbrev pruned20 : Params := ⟨20, 26030000, by decide⟩
-
-/-- Subtree height 14, 480900 signatures (86.3% of the cover attack's 5.575e+05; the FORS variant: 412500). -/
 abbrev pruned14 : Params := ⟨14, 480900, by decide⟩
-
-/-- Subtree height 13, 247000 signatures (85.5% of the cover attack's 2.89e+05; the FORS variant: 211900). -/
 abbrev pruned13 : Params := ⟨13, 247000, by decide⟩
-
-/-- Subtree height 12, 126900 signatures (84.7% of the cover attack's 1.498e+05; the FORS variant: 108700). -/
 abbrev pruned12 : Params := ⟨12, 126900, by decide⟩
-
-/-- Subtree height 10, 33490 signatures (83.3% of the cover attack's 4.022e+04; the FORS variant: 28600). -/
 abbrev pruned10 : Params := ⟨10, 33490, by decide⟩
-
-/-- Subtree height 8, 8830 signatures (81.9% of the cover attack's 1.078e+04; the FORS variant: 7530). -/
 abbrev pruned8 : Params := ⟨8, 8830, by decide⟩
 
-end Sphincs.Lifetimes
-
-end
-
-@[expose] public section
-
 /-! ### The end statement -/
-
-namespace Sphincs.Lifetimes
 
 /-- **leanSPHINCS in the random-permutation model, at every proved lifetime**: at each subtree
 height (`b` = 26, 20, 14, 13, 12, 10, 8, the instances `full`, `pruned20`, …, `pruned8` with
 their signature limits), an adversary whose game makes at most `Q` permutation calls,
-`1 ≤ Q ≤ 2^128`, forges with probability at most `(Q + 1) · 2^-127`
-(`Rpm.HasRpmSecurityBits 127`). Proved by
-`Sphincs.Lifetimes.requestedSecurityRpm`. -/
+`1 ≤ Q ≤ 2^128`, forges with probability at most `(Q + 1) · 2^-127` (`RpmSecure` at 127 bits).
+`Q` counts every call on the game's worst path, the honest signer's included (`IsWeightBound` is
+structural): a signature costs about `2^35` calls at `b = 26` (`2^32` grinding attempts of one
+call, `2^32` encoding counters of three, and `treePath` rebuilding the kept subtree, about
+`2^33.9`), so at the largest lifetime, `N ≈ 2^30.4` signatures, `Q ≥ 2^65` and the bound is about
+`2^-62`. Proved by `Sphincs.Lifetimes.requestedSecurityRpm`. -/
 abbrev RequestedSecurityRpm : Prop :=
-  @Rpm.HasRpmSecurityBits full 127 ∧
-  @Rpm.HasRpmSecurityBits pruned20 127 ∧
-  @Rpm.HasRpmSecurityBits pruned14 127 ∧
-  @Rpm.HasRpmSecurityBits pruned13 127 ∧
-  @Rpm.HasRpmSecurityBits pruned12 127 ∧
-  @Rpm.HasRpmSecurityBits pruned10 127 ∧
-  @Rpm.HasRpmSecurityBits pruned8 127
+  RpmSecure digestBitVec (@Rpm.scheme full) 127 ∧
+  RpmSecure digestBitVec (@Rpm.scheme pruned20) 127 ∧
+  RpmSecure digestBitVec (@Rpm.scheme pruned14) 127 ∧
+  RpmSecure digestBitVec (@Rpm.scheme pruned13) 127 ∧
+  RpmSecure digestBitVec (@Rpm.scheme pruned12) 127 ∧
+  RpmSecure digestBitVec (@Rpm.scheme pruned10) 127 ∧
+  RpmSecure digestBitVec (@Rpm.scheme pruned8) 127
 
-end Sphincs.Lifetimes
+end Lifetimes
+
+end Sphincs
 
 end

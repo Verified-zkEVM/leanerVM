@@ -43,7 +43,7 @@ def prefixesOf {β : Type} (bs : List β) : List (List β) :=
 section Setting
 
 variable {Dg E C Msg : Type}
-  [XorCancel Dg] [XorCancel E]
+  [XorOp Dg] [XorOp E] [XorCancel Dg] [XorCancel E]
   [DecidableEq Dg] [DecidableEq E] [DecidableEq C] [DecidableEq Msg]
   [Fintype Dg] [Fintype E] [Fintype C]
   [SampleableType Dg] [SampleableType E] [SampleableType C]
@@ -54,7 +54,7 @@ noncomputable abbrev drawSt : OracleComp (unifSpec + aSpec Msg Dg E C) (SpState 
 
 /-- **The value of a path**: when `β` pads a message `m`, the digest `H m` with the rest of
 `T β`; otherwise `T β`. -/
-noncomputable def val (P : Padding Msg (Dg × E)) (β : List (Dg × E)) :
+noncomputable def val (P : Padding Msg (Dg × E)) [P.Lawful] (β : List (Dg × E)) :
     OracleComp (unifSpec + aSpec Msg Dg E C) (SpState Dg E C) :=
   match P.unpad β with
   | some m => do
@@ -66,7 +66,7 @@ noncomputable def val (P : Padding Msg (Dg × E)) (β : List (Dg × E)) :
 /-! ## Random functions -/
 
 /-- The real world over a random function instead of a random permutation. -/
-noncomputable def funImpl (P : Padding Msg (Dg × E)) (iv : SpState Dg E C) :
+noncomputable def funImpl (P : Padding Msg (Dg × E)) [P.Lawful] (iv : SpState Dg E C) :
     QueryImpl (dSpec Msg Dg (SpState Dg E C)) (StateT (PermLog (SpState Dg E C)) ProbComp)
   | .inl n => liftM (unifSpec.query n : ProbComp (Fin (n + 1)))
   | .inr (.inl m) => spongeWith P iv (fun x ↦ lazyFun (.fwd x)) m
@@ -77,7 +77,7 @@ noncomputable def funImpl (P : Padding Msg (Dg × E)) (iv : SpState Dg E C) :
 /-- The simulator's forward step with rooted values from `val` and the uniform draw `u` for a
 fresh unrooted node. Returns the answer, the new state, and the path and value of a fresh rooted
 node, if any. -/
-noncomputable def visFwd (P : Padding Msg (Dg × E)) (x u : SpState Dg E C)
+noncomputable def visFwd (P : Padding Msg (Dg × E)) [P.Lawful] (x u : SpState Dg E C)
     (σ : SimState Dg E C) :
     OracleComp (unifSpec + aSpec Msg Dg E C)
       (SpState Dg E C × SimState Dg E C × Option (List (Dg × E) × SpState Dg E C)) :=
@@ -98,7 +98,7 @@ def visInv (y u : SpState Dg E C) (σ : SimState Dg E C) : SpState Dg E C × Sim
   | none => (u, ⟨(u, y) :: σ.edges, σ.chains⟩)
 
 /-- The simulator with rooted values from `val`, drawing a uniform state at every query. -/
-noncomputable def idealTImpl (P : Padding Msg (Dg × E)) :
+noncomputable def idealTImpl (P : Padding Msg (Dg × E)) [P.Lawful] :
     QueryImpl (dSpec Msg Dg (SpState Dg E C))
       (StateT (SimState Dg E C) (OracleComp (unifSpec + aSpec Msg Dg E C)))
   | .inl n => liftM (liftM (unifSpec.query n : ProbComp (Fin (n + 1))) :
@@ -121,7 +121,7 @@ def knownC (iv : SpState Dg E C) (σ : SimState Dg E C) : List C :=
 
 /-- The paths whose value has been queried: the simulator's rooted paths and the prefixes of the
 padded hashed messages. -/
-def usedPath (P : Padding Msg (Dg × E)) (VC : List (SpState Dg E C × List (Dg × E)))
+def usedPath (P : Padding Msg (Dg × E)) [P.Lawful] (VC : List (SpState Dg E C × List (Dg × E)))
     (hashed : List Msg) (β : List (Dg × E)) : Bool :=
   decide (β ∈ VC.map Prod.snd) || hashed.any fun m ↦ decide (β ∈ prefixesOf (P.pad m))
 
@@ -145,7 +145,7 @@ def CState.init (iv : SpState Dg E C) : CState Dg E C Msg :=
 /-- The full view's walk along the sponge path of a message: at each block, the value of the
 path so far and a uniform state are drawn; a recorded node keeps its value, a fresh node takes
 the path's value unless the path was already used, in which case it takes the uniform state. -/
-noncomputable def allWalk (P : Padding Msg (Dg × E)) (used : List (Dg × E) → Bool) :
+noncomputable def allWalk (P : Padding Msg (Dg × E)) [P.Lawful] (used : List (Dg × E) → Bool) :
     List (Dg × E) → SpState Dg E C → PermLog (SpState Dg E C) → List (Dg × E) →
       OracleComp (unifSpec + aSpec Msg Dg E C) (SpState Dg E C × PermLog (SpState Dg E C))
   | _, s, A, [] => pure (s, A)
@@ -159,7 +159,7 @@ noncomputable def allWalk (P : Padding Msg (Dg × E)) (used : List (Dg × E) →
       allWalk P used (pre ++ [B]) y ((absorb s B, y) :: A) bs
 
 /-- The queries of `allWalk`, answers discarded. -/
-noncomputable def skel (P : Padding Msg (Dg × E)) :
+noncomputable def skel (P : Padding Msg (Dg × E)) [P.Lawful] :
     List (Dg × E) → List (Dg × E) → OracleComp (unifSpec + aSpec Msg Dg E C) Unit
   | _, [] => pure ()
   | pre, B :: bs => do
@@ -170,7 +170,7 @@ noncomputable def skel (P : Padding Msg (Dg × E)) :
 /-- The outcome of the combined forward step at `x`, given the shared uniform draw `u` and the
 simulator's step `r`: the real answer from the full view (the recorded answer, or the value of
 the fresh rooted path when unused, or `u`), the ideal answer `r.1`, and the new state. -/
-def fwdOut (P : Padding Msg (Dg × E)) (iv : SpState Dg E C) (cs : CState Dg E C Msg)
+def fwdOut (P : Padding Msg (Dg × E)) [P.Lawful] (iv : SpState Dg E C) (cs : CState Dg E C Msg)
     (x u : SpState Dg E C)
     (r : SpState Dg E C × SimState Dg E C × Option (List (Dg × E) × SpState Dg E C)) :
     (SpState Dg E C × SpState Dg E C) × CState Dg E C Msg :=
@@ -187,7 +187,7 @@ def fwdOut (P : Padding Msg (Dg × E)) (iv : SpState Dg E C) (cs : CState Dg E C
 
 /-- The combined forward step: the real answer from the full view, the ideal answer from the
 simulator, with one shared uniform draw. -/
-noncomputable def combFwd (P : Padding Msg (Dg × E)) (iv : SpState Dg E C)
+noncomputable def combFwd (P : Padding Msg (Dg × E)) [P.Lawful] (iv : SpState Dg E C)
     (x : SpState Dg E C) :
     StateT (CState Dg E C Msg) (OracleComp (unifSpec + aSpec Msg Dg E C))
       (SpState Dg E C × SpState Dg E C) := StateT.mk fun cs ↦ do
@@ -224,7 +224,7 @@ def hashOut (cs : CState Dg E C Msg) (m : Msg)
 
 /-- The combined hash step: the real answer is the digest at the end of the full view's walk, the
 ideal answer is the random oracle's. -/
-noncomputable def combHash (P : Padding Msg (Dg × E)) (iv : SpState Dg E C) (m : Msg) :
+noncomputable def combHash (P : Padding Msg (Dg × E)) [P.Lawful] (iv : SpState Dg E C) (m : Msg) :
     StateT (CState Dg E C Msg) (OracleComp (unifSpec + aSpec Msg Dg E C)) (Dg × Dg) :=
   StateT.mk fun cs ↦ do
     let w ← allWalk P (usedPath P cs.sim.chains cs.hashed) [] iv cs.all (P.pad m)
@@ -232,7 +232,7 @@ noncomputable def combHash (P : Padding Msg (Dg × E)) (iv : SpState Dg E C) (m 
     pure (hashOut cs m w d)
 
 /-- The combined step, returning the real and the ideal answer. -/
-noncomputable def combStep (P : Padding Msg (Dg × E)) (iv : SpState Dg E C) :
+noncomputable def combStep (P : Padding Msg (Dg × E)) [P.Lawful] (iv : SpState Dg E C) :
     (t : (dSpec Msg Dg (SpState Dg E C)).Domain) →
       StateT (CState Dg E C Msg) (OracleComp (unifSpec + aSpec Msg Dg E C))
         ((dSpec Msg Dg (SpState Dg E C)).Range t × (dSpec Msg Dg (SpState Dg E C)).Range t)
@@ -245,13 +245,13 @@ noncomputable def combStep (P : Padding Msg (Dg × E)) (iv : SpState Dg E C) :
   | .inr (.inr (.inv y)) => combInv iv y
 
 /-- The combined game answering with the full view: the real world over random functions. -/
-noncomputable def combReal (P : Padding Msg (Dg × E)) (iv : SpState Dg E C) :
+noncomputable def combReal (P : Padding Msg (Dg × E)) [P.Lawful] (iv : SpState Dg E C) :
     QueryImpl (dSpec Msg Dg (SpState Dg E C))
       (StateT (CState Dg E C Msg) (OracleComp (unifSpec + aSpec Msg Dg E C))) :=
   fun t ↦ Prod.fst <$> combStep P iv t
 
 /-- The combined game answering with the visible view: the ideal world. -/
-noncomputable def combIdeal (P : Padding Msg (Dg × E)) (iv : SpState Dg E C) :
+noncomputable def combIdeal (P : Padding Msg (Dg × E)) [P.Lawful] (iv : SpState Dg E C) :
     QueryImpl (dSpec Msg Dg (SpState Dg E C))
       (StateT (CState Dg E C Msg) (OracleComp (unifSpec + aSpec Msg Dg E C))) :=
   fun t ↦ Prod.snd <$> combStep P iv t
@@ -266,7 +266,7 @@ def CState.vis (cs : CState Dg E C Msg) : VState Dg E C Msg := (cs.sim, cs.hashe
 
 /-- The visible game: the combined game's ideal side without the full view. With `pre` the
 sponge's path queries are made, answers discarded; without, they are not. -/
-noncomputable def visImpl (P : Padding Msg (Dg × E)) (iv : SpState Dg E C) (pre : Bool) :
+noncomputable def visImpl (P : Padding Msg (Dg × E)) [P.Lawful] (iv : SpState Dg E C) (pre : Bool) :
     QueryImpl (dSpec Msg Dg (SpState Dg E C))
       (StateT (VState Dg E C Msg) (OracleComp (unifSpec + aSpec Msg Dg E C)))
   | .inl n => liftM (liftM (unifSpec.query n : ProbComp (Fin (n + 1))) :

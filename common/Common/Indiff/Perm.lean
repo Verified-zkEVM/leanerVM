@@ -342,11 +342,11 @@ end Generic
 section Setting
 
 variable {Dg E C Msg : Type}
-  [XorCancel Dg] [XorCancel E]
+  [XorOp Dg] [XorOp E] [XorCancel Dg] [XorCancel E]
   [DecidableEq Dg] [DecidableEq E] [DecidableEq C] [DecidableEq Msg]
   [Fintype Dg] [Fintype E] [Fintype C]
   [SampleableType Dg] [SampleableType E] [SampleableType C]
-  (P : Padding Msg (Dg × E)) (iv : SpState Dg E C)
+  (P : Padding Msg (Dg × E)) [P.Lawful] (iv : SpState Dg E C)
 
 /-- The distinguisher's queries in the permutation model: a hash query becomes the sponge's
 permutation queries. -/

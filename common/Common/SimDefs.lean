@@ -1,3 +1,4 @@
+import Common.Sponge
 import Statement.RandomPermutation
 
 /-!
@@ -18,11 +19,11 @@ namespace Common
 section Setting
 
 variable {Dg E C Msg : Type}
-  [XorCancel Dg] [XorCancel E]
+  [XorOp Dg] [XorOp E] [XorCancel Dg] [XorCancel E]
   [DecidableEq Dg] [DecidableEq E] [DecidableEq C] [DecidableEq Msg]
   [Fintype Dg] [Fintype E] [Fintype C]
   [SampleableType Dg] [SampleableType E] [SampleableType C]
-  (P : Padding Msg (Dg × E)) (iv : SpState Dg E C)
+  (P : Padding Msg (Dg × E)) [P.Lawful] (iv : SpState Dg E C)
 
 /-- The answer of the two-oracle simulator at a fresh rooted node `x` with path `β`: when `β`
 pads a message `m`, `H m` completed by uniform bits; otherwise `F x`. -/
@@ -62,11 +63,11 @@ end Setting
 section Setting2
 
 variable {Dg E C Msg : Type}
-  [XorCancel Dg] [XorCancel E]
+  [XorOp Dg] [XorOp E] [XorCancel Dg] [XorCancel E]
   [DecidableEq Dg] [DecidableEq E] [DecidableEq C] [DecidableEq Msg]
   [Fintype Dg] [Fintype E] [Fintype C]
   [SampleableType Dg] [SampleableType E] [SampleableType C]
-  (P : Padding Msg (Dg × E)) (iv : SpState Dg E C)
+  (P : Padding Msg (Dg × E)) [P.Lawful] (iv : SpState Dg E C)
 
 /-- The adversary's oracles in the two-oracle ROM: coins, `H`, and `π`, `π⁻¹` answered by the
 simulator `simulator2` (which queries `H` and `F`). -/

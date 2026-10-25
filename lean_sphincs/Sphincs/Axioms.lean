@@ -9634,30 +9634,6 @@ import Sphincs.World
 #guard_msgs (whitespace := lax) in
 #print axioms Sphincs.Params.subtreeHeight_le
 
-/-- info: 'Sphincs.PublicKey.mk.inj' does not depend on any axioms -/
-#guard_msgs (whitespace := lax) in
-#print axioms Sphincs.PublicKey.mk.inj
-
-/-- info: 'Sphincs.PublicKey.mk.injEq' depends on axioms: [propext] -/
-#guard_msgs (whitespace := lax) in
-#print axioms Sphincs.PublicKey.mk.injEq
-
-/-- info: 'Sphincs.PublicKey.mk.sizeOf_spec' does not depend on any axioms -/
-#guard_msgs (whitespace := lax) in
-#print axioms Sphincs.PublicKey.mk.sizeOf_spec
-
-/-- info: 'Sphincs.Seeded.SecretKey.mk.inj' does not depend on any axioms -/
-#guard_msgs (whitespace := lax) in
-#print axioms Sphincs.Seeded.SecretKey.mk.inj
-
-/-- info: 'Sphincs.Seeded.SecretKey.mk.injEq' depends on axioms: [propext] -/
-#guard_msgs (whitespace := lax) in
-#print axioms Sphincs.Seeded.SecretKey.mk.injEq
-
-/-- info: 'Sphincs.Seeded.SecretKey.mk.sizeOf_spec' does not depend on any axioms -/
-#guard_msgs (whitespace := lax) in
-#print axioms Sphincs.Seeded.SecretKey.mk.sizeOf_spec
-
 /-- info: 'Sphincs.Signature.mk.inj' does not depend on any axioms -/
 #guard_msgs (whitespace := lax) in
 #print axioms Sphincs.Signature.mk.inj
@@ -9681,18 +9657,6 @@ import Sphincs.World
 /-- info: 'Sphincs.SubOpening.mk.sizeOf_spec' does not depend on any axioms -/
 #guard_msgs (whitespace := lax) in
 #print axioms Sphincs.SubOpening.mk.sizeOf_spec
-
-/-- info: 'Sphincs.TweakFields.mk.inj' does not depend on any axioms -/
-#guard_msgs (whitespace := lax) in
-#print axioms Sphincs.TweakFields.mk.inj
-
-/-- info: 'Sphincs.TweakFields.mk.injEq' depends on axioms: [propext] -/
-#guard_msgs (whitespace := lax) in
-#print axioms Sphincs.TweakFields.mk.injEq
-
-/-- info: 'Sphincs.TweakFields.mk.sizeOf_spec' does not depend on any axioms -/
-#guard_msgs (whitespace := lax) in
-#print axioms Sphincs.TweakFields.mk.sizeOf_spec
 
 /-- info: 'Sphincs.codewordCodes_eq_rule' depends on axioms: [propext] -/
 #guard_msgs (whitespace := lax) in

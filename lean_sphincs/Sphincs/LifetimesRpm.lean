@@ -66,13 +66,13 @@ end
 (`b` = 26, 20, 14, 13, 12, 10, 8), an adversary whose game makes at most `Q` permutation calls,
 `1 ≤ Q ≤ 2^128`, forges with probability at most `(Q + 1) · 2^-127`. -/
 theorem requestedSecurityRpm : RequestedSecurityRpm :=
-  ⟨@rpmBits_of_det full 127 full_bits (by norm_num),
-    @rpmBits_of_det pruned20 127 pruned20_bits (by norm_num),
-    @rpmBits_of_det pruned14 127 pruned14_bits (by norm_num),
-    @rpmBits_of_det pruned13 127 pruned13_bits (by norm_num),
-    @rpmBits_of_det pruned12 127 pruned12_bits (by norm_num),
-    @rpmBits_of_det pruned10 127 pruned10_bits (by norm_num),
-    @rpmBits_of_det pruned8 127 pruned8_bits (by norm_num)⟩
+  ⟨@Rpm.rpmSecure_of_bits full 127 (@rpmBits_of_det full 127 full_bits (by norm_num)),
+    @Rpm.rpmSecure_of_bits pruned20 127 (@rpmBits_of_det pruned20 127 pruned20_bits (by norm_num)),
+    @Rpm.rpmSecure_of_bits pruned14 127 (@rpmBits_of_det pruned14 127 pruned14_bits (by norm_num)),
+    @Rpm.rpmSecure_of_bits pruned13 127 (@rpmBits_of_det pruned13 127 pruned13_bits (by norm_num)),
+    @Rpm.rpmSecure_of_bits pruned12 127 (@rpmBits_of_det pruned12 127 pruned12_bits (by norm_num)),
+    @Rpm.rpmSecure_of_bits pruned10 127 (@rpmBits_of_det pruned10 127 pruned10_bits (by norm_num)),
+    @Rpm.rpmSecure_of_bits pruned8 127 (@rpmBits_of_det pruned8 127 pruned8_bits (by norm_num))⟩
 
 /-- **The forest lifetimes in the random-permutation model, refined**: at each proved subtree
 height, an adversary whose game makes at most `q ≥ 1` calls of `H`, `π` and `π⁻¹` and at most `Q`

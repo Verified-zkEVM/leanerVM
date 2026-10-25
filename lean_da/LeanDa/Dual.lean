@@ -411,10 +411,12 @@ theorem dualCodeword_eq_dual (z : Fin 14 → E) :
 
 variable (H : List UInt8 → Digest) (P : Lanes → Lanes)
 
-/-- `Sponge.samples n` draws `n` challenges. -/
-theorem length_samples : ∀ (n : ℕ) (s : Sponge), (Sponge.samples P n s).length = n
+/-- `Sponge.samplesM n` draws `n` challenges. -/
+theorem length_samples : ∀ (n : ℕ) (s : Sponge),
+    (Id.run (Sponge.samplesM (m := Id) (fun L ↦ pure (P L)) n s)).length = n
   | 0, _ => rfl
-  | n + 1, s => by rw [Sponge.samples, List.length_cons, length_samples]
+  | n + 1, s => congrArg Nat.succ
+      (length_samples n (Id.run (Sponge.sampleM (m := Id) (fun L ↦ pure (P L)) s)).2)
 
 /-- A root has `14` challenges. -/
 theorem length_membershipChallenges (root : Digest) :

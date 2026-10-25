@@ -24,7 +24,7 @@ root being what `openOne` (V:501) compares (`B1/Merkle/Climb.lean`).
 
 * `HashesPair l0 l1 r0 r1 p0 p1`: the four child cells are canonical and the parent's cells are
   the digest of their 64 bytes (`keccak(…)` of two two-cell digests, `keccak_one`), which for
-  digests' cells is `hashPair` (`Statement/RandomPermutation.lean`).
+  digests' cells is `hashPair` (`LeanVM/Protocol/KeccakHash.lean`).
 * `MeaningVerifyMerkleCap D`: what `verify_merkle_cap__L{D}` checks, `4 ≤ D ≤ 8`.
 -/
 

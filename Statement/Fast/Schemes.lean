@@ -54,7 +54,7 @@ def sequenceFin {m : Type → Type} [Monad m] {α : Type} :
     let tail ← sequenceFin fun index : Fin n ↦ computation index.succ
     return cons head tail
 
-/-- leanXMSS's `sequenceFin` is `sequenceFin`. -/
+/-- The schemes' `sequenceFin` (leanSPHINCS's is leanXMSS's) is `sequenceFin`. -/
 theorem sequenceFin_xmss {m : Type → Type} [Monad m] {α : Type} :
     ∀ {n : Nat} (computation : Fin n → m α),
       LeanXmss.Concrete.sequenceFin computation = sequenceFin computation
@@ -65,26 +65,10 @@ theorem sequenceFin_xmss {m : Type → Type} [Monad m] {α : Type} :
     funext head
     rw [sequenceFin_xmss]
 
-/-- leanSPHINCS's `sequenceFin` is `sequenceFin`. -/
-theorem sequenceFin_sphincs {m : Type → Type} [Monad m] {α : Type} :
-    ∀ {n : Nat} (computation : Fin n → m α),
-      Sphincs.Concrete.sequenceFin computation = sequenceFin computation
-  | 0, _ => rfl
-  | n + 1, computation => by
-    simp only [Sphincs.Concrete.sequenceFin, sequenceFin, cases_eq_cons]
-    congr 1
-    funext head
-    rw [sequenceFin_sphincs]
-
-/-- leanXMSS's `sequenceFin` compiles as `sequenceFin`. -/
+/-- The schemes' `sequenceFin` compiles as `sequenceFin`. -/
 @[csimp] theorem xmss_sequenceFin_eq : @LeanXmss.Concrete.sequenceFin = @sequenceFin := by
   funext m _ α n computation
   exact sequenceFin_xmss computation
-
-/-- leanSPHINCS's `sequenceFin` compiles as `sequenceFin`. -/
-@[csimp] theorem sphincs_sequenceFin_eq : @Sphincs.Concrete.sequenceFin = @sequenceFin := by
-  funext m _ α n computation
-  exact sequenceFin_sphincs computation
 
 /-! ## leanXMSS -/
 
@@ -147,7 +131,7 @@ def otsLeaf (parameter : PublicParameter) (lay : Layer) (tree : TreeIndex) (leaf
     (message : ForestKey) (counter : Counter) (values : ChainIndex → Digest) :
     m (Option Digest) := do
   let some encoding ← encode parameter lay tree leaf message counter | return none
-  let endpoints ← _root_.Sphincs.Concrete.sequenceFin fun chainIdx =>
+  let endpoints ← LeanXmss.Concrete.sequenceFin fun chainIdx =>
     recoverChain parameter lay tree leaf chainIdx (encoding chainIdx) (values chainIdx)
   let value ← leafHash parameter lay tree leaf endpoints
   return some value

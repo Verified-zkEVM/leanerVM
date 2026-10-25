@@ -33,12 +33,15 @@ Benedikt Wagner's ([b-wagn/fv-pq-da](https://github.com/b-wagn/fv-pq-da), Apache
    and Keccak-256's padding, `spongeWith`, `keccakPadding`); a cost bounded on every path
    (`IsWeightBound`); the Keccak-256 evaluations a transcript of permutation queries contains
    (`pathsOf`); the SUF-CMA game of a hash-based signature scheme in the random-permutation model
-   (`SufCma.rpmGame`, `rpmExperiment`, `permCalls`); and a game with the verifier's direct calls of
-   `π` (`rpmGame2`, `realGame2`), the form of LeanDA's games.
-2. [`LeanXmss.lean`](LeanXmss.lean): the leanXMSS scheme, its SUF-CMA game, and
-   `LeanXmss.Rpm.LeanXmssRpmSecurityStatement`.
-3. [`LeanSphincs.lean`](LeanSphincs.lean): the leanSPHINCS scheme, its SUF-CMA game with the
-   deterministic signer, the proved lifetimes, and `Sphincs.Lifetimes.RequestedSecurityRpm`.
+   (`SufCma.rpmGame`, `rpmExperiment`, `permCalls`) and its security notion (`SufCma.RpmSecure`);
+   and a game with the verifier's direct calls of `π` (`rpmGame2`, `realGame2`), the form of
+   LeanDA's games.
+2. [`LeanXmss.lean`](LeanXmss.lean): what leanXMSS and leanSPHINCS share (the tweakable hash's
+   types, bytes and address, `crates/signatures/src/tweak.rs`), the leanXMSS scheme and
+   `LeanXmss.Rpm.LeanXmssRpmSecurityStatement` (`RpmSecure` at 127 bits).
+3. [`LeanSphincs.lean`](LeanSphincs.lean): the leanSPHINCS scheme (on the shared part, exported
+   into `Sphincs`) with the deterministic signer, the proved lifetimes, and
+   `Sphincs.Lifetimes.RequestedSecurityRpm` (`RpmSecure` at 127 bits at each lifetime).
 4. [`Field.lean`](Field.lean): `K = GF(2^64)` (CompPoly's `BF64`), `E = GF(2^192)`, the generator
    `g`; Keccak lanes, bytes and digests as field elements.
 5. [`LeanDa.lean`](LeanDa.lean): LeanDA (fields, Reed–Solomon rows, the Merkle commitment, the
@@ -51,10 +54,7 @@ Benedikt Wagner's ([b-wagn/fv-pq-da](https://github.com/b-wagn/fv-pq-da), Apache
    argument is knowledge sound in the random-permutation model with error `(q + c) · 2^-k`, LeanDA
    is code binding with error `(Q + c + 2^22) · 2^-k + (Q + 2^20) · 2^-93 + (Q + 2^22)² · 2^-158`
    for `Q ≤ 2^127` and `r ≤ 1024` rows; the last term, Wagner's forking loss, passes 1 at about
-   `Q = 2^79`. The hypothesis holds only for an argument that has, or
-   simulates, access to `π`: an argument complete for every `π`, as `PerfectlyCompleteRpm` asks,
-   does not satisfy it, so completeness and code binding are not both meaningful for one argument
-   (as in Wagner's original).
+   `Q = 2^79`. `CodeBindingRpm`'s docstring says which arguments satisfy the hypothesis.
 6. [`LeanIsa.lean`](LeanIsa.lean): leanISA (memory, the six instructions, programs, one step, `run`,
    `ValidExecution`: a run from the initial state `(pcInitial, fpInitial)` that halts in the final
    state `(pcFinal, fpFinal)`, the instruction counts `Trace.count`, the bytecode encoding), and a
@@ -118,10 +118,9 @@ and the facts about `K.ofBits` they rest on. It holds theorems only
 a proof), so nothing in it can change what the extractor computes or what a statement says: it
 needs no review.
 
-A few definitions carry proofs, which are here because the definitions need them:
-`Common.keccakPadding` (a `Padding`, with the padding's laws: six lemmas in
-`RandomPermutation.lean`); the extractor's decoder contexts (CompPoly's contexts bundle their
-correctness proofs: `traceCtx`, `gsContext` in `Extractor.lean`); and decidability instances.
+A few definitions carry proofs, which are here because the definitions need them: the extractor's
+decoder contexts (CompPoly's contexts bundle their correctness proofs: `traceCtx`, `gsContext` in
+`Extractor.lean`); and decidability instances.
 
 ## The end theorems
 

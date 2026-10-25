@@ -18,11 +18,11 @@ namespace Common
 section Setting
 
 variable {Dg E C Msg : Type}
-  [XorCancel Dg] [XorCancel E]
+  [XorOp Dg] [XorOp E] [XorCancel Dg] [XorCancel E]
   [DecidableEq Dg] [DecidableEq E] [DecidableEq C] [DecidableEq Msg]
   [Fintype Dg] [Fintype E] [Fintype C]
   [SampleableType Dg] [SampleableType E] [SampleableType C]
-  (P : Padding Msg (Dg × E)) (iv : SpState Dg E C)
+  (P : Padding Msg (Dg × E)) [P.Lawful] (iv : SpState Dg E C)
 
 /-- The random oracle part of an intermediate game's cache. -/
 def roPart (c : ACache Msg Dg E C) : (roSpec Msg Dg).QueryCache :=

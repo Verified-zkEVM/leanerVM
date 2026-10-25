@@ -97,20 +97,10 @@ section Pure
 
 variable (H : List UInt8 → Digest) (P : Lanes → Lanes)
 
-theorem samplesM_id (n : ℕ) (s : Sponge) :
-    Sponge.samplesM (m := Id) (fun L ↦ pure (P L)) n s = Sponge.samples P n s := by
-  induction n generalizing s with
-  | zero => rfl
-  | succ n ih =>
-    simp only [Sponge.samplesM, Sponge.samples, ih]
-    rfl
-
 /-- **Over pure functions, the challenges are the crate's.** -/
 theorem membershipChallengesM_id (root : Digest) :
     membershipChallengesM (m := Id) (fun a ↦ pure (H a)) (fun L ↦ pure (P L)) root =
-      membershipChallenges H P root := by
-  simp only [membershipChallengesM, membershipChallenges, ← samplesM_id]
-  rfl
+      membershipChallenges H P root := rfl
 
 theorem walkM_id (idx : ℕ) (node : Digest) (path : List Digest) :
     walkM (m := Id) (fun a ↦ pure (H a)) idx node path = walk H idx node path := by

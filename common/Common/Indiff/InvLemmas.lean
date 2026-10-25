@@ -17,11 +17,11 @@ namespace Common
 section Setting
 
 variable {Dg E C Msg : Type}
-  [XorCancel Dg] [XorCancel E]
+  [XorOp Dg] [XorOp E] [XorCancel Dg] [XorCancel E]
   [DecidableEq Dg] [DecidableEq E] [DecidableEq C] [DecidableEq Msg]
   [Fintype Dg] [Fintype E] [Fintype C]
   [SampleableType Dg] [SampleableType E] [SampleableType C]
-  (P : Padding Msg (Dg × E)) (iv : SpState Dg E C)
+  (P : Padding Msg (Dg × E)) [P.Lawful] (iv : SpState Dg E C)
 
 /-- A path the analysis keeps track of: rooted by the simulator, or hidden. -/
 def KnownPath (cs : CState Dg E C Msg) (β : List (Dg × E)) : Prop :=

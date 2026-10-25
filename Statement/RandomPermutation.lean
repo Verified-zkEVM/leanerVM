@@ -12,32 +12,19 @@ public import VCVio.EvalDist.Monad.UniformTable
 /-!
 # Keccak and the random-permutation model
 
-Read first. Keccak-f[1600] and Keccak-256 as leanVM computes them, and the random-permutation model
-(RPM) every end statement with an adversary is stated in: one uniformly random permutation `π` of
-the 1600-bit Keccak state, which every party queries forward (`π x`) and inverse (`π⁻¹ y`),
-Keccak-256 the sponge over `π`.
-
-* **Keccak as deployed** (namespaces `LeanVM.Parameters`, `LeanVM.Semantics`, `LeanVM.Protocol`):
-  Keccak-f[1600] (`keccakF`) on `25` lanes of `64` bits, and Keccak-256 (`KeccakHash.keccak256`),
-  transcribed from `python-verifier/verifier.py` at leanVM `94ee12ff6b2a3d42ba8328e22d09443692e4800b`.
-* **The model** (namespace `Common`): a query to a permutation (`PermQuery`, `permSpec`), the
-  lazily sampled uniform permutation (`lazyPerm`: a fresh answer uniform among the points not yet
-  used), the sponge over any permutation on the 200-byte state (`spongeWith`, `KState`) with
-  Keccak-256's padding (`keccakPadding`), the hash as the sponge over the lazily sampled
-  permutation (`realImpl`, `realGame`), a bound on a cost along every path of a computation
-  (`IsWeightBound`), the Keccak-256 evaluations a transcript of permutation queries contains
-  (`pathsOf`), and the SUF-CMA game of a hash-based signature scheme (`SufCma.rpmGame`,
-  `rpmExperiment`, its permutation calls `permCalls`).
-* **Games with the verifier's direct calls** (the last sections): a game made of an honest part, an
-  adversary with Keccak-256, `π` and `π⁻¹`, and a verifier that hashes and calls `π` directly
-  (`rpmGame2`, over the oracles `dSpec2`), run against the lazily sampled permutation
-  (`realGame2`). LeanDA's games (`Statement/LeanDa.lean`) are of this form.
-
-Not definitions: `keccakPadding` carries the padding's laws, so the six lemmas before it
-(`keccakPad_ne_nil`, `keccakUnpad_keccakPad` and what they use) are proved here.
+Read first (`Statement/README.md` states the model): Keccak-f[1600] and Keccak-256 as leanVM
+computes them (namespaces `LeanVM.*`), then the model (namespace `Common`): `π` and `π⁻¹` lazily
+sampled, the sponge over a permutation, a cost bounded on every path, the SUF-CMA game of a
+signature scheme (`SufCma`), and the games with the verifier's direct calls of `π`
+(`rpmGame2`, `realGame2`), the form of LeanDA's games.
 -/
 
-section
+@[expose] public section
+
+open OracleComp OracleSpec MeasureTheory
+open scoped ENNReal
+
+set_option linter.unusedSectionVars false
 
 /-!
 ## Keccak
@@ -50,15 +37,10 @@ the permutation `keccak_f` (`verifier.py:360-375`), and the hash `keccak_hash`
 with `0x01 ‖ 0^* ‖ 0x80` (FIPS 202's SHA3-256 would put `0x06` first). The Rust is
 `crates/verifier/src/hash.rs` and `crates/primitives/src/hash.rs`.
 
-A state is `25` lanes of `64` bits, lane `x + 5y` at index `x + 5y`. A lane is a `UInt64` here
-and a `K` word inside the machine (`K.ofLane`, `K.lane`: bit `i` of the lane is the coefficient
-of `x^i`). Then the byte and field encodings the verifier hashes: a `K` word as eight
-little-endian bytes, the Merkle leaf and node hashes, and a digest as two field elements.
+A state is `25` lanes of `64` bits, lane `x + 5y` at index `x + 5y`.
 -/
 
 namespace LeanVM.Parameters
-
-@[expose] public section
 
 /-- `KECCAK_RC` (`verifier.py:1207-1212`): the round constants of the `24` rounds. -/
 def keccakRC : List UInt64 := [
@@ -77,14 +59,11 @@ def keccakRho : List ℕ :=
 `i // 5 + 5 · ((2 · (i % 5) + 3 · (i // 5)) % 5)`. -/
 def keccakPi (i : ℕ) : ℕ := i / 5 + 5 * ((2 * (i % 5) + 3 * (i / 5)) % 5)
 
-end
 end LeanVM.Parameters
 
 namespace LeanVM.Semantics
 
 open LeanVM.Parameters
-
-@[expose] public section
 
 /-! ### Keccak-f[1600] -/
 
@@ -125,23 +104,15 @@ end Keccak
 /-- **Keccak-f[1600]** (`keccak_f`, `verifier.py:360-375`): the `24` rounds. -/
 def keccakF (a : KState) : KState := keccakRC.foldl Keccak.round a
 
-end
 end LeanVM.Semantics
 
 namespace LeanVM.Protocol
 
 open LeanVM.Parameters LeanVM.Semantics
 
-@[expose] public section
-
 /-- A Keccak-256 digest: its `32` bytes as four little-endian 64-bit words, the first four lanes of
 the last state (`Digest.words`, `verifier.py:221-223`). -/
 abbrev Digest := Vector UInt64 4
-
-/-- Digest equality decided on the word lists, usable from a module file, where core's
-`DecidableEq` for `Vector` is not exposed. -/
-def Digest.decEq : DecidableEq Digest := fun a b ↦
-  decidable_of_iff (a.toList = b.toList) Vector.toList_inj
 
 namespace KeccakHash
 
@@ -196,24 +167,11 @@ def wordBytes (w : UInt64) : List UInt8 :=
 /-- The 32 bytes of a digest: its words, little-endian (`Digest.value`, `verifier.py:209`). -/
 def digestBytes (d : Digest) : List UInt8 := d.toList.flatMap wordBytes
 
-/-! ### The Merkle node hash (`Transcript.merkle`, `verifier.py:433-445`) -/
-
-/-- The digest of a node: Keccak-256 of the 64 bytes of its two children, left first. -/
-def hashPair (left right : Digest) : Digest := keccak256 (digestBytes left ++ digestBytes right)
-
 end KeccakHash
 
-end
 end LeanVM.Protocol
 
-end
-
 /-! ## The random permutation: `π` and `π⁻¹`, lazily sampled -/
-
-@[expose] public section
-
-open OracleComp OracleSpec MeasureTheory
-open scoped ENNReal
 
 namespace Common
 
@@ -232,11 +190,7 @@ abbrev permSpec (S : Type) : OracleSpec (PermQuery S) := PermQuery S →ₒ S
 /-- The state of a lazily sampled permutation: the edges `(x, π x)` fixed so far, newest first. -/
 abbrev PermLog (S : Type) := List (S × S)
 
-variable {S : Type}
-
-section Lookup
-
-variable [DecidableEq S]
+variable {S : Type} [DecidableEq S]
 
 /-- The recorded forward answer at `x`: the output of the first edge with input `x`. -/
 def fwdLookup : PermLog S → S → Option S
@@ -248,11 +202,7 @@ def invLookup : PermLog S → S → Option S
   | [], _ => none
   | (a, b) :: E, y => if b = y then some a else invLookup E y
 
-end Lookup
-
-section Sampling
-
-variable [Fintype S] [DecidableEq S] [SampleableType S]
+variable [Fintype S] [SampleableType S]
 
 /-- A uniform draw from the points outside the list `l`, or from all of `S` when `l` covers
 `S` (which the lazy permutation never needs: a full range is a full domain). -/
@@ -263,11 +213,6 @@ noncomputable def uniformAvoiding (l : List S) : ProbComp S :=
     Subtype.val <$> ($ᵗ {y // y ∉ l})
   else $ᵗ S
 
-end Sampling
-
-section LazyPerm
-
-variable [Fintype S] [DecidableEq S] [SampleableType S]
 
 /-- **The lazily sampled random permutation.** A recorded point is answered from the log; a
 fresh forward query `π x` draws `π x` uniformly outside the current range and records `(x, π x)`;
@@ -283,45 +228,20 @@ noncomputable def lazyPerm : QueryImpl (permSpec S) (StateT (PermLog S) ProbComp
       | some x => pure (x, E)
       | none => (fun x ↦ (x, (x, y) :: E)) <$> uniformAvoiding (E.map Prod.fst)
 
-end LazyPerm
-
-end Common
-
-end
 
 /-! ## The sponge over a permutation; Keccak-256's state, blocks and padding -/
 
-@[expose] public section
-
-namespace Common
-
-/-- A type with an exclusive-or such that `a ^^^ (a ^^^ b) = b`: absorbing a block into a state
-is invertible, and the block is recovered from the states before and after. -/
-class XorCancel (α : Type) extends XorOp α where
-  /-- XOR with `a` is an involution. -/
-  xor_cancel : ∀ a b : α, a ^^^ (a ^^^ b) = b
-
-/-- Byte vectors XOR bytewise. -/
-instance (n : ℕ) : XorCancel (Vector UInt8 n) where
+/-- Byte vectors XOR bytewise: absorbing a block XORs it into the state. -/
+instance (n : ℕ) : XorOp (Vector UInt8 n) where
   xor a b := Vector.zipWith (· ^^^ ·) a b
-  xor_cancel a b := by
-    apply Vector.ext
-    intro i hi
-    change (Vector.zipWith (· ^^^ ·) a (Vector.zipWith (· ^^^ ·) a b))[i] = b[i]
-    simp only [Vector.getElem_zipWith]
-    rw [← UInt8.xor_assoc, UInt8.xor_self, UInt8.zero_xor]
 
-variable {Dg E C : Type}
+variable {Dg E C Msg : Type} [XorOp Dg] [XorOp E]
 
 /-- The state of a sponge with digest part `Dg`, rest of the rate `E` and capacity `C`. -/
 abbrev SpState (Dg E C : Type) := (Dg × E) × C
 
 /-- The digest part of a state: the first component of the rate. -/
 abbrev SpState.out (s : SpState Dg E C) : Dg := s.1.1
-
-section Xor
-
-variable [XorCancel Dg] [XorCancel E]
 
 /-- XOR on the rate, componentwise. -/
 def rxor (a b : Dg × E) : Dg × E := (a.1 ^^^ b.1, a.2 ^^^ b.2)
@@ -340,21 +260,15 @@ def absorbAll {m : Type → Type} [Monad m] (π : SpState Dg E C → m (SpState 
     let y ← π (absorb s B)
     absorbAll π y bs
 
-end Xor
 
-/-- A sponge padding: an injective map from messages to nonempty lists of blocks, with a decoder
-that recognises exactly the padded messages. -/
+/-- A sponge padding: messages to lists of blocks, with a decoder. The statement uses only `pad`
+and `unpad`; the laws (`Padding.Lawful`: the decoder recognises exactly the paddings, which are
+nonempty) are proved for `keccakPadding` in `common`. -/
 structure Padding (Msg Blk : Type) where
   /-- The padded message, as a list of blocks. -/
   pad : Msg → List Blk
   /-- The decoder: the message whose padding is the given block list, if any. -/
   unpad : List Blk → Option Msg
-  /-- The decoder recognises exactly the paddings. -/
-  unpad_eq_some_iff : ∀ β m, unpad β = some m ↔ pad m = β
-  /-- A padded message has at least one block. -/
-  pad_ne_nil : ∀ m, pad m ≠ []
-
-variable [XorCancel Dg] [XorCancel E]
 
 /-- **The sponge.** Absorb the padded message from the initial state `iv` with `π`, and output the
 digest part of the final state. -/
@@ -427,121 +341,17 @@ def keccakUnpad (β : List KBlock) : Option (List UInt8) :=
   let msg := stripPad (blocksToBytes β)
   if keccakPad msg = β then some msg else none
 
-/-- The bytes of a block made of 136 bytes are those bytes. -/
-theorem KBlock.toBytes_ofBytes {bs : List UInt8} (h : bs.length = 136) :
-    (KBlock.ofBytes bs).toBytes = bs := by
-  apply List.ext_getElem
-  · simp [KBlock.toBytes, KBlock.ofBytes, h]
-  intro i h1 h2
-  simp only [KBlock.toBytes, KBlock.ofBytes] at h1 ⊢
-  rw [List.getElem_append]
-  split_ifs with hi
-  · simp only [Vector.toList_ofFn, List.getElem_ofFn]
-    rw [List.getD_eq_getElem?_getD, List.getElem?_eq_getElem (by omega), Option.getD_some]
-  · simp only [Vector.toList_ofFn, List.getElem_ofFn, List.length_ofFn]
-    simp only [Vector.toList_ofFn, List.length_ofFn] at hi
-    rw [List.getD_eq_getElem?_getD, List.getElem?_eq_getElem (by omega), Option.getD_some]
-    congr 1
-    omega
-
-/-- Splitting a list whose length is a multiple of 136 into blocks and back gives the list. -/
-theorem blocksToBytes_toBlocks (bs : List UInt8) (h : bs.length % 136 = 0) :
-    blocksToBytes (toBlocks bs) = bs := by
-  induction bs using toBlocks.induct with
-  | case1 => simp [toBlocks, blocksToBytes]
-  | case2 b bs ih =>
-    rw [toBlocks]
-    simp only [blocksToBytes, List.flatMap_cons] at ih ⊢
-    have hlen : 136 ≤ (b :: bs).length := by
-      have : 0 < (b :: bs).length := by simp
-      omega
-    rw [KBlock.toBytes_ofBytes (by simp only [List.length_take]; omega),
-      ih (by simp only [List.length_drop]; omega), List.take_append_drop]
-
-/-- The padded bytes have a length that is a positive multiple of 136. -/
-theorem keccakPadBytes_length (msg : List UInt8) :
-    (keccakPadBytes msg).length = 136 * (msg.length / 136 + 1) := by
-  unfold keccakPadBytes
-  split_ifs with h
-  · simp; omega
-  · simp; omega
-
-/-- Stripping the padding recovers the message. -/
-theorem stripPad_keccakPadBytes (msg : List UInt8) : stripPad (keccakPadBytes msg) = msg := by
-  unfold keccakPadBytes
-  split_ifs with h
-  · simp [stripPad]
-  · have hz : ∀ k, List.dropWhile (· = (0 : UInt8)) (List.replicate k 0 ++ (1 :: msg.reverse)) =
-        1 :: msg.reverse := by
-      intro k
-      induction k with
-      | zero => simp
-      | succ k ih => simp [List.replicate_succ, ih]
-    simp only [stripPad, List.append_assoc, List.cons_append, List.nil_append,
-      List.reverse_append, List.reverse_cons, List.reverse_nil, List.reverse_replicate]
-    simp [hz]
-
-/-- Padded block lists are never empty. -/
-theorem keccakPad_ne_nil (msg : List UInt8) : keccakPad msg ≠ [] := by
-  unfold keccakPad
-  have hlen := keccakPadBytes_length msg
-  cases h : keccakPadBytes msg with
-  | nil => rw [h] at hlen; simp at hlen
-  | cons b bs => rw [toBlocks]; exact List.cons_ne_nil _ _
-
-/-- The decoder inverts the padding. -/
-theorem keccakUnpad_keccakPad (msg : List UInt8) : keccakUnpad (keccakPad msg) = some msg := by
-  have hb : blocksToBytes (keccakPad msg) = keccakPadBytes msg :=
-    blocksToBytes_toBlocks _ (by rw [keccakPadBytes_length]; omega)
-  simp [keccakUnpad, hb, stripPad_keccakPadBytes]
 
 /-- **The Keccak-256 padding**, with its decoder. -/
-def keccakPadding : Padding (List UInt8) KBlock where
-  pad := keccakPad
-  unpad := keccakUnpad
-  unpad_eq_some_iff β m := by
-    constructor
-    · intro h
-      simp only [keccakUnpad] at h
-      split_ifs at h with hp
-      · cases h; exact hp
-    · rintro rfl
-      exact keccakUnpad_keccakPad m
-  pad_ne_nil := keccakPad_ne_nil
-
-end Common
-
-end
+def keccakPadding : Padding (List UInt8) KBlock := ⟨keccakPad, keccakUnpad⟩
 
 /-! ## A cost bounded on every path of a computation -/
 
-@[expose] public section
-
-open OracleComp OracleSpec MeasureTheory
-open scoped ENNReal
-
-namespace Common
-
-universe u
-
-variable {ι : Type} {spec : OracleSpec.{0, 0} ι} {σ α : Type}
-
 /-- A total weight bound: every path of `oa` makes queries of total weight at most `Q`, a query
 `t` weighing `w t`. -/
-def IsWeightBound (oa : OracleComp spec α) (w : ι → ℕ) (Q : ℕ) : Prop :=
+def IsWeightBound {ι : Type} {spec : OracleSpec.{0, 0} ι} {α : Type} (oa : OracleComp spec α)
+    (w : ι → ℕ) (Q : ℕ) : Prop :=
   IsQueryBound oa Q (fun t b ↦ w t ≤ b) (fun t b ↦ b - w t)
-
-end Common
-
-end
-
-/-! ## Bytes as `Fin 256` -/
-
-@[expose] public section
-
-open OracleComp OracleSpec
-
-namespace Common
 
 /-- A byte as a residue. -/
 def uInt8EquivFin : UInt8 ≃ Fin 256 where
@@ -550,36 +360,12 @@ def uInt8EquivFin : UInt8 ≃ Fin 256 where
   left_inv _ := rfl
   right_inv _ := rfl
 
-end Common
-
-end
-
-/-! ## A hash query -/
-
-@[expose] public section
-
-open OracleComp OracleSpec MeasureTheory
-open scoped ENNReal
-
-namespace Common
-
-variable {ι : Type} [DecidableEq ι] {hs : OracleSpec.{0, 0} ι}
-  [∀ t : hs.Domain, SampleableType (hs.Range t)] {α : Type}
-
 /-- A query of `hs` among coins and `hs`. -/
-abbrev hq (t : ι) : OracleComp (unifSpec + hs) (hs.Range t) := hs.query t
-
-end Common
-
-end
+abbrev hq {ι : Type} [DecidableEq ι] {hs : OracleSpec.{0, 0} ι}
+    [∀ t : hs.Domain, SampleableType (hs.Range t)] (t : ι) : OracleComp (unifSpec + hs) (hs.Range t) :=
+  hs.query t
 
 /-! ## Keccak-256 over the random permutation -/
-
-@[expose] public section
-
-open OracleComp OracleSpec
-
-namespace Common
 
 /-- A hash `Msg → Dg` as an oracle. -/
 abbrev roSpec (Msg Dg : Type) : OracleSpec Msg := Msg →ₒ Dg
@@ -588,13 +374,10 @@ abbrev roSpec (Msg Dg : Type) : OracleSpec Msg := Msg →ₒ Dg
 `π` and its inverse. -/
 abbrev dSpec (Msg Dg St : Type) := unifSpec + (roSpec Msg Dg + permSpec St)
 
-section Setting
-
-variable {Dg E C Msg : Type}
-  [XorCancel Dg] [XorCancel E]
-  [DecidableEq Dg] [DecidableEq E] [DecidableEq C] [DecidableEq Msg]
+variable [DecidableEq Dg] [DecidableEq E] [DecidableEq C] [DecidableEq Msg]
   [Fintype Dg] [Fintype E] [Fintype C]
   [SampleableType Dg] [SampleableType E] [SampleableType C]
+  (P : Padding Msg (Dg × E)) (iv : SpState Dg E C)
 
 /-- The real world: coins forwarded, `H` the sponge over the lazy random permutation, `π` and
 `π⁻¹` the lazy random permutation. -/
@@ -625,31 +408,7 @@ def chainOf (VC : List (SpState Dg E C × List (Dg × E))) (x : SpState Dg E C) 
     Option (SpState Dg E C × List (Dg × E)) :=
   VC.find? fun p ↦ decide (p.1.2 = x.2)
 
-end Setting
-
-end Common
-
-end
-
 /-! ## The Keccak-256 evaluations a transcript of permutation queries contains -/
-
-@[expose] public section
-
-set_option linter.unusedSectionVars false
-
-open OracleComp OracleSpec MeasureTheory
-open scoped ENNReal
-
-namespace Common
-
-section Setting
-
-variable {Dg E C Msg : Type}
-  [XorCancel Dg] [XorCancel E]
-  [DecidableEq Dg] [DecidableEq E] [DecidableEq C] [DecidableEq Msg]
-  [Fintype Dg] [Fintype E] [Fintype C]
-  [SampleableType Dg] [SampleableType E] [SampleableType C]
-  (P : Padding Msg (Dg × E)) (iv : SpState Dg E C)
 
 /-- One step of the simulator's bookkeeping, replayed from a query and its answer. -/
 def replayStep (σ : SimState Dg E C) :
@@ -682,22 +441,75 @@ each with the digest part of the path's last answer. -/
 def pathsOf (log : List (PermQuery (SpState Dg E C) × SpState Dg E C)) : List (Msg × Dg) :=
   simPaths P (replay iv log)
 
-end Setting
 
-end Common
+/-! ## The verifier's oracles: the hash and direct calls of the permutation -/
 
-end
+/-- A direct call `F` of the permutation: states to states. -/
+abbrev fSpec (St : Type) : OracleSpec St := St →ₒ St
+
+/-- The verifier's oracles: the hash `H` and the direct calls `F`. -/
+abbrev hfSpec (Msg Dg St : Type) := roSpec Msg Dg + fSpec St
+
+/-- A game's oracles: coins, `H`, `π` and `π⁻¹`, and the verifier's direct calls `F`. -/
+abbrev dSpec2 (Msg Dg St : Type) := unifSpec + (roSpec Msg Dg + (permSpec St + fSpec St))
+
+/-- The game's direct calls become permutation queries. -/
+def toOne : QueryImpl (dSpec2 Msg Dg (SpState Dg E C))
+    (OracleComp (dSpec Msg Dg (SpState Dg E C)))
+  | .inl n => liftM ((dSpec Msg Dg (SpState Dg E C)).query (.inl n))
+  | .inr (.inl m) => liftM ((dSpec Msg Dg (SpState Dg E C)).query (.inr (.inl m)))
+  | .inr (.inr (.inl q)) => liftM ((dSpec Msg Dg (SpState Dg E C)).query (.inr (.inr q)))
+  | .inr (.inr (.inr x)) => liftM ((dSpec Msg Dg (SpState Dg E C)).query (.inr (.inr (.fwd x))))
+
+/-- **The real world** of a game: `H` the sponge over the lazily sampled random permutation, and
+`F` the permutation itself. -/
+noncomputable def realGame2 {α : Type} (D : OracleComp (dSpec2 Msg Dg (SpState Dg E C)) α) :
+    ProbComp α :=
+  realGame P iv (simulateQ (toOne (E := E) (C := C)) D)
+
+/-- An `H` query. -/
+abbrev hQuery (m : Msg) : OracleComp (unifSpec + hfSpec Msg Dg (SpState Dg E C)) Dg :=
+  hq (hs := hfSpec Msg Dg (SpState Dg E C)) (.inl m)
+
+/-- An `F` query: a direct call of the permutation. -/
+abbrev fQuery (x : SpState Dg E C) :
+    OracleComp (unifSpec + hfSpec Msg Dg (SpState Dg E C)) (SpState Dg E C) :=
+  hq (hs := hfSpec Msg Dg (SpState Dg E C)) (.inr x)
+
+/-! ## A game with an adversary and the verifier's direct calls -/
+
+/-- An honest computation with coins and `H` as a game computation. -/
+def hEmbed2 : QueryImpl (unifSpec + roSpec Msg Dg)
+    (OracleComp (dSpec2 Msg Dg (SpState Dg E C)))
+  | .inl n => liftM ((dSpec2 Msg Dg (SpState Dg E C)).query (.inl n))
+  | .inr m => liftM ((dSpec2 Msg Dg (SpState Dg E C)).query (.inr (.inl m)))
+
+/-- An honest computation with coins, `H` and `F` as a game computation. -/
+def hfEmbed : QueryImpl (unifSpec + hfSpec Msg Dg (SpState Dg E C))
+    (OracleComp (dSpec2 Msg Dg (SpState Dg E C)))
+  | .inl n => liftM ((dSpec2 Msg Dg (SpState Dg E C)).query (.inl n))
+  | .inr (.inl m) => liftM ((dSpec2 Msg Dg (SpState Dg E C)).query (.inr (.inl m)))
+  | .inr (.inr x) => liftM ((dSpec2 Msg Dg (SpState Dg E C)).query (.inr (.inr (.inr x))))
+
+/-- An RPM adversary (coins, `H`, `π`, `π⁻¹`) as a game computation. -/
+def advEmbed : QueryImpl (dSpec Msg Dg (SpState Dg E C))
+    (OracleComp (dSpec2 Msg Dg (SpState Dg E C)))
+  | .inl n => liftM ((dSpec2 Msg Dg (SpState Dg E C)).query (.inl n))
+  | .inr (.inl m) => liftM ((dSpec2 Msg Dg (SpState Dg E C)).query (.inr (.inl m)))
+  | .inr (.inr q) => liftM ((dSpec2 Msg Dg (SpState Dg E C)).query (.inr (.inr (.inl q))))
+
+/-- **A game**: an honest part with `H`, the adversary with `H`, `π`, `π⁻¹`, an honest part with
+`H` and `F`. -/
+def rpmGame2 {β γ δ : Type} (pre : OracleComp (unifSpec + roSpec Msg Dg) β)
+    (A : β → OracleComp (dSpec Msg Dg (SpState Dg E C)) γ)
+    (post : β → γ → OracleComp (unifSpec + hfSpec Msg Dg (SpState Dg E C)) δ) :
+    OracleComp (dSpec2 Msg Dg (SpState Dg E C)) δ :=
+  simulateQ (hEmbed2 (E := E) (C := C)) pre >>= fun x ↦
+    simulateQ (advEmbed (Msg := Msg)) (A x) >>= fun a ↦ simulateQ (hfEmbed (Msg := Msg)) (post x a)
 
 /-! ## The SUF-CMA game of a hash-based signature scheme, in the random-permutation model -/
 
-@[expose] public section
-
-set_option linter.unusedSectionVars false
-
-open OracleComp OracleSpec MeasureTheory
-open scoped ENNReal
-
-namespace Common.SufCma
+namespace SufCma
 
 /-- **The digest bytes as a bit vector**, little endian: byte `i` is bits `8 i … 8 i + 7`
 (`digestBitVec_extract`). -/
@@ -767,117 +579,15 @@ def permCalls : KSpec.Domain → ℕ
   | .inr (.inl m) => m.length / 136 + 1
   | .inr (.inr _) => 1
 
-end Common.SufCma
+/-- **`bits` bits of SUF-CMA security in the random-permutation model**: every adversary `main`
+(coins, Keccak-256, `π`, `π⁻¹` and the signing oracle) whose game makes at most `Q` permutation
+calls on every path, `1 ≤ Q ≤ 2^128`, wins with probability at most `(Q + 1) · 2^-bits`. -/
+def RpmSecure (S : Scheme D Seed PK SK Req Resp F) (bits : ℕ) : Prop :=
+  ∀ Q, 1 ≤ Q → Q ≤ 2 ^ 128 → ∀ main : PK → OracleComp (KSpec + (Req →ₒ Resp)) F,
+    IsWeightBound (rpmGame e S main) permCalls Q →
+      Pr{let b ← rpmExperiment e S main}[b = true] ≤ ((Q : ℝ≥0∞) + 1) * (2 : ℝ≥0∞)⁻¹ ^ bits
 
-end
-
-/-! ## The verifier's oracles: the hash and direct calls of the permutation -/
-
-@[expose] public section
-
-set_option linter.unusedSectionVars false
-
-open OracleComp OracleSpec
-
-namespace Common
-
-/-- A direct call `F` of the permutation: states to states. -/
-abbrev fSpec (St : Type) : OracleSpec St := St →ₒ St
-
-/-- The verifier's oracles: the hash `H` and the direct calls `F`. -/
-abbrev hfSpec (Msg Dg St : Type) := roSpec Msg Dg + fSpec St
-
-/-- A game's oracles: coins, `H`, `π` and `π⁻¹`, and the verifier's direct calls `F`. -/
-abbrev dSpec2 (Msg Dg St : Type) := unifSpec + (roSpec Msg Dg + (permSpec St + fSpec St))
-
-section Setting
-
-variable {Dg E C Msg : Type}
-  [XorCancel Dg] [XorCancel E]
-  [DecidableEq Dg] [DecidableEq E] [DecidableEq C] [DecidableEq Msg]
-  [Fintype Dg] [Fintype E] [Fintype C]
-  [SampleableType Dg] [SampleableType E] [SampleableType C]
-  (P : Padding Msg (Dg × E)) (iv : SpState Dg E C)
-
-/-- The game's direct calls become permutation queries. -/
-def toOne : QueryImpl (dSpec2 Msg Dg (SpState Dg E C))
-    (OracleComp (dSpec Msg Dg (SpState Dg E C)))
-  | .inl n => liftM ((dSpec Msg Dg (SpState Dg E C)).query (.inl n))
-  | .inr (.inl m) => liftM ((dSpec Msg Dg (SpState Dg E C)).query (.inr (.inl m)))
-  | .inr (.inr (.inl q)) => liftM ((dSpec Msg Dg (SpState Dg E C)).query (.inr (.inr q)))
-  | .inr (.inr (.inr x)) => liftM ((dSpec Msg Dg (SpState Dg E C)).query (.inr (.inr (.fwd x))))
-
-/-- **The real world** of a game: `H` the sponge over the lazily sampled random permutation, and
-`F` the permutation itself. -/
-noncomputable def realGame2 {α : Type} (D : OracleComp (dSpec2 Msg Dg (SpState Dg E C)) α) :
-    ProbComp α :=
-  realGame P iv (simulateQ (toOne (E := E) (C := C)) D)
-
-/-- An `H` query. -/
-abbrev hQuery (m : Msg) : OracleComp (unifSpec + hfSpec Msg Dg (SpState Dg E C)) Dg :=
-  hq (hs := hfSpec Msg Dg (SpState Dg E C)) (.inl m)
-
-/-- An `F` query: a direct call of the permutation. -/
-abbrev fQuery (x : SpState Dg E C) :
-    OracleComp (unifSpec + hfSpec Msg Dg (SpState Dg E C)) (SpState Dg E C) :=
-  hq (hs := hfSpec Msg Dg (SpState Dg E C)) (.inr x)
-
-end Setting
-
-end Common
-
-end
-
-/-! ## A game with an adversary and the verifier's direct calls -/
-
-@[expose] public section
-
-set_option linter.unusedSectionVars false
-
-open OracleComp OracleSpec MeasureTheory
-open scoped ENNReal
-
-namespace Common
-
-section Setting
-
-variable {Dg E C Msg : Type}
-  [XorCancel Dg] [XorCancel E]
-  [DecidableEq Dg] [DecidableEq E] [DecidableEq C] [DecidableEq Msg]
-  [Fintype Dg] [Fintype E] [Fintype C]
-  [SampleableType Dg] [SampleableType E] [SampleableType C]
-  (P : Padding Msg (Dg × E)) (iv : SpState Dg E C)
-
-/-- An honest computation with coins and `H` as a game computation. -/
-def hEmbed2 : QueryImpl (unifSpec + roSpec Msg Dg)
-    (OracleComp (dSpec2 Msg Dg (SpState Dg E C)))
-  | .inl n => liftM ((dSpec2 Msg Dg (SpState Dg E C)).query (.inl n))
-  | .inr m => liftM ((dSpec2 Msg Dg (SpState Dg E C)).query (.inr (.inl m)))
-
-/-- An honest computation with coins, `H` and `F` as a game computation. -/
-def hfEmbed : QueryImpl (unifSpec + hfSpec Msg Dg (SpState Dg E C))
-    (OracleComp (dSpec2 Msg Dg (SpState Dg E C)))
-  | .inl n => liftM ((dSpec2 Msg Dg (SpState Dg E C)).query (.inl n))
-  | .inr (.inl m) => liftM ((dSpec2 Msg Dg (SpState Dg E C)).query (.inr (.inl m)))
-  | .inr (.inr x) => liftM ((dSpec2 Msg Dg (SpState Dg E C)).query (.inr (.inr (.inr x))))
-
-/-- An RPM adversary (coins, `H`, `π`, `π⁻¹`) as a game computation. -/
-def advEmbed : QueryImpl (dSpec Msg Dg (SpState Dg E C))
-    (OracleComp (dSpec2 Msg Dg (SpState Dg E C)))
-  | .inl n => liftM ((dSpec2 Msg Dg (SpState Dg E C)).query (.inl n))
-  | .inr (.inl m) => liftM ((dSpec2 Msg Dg (SpState Dg E C)).query (.inr (.inl m)))
-  | .inr (.inr q) => liftM ((dSpec2 Msg Dg (SpState Dg E C)).query (.inr (.inr (.inl q))))
-
-/-- **A game**: an honest part with `H`, the adversary with `H`, `π`, `π⁻¹`, an honest part with
-`H` and `F`. -/
-def rpmGame2 {β γ δ : Type} (pre : OracleComp (unifSpec + roSpec Msg Dg) β)
-    (A : β → OracleComp (dSpec Msg Dg (SpState Dg E C)) γ)
-    (post : β → γ → OracleComp (unifSpec + hfSpec Msg Dg (SpState Dg E C)) δ) :
-    OracleComp (dSpec2 Msg Dg (SpState Dg E C)) δ :=
-  simulateQ (hEmbed2 (E := E) (C := C)) pre >>= fun x ↦
-    simulateQ (advEmbed (Msg := Msg)) (A x) >>= fun a ↦ simulateQ (hfEmbed (Msg := Msg)) (post x a)
-
-end Setting
+end SufCma
 
 end Common
 
