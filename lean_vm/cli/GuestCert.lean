@@ -2710,6 +2710,11 @@ def modCost : ℕ := 8000
 /-- A part this costly has a module of its own. -/
 def heavyCost : ℕ := 4000
 
+/-- The functions each part of which has a module of its own: their parts take minutes each, far
+more than their costs say (`verify_tables`: 5 to 6 minutes on h2), so a module of several would only
+delay the build's end. -/
+def heavyFns : List String := ["verify_tables"]
+
 /-- One function's parts: per window, its parts' data and their costs. -/
 structure FnParts where
   j : ℕ
@@ -2906,10 +2911,11 @@ def cplFiles (fps : List FnParts) (splits : Std.HashMap (ℕ × ℕ) (List (ℕ 
     "/-- The parts of each window, by function and window. -/\ndef cplParts : List (List (List (List ℕ))) := [\n  [],\n" ++
     ",\n".intercalate rows ++ "]\n\nend\nend LeanVM.Guest.Data\n"
   -- the checks, in modules of consecutive parts
-  -- a heavy part (a costly one, or one of a function cut in windows) has a module of its own
+  -- a heavy part (a costly one, or one of `heavyFns`) has a module of its own
   let items := fps.flatMap fun fp => (fp.costs.zipIdx.flatMap fun (cs, i) =>
     if splits.contains (fp.j, i) then [] else
-    cs.zipIdx.map fun (c, k) => (fp.j, i, k, if heavyCost ≤ c then modCost else c))
+    cs.zipIdx.map fun (c, k) =>
+      (fp.j, i, k, if heavyCost ≤ c || heavyFns.contains fp.name then modCost else c))
   let mut groups : Array (Array (ℕ × ℕ × ℕ)) := #[#[]]
   let mut size := 0
   for (j, i, k, c) in items do

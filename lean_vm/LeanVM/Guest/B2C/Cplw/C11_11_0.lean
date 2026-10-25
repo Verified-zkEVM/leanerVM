@@ -19,11 +19,5 @@ namespace LeanVM.Guest.B2C.Cplw
 /-- `verify_tables`, window 11, part 0. -/
 theorem cw11_11_0 : cplWin 11 11 0 = true := by decide +kernel
 
-/-- `verify_tables`, window 12, part 0. -/
-theorem cw11_12_0 : cplWin 11 12 0 = true := by decide +kernel
-
-/-- `verify_tables`, window 13, part 0. -/
-theorem cw11_13_0 : cplWin 11 13 0 = true := by decide +kernel
-
 end
 end LeanVM.Guest.B2C.Cplw

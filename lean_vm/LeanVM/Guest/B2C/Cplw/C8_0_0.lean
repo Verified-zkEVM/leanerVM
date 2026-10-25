@@ -25,12 +25,6 @@ theorem cw9_0_0 : cplWin 9 0 0 = true := by decide +kernel
 /-- `shared_selector_tables`, window 0, part 0. -/
 theorem cw10_0_0 : cplWin 10 0 0 = true := by decide +kernel
 
-/-- `verify_tables`, window 0, part 0. -/
-theorem cw11_0_0 : cplWin 11 0 0 = true := by decide +kernel
-
-/-- `verify_tables`, window 1, part 0. -/
-theorem cw11_1_0 : cplWin 11 1 0 = true := by decide +kernel
-
 theorem ok8 : CplOk 8 := by
   intro i hi k hk
   have hc : (certOf 8).cuts.length = 0 := by decide +kernel

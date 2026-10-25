@@ -19,24 +19,5 @@ namespace LeanVM.Guest.B2C.Cplw
 /-- `verify_tables`, window 13, part 1. -/
 theorem cw11_13_1 : cplWin 11 13 1 = true := by decide +kernel
 
-/-- `keccak_round`, window 0, part 0. -/
-theorem cw12_0_0 : cplWin 12 0 0 = true := by decide +kernel
-
-/-- `verify_keccak`, window 0, part 0. -/
-theorem cw13_0_0 : cplWin 13 0 0 = true := by decide +kernel
-
-/-- `verify_keccak`, window 1, part 0. -/
-theorem cw13_1_0 : cplWin 13 1 0 = true := by decide +kernel
-
-theorem ok12 : CplOk 12 := by
-  intro i hi k hk
-  have hc : (certOf 12).cuts.length = 0 := by decide +kernel
-  rw [hc] at hi
-  interval_cases i
-  · have hn : nParts 12 0 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw12_0_0
-
 end
 end LeanVM.Guest.B2C.Cplw
