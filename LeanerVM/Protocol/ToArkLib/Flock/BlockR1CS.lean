@@ -33,7 +33,8 @@ A batch of `2 ^ κ` blocks of `2 ^ (s + m)` positions is stored as `2 ^ s` table
 `m + κ` coordinates, table `jsk` holding the positions whose low `s` bits are `jsk`
 (`batchBlock`): the layout of a witness whose low `s` coordinates are packed into one element.
 `BatchHolds C cpos z`: every block of the batch satisfies the constraints and holds `1` at the
-constant position `cpos`.
+constant position `cpos`. A block reads every table at `2 ^ m` positions, so compiled code decides
+it with each table built once (`instDecidableBatchHolds_eq`, a `@[csimp]` theorem).
 
 Generic over the ring; nothing here transcribes a source.
 -/
@@ -212,9 +213,22 @@ def BatchHolds {s m κ : ℕ} (C : BlockR1CS R (s + m)) (cpos : Fin (2 ^ (s + m)
     (z : Fin (2 ^ s) → CMlPolynomialEval R (m + κ)) : Prop :=
   ∀ t : Fin (2 ^ κ), C.Holds (batchBlock z t) ∧ (batchBlock z t)[cpos] = 1
 
-instance {s m κ : ℕ} [DecidableEq R] (C : BlockR1CS R (s + m)) (cpos : Fin (2 ^ (s + m)))
-    (z : Fin (2 ^ s) → CMlPolynomialEval R (m + κ)) : Decidable (BatchHolds C cpos z) :=
+instance instDecidableBatchHolds {s m κ : ℕ} [DecidableEq R] (C : BlockR1CS R (s + m))
+    (cpos : Fin (2 ^ (s + m))) (z : Fin (2 ^ s) → CMlPolynomialEval R (m + κ)) :
+    Decidable (BatchHolds C cpos z) :=
   inferInstanceAs (Decidable (∀ _t : Fin (2 ^ κ), _ ∧ _))
+
+/-- `BatchHolds` decided with each table built once. -/
+def decBatchHoldsFast {s m κ : ℕ} [DecidableEq R] (C : BlockR1CS R (s + m))
+    (cpos : Fin (2 ^ (s + m))) (z : Fin (2 ^ s) → CMlPolynomialEval R (m + κ)) :
+    Decidable (BatchHolds C cpos z) :=
+  let zt := Vector.ofFn z
+  decidable_of_iff (BatchHolds C cpos fun i ↦ zt[i]) (by simp [zt])
+
+/-- Compiled code builds each table once. -/
+@[csimp] theorem instDecidableBatchHolds_eq : @instDecidableBatchHolds = @decBatchHoldsFast := by
+  funext R _ s m κ _ C cpos z
+  exact Subsingleton.elim _ _
 
 end BlockR1CS
 
