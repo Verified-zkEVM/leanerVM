@@ -107,7 +107,7 @@ theorem honest_of_main (hm : MainComplete fs cert cnt b) (hk : KFactsAll fs H C 
     le_trans (hin q hq).2 (le_two_pow_logMem N)⟩) hdr
   obtain ⟨hh0, hh1⟩ := B1.Main.imageOf_hdr h64 (by omega) L hdr
   have e0 : (1 : K) = Parameters.gpow 0 := by simp [Parameters.gpow]
-  have e1 : g = Parameters.gpow 1 := by simp [Parameters.gpow]
+  have e1 : Parameters.g = Parameters.gpow 1 := by simp [Parameters.gpow]
   obtain ⟨t, hn, hv, hb, hp, ht, hl, hcntT⟩ := hrelL M.read hlow hL (by rw [e0]; exact hh0)
     (by rw [e1]; exact hh1)
   subst ht
