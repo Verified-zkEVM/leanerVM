@@ -66,7 +66,8 @@ theorem sq_add_sq_le {Q : ℕ} (hQ : Q ≤ 2 ^ 128) :
       ((Q : ℝ≥0∞) + 1) ^ 2 * (2 : ℝ≥0∞)⁻¹ ^ 256 := by
   have h2 : (Q : ℝ≥0∞) ^ 2 / 2 ^ 508 ≤ (Q : ℝ≥0∞) * (2 : ℝ≥0∞)⁻¹ ^ 256 :=
     (sq_div_le_mul_inv_pow (k := 128) 380 hQ).trans (by
-      gcongr _ * ?_ <;> exact inv_two_pow_le_of_le (by norm_num))
+      gcongr _ * ?_
+      exact inv_two_pow_le_of_le (by norm_num))
   have h3 : (Q : ℝ≥0∞) ^ 2 + Q ≤ ((Q : ℝ≥0∞) + 1) ^ 2 := by
     have h : ((Q ^ 2 + Q : ℕ) : ℝ≥0∞) ≤ (((Q + 1) ^ 2 : ℕ) : ℝ≥0∞) :=
       Nat.cast_le.2 (by rw [show (Q + 1) ^ 2 = Q ^ 2 + Q + (Q + 1) by ring]; exact Nat.le_add_right _ _)
