@@ -174,49 +174,60 @@ theorem replayer_not_blakeMisbehaves {prog : Program} {input : PublicInput}
 
 /-! ## Collisions and hits, in one pass -/
 
+/-- A logged query, compactly: its input's bytes and its answer. -/
+abbrev Entry : Type := ByteArray × Digest
+
+/-- A log, compactly. -/
+def entries (log : hashSpec.QueryLog) : Array Entry :=
+  log.toArray.map fun e ↦ (⟨e.1.toArray⟩, e.2)
+
+attribute [local instance] Digest.hashable in
 /-- **The collisions and hits of a joint log**, in one pass with hash maps. The first `nA` entries
 are the prover's; `seed` lists the digests in play from the start, `roots` the proof's roots. An
 entry is a collision when its digest answered an earlier, different input; a hit when its input is
 new and its digest is in play (the seed, a half of an earlier input, a root rebuilt from two
 earlier observe steps) or, past the prover's entries, a root of the proof. Then its halves and the
 roots its observe step completes are put in play. -/
-def scan (seed roots : List Digest) (nA : ℕ) (log : hashSpec.QueryLog) : Bool × Bool := Id.run do
-  let key (x : Digest) : List UInt32 := x.toList
-  let rootSet : Std.HashSet (List UInt32) := Std.HashSet.ofList (roots.map key)
-  let mut answers : Std.HashMap (List UInt32) (List UInt8) := {}
-  let mut seen : Std.HashSet (List UInt8) := {}
-  let mut play : Std.HashSet (List UInt32) := Std.HashSet.ofList (seed.map key)
-  let mut firstObs : Std.HashMap (List UInt32) E := {}
-  let mut pending : Std.HashMap (List UInt32) (Array E) := {}
+def scan (seed roots : List Digest) (nA : ℕ) (log : Array Entry) : Bool × Bool := Id.run do
+  let rootSet : Std.HashSet Digest := Std.HashSet.ofList roots
+  let mut answers : Std.HashMap Digest ByteArray := {}
+  let mut seen : Std.HashSet ByteArray := {}
+  let mut play : Std.HashSet Digest := Std.HashSet.ofList seed
+  let mut firstObs : Std.HashMap Digest E := {}
+  let mut pending : Std.HashMap Digest (Array E) := {}
   let mut collision := false
   let mut hit := false
   let mut k := 0
-  for e in log do
-    let a := key e.2
+  for (t, a) in log do
     match answers[a]? with
-    | some t => if t != e.1 then collision := true
-    | none => answers := answers.insert a e.1
-    if !seen.contains e.1 && (play.contains a || (nA ≤ k && rootSet.contains a)) then hit := true
-    seen := seen.insert e.1
-    for h in halves e.1 do
-      play := play.insert (key h)
-    if let some (cv, x) := observed? e.1 then
-      match firstObs[key cv]? with
+    | some t' => if t' != t then collision := true
+    | none => answers := answers.insert a t
+    if !seen.contains t && (play.contains a || (nA ≤ k && rootSet.contains a)) then hit := true
+    seen := seen.insert t
+    let q := t.toList
+    for h in halves q do
+      play := play.insert h
+    if let some (cv, x) := observed? q then
+      match firstObs[cv]? with
       | some x₁ =>
-        if let some r := digestOfScalars (x₁, x) then play := play.insert (key r)
-      | none => pending := pending.insert (key cv) ((pending.getD (key cv) #[]).push x)
+        if let some r := digestOfScalars (x₁, x) then play := play.insert r
+      | none => pending := pending.insert cv ((pending.getD cv #[]).push x)
       if !firstObs.contains a then
         firstObs := firstObs.insert a x
         for x' in pending.getD a #[] do
-          if let some r := digestOfScalars (x, x') then play := play.insert (key r)
+          if let some r := digestOfScalars (x, x') then play := play.insert r
         pending := pending.erase a
     k := k + 1
   return (collision, hit)
 
+/-- `scan` at the test statement. -/
+def scanAt (roots : List Digest) (nA : ℕ) (log : hashSpec.QueryLog) : Bool × Bool :=
+  scan (seedDigests program input) roots nA (entries log)
+
 /-- `scan` agrees with the definitions on a run of the given logs, at the test statement. -/
 def scanAgrees (roots : List Digest) (logA logV : hashSpec.QueryLog) : Bool :=
   let g : Run := ⟨⟨[], []⟩, logA, logV, true⟩
-  scan (seedDigests program input) roots logA.length g.log ==
+  scanAt roots logA.length g.log ==
     (decide (QueryLog.HasCollision g.log), decide (Hit (fun _ ↦ roots) program input g))
 
 /-- The chain's first state at the test statement. -/
@@ -228,26 +239,26 @@ def absorbed : hashSpec.QueryLog :=
     ⟨Block.input (d 1) (.observe (digestScalars (d 9)).2), d 2⟩]
 
 /- A hit through a half: the verifier's query answered by a child of the prover's node. -/
-#guard scanAgrees [] nodeA nodeV && (scan (seedDigests program input) [] 1 (nodeA ++ nodeV)).2
+#guard scanAgrees [] nodeA nodeV && (scanAt [] 1 (nodeA ++ nodeV)).2
 /- A collision. -/
 #guard scanAgrees [] [⟨[1], d 1⟩] [⟨[2], d 1⟩] &&
-  (scan (seedDigests program input) [] 1 [⟨[1], d 1⟩, ⟨[2], d 1⟩]).1
+  (scanAt [] 1 [⟨[1], d 1⟩, ⟨[2], d 1⟩]).1
 /- The rebuilt root `d 9` is in play after the two observe steps, and not before. -/
 #guard scanAgrees [] (absorbed ++ [⟨[5], d 9⟩]) [] &&
-  (scan (seedDigests program input) [] 3 (absorbed ++ [⟨[5], d 9⟩])).2
+  (scanAt [] 3 (absorbed ++ [⟨[5], d 9⟩])).2
 #guard scanAgrees [] (⟨[5], d 9⟩ :: absorbed) [] &&
-  !(scan (seedDigests program input) [] 3 (⟨[5], d 9⟩ :: absorbed)).2
+  !(scanAt [] 3 (⟨[5], d 9⟩ :: absorbed)).2
 /- A verifier's fresh query answered by a root of the proof, and the same query asked first by
 the prover. -/
 #guard scanAgrees [d 9] [⟨[1], d 1⟩] [⟨[2], d 9⟩] &&
-  (scan (seedDigests program input) [d 9] 1 [⟨[1], d 1⟩, ⟨[2], d 9⟩]).2
+  (scanAt [d 9] 1 [⟨[1], d 1⟩, ⟨[2], d 9⟩]).2
 #guard scanAgrees [d 9] [⟨[2], d 9⟩] [⟨[2], d 9⟩] &&
-  !(scan (seedDigests program input) [d 9] 1 [⟨[2], d 9⟩, ⟨[2], d 9⟩]).2
+  !(scanAt [d 9] 1 [⟨[2], d 9⟩, ⟨[2], d 9⟩]).2
 /- An answer equal to the chain's first state. -/
-#guard scanAgrees [] [⟨[3], s₀⟩] [] && (scan (seedDigests program input) [] 1 [⟨[3], s₀⟩]).2
+#guard scanAgrees [] [⟨[3], s₀⟩] [] && (scanAt [] 1 [⟨[3], s₀⟩]).2
 /- A clean log. -/
 #guard scanAgrees [d 9] [⟨[1], d 1⟩] [⟨[2], d 2⟩] &&
-  scan (seedDigests program input) [d 9] 1 [⟨[1], d 1⟩, ⟨[2], d 2⟩] == (false, false)
+  scanAt [d 9] 1 [⟨[1], d 1⟩, ⟨[2], d 2⟩] == (false, false)
 
 /-! ## The deployed verifier -/
 

@@ -422,7 +422,15 @@ lake build leanervm-prove
 .lake/build/bin/leanervm-prove tests/vectors/fill.proof 1   # the proof, its checks, the times
 .lake/build/bin/leanervm-prove probe 1                      # the commitment's steps, one by one
 .lake/build/bin/leanervm-prove tamper tests/vectors/fill.proof  # four provers, one message changed
+.lake/build/bin/leanervm-prove log tests/vectors/fill.proof     # the honest run, every hash logged
 ```
+
+`log` runs the prover once more with every hash logged (the run of `honestAdversary` with BLAKE2s
+answering), then `verifyWith` on its proof with every hash logged, and checks that the proof is
+the file's, that the verifier accepts it, and that the joint log has no collision and no hit
+(`LeanerVMTests.Protocol.Headline.scan`, one pass with hash maps, which the test module checks
+against `QueryLog.HasCollision` and `Hit` on small logs): the decidable clauses of the headline's
+hypothesis at `δ = 0`. The flip clause is not decidable.
 
 Beside the mutations of the proof, both `leanervm-prove` and `leanervm-verify` run the algebra on
 the honest wire with one message changed in each front phase (a grand-product round coefficient
