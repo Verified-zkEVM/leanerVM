@@ -15,8 +15,9 @@ leanXMSS and leanSPHINCS claims, DA claims, children verified by the leanVM veri
 claims), what a proof of the guest establishes with its witness named (`GuestKnowledge`,
 `AggregateSound`), the deployed guest (`LeanVM.Guest.guest`, assembled from the generated
 `Statement/Data/`), its completeness on the covered nodes (`GuestCompleteRecursion`,
-`GuestCompleteLeaf`, with the deployed limits they assume), and the recursion step, the batching of
-the children's deferred claims, sound in the random-permutation model (`BatchSound`).
+`GuestCompleteLeaf`, `GuestCompleteCovered`, with the deployed limits they assume) and on its own
+honest proofs as children (`GuestChildComplete`), and the recursion step, the batching of the
+children's deferred claims, sound in the random-permutation model (`BatchSound`).
 
 Transcribed from leanVM at the pin (`../leanvm-rev`), `crates/rec_aggregation/src/aggregation.rs`
 (the statement, its digest, the batching, the outer verifier) and
@@ -856,6 +857,106 @@ abbrev GuestCompleteLeaf : Prop :=
     ∃ t : Trace guest,
       ValidExecution guest (EndToEnd.Front.publicInputOfDigest (statementDigest seed s)) t ∧
       2 ^ 22 ≤ t.committedSize ∧ t.committedSize ≤ 2 ^ 28
+
+/-- **The nodes the deployed budget covers**, six families by the node's children, raw signatures
+(leanXMSS and leanSPHINCS held directly), blob rows held directly, and claims (declared, coverage
+slots, the children's declared claims): a recursion node of `2048` claims; a leaf of `2048` raw
+signatures and claims; `8` children and `2^15` claims; `4` children, `1024` raw signatures and
+`8192` claims; `4` children, a blob of `8` rows and `2048` claims; `2` children, `256` raw
+signatures, a blob of `4` rows and `4096` claims. -/
+def Covered (s : NodeStatement) (w : NodeWitness) : Prop :=
+  let n := w.children.length
+  let raw := (direct s.claims.xmss w.xmss).length + (direct s.claims.sphincs w.sphincs).length
+  let blobs := (direct s.claims.da w.da).length
+  let rows := ((direct s.claims.da w.da).map fun p ↦ p.2.rows.length).sum
+  let declared := s.claims.xmss.length + s.claims.sphincs.length + s.claims.da.length
+  let kids := (w.children.map fun c ↦ c.statement.claims.xmss.length +
+    c.statement.claims.sphincs.length + c.statement.claims.da.length).sum
+  let claims (b : ℕ) : Prop := declared ≤ b ∧ coverage s w ≤ b ∧ kids ≤ b
+  (raw = 0 ∧ blobs = 0 ∧ claims 2048) ∨
+  (n = 0 ∧ blobs = 0 ∧ raw ≤ 2048 ∧ declared ≤ 2048 ∧ coverage s w ≤ 2048) ∨
+  (n ≤ 8 ∧ raw = 0 ∧ blobs = 0 ∧ claims (2 ^ 15)) ∨
+  (n ≤ 4 ∧ raw ≤ 1024 ∧ blobs = 0 ∧ claims 8192) ∨
+  (n ≤ 4 ∧ raw = 0 ∧ rows ≤ 8 ∧ claims 2048) ∨
+  (n ≤ 2 ∧ raw ≤ 256 ∧ rows ≤ 4 ∧ claims 4096)
+
+/-- **Every covered node has a valid execution of the guest**: as `GuestCompleteRecursion`, for
+the nodes `Covered` lists. Proved by `LeanVM.Guest.Budget.guest_complete_covered`. -/
+abbrev GuestCompleteCovered : Prop :=
+  ∀ (seed : Digest) (s : NodeStatement) (w : NodeWitness),
+    NodeRel (bytecodeWords guest) seed s w → Limits (bytecodeWords guest) s w →
+    CapsAgree (bytecodeWords guest) seed w → NoZeroChallenge (bytecodeWords guest) seed w →
+    Covered s w →
+    ∃ t : Trace guest,
+      ValidExecution guest (EndToEnd.Front.publicInputOfDigest (statementDigest seed s)) t ∧
+      2 ^ 22 ≤ t.committedSize ∧ t.committedSize ≤ 2 ^ 28
+
+/-! ### Honest proofs are children the guest accepts
+
+The statements above assume of each child what `ChildOk` bundles. The guest checks a child with
+the deployed Keccak, so the honest proof is made with it (`atKeccak`); what it can fail by (a
+proof of work without a nonce within its fuel, a zero challenge where the guest divides) is
+bounded in the random-permutation model for the same prover and check (`verifierNZ`). -/
+
+/-- **The leanVM verifier refusing a zero challenge where the guest divides**: `verifier H F`
+with `Limits.verifyExecutionNZ`. -/
+def verifierNZ {m : Type → Type} [Monad m] (H : Bytes → m Digest) (F : KState → m KState)
+    (prog : Program) (input : PublicInput) (proof : Proof) : m Bool := do
+  let seed ← seedWith H F (bytecodeWords prog) (publicDigest input)
+  runProof H F (do
+    Limits.verifyExecutionNZ .computed (bytecodeWords prog) (publicDigest input)
+    return true) seed proof
+
+/-- Keccak-256 and Keccak-f[1600] answering the calls `HashSpec`. -/
+def keccakImpl : QueryImpl HashSpec Id
+  | .inl x => keccak256 x
+  | .inr s => keccakF s
+
+open OracleComp in
+/-- **An honest prover's proof with the deployed Keccak-256 and Keccak-f[1600].** -/
+def atKeccak (prover : HonestProver) (prog : Program) (input : PublicInput)
+    (t : Trace prog) (ρ fuel : ℕ) : Proof :=
+  Id.run (simulateQ keccakImpl (prover prog input t ρ fuel))
+
+/-- **A child the guest accepts** under the seed `seed`: what `NodeRel`, `Limits`, `CapsAgree`
+and `NoZeroChallenge` ask of each child. -/
+structure ChildOk (bytecode : List K) (seed : Digest) (c : Child) : Prop where
+  shaped : c.statement.defer.Shaped bytecode
+  verifies : verifyDeferred bytecode seed (statementDigest seed c.statement) c.fresh c.proof = true
+  stackLog : ∀ layout r, announced bytecode c.proof.stream = some (layout, r) →
+    Hints.muMin ≤ layout.stackLog
+  stream : c.proof.stream.length ≤ Hints.streamCap
+  capsAgree : ∀ b ∈ Limits.queriesOf
+      (deferredProgram c.fresh bytecode (statementDigest seed c.statement)) (Hints.childStart seed c),
+    Limits.BatchAgrees b.1 b.2
+  noZeroChallenge :
+    Limits.verifyDeferredNZ bytecode seed (statementDigest seed c.statement) c.fresh c.proof = true
+
+open OracleComp OracleSpec in
+/-- **The honest proof of a guest execution is a child the guest accepts**: there is an honest
+prover such that
+1. in the random-permutation model, at `2^25` nonces per proof of work, `verifierNZ` rejects its
+   proof of a valid execution of committed size at most `2^28`, at an inverse rate `2^ρ`,
+   `1 ≤ ρ ≤ 4`, with probability at most `2^-126`;
+2. its proof with the deployed Keccak (`atKeccak`) of an execution of the guest of committed size
+   at least `2^22` on a statement's digest under the deployed seed, wherever `verifierNZ` with the
+   deployed Keccak accepts it, is with the statement (its deferred claim shaped) and some claims
+   on the bytecode a child the guest accepts (`ChildOk`).
+Proved by `LeanVM.Guest.Budget.guest_child_complete`. -/
+def GuestChildComplete : Prop :=
+  ∃ prover : HonestProver,
+    (∀ (prog : Program) (input : PublicInput) (t : Trace prog) (ρ : ℕ),
+      ValidExecution prog input t → t.committedSize ≤ 2 ^ 28 → 1 ≤ ρ ∧ ρ ≤ 4 →
+      Pr{let v ← (simulateQ LeanVM.rpmImpl (do
+          let proof ← prover prog input t ρ (2 ^ 25)
+          verifierNZ queryH queryF prog input proof)).run' []}[v = false] ≤
+        (2 : ℝ≥0∞)⁻¹ ^ 126) ∧
+    ∀ (s : NodeStatement) (t : Trace guest) (ρ : ℕ), 2 ^ 22 ≤ t.committedSize →
+      s.defer.Shaped (bytecodeWords guest) →
+      let input := EndToEnd.Front.publicInputOfDigest (statementDigest (deployedSeed guest) s)
+      let proof := atKeccak prover guest input t ρ (2 ^ 25)
+      verifierNZ (m := Id) keccak256 keccakF guest input proof = true →
+      ∃ fresh, ChildOk (bytecodeWords guest) (deployedSeed guest) ⟨s, fresh, proof⟩
 
 end Budget
 

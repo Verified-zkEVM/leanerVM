@@ -1,0 +1,172 @@
+/-
+  LeanVM.Guest.Child.Honest
+
+  The honest prover of a child: the compiled honest prover of a witness whose sizes are the
+  execution's own, so that its stack is the execution's committed size. Its proof with the
+  deployed Keccak, when the verifier accepts it, is the pure prover's proof of that witness.
+-/
+
+module
+
+public import LeanVM.Protocol.EndToEnd.Complete.Rom
+public import Statement.LeanVmGuest
+public import LeanVM.Guest.Child.Fresh
+
+/-!
+# The honest prover of a child
+
+`childComp` is `EndToEnd.Complete.honestComp` with its witness chosen among those whose stacked
+size is the execution's committed size (`ChildFor`; one exists within the verifier's cap,
+`exists_childFor`, as `exists_admissible_witness` builds it). Its proof with Keccak-256 and
+Keccak-f[1600] (`atKeccak`) is the pure prover's (`atKeccak_childComp`), and a proof the
+verifier accepts is not the empty one (`runProof_execWith_empty`).
+-/
+
+namespace LeanVM.Guest.Child
+
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Arithmetization LeanVM.Protocol
+open LeanVM.Protocol.Compile LeanVM.Protocol.Compile.Rom LeanVM.Protocol.Verifier
+open LeanVM.Protocol.LeanIsa LeanVM.Protocol.EndToEnd.Front LeanVM.Protocol.EndToEnd.Complete
+open LeanVM.Protocol.KeccakHash OracleComp OracleSpec
+open Air.Flat (EnsembleWitness)
+
+@[expose] public section
+
+/-- The witness of a child's proof: an honest witness of the execution whose stacked size is the
+execution's committed size. -/
+def ChildFor (prog : Program) (input : PublicInput) (t : Trace prog) (ρ : ℕ)
+    (w : EnsembleWitness (leanIsaEnsemble prog)) (s : Sizes) : Prop :=
+  HonestFor prog input t ρ w s ∧ (LeanIsa.blocks prog s).total = t.committedSize
+
+/-- **A child's witness exists** for a valid execution within the verifier's cap, at a valid
+rate: `exists_admissible_witness`'s witness. -/
+theorem exists_childFor {prog : Program} {input : PublicInput} {t : Trace prog} {ρ : ℕ}
+    (hv : ValidExecution prog input t) (hbudget : t.committedSize ≤ 2 ^ maxMu)
+    (hρ : validRate ρ) : ∃ w s, ChildFor prog input t ρ w s := by
+  have hcount : ∀ op, t.count op = t.runRows op := Trace.count_eq_runRows hv.2
+  have hheight : ∀ op, 2 ^ Nat.clog 2 (t.count op) ≤ t.committedSize := by
+    intro op
+    have : 0 < 2 ^ prog.logSize := Nat.two_pow_pos _
+    have hk : 2 ^ Nat.clog 2 (t.count .keccak) ≤ 2 ^ max (Nat.clog 2 (t.count .keccak)) 9 :=
+      Nat.pow_le_pow_right (by norm_num) (le_max_left _ _)
+    simp only [Trace.committedSize]
+    cases op <;> omega
+  have hcap : (2 : ℕ) ^ maxMu ≤ 2 ^ maxLogRows := Nat.pow_le_pow_right (by norm_num) (by decide)
+  have hrows : ∀ op, t.runRows op ≤ 2 ^ maxLogRows := fun op ↦ by
+    rw [← hcount]
+    exact (Nat.le_pow_clog (by norm_num) _).trans (((hheight op).trans hbudget).trans hcap)
+  obtain ⟨w, hw, hrep, hlen⟩ := constraintCompleteness_rows hv hrows
+  obtain ⟨s, hs⟩ := sizes_of_satisfiedBy hw
+  have hs0 := hs
+  obtain ⟨hpos, rfl⟩ := eq_of_ofWitness hs
+  have hmem : (witnessSizes w hpos).logMem = t.κ := hrep.κ_eq
+  have hr : ∀ j : Fin 6, (witnessSizes w hpos).rows j = t.count (tableOpcode j) :=
+    fun j ↦ (hlen j).trans (hcount _).symm
+  have htotal : (LeanIsa.blocks prog (witnessSizes w hpos)).total = t.committedSize := by
+    have e : tableOpcode 0 = .xor ∧ tableOpcode 1 = .mulNative ∧ tableOpcode 2 = .setConstant ∧
+        tableOpcode 3 = .deref ∧ tableOpcode 4 = .jump ∧ tableOpcode 5 = .keccak := by decide
+    rw [blocks_total_eq, hmem, pow_add 2 _ 6]
+    simp only [Sizes.τ, hr, e, Trace.committedSize]
+    have f0 : tableLogFloors.getD ((0 : Fin 6) : ℕ) 0 = 0 := rfl
+    have f1 : tableLogFloors.getD ((1 : Fin 6) : ℕ) 0 = 0 := rfl
+    have f2 : tableLogFloors.getD ((2 : Fin 6) : ℕ) 0 = 0 := rfl
+    have f3 : tableLogFloors.getD ((3 : Fin 6) : ℕ) 0 = 0 := rfl
+    have f4 : tableLogFloors.getD ((4 : Fin 6) : ℕ) 0 = 0 := rfl
+    have f5 : tableLogFloors.getD ((5 : Fin 6) : ℕ) 0 = 9 := rfl
+    simp only [f0, f1, f2, f3, f4, f5, Nat.max_zero]
+    ring
+  refine ⟨w, _, ⟨hρ, hw, hs0, ⟨?_, ?_, fun j ↦ (hr j).trans_le (by rw [hcount]; exact hrows _),
+    leanIsaμ_le_of_total_le (htotal ▸ hbudget)⟩, hrep⟩, htotal⟩
+  · rw [hmem]
+    exact hv.1.1
+  · rw [hmem]
+    exact hv.1.2.1
+
+open Classical in
+/-- **The honest prover of a child**: `honestComp` at a child's witness (`ChildFor`, chosen
+classically); the empty proof when there is none. -/
+noncomputable def childComp (prog : Program) (input : PublicInput) (t : Trace prog)
+    (ρ fuel : ℕ) : OracleComp HashSpec Proof :=
+  if h : ∃ w s, ChildFor prog input t ρ w s then
+    Rom.honestComp (leanVmSeed (bytecodeWords prog) (publicDigest input))
+      (leanVmProgram (bytecodeWords prog) (publicDigest input))
+      (leanVmProver prog h.choose_spec.choose ρ (stackOf prog h.choose_spec.choose h.choose)) fuel
+  else pure ⟨[], []⟩
+
+/-- The honest prover of a child, as an `HonestProver`. -/
+noncomputable def childProver : HonestProver := childComp
+
+/-- `keccakImpl` is the total implementation at Keccak-256 and Keccak-f[1600]. -/
+theorem keccakImpl_eq : Budget.keccakImpl = totalImpl keccak256 keccakF := by
+  funext q
+  rcases q with x | s <;> rfl
+
+/-- **The child's proof with Keccak**, in the branch with a witness: the pure prover's proof, or
+the empty proof. -/
+theorem atKeccak_childComp {prog : Program} {input : PublicInput} {t : Trace prog} {ρ fuel : ℕ}
+    (h : ∃ w s, ChildFor prog input t ρ w s) :
+    Budget.atKeccak childProver prog input t ρ fuel =
+      (prove keccak256 keccakF (leanVmProgram (bytecodeWords prog) (publicDigest input))
+        (leanVmProver prog h.choose_spec.choose ρ (stackOf prog h.choose_spec.choose h.choose))
+        (seed (bytecodeWords prog) (publicDigest input)) fuel).getD ⟨[], []⟩ := by
+  unfold Budget.atKeccak childProver childComp
+  simp only [h, ↓reduceDIte, keccakImpl_eq, Rom.honestComp, simulateQ_bind,
+    simulateQ_proveM, simulateQ_pure, implH_totalImpl, implF_totalImpl, seedRun_leanVmSeed]
+  rw [← proveM_id]
+  rfl
+
+/-- The verifier refusing a zero challenge, at Keccak, is the run of `execWith`. -/
+theorem verifierNZ_eq (prog : Program) (input : PublicInput) (π : Proof) :
+    Budget.verifierNZ (m := Id) keccak256 keccakF prog input π =
+      Id.run (runProof (m := Id) keccak256 keccakF
+        ((execWith .computed Limits.verifyStackedOpeningNZ (bytecodeWords prog)
+          (publicDigest input)).bind fun _ ↦ Prog.ret true)
+        (seed (bytecodeWords prog) (publicDigest input)) π) := rfl
+
+/-- **No program reading first accepts the empty proof.** -/
+theorem runProof_read_empty (H : Bytes → Id Digest) (F : KState → Id KState) (k : E → Prog Bool)
+    (sd : KState) : Id.run (runProof H F (Prog.read k) sd ⟨[], []⟩) = false := rfl
+
+/-- The verifier reads first. -/
+theorem execWith_bind_read (ev : Evaluations) (opening : ℕ → ℕ → List StackClaim → Prog Unit)
+    (bytecode : List K) (publicInput : Digest) (f : Unit → Prog Bool) :
+    ∃ k, (execWith ev opening bytecode publicInput).bind f = Prog.read k :=
+  ⟨_, rfl⟩
+
+/-- **A child's proof with Keccak that the verifier accepts** is the pure prover's proof of a
+child's witness. -/
+theorem prove_of_verifierNZ {prog : Program} {input : PublicInput} {t : Trace prog} {ρ fuel : ℕ}
+    (hacc : Budget.verifierNZ (m := Id) keccak256 keccakF prog input
+      (Budget.atKeccak childProver prog input t ρ fuel) = true) :
+    ∃ h : ∃ w s, ChildFor prog input t ρ w s,
+      prove keccak256 keccakF (leanVmProgram (bytecodeWords prog) (publicDigest input))
+        (leanVmProver prog h.choose_spec.choose ρ (stackOf prog h.choose_spec.choose h.choose))
+        (seed (bytecodeWords prog) (publicDigest input)) fuel =
+        some (Budget.atKeccak childProver prog input t ρ fuel) := by
+  by_cases h : ∃ w s, ChildFor prog input t ρ w s
+  · refine ⟨h, ?_⟩
+    have e := atKeccak_childComp (fuel := fuel) h
+    revert hacc
+    rw [e]
+    cases hp : prove keccak256 keccakF _ _ _ fuel with
+    | some π => intro _; rfl
+    | none =>
+      intro hacc
+      rw [verifierNZ_eq] at hacc
+      obtain ⟨k, hk⟩ := execWith_bind_read .computed Limits.verifyStackedOpeningNZ
+        (bytecodeWords prog) (publicDigest input) fun _ ↦ Prog.ret true
+      rw [hk] at hacc
+      exact absurd hacc (by simp [runProof_read_empty])
+  · exfalso
+    have e : Budget.atKeccak childProver prog input t ρ fuel = ⟨[], []⟩ := by
+      unfold Budget.atKeccak childProver childComp
+      simp only [h, ↓reduceDIte, simulateQ_pure]
+      rfl
+    rw [e, verifierNZ_eq] at hacc
+    obtain ⟨k, hk⟩ := execWith_bind_read .computed Limits.verifyStackedOpeningNZ
+      (bytecodeWords prog) (publicDigest input) fun _ ↦ Prog.ret true
+    rw [hk] at hacc
+    exact absurd hacc (by simp [runProof_read_empty])
+
+end
+end LeanVM.Guest.Child
