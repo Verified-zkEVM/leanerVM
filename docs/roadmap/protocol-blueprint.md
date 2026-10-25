@@ -49,7 +49,8 @@ in a set of density at most `2^{−128}` fixed by its prefix. Its one assumption
 happens with probability at most `δ` for the adversary at hand, a hypothesis in the statement and
 never an axiom. `misbehaves_rom` shows that, for an adversary making at most `Q` hash queries and a
 uniformly random function in place of BLAKE2s, it happens with probability at most `niError Q`,
-which `niError_le` bounds by `(Q + rounds)/2^128` plus a hash term quadratic in `Q` over `2^256`.
+which `niError_le` bounds by `(Q + verifierQueries)/2^128` plus a hash term quadratic in
+`Q + verifierQueries` over `2^256`.
 
 Home: `LeanerVM/Protocol/Spine/` (the spine), `LeanerVM/Protocol/` (the phases over an abstract
 instance, the adaptor, the compilation), the Clean bridge in `LeanerVM/Protocol/ToClean/`, the
@@ -1538,10 +1539,10 @@ theorem core (hcons : g.log is consistent with a function) (hV : g.logV is the l
 -- The random-oracle model
 def hashTerm (Q) : ℝ≥0 :=           -- `c` a numeral fixed by the proof
   (c * (Q + verifierQueries) ^ 2 + (Q + verifierQueries) * (proofDigests + 1)) / 2 ^ 256
-def niError (Q) : ℝ≥0 := (Q + rounds) * εquery + hashTerm Q   -- maximized over admissible sizes
+def niError (Q) : ℝ≥0 := (Q + verifierQueries) * εquery + hashTerm Q   -- maximized over admissible sizes
 theorem misbehaves_rom (hQ : IsTotalQueryBound A Q) :
     Pr[fun z ↦ HashMisbehaves prog input z.1 | runRandom (loggedGame prog input A)] ≤ niError Q
-theorem niError_le (Q) : niError Q ≤ (Q + rounds) / 2 ^ 128 + hashTerm Q
+theorem niError_le (Q) : niError Q ≤ (Q + verifierQueries) / 2 ^ 128 + hashTerm Q
 theorem verify_knowledgeSound_rom (hQ : IsTotalQueryBound A Q) :
     Pr[fun z ↦ z.1.ok = true ∧ ¬ Extracts prog input z.1.proof z.1.logA | runRandom (loggedGame prog input A)] ≤ niError Q
 ```
@@ -1643,11 +1644,20 @@ first; its potential is then the probability, given the log, that the check pass
 positions are bad, and its later queries are martingale steps of that potential, charged
 nothing. Each further nonce is a further group and costs a fresh query. That is why the charged
 invariant is stated for a potential; an expected count of passing nonces would not compose with
-the total charge, which is paid before the answer is seen.
+the total charge, which is paid before the answer is seen. `challengePositions` reads the positions
+as the Rust does for `1 ≤ b < 64` bits per position, and every deployed level has
+`msgLog + rate < 64`.
 
-`niError Q` is `(Q + rounds)` times `εquery`, the most one challenge can buy, plus `hashTerm Q`,
-maximized over the admissible sizes, which the challenge oracle takes with the statement
-(decision 29). The hash term counts the adversary's queries and the verifier's own, since a node
+`niError Q` is `(Q + verifierQueries)` times `εquery`, the most one challenge can buy, plus
+`hashTerm Q`, maximized over the admissible sizes, which the challenge oracle takes with the
+statement (decision 29). The verifier's own queries are budgeted by their total, not by its chain
+`rounds`: a Merkle node query `left ‖ right` carries siblings the prover chose and can be
+byte-identical to a squeeze step (the parser accepts any 64-byte input whose bytes 32 to 55 are
+zero with tag 2), so it may open a Fiat–Shamir group. The adversary's run and the verifier's
+compose by the integral sequence bound, the second run's potential starting from the first run's
+final potential; a supremum over the first run's outcomes would count twice the groups the
+adversary left open. The hash term counts the adversary's queries and the verifier's own, since a
+node
 the verifier recomputes is a fresh value too, and the digests of the proof the verifier reads,
 `proofDigests`, since the verifier's fresh answer equal to one of them is a hit, as the
 replayer's root is. `rounds`, `verifierQueries` and `proofDigests` are numerals, each with a
