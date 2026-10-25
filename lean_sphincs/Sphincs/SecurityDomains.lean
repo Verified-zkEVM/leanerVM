@@ -95,7 +95,7 @@ theorem pairSlot_injective {c c' : Coord} {s s' : SuperIdx} {j j' : SubIdx} {a a
 theorem deriveFields_injective : Function.Injective keygenDomainFields := by
   intro left right h
   cases left <;> cases right <;>
-    simp only [keygenDomainFields, tweakFields, TweakFields.mk.injEq] at h
+    simp only [keygenDomainFields, tweakFields, LeanXmss.TweakFields.mk.injEq] at h
   all_goals try { simp at h; done }
   · rfl
   · rename_i lay tree leaf chain lay' tree' leaf' chain'

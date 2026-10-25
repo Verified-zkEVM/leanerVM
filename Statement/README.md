@@ -36,11 +36,12 @@ Benedikt Wagner's ([b-wagn/fv-pq-da](https://github.com/b-wagn/fv-pq-da), Apache
    (`SufCma.rpmGame`, `rpmExperiment`, `permCalls`) and its security notion (`SufCma.RpmSecure`);
    and a game with the verifier's direct calls of `π` (`rpmGame2`, `realGame2`), the form of
    LeanDA's games.
-2. [`LeanXmss.lean`](LeanXmss.lean): the leanXMSS scheme and
+2. [`LeanXmss.lean`](LeanXmss.lean): what leanXMSS and leanSPHINCS share (the tweakable hash's
+   types, bytes and address, `crates/signatures/src/tweak.rs`), the leanXMSS scheme and
    `LeanXmss.Rpm.LeanXmssRpmSecurityStatement` (`RpmSecure` at 127 bits).
-3. [`LeanSphincs.lean`](LeanSphincs.lean): the leanSPHINCS scheme with the deterministic signer,
-   the proved lifetimes, and `Sphincs.Lifetimes.RequestedSecurityRpm` (`RpmSecure` at 127 bits at
-   each lifetime).
+3. [`LeanSphincs.lean`](LeanSphincs.lean): the leanSPHINCS scheme (on the shared part, exported
+   into `Sphincs`) with the deterministic signer, the proved lifetimes, and
+   `Sphincs.Lifetimes.RequestedSecurityRpm` (`RpmSecure` at 127 bits at each lifetime).
 4. [`Field.lean`](Field.lean): `K = GF(2^64)` (CompPoly's `BF64`), `E = GF(2^192)`, the generator
    `g`; Keccak lanes, bytes and digests as field elements.
 5. [`LeanDa.lean`](LeanDa.lean): LeanDA (fields, Reed–Solomon rows, the Merkle commitment, the

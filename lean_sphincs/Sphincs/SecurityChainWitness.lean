@@ -277,8 +277,8 @@ theorem chain_input_address_injective (parameter : PublicParameter) (lay : Layer
     simp [tweakBytes, fieldBytes, bytesLE_length])
   obtain ⟨_, htweak⟩ := List.append_inj hprefix (by simp [bytesLE_length])
   have hfields := fieldBytes_injective htweak
-  have hhi := congrArg TweakFields.hi hfields
-  have hstep := congrArg TweakFields.step hfields
+  have hhi := congrArg LeanXmss.TweakFields.hi hfields
+  have hstep := congrArg LeanXmss.TweakFields.step hfields
   change BitVec.ofNat 24 chain.val = BitVec.ofNat 24 chain'.val at hhi
   change BitVec.ofNat 3 step.val = BitVec.ofNat 3 step'.val at hstep
   have hc : chain.val < 64 := chain.isLt

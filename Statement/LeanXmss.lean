@@ -42,7 +42,11 @@ WOTS+C one-time keys. Key `b` of the top tree signs the root of bottom tree `b`;
 
 namespace LeanXmss
 
-/-! ### The instance: parameters, types, and hash-input layout -/
+/-! ### What leanXMSS and leanSPHINCS share
+
+The tweakable hash `Th(P, A, M) = Truncate_n(H(P ‖ A ‖ M))`, its 16-byte address and the types
+around it, which `crates/signatures/src/tweak.rs` gives both schemes (`Statement/LeanSphincs.lean`
+exports them into `Sphincs`). -/
 
 def digestBits : Nat := 128
 def hashOutputBits : Nat := 256
@@ -50,45 +54,15 @@ def messageBits : Nat := 256
 def publicParameterBits : Nat := 128
 def winternitzBits : Nat := 2
 def chainLength : Nat := 2 ^ winternitzBits
-/-- `v`, the chains of a one-time key. -/
-def numChains : Nat := 58
-/-- `T`, the sum of a codeword's `v` digits. -/
-def targetSum : Nat := 106
-def numLayers : Nat := 2
-/-- `h`, the height of each layer's trees. -/
-def layerHeight : Nat := 16
-/-- Leaf indices `idx < 2^32`. -/
-def lifetime : Nat := 2 ^ (numLayers * layerHeight)
-/-- Randomizer trials per one-time signature, `A_max`. -/
-def randomizerAttemptLimit : Nat := 2 ^ 32
-
 abbrev MasterSeed := BitVec 256
 abbrev Digest := BitVec digestBits
 abbrev HashOutput := BitVec hashOutputBits
 abbrev Message := BitVec messageBits
 abbrev PublicParameter := BitVec publicParameterBits
 abbrev Randomness := Digest
-/-- `l`: `0` the bottom layer, `1` the top. -/
-abbrev Layer := Fin numLayers
-/-- `idx`, a leaf index. -/
-abbrev LeafIndex := Fin lifetime
-/-- `e`, a one-time key of a layer: below `2^32` on the bottom layer, below `2^16` on the top. -/
-abbrev KeyIndex := Fin lifetime
-abbrev ChainIndex := Fin numChains
-/-- A pair of chains `(2t, 2t + 1)`, `t < 29`: one seed derivation. -/
-abbrev ChainPair := Fin (numChains / 2)
 abbrev Digit := Fin chainLength
 abbrev ChainStep := Fin (chainLength - 1)
-abbrev Encoding := ChainIndex → Digit
 abbrev HashInput := List UInt8
-
-def bottomLayer : Layer := ⟨0, by decide⟩
-def topLayer : Layer := ⟨1, by decide⟩
-
-/-- The key of layer `l` a leaf index signs with: `idx` at the bottom, `idx / 2^16` at the top. -/
-def keyAt (index : LeafIndex) (lay : Layer) : KeyIndex :=
-  ⟨index.val / 2 ^ (layerHeight * lay.val),
-    Nat.lt_of_le_of_lt (Nat.div_le_self _ _) index.isLt⟩
 
 /-- Keep the first 128 output bits, the low bits of the little-endian bit vector. -/
 def truncateHash (output : HashOutput) : Digest :=
@@ -108,26 +82,13 @@ structure PublicKey where
   parameter : PublicParameter
 deriving DecidableEq
 
-/-- One layer's signature: the randomizer, the `v` revealed chain values and the authentication path. -/
-structure LayerSignature where
-  randomness : Randomness
-  chainValues : ChainIndex → Digest
-  path : Fin layerHeight → Digest
-deriving DecidableEq
-
-/-- The leaf index, then the bottom layer's signature and the top layer's: 2404 bytes. -/
-structure Signature where
-  leafIndex : LeafIndex
-  layers : Layer → LayerSignature
-deriving DecidableEq
-
 /-- Serialize a bit vector into a fixed number of bytes, least significant byte first. -/
 def bytesLE (byteCount : Nat) (value : BitVec (8 * byteCount)) : List UInt8 :=
   List.ofFn fun index : Fin byteCount =>
     UInt8.ofBitVec (value.extractLsb' (8 * index.val) 8)
 
-/-- The address of a hash call (`Tweak`, `crates/signatures/src/tweak.rs`): its type `tag < 32`, a chain step
-`step < 8`, and two fields `hi < 2^24` and `lo < 2^32`. -/
+/-- The address of a hash call (`Tweak`, `crates/signatures/src/tweak.rs`): its type `tag < 32`, a
+chain step `step < 8`, and two fields `hi < 2^24` and `lo < 2^32`. -/
 structure TweakFields where
   tag : BitVec 5
   step : BitVec 3
@@ -142,6 +103,52 @@ def fieldBytes (fields : TweakFields) : HashInput :=
 /-- Convert the four integer fields to their fixed widths. -/
 def tweakFields (tag step hi lo : Nat) : TweakFields :=
   ⟨BitVec.ofNat 5 tag, BitVec.ofNat 3 step, BitVec.ofNat 24 hi, BitVec.ofNat 32 lo⟩
+
+/-! ### leanXMSS's parameters, types and hash-input layout -/
+
+/-- `v`, the chains of a one-time key. -/
+def numChains : Nat := 58
+/-- `T`, the sum of a codeword's `v` digits. -/
+def targetSum : Nat := 106
+def numLayers : Nat := 2
+/-- `h`, the height of each layer's trees. -/
+def layerHeight : Nat := 16
+/-- Leaf indices `idx < 2^32`. -/
+def lifetime : Nat := 2 ^ (numLayers * layerHeight)
+/-- Randomizer trials per one-time signature, `A_max`. -/
+def randomizerAttemptLimit : Nat := 2 ^ 32
+
+/-- `l`: `0` the bottom layer, `1` the top. -/
+abbrev Layer := Fin numLayers
+/-- `idx`, a leaf index. -/
+abbrev LeafIndex := Fin lifetime
+/-- `e`, a one-time key of a layer: below `2^32` on the bottom layer, below `2^16` on the top. -/
+abbrev KeyIndex := Fin lifetime
+abbrev ChainIndex := Fin numChains
+/-- A pair of chains `(2t, 2t + 1)`, `t < 29`: one seed derivation. -/
+abbrev ChainPair := Fin (numChains / 2)
+abbrev Encoding := ChainIndex → Digit
+
+def bottomLayer : Layer := ⟨0, by decide⟩
+def topLayer : Layer := ⟨1, by decide⟩
+
+/-- The key of layer `l` a leaf index signs with: `idx` at the bottom, `idx / 2^16` at the top. -/
+def keyAt (index : LeafIndex) (lay : Layer) : KeyIndex :=
+  ⟨index.val / 2 ^ (layerHeight * lay.val),
+    Nat.lt_of_le_of_lt (Nat.div_le_self _ _) index.isLt⟩
+
+/-- One layer's signature: the randomizer, the `v` revealed chain values and the authentication path. -/
+structure LayerSignature where
+  randomness : Randomness
+  chainValues : ChainIndex → Digest
+  path : Fin layerHeight → Digest
+deriving DecidableEq
+
+/-- The leaf index, then the bottom layer's signature and the top layer's: 2404 bytes. -/
+structure Signature where
+  leafIndex : LeafIndex
+  layers : Layer → LayerSignature
+deriving DecidableEq
 
 /-- `hi` on layer `l`: the top layer sets bit 23 (`layer_hi`). -/
 def layerHi (lay : Layer) (field : Nat) : Nat := field + 2 ^ 23 * lay.val

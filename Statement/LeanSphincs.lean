@@ -1,6 +1,6 @@
 module
 
-public import Statement.RandomPermutation
+public import Statement.LeanXmss
 public import VCVio.OracleComp.QueryTracking.LoggingOracle.Core
 public import VCVio.OracleComp.QueryTracking.RandomOracle.Simulation
 public import VCVio.OracleComp.QueryTracking.WriterCost
@@ -45,13 +45,12 @@ namespace Sphincs
 
 /-! ### The instance: parameters, types, and hash-input layout -/
 
-def digestBits : Nat := 128
-def hashOutputBits : Nat := 256
-def messageBits : Nat := 256
-def publicParameterBits : Nat := 128
+export LeanXmss (digestBits hashOutputBits messageBits publicParameterBits winternitzBits
+  chainLength MasterSeed Digest HashOutput Message PublicParameter Randomness Digit ChainStep
+  HashInput truncateHash upperHash hashHalf PublicKey bytesLE TweakFields fieldBytes tweakFields
+  HashSpec sampleMasterSeed)
+
 def counterBits : Nat := 32
-def winternitzBits : Nat := 2
-def chainLength : Nat := 2 ^ winternitzBits
 def numChains : Nat := 64
 def targetSum : Nat := 123
 def numLayers : Nat := 1
@@ -72,13 +71,6 @@ class Params where
 
 export Params (subtreeHeight signatureLimit)
 
-abbrev MasterSeed := BitVec 256
-
-abbrev Digest := BitVec digestBits
-abbrev HashOutput := BitVec hashOutputBits
-abbrev Message := BitVec messageBits
-abbrev PublicParameter := BitVec publicParameterBits
-abbrev Randomness := Digest
 abbrev Counter := BitVec counterBits
 abbrev Layer := Fin numLayers
 /-- `idx`, the leaf and the forest instance a digest selects. -/
@@ -90,10 +82,7 @@ abbrev LeafIndex := Fin (2 ^ maxLayerHeight)
 abbrev ChainIndex := Fin numChains
 /-- A pair of chains `(2t, 2t + 1)` of a one-time key, `t < 32`: one seed derivation. -/
 abbrev ChainPair := Fin 32
-abbrev Digit := Fin chainLength
-abbrev ChainStep := Fin (chainLength - 1)
 abbrev Encoding := ChainIndex → Digit
-abbrev HashInput := List UInt8
 
 /-! #### Forest parameters and types -/
 
@@ -134,19 +123,6 @@ def heightAbove (lay : Layer) : Nat := ∑ j : Layer, if j.val < lay.val then la
 
 /-- `sum_{j > lay} h_j`, the index bits below layer `lay`. -/
 def heightBelow (lay : Layer) : Nat := totalHeight - heightAbove lay - layerHeight lay
-
-/-- Keep the first 128 output bits, the low bits of the little-endian bit vector. -/
-def truncateHash (output : HashOutput) : Digest :=
-  output.extractLsb' 0 digestBits
-
-/-- The second 16 bytes of a hash output (bytes 16 to 31). Only the seed derivations of chain starts
-use them. -/
-def upperHash (output : HashOutput) : Digest :=
-  output.extractLsb' digestBits digestBits
-
-/-- The half of a hash output that starts chain `n`: the first for even `n`, the second for odd `n`. -/
-def hashHalf (n : Nat) (output : HashOutput) : Digest :=
-  if n % 2 = 0 then truncateHash output else upperHash output
 
 /-! #### The codeword table -/
 
@@ -208,12 +184,6 @@ deriving DecidableEq
 not hashed: the WOTS+C encoding absorbs the sixteen nodes (`Concrete.encode`). -/
 abbrev ForestKey := Coord → Digest × Digest
 
-/-- `pk = (root, P)`. -/
-structure PublicKey where
-  root : Digest
-  parameter : PublicParameter
-deriving DecidableEq
-
 /-- The WOTS+C signature and authentication path. -/
 structure LayerSignature (lay : Layer) where
   counter : Counter
@@ -239,29 +209,6 @@ structure Signature where
   forest : Coord → CoordOpening
   layers : (lay : Layer) → LayerSignature lay
 deriving DecidableEq
-
-/-- Serialize a bit vector into a fixed number of bytes, least significant byte first. -/
-def bytesLE (byteCount : Nat) (value : BitVec (8 * byteCount)) : List UInt8 :=
-  List.ofFn fun index : Fin byteCount =>
-    UInt8.ofBitVec (value.extractLsb' (8 * index.val) 8)
-
-/-- The address of a hash call (`Tweak`, `crates/signatures/src/tweak.rs`): its type `tag < 32`, a chain step
-`step < 8`, and two fields `hi < 2^24` and `lo < 2^32`. -/
-structure TweakFields where
-  tag : BitVec 5
-  step : BitVec 3
-  hi : BitVec 24
-  lo : BitVec 32
-deriving DecidableEq
-
-/-- The 16 address bytes `lo || hi || (tag + 32 * step) || 0^8`: `lo` on 4 bytes, `hi` on 3 bytes,
-each least significant byte first, then the type byte, then 8 zero bytes. -/
-def fieldBytes (fields : TweakFields) : HashInput :=
-  bytesLE 4 fields.lo ++ bytesLE 3 fields.hi ++ bytesLE 1 (fields.step ++ fields.tag) ++ bytesLE 8 0
-
-/-- Convert the four integer fields to their fixed widths. -/
-def tweakFields (tag step hi lo : Nat) : TweakFields :=
-  ⟨BitVec.ofNat 5 tag, BitVec.ofNat 3 step, BitVec.ofNat 24 hi, BitVec.ofNat 32 lo⟩
 
 /-! #### Forest addresses -/
 
@@ -407,26 +354,11 @@ end TargetSum
 `Concrete` contains the hash and verification routines; `Seeded` contains key generation and
 signing. Hashing routines work in any monad with access to `HashSpec`. -/
 
-/-- A hash query takes an arbitrary byte string and returns 32 bytes. -/
-abbrev HashSpec := HashInput →ₒ HashOutput
-
 namespace Concrete
 
-/-- Run the `n` computations in index order and collect their results. -/
-def sequenceFin {m : Type → Type} [Monad m] {α : Type} {n : Nat}
-    (computation : Fin n → m α) : m (Fin n → α) :=
-  match n with
-  | 0 => pure Fin.elim0
-  | n + 1 => do
-      let head ← computation 0
-      let tail ← sequenceFin fun index : Fin n => computation index.succ
-      return Fin.cases head tail
+export LeanXmss.Concrete (sequenceFin oracleHash nodePayload)
 
 variable {m : Type → Type} [Monad m] [HasQuery HashSpec m]
-
-/-- One query to the hash `H` (`HashSpec`), which the model answers. -/
-def oracleHash (input : HashInput) : m HashOutput :=
-  HasQuery.query (spec := HashSpec) (m := m) input
 
 /-- `Th(P, tw, M) = Truncate_n(H(P || tw || M))`. -/
 def tweakableHash (parameter : PublicParameter) (domain : HashDomain) (payload : HashInput) :
@@ -476,10 +408,6 @@ def leafPayload (endpoints : ChainIndex → Digest) : HashInput :=
 def leafHash (parameter : PublicParameter) (lay : Layer) (tree : TreeIndex) (leaf : LeafIndex)
     (endpoints : ChainIndex → Digest) : m Digest :=
   tweakableHash parameter (.leaf lay tree leaf) (leafPayload endpoints)
-
-/-- The two children of a Merkle node. -/
-def nodePayload (left right : Digest) : HashInput :=
-  bytesLE 16 left ++ bytesLE 16 right
 
 /-- `t_0[0] || t_0[1] || ... || t_7[0] || t_7[1]`, the forest key as bytes: the level-3 nodes of the 8
 top trees. -/
@@ -762,19 +690,11 @@ def deriveRandomizer {m : Type → Type} [Monad m] [HasQuery HashSpec m]
 def schemeSeed {m : Type → Type} [Monad m] [HasQuery HashSpec m] (seed : MasterSeed) : m MasterSeed :=
   Concrete.oracleHash (schemeSeedInput seed)
 
-noncomputable def sampleMasterSeed : ProbComp MasterSeed :=
-  letI := SampleableType.ofFintype MasterSeed
-  $ᵗ MasterSeed
-
 namespace Seeded
 
 open Concrete
 
-/-- What the signer reads: `seed` is the scheme seed `S`, not the key's seed `S0`. -/
-structure SecretKey where
-  seed : MasterSeed
-  parameter : PublicParameter
-  root : Digest
+export LeanXmss.Seeded (SecretKey)
 
 variable {m : Type → Type} [Monad m] [HasQuery HashSpec m]
 
