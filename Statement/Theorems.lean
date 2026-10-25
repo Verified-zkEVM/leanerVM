@@ -29,7 +29,7 @@ namespace Statement
 /-- **The end theorems.** -/
 structure Theorems (decode : LeanVM.Node.Decoder) : Prop where
   /-- leanVM is knowledge sound for the straight-line extractor `extractorRpm`: at most
-  `(Q + 2^14) · 2^-127` for `Q ≤ 2^120` queries (`LeanVm.lean`). -/
+  `(Q + 2^14) · 2^-128 + 7 (Q + 2^14)² · 2^-256` for `Q ≤ 2^128` queries (`LeanVm.lean`). -/
   knowledgeSoundness : LeanVM.KnowledgeSoundness
   /-- leanVM is complete: at `2^25` nonces per proof of work, an honest proof is rejected with
   probability at most `2^-127` (`LeanVm.lean`). -/
@@ -37,15 +37,16 @@ structure Theorems (decode : LeanVM.Node.Decoder) : Prop where
   /-- Every valid execution of the guest decodes to a statement of its input's digest and a
   witness holding it (`LeanVmGuest.lean`). -/
   guestKnowledge : LeanVM.Node.GuestKnowledge LeanVM.Guest.guest decode
-  /-- An accepted guest proof is explained by the extracted execution: at most
-  `(Q + 2^14) · 2^-127` for `Q ≤ 2^120` queries (`LeanVmGuest.lean`). -/
+  /-- An accepted guest proof is explained by the extracted execution, with the bound of
+  `knowledgeSoundness` (`LeanVmGuest.lean`). -/
   aggregateSound : LeanVM.Node.AggregateSound LeanVM.Guest.guest decode
   /-- The guest is complete on every covered recursion node (`LeanVmGuest.lean`). -/
   guestCompleteRecursion : LeanVM.Guest.Budget.GuestCompleteRecursion
   /-- The guest is complete on every covered leaf (`LeanVmGuest.lean`). -/
   guestCompleteLeaf : LeanVM.Guest.Budget.GuestCompleteLeaf
-  /-- The batching run outside the circuit is sound: at most `(QA + QV) · 2^-188` for
-  `QA + QV ≤ 2^64`; it does not compose with the in-circuit statements (`LeanVmGuest.lean`). -/
+  /-- The batching run outside the circuit is sound: at most `(QA + QV + 1) · 2^-191 +
+  5 (QA + QV)² · 2^-256` for `QA ≤ 2^128`, `QV ≤ 2^96`; it does not compose with the in-circuit
+  statements (`LeanVmGuest.lean`). -/
   batchSound : LeanVM.Guest.Batch.BatchSound
   /-- leanXMSS is strongly unforgeable: at most `(Q + 1) · 2^-127` for `1 ≤ Q ≤ 2^128` permutation
   calls (`LeanXmss.lean`). -/

@@ -171,10 +171,10 @@ reads the announced sizes and the stack's Merkle root off the proof; reads the w
 to off those evaluations (each leaf the preimage, among them, of a path climbing to the root); and
 returns the halting run of the memory image of a stack in the word's Johnson list (a stack whose
 Reed–Solomon encoding agrees with the word on at least the Johnson threshold of columns), one that
-is a valid execution if there is one. For every adversary of at most `Q ≤ 2^120` queries to `π`
+is a valid execution if there is one. For every adversary of at most `Q ≤ 2^128` queries to `π`
 and `π⁻¹`, the probability that the verifier accepts while the extractor does not return a valid
-execution of the program on the public input is at most `(Q + 2^14) · 2^-127`. So an accepted
-proof commits,
+execution of the program on the public input is at most
+`(Q + 2^14) · 2^-128 + 7 (Q + 2^14)² · 2^-256`. So an accepted proof commits,
 except with that probability, to a stack whose memory columns hold a valid execution, among the at
 most `2^18` stacks the word the adversary hashed is close to (proved, for every admissible shape
 and word: `LeanVM.candidates_ncard_le`). The choice among them is classical: the extractor is a
@@ -353,12 +353,13 @@ def BreaksRpm (extract : RpmExtractor) (z : RpmOutcome) : Prop :=
     ValidExecution z.program z.input t
 
 /-- **Knowledge soundness in the random-permutation model**, for the extractor `extractorRpm`:
-an adversary of at most `Q ≤ 2^120` queries to `π` and `π⁻¹` breaks soundness with probability at
-most `(Q + 2^14) · 2^-127`. -/
+an adversary of at most `Q ≤ 2^128` queries to `π` and `π⁻¹` breaks soundness with probability at
+most `(Q + 2^14) · 2^-128 + 7 (Q + 2^14)² · 2^-256`. -/
 def KnowledgeSoundness : Prop :=
-  ∀ (A : RpmAdversary) (Q : ℕ), A.IsTotalQueryBound Q → Q ≤ 2 ^ 120 →
+  ∀ (A : RpmAdversary) (Q : ℕ), A.IsTotalQueryBound Q → Q ≤ 2 ^ 128 →
     Pr{let z ← rpmExperiment A}[BreaksRpm extractorRpm z] ≤
-      (Q + 2 ^ 14 : ℝ≥0∞) * (2 : ℝ≥0∞)⁻¹ ^ 127
+      (Q + 2 ^ 14 : ℝ≥0∞) * (2 : ℝ≥0∞)⁻¹ ^ 128 +
+        7 * (Q + 2 ^ 14 : ℝ≥0∞) ^ 2 * (2 : ℝ≥0∞)⁻¹ ^ 256
 
 /-! ### Completeness -/
 

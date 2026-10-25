@@ -10,11 +10,12 @@ numbers, with the axioms each depends on.
 
 open LeanVM.Semantics LeanVM
 
-example {A : RpmAdversary} {Q : ℕ} (hA : A.IsTotalQueryBound Q) (hQ : Q ≤ 2 ^ 120) :
+example {A : RpmAdversary} {Q : ℕ} (hA : A.IsTotalQueryBound Q) (hQ : Q ≤ 2 ^ 128) :
     Pr{let z ← rpmExperiment A}[z.1.2 = true ∧
       ¬ ∃ t, extractorRpm z.1.1.1.1 z.1.1.1.2 z.2 z.1.1.2 = some t ∧
         ValidExecution z.1.1.1.1 z.1.1.1.2 t] ≤
-      (Q + 2 ^ 14 : ENNReal) * (2 : ENNReal)⁻¹ ^ 127 :=
+      (Q + 2 ^ 14 : ENNReal) * (2 : ENNReal)⁻¹ ^ 128 +
+        7 * (Q + 2 ^ 14 : ENNReal) ^ 2 * (2 : ENNReal)⁻¹ ^ 256 :=
   knowledgeSoundness_holds A Q hA hQ
 
 /-- The numbers: `12008 · 2^32` permutation calls of the verifier, the transfer's `q² / 2^508`. -/

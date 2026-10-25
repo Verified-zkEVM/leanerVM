@@ -7,6 +7,7 @@
 -/
 
 import LeanVM.Protocol.LeanVM
+import Common.Linear
 import LeanVM.Protocol.Rpm.Cost
 import LeanVM.Protocol.Rpm.Duplex
 import LeanVM.Protocol.Rpm.Extract
@@ -25,7 +26,8 @@ probability that the verifier accepts while the program's last instruction is no
 the extractor `extractorRpm` (the extractor of `Extractor.lean` on the Keccak-256 evaluations of
 the adversary's transcript) does not return a valid execution is at most
 `soundnessError Q + (Q + 12008 · 2^32)² / 2^508`, which is at most `(Q + 2^14) · 2^-127` for
-`Q ≤ 2^120` (`soundnessRpm_le_bits`, the end statement `KnowledgeSoundness`) and at most `2^-63` for
+`Q ≤ 2^120` (`soundnessRpm_le_bits`), at most `(Q + 2^14) · 2^-128 + 7 (Q + 2^14)² · 2^-256` for
+`Q ≤ 2^128` (`soundnessRpm_le_128`, the end statement `KnowledgeSoundness`) and at most `2^-63` for
 `Q ≤ 2^64` (`soundnessRpm_le`). The proof:
 
 1. the experiment is `common`'s real world of a transfer game (`rpmExperiment_evalDistEq`,
@@ -371,6 +373,60 @@ theorem soundnessRpm_le_bits {Q : ℕ} (hQ : Q ≤ 2 ^ 120) :
           _ = (Q + 2 ^ 14) * 2 ^ 129 := by ring
     _ = (Q + 2 ^ 14) * 2 ^ 381 := by rw [mul_assoc, ← pow_add]
 
+/-- **The knowledge-soundness bound up to `2^128` queries**: for `Q ≤ 2^128` queries to `π` and
+`π⁻¹`, at most `(Q + 2^14) · 2^-128 + 7 (Q + 2^14)² · 2^-256`. The random-oracle error is
+`A · 2^-128 + 7 A² · 2^-256 + V / 2^256` with `A = Q + V`, `V = 12008`; the verifier's
+`V / 2^256` and the transfer's `(Q + verifierPermCalls)² / 2^508` are each at most `2^-128`, and
+`A + 2 ≤ Q + 2^14`. -/
+theorem soundnessRpm_le_128 {Q : ℕ} (hQ : Q ≤ 2 ^ 128) :
+    soundnessError Q + rpmError (Q + verifierPermCalls) ≤
+      (Q + 2 ^ 14 : ℝ≥0∞) * (2 : ℝ≥0∞)⁻¹ ^ 128 +
+        7 * (Q + 2 ^ 14 : ℝ≥0∞) ^ 2 * (2 : ℝ≥0∞)⁻¹ ^ 256 := by
+  have hA2 : ((Q + verifierQueries : ℕ) : ℝ≥0∞) + 2 ≤ (Q + 2 ^ 14 : ℝ≥0∞) := by
+    have h : Q + verifierQueries + 2 ≤ Q + 2 ^ 14 := by
+      rw [Nat.add_assoc]
+      exact Nat.add_le_add_left (by unfold verifierQueries; norm_num) Q
+    exact_mod_cast h
+  have hA : ((Q + verifierQueries : ℕ) : ℝ≥0∞) ≤ (Q + 2 ^ 14 : ℝ≥0∞) := le_self_add.trans hA2
+  have hV : (verifierQueries : ℝ≥0∞) / 2 ^ 256 ≤ (2 : ℝ≥0∞)⁻¹ ^ 128 :=
+    calc (verifierQueries : ℝ≥0∞) / 2 ^ 256 = (verifierQueries : ℝ≥0∞) * (2 : ℝ≥0∞)⁻¹ ^ 256 := by
+          rw [div_eq_mul_inv, ENNReal.inv_pow]
+      _ ≤ (2 : ℝ≥0∞) ^ 128 * (2 : ℝ≥0∞)⁻¹ ^ 256 := by
+          gcongr
+          exact_mod_cast (show verifierQueries ≤ 2 ^ 128 by unfold verifierQueries; norm_num)
+      _ = (2 : ℝ≥0∞)⁻¹ ^ 128 := Common.two_pow_mul_inv_pow 128 128
+  have hq : Q + verifierPermCalls ≤ 2 ^ 129 :=
+    calc Q + verifierPermCalls ≤ 2 ^ 128 + verifierPermCalls := Nat.add_le_add_right hQ _
+      _ ≤ 2 ^ 129 := by unfold verifierPermCalls verifierQueries; norm_num
+  have hR : rpmError (Q + verifierPermCalls) ≤ (2 : ℝ≥0∞)⁻¹ ^ 128 :=
+    calc rpmError (Q + verifierPermCalls)
+        ≤ ((Q + verifierPermCalls : ℕ) : ℝ≥0∞) * (2 : ℝ≥0∞)⁻¹ ^ 379 :=
+          Common.sq_div_le_mul_inv_pow (k := 129) 379 hq
+      _ ≤ (2 : ℝ≥0∞) ^ 129 * (2 : ℝ≥0∞)⁻¹ ^ 379 := by
+          gcongr
+          exact_mod_cast hq
+      _ = (2 : ℝ≥0∞)⁻¹ ^ 250 := Common.two_pow_mul_inv_pow 129 250
+      _ ≤ (2 : ℝ≥0∞)⁻¹ ^ 128 := Common.inv_two_pow_le_of_le (by norm_num)
+  have h7 : ((7 * (Q + verifierQueries) : ℕ) : ℝ≥0∞) / 2 ^ 256 =
+      7 * ((Q + verifierQueries : ℕ) : ℝ≥0∞) * (2 : ℝ≥0∞)⁻¹ ^ 256 := by
+    rw [Nat.cast_mul, div_eq_mul_inv, ENNReal.inv_pow, Nat.cast_ofNat]
+  unfold soundnessError
+  rw [h7]
+  calc ((Q + verifierQueries : ℕ) : ℝ≥0∞) * ((2 : ℝ≥0∞)⁻¹ ^ 128 +
+          7 * ((Q + verifierQueries : ℕ) : ℝ≥0∞) * (2 : ℝ≥0∞)⁻¹ ^ 256) +
+        (verifierQueries : ℝ≥0∞) / 2 ^ 256 + rpmError (Q + verifierPermCalls)
+      = ((Q + verifierQueries : ℕ) : ℝ≥0∞) * (2 : ℝ≥0∞)⁻¹ ^ 128 +
+          7 * ((Q + verifierQueries : ℕ) : ℝ≥0∞) ^ 2 * (2 : ℝ≥0∞)⁻¹ ^ 256 +
+          ((verifierQueries : ℝ≥0∞) / 2 ^ 256 + rpmError (Q + verifierPermCalls)) := by ring
+    _ ≤ ((Q + verifierQueries : ℕ) : ℝ≥0∞) * (2 : ℝ≥0∞)⁻¹ ^ 128 +
+          7 * ((Q + verifierQueries : ℕ) : ℝ≥0∞) ^ 2 * (2 : ℝ≥0∞)⁻¹ ^ 256 +
+          ((2 : ℝ≥0∞)⁻¹ ^ 128 + (2 : ℝ≥0∞)⁻¹ ^ 128) := add_le_add le_rfl (add_le_add hV hR)
+    _ = (((Q + verifierQueries : ℕ) : ℝ≥0∞) + 2) * (2 : ℝ≥0∞)⁻¹ ^ 128 +
+          7 * ((Q + verifierQueries : ℕ) : ℝ≥0∞) ^ 2 * (2 : ℝ≥0∞)⁻¹ ^ 256 := by ring
+    _ ≤ (Q + 2 ^ 14 : ℝ≥0∞) * (2 : ℝ≥0∞)⁻¹ ^ 128 +
+          7 * (Q + 2 ^ 14 : ℝ≥0∞) ^ 2 * (2 : ℝ≥0∞)⁻¹ ^ 256 := by
+        gcongr ?_ * _ + 7 * ?_ ^ 2 * _ <;> assumption
+
 theorem rpmError_completenessPermCalls_le :
     rpmError (completenessPermCalls (2 ^ 25)) ≤ (2 : ℝ≥0∞)⁻¹ ^ 128 := by
   rw [rpmError_eq, EndToEnd.Sound.inv_pow_eq_div 128 508 (by norm_num)]
@@ -399,7 +455,7 @@ namespace LeanVM
 /-- **Knowledge soundness holds** (in the random-permutation model), for the extractor
 `extractorRpm`. -/
 theorem knowledgeSoundness_holds : KnowledgeSoundness :=
-  fun _ _ hA hQ ↦ (Rpm.knowledgeSoundnessRpm hA).trans (Rpm.soundnessRpm_le_bits hQ)
+  fun _ _ hA hQ ↦ (Rpm.knowledgeSoundnessRpm hA).trans (Rpm.soundnessRpm_le_128 hQ)
 
 /-- **Completeness holds** (in the random-permutation model), with the honest prover
 `LeanVM.Protocol.EndToEnd.Complete.honestComp`. -/

@@ -29,9 +29,9 @@ where an adversary is involved:
 * `LeanVM.Guest.Budget.guest_complete_recursion : GuestCompleteRecursion` and
   `guest_complete_leaf : GuestCompleteLeaf` (`Statement/LeanVmGuest.lean`): the guest's
   completeness on the covered nodes;
-* `LeanVM.Guest.Batch.batch_sound_rpm_bits : BatchSound` (`Statement/LeanVmGuest.lean`): the
+* `LeanVM.Guest.Batch.batch_sound_holds : BatchSound` (`Statement/LeanVmGuest.lean`): the
   recursion step, the batching of the children's deferred claims run outside the circuit, sound in
-  the random-permutation model (from `batch_rpm_bits`).
+  the random-permutation model (from `batch_rpm`).
 
 The other theorems pinned below are steps or corollaries: the bounds' numbers, the guest's batching
 of its children's deferred claims (`LeanVM.Guest.Batch.children_sound`, and in the
@@ -52,7 +52,7 @@ example : LeanVM.Node.AggregateSound LeanVM.Guest.guest LeanVM.Guest.End.decode 
   LeanVM.Guest.End.aggregate_sound_outer
 example : LeanVM.Guest.Budget.GuestCompleteRecursion := LeanVM.Guest.Budget.guest_complete_recursion
 example : LeanVM.Guest.Budget.GuestCompleteLeaf := LeanVM.Guest.Budget.guest_complete_leaf
-example : LeanVM.Guest.Batch.BatchSound := LeanVM.Guest.Batch.batch_sound_rpm_bits
+example : LeanVM.Guest.Batch.BatchSound := LeanVM.Guest.Batch.batch_sound_holds
 
 /-- info: 'LeanVM.knowledgeSoundness_holds' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
@@ -106,9 +106,9 @@ example : LeanVM.Guest.Batch.BatchSound := LeanVM.Guest.Batch.batch_sound_rpm_bi
 #guard_msgs in
 #print axioms LeanVM.Guest.Batch.batch_rpm_bits
 
-/-- info: 'LeanVM.Guest.Batch.batch_sound_rpm_bits' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+/-- info: 'LeanVM.Guest.Batch.batch_sound_holds' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
-#print axioms LeanVM.Guest.Batch.batch_sound_rpm_bits
+#print axioms LeanVM.Guest.Batch.batch_sound_holds
 
 /-- info: 'LeanVM.Guest.End.guest_knowledge' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
@@ -159,7 +159,7 @@ theorem LeanVM.theorems_hold : Statement.Theorems LeanVM.Guest.End.decode where
   aggregateSound := LeanVM.Guest.End.aggregate_sound_outer
   guestCompleteRecursion := LeanVM.Guest.Budget.guest_complete_recursion
   guestCompleteLeaf := LeanVM.Guest.Budget.guest_complete_leaf
-  batchSound := LeanVM.Guest.Batch.batch_sound_rpm_bits
+  batchSound := LeanVM.Guest.Batch.batch_sound_holds
   leanXmss := XmssSecurity.leanXmss_rpm_security
   leanSphincs := Sphincs.Lifetimes.requestedSecurityRpm
   leanDaComplete := LeanDa.leanDa_perfectlyComplete_rpm

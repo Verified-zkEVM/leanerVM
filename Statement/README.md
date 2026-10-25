@@ -127,7 +127,7 @@ theorem, `LeanVM.theorems_hold`, whose axioms the build pins to Lean's three. St
 | `LeanVM.Node.AggregateSound guest decode` | `LeanVM.Guest.End.aggregate_sound_outer` | [`lean_vm/LeanVM/Guest/EndRpm.lean`](../lean_vm/LeanVM/Guest/EndRpm.lean) |
 | `LeanVM.Guest.Budget.GuestCompleteRecursion` | `LeanVM.Guest.Budget.guest_complete_recursion` | [`lean_vm/LeanVM/Guest/Budget/Covered.lean`](../lean_vm/LeanVM/Guest/Budget/Covered.lean) |
 | `LeanVM.Guest.Budget.GuestCompleteLeaf` | `LeanVM.Guest.Budget.guest_complete_leaf` | same |
-| `LeanVM.Guest.Batch.BatchSound` | `LeanVM.Guest.Batch.batch_sound_rpm_bits` | [`lean_vm/LeanVM/Guest/Batch/Rpm.lean`](../lean_vm/LeanVM/Guest/Batch/Rpm.lean) |
+| `LeanVM.Guest.Batch.BatchSound` | `LeanVM.Guest.Batch.batch_sound_holds` | [`lean_vm/LeanVM/Guest/Batch/Rpm.lean`](../lean_vm/LeanVM/Guest/Batch/Rpm.lean) |
 | `LeanXmss.Rpm.LeanXmssRpmSecurityStatement` | `XmssSecurity.leanXmss_rpm_security` | [`lean_xmss/XmssSecurity/Rpm.lean`](../lean_xmss/XmssSecurity/Rpm.lean) |
 | `Sphincs.Lifetimes.RequestedSecurityRpm` | `Sphincs.Lifetimes.requestedSecurityRpm` | [`lean_sphincs/Sphincs/LifetimesRpm.lean`](../lean_sphincs/Sphincs/LifetimesRpm.lean) |
 | `LeanDa.PerfectlyCompleteRpm` | `LeanDa.leanDa_perfectlyComplete_rpm` | [`lean_da/LeanDa/RpmComplete.lean`](../lean_da/LeanDa/RpmComplete.lean) |
