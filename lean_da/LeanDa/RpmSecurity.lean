@@ -1,4 +1,5 @@
 import LeanDa.RpmScheme
+import LeanDa.RpmGames
 import LeanDa.Security
 import LeanDa.Defs
 import Common.Linear
@@ -176,7 +177,7 @@ verify for the hash function of every later cache, its hash inputs cached. -/
 theorem run_verifyRpm (crs : Crs) (com : Digest × Proof) (p : Fin (r * 128)) (x : Cell)
     (τ : Opening) (c : Cache2) {z : Bool × Cache2}
     (hz : z ∈ support ((simulateQ (hfSpec (List UInt8) KDigest KState).romImpl
-      (verifyRpm r ps crs com p x τ)).run c)) :
+      (verifyRpm hR pR r ps crs com p x τ)).run c)) :
     c ≤ z.2 ∧ (z.1 = true → ∀ c', z.2 ≤ c' → verifyCell (hOf c') r com.1 p x τ = true ∧
       ∀ a ∈ hashInputs (hOf c') (colIndex p) (cellBytes x) τ.path τ.rowRoot,
         c' (.inl a) ≠ none) := by
@@ -236,7 +237,7 @@ theorem duplexP_verifyCellM (com : Digest) (p : Fin (r * 128)) (x : Cell) (τ : 
 
 theorem duplexP_verifyRpm (crs : Crs) (com : Digest × Proof) (p : Fin (r * 128)) (x : Cell)
     (τ : Opening) (hist : List KState) :
-    DuplexP (fun _ _ ↦ True) (verifyRpm r ps crs com p x τ) hist :=
+    DuplexP (fun _ _ ↦ True) (verifyRpm hR pR r ps crs com p x τ) hist :=
   duplexP_bind (duplexP_membershipChallengesR com.1 hist) fun _ hist' _ ↦
     duplexP_bind (duplexP_verifyCellM r com.1 p x τ hist') fun _ _ _ ↦ duplexP_pure trivial
 
@@ -441,13 +442,14 @@ variable (r : ℕ) {Crs Proof : Type} {rel : Unit × Digest × Challenges → (F
 
 /-- **LeanDA is position binding in the random-permutation model.** For every argument `ps` (any
 verifier, for any relation) and every adversary whose game, verifications included, makes at most
-`Q` calls of the permutation on every path (`permCalls2`: a hash of `n` bytes costs
-`⌊n / 136⌋ + 1`, a query of `π` or `π⁻¹` and a sponge call one), the probability of opening a
+`Q` calls of the permutation on every path (`permCalls`: a hash of `n` bytes costs
+`⌊n / 136⌋ + 1`, a call of `π` or `π⁻¹` one, the verifier's sponge's included), the probability of opening a
 position to two different cells is at most `Q² / 2^256 + Q² / 2^508`, so at most
 `(Q + 1)² · 2^-256` for `Q ≤ 2^128` (`Common.sq_add_sq_le`). -/
 theorem leanDa_positionBinding_rpm : PositionBindingRpm := by
   intro r Crs Proof rel ps A Q hQ hcap
-  rw [permCalls2_eq] at hQ
+  rw [isWeightBound_posBindingGame, posBindingGame2, permCalls2_eq] at hQ
+  rw [runK_posBindingGame]
   obtain ⟨h1, -⟩ := keccak256_transfer2 (liftM ps.setup) (fun crs ↦ A ((), crs))
     (posBindingPost r ps) (fun x a ↦ duplex_posBindingPost r ps x a) Q hQ (· = true)
   refine h1.trans ((add_le_add ?_ le_rfl).trans (Common.sq_add_sq_le hcap))
@@ -509,7 +511,7 @@ model.** For every argument `ps` and every adversary whose game, verifications i
 most `Q` calls of the permutation on every path, the RPM code-binding probability and the
 two-oracle ROM code-binding probability of `advS2 A` differ by at most `Q² / 2^508`. -/
 theorem leanDa_codeBinding_rpm (A : CodeBindingAdvRpm r Crs Proof) (Q : ℕ)
-    (hQ : IsWeightBound (codeBindingGame r ps A) permCalls2 Q) :
+    (hQ : IsWeightBound (codeBindingGame2 r ps A) permCalls2 Q) :
     Pr{let b ← codeBindingExpRpm r ps A}[b = true] ≤
         Pr{let b ← codeBindingExpRom2 r ps A}[b = true] + (Q ^ 2 : ℝ≥0∞) / 2 ^ 508 ∧
       Pr{let b ← codeBindingExpRom2 r ps A}[b = true] ≤

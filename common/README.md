@@ -13,11 +13,12 @@ Build with `lake build` (the root module `Common.lean` checks that the main theo
 
 The definitions the end statements need (the permutation oracle `permSpec`, the lazily sampled
 permutation `lazyPerm`, the sponge `spongeWith` and Keccak-256's padding, `IsWeightBound`, `pathsOf`,
-the SUF-CMA game in the random-permutation model, and the games with the verifier's direct calls
-`rpmGame2`, `realGame2`) are in [`Statement/RandomPermutation.lean`](../Statement/RandomPermutation.lean),
-namespace `Common`; the files below keep their proofs and the definitions only the proofs use (the
-random-oracle games, the ideal worlds, the simulators of the one- and two-oracle transfers, the
-duplex and its simulator in `Common/SimDefs.lean`, `lazyFun`, …).
+the oracles of the model `KSpec` and a game's run `runK`, the SUF-CMA game in the random-permutation
+model) are in [`Statement/RandomPermutation.lean`](../Statement/RandomPermutation.lean), namespace
+`Common`; the files below keep their proofs and the definitions only the proofs use (the games with
+the verifier's direct calls `rpmGame2`, `realGame2` in `Common/Game2.lean`, the random-oracle
+games, the ideal worlds, the simulators of the one- and two-oracle transfers, the duplex and its
+simulator in `Common/SimDefs.lean`, `lazyFun`, …).
 
 - `Common/Model.lean`: the permutation oracle (`permSpec`: `π` and `π⁻¹`), the lazily sampled
   random permutation (`lazyPerm`) and its validity (a partial permutation, extendable to a

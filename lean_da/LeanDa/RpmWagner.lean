@@ -499,7 +499,7 @@ variable (r : ℕ) {Crs Proof : Type} {rel : Unit × Digest × Challenges → (F
 
 /-- **Wagner's adversary makes at most `Q` queries of the challenges.** -/
 theorem hashQueryBound_advH (A : CodeBindingAdvRpm r Crs Proof) (Q : ℕ)
-    (hQ : IsWeightBound (codeBindingGame r ps A) permCalls2 Q) (h : HTab) (ck : Unit × Crs) :
+    (hQ : IsWeightBound (codeBindingGame2 r ps A) permCalls2 Q) (h : HTab) (ck : Unit × Crs) :
     CommittedSoundness.HashQueryBound (advH r ps A h ck) Q := by
   apply hashQueryBound_of_isWeightBound
   have hB := isWeightBound_advS2 r ps A Q hQ _ (fixCrs_mem r ps ck.2)

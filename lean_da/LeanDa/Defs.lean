@@ -65,7 +65,7 @@ end
 
 section
 
-open PqDas OracleComp OracleSpec ENNReal
+open PqDas OracleComp OracleSpec ENNReal Common
 
 namespace LeanDa
 
@@ -102,8 +102,92 @@ abbrev WArgument (r : ℕ) (H : List UInt8 → Digest) (Crs Proof : Type) :=
   Nark (Unit × Digest × Challenges) (Fin (r * 128) → Cell) Crs Proof
     (schemeRel (merkleVC r H) (checker r))
 
-/-- The verifier's oracles (`VerSpec`), by the name of the proofs. -/
-abbrev Rom2 := VerSpec
+/-! ### The games in the two-oracle form
+
+The games of `Statement/LeanDa.lean` query `π` for the verifier's sponge (`hK`, `pK`); the proofs
+take them in the two-oracle form of `Common.rpmGame2`, the verifier's calls of the permutation
+direct calls `F` (`hR`, `pR`), which `Common.toOne` turns into `π` queries
+(`LeanDa.RpmGames`). -/
+
+/-- The verifier's oracles: coins, Keccak-256 `H` and the direct calls `F` of the permutation. -/
+abbrev Rom2 := unifSpec + hfSpec (List UInt8) KDigest KState
+
+/-- Keccak-256 among the verifier's oracles. -/
+abbrev hR (a : List UInt8) : OracleComp Rom2 Digest :=
+  hQuery (Msg := List UInt8) (Dg := KDigest) (E := KRest) (C := KCap) a
+
+/-- The direct calls `F` of the permutation, on lanes. -/
+abbrev pR (L : Lanes) : OracleComp Rom2 Lanes :=
+  lanePerm (fun x ↦ fQuery (Msg := List UInt8) (Dg := KDigest) x) L
+
+/-- The adversary's oracles: coins, Keccak-256, `π` and `π⁻¹`. -/
+abbrev AdvSpec := KSpec
+
+/-- **Calls of the permutation** in the two-oracle form: a hash of `n` bytes costs
+`⌊n / 136⌋ + 1`, a query of `π` or `π⁻¹` and a direct call one. -/
+def permCalls2 : (dSpec2 (List UInt8) KDigest KState).Domain → ℕ
+  | .inl _ => 0
+  | .inr (.inl m) => m.length / 136 + 1
+  | .inr (.inr _) => 1
+
+section Games
+
+variable (r : ℕ) {Crs Proof : Type} {rel : Unit × Digest × Challenges → (Fin (r * 128) → Cell) → Bool}
+  (ps : Nark (Unit × Digest × Challenges) (Fin (r * 128) → Cell) Crs Proof rel)
+  (ext : Nark.Extractor (Unit × Digest × Challenges) (Fin (r * 128) → Cell) Crs Proof)
+
+/-- The verifier's part of the position-binding game: both openings verify, at two different
+cells. -/
+def posBindingPost (crs : Crs)
+    (out : (Digest × Proof) × Fin (r * 128) × Cell × Opening × Cell × Opening) :
+    OracleComp Rom2 Bool := do
+  let b ← verifyRpm hR pR r ps crs out.1 out.2.1 out.2.2.1 out.2.2.2.1
+  let b' ← verifyRpm hR pR r ps crs out.1 out.2.1 out.2.2.2.2.1 out.2.2.2.2.2
+  pure (decide (out.2.2.1 ≠ out.2.2.2.2.1) && b && b')
+
+/-- The position-binding game in the two-oracle form. -/
+def posBindingGame2 (A : PosBindingAdvRpm r Crs Proof) :
+    OracleComp (dSpec2 (List UInt8) KDigest KState) Bool :=
+  rpmGame2 (liftM ps.setup) (fun crs ↦ A ((), crs)) (posBindingPost r ps)
+
+/-- The position-binding experiment: the game against the lazily sampled random permutation. -/
+noncomputable def posBindingExpRpm (A : PosBindingAdvRpm r Crs Proof) : ProbComp Bool :=
+  realGame2 keccakPadding KState.zero (posBindingGame2 r ps A)
+
+/-- The verifier's part of the code-binding game: every opening verifies, and no codeword agrees
+with the opened cells. -/
+noncomputable def codeBindingPost (crs : Crs)
+    (out : (Digest × Proof) × List (Fin (r * 128) × Cell × Opening)) : OracleComp Rom2 Bool := do
+  let verdicts ← out.2.mapM fun o ↦ verifyRpm hR pR r ps crs out.1 o.1 o.2.1 o.2.2
+  pure (verdicts.all id && !decide ((code r).Consistent (out.2.map fun o ↦ (o.1, o.2.1))))
+
+/-- The code-binding game in the two-oracle form. -/
+noncomputable def codeBindingGame2 (A : CodeBindingAdvRpm r Crs Proof) :
+    OracleComp (dSpec2 (List UInt8) KDigest KState) Bool :=
+  rpmGame2 (liftM ps.setup) (fun crs ↦ A ((), crs)) (codeBindingPost r ps)
+
+/-- The code-binding experiment: the game against the lazily sampled random permutation. -/
+noncomputable def codeBindingExpRpm (A : CodeBindingAdvRpm r Crs Proof) : ProbComp Bool :=
+  realGame2 keccakPadding KState.zero (codeBindingGame2 r ps A)
+
+/-- The verifier's part of the knowledge-soundness game: the proof verifies, and the extracted
+cells do not satisfy the relation (`Relation`), their root hashed with Keccak-256. -/
+noncomputable def ksPost (crs : Crs) (out : (Unit × Digest × Challenges) × Proof) :
+    OracleComp Rom2 Bool := do
+  let root ← commitCellsM hR (ext crs out.1 out.2)
+  pure (ps.verify crs out.1 out.2 &&
+    !(decide (root = out.1.2.1) && membershipCheck out.1.2.2 (ext crs out.1 out.2)))
+
+/-- The knowledge-soundness game in the two-oracle form. -/
+noncomputable def ksGame2 (B : KsAdvRpm Crs Proof) :
+    OracleComp (dSpec2 (List UInt8) KDigest KState) Bool :=
+  rpmGame2 (liftM ps.setup) B (ksPost r ps ext)
+
+/-- The knowledge-soundness experiment: the game against the lazily sampled random permutation. -/
+noncomputable def ksExpRpm (B : KsAdvRpm Crs Proof) : ProbComp Bool :=
+  realGame2 keccakPadding KState.zero (ksGame2 r ps ext B)
+
+end Games
 
 /-- The relation is Wagner's scheme relation for LeanDA's vector commitment and code checker. -/
 theorem relation_eq (r : ℕ) (H : List UInt8 → Digest) :

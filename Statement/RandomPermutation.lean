@@ -14,9 +14,9 @@ public import VCVio.EvalDist.Monad.UniformTable
 
 Read first (`Statement/README.md` states the model): Keccak-f[1600] and Keccak-256 as leanVM
 computes them (namespaces `LeanVM.*`), then the model (namespace `Common`): `π` and `π⁻¹` lazily
-sampled, the sponge over a permutation, a cost bounded on every path, the SUF-CMA game of a
-signature scheme (`SufCma`), and the games with the verifier's direct calls of `π`
-(`rpmGame2`, `realGame2`), the form of LeanDA's games.
+sampled, the sponge over a permutation, a cost bounded on every path, the oracles of the model
+and a game's run (`KSpec`, `permCalls`, `runK`), and the SUF-CMA game of a signature scheme
+(`SufCma`).
 -/
 
 @[expose] public section
@@ -360,11 +360,6 @@ def uInt8EquivFin : UInt8 ≃ Fin 256 where
   left_inv _ := rfl
   right_inv _ := rfl
 
-/-- A query of `hs` among coins and `hs`. -/
-abbrev hq {ι : Type} [DecidableEq ι] {hs : OracleSpec.{0, 0} ι}
-    [∀ t : hs.Domain, SampleableType (hs.Range t)] (t : ι) : OracleComp (unifSpec + hs) (hs.Range t) :=
-  hs.query t
-
 /-! ## Keccak-256 over the random permutation -/
 
 /-- A hash `Msg → Dg` as an oracle. -/
@@ -391,6 +386,21 @@ noncomputable def realImpl (P : Padding Msg (Dg × E)) (iv : SpState Dg E C) :
 noncomputable def realGame (P : Padding Msg (Dg × E)) (iv : SpState Dg E C) {α : Type}
     (D : OracleComp (dSpec Msg Dg (SpState Dg E C)) α) : ProbComp α :=
   (simulateQ (realImpl P iv) D).run' []
+
+/-- **The oracles of the random-permutation model**: coins, Keccak-256 `H`, `π` and `π⁻¹`. -/
+abbrev KSpec := dSpec (List UInt8) KDigest KState
+
+/-- **Calls of the permutation**: a hash of `n` bytes costs `⌊n / 136⌋ + 1` (one per block of the
+padded message), a call of `π` or `π⁻¹` one. -/
+def permCalls : KSpec.Domain → ℕ
+  | .inl _ => 0
+  | .inr (.inl m) => m.length / 136 + 1
+  | .inr (.inr _) => 1
+
+/-- **A game in the random-permutation model, run** against the lazily sampled random
+permutation, Keccak-256 the sponge over it. -/
+noncomputable def runK {α : Type} (G : OracleComp KSpec α) : ProbComp α :=
+  realGame keccakPadding KState.zero G
 
 /-- The simulator's state: the edges it has answered, newest first, and the rooted states with
 their paths, newest first, ending with the initial state and the empty path. -/
@@ -442,71 +452,6 @@ def pathsOf (log : List (PermQuery (SpState Dg E C) × SpState Dg E C)) : List (
   simPaths P (replay iv log)
 
 
-/-! ## The verifier's oracles: the hash and direct calls of the permutation -/
-
-/-- A direct call `F` of the permutation: states to states. -/
-abbrev fSpec (St : Type) : OracleSpec St := St →ₒ St
-
-/-- The verifier's oracles: the hash `H` and the direct calls `F`. -/
-abbrev hfSpec (Msg Dg St : Type) := roSpec Msg Dg + fSpec St
-
-/-- A game's oracles: coins, `H`, `π` and `π⁻¹`, and the verifier's direct calls `F`. -/
-abbrev dSpec2 (Msg Dg St : Type) := unifSpec + (roSpec Msg Dg + (permSpec St + fSpec St))
-
-/-- The game's direct calls become permutation queries. -/
-def toOne : QueryImpl (dSpec2 Msg Dg (SpState Dg E C))
-    (OracleComp (dSpec Msg Dg (SpState Dg E C)))
-  | .inl n => liftM ((dSpec Msg Dg (SpState Dg E C)).query (.inl n))
-  | .inr (.inl m) => liftM ((dSpec Msg Dg (SpState Dg E C)).query (.inr (.inl m)))
-  | .inr (.inr (.inl q)) => liftM ((dSpec Msg Dg (SpState Dg E C)).query (.inr (.inr q)))
-  | .inr (.inr (.inr x)) => liftM ((dSpec Msg Dg (SpState Dg E C)).query (.inr (.inr (.fwd x))))
-
-/-- **The real world** of a game: `H` the sponge over the lazily sampled random permutation, and
-`F` the permutation itself. -/
-noncomputable def realGame2 {α : Type} (D : OracleComp (dSpec2 Msg Dg (SpState Dg E C)) α) :
-    ProbComp α :=
-  realGame P iv (simulateQ (toOne (E := E) (C := C)) D)
-
-/-- An `H` query. -/
-abbrev hQuery (m : Msg) : OracleComp (unifSpec + hfSpec Msg Dg (SpState Dg E C)) Dg :=
-  hq (hs := hfSpec Msg Dg (SpState Dg E C)) (.inl m)
-
-/-- An `F` query: a direct call of the permutation. -/
-abbrev fQuery (x : SpState Dg E C) :
-    OracleComp (unifSpec + hfSpec Msg Dg (SpState Dg E C)) (SpState Dg E C) :=
-  hq (hs := hfSpec Msg Dg (SpState Dg E C)) (.inr x)
-
-/-! ## A game with an adversary and the verifier's direct calls -/
-
-/-- An honest computation with coins and `H` as a game computation. -/
-def hEmbed2 : QueryImpl (unifSpec + roSpec Msg Dg)
-    (OracleComp (dSpec2 Msg Dg (SpState Dg E C)))
-  | .inl n => liftM ((dSpec2 Msg Dg (SpState Dg E C)).query (.inl n))
-  | .inr m => liftM ((dSpec2 Msg Dg (SpState Dg E C)).query (.inr (.inl m)))
-
-/-- An honest computation with coins, `H` and `F` as a game computation. -/
-def hfEmbed : QueryImpl (unifSpec + hfSpec Msg Dg (SpState Dg E C))
-    (OracleComp (dSpec2 Msg Dg (SpState Dg E C)))
-  | .inl n => liftM ((dSpec2 Msg Dg (SpState Dg E C)).query (.inl n))
-  | .inr (.inl m) => liftM ((dSpec2 Msg Dg (SpState Dg E C)).query (.inr (.inl m)))
-  | .inr (.inr x) => liftM ((dSpec2 Msg Dg (SpState Dg E C)).query (.inr (.inr (.inr x))))
-
-/-- An RPM adversary (coins, `H`, `π`, `π⁻¹`) as a game computation. -/
-def advEmbed : QueryImpl (dSpec Msg Dg (SpState Dg E C))
-    (OracleComp (dSpec2 Msg Dg (SpState Dg E C)))
-  | .inl n => liftM ((dSpec2 Msg Dg (SpState Dg E C)).query (.inl n))
-  | .inr (.inl m) => liftM ((dSpec2 Msg Dg (SpState Dg E C)).query (.inr (.inl m)))
-  | .inr (.inr q) => liftM ((dSpec2 Msg Dg (SpState Dg E C)).query (.inr (.inr (.inl q))))
-
-/-- **A game**: an honest part with `H`, the adversary with `H`, `π`, `π⁻¹`, an honest part with
-`H` and `F`. -/
-def rpmGame2 {β γ δ : Type} (pre : OracleComp (unifSpec + roSpec Msg Dg) β)
-    (A : β → OracleComp (dSpec Msg Dg (SpState Dg E C)) γ)
-    (post : β → γ → OracleComp (unifSpec + hfSpec Msg Dg (SpState Dg E C)) δ) :
-    OracleComp (dSpec2 Msg Dg (SpState Dg E C)) δ :=
-  simulateQ (hEmbed2 (E := E) (C := C)) pre >>= fun x ↦
-    simulateQ (advEmbed (Msg := Msg)) (A x) >>= fun a ↦ simulateQ (hfEmbed (Msg := Msg)) (post x a)
-
 /-! ## The SUF-CMA game of a hash-based signature scheme, in the random-permutation model -/
 
 namespace SufCma
@@ -518,9 +463,6 @@ def digestBitVec : KDigest ≃ BitVec 256 :=
     (Equiv.arrowCongr (Equiv.refl _) uInt8EquivFin).trans <|
       finFunctionFinEquiv.trans <| (finCongr (show 256 ^ 32 = 2 ^ 256 by norm_num)).trans
         ⟨BitVec.ofFin, BitVec.toFin, fun _ ↦ rfl, fun _ ↦ rfl⟩
-
-/-- The oracles of the random-permutation model: coins, Keccak-256 `H`, `π` and `π⁻¹`. -/
-abbrev KSpec := dSpec (List UInt8) KDigest KState
 
 /-- A hash `List UInt8 → D`. -/
 abbrev HSpec (D : Type) := List UInt8 →ₒ D
@@ -570,14 +512,7 @@ noncomputable def rpmGame (S : Scheme D Seed PK SK Req Resp F)
 /-- **The RPM experiment**: the RPM game against the lazily sampled random permutation. -/
 noncomputable def rpmExperiment (S : Scheme D Seed PK SK Req Resp F)
     (main : PK → OracleComp (KSpec + (Req →ₒ Resp)) F) : ProbComp Bool :=
-  realGame keccakPadding KState.zero (rpmGame e S main)
-
-/-- **Calls of the permutation**: a hash of `n` bytes costs `⌊n / 136⌋ + 1` (one per block of the
-padded message), a call of `π` or `π⁻¹` one. -/
-def permCalls : KSpec.Domain → ℕ
-  | .inl _ => 0
-  | .inr (.inl m) => m.length / 136 + 1
-  | .inr (.inr _) => 1
+  runK (rpmGame e S main)
 
 /-- **`bits` bits of SUF-CMA security in the random-permutation model**: every adversary `main`
 (coins, Keccak-256, `π`, `π⁻¹` and the signing oracle) whose game makes at most `Q` permutation

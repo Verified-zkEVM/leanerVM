@@ -75,7 +75,7 @@ def tCalls : (unifSpec + TSpec).Domain → ℕ
 /-- **The simulated adversary calls `H` at most `Q` times**, for an RPM adversary of `Q`
 permutation calls. -/
 theorem isWeightBound_advS2_h (A : CodeBindingAdvRpm r Crs Proof) (Q : ℕ)
-    (hQ : IsWeightBound (codeBindingGame r ps A) permCalls2 Q) (crs : Crs)
+    (hQ : IsWeightBound (codeBindingGame2 r ps A) permCalls2 Q) (crs : Crs)
     (hcrs : crs ∈ support ps.setup) :
     IsWeightBound (advS2 keccakPadding KState.zero (A ((), crs))) hCalls Q := by
   rw [permCalls2_eq] at hQ
@@ -115,7 +115,7 @@ theorem isWeightBound_simImpl_h (t : Rom2.Domain) (s : SimSt KState Digest 14) :
 
 /-- **Wagner's adversary with `H` as queries makes at most `Q + 1` of them.** -/
 theorem isWeightBound_advX (A : CodeBindingAdvRpm r Crs Proof) (Q : ℕ)
-    (hQ : IsWeightBound (codeBindingGame r ps A) permCalls2 Q) (ck : Unit × Crs) :
+    (hQ : IsWeightBound (codeBindingGame2 r ps A) permCalls2 Q) (ck : Unit × Crs) :
     IsWeightBound (advX r ps A ck) xCalls (Q + 1) := by
   have hB := isWeightBound_advS2_h r ps A Q hQ _ (fixCrs_mem r ps ck.2)
   have hP : IsWeightBound (Common.Duplex.hQ (St := KState) daDuplex.label >>= fun _ ↦

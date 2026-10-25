@@ -22,40 +22,6 @@ open scoped ENNReal
 
 namespace LeanDa
 
-/-! ## Oracle programs through a simulation -/
-
-section Simulate
-
-variable {ι ι' : Type} {spec : OracleSpec.{0, 0} ι} {m : Type → Type} [Monad m] [LawfulMonad m]
-
-theorem walkM_map {n : Type → Type} [Monad n] [LawfulMonad n] (φ : ∀ {α}, m α → n α)
-    (hpure : ∀ {α} (a : α), φ (pure a) = pure a)
-    (hbind : ∀ {α β} (x : m α) (f : α → m β), φ (x >>= f) = φ x >>= fun a ↦ φ (f a))
-    (H : List UInt8 → m Digest) (idx : ℕ) (node : Digest) (path : List Digest) :
-    φ (walkM H idx node path) = walkM (fun a ↦ φ (H a)) idx node path := by
-  induction path generalizing idx node with
-  | nil => exact hpure _
-  | cons s rest ih =>
-    simp only [walkM, hbind, ih]
-
-theorem verifyCellM_map {n : Type → Type} [Monad n] [LawfulMonad n] (φ : ∀ {α}, m α → n α)
-    (hpure : ∀ {α} (a : α), φ (pure a) = pure a)
-    (hbind : ∀ {α β} (x : m α) (f : α → m β), φ (x >>= f) = φ x >>= fun a ↦ φ (f a))
-    (H : List UInt8 → m Digest) (r : ℕ) (com : Digest) (p : Fin (r * 128)) (x : Cell)
-    (τ : Opening) :
-    φ (verifyCellM H r com p x τ) = verifyCellM (fun a ↦ φ (H a)) r com p x τ := by
-  simp only [verifyCellM, hbind, hpure, walkM_map φ hpure hbind]
-
-theorem mapM_map {n : Type → Type} [Monad n] [LawfulMonad n] {β γ : Type}
-    (φ : ∀ {α}, m α → n α) (hpure : ∀ {α} (a : α), φ (pure a) = pure a)
-    (hbind : ∀ {α β} (x : m α) (f : α → m β), φ (x >>= f) = φ x >>= fun a ↦ φ (f a))
-    (f : β → m γ) (l : List β) : φ (l.mapM f) = l.mapM fun b ↦ φ (f b) := by
-  induction l with
-  | nil => simp [hpure]
-  | cons b l ih => simp only [List.mapM_cons, hbind, ih, hpure]
-
-end Simulate
-
 /-! ## The verification with `H` alone -/
 
 /-- `H` among coins and `H`. -/
@@ -112,7 +78,7 @@ theorem run_mapM_rerun (crs : Crs) (out : (Digest × Proof) × List (Fin (r * 12
       (chalR out.1.1)).run c₀))
     (l : List (Fin (r * 128) × Cell × Opening)) (c : Cache2) (hc : w.2 ≤ c) :
     (simulateQ (hfSpec (List UInt8) KDigest KState).romImpl
-        (l.mapM fun o ↦ verifyRpm r ps crs out.1 o.1 o.2.1 o.2.2)).run c =ᵈ
+        (l.mapM fun o ↦ verifyRpm hR pR r ps crs out.1 o.1 o.2.1 o.2.2)).run c =ᵈ
       (fun z ↦ (z.1.map (ps.verify crs ((), out.1.1, toChallenges w.1) out.1.2 && ·), z.2)) <$>
         (simulateQ (hfSpec (List UInt8) KDigest KState).romImpl
           (l.mapM fun o ↦ verifyCellM hR r out.1.1 o.1 o.2.1 o.2.2)).run c := by
@@ -227,7 +193,7 @@ variable (r : ℕ) {Crs Proof : Type} {rel : Unit × Digest × Challenges → (F
 /-- **The simulated adversary calls `F` at most `Q` times** for every crs the setup can output,
 when the RPM game makes at most `Q` permutation calls. -/
 theorem isWeightBound_advS2 (A : CodeBindingAdvRpm r Crs Proof) (Q : ℕ)
-    (hQ : IsWeightBound (codeBindingGame r ps A) permCalls2 Q) (crs : Crs)
+    (hQ : IsWeightBound (codeBindingGame2 r ps A) permCalls2 Q) (crs : Crs)
     (hcrs : crs ∈ support ps.setup) :
     IsWeightBound (advS2 keccakPadding KState.zero (A ((), crs)))
       (fCalls (Msg := List UInt8) (Dg := KDigest) (St := KState)) Q := by
@@ -263,7 +229,7 @@ makes at most `Q` permutation calls, the RPM code-binding probability is at most
 one plus `Q² / 2^508` (the two-oracle transfer) plus `N · 2N / 2^576` with `N = Q + 15` (the
 duplex lemma: collisions of the 576-bit capacity among at most `Q + 15` calls of `F`). -/
 theorem codeBindingExpRpm_le_G (A : CodeBindingAdvRpm r Crs Proof) (Q : ℕ)
-    (hQ : IsWeightBound (codeBindingGame r ps A) permCalls2 Q) :
+    (hQ : IsWeightBound (codeBindingGame2 r ps A) permCalls2 Q) :
     Pr{let b ← codeBindingExpRpm r ps A}[b = true] ≤
       Pr{let b ← codeBindingExpG r ps A}[b = true] + (Q ^ 2 : ℝ≥0∞) / 2 ^ 508 +
         ((Q + 14 + 1 : ℕ) : ℝ≥0∞) * (2 * ((Q + 14 + 1 : ℕ) : ℝ≥0∞) * (2 ^ 576 : ℝ≥0∞)⁻¹) := by

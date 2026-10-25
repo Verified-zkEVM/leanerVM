@@ -315,7 +315,7 @@ theorem isWeightBound_winX (out : Digest × (Fin (r * 128) → Cell) × Challeng
         decide (root = out.1)) xCalls 0
   exact this
 
-theorem isWeightBound_mainX (Q : ℕ) (hQ : IsWeightBound (codeBindingGame r ps A) permCalls2 Q) :
+theorem isWeightBound_mainX (Q : ℕ) (hQ : IsWeightBound (codeBindingGame2 r ps A) permCalls2 Q) :
     IsWeightBound (mainX r ps ext A) xCalls (Q + 1 + commitCalls r) := by
   have hcs : IsWeightBound (csX r ps ext A ()) xCalls (Q + 1) :=
     ((isWeightBound_liftL _).bind fun _ ↦ (isWeightBound_advX r ps A Q hQ _).bind fun _ ↦
@@ -360,7 +360,7 @@ abbrev forkCalls (r Q : ℕ) : ℕ :=
   2 * (Q + 1 + commitCalls r) + (2 * openCalls r + 2 * (7 + logPad r + 1) + 2 * (9 + logPad r))
 
 theorem isWeightBound_forkZ [NeZero r] (Q : ℕ)
-    (hQ : IsWeightBound (codeBindingGame r ps A) permCalls2 Q) :
+    (hQ : IsWeightBound (codeBindingGame2 r ps A) permCalls2 Q) :
     IsWeightBound (forkZ r ps ext A Q) xCalls (forkCalls r Q) := by
   have hm := isWeightBound_iff_isQueryBoundP.mp (isWeightBound_mainX r ps ext A Q hQ)
   have hf := isWeightBound_iff_isQueryBoundP.mpr
@@ -379,7 +379,7 @@ theorem prEvent_bind_mono' {α β : Type} (mx : ProbComp α) (f g : α → ProbC
 /-- **Wagner's forking collision term is a birthday bound**: at most `(N + 2)² / 2^256` for the
 `N = forkCalls r Q` hash calls of the forked search, for an RPM adversary of `Q` permutation
 calls. -/
-theorem forkColl_le [NeZero r] (Q : ℕ) (hQ : IsWeightBound (codeBindingGame r ps A) permCalls2 Q) :
+theorem forkColl_le [NeZero r] (Q : ℕ) (hQ : IsWeightBound (codeBindingGame2 r ps A) permCalls2 Q) :
     Pr{let b ← ($ᵗ HTab : ProbComp HTab) >>= forkCollExpH r ps ext A Q}[b = true] ≤
       ((forkCalls r Q + 2 : ℕ) : ℝ≥0∞) ^ 2 / 2 ^ 256 := by
   have hpt : ∀ h : HTab, Pr{let b ← forkCollExpH r ps ext A Q h}[b = true] ≤

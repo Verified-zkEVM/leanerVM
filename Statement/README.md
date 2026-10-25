@@ -32,10 +32,10 @@ Benedikt Wagner's ([b-wagn/fv-pq-da](https://github.com/b-wagn/fv-pq-da), Apache
    and `π⁻¹`; `lazyPerm`, the lazily sampled uniform permutation; the sponge over a permutation
    and Keccak-256's padding, `spongeWith`, `keccakPadding`); a cost bounded on every path
    (`IsWeightBound`); the Keccak-256 evaluations a transcript of permutation queries contains
-   (`pathsOf`); the SUF-CMA game of a hash-based signature scheme in the random-permutation model
-   (`SufCma.rpmGame`, `rpmExperiment`, `permCalls`) and its security notion (`SufCma.RpmSecure`);
-   and a game with the verifier's direct calls of `π` (`rpmGame2`, `realGame2`), the form of
-   LeanDA's games.
+   (`pathsOf`); the oracles of the model (`KSpec`: coins, Keccak-256, `π`, `π⁻¹`), a game's cost
+   in permutation calls (`permCalls`) and its run against the lazy permutation (`runK`); the
+   SUF-CMA game of a hash-based signature scheme in the random-permutation model
+   (`SufCma.rpmGame`, `rpmExperiment`) and its security notion (`SufCma.RpmSecure`).
 2. [`LeanXmss.lean`](LeanXmss.lean): what leanXMSS and leanSPHINCS share (the tweakable hash's
    types, bytes and address, `crates/signatures/src/tweak.rs`), the leanXMSS scheme and
    `LeanXmss.Rpm.LeanXmssRpmSecurityStatement` (`RpmSecure` at 127 bits).
@@ -48,8 +48,9 @@ Benedikt Wagner's ([b-wagn/fv-pq-da](https://github.com/b-wagn/fv-pq-da), Apache
    membership test), the parts of Benedikt Wagner's framework the end statements name (the
    consistency of opened cells, arguments of knowledge), the relation of LeanDA's argument, the
    verifier, the commitment and the challenges' duplex over a permutation, LeanDA's games in the
-   random-permutation model (position binding, code binding, the argument's knowledge soundness
-   `ksExpRpm`, completeness for every permutation `π`), and `LeanDa.PerfectlyCompleteRpm`,
+   random-permutation model, where the adversary and the verifier query the same oracles (`KSpec`;
+   position binding, code binding, the argument's knowledge soundness `ksGame`, completeness for
+   every permutation `π`), and `LeanDa.PerfectlyCompleteRpm`,
    `LeanDa.PositionBindingRpm`, `LeanDa.CodeBindingRpm`. Code binding is conditional: if the
    argument is knowledge sound in the random-permutation model with error `(q + c) · 2^-k`, LeanDA
    is code binding with error `(Q + c + 2^22) · 2^-k + (Q + 2^20) · 2^-93 + (Q + 2^22)² · 2^-158`

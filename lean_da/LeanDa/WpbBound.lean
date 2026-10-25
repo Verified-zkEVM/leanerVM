@@ -177,7 +177,7 @@ abbrev wpbCalls (r Q : ℕ) : ℕ :=
   Q + 1 + (openCalls r + (8 + logPad r + 1) + (7 + logPad r + 1) + 2 * (9 + logPad r))
 
 theorem isWeightBound_wpbX [NeZero r] (Q : ℕ)
-    (hQ : IsWeightBound (codeBindingGame r ps A) permCalls2 Q) :
+    (hQ : IsWeightBound (codeBindingGame2 r ps A) permCalls2 Q) :
     IsWeightBound (wpbX r ps ext A) xCalls (wpbCalls r Q) := by
   refine ((isWeightBound_liftL _).bind fun crs ↦
     (?_ : IsWeightBound _ xCalls (wpbCalls r Q))).mono (by omega)
@@ -203,7 +203,7 @@ def wpbPair (H : List UInt8 → Digest) (t : (Fin (r * 128) → Cell) × Fin (r 
 /-- **Wagner's weak-position-binding collision term is a birthday bound**: at most
 `(N + 2)² / 2^256` for the `N = wpbCalls r Q` hash calls of the search, for an RPM adversary of
 `Q` permutation calls. -/
-theorem wpbColl_le [NeZero r] (Q : ℕ) (hQ : IsWeightBound (codeBindingGame r ps A) permCalls2 Q) :
+theorem wpbColl_le [NeZero r] (Q : ℕ) (hQ : IsWeightBound (codeBindingGame2 r ps A) permCalls2 Q) :
     Pr{let b ← ($ᵗ HTab : ProbComp HTab) >>= wpbCollExpH r ps ext A}[b = true] ≤
       ((wpbCalls r Q + 2 : ℕ) : ℝ≥0∞) ^ 2 / 2 ^ 256 := by
   have hpt : ∀ h : HTab, Pr{let b ← wpbCollExpH r ps ext A h}[b = true] ≤

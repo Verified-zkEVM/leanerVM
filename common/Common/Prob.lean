@@ -4,6 +4,7 @@ import VCVio.OracleComp.QueryTracking.QueryBound.Basic
 import VCVio.OracleComp.SimSemantics.StateT.StateProjection
 import VCVio.EvalDist.ProbabilityBounds
 import Statement.RandomPermutation
+import Common.Game2
 
 /-!
 # Game-playing lemmas for stateful simulations

@@ -643,147 +643,100 @@ def stateToLanes (s : KState) : Lanes :=
 def lanePerm {m : Type → Type} [Monad m] (π : KState → m KState) (L : Lanes) : m Lanes :=
   stateToLanes <$> π (lanesToState L)
 
-/-- The verifier's oracles: coins, Keccak-256 `H` and the direct calls `F` of the permutation. -/
-abbrev VerSpec := unifSpec + hfSpec (List UInt8) KDigest KState
+/-- Keccak-256 among the oracles of the random-permutation model. -/
+abbrev hK (a : List UInt8) : OracleComp KSpec Digest := liftM (KSpec.query (.inr (.inl a)))
 
-/-- Keccak-256 among the verifier's oracles. -/
-abbrev hR (a : List UInt8) : OracleComp VerSpec Digest :=
-  hQuery (Msg := List UInt8) (Dg := KDigest) (E := KRest) (C := KCap) a
-
-/-- The direct calls `F` of the permutation, on lanes. -/
-abbrev pR (L : Lanes) : OracleComp VerSpec Lanes :=
-  lanePerm (fun x ↦ fQuery (Msg := List UInt8) (Dg := KDigest) x) L
-
-/-! ## The games in the random-permutation model -/
+/-- A call `π x` of the permutation among the oracles, on lanes. -/
+abbrev pK (L : Lanes) : OracleComp KSpec Lanes :=
+  lanePerm (fun x ↦ liftM (KSpec.query (.inr (.inr (.fwd x))))) L
 
 /-- The challenges of the sponge's list. -/
 def toChallenges (zs : List E) : Challenges := fun j ↦ zs.getD j 0
 
-/-- The adversary's oracles in the random-permutation model: coins, Keccak-256, `π` and `π⁻¹`. -/
-abbrev AdvSpec := dSpec (List UInt8) KDigest KState
+/-- **Verification of an opening** (the verification of Wagner's scheme), with a hash `H` and the
+sponge's permutation `P` in any monad: the challenges of the commitment's root from the deployed
+duplex over `P`, the argument's verification, and the opening's. In the games `H` is Keccak-256
+and `P` is `π` (`hK`, `pK`). -/
+def verifyRpm {m : Type → Type} [Monad m] (H : List UInt8 → m Digest) (P : Lanes → m Lanes)
+    (r : ℕ) {Crs Proof : Type} {rel : Unit × Digest × Challenges → (Fin (r * 128) → Cell) → Bool}
+    (ps : Nark (Unit × Digest × Challenges) (Fin (r * 128) → Cell) Crs Proof rel) (crs : Crs)
+    (com : Digest × Proof) (p : Fin (r * 128)) (x : Cell) (τ : Opening) : m Bool := do
+  let zs ← membershipChallengesM H P com.1
+  let v ← verifyCellM H r com.1 p x τ
+  pure (ps.verify crs ((), com.1, toChallenges zs) com.2 && v)
 
-/-- **Calls of the permutation**: a hash of `n` bytes costs `⌊n / 136⌋ + 1` (one per block of
-the padded message), a query of `π` or `π⁻¹` and a direct call one. -/
-def permCalls2 : (dSpec2 (List UInt8) KDigest KState).Domain → ℕ
-  | .inl _ => 0
-  | .inr (.inl m) => m.length / 136 + 1
-  | .inr (.inr _) => 1
+/-! ## The games in the random-permutation model
+
+Every party queries the same oracles (`KSpec`): the adversary Keccak-256, `π` and `π⁻¹`; the
+verifier Keccak-256 and, in the challenges' duplex, `π`. A game is run against the lazily sampled
+permutation (`runK`), and its cost counts every party's calls (`permCalls`). -/
 
 variable (r : ℕ) {Crs Proof : Type} {rel : Unit × Digest × Challenges → (Fin (r * 128) → Cell) → Bool}
   (ps : Nark (Unit × Digest × Challenges) (Fin (r * 128) → Cell) Crs Proof rel)
   (ext : Nark.Extractor (Unit × Digest × Challenges) (Fin (r * 128) → Cell) Crs Proof)
 
-/-- **Verification of an opening in the random-permutation model** (the verification of Wagner's
-scheme): the challenges of the commitment's root from the deployed duplex over the permutation,
-the argument's verification, and the opening's, hashing with Keccak-256. -/
-def verifyRpm (crs : Crs) (com : Digest × Proof) (p : Fin (r * 128)) (x : Cell) (τ : Opening) :
-    OracleComp VerSpec Bool := do
-  let zs ← membershipChallengesM hR pR com.1
-  let v ← verifyCellM hR r com.1 p x τ
-  pure (ps.verify crs ((), com.1, toChallenges zs) com.2 && v)
-
-/-- A position-binding adversary in the random-permutation model: from the commitment key, a
-commitment, a position, and two cells with their openings. -/
+/-- A position-binding adversary: from the commitment key, a commitment, a position, and two cells
+with their openings. -/
 abbrev PosBindingAdvRpm (Crs Proof : Type) :=
-  Unit × Crs → OracleComp AdvSpec ((Digest × Proof) × Fin (r * 128) × Cell × Opening × Cell × Opening)
+  Unit × Crs → OracleComp KSpec ((Digest × Proof) × Fin (r * 128) × Cell × Opening × Cell × Opening)
 
-/-- The verifier's part of the position-binding game: both openings verify, at two different
-cells. -/
-def posBindingPost (crs : Crs)
-    (out : (Digest × Proof) × Fin (r * 128) × Cell × Opening × Cell × Opening) :
-    OracleComp VerSpec Bool := do
-  let b ← verifyRpm r ps crs out.1 out.2.1 out.2.2.1 out.2.2.2.1
-  let b' ← verifyRpm r ps crs out.1 out.2.1 out.2.2.2.2.1 out.2.2.2.2.2
-  pure (decide (out.2.2.1 ≠ out.2.2.2.2.1) && b && b')
+/-- **The position-binding game**: the argument's setup, the adversary, then the two
+verifications; it wins when both openings verify, at two different cells. -/
+def posBindingGame (A : PosBindingAdvRpm r Crs Proof) : OracleComp KSpec Bool := do
+  let crs ← liftM ps.setup
+  let (com, p, x, τ, x', τ') ← A ((), crs)
+  let b ← verifyRpm hK pK r ps crs com p x τ
+  let b' ← verifyRpm hK pK r ps crs com p x' τ'
+  pure (decide (x ≠ x') && b && b')
 
-/-- **The position-binding game in the random-permutation model**: the argument's setup, the
-adversary with Keccak-256, `π` and `π⁻¹`, then the two verifications, whose challenges' sponge
-calls the permutation directly. -/
-def posBindingGame (A : PosBindingAdvRpm r Crs Proof) :
-    OracleComp (dSpec2 (List UInt8) KDigest KState) Bool :=
-  rpmGame2 (liftM ps.setup) (fun crs ↦ A ((), crs)) (posBindingPost r ps)
-
-/-- **The position-binding experiment**: the game against the lazily sampled random
-permutation, Keccak-256 the sponge over it. -/
-noncomputable def posBindingExpRpm (A : PosBindingAdvRpm r Crs Proof) : ProbComp Bool :=
-  realGame2 keccakPadding KState.zero (posBindingGame r ps A)
-
-/-- A code-binding adversary in the random-permutation model: from the commitment key, a
-commitment and a list of opened positions. -/
+/-- A code-binding adversary: from the commitment key, a commitment and a list of opened
+positions. -/
 abbrev CodeBindingAdvRpm (Crs Proof : Type) :=
-  Unit × Crs → OracleComp AdvSpec ((Digest × Proof) × List (Fin (r * 128) × Cell × Opening))
+  Unit × Crs → OracleComp KSpec ((Digest × Proof) × List (Fin (r * 128) × Cell × Opening))
 
-/-- The verifier's part of the code-binding game: every opening verifies, and no codeword agrees
-with the opened cells. -/
-noncomputable def codeBindingPost (crs : Crs)
-    (out : (Digest × Proof) × List (Fin (r * 128) × Cell × Opening)) : OracleComp VerSpec Bool := do
-  let verdicts ← out.2.mapM fun o ↦ verifyRpm r ps crs out.1 o.1 o.2.1 o.2.2
-  pure (verdicts.all id && !decide ((code r).Consistent (out.2.map fun o ↦ (o.1, o.2.1))))
+/-- **The code-binding game**: the argument's setup, the adversary, then the verifications; it wins
+when every opening verifies and no codeword agrees with the opened cells. -/
+noncomputable def codeBindingGame (A : CodeBindingAdvRpm r Crs Proof) : OracleComp KSpec Bool := do
+  let crs ← liftM ps.setup
+  let (com, opened) ← A ((), crs)
+  let verdicts ← opened.mapM fun o ↦ verifyRpm hK pK r ps crs com o.1 o.2.1 o.2.2
+  pure (verdicts.all id && !decide ((code r).Consistent (opened.map fun o ↦ (o.1, o.2.1))))
 
-/-- **The code-binding game in the random-permutation model**: the argument's setup, the adversary
-with Keccak-256, `π` and `π⁻¹`, then the verifications, whose challenges' sponge calls the
-permutation directly. -/
-noncomputable def codeBindingGame (A : CodeBindingAdvRpm r Crs Proof) :
-    OracleComp (dSpec2 (List UInt8) KDigest KState) Bool :=
-  rpmGame2 (liftM ps.setup) (fun crs ↦ A ((), crs)) (codeBindingPost r ps)
+/-- A knowledge-soundness adversary: from the crs, a statement and a proof. -/
+abbrev KsAdvRpm (Crs Proof : Type) := Crs → OracleComp KSpec ((Unit × Digest × Challenges) × Proof)
 
-/-- **The code-binding experiment**: the game against the lazily sampled random permutation. -/
-noncomputable def codeBindingExpRpm (A : CodeBindingAdvRpm r Crs Proof) : ProbComp Bool :=
-  realGame2 keccakPadding KState.zero (codeBindingGame r ps A)
-
-/-- A knowledge-soundness adversary in the random-permutation model: from the crs, a statement and
-a proof. -/
-abbrev KsAdvRpm (Crs Proof : Type) :=
-  Crs → OracleComp AdvSpec ((Unit × Digest × Challenges) × Proof)
-
-/-- The verifier's part of the knowledge-soundness game: the proof verifies, and the extracted
-cells do not satisfy the relation (`Relation`), their root hashed with Keccak-256. -/
-noncomputable def ksPost (crs : Crs) (out : (Unit × Digest × Challenges) × Proof) :
-    OracleComp VerSpec Bool := do
-  let root ← commitCellsM hR (ext crs out.1 out.2)
-  pure (ps.verify crs out.1 out.2 &&
-    !(decide (root = out.1.2.1) && membershipCheck out.1.2.2 (ext crs out.1 out.2)))
-
-/-- **The argument's knowledge-soundness game in the random-permutation model** (Wagner's,
-Foundations Definition 18, with the hash over `π`): the argument's setup, the adversary with
-Keccak-256, `π` and `π⁻¹`, then the verification and the relation's check (`ksPost`). -/
-noncomputable def ksGame (B : KsAdvRpm Crs Proof) : OracleComp (dSpec2 (List UInt8) KDigest KState) Bool :=
-  rpmGame2 (liftM ps.setup) B (ksPost r ps ext)
-
-/-- **The knowledge-soundness experiment**: the game against the lazily sampled random
-permutation. -/
-noncomputable def ksExpRpm (B : KsAdvRpm Crs Proof) : ProbComp Bool :=
-  realGame2 keccakPadding KState.zero (ksGame r ps ext B)
+/-- **The argument's knowledge-soundness game** (Wagner's, Foundations Definition 18, with the hash
+over `π`): the argument's setup, the adversary, then the verification and the relation's check; it
+wins when the proof verifies and the extracted cells do not satisfy the relation (`Relation`),
+their root hashed with Keccak-256. -/
+noncomputable def ksGame (B : KsAdvRpm Crs Proof) : OracleComp KSpec Bool := do
+  let crs ← liftM ps.setup
+  let (stmt, proof) ← B crs
+  let root ← commitCellsM hK (ext crs stmt proof)
+  pure (ps.verify crs stmt proof &&
+    !(decide (root = stmt.2.1) && membershipCheck stmt.2.2 (ext crs stmt proof)))
 
 /-- **Keccak-256 over a permutation `π`**: the sponge over `π` from the zero state with
 Keccak-256's padding, the hash `H` of the games when the permutation is `π` (`realImpl`). -/
 def keccakWith (π : KState → KState) (a : List UInt8) : Digest :=
   Id.run (spongeWith (m := Id) keccakPadding KState.zero (fun x ↦ pure (π x)) a)
 
-/-- **The verifier's oracles for a permutation `π`**: coins forwarded, `H` Keccak-256 over `π`
-(`keccakWith`), the direct calls `π` itself, as the games answer them (`realGame2`) when the
-permutation is `π`. -/
-def permImpl (π : KState → KState) : QueryImpl VerSpec ProbComp
-  | .inl n => (unifSpec.query n : ProbComp (Fin (n + 1)))
-  | .inr (.inl a) => pure (keccakWith π a)
-  | .inr (.inr x) => pure (π x)
-
 /-- **The completeness experiment for a permutation `π`** (Wagner's, Foundations Definition 8,
 with the hash and the challenges over `π`): the argument's setup; the honest commitment to the
 message `msg`, the root of its encoding's cells hashed with Keccak-256 over `π` and the argument's
 proof for the challenges of the root, drawn by the deployed duplex over `π`
 (`membershipChallengesM`); the honest opening of the position `p`; and the binding games'
-verification (`verifyRpm`) of the encoding's cell at `p` with that opening. -/
+verification (`verifyRpm`) of the encoding's cell at `p` with that opening, over `π`. -/
 noncomputable def completenessExpRpm (π : KState → KState)
     (ps : Argument r (keccakWith π) Crs Proof) (msg : Fin r → Payload) (p : Fin (r * 128)) :
     ProbComp Bool := do
   let crs ← ps.setup
+  let H : List UInt8 → Id Digest := fun a ↦ pure (keccakWith π a)
+  let P : Lanes → Id Lanes := lanePerm fun x ↦ pure (π x)
   let c := (code r).encode msg
   let root := commitCells (keccakWith π) c
-  simulateQ (permImpl π) do
-    let zs ← membershipChallengesM hR pR root
-    let proof := ps.prove crs ((), root, toChallenges zs) c
-    verifyRpm r ps crs (root, proof) p (c p) (openCell (keccakWith π) c p)
+  let proof := ps.prove crs ((), root, toChallenges (Id.run (membershipChallengesM H P root))) c
+  pure (Id.run (verifyRpm H P r ps crs (root, proof) p (c p) (openCell (keccakWith π) c p)))
 
 /-! ### The end statements -/
 
@@ -804,16 +757,16 @@ abbrev PerfectlyCompleteRpm : Prop :=
 
 /-- **LeanDA is position binding in the random-permutation model.** For every argument `ps` (any
 verifier, for any relation) and every adversary whose game, verifications included, makes at most
-`Q` calls of the permutation on every path (`permCalls2`: a hash of `n` bytes costs
-`⌊n / 136⌋ + 1`, a query of `π` or `π⁻¹` and a sponge call one), the probability of opening a
-position to two different cells is at most `(Q + 1)² · 2^-256`, for `Q ≤ 2^128`. Proved by
-`LeanDa.leanDa_positionBinding_rpm`. -/
+`Q` calls of the permutation on every path (`permCalls`: a hash of `n` bytes costs
+`⌊n / 136⌋ + 1`, a call of `π` or `π⁻¹` one, the verifier's sponge's included), the probability
+of opening a position to two different cells is at most `(Q + 1)² · 2^-256`, for `Q ≤ 2^128`.
+Proved by `LeanDa.leanDa_positionBinding_rpm`. -/
 abbrev PositionBindingRpm : Prop :=
   ∀ (r : ℕ) {Crs Proof : Type} {rel : Unit × Digest × Challenges → (Fin (r * 128) → Cell) → Bool}
     (ps : Nark (Unit × Digest × Challenges) (Fin (r * 128) → Cell) Crs Proof rel)
     (A : PosBindingAdvRpm r Crs Proof) (Q : ℕ),
-    IsWeightBound (posBindingGame r ps A) permCalls2 Q → Q ≤ 2 ^ 128 →
-      Pr{let b ← posBindingExpRpm r ps A}[b = true] ≤
+    IsWeightBound (posBindingGame r ps A) permCalls Q → Q ≤ 2 ^ 128 →
+      Pr{let b ← runK (posBindingGame r ps A)}[b = true] ≤
         ((Q : ℝ≥0∞) + 1) ^ 2 * (2 : ℝ≥0∞)⁻¹ ^ 256
 
 /-- **LeanDA is code binding in the random-permutation model, for an argument knowledge sound in
@@ -821,9 +774,9 @@ it** (Benedikt Wagner's bound, moved to the random-permutation model). For `1 �
 (`maxRows`, the crate's bound), every argument `ps` (any verifier, for any relation; an
 oracle-free parameter, as in Wagner's model) and extractor `ext`: if every adversary whose
 knowledge-soundness game (`ksGame`, the relation's check included) makes at most `q ≤ 2^128`
-permutation calls (`permCalls2`) breaks the argument's knowledge soundness (`ksExpRpm`) with
-probability at most `(q + c) · 2^-k`, then every adversary whose code-binding game, verifications
-included, makes at most `Q ≤ 2^127` calls breaks code binding with probability at most
+permutation calls (`permCalls`) wins it with probability at most `(q + c) · 2^-k`, then every
+adversary whose code-binding game, verifications included, makes at most `Q ≤ 2^127` calls breaks
+code binding with probability at most
 
 `(Q + c + 2^22) · 2^-k + (Q + 2^20) · 2^-93 + (Q + 2^22)² · 2^-158`.
 
@@ -847,12 +800,13 @@ abbrev CodeBindingRpm : Prop :=
   ∀ (r : ℕ) {Crs Proof : Type} {rel : Unit × Digest × Challenges → (Fin (r * 128) → Cell) → Bool}
     (ps : Nark (Unit × Digest × Challenges) (Fin (r * 128) → Cell) Crs Proof rel)
     (ext : Nark.Extractor (Unit × Digest × Challenges) (Fin (r * 128) → Cell) Crs Proof) (c k : ℕ),
-    (∀ (B : KsAdvRpm Crs Proof) (q : ℕ), IsWeightBound (ksGame r ps ext B) permCalls2 q →
-      q ≤ 2 ^ 128 → Pr{let b ← ksExpRpm r ps ext B}[b = true] ≤ ((q : ℝ≥0∞) + c) * (2 : ℝ≥0∞)⁻¹ ^ k) →
+    (∀ (B : KsAdvRpm Crs Proof) (q : ℕ), IsWeightBound (ksGame r ps ext B) permCalls q →
+      q ≤ 2 ^ 128 → Pr{let b ← runK (ksGame r ps ext B)}[b = true] ≤
+        ((q : ℝ≥0∞) + c) * (2 : ℝ≥0∞)⁻¹ ^ k) →
     1 ≤ r → r ≤ maxRows →
     ∀ (A : CodeBindingAdvRpm r Crs Proof) (Q : ℕ),
-      IsWeightBound (codeBindingGame r ps A) permCalls2 Q → Q ≤ 2 ^ 127 →
-        Pr{let b ← codeBindingExpRpm r ps A}[b = true] ≤
+      IsWeightBound (codeBindingGame r ps A) permCalls Q → Q ≤ 2 ^ 127 →
+        Pr{let b ← runK (codeBindingGame r ps A)}[b = true] ≤
           ((Q : ℝ≥0∞) + c + 2 ^ 22) * (2 : ℝ≥0∞)⁻¹ ^ k + ((Q : ℝ≥0∞) + 2 ^ 20) * (2 : ℝ≥0∞)⁻¹ ^ 93 +
             ((Q : ℝ≥0∞) + 2 ^ 22) ^ 2 * (2 : ℝ≥0∞)⁻¹ ^ 158
 
