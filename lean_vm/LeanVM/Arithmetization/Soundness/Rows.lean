@@ -9,7 +9,10 @@
 module
 
 public import LeanVM.Arithmetization.Completeness.Rows
-public import LeanVM.Spec.IsaWith
+public import Statement.LeanIsa
+public import LeanVM.Facts.IsaWith
+public import LeanVM.Fast.CubicExt
+public import LeanVM.Fast.FieldWords
 
 @[expose] public section
 
@@ -43,7 +46,7 @@ carry a guarantee; every interaction a table emits is on one of the six (`*_chan
 guarantees of a row are those of its memory and bytecode pulls.
 
 **Without the permutation** (`OpRow`'s last clause). Under its constraints and the guarantees
-alone a row is a step of the reduction-blind semantics `keccakFree` (`LeanVM.Spec.IsaWith`), whose
+alone a row is a step of the reduction-blind semantics `keccakFree` (`Statement.LeanIsa`), whose
 `KECCAK` asks only canonical cells with the written cells' free limb zero: a `KECCAK` row is bound
 to the image by the table's circuit without its assumption (`keccakTableFree`), and its cells are
 cells of lanes (`keccak_free_exec`); every other table assumes nothing, and a deployed step is a
@@ -98,7 +101,7 @@ most twenty-six memory reads, and under the table's assumptions, constraints and
 a step: an instruction encoded by its bytecode coordinates executes from its pulled state to its
 pushed state over the image the data names, to the fall-through unless it is a `JUMP`. Without
 the assumptions (the permutation, for `KECCAK`) it is a step under the reduction-blind semantics
-`keccakFree` (`LeanVM.Spec.IsaWith`). -/
+`keccakFree` (`Statement.LeanIsa`). -/
 def OpRow (c : Component K) (env : Environment K) : Prop :=
   ∃ x : RowRec, rowSends c env = x.sends ∧ x.reads.length ≤ 26 ∧
     (c.Assumptions env → c.operations.ConstraintsHold env → c.operations.FullGuarantees env →

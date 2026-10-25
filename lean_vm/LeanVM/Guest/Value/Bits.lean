@@ -15,7 +15,7 @@ public import Mathlib.Algebra.BigOperators.Group.Finset.Basic
 /-!
 # Bits, counts and logs
 
-A count `n` is the g-power `gen ^ n` (`Spec/Verifier.lean`'s `gpow`), an
+A count `n` is the g-power `gen ^ n` (`Statement/LeanVmVerifier.lean`'s `gpow`), an
 integer word its bit pattern `eOfNat n`. The guest moves between the two with hinted bits
 (`hint_decompose_bits`, `hint_decompose_bits_exponent`, `zkDSL.md` §Hints), which it pins by
 booleanity (`b * b == b`, or the write-once `bits[i] = b * b`) and a reconstruction:
@@ -34,7 +34,7 @@ booleanity (`b * b == b`, or the write-once `bits[i] = b * b`) and a reconstruct
   `x = g^e` with `e < k` (`LogLt`), and `gen_pow_div_eq` reads a range-checked quotient
   `log(a / b) < k` as `a = b + c`;
 * `log2Ceil_certified` and `verify_log2_ceil_sound`: `verify_log2_ceil`'s two bounds
-  (G:686-721) pin its hinted log to `max floor (log2Ceil W)` (`Spec/Verifier.lean`, `log2Ceil`).
+  (G:686-721) pin its hinted log to `max floor (log2Ceil W)` (`Statement/LeanVmVerifier.lean`, `log2Ceil`).
 -/
 
 namespace LeanVM.Guest.Value
@@ -297,7 +297,7 @@ def LogLt (x : E) (k : ℕ) : Prop := ∃ e < k, x = gen ^ e
 
 /-- **The range check in the exponent is sound** (`zkDSL.md` §Range checks): the gadget's two
 `DEREF`s make `x` and the back-solved complement `z` addresses `g^e`, `g^e'` of a memory of at
-most `2^32` words (`Spec/Isa.lean`, `MemImage.read`), and its `MUL` pins `x·z = g^(k-1)`; for
+most `2^32` words (`Statement/LeanIsa.lean`, `MemImage.read`), and its `MUL` pins `x·z = g^(k-1)`; for
 `1 ≤ k ≤ 2^32` that is `e < k`. -/
 theorem rangeCheck_sound {e e' k : ℕ} (he : e < 2 ^ 32) (he' : e' < 2 ^ 32) (hk : 1 ≤ k)
     (hk' : k ≤ 2 ^ 32) (h : Parameters.gpow e * Parameters.gpow e' = Parameters.gpow (k - 1)) :

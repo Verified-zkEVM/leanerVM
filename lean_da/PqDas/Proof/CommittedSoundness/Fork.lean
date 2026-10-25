@@ -28,6 +28,7 @@ modified for VCVio afa6593.
 -/
 import PqDas.Proof.CommittedSoundness.Defs
 import VCVio.CryptoFoundations.ReplayFork
+import Statement.LeanDa
 
 open OracleComp OracleSpec ENNReal
 
@@ -36,34 +37,6 @@ namespace PqDas
 namespace CommittedSoundness
 
 variable {Γ Λ : Type} {k n : ℕ} {CkVC ComVC Opn L : Type}
-
-/-- Wrapped oracle spec: uniform sampling plus a single counted challenge
-oracle exposing the random-oracle entropy. -/
-abbrev wrappedSpec (L : Type) : OracleSpec (ℕ ⊕ Unit) := unifSpec + (Unit →ₒ L)
-
-/-- Internal simulator state: the cached random-oracle answers paired with the
-chronological list of cache-miss inputs. -/
-abbrev SimState (ComVC L : Type) : Type := (ComVC →ₒ L).QueryCache × List ComVC
-
-/-- Forwards a uniform-spec query to the wrapped spec's `Sum.inl` summand
-without touching the simulator state. -/
-def unifForward (ComVC L : Type) :
-    QueryImpl unifSpec (StateT (SimState ComVC L) (OracleComp (wrappedSpec L))) :=
-  fun i => (wrappedSpec L).query (Sum.inl i)
-
-/-- Caching random-oracle implementation: on a cache hit the recorded answer
-is returned; on a cache miss a fresh `Sum.inr ()` query is issued, the answer
-is cached, and the miss input is appended to the internal log. -/
-def roImpl (ComVC L : Type) [DecidableEq ComVC] :
-    QueryImpl (ComVC →ₒ L) (StateT (SimState ComVC L) (OracleComp (wrappedSpec L))) :=
-  fun com => do
-    let (cache, log) ← get
-    match cache com with
-    | some v => pure v
-    | none =>
-        let v ← (wrappedSpec L).query (Sum.inr ())
-        set (cache.cacheQuery com v, log ++ [com])
-        pure v
 
 /-- A cache hit returns the recorded answer and leaves the state unchanged. -/
 lemma roImpl_run_hit [DecidableEq ComVC] {com : ComVC}
@@ -83,63 +56,6 @@ lemma roImpl_run_miss [DecidableEq ComVC] {com : ComVC}
   simp only [roImpl, StateT.run_bind, StateT.run_get, pure_bind, h, StateT.run_set,
     bind_assoc, StateT.run_monadLift]
   rfl
-
-/-- Trace of one run of the wrapped committed soundness game. -/
-structure Trace (Λ : Type) (n : ℕ) (ComVC L : Type) where
-  /-- The commitment output by the adversary. -/
-  com : ComVC
-  /-- The vector output by the adversary. -/
-  vec : Fin n → Λ
-  /-- The challenge for `com` (always cached, thanks to the wrapped
-  computation's final query). -/
-  chal : L
-  /-- The final random-oracle cache. -/
-  roCache : (ComVC →ₒ L).QueryCache
-  /-- The chronological list of cache-miss inputs; the forking lemma rewinds
-  at a position of this list. -/
-  queryLog : List ComVC
-  /-- Whether the run wins the committed soundness game. -/
-  win : Bool
-
-/-- The wrapped adversary: run the committed soundness adversary, then query
-the oracle once more on the commitment it output, so its challenge is always
-cached (and, on a miss, logged). -/
-def wrappedAdv (A : NiCsAdv Λ n CkVC ComVC L) (ckVC : CkVC) :
-    OracleComp (unifSpec + (ComVC →ₒ L)) (ComVC × (Fin n → Λ) × L) := do
-  let (com, c) ← A ckVC
-  let l ← HasQuery.query (spec := (ComVC →ₒ L)) com
-  return (com, c, l)
-
-/-- The winning predicate of the committed soundness game, as a function of
-the wrapped adversary's output. -/
-def winOn [Fintype Γ] [DecidableEq Λ] [DecidableEq ComVC]
-    (C : ErasureCode Γ Λ k n) (vc : VectorCommitment Λ n CkVC ComVC Opn)
-    (chk : CodeChecker Λ n L) (ckVC : CkVC) (out : ComVC × (Fin n → Λ) × L) : Bool :=
-  decide (out.2.1 ∉ C.code) && chk.check out.2.2 out.2.1 &&
-    decide (vc.commit ckVC out.2.1 = out.1)
-
-/-- Run the wrapped adversary through the caching simulator against the
-counted challenge oracle and record the run. -/
-def runTrace [Fintype Γ] [DecidableEq Λ] [DecidableEq ComVC]
-    (C : ErasureCode Γ Λ k n) (vc : VectorCommitment Λ n CkVC ComVC Opn)
-    (chk : CodeChecker Λ n L) (A : NiCsAdv Λ n CkVC ComVC L) (ckVC : CkVC) :
-    OracleComp (wrappedSpec L) (Trace Λ n ComVC L) := do
-  let (out, st) ← StateT.run
-    (simulateQ (unifForward ComVC L + roImpl ComVC L) (wrappedAdv A ckVC)) (∅, [])
-  pure { com := out.1, vec := out.2.1, chal := out.2.2, roCache := st.1, queryLog := st.2,
-         win := winOn C vc chk ckVC out }
-
-/-- Rewinding point extracted from a trace: the position of the first cache
-miss on the output commitment, provided the run wins and the position is
-within the query budget. -/
-def forkPoint [DecidableEq ComVC] (Q : ℕ) (trace : Trace Λ n ComVC L) :
-    Option (Fin (Q + 1)) :=
-  if trace.win then
-    if trace.com ∈ trace.queryLog then
-      let idx := trace.queryLog.findIdx (· == trace.com)
-      if hidx : idx < Q + 1 then some ⟨idx, hidx⟩ else none
-    else none
-  else none
 
 /-- If `forkPoint` selects a rewinding index, the recorded run wins. -/
 lemma win_of_forkPoint_eq_some [DecidableEq ComVC] {Q : ℕ}

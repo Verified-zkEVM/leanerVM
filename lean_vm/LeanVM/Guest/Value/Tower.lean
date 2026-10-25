@@ -9,7 +9,11 @@
 module
 
 public import LeanVM.Parameters.Field
-public import LeanVM.Spec.Verifier
+public import Statement.LeanVmVerifier
+public import LeanVM.Facts.Verifier
+public import LeanVM.Fast.Keccak
+public import LeanVM.Fast.CubicExt
+public import LeanVM.Fast.FieldWords
 import CompPoly.Fields.Binary.BF64.Impl
 
 /-!

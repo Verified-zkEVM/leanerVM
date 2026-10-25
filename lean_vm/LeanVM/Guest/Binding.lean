@@ -7,7 +7,16 @@
 
 module
 
-public import LeanVM.Spec.Guest
+public import Statement.LeanVmGuest
+public import LeanXmss.Scheme
+public import Sphincs.Scheme
+public import LeanVM.Fast.Schemes
+public import LeanDa.Scheme
+public import LeanVM.Fast.Da
+public import LeanVM.Fast.Keccak
+public import LeanVM.Fast.CubicExt
+public import LeanVM.Fast.FieldWords
+public import LeanVM.Facts.Verifier
 public import LeanVM.Protocol.KeccakHash
 
 /-!
@@ -39,7 +48,7 @@ open LeanVM.Parameters LeanVM.Semantics LeanVM.Protocol LeanVM.Protocol.KeccakHa
 
 @[expose] public section
 
-/-! ## The bytes each digest hashes (`Spec/Guest.lean`) -/
+/-! ## The bytes each digest hashes (`Statement/LeanVmGuest.lean`) -/
 
 theorem statementDigest_eq (seed : Digest) (s : NodeStatement) :
     statementDigest seed s = keccak256 (statementPreimage seed s) := rfl

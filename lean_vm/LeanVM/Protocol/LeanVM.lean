@@ -3,7 +3,7 @@
 
   Knowledge soundness (`LeanVM.Protocol.LeanVMSound`) and completeness of the leanVM verifier in
   the two-oracle random-oracle model (`LeanVM/Protocol/Rom/Statement.lean`): the step of the proofs
-  of `LeanVM/Spec/Rpm.lean`'s statements before the random-permutation model.
+  of `Statement/LeanVm.lean`'s statements before the random-permutation model.
 -/
 
 module

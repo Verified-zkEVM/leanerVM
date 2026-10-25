@@ -8,13 +8,16 @@
 module
 
 public import LeanVM.Semantics.Lemmas
-public import LeanVM.Spec.IsaWith
+public import Statement.LeanIsa
+public import LeanVM.Facts.IsaWith
+public import LeanVM.Fast.CubicExt
+public import LeanVM.Fast.FieldWords
 
 /-!
 # The cells of `KECCAK`
 
 `KECCAK` reads thirteen cells holding a Keccak state, two lanes to a cell, in one of two layouts
-(`cellLanes`), and writes thirteen (`LeanVM.Spec.Isa`). This module names the cells holding given
+(`cellLanes`), and writes thirteen (`Statement.LeanIsa`). This module names the cells holding given
 lanes in a layout (`laneCells`: a limb holding no lane reads `free`), and proves the three facts
 the arithmetization needs:
 

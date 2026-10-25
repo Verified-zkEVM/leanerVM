@@ -1,18 +1,22 @@
 /-
   LeanVM.Parameters.Whir
 
-  The structure of leanVM's WHIR parameters (`LeanVM.Spec.Verifier`): every admissible stack
+  The structure of leanVM's WHIR parameters (`Statement.LeanVmVerifier`): every admissible stack
   size and rate has a ladder, one level per tabulated query count, and its blocks fit.
 -/
 
 module
 
-public import LeanVM.Spec.Verifier
+public import Statement.LeanVmVerifier
+public import LeanVM.Facts.Verifier
+public import LeanVM.Fast.Keccak
+public import LeanVM.Fast.CubicExt
+public import LeanVM.Fast.FieldWords
 
 /-!
 # The structure of the WHIR parameters
 
-The parameters are defined with the verifier that reads them, in `LeanVM.Spec.Verifier` (Part
+The parameters are defined with the verifier that reads them, in `Statement.LeanVmVerifier` (Part
 1). This module proves what the proofs need of them: the folds and reductions are ordered, and on
 the 56 admissible pairs of stack size and rate the ladder exists (`ladder_isSome`), has one level
 per tabulated query count, and leaves a residual of at most `residualMaxLog` variables.

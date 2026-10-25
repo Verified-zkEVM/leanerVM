@@ -1,18 +1,20 @@
 /-
   LeanVM.Protocol.KeccakHash
 
-  Lemmas about the byte encodings and the digest encoding of `LeanVM.Spec.Keccak`.
+  Lemmas about the byte encodings and the digest encoding of `Statement.RandomPermutation`.
 -/
 
 module
 
 public import LeanVM.Semantics.Lemmas
-public import LeanVM.Spec.Keccak
+public import Statement.Field
+public import LeanVM.Fast.CubicExt
+public import LeanVM.Fast.FieldWords
 
 /-!
 # Lemmas about the digest encoding
 
-The hash, the Merkle hashes and the digest encoding are defined in `LeanVM.Spec.Keccak`. This
+The hash, the Merkle hashes and the digest encoding are defined in `Statement.RandomPermutation`. This
 module proves the round trips the proofs use: a digest and its two field elements
 (`digestOfScalars_digestScalars`, `digestScalars_digestOfScalars`), and the lengths and
 injectivity of the byte encodings.

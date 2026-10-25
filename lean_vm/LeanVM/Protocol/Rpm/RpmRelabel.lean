@@ -1,7 +1,7 @@
 /-
   LeanVM.Protocol.Rpm.RpmRelabel
 
-  The random-permutation experiment of `LeanVM/Spec/Rpm.lean`, on lane states, is the real world
+  The random-permutation experiment of `Statement/LeanVm.lean`, on lane states, is the real world
   of `common`'s transfer game, on byte states.
 -/
 
@@ -16,7 +16,7 @@ uniformly random permutation of the byte states: the lazily sampled permutation 
 (`Common.lazyPerm` at `KState`) is the one on bytes (at `Common.KState`) with its edges read
 on lanes (`lazyPerm_relabel`), a fresh answer being uniform among the unused points on either side
 (`uniformAvoiding_map`). With Keccak-256 over the permutation on lanes being `common`'s sponge
-over it (`keccak256With_rpm`), the experiment `rpmExperiment` (`LeanVM/Spec/Rpm.lean`) is the real
+over it (`keccak256With_rpm`), the experiment `rpmExperiment` (`Statement/LeanVm.lean`) is the real
 world `Common.realGame2` of the transfer game `game` (`rpmExperiment_evalDistEq`), and so is the
 completeness experiment (`rpmCompleteness_evalDistEq`).
 -/

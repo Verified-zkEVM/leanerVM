@@ -1,0 +1,41 @@
+name = "statement"
+version = "0.1.0"
+defaultTargets = ["Statement"]
+
+[leanOptions]
+warningAsError = true
+autoImplicit = false
+relaxedAutoImplicit = false
+pp.unicode.fun = true
+
+# PolyFun is VCVio's requirement, pinned at the revision every project of the repository uses.
+[[require]]
+name = "PolyFun"
+git = "https://github.com/Verified-zkEVM/PolyFun"
+rev = "41d3b21dcc99817fe4f9f24ca7b2b58f0578083d"
+
+[[require]]
+name = "VCVio"
+git = "https://github.com/Verified-zkEVM/VCVio.git"
+rev = "afa6593f15e1e79ecb3cf22fc56191cecb452bb0"
+
+[[require]]
+name = "CompPoly"
+git = "https://github.com/Verified-zkEVM/CompPoly"
+rev = "572f997390aa4fc131ef30b1186fa1dcf292ca10"
+
+[[require]]
+name = "mathlib"
+scope = "leanprover-community"
+git = "https://github.com/leanprover-community/mathlib4"
+rev = "v4.34.1"
+
+# The statement files are `Statement/*.lean` (modules `Statement.<Name>`) and the generated guest
+# data `Statement/Data/*.lean`; the package directory is `Statement/`, so the sources are found
+# from its parent.
+[[lean_lib]]
+name = "Statement"
+srcDir = ".."
+globs = ["Statement.RandomPermutation", "Statement.LeanXmss", "Statement.LeanSphincs",
+  "Statement.Field", "Statement.LeanDa", "Statement.LeanIsa", "Statement.LeanVmVerifier",
+  "Statement.Extractor", "Statement.LeanVm", "Statement.LeanVmGuest", "Statement.Data.+"]

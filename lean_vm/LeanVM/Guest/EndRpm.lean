@@ -2,21 +2,31 @@
   LeanVM.Guest.EndRpm
 
   The aggregation guest's theorems that involve an adversary, in the random-permutation model:
-  `AggregateSound` of `LeanVM/Spec/Aggregate.lean` for the deployed bytecode and the decoder
+  `AggregateSound` of `Statement/LeanVmGuest.lean` for the deployed bytecode and the decoder
   `decode`, and the guest's completeness composed with the protocol's.
 -/
 
 import LeanVM.Guest.EndFinal
 import LeanVM.Guest.Complete
 import LeanVM.Protocol.LeanVMRpm
-import LeanVM.Spec.Aggregate
+import Statement.LeanVmGuest
+import Common.Transfer
+import LeanXmss.Scheme
+import Sphincs.Scheme
+import LeanVM.Fast.Schemes
+import LeanDa.Scheme
+import LeanVM.Fast.Da
+import LeanVM.Fast.Keccak
+import LeanVM.Fast.CubicExt
+import LeanVM.Fast.FieldWords
+import LeanVM.Facts.Verifier
 
 /-!
 # The guest in the random-permutation model
 
 The guest's own theorems involve no oracle: `guest_knowledge` (every valid execution decodes),
 `decode_binds` and `guest_complete` are about executions and the deployed Keccak. Here they are
-composed with the protocol's theorems in the random-permutation model (`LeanVM/Spec/Rpm.lean`,
+composed with the protocol's theorems in the random-permutation model (`Statement/LeanVm.lean`,
 `LeanVM/Protocol/LeanVMRpm.lean`):
 
 * `aggregate_knowledge`: in the random-permutation experiment, the verifier accepts a proof of the

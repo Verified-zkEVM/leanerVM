@@ -1,13 +1,15 @@
 /-
   LeanVM.Semantics.Lemmas
 
-  The lemmas about the definitions of `LeanVM.Spec.Isa`: addressing, fetching, the step, and the
+  The lemmas about the definitions of `Statement.LeanIsa`: addressing, fetching, the step, and the
   execution loop.
 -/
 
 module
 
-public import LeanVM.Spec.Isa
+public import Statement.LeanIsa
+public import LeanVM.Fast.CubicExt
+public import LeanVM.Fast.FieldWords
 public import LeanVM.Parameters.Isa
 
 /-!

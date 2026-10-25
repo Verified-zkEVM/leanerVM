@@ -7,7 +7,7 @@
 
 module
 
-public import LeanVM.Spec.Fast.Keccak
+public import LeanVM.Fast.Keccak
 
 /-!
 # Keccak by kernel evaluation
@@ -17,7 +17,7 @@ The guest bakes constants that are Keccak-f[1600] or Keccak-256 of fixed inputs 
 `decide +kernel`. The Spec's `keccakF` evaluates in the kernel through `UInt64`, `BitVec` and
 `Vector` (lists walked by index), about 4 s and 1.2 GB per permutation; Keccak-256 of 2048 bytes
 took 113 s and 24 GB. Here a lane is a natural number below `2^64` and a state a list of
-`25`, the round has its lanes written out (`roundN`, as `Spec.Fast.Keccak.roundLanes`), and
+`25`, the round has its lanes written out (`roundN`, as `Fast.Keccak.roundLanes`), and
 every operation is one the kernel computes on literals by GMP (`Nat.xor`, `Nat.land`,
 `Nat.lor`, the shifts, `%`, `-`).
 
@@ -42,7 +42,7 @@ def rotN (x n : ℕ) : ℕ := if n = 0 then x else (x <<< n) % 2 ^ 64 ||| x >>> 
 /-- The complement of a lane below `2^64`. -/
 def notN (x : ℕ) : ℕ := 18446744073709551615 - x
 
-/-- `Spec.Fast.Keccak.roundLanes` on natural numbers: the state a list of `25` lanes. -/
+/-- `Fast.Keccak.roundLanes` on natural numbers: the state a list of `25` lanes. -/
 def roundN : List ℕ → ℕ → List ℕ
   | [a0, a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11, a12, a13, a14, a15, a16, a17, a18, a19,
       a20, a21, a22, a23, a24], rc =>
@@ -133,13 +133,13 @@ set_option maxHeartbeats 4000000 in
 /-- **The round on natural numbers is `Keccak.round`.** -/
 theorem roundN_toNats (a : KState) (rc : UInt64) :
     roundN (toNats a) rc.toNat = toNats (Keccak.round a rc) := by
-  rw [LeanVM.Spec.Fast.Keccak.round_eq_roundLanes]
+  rw [LeanVM.Fast.Keccak.round_eq_roundLanes]
   obtain ⟨⟨l⟩, hl⟩ := a
   rcases l with _ | ⟨a0, _ | ⟨a1, _ | ⟨a2, _ | ⟨a3, _ | ⟨a4, _ | ⟨a5, _ | ⟨a6, _ | ⟨a7, _ | ⟨a8, _ |
     ⟨a9, _ | ⟨a10, _ | ⟨a11, _ | ⟨a12, _ | ⟨a13, _ | ⟨a14, _ | ⟨a15, _ | ⟨a16, _ | ⟨a17, _ | ⟨a18, _
     | ⟨a19, _ | ⟨a20, _ | ⟨a21, _ | ⟨a22, _ | ⟨a23, _ | ⟨a24, _ | ⟨_, _⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩
   all_goals try (simp at hl; done)
-  simp only [toNats, LeanVM.Spec.Fast.Keccak.roundLanes, Keccak.lane]
+  simp only [toNats, LeanVM.Fast.Keccak.roundLanes, Keccak.lane]
   simp [roundN, notN, UInt64.toNat_xor, UInt64.toNat_and, rotN_toNat]
 
 /-! ## Keccak-f[1600] -/

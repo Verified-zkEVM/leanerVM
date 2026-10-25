@@ -26,7 +26,7 @@ At leanVM pin `4af2cdddd7cd41b9df2cc7e123e314a91b0b4462`, transcribed from:
   `(f_pc, f_fp)`, `cell = (0, 0)`, `pc = (1, 0)`, `fp = (0, 1)`.
 
 `entry i` is the bus entry of an instruction, the row of `bytecode_columns`; `encodeSlots i` is
-its sixteen-slot row, the entry at slots 3 to 13. Both are defined in `LeanVM.Spec.Isa`, since
+its sixteen-slot row, the entry at slots 3 to 13. Both are defined in `Statement.LeanIsa`, since
 the verifier receives a program through them; `decode`, here, consumes an eleven-coordinate
 entry. It is exact: `decode v = some i ↔ v = entry i` (`decode_eq_some_iff`); on a `DEREF`
 tuple with free flags it names the mode whose flags they are (`decode_deref_eq_some_iff`).

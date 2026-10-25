@@ -6,7 +6,11 @@
 
 module
 
-public import LeanVM.Spec.Verifier
+public import Statement.LeanVmVerifier
+public import LeanVM.Facts.Verifier
+public import LeanVM.Fast.Keccak
+public import LeanVM.Fast.CubicExt
+public import LeanVM.Fast.FieldWords
 public import LeanVM.Protocol.Compile.Prog
 public import LeanVM.Protocol.KeccakHash
 public import LeanVM.Parameters.Field
@@ -353,7 +357,6 @@ def boundaryColumns : List I.ColumnId :=
 /-- The number of columns of the sumcheck tables: one claim each after the table sumcheck. -/
 def tableColumns : ℕ := ∑ j : I.SumcheckTables, I.width j.1
 
-
 /-- The claims pooled after the bus phase: one per boundary column. -/
 abbrev busClaims : ℕ := I.boundaryColumns.length
 
@@ -363,7 +366,6 @@ abbrev tableClaims : ℕ := I.busClaims + I.tableColumns
 
 /-- The claims pooled after the public-input phase: one more per public line. -/
 abbrev pubClaims : ℕ := I.tableClaims + I.nLines
-
 
 end M3Instance
 

@@ -2,7 +2,7 @@
   LeanVM.Protocol.EndToEnd.Complete.Statement
 
   Completeness in the two-oracle random-oracle model (`LeanVM/Protocol/Rom/Statement.lean`, a step
-  of the proof of `LeanVM/Spec/Rpm.lean`'s) proved: the honest prover, run as the adversary of the
+  of the proof of `Statement/LeanVm.lean`'s) proved: the honest prover, run as the adversary of the
   random-oracle experiment, makes the verifier reject with probability at
   most `completenessError fuel`.
 -/

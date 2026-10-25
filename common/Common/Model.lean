@@ -1,5 +1,6 @@
 import VCVio.OracleComp.QueryTracking.RandomOracle.Simulation
 import VCVio.OracleComp.Constructions.SampleableType.Measure
+import Statement.RandomPermutation
 
 /-!
 # The random-permutation model
@@ -35,36 +36,11 @@ open scoped ENNReal
 
 namespace Common
 
-/-- A query to a permutation `π` of `S`: forward `π x` or inverse `π⁻¹ y`. -/
-inductive PermQuery (S : Type) where
-  /-- The forward query `π x`. -/
-  | fwd (x : S)
-  /-- The inverse query `π⁻¹ y`. -/
-  | inv (y : S)
-  deriving DecidableEq
-
-/-- The oracle specification of the random-permutation model: both kinds of query answer a state.
--/
-abbrev permSpec (S : Type) : OracleSpec (PermQuery S) := PermQuery S →ₒ S
-
-/-- The state of a lazily sampled permutation: the edges `(x, π x)` fixed so far, newest first. -/
-abbrev PermLog (S : Type) := List (S × S)
-
 variable {S : Type}
 
 section Lookup
 
 variable [DecidableEq S]
-
-/-- The recorded forward answer at `x`: the output of the first edge with input `x`. -/
-def fwdLookup : PermLog S → S → Option S
-  | [], _ => none
-  | (a, b) :: E, x => if a = x then some b else fwdLookup E x
-
-/-- The recorded inverse answer at `y`: the input of the first edge with output `y`. -/
-def invLookup : PermLog S → S → Option S
-  | [], _ => none
-  | (a, b) :: E, y => if b = y then some a else invLookup E y
 
 /-- A recorded forward answer comes from an edge of the log. -/
 theorem mem_of_fwdLookup_eq_some {E : PermLog S} {x y : S} (h : fwdLookup E x = some y) :
@@ -124,15 +100,6 @@ section Sampling
 
 variable [Fintype S] [DecidableEq S] [SampleableType S]
 
-/-- A uniform draw from the points outside the list `l`, or from all of `S` when `l` covers
-`S` (which the lazy permutation never needs: a full range is a full domain). -/
-noncomputable def uniformAvoiding (l : List S) : ProbComp S :=
-  if h : ∃ y, y ∉ l then
-    letI : Nonempty {y // y ∉ l} := ⟨⟨h.choose, h.choose_spec⟩⟩
-    letI : SampleableType {y // y ∉ l} := SampleableType.subtype S (· ∉ l)
-    Subtype.val <$> ($ᵗ {y // y ∉ l})
-  else $ᵗ S
-
 /-- A uniform draw outside `l` avoids `l` whenever some point does. -/
 theorem notMem_of_mem_support_uniformAvoiding {l : List S} (h : ∃ y, y ∉ l) {y : S}
     (hy : y ∈ support (uniformAvoiding l)) : y ∉ l := by
@@ -161,20 +128,6 @@ end Sampling
 section LazyPerm
 
 variable [Fintype S] [DecidableEq S] [SampleableType S]
-
-/-- **The lazily sampled random permutation.** A recorded point is answered from the log; a
-fresh forward query `π x` draws `π x` uniformly outside the current range and records `(x, π x)`;
-a fresh inverse query `π⁻¹ y` draws `π⁻¹ y` uniformly outside the current domain and records
-`(π⁻¹ y, y)`. -/
-noncomputable def lazyPerm : QueryImpl (permSpec S) (StateT (PermLog S) ProbComp)
-  | .fwd x => StateT.mk fun E =>
-      match fwdLookup E x with
-      | some y => pure (y, E)
-      | none => (fun y ↦ (y, (x, y) :: E)) <$> uniformAvoiding (E.map Prod.snd)
-  | .inv y => StateT.mk fun E =>
-      match invLookup E y with
-      | some x => pure (x, E)
-      | none => (fun x ↦ (x, (x, y) :: E)) <$> uniformAvoiding (E.map Prod.fst)
 
 /-- A lazily sampled random *function* in both directions: a recorded point is answered from the
 log, a fresh answer is uniform over all of `S` (it may repeat a used point). Not a model of a

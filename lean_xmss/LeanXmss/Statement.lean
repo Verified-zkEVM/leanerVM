@@ -2,6 +2,7 @@ module
 
 public import LeanXmss.Scheme
 public import VCVio.OracleComp.QueryTracking.WriterCost
+public import Statement.LeanXmss
 
 /-!
 # leanXMSS security statement
@@ -16,41 +17,6 @@ open OracleComp OracleSpec ENNReal
 namespace LeanXmss
 
 @[expose] public section
-
-/-- A signing request: a leaf index and a 32-byte message. -/
-structure SignRequest where
-  leafIndex : LeafIndex
-  message : Message
-deriving DecidableEq
-
-/-- A claimed forgery: a message and a signature, which carries its leaf index. -/
-structure Forgery where
-  message : Message
-  signature : Signature
-deriving DecidableEq
-
-/-- The signing oracle answers a request with a signature, or `none` if the signer fails. -/
-abbrev SigningSpec := SignRequest →ₒ Option Signature
-
-namespace SigningTranscript
-
-/-- A transcript is valid when no leaf index occurs twice. -/
-def Valid (log : QueryLog SigningSpec) : Prop :=
-  (log.map fun entry => entry.1.leafIndex).Nodup
-
-instance (log : QueryLog SigningSpec) : Decidable (Valid log) :=
-  inferInstanceAs (Decidable ((log.map fun entry => entry.1.leafIndex).Nodup))
-
-/-- The signer returned the forgery: some request for its message was answered with its signature.
-Any other signature of a signed message is a strong forgery. -/
-def Contains (log : QueryLog SigningSpec) (forgery : Forgery) : Prop :=
-  ∃ entry ∈ log, entry.1.message = forgery.message ∧ entry.2 = some forgery.signature
-
-instance (log : QueryLog SigningSpec) (forgery : Forgery) : Decidable (Contains log forgery) :=
-  inferInstanceAs
-    (Decidable (∃ entry ∈ log, entry.1.message = forgery.message ∧ entry.2 = some forgery.signature))
-
-end SigningTranscript
 
 namespace Security
 

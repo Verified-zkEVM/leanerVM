@@ -1,7 +1,7 @@
 /-
   LeanVM.Parameters.Generator
 
-  The order of the generator `g = x` of `K^×` (`LeanVM.Spec.Field`): a kernel-checked
+  The order of the generator `g = x` of `K^×` (`Statement.Field`): a kernel-checked
   certificate, and what exponent addressing needs of it.
 -/
 
@@ -19,7 +19,7 @@ import Mathlib.Tactic.NormNum.Prime
 `ord(x) = 2^64 - 1`") at leanVM pin `127510d14c98ade4e8a97646c44fa7f1ff5e752d`, cross-checked
 against `python-verifier/verifier.py:182` (`GEN = E(2)`). Specification §2
 (`02-vm-specification.tex:12`) fixes a generator of `K^×` of order `2^64 - 1` without naming it.
-The value appears exactly once, in `g` (`LeanVM.Spec.Field`), and is symbolic everywhere else.
+The value appears exactly once, in `g` (`Statement.Field`), and is symbolic everywhere else.
 
 The order is certified, not asserted. `|K^×| = 2^64 - 1 = 3·5·17·257·641·65537·6700417`;
 `g^(2^64-1) = 1` is Lagrange (`FiniteField.pow_card_sub_one_eq_one` with `BF64.card_bf64`); and

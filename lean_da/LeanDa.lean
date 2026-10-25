@@ -25,6 +25,15 @@ sampling `H` in advance give Wagner's bound, averaged over `H`, plus `2 (Q + 15)
 (`leanDa_codeBinding_rpm_bound`).
 -/
 
+/-! ## The end theorems
+
+Each proves a proposition of `Statement/LeanDa.lean`: `leanDa_perfectlyComplete :
+PerfectlyCompleteStatement` and `leanDa_codeBinding_rpm_bound : CodeBindingRpm` below,
+`leanDa_positionBinding_rpm : PositionBindingRpm` in `LeanDa/RpmSecurity.lean`; the axioms are
+pinned at the end of this file. -/
+
+example : LeanDa.PositionBindingRpm := LeanDa.leanDa_positionBinding_rpm
+
 open PqDas PqDas.CommittedSoundness OracleComp OracleSpec ENNReal
 
 namespace LeanDa
@@ -33,9 +42,9 @@ variable (r : ℕ) (H : List UInt8 → Digest) {Crs Proof : Type} (ps : Argument
 
 /-- **Completeness**: with a perfectly complete argument, every cell of an honest commitment
 opens and verifies. -/
-theorem leanDa_perfectlyComplete (hps : ps.PerfectlyComplete) :
-    (leanDa r H ps).PerfectlyComplete (code r) (roRuntime Digest Challenges) :=
-  scheme_perfectlyComplete (code r) (merkleVC r H) (checker r) ps
+theorem leanDa_perfectlyComplete : PerfectlyCompleteStatement := by
+  intro r H Crs Proof ps hps
+  exact scheme_perfectlyComplete (code r) (merkleVC r H) (checker r) ps
     (merkleVC_perfectlyComplete r H) (checker_complete r) hps
 
 /-- **Position binding**: an adversary opening a commitment at one cell to two different cells
@@ -104,17 +113,8 @@ Wagner's reduction against the knowledge soundness of `ps` for the relation with
 `Q²/2^508` is the two-oracle transfer, `2(Q+15)²/2^576` the duplex lemma (the challenges' sponge
 is a random oracle of the roots unless two of at most `Q + 15` states share their 576-bit
 capacity), and the rest is Wagner's bound for each `h`, averaged over `h`. -/
-theorem leanDa_codeBinding_rpm_bound [NeZero r]
-    (ext : Nark.Extractor (Unit × Digest × Challenges) (Fin (r * 128) → Cell) Crs Proof)
-    (A : CodeBindingAdvRpm r Crs Proof) (Q : ℕ)
-    (hQ : IsWeightBound (codeBindingGame r ps A) permCalls2 Q) :
-    (Pr{let b ← codeBindingExpRpm r ps A}[b = true] -
-        ((Q ^ 2 : ℝ≥0∞) / 2 ^ 508 + 2 * ((Q + 15 : ℕ) : ℝ≥0∞) ^ 2 / 2 ^ 576 +
-          (Pr{let b ← ($ᵗ HTab : ProbComp HTab) >>= ksExpH r ps ext A}[b = true] +
-            Pr{let b ← ($ᵗ HTab : ProbComp HTab) >>= wpbCollExpH r ps ext A}[b = true]))) ^ 2 ≤
-      ((Q : ℝ≥0∞) + 2) *
-        (Pr{let b ← ($ᵗ HTab : ProbComp HTab) >>= forkCollExpH r ps ext A Q}[b = true] +
-          14 / 2 ^ 192 + (2 ^ 2688)⁻¹) := by
+theorem leanDa_codeBinding_rpm_bound : CodeBindingRpm := by
+  intro r Crs Proof rel ps _ ext A Q hQ
   set εks := Pr{let b ← ($ᵗ HTab : ProbComp HTab) >>= ksExpH r ps ext A}[b = true]
   set ε₁ := Pr{let b ← ($ᵗ HTab : ProbComp HTab) >>= wpbCollExpH r ps ext A}[b = true]
   set ε₂ := Pr{let b ← ($ᵗ HTab : ProbComp HTab) >>= forkCollExpH r ps ext A Q}[b = true]

@@ -1,13 +1,15 @@
 /-
   LeanVM.Parameters.Field
 
-  Lemmas about the fields `K = GF(2^64)` and `E = GF(2^192)` of `LeanVM.Spec.Field`: the limb
+  Lemmas about the fields `K = GF(2^64)` and `E = GF(2^192)` of `Statement.Field`: the limb
   view of `E` and its arithmetic.
 -/
 
 module
 
-public import LeanVM.Spec.Field
+public import Statement.Field
+public import LeanVM.Fast.CubicExt
+public import LeanVM.Fast.FieldWords
 import Mathlib.Tactic.LinearCombination
 
 /-!
@@ -25,7 +27,7 @@ E = K[y]/(y^3 + y + 1),  |E| = 2^192         BF64.ext3Params_poly, BF64.ext3Poly
 
 `K` wraps a `BitVec 64` whose bit `i` is the coefficient of `x^i`
 (`crates/primitives/src/field/gf2_64.rs:16-19`, `F64`); `E` is a `Vector K 3` whose limb `i` is
-the coefficient of `y^i`. The definitions are in `LeanVM.Spec.Field`, abbreviations or one-line
+the coefficient of `y^i`. The definitions are in `Statement.Field`, abbreviations or one-line
 definitions over those CompPoly declarations; this module proves lemmas about them. The limb
 arithmetic under "Load-bearing lemmas" (`add_limbs`,
 `mul_limbs`, the `K`-word lemmas) is what the opcode tables read their result

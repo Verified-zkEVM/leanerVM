@@ -1,4 +1,5 @@
 import Common.Indiff2.Bound
+import Statement.RandomPermutation
 
 /-!
 # Transfer in the two-oracle model: a hash `H` and direct permutation calls `F`
@@ -62,54 +63,11 @@ variable {Dg E C Msg : Type}
 
 /-! ## Games -/
 
-/-- An honest computation with coins and `H` as a game computation. -/
-def hEmbed2 : QueryImpl (unifSpec + roSpec Msg Dg)
-    (OracleComp (dSpec2 Msg Dg (SpState Dg E C)))
-  | .inl n => liftM ((dSpec2 Msg Dg (SpState Dg E C)).query (.inl n))
-  | .inr m => liftM ((dSpec2 Msg Dg (SpState Dg E C)).query (.inr (.inl m)))
-
-/-- An honest computation with coins, `H` and `F` as a game computation. -/
-def hfEmbed : QueryImpl (unifSpec + hfSpec Msg Dg (SpState Dg E C))
-    (OracleComp (dSpec2 Msg Dg (SpState Dg E C)))
-  | .inl n => liftM ((dSpec2 Msg Dg (SpState Dg E C)).query (.inl n))
-  | .inr (.inl m) => liftM ((dSpec2 Msg Dg (SpState Dg E C)).query (.inr (.inl m)))
-  | .inr (.inr x) => liftM ((dSpec2 Msg Dg (SpState Dg E C)).query (.inr (.inr (.inr x))))
-
-/-- An RPM adversary (coins, `H`, `π`, `π⁻¹`) as a game computation. -/
-def advEmbed : QueryImpl (dSpec Msg Dg (SpState Dg E C))
-    (OracleComp (dSpec2 Msg Dg (SpState Dg E C)))
-  | .inl n => liftM ((dSpec2 Msg Dg (SpState Dg E C)).query (.inl n))
-  | .inr (.inl m) => liftM ((dSpec2 Msg Dg (SpState Dg E C)).query (.inr (.inl m)))
-  | .inr (.inr q) => liftM ((dSpec2 Msg Dg (SpState Dg E C)).query (.inr (.inr (.inl q))))
-
 /-- A ROM computation with `H` only as a two-oracle ROM computation. -/
 def hInF : QueryImpl (unifSpec + roSpec Msg Dg)
     (OracleComp (unifSpec + hfSpec Msg Dg (SpState Dg E C)))
   | .inl n => liftM ((unifSpec + hfSpec Msg Dg (SpState Dg E C)).query (.inl n))
   | .inr m => liftM ((unifSpec + hfSpec Msg Dg (SpState Dg E C)).query (.inr (.inl m)))
-
-/-- **The two-oracle game**: an honest part with `H`, the adversary with `H`, `π`, `π⁻¹`, an
-honest part with `H` and `F`. -/
-def rpmGame2 {β γ δ : Type} (pre : OracleComp (unifSpec + roSpec Msg Dg) β)
-    (A : β → OracleComp (dSpec Msg Dg (SpState Dg E C)) γ)
-    (post : β → γ → OracleComp (unifSpec + hfSpec Msg Dg (SpState Dg E C)) δ) :
-    OracleComp (dSpec2 Msg Dg (SpState Dg E C)) δ :=
-  simulateQ (hEmbed2 (E := E) (C := C)) pre >>= fun x ↦
-    simulateQ (advEmbed (Msg := Msg)) (A x) >>= fun a ↦ simulateQ (hfEmbed (Msg := Msg)) (post x a)
-
-/-- The adversary's oracles in the two-oracle ROM: coins, `H`, and `π`, `π⁻¹` answered by the
-simulator `simulator2` (which queries `H` and `F`). -/
-noncomputable def advImpl2 : QueryImpl (dSpec Msg Dg (SpState Dg E C))
-    (StateT (SimState Dg E C) (OracleComp (unifSpec + hfSpec Msg Dg (SpState Dg E C))))
-  | .inl n => liftM (liftM (unifSpec.query n : ProbComp (Fin (n + 1))) :
-      OracleComp (unifSpec + hfSpec Msg Dg (SpState Dg E C)) _)
-  | .inr (.inl m) => liftM (hQuery (Msg := Msg) (Dg := Dg) (E := E) (C := C) m)
-  | .inr (.inr q) => simulator2 P q
-
-/-- **The ROM adversary of an RPM adversary** in the two-oracle model. -/
-noncomputable def advS2 {α : Type} (A : OracleComp (dSpec Msg Dg (SpState Dg E C)) α) :
-    OracleComp (unifSpec + hfSpec Msg Dg (SpState Dg E C)) α :=
-  (simulateQ (advImpl2 P) A).run' (SimState.init iv)
 
 /-- The two-oracle ROM run: `H` and `F` independent random oracles. -/
 noncomputable def romRun2 {α : Type}
@@ -291,27 +249,27 @@ theorem simulator2_step_replay (q : PermQuery (SpState Dg E C)) (σ : SimState D
     simp only [replayStep]
     split at hz
     · next y hy =>
-      simp only [support_pure, Set.mem_singleton_iff] at hz; subst hz; simp [hy]
+      simp only [support_pure, Set.mem_singleton_iff] at hz; subst hz; simp
     · next hy =>
       split at hz
       · next s β hch =>
         simp only [mem_support_bind_iff, support_pure, Set.mem_singleton_iff] at hz
         obtain ⟨y, -, rfl⟩ := hz
-        simp [hy, hch]
+        simp
       · next hch =>
         simp only [mem_support_bind_iff, support_pure, Set.mem_singleton_iff] at hz
         obtain ⟨y, -, rfl⟩ := hz
-        simp [hy, hch]
+        simp
   | inv y =>
     simp only [simulator2, StateT.run_mk] at hz
     simp only [replayStep]
     split at hz
     · next x hx =>
-      simp only [support_pure, Set.mem_singleton_iff] at hz; subst hz; simp [hx]
+      simp only [support_pure, Set.mem_singleton_iff] at hz; subst hz; simp
     · next hx =>
       simp only [mem_support_bind_iff, support_pure, Set.mem_singleton_iff] at hz
       obtain ⟨x, -, rfl⟩ := hz
-      simp [hx]
+      simp
 
 /-- The two-oracle ROM adversary with its permutation transcript logged, oldest first. -/
 noncomputable def advImplLog2 : QueryImpl (dSpec Msg Dg (SpState Dg E C))

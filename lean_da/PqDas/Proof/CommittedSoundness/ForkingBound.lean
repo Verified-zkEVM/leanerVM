@@ -30,6 +30,7 @@ import VCVio.EvalDist.Inequalities
 import PqDas.Proof.CommittedSoundness.Coupling
 import PqDas.Proof.CommittedSoundness.Lockstep
 import PqDas.VcvioExtras
+import Statement.LeanDa
 
 open OracleComp OracleSpec ENNReal
 
@@ -48,26 +49,6 @@ variable [DecidableEq ComVC] [SampleableType L] [Fintype L] [Inhabited L]
 
 variable (C : ErasureCode Γ Λ k n) (vc : VectorCommitment Λ n CkVC ComVC Opn)
   (chk : CodeChecker Λ n L) (A : NiCsAdv Λ n CkVC ComVC L) (Q : ℕ)
-
-/-- Wrapped-spec fork-and-extract computation: replay-fork the wrapped
-committed soundness game at the fork point and output the two recorded
-vectors. If the fork fails, output an (equal, hence losing) dummy pair. -/
-noncomputable def forkVecPair (ckVC : CkVC) :
-    OracleComp (wrappedSpec L) ((Fin n → Λ) × (Fin n → Λ)) :=
-  contextFork (runTrace C vc chk A ckVC)
-    (fun j : ℕ ⊕ Unit => match j with | .inl _ => 0 | .inr () => Q)
-    (Sum.inr ()) (forkPoint Q) >>= fun
-      | some (x₁, x₂) => pure (x₁.vec, x₂.vec)
-      | none => pure (fun _ => default, fun _ => default)
-
-/-- The collision reduction (an explicit algorithm): run the wrapped
-fork-and-extract computation, interpreting its uniform queries and its counted
-challenge oracle by plain uniform sampling. -/
-noncomputable def forkCollisionReduction :
-    VectorCommitment.CollisionAdv Λ n CkVC := fun ckVC =>
-  simulateQ (QueryImpl.ofLift unifSpec ProbComp +
-      uniformSampleImpl (spec := ((Unit →ₒ L) : OracleSpec Unit)))
-    (forkVecPair C vc chk A Q ckVC)
 
 /-! ### Bridging the two semantics
 
@@ -377,7 +358,7 @@ private lemma prEvent_diffVec_le_forkVecPair (ckVC : CkVC) :
       (fun j : ℕ ⊕ Unit => match j with | .inl _ => 0 | .inr () => Q)
       (Sum.inr ()) (forkPoint Q))
   swap
-  · rw [(prEvent_eq_zero_of_not_mem_support _) hsupp, zero_mul]
+  · erw [(prEvent_eq_zero_of_not_mem_support _) hsupp, zero_mul]
   -- Extract the fork facts from the support membership.
   obtain ⟨path, s, located, second, hpath, hcf₁, hsecond, hansne, hcf₂, hx₁, hx₂⟩ :=
     contextFork_success (runTrace C vc chk A ckVC)

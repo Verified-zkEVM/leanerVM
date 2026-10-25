@@ -10,7 +10,16 @@ module
 public import LeanVM.Guest.B1.Terminal.Interface
 public import LeanVM.Guest.B1.Ring.Interface
 public import LeanVM.Guest.B1.Bits.Meaning
-public import LeanVM.Spec.Node
+public import Statement.LeanVmGuest
+public import LeanXmss.Scheme
+public import Sphincs.Scheme
+public import LeanVM.Fast.Schemes
+public import LeanDa.Scheme
+public import LeanVM.Fast.Da
+public import LeanVM.Fast.Keccak
+public import LeanVM.Fast.CubicExt
+public import LeanVM.Fast.FieldWords
+public import LeanVM.Facts.Verifier
 
 /-!
 # `verify_sub` (TRIAGE G #71): the interface

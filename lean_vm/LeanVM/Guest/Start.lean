@@ -7,9 +7,14 @@
 
 module
 
-public import LeanVM.Spec.Statement
+public import Statement.LeanVm
+public import LeanVM.Facts.Verifier
+public import LeanVM.Fast.Keccak
+public import LeanVM.Fast.CubicExt
+public import LeanVM.Fast.FieldWords
 public import LeanVM.Protocol.EndToEnd.Front.PubPhase
 public import LeanVM.Guest.JumpTable
+public import Statement.LeanVmGuest
 
 /-!
 # The run's start
@@ -31,15 +36,8 @@ open LeanVM.Parameters LeanVM.Semantics LeanVM.Protocol LeanVM.Protocol.KeccakHa
 
 @[expose] public section
 
-/-- The guest's bytecode, as the verifier and `NodeSpec` read it. -/
-abbrev bytecode : List K := bytecodeWords guest
-
 theorem bytecode_length : bytecode.length = 2 ^ 23 := by
   simp [bytecode, bytecodeWords, guest_logSize]
-
-/-- The public input a digest is: its four words, the digest's halves in memory words `0` and `1`
-(`Front.publicInputOfDigest`). -/
-abbrev publicInputOf (d : Digest) : PublicInput := EndToEnd.Front.publicInputOfDigest d
 
 theorem publicDigest_publicInputOf (d : Digest) : publicDigest (publicInputOf d) = d := by
   obtain ⟨⟨l⟩, hl⟩ := d

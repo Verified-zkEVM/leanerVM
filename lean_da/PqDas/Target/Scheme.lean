@@ -39,7 +39,7 @@ modified for VCVio afa6593.
 import PqDas.Assumptions.ErasureCode
 import PqDas.Assumptions.VectorCommitment
 import PqDas.Assumptions.CodeChecker
-import PqDas.Assumptions.Nark
+import Statement.LeanDa
 import PqDas.Target.ErasureCodeCommitment
 import PqDas.RomRuntime
 import VCVio.CryptoFoundations.SignatureAlg
@@ -49,45 +49,6 @@ open OracleComp OracleSpec ENNReal
 namespace PqDas
 
 variable {Γ Λ : Type} {k n : ℕ} {CkVC ComVC Opn L Crs Proof : Type}
-
-/-- The relation proven by the argument of knowledge. The statement is a
-commitment key, a commitment, and check randomness; the witness is an alleged
-codeword `c`. The relation holds if `c` commits to the given commitment and
-passes the code check. Note that code membership of `c` is *not* part of the
-relation; this is the whole point of the construction, and the reason the
-code-binding proof is nontrivial. -/
-def schemeRel [DecidableEq ComVC] (vc : VectorCommitment Λ n CkVC ComVC Opn)
-    (chk : CodeChecker Λ n L) : CkVC × ComVC × L → (Fin n → Λ) → Bool := fun stmt c =>
-  decide (vc.commit stmt.1 c = stmt.2.1) && chk.check stmt.2.2 c
-
-/-- The erasure code commitment scheme built from an erasure code `C`, a vector
-commitment `vc`, a code checker `chk`, and an argument of knowledge `ps` for
-`schemeRel vc chk`, in any ambient monad `m` providing uniform sampling and a
-random oracle from commitments to check randomness.
-
-The commitment key is `(ckVC, crs)`, a commitment is `(comVC, π)`, and the
-opening state is the codeword itself (valid since `vc.commit` is
-deterministic). -/
-def scheme {m : Type → Type} [Monad m] [MonadLiftT ProbComp m]
-    [HasQuery (ComVC →ₒ L) m] [DecidableEq ComVC]
-    (C : ErasureCode Γ Λ k n) (vc : VectorCommitment Λ n CkVC ComVC Opn)
-    (chk : CodeChecker Λ n L)
-    (ps : Nark (CkVC × ComVC × L) (Fin n → Λ) Crs Proof (schemeRel vc chk)) :
-    ErasureCodeCommitment m Γ Λ k n (CkVC × Crs) (ComVC × Proof) (Fin n → Λ) Opn where
-  setup := do
-    let ckVC ← (monadLift vc.setup : m CkVC)
-    let crs ← (monadLift ps.setup : m Crs)
-    return (ckVC, crs)
-  commit := fun ck msg => do
-    let c := C.encode msg
-    let comVC := vc.commit ck.1 c
-    let l ← HasQuery.query (spec := (ComVC →ₒ L)) comVC
-    let π := ps.prove ck.2 (ck.1, comVC, l) c
-    return ((comVC, π), c)
-  openAt := fun ck c i => pure (vc.openAt ck.1 c i)
-  verify := fun ck com i x τ => do
-    let l ← HasQuery.query (spec := (ComVC →ₒ L)) com.1
-    return (ps.verify ck.2 (ck.1, com.1, l) com.2 && vc.verify ck.1 com.1 i x τ)
 
 /-! ### Completeness -/
 

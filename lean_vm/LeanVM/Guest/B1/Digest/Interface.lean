@@ -9,7 +9,16 @@
 module
 
 public import LeanVM.Guest.B1.Common.Sponge
-public import LeanVM.Spec.Node
+public import Statement.LeanVmGuest
+public import LeanXmss.Scheme
+public import Sphincs.Scheme
+public import LeanVM.Fast.Schemes
+public import LeanDa.Scheme
+public import LeanVM.Fast.Da
+public import LeanVM.Fast.Keccak
+public import LeanVM.Fast.CubicExt
+public import LeanVM.Fast.FieldWords
+public import LeanVM.Facts.Verifier
 
 /-!
 # The digests: meanings (TRIAGE G #86-89, #94, #95)

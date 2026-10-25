@@ -1,4 +1,5 @@
 import Common.Indiff.Main
+import Statement.RandomPermutation
 
 /-!
 # Transfer: from the random-oracle model to the random-permutation model
@@ -120,37 +121,6 @@ theorem transfer {β γ δ : Type} (pre : OracleComp (unifSpec + roSpec Msg Dg) 
   exact indifferentiability P iv _ q hq p
 
 /-! ## Hash queries from permutation transcripts -/
-
-/-- One step of the simulator's bookkeeping, replayed from a query and its answer. -/
-def replayStep (σ : SimState Dg E C) :
-    PermQuery (SpState Dg E C) × SpState Dg E C → SimState Dg E C
-  | (.fwd x, y) =>
-    match fwdLookup σ.edges x with
-    | some _ => σ
-    | none =>
-      match chainOf σ.chains x with
-      | some (s, β) => ⟨(x, y) :: σ.edges, (y, β ++ [blockTo s x]) :: σ.chains⟩
-      | none => ⟨(x, y) :: σ.edges, σ.chains⟩
-  | (.inv y, x) =>
-    match invLookup σ.edges y with
-    | some _ => σ
-    | none => ⟨(x, y) :: σ.edges, σ.chains⟩
-
-/-- The simulator's bookkeeping replayed from a transcript of permutation queries and answers,
-oldest first. -/
-def replay (log : List (PermQuery (SpState Dg E C) × SpState Dg E C)) : SimState Dg E C :=
-  log.foldl replayStep (SimState.init iv)
-
-/-- The hash queries whose whole sponge paths a simulator state has rooted, with the digests of
-the paths' ends. -/
-def simPaths (σ : SimState Dg E C) : List (Msg × Dg) :=
-  σ.chains.filterMap fun p ↦ (P.unpad p.2).map fun m ↦ (m, p.1.1.1)
-
-/-- **The hash queries of a permutation transcript**: the messages whose whole padded sponge path
-the transcript (oldest first) contains as a chain of forward queries from the initial state,
-each with the digest part of the path's last answer. -/
-def pathsOf (log : List (PermQuery (SpState Dg E C) × SpState Dg E C)) : List (Msg × Dg) :=
-  simPaths P (replay iv log)
 
 /-- A transcript consistent with a function `π`: forward answers are `π`'s values, inverse answers
 are `π`'s preimages. -/

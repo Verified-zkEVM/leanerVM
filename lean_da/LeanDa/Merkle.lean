@@ -1,4 +1,5 @@
 import LeanDa.Scheme
+import Statement.LeanDa
 
 /-!
 # The Merkle commitment to the cells
@@ -127,18 +128,6 @@ theorem verifyCell_openCell {r : ℕ} (c : Fin (r * 128) → Cell) (p : Fin (r *
 
 /-! ## Collisions from two openings -/
 
-/-- The hash inputs from a cell's bytes `a` at index `idx` up to the root, the last one
-`rowRoot ‖ colRoot`. -/
-def hashInputs : ℕ → List UInt8 → List Digest → Digest → List (List UInt8)
-  | _, a, [], rr => [a, pairBytes rr (H a)]
-  | idx, a, s :: rest, rr =>
-    a :: hashInputs (idx / 2) (if idx % 2 = 0 then pairBytes (H a) s else pairBytes s (H a)) rest rr
-
-/-- The first pair of inputs, level by level, that differ and hash alike. -/
-def findCollision : List (List UInt8) → List (List UInt8) → List UInt8 × List UInt8
-  | a :: as, b :: bs => if a ≠ b ∧ H a = H b then (a, b) else findCollision as bs
-  | _, _ => ([], [])
-
 theorem findCollision_spec (idx : ℕ) (a b : List UInt8) (p q : List Digest) (rp rq : Digest)
     (hlen : p.length = q.length) (hab : a ≠ b)
     (hroot : H (pairBytes rp (walk H idx (H a) p)) = H (pairBytes rq (walk H idx (H b) q))) :
@@ -171,12 +160,6 @@ theorem findCollision_spec (idx : ℕ) (a b : List UInt8) (p q : List Digest) (r
         · exact hH (pairBytes_injective h).2
       · simp only [walk] at hroot
         rwa [← apply_ite H, ← apply_ite H] at hroot
-
-/-- The collision two openings of one position give. -/
-def openingsCollision (r : ℕ) (p : Fin (r * 128)) (x : Cell) (τ : Opening) (x' : Cell)
-    (τ' : Opening) : List UInt8 × List UInt8 :=
-  findCollision H (hashInputs H (colIndex p) (cellBytes x) τ.path τ.rowRoot)
-    (hashInputs H (colIndex p) (cellBytes x') τ'.path τ'.rowRoot)
 
 /-- **Two verifying openings of one position to different cells give a collision.** -/
 theorem openingsCollision_spec {r : ℕ} {com : Digest} {p : Fin (r * 128)} {x x' : Cell}

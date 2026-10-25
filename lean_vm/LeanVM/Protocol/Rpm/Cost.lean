@@ -6,7 +6,12 @@
 -/
 
 import LeanVM.Protocol.LeanVM
-import LeanVM.Spec.Rpm
+import Statement.LeanVm
+import Common.Transfer
+import LeanVM.Facts.Verifier
+import LeanVM.Fast.Keccak
+import LeanVM.Fast.CubicExt
+import LeanVM.Fast.FieldWords
 import Common.Prob
 
 /-!
@@ -107,7 +112,6 @@ theorem bytecode_length (prog : Program) :
   have : (2 : ℕ) ^ 39 = 8 * (16 * 2 ^ 32) := by norm_num
   rw [this]
   exact Nat.mul_le_mul_left _ (Nat.mul_le_mul_left _ h1)
-
 
 /-! ## The widths of the commitments -/
 

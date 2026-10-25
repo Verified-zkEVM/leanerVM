@@ -14,6 +14,7 @@ public import LeanVM.Guest.Limits
 public import LeanVM.Guest.CoreData
 public import LeanVM.Guest.ChildShape
 public import LeanVM.Guest.Pad
+public import Statement.LeanVmGuest
 
 /-!
 # Completeness
@@ -68,40 +69,6 @@ open scoped ENNReal
 abbrev hdrOf (d : Digest) : E × E := ((publicInputOf d).word0, (publicInputOf d).word1)
 
 /-! ## The budget -/
-
-/-- **A node's work**: what the size of its run grows with. -/
-structure Work where
-  /-- The declared claims, of the three lists. -/
-  declared : ℕ
-  /-- The coverage table's slots. -/
-  coverage : ℕ
-  /-- The raw leanXMSS signatures. -/
-  rawXmss : ℕ
-  /-- The raw leanSPHINCS signatures. -/
-  rawSphincs : ℕ
-  /-- The blob matrices held directly. -/
-  rawDa : ℕ
-  /-- Their rows: the blobs held directly. -/
-  rawDaRows : ℕ
-  /-- The children. -/
-  children : ℕ
-  /-- The children's declared claims, of the three lists. -/
-  childClaims : ℕ
-  /-- Each child's announced stack log and rate (`childShape`). -/
-  childShapes : List (ℕ × ℕ)
-
-/-- The work of the node `s` with the witness `w`. -/
-def work (s : NodeStatement) (w : NodeWitness) : Work where
-  declared := s.claims.xmss.length + s.claims.sphincs.length + s.claims.da.length
-  coverage := coverage s w
-  rawXmss := (Hints.direct s.claims.xmss w.xmss).length
-  rawSphincs := (Hints.direct s.claims.sphincs w.sphincs).length
-  rawDa := (Hints.direct s.claims.da w.da).length
-  rawDaRows := ((Hints.direct s.claims.da w.da).map fun p ↦ p.2.rows.length).sum
-  children := w.children.length
-  childClaims := (w.children.map fun c ↦ c.statement.claims.xmss.length +
-    c.statement.claims.sphincs.length + c.statement.claims.da.length).sum
-  childShapes := w.children.map (childShape bytecode)
 
 /-- A bound linear in the work: a constant and a coefficient per unit, and a charge per child by
 its announced stack log and rate. -/

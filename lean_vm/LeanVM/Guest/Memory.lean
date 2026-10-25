@@ -12,7 +12,8 @@ module
 public import LeanVM.Guest.Memory.Alloc
 public import LeanVM.Guest.Memory.Tree
 public import LeanVM.Guest.Memory.Placed
-public import LeanVM.Guest.Data.Bytecode
+public import Statement.Data.Bytecode
+public import LeanVM.Guest.Code
 
 /-!
 # The honest memory

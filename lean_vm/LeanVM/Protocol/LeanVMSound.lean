@@ -3,7 +3,7 @@
 
   Knowledge soundness of the leanVM verifier in the two-oracle random-oracle model
   (`LeanVM/Protocol/Rom/Statement.lean`), at 128 bits per query: the step of the proof of
-  `LeanVM.KnowledgeSoundness` (`LeanVM/Spec/Rpm.lean`) before the random-permutation model.
+  `LeanVM.KnowledgeSoundness` (`Statement/LeanVm.lean`) before the random-permutation model.
 -/
 
 module
@@ -28,7 +28,7 @@ modelled as independent random oracles (`HashSpec = (Bytes →ₒ Digest) + (KSt
 **Knowledge soundness** (`knowledgeSoundnessRom`): an adversary making at most `Q` queries to the
 random oracles outputs a statement (a program and a public input) and a proof, choosing all three
 after querying the oracles. The probability that the verifier accepts while the program's last
-instruction is not a `JUMP` and the extractor (`extractor`, `LeanVM/Spec/Extractor.lean`: from
+instruction is not a `JUMP` and the extractor (`extractor`, `Statement/Extractor.lean`: from
 the proof and the oracle's answers to the adversary's Keccak-256 queries only, the halting run of
 the memory image of a stack in the Johnson list of the word the proof commits to) does not return
 a valid execution of the program on the public input is at most
@@ -113,7 +113,7 @@ theorem experiment_map (A : Adversary) :
 /-- **Knowledge soundness in the random-oracle model.** For an adversary making at most `Q`
 queries, which chooses the program, the public input and the proof, the verifier accepts while
 the extractor `extractor`
-(`LeanVM/Spec/Extractor.lean`) does not return a valid execution of the program on the public
+(`Statement/Extractor.lean`) does not return a valid execution of the program on the public
 input with probability at most `soundnessError Q`. -/
 theorem knowledgeSoundnessRom {A : Adversary} {Q : ℕ} (hA : A.IsTotalQueryBound Q) :
     Pr{let z ← experiment A}[Breaks extractor z] ≤ soundnessError Q := by

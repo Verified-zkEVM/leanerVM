@@ -1,4 +1,5 @@
 import Common.Duplex.Defs
+import Statement.RandomPermutation
 
 /-!
 # The simulator with lazy challenges is the random function
@@ -20,17 +21,6 @@ variable {Msg Dg St Root Z W Cp : Type} {n : ℕ}
   [SampleableType Dg] [SampleableType St] [SampleableType Z] [SampleableType W]
   [Fintype St] [Fintype Z] [Fintype W]
   (D : DuplexSpec Msg Dg St Root Z W Cp n)
-
-/-- The oracles of the simulated world: coins, `H`, and the challenges `G` on `(r, j)`. -/
-abbrev GSpec (Msg Dg Root Z : Type) (n : ℕ) := roSpec Msg Dg + (Root × Fin n →ₒ Z)
-
-/-- `H` in the simulated world. -/
-abbrev hP (m : Msg) : OracleComp (unifSpec + GSpec Msg Dg Root Z n) Dg :=
-  liftM ((unifSpec + GSpec Msg Dg Root Z n).query (.inr (.inl m)))
-
-/-- A challenge in the simulated world. -/
-abbrev gaP (r : Root) (j : Fin n) : OracleComp (unifSpec + GSpec Msg Dg Root Z n) Z :=
-  liftM ((unifSpec + GSpec Msg Dg Root Z n).query (.inr (.inr (r, j))))
 
 /-- The two-oracle cache a simulated state shows: `H` from the cache, `F` from the log. -/
 def mergeCache (c : (GSpec Msg Dg Root Z n).QueryCache) (s : SimSt St Root n) :

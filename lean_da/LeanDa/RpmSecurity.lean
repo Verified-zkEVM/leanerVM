@@ -1,5 +1,6 @@
 import LeanDa.RpmScheme
 import LeanDa.Security
+import Statement.LeanDa
 
 /-!
 # LeanDA in the random-permutation model
@@ -156,19 +157,6 @@ def HCollision (c : Cache2) : Prop :=
 
 /-! ## The games -/
 
-/-- The challenges of the sponge's list. -/
-def toChallenges (zs : List E) : Challenges := fun j ↦ zs.getD j 0
-
-/-- The adversary's oracles in the random-permutation model: coins, Keccak-256, `π` and `π⁻¹`. -/
-abbrev AdvSpec := dSpec (List UInt8) KDigest KState
-
-/-- **Calls of the permutation**: a hash of `n` bytes costs `⌊n / 136⌋ + 1` (one per block of
-the padded message), a query of `π` or `π⁻¹` and a direct call one. -/
-def permCalls2 : (dSpec2 (List UInt8) KDigest KState).Domain → ℕ
-  | .inl _ => 0
-  | .inr (.inl m) => m.length / 136 + 1
-  | .inr (.inr _) => 1
-
 theorem permCalls2_eq :
     permCalls2 = queryCost2 (Dg := KDigest) (St := KState) keccakPadding := by
   funext t
@@ -181,41 +169,6 @@ section Games
 
 variable (r : ℕ) {Crs Proof : Type} {rel : Unit × Digest × Challenges → (Fin (r * 128) → Cell) → Bool}
   (ps : Nark (Unit × Digest × Challenges) (Fin (r * 128) → Cell) Crs Proof rel)
-
-/-- **Verification of an opening in the random-permutation model** (`scheme`'s `verify`): the
-challenges of the commitment's root from the deployed duplex over the permutation, the argument's
-verification, and the opening's, hashing with Keccak-256. -/
-def verifyRpm (crs : Crs) (com : Digest × Proof) (p : Fin (r * 128)) (x : Cell) (τ : Opening) :
-    OracleComp Rom2 Bool := do
-  let zs ← membershipChallengesM hR pR com.1
-  let v ← verifyCellM hR r com.1 p x τ
-  pure (ps.verify crs ((), com.1, toChallenges zs) com.2 && v)
-
-/-- A position-binding adversary in the random-permutation model: from the commitment key, a
-commitment, a position, and two cells with their openings. -/
-abbrev PosBindingAdvRpm (Crs Proof : Type) :=
-  Unit × Crs → OracleComp AdvSpec ((Digest × Proof) × Fin (r * 128) × Cell × Opening × Cell × Opening)
-
-/-- The verifier's part of the position-binding game: both openings verify, at two different
-cells. -/
-def posBindingPost (crs : Crs)
-    (out : (Digest × Proof) × Fin (r * 128) × Cell × Opening × Cell × Opening) :
-    OracleComp Rom2 Bool := do
-  let b ← verifyRpm r ps crs out.1 out.2.1 out.2.2.1 out.2.2.2.1
-  let b' ← verifyRpm r ps crs out.1 out.2.1 out.2.2.2.2.1 out.2.2.2.2.2
-  pure (decide (out.2.2.1 ≠ out.2.2.2.2.1) && b && b')
-
-/-- **The position-binding game in the random-permutation model**: the argument's setup, the
-adversary with Keccak-256, `π` and `π⁻¹`, then the two verifications, whose challenges' sponge
-calls the permutation directly. -/
-def posBindingGame (A : PosBindingAdvRpm r Crs Proof) :
-    OracleComp (dSpec2 (List UInt8) KDigest KState) Bool :=
-  rpmGame2 (liftM ps.setup) (fun crs ↦ A ((), crs)) (posBindingPost r ps)
-
-/-- **The position-binding experiment**: the game against the lazily sampled random
-permutation, Keccak-256 the sponge over it. -/
-noncomputable def posBindingExpRpm (A : PosBindingAdvRpm r Crs Proof) : ProbComp Bool :=
-  realGame2 keccakPadding KState.zero (posBindingGame r ps A)
 
 /-- **A verification's run**: the cache grows, and an accepting verification makes the opening
 verify for the hash function of every later cache, its hash inputs cached. -/
@@ -490,10 +443,8 @@ verifier, for any relation) and every adversary whose game, verifications includ
 `Q` calls of the permutation on every path (`permCalls2`: a hash of `n` bytes costs
 `⌊n / 136⌋ + 1`, a query of `π` or `π⁻¹` and a sponge call one), the probability of opening a
 position to two different cells is at most `Q² / 2^256 + Q² / 2^508`. -/
-theorem leanDa_positionBinding_rpm (A : PosBindingAdvRpm r Crs Proof) (Q : ℕ)
-    (hQ : IsWeightBound (posBindingGame r ps A) permCalls2 Q) :
-    Pr{let b ← posBindingExpRpm r ps A}[b = true] ≤
-      (Q ^ 2 : ℝ≥0∞) / 2 ^ 256 + (Q ^ 2 : ℝ≥0∞) / 2 ^ 508 := by
+theorem leanDa_positionBinding_rpm : PositionBindingRpm := by
+  intro r Crs Proof rel ps A Q hQ
   rw [permCalls2_eq] at hQ
   obtain ⟨h1, -⟩ := keccak256_transfer2 (liftM ps.setup) (fun crs ↦ A ((), crs))
     (posBindingPost r ps) (fun x a ↦ duplex_posBindingPost r ps x a) Q hQ (· = true)
@@ -524,29 +475,6 @@ section CodeBinding
 
 variable (r : ℕ) {Crs Proof : Type} {rel : Unit × Digest × Challenges → (Fin (r * 128) → Cell) → Bool}
   (ps : Nark (Unit × Digest × Challenges) (Fin (r * 128) → Cell) Crs Proof rel)
-
-/-- A code-binding adversary in the random-permutation model: from the commitment key, a
-commitment and a list of opened positions. -/
-abbrev CodeBindingAdvRpm (Crs Proof : Type) :=
-  Unit × Crs → OracleComp AdvSpec ((Digest × Proof) × List (Fin (r * 128) × Cell × Opening))
-
-/-- The verifier's part of the code-binding game: every opening verifies, and no codeword agrees
-with the opened cells. -/
-noncomputable def codeBindingPost (crs : Crs)
-    (out : (Digest × Proof) × List (Fin (r * 128) × Cell × Opening)) : OracleComp Rom2 Bool := do
-  let verdicts ← out.2.mapM fun o ↦ verifyRpm r ps crs out.1 o.1 o.2.1 o.2.2
-  pure (verdicts.all id && !decide ((code r).Consistent (out.2.map fun o ↦ (o.1, o.2.1))))
-
-/-- **The code-binding game in the random-permutation model**: the argument's setup, the adversary
-with Keccak-256, `π` and `π⁻¹`, then the verifications, whose challenges' sponge calls the
-permutation directly. -/
-noncomputable def codeBindingGame (A : CodeBindingAdvRpm r Crs Proof) :
-    OracleComp (dSpec2 (List UInt8) KDigest KState) Bool :=
-  rpmGame2 (liftM ps.setup) (fun crs ↦ A ((), crs)) (codeBindingPost r ps)
-
-/-- **The code-binding experiment**: the game against the lazily sampled random permutation. -/
-noncomputable def codeBindingExpRpm (A : CodeBindingAdvRpm r Crs Proof) : ProbComp Bool :=
-  realGame2 keccakPadding KState.zero (codeBindingGame r ps A)
 
 /-- **The code-binding game in the two-oracle random-oracle model**: `H` a random oracle, the
 challenges' sponge over an independent random function `F`, against the ROM adversary

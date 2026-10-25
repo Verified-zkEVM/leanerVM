@@ -1,5 +1,6 @@
 import Common.Sponge
 import Common.RomComm
+import Statement.RandomPermutation
 
 /-!
 # Indifferentiability: the two worlds and the simulator
@@ -35,13 +36,6 @@ open OracleComp OracleSpec
 
 namespace Common
 
-/-- The random oracle `Msg → Dg`. -/
-abbrev roSpec (Msg Dg : Type) : OracleSpec Msg := Msg →ₒ Dg
-
-/-- The distinguisher's oracles: uniform coins, the hash `H : Msg → Dg`, and the permutation
-`π` and its inverse. -/
-abbrev dSpec (Msg Dg St : Type) := unifSpec + (roSpec Msg Dg + permSpec St)
-
 /-- The cost of a distinguisher query: a hash query costs the number of blocks of its padded
 message (the permutation calls the sponge makes), a permutation query costs one, a coin costs
 nothing. -/
@@ -61,36 +55,7 @@ variable {Dg E C Msg : Type}
 
 /-! ## The real world -/
 
-/-- The real world: coins forwarded, `H` the sponge over the lazy random permutation, `π` and
-`π⁻¹` the lazy random permutation. -/
-noncomputable def realImpl (P : Padding Msg (Dg × E)) (iv : SpState Dg E C) :
-    QueryImpl (dSpec Msg Dg (SpState Dg E C)) (StateT (PermLog (SpState Dg E C)) ProbComp)
-  | .inl n => liftM (unifSpec.query n : ProbComp (Fin (n + 1)))
-  | .inr (.inl m) => spongeWith P iv (fun x ↦ lazyPerm (.fwd x)) m
-  | .inr (.inr q) => lazyPerm q
-
-/-- **The real world** run of a distinguisher, from the empty permutation. -/
-noncomputable def realGame (P : Padding Msg (Dg × E)) (iv : SpState Dg E C) {α : Type}
-    (D : OracleComp (dSpec Msg Dg (SpState Dg E C)) α) : ProbComp α :=
-  (simulateQ (realImpl P iv) D).run' []
-
 /-! ## The simulator and the ideal world -/
-
-/-- The simulator's state: the edges it has answered, newest first, and the rooted states with
-their paths, newest first, ending with the initial state and the empty path. -/
-structure SimState (Dg E C : Type) where
-  /-- The answered edges `(x, π x)`, newest first. -/
-  edges : PermLog (SpState Dg E C)
-  /-- The rooted states with their block paths, newest first. -/
-  chains : List (SpState Dg E C × List (Dg × E))
-
-/-- The initial simulator state: no edges, and the initial state rooted at the empty path. -/
-def SimState.init (iv : SpState Dg E C) : SimState Dg E C := ⟨[], [(iv, [])]⟩
-
-/-- The rooted state whose capacity is that of `x`, with its path: the first such chain. -/
-def chainOf (VC : List (SpState Dg E C × List (Dg × E))) (x : SpState Dg E C) :
-    Option (SpState Dg E C × List (Dg × E)) :=
-  VC.find? fun p ↦ decide (p.1.2 = x.2)
 
 /-- The answer of the simulator at a fresh rooted node with path `β`: when `β` pads a message `m`,
 the random oracle's digest `H m` completed by uniform bits; otherwise a uniform state. -/

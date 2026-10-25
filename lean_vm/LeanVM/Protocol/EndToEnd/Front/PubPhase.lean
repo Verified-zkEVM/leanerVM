@@ -15,6 +15,7 @@ public import LeanVM.Protocol.Compile.SpecRules.Leaves
 public import LeanVM.Protocol.PublicInput
 public import LeanVM.Protocol.LeanIsa
 public import LeanVM.Protocol.EndToEnd.Front.InstanceWith
+public import Statement.LeanVmGuest
 
 /-!
 # The public-input phase as a specification
@@ -103,11 +104,6 @@ theorem pubLimb_eq (publicInput : Digest) (r : E) (ℓ : Fin 3) :
   ring
 
 /-! ## The statement of the instance -/
-
-/-- The public input a digest gives the instance: its four `u64` lanes as `K` words
-(`digest_scalars`, verifier.py:202-205; the memory's first two words are the digest's halves). -/
-def publicInputOfDigest (d : Digest) : PublicInput :=
-  ⟨![K.ofLane d[0], K.ofLane d[1], K.ofLane d[2], K.ofLane d[3]]⟩
 
 /-- The digest's halves are the two public words of its public input. -/
 theorem digestScalars_eq_words (d : Digest) :

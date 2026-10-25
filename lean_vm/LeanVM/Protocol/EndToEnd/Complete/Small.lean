@@ -8,7 +8,11 @@
 module
 
 public import LeanVM.Protocol.EndToEnd.Completeness
-public import LeanVM.Spec.Statement
+public import Statement.LeanVm
+public import LeanVM.Facts.Verifier
+public import LeanVM.Fast.Keccak
+public import LeanVM.Fast.CubicExt
+public import LeanVM.Fast.FieldWords
 
 /-!
 # Completeness for executions within the budget
@@ -16,7 +20,7 @@ public import LeanVM.Spec.Statement
 The completeness theorems of `EndToEnd.Completeness` start from a witness at admissible sizes
 (`Sizes.Admissible`), an arithmetization notion. This file closes the gap to the ISA: a valid
 execution (`ValidExecution`) whose committed size (`Trace.committedSize`, stated in the ISA's
-terms in `Spec/Statement.lean`) is at most `2^maxMu = 2^28` has a witness representing it at
+terms in `Statement/LeanVm.lean`) is at most `2^maxMu = 2^28` has a witness representing it at
 admissible sizes (`exists_admissible_witness`), and the honest proof of that witness
 (`honestProofOf`) is accepted (`verify_honestProofOf`), and exists as soon as the proof-of-work
 searches succeed (`honestProofOf_isSome`).

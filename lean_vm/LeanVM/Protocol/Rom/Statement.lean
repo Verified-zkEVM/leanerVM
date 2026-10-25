@@ -2,13 +2,17 @@
   LeanVM.Protocol.Rom.Statement
 
   Knowledge soundness and completeness of the leanVM verifier in the two-oracle random-oracle
-  model: a step of the proofs of the statements of `LeanVM/Spec/Rpm.lean`, not a statement of the
+  model: a step of the proofs of the statements of `Statement/LeanVm.lean`, not a statement of the
   specification.
 -/
 
 module
 
-public import LeanVM.Spec.Statement
+public import Statement.LeanVm
+public import LeanVM.Facts.Verifier
+public import LeanVM.Fast.Keccak
+public import LeanVM.Fast.CubicExt
+public import LeanVM.Fast.FieldWords
 public import VCVio.OracleComp.QueryTracking.RandomOracle.Basic
 public import VCVio.OracleComp.QueryTracking.QueryBound.Basic
 public import VCVio.EvalDist.ProbabilityNotation
@@ -16,11 +20,11 @@ public import VCVio.EvalDist.ProbabilityNotation
 /-!
 # The two-oracle random-oracle model, a step of the proofs
 
-The statements are in the random-permutation model (`LeanVM/Spec/Rpm.lean`: `KnowledgeSoundness`,
+The statements are in the random-permutation model (`Statement/LeanVm.lean`: `KnowledgeSoundness`,
 `Completeness`). Their proofs (`LeanVM/Protocol/LeanVMRpm.lean`) go through the model defined here,
 in which Keccak-256 is a lazily sampled random function from byte strings to digests and
 Keccak-f[1600] an independent lazily sampled random function from states to states (the calls
-`HashSpec` of `LeanVM/Spec/Statement.lean`, answered by `HashSpec.randomOracle`): `common`'s
+`HashSpec` of `Statement/LeanVm.lean`, answered by `HashSpec.randomOracle`): `common`'s
 sponge indifferentiability moves an event of the random-permutation experiment to this model at
 a cost of `q² / 2^508` for `q` permutation calls (`Common.keccak256_transfer2`).
 
@@ -30,7 +34,7 @@ one oracle, and records the verdict, the oracle's answers at the end, and the or
 the adversary's queries, as they stood when the adversary output its proof (`experiment`).
 
 * `KnowledgeSoundnessRom`: for every adversary of at most `Q` queries, the probability that the
-  verifier accepts while the extractor (`extractor`: `LeanVM.Extraction.extract` of `LeanVM/Spec/Extractor.lean` on the
+  verifier accepts while the extractor (`extractor`: `LeanVM.Extraction.extract` of `Statement/Extractor.lean` on the
   adversary's cached Keccak-256 answers) does not return a valid execution of the program on the
   public input is at most `soundnessError Q`. Proved: `LeanVM.knowledgeSoundnessRom_holds`
   (`LeanVM/Protocol/LeanVMSound.lean`).
@@ -97,7 +101,7 @@ abbrev Extractor : Type :=
   (prog : Program) → PublicInput → HashSpec.QueryCache → Proof → Option (Trace prog)
 
 /-- **The extractor of the random-oracle model** (`LeanVM.Extraction.extract`,
-`LeanVM/Spec/Extractor.lean`) on the adversary's cached Keccak-256 answers. -/
+`Statement/Extractor.lean`) on the adversary's cached Keccak-256 answers. -/
 noncomputable def extractor : Extractor := fun prog input answers proof ↦
   Extraction.extract prog input (bytecodeWords prog) (fun x ↦ answers (.inl x)) proof
 

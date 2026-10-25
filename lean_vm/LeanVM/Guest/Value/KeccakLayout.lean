@@ -17,7 +17,7 @@ public import LeanVM.Semantics.KeccakCells
 
 A canonical cell holds sixteen message bytes, its limb `0` then its limb `1`, each as eight
 little-endian bytes (`cellBytes`; the Rust's `pack_16_bytes`, the Spec's `kBytes`). A Keccak
-state sits in thirteen cells in one of two layouts (`cellLanes`, `Spec/Isa.lean`): lane `l` is
+state sits in thirteen cells in one of two layouts (`cellLanes`, `Statement/LeanIsa.lean`): lane `l` is
 limb `laneLimbIdx odd l` of cell `laneCellIdx odd l` (`lane_stateOfCells`). The compiler's
 `emit_keccak_message` (`crates/lean_compiler/src/lower/builtins.rs:208-249` at leanVM
 `4af2cdddd`) reads block `k` of a message from its cell `17k/2` in the layout of `k`'s parity:

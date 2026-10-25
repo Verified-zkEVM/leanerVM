@@ -7,7 +7,16 @@
 
 module
 
-public import LeanVM.Spec.Node
+public import Statement.LeanVmGuest
+public import LeanXmss.Scheme
+public import Sphincs.Scheme
+public import LeanVM.Fast.Schemes
+public import LeanDa.Scheme
+public import LeanVM.Fast.Da
+public import LeanVM.Fast.Keccak
+public import LeanVM.Fast.CubicExt
+public import LeanVM.Fast.FieldWords
+public import LeanVM.Facts.Verifier
 public import LeanVM.Protocol.Verifier
 public import LeanVM.Guest.Word
 
@@ -70,18 +79,12 @@ def group (pushes : List (String × Entry)) : Streams :=
 
 /-! ## The deployed constants -/
 
-/-- `STREAM_CAP` (`aggregation.rs:1392`): a child's proof stream is zero-padded to it. -/
-def streamCap : ℕ := 8192
-
 /-- `CLAIM_GROUP` (`aggregation.rs:196`): the claims a claim list's digest absorbs per loop
 frame. -/
 def claimGroup : ℕ := 17
 
 /-- `DIGIT_GROUP` (`aggregation.rs:97`): the codeword digits the guest dispatches on at a time. -/
 def digitGroup : ℕ := 3
-
-/-- `MU_MIN` (`aggregation.rs:1383`): the least stack log the guest has an opening arm for. -/
-def muMin : ℕ := 22
 
 /-! ## Encodings -/
 
@@ -133,58 +136,6 @@ def ordered (right : Bool) (node sibling : BitVec 128) : Entry :=
   if right then [cell128 sibling, cell128 node] else [cell128 node, cell128 sibling]
 
 /-! ## Coverage (`Region::plan`, `take_slot`) -/
-
-/-- A claim takes its declared slot if it is free, else the next duplicate slot (`take_slot`).
-The state is which declared slots are taken, and the duplicates so far. -/
-def takeSlot {α : Type} [BEq α] (declared : List α) (st : List Bool × List α) (claim : α) :
-    ℕ × (List Bool × List α) :=
-  match (List.range declared.length).find? fun j ↦
-      declared[j]? == some claim && !(st.1.getD j true) with
-  | some j => (j, (st.1.set j true, st.2))
-  | none => (declared.length + st.2.length, (st.1, st.2 ++ [claim]))
-
-/-- The slots of claims taken in order. -/
-def takeSlots {α : Type} [BEq α] (declared : List α) :
-    List Bool × List α → List α → List ℕ × (List Bool × List α)
-  | st, [] => ([], st)
-  | st, c :: cs =>
-    let (i, st) := takeSlot declared st c
-    let (is, st) := takeSlots declared st cs
-    (i :: is, st)
-
-/-- The slots of lists of claims taken in order. -/
-def takeSlotsAll {α : Type} [BEq α] (declared : List α) :
-    List Bool × List α → List (List α) → List (List ℕ) × (List Bool × List α)
-  | st, [] => ([], st)
-  | st, c :: cs =>
-    let (i, st) := takeSlots declared st c
-    let (is, st) := takeSlotsAll declared st cs
-    (i :: is, st)
-
-/-- One region of the coverage table: its duplicate claims, and the slot of every raw claim and
-of every child's claims. -/
-structure Region (α : Type) where
-  /-- The duplicate claims, in slot order. -/
-  dups : List α
-  /-- The raw claims' slots. -/
-  raw : List ℕ
-  /-- Per child, its claims' slots. -/
-  children : List (List ℕ)
-
-/-- The region of the declared claims: the raw claims take their slots, then the children's. -/
-def plan {α : Type} [BEq α] (declared raw : List α) (children : List (List α)) : Region α :=
-  let (raw, st) := takeSlots declared (declared.map fun _ ↦ false, []) raw
-  let (children, st) := takeSlotsAll declared st children
-  ⟨st.2, raw, children⟩
-
-/-- The claims held directly, with their witnesses, in the statement's order. -/
-def direct {α W : Type} : List α → List (Holder W) → List (α × W)
-  | c :: cs, .direct w :: hs => (c, w) :: direct cs hs
-  | _ :: cs, .child _ :: hs => direct cs hs
-  | _, _ => []
-
-/-- DA claims are equal when their roots and their vector digests are. -/
-instance : BEq DaClaim := ⟨fun a b ↦ a.1.toList == b.1.toList && a.2.toList == b.2.toList⟩
 
 /-! ## A leanXMSS signature (`lean_xmss_hints`) -/
 
@@ -305,12 +256,6 @@ def recordQueries {α : Type} : Prog α → Prog (α × List (ℕ × List ℕ))
   | .commit h w k => .commit h w (recordQueries k)
   | .query i ps k => .query i ps fun rows ↦
       (recordQueries (k rows)).bind fun r ↦ .ret (r.1, (i, ps) :: r.2)
-
-/-- The deferring verifier's initial state on a child's proof under the node's seed
-(`verifyDeferredWith`). -/
-def childStart (seed : Digest) (c : Child) : St :=
-  ⟨⟨keccakF (seedInput seed (statementDigest seed c.statement)), []⟩, c.proof.stream,
-    c.proof.openings, []⟩
 
 /-- The queries the deferring verifier makes on a child's proof (`verifyDeferredWith`), each with
 the height of the commitment it opens. -/

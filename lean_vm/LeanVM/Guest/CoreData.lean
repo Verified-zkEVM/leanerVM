@@ -9,7 +9,8 @@ module
 
 public import LeanVM.Guest.Data.Core
 public import LeanVM.Guest.Renumber
-public import LeanVM.Guest.Data.Bytecode
+public import Statement.Data.Bytecode
+public import LeanVM.Guest.Code
 
 /-!
 # The guest's core IR

@@ -1,4 +1,5 @@
-import LeanVM.Guest.Data.Bytecode
+import Statement.Data.Bytecode
+import LeanVM.Guest.Code
 import LeanVM.Guest.Data.Source
 import LeanVM.Guest.ExpandLemmas
 import LeanVM.Guest.Interp

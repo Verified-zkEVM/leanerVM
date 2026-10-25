@@ -10,7 +10,11 @@ module
 public import LeanVM.Protocol.Compile.Rom.History
 public import LeanVM.Protocol.Compile.Rom.Potential
 public import LeanVM.Protocol.ToVCVio.Rom.LoggedOracle
-public import LeanVM.Spec.Statement
+public import Statement.LeanVm
+public import LeanVM.Facts.Verifier
+public import LeanVM.Fast.Keccak
+public import LeanVM.Fast.CubicExt
+public import LeanVM.Fast.FieldWords
 
 /-!
 # The verifier against the random oracles

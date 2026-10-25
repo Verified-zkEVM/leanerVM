@@ -35,6 +35,7 @@ import PqDas.Assumptions.ErasureCode
 import PqDas.Assumptions.VectorCommitment
 import PqDas.Assumptions.CodeChecker
 import PqDas.RomRuntime
+import Statement.LeanDa
 
 open OracleComp OracleSpec ENNReal
 
@@ -43,12 +44,6 @@ namespace PqDas
 variable {Γ Λ : Type} {k n : ℕ} {CkVC ComVC Opn L : Type}
 
 /-! ### The non-interactive game -/
-
-/-- An adversary against the non-interactive committed soundness game: given a
-vector-commitment key and access to a random oracle (and uniform sampling), it
-outputs a commitment and a vector. -/
-def NiCsAdv (Λ : Type) (n : ℕ) (CkVC ComVC L : Type) :=
-  CkVC → OracleComp (unifSpec + (ComVC →ₒ L)) (ComVC × (Fin n → Λ))
 
 /-- The non-interactive committed soundness game: the adversary outputs
 `(com, c)`; with `l := H(com)` (evaluated through the same oracle cache the

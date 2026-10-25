@@ -3,6 +3,13 @@
  "packages":
  [{"type": "path",
    "scope": "",
+   "name": "statement",
+   "manifestFile": "lake-manifest.json",
+   "inherited": false,
+   "dir": "../Statement",
+   "configFile": "lakefile.toml"},
+  {"type": "path",
+   "scope": "",
    "name": "common",
    "manifestFile": "lake-manifest.json",
    "inherited": false,

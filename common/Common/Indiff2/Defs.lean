@@ -1,4 +1,5 @@
 import Common.Transfer
+import Statement.RandomPermutation
 
 /-!
 # The two-oracle model: a hash `H` and a random function `F`
@@ -32,15 +33,6 @@ open OracleComp OracleSpec
 
 namespace Common
 
-/-- The random function of the two-oracle model: states to states. -/
-abbrev fSpec (St : Type) : OracleSpec St := St →ₒ St
-
-/-- The random oracles of the two-oracle model: `H` and `F`. -/
-abbrev hfSpec (Msg Dg St : Type) := roSpec Msg Dg + fSpec St
-
-/-- The game's oracles in the two-oracle model: coins, `H`, `π` and `π⁻¹`, and `F`. -/
-abbrev dSpec2 (Msg Dg St : Type) := unifSpec + (roSpec Msg Dg + (permSpec St + fSpec St))
-
 /-- The cost of a two-oracle query: a hash query costs its padded length in blocks, a
 permutation query and a direct call cost one, a coin nothing. -/
 def queryCost2 {Msg Dg Blk St : Type} (P : Padding Msg Blk) :
@@ -59,61 +51,6 @@ variable {Dg E C Msg : Type}
   (P : Padding Msg (Dg × E)) (iv : SpState Dg E C)
 
 /-! ## The worlds -/
-
-/-- The game's direct calls become permutation queries. -/
-def toOne : QueryImpl (dSpec2 Msg Dg (SpState Dg E C))
-    (OracleComp (dSpec Msg Dg (SpState Dg E C)))
-  | .inl n => liftM ((dSpec Msg Dg (SpState Dg E C)).query (.inl n))
-  | .inr (.inl m) => liftM ((dSpec Msg Dg (SpState Dg E C)).query (.inr (.inl m)))
-  | .inr (.inr (.inl q)) => liftM ((dSpec Msg Dg (SpState Dg E C)).query (.inr (.inr q)))
-  | .inr (.inr (.inr x)) => liftM ((dSpec Msg Dg (SpState Dg E C)).query (.inr (.inr (.fwd x))))
-
-/-- **The real world** of the two-oracle model: `F` is the random permutation. -/
-noncomputable def realGame2 {α : Type} (D : OracleComp (dSpec2 Msg Dg (SpState Dg E C)) α) :
-    ProbComp α :=
-  realGame P iv (simulateQ (toOne (E := E) (C := C)) D)
-
-/-- An `H` query of the two-oracle ROM. -/
-abbrev hQuery (m : Msg) : OracleComp (unifSpec + hfSpec Msg Dg (SpState Dg E C)) Dg :=
-  hq (hs := hfSpec Msg Dg (SpState Dg E C)) (.inl m)
-
-/-- An `F` query of the two-oracle ROM. -/
-abbrev fQuery (x : SpState Dg E C) :
-    OracleComp (unifSpec + hfSpec Msg Dg (SpState Dg E C)) (SpState Dg E C) :=
-  hq (hs := hfSpec Msg Dg (SpState Dg E C)) (.inr x)
-
-/-- The answer of the two-oracle simulator at a fresh rooted node `x` with path `β`: when `β`
-pads a message `m`, `H m` completed by uniform bits; otherwise `F x`. -/
-noncomputable def rootedAnswer2 (β : List (Dg × E)) (x : SpState Dg E C) :
-    OracleComp (unifSpec + hfSpec Msg Dg (SpState Dg E C)) (SpState Dg E C) :=
-  match P.unpad β with
-  | some m => do
-    let d ← hQuery (E := E) (C := C) m
-    let ec ← (liftM ($ᵗ (E × C)) : OracleComp (unifSpec + hfSpec Msg Dg (SpState Dg E C)) _)
-    pure ((d, ec.1), ec.2)
-  | none => fQuery (Dg := Dg) x
-
-/-- **The two-oracle simulator**: answers `π` and `π⁻¹` with oracle access to `H` and `F`. -/
-noncomputable def simulator2 : QueryImpl (permSpec (SpState Dg E C))
-    (StateT (SimState Dg E C) (OracleComp (unifSpec + hfSpec Msg Dg (SpState Dg E C))))
-  | .fwd x => StateT.mk fun σ ↦
-      match fwdLookup σ.edges x with
-      | some y => pure (y, σ)
-      | none =>
-        match chainOf σ.chains x with
-        | some (s, β) => do
-          let y ← rootedAnswer2 P (β ++ [blockTo s x]) x
-          pure (y, ⟨(x, y) :: σ.edges, (y, β ++ [blockTo s x]) :: σ.chains⟩)
-        | none => do
-          let y ← fQuery (Dg := Dg) x
-          pure (y, ⟨(x, y) :: σ.edges, σ.chains⟩)
-  | .inv y => StateT.mk fun σ ↦
-      match invLookup σ.edges y with
-      | some x => pure (x, σ)
-      | none => do
-        let x ← (liftM ($ᵗ (SpState Dg E C)) :
-          OracleComp (unifSpec + hfSpec Msg Dg (SpState Dg E C)) _)
-        pure (x, ⟨(x, y) :: σ.edges, σ.chains⟩)
 
 /-- The ideal world of the two-oracle model: coins forwarded, `H` and `F` the random oracles,
 `π` and `π⁻¹` the simulator. -/

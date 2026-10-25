@@ -25,6 +25,7 @@ import VCVio.OracleComp.QueryTracking.RandomOracle.Basic
 import VCVio.OracleComp.QueryTracking.RandomOracle.Simulation
 import VCVio.OracleComp.Coercions.Add.Basic
 import VCVio.OracleComp.SimSemantics.StateT.BundledSemantics
+import Statement.LeanDa
 
 open OracleComp OracleSpec ENNReal
 
@@ -34,43 +35,7 @@ section runtime
 
 variable (ComVC L : Type) [DecidableEq ComVC] [SampleableType L]
 
-/-- Runtime bundle for the random-oracle world, starting from a fixed initial
-cache: random-oracle queries that hit the cache return the cached value,
-misses are answered by fresh uniform sampling and cached. -/
-noncomputable def roRuntimeWithCache (cache : (ComVC →ₒ L).QueryCache) :
-    ProbCompRuntime (OracleComp (unifSpec + (ComVC →ₒ L))) :=
-  ProbCompRuntime.withStateOracle
-    (hashImpl := (randomOracle :
-      QueryImpl (ComVC →ₒ L) (StateT ((ComVC →ₒ L).QueryCache) ProbComp)))
-    cache
-
-/-- Runtime bundle for the random-oracle world: a fresh random oracle (empty
-initial cache). -/
-noncomputable def roRuntime : ProbCompRuntime (OracleComp (unifSpec + (ComVC →ₒ L))) :=
-  roRuntimeWithCache ComVC L ∅
-
-/-- The query implementation underlying both `roRuntime` and `simulateRom`:
-uniform-sampling queries are forwarded, random-oracle queries are answered by
-lazy caching. -/
-noncomputable def romImpl :
-    QueryImpl (unifSpec + (ComVC →ₒ L)) (StateT ((ComVC →ₒ L).QueryCache) ProbComp) :=
-  unifFwdImpl (ComVC →ₒ L) + (randomOracle :
-    QueryImpl (ComVC →ₒ L) (StateT ((ComVC →ₒ L).QueryCache) ProbComp))
-
 variable {ComVC L}
-
-/-- Run a computation in the random-oracle world as a plain probabilistic
-computation, lazily simulating the oracle starting from the given cache.
-Reductions use this to simulate the random-oracle world for an adversary. -/
-noncomputable def simulateRomWithCache (cache : (ComVC →ₒ L).QueryCache) {α : Type}
-    (oa : OracleComp (unifSpec + (ComVC →ₒ L)) α) : ProbComp α :=
-  (simulateQ (romImpl ComVC L) oa).run' cache
-
-/-- Run a computation in the random-oracle world as a plain probabilistic
-computation, with a fresh random oracle. -/
-noncomputable def simulateRom {α : Type}
-    (oa : OracleComp (unifSpec + (ComVC →ₒ L)) α) : ProbComp α :=
-  simulateRomWithCache ∅ oa
 
 /-- The simulation and the runtime semantics agree: observing `simulateRom` as
 an output measure is the same as observing the original computation through

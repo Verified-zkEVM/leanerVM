@@ -2,7 +2,13 @@ name = "lean-sphincs-security"
 version = "0.1.0"
 defaultTargets = ["Sphincs"]
 
-# The random-permutation model and the ROM-to-RPM transfer for Keccak-256.
+# The statement: definitions and end statements only (`Statement/`).
+[[require]]
+name = "statement"
+path = "../Statement"
+
+# The proofs shared by the projects: the random-permutation model's indifferentiability and
+# transfers, the duplex lemma.
 [[require]]
 name = "common"
 path = "../common"

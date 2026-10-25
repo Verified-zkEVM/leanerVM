@@ -3,6 +3,7 @@ import VCVio.OracleComp.Constructions.SampleableType.Measure
 import VCVio.OracleComp.QueryTracking.QueryBound.Basic
 import VCVio.OracleComp.SimSemantics.StateT.StateProjection
 import VCVio.EvalDist.ProbabilityBounds
+import Statement.RandomPermutation
 
 /-!
 # Game-playing lemmas for stateful simulations
@@ -34,11 +35,6 @@ namespace Common
 universe u
 
 variable {ι : Type} {spec : OracleSpec.{0, 0} ι} {σ α : Type}
-
-/-- A total weight bound: every path of `oa` makes queries of total weight at most `Q`, a query
-`t` weighing `w t`. -/
-def IsWeightBound (oa : OracleComp spec α) (w : ι → ℕ) (Q : ℕ) : Prop :=
-  IsQueryBound oa Q (fun t b ↦ w t ≤ b) (fun t b ↦ b - w t)
 
 theorem isWeightBound_query_bind_iff (w : ι → ℕ) (t : ι) (k : spec t → OracleComp spec α)
     (Q : ℕ) : IsWeightBound (liftM (spec.query t) >>= k) w Q ↔

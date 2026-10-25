@@ -5,7 +5,12 @@
   the bijections, and Keccak-256 over a permutation as `common`'s sponge over it.
 -/
 
-import LeanVM.Spec.Rpm
+import Statement.LeanVm
+import Common.Transfer
+import LeanVM.Facts.Verifier
+import LeanVM.Fast.Keccak
+import LeanVM.Fast.CubicExt
+import LeanVM.Fast.FieldWords
 import LeanVM.Protocol.Verifier.Load
 import Common.Keccak
 
@@ -15,11 +20,11 @@ import Common.Keccak
 `LeanVM/Spec/` holds a Keccak state as `25` lanes of `64` bits (`KState`) and a digest as four
 lanes (`Digest`); `common` holds them as bytes (`Common.KState`: 32 digest bytes, 104 more
 bytes of the rate, 64 bytes of capacity; `Common.KDigest`: 32 bytes). Byte `8i + k` is byte `k`
-of lane `i`, little-endian (`KState.toRpm`, `Digest.ofRpm`, `LeanVM/Spec/Rpm.lean`).
+of lane `i`, little-endian (`KState.toRpm`, `Digest.ofRpm`, `Statement/LeanVm.lean`).
 
 * `stateEquiv`, `digestEquiv`: the two bijections.
 * `keccak256With_rpm`: Keccak-256 over a permutation `π` of the lane states (`keccak256With`,
-  `LeanVM/Spec/Rpm.lean`) is `common`'s Keccak-256 sponge (`Common.keccak256With`: rate 136
+  `Statement/LeanVm.lean`) is `common`'s Keccak-256 sponge (`Common.keccak256With`: rate 136
   bytes, capacity 512 bits, the padding `0x01 ‖ 0^* ‖ 0x80`, the zero state, the first 32 bytes)
   over `π` read on bytes, in every monad. In particular the deployed Keccak-256 is `common`'s
   sponge over the deployed Keccak-f[1600] read on bytes (`keccak256_eq_rpm`).

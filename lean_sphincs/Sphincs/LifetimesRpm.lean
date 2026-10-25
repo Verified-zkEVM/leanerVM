@@ -62,14 +62,7 @@ end
 /-- **The forest lifetimes in the random-permutation model**: at each proved subtree height
 (`b` = 26, 20, 14, 13, 12, 10, 8), an adversary whose game makes at most `Q ≥ 1` permutation
 calls forges with probability at most `Q / 2^127 + Q² / 2^509`. -/
-theorem requestedSecurityRpm :
-    @Rpm.HasRpmSecurityBits full 127 ∧
-    @Rpm.HasRpmSecurityBits pruned20 127 ∧
-    @Rpm.HasRpmSecurityBits pruned14 127 ∧
-    @Rpm.HasRpmSecurityBits pruned13 127 ∧
-    @Rpm.HasRpmSecurityBits pruned12 127 ∧
-    @Rpm.HasRpmSecurityBits pruned10 127 ∧
-    @Rpm.HasRpmSecurityBits pruned8 127 :=
+theorem requestedSecurityRpm : RequestedSecurityRpm :=
   ⟨@rpmBits_of_det full 127 full_bits, @rpmBits_of_det pruned20 127 pruned20_bits, @rpmBits_of_det pruned14 127 pruned14_bits,
     @rpmBits_of_det pruned13 127 pruned13_bits, @rpmBits_of_det pruned12 127 pruned12_bits, @rpmBits_of_det pruned10 127 pruned10_bits,
     @rpmBits_of_det pruned8 127 pruned8_bits⟩

@@ -14,7 +14,7 @@ public import LeanVM.Guest.B1.Common.Sponge
 
 * `perm_eq`: the Spec's permutation input of a sponge the guest carries as `s` permutes to
   `s.perm`; `carries_absorb`, `carries_squeeze`: `Fs.absorb` and `Fs.squeeze` are `absorb` and
-  `squeeze` (`Spec/Verifier.lean`, at `Id` and `keccakF`) on the carried cells.
+  `squeeze` (`Statement/LeanVmVerifier.lean`, at `Id` and `keccakF`) on the carried cells.
 * `RunsTo.bind`, `runsTo_ret`: runs compose; `runsTo_readE`, `runsTo_readN`, `runsTo_sampleE`,
   `runsTo_sampleN`, `runsTo_grindP`: the Spec's reads, samples and proofs of work as runs on the
   carried sponge (`Fs.absorb … dsObserve`, `Fs.squeeze`, the nonce absorbed with `dsPowNonce`

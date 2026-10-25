@@ -4,7 +4,7 @@ import LeanVM.Protocol.LeanVMRpm
 # leanVM's statements, locked
 
 Statement locks of `LeanVM/Protocol/LeanVMRpm.lean`: knowledge soundness and completeness in the
-random-permutation model (`LeanVM/Spec/Rpm.lean`), the statements of the specification, and their
+random-permutation model (`Statement/LeanVm.lean`), the statements of the specification, and their
 numbers, with the axioms each depends on.
 -/
 

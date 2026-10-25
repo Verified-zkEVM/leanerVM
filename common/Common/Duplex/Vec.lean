@@ -1,6 +1,7 @@
 import Common.Duplex.Main
 import Common.Rerun
 import VCVio.OracleComp.Constructions.SampleableType.Measure
+import Statement.RandomPermutation
 
 /-!
 # The challenges as one random oracle of vectors
@@ -25,12 +26,6 @@ section Swap
 variable {ι₁ ι₂ : Type} [DecidableEq ι₁] [DecidableEq ι₂] {hs₁ : OracleSpec.{0, 0} ι₁}
   {hs₂ : OracleSpec.{0, 0} ι₂} [∀ t : hs₁.Domain, SampleableType (hs₁.Range t)]
   [∀ t : hs₂.Domain, SampleableType (hs₂.Range t)]
-
-/-- The oracles of a sum, in the other order. -/
-def swapImpl : QueryImpl (unifSpec + (hs₁ + hs₂)) (OracleComp (unifSpec + (hs₂ + hs₁)))
-  | .inl k => liftM ((unifSpec + (hs₂ + hs₁)).query (.inl k))
-  | .inr (.inl t) => liftM ((unifSpec + (hs₂ + hs₁)).query (.inr (.inr t)))
-  | .inr (.inr t) => liftM ((unifSpec + (hs₂ + hs₁)).query (.inr (.inl t)))
 
 /-- A cache of a sum, in the other order. -/
 def swapCache (c : (hs₁ + hs₂).QueryCache) : (hs₂ + hs₁).QueryCache :=
@@ -104,16 +99,6 @@ namespace Common.Duplex
 variable {Msg Dg Root Z : Type} {n : ℕ}
   [DecidableEq Msg] [DecidableEq Root] [SampleableType Dg] [SampleableType Z]
   [Fintype Z] [Fintype Root] [Nonempty Z]
-
-/-- `H`, and the challenges as one random oracle of vectors. -/
-abbrev VSpec (Msg Dg Root Z : Type) (n : ℕ) := roSpec Msg Dg + (Root →ₒ (Fin n → Z))
-
-/-- The challenge `(r, j)` read as component `j` of the vector of `r`. -/
-def toV : QueryImpl (unifSpec + GSpec Msg Dg Root Z n) (OracleComp (unifSpec + VSpec Msg Dg Root Z n))
-  | .inl k => liftM ((unifSpec + VSpec Msg Dg Root Z n).query (.inl k))
-  | .inr (.inl m) => liftM ((unifSpec + VSpec Msg Dg Root Z n).query (.inr (.inl m)))
-  | .inr (.inr rj) =>
-      (fun v ↦ v rj.2) <$> liftM ((unifSpec + VSpec Msg Dg Root Z n).query (.inr (.inr rj.1)))
 
 /-- The table of challenges of a table of vectors. -/
 def tabOfV (v : Subtype (fun _ : Root ↦ True) → (Fin n → Z)) : Tab Root Z n :=

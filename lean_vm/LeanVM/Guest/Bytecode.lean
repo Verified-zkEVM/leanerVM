@@ -7,7 +7,9 @@
 
 module
 
-public import LeanVM.Guest.Data.Bytecode
+public import Statement.Data.Bytecode
+public import LeanVM.Guest.Code
+public import Statement.LeanVmGuest
 
 /-!
 # The guest bytecode
@@ -28,9 +30,6 @@ namespace LeanVM.Guest
 open LeanVM.Parameters LeanVM.Semantics
 
 @[expose] public section
-
-/-- The aggregation guest's bytecode. -/
-def guest : Program := assemble Data.functions 19 (by decide)
 
 theorem guest_logSize : guest.logSize = 19 := rfl
 

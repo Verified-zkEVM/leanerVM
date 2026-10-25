@@ -1,7 +1,7 @@
 /-
   LeanVM.Protocol.LeanVMRpm
 
-  The proofs of the two statements of `LeanVM/Spec/Rpm.lean`, `LeanVM.KnowledgeSoundness` and
+  The proofs of the two statements of `Statement/LeanVm.lean`, `LeanVM.KnowledgeSoundness` and
   `LeanVM.Completeness`: knowledge soundness and completeness of the leanVM verifier in the
   random-permutation model, from the two-oracle random-oracle model.
 -/
@@ -16,7 +16,7 @@ import LeanVM.Protocol.Rpm.RpmRelabel
 /-!
 # leanVM in the random-permutation model
 
-The statements are in `LeanVM/Spec/Rpm.lean`: Keccak-256 the sponge over one uniformly random
+The statements are in `Statement/LeanVm.lean`: Keccak-256 the sponge over one uniformly random
 permutation `π` of the Keccak state, Keccak-f[1600] `π` itself, the adversary querying `π` and
 `π⁻¹`.
 
@@ -394,7 +394,7 @@ end LeanVM.Rpm
 
 namespace LeanVM
 
-/-! ## The statements of `LeanVM/Spec/Rpm.lean` -/
+/-! ## The statements of `Statement/LeanVm.lean` -/
 
 /-- **Knowledge soundness holds** (in the random-permutation model), for the extractor
 `extractorRpm`. -/
@@ -406,10 +406,7 @@ open scoped ENNReal in
 /-- **Knowledge soundness in bits** (in the random-permutation model): an adversary of at most
 `Q ≤ 2^120` queries to `π` and `π⁻¹` breaks soundness, for the extractor `extractorRpm`, with
 probability at most `(Q + 2^14) · 2^-127`. -/
-theorem knowledgeSoundness_bits : ∀ (A : RpmAdversary) (Q : ℕ), A.IsTotalQueryBound Q →
-    Q ≤ 2 ^ 120 →
-      Pr{let z ← rpmExperiment A}[BreaksRpm extractorRpm z] ≤
-        (Q + 2 ^ 14 : ℝ≥0∞) * (2 : ℝ≥0∞)⁻¹ ^ 127 :=
+theorem knowledgeSoundness_bits : KnowledgeSoundnessBits :=
   fun _ _ hA hQ ↦ (Rpm.knowledgeSoundnessRpm hA).trans (Rpm.soundnessRpm_le_bits hQ)
 
 /-- **Completeness holds** (in the random-permutation model), with the honest prover

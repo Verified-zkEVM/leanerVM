@@ -6,7 +6,16 @@
   (`bytecode_vars = 23`), which `Node.lean` checks against the Spec.
 -/
 
-import LeanVM.Spec.Node
+import Statement.LeanVmGuest
+import LeanXmss.Scheme
+import Sphincs.Scheme
+import LeanVM.Fast.Schemes
+import LeanDa.Scheme
+import LeanVM.Fast.Da
+import LeanVM.Fast.Keccak
+import LeanVM.Fast.CubicExt
+import LeanVM.Fast.FieldWords
+import LeanVM.Facts.Verifier
 
 namespace LeanVMTests.Spec.NodeVectors
 

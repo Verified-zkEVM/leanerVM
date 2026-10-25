@@ -2,6 +2,7 @@ module
 
 public import LeanDa.Field
 public import Mathlib.LinearAlgebra.Lagrange
+public import Statement.LeanDa
 
 /-!
 # LeanDA
@@ -63,225 +64,28 @@ namespace LeanDa
 
 @[expose] public section
 
-/-- A digest of the hash, 32 bytes (`fiat_shamir::merkle::Hash`, `[u8; 32]`). -/
-abbrev Digest := Vector UInt8 32
-
 /-! ## Shapes (`lib.rs:23-39`) -/
 
-/-- Payload symbols per row, as a logarithm (`DA_LOG_K`). -/
-def logK : ℕ := 14
-
-/-- Codeword symbols per row, as a logarithm: rate one half (`LOG_M`). -/
-def logM : ℕ := 15
-
-/-- Symbols per cell (`CELL_SYMBOLS`). -/
-def cellSymbols : ℕ := 256
-
-/-- Cells per codeword (`CELLS_PER_ROW`). -/
-def cellsPerRow : ℕ := 128
-
-/-- Cells per payload (`PAYLOAD_CELLS`). -/
-def payloadCells : ℕ := 64
-
-/-- The most rows the crate commits to (`DA_MAX_ROWS`). -/
-def maxRows : ℕ := 1024
-
-/-- A row's payload. -/
-abbrev Payload := Fin (2 ^ 14) → K
-
-/-- A codeword, in domain order. -/
-abbrev Row := Fin (2 ^ 15) → K
-
-/-- A sampling cell. -/
-abbrev Cell := Fin 256 → K
-
 /-! ## The code (`encode.rs`) -/
-
-/-- The polynomial of degree below `2^14` taking the payload's values on the points
-`0 … 2^14 - 1` (`inverse_transform`). -/
-noncomputable def interpolate (p : Payload) : K[X] :=
-  Lagrange.interpolate Finset.univ (fun a : Fin (2 ^ 14) ↦ point a) p
-
-/-- **The systematic encoding of a payload** (`encode_rows`): its polynomial's values on all
-`2^15` points (`encode_interleaved_in_place`). -/
-noncomputable def encodeRow (p : Payload) : Row := fun b ↦ (interpolate p).eval (point b)
-
-/-- Cell `j` of a codeword: its symbols `256 j … 256 j + 255`. -/
-def rowCell (w : Row) (j : Fin 128) : Cell := fun s ↦ w ⟨256 * j + s, by omega⟩
-
-/-- The position of cell `j` of row `i`. -/
-def pos {r : ℕ} (i : Fin r) (j : Fin 128) : Fin (r * 128) := ⟨128 * i + j, by omega⟩
-
-/-- The row of a position. -/
-def posRow {r : ℕ} (p : Fin (r * 128)) : Fin r := ⟨p / 128, by omega⟩
-
-/-- The cell of a position within its row. -/
-def posCell {r : ℕ} (p : Fin (r * 128)) : Fin 128 := ⟨p % 128, by omega⟩
-
-/-- The cells of a matrix of encoded payloads. -/
-noncomputable def encodeMatrix {r : ℕ} (msg : Fin r → Payload) : Fin (r * 128) → Cell :=
-  fun p ↦ rowCell (encodeRow (msg (posRow p))) (posCell p)
-
-/-- Row `i` of a matrix given by its cells. -/
-def rowOf {r : ℕ} (c : Fin (r * 128) → Cell) (i : Fin r) : Row :=
-  fun b ↦ c (pos i ⟨b / 256, by omega⟩) ⟨b % 256, by omega⟩
 
 /-! ## The commitment (`commit.rs`) -/
 
 variable (H : List UInt8 → Digest)
 
-/-- The eight little-endian bytes of a symbol (`as_bytes`). -/
-def kBytes (a : K) : List UInt8 := (List.range 8).map fun t ↦ (a.toBitVec.toNat >>> (8 * t)).toUInt8
-
-/-- A cell's bytes: its symbols' bytes in order. -/
-def cellBytes (x : Cell) : List UInt8 := (List.ofFn x).flatMap kBytes
-
-/-- The 64 bytes of a pair of digests (`hash_pair`, `tree_from_leaves`). -/
-def pairBytes (a b : Digest) : List UInt8 := a.toList ++ b.toList
-
-/-- The digest of a cell (`hash_cells`). -/
-def cellDigest (x : Cell) : Digest := H (cellBytes x)
-
-/-- `⌈log₂ r⌉`: the padded row count `2^⌈log₂ r⌉` is `r.next_power_of_two()`. -/
-def logPad (r : ℕ) : ℕ := Nat.clog 2 r
-
-/-- The padded row count. -/
-def nPad (r : ℕ) : ℕ := 2 ^ logPad r
-
-/-- Cell `j` of row `i` of the padded matrix: zero below the `r` rows. -/
-def paddedCell {r : ℕ} (c : Fin (r * 128) → Cell) (i j : ℕ) : Cell :=
-  if h : i < r ∧ j < 128 then c (pos ⟨i, h.1⟩ ⟨j, h.2⟩) else 0
-
-/-- One level up a Merkle tree: node `i` hashes nodes `2i` and `2i + 1`. -/
-def up (f : ℕ → Digest) (i : ℕ) : Digest := H (pairBytes (f (2 * i)) (f (2 * i + 1)))
-
-/-- The root of the Merkle tree over the leaves `f 0 … f (2^d - 1)` (`tree_from_leaves`). -/
-def merkleRoot : ℕ → (ℕ → Digest) → Digest
-  | 0, f => f 0
-  | d + 1, f => merkleRoot d (up H f)
-
-/-- The other node of the pair of node `idx`. -/
-def sibling (idx : ℕ) : ℕ := if idx % 2 = 0 then idx + 1 else idx - 1
-
-/-- The authentication path of leaf `idx`, siblings from the bottom. -/
-def merklePath : ℕ → (ℕ → Digest) → ℕ → List Digest
-  | 0, _, _ => []
-  | d + 1, f, idx => f (sibling idx) :: merklePath d (up H f) (idx / 2)
-
-/-- Climb from `node` at index `idx` along the siblings `path`. -/
-def walk : ℕ → Digest → List Digest → Digest
-  | _, node, [] => node
-  | idx, node, s :: rest =>
-    walk (idx / 2) (if idx % 2 = 0 then H (pairBytes node s) else H (pairBytes s node)) rest
-
-/-- The row tree's leaves: each padded row's digest of its first `64` cell digests. -/
-def rowLeaves {r : ℕ} (c : Fin (r * 128) → Cell) (i : ℕ) : Digest :=
-  H ((List.ofFn fun j : Fin 64 ↦ cellDigest H (paddedCell c i j)).flatMap Vector.toList)
-
-/-- The column tree's leaves: leaf `j · 2^⌈log₂ r⌉ + i` is cell `j` of padded row `i`. -/
-def colLeaves {r : ℕ} (c : Fin (r * 128) → Cell) (l : ℕ) : Digest :=
-  cellDigest H (paddedCell c (l % nPad r) (l / nPad r))
-
-/-- The row root (`root_row`). -/
-def rowRoot {r : ℕ} (c : Fin (r * 128) → Cell) : Digest := merkleRoot H (logPad r) (rowLeaves H c)
-
-/-- The column root (`root_col`). -/
-def colRoot {r : ℕ} (c : Fin (r * 128) → Cell) : Digest :=
-  merkleRoot H (7 + logPad r) (colLeaves H c)
-
-/-- **The root of a matrix** (`commit_codewords`): `H(rowRoot ‖ colRoot)`. -/
-def commitCells {r : ℕ} (c : Fin (r * 128) → Cell) : Digest :=
-  H (pairBytes (rowRoot H c) (colRoot H c))
-
 /-! ## Openings -/
 
-/-- The opening of a cell: the row root and the cell's path in the column tree. -/
-structure Opening where
-  /-- The row root. -/
-  rowRoot : Digest
-  /-- The siblings from the cell's leaf up to the column root. -/
-  path : List Digest
-deriving Inhabited
-
-/-- The column tree index of a position: cell `j` of row `i` is leaf `j · 2^⌈log₂ r⌉ + i`. -/
-def colIndex {r : ℕ} (p : Fin (r * 128)) : ℕ := (posCell p : ℕ) * nPad r + posRow p
-
-/-- The honest opening of a position. -/
-def openCell {r : ℕ} (c : Fin (r * 128) → Cell) (p : Fin (r * 128)) : Opening :=
-  ⟨rowRoot H c, merklePath H (7 + logPad r) (colLeaves H c) (colIndex p)⟩
-
-/-- **Verification of a cell opening**: a path of the column tree's height that climbs from the
-cell's digest to a column root, which hashed after the row root gives the commitment. -/
-def verifyCell (r : ℕ) (com : Digest) (p : Fin (r * 128)) (x : Cell) (τ : Opening) : Bool :=
-  decide (τ.path.length = 7 + logPad r) &&
-    decide (H (pairBytes τ.rowRoot (walk H (colIndex p) (cellDigest H x) τ.path)) = com)
-
 /-! ## Membership (`membership.rs`, `verifier/src/da.rs`) -/
-
-/-- The normalized subspace polynomial `Ŵ_j`, vanishing on the span of `e_0 … e_(j-1)` and one
-at `e_j` (CompPoly's `normalizedW`; `subspace_evaluations` tabulates it on the basis). -/
-noncomputable def normW (j : Fin 14) : K[X] :=
-  AdditiveNTT.normalizedW (ZMod 2) basis (Fin.castLE (by omega) j)
 
 /-- The tensor `⊗_j (1, z_j)`: coefficient `u` is the product of the `z_j` over the bits of `u`
 (`dual_codeword`'s first loop). -/
 def tensor (z : Fin 14 → E) (u : Fin (2 ^ 14)) : E :=
   ∏ j : Fin 14, if (u : ℕ).testBit j then z j else 1
 
-/-- **The dual codeword of challenges `z`** (`dual_codeword`): `L(x) = ∏_j (1 + z_j Ŵ_j(x))` on
-the domain, the encoding of `tensor z` (`dual_eq_encode_tensor`). -/
-noncomputable def dual (z : Fin 14 → E) (b : Fin (2 ^ 15)) : E :=
-  ∏ j : Fin 14, (1 + z j * ι ((normW j).eval (point b)))
-
-/-- The inner product of the dual codeword with a row: `Σ_x L(x) w(x)` (`check_membership`). -/
-noncomputable def dot (L : Fin (2 ^ 15) → E) (w : Row) : E := ∑ b, L b * ι (w b)
-
-/-- **The membership check**: every row is orthogonal to the dual codeword. -/
-noncomputable def membershipCheck {r : ℕ} (z : Fin 14 → E) (c : Fin (r * 128) → Cell) : Bool :=
-  decide (∀ i : Fin r, dot (dual z) (rowOf c i) = 0)
-
 /-! ## The deployed commitment (`commit.rs:55-145`)
 
 The commitment as the crate computes it, on codewords given as lists of symbols: the leaves in
 the crate's order, each tree built level by level. It is `commitCells` of the matrix the rows
 form (`commitCodewords_eq_commitCells`, `LeanDa.Commitment`). -/
-
-/-- One level of a Merkle tree: the digests of neighbouring pairs (`tree_from_leaves`). -/
-def treeLevel (nodes : List Digest) : List Digest :=
-  (List.range (nodes.length / 2)).map (up H fun i ↦ nodes.getD i default)
-
-/-- The root of the Merkle tree over a power-of-two number of digests (`tree_from_leaves`; on
-other lengths, which `commitCodewords` never passes, the crate panics). -/
-def treeRoot (nodes : List Digest) : Digest :=
-  if nodes.length ≤ 1 then nodes.headD default else treeRoot (treeLevel H nodes)
-termination_by nodes.length
-decreasing_by simp only [treeLevel, List.length_map, List.length_range]; omega
-
-/-- Cell `j` of a codeword. -/
-def listCell (row : List K) (j : ℕ) : List K := (row.drop (j * cellSymbols)).take cellSymbols
-
-/-- The digest of cell `j` of a codeword (`hash_cells`). -/
-def listCellDigest (row : List K) (j : ℕ) : Digest := H ((listCell row j).flatMap kBytes)
-
-/-- A row's digest: the hash of its payload cells' digests. -/
-def rowDigest (row : List K) : Digest :=
-  H ((List.range payloadCells).flatMap fun j ↦ (listCellDigest H row j).toList)
-
-/-- The digest of the zero cell, which pads the columns (`padding_digests`). -/
-def paddingCell : Digest := H ((List.replicate cellSymbols 0).flatMap kBytes)
-
-/-- The digest of the zero row, which pads the row tree (`padding_digests`). -/
-def paddingRow : Digest := H ((List.replicate payloadCells (paddingCell H)).flatMap Vector.toList)
-
-/-- **The root of a matrix of codewords, as the crate computes it** (`commit_codewords`): the
-rows padded to a power of two, the hash of the row tree's root and the column tree's. -/
-def commitCodewords (rows : List (List K)) : Digest :=
-  let n := nPad rows.length
-  let rowTree := treeRoot H
-    (rows.map (rowDigest H) ++ List.replicate (n - rows.length) (paddingRow H))
-  let columnTree := treeRoot H ((List.range cellsPerRow).flatMap fun j ↦ (List.range n).map fun i ↦
-    if h : i < rows.length then listCellDigest H rows[i] j else paddingCell H)
-  H (pairBytes rowTree columnTree)
 
 /-- The cells of the matrix whose rows are `rows`: cell `j` of row `i` at position `128 i + j`. -/
 def cellsOfRows (rows : List (List K)) : Fin (rows.length * 128) → Cell :=
@@ -293,21 +97,6 @@ The challenges, drawn from the root by the duplex sponge the security game model
 oracle, and the dual codeword as the crate computes it, by the additive NTT, which computes `dual`
 (`membershipVector_eq_dual`, `LeanDa.Dual`). -/
 
-/-- `leanDA/rs-membership/v1`, the label of the challenges' transcript (`LABEL`). -/
-def label : List UInt8 := "leanDA/rs-membership/v1".toUTF8.toList
-
-/-- The symbol of eight little-endian bytes (`u64::from_le_bytes`). -/
-def ofBytes (bytes : List UInt8) : K := K.ofBits (bytes.foldr (fun b acc ↦ b.toNat + 256 * acc) 0)
-
-/-- Word `i` of a digest, its bytes `8 i … 8 i + 7` (`Digest::words`). -/
-def word (d : Digest) (i : ℕ) : K := ofBytes ((d.toList.drop (8 * i)).take 8)
-
-/-- The element `c0 + c1·y + c2·y²` (`E::new`). -/
-def ofLimbs (c0 c1 c2 : K) : E := CompPoly.Extension.Ext.ofVector #v[c0, c1, c2]
-
-/-- Limb `i` of an element, the coefficient of `y^i`. -/
-def limb (x : E) (i : Fin 3) : K := CompPoly.Extension.Ext.coeff x i
-
 /-! ### The sponge (`verifier/src/transcript.rs:32-95`)
 
 A duplex sponge in overwrite mode over a permutation `P` of `25` lanes. The crate's is
@@ -316,132 +105,9 @@ definitions hold for every `P`. A lane is a `u64`, read as the element of `K` wi
 a scalar's limbs are lanes as they are. The rate is lanes `0 … 15`, the capacity lanes
 `16 … 24`. -/
 
-/-- The sponge's lanes (`[u64; STATE_LANES]`). -/
-abbrev Lanes := Vector K 25
-
 variable (P : Lanes → Lanes)
 
-/-- Lanes of the rate. -/
-def rateLanes : ℕ := 16
-
-/-- Scalars that wait to be absorbed, four rate lanes each (`RATE_SCALARS`). -/
-def rateScalars : ℕ := 4
-
-/-- The tag of an observed scalar (`DS_OBSERVE = 1`). -/
-def dsObserve : K := K.ofBits 1
-
-/-- **The sponge** (`Sponge`): the lanes the last permutation left, and the scalars absorbed
-since with their tags, at most `rateScalars` (`pending[..n_pending]`). -/
-structure Sponge where
-  /-- The lanes the last permutation left (`state`). -/
-  state : Lanes
-  /-- The waiting scalars and their tags, in order. -/
-  pending : List (E × K)
-
-/-- A sponge seeded with one permutation of the zero state with the IV's words in lanes
-`0 … 3` and the public input's in lanes `4 … 7` (`Sponge::new`). -/
-def Sponge.new (iv publicInput : Digest) : Sponge :=
-  ⟨P (Vector.ofFn fun i : Fin 25 ↦
-      if (i : ℕ) < 4 then word iv i else if (i : ℕ) < 8 then word publicInput (i - 4) else 0), []⟩
-
-/-- A sponge with no public input of its own, seeded from the hash of `label`
-(`Sponge::from_label`). -/
-def Sponge.fromLabel (label : List UInt8) : Sponge := Sponge.new P (H label) (Vector.replicate 32 0)
-
-/-- The rate lanes the waiting scalars fill: scalar `i`'s three limbs and tag in lanes
-`4 i … 4 i + 3`. -/
-def rateWords (pending : List (E × K)) : List K :=
-  pending.flatMap fun x ↦ [limb x.1 0, limb x.1 1, limb x.1 2, x.2]
-
-/-- Permute, the waiting scalars written over the rate, the rest of the rate zero and the
-capacity kept (`duplex`). -/
-def Sponge.duplex (s : Sponge) : Sponge :=
-  ⟨P (Vector.ofFn fun i : Fin 25 ↦
-      if (i : ℕ) < rateLanes then (rateWords s.pending).getD i 0 else s.state[i]), []⟩
-
-/-- Absorb a scalar with a tag, permuting first when `rateScalars` wait (`absorb`). -/
-def Sponge.absorb (s : Sponge) (x : E) (tag : K) : Sponge :=
-  let s := if s.pending.length = rateScalars then Sponge.duplex P s else s
-  ⟨s.state, s.pending ++ [(x, tag)]⟩
-
-/-- Observe a scalar (`observe`). -/
-def Sponge.observe (s : Sponge) (x : E) : Sponge := Sponge.absorb P s x dsObserve
-
-/-- Draw a challenge: a permutation of its own, whose lanes `0 … 2` are its limbs (`sample`). -/
-def Sponge.sample (s : Sponge) : E × Sponge :=
-  let s := Sponge.duplex P s
-  (ofLimbs s.state[0] s.state[1] s.state[2], s)
-
-/-- `n` challenges, in order. -/
-def Sponge.samples : ℕ → Sponge → List E
-  | 0, _ => []
-  | n + 1, s => (Sponge.sample P s).1 :: Sponge.samples n (Sponge.sample P s).2
-
 /-! ### The challenges and the vector -/
-
-/-- **The challenges `z_0 … z_13` of a root** (`membership_challenges`, `verifier/src/da.rs:15-22`):
-a sponge from the label, the root's words observed as two scalars `(w_0, w_1, 0)` and
-`(w_2, w_3, 0)`, then `14` samples. -/
-def membershipChallenges (root : Digest) : List E :=
-  let s := Sponge.fromLabel H P label
-  let s := Sponge.observe P s (ofLimbs (word root 0) (word root 1) 0)
-  let s := Sponge.observe P s (ofLimbs (word root 2) (word root 3) 0)
-  Sponge.samples P logK s
-
-/-- Row `i` of the subspace evaluations before scaling: `s_i` at the basis elements `x^j`,
-`j ≥ i`. -/
-def subspaceRow : ℕ → List K
-  | 0 => (List.range logM).map fun j ↦ K.ofBits (2 ^ j)
-  | i + 1 =>
-    let previous := subspaceRow i
-    (previous.drop 1).map fun value ↦ value * (value + previous.headD 0)
-
-/-- Row `i` of the subspace evaluations, scaled so that its first entry is one
-(`subspace_evaluations`). -/
-def subspaceEvaluations (i : ℕ) : List K :=
-  (subspaceRow i).map (· * ((subspaceRow i).headD 0)⁻¹)
-
-/-- One butterfly block: `u += v·t`, then `v += u`. -/
-def butterfly (twiddle : K) (block : List E) : List E :=
-  let top := block.take (block.length / 2)
-  let bottom := block.drop (block.length / 2)
-  let top := List.zipWith (fun u v ↦ u + v * CompPoly.Extension.Ext.ofBase twiddle) top bottom
-  top ++ List.zipWith (· + ·) bottom top
-
-/-- Layer `layer` of the additive NTT: blocks of `2^(logM - layer)` points, block `b`'s twiddle
-the subset sum of the row's entries that `b`'s bits pick. -/
-def encodeLayer (layer : ℕ) (codeword : List E) : List E :=
-  let row := (subspaceEvaluations (logM - layer - 1)).drop 1
-  let size := 2 ^ (logM - layer)
-  (List.range (codeword.length / size)).flatMap fun b ↦
-    let twiddle := ((List.range layer).filter b.testBit).foldl (fun t bit ↦ t + row.getD bit 0) 0
-    butterfly twiddle ((codeword.drop (b * size)).take size)
-
-/-- The codeword of the `2^14` novel-basis coefficients `message`: the message twice, then the
-layers `1 … 14` (`encode`). -/
-def encode (message : List E) : List E :=
-  (List.range' 1 (logM - 1)).foldl (fun codeword layer ↦ encodeLayer layer codeword)
-    (message ++ message)
-
-/-- The dual codeword, the tensor of the `(1, z_j)` encoded (`dual_codeword`). -/
-def dualCodeword (z : List E) : List E :=
-  encode (z.foldl (fun t challenge ↦ t ++ t.map (· * challenge)) [1])
-
-/-- **The membership vector of a root** (`membership_vector`). -/
-def membershipVector (root : Digest) : List E := dualCodeword (membershipChallenges H P root)
-
-/-- The bytes of entries: three little-endian limbs each. -/
-def limbBytes (entries : List E) : List UInt8 :=
-  (entries.flatMap fun e ↦ [limb e 0, limb e 1, limb e 2]).flatMap kBytes
-
-/-- The digest of column `j` of a vector, its entries `256 j … 256 j + 255`. -/
-def columnDigest (vector : List E) (j : ℕ) : Digest :=
-  H (limbBytes ((vector.drop (j * cellSymbols)).take cellSymbols))
-
-/-- **The digest of a vector** (`vector_digest`, `verifier/src/da.rs:87-96`): the hash of its
-`128` columns' digests, in order. The crate takes vectors of `2^15` entries and panics on others. -/
-def vectorDigest (vector : List E) : Digest :=
-  H ((List.range cellsPerRow).flatMap fun j ↦ (columnDigest H vector j).toList)
 
 end
 

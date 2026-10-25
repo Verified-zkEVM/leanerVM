@@ -1,4 +1,5 @@
 import Common.Prob
+import Statement.RandomPermutation
 
 /-!
 # Random-oracle queries commute
@@ -24,9 +25,6 @@ namespace Common
 
 variable {ι : Type} [DecidableEq ι] {hs : OracleSpec.{0, 0} ι}
   [∀ t : hs.Domain, SampleableType (hs.Range t)] {α : Type}
-
-/-- A hash query, in the random-oracle-model computations over `unifSpec + hs`. -/
-abbrev hq (t : ι) : OracleComp (unifSpec + hs) (hs.Range t) := hs.query t
 
 /-- One step of the lazy random oracle at `t` from the cache `c`: the cached answer, or a fresh
 uniform answer recorded in the cache. -/

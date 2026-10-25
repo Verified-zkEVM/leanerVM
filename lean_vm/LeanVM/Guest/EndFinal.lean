@@ -2,7 +2,7 @@
   LeanVM.Guest.EndFinal
 
   The aggregation guest's soundness for the deployed bytecode, with nothing assumed: the decoder
-  `decode` and the statement `GuestKnowledge` of `LeanVM/Spec/Guest.lean` (`AggregateSound`, in
+  `decode` and the statement `GuestKnowledge` of `Statement/LeanVmGuest.lean` (`AggregateSound`, in
   the random-permutation model, is composed in `LeanVM/Guest/EndRpm.lean`).
 -/
 

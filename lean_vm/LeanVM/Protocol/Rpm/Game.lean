@@ -1,7 +1,7 @@
 /-
   LeanVM.Protocol.Rpm.Game
 
-  The random-permutation experiment of `LeanVM/Spec/Rpm.lean` as a game of `common`'s
+  The random-permutation experiment of `Statement/LeanVm.lean` as a game of `common`'s
   two-oracle transfer: the honest part before the adversary (nothing), the adversary on byte
   states with its transcript, the verifier with the hash and the direct permutation calls; and
   the random-oracle adversary the transfer gives back, on lane states.
@@ -18,7 +18,7 @@ import Common.Keccak
 `rpmGame2 pre A post` on byte states (`Common.KState`), with the hash returning 32 bytes
 (`Common.KDigest`). Here:
 
-* `relP`, `logRel`, `advR`: the adversary of `LeanVM/Spec/Rpm.lean`, its queries read on bytes
+* `relP`, `logRel`, `advR`: the adversary of `Statement/LeanVm.lean`, its queries read on bytes
   (`permQueryToRpm`) and its answers on lanes (`KState.ofRpm`), recording its transcript;
 * `toRHF`, `postR`: the verifier, its hash and permutation queries read on bytes;
 * `game`: the transfer game (`pre` does nothing);

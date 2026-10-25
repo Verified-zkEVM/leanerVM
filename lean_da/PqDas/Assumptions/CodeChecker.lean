@@ -25,17 +25,11 @@ Benedikt Wagner's formalization (https://github.com/b-wagn/fv-pq-da), ported at 
 modified for VCVio afa6593.
 -/
 import PqDas.Assumptions.ErasureCode
+import Statement.LeanDa
 
 open OracleComp ENNReal
 
 namespace PqDas
-
-/-- A code checker for vectors in `Fin n → Λ` with check-randomness domain `L`:
-a deterministic test `check`, intended to accept exactly-the-codewords with
-high probability over `L`. -/
-structure CodeChecker (Λ : Type) (n : ℕ) (L : Type) where
-  /-- The (deterministic) membership check. -/
-  check : L → (Fin n → Λ) → Bool
 
 namespace CodeChecker
 

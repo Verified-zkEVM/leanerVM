@@ -2,6 +2,7 @@ import LeanDa.Membership
 import LeanDa.Merkle
 import PqDas.Proof.PositionBinding
 import PqDas.Proof.CorollaryCodeBinding
+import Statement.LeanDa
 
 /-!
 # LeanDA in Wagner's framework
@@ -62,9 +63,6 @@ theorem encodeMatrix_firstHalf {r : ℕ} (c : Fin (r * 128) → Cell) (h : ∀ i
     Fin.ext (by simp only; omega)
   rw [h1, h2, pos_posRow_posCell]
 
-/-- **LeanDA's erasure code**: `r` payloads, encoded row by row and cut into cells. -/
-noncomputable def code (r : ℕ) : ErasureCode Payload Cell r (r * 128) := ⟨encodeMatrix⟩
-
 /-- A matrix is a codeword when every row is. -/
 theorem mem_code_iff {r : ℕ} (c : Fin (r * 128) → Cell) :
     c ∈ (code r).code ↔ ∀ i, rowOf c i ∈ rsCode := by
@@ -77,12 +75,6 @@ theorem mem_code_iff {r : ℕ} (c : Fin (r * 128) → Cell) :
     exact ⟨fun i ↦ firstHalf (rowOf c i), encodeMatrix_firstHalf c h⟩
 
 /-! ## The code checker -/
-
-/-- The challenges of the membership test. -/
-abbrev Challenges := Fin 14 → E
-
-/-- **LeanDA's code checker**: the membership test on challenges `z ∈ E^14`. -/
-noncomputable def checker (r : ℕ) : CodeChecker Cell (r * 128) Challenges := ⟨membershipCheck⟩
 
 theorem checker_check_iff {r : ℕ} (z : Challenges) (c : Fin (r * 128) → Cell) :
     (checker r).check z c = true ↔ ∀ i, dot (dual z) (rowOf c i) = 0 :=
@@ -128,33 +120,9 @@ theorem checker_sound (r : ℕ) : (checker r).Sound (code r) (14 / 2 ^ 192) := b
 
 /-! ## The vector commitment -/
 
-/-- **LeanDA's vector commitment** with hash `H`: the root of the two Merkle trees, cells opened
-by their column-tree paths. It needs no key. -/
-def merkleVC (r : ℕ) (H : List UInt8 → Digest) :
-    VectorCommitment Cell (r * 128) Unit Digest Opening where
-  setup := pure ()
-  commit _ c := commitCells H c
-  openAt _ c p := openCell H c p
-  verify _ com p x τ := verifyCell H r com p x τ
-
 theorem merkleVC_perfectlyComplete (r : ℕ) (H : List UInt8 → Digest) :
     (merkleVC r H).PerfectlyComplete :=
   fun _ _ c p ↦ verifyCell_openCell H c p
-
-/-- The collision experiment for a hash function: a finder wins if it outputs two different
-byte strings with the same hash. -/
-def hashCollisionExp (H : List UInt8 → Digest) (B : ProbComp (List UInt8 × List UInt8)) :
-    ProbComp Bool := do
-  let (a, b) ← B
-  return (decide (a ≠ b) && decide (H a = H b))
-
-/-- **The reduction from position binding to a collision**: run the adversary and climb its two
-openings (`openingsCollision`). -/
-def merkleCollider (r : ℕ) (H : List UInt8 → Digest)
-    (A : VectorCommitment.PosBindingAdv Cell (r * 128) Unit Digest Opening) :
-    ProbComp (List UInt8 × List UInt8) := do
-  let (_, p, x, τ, x', τ') ← A ()
-  return openingsCollision H r p x τ x' τ'
 
 /-- **Position binding of the Merkle commitment**, by reduction to an `H` collision. -/
 theorem posBindingExp_le_hashCollisionExp (r : ℕ) (H : List UInt8 → Digest)
@@ -170,19 +138,5 @@ theorem posBindingExp_le_hashCollisionExp (r : ℕ) (H : List UInt8 → Digest)
   exact openingsCollision_spec H hwin.1.1 hwin.1.2 hwin.2
 
 /-! ## The scheme -/
-
-/-- The relation the argument proves: the cells commit to the root and pass the membership test
-on the challenges. -/
-noncomputable abbrev Relation (r : ℕ) (H : List UInt8 → Digest) := schemeRel (merkleVC r H) (checker r)
-
-/-- An argument of knowledge for `Relation r H`. -/
-abbrev Argument (r : ℕ) (H : List UInt8 → Digest) (Crs Proof : Type) :=
-  Nark (Unit × Digest × Challenges) (Fin (r * 128) → Cell) Crs Proof (Relation r H)
-
-/-- **LeanDA**: Wagner's erasure code commitment from the code, the Merkle commitment with the
-hash `H`, the membership test and an argument of knowledge `ps`. -/
-noncomputable def leanDa (r : ℕ) (H : List UInt8 → Digest) {Crs Proof : Type} (ps : Argument r H Crs Proof) :=
-  scheme (m := OracleComp (unifSpec + (Digest →ₒ Challenges))) (code r) (merkleVC r H)
-    (checker r) ps
 
 end LeanDa

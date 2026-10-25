@@ -10,16 +10,23 @@ autoImplicit = false
 relaxedAutoImplicit = false
 pp.unicode.fun = true
 
-# The random-permutation model and the ROM-to-RPM transfer for Keccak-256, on which
-# Spec/Rpm.lean states knowledge soundness and completeness in the random-permutation model.
+# The statement: definitions and end statements only (`Statement/`), knowledge soundness and
+# completeness in the random-permutation model among them (`Statement/LeanVm.lean`).
+[[require]]
+name = "statement"
+path = "../Statement"
+
+# The proofs shared by the projects: the random-permutation model's indifferentiability and the
+# ROM-to-RPM transfers for Keccak-256, the duplex lemma.
 [[require]]
 name = "common"
 path = "../common"
 
 # The signature schemes whose security leanVM's formal/lean_xmss and formal/lean_sphincs prove,
-# and LeanDA, whose security formal/lean_da proves: Spec/Node.lean and Spec/Da.lean import their
-# Scheme modules, built here with this package's toolchain and dependencies, so they come first:
-# a later requirement's versions take precedence.
+# and LeanDA, whose security formal/lean_da proves: the schemes are in `Statement/`, and the
+# compiled checks (`LeanVM/Fast/`) import what is left of their Scheme modules, built here with
+# this package's toolchain and dependencies, so they come first: a later requirement's versions
+# take precedence.
 [[require]]
 name = "lean-xmss-security"
 path = "../lean_xmss"
@@ -85,7 +92,7 @@ root = "LeanvmVerify"
 srcDir = "cli"
 
 # The Rust vectors' costly checks, compiled (cli/NodeVectors.lean): the guest's seed against the
-# Spec's `deployedSeed guest`, and the DA vector digests; CI runs it after `lake test`.
+# statement's `deployedSeed guest`, and the DA vector digests; CI runs it after `lake test`.
 [[lean_exe]]
 name = "node-vectors"
 root = "NodeVectors"

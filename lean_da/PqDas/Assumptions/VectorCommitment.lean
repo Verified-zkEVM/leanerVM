@@ -33,26 +33,11 @@ Benedikt Wagner's formalization (https://github.com/b-wagn/fv-pq-da), ported at 
 modified for VCVio afa6593.
 -/
 import VCVio.CryptoFoundations.CommitmentScheme
+import Statement.LeanDa
 
 open OracleComp ENNReal
 
 namespace PqDas
-
-/-- A vector commitment scheme for vectors in `Fin n → Λ`, with commitment key
-type `Ck`, commitment type `Com`, and opening type `Opn` (Foundations
-Definition 15, derandomized: `commit` and `openAt` are deterministic, and the
-opening state is the committed vector itself, which is WLOG since `commit` is
-deterministic). -/
-structure VectorCommitment (Λ : Type) (n : ℕ) (Ck Com Opn : Type) where
-  /-- Sample a commitment key. -/
-  setup : ProbComp Ck
-  /-- Commit to a vector (deterministic). -/
-  commit : Ck → (Fin n → Λ) → Com
-  /-- Open the commitment to position `i` (deterministic; takes the committed
-  vector in place of an opening state). -/
-  openAt : Ck → (Fin n → Λ) → Fin n → Opn
-  /-- Verify an opening `τ` of symbol `x` at position `i` (deterministic). -/
-  verify : Ck → Com → Fin n → Λ → Opn → Bool
 
 namespace VectorCommitment
 
@@ -66,11 +51,6 @@ def PerfectlyComplete (vc : VectorCommitment Λ n Ck Com Opn) : Prop :=
 
 /-! ### Position-binding (Foundations Definition 16) -/
 
-/-- A position-binding adversary: outputs a commitment, a position, and two
-symbol/opening pairs. -/
-def PosBindingAdv (Λ : Type) (n : ℕ) (Ck Com Opn : Type) :=
-  Ck → ProbComp (Com × Fin n × Λ × Opn × Λ × Opn)
-
 /-- Position-binding experiment (Foundations Definition 16): the adversary wins
 if it opens the same commitment at the same position to two different symbols. -/
 def posBindingExp [DecidableEq Λ] (vc : VectorCommitment Λ n Ck Com Opn)
@@ -81,11 +61,6 @@ def posBindingExp [DecidableEq Λ] (vc : VectorCommitment Λ n Ck Com Opn)
 
 /-! ### Weak position-binding -/
 
-/-- A weak position-binding adversary: outputs a full vector, a position, and a
-symbol/opening pair. -/
-def WeakPosBindingAdv (Λ : Type) (n : ℕ) (Ck Opn : Type) :=
-  Ck → ProbComp ((Fin n → Λ) × Fin n × Λ × Opn)
-
 /-- Weak position-binding experiment: the adversary outputs a vector `v`, a
 position `i`, a symbol `x`, and an opening `τ`; it wins if `τ` opens the
 *honest* commitment to `v` at position `i` to a symbol `x ≠ v i`. -/
@@ -94,14 +69,6 @@ def weakPosBindingExp [DecidableEq Λ] (vc : VectorCommitment Λ n Ck Com Opn)
   let ck ← vc.setup
   let (v, i, x, τ) ← A ck
   return (decide (x ≠ v i) && vc.verify ck (vc.commit ck v) i x τ)
-
-/-- Reduction (an explicit PPT algorithm): a weak position-binding adversary
-becomes a position-binding adversary by committing to `v` honestly and opening
-position `i` honestly as the second symbol/opening pair. -/
-def WeakPosBindingAdv.toPosBindingAdv (vc : VectorCommitment Λ n Ck Com Opn)
-    (A : WeakPosBindingAdv Λ n Ck Opn) : PosBindingAdv Λ n Ck Com Opn := fun ck => do
-  let (v, i, x, τ) ← A ck
-  return (vc.commit ck v, i, x, τ, v i, vc.openAt ck v i)
 
 /-- Weak position-binding is implied by position-binding (given perfect
 completeness), via the reduction `WeakPosBindingAdv.toPosBindingAdv`: the
@@ -122,11 +89,6 @@ theorem weakPosBindingExp_le_posBindingExp [DecidableEq Λ]
 
 /-! ### Collision resistance of `commit` -/
 
-/-- A collision adversary: outputs two vectors, trying to make them collide
-under the (deterministic) `commit`. -/
-def CollisionAdv (Λ : Type) (n : ℕ) (Ck : Type) :=
-  Ck → ProbComp ((Fin n → Λ) × (Fin n → Λ))
-
 /-- Collision experiment: the adversary wins if it outputs two *distinct*
 vectors with the same commitment. Meaningful because `commit` is deterministic. -/
 def collisionExp [DecidableEq Λ] [DecidableEq Com] (vc : VectorCommitment Λ n Ck Com Opn)
@@ -134,20 +96,6 @@ def collisionExp [DecidableEq Λ] [DecidableEq Com] (vc : VectorCommitment Λ n 
   let ck ← vc.setup
   let (v, v') ← A ck
   return (decide (v ≠ v') && decide (vc.commit ck v = vc.commit ck v'))
-
-/-- Reduction (an explicit PPT algorithm): a collision adversary becomes a
-position-binding adversary by locating a position where the two vectors differ
-(`Fin.find`) and opening both honestly at that position. If the vectors do not
-differ the adversary has lost anyway and we output a dummy tuple. -/
-def CollisionAdv.toPosBindingAdv [NeZero n] [DecidableEq Λ]
-    (vc : VectorCommitment Λ n Ck Com Opn) (A : CollisionAdv Λ n Ck) :
-    PosBindingAdv Λ n Ck Com Opn := fun ck => do
-  let (v, v') ← A ck
-  if h : v = v' then
-    return (vc.commit ck v, 0, v 0, vc.openAt ck v 0, v 0, vc.openAt ck v 0)
-  else
-    let i := Fin.find (fun j => v j ≠ v' j) (Function.ne_iff.mp h)
-    return (vc.commit ck v, i, v i, vc.openAt ck v i, v' i, vc.openAt ck v' i)
 
 /-- Collision resistance of `commit` is implied by position-binding (given
 perfect completeness), via the reduction `CollisionAdv.toPosBindingAdv`: if

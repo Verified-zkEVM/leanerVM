@@ -2,6 +2,7 @@ import Common.Keccak
 import Common.Lemmas
 import VCVio.OracleComp.QueryTracking.LoggingOracle.Core
 import VCVio.OracleComp.QueryTracking.WriterCost
+import Statement.RandomPermutation
 
 /-!
 # Signature games in the random-permutation model
@@ -41,14 +42,6 @@ open scoped ENNReal
 namespace Common.SufCma
 
 /-! ## Digests as bit vectors -/
-
-/-- **The digest bytes as a bit vector**, little endian: byte `i` is bits `8 i … 8 i + 7`
-(`digestBitVec_extract`). -/
-def digestBitVec : KDigest ≃ BitVec 256 :=
-  (arrayVectorEquivFin UInt8 32).trans <|
-    (Equiv.arrowCongr (Equiv.refl _) uInt8EquivFin).trans <|
-      finFunctionFinEquiv.trans <| (finCongr (show 256 ^ 32 = 2 ^ 256 by norm_num)).trans
-        ⟨BitVec.ofFin, BitVec.toFin, fun _ ↦ rfl, fun _ ↦ rfl⟩
 
 /-- Bits `8 i … 8 i + 7` of a digest's bit vector are its byte `i`. -/
 theorem digestBitVec_symm_getElem (b : BitVec 256) (i : Fin 32) :
@@ -103,32 +96,11 @@ end Commute
 
 /-! ## The games -/
 
-/-- The oracles of the random-permutation model: coins, Keccak-256 `H`, `π` and `π⁻¹`. -/
-abbrev KSpec := dSpec (List UInt8) KDigest KState
-
 /-- The random oracle of the transfer: byte strings to Keccak-256 digests. -/
 abbrev KRom := unifSpec + roSpec (List UInt8) KDigest
 
-/-- A hash `List UInt8 → D`. -/
-abbrev HSpec (D : Type) := List UInt8 →ₒ D
-
 /-- Coins and the hash. -/
 abbrev World (D : Type) := unifSpec + HSpec D
-
-/-- **A signature scheme** with hash `H : List UInt8 → D`: a seed sampler, key generation from a
-seed, the signer answering a request `Req` with `Resp`, the verifier of a claimed forgery `F`, and
-the winning condition on the signing transcript and the forgery. -/
-structure Scheme (D Seed PK SK Req Resp F : Type) where
-  /-- Sample the secret seed. -/
-  sample : ProbComp Seed
-  /-- Generate the keys from the seed. -/
-  keygen : Seed → OracleComp (HSpec D) (PK × SK)
-  /-- Answer a signing request. -/
-  sign : SK → Req → OracleComp (HSpec D) Resp
-  /-- Verify a claimed forgery. -/
-  verify : PK → F → OracleComp (HSpec D) Bool
-  /-- The transcript and the forgery make a win (when the forgery verifies). -/
-  win : QueryLog (Req →ₒ Resp) → F → Bool
 
 variable {D Seed PK SK Req Resp F : Type}
 
@@ -165,43 +137,10 @@ noncomputable def romExperiment (S : Scheme D Seed PK SK Req Resp F)
 
 variable (e : KDigest ≃ D)
 
-/-- The hash as Keccak-256 read through `e`, in the random-permutation model. -/
-def hashK : QueryImpl (HSpec D) (OracleComp KSpec) :=
-  fun m ↦ e <$> (liftM (KSpec.query (.inr (.inl m))) : OracleComp KSpec KDigest)
-
-/-- The signing oracle in the random-permutation model. -/
-def signingOracleK (S : Scheme D Seed PK SK Req Resp F) (sk : SK) :
-    QueryImpl (Req →ₒ Resp) (WriterT (QueryLog (Req →ₒ Resp)) (OracleComp KSpec)) :=
-  QueryImpl.withLogging fun r ↦ simulateQ (hashK e) (S.sign sk r)
-
-/-- **The RPM game**: the game with `H` Keccak-256 over the permutation, read through `e`, and
-an adversary that also queries Keccak-256, `π` and `π⁻¹`. -/
-noncomputable def rpmGame (S : Scheme D Seed PK SK Req Resp F)
-    (main : PK → OracleComp (KSpec + (Req →ₒ Resp)) F) : OracleComp KSpec Bool := do
-  let seed ← liftM S.sample
-  let (pk, sk) ← simulateQ (hashK e) (S.keygen seed)
-  let ((forgery, log) : F × QueryLog (Req →ₒ Resp)) ←
-    (simulateQ (QueryImpl.ofLift KSpec (WriterT (QueryLog (Req →ₒ Resp)) (OracleComp KSpec)) +
-      signingOracleK e S sk) (main pk)).run
-  let verified ← simulateQ (hashK e) (S.verify pk forgery)
-  return S.win log forgery && verified
-
-/-- **The RPM experiment**: the RPM game against the lazily sampled random permutation. -/
-noncomputable def rpmExperiment (S : Scheme D Seed PK SK Req Resp F)
-    (main : PK → OracleComp (KSpec + (Req →ₒ Resp)) F) : ProbComp Bool :=
-  realGame keccakPadding KState.zero (rpmGame e S main)
-
 /-- Calls of `H`, `π` and `π⁻¹`, one each. -/
 def oracleCalls : KSpec.Domain → ℕ
   | .inl _ => 0
   | .inr _ => 1
-
-/-- **Calls of the permutation**: a hash of `n` bytes costs `⌊n / 136⌋ + 1` (one per block of the
-padded message), a call of `π` or `π⁻¹` one. -/
-def permCalls : KSpec.Domain → ℕ
-  | .inl _ => 0
-  | .inr (.inl m) => m.length / 136 + 1
-  | .inr (.inr _) => 1
 
 /-- The permutation calls are the cost of the transfer. -/
 theorem permCalls_eq : permCalls = queryCost (Dg := KDigest) (St := KState) keccakPadding := by

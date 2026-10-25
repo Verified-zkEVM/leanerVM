@@ -4,7 +4,8 @@ import LeanVM.Guest.Interp
 import LeanVM.Guest.Renumber
 import LeanVM.Guest.Expand
 import LeanVM.Guest.Data.Source
-import LeanVM.Guest.Data.Bytecode
+import Statement.Data.Bytecode
+import LeanVM.Guest.Code
 
 /-!
 # `guest-diff`: the guest's mirror and hint generator against Rust executions

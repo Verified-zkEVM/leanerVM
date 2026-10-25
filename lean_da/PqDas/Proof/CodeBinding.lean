@@ -39,75 +39,13 @@ import PqDas.Target.Scheme
 import PqDas.Proof.CommittedSoundness.Defs
 import PqDas.VcvioExtras
 import VCVio.OracleComp.EvalDist.Sum
+import Statement.LeanDa
 
 open OracleComp OracleSpec ENNReal
 
 namespace PqDas
 
 variable {Γ Λ : Type} {k n : ℕ} {CkVC ComVC Opn L Crs Proof : Type}
-
-/-- The adversary's continuation shared by the reductions below: run the
-code-binding adversary, then query the oracle once more on the commitment it
-output (a cache hit if the adversary already queried it), obtaining the check
-randomness that the scheme's verification would use. -/
-def runWithChallenge
-    (A : ErasureCodeCommitment.CodeBindingAdv (OracleComp (unifSpec + (ComVC →ₒ L)))
-      Λ n (CkVC × Crs) (ComVC × Proof) Opn)
-    (ck : CkVC × Crs) :
-    OracleComp (unifSpec + (ComVC →ₒ L))
-      (((ComVC × Proof) × List (Fin n × Λ × Opn)) × L) := do
-  let out ← A ck
-  let l ← HasQuery.query (spec := (ComVC →ₒ L)) out.1.1
-  return (out, l)
-
-/-- Reduction to knowledge soundness (an explicit PPT algorithm): sample the
-vector-commitment key, simulate the random-oracle world for the code-binding
-adversary, and output the statement `(ckVC, comVC, l)` together with the
-adversary's proof. -/
-noncomputable def ksReduction [DecidableEq ComVC] [SampleableType L]
-    (vc : VectorCommitment Λ n CkVC ComVC Opn)
-    (A : ErasureCodeCommitment.CodeBindingAdv (OracleComp (unifSpec + (ComVC →ₒ L)))
-      Λ n (CkVC × Crs) (ComVC × Proof) Opn) :
-    Nark.KnowledgeSoundnessAdv (CkVC × ComVC × L) Crs Proof := fun crs => do
-  let ckVC ← vc.setup
-  let ((com, _), l) ← simulateRom (runWithChallenge A (ckVC, crs))
-  return ((ckVC, com.1, l), com.2)
-
-/-- Reduction to the non-interactive committed soundness game (an explicit PPT
-algorithm): sample the crs, relay the code-binding adversary's oracle access,
-and output the vector-commitment part of its commitment together with the
-extracted witness. -/
-noncomputable def csReduction [DecidableEq ComVC] [SampleableType L]
-    {vc : VectorCommitment Λ n CkVC ComVC Opn} {chk : CodeChecker Λ n L}
-    (ps : Nark (CkVC × ComVC × L) (Fin n → Λ) Crs Proof (schemeRel vc chk))
-    (ext : Nark.Extractor (CkVC × ComVC × L) (Fin n → Λ) Crs Proof)
-    (A : ErasureCodeCommitment.CodeBindingAdv (OracleComp (unifSpec + (ComVC →ₒ L)))
-      Λ n (CkVC × Crs) (ComVC × Proof) Opn) :
-    NiCsAdv Λ n CkVC ComVC L := fun ckVC => do
-  let crs ← liftM ps.setup
-  let (com, _) ← A (ckVC, crs)
-  let l ← HasQuery.query (spec := (ComVC →ₒ L)) com.1
-  return (com.1, ext crs (ckVC, com.1, l) com.2)
-
-/-- Reduction to weak position-binding (an explicit PPT algorithm): sample the
-crs, simulate the random-oracle world for the code-binding adversary, extract
-the witness `c` from its proof, and search its openings for one whose symbol
-disagrees with `c`. If none disagrees the reduction has lost anyway and
-outputs a dummy tuple. -/
-noncomputable def wpbReduction [NeZero n] [DecidableEq Λ] [DecidableEq ComVC]
-    [SampleableType L] [Inhabited Opn]
-    {vc : VectorCommitment Λ n CkVC ComVC Opn} {chk : CodeChecker Λ n L}
-    (ps : Nark (CkVC × ComVC × L) (Fin n → Λ) Crs Proof (schemeRel vc chk))
-    (ext : Nark.Extractor (CkVC × ComVC × L) (Fin n → Λ) Crs Proof)
-    (A : ErasureCodeCommitment.CodeBindingAdv (OracleComp (unifSpec + (ComVC →ₒ L)))
-      Λ n (CkVC × Crs) (ComVC × Proof) Opn) :
-    VectorCommitment.WeakPosBindingAdv Λ n CkVC Opn := fun ckVC => do
-  let crs ← ps.setup
-  let ((com, openings), l) ← simulateRom (runWithChallenge A (ckVC, crs))
-  let c := ext crs (ckVC, com.1, l) com.2
-  match openings.find? (fun p => decide (p.2.1 ≠ c p.1)) with
-  | some p => return (c, p.1, p.2.1, p.2.2)
-  | none => return (c, 0, c 0, default)
 
 /-! ### Proof of code-binding
 

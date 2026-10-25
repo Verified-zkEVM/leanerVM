@@ -137,14 +137,8 @@ every seed, statement `s` and witness `w` with `NodeRel`, within the deployed li
 where the guest divides, holding no raw leanXMSS or leanSPHINCS signature and no blob directly,
 with at most `2048` declared claims, coverage slots and children's claims, there is a valid
 execution of the guest on the statement's digest of committed size in `[2^22, 2^28]`. -/
-theorem guest_complete_recursion (seed : Digest) (s : NodeStatement) (w : NodeWitness)
-    (hrel : NodeRel bytecode seed s w) (hlim : Limits bytecode s w)
-    (hcap : CapsAgree bytecode seed w) (hnz : NoZeroChallenge bytecode seed w)
-    (hx : (work s w).rawXmss = 0) (hs : (work s w).rawSphincs = 0) (hd : (work s w).rawDa = 0)
-    (hdecl : (work s w).declared ≤ 2048) (hcov : (work s w).coverage ≤ 2048)
-    (hcc : (work s w).childClaims ≤ 2048) :
-    ∃ t : Trace guest, ValidExecution guest (publicInputOf (statementDigest seed s)) t ∧
-      2 ^ 22 ≤ t.committedSize ∧ t.committedSize ≤ 2 ^ 28 := by
+theorem guest_complete_recursion : GuestCompleteRecursion := by
+  intro seed s w hrel hlim hcap hnz hx hs hd hdecl hcov hcc
   refine guest_complete_numeric seed s w hrel hlim hcap hnz (recursion_size_le _ hx hs hd ?_ hdecl
     hcov hcc ?_ ?_)
   · simp only [work, List.length_eq_zero_iff] at hd ⊢
@@ -152,20 +146,13 @@ theorem guest_complete_recursion (seed : Digest) (s : NodeStatement) (w : NodeWi
   · simpa [work] using hlim.children
   · simpa [work] using hlim.children
 
-
 /-- **Every leaf of at most `2048` raw signatures has a valid execution of the guest**: for every
 seed, statement `s` and witness `w` with `NodeRel`, within the deployed limits, with no child and
 no blob held directly, at most `2048` raw leanXMSS and leanSPHINCS signatures together and at most
 `2048` declared claims and coverage slots, there is a valid execution of the guest on the
 statement's digest of committed size in `[2^22, 2^28]`. -/
-theorem guest_complete_leaf (seed : Digest) (s : NodeStatement) (w : NodeWitness)
-    (hrel : NodeRel bytecode seed s w) (hlim : Limits bytecode s w)
-    (hcap : CapsAgree bytecode seed w) (hnz : NoZeroChallenge bytecode seed w)
-    (hch : w.children = []) (hd : (work s w).rawDa = 0)
-    (hxs : (work s w).rawXmss + (work s w).rawSphincs ≤ 2048)
-    (hdecl : (work s w).declared ≤ 2048) (hcov : (work s w).coverage ≤ 2048) :
-    ∃ t : Trace guest, ValidExecution guest (publicInputOf (statementDigest seed s)) t ∧
-      2 ^ 22 ≤ t.committedSize ∧ t.committedSize ≤ 2 ^ 28 := by
+theorem guest_complete_leaf : GuestCompleteLeaf := by
+  intro seed s w hrel hlim hcap hnz hch hd hxs hdecl hcov
   refine guest_complete_numeric seed s w hrel hlim hcap hnz (leaf_size_le _ hxs hd ?_ hdecl hcov
     ?_ ?_ ?_)
   · simp only [work, List.length_eq_zero_iff] at hd ⊢

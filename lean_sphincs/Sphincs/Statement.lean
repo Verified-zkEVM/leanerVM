@@ -2,6 +2,7 @@ module
 
 public import Sphincs.Randomized
 public import VCVio.OracleComp.QueryTracking.WriterCost
+public import Statement.LeanSphincs
 
 /-!
 The SUF-CMA experiment, adapted from leanVM b7a107256 to pruning: forgeries, signing transcripts and
@@ -17,30 +18,7 @@ namespace Sphincs
 
 @[expose] public section
 
-structure Forgery where
-  message : Message
-  signature : Signature
-deriving DecidableEq
-
-abbrev SigningSpec := Message →ₒ Option Signature
-
 variable [Params]
-
-namespace SigningTranscript
-
-def Valid (log : QueryLog SigningSpec) : Prop := log.length ≤ signatureLimit
-
-instance (log : QueryLog SigningSpec) : Decidable (Valid log) :=
-  inferInstanceAs (Decidable (log.length ≤ signatureLimit))
-
-def Contains (log : QueryLog SigningSpec) (forgery : Forgery) : Prop :=
-  ∃ entry ∈ log, entry.1 = forgery.message ∧ entry.2 = some forgery.signature
-
-instance (log : QueryLog SigningSpec) (forgery : Forgery) : Decidable (Contains log forgery) :=
-  inferInstanceAs
-    (Decidable (∃ entry ∈ log, entry.1 = forgery.message ∧ entry.2 = some forgery.signature))
-
-end SigningTranscript
 
 namespace Security
 

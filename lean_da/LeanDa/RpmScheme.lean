@@ -1,6 +1,7 @@
 import LeanDa.Merkle
 import Common.Keccak
 import Common.Lemmas
+import Statement.LeanDa
 
 /-!
 # LeanDA's hashing and challenges over a permutation oracle
@@ -33,13 +34,6 @@ namespace LeanDa
 
 /-! ## Lanes and bytes -/
 
-/-- **A lane's bytes**, little endian. -/
-def laneBytes : K ≃ Vector UInt8 8 :=
-  BF64.equivFin.trans <| (finCongr (show 2 ^ 64 = 256 ^ 8 by norm_num)).trans <|
-    finFunctionFinEquiv.symm.trans <|
-      (Equiv.arrowCongr (Equiv.refl _) Common.uInt8EquivFin.symm).trans
-        (arrayVectorEquivFin UInt8 8).symm
-
 /-- A lane's bytes are the crate's (`kBytes`, `as_bytes`). -/
 theorem laneBytes_toList (a : K) : (laneBytes a).toList = kBytes a := by
   apply List.ext_getElem
@@ -53,43 +47,6 @@ theorem laneBytes_toList (a : K) : (laneBytes a).toList = kBytes a := by
   rw [finFunctionFinEquiv_symm_apply_val]
   simp only [Nat.toUInt8_eq, UInt8.toNat_ofNat', Nat.shiftRight_eq_div_pow, pow_mul]
   rfl
-
-/-- **The permutation's state of 25 lanes**: lane `i` at bytes `8 i … 8 i + 7`. -/
-def lanesToState (L : Lanes) : KState := KState.ofBytes (L.toList.flatMap fun a ↦ (laneBytes a).toList)
-
-/-- **The lanes of a permutation's state.** -/
-def stateToLanes (s : KState) : Lanes :=
-  Vector.ofFn fun i : Fin 25 ↦ laneBytes.symm (Vector.ofFn fun j : Fin 8 ↦ s.toBytes.getD (8 * i + j) 0)
-
-/-- **The permutation on lanes** from a permutation of the state, in any monad. -/
-def lanePerm {m : Type → Type} [Monad m] (π : KState → m KState) (L : Lanes) : m Lanes :=
-  stateToLanes <$> π (lanesToState L)
-
-/-- Byte `p` of lanes of eight bytes each is byte `p % 8` of lane `p / 8`. -/
-theorem getD_flatMap_laneBytes (l : List K) (p : ℕ) :
-    (l.flatMap fun a ↦ (laneBytes a).toList).getD p 0 =
-      if h : p / 8 < l.length then (laneBytes l[p / 8])[p % 8] else 0 := by
-  induction l generalizing p with
-  | nil => simp
-  | cons a l ih =>
-    rw [List.flatMap_cons]
-    by_cases hp : p < 8
-    · rw [List.getD_eq_getElem?_getD, List.getElem?_append_left (by simpa using hp)]
-      have h0 : p / 8 = 0 := by omega
-      simp [h0, Nat.mod_eq_of_lt hp, Vector.getElem?_eq_getElem hp]
-    · rw [List.getD_eq_getElem?_getD, List.getElem?_append_right (by simp; omega), ← List.getD_eq_getElem?_getD]
-      simp only [Vector.length_toList]
-      rw [ih (p - 8)]
-      have h1 : (p - 8) / 8 = p / 8 - 1 := by omega
-      have h2 : (p - 8) % 8 = p % 8 := by omega
-      simp only [h1, h2, List.length_cons]
-      by_cases hl : p / 8 - 1 < l.length
-      · have h3 : p / 8 < l.length + 1 := by omega
-        simp only [hl, h3, ↓reduceDIte]
-        rw [List.getElem_cons (by omega)]
-        simp [show p / 8 ≠ 0 by omega]
-      · have h3 : ¬ p / 8 < l.length + 1 := by omega
-        simp [hl, h3]
 
 theorem toBytes_getD_cap (s : KState) (j : Fin 64) : s.toBytes.getD (136 + j) 0 = s.2[j] := by
   rw [KState.toBytes, List.getD_eq_getElem?_getD,
@@ -136,81 +93,6 @@ theorem lanesToState_keep {L : Lanes} {y : KState}
 
 /-! ## The challenges and the openings' verification, over oracles -/
 
-section Monadic
-
-variable {m : Type → Type} [Monad m] (H : List UInt8 → m Digest) (P : Lanes → m Lanes)
-
-/-- The lanes a duplexing permutes: the waiting scalars over the rate, the rest of the rate zero,
-the capacity kept (`Sponge.duplex`). -/
-def duplexInput (s : Sponge) : Lanes :=
-  Vector.ofFn fun i : Fin 25 ↦
-    if (i : ℕ) < rateLanes then (rateWords s.pending).getD i 0 else s.state[i]
-
-/-- The lanes of a fresh sponge (`Sponge.new`). -/
-def newInput (iv publicInput : Digest) : Lanes :=
-  Vector.ofFn fun i : Fin 25 ↦
-    if (i : ℕ) < 4 then word iv i else if (i : ℕ) < 8 then word publicInput (i - 4) else 0
-
-/-- `Sponge.new` over an oracle. -/
-def Sponge.newM (iv publicInput : Digest) : m Sponge := do
-  let state ← P (newInput iv publicInput)
-  pure ⟨state, []⟩
-
-/-- `Sponge.fromLabel` over oracles. -/
-def Sponge.fromLabelM (label : List UInt8) : m Sponge := do
-  let iv ← H label
-  Sponge.newM P iv (Vector.replicate 32 0)
-
-/-- `Sponge.duplex` over an oracle. -/
-def Sponge.duplexM (s : Sponge) : m Sponge := do
-  let state ← P (duplexInput s)
-  pure ⟨state, []⟩
-
-/-- `Sponge.absorb` over an oracle. -/
-def Sponge.absorbM (s : Sponge) (x : E) (tag : K) : m Sponge :=
-  (if s.pending.length = rateScalars then Sponge.duplexM P s else pure s) >>= fun s ↦
-    pure ⟨s.state, s.pending ++ [(x, tag)]⟩
-
-/-- `Sponge.observe` over an oracle. -/
-def Sponge.observeM (s : Sponge) (x : E) : m Sponge := Sponge.absorbM P s x dsObserve
-
-/-- `Sponge.sample` over an oracle. -/
-def Sponge.sampleM (s : Sponge) : m (E × Sponge) := do
-  let s ← Sponge.duplexM P s
-  pure (ofLimbs s.state[0] s.state[1] s.state[2], s)
-
-/-- `Sponge.samples` over an oracle. -/
-def Sponge.samplesM : ℕ → Sponge → m (List E)
-  | 0, _ => pure []
-  | n + 1, s => do
-    let (z, s) ← Sponge.sampleM P s
-    let zs ← Sponge.samplesM n s
-    pure (z :: zs)
-
-/-- **The challenges of a root** (`membershipChallenges`) over oracles. -/
-def membershipChallengesM (root : Digest) : m (List E) := do
-  let s ← Sponge.fromLabelM H P label
-  let s ← Sponge.observeM P s (ofLimbs (word root 0) (word root 1) 0)
-  let s ← Sponge.observeM P s (ofLimbs (word root 2) (word root 3) 0)
-  Sponge.samplesM P logK s
-
-/-- `walk` over an oracle. -/
-def walkM : ℕ → Digest → List Digest → m Digest
-  | _, node, [] => pure node
-  | idx, node, s :: rest => do
-    let d ← H (if idx % 2 = 0 then pairBytes node s else pairBytes s node)
-    walkM (idx / 2) d rest
-
-/-- **Verification of a cell opening** (`verifyCell`) over an oracle: every hash of the climb is
-computed, then the checks. -/
-def verifyCellM (r : ℕ) (com : Digest) (p : Fin (r * 128)) (x : Cell) (τ : Opening) : m Bool := do
-  let d ← H (cellBytes x)
-  let w ← walkM H (colIndex p) d τ.path
-  let root ← H (pairBytes τ.rowRoot w)
-  pure (decide (τ.path.length = 7 + logPad r) && decide (root = com))
-
-end Monadic
-
 section Pure
 
 variable (H : List UInt8 → Digest) (P : Lanes → Lanes)
@@ -249,17 +131,6 @@ theorem verifyCellM_id (r : ℕ) (com : Digest) (p : Fin (r * 128)) (x : Cell) (
 end Pure
 
 /-! ## The duplex discipline -/
-
-/-- The two-oracle random-oracle model's oracles: coins, `H` and the direct calls `F`. -/
-abbrev Rom2 := unifSpec + hfSpec (List UInt8) KDigest KState
-
-/-- The hash `H` in the two-oracle model. -/
-abbrev hR (a : List UInt8) : OracleComp Rom2 Digest :=
-  hQuery (Msg := List UInt8) (Dg := KDigest) (E := KRest) (C := KCap) a
-
-/-- The direct calls `F`, on lanes. -/
-abbrev pR (L : Lanes) : OracleComp Rom2 Lanes :=
-  lanePerm (fun x ↦ fQuery (Msg := List UInt8) (Dg := KDigest) x) L
 
 /-- **The duplex discipline with a postcondition**: along every run, every direct call is
 admissible after the earlier answers (`Duplex`), and every result satisfies `post` with the

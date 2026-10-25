@@ -8,8 +8,16 @@
 module
 
 public import LeanVM.Guest.Value.KeccakSponge
-public import LeanVM.Spec.Node
-public import LeanVM.Spec.Da
+public import Statement.LeanVmGuest
+public import LeanXmss.Scheme
+public import Sphincs.Scheme
+public import LeanVM.Fast.Schemes
+public import LeanDa.Scheme
+public import LeanVM.Fast.Da
+public import LeanVM.Fast.Keccak
+public import LeanVM.Fast.CubicExt
+public import LeanVM.Fast.FieldWords
+public import LeanVM.Facts.Verifier
 
 /-!
 # Baked Keccak constants

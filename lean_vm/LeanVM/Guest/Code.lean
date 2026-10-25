@@ -8,6 +8,7 @@
 module
 
 public import LeanVM.Semantics.Lemmas
+public import Statement.LeanIsa
 
 /-!
 # Offset-form bytecode
@@ -15,7 +16,7 @@ public import LeanVM.Semantics.Lemmas
 The compiler's `Op` (`crates/leanvm_core/src/cpu/isa.rs`) names a frame cell by its offset `o`,
 whose bytecode slot is `g^o` (`crates/leanvm_core/src/cpu/layout.rs:288-367`), and holds a `SET`
 immediate as three `u64` limbs. `OInstr` is that form, and `OInstr.toInstr` its meaning in
-`LeanVM.Spec.Isa`: the kernel never evaluates a power of `g`, which costs one multiplication per
+`Statement.LeanIsa`: the kernel never evaluates a power of `g`, which costs one multiplication per
 unit of the exponent, because every offset stays a `ℕ` until `toInstr` wraps it in `gpow`.
 
 A compiled function (`CompiledFn`) is its name, entry pc, length and code, the code in chunks of
@@ -38,42 +39,6 @@ open LeanVM.Parameters LeanVM.Semantics
 
 /-! ## Instructions -/
 
-/-- An instruction with frame offsets as `ℕ` and a `SET` immediate as three limbs. -/
-inductive OInstr
-  /-- `fp[c] = fp[a] + fp[b]`. -/
-  | xor (a b c : ℕ)
-  /-- `fp[c] = fp[a] · fp[b]`. -/
-  | mul (a b c : ℕ)
-  /-- `fp[o] = k0 + k1·y + k2·y²`, each limb a 64-bit word. -/
-  | set (o k0 k1 k2 : ℕ)
-  /-- `*(fp[o1]·g^o2)` is the source `mode` selects, `fp[o3]` for `.cell`. -/
-  | deref (o1 o2 o3 : ℕ) (mode : DerefMode)
-  /-- If `fp[oc] ≠ 0`, `(pc, fp) := (fp[od], fp[of])`. -/
-  | jump (oc od of : ℕ)
-  /-- `KECCAK`: the thirteen cells `fp[m0], …, fp[m3]`, `fp[tail + k]` (`k < 4`), `fp[b8]`,
-  `fp[cap + k]` (`k < 4`), in that order (`keccakInOff`), hold a Keccak state in the layout
-  `inOdd`, and the thirteen cells `fp[out + k]` (`k < 13`) hold its Keccak-f[1600] in the layout
-  `outOdd` (`KeccakCells`; `Op::Keccak`, `crates/leanvm_core/src/cpu/isa.rs`). -/
-  | keccak (m0 m1 m2 m3 tail b8 cap out : ℕ) (inOdd outOdd : Bool)
-  deriving DecidableEq, Repr
-
-/-- The padding instruction, `SET fp[0] = 0`. -/
-def OInstr.pad : OInstr := .set 0 0 0 0
-
-/-- The word of a `SET` immediate's limbs. -/
-def OInstr.imm (k0 k1 k2 : ℕ) : E := E.ofLimbs (K.ofBits k0) (K.ofBits k1) (K.ofBits k2)
-
-/-- The instruction of `LeanVM.Spec.Isa` an offset-form instruction denotes. -/
-def OInstr.toInstr : OInstr → Instr
-  | .xor a b c => .xor (gpow a) (gpow b) (gpow c)
-  | .mul a b c => .mulNative (gpow a) (gpow b) (gpow c)
-  | .set o k0 k1 k2 => .setConstant (gpow o) (OInstr.imm k0 k1 k2)
-  | .deref o1 o2 o3 mode => .deref (gpow o1) (gpow o2) (gpow o3) mode
-  | .jump oc od of => .jump (gpow oc) (gpow od) (gpow of)
-  | .keccak m0 m1 m2 m3 tail b8 cap out inOdd outOdd =>
-      .keccak ![gpow m0, gpow m1, gpow m2, gpow m3] (gpow tail) (gpow b8) (gpow cap) (gpow out)
-        inOdd outOdd
-
 /-- The frame offset of read cell `c < 13` of `OInstr.keccak m0 m1 m2 m3 tail b8 cap _`:
 `m0, …, m3`, then `tail + k` (`k < 4`), `b8`, then `cap + k` (`k < 4`) (`keccakInOffset` in offset
 form, `keccakInOffset_gpow`). -/
@@ -95,32 +60,6 @@ def OInstr.isJump : OInstr → Bool
 
 /-! ## Compiled functions -/
 
-/-- The instructions per chunk of a compiled function's code. -/
-def chunkSize : ℕ := 2048
-
-/-- Element `n` of a list, `d` past its end; structural, for the kernel. -/
-def nth {α : Type} : List α → ℕ → α → α
-  | [], _, d => d
-  | a :: _, 0, _ => a
-  | _ :: as, n + 1, d => nth as n d
-
-/-- A compiled function: its name, entry pc, number of instructions, and code in chunks. -/
-structure CompiledFn where
-  /-- The compiler's name, `f__L…` for a specialization. -/
-  name : String
-  /-- The pc of its first instruction. -/
-  entry : ℕ
-  /-- The number of instructions. -/
-  len : ℕ
-  /-- The code, `chunkSize` instructions per chunk but the last. -/
-  chunks : List (List OInstr)
-
-/-- Instruction `i` of code in chunks of `C`, the padding past the end. -/
-def chunkAt (C : ℕ) (cs : List (List OInstr)) (i : ℕ) : OInstr := nth (nth cs (i / C) []) (i % C) .pad
-
-/-- The instruction at offset `i`, the padding past the end. -/
-def CompiledFn.instrAt (f : CompiledFn) (i : ℕ) : OInstr := chunkAt chunkSize f.chunks i
-
 /-- The code as one list. -/
 def CompiledFn.code (f : CompiledFn) : List OInstr := f.chunks.flatten
 
@@ -135,19 +74,10 @@ def CompiledFn.WellChunked (f : CompiledFn) : Prop := chunked chunkSize f.chunks
 
 /-! ## Assembly -/
 
-/-- The instruction at pc `pc` of the functions `fns`, the padding outside them. -/
-def lookup : List CompiledFn → ℕ → OInstr
-  | [], _ => .pad
-  | f :: fs, pc => if pc < f.entry + f.len then f.instrAt (pc - f.entry) else lookup fs pc
-
 /-- The functions are laid out one after another from pc `s`, ending at pc `e`. -/
 def consecutive : ℕ → List CompiledFn → ℕ → Bool
   | s, [], e => s == e
   | s, f :: fs, e => f.entry == s && consecutive (s + f.len) fs e
-
-/-- The program of `2^logSize` slots holding the functions `fns`, padded. -/
-def assemble (fns : List CompiledFn) (logSize : ℕ) (h : logSize ≤ maxLogBytecode) : Program :=
-  ⟨logSize, h, fun i ↦ (lookup fns i).toInstr⟩
 
 /-- `assemble` with its instructions computed once, into an array: the same program
 (`assembleArray_eq`), for compiled code that reads every slot (`bytecodeWords` reads each sixteen

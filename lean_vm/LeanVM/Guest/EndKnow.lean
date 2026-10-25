@@ -3,7 +3,7 @@
 
   The aggregation guest's soundness, its witness named: the decoder that reads a statement and
   its witness off a valid execution's memory, and the statement `GuestKnowledge` of
-  `LeanVM/Spec/Guest.lean` for the deployed bytecode, from B2 and B1's statements
+  `Statement/LeanVmGuest.lean` for the deployed bytecode, from B2 and B1's statements
   (`AggregateSound`, in the random-permutation model, is composed in `LeanVM/Guest/EndRpm.lean`).
 -/
 

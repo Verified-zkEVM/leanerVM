@@ -1,5 +1,6 @@
 import LeanVM.Guest.Data.Source
-import LeanVM.Guest.Data.Bytecode
+import Statement.Data.Bytecode
+import LeanVM.Guest.Code
 import LeanVM.Guest.Expand
 import LeanVM.Guest.Renumber
 import LeanVM.Guest.Check
@@ -1179,7 +1180,6 @@ the checker does, every instruction passed justified by what holds on the honest
 on the path (a core atom on the path, a fixed cell, a callee frame), and the sharing of cells
 by values checked. It finds the call sites and table jumps `Data/Plumb*.lean` lists. -/
 
-
 namespace GuestCert
 namespace Cpl
 
@@ -1214,7 +1214,6 @@ structure Ctx where
   bitsOf : ℕ → ℕ
   /-- The selectors of the `match`es whose arms are counted separately. -/
   keyed : Std.HashSet ℕ := {}
-
 
 structure St where
   book : Std.HashMap ℕ (List Core.Atom) := {}
@@ -1795,7 +1794,6 @@ def plumbOf (f : CompiledFn) (F : GFacts) (vcells : Std.HashSet ℕ) (pows : Std
     | _ => pure ()
   return (m, errs)
 
-
 end GuestCert
 
 /-! ## The sharing check's snapshots
@@ -2276,7 +2274,6 @@ noncomputable def jtTrie : Trie ℕ := {jt}
 
 def checkedDir : System.FilePath := "LeanVM/Guest/Checked"
 
-
 /-- The groups of a window that is one `match` of at least `4 · armGroup` straight-line arms over
 more than `splitSize` instructions: `(lo, hi, ranges)`, arms `lo ≤ k < hi` and arm `0`, the value
 ranges of the window's cells they name (offsets in the window), each value the group names in a
@@ -2655,7 +2652,6 @@ modules (`modCost`).
 
 /-- The most a part may cost (instructions passed, plus `stmtCost` per statement). -/
 def partCost : ℕ := 3000
-
 
 /-- What a statement costs the walk besides its instructions. -/
 def stmtCost : ℕ := 2

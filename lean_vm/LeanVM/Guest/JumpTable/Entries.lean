@@ -7,7 +7,8 @@
 module
 
 public import LeanVM.Guest.Pow
-public import LeanVM.Guest.Data.Bytecode00
+public import Statement.Data.Bytecode00
+public import LeanVM.Guest.Code
 
 /-!
 # The entries of the jump table

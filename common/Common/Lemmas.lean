@@ -1,5 +1,6 @@
 import Common.Prob
 import Common.Sponge
+import Statement.RandomPermutation
 
 /-!
 # Lemmas for games built on the transfer
@@ -12,13 +13,6 @@ permutation calls of a Keccak-256 hash (`keccakPad_length`).
 open OracleComp OracleSpec
 
 namespace Common
-
-/-- A byte as a residue. -/
-def uInt8EquivFin : UInt8 ≃ Fin 256 where
-  toFun b := b.toFin
-  invFun f := UInt8.ofFin f
-  left_inv _ := rfl
-  right_inv _ := rfl
 
 /-! ## Weight bounds through simulations -/
 

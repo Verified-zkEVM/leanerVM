@@ -19,7 +19,7 @@ proof is the theorem `…_holds` of the family's modules.
 
 | function | G | core | meaning |
 | --- | --- | --- | --- |
-| `da_verify` | 3920-3982 | `core25` | `Da.Witness.Opens` (`Spec/Da.lean`): a matrix of `1..1024` codewords committed to the returned root (`LeanDa.commitCodewords`), orthogonal to a vector of the returned digest (`LeanDa.vectorDigest`) |
+| `da_verify` | 3920-3982 | `core25` | `Da.Witness.Opens` (`Statement/LeanVmGuest.lean`): a matrix of `1..1024` codewords committed to the returned root (`LeanDa.commitCodewords`), orthogonal to a vector of the returned digest (`LeanDa.vectorDigest`) |
 | `da_row_shape` | 3985-3994 | `core26` | `n_blob = g^r`, `1 ≤ r ≤ 1024`, the padded count `2^L = LeanDa.nPad r` |
 | `da_verify_cell` | 4019-4030 | `core27` | one cell's digest (`LeanDa.listCellDigest`) and its dot product with the column's weights |
 | `da_levels__L{n}_L{k}` | 4033-4041 | `core364`, `core367-376` | the Merkle root over `n = 2^k` leaves of two cells (`LeanDa.treeRoot`) |

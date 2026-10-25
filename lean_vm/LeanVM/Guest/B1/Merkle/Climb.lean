@@ -14,7 +14,7 @@ public import LeanVM.Protocol.KeccakHash
 # A query below the cap reaches the root (TRIAGE G #33, #34)
 
 * `cellsBytes_digestScalars`: a digest's two cells are its 32 bytes; `hashesPair_digests`:
-  `HashesPair` is `hashPair` (`Spec/Keccak.lean`) of the digests the cells encode.
+  `HashesPair` is `hashPair` (`Statement/RandomPermutation.lean`) of the digests the cells encode.
 * `climbD_cons`, `climbD_append`: `climb` (V:492) at the deployed hash, one level and a path in
   two parts.
 * `cap_climb`: under `verify_merkle_cap`'s meaning, a digest written at the cap's leaf `p` whose

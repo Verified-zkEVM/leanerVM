@@ -1,4 +1,5 @@
 import Common.Model
+import Statement.RandomPermutation
 
 /-!
 # The sponge construction and Keccak-256
@@ -32,28 +33,9 @@ namespace Common
 
 /-! ## Exclusive-or with cancellation -/
 
-/-- A type with an exclusive-or such that `a ^^^ (a ^^^ b) = b`: absorbing a block into a state
-is invertible, and the block is recovered from the states before and after. -/
-class XorCancel (α : Type) extends XorOp α where
-  /-- XOR with `a` is an involution. -/
-  xor_cancel : ∀ a b : α, a ^^^ (a ^^^ b) = b
-
-/-- Byte vectors XOR bytewise. -/
-instance (n : ℕ) : XorCancel (Vector UInt8 n) where
-  xor a b := Vector.zipWith (· ^^^ ·) a b
-  xor_cancel a b := by
-    apply Vector.ext
-    intro i hi
-    change (Vector.zipWith (· ^^^ ·) a (Vector.zipWith (· ^^^ ·) a b))[i] = b[i]
-    simp only [Vector.getElem_zipWith]
-    rw [← UInt8.xor_assoc, UInt8.xor_self, UInt8.zero_xor]
-
 /-! ## The abstract sponge -/
 
 variable {Dg E C : Type}
-
-/-- The state of a sponge with digest part `Dg`, rest of the rate `E` and capacity `C`. -/
-abbrev SpState (Dg E C : Type) := (Dg × E) × C
 
 /-- The rate part of a state. -/
 abbrev SpState.rate (s : SpState Dg E C) : Dg × E := s.1
@@ -61,15 +43,9 @@ abbrev SpState.rate (s : SpState Dg E C) : Dg × E := s.1
 /-- The capacity part of a state. -/
 abbrev SpState.cap (s : SpState Dg E C) : C := s.2
 
-/-- The digest part of a state: the first component of the rate. -/
-abbrev SpState.out (s : SpState Dg E C) : Dg := s.1.1
-
 section Xor
 
 variable [XorCancel Dg] [XorCancel E]
-
-/-- XOR on the rate, componentwise. -/
-def rxor (a b : Dg × E) : Dg × E := (a.1 ^^^ b.1, a.2 ^^^ b.2)
 
 /-- XOR on the rate is an involution in its second argument. -/
 theorem rxor_cancel (a b : Dg × E) : rxor a (rxor a b) = b := by
@@ -78,12 +54,6 @@ theorem rxor_cancel (a b : Dg × E) : rxor a (rxor a b) = b := by
 /-- XOR on the rate is injective in its second argument. -/
 theorem rxor_injective (a : Dg × E) : Function.Injective (rxor a) := fun b b' h ↦ by
   rw [← rxor_cancel a b, h, rxor_cancel]
-
-/-- Absorbing a block: XOR it into the rate, keep the capacity. -/
-def absorb (s : SpState Dg E C) (B : Dg × E) : SpState Dg E C := (rxor s.1 B, s.2)
-
-/-- The block that takes the state `s` to the state `x` with the same capacity. -/
-def blockTo (s x : SpState Dg E C) : Dg × E := rxor s.1 x.1
 
 /-- Absorbing `blockTo s x` into `s` gives `x` when `s` and `x` share their capacity. -/
 theorem absorb_blockTo {s x : SpState Dg E C} (h : s.2 = x.2) : absorb s (blockTo s x) = x := by
@@ -106,14 +76,6 @@ theorem absorb_injective (s : SpState Dg E C) : Function.Injective (absorb s) :=
   intro B B' h
   rw [← blockTo_absorb s B, h, blockTo_absorb]
 
-/-- Absorb the blocks `bs` from the state `s`: XOR each into the rate and permute with `π`. -/
-def absorbAll {m : Type → Type} [Monad m] (π : SpState Dg E C → m (SpState Dg E C)) :
-    SpState Dg E C → List (Dg × E) → m (SpState Dg E C)
-  | s, [] => pure s
-  | s, B :: bs => do
-    let y ← π (absorb s B)
-    absorbAll π y bs
-
 @[simp] theorem absorbAll_nil {m : Type → Type} [Monad m] (π : SpState Dg E C → m (SpState Dg E C))
     (s : SpState Dg E C) : absorbAll π s [] = pure s := rfl
 
@@ -130,18 +92,6 @@ theorem absorbAll_append {m : Type → Type} [Monad m] [LawfulMonad m]
   | cons B bs ih => simp [absorbAll_cons, ih]
 
 end Xor
-
-/-- A sponge padding: an injective map from messages to nonempty lists of blocks, with a decoder
-that recognises exactly the padded messages. -/
-structure Padding (Msg Blk : Type) where
-  /-- The padded message, as a list of blocks. -/
-  pad : Msg → List Blk
-  /-- The decoder: the message whose padding is the given block list, if any. -/
-  unpad : List Blk → Option Msg
-  /-- The decoder recognises exactly the paddings. -/
-  unpad_eq_some_iff : ∀ β m, unpad β = some m ↔ pad m = β
-  /-- A padded message has at least one block. -/
-  pad_ne_nil : ∀ m, pad m ≠ []
 
 namespace Padding
 
@@ -162,163 +112,10 @@ end Padding
 
 variable [XorCancel Dg] [XorCancel E]
 
-/-- **The sponge.** Absorb the padded message from the initial state `iv` with `π`, and output the
-digest part of the final state. -/
-def spongeWith {Msg : Type} {m : Type → Type} [Monad m] (P : Padding Msg (Dg × E))
-    (iv : SpState Dg E C) (π : SpState Dg E C → m (SpState Dg E C)) (msg : Msg) : m Dg :=
-  SpState.out <$> absorbAll π iv (P.pad msg)
-
 /-! ## Keccak-256 -/
-
-/-- A 32-byte Keccak-256 digest. -/
-abbrev KDigest := Vector UInt8 32
-
-/-- The rate bytes of the Keccak state after the digest: bytes 32 to 135. -/
-abbrev KRest := Vector UInt8 104
-
-/-- The capacity of the Keccak state: bytes 136 to 199 (512 bits). -/
-abbrev KCap := Vector UInt8 64
-
-/-- The Keccak-f[1600] state as 200 bytes, split into digest, rest of the rate and capacity.
-Byte `i` of the state is byte `i % 8` of lane `i / 8`, little-endian, as in `keccak_hash`. -/
-abbrev KState := SpState KDigest KRest KCap
-
-/-- A Keccak-256 block: the 136 rate bytes. -/
-abbrev KBlock := KDigest × KRest
 
 /-- The rate of Keccak-256 in bytes. -/
 def keccakRate : ℕ := 136
-
-/-- The 200 bytes of a Keccak state, in order. -/
-def KState.toBytes (s : KState) : List UInt8 := s.1.1.toList ++ s.1.2.toList ++ s.2.toList
-
-/-- The Keccak state of 200 bytes (missing bytes read as zero). -/
-def KState.ofBytes (bs : List UInt8) : KState :=
-  ((Vector.ofFn fun i : Fin 32 ↦ bs.getD i 0, Vector.ofFn fun i : Fin 104 ↦ bs.getD (32 + i) 0),
-    Vector.ofFn fun i : Fin 64 ↦ bs.getD (136 + i) 0)
-
-/-- The all-zero initial state. -/
-def KState.zero : KState := ((Vector.replicate 32 0, Vector.replicate 104 0), Vector.replicate 64 0)
-
-/-- The block of the 136 bytes `bs` (missing bytes read as zero). -/
-def KBlock.ofBytes (bs : List UInt8) : KBlock :=
-  (Vector.ofFn fun i : Fin 32 ↦ bs.getD i 0, Vector.ofFn fun i : Fin 104 ↦ bs.getD (32 + i) 0)
-
-/-- The 136 bytes of a block. -/
-def KBlock.toBytes (B : KBlock) : List UInt8 := B.1.toList ++ B.2.toList
-
-/-- The padded message: `msg ‖ 0x01 ‖ 0^* ‖ 0x80`, with `0x01` and `0x80` merged into `0x81` when
-`msg` leaves one byte in its last block; the length is the next multiple of 136. -/
-def keccakPadBytes (msg : List UInt8) : List UInt8 :=
-  if msg.length % 136 = 135 then msg ++ [0x81]
-  else msg ++ [0x01] ++ List.replicate (134 - msg.length % 136) 0 ++ [0x80]
-
-/-- Split a byte list into 136-byte blocks. -/
-def toBlocks : List UInt8 → List KBlock
-  | [] => []
-  | b :: bs => KBlock.ofBytes ((b :: bs).take 136) :: toBlocks ((b :: bs).drop 136)
-termination_by l => l.length
-decreasing_by simp only [List.length_drop, List.length_cons]; omega
-
-/-- The bytes of a block list. -/
-def blocksToBytes (β : List KBlock) : List UInt8 := β.flatMap KBlock.toBytes
-
-/-- Undo the padding of a padded byte list (arbitrary on other inputs). -/
-def stripPad (bs : List UInt8) : List UInt8 :=
-  match bs.reverse with
-  | 0x81 :: rest => rest.reverse
-  | _ :: rest => (((rest.dropWhile (· = 0)).drop 1)).reverse
-  | [] => []
-
-/-- The Keccak-256 padding of a message into blocks. -/
-def keccakPad (msg : List UInt8) : List KBlock := toBlocks (keccakPadBytes msg)
-
-/-- The Keccak-256 decoder: strip the padding, and accept when it pads back. -/
-def keccakUnpad (β : List KBlock) : Option (List UInt8) :=
-  let msg := stripPad (blocksToBytes β)
-  if keccakPad msg = β then some msg else none
-
-/-- The bytes of a block made of 136 bytes are those bytes. -/
-theorem KBlock.toBytes_ofBytes {bs : List UInt8} (h : bs.length = 136) :
-    (KBlock.ofBytes bs).toBytes = bs := by
-  apply List.ext_getElem
-  · simp [KBlock.toBytes, KBlock.ofBytes, h]
-  intro i h1 h2
-  simp only [KBlock.toBytes, KBlock.ofBytes] at h1 ⊢
-  rw [List.getElem_append]
-  split_ifs with hi
-  · simp only [Vector.toList_ofFn, List.getElem_ofFn]
-    rw [List.getD_eq_getElem?_getD, List.getElem?_eq_getElem (by omega), Option.getD_some]
-  · simp only [Vector.toList_ofFn, List.getElem_ofFn, List.length_ofFn]
-    simp only [Vector.toList_ofFn, List.length_ofFn] at hi
-    rw [List.getD_eq_getElem?_getD, List.getElem?_eq_getElem (by omega), Option.getD_some]
-    congr 1
-    omega
-
-/-- Splitting a list whose length is a multiple of 136 into blocks and back gives the list. -/
-theorem blocksToBytes_toBlocks (bs : List UInt8) (h : bs.length % 136 = 0) :
-    blocksToBytes (toBlocks bs) = bs := by
-  induction bs using toBlocks.induct with
-  | case1 => simp [toBlocks, blocksToBytes]
-  | case2 b bs ih =>
-    rw [toBlocks]
-    simp only [blocksToBytes, List.flatMap_cons] at ih ⊢
-    have hlen : 136 ≤ (b :: bs).length := by
-      have : 0 < (b :: bs).length := by simp
-      omega
-    rw [KBlock.toBytes_ofBytes (by simp only [List.length_take]; omega),
-      ih (by simp only [List.length_drop]; omega), List.take_append_drop]
-
-/-- The padded bytes have a length that is a positive multiple of 136. -/
-theorem keccakPadBytes_length (msg : List UInt8) :
-    (keccakPadBytes msg).length = 136 * (msg.length / 136 + 1) := by
-  unfold keccakPadBytes
-  split_ifs with h
-  · simp; omega
-  · simp; omega
-
-/-- Stripping the padding recovers the message. -/
-theorem stripPad_keccakPadBytes (msg : List UInt8) : stripPad (keccakPadBytes msg) = msg := by
-  unfold keccakPadBytes
-  split_ifs with h
-  · simp [stripPad]
-  · have hz : ∀ k, List.dropWhile (· = (0 : UInt8)) (List.replicate k 0 ++ (1 :: msg.reverse)) =
-        1 :: msg.reverse := by
-      intro k
-      induction k with
-      | zero => simp
-      | succ k ih => simp [List.replicate_succ, ih]
-    simp only [stripPad, List.append_assoc, List.cons_append, List.nil_append,
-      List.reverse_append, List.reverse_cons, List.reverse_nil, List.reverse_replicate]
-    simp [hz]
-
-/-- Padded block lists are never empty. -/
-theorem keccakPad_ne_nil (msg : List UInt8) : keccakPad msg ≠ [] := by
-  unfold keccakPad
-  have hlen := keccakPadBytes_length msg
-  cases h : keccakPadBytes msg with
-  | nil => rw [h] at hlen; simp at hlen
-  | cons b bs => rw [toBlocks]; exact List.cons_ne_nil _ _
-
-/-- The decoder inverts the padding. -/
-theorem keccakUnpad_keccakPad (msg : List UInt8) : keccakUnpad (keccakPad msg) = some msg := by
-  have hb : blocksToBytes (keccakPad msg) = keccakPadBytes msg :=
-    blocksToBytes_toBlocks _ (by rw [keccakPadBytes_length]; omega)
-  simp [keccakUnpad, hb, stripPad_keccakPadBytes]
-
-/-- **The Keccak-256 padding**, with its decoder. -/
-def keccakPadding : Padding (List UInt8) KBlock where
-  pad := keccakPad
-  unpad := keccakUnpad
-  unpad_eq_some_iff β m := by
-    constructor
-    · intro h
-      simp only [keccakUnpad] at h
-      split_ifs at h with hp
-      · cases h; exact hp
-    · rintro rfl
-      exact keccakUnpad_keccakPad m
-  pad_ne_nil := keccakPad_ne_nil
 
 /-- **Keccak-256 over a permutation `π` of the state**, in any monad: the sponge with rate 136
 bytes, capacity 64 bytes, the Keccak padding, the all-zero initial state, and the first 32 bytes of

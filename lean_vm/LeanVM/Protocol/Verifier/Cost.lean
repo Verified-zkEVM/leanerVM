@@ -49,7 +49,7 @@ the WHIR query positions are charged at the largest height rather than at their 
 ## Deployed behaviour
 
 The bound is a statement on the program `leanVmProgram` at leanVM
-`4af2cdddd7cd41b9df2cc7e123e314a91b0b4462`, as transcribed in `LeanVM.Spec.Verifier`;
+`4af2cdddd7cd41b9df2cc7e123e314a91b0b4462`, as transcribed in `Statement.LeanVmVerifier`;
 it covers every proof, accepted or not.
 -/
 

@@ -9,7 +9,10 @@
 module
 
 public import LeanVM.Semantics.Lemmas
-public import LeanVM.Spec.IsaWith
+public import Statement.LeanIsa
+public import LeanVM.Facts.IsaWith
+public import LeanVM.Fast.CubicExt
+public import LeanVM.Fast.FieldWords
 
 @[expose] public section
 
@@ -35,7 +38,7 @@ used are closed walks, about which nothing is claimed; what follows the first vi
 registers is one of them.
 
 **Under any semantics of `KECCAK`** (`exists_runB_of_perm`): the same, for the steps and runs
-of a semantics `S` (`LeanVM.Spec.IsaWith`: `stepB S`, `runB S`); `exists_run_of_perm` is it at the
+of a semantics `S` (`Statement.LeanIsa`: `stepB S`, `runB S`); `exists_run_of_perm` is it at the
 deployed one, the reduction-blind verifier's walk at `keccakFree`.
 
 ## Wrong readings excluded

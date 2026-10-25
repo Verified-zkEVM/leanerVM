@@ -6,27 +6,44 @@ import LeanVM.Guest.EndRpm
 import LeanVM.Guest.Budget.ClosedN
 import LeanVM.Guest.Budget.Covered
 
-/-! The theorems: the verifier's, `LeanVM.KnowledgeSoundness` and `LeanVM.Completeness`
-(`LeanVM/Spec/Rpm.lean`), for leanVM at `main`, in the random-permutation model (Keccak-256 and
-Keccak-f[1600] both built from one random permutation `π`, the adversary querying `π` and `π⁻¹`),
-with the bounds' numbers; and the guest's batching of its children's deferred claims
-(`LeanVM.Guest.Batch.children_sound`, and in the random-permutation model `batch_rpm`,
-`batch_rpm_bits`), and the guest's soundness
-with its witness named (`LeanVM.Guest.End.guest_knowledge`, `decode_binds`, `guest_sound`, and in
-the random-permutation model `aggregate_sound_outer`, `aggregate_knowledge`:
-`LeanVM.Node.GuestKnowledge` of `LeanVM/Spec/Guest.lean` and `LeanVM.Node.AggregateSound` of
-`LeanVM/Spec/Aggregate.lean` for the deployed bytecode and the decoder `LeanVM.Guest.End.decode`),
-and the guest's completeness within its deployed budget
-(`LeanVM.Guest.Budget.guest_complete`, `guest_complete_numeric`), with what it covers
-(`guest_complete_recursion`: every node of at most `16` children, `2048` declared claims,
-coverage slots and children's claims, holding no signature or blob directly;
-`guest_complete_leaf`: every leaf of at most `2048` raw signatures, declared claims and coverage
-slots, holding no blob directly).
+/-! # The end theorems of leanVM
+
+Each proves a proposition of `Statement/` (`Statement/README.md`), in the random-permutation model
+where an adversary is involved:
+
+* `LeanVM.knowledgeSoundness_holds : KnowledgeSoundness`, `LeanVM.completeness_holds :
+  Completeness` and `LeanVM.knowledgeSoundness_bits : KnowledgeSoundnessBits`
+  (`Statement/LeanVm.lean`): the verifier, knowledge sound for the fixed straight-line extractor
+  and complete;
+* `LeanVM.Guest.End.guest_knowledge : GuestKnowledge guest decode` and
+  `LeanVM.Guest.End.aggregate_sound_outer : AggregateSound guest decode`
+  (`Statement/LeanVmGuest.lean`): the aggregation guest, its witness named by the decoder
+  `LeanVM.Guest.End.decode` (`LeanVM/Guest/EndFinal.lean`; the propositions hold of any decoder
+  that outputs valid witnesses, their content is in the decoder the theorems name);
+* `LeanVM.Guest.Budget.guest_complete_recursion : GuestCompleteRecursion` and
+  `guest_complete_leaf : GuestCompleteLeaf` (`Statement/LeanVmGuest.lean`): the guest's
+  completeness on the covered nodes.
+
+The other theorems pinned below are steps or corollaries: the bounds' numbers, the guest's batching
+of its children's deferred claims (`LeanVM.Guest.Batch.children_sound`, and in the
+random-permutation model `batch_rpm`, `batch_rpm_bits`), `decode_binds`, `guest_sound`,
+`aggregate_knowledge`, and the guest's completeness within its deployed budget
+(`LeanVM.Guest.Budget.guest_complete`, `guest_complete_numeric`).
 The two-oracle random-oracle model the proofs pass through (`LeanVM/Protocol/Rom/Statement.lean`:
 `LeanVM.knowledgeSoundnessRom_holds`, `LeanVM.completenessRom_holds`; the batching's
 `LeanVM.Guest.Batch.batch_rom`, `batch_rom_bits`) is a proof step: its theorems are not pinned here
 (`tests/LeanVMTests/Protocol/` and `tests/LeanVMTests/Guest/Batch.lean` check their footprints).
 The build fails if their axiom footprint ever grows beyond Lean's three standard axioms. -/
+
+example : LeanVM.KnowledgeSoundness := LeanVM.knowledgeSoundness_holds
+example : LeanVM.Completeness := LeanVM.completeness_holds
+example : LeanVM.KnowledgeSoundnessBits := LeanVM.knowledgeSoundness_bits
+example : LeanVM.Node.GuestKnowledge LeanVM.Guest.guest LeanVM.Guest.End.decode :=
+  LeanVM.Guest.End.guest_knowledge
+example : LeanVM.Node.AggregateSound LeanVM.Guest.guest LeanVM.Guest.End.decode :=
+  LeanVM.Guest.End.aggregate_sound_outer
+example : LeanVM.Guest.Budget.GuestCompleteRecursion := LeanVM.Guest.Budget.guest_complete_recursion
+example : LeanVM.Guest.Budget.GuestCompleteLeaf := LeanVM.Guest.Budget.guest_complete_leaf
 
 /-- info: 'LeanVM.knowledgeSoundness_holds' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in

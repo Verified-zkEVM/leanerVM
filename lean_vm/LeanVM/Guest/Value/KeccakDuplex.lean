@@ -12,7 +12,7 @@ public import LeanVM.Guest.Value.KeccakLayout
 /-!
 # The duplex sponge in cells
 
-The verifier's transcript (`Spec/Verifier.lean`, `Sponge`, `duplex`, `absorb`, `squeeze`) is a
+The verifier's transcript (`Statement/LeanVmVerifier.lean`, `Sponge`, `duplex`, `absorb`, `squeeze`) is a
 duplex over Keccak-f[1600] in overwrite mode: up to four waiting scalars, each its three limbs
 and its tag (`pendingLanes`), overwrite the rate lanes `0..16`, zeros after them, and lanes
 `16..25` are kept (`duplexInput`). The guest (`crates/rec_aggregation/guests/lean_ethereum.py` at

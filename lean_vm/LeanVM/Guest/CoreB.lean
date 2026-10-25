@@ -15,10 +15,10 @@ public import LeanVM.Semantics.KeccakCells
 # The core semantics under any `KECCAK` semantics
 
 `Core.lean` gives a `KECCAK` atom the deployed relation, `KeccakCells`. Proofs over another
-semantics of the permutation (`Spec/IsaWith.lean`'s `keccakFree`, a permutation model) need them
+semantics of the permutation (`Statement/LeanIsa.lean`'s `keccakFree`, a permutation model) need them
 under that semantics, so every definition here is `Core.lean`'s with the relation a
 parameter `S : KeccakSem` (`Atom.HoldsB`, `Stmt.HoldsB`, `Fn.SemB`, `Program.relNB`,
-`Program.RelB`, named as `Spec/IsaWith.lean` names `executeWithB`, `runB`), and every lemma of
+`Program.RelB`, named as `Statement/LeanIsa.lean` names `executeWithB`, `runB`), and every lemma of
 `CoreLemmas.lean` about them is restated (`holdsListB_append`, `holdsB_mono`, `relB_iff`, …),
 proved as there.
 
@@ -355,7 +355,6 @@ theorem holdsB_rangeCheck (x y t1 t2 k : V) :
       LoadHolds rd (σ x) 0 (σ t1) ∧ σ k = σ x * σ y ∧ LoadHolds rd (σ y) 0 (σ t2) := Iff.rfl
 
 end Lemmas
-
 
 /-- A function's relation is its body's, once it is found by name. -/
 theorem relB_iff_sem {P : Program} {rd : Reader} {f : String} {fn : Fn}

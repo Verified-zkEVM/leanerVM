@@ -2,6 +2,16 @@ import LeanXmss.Statement
 import XmssSecurity.Proof.Bridge.Security
 import XmssSecurity.Rpm
 
+/-! # The end theorem of leanXMSS
+
+`XmssSecurity.leanXmss_rpm_security` (`XmssSecurity/Rpm.lean`) proves
+`LeanXmss.Rpm.LeanXmssRpmSecurityStatement` (`Statement/LeanXmss.lean`): in the
+random-permutation model, an adversary whose game makes at most `Q ≥ 1` permutation calls forges
+with probability at most `Q / 2^127 + Q² / 2^509`. Its proof passes through the random-oracle
+model (`leanXmss_has_127_bits_of_classical_security`, a step). -/
+
+example : LeanXmss.Rpm.LeanXmssRpmSecurityStatement := XmssSecurity.leanXmss_rpm_security
+
 namespace XmssSecurity
 
 /-- leanXMSS has 127 bits of classical security in the random-oracle model: the step of the proof

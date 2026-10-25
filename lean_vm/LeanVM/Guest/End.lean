@@ -6,7 +6,16 @@
 
 module
 
-public import LeanVM.Spec.Guest
+public import Statement.LeanVmGuest
+public import LeanXmss.Scheme
+public import Sphincs.Scheme
+public import LeanVM.Fast.Schemes
+public import LeanDa.Scheme
+public import LeanVM.Fast.Da
+public import LeanVM.Fast.Keccak
+public import LeanVM.Fast.CubicExt
+public import LeanVM.Fast.FieldWords
+public import LeanVM.Facts.Verifier
 public import LeanVM.Guest.Start
 public import LeanVM.Guest.Core
 public import LeanVM.Protocol.EndToEnd.Complete.Public

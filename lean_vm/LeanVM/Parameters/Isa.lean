@@ -8,13 +8,15 @@
 module
 
 public import LeanVM.Parameters.Generator
-public import LeanVM.Spec.Isa
+public import Statement.LeanIsa
+public import LeanVM.Fast.CubicExt
+public import LeanVM.Fast.FieldWords
 
 /-!
 # Opcodes and instance caps
 
 The opcodes, their codes and the
-memory and bytecode caps are defined in `LeanVM.Spec.Isa`; the two table-height caps are here.
+memory and bytecode caps are defined in `Statement.LeanIsa`; the two table-height caps are here.
 Transcribed at leanVM
 pin `127510d14c98ade4e8a97646c44fa7f1ff5e752d`, the opcodes checked again at `4af2cddd`:
 

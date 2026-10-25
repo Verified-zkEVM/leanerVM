@@ -23,7 +23,7 @@ fn main() {
     );
     let files = lean_export::all_files();
 
-    let data = root.join("LeanVM/Guest/Data");
+    let data = root.join(lean_export::bytecode::DATA);
     let bytecode_modules = |dir: &Path| -> BTreeSet<String> {
         std::fs::read_dir(dir)
             .map(|es| {
@@ -35,13 +35,13 @@ fn main() {
     };
     let ours: BTreeSet<String> = files
         .iter()
-        .filter_map(|f| f.path.strip_prefix("LeanVM/Guest/Data/").map(str::to_string))
+        .filter_map(|f| f.path.strip_prefix(&format!("{}/", lean_export::bytecode::DATA)).map(str::to_string))
         .filter(|n| n.starts_with("Bytecode"))
         .collect();
     let mut stale = Vec::new();
     for extra in bytecode_modules(&data).difference(&ours) {
         if check {
-            stale.push(format!("LeanVM/Guest/Data/{extra} (not generated)"));
+            stale.push(format!("{}/{extra} (not generated)", lean_export::bytecode::DATA));
         } else {
             std::fs::remove_file(data.join(extra)).unwrap();
         }

@@ -1,5 +1,6 @@
 import LeanDa.RpmCodeBinding
 import Mathlib.Data.Set.Finite.List
+import Statement.LeanDa
 
 /-!
 # Code binding in the random-permutation model: Wagner's bound for each `H`
@@ -25,38 +26,6 @@ open scoped ENNReal
 namespace LeanDa
 
 /-! ## The oracles -/
-
-/-- Wagner's oracles: coins and the challenges `G`, a random oracle of the roots. -/
-abbrev WSpec := unifSpec + (Digest →ₒ Challenges)
-
-/-- The challenges and `H`. -/
-abbrev TSpec := (Digest →ₒ Challenges) + roSpec (List UInt8) KDigest
-
-/-- A cache of `H`. -/
-abbrev HCache := (roSpec (List UInt8) KDigest).QueryCache
-
-/-- A short string: at most `2048` bytes, a cell's. -/
-def shortP (a : List UInt8) : Prop := a.length ≤ 2048
-
-instance : DecidablePred shortP := fun a ↦ inferInstanceAs (Decidable (a.length ≤ 2048))
-
-noncomputable instance : Fintype {a : List UInt8 // shortP a} :=
-  (List.finite_length_le (α := UInt8) 2048).fintype
-
-/-- A table of `H` on the short strings. -/
-abbrev HTab := {a : List UInt8 // shortP a} → KDigest
-
-/-- **The hash of a table**: the table's answer on a short string, `default` on a long one. -/
-def Hh (h : HTab) (a : List UInt8) : Digest := if ha : shortP a then h ⟨a, ha⟩ else default
-
-/-- **`H` from a table, in Wagner's world**: the table on short strings, lazily sampled on long
-ones (the state), the challenges forwarded to Wagner's random oracle. -/
-noncomputable def tImpl (h : HTab) : QueryImpl (unifSpec + TSpec) (StateT HCache (OracleComp WSpec))
-  | .inl k => StateT.mk fun c ↦ (·, c) <$> liftM (WSpec.query (.inl k))
-  | .inr (.inl d) => StateT.mk fun c ↦ (·, c) <$> liftM (WSpec.query (.inr d))
-  | .inr (.inr a) =>
-      if ha : shortP a then StateT.mk fun c ↦ pure (h ⟨a, ha⟩, c)
-      else StateT.mk fun c ↦ liftM (((roSpec (List UInt8) KDigest).randomOracle a).run c)
 
 /-- The `H` part of a cache. -/
 def hPart (c : TSpec.QueryCache) : HCache := QueryCache.ofFn fun a ↦ c (.inr a)
@@ -234,11 +203,6 @@ theorem wQ_eq (d : Digest) : wQ d = liftM (WSpec.query (.inr d)) := rfl
 noncomputable def readVecW (d : Digest) : OracleComp WSpec Challenges :=
   (fun l j ↦ l.getD j default) <$> (List.finRange 14).mapM fun j ↦ (fun v : Challenges ↦ v j) <$> wQ d
 
-/-- The simulated world's oracles from a table `h` of `H`. -/
-noncomputable def phiG (h : HTab) :
-    QueryImpl (unifSpec + GSpec (List UInt8) KDigest Digest E 14) (StateT HCache (OracleComp WSpec)) :=
-  tImpl h ∘ₛ (swapImpl ∘ₛ toV)
-
 theorem simulateQ_phiG (h : HTab) {α : Type}
     (X : OracleComp (unifSpec + GSpec (List UInt8) KDigest Digest E 14) α) :
     simulateQ (tImpl h) (simulateQ swapImpl (simulateQ toV X)) = simulateQ (phiG h) X := by
@@ -322,12 +286,6 @@ section Adversary
 variable (r : ℕ) {Crs Proof : Type} {rel : Unit × Digest × Challenges → (Fin (r * 128) → Cell) → Bool}
   (ps : Nark (Unit × Digest × Challenges) (Fin (r * 128) → Cell) Crs Proof rel)
 
-/-- The crs the adversary runs with: the given one when the setup can output it, else one it
-can (the bound on the adversary's queries holds for these). -/
-noncomputable def fixCrs (crs : Crs) : Crs := by
-  classical
-  exact if crs ∈ support ps.setup then crs else (support_nonempty ps.setup).some
-
 theorem fixCrs_of_mem {crs : Crs} (h : crs ∈ support ps.setup) : fixCrs r ps crs = crs := by
   classical
   unfold fixCrs
@@ -339,22 +297,6 @@ theorem fixCrs_mem (crs : Crs) : fixCrs r ps crs ∈ support ps.setup := by
   split
   · assumption
   · exact (support_nonempty ps.setup).some_mem
-
-/-- The adversary in the simulated world: `H` queried at the label, then the RPM adversary with
-its permutation queries simulated from `H` and `F`, `F` answered by the duplex lemma's simulator. -/
-noncomputable def advSim (A : CodeBindingAdvRpm r Crs Proof) (crs : Crs) :
-    OracleComp (unifSpec + GSpec (List UInt8) KDigest Digest E 14)
-      ((Digest × Proof) × List (Fin (r * 128) × Cell × Opening)) :=
-  (simulateQ (simImpl daDuplex hP gaP) (hQ (St := KState) daDuplex.label >>= fun _ ↦
-    advS2 keccakPadding KState.zero (A ((), crs)))).run' SimSt.init
-
-/-- **Wagner's adversary for the table `h` of `H`**: the simulated adversary, with `H` answered
-from `h` on short strings and lazily on long ones, and the challenges `G` from Wagner's random
-oracle. -/
-noncomputable def advH (A : CodeBindingAdvRpm r Crs Proof) (h : HTab) :
-    ErasureCodeCommitment.CodeBindingAdv (OracleComp WSpec) Cell (r * 128) (Unit × Crs)
-      (Digest × Proof) Opening :=
-  fun ck ↦ (simulateQ (phiG h) (advSim r A (fixCrs r ps ck.2))).run' ∅
 
 /-- The simulated world for the table `h` and the crs: Wagner's adversary, then the openings
 verified with the hash of `h` and the challenges of the root. -/
@@ -455,12 +397,6 @@ theorem run_mapM_wQ {β γ : Type} (d : Digest) (f : β → Challenges → γ) (
 theorem all_map_and {β : Type} (b : Bool) (f : β → Bool) (b₀ : β) (l : List β) :
     ((b₀ :: l).map fun q ↦ b && f q).all id = (((b₀ :: l).map f).all id && b) := by
   cases b <;> simp
-
-/-- The argument for the relation of a hash `H`, from an argument for any relation. -/
-def argH {rel : Unit × Digest × Challenges → (Fin (r * 128) → Cell) → Bool}
-    (ps : Nark (Unit × Digest × Challenges) (Fin (r * 128) → Cell) Crs Proof rel)
-    (H : List UInt8 → Digest) : Argument r H Crs Proof :=
-  ⟨ps.setup, ps.prove, ps.verify⟩
 
 /-- **The challenges read once or for every opening.** -/
 theorem prob_postP_eq_verifyW {rel : Unit × Digest × Challenges → (Fin (r * 128) → Cell) → Bool}
@@ -677,31 +613,6 @@ theorem prT_gameW (A : CodeBindingAdvRpm r Crs Proof) (h : HTab) :
     simp only [StateT.run'_eq, simulateQ_bind, StateT.run_bind, map_bind]
   rw [gameW, e, e]
   exact Common.prEvent_bind_congr _ _ _ _ _ fun z ↦ prob_postP_eq_verifyW r ps h crs z.1 z.2
-
-/-- Wagner's knowledge-soundness experiment for the table `h`: his reduction `ksReduction` from
-`advH h`, against the argument `ps` for the relation with the hash `Hh h`. -/
-noncomputable def ksExpH
-    (ext : Nark.Extractor (Unit × Digest × Challenges) (Fin (r * 128) → Cell) Crs Proof)
-    (A : CodeBindingAdvRpm r Crs Proof) (h : HTab) : ProbComp Bool :=
-  (argH r ps (Hh h)).knowledgeSoundnessExp ext (ksReduction (merkleVC r (Hh h)) (advH r ps A h))
-
-/-- The collision experiment of `Hh h` against Wagner's weak-position-binding reduction from
-`advH h`, through `merkleCollider`. -/
-noncomputable def wpbCollExpH [NeZero r]
-    (ext : Nark.Extractor (Unit × Digest × Challenges) (Fin (r * 128) → Cell) Crs Proof)
-    (A : CodeBindingAdvRpm r Crs Proof) (h : HTab) : ProbComp Bool :=
-  hashCollisionExp (Hh h) (merkleCollider r (Hh h)
-    ((wpbReduction (argH r ps (Hh h)) ext (advH r ps A h)).toPosBindingAdv (merkleVC r (Hh h))))
-
-/-- The collision experiment of `Hh h` against Wagner's forking reduction from `advH h` (at most
-`Q + 1` queries of the challenges), through `merkleCollider`. -/
-noncomputable def forkCollExpH [NeZero r]
-    (ext : Nark.Extractor (Unit × Digest × Challenges) (Fin (r * 128) → Cell) Crs Proof)
-    (A : CodeBindingAdvRpm r Crs Proof) (Q : ℕ) (h : HTab) : ProbComp Bool :=
-  hashCollisionExp (Hh h) (merkleCollider r (Hh h)
-    ((CommittedSoundness.forkCollisionReduction (code r) (merkleVC r (Hh h)) (checker r)
-      (csReduction (argH r ps (Hh h)) ext (advH r ps A h)) (Q + 1)).toPosBindingAdv
-        (merkleVC r (Hh h))))
 
 end Final
 

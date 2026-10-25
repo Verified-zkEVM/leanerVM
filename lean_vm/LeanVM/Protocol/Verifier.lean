@@ -1,22 +1,27 @@
 /-
   LeanVM.Protocol.Verifier
 
-  The leanVM verifier (`LeanVM.Spec.Verifier`) on its four files: decoding the bytecode, the
+  The leanVM verifier (`Statement.LeanVmVerifier`) on its four files: decoding the bytecode, the
   public input, the scalar stream and the Merkle openings, as the Python's `main` does.
 -/
 
 module
 
 public import LeanVM.Parameters.Whir
-public import LeanVM.Spec.Verifier
+public import Statement.LeanVmVerifier
+public import LeanVM.Facts.Verifier
+public import LeanVM.Fast.Keccak
+public import LeanVM.Fast.CubicExt
+public import LeanVM.Fast.FieldWords
 public import LeanVM.Protocol.Compile.Prog
 public import LeanVM.Protocol.KeccakHash
 public import LeanVM.Parameters.Field
+public import Statement.LeanVmGuest
 
 /-!
 # The verifier on its four files
 
-The verifier is `LeanVM.Spec.Verifier`. This module adds what `lake exe leanvm-verify` needs to
+The verifier is `Statement.LeanVmVerifier`. This module adds what `lake exe leanvm-verify` needs to
 run it on the files the Rust prover writes (`verifyFiles`), and states that the deployed
 verifier is the parametric one at Keccak-256 and Keccak-f[1600] (`verifyWith_keccak`).
 -/
@@ -153,12 +158,6 @@ def whirOpeningShapes (logN : ℕ) : List Whir.Level → List (ℕ × ℕ)
   | level :: rest =>
     List.replicate level.queries (levelShape logN level (2 ^ level.fold)) ++
       laterOpeningShapes (logN - level.fold) rest
-
-/-- The announced layout and rate exponent of a stream, read by the program's own `readSizes`
-(the hash is not consulted for a value: reads only absorb). -/
-def announced (bytecode : List K) (stream : List E) : Option (Layout × ℕ) :=
-  (Id.run (Compile.run (m := Id) (fun _ ↦ pure default) (fun _ ↦ pure default)
-    (readSizes bytecode) ⟨⟨default, []⟩, stream, [], []⟩)).map (·.1)
 
 /-- The shape of every opening `verify` makes on a proof with this stream, in order. -/
 def openingShapes (bytecode : List K) (stream : List E) : Option (List (ℕ × ℕ)) := do
