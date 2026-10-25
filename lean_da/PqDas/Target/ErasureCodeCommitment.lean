@@ -36,9 +36,38 @@ open OracleComp ENNReal MeasureTheory
 
 namespace PqDas
 
+/-- An erasure code commitment scheme for codes with code alphabet `Λ`, message
+length `k`, and code length `n`, with commitment key type `Ck`, commitment type
+`Com`, opening-state type `St`, and opening type `Opn` (Foundations
+Definition 8). Algorithms run in the ambient monad `m`, which provides any
+oracles they use (in particular a random oracle, for the scheme built later). -/
+structure ErasureCodeCommitment (m : Type → Type) (Γ Λ : Type) (k n : ℕ)
+    (Ck Com St Opn : Type) where
+  /-- Sample a commitment key. -/
+  setup : m Ck
+  /-- Commit to a *message* (not a codeword), producing a commitment and an
+  opening state. -/
+  commit : Ck → (Fin k → Γ) → m (Com × St)
+  /-- Open position `i` of the *encoding* of the committed message. -/
+  openAt : Ck → St → Fin n → m Opn
+  /-- Verify an opening `τ` of codeword symbol `x` at position `i`. -/
+  verify : Ck → Com → Fin n → Λ → Opn → m Bool
+
 namespace ErasureCodeCommitment
 
 variable {m : Type → Type} [Monad m] {Γ Λ : Type} {k n : ℕ} {Ck Com St Opn : Type}
+
+/-- Perfect completeness w.r.t. the code `C`: for every message and position,
+committing, opening, and verifying the corresponding symbol of the encoding
+always succeeds (Foundations Definition 8, with zero error). -/
+def PerfectlyComplete (cc : ErasureCodeCommitment m Γ Λ k n Ck Com St Opn)
+    (C : ErasureCode Γ Λ k n) (runtime : ProbCompRuntime m) : Prop :=
+  ∀ (msg : Fin k → Γ) (i : Fin n),
+    runtime.evalDist (do
+      let ck ← cc.setup
+      let (com, st) ← cc.commit ck msg
+      let τ ← cc.openAt ck st i
+      cc.verify ck com i (C.encode msg i) τ) {true} = 1
 
 /-! ### Position-binding (Foundations Definition 9) -/
 

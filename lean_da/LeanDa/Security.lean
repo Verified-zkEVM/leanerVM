@@ -139,4 +139,13 @@ theorem posBindingExp_le_hashCollisionExp (r : ℕ) (H : List UInt8 → Digest)
 
 /-! ## The scheme -/
 
+/-- **LeanDA in Wagner's random-oracle model**: his erasure code commitment from the code, the
+Merkle commitment with the hash `H`, the membership test and an argument of knowledge `ps`, the
+challenges a random oracle of the roots. His theorems for it are steps of the proofs of the end
+statements, which are in the random-permutation model. -/
+noncomputable def leanDa (r : ℕ) (H : List UInt8 → Digest) {Crs Proof : Type}
+    (ps : Argument r H Crs Proof) :=
+  scheme (m := OracleComp (unifSpec + (Digest →ₒ Challenges))) (code r) (merkleVC r H)
+    (checker r) ps
+
 end LeanDa

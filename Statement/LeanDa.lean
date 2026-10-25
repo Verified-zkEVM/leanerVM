@@ -29,26 +29,30 @@ LeanDA as `crates/lean_da` computes it, and its security in Benedikt Wagner's fr
 code commitments, moved to the random-permutation model.
 
 **Credit.** The framework (`PqDas`: erasure codes, vector commitments, code checkers, arguments of
-knowledge, erasure code commitments and their games, the random-oracle runtime, the scheme, and
-the reductions the code-binding bound names) is Benedikt Wagner's formalization,
+knowledge, the relation of the scheme's argument, the code-binding adversary, and the reductions
+the code-binding bound names with their simulation of the random oracle) is Benedikt Wagner's
+formalization,
 https://github.com/b-wagn/fv-pq-da at `4475179c19296acf3469d7d552a3186ad1feda74` (his post:
 https://ethresear.ch/t/formally-verified-security-for-pq-das-leanda/25746), ported and modified
 to build on VCVio `afa6593f` and Lean v4.34.1, under the Apache License 2.0 (`lean_da/LICENSE`,
-`lean_da/NOTICE`); its definitions are here, its proofs in `lean_da/PqDas/`. The instantiation
-with LeanDA (`LeanDa`) follows his framework.
+`lean_da/NOTICE`); the definitions the end statements need are here, the rest of his framework
+(the scheme in the random-oracle model and its games) and his proofs in `lean_da/PqDas/`. The
+instantiation with LeanDA (`LeanDa`) follows his framework, and the completeness statement is his
+completeness moved to the random-permutation model.
 
 * **The scheme** (`LeanDa`): the fields, the Reed–Solomon encoding of the rows, the Merkle
   commitment of the cells and the membership test.
-* **Wagner's framework** (`PqDas`) and **LeanDA in it** (`LeanDa.leanDa`, `code`, `merkleVC`,
-  `checker`).
-* **The random-permutation model** (`LeanDa.posBindingExpRpm`, `codeBindingExpRpm`): `H` is
-  Keccak-256 over `π`, the membership challenges the deployed duplex over `π`
-  (`membershipChallengesM`), the adversary querying Keccak-256, `π` and `π⁻¹`; the bound's terms
-  through Wagner's reductions for a uniformly random table of `H` (`ksExpH`, `wpbCollExpH`,
-  `forkCollExpH`).
-* **The end statements** (last section): `LeanDa.PerfectlyCompleteStatement`,
-  `LeanDa.PositionBindingRpm`, `LeanDa.CodeBindingRpm`. Proved by `LeanDa.leanDa_perfectlyComplete`,
-  `leanDa_positionBinding_rpm` and `leanDa_codeBinding_rpm_bound` (`lean_da`).
+* **Wagner's framework** (`PqDas`) and **LeanDA in it** (`LeanDa.code`, `merkleVC`, `checker`,
+  the relation `Relation` and its arguments `Argument`).
+* **The random-permutation model** (`LeanDa.posBindingExpRpm`, `codeBindingExpRpm`,
+  `completenessExpRpm`): `H` is Keccak-256 over `π`, the membership challenges the deployed duplex
+  over `π` (`membershipChallengesM`), the adversary querying Keccak-256, `π` and `π⁻¹`; the bound's
+  terms through Wagner's reductions for a uniformly random table of `H` (`ksExpH`, `wpbCollExpH`,
+  `forkCollExpH`); completeness for each permutation `π` (`keccakWith`, `permImpl`).
+* **The end statements** (last section): `LeanDa.PerfectlyCompleteRpm`,
+  `LeanDa.PositionBindingRpm`, `LeanDa.CodeBindingRpm`. Proved by
+  `LeanDa.leanDa_perfectlyComplete_rpm`, `leanDa_positionBinding_rpm` and
+  `leanDa_codeBinding_rpm_bound` (`lean_da`).
 
 Not definitions: `daDuplex` is a `Common.Duplex.DuplexSpec`, which carries the duplex's laws, so
 the lemmas before it (`daFirst_injective`, `daDec_iff` and what they use) are proved here. The
@@ -136,8 +140,9 @@ The erasure code commitment of `crates/lean_da` at leanVM `main` `4af2cdddd`, sp
   `Ŵ_j` the normalized subspace polynomial of the span of `e_0 … e_(j-1)`. A matrix passes when
   every row is orthogonal to `L` (`check_membership`, `membership.rs:94-103`; the guest's
   `da_verify`). The challenges are drawn from the root by a duplex sponge over Keccak-f[1600]
-  seeded with the label's hash (`membership_challenges`); the security game models them as one
-  random oracle on the root.
+  seeded with the label's hash (`membership_challenges`); the end statements draw them by this
+  duplex over the permutation (`membershipChallengesM`), and Wagner's games, a step of their
+  proofs, model them as one random oracle on the root.
 * **The deployed algorithms** (`commit.rs:55-145`, `verifier/src/da.rs:15-96`,
   `verifier/src/transcript.rs:32-95`). The crate's computations, transcribed computably on lists,
   for `lean_vm` to state the aggregation node's DA claim with: `commitCodewords`, the commitment
@@ -730,7 +735,7 @@ end PqDas
 
 end
 
-/-! ## Wagner's framework: erasure code commitments and their games -/
+/-! ## Wagner's framework: the code-binding adversary of an erasure code commitment -/
 
 @[expose] public section
 
@@ -738,45 +743,13 @@ open OracleComp ENNReal MeasureTheory
 
 namespace PqDas
 
-/-- An erasure code commitment scheme for codes with code alphabet `Λ`, message
-length `k`, and code length `n`, with commitment key type `Ck`, commitment type
-`Com`, opening-state type `St`, and opening type `Opn` (Foundations
-Definition 8). Algorithms run in the ambient monad `m`, which provides any
-oracles they use (in particular a random oracle, for the scheme built later). -/
-structure ErasureCodeCommitment (m : Type → Type) (Γ Λ : Type) (k n : ℕ)
-    (Ck Com St Opn : Type) where
-  /-- Sample a commitment key. -/
-  setup : m Ck
-  /-- Commit to a *message* (not a codeword), producing a commitment and an
-  opening state. -/
-  commit : Ck → (Fin k → Γ) → m (Com × St)
-  /-- Open position `i` of the *encoding* of the committed message. -/
-  openAt : Ck → St → Fin n → m Opn
-  /-- Verify an opening `τ` of codeword symbol `x` at position `i`. -/
-  verify : Ck → Com → Fin n → Λ → Opn → m Bool
-
 namespace ErasureCodeCommitment
-
-variable {m : Type → Type} [Monad m] {Γ Λ : Type} {k n : ℕ} {Ck Com St Opn : Type}
-
-/-- Perfect completeness w.r.t. the code `C`: for every message and position,
-committing, opening, and verifying the corresponding symbol of the encoding
-always succeeds (Foundations Definition 8, with zero error). -/
-def PerfectlyComplete (cc : ErasureCodeCommitment m Γ Λ k n Ck Com St Opn)
-    (C : ErasureCode Γ Λ k n) (runtime : ProbCompRuntime m) : Prop :=
-  ∀ (msg : Fin k → Γ) (i : Fin n),
-    runtime.evalDist (do
-      let ck ← cc.setup
-      let (com, st) ← cc.commit ck msg
-      let τ ← cc.openAt ck st i
-      cc.verify ck com i (C.encode msg i) τ) {true} = 1
-
-/-! #### Position-binding (Foundations Definition 9) -/
 
 /-! #### Code-binding (Foundations Definition 10) -/
 
-/-- A code-binding adversary: outputs a commitment and a list of
-position/symbol/opening triples. -/
+/-- A code-binding adversary against an erasure code commitment whose algorithms run in the
+monad `m`: outputs a commitment and a list of position/symbol/opening triples. Wagner's
+reductions, which the code-binding bound names, take one. -/
 def CodeBindingAdv (m : Type → Type) (Λ : Type) (n : ℕ) (Ck Com Opn : Type) :=
   Ck → m (Com × List (Fin n × Λ × Opn))
 
@@ -786,7 +759,7 @@ end PqDas
 
 end
 
-/-! ## Wagner's framework: the random-oracle runtime -/
+/-! ## Wagner's framework: the random-oracle simulation of his reductions -/
 
 @[expose] public section
 
@@ -798,24 +771,8 @@ section runtime
 
 variable (ComVC L : Type) [DecidableEq ComVC] [SampleableType L]
 
-/-- Runtime bundle for the random-oracle world, starting from a fixed initial
-cache: random-oracle queries that hit the cache return the cached value,
-misses are answered by fresh uniform sampling and cached. -/
-noncomputable def roRuntimeWithCache (cache : (ComVC →ₒ L).QueryCache) :
-    ProbCompRuntime (OracleComp (unifSpec + (ComVC →ₒ L))) :=
-  ProbCompRuntime.withStateOracle
-    (hashImpl := (randomOracle :
-      QueryImpl (ComVC →ₒ L) (StateT ((ComVC →ₒ L).QueryCache) ProbComp)))
-    cache
-
-/-- Runtime bundle for the random-oracle world: a fresh random oracle (empty
-initial cache). -/
-noncomputable def roRuntime : ProbCompRuntime (OracleComp (unifSpec + (ComVC →ₒ L))) :=
-  roRuntimeWithCache ComVC L ∅
-
-/-- The query implementation underlying both `roRuntime` and `simulateRom`:
-uniform-sampling queries are forwarded, random-oracle queries are answered by
-lazy caching. -/
+/-- The query implementation underlying `simulateRom`: uniform-sampling queries are
+forwarded, random-oracle queries are answered by lazy caching. -/
 noncomputable def romImpl :
     QueryImpl (unifSpec + (ComVC →ₒ L)) (StateT ((ComVC →ₒ L).QueryCache) ProbComp) :=
   unifFwdImpl (ComVC →ₒ L) + (randomOracle :
@@ -844,7 +801,7 @@ end PqDas
 
 end
 
-/-! ## Wagner's framework: the scheme from a vector commitment, a code checker and an argument -/
+/-! ## Wagner's framework: the relation of the scheme's argument -/
 
 @[expose] public section
 
@@ -863,37 +820,6 @@ code-binding proof is nontrivial. -/
 def schemeRel [DecidableEq ComVC] (vc : VectorCommitment Λ n CkVC ComVC Opn)
     (chk : CodeChecker Λ n L) : CkVC × ComVC × L → (Fin n → Λ) → Bool := fun stmt c =>
   decide (vc.commit stmt.1 c = stmt.2.1) && chk.check stmt.2.2 c
-
-/-- The erasure code commitment scheme built from an erasure code `C`, a vector
-commitment `vc`, a code checker `chk`, and an argument of knowledge `ps` for
-`schemeRel vc chk`, in any ambient monad `m` providing uniform sampling and a
-random oracle from commitments to check randomness.
-
-The commitment key is `(ckVC, crs)`, a commitment is `(comVC, π)`, and the
-opening state is the codeword itself (valid since `vc.commit` is
-deterministic). -/
-def scheme {m : Type → Type} [Monad m] [MonadLiftT ProbComp m]
-    [HasQuery (ComVC →ₒ L) m] [DecidableEq ComVC]
-    (C : ErasureCode Γ Λ k n) (vc : VectorCommitment Λ n CkVC ComVC Opn)
-    (chk : CodeChecker Λ n L)
-    (ps : Nark (CkVC × ComVC × L) (Fin n → Λ) Crs Proof (schemeRel vc chk)) :
-    ErasureCodeCommitment m Γ Λ k n (CkVC × Crs) (ComVC × Proof) (Fin n → Λ) Opn where
-  setup := do
-    let ckVC ← (monadLift vc.setup : m CkVC)
-    let crs ← (monadLift ps.setup : m Crs)
-    return (ckVC, crs)
-  commit := fun ck msg => do
-    let c := C.encode msg
-    let comVC := vc.commit ck.1 c
-    let l ← HasQuery.query (spec := (ComVC →ₒ L)) comVC
-    let π := ps.prove ck.2 (ck.1, comVC, l) c
-    return ((comVC, π), c)
-  openAt := fun ck c i => pure (vc.openAt ck.1 c i)
-  verify := fun ck com i x τ => do
-    let l ← HasQuery.query (spec := (ComVC →ₒ L)) com.1
-    return (ps.verify ck.2 (ck.1, com.1, l) com.2 && vc.verify ck.1 com.1 i x τ)
-
-/-! #### Completeness -/
 
 end PqDas
 
@@ -1227,12 +1153,6 @@ noncomputable abbrev Relation (r : ℕ) (H : List UInt8 → Digest) := schemeRel
 /-- An argument of knowledge for `Relation r H`. -/
 abbrev Argument (r : ℕ) (H : List UInt8 → Digest) (Crs Proof : Type) :=
   Nark (Unit × Digest × Challenges) (Fin (r * 128) → Cell) Crs Proof (Relation r H)
-
-/-- **LeanDA**: Wagner's erasure code commitment from the code, the Merkle commitment with the
-hash `H`, the membership test and an argument of knowledge `ps`. -/
-noncomputable def leanDa (r : ℕ) (H : List UInt8 → Digest) {Crs Proof : Type} (ps : Argument r H Crs Proof) :=
-  scheme (m := OracleComp (unifSpec + (Digest →ₒ Challenges))) (code r) (merkleVC r H)
-    (checker r) ps
 
 end LeanDa
 
@@ -1728,9 +1648,9 @@ section Games
 variable (r : ℕ) {Crs Proof : Type} {rel : Unit × Digest × Challenges → (Fin (r * 128) → Cell) → Bool}
   (ps : Nark (Unit × Digest × Challenges) (Fin (r * 128) → Cell) Crs Proof rel)
 
-/-- **Verification of an opening in the random-permutation model** (`scheme`'s `verify`): the
-challenges of the commitment's root from the deployed duplex over the permutation, the argument's
-verification, and the opening's, hashing with Keccak-256. -/
+/-- **Verification of an opening in the random-permutation model** (the verification of Wagner's
+scheme): the challenges of the commitment's root from the deployed duplex over the permutation,
+the argument's verification, and the opening's, hashing with Keccak-256. -/
 def verifyRpm (crs : Crs) (com : Digest × Proof) (p : Fin (r * 128)) (x : Cell) (τ : Opening) :
     OracleComp Rom2 Bool := do
   let zs ← membershipChallengesM hR pR com.1
@@ -1794,6 +1714,42 @@ noncomputable def codeBindingExpRpm (A : CodeBindingAdvRpm r Crs Proof) : ProbCo
   realGame2 keccakPadding KState.zero (codeBindingGame r ps A)
 
 end CodeBinding
+
+section Completeness
+
+/-- **Keccak-256 over a permutation `π`**: the sponge over `π` from the zero state with
+Keccak-256's padding, the hash `H` of the games when the permutation is `π` (`realImpl`). -/
+def keccakWith (π : KState → KState) (a : List UInt8) : Digest :=
+  Id.run (spongeWith (m := Id) keccakPadding KState.zero (fun x ↦ pure (π x)) a)
+
+/-- **The verifier's oracles for a permutation `π`**: coins forwarded, `H` Keccak-256 over `π`
+(`keccakWith`), the direct calls `π` itself, as the games answer them (`realGame2`) when the
+permutation is `π`. -/
+def permImpl (π : KState → KState) : QueryImpl Rom2 ProbComp
+  | .inl n => (unifSpec.query n : ProbComp (Fin (n + 1)))
+  | .inr (.inl a) => pure (keccakWith π a)
+  | .inr (.inr x) => pure (π x)
+
+variable (r : ℕ) {Crs Proof : Type}
+
+/-- **The completeness experiment for a permutation `π`** (Wagner's, Foundations Definition 8,
+with the hash and the challenges over `π`): the argument's setup; the honest commitment to the
+message `msg`, the root of its encoding's cells hashed with Keccak-256 over `π` and the argument's
+proof for the challenges of the root, drawn by the deployed duplex over `π`
+(`membershipChallengesM`); the honest opening of the position `p`; and the binding games'
+verification (`verifyRpm`) of the encoding's cell at `p` with that opening. -/
+noncomputable def completenessExpRpm (π : KState → KState)
+    (ps : Argument r (keccakWith π) Crs Proof) (msg : Fin r → Payload) (p : Fin (r * 128)) :
+    ProbComp Bool := do
+  let crs ← ps.setup
+  let c := (code r).encode msg
+  let root := commitCells (keccakWith π) c
+  simulateQ (permImpl π) do
+    let zs ← membershipChallengesM hR pR root
+    let proof := ps.prove crs ((), root, toChallenges zs) c
+    verifyRpm r ps crs (root, proof) p (c p) (openCell (keccakWith π) c p)
+
+end Completeness
 
 end LeanDa
 
@@ -1932,13 +1888,20 @@ namespace LeanDa
 
 open PqDas PqDas.CommittedSoundness OracleComp OracleSpec ENNReal Common
 
-/-- **Completeness**: for any number `r` of rows and any hash `H`, with a perfectly complete
-argument `ps`, every cell of an honest commitment opens and verifies. Proved by
-`LeanDa.leanDa_perfectlyComplete`. -/
-abbrev PerfectlyCompleteStatement : Prop :=
-  ∀ (r : ℕ) (H : List UInt8 → Digest) {Crs Proof : Type} (ps : Argument r H Crs Proof),
+/-- **LeanDA is perfectly complete in the random-permutation model, for every permutation.**
+For any number `r` of rows, every permutation `π` of the Keccak state (indeed every function), the
+hash Keccak-256 over `π` and the membership challenges the deployed duplex over `π`, and every
+perfectly complete argument `ps` for the relation with that hash: every position `p` of the
+honest commitment to every message `msg` opens and verifies with probability one
+(`completenessExpRpm`, over the argument's setup). Holding for each `π`, it holds for every
+outcome of the binding statements' uniformly random permutation. The proof is Wagner's
+completeness proof, transferred. Proved by
+`LeanDa.leanDa_perfectlyComplete_rpm`. -/
+abbrev PerfectlyCompleteRpm : Prop :=
+  ∀ (r : ℕ) (π : KState → KState) {Crs Proof : Type} (ps : Argument r (keccakWith π) Crs Proof),
     ps.PerfectlyComplete →
-      (leanDa r H ps).PerfectlyComplete (code r) (roRuntime Digest Challenges)
+      ∀ (msg : Fin r → Payload) (p : Fin (r * 128)),
+        Pr{let b ← completenessExpRpm r π ps msg p}[b = true] = 1
 
 /-- **LeanDA is position binding in the random-permutation model.** For every argument `ps` (any
 verifier, for any relation) and every adversary whose game, verifications included, makes at most

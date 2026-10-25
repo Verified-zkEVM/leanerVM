@@ -234,10 +234,12 @@ jobs:
         run: |
           lake build 2>&1 | tee "$RUNNER_TEMP/build.log"
           ! grep -E '^warning: (LeanDa|PqDas).*has been deprecated' "$RUNNER_TEMP/build.log"
+      # LeanDA's security is Benedikt Wagner's framework, theorems and proofs
+      # (b-wagn/fv-pq-da), ported and instantiated with LeanDA.
       - name: Check the axiom footprint
         working-directory: lean_da
         run: |
-          theorems="LeanDa.leanDa_perfectlyComplete LeanDa.leanDa_positionBinding LeanDa.leanDa_codeBinding LeanDa.checker_sound LeanDa.commitCodewords_eq_commitCells LeanDa.dualCodeword_eq_dual LeanDa.membershipVector_eq_dual LeanDa.leanDa_positionBinding_rpm LeanDa.leanDa_codeBinding_rpm LeanDa.leanDa_codeBinding_rpm_bound"
+          theorems="LeanDa.leanDa_perfectlyComplete_rpm LeanDa.leanDa_positionBinding LeanDa.leanDa_codeBinding LeanDa.checker_sound LeanDa.commitCodewords_eq_commitCells LeanDa.dualCodeword_eq_dual LeanDa.membershipVector_eq_dual LeanDa.leanDa_positionBinding_rpm LeanDa.leanDa_codeBinding_rpm LeanDa.leanDa_codeBinding_rpm_bound"
           { echo 'import LeanDa'; for t in $theorems; do echo "#print axioms $t"; done; } > "$RUNNER_TEMP/axioms.lean"
           lake env lean "$RUNNER_TEMP/axioms.lean" | tee "$RUNNER_TEMP/axioms.txt"
           for t in $theorems; do

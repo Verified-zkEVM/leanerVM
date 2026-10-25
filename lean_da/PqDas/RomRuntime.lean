@@ -35,6 +35,21 @@ section runtime
 
 variable (ComVC L : Type) [DecidableEq ComVC] [SampleableType L]
 
+/-- Runtime bundle for the random-oracle world, starting from a fixed initial
+cache: random-oracle queries that hit the cache return the cached value,
+misses are answered by fresh uniform sampling and cached. -/
+noncomputable def roRuntimeWithCache (cache : (ComVC →ₒ L).QueryCache) :
+    ProbCompRuntime (OracleComp (unifSpec + (ComVC →ₒ L))) :=
+  ProbCompRuntime.withStateOracle
+    (hashImpl := (randomOracle :
+      QueryImpl (ComVC →ₒ L) (StateT ((ComVC →ₒ L).QueryCache) ProbComp)))
+    cache
+
+/-- Runtime bundle for the random-oracle world: a fresh random oracle (empty
+initial cache). -/
+noncomputable def roRuntime : ProbCompRuntime (OracleComp (unifSpec + (ComVC →ₒ L))) :=
+  roRuntimeWithCache ComVC L ∅
+
 variable {ComVC L}
 
 /-- The simulation and the runtime semantics agree: observing `simulateRom` as

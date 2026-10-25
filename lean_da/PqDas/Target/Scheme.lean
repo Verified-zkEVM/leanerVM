@@ -34,7 +34,8 @@ lazily-sampled random oracle whose cache is threaded through the whole
 experiment (adversary and scheme algorithms alike).
 
 Benedikt Wagner's formalization (https://github.com/b-wagn/fv-pq-da), ported at 4475179c and
-modified for VCVio afa6593.
+modified for VCVio afa6593; the core of his completeness proof is stated on its own
+(`honest_verify`), for LeanDA's completeness in the random-permutation model.
 -/
 import PqDas.Assumptions.ErasureCode
 import PqDas.Assumptions.VectorCommitment
@@ -50,7 +51,60 @@ namespace PqDas
 
 variable {Γ Λ : Type} {k n : ℕ} {CkVC ComVC Opn L Crs Proof : Type}
 
+/-- The erasure code commitment scheme built from an erasure code `C`, a vector
+commitment `vc`, a code checker `chk`, and an argument of knowledge `ps` for
+`schemeRel vc chk`, in any ambient monad `m` providing uniform sampling and a
+random oracle from commitments to check randomness.
+
+The commitment key is `(ckVC, crs)`, a commitment is `(comVC, π)`, and the
+opening state is the codeword itself (valid since `vc.commit` is
+deterministic). -/
+def scheme {m : Type → Type} [Monad m] [MonadLiftT ProbComp m]
+    [HasQuery (ComVC →ₒ L) m] [DecidableEq ComVC]
+    (C : ErasureCode Γ Λ k n) (vc : VectorCommitment Λ n CkVC ComVC Opn)
+    (chk : CodeChecker Λ n L)
+    (ps : Nark (CkVC × ComVC × L) (Fin n → Λ) Crs Proof (schemeRel vc chk)) :
+    ErasureCodeCommitment m Γ Λ k n (CkVC × Crs) (ComVC × Proof) (Fin n → Λ) Opn where
+  setup := do
+    let ckVC ← (monadLift vc.setup : m CkVC)
+    let crs ← (monadLift ps.setup : m Crs)
+    return (ckVC, crs)
+  commit := fun ck msg => do
+    let c := C.encode msg
+    let comVC := vc.commit ck.1 c
+    let l ← HasQuery.query (spec := (ComVC →ₒ L)) comVC
+    let π := ps.prove ck.2 (ck.1, comVC, l) c
+    return ((comVC, π), c)
+  openAt := fun ck c i => pure (vc.openAt ck.1 c i)
+  verify := fun ck com i x τ => do
+    let l ← HasQuery.query (spec := (ComVC →ₒ L)) com.1
+    return (ps.verify ck.2 (ck.1, com.1, l) com.2 && vc.verify ck.1 com.1 i x τ)
+
 /-! ### Completeness -/
+
+/-- **The honest run verifies, for every check randomness `l`**: the core of
+`scheme_perfectlyComplete`, stated before the random oracle is evaluated, so
+that it also holds wherever `l` comes from (in `lean_da`, from the deployed
+duplex over a permutation). For a key and a crs the setups can output, the
+honest proof for `(ckVC, vc.commit ckVC c, l)` with `c` the encoding verifies,
+since `c` commits to the root and passes every check, and the honest opening of
+position `i` verifies. -/
+theorem honest_verify [DecidableEq ComVC]
+    (C : ErasureCode Γ Λ k n) (vc : VectorCommitment Λ n CkVC ComVC Opn)
+    (chk : CodeChecker Λ n L)
+    (ps : Nark (CkVC × ComVC × L) (Fin n → Λ) Crs Proof (schemeRel vc chk))
+    (hvc : vc.PerfectlyComplete) (hchk : chk.Complete C) (hps : ps.PerfectlyComplete)
+    {ckVC : CkVC} (hck : ckVC ∈ support vc.setup) {crs : Crs} (hcrs : crs ∈ support ps.setup)
+    (msg : Fin k → Γ) (i : Fin n) (l : L) :
+    (ps.verify crs (ckVC, vc.commit ckVC (C.encode msg), l)
+        (ps.prove crs (ckVC, vc.commit ckVC (C.encode msg), l) (C.encode msg)) &&
+      vc.verify ckVC (vc.commit ckVC (C.encode msg)) i (C.encode msg i)
+        (vc.openAt ckVC (C.encode msg) i)) = true := by
+  have hrel : schemeRel vc chk (ckVC, vc.commit ckVC (C.encode msg), l) (C.encode msg) = true := by
+    simp [schemeRel, hchk _ (C.encode_mem_code msg) l]
+  have hpv := hps crs hcrs _ _ hrel
+  have hvv := hvc ckVC hck (C.encode msg) i
+  simp [hpv, hvv]
 
 section completeness
 
@@ -146,11 +200,7 @@ theorem scheme_perfectlyComplete (hvc : vc.PerfectlyComplete)
   simp only [support_bind, Set.mem_iUnion, support_pure, Set.mem_singleton_iff,
     exists_prop] at hb
   obtain ⟨ckVC, hck, crs, hcrs, l, -, rfl⟩ := hb
-  have hrel : schemeRel vc chk (ckVC, vc.commit ckVC (C.encode msg), l) (C.encode msg) = true := by
-    simp [schemeRel, hchk _ (C.encode_mem_code msg) l]
-  have hpv := hps crs hcrs _ _ hrel
-  have hvv := hvc ckVC hck (C.encode msg) i
-  simp [hpv, hvv]
+  exact honest_verify C vc chk ps hvc hchk hps hck hcrs msg i l
 
 end completeness
 

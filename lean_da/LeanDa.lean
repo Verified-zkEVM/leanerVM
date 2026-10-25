@@ -3,34 +3,40 @@ import LeanDa.Dual
 import LeanDa.Security
 import LeanDa.RpmSecurity
 import LeanDa.RpmWagner
+import LeanDa.RpmComplete
 import PqDas
 
 /-!
 # LeanDA's security
 
 Benedikt Wagner's theorems for his erasure code commitment from a vector commitment, a code
-checker and an argument of knowledge (`PqDas`, ported from https://github.com/b-wagn/fv-pq-da; his
-post: https://ethresear.ch/t/formally-verified-security-for-pq-das-leanda/25746), instantiated with LeanDA as `crates/lean_da` computes it, for
-any number `r ≥ 1` of rows and any hash `H` (the crate's is Keccak-256): completeness, position
-binding by reduction to a collision of `H`, and code binding with the membership test's
-soundness `δ = 14 / 2^192` over `|E^14| = 2^2688` challenges. The argument `ps` and its extractor `ext` are parameters: knowledge soundness enters
+checker and an argument of knowledge (`PqDas`, ported from https://github.com/b-wagn/fv-pq-da;
+his post: https://ethresear.ch/t/formally-verified-security-for-pq-das-leanda/25746),
+instantiated with LeanDA as `crates/lean_da` computes it, for any number `r ≥ 1` of rows and any
+hash `H` (the crate's is Keccak-256): position binding by reduction to a collision of `H`, and
+code binding with the membership test's soundness `δ = 14 / 2^192` over `|E^14| = 2^2688`
+challenges. The argument `ps` and its extractor `ext` are parameters: knowledge soundness enters
 as the probability that the explicit reduction `ksReduction` breaks it.
 
 In the random-permutation model (`LeanDa.RpmSecurity`: `H` Keccak-256 over a random permutation
-`π`, the challenges the deployed duplex over `π`, the adversary querying `π` and `π⁻¹`), position
-binding holds with the bound `Q² / 2^256 + Q² / 2^508` for `Q` permutation calls
-(`leanDa_positionBinding_rpm`), and code binding moves to the two-oracle random-oracle model
-within `Q² / 2^508` (`leanDa_codeBinding_rpm`), where the duplex lemma (`Common.Duplex`) and
-sampling `H` in advance give Wagner's bound, averaged over `H`, plus `2 (Q + 15)² / 2^576`
+`π`, the challenges the deployed duplex over `π`, the adversary querying `π` and `π⁻¹`), LeanDA is
+perfectly complete for every permutation `π`, by Wagner's completeness proof
+(`leanDa_perfectlyComplete_rpm`, `LeanDa.RpmComplete`); position binding holds with the bound
+`Q² / 2^256 + Q² / 2^508` for `Q` permutation calls (`leanDa_positionBinding_rpm`); and code
+binding moves to the two-oracle random-oracle model within `Q² / 2^508`
+(`leanDa_codeBinding_rpm`), where the duplex lemma (`Common.Duplex`) and sampling `H` in advance
+give Wagner's bound, averaged over `H`, plus `2 (Q + 15)² / 2^576`
 (`leanDa_codeBinding_rpm_bound`).
 -/
 
 /-! ## The end theorems
 
-Each proves a proposition of `Statement/LeanDa.lean`: `leanDa_perfectlyComplete :
-PerfectlyCompleteStatement` and `leanDa_codeBinding_rpm_bound : CodeBindingRpm` below,
-`leanDa_positionBinding_rpm : PositionBindingRpm` in `LeanDa/RpmSecurity.lean`; the axioms are
-pinned at the end of this file. -/
+Each proves a proposition of `Statement/LeanDa.lean`: `leanDa_perfectlyComplete_rpm :
+PerfectlyCompleteRpm` in `LeanDa/RpmComplete.lean`, `leanDa_positionBinding_rpm :
+PositionBindingRpm` in `LeanDa/RpmSecurity.lean`, and `leanDa_codeBinding_rpm_bound :
+CodeBindingRpm` below; the axioms are pinned at the end of this file. -/
+
+example : LeanDa.PerfectlyCompleteRpm := LeanDa.leanDa_perfectlyComplete_rpm
 
 example : LeanDa.PositionBindingRpm := LeanDa.leanDa_positionBinding_rpm
 
@@ -39,13 +45,6 @@ open PqDas PqDas.CommittedSoundness OracleComp OracleSpec ENNReal
 namespace LeanDa
 
 variable (r : ℕ) (H : List UInt8 → Digest) {Crs Proof : Type} (ps : Argument r H Crs Proof)
-
-/-- **Completeness**: with a perfectly complete argument, every cell of an honest commitment
-opens and verifies. -/
-theorem leanDa_perfectlyComplete : PerfectlyCompleteStatement := by
-  intro r H Crs Proof ps hps
-  exact scheme_perfectlyComplete (code r) (merkleVC r H) (checker r) ps
-    (merkleVC_perfectlyComplete r H) (checker_complete r) hps
 
 /-- **Position binding**: an adversary opening a commitment at one cell to two different cells
 gives, through the explicit reduction, a collision of `H`. -/
@@ -151,9 +150,9 @@ end LeanDa
 /-! The build fails if a front-page theorem's axiom footprint ever grows beyond Lean's three
 standard axioms. -/
 
-/-- info: 'LeanDa.leanDa_perfectlyComplete' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+/-- info: 'LeanDa.leanDa_perfectlyComplete_rpm' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
-#print axioms LeanDa.leanDa_perfectlyComplete
+#print axioms LeanDa.leanDa_perfectlyComplete_rpm
 
 /-- info: 'LeanDa.leanDa_positionBinding' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs (whitespace := lax) in

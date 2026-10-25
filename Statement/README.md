@@ -40,7 +40,9 @@ Benedikt Wagner's ([b-wagn/fv-pq-da](https://github.com/b-wagn/fv-pq-da), Apache
 5. [`LeanDa.lean`](LeanDa.lean): LeanDA (fields, Reed–Solomon rows, the Merkle commitment, the
    membership test), Benedikt Wagner's framework for erasure code commitments and the reductions
    his bound names, LeanDA's games in the random-permutation model, and
-   `LeanDa.PerfectlyCompleteStatement`, `LeanDa.PositionBindingRpm`, `LeanDa.CodeBindingRpm`.
+   `LeanDa.PerfectlyCompleteRpm` (for every permutation `π`: Keccak-256 over `π`, `keccakWith`,
+   and the verifier's oracles answered by `π`, `permImpl`; the experiment `completenessExpRpm`),
+   `LeanDa.PositionBindingRpm`, `LeanDa.CodeBindingRpm`.
 6. [`LeanIsa.lean`](LeanIsa.lean): leanISA (memory, the six instructions, programs, one step,
    `run`, `ValidExecution`: a run from `(1, 1)` that halts in the final state
    `(g^(N_prog - 1), 1)`, the instruction counts `Trace.count`, the bytecode encoding), the
@@ -112,7 +114,7 @@ laws: the lemmas before it in `LeanDa.lean`); and decidability instances.
 | `LeanVM.Guest.Batch.BatchSoundRpmBits` | `LeanVM.Guest.Batch.batch_sound_rpm_bits` | same |
 | `LeanXmss.Rpm.LeanXmssRpmSecurityStatement` | `XmssSecurity.leanXmss_rpm_security` | [`lean_xmss/XmssSecurity/Rpm.lean`](../lean_xmss/XmssSecurity/Rpm.lean) |
 | `Sphincs.Lifetimes.RequestedSecurityRpm` | `Sphincs.Lifetimes.requestedSecurityRpm` | [`lean_sphincs/Sphincs/LifetimesRpm.lean`](../lean_sphincs/Sphincs/LifetimesRpm.lean) |
-| `LeanDa.PerfectlyCompleteStatement` | `LeanDa.leanDa_perfectlyComplete` | [`lean_da/LeanDa.lean`](../lean_da/LeanDa.lean) |
+| `LeanDa.PerfectlyCompleteRpm` | `LeanDa.leanDa_perfectlyComplete_rpm` | [`lean_da/LeanDa/RpmComplete.lean`](../lean_da/LeanDa/RpmComplete.lean) |
 | `LeanDa.PositionBindingRpm` | `LeanDa.leanDa_positionBinding_rpm` | [`lean_da/LeanDa/RpmSecurity.lean`](../lean_da/LeanDa/RpmSecurity.lean) |
 | `LeanDa.CodeBindingRpm` | `LeanDa.leanDa_codeBinding_rpm_bound` | [`lean_da/LeanDa.lean`](../lean_da/LeanDa.lean) |
 
