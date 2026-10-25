@@ -139,11 +139,13 @@ calls must be its oracle queries: an adversary that hashes in its own code fails
 since the verifier's query on a Merkle node the adversary hashed itself is fresh and answered by the
 proof's root, a hit with probability `1`. The theorem then says nothing about that adversary; the
 hypothesis is false, not the theorem wrong. The adversary draws no coins, so under BLAKE2s its run
-is one computation and the hypothesis is one bit about it; the headline's content is `core`: on any
-run where the verifier accepts and the extractor fails, the hash misbehaves. Why the hypothesis must
-be per adversary, and what it excludes (attacks that use the code of BLAKE2s, [KRS25], [Fen26]), is
-in Layer 13. leanVM binds the statement and commits the trace before the first challenge, so the
-known attacks do not apply, but no theorem here says so.
+is one computation and the hypothesis is one bit about it (an adversary with coins is a distribution
+over these, and `baseVerifier_extractsWitness_coins` bounds it by the probability over its coins);
+the headline's content is `core`: on any run where the verifier accepts and the extractor fails,
+the hash misbehaves. Why the hypothesis must be per adversary, and what it excludes (attacks that
+use the code of BLAKE2s, [KRS25], [Fen26]), is in Layer 13. leanVM binds the statement and commits
+the trace before the first challenge, so the known attacks do not apply, but no theorem here says
+so.
 
 Why the relation is polynomial and not "a valid execution exists": sumcheck, GKR and WHIR
 manipulate polynomials, and a knowledge extractor recovers column data, never an execution; a
@@ -654,7 +656,7 @@ no other; the hole is built when the names in bold of its row are declared and m
 | transcript, proof object and compiled verifier | [Layer 12](#layer-12-compilation-the-transcript-the-proof-and-the-executable-verifier) | `Digest`, **`card_digest`**, `hashSpec`, `hashQuery`, `runBlake2s`, `runRandom`, `FsState`, `Block`, `FsState.checkPow`, **`FsState.challengeOf`**, `chainHistory`, **`chainHistory_determined`**, `Proof`, `Proof.sizes?`, `RoundPoly.decode`, `decodePrefix`, **`decodePrefix_mono`**, `decode`, `leanVmIopp`, **`verifyWith`**, **`verify`**, **`verifyWith_simulateQ`**, `rounds`, `verifierQueries`, `proofDigests`, **`rounds_bound`**, **`verifierQueries_bound`**, **`proofDigests_bound`**, **`verify_iff_compiled`**, `settleFixedClaims` | the phases' definitions; the Flock phase's definition; WHIR opening; Merkle trees |
 | the random-oracle theorems | [Layer 12](#layer-12-compilation-the-transcript-the-proof-and-the-executable-verifier) | `Adversary`, `Run`, `loggedGame`, `extract`, `Extracts`, `LogHasCollision`, `Hit`, `Bad`, **`bad_density`**, `Flip`, `HashMisbehaves`, **`core`**, `hashTerm`, `niError`, **`misbehaves_rom`**, `misbehaves_rom_coins`, **`niError_le`**, **`verify_knowledgeSound_rom`** | the compiled verifier; list-binding compilation; Merkle binding by log replay; the charged invariant in its logged form |
 | the honest prover and the test vectors | [Layer 13](#the-executable-prover-and-the-test-vectors) | `proveWith`, **`prove`**, `honestAdversary`, **`baseProver_complete`**, the executable `leanervm-vectors` and its vectors | the compiled verifier; the adaptor; for the vectors, leanISA's `checkSatisfiedBy` |
-| the base theorems (T4) | [Layer 13](#layer-13-the-base-theorems-t4-and-the-fixtures) | **`BlakeMisbehaves`**, `extractTrace`, **`baseVerifier_extractsWitness_rom`**, **`baseVerifier_extractsWitness`**, **`baseVerifier_extractsExecution`**, `Blake2sActsAsRandomOracle`, **`blakeMisbehaves_of_comparison`**, `baseProver_complete_of_execution` (an unproved target) | the random-oracle theorems; the adaptor; the honest prover; leanISA's `TraceExtraction` (declared beside `SatisfiedBy`) and its inhabitant `leanIsaTraceExtraction`; for completeness from an execution, leanISA's constraint completeness at the trace level |
+| the base theorems (T4) | [Layer 13](#layer-13-the-base-theorems-t4-and-the-fixtures) | **`BlakeMisbehaves`**, `extractTrace`, **`baseVerifier_extractsWitness_rom`**, **`baseVerifier_extractsWitness`**, **`baseVerifier_extractsWitness_coins`**, **`baseVerifier_extractsExecution`**, `Blake2sActsAsRandomOracle`, **`blakeMisbehaves_of_comparison`**, `baseProver_complete_of_execution` (an unproved target) | the random-oracle theorems; the adaptor; the honest prover; leanISA's `TraceExtraction` (declared beside `SatisfiedBy`) and its inhabitant `leanIsaTraceExtraction`; for completeness from an execution, leanISA's constraint completeness at the trace level |
 
 What can start is what the column *Needs* allows; the status file says what is built.
 
@@ -1862,6 +1864,13 @@ theorem baseVerifier_extractsWitness (hB : BlakeMisbehaves prog input A δ) :
     Pr[fun g ↦ verify prog input g.proof = true ∧
           ¬ ∃ e, extract F prog input g.proof g.logA = some e ∧ SatisfiedBy prog input (witnessOf F prog e.1 e.2)
       | runBlake2s (loggedGame verifyWith prog input A)] ≤ δ
+-- An adversary with coins: a distribution over coin-free ones, `δ` a probability over the coins
+theorem baseVerifier_extractsWitness_coins {coins : ProbComp Adversary}
+    (hB : Pr[fun g ↦ HashMisbehaves (rootsOf prog input) (leanVmReader prog input).Flip prog input g
+      | do let A ← coins; runBlake2s (loggedGame verifyWith prog input A)] ≤ δ) :
+    Pr[fun g ↦ verify prog input g.proof = true ∧
+          ¬ ∃ e, extract F prog input g.proof g.logA = some e ∧ SatisfiedBy prog input (witnessOf F prog e.1 e.2)
+      | do let A ← coins; runBlake2s (loggedGame verifyWith prog input A)] ≤ δ
 -- The execution, through leanISA's trace extraction
 def extractTrace (X : TraceExtraction prog) (input proof log) : Option (Trace prog) :=
   (extract F prog input proof log).bind fun e ↦ X.traceOf input (witnessOf F prog e.1 e.2)
@@ -1923,8 +1932,9 @@ what of BLAKE2s is relied on (*For zkVM engineers* says what that makes of the h
 statement is fixed before the adversary runs: the headline and `misbehaves_rom` are selective
 (Layer 12 says why the random-oracle bound does not lift to an adversary picking the public input
 after its queries). An adversary with coins is a distribution over coin-free ones (decision 38);
-the headline applied to each gives it the bound with `δ` the probability, over its coins, that the
-hash misbehaves, and `misbehaves_rom_coins` gives it the random-oracle bound unchanged.
+`baseVerifier_extractsWitness_coins`, the headline applied to each and averaged, gives it the
+bound with `δ` the probability, over its coins, that the hash misbehaves, and
+`misbehaves_rom_coins` gives it the random-oracle bound unchanged.
 `blakeMisbehaves_of_comparison` derives the hypothesis at
 `(Q + 13697)/2^128 + hashTerm 13697 Q + δ`, the closed form of `niError εquery verifierQueries Q`
 with the verifier's queries bounded by 13697 over the window, from the comparison form,
@@ -2285,7 +2295,8 @@ Random oracle:        Run  loggedGame  extract  Extracts  LogHasCollision  Hit  
                       HashMisbehaves  core  hashTerm  niError  misbehaves_rom  niError_le  verify_knowledgeSound_rom
 Base theorems:        TraceExtraction  checkSatisfiedBy  checkSatisfiedBy_eq_true_iff (leanISA's)
                       BlakeMisbehaves  extractTrace  baseVerifier_extractsWitness_rom
-                      baseVerifier_extractsWitness  baseVerifier_extractsExecution
+                      baseVerifier_extractsWitness  baseVerifier_extractsWitness_coins
+                      baseVerifier_extractsExecution
                       Blake2sActsAsRandomOracle  blakeMisbehaves_of_comparison  proveWith  prove  honestAdversary
                       baseProver_complete  baseProver_complete_of_execution
 Parameters:           initialFold  subsequentFold  initialReduction  subsequentReduction  residualMaxLog
@@ -2405,7 +2416,7 @@ recorded here in one row. Each is reversible by a pull request to this document.
 | 35. Correlated agreement at Annex B's constant | `McaJohnson` takes Annex B's `a` (`johnsonComparisonEstimate`), inhabited by ArkLib's proved theorem; the admitted [BCHKS25] theorem is not consumed; `η` is the exact value of the Rust's double, dumped from the pinned Rust | Layer 11; the ledger |
 | 36. The direct random-oracle route | one logged game on the one hash oracle, split into the deterministic `core` and the bound `misbehaves_rom` over the generic charged invariant, takes the place of state restoration, a BCS compilation, a chain lemma and role separation, none of which is stated | Layer 12; the ledger; tests 39, 40 |
 | 37. The hypothesis is about the hash | the headline assumes `BlakeMisbehaves`, a bound on the collisions, the hits (the proof's digests against the verifier's queries only) and the flips (a challenge of the proof's own chain in a bad set of density at most `εquery`, `bad_density`) of BLAKE2s on the adversary's run, and the comparison with a random function becomes the corollary `blakeMisbehaves_of_comparison` (amends decision 34's form) | Layer 13; tests 36, 37, 40 |
-| 38. Adversaries draw no coins | an adversary is `OracleComp hashSpec Proof`, bounded by `IsTotalQueryBound`, and one with coins is a distribution over these | Layers 12, 13 |
+| 38. Adversaries draw no coins | an adversary is `OracleComp hashSpec Proof`, bounded by `IsTotalQueryBound`, and one with coins is a distribution over these, which `baseVerifier_extractsWitness_coins` (the headline, `δ` a probability over the coins) and `misbehaves_rom_coins` (the random-oracle bound) cover | Layers 12, 13 |
 | 39. Merkle binding by log replay | the rows are read top-down off the adversary's log (`extractRows`, on `MerkleTree.fold`), `extract` reading a missing row as zero, and `binding_of_log` proves the opened rows equal to them unless the joint log shows a collision or a hit; VCVio's extraction is not consumed (amends decision 32) | Layer 12; the ledger |
 | 40. List binding through a decoder interface | the extractor list-decodes through `ListDecoder`, specified by WHIR's list relation at level 0's threshold with no repetition, and inhabited by brute force; the `exactFast` path proved to agree at every threshold from `2^κ` to `2^{κ+R}` (`ListDecoder.exactFirst`), and faster decoders as further inhabitants. The committed word is a `K` word (`KWord`), so every member of its list is a stack (`isInK_of_cl`), read in `E` for WHIR by the zero-round `openInput`; `relist` takes the front component over the new oracles (`F'`) and a `List` with a length bound; the compilation takes the height equation `hμ : κ + sh.ℓ = I.μ`; the deployed decoder is `ListDecoder.nttFirst` over `ListDecoder.bruteForce`: the exact path by the additive transform, proved to agree (`exactNtt_spec`, `ListDecoder.decode_eq_of_codeword`) | Layer 12; *Extractors*; test 24 |
 | 41. leanISA's trace through an interface | the execution-level headline takes `TraceExtraction prog`, which leanISA declares beside `SatisfiedBy` and inhabits, and the witness-level headline is stated without it | Layer 13; *Boundaries* |

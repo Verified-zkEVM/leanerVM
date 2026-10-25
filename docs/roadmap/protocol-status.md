@@ -1318,7 +1318,9 @@ adversary runs. Each is unconditional but for the query bound or a named hypothe
 `(Q + 13697)/2^128 + hashTerm 13697 Q`, for an adversary of at most `Q` queries;
 `baseVerifier_extractsWitness` and `baseVerifier_extractsExecution` (at `leanIsaTraceExtraction`,
 for a program with `SentinelSafe`) are the deployed forms under `BlakeMisbehaves`;
-`blakeMisbehaves_of_comparison` derives `BlakeMisbehaves` from `Blake2sActsAsRandomOracle` and the
+`baseVerifier_extractsWitness_coins` is the witness form for an adversary with coins (a
+`ProbComp Adversary`), under `BlakeMisbehaves`'s event averaged over the coins, by the headline at
+each coin-free adversary integrated over the draw; `blakeMisbehaves_of_comparison` derives `BlakeMisbehaves` from `Blake2sActsAsRandomOracle` and the
 query bound. `mem_support_runBlake2s` and `mem_support_runRandom` make every run under either oracle
 a possible run of the game with a consistent joint log, and under BLAKE2s give it `verify`'s
 verdict; on such a run `Core.core_of_mem_support` puts an accepted proof whose extraction fails

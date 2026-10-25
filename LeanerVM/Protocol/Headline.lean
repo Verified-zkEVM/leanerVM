@@ -32,6 +32,8 @@ off the stack, and `extractTrace` reads an execution off the witness.
   a hit or a flip with probability at most `δ`.
 * `baseVerifier_extractsWitness`: the deployed `verify` accepts while the extracted witness fails
   the constraint statement with probability at most `δ`, under `BlakeMisbehaves prog input A δ`.
+* `baseVerifier_extractsWitness_coins`: the same for an adversary with coins, a distribution over
+  coin-free adversaries, with `δ` the probability over its coins that the hash misbehaves.
 * `baseVerifier_extractsExecution`: the same for a valid execution, read off the witness by
   leanISA's trace extraction, for a program whose sentinel slot is not a `JUMP`.
 * `Blake2sActsAsRandomOracle`, `blakeMisbehaves_of_comparison`: if misbehaving is at most `δ`
@@ -46,8 +48,9 @@ fails puts the run inside `HashMisbehaves` (`Core.core_of_mem_support`), and
 sizes `extract` returns. The random-oracle bound is `leanVm_misbehaves_rom_closed`.
 
 **What they do not say.** An adversary with no coins has one run under BLAKE2s, so
-`BlakeMisbehaves` at `δ < 1` says that this run does not misbehave; for an adversary with coins, a
-distribution over coin-free ones, `δ` is the probability over its coins. The hypothesis is about
+`BlakeMisbehaves` at `δ < 1` says that this run does not misbehave; an adversary with coins, a
+distribution over coin-free ones, gets the bound with `δ` the probability over its coins
+(`baseVerifier_extractsWitness_coins`). The hypothesis is about
 one adversary and is false for some: the replayer of a stored accepted proof fails it at every
 `δ < 1`, and so does an adversary that hashes in its own code. The completeness direction is
 `baseProver_complete`, from a satisfying witness; none is stated from an execution, since leanISA
@@ -161,6 +164,25 @@ theorem baseVerifier_extractsWitness {prog : Program} {input : PublicInput} {A :
   (OracleComp.prEvent_mono_of_support _ fun _ hg h ↦
     have ⟨hg', hc, hok⟩ := mem_support_runBlake2s hg
     misbehaves_of_escape ⟨hg', hc⟩ (hok.trans h.1) h.2).trans hB
+
+/-- **The headline for an adversary with coins.** An adversary with coins is a distribution
+`coins` over coin-free ones. With BLAKE2s-256 answering the hash, `verify` accepts the proof of
+the adversary drawn from `coins` while the witness read off the stack the extractor reads off its
+queries does not satisfy leanISA's constraint statement with probability at most `δ`, if BLAKE2s
+misbehaves on the drawn adversary's run with probability at most `δ`, a probability over the coins
+and no longer `0` or `1`. Selective: the program and the public input are fixed before the coins
+are drawn. -/
+theorem baseVerifier_extractsWitness_coins {prog : Program} {input : PublicInput}
+    {coins : ProbComp Adversary} {δ : ℝ≥0∞}
+    (hB : Pr{let A ← coins; let g ← runBlake2s (loggedGame verifyWith prog input A)}[
+      HashMisbehaves (rootsOf prog input) (leanVmReader prog input).Flip prog input g] ≤ δ) :
+    Pr{let A ← coins; let g ← runBlake2s (loggedGame verifyWith prog input A)}[
+      verify prog input g.proof = true ∧ ¬ ∃ e,
+        extract Blake2sFlock.blake2sFlockSpec prog input g.proof g.logA = some e ∧
+          SatisfiedBy prog input (witnessOf Blake2sFlock.blake2sFlockSpec prog e.1 e.2)] ≤ δ := by
+  let : MeasurableSpace Adversary := ⊤
+  rw [← bind_assoc, prEvent_bind_eq_lintegral_of_discrete] at hB ⊢
+  exact (MeasureTheory.lintegral_mono fun _ ↦ baseVerifier_extractsWitness le_rfl).trans hB
 
 /-- **Knowledge soundness of the deployed verifier, for an execution.** For a program whose
 sentinel slot is not a `JUMP`, with BLAKE2s-256 answering the hash, `verify` accepts the
