@@ -202,11 +202,15 @@ theorem verifierFam_eq_batchVerifier (M : ℕ) (bytecode : List K) :
     bind_assoc, pure_bind, List.nil_append, List.getD_cons_zero]
 
 /-- **`BatchSoundRpm`** (`Statement/LeanVmGuest.lean`): `batch_rpm`, its failure term
-`failBound batchSeeds` the explicit `5N/2^256`. -/
+`failBound batchSeeds` the explicit `5N/2^256`, and `rpmError (QA + QV · 2^32)` at most
+`(QA + QV · 2^32) · 2^-379` for `QA ≤ 2^128` and `QV ≤ 2^96` (`rpmError_le_linear`). -/
 theorem batch_sound_rpm : BatchSoundRpm := by
-  intro M bytecode hb hM A QA hA
+  intro M bytecode hb hM A QA hA hQA hQV
   rw [← verifierFam_eq_batchVerifier, ← failBound_batchSeeds]
-  exact batch_rpm hb hM A QA hA
+  refine (batch_rpm hb hM A QA hA).trans (add_le_add le_rfl (rpmError_le_linear ?_))
+  refine add_le_two_pow_129 hQA ?_
+  calc batchQueryBound bytecode M * 2 ^ 32 ≤ 2 ^ 96 * 2 ^ 32 := Nat.mul_le_mul_right _ hQV
+    _ = 2 ^ 128 := by norm_num
 
 /-- **`BatchSoundRpmBits`** (`Statement/LeanVmGuest.lean`): `batch_rpm_bits`. -/
 theorem batch_sound_rpm_bits : BatchSoundRpmBits := by

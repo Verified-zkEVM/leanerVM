@@ -1,5 +1,6 @@
 import LeanXmss.StatementRpm
 import XmssSecurity.Proof.Bridge.Security
+import Common.Linear
 
 /-!
 # leanXMSS in the random-permutation model
@@ -55,11 +56,14 @@ theorem leanXmss_rpm_security_calls (q Q : ℕ) (hq1 : 1 ≤ q) (adversary : Lea
   exact rpm_bound (digestBitVec : KDigest ≃ LeanXmss.HashOutput) LeanXmss.Rpm.scheme 127
     romBound adversary.main q Q hq1 hq hQ
 
-/-- **leanXMSS in the random-permutation model**: an adversary whose game makes at most `Q ≥ 1`
-permutation calls on every path forges with probability at most `Q / 2^127 + Q² / 2^509`. -/
+/-- **leanXMSS in the random-permutation model**: an adversary whose game makes at most `Q`
+permutation calls on every path, `1 ≤ Q ≤ 2^128`, forges with probability at most
+`Q / 2^127 + Q · 2^-381`: `Q / 2^127 + Q² / 2^509` (`rpm_bound_perm`), and `Q² / 2^509` is at most
+`Q · 2^-381` under the cap (`Common.sq_div_le_mul_inv_pow`). -/
 theorem leanXmss_rpm_security : LeanXmss.Rpm.LeanXmssRpmSecurityStatement :=
-  fun Q hQ adversary hbound ↦
-    rpm_bound_perm (digestBitVec : KDigest ≃ LeanXmss.HashOutput) LeanXmss.Rpm.scheme 127
-      romBound adversary.main Q hQ hbound
+  fun Q hQ hcap adversary hbound ↦
+    (rpm_bound_perm (digestBitVec : KDigest ≃ LeanXmss.HashOutput) LeanXmss.Rpm.scheme 127
+      romBound adversary.main Q hQ hbound).trans
+      (add_le_add le_rfl (Common.sq_div_le_mul_inv_pow (k := 128) 381 hcap))
 
 end XmssSecurity

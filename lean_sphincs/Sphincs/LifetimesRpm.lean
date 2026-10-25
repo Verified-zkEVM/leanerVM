@@ -1,5 +1,6 @@
 import Sphincs.StatementRpm
 import Sphincs.Lifetimes
+import Common.Linear
 
 /-!
 **The forest lifetimes in the random-permutation model.** The ROM theorems of `Lifetimes.lean`
@@ -51,17 +52,19 @@ theorem rpmBitsCalls_of_det {bits : Nat} (h : Security.Det.HasClassicalSecurityB
     hq1 hq hQ
 
 /-- **From the ROM to the RPM**: `bits` classical bits for the deterministic signer give the
-bound `Q / 2^bits + Q² / 2^509` in the random-permutation model. -/
+bound `Q / 2^bits + Q · 2^-381` in the random-permutation model, for `Q ≤ 2^128`: the refined
+bound's `Q² / 2^509` is at most `Q · 2^-381` under the cap (`Common.sq_div_le_mul_inv_pow`). -/
 theorem rpmBits_of_det {bits : Nat} (h : Security.Det.HasClassicalSecurityBitsDet bits) :
     Rpm.HasRpmSecurityBits bits :=
-  fun Q hQ adversary hbound ↦ rpmBitsCalls_of_det h Q Q hQ adversary
-    (IsWeightBound.mono_weight hbound oracleCalls_le_permCalls) hbound
+  fun Q hQ hcap adversary hbound ↦ (rpmBitsCalls_of_det h Q Q hQ adversary
+    (IsWeightBound.mono_weight hbound oracleCalls_le_permCalls) hbound).trans
+    (add_le_add le_rfl (Common.sq_div_le_mul_inv_pow (k := 128) 381 hcap))
 
 end
 
 /-- **The forest lifetimes in the random-permutation model**: at each proved subtree height
-(`b` = 26, 20, 14, 13, 12, 10, 8), an adversary whose game makes at most `Q ≥ 1` permutation
-calls forges with probability at most `Q / 2^127 + Q² / 2^509`. -/
+(`b` = 26, 20, 14, 13, 12, 10, 8), an adversary whose game makes at most `Q` permutation calls,
+`1 ≤ Q ≤ 2^128`, forges with probability at most `Q / 2^127 + Q · 2^-381`. -/
 theorem requestedSecurityRpm : RequestedSecurityRpm :=
   ⟨@rpmBits_of_det full 127 full_bits, @rpmBits_of_det pruned20 127 pruned20_bits, @rpmBits_of_det pruned14 127 pruned14_bits,
     @rpmBits_of_det pruned13 127 pruned13_bits, @rpmBits_of_det pruned12 127 pruned12_bits, @rpmBits_of_det pruned10 127 pruned10_bits,

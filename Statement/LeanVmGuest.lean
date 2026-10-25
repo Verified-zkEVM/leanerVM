@@ -1008,8 +1008,8 @@ while the execution the knowledge extractor `extractorRpm` reads off the proof a
 transcript is none, or does not explain `s` (`Explains`, above: decode to the deployed
 seed, `s` and a witness holding it, or give a Keccak-256 collision among `collisionCandidates`),
 with probability at most the bound of `KnowledgeSoundness`,
-`soundnessError Q + rpmError (Q + verifierPermCalls)`, for an adversary of at most `Q` queries to
-`π` and `π⁻¹`.
+`soundnessError Q + (Q + verifierPermCalls) · 2^-379`, for an adversary of at most `Q ≤ 2^128`
+queries to `π` and `π⁻¹`.
 
 Keccak-256 and Keccak-f[1600] outside the executed program are built from the random permutation;
 the statement's digest and the collisions are of the deployed Keccak-256, which the guest
@@ -1026,13 +1026,15 @@ open scoped ENNReal
 outputs a proof. The event: the verifier accepts it as a proof of `guest` on the digest, under
 the deployed seed, of a statement `s` that passes the outer verifier's other checks, and yet the
 execution the knowledge extractor `extractorRpm` reads off the adversary's transcript and the
-proof does not explain `s`. Its probability is at most the bound of `KnowledgeSoundness`. -/
+proof does not explain `s`. Its probability is at most the bound of `KnowledgeSoundness`, for an
+adversary of at most `Q ≤ 2^128` queries. -/
 def AggregateSound (guest : Program) (decode : Decoder) : Prop :=
-  ∀ (A : RpmAdversary) (Q : ℕ), A.IsTotalQueryBound Q →
+  ∀ (A : RpmAdversary) (Q : ℕ), A.IsTotalQueryBound Q → Q ≤ 2 ^ 128 →
     Pr{let z ← rpmExperiment A}[∃ s : NodeStatement, z.accepted ∧ z.program = guest ∧
       publicDigest z.input = statementDigest (deployedSeed guest) s ∧ OuterChecks guest s ∧
       ¬ ∃ t, extractorRpm z.program z.input z.transcript z.proof = some t ∧
-        Explains guest s (decode t.image)] ≤ soundnessError Q + rpmError (Q + verifierPermCalls)
+        Explains guest s (decode t.image)] ≤
+      soundnessError Q + ((Q + verifierPermCalls : ℕ) : ℝ≥0∞) * (2 : ℝ≥0∞)⁻¹ ^ 379
 
 end LeanVM.Node
 
@@ -1559,8 +1561,9 @@ proof's stream begins with the count's and the cells of fewer than `M` children 
 shapes, one of whose claims is false (`FalseChildren`). The bound counts the adversary's `QA`
 queries and the program's query bound `QV = batchQueryBound bytecode M`: `(QA + QV) · (2/|E| +
 5 (QA + QV) / 2^256)`, the bound with Keccak-256 and Keccak-f[1600] independent random functions,
-plus `rpmError (QA + QV · 2^32)`, each of the program's queries at most `2^32` permutation calls;
-for `QA + QV ≤ 2^64` that is at most `(QA + QV) · 2^-188`. Proved by
+plus `(QA + QV · 2^32) · 2^-379`, each of the program's queries at most `2^32` permutation calls
+(the transfer's `q² / 2^508` at `q = QA + QV · 2^32 ≤ 2^129`, for `QA ≤ 2^128` and
+`QV ≤ 2^96`); for `QA + QV ≤ 2^64` it is at most `(QA + QV) · 2^-188`. Proved by
 `LeanVM.Guest.Batch.batch_sound_rpm` and `batch_sound_rpm_bits` (`lean_vm`).
 -/
 
@@ -1731,8 +1734,9 @@ a bound `M ≤ 2^64 - 1` on the children's count: an adversary of `QA` queries t
 outputs a proof; the probability that the batching's verifier, Keccak-256 the sponge over `π` and
 Keccak-f[1600] `π`, accepts it while its stream begins with fewer than `M` children of the
 bytecode's shapes one of whose claims is false is at most
-`(QA + QV) · (2/|E| + 5 (QA + QV) / 2^256) + rpmError (QA + QV · 2^32)`, `QV` the program's
-query bound. Proved by `LeanVM.Guest.Batch.batch_sound_rpm`.
+`(QA + QV) · (2/|E| + 5 (QA + QV) / 2^256) + (QA + QV · 2^32) · 2^-379`, `QV` the program's
+query bound, for `QA ≤ 2^128` and `QV ≤ 2^96` (they keep the experiment's permutation calls
+`QA + QV · 2^32` at most `2^129`, where the transfer's `q² / 2^508` is at most `q · 2^-379`). Proved by `LeanVM.Guest.Batch.batch_sound_rpm`.
 
 This is the batching run outside the circuit, with Keccak-f[1600] = `π`; it does not compose with
 the guest's in-circuit statements, whose `KECCAK` instruction computes the deployed Keccak-f[1600],
@@ -1740,12 +1744,12 @@ so soundness across recursion levels does not follow from it. -/
 def BatchSoundRpm : Prop :=
   ∀ (M : ℕ) (bytecode : List K), bytecode.length = 2 ^ Nat.log2 bytecode.length →
     M ≤ 2 ^ 64 - 1 → ∀ (A : OracleComp PermSpec (Unit × Proof)) (QA : ℕ),
-    A.IsTotalQueryBound QA →
+    A.IsTotalQueryBound QA → QA ≤ 2 ^ 128 → batchQueryBound bytecode M ≤ 2 ^ 96 →
     Pr{let z ← rpmRun A fun z ↦ batchVerifier queryH queryF M bytecode z.2}[
       z.2 = true ∧ FalseChildren bytecode M z.1.2] ≤
       ((QA + batchQueryBound bytecode M : ℕ) : ℝ≥0∞) *
           (batchε + ((5 * (QA + batchQueryBound bytecode M) : ℕ) : ℝ≥0∞) / 2 ^ 256) +
-        rpmError (QA + batchQueryBound bytecode M * 2 ^ 32)
+        ((QA + batchQueryBound bytecode M * 2 ^ 32 : ℕ) : ℝ≥0∞) * (2 : ℝ≥0∞)⁻¹ ^ 379
 
 /-- **The batching in the random-permutation model, in bits**: as `BatchSoundRpm`, for
 `QA + QV ≤ 2^64` (the adversary's queries to `π` and `π⁻¹` and the program's query bound), the

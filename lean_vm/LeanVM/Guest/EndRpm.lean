@@ -31,7 +31,7 @@ composed with the protocol's theorems in the random-permutation model (`Statemen
 * `aggregate_knowledge`: in the random-permutation experiment, the verifier accepts a proof of the
   guest from which no execution is extracted (`extractorRpm`, on the adversary's transcript), or
   the extracted one does not decode (`DecodesOn`), with probability at most
-  `soundnessError Q + rpmError (Q + verifierPermCalls)`: `KnowledgeSoundness`
+  `soundnessError Q + (Q + verifierPermCalls) · 2^-379` for `Q ≤ 2^128`: `KnowledgeSoundness`
   (`knowledgeSoundness_holds`) and `guest_knowledge`.
 * `aggregate_sound_outer : AggregateSound guest decode`: with `decode_binds`, an accepted
   aggregate's statement `s`, under the deployed seed and passing the outer verifier's other
@@ -56,12 +56,12 @@ variable {W : Val → Reader → FrameMap → NodeWitness}
 verifier accepts a proof of the guest from which no execution is extracted, or the extracted one
 does not decode (`DecodesOn`), with probability at most the bound of `KnowledgeSoundness`. -/
 theorem aggregate_knowledge_of (h : SoundHyps W) (A : RpmAdversary) (Q : ℕ)
-    (hA : A.IsTotalQueryBound Q) :
+    (hA : A.IsTotalQueryBound Q) (hQ : Q ≤ 2 ^ 128) :
     Pr{let z ← rpmExperiment A}[z.accepted ∧ z.program = guest ∧
       ¬ ∃ t, extractorRpm z.program z.input z.transcript z.proof = some t ∧
         DecodesOn guest z.input (decodeWith W t.image)] ≤
-      soundnessError Q + rpmError (Q + verifierPermCalls) := by
-  refine le_trans (prEvent_mono _ _ _ ?_) (knowledgeSoundness_holds A Q hA)
+      soundnessError Q + ((Q + verifierPermCalls : ℕ) : ℝ≥0∞) * (2 : ℝ≥0∞)⁻¹ ^ 379 := by
+  refine le_trans (prEvent_mono _ _ _ ?_) (knowledgeSoundness_holds A Q hA hQ)
   rintro ⟨⟨⟨⟨prog, input⟩, π⟩, b⟩, T⟩ ⟨hb, hprog, hno⟩
   dsimp only [RpmOutcome.program] at hprog
   subst hprog
@@ -76,8 +76,8 @@ is the one the execution the extractor reads off the proof and the transcript de
 witness holding it, or that execution's decoding and `s` give an explicit Keccak-256
 collision. -/
 theorem aggregate_sound_outer_of (h : SoundHyps W) : AggregateSound guest (decodeWith W) := by
-  intro A Q hA
-  refine le_trans (prEvent_mono _ _ _ ?_) (aggregate_knowledge_of h A Q hA)
+  intro A Q hA hQ
+  refine le_trans (prEvent_mono _ _ _ ?_) (aggregate_knowledge_of h A Q hA hQ)
   rintro z ⟨s, hb, hprog, hpub, ⟨-, hs⟩, hno⟩
   refine ⟨hb, hprog, ?_⟩
   rintro ⟨t, hx, hd, hrel⟩
@@ -100,21 +100,21 @@ theorem aggregate_sound_outer_sub {piOf : Reader → Val → FrameMap → Proof}
 /-- **The aggregate's soundness, its witness named**, for the deployed guest and its decoder: in
 the random-permutation experiment, the verifier accepts a proof of the guest from which no
 execution is extracted, or the extracted one does not decode (`DecodesOn`), with probability at
-most `soundnessError Q + rpmError (Q + verifierPermCalls)`. -/
-theorem aggregate_knowledge (A : RpmAdversary) (Q : ℕ) (hA : A.IsTotalQueryBound Q) :
+most `soundnessError Q + (Q + verifierPermCalls) · 2^-379`, for `Q ≤ 2^128`. -/
+theorem aggregate_knowledge (A : RpmAdversary) (Q : ℕ) (hA : A.IsTotalQueryBound Q)
+    (hQ : Q ≤ 2 ^ 128) :
     Pr{let z ← rpmExperiment A}[z.accepted ∧ z.program = guest ∧
       ¬ ∃ t, extractorRpm z.program z.input z.transcript z.proof = some t ∧
         DecodesOn guest z.input (decode t.image)] ≤
-      soundnessError Q + rpmError (Q + verifierPermCalls) :=
-  aggregate_knowledge_of (soundHyps_of_sub b2SoundL subSoundW) A Q hA
+      soundnessError Q + ((Q + verifierPermCalls : ℕ) : ℝ≥0∞) * (2 : ℝ≥0∞)⁻¹ ^ 379 :=
+  aggregate_knowledge_of (soundHyps_of_sub b2SoundL subSoundW) A Q hA hQ
 
 /-- **What the outer verifier's acceptance establishes** (`AggregateSound`), for the deployed
-guest and its decoder, in the random-permutation model: except with probability
-`soundnessError Q + rpmError (Q + verifierPermCalls)`, an accepted aggregate's statement `s`,
-under the deployed seed and passing the outer verifier's other checks, is the one the execution
-the extractor reads off the proof and the adversary's transcript (one is extracted) decodes, with
-a witness holding it, or that execution's decoding and `s` give an explicit Keccak-256
-collision. -/
+guest and its decoder, in the random-permutation model: except with probability `soundnessError Q +
+(Q + verifierPermCalls) · 2^-379` (for `Q ≤ 2^128`), an accepted aggregate's statement `s`, under
+the deployed seed and passing the outer verifier's other checks, is the one the execution the
+extractor reads off the proof and the adversary's transcript (one is extracted) decodes, with a
+witness holding it, or that execution's decoding and `s` give an explicit Keccak-256 collision. -/
 theorem aggregate_sound_outer : AggregateSound guest decode := aggregate_sound_outer_sub subSoundW
 
 /-- **The guest's completeness in the random-permutation model**: under the hypotheses, there is

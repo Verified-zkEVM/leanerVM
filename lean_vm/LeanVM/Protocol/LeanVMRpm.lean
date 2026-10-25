@@ -8,6 +8,7 @@
 
 import LeanVM.Protocol.LeanVM
 import LeanVM.Protocol.Rpm.Cost
+import LeanVM.Protocol.Rpm.Error
 import LeanVM.Protocol.Rpm.Duplex
 import LeanVM.Protocol.Rpm.Extract
 import LeanVM.Protocol.Rpm.RomRelabel
@@ -399,7 +400,8 @@ namespace LeanVM
 /-- **Knowledge soundness holds** (in the random-permutation model), for the extractor
 `extractorRpm`. -/
 theorem knowledgeSoundness_holds : KnowledgeSoundness :=
-  fun _ _ hA ↦ Rpm.knowledgeSoundnessRpm hA
+  fun _ _ hA hQ ↦ (Rpm.knowledgeSoundnessRpm hA).trans
+    (add_le_add le_rfl (rpmError_le_linear (le_two_pow_129_of_verifier hQ)))
 
 open OracleComp OracleSpec in
 open scoped ENNReal in
@@ -413,7 +415,8 @@ theorem knowledgeSoundness_bits : KnowledgeSoundnessBits :=
 `LeanVM.Protocol.EndToEnd.Complete.honestComp`. -/
 theorem completeness_holds : Completeness :=
   ⟨fun prog input t ρ fuel ↦ Protocol.EndToEnd.Complete.honestComp prog input t ρ fuel,
-    fun _ _ _ _ _ hv hbudget hρ hfuel ↦ Rpm.completenessRpm hv hbudget hρ hfuel⟩
+    fun _ _ _ _ _ hv hbudget hρ hfuel ↦ (Rpm.completenessRpm hv hbudget hρ hfuel).trans
+      (add_le_add le_rfl (rpmError_le_linear (completenessPermCalls_le hfuel)))⟩
 
 /-- Keccak-256 over the deployed Keccak-f[1600] is the deployed Keccak-256, and `common`'s
 Keccak-256 sponge over it, read on bytes. -/

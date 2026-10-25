@@ -11,8 +11,8 @@ public import VCVio.OracleComp.QueryTracking.WriterCost
 The leanXMSS scheme (key generation, signing, verification over a hash oracle `H`), the SUF-CMA
 game of `Statement/RandomPermutation.lean` instantiated with it, and the end statement:
 `LeanXmss.Rpm.LeanXmssRpmSecurityStatement`, in the random-permutation model, an adversary whose
-game makes at most `Q ≥ 1` permutation calls forges with probability at most
-`Q / 2^127 + Q² / 2^509`. Proved by `XmssSecurity.leanXmss_rpm_security` (`lean_xmss`).
+game makes at most `Q` permutation calls, `1 ≤ Q ≤ 2^128`, forges with probability at most
+`Q / 2^127 + Q · 2^-381`. Proved by `XmssSecurity.leanXmss_rpm_security` (`lean_xmss`).
 -/
 
 section
@@ -567,11 +567,13 @@ noncomputable def forgeAdvantage (adversary : Adversary) : ℝ≥0∞ :=
 def HasPermutationBound (adversary : Adversary) (Q : Nat) : Prop :=
   IsWeightBound (game adversary) permCalls Q
 
-/-- Every adversary whose game makes at most `Q ≥ 1` permutation calls wins with probability at
-most `Q / 2^bits + Q² / 2^509`. -/
+/-- Every adversary whose game makes at most `Q` permutation calls, `1 ≤ Q ≤ 2^128`, wins with
+probability at most `Q / 2^bits + Q · 2^-381`. The second term is the sponge's
+indifferentiability, `Q² / 2^509`, at most `Q · 2^-381` under the cap `Q ≤ 2^128`, which excludes
+adversaries of more calls. -/
 def HasRpmSecurityBits (bits : Nat) : Prop :=
-  ∀ Q, 1 ≤ Q → ∀ adversary, HasPermutationBound adversary Q →
-    forgeAdvantage adversary ≤ Q / ((2 ^ bits : Nat) : ℝ≥0∞) + (Q ^ 2 : ℝ≥0∞) / 2 ^ 509
+  ∀ Q, 1 ≤ Q → Q ≤ 2 ^ 128 → ∀ adversary, HasPermutationBound adversary Q →
+    forgeAdvantage adversary ≤ Q / ((2 ^ bits : Nat) : ℝ≥0∞) + (Q : ℝ≥0∞) * (2 : ℝ≥0∞)⁻¹ ^ 381
 
 /-- The security claim in the random-permutation model. -/
 abbrev LeanXmssRpmSecurityStatement : Prop := HasRpmSecurityBits 127

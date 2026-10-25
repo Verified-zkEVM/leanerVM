@@ -114,8 +114,8 @@ Keccak reduction's point by the window of the announced sizes. -/
 def verifierQueries : ℕ := 12008
 
 /-- **The soundness error** at `Q` queries, the first term of the bound of `KnowledgeSoundness`
-(below; the second, `rpmError`, is the cost of building both functions from one
-permutation). It is the error the proof obtains with Keccak-256 and Keccak-f[1600] two independent
+(below; the second, `(Q + verifierPermCalls) · 2^-379`, is the cost of building both functions
+from one permutation). It is the error the proof obtains with Keccak-256 and Keccak-f[1600] two independent
 random functions, counting the hash and permutation calls of the adversary (`Q`) and of the
 verifier (at most `verifierQueries = V`; in `KnowledgeSoundness` the adversary's `Q` are its `π` and
 `π⁻¹` queries): one `2^-128` per call, plus, per call,
@@ -208,11 +208,14 @@ reads the announced sizes and the stack's Merkle root off the proof; reads the w
 to off those evaluations (each leaf the preimage, among them, of a path climbing to the root); and
 returns the halting run of the memory image of a stack in the word's Johnson list (a stack whose
 Reed–Solomon encoding agrees with the word on at least the Johnson threshold of columns), one that
-is a valid execution if there is one. For every adversary of at most `Q` queries to `π` and `π⁻¹`,
-the probability that the verifier accepts while the extractor does not return a valid execution
-of the program on the public input is at most `soundnessError Q + rpmError (Q + verifierPermCalls)`: `soundnessError Q`
-(the first section) plus `q² / 2^508` for `q` the permutation calls of the whole experiment, the
-adversary's `Q` and at most `verifierPermCalls` of the verifier. So an accepted proof commits,
+is a valid execution if there is one. For every adversary of at most `Q ≤ 2^128` queries to `π`
+and `π⁻¹`, the probability that the verifier accepts while the extractor does not return a valid
+execution of the program on the public input is at most
+`soundnessError Q + (Q + verifierPermCalls) · 2^-379`: `soundnessError Q` (the first section) plus
+`q · 2^-379` for `q` the permutation calls of the whole experiment, the adversary's `Q` and at
+most `verifierPermCalls` of the verifier. The proof bounds the cost of building both functions
+from one permutation by `q² / 2^508`, which is at most `q · 2^-379` for `q ≤ 2^129`; the cap
+`Q ≤ 2^128` keeps `q` there, and excludes adversaries of more queries. So an accepted proof commits,
 except with that probability, to a stack whose memory columns hold a valid execution, among the at
 most `2^18` stacks the word the adversary hashed is close to (proved, for every admissible shape
 and word: `LeanVM.candidates_ncard_le`). The choice among them is classical: the extractor is a
@@ -223,8 +226,8 @@ calls of the first section, answered here with both functions built from `π`) w
 execution whose committed size is at most `2^28`, the most the verifier admits
 (`Trace.committedSize`), at an inverse rate `2^ρ` with `1 ≤ ρ ≤ 4`, trying at most `fuel ≤ 2^64`
 nonces per proof of work, makes the verifier reject with probability at most
-`completenessError fuel` plus `q² / 2^508`, `q` the permutation calls of the prover and the
-verifier (`completenessPermCalls`). The honest prover is not required to be efficient.
+`completenessError fuel` plus `q · 2^-379`, `q` the permutation calls of the prover and the
+verifier (`completenessPermCalls`, at most `2^113` for `fuel ≤ 2^64`). The honest prover is not required to be efficient.
 
 **Scope and trust.** The permutation is uniformly random; the deployed Keccak-f[1600] is a fixed
 permutation, and that it behaves as a random one is the assumption of this model. Inside the
@@ -404,18 +407,16 @@ bytes (the bytecode: `16` words of `8` bytes per instruction, at most `2^32` ins
 is at most `⌊2^39 / 136⌋ + 1 ≤ 2^32` blocks, one permutation each. -/
 def verifierPermCalls : ℕ := verifierQueries * 2 ^ 32
 
-/-- The second term of the bounds, for an experiment of `q` permutation calls: `q² / 2^508`, the
-cost of building Keccak-256 and Keccak-f[1600] from one random permutation rather than taking them
-independent random functions (`Common.keccak256_transfer2`). -/
-noncomputable def rpmError (q : ℕ) : ℝ≥0∞ := (q ^ 2 : ℝ≥0∞) / 2 ^ 508
-
 /-- **Knowledge soundness in the random-permutation model**, for the extractor `extractorRpm`:
-an adversary of at most `Q` queries to `π` and `π⁻¹` breaks soundness with probability at most
-`soundnessError Q` plus `rpmError` of the experiment's permutation calls. -/
+an adversary of at most `Q ≤ 2^128` queries to `π` and `π⁻¹` breaks soundness with probability at
+most `soundnessError Q` plus `(Q + verifierPermCalls) · 2^-379`, for the experiment's permutation
+calls: the cost of building Keccak-256 and Keccak-f[1600] from one random permutation rather than
+taking them independent random functions (`q² / 2^508` for `q` calls,
+`Common.keccak256_transfer2`, at most `q · 2^-379` for `q ≤ 2^129`). -/
 def KnowledgeSoundness : Prop :=
-  ∀ (A : RpmAdversary) (Q : ℕ), A.IsTotalQueryBound Q →
+  ∀ (A : RpmAdversary) (Q : ℕ), A.IsTotalQueryBound Q → Q ≤ 2 ^ 128 →
     Pr{let z ← rpmExperiment A}[BreaksRpm extractorRpm z] ≤
-      soundnessError Q + rpmError (Q + verifierPermCalls)
+      soundnessError Q + ((Q + verifierPermCalls : ℕ) : ℝ≥0∞) * (2 : ℝ≥0∞)⁻¹ ^ 379
 
 /-! ### Completeness -/
 
@@ -433,13 +434,15 @@ noncomputable def rpmCompletenessExperiment (prover : HonestProver) (prog : Prog
 blocks. -/
 def completenessPermCalls (fuel : ℕ) : ℕ := (12012 + 48017 * (2 ^ 27 + 2 * fuel + 2)) * 2 ^ 32
 
-/-- **Completeness in the random-permutation model.** -/
+/-- **Completeness in the random-permutation model**: the verifier rejects the honest proof with
+probability at most `completenessError fuel` plus `completenessPermCalls fuel · 2^-379`, the
+transfer's `q² / 2^508` at `q = completenessPermCalls fuel ≤ 2^113`. -/
 def Completeness : Prop :=
   ∃ prover : HonestProver, ∀ (prog : Program) (input : PublicInput) (t : Trace prog) (ρ fuel : ℕ),
     ValidExecution prog input t →
     t.committedSize ≤ 2 ^ 28 → 1 ≤ ρ ∧ ρ ≤ 4 → fuel ≤ 2 ^ 64 →
     Pr{let v ← rpmCompletenessExperiment prover prog input t ρ fuel}[v = false] ≤
-      completenessError fuel + rpmError (completenessPermCalls fuel)
+      completenessError fuel + (completenessPermCalls fuel : ℝ≥0∞) * (2 : ℝ≥0∞)⁻¹ ^ 379
 
 end LeanVM
 

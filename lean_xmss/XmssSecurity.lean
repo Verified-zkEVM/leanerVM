@@ -6,8 +6,9 @@ import XmssSecurity.Rpm
 
 `XmssSecurity.leanXmss_rpm_security` (`XmssSecurity/Rpm.lean`) proves
 `LeanXmss.Rpm.LeanXmssRpmSecurityStatement` (`Statement/LeanXmss.lean`): in the
-random-permutation model, an adversary whose game makes at most `Q ≥ 1` permutation calls forges
-with probability at most `Q / 2^127 + Q² / 2^509`. Its proof passes through the random-oracle
+random-permutation model, an adversary whose game makes at most `Q` permutation calls,
+`1 ≤ Q ≤ 2^128`, forges with probability at most `Q / 2^127 + Q · 2^-381` (the sponge's
+`Q² / 2^509`, linear under the cap). Its proof passes through the random-oracle
 model (`leanXmss_has_127_bits_of_classical_security`, a step). -/
 
 example : LeanXmss.Rpm.LeanXmssRpmSecurityStatement := XmssSecurity.leanXmss_rpm_security

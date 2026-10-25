@@ -1925,15 +1925,17 @@ abbrev PerfectlyCompleteRpm : Prop :=
 verifier, for any relation) and every adversary whose game, verifications included, makes at most
 `Q` calls of the permutation on every path (`permCalls2`: a hash of `n` bytes costs
 `⌊n / 136⌋ + 1`, a query of `π` or `π⁻¹` and a sponge call one), the probability of opening a
-position to two different cells is at most `Q² / 2^256 + Q² / 2^508`. Proved by
+position to two different cells is at most `Q² / 2^256 + Q · 2^-380`, for `Q ≤ 2^128`: the
+second term is the transfer's `Q² / 2^508`, at most `Q · 2^-380` under the cap, which excludes
+adversaries of more calls (the birthday term `Q² / 2^256` stays quadratic). Proved by
 `LeanDa.leanDa_positionBinding_rpm`. -/
 abbrev PositionBindingRpm : Prop :=
   ∀ (r : ℕ) {Crs Proof : Type} {rel : Unit × Digest × Challenges → (Fin (r * 128) → Cell) → Bool}
     (ps : Nark (Unit × Digest × Challenges) (Fin (r * 128) → Cell) Crs Proof rel)
     (A : PosBindingAdvRpm r Crs Proof) (Q : ℕ),
-    IsWeightBound (posBindingGame r ps A) permCalls2 Q →
+    IsWeightBound (posBindingGame r ps A) permCalls2 Q → Q ≤ 2 ^ 128 →
       Pr{let b ← posBindingExpRpm r ps A}[b = true] ≤
-        (Q ^ 2 : ℝ≥0∞) / 2 ^ 256 + (Q ^ 2 : ℝ≥0∞) / 2 ^ 508
+        (Q ^ 2 : ℝ≥0∞) / 2 ^ 256 + (Q : ℝ≥0∞) * (2 : ℝ≥0∞)⁻¹ ^ 380
 
 /-- **LeanDA is code binding in the random-permutation model** (Benedikt Wagner's bound, moved to
 the random-permutation model). For every argument `ps` (any verifier, for any relation; an
