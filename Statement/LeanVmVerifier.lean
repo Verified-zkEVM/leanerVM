@@ -7,17 +7,10 @@ public import Mathlib.Algebra.BigOperators.Group.Finset.Basic
 # The leanVM verifier
 
 Transcribed from `python-verifier/verifier.py` at the pin (`../leanvm-rev`); every citation
-`verifier.py:N` is a line of that file. The sections follow the Python's, in three parts:
-
-1. **The constants** the verifier reads: the WHIR parameters. The Keccak and Keccak GKR constants
-   are `RandomPermutation.lean`'s and Part 3's.
-2. **The transcript**: the verifier is a program `Prog` of a small language with five operations
-   on the proof, and `runProof` reads such a program on a proof with a hash function
-   `H : Bytes → m Digest` and a permutation `F : KState → m KState` in any monad `m`, as the
-   Python's `Transcript` does with Keccak-256 and Keccak-f[1600]. With `H` and `F` the sponge
-   over a random permutation and the permutation, it is the verifier of the random-permutation
-   model (`LeanVm.lean`).
-3. **The verifier**, section by section, ending with `verifyWith H F bytecode publicInput proof`.
+`verifier.py:N` is a line of that file, and the sections follow the Python's: the WHIR constants
+(Part 1), the transcript (Part 2: a program `Prog` of a small language, which `runProof` reads on a
+proof with a hash function `H : Bytes → m Digest` and a permutation `F : KState → m KState` in any
+monad `m`), and the verifier (Part 3), ending with `verifyWith H F bytecode publicInput proof`.
 
 The verifier takes the value of the polynomial the statement fixes (the bytecode's multilinear
 extension) from a parameter `ev : Evaluations`. The deployed verifier computes it. The deferring
@@ -1333,13 +1326,9 @@ def verifyBusBalance (ev : Evaluations) (layout : Layout) : Prog BusResult := do
 /-!
 ## The table sumcheck (`verifier.py:649-678`)
 
-One plain-mode sumcheck of four coefficients per round runs over `max` of the tables'
-log-heights. Its challenges, reversed, are the point; a table of log-height `h` weighs the first
-`h` coordinates by the equality with the bus point and every later one by the challenge itself
-(`tableWeights`). The prover then sends each table's row evaluations, in table order, and the
-terminal claim must be `Σ weight · (constraints + forms)`, the constraints batched by a disjoint
-range of `constraint_powers` per table and the three sides' forms by `form_powers`. Each
-evaluation becomes a claim on its global column at the point's first `h` coordinates.
+One plain-mode sumcheck over `max` of the tables' log-heights, its challenges reversed the point;
+the terminal claim is `Σ weight · (constraints + forms)`, and each row evaluation the prover sends
+becomes a claim on its global column at the point's first `h` coordinates.
 -/
 
 /-- The tables' weights at the point (`verifier.py:662-666`): coordinate `v` contributes
@@ -1612,16 +1601,10 @@ def verifyStackedOpening (stackLog logInvRate : ℕ) (claims : List StackClaim) 
 ## Keccak, by GKR over its rounds (`verifier.py:1205-1405`)
 
 The protocol is `doc/leanvm/body/c-keccak-gkr.tex`; `KECCAK_RC`, `KECCAK_RHO`, `KECCAK_PI` are
-`keccakRC`, `keccakRho`, `keccakPi` of `RandomPermutation.lean`.
-
-A claim is a weighted sum of the bits of one state per segment, `(value, mu, point, weights)`,
-the weight of bit `j` of instance `i` of pack `y` in segment `m` being
-`eq(point, (y, m)) · weights[j] · mu[i]`; a pack is sixteen consecutive steps. Each layer turns a
-claim on the states after a round into one on the states before it: the prover sends the
-product polynomial of the round's χ on the packs' embeddings, which the verifier projects back
-onto the claim, then a sumcheck over the pack and segment and one over the bit position close on
-three evaluations of the state before χ, which the transpose of the round's linear map (θ, ρ, π)
-carries to the round's input.
+`keccakRC`, `keccakRho`, `keccakPi` of `RandomPermutation.lean`. A claim is a weighted sum of the
+bits of one state per segment, the weight of bit `j` of instance `i` of pack `y` (sixteen
+consecutive steps) in segment `m` being `eq(point, (y, m)) · weights[j] · mu[i]`; each layer turns
+a claim on the states after a round into one on the states before it.
 
 **Representation.**
 
