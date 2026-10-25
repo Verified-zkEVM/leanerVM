@@ -6,8 +6,8 @@
 #   ./check-all.sh [lean_rpm] [lean_xmss] [lean_sphincs] [lean_da] [lean_vm] [leanvm]   (default: all six)
 #
 # The compiled checks and `lean` run under a virtual-memory cap of LEAN_VMEM_KB (default 40 GB);
-# `lake` itself cannot, as it reserves about 1 GB of address space per job. WIDTH is passed to
-# lean_vm/scripts/ci-build.py, the modules it builds at once (default 2).
+# `lake` itself cannot, as it reserves about 1 GB of address space per job: lean_vm's build runs in
+# `lake-build.py`, which admits its modules by memory within a systemd scope.
 set -euo pipefail
 cd "$(dirname "${BASH_SOURCE[0]}")"
 log=$(mktemp -d)
@@ -99,8 +99,8 @@ lean_vm() {
   fi
   (cd lean_vm && lake exe cache get)
   # Fails on any warning and on an axiom footprint beyond Lean's three (`LeanVM.lean`).
-  step "lean_vm: build, a few modules at a time"
-  (cd lean_vm && python3 -I scripts/ci-build.py)
+  step "lean_vm: build, its modules admitted by memory"
+  python3 -I lake-build.py lean_vm LeanVM LeanVMTests
   step "lean_vm: lake test"
   (cd lean_vm && lake test)
   step "lean_vm: the Rust vectors' costly checks, compiled"

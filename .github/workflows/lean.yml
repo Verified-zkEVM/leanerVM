@@ -225,7 +225,7 @@ jobs:
         run: |
           if [[ "$GITHUB_EVENT_NAME" == workflow_dispatch ]] || ! git fetch --quiet --depth=1 origin "$BASE"; then
             echo changed=true >> "$GITHUB_OUTPUT"
-          elif git diff --name-only "$BASE" HEAD -- lean_vm leanvm-rev leanvm-tree.sh lean_rpm \
+          elif git diff --name-only "$BASE" HEAD -- lean_vm leanvm-rev leanvm-tree.sh lake-build.py lean_rpm \
               lean_xmss/LeanXmss/Scheme.lean \
               lean_sphincs/Sphincs/Scheme.lean lean_da/LeanDa/Scheme.lean lean_da/LeanDa/Field.lean \
               .github/workflows/lean.yml | grep -q .; then
@@ -238,7 +238,7 @@ jobs:
     needs: lean-vm-changes
     if: needs.lean-vm-changes.outputs.changed == 'true'
     runs-on: ubuntu-latest
-    # A build from a cold cache is several CPU-hours of kernel checks, built two modules at a time.
+    # A build from a cold cache is several CPU-hours of kernel checks, on the runner's cores.
     timeout-minutes: 360
     defaults:
       run:
@@ -285,10 +285,10 @@ jobs:
           free -g
       # `lake build` fails on any warning (`warningAsError`) and on an axiom footprint beyond
       # Lean's three (`LeanVM.lean`'s `#guard_msgs`). Lake has no job limit, and its parallel build
-      # of the generated kernel-checked families exceeds the runner's memory, so the script builds
-      # two modules at a time.
+      # of the generated kernel-checked families exceeds the runner's memory, so `lake-build.py`
+      # runs the one `lake build` with the modules admitted by their recorded memory.
       - name: Build
-        run: python3 -I scripts/ci-build.py
+        run: python3 -I ../lake-build.py . LeanVM LeanVMTests
       - name: Test
         run: lake test
       # What is slow in the interpreter: the guest's Fiat-Shamir IV against the Rust's, the DA
