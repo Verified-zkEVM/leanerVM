@@ -17,12 +17,14 @@ import LeanerVMTests.Protocol.LogScan
   `δ < 1` (`replayer_not_blakeMisbehaves`). The `leanervm-verify` executable checks that `verify`
   accepts the Rust proof and the test vector.
 * **The honest prover's hashes.** `scan` (`LeanerVMTests.Protocol.LogScan`) finds the collisions
-  and hits of a joint log in one pass with hash maps; it agrees with `QueryLog.HasCollision` and `Hit` on the logs below, which cover a
-  hit through a half, through a root two observe steps rebuild, through a root of the proof, and
-  none on a repeated query. The `leanervm-prove` executable (`log`) runs the honest prover on the
-  test vector's witness and the verifier on its proof, every hash logged, and checks that the joint
-  log has no collision and no hit. A flip is not decidable (its bad set quantifies over a
-  witness), so no claim is made that the honest run has none.
+  and hits of a joint log in one pass with hash maps; it agrees with `QueryLog.HasCollision` and
+  `Hit` on the logs below, which cover a hit through a half, through a root two observe steps
+  rebuild in either order, through a root of the proof, and none on a repeated query. The
+  `leanervm-prove` executable (`log`) runs the honest prover on the test vector's witness and the
+  verifier on its proof, every hash logged, and checks that the joint log has no collision and no
+  hit, and that the extractor's word and decoding on the prover's log are the committed word and
+  the witness's stack. A flip is not decidable (its bad set quantifies over a witness), so no
+  claim is made that the honest run has none.
 * **The deployed verifier** is `verifyWith` at BLAKE2s in `Id`, and the verifier on the oracle,
   run with BLAKE2s answering, is `pure` of it (`verifyWith_simulateQ`, `verifyWith_pure`).
 -/
@@ -138,6 +140,7 @@ theorem extract_nil (F : FlockSpec) (prog : Program) (input : PublicInput)
         exact wordRows_nil _ _ _ _ _ _
     · rfl
 
+/-- No stack satisfying the relation is extracted from the empty log, whatever the proof. -/
 theorem not_extracts_nil (F : FlockSpec) (prog : Program) (input : PublicInput)
     (proof : Proof PrunedMerklePaths) : ¬ Extracts F prog input proof [] := by
   rw [extracts_iff_isSome, extract_nil]
@@ -204,6 +207,10 @@ def absorbed : hashSpec.QueryLog :=
   (scanAt [] 3 (absorbed ++ [⟨[5], d 9⟩])).2
 #guard scanAgrees [] (⟨[5], d 9⟩ :: absorbed) [] &&
   !(scanAt [] 3 (⟨[5], d 9⟩ :: absorbed)).2
+/- The two observe steps in the other order: the step from `d 1` before the step answered by
+`d 1`; the root is rebuilt when the second arrives. -/
+#guard scanAgrees [] (absorbed.reverse ++ [⟨[5], d 9⟩]) [] &&
+  (scanAt [] 3 (absorbed.reverse ++ [⟨[5], d 9⟩])).2
 /- A verifier's fresh query answered by a root of the proof, and the same query asked first by
 the prover. -/
 #guard scanAgrees [d 9] [⟨[1], d 1⟩] [⟨[2], d 9⟩] &&
