@@ -79,7 +79,8 @@ theorem os_completeAtD_cfg (hrf : Lift.RunsFit fs cert) {c : OsCfg} {μ r : ℕ}
     {target cur : E} {xs : List E} {os : List Opening} {w : WhirEnd} {s' : Fs}
     {roots' : List (Digest × ℕ × ℕ)}
     (hrun : RunsWith (whirOpen μ r target) ⟨capOf S, []⟩ xs os [(root, stackShape μ r)] w s' roots')
-    (hnz : NoZeroChallenge μ r target S xs os root) (hcaps : CapsAgree μ r target S xs os root)
+    (hnz : Whir.NoZeroChallenge μ r target S xs os root)
+    (hcaps : Whir.CapsAgree μ r target S xs os root)
     {Lin : Layout} (hLin : ∀ rd, LowDef κ rd → MemL rd Lin → ReadsAt rd cur xs) :
     CompleteAtD fs cert κ name Lin
       (capOf S ++ [target, (digestScalars root).1, (digestScalars root).2, cur]) (OsOut μ w) := by

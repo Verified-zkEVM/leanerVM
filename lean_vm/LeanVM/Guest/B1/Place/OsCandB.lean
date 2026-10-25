@@ -44,7 +44,7 @@ def open_stacked_completeAtB_Spec : Prop :=
       ∀ (S : KState) (root : Digest) (target cur : E) (xs : List E) (os : List Opening)
         (w : WhirEnd) (s' : Fs) (roots' : List (Digest × ℕ × ℕ)),
         RunsWith (whirOpen μ r target) ⟨capOf S, []⟩ xs os [(root, stackShape μ r)] w s' roots' →
-        NoZeroChallenge μ r target S xs os root → CapsAgree μ r target S xs os root →
+        Whir.NoZeroChallenge μ r target S xs os root → Whir.CapsAgree μ r target S xs os root →
         ∀ Lin : Layout, (∀ rd, LowDef κ rd → MemL rd Lin → ReadsAt rd cur xs) →
           CompleteAtB fs cert κ (openName μ r) Lin
             (capOf S ++ [target, (digestScalars root).1, (digestScalars root).2, cur]) (OsOut μ w)

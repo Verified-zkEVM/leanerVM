@@ -115,7 +115,7 @@ of the row weights, the cap, the folded message and the final message's `out` fi
 theorem osCallsOk_honest {μ r : ℕ} {cfg : List Whir.Level}
     (hF : CandFacts c μ r cfg) (h : TrFit c tr) (hs : OsSizes c) {target : E} {S : KState}
     {xs : List E} {os : List Opening} {root : Digest} (hrun : TrRun c μ r target S xs os root tr)
-    (hcaps : CapsAgree μ r target S xs os root) (hN : OsNames c)
+    (hcaps : Whir.CapsAgree μ r target S xs os root) (hN : OsNames c)
     (hpt : (tr.point (c.levels.headD default).folds).length ≤ pointCap) (htl : tr.Lf.ml ≤ yrLogCap)
     {rd : Reader} (hmk : MemL rd (osLk c tr b0 Lin)) :
     OsCallsOk (osCR rd (osSp c tr (osAtOf c b0)) (OsXOk κ (osLk c tr b0 Lin))) rd (osAtOf c b0)
