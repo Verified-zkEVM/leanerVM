@@ -35,7 +35,7 @@ import PqDas.Assumptions.ErasureCode
 import PqDas.Assumptions.VectorCommitment
 import PqDas.Assumptions.CodeChecker
 import PqDas.RomRuntime
-import Statement.LeanDa
+import PqDas.Defs
 
 open OracleComp OracleSpec ENNReal
 

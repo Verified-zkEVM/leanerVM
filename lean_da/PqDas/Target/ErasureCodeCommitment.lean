@@ -30,7 +30,7 @@ modified for VCVio afa6593.
 -/
 import PqDas.Assumptions.ErasureCode
 import VCVio.OracleComp.ProbCompLift
-import Statement.LeanDa
+import PqDas.Defs
 
 open OracleComp ENNReal MeasureTheory
 

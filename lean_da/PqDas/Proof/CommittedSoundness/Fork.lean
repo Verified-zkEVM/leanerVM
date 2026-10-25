@@ -28,7 +28,7 @@ modified for VCVio afa6593.
 -/
 import PqDas.Proof.CommittedSoundness.Defs
 import VCVio.CryptoFoundations.ReplayFork
-import Statement.LeanDa
+import PqDas.Defs
 
 open OracleComp OracleSpec ENNReal
 

@@ -1,5 +1,5 @@
 import Common.Transfer
-import Statement.RandomPermutation
+import Common.SimDefs
 
 /-!
 # The two-oracle model: a hash `H` and a random function `F`

@@ -249,27 +249,27 @@ theorem simulator2_step_replay (q : PermQuery (SpState Dg E C)) (σ : SimState D
     simp only [replayStep]
     split at hz
     · next y hy =>
-      simp only [support_pure, Set.mem_singleton_iff] at hz; subst hz; simp
+      simp only [support_pure, Set.mem_singleton_iff] at hz; subst hz; simp [hy]
     · next hy =>
       split at hz
       · next s β hch =>
         simp only [mem_support_bind_iff, support_pure, Set.mem_singleton_iff] at hz
         obtain ⟨y, -, rfl⟩ := hz
-        simp
+        simp [hy, hch]
       · next hch =>
         simp only [mem_support_bind_iff, support_pure, Set.mem_singleton_iff] at hz
         obtain ⟨y, -, rfl⟩ := hz
-        simp
+        simp [hy, hch]
   | inv y =>
     simp only [simulator2, StateT.run_mk] at hz
     simp only [replayStep]
     split at hz
     · next x hx =>
-      simp only [support_pure, Set.mem_singleton_iff] at hz; subst hz; simp
+      simp only [support_pure, Set.mem_singleton_iff] at hz; subst hz; simp [hx]
     · next hx =>
       simp only [mem_support_bind_iff, support_pure, Set.mem_singleton_iff] at hz
       obtain ⟨x, -, rfl⟩ := hz
-      simp
+      simp [hx]
 
 /-- The two-oracle ROM adversary with its permutation transcript logged, oldest first. -/
 noncomputable def advImplLog2 : QueryImpl (dSpec Msg Dg (SpState Dg E C))

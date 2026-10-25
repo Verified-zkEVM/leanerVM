@@ -1,5 +1,5 @@
 import LeanDa.Scheme
-import Statement.LeanDa
+import LeanDa.Defs
 
 /-!
 # The Merkle commitment to the cells

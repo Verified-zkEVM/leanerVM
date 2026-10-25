@@ -9,7 +9,7 @@ modified for VCVio afa6593.
 import PqDas.Assumptions.ErasureCode
 import PqDas.Assumptions.VectorCommitment
 import PqDas.Assumptions.CodeChecker
-import Statement.LeanDa
+import LeanDa.Defs
 import PqDas.RomRuntime
 import PqDas.VcvioExtras
 import PqDas.Target.ErasureCodeCommitment

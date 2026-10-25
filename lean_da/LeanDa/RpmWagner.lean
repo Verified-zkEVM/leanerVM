@@ -1,6 +1,6 @@
 import LeanDa.RpmCodeBinding
 import Mathlib.Data.Set.Finite.List
-import Statement.LeanDa
+import LeanDa.Defs
 
 /-!
 # Code binding in the random-permutation model: Wagner's bound for each `H`
@@ -338,14 +338,14 @@ section Verify
 variable (r : ℕ) {Crs Proof : Type}
 
 /-- Wagner's verification of the openings, the challenges queried for each. -/
-noncomputable def verifyW (H : List UInt8 → Digest) (ps : Argument r H Crs Proof) (crs : Crs)
+noncomputable def verifyW (H : List UInt8 → Digest) (ps : WArgument r H Crs Proof) (crs : Crs)
     (out : (Digest × Proof) × List (Fin (r * 128) × Cell × Opening)) : OracleComp WSpec Bool := do
   let vs ← out.2.mapM fun p ↦ (fun l ↦ ps.verify crs ((), out.1.1, l) out.1.2 &&
     verifyCell H r out.1.1 p.1 p.2.1 p.2.2) <$> wQ out.1.1
   pure (vs.all id && !decide ((code r).Consistent (out.2.map fun p ↦ (p.1, p.2.1))))
 
 /-- **Wagner's code-binding experiment for LeanDA** as a probability. -/
-theorem codeBindingExp_eq (H : List UInt8 → Digest) (ps : Argument r H Crs Proof)
+theorem codeBindingExp_eq (H : List UInt8 → Digest) (ps : WArgument r H Crs Proof)
     (A : ErasureCodeCommitment.CodeBindingAdv (OracleComp WSpec) Cell (r * 128) (Unit × Crs)
       (Digest × Proof) Opening) :
     (leanDa r H ps).codeBindingExp (code r) (roRuntime Digest Challenges) A {true} =

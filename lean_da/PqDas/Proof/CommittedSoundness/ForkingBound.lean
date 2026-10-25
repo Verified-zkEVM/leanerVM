@@ -30,7 +30,7 @@ import VCVio.EvalDist.Inequalities
 import PqDas.Proof.CommittedSoundness.Coupling
 import PqDas.Proof.CommittedSoundness.Lockstep
 import PqDas.VcvioExtras
-import Statement.LeanDa
+import PqDas.Defs
 
 open OracleComp OracleSpec ENNReal
 
