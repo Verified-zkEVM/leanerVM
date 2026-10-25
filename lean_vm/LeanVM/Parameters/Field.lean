@@ -71,6 +71,12 @@ open CompPoly.Extension
 /-- A proof-only enumeration of `K`; executable code uses its explicit bit coordinates. -/
 noncomputable instance instFintypeK : Fintype K := Fintype.ofFinite K
 
+/-- The adjoined root `y` of `y^3 + y + 1`. -/
+def y : E := BF64.ext3Gen
+
+/-- The canonical word of a two-limb cell, `c0 + c1·y`: the cell shape `KECCAK` reads and writes. -/
+def E.ofCell (v : Vector K 2) : E := E.ofLimbs v[0] v[1] 0
+
 /-- The defining relation of `E`: `y^3 = y + 1`. -/
 theorem y_pow_three : y ^ 3 = y + 1 := BF64.ext3Gen_pow_three
 
