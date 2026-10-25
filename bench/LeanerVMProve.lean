@@ -36,8 +36,10 @@ must return the same proof. `tamper` runs the prover four times more, each time 
 phase's message changed as it is sent (`tamperOps`), and checks that each proof is read to its
 end and rejected by that phase's algebra. `log` runs the prover once more with every hash logged
 (the run of `honestAdversary` with BLAKE2s answering), then `verifyWith` on its proof with every
-hash logged, and checks that the proof is the file's, that the verifier accepts it, and that the
-joint log has no collision and no hit (`LeanerVMTests.Protocol.LogScan.scan`).
+hash logged, and checks that the proof is the file's, that the verifier accepts it, that the
+joint log has no collision and no hit (`LeanerVMTests.Protocol.LogScan.scan`), that the level-0
+word `extract` reads off the prover's log is the committed word, and that the commitment's decoder
+reads it as the witness's stack alone (`extractChecks`).
 The exit code is `1` if a check fails.
 -/
 
@@ -271,6 +273,49 @@ def probeCommit (fuel ρ : ℕ) : IO Unit := do
     IO.println s!"  the commitment component against the wire: {(t1 - t0).toFloat / 1e9} s, {(r.map (·.stream.length))} scalars"
   else IO.println "inadmissible"
 
+/-- The extractor's pieces on the honest prover's log: the level-0 word `extract` reads off the
+log (`wordRows` under the proof's level-0 root, at the announced sizes) must be the committed word
+(`Whir.kwordRows` of the witness's stack), and the commitment's list decoder must read it as the
+witness's stack alone. The relation `extract` decides last is not decided: its bus permutation is
+quadratic in the bus's length. -/
+def extractChecks (p : Proof PrunedMerklePaths)
+    (logA : Array LeanerVMTests.Protocol.LogScan.Entry) : IO ℕ := do
+  let some (s, ρ) := p.announced? | do IO.println "FAIL the proof announces nothing"; return 1
+  if hs : s.Admissible fillProg ∧ validRate ρ then
+    let some root := level0Root p | do IO.println "FAIL the proof has no level-0 root"; return 1
+    let μ := leanIsaμ fillProg s
+    let κ := Whir.deployedHeadKap μ ρ
+    let sh := Whir.deployedHeadShape μ ρ
+    let t0 ← IO.monoNanosNow
+    let log : hashSpec.QueryLog := logA.toList.map fun e ↦ ⟨e.1.toList, e.2⟩
+    let v ← force (wordRows log root (κ + sh.R) (level0Lanes fillProg s κ) sh.ℓ)
+    let t1 ← IO.monoNanosNow
+    let q ← force (stackOf Blake2sFlock.blake2sFlockSpec fillProg s theWitness)
+    let C := leanIsaChain fillProg s hs.1 ρ hs.2
+    let hμ := leanIsaChain_height Blake2sFlock.blake2sFlockSpec fillProg s hs.1 ρ hs.2
+    let r ← force (Whir.kwordRows C.sh.ℓ C.κ C.sh.R (hμ.symm ▸ q.values))
+    let t2 ← IO.monoNanosNow
+    let sameWord := v.toList.map Vector.toList == r.toList.map Vector.toList
+    IO.println s!"{if sameWord then "ok  " else "FAIL"} the word extract reads off the prover's \
+      log is the committed word: {v.size} rows, read in {(t1 - t0).toFloat / 1e9} s, the \
+      committed word in {(t2 - t1).toFloat / 1e9} s"
+    (← IO.getStdout).flush
+    let h := admissible_of_sizes hs.1 hs.2
+    let I := leanIsaInstance Blake2sFlock.blake2sFlockSpec fillProg s
+    let L ← force (stackList I (Whir.deployedHeadDecoder h) (Whir.deployedHead_height h)
+      fun _ ↦ ⟨fun y ↦ v[y]⟩)
+    let t3 ← IO.monoNanosNow
+    let sameStack := match L with
+      | [c] => Vector.toList (c 0).values == Vector.toList q.values
+      | _ => false
+    IO.println s!"{if sameStack then "ok  " else "FAIL"} the commitment's decoder reads it as the \
+      witness's stack alone: {L.length} stacks, in {(t3 - t2).toFloat / 1e9} s"
+    (← IO.getStdout).flush
+    return (if sameWord then 0 else 1) + (if sameStack then 0 else 1)
+  else
+    IO.println "FAIL the announced sizes or rate are not admissible"
+    return 1
+
 /-- The honest prover's run and the verifier's on its proof, every hash logged: the proof must be
 the file's `f`, the verifier must accept it, and the joint log must have no collision and no
 hit. -/
@@ -303,7 +348,8 @@ def logChecks (f : Fixture) (fuel : ℕ) : IO ℕ := do
       ("no collision in the joint log", !coll), ("no hit in the joint log", !hit)] do
     IO.println s!"{if good then "ok  " else "FAIL"} {name}"
     unless good do failed := failed + 1
-  return failed
+  (← IO.getStdout).flush
+  return failed + (← extractChecks p logA)
 
 end LeanerVMProve
 
@@ -322,7 +368,9 @@ def main (args : List String) : IO UInt32 := do
     return if failed = 0 then 0 else 1
   if args.head? == some "log" then
     let file := args.getD 1 "tests/vectors/fill.proof"
-    let some f := load (← IO.FS.readFile file) | do IO.println "FAIL the loader rejects the file"; return 1
+    let some f := load (← IO.FS.readFile file) | do
+      IO.println "FAIL the loader rejects the file"
+      return 1
     let failed ← logChecks f (2 ^ 24)
     IO.println s!"{failed} failed"
     return if failed = 0 then 0 else 1

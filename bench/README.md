@@ -430,10 +430,17 @@ answering), then `verifyWith` on its proof with every hash logged, and checks th
 the file's, that the verifier accepts it, and that the joint log has no collision and no hit
 (`LeanerVMTests.Protocol.LogScan.scan`, one pass with hash maps, which the headline's tests check
 against `QueryLog.HasCollision` and `Hit` on small logs): the decidable clauses of the headline's
-hypothesis at `δ = 0`. The flip clause is not decidable. Recorded on 2026-10-25: 487250 prover
-queries (the grinding's candidates most of them) and 3291 verifier queries, three roots; the
-proof is the vector's, `verify` accepts it, and the joint log has no collision and no hit; the
-two runs take 417 s, the scan 9 s, 6.4 GB at the peak.
+hypothesis at `δ = 0`. The flip clause is not decidable. Then the extractor's pieces on the
+prover's log (`extractChecks`): the level-0 word `extract` reads off it (`wordRows` under the
+proof's level-0 root) must be the committed word (`Whir.kwordRows` of the witness's stack), and
+the commitment's list decoder must read it as the witness's stack alone. The relation `extract`
+decides last is not decided: its bus permutation is quadratic in the bus's length, and the honest
+stack satisfies it by `m3Holds_stackOf`. Recorded on 2026-10-25: 487250 prover queries (the
+grinding's candidates most of them) and 3291 verifier queries, three roots; the proof is the
+vector's, `verify` accepts it, and the joint log has no collision and no hit; the word read off
+the log (16384 rows, 3.7 s) is the committed word (recomputed in 231 s), and the decoder returns
+one stack, the witness's (250 s). The two runs take 412 s, the scan 9 s, the whole check 15 min,
+6.4 GB at the peak.
 
 Beside the mutations of the proof, both `leanervm-prove` and `leanervm-verify` run the algebra on
 the honest wire with one message changed in each front phase (a grand-product round coefficient
