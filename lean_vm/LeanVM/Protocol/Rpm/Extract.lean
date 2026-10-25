@@ -242,7 +242,7 @@ theorem transcriptHashes_eq_of_mem_support (A : RpmAdversary)
     conv_rhs => rw [← List.map_id w.2.1.2]
     exact List.map_congr_left fun e _ ↦ entryToRpm_ofRpm e
   funext m
-  simp only [transcriptHashes, eT]
+  simp only [transcriptHashes, hashesOf, transcriptPaths, eT]
   rcases hc : w.2.2 (.inl m) with _ | d
   · have hn : (Common.pathsOf Common.keccakPadding Common.KState.zero w.2.1.2).find?
         (·.1 = m) = none := by

@@ -10,6 +10,7 @@ module
 
 public import LeanVM.Protocol.EndToEnd.Sound.Statements
 public import LeanVM.Protocol.EndToEnd.Sound.Extractor
+public import LeanVM.Protocol.Extraction.Sound
 
 /-!
 # leanVM, knowledge soundness
@@ -56,8 +57,11 @@ probability at most `12008/2^256` (`Sound.prEvent_logged2_root_le`, the second t
 * Keccak-256 and Keccak-f[1600] are independent random oracles here, the step of the proof before
   the random-permutation model of the statements (`LeanVM/Protocol/LeanVMRpm.lean`).
 * The extractor is straight-line (it reads the proof and the answers to the adversary's
-  queries, never the verifier's, and does not rewind) but information-theoretic, not
-  efficient: a classical choice in the list of codewords near the committed word.
+  queries, never the verifier's, and does not rewind), and a deterministic algorithm
+  (`Statement/Extractor.lean`: it list-decodes the committed word and runs the candidates). Here
+  the byte strings the cache answers, its keys, are enumerated classically
+  (`Extraction.supportKeys`); which covering keys it is given does not change what it returns
+  (`Extraction.ExtractProofs.extract_keys_congr`).
 * That `verifier` is the Python and Rust verifiers is test evidence, not proof.
 * Every theorem depends only on `propext`, `Classical.choice` and `Quot.sound`.
 -/

@@ -215,8 +215,9 @@ of the program on the public input is at most `soundnessError Q + rpmError (Q + 
 adversary's `Q` and at most `verifierPermCalls` of the verifier. So an accepted proof commits,
 except with that probability, to a stack whose memory columns hold a valid execution, among the at
 most `2^18` stacks the word the adversary hashed is close to (proved, for every admissible shape
-and word: `LeanVM.candidates_ncard_le`). The choice among them is classical: the extractor is a
-definition, not an algorithm with a running time.
+and word: `LeanVM.candidates_ncard_le`). The extractor is an algorithm, deterministic and of
+polynomial running time (`Extractor.lean`, with its cost table): it lists those stacks with a
+Guruswami–Sudan list decoder and returns the first valid execution among their halting runs.
 
 **Completeness** (`Completeness`): there is an honest prover (an oracle computation over the
 calls of `Statement.lean`, answered here with both functions built from `π`) which, given a valid
@@ -369,16 +370,25 @@ def permQueryToRpm : Common.PermQuery KState → Common.PermQuery Common.KState
   | .fwd x => .fwd (KState.toRpm x)
   | .inv y => .inv (KState.toRpm y)
 
+/-- The sponge paths a transcript holds: the byte strings whose whole padded sponge path the
+transcript holds as a chain of forward queries from the zero state, each the query that first
+fixed its edge, each with the path's last answer's bytes, as `common` reads them
+(`Common.pathsOf`, the indifferentiability simulator's bookkeeping replayed on the transcript, on
+the bytes of the states). -/
+def transcriptPaths (T : Transcript) : List (Bytes × Common.KDigest) :=
+  Common.pathsOf Common.keccakPadding Common.KState.zero
+    (T.map fun e ↦ (permQueryToRpm e.1, KState.toRpm e.2))
+
+/-- The Keccak-256 evaluation of `x` among the paths `P`: the first four lanes of the last answer
+of its path, if `P` holds one. -/
+def hashesOf (P : List (Bytes × Common.KDigest)) (x : Bytes) : Option Digest :=
+  (P.find? (·.1 = x)).map fun p ↦ Digest.ofRpm p.2
+
 /-- **The Keccak-256 evaluations a transcript contains**: the byte strings whose whole padded
-sponge path the transcript holds as a chain of forward queries from the zero state, each the query
-that first fixed its edge, each with the
-first four lanes of the path's last answer, as `common` reads them (`Common.pathsOf`, the
-indifferentiability simulator's bookkeeping replayed on the transcript, on the bytes of the
-states). -/
-noncomputable def transcriptHashes (T : Transcript) (x : Bytes) : Option Digest :=
-  ((Common.pathsOf Common.keccakPadding Common.KState.zero
-      (T.map fun e ↦ (permQueryToRpm e.1, KState.toRpm e.2))).find? (·.1 = x)).map
-    fun p ↦ Digest.ofRpm p.2
+sponge path the transcript holds (`transcriptPaths`), each with the first four lanes of the path's
+last answer. -/
+def transcriptHashes (T : Transcript) (x : Bytes) : Option Digest :=
+  hashesOf (transcriptPaths T) x
 
 /-- An extractor in the random-permutation model: from the adversary's transcript and the
 proof, an execution of the program. -/
@@ -386,9 +396,12 @@ abbrev RpmExtractor : Type :=
   (prog : Program) → PublicInput → Transcript → Proof → Option (Trace prog)
 
 /-- **The extractor in the random-permutation model**: the extractor of `Extractor.lean`
-(`LeanVM.Extraction.extract`) on the Keccak-256 evaluations of the adversary's transcript. -/
-noncomputable def extractorRpm : RpmExtractor := fun prog input T proof ↦
-  Extraction.extract prog input (bytecodeWords prog) (transcriptHashes T) proof
+(`LeanVM.Extraction.extract`) on the Keccak-256 evaluations of the adversary's transcript
+(`transcriptHashes`), the byte strings they answer being those of the transcript's paths. The
+paths are computed once. -/
+def extractorRpm : RpmExtractor := fun prog input T proof ↦
+  let paths := transcriptPaths T
+  Extraction.extract prog input (bytecodeWords prog) (hashesOf paths) (paths.map (·.1)) proof
 
 /-! ### Knowledge soundness -/
 

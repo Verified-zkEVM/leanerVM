@@ -10,6 +10,7 @@ module
 
 public import Statement.LeanVm
 public import LeanVM.Facts.Verifier
+public import LeanVM.Protocol.Extraction.Defs
 public import Statement.Fast.Keccak
 public import Statement.Fast.CubicExt
 public import Statement.Fast.FieldWords
@@ -34,10 +35,11 @@ one oracle, and records the verdict, the oracle's answers at the end, and the or
 the adversary's queries, as they stood when the adversary output its proof (`experiment`).
 
 * `KnowledgeSoundnessRom`: for every adversary of at most `Q` queries, the probability that the
-  verifier accepts while the extractor (`extractor`: `LeanVM.Extraction.extract` of `Statement/Extractor.lean` on the
-  adversary's cached Keccak-256 answers) does not return a valid execution of the program on the
-  public input is at most `soundnessError Q`. Proved: `LeanVM.knowledgeSoundnessRom_holds`
-  (`LeanVM/Protocol/LeanVMSound.lean`).
+  verifier accepts while the extractor (`extractor`: `LeanVM.Extraction.extract` of
+  `Statement/Extractor.lean` on the adversary's cached Keccak-256 answers, the byte strings they
+  answer enumerated classically, `Extraction.supportKeys`) does not return a valid execution of the
+  program on the public input is at most `soundnessError Q`. Proved:
+  `LeanVM.knowledgeSoundnessRom_holds` (`LeanVM/Protocol/LeanVMSound.lean`).
 * `CompletenessRom`: there is an honest prover which, given a valid execution whose committed size
   is at most `2^28`, at an inverse rate `2^ρ` with `1 ≤ ρ ≤ 4`, trying at most `fuel ≤ 2^64` nonces
   per proof of work, makes the verifier reject with probability at most `completenessError fuel`.
@@ -101,9 +103,13 @@ abbrev Extractor : Type :=
   (prog : Program) → PublicInput → HashSpec.QueryCache → Proof → Option (Trace prog)
 
 /-- **The extractor of the random-oracle model** (`LeanVM.Extraction.extract`,
-`Statement/Extractor.lean`) on the adversary's cached Keccak-256 answers. -/
+`Statement/Extractor.lean`) on the adversary's cached Keccak-256 answers, with the byte strings
+they answer as its keys (a classical enumeration, `Extraction.supportKeys`, of a support that is
+finite on every reachable cache; the extraction does not depend on which covering keys it is
+given, `ExtractProofs.extract_keys_congr`). -/
 noncomputable def extractor : Extractor := fun prog input answers proof ↦
-  Extraction.extract prog input (bytecodeWords prog) (fun x ↦ answers (.inl x)) proof
+  Extraction.extract prog input (bytecodeWords prog) (fun x ↦ answers (.inl x))
+    (Extraction.supportKeys fun x ↦ answers (.inl x)) proof
 
 /-- **The adversary breaks soundness**: the verifier accepts its statement and proof, and the
 execution extracted from the adversary's answers and the proof is not a valid execution of the
