@@ -70,6 +70,11 @@ private theorem loggedGame_eq (V : VerifierWith) (prog : Program) (input : Publi
     (A : Adversary) : loggedGame V prog input A = A.withQueryLog >>= fun p ↦
       (V hashQuery prog input p.1).withQueryLog >>= fun q ↦ pure ⟨p.1, p.2, q.2, q.1⟩ := rfl
 
+/-- A log whose every answer a partial function gives at its input is consistent. -/
+private theorem consistent_of_answers {log : hashSpec.QueryLog}
+    (f : List UInt8 → Option Digest) (h : ∀ e ∈ log, f e.1 = some e.2) : QueryLog.Consistent log :=
+  fun e₁ he₁ e₂ he₂ he ↦ Option.some.inj ((h e₁ he₁).symm.trans (he ▸ h e₂ he₂))
+
 /-- **A run under BLAKE2s** is a possible run of the game, its joint log is BLAKE2s's and so
 consistent, and its verdict is `verify`'s. -/
 theorem mem_support_runBlake2s {prog : Program} {input : PublicInput} {A : Adversary} {g : Run}
@@ -87,10 +92,8 @@ theorem mem_support_runBlake2s {prog : Program} {input : PublicInput} {A : Adver
       (verifyWith hashQuery prog input proof) = pure (verify prog input proof) :=
     (verifyWith_simulateQ _ prog input proof).trans (verifyWith_pure _ _ _ _)
   rw [hv, support_pure, Set.mem_singleton_iff] at hok
-  refine ⟨fun e₁ he₁ e₂ he₂ h ↦ ?_, hok⟩
-  have hl : ∀ e ∈ logA ++ logV, e.2 = blake2sBytes e.1 := fun e he ↦
-    (List.mem_append.mp he).elim (hlA e) (hlV e)
-  rw [hl e₁ he₁, hl e₂ he₂, h]
+  exact ⟨consistent_of_answers (some ∘ blake2sBytes) fun e he ↦
+    congrArg some ((List.mem_append.mp he).elim (hlA e) (hlV e)).symm, hok⟩
 
 /-- **A run under the lazy random oracle** is a possible run of the game, and its joint log is
 consistent: every logged answer is the final cache's. -/
@@ -100,9 +103,8 @@ theorem mem_support_runRandom {V : VerifierWith} {prog : Program} {input : Publi
     z.1 ∈ support (loggedGame V prog input A) ∧ QueryLog.Consistent z.1.log := by
   have hrun : runRandom (loggedGame V prog input A) = Prod.map id QueryHistory.freshLog.view <$>
       (simulateQ QueryHistory.freshLog.randomOracle (loggedGame V prog input A)).run
-        ((∅ : hashSpec.QueryCache), []) := by
-    unfold runRandom
-    exact ((QueryHistory.freshLog (spec := hashSpec)).randomOracle_run_view
+        ((∅ : hashSpec.QueryCache), []) :=
+    ((QueryHistory.freshLog (spec := hashSpec)).randomOracle_run_view
       (loggedGame V prog input A) ((∅ : hashSpec.QueryCache), [])).symm
   rw [hrun, support_map] at hz
   obtain ⟨z', hz', rfl⟩ := hz
@@ -117,12 +119,8 @@ theorem mem_support_runRandom {V : VerifierWith} {prog : Program} {input : Publi
   obtain ⟨-, hf₁, -, hc₁⟩ :=
     QueryHistory.withQueryLog_freshLog_support _ QueryHistory.isFreshLog_empty hz₁
   obtain ⟨-, -, hle, hc₂⟩ := QueryHistory.withQueryLog_freshLog_support _ hf₁ hz₂
-  have hcached : ∀ e ∈ z₁.1.2 ++ z₂.1.2, z₂.2.1 e.1 = some e.2 := fun e he ↦
+  exact consistent_of_answers z₂.2.1 fun e he ↦
     (List.mem_append.mp he).elim (fun he ↦ hle (hc₁ e he)) (hc₂ e)
-  intro e₁ he₁ e₂ he₂ h
-  have h₁ := hcached e₁ he₁
-  rw [h] at h₁
-  exact Option.some.inj (h₁.symm.trans (hcached e₂ he₂))
 
 /-! ## The hypotheses -/
 
@@ -181,25 +179,22 @@ private theorem admissible_of_extract {F : FlockSpec} {prog : Program} {input : 
   unfold extract at h
   split at h
   · cases h
-  · split at h
-    · rename_i hs
-      split at h
-      · cases h
-      · obtain ⟨q', -, heq⟩ := Option.map_eq_some_iff.mp h
-        cases heq
-        exact hs.1
+  · split_ifs at h with hs
+    split at h
     · cases h
+    · obtain ⟨_, -, ⟨⟩⟩ := Option.map_eq_some_iff.mp h
+      exact hs.1
 
 /-- On a possible run with a consistent joint log whose verdict accepts, no satisfying witness
 through the adaptor means the hash misbehaves. -/
 private theorem misbehaves_of_escape {prog : Program} {input : PublicInput} {A : Adversary}
     (hcore : CoreHolds prog input A) {g : Run}
-    (hg : g ∈ support (loggedGame verifyWith prog input A)) (hc : QueryLog.Consistent g.log)
+    (hg : g ∈ support (loggedGame verifyWith prog input A) ∧ QueryLog.Consistent g.log)
     (hok : g.ok = true)
     (hX : ¬ ∃ e, extract Blake2sFlock.blake2sFlockSpec prog input g.proof g.logA = some e ∧
       SatisfiedBy prog input (witnessOf Blake2sFlock.blake2sFlockSpec prog e.1 e.2)) :
     HashMisbehaves (rootsOf prog input) (leanVmReader prog input).Flip prog input g :=
-  hcore g hg hc hok fun ⟨s, q, he, hm⟩ ↦
+  hcore g hg.1 hg.2 hok fun ⟨s, q, he, hm⟩ ↦
     hX ⟨⟨s, q⟩, he, satisfiedBy_witnessOf _ prog s q (admissible_of_extract he) hm⟩
 
 /-! ## The theorems -/
@@ -218,8 +213,8 @@ theorem baseVerifier_extractsWitness_rom {prog : Program} {input : PublicInput} 
           SatisfiedBy prog input (witnessOf Blake2sFlock.blake2sFlockSpec prog e.1 e.2)] ≤
       ((Q + 13697 : ℕ) / 2 ^ 128 + hashTerm 13697 Q : ℝ≥0) :=
   (OracleComp.prEvent_mono_of_support _ fun _ hz h ↦
-    misbehaves_of_escape hcore (mem_support_runRandom hz).1 (mem_support_runRandom hz).2 h.1
-      h.2).trans (leanVm_misbehaves_rom_closed prog input A hQ)
+    misbehaves_of_escape hcore (mem_support_runRandom hz) h.1 h.2).trans
+    (leanVm_misbehaves_rom_closed prog input A hQ)
 
 /-- **The headline: knowledge soundness of the deployed verifier.** With BLAKE2s-256 answering the
 hash, `verify` accepts the adversary's proof while the witness read off the stack the extractor
@@ -234,7 +229,7 @@ theorem baseVerifier_extractsWitness {prog : Program} {input : PublicInput} {A :
           SatisfiedBy prog input (witnessOf Blake2sFlock.blake2sFlockSpec prog e.1 e.2)] ≤ δ :=
   (OracleComp.prEvent_mono_of_support _ fun _ hg h ↦
     have ⟨hg', hc, hok⟩ := mem_support_runBlake2s hg
-    misbehaves_of_escape hcore hg' hc (hok.trans h.1) h.2).trans hB
+    misbehaves_of_escape hcore ⟨hg', hc⟩ (hok.trans h.1) h.2).trans hB
 
 /-- **Knowledge soundness of the deployed verifier, for an execution.** For a program whose
 sentinel slot is not a `JUMP`, with BLAKE2s-256 answering the hash, `verify` accepts the

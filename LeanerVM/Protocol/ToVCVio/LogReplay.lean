@@ -140,13 +140,9 @@ theorem mem_support_simulateQ_pure_withQueryLog {α : Type} (f : Q → D)
     rw [withQueryLog_bind, withQueryLog_query, bind_assoc] at h
     simp only [pure_bind, simulateQ_bind, simulateQ_spec_query, simulateQ_map, support_map,
       Set.mem_image] at h
-    obtain ⟨⟨x', log'⟩, hx', he⟩ := h
-    simp only [Prod.map_apply, id_eq, Prod.mk.injEq] at he
-    obtain ⟨rfl, rfl⟩ := he
+    obtain ⟨⟨x', log'⟩, hx', rfl, rfl⟩ := h
     obtain ⟨h₁, h₂⟩ := ih (f t) hx'
-    refine ⟨by simpa using h₁, ?_⟩
-    simp only [List.cons_append, List.nil_append, List.mem_cons, forall_eq_or_imp]
-    exact ⟨trivial, h₂⟩
+    exact ⟨by simpa using h₁, List.forall_mem_cons.mpr ⟨rfl, h₂⟩⟩
 
 end
 
