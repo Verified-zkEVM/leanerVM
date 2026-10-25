@@ -32,7 +32,10 @@ challenges: `msg` for `say`, `chal` for `draw`, `chals` for `draws`, `round` and
 sumcheck rounds, `step` for a grand-product layer and `gkr` for `gkrSpec`.
 
 A prover of an oracle reduction with no shared oracle (`[]ₒ`) makes no query: its oracle
-computations run in any monad (`runNoOracle`) and are pure (`runNoOracle_eq_pure`).
+computations run in any monad (`runNoOracle`) and are pure (`runNoOracle_eq_pure`), with that
+value as their one outcome (`support_eq_runNoOracle`); a verifier with no shared oracle that
+returns a statement in `Id` outputs it with positive probability
+(`Verifier.probEvent_pos_of_runNoOracle`).
 
 **The run on given challenges.** `Prover.runWithChallenges ch` is the run whose challenge `i` is
 `ch i`, deterministic. Three facts carry completeness from the oracle protocol to a run against a
@@ -214,6 +217,28 @@ theorem runNoOracle_eq_pure {w : Type → Type} [Monad w] [LawfulMonad w] {α : 
   induction oa using OracleComp.inductionOn with
   | pure x => simp [runNoOracle]
   | query_bind t _ _ => exact isEmptyElim t
+
+/-- An oracle computation with no oracle has one outcome: the value it returns in `Id`. -/
+theorem support_eq_runNoOracle {α : Type} (oa : OracleComp []ₒ α) :
+    support oa = {Id.run (runNoOracle oa)} := by
+  induction oa using OracleComp.inductionOn with
+  | pure x => simp [runNoOracle]
+  | query_bind t _ _ => exact isEmptyElim t
+
+/-- A verifier with no oracle whose run on a transcript returns `so` in `Id` outputs, under any
+implementation and initial state, a statement satisfying every property of `so` with positive
+probability. -/
+theorem Verifier.probEvent_pos_of_runNoOracle {StmtIn StmtOut : Type} {n : ℕ}
+    {pSpec : ProtocolSpec n} (V : Verifier []ₒ StmtIn StmtOut pSpec) {σ : Type}
+    (init : ProbComp σ) (impl : QueryImpl []ₒ (StateT σ ProbComp)) (stmt : StmtIn)
+    (tr : pSpec.FullTranscript) {so : StmtOut}
+    (h : Id.run (runNoOracle (V.run stmt tr).run) = some so) (P : StmtOut → Prop) (hP : P so) :
+    0 < Pr{let stmtOut ← OptionT.mk do (simulateQ impl (V.run stmt tr)).run' (← init)}[
+      P stmtOut] := by
+  rw [OptionT.prEvent_mk_simulateQ_run'_eq_one_of_support init impl _ _ fun o ho ↦ ?_]
+  · exact one_pos
+  rw [support_eq_runNoOracle, Set.mem_singleton_iff] at ho
+  exact ⟨so, ho.trans h, hP⟩
 
 namespace Prover
 

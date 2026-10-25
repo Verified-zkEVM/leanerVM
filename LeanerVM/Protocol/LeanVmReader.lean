@@ -348,7 +348,7 @@ theorem leanVm_misbehaves_rom (A : Adversary) {Q : ℕ} (hQ : IsTotalQueryBound 
 variable {prog input}
 
 /-- The sizes and the rate the setup accepts are the proof's announcement. -/
-private theorem announced?_of_setup {M : Type} {p : Proof M} {s : Sizes} {ρ : ℕ}
+theorem announced?_of_setup {M : Type} {p : Proof M} {s : Sizes} {ρ : ℕ}
     (h : setup? prog p = some (s, ρ)) : p.announced? = some (s, ρ) := by
   unfold setup? at h
   split at h

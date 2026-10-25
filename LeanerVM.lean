@@ -39,6 +39,8 @@ import LeanerVM.Protocol.Compile.Front
 import LeanerVM.Protocol.Compile.Rounds
 import LeanerVM.Protocol.Compile.Tables
 import LeanerVM.Protocol.Compile.Whir
+import LeanerVM.Protocol.Core.Decoded
+import LeanerVM.Protocol.Core.Grinding
 import LeanerVM.Protocol.DecodeAgree
 import LeanerVM.Protocol.DecodeChain
 import LeanerVM.Protocol.DecodeWalk
@@ -152,6 +154,7 @@ import LeanerVM.Protocol.ToArkLib.SendChecked
 import LeanerVM.Protocol.ToArkLib.SendEncoded
 import LeanerVM.Protocol.ToArkLib.SendOracle
 import LeanerVM.Protocol.ToArkLib.SendOracleBeside
+import LeanerVM.Protocol.ToArkLib.StateWalk
 import LeanerVM.Protocol.ToArkLib.StepSchedule
 import LeanerVM.Protocol.ToArkLib.Sumcheck
 import LeanerVM.Protocol.ToArkLib.SumcheckCached

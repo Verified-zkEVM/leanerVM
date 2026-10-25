@@ -545,7 +545,7 @@ private theorem readRounds_add {n : Type → Type} [Monad n] [LawfulMonad n] (op
     rw [Nat.add_right_comm, readRounds, readRounds_add ops d b a, readRounds]
     simp
 
-private theorem roundsNext_snd {d : ℕ} :
+theorem roundsNext_snd {d : ℕ} :
     ∀ (σ : Thunk E × ℕ) (m : ℕ) (t : (roundsSpec E d m).FullTranscript),
     (roundsNext σ m t).2 = σ.2 + m
   | _, 0, _ => rfl
