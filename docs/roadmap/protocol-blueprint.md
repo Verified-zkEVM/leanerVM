@@ -1941,7 +1941,9 @@ Two facts fix its form:
   `BlakeMisbehaves` at every `δ < 1` (acceptance test 36).
 - **It cannot usefully be weakened.** The weakest hypothesis about one adversary that yields the
   conclusion is the conclusion itself. A per-adversary hypothesis can be improved only in form;
-  this one is stated on the hash's behaviour, which an auditor can judge without the proof system.
+  this one is stated on the hash's behaviour. Its collision and hit clauses can be judged without
+  the proof system; its flip clause is judged against a relation the proof system fixes and proves
+  sparse (`bad_density`).
 
 An adversary that carries precomputed values, or uses BLAKE2s's code as the attacks of [KRS25] and
 [Fen26] do, may fail it, and the theorem then says nothing about that adversary. One that hashes in
