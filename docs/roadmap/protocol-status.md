@@ -1306,6 +1306,28 @@ has two spellings, `deployedSpec` (the bad sets, the decoder) and `listBindingSp
 extractor, unification evaluates the stack's size on a symbolic program, so `Core.lean` crosses
 them by `dsimp only [deployedSpec]` on both sides, and seals `leanIsaμ` and `blocks`.
 
+*On merge* of the headline's branch (`feat/protocol-headline`, on the compiled verifier's and the
+transcript decoder's): `Protocol/Headline.lean` proves Layer 13's soundness theorems, each for a
+statement fixed before the adversary runs. `baseVerifier_extractsWitness_rom` is the random-oracle
+form at `(Q + 13697)/2^128 + hashTerm 13697 Q`; `baseVerifier_extractsWitness` and
+`baseVerifier_extractsExecution` (at `leanIsaTraceExtraction`, for a program with `SentinelSafe`)
+are the deployed forms under `BlakeMisbehaves`; `blakeMisbehaves_of_comparison` derives it from
+`Blake2sActsAsRandomOracle`. `mem_support_runBlake2s` and `mem_support_runRandom` make every run
+under either oracle a possible run of the game with a consistent joint log, and under BLAKE2s
+give it `verify`'s verdict. Until `core` lands, each theorem takes `CoreHolds prog input A`, the
+statement of `core_of_mem_support` at the adversary; it is discharged by that lemma in one line,
+and `CoreHolds` is then deleted. `#print axioms` gives the kernel's three axioms for each. The
+wall's allow-list names `Headline.lean` for the base theorems, where it named `Soundness.lean`.
+The tests: `extract_nil` (nothing is extracted from the empty log, whatever the proof: the zero
+word decodes to the zero stack, whose read counts are zero) and the replayer theorem (acceptance
+test 36), whose one premise, `verify` accepting, holds natively on the Rust fixture and the test
+vector; `leanervm-prove log`, the honest run on the test vector with every hash logged (487250
+prover and 3291 verifier queries), with no collision and no hit (test 37, reduced: the flip
+clause is not decidable, and `extract` on the honest log is not run, since deciding `M3Holds`
+decides the bus's permutation, quadratic in its length); `verify` as `verifyWith` at BLAKE2s and
+`verifyWith_simulateQ` (test 38). Owed: `core`; `baseProver_complete_of_execution`, which waits
+for leanISA's constraint completeness at the trace level.
+
 ## Upstream watch
 
 External work that may feed or replace a hole. The state of each is on GitHub.

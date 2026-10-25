@@ -654,7 +654,7 @@ no other; the hole is built when the names in bold of its row are declared and m
 | transcript, proof object and compiled verifier | [Layer 12](#layer-12-compilation-the-transcript-the-proof-and-the-executable-verifier) | `Digest`, **`card_digest`**, `hashSpec`, `hashQuery`, `runBlake2s`, `runRandom`, `FsState`, `Block`, `FsState.checkPow`, **`FsState.challengeOf`**, `chainHistory`, **`chainHistory_determined`**, `Proof`, `Proof.sizes?`, `RoundPoly.decode`, `decodePrefix`, **`decodePrefix_mono`**, `decode`, `leanVmIopp`, **`verifyWith`**, **`verify`**, **`verifyWith_simulateQ`**, `rounds`, `verifierQueries`, `proofDigests`, **`rounds_bound`**, **`verifierQueries_bound`**, **`proofDigests_bound`**, **`verify_iff_compiled`**, `settleFixedClaims` | the phases' definitions; the Flock phase's definition; WHIR opening; Merkle trees |
 | the random-oracle theorems | [Layer 12](#layer-12-compilation-the-transcript-the-proof-and-the-executable-verifier) | `Adversary`, `Run`, `loggedGame`, `extract`, `Extracts`, `LogHasCollision`, `Hit`, `Bad`, **`bad_density`**, `Flip`, `HashMisbehaves`, **`core`**, `hashTerm`, `niError`, **`misbehaves_rom`**, `misbehaves_rom_coins`, **`niError_le`**, **`verify_knowledgeSound_rom`** | the compiled verifier; list-binding compilation; Merkle binding by log replay; the charged invariant in its logged form |
 | the honest prover and the test vectors | [Layer 13](#the-executable-prover-and-the-test-vectors) | `proveWith`, **`prove`**, `honestAdversary`, **`baseProver_complete`**, the executable `leanervm-vectors` and its vectors | the compiled verifier; the adaptor; for the vectors, leanISA's `checkSatisfiedBy` |
-| the base theorems (T4) | [Layer 13](#layer-13-the-base-theorems-t4-and-the-fixtures) | **`BlakeMisbehaves`**, `extractTrace`, **`baseVerifier_extractsWitness`**, **`baseVerifier_extractsExecution`**, `Blake2sActsAsRandomOracle`, **`blakeMisbehaves_of_comparison`**, `baseProver_complete_of_execution` | the random-oracle theorems; the adaptor; the honest prover; leanISA's `TraceExtraction` (declared beside `SatisfiedBy`); for the instantiated execution form and completeness from an execution, leanISA Layers 9–10 |
+| the base theorems (T4) | [Layer 13](#layer-13-the-base-theorems-t4-and-the-fixtures) | **`BlakeMisbehaves`**, `extractTrace`, **`baseVerifier_extractsWitness_rom`**, **`baseVerifier_extractsWitness`**, **`baseVerifier_extractsExecution`**, `Blake2sActsAsRandomOracle`, **`blakeMisbehaves_of_comparison`**, `baseProver_complete_of_execution` (an unproved target) | the random-oracle theorems; the adaptor; the honest prover; leanISA's `TraceExtraction` (declared beside `SatisfiedBy`) and its inhabitant `leanIsaTraceExtraction`; for completeness from an execution, leanISA's constraint completeness at the trace level |
 
 What can start is what the column *Needs* allows; the status file says what is built.
 
@@ -1822,11 +1822,13 @@ definition.
 
 ### Layer 13: the base theorems (T4) and the fixtures
 
-`LeanerVM/Protocol/Soundness.lean`, `Prover.lean` (plain). Needs Layer 12 and the adaptor; the
-execution form at leanVM's program needs leanISA's Layers 9–10.
+`LeanerVM/Protocol/Headline.lean` (the soundness theorems), `Prove.lean` and `Prove/` (the prover
+and its completeness). Needs Layer 12, the adaptor, and leanISA's trace extraction for the
+execution form. `F` below is the deployed Flock specification, `blake2sFlockSpec`.
 
 ```lean
--- leanISA's, declared in LeanerVM/Arithmetization/ beside SatisfiedBy (requested; see Boundaries)
+-- leanISA's, declared in LeanerVM/Arithmetization/ beside SatisfiedBy; inhabited by
+-- leanIsaTraceExtraction (hsafe : SentinelSafe prog)
 /-- A computable execution for every satisfying witness. Owner: leanISA, whose inhabitant takes the bytecode's
 well-formedness, defines `traceOf` without `noncomputable`, and proves `valid` from `constraintSoundness`. -/
 structure TraceExtraction (prog : Program) where
@@ -1845,28 +1847,37 @@ BLAKE2s answering its hash queries, then the verifier on its proof; the joint lo
   fixed by the prefix and the committed words, of density at most `2^{−128}` (`bad_density`; correlation
   intractability of the chain against a sparse relation).
 The bad sets are those of the deployed protocol, with `leanVmSecurity` (and so `flockSecurity`),
-`deployedDecoder` and `blake2sFlockSpec` fixed inside this definition. -/
-def BlakeMisbehaves (prog input) (A : Adversary) (δ : ℝ≥0) : Prop :=
-  Pr[HashMisbehaves prog input | runBlake2s (loggedGame prog input A)] ≤ δ
+`deployedDecoder` and `blake2sFlockSpec` fixed inside this definition. With no coins the run
+is one value, and the probability is `0` or `1`. -/
+def BlakeMisbehaves (prog input) (A : Adversary) (δ : ℝ≥0∞) : Prop :=
+  Pr[HashMisbehaves (rootsOf prog input) (leanVmReader prog input).Flip prog input
+    | runBlake2s (loggedGame verifyWith prog input A)] ≤ δ
+-- The random-oracle form, with no hypothesis but the query bound
+theorem baseVerifier_extractsWitness_rom (hQ : IsTotalQueryBound A Q) :
+    Pr[fun z ↦ z.1.ok = true ∧
+          ¬ ∃ e, extract F prog input z.1.proof z.1.logA = some e ∧ SatisfiedBy prog input (witnessOf F prog e.1 e.2)
+      | runRandom (loggedGame verifyWith prog input A)] ≤ (Q + 13697) / 2^128 + hashTerm 13697 Q
 -- The headline: the deployed verifier, the witness through the adaptor
 theorem baseVerifier_extractsWitness (hB : BlakeMisbehaves prog input A δ) :
     Pr[fun g ↦ verify prog input g.proof = true ∧
-          ¬ ∃ s q, extract prog input g.proof g.logA = some ⟨s, q⟩ ∧ SatisfiedBy prog input (witnessOf F prog s q)
-      | runBlake2s (loggedGame prog input A)] ≤ δ
--- The execution, through leanISA's interface
+          ¬ ∃ e, extract F prog input g.proof g.logA = some e ∧ SatisfiedBy prog input (witnessOf F prog e.1 e.2)
+      | runBlake2s (loggedGame verifyWith prog input A)] ≤ δ
+-- The execution, through leanISA's trace extraction
 def extractTrace (X : TraceExtraction prog) (input proof log) : Option (Trace prog) :=
-  (extract prog input proof log).bind fun ⟨s, q⟩ ↦ X.traceOf input (witnessOf F prog s q)
-theorem baseVerifier_extractsExecution (X : TraceExtraction prog) (hB : BlakeMisbehaves prog input A δ) :
+  (extract F prog input proof log).bind fun e ↦ X.traceOf input (witnessOf F prog e.1 e.2)
+theorem baseVerifier_extractsExecution (hsafe : SentinelSafe prog) (hB : BlakeMisbehaves prog input A δ) :
     Pr[fun g ↦ verify prog input g.proof = true ∧
-          ¬ ∃ t, extractTrace X input g.proof g.logA = some t ∧ ValidExecution prog input t
-      | runBlake2s (loggedGame prog input A)] ≤ δ
+          ¬ ∃ t, extractTrace (leanIsaTraceExtraction hsafe) input g.proof g.logA = some t ∧
+            ValidExecution prog input t
+      | runBlake2s (loggedGame verifyWith prog input A)] ≤ δ
 -- The comparison form of the heuristic, a corollary
-def Blake2sActsAsRandomOracle (G : OracleComp hashSpec α) (bad : α → Prop) (δ : ℝ≥0) : Prop :=
+def Blake2sActsAsRandomOracle (G : OracleComp hashSpec α) (bad : α → Prop) (δ : ℝ≥0∞) : Prop :=
   Pr[bad | runBlake2s G] ≤ Pr[fun z ↦ bad z.1 | runRandom G] + δ
 theorem blakeMisbehaves_of_comparison (hQ : IsTotalQueryBound A Q)
-    (h : Blake2sActsAsRandomOracle (loggedGame prog input A) (HashMisbehaves prog input) δ) :
-    BlakeMisbehaves prog input A (niError εquery verifierQueries Q + δ)
--- Completeness, for every function answering the hash, so at BLAKE2s with no hypothesis (Prover.lean)
+    (h : Blake2sActsAsRandomOracle (loggedGame verifyWith prog input A)
+      (HashMisbehaves (rootsOf prog input) (leanVmReader prog input).Flip prog input) δ) :
+    BlakeMisbehaves prog input A ((Q + 13697) / 2^128 + hashTerm 13697 Q + δ)
+-- Completeness, for every function answering the hash, so at BLAKE2s with no hypothesis (Prove.lean)
 def proveWith [Monad m] (H : List UInt8 → m Digest) (fuel : ℕ) (prog input) (w) (ρ) : m (Option Proof)   -- grinding searches
 def prove (fuel prog input w ρ) : Option Proof := proveWith (m := Id) blake2sBytes fuel prog input w ρ
 /-- The honest prover as an adversary: it hashes through the oracle; out of fuel, an empty proof, which `verify` rejects. -/
@@ -1877,10 +1888,11 @@ def honestAdversary (fuel prog input w ρ) : Adversary := do
 theorem baseProver_complete (h : SatisfiedBy prog input w) (hs : Sizes.ofWitness w = some s)
     (hadm : s.Admissible prog) (hρ : validRate ρ) (H : List UInt8 → Digest) :
     proveWith (m := Id) H fuel prog input w ρ = some proof → verifyWith (m := Id) H prog input proof = true
+/- Unproved target: it needs leanISA's constraint completeness at the trace level.
 theorem baseProver_complete_of_execution (hwf : WellFormedBytecode prog) (h : ValidExecution prog input t)
     (hfit : ∃ w s, SatisfiedBy prog input w ∧ AssignmentRepresents w t ∧ Sizes.ofWitness w = some s ∧ s.Admissible prog)
     (hρ : validRate ρ) :
-    ∃ w, AssignmentRepresents w t ∧ ∀ fuel proof, prove fuel prog input w ρ = some proof → verify prog input proof = true
+    ∃ w, AssignmentRepresents w t ∧ ∀ fuel proof, prove fuel prog input w ρ = some proof → verify prog input proof = true -/
 ```
 
 The headline is `baseVerifier_extractsWitness`. Its event is read off the deployed functions:
@@ -1889,15 +1901,19 @@ gives no satisfying witness through the adaptor. Its one hypothesis is `hB`. The
 by design: on every run `core` puts the event inside `HashMisbehaves` (BLAKE2s is a function, so
 the log is consistent with one, and `verifyWith_simulateQ` makes the game's verdict `verify`'s),
 and `satisfiedBy_witnessOf` turns `M3Holds` into `SatisfiedBy` at the admissible sizes `extract`
-returns. The mathematics is in `core`, `misbehaves_rom` and what they rest on.
+returns. Under the lazy random oracle the run is a possible run with a consistent log as well, so
+the same step and `misbehaves_rom`'s closed form give `baseVerifier_extractsWitness_rom`, whose
+event reads the game's verdict, not `verify`'s. The mathematics is in `core`, `misbehaves_rom` and
+what they rest on.
 
-`baseVerifier_extractsExecution` takes leanISA's trace interface as an argument (decision 41).
-Its extractor is computable end to end when the interface's `traceOf` is (acceptance test 24).
-Until leanISA's Layers 9–10 inhabit the interface, the corollary at that inhabitant is a block
-comment (convention *Unproved targets*). `extract`, `witnessOf` and `extractTrace` keep the
-extracted witness and execution, which recursion (T6) needs. The witness form takes no bytecode
-hypothesis; the execution form takes it through the interface's inhabitant, and completeness from
-an execution through `constraintCompleteness` (decision 27). A bytecode with a `JUMP` in the
+`extractTrace` takes any inhabitant of leanISA's trace interface (decision 41), and
+`baseVerifier_extractsExecution` is stated and proved at leanISA's, `leanIsaTraceExtraction`,
+which takes `SentinelSafe prog` (the sentinel slot is not a `JUMP`), the part of the bytecode's
+well-formedness its `constraintSoundness` needs. Its extractor is computable end to end
+(acceptance test 24). `extract`, `witnessOf` and `extractTrace` keep the extracted witness and
+execution, which recursion (T6) needs. The witness form takes no bytecode hypothesis; the
+execution form takes it through the interface's inhabitant, and completeness from an execution
+would take it through `constraintCompleteness` (decision 27). A bytecode with a `JUMP` in the
 sentinel slot has balancing steps and no execution (a proved repository test); leanVM's compiler
 establishes it (`lean_compiler/src/lib.rs:162`). The existential corollary, "an accepted proof
 implies some valid execution", is not stated: it carries no knowledge (decision 34).
@@ -1909,17 +1925,20 @@ statement is fixed before the adversary runs: the headline and `misbehaves_rom` 
 after its queries). An adversary with coins is a distribution over coin-free ones (decision 38);
 the headline applied to each gives it the bound with `δ` the probability, over its coins, that the
 hash misbehaves, and `misbehaves_rom_coins` gives it the random-oracle bound unchanged.
-`blakeMisbehaves_of_comparison` derives the hypothesis at `niError εquery verifierQueries Q + δ`
-from the comparison form,
+`blakeMisbehaves_of_comparison` derives the hypothesis at
+`(Q + 13697)/2^128 + hashTerm 13697 Q + δ`, the closed form of `niError εquery verifierQueries Q`
+with the verifier's queries bounded by 13697 over the window, from the comparison form,
 in which misbehaving is at most `δ` likelier under BLAKE2s than under a uniformly random function;
 `misbehaves_rom` is the evidence that `δ` can be small. `δ` is the auditor's estimate, and the
 repository never supplies it.
 
 Two facts fix its form:
 - **A statement about every adversary is false.** The replayer outputs a stored accepted proof
-  and makes no query. `verify` accepts, `extract` on the empty log is `none`, and by `core` the run
-  misbehaves: the verifier's recomputed root is a fresh answer equal to a digest of the proof, a
-  hit. It fails `BlakeMisbehaves` at every `δ < 1` (acceptance test 36).
+  and makes no query. `verify` accepts, and `extract` on the empty log is `none` whatever the
+  proof: every row reads zero, the zero word decodes to the zero stack alone, and the zero stack's
+  read counts are zero, which the relation forbids. By `core` the run misbehaves: the verifier's
+  recomputed root is a fresh answer equal to a digest of the proof, a hit. It fails
+  `BlakeMisbehaves` at every `δ < 1` (acceptance test 36).
 - **It cannot usefully be weakened.** The weakest hypothesis about one adversary that yields the
   conclusion is the conclusion itself. A per-adversary hypothesis can be improved only in form;
   this one is stated on the hash's behaviour, which an auditor can judge without the proof system.
@@ -1928,11 +1947,14 @@ An adversary that carries precomputed values, or uses BLAKE2s's code as the atta
 [Fen26] do, may fail it, and the theorem then says nothing about that adversary. One that hashes in
 its own code at all fails it: the verifier's query on a Merkle node the adversary hashed itself is
 fresh and answered by the proof's root, a hit with probability `1`. The adversary's BLAKE2s calls
-must be its oracle queries; for any other adversary the hypothesis is false, not the theorem wrong. The hypothesis is
-satisfiable by an adversary whose proof is accepted: the honest prover on a toy instance meets it
-at `δ = 0` (acceptance test 37). That it holds at `δ = 0` for every satisfying witness is not
-claimed: rows of 384 or 512 bytes hash to 32, so colliding rows exist, and nothing excludes a
-satisfying witness that commits two of them.
+must be its oracle queries; for any other adversary the hypothesis is false, not the theorem wrong.
+That the hypothesis is satisfiable by an adversary whose proof is accepted is checked on its
+decidable clauses: the honest prover's run on the test vector, every hash logged, shows no
+collision and no hit (acceptance test 37). The flip clause is not decidable (a bad set quantifies
+over witnesses), so `δ = 0` is not claimed for it; in the random-oracle model a flip is what
+`misbehaves_rom` bounds by `2^{−128}` a challenge. That the hypothesis holds at `δ = 0` for every
+satisfying witness is not claimed either: rows of 384 or 512 bytes hash to 32, so colliding rows
+exist, and nothing excludes a satisfying witness that commits two of them.
 
 Completeness starts from a satisfying witness with admissible sizes and a valid rate
 (decision 28). `baseProver_complete` holds for every function answering the hash, so at BLAKE2s
@@ -1944,9 +1966,12 @@ transcript's wire but for the roots, the grinding nonces and the positions' redu
 algebra does not read: the oracle prover sends `0` where the wire carries the grind's nonce), the
 executable algebra's agreement with the oracle verifiers on the honest transcript, Merkle
 completeness and the determinism of the chain. From an execution,
-`baseProver_complete_of_execution` adds `constraintCompleteness` and takes `hfit`, the resource
-condition [architecture.md](../architecture.md) asks for: a valid execution may need
-`κ_mem = 32`, whose memory columns exceed the stack the verifier accepts.
+`baseProver_complete_of_execution` would add `constraintCompleteness` and take `hfit`, the
+resource condition [architecture.md](../architecture.md) asks for: a valid execution may need
+`κ_mem = 32`, whose memory columns exceed the stack the verifier accepts. It stays an unproved
+target (a block comment, convention *Unproved targets*): leanISA proves constraint soundness at
+the trace level (`traceOf_valid`) but no constraint completeness, from an execution to a
+satisfying witness.
 
 Perfect completeness does not survive the transform unconditionally. The honest prover's grinding
 is a search, so `prove` takes fuel. That the search succeeds within its fuel holds for a random
@@ -1954,8 +1979,11 @@ function (each nonce passes with probability `2^{−17}`) and is not claimed for
 completeness theorems conclude that every proof `prove` returns is accepted, not that one exists.
 
 Tests:
-- the replayer of Layer 12's fixture (acceptance test 36);
-- the honest prover's run on a toy instance (acceptance test 37);
+- the replayer (acceptance test 36): `extract` on the empty log is `none` for every proof, and the
+  theorem with its one premise, `verify` accepting, checked natively on Layer 12's fixture and on
+  the test vector;
+- the honest prover's run on the test vector (acceptance test 37), natively: no collision and no
+  hit in the joint log;
 - `verify` as `verifyWith` at `blake2sBytes`, and `verifyWith_simulateQ` (acceptance test 38).
 
 #### The executable prover and the test vectors
@@ -2069,8 +2097,8 @@ witness is executable it is a test under `tests/`.
     the random-oracle extractor `extract`, whose list decoder is `ListDecoder.exactFirst` over
     `ListDecoder.bruteForce` (an efficient decoder is another inhabitant of `ListDecoder`), and for
     `extractTrace`, whose `traceOf` leanISA's inhabitant of `TraceExtraction` defines without
-    `noncomputable`. Witness: `piopExtractedStack_eq`, the `#guard` of Layer 3, and
-    `extract` run on the honest prover's log on a toy instance (test 37).
+    `noncomputable`. Witness: `piopExtractedStack_eq`, the `#guard` of Layer 3, the commitment's
+    pick run on the honest prover's log on a toy instance.
 25. **The wall holds.** No module above the adaptor imports `LeanerVM.Arithmetization`; a phase
     that mentions `leanIsaEnsemble` cannot be tested on the toy. Witness:
     `scripts/check-layers.sh`'s allow-list, with a planted violation in the policy tests.
@@ -2112,20 +2140,27 @@ witness is executable it is a test under `tests/`.
 36. **The hypothesis is about one adversary.** "BLAKE2s acts as a random oracle for every
     adversary", or "BLAKE2s misbehaves on no run", is false, and a headline theorem assuming it
     would be vacuous. An adversary that outputs a stored accepted proof makes no query: under
-    BLAKE2s `verify` accepts and `extract` on the empty log is `none`, so by `core` the run
-    misbehaves (the verifier's recomputed root is a fresh answer equal to the proof's root, a
-    hit). A comparison of the output-and-log distributions under BLAKE2s and under a random
-    function fails for any adversary with one query, whose logged answer is a BLAKE2s value.
-    Witness: the replayer of Layer 12's fixture, with `verify` accepting by `#guard` and `extract`
-    on the empty log `none` by `#guard`; with `core`, `BlakeMisbehaves` fails for it at every
-    `δ < 1`.
+    BLAKE2s `verify` accepts, `extract` on the empty log is `none`, and the run misbehaves by
+    `core` (the verifier's recomputed root is a fresh answer equal to the proof's root, a hit).
+    That `extract` on the empty log is `none` is proved, not run: every row reads zero, the zero
+    word decodes to the zero stack alone, and its read counts are zero, which the relation
+    forbids; deciding `M3Holds` on a stack at the deployed sizes decides the bus's permutation,
+    quadratic in its length. A comparison of the output-and-log distributions under BLAKE2s and
+    under a random function fails for any adversary with one query, whose logged answer is a
+    BLAKE2s value. Witness: `extract_nil`, and `replayer_not_blakeMisbehaves`: with `core`, if
+    `verify` accepts a proof, the replayer of that proof fails `BlakeMisbehaves` at every
+    `δ < 1`; `verify` accepts Layer 12's fixture and the test vector natively (`leanervm-verify`;
+    interpreted, `verify` alone takes over a minute).
 37. **The hypothesis is satisfiable by an accepted adversary.** A hypothesis that only rejected
-    adversaries meet would make the headline vacuous where it matters. `honestAdversary` meets it
-    at `δ = 0` on a toy instance: its run under BLAKE2s has no collision, no hit and no flip, its
-    log holds the rows it committed, and out of fuel it returns the empty proof, which `verify`
-    rejects (the stream is not consumed). Witness: on a toy instance, `#guard`s on the decidable
-    clauses (no collision, no hit in the joint log) and on extraction (`extract` on the honest
-    log returns the committed stack). A hit clause that counted the proof's digests against the
+    adversaries meet would make the headline vacuous where it matters. `honestAdversary`'s run
+    under BLAKE2s on the test vector has no collision and no hit, its log holds the rows it
+    committed, and out of fuel it returns the empty proof, which `verify` rejects (the stream is
+    not consumed). Witness: `leanervm-prove log`, natively, the prover and the verifier with every
+    hash logged: the decidable clauses, no collision and no hit in the joint log, by a one-pass
+    scan that `#guard`s match against `QueryLog.HasCollision` and `Hit` on small logs. The flip
+    clause is not decidable, so `δ = 0` is not claimed for flips. `extract` on the honest log is
+    not run at the vector's size: deciding `M3Holds` on a satisfying stack decides the bus's
+    permutation, quadratic in its length. A hit clause that counted the proof's digests against the
     adversary's own queries would fail it: the honest prover computes its roots and nodes through
     the oracle, each a fresh answer that is a digest of the proof it outputs. "It meets it at
     `δ = 0` for every satisfying witness" is not claimed: colliding rows exist, and nothing
@@ -2243,7 +2278,8 @@ Compilation:          Digest  card_digest  hashSpec  hashQuery  Adversary  runBl
 Random oracle:        Run  loggedGame  extract  Extracts  LogHasCollision  Hit  Bad  bad_density  Flip
                       HashMisbehaves  core  hashTerm  niError  misbehaves_rom  niError_le  verify_knowledgeSound_rom
 Base theorems:        TraceExtraction  checkSatisfiedBy  checkSatisfiedBy_eq_true_iff (leanISA's)
-                      BlakeMisbehaves  extractTrace  baseVerifier_extractsWitness  baseVerifier_extractsExecution
+                      BlakeMisbehaves  extractTrace  baseVerifier_extractsWitness_rom
+                      baseVerifier_extractsWitness  baseVerifier_extractsExecution
                       Blake2sActsAsRandomOracle  blakeMisbehaves_of_comparison  proveWith  prove  honestAdversary
                       baseProver_complete  baseProver_complete_of_execution
 Parameters:           initialFold  subsequentFold  initialReduction  subsequentReduction  residualMaxLog
