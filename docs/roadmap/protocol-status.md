@@ -1189,8 +1189,8 @@ below proves.
   oracle accepts on every challenge vector: the run on given challenges is reachable under
   uniform challenges, `mem_support_simulateQ_challenges`, and a probability-one event holds on
   every reachable outcome).
-- **`baseProver_complete`, modulo the phases' agreement** (`Protocol/Prove/Complete.lean`): for
-  every byte hash `H` and fuel, `proveWith (m := Id) H fuel blake2sFlockSpec prog input w ρ = some
+- **`baseProver_complete_of_agree`, modulo the phases' agreement** (`Protocol/Prove/Complete.lean`):
+  for every byte hash `H` and fuel, `proveWith (m := Id) H fuel blake2sFlockSpec prog input w ρ = some
   proof → verifyWith (m := Id) H prog input proof = true` for a witness with `SatisfiedBy`, given
   `PhasesAgree prog s hs ρ hρ input` at every admissible `s` and valid `ρ`: on every full
   transcript of the compiled protocol (`listBindingDef` at leanVM's instance and WHIR's deployed
