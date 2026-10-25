@@ -482,28 +482,31 @@ value, a Flock slice) are rejected at the bus phase, the table sumcheck, the pub
 Flock phase, about 440 s each.
 
 On the machine of the tables above, one thread: "before" recorded on 2026-10-23 (6.1 GB at the
-peak), "after" on 2026-10-25, after `fwd_eq_fwdFast` (6.4 GB at the peak):
+peak), "after" on 2026-10-25, after `fwd_eq_fwdFast` (6.4 GB at the peak) but without the Flock and
+WHIR provers on words, and "stack top" on 2026-10-25 at the top of the stack, with both (1.06 GB at
+the peak):
 
-| Phase | Before | After |
-| --- | ---: | ---: |
-| the stack (`stackOf`) | 3.9 s | 4.1 s |
-| the commitment: the level-0 word's rows by the transform, the tree, the root | 228 s | 3.1 s |
-| bus phase (cached) | 9.0 s | 8.4 s |
-| table sumcheck (cached) | 0.44 s | 0.39 s |
-| public input | 6 ms | 6 ms |
-| Flock phase (cached) | 16.6 s | 15.6 s |
-| the opening's batching and WHIR's first round polynomial | 129 s | 108 s |
-| WHIR's levels (cached), their commitments and grinding, the openings | 47 s | 41 s |
-| **the prover, from the witness** | **434 s** | **181 s** |
-| `verify` on the proof | 1.36 s | 0.63 s |
+| Phase | Before | After | Stack top |
+| --- | ---: | ---: | ---: |
+| the stack (`stackOf`) | 3.9 s | 4.1 s | 3.8 s |
+| the commitment: the level-0 word's rows by the transform, the tree, the root | 228 s | 3.1 s | 3.2 s |
+| bus phase (cached) | 9.0 s | 8.4 s | 8.4 s |
+| table sumcheck (cached) | 0.44 s | 0.39 s | 0.38 s |
+| public input | 6 ms | 6 ms | 6 ms |
+| Flock phase (cached) | 16.6 s | 15.6 s | 16.3 s |
+| the opening's batching and WHIR's first round polynomial | 129 s | 108 s | 7.7 s |
+| WHIR's levels (cached), their commitments and grinding, the openings | 47 s | 41 s | 12.9 s |
+| **the prover, from the witness** | **434 s** | **181 s** | **52.7 s** |
+| `verify` on the proof | 1.36 s | 0.63 s | 0.62 s |
 
 `prove` in `Id` takes 175 s (425 s before) and returns the same proof, byte for byte, and both
 return the vector's. Of the commitment, the probe gives 2.4 s (228 s before) to the 64 lanes'
 encodings by the additive transform over `K`, 0.04 s to the stored rows and 0.76 s to the Merkle
 tree of `2^14` leaves. Before `fwd_eq_fwdFast` a step of the transform rebuilt each half of its
 input at every entry it wrote. Rust leanVM at the pin proves its smallest run in 3.5 s on one
-thread on the same machine, so the prover is about 50 times slower, within the blueprint's one to
-two orders of magnitude; the batched weight's table dominates. Every mutation is rejected at the
+thread on the same machine, so the prover at the top of the stack is about 15 times slower (50
+times without the provers on words), within the blueprint's one to two orders of magnitude; the
+Flock phase and WHIR now dominate. Every mutation is rejected at the
 stage it names.
 
 Further runtime benchmark groups belong here once leanerVM has executable semantics. Each such
