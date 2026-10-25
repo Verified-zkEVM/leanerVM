@@ -36,7 +36,7 @@ theorem two_pow_mul_inv_pow (a b : ℕ) :
 
 /-- `2^-b ≤ 2^-a` for `a ≤ b`. -/
 theorem inv_two_pow_le_of_le {a b : ℕ} (h : a ≤ b) : (2 : ℝ≥0∞)⁻¹ ^ b ≤ (2 : ℝ≥0∞)⁻¹ ^ a :=
-  pow_le_pow_of_le_one (zero_le _) (ENNReal.inv_le_one.2 one_le_two) h
+  pow_le_pow_of_le_one zero_le (ENNReal.inv_le_one.2 one_le_two) h
 
 /-- **A signature bound in bits**: for `Q ≤ 2^128` and `bits ≤ 253`,
 `Q / 2^bits + Q² / 2^509 ≤ (Q + 1) · 2^-bits`. -/
@@ -65,8 +65,8 @@ theorem sq_add_sq_le {Q : ℕ} (hQ : Q ≤ 2 ^ 128) :
     (Q : ℝ≥0∞) ^ 2 / 2 ^ 256 + (Q : ℝ≥0∞) ^ 2 / 2 ^ 508 ≤
       ((Q : ℝ≥0∞) + 1) ^ 2 * (2 : ℝ≥0∞)⁻¹ ^ 256 := by
   have h2 : (Q : ℝ≥0∞) ^ 2 / 2 ^ 508 ≤ (Q : ℝ≥0∞) * (2 : ℝ≥0∞)⁻¹ ^ 256 :=
-    (sq_div_le_mul_inv_pow (k := 128) 380 hQ).trans
-      (mul_le_mul_left' (inv_two_pow_le_of_le (by norm_num)) _)
+    (sq_div_le_mul_inv_pow (k := 128) 380 hQ).trans (by
+      gcongr _ * ?_ <;> exact inv_two_pow_le_of_le (by norm_num))
   have h3 : (Q : ℝ≥0∞) ^ 2 + Q ≤ ((Q : ℝ≥0∞) + 1) ^ 2 := by
     have h : ((Q ^ 2 + Q : ℕ) : ℝ≥0∞) ≤ (((Q + 1) ^ 2 : ℕ) : ℝ≥0∞) :=
       Nat.cast_le.2 (by rw [show (Q + 1) ^ 2 = Q ^ 2 + Q + (Q + 1) by ring]; exact Nat.le_add_right _ _)
@@ -77,6 +77,6 @@ theorem sq_add_sq_le {Q : ℕ} (hQ : Q ≤ 2 ^ 128) :
         rw [div_eq_mul_inv ((Q : ℝ≥0∞) ^ 2) ((2 : ℝ≥0∞) ^ 256), ENNReal.inv_pow]
         exact add_le_add le_rfl h2
     _ = ((Q : ℝ≥0∞) ^ 2 + Q) * (2 : ℝ≥0∞)⁻¹ ^ 256 := (add_mul _ _ _).symm
-    _ ≤ ((Q : ℝ≥0∞) + 1) ^ 2 * (2 : ℝ≥0∞)⁻¹ ^ 256 := mul_le_mul_right' h3 _
+    _ ≤ ((Q : ℝ≥0∞) + 1) ^ 2 * (2 : ℝ≥0∞)⁻¹ ^ 256 := by gcongr ?_ * _ <;> exact h3
 
 end Common
