@@ -126,6 +126,10 @@ example : LeanVM.Guest.Batch.BatchSound := LeanVM.Guest.Batch.batch_sound_holds
 #guard_msgs in
 #print axioms LeanVM.Guest.End.aggregate_knowledge
 
+/-- info: 'LeanVM.Guest.End.aggregate_complete_of' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms LeanVM.Guest.End.aggregate_complete_of
+
 /-- info: 'LeanVM.Guest.End.guest_sound' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms LeanVM.Guest.End.guest_sound

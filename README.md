@@ -2,7 +2,7 @@
 
 Lean 4 proofs about [leanVM](https://github.com/leanEthereum/leanVM): its verifier, and the signature schemes and data-availability scheme its aggregation guest checks. The proof projects are leanVM's `formal/` at the commit in [`leanvm-rev`](leanvm-rev) (branch `FV`), with their history.
 
-**What is proved is in [`Statement/`](Statement/README.md), and a reviewer reads that folder only**: ten files of definitions and end statements (its README lists them in reading order, with the end theorems and where they are proved), the generated guest bytecode, and proved `@[csimp]` lemmas that only make the compiled definitions fast (`Statement/Fast/`). It imports Mathlib, VCVio and CompPoly, nothing of the proofs (CI checks it). Everything else is proof, each end theorem's statement a proposition of `Statement/` and its axioms Lean's three:
+**What is proved is in [`Statement/`](Statement/README.md), and a reviewer reads that folder only**: eleven files of definitions and end statements (its README lists them in reading order, with the end theorems and where they are proved), the generated guest bytecode, and proved `@[csimp]` lemmas that only make the compiled definitions fast (`Statement/Fast/`). It imports Mathlib, VCVio and CompPoly, nothing of the proofs (CI checks it). Everything else is proof, each end theorem's statement a proposition of `Statement/` and its axioms Lean's three:
 
 | Path | What it proves |
 | --- | --- |

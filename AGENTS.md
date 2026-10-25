@@ -15,7 +15,7 @@ Read [`README.md`](README.md) first, then the README of the project you work in.
 
 ## Statement
 
-- `Statement/` is the trusted statement: ten files (`Statement/README.md` lists them in reading order), the generated guest bytecode (`Statement/Data/`), and proved `@[csimp]` lemmas for speed only (`Statement/Fast/`, not part of what a reviewer reads). It imports only Mathlib, VCVio, CompPoly and its own files (CI checks it), and every change to it changes what is proved. No file beyond the ten without asking. Definitions and end statements only: a proof belongs to the proof projects, unless a definition needs it (a structure's law, a decidability instance).
+- `Statement/` is the trusted statement: eleven files (`Statement/README.md` lists them in reading order), the generated guest bytecode (`Statement/Data/`), and proved `@[csimp]` lemmas for speed only (`Statement/Fast/`, not part of what a reviewer reads). It imports only Mathlib, VCVio, CompPoly and its own files (CI checks it), and every change to it changes what is proved. No file beyond the eleven without asking. Definitions and end statements only: a proof belongs to the proof projects, unless a definition needs it (a structure's law, a decidability instance).
 - Keep the leanVM definitions a faithful transcription of the leanVM sources they cite (`verifier.py:N`, `*.rs:N`, `doc/leanvm` sections), at the commit they name.
 - Only statements in the random-permutation model are end statements; the random-oracle model and the sponge's indifferentiability are proof steps, in the proof projects.
 - Each proof project's root module is its end file: it checks each end theorem against its `Statement` proposition and pins its axioms.
