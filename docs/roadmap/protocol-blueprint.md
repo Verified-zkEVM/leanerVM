@@ -1575,26 +1575,31 @@ def chargedLoggingOracle (charge : spec.QueryLog → spec.Domain → ℝ≥0∞)
     QueryImpl spec (StateT (spec.QueryCache × spec.QueryLog × ℝ≥0∞) ProbComp)   -- for the hit clause
 theorem potential_log_le_expected_charge (Φ : spec.QueryLog → ℝ≥0∞) …   -- the expected potential, read on the log
 -- The game, the extractor and the hash's misbehaviour (RandomOracle.lean)
-structure Run where (proof : Proof) (logA logV : hashSpec.QueryLog) (ok : Bool)
+structure Run where (proof : Proof) (logA logV : hashSpec.QueryLog) (ok : Bool)   -- `ok`, the verdict
 def Run.log (g : Run) := g.logA ++ g.logV
 def loggedGame (prog input) (A : Adversary) : OracleComp hashSpec Run := do
   let (proof, logA) ← A.withQueryLog
   let (ok, logV) ← (verifyWith hashQuery prog input proof).withQueryLog
   return ⟨proof, logA, logV, ok⟩
 def extract (prog input proof) (log : hashSpec.QueryLog) : Option (Σ s, Column (leanIsaμ prog s))
+  -- as built, `extract F …` takes the Flock specification `F`, the deployed one at the headline; the level-0 wire
+  -- shape it reads (rows of `level0Lanes`, leaves of `2^ℓ`, depth `deployedHeadKap + R`) is the one the verifier
+  -- authenticates, and `level0Lanes` is `Verify.nLanes` by `deployedHeadKap_eq`
   -- the admissible sizes off `proof`; the level-0 `K` word off `log` by `extractAllRows` at the root in `proof`, at
   -- the row widths of those sizes, a missing row read as zero; `deployedDecoder` (`exactNtt`, else
   -- `ListDecoder.bruteForce`); the member satisfying `M3Holds`, or `none`
 def Extracts (prog input proof log) : Prop :=
   ∃ s q, extract prog input proof log = some ⟨s, q⟩ ∧ M3Holds (leanIsaInstance F prog s) input q
+theorem extracts_iff_isSome : Extracts prog input proof log ↔ (extract prog input proof log).isSome   -- `M3Holds` automatic
 /-- Two different inputs in the log with one answer. -/
 def LogHasCollision (log) : Prop := ∃ i j, log[i].1 ≠ log[j].1 ∧ log[i].2 = log[j].2
-/-- A digest, on its input's first query, equal to one already in play: an earlier answer, a 32-byte block of an
-earlier input, a digest absorbed as two scalars (`scalars_to_hash (s₁, s₂)` of two consecutive observe blocks of a
-chain, as a root is), or the seed's `iv` and `cv₀`; for the verifier's queries, also a digest of the proof it reads. -/
-def Hit (prog input) (g : Run) : Prop :=
+/-- A digest, on its input's first query, equal to one already in play: a 32-byte block of an earlier input, a
+digest absorbed as two scalars (`scalars_to_hash (s₁, s₂)` of two consecutive observe blocks of a chain, as a root
+is), or the seed's digests; for the verifier's queries, also one of the proof's roots. An earlier answer to another
+input is not in play: equal to it, the answer is a collision. -/
+def Hit (rootsOf) (prog input) (g : Run) : Prop :=
   ∃ k, g.log[k] is its input's first query ∧
-    (g.log[k].2 ∈ inPlay prog input (g.log.take k) ∨ (g.logA.length ≤ k ∧ g.log[k].2 ∈ readDigests g.proof))
+    (g.log[k].2 ∈ inPlay prog input (g.log.take k) ∨ (g.logA.length ≤ k ∧ g.log[k].2 ∈ rootsOf g.proof))
 /-- The bad challenges at a prefix of the compiled transcript ending at a challenge `i`: those that turn the state
 function of `listBinding_compile` at `leanVmSecurity`, `deployedDecoder` and `F` from false to true, the
 committed words given. A query group's challenge is the pair of the grinding check's digest and the positions, and a
@@ -1608,7 +1613,10 @@ def Flip (prog input) (g : Run) : Prop :=
   ∃ k hs s ρ i tr, g.log[k] closes a challenge of `g.proof`'s chain and is its input's first query ∧
     chainHistory (g.log.take k) (its state) = some hs ∧ decodePrefix prog hs = some ⟨s, ρ, i, tr⟩ ∧
     `i` is a challenge ∧ s.Admissible prog ∧ (its challenge) ∈ Bad prog s ρ i tr (zero-filled `extractRows (g.log.take k)`)
-def HashMisbehaves (prog input) (g : Run) : Prop := LogHasCollision g.log ∨ Hit prog input g ∨ Flip prog input g
+def HashMisbehaves (rootsOf) (Flip) (prog input) (g : Run) : Prop := LogHasCollision g.log ∨ Hit rootsOf prog input g ∨ Flip g
+  -- the proof's roots and the flip are parameters until the transcript decoder defines both from the verifier's
+  -- chain walk; `core` instantiates them with the decoder's, and `HashMisbehaves prog input` below stands for
+  -- `HashMisbehaves (rootsOf prog input) (Flip prog input) prog input`
 -- Deterministic, for every function answering the hash
 theorem core (hcons : g.log is consistent with a function) (hV : g.logV is the log of `verifyWith` on `g.proof`,
     its verdict `true`) (hX : ¬ Extracts prog input g.proof g.logA) : HashMisbehaves prog input g
@@ -1742,7 +1750,7 @@ the nonce `n`: the grinding check `H(H(cv ‖ 3) ‖ n ‖ 4)`, the nonce step `
 squeezes of the positions (`whir.rs:1175-1193`). The group closes at the last of them to enter
 the log, and has a challenge only if the check passes: its challenge is the pair of the check's
 digest and the positions, and the proof of work enters as the check in its bad set, by the
-potential alone. A group is charged `2^{−17}·(1 − γ_i)^{t_i}` at whichever of its queries comes
+potential alone. A group is charged `2^{−17}·((a_i − 1)/n_i)^{t_i}` at whichever of its queries comes
 first; its potential is then the probability, given the log, that the check passes and the
 positions are bad, and its later queries are martingale steps of that potential, charged
 nothing. Each further nonce is a further group and costs a fresh query. That is why the charged
@@ -2071,7 +2079,8 @@ witness is executable it is a test under `tests/`.
     proof. Witness: `openingSpec` is one challenge.
 34. **The proof of work is load-bearing.** The 128-bit level needs the 17 grinding bits. Witness:
     a wrong grinding nonce at each level rejected, and the passing check in the bad set of a query
-    group, whose density `bad_density` bounds by `2^{−17}·(1 − γ_i)^{t_i}`.
+    group, whose density `bad_density` bounds by `2^{−17}·((a_i − 1)/n_i)^{t_i}`, at most `2^{−128}` at
+    every deployed level.
 35. **Front phases make no oracle query.** The list-binding compilation replaces the committed
     stack by a codeword and keeps the front verifiers, so a front phase that queried the stack
     would satisfy both master theorems and be uncompilable. Witness: `Phases` holds the front
@@ -2117,7 +2126,7 @@ witness is executable it is a test under `tests/`.
     nonces and squeezes their positions, never querying the check, flips with probability
     `(1 − γ_i)^{t_i}` per nonce. The group of the check, the nonce step and the squeezes is one
     challenge, the pair of the check's digest and the positions, bad only if the check passes,
-    charged once at `2^{−17}·(1 − γ_i)^{t_i}` whichever order its queries come in (so the charged
+    charged once at `2^{−17}·((a_i − 1)/n_i)^{t_i}` whichever order its queries come in (so the charged
     invariant is stated for a potential). Witness: the test `niError (2^64) ≤ 2^{−60}`, false at
     the per-squeeze charge.
 

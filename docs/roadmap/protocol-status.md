@@ -988,11 +988,11 @@ The executable verifier must read the level-0 openings at the wire shape `extrac
 (`deployedHeadShape μ ρ`), depth `deployedHeadKap μ ρ + (deployedHeadShape μ ρ).R`.
 `deployedHeadKap_eq` decides `deployedHeadKap μ ρ = μ − initialFold` on the window, so
 `level0Lanes` is the verifier branch's `Verify.nLanes`, which `extract` takes at assembly. The
-blueprint owes three edits: Layer 11's threshold is `a = ⌈(1 − γ) 2^{κ+R}⌉`, not
-`(1 − γ) 2^{κ+R}`; its `thm:rbr` query entry is `((a − 1) / n)^t` (next paragraph); and Layer
-12's `Hit` and `HashMisbehaves` take the proof's roots and the flip as parameters, with no
-"earlier answer" in play (an earlier answer to another input is a collision). Still owed: the
-flip, the proof's roots, `core` and `misbehaves_rom`.
+blueprint has the three edits these definitions asked of it: Layer 11's threshold is
+`a = ⌈(1 − γ) 2^{κ+R}⌉`, its `thm:rbr` query entry is `((a − 1) / n)^t`, and Layer 12's `Hit` and
+`HashMisbehaves` take the proof's roots and the flip as parameters, with no "earlier answer" in play
+(an earlier answer to another input is a collision). Still owed: the flip, the proof's roots,
+`core` and `misbehaves_rom`.
 
 ## Upstream watch
 
