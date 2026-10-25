@@ -1196,7 +1196,8 @@ theorem encode_columnWeight (x) (f) : encode κ R f x = (columnWeight κ R x).pa
 def whirOpen (L : Ladder) : OracleReduction … (StmtIn := Weight μ × E) (OStmtIn := codeword oracles) …   -- one batched claim
 theorem whirOpen_perfectCompleteness …
 theorem whirOpen_rbrSoundness (L : Ladder) (ps : L.Pars) : Security (whirOpen L) (relOpen …) univ (openErr L ps)
-  -- thm:rbr for the list relation, per challenge; `Par` per level: a threshold, `ListBound`, `McaBound` (counting form)
+  -- thm:rbr for the list relation, per challenge; `Par` per level: a threshold, `ListBound`, `McaBound` (counting form);
+  -- the query positions at `((a − 1)/2^{κ+R})^t`: outside the language, fewer than `a` agreements (`card_agree_folded_lt`)
 /-- Mutual correlated agreement up to the Johnson bound, with its constant `a` a parameter. -/
 structure McaJohnson (F) [Field F] [Fintype F] [SampleableType F] (a : ℕ → ℕ → ℝ → ℝ) where
   le : ∀ n (domain : Fin n ↪ F) D η, 1 ≤ D → D ≤ n - 2 → 0 < η → √(D / n) + η ≤ 1 →
@@ -1255,7 +1256,7 @@ parameters takes no hypothesis; `card_E` turns its bound into numbers. The admit
 `rs_mcaError_le_in_johnson_range` is not consumed.
 
 The soundness theorem takes, per level, a record `Par`: an agreement threshold `a` (the radius `γ`
-as `a = (1 − γ)·2^{κ+R}`, at most the number of positions), a list bound `L` and a bound `N` on the
+as `a = ⌈(1 − γ)·2^{κ+R}⌉`, at most the number of positions), a list bound `L` and a bound `N` on the
 bad folds, with `ListBound` and `McaBound` the two interfaces in counting form on interleaved words;
 they are inhabited at exact agreement and, for the list bound, at unique decoding. `McaBound`'s `N`
 is the `a` of `McaJohnson` (Annex B's constant), and `McaJohnson` itself stays the probabilistic
@@ -1263,6 +1264,14 @@ statement. The adaptor from `mcaJohnson_annexB` and the pairwise Johnson list bo
 and `McaBound` gives `deployed_rbrSoundness`, the opening round-by-round sound at leanVM's
 parameters with no hypothesis, with `L_0` from 23 to 122 and a least margin of 128.185 bits. The
 out-of-domain point is `κ` challenges at `C(L', 2)/|E|` each, whose sum is the pinned entry.
+The query positions' entry is `((a − 1)/2^{κ+R})^t`: a table that satisfies the residual claim
+outside its language agrees with the folded word on fewer than `a` positions
+(`card_agree_folded_lt`). Annex B's `thm:rbr` states the entry as `(1 − γ)^t`; since
+`a − 1 < (1 − γ)·2^{κ+R}`, the entry here is strictly below the Annex's at every level. Counting `a`
+agreements, `(a/n)^t` would exceed the Annex's whenever `(1 − γ)·n` is not an integer, the deployed
+case: 48 of the 224 deployed levels would be above `2^{−111}` (worst `2^{−110.34}`, stack size 16,
+rate `2⁻¹`, level 2: `t = 30`, `a = 40`, `n = 2^9`); with `a − 1` every level is below `2^{−111}`
+(worst `2^{−111.00024}`, stack size 23, rate `2⁻²`, level 0).
 
 ArkLib's line is `u₀ + x·u₁`, while Annex B folds `(1 − z)·u₀ + z·u₁`.
 `mcaError_foldLine_eq_affineLine` equates the two over any field: the substitution
