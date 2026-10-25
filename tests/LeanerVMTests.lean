@@ -56,6 +56,7 @@ import LeanerVMTests.Protocol.ListBinding
 import LeanerVMTests.Protocol.ListBindingBudget
 import LeanerVMTests.Protocol.ListBindingDeployed
 import LeanerVMTests.Protocol.LogReplay
+import LeanerVMTests.Protocol.LogScan
 import LeanerVMTests.Protocol.Merkle
 import LeanerVMTests.Protocol.MerkleBinding
 import LeanerVMTests.Protocol.Multilinear

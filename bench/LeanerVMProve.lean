@@ -9,7 +9,8 @@
 import LeanerVM.Protocol.Prove
 import LeanerVMTests.Arithmetization.Statement
 import LeanerVMTests.Protocol.Verify
-import LeanerVMTests.Protocol.Headline
+import LeanerVM.Protocol.ProofRoots
+import LeanerVMTests.Protocol.LogScan
 
 /-!
 # The `leanervm-prove` executable
@@ -36,7 +37,7 @@ phase's message changed as it is sent (`tamperOps`), and checks that each proof 
 end and rejected by that phase's algebra. `log` runs the prover once more with every hash logged
 (the run of `honestAdversary` with BLAKE2s answering), then `verifyWith` on its proof with every
 hash logged, and checks that the proof is the file's, that the verifier accepts it, and that the
-joint log has no collision and no hit (`LeanerVMTests.Protocol.Headline.scan`).
+joint log has no collision and no hit (`LeanerVMTests.Protocol.LogScan.scan`).
 The exit code is `1` if a check fails.
 -/
 
@@ -274,7 +275,7 @@ def probeCommit (fuel ρ : ℕ) : IO Unit := do
 the file's `f`, the verifier must accept it, and the joint log must have no collision and no
 hit. -/
 def logChecks (f : Fixture) (fuel : ℕ) : IO ℕ := do
-  let log ← IO.mkRef (#[] : Array LeanerVMTests.Protocol.Headline.Entry)
+  let log ← IO.mkRef (#[] : Array LeanerVMTests.Protocol.LogScan.Entry)
   let H : List UInt8 → IO Digest := fun b ↦ do
     let h := blake2sBytes b
     log.modify (·.push (⟨b.toArray⟩, h))
@@ -292,7 +293,7 @@ def logChecks (f : Fixture) (fuel : ℕ) : IO ℕ := do
     p.merkle.map (·.leafData) == f.proof.merkle.map (·.leafData) &&
     p.merkle.map (fun o ↦ o.siblingHashes.map (·.toList)) ==
       f.proof.merkle.map (fun o ↦ o.siblingHashes.map (·.toList))
-  let (coll, hit) := LeanerVMTests.Protocol.Headline.scan (seedDigests fillProg mulInput) roots
+  let (coll, hit) := LeanerVMTests.Protocol.LogScan.scan (seedDigests fillProg mulInput) roots
     logA.size (logA ++ logV)
   let t2 ← IO.monoNanosNow
   IO.println s!"the honest run: {logA.size} prover queries, {logV.size} verifier queries, \

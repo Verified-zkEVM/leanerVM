@@ -428,7 +428,7 @@ lake build leanervm-prove
 `log` runs the prover once more with every hash logged (the run of `honestAdversary` with BLAKE2s
 answering), then `verifyWith` on its proof with every hash logged, and checks that the proof is
 the file's, that the verifier accepts it, and that the joint log has no collision and no hit
-(`LeanerVMTests.Protocol.Headline.scan`, one pass with hash maps, which the test module checks
+(`LeanerVMTests.Protocol.LogScan.scan`, one pass with hash maps, which the headline's tests check
 against `QueryLog.HasCollision` and `Hit` on small logs): the decidable clauses of the headline's
 hypothesis at `δ = 0`. The flip clause is not decidable.
 
