@@ -32,15 +32,19 @@ into `SatisfiedBy prog input (witnessOf q)`. Composed with `constraintSoundness`
 are checked against, is specified in full and tied to the compilation of the oracle verifier in
 the two directions the theorems use: an accepted proof decodes to a transcript the compiled
 verifier accepts, and every transcript the compiled verifier accepts passes `verify`'s algebra.
-The headline theorem (Layer 13) is its knowledge soundness, with a computable
-extractor of the witness, and of the execution through leanISA's trace interface:
+The headline theorem (Layer 13) is its knowledge soundness, with a computable extractor of the
+witness, and of the execution through leanISA's trace interface. It is selective, and the evidence
+that `δ` is small is for an adversary of at most `Q` hash queries:
 
 ```text
 baseVerifier_extractsWitness (hB : BlakeMisbehaves prog input A δ) :
+  for prog and input fixed before A runs (selective),
   Pr over the run of A, its hash queries and the verifier's answered by BLAKE2s-256, that
       verify prog input proof = true  and  the stack extract reads off A's queries
       does not give SatisfiedBy prog input (witnessOf …)
     ≤ δ
+-- the evidence for δ (baseVerifier_extractsWitness_rom): for A of at most Q queries and a uniformly
+-- random function in place of BLAKE2s, the same event has probability ≤ (Q + 13697)/2^128 + hashTerm 13697 Q
 ```
 
 Every step to it is a theorem: Flock's security (with the Flock roadmap's inhabitant, #3), WHIR's

@@ -196,10 +196,11 @@ def Hit (rootsOf : Proof PrunedMerklePaths → List Digest) (prog : Program) (in
       g.log[k].2 ∈ rootsOf g.proof
 
 /-- **The hash misbehaves** on a run: a collision on the joint log, a hit, or a flip (`Flip`, the
-proof's own chain choosing a bad challenge). `Flip` and `rootsOf` are parameters until the
-transcript decoder lands: `core` instantiates them with the decoder's flip clause and the proof's
-roots, and with `Flip := fun _ ↦ True` the event is trivial, so no statement here is evidence about
-the hash. -/
+proof's own chain choosing a bad challenge). `Flip` and `rootsOf` are parameters, so that the
+random-oracle bound holds for any reader of chain histories; `Core.core` and the headline theorems
+instantiate them at leanVM's, the flip clause of the deployed reader
+(`(leanVmReader prog input).Flip`) and the proof's roots (`ProofRoots.rootsOf prog input`). With
+`Flip := fun _ ↦ True` the event is trivial, so only that instance is evidence about the hash. -/
 def HashMisbehaves (rootsOf : Proof PrunedMerklePaths → List Digest) (Flip : Run → Prop)
     (prog : Program) (input : PublicInput) (g : Run) : Prop :=
   QueryLog.HasCollision g.log ∨ Hit rootsOf prog input g ∨ Flip g

@@ -104,8 +104,9 @@ def Blake2sActsAsRandomOracle {α : Type} (G : OracleComp hashSpec α) (bad : α
 /-! ## The extraction -/
 
 /-- **The extracted execution**: the stack `extract` reads off the log, the witness `witnessOf`
-reads off the stack, and the trace a trace extraction `X` reads off the witness. Computable when
-`X.traceOf` is. -/
+reads off the stack, and the trace a trace extraction `X` reads off the witness. Computable: a
+definition the compiler runs, whose last step at `leanIsaTraceExtraction` is leanISA's computable
+`traceOf`, a walk of the witness's states. -/
 def extractTrace {prog : Program} (X : TraceExtraction prog) (input : PublicInput)
     (proof : Proof PrunedMerklePaths) (log : hashSpec.QueryLog) : Option (Trace prog) :=
   (extract Blake2sFlock.blake2sFlockSpec prog input proof log).bind fun e ↦
