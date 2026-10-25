@@ -258,16 +258,16 @@ theorem decoded_binds {b : List K} {iv seed : Digest} {s₀ s : NodeStatement}
     (seed = iv ∧ s = s₀) ∨ HasCollision (collisionCandidates seed s iv s₀) :=
   statementDigest_binds hs hs₀ (hdec.trans hpub)
 
-/-- `decoded_binds` with the shapes from where they come: the decoded statement is one the guest
-`bytecode` establishes (`NodeRel`), and the consumer's deferred claim holds of `bytecode`, as the
-outer verifier checks (`OuterChecks`). -/
+/-- `decoded_binds` with the decoded statement's shape from where it comes: one the guest
+`bytecode` establishes (`NodeRel`); the consumer's deferred claim has the shape of `bytecode`
+(`AggregateSound` assumes it). -/
 theorem decoded_binds_of_nodeRel {bytecode : List K} {iv seed : Digest} {s₀ s : NodeStatement}
-    {w : NodeWitness} {input : PublicInput} (hs₀ : s₀.defer.Holds bytecode)
+    {w : NodeWitness} {input : PublicInput} (hs₀ : s₀.defer.Shaped bytecode)
     (hrel : NodeRel bytecode seed s w)
     (hpub : publicDigest input = statementDigest iv s₀)
     (hdec : statementDigest seed s = publicDigest input) :
     (seed = iv ∧ s = s₀) ∨ HasCollision (collisionCandidates seed s iv s₀) :=
-  decoded_binds hs₀.1 hrel.1 hpub hdec
+  decoded_binds hs₀ hrel.1 hpub hdec
 
 end
 end LeanVM.Guest.Binding

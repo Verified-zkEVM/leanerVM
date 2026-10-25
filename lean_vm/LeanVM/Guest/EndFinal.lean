@@ -32,7 +32,7 @@ witness there.
   holding it (`NodeRel`).
 * `aggregate_sound_outer : AggregateSound guest decode` (`EndRpm.lean`): in the
   random-permutation experiment, the verifier accepts a proof of the guest on the digest of a
-  statement `s` under the deployed seed, `s` passing the outer verifier's other checks, while no
+  statement `s` under the deployed seed, `s` of the guest's shape, while no
   execution is extracted from the proof and the adversary's transcript, or the extracted one does
   not decode to the deployed seed, `s` and a witness holding it, nor give a Keccak-256 collision
   among `collisionCandidates`, with probability at most the bound of `KnowledgeSoundness`.
@@ -79,10 +79,10 @@ theorem decode_binds {input : PublicInput} {t : Trace guest} (hv : ValidExecutio
   decode_binds_sub subSoundW hv hs₀ hpub
 
 /-- **Soundness, the existential form**: a valid execution of the guest on `input` gives a seed and
-a statement of the input's digest, of the guest's shape, that a witness holds (`NodeSpec`). -/
+a statement of the input's digest, of the guest's shape, that a witness holds (`NodeRel`). -/
 theorem guest_sound (input : PublicInput) (t : Trace guest) (hv : ValidExecution guest input t) :
     ∃ seed s, statementDigest seed s = publicDigest input ∧ s.defer.Shaped bytecode ∧
-      NodeSpec bytecode seed s :=
+      ∃ w, NodeRel bytecode seed s w :=
   guest_sound_of (soundHyps_of_sub b2SoundL subSoundW) input t hv
 
 end

@@ -6,9 +6,9 @@ import LeanVM.Guest.EndRpm
 * The end theorems from their hypotheses rest on Lean's three standard axioms only.
 * The decoder reads the seed and the statement off `main`'s frame, by definition, and the witness
   off `main`'s valuation, the memory and the memory's frame map.
-* The named form implies the existential one (`NodeSpec` at the input's digest).
+* The named form implies the existential one (`∃ w, NodeRel …` at the input's digest).
 * Why the existential one says little: the empty statement holds under any seed and any deferred
-  value (`NodeSpec` of a statement with no claims, no children and the point at zero), so a digest
+  value (`∃ w, NodeRel …` of a statement with no claims, no children and the point at zero), so a digest
   of it exists for almost every public input.
 -/
 
@@ -72,7 +72,7 @@ example {κ : ℕ} (L : MemImage κ) (f : String) (args rets : List E) :
 example (W : Val → Reader → FrameMap → NodeWitness) (h : SoundHyps W) (input : PublicInput)
     (t : Trace guest) (hv : ValidExecution guest input t) :
     ∃ seed s, statementDigest seed s = publicDigest input ∧ s.defer.Shaped bytecode ∧
-      NodeSpec bytecode seed s := by
+      ∃ w, NodeRel bytecode seed s w := by
   obtain ⟨hd, hrel⟩ := guest_knowledge_of h input t hv
   exact ⟨_, _, hd, hrel.1, _, hrel⟩
 
@@ -82,10 +82,10 @@ example (W : Val → Reader → FrameMap → NodeWitness) (h : SoundHyps W) (inp
 def emptyStatement (v : E) : NodeStatement :=
   ⟨⟨[], [], []⟩, ⟨List.replicate 23 0, v⟩⟩
 
-/-- `NodeSpec` holds of the empty statement, whatever the seed and the deferred value: its digest
+/-- A witness holds the empty statement, whatever the seed and the deferred value: its digest
 ranges over a seed and a field element, so almost every public input is one's. -/
 example (seed : Digest) (v : E) (hints : BatchHints) :
-    NodeSpec bytecode seed (emptyStatement v) := by
+    ∃ w, NodeRel bytecode seed (emptyStatement v) w := by
   have hlog : Nat.log2 bytecode.length = 23 := by rw [bytecode_length, Nat.log2_two_pow]
   refine ⟨⟨[], [], [], [], hints⟩, ⟨?_, by simp, by simp [emptyStatement],
     by simp [emptyStatement], by simp [emptyStatement], ?_⟩⟩

@@ -1,9 +1,17 @@
 /-
   LeanVM.Facts.DaWith
 
-  The DA claims with any hash and permutation (`Statement/LeanVmGuest.lean`) at Keccak-256
-  and Keccak-f[1600] are the deployed ones: the `*_id` lemmas.
-  The definitions are the statement's; these are proofs.
+  LeanDA's algorithms with any hash and permutation in any monad (`…With`), the vector digest the
+  outer verifier derives from a root (`vectorDigestOf`), and, at Keccak-256 and Keccak-f[1600],
+  the deployed ones: the `*_id` lemmas. Moved here from `Statement/LeanVmGuest.lean`, names kept:
+  no end statement names them.
+
+  LeanDA (`lean_da`, `LeanDa.Scheme`) defines its algorithms with a pure hash and a pure sponge
+  permutation; the guest's proofs also need them answered by a log. The deployed padding digests
+  are parameters (`pc`, `pr`; deployed: the hashes of the zero cell and the zero row, which the
+  guest bakes as constants, `DA_PAD_CELL_*`, `DA_PAD_ROW_*`,
+  `crates/rec_aggregation/src/aggregation.rs:2575-2578`). The tree is built with `nodes.length` as
+  fuel, which is enough (`treeRootFuel_id`).
 -/
 
 module
@@ -19,6 +27,146 @@ namespace LeanVM.Da
 open LeanVM.Parameters LeanVM.Semantics LeanVM.Protocol LeanVM.Protocol.KeccakHash
 
 @[expose] public section
+
+/-- LeanDA's sponge lanes as a Keccak state: each `K` word as its 64-bit lane. -/
+def lanesState (l : LeanDa.Lanes) : KState := l.map K.lane
+
+/-- A Keccak state as LeanDA's sponge lanes: each 64-bit lane as its `K` word. -/
+def stateLanes (s : KState) : LeanDa.Lanes := s.map K.ofLane
+
+/-- Keccak-f[1600] as LeanDA's sponge permutation. -/
+def keccakLanes (l : LeanDa.Lanes) : LeanDa.Lanes := stateLanes (keccakF (lanesState l))
+
+/-- **The vector digest of a root**, as the outer verifier derives it
+(`vector_digest(membership_vector(root))`, `crates/verifier/src/da.rs:83-104`). -/
+def vectorDigestOf (root : Digest) : LeanDa.Digest :=
+  LeanDa.vectorDigest keccak (LeanDa.membershipVector keccak keccakLanes (toBytes root))
+
+section With
+
+variable {m : Type → Type} [Monad m] (HD : List UInt8 → m LeanDa.Digest)
+  (PD : LeanDa.Lanes → m LeanDa.Lanes)
+
+/-! ### The commitment -/
+
+/-- `LeanDa.listCellDigest` with the hash `HD`. -/
+def listCellDigestWith (row : List K) (j : ℕ) : m LeanDa.Digest :=
+  HD ((LeanDa.listCell row j).flatMap LeanDa.kBytes)
+
+/-- `LeanDa.rowDigest` with the hash `HD`. -/
+def rowDigestWith (row : List K) : m LeanDa.Digest := do
+  let ds ← (List.range LeanDa.payloadCells).mapM fun j ↦ listCellDigestWith HD row j
+  HD (ds.flatMap fun d ↦ d.toList)
+
+/-- `LeanDa.treeLevel` with the hash `HD`. -/
+def treeLevelWith (nodes : List LeanDa.Digest) : m (List LeanDa.Digest) :=
+  (List.range (nodes.length / 2)).mapM fun i ↦
+    HD (LeanDa.pairBytes (nodes.getD (2 * i) default) (nodes.getD (2 * i + 1) default))
+
+/-- `LeanDa.treeRoot` with the hash `HD`, at most `fuel` levels. -/
+def treeRootFuel : ℕ → List LeanDa.Digest → m LeanDa.Digest
+  | 0, nodes => pure (nodes.headD default)
+  | fuel + 1, nodes =>
+    if nodes.length ≤ 1 then pure (nodes.headD default) else do
+      let next ← treeLevelWith HD nodes
+      treeRootFuel fuel next
+
+/-- `LeanDa.treeRoot` with the hash `HD`. -/
+def treeRootWith (nodes : List LeanDa.Digest) : m LeanDa.Digest :=
+  treeRootFuel HD nodes.length nodes
+
+/-- **`LeanDa.commitCodewords` with the hash `HD`** and the padding digests `pc` (a zero cell) and
+`pr` (a zero row). -/
+def commitCodewordsWith (pc pr : LeanDa.Digest) (rows : List (List K)) : m LeanDa.Digest := do
+  let n := LeanDa.nPad rows.length
+  let rds ← rows.mapM (rowDigestWith HD)
+  let rowTree ← treeRootWith HD (rds ++ List.replicate (n - rows.length) pr)
+  let cols ← ((List.range LeanDa.cellsPerRow).flatMap fun j ↦
+      (List.range n).map fun i ↦ (i, j)).mapM fun ij ↦
+    if h : ij.1 < rows.length then listCellDigestWith HD rows[ij.1] ij.2 else pure pc
+  let columnTree ← treeRootWith HD cols
+  HD (LeanDa.pairBytes rowTree columnTree)
+
+/-! ### The challenges' sponge -/
+
+/-- `LeanDa.Sponge.new` with the permutation `PD`. -/
+def spongeNewWith (iv publicInput : LeanDa.Digest) : m LeanDa.Sponge := do
+  let state ← PD (Vector.ofFn fun i : Fin 25 ↦
+    if (i : ℕ) < 4 then LeanDa.word iv i else if (i : ℕ) < 8 then LeanDa.word publicInput (i - 4)
+    else 0)
+  pure ⟨state, []⟩
+
+/-- `LeanDa.Sponge.fromLabel` with the hash `HD` and the permutation `PD`. -/
+def spongeFromLabelWith (label : List UInt8) : m LeanDa.Sponge := do
+  spongeNewWith PD (← HD label) (Vector.replicate 32 0)
+
+/-- `LeanDa.Sponge.duplex` with the permutation `PD`. -/
+def spongeDuplexWith (s : LeanDa.Sponge) : m LeanDa.Sponge := do
+  let state ← PD (Vector.ofFn fun i : Fin 25 ↦
+    if (i : ℕ) < LeanDa.rateLanes then (LeanDa.rateWords s.pending).getD i 0 else s.state[i])
+  pure ⟨state, []⟩
+
+/-- `LeanDa.Sponge.absorb` with the permutation `PD`. -/
+def spongeAbsorbWith (s : LeanDa.Sponge) (x : E) (tag : K) : m LeanDa.Sponge := do
+  let s ← if s.pending.length = LeanDa.rateScalars then spongeDuplexWith PD s else pure s
+  pure ⟨s.state, s.pending ++ [(x, tag)]⟩
+
+/-- `LeanDa.Sponge.observe` with the permutation `PD`. -/
+def spongeObserveWith (s : LeanDa.Sponge) (x : E) : m LeanDa.Sponge :=
+  spongeAbsorbWith PD s x LeanDa.dsObserve
+
+/-- `LeanDa.Sponge.sample` with the permutation `PD`. -/
+def spongeSampleWith (s : LeanDa.Sponge) : m (E × LeanDa.Sponge) := do
+  let s ← spongeDuplexWith PD s
+  pure (LeanDa.ofLimbs s.state[0] s.state[1] s.state[2], s)
+
+/-- `LeanDa.Sponge.samples` with the permutation `PD`. -/
+def spongeSamplesWith : ℕ → LeanDa.Sponge → m (List E)
+  | 0, _ => pure []
+  | n + 1, s => do
+    let (c, s) ← spongeSampleWith PD s
+    let rest ← spongeSamplesWith n s
+    pure (c :: rest)
+
+/-- `LeanDa.membershipChallenges` with the hash `HD` and the permutation `PD`. -/
+def membershipChallengesWith (root : LeanDa.Digest) : m (List E) := do
+  let s ← spongeFromLabelWith HD PD LeanDa.label
+  let s ← spongeObserveWith PD s (LeanDa.ofLimbs (LeanDa.word root 0) (LeanDa.word root 1) 0)
+  let s ← spongeObserveWith PD s (LeanDa.ofLimbs (LeanDa.word root 2) (LeanDa.word root 3) 0)
+  spongeSamplesWith PD LeanDa.logK s
+
+/-- `LeanDa.membershipVector` with the hash `HD` and the permutation `PD`. -/
+def membershipVectorWith (root : LeanDa.Digest) : m (List E) :=
+  LeanDa.dualCodeword <$> membershipChallengesWith HD PD root
+
+/-! ### The vector digest -/
+
+/-- `LeanDa.columnDigest` with the hash `HD`. -/
+def columnDigestWith (vector : List E) (j : ℕ) : m LeanDa.Digest :=
+  HD (LeanDa.limbBytes ((vector.drop (j * LeanDa.cellSymbols)).take LeanDa.cellSymbols))
+
+/-- `LeanDa.vectorDigest` with the hash `HD`: the hash of the column digests. -/
+def vectorDigestWith (vector : List E) : m LeanDa.Digest := do
+  let ds ← (List.range LeanDa.cellsPerRow).mapM (columnDigestWith HD vector)
+  HD (ds.flatMap fun d ↦ d.toList)
+
+end With
+
+/-- This project's hash as LeanDA's: `toBytes` of the answer. -/
+def daHash {m : Type → Type} [Monad m] (H : List UInt8 → m Digest) (x : List UInt8) :
+    m LeanDa.Digest :=
+  toBytes <$> H x
+
+/-- This project's permutation as LeanDA's: on the lanes as 64-bit words. -/
+def daPerm {m : Type → Type} [Monad m] (F : KState → m KState) (l : LeanDa.Lanes) :
+    m LeanDa.Lanes :=
+  stateLanes <$> F (lanesState l)
+
+/-- **The vector digest of a root, with the hash `H` and the permutation `F`**
+(`vectorDigestOf`). -/
+def vectorDigestOfWith {m : Type → Type} [Monad m] (H : List UInt8 → m Digest)
+    (F : KState → m KState) (root : Digest) : m LeanDa.Digest := do
+  vectorDigestWith (daHash H) (← membershipVectorWith (daHash H) (daPerm F) (toBytes root))
 
 /-- `mapM` in `Id` is `map`. -/
 theorem mapM_id {α β : Type} (f : α → Id β) : ∀ l : List α,

@@ -15,6 +15,7 @@ public import Statement.Fast.FieldWords
 public import LeanVM.Protocol.EndToEnd.Front.PubPhase
 public import LeanVM.Guest.JumpTable
 public import Statement.LeanVmGuest
+public import LeanVM.Facts.Guest
 
 /-!
 # The run's start

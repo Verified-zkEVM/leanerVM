@@ -34,8 +34,7 @@ composed with the protocol's theorems in the random-permutation model (`Statemen
   `(Q + 2^14) · 2^-128 + 7 (Q + 2^14)² · 2^-256` for `Q ≤ 2^128`: `KnowledgeSoundness`
   (`knowledgeSoundness_holds`) and `guest_knowledge`.
 * `aggregate_sound_outer : AggregateSound guest decode`: with `decode_binds`, an accepted
-  aggregate's statement `s`, under the deployed seed and passing the outer verifier's other
-  checks, is the one the extracted execution decodes, with a witness holding it, or that
+  aggregate's statement `s`, under the deployed seed and of the guest's shape, is the one the extracted execution decodes, with a witness holding it, or that
   execution's decoding and `s` give an explicit Keccak-256 collision, except with the same
   probability.
 * `aggregate_complete_of`: a node within the budget has an execution of the guest whose honest
@@ -72,14 +71,14 @@ theorem aggregate_knowledge_of (h : SoundHyps W) (A : RpmAdversary) (Q : ℕ)
 
 /-- **What the outer verifier's acceptance establishes** (`AggregateSound`), in the
 random-permutation model: except with probability the bound of `KnowledgeSoundness`, an accepted
-aggregate's statement `s`, under the deployed seed and passing the outer verifier's other checks,
+aggregate's statement `s`, under the deployed seed and of the guest's shape,
 is the one the execution the extractor reads off the proof and the transcript decodes, with a
 witness holding it, or that execution's decoding and `s` give an explicit Keccak-256
 collision. -/
 theorem aggregate_sound_outer_of (h : SoundHyps W) : AggregateSound guest (decodeWith W) := by
   intro A Q hA hQ
   refine le_trans (prEvent_mono _ _ _ ?_) (aggregate_knowledge_of h A Q hA hQ)
-  rintro z ⟨s, hb, hprog, hpub, ⟨-, hs⟩, hno⟩
+  rintro z ⟨s, hb, hprog, hpub, hs, hno⟩
   refine ⟨hb, hprog, ?_⟩
   rintro ⟨t, hx, hd, hrel⟩
   refine hno ⟨t, hx, ?_⟩
@@ -114,7 +113,7 @@ theorem aggregate_knowledge (A : RpmAdversary) (Q : ℕ) (hA : A.IsTotalQueryBou
 /-- **What the outer verifier's acceptance establishes** (`AggregateSound`), for the deployed
 guest and its decoder, in the random-permutation model: except with probability
 `(Q + 2^14) · 2^-128 + 7 (Q + 2^14)² · 2^-256` (for `Q ≤ 2^128`), an accepted aggregate's statement `s`, under
-the deployed seed and passing the outer verifier's other checks, is the one the execution the
+the deployed seed and of the guest's shape, is the one the execution the
 extractor reads off the proof and the adversary's transcript (one is extracted) decodes, with a
 witness holding it, or that execution's decoding and `s` give an explicit Keccak-256 collision. -/
 theorem aggregate_sound_outer : AggregateSound guest decode := aggregate_sound_outer_sub subSoundW

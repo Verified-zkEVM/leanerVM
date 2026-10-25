@@ -16,54 +16,68 @@ claims), what a proof of the guest establishes with its witness named (`GuestKno
 `AggregateSound`), the deployed guest (`LeanVM.Guest.guest`, assembled from the generated
 `Statement/Data/`), its completeness on the covered nodes (`GuestCompleteRecursion`,
 `GuestCompleteLeaf`, with the deployed limits they assume), and the recursion step, the batching of
-the children's deferred claims sound in the random-permutation model (`BatchSound`, last section:
-the batching run outside the circuit with Keccak-f[1600] = `π`, which does not compose with the
-guest's in-circuit statements, so soundness across recursion levels does not follow from it).
+the children's deferred claims, sound in the random-permutation model (`BatchSound`).
 
-The soundness statements take the decoder as a parameter: the end theorems name
-`LeanVM.Guest.End.decode` (`lean_vm`), which reads the witness off the execution's memory; they
-hold of any decoder that outputs valid witnesses, and their content is in the decoder they name.
+Transcribed from leanVM at the pin (`../leanvm-rev`), `crates/rec_aggregation/src/aggregation.rs`
+(the statement, its digest, the batching, the outer verifier) and
+`crates/rec_aggregation/guests/lean_ethereum.py` (the guest); `aggregation.rs:N`,
+`lean_ethereum.py:N` and `G:N` (the same file) are lines of those files at the pin. The signature
+schemes are those whose security `lean_xmss` and `lean_sphincs` prove (`LeanXmss.lean`,
+`LeanSphincs.lean`), with Keccak-256 as their hash; LeanDA is `LeanDa.lean`'s, whose security
+`lean_da` proves.
+
+A node's statement is a list of signature claims, a list of DA claims, and a claim on the
+polynomial that the protocol fixes, the guest's stacked bytecode, which the node defers rather
+than evaluates (`NodeStatement`). Its public input is the statement's digest under a seed, the
+guest's Fiat-Shamir IV (`statementDigest`). A node holds every claim either directly, by a
+leanXMSS or leanSPHINCS signature or a blob matrix, or through a child that makes the same claim.
+A child is a statement under the same seed and a proof that the deferring verifier accepts for it
+(`LeanVM.Protocol.Verifier.verifyDeferred`, the guest's `verify_sub`). The node batches the claims
+that its children's proofs make of the bytecode, with those its children's statements defer, into
+its own deferred claim (`batch`).
+
+What a valid execution of the guest establishes is `NodeRel` of the witness its memory holds, on
+Keccak as the guest computes it: the witness is the knowledge content, since "some signature
+verifies" says little (some signature verifies for almost every key and message). The soundness
+statements take the decoder that reads the witness as a parameter: the end theorems name
+`LeanVM.Guest.End.decode` (`lean_vm`), which reads every component off the memory and chooses
+nothing; they hold of any decoder that outputs valid witnesses, and their content is in the
+decoder they name. That the root's statement makes every claim held at the leaves is a separate
+argument, conditional on a heuristic: a child's proof is sound only if Keccak, computed inside
+the guest, behaves as Keccak-256 and Keccak-f[1600] built from the random permutation of
+`LeanVM.KnowledgeSoundness`.
 -/
 
-section
+@[expose] public section
 
-/-!
-## The DA claim
+open scoped ENNReal
 
-LeanDA, the commitment to a blob matrix and the Reed-Solomon membership vector its root
-determines, is `LeanDa.lean`'s (the security of the scheme is proved in `lean_da`): its deployed
-algorithms (`LeanDa.commitCodewords`, `LeanDa.membershipVector`, `LeanDa.vectorDigest`) are
-transcribed there, generic in the hash `H` and in the permutation `P`
-of the challenges' duplex sponge. Here the hash is this project's Keccak-256 (`keccak`, from
-`keccak256`), its digest read as LeanDA's 32 bytes (`toBytes`), and the permutation is this
-project's Keccak-f[1600] on LeanDA's lanes (`keccakLanes`, from `keccakF`): the crate's, at leanVM
-`94ee12ff6b2a3d42ba8328e22d09443692e4800b` (`crates/lean_da`, `crates/verifier/src/da.rs`).
-`Fast/` (proved `@[csimp]` lemmas, speed only) compiles the field arithmetic on machine words,
-Keccak-f[1600] and Keccak-256 with their lanes written out, and the schemes' verifiers with a
-constant-depth lookup (`Fast.Schemes`, imported here).
+/-! ## The DA claim
 
-An aggregate's DA claim (`DaClaim`) is a blob's Merkle root (`daRoot`) and the digest of the
-root's membership vector (`membershipVectorDigest`); it is held by a matrix committed to the root
-whose rows are orthogonal to a vector of that digest (`Witness.Opens`: the guest's
-`da_verify`, `crates/rec_aggregation/guests/lean_ethereum.py:3920-4060`). The guest takes the
-vector digest from the statement; the outer verifier derives it from the root (`vectorDigestOf`;
-`verifier::da::list_digest`, `crates/verifier/src/da.rs:99-104`, called by
-`EthereumProof::verify`, `crates/rec_aggregation/src/aggregation.rs:697-719`). The vector digest
-is two-level at this pin: the hash of the `128` column digests of `256` entries each
-(`LeanDa.vectorDigest`; the guest's `da_vector_cell`, `lean_ethereum.py:4048-4060`).
-Orthogonality to the one vector the root determines makes the rows codewords except with the
-membership test's soundness error (`lean_da`'s `checker_sound`); that vector is the code's dual
-codeword (`lean_da`'s `membershipVector_eq_dual`). The link from this check to `lean_da`'s code
-binding is not proved. The prover's copy of the membership vector
-(`crates/lean_da/src/membership.rs`) is not transcribed; that it agrees with
+LeanDA's deployed algorithms (`LeanDa.commitCodewords`, `LeanDa.vectorDigest`) are `LeanDa.lean`'s
+(`crates/lean_da`, `crates/verifier/src/da.rs`), generic in the hash; here the hash is Keccak-256
+(`keccak`), its digest read as LeanDA's 32 bytes (`toBytes`).
+
+An aggregate's DA claim (`DaClaim`) is a blob's Merkle root and the digest of a vector; it is held
+by a matrix committed to the root whose rows are orthogonal to a vector of that digest
+(`Witness.Opens`: the guest's `da_verify`, `lean_ethereum.py:3920-4060`), the vector digest being
+two-level, the hash of the `128` column digests of `256` entries each (`LeanDa.vectorDigest`; the
+guest's `da_vector_cell`, `lean_ethereum.py:4048-4060`). The guest takes the vector digest from
+the statement; the deployed outer verifier derives it from the root, as the root's membership
+vector (`verifier::da::list_digest`, `crates/verifier/src/da.rs:99-104`, called by
+`EthereumProof::verify`, `aggregation.rs:697-719`), which no end statement here assumes. Only
+then are the rows orthogonal to the one vector the root determines, and only up to a collision of
+the vector digest or of its column hashes, which is not among `collisionCandidates`; orthogonality
+to that vector, the code's dual codeword (`lean_da`'s `membershipVector_eq_dual`), makes the rows
+codewords except with the membership test's soundness error (`lean_da`'s `checker_sound`). The
+link from this check to `lean_da`'s code binding is not proved. The prover's copy of the
+membership vector (`crates/lean_da/src/membership.rs`) is not transcribed; that it agrees with
 `crates/verifier/src/da.rs` is an implementation fact, which honest aggregates rely on.
 -/
 
 namespace LeanVM.Da
 
 open LeanVM.Parameters LeanVM.Semantics LeanVM.Protocol LeanVM.Protocol.KeccakHash
-
-@[expose] public section
 
 /-- A digest as LeanDA's 32 bytes: its words, little-endian (`Digest.value`). -/
 def toBytes (d : Digest) : LeanDa.Digest :=
@@ -75,25 +89,9 @@ def toBytes (d : Digest) : LeanDa.Digest :=
 /-- Keccak-256 as LeanDA's hash. -/
 def keccak (input : List UInt8) : LeanDa.Digest := toBytes (keccak256 input)
 
-/-- LeanDA's sponge lanes as a Keccak state: each `K` word as its 64-bit lane. -/
-def lanesState (l : LeanDa.Lanes) : KState := l.map K.lane
-
-/-- A Keccak state as LeanDA's sponge lanes: each 64-bit lane as its `K` word. -/
-def stateLanes (s : KState) : LeanDa.Lanes := s.map K.ofLane
-
-/-- Keccak-f[1600] as LeanDA's sponge permutation. -/
-def keccakLanes (l : LeanDa.Lanes) : LeanDa.Lanes := stateLanes (keccakF (lanesState l))
-
-/-- **The vector digest of a root**, as the outer verifier derives it
-(`vector_digest(membership_vector(root))`, `crates/verifier/src/da.rs:83-104`). -/
-def vectorDigestOf (root : Digest) : LeanDa.Digest :=
-  LeanDa.vectorDigest keccak (LeanDa.membershipVector keccak keccakLanes (toBytes root))
-
 /-- What holds a DA claim: a matrix of codewords and the vector its rows are orthogonal to. -/
 structure Witness where
-  /-- The codewords. -/
   rows : List (List K)
-  /-- The vector. -/
   vector : List E
 
 /-- **The witness holds the DA claim `⟨root, vd⟩`** (`da_verify`): `1` to `1024` codewords of
@@ -106,245 +104,14 @@ def Witness.Opens (root vd : Digest) (w : Witness) : Prop :=
     LeanDa.vectorDigest keccak w.vector = toBytes vd ∧
     ∀ row ∈ w.rows, LeanDa.dot (fun b ↦ w.vector.getD b 0) (fun b ↦ row.getD b 0) = 0
 
-end
 end LeanVM.Da
-
-end
-
-section
-
-/-!
-## The DA claim, for any hash and permutation
-
-LeanDA (`lean_da`, `LeanDa.Scheme`) defines its algorithms with a pure hash
-`H : List UInt8 → Digest` and a pure sponge permutation `P : Lanes → Lanes`. The guest's proofs
-also need them answered by a log: every hash and permutation made, then the value. So the
-algorithms the DA claim uses are transcribed here in any monad (`…With`): the commitment, the
-challenges' duplex sponge (`spongeNewWith`, `spongeDuplexWith`, `spongeAbsorbWith`,
-`spongeSampleWith`, `spongeSamplesWith`, LeanDA's `Sponge` operations), the membership vector and
-the two-level vector digest; and the deployed padding digests are parameters (`pc`, `pr`;
-deployed: the hashes of the zero cell and the zero row, which the guest bakes as constants,
-`DA_PAD_CELL_*`, `DA_PAD_ROW_*`, `crates/rec_aggregation/src/aggregation.rs:2575-2578` at leanVM
-`94ee12ff6b2a3d42ba8328e22d09443692e4800b`). At `m = Id` they are LeanDA's own
-(`commitCodewordsWith_id`, `membershipVectorWith_id`, `vectorDigestWith_id`), and at Keccak-256
-and Keccak-f[1600] the deployed DA claim (`vectorDigestOfWith_id`). `Witness.OpensWith` is
-`Witness.Opens` over an `Option`-valued hash: it hashes, but runs no sponge. The tree is built
-with `nodes.length` as fuel, which is enough (`treeRootFuel_id`).
-
-This project's hash `H : Bytes → m Digest` and permutation `F : KState → m KState` are LeanDA's
-through `daHash` (the digest as bytes) and `daPerm` (lanes as `K` words), as `keccak` and
-`keccakLanes` are in the DA claim's section above.
--/
-
-namespace LeanVM.Da
-
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Protocol LeanVM.Protocol.KeccakHash
-
-@[expose] public section
-
-section With
-
-variable {m : Type → Type} [Monad m] (HD : List UInt8 → m LeanDa.Digest)
-  (PD : LeanDa.Lanes → m LeanDa.Lanes)
-
-/-! ### The commitment -/
-
-/-- `LeanDa.listCellDigest` with the hash `HD`. -/
-def listCellDigestWith (row : List K) (j : ℕ) : m LeanDa.Digest :=
-  HD ((LeanDa.listCell row j).flatMap LeanDa.kBytes)
-
-/-- `LeanDa.rowDigest` with the hash `HD`. -/
-def rowDigestWith (row : List K) : m LeanDa.Digest := do
-  let ds ← (List.range LeanDa.payloadCells).mapM fun j ↦ listCellDigestWith HD row j
-  HD (ds.flatMap fun d ↦ d.toList)
-
-/-- `LeanDa.treeLevel` with the hash `HD`. -/
-def treeLevelWith (nodes : List LeanDa.Digest) : m (List LeanDa.Digest) :=
-  (List.range (nodes.length / 2)).mapM fun i ↦
-    HD (LeanDa.pairBytes (nodes.getD (2 * i) default) (nodes.getD (2 * i + 1) default))
-
-/-- `LeanDa.treeRoot` with the hash `HD`, at most `fuel` levels. -/
-def treeRootFuel : ℕ → List LeanDa.Digest → m LeanDa.Digest
-  | 0, nodes => pure (nodes.headD default)
-  | fuel + 1, nodes =>
-    if nodes.length ≤ 1 then pure (nodes.headD default) else do
-      let next ← treeLevelWith HD nodes
-      treeRootFuel fuel next
-
-/-- `LeanDa.treeRoot` with the hash `HD`. -/
-def treeRootWith (nodes : List LeanDa.Digest) : m LeanDa.Digest :=
-  treeRootFuel HD nodes.length nodes
-
-/-- **`LeanDa.commitCodewords` with the hash `HD`** and the padding digests `pc` (a zero cell) and
-`pr` (a zero row). -/
-def commitCodewordsWith (pc pr : LeanDa.Digest) (rows : List (List K)) : m LeanDa.Digest := do
-  let n := LeanDa.nPad rows.length
-  let rds ← rows.mapM (rowDigestWith HD)
-  let rowTree ← treeRootWith HD (rds ++ List.replicate (n - rows.length) pr)
-  let cols ← ((List.range LeanDa.cellsPerRow).flatMap fun j ↦
-      (List.range n).map fun i ↦ (i, j)).mapM fun ij ↦
-    if h : ij.1 < rows.length then listCellDigestWith HD rows[ij.1] ij.2 else pure pc
-  let columnTree ← treeRootWith HD cols
-  HD (LeanDa.pairBytes rowTree columnTree)
-
-/-! ### The challenges' sponge -/
-
-/-- `LeanDa.Sponge.new` with the permutation `PD`. -/
-def spongeNewWith (iv publicInput : LeanDa.Digest) : m LeanDa.Sponge := do
-  let state ← PD (Vector.ofFn fun i : Fin 25 ↦
-    if (i : ℕ) < 4 then LeanDa.word iv i else if (i : ℕ) < 8 then LeanDa.word publicInput (i - 4)
-    else 0)
-  pure ⟨state, []⟩
-
-/-- `LeanDa.Sponge.fromLabel` with the hash `HD` and the permutation `PD`. -/
-def spongeFromLabelWith (label : List UInt8) : m LeanDa.Sponge := do
-  spongeNewWith PD (← HD label) (Vector.replicate 32 0)
-
-/-- `LeanDa.Sponge.duplex` with the permutation `PD`. -/
-def spongeDuplexWith (s : LeanDa.Sponge) : m LeanDa.Sponge := do
-  let state ← PD (Vector.ofFn fun i : Fin 25 ↦
-    if (i : ℕ) < LeanDa.rateLanes then (LeanDa.rateWords s.pending).getD i 0 else s.state[i])
-  pure ⟨state, []⟩
-
-/-- `LeanDa.Sponge.absorb` with the permutation `PD`. -/
-def spongeAbsorbWith (s : LeanDa.Sponge) (x : E) (tag : K) : m LeanDa.Sponge := do
-  let s ← if s.pending.length = LeanDa.rateScalars then spongeDuplexWith PD s else pure s
-  pure ⟨s.state, s.pending ++ [(x, tag)]⟩
-
-/-- `LeanDa.Sponge.observe` with the permutation `PD`. -/
-def spongeObserveWith (s : LeanDa.Sponge) (x : E) : m LeanDa.Sponge :=
-  spongeAbsorbWith PD s x LeanDa.dsObserve
-
-/-- `LeanDa.Sponge.sample` with the permutation `PD`. -/
-def spongeSampleWith (s : LeanDa.Sponge) : m (E × LeanDa.Sponge) := do
-  let s ← spongeDuplexWith PD s
-  pure (LeanDa.ofLimbs s.state[0] s.state[1] s.state[2], s)
-
-/-- `LeanDa.Sponge.samples` with the permutation `PD`. -/
-def spongeSamplesWith : ℕ → LeanDa.Sponge → m (List E)
-  | 0, _ => pure []
-  | n + 1, s => do
-    let (c, s) ← spongeSampleWith PD s
-    let rest ← spongeSamplesWith n s
-    pure (c :: rest)
-
-/-- `LeanDa.membershipChallenges` with the hash `HD` and the permutation `PD`. -/
-def membershipChallengesWith (root : LeanDa.Digest) : m (List E) := do
-  let s ← spongeFromLabelWith HD PD LeanDa.label
-  let s ← spongeObserveWith PD s (LeanDa.ofLimbs (LeanDa.word root 0) (LeanDa.word root 1) 0)
-  let s ← spongeObserveWith PD s (LeanDa.ofLimbs (LeanDa.word root 2) (LeanDa.word root 3) 0)
-  spongeSamplesWith PD LeanDa.logK s
-
-/-- `LeanDa.membershipVector` with the hash `HD` and the permutation `PD`. -/
-def membershipVectorWith (root : LeanDa.Digest) : m (List E) :=
-  LeanDa.dualCodeword <$> membershipChallengesWith HD PD root
-
-/-! ### The vector digest -/
-
-/-- `LeanDa.columnDigest` with the hash `HD`. -/
-def columnDigestWith (vector : List E) (j : ℕ) : m LeanDa.Digest :=
-  HD (LeanDa.limbBytes ((vector.drop (j * LeanDa.cellSymbols)).take LeanDa.cellSymbols))
-
-/-- `LeanDa.vectorDigest` with the hash `HD`: the hash of the column digests. -/
-def vectorDigestWith (vector : List E) : m LeanDa.Digest := do
-  let ds ← (List.range LeanDa.cellsPerRow).mapM (columnDigestWith HD vector)
-  HD (ds.flatMap fun d ↦ d.toList)
-
-end With
-
-/-- This project's hash as LeanDA's: `toBytes` of the answer. -/
-def daHash {m : Type → Type} [Monad m] (H : List UInt8 → m Digest) (x : List UInt8) :
-    m LeanDa.Digest :=
-  toBytes <$> H x
-
-/-- This project's permutation as LeanDA's: on the lanes as 64-bit words. -/
-def daPerm {m : Type → Type} [Monad m] (F : KState → m KState) (l : LeanDa.Lanes) :
-    m LeanDa.Lanes :=
-  stateLanes <$> F (lanesState l)
-
-/-- **The vector digest of a root, with the hash `H` and the permutation `F`**
-(`vectorDigestOf`). -/
-def vectorDigestOfWith {m : Type → Type} [Monad m] (H : List UInt8 → m Digest)
-    (F : KState → m KState) (root : Digest) : m LeanDa.Digest := do
-  vectorDigestWith (daHash H) (← membershipVectorWith (daHash H) (daPerm F) (toBytes root))
-
-/-- **`Witness.Opens` over an `Option`-valued hash**, the padding digests `pc`, `pr` parameters:
-every hash answered, and the claim true of the answers. -/
-def Witness.OpensWith (H : List UInt8 → Option Digest) (pc pr : LeanDa.Digest) (root vd : Digest)
-    (w : Witness) : Prop :=
-  1 ≤ w.rows.length ∧ w.rows.length ≤ LeanDa.maxRows ∧
-    (∀ row ∈ w.rows, row.length = 2 ^ LeanDa.logM) ∧
-    commitCodewordsWith (daHash H) pc pr w.rows = some (toBytes root) ∧
-    w.vector.length = 2 ^ LeanDa.logM ∧
-    vectorDigestWith (daHash H) w.vector = some (toBytes vd) ∧
-    ∀ row ∈ w.rows, LeanDa.dot (fun b ↦ w.vector.getD b 0) (fun b ↦ row.getD b 0) = 0
-
-/-! ### The deployed algorithms, recovered -/
-
-end
-end LeanVM.Da
-
-end
-
-section
-
-/-!
-## The aggregation node
-
-Transcribed from leanVM `94ee12ff6b2a3d42ba8328e22d09443692e4800b` (branch `main`),
-`crates/rec_aggregation/src/aggregation.rs` (the statement, its digest, the batching, the outer
-verifier) and `crates/rec_aggregation/guests/lean_ethereum.py` (the guest); `aggregation.rs:N`
-and `lean_ethereum.py:N` below are lines of those files at that commit. The signature schemes,
-leanXMSS and leanSPHINCS, are those whose security `lean_xmss` and `lean_sphincs` prove
-(`LeanXmss.lean`, `LeanSphincs.lean`), with Keccak-256 as their hash; LeanDA is `LeanDa.lean`'s,
-whose security `lean_da` proves (the DA claim's section above).
-
-A node's statement is a list of signature claims, a list of DA claims, and a claim on the
-polynomial that the protocol fixes, the guest's stacked bytecode, which the node defers rather
-than evaluates (`NodeStatement`). Its public input is the statement's digest under a seed, the
-guest's Fiat-Shamir IV (`statementDigest`, `statement_digest`, `aggregation.rs:347-368`,
-`lean_ethereum.py:3766-3797`): the Keccak-256 hash of the seed, the signer set's digest and the
-DA claims' digest, sixteen bytes a cell, then the deferred claim's cells, three limbs each.
-
-A node holds every claim either directly, by a leanXMSS or leanSPHINCS signature or a blob
-matrix, or through a child that makes the same claim. A child is a statement under the same seed
-and a proof that the deferring verifier accepts for it
-(`LeanVM.Protocol.Verifier.verifyDeferred`, the guest's `verify_sub`). The node batches the
-claims that its children's proofs make of the bytecode, with those its children's statements
-defer, into its own deferred claim (`batch`: `aggregate_claims`, `lean_ethereum.py:4285-4392`;
-`aggregate_deferred_claims`, `aggregation.rs:939-1041`). `NodeRel bytecode seed s w` says all
-of it of the statement `s`, with the witness `w` holding every claim; `NodeSpec` is its
-existential.
-
-The outer verifier (`verifyAggregate`, `EthereumProof::verify`, `aggregation.rs:697-719`) checks
-a proof of the guest on the statement's digest and evaluates the deferred claim itself.
-
-What a valid execution of the guest establishes is `NodeRel` of the witness its memory holds, on
-Keccak, as the guest computes it (`GuestKnowledge`, below, with a decoder). The witness is
-the knowledge content: `NodeSpec` alone, "some signature verifies", says little, since some
-signature verifies for almost every key and message. That the root's `NodeSpec` makes every
-claim held at the leaves is a separate argument, conditional on a heuristic: a child's proof is
-sound only if Keccak, computed inside the guest, behaves as Keccak-256 and Keccak-f[1600] built
-from the random permutation of `LeanVM.KnowledgeSoundness` (`LeanVm.lean`).
-
-**Changes from the leanVM `3f7dc219` transcription.** BLAKE2s is replaced by Keccak-256 (the
-hashes) and Keccak-f[1600] (the batching's transcript, a duplex sponge). Flock is gone, so the
-deferred claim is the bytecode's alone: a point and a value (`DeferredClaim`,
-`aggregation.rs:261-321`), and a proof's claims on the fixed polynomials are its bytecode claim
-(`FixedClaims`). The statement's preimage is no longer zero-filled to whole blocks. The batching
-runs on the verifier's duplex sponge from the label's hash (`FiatShamirState::from_label`), each
-group of absorbed words padded with zeros to a whole rate, and reduces both claims of every child
-by one sumcheck.
--/
 
 namespace LeanVM.Node
 
 open LeanVM.Parameters LeanVM.Semantics LeanVM.Protocol LeanVM.Protocol.KeccakHash
 open LeanVM.Protocol.Compile LeanVM.Protocol.Verifier
 
-@[expose] public section
-
-/-! ### The signature schemes on Keccak-256 -/
+/-! ## The signature schemes on Keccak-256 -/
 
 /-- A digest as the schemes' 256-bit hash output: its 32 bytes as a little-endian number. -/
 def digestBits (d : Digest) : BitVec 256 :=
@@ -365,7 +132,7 @@ def sphincsVerify (pk : Sphincs.PublicKey) (message : Sphincs.Message) (σ : Sph
   letI : HasQuery Sphincs.HashSpec Id := ⟨keccakBits⟩
   Id.run (Sphincs.Concrete.verify pk message σ)
 
-/-! ### The statement -/
+/-! ## The statement -/
 
 /-- A leanXMSS key and a message it signed, at a leaf index the claim does not record
 (`LeanXmssClaim`, `aggregation.rs:63`). -/
@@ -376,45 +143,35 @@ abbrev SphincsClaim : Type := Sphincs.PublicKey × Sphincs.Message
 
 /-- **A DA claim**: a blob's Merkle root, an entry of an aggregate's `da_roots`
 (`aggregation.rs:400-401`; the guest's `da_roots`, `lean_ethereum.py:4151-4154`), with the digest
-of the root's membership vector, the vector the blob's rows are orthogonal to. The two are
-hashed as `da_claim_cells` and `verifier::da::list_digest` hash them, the root then the vector
-digest (`aggregation.rs:563-566`, `crates/verifier/src/da.rs:98-104`): `daListDigest`. -/
+of the vector the blob's rows are orthogonal to. The two are hashed as `da_claim_cells` and
+`verifier::da::list_digest` hash them, the root then the vector digest (`aggregation.rs:563-566`,
+`crates/verifier/src/da.rs:98-104`): `daListDigest`. -/
 structure DaClaim where
   /-- The blob's Merkle root (`da_roots`, `aggregation.rs:401`): the commitment to its matrix of
   codewords (`Da.Witness.Opens`). -/
   daRoot : Digest
-  /-- The digest of the root's membership vector (`vector_hash`, `aggregation.rs:564`:
-  `vector_digest(membership_vector(root))`, `crates/verifier/src/da.rs:83-96`). The guest takes
-  it from the statement; the outer verifier derives it from the root (`Da.vectorDigestOf`,
-  `OuterChecks`). -/
+  /-- The digest of the vector (`vector_hash`, `aggregation.rs:564`), which the guest takes from
+  the statement; the deployed outer verifier requires it to be
+  `vector_digest(membership_vector(root))` (`crates/verifier/src/da.rs:83-96`). -/
   membershipVectorDigest : Digest
   deriving DecidableEq, Inhabited, Repr
 
 /-- A node's claims: leanXMSS claims, leanSPHINCS claims, and DA claims. -/
 structure Claims where
-  /-- The leanXMSS claims. -/
   xmss : List XmssClaim
-  /-- The leanSPHINCS claims. -/
   sphincs : List SphincsClaim
-  /-- The DA claims. -/
   da : List DaClaim
 
 /-- The claim the statement defers on the stacked bytecode: its value at a point
 (`DeferredClaim`, `aggregation.rs:261-264`). -/
 structure DeferredClaim where
-  /-- The bytecode's point. -/
   bytecodePoint : List E
-  /-- The bytecode's value there. -/
   bytecodeValue : E
 
 /-- A node's statement: its claims and its deferred claim. -/
 structure NodeStatement where
-  /-- The claims. -/
   claims : Claims
-  /-- The deferred claim. -/
   defer : DeferredClaim
-
-/-! ### The deferred claim -/
 
 /-- The deferred claim has the shape of the bytecode `bytecode`: a point of `log₂` of its length
 (`bytecode_vars`, `aggregation.rs:824-826`; `BYTECODE_VARS`, `lean_ethereum.py:330`). -/
@@ -445,7 +202,10 @@ coordinates, then the selector challenges), then the value. -/
 def fixedCells (c : FixedClaims) : List E :=
   c.bytecodePoint ++ [c.bytecodeValue]
 
-/-! ### The statement's digest -/
+/-! ## The statement's digest
+
+Each digest is Keccak-256 of its preimage; the preimages are also the inputs of the candidate
+collisions (`collisionCandidates`). -/
 
 /-- The 16 bytes of a 128-bit value, least significant byte first: a cell's two limbs. -/
 def bytes16 (value : BitVec 128) : List UInt8 := LeanXmss.bytesLE 16 value
@@ -455,39 +215,59 @@ def bytes16 (value : BitVec 128) : List UInt8 := LeanXmss.bytesLE 16 value
 def claimBytes (root parameter : BitVec 128) (message : BitVec 256) : List UInt8 :=
   bytes16 root ++ bytes16 parameter ++ LeanXmss.bytesLE 32 message
 
+/-- The bytes `xmssListDigest claims` hashes. -/
+def xmssPreimage (claims : List XmssClaim) : List UInt8 :=
+  claims.flatMap fun c ↦ claimBytes c.1.root c.1.parameter c.2
+
 /-- The digest of the leanXMSS claims (`claim_list_digest`, `aggregation.rs:215-217`,
 `lean_ethereum.py:3827-3849`). -/
-def xmssListDigest (claims : List XmssClaim) : Digest :=
-  keccak256 (claims.flatMap fun c ↦ claimBytes c.1.root c.1.parameter c.2)
+def xmssListDigest (claims : List XmssClaim) : Digest := keccak256 (xmssPreimage claims)
+
+/-- The bytes `sphincsListDigest claims` hashes. -/
+def sphincsPreimage (claims : List SphincsClaim) : List UInt8 :=
+  claims.flatMap fun c ↦ claimBytes c.1.root c.1.parameter c.2
 
 /-- The digest of the leanSPHINCS claims (`claim_list_digest`). -/
-def sphincsListDigest (claims : List SphincsClaim) : Digest :=
-  keccak256 (claims.flatMap fun c ↦ claimBytes c.1.root c.1.parameter c.2)
+def sphincsListDigest (claims : List SphincsClaim) : Digest := keccak256 (sphincsPreimage claims)
 
-/-- **The signer set's digest** (`signers_hash`, `aggregation.rs:242-251`): the hash of the two
-lists' digests. Each binds its list's length through Keccak's padding. -/
+/-- The bytes `signersDigest xmss sphincs` hashes: the two lists' digests. -/
+def signersPreimage (xmss : List XmssClaim) (sphincs : List SphincsClaim) : List UInt8 :=
+  digestBytes (xmssListDigest xmss) ++ digestBytes (sphincsListDigest sphincs)
+
+/-- **The signer set's digest** (`signers_hash`, `aggregation.rs:242-251`). Each list's digest
+binds its length through Keccak's padding. -/
 def signersDigest (xmss : List XmssClaim) (sphincs : List SphincsClaim) : Digest :=
-  keccak256 (digestBytes (xmssListDigest xmss) ++ digestBytes (sphincsListDigest sphincs))
+  keccak256 (signersPreimage xmss sphincs)
 
-/-- The DA claims' digest: each root, then its vector digest (`da_list_digest` in the guest,
-`lean_ethereum.py:4063-4075`; the outer verifier's `verifier::da::list_digest` derives the vector
-digests from the roots). -/
-def daListDigest (claims : List DaClaim) : Digest :=
-  keccak256 (claims.flatMap fun c ↦ digestBytes c.daRoot ++ digestBytes c.membershipVectorDigest)
+/-- The bytes `daListDigest claims` hashes: each root, then its vector digest. -/
+def daPreimage (claims : List DaClaim) : List UInt8 :=
+  claims.flatMap fun c ↦ digestBytes c.daRoot ++ digestBytes c.membershipVectorDigest
+
+/-- The DA claims' digest (`da_list_digest` in the guest, `lean_ethereum.py:4063-4075`; the outer
+verifier's `verifier::da::list_digest` derives the vector digests from the roots). -/
+def daListDigest (claims : List DaClaim) : Digest := keccak256 (daPreimage claims)
 
 /-- The 24 bytes of a field element, its three limbs. -/
 def eBytes (x : E) : List UInt8 := kBytes (x.limb 0) ++ kBytes (x.limb 1) ++ kBytes (x.limb 2)
 
-/-- **The statement's digest under `seed`** (`statement_digest`, `aggregation.rs:347-368`,
-`lean_ethereum.py:3766-3797`): the Keccak-256 hash of the seed, the signer set's digest and the
-DA claims' digest, then the deferred claim's cells, an odd count paired with a zero cell. The
-cells carry no lengths: the digest tells two deferred claims apart only at one shape. -/
-def statementDigest (seed : Digest) (s : NodeStatement) : Digest :=
-  let cells := s.defer.cells ++ if s.defer.cells.length % 2 = 1 then [0] else []
-  keccak256 (digestBytes seed ++ digestBytes (signersDigest s.claims.xmss s.claims.sphincs) ++
-    digestBytes (daListDigest s.claims.da) ++ cells.flatMap eBytes)
+/-- The deferred claim's cells, an odd count paired with a zero cell. -/
+def paddedCells (c : DeferredClaim) : List E :=
+  c.cells ++ if c.cells.length % 2 = 1 then [0] else []
 
-/-! ### Batching the deferred claims (`aggregate_claims`, `aggregate_deferred_claims`) -/
+/-- The bytes `statementDigest seed s` hashes: the seed, the signer set's and the DA claims'
+digests, then the padded deferred cells. -/
+def statementPreimage (seed : Digest) (s : NodeStatement) : List UInt8 :=
+  digestBytes seed ++ digestBytes (signersDigest s.claims.xmss s.claims.sphincs) ++
+    digestBytes (daListDigest s.claims.da) ++ (paddedCells s.defer).flatMap eBytes
+
+/-- **The statement's digest under `seed`** (`statement_digest`, `aggregation.rs:347-368`,
+`lean_ethereum.py:3766-3797`). The cells carry no lengths: the digest tells two deferred claims
+apart only at one shape. -/
+def statementDigest (seed : Digest) (s : NodeStatement) : Digest :=
+  keccak256 (statementPreimage seed s)
+
+/-! ## Batching the deferred claims (`aggregate_claims`, `lean_ethereum.py:4285-4392`;
+`aggregate_deferred_claims`, `aggregation.rs:939-1041`) -/
 
 /-- A Fiat-Shamir chain: the verifier's duplex sponge over Keccak-f[1600] (`FiatShamirState`). -/
 abbrev Chain : Type → Type := StateM Sponge
@@ -507,28 +287,11 @@ def sample : Chain E := do
 def padRate (words : List E) : List E :=
   words ++ List.replicate ((rateScalars - words.length % rateScalars) % rateScalars) 0
 
-/-- The rounds of a batching sumcheck from the running claim: each round absorbs `g(1)` and
-`g(∞)`, squeezes the challenge, and folds the degree-2 round polynomial whose `g(0)` the claim
-fixes (`batch_sumcheck`, `lean_ethereum.py:1007-1024`; `absorb_round`,
-`aggregation.rs:880-896`). The challenges and the final claim. -/
-def batchRounds : E → List (E × E) → Chain (List E × E)
-  | claim, [] => return ([], claim)
-  | claim, (g1, gInf) :: rest => do
-    observe g1
-    observe gInf
-    let r ← sample
-    let g0 := claim + g1
-    let (rs, final) ← batchRounds ((gInf * r + (g0 + g1 + gInf)) * r + g0) rest
-    return (r :: rs, final)
-
-/-- What a node knows of one child: the child's public input, the claim its proof makes, and
-the claim its statement defers. -/
+/-- What a node knows of one child: the child's public input, the claim its proof makes
+(`fresh`), and the claim its statement defers (`carried`). -/
 structure ChildClaims where
-  /-- The child's public input. -/
   publicInput : Digest
-  /-- What its proof claims. -/
   fresh : FixedClaims
-  /-- What its statement defers. -/
   carried : DeferredClaim
 
 /-- The words the batching absorbs of a child: its public input's two cells, its proof's claim,
@@ -537,12 +300,39 @@ def ChildClaims.words (c : ChildClaims) : List E :=
   [(digestScalars c.publicInput).1, (digestScalars c.publicInput).2] ++ fixedCells c.fresh ++
     c.carried.cells
 
+/-- The bytecode's batched claim at the lambdas `lB`. -/
+def _root_.LeanVM.Guest.Batch.claimBOf (cs : List ChildClaims) (lB : List (E × E)) : E :=
+  sumE (List.zipWith (fun c l ↦ l.1 * c.fresh.bytecodeValue + l.2 * c.carried.bytecodeValue) cs lB)
+
+/-- The bytecode's batched weight at `y`. -/
+def _root_.LeanVM.Guest.Batch.bytecodeWeight (cs : List ChildClaims) (lB : List (E × E))
+    (y : List E) : E :=
+  sumE (List.zipWith (fun c l ↦
+    l.1 * eqEval c.fresh.bytecodePoint y + l.2 * eqEval c.carried.bytecodePoint y) cs lB)
+
+/-- **The round polynomial** from the claim before the round and its message `(g(1), g(∞))`:
+`g(0) = claim + g(1)`, and `g(x) = (g(∞)·x + g(0) + g(1) + g(∞))·x + g(0)`, the degree-2 round
+polynomial whose `g(0)` the claim fixes. -/
+def _root_.LeanVM.Guest.Batch.roundPoly (claim : E) (g : E × E) (x : E) : E :=
+  (g.2 * x + ((claim + g.1) + g.1 + g.2)) * x + (claim + g.1)
+
+/-- The rounds of a batching sumcheck from the running claim: each round absorbs `g(1)` and
+`g(∞)`, squeezes the challenge, and folds the round polynomial (`batch_sumcheck`,
+`lean_ethereum.py:1007-1024`; `absorb_round`, `aggregation.rs:880-896`). The challenges and the
+final claim. -/
+def batchRounds : E → List (E × E) → Chain (List E × E)
+  | claim, [] => return ([], claim)
+  | claim, (g1, gInf) :: rest => do
+    observe g1
+    observe gInf
+    let r ← sample
+    let (rs, final) ← batchRounds (Guest.Batch.roundPoly claim (g1, gInf) r) rest
+    return (r :: rs, final)
+
 /-- The prover's part of a batching: the sumcheck's rounds and the bytecode's value at its end
 (`bc_sumcheck_msgs`, `bc_star_hint`). -/
 structure BatchHints where
-  /-- The sumcheck's rounds. -/
   bytecodeRounds : List (E × E)
-  /-- The bytecode's value at the end. -/
   bytecodeValue : E
 
 /-- The batching transcript's label (`RECURSION_AGG_LABEL`, `aggregation.rs:72`). -/
@@ -570,45 +360,31 @@ where
       let lf ← sample
       let lc ← sample
       lambdas := lambdas ++ [(lf, lc)]
-    let claim := sumE (List.zipWith (fun c l ↦
-      l.1 * c.fresh.bytecodeValue + l.2 * c.carried.bytecodeValue) children lambdas)
-    let (r, final) ← batchRounds claim h.bytecodeRounds
-    let weight := sumE (List.zipWith (fun c l ↦
-      l.1 * eqEval c.fresh.bytecodePoint r + l.2 * eqEval c.carried.bytecodePoint r)
-      children lambdas)
-    if final = h.bytecodeValue * weight then return some ⟨r, h.bytecodeValue⟩
+    let (r, final) ← batchRounds (Guest.Batch.claimBOf children lambdas) h.bytecodeRounds
+    if final = h.bytecodeValue * Guest.Batch.bytecodeWeight children lambdas r then
+      return some ⟨r, h.bytecodeValue⟩
     else return none
 
-/-! ### The node -/
+/-! ## The node -/
 
 /-- A child of a node: its statement, its proof, and what the proof claims of the bytecode. -/
 structure Child where
-  /-- The child's statement. -/
   statement : NodeStatement
-  /-- What its proof claims. -/
   fresh : FixedClaims
-  /-- Its proof. -/
   proof : Proof
 
 /-- How a node holds a claim: directly, by a witness, or through its `i`-th child. -/
 inductive Holder (W : Type) where
-  /-- By a witness. -/
   | direct (w : W)
-  /-- Through child `i`. -/
   | child (i : ℕ)
 
 /-- What a node holds its statement by: its children, a holder for every claim, and the batching's
 hints. -/
 structure NodeWitness where
-  /-- The children. -/
   children : List Child
-  /-- The leanXMSS claims' holders. -/
   xmss : List (Holder LeanXmss.Signature)
-  /-- The leanSPHINCS claims' holders. -/
   sphincs : List (Holder Sphincs.Signature)
-  /-- The DA claims' holders. -/
   da : List (Holder Da.Witness)
-  /-- The batching's hints. -/
   hints : BatchHints
 
 /-- The leanXMSS claim is held: by a signature, at any leaf index, or by a child making it. -/
@@ -646,298 +422,11 @@ def NodeRel (bytecode : List K) (seed : Digest) (s : NodeStatement) (w : NodeWit
   else batch (w.children.map fun c ↦
     ⟨statementDigest seed c.statement, c.fresh, c.statement.defer⟩) w.hints = some s.defer
 
-/-- **What a node of the aggregation guest `bytecode` establishes of its statement `s`** under
-the seed `seed`: a witness holds it. -/
-def NodeSpec (bytecode : List K) (seed : Digest) (s : NodeStatement) : Prop :=
-  ∃ w, NodeRel bytecode seed s w
-
-/-! ### The outer verifier -/
-
 /-- The guest's deployed seed: its Fiat-Shamir IV (`fs_seed`,
 `crates/leanvm_core/src/cpu/mod.rs:68-80`). -/
 abbrev deployedSeed (guest : Program) : Digest := fiatShamirIv (bytecodeWords guest)
 
-/-- **What the outer verifier checks of a statement besides its proof**: every DA claim's vector
-digest is its root's, and the deferred claim holds of the guest's bytecode. -/
-def OuterChecks (guest : Program) (s : NodeStatement) : Prop :=
-  (∀ c ∈ s.claims.da, Da.toBytes c.membershipVectorDigest = Da.vectorDigestOf c.daRoot) ∧
-    s.defer.Holds (bytecodeWords guest)
-
-/-- **The outer verifier** of an aggregate of the guest `guest` (`EthereumProof::verify`,
-`aggregation.rs:697-719`): every DA claim's vector digest is its root's, the deferred claim holds,
-and the proof verifies on the statement's digest under the guest's IV. It omits the deployed
-verifier's checks on the lists' form (`check_signer_set`, `check_da_roots`,
-`aggregation.rs:543-561`: each list sorted without repeats, fewer than `2^16` signature claims
-and at most `16` DA roots), so it accepts more. -/
-def verifyAggregate (guest : Program) (s : NodeStatement) (π : Proof) : Prop :=
-  OuterChecks guest s ∧
-    Verifier.verify (bytecodeWords guest) (statementDigest (deployedSeed guest) s) π = true
-
-end
-end LeanVM.Node
-
-end
-
-section
-
-/-!
-## The node, for any hash and permutation
-
-The section above states what a node establishes with Keccak-256 and Keccak-f[1600]. The guest's
-proofs also need it relative to a hash and a permutation answered by a log: every hash and
-permutation a check makes must be answered, and the check must hold for the answers. So every
-hashing function of that section is given here with the hash `H : Bytes → m Digest` and the
-permutation `F : KState → m KState` in any monad (`…With`), as the verifier is (`verifier H F`,
-`LeanVm.lean`): at `m = Id`, `H = keccak256` and `F = keccakF` it is the deployed one
-(`statementDigestWith_id`, `batchWith_id`, `xmssVerifyWith_id`, …), and at `m = Option` with `H` and
-`F` a log's lookups it is the computation answered by the log. The digests and the signature schemes
-use only `H`; the batching's transcript, a duplex sponge, only `F`, from a parameter state `s0`
-(deployed: `batchSeed`, Keccak-f of the label's hash, whose capacity the guest bakes as
-`AGG_SEED_*`). `NodeRelWith H F` is `NodeRel` over an `Option`-valued hash and permutation, each
-check "answered and true".
-
-The deployed definitions are not changed: this section only adds to them.
--/
-
-namespace LeanVM.Node
-
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Protocol LeanVM.Protocol.KeccakHash
-open LeanVM.Protocol.Compile LeanVM.Protocol.Verifier
-
-@[expose] public section
-
-section With
-
-variable {m : Type → Type} [Monad m] (H : Bytes → m Digest) (F : KState → m KState)
-
-/-! ### The signature schemes -/
-
-/-- leanXMSS verification with the hash `H`. -/
-def xmssVerifyWith (pk : LeanXmss.PublicKey) (message : LeanXmss.Message)
-    (σ : LeanXmss.Signature) : m Bool :=
-  letI : HasQuery LeanXmss.HashSpec m := ⟨fun x ↦ digestBits <$> H x⟩
-  LeanXmss.Concrete.verify pk message σ
-
-/-- leanSPHINCS verification with the hash `H`. -/
-def sphincsVerifyWith (pk : Sphincs.PublicKey) (message : Sphincs.Message)
-    (σ : Sphincs.Signature) : m Bool :=
-  letI : HasQuery Sphincs.HashSpec m := ⟨fun x ↦ digestBits <$> H x⟩
-  Sphincs.Concrete.verify pk message σ
-
-/-! ### The statement's digest -/
-
-/-- `xmssListDigest` with the hash `H`. -/
-def xmssListDigestWith (claims : List XmssClaim) : m Digest :=
-  H (claims.flatMap fun c ↦ claimBytes c.1.root c.1.parameter c.2)
-
-/-- `sphincsListDigest` with the hash `H`. -/
-def sphincsListDigestWith (claims : List SphincsClaim) : m Digest :=
-  H (claims.flatMap fun c ↦ claimBytes c.1.root c.1.parameter c.2)
-
-/-- `signersDigest` with the hash `H`. -/
-def signersDigestWith (xmss : List XmssClaim) (sphincs : List SphincsClaim) : m Digest := do
-  let x ← xmssListDigestWith H xmss
-  let s ← sphincsListDigestWith H sphincs
-  H (digestBytes x ++ digestBytes s)
-
-/-- `daListDigest` with the hash `H`. -/
-def daListDigestWith (claims : List DaClaim) : m Digest :=
-  H (claims.flatMap fun c ↦ digestBytes c.daRoot ++ digestBytes c.membershipVectorDigest)
-
-/-- **`statementDigest` with the hash `H`.** -/
-def statementDigestWith (seed : Digest) (s : NodeStatement) : m Digest := do
-  let sd ← signersDigestWith H s.claims.xmss s.claims.sphincs
-  let dd ← daListDigestWith H s.claims.da
-  let cells := s.defer.cells ++ if s.defer.cells.length % 2 = 1 then [0] else []
-  H (digestBytes seed ++ digestBytes sd ++ digestBytes dd ++ cells.flatMap eBytes)
-
-/-! ### The batching -/
-
-/-- A Fiat-Shamir chain with the permutation `F`. -/
-abbrev ChainWith : Type → Type := StateT Sponge m
-
-/-- `observe` with the permutation `F`. -/
-def observeWith (x : E) : ChainWith (m := m) Unit := do
-  set (← (Compile.absorb F (← get) x dsObserve : m Sponge))
-
-/-- `sample` with the permutation `F`. -/
-def sampleWith : ChainWith (m := m) E := do
-  let (c, sp) ← (Compile.squeeze F (← get) : m (E × Sponge))
-  set sp
-  return c
-
-/-- `batchRounds` with the permutation `F`. -/
-def batchRoundsWith : E → List (E × E) → ChainWith (m := m) (List E × E)
-  | claim, [] => return ([], claim)
-  | claim, (g1, gInf) :: rest => do
-    observeWith F g1
-    observeWith F gInf
-    let r ← sampleWith F
-    let g0 := claim + g1
-    let (rs, final) ← batchRoundsWith ((gInf * r + (g0 + g1 + gInf)) * r + g0) rest
-    return (r :: rs, final)
-
-/-- `batchSeed` with the hash `H` and the permutation `F`. -/
-def batchSeedWith : m KState := do
-  F (seedInput (← H batchLabel) (Vector.replicate 4 0))
-
-/-- **`batch` with the permutation `F`, from the sponge state `s0`** (deployed: `batchSeed`). -/
-def batchWith (s0 : KState) (children : List ChildClaims) (h : BatchHints) :
-    m (Option DeferredClaim) :=
-  go.run' ⟨s0, []⟩
-where
-  /-- The transcript. -/
-  go : ChainWith (m := m) (Option DeferredClaim) := do
-    for x in padRate [gpow children.length] do observeWith F x
-    for c in children do
-      for x in padRate c.words do observeWith F x
-    let mut lambdas : List (E × E) := []
-    for _ in children do
-      let lf ← sampleWith F
-      let lc ← sampleWith F
-      lambdas := lambdas ++ [(lf, lc)]
-    let claim := sumE (List.zipWith (fun c l ↦
-      l.1 * c.fresh.bytecodeValue + l.2 * c.carried.bytecodeValue) children lambdas)
-    let (r, final) ← batchRoundsWith F claim h.bytecodeRounds
-    let weight := sumE (List.zipWith (fun c l ↦
-      l.1 * eqEval c.fresh.bytecodePoint r + l.2 * eqEval c.carried.bytecodePoint r)
-      children lambdas)
-    if final = h.bytecodeValue * weight then return some ⟨r, h.bytecodeValue⟩
-    else return none
-
-end With
-
-/-! ### The node relation over an answered hash and permutation -/
-
-section Answered
-
-variable (H : Bytes → Option Digest) (F : KState → Option KState)
-
-/-- The leanXMSS claim is held: by a signature verified with every hash answered, or by a child
-making it. -/
-def XmssHeldWith (children : List Child) (claim : XmssClaim) : Holder LeanXmss.Signature → Prop
-  | .direct σ => xmssVerifyWith H claim.1 claim.2 σ = some true
-  | .child i => ∃ c, children[i]? = some c ∧ claim ∈ c.statement.claims.xmss
-
-/-- The leanSPHINCS claim is held: by a signature verified with every hash answered, or by a child
-making it. -/
-def SphincsHeldWith (children : List Child) (claim : SphincsClaim) :
-    Holder Sphincs.Signature → Prop
-  | .direct σ => sphincsVerifyWith H claim.1 claim.2 σ = some true
-  | .child i => ∃ c, children[i]? = some c ∧ claim ∈ c.statement.claims.sphincs
-
-/-- The DA claim is held: by a matrix opening with every hash answered (the padding digests
-`pc`, `pr`), or by a child making it. -/
-def DaHeldWith (pc pr : LeanDa.Digest) (children : List Child) (claim : DaClaim) :
-    Holder Da.Witness → Prop
-  | .direct w => w.OpensWith H pc pr claim.daRoot claim.membershipVectorDigest
-  | .child i => ∃ c, children[i]? = some c ∧ claim ∈ c.statement.claims.da
-
-/-- The children's claims the batching absorbs, their public inputs the answered digests of their
-statements. -/
-def childClaimsWith (seed : Digest) (children : List Child) : Option (List ChildClaims) :=
-  children.mapM fun c ↦ (fun pi ↦ ⟨pi, c.fresh, c.statement.defer⟩) <$>
-    statementDigestWith H seed c.statement
-
-/-- **`NodeRel` over an answered hash and permutation**: what the witness `w` establishes of `s`
-when every hash and permutation the guest computes is answered by `H` and `F` (a log's lookups) —
-every check of `NodeRel` with its hashes and permutations answered and true; the batching from
-the sponge state `s0`; the DA padding digests `pc`, `pr`. -/
-def NodeRelWith (s0 : KState) (pc pr : LeanDa.Digest) (bytecode : List K) (seed : Digest)
-    (s : NodeStatement) (w : NodeWitness) : Prop :=
-  s.defer.Shaped bytecode ∧
-  (∀ c ∈ w.children, c.statement.defer.Shaped bytecode ∧ ∃ pi,
-    statementDigestWith H seed c.statement = some pi ∧
-    verifyDeferredWith H F bytecode seed pi c.fresh c.proof = some true) ∧
-  List.Forall₂ (XmssHeldWith H w.children) s.claims.xmss w.xmss ∧
-  List.Forall₂ (SphincsHeldWith H w.children) s.claims.sphincs w.sphincs ∧
-  List.Forall₂ (DaHeldWith H pc pr w.children) s.claims.da w.da ∧
-  if w.children = [] then s.defer.AtZero bytecode
-  else ∃ cs, childClaimsWith H seed w.children = some cs ∧
-    batchWith F s0 cs w.hints = some (some s.defer)
-
-end Answered
-
-/-! ### The deployed functions, recovered -/
-
-end
-end LeanVM.Node
-
-end
-
-section
-
-/-!
-## The aggregation guest, its witness named
-
-`NodeSpec` (above) is the existential `∃ w, NodeRel …`. A hash-based witness (a signature, a
-child's proof, a blob matrix) exists for nearly every claim, so "some witness holds the statement"
-says little. What a valid execution of the guest establishes is more: its memory holds the
-witness. A **decoder** reads a seed, a statement and a witness off a memory (`Decoder`,
-`Decoded`), and the guest's soundness is stated for it:
-
-* `GuestKnowledge guest decode`: every valid execution of `guest` on a public input decodes to a
-  statement of that input's digest under the decoded seed, and a witness holding it;
-* `AggregateSound guest decode` (below), what a consumer learns, in the random-permutation
-  model of `LeanVm.lean`: the verifier accepts a proof of `guest` on the digest of
-  a statement `s` under the deployed seed, `s` passing the outer verifier's other checks
-  (`OuterChecks`), while the execution the knowledge extractor `extractorRpm` reads off the proof
-  and the adversary's transcript is none, or does not explain `s` (`Explains`: decode to the
-  deployed seed, `s` and a witness holding it, or give a Keccak-256 collision among
-  `collisionCandidates`), with probability at most the bound of `KnowledgeSoundness`.
-
-Both hold of any decoder that happens to output valid witnesses; their content is in the decoder
-the theorems name (`LeanVM.Guest.End.decode`), which reads every component off the memory: the
-statement from `main`'s frame, each signature, matrix and child proof from the frame of the
-function that checked it, the first frame of the memory at which that function's code holds on
-the call's words. The decoder chooses nothing. It computes no hash and runs no verifier of its own;
-it finds each call's frame as the first of the memory's `2^κ` frames at which the guest's own code
-for the callee holds on the call's words (a classical test of the guest's semantics, which
-includes its in-circuit checks), and reads the witness there. The seed is the guest's hint:
-the statement's digest binds it, so a consumer comparing the digest with its own statement's under
-the deployed seed learns both, unless it holds a Keccak-256 collision.
-
-At leanVM `94ee12ff6b2a3d42ba8328e22d09443692e4800b` the statement's preimage is hashed as it is,
-without the zero fill to whole blocks that BLAKE2s had (`statement_digest`,
-`crates/rec_aggregation/src/aggregation.rs:347-368`): `statementPreimage` is those bytes, and the
-former `statementBytes` (the bytes before the fill) is gone.
--/
-
-namespace LeanVM.Node
-
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Protocol LeanVM.Protocol.KeccakHash
-open LeanVM.Protocol.Compile LeanVM.Protocol.Verifier
-open scoped ENNReal
-
-@[expose] public section
-
-/-! ### The bytes each digest hashes, and the candidate collisions -/
-
-/-- The deferred claim's cells, an odd count paired with a zero cell. -/
-def paddedCells (c : DeferredClaim) : List E :=
-  c.cells ++ if c.cells.length % 2 = 1 then [0] else []
-
-/-- The bytes `statementDigest seed s` hashes: the seed, the signer set's and the DA claims'
-digests, then the padded deferred cells. -/
-def statementPreimage (seed : Digest) (s : NodeStatement) : List UInt8 :=
-  digestBytes seed ++ digestBytes (signersDigest s.claims.xmss s.claims.sphincs) ++
-    digestBytes (daListDigest s.claims.da) ++ (paddedCells s.defer).flatMap eBytes
-
-/-- The bytes `signersDigest xmss sphincs` hashes. -/
-def signersPreimage (xmss : List XmssClaim) (sphincs : List SphincsClaim) : List UInt8 :=
-  digestBytes (xmssListDigest xmss) ++ digestBytes (sphincsListDigest sphincs)
-
-/-- The bytes `xmssListDigest claims` hashes. -/
-def xmssPreimage (claims : List XmssClaim) : List UInt8 :=
-  claims.flatMap fun c ↦ claimBytes c.1.root c.1.parameter c.2
-
-/-- The bytes `sphincsListDigest claims` hashes. -/
-def sphincsPreimage (claims : List SphincsClaim) : List UInt8 :=
-  claims.flatMap fun c ↦ claimBytes c.1.root c.1.parameter c.2
-
-/-- The bytes `daListDigest claims` hashes. -/
-def daPreimage (claims : List DaClaim) : List UInt8 :=
-  claims.flatMap fun c ↦ digestBytes c.daRoot ++ digestBytes c.membershipVectorDigest
+/-! ## What a proof of the guest establishes, its witness named -/
 
 /-- **The candidate collisions** of two statements' digests: the pairs of inputs of the five
 hashes the digests compute, the outer one, the signer set's, the two claim lists' and the DA
@@ -956,21 +445,14 @@ def collisionCandidates (seed : Digest) (s : NodeStatement) (seed' : Digest)
 def HasCollision (pairs : List (List UInt8 × List UInt8)) : Prop :=
   ∃ p ∈ pairs, p.1 ≠ p.2 ∧ keccak256 p.1 = keccak256 p.2
 
-/-! ### Decoders -/
-
 /-- What a decoder reads off a memory: a seed, a statement and a witness. -/
 structure Decoded where
-  /-- The seed. -/
   seed : Digest
-  /-- The statement. -/
   statement : NodeStatement
-  /-- The witness. -/
   witness : NodeWitness
 
 /-- A decoder: from a memory, a seed, a statement and a witness. -/
 abbrev Decoder : Type := ∀ {κ : ℕ}, MemImage κ → Decoded
-
-/-! ### What a proof of the guest establishes -/
 
 /-- **What a valid execution of `guest` on `input` decodes to** (`d`): a statement of the input's
 digest under the decoded seed, and a witness holding it for the guest's bytecode. -/
@@ -978,7 +460,9 @@ def DecodesOn (guest : Program) (input : PublicInput) (d : Decoded) : Prop :=
   statementDigest d.seed d.statement = publicDigest input ∧
     NodeRel (bytecodeWords guest) d.seed d.statement d.witness
 
-/-- **Knowledge soundness of the guest, its witness named**: every valid execution decodes. -/
+/-- **Knowledge soundness of the guest, its witness named**: every valid execution of `guest` on a
+public input decodes to a statement of that input's digest under the decoded seed, and a witness
+holding it. -/
 def GuestKnowledge (guest : Program) (decode : Decoder) : Prop :=
   ∀ input (t : Trace guest), ValidExecution guest input t → DecodesOn guest input (decode t.image)
 
@@ -990,46 +474,22 @@ def Explains (guest : Program) (s : NodeStatement) (d : Decoded) : Prop :=
       NodeRel (bytecodeWords guest) (deployedSeed guest) s d.witness) ∨
     HasCollision (collisionCandidates d.seed d.statement (deployedSeed guest) s)
 
-end
-end LeanVM.Node
-
-end
-
-@[expose] public section
-
-/-!
-## The outer verifier's acceptance, explained
-
-`AggregateSound guest decode`: in the random-permutation experiment of `LeanVm.lean`
-(`rpmExperiment`), the verifier accepts a proof of `guest` on the digest, under the deployed seed,
-of a statement `s` that passes the outer verifier's other checks (`OuterChecks`, above),
-while the execution the knowledge extractor `extractorRpm` reads off the proof and the adversary's
-transcript is none, or does not explain `s` (`Explains`, above: decode to the deployed
-seed, `s` and a witness holding it, or give a Keccak-256 collision among `collisionCandidates`),
-with probability at most `(Q + 2^14) · 2^-128 + 7 (Q + 2^14)² · 2^-256`, the bound of
-`KnowledgeSoundness`, for an adversary of at most `Q ≤ 2^128` queries to `π` and `π⁻¹`.
-
-Keccak-256 and Keccak-f[1600] outside the executed program are built from the random permutation;
-the statement's digest and the collisions are of the deployed Keccak-256, which the guest
-computes.
--/
-
-namespace LeanVM.Node
-
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Protocol LeanVM.Protocol.KeccakHash
-open OracleComp OracleSpec
-open scoped ENNReal
-
-/-- **The outer verifier's acceptance, explained.** The adversary, querying `π` and `π⁻¹`,
-outputs a proof. The event: the verifier accepts it as a proof of `guest` on the digest, under
-the deployed seed, of a statement `s` that passes the outer verifier's other checks, and yet the
-execution the knowledge extractor `extractorRpm` reads off the adversary's transcript and the
-proof does not explain `s`. Its probability is at most the bound of `KnowledgeSoundness`,
-`(Q + 2^14) · 2^-128 + 7 (Q + 2^14)² · 2^-256`, for an adversary of at most `Q ≤ 2^128` queries. -/
+open OracleComp OracleSpec in
+/-- **The outer verifier's acceptance, explained.** In the random-permutation experiment of
+`LeanVm.lean`, the adversary, querying `π` and `π⁻¹`, outputs a proof. The event: the verifier
+accepts it as a proof of `guest` on the digest, under the deployed seed, of a statement `s` whose
+deferred claim has the guest's shape, and yet the execution the knowledge extractor `extractorRpm`
+reads off the adversary's transcript and the proof does not explain `s` (`Explains`: decode to
+the deployed seed, `s` and a witness holding it, or give a Keccak-256 collision among
+`collisionCandidates`). Its probability is at most the bound of `KnowledgeSoundness`,
+`(Q + 2^14) · 2^-128 + 7 (Q + 2^14)² · 2^-256`, for an adversary of at most `Q ≤ 2^128` queries.
+Keccak-256 and Keccak-f[1600] outside the executed program are built from `π`; the statement's
+digest and the collisions are of the deployed Keccak-256, which the guest computes. -/
 def AggregateSound (guest : Program) (decode : Decoder) : Prop :=
   ∀ (A : RpmAdversary) (Q : ℕ), A.IsTotalQueryBound Q → Q ≤ 2 ^ 128 →
     Pr{let z ← rpmExperiment A}[∃ s : NodeStatement, z.accepted ∧ z.program = guest ∧
-      publicDigest z.input = statementDigest (deployedSeed guest) s ∧ OuterChecks guest s ∧
+      publicDigest z.input = statementDigest (deployedSeed guest) s ∧
+      s.defer.Shaped (bytecodeWords guest) ∧
       ¬ ∃ t, extractorRpm z.program z.input z.transcript z.proof = some t ∧
         Explains guest s (decode t.image)] ≤
       (Q + 2 ^ 14 : ℝ≥0∞) * (2 : ℝ≥0∞)⁻¹ ^ 128 +
@@ -1037,61 +497,24 @@ def AggregateSound (guest : Program) (decode : Decoder) : Prop :=
 
 end LeanVM.Node
 
-end
-
-/-! ## The deployed guest -/
-
-section
-
 namespace LeanVM.Guest
-
-open LeanVM.Parameters LeanVM.Semantics
-
-@[expose] public section
-
-/-- The aggregation guest's bytecode. -/
-def guest : Program := assemble Data.functions 19 (by decide)
-
-end
-end LeanVM.Guest
-
-end
-
-section
-
-namespace LeanVM.Guest.End
-
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Protocol LeanVM.Protocol.KeccakHash
-
-@[expose] public section
-
-/-- The guest's bytecode, as the verifier and `NodeSpec` read it. -/
-abbrev bytecode : List K := bytecodeWords guest
-
-/-- The public input a digest is: its four words, the digest's halves in memory words `0` and `1`
-(`Front.publicInputOfDigest`). -/
-abbrev publicInputOf (d : Digest) : PublicInput := EndToEnd.Front.publicInputOfDigest d
-
-end
-end LeanVM.Guest.End
-
-end
-
-/-! ## The honest streams' plan, which the limits read -/
-
-section
-
-namespace LeanVM.Guest.Hints
 
 open LeanVM.Parameters LeanVM.Semantics LeanVM.Protocol LeanVM.Protocol.KeccakHash
 open LeanVM.Protocol.Compile LeanVM.Protocol.Verifier LeanVM.Node
 
-@[expose] public section
+/-! ## The deployed guest -/
 
-/-- `STREAM_CAP` (`aggregation.rs:1392`): a child's proof stream is zero-padded to it. -/
+/-- The aggregation guest's bytecode. -/
+def guest : Program := assemble Data.functions 19 (by decide)
+
+/-! ## The honest streams' plan, which the limits read -/
+
+namespace Hints
+
+/-- `STREAM_CAP` (`aggregation.rs:1355`): a child's proof stream is zero-padded to it. -/
 def streamCap : ℕ := 8192
 
-/-- `MU_MIN` (`aggregation.rs:1383`): the least stack log the guest has an opening arm for. -/
+/-- `MU_MIN` (`aggregation.rs:1346`): the least stack log the guest has an opening arm for. -/
 def muMin : ℕ := 22
 
 /-- A claim takes its declared slot if it is free, else the next duplicate slot (`take_slot`).
@@ -1121,14 +544,11 @@ def takeSlotsAll {α : Type} [BEq α] (declared : List α) :
     let (is, st) := takeSlotsAll declared st cs
     (i :: is, st)
 
-/-- One region of the coverage table: its duplicate claims, and the slot of every raw claim and
-of every child's claims. -/
+/-- One region of the coverage table: its duplicate claims, in slot order, and the slot of every
+raw claim and of every child's claims. -/
 structure Region (α : Type) where
-  /-- The duplicate claims, in slot order. -/
   dups : List α
-  /-- The raw claims' slots. -/
   raw : List ℕ
-  /-- Per child, its claims' slots. -/
   children : List (List ℕ)
 
 /-- The region of the declared claims: the raw claims take their slots, then the children's. -/
@@ -1153,43 +573,9 @@ def childStart (seed : Digest) (c : Child) : St :=
   ⟨⟨keccakF (seedInput seed (statementDigest seed c.statement)), []⟩, c.proof.stream,
     c.proof.openings, []⟩
 
-end
-end LeanVM.Guest.Hints
-
-end
-
-section
-
-namespace LeanVM.Guest
-
-open LeanVM.Parameters LeanVM.Protocol.Verifier LeanVM.Node
-
-@[expose] public section
-
-/-- **A child's announced stack log and rate** (`readSizes`, `Verifier.announced`): the opening
-arm its `verify_sub` dispatches to (G:3314-3316); `(0, 0)` if its stream announces none, which no
-child of a node within `Limits`, its caps agreeing and no zero challenge, does
-(`B1.Main.childShape_bounds`). -/
-def childShape (bytecode : List K) (c : Child) : ℕ × ℕ :=
-  match announced bytecode c.proof.stream with
-  | some (layout, r) => (layout.stackLog, r)
-  | none => (0, 0)
-
-end
-end LeanVM.Guest
-
-end
+end Hints
 
 /-! ## The deployed limits -/
-
-section
-
-namespace LeanVM.Guest
-
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Protocol LeanVM.Protocol.KeccakHash
-open LeanVM.Protocol.Compile LeanVM.Protocol.Verifier LeanVM.Node
-
-@[expose] public section
 
 namespace Limits
 
@@ -1360,8 +746,7 @@ def BatchAgrees (depth : ℕ) (qs : List (ℕ × Opening)) : Prop :=
 
 end Limits
 
-open Limits
-
+open Limits in
 /-- **No zero challenge where the guest divides** (`G:1253, 1560, 1565`): every child's proof is
 accepted by the deferring verifier whose stacked opening also refuses a zero fold challenge, a
 zero tail challenge and a zero level batching challenge `λ`, under the node's seed. -/
@@ -1369,6 +754,7 @@ def NoZeroChallenge (bytecode : List K) (seed : Digest) (w : NodeWitness) : Prop
   ∀ c ∈ w.children,
     verifyDeferredNZ bytecode seed (statementDigest seed c.statement) c.fresh c.proof = true
 
+open Limits in
 /-- **A child's openings agree in the guest's Merkle caps**: at every query step of each child's
 deferring verifier, run under the node's seed, the step's openings agree wherever they meet. One
 tree's openings, the honest prover's, agree. -/
@@ -1426,87 +812,31 @@ structure Limits (bytecode : List K) (s : NodeStatement) (w : NodeWitness) : Pro
   /-- 6. At least one declared claim (G:4174). -/
   nonempty : 0 < s.claims.xmss.length + s.claims.sphincs.length + s.claims.da.length
 
-end
-end LeanVM.Guest
+/-! ## The guest's completeness on the covered nodes -/
 
-end
+namespace Budget
 
-/-! ## A node's work -/
-
-section
-
-namespace LeanVM.Guest.End
-
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Node
-open LeanVM.Protocol LeanVM.Protocol.KeccakHash
-open scoped ENNReal
-
-@[expose] public section
-
-/-- **A node's work**: what the size of its run grows with. -/
-structure Work where
-  /-- The declared claims, of the three lists. -/
-  declared : ℕ
-  /-- The coverage table's slots. -/
-  coverage : ℕ
-  /-- The raw leanXMSS signatures. -/
-  rawXmss : ℕ
-  /-- The raw leanSPHINCS signatures. -/
-  rawSphincs : ℕ
-  /-- The blob matrices held directly. -/
-  rawDa : ℕ
-  /-- Their rows: the blobs held directly. -/
-  rawDaRows : ℕ
-  /-- The children. -/
-  children : ℕ
-  /-- The children's declared claims, of the three lists. -/
-  childClaims : ℕ
-  /-- Each child's announced stack log and rate (`childShape`). -/
-  childShapes : List (ℕ × ℕ)
-
-/-- The work of the node `s` with the witness `w`. -/
-def work (s : NodeStatement) (w : NodeWitness) : Work where
-  declared := s.claims.xmss.length + s.claims.sphincs.length + s.claims.da.length
-  coverage := coverage s w
-  rawXmss := (Hints.direct s.claims.xmss w.xmss).length
-  rawSphincs := (Hints.direct s.claims.sphincs w.sphincs).length
-  rawDa := (Hints.direct s.claims.da w.da).length
-  rawDaRows := ((Hints.direct s.claims.da w.da).map fun p ↦ p.2.rows.length).sum
-  children := w.children.length
-  childClaims := (w.children.map fun c ↦ c.statement.claims.xmss.length +
-    c.statement.claims.sphincs.length + c.statement.claims.da.length).sum
-  childShapes := w.children.map (childShape bytecode)
-
-end
-end LeanVM.Guest.End
-
-end
-
-@[expose] public section
-
-/-! ### The guest's completeness on the covered nodes -/
-
-namespace LeanVM.Guest.Budget
-
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest LeanVM.Node LeanVM.Protocol
-open LeanVM.Protocol.KeccakHash
-open LeanVM.Guest.End (work bytecode publicInputOf)
+open Hints
 
 /-- **Every recursion node of at most `2048` claims has a valid execution of the guest**: for
 every seed, statement `s` and witness `w` with `NodeRel`, within the deployed limits (so at most
 `16` children, each at one of the guest's opening arms), the caps agreeing and no zero challenge
 where the guest divides, holding no raw leanXMSS or leanSPHINCS signature and no blob directly,
-with at most `2048` declared claims, coverage slots and children's claims, there is a valid
-execution of the guest on the statement's digest of committed size in `[2^22, 2^28]`. Proved by
-`LeanVM.Guest.Budget.guest_complete_recursion`. -/
+with at most `2048` declared claims, coverage slots and children's declared claims, there is a
+valid execution of the guest on the statement's digest of committed size in `[2^22, 2^28]`. Proved
+by `LeanVM.Guest.Budget.guest_complete_recursion`. -/
 abbrev GuestCompleteRecursion : Prop :=
   ∀ (seed : Digest) (s : NodeStatement) (w : NodeWitness),
-    NodeRel bytecode seed s w → Limits bytecode s w →
-    CapsAgree bytecode seed w → NoZeroChallenge bytecode seed w →
-    (work s w).rawXmss = 0 → (work s w).rawSphincs = 0 → (work s w).rawDa = 0 →
-    (work s w).declared ≤ 2048 → (work s w).coverage ≤ 2048 →
-    (work s w).childClaims ≤ 2048 →
-    ∃ t : Trace guest, ValidExecution guest (publicInputOf (statementDigest seed s)) t ∧
+    NodeRel (bytecodeWords guest) seed s w → Limits (bytecodeWords guest) s w →
+    CapsAgree (bytecodeWords guest) seed w → NoZeroChallenge (bytecodeWords guest) seed w →
+    (direct s.claims.xmss w.xmss).length = 0 → (direct s.claims.sphincs w.sphincs).length = 0 →
+    (direct s.claims.da w.da).length = 0 →
+    s.claims.xmss.length + s.claims.sphincs.length + s.claims.da.length ≤ 2048 →
+    coverage s w ≤ 2048 →
+    (w.children.map fun c ↦ c.statement.claims.xmss.length + c.statement.claims.sphincs.length +
+      c.statement.claims.da.length).sum ≤ 2048 →
+    ∃ t : Trace guest,
+      ValidExecution guest (EndToEnd.Front.publicInputOfDigest (statementDigest seed s)) t ∧
       2 ^ 22 ≤ t.committedSize ∧ t.committedSize ≤ 2 ^ 28
 
 /-- **Every leaf of at most `2048` raw signatures has a valid execution of the guest**: for every
@@ -1517,55 +847,32 @@ statement's digest of committed size in `[2^22, 2^28]`. Proved by
 `LeanVM.Guest.Budget.guest_complete_leaf`. -/
 abbrev GuestCompleteLeaf : Prop :=
   ∀ (seed : Digest) (s : NodeStatement) (w : NodeWitness),
-    NodeRel bytecode seed s w → Limits bytecode s w →
-    CapsAgree bytecode seed w → NoZeroChallenge bytecode seed w →
-    w.children = [] → (work s w).rawDa = 0 →
-    (work s w).rawXmss + (work s w).rawSphincs ≤ 2048 →
-    (work s w).declared ≤ 2048 → (work s w).coverage ≤ 2048 →
-    ∃ t : Trace guest, ValidExecution guest (publicInputOf (statementDigest seed s)) t ∧
+    NodeRel (bytecodeWords guest) seed s w → Limits (bytecodeWords guest) s w →
+    CapsAgree (bytecodeWords guest) seed w → NoZeroChallenge (bytecodeWords guest) seed w →
+    w.children = [] → (direct s.claims.da w.da).length = 0 →
+    (direct s.claims.xmss w.xmss).length + (direct s.claims.sphincs w.sphincs).length ≤ 2048 →
+    s.claims.xmss.length + s.claims.sphincs.length + s.claims.da.length ≤ 2048 →
+    coverage s w ≤ 2048 →
+    ∃ t : Trace guest,
+      ValidExecution guest (EndToEnd.Front.publicInputOfDigest (statementDigest seed s)) t ∧
       2 ^ 22 ≤ t.committedSize ∧ t.committedSize ≤ 2 ^ 28
 
-end LeanVM.Guest.Budget
+end Budget
 
-end
+/-! ## The recursion step: the batching in the random-permutation model
 
-/-! ## The recursion step: the batching in the random-permutation model -/
+The batching (`batch`) written as a program of the verifier's language (`Prog`): `batchAny M
+bytecode` reads the count `n < M` as `g^n` then three zeros (`readCount`), `n` children of
+`bytecode`'s shapes, each its words then zeros to a whole rate (`readChildren`), then samples the
+lambdas, runs the sumcheck's `log₂ |bytecode|` rounds (`roundsProg`), reads the final value, and
+accepts if the final claim is the value times the batched weight and the deferred claim holds of
+`bytecode` (`batchRest`). It runs from the batching transcript's seed `F(H(label) ‖ 0)`
+(`batchVerifier`). That the program, run with Keccak-256 and Keccak-f[1600] on the stream of a
+node's children and hints, accepts exactly where `batch` defers a claim that holds is proved in
+`lean_vm` (`LeanVM.Guest.Batch.runProof_batchAny`). The experiment is `rpmRun` (`LeanVm.lean`),
+the adversary's output with the unit statement (the batching has no statement of its own). -/
 
-section
-
-/-!
-A node batches its children's claims on the bytecode (`batch`, above): one transcript absorbs
-the children's count and every child's public input and claims, squeezes two lambdas per child,
-and one sumcheck reduces every child's two claims to one claim at a point, which the node defers.
-`BatchSound` bounds the probability that this reduction accepts while a child's claim is false: the recursion step, the guest's batching sound on its own. This is the
-batching run outside the circuit, with Keccak-f[1600] = `π`; it does not compose with the guest's
-in-circuit statements, whose `KECCAK` instruction computes the deployed Keccak-f[1600], so soundness
-across recursion levels does not follow from it.
-
-The batching is written as a program of the verifier's language (`Prog`, `LeanVmVerifier.lean`):
-`batchAny M bytecode` reads the count `n < M` as `g^n` then three zeros (`readCount`), `n`
-children of `bytecode`'s shapes, each its words then zeros to a whole rate (`readChildren`), then
-samples the lambdas, runs the sumcheck's `log₂ |bytecode|` rounds (`roundsProg`), reads the final
-value, and accepts if the final claim is the value times the batched weight and the deferred claim
-holds of `bytecode` (`batchRest`). It runs from the batching transcript's seed `F(H(label) ‖ 0)`
-(`batchVerifier`, `batchSeed` with any `H` and `F`). That the program, run with Keccak-256 and
-Keccak-f[1600] on the stream of a node's children and hints, accepts exactly where `batch` defers
-a claim that holds is proved in `lean_vm` (`LeanVM.Guest.Batch.runProof_batchAny`).
-
-The experiment is `rpmRun` (`LeanVm.lean`), the adversary's output with the unit statement (the
-batching has no statement of its own); the event, `FalseChildren`; `QV = batchQueryBound
-bytecode M`. Proved by `LeanVM.Guest.Batch.batch_sound_holds` (`lean_vm`).
--/
-
-namespace LeanVM.Guest.Batch
-
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Protocol LeanVM.Protocol.KeccakHash
-open LeanVM.Protocol.Compile LeanVM.Protocol.Verifier LeanVM.Node
-open scoped ENNReal
-
-@[expose] public section
-
-/-! ### A child's words -/
+namespace Batch
 
 /-- The words of a child at `nB` bytecode coordinates: its public input's two, its proof's
 claim, its statement's claim. -/
@@ -1612,8 +919,6 @@ noncomputable def readCount (M : ℕ) : Prog ℕ := do
   Prog.require (xs.drop 1 = List.replicate (rateScalars - 1) 0)
   liftOption (countOf M (xs.getD 0 0))
 
-/-! ### The lambdas and the rounds -/
-
 /-- Sample a pair of lambdas per child. -/
 def sampleL : ℕ → Prog (List (E × E))
   | 0 => pure []
@@ -1623,13 +928,8 @@ def sampleL : ℕ → Prog (List (E × E))
     let l ← sampleL n
     return (a, b) :: l
 
-/-- **The round polynomial** from the claim before the round and its message `(g(1), g(∞))`:
-`g(0) = claim + g(1)`, and `g(x) = (g(∞)·x + g(0) + g(1) + g(∞))·x + g(0)`. -/
-def roundPoly (claim : E) (g : E × E) (x : E) : E :=
-  (g.2 * x + ((claim + g.1) + g.1 + g.2)) * x + (claim + g.1)
-
 /-- `k` rounds of the batching sumcheck from `claim`: read `g(1)` and `g(∞)`, sample the
-challenge, fold. The challenges and the final claim. -/
+challenge, fold (`roundPoly`). The challenges and the final claim. -/
 def roundsProg : E → ℕ → Prog (List E × E)
   | claim, 0 => pure ([], claim)
   | claim, k + 1 => do
@@ -1638,17 +938,6 @@ def roundsProg : E → ℕ → Prog (List E × E)
     let r ← Prog.sampleE
     let rest ← roundsProg (roundPoly claim (g1, gInf) r) k
     return (r :: rest.1, rest.2)
-
-/-! ### The program -/
-
-/-- The bytecode's batched claim at the lambdas `lB`. -/
-def claimBOf (cs : List ChildClaims) (lB : List (E × E)) : E :=
-  sumE (List.zipWith (fun c l ↦ l.1 * c.fresh.bytecodeValue + l.2 * c.carried.bytecodeValue) cs lB)
-
-/-- The bytecode's batched weight at `y`. -/
-def bytecodeWeight (cs : List ChildClaims) (lB : List (E × E)) (y : List E) : E :=
-  sumE (List.zipWith (fun c l ↦
-    l.1 * eqEval c.fresh.bytecodePoint y + l.2 * eqEval c.carried.bytecodePoint y) cs lB)
 
 open Classical in
 /-- **The batching after its children**: the lambdas and the sumcheck, the final value, the
@@ -1680,8 +969,6 @@ noncomputable def batchVerifier {m : Type → Type} [Monad m] (H : Bytes → m D
   let seed ← F (seedInput (← H batchLabel) (Vector.replicate 4 0))
   runProof H F (batchAny M bytecode) seed proof
 
-/-! ### The event and the bound -/
-
 /-- The count's cells: the generator's power, padded to a whole rate. -/
 def headCells (n : ℕ) : List E := padRate [Verifier.gpow n]
 
@@ -1704,25 +991,14 @@ def batchQueryBound (bytecode : List K) (M : ℕ) : ℕ :=
   2 + (rateScalars + (M * (childLen (Nat.log2 bytecode.length) +
     padLen (childLen (Nat.log2 bytecode.length)) + 8) + 6 * Nat.log2 bytecode.length + 1)) / 4
 
-end
-end LeanVM.Guest.Batch
-
-end
-
-@[expose] public section
-
-namespace LeanVM.Guest.Batch
-
-open LeanVM.Parameters LeanVM.Protocol LeanVM.Rpm OracleComp OracleSpec
-open scoped ENNReal
-
+open LeanVM.Rpm OracleComp OracleSpec in
 /-- **The batching in the random-permutation model.** For a bytecode of power-of-two length and
 a bound `M ≤ 2^64 - 1` on the children's count: an adversary of `QA` queries to `π` and `π⁻¹`
 outputs a proof; the probability that the batching's verifier, Keccak-256 the sponge over `π` and
 Keccak-f[1600] `π`, accepts it while its stream begins with fewer than `M` children of the
 bytecode's shapes one of whose claims is false is at most
 `(QA + QV + 1) · 2^-191 + 5 (QA + QV)² · 2^-256`, for `QA ≤ 2^128` and the program's query bound
-`QV ≤ 2^96`.
+`QV = batchQueryBound bytecode M ≤ 2^96`.
 
 This is the batching run outside the circuit, with Keccak-f[1600] = `π`; it does not compose with
 the guest's in-circuit statements, whose `KECCAK` instruction computes the deployed Keccak-f[1600],
@@ -1736,6 +1012,8 @@ def BatchSound : Prop :=
       (((QA + batchQueryBound bytecode M : ℕ) : ℝ≥0∞) + 1) * (2 : ℝ≥0∞)⁻¹ ^ 191 +
         5 * ((QA + batchQueryBound bytecode M : ℕ) : ℝ≥0∞) ^ 2 * (2 : ℝ≥0∞)⁻¹ ^ 256
 
-end LeanVM.Guest.Batch
+end Batch
+
+end LeanVM.Guest
 
 end

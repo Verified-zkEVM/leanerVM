@@ -30,8 +30,8 @@ import LeanVMTests.Spec.NodeVectors
   hints are the Python's honest sumcheck messages; Lean's transcript must squeeze the same
   challenges for the claim to close at the Python's point, which is a true claim on the table.
   Mutations: a wrong final value, or a child's false claim, and the batching rejects.
-* `batch` on no children is inhabited; `verifyAggregate`'s vector-digest condition rejects a
-  digest other than the root's.
+* `batch` on no children is inhabited; the outer verifier's vector digest (`vectorDigestOf`)
+  differs from a root's own bytes.
 * The Rust vectors (`NodeVectors.lean`, written by `scripts/guest-export` from the deployed
   `crates/rec_aggregation/src/aggregation.rs` at the guest's shape, `bytecode_vars = 23`): the
   statement's encodings and the batching of two children's true claims on the guest's stacked

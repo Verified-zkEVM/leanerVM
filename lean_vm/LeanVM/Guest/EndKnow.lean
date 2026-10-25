@@ -104,11 +104,11 @@ theorem decode_binds_of (h : SoundHyps W) {input : PublicInput} {t : Trace guest
   exact decoded_binds hs₀ hrel.1 hpub hd
 
 /-- **Soundness, the existential form**: a valid execution of the guest on `input` gives a seed
-and a statement of the input's digest of the guest's shape that a witness holds (`NodeSpec`). -/
+and a statement of the input's digest of the guest's shape that a witness holds (`NodeRel`). -/
 theorem guest_sound_of (h : SoundHyps W) (input : PublicInput) (t : Trace guest)
     (hv : ValidExecution guest input t) :
     ∃ seed s, statementDigest seed s = publicDigest input ∧ s.defer.Shaped bytecode ∧
-      NodeSpec bytecode seed s := by
+      ∃ w, NodeRel bytecode seed s w := by
   obtain ⟨hd, hrel⟩ := guest_knowledge_of h input t hv
   exact ⟨_, _, hd, hrel.1, _, hrel⟩
 

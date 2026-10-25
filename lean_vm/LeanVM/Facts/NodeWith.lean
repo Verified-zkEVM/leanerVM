@@ -1,9 +1,12 @@
 /-
   LeanVM.Facts.NodeWith
 
-  The node relation with any hash and permutation (`Statement/LeanVmGuest.lean`) at
-  Keccak-256 and Keccak-f[1600] is the deployed one: the `*_id` lemmas.
-  The definitions are the statement's; these are proofs.
+  The node's hashing functions with any hash `H : Bytes → m Digest` and permutation
+  `F : KState → m KState` in any monad (`…With`), as the verifier is (`verifier H F`): moved here
+  from `Statement/LeanVmGuest.lean`, names kept (no end statement names them), and at `m = Id`,
+  Keccak-256 and Keccak-f[1600] the deployed ones: the `*_id` lemmas. The digests and the
+  signature schemes use only `H`; the batching's transcript only `F`, from a parameter state `s0`
+  (deployed: `batchSeed`).
 -/
 
 module
@@ -29,6 +32,96 @@ open LeanVM.Protocol.Compile LeanVM.Protocol.Verifier
 section With
 
 variable {m : Type → Type} [Monad m] (H : Bytes → m Digest) (F : KState → m KState)
+
+/-! ### The signature schemes -/
+
+/-- leanXMSS verification with the hash `H`. -/
+def xmssVerifyWith (pk : LeanXmss.PublicKey) (message : LeanXmss.Message)
+    (σ : LeanXmss.Signature) : m Bool :=
+  letI : HasQuery LeanXmss.HashSpec m := ⟨fun x ↦ digestBits <$> H x⟩
+  LeanXmss.Concrete.verify pk message σ
+
+/-- leanSPHINCS verification with the hash `H`. -/
+def sphincsVerifyWith (pk : Sphincs.PublicKey) (message : Sphincs.Message)
+    (σ : Sphincs.Signature) : m Bool :=
+  letI : HasQuery Sphincs.HashSpec m := ⟨fun x ↦ digestBits <$> H x⟩
+  Sphincs.Concrete.verify pk message σ
+
+/-! ### The statement's digest -/
+
+/-- `xmssListDigest` with the hash `H`. -/
+def xmssListDigestWith (claims : List XmssClaim) : m Digest :=
+  H (claims.flatMap fun c ↦ claimBytes c.1.root c.1.parameter c.2)
+
+/-- `sphincsListDigest` with the hash `H`. -/
+def sphincsListDigestWith (claims : List SphincsClaim) : m Digest :=
+  H (claims.flatMap fun c ↦ claimBytes c.1.root c.1.parameter c.2)
+
+/-- `signersDigest` with the hash `H`. -/
+def signersDigestWith (xmss : List XmssClaim) (sphincs : List SphincsClaim) : m Digest := do
+  let x ← xmssListDigestWith H xmss
+  let s ← sphincsListDigestWith H sphincs
+  H (digestBytes x ++ digestBytes s)
+
+/-- `daListDigest` with the hash `H`. -/
+def daListDigestWith (claims : List DaClaim) : m Digest :=
+  H (claims.flatMap fun c ↦ digestBytes c.daRoot ++ digestBytes c.membershipVectorDigest)
+
+/-- **`statementDigest` with the hash `H`.** -/
+def statementDigestWith (seed : Digest) (s : NodeStatement) : m Digest := do
+  let sd ← signersDigestWith H s.claims.xmss s.claims.sphincs
+  let dd ← daListDigestWith H s.claims.da
+  let cells := s.defer.cells ++ if s.defer.cells.length % 2 = 1 then [0] else []
+  H (digestBytes seed ++ digestBytes sd ++ digestBytes dd ++ cells.flatMap eBytes)
+
+/-! ### The batching -/
+
+/-- A Fiat-Shamir chain with the permutation `F`. -/
+abbrev ChainWith : Type → Type := StateT Sponge m
+
+/-- `observe` with the permutation `F`. -/
+def observeWith (x : E) : ChainWith (m := m) Unit := do
+  set (← (Compile.absorb F (← get) x dsObserve : m Sponge))
+
+/-- `sample` with the permutation `F`. -/
+def sampleWith : ChainWith (m := m) E := do
+  let (c, sp) ← (Compile.squeeze F (← get) : m (E × Sponge))
+  set sp
+  return c
+
+/-- `batchRounds` with the permutation `F`. -/
+def batchRoundsWith : E → List (E × E) → ChainWith (m := m) (List E × E)
+  | claim, [] => return ([], claim)
+  | claim, (g1, gInf) :: rest => do
+    observeWith F g1
+    observeWith F gInf
+    let r ← sampleWith F
+    let (rs, final) ← batchRoundsWith (Guest.Batch.roundPoly claim (g1, gInf) r) rest
+    return (r :: rs, final)
+
+/-- `batchSeed` with the hash `H` and the permutation `F`. -/
+def batchSeedWith : m KState := do
+  F (seedInput (← H batchLabel) (Vector.replicate 4 0))
+
+/-- **`batch` with the permutation `F`, from the sponge state `s0`** (deployed: `batchSeed`). -/
+def batchWith (s0 : KState) (children : List ChildClaims) (h : BatchHints) :
+    m (Option DeferredClaim) :=
+  go.run' ⟨s0, []⟩
+where
+  /-- The transcript. -/
+  go : ChainWith (m := m) (Option DeferredClaim) := do
+    for x in padRate [gpow children.length] do observeWith F x
+    for c in children do
+      for x in padRate c.words do observeWith F x
+    let mut lambdas : List (E × E) := []
+    for _ in children do
+      let lf ← sampleWith F
+      let lc ← sampleWith F
+      lambdas := lambdas ++ [(lf, lc)]
+    let (r, final) ← batchRoundsWith F (Guest.Batch.claimBOf children lambdas) h.bytecodeRounds
+    if final = h.bytecodeValue * Guest.Batch.bytecodeWeight children lambdas r then
+      return some ⟨r, h.bytecodeValue⟩
+    else return none
 
 /-- `keccakBits` is `digestBits` of Keccak-256. -/
 theorem keccakBits_eq (input : List UInt8) : keccakBits input = digestBits (keccak256 input) :=

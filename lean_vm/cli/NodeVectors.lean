@@ -1,4 +1,5 @@
 import LeanVM.Guest.Bytecode
+import LeanVM.Facts.DaWith
 import LeanVMTests.Guest.Manifest
 import LeanVMTests.Spec.NodeVectors
 

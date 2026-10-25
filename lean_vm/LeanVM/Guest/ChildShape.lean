@@ -8,6 +8,7 @@
 module
 
 public import Statement.LeanVmGuest
+public import LeanVM.Facts.Guest
 public import LeanXmss.Scheme
 public import Sphincs.Scheme
 public import Statement.Fast.Schemes
