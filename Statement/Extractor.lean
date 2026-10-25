@@ -49,10 +49,10 @@ It does four things.
    are the stacks whose encoding (`encode`) agrees with the word on at least the Johnson
    threshold of columns (`johnsonThreshold`): the stacks of the Johnson list of the word.
 4. **The execution** (`extract`). For a candidate, the memory image its memory columns hold
-   (`memoryImage`), run from the initial state `(pcInitial, fpInitial)` until it halts (`haltingRun`). The extractor
-   returns such an execution that is a valid execution of the program on the public input, if a
-   candidate gives one, and `none` otherwise. The choice among several is classical; it is
-   information-theoretic, not an algorithm with a running time.
+   (`memoryImage`), run from the initial state `(pcInitial, fpInitial)` until it halts
+   (`haltingRun`). The extractor returns such an execution that is a valid execution of the program
+   on the public input, if a candidate gives one, and `none` otherwise. The choice among several is
+   classical; it is information-theoretic, not an algorithm with a running time.
 
 Every citation `verifier.py:N` is a line of `python-verifier/verifier.py` at leanVM
 `94ee12ff6b2a3d42ba8328e22d09443692e4800b`, the commit `LeanVmVerifier.lean` transcribes; the
@@ -172,8 +172,9 @@ def memoryImage (layout : Layout) {μ : ℕ} (q : Vector K (2 ^ μ)) : MemImage 
     E.ofLimbs (limb memory0) (limb memory1) (limb memory2)
 
 open Classical in
-/-- The execution of `prog` on a memory image: the image, run from the initial state for the least number
-of steps after which it halts in the final state `(pcFinal, fpFinal)`; `none` if it never does. -/
+/-- The execution of `prog` on a memory image: the image, run from the initial state for the least
+number of steps after which it halts in the final state `(pcFinal, fpFinal)`; `none` if it never
+does. -/
 noncomputable def haltingRun (prog : Program) {κ : ℕ} (image : MemImage κ) : Option (Trace prog) :=
   if h : ∃ n, Semantics.run prog image n Regs.initial = some (Regs.final prog) then
     some ⟨κ, image, Nat.find h⟩

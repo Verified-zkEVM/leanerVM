@@ -22,9 +22,9 @@ The leanVM instruction set, from §2 of the leanVM specification
 
 Words are elements of `E = K[y]/(y³ + y + 1)`, `K = GF(2^64)`. Addresses are powers of the
 generator `g` of `K*`: memory word `i` and bytecode slot `i` both sit at `g^i`. The machine has two
-registers, `pc` and `fp`, and halts in the final state `(pcFinal, fpFinal) = (g^(N_prog - 1), 1)`: the last slot in
-`main`'s frame. The memory is fixed before the run and only read: every instruction checks a
-relation on the words it reads, so all nondeterminism is the choice of the memory.
+registers, `pc` and `fp`, and halts in the final state `(pcFinal, fpFinal) = (g^(N_prog - 1), 1)`:
+the last slot in `main`'s frame. The memory is fixed before the run and only read: every instruction
+checks a relation on the words it reads, so all nondeterminism is the choice of the memory.
 
 The encoding of an instruction as sixteen `K` slots (specification §8.1) is how the verifier
 receives a program.
