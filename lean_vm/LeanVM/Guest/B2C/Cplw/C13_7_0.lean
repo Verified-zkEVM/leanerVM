@@ -10,12 +10,49 @@ module
 public import LeanVM.Guest.B2C.Cpl
 public import Mathlib.Tactic.IntervalCases
 
+set_option Elab.async false
+
 namespace LeanVM.Guest.B2C.Cplw
 
 @[expose] public section
 
 /-- `verify_keccak`, window 7, part 0. -/
 theorem cw13_7_0 : cplWin 13 7 0 = true := by decide +kernel
+
+/-- `verify_keccak`, window 8, part 0. -/
+theorem cw13_8_0 : cplWin 13 8 0 = true := by decide +kernel
+
+/-- `verify_keccak`, window 8, part 1. -/
+theorem cw13_8_1 : cplWin 13 8 1 = true := by decide +kernel
+
+/-- `verify_keccak`, window 8, part 2. -/
+theorem cw13_8_2 : cplWin 13 8 2 = true := by decide +kernel
+
+/-- `ring_switch_target`, window 0, part 0. -/
+theorem cw14_0_0 : cplWin 14 0 0 = true := by decide +kernel
+
+/-- `ring_switch_weight`, window 0, part 0. -/
+theorem cw15_0_0 : cplWin 15 0 0 = true := by decide +kernel
+
+theorem ok14 : CplOk 14 := by
+  intro i hi k hk
+  have hc : (certOf 14).cuts.length = 0 := by decide +kernel
+  rw [hc] at hi
+  interval_cases i
+  · have hn : nParts 14 0 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw14_0_0
+
+theorem ok15 : CplOk 15 := by
+  intro i hi k hk
+  have hc : (certOf 15).cuts.length = 0 := by decide +kernel
+  rw [hc] at hi
+  interval_cases i
+  · have hn : nParts 15 0 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw15_0_0
 
 end
 end LeanVM.Guest.B2C.Cplw

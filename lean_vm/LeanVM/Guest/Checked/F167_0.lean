@@ -9,6 +9,8 @@ module
 
 public import LeanVM.Guest.CheckWinC
 
+set_option Elab.async false
+
 namespace LeanVM.Guest.Checked
 
 open LeanVM.Guest.Check
@@ -27,6 +29,18 @@ theorem w169_0 : WinOk 169 0 := winOk_of_C (by decide +kernel)
 /-- `block_selector__L19`, window 0. -/
 theorem w170_0 : WinOk 170 0 := winOk_of_C (by decide +kernel)
 
+/-- `block_selector__L20`, window 0. -/
+theorem w171_0 : WinOk 171 0 := winOk_of_C (by decide +kernel)
+
+/-- `block_selector__L21`, window 0. -/
+theorem w172_0 : WinOk 172 0 := winOk_of_C (by decide +kernel)
+
+/-- `block_selector__L22`, window 0. -/
+theorem w173_0 : WinOk 173 0 := winOk_of_C (by decide +kernel)
+
+/-- `block_selector__L23`, window 0. -/
+theorem w174_0 : WinOk 174 0 := winOk_of_C (by decide +kernel)
+
 theorem ok167 : CheckOk 167 := checkOk_one (by decide +kernel) w167_0
 
 theorem ok168 : CheckOk 168 := checkOk_one (by decide +kernel) w168_0
@@ -34,6 +48,14 @@ theorem ok168 : CheckOk 168 := checkOk_one (by decide +kernel) w168_0
 theorem ok169 : CheckOk 169 := checkOk_one (by decide +kernel) w169_0
 
 theorem ok170 : CheckOk 170 := checkOk_one (by decide +kernel) w170_0
+
+theorem ok171 : CheckOk 171 := checkOk_one (by decide +kernel) w171_0
+
+theorem ok172 : CheckOk 172 := checkOk_one (by decide +kernel) w172_0
+
+theorem ok173 : CheckOk 173 := checkOk_one (by decide +kernel) w173_0
+
+theorem ok174 : CheckOk 174 := checkOk_one (by decide +kernel) w174_0
 
 end
 end LeanVM.Guest.Checked

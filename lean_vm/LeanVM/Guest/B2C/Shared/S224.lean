@@ -9,13 +9,43 @@ module
 
 public import LeanVM.Guest.B2C.Share
 
+set_option Elab.async false
+
 namespace LeanVM.Guest.B2C.Shared
 
 @[expose] public section
 
 set_option maxRecDepth 100000 in
-/-- `verify_sig_lean_sphincs`, window 47. -/
-theorem w21_47 : shareWin 21 (snapsOf 21) 47 = true := by decide +kernel
+/-- `decode_query_bits__L24`, window 0. -/
+theorem w869_0 : shareWin 869 (snapsOf 869) 0 = true := by decide +kernel
+
+set_option maxRecDepth 100000 in
+/-- `decode_query_bits__L24`, window 1. -/
+theorem w869_1 : shareWin 869 (snapsOf 869) 1 = true := by decide +kernel
+
+set_option maxRecDepth 100000 in
+/-- `__loop393`, once. -/
+theorem st870 : shareStatic 870 = true := by decide +kernel
+
+set_option maxRecDepth 100000 in
+/-- `__loop393`, window 0. -/
+theorem w870_0 : shareWin 870 (snapsOf 870) 0 = true := by decide +kernel
+
+set_option maxRecDepth 100000 in
+/-- `__loop393`, window 1. -/
+theorem w870_1 : shareWin 870 (snapsOf 870) 1 = true := by decide +kernel
+
+set_option maxRecDepth 100000 in
+/-- `__loop393`, window 2. -/
+theorem w870_2 : shareWin 870 (snapsOf 870) 2 = true := by decide +kernel
+
+set_option maxRecDepth 100000 in
+/-- `__loop393`, window 3. -/
+theorem w870_3 : shareWin 870 (snapsOf 870) 3 = true := by decide +kernel
+
+set_option maxRecDepth 100000 in
+/-- `__loop394`, once. -/
+theorem st871 : shareStatic 871 = true := by decide +kernel
 
 end
 end LeanVM.Guest.B2C.Shared

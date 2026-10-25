@@ -9,13 +9,43 @@ module
 
 public import LeanVM.Guest.B2C.Share
 
+set_option Elab.async false
+
 namespace LeanVM.Guest.B2C.Shared
 
 @[expose] public section
 
 set_option maxRecDepth 100000 in
-/-- `certify_placement`, window 4. -/
-theorem w16_4 : shareWin 16 (snapsOf 16) 4 = true := by decide +kernel
+/-- `keccak_layer__L1_L1`, window 1. -/
+theorem w256_1 : shareWin 256 (snapsOf 256) 1 = true := by decide +kernel
+
+set_option maxRecDepth 100000 in
+/-- `keccak_layer__L1_L1`, window 2. -/
+theorem w256_2 : shareWin 256 (snapsOf 256) 2 = true := by decide +kernel
+
+set_option maxRecDepth 100000 in
+/-- `keccak_layer__L1_L1`, window 3. -/
+theorem w256_3 : shareWin 256 (snapsOf 256) 3 = true := by decide +kernel
+
+set_option maxRecDepth 100000 in
+/-- `keccak_layer__L1_L1`, window 4. -/
+theorem w256_4 : shareWin 256 (snapsOf 256) 4 = true := by decide +kernel
+
+set_option maxRecDepth 100000 in
+/-- `keccak_layer__L1_L1`, window 5. -/
+theorem w256_5 : shareWin 256 (snapsOf 256) 5 = true := by decide +kernel
+
+set_option maxRecDepth 100000 in
+/-- `keccak_layer__L1_L1`, window 6. -/
+theorem w256_6 : shareWin 256 (snapsOf 256) 6 = true := by decide +kernel
+
+set_option maxRecDepth 100000 in
+/-- `keccak_layer__L0_L0`, once. -/
+theorem st257 : shareStatic 257 = true := by decide +kernel
+
+set_option maxRecDepth 100000 in
+/-- `keccak_layer__L0_L0`, window 0. -/
+theorem w257_0 : shareWin 257 (snapsOf 257) 0 = true := by decide +kernel
 
 end
 end LeanVM.Guest.B2C.Shared

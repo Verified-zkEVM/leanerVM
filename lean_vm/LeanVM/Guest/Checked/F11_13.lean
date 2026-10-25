@@ -9,6 +9,8 @@ module
 
 public import LeanVM.Guest.CheckWinC
 
+set_option Elab.async false
+
 namespace LeanVM.Guest.Checked
 
 open LeanVM.Guest.Check
@@ -17,6 +19,29 @@ open LeanVM.Guest.Check
 
 /-- `verify_tables`, window 13. -/
 theorem w11_13 : WinOk 11 13 := winOk_of_C (by decide +kernel)
+
+/-- `keccak_round`, window 0. -/
+theorem w12_0 : WinOk 12 0 := winOk_of_C (by decide +kernel)
+
+/-- `verify_keccak`, window 0. -/
+theorem w13_0 : WinOk 13 0 := winOk_of_C (by decide +kernel)
+
+/-- `verify_keccak`, window 1. -/
+theorem w13_1 : WinOk 13 1 := winOk_of_C (by decide +kernel)
+
+/-- `verify_keccak`, window 2. -/
+theorem w13_2 : WinOk 13 2 := winOk_of_C (by decide +kernel)
+
+/-- `verify_keccak`, window 3. -/
+theorem w13_3 : WinOk 13 3 := winOk_of_C (by decide +kernel)
+
+/-- `verify_keccak`, window 4. -/
+theorem w13_4 : WinOk 13 4 := winOk_of_C (by decide +kernel)
+
+/-- `verify_keccak`, window 5. -/
+theorem w13_5 : WinOk 13 5 := winOk_of_C (by decide +kernel)
+
+theorem ok12 : CheckOk 12 := checkOk_one (by decide +kernel) w12_0
 
 end
 end LeanVM.Guest.Checked

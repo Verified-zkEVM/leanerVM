@@ -9,37 +9,9 @@ module
 
 public import LeanVM.Guest.B2C.CplSplit
 public import LeanVM.Guest.B2C.Cplw.D21_20_0
-public import LeanVM.Guest.B2C.Cplw.D21_20_1
-public import LeanVM.Guest.B2C.Cplw.D21_20_2
-public import LeanVM.Guest.B2C.Cplw.D21_20_3
-public import LeanVM.Guest.B2C.Cplw.D21_20_4
-public import LeanVM.Guest.B2C.Cplw.D21_20_5
-public import LeanVM.Guest.B2C.Cplw.D21_20_6
-public import LeanVM.Guest.B2C.Cplw.D21_20_7
 public import LeanVM.Guest.B2C.Cplw.D21_20_8
-public import LeanVM.Guest.B2C.Cplw.D21_20_9
-public import LeanVM.Guest.B2C.Cplw.D21_20_10
-public import LeanVM.Guest.B2C.Cplw.D21_20_11
-public import LeanVM.Guest.B2C.Cplw.D21_20_12
-public import LeanVM.Guest.B2C.Cplw.D21_20_13
-public import LeanVM.Guest.B2C.Cplw.D21_20_14
-public import LeanVM.Guest.B2C.Cplw.D21_20_15
 public import LeanVM.Guest.B2C.Cplw.D21_20_16
-public import LeanVM.Guest.B2C.Cplw.D21_20_17
-public import LeanVM.Guest.B2C.Cplw.D21_20_18
-public import LeanVM.Guest.B2C.Cplw.D21_20_19
-public import LeanVM.Guest.B2C.Cplw.D21_20_20
-public import LeanVM.Guest.B2C.Cplw.D21_20_21
-public import LeanVM.Guest.B2C.Cplw.D21_20_22
-public import LeanVM.Guest.B2C.Cplw.D21_20_23
 public import LeanVM.Guest.B2C.Cplw.D21_20_24
-public import LeanVM.Guest.B2C.Cplw.D21_20_25
-public import LeanVM.Guest.B2C.Cplw.D21_20_26
-public import LeanVM.Guest.B2C.Cplw.D21_20_27
-public import LeanVM.Guest.B2C.Cplw.D21_20_28
-public import LeanVM.Guest.B2C.Cplw.D21_20_29
-public import LeanVM.Guest.B2C.Cplw.D21_20_30
-public import LeanVM.Guest.B2C.Cplw.D21_20_31
 
 namespace LeanVM.Guest.B2C.Cplw
 

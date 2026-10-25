@@ -10,12 +10,95 @@ module
 public import LeanVM.Guest.B2C.Cpl
 public import Mathlib.Tactic.IntervalCases
 
+set_option Elab.async false
+
 namespace LeanVM.Guest.B2C.Cplw
 
 @[expose] public section
 
 /-- `verify_merkle_cap__L7`, window 1, part 0. -/
 theorem cw533_1_0 : cplWin 533 1 0 = true := by decide +kernel
+
+/-- `verify_merkle_cap__L7`, window 2, part 0. -/
+theorem cw533_2_0 : cplWin 533 2 0 = true := by decide +kernel
+
+/-- `opening_queries__L0_L1_L64_L32_L18_L7`, window 0, part 0. -/
+theorem cw534_0_0 : cplWin 534 0 0 = true := by decide +kernel
+
+/-- `__loop103`, window 0, part 0. -/
+theorem cw535_0_0 : cplWin 535 0 0 = true := by decide +kernel
+
+/-- `__loop104`, window 0, part 0. -/
+theorem cw536_0_0 : cplWin 536 0 0 = true := by decide +kernel
+
+/-- `__loop105`, window 0, part 0. -/
+theorem cw537_0_0 : cplWin 537 0 0 = true := by decide +kernel
+
+/-- `__loop106`, window 0, part 0. -/
+theorem cw538_0_0 : cplWin 538 0 0 = true := by decide +kernel
+
+/-- `__loop107`, window 0, part 0. -/
+theorem cw539_0_0 : cplWin 539 0 0 = true := by decide +kernel
+
+theorem ok534 : CplOk 534 := by
+  intro i hi k hk
+  have hc : (certOf 534).cuts.length = 0 := by decide +kernel
+  rw [hc] at hi
+  interval_cases i
+  · have hn : nParts 534 0 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw534_0_0
+
+theorem ok535 : CplOk 535 := by
+  intro i hi k hk
+  have hc : (certOf 535).cuts.length = 0 := by decide +kernel
+  rw [hc] at hi
+  interval_cases i
+  · have hn : nParts 535 0 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw535_0_0
+
+theorem ok536 : CplOk 536 := by
+  intro i hi k hk
+  have hc : (certOf 536).cuts.length = 0 := by decide +kernel
+  rw [hc] at hi
+  interval_cases i
+  · have hn : nParts 536 0 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw536_0_0
+
+theorem ok537 : CplOk 537 := by
+  intro i hi k hk
+  have hc : (certOf 537).cuts.length = 0 := by decide +kernel
+  rw [hc] at hi
+  interval_cases i
+  · have hn : nParts 537 0 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw537_0_0
+
+theorem ok538 : CplOk 538 := by
+  intro i hi k hk
+  have hc : (certOf 538).cuts.length = 0 := by decide +kernel
+  rw [hc] at hi
+  interval_cases i
+  · have hn : nParts 538 0 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw538_0_0
+
+theorem ok539 : CplOk 539 := by
+  intro i hi k hk
+  have hc : (certOf 539).cuts.length = 0 := by decide +kernel
+  rw [hc] at hi
+  interval_cases i
+  · have hn : nParts 539 0 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw539_0_0
 
 end
 end LeanVM.Guest.B2C.Cplw

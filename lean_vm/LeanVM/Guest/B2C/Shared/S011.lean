@@ -9,13 +9,44 @@ module
 
 public import LeanVM.Guest.B2C.Share
 
+set_option Elab.async false
+
 namespace LeanVM.Guest.B2C.Shared
 
 @[expose] public section
 
 set_option maxRecDepth 100000 in
-/-- `verify_tables`, window 2. -/
-theorem w11_2 : shareWin 11 (snapsOf 11) 2 = true := by decide +kernel
+/-- `verify_tables`, window 47. -/
+theorem w11_47 : shareWin 11 (snapsOf 11) 47 = true := by decide +kernel
+
+set_option maxRecDepth 100000 in
+/-- `verify_tables`, window 48. -/
+theorem w11_48 : shareWin 11 (snapsOf 11) 48 = true := by decide +kernel
+
+set_option maxRecDepth 100000 in
+/-- `verify_tables`, window 49. -/
+theorem w11_49 : shareWin 11 (snapsOf 11) 49 = true := by decide +kernel
+
+set_option maxRecDepth 100000 in
+/-- `verify_tables`, window 50. -/
+theorem w11_50 : shareWin 11 (snapsOf 11) 50 = true := by decide +kernel
+
+set_option maxRecDepth 100000 in
+/-- `keccak_round`, once. -/
+theorem st12 : shareStatic 12 = true := by decide +kernel
+
+set_option maxRecDepth 100000 in
+/-- `keccak_round`, window 0. -/
+theorem w12_0 : shareWin 12 (snapsOf 12) 0 = true := by decide +kernel
+
+theorem ok12 : ShareOk 12 := ⟨st12, fun i hi ↦ by
+  have h : (snapsOf 12).length = 0 := by decide +kernel
+  obtain rfl : i = 0 := by omega
+  exact w12_0⟩
+
+set_option maxRecDepth 100000 in
+/-- `verify_keccak`, once. -/
+theorem st13 : shareStatic 13 = true := by decide +kernel
 
 end
 end LeanVM.Guest.B2C.Shared

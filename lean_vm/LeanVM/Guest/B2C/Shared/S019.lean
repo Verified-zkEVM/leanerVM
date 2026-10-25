@@ -9,13 +9,43 @@ module
 
 public import LeanVM.Guest.B2C.Share
 
+set_option Elab.async false
+
 namespace LeanVM.Guest.B2C.Shared
 
 @[expose] public section
 
 set_option maxRecDepth 100000 in
-/-- `verify_tables`, window 10. -/
-theorem w11_10 : shareWin 11 (snapsOf 11) 10 = true := by decide +kernel
+/-- `certify_placement`, window 2. -/
+theorem w16_2 : shareWin 16 (snapsOf 16) 2 = true := by decide +kernel
+
+set_option maxRecDepth 100000 in
+/-- `certify_placement`, window 3. -/
+theorem w16_3 : shareWin 16 (snapsOf 16) 3 = true := by decide +kernel
+
+set_option maxRecDepth 100000 in
+/-- `certify_placement`, window 4. -/
+theorem w16_4 : shareWin 16 (snapsOf 16) 4 = true := by decide +kernel
+
+set_option maxRecDepth 100000 in
+/-- `certify_placement`, window 5. -/
+theorem w16_5 : shareWin 16 (snapsOf 16) 5 = true := by decide +kernel
+
+set_option maxRecDepth 100000 in
+/-- `certify_placement`, window 6. -/
+theorem w16_6 : shareWin 16 (snapsOf 16) 6 = true := by decide +kernel
+
+set_option maxRecDepth 100000 in
+/-- `certify_placement`, window 7. -/
+theorem w16_7 : shareWin 16 (snapsOf 16) 7 = true := by decide +kernel
+
+set_option maxRecDepth 100000 in
+/-- `certify_placement`, window 8. -/
+theorem w16_8 : shareWin 16 (snapsOf 16) 8 = true := by decide +kernel
+
+set_option maxRecDepth 100000 in
+/-- `selector_tables`, once. -/
+theorem st17 : shareStatic 17 = true := by decide +kernel
 
 end
 end LeanVM.Guest.B2C.Shared

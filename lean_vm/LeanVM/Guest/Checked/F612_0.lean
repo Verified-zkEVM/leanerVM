@@ -9,6 +9,8 @@ module
 
 public import LeanVM.Guest.CheckWinC
 
+set_option Elab.async false
+
 namespace LeanVM.Guest.Checked
 
 open LeanVM.Guest.Check
@@ -36,6 +38,9 @@ theorem w617_0 : WinOk 617 0 := winOk_of_C (by decide +kernel)
 /-- `__loop173`, window 0. -/
 theorem w618_0 : WinOk 618 0 := winOk_of_C (by decide +kernel)
 
+/-- `__loop174`, window 0. -/
+theorem w619_0 : WinOk 619 0 := winOk_of_C (by decide +kernel)
+
 theorem ok612 : CheckOk 612 := checkOk_one (by decide +kernel) w612_0
 
 theorem ok613 : CheckOk 613 := checkOk_one (by decide +kernel) w613_0
@@ -49,6 +54,8 @@ theorem ok616 : CheckOk 616 := checkOk_one (by decide +kernel) w616_0
 theorem ok617 : CheckOk 617 := checkOk_one (by decide +kernel) w617_0
 
 theorem ok618 : CheckOk 618 := checkOk_one (by decide +kernel) w618_0
+
+theorem ok619 : CheckOk 619 := checkOk_one (by decide +kernel) w619_0
 
 end
 end LeanVM.Guest.Checked

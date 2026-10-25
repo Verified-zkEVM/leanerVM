@@ -9,13 +9,70 @@ module
 
 public import LeanVM.Guest.B2C.Share
 
+set_option Elab.async false
+
 namespace LeanVM.Guest.B2C.Shared
 
 @[expose] public section
 
 set_option maxRecDepth 100000 in
-/-- `verify_lean_xmss`, window 30. -/
-theorem w20_30 : shareWin 20 (snapsOf 20) 30 = true := by decide +kernel
+/-- `verify_merkle_cap__L6`, window 1. -/
+theorem w418_1 : shareWin 418 (snapsOf 418) 1 = true := by decide +kernel
+
+set_option maxRecDepth 100000 in
+/-- `verify_merkle_cap__L6`, window 2. -/
+theorem w418_2 : shareWin 418 (snapsOf 418) 2 = true := by decide +kernel
+
+set_option maxRecDepth 100000 in
+/-- `opening_queries__L0_L0_L16_L24_L16_L6`, once. -/
+theorem st419 : shareStatic 419 = true := by decide +kernel
+
+set_option maxRecDepth 100000 in
+/-- `opening_queries__L0_L0_L16_L24_L16_L6`, window 0. -/
+theorem w419_0 : shareWin 419 (snapsOf 419) 0 = true := by decide +kernel
+
+theorem ok419 : ShareOk 419 := ⟨st419, fun i hi ↦ by
+  have h : (snapsOf 419).length = 0 := by decide +kernel
+  obtain rfl : i = 0 := by omega
+  exact w419_0⟩
+
+set_option maxRecDepth 100000 in
+/-- `opening_ood_point__L8`, once. -/
+theorem st420 : shareStatic 420 = true := by decide +kernel
+
+set_option maxRecDepth 100000 in
+/-- `opening_ood_point__L8`, window 0. -/
+theorem w420_0 : shareWin 420 (snapsOf 420) 0 = true := by decide +kernel
+
+theorem ok420 : ShareOk 420 := ⟨st420, fun i hi ↦ by
+  have h : (snapsOf 420).length = 0 := by decide +kernel
+  obtain rfl : i = 0 := by omega
+  exact w420_0⟩
+
+set_option maxRecDepth 100000 in
+/-- `__loop36`, once. -/
+theorem st421 : shareStatic 421 = true := by decide +kernel
+
+set_option maxRecDepth 100000 in
+/-- `__loop36`, window 0. -/
+theorem w421_0 : shareWin 421 (snapsOf 421) 0 = true := by decide +kernel
+
+theorem ok421 : ShareOk 421 := ⟨st421, fun i hi ↦ by
+  have h : (snapsOf 421).length = 0 := by decide +kernel
+  obtain rfl : i = 0 := by omega
+  exact w421_0⟩
+
+set_option maxRecDepth 100000 in
+/-- `verify_merkle_cap__L5`, once. -/
+theorem st422 : shareStatic 422 = true := by decide +kernel
+
+set_option maxRecDepth 100000 in
+/-- `verify_merkle_cap__L5`, window 0. -/
+theorem w422_0 : shareWin 422 (snapsOf 422) 0 = true := by decide +kernel
+
+set_option maxRecDepth 100000 in
+/-- `verify_merkle_cap__L5`, window 1. -/
+theorem w422_1 : shareWin 422 (snapsOf 422) 1 = true := by decide +kernel
 
 end
 end LeanVM.Guest.B2C.Shared

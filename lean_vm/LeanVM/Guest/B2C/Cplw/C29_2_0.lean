@@ -10,12 +10,85 @@ module
 public import LeanVM.Guest.B2C.Cpl
 public import Mathlib.Tactic.IntervalCases
 
+set_option Elab.async false
+
 namespace LeanVM.Guest.B2C.Cplw
 
 @[expose] public section
 
 /-- `da_vector_cell`, window 2, part 0. -/
 theorem cw29_2_0 : cplWin 29 2 0 = true := by decide +kernel
+
+/-- `da_vector_cell`, window 3, part 0. -/
+theorem cw29_3_0 : cplWin 29 3 0 = true := by decide +kernel
+
+/-- `da_vector_cell`, window 4, part 0. -/
+theorem cw29_4_0 : cplWin 29 4 0 = true := by decide +kernel
+
+/-- `da_list_digest`, window 0, part 0. -/
+theorem cw30_0_0 : cplWin 30 0 0 = true := by decide +kernel
+
+/-- `cover_da_root`, window 0, part 0. -/
+theorem cw31_0_0 : cplWin 31 0 0 = true := by decide +kernel
+
+/-- `aggregate_claims`, window 0, part 0. -/
+theorem cw32_0_0 : cplWin 32 0 0 = true := by decide +kernel
+
+/-- `__loop0`, window 0, part 0. -/
+theorem cw33_0_0 : cplWin 33 0 0 = true := by decide +kernel
+
+/-- `__loop1`, window 0, part 0. -/
+theorem cw34_0_0 : cplWin 34 0 0 = true := by decide +kernel
+
+theorem ok30 : CplOk 30 := by
+  intro i hi k hk
+  have hc : (certOf 30).cuts.length = 0 := by decide +kernel
+  rw [hc] at hi
+  interval_cases i
+  · have hn : nParts 30 0 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw30_0_0
+
+theorem ok31 : CplOk 31 := by
+  intro i hi k hk
+  have hc : (certOf 31).cuts.length = 0 := by decide +kernel
+  rw [hc] at hi
+  interval_cases i
+  · have hn : nParts 31 0 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw31_0_0
+
+theorem ok32 : CplOk 32 := by
+  intro i hi k hk
+  have hc : (certOf 32).cuts.length = 0 := by decide +kernel
+  rw [hc] at hi
+  interval_cases i
+  · have hn : nParts 32 0 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw32_0_0
+
+theorem ok33 : CplOk 33 := by
+  intro i hi k hk
+  have hc : (certOf 33).cuts.length = 0 := by decide +kernel
+  rw [hc] at hi
+  interval_cases i
+  · have hn : nParts 33 0 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw33_0_0
+
+theorem ok34 : CplOk 34 := by
+  intro i hi k hk
+  have hc : (certOf 34).cuts.length = 0 := by decide +kernel
+  rw [hc] at hi
+  interval_cases i
+  · have hn : nParts 34 0 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw34_0_0
 
 end
 end LeanVM.Guest.B2C.Cplw

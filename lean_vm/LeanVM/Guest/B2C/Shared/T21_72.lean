@@ -9,13 +9,6 @@ module
 
 public import LeanVM.Guest.B2C.ShareSplit
 public import LeanVM.Guest.B2C.Shared.H21_72_0
-public import LeanVM.Guest.B2C.Shared.H21_72_1
-public import LeanVM.Guest.B2C.Shared.H21_72_2
-public import LeanVM.Guest.B2C.Shared.H21_72_3
-public import LeanVM.Guest.B2C.Shared.H21_72_4
-public import LeanVM.Guest.B2C.Shared.H21_72_5
-public import LeanVM.Guest.B2C.Shared.H21_72_6
-public import LeanVM.Guest.B2C.Shared.H21_72_7
 
 namespace LeanVM.Guest.B2C.Shared
 

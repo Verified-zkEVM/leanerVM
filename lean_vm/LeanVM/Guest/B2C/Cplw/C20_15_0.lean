@@ -10,12 +10,35 @@ module
 public import LeanVM.Guest.B2C.Cpl
 public import Mathlib.Tactic.IntervalCases
 
+set_option Elab.async false
+
 namespace LeanVM.Guest.B2C.Cplw
 
 @[expose] public section
 
 /-- `verify_lean_xmss`, window 15, part 0. -/
 theorem cw20_15_0 : cplWin 20 15 0 = true := by decide +kernel
+
+/-- `verify_lean_xmss`, window 16, part 0. -/
+theorem cw20_16_0 : cplWin 20 16 0 = true := by decide +kernel
+
+/-- `verify_lean_xmss`, window 17, part 0. -/
+theorem cw20_17_0 : cplWin 20 17 0 = true := by decide +kernel
+
+/-- `verify_lean_xmss`, window 18, part 0. -/
+theorem cw20_18_0 : cplWin 20 18 0 = true := by decide +kernel
+
+/-- `verify_lean_xmss`, window 19, part 0. -/
+theorem cw20_19_0 : cplWin 20 19 0 = true := by decide +kernel
+
+/-- `verify_lean_xmss`, window 20, part 0. -/
+theorem cw20_20_0 : cplWin 20 20 0 = true := by decide +kernel
+
+/-- `verify_lean_xmss`, window 21, part 0. -/
+theorem cw20_21_0 : cplWin 20 21 0 = true := by decide +kernel
+
+/-- `verify_lean_xmss`, window 22, part 0. -/
+theorem cw20_22_0 : cplWin 20 22 0 = true := by decide +kernel
 
 end
 end LeanVM.Guest.B2C.Cplw

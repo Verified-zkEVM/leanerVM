@@ -9,13 +9,19 @@ module
 
 public import LeanVM.Guest.B2C.Share
 
+set_option Elab.async false
+
 namespace LeanVM.Guest.B2C.Shared
 
 @[expose] public section
 
 set_option maxRecDepth 100000 in
-/-- `verify_tables`, window 24. -/
-theorem w11_24 : shareWin 11 (snapsOf 11) 24 = true := by decide +kernel
+/-- `verify_lean_xmss`, window 21. -/
+theorem w20_21 : shareWin 20 (snapsOf 20) 21 = true := by decide +kernel
+
+set_option maxRecDepth 100000 in
+/-- `verify_lean_xmss`, window 22. -/
+theorem w20_22 : shareWin 20 (snapsOf 20) 22 = true := by decide +kernel
 
 end
 end LeanVM.Guest.B2C.Shared

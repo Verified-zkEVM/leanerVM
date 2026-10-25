@@ -9,13 +9,6 @@ module
 
 public import LeanVM.Guest.B2C.CplSplit
 public import LeanVM.Guest.B2C.Cplw.D21_52_0
-public import LeanVM.Guest.B2C.Cplw.D21_52_1
-public import LeanVM.Guest.B2C.Cplw.D21_52_2
-public import LeanVM.Guest.B2C.Cplw.D21_52_3
-public import LeanVM.Guest.B2C.Cplw.D21_52_4
-public import LeanVM.Guest.B2C.Cplw.D21_52_5
-public import LeanVM.Guest.B2C.Cplw.D21_52_6
-public import LeanVM.Guest.B2C.Cplw.D21_52_7
 
 namespace LeanVM.Guest.B2C.Cplw
 

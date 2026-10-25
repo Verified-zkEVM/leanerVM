@@ -10,6 +10,8 @@ module
 public import LeanVM.Guest.B2C.Cpl
 public import Mathlib.Tactic.IntervalCases
 
+set_option Elab.async false
+
 namespace LeanVM.Guest.B2C.Cplw
 
 @[expose] public section
@@ -37,21 +39,6 @@ theorem cw626_0_0 : cplWin 626 0 0 = true := by decide +kernel
 
 /-- `__loop181`, window 0, part 0. -/
 theorem cw627_0_0 : cplWin 627 0 0 = true := by decide +kernel
-
-/-- `__loop182`, window 0, part 0. -/
-theorem cw628_0_0 : cplWin 628 0 0 = true := by decide +kernel
-
-/-- `__loop183`, window 0, part 0. -/
-theorem cw629_0_0 : cplWin 629 0 0 = true := by decide +kernel
-
-/-- `__loop184`, window 0, part 0. -/
-theorem cw630_0_0 : cplWin 630 0 0 = true := by decide +kernel
-
-/-- `__loop185`, window 0, part 0. -/
-theorem cw631_0_0 : cplWin 631 0 0 = true := by decide +kernel
-
-/-- `__loop186`, window 0, part 0. -/
-theorem cw632_0_0 : cplWin 632 0 0 = true := by decide +kernel
 
 theorem ok620 : CplOk 620 := by
   intro i hi k hk
@@ -132,56 +119,6 @@ theorem ok627 : CplOk 627 := by
     rw [hn] at hk
     interval_cases k
     · exact cw627_0_0
-
-theorem ok628 : CplOk 628 := by
-  intro i hi k hk
-  have hc : (certOf 628).cuts.length = 0 := by decide +kernel
-  rw [hc] at hi
-  interval_cases i
-  · have hn : nParts 628 0 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw628_0_0
-
-theorem ok629 : CplOk 629 := by
-  intro i hi k hk
-  have hc : (certOf 629).cuts.length = 0 := by decide +kernel
-  rw [hc] at hi
-  interval_cases i
-  · have hn : nParts 629 0 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw629_0_0
-
-theorem ok630 : CplOk 630 := by
-  intro i hi k hk
-  have hc : (certOf 630).cuts.length = 0 := by decide +kernel
-  rw [hc] at hi
-  interval_cases i
-  · have hn : nParts 630 0 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw630_0_0
-
-theorem ok631 : CplOk 631 := by
-  intro i hi k hk
-  have hc : (certOf 631).cuts.length = 0 := by decide +kernel
-  rw [hc] at hi
-  interval_cases i
-  · have hn : nParts 631 0 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw631_0_0
-
-theorem ok632 : CplOk 632 := by
-  intro i hi k hk
-  have hc : (certOf 632).cuts.length = 0 := by decide +kernel
-  rw [hc] at hi
-  interval_cases i
-  · have hn : nParts 632 0 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw632_0_0
 
 end
 end LeanVM.Guest.B2C.Cplw

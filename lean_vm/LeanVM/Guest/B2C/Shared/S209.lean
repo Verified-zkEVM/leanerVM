@@ -9,13 +9,52 @@ module
 
 public import LeanVM.Guest.B2C.Share
 
+set_option Elab.async false
+
 namespace LeanVM.Guest.B2C.Shared
 
 @[expose] public section
 
 set_option maxRecDepth 100000 in
-/-- `verify_sig_lean_sphincs`, window 17. -/
-theorem w21_17 : shareWin 21 (snapsOf 21) 17 = true := by decide +kernel
+/-- `__loop364`, once. -/
+theorem st834 : shareStatic 834 = true := by decide +kernel
+
+set_option maxRecDepth 100000 in
+/-- `__loop364`, window 0. -/
+theorem w834_0 : shareWin 834 (snapsOf 834) 0 = true := by decide +kernel
+
+theorem ok834 : ShareOk 834 := ⟨st834, fun i hi ↦ by
+  have h : (snapsOf 834).length = 0 := by decide +kernel
+  obtain rfl : i = 0 := by omega
+  exact w834_0⟩
+
+set_option maxRecDepth 100000 in
+/-- `decode_query_bits__L18`, once. -/
+theorem st835 : shareStatic 835 = true := by decide +kernel
+
+set_option maxRecDepth 100000 in
+/-- `decode_query_bits__L18`, window 0. -/
+theorem w835_0 : shareWin 835 (snapsOf 835) 0 = true := by decide +kernel
+
+set_option maxRecDepth 100000 in
+/-- `decode_query_bits__L18`, window 1. -/
+theorem w835_1 : shareWin 835 (snapsOf 835) 1 = true := by decide +kernel
+
+set_option maxRecDepth 100000 in
+/-- `__loop365`, once. -/
+theorem st836 : shareStatic 836 = true := by decide +kernel
+
+set_option maxRecDepth 100000 in
+/-- `__loop365`, window 0. -/
+theorem w836_0 : shareWin 836 (snapsOf 836) 0 = true := by decide +kernel
+
+set_option maxRecDepth 100000 in
+/-- `__loop365`, window 1. -/
+theorem w836_1 : shareWin 836 (snapsOf 836) 1 = true := by decide +kernel
+
+set_option maxRecDepth 100000 in
+/-- `__loop365`, window 2. -/
+theorem w836_2 : shareWin 836 (snapsOf 836) 2 = true := by decide +kernel
 
 end
 end LeanVM.Guest.B2C.Shared

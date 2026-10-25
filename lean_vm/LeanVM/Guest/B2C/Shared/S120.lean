@@ -9,13 +9,43 @@ module
 
 public import LeanVM.Guest.B2C.Share
 
+set_option Elab.async false
+
 namespace LeanVM.Guest.B2C.Shared
 
 @[expose] public section
 
 set_option maxRecDepth 100000 in
-/-- `verify_sub`, window 5. -/
-theorem w19_5 : shareWin 19 (snapsOf 19) 5 = true := by decide +kernel
+/-- `open_stacked__L9`, window 4. -/
+theorem w305_4 : shareWin 305 (snapsOf 305) 4 = true := by decide +kernel
+
+set_option maxRecDepth 100000 in
+/-- `open_stacked__L9`, window 5. -/
+theorem w305_5 : shareWin 305 (snapsOf 305) 5 = true := by decide +kernel
+
+set_option maxRecDepth 100000 in
+/-- `open_stacked__L10`, once. -/
+theorem st306 : shareStatic 306 = true := by decide +kernel
+
+set_option maxRecDepth 100000 in
+/-- `open_stacked__L10`, window 0. -/
+theorem w306_0 : shareWin 306 (snapsOf 306) 0 = true := by decide +kernel
+
+set_option maxRecDepth 100000 in
+/-- `open_stacked__L10`, window 1. -/
+theorem w306_1 : shareWin 306 (snapsOf 306) 1 = true := by decide +kernel
+
+set_option maxRecDepth 100000 in
+/-- `open_stacked__L10`, window 2. -/
+theorem w306_2 : shareWin 306 (snapsOf 306) 2 = true := by decide +kernel
+
+set_option maxRecDepth 100000 in
+/-- `open_stacked__L10`, window 3. -/
+theorem w306_3 : shareWin 306 (snapsOf 306) 3 = true := by decide +kernel
+
+set_option maxRecDepth 100000 in
+/-- `open_stacked__L10`, window 4. -/
+theorem w306_4 : shareWin 306 (snapsOf 306) 4 = true := by decide +kernel
 
 end
 end LeanVM.Guest.B2C.Shared

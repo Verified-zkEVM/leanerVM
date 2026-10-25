@@ -9,6 +9,8 @@ module
 
 public import LeanVM.Guest.CheckWinC
 
+set_option Elab.async false
+
 namespace LeanVM.Guest.Checked
 
 open LeanVM.Guest.Check
@@ -20,6 +22,24 @@ theorem w411_0 : WinOk 411 0 := winOk_of_C (by decide +kernel)
 
 /-- `opening_row_weights__L6_L1`, window 0. -/
 theorem w412_0 : WinOk 412 0 := winOk_of_C (by decide +kernel)
+
+/-- `verify_merkle_cap__L8`, window 0. -/
+theorem w413_0 : WinOk 413 0 := winOk_of_C (by decide +kernel)
+
+/-- `verify_merkle_cap__L8`, window 1. -/
+theorem w413_1 : WinOk 413 1 := winOk_of_C (by decide +kernel)
+
+/-- `verify_merkle_cap__L8`, window 2. -/
+theorem w413_2 : WinOk 413 2 := winOk_of_C (by decide +kernel)
+
+/-- `verify_merkle_cap__L8`, window 3. -/
+theorem w413_3 : WinOk 413 3 := winOk_of_C (by decide +kernel)
+
+/-- `verify_merkle_cap__L8`, window 4. -/
+theorem w413_4 : WinOk 413 4 := winOk_of_C (by decide +kernel)
+
+/-- `verify_merkle_cap__L8`, window 5. -/
+theorem w413_5 : WinOk 413 5 := winOk_of_C (by decide +kernel)
 
 theorem ok411 : CheckOk 411 := checkOk_one (by decide +kernel) w411_0
 

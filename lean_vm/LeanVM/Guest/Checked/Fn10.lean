@@ -8,9 +8,8 @@
 module
 
 public import LeanVM.Guest.CheckWinC
-public import LeanVM.Guest.Checked.F533_0
+public import LeanVM.Guest.Checked.F526_0
 public import LeanVM.Guest.Checked.F533_1
-public import LeanVM.Guest.Checked.F533_2
 
 namespace LeanVM.Guest.Checked
 
