@@ -12,6 +12,7 @@ module
 public import LeanerVM.Protocol.Core
 public import LeanerVM.Protocol.LeanIsa.Sound
 public import LeanerVM.Arithmetization.Soundness
+public import LeanerVM.Protocol.Compile.Agree
 
 /-!
 # The headline theorems
@@ -39,6 +40,8 @@ off the stack, and `extractTrace` reads an execution off the witness.
 * `Blake2sActsAsRandomOracle`, `blakeMisbehaves_of_comparison`: if misbehaving is at most `δ`
   likelier under BLAKE2s than under a random function, `BlakeMisbehaves` holds at the
   random-oracle bound plus `δ`.
+* `prove_complete`: for a witness of the constraint statement, `verify` accepts every proof the
+  deployed prover `prove` returns.
 
 **The proofs.** A run under BLAKE2s, or under the lazy random oracle, is a possible run of the game
 whose joint log is consistent (`mem_support_runBlake2s`, `mem_support_runRandom`); under BLAKE2s its
@@ -50,17 +53,19 @@ sizes `extract` returns. The random-oracle bound is `leanVm_misbehaves_rom_close
 **What they do not say.** An adversary with no coins has one run under BLAKE2s, so
 `BlakeMisbehaves` at `δ < 1` says that this run does not misbehave; an adversary with coins, a
 distribution over coin-free ones, gets the bound with `δ` the probability over its coins
-(`baseVerifier_extractsWitness_coins`). The hypothesis is about
-one adversary and is false for some: the replayer of a stored accepted proof fails it at every
-`δ < 1`, and so does an adversary that hashes in its own code. The completeness direction is
-`baseProver_complete`, from a satisfying witness; none is stated from an execution, since leanISA
-proves no trace-level constraint completeness.
+(`baseVerifier_extractsWitness_coins`). The hypothesis is about one adversary and is false for
+some: the replayer of a stored accepted proof fails it at every `δ < 1`, and so does an adversary
+that hashes in its own code. No theorem shows it met by an adversary whose proof is accepted. The
+completeness direction is `prove_complete`, from a satisfying witness: every proof `prove` returns
+is accepted, but nothing bounds how often its grinding runs out of fuel. None is stated from an
+execution, since leanISA proves no trace-level constraint completeness.
 -/
 
 namespace LeanerVM.Protocol
 
 open LeanerVM.Parameters LeanerVM.Semantics LeanerVM.Arithmetization Blake2sHash LeanIsa
 open OracleComp OracleSpec Verify ProofRoots LeanVmReader
+open Air.Flat (EnsembleWitness)
 open scoped NNReal ENNReal
 
 @[expose] public section
@@ -212,6 +217,18 @@ theorem blakeMisbehaves_of_comparison {prog : Program} {input : PublicInput} {A 
       (HashMisbehaves (rootsOf prog input) (leanVmReader prog input).Flip prog input) δ) :
     BlakeMisbehaves prog input A (((Q + 13697 : ℕ) / 2 ^ 128 + hashTerm 13697 Q : ℝ≥0) + δ) :=
   h.trans (add_le_add_left (leanVm_misbehaves_rom_closed prog input A hQ) δ)
+
+/-- **Completeness of the deployed pair.** For a witness that satisfies leanISA's constraint
+statement, `verify` accepts every proof `prove` returns: `Prove.baseProver_complete` at
+BLAKE2s-256. `prove` returns no proof (`Prove.proveWith_eq_none`) only when the witness's memory
+image is a single word, so that `Sizes.ofWitness` reads no sizes off it; when its sizes are not
+admissible; when the rate `ρ` is not valid; or when a grind finds no nonce among its `fuel`
+candidates at some chain state. Nothing bounds how often the last happens. -/
+theorem prove_complete (fuel : ℕ) {prog : Program} {input : PublicInput}
+    {w : EnsembleWitness (leanIsaEnsemble prog)} {ρ : ℕ} {proof : Proof PrunedMerklePaths}
+    (hsat : SatisfiedBy prog input w) (hp : prove fuel prog input w ρ = some proof) :
+    verify prog input proof = true :=
+  Prove.baseProver_complete blake2sBytes fuel hsat hp
 
 end
 

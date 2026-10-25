@@ -1321,7 +1321,12 @@ for a program with `SentinelSafe`) are the deployed forms under `BlakeMisbehaves
 `baseVerifier_extractsWitness_coins` is the witness form for an adversary with coins (a
 `ProbComp Adversary`), under `BlakeMisbehaves`'s event averaged over the coins, by the headline at
 each coin-free adversary integrated over the draw; `blakeMisbehaves_of_comparison` derives `BlakeMisbehaves` from `Blake2sActsAsRandomOracle` and the
-query bound. `mem_support_runBlake2s` and `mem_support_runRandom` make every run under either oracle
+query bound. `prove_complete` is completeness for the deployed pair, `Prove.baseProver_complete` at
+BLAKE2s: for a witness with `SatisfiedBy`, `prove fuel prog input w ρ = some proof → verify prog
+input proof = true`. `prove` returns no proof in four cases only (`Prove.proveWith_eq_none`): the
+witness's memory image is a single word, so `Sizes.ofWitness` reads no sizes; the sizes are not
+admissible; the rate is not valid; or a grind finds no nonce among its `fuel` candidates at some
+chain state. `mem_support_runBlake2s` and `mem_support_runRandom` make every run under either oracle
 a possible run of the game with a consistent joint log, and under BLAKE2s give it `verify`'s
 verdict; on such a run `Core.core_of_mem_support` puts an accepted proof whose extraction fails
 inside `HashMisbehaves`, and `satisfiedBy_witnessOf` turns the extracted stack's `M3Holds` into

@@ -656,7 +656,7 @@ no other; the hole is built when the names in bold of its row are declared and m
 | transcript, proof object and compiled verifier | [Layer 12](#layer-12-compilation-the-transcript-the-proof-and-the-executable-verifier) | `Digest`, **`card_digest`**, `hashSpec`, `hashQuery`, `runBlake2s`, `runRandom`, `FsState`, `Block`, `FsState.checkPow`, **`FsState.challengeOf`**, `chainHistory`, **`chainHistory_determined`**, `Proof`, `Proof.sizes?`, `RoundPoly.decode`, `decodePrefix`, **`decodePrefix_mono`**, `decode`, `leanVmIopp`, **`verifyWith`**, **`verify`**, **`verifyWith_simulateQ`**, `rounds`, `verifierQueries`, `proofDigests`, **`rounds_bound`**, **`verifierQueries_bound`**, **`proofDigests_bound`**, **`verify_iff_compiled`**, `settleFixedClaims` | the phases' definitions; the Flock phase's definition; WHIR opening; Merkle trees |
 | the random-oracle theorems | [Layer 12](#layer-12-compilation-the-transcript-the-proof-and-the-executable-verifier) | `Adversary`, `Run`, `loggedGame`, `extract`, `Extracts`, `LogHasCollision`, `Hit`, `Bad`, **`bad_density`**, `Flip`, `HashMisbehaves`, **`core`**, `hashTerm`, `niError`, **`misbehaves_rom`**, `misbehaves_rom_coins`, **`niError_le`**, **`verify_knowledgeSound_rom`** | the compiled verifier; list-binding compilation; Merkle binding by log replay; the charged invariant in its logged form |
 | the honest prover and the test vectors | [Layer 13](#the-executable-prover-and-the-test-vectors) | `proveWith`, **`prove`**, `honestAdversary`, **`baseProver_complete`**, the executable `leanervm-vectors` and its vectors | the compiled verifier; the adaptor; for the vectors, leanISA's `checkSatisfiedBy` |
-| the base theorems (T4) | [Layer 13](#layer-13-the-base-theorems-t4-and-the-fixtures) | **`BlakeMisbehaves`**, `extractTrace`, **`baseVerifier_extractsWitness_rom`**, **`baseVerifier_extractsWitness`**, **`baseVerifier_extractsWitness_coins`**, **`baseVerifier_extractsExecution`**, `Blake2sActsAsRandomOracle`, **`blakeMisbehaves_of_comparison`**, `baseProver_complete_of_execution` (an unproved target) | the random-oracle theorems; the adaptor; the honest prover; leanISA's `TraceExtraction` (declared beside `SatisfiedBy`) and its inhabitant `leanIsaTraceExtraction`; for completeness from an execution, leanISA's constraint completeness at the trace level |
+| the base theorems (T4) | [Layer 13](#layer-13-the-base-theorems-t4-and-the-fixtures) | **`BlakeMisbehaves`**, `extractTrace`, **`baseVerifier_extractsWitness_rom`**, **`baseVerifier_extractsWitness`**, **`baseVerifier_extractsWitness_coins`**, **`baseVerifier_extractsExecution`**, `Blake2sActsAsRandomOracle`, **`blakeMisbehaves_of_comparison`**, **`prove_complete`**, `baseProver_complete_of_execution` (an unproved target) | the random-oracle theorems; the adaptor; the honest prover; leanISA's `TraceExtraction` (declared beside `SatisfiedBy`) and its inhabitant `leanIsaTraceExtraction`; for completeness from an execution, leanISA's constraint completeness at the trace level |
 
 What can start is what the column *Needs* allows; the status file says what is built.
 
@@ -1897,6 +1897,9 @@ def honestAdversary (fuel prog input w ρ) : Adversary := do
 theorem baseProver_complete (h : SatisfiedBy prog input w) (hs : Sizes.ofWitness w = some s)
     (hadm : s.Admissible prog) (hρ : validRate ρ) (H : List UInt8 → Digest) :
     proveWith (m := Id) H fuel prog input w ρ = some proof → verifyWith (m := Id) H prog input proof = true
+-- The deployed pair side by side (Headline.lean): `baseProver_complete` at `blake2sBytes`
+theorem prove_complete (h : SatisfiedBy prog input w) :
+    prove fuel prog input w ρ = some proof → verify prog input proof = true
 /- Unproved target: it needs leanISA's constraint completeness at the trace level.
 theorem baseProver_complete_of_execution (hwf : WellFormedBytecode prog) (h : ValidExecution prog input t)
     (hfit : ∃ w s, SatisfiedBy prog input w ∧ AssignmentRepresents w t ∧ Sizes.ofWitness w = some s ∧ s.Admissible prog)
@@ -1988,7 +1991,10 @@ satisfying witness.
 Perfect completeness does not survive the transform unconditionally. The honest prover's grinding
 is a search, so `prove` takes fuel. That the search succeeds within its fuel holds for a random
 function (each nonce passes with probability `2^{−17}`) and is not claimed for BLAKE2s. So the
-completeness theorems conclude that every proof `prove` returns is accepted, not that one exists.
+completeness theorems conclude that every proof `prove` returns is accepted, not that one exists;
+`prove_complete` states it for the deployed pair `prove` and `verify`. `prove` returns no proof
+only when the witness's memory image is a single word (no sizes), its sizes are not admissible,
+the rate is not valid, or a grind runs out of fuel (`proveWith_eq_none`).
 
 Tests:
 - the replayer (acceptance test 36): `extract` on the empty log is `none` for every proof, and the
@@ -2298,7 +2304,7 @@ Base theorems:        TraceExtraction  checkSatisfiedBy  checkSatisfiedBy_eq_tru
                       baseVerifier_extractsWitness  baseVerifier_extractsWitness_coins
                       baseVerifier_extractsExecution
                       Blake2sActsAsRandomOracle  blakeMisbehaves_of_comparison  proveWith  prove  honestAdversary
-                      baseProver_complete  baseProver_complete_of_execution
+                      baseProver_complete  prove_complete  baseProver_complete_of_execution
 Parameters:           initialFold  subsequentFold  initialReduction  subsequentReduction  residualMaxLog
                       queryGrindingBits  the Flock constants (Parameters/Flock.lean)
 ```
