@@ -1145,7 +1145,8 @@ Merkle trees', with the fast field arithmetic merged), the rest of Layer 12's ve
 
 *On merge* of the prover's branch (`feat/protocol-prover`, on the verifier's and the stateful
 provers'), Layer 13's honest prover and its test vectors are on `main`. No target theorem
-advances; `baseProver_complete` holds modulo `PhasesAgree`.
+advances; `baseProver_complete` holds modulo `PhasesAgree`, which the compiled verifier's branch
+below proves.
 
 - **The prover** (`Protocol/Prove.lean`, `Protocol/Prove/`): `proveWith H fuel F prog input w ρ`
   reads the sizes off the witness, checks them with the rate, announces them, runs the compiled
@@ -1228,10 +1229,39 @@ advances; `baseProver_complete` holds modulo `PhasesAgree`.
     positions (`book_compiled`), so the openings' size check never fails: `proveWith` returns
     `none` only when the witness gives no sizes, its sizes are not admissible, the rate is not
     valid, or a grind finds no nonce within its fuel at some chain state.
-  - Owed: `PhasesAgree` (the executable verifier's phases against the oracle verifiers', the
-    lemma the soundness direction needs too), after which `baseProver_complete` holds with no
-    hypothesis; the random-oracle form, `Pr[prove fails] ≤ levels · (1 − 2^-17)^(2^24)`, otherwise
+  - Owed: the random-oracle form, `Pr[prove fails] ≤ levels · (1 − 2^-17)^(2^24)`, otherwise
     accepted, on the logged game with the hash a uniform function.
+
+*On merge* of the compiled verifier's branch (`feat/protocol-verify-compiled`, on the prover's and
+the chain-history decoder's), the executable verifier's algebra and the compiled oracle verifier
+agree on a transcript's wire, and `Prove.baseProver_complete` holds with no hypothesis. No target
+theorem advances.
+
+- **The phases on the wire** (`Protocol/Compile/`): the compiled verifier is a guarded verifier,
+  a check and a verdict built from its components' (`listBindingGuarded`). On a transcript a front
+  phase's oracle verifier accepts, the phase's algebra accepts the transcript's wire (`busWireOf`,
+  `tableWireOf`, `pubWireOf`, `flockWireOf`, the decoder's readers) with the oracle verifier's
+  output (`busStep_busWireOf`, `tableStep_tableWireOf`, `flockStep_flockWireOf`); the public
+  input's algebra is its oracle verifier's run on every transcript (`pubStep_pubWireOf`). WHIR's
+  algebra accepts what the opening's guarded verifier accepts, level by level
+  (`whirCheck_of_run`). The wire carries a round polynomial
+  without its dropped coefficient, which the algebra derives from the running claim, so the
+  algebra accepts round polynomials the oracle verifier rejects
+  (`tests/LeanerVMTests/Protocol/CompileWhir.lean`).
+- **Solved transcripts**: a transcript whose round polynomials pass their checks, each against its
+  running claim (`RoundsSolved`, `BusSolved`, `TableSolved`, `FlockSolved`, `LevelSolved`,
+  `FinalSolved`, `LadderSolved`, `WhirSolved`, and `Solved` for the whole protocol), which every
+  accepted transcript is (`*_of_check`, `whirSolved_of_run`). On a solved transcript the converse
+  holds: each phase's algebra is its oracle verifier's run (`*_of_solved`), the opening's guarded
+  verifier accepts when WHIR's algebra does (`whirOpenGuarded_run_of_whirCheck`), and the compiled
+  verifier accepts when the algebra does (`compiled_of_algebra`, `Compile/Agree.lean`).
+- **The phases agree** (`Compile/Agree.lean`): `phasesAgree` proves `PhasesAgree`, so
+  `Prove.baseProver_complete` needs no hypothesis (`baseProver_complete_of_agree` is the form
+  that takes it).
+- Owed: that the decoder's transcripts are solved (it decodes each dropped coefficient from the
+  running claim, `RoundPoly.check_of_decode`), after which the algebra's acceptance is the
+  compiled verifier's on decoded transcripts, which the soundness direction needs; and
+  `verify_iff_compiled`.
 
 ## Upstream watch
 

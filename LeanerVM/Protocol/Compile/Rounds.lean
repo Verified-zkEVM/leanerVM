@@ -36,6 +36,7 @@ out, and `drawsList` a run of draws (`drawsList_chalsTr`). Then
   against the running claims (`RoundsSolved`) is the one its wires decode to; the wire drops a
   coefficient of each polynomial, which the check determines;
 * `roundsTr?_roundsWire`: so is a transcript the oracle verifier accepts (`roundsSolved_of_check`);
+  conversely the oracle verifier accepts rounds that pass their checks (`check_of_roundsSolved`);
 * `roundsWire_roundsTr?`: the transcript the wires decode to carries them.
 -/
 
@@ -256,6 +257,26 @@ theorem roundsSolved_of_check (m : ℕ) :
         (fun k hk hk' ↦ hwt k (by omega) (by omega))
         ((Component.Front.run_eq_some_iff _).mp hrun).1⟩
     · exact absurd hrun (by simp)
+
+/-- **Rounds whose polynomials pass their checks are accepted** by the oracle verifier, when its
+domain at each of the rounds is the round's. -/
+theorem check_of_roundsSolved (m : ℕ) :
+    ∀ (i j : ℕ) (h : j + i = m) (s : Stmt X E j) (t : (roundsSpec E d i).FullTranscript),
+      (∀ k, j ≤ k → k < j + i → wt s.1 k = eqDomain (eq? k)) →
+      RoundsSolved eq? i j s.2.2 t → (roundsFront P wt m i j h).check s t = true
+  | 0, _, _, _, _, _, _ => rfl
+  | i + 1, j, h, s, t, hwt, hs => by
+    obtain ⟨q, c, t', rfl⟩ : ∃ q c t', t = roundsCons q c t' := ⟨_, _, _, eq_roundsCons t⟩
+    rw [roundsSolved_roundsCons] at hs
+    have hcheck : check j wt s q = true := by
+      rw [check, decide_eq_true_iff, hwt j le_rfl (by omega), ← check_iff]
+      exact hs.1
+    have ih := check_of_roundsSolved m i (j + 1) (by omega) (next j s (evaluate d q c) c) t'
+      (fun k hk hk' ↦ hwt k (by omega) (by omega))
+      (by simpa only [next, eval_eq_evaluate] using hs.2)
+    have hrun := run_roundsFront_succ P wt m i j h s q c t'
+    simp only [hcheck, ↓reduceIte, Component.Front.run_of_check _ ih] at hrun
+    exact ((Component.Front.run_eq_some_iff _).mp hrun).1
 
 /-- A transcript whose rounds the oracle verifier accepts is the transcript its wires decode to,
 at a positive degree, when the oracle verifier's domain at each of the rounds is the round's and

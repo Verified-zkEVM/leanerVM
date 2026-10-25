@@ -269,6 +269,23 @@ theorem run_toGuarded_eq_some {D : Def Stmt₁ OStmt₁ Wit₁ Stmt₂ OStmt₁ 
     (h : F.toGuarded.run p tr = some x) : ∃ y, F.run p.1 tr = some y ∧ (y, p.2) = x := by
   rwa [run_toGuarded, Option.map_eq_some_iff] at h
 
+/-- A run of two components in sequence returns the second one's verdict, when the first one's
+run on the first part of the transcript returns a verdict from which the second one's run returns
+it. -/
+theorem run_append_of_eq_some {D₁ : Def Stmt₁ OStmt₁ Wit₁ Stmt₂ OStmt₂ Wit₂ pSpec₁}
+    {D₂ : Def Stmt₂ OStmt₂ Wit₂ Stmt₃ OStmt₃ Wit₃ pSpec₂} {G₁ : Guarded D₁} {G₂ : Guarded D₂}
+    {s : Stmt₁ × ∀ i, OStmt₁ i} {tr : (pSpec₁ ++ₚ pSpec₂).FullTranscript}
+    {x : Stmt₂ × ∀ i, OStmt₂ i} {o : Stmt₃ × ∀ i, OStmt₃ i} (h₁ : G₁.run s tr.fst = some x)
+    (h₂ : G₂.run x tr.snd = some o) : (G₁.append G₂).run s tr = some o := by
+  rw [run_append, h₁, Option.bind_some, h₂]
+
+/-- A front component's guarded run returns its run's verdict, the oracles handed on. -/
+theorem run_toGuarded_of_eq_some {D : Def Stmt₁ OStmt₁ Wit₁ Stmt₂ OStmt₁ Wit₂ pSpec₁}
+    (F : Front D) {p : Stmt₁ × ∀ i, OStmt₁ i} {tr : pSpec₁.FullTranscript} {y : Stmt₂}
+    (h : F.run p.1 tr = some y) : F.toGuarded.run p tr = some (y, p.2) := by
+  rw [run_toGuarded, h]
+  rfl
+
 /-- A component whose verifier is pure, as a guarded one. -/
 def ofPure {D : Def Stmt₁ OStmt₁ Wit₁ Stmt₂ OStmt₂ Wit₂ pSpec₁}
     (P : D.red.toReduction.verifier.PureForm) : Guarded D :=
