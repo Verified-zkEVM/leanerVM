@@ -5,16 +5,16 @@ import LeanerVMTests.Arithmetization.Steps
 /-!
 # The headline theorems: tests
 
+* **Nothing is extracted from the empty log** (`extract_nil`), whatever the proof: every row
+  reads zero, the transform's exact path decodes the zero word to the zero stack alone, and the
+  zero stack's read counts are zero, which leanISA's relation forbids. Deciding the relation on a
+  stack at the deployed sizes decides the bus's permutation, quadratic in its length, so this is a
+  theorem, not a run.
 * **The replayer.** The adversary `pure proof` outputs a stored proof and asks nothing. If `verify`
-  accepts the proof and the extraction from the empty log fails, its one run under BLAKE2s
-  misbehaves (the verifier's recomputed root is a fresh answer equal to a root of the proof, a
-  hit), so it fails `BlakeMisbehaves` at every `δ < 1` (`replayer_not_blakeMisbehaves`). The
-  extraction from the empty log reads every row as zero and fails only when the zero stack does
-  not satisfy the relation, so that failure is a premise. The `leanervm-verify` executable checks
-  both premises natively on the Rust proof and on the test vector, the second through
-  `extractCheap`, which is `extract` (`extractCheap_eq`) with the relation's clauses decided
-  cheapest first: as `extract` decides it, the bus's permutation comes second, and its decision is
-  quadratic in the bus's length.
+  accepts the proof, its one run under BLAKE2s misbehaves (the verifier's recomputed root is a
+  fresh answer equal to a root of the proof, a hit), so it fails `BlakeMisbehaves` at every
+  `δ < 1` (`replayer_not_blakeMisbehaves`). The `leanervm-verify` executable checks that `verify`
+  accepts the Rust proof and the test vector.
 * **The honest prover's hashes.** `scan` finds the collisions and hits of a joint log in one pass
   with hash maps; it agrees with `QueryLog.HasCollision` and `Hit` on the logs below, which cover a
   hit through a half, through a root two observe steps rebuild, through a root of the proof, and
@@ -37,6 +37,110 @@ open LeanerVMTests.Arithmetization.Statement (fillProg mulInput)
 open LeanerVMTests.Arithmetization.Steps (fill_sentinelSafe)
 open scoped ENNReal
 
+/-! ## Nothing is extracted from the empty log -/
+
+/-- The empty log answers no leaf: every row reads zero. -/
+theorem wordRows_nil (root : Digest) (depth rowWords ℓ : ℕ) (y : Fin (2 ^ depth))
+    (u : Fin (2 ^ ℓ)) : (wordRows [] root depth rowWords ℓ)[y][u] = 0 := by
+  have hnone : ∀ x ∈ extractAllRows [] root depth rowWords (2 ^ ℓ), x = none := by
+    intro x hx
+    rw [extractAllRows_eq] at hx
+    obtain ⟨p, -, rfl⟩ := List.mem_map.mp hx
+    have key : ∀ (o : Option Digest) (f : Digest → Option (List K)), (∀ d, f d = none) →
+        o.bind f = none := by
+      rintro (_ | d) f hf
+      · rfl
+      · exact hf d
+    exact key _ _ fun _ ↦ rfl
+  have hrow : ((extractAllRows [] root depth rowWords (2 ^ ℓ))[y.val]?.bind fun a ↦ a) = none := by
+    cases h : (extractAllRows [] root depth rowWords (2 ^ ℓ))[y.val]? with
+    | none => rfl
+    | some x => simpa using hnone x (List.mem_of_getElem? h)
+  simp only [wordRows, LeanerVM.Protocol.laneRow]
+  simp [hrow]
+
+/-- The zero messages. -/
+def zeroMsgs (m κ : ℕ) : Whir.Msgs m κ := fun _ ↦ Vector.replicate (2 ^ κ) 0
+
+/-- The transform's exact path reads the zero word as the zero messages. -/
+theorem exactNtt_zero {κ R ℓ : ℕ} (hb : κ + R ≤ 64) {F : Whir.LW (κ + R)}
+    (hF : ∀ y (u : Fin (2 ^ ℓ)), F y u = 0) : Whir.exactNtt κ R ℓ F = some (zeroMsgs ℓ κ) :=
+  Whir.exactNtt_of_codeword hb fun y u ↦ by
+    rw [hF, encode_eq_sum]
+    simp [zeroMsgs]
+
+/-- The stack of the zero messages is zero. -/
+theorem stackOfMsgs_zero (I : M3Instance) {sh : Whir.Shape} {κ : ℕ} (hμ : κ + sh.ℓ = I.μ)
+    (i : Fin (2 ^ I.μ)) : (stackOfMsgs I hμ (zeroMsgs sh.ℓ κ)).values.get i = 0 := by
+  have key : ∀ (n : ℕ) (h : κ + sh.ℓ = n) (v : CompPoly.CMlPolynomialEval K (κ + sh.ℓ)),
+      (∀ j, v.get j = 0) → ∀ j, (h ▸ v : CompPoly.CMlPolynomialEval K n).get j = 0 := by
+    intro n h
+    subst h
+    exact fun v hv ↦ hv
+  refine key _ hμ _ (fun j ↦ ?_) i
+  simp [relayout, Whir.ofLanes, zeroMsgs, limb_zero]
+
+/-- A zero stack fails the relation at an instance with a count column: its count cells are
+zero. -/
+theorem not_m3Holds_of_zero (I : M3Instance) (input : I.Stmt) (q : Column I.μ)
+    (hq : ∀ i, q.values.get i = 0) {j : Fin I.ntab} {c : Fin (I.width j)} (hc : c ∈ I.counts j) :
+    ¬ M3Holds I input q := by
+  rintro ⟨-, -, hcnt, -, -⟩
+  apply hcnt j c hc ⟨0, Nat.two_pow_pos _⟩
+  have h : (I.column q ⟨j, c⟩).values.get ⟨0, Nat.two_pow_pos _⟩ =
+      I.row q j ⟨0, Nat.two_pow_pos _⟩ c := rfl
+  rw [h, M3Instance.row_eq_rowFast]
+  exact hq _
+
+/-- The deployed pick on a word of zeros returns nothing at an instance with a count column. -/
+theorem deployedPick_zero (I : M3Instance) {r : ℕ} (h : Whir.Admissible I.μ r) (input : I.Stmt)
+    (w : Whir.KWord (Whir.deployedHeadShape I.μ r).ℓ
+      (Whir.deployedHeadKap I.μ r + (Whir.deployedHeadShape I.μ r).R)
+      (Whir.deployedHeadShape I.μ r).t)
+    (hw : ∀ y (u : Fin (2 ^ (Whir.deployedHeadShape I.μ r).ℓ)), (w.row y)[u] = 0)
+    {j : Fin I.ntab} (hj : I.counts j ≠ []) : Whir.deployedPick I h input w = none := by
+  obtain ⟨c, hc⟩ := List.exists_mem_of_ne_nil _ hj
+  have hb : Whir.deployedHeadKap I.μ r + (Whir.deployedHeadShape I.μ r).R ≤ 64 := by
+    have hd := Whir.deployedChain_head h
+    exact hd.1 ▸ hd.2.1 ▸
+      ((Whir.deployedChain I.μ r h).ladder.headPar (Whir.deployedChain I.μ r h).pars).hb
+  have hF : ∀ y (u : Fin (2 ^ (Whir.deployedHeadShape I.μ r).ℓ)), w.lift.lanes y u = 0 := by
+    intro y u
+    have h' : w.lift.lanes y u = ofK (w.row y)[u] := by
+      simp [Whir.Word.lanes, Whir.KWord.lift, Vector.getD, u.2]
+    rw [h', hw y u]
+    exact map_zero (algebraMap K E)
+  unfold Whir.deployedPick commitPick stackList Whir.deployedHeadDecoder
+  simp only [Whir.ListDecoder.nttFirst, exactNtt_zero hb hF]
+  simp [not_m3Holds_of_zero I input _ (stackOfMsgs_zero I _) hc]
+
+/-- **Nothing is extracted from the empty log**, whatever the proof: every row reads zero, the
+zero word decodes to the zero stack alone, and the zero stack's read counts are zero, which
+leanISA's relation forbids. -/
+theorem extract_nil (F : FlockSpec) (prog : Program) (input : PublicInput)
+    (proof : Proof PrunedMerklePaths) : extract F prog input proof [] = none := by
+  unfold extract
+  split
+  · rfl
+  · split
+    · split
+      · rfl
+      · rename_i _ s _ _ _ _ _ _
+        have hcounts : (leanIsaInstance F prog s).counts ⟨3, by show 3 < 9; decide⟩ ≠ [] := by
+          show LeanIsa.counts ⟨3, by decide⟩ ≠ []
+          decide +kernel
+        dsimp only
+        rw [Option.map_eq_none_iff]
+        apply deployedPick_zero _ _ _ _ _ hcounts
+        intro y u
+        exact wordRows_nil _ _ _ _ _ _
+    · rfl
+
+theorem not_extracts_nil (F : FlockSpec) (prog : Program) (input : PublicInput)
+    (proof : Proof PrunedMerklePaths) : ¬ Extracts F prog input proof [] := by
+  rw [extracts_iff_isSome, extract_nil]
+  exact Bool.false_ne_true
+
 /-! ## The replayer -/
 
 /-- **The replayer**: it outputs a stored proof and asks nothing. -/
@@ -51,12 +155,11 @@ theorem replayer_run {prog : Program} {input : PublicInput} {proof : Proof Prune
   obtain ⟨_, _, rfl⟩ := hg
   exact ⟨rfl, rfl⟩
 
-/-- **The replayer fails the hypothesis** at every `δ < 1`, when `verify` accepts its proof and
-the extraction from the empty log fails. -/
+/-- **The replayer fails the hypothesis** at every `δ < 1`, when `verify` accepts its proof:
+nothing is extracted from its empty log, so its one run misbehaves. -/
 theorem replayer_not_blakeMisbehaves {prog : Program} {input : PublicInput}
     {proof : Proof PrunedMerklePaths} {δ : ℝ≥0∞} (hacc : verify prog input proof = true)
-    (hX : ¬ Extracts Blake2sFlock.blake2sFlockSpec prog input proof []) (hδ : δ < 1)
-    (hcore : CoreHolds prog input (replayer proof)) :
+    (hδ : δ < 1) (hcore : CoreHolds prog input (replayer proof)) :
     ¬ BlakeMisbehaves prog input (replayer proof) δ := by
   intro hB
   have h1 : Pr{let g ← runBlake2s (loggedGame verifyWith prog input (replayer proof))}[
@@ -64,76 +167,10 @@ theorem replayer_not_blakeMisbehaves {prog : Program} {input : PublicInput}
     OracleComp.prEvent_eq_one_of_forall_mem_support _ _ fun g hg ↦ by
       obtain ⟨hg', hc, hok⟩ := mem_support_runBlake2s hg
       obtain ⟨hp, hl⟩ := replayer_run hg'
-      exact hcore g hg' hc (hok.trans (hp ▸ hacc)) (hp ▸ hl ▸ hX)
+      exact hcore g hg' hc (hok.trans (hp ▸ hacc)) (hp ▸ hl ▸ not_extracts_nil _ _ _ _)
   unfold BlakeMisbehaves at hB
   rw [h1] at hB
   exact absurd hδ (not_lt.mpr hB)
-
-/-! ## The extraction, its clauses decided cheapest first -/
-
-/-- `M3Holds` decided with its cheap clauses first: the count cells, the public cells, the
-constraints and the Flock predicate, then the bus's permutation, whose decision is quadratic in
-its length. -/
-def holdsCheap (I : M3Instance) (input : I.Stmt) (q : Column I.μ) : Bool :=
-  decide (I.CountsNonzero q) && decide (I.PublicLinesHold input q) &&
-    decide (I.ConstraintsVanish q) && decide (I.aux q) && decide (I.Balanced q)
-
-theorem holdsCheap_eq (I : M3Instance) (input : I.Stmt) (q : Column I.μ) :
-    holdsCheap I input q = decide (M3Holds I input q) := by
-  rw [Bool.eq_iff_iff]
-  simp only [holdsCheap, Bool.and_eq_true, decide_eq_true_eq, M3Holds]
-  refine ⟨fun ⟨⟨⟨⟨a, b⟩, c⟩, d⟩, e⟩ ↦ decide_eq_true ⟨c, e, a, b, d⟩, fun h ↦ ?_⟩
-  obtain ⟨c, e, a, b, d⟩ := of_decide_eq_true h
-  exact ⟨⟨⟨⟨a, b⟩, c⟩, d⟩, e⟩
-
-/-- `deployedPick` with `holdsCheap`. -/
-def pickCheap (I : M3Instance) {r : ℕ} (h : Whir.Admissible I.μ r) (s : I.Stmt)
-    (w : Whir.KWord (Whir.deployedHeadShape I.μ r).ℓ
-      (Whir.deployedHeadKap I.μ r + (Whir.deployedHeadShape I.μ r).R)
-      (Whir.deployedHeadShape I.μ r).t) : Option (Column I.μ) :=
-  ((stackList I (Whir.deployedHeadDecoder h) (Whir.deployedHead_height h) fun _ ↦ w).find?
-    fun q ↦ holdsCheap I s (q 0)).map (· 0)
-
-/-- `extract` with `holdsCheap`: the same function, which a native run can afford on a stack that
-fails a cheap clause. -/
-def extractCheap (F : FlockSpec) (prog : Program) (input : PublicInput)
-    (proof : Proof PrunedMerklePaths) (log : hashSpec.QueryLog) :
-    Option (Σ s : Sizes, Column (leanIsaμ prog s)) :=
-  match proof.announced? with
-  | none => none
-  | some (s, ρ) =>
-    if hs : s.Admissible prog ∧ validRate ρ then
-      match level0Root proof with
-      | none => none
-      | some root =>
-        let v := wordRows log root
-          (Whir.deployedHeadKap (leanIsaμ prog s) ρ + (Whir.deployedHeadShape (leanIsaμ prog s) ρ).R)
-          (level0Lanes prog s (Whir.deployedHeadKap (leanIsaμ prog s) ρ))
-          (Whir.deployedHeadShape (leanIsaμ prog s) ρ).ℓ
-        (pickCheap (leanIsaInstance F prog s) (admissible_of_sizes hs.1 hs.2) input
-          ⟨fun y ↦ v[y]⟩).map fun q ↦ ⟨s, q⟩
-    else none
-
-theorem pickCheap_eq (I : M3Instance) {r : ℕ} (h : Whir.Admissible I.μ r) (s : I.Stmt)
-    (w : Whir.KWord (Whir.deployedHeadShape I.μ r).ℓ
-      (Whir.deployedHeadKap I.μ r + (Whir.deployedHeadShape I.μ r).R)
-      (Whir.deployedHeadShape I.μ r).t) :
-    pickCheap I h s w = Whir.deployedPick I h s w := by
-  simp only [pickCheap, Whir.deployedPick, commitPick, holdsCheap_eq]
-
-theorem extractCheap_eq (F : FlockSpec) (prog : Program) (input : PublicInput)
-    (proof : Proof PrunedMerklePaths) (log : hashSpec.QueryLog) :
-    extractCheap F prog input proof log = extract F prog input proof log := by
-  unfold extractCheap extract
-  rcases proof.announced? with _ | ⟨s, ρ⟩
-  · rfl
-  · dsimp only
-    split_ifs with hs
-    · rcases level0Root proof with _ | root
-      · rfl
-      · dsimp only
-        rw [pickCheap_eq]
-    · rfl
 
 /-! ## Collisions and hits, in one pass -/
 
