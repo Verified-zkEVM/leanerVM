@@ -277,10 +277,10 @@ jobs:
         run: |
           if [[ "$GITHUB_EVENT_NAME" == workflow_dispatch ]] || ! git fetch --quiet --depth=1 origin "$BASE"; then
             echo changed=true >> "$GITHUB_OUTPUT"
+          # `LeanVM.lean` proves `Statement.Theorems` with the other projects' end theorems, so it
+          # builds all of them.
           elif git diff --name-only "$BASE" HEAD -- lean_vm leanvm-rev leanvm-tree.sh lake-build.py common Statement \
-              lean_xmss/LeanXmss/Scheme.lean \
-              lean_sphincs/Sphincs/Scheme.lean lean_da/LeanDa/Scheme.lean lean_da/LeanDa/Field.lean \
-              .github/workflows/lean.yml | grep -q .; then
+              lean_xmss lean_sphincs lean_da .github/workflows/lean.yml | grep -q .; then
             echo changed=true >> "$GITHUB_OUTPUT"
           else
             echo changed=false >> "$GITHUB_OUTPUT"
@@ -311,7 +311,10 @@ jobs:
             !lean_vm/.lake/packages/mathlib/.lake
             common/.lake/build
             Statement/.lake/build
-          key: lake-lean-vm-${{ runner.os }}-${{ hashFiles('lean_vm/lean-toolchain', 'lean_vm/lake-manifest.json') }}-${{ hashFiles('lean_vm/**/*.lean', 'common/**/*.lean', 'Statement/**/*.lean', 'lean_xmss/LeanXmss/Scheme.lean', 'lean_sphincs/Sphincs/Scheme.lean', 'lean_da/LeanDa/Scheme.lean', 'lean_da/LeanDa/Field.lean') }}
+            lean_xmss/.lake/build
+            lean_sphincs/.lake/build
+            lean_da/.lake/build
+          key: lake-lean-vm-${{ runner.os }}-${{ hashFiles('lean_vm/lean-toolchain', 'lean_vm/lake-manifest.json') }}-${{ hashFiles('lean_vm/**/*.lean', 'common/**/*.lean', 'Statement/**/*.lean', 'lean_xmss/**/*.lean', 'lean_sphincs/**/*.lean', 'lean_da/**/*.lean') }}
           restore-keys: lake-lean-vm-${{ runner.os }}-${{ hashFiles('lean_vm/lean-toolchain', 'lean_vm/lake-manifest.json') }}-
       - uses: leanprover/lean-action@v1
         with:
@@ -362,6 +365,9 @@ jobs:
             !lean_vm/.lake/packages/mathlib/.lake
             common/.lake/build
             Statement/.lake/build
+            lean_xmss/.lake/build
+            lean_sphincs/.lake/build
+            lean_da/.lake/build
           key: ${{ steps.lake-cache.outputs.cache-primary-key }}
       - uses: dtolnay/rust-toolchain@stable
       # leanVM at `leanvm-rev`, in `.leanvm`, with its `formal/lean_vm` a link to this `lean_vm`.
