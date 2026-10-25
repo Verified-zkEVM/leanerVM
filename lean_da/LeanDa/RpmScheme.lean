@@ -1,7 +1,7 @@
 import LeanDa.Merkle
 import Common.Keccak
 import Common.Lemmas
-import Statement.LeanDa
+import LeanDa.Defs
 
 /-!
 # LeanDA's hashing and challenges over a permutation oracle

@@ -10,18 +10,13 @@ imports it.
 **The model.** Every end statement with an adversary is in the random-permutation model: one
 uniformly random permutation `π` of the 1600-bit Keccak state, which every party queries forward
 (`π x`) and inverse (`π⁻¹ y`), Keccak-256 the sponge over `π` and Keccak-f[1600] `π` itself. That
-the deployed Keccak-f[1600], a fixed permutation, behaves as a random one is the assumption. The
-random-oracle model and the sponge's indifferentiability, through which the proofs pass, are proof
-steps, and no end statement is in the random-oracle model. Their definitions are still here where
-an end statement's bound names them: `LeanDa.CodeBindingRpm`'s bound is the success probabilities
-of Wagner's reduction experiments (`ksExpH`, `wpbCollExpH`, `forkCollExpH`) over a uniformly
-random table of the hash, so the random-oracle content they rest on is part of the statement,
-about seventy declarations: the two-oracle simulator, the simulated adversary, the duplex's
-simulator and the challenges as a random oracle (`RandomPermutation.lean`, its sections "Named by
-LeanDA's code-binding bound"), Wagner's random-oracle simulation, the relation of the scheme's
-argument and his reductions (`LeanDa.lean`, the sections "Wagner's framework" and "Wagner's
-reductions"), and the experiments over the table (`LeanDa.lean`, "Wagner's terms, for a uniformly
-random table of the hash").
+the deployed Keccak-f[1600], a fixed permutation, behaves as a random one is the assumption.
+`Statement/` contains no random oracle: the random-oracle model and the sponge's
+indifferentiability, through which the proofs pass, are proof steps, and their definitions
+(the two-oracle and duplex simulators, Wagner's reductions and his random-oracle terms) are in
+`common` and `lean_da`. LeanDA's code binding is conditional on the argument's knowledge
+soundness in the random-permutation model, the only term of its bound that depends on the
+argument.
 
 **The sources.** The leanVM definitions are transcribed from leanVM at
 `94ee12ff6b2a3d42ba8328e22d09443692e4800b` (branch `main`, [`../leanvm-rev`](../leanvm-rev)): each
@@ -37,8 +32,8 @@ Benedikt Wagner's ([b-wagn/fv-pq-da](https://github.com/b-wagn/fv-pq-da), Apache
    and Keccak-256's padding, `spongeWith`, `keccakPadding`); a cost bounded on every path
    (`IsWeightBound`); the Keccak-256 evaluations a transcript of permutation queries contains
    (`pathsOf`); the SUF-CMA game of a hash-based signature scheme in the random-permutation model
-   (`SufCma.rpmGame`, `rpmExperiment`, `permCalls`); and, for LeanDA's code-binding bound, the
-   two-oracle and duplex simulators.
+   (`SufCma.rpmGame`, `rpmExperiment`, `permCalls`); and a game with the verifier's direct calls of
+   `π` (`rpmGame2`, `realGame2`), the form of LeanDA's games.
 2. [`LeanXmss.lean`](LeanXmss.lean): the leanXMSS scheme, its SUF-CMA game, and
    `LeanXmss.Rpm.LeanXmssRpmSecurityStatement`.
 3. [`LeanSphincs.lean`](LeanSphincs.lean): the leanSPHINCS scheme, its SUF-CMA game with the
@@ -46,16 +41,18 @@ Benedikt Wagner's ([b-wagn/fv-pq-da](https://github.com/b-wagn/fv-pq-da), Apache
 4. [`Field.lean`](Field.lean): `K = GF(2^64)` (CompPoly's `BF64`), `E = GF(2^192)`, the generator
    `g`; Keccak lanes, bytes and digests as field elements.
 5. [`LeanDa.lean`](LeanDa.lean): LeanDA (fields, Reed–Solomon rows, the Merkle commitment, the
-   membership test), Benedikt Wagner's framework for erasure code commitments and the reductions
-   his bound names, LeanDA's games in the random-permutation model, and
-   `LeanDa.PerfectlyCompleteRpm` (for every permutation `π`: Keccak-256 over `π`, `keccakWith`,
-   and the verifier's oracles answered by `π`, `permImpl`; the experiment `completenessExpRpm`),
-   `LeanDa.PositionBindingRpm`, `LeanDa.CodeBindingRpm`. Code binding keeps Wagner's
-   random-oracle terms (`ksExpH`, `wpbCollExpH`, `forkCollExpH`, experiments over a random hash
-   table) and is meaningful only for an argument that stays knowledge sound when the hash is the
-   oracle; an argument complete for every `π`, as `PerfectlyCompleteRpm` asks, does not, so
-   completeness and code binding are not both meaningful for one argument (as in Wagner's
-   original).
+   membership test), the parts of Benedikt Wagner's framework the end statements name (the
+   consistency of opened cells, arguments of knowledge), the relation of LeanDA's argument, the
+   verifier, the commitment and the challenges' duplex over a permutation, LeanDA's games in the
+   random-permutation model (position binding, code binding, the argument's knowledge soundness
+   `ksExpRpm`, completeness for every permutation `π`), and `LeanDa.PerfectlyCompleteRpm`,
+   `LeanDa.PositionBindingRpm`, `LeanDa.CodeBindingRpm`. Code binding is conditional: if the
+   argument is knowledge sound in the random-permutation model with error `(q + c) · 2^-k`, LeanDA
+   is code binding with error `(Q + c + 2^22) · 2^-k + (Q + 2^20) · 2^-93 + (Q + 2^22)² · 2^-158`
+   for `Q ≤ 2^127` and `r ≤ 1024` rows. The hypothesis holds only for an argument that has, or
+   simulates, access to `π`: an argument complete for every `π`, as `PerfectlyCompleteRpm` asks,
+   does not satisfy it, so completeness and code binding are not both meaningful for one argument
+   (as in Wagner's original).
 6. [`LeanIsa.lean`](LeanIsa.lean): leanISA (memory, the six instructions, programs, one step, `run`,
    `ValidExecution`: a run from the initial state `(pcInitial, fpInitial)` that halts in the final
    state `(pcFinal, fpFinal)`, the instruction counts `Trace.count`, the bytecode encoding), the
@@ -110,8 +107,7 @@ a `@[csimp]` lemma is an equation the kernel checks.
 
 A few definitions carry proofs, which are here because the definitions need them:
 `Common.keccakPadding` (a `Padding`, with the padding's laws: six lemmas in
-`RandomPermutation.lean`) and `LeanDa.daDuplex` (a `Common.Duplex.DuplexSpec`, with the duplex's
-laws: the lemmas before it in `LeanDa.lean`); and decidability instances.
+`RandomPermutation.lean`); and decidability instances.
 
 ## The end theorems
 

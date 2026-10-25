@@ -39,7 +39,7 @@ import PqDas.Target.Scheme
 import PqDas.Proof.CommittedSoundness.Defs
 import PqDas.VcvioExtras
 import VCVio.OracleComp.EvalDist.Sum
-import Statement.LeanDa
+import PqDas.Defs
 
 open OracleComp OracleSpec ENNReal
 

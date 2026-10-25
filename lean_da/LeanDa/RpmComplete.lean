@@ -1,6 +1,6 @@
 import LeanDa.RpmCodeBinding
 import PqDas.Target.Scheme
-import Statement.LeanDa
+import LeanDa.Defs
 
 /-!
 # Completeness in the random-permutation model

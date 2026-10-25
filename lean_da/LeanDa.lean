@@ -4,6 +4,8 @@ import LeanDa.Security
 import LeanDa.RpmSecurity
 import LeanDa.RpmWagner
 import LeanDa.RpmComplete
+import LeanDa.KsRpm
+import LeanDa.Arith
 import PqDas
 
 /-!
@@ -26,8 +28,11 @@ perfectly complete for every permutation `π`, by Wagner's completeness proof
 `Q² / 2^256 + Q² / 2^508`); and code
 binding moves to the two-oracle random-oracle model within `Q² / 2^508`
 (`leanDa_codeBinding_rpm`), where the duplex lemma (`Common.Duplex`) and sampling `H` in advance
-give Wagner's bound, averaged over `H`, plus `2 (Q + 15)² / 2^576`
-(`leanDa_codeBinding_rpm_bound`).
+give Wagner's bound, averaged over `H`, plus `2 (Q + 15)² / 2^576` (`leanDa_codeBinding_avg`).
+His two collision terms are birthday bounds (`wpbColl_le`, `forkColl_le`) and his
+knowledge-soundness term is the argument's knowledge soundness in the random-permutation model
+(`leanDa_codeBinding_core`), so for an argument knowledge sound there LeanDA is code binding with
+explicit terms in `Q` (`leanDa_codeBinding_rpm_bound`).
 -/
 
 /-! ## The end theorems
@@ -45,7 +50,7 @@ open PqDas PqDas.CommittedSoundness OracleComp OracleSpec ENNReal
 
 namespace LeanDa
 
-variable (r : ℕ) (H : List UInt8 → Digest) {Crs Proof : Type} (ps : Argument r H Crs Proof)
+variable (r : ℕ) (H : List UInt8 → Digest) {Crs Proof : Type} (ps : WArgument r H Crs Proof)
 
 /-- **Position binding**: an adversary opening a commitment at one cell to two different cells
 gives, through the explicit reduction, a collision of `H`. -/
@@ -97,10 +102,9 @@ open Common
 variable (r : ℕ) {Crs Proof : Type} {rel : Unit × Digest × Challenges → (Fin (r * 128) → Cell) → Bool}
   (ps : Nark (Unit × Digest × Challenges) (Fin (r * 128) → Cell) Crs Proof rel)
 
-/-- **LeanDA is code binding in the random-permutation model.** For every argument `ps` (any
-verifier, for any relation; an oracle-free parameter, as in Wagner's model), every extractor
-`ext`, and every adversary whose game, verifications included, makes at most `Q` permutation
-calls (`permCalls2`),
+/-- **Wagner's code-binding bound for LeanDA, averaged over a uniformly random table of `H`.** For
+every argument `ps` and extractor `ext`, and every adversary whose game, verifications included,
+makes at most `Q` permutation calls (`permCalls2`),
 
 `(Pr[code-bind] − (Q²/2^508 + 2(Q+15)²/2^576 + ε_ks + ε₁))² ≤ (Q + 2)(ε₂ + 14/2^192 + 2^-2688)`,
 
@@ -113,8 +117,17 @@ Wagner's reduction against the knowledge soundness of `ps` for the relation with
 `Q²/2^508` is the two-oracle transfer, `2(Q+15)²/2^576` the duplex lemma (the challenges' sponge
 is a random oracle of the roots unless two of at most `Q + 15` states share their 576-bit
 capacity), and the rest is Wagner's bound for each `h`, averaged over `h`. -/
-theorem leanDa_codeBinding_rpm_bound : CodeBindingRpm := by
-  intro r Crs Proof rel ps _ ext A Q hQ
+theorem leanDa_codeBinding_avg [NeZero r]
+    (ext : Nark.Extractor (Unit × Digest × Challenges) (Fin (r * 128) → Cell) Crs Proof)
+    (A : CodeBindingAdvRpm r Crs Proof) (Q : ℕ)
+    (hQ : IsWeightBound (codeBindingGame r ps A) permCalls2 Q) :
+    (Pr{let b ← codeBindingExpRpm r ps A}[b = true] -
+        ((Q ^ 2 : ℝ≥0∞) / 2 ^ 508 + 2 * ((Q + 15 : ℕ) : ℝ≥0∞) ^ 2 / 2 ^ 576 +
+          (Pr{let b ← ($ᵗ HTab : ProbComp HTab) >>= ksExpH r ps ext A}[b = true] +
+            Pr{let b ← ($ᵗ HTab : ProbComp HTab) >>= wpbCollExpH r ps ext A}[b = true]))) ^ 2 ≤
+      ((Q : ℝ≥0∞) + 2) *
+        (Pr{let b ← ($ᵗ HTab : ProbComp HTab) >>= forkCollExpH r ps ext A Q}[b = true] +
+          14 / 2 ^ 192 + (2 ^ 2688)⁻¹) := by
   set εks := Pr{let b ← ($ᵗ HTab : ProbComp HTab) >>= ksExpH r ps ext A}[b = true]
   set ε₁ := Pr{let b ← ($ᵗ HTab : ProbComp HTab) >>= wpbCollExpH r ps ext A}[b = true]
   set ε₂ := Pr{let b ← ($ᵗ HTab : ProbComp HTab) >>= forkCollExpH r ps ext A Q}[b = true]
@@ -145,6 +158,90 @@ theorem leanDa_codeBinding_rpm_bound : CodeBindingRpm := by
     _ = _ := by ring
 
 end CodeBindingRpm
+
+section Core
+
+open Common
+
+variable (r : ℕ) {Crs Proof : Type} {rel : Unit × Digest × Challenges → (Fin (r * 128) → Cell) → Bool}
+  (ps : Nark (Unit × Digest × Challenges) (Fin (r * 128) → Cell) Crs Proof rel)
+
+/-- **Code binding with Wagner's three terms bounded**: the knowledge-soundness term by the RPM
+knowledge-soundness experiment of `ksAdv A` and the transfer and duplex terms of its game, and the
+two collision terms by birthday bounds. -/
+theorem leanDa_codeBinding_core [NeZero r]
+    (ext : Nark.Extractor (Unit × Digest × Challenges) (Fin (r * 128) → Cell) Crs Proof)
+    (A : CodeBindingAdvRpm r Crs Proof) (Q : ℕ)
+    (hQ : IsWeightBound (codeBindingGame r ps A) permCalls2 Q) :
+    (Pr{let b ← codeBindingExpRpm r ps A}[b = true] -
+        ((Q ^ 2 : ℝ≥0∞) / 2 ^ 508 + 2 * ((Q + 15 : ℕ) : ℝ≥0∞) ^ 2 / 2 ^ 576 +
+          ((Pr{let b ← ksExpRpm r ps ext (ksAdv r A)}[b = true] +
+              ((ksCalls r Q) ^ 2 : ℝ≥0∞) / 2 ^ 508 + 2 * ((Q + 15 : ℕ) : ℝ≥0∞) ^ 2 / 2 ^ 576) +
+            ((wpbCalls r Q + 2 : ℕ) : ℝ≥0∞) ^ 2 / 2 ^ 256))) ^ 2 ≤
+      ((Q : ℝ≥0∞) + 2) *
+        (((forkCalls r Q + 2 : ℕ) : ℝ≥0∞) ^ 2 / 2 ^ 256 + 14 / 2 ^ 192 + (2 ^ 2688)⁻¹) := by
+  have h := leanDa_codeBinding_avg r ps ext A Q hQ
+  have hks : Pr{let b ← ($ᵗ HTab : ProbComp HTab) >>= ksExpH r ps ext A}[b = true] ≤
+      Pr{let b ← ksExpRpm r ps ext (ksAdv r A)}[b = true] + ((ksCalls r Q) ^ 2 : ℝ≥0∞) / 2 ^ 508 +
+        2 * ((Q + 15 : ℕ) : ℝ≥0∞) ^ 2 / 2 ^ 576 := by
+    have hdup : ((Q + 14 + 1 : ℕ) : ℝ≥0∞) * (2 * ((Q + 14 + 1 : ℕ) : ℝ≥0∞) * (2 ^ 576 : ℝ≥0∞)⁻¹) =
+        2 * ((Q + 15 : ℕ) : ℝ≥0∞) ^ 2 / 2 ^ 576 := by
+      rw [div_eq_mul_inv]; ring
+    rw [prT_ksExpH, ← hdup]
+    exact (ksIdealG_le r ps ext A Q hQ).trans
+      (add_le_add (rom2_le_ksExpRpm r ps ext A Q hQ) le_rfl)
+  have h₁ := wpbColl_le r ps ext A Q hQ
+  have h₂ := forkColl_le r ps ext A Q hQ
+  refine le_trans (pow_le_pow_left₀ zero_le (tsub_le_tsub_left ?_ _) 2) (h.trans ?_)
+  · gcongr
+  · gcongr
+
+/-- **LeanDA is code binding in the random-permutation model, for an argument knowledge sound in
+it**: Wagner's bound with its knowledge-soundness term read back in the random-permutation model
+(`ksExpRpm_ksAdv`, through `rom2_le_ksExpRpm` and `ksIdealG_le`), its collision terms birthday
+bounds (`wpbColl_le`, `forkColl_le`), and the forking lemma's square root bounded
+(`fork_sq_le`). -/
+theorem leanDa_codeBinding_rpm_bound : CodeBindingRpm := by
+  intro r Crs Proof rel ps ext c k hks hr1 hrM A Q hQ hQcap
+  have : NeZero r := ⟨by omega⟩
+  have hL : logPad r ≤ 10 := by
+    unfold logPad
+    exact (Nat.clog_le_iff_le_pow (by norm_num)).mpr (by simpa [maxRows] using hrM)
+  have hN : nPad r ≤ 1024 := by
+    unfold nPad
+    calc 2 ^ logPad r ≤ 2 ^ 10 := Nat.pow_le_pow_right (by norm_num) hL
+      _ = 1024 := by norm_num
+  have hK : ksCalls r Q ≤ Q + 2 ^ 22 := by unfold ksCalls relCalls; omega
+  have hW : wpbCalls r Q + 2 ≤ Q + 2 ^ 22 := by unfold wpbCalls openCalls; omega
+  have hF : forkCalls r Q + 2 ≤ 2 * (Q + 2 ^ 20) := by
+    unfold forkCalls commitCalls openCalls; omega
+  have hε : Pr{let b ← ksExpRpm r ps ext (ksAdv r A)}[b = true] ≤
+      ((Q + c + 2 ^ 22 : ℕ) : ℝ≥0∞) / 2 ^ k := by
+    refine (hks (ksAdv r A) (ksCalls r Q) (isWeightBound_ksGame r ps ext A Q hQ)
+      (by omega)).trans ?_
+    rw [div_eq_mul_inv, ENNReal.inv_pow]
+    refine mul_le_mul_left ?_ _
+    exact_mod_cast (show ksCalls r Q + c ≤ Q + c + 2 ^ 22 by omega)
+  have hP := le_of_sq_tsub_le (leanDa_codeBinding_core r ps ext A Q hQ)
+    (fork_sq_le Q (forkCalls r Q + 2) hF)
+  refine hP.trans ?_
+  have hR := rest_le Q (ksCalls r Q) (wpbCalls r Q + 2) (Q + 2 ^ 20) (Q + 2 ^ 22) hK hW (by omega)
+    (by omega) (by omega)
+  calc _ = Pr{let b ← ksExpRpm r ps ext (ksAdv r A)}[b = true] +
+        ((Q ^ 2 : ℝ≥0∞) / 2 ^ 508 + 2 * ((Q + 15 : ℕ) : ℝ≥0∞) ^ 2 / 2 ^ 576 +
+          (((ksCalls r Q : ℕ) : ℝ≥0∞) ^ 2 / 2 ^ 508 + 2 * ((Q + 15 : ℕ) : ℝ≥0∞) ^ 2 / 2 ^ 576) +
+          ((wpbCalls r Q + 2 : ℕ) : ℝ≥0∞) ^ 2 / 2 ^ 256 +
+          (((Q + 2 ^ 20 : ℕ) : ℝ≥0∞) / 2 ^ 95 + ((Q + 2 ^ 20 : ℕ) : ℝ≥0∞) ^ 2 / 2 ^ 159 +
+            ((Q + 2 : ℕ) : ℝ≥0∞) / 2 ^ 94)) := by ring
+    _ ≤ ((Q + c + 2 ^ 22 : ℕ) : ℝ≥0∞) / 2 ^ k +
+        (((Q + 2 ^ 20 : ℕ) : ℝ≥0∞) / 2 ^ 93 + ((Q + 2 ^ 22 : ℕ) : ℝ≥0∞) ^ 2 / 2 ^ 158) :=
+        add_le_add hε hR
+    _ = _ := by
+        simp only [div_eq_mul_inv, ENNReal.inv_pow]
+        push_cast
+        ring
+
+end Core
 
 end LeanDa
 

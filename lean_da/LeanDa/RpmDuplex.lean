@@ -1,7 +1,7 @@
 import LeanDa.RpmScheme
 import Common.Duplex.Vec
 import Common.Rerun
-import Statement.LeanDa
+import LeanDa.Defs
 
 /-!
 # LeanDA's challenges as a duplex

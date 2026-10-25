@@ -25,7 +25,7 @@ import VCVio.OracleComp.QueryTracking.RandomOracle.Basic
 import VCVio.OracleComp.QueryTracking.RandomOracle.Simulation
 import VCVio.OracleComp.Coercions.Add.Basic
 import VCVio.OracleComp.SimSemantics.StateT.BundledSemantics
-import Statement.LeanDa
+import PqDas.Defs
 
 open OracleComp OracleSpec ENNReal
 

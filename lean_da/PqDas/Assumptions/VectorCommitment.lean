@@ -33,7 +33,7 @@ Benedikt Wagner's formalization (https://github.com/b-wagn/fv-pq-da), ported at 
 modified for VCVio afa6593.
 -/
 import VCVio.CryptoFoundations.CommitmentScheme
-import Statement.LeanDa
+import PqDas.Defs
 
 open OracleComp ENNReal
 

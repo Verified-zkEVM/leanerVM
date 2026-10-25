@@ -13,10 +13,11 @@ Build with `lake build` (the root module `Common.lean` checks that the main theo
 
 The definitions the end statements need (the permutation oracle `permSpec`, the lazily sampled
 permutation `lazyPerm`, the sponge `spongeWith` and Keccak-256's padding, `IsWeightBound`, `pathsOf`,
-the SUF-CMA game in the random-permutation model, and the simulators LeanDA's code-binding bound
-names) are in [`Statement/RandomPermutation.lean`](../Statement/RandomPermutation.lean), namespace
-`Common`; the files below keep their proofs and the definitions only the proofs use (the
-random-oracle games, the ideal worlds, the simulator of the one-oracle transfer, `lazyFun`, …).
+the SUF-CMA game in the random-permutation model, and the games with the verifier's direct calls
+`rpmGame2`, `realGame2`) are in [`Statement/RandomPermutation.lean`](../Statement/RandomPermutation.lean),
+namespace `Common`; the files below keep their proofs and the definitions only the proofs use (the
+random-oracle games, the ideal worlds, the simulators of the one- and two-oracle transfers, the
+duplex and its simulator in `Common/SimDefs.lean`, `lazyFun`, …).
 
 
 - `Common/Model.lean`: the permutation oracle (`permSpec`: `π` and `π⁻¹`), the lazily sampled
@@ -118,8 +119,9 @@ gets `G (r, ·)`, `G` a random oracle on `(root, index)`; with the challenges sa
 simulator is exactly `F` (`run'_simImpl_evalDistEq`), and against a table of challenges the
 derived challenges are the table's unless a fresh answer's capacity repeats one seen
 (`chal_ok`, `prob_bad_le`). `run'_romImpl_evalDistEq_vec` reads `G` as one random oracle of
-vectors. LeanDA's membership challenges instantiate it (`lean_da`, `LeanDa.daDuplex`: capacity
-576 bits, `εc = 2^-576`).
+vectors. The reverse bound, the simulated world at most the two-oracle one plus the same term,
+follows for the negated `post` (`Duplex.duplex_ge`). LeanDA's membership challenges instantiate it
+(`lean_da`, `LeanDa.daDuplex`: capacity 576 bits, `εc = 2^-576`).
 
 ## Not covered
 

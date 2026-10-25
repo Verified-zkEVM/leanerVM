@@ -40,7 +40,7 @@ modified for VCVio afa6593; the core of his completeness proof is stated on its 
 import PqDas.Assumptions.ErasureCode
 import PqDas.Assumptions.VectorCommitment
 import PqDas.Assumptions.CodeChecker
-import Statement.LeanDa
+import PqDas.Defs
 import PqDas.Target.ErasureCodeCommitment
 import PqDas.RomRuntime
 import VCVio.CryptoFoundations.SignatureAlg
