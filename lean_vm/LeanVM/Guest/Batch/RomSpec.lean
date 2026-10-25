@@ -37,6 +37,9 @@ open scoped ENNReal
 
 @[expose] public section
 
+/-- The batching's escape bound per group of challenges: `2/|E|`. -/
+noncomputable def batchε : ℝ≥0∞ := 2 / Fintype.card E
+
 /-- Some child's claim leaves a nonzero gap. -/
 def SomeGap (bytecode : List K) (cs : List ChildClaims) : Prop :=
   ∃ g ∈ gapsB bytecode cs, g ≠ 0

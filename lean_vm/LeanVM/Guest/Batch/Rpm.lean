@@ -20,10 +20,9 @@ inverse (`Rpm.rpmRun`): `batch_rpm` bounds the probability that the batching pro
 `M` children of the bytecode's shapes one of whose claims is false (`FalseChildren`) by
 `batch_rom`'s bound at the adversary's `QA` queries, plus `rpmError (QA + QV · 2^32)`, `QV` the
 program's query bound, each query at most `2^32` permutation calls. `batch_rpm_bits`: for
-`QA + QV ≤ 2^64`, at most `(QA + QV) · 2^-188`. `batch_sound_rpm` and `batch_sound_rpm_bits`
-are the two as the end statements `BatchSoundRpm` and `BatchSoundRpmBits` of
-`Statement/LeanVmGuest.lean` state them: the verifier written out (`batchVerifier`, the seeding
-`F(H(label) ‖ 0)` then the program) and the failure term the explicit `5N/2^256`.
+`QA + QV ≤ 2^64`, at most `(QA + QV) · 2^-188`. `batch_sound_rpm_bits` is it as the end
+statement `BatchSound` of `Statement/LeanVmGuest.lean` states it: the verifier written out
+(`batchVerifier`, the seeding `F(H(label) ‖ 0)` then the program).
 
 The proof is `Rpm.rpmRun_le_rom` with `batch_rom`: the program follows the duplex discipline (its
 seed is the permutation of `seedInput`, zero from lane `8` on, then the duplex sponge,
@@ -201,19 +200,8 @@ theorem verifierFam_eq_batchVerifier (M : ℕ) (bytecode : List K) :
   simp only [verifierComp, Rom.verify, Seed.run, batchSeedOf, Seed.hsRun, batchVerifier,
     bind_assoc, pure_bind, List.nil_append, List.getD_cons_zero]
 
-/-- **`BatchSoundRpm`** (`Statement/LeanVmGuest.lean`): `batch_rpm`, its failure term
-`failBound batchSeeds` the explicit `5N/2^256`, and `rpmError (QA + QV · 2^32)` at most
-`(QA + QV · 2^32) · 2^-379` for `QA ≤ 2^128` and `QV ≤ 2^96` (`rpmError_le_linear`). -/
-theorem batch_sound_rpm : BatchSoundRpm := by
-  intro M bytecode hb hM A QA hA hQA hQV
-  rw [← verifierFam_eq_batchVerifier, ← failBound_batchSeeds]
-  refine (batch_rpm hb hM A QA hA).trans (add_le_add le_rfl (rpmError_le_linear ?_))
-  refine add_le_two_pow_129 hQA ?_
-  calc batchQueryBound bytecode M * 2 ^ 32 ≤ 2 ^ 96 * 2 ^ 32 := Nat.mul_le_mul_right _ hQV
-    _ = 2 ^ 128 := by norm_num
-
-/-- **`BatchSoundRpmBits`** (`Statement/LeanVmGuest.lean`): `batch_rpm_bits`. -/
-theorem batch_sound_rpm_bits : BatchSoundRpmBits := by
+/-- **`BatchSound`** (`Statement/LeanVmGuest.lean`): `batch_rpm_bits`. -/
+theorem batch_sound_rpm_bits : BatchSound := by
   intro M bytecode hb hM A QA hA hQ
   rw [← verifierFam_eq_batchVerifier]
   exact batch_rpm_bits hb hM A QA hA hQ

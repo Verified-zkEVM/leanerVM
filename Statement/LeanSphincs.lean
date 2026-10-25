@@ -13,7 +13,7 @@ limit), the SUF-CMA game of `Statement/RandomPermutation.lean` instantiated with
 deterministic signer, the proved lifetimes (`Sphincs.Lifetimes.full`, `pruned20`, …,
 `pruned8`), and the end statement: `Sphincs.Lifetimes.RequestedSecurityRpm`, at every proved
 lifetime, in the random-permutation model, an adversary whose game makes at most `Q`
-permutation calls, `1 ≤ Q ≤ 2^128`, forges with probability at most `Q / 2^127 + Q · 2^-381`. Proved by
+permutation calls, `1 ≤ Q ≤ 2^128`, forges with probability at most `(Q + 1) · 2^-127`. Proved by
 `Sphincs.Lifetimes.requestedSecurityRpm` (`lean_sphincs`).
 -/
 
@@ -1118,12 +1118,10 @@ def HasPermutationBound (adversary : Adversary) (Q : Nat) : Prop :=
   IsWeightBound (game adversary) permCalls Q
 
 /-- Every adversary whose game makes at most `Q` permutation calls, `1 ≤ Q ≤ 2^128`, wins with
-probability at most `Q / 2^bits + Q · 2^-381`. The second term is the sponge's
-indifferentiability, `Q² / 2^509`, at most `Q · 2^-381` under the cap `Q ≤ 2^128`, which excludes
-adversaries of more calls. -/
+probability at most `(Q + 1) · 2^-bits`. -/
 def HasRpmSecurityBits (bits : Nat) : Prop :=
   ∀ Q, 1 ≤ Q → Q ≤ 2 ^ 128 → ∀ adversary, HasPermutationBound adversary Q →
-    forgeAdvantage adversary ≤ Q / ((2 ^ bits : Nat) : ℝ≥0∞) + (Q : ℝ≥0∞) * (2 : ℝ≥0∞)⁻¹ ^ 381
+    forgeAdvantage adversary ≤ ((Q : ℝ≥0∞) + 1) * (2 : ℝ≥0∞)⁻¹ ^ bits
 
 end Sphincs.Rpm
 
@@ -1171,7 +1169,7 @@ namespace Sphincs.Lifetimes
 /-- **leanSPHINCS in the random-permutation model, at every proved lifetime**: at each subtree
 height (`b` = 26, 20, 14, 13, 12, 10, 8, the instances `full`, `pruned20`, …, `pruned8` with
 their signature limits), an adversary whose game makes at most `Q` permutation calls,
-`1 ≤ Q ≤ 2^128`, forges with probability at most `Q / 2^127 + Q · 2^-381`
+`1 ≤ Q ≤ 2^128`, forges with probability at most `(Q + 1) · 2^-127`
 (`Rpm.HasRpmSecurityBits 127`). Proved by
 `Sphincs.Lifetimes.requestedSecurityRpm`. -/
 abbrev RequestedSecurityRpm : Prop :=

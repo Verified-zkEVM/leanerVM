@@ -8,7 +8,6 @@
 
 import LeanVM.Protocol.LeanVM
 import LeanVM.Protocol.Rpm.Cost
-import LeanVM.Protocol.Rpm.Error
 import LeanVM.Protocol.Rpm.Duplex
 import LeanVM.Protocol.Rpm.Extract
 import LeanVM.Protocol.Rpm.RomRelabel
@@ -26,7 +25,7 @@ probability that the verifier accepts while the program's last instruction is no
 the extractor `extractorRpm` (the extractor of `Extractor.lean` on the Keccak-256 evaluations of
 the adversary's transcript) does not return a valid execution is at most
 `soundnessError Q + (Q + 12008 · 2^32)² / 2^508`, which is at most `(Q + 2^14) · 2^-127` for
-`Q ≤ 2^120` (`soundnessRpm_le_bits`, `knowledgeSoundness_bits`) and at most `2^-63` for
+`Q ≤ 2^120` (`soundnessRpm_le_bits`, the end statement `KnowledgeSoundness`) and at most `2^-63` for
 `Q ≤ 2^64` (`soundnessRpm_le`). The proof:
 
 1. the experiment is `common`'s real world of a transfer game (`rpmExperiment_evalDistEq`,
@@ -400,23 +399,15 @@ namespace LeanVM
 /-- **Knowledge soundness holds** (in the random-permutation model), for the extractor
 `extractorRpm`. -/
 theorem knowledgeSoundness_holds : KnowledgeSoundness :=
-  fun _ _ hA hQ ↦ (Rpm.knowledgeSoundnessRpm hA).trans
-    (add_le_add le_rfl (rpmError_le_linear (le_two_pow_129_of_verifier hQ)))
-
-open OracleComp OracleSpec in
-open scoped ENNReal in
-/-- **Knowledge soundness in bits** (in the random-permutation model): an adversary of at most
-`Q ≤ 2^120` queries to `π` and `π⁻¹` breaks soundness, for the extractor `extractorRpm`, with
-probability at most `(Q + 2^14) · 2^-127`. -/
-theorem knowledgeSoundness_bits : KnowledgeSoundnessBits :=
   fun _ _ hA hQ ↦ (Rpm.knowledgeSoundnessRpm hA).trans (Rpm.soundnessRpm_le_bits hQ)
 
 /-- **Completeness holds** (in the random-permutation model), with the honest prover
 `LeanVM.Protocol.EndToEnd.Complete.honestComp`. -/
 theorem completeness_holds : Completeness :=
   ⟨fun prog input t ρ fuel ↦ Protocol.EndToEnd.Complete.honestComp prog input t ρ fuel,
-    fun _ _ _ _ _ hv hbudget hρ hfuel ↦ (Rpm.completenessRpm hv hbudget hρ hfuel).trans
-      (add_le_add le_rfl (rpmError_le_linear (completenessPermCalls_le hfuel)))⟩
+    fun _ _ _ _ hv hbudget hρ ↦
+      (Rpm.completenessRpm (fuel := 2 ^ 25) hv hbudget hρ (by norm_num)).trans
+        Rpm.completenessRpm_le⟩
 
 /-- Keccak-256 over the deployed Keccak-f[1600] is the deployed Keccak-256, and `common`'s
 Keccak-256 sponge over it, read on bytes. -/

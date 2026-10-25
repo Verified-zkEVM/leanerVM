@@ -15,7 +15,7 @@ public import LeanVM.Guest.Batch.Sound
 `Node.batch` runs on the duplex sponge of the verifier language: `observe` is a read's
 absorption (tag `1`) and `sample` a sample's squeeze. So the batching is a program
 `batchAny M bytecode` (`LeanVM.Protocol.Compile.Prog`; defined in `Statement/LeanVmGuest.lean`,
-with the batching's end statements `BatchSoundRpm`, `BatchSoundRpmBits`) whose prover sends the count `g^n` and
+with the batching's end statement `BatchSound`) whose prover sends the count `g^n` and
 three zeros, each child's words and the zeros to a whole rate (`childCells`), the sumcheck's
 messages and the final value, and whose challenges are the lambdas and the sumcheck's challenges.
 It reads the count as the `n < M` with `g^n` the first scalar (`countOf`), checks the padding,

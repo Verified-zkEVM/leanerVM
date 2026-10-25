@@ -12,7 +12,7 @@ The leanXMSS scheme (key generation, signing, verification over a hash oracle `H
 game of `Statement/RandomPermutation.lean` instantiated with it, and the end statement:
 `LeanXmss.Rpm.LeanXmssRpmSecurityStatement`, in the random-permutation model, an adversary whose
 game makes at most `Q` permutation calls, `1 ≤ Q ≤ 2^128`, forges with probability at most
-`Q / 2^127 + Q · 2^-381`. Proved by `XmssSecurity.leanXmss_rpm_security` (`lean_xmss`).
+`(Q + 1) · 2^-127`. Proved by `XmssSecurity.leanXmss_rpm_security` (`lean_xmss`).
 -/
 
 section
@@ -568,12 +568,10 @@ def HasPermutationBound (adversary : Adversary) (Q : Nat) : Prop :=
   IsWeightBound (game adversary) permCalls Q
 
 /-- Every adversary whose game makes at most `Q` permutation calls, `1 ≤ Q ≤ 2^128`, wins with
-probability at most `Q / 2^bits + Q · 2^-381`. The second term is the sponge's
-indifferentiability, `Q² / 2^509`, at most `Q · 2^-381` under the cap `Q ≤ 2^128`, which excludes
-adversaries of more calls. -/
+probability at most `(Q + 1) · 2^-bits`. -/
 def HasRpmSecurityBits (bits : Nat) : Prop :=
   ∀ Q, 1 ≤ Q → Q ≤ 2 ^ 128 → ∀ adversary, HasPermutationBound adversary Q →
-    forgeAdvantage adversary ≤ Q / ((2 ^ bits : Nat) : ℝ≥0∞) + (Q : ℝ≥0∞) * (2 : ℝ≥0∞)⁻¹ ^ 381
+    forgeAdvantage adversary ≤ ((Q : ℝ≥0∞) + 1) * (2 : ℝ≥0∞)⁻¹ ^ bits
 
 /-- The security claim in the random-permutation model. -/
 abbrev LeanXmssRpmSecurityStatement : Prop := HasRpmSecurityBits 127

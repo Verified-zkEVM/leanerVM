@@ -22,8 +22,8 @@ In the random-permutation model (`LeanDa.RpmSecurity`: `H` Keccak-256 over a ran
 `π`, the challenges the deployed duplex over `π`, the adversary querying `π` and `π⁻¹`), LeanDA is
 perfectly complete for every permutation `π`, by Wagner's completeness proof
 (`leanDa_perfectlyComplete_rpm`, `LeanDa.RpmComplete`); position binding holds with the bound
-`Q² / 2^256 + Q · 2^-380` for `Q ≤ 2^128` permutation calls (`leanDa_positionBinding_rpm`: the
-transfer's `Q² / 2^508`, linear under the cap); and code
+`(Q + 1)² · 2^-256` for `Q ≤ 2^128` permutation calls (`leanDa_positionBinding_rpm`, from
+`Q² / 2^256 + Q² / 2^508`); and code
 binding moves to the two-oracle random-oracle model within `Q² / 2^508`
 (`leanDa_codeBinding_rpm`), where the duplex lemma (`Common.Duplex`) and sampling `H` in advance
 give Wagner's bound, averaged over `H`, plus `2 (Q + 15)² / 2^576`

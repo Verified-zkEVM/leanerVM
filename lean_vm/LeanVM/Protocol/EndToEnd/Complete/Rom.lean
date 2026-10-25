@@ -10,6 +10,7 @@
 module
 
 public import LeanVM.Protocol.EndToEnd.Complete.Small
+public import LeanVM.Protocol.Errors
 public import LeanVM.Protocol.EndToEnd.Sound.Moves
 public import LeanVM.Protocol.Compile.Rom.Complete
 public import LeanVM.Protocol.Verifier.Cost

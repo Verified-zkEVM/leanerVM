@@ -28,41 +28,34 @@ namespace Statement
 
 /-- **The end theorems.** -/
 structure Theorems (decode : LeanVM.Node.Decoder) : Prop where
-  /-- leanVM is knowledge sound, for the fixed straight-line extractor `extractorRpm`: an
-  adversary of `Q ≤ 2^128` queries breaks it with probability at most
-  `soundnessError Q + (Q + verifierPermCalls) · 2^-379` (`LeanVm.lean`). -/
+  /-- leanVM is knowledge sound for the straight-line extractor `extractorRpm`: at most
+  `(Q + 2^14) · 2^-127` for `Q ≤ 2^120` queries (`LeanVm.lean`). -/
   knowledgeSoundness : LeanVM.KnowledgeSoundness
-  /-- The same, in bits: at most `(Q + 2^14) · 2^-127` for `Q ≤ 2^120` (`LeanVm.lean`). -/
-  knowledgeSoundnessBits : LeanVM.KnowledgeSoundnessBits
-  /-- leanVM is complete: an honest proof of a valid execution is rejected with probability at
-  most `completenessError fuel + completenessPermCalls fuel · 2^-379` (`LeanVm.lean`). -/
+  /-- leanVM is complete: at `2^25` nonces per proof of work, an honest proof is rejected with
+  probability at most `2^-127` (`LeanVm.lean`). -/
   completeness : LeanVM.Completeness
-  /-- The aggregation guest's knowledge soundness: every valid execution of the guest decodes to
-  a statement of the input's digest and a witness holding it (`LeanVmGuest.lean`). -/
+  /-- Every valid execution of the guest decodes to a statement of its input's digest and a
+  witness holding it (`LeanVmGuest.lean`). -/
   guestKnowledge : LeanVM.Node.GuestKnowledge LeanVM.Guest.guest decode
-  /-- The outer verifier's acceptance of a guest proof is explained by the extracted execution,
-  with the bound of `knowledgeSoundness`, for `Q ≤ 2^128` (`LeanVmGuest.lean`). -/
+  /-- An accepted guest proof is explained by the extracted execution: at most
+  `(Q + 2^14) · 2^-127` for `Q ≤ 2^120` queries (`LeanVmGuest.lean`). -/
   aggregateSound : LeanVM.Node.AggregateSound LeanVM.Guest.guest decode
   /-- The guest is complete on every covered recursion node (`LeanVmGuest.lean`). -/
   guestCompleteRecursion : LeanVM.Guest.Budget.GuestCompleteRecursion
   /-- The guest is complete on every covered leaf (`LeanVmGuest.lean`). -/
   guestCompleteLeaf : LeanVM.Guest.Budget.GuestCompleteLeaf
-  /-- The batching of the children's deferred claims, run outside the circuit, is sound, for
-  `QA ≤ 2^128` adversary queries and a program bound `QV ≤ 2^96`
-  (`LeanVmGuest.lean`; it does not compose with the guest's in-circuit statements). -/
-  batchSound : LeanVM.Guest.Batch.BatchSoundRpm
-  /-- The same, in bits: at most `(QA + QV) · 2^-188` (`LeanVmGuest.lean`). -/
-  batchSoundBits : LeanVM.Guest.Batch.BatchSoundRpmBits
-  /-- leanXMSS: a single key is strongly unforgeable, at most `Q / 2^127 + Q · 2^-381` for
-  `1 ≤ Q ≤ 2^128` permutation calls (`LeanXmss.lean`). -/
+  /-- The batching run outside the circuit is sound: at most `(QA + QV) · 2^-188` for
+  `QA + QV ≤ 2^64`; it does not compose with the in-circuit statements (`LeanVmGuest.lean`). -/
+  batchSound : LeanVM.Guest.Batch.BatchSound
+  /-- leanXMSS is strongly unforgeable: at most `(Q + 1) · 2^-127` for `1 ≤ Q ≤ 2^128` permutation
+  calls (`LeanXmss.lean`). -/
   leanXmss : LeanXmss.Rpm.LeanXmssRpmSecurityStatement
-  /-- leanSPHINCS: every deployed lifetime is strongly unforgeable, at most
-  `Q / 2^127 + Q · 2^-381` for `1 ≤ Q ≤ 2^128` permutation calls (`LeanSphincs.lean`). -/
+  /-- leanSPHINCS is strongly unforgeable at every proved lifetime: at most `(Q + 1) · 2^-127` for
+  `1 ≤ Q ≤ 2^128` permutation calls (`LeanSphincs.lean`). -/
   leanSphincs : Sphincs.Lifetimes.RequestedSecurityRpm
   /-- LeanDA is perfectly complete, for every `π` (`LeanDa.lean`). -/
   leanDaComplete : LeanDa.PerfectlyCompleteRpm
-  /-- LeanDA is position binding: at most `Q² / 2^256 + Q · 2^-380` for `Q ≤ 2^128`
-  (`LeanDa.lean`). -/
+  /-- LeanDA is position binding: at most `(Q + 1)² · 2^-256` for `Q ≤ 2^128` (`LeanDa.lean`). -/
   leanDaPositionBinding : LeanDa.PositionBindingRpm
   /-- LeanDA is code binding, under the knowledge soundness of its argument (`LeanDa.lean`). -/
   leanDaCodeBinding : LeanDa.CodeBindingRpm

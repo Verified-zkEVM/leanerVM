@@ -11,7 +11,7 @@
 | Theorem | Statement |
 | --- | --- |
 | `leanDa_perfectlyComplete_rpm` | for every permutation `π` (indeed every function), with `H` Keccak-256 over `π` and the challenges the duplex over `π`, and every perfectly complete argument `ps` for the relation with that `H`: every position of every message's honest commitment opens and verifies with probability one (over the argument's setup) |
-| `leanDa_positionBinding_rpm` | for every argument `ps` (any verifier, any relation) and every adversary of at most `Q ≤ 2^128` permutation calls, `Pr[position binding] ≤ Q² / 2^256 + Q · 2^-380` (the transfer's `Q² / 2^508`, linear under the cap; the birthday term stays quadratic) |
+| `leanDa_positionBinding_rpm` | for every argument `ps` (any verifier, any relation) and every adversary of at most `Q ≤ 2^128` permutation calls, `Pr[position binding] ≤ (Q + 1)² · 2^-256` (from `Q² / 2^256 + Q² / 2^508`, `Common.sq_add_sq_le`) |
 | `leanDa_codeBinding_rpm` | the code-binding probabilities in the RPM and in the two-oracle ROM (`H` a random oracle, the challenges the duplex over an independent random function `F`, against the simulated adversary `advS2 A`) differ by at most `Q² / 2^508` |
 | `leanDa_codeBinding_rpm_bound` | for every argument `ps` (an oracle-free parameter, any relation), extractor `ext` and adversary of at most `Q` permutation calls, `(Pr[code binding] - (Q² / 2^508 + 2 (Q + 15)² / 2^576 + ε_ks + ε₁))² ≤ (Q + 2) (ε₂ + 14 / 2^192 + 2^-2688)`, the three `ε` Wagner's reduction terms averaged over a uniformly random `H` |
 

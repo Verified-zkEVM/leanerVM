@@ -9,6 +9,7 @@
 module
 
 public import Statement.LeanVm
+public import LeanVM.Protocol.Errors
 public import LeanVM.Facts.Verifier
 public import Statement.Fast.Keccak
 public import Statement.Fast.CubicExt

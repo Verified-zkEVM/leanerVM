@@ -9,10 +9,9 @@ public import VCVio.EvalDist.ProbabilityNotation
 /-!
 # leanVM: knowledge soundness and completeness
 
-The statement the verifier reads, its errors, and the end statements in the random-permutation
-model: `LeanVM.KnowledgeSoundness`, `LeanVM.Completeness` and `LeanVM.KnowledgeSoundnessBits`.
-Proved by `LeanVM.knowledgeSoundness_holds`, `completeness_holds` and `knowledgeSoundness_bits`
-(`lean_vm`).
+The statement the verifier reads, and the end statements in the random-permutation model:
+`LeanVM.KnowledgeSoundness` and `LeanVM.Completeness`. Proved by `LeanVM.knowledgeSoundness_holds`
+and `completeness_holds` (`lean_vm`).
 -/
 
 section
@@ -32,10 +31,8 @@ random-permutation model, in which both are built from one uniformly random perm
 Keccak state (Keccak-256 the sponge over `π`, Keccak-f[1600] `π` itself), and the adversary
 queries `π` and `π⁻¹`. The statements, `KnowledgeSoundness` and `Completeness`, are there too.
 
-Here are the parts they are stated with: the verifier's query bound (`verifierQueries`), the
-soundness error at `Q` queries (`soundnessError`), the honest prover's type (`HonestProver`), the
-completeness error (`completenessError`), and the committed size of an execution
-(`Trace.committedSize`), which the verifier caps at `2^28`.
+Here are two parts they are stated with: the honest prover's type (`HonestProver`) and the
+committed size of an execution (`Trace.committedSize`), which the verifier caps at `2^28`.
 
 **Scope and trust.**
 
@@ -102,47 +99,13 @@ def queryF (s : KState) : OracleComp HashSpec KState := liftM (HashSpec.query (.
 /-- A statement: a program and a public input. -/
 abbrev Statement : Type := Program × PublicInput
 
-/-! ### The soundness error -/
-
-/-- The verifier's oracle queries, at most, on every statement and proof: `12008` queries to
-Keccak-256 and Keccak-f together (the bytecode, the relation label, the IV, the seed's
-permutation, the sponge's permutations, one per challenge and one per four absorbed scalars, and
-every Merkle hash of the openings), the bound the proof establishes over every admissible shape
-(`LeanVM.Protocol.Verifier.leanVmQueryBound`). The bound is not tight: it charges every WHIR
-opening at the largest commitment height, and bounds the bus depth, the table heights and the
-Keccak reduction's point by the window of the announced sizes. -/
-def verifierQueries : ℕ := 12008
-
-/-- **The soundness error** at `Q` queries, the first term of the bound of `KnowledgeSoundness`
-(below; the second, `(Q + verifierPermCalls) · 2^-379`, is the cost of building both functions
-from one permutation). It is the error the proof obtains with Keccak-256 and Keccak-f[1600] two independent
-random functions, counting the hash and permutation calls of the adversary (`Q`) and of the
-verifier (at most `verifierQueries = V`; in `KnowledgeSoundness` the adversary's `Q` are its `π` and
-`π⁻¹` queries): one `2^-128` per call, plus, per call,
-`7 · (Q + V) / 2^256` for a fresh answer that collides with or predicts a value the answers
-already refer to (a digest, or a state's capacity), plus one `2^-256` per call of the verifier, for
-a fresh hash answer that is the stack's root the adversary announced without computing it (the
-extractor, reading the adversary's evaluations only, would then miss the root's preimage). -/
-noncomputable def soundnessError (Q : ℕ) : ℝ≥0∞ :=
-  ((Q + verifierQueries : ℕ) : ℝ≥0∞) *
-      ((2 : ℝ≥0∞)⁻¹ ^ 128 + ((7 * (Q + verifierQueries) : ℕ) : ℝ≥0∞) / 2 ^ 256) +
-    (verifierQueries : ℝ≥0∞) / 2 ^ 256
-
-/-! ### The honest prover, the completeness error and the committed size -/
+/-! ### The honest prover and the committed size -/
 
 /-- An honest prover: from a statement, an execution, the commitment's rate exponent `ρ` and a
 fuel of nonces per proof of work, a proof, computed with calls to Keccak-256 and Keccak-f[1600]
 (`HashSpec`), which the model answers. -/
 abbrev HonestProver : Type :=
   (prog : Program) → (input : PublicInput) → Trace prog → (ρ fuel : ℕ) → OracleComp HashSpec Proof
-
-/-- **The completeness error** at a fuel of `fuel` nonces per proof of work, the first term of the
-bound of `Completeness` (below), the error with two independent random functions: each of the
-`Q` queries of the honest prover and the verifier may complete a proof of work whose nonces all
-failed, a nonce failing a proof of work of `17` bits with probability `1 - 2^-17`. -/
-noncomputable def completenessError (fuel : ℕ) : ℝ≥0∞ :=
-  let Q : ℕ := 12012 + 48017 * (2 ^ 27 + 2 * fuel + 2)
-  Q * (1 - (2 : ℝ≥0∞)⁻¹ ^ 17) ^ fuel
 
 /-- **The committed size of an execution**: the number of cells the honest prover commits to,
 every committed column at its table's height, the least power of two holding the table's rows
@@ -208,14 +171,10 @@ reads the announced sizes and the stack's Merkle root off the proof; reads the w
 to off those evaluations (each leaf the preimage, among them, of a path climbing to the root); and
 returns the halting run of the memory image of a stack in the word's Johnson list (a stack whose
 Reed–Solomon encoding agrees with the word on at least the Johnson threshold of columns), one that
-is a valid execution if there is one. For every adversary of at most `Q ≤ 2^128` queries to `π`
+is a valid execution if there is one. For every adversary of at most `Q ≤ 2^120` queries to `π`
 and `π⁻¹`, the probability that the verifier accepts while the extractor does not return a valid
-execution of the program on the public input is at most
-`soundnessError Q + (Q + verifierPermCalls) · 2^-379`: `soundnessError Q` (the first section) plus
-`q · 2^-379` for `q` the permutation calls of the whole experiment, the adversary's `Q` and at
-most `verifierPermCalls` of the verifier. The proof bounds the cost of building both functions
-from one permutation by `q² / 2^508`, which is at most `q · 2^-379` for `q ≤ 2^129`; the cap
-`Q ≤ 2^128` keeps `q` there, and excludes adversaries of more queries. So an accepted proof commits,
+execution of the program on the public input is at most `(Q + 2^14) · 2^-127`. So an accepted
+proof commits,
 except with that probability, to a stack whose memory columns hold a valid execution, among the at
 most `2^18` stacks the word the adversary hashed is close to (proved, for every admissible shape
 and word: `LeanVM.candidates_ncard_le`). The choice among them is classical: the extractor is a
@@ -224,10 +183,9 @@ definition, not an algorithm with a running time.
 **Completeness** (`Completeness`): there is an honest prover (an oracle computation over the
 calls of the first section, answered here with both functions built from `π`) which, given a valid
 execution whose committed size is at most `2^28`, the most the verifier admits
-(`Trace.committedSize`), at an inverse rate `2^ρ` with `1 ≤ ρ ≤ 4`, trying at most `fuel ≤ 2^64`
-nonces per proof of work, makes the verifier reject with probability at most
-`completenessError fuel` plus `q · 2^-379`, `q` the permutation calls of the prover and the
-verifier (`completenessPermCalls`, at most `2^113` for `fuel ≤ 2^64`). The honest prover is not required to be efficient.
+(`Trace.committedSize`), at an inverse rate `2^ρ` with `1 ≤ ρ ≤ 4`, trying `2^25` nonces per
+proof of work, makes the verifier reject with probability at most `2^-127`. The honest prover is
+not required to be efficient.
 
 **Scope and trust.** The permutation is uniformly random; the deployed Keccak-f[1600] is a fixed
 permutation, and that it behaves as a random one is the assumption of this model. Inside the
@@ -238,15 +196,8 @@ with `ofBytes` and `zero`, `keccakPadding`, `blockTo`, `rxor`, `SimState.init`, 
 `replayStep`, `replay`, `simPaths`, `pathsOf`) are `RandomPermutation.lean`'s, and the proof
 project `common` proves about them.
 
-**How the proofs reach this model** (not part of the statement). The proofs first prove both
-statements with Keccak-256 and Keccak-f[1600] two independent random oracles
-(`LeanVM/Protocol/Rom/Statement.lean`, `LeanVM.knowledgeSoundnessRom_holds`,
-`LeanVM.completenessRom_holds`), then move them here with `common`'s indifferentiability of the
-sponge from a random oracle, with the duplex's direct permutation calls
-(`Common.keccak256_transfer2`, `q² / 2^508`).
-
 The proofs are `LeanVM.knowledgeSoundness_holds` and `LeanVM.completeness_holds`
-(`LeanVM/Protocol/LeanVMRpm.lean`).
+(`LeanVM/Protocol/LeanVMRpm.lean`; `lean_vm/README.md` says how they reach this model).
 -/
 
 namespace LeanVM
@@ -401,22 +352,13 @@ def BreaksRpm (extract : RpmExtractor) (z : RpmOutcome) : Prop :=
   z.accepted ∧ ¬ ∃ t, extract z.program z.input z.transcript z.proof = some t ∧
     ValidExecution z.program z.input t
 
-/-- The permutation calls of the verifier, at most, on every statement and proof: its
-`verifierQueries = 12008` queries, each a permutation or a Keccak-256 hash of at most `2^39`
-bytes (the bytecode: `16` words of `8` bytes per instruction, at most `2^32` instructions), which
-is at most `⌊2^39 / 136⌋ + 1 ≤ 2^32` blocks, one permutation each. -/
-def verifierPermCalls : ℕ := verifierQueries * 2 ^ 32
-
 /-- **Knowledge soundness in the random-permutation model**, for the extractor `extractorRpm`:
-an adversary of at most `Q ≤ 2^128` queries to `π` and `π⁻¹` breaks soundness with probability at
-most `soundnessError Q` plus `(Q + verifierPermCalls) · 2^-379`, for the experiment's permutation
-calls: the cost of building Keccak-256 and Keccak-f[1600] from one random permutation rather than
-taking them independent random functions (`q² / 2^508` for `q` calls,
-`Common.keccak256_transfer2`, at most `q · 2^-379` for `q ≤ 2^129`). -/
+an adversary of at most `Q ≤ 2^120` queries to `π` and `π⁻¹` breaks soundness with probability at
+most `(Q + 2^14) · 2^-127`. -/
 def KnowledgeSoundness : Prop :=
-  ∀ (A : RpmAdversary) (Q : ℕ), A.IsTotalQueryBound Q → Q ≤ 2 ^ 128 →
+  ∀ (A : RpmAdversary) (Q : ℕ), A.IsTotalQueryBound Q → Q ≤ 2 ^ 120 →
     Pr{let z ← rpmExperiment A}[BreaksRpm extractorRpm z] ≤
-      soundnessError Q + ((Q + verifierPermCalls : ℕ) : ℝ≥0∞) * (2 : ℝ≥0∞)⁻¹ ^ 379
+      (Q + 2 ^ 14 : ℝ≥0∞) * (2 : ℝ≥0∞)⁻¹ ^ 127
 
 /-! ### Completeness -/
 
@@ -429,43 +371,14 @@ noncomputable def rpmCompletenessExperiment (prover : HonestProver) (prog : Prog
     let proof ← prover prog input t ρ fuel
     verifier queryH queryF prog input proof)).run' []
 
-/-- The permutation calls of the honest prover and the verifier together, at most: the
-`12012 + 48017 · (2^27 + 2·fuel + 2)` queries of `completenessError`, each at most `2^32`
-blocks. -/
-def completenessPermCalls (fuel : ℕ) : ℕ := (12012 + 48017 * (2 ^ 27 + 2 * fuel + 2)) * 2 ^ 32
-
-/-- **Completeness in the random-permutation model**: the verifier rejects the honest proof with
-probability at most `completenessError fuel` plus `completenessPermCalls fuel · 2^-379`, the
-transfer's `q² / 2^508` at `q = completenessPermCalls fuel ≤ 2^113`. -/
+/-- **Completeness in the random-permutation model**: trying `2^25` nonces per proof of work, the
+honest proof of an execution within the verifier's size cap is rejected with probability at most
+`2^-127`. -/
 def Completeness : Prop :=
-  ∃ prover : HonestProver, ∀ (prog : Program) (input : PublicInput) (t : Trace prog) (ρ fuel : ℕ),
-    ValidExecution prog input t →
-    t.committedSize ≤ 2 ^ 28 → 1 ≤ ρ ∧ ρ ≤ 4 → fuel ≤ 2 ^ 64 →
-    Pr{let v ← rpmCompletenessExperiment prover prog input t ρ fuel}[v = false] ≤
-      completenessError fuel + (completenessPermCalls fuel : ℝ≥0∞) * (2 : ℝ≥0∞)⁻¹ ^ 379
-
-end LeanVM
-
-end
-
-@[expose] public section
-
-/-! ### Knowledge soundness in bits -/
-
-namespace LeanVM
-
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Protocol
-open OracleComp OracleSpec
-open scoped ENNReal
-
-/-- **Knowledge soundness, in bits**: an adversary of at most `Q ≤ 2^120` queries to `π` and
-`π⁻¹` breaks soundness (`BreaksRpm extractorRpm`, as in `KnowledgeSoundness`) with probability at
-most `(Q + 2^14) · 2^-127`. Proved by `LeanVM.knowledgeSoundness_bits`. -/
-abbrev KnowledgeSoundnessBits : Prop :=
-  ∀ (A : RpmAdversary) (Q : ℕ), A.IsTotalQueryBound Q →
-    Q ≤ 2 ^ 120 →
-      Pr{let z ← rpmExperiment A}[BreaksRpm extractorRpm z] ≤
-        (Q + 2 ^ 14 : ℝ≥0∞) * (2 : ℝ≥0∞)⁻¹ ^ 127
+  ∃ prover : HonestProver, ∀ (prog : Program) (input : PublicInput) (t : Trace prog) (ρ : ℕ),
+    ValidExecution prog input t → t.committedSize ≤ 2 ^ 28 → 1 ≤ ρ ∧ ρ ≤ 4 →
+    Pr{let v ← rpmCompletenessExperiment prover prog input t ρ (2 ^ 25)}[v = false] ≤
+      (2 : ℝ≥0∞)⁻¹ ^ 127
 
 end LeanVM
 

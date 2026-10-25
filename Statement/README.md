@@ -75,27 +75,25 @@ Benedikt Wagner's ([b-wagn/fv-pq-da](https://github.com/b-wagn/fv-pq-da), Apache
    image that is a valid execution, if there is one.
 9. [`LeanVm.lean`](LeanVm.lean): a statement (a program and a public input), the verifier on it
    (`verifier H F`, `verify`), its calls as oracle queries (`HashSpec`), the honest prover's type,
-   the errors `soundnessError`, `completenessError`, the committed size; the random-permutation
-   experiment (`rpmExperiment`, the adversary's `Transcript`; `rpmRun`, the same with any
-   computation in place of the verifier), the extractor on the transcript (`extractorRpm`),
-   **`LeanVM.KnowledgeSoundness`, `LeanVM.Completeness`, `LeanVM.KnowledgeSoundnessBits`**, and a
+   the committed size; the random-permutation experiment (`rpmExperiment`, the adversary's
+   `Transcript`; `rpmRun`, the same with any computation in place of the verifier), the extractor on
+   the transcript (`extractorRpm`), **`LeanVM.KnowledgeSoundness`, `LeanVM.Completeness`**, and a
    digest as a public input (`publicInputOfDigest`).
 10. [`LeanVmGuest.lean`](LeanVmGuest.lean): the aggregation guest's specification: DA claims, a
-    node's statement, witness and relation (`NodeRel`, `NodeSpec`: leanXMSS and leanSPHINCS
-    claims, DA claims, children verified by the deferring verifier, the batching of their
-    deferred claims), the same with any hash and permutation (`NodeRelWith`), a decoder and what a
-    proof of the guest establishes with it (`GuestKnowledge`, `AggregateSound`, `Explains`), the
-    deployed guest (`LeanVM.Guest.guest`, from [`Data/`](Data/)), its deployed limits (`Limits`,
-    `CapsAgree`, `NoZeroChallenge`, a node's `work`),
-    **`LeanVM.Guest.Budget.GuestCompleteRecursion`, `GuestCompleteLeaf`**; and the recursion
-    step: the batching of the children's claims as a verifier program (`batchAny`, run from the
-    batching's seed by `batchVerifier`), an adversary's proof run through it in the
-    random-permutation model (`LeanVM.Rpm.rpmRun`, `LeanVm.lean`), the event that it accepts
-    children with a false claim (`FalseChildren`), the program's query bound
-    (`batchQueryBound`), and **`LeanVM.Guest.Batch.BatchSoundRpm`, `BatchSoundRpmBits`**: the
-    batching run outside the circuit with Keccak-f[1600] = `π`, which does not compose with the
-    guest's in-circuit statements (their `KECCAK` is the deployed Keccak-f[1600]), so soundness
-    across recursion levels does not follow from it.
+    node's statement, witness and relation (`NodeRel`, `NodeSpec`: leanXMSS and leanSPHINCS claims,
+    DA claims, children verified by the deferring verifier, the batching of their deferred claims),
+    the same with any hash and permutation (`NodeRelWith`), a decoder and what a proof of the guest
+    establishes with it (`GuestKnowledge`, `AggregateSound`, `Explains`), the deployed guest
+    (`LeanVM.Guest.guest`, from [`Data/`](Data/)), its deployed limits (`Limits`, `CapsAgree`,
+    `NoZeroChallenge`, a node's `work`), **`LeanVM.Guest.Budget.GuestCompleteRecursion`,
+    `GuestCompleteLeaf`**; and the recursion step: the batching of the children's claims as a
+    verifier program (`batchAny`, run from the batching's seed by `batchVerifier`), an adversary's
+    proof run through it in the random-permutation model (`LeanVM.Rpm.rpmRun`, `LeanVm.lean`), the
+    event that it accepts children with a false claim (`FalseChildren`), the program's query bound
+    (`batchQueryBound`), and **`LeanVM.Guest.Batch.BatchSound`**: the batching run outside the
+    circuit with Keccak-f[1600] = `π`, which does not compose with the guest's in-circuit statements
+    (their `KECCAK` is the deployed Keccak-f[1600]), so soundness across recursion levels does not
+    follow from it.
 
 [`Data/`](Data/) is the guest's compiled bytecode, generated from leanVM's sources by
 `lean_vm/scripts/guest-export` (do not edit; `guest-export --check` fails when it is stale, as CI
@@ -125,13 +123,11 @@ theorem, `LeanVM.theorems_hold`, whose axioms the build pins to Lean's three. St
 | --- | --- | --- |
 | `LeanVM.KnowledgeSoundness` | `LeanVM.knowledgeSoundness_holds` | [`lean_vm/LeanVM/Protocol/LeanVMRpm.lean`](../lean_vm/LeanVM/Protocol/LeanVMRpm.lean) |
 | `LeanVM.Completeness` | `LeanVM.completeness_holds` | same |
-| `LeanVM.KnowledgeSoundnessBits` | `LeanVM.knowledgeSoundness_bits` | same |
 | `LeanVM.Node.GuestKnowledge guest decode` | `LeanVM.Guest.End.guest_knowledge` | [`lean_vm/LeanVM/Guest/EndFinal.lean`](../lean_vm/LeanVM/Guest/EndFinal.lean) |
 | `LeanVM.Node.AggregateSound guest decode` | `LeanVM.Guest.End.aggregate_sound_outer` | [`lean_vm/LeanVM/Guest/EndRpm.lean`](../lean_vm/LeanVM/Guest/EndRpm.lean) |
 | `LeanVM.Guest.Budget.GuestCompleteRecursion` | `LeanVM.Guest.Budget.guest_complete_recursion` | [`lean_vm/LeanVM/Guest/Budget/Covered.lean`](../lean_vm/LeanVM/Guest/Budget/Covered.lean) |
 | `LeanVM.Guest.Budget.GuestCompleteLeaf` | `LeanVM.Guest.Budget.guest_complete_leaf` | same |
-| `LeanVM.Guest.Batch.BatchSoundRpm` | `LeanVM.Guest.Batch.batch_sound_rpm` | [`lean_vm/LeanVM/Guest/Batch/Rpm.lean`](../lean_vm/LeanVM/Guest/Batch/Rpm.lean) |
-| `LeanVM.Guest.Batch.BatchSoundRpmBits` | `LeanVM.Guest.Batch.batch_sound_rpm_bits` | same |
+| `LeanVM.Guest.Batch.BatchSound` | `LeanVM.Guest.Batch.batch_sound_rpm_bits` | [`lean_vm/LeanVM/Guest/Batch/Rpm.lean`](../lean_vm/LeanVM/Guest/Batch/Rpm.lean) |
 | `LeanXmss.Rpm.LeanXmssRpmSecurityStatement` | `XmssSecurity.leanXmss_rpm_security` | [`lean_xmss/XmssSecurity/Rpm.lean`](../lean_xmss/XmssSecurity/Rpm.lean) |
 | `Sphincs.Lifetimes.RequestedSecurityRpm` | `Sphincs.Lifetimes.requestedSecurityRpm` | [`lean_sphincs/Sphincs/LifetimesRpm.lean`](../lean_sphincs/Sphincs/LifetimesRpm.lean) |
 | `LeanDa.PerfectlyCompleteRpm` | `LeanDa.leanDa_perfectlyComplete_rpm` | [`lean_da/LeanDa/RpmComplete.lean`](../lean_da/LeanDa/RpmComplete.lean) |

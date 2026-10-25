@@ -443,13 +443,14 @@ variable (r : ℕ) {Crs Proof : Type} {rel : Unit × Digest × Challenges → (F
 verifier, for any relation) and every adversary whose game, verifications included, makes at most
 `Q` calls of the permutation on every path (`permCalls2`: a hash of `n` bytes costs
 `⌊n / 136⌋ + 1`, a query of `π` or `π⁻¹` and a sponge call one), the probability of opening a
-position to two different cells is at most `Q² / 2^256 + Q² / 2^508`. -/
+position to two different cells is at most `Q² / 2^256 + Q² / 2^508`, so at most
+`(Q + 1)² · 2^-256` for `Q ≤ 2^128` (`Common.sq_add_sq_le`). -/
 theorem leanDa_positionBinding_rpm : PositionBindingRpm := by
   intro r Crs Proof rel ps A Q hQ hcap
   rw [permCalls2_eq] at hQ
   obtain ⟨h1, -⟩ := keccak256_transfer2 (liftM ps.setup) (fun crs ↦ A ((), crs))
     (posBindingPost r ps) (fun x a ↦ duplex_posBindingPost r ps x a) Q hQ (· = true)
-  refine h1.trans (add_le_add ?_ (Common.sq_div_le_mul_inv_pow (k := 128) 380 hcap))
+  refine h1.trans ((add_le_add ?_ le_rfl).trans (Common.sq_add_sq_le hcap))
   have hX : IsWeightBound (simulateQ (hInF (E := KRest) (C := KCap)) (liftM ps.setup) >>= fun x ↦
       advS2 keccakPadding KState.zero (A ((), x)) >>= fun a ↦ posBindingPost r ps x a)
       hCalls Q := by

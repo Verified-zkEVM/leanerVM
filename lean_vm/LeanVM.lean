@@ -18,9 +18,8 @@ statement of the repository, leanXMSS's, leanSPHINCS's and LeanDA's included, in
 Each proves a proposition of `Statement/` (`Statement/README.md`), in the random-permutation model
 where an adversary is involved:
 
-* `LeanVM.knowledgeSoundness_holds : KnowledgeSoundness`, `LeanVM.completeness_holds :
-  Completeness` and `LeanVM.knowledgeSoundness_bits : KnowledgeSoundnessBits`
-  (`Statement/LeanVm.lean`): the verifier, knowledge sound for the fixed straight-line extractor
+* `LeanVM.knowledgeSoundness_holds : KnowledgeSoundness` and `LeanVM.completeness_holds :
+  Completeness` (`Statement/LeanVm.lean`): the verifier, knowledge sound for the fixed straight-line extractor
   and complete;
 * `LeanVM.Guest.End.guest_knowledge : GuestKnowledge guest decode` and
   `LeanVM.Guest.End.aggregate_sound_outer : AggregateSound guest decode`
@@ -30,10 +29,9 @@ where an adversary is involved:
 * `LeanVM.Guest.Budget.guest_complete_recursion : GuestCompleteRecursion` and
   `guest_complete_leaf : GuestCompleteLeaf` (`Statement/LeanVmGuest.lean`): the guest's
   completeness on the covered nodes;
-* `LeanVM.Guest.Batch.batch_sound_rpm : BatchSoundRpm` and
-  `batch_sound_rpm_bits : BatchSoundRpmBits` (`Statement/LeanVmGuest.lean`): the recursion step,
-  the batching of the children's deferred claims, sound in the random-permutation model (from
-  `batch_rpm`, `batch_rpm_bits`).
+* `LeanVM.Guest.Batch.batch_sound_rpm_bits : BatchSound` (`Statement/LeanVmGuest.lean`): the
+  recursion step, the batching of the children's deferred claims run outside the circuit, sound in
+  the random-permutation model (from `batch_rpm_bits`).
 
 The other theorems pinned below are steps or corollaries: the bounds' numbers, the guest's batching
 of its children's deferred claims (`LeanVM.Guest.Batch.children_sound`, and in the
@@ -48,15 +46,13 @@ The build fails if their axiom footprint ever grows beyond Lean's three standard
 
 example : LeanVM.KnowledgeSoundness := LeanVM.knowledgeSoundness_holds
 example : LeanVM.Completeness := LeanVM.completeness_holds
-example : LeanVM.KnowledgeSoundnessBits := LeanVM.knowledgeSoundness_bits
 example : LeanVM.Node.GuestKnowledge LeanVM.Guest.guest LeanVM.Guest.End.decode :=
   LeanVM.Guest.End.guest_knowledge
 example : LeanVM.Node.AggregateSound LeanVM.Guest.guest LeanVM.Guest.End.decode :=
   LeanVM.Guest.End.aggregate_sound_outer
 example : LeanVM.Guest.Budget.GuestCompleteRecursion := LeanVM.Guest.Budget.guest_complete_recursion
 example : LeanVM.Guest.Budget.GuestCompleteLeaf := LeanVM.Guest.Budget.guest_complete_leaf
-example : LeanVM.Guest.Batch.BatchSoundRpm := LeanVM.Guest.Batch.batch_sound_rpm
-example : LeanVM.Guest.Batch.BatchSoundRpmBits := LeanVM.Guest.Batch.batch_sound_rpm_bits
+example : LeanVM.Guest.Batch.BatchSound := LeanVM.Guest.Batch.batch_sound_rpm_bits
 
 /-- info: 'LeanVM.knowledgeSoundness_holds' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
@@ -73,10 +69,6 @@ example : LeanVM.Guest.Batch.BatchSoundRpmBits := LeanVM.Guest.Batch.batch_sound
 /-- info: 'LeanVM.soundnessError_le_bits' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms LeanVM.soundnessError_le_bits
-
-/-- info: 'LeanVM.knowledgeSoundness_bits' depends on axioms: [propext, Classical.choice, Quot.sound] -/
-#guard_msgs in
-#print axioms LeanVM.knowledgeSoundness_bits
 
 /-- info: 'LeanVM.completenessError_le' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
@@ -113,10 +105,6 @@ example : LeanVM.Guest.Batch.BatchSoundRpmBits := LeanVM.Guest.Batch.batch_sound
 /-- info: 'LeanVM.Guest.Batch.batch_rpm_bits' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms LeanVM.Guest.Batch.batch_rpm_bits
-
-/-- info: 'LeanVM.Guest.Batch.batch_sound_rpm' depends on axioms: [propext, Classical.choice, Quot.sound] -/
-#guard_msgs in
-#print axioms LeanVM.Guest.Batch.batch_sound_rpm
 
 /-- info: 'LeanVM.Guest.Batch.batch_sound_rpm_bits' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
@@ -166,14 +154,12 @@ example : LeanVM.Guest.Batch.BatchSoundRpmBits := LeanVM.Guest.Batch.batch_sound
 `LeanVM.Guest.End.decode`. -/
 theorem LeanVM.theorems_hold : Statement.Theorems LeanVM.Guest.End.decode where
   knowledgeSoundness := LeanVM.knowledgeSoundness_holds
-  knowledgeSoundnessBits := LeanVM.knowledgeSoundness_bits
   completeness := LeanVM.completeness_holds
   guestKnowledge := LeanVM.Guest.End.guest_knowledge
   aggregateSound := LeanVM.Guest.End.aggregate_sound_outer
   guestCompleteRecursion := LeanVM.Guest.Budget.guest_complete_recursion
   guestCompleteLeaf := LeanVM.Guest.Budget.guest_complete_leaf
-  batchSound := LeanVM.Guest.Batch.batch_sound_rpm
-  batchSoundBits := LeanVM.Guest.Batch.batch_sound_rpm_bits
+  batchSound := LeanVM.Guest.Batch.batch_sound_rpm_bits
   leanXmss := XmssSecurity.leanXmss_rpm_security
   leanSphincs := Sphincs.Lifetimes.requestedSecurityRpm
   leanDaComplete := LeanDa.leanDa_perfectlyComplete_rpm
