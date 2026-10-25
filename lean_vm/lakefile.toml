@@ -24,9 +24,8 @@ path = "../common"
 
 # The signature schemes whose security leanVM's formal/lean_xmss and formal/lean_sphincs prove,
 # and LeanDA, whose security formal/lean_da proves: the schemes are in `Statement/`, and the
-# compiled checks (`LeanVM/Fast/`) import what is left of their Scheme modules, built here with
-# this package's toolchain and dependencies, so they come first: a later requirement's versions
-# take precedence.
+# guest's modules import what is left of their Scheme modules, built here with this package's
+# toolchain and dependencies, so they come first: a later requirement's versions take precedence.
 [[require]]
 name = "lean-xmss-security"
 path = "../lean_xmss"

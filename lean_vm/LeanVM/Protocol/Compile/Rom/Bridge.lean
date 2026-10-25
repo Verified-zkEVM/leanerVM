@@ -12,9 +12,9 @@ public import LeanVM.Protocol.Compile.Rom.Potential
 public import LeanVM.Protocol.ToVCVio.Rom.LoggedOracle
 public import Statement.LeanVm
 public import LeanVM.Facts.Verifier
-public import LeanVM.Fast.Keccak
-public import LeanVM.Fast.CubicExt
-public import LeanVM.Fast.FieldWords
+public import Statement.Fast.Keccak
+public import Statement.Fast.CubicExt
+public import Statement.Fast.FieldWords
 
 /-!
 # The verifier against the random oracles

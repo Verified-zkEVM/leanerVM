@@ -3,8 +3,8 @@ module
 public import LeanVM.Parameters.Isa
 public import LeanVM.Semantics.Lemmas
 meta import Statement.LeanIsa
-meta import LeanVM.Fast.CubicExt
-meta import LeanVM.Fast.FieldWords
+meta import Statement.Fast.CubicExt
+meta import Statement.Fast.FieldWords
 
 /-!
 # Tests: addressing, the image, and the public input

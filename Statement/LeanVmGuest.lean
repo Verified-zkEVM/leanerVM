@@ -5,6 +5,7 @@ public import Statement.LeanXmss
 public import Statement.LeanSphincs
 public import Statement.LeanDa
 public import Statement.Data.Bytecode
+public import Statement.Fast.Schemes
 
 /-!
 # The aggregation guest
@@ -27,15 +28,16 @@ section
 ## The DA claim
 
 LeanDA, the commitment to a blob matrix and the Reed-Solomon membership vector its root
-determines, is `lean_da`'s, imported from its `Scheme` module: the security of the scheme is
-proved there, and its deployed algorithms (`LeanDa.commitCodewords`, `LeanDa.membershipVector`,
-`LeanDa.vectorDigest`) are transcribed there, generic in the hash `H` and in the permutation `P`
+determines, is `LeanDa.lean`'s (the security of the scheme is proved in `lean_da`): its deployed
+algorithms (`LeanDa.commitCodewords`, `LeanDa.membershipVector`, `LeanDa.vectorDigest`) are
+transcribed there, generic in the hash `H` and in the permutation `P`
 of the challenges' duplex sponge. Here the hash is this project's Keccak-256 (`keccak`, from
 `keccak256`), its digest read as LeanDA's 32 bytes (`toBytes`), and the permutation is this
 project's Keccak-f[1600] on LeanDA's lanes (`keccakLanes`, from `keccakF`): the crate's, at leanVM
 `94ee12ff6b2a3d42ba8328e22d09443692e4800b` (`crates/lean_da`, `crates/verifier/src/da.rs`).
-`Fast.Da` compiles the membership vector with this project's field arithmetic, and `Fast.Keccak`
-Keccak-f[1600] and Keccak-256 with their lanes written out.
+`Fast/` (proved `@[csimp]` lemmas, speed only) compiles the field arithmetic on machine words,
+Keccak-f[1600] and Keccak-256 with their lanes written out, and the schemes' verifiers with a
+constant-depth lookup (`Fast.Schemes`, imported here).
 
 An aggregate's DA claim is a pair of a root and a vector digest; it is held by a matrix committed
 to the root whose rows are orthogonal to a vector of that digest (`Witness.Opens`: the guest's

@@ -10,9 +10,9 @@ module
 public import LeanVM.Semantics.KeccakCells
 public import Statement.LeanVm
 public import LeanVM.Facts.Verifier
-public import LeanVM.Fast.Keccak
-public import LeanVM.Fast.CubicExt
-public import LeanVM.Fast.FieldWords
+public import Statement.Fast.Keccak
+public import Statement.Fast.CubicExt
+public import Statement.Fast.FieldWords
 
 /-!
 # Padding the memory

@@ -1,32 +1,34 @@
 /-
-  LeanVM.Fast.Keccak
+  Statement.Fast.Keccak
 
   Keccak-f[1600] and Keccak-256 as the compiled verifier runs them: the round with its lanes
   written out, and a block's lanes read from an array, each proved equal to the definition it
   replaces and swapped in for compilation by `@[csimp]`.
+
+  Speed only: `@[csimp]` lemmas, each proved, that change how the statement's definitions are
+  compiled and nothing they mean. Not part of what a reviewer of `Statement/` must read.
 -/
 
 module
 
-public import Statement.Field
-public import LeanVM.Fast.CubicExt
-public import LeanVM.Fast.FieldWords
+public import Statement.RandomPermutation
 
 /-!
 # The compiled Keccak
 
-`Keccak.round` (`Statement.RandomPermutation`) follows the Python's loops: θ's parities and its mix as
-vectors built from functions, ρ and π as twenty-five writes into a zero state, χ as a vector of
-index arithmetic. `roundLanes` is the same round with its twenty-five lanes written out, the
-indices and rotations computed once (`round_eq_roundLanes`, lane by lane). `KeccakHash.leLane`
-reads a block's bytes by indexing a list, a walk from its head per byte; `leLaneArray` reads them
-from an array (`leLane_eq_leLaneArray`).
+`Keccak.round` (`Statement.RandomPermutation`) follows the Python's loops: θ's parities and its
+mix as vectors built from functions, ρ and π as twenty-five writes into a zero state, χ as a
+vector of index arithmetic. `roundLanes` is the same round with its twenty-five lanes written
+out, the indices and rotations computed once (`round_eq_roundLanes`, lane by lane).
+`KeccakHash.leLane` reads a block's bytes by indexing a list, a walk from its head per byte;
+`leLaneArray` reads them from an array (`leLane_eq_leLaneArray`).
 
 A `@[csimp]` lemma acts where code is compiled, and `keccakF`, `absorbBlock`, `absorb` and
 `keccak256` were compiled with the definitions above. Each is restated here, word for word, so
 that it is compiled with the replacements, and the lemma equating it with its restatement
-compiles it as the restatement in every module that imports this one. Nothing here transcribes a
-source.
+compiles it as the restatement in every module that imports this one (`Statement.Field` and
+`Statement.LeanDa` do, so the statement's own definitions and every module of the repository
+compile them so). Nothing here transcribes a source.
 -/
 
 namespace LeanVM.Fast.Keccak

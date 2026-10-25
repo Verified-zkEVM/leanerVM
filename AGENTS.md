@@ -15,14 +15,14 @@ Read [`README.md`](README.md) first, then the README of the project you work in.
 
 ## Statement
 
-- `Statement/` is the trusted statement: ten files (`Statement/README.md` lists them in reading order) and the generated guest bytecode (`Statement/Data/`). It imports only Mathlib, VCVio, CompPoly and its own files (CI checks it), and every change to it changes what is proved. No file beyond the ten without asking. Definitions and end statements only: a proof belongs to the proof projects, unless a definition needs it (a structure's law, a decidability instance).
+- `Statement/` is the trusted statement: ten files (`Statement/README.md` lists them in reading order), the generated guest bytecode (`Statement/Data/`), and proved `@[csimp]` lemmas for speed only (`Statement/Fast/`, not part of what a reviewer reads). It imports only Mathlib, VCVio, CompPoly and its own files (CI checks it), and every change to it changes what is proved. No file beyond the ten without asking. Definitions and end statements only: a proof belongs to the proof projects, unless a definition needs it (a structure's law, a decidability instance).
 - Keep the leanVM definitions a faithful transcription of the leanVM sources they cite (`verifier.py:N`, `*.rs:N`, `doc/leanvm` sections), at the commit they name.
 - Only statements in the random-permutation model are end statements; the random-oracle model and the sponge's indifferentiability are proof steps, in the proof projects.
 - Each proof project's root module is its end file: it checks each end theorem against its `Statement` proposition and pins its axioms.
 
 ## lean_vm
 
-- Speed comes from proved `@[csimp]` lemmas (`LeanVM/Fast/`); lemmas about the statement's definitions are in `LeanVM/Facts/`.
+- Speed comes from proved `@[csimp]` lemmas (`Statement/Fast/`: a `@[csimp]` lemma acts where a definition is compiled, so the statement's own definitions must see them); lemmas about the statement's definitions are in `LeanVM/Facts/`.
 - `lake build` builds every module under `LeanVM/` (the lakefile's globs), and `LeanVM.lean` pins the end theorems' axioms. `lake test` builds every module under `tests/LeanVMTests/`. Use `lake build <Module>` to check one module, not `lake env lean`.
 - Lake has no job limit, so a cold parallel `lake build` can exceed a 16 GB machine. `python3 -I scripts/ci-build.py` builds a few modules at a time by import level (CI uses it); `python3 -I scripts/ci-build.py ../Statement` builds the statement, whose guest data is as heavy, first. Keep a new module under about 3.5 GB.
 - Differential tests compare with the Rust verifier, `scripts/fuzz-verifier.py` on `tests/fixtures/verifier` (the README says how), and with the Python verifier (`tests/LeanVMTests/Protocol/Verifier/Helpers.lean`, `Compiled.lean`). A protocol change in the Rust verifier fails CI until `Statement/LeanVmVerifier.lean` and the proofs follow; regenerate the fixtures as the README says.

@@ -1,9 +1,12 @@
 /-
-  LeanVM.Fast.CubicExt
+  Statement.Fast.CubicExt
 
   The product of CompPoly's extension fields of degree three, unrolled: the nine coefficient
   products and the two reduced monomials, proved equal to `Ext.mul` and swapped in for
   compilation together with the instances that use it. Candidate for CompPoly.
+
+  Speed only: `@[csimp]` lemmas, each proved, that change how the statement's definitions are
+  compiled and nothing they mean. Not part of what a reviewer of `Statement/` must read.
 -/
 
 module
@@ -25,8 +28,8 @@ The `@[csimp]` lemmas swap the instances `Ext.instMul`, `Ext.instAdd`, `Ext.inst
 `Ext.instInv` and `Ext.instDiv` for restatements compiled here, the last three word for word
 (`rfl`), so that their products are `mulFast`. Nothing here transcribes a source.
 
-This is a candidate for CompPoly, in `Parameters` for the reason given in
-`LeanVM.Fast.FieldWords`.
+This is a candidate for CompPoly, in `Statement/Fast/` for the reason given in
+`Statement.Fast.FieldWords`.
 -/
 
 namespace CompPoly.Extension.Ext

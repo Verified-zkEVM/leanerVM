@@ -3,6 +3,9 @@ module
 public import Statement.RandomPermutation
 public import CompPoly.Fields.Binary.BF64
 public import CompPoly.Fields.Extension
+public import Statement.Fast.FieldWords
+public import Statement.Fast.CubicExt
+public import Statement.Fast.Keccak
 
 /-!
 # The fields
@@ -28,8 +31,9 @@ g = x                                        a generator of K^× (order 2^64 - 1
 
 `K` wraps a `BitVec 64` whose bit `i` is the coefficient of `x^i`; `E` is a `Vector K 3` whose
 limb `i` is the coefficient of `y^i`. Natural-number casts follow characteristic two
-(`2 : K = 0`); wire words go through `K.ofBits`. The two `Fast` imports only make the compiled
-arithmetic fast (`@[csimp]`); they change no definition.
+(`2 : K = 0`); wire words go through `K.ofBits`. The three `Statement.Fast` imports only make the
+compiled arithmetic and Keccak fast (proved `@[csimp]` lemmas, `Fast/`); they change no
+definition.
 -/
 
 namespace LeanVM.Parameters

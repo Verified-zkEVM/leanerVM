@@ -12,12 +12,11 @@ public import LeanVM.Guest.B1.Common.Sponge
 public import Statement.LeanVmGuest
 public import LeanXmss.Scheme
 public import Sphincs.Scheme
-public import LeanVM.Fast.Schemes
+public import Statement.Fast.Schemes
 public import LeanDa.Scheme
-public import LeanVM.Fast.Da
-public import LeanVM.Fast.Keccak
-public import LeanVM.Fast.CubicExt
-public import LeanVM.Fast.FieldWords
+public import Statement.Fast.Keccak
+public import Statement.Fast.CubicExt
+public import Statement.Fast.FieldWords
 public import LeanVM.Facts.Verifier
 
 /-!

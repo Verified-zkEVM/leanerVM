@@ -8,9 +8,9 @@
 import Statement.LeanVm
 import Common.Transfer
 import LeanVM.Facts.Verifier
-import LeanVM.Fast.Keccak
-import LeanVM.Fast.CubicExt
-import LeanVM.Fast.FieldWords
+import Statement.Fast.Keccak
+import Statement.Fast.CubicExt
+import Statement.Fast.FieldWords
 import LeanVM.Protocol.Verifier.Load
 import Common.Keccak
 

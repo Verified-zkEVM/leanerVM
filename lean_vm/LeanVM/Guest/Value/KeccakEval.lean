@@ -7,7 +7,7 @@
 
 module
 
-public import LeanVM.Fast.Keccak
+public import Statement.Fast.Keccak
 
 /-!
 # Keccak by kernel evaluation

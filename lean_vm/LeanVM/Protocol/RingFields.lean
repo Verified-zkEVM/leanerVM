@@ -9,9 +9,9 @@ module
 
 public import Statement.LeanVmVerifier
 public import LeanVM.Facts.Verifier
-public import LeanVM.Fast.Keccak
-public import LeanVM.Fast.CubicExt
-public import LeanVM.Fast.FieldWords
+public import Statement.Fast.Keccak
+public import Statement.Fast.CubicExt
+public import Statement.Fast.FieldWords
 public import LeanVM.Parameters.Field
 public import LeanVM.Parameters.Generator
 public import LeanVM.Protocol.Field

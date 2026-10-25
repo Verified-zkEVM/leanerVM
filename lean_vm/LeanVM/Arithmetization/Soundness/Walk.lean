@@ -11,8 +11,8 @@ module
 public import LeanVM.Semantics.Lemmas
 public import Statement.LeanIsa
 public import LeanVM.Facts.IsaWith
-public import LeanVM.Fast.CubicExt
-public import LeanVM.Fast.FieldWords
+public import Statement.Fast.CubicExt
+public import Statement.Fast.FieldWords
 
 @[expose] public section
 

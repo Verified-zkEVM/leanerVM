@@ -13,12 +13,11 @@ import Statement.LeanVmGuest
 import Common.Transfer
 import LeanXmss.Scheme
 import Sphincs.Scheme
-import LeanVM.Fast.Schemes
+import Statement.Fast.Schemes
 import LeanDa.Scheme
-import LeanVM.Fast.Da
-import LeanVM.Fast.Keccak
-import LeanVM.Fast.CubicExt
-import LeanVM.Fast.FieldWords
+import Statement.Fast.Keccak
+import Statement.Fast.CubicExt
+import Statement.Fast.FieldWords
 import LeanVM.Facts.Verifier
 
 /-!

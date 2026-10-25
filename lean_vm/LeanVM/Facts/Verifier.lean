@@ -9,9 +9,9 @@
 module
 
 public import Statement.Field
-public import LeanVM.Fast.CubicExt
-public import LeanVM.Fast.FieldWords
-public import LeanVM.Fast.Keccak
+public import Statement.Fast.CubicExt
+public import Statement.Fast.FieldWords
+public import Statement.Fast.Keccak
 public import Mathlib.Algebra.BigOperators.Group.Finset.Basic
 public import Statement.LeanVmVerifier
 

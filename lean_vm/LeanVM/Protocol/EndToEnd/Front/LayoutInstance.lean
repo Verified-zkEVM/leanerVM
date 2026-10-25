@@ -13,9 +13,9 @@ public import LeanVM.Protocol.LeanIsa.Read
 public import LeanVM.Protocol.Verifier
 public import Statement.LeanVm
 public import LeanVM.Facts.Verifier
-public import LeanVM.Fast.Keccak
-public import LeanVM.Fast.CubicExt
-public import LeanVM.Fast.FieldWords
+public import Statement.Fast.Keccak
+public import Statement.Fast.CubicExt
+public import Statement.Fast.FieldWords
 
 /-!
 # The verifier's layout is the instance's

@@ -1,10 +1,13 @@
 /-
-  LeanVM.Fast.FieldWords
+  Statement.Fast.FieldWords
 
   Multiplication in CompPoly's `GF(2^64)` on machine words: the carry-less product on `UInt64`
   words and the reduction by `x^64 = x^4 + x^3 + x + 1` as shifts, proved equal to `BF64.mul` and
   swapped in for compilation, with CompPoly's instances restated to be compiled with it.
   Candidate for CompPoly.
+
+  Speed only: `@[csimp]` lemmas, each proved, that change how the statement's definitions are
+  compiled and nothing they mean. Not part of what a reviewer of `Statement/` must read.
 -/
 
 module
@@ -32,10 +35,11 @@ A `@[csimp]` lemma acts on code compiled where it is visible. CompPoly's instanc
 and the extension field's operations specialised to them were compiled without it, so the
 instances are restated here, each by a `@[csimp]` lemma proved by `rfl`.
 
-This is a candidate for CompPoly. It lives in `Parameters` rather than `Protocol/ToCompPoly`
-because `Statement.Field` imports it: every module of the repository then compiles `K`
-and `E` arithmetic on words, including the closed constants of the verifier, which are
-evaluated when a program starts. Nothing here transcribes a source.
+This is a candidate for CompPoly. It is in `Statement/Fast/` because `Statement.Field` and
+`Statement.LeanDa` import it: the statement's own definitions (the verifier, the guest's
+specification, LeanDA) and every module of the repository then compile `K` and `E` arithmetic on
+words, including the closed constants of the verifier, which are evaluated when a program starts.
+Nothing here transcribes a source.
 -/
 
 namespace BF64

@@ -8,8 +8,8 @@
 module
 
 public import Statement.Field
-public import LeanVM.Fast.CubicExt
-public import LeanVM.Fast.FieldWords
+public import Statement.Fast.CubicExt
+public import Statement.Fast.FieldWords
 import Mathlib.Tactic.LinearCombination
 
 /-!

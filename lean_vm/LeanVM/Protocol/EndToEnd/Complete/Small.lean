@@ -10,9 +10,9 @@ module
 public import LeanVM.Protocol.EndToEnd.Completeness
 public import Statement.LeanVm
 public import LeanVM.Facts.Verifier
-public import LeanVM.Fast.Keccak
-public import LeanVM.Fast.CubicExt
-public import LeanVM.Fast.FieldWords
+public import Statement.Fast.Keccak
+public import Statement.Fast.CubicExt
+public import Statement.Fast.FieldWords
 
 /-!
 # Completeness for executions within the budget

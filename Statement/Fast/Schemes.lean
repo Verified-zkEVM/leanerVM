@@ -1,15 +1,18 @@
 /-
-  LeanVM.Fast.Schemes
+  Statement.Fast.Schemes
 
   The signature schemes' verifiers as the compiled node checks and hint generator run them:
   `sequenceFin` with a constant-depth lookup, and the functions above it restated word for word,
   swapped in by `@[csimp]`.
+
+  Speed only: `@[csimp]` lemmas, each proved, that change how the statement's definitions are
+  compiled and nothing they mean. Not part of what a reviewer of `Statement/` must read.
 -/
 
 module
 
-public import LeanXmss.Scheme
-public import Sphincs.Scheme
+public import Statement.LeanXmss
+public import Statement.LeanSphincs
 
 /-!
 # The compiled signature schemes
@@ -21,8 +24,9 @@ lookup costs `2^i`, out of reach at the `58` and `64` chains of a leaf. `sequenc
 here with `cons`, whose lookup peels one index, and proved equal (`sequenceFin_eq`); the
 verifiers' functions that call it are restated word for word, each equal to its definition by
 `rfl`, so that every module importing this one compiles them with it (a `@[csimp]` lemma acts
-where code is compiled, so it does not reach the schemes' own modules). Nothing here transcribes
-a source.
+where code is compiled, so it does not reach the schemes' own modules; `Statement.LeanVmGuest`
+imports this one, so the guest's specification and every module after it compile them so).
+Nothing here transcribes a source.
 -/
 
 namespace LeanVM.Schemes.Fast

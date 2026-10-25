@@ -2,7 +2,8 @@
 
 What the repository proves, in the files a reviewer reads: definitions and end statements only,
 one Lake package (`statement`) of ten files, `Statement/<Name>.lean` (Lean modules
-`Statement.<Name>`), and the generated guest bytecode in [`Data/`](Data/). It imports Mathlib, VCVio
+`Statement.<Name>`), the generated guest bytecode in [`Data/`](Data/), and, for speed only,
+proved `@[csimp]` lemmas in [`Fast/`](Fast/), which a reviewer need not read. It imports Mathlib, VCVio
 and CompPoly and nothing else (CI checks it); every other project of the repository is proof and
 imports it.
 
@@ -75,6 +76,15 @@ Benedikt Wagner's ([b-wagn/fv-pq-da](https://github.com/b-wagn/fv-pq-da), Apache
 `lean_vm/scripts/guest-export` (do not edit; `guest-export --check` fails when it is stale, as CI
 runs it). It needs no review beyond that check.
 
+[`Fast/`](Fast/) makes the compiled definitions fast and changes nothing they mean: `@[csimp]`
+lemmas, each proved, that compile `GF(2^64)` products on machine words (`FieldWords`), the
+degree-three extension's product unrolled (`CubicExt`), Keccak-f[1600] and Keccak-256 with their
+lanes written out (`Keccak`), and the signature schemes' verifiers with a constant-depth lookup
+(`Schemes`). A `@[csimp]` lemma acts where a definition is compiled, so they are here, imported by
+`Field.lean`, `LeanDa.lean` and `LeanVmGuest.lean`, for the statement's own compiled definitions
+(the verifier, the guest's specification, LeanDA) and every module after them. They need no review:
+a `@[csimp]` lemma is an equation the kernel checks.
+
 A few definitions carry proofs, which are here because the definitions need them:
 `Common.keccakPadding` (a `Padding`, with the padding's laws: six lemmas in
 `RandomPermutation.lean`) and `LeanDa.daDuplex` (a `Common.Duplex.DuplexSpec`, with the duplex's
@@ -107,6 +117,6 @@ valid witnesses, and their content is in the decoder the theorems name.
 
 ## Building
 
-`lake build` here builds the ten files and the data; the other projects build it as a dependency.
+`lake build` here builds the ten files, the data and `Fast/`; the other projects build it as a dependency.
 The data's modules are heavy: `python3 -I ../lean_vm/scripts/ci-build.py ../Statement` builds a few
 at a time, as CI does.

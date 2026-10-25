@@ -1,5 +1,5 @@
 import LeanVM.Protocol.KeccakHash
-import LeanVM.Fast.Keccak
+import Statement.Fast.Keccak
 
 /-!
 # Keccak tests
@@ -17,7 +17,7 @@ inputs; a 64-byte message as one permutation of its padded block; the hash chain
 `crates/rec_aggregation/src/hash_chain.rs` (eight `compress` steps from the zero digest); and
 the digest encoding: a round trip and the rejection of a nonzero top limb.
 
-`LeanVM.Fast.Keccak` compiles the hash here (`@[csimp]`); the `"abc"` vector and the zero
+`Statement.Fast.Keccak` compiles the hash here (`@[csimp]`); the `"abc"` vector and the zero
 state's permutation are also decided in the kernel, on the definitions themselves.
 -/
 

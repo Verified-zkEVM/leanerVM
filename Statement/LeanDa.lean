@@ -18,6 +18,9 @@ public import VCVio.CryptoFoundations.SignatureAlg
 public import VCVio.OracleComp.EvalDist.Sum
 public import VCVio.EvalDist.Inequalities
 public import Mathlib.Data.Set.Finite.List
+public import Statement.Fast.FieldWords
+public import Statement.Fast.CubicExt
+public import Statement.Fast.Keccak
 
 /-!
 # LeanDA
@@ -48,7 +51,9 @@ with LeanDA (`LeanDa`) follows his framework.
   `leanDa_positionBinding_rpm` and `leanDa_codeBinding_rpm_bound` (`lean_da`).
 
 Not definitions: `daDuplex` is a `Common.Duplex.DuplexSpec`, which carries the duplex's laws, so
-the lemmas before it (`daFirst_injective`, `daDec_iff` and what they use) are proved here.
+the lemmas before it (`daFirst_injective`, `daDec_iff` and what they use) are proved here. The
+three `Statement.Fast` imports only make the compiled field arithmetic and Keccak fast (proved
+`@[csimp]` lemmas, `Fast/`); they change no definition.
 -/
 
 /-! ## LeanDA's fields -/
