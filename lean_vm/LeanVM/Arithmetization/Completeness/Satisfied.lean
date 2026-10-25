@@ -149,7 +149,7 @@ theorem chanOf_flatMap {α : Type} (n : String) (l : List α) (F : α → List (
 rows of the six tables, the memory block, the bytecode block. -/
 noncomputable def skelSends (prog : Program) {κ : ℕ} (img : MemImage κ) (S : List Skel) :
     List (String × Array K) :=
-  [(StatePush.name, #[1, 1]), (StatePull.name, #[prog.finalPc, 1])] ++
+  [(StatePush.name, #[1, 1]), (StatePull.name, #[prog.pcFinal, 1])] ++
     (tableOpcodes.flatMap fun op ↦
       ((skelRows img S).filter fun r ↦ r.sk.ins.opcode = op).flatMap (PRow.sends img)) ++
     memBlockSends img (skelMemFin img S) ++ bcBlockSends prog (skelBcFin S)
@@ -164,7 +164,7 @@ theorem skelWitness_sends (prog : Program) (input : PublicInput) {κ : ℕ} (img
   have hV : ∀ (w : EnsembleWitness (leanIsaEnsemble prog)),
       (w.verifierTable.table.flatMap fun row ↦
         rowSends w.verifierTable.component (w.verifierTable.environment row)) =
-      [(StatePush.name, #[1, 1]), (StatePull.name, #[prog.finalPc, 1])] := fun w ↦ by
+      [(StatePush.name, #[1, 1]), (StatePull.name, #[prog.pcFinal, 1])] := fun w ↦ by
     simp only [EnsembleWitness.verifierTable, List.flatMap_singleton]
     exact verifier_sends prog _
   simp only [EnsembleWitness.allTables, skelWitness, List.flatMap_cons, List.flatMap_nil,
@@ -202,7 +202,7 @@ order, the memory block's, the bytecode block's, up to the regrouping of the row
 theorem chanOf_skelSends_perm (prog : Program) {κ : ℕ} (img : MemImage κ) (S : List Skel)
     (n : String) :
     (chanOf n (skelSends prog img S)).Perm
-      (chanOf n [(StatePush.name, #[1, 1]), (StatePull.name, #[prog.finalPc, 1])] ++
+      (chanOf n [(StatePush.name, #[1, 1]), (StatePull.name, #[prog.pcFinal, 1])] ++
         (skelRows img S).flatMap (fun r ↦ chanOf n (r.sends img)) ++
         chanOf n (memBlockSends img (skelMemFin img S)) ++
         chanOf n (bcBlockSends prog (skelBcFin S))) := by
@@ -322,10 +322,10 @@ theorem mem_pair_perm (prog : Program) {κ : ℕ} (hκ : κ ≤ maxLogMem) (img 
         (readExps (fun _ ↦ 0) (S.flatMap fun sk ↦ readAddrs img sk.fp sk.ins)) :=
     mkRows_memPulls img (fun _ ↦ 0) (fun _ ↦ 0) S
   have hv1 : chanOf MemPush.name
-      [(StatePush.name, #[1, 1]), (StatePull.name, #[prog.finalPc, 1])] = [] :=
+      [(StatePush.name, #[1, 1]), (StatePull.name, #[prog.pcFinal, 1])] = [] :=
     chanOf_eq_nil (by simp [StatePush, StatePull, MemPush])
   have hv2 : chanOf MemPull.name
-      [(StatePush.name, #[1, 1]), (StatePull.name, #[prog.finalPc, 1])] = [] :=
+      [(StatePush.name, #[1, 1]), (StatePull.name, #[prog.pcFinal, 1])] = [] :=
     chanOf_eq_nil (by simp [StatePush, StatePull, MemPull])
   have hc1 : chanOf MemPush.name (bcBlockSends prog (skelBcFin S)) = [] :=
     chanOf_eq_nil fun x hx ↦ by
@@ -365,10 +365,10 @@ theorem bc_pair_perm (prog : Program) {κ : ℕ} (img : MemImage κ) (S : List S
         (readExps (fun _ ↦ 0) (S.map (·.pc))) :=
     mkRows_bcPulls img (fun _ ↦ 0) (fun _ ↦ 0) S hF
   have hv1 : chanOf BytecodePush.name
-      [(StatePush.name, #[1, 1]), (StatePull.name, #[prog.finalPc, 1])] = [] :=
+      [(StatePush.name, #[1, 1]), (StatePull.name, #[prog.pcFinal, 1])] = [] :=
     chanOf_eq_nil (by simp [StatePush, StatePull, BytecodePush])
   have hv2 : chanOf BytecodePull.name
-      [(StatePush.name, #[1, 1]), (StatePull.name, #[prog.finalPc, 1])] = [] :=
+      [(StatePush.name, #[1, 1]), (StatePull.name, #[prog.pcFinal, 1])] = [] :=
     chanOf_eq_nil (by simp [StatePush, StatePull, BytecodePull])
   have hc1 : chanOf BytecodePush.name (memBlockSends img (skelMemFin img S)) = [] :=
     chanOf_eq_nil fun x hx ↦ by
@@ -389,7 +389,7 @@ balance with the initial and final states: the rows' pulls and pushes are those 
 by the six tables. -/
 theorem state_pair_perm (prog : Program) {κ : ℕ} (img : MemImage κ) (S : List Skel)
     (hstate : (#[1, 1] :: S.map fun sk ↦ #[(nextOf img sk).pc, (nextOf img sk).fp]).Perm
-      (#[prog.finalPc, 1] :: S.map fun sk ↦ #[sk.pc, sk.fp])) :
+      (#[prog.pcFinal, 1] :: S.map fun sk ↦ #[sk.pc, sk.fp])) :
     (chanOf StatePush.name (skelSends prog img S)).Perm
       (chanOf StatePull.name (skelSends prog img S)) := by
   have h1 : (skelRows img S).flatMap (fun r ↦ chanOf StatePush.name (r.sends img)) =
@@ -399,11 +399,11 @@ theorem state_pair_perm (prog : Program) {κ : ℕ} (img : MemImage κ) (S : Lis
       S.map fun sk ↦ #[sk.pc, sk.fp] :=
     mkRows_statePulls img (fun _ ↦ 0) (fun _ ↦ 0) S
   have hv1 : chanOf StatePush.name
-      [(StatePush.name, #[1, 1]), (StatePull.name, #[prog.finalPc, 1])] = [#[1, 1]] := by
+      [(StatePush.name, #[1, 1]), (StatePull.name, #[prog.pcFinal, 1])] = [#[1, 1]] := by
     simp [chanOf, StatePush, StatePull]
   have hv2 : chanOf StatePull.name
-      [(StatePush.name, #[1, 1]), (StatePull.name, #[prog.finalPc, 1])] =
-      [#[prog.finalPc, 1]] := by
+      [(StatePush.name, #[1, 1]), (StatePull.name, #[prog.pcFinal, 1])] =
+      [#[prog.pcFinal, 1]] := by
     simp [chanOf, StatePush, StatePull]
   have hc : ∀ n, (n = StatePush.name ∨ n = StatePull.name) →
       chanOf n (memBlockSends img (skelMemFin img S)) = [] ∧
@@ -703,7 +703,7 @@ theorem skelWitness_satisfiedBy (prog : Program) (input : PublicInput) {κ : ℕ
     (S : List Skel) (hκmin : minLogMem ≤ κ) (hκ : κ ≤ maxLogMem)
     (hS : ∀ sk ∈ S, SkelOk prog img sk)
     (hstate : (#[1, 1] :: S.map fun sk ↦ #[(nextOf img sk).pc, (nextOf img sk).fp]).Perm
-      (#[prog.finalPc, 1] :: S.map fun sk ↦ #[sk.pc, sk.fp]))
+      (#[prog.pcFinal, 1] :: S.map fun sk ↦ #[sk.pc, sk.fp]))
     (hrows : ∀ op, Skel.count op S ≤ 2 ^ maxLogRows)
     (hw0 : img.read (gpow 0) = some input.word0) (hw1 : img.read (gpow 1) = some input.word1) :
     SatisfiedBy prog input (skelWitness prog input img S) := by

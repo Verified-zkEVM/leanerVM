@@ -57,8 +57,8 @@ Benedikt Wagner's ([b-wagn/fv-pq-da](https://github.com/b-wagn/fv-pq-da), Apache
    completeness and code binding are not both meaningful for one argument (as in Wagner's
    original).
 6. [`LeanIsa.lean`](LeanIsa.lean): leanISA (memory, the six instructions, programs, one step,
-   `run`, `ValidExecution`: a run from `(1, 1)` that halts in the final state
-   `(g^(N_prog - 1), 1)`, the instruction counts `Trace.count`, the bytecode encoding), the
+   `run`, `ValidExecution`: a run from the initial state `(pcInitial, fpInitial)` that halts in
+   the final state `(pcFinal, fpFinal)`, the instruction counts `Trace.count`, the bytecode encoding), the
    machine under any `KECCAK` semantics (`ValidExecutionB`), and a program assembled from compiled
    functions (`CompiledFn`, `assemble`).
 7. [`LeanVmVerifier.lean`](LeanVmVerifier.lean): the verifier, `python-verifier/verifier.py`

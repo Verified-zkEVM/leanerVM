@@ -1103,7 +1103,7 @@ theorem bnd_pull (w : BusWit) (ha : w.alphas.length = 4) (hm : w.memory.length =
     sum_coords_dot prog s (fl := fl) ha _ _ (by simp)]
   simp only [List.cons.injEq, and_true, CharTwo.sub_eq_add]
   refine ⟨congrArg (w.beta + ·) ?_, congrArg (w.beta + ·) ?_, congrArg (w.beta + ·) ?_⟩
-  · simp [Bus.coordValue, channelSep_state.2, sepState, Verifier.gpow, Program.finalPc,
+  · simp [Bus.coordValue, channelSep_state.2, sepState, Verifier.gpow, Program.pcFinal,
       Complete.ofK_gpow]
     rfl
   · simp [Bus.coordValue, channelSep_mem.2, v0, v1, v2, v3, sepMem,

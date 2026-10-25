@@ -73,15 +73,15 @@ rotation with the boundary is what discharges it (`Completeness.Theorem`). -/
 theorem lone_skeleton_state_unbalanced :
     ¬ (#[1, 1] :: ([(⟨gpow 5, 1, .xor (gpow 0) (gpow 0) (gpow 0)⟩ : Skel)].map fun sk ↦
         #[(nextOf zeroImage sk).pc, (nextOf zeroImage sk).fp])).Perm
-      (#[jumpProg.finalPc, 1] :: ([(⟨gpow 5, 1, .xor (gpow 0) (gpow 0) (gpow 0)⟩ : Skel)].map
+      (#[jumpProg.pcFinal, 1] :: ([(⟨gpow 5, 1, .xor (gpow 0) (gpow 0) (gpow 0)⟩ : Skel)].map
         fun sk ↦ #[sk.pc, sk.fp])) := by
   intro h
-  have hmem : (#[1, 1] : Array K) ∈ (#[jumpProg.finalPc, 1] ::
+  have hmem : (#[1, 1] : Array K) ∈ (#[jumpProg.pcFinal, 1] ::
       ([(⟨gpow 5, 1, .xor (gpow 0) (gpow 0) (gpow 0)⟩ : Skel)].map fun sk ↦ #[sk.pc, sk.fp])) :=
     h.mem_iff.mp List.mem_cons_self
   simp only [List.map_cons, List.map_nil, List.mem_cons, List.not_mem_nil, or_false] at hmem
-  have hfin : jumpProg.finalPc = d₀ := by
-    unfold Program.finalPc
+  have hfin : jumpProg.pcFinal = d₀ := by
+    unfold Program.pcFinal
     rw [show 2 ^ jumpProg.logSize - 1 = 2047 by decide]
   rcases hmem with h1 | h1
   · have h4 := congrArg Array.toList h1

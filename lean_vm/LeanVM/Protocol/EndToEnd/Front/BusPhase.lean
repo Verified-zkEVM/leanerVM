@@ -358,12 +358,12 @@ def pyBusResult (layout : Verifier.Layout) (alphas : List E) (beta : E)
       bytecodeFinal⟩]
   let fp := fingerprints weights memory memoryLow bytecodeLow
     (multilinearEval (layout.bytecode.map ofK) (bytecodeLow ++ alphas))
-  let finalPc := Verifier.gpow (2 ^ layout.logBytecode - 1)
+  let pcFinal := Verifier.gpow (2 ^ layout.logBytecode - 1)
   let forms0 : List (List Form) := tables.map fun _ ↦ [{}, {}, {}]
   let (forms1, total0) := accumulateSide forms0 0 layout.push pushLayout (fp (Verifier.gpow 0) 1 1)
     weights beta point (treeValues.getD 0 0)
   let (forms2, total1) := accumulateSide forms1 1 layout.pull pullLayout
-    (fp finalPc memoryFinal bytecodeFinal) weights beta point (treeValues.getD 1 0)
+    (fp pcFinal memoryFinal bytecodeFinal) weights beta point (treeValues.getD 1 0)
   let (forms3, total2) := accumulateSide forms2 2 layout.count countLayout [] [1] 0 point
     (treeValues.getD 2 0)
   ⟨claims, point, forms3, [total0, total1, total2]⟩

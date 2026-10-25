@@ -183,7 +183,7 @@ theorem execute_jump_iff {pc : ℕ} {fp : K} {oc od of : ℕ} {r : Regs K} :
     exact ⟨c, hc, d, hd, f, hf, ⟨hcK, hdK, hfK⟩, rfl⟩
 
 /-- A pc before the last slot is not the halting one. -/
-theorem gpow_ne_finalPc {pc : ℕ} (hpc : pc < 2 ^ prog.logSize - 1) : gpow pc ≠ prog.finalPc := by
+theorem gpow_ne_pcFinal {pc : ℕ} (hpc : pc < 2 ^ prog.logSize - 1) : gpow pc ≠ prog.pcFinal := by
   have hlog : 2 ^ prog.logSize ≤ 2 ^ 32 := Nat.pow_le_pow_right (by decide) prog.logSize_le
   intro h
   have := gpow_injOn (by simp only [Set.mem_Iio]; omega) (by simp only [Set.mem_Iio]; omega) h
@@ -241,7 +241,7 @@ theorem Safe.step {pc k : ℕ} {fp : K} {ins : OInstr}
   cases k with
   | zero =>
     have := congrArg Regs.pc (safe_zero_iff.mp h)
-    exact absurd this (gpow_ne_finalPc hpc)
+    exact absurd this (gpow_ne_pcFinal hpc)
   | succ k =>
     obtain ⟨-, r, hr, hs⟩ := safe_succ_iff.mp h
     rw [step_of_fetch_eq_some hf] at hr
@@ -383,7 +383,7 @@ theorem reach_step {pc : ℕ} {fp : K} {ins : OInstr} {r : Regs K}
     (hf : prog.fetch (gpow pc) = some ins.toInstr) (hpc : pc < 2 ^ prog.logSize - 1)
     (h : execute L ⟨gpow pc, fp⟩ ins.toInstr = some r) : Reach prog L ⟨gpow pc, fp⟩ r := by
   refine ⟨1, ?_⟩
-  rw [run_succ_of_ne (gpow_ne_finalPc hpc), step_of_fetch_eq_some hf, h]
+  rw [run_succ_of_ne (gpow_ne_pcFinal hpc), step_of_fetch_eq_some hf, h]
   rfl
 
 /-- A non-`JUMP` that `Holds` falls through. -/

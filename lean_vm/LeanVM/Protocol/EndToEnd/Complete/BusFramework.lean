@@ -400,9 +400,9 @@ theorem stateTab_push (β : E) (w : List E) (hw : w.length = 16) :
 /-- The state block's leaf on the pull side is the final state's fingerprint. -/
 theorem stateTab_pull (β : E) (w : List E) (hw : w.length = 16) :
     stateTab β w (Verifier.gpow (2 ^ prog.logSize - 1)) =
-      [fpV β w (tupleOf (Parameters.gpow 0) #[prog.finalPc, 1])] := by
+      [fpV β w (tupleOf (Parameters.gpow 0) #[prog.pcFinal, 1])] := by
   rw [stateTab, fpV_tupleOf β w hw _ _ (by simp), dot_take_eq w _ 3 rfl (by omega)]
-  simp [sum_range_succ, sepState, Program.finalPc, ofK_gpow]
+  simp [sum_range_succ, sepState, Program.pcFinal, ofK_gpow]
   simp [Verifier.gpow]
   ring
 

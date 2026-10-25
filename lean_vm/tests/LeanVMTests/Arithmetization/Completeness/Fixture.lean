@@ -51,7 +51,7 @@ theorem executeWith_jump_taken {read : K → Option E} {r : Regs K} {oc od of : 
 
 /-- One step from a state away from the last slot is a run of one step. -/
 theorem run_one {κ : ℕ} {prog : Program} {L : MemImage κ} {r r' : Regs K}
-    (hpc : r.pc ≠ prog.finalPc) (h : step prog L r = some r') : run prog L 1 r = some r' := by
+    (hpc : r.pc ≠ prog.pcFinal) (h : step prog L r = some r') : run prog L 1 r = some r' := by
   rw [run_succ_of_ne hpc, h]
   simp only [Option.bind_eq_bind, Option.bind_some]
   rfl
@@ -64,9 +64,9 @@ theorem run_trans {κ : ℕ} {prog : Program} {L : MemImage κ} {m n : ℕ} {r r
   simpa only [Option.bind_eq_bind, Option.bind_some] using h2
 
 /-- A slot below the sentinel is not the sentinel's counter. -/
-theorem gpow_ne_finalPc (prog : Program) {n : ℕ} (hn : n + 1 < 2 ^ prog.logSize) :
-    gpow n ≠ prog.finalPc := by
-  unfold Program.finalPc
+theorem gpow_ne_pcFinal (prog : Program) {n : ℕ} (hn : n + 1 < 2 ^ prog.logSize) :
+    gpow n ≠ prog.pcFinal := by
+  unfold Program.pcFinal
   intro heq
   have hL : prog.logSize ≤ 32 := prog.logSize_le
   have h32 : 2 ^ prog.logSize ≤ 4294967296 := by
@@ -184,10 +184,10 @@ theorem zeroImage_xor :
 
 /-! ## The trace is valid -/
 
-theorem bad_run (prog : Program) (d : K) (hd : prog.finalPc = d) (hd0 : d ≠ 0) (hd1 : d ≠ 1)
+theorem bad_run (prog : Program) (d : K) (hd : prog.pcFinal = d) (hd0 : d ≠ 0) (hd1 : d ≠ 1)
     (h0 : prog.fetch 1 = some (.jump (gpow 2) (gpow 2) (gpow 3))) :
     run prog (badImage d) 1 Regs.initial = some (Regs.final prog) := by
-  have hne : (Regs.initial : Regs K).pc ≠ prog.finalPc := by
+  have hne : (Regs.initial : Regs K).pc ≠ prog.pcFinal := by
     rw [hd]; exact fun h ↦ hd1 h.symm
   have e2 : (badImage d).read (gpow 2) = some (ofK d) := by
     rw [read_lit (badImage d) 2]; rfl
@@ -219,9 +219,9 @@ the sentinel is a valid execution on `badImage d₀`. -/
 theorem bad_valid (prog : Program) (hL : prog.logSize = 11)
     (h0 : prog.fetch 1 = some (.jump (gpow 2) (gpow 2) (gpow 3))) :
     ValidExecution prog badInput (⟨minLogMem, badImage d₀, 1⟩ : Trace prog) := by
-  have hfin : prog.finalPc = d₀ := by
+  have hfin : prog.pcFinal = d₀ := by
     have h : 2 ^ prog.logSize - 1 = 2047 := by rw [hL]; norm_num
-    unfold Program.finalPc
+    unfold Program.pcFinal
     rw [h]
   exact ⟨bad_boundary d₀ 1, bad_run prog d₀ hfin d₀_ne_zero d₀_ne_one h0⟩
 

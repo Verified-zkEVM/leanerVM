@@ -91,12 +91,12 @@ example (r : Var BytecodeRow K) : (bytecodeTable.main r).operations 0 =
        toElements (⟨r.idx, r.cntFin, r.opcode, r.op⟩ : BytecodeMsg (Expression K)), true⟩] :=
   rfl
 
-/-- The verifier of `prog`: push `(1, 1)`, pull `(prog.finalPc, 1)`, both constants, on the state
+/-- The verifier of `prog`: push `(1, 1)`, pull `(prog.pcFinal, 1)`, both constants, on the state
 pair (specification §6.1; `layout.rs:420-424`). -/
 example (prog : Program) (pi : Var PublicIO K) : ((leanIsaVerifier prog).main pi).operations 0 =
     [.interact ⟨StatePush.toRaw, 1, toElements (⟨1, 1⟩ : Regs (Expression K)), false⟩,
      .interact ⟨StatePull.toRaw, -1,
-       toElements (⟨Expression.const prog.finalPc, 1⟩ : Regs (Expression K)), true⟩] :=
+       toElements (⟨Expression.const prog.pcFinal, 1⟩ : Regs (Expression K)), true⟩] :=
   rfl
 
 /-- The seed count is the word `1 = g^0`. -/
@@ -121,7 +121,7 @@ example (env : Environment K) : eval env (⟨1, 1⟩ : Regs (Expression K)) = Re
   verifier_push_eval env
 
 example (env : Environment K) :
-    eval env (⟨Expression.const bProg.finalPc, 1⟩ : Regs (Expression K)) = ⟨gpow 1, 1⟩ := by
+    eval env (⟨Expression.const bProg.pcFinal, 1⟩ : Regs (Expression K)) = ⟨gpow 1, 1⟩ := by
   rw [verifier_pull_eval]
   rfl
 

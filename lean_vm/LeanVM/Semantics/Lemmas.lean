@@ -239,7 +239,7 @@ theorem run_succ_of_ne_final {r : Regs K} (h : r ≠ Regs.final prog) (n : ℕ) 
   rw [run_succ, ite_eq_right h]
 
 /-- Away from the last slot, a step is taken. -/
-theorem run_succ_of_ne {r : Regs K} (h : r.pc ≠ prog.finalPc) (n : ℕ) :
+theorem run_succ_of_ne {r : Regs K} (h : r.pc ≠ prog.pcFinal) (n : ℕ) :
     run prog L (n + 1) r = step prog L r >>= run prog L n :=
   run_succ_of_ne_final (fun hr ↦ h (congrArg Regs.pc hr)) n
 

@@ -22,7 +22,7 @@ The leanVM instruction set, from §2 of the leanVM specification
 
 Words are elements of `E = K[y]/(y³ + y + 1)`, `K = GF(2^64)`. Addresses are powers of the
 generator `g` of `K*`: memory word `i` and bytecode slot `i` both sit at `g^i`. The machine has two
-registers, `pc` and `fp`, and halts in the final state `(g^(N_prog - 1), 1)`: the last slot in
+registers, `pc` and `fp`, and halts in the final state `(pcFinal, fpFinal) = (g^(N_prog - 1), 1)`: the last slot in
 `main`'s frame. The memory is fixed before the run and only read: every instruction checks a
 relation on the words it reads, so all nondeterminism is the choice of the memory.
 
@@ -300,15 +300,25 @@ noncomputable def step {κ : ℕ} (prog : Program) (L : MemImage κ) (r : Regs K
 
 /-! ### Valid executions -/
 
-/-- The machine starts at `(pc, fp) = (1, 1)`. -/
-def Regs.initial : Regs K := ⟨1, 1⟩
+/-- The initial `pc`: the first bytecode slot, `g^0 = 1`. -/
+abbrev pcInitial : K := 1
 
-/-- The last bytecode slot, `g^(2^logSize − 1)`, the final state's `pc`. -/
-def Program.finalPc (prog : Program) : K := gpow (2 ^ prog.logSize - 1)
+/-- The initial `fp`: `main`'s frame, `g^0 = 1`. -/
+abbrev fpInitial : K := 1
 
-/-- The final state `(finalPc, 1)`: the last slot in `main`'s frame, `(g^(N_prog - 1), g^0)`. The
-machine halts there. -/
-def Regs.final (prog : Program) : Regs K := ⟨prog.finalPc, 1⟩
+/-- The final `pc`: the last bytecode slot, `g^(2^logSize − 1)`. It depends on the program's
+size. -/
+def Program.pcFinal (prog : Program) : K := gpow (2 ^ prog.logSize - 1)
+
+/-- The final `fp`: `main`'s frame again, `fpInitial`. -/
+abbrev fpFinal : K := 1
+
+/-- The initial state `(pcInitial, fpInitial)`. -/
+def Regs.initial : Regs K := ⟨pcInitial, fpInitial⟩
+
+/-- The final state `(pcFinal, fpFinal)`: the last slot in `main`'s frame. The machine halts
+there. -/
+def Regs.final (prog : Program) : Regs K := ⟨prog.pcFinal, fpFinal⟩
 
 /-- `n` steps from `r`, halting in the final state: `none` if a step fails or the machine halts
 first. The machine halts when both registers are the final state's, checked before each step, as
@@ -337,7 +347,7 @@ def HasPublicBoundary {prog : Program} (input : PublicInput) (t : Trace prog) : 
     t.image.read (gpow 0) = some input.word0 ∧ t.image.read (gpow 1) = some input.word1
 
 /-- **A valid execution** of `prog` on `input`: the memory holds the public input, and `t.steps`
-steps from `(1, 1)` halt in the final state `(finalPc, 1)`. -/
+steps from the initial state halt in the final state. -/
 def ValidExecution (prog : Program) (input : PublicInput) (t : Trace prog) : Prop :=
   HasPublicBoundary input t ∧ run prog t.image t.steps Regs.initial = some (Regs.final prog)
 

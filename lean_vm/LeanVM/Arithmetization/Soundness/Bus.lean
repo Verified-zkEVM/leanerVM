@@ -250,7 +250,7 @@ theorem rowSends_toElements {Input Output : TypeMap} [ProvableType Input] [Prova
 
 /-- What the verifier sends: the push of the initial registers and the pull of the final ones. -/
 def verifierSends (prog : Program) : List (String × Array K) :=
-  [(StatePush.name, #[1, 1]), (StatePull.name, #[prog.finalPc, 1])]
+  [(StatePush.name, #[1, 1]), (StatePull.name, #[prog.pcFinal, 1])]
 
 /-- The limbs of word `i` of an image. -/
 def limbsOf {κ : ℕ} (img : MemImage κ) (i : Fin (2 ^ κ)) : Vector K 3 :=
@@ -365,7 +365,7 @@ theorem chanOf_verifier_statePush : chanOf StatePush.name (verifierSends prog) =
 
 /-- The verifier pulls the final registers and nothing else. -/
 theorem chanOf_verifier_statePull :
-    chanOf StatePull.name (verifierSends prog) = [#[prog.finalPc, 1]] := by
+    chanOf StatePull.name (verifierSends prog) = [#[prog.pcFinal, 1]] := by
   simp [chanOf, verifierSends, StatePull, StatePush]
 
 /-- The verifier sends nothing on a channel other than the state pair. -/

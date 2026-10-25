@@ -47,12 +47,12 @@ def busOut (layout : Verifier.Layout) (alphas : List E) (beta : E)
       bytecodeFinal⟩]
   let fp := fingerprints weights memory memoryLow bytecodeLow
     (multilinearEval (layout.bytecode.map ofK) (bytecodeLow ++ alphas))
-  let finalPc := Verifier.gpow (2 ^ layout.logBytecode - 1)
+  let pcFinal := Verifier.gpow (2 ^ layout.logBytecode - 1)
   let forms0 : List (List Form) := tables.map fun _ ↦ [{}, {}, {}]
   let r1 := accumulateSide forms0 0 layout.push pushLayout (fp (Verifier.gpow 0) 1 1)
     weights beta point (treeValues.getD 0 0)
   let r2 := accumulateSide r1.1 1 layout.pull pullLayout
-    (fp finalPc memoryFinal bytecodeFinal) weights beta point (treeValues.getD 1 0)
+    (fp pcFinal memoryFinal bytecodeFinal) weights beta point (treeValues.getD 1 0)
   let r3 := accumulateSide r2.1 2 layout.count countLayout [] [1] 0 point (treeValues.getD 2 0)
   ⟨claims, point, r3.1, [r1.2, r2.2, r3.2]⟩
 

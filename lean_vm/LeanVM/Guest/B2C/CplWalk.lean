@@ -1170,7 +1170,7 @@ theorem runCells_get : ∀ {base : ℕ} {cs : List ℕ}, runCells base cs = true
       omega
 
 theorem final_guest : Regs.final guest = ⟨gpow (2 ^ 19 - 1), gpow 0⟩ := by
-  simp [Regs.final, Program.finalPc, guest_logSize]
+  simp [Regs.final, Program.pcFinal, guest_logSize]
 
 theorem walk_retZ (H : WH L j fp X segs wJ wenv σ es vs kfps hdr ck) (vs' : List V)
     (ss : List Stmt) (st : CW) : WGood H (.ret vs' :: ss) st := by

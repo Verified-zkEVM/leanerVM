@@ -152,15 +152,15 @@ def longTrace : Trace loopProg := ⟨22, loopImage, J⟩
 
 theorem two_pow_22 : (2 : ℕ) ^ 22 = 4 * J := by norm_num [J]
 
-theorem loopProg_finalPc : loopProg.finalPc = g := pow_one g
+theorem loopProg_pcFinal : loopProg.pcFinal = g := pow_one g
 
 theorem loopProg_fetch : loopProg.fetch 1 = some (.jump (gpow 2) (gpow 2) (gpow 3)) := by
   have h := loopProg.fetch_gpow ⟨0, by decide⟩
   rw [show gpow 0 = (1 : K) from pow_zero g] at h
   exact h
 
-theorem one_ne_finalPc : (1 : K) ≠ loopProg.finalPc := by
-  have := gpow_ne_finalPc loopProg (n := 0) (by decide)
+theorem one_ne_pcFinal : (1 : K) ≠ loopProg.pcFinal := by
+  have := gpow_ne_pcFinal loopProg (n := 0) (by decide)
   rwa [show gpow 0 = (1 : K) from pow_zero g] at this
 
 /-- The frame of `j`'s words, read. -/
@@ -183,7 +183,7 @@ theorem step_loop {j : ℕ} (hj : j + 1 < J) :
   obtain ⟨hc, hf⟩ := read_frame j (by omega)
   have hne : j ≠ J - 1 := by omega
   simp only [hne, ↓reduceIte] at hc hf
-  refine run_one one_ne_finalPc ?_
+  refine run_one one_ne_pcFinal ?_
   rw [step_of_fetch_eq_some (r := ⟨1, gpow (2 * j)⟩) loopProg_fetch]
   exact executeWith_jump_taken (read := loopImage.read) (c := 1) (d := 1) hc hc hf one_ne_zero
 
@@ -192,9 +192,9 @@ theorem step_last :
     run loopProg loopImage 1 ⟨1, gpow (2 * (J - 1))⟩ = some (Regs.final loopProg) := by
   obtain ⟨hc, hf⟩ := read_frame (J - 1) (by unfold J; omega)
   simp only [↓reduceIte] at hc hf
-  refine run_one one_ne_finalPc ?_
+  refine run_one one_ne_pcFinal ?_
   rw [step_of_fetch_eq_some (r := ⟨1, gpow (2 * (J - 1))⟩) loopProg_fetch, Regs.final,
-    loopProg_finalPc]
+    loopProg_pcFinal]
   exact executeWith_jump_taken (read := loopImage.read) (c := g) (d := g) (f := 1) hc hc hf
     g_ne_zero
 
