@@ -1,8 +1,7 @@
-import Mathlib.Data.ENNReal.Inv
+import Mathlib.Basic.ENNReal.Inv
 import Mathlib.Tactic.GCongr
 import Mathlib.Tactic.Ring
 import Mathlib.Tactic.NormNum
-import Mathlib.Tactic.NormCast
 
 /-!
 # A quadratic transfer term, linear under a query cap

@@ -7,7 +7,7 @@
 
 module
 
-public import Mathlib.Data.ENNReal.Inv
+public import Mathlib.Basic.ENNReal.Inv
 
 /-!
 # The errors the proofs establish
