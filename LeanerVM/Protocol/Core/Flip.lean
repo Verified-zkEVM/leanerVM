@@ -8,6 +8,7 @@
 module
 
 public import LeanerVM.Protocol.LeanVmReader
+public import LeanerVM.Protocol.ToArkLib.StateWalk
 
 /-!
 # A bad challenge flips its group
@@ -463,16 +464,6 @@ private theorem getElem?_cut {c rest : List Reading} {m : ℕ} (hm : 0 < m) (ds 
   rw [List.getElem?_append_right le_rfl, Nat.sub_self]
   obtain ⟨m, rfl⟩ : ∃ m', m = m' + 1 := ⟨m - 1, by omega⟩
   simp [squeezeBlocks, List.ofFn_succ]
-
-/-- The prefix of a full transcript before a challenge. -/
-def prefixBefore {n : ℕ} {pSpec : ProtocolSpec n} (tr : pSpec.FullTranscript)
-    (i : pSpec.ChallengeIdx) : pSpec.Transcript i.1.castSucc :=
-  tr.take i.1.val i.1.castSucc.is_le
-
-/-- The challenge a full transcript carries at a challenge round. -/
-def challengeAt {n : ℕ} {pSpec : ProtocolSpec n} (tr : pSpec.FullTranscript)
-    (i : pSpec.ChallengeIdx) : pSpec.Challenge i :=
-  tr i.1
 
 /-- The challenge a transcript carries at `i` is bad at the prefix before it. -/
 def _root_.LeanerVM.Protocol.SlotReader.BadIn (R : SlotReader) {a : R.Ann}

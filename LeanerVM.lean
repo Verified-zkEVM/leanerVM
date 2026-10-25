@@ -39,6 +39,7 @@ import LeanerVM.Protocol.Compile.Front
 import LeanerVM.Protocol.Compile.Rounds
 import LeanerVM.Protocol.Compile.Tables
 import LeanerVM.Protocol.Compile.Whir
+import LeanerVM.Protocol.Core
 import LeanerVM.Protocol.Core.Decoded
 import LeanerVM.Protocol.Core.Flip
 import LeanerVM.Protocol.Core.Grinding

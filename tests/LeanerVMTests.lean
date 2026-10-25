@@ -31,6 +31,7 @@ import LeanerVMTests.Protocol.ClaimWeights
 import LeanerVMTests.Protocol.Compile
 import LeanerVMTests.Protocol.CompileWhir
 import LeanerVMTests.Protocol.ComponentPolynomial
+import LeanerVMTests.Protocol.Core
 import LeanerVMTests.Protocol.DecodeChain
 import LeanerVMTests.Protocol.DecodeTranscript
 import LeanerVMTests.Protocol.FastProvers

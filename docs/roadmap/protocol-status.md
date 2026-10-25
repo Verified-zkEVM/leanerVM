@@ -1264,6 +1264,48 @@ theorem advances.
   compiled verifier's on decoded transcripts, which the soundness direction needs; and
   `verify_iff_compiled`.
 
+*On merge* of the core's branch (`feat/protocol-core`, on the compiled verifier's), the
+deterministic heart of the random-oracle theorems and knowledge soundness in the random-oracle
+model are on `main` (`Protocol/Core.lean`, `Protocol/Core/`). `core`: on a run of the logged game
+whose joint log is consistent and whose verifier, replayed on that log, accepts, either the
+extractor finds a stack with `M3Holds` from the prover's log (`Extracts`), or the hash misbehaves
+(`HashMisbehaves (rootsOf prog input) (leanVmReader prog input).Flip`: a collision, a hit or a
+flip). `core_of_mem_support` is its form on a possible run of the game, the hypothesis the base
+theorems take, and `verify_knowledgeSound_rom` bounds the probability that the verifier accepts
+while the extractor fails by `(Q + 13697)/2^128 + hashTerm 13697 Q`, from `core` and
+`leanVm_misbehaves_rom_closed`. `#print axioms` gives the kernel's three axioms for each. The
+argument, with no collision, hit or flip:
+
+- *The replay* (`ChainLog.accepts_of_replay`): the accepted replay walks the chain, then the
+  openings, and the algebra accepts their wire and rows. The walk's grinding checks pass in the
+  log (`Core/Grinding.lean`).
+- *The history* (`Core/History.lean`): its first ten readings are the announced sizes and the
+  commitment's root, so its announcement and level-0 root are the proof's.
+- *The decoded transcript* (`Core/Decoded.lean`, `Core/Solved.lean`): the history decodes, with
+  the words read off the joint log under the roots it carries, to a transcript that carries those
+  words and whose round polynomials all pass their checks (`front_of_decode`, `words_of_decode`,
+  `solved_of_decode`: the decoder's running claims are the oracle verifier's). This discharges
+  the compiled verifier's branch's owed item: on decoded transcripts the algebra's acceptance is
+  the compiled verifier's.
+- *The rows* (`Core/Openings.lean`): the replayed openings accept every level; by Merkle binding
+  on the log their rows are the transcript's words' rows at the positions the walk read
+  (`rows_eq_ladderRows`). So the algebra accepts the transcript's wire and rows, and the compiled
+  verifier accepts it (`compiled_of_algebra`).
+- *The walk back* (`ToArkLib/StateWalk.lean`, `Core/Flip.lean`): the state function of
+  `listBinding_deployed`, true at the end, stays true back to the commitment unless a challenge
+  turns it, and a challenge that turns it is bad at the prefix before it, whose group flips
+  (`flipAt_of_bad`).
+- *The extraction*: after the commitment the state function says the commitment's pick finds a
+  stack in the committed word, the level-0 word read off the joint log under the proof's level-0
+  root; with no hit it is the word read off the prover's log (`extractRows_determined`), the word
+  `extract` picks from.
+
+The statements take no hypothesis beyond the run's. Elaboration: the compiled protocol's schedule
+has two spellings, `deployedSpec` (the bad sets, the decoder) and `listBindingSpec` at
+`leanIsaInstance` (`listBinding_deployed`); where both meet inside the state function or the
+extractor, unification evaluates the stack's size on a symbolic program, so `Core.lean` crosses
+them by `dsimp only [deployedSpec]` on both sides, and seals `leanIsaμ` and `blocks`.
+
 ## Upstream watch
 
 External work that may feed or replace a hole. The state of each is on GitHub.

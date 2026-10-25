@@ -16,8 +16,9 @@ A knowledge state function true at the end of a full transcript stays true, for 
 at every earlier round, as long as no challenge of the transcript turns it from false to true:
 at a prover message the state function's own `toFun_next` carries it back, and at a challenge
 the hypothesis does, with the witness the extractor hands back
-(`Verifier.KnowledgeStateFunction.exists_toFun_take_of_good`). A challenge that does turn it is
-the event round-by-round knowledge soundness bounds.
+(`Verifier.KnowledgeStateFunction.exists_toFun_take_of_good`, on the transcript's prefix before
+each challenge, `prefixBefore`, and the challenge, `challengeAt`). A challenge that does turn it
+is the event round-by-round knowledge soundness bounds.
 -/
 
 namespace LeanerVM.Protocol
@@ -25,6 +26,16 @@ namespace LeanerVM.Protocol
 open OracleComp OracleSpec ProtocolSpec
 
 public section
+
+/-- The prefix of a full transcript before a challenge. -/
+@[expose] def prefixBefore {n : ℕ} {pSpec : ProtocolSpec n} (tr : pSpec.FullTranscript)
+    (i : pSpec.ChallengeIdx) : pSpec.Transcript i.1.castSucc :=
+  tr.take i.1.val i.1.castSucc.is_le
+
+/-- The challenge a full transcript carries at a challenge round. -/
+@[expose] def challengeAt {n : ℕ} {pSpec : ProtocolSpec n} (tr : pSpec.FullTranscript)
+    (i : pSpec.ChallengeIdx) : pSpec.Challenge i :=
+  tr i.1
 
 variable {ι : Type} {oSpec : OracleSpec ι} {StmtIn WitIn StmtOut WitOut : Type} {n : ℕ}
   {pSpec : ProtocolSpec n} {V : Verifier oSpec StmtIn StmtOut pSpec} {σ : Type}
@@ -40,11 +51,9 @@ theorem Verifier.KnowledgeStateFunction.exists_toFun_take_of_good (s : StmtIn)
     (full : pSpec.FullTranscript) {w : WitMid (Fin.last n)}
     (hw : kSF.toFun (Fin.last n) s full w)
     (hgood : ∀ (i : pSpec.ChallengeIdx) (w : WitMid i.1.succ),
-      kSF.toFun i.1.succ s
-        (Transcript.concat (m := i.1) (full i.1) (full.take i.1.val i.1.castSucc.is_le)) w →
-      kSF.toFun i.1.castSucc s (full.take i.1.val i.1.castSucc.is_le)
-        (E.extractMid i.1 s
-          (Transcript.concat (m := i.1) (full i.1) (full.take i.1.val i.1.castSucc.is_le)) w))
+      kSF.toFun i.1.succ s ((prefixBefore full i).concat (challengeAt full i)) w →
+      kSF.toFun i.1.castSucc s (prefixBefore full i)
+        (E.extractMid i.1 s ((prefixBefore full i).concat (challengeAt full i)) w))
     (m : Fin (n + 1)) : ∃ w', kSF.toFun m s (full.take m.val m.is_le) w' := by
   induction m using Fin.reverseInduction with
   | last => exact ⟨w, hw⟩
