@@ -44,6 +44,7 @@ import LeanerVM.Protocol.Core.Flip
 import LeanerVM.Protocol.Core.Grinding
 import LeanerVM.Protocol.Core.History
 import LeanerVM.Protocol.Core.Openings
+import LeanerVM.Protocol.Core.Solved
 import LeanerVM.Protocol.DecodeAgree
 import LeanerVM.Protocol.DecodeChain
 import LeanerVM.Protocol.DecodeWalk

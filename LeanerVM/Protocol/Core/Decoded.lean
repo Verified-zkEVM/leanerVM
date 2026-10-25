@@ -173,7 +173,7 @@ variable {X : Type} {ι : Type} {O : ι → Type} [∀ i, OracleInterface (O i)]
 private def StRel {m : ℕ} (st : GkrState) (ℓ : Gkr.LayerStmt X E 3 m) : Prop :=
   st.get.1 = ℓ.2.1.toList ∧ st.get.2 = ℓ.2.2
 
-private theorem toVec_toList {n : ℕ} (v : Vector E n) : toVec n v.toList = v := by
+theorem toVec_toList {n : ℕ} (v : Vector E n) : toVec n v.toList = v := by
   apply Vector.ext
   intro i _
   simp [toVec]
