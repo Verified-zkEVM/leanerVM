@@ -36,14 +36,14 @@ The file has three parts:
 
 1. **The constants** the verifier reads: the WHIR parameters (`crates/pcs/src/whir_config.rs`,
    the query table of `verifier.py:1028`). The Keccak and Keccak GKR constants are
-   `LeanVM.Spec.Keccak`'s and Part 3's.
+   `RandomPermutation.lean`'s and Part 3's.
 2. **The transcript**: the verifier is a program `Prog` of a small language with five operations
    on the proof (read a scalar, sample a challenge, check a proof of work, read a Merkle root,
    open rows), and `runProof` reads such a program on a proof with a hash function
    `H : Bytes → m Digest` and a permutation `F : KState → m KState` in any monad `m`, as the
    Python's `Transcript` does with Keccak-256 and Keccak-f[1600]. With `H` and `F` the sponge
    over a random permutation and the permutation, it is the verifier of the random-permutation
-   model (`LeanVM.Spec.Rpm`).
+   model (`LeanVm.lean`).
 3. **The verifier**, section by section as in the table above, ending with
    `verifyWith H F bytecode publicInput proof`, the verifier with the hash `H` and the permutation
    `F`, and `verify`, the deployed one, with Keccak-256 and Keccak-f[1600].
@@ -54,7 +54,7 @@ verifier (`verifyDeferred`), which has no counterpart in the Python, takes it fr
 aggregate's in-circuit verifier of its children does
 (`crates/rec_aggregation/guests/lean_ethereum.py`, `verify_sub`).
 
-The fields are `LeanVM.Spec.Field`, Keccak is `LeanVM.Spec.Keccak`; `LeanVM.Spec.Fast.Keccak`
+The fields are `Field.lean`'s, Keccak is `RandomPermutation.lean`'s; `Statement.Fast.Keccak`
 only makes the compiled hash fast (`@[csimp]`). Reading proofs from files (`verifyFiles`) is
 outside the specification, in `LeanVM.Protocol.Verifier`.
 -/
@@ -289,7 +289,7 @@ sponge and `Transcript`), whose sponge is the Rust's (`crates/verifier/src/trans
 The sponge starts at Keccak-f of the IV's and the public input's words, the other lanes zero
 (`Transcript.__init__`, `verifier.py:379-384`). The hash is a parameter `H : Bytes → m Digest`
 and the permutation a parameter `F : KState → m KState`, in any monad `m`: the deployed verifier
-is the `Id` instance at `keccak256` and `keccakF`, and the statements (`LeanVM.Spec.Rpm`) run the
+is the `Id` instance at `keccak256` and `keccakF`, and the statements (`LeanVm.lean`) run the
 same function with `H` and `F` built from a random permutation.
 
 #### Deviation from the Python verifier
@@ -1856,7 +1856,7 @@ def verifyStackedOpening (stackLog logInvRate : ℕ) (claims : List StackClaim) 
 ### Keccak, by GKR over its rounds
 
 From `verifier.py`, lines 1205-1405: the constants (`KECCAK_RC`, `KECCAK_RHO`, `KECCAK_PI`, which
-are `LeanVM.Parameters.keccakRC`, `keccakRho`, `keccakPi` of `LeanVM.Spec.Keccak`; `PACK_BITS`,
+are `LeanVM.Parameters.keccakRC`, `keccakRho`, `keccakPi` of `RandomPermutation.lean`; `PACK_BITS`,
 `EMBED_BITS`, `PRODUCT_BITS`, `RMFE_FACTORS`), the embedding (`_carryless`,
 `_carryless_divmod`, `_rmfe`), `KeccakClaim`, `keccak_along`, `keccak_linear_transpose`,
 `keccak_instance_weights`, `verify_keccak_layer`, `_keccak_open` and
@@ -2219,8 +2219,8 @@ little-endian words. `seedWith H F` computes it with any hash and permutation; `
 is the compiled reading at `H`, `F`; `verify` is the deployed verifier, the `Id` instance at
 `keccak256` and `keccakF`.
 
-**Compilation.** `LeanVM.Spec.Fast.Keccak` compiles `keccak256` and `keccakF` faster, as
-`LeanVM.Spec.Fast.FieldWords` compiles the field arithmetic. Both are `@[csimp]` lemmas: the
+**Compilation.** `Statement.Fast.Keccak` compiles `keccak256` and `keccakF` faster, as
+`Statement.Fast.FieldWords` compiles the field arithmetic. Both are `@[csimp]` lemmas: the
 definitions here, and the theorems about them, are unchanged.
 -/
 

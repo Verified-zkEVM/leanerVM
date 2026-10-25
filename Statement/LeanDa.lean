@@ -110,8 +110,9 @@ section
 /-!
 ## LeanDA
 
-The erasure code commitment of `crates/lean_da` at leanVM `main` `4af2cdddd`, specified in
-`doc/leanvm/body/10-ethereum.tex` §sec:leanda, for a matrix of `r` rows.
+The erasure code commitment of `crates/lean_da` at leanVM
+`94ee12ff6b2a3d42ba8328e22d09443692e4800b`, specified in `doc/leanvm/body/10-ethereum.tex`
+§sec:leanda, for a matrix of `r` rows.
 
 * **The code** (`encode.rs:12-36`). A row's payload is `2^14` symbols of `K`, the evaluations on
   the domain points `0 … 2^14 - 1` of the polynomial of degree below `2^14` they determine. Its
@@ -153,10 +154,13 @@ The erasure code commitment of `crates/lean_da` at leanVM `main` `4af2cdddd`, sp
   columns' hashes (`vectorDigest`).
 
 The row count `r` is a parameter. The crate takes `1 ≤ r ≤ 1024` (`row_count`, `lib.rs:41-46`);
-the statements hold for every `r ≥ 1`. So are the hash `H` and the sponge's permutation `P`: the
-crate's are Keccak-256 (Ethereum's: rate `136` bytes, padding `0x01 ‖ 0^* ‖ 0x80`,
-`verifier/src/hash.rs:79-97`) and the Keccak-f[1600] it is built on, which `lean_vm` supplies,
-and the statements hold for every `H` and `P`.
+the statements hold for every `r ≥ 1`. The deployed algorithms take the hash `H` and the sponge's
+permutation `P` as parameters: the crate's are Keccak-256 (Ethereum's: rate `136` bytes, padding
+`0x01 ‖ 0^* ‖ 0x80`, `verifier/src/hash.rs:79-97`) and the Keccak-f[1600] it is built on, which
+`lean_vm` supplies for the aggregation node's DA claim. The end statements are in the
+random-permutation model: `H` is Keccak-256 over a permutation `π` and `P` is `π` itself
+(`keccakWith`, `permImpl`, the last sections), with `π` uniformly random for the binding
+statements and arbitrary for completeness.
 
 Part of `lean_da`, which instantiates Benedikt Wagner's framework for erasure code commitments
 (`PqDas`, ported from https://github.com/b-wagn/fv-pq-da) with LeanDA.
@@ -385,8 +389,9 @@ def commitCodewords (rows : List (List K)) : Digest :=
 
 /-! ### The deployed membership vector (`verifier/src/da.rs:15-96`)
 
-The challenges, drawn from the root by the duplex sponge the security game models as a random
-oracle, and the dual codeword as the crate computes it, by the additive NTT, which computes `dual`
+The challenges, drawn from the root by the duplex sponge (over the permutation `π` in the end
+statements; Wagner's games, a step of the proofs, model them as one random oracle on the root),
+and the dual codeword as the crate computes it, by the additive NTT, which computes `dual`
 (`membershipVector_eq_dual`, `LeanDa.Dual`). -/
 
 /-- `leanDA/rs-membership/v1`, the label of the challenges' transcript (`LABEL`). -/

@@ -30,8 +30,8 @@ WOTS+C one-time keys. Key `b` of the top tree signs the root of bottom tree `b`;
   `lo (4 bytes) || hi (3 bytes) || (type + 32 step) || 0^8`, then the payload. The top layer sets
   bit 23 of `hi`. A chain step's address carries the step but not the chain, whose index follows the
   value in the payload.
-* `H` is the leanVM hash, Keccak-256, modeled as a random oracle on the bytes
-  of its input.
+* `H` is the leanVM hash, Keccak-256 on the bytes of its input, a query (`HashSpec`) the model
+  answers: in the end statement (the last section) Keccak-256 over the random permutation.
 * The secret key is a 32-byte seed `S_0`. Every secret derives from `S = H("leanXMSS" || S_0)`, all
   32 bytes, and the signer keeps `S`.
 * Signing a message `M` with key `e` of layer `l`: `R0 = Th(P, A_rnd(l, e), S || M)`, then the least
@@ -168,7 +168,7 @@ def hashDomainFields : HashDomain → TweakFields
 def tweakBytes (domain : HashDomain) : HashInput :=
   fieldBytes (hashDomainFields domain)
 
-/-- The random-oracle input `P || A || payload` of every tweakable hash call. -/
+/-- The hash input `P || A || payload` of every tweakable hash call. -/
 def tweakableHashInput (parameter : PublicParameter) (domain : HashDomain)
     (payload : HashInput) : HashInput :=
   bytesLE 16 parameter ++ tweakBytes domain ++ payload
@@ -256,7 +256,7 @@ def sequenceFin {m : Type → Type} [Monad m] {α : Type} {n : Nat}
 
 variable {m : Type → Type} [Monad m] [HasQuery HashSpec m]
 
-/-- One query to the random oracle `H`. -/
+/-- One query to the hash `H` (`HashSpec`), which the model answers. -/
 def oracleHash (input : HashInput) : m HashOutput :=
   HasQuery.query (spec := HashSpec) (m := m) input
 
@@ -538,7 +538,7 @@ open OracleComp OracleSpec ENNReal Common Common.SufCma
 namespace LeanXmss.Rpm
 
 /-- leanXMSS in the generic SUF-CMA game: the seed, key generation, the signer of a request, the
-verifier, and the winning condition of `Statement.lean`. -/
+verifier, and the winning condition (`SigningTranscript`, above). -/
 noncomputable def scheme :
     Scheme HashOutput MasterSeed PublicKey Seeded.SecretKey SignRequest (Option Signature)
       Forgery where

@@ -341,7 +341,7 @@ def hashDomainFields : HashDomain → TweakFields
 def tweakBytes (domain : HashDomain) : HashInput :=
   fieldBytes (hashDomainFields domain)
 
-/-- The random-oracle input `P || A || payload` of every tweakable hash call and of the message
+/-- The hash input `P || A || payload` of every tweakable hash call and of the message
 digest. -/
 def tweakableHashInput (parameter : PublicParameter) (domain : HashDomain)
     (message : HashInput) : HashInput :=
@@ -449,7 +449,7 @@ def sequenceFin {m : Type → Type} [Monad m] {α : Type} {n : Nat}
 
 variable {m : Type → Type} [Monad m] [HasQuery HashSpec m]
 
-/-- One query to the random oracle `H`. -/
+/-- One query to the hash `H` (`HashSpec`), which the model answers. -/
 def oracleHash (input : HashInput) : m HashOutput :=
   HasQuery.query (spec := HashSpec) (m := m) input
 
@@ -1088,7 +1088,7 @@ namespace Sphincs.Rpm
 variable [Params]
 
 /-- leanSPHINCS in the generic SUF-CMA game: the seed, key generation, the deterministic signer,
-the verifier, and the winning condition of `StatementDet.lean`. -/
+the verifier, and the winning condition (`SigningTranscript`, above). -/
 noncomputable def scheme :
     Scheme HashOutput MasterSeed PublicKey Seeded.SecretKey Message (Option Signature)
       Forgery where

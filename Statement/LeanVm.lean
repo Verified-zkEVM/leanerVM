@@ -27,10 +27,10 @@ Keccak-256 and Keccak-f[1600] it is the deployed verifier (`verify`).
 
 The verifier and the honest prover call Keccak-256 and Keccak-f[1600] as oracle queries, `.inl x`
 the hash of the bytes `x` and `.inr s` the permutation of the state `s` (`HashSpec`, `queryH`,
-`queryF`). This file does not say what answers them: the model is `LeanVM/Spec/Rpm.lean`'s, the
+`queryF`). This section does not say what answers them: the model is the last section's, the
 random-permutation model, in which both are built from one uniformly random permutation `π` of the
 Keccak state (Keccak-256 the sponge over `π`, Keccak-f[1600] `π` itself), and the adversary
-queries `π` and `π⁻¹`. The statements, `KnowledgeSoundness` and `Completeness`, are there.
+queries `π` and `π⁻¹`. The statements, `KnowledgeSoundness` and `Completeness`, are there too.
 
 Here are the parts they are stated with: the verifier's query bound (`verifierQueries`), the
 soundness error at `Q` queries (`soundnessError`), the honest prover's type (`HonestProver`), the
@@ -89,7 +89,7 @@ def verify (prog : Program) (input : PublicInput) (proof : Proof) : Bool :=
 
 /-- The verifier's and the honest prover's calls: Keccak-256, a function from byte strings to
 digests (queries `.inl x`), and Keccak-f[1600], a function from states to states (queries
-`.inr s`). What answers them is the model's (`LeanVM/Spec/Rpm.lean`: the sponge over a random
+`.inr s`). What answers them is the model's (`rpmImpl`, below: the sponge over a random
 permutation, and the permutation). -/
 abbrev HashSpec : OracleSpec (Bytes ⊕ KState) := (Bytes →ₒ Digest) + (KState →ₒ KState)
 
@@ -114,7 +114,7 @@ Keccak reduction's point by the window of the announced sizes. -/
 def verifierQueries : ℕ := 12008
 
 /-- **The soundness error** at `Q` queries, the first term of the bound of `KnowledgeSoundness`
-(`Rpm.lean`; the second, `rpmError`, is the cost of building both functions from one
+(below; the second, `rpmError`, is the cost of building both functions from one
 permutation). It is the error the proof obtains with Keccak-256 and Keccak-f[1600] two independent
 random functions, counting the hash and permutation calls of the adversary (`Q`) and of the
 verifier (at most `verifierQueries = V`; in `KnowledgeSoundness` the adversary's `Q` are its `π` and
@@ -137,7 +137,7 @@ abbrev HonestProver : Type :=
   (prog : Program) → (input : PublicInput) → Trace prog → (ρ fuel : ℕ) → OracleComp HashSpec Proof
 
 /-- **The completeness error** at a fuel of `fuel` nonces per proof of work, the first term of the
-bound of `Completeness` (`Rpm.lean`), the error with two independent random functions: each of the
+bound of `Completeness` (below), the error with two independent random functions: each of the
 `Q` queries of the honest prover and the verifier may complete a proof of work whose nonces all
 failed, a nonce failing a proof of work of `17` bits with probability `1 - 2^-17`. -/
 noncomputable def completenessError (fuel : ℕ) : ℝ≥0∞ :=
@@ -172,19 +172,19 @@ end
 
 The model: one permutation `π` of the Keccak state (`KState`, 1600 bits), sampled uniformly and
 queried forward (`π x`) and inverse (`π⁻¹ y`), the random-permutation model (RPM). Keccak-256
-and Keccak-f[1600], which the verifier calls (`verifier H F`, `LeanVM/Spec/Statement.lean`), are
+and Keccak-f[1600], which the verifier calls (`verifier H F`, the first section), are
 both built from it.
 
-* **The permutation** is `Common.lazyPerm`, the lazily sampled uniform permutation of
-  `common` (`common/Common/Model.lean`): its state is the list of edges `(x, π x)` fixed so
+* **The permutation** is `Common.lazyPerm`, the lazily sampled uniform permutation
+  (`RandomPermutation.lean`): its state is the list of edges `(x, π x)` fixed so
   far (`PermLog`); a fresh forward query draws `π x` uniformly among the states that are not yet
   the output of an edge, a fresh inverse query `π⁻¹ y` uniformly among the states that are not yet
   the input of an edge.
-* **Keccak-256** (`keccak256With π`) is `keccak256` (`LeanVM/Spec/Keccak.lean`, `keccak_hash`,
+* **Keccak-256** (`keccak256With π`) is `keccak256` (`RandomPermutation.lean`, `keccak_hash`,
   `verifier.py:191-209`) with `π` in place of Keccak-f[1600]: the sponge of rate 136 bytes and
   capacity 512 bits, the padding `0x01 ‖ 0^* ‖ 0x80`, the zero initial state, the first four lanes
   as the digest. **Keccak-f[1600]**, the Fiat-Shamir duplex's permutation, is `π` itself. The
-  verifier's and the honest prover's calls (`HashSpec`, `Statement.lean`) are answered so
+  verifier's and the honest prover's calls (`HashSpec`, the first section) are answered so
   (`rpmImpl`).
 * **The adversary** (`RpmAdversary`) queries `π` and `π⁻¹` only, and outputs a statement and a
   proof; a Keccak-256 evaluation is a sequence of forward queries, which it makes itself. Every
@@ -202,16 +202,16 @@ Keccak-256 evaluations the transcript contains (`transcriptHashes`): a byte stri
 `d` when the transcript holds the whole padded sponge path of `m`, a chain of forward queries from
 the zero state, each one absorbing the next block into the answer of the one before and each the
 query that first fixed its edge (an edge first fixed by an inverse query extends no path), as the
-indifferentiability simulator of `common` books it (`Common.pathsOf`, on the bytes of the
-states, `KState.toRpm`); `d` is the first four lanes of the path's last answer. It reads the
-announced sizes and the stack's Merkle root off the proof; reads the word the root commits to off
-those evaluations (each leaf the preimage, among them, of a path climbing to the root); and
+indifferentiability simulator books it (`Common.pathsOf`, `RandomPermutation.lean`, on the
+bytes of the states, `KState.toRpm`); `d` is the first four lanes of the path's last answer. It
+reads the announced sizes and the stack's Merkle root off the proof; reads the word the root commits
+to off those evaluations (each leaf the preimage, among them, of a path climbing to the root); and
 returns the halting run of the memory image of a stack in the word's Johnson list (a stack whose
 Reed–Solomon encoding agrees with the word on at least the Johnson threshold of columns), one that
 is a valid execution if there is one. For every adversary of at most `Q` queries to `π` and `π⁻¹`,
 the probability that the verifier accepts while the extractor does not return a valid execution
 of the program on the public input is at most `soundnessError Q + rpmError (Q + verifierPermCalls)`: `soundnessError Q`
-(`Statement.lean`) plus `q² / 2^508` for `q` the permutation calls of the whole experiment, the
+(the first section) plus `q² / 2^508` for `q` the permutation calls of the whole experiment, the
 adversary's `Q` and at most `verifierPermCalls` of the verifier. So an accepted proof commits,
 except with that probability, to a stack whose memory columns hold a valid execution, among the at
 most `2^18` stacks the word the adversary hashed is close to (proved, for every admissible shape
@@ -219,7 +219,7 @@ and word: `LeanVM.candidates_ncard_le`). The choice among them is classical: the
 definition, not an algorithm with a running time.
 
 **Completeness** (`Completeness`): there is an honest prover (an oracle computation over the
-calls of `Statement.lean`, answered here with both functions built from `π`) which, given a valid
+calls of the first section, answered here with both functions built from `π`) which, given a valid
 execution whose committed size is at most `2^28`, the most the verifier admits
 (`Trace.committedSize`), at an inverse rate `2^ρ` with `1 ≤ ρ ≤ 4`, trying at most `fuel ≤ 2^64`
 nonces per proof of work, makes the verifier reject with probability at most
@@ -229,12 +229,11 @@ verifier (`completenessPermCalls`). The honest prover is not required to be effi
 **Scope and trust.** The permutation is uniformly random; the deployed Keccak-f[1600] is a fixed
 permutation, and that it behaves as a random one is the assumption of this model. Inside the
 executed program the `KECCAK` instruction computes the deployed Keccak-f[1600], not `π`. The
-definitions rest on `common` (the lazily sampled permutation, the sponge's padding and
-`pathsOf`), VCVio and the files of `LeanVM/Spec/`. The `common` definitions they use are in
-`Model.lean` (`lazyPerm`, `uniformAvoiding`, the edge lookups), `Sponge.lean` (the byte state,
-`ofBytes`, `zero`, `keccakPadding`, `blockTo`, `rxor`), `Indiff/Defs.lean` (`SimState.init`,
-`chainOf`) and `Transfer.lean` (`replayStep`, `replay`, `simPaths`, `pathsOf`); the rest of
-`common` is proof.
+definitions rest on Mathlib, VCVio, CompPoly and the statement's own files: the model's
+definitions (namespace `Common`: `lazyPerm`, `uniformAvoiding`, the edge lookups, the byte state
+with `ofBytes` and `zero`, `keccakPadding`, `blockTo`, `rxor`, `SimState.init`, `chainOf`,
+`replayStep`, `replay`, `simPaths`, `pathsOf`) are `RandomPermutation.lean`'s, and the proof
+project `common` proves about them.
 
 **How the proofs reach this model** (not part of the statement). The proofs first prove both
 statements with Keccak-256 and Keccak-f[1600] two independent random oracles
@@ -280,7 +279,7 @@ end With
 
 end Rpm
 
-/-- **Keccak-256 over a permutation `π`**, in any monad: `keccak256` (`LeanVM/Spec/Keccak.lean`)
+/-- **Keccak-256 over a permutation `π`**, in any monad: `keccak256` (`RandomPermutation.lean`)
 with `π` for Keccak-f[1600]. At `π = keccakF` it is `keccak256`
 (`LeanVM.Rpm.keccak256With_keccakF`). -/
 def keccak256With {m : Type → Type} [Monad m] (π : KState → m KState) (data : Bytes) :
@@ -302,7 +301,7 @@ abbrev PermLog : Type := Common.PermLog KState
 noncomputable def perm (x : KState) : StateT PermLog ProbComp KState :=
   Common.lazyPerm (.fwd x)
 
-/-- **The verifier's calls (`Statement.lean`) in the random-permutation model**: Keccak-256 is the
+/-- **The verifier's calls (`HashSpec`) in the random-permutation model**: Keccak-256 is the
 sponge over the random permutation, Keccak-f[1600] is the random permutation. -/
 noncomputable def rpmImpl : QueryImpl HashSpec (StateT PermLog ProbComp)
   | .inl x => keccak256With perm x

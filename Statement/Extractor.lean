@@ -18,8 +18,8 @@ section
 /-!
 ## The knowledge extractor
 
-Knowledge soundness (`KnowledgeSoundness`, `LeanVM/Spec/Rpm.lean`) is stated for the extractor
-defined here, `extract`, through `LeanVM.extractorRpm` (`Rpm.lean`), which applies it to the
+Knowledge soundness (`KnowledgeSoundness`, `LeanVm.lean`) is stated for the extractor
+defined here, `extract`, through `LeanVM.extractorRpm` (`LeanVm.lean`), which applies it to the
 program's bytecode and to the Keccak-256 evaluations of the adversary's transcript of queries to
 the random permutation (`transcriptHashes`: the byte strings whose whole sponge path the
 adversary queried, with their digests). It is straight-line: it reads the proof and those
@@ -55,8 +55,8 @@ It does four things.
    information-theoretic, not an algorithm with a running time.
 
 Every citation `verifier.py:N` is a line of `python-verifier/verifier.py` at leanVM
-`94ee12ff6b2a3d42ba8328e22d09443692e4800b`, the commit `Verifier.lean` transcribes; the Annexes
-are cited at leanVM `127510d14c98ade4e8a97646c44fa7f1ff5e752d`.
+`94ee12ff6b2a3d42ba8328e22d09443692e4800b`, the commit `LeanVmVerifier.lean` transcribes; the
+Annexes are cited at leanVM `127510d14c98ade4e8a97646c44fa7f1ff5e752d`.
 -/
 
 namespace LeanVM.Extraction

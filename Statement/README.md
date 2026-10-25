@@ -12,8 +12,16 @@ uniformly random permutation `π` of the 1600-bit Keccak state, which every part
 (`π x`) and inverse (`π⁻¹ y`), Keccak-256 the sponge over `π` and Keccak-f[1600] `π` itself. That
 the deployed Keccak-f[1600], a fixed permutation, behaves as a random one is the assumption. The
 random-oracle model and the sponge's indifferentiability, through which the proofs pass, are proof
-steps and are not stated here (two definitions of the two-oracle random-oracle model are, because
-LeanDA's code-binding bound names them: see `RandomPermutation.lean`).
+steps, and no end statement is in the random-oracle model. Their definitions are still here where
+an end statement's bound names them: `LeanDa.CodeBindingRpm`'s bound is the success probabilities
+of Wagner's reduction experiments (`ksExpH`, `wpbCollExpH`, `forkCollExpH`) over a uniformly
+random table of the hash, so the random-oracle content they rest on is part of the statement,
+about seventy declarations: the two-oracle simulator, the simulated adversary, the duplex's
+simulator and the challenges as a random oracle (`RandomPermutation.lean`, its sections "Named by
+LeanDA's code-binding bound"), Wagner's random-oracle simulation, the relation of the scheme's
+argument and his reductions (`LeanDa.lean`, the sections "Wagner's framework" and "Wagner's
+reductions"), and the experiments over the table (`LeanDa.lean`, "Wagner's terms, for a uniformly
+random table of the hash").
 
 **The sources.** The leanVM definitions are transcribed from leanVM at
 `94ee12ff6b2a3d42ba8328e22d09443692e4800b` (branch `main`, [`../leanvm-rev`](../leanvm-rev)): each
@@ -79,7 +87,10 @@ Benedikt Wagner's ([b-wagn/fv-pq-da](https://github.com/b-wagn/fv-pq-da), Apache
     batching's seed by `batchVerifier`), an adversary's proof run through it in the
     random-permutation model (`LeanVM.Rpm.rpmRun`, `LeanVm.lean`), the event that it accepts
     children with a false claim (`FalseChildren`), the program's query bound
-    (`batchQueryBound`), and **`LeanVM.Guest.Batch.BatchSoundRpm`, `BatchSoundRpmBits`**.
+    (`batchQueryBound`), and **`LeanVM.Guest.Batch.BatchSoundRpm`, `BatchSoundRpmBits`**: the
+    batching run outside the circuit with Keccak-f[1600] = `π`, which does not compose with the
+    guest's in-circuit statements (their `KECCAK` is the deployed Keccak-f[1600]), so soundness
+    across recursion levels does not follow from it.
 
 [`Data/`](Data/) is the guest's compiled bytecode, generated from leanVM's sources by
 `lean_vm/scripts/guest-export` (do not edit; `guest-export --check` fails when it is stale, as CI

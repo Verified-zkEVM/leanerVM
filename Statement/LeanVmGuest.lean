@@ -17,7 +17,9 @@ claims), what a proof of the guest establishes with its witness named (`GuestKno
 `Statement/Data/`), its completeness on the covered nodes (`GuestCompleteRecursion`,
 `GuestCompleteLeaf`, with the deployed limits they assume), and the recursion step, the batching of
 the children's deferred claims sound in the random-permutation model (`BatchSoundRpm`,
-`BatchSoundRpmBits`, last section).
+`BatchSoundRpmBits`, last section: the batching run outside the circuit with Keccak-f[1600] = `π`,
+which does not compose with the guest's in-circuit statements, so soundness across recursion
+levels does not follow from it).
 
 The soundness statements take the decoder as a parameter: the end theorems name
 `LeanVM.Guest.End.decode` (`lean_vm`), which reads the witness off the execution's memory; they
@@ -132,7 +134,7 @@ with `nodes.length` as fuel, which is enough (`treeRootFuel_id`).
 
 This project's hash `H : Bytes → m Digest` and permutation `F : KState → m KState` are LeanDA's
 through `daHash` (the digest as bytes) and `daPerm` (lanes as `K` words), as `keccak` and
-`keccakLanes` are in `LeanVM.Spec.Da`.
+`keccakLanes` are in the DA claim's section above.
 -/
 
 namespace LeanVM.Da
@@ -294,9 +296,9 @@ Transcribed from leanVM `94ee12ff6b2a3d42ba8328e22d09443692e4800b` (branch `main
 `crates/rec_aggregation/src/aggregation.rs` (the statement, its digest, the batching, the outer
 verifier) and `crates/rec_aggregation/guests/lean_ethereum.py` (the guest); `aggregation.rs:N`
 and `lean_ethereum.py:N` below are lines of those files at that commit. The signature schemes,
-leanXMSS and leanSPHINCS, are those whose security `lean_xmss` and `lean_sphincs` prove, imported
-from their `Scheme` modules, with Keccak-256 as their hash; LeanDA is `lean_da`'s
-(`LeanVM.Spec.Da`).
+leanXMSS and leanSPHINCS, are those whose security `lean_xmss` and `lean_sphincs` prove
+(`LeanXmss.lean`, `LeanSphincs.lean`), with Keccak-256 as their hash; LeanDA is `LeanDa.lean`'s,
+whose security `lean_da` proves (the DA claim's section above).
 
 A node's statement is a list of signature claims, a list of DA claims, and a claim on the
 polynomial that the protocol fixes, the guest's stacked bytecode, which the node defers rather
@@ -319,12 +321,12 @@ The outer verifier (`verifyAggregate`, `EthereumProof::verify`, `aggregation.rs:
 a proof of the guest on the statement's digest and evaluates the deferred claim itself.
 
 What a valid execution of the guest establishes is `NodeRel` of the witness its memory holds, on
-Keccak, as the guest computes it (`Guest.lean`: `GuestKnowledge`, with a decoder). The witness is
+Keccak, as the guest computes it (`GuestKnowledge`, below, with a decoder). The witness is
 the knowledge content: `NodeSpec` alone, "some signature verifies", says little, since some
 signature verifies for almost every key and message. That the root's `NodeSpec` makes every
 claim held at the leaves is a separate argument, conditional on a heuristic: a child's proof is
 sound only if Keccak, computed inside the guest, behaves as Keccak-256 and Keccak-f[1600] built
-from the random permutation of `LeanVM.KnowledgeSoundness` (`Rpm.lean`).
+from the random permutation of `LeanVM.KnowledgeSoundness` (`LeanVm.lean`).
 
 **Changes from the leanVM `3f7dc219` transcription.** BLAKE2s is replaced by Keccak-256 (the
 hashes) and Keccak-f[1600] (the batching's transcript, a duplex sponge). Flock is gone, so the
@@ -682,21 +684,20 @@ section
 /-!
 ## The node, for any hash and permutation
 
-`Node.lean` states what a node establishes with Keccak-256 and Keccak-f[1600]. The guest's proofs
-also need it relative to a hash and a permutation answered by a log: every hash and permutation a
-check makes must be answered, and the check must hold for the answers. So every hashing function
-of `Node.lean` is given here with the hash `H : Bytes → m Digest` and the permutation
-`F : KState → m KState` in any monad (`…With`), as the verifier is (`verifier H F`,
-`LeanVM.Spec.Statement`): at `m = Id`, `H = keccak256` and `F = keccakF` it is the deployed one
-(`statementDigestWith_id`, `batchWith_id`, `xmssVerifyWith_id`, …), and at `m = Option` with `H`
-and `F` a log's lookups it is the computation answered by the log. The digests and the signature
-schemes use only `H`; the batching's transcript, a duplex sponge, only `F`, from a parameter
-state `s0` (deployed: `batchSeed`, Keccak-f of the label's hash, whose capacity the guest bakes as
+The section above states what a node establishes with Keccak-256 and Keccak-f[1600]. The guest's
+proofs also need it relative to a hash and a permutation answered by a log: every hash and
+permutation a check makes must be answered, and the check must hold for the answers. So every
+hashing function of that section is given here with the hash `H : Bytes → m Digest` and the
+permutation `F : KState → m KState` in any monad (`…With`), as the verifier is (`verifier H F`,
+`LeanVm.lean`): at `m = Id`, `H = keccak256` and `F = keccakF` it is the deployed one
+(`statementDigestWith_id`, `batchWith_id`, `xmssVerifyWith_id`, …), and at `m = Option` with `H` and
+`F` a log's lookups it is the computation answered by the log. The digests and the signature schemes
+use only `H`; the batching's transcript, a duplex sponge, only `F`, from a parameter state `s0`
+(deployed: `batchSeed`, Keccak-f of the label's hash, whose capacity the guest bakes as
 `AGG_SEED_*`). `NodeRelWith H F` is `NodeRel` over an `Option`-valued hash and permutation, each
 check "answered and true".
 
-The deployed definitions are not changed: this module only adds, so nothing importing `Node.lean`
-is affected.
+The deployed definitions are not changed: this section only adds to them.
 -/
 
 namespace LeanVM.Node
@@ -870,7 +871,7 @@ section
 /-!
 ## The aggregation guest, its witness named
 
-`NodeSpec` (`Node.lean`) is the existential `∃ w, NodeRel …`. A hash-based witness (a signature, a
+`NodeSpec` (above) is the existential `∃ w, NodeRel …`. A hash-based witness (a signature, a
 child's proof, a blob matrix) exists for nearly every claim, so "some witness holds the statement"
 says little. What a valid execution of the guest establishes is more: its memory holds the
 witness. A **decoder** reads a seed, a statement and a witness off a memory (`Decoder`,
@@ -878,8 +879,8 @@ witness. A **decoder** reads a seed, a statement and a witness off a memory (`De
 
 * `GuestKnowledge guest decode`: every valid execution of `guest` on a public input decodes to a
   statement of that input's digest under the decoded seed, and a witness holding it;
-* `AggregateSound guest decode` (`Aggregate.lean`), what a consumer learns, in the
-  random-permutation model of `Rpm.lean`: the verifier accepts a proof of `guest` on the digest of
+* `AggregateSound guest decode` (below), what a consumer learns, in the random-permutation
+  model of `LeanVm.lean`: the verifier accepts a proof of `guest` on the digest of
   a statement `s` under the deployed seed, `s` passing the outer verifier's other checks
   (`OuterChecks`), while the execution the knowledge extractor `extractorRpm` reads off the proof
   and the adversary's transcript is none, or does not explain `s` (`Explains`: decode to the
@@ -1000,11 +1001,11 @@ end
 /-!
 ## The outer verifier's acceptance, explained
 
-`AggregateSound guest decode`: in the random-permutation experiment of `Rpm.lean`
+`AggregateSound guest decode`: in the random-permutation experiment of `LeanVm.lean`
 (`rpmExperiment`), the verifier accepts a proof of `guest` on the digest, under the deployed seed,
-of a statement `s` that passes the outer verifier's other checks (`OuterChecks`, `Node.lean`),
+of a statement `s` that passes the outer verifier's other checks (`OuterChecks`, above),
 while the execution the knowledge extractor `extractorRpm` reads off the proof and the adversary's
-transcript is none, or does not explain `s` (`Explains`, `Guest.lean`: decode to the deployed
+transcript is none, or does not explain `s` (`Explains`, above: decode to the deployed
 seed, `s` and a witness holding it, or give a Keccak-256 collision among `collisionCandidates`),
 with probability at most the bound of `KnowledgeSoundness`,
 `soundnessError Q + rpmError (Q + verifierPermCalls)`, for an adversary of at most `Q` queries to
@@ -1012,7 +1013,7 @@ with probability at most the bound of `KnowledgeSoundness`,
 
 Keccak-256 and Keccak-f[1600] outside the executed program are built from the random permutation;
 the statement's digest and the collisions are of the deployed Keccak-256, which the guest
-computes. Not a `module`: it imports `Rpm.lean`, which imports `common`.
+computes.
 -/
 
 namespace LeanVM.Node
@@ -1536,7 +1537,10 @@ A node batches its children's claims on the bytecode (`batch`, above): one trans
 the children's count and every child's public input and claims, squeezes two lambdas per child,
 and one sumcheck reduces every child's two claims to one claim at a point, which the node defers.
 `BatchSoundRpm` and `BatchSoundRpmBits` bound the probability that this reduction accepts while a
-child's claim is false: the recursion step, the guest's batching sound on its own.
+child's claim is false: the recursion step, the guest's batching sound on its own. This is the
+batching run outside the circuit, with Keccak-f[1600] = `π`; it does not compose with the guest's
+in-circuit statements, whose `KECCAK` instruction computes the deployed Keccak-f[1600], so soundness
+across recursion levels does not follow from it.
 
 The batching is written as a program of the verifier's language (`Prog`, `LeanVmVerifier.lean`):
 `batchAny M bytecode` reads the count `n < M` as `g^n` then three zeros (`readCount`), `n`
@@ -1728,7 +1732,11 @@ outputs a proof; the probability that the batching's verifier, Keccak-256 the sp
 Keccak-f[1600] `π`, accepts it while its stream begins with fewer than `M` children of the
 bytecode's shapes one of whose claims is false is at most
 `(QA + QV) · (2/|E| + 5 (QA + QV) / 2^256) + rpmError (QA + QV · 2^32)`, `QV` the program's
-query bound. Proved by `LeanVM.Guest.Batch.batch_sound_rpm`. -/
+query bound. Proved by `LeanVM.Guest.Batch.batch_sound_rpm`.
+
+This is the batching run outside the circuit, with Keccak-f[1600] = `π`; it does not compose with
+the guest's in-circuit statements, whose `KECCAK` instruction computes the deployed Keccak-f[1600],
+so soundness across recursion levels does not follow from it. -/
 def BatchSoundRpm : Prop :=
   ∀ (M : ℕ) (bytecode : List K), bytecode.length = 2 ^ Nat.log2 bytecode.length →
     M ≤ 2 ^ 64 - 1 → ∀ (A : OracleComp PermSpec (Unit × Proof)) (QA : ℕ),
@@ -1742,7 +1750,9 @@ def BatchSoundRpm : Prop :=
 /-- **The batching in the random-permutation model, in bits**: as `BatchSoundRpm`, for
 `QA + QV ≤ 2^64` (the adversary's queries to `π` and `π⁻¹` and the program's query bound), the
 probability is at most `(QA + QV) · 2^-188`. Proved by
-`LeanVM.Guest.Batch.batch_sound_rpm_bits`. -/
+`LeanVM.Guest.Batch.batch_sound_rpm_bits`. Like `BatchSoundRpm`, the batching outside the circuit
+(Keccak-f[1600] = `π`): it does not compose with the guest's in-circuit statements, so soundness
+across recursion levels does not follow from it. -/
 def BatchSoundRpmBits : Prop :=
   ∀ (M : ℕ) (bytecode : List K), bytecode.length = 2 ^ Nat.log2 bytecode.length →
     M ≤ 2 ^ 64 - 1 → ∀ (A : OracleComp PermSpec (Unit × Proof)) (QA : ℕ),

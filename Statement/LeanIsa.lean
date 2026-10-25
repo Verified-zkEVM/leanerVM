@@ -311,10 +311,13 @@ machine halts there. -/
 def Regs.final (prog : Program) : Regs K := ⟨prog.finalPc, 1⟩
 
 /-- `n` steps from `r`, halting in the final state: `none` if a step fails or the machine halts
-first. The machine halts when both registers are the final state's (specification §2, the loop's
-last step; `crates/leanvm_core/src/cpu/execute.rs:551-562`): the last slot reached in another
-frame executes like any other slot, and a step that falls through it, to `g^(2^logSize)`, which
-is no bytecode address, fails. -/
+first. The machine halts when both registers are the final state's, checked before each step, as
+the Rust's loop does (`crates/leanvm_core/src/cpu/execute.rs:551-562`): the last slot reached in
+another frame executes like any other slot, and a step that falls through it, to
+`g^(2^logSize)`, which is no bytecode address, fails. The specification's loop
+(`doc/leanvm/body/02-vm-specification.tex`, §2) executes an instruction before it checks for the
+final state; the two differ only at `logSize = 0`, where the initial and final states coincide
+and this `run` and the Rust's accept a run of zero steps. -/
 noncomputable def run {κ : ℕ} (prog : Program) (L : MemImage κ) : ℕ → Regs K → Option (Regs K)
   | 0, r => some r
   | n + 1, r => if r = Regs.final prog then none else step prog L r >>= run prog L n
@@ -548,7 +551,7 @@ def OInstr.pad : OInstr := .set 0 0 0 0
 /-- The word of a `SET` immediate's limbs. -/
 def OInstr.imm (k0 k1 k2 : ℕ) : E := E.ofLimbs (K.ofBits k0) (K.ofBits k1) (K.ofBits k2)
 
-/-- The instruction of `LeanVM.Spec.Isa` an offset-form instruction denotes. -/
+/-- The instruction of the ISA (`Instr`, above) an offset-form instruction denotes. -/
 def OInstr.toInstr : OInstr → Instr
   | .xor a b c => .xor (gpow a) (gpow b) (gpow c)
   | .mul a b c => .mulNative (gpow a) (gpow b) (gpow c)
