@@ -1,6 +1,6 @@
 """Build a Lake package's targets in one `lake build`, its modules admitted by memory.
 
-  python3 -I lake-build.py DIR [TARGET ...] [--jobs N] [--mem GB] [--cap GB] [--no-scope] [--seed]
+  python3 -I lake-build.py DIR [TARGET ...] [--jobs N] [--mem GB] [--cap GB] [--no-scope] [--seed] [--dev]
 
 Lake has no job limit, and a parallel build of lean_vm's generated kernel-checked families runs more of them at once than
 a machine holds. Lake still decides what is built, with which options, and writes every trace: it runs `lean` and
@@ -21,6 +21,12 @@ The run is a systemd scope capped at `--cap` (default: the machine's memory less
 module killed by the kernel there is run again, alone. After the first module that fails nothing more is admitted
 and the run fails; otherwise `lake build --no-build` must find the targets up to date, and a plain `lake build` of
 them, which replays the warnings, ends the run.
+
+`--dev` is for development only, never for a gate or CI: it builds from `DIR/.lake/lakefile.dev.toml`, written from
+`DIR/lakefile.toml` with `buildDir = ".lake/build-dev"` and `debug.skipKernelTC` set on the package's libraries other
+than its test driver. Elaboration still runs (tactics, `simp`, `omega`, the elaborator's `decide`, warnings as
+errors), but the kernel checks nothing: a false `decide +kernel` is accepted, and `#print axioms` does not show it.
+The option is in Lake's traces and the build directory is separate, so a dev `.olean` never satisfies the real build.
 """
 
 from __future__ import annotations
@@ -39,6 +45,7 @@ import sys
 import tempfile
 import threading
 import time
+import tomllib
 from pathlib import Path
 
 GB = 1 << 30
@@ -385,6 +392,34 @@ def fake_sysroot(real: Path, into: Path) -> None:
             target.symlink_to(entry)
 
 
+def dev_config(pkg: Path) -> Path:
+    """`DIR/.lake/lakefile.dev.toml`: `DIR/lakefile.toml` with its own build directory and the kernel skipped on the
+    libraries other than the test driver."""
+    text = (pkg / "lakefile.toml").read_text(encoding="utf-8")
+    config = tomllib.loads(text)
+    if "buildDir" in config:
+        sys.exit("lake-build: --dev: lakefile.toml already sets buildDir")
+    skip = [lib["name"] for lib in config.get("lean_lib", []) if lib["name"] != config.get("testDriver")]
+    for lib in config.get("lean_lib", []):
+        if lib["name"] in skip and "leanOptions" in lib:
+            sys.exit(f"lake-build: --dev: library {lib['name']} already sets leanOptions")
+    lines, out, lib = text.splitlines(), [], None
+    for i, line in enumerate(lines):
+        if i == next(j for j, l in enumerate(lines) if l.startswith("[")):
+            out += ['buildDir = ".lake/build-dev"  # lake-build.py --dev: kernel unchecked, never mixed with the real build', ""]
+        out.append(line)
+        if line.strip() == "[[lean_lib]]":
+            lib = True
+        elif line.startswith("["):
+            lib = None
+        elif lib and (m := re.fullmatch(r'name\s*=\s*"([^"]+)"\s*', line)) and m[1] in skip:
+            out.append("leanOptions = {debug.skipKernelTC = true}")  # a dotted key, unquoted
+    target = pkg / ".lake" / "lakefile.dev.toml"
+    target.parent.mkdir(exist_ok=True)
+    target.write_text("\n".join(out) + "\n", encoding="utf-8")
+    return target
+
+
 def main() -> None:
     if len(sys.argv) > 2 and sys.argv[1] == "--wrap":
         wrap(sys.argv[2], sys.argv[3:])
@@ -396,7 +431,10 @@ def main() -> None:
     parser.add_argument("--cap", type=float, help="the scope's memory cap in GB (default: the machine's less 1)")
     parser.add_argument("--no-scope", action="store_true", help="no systemd scope")
     parser.add_argument("--seed", action="store_true", help=f"rewrite DIR/{TABLE} from the run's table")
+    parser.add_argument("--dev", action="store_true", help="development only: skip the kernel, in .lake/build-dev")
     opts = parser.parse_args()
+    if opts.dev and opts.seed:
+        sys.exit("lake-build: --seed records the real build, not a --dev one")
     total = meminfo("MemTotal")
     if limit := cgroup_file("memory.max"):
         text = limit.read_text(encoding="ascii").strip()
@@ -405,7 +443,11 @@ def main() -> None:
     if not opts.no_scope:
         in_scope(int(opts.cap * GB) if opts.cap else total - GB, budget)
     pkg = opts.dir.resolve()
-    local, seed = pkg / ".lake" / TABLE, pkg / TABLE
+    lake = ["lake", "-f", str(dev_config(pkg))] if opts.dev else ["lake"]
+    if opts.dev:
+        log("--dev: the kernel checks nothing; development only, never a gate")
+    # A dev run's modules are lighter: its records stay apart, so they never understate the real build's.
+    local, seed = pkg / ".lake" / ("lake-build-dev.tsv" if opts.dev else TABLE), pkg / TABLE
     table = {**read_table(seed), **read_table(local)}
     scheduler = Scheduler(opts.jobs, budget, table, priorities(pkg, table))
     real = Path(subprocess.run(["lean", "--print-prefix"], cwd=pkg, capture_output=True, text=True, check=True).stdout.strip())
@@ -425,7 +467,7 @@ def main() -> None:
         }
         log(f"{pkg.name}: {opts.jobs} at once within {budget / GB:.1f} GB, {len(table)} modules' records")
         start, ticks = time.monotonic(), cpu_ticks()
-        code = subprocess.run(["lake", "build", "-q", *opts.targets], cwd=pkg, env=env, check=False).returncode
+        code = subprocess.run([*lake, "build", "-q", *opts.targets], cwd=pkg, env=env, check=False).returncode
         elapsed, (busy1, all1) = time.monotonic() - start, cpu_ticks()
         server.shutdown()
         scheduler.stop.set()
@@ -445,9 +487,9 @@ def main() -> None:
         log(f"killed and run again alone: {', '.join(scheduler.killed)}")
     if scheduler.failed or code:
         sys.exit(f"lake-build: failed: {', '.join(scheduler.failed) or f'lake build exited with {code}'}")
-    if subprocess.run(["lake", "build", "--no-build", "-q", *opts.targets], cwd=pkg, check=False).returncode:
+    if subprocess.run([*lake, "build", "--no-build", "-q", *opts.targets], cwd=pkg, check=False).returncode:
         sys.exit("lake-build: Lake finds the targets out of date after the run")
-    sys.exit(subprocess.run(["lake", "build", *opts.targets], cwd=pkg, check=False).returncode)
+    sys.exit(subprocess.run([*lake, "build", *opts.targets], cwd=pkg, check=False).returncode)
 
 
 if __name__ == "__main__":
