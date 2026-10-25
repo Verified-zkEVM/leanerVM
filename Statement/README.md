@@ -57,38 +57,37 @@ Benedikt Wagner's ([b-wagn/fv-pq-da](https://github.com/b-wagn/fv-pq-da), Apache
    (as in Wagner's original).
 6. [`LeanIsa.lean`](LeanIsa.lean): leanISA (memory, the six instructions, programs, one step, `run`,
    `ValidExecution`: a run from the initial state `(pcInitial, fpInitial)` that halts in the final
-   state `(pcFinal, fpFinal)`, the instruction counts `Trace.count`, the bytecode encoding), the
-   machine under any `KECCAK` semantics (`ValidExecutionB`), and a program assembled from compiled
-   functions (`CompiledFn`, `assemble`).
+   state `(pcFinal, fpFinal)`, the instruction counts `Trace.count`, the bytecode encoding), and a
+   program assembled from compiled functions (`CompiledFn`, `assemble`).
 7. [`LeanVmVerifier.lean`](LeanVmVerifier.lean): the verifier, `python-verifier/verifier.py`
    transcribed section by section, for any hash function and permutation in any monad
    (`verifyWith`), with the WHIR constants it reads, the Keccak GKR reduction, the Fiat-Shamir
    duplex over Keccak-f[1600], the deferring verifier an aggregate runs on its children, and the
-   sizes a stream announces (`announced`). Where
-   the pin rewrote a step of the previous pin (`3375f7a13`) without changing what it computes, the
-   transcription keeps the earlier form and its docstring gives both the pin's lines and why the
-   two agree.
+   sizes a stream announces (`announced`). Where the transcription's form differs from the pin's
+   without changing what it computes, its docstring gives the pin's lines and why the two agree.
 8. [`Extractor.lean`](Extractor.lean): the knowledge extractor, straight-line, deterministic and
-   of polynomial running time (its cost table): from the proof and the adversary's Keccak-256
-   evaluations, the announced sizes and the stack's root, the committed word (the Merkle tree
-   inverted through the evaluations), its Johnson list (at most `2^18` stacks, listed by CompPoly's
-   Guruswami–Sudan list decoder over `GF(2^64)` and pruning across the lanes), and the halting run
-   of a candidate's memory image within the announced tables' rows that is a valid execution, if
-   there is one.
+   computable, with running time polynomial in the announced committed size `2^μ` and the number
+   of evaluations, not in the proof's size, and infeasible at deployed sizes (its cost table, read
+   off its loops, not proved): from the proof and the adversary's Keccak-256 evaluations, the
+   announced sizes and the stack's root, the committed word (the Merkle tree inverted through the
+   evaluations), its Johnson list (at most `2^18` stacks, listed by CompPoly's Guruswami–Sudan list
+   decoder over `GF(2^64)` and pruning across the lanes), and the halting run of a candidate's
+   memory image within the announced tables' rows that is a valid execution, if there is one.
 9. [`LeanVm.lean`](LeanVm.lean): a statement (a program and a public input), the verifier on it
-   (`verifier H F`, `verify`), its calls as oracle queries (`HashSpec`), the honest prover's type,
+   (`verifier H F`), its calls as oracle queries (`HashSpec`), the honest prover's type,
    the committed size; the random-permutation experiment (`rpmExperiment`, the adversary's
    `Transcript`; `rpmRun`, the same with any computation in place of the verifier), the extractor on
    the transcript (`extractorRpm`), **`LeanVM.KnowledgeSoundness`, `LeanVM.Completeness`**, and a
    digest as a public input (`publicInputOfDigest`).
 10. [`LeanVmGuest.lean`](LeanVmGuest.lean): the aggregation guest's specification: DA claims, a
-    node's statement, witness and relation (`NodeRel`, `NodeSpec`: leanXMSS and leanSPHINCS claims,
-    DA claims, children verified by the deferring verifier, the batching of their deferred claims),
-    the same with any hash and permutation (`NodeRelWith`), a decoder and what a proof of the guest
-    establishes with it (`GuestKnowledge`, `AggregateSound`, `Explains`), the deployed guest
+    node's statement, its digest (Keccak-256 of a preimage), witness and relation (`NodeRel`:
+    leanXMSS and leanSPHINCS claims, DA claims, children verified by the deferring verifier, the
+    batching of their deferred claims), a decoder and what a proof of the guest establishes with it
+    (`GuestKnowledge`, `AggregateSound`, `Explains`; `AggregateSound` assumes of the accepted
+    statement only that its deferred claim has the guest's shape), the deployed guest
     (`LeanVM.Guest.guest`, from [`Data/`](Data/)), its deployed limits (`Limits`, `CapsAgree`,
-    `NoZeroChallenge`, a node's `work`), **`LeanVM.Guest.Budget.GuestCompleteRecursion`,
-    `GuestCompleteLeaf`**; and the recursion step: the batching of the children's claims as a
+    `NoZeroChallenge`), **`LeanVM.Guest.Budget.GuestCompleteRecursion`, `GuestCompleteLeaf`**; and
+    the recursion step: the batching of the children's claims as a
     verifier program (`batchAny`, run from the batching's seed by `batchVerifier`), an adversary's
     proof run through it in the random-permutation model (`LeanVM.Rpm.rpmRun`, `LeanVm.lean`), the
     event that it accepts children with a false claim (`FalseChildren`), the program's query bound
