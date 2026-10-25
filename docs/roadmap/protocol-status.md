@@ -1222,9 +1222,10 @@ below proves.
     by `merkleVerifyWith_merkleOpen` (`reads_openings`), `openingsOk` at the honest openings
     (`openingsOk_openings`, the siblings at most the queries' paths' nodes), the announcement
     (`setup?_of_announce`), the verifier's ladder walking the deployed chain's shapes
-    (`leanIsaChain_walk`, by `chainOf`'s structure and one decision on the window), the stream and openings consumed (`run_of_reads`). Level 0's rows carry only the
-    committed lanes; the honest word's lanes past them vanish (`level0Word_honest`, by
-    `runWithChallenges_append_fst`; `kwordOf_stackOf_high`), so the rows read are the word's.
+    (`leanIsaChain_walk`, by `chainOf`'s structure and one decision on the window), the stream
+    and openings consumed (`run_of_reads`). Level 0's rows carry only the committed lanes; the
+    honest word's lanes past them vanish (`level0Word_honest`, by `runWithChallenges_append_fst`;
+    `kwordOf_stackOf_high`), so the rows read are the word's.
   - *When the prover returns a proof* (`proveWith_ne_none`, `proveWith_eq_none`): every round of
     the wire runs from every state when no grind runs out of fuel (`Prover.runWith_total`,
     `RoundCodec.Every`, `ToArkLib/RunTrace.lean`), and the book keeps as many commitments as
@@ -1260,10 +1261,10 @@ theorem advances.
 - **The phases agree** (`Compile/Agree.lean`): `phasesAgree` proves `PhasesAgree`, so
   `Prove.baseProver_complete` needs no hypothesis (`baseProver_complete_of_agree` is the form
   that takes it).
-- Owed: that the decoder's transcripts are solved (it decodes each dropped coefficient from the
-  running claim, `RoundPoly.check_of_decode`), after which the algebra's acceptance is the
-  compiled verifier's on decoded transcripts, which the soundness direction needs; and
-  `verify_iff_compiled`.
+- Owed: `verify_iff_compiled`. That the decoder's transcripts are solved (it decodes each dropped
+  coefficient from the running claim, `RoundPoly.check_of_decode`), so that on decoded transcripts
+  the algebra's acceptance is the compiled verifier's, is met on the core's branch below
+  (`Core.solved_of_decode`).
 
 *On merge* of the core's branch (`feat/protocol-core`, on the compiled verifier's), the
 deterministic heart of the random-oracle theorems and knowledge soundness in the random-oracle
@@ -1271,10 +1272,12 @@ model are on `main` (`Protocol/Core.lean`, `Protocol/Core/`). `core`: on a run o
 whose joint log is consistent and whose verifier, replayed on that log, accepts, either the
 extractor finds a stack with `M3Holds` from the prover's log (`Extracts`), or the hash misbehaves
 (`HashMisbehaves (rootsOf prog input) (leanVmReader prog input).Flip`: a collision, a hit or a
-flip). `core_of_mem_support` is its form on a possible run of the game, the hypothesis the base
-theorems take, and `verify_knowledgeSound_rom` bounds the probability that the verifier accepts
-while the extractor fails by `(Q + 13697)/2^128 + hashTerm 13697 Q`, from `core` and
-`leanVm_misbehaves_rom_closed`. `#print axioms` gives the kernel's three axioms for each. The
+flip). `core_of_mem_support` is its form on a possible run of the game, the form the headline
+theorems below use; a run under BLAKE2s or under the lazy random oracle is one
+(`mem_support_runBlake2s` in `Protocol/Replay.lean`, `mem_support_runRandom` in
+`Protocol/HashMisbehaves.lean`). `verify_knowledgeSound_rom` bounds the probability that the
+verifier accepts while the extractor fails by `(Q + 13697)/2^128 + hashTerm 13697 Q`, from `core`
+and `leanVm_misbehaves_rom_closed`. `#print axioms` gives the kernel's three axioms for each. The
 argument, with no collision, hit or flip:
 
 - *The replay* (`ChainLog.accepts_of_replay`): the accepted replay walks the chain, then the
@@ -1285,9 +1288,9 @@ argument, with no collision, hit or flip:
 - *The decoded transcript* (`Core/Decoded.lean`, `Core/Solved.lean`): the history decodes, with
   the words read off the joint log under the roots it carries, to a transcript that carries those
   words and whose round polynomials all pass their checks (`front_of_decode`, `words_of_decode`,
-  `solved_of_decode`: the decoder's running claims are the oracle verifier's). This discharges
-  the compiled verifier's branch's owed item: on decoded transcripts the algebra's acceptance is
-  the compiled verifier's.
+  `solved_of_decode`: the decoder's running claims are the oracle verifier's). This meets the
+  compiled verifier's branch's owed item that decoded transcripts are solved: on them the
+  algebra's acceptance is the compiled verifier's.
 - *The rows* (`Core/Openings.lean`): the replayed openings accept every level; by Merkle binding
   on the log their rows are the transcript's words' rows at the positions the walk read
   (`rows_eq_ladderRows`). So the algebra accepts the transcript's wire and rows, and the compiled
@@ -1307,37 +1310,39 @@ has two spellings, `deployedSpec` (the bad sets, the decoder) and `listBindingSp
 extractor, unification evaluates the stack's size on a symbolic program, so `Core.lean` crosses
 them by `dsimp only [deployedSpec]` on both sides, and seals `leanIsaμ` and `blocks`.
 
-*On merge* of the headline's branch (`feat/protocol-headline`, on the compiled verifier's and the
-transcript decoder's): `Protocol/Headline.lean` proves Layer 13's soundness theorems, each for a
-statement fixed before the adversary runs. `baseVerifier_extractsWitness_rom` is the random-oracle
-form at `(Q + 13697)/2^128 + hashTerm 13697 Q`; `baseVerifier_extractsWitness` and
-`baseVerifier_extractsExecution` (at `leanIsaTraceExtraction`, for a program with `SentinelSafe`)
-are the deployed forms under `BlakeMisbehaves`; `blakeMisbehaves_of_comparison` derives it from
-`Blake2sActsAsRandomOracle`. `mem_support_runBlake2s` and `mem_support_runRandom` make every run
-under either oracle a possible run of the game with a consistent joint log, and under BLAKE2s
-give it `verify`'s verdict. Until `core` lands, each theorem takes `CoreHolds prog input A`, the
-statement of `core_of_mem_support` at the adversary; it is discharged by that lemma in one line,
-and `CoreHolds` is then deleted. `#print axioms` gives the kernel's three axioms for each. The
-wall's allow-list names `Headline.lean` for the base theorems, where it named `Soundness.lean`.
-The tests: `extract_nil` (nothing is extracted from the empty log, whatever the proof: the zero
-word decodes to the zero stack, whose read counts are zero) and the replayer theorem (acceptance
-test 36), whose one premise, `verify` accepting, holds natively on the Rust fixture and the test
-vector; `leanervm-prove log`, the honest run on the test vector with every hash logged (487250
-prover and 3291 verifier queries), with no collision and no hit (test 37, reduced: the flip
-clause is not decidable), and `extract` on the prover's log returning the witness's sizes and
-stack (in 22 s compiled, `M3Holds` decided by sorting the bus's tuples); `verify` as `verifyWith`
-at BLAKE2s and
-`verifyWith_simulateQ` (test 38). Owed: `core`; `baseProver_complete_of_execution`, which waits
-for leanISA's constraint completeness at the trace level; and `extract_honest`, that `extract` on
-a run of `honestAdversary` returns the witness's sizes and stack, which acceptance test 24 needs
-at leanVM (its witness there is the toy's commitment pick) as test 37 does. Its three pieces: on
-a codeword the deployed decoder's list is the exact path's singleton (`ListDecoder.nttFirst`,
-`exactNtt_of_codeword`); the pick keeps the honest stack, which satisfies `M3Holds` from
-`SatisfiedBy` (`m3Holds_stackOf`); and the Merkle-log half, that the honest prover's log holds
-every level-0 leaf query in the layout `extractAllRows` and `laneRow` read (the zero prefix, the
-lanes reversed), so that `logWord` is the committed codeword. `leanervm-prove log` runs
-`extract` on the test vector's honest log natively, and it returns the witness's sizes and stack;
-no theorem states the three pieces yet.
+*On merge* of the headline's branch (`feat/protocol-headline`, on the core's):
+`Protocol/Headline.lean` proves Layer 13's soundness theorems, each for a statement fixed before the
+adversary runs. Each is unconditional but for the query bound or a named hypothesis on BLAKE2s:
+`BlakeMisbehaves`, or for the comparison form `Blake2sActsAsRandomOracle`.
+`baseVerifier_extractsWitness_rom` is the random-oracle form at
+`(Q + 13697)/2^128 + hashTerm 13697 Q`, for an adversary of at most `Q` queries;
+`baseVerifier_extractsWitness` and `baseVerifier_extractsExecution` (at `leanIsaTraceExtraction`,
+for a program with `SentinelSafe`) are the deployed forms under `BlakeMisbehaves`;
+`blakeMisbehaves_of_comparison` derives `BlakeMisbehaves` from `Blake2sActsAsRandomOracle` and the
+query bound. `mem_support_runBlake2s` and `mem_support_runRandom` make every run under either oracle
+a possible run of the game with a consistent joint log, and under BLAKE2s give it `verify`'s
+verdict; on such a run `Core.core_of_mem_support` puts an accepted proof whose extraction fails
+inside `HashMisbehaves`, and `satisfiedBy_witnessOf` turns the extracted stack's `M3Holds` into
+`SatisfiedBy`. `#print axioms` gives the kernel's three axioms for each, and for the replayer
+theorem. The wall's allow-list names `Headline.lean` for the base theorems, where it named
+`Soundness.lean`. The tests: `extract_nil` (nothing is extracted from the empty log, whatever the
+proof: the zero word decodes to the zero stack, whose read counts are zero) and the replayer theorem
+`replayer_not_blakeMisbehaves` (acceptance test 36), whose one premise, `verify` accepting, holds
+natively on the Rust fixture and the test vector; `leanervm-prove log`, the honest run on the test
+vector with every hash logged (487250 prover and 3291 verifier queries), with no collision and no
+hit (test 37, reduced: the flip clause is not decidable), and `extract` on the prover's log
+returning the witness's sizes and stack (in 22 s compiled, `M3Holds` decided by sorting the bus's
+tuples); `verify` as `verifyWith` at BLAKE2s and `verifyWith_simulateQ` (test 38). Owed:
+`baseProver_complete_of_execution`, which waits for leanISA's constraint completeness at the trace
+level; and `extract_honest`, that `extract` on a run of `honestAdversary` returns the witness's
+sizes and stack, which acceptance test 24 needs at leanVM (its witness there is the toy's commitment
+pick) as test 37 does. Its three pieces: on a codeword the deployed decoder's list is the exact
+path's singleton (`ListDecoder.nttFirst`, `exactNtt_of_codeword`); the pick keeps the honest stack,
+which satisfies `M3Holds` from `SatisfiedBy` (`m3Holds_stackOf`); and the Merkle-log half, that the
+honest prover's log holds every level-0 leaf query in the layout `extractAllRows` and `laneRow` read
+(the zero prefix, the lanes reversed), so that `logWord` is the committed codeword.
+`leanervm-prove log` runs `extract` on the test vector's honest log natively, and it returns the
+witness's sizes and stack; no theorem states the three pieces yet.
 
 ## Upstream watch
 

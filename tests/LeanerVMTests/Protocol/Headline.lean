@@ -163,7 +163,7 @@ theorem replayer_run {prog : Program} {input : PublicInput} {proof : Proof Prune
 nothing is extracted from its empty log, so its one run misbehaves. -/
 theorem replayer_not_blakeMisbehaves {prog : Program} {input : PublicInput}
     {proof : Proof PrunedMerklePaths} {δ : ℝ≥0∞} (hacc : verify prog input proof = true)
-    (hδ : δ < 1) (hcore : CoreHolds prog input (replayer proof)) :
+    (hδ : δ < 1) :
     ¬ BlakeMisbehaves prog input (replayer proof) δ := by
   intro hB
   have h1 : Pr{let g ← runBlake2s (loggedGame verifyWith prog input (replayer proof))}[
@@ -171,7 +171,8 @@ theorem replayer_not_blakeMisbehaves {prog : Program} {input : PublicInput}
     OracleComp.prEvent_eq_one_of_forall_mem_support _ _ fun g hg ↦ by
       obtain ⟨hg', hc, hok⟩ := mem_support_runBlake2s hg
       obtain ⟨hp, hl⟩ := replayer_run hg'
-      exact hcore g hg' hc (hok.trans (hp ▸ hacc)) (hp ▸ hl ▸ not_extracts_nil _ _ _ _)
+      exact Core.core_of_mem_support hg' hc (hok.trans (hp ▸ hacc))
+        (hp ▸ hl ▸ not_extracts_nil _ _ _ _)
   unfold BlakeMisbehaves at hB
   rw [h1] at hB
   exact absurd hδ (not_lt.mpr hB)
@@ -240,21 +241,20 @@ example (hsafe : SentinelSafe program) :
 
 /-! ## The theorems, at the test statement -/
 
-example (A : Adversary) {Q : ℕ} (hQ : IsTotalQueryBound A Q) (hcore : CoreHolds program input A) :
+example (A : Adversary) {Q : ℕ} (hQ : IsTotalQueryBound A Q) :
     Pr{let z ← runRandom (loggedGame verifyWith program input A)}[
       z.1.ok = true ∧ ¬ ∃ e,
         extract Blake2sFlock.blake2sFlockSpec program input z.1.proof z.1.logA = some e ∧
           SatisfiedBy program input (witnessOf Blake2sFlock.blake2sFlockSpec program e.1 e.2)] ≤
       ((Q + 13697 : ℕ) / 2 ^ 128 + hashTerm 13697 Q : NNReal) :=
-  baseVerifier_extractsWitness_rom hQ hcore
+  baseVerifier_extractsWitness_rom hQ
 
 /- The execution form at the test vector's program, whose sentinel slot is not a `JUMP`. -/
-example (A : Adversary) {δ : ℝ≥0∞} (hB : BlakeMisbehaves fillProg mulInput A δ)
-    (hcore : CoreHolds fillProg mulInput A) :
+example (A : Adversary) {δ : ℝ≥0∞} (hB : BlakeMisbehaves fillProg mulInput A δ) :
     Pr{let g ← runBlake2s (loggedGame verifyWith fillProg mulInput A)}[
       verify fillProg mulInput g.proof = true ∧ ¬ ∃ t,
         extractTrace (leanIsaTraceExtraction fill_sentinelSafe) mulInput g.proof g.logA =
           some t ∧ ValidExecution fillProg mulInput t] ≤ δ :=
-  baseVerifier_extractsExecution fill_sentinelSafe hB hcore
+  baseVerifier_extractsExecution fill_sentinelSafe hB
 
 end LeanerVMTests.Protocol.Headline

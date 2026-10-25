@@ -7,8 +7,8 @@ import LeanerVM.Protocol.Core
   and verdict, the hash does not misbehave. There is no collision and no hit on an empty log, and
   no group flips, since the only state with a history in an empty log is the seed, whose empty
   history announces nothing.
-* `core_of_mem_support` discharges the core implication in the form the base theorems take it: on
-  every possible run of the game with a consistent joint log and an accepting verdict, a failed
+* `core_of_mem_support` gives the core implication in the form the base theorems use it: on every
+  possible run of the game with a consistent joint log and an accepting verdict, a failed
   extraction means the hash misbehaves.
 -/
 
@@ -37,7 +37,7 @@ example (prog : Program) (input : PublicInput) (proof : Proof PrunedMerklePaths)
       · rfl
     simp only [SlotReader.Flips, Run.log, List.append_nil, hnone] at hG
 
--- The core implication at one adversary, as the base theorems take it.
+-- The core implication at one adversary, as the base theorems use it.
 example (prog : Program) (input : PublicInput) (A : Adversary) :
     ∀ g ∈ support (loggedGame Verify.verifyWith prog input A),
       QueryLog.Consistent g.log → g.ok = true →

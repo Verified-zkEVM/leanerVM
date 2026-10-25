@@ -322,7 +322,8 @@ theorem core {prog : Program} {input : PublicInput} {g : Run}
 
 /-- **The core on a possible run of the game**: on a run of the game whose joint log is
 consistent and whose verdict accepts, if the extractor finds no stack with `M3Holds` from the
-prover's log, the hash misbehaves. -/
+prover's log, the hash misbehaves. A run under BLAKE2s or under the lazy random oracle is such a
+possible run (`mem_support_runBlake2s`, `mem_support_runRandom`). -/
 theorem core_of_mem_support {prog : Program} {input : PublicInput} {A : Adversary} {g : Run}
     (hg : g ∈ support (loggedGame verifyWith prog input A)) (hc : QueryLog.Consistent g.log)
     (hok : g.ok = true)
@@ -331,41 +332,6 @@ theorem core_of_mem_support {prog : Program} {input : PublicInput} {A : Adversar
   core hc (by rw [replay_of_mem_support_loggedGame hg hc, hok]) hX
 
 /-! ## Knowledge soundness in the random-oracle model -/
-
-/-- A run under the lazy random oracle is a possible run of the game, and its joint log is
-consistent: every logged answer is the final cache's. -/
-private theorem run_of_mem_support_runRandom {prog : Program} {input : PublicInput}
-    {A : Adversary} {z : Run × hashSpec.QueryCache}
-    (hz : z ∈ support (runRandom (loggedGame verifyWith prog input A))) :
-    z.1 ∈ support (loggedGame verifyWith prog input A) ∧ QueryLog.Consistent z.1.log := by
-  have hrun : runRandom (loggedGame verifyWith prog input A) =
-      Prod.map id QueryHistory.freshLog.view <$>
-        (simulateQ QueryHistory.freshLog.randomOracle (loggedGame verifyWith prog input A)).run
-          ((∅ : hashSpec.QueryCache), []) := by
-    unfold runRandom
-    exact ((QueryHistory.freshLog (spec := hashSpec)).randomOracle_run_view
-      (loggedGame verifyWith prog input A) ((∅ : hashSpec.QueryCache), [])).symm
-  rw [hrun, support_map] at hz
-  obtain ⟨z', hz', rfl⟩ := hz
-  refine ⟨support_simulateQ_run'_subset QueryHistory.freshLog.randomOracle _
-    ((∅ : hashSpec.QueryCache), []) ?_, ?_⟩
-  · rw [StateT.run'_eq, support_map]
-    exact Set.mem_image_of_mem _ hz'
-  rw [show loggedGame verifyWith prog input A = A.withQueryLog >>= fun p ↦
-    (verifyWith hashQuery prog input p.1).withQueryLog >>= fun q ↦
-      pure ⟨p.1, p.2, q.2, q.1⟩ from rfl] at hz'
-  simp only [simulateQ_bind, simulateQ_pure, StateT.run_bind, StateT.run_pure,
-    mem_support_bind_iff, support_pure, Set.mem_singleton_iff] at hz'
-  obtain ⟨z₁, hz₁, z₂, hz₂, rfl⟩ := hz'
-  obtain ⟨-, hf₁, -, hc₁⟩ :=
-    QueryHistory.withQueryLog_freshLog_support _ QueryHistory.isFreshLog_empty hz₁
-  obtain ⟨-, -, hle, hc₂⟩ := QueryHistory.withQueryLog_freshLog_support _ hf₁ hz₂
-  have hcached : ∀ e ∈ z₁.1.2 ++ z₂.1.2, z₂.2.1 e.1 = some e.2 := fun e he ↦
-    (List.mem_append.mp he).elim (fun he ↦ hle (hc₁ e he)) (hc₂ e)
-  intro e₁ he₁ e₂ he₂ h
-  have h₁ := hcached e₁ he₁
-  rw [h] at h₁
-  exact Option.some.inj (h₁.symm.trans (hcached e₂ he₂))
 
 /-- **Knowledge soundness of the verifier in the random-oracle model.** With the hash a uniformly
 random function and an adversary `A` of at most `Q` queries, the game's verifier accepts `A`'s
@@ -378,8 +344,8 @@ theorem verify_knowledgeSound_rom (prog : Program) (input : PublicInput) (A : Ad
       z.1.ok = true ∧ ¬ Extracts Blake2sFlock.blake2sFlockSpec prog input z.1.proof z.1.logA] ≤
       ((Q + 13697 : ℕ) / 2 ^ 128 + hashTerm 13697 Q : ℝ≥0) :=
   (OracleComp.prEvent_mono_of_support _ fun _ hz h ↦
-    core_of_mem_support (run_of_mem_support_runRandom hz).1 (run_of_mem_support_runRandom hz).2
-      h.1 h.2).trans (leanVm_misbehaves_rom_closed prog input A hQ)
+    core_of_mem_support (mem_support_runRandom hz).1 (mem_support_runRandom hz).2 h.1 h.2).trans
+    (leanVm_misbehaves_rom_closed prog input A hQ)
 
 end Core
 
