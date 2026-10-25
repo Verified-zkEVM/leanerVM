@@ -11,6 +11,7 @@ import Common.Linear
 import LeanVM.Protocol.Rpm.Cost
 import LeanVM.Protocol.Rpm.Duplex
 import LeanVM.Protocol.Rpm.Extract
+import LeanVM.Protocol.Extraction.Extract
 import LeanVM.Protocol.Rpm.RomRelabel
 import LeanVM.Protocol.Rpm.RpmRelabel
 
@@ -199,10 +200,15 @@ theorem experimentCoins_eq (B : OracleComp CSpec (Statement × Proof)) :
     experimentCoins B = (simulateQ HashSpec.romImpl B).run ∅ >>= fun p ↦ verifierPhase p.1 p.2 := by
   simp only [experimentCoins, verifierPhase, bind_pure_comp]
 
+/- The extractor is an algorithm; unification must never run it on symbolic inputs. -/
+attribute [local irreducible] Extraction.extract
+
 /-- **The random-oracle game of the transfer is bounded by the random-oracle experiment of the
 transfer's adversary**: the transcript's Keccak-256 evaluations are the adversary's cached hash
 answers (`transcriptHashes_eq_of_mem_support`), so the extractor in the random-permutation model
-sees what the extractor of the random-oracle model (`LeanVM.extractor`) sees. -/
+sees what the extractor of the random-oracle model (`LeanVM.extractor`) sees: the extraction depends
+on the answers only, not on which byte strings covering them it is given as keys
+(`extractorRpm_eq_extract`). -/
 theorem romGame_le (A : RpmAdversary) :
     Pr{let a ← Common.romRun2 (simulateQ Common.hInF (pure ()) >>= fun x ↦
         Common.advS2 Common.keccakPadding Common.KState.zero ((fun _ ↦ advR A) x) >>= fun a ↦
@@ -236,7 +242,9 @@ theorem romGame_le (A : RpmAdversary) :
   refine h.trans ?_
   congr 2
   funext r
-  simp only [BreaksRpm, Breaks, extractorRpm, extractor, ht]
+  have e := fun prog input proof ↦
+    Extraction.ExtractProofs.extractorRpm_eq_extract prog input p.1.2 proof ht
+  simp only [BreaksRpm, Breaks, extractor, e]
   rfl
 
 /-- **Knowledge soundness in the random-permutation model.** An adversary of at most `Q` queries

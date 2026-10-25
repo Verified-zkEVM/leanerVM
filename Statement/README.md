@@ -3,7 +3,8 @@
 What the repository proves, in the files a reviewer reads: definitions and end statements only,
 one Lake package (`statement`) of eleven files, `Statement/<Name>.lean` (Lean modules
 `Statement.<Name>`), the generated guest bytecode in [`Data/`](Data/), and, for speed only,
-proved `@[csimp]` lemmas in [`Fast/`](Fast/), which a reviewer need not read. It imports Mathlib, VCVio
+proved `@[csimp]` lemmas in [`Fast/`](Fast/), which a reviewer need not read, nor the theorems the
+extractor's decoder takes as proof fields, in [`Decode/`](Decode/). It imports Mathlib, VCVio
 and CompPoly and nothing else (CI checks it); every other project of the repository is proof and
 imports it.
 
@@ -66,10 +67,13 @@ Benedikt Wagner's ([b-wagn/fv-pq-da](https://github.com/b-wagn/fv-pq-da), Apache
    the pin rewrote a step of the previous pin (`3375f7a13`) without changing what it computes, the
    transcription keeps the earlier form and its docstring gives both the pin's lines and why the
    two agree.
-8. [`Extractor.lean`](Extractor.lean): the knowledge extractor, straight-line: from the proof and
-   the adversary's Keccak-256 evaluations, the announced sizes and the stack's root, the committed
-   word, its Johnson list (at most `2^18` stacks), and the halting run of a candidate's memory
-   image that is a valid execution, if there is one.
+8. [`Extractor.lean`](Extractor.lean): the knowledge extractor, straight-line, deterministic and
+   of polynomial running time (its cost table): from the proof and the adversary's Keccak-256
+   evaluations, the announced sizes and the stack's root, the committed word (the Merkle tree
+   inverted through the evaluations), its Johnson list (at most `2^18` stacks, listed by CompPoly's
+   Guruswami–Sudan list decoder over `GF(2^64)` and pruning across the lanes), and the halting run
+   of a candidate's memory image within the announced tables' rows that is a valid execution, if
+   there is one.
 9. [`LeanVm.lean`](LeanVm.lean): a statement (a program and a public input), the verifier on it
    (`verifier H F`, `verify`), its calls as oracle queries (`HashSpec`), the honest prover's type,
    the committed size; the random-permutation experiment (`rpmExperiment`, the adversary's
@@ -105,9 +109,17 @@ lanes written out (`Keccak`), and the signature schemes' verifiers with a consta
 (the verifier, the guest's specification, LeanDA) and every module after them. They need no review:
 a `@[csimp]` lemma is an equation the kernel checks.
 
+[`Decode/`](Decode/) holds the two facts about `GF(2^64)` that the extractor's root finder takes as
+proof fields (the trace `Σ z^(2^i)` lies in `{0, 1}` and separates elements on the basis `x^i`),
+and the facts about `K.ofBits` they rest on. It holds theorems only
+(`lean_vm/tests/LeanVMTests/Extraction/DecodeProps.lean` checks that every constant it declares is
+a proof), so nothing in it can change what the extractor computes or what a statement says: it
+needs no review.
+
 A few definitions carry proofs, which are here because the definitions need them:
 `Common.keccakPadding` (a `Padding`, with the padding's laws: six lemmas in
-`RandomPermutation.lean`); and decidability instances.
+`RandomPermutation.lean`); the extractor's decoder contexts (CompPoly's contexts bundle their
+correctness proofs: `traceCtx`, `gsContext` in `Extractor.lean`); and decidability instances.
 
 ## The end theorems
 
@@ -140,6 +152,6 @@ valid witnesses, and their content is in the decoder the theorems name.
 
 ## Building
 
-`lake build` here builds the eleven files, the data and `Fast/`; the other projects build it as a dependency.
-The data's modules are heavy: `python3 -I ../lake-build.py .` builds them in one `lake build` that admits
-its modules by memory, as CI does.
+`lake build` here builds the eleven files, the data, `Fast/` and `Decode/`; the other projects
+build it as a dependency. The data's modules are heavy: `python3 -I ../lake-build.py .` builds them
+in one `lake build` that admits its modules by memory, as CI does.

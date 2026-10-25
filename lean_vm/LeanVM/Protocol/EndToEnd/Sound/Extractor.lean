@@ -3,8 +3,8 @@
 
   The extractor of the specification (`Statement/Extractor.lean`) against the proof's:
   the commitment it reads is the extracted history's, its candidates contain the proof's, and its
-  memory image is the witness's. So it returns a valid execution whenever the proof's extractor
-  finds a stack satisfying the relation.
+  memory image is the witness's. (That it then returns a valid execution whenever the proof's
+  extractor finds a stack satisfying the relation is `LeanVM.Protocol.Extraction.Sound`.)
 -/
 
 module
@@ -13,27 +13,29 @@ public import LeanVM.Protocol.EndToEnd.Sound.Theorem
 public import LeanVM.Protocol.EndToEnd.Front.LayoutBridgeB
 public import LeanVM.Protocol.LeanIsa.Read
 public import LeanVM.Protocol.Rom.Statement
+public import LeanVM.Protocol.Extraction.Params
 
 /-!
 # The specification's extractor
 
 `LeanVM.extractor` (`Statement/Extractor.lean`) reads the commitment off a run of the
-verifier's first two steps and picks a candidate whose memory image runs validly. The proof's
-extractor `extractStack` reads it off the extracted history of the whole run and picks a
-candidate satisfying the leanISA relation. The bridges:
+verifier's first two steps and searches the candidates for one whose memory image runs validly.
+The proof's extractor `extractStack` reads it off the extracted history of the whole run and picks
+a candidate satisfying the leanISA relation. The bridges:
 
 * `xrun_bind`, `run_id_of_xrun`, `xrun_rootsInv`: the extracted run of a sequence is the runs of
   its parts, an extracted run of reads and commitments is a run with any hash and permutation from
   any sponge, and the roots of a run are its history's commitments.
-* `commitment_eq`: on an accepted proof, the specification's commitment is the layout of the
-  announced sizes, the announced rate and the first word of the extracted history.
-* `thrOf_eq_johnsonThreshold`: the specification's threshold is level 0's, `thrOf`.
+* `commitment_eq`: on an accepted proof, the verifier's first two steps announce the layout of
+  the announced sizes, the announced rate and a root whose committed word is the first word of the
+  extracted history.
+* `thrOf_eq_johnsonThreshold`: the specification's threshold is level 0's, `thrOf` (through its
+  real form, `Extraction.johnsonThreshold_eq_real`).
 * `encode_eq`, `mem_candidates`: the specification's encoding is `enc` of the stack's blocks, so
   the proof's candidates are the specification's.
 * `haltingRun_imageOf`: the specification's memory image is the witness's (`imageOf`).
-* `extractor_of_extracted`: **when the proof's extractor succeeds on an accepted proof, the
-  specification's, reading the Keccak-256 answers of a prefix of the log, returns a valid
-  execution**, provided no entry past the prefix answers the announced root.
+* `committedWord_eq`: the word read from the Keccak-256 answers of a prefix of the log is the
+  word extracted from the whole log, provided no entry past the prefix answers the root.
 * `logged2`, `prEvent_logged2_root_le`: the experiment in two stages, the adversary's log then the
   verifier's, and the probability that a fresh hash answer of the verifier is the announced root,
   at most one `2^-256` per verifier query.
@@ -274,10 +276,9 @@ def announcedRoot (prog : Program) (π : Proof) : Option Digest :=
   (Extraction.afterRoot (bytecodeWords prog) π).bind fun x ↦ x.2.roots.head?.map (·.1)
 
 /-- **The specification's commitment is the extracted history's**: on an accepted proof, the
-verifier's first two steps announce the layout of the history's announced sizes and its rate, and
-a root whose word under the hash answers is the history's first word; under any answers the
-specification's commitment is that layout, rate and root's word. The sizes are good and the
-ladder has a first level. -/
+verifier's first two steps (`afterRoot`) announce the layout of the history's announced sizes and
+its rate, and a root whose word under the hash answers is the history's first word. The sizes
+are good and the ladder has a first level. -/
 theorem commitment_eq {c : HashSpec.QueryCache} {π : Proof}
     (hv : Rom.verify (fun x ↦ c (.inl x)) (fun s ↦ c (.inr s))
       (leanVmSeed (bytecodeWords prog) (publicDigest input))
@@ -291,9 +292,8 @@ theorem commitment_eq {c : HashSpec.QueryCache} {π : Proof}
       (leanVmProgram (bytecodeWords prog) (publicDigest input)) π) = some W) :
     (∃ root ht w, announcedRoot prog π = some root ∧
       W = extract (fun x ↦ c (.inl x)) root ht w ∧
-      ∀ answers : Bytes → Option Digest,
-        Extraction.commitment (bytecodeWords prog) answers π =
-          some (verifierLayout prog s, ρ, Extraction.committedWord answers root ht w)) ∧
+      ∃ st, Extraction.afterRoot (bytecodeWords prog) π = some ((verifierLayout prog s, ρ), st) ∧
+        st.roots.head? = some (root, ht, w)) ∧
       Good prog (verifierLayout prog s, ρ) s ∧
       ∃ level rest, deriveConfig (verifierLayout prog s).stackLog ρ = some (level :: rest) := by
   set H : Bytes → Option Digest := fun x ↦ c (.inl x)
@@ -377,12 +377,13 @@ theorem commitment_eq {c : HashSpec.QueryCache} {π : Proof}
     ⟨default, []⟩
   have haf : Extraction.afterRoot (bytecodeWords prog) π = some (a, { s2 with sponge := sp' }) :=
     hrun
-  refine ⟨⟨r.1, r.2.1, r.2.2, ?_, hW', fun answers ↦ ?_⟩, by rw [← hgood.1]; exact hgood,
-    by rw [← hgood.1]; exact ⟨level, rest, hcfg⟩⟩
+  refine ⟨⟨r.1, r.2.1, r.2.2, ?_, hW', { s2 with sponge := sp' }, ?_, ?_⟩,
+    by rw [← hgood.1]; exact hgood, by rw [← hgood.1]; exact ⟨level, rest, hcfg⟩⟩
   · simp [announcedRoot, haf, hr2]
-  · simp only [Extraction.commitment, haf, hr2, bind, Option.bind_some, List.head?_cons, pure,
-      Option.some.injEq, Prod.mk.injEq]
-    simpa using hgood.1
+  · rw [haf, ← hgood.1]
+  · show s2.roots.head? = _
+    rw [hr2]
+    rfl
 
 /-! ## The threshold -/
 
@@ -394,10 +395,11 @@ theorem certOf_e_eq : ∀ μ < 29, ∀ R < 5, Whir.Admissible μ R →
   decide +kernel
 
 /-- **The specification's threshold is level 0's**, `thrOf`, at every admissible shape with a
-ladder. -/
+ladder: through its real form (`Extraction.johnsonThreshold_eq_real`). -/
 theorem thrOf_eq_johnsonThreshold {μ R : ℕ} (h : Whir.Admissible μ R) {level : Whir.Level}
     {rest : List Whir.Level} (hc : deriveConfig μ R = some (level :: rest)) :
     thrOf μ R = Extraction.johnsonThreshold μ R := by
+  rw [← Extraction.johnsonThreshold_eq_real]
   have hc' : Whir.ladder μ R = some (level :: rest) := hc
   have hμ : μ < 29 := by have := h.2.1; unfold Whir.maxLogStack at this; omega
   have hR : R < 5 := by have := h.2.2.2; unfold Whir.maxLogInvRate at this; omega
@@ -498,17 +500,6 @@ theorem spec_candidates_ncard_le {μ R : ℕ} (h : Whir.Admissible μ R) (W : Wo
     _ ≤ _ := Set.ncard_image_le hfin
     _ ≤ _ := hcard.trans hL
 
-/-- A candidate on equal numbers of variables. -/
-theorem exists_candidate_cast {layout : Verifier.Layout} {μ R : ℕ} (e : layout.stackLog = μ)
-    {W : Word} {q : Vector K (2 ^ μ)} {t : Trace prog}
-    (hq : q ∈ Extraction.Candidates μ R (Extraction.johnsonThreshold μ R) W)
-    (ht : Extraction.haltingRun prog (Extraction.memoryImage layout q) = some t) :
-    ∃ q' ∈ Extraction.Candidates layout.stackLog R
-        (Extraction.johnsonThreshold layout.stackLog R) W,
-      Extraction.haltingRun prog (Extraction.memoryImage layout q') = some t := by
-  subst e
-  exact ⟨q, hq, ht⟩
-
 /-! ## The memory image -/
 
 /-- Halting runs of equal images are equal. -/
@@ -592,56 +583,6 @@ theorem committedWord_eq {X : Type} {σ : Seeds X} {ℓ : Log} {k : ℕ} {r : Di
       simp only [List.getElem_drop, Nat.add_sub_cancel' (by omega : k ≤ i)]; exact hei⟩
   rw [← extract_take_eq hf hbefore ht w]
   rfl
-
-/-- **When the proof's extractor succeeds on an accepted proof, the specification's, reading
-the Keccak-256 answers of the first `k` entries of the log, returns a valid execution**, without
-failure and when no hash entry past the first `k` answers the announced root: the proof's
-candidate is a candidate of the specification's commitment, whose word is the history's
-(`committedWord_eq`), and its memory image runs to a valid execution
-(`execution_of_extracted`). -/
-theorem extractor_of_extracted {X : Type} (σ : Seeds X) {ℓ : Log} {k : ℕ} {π : Proof}
-    (hf : ¬ Fail σ ℓ)
-    (hv : Rom.verify (lookH ℓ) (lookF ℓ) (leanVmSeed (bytecodeWords prog) (publicDigest input))
-      (leanVmProgram (bytecodeWords prog) (publicDigest input)) π = some true)
-    (hroot : ∀ r, announcedRoot prog π = some r → ∀ x, .inl (x, r) ∉ ℓ.drop k)
-    (hx : Extracted prog input (cacheOf ℓ) π) :
-    ∃ t, LeanVM.extractor prog input (cacheOf (ℓ.take k)) π = some t ∧
-      ValidExecution prog input t := by
-  obtain ⟨s₀, q₀, hx, hs₀, hM₀⟩ := hx
-  unfold extractStack at hx
-  dsimp only at hx
-  split at hx
-  · rename_i s ρ W hann hfw
-    split at hx
-    · rename_i hq
-      obtain ⟨⟨root, ht, w, hroot', hW, hcomm⟩, hgood, level, rest, hcfg⟩ :=
-        commitment_eq hv hann hfw
-      obtain ⟨q, hqc, hM⟩ := hq
-      obtain ⟨t, hrep, htv⟩ := execution_of_extracted hgood.2.1 hM
-      obtain ⟨t', ht', hv'⟩ := haltingRun_valid hrep htv
-      rw [haltingRun_imageOf s hgood.2.1.2.1] at ht'
-      have hadm := hgood.2.2.1
-      simp only [stackLog_verifierLayout] at hadm hcfg
-      have hcand := mem_candidates (A' := Extraction.johnsonThreshold (leanIsaμ prog s) ρ) hqc
-        (thrOf_eq_johnsonThreshold hadm hcfg).ge
-      have hex : ∃ t : Trace prog, ValidExecution prog input t ∧
-          ∃ q ∈ Extraction.Candidates (verifierLayout prog s).stackLog ρ
-            (Extraction.johnsonThreshold (verifierLayout prog s).stackLog ρ) W,
-            Extraction.haltingRun prog (Extraction.memoryImage (verifierLayout prog s) q) =
-              some t :=
-        ⟨t', hv', exists_candidate_cast (stackLog_verifierLayout prog s) hcand ht'⟩
-      refine ⟨hex.choose, ?_, hex.choose_spec.1⟩
-      have hWk : W = Extraction.committedWord (lookH (ℓ.take k)) root ht w :=
-        hW.trans (committedWord_eq hf (hroot root hroot') ht w).symm
-      have hc' : Extraction.commitment (bytecodeWords prog)
-          (fun x ↦ cacheOf (ℓ.take k) (.inl x)) π = some (verifierLayout prog s, ρ, W) := by
-        rw [hWk]
-        exact hcomm _
-      simp only [LeanVM.extractor, Extraction.extract]
-      rw [hc']
-      simp only [hex, ↓reduceDIte]
-    · simp at hx
-  · simp at hx
 
 /-! ## The experiment in two stages -/
 
