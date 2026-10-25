@@ -2188,33 +2188,39 @@ witness is executable it is a test under `tests/`.
 36. **The hypothesis is about one adversary.** "BLAKE2s acts as a random oracle for every
     adversary", or "BLAKE2s misbehaves on no run", is false, and a headline theorem assuming it
     would be vacuous. An adversary that outputs a stored accepted proof makes no query: under
-    BLAKE2s `verify` accepts, `extract` on the empty log is `none`, and the run misbehaves by
-    `core` (the verifier's recomputed root is a fresh answer equal to the proof's root, a hit).
-    That `extract` on the empty log is `none` is proved, not run: every row reads zero, the zero
-    word decodes to the zero stack alone, and its read counts are zero, which the relation
-    forbids. A comparison of the output-and-log distributions under BLAKE2s and
-    under a random function fails for any adversary with one query, whose logged answer is a
-    BLAKE2s value. Witness: `extract_nil`, and `replayer_not_blakeMisbehaves`: with `core`, if
-    `verify` accepts a proof, the replayer of that proof fails `BlakeMisbehaves` at every
-    `δ < 1`; `verify` accepts Layer 12's fixture and the test vector natively (`leanervm-verify`;
-    interpreted, `verify` alone takes over a minute).
+    BLAKE2s `verify` accepts, `extract` on the empty log is `none`, and the run misbehaves by `core`
+    (the verifier's recomputed root is a fresh answer equal to the proof's root, a hit). That
+    `extract` on the empty log is `none` is proved, not run: every row reads zero, the zero word
+    decodes to the zero stack alone, and its read counts are zero, which the relation forbids. A
+    comparison of the output-and-log distributions under BLAKE2s and under a random function fails
+    for any adversary with one query, whose logged answer is a BLAKE2s value. The hypothesis is
+    about one statement too, fixed before the adversary runs: an adversary that picks the statement
+    after its queries is covered under BLAKE2s by averaging over statements, but not by the
+    random-oracle evidence, whose adaptive form needs the statement's hashes computed through the
+    oracle. Witness: `extract_nil`, and `replayer_not_blakeMisbehaves`: with `core`, if `verify`
+    accepts a proof, the replayer of that proof fails `BlakeMisbehaves` at every `δ < 1`; `verify`
+    accepts Layer 12's fixture and the test vector natively (`leanervm-verify`; interpreted,
+    `verify` alone takes over a minute).
 37. **The hypothesis is satisfiable by an accepted adversary.** A hypothesis that only rejected
-    adversaries meet would make the headline vacuous where it matters. The test is met on two of
-    the hypothesis's three clauses: `honestAdversary`'s run under BLAKE2s on the test vector has no
+    adversaries meet would make the headline vacuous where it matters. The test is met on two of the
+    hypothesis's three clauses: `honestAdversary`'s run under BLAKE2s on the test vector has no
     collision and no hit. The flip clause is not decidable, so `δ = 0` is not claimed for it, and
-    nothing feasible decides it; the random-oracle bound (`misbehaves_rom`) is the evidence for
-    it. Out of fuel `honestAdversary` returns the empty proof, which `verify` rejects (the stream
-    is not consumed). Witness: `leanervm-prove log`, natively, the prover and the verifier with
-    every hash logged: no collision and no hit in the joint log, by a one-pass scan that `#guard`s
-    match against `QueryLog.HasCollision` and `Hit` on small logs; and the prover's log holds the
-    rows it committed: the level-0 word `extract` reads off it is the committed word, and the
-    commitment's decoder reads it as the witness's stack alone; `extract` itself, run on the
-    honest log, returns the witness's sizes and stack (compiled code decides `M3Holds` by sorting
-    the bus's tuples). A hit clause that counted the proof's digests against the
-    adversary's own queries would fail it: the honest prover computes its roots and nodes through
-    the oracle, each a fresh answer that is a digest of the proof it outputs. "It meets it at
-    `δ = 0` for every satisfying witness" is not claimed: colliding rows exist, and nothing
-    excludes a witness that commits two of them.
+    nothing feasible decides it; the random-oracle bound (`misbehaves_rom`) is the evidence for it.
+    What settles it is a theorem, not a run: the state function of `listBinding_deployed` true at
+    every round of the honest prover's transcript at its witness, whence no group of the honest
+    chain flips; without it, a phase whose state function failed on honest transcripts would make
+    every accepted run flip and the headline hold only of rejected adversaries. Out of fuel
+    `honestAdversary` returns the empty proof, which `verify` rejects (the stream is not consumed).
+    Witness: `leanervm-prove log`, natively, the prover and the verifier with every hash logged: no
+    collision and no hit in the joint log, by a one-pass scan that `#guard`s match against
+    `QueryLog.HasCollision` and `Hit` on small logs; and the prover's log holds the rows it
+    committed: the level-0 word `extract` reads off it is the committed word, and the commitment's
+    decoder reads it as the witness's stack alone; `extract` itself, run on the honest log, returns
+    the witness's sizes and stack (compiled code decides `M3Holds` by sorting the bus's tuples). A
+    hit clause that counted the proof's digests against the adversary's own queries would fail it:
+    the honest prover computes its roots and nodes through the oracle, each a fresh answer that is a
+    digest of the proof it outputs. "It meets it at `δ = 0` for every satisfying witness" is not
+    claimed: colliding rows exist, and nothing excludes a witness that commits two of them.
 38. **One verifier.** The random-oracle theorems run `verifyWith`, and the headline is about
     `verify`. A verifier written separately for the model would make the headline a statement
     about the model. Witness: `verify` defined as `verifyWith (m := Id) blake2sBytes`, and

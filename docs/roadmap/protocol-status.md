@@ -1128,17 +1128,17 @@ Merkle trees', with the fast field arithmetic merged), the rest of Layer 12's ve
   the executable also rejects a changed input lane and a changed instruction (the seed moves) and
   two exchanged rows of a level, and WHIR's algebra a changed first round polynomial. It owed
   `verifierQueries`, `proofDigests`, `rounds` and their bounds, `decodePrefix` and
-  `verify_iff_compiled`. The branches below build `verifierQueries` with `verifierQueries_bound`
-  and `verifierQueries_le_bound` (`Protocol/VerifierQueries.lean`, `Protocol/LeanVmReader.lean`),
-  `proofDigests` with `ProofRoots.length_rootsOf_le`, and `DecodeChain.decodePrefix`
-  (`Protocol/DecodeChain.lean`). `rounds` and its bound are not needed: the random-oracle bound
-  charges `εquery` to every query. The biconditional `verify_iff_compiled` is not built, and
-  neither headline theorem needs it: soundness uses one direction on decoded transcripts, inside
-  `core` (`ChainLog.accepts_of_replay`, `Core.solved_of_decode`, `Compile.compiled_of_algebra`),
-  and completeness the other on accepted ones (`Compile.phasesAgree`). Both rest on
-  `blake2sRows_eq` and the instance's known-coordinate evaluators equal to the extensions (they
-  are, by the field `ext_eq`). The bus phase's algebra
-  with the program's share settled is the oracle verifier's step (`leanVmBus_eq_busStep`).
+  `verify_iff_compiled`. Later branches of the stack build `verifierQueries` with
+  `verifierQueries_bound` and `verifierQueries_le_bound` (`Protocol/VerifierQueries.lean`,
+  `Protocol/LeanVmReader.lean`), `proofDigests` with `ProofRoots.length_rootsOf_le`, and
+  `DecodeChain.decodePrefix` (`Protocol/DecodeChain.lean`). `rounds` and its bound are not needed:
+  the random-oracle bound charges `εquery` to every query. The biconditional `verify_iff_compiled`
+  is not built, and neither headline theorem needs it: soundness uses one direction on decoded
+  transcripts, inside `core` (`ChainLog.accepts_of_replay`, `Core.solved_of_decode`,
+  `Compile.compiled_of_algebra`), and completeness the other on accepted ones
+  (`Compile.phasesAgree`). Both rest on `blake2sRows_eq` and the instance's known-coordinate
+  evaluators equal to the extensions (they are, by the field `ext_eq`). The bus phase's algebra with
+  the program's share settled is the oracle verifier's step (`leanVmBus_eq_busStep`).
 
 - **The walk's primitives and the transport** (`Protocol/Verify/Setup.lean`,
   `Protocol/Verify/Hom.lean`): every walk is written once over `ChainOps n`, the five primitives
@@ -1241,8 +1241,8 @@ below proves.
     positions (`book_compiled`), so the openings' size check never fails: `proveWith` returns
     `none` only when the witness gives no sizes, its sizes are not admissible, the rate is not
     valid, or a grind finds no nonce within its fuel at some chain state.
-  - Owed: the random-oracle form, `Pr[prove fails] ≤ levels · (1 − 2^-17)^(2^24)`, otherwise
-    accepted, on the logged game with the hash a uniform function.
+  - Owed: the honest prover's query bound and the random-oracle bound on a grind running out of
+    fuel; the headline's branch below states both.
 
 *On merge* of the compiled verifier's branch (`feat/protocol-verify-compiled`, on the prover's and
 the chain-history decoder's), the executable verifier's algebra and the compiled oracle verifier
@@ -1332,13 +1332,14 @@ adversary runs. Each is unconditional but for the query bound or a named hypothe
 for a program with `SentinelSafe`) are the deployed forms under `BlakeMisbehaves`;
 `baseVerifier_extractsWitness_coins` is the witness form for an adversary with coins (a
 `ProbComp Adversary`), under `BlakeMisbehaves`'s event averaged over the coins, by the headline at
-each coin-free adversary integrated over the draw; `blakeMisbehaves_of_comparison` derives `BlakeMisbehaves` from `Blake2sActsAsRandomOracle` and the
-query bound. `prove_complete` is completeness for the deployed pair, `Prove.baseProver_complete` at
-BLAKE2s: for a witness with `SatisfiedBy`, `prove fuel prog input w ρ = some proof → verify prog
-input proof = true`. `prove` returns no proof in four cases only (`Prove.proveWith_eq_none`): the
-witness's memory image is a single word, so `Sizes.ofWitness` reads no sizes; the sizes are not
-admissible; the rate is not valid; or a grind finds no nonce among its `fuel` candidates at some
-chain state. `mem_support_runBlake2s` and `mem_support_runRandom` make every run under either oracle
+each coin-free adversary integrated over the draw; `blakeMisbehaves_of_comparison` derives
+`BlakeMisbehaves` from `Blake2sActsAsRandomOracle` and the query bound. `prove_complete` is
+completeness for the deployed pair, `Prove.baseProver_complete` at BLAKE2s: for a witness with
+`SatisfiedBy`, `prove fuel prog input w ρ = some proof → verify prog input proof = true`. `prove`
+returns no proof in four cases only (`Prove.proveWith_eq_none`): the witness's memory image is a
+single word, so `Sizes.ofWitness` reads no sizes; the sizes are not admissible; the rate is not
+valid; or a grind finds no nonce among its `fuel` candidates at some chain state.
+`mem_support_runBlake2s` and `mem_support_runRandom` make every run under either oracle
 a possible run of the game with a consistent joint log, and under BLAKE2s give it `verify`'s
 verdict; on such a run `Core.core_of_mem_support` puts an accepted proof whose extraction fails
 inside `HashMisbehaves`, and `satisfiedBy_witnessOf` turns the extracted stack's `M3Holds` into
@@ -1362,6 +1363,64 @@ honest prover's log holds every level-0 leaf query in the layout `extractAllRows
 (the zero prefix, the lanes reversed), so that `logWord` is the committed codeword.
 `leanervm-prove log` runs `extract` on the test vector's honest log natively, and it returns the
 witness's sizes and stack; no theorem states the three pieces yet.
+
+Also owed:
+
+- **The hypothesis met by an accepted adversary.** `BlakeMisbehaves` is shown falsifiable (the
+  replayer) but not satisfiable by any adversary whose proof `verify` accepts. On an accepted run
+  the last challenge is bad as soon as the state function of `listBinding_deployed` is false, at
+  the round before it, at the extractor's witness; if some phase's state function failed on honest
+  transcripts, every accepted run would flip, and `baseVerifier_extractsWitness` would hold only of
+  rejected adversaries. Acceptance test 37 is met on the collision and hit clauses only, natively.
+  Two routes:
+  - *State-function completeness on the honest transcript* (the cheaper and the one to build): one
+    lemma per phase family (`BusSolved`, `TableSolved`, `FlockSolved` and `WhirSolved` carry the
+    per-round claims) giving `∀ i, kSF i (tr.take i) w_i` on the honest prover's transcript `tr`,
+    with `w_i` the extractor's witnesses down from the honest witness. Inverting `flipAt_of_bad`
+    (`Core/Flip.lean`) then gives `¬ Flip` on the honest run: no group of the honest chain flips,
+    for `SatisfiedBy prog input w` and `prove fuel prog input w ρ = some proof`. With the collision
+    and hit clauses decided natively, the test vector's honest run then meets `BlakeMisbehaves` at
+    `δ = 0`. It is the same piece `extract_honest` needs; build it once.
+  - *`blakeMisbehaves_of_comparison` at the honest adversary*: under `Blake2sActsAsRandomOracle`
+    for its game, `BlakeMisbehaves prog input (honestAdversary fuel prog input w ρ)
+    ((Q + 13697)/2^128 + hashTerm 13697 Q + δ)`. It needs `IsTotalQueryBound (honestAdversary fuel
+    prog input w ρ) Q` (below), and stays conditional on the comparison.
+- **The adaptive random-oracle form.** Every bound is selective: the statement's three hashes
+  (`programHash`, `fsSeed` and the starting state `FsState.seed`) are computed by `blake2sBytes`
+  outside the oracle, so under `runRandom` a query on the seed's preimage is answered uniformly
+  while the chain starts at BLAKE2s's value, and for an adversary that picks `(prog, input)` after
+  its queries every statement's first state would be in play from the start. Under BLAKE2s nothing
+  is lost: the headline is per statement and per coin-free adversary, and an adaptive adversary
+  with coins is a distribution over pairs of these, bounded by the same averaging as
+  `baseVerifier_extractsWitness_coins`. The random-oracle evidence is what is missing: for
+  `A : OracleComp hashSpec (Program × PublicInput × Proof)` of at most `Q` queries, in the game that
+  runs `verifyWith` on the statement `A` outputs, the probability that the verifier accepts while
+  `extract` gives no witness of `SatisfiedBy` at that statement is at most `niError εquery V Q`, `V`
+  counting the statement's hashes. Route: compute the three hashes through `H`, let the adversary
+  output the statement, and add the answers to seed-shaped queries to `inPlay`. Medium cost: it
+  touches `Transcript`, `Verify`, `Prove`, `VerifierQueries`, the reader's `seed` field and
+  `misbehaves_rom`.
+- **Completeness's remainder.** `prove_complete` says nothing of how often `prove` returns no
+  proof.
+  - *The honest query bound*: `IsTotalQueryBound (honestAdversary fuel prog input w ρ) Q` for an
+    explicit `Q` in `fuel` and the sizes (the test vector's honest run makes 487250 queries).
+    Without it neither the random-oracle bound nor the comparison route above applies to the
+    honest adversary.
+  - *The random-oracle bound on the grind*: for `w` with `SatisfiedBy`, admissible sizes and a valid
+    rate, `Pr{let z ← runRandom (loggedGame verifyWith prog input (honestAdversary fuel prog input
+    w ρ))}[z.1.ok = false] ≤ L · (1 − 2^-17)^fuel`, with `L` the number of grinds (one a WHIR
+    level, three to six). Route: `findNonce`'s candidates are distinct fresh inputs answered
+    uniformly (`prEvent_lowBitsZero` gives `2^-17` each), a geometric bound per grind, a union over
+    the levels, then `verifyWith_simulateQ` and `baseProver_complete` on the runs where every grind
+    succeeds. Moderate cost: the first probabilistic argument about the prover's run. At
+    `fuel = 2^24` the bound is `L · 2^-184.7`. At BLAKE2s no bound can be proved.
+- **`fuel` and `ρ` are parameters everywhere.** No module of `LeanerVM/` fixes either to a deployed
+  value: `prove` and `proveWith` take both, and the values appear only as defaults of
+  `bench/LeanerVMProve.lean` (fuel `2^24`, rate `1`). The rate `1` is the Rust test suite's
+  `LOG_INV_RATE_0`, not a deployed constant (`Parameters/Whir.lean`; the rate is announced with the
+  sizes), and the Rust's nonce search is unbounded over `u64`. Route: a `Parameters/` constant for
+  the deployed rate, taken from the pinned Rust's configuration, and a fuel at which the grind's
+  random-oracle bound is negligible, with `prove_complete` and that bound stated at them.
 
 ## Upstream watch
 
