@@ -50,7 +50,8 @@ Benedikt Wagner's ([b-wagn/fv-pq-da](https://github.com/b-wagn/fv-pq-da), Apache
    `LeanDa.PositionBindingRpm`, `LeanDa.CodeBindingRpm`. Code binding is conditional: if the
    argument is knowledge sound in the random-permutation model with error `(q + c) · 2^-k`, LeanDA
    is code binding with error `(Q + c + 2^22) · 2^-k + (Q + 2^20) · 2^-93 + (Q + 2^22)² · 2^-158`
-   for `Q ≤ 2^127` and `r ≤ 1024` rows. The hypothesis holds only for an argument that has, or
+   for `Q ≤ 2^127` and `r ≤ 1024` rows; the last term, Wagner's forking loss, passes 1 at about
+   `Q = 2^79`. The hypothesis holds only for an argument that has, or
    simulates, access to `π`: an argument complete for every `π`, as `PerfectlyCompleteRpm` asks,
    does not satisfy it, so completeness and code binding are not both meaningful for one argument
    (as in Wagner's original).
@@ -147,8 +148,8 @@ Each project's root module (`lean_vm/LeanVM.lean`, `lean_xmss/XmssSecurity.lean`
 theorem proves its statement and pins its axioms to Lean's three (`propext`, `Classical.choice`,
 `Quot.sound`). The guest's two soundness statements take the decoder as a parameter; the end
 theorems name `LeanVM.Guest.End.decode` ([`EndFinal.lean`](../lean_vm/LeanVM/Guest/EndFinal.lean)),
-which reads the witness off the execution's memory: the statements hold of any decoder that outputs
-valid witnesses, and their content is in the decoder the theorems name.
+which reads the witness off the execution's memory. Their content is in that decoder: one that chose
+another statement of the same digest would satisfy `AggregateSound` through a Keccak-256 collision.
 
 ## Building
 

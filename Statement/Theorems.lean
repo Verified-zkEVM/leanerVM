@@ -15,8 +15,9 @@ defined in the file of `Statement/` named next to it. `lean_vm/LeanVM.lean` prov
 axioms are ever more than Lean's three (`propext`, `Classical.choice`, `Quot.sound`).
 
 The guest's two knowledge statements are about a decoder, `decode`, which names the witness of a
-valid execution: the proof supplies it (`LeanVM.Guest.End.decode`, in `lean_vm`). The statements
-hold of any decoder that outputs valid witnesses; a wrong decoder makes them false, not easier.
+valid execution: the proof supplies it (`LeanVM.Guest.End.decode`, in `lean_vm`, which reads the
+witness from the execution's memory). They are only as meaningful as that decoder: one that chose
+another statement of the same digest would satisfy `aggregateSound` through a Keccak-256 collision.
 
 Every statement involving an adversary is in the random-permutation model: one uniformly random
 permutation `π` of Keccak-f[1600]'s state, which the adversary queries forward and inverse.
@@ -58,7 +59,8 @@ structure Theorems (decode : LeanVM.Node.Decoder) : Prop where
   leanDaComplete : LeanDa.PerfectlyCompleteRpm
   /-- LeanDA is position binding: at most `(Q + 1)² · 2^-256` for `Q ≤ 2^128` (`LeanDa.lean`). -/
   leanDaPositionBinding : LeanDa.PositionBindingRpm
-  /-- LeanDA is code binding, under the knowledge soundness of its argument (`LeanDa.lean`). -/
+  /-- LeanDA is code binding if its argument is knowledge sound in the random-permutation model;
+  the argument cannot query `π`, so the hypothesis fails for any useful argument (`LeanDa.lean`). -/
   leanDaCodeBinding : LeanDa.CodeBindingRpm
 
 end Statement

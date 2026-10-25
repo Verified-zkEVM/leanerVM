@@ -23,9 +23,8 @@ permutation `π` of the Keccak state, Keccak-f[1600] `π` itself, the adversary 
 `π⁻¹`.
 
 **Knowledge soundness** (`knowledgeSoundnessRpm`): for an adversary of at most `Q` queries, the
-probability that the verifier accepts while the program's last instruction is not a `JUMP` and
-the extractor `extractorRpm` (the extractor of `Extractor.lean` on the Keccak-256 evaluations of
-the adversary's transcript) does not return a valid execution is at most
+probability that the verifier accepts while the extractor `extractorRpm` (the extractor of
+`Extractor.lean` on the Keccak-256 evaluations of the adversary's transcript) does not return a valid execution is at most
 `soundnessError Q + (Q + 12008 · 2^32)² / 2^508`, which is at most `(Q + 2^14) · 2^-127` for
 `Q ≤ 2^120` (`soundnessRpm_le_bits`), at most `(Q + 2^14) · 2^-128 + 7 (Q + 2^14)² · 2^-256` for
 `Q ≤ 2^128` (`soundnessRpm_le_128`, the end statement `KnowledgeSoundness`) and at most `2^-63` for
