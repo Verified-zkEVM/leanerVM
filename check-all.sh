@@ -7,8 +7,8 @@
 #   (default: all seven)
 #
 # The compiled checks and `lean` run under a virtual-memory cap of LEAN_VMEM_KB (default 40 GB);
-# `lake` itself cannot, as it reserves about 1 GB of address space per job. WIDTH is passed to
-# lean_vm/scripts/ci-build.py, the modules it builds at once (default 2).
+# `lake` itself cannot, as it reserves about 1 GB of address space per job: the statement's and
+# lean_vm's builds run in `lake-build.py`, which admits their modules by memory within a systemd scope.
 set -euo pipefail
 cd "$(dirname "${BASH_SOURCE[0]}")"
 log=$(mktemp -d)
@@ -50,7 +50,7 @@ axioms() {
 }
 
 # The statement: definitions and end statements only, importing Mathlib, VCVio, CompPoly and itself.
-# Its generated guest data is heavy, so a few modules at a time.
+# Its generated guest data is heavy, so its modules are admitted by memory.
 statement() {
   no_escapes Statement
   step "Statement: imports only Mathlib, VCVio, CompPoly and itself"
@@ -59,8 +59,8 @@ statement() {
     fail "Statement imports more than Mathlib, VCVio, CompPoly and itself"
   fi
   (cd Statement && lake exe cache get)
-  step "Statement: build, a few modules at a time"
-  (cd Statement && python3 -I ../lean_vm/scripts/ci-build.py ../Statement)
+  step "Statement: build, its modules admitted by memory"
+  python3 -I lake-build.py Statement
 }
 
 common() {
@@ -112,8 +112,8 @@ lean_vm() {
   no_escapes lean_vm
   (cd lean_vm && lake exe cache get)
   # Fails on any warning and on an axiom footprint beyond Lean's three (`LeanVM.lean`).
-  step "lean_vm: build, a few modules at a time"
-  (cd lean_vm && python3 -I scripts/ci-build.py)
+  step "lean_vm: build, its modules admitted by memory"
+  python3 -I lake-build.py lean_vm LeanVM LeanVMTests
   step "lean_vm: lake test"
   (cd lean_vm && lake test)
   step "lean_vm: the Rust vectors' costly checks, compiled"

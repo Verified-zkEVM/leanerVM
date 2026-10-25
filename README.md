@@ -19,7 +19,7 @@ Each is its own Lake project on the toolchain in [`lean-toolchain`](lean-toolcha
 
 ## Building and checking
 
-`lake build` here runs [`check-all.sh`](check-all.sh): for each project, in turn and in its own directory, what [`.github/workflows/lean.yml`](.github/workflows/lean.yml) runs: no proof escapes, the statement's imports, the build, no deprecated API, the axiom footprints and `lake test`, then the checks against leanVM below, which need `cargo`. `./check-all.sh lean_vm` (or any of `lean_xmss lean_sphincs lean_da lean_vm leanvm`) runs some. A cold build is several CPU-hours.
+`lake build` here runs [`check-all.sh`](check-all.sh): for each project, in turn and in its own directory, what [`.github/workflows/lean.yml`](.github/workflows/lean.yml) runs: no proof escapes, the statement's imports, the build, no deprecated API, the axiom footprints and `lake test`, then the checks against leanVM below, which need `cargo`. `./check-all.sh lean_vm` (or any of `lean_xmss lean_sphincs lean_da lean_vm leanvm`) runs some. A cold build is several CPU-hours. [`lake-build.py`](lake-build.py) builds the statement and `lean_vm` (`python3 -I lake-build.py lean_vm LeanVM LeanVMTests`, or any project's targets): one `lake build`, its modules admitted by memory with the cores busy.
 
 ## Against leanVM
 

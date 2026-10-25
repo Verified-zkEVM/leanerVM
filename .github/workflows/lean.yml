@@ -46,10 +46,11 @@ jobs:
           lint: false
           use-github-cache: false
           use-mathlib-cache: auto
-      # The generated guest data's modules are heavy: a few at a time. Fails on any warning.
+      # The generated guest data's modules are heavy: `lake-build.py` admits them by memory. Fails on
+      # any warning.
       - name: Build
         working-directory: Statement
-        run: python3 -I ../lean_vm/scripts/ci-build.py ../Statement
+        run: python3 -I ../lake-build.py .
       - name: Save the Lake build
         if: github.ref == 'refs/heads/main' && steps.lake-cache.outputs.cache-hit != 'true'
         uses: actions/cache/save@v4
@@ -276,7 +277,7 @@ jobs:
         run: |
           if [[ "$GITHUB_EVENT_NAME" == workflow_dispatch ]] || ! git fetch --quiet --depth=1 origin "$BASE"; then
             echo changed=true >> "$GITHUB_OUTPUT"
-          elif git diff --name-only "$BASE" HEAD -- lean_vm leanvm-rev leanvm-tree.sh common Statement \
+          elif git diff --name-only "$BASE" HEAD -- lean_vm leanvm-rev leanvm-tree.sh lake-build.py common Statement \
               lean_xmss/LeanXmss/Scheme.lean \
               lean_sphincs/Sphincs/Scheme.lean lean_da/LeanDa/Scheme.lean lean_da/LeanDa/Field.lean \
               .github/workflows/lean.yml | grep -q .; then
@@ -289,7 +290,7 @@ jobs:
     needs: lean-vm-changes
     if: needs.lean-vm-changes.outputs.changed == 'true'
     runs-on: ubuntu-latest
-    # A build from a cold cache is several CPU-hours of kernel checks, built two modules at a time.
+    # A build from a cold cache is several CPU-hours of kernel checks, on the runner's cores.
     timeout-minutes: 360
     defaults:
       run:
@@ -333,13 +334,11 @@ jobs:
           free -g
       # `lake build` fails on any warning (`warningAsError`) and on an axiom footprint beyond
       # Lean's three (`LeanVM.lean`'s `#guard_msgs`). Lake has no job limit, and its parallel build
-      # of the generated kernel-checked families exceeds the runner's memory, so the script builds
-      # two modules at a time.
-      # The statement first, its guest data a few modules at a time, as the `statement` job.
-      - name: Build the statement
-        run: python3 -I scripts/ci-build.py ../Statement
+      # of the generated kernel-checked families exceeds the runner's memory, so `lake-build.py`
+      # runs the one `lake build` with the modules admitted by their recorded memory, those of the
+      # statement package (`Statement/`, its guest data as heavy) and the other dependencies included.
       - name: Build
-        run: python3 -I scripts/ci-build.py
+        run: python3 -I ../lake-build.py . LeanVM LeanVMTests
       - name: Test
         run: lake test
       # What is slow in the interpreter: the guest's Fiat-Shamir IV against the Rust's, the DA

@@ -138,14 +138,16 @@ The assembly: `guest_complete_of` (the run's start, B2's run and count, the hone
 
 ```sh
 lake exe cache get
-python3 -I scripts/ci-build.py
+python3 -I ../lake-build.py . LeanVM LeanVMTests
 lake test
 lake exe node-vectors
 ```
 
+While editing proofs, `python3 -I ../lake-build.py . LeanVM --dev` is about 10x faster: it builds into `.lake/build-dev` with the kernel skipped on `LeanVM` (`debug.skipKernelTC`). Ordinary proofs are still checked by elaboration, but the kernel-checked certificates (`decide +kernel`) are not checked at all, so it is never a substitute for the build above.
+
 `lake build` at the repository root runs all of it, with the Rust checks below, for the five projects (`../check-all.sh`).
 
-The guest's kernel-checked certificates (`Guest/Checked`, `Guest/B2C/Shared`, `Guest/B2C/Cplw`, with their data `Guest/Data/{Cert*,Plumb*,Snaps*,Pows,FrameSizes,CplArms,CplParts}`) are written together, from the bytecode and the core IR, by `lake exe guest-cert` (`--check` fails when any is stale). A module checks a few windows of one function in 2 to 3.5 GB; the groups of arms of `verify_sig_lean_sphincs`'s `match`es (`Checked/G21_*`, `Cplw/D21_*`) take about 4.2 GB and `verify_tables`'s windows (`Checked/F11_*`) about 4.7 GB, so `ci-build.py` builds them two at a time on a 16 GB machine.
+The guest's kernel-checked certificates (`Guest/Checked`, `Guest/B2C/Shared`, `Guest/B2C/Cplw`, with their data `Guest/Data/{Cert*,Plumb*,Snaps*,Pows,FrameSizes,CplArms,CplParts}`) are written together, from the bytecode and the core IR, by `lake exe guest-cert` (`--check` fails when any is stale). A module checks a few windows of one function in 2 to 3.5 GB; the groups of arms of `verify_sig_lean_sphincs`'s `match`es (`Checked/G21_*`, `Cplw/D21_*`) take about 4.2 GB and `verify_tables`'s windows (`Checked/F11_*`) about 4.7 GB, of which about 1.5 GB are the `.olean`s they map, shared by the modules running at once; `../lake-build.py` admits the modules by their own (anonymous) memory, recorded in `.lake/lake-build.tsv` by each run, over the heavy modules of [`lake-build.tsv`](lake-build.tsv).
 
 The completeness budget's static certificates are generated from the core IR and the certificate data by `python3 -I scripts/count/gen.py . all` (`scripts/count/checker.py` mirrors `Guest/Memory/Static.lean`'s checker): the words at the frame sizes `B2C.fs` (`Guest/Memory/GuestWords`), each opcode's instructions at `B2C.ωArm B2C.xmssArmC op` over the closure of `main`'s statically bounded callees (`Guest/Memory/GuestCnt{X,M,S,D,J,K}`, `GuestCntPm`), of `verify_sub`'s (`GuestCntV*`) and of `verify_tables`' and `check_opening_terminal`'s (`GuestCntW*`), those callees' bounds (`Guest/Count/Static.lean`) and the others' counts within ratios of their words (`Guest/Count/Ratio*`). `python3 -I scripts/count/gen.py . report` prints the coverage. Their parts take 2 to 3.5 GB each.
 

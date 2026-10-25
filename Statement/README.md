@@ -129,5 +129,5 @@ valid witnesses, and their content is in the decoder the theorems name.
 ## Building
 
 `lake build` here builds the ten files, the data and `Fast/`; the other projects build it as a dependency.
-The data's modules are heavy: `python3 -I ../lean_vm/scripts/ci-build.py ../Statement` builds a few
-at a time, as CI does.
+The data's modules are heavy: `python3 -I ../lake-build.py .` builds them in one `lake build` that admits
+its modules by memory, as CI does.
