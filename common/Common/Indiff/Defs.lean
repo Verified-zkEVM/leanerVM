@@ -48,7 +48,7 @@ def queryCost {Msg Dg Blk St : Type} (P : Padding Msg Blk) :
 section Setting
 
 variable {Dg E C Msg : Type}
-  [XorCancel Dg] [XorCancel E]
+  [XorOp Dg] [XorOp E] [XorCancel Dg] [XorCancel E]
   [DecidableEq Dg] [DecidableEq E] [DecidableEq C] [DecidableEq Msg]
   [Fintype Dg] [Fintype E] [Fintype C]
   [SampleableType Dg] [SampleableType E] [SampleableType C]
@@ -59,7 +59,7 @@ variable {Dg E C Msg : Type}
 
 /-- The answer of the simulator at a fresh rooted node with path `β`: when `β` pads a message `m`,
 the random oracle's digest `H m` completed by uniform bits; otherwise a uniform state. -/
-noncomputable def rootedAnswer (P : Padding Msg (Dg × E)) (β : List (Dg × E)) :
+noncomputable def rootedAnswer (P : Padding Msg (Dg × E)) [P.Lawful] (β : List (Dg × E)) :
     OracleComp (unifSpec + roSpec Msg Dg) (SpState Dg E C) :=
   match P.unpad β with
   | some m => do
@@ -70,7 +70,7 @@ noncomputable def rootedAnswer (P : Padding Msg (Dg × E)) (β : List (Dg × E))
 
 /-- **The simulator** (Bertoni et al., EUROCRYPT 2008): answers `π` and `π⁻¹` with oracle access
 to the random oracle `H`. -/
-noncomputable def simulator (P : Padding Msg (Dg × E)) :
+noncomputable def simulator (P : Padding Msg (Dg × E)) [P.Lawful] :
     QueryImpl (permSpec (SpState Dg E C))
       (StateT (SimState Dg E C) (OracleComp (unifSpec + roSpec Msg Dg)))
   | .fwd x => StateT.mk fun σ ↦
@@ -92,7 +92,7 @@ noncomputable def simulator (P : Padding Msg (Dg × E)) :
         pure (x, ⟨(x, y) :: σ.edges, σ.chains⟩)
 
 /-- The ideal world: coins forwarded, `H` the random oracle, `π` and `π⁻¹` the simulator. -/
-noncomputable def idealImpl (P : Padding Msg (Dg × E)) :
+noncomputable def idealImpl (P : Padding Msg (Dg × E)) [P.Lawful] :
     QueryImpl (dSpec Msg Dg (SpState Dg E C))
       (StateT (SimState Dg E C) (OracleComp (unifSpec + roSpec Msg Dg)))
   | .inl n => liftM (liftM (unifSpec.query n : ProbComp (Fin (n + 1))) :
@@ -102,7 +102,7 @@ noncomputable def idealImpl (P : Padding Msg (Dg × E)) :
 
 /-- **The ideal world** run of a distinguisher: the simulator from its initial state, the random
 oracle from the empty cache. -/
-noncomputable def idealGame (P : Padding Msg (Dg × E)) (iv : SpState Dg E C) {α : Type}
+noncomputable def idealGame (P : Padding Msg (Dg × E)) [P.Lawful] (iv : SpState Dg E C) {α : Type}
     (D : OracleComp (dSpec Msg Dg (SpState Dg E C)) α) : ProbComp α :=
   (simulateQ (roSpec Msg Dg).romImpl ((simulateQ (idealImpl P) D).run' (SimState.init iv))).run' ∅
 

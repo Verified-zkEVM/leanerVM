@@ -29,9 +29,26 @@ The padding is injective with a computable decoder (`keccakPadding`): the decode
 padding and accepts exactly the padded messages.
 -/
 
+set_option linter.unusedSectionVars false
+
 namespace Common
 
 /-! ## Exclusive-or with cancellation -/
+
+/-- An exclusive-or such that `a ^^^ (a ^^^ b) = b`: absorbing a block into a state is
+invertible, and the block is recovered from the states before and after. -/
+class XorCancel (α : Type) [XorOp α] : Prop where
+  /-- XOR with `a` is an involution. -/
+  xor_cancel : ∀ a b : α, a ^^^ (a ^^^ b) = b
+
+/-- Byte vectors XOR bytewise. -/
+instance (n : ℕ) : XorCancel (Vector UInt8 n) where
+  xor_cancel a b := by
+    apply Vector.ext
+    intro i hi
+    change (Vector.zipWith (· ^^^ ·) a (Vector.zipWith (· ^^^ ·) a b))[i] = b[i]
+    simp only [Vector.getElem_zipWith]
+    rw [← UInt8.xor_assoc, UInt8.xor_self, UInt8.zero_xor]
 
 /-! ## The abstract sponge -/
 
@@ -45,7 +62,7 @@ abbrev SpState.cap (s : SpState Dg E C) : C := s.2
 
 section Xor
 
-variable [XorCancel Dg] [XorCancel E]
+variable [XorOp Dg] [XorOp E] [XorCancel Dg] [XorCancel E]
 
 /-- XOR on the rate is an involution in its second argument. -/
 theorem rxor_cancel (a b : Dg × E) : rxor a (rxor a b) = b := by
@@ -97,20 +114,119 @@ namespace Padding
 
 variable {Msg Blk : Type}
 
+/-- The laws of a padding: the decoder recognises exactly the paddings, and a padded message has
+at least one block. -/
+class Lawful (P : Padding Msg Blk) : Prop where
+  /-- The decoder recognises exactly the paddings. -/
+  unpad_eq_some_iff : ∀ β m, P.unpad β = some m ↔ P.pad m = β
+  /-- A padded message has at least one block. -/
+  pad_ne_nil : ∀ m, P.pad m ≠ []
+
+variable (P : Padding Msg Blk) [P.Lawful]
+
+/-- The decoder recognises exactly the paddings. -/
+theorem unpad_eq_some_iff (β : List Blk) (m : Msg) : P.unpad β = some m ↔ P.pad m = β :=
+  Lawful.unpad_eq_some_iff β m
+
+/-- A padded message has at least one block. -/
+theorem pad_ne_nil (m : Msg) : P.pad m ≠ [] := Lawful.pad_ne_nil m
+
 /-- Padding is injective. -/
-theorem pad_injective (P : Padding Msg Blk) : Function.Injective P.pad := fun m m' h ↦ by
+theorem pad_injective : Function.Injective P.pad := fun m m' h ↦ by
   have h1 := (P.unpad_eq_some_iff (P.pad m') m).mpr h
   have h2 := (P.unpad_eq_some_iff (P.pad m') m').mpr rfl
   rw [h1] at h2
   exact Option.some.inj h2
 
 /-- The decoder inverts the padding. -/
-@[simp] theorem unpad_pad (P : Padding Msg Blk) (m : Msg) : P.unpad (P.pad m) = some m :=
+@[simp] theorem unpad_pad (m : Msg) : P.unpad (P.pad m) = some m :=
   (P.unpad_eq_some_iff _ m).mpr rfl
 
 end Padding
 
-variable [XorCancel Dg] [XorCancel E]
+variable [XorOp Dg] [XorOp E] [XorCancel Dg] [XorCancel E]
+
+/-! ## Keccak-256's padding -/
+
+/-- The bytes of a block made of 136 bytes are those bytes. -/
+theorem KBlock.toBytes_ofBytes {bs : List UInt8} (h : bs.length = 136) :
+    (KBlock.ofBytes bs).toBytes = bs := by
+  apply List.ext_getElem
+  · simp [KBlock.toBytes, KBlock.ofBytes, h]
+  intro i h1 h2
+  simp only [KBlock.toBytes, KBlock.ofBytes] at h1 ⊢
+  rw [List.getElem_append]
+  split_ifs with hi
+  · simp only [Vector.toList_ofFn, List.getElem_ofFn]
+    rw [List.getD_eq_getElem?_getD, List.getElem?_eq_getElem (by omega), Option.getD_some]
+  · simp only [Vector.toList_ofFn, List.getElem_ofFn, List.length_ofFn]
+    simp only [Vector.toList_ofFn, List.length_ofFn] at hi
+    rw [List.getD_eq_getElem?_getD, List.getElem?_eq_getElem (by omega), Option.getD_some]
+    congr 1
+    omega
+
+/-- Splitting a list whose length is a multiple of 136 into blocks and back gives the list. -/
+theorem blocksToBytes_toBlocks (bs : List UInt8) (h : bs.length % 136 = 0) :
+    blocksToBytes (toBlocks bs) = bs := by
+  induction bs using toBlocks.induct with
+  | case1 => simp [toBlocks, blocksToBytes]
+  | case2 b bs ih =>
+    rw [toBlocks]
+    simp only [blocksToBytes, List.flatMap_cons] at ih ⊢
+    have hlen : 136 ≤ (b :: bs).length := by
+      have : 0 < (b :: bs).length := by simp
+      omega
+    rw [KBlock.toBytes_ofBytes (by simp only [List.length_take]; omega),
+      ih (by simp only [List.length_drop]; omega), List.take_append_drop]
+
+/-- The padded bytes have a length that is a positive multiple of 136. -/
+theorem keccakPadBytes_length (msg : List UInt8) :
+    (keccakPadBytes msg).length = 136 * (msg.length / 136 + 1) := by
+  unfold keccakPadBytes
+  split_ifs with h
+  · simp; omega
+  · simp; omega
+
+/-- Stripping the padding recovers the message. -/
+theorem stripPad_keccakPadBytes (msg : List UInt8) : stripPad (keccakPadBytes msg) = msg := by
+  unfold keccakPadBytes
+  split_ifs with h
+  · simp [stripPad]
+  · have hz : ∀ k, List.dropWhile (· = (0 : UInt8)) (List.replicate k 0 ++ (1 :: msg.reverse)) =
+        1 :: msg.reverse := by
+      intro k
+      induction k with
+      | zero => simp
+      | succ k ih => simp [List.replicate_succ, ih]
+    simp only [stripPad, List.append_assoc, List.cons_append, List.nil_append,
+      List.reverse_append, List.reverse_cons, List.reverse_nil, List.reverse_replicate]
+    simp [hz]
+
+/-- Padded block lists are never empty. -/
+theorem keccakPad_ne_nil (msg : List UInt8) : keccakPad msg ≠ [] := by
+  unfold keccakPad
+  have hlen := keccakPadBytes_length msg
+  cases h : keccakPadBytes msg with
+  | nil => rw [h] at hlen; simp at hlen
+  | cons b bs => rw [toBlocks]; exact List.cons_ne_nil _ _
+
+/-- The decoder inverts the padding. -/
+theorem keccakUnpad_keccakPad (msg : List UInt8) : keccakUnpad (keccakPad msg) = some msg := by
+  have hb : blocksToBytes (keccakPad msg) = keccakPadBytes msg :=
+    blocksToBytes_toBlocks _ (by rw [keccakPadBytes_length]; omega)
+  simp [keccakUnpad, hb, stripPad_keccakPadBytes]
+
+/-- **The Keccak-256 padding's laws.** -/
+instance : keccakPadding.Lawful where
+  unpad_eq_some_iff β m := by
+    constructor
+    · intro h
+      simp only [keccakPadding, keccakUnpad] at h
+      split_ifs at h with hp
+      · cases h; exact hp
+    · rintro rfl
+      exact keccakUnpad_keccakPad m
+  pad_ne_nil := keccakPad_ne_nil
 
 /-! ## Keccak-256 -/
 

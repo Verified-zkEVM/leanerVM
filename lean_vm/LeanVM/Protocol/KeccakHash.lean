@@ -14,8 +14,9 @@ public import Statement.Fast.FieldWords
 /-!
 # Lemmas about the digest encoding
 
-The hash, the Merkle hashes and the digest encoding are defined in `Statement.RandomPermutation`. This
-module proves the round trips the proofs use: a digest and its two field elements
+The hash and the digest encoding are defined in `Statement.RandomPermutation` and
+`Statement.Field`, the Merkle node hash `hashPair` here. This module proves the round trips the
+proofs use: a digest and its two field elements
 (`digestOfScalars_digestScalars`, `digestScalars_digestOfScalars`), and the lengths and
 injectivity of the byte encodings.
 -/
@@ -27,6 +28,10 @@ open LeanVM.Parameters LeanVM.Semantics
 @[expose] public section
 
 namespace KeccakHash
+
+/-- The digest of a Merkle node (`Transcript.merkle`, `verifier.py:433-445`): Keccak-256 of the
+64 bytes of its two children, left first. -/
+def hashPair (left right : Digest) : Digest := keccak256 (digestBytes left ++ digestBytes right)
 
 /-! ## Bytes -/
 

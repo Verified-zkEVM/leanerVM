@@ -19,11 +19,11 @@ namespace Common
 section Setting
 
 variable {Dg E C Msg : Type}
-  [XorCancel Dg] [XorCancel E]
+  [XorOp Dg] [XorOp E] [XorCancel Dg] [XorCancel E]
   [DecidableEq Dg] [DecidableEq E] [DecidableEq C] [DecidableEq Msg]
   [Fintype Dg] [Fintype E] [Fintype C]
   [SampleableType Dg] [SampleableType E] [SampleableType C]
-  {P : Padding Msg (Dg × E)} {iv : SpState Dg E C}
+  {P : Padding Msg (Dg × E)} [P.Lawful] {iv : SpState Dg E C}
 
 /-- The state reached after `i` blocks of `bs` from `s`, reading path values from `vf`. -/
 def walkState (vf : List (Dg × E) → SpState Dg E C) (pre : List (Dg × E)) (s : SpState Dg E C)

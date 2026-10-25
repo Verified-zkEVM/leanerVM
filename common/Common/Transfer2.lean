@@ -55,11 +55,11 @@ theorem add_chain_le' {a i b f ε δ : ℝ≥0∞} (h1 : i ≤ a + ε) (h2 : b �
 section Setting
 
 variable {Dg E C Msg : Type}
-  [XorCancel Dg] [XorCancel E]
+  [XorOp Dg] [XorOp E] [XorCancel Dg] [XorCancel E]
   [DecidableEq Dg] [DecidableEq E] [DecidableEq C] [DecidableEq Msg]
   [Fintype Dg] [Fintype E] [Fintype C]
   [SampleableType Dg] [SampleableType E] [SampleableType C]
-  (P : Padding Msg (Dg × E)) (iv : SpState Dg E C)
+  (P : Padding Msg (Dg × E)) [P.Lawful] (iv : SpState Dg E C)
 
 /-! ## Games -/
 
