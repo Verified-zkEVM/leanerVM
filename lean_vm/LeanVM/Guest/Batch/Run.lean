@@ -180,9 +180,8 @@ theorem batch_eq (cs : List ChildClaims) (h : BatchHints) :
     forIn_children_run, forIn_lambdas_run, batchRounds_run, List.nil_append]
   rw [show batchSponge cs = obsAll (obsAll ⟨batchSeed, []⟩ (headCells cs.length))
     (cs.flatMap childCells) from obsAll_append _ _ _]
-  simp only [id_bind, id_map, id_pure, ite_run, StateT.run_pure, apply_ite Prod.fst, claimBOf,
-    bytecodeWeight, headCells]
-  congr 1
+  simp only [id_bind, id_map, id_pure, ite_run, StateT.run_pure, apply_ite Prod.fst, headCells]
+  rfl
 
 end
 end LeanVM.Guest.Batch

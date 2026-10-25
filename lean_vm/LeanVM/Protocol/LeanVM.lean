@@ -55,11 +55,6 @@ open scoped ENNReal
 
 @[expose] public section
 
-/-- **The deployed verifier**: `verifier` with Keccak-256 and Keccak-f[1600] (moved here from
-`Statement/LeanVm.lean`; no end statement names it). -/
-def verify (prog : Program) (input : PublicInput) (proof : Proof) : Bool :=
-  Id.run (verifier (m := Id) keccak256 keccakF prog input proof)
-
 /-! ## Completeness -/
 
 /-- **The honest prover**: the proof of the execution `t` at the commitment's inverse rate `2^ρ`,

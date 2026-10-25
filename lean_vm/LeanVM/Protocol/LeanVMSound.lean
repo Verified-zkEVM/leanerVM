@@ -77,6 +77,11 @@ open scoped ENNReal
 
 @[expose] public section
 
+/-- **The deployed verifier**: `verifier` with Keccak-256 and Keccak-f[1600] (moved here from
+`Statement/LeanVm.lean`; no end statement names it). -/
+def verify (prog : Program) (input : PublicInput) (proof : Proof) : Bool :=
+  Id.run (verifier (m := Id) keccak256 keccakF prog input proof)
+
 /-- `verify` is the transcription of the deployed verifier, run with Keccak-256 and
 Keccak-f[1600] (`LeanVM.Protocol.Verifier.verify`, what `lake exe leanvm-verify` runs). -/
 theorem verify_eq (prog : Program) (input : PublicInput) (proof : Proof) :
