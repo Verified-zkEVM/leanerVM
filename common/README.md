@@ -1,6 +1,7 @@
 # common
 
-The random-permutation model (RPM) and the indifferentiability of the sponge construction
+Proofs the projects share (no end statement: those are in [`Statement/`](../Statement/README.md)):
+the random-permutation model (RPM) and the indifferentiability of the sponge construction
 (Keccak-256 as leanVM computes it) from a random oracle, after Bertoni, Daemen, Peeters and
 Van Assche, *On the Indifferentiability of the Sponge Construction*, EUROCRYPT 2008. It moves
 random-oracle-model (ROM) games to the RPM.
@@ -9,6 +10,14 @@ Build with `lake build` (the root module `Common.lean` checks that the main theo
 `propext`, `Classical.choice` and `Quot.sound`).
 
 ## Files
+
+The definitions the end statements need (the permutation oracle `permSpec`, the lazily sampled
+permutation `lazyPerm`, the sponge `spongeWith` and Keccak-256's padding, `IsWeightBound`, `pathsOf`,
+the SUF-CMA game in the random-permutation model, and the simulators LeanDA's code-binding bound
+names) are in [`Statement/RandomPermutation.lean`](../Statement/RandomPermutation.lean), namespace
+`Common`; the files below keep their proofs and the definitions only the proofs use (the
+random-oracle games, the ideal worlds, the simulator of the one-oracle transfer, `lazyFun`, …).
+
 
 - `Common/Model.lean`: the permutation oracle (`permSpec`: `π` and `π⁻¹`), the lazily sampled
   random permutation (`lazyPerm`) and its validity (a partial permutation, extendable to a

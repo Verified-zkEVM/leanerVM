@@ -5,6 +5,9 @@ Lake has no job limit, and a parallel build of the generated kernel-checked fami
 modules whose out-of-date imports are already built. Each pass takes the out-of-date modules from `lake build --no-build`,
 levels them by their imports among themselves, and builds them level by level, WIDTH modules per `lake build`.
 Lake reports only some of them, so a module with no `.olean` and every importer of an out-of-date module count too. Passes repeat until none is left; a plain `lake build` ends it.
+
+`ci-build.py` builds `lean_vm`; `ci-build.py ../Statement` builds the statement package, whose generated guest data
+(`Statement/Data/`) is as heavy, before `lean_vm` needs it.
 """
 
 from __future__ import annotations
@@ -15,7 +18,9 @@ import subprocess
 import sys
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parent.parent
+ROOT = Path(sys.argv[1]).resolve() if len(sys.argv) > 1 else Path(__file__).resolve().parent.parent
+# The source trees and their root modules: the statement package's sources are `Statement/*.lean`, its package directory.
+SOURCES = ((ROOT.parent, "Statement"),) if ROOT.name == "Statement" else ((ROOT, "LeanVM"), (ROOT / "tests", "LeanVMTests"))
 WIDTH = int(os.environ.get("WIDTH", "2"))
 BUILDING = re.compile(r"✖ .*Building (\S+)")
 IMPORT = re.compile(r"\s*(?:public\s+)?(?:meta\s+)?import\s+(\S+)")
@@ -34,9 +39,9 @@ def out_of_date() -> list[str]:
 def modules() -> dict[str, list[str]]:
     """Every module of the package, with its imports among them."""
     paths = {}
-    for base, root in ((ROOT, "LeanVM"), (ROOT / "tests", "LeanVMTests")):
+    for base, root in SOURCES:
         for path in [base / f"{root}.lean", *(base / root).rglob("*.lean")]:
-            if path.exists():
+            if path.exists() and ".lake" not in path.relative_to(base).parts:
                 paths[".".join(path.relative_to(base).with_suffix("").parts)] = path
     result = {}
     for name, path in paths.items():
