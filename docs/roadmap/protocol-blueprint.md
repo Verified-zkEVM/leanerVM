@@ -1985,8 +1985,9 @@ Tests:
   theorem with its one premise, `verify` accepting, checked natively on Layer 12's fixture and on
   the test vector;
 - the honest prover's run on the test vector (acceptance test 37), natively: no collision and no
-  hit in the joint log, and the word `extract` reads off the prover's log is the committed word,
-  which the commitment's decoder reads as the witness's stack alone;
+  hit in the joint log, the word `extract` reads off the prover's log is the committed word,
+  which the commitment's decoder reads as the witness's stack alone, and `extract` returns the
+  witness's sizes and stack;
 - `verify` as `verifyWith` at `blake2sBytes`, and `verifyWith_simulateQ` (acceptance test 38).
 
 #### The executable prover and the test vectors
@@ -2147,8 +2148,7 @@ witness is executable it is a test under `tests/`.
     `core` (the verifier's recomputed root is a fresh answer equal to the proof's root, a hit).
     That `extract` on the empty log is `none` is proved, not run: every row reads zero, the zero
     word decodes to the zero stack alone, and its read counts are zero, which the relation
-    forbids; deciding `M3Holds` on a stack at the deployed sizes decides the bus's permutation,
-    quadratic in its length. A comparison of the output-and-log distributions under BLAKE2s and
+    forbids. A comparison of the output-and-log distributions under BLAKE2s and
     under a random function fails for any adversary with one query, whose logged answer is a
     BLAKE2s value. Witness: `extract_nil`, and `replayer_not_blakeMisbehaves`: with `core`, if
     `verify` accepts a proof, the replayer of that proof fails `BlakeMisbehaves` at every
@@ -2164,9 +2164,9 @@ witness is executable it is a test under `tests/`.
     every hash logged: no collision and no hit in the joint log, by a one-pass scan that `#guard`s
     match against `QueryLog.HasCollision` and `Hit` on small logs; and the prover's log holds the
     rows it committed: the level-0 word `extract` reads off it is the committed word, and the
-    commitment's decoder reads it as the witness's stack alone. `extract` itself is not run on the
-    honest log at the vector's size: deciding `M3Holds` on a satisfying stack decides the bus's
-    permutation, quadratic in its length. A hit clause that counted the proof's digests against the
+    commitment's decoder reads it as the witness's stack alone; `extract` itself, run on the
+    honest log, returns the witness's sizes and stack (compiled code decides `M3Holds` by sorting
+    the bus's tuples). A hit clause that counted the proof's digests against the
     adversary's own queries would fail it: the honest prover computes its roots and nodes through
     the oracle, each a fresh answer that is a digest of the proof it outputs. "It meets it at
     `δ = 0` for every satisfying witness" is not claimed: colliding rows exist, and nothing

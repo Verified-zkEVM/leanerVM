@@ -8,9 +8,8 @@ import LeanerVMTests.Protocol.LogScan
 
 * **Nothing is extracted from the empty log** (`extract_nil`), whatever the proof: every row
   reads zero, the transform's exact path decodes the zero word to the zero stack alone, and the
-  zero stack's read counts are zero, which leanISA's relation forbids. Deciding the relation on a
-  stack at the deployed sizes decides the bus's permutation, quadratic in its length, so this is a
-  theorem, not a run.
+  zero stack's read counts are zero, which leanISA's relation forbids. The extractor at the
+  deployed sizes is out of the interpreter's reach, so this is a theorem, not a run.
 * **The replayer.** The adversary `pure proof` outputs a stored proof and asks nothing. If `verify`
   accepts the proof, its one run under BLAKE2s misbehaves (the verifier's recomputed root is a
   fresh answer equal to a root of the proof, a hit), so it fails `BlakeMisbehaves` at every
@@ -22,9 +21,9 @@ import LeanerVMTests.Protocol.LogScan
   rebuild in either order, through a root of the proof, and none on a repeated query. The
   `leanervm-prove` executable (`log`) runs the honest prover on the test vector's witness and the
   verifier on its proof, every hash logged, and checks that the joint log has no collision and no
-  hit, and that the extractor's word and decoding on the prover's log are the committed word and
-  the witness's stack. A flip is not decidable (its bad set quantifies over a witness), so no
-  claim is made that the honest run has none.
+  hit, and that `extract` on the prover's log returns the witness's sizes and stack. A flip is
+  not decidable (its bad set quantifies over a witness), so no claim is made that the honest run
+  has none.
 * **The deployed verifier** is `verifyWith` at BLAKE2s in `Id`, and the verifier on the oracle,
   run with BLAKE2s answering, is `pure` of it (`verifyWith_simulateQ`, `verifyWith_pure`).
 -/

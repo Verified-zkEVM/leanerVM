@@ -1169,8 +1169,8 @@ below proves.
   in 90 minutes. The commitment and WHIR's next words are built as data when their step starts and
   read through (`commitWordCached`, `Cached.sendEncoded`, `Whir.commitNextCached`).
 - **The vectors** (`tests/vectors/`, `bench/LeanerVMProve.lean`): `leanervm-prove` proves the
-  constraint statement tests' witness at the smallest admissible sizes in 434 s, writes the proof
-  in the dump format, and checks that `verify` accepts it (1.4 s) and rejects every mutation of
+  constraint statement tests' witness at the smallest admissible sizes in 181 s, writes the proof
+  in the dump format, and checks that `verify` accepts it (0.6 s) and rejects every mutation of
   `mutationsOf` at its stage; `prove` in `Id` returns the same proof. The blueprint names the
   executable `leanervm-vectors` with its root under `tests/`; it is `leanervm-prove` under `bench/`,
   beside `leanervm-verify`, and the witness is the hand-built one, since `checkSatisfiedBy` does
@@ -1178,8 +1178,9 @@ below proves.
   mutations, both executables run the algebra on the honest wire with one message changed in each
   front phase and in WHIR (`frontChecksOf`, `whirChecksOf`), and `leanervm-prove tamper` changes
   one front phase's message as the prover sends it and checks that each phase rejects its own.
-  Owed: the prover within two orders of magnitude of the Rust's (it is about 125 times slower:
-  the level-0 encoding over `K` and the batched weight's table, `bench/README.md`).
+  The prover is about 50 times slower than the Rust's, within the blueprint's two orders of
+  magnitude, since the transform builds each half once a step (`fwd_eq_fwdFast`); the batched
+  weight's table dominates (`bench/README.md`).
 - **`baseProver_complete`, the generic half** (`ToArkLib/RunCodec.lean`): ArkLib's `Prover.run` is
   not what the prover calls, and its challenge oracle cannot interleave the chain's sends, so the
   oracle protocol's completeness reaches `runWith` through the run on given challenges,
@@ -1323,8 +1324,9 @@ word decodes to the zero stack, whose read counts are zero) and the replayer the
 test 36), whose one premise, `verify` accepting, holds natively on the Rust fixture and the test
 vector; `leanervm-prove log`, the honest run on the test vector with every hash logged (487250
 prover and 3291 verifier queries), with no collision and no hit (test 37, reduced: the flip
-clause is not decidable, and `extract` on the honest log is not run, since deciding `M3Holds`
-decides the bus's permutation, quadratic in its length); `verify` as `verifyWith` at BLAKE2s and
+clause is not decidable), and `extract` on the prover's log returning the witness's sizes and
+stack (in 22 s compiled, `M3Holds` decided by sorting the bus's tuples); `verify` as `verifyWith`
+at BLAKE2s and
 `verifyWith_simulateQ` (test 38). Owed: `core`; `baseProver_complete_of_execution`, which waits
 for leanISA's constraint completeness at the trace level; and `extract_honest`, that `extract` on
 a run of `honestAdversary` returns the witness's sizes and stack, which acceptance test 24 needs
@@ -1333,8 +1335,9 @@ a codeword the deployed decoder's list is the exact path's singleton (`ListDecod
 `exactNtt_of_codeword`); the pick keeps the honest stack, which satisfies `M3Holds` from
 `SatisfiedBy` (`m3Holds_stackOf`); and the Merkle-log half, that the honest prover's log holds
 every level-0 leaf query in the layout `extractAllRows` and `laneRow` read (the zero prefix, the
-lanes reversed), so that `logWord` is the committed codeword. `leanervm-prove log` checks the
-first and third natively on the test vector; no theorem states them yet.
+lanes reversed), so that `logWord` is the committed codeword. `leanervm-prove log` runs
+`extract` on the test vector's honest log natively, and it returns the witness's sizes and stack;
+no theorem states the three pieces yet.
 
 ## Upstream watch
 

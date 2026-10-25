@@ -16,10 +16,10 @@ import LeanerVMTests.Protocol.LogScan
 # The `leanervm-prove` executable
 
 `leanervm-prove [file] [rate] [fuel] [pure]` (or `leanervm-prove probe [rate]`, or
-`leanervm-prove tamper [file]`, or `leanervm-prove log [file]`) proves the hand-built leanISA
-witness of the
-constraint statement tests (`LeanerVMTests.Arithmetization.Statement.fillW 1 g memCnt`, the
-executor's `mul_192bit_word` with its fill blocks, `fill_satisfiedBy`) for its program
+`leanervm-prove tamper [file]`, or `leanervm-prove log [file]`, or `leanervm-prove m3 [lm]`)
+proves the hand-built leanISA witness of the constraint statement tests
+(`LeanerVMTests.Arithmetization.Statement.fillW 1 g memCnt`, the executor's `mul_192bit_word`
+with its fill blocks, `fill_satisfiedBy`) for its program
 `fillProg` and public input `mulInput`, at the WHIR rate `rate` (default `1`) with `fuel`
 candidate nonces per grind (default `2^24`). The witness's sizes are the smallest admissible:
 memory `2^16`, a stack of `2^19` cells.
@@ -38,9 +38,11 @@ end and rejected by that phase's algebra. `log` runs the prover once more with e
 (the run of `honestAdversary` with BLAKE2s answering), then `verifyWith` on its proof with every
 hash logged, and checks that the proof is the file's, that the verifier accepts it, that the
 joint log has no collision and no hit (`LeanerVMTests.Protocol.LogScan.scan`), that the level-0
-word `extract` reads off the prover's log is the committed word, and that the commitment's decoder
-reads it as the witness's stack alone (`extractChecks`).
-The exit code is `1` if a check fails.
+word `extract` reads off the prover's log is the committed word, that the commitment's decoder
+reads it as the witness's stack alone, and that `extract` returns the witness's sizes and stack
+(`extractChecks`). `m3` decides the clauses of `M3Holds` one by one on the witness's stack, at
+its sizes or with the memory log-size replaced by `lm + 1`, each timed. The exit code is `1` if a
+check fails.
 -/
 
 open LeanerVM.Parameters LeanerVM.Semantics LeanerVM.Arithmetization LeanerVM.Protocol
@@ -273,11 +275,21 @@ def probeCommit (fuel ρ : ℕ) : IO Unit := do
     IO.println s!"  the commitment component against the wire: {(t1 - t0).toFloat / 1e9} s, {(r.map (·.stream.length))} scalars"
   else IO.println "inadmissible"
 
-/-- The extractor's pieces on the honest prover's log: the level-0 word `extract` reads off the
+/-- Time `f` on `x`, `x` read back through an opaque call after the clock starts, so that compiled
+code cannot compute `f x` before it. -/
+def timedOn {α β : Type} (name : String) (x : β) (f : β → α) : IO α := do
+  let t0 ← IO.monoNanosNow
+  let r ← force (f (← force x))
+  let t1 ← IO.monoNanosNow
+  IO.println s!"  {name}: {(t1 - t0).toFloat / 1e9} s"
+  (← IO.getStdout).flush
+  pure r
+
+/-- The extractor on the honest prover's log. Its pieces: the level-0 word `extract` reads off the
 log (`wordRows` under the proof's level-0 root, at the announced sizes) must be the committed word
 (`Whir.kwordRows` of the witness's stack), and the commitment's list decoder must read it as the
-witness's stack alone. The relation `extract` decides last is not decided: its bus permutation is
-quadratic in the bus's length. -/
+witness's stack alone. Then `extract` itself, which decides `M3Holds` of the decoded stack last,
+must return the witness's sizes and stack. -/
 def extractChecks (p : Proof PrunedMerklePaths)
     (logA : Array LeanerVMTests.Protocol.LogScan.Entry) : IO ℕ := do
   let some (s, ρ) := p.announced? | do IO.println "FAIL the proof announces nothing"; return 1
@@ -286,35 +298,65 @@ def extractChecks (p : Proof PrunedMerklePaths)
     let μ := leanIsaμ fillProg s
     let κ := Whir.deployedHeadKap μ ρ
     let sh := Whir.deployedHeadShape μ ρ
-    let t0 ← IO.monoNanosNow
     let log : hashSpec.QueryLog := logA.toList.map fun e ↦ ⟨e.1.toList, e.2⟩
-    let v ← force (wordRows log root (κ + sh.R) (level0Lanes fillProg s κ) sh.ℓ)
-    let t1 ← IO.monoNanosNow
-    let q ← force (stackOf Blake2sFlock.blake2sFlockSpec fillProg s theWitness)
+    let v ← timedOn "the word read off the log" log fun log ↦
+      wordRows log root (κ + sh.R) (level0Lanes fillProg s κ) sh.ℓ
+    let q ← timed "the witness's stack" fun _ ↦
+      stackOf Blake2sFlock.blake2sFlockSpec fillProg s theWitness
     let C := leanIsaChain fillProg s hs.1 ρ hs.2
     let hμ := leanIsaChain_height Blake2sFlock.blake2sFlockSpec fillProg s hs.1 ρ hs.2
-    let r ← force (Whir.kwordRows C.sh.ℓ C.κ C.sh.R (hμ.symm ▸ q.values))
-    let t2 ← IO.monoNanosNow
+    let r ← timedOn "the committed word" q fun q ↦
+      Whir.kwordRows C.sh.ℓ C.κ C.sh.R (hμ.symm ▸ q.values)
     let sameWord := v.toList.map Vector.toList == r.toList.map Vector.toList
     IO.println s!"{if sameWord then "ok  " else "FAIL"} the word extract reads off the prover's \
-      log is the committed word: {v.size} rows, read in {(t1 - t0).toFloat / 1e9} s, the \
-      committed word in {(t2 - t1).toFloat / 1e9} s"
-    (← IO.getStdout).flush
+      log is the committed word: {v.size} rows"
     let h := admissible_of_sizes hs.1 hs.2
     let I := leanIsaInstance Blake2sFlock.blake2sFlockSpec fillProg s
-    let L ← force (stackList I (Whir.deployedHeadDecoder h) (Whir.deployedHead_height h)
-      fun _ ↦ ⟨fun y ↦ v[y]⟩)
-    let t3 ← IO.monoNanosNow
+    let L ← timedOn "the decoder's list" v fun v ↦
+      stackList I (Whir.deployedHeadDecoder h) (Whir.deployedHead_height h) fun _ ↦ ⟨fun y ↦ v[y]⟩
     let sameStack := match L with
       | [c] => Vector.toList (c 0).values == Vector.toList q.values
       | _ => false
     IO.println s!"{if sameStack then "ok  " else "FAIL"} the commitment's decoder reads it as the \
-      witness's stack alone: {L.length} stacks, in {(t3 - t2).toFloat / 1e9} s"
+      witness's stack alone: {L.length} stacks"
+    let e ← timedOn "extract, from the log" log fun log ↦
+      extract Blake2sFlock.blake2sFlockSpec fillProg mulInput p log
+    let honest := match e, Sizes.ofWitness theWitness with
+      | some ⟨s', q'⟩, some s₀ => s'.logMem == s₀.logMem && List.ofFn s'.τ == List.ofFn s₀.τ &&
+          Vector.toList q'.values == Vector.toList q.values
+      | _, _ => false
+    IO.println s!"{if honest then "ok  " else "FAIL"} extract returns the witness's sizes and stack"
     (← IO.getStdout).flush
-    return (if sameWord then 0 else 1) + (if sameStack then 0 else 1)
+    return [sameWord, sameStack, honest].countP (!·)
   else
     IO.println "FAIL the announced sizes or rate are not admissible"
     return 1
+
+/-- The clauses of `M3Holds` decided one by one on the witness's stack, at its sizes or with the
+memory log-size replaced by `lm + 1`: the bus's tuples, flushed and on the boundary, then each
+clause. -/
+def m3Clauses (lm : Option ℕ) : IO ℕ := do
+  let some s₀ := Sizes.ofWitness theWitness | do IO.println "no sizes"; return 1
+  let s := match lm with
+    | some lm => { s₀ with logMem := lm + 1, logMem_pos := Nat.succ_pos _ }
+    | none => s₀
+  let I := leanIsaInstance Blake2sFlock.blake2sFlockSpec fillProg s
+  IO.println s!"sizes: memory 2^{s.logMem}, tables {List.ofFn s.τ}, stack 2^{I.μ}"
+  let q ← timed "the stack" fun _ ↦ stackOf Blake2sFlock.blake2sFlockSpec fillProg s theWitness
+  let fp ← timedOn "the pushed tuples of the tables" q fun q ↦ I.flushTuples q .push
+  let fq ← timedOn "the pulled tuples of the tables" q fun q ↦ I.flushTuples q .pull
+  let bp ← timedOn "the pushed tuples of the boundary" q fun q ↦ I.boundaryTuples q .push
+  let bq ← timedOn "the pulled tuples of the boundary" q fun q ↦ I.boundaryTuples q .pull
+  IO.println s!"  {fp.length + bp.length} pushed and {fq.length + bq.length} pulled tuples"
+  let c ← timedOn "ConstraintsVanish" q fun q ↦ decide (I.ConstraintsVanish q)
+  let b ← timedOn "Balanced" q fun q ↦ decide (I.Balanced q)
+  let n ← timedOn "CountsNonzero" q fun q ↦ decide (I.CountsNonzero q)
+  let p ← timedOn "PublicLinesHold" q fun q ↦ decide (I.PublicLinesHold mulInput q)
+  let a ← timedOn "aux" q fun q ↦ decide (I.aux q)
+  let m ← timedOn "M3Holds" q fun q ↦ decide (M3Holds I mulInput q)
+  IO.println s!"  ConstraintsVanish {c}, Balanced {b}, CountsNonzero {n}, PublicLinesHold {p}, \
+    aux {a}, M3Holds {m}"
+  return if m then 0 else 1
 
 /-- The honest prover's run and the verifier's on its proof, every hash logged: the proof must be
 the file's `f`, the verifier must accept it, and the joint log must have no collision and no
@@ -366,6 +408,8 @@ def main (args : List String) : IO UInt32 := do
     let failed ← tamperChecks f (2 ^ 24) f.rate
     IO.println s!"{failed} failed"
     return if failed = 0 then 0 else 1
+  if args.head? == some "m3" then
+    return if (← m3Clauses ((args[1]?).bind String.toNat?)) = 0 then 0 else 1
   if args.head? == some "log" then
     let file := args.getD 1 "tests/vectors/fill.proof"
     let some f := load (← IO.FS.readFile file) | do
