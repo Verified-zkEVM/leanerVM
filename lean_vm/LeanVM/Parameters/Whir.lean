@@ -26,6 +26,24 @@ namespace LeanVM.Parameters.Whir
 
 @[expose] public section
 
+/-! ## Parameters no end statement reaches, moved here from the statement -/
+
+/-- Out-of-domain samples taken after a level's commitment: none at level 0, whose commitment the
+opening's own evaluation claim binds, and one at every later level (`whir_config.rs:107-114`).
+The Rust production test fixes the count for stack sizes 22 to 28 (`whir_config.rs:983, 995`);
+for 15 to 21 it is the second verifier's, which takes one sample per level after the first
+(`verifier.py:1147-1153`). -/
+def oodSamples (level : ℕ) : ℕ := if level = 0 then 0 else 1
+
+/-- The variables left after every fold: the size of the residual sent in the clear. -/
+def residualLog (μ logInvRate : ℕ) : ℕ := μ - ((shape μ logInvRate).map Prod.fst).sum
+
+/-- The log block lengths `κ_i + R_i` of the levels' codes: the message log after a level's fold
+plus its rate exponent (`LevelShapes.block_len`, `whir_config.rs:121-156`). -/
+def blockLogs (μ : ℕ) : List Level → List ℕ
+  | [] => []
+  | l :: rest => (μ - l.fold + l.logInvRate) :: blockLogs (μ - l.fold) rest
+
 /-- `whir_config.rs:80`: the first reduction never exceeds the first fold. -/
 theorem initialReduction_le_initialFold : initialReduction ≤ initialFold := by decide
 

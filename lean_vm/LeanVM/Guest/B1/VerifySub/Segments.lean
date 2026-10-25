@@ -340,8 +340,8 @@ theorem announced_eq {bytecode : List K} {s : Fs} {T : List E} {O : List Opening
     Verifier.announced bytecode T = some (L, r) := by
   obtain ⟨sp', -, hr⟩ := runId_of_runF h hs
   have e := ReadOnlyA.run_eq _ ((readOnly_iff _).1 (readOnly_readSizes bytecode))
-    (fun _ ↦ pure default) keccak256 (fun _ ↦ pure default) keccakF ⟨default, []⟩ sp T [] O [] R
-  unfold Verifier.announced
+    (fun _ ↦ default) keccak256 (fun _ ↦ default) keccakF ⟨default, []⟩ sp T [] O [] R
+  unfold Verifier.announced Compile.runPure
   rw [e]
   change (runId (readSizes bytecode) ⟨sp, T, O, R⟩).map (·.1) = _
   rw [hr]

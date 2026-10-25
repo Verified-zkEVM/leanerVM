@@ -408,7 +408,7 @@ On each input the driver ran `build_layout` and recorded whether it raised. -/
     [(e 0x74c3d55b8563cc8d 0xe14fe16b59b07f5b 0xc8d072e655497420),
      (e 0xa796fc834b5ba71f 0x101f01afc165bbbb 0xa16e9550118705e7)]
 
-#guard ([false, true].map fun odd ↦ (List.range 13).map (keccakCellLanes odd)) =
+#guard ([false, true].map fun odd ↦ (List.range 13).map (LeanVM.Semantics.cellLanes odd)) =
     [[(some 0, some 1), (some 2, some 3), (some 4, some 5), (some 6, some 7), (some 8, some 9),
       (some 10, some 11), (some 12, some 13), (some 14, some 15), (some 16, none),
       (some 17, some 18), (some 19, some 20), (some 21, some 22), (some 23, some 24)],

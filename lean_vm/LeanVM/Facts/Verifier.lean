@@ -2,8 +2,9 @@
   LeanVM.Facts.Verifier
 
   Facts about the verifier's definitions (`Statement/LeanVmVerifier.lean`), proved:
-  the `q_keccak` spare slots and the `KECCAK` slot layout, and `pack`.
-  The definitions are the statement's; these are proofs.
+  the `q_keccak` spare slots and the `KECCAK` slot layout, and `pack`; and the verifier's
+  definitions no end statement reaches, moved here from the statement, names kept: `yE`,
+  `keccakOut`, `packBits`, `pack`, the deployed seed `seed` and the deployed verifier `verify`.
 -/
 
 module
@@ -14,22 +15,6 @@ public import Statement.Fast.FieldWords
 public import Statement.Fast.Keccak
 public import Mathlib.Algebra.BigOperators.Group.Finset.Basic
 public import Statement.LeanVmVerifier
-
-namespace LeanVM.Parameters.Whir
-
-@[expose] public section
-
-end
-end LeanVM.Parameters.Whir
-
-namespace LeanVM.Protocol.Compile
-
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Protocol.KeccakHash
-
-@[expose] public section
-
-end
-end LeanVM.Protocol.Compile
 
 namespace LeanVM.Protocol.Verifier
 
@@ -48,11 +33,31 @@ theorem keccakSlotOf_disjoint :
     ∀ l ∈ keccakCommitted.take qkeccakSpare, ¬ (keccakIn ≤ l ∧ l < keccakIn + 25) := by
   decide +kernel
 
-open LeanVM.Protocol.Compile
+open LeanVM.Protocol.Compile LeanVM.Protocol.KeccakHash
+
+/-- `E(0, 1)`, the tower generator `y` with `y^3 = y + 1`. -/
+def yE : E := E.ofLimbs 0 1 0
+
+/-- `KECCAK_OUT` (`verifier.py:941`): the local column of output lane `0`. -/
+def keccakOut : ℕ := colIdx keccakColumns "out_0"
+
+/-- `PACK_BITS` (`verifier.py:1223`): a pack is `2 ^ PACK_BITS` consecutive steps. -/
+def packBits : ℕ := 4
+
+/-- The steps of a pack, `2 ^ PACK_BITS = 16`. -/
+def pack : ℕ := 16
 
 theorem pack_eq : pack = 2 ^ packBits := rfl
 
-open LeanVM.Semantics LeanVM.Protocol.KeccakHash
+/-- The deployed seed, with Keccak. -/
+def seed (bytecode : List K) (publicInput : Digest) : KState :=
+  Id.run (seedWith (m := Id) keccak256 keccakF bytecode publicInput)
+
+/-- **The deployed leanVM verifier**: the program's compiled reading with Keccak-256 and
+Keccak-f[1600], from the deployed seed. -/
+def verify (bytecode : List K) (publicInput : Digest) (π : Proof) : Bool :=
+  Id.run (runProof (m := Id) keccak256 keccakF (leanVmProgram bytecode publicInput)
+    (seed bytecode publicInput) π)
 
 end
 end LeanVM.Protocol.Verifier
