@@ -1,7 +1,7 @@
 # Statement
 
 What the repository proves, in the files a reviewer reads: definitions and end statements only,
-one Lake package (`statement`) of ten files, `Statement/<Name>.lean` (Lean modules
+one Lake package (`statement`) of eleven files, `Statement/<Name>.lean` (Lean modules
 `Statement.<Name>`), the generated guest bytecode in [`Data/`](Data/), and, for speed only,
 proved `@[csimp]` lemmas in [`Fast/`](Fast/), which a reviewer need not read. It imports Mathlib, VCVio
 and CompPoly and nothing else (CI checks it); every other project of the repository is proof and
@@ -117,6 +117,10 @@ laws: the lemmas before it in `LeanDa.lean`); and decidability instances.
 
 ## The end theorems
 
+[`Theorems.lean`](Theorems.lean) lists them all, as the fields of one structure,
+`Statement.Theorems`, each with one line on what it says; `lean_vm/LeanVM.lean` proves it in one
+theorem, `LeanVM.theorems_hold`, whose axioms the build pins to Lean's three. Start there.
+
 | Statement | Proved by | In |
 | --- | --- | --- |
 | `LeanVM.KnowledgeSoundness` | `LeanVM.knowledgeSoundness_holds` | [`lean_vm/LeanVM/Protocol/LeanVMRpm.lean`](../lean_vm/LeanVM/Protocol/LeanVMRpm.lean) |
@@ -144,6 +148,6 @@ valid witnesses, and their content is in the decoder the theorems name.
 
 ## Building
 
-`lake build` here builds the ten files, the data and `Fast/`; the other projects build it as a dependency.
+`lake build` here builds the eleven files, the data and `Fast/`; the other projects build it as a dependency.
 The data's modules are heavy: `python3 -I ../lake-build.py .` builds them in one `lake build` that admits
 its modules by memory, as CI does.

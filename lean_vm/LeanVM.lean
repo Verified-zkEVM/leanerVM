@@ -5,8 +5,15 @@ import LeanVM.Guest.Batch.Rpm
 import LeanVM.Guest.EndRpm
 import LeanVM.Guest.Budget.ClosedN
 import LeanVM.Guest.Budget.Covered
+import XmssSecurity.Rpm
+import Sphincs.LifetimesRpm
+import LeanDa
+import Statement.Theorems
 
 /-! # The end theorems of leanVM
+
+`LeanVM.theorems_hold` (at the end) proves `Statement.Theorems` (`Statement/Theorems.lean`): every end
+statement of the repository, leanXMSS's, leanSPHINCS's and LeanDA's included, in one theorem.
 
 Each proves a proposition of `Statement/` (`Statement/README.md`), in the random-permutation model
 where an adversary is involved:
@@ -154,3 +161,25 @@ example : LeanVM.Guest.Batch.BatchSoundRpmBits := LeanVM.Guest.Batch.batch_sound
 /-- info: 'LeanVM.Guest.Budget.guest_complete_leaf' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms LeanVM.Guest.Budget.guest_complete_leaf
+
+/-- **Every end theorem**, `Statement/Theorems.lean`, the guest's witness named by
+`LeanVM.Guest.End.decode`. -/
+theorem LeanVM.theorems_hold : Statement.Theorems LeanVM.Guest.End.decode where
+  knowledgeSoundness := LeanVM.knowledgeSoundness_holds
+  knowledgeSoundnessBits := LeanVM.knowledgeSoundness_bits
+  completeness := LeanVM.completeness_holds
+  guestKnowledge := LeanVM.Guest.End.guest_knowledge
+  aggregateSound := LeanVM.Guest.End.aggregate_sound_outer
+  guestCompleteRecursion := LeanVM.Guest.Budget.guest_complete_recursion
+  guestCompleteLeaf := LeanVM.Guest.Budget.guest_complete_leaf
+  batchSound := LeanVM.Guest.Batch.batch_sound_rpm
+  batchSoundBits := LeanVM.Guest.Batch.batch_sound_rpm_bits
+  leanXmss := XmssSecurity.leanXmss_rpm_security
+  leanSphincs := Sphincs.Lifetimes.requestedSecurityRpm
+  leanDaComplete := LeanDa.leanDa_perfectlyComplete_rpm
+  leanDaPositionBinding := LeanDa.leanDa_positionBinding_rpm
+  leanDaCodeBinding := LeanDa.leanDa_codeBinding_rpm_bound
+
+/-- info: 'LeanVM.theorems_hold' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms LeanVM.theorems_hold
