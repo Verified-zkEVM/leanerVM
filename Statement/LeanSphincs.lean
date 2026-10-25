@@ -17,7 +17,9 @@ permutation calls, `1 ≤ Q ≤ 2^128`, forges with probability at most `(Q + 1)
 `Sphincs.Lifetimes.requestedSecurityRpm` (`lean_sphincs`).
 -/
 
-section
+@[expose] public section
+
+open OracleComp OracleSpec ENNReal
 
 /-!
 ## leanSPHINCS with a two-level WOTS forest
@@ -62,11 +64,7 @@ hashed: `P` binds the key), 80 bytes in one block, and the randomizer base `S ||
 randomizer, which changes between two grinding attempts, comes last.
 -/
 
-open OracleComp OracleSpec ENNReal
-
 namespace Sphincs
-
-@[expose] public section
 
 /-! ### The instance: parameters, types, and hash-input layout -/
 
@@ -847,52 +845,6 @@ def treeNode (parameter : PublicParameter) (lay : Layer) (tree : TreeIndex)
       let right ← treeNode parameter lay tree seed level (2 * nodeIdx + 1)
       tweakableHash parameter (.node lay tree (level + 1) nodeIdx) (nodePayload left right)
 
-variable [Params]
-
-/-- The surrogate sibling at `level >= b`, derived from the seed (`TWEAK_SURROGATE`). Honest calls
-have `level < h`. -/
-def surrogate (parameter : PublicParameter) (seed : MasterSeed) (level : Nat) : m Digest :=
-  if hlevel : level < totalHeight then deriveKey parameter (.surrogate ⟨level, hlevel⟩) seed else pure 0
-
-/-- The node at level `b + steps` above the kept subtree: the subtree root folded with the first
-`steps` surrogates (`XmssTree::from_leaves`). -/
-def spineNode (parameter : PublicParameter) (lay : Layer) (tree : TreeIndex) (seed : MasterSeed) :
-    Nat → m Digest
-  | 0 => treeNode parameter lay tree seed subtreeHeight (subtreePosition parameter)
-  | steps + 1 => do
-      let below ← spineNode parameter lay tree seed steps
-      let sibling ← surrogate parameter seed (subtreeHeight + steps)
-      let nodeIdx := subtreePosition parameter / 2 ^ steps
-      if nodeIdx.testBit 0 then
-        tweakableHash parameter (.node lay tree (subtreeHeight + steps + 1) (nodeIdx / 2))
-          (nodePayload sibling below)
-      else
-        tweakableHash parameter (.node lay tree (subtreeHeight + steps + 1) (nodeIdx / 2))
-          (nodePayload below sibling)
-
-/-- The root: the spine's top. -/
-def treeRoot (parameter : PublicParameter) (lay : Layer) (tree : TreeIndex)
-    (seed : MasterSeed) : m Digest :=
-  spineNode parameter lay tree seed (totalHeight - subtreeHeight)
-
-/-- The authentication path of a kept leaf (`XmssTree::path`): subtree nodes below level `b`,
-surrogates from level `b` on. -/
-def treePath (parameter : PublicParameter) (lay : Layer) (tree : TreeIndex)
-    (seed : MasterSeed) (leaf : LeafIndex) : m (Fin (layerHeight lay) → Digest) :=
-  sequenceFin fun level =>
-    if level.val < subtreeHeight then
-      treeNode parameter lay tree seed level.val (Nat.xor (leaf.val / 2 ^ level.val) 1)
-    else
-      surrogate parameter seed level.val
-
-end Seeded
-
-namespace Seeded
-
-open Concrete
-
-variable {m : Type → Type} [Monad m] [HasQuery HashSpec m]
-
 /-- The starts `x_{i,0}` of the 6 chains of a child, from 3 seed derivations. Chains `2t` and
 `2t + 1` start at the two halves of derivation `t`. -/
 def forestSecrets (parameter : PublicParameter) (index : Index) (c : Coord) (s : SuperIdx)
@@ -972,6 +924,42 @@ def forestOpen (parameter : PublicParameter) (index : Index) (marks : Coord → 
 
 variable [Params]
 
+/-- The surrogate sibling at `level >= b`, derived from the seed (`TWEAK_SURROGATE`). Honest calls
+have `level < h`. -/
+def surrogate (parameter : PublicParameter) (seed : MasterSeed) (level : Nat) : m Digest :=
+  if hlevel : level < totalHeight then deriveKey parameter (.surrogate ⟨level, hlevel⟩) seed else pure 0
+
+/-- The node at level `b + steps` above the kept subtree: the subtree root folded with the first
+`steps` surrogates (`XmssTree::from_leaves`). -/
+def spineNode (parameter : PublicParameter) (lay : Layer) (tree : TreeIndex) (seed : MasterSeed) :
+    Nat → m Digest
+  | 0 => treeNode parameter lay tree seed subtreeHeight (subtreePosition parameter)
+  | steps + 1 => do
+      let below ← spineNode parameter lay tree seed steps
+      let sibling ← surrogate parameter seed (subtreeHeight + steps)
+      let nodeIdx := subtreePosition parameter / 2 ^ steps
+      if nodeIdx.testBit 0 then
+        tweakableHash parameter (.node lay tree (subtreeHeight + steps + 1) (nodeIdx / 2))
+          (nodePayload sibling below)
+      else
+        tweakableHash parameter (.node lay tree (subtreeHeight + steps + 1) (nodeIdx / 2))
+          (nodePayload below sibling)
+
+/-- The root: the spine's top. -/
+def treeRoot (parameter : PublicParameter) (lay : Layer) (tree : TreeIndex)
+    (seed : MasterSeed) : m Digest :=
+  spineNode parameter lay tree seed (totalHeight - subtreeHeight)
+
+/-- The authentication path of a kept leaf (`XmssTree::path`): subtree nodes below level `b`,
+surrogates from level `b` on. -/
+def treePath (parameter : PublicParameter) (lay : Layer) (tree : TreeIndex)
+    (seed : MasterSeed) (leaf : LeafIndex) : m (Fin (layerHeight lay) → Digest) :=
+  sequenceFin fun level =>
+    if level.val < subtreeHeight then
+      treeNode parameter lay tree seed level.val (Nat.xor (leaf.val / 2 ^ level.val) 1)
+    else
+      surrogate parameter seed level.val
+
 /-- Key generation from the scheme seed `S`: derive the public parameter, which places the kept
 subtree, and build the root. -/
 def keygenFromMaster (seed : MasterSeed) : OracleComp HashSpec (PublicKey × SecretKey) := do
@@ -1030,21 +1018,7 @@ def sign (secretKey : SecretKey) (message : Message) : m (Option Signature) := d
 
 end Seeded
 
-end
-
-end Sphincs
-
-end
-
 /-! ## Forgeries and transcripts -/
-
-section
-
-open OracleComp OracleSpec ENNReal
-
-namespace Sphincs
-
-@[expose] public section
 
 structure Forgery where
   message : Message
@@ -1053,9 +1027,9 @@ deriving DecidableEq
 
 abbrev SigningSpec := Message →ₒ Option Signature
 
-variable [Params]
-
 namespace SigningTranscript
+
+variable [Params]
 
 def Valid (log : QueryLog SigningSpec) : Prop := log.length ≤ signatureLimit
 
@@ -1071,19 +1045,11 @@ instance (log : QueryLog SigningSpec) (forgery : Forgery) : Decidable (Contains 
 
 end SigningTranscript
 
-end
-
-end Sphincs
-
-end
-
 /-! ## Security in the random-permutation model -/
 
-@[expose] public section
+namespace Rpm
 
-open OracleComp OracleSpec ENNReal Common Common.SufCma
-
-namespace Sphincs.Rpm
+open Common Common.SufCma
 
 variable [Params]
 
@@ -1123,17 +1089,11 @@ def HasRpmSecurityBits (bits : Nat) : Prop :=
   ∀ Q, 1 ≤ Q → Q ≤ 2 ^ 128 → ∀ adversary, HasPermutationBound adversary Q →
     forgeAdvantage adversary ≤ ((Q : ℝ≥0∞) + 1) * (2 : ℝ≥0∞)⁻¹ ^ bits
 
-end Sphincs.Rpm
-
-end
+end Rpm
 
 /-! ## The proved lifetimes -/
 
-@[expose] public section
-
-open OracleComp OracleSpec ENNReal
-
-namespace Sphincs.Lifetimes
+namespace Lifetimes
 
 /-- Subtree height 26, 1383000000 signatures (96.1% of the cover attack's 1.44e+09; the FORS variant: 1156000000). -/
 abbrev full : Params := ⟨26, 1383000000, by decide⟩
@@ -1156,15 +1116,7 @@ abbrev pruned10 : Params := ⟨10, 33490, by decide⟩
 /-- Subtree height 8, 8830 signatures (81.9% of the cover attack's 1.078e+04; the FORS variant: 7530). -/
 abbrev pruned8 : Params := ⟨8, 8830, by decide⟩
 
-end Sphincs.Lifetimes
-
-end
-
-@[expose] public section
-
 /-! ### The end statement -/
-
-namespace Sphincs.Lifetimes
 
 /-- **leanSPHINCS in the random-permutation model, at every proved lifetime**: at each subtree
 height (`b` = 26, 20, 14, 13, 12, 10, 8, the instances `full`, `pruned20`, …, `pruned8` with
@@ -1181,6 +1133,8 @@ abbrev RequestedSecurityRpm : Prop :=
   @Rpm.HasRpmSecurityBits pruned10 127 ∧
   @Rpm.HasRpmSecurityBits pruned8 127
 
-end Sphincs.Lifetimes
+end Lifetimes
+
+end Sphincs
 
 end

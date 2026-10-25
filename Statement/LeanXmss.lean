@@ -15,7 +15,9 @@ game makes at most `Q` permutation calls, `1 ≤ Q ≤ 2^128`, forges with proba
 `(Q + 1) · 2^-127`. Proved by `XmssSecurity.leanXmss_rpm_security` (`lean_xmss`).
 -/
 
-section
+@[expose] public section
+
+open OracleComp OracleSpec ENNReal
 
 /-!
 ## leanXMSS
@@ -38,11 +40,7 @@ WOTS+C one-time keys. Key `b` of the top tree signs the root of bottom tree `b`;
   `c < 2^32` such that `Th(P, A_msg(l, e), M || (R0 + c))` is a codeword.
 -/
 
-open OracleComp OracleSpec ENNReal
-
 namespace LeanXmss
-
-@[expose] public section
 
 /-! ### The instance: parameters, types, and hash-input layout -/
 
@@ -472,21 +470,7 @@ def sign (secretKey : SecretKey) (index : LeafIndex) (message : Message) : m (Op
 
 end Seeded
 
-end
-
-end LeanXmss
-
-end
-
 /-! ## Signing requests, forgeries and transcripts -/
-
-section
-
-open OracleComp OracleSpec ENNReal
-
-namespace LeanXmss
-
-@[expose] public section
 
 /-- A signing request: a leaf index and a 32-byte message. -/
 structure SignRequest where
@@ -523,19 +507,11 @@ instance (log : QueryLog SigningSpec) (forgery : Forgery) : Decidable (Contains 
 
 end SigningTranscript
 
-end
-
-end LeanXmss
-
-end
-
 /-! ## Security in the random-permutation model -/
 
-@[expose] public section
+namespace Rpm
 
-open OracleComp OracleSpec ENNReal Common Common.SufCma
-
-namespace LeanXmss.Rpm
+open Common Common.SufCma
 
 /-- leanXMSS in the generic SUF-CMA game: the seed, key generation, the signer of a request, the
 verifier, and the winning condition (`SigningTranscript`, above). -/
@@ -576,6 +552,8 @@ def HasRpmSecurityBits (bits : Nat) : Prop :=
 /-- The security claim in the random-permutation model. -/
 abbrev LeanXmssRpmSecurityStatement : Prop := HasRpmSecurityBits 127
 
-end LeanXmss.Rpm
+end Rpm
+
+end LeanXmss
 
 end
