@@ -1983,7 +1983,8 @@ Tests:
   theorem with its one premise, `verify` accepting, checked natively on Layer 12's fixture and on
   the test vector;
 - the honest prover's run on the test vector (acceptance test 37), natively: no collision and no
-  hit in the joint log;
+  hit in the joint log, and the word `extract` reads off the prover's log is the committed word,
+  which the commitment's decoder reads as the witness's stack alone;
 - `verify` as `verifyWith` at `blake2sBytes`, and `verifyWith_simulateQ` (acceptance test 38).
 
 #### The executable prover and the test vectors
@@ -2152,14 +2153,17 @@ witness is executable it is a test under `tests/`.
     `δ < 1`; `verify` accepts Layer 12's fixture and the test vector natively (`leanervm-verify`;
     interpreted, `verify` alone takes over a minute).
 37. **The hypothesis is satisfiable by an accepted adversary.** A hypothesis that only rejected
-    adversaries meet would make the headline vacuous where it matters. `honestAdversary`'s run
-    under BLAKE2s on the test vector has no collision and no hit, its log holds the rows it
-    committed, and out of fuel it returns the empty proof, which `verify` rejects (the stream is
-    not consumed). Witness: `leanervm-prove log`, natively, the prover and the verifier with every
-    hash logged: the decidable clauses, no collision and no hit in the joint log, by a one-pass
-    scan that `#guard`s match against `QueryLog.HasCollision` and `Hit` on small logs. The flip
-    clause is not decidable, so `δ = 0` is not claimed for flips. `extract` on the honest log is
-    not run at the vector's size: deciding `M3Holds` on a satisfying stack decides the bus's
+    adversaries meet would make the headline vacuous where it matters. The test is met on two of
+    the hypothesis's three clauses: `honestAdversary`'s run under BLAKE2s on the test vector has no
+    collision and no hit. The flip clause is not decidable, so `δ = 0` is not claimed for it, and
+    nothing feasible decides it; the random-oracle bound (`misbehaves_rom`) is the evidence for
+    it. Out of fuel `honestAdversary` returns the empty proof, which `verify` rejects (the stream
+    is not consumed). Witness: `leanervm-prove log`, natively, the prover and the verifier with
+    every hash logged: no collision and no hit in the joint log, by a one-pass scan that `#guard`s
+    match against `QueryLog.HasCollision` and `Hit` on small logs; and the prover's log holds the
+    rows it committed: the level-0 word `extract` reads off it is the committed word, and the
+    commitment's decoder reads it as the witness's stack alone. `extract` itself is not run on the
+    honest log at the vector's size: deciding `M3Holds` on a satisfying stack decides the bus's
     permutation, quadratic in its length. A hit clause that counted the proof's digests against the
     adversary's own queries would fail it: the honest prover computes its roots and nodes through
     the oracle, each a fresh answer that is a digest of the proof it outputs. "It meets it at

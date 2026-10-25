@@ -1326,7 +1326,15 @@ prover and 3291 verifier queries), with no collision and no hit (test 37, reduce
 clause is not decidable, and `extract` on the honest log is not run, since deciding `M3Holds`
 decides the bus's permutation, quadratic in its length); `verify` as `verifyWith` at BLAKE2s and
 `verifyWith_simulateQ` (test 38). Owed: `core`; `baseProver_complete_of_execution`, which waits
-for leanISA's constraint completeness at the trace level.
+for leanISA's constraint completeness at the trace level; and `extract_honest`, that `extract` on
+a run of `honestAdversary` returns the witness's sizes and stack, which acceptance test 24 needs
+at leanVM (its witness there is the toy's commitment pick) as test 37 does. Its three pieces: on
+a codeword the deployed decoder's list is the exact path's singleton (`ListDecoder.nttFirst`,
+`exactNtt_of_codeword`); the pick keeps the honest stack, which satisfies `M3Holds` from
+`SatisfiedBy` (`m3Holds_stackOf`); and the Merkle-log half, that the honest prover's log holds
+every level-0 leaf query in the layout `extractAllRows` and `laneRow` read (the zero prefix, the
+lanes reversed), so that `logWord` is the committed codeword. `leanervm-prove log` checks the
+first and third natively on the test vector; no theorem states them yet.
 
 ## Upstream watch
 
