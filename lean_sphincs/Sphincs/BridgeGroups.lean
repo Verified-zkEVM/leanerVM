@@ -20,7 +20,7 @@ attribute [local instance] Classical.propDecidable
 
 variable [Params]
 
-instance : Nonempty Randomness := ⟨0⟩
+instance instNonemptyRandomness : Nonempty Randomness := ⟨0⟩
 
 section Defs
 
