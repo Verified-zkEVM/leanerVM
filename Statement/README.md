@@ -50,7 +50,12 @@ Benedikt Wagner's ([b-wagn/fv-pq-da](https://github.com/b-wagn/fv-pq-da), Apache
    his bound names, LeanDA's games in the random-permutation model, and
    `LeanDa.PerfectlyCompleteRpm` (for every permutation `π`: Keccak-256 over `π`, `keccakWith`,
    and the verifier's oracles answered by `π`, `permImpl`; the experiment `completenessExpRpm`),
-   `LeanDa.PositionBindingRpm`, `LeanDa.CodeBindingRpm`.
+   `LeanDa.PositionBindingRpm`, `LeanDa.CodeBindingRpm`. Code binding keeps Wagner's
+   random-oracle terms (`ksExpH`, `wpbCollExpH`, `forkCollExpH`, experiments over a random hash
+   table) and is meaningful only for an argument that stays knowledge sound when the hash is the
+   oracle; an argument complete for every `π`, as `PerfectlyCompleteRpm` asks, does not, so
+   completeness and code binding are not both meaningful for one argument (as in Wagner's
+   original).
 6. [`LeanIsa.lean`](LeanIsa.lean): leanISA (memory, the six instructions, programs, one step,
    `run`, `ValidExecution`: a run from `(1, 1)` that halts in the final state
    `(g^(N_prog - 1), 1)`, the instruction counts `Trace.count`, the bytecode encoding), the

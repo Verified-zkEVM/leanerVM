@@ -54,6 +54,17 @@ completeness moved to the random-permutation model.
   `LeanDa.leanDa_perfectlyComplete_rpm`, `leanDa_positionBinding_rpm` and
   `leanDa_codeBinding_rpm_bound` (`lean_da`).
 
+**What code binding says.** Wagner's framework is kept as it is. `CodeBindingRpm`'s bound keeps
+three of his reductions' advantages, which are random-oracle experiments over a uniformly random
+table of the hash, not numbers: `ksExpH` (the argument's knowledge-soundness error `ε_ks`),
+`wpbCollExpH` and `forkCollExpH`. The argument (`Nark`) proves a relation that involves the hash,
+but its prover and verifier do not call the hash; so `ε_ks` is small only for an argument that
+stays knowledge sound when the hash is the random oracle, and an oracle-free argument cannot be.
+An argument complete for every `π` (as `PerfectlyCompleteRpm` asks) accepts false statements, and
+for it `ε_ks ≈ 1`: completeness and code binding cannot both be meaningful for one argument. The
+same holds in Wagner's random-oracle original. Giving the argument oracle access would close this;
+it is not done.
+
 Not definitions: `daDuplex` is a `Common.Duplex.DuplexSpec`, which carries the duplex's laws, so
 the lemmas before it (`daFirst_injective`, `daDec_iff` and what they use) are proved here. The
 three `Statement.Fast` imports only make the compiled field arithmetic and Keccak fast (proved
@@ -1901,7 +1912,9 @@ honest commitment to every message `msg` opens and verifies with probability one
 (`completenessExpRpm`, over the argument's setup). Holding for each `π`, it holds for every
 outcome of the binding statements' uniformly random permutation. The proof is Wagner's
 completeness proof, transferred. Proved by
-`LeanDa.leanDa_perfectlyComplete_rpm`. -/
+`LeanDa.leanDa_perfectlyComplete_rpm`. An argument complete for every `π` makes `CodeBindingRpm`'s
+knowledge-soundness term `ε_ks` close to `1`, so this and code binding are not both meaningful for
+one argument (the file's header, "What code binding says"). -/
 abbrev PerfectlyCompleteRpm : Prop :=
   ∀ (r : ℕ) (π : KState → KState) {Crs Proof : Type} (ps : Argument r (keccakWith π) Crs Proof),
     ps.PerfectlyComplete →
@@ -1933,7 +1946,15 @@ where, for a uniformly random table `h` of `H` on the strings of at most `2048` 
 its hash) and Wagner's adversary `advH h` built from the RPM adversary, `ε_ks` is the success of
 Wagner's reduction against the knowledge soundness of `ps` for the relation with the hash `Hh h`
 (`ksExpH`), and `ε₁`, `ε₂` those of his two reductions finding a collision of `Hh h`
-(`wpbCollExpH`, `forkCollExpH`). Proved by `LeanDa.leanDa_codeBinding_rpm_bound`. -/
+(`wpbCollExpH`, `forkCollExpH`). Proved by `LeanDa.leanDa_codeBinding_rpm_bound`.
+
+The bound keeps these three random-oracle experiments over the table `h`; they are not numbers.
+`ps` proves a relation involving the hash, but its prover and verifier do not call the hash, so
+`ε_ks` is small only for an argument that stays knowledge sound when the hash is the random oracle,
+which an oracle-free argument cannot. For an argument complete for every `π`
+(`PerfectlyCompleteRpm`), which accepts false statements, `ε_ks ≈ 1`: completeness and code
+binding are not both meaningful for one argument, as in Wagner's random-oracle original. Giving
+the argument oracle access would close this; it is not done. -/
 abbrev CodeBindingRpm : Prop :=
   ∀ (r : ℕ) {Crs Proof : Type} {rel : Unit × Digest × Challenges → (Fin (r * 128) → Cell) → Bool}
     (ps : Nark (Unit × Digest × Challenges) (Fin (r * 128) → Cell) Crs Proof rel) [NeZero r]
