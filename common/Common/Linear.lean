@@ -77,6 +77,6 @@ theorem sq_add_sq_le {Q : ℕ} (hQ : Q ≤ 2 ^ 128) :
         rw [div_eq_mul_inv ((Q : ℝ≥0∞) ^ 2) ((2 : ℝ≥0∞) ^ 256), ENNReal.inv_pow]
         exact add_le_add le_rfl h2
     _ = ((Q : ℝ≥0∞) ^ 2 + Q) * (2 : ℝ≥0∞)⁻¹ ^ 256 := (add_mul _ _ _).symm
-    _ ≤ ((Q : ℝ≥0∞) + 1) ^ 2 * (2 : ℝ≥0∞)⁻¹ ^ 256 := by gcongr ?_ * _ <;> exact h3
+    _ ≤ ((Q : ℝ≥0∞) + 1) ^ 2 * (2 : ℝ≥0∞)⁻¹ ^ 256 := by gcongr
 
 end Common
