@@ -93,7 +93,7 @@ theorem daCells_canonical (c : DaClaim) : AllCanonical (daCells c) := by
 
 theorem xmssList_cells (l : List XmssClaim) :
     xmssListDigest l = keccak256 (cellsBytes (l.flatMap fun c => claimCells c.1.root c.1.parameter c.2)) := by
-  unfold xmssListDigest
+  unfold xmssListDigest xmssPreimage
   congr 1
   simp only [cellsBytes, List.flatMap_assoc]
   congr 1
@@ -103,7 +103,7 @@ theorem xmssList_cells (l : List XmssClaim) :
 theorem sphincsList_cells (l : List SphincsClaim) :
     sphincsListDigest l =
       keccak256 (cellsBytes (l.flatMap fun c => claimCells c.1.root c.1.parameter c.2)) := by
-  unfold sphincsListDigest
+  unfold sphincsListDigest sphincsPreimage
   congr 1
   simp only [cellsBytes, List.flatMap_assoc]
   congr 1
@@ -111,7 +111,7 @@ theorem sphincsList_cells (l : List SphincsClaim) :
   exact (cellsBytes_claimCells _ _ _).symm
 
 theorem daList_cells (l : List DaClaim) : daListDigest l = keccak256 (cellsBytes (l.flatMap daCells)) := by
-  unfold daListDigest
+  unfold daListDigest daPreimage
   congr 1
   simp only [cellsBytes, List.flatMap_assoc]
   congr 1

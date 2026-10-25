@@ -196,7 +196,7 @@ theorem hMainMem (hlog : Nat.log2 bytecode.length = 23) (hr : NodeRel bytecode s
   obtain ⟨-, -, -, -, -, hz⟩ := hr
   refine ⟨?_, hR 5 (by omega), ?_, ?_, ?_, h0, h1⟩
   · have := hR 3 (by omega)
-    simp only [hOwn, List.getD_cons_succ, List.getD_cons_zero, signersDigest] at this
+    simp only [hOwn, List.getD_cons_succ, List.getD_cons_zero, signersDigest, signersPreimage] at this
     show ReadsAt rd (gen ^ ((mPos (hData seed s w) (fp + fs "main")).getD 3 0))
       (B1.Digest.digestCells (keccak256 (cellsBytes (B1.Digest.digestCells (xmssListDigest s.claims.xmss) ++
         B1.Digest.digestCells (sphincsListDigest s.claims.sphincs)))))

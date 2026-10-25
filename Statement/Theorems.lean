@@ -32,18 +32,26 @@ structure Theorems (decode : LeanVM.Node.Decoder) : Prop where
   /-- leanVM is knowledge sound for the straight-line extractor `extractorRpm`: at most
   `(Q + 2^14) · 2^-128 + 7 (Q + 2^14)² · 2^-256` for `Q ≤ 2^128` queries (`LeanVm.lean`). -/
   knowledgeSoundness : LeanVM.KnowledgeSoundness
-  /-- leanVM is complete: at `2^25` nonces per proof of work, an honest proof is rejected with
+  /-- leanVM is complete: an honest proof of a valid execution of committed size at most `2^28`,
+  at an inverse rate `2^ρ` with `1 ≤ ρ ≤ 4` and `2^25` nonces per proof of work, is rejected with
   probability at most `2^-127` (`LeanVm.lean`). -/
   completeness : LeanVM.Completeness
   /-- Every valid execution of the guest decodes to a statement of its input's digest and a
   witness holding it (`LeanVmGuest.lean`). -/
   guestKnowledge : LeanVM.Node.GuestKnowledge LeanVM.Guest.guest decode
-  /-- An accepted guest proof is explained by the extracted execution, with the bound of
-  `knowledgeSoundness` (`LeanVmGuest.lean`). -/
+  /-- An accepted guest proof is explained by the extracted execution or by a Keccak-256
+  collision, with the bound of `knowledgeSoundness`. A claim held through a child rests only on
+  that child's deferred verification; nothing composes across levels (`LeanVmGuest.lean`). -/
   aggregateSound : LeanVM.Node.AggregateSound LeanVM.Guest.guest decode
-  /-- The guest is complete on every covered recursion node (`LeanVmGuest.lean`). -/
+  /-- The guest is complete on every covered recursion node: at most `2048` declared claims,
+  coverage slots and children's claims, and no raw signature and no blob held by the node itself
+  (`LeanVmGuest.lean`). -/
   guestCompleteRecursion : LeanVM.Guest.Budget.GuestCompleteRecursion
-  /-- The guest is complete on every covered leaf (`LeanVmGuest.lean`). -/
+  /-- The guest is complete on every covered leaf: no child, no blob held directly, at most
+  `2048` raw signatures, declared claims and coverage slots. Neither statement covers a node that
+  checks a blob itself or mixes raw signatures with children, and the recursion statement assumes,
+  rather than shows for honest proofs, the children's `Limits.stackLog` (`≥ 22`) and `Limits.stream` (`≤ 8192`),
+  `CapsAgree` and `NoZeroChallenge` (`LeanVmGuest.lean`). -/
   guestCompleteLeaf : LeanVM.Guest.Budget.GuestCompleteLeaf
   /-- The batching run outside the circuit is sound: at most `(QA + QV + 1) · 2^-191 +
   5 (QA + QV)² · 2^-256` for `QA ≤ 2^128`, `QV ≤ 2^96`; it does not compose with the in-circuit

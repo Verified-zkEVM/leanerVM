@@ -75,7 +75,7 @@ theorem claims_digest {α : Type} (dec : E → E → E → E → α) (bytes : α
 
 theorem xmss_digest {p : E} {o : ℕ → ℕ} {n : ℕ} {cells : List E} (h : SlotsHold rd p o n cells) :
     xmssListDigest ((List.range n).map fun j => xmssAt rd p (o j)) = keccak256 (cellsBytes cells) := by
-  unfold xmssListDigest
+  unfold xmssListDigest xmssPreimage
   rw [← claims_digest Sig.xmssClaimOf (fun c : XmssClaim => claimBytes c.1.root c.1.parameter c.2)
     (fun a b c d => claimBytes_cells a b c d) h]
   rfl
@@ -83,7 +83,7 @@ theorem xmss_digest {p : E} {o : ℕ → ℕ} {n : ℕ} {cells : List E} (h : Sl
 theorem sphincs_digest {p : E} {o : ℕ → ℕ} {n : ℕ} {cells : List E} (h : SlotsHold rd p o n cells) :
     sphincsListDigest ((List.range n).map fun j => sphincsAt rd p (o j)) =
       keccak256 (cellsBytes cells) := by
-  unfold sphincsListDigest
+  unfold sphincsListDigest sphincsPreimage
   rw [← claims_digest Sig.sphincsClaimOf
     (fun c : SphincsClaim => claimBytes c.1.root c.1.parameter c.2)
     (fun a b c d => claimBytes_cells a b c d) h]
@@ -91,7 +91,7 @@ theorem sphincs_digest {p : E} {o : ℕ → ℕ} {n : ℕ} {cells : List E} (h :
 
 theorem da_digest {p : E} {o : ℕ → ℕ} {n : ℕ} {cells : List E} (h : SlotsHold rd p o n cells) :
     daListDigest ((List.range n).map fun j => daAt rd p (o j)) = keccak256 (cellsBytes cells) := by
-  unfold daListDigest
+  unfold daListDigest daPreimage
   rw [← claims_digest (fun a b c d => DaClaim.mk (digestOfCells a b) (digestOfCells c d))
     (fun c : DaClaim => digestBytes c.daRoot ++ digestBytes c.membershipVectorDigest)
     (fun a b c d => by
@@ -124,7 +124,7 @@ theorem signers_eq {xs : List XmssClaim} {ss : List SphincsClaim} {cx0 cx1 cs0 c
     (hx : [cx0, cx1] = digestCells (xmssListDigest xs))
     (hs : [cs0, cs1] = digestCells (sphincsListDigest ss)) :
     signersDigest xs ss = keccak256 (cellsBytes [cx0, cx1, cs0, cs1]) := by
-  unfold signersDigest
+  unfold signersDigest signersPreimage
   rw [digestBytes_of_cells hx, digestBytes_of_cells hs]
   simp [cellsBytes]
 
@@ -139,7 +139,7 @@ theorem statementDigest_parts {seed : Digest} {s : NodeStatement} {s0 s1 h0 h1 d
     (hda : digestBytes (daListDigest s.claims.da) = cellsBytes [d0, d1])
     (hdef : s.defer.cells = defer) (hlen : defer.length = 24) :
     statementDigest seed s = keccak256 (stmtBytes [s0, s1, h0, h1, d0, d1] defer) := by
-  unfold statementDigest stmtBytes
+  unfold statementDigest statementPreimage paddedCells stmtBytes
   rw [hseed, hsig, hda, hdef, hlen, cellsBytes_six]
   simp
 

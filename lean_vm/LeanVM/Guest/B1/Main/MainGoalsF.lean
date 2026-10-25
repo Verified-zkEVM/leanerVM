@@ -174,7 +174,7 @@ theorem mf_daCells_bytes (c : DaClaim) :
 
 /-- **The DA list's digest is its cells'.** -/
 theorem mf_da_digest (l : List DaClaim) : daListDigest l = keccak256 (cellsBytes (l.flatMap daCells)) := by
-  rw [daListDigest, mf_cellsBytes_flatMap]
+  rw [daListDigest, daPreimage, mf_cellsBytes_flatMap]
   simp only [mf_daCells_bytes]
 
 /-! ### The signature claims -/
@@ -198,7 +198,7 @@ theorem mf_claimCells_bytes (r p : BitVec 128) (m : BitVec 256) :
 /-- **The leanXMSS list's digest is its cells'.** -/
 theorem mf_xmss_digest (l : List XmssClaim) :
     xmssListDigest l = keccak256 (cellsBytes (l.flatMap fun c => claimCells c.1.root c.1.parameter c.2)) := by
-  rw [xmssListDigest, mf_cellsBytes_flatMap]
+  rw [xmssListDigest, xmssPreimage, mf_cellsBytes_flatMap]
   congr 2
   funext c
   exact (mf_claimCells_bytes _ _ _).symm
@@ -207,7 +207,7 @@ theorem mf_xmss_digest (l : List XmssClaim) :
 theorem mf_sphincs_digest (l : List SphincsClaim) :
     sphincsListDigest l =
       keccak256 (cellsBytes (l.flatMap fun c => claimCells c.1.root c.1.parameter c.2)) := by
-  rw [sphincsListDigest, mf_cellsBytes_flatMap]
+  rw [sphincsListDigest, sphincsPreimage, mf_cellsBytes_flatMap]
   congr 2
   funext c
   exact (mf_claimCells_bytes _ _ _).symm
