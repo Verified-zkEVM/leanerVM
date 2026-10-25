@@ -141,10 +141,10 @@ theorem run_of_follows_sendList {β : Type} {R : Commits → Unit → β → Pro
 theorem announced_honest {prog : Program} {s : Sizes} (hs : s.Admissible prog) {ρ : ℕ}
     (hρ : validRate ρ) (rest : List E) :
     announced (bytecodeWords prog) (announce s ρ ++ rest) = some (verifierLayout prog s, ρ) := by
-  obtain ⟨b, sp', e, -, hb⟩ := run_of_follows_sendList (fun _ ↦ pure default)
-    (fun _ ↦ pure default) (announce s ρ) _ [] (follows_readSizes prog hs hρ []) ⟨default, []⟩
+  obtain ⟨b, sp', e, -, hb⟩ := run_of_follows_sendList (fun _ ↦ default)
+    (fun _ ↦ default) (announce s ρ) _ [] (follows_readSizes prog hs hρ []) ⟨default, []⟩
     rest [] []
-  unfold announced
+  unfold announced runPure
   rw [e, hb]
   rfl
 
