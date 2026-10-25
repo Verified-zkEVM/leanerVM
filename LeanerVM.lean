@@ -40,7 +40,10 @@ import LeanerVM.Protocol.Compile.Rounds
 import LeanerVM.Protocol.Compile.Tables
 import LeanerVM.Protocol.Compile.Whir
 import LeanerVM.Protocol.Core.Decoded
+import LeanerVM.Protocol.Core.Flip
 import LeanerVM.Protocol.Core.Grinding
+import LeanerVM.Protocol.Core.History
+import LeanerVM.Protocol.Core.Openings
 import LeanerVM.Protocol.DecodeAgree
 import LeanerVM.Protocol.DecodeChain
 import LeanerVM.Protocol.DecodeWalk

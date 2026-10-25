@@ -276,9 +276,13 @@ def leanVmReader : SlotReader where
   powBits := Parameters.Whir.queryGrindingBits
   Ann := Ann prog
   announcementOf := announcementOf prog
-  n a := 1 + busRounds (leanVm prog a.1.1) + tableRounds (leanVm prog a.1.1) + 2 +
-    flockRounds (leanVm prog a.1.1) (leanVm prog a.1.1).flock + 1 + 0 +
-    seqRounds (.skip :: .msg (SumcheckRound.Message E 2) :: (chainAt a).ladder.steps)
+  -- spelled as `deployedSpec`'s length, so that the two unify syntactically
+  n a := 1 + busRounds (leanIsaInstance Blake2sFlock.blake2sFlockSpec prog a.1.1) +
+    tableRounds (leanIsaInstance Blake2sFlock.blake2sFlockSpec prog a.1.1) + 2 +
+    flockRounds (leanIsaInstance Blake2sFlock.blake2sFlockSpec prog a.1.1)
+      (leanIsaInstance Blake2sFlock.blake2sFlockSpec prog a.1.1).flock + 1 + 0 +
+    seqRounds (.skip :: .msg (SumcheckRound.Message E 2) ::
+      (leanIsaChain prog a.1.1 a.2.1 a.1.2 a.2.2).ladder.steps)
   spec a := deployedSpec Blake2sFlock.blake2sFlockSpec prog a.1.1 a.2.1 a.1.2 a.2.2
   sampleable _ _ := inferInstance
   Words a := LeanWords prog a.1.1 a.2.1 a.1.2 a.2.2
