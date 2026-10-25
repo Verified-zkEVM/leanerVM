@@ -468,3 +468,25 @@ abbrev KnowledgeSoundnessBits : Prop :=
 end LeanVM
 
 end
+
+/-! ## A digest as a public input -/
+
+section
+
+namespace LeanVM.Protocol.EndToEnd.Front
+
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Protocol.Compile LeanVM.Protocol.Verifier
+open LeanVM.Protocol.KeccakHash
+open scoped ENNReal NNReal
+
+@[expose] public section
+
+/-- The public input a digest gives the instance: its four `u64` lanes as `K` words
+(`digest_scalars`, verifier.py:202-205; the memory's first two words are the digest's halves). -/
+def publicInputOfDigest (d : Digest) : PublicInput :=
+  ⟨![K.ofLane d[0], K.ofLane d[1], K.ofLane d[2], K.ofLane d[3]]⟩
+
+end
+end LeanVM.Protocol.EndToEnd.Front
+
+end

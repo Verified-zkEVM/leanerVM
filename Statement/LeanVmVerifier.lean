@@ -2426,3 +2426,26 @@ end
 end LeanVM.Protocol.Verifier
 
 end
+
+/-! ## The announced sizes -/
+
+section
+
+namespace LeanVM.Protocol.Verifier
+
+open LeanVM.Parameters
+
+@[expose] public section
+
+open LeanVM.Semantics LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile
+
+/-- The announced layout and rate exponent of a stream, read by the program's own `readSizes`
+(the hash is not consulted for a value: reads only absorb). -/
+def announced (bytecode : List K) (stream : List E) : Option (Layout × ℕ) :=
+  (Id.run (Compile.run (m := Id) (fun _ ↦ pure default) (fun _ ↦ pure default)
+    (readSizes bytecode) ⟨⟨default, []⟩, stream, [], []⟩)).map (·.1)
+
+end
+end LeanVM.Protocol.Verifier
+
+end

@@ -69,7 +69,7 @@ open CompPoly.Extension
 /-! ## The fields -/
 
 /-- A proof-only enumeration of `K`; executable code uses its explicit bit coordinates. -/
-noncomputable instance : Fintype K := Fintype.ofFinite K
+noncomputable instance instFintypeK : Fintype K := Fintype.ofFinite K
 
 /-- The defining relation of `E`: `y^3 = y + 1`. -/
 theorem y_pow_three : y ^ 3 = y + 1 := BF64.ext3Gen_pow_three

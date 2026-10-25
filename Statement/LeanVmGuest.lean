@@ -1038,28 +1038,6 @@ end LeanVM.Guest
 
 end
 
-/-! ## The guest's public input -/
-
-section
-
-namespace LeanVM.Protocol.EndToEnd.Front
-
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Protocol.Compile LeanVM.Protocol.Verifier
-open LeanVM.Protocol.KeccakHash
-open scoped ENNReal NNReal
-
-@[expose] public section
-
-/-- The public input a digest gives the instance: its four `u64` lanes as `K` words
-(`digest_scalars`, verifier.py:202-205; the memory's first two words are the digest's halves). -/
-def publicInputOfDigest (d : Digest) : PublicInput :=
-  ⟨![K.ofLane d[0], K.ofLane d[1], K.ofLane d[2], K.ofLane d[3]]⟩
-
-end
-end LeanVM.Protocol.EndToEnd.Front
-
-end
-
 section
 
 namespace LeanVM.Guest.End
@@ -1077,29 +1055,6 @@ abbrev publicInputOf (d : Digest) : PublicInput := EndToEnd.Front.publicInputOfD
 
 end
 end LeanVM.Guest.End
-
-end
-
-/-! ## A child's announced sizes -/
-
-section
-
-namespace LeanVM.Protocol.Verifier
-
-open LeanVM.Parameters
-
-@[expose] public section
-
-open LeanVM.Semantics LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile
-
-/-- The announced layout and rate exponent of a stream, read by the program's own `readSizes`
-(the hash is not consulted for a value: reads only absorb). -/
-def announced (bytecode : List K) (stream : List E) : Option (Layout × ℕ) :=
-  (Id.run (Compile.run (m := Id) (fun _ ↦ pure default) (fun _ ↦ pure default)
-    (readSizes bytecode) ⟨⟨default, []⟩, stream, [], []⟩)).map (·.1)
-
-end
-end LeanVM.Protocol.Verifier
 
 end
 

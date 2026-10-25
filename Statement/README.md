@@ -49,7 +49,8 @@ Benedikt Wagner's ([b-wagn/fv-pq-da](https://github.com/b-wagn/fv-pq-da), Apache
 7. [`LeanVmVerifier.lean`](LeanVmVerifier.lean): the verifier, `python-verifier/verifier.py`
    transcribed section by section, for any hash function and permutation in any monad
    (`verifyWith`), with the WHIR constants it reads, the Keccak GKR reduction, the Fiat-Shamir
-   duplex over Keccak-f[1600], and the deferring verifier an aggregate runs on its children. Where
+   duplex over Keccak-f[1600], the deferring verifier an aggregate runs on its children, and the
+   sizes a stream announces (`announced`). Where
    the pin rewrote a step of the previous pin (`3375f7a13`) without changing what it computes, the
    transcription keeps the earlier form and its docstring gives both the pin's lines and why the
    two agree.
@@ -61,8 +62,8 @@ Benedikt Wagner's ([b-wagn/fv-pq-da](https://github.com/b-wagn/fv-pq-da), Apache
    (`verifier H F`, `verify`), its calls as oracle queries (`HashSpec`), the honest prover's type,
    the errors `soundnessError`, `completenessError`, the committed size; the random-permutation
    experiment (`rpmExperiment`, the adversary's `Transcript`), the extractor on the transcript
-   (`extractorRpm`), and **`LeanVM.KnowledgeSoundness`, `LeanVM.Completeness`,
-   `LeanVM.KnowledgeSoundnessBits`**.
+   (`extractorRpm`), **`LeanVM.KnowledgeSoundness`, `LeanVM.Completeness`,
+   `LeanVM.KnowledgeSoundnessBits`**, and a digest as a public input (`publicInputOfDigest`).
 10. [`LeanVmGuest.lean`](LeanVmGuest.lean): the aggregation guest's specification: DA claims, a
     node's statement, witness and relation (`NodeRel`, `NodeSpec`: leanXMSS and leanSPHINCS
     claims, DA claims, children verified by the deferring verifier, the batching of their

@@ -15,7 +15,7 @@ public import LeanVM.Protocol.Compile.SpecRules.Leaves
 public import LeanVM.Protocol.PublicInput
 public import LeanVM.Protocol.LeanIsa
 public import LeanVM.Protocol.EndToEnd.Front.InstanceWith
-public import Statement.LeanVmGuest
+public import Statement.LeanVm
 
 /-!
 # The public-input phase as a specification

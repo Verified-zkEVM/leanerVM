@@ -16,7 +16,6 @@ public import Statement.Fast.FieldWords
 public import LeanVM.Protocol.Compile.Prog
 public import LeanVM.Protocol.KeccakHash
 public import LeanVM.Parameters.Field
-public import Statement.LeanVmGuest
 
 /-!
 # The verifier on its four files
