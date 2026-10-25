@@ -55,8 +55,9 @@ theorem mainGoalDvT (hn : NodeRel bytecode seed s w) (hrf : Lift.RunsFit fs cert
   obtain ⟨p, hp, hR⟩ := direct_da fs fp h1
   rw [hR, hDvNH, hp]
   simp only [List.map_cons, List.map_nil, List.headD_cons]
-  have hw : p.2.Opens p.1.1 p.1.2 :=
-    direct_held (H := DaHeld w.children) (P := fun c x => x.Opens c.1 c.2) (fun _ _ h => h)
+  have hw : p.2.Opens p.1.daRoot p.1.membershipVectorDigest :=
+    direct_held (H := DaHeld w.children)
+      (P := fun c x => x.Opens c.daRoot c.membershipVectorDigest) (fun _ _ h => h)
       hn.2.2.2.2.1 p (show p ∈ hRawD s w by rw [hp]; exact List.mem_singleton_self p)
   have hL := wLog_lt hw
   have h := Da.da_verify_completeAtT fs cert hrf hw (etB fs (mK0 (hData seed s w) fs fp) + 34)

@@ -236,14 +236,15 @@ theorem da_held {bytecode : List K} {wX : E → LeanXmss.Signature} {wS : E → 
         [σ (.n 384), σ (.n 385), σ (.n 386), σ (.n 387)] :=
       slotCells_of_loads (v := fun c => [σ (.n 384), σ (.n 385), σ (.n 386), σ (.n 387)].getD c 0)
         hroots
-    have hda : daAt rd (σ (.n 69)) i = (root, vd) := by
+    have hda : daAt rd (σ (.n 69)) i = ⟨root, vd⟩ := by
       unfold daAt
       rw [hsc]
       simp only [digestCells, List.cons_append, List.nil_append, List.cons.injEq, and_true] at hrets
       obtain ⟨r0, r1, r2, r3⟩ := hrets
       simp only [List.getD_cons_zero, List.getD_cons_succ]
       rw [r0, r1, r2, r3, digestOfCells_scalars, digestOfCells_scalars]
-    show (wD _ _).Opens (daAt rd (σ (.n 69)) i).1 (daAt rd (σ (.n 69)) i).2
+    show (wD _ _).Opens (daAt rd (σ (.n 69)) i).daRoot
+      (daAt rd (σ (.n 69)) i).membershipVectorDigest
     rw [hda]
     exact hop
   · rw [ite_neg' hraw]

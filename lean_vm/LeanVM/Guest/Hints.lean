@@ -388,7 +388,8 @@ def honestPushes (bytecode : List K) (seed : Digest) (s : NodeStatement) (w : No
   rawD.flatMap (fun c ↦ daHints c.2) ++
   (dr.raw ++ dr.children.flatten).map (fun slot ↦ ("da_index", [count slot])) ++
   [("da_meta", [count s.claims.da.length, count dr.dups.length])] ++
-  (s.claims.da ++ dr.dups).map fun c ↦ ("da_roots", digestCells c.1 ++ digestCells c.2)
+  (s.claims.da ++ dr.dups).map fun c ↦
+    ("da_roots", digestCells c.daRoot ++ digestCells c.membershipVectorDigest)
 
 /-- **The honest streams**: `honestPushes`, by stream. -/
 def honestStreams (bytecode : List K) (seed : Digest) (s : NodeStatement) (w : NodeWitness) :

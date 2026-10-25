@@ -92,8 +92,8 @@ theorem sphincs_digest {p : E} {o : ℕ → ℕ} {n : ℕ} {cells : List E} (h :
 theorem da_digest {p : E} {o : ℕ → ℕ} {n : ℕ} {cells : List E} (h : SlotsHold rd p o n cells) :
     daListDigest ((List.range n).map fun j => daAt rd p (o j)) = keccak256 (cellsBytes cells) := by
   unfold daListDigest
-  rw [← claims_digest (fun a b c d => (digestOfCells a b, digestOfCells c d))
-    (fun c : DaClaim => digestBytes c.1 ++ digestBytes c.2)
+  rw [← claims_digest (fun a b c d => DaClaim.mk (digestOfCells a b) (digestOfCells c d))
+    (fun c : DaClaim => digestBytes c.daRoot ++ digestBytes c.membershipVectorDigest)
     (fun a b c d => by
       simp only [digestBytes_ofCells, cellsBytes, List.flatMap_cons, List.flatMap_nil,
         List.append_nil, List.append_assoc]) h]

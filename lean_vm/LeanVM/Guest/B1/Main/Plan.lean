@@ -512,12 +512,19 @@ section Node
 /-- `==` on DA claims (`Hints`' instance: roots' and vector digests' words) is equality. -/
 instance : LawfulBEq DaClaim where
   rfl {a} := by
-    show (a.1.toList == a.1.toList && a.2.toList == a.2.toList) = true
+    show (a.daRoot.toList == a.daRoot.toList &&
+      a.membershipVectorDigest.toList == a.membershipVectorDigest.toList) = true
     simp
   eq_of_beq {a b} h := by
-    change (a.1.toList == b.1.toList && a.2.toList == b.2.toList) = true at h
+    change (a.daRoot.toList == b.daRoot.toList &&
+      a.membershipVectorDigest.toList == b.membershipVectorDigest.toList) = true at h
     simp only [Bool.and_eq_true, beq_iff_eq] at h
-    exact Prod.ext (Vector.toList_inj.mp h.1) (Vector.toList_inj.mp h.2)
+    obtain ⟨r, v⟩ := a
+    obtain ⟨r', v'⟩ := b
+    have e1 : r = r' := Vector.toList_inj.mp h.1
+    have e2 : v = v' := Vector.toList_inj.mp h.2
+    subst e1 e2
+    rfl
 
 variable (s : NodeStatement) (w : NodeWitness)
 

@@ -41,8 +41,9 @@ project's Keccak-f[1600] on LeanDA's lanes (`keccakLanes`, from `keccakF`): the 
 Keccak-f[1600] and Keccak-256 with their lanes written out, and the schemes' verifiers with a
 constant-depth lookup (`Fast.Schemes`, imported here).
 
-An aggregate's DA claim is a pair of a root and a vector digest; it is held by a matrix committed
-to the root whose rows are orthogonal to a vector of that digest (`Witness.Opens`: the guest's
+An aggregate's DA claim (`DaClaim`) is a blob's Merkle root (`daRoot`) and the digest of the
+root's membership vector (`membershipVectorDigest`); it is held by a matrix committed to the root
+whose rows are orthogonal to a vector of that digest (`Witness.Opens`: the guest's
 `da_verify`, `crates/rec_aggregation/guests/lean_ethereum.py:3920-4060`). The guest takes the
 vector digest from the statement; the outer verifier derives it from the root (`vectorDigestOf`;
 `verifier::da::list_digest`, `crates/verifier/src/da.rs:99-104`, called by
@@ -94,7 +95,7 @@ structure Witness where
   /-- The vector. -/
   vector : List E
 
-/-- **The witness holds the DA claim `(root, vd)`** (`da_verify`): `1` to `1024` codewords of
+/-- **The witness holds the DA claim `⟨root, vd⟩`** (`da_verify`): `1` to `1024` codewords of
 `2^15` symbols commit to `root`, and every one is orthogonal to the vector, whose digest is
 `vd`. -/
 def Witness.Opens (root vd : Digest) (w : Witness) : Prop :=
@@ -372,8 +373,21 @@ abbrev XmssClaim : Type := LeanXmss.PublicKey × LeanXmss.Message
 /-- A leanSPHINCS key and a message it signed (`LeanSphincsClaim`, `aggregation.rs:66`). -/
 abbrev SphincsClaim : Type := Sphincs.PublicKey × Sphincs.Message
 
-/-- A DA claim: a root and the digest of the vector its rows are orthogonal to. -/
-abbrev DaClaim : Type := Digest × Digest
+/-- **A DA claim**: a blob's Merkle root, an entry of an aggregate's `da_roots`
+(`aggregation.rs:400-401`; the guest's `da_roots`, `lean_ethereum.py:4151-4154`), with the digest
+of the root's membership vector, the vector the blob's rows are orthogonal to. The two are
+hashed as `da_claim_cells` and `verifier::da::list_digest` hash them, the root then the vector
+digest (`aggregation.rs:563-566`, `crates/verifier/src/da.rs:98-104`): `daListDigest`. -/
+structure DaClaim where
+  /-- The blob's Merkle root (`da_roots`, `aggregation.rs:401`): the commitment to its matrix of
+  codewords (`Da.Witness.Opens`). -/
+  daRoot : Digest
+  /-- The digest of the root's membership vector (`vector_hash`, `aggregation.rs:564`:
+  `vector_digest(membership_vector(root))`, `crates/verifier/src/da.rs:83-96`). The guest takes
+  it from the statement; the outer verifier derives it from the root (`Da.vectorDigestOf`,
+  `OuterChecks`). -/
+  membershipVectorDigest : Digest
+  deriving DecidableEq, Inhabited, Repr
 
 /-- A node's claims: leanXMSS claims, leanSPHINCS claims, and DA claims. -/
 structure Claims where
@@ -458,7 +472,7 @@ def signersDigest (xmss : List XmssClaim) (sphincs : List SphincsClaim) : Digest
 `lean_ethereum.py:4063-4075`; the outer verifier's `verifier::da::list_digest` derives the vector
 digests from the roots). -/
 def daListDigest (claims : List DaClaim) : Digest :=
-  keccak256 (claims.flatMap fun c ↦ digestBytes c.1 ++ digestBytes c.2)
+  keccak256 (claims.flatMap fun c ↦ digestBytes c.daRoot ++ digestBytes c.membershipVectorDigest)
 
 /-- The 24 bytes of a field element, its three limbs. -/
 def eBytes (x : E) : List UInt8 := kBytes (x.limb 0) ++ kBytes (x.limb 1) ++ kBytes (x.limb 2)
@@ -609,7 +623,7 @@ def SphincsHeld (children : List Child) (claim : SphincsClaim) :
 
 /-- The DA claim is held: by a matrix, or by a child making it. -/
 def DaHeld (children : List Child) (claim : DaClaim) : Holder Da.Witness → Prop
-  | .direct w => w.Opens claim.1 claim.2
+  | .direct w => w.Opens claim.daRoot claim.membershipVectorDigest
   | .child i => ∃ c, children[i]? = some c ∧ claim ∈ c.statement.claims.da
 
 /-- **What the witness `w` establishes of a node's statement `s`**, for the guest `bytecode` and
@@ -645,7 +659,8 @@ abbrev deployedSeed (guest : Program) : Digest := fiatShamirIv (bytecodeWords gu
 /-- **What the outer verifier checks of a statement besides its proof**: every DA claim's vector
 digest is its root's, and the deferred claim holds of the guest's bytecode. -/
 def OuterChecks (guest : Program) (s : NodeStatement) : Prop :=
-  (∀ c ∈ s.claims.da, Da.toBytes c.2 = Da.vectorDigestOf c.1) ∧ s.defer.Holds (bytecodeWords guest)
+  (∀ c ∈ s.claims.da, Da.toBytes c.membershipVectorDigest = Da.vectorDigestOf c.daRoot) ∧
+    s.defer.Holds (bytecodeWords guest)
 
 /-- **The outer verifier** of an aggregate of the guest `guest` (`EthereumProof::verify`,
 `aggregation.rs:697-719`): every DA claim's vector digest is its root's, the deferred claim holds,
@@ -727,7 +742,7 @@ def signersDigestWith (xmss : List XmssClaim) (sphincs : List SphincsClaim) : m 
 
 /-- `daListDigest` with the hash `H`. -/
 def daListDigestWith (claims : List DaClaim) : m Digest :=
-  H (claims.flatMap fun c ↦ digestBytes c.1 ++ digestBytes c.2)
+  H (claims.flatMap fun c ↦ digestBytes c.daRoot ++ digestBytes c.membershipVectorDigest)
 
 /-- **`statementDigest` with the hash `H`.** -/
 def statementDigestWith (seed : Digest) (s : NodeStatement) : m Digest := do
@@ -815,7 +830,7 @@ def SphincsHeldWith (children : List Child) (claim : SphincsClaim) :
 `pc`, `pr`), or by a child making it. -/
 def DaHeldWith (pc pr : LeanDa.Digest) (children : List Child) (claim : DaClaim) :
     Holder Da.Witness → Prop
-  | .direct w => w.OpensWith H pc pr claim.1 claim.2
+  | .direct w => w.OpensWith H pc pr claim.daRoot claim.membershipVectorDigest
   | .child i => ∃ c, children[i]? = some c ∧ claim ∈ c.statement.claims.da
 
 /-- The children's claims the batching absorbs, their public inputs the answered digests of their
@@ -922,7 +937,7 @@ def sphincsPreimage (claims : List SphincsClaim) : List UInt8 :=
 
 /-- The bytes `daListDigest claims` hashes. -/
 def daPreimage (claims : List DaClaim) : List UInt8 :=
-  claims.flatMap fun c ↦ digestBytes c.1 ++ digestBytes c.2
+  claims.flatMap fun c ↦ digestBytes c.daRoot ++ digestBytes c.membershipVectorDigest
 
 /-- **The candidate collisions** of two statements' digests: the pairs of inputs of the five
 hashes the digests compute, the outer one, the signer set's, the two claim lists' and the DA
@@ -1127,7 +1142,8 @@ def direct {α W : Type} : List α → List (Holder W) → List (α × W)
   | _, _ => []
 
 /-- DA claims are equal when their roots and their vector digests are. -/
-instance : BEq DaClaim := ⟨fun a b ↦ a.1.toList == b.1.toList && a.2.toList == b.2.toList⟩
+instance : BEq DaClaim := ⟨fun a b ↦ a.daRoot.toList == b.daRoot.toList &&
+  a.membershipVectorDigest.toList == b.membershipVectorDigest.toList⟩
 
 /-- The deferring verifier's initial state on a child's proof under the node's seed
 (`verifyDeferredWith`). -/

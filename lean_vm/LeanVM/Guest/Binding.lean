@@ -148,9 +148,12 @@ theorem sphincsPreimage_inj {l l' : List SphincsClaim}
 theorem daPreimage_inj {l l' : List DaClaim} (h : daPreimage l = daPreimage l') : l = l' :=
   flatMap_inj (n := 64) (by decide)
     (fun _ ↦ by rw [List.length_append, digestBytes_length, digestBytes_length])
-    (fun _ _ h ↦ by
+    (fun ⟨r, v⟩ ⟨r', v'⟩ h ↦ by
       obtain ⟨h1, h2⟩ := List.append_inj h (by rw [digestBytes_length, digestBytes_length])
-      exact Prod.ext (digestBytes_injective h1) (digestBytes_injective h2)) h
+      have e1 : r = r' := digestBytes_injective h1
+      have e2 : v = v' := digestBytes_injective h2
+      subst e1 e2
+      rfl) h
 
 theorem signersPreimage_inj {x x' : List XmssClaim} {p p' : List SphincsClaim}
     (h : signersPreimage x p = signersPreimage x' p') :

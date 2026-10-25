@@ -45,8 +45,8 @@ def signersDigest : Digest := #v[0x9315d2ed6de127ee, 0x755da8471a1e521b, 0xa40d2
 
 /-- DA claims: each root with the vector digest the Rust derives from it. -/
 def da : List DaClaim :=
-  [(#v[0x732741e2e9bf1478, 0x0b9c9939aa8d286d, 0x524d9ca2c4398d5c, 0x51a95f5fb567a0b0], #v[0x2eee146097f5f7f4, 0xb513452a01c4dfd4, 0x7a914c20792fe440, 0xa119707659bb8341]),
-  (#v[0x1e1689f1995df6be, 0x0e669cde2f079b62, 0x11f1a7beeb6e0db9, 0x056e2c0e1c6aff48], #v[0x8476e60be658e68c, 0xd053a101c2bba951, 0x8f995438e339c287, 0xb3b66eaed4410c4c])]
+  [⟨#v[0x732741e2e9bf1478, 0x0b9c9939aa8d286d, 0x524d9ca2c4398d5c, 0x51a95f5fb567a0b0], #v[0x2eee146097f5f7f4, 0xb513452a01c4dfd4, 0x7a914c20792fe440, 0xa119707659bb8341]⟩,
+  ⟨#v[0x1e1689f1995df6be, 0x0e669cde2f079b62, 0x11f1a7beeb6e0db9, 0x056e2c0e1c6aff48], #v[0x8476e60be658e68c, 0xd053a101c2bba951, 0x8f995438e339c287, 0xb3b66eaed4410c4c]⟩]
 
 def daListDigest : Digest := #v[0x17c69093c3107ad9, 0x2330072cf877fac1, 0x1aec4842cd42cba5, 0xfc7fa10fd8188484]
 

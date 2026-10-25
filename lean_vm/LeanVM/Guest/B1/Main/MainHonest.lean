@@ -90,8 +90,9 @@ def hCover : List E :=
 
 /-! ## The oracle and the buffers -/
 
-/-- A DA claim's four cells. -/
-def daCells (c : DaClaim) : List E := B1.Digest.digestCells c.1 ++ B1.Digest.digestCells c.2
+/-- A DA claim's four cells: its root's, then its membership vector digest's. -/
+def daCells (c : DaClaim) : List E :=
+  B1.Digest.digestCells c.daRoot ++ B1.Digest.digestCells c.membershipVectorDigest
 
 /-- **`main`'s honest oracle** (besides pointers). -/
 def hData : MainData where

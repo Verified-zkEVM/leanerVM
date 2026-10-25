@@ -292,8 +292,9 @@ theorem hDvB_le {bytecode : List K} {seed : Digest} {s : NodeStatement} {w : Nod
   match hp : hRawD s w, h1 with
   | [], _ => simp
   | [p], _ =>
-    have hw : p.2.Opens p.1.1 p.1.2 :=
-      direct_held (H := DaHeld w.children) (P := fun c x => x.Opens c.1 c.2) (fun _ _ h => h)
+    have hw : p.2.Opens p.1.daRoot p.1.membershipVectorDigest :=
+      direct_held (H := DaHeld w.children)
+        (P := fun c x => x.Opens c.daRoot c.membershipVectorDigest) (fun _ _ h => h)
         hr.2.2.2.2.1 p (show p ∈ hRawD s w by rw [hp]; exact List.mem_singleton_self p)
     have hb := Da.nPad_bounds hw.1
     have hm := hw.2.1

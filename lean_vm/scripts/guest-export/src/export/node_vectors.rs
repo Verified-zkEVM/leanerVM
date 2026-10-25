@@ -169,7 +169,7 @@ pub fn file() -> File {
             roots
                 .iter()
                 .zip(&vector_digests)
-                .map(|(r, v)| format!("({}, {})", digest(r), digest(v)))
+                .map(|(r, v)| format!("⟨{}, {}⟩", digest(r), digest(v)))
                 .collect()
         )
     )

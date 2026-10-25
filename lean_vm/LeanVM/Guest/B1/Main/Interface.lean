@@ -173,10 +173,11 @@ noncomputable def sphincsAt (rd : Reader) (p : E) (s : ℕ) : SphincsClaim :=
   let c := slotCells rd p s
   Sig.sphincsClaimOf (c.getD 0 0) (c.getD 1 0) (c.getD 2 0) (c.getD 3 0)
 
-/-- The DA claim of slot `s` of the roots at `p`: a root and a vector digest, two cells each. -/
+/-- The DA claim of slot `s` of the roots at `p`: a root and a membership vector digest, two cells
+each (the guest's `da_roots`). -/
 noncomputable def daAt (rd : Reader) (p : E) (s : ℕ) : DaClaim :=
   let c := slotCells rd p s
-  (digestOfCells (c.getD 0 0) (c.getD 1 0), digestOfCells (c.getD 2 0) (c.getD 3 0))
+  ⟨digestOfCells (c.getD 0 0) (c.getD 1 0), digestOfCells (c.getD 2 0) (c.getD 3 0)⟩
 
 /-- The mark in coverage slot `s`, as a log. -/
 noncomputable def markOf (rd : Reader) (σ : Val) (s : ℕ) : ℕ := gLog (cellAt rd (σ (.n 117)) s)

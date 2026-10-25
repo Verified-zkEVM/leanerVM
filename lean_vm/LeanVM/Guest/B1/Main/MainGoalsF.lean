@@ -167,7 +167,8 @@ theorem mf_daCells_canon (c : DaClaim) : AllCanonical (daCells c) := by
   rcases List.mem_append.mp hx with h | h
   exacts [mf_digestCells_canon _ x h, mf_digestCells_canon _ x h]
 
-theorem mf_daCells_bytes (c : DaClaim) : cellsBytes (daCells c) = digestBytes c.1 ++ digestBytes c.2 := by
+theorem mf_daCells_bytes (c : DaClaim) :
+    cellsBytes (daCells c) = digestBytes c.daRoot ++ digestBytes c.membershipVectorDigest := by
   rw [digestBytes_eq_cells, digestBytes_eq_cells]
   simp [daCells, digestCells, cellsBytes]
 

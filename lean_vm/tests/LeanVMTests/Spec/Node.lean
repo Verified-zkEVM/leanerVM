@@ -115,10 +115,10 @@ def sphincs : List SphincsClaim :=
   [(⟨BitVec.ofNat 128 0xfedcba98765432100123456789abcdef, BitVec.ofNat 128 1⟩,
     BitVec.ofNat 256 (2 ^ 256 - 1))]
 
-/-- The DA claims: two roots and vector digests. -/
+/-- The DA claims: two roots and membership vector digests. -/
 def da : List DaClaim :=
-  [(keccak256 (utf8 "root0"), keccak256 (utf8 "vd0")),
-    (keccak256 (utf8 "root1"), keccak256 (utf8 "vd1"))]
+  [⟨keccak256 (utf8 "root0"), keccak256 (utf8 "vd0")⟩,
+    ⟨keccak256 (utf8 "root1"), keccak256 (utf8 "vd1")⟩]
 
 /-- A seed. -/
 def seed0 : Digest := keccak256 (utf8 "seed")

@@ -107,7 +107,7 @@ def statementR : R NodeStatement := do
   expect "sphincs"
   let sphincs ← many do let ((r, p), m) ← claimR; return ((⟨r, p⟩ : Sphincs.PublicKey), m)
   expect "da"
-  let da ← many do return (← digestR, ← digestR)
+  let da ← many do return DaClaim.mk (← digestR) (← digestR)
   return ⟨⟨xmss, sphincs, da⟩, ← deferR⟩
 
 def childR : R Child := do
@@ -231,8 +231,9 @@ def nodeRel (c : Case) : List (String × Bool) :=
     (fun ch cl => ch.statement.claims.xmss.any (· == cl)) ++
   held w.children "leanSPHINCS" s.claims.sphincs w.sphincs (fun cl σ => sphincsVerify cl.1 cl.2 σ)
     (fun ch cl => ch.statement.claims.sphincs.any (· == cl)) ++
-  held w.children "DA" s.claims.da w.da (fun cl d => daOpens cl.1 cl.2 d)
-    (fun ch cl => ch.statement.claims.da.any fun d => digestEq d.1 cl.1 && digestEq d.2 cl.2) ++
+  held w.children "DA" s.claims.da w.da (fun cl d => daOpens cl.daRoot cl.membershipVectorDigest d)
+    (fun ch cl => ch.statement.claims.da.any fun d => digestEq d.daRoot cl.daRoot &&
+      digestEq d.membershipVectorDigest cl.membershipVectorDigest) ++
   [if w.children = [] then
       ("the leaf defers the bytecode at zero", s.defer.bytecodePoint.all (· == 0))
     else ("the batching defers the statement's claim",
@@ -246,7 +247,8 @@ def limits (c : Case) : List (String × Bool) :=
   let rawX := Hints.direct s.claims.xmss w.xmss
   let rawS := Hints.direct s.claims.sphincs w.sphincs
   let rawD := Hints.direct s.claims.da w.da
-  let daEq := fun (a b : DaClaim) => digestEq a.1 b.1 && digestEq a.2 b.2
+  let daEq := fun (a b : DaClaim) =>
+    digestEq a.daRoot b.daRoot && digestEq a.membershipVectorDigest b.membershipVectorDigest
   let countDa := fun (l : List DaClaim) (x : DaClaim) => (l.filter (daEq x)).length
   w.children.zipIdx.flatMap (fun (ch, i) => ([(s!"child {i}'s stack log is at least {muMin}",
         match announced bytecode ch.proof.stream with
