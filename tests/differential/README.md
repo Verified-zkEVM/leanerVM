@@ -115,12 +115,33 @@ exit nonzero when it is not zero.
 
 ### The 2026-10-26 campaign
 
-About 35 000 mutants (one enumeration and two random runs over the vector and 29 proofs of the
-pinned Rust prover, its test programs at rates 1 to 4) gave no divergence, panic, crash, hang or
-inconsistency. Every difference was in the loaders: the Lean loader then dropped a nonzero third
-public limb (it now refuses it), the respellings above, and two havoc chains through `rate.zero`,
-which havoc no longer draws. That campaign drove an out-of-tree Rust harness whose loader read
-Lean's language; `proof-check` reads the stricter one above.
+What was compared: 30 honest proofs. These are the Lean vector (bytecode 32, memory `2^16`) and
+29 proofs from the pinned Rust prover: its 15 test programs, `filler.rs` loops, BLAKE2s tables up
+to `2^8`, memory `2^17` and `2^20`, bytecode 2048, and `field_div` at rates 1 to 4 (the others at
+rate 1). Each verifier accepts every one of them.
+
+- **Mutants.** About 35 000 structural, statement and havoc mutants gave no divergence, panic,
+  crash, hang or inconsistency. Every difference was in the loaders: the Lean loader then dropped
+  a nonzero third public limb (it now refuses it), the respellings above, and two havoc chains
+  through `rate.zero`, which havoc no longer draws. That campaign drove an out-of-tree Rust
+  harness whose loader read Lean's language; `proof-check` reads the stricter one above.
+- **Lean tamper sweep.** All 747 offsets × 3 deltas on the vector: every changed proof is
+  rejected by both. The 17 no-op offsets are the announced sizes, the roots and the grinding
+  nonces, which the Lean prover does not write through `send`.
+- **Rust tamper sweep.** A hooked copy of the pinned Rust prover covered those paths too. It
+  wrote 7 704 single-message tampers: complete on two programs, partial on three. It also wrote
+  pair tampers that keep the public-input combination check true, which both verifiers reject at
+  the opening. Every one was rejected by both.
+- **Sentinel slot.** The pinned Rust prover proved programs whose never-executed last slot
+  carries operands up to `2^28`, or a `JUMP`. Both verifiers accept these proofs. A `JUMP` there
+  is outside the `SentinelSafe` premise of the execution-level headline.
+
+What it did not test:
+- wrong-witness proofs (a committed value changed and the prover honest after);
+- shapes outside those listed;
+- byte-level (serde) proof encodings.
+
+The agreement is implementation evidence at one pin, not a proof.
 
 ## `tamper-sweep.py`
 

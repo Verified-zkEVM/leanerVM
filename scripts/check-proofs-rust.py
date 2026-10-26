@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Verify proof files with the pinned leanVM Rust verifier, without changing the checkout.
+"""Verify proof files with the pinned leanVM Rust verifier; sources and lock untouched, builds into its target/.
 
 Builds tests/rust/proof_check.rs in a temporary crate against the checkout's crates, offline,
 and runs it on the given files (default: every tests/vectors/*.proof.gz). Exits nonzero unless
