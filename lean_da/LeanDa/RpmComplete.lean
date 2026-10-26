@@ -30,9 +30,6 @@ open scoped ENNReal
 
 namespace LeanDa
 
-/-- The lanes' permutation of `π`. -/
-def laneP (π : KState → KState) (L : Lanes) : Lanes := stateToLanes (π (lanesToState L))
-
 /-! ## Completeness -/
 
 /-- **LeanDA is perfectly complete in the random-permutation model, for every permutation**
@@ -49,7 +46,7 @@ theorem leanDa_perfectlyComplete_rpm : PerfectlyCompleteRpm := by
   obtain ⟨crs, hcrs, rfl⟩ := hb
   have h := honest_verify (code r) (merkleVC r (keccakWith π)) (checker r) ps
     (merkleVC_perfectlyComplete r _) (checker_complete r) hps (ckVC := ()) (by simp [merkleVC])
-    hcrs msg p (toChallenges (membershipChallenges (keccakWith π) (laneP π)
+    hcrs msg p (toChallenges (membershipChallenges (keccakWith π) π
       (commitCells (keccakWith π) ((code r).encode msg))))
   simp only [merkleVC, ← verifyCellM_id] at h
   exact h

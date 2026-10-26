@@ -85,11 +85,11 @@ section Chain
 variable (r : ℕ) {Crs Proof : Type} {rel : Unit × Digest × Challenges → (Fin (r * 128) → Cell) → Bool}
   (ps : Nark (Unit × Digest × Challenges) (Fin (r * 128) → Cell) Crs Proof rel)
   (ext : Nark.Extractor (Unit × Digest × Challenges) (Fin (r * 128) → Cell) Crs Proof)
-  (A : CodeBindingAdvRpm r Crs Proof)
+  (A : CodeBindingAdvB r Crs Proof)
 
 /-- **The knowledge-soundness adversary of a code-binding adversary**: run it, compute the
 challenges of its root by the deployed duplex over `π`, and output the statement and its proof. -/
-noncomputable def ksAdv : KsAdvRpm Crs Proof := fun crs ↦ do
+noncomputable def ksAdv : KsAdvB Crs Proof := fun crs ↦ do
   let out ← A ((), crs)
   let zs ← membershipChallengesM keccakA (lanePerm piA) out.1.1
   pure (((), out.1.1, toChallenges zs), out.1.2)
@@ -157,10 +157,10 @@ theorem isWeightBound_hfEmbed {α : Type} {X : OracleComp Rom2 α} {N : ℕ}
     · exact isWeightBound_query permCalls2 (.inr (.inr (.inr x)))) h
 
 theorem isWeightBound_advEmbed {α : Type} {X : OracleComp AdvSpec α} {N : ℕ}
-    (h : IsWeightBound X permCalls N) :
+    (h : IsWeightBound X permCallsB N) :
     IsWeightBound (simulateQ (advEmbed (Msg := List UInt8) (Dg := KDigest) (E := KRest) (C := KCap)) X)
       permCalls2 N :=
-  isWeightBound_simulateQ _ permCalls permCalls2 (fun t ↦ by
+  isWeightBound_simulateQ _ permCallsB permCalls2 (fun t ↦ by
     rcases t with n | m | q
     · exact isWeightBound_query permCalls2 (.inl n)
     · exact isWeightBound_query permCalls2 (.inr (.inl m))
@@ -224,7 +224,7 @@ section ChainW
 variable (r : ℕ) {Crs Proof : Type} {rel : Unit × Digest × Challenges → (Fin (r * 128) → Cell) → Bool}
   (ps : Nark (Unit × Digest × Challenges) (Fin (r * 128) → Cell) Crs Proof rel)
   (ext : Nark.Extractor (Unit × Digest × Challenges) (Fin (r * 128) → Cell) Crs Proof)
-  (A : CodeBindingAdvRpm r Crs Proof)
+  (A : CodeBindingAdvB r Crs Proof)
 
 /-- The permutation calls of the relation's check: `3217` per padded row and one. -/
 abbrev relCalls (r : ℕ) : ℕ := 3217 * nPad r + 1
@@ -276,10 +276,10 @@ theorem isWeightBound_ksGame (Q : ℕ) (hQ : IsWeightBound (codeBindingGame2 r p
     simp only [ksAdv, simulateQ_bind, simulateQ_pure]
   rw [e]
   refine (((isWeightBound_advEmbed_A r ps A Q hQ x hx).bind fun out ↦
-    (isWeightBound_advEmbed (isWeightBound_membershipChallengesM permCalls keccakA (lanePerm piA)
-      ((isWeightBound_query permCalls (.inr (.inl label))).mono
-        (by simp [permCalls, label_calls]))
-      (fun L ↦ isWeightBound_map _ (isWeightBound_query permCalls (.inr (.inr (.fwd _)))))
+    (isWeightBound_advEmbed (isWeightBound_membershipChallengesM permCallsB keccakA (lanePerm piA)
+      ((isWeightBound_query permCallsB (.inr (.inl label))).mono
+        (by simp [permCallsB, label_calls]))
+      (fun L ↦ isWeightBound_map _ (isWeightBound_query permCallsB (.inr (.inr (.fwd _)))))
       _)).bind fun _ ↦ isWeightBound_pure _ _ 0).bind fun a ↦
         isWeightBound_hfEmbed (isWeightBound_ksPost r ps ext x a)).mono (by unfold ksCalls; omega)
 
@@ -292,7 +292,7 @@ section Chain2
 variable (r : ℕ) {Crs Proof : Type} {rel : Unit × Digest × Challenges → (Fin (r * 128) → Cell) → Bool}
   (ps : Nark (Unit × Digest × Challenges) (Fin (r * 128) → Cell) Crs Proof rel)
   (ext : Nark.Extractor (Unit × Digest × Challenges) (Fin (r * 128) → Cell) Crs Proof)
-  (A : CodeBindingAdvRpm r Crs Proof)
+  (A : CodeBindingAdvB r Crs Proof)
 
 /-- The knowledge-soundness verdict with `H` among coins and `H`, for the challenges `l`. -/
 noncomputable def ksPostH (crs : Crs) (out : (Digest × Proof) × List (Fin (r * 128) × Cell × Opening))
@@ -392,7 +392,7 @@ section Chain3
 variable (r : ℕ) {Crs Proof : Type} {rel : Unit × Digest × Challenges → (Fin (r * 128) → Cell) → Bool}
   (ps : Nark (Unit × Digest × Challenges) (Fin (r * 128) → Cell) Crs Proof rel)
   (ext : Nark.Extractor (Unit × Digest × Challenges) (Fin (r * 128) → Cell) Crs Proof)
-  (A : CodeBindingAdvRpm r Crs Proof)
+  (A : CodeBindingAdvB r Crs Proof)
 
 /-- The knowledge-soundness verdict with the hash of the table `h`. -/
 noncomputable def ksP (h : HTab) (crs : Crs)

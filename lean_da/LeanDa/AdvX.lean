@@ -52,12 +52,12 @@ variable (r : ℕ) {Crs Proof : Type} {rel : Unit × Digest × Challenges → (F
   (ps : Nark (Unit × Digest × Challenges) (Fin (r * 128) → Cell) Crs Proof rel)
 
 /-- **Wagner's adversary with `H` on short strings as queries of `XS`** (`advH`). -/
-noncomputable def advX (A : CodeBindingAdvRpm r Crs Proof) (ck : Unit × Crs) :
+noncomputable def advX (A : CodeBindingAdvB r Crs Proof) (ck : Unit × Crs) :
     OracleComp (WSpec + XS) ((Digest × Proof) × List (Fin (r * 128) × Cell × Opening)) :=
   (simulateQ tImplX (simulateQ (swapImpl ∘ₛ toV) (advSim r A (fixCrs r ps ck.2)))).run' ∅
 
 /-- **Answered by `h`, it is Wagner's adversary for the table `h`.** -/
-theorem advH_eq (A : CodeBindingAdvRpm r Crs Proof) (h : HTab) (ck : Unit × Crs) :
+theorem advH_eq (A : CodeBindingAdvB r Crs Proof) (h : HTab) (ck : Unit × Crs) :
     advH r ps A h ck = simulateQ (col h) (advX r ps A ck) := by
   rw [advH, advX, phiG, QueryImpl.simulateQ_compose, StateT.run'_eq, StateT.run'_eq,
     simulateQ_map, run_simulateQ_col_of h _ _ (col_tImplX h)]
@@ -74,7 +74,7 @@ def tCalls : (unifSpec + TSpec).Domain → ℕ
 
 /-- **The simulated adversary calls `H` at most `Q` times**, for an RPM adversary of `Q`
 permutation calls. -/
-theorem isWeightBound_advS2_h (A : CodeBindingAdvRpm r Crs Proof) (Q : ℕ)
+theorem isWeightBound_advS2_h (A : CodeBindingAdvB r Crs Proof) (Q : ℕ)
     (hQ : IsWeightBound (codeBindingGame2 r ps A) permCalls2 Q) (crs : Crs)
     (hcrs : crs ∈ support ps.setup) :
     IsWeightBound (advS2 keccakPadding KState.zero (A ((), crs))) hCalls Q := by
@@ -114,7 +114,7 @@ theorem isWeightBound_simImpl_h (t : Rom2.Domain) (s : SimSt KState Digest 14) :
       · exact (isWeightBound_map _ (hu _)).mono (Nat.zero_le _)
 
 /-- **Wagner's adversary with `H` as queries makes at most `Q + 1` of them.** -/
-theorem isWeightBound_advX (A : CodeBindingAdvRpm r Crs Proof) (Q : ℕ)
+theorem isWeightBound_advX (A : CodeBindingAdvB r Crs Proof) (Q : ℕ)
     (hQ : IsWeightBound (codeBindingGame2 r ps A) permCalls2 Q) (ck : Unit × Crs) :
     IsWeightBound (advX r ps A ck) xCalls (Q + 1) := by
   have hB := isWeightBound_advS2_h r ps A Q hQ _ (fixCrs_mem r ps ck.2)

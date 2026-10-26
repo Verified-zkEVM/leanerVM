@@ -300,12 +300,12 @@ theorem fixCrs_mem (crs : Crs) : fixCrs r ps crs ∈ support ps.setup := by
 
 /-- The simulated world for the table `h` and the crs: Wagner's adversary, then the openings
 verified with the hash of `h` and the challenges of the root. -/
-noncomputable def gameW (A : CodeBindingAdvRpm r Crs Proof) (h : HTab) (crs : Crs) :
+noncomputable def gameW (A : CodeBindingAdvB r Crs Proof) (h : HTab) (crs : Crs) :
     OracleComp WSpec Bool :=
   advH r ps A h ((), crs) >>= fun out ↦ postP r ps h crs out <$> readVecW out.1.1
 
 /-- **The simulated world is, for each table of `H`, Wagner's world.** -/
-theorem cbIdealG_evalDistEq (A : CodeBindingAdvRpm r Crs Proof) {crs : Crs}
+theorem cbIdealG_evalDistEq (A : CodeBindingAdvB r Crs Proof) {crs : Crs}
     (hcrs : crs ∈ support ps.setup) :
     cbIdealG r ps A crs =ᵈ ($ᵗ HTab >>= fun h ↦
       (simulateQ (Digest →ₒ Challenges).romImpl (gameW r ps A h crs)).run' ∅) := by
@@ -498,7 +498,7 @@ variable (r : ℕ) {Crs Proof : Type} {rel : Unit × Digest × Challenges → (F
   (ps : Nark (Unit × Digest × Challenges) (Fin (r * 128) → Cell) Crs Proof rel)
 
 /-- **Wagner's adversary makes at most `Q` queries of the challenges.** -/
-theorem hashQueryBound_advH (A : CodeBindingAdvRpm r Crs Proof) (Q : ℕ)
+theorem hashQueryBound_advH (A : CodeBindingAdvB r Crs Proof) (Q : ℕ)
     (hQ : IsWeightBound (codeBindingGame2 r ps A) permCalls2 Q) (h : HTab) (ck : Unit × Crs) :
     CommittedSoundness.HashQueryBound (advH r ps A h ck) Q := by
   apply hashQueryBound_of_isWeightBound
@@ -587,7 +587,7 @@ variable (r : ℕ) {Crs Proof : Type} {rel : Unit × Digest × Challenges → (F
   (ps : Nark (Unit × Digest × Challenges) (Fin (r * 128) → Cell) Crs Proof rel)
 
 /-- **The simulated world is the average over `H` of Wagner's worlds.** -/
-theorem prT_codeBindingExpG (A : CodeBindingAdvRpm r Crs Proof) :
+theorem prT_codeBindingExpG (A : CodeBindingAdvB r Crs Proof) :
     prT (codeBindingExpG r ps A) = prT (($ᵗ HTab : ProbComp HTab) >>= fun h ↦ ps.setup >>= fun crs ↦
       (simulateQ (Digest →ₒ Challenges).romImpl (gameW r ps A h crs)).run' ∅) := by
   rw [prT, codeBindingExpG]
@@ -598,7 +598,7 @@ theorem prT_codeBindingExpG (A : CodeBindingAdvRpm r Crs Proof) :
 
 /-- **Wagner's world for the table `h`** is his code-binding experiment for LeanDA with the hash
 `Hh h`, against `advH h`. -/
-theorem prT_gameW (A : CodeBindingAdvRpm r Crs Proof) (h : HTab) :
+theorem prT_gameW (A : CodeBindingAdvB r Crs Proof) (h : HTab) :
     prT (ps.setup >>= fun crs ↦
       (simulateQ (Digest →ₒ Challenges).romImpl (gameW r ps A h crs)).run' ∅) =
       (leanDa r (Hh h) (argH r ps (Hh h))).codeBindingExp (code r) (roRuntime Digest Challenges)

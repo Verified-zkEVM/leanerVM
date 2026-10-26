@@ -119,7 +119,7 @@ is a random oracle of the roots unless two of at most `Q + 15` states share thei
 capacity), and the rest is Wagner's bound for each `h`, averaged over `h`. -/
 theorem leanDa_codeBinding_avg [NeZero r]
     (ext : Nark.Extractor (Unit × Digest × Challenges) (Fin (r * 128) → Cell) Crs Proof)
-    (A : CodeBindingAdvRpm r Crs Proof) (Q : ℕ)
+    (A : CodeBindingAdvB r Crs Proof) (Q : ℕ)
     (hQ : IsWeightBound (codeBindingGame2 r ps A) permCalls2 Q) :
     (Pr{let b ← codeBindingExpRpm r ps A}[b = true] -
         ((Q ^ 2 : ℝ≥0∞) / 2 ^ 508 + 2 * ((Q + 15 : ℕ) : ℝ≥0∞) ^ 2 / 2 ^ 576 +
@@ -171,7 +171,7 @@ knowledge-soundness experiment of `ksAdv A` and the transfer and duplex terms of
 two collision terms by birthday bounds. -/
 theorem leanDa_codeBinding_core [NeZero r]
     (ext : Nark.Extractor (Unit × Digest × Challenges) (Fin (r * 128) → Cell) Crs Proof)
-    (A : CodeBindingAdvRpm r Crs Proof) (Q : ℕ)
+    (A : CodeBindingAdvB r Crs Proof) (Q : ℕ)
     (hQ : IsWeightBound (codeBindingGame2 r ps A) permCalls2 Q) :
     (Pr{let b ← codeBindingExpRpm r ps A}[b = true] -
         ((Q ^ 2 : ℝ≥0∞) / 2 ^ 508 + 2 * ((Q + 15 : ℕ) : ℝ≥0∞) ^ 2 / 2 ^ 576 +
@@ -203,12 +203,14 @@ bounds (`wpbColl_le`, `forkColl_le`), and the forking lemma's square root bounde
 (`fork_sq_le`). -/
 theorem leanDa_codeBinding_rpm_bound : CodeBindingRpm := by
   intro r Crs Proof rel ps ext c k hks hr1 hrM A Q hQ hQcap
-  rw [isWeightBound_codeBindingGame] at hQ
-  rw [runK_codeBindingGame]
-  replace hks : ∀ (B : KsAdvRpm Crs Proof) (q : ℕ), IsWeightBound (ksGame2 r ps ext B) permCalls2 q →
+  replace hQ := isWeightBound_codeBindingGame r ps A Q hQ
+  rw [(runK_codeBindingGame r ps A).prEvent_eq]
+  replace hks : ∀ (B : KsAdvB Crs Proof) (q : ℕ), IsWeightBound (ksGame2 r ps ext B) permCalls2 q →
       q ≤ 2 ^ 128 → Pr{let b ← ksExpRpm r ps ext B}[b = true] ≤ ((q : ℝ≥0∞) + c) * (2 : ℝ≥0∞)⁻¹ ^ k :=
     fun B q hB hq ↦ by
-      simpa only [runK_ksGame] using hks B q ((isWeightBound_ksGame_iff r ps ext B q).mpr hB) hq
+      have := hks (unrelabelAdv B) q ((isWeightBound_ksGame_unrelabel r ps ext B q).mpr hB) hq
+      rwa [(runK_ksGame_unrelabel r ps ext B).prEvent_eq] at this
+  generalize relabelAdv A = A at hQ ⊢
   have : NeZero r := ⟨by omega⟩
   have hL : logPad r ≤ 10 := by
     unfold logPad

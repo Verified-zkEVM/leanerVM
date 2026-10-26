@@ -4,14 +4,17 @@ import Common.Rerun
 /-!
 # The games of the statement in the two-oracle form
 
-`Statement/LeanDa.lean` states LeanDA's games with one oracle specification (`Common.KSpec`):
-the adversary and the verifier both query Keccak-256 and `π`, the verifier's sponge calling `π`
-(`hK`, `pK`). The proofs take them in the two-oracle form of `Common.rpmGame2`, the verifier's
-calls of the permutation direct calls `F` (`hR`, `pR`, `LeanDa.Defs`), the form of the
-two-oracle transfer (`Common.keccak256_transfer2`). `Common.toOne` turns a direct call into a `π`
-query, and each game is the two-oracle game through it (`posBindingGame_eq`, `codeBindingGame_eq`,
-`ksGame_eq`): the same run (`runK_posBindingGame`, …) and the same cost (`isWeightBound_toOne_iff`,
-each query renamed to one of the same cost).
+`Statement/LeanDa.lean` states LeanDA's games with one oracle specification (`Common.KSpec`, on
+lane states): the adversary and the verifier both query Keccak-256 and `π`, the verifier's sponge
+calling `π` (`hK`, `pK`). Read on byte states (`Common.relabel`), each is the same game on byte
+states (`posBindingGame_relabel`, …: `posBindingGameB`, `hKB`, `pKB`), with the same distribution
+(`Common.runK_relabel`) and cost (`Common.isWeightBound_relabel`). The proofs take those in the
+two-oracle form of `Common.rpmGame2`, the verifier's calls of the permutation direct calls `F`
+(`hR`, `pR`, `LeanDa.Defs`), the form of the two-oracle transfer (`Common.keccak256_transfer2`).
+`Common.toOne` turns a direct call into a `π` query, and each game on bytes is the two-oracle
+game through it (`posBindingGameB_eq`, `codeBindingGameB_eq`, `ksGameB_eq`): the same run
+(`runK_posBindingGame`, …) and the same cost (`isWeightBound_toOne_iff`, each query renamed to
+one of the same cost).
 
 The verifier's oracle programs are written for any monad, so they commute with a monad morphism
 such as a simulation (`membershipChallengesM_map`, `verifyCellM_map`, `commitCellsM_map`,
@@ -113,35 +116,35 @@ end Map
 
 /-! ## Direct calls as `π` queries -/
 
-/-- The verifier's oracles as the statement's: `F` a `π` query. -/
-abbrev toK : QueryImpl Rom2 (OracleComp KSpec) :=
+/-- The verifier's oracles as those of the games on byte states: `F` a `π` query. -/
+abbrev toK : QueryImpl Rom2 (OracleComp KSpecB) :=
   toOne (E := KRest) (C := KCap) ∘ₛ hfEmbed (Msg := List UInt8)
 
-theorem toK_hR (a : List UInt8) : simulateQ toK (hR a) = hK a := by
+theorem toK_hR (a : List UInt8) : simulateQ toK (hR a) = hKB a := by
   simp [toK, hR, hQuery, hq]
   rfl
 
-theorem toK_pR (L : Lanes) : simulateQ toK (pR L) = pK L := by
-  simp [toK, pR, pK, lanePerm, fQuery, hq]
+theorem toK_pR (L : Lanes) : simulateQ toK (pR L) = pKB L := by
+  simp [toK, pR, pKB, lanePerm, fQuery, hq]
   rfl
 
-/-- The verifier's programs through `toK` are the statement's. -/
+/-- The verifier's programs through `toK` are those of the games on byte states. -/
 theorem toK_verifyRpm (r : ℕ) {Crs Proof : Type}
     {rel : Unit × Digest × Challenges → (Fin (r * 128) → Cell) → Bool}
     (ps : Nark (Unit × Digest × Challenges) (Fin (r * 128) → Cell) Crs Proof rel) (crs : Crs)
     (com : Digest × Proof) (p : Fin (r * 128)) (x : Cell) (τ : Opening) :
-    simulateQ toK (verifyRpm hR pR r ps crs com p x τ) = verifyRpm hK pK r ps crs com p x τ := by
+    simulateQ toK (verifyRpm hR pR r ps crs com p x τ) = verifyRpm hKB pKB r ps crs com p x τ := by
   rw [verifyRpm_map (fun x ↦ simulateQ toK x) (fun _ ↦ simulateQ_pure _ _)
     (fun _ _ ↦ simulateQ_bind _ _ _)]
   simp only [toK_hR, toK_pR]
 
 theorem toK_commitCellsM {r : ℕ} (c : Fin (r * 128) → Cell) :
-    simulateQ toK (commitCellsM hR c) = commitCellsM hK c := by
+    simulateQ toK (commitCellsM hR c) = commitCellsM hKB c := by
   rw [commitCellsM_map (fun x ↦ simulateQ toK x) (fun _ ↦ simulateQ_pure _ _)
     (fun _ _ ↦ simulateQ_bind _ _ _)]
   simp only [toK_hR]
 
-theorem toOne_advEmbed {α : Type} (X : OracleComp KSpec α) :
+theorem toOne_advEmbed {α : Type} (X : OracleComp KSpecB α) :
     simulateQ (toOne (E := KRest) (C := KCap) ∘ₛ advEmbed (Msg := List UInt8)) X = X := by
   induction X using OracleComp.inductionOn with
   | pure a => simp
@@ -152,10 +155,10 @@ theorem toOne_advEmbed {α : Type} (X : OracleComp KSpec α) :
 
 /-- **A two-oracle game through `toOne`**: the honest part, the adversary as it is, and the
 verifier's part through `toK`. -/
-theorem toOne_rpmGame2 {β γ δ : Type} (p : ProbComp β) (A : β → OracleComp KSpec γ)
+theorem toOne_rpmGame2 {β γ δ : Type} (p : ProbComp β) (A : β → OracleComp KSpecB γ)
     (post : β → γ → OracleComp Rom2 δ) :
     simulateQ (toOne (E := KRest) (C := KCap)) (rpmGame2 (liftM p) A post) =
-      (liftM p : OracleComp KSpec β) >>= fun x ↦ A x >>= fun a ↦ simulateQ toK (post x a) := by
+      (liftM p : OracleComp KSpecB β) >>= fun x ↦ A x >>= fun a ↦ simulateQ toK (post x a) := by
   simp only [rpmGame2, simulateQ_bind, ← QueryImpl.simulateQ_compose, toOne_advEmbed]
   rw [simulateQ_liftM_of_coins _ (fun n ↦ rfl)]
 
@@ -165,28 +168,29 @@ theorem toOne_rpmGame2 {β γ δ : Type} (p : ProbComp β) (A : β → OracleCom
 renamed to one of the same cost. -/
 theorem isWeightBound_toOne_iff {α : Type} (D : OracleComp (dSpec2 (List UInt8) KDigest KState) α)
     (q : ℕ) :
-    IsWeightBound (simulateQ (toOne (E := KRest) (C := KCap)) D) permCalls q ↔
+    IsWeightBound (simulateQ (toOne (E := KRest) (C := KCap)) D) permCallsB q ↔
       IsWeightBound D permCalls2 q := by
   induction D using OracleComp.inductionOn generalizing q with
   | pure a => exact Iff.rfl
   | query_bind t k ih =>
     rw [simulateQ_query_bind, isWeightBound_query_bind_iff]
     rcases t with n | a | x | x
-    · change IsWeightBound (liftM (KSpec.query (.inl n)) >>= fun u ↦ simulateQ toOne (k u))
-        permCalls q ↔ _
-      simp only [isWeightBound_query_bind_iff, permCalls, permCalls2, ih]
+    · change IsWeightBound (liftM (KSpecB.query (.inl n)) >>= fun u ↦ simulateQ toOne (k u))
+        permCallsB q ↔ _
+      simp only [isWeightBound_query_bind_iff, permCallsB, permCalls2, ih]
       exact Iff.rfl
-    · change IsWeightBound (liftM (KSpec.query (.inr (.inl a))) >>= fun u ↦ simulateQ toOne (k u))
-        permCalls q ↔ _
-      simp only [isWeightBound_query_bind_iff, permCalls, permCalls2, ih]
+    · change IsWeightBound (liftM (KSpecB.query (.inr (.inl a))) >>= fun u ↦ simulateQ toOne (k u))
+        permCallsB q ↔ _
+      simp only [isWeightBound_query_bind_iff, permCallsB, permCalls2, ih]
       exact Iff.rfl
-    · change IsWeightBound (liftM (KSpec.query (.inr (.inr x))) >>= fun u ↦ simulateQ toOne (k u))
-        permCalls q ↔ _
-      simp only [isWeightBound_query_bind_iff, permCalls, permCalls2, ih]
+    · change IsWeightBound (liftM (KSpecB.query (.inr (.inr x))) >>= fun u ↦ simulateQ toOne (k u))
+        permCallsB q ↔ _
+      simp only [isWeightBound_query_bind_iff, permCallsB, permCalls2, ih]
       exact Iff.rfl
     · change IsWeightBound
-        (liftM (KSpec.query (.inr (.inr (.fwd x)))) >>= fun u ↦ simulateQ toOne (k u)) permCalls q ↔ _
-      simp only [isWeightBound_query_bind_iff, permCalls, permCalls2, ih]
+        (liftM (KSpecB.query (.inr (.inr (.fwd x)))) >>= fun u ↦ simulateQ toOne (k u))
+          permCallsB q ↔ _
+      simp only [isWeightBound_query_bind_iff, permCallsB, permCalls2, ih]
       exact Iff.rfl
 
 section Games
@@ -195,15 +199,40 @@ variable (r : ℕ) {Crs Proof : Type} {rel : Unit × Digest × Challenges → (F
   (ps : Nark (Unit × Digest × Challenges) (Fin (r * 128) → Cell) Crs Proof rel)
   (ext : Nark.Extractor (Unit × Digest × Challenges) (Fin (r * 128) → Cell) Crs Proof)
 
-theorem posBindingGame_eq (A : PosBindingAdvRpm r Crs Proof) :
-    posBindingGame r ps A = simulateQ (toOne (E := KRest) (C := KCap)) (posBindingGame2 r ps A) := by
+/-! ### The statement's games on byte states -/
+
+/-- The position-binding game on byte states (`posBindingGame`, its states read as bytes). -/
+def posBindingGameB (A : PosBindingAdvB r Crs Proof) : OracleComp KSpecB Bool := do
+  let crs ← liftM ps.setup
+  let (com, p, x, τ, x', τ') ← A ((), crs)
+  let b ← verifyRpm hKB pKB r ps crs com p x τ
+  let b' ← verifyRpm hKB pKB r ps crs com p x' τ'
+  pure (decide (x ≠ x') && b && b')
+
+/-- The code-binding game on byte states (`codeBindingGame`). -/
+noncomputable def codeBindingGameB (A : CodeBindingAdvB r Crs Proof) : OracleComp KSpecB Bool := do
+  let crs ← liftM ps.setup
+  let (com, opened) ← A ((), crs)
+  let verdicts ← opened.mapM fun o ↦ verifyRpm hKB pKB r ps crs com o.1 o.2.1 o.2.2
+  pure (verdicts.all id && !decide ((code r).Consistent (opened.map fun o ↦ (o.1, o.2.1))))
+
+/-- The argument's knowledge-soundness game on byte states (`ksGame`). -/
+noncomputable def ksGameB (B : KsAdvB Crs Proof) : OracleComp KSpecB Bool := do
+  let crs ← liftM ps.setup
+  let (stmt, proof) ← B crs
+  let root ← commitCellsM hKB (ext crs stmt proof)
+  pure (ps.verify crs stmt proof &&
+    !(decide (root = stmt.2.1) && membershipCheck stmt.2.2 (ext crs stmt proof)))
+
+theorem posBindingGameB_eq (A : PosBindingAdvB r Crs Proof) :
+    posBindingGameB r ps A = simulateQ (toOne (E := KRest) (C := KCap)) (posBindingGame2 r ps A) := by
   rw [posBindingGame2, toOne_rpmGame2]
   refine bind_congr fun crs ↦ bind_congr fun out ↦ ?_
   obtain ⟨com, p, x, τ, x', τ'⟩ := out
   simp only [posBindingPost, simulateQ_bind, simulateQ_pure, toK_verifyRpm]
 
-theorem codeBindingGame_eq (A : CodeBindingAdvRpm r Crs Proof) :
-    codeBindingGame r ps A =
+theorem codeBindingGameB_eq (A : CodeBindingAdvB r Crs Proof) :
+    codeBindingGameB r ps A =
       simulateQ (toOne (E := KRest) (C := KCap)) (codeBindingGame2 r ps A) := by
   rw [codeBindingGame2, toOne_rpmGame2]
   refine bind_congr fun crs ↦ bind_congr fun out ↦ ?_
@@ -212,37 +241,100 @@ theorem codeBindingGame_eq (A : CodeBindingAdvRpm r Crs Proof) :
     mapM_map (fun x ↦ simulateQ toK x) (fun _ ↦ simulateQ_pure _ _) (fun _ _ ↦ simulateQ_bind _ _ _),
     toK_verifyRpm]
 
-theorem ksGame_eq (B : KsAdvRpm Crs Proof) :
-    ksGame r ps ext B = simulateQ (toOne (E := KRest) (C := KCap)) (ksGame2 r ps ext B) := by
+theorem ksGameB_eq (B : KsAdvB Crs Proof) :
+    ksGameB r ps ext B = simulateQ (toOne (E := KRest) (C := KCap)) (ksGame2 r ps ext B) := by
   rw [ksGame2, toOne_rpmGame2]
   refine bind_congr fun crs ↦ bind_congr fun out ↦ ?_
   obtain ⟨stmt, proof⟩ := out
   simp only [ksPost, simulateQ_bind, simulateQ_pure, toK_commitCellsM]
 
+/-! ### The statement's games, read on byte states -/
+
+theorem relabel_hK (a : List UInt8) : simulateQ relabel (hK a) = hKB a := by
+  simp [hK, hKB, relabel]
+
+theorem relabel_pK (x : Lanes) : simulateQ relabel (pK x) = pKB x := by
+  simp [pK, pKB, relabel, lanePerm, lanesToState, LeanVM.Rpm.mapQ]
+  rfl
+
+theorem relabel_verifyRpm (crs : Crs) (com : Digest × Proof) (p : Fin (r * 128)) (x : Cell)
+    (τ : Opening) :
+    simulateQ relabel (verifyRpm hK pK r ps crs com p x τ) = verifyRpm hKB pKB r ps crs com p x τ := by
+  rw [verifyRpm_map (fun x ↦ simulateQ relabel x) (fun _ ↦ simulateQ_pure _ _)
+    (fun _ _ ↦ simulateQ_bind _ _ _)]
+  simp only [relabel_hK, relabel_pK]
+
+theorem relabel_commitCellsM (c : Fin (r * 128) → Cell) :
+    simulateQ relabel (commitCellsM hK c) = commitCellsM hKB c := by
+  rw [commitCellsM_map (fun x ↦ simulateQ relabel x) (fun _ ↦ simulateQ_pure _ _)
+    (fun _ _ ↦ simulateQ_bind _ _ _)]
+  simp only [relabel_hK]
+
+theorem posBindingGame_relabel (A : PosBindingAdvRpm r Crs Proof) :
+    simulateQ relabel (posBindingGame r ps A) = posBindingGameB r ps (relabelAdv A) := by
+  simp only [posBindingGame, posBindingGameB, simulateQ_bind, relabelAdv]
+  rw [simulateQ_liftM_of_coins _ (fun n ↦ rfl)]
+  refine bind_congr fun crs ↦ bind_congr fun out ↦ ?_
+  obtain ⟨com, p, x, τ, x', τ'⟩ := out
+  simp only [simulateQ_pure, relabel_verifyRpm]
+
+theorem codeBindingGame_relabel (A : CodeBindingAdvRpm r Crs Proof) :
+    simulateQ relabel (codeBindingGame r ps A) = codeBindingGameB r ps (relabelAdv A) := by
+  simp only [codeBindingGame, codeBindingGameB, simulateQ_bind, relabelAdv]
+  rw [simulateQ_liftM_of_coins _ (fun n ↦ rfl)]
+  refine bind_congr fun crs ↦ bind_congr fun out ↦ ?_
+  obtain ⟨com, opened⟩ := out
+  simp only [simulateQ_pure,
+    mapM_map (fun x ↦ simulateQ relabel x) (fun _ ↦ simulateQ_pure _ _)
+      (fun _ _ ↦ simulateQ_bind _ _ _), relabel_verifyRpm]
+
+theorem ksGame_relabel (B : KsAdvRpm Crs Proof) :
+    simulateQ relabel (ksGame r ps ext B) = ksGameB r ps ext (relabelAdv B) := by
+  simp only [ksGame, ksGameB, simulateQ_bind, relabelAdv]
+  rw [simulateQ_liftM_of_coins _ (fun n ↦ rfl)]
+  refine bind_congr fun crs ↦ bind_congr fun out ↦ ?_
+  obtain ⟨stmt, proof⟩ := out
+  simp only [simulateQ_pure, relabel_commitCellsM]
+
+/-- **The position-binding game runs as its two-oracle form**, the adversary's queries read on
+bytes. -/
 theorem runK_posBindingGame (A : PosBindingAdvRpm r Crs Proof) :
-    runK (posBindingGame r ps A) = posBindingExpRpm r ps A := by
-  rw [posBindingGame_eq]; rfl
+    runK (posBindingGame r ps A) =ᵈ posBindingExpRpm r ps (relabelAdv A) := by
+  refine (runK_relabel _).trans ?_
+  rw [posBindingGame_relabel, posBindingGameB_eq]
+  exact EvalDistEq.rfl
 
 theorem runK_codeBindingGame (A : CodeBindingAdvRpm r Crs Proof) :
-    runK (codeBindingGame r ps A) = codeBindingExpRpm r ps A := by
-  rw [codeBindingGame_eq]; rfl
+    runK (codeBindingGame r ps A) =ᵈ codeBindingExpRpm r ps (relabelAdv A) := by
+  refine (runK_relabel _).trans ?_
+  rw [codeBindingGame_relabel, codeBindingGameB_eq]
+  exact EvalDistEq.rfl
 
-theorem runK_ksGame (B : KsAdvRpm Crs Proof) : runK (ksGame r ps ext B) = ksExpRpm r ps ext B := by
-  rw [ksGame_eq]; rfl
+/-- The knowledge-soundness game of an adversary on bytes, read on lanes, runs as its two-oracle
+form. -/
+theorem runK_ksGame_unrelabel (B : KsAdvB Crs Proof) :
+    runK (ksGame r ps ext (unrelabelAdv B)) =ᵈ ksExpRpm r ps ext B := by
+  refine (runK_relabel _).trans ?_
+  rw [ksGame_relabel, relabelAdv_unrelabelAdv, ksGameB_eq]
+  exact EvalDistEq.rfl
 
-theorem isWeightBound_posBindingGame (A : PosBindingAdvRpm r Crs Proof) (Q : ℕ) :
-    IsWeightBound (posBindingGame r ps A) permCalls Q ↔
-      IsWeightBound (posBindingGame2 r ps A) permCalls2 Q := by
-  rw [posBindingGame_eq, isWeightBound_toOne_iff]
+theorem isWeightBound_posBindingGame (A : PosBindingAdvRpm r Crs Proof) (Q : ℕ)
+    (h : IsWeightBound (posBindingGame r ps A) permCalls Q) :
+    IsWeightBound (posBindingGame2 r ps (relabelAdv A)) permCalls2 Q := by
+  rw [← isWeightBound_toOne_iff, ← posBindingGameB_eq, ← posBindingGame_relabel]
+  exact isWeightBound_relabel h
 
-theorem isWeightBound_codeBindingGame (A : CodeBindingAdvRpm r Crs Proof) (Q : ℕ) :
-    IsWeightBound (codeBindingGame r ps A) permCalls Q ↔
-      IsWeightBound (codeBindingGame2 r ps A) permCalls2 Q := by
-  rw [codeBindingGame_eq, isWeightBound_toOne_iff]
+theorem isWeightBound_codeBindingGame (A : CodeBindingAdvRpm r Crs Proof) (Q : ℕ)
+    (h : IsWeightBound (codeBindingGame r ps A) permCalls Q) :
+    IsWeightBound (codeBindingGame2 r ps (relabelAdv A)) permCalls2 Q := by
+  rw [← isWeightBound_toOne_iff, ← codeBindingGameB_eq, ← codeBindingGame_relabel]
+  exact isWeightBound_relabel h
 
-theorem isWeightBound_ksGame_iff (B : KsAdvRpm Crs Proof) (Q : ℕ) :
-    IsWeightBound (ksGame r ps ext B) permCalls Q ↔ IsWeightBound (ksGame2 r ps ext B) permCalls2 Q := by
-  rw [ksGame_eq, isWeightBound_toOne_iff]
+theorem isWeightBound_ksGame_unrelabel (B : KsAdvB Crs Proof) (Q : ℕ) :
+    IsWeightBound (ksGame r ps ext (unrelabelAdv B)) permCalls Q ↔
+      IsWeightBound (ksGame2 r ps ext B) permCalls2 Q := by
+  rw [← isWeightBound_relabel_iff, ksGame_relabel, relabelAdv_unrelabelAdv, ksGameB_eq,
+    isWeightBound_toOne_iff]
 
 end Games
 

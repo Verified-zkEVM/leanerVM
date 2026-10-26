@@ -105,7 +105,7 @@ definitions hold for every `P`. A lane is a `u64`, read as the element of `K` wi
 a scalar's limbs are lanes as they are. The rate is lanes `0 … 15`, the capacity lanes
 `16 … 24`. -/
 
-variable (P : Lanes → Lanes)
+variable (P : LeanVM.Semantics.KState → LeanVM.Semantics.KState)
 
 /-! ### The challenges and the vector -/
 

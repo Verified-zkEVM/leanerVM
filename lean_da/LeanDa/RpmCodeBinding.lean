@@ -192,7 +192,7 @@ variable (r : ℕ) {Crs Proof : Type} {rel : Unit × Digest × Challenges → (F
 
 /-- **The simulated adversary calls `F` at most `Q` times** for every crs the setup can output,
 when the RPM game makes at most `Q` permutation calls. -/
-theorem isWeightBound_advS2 (A : CodeBindingAdvRpm r Crs Proof) (Q : ℕ)
+theorem isWeightBound_advS2 (A : CodeBindingAdvB r Crs Proof) (Q : ℕ)
     (hQ : IsWeightBound (codeBindingGame2 r ps A) permCalls2 Q) (crs : Crs)
     (hcrs : crs ∈ support ps.setup) :
     IsWeightBound (advS2 keccakPadding KState.zero (A ((), crs)))
@@ -213,7 +213,7 @@ theorem isWeightBound_advS2 (A : CodeBindingAdvRpm r Crs Proof) (Q : ℕ)
 random oracle `G` on `(root, j)`, the adversary's direct calls of `F` answered by the duplex
 lemma's simulator from `H` and `G` (`simImpl`), then the openings verified with `H` and the
 challenges `G (root, ·)`. -/
-noncomputable def cbIdealG (A : CodeBindingAdvRpm r Crs Proof) (crs : Crs) : ProbComp Bool :=
+noncomputable def cbIdealG (A : CodeBindingAdvB r Crs Proof) (crs : Crs) : ProbComp Bool :=
   (simulateQ (GSpec (List UInt8) KDigest Digest E 14).romImpl
     ((simulateQ (simImpl daDuplex hP gaP) (hQ (St := KState) daDuplex.label >>= fun _ ↦
         advS2 keccakPadding KState.zero (A ((), crs)))).run' SimSt.init >>= fun out ↦
@@ -221,14 +221,14 @@ noncomputable def cbIdealG (A : CodeBindingAdvRpm r Crs Proof) (crs : Crs) : Pro
         simulateQ embG (postV r ps crs out l))).run' ∅
 
 /-- The simulated code-binding experiment: the argument's setup, then `cbIdealG`. -/
-noncomputable def codeBindingExpG (A : CodeBindingAdvRpm r Crs Proof) : ProbComp Bool :=
+noncomputable def codeBindingExpG (A : CodeBindingAdvB r Crs Proof) : ProbComp Bool :=
   ps.setup >>= cbIdealG r ps A
 
 /-- **From the random-permutation model to the simulated world**: for an adversary whose game
 makes at most `Q` permutation calls, the RPM code-binding probability is at most the simulated
 one plus `Q² / 2^508` (the two-oracle transfer) plus `N · 2N / 2^576` with `N = Q + 15` (the
 duplex lemma: collisions of the 576-bit capacity among at most `Q + 15` calls of `F`). -/
-theorem codeBindingExpRpm_le_G (A : CodeBindingAdvRpm r Crs Proof) (Q : ℕ)
+theorem codeBindingExpRpm_le_G (A : CodeBindingAdvB r Crs Proof) (Q : ℕ)
     (hQ : IsWeightBound (codeBindingGame2 r ps A) permCalls2 Q) :
     Pr{let b ← codeBindingExpRpm r ps A}[b = true] ≤
       Pr{let b ← codeBindingExpG r ps A}[b = true] + (Q ^ 2 : ℝ≥0∞) / 2 ^ 508 +

@@ -125,7 +125,7 @@ section Wpb
 variable (r : ℕ) {Crs Proof : Type} {rel : Unit × Digest × Challenges → (Fin (r * 128) → Cell) → Bool}
   (ps : Nark (Unit × Digest × Challenges) (Fin (r * 128) → Cell) Crs Proof rel)
   (ext : Nark.Extractor (Unit × Digest × Challenges) (Fin (r * 128) → Cell) Crs Proof)
-  (A : CodeBindingAdvRpm r Crs Proof)
+  (A : CodeBindingAdvB r Crs Proof)
 
 /-- The adversary then the challenges of its root (`runWithChallenge`), `H` as queries. -/
 noncomputable def rwcX (ck : Unit × Crs) :

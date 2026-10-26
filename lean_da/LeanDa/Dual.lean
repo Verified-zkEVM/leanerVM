@@ -409,7 +409,7 @@ theorem dualCodeword_eq_dual (z : Fin 14 → E) :
   rw [heval, dual]
   simp only [normW_eval]
 
-variable (H : List UInt8 → Digest) (P : Lanes → Lanes)
+variable (H : List UInt8 → Digest) (P : LeanVM.Semantics.KState → LeanVM.Semantics.KState)
 
 /-- `Sponge.samplesM n` draws `n` challenges. -/
 theorem length_samples : ∀ (n : ℕ) (s : Sponge),

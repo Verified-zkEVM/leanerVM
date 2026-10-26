@@ -1,5 +1,6 @@
 import PqDas.Defs
 import Common.SimDefs
+import Common.Lanes
 
 /-!
 # LeanDA in Benedikt Wagner's framework: the definitions of the proofs
@@ -102,6 +103,52 @@ abbrev WArgument (r : ℕ) (H : List UInt8 → Digest) (Crs Proof : Type) :=
   Nark (Unit × Digest × Challenges) (Fin (r * 128) → Cell) Crs Proof
     (schemeRel (merkleVC r H) (checker r))
 
+/-! ### Lanes and bytes
+
+The sponge's state is the statement's `KState` of `25` lanes of `u64`
+(`LeanVM.Semantics.KState`); the proofs read it on the permutation's `200` bytes (`KState` of
+`common`), lane `i` at bytes `8 i … 8 i + 7`, little endian (`LeanVM.KState.toRpm`,
+`Common/Lanes.lean`). -/
+
+/-- The sponge's lanes, the statement's Keccak state. -/
+abbrev Lanes := LeanVM.Semantics.KState
+
+/-- **The permutation's state of 25 lanes**, on bytes: lane `i` at bytes `8 i … 8 i + 7`. -/
+def lanesToState (L : Lanes) : KState := LeanVM.KState.toRpm L
+
+/-- **The lanes of a permutation's state.** -/
+def stateToLanes (s : KState) : Lanes := LeanVM.Rpm.KState.ofRpm s
+
+/-- **The permutation on lanes** from a permutation of the bytes, in any monad. -/
+def lanePerm {m : Type → Type} [Monad m] (π : KState → m KState) (L : Lanes) : m Lanes :=
+  stateToLanes <$> π (lanesToState L)
+
+/-- **A lane's bytes**, little endian. -/
+def laneBytes : K ≃ Vector UInt8 8 :=
+  BF64.equivFin.trans <| (finCongr (show 2 ^ 64 = 256 ^ 8 by norm_num)).trans <|
+    finFunctionFinEquiv.symm.trans <|
+      (Equiv.arrowCongr (Equiv.refl _) Common.uInt8EquivFin.symm).trans
+        (arrayVectorEquivFin UInt8 8).symm
+
+/-- The statement's games on byte states: the oracles `KSpecB`, Keccak-256 `hKB` and the
+permutation `pKB` read on lanes (`lanePerm`). -/
+abbrev hKB (a : List UInt8) : OracleComp KSpecB Digest := liftM (KSpecB.query (.inr (.inl a)))
+
+/-- A call `π x` among the oracles on byte states, on lanes. -/
+abbrev pKB (L : Lanes) : OracleComp KSpecB Lanes :=
+  lanePerm (fun x ↦ liftM (KSpecB.query (.inr (.inr (.fwd x))))) L
+
+/-- A position-binding adversary on byte states. -/
+abbrev PosBindingAdvB (r : ℕ) (Crs Proof : Type) :=
+  Unit × Crs → OracleComp KSpecB ((Digest × Proof) × Fin (r * 128) × Cell × Opening × Cell × Opening)
+
+/-- A code-binding adversary on byte states. -/
+abbrev CodeBindingAdvB (r : ℕ) (Crs Proof : Type) :=
+  Unit × Crs → OracleComp KSpecB ((Digest × Proof) × List (Fin (r * 128) × Cell × Opening))
+
+/-- A knowledge-soundness adversary on byte states. -/
+abbrev KsAdvB (Crs Proof : Type) := Crs → OracleComp KSpecB ((Unit × Digest × Challenges) × Proof)
+
 /-! ### The games in the two-oracle form
 
 The games of `Statement/LeanDa.lean` query `π` for the verifier's sponge (`hK`, `pK`); the proofs
@@ -121,7 +168,7 @@ abbrev pR (L : Lanes) : OracleComp Rom2 Lanes :=
   lanePerm (fun x ↦ fQuery (Msg := List UInt8) (Dg := KDigest) x) L
 
 /-- The adversary's oracles: coins, Keccak-256, `π` and `π⁻¹`. -/
-abbrev AdvSpec := KSpec
+abbrev AdvSpec := KSpecB
 
 /-- **Calls of the permutation** in the two-oracle form: a hash of `n` bytes costs
 `⌊n / 136⌋ + 1`, a query of `π` or `π⁻¹` and a direct call one. -/
@@ -146,12 +193,12 @@ def posBindingPost (crs : Crs)
   pure (decide (out.2.2.1 ≠ out.2.2.2.2.1) && b && b')
 
 /-- The position-binding game in the two-oracle form. -/
-def posBindingGame2 (A : PosBindingAdvRpm r Crs Proof) :
+def posBindingGame2 (A : PosBindingAdvB r Crs Proof) :
     OracleComp (dSpec2 (List UInt8) KDigest KState) Bool :=
   rpmGame2 (liftM ps.setup) (fun crs ↦ A ((), crs)) (posBindingPost r ps)
 
 /-- The position-binding experiment: the game against the lazily sampled random permutation. -/
-noncomputable def posBindingExpRpm (A : PosBindingAdvRpm r Crs Proof) : ProbComp Bool :=
+noncomputable def posBindingExpRpm (A : PosBindingAdvB r Crs Proof) : ProbComp Bool :=
   realGame2 keccakPadding KState.zero (posBindingGame2 r ps A)
 
 /-- The verifier's part of the code-binding game: every opening verifies, and no codeword agrees
@@ -162,12 +209,12 @@ noncomputable def codeBindingPost (crs : Crs)
   pure (verdicts.all id && !decide ((code r).Consistent (out.2.map fun o ↦ (o.1, o.2.1))))
 
 /-- The code-binding game in the two-oracle form. -/
-noncomputable def codeBindingGame2 (A : CodeBindingAdvRpm r Crs Proof) :
+noncomputable def codeBindingGame2 (A : CodeBindingAdvB r Crs Proof) :
     OracleComp (dSpec2 (List UInt8) KDigest KState) Bool :=
   rpmGame2 (liftM ps.setup) (fun crs ↦ A ((), crs)) (codeBindingPost r ps)
 
 /-- The code-binding experiment: the game against the lazily sampled random permutation. -/
-noncomputable def codeBindingExpRpm (A : CodeBindingAdvRpm r Crs Proof) : ProbComp Bool :=
+noncomputable def codeBindingExpRpm (A : CodeBindingAdvB r Crs Proof) : ProbComp Bool :=
   realGame2 keccakPadding KState.zero (codeBindingGame2 r ps A)
 
 /-- The verifier's part of the knowledge-soundness game: the proof verifies, and the extracted
@@ -179,12 +226,12 @@ noncomputable def ksPost (crs : Crs) (out : (Unit × Digest × Challenges) × Pr
     !(decide (root = out.1.2.1) && membershipCheck out.1.2.2 (ext crs out.1 out.2)))
 
 /-- The knowledge-soundness game in the two-oracle form. -/
-noncomputable def ksGame2 (B : KsAdvRpm Crs Proof) :
+noncomputable def ksGame2 (B : KsAdvB Crs Proof) :
     OracleComp (dSpec2 (List UInt8) KDigest KState) Bool :=
   rpmGame2 (liftM ps.setup) B (ksPost r ps ext)
 
 /-- The knowledge-soundness experiment: the game against the lazily sampled random permutation. -/
-noncomputable def ksExpRpm (B : KsAdvRpm Crs Proof) : ProbComp Bool :=
+noncomputable def ksExpRpm (B : KsAdvB Crs Proof) : ProbComp Bool :=
   realGame2 keccakPadding KState.zero (ksGame2 r ps ext B)
 
 end Games
@@ -192,40 +239,6 @@ end Games
 /-- The relation is Wagner's scheme relation for LeanDA's vector commitment and code checker. -/
 theorem relation_eq (r : ℕ) (H : List UInt8 → Digest) :
     Relation r H = schemeRel (merkleVC r H) (checker r) := rfl
-
-end LeanDa
-
-end
-
-section
-
-namespace LeanDa
-
-/-- Byte `p` of lanes of eight bytes each is byte `p % 8` of lane `p / 8`. -/
-theorem getD_flatMap_laneBytes (l : List K) (p : ℕ) :
-    (l.flatMap fun a ↦ (laneBytes a).toList).getD p 0 =
-      if h : p / 8 < l.length then (laneBytes l[p / 8])[p % 8] else 0 := by
-  induction l generalizing p with
-  | nil => simp
-  | cons a l ih =>
-    rw [List.flatMap_cons]
-    by_cases hp : p < 8
-    · rw [List.getD_eq_getElem?_getD, List.getElem?_append_left (by simpa using hp)]
-      have h0 : p / 8 = 0 := by omega
-      simp [h0, Nat.mod_eq_of_lt hp, Vector.getElem?_eq_getElem hp]
-    · rw [List.getD_eq_getElem?_getD, List.getElem?_append_right (by simp; omega), ← List.getD_eq_getElem?_getD]
-      simp only [Vector.length_toList]
-      rw [ih (p - 8)]
-      have h1 : (p - 8) / 8 = p / 8 - 1 := by omega
-      have h2 : (p - 8) % 8 = p % 8 := by omega
-      simp only [h1, h2, List.length_cons]
-      by_cases hl : p / 8 - 1 < l.length
-      · have h3 : p / 8 < l.length + 1 := by omega
-        simp only [hl, h3, ↓reduceDIte]
-        rw [List.getElem_cons (by omega)]
-        simp [show p / 8 ≠ 0 by omega]
-      · have h3 : ¬ p / 8 < l.length + 1 := by omega
-        simp [hl, h3]
 
 end LeanDa
 
@@ -311,42 +324,25 @@ def bytesEquiv : KState ≃ (Fin 200 → UInt8) where
     rw [byteAt, toBytes_ofBytes (List.length_ofFn), List.getD_eq_getElem _ 0
       (by rw [List.length_ofFn]; exact i.2), List.getElem_ofFn]
 
-theorem length_lanesBytes (L : Lanes) :
-    (L.toList.flatMap fun a ↦ (laneBytes a).toList).length = 200 := by
-  rw [List.length_flatMap]
-  simp only [Vector.length_toList]
-  rw [List.map_const', List.sum_replicate, Vector.length_toList]
-  rfl
-
 theorem byteAt_lanesToState (L : Lanes) (p : ℕ) (hp : p < 200) :
-    byteAt (lanesToState L) p = (laneBytes L[p / 8])[p % 8] := by
-  rw [byteAt, lanesToState, toBytes_ofBytes (length_lanesBytes L), getD_flatMap_laneBytes]
-  simp only [Vector.length_toList, show p / 8 < 25 by omega, ↓reduceDIte, Vector.getElem_toList]
+    byteAt (lanesToState L) p = (LeanVM.Protocol.KeccakHash.wordBytes (L[p / 8]'(by omega))).getD
+      (p % 8) 0 := by
+  rw [byteAt, lanesToState, List.getD_eq_getElem _ _ (by simp; omega),
+    LeanVM.Rpm.toBytes_toRpm_getElem _ _ hp]
 
 theorem byteAt_stateToLanes (y : KState) (p : ℕ) (hp : p < 200) :
-    (laneBytes (stateToLanes y)[p / 8])[p % 8] = byteAt y p := by
-  simp only [stateToLanes, Vector.getElem_ofFn, Equiv.apply_symm_apply, byteAt]
-  congr 1
-  omega
+    (LeanVM.Protocol.KeccakHash.wordBytes ((stateToLanes y)[p / 8]'(by omega))).getD (p % 8) 0 =
+      byteAt y p := by
+  rw [← byteAt_lanesToState _ p hp, lanesToState, stateToLanes, LeanVM.Rpm.toRpm_ofRpm]
 
-theorem lanesToState_injective : Function.Injective lanesToState := by
-  intro L L' h
-  apply Vector.ext
-  intro i hi
-  apply laneBytes.injective
-  apply Vector.ext
-  intro j hj
-  have h1 := byteAt_lanesToState L (8 * i + j) (by omega)
-  have h2 := byteAt_lanesToState L' (8 * i + j) (by omega)
-  have e1 : (8 * i + j) / 8 = i := by omega
-  have e2 : (8 * i + j) % 8 = j := by omega
-  rw [h] at h1
-  have h3 := h1.symm.trans h2
-  have h4 : ∀ (M : Lanes) (a b : ℕ) (ha : a = i) (hb : b = j) (h1 : a < 25) (h2 : b < 8),
-      (laneBytes M[a])[b] = (laneBytes M[i])[j] := by
-    intro M a b ha hb _ _; subst ha hb; rfl
-  rw [h4 L _ _ e1 e2, h4 L' _ _ e1 e2] at h3
-  exact h3
+theorem stateToLanes_lanesToState (L : Lanes) : stateToLanes (lanesToState L) = L :=
+  LeanVM.Rpm.ofRpm_toRpm L
+
+theorem lanesToState_stateToLanes (y : KState) : lanesToState (stateToLanes y) = y :=
+  LeanVM.Rpm.toRpm_ofRpm y
+
+theorem lanesToState_injective : Function.Injective lanesToState := fun L L' h ↦ by
+  rw [← stateToLanes_lanesToState L, h, stateToLanes_lanesToState]
 
 /-- Bytes `0 … m-1` and `m … m+k-1`. -/
 def splitEquiv (m k : ℕ) : (Fin (m + k) → UInt8) ≃ (Fin m → UInt8) × (Fin k → UInt8) :=
@@ -405,7 +401,7 @@ theorem duplexInput_high (s : Sponge) (i : ℕ) (hi : 16 ≤ i) (hi' : i < 25) :
   rfl
 
 theorem duplexInput_low (s : Sponge) (i : ℕ) (hi : i < 16) :
-    (duplexInput s)[i] = (rateWords s.pending).getD i 0 := by
+    (duplexInput s)[i] = ((rateWords s.pending).getD i 0).lane := by
   simp only [duplexInput, Vector.getElem_ofFn, rateLanes, hi, ↓reduceIte]
 
 /-- A duplexing keeps the capacity bytes. -/
@@ -489,7 +485,8 @@ theorem daFirst_injective (y : KState) : Function.Injective fun r ↦ daFirst r 
   have hl : ∀ i (hi : i < 16), (rateWords (rootScalars r)).getD i 0 =
       (rateWords (rootScalars r')).getD i 0 := fun i hi ↦ by
     have := congrArg (fun L : Lanes ↦ L[i]) h'
-    rwa [duplexInput_low _ i hi, duplexInput_low _ i hi] at this
+    rw [duplexInput_low _ i hi, duplexInput_low _ i hi] at this
+    exact congrArg K.ofLane this
   refine eq_of_words fun i hi ↦ ?_
   have h0 := hl 0 (by omega)
   have h1 := hl 1 (by omega)
@@ -609,7 +606,7 @@ noncomputable def fixCrs (crs : Crs) : Crs := by
 
 /-- The adversary in the simulated world: `H` queried at the label, then the RPM adversary with
 its permutation queries simulated from `H` and `F`, `F` answered by the duplex lemma's simulator. -/
-noncomputable def advSim (A : CodeBindingAdvRpm r Crs Proof) (crs : Crs) :
+noncomputable def advSim (A : CodeBindingAdvB r Crs Proof) (crs : Crs) :
     OracleComp (unifSpec + GSpec (List UInt8) KDigest Digest E 14)
       ((Digest × Proof) × List (Fin (r * 128) × Cell × Opening)) :=
   (simulateQ (simImpl daDuplex hP gaP) (hQ (St := KState) daDuplex.label >>= fun _ ↦
@@ -618,7 +615,7 @@ noncomputable def advSim (A : CodeBindingAdvRpm r Crs Proof) (crs : Crs) :
 /-- **Wagner's adversary for the table `h` of `H`**: the simulated adversary, with `H` answered
 from `h` on short strings and lazily on long ones, and the challenges `G` from Wagner's random
 oracle. -/
-noncomputable def advH (A : CodeBindingAdvRpm r Crs Proof) (h : HTab) :
+noncomputable def advH (A : CodeBindingAdvB r Crs Proof) (h : HTab) :
     ErasureCodeCommitment.CodeBindingAdv (OracleComp WSpec) Cell (r * 128) (Unit × Crs)
       (Digest × Proof) Opening :=
   fun ck ↦ (simulateQ (phiG h) (advSim r A (fixCrs r ps ck.2))).run' ∅
@@ -646,14 +643,14 @@ variable (r : ℕ) {Crs Proof : Type} {rel : Unit × Digest × Challenges → (F
 `advH h`, against the argument `ps` for the relation with the hash `Hh h`. -/
 noncomputable def ksExpH
     (ext : Nark.Extractor (Unit × Digest × Challenges) (Fin (r * 128) → Cell) Crs Proof)
-    (A : CodeBindingAdvRpm r Crs Proof) (h : HTab) : ProbComp Bool :=
+    (A : CodeBindingAdvB r Crs Proof) (h : HTab) : ProbComp Bool :=
   (argH r ps (Hh h)).knowledgeSoundnessExp ext (ksReduction (merkleVC r (Hh h)) (advH r ps A h))
 
 /-- The collision experiment of `Hh h` against Wagner's weak-position-binding reduction from
 `advH h`, through `merkleCollider`. -/
 noncomputable def wpbCollExpH [NeZero r]
     (ext : Nark.Extractor (Unit × Digest × Challenges) (Fin (r * 128) → Cell) Crs Proof)
-    (A : CodeBindingAdvRpm r Crs Proof) (h : HTab) : ProbComp Bool :=
+    (A : CodeBindingAdvB r Crs Proof) (h : HTab) : ProbComp Bool :=
   hashCollisionExp (Hh h) (merkleCollider r (Hh h)
     ((wpbReduction (argH r ps (Hh h)) ext (advH r ps A h)).toPosBindingAdv (merkleVC r (Hh h))))
 
@@ -661,7 +658,7 @@ noncomputable def wpbCollExpH [NeZero r]
 `Q + 1` queries of the challenges), through `merkleCollider`. -/
 noncomputable def forkCollExpH [NeZero r]
     (ext : Nark.Extractor (Unit × Digest × Challenges) (Fin (r * 128) → Cell) Crs Proof)
-    (A : CodeBindingAdvRpm r Crs Proof) (Q : ℕ) (h : HTab) : ProbComp Bool :=
+    (A : CodeBindingAdvB r Crs Proof) (Q : ℕ) (h : HTab) : ProbComp Bool :=
   hashCollisionExp (Hh h) (merkleCollider r (Hh h)
     ((CommittedSoundness.forkCollisionReduction (code r) (merkleVC r (Hh h)) (checker r)
       (csReduction (argH r ps (Hh h)) ext (advH r ps A h)) (Q + 1)).toPosBindingAdv

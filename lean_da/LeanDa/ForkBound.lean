@@ -33,7 +33,7 @@ section Fork
 variable (r : ℕ) {Crs Proof : Type} {rel : Unit × Digest × Challenges → (Fin (r * 128) → Cell) → Bool}
   (ps : Nark (Unit × Digest × Challenges) (Fin (r * 128) → Cell) Crs Proof rel)
   (ext : Nark.Extractor (Unit × Digest × Challenges) (Fin (r * 128) → Cell) Crs Proof)
-  (A : CodeBindingAdvRpm r Crs Proof)
+  (A : CodeBindingAdvB r Crs Proof)
 
 /-- Wagner's reduction to committed soundness (`csReduction`) with `H` as queries. -/
 noncomputable def csX (ckVC : Unit) : OracleComp (WSpec + XS) (Digest × (Fin (r * 128) → Cell)) := do
@@ -228,7 +228,7 @@ section Fork2
 variable (r : ℕ) {Crs Proof : Type} {rel : Unit × Digest × Challenges → (Fin (r * 128) → Cell) → Bool}
   (ps : Nark (Unit × Digest × Challenges) (Fin (r * 128) → Cell) Crs Proof rel)
   (ext : Nark.Extractor (Unit × Digest × Challenges) (Fin (r * 128) → Cell) Crs Proof)
-  (A : CodeBindingAdvRpm r Crs Proof)
+  (A : CodeBindingAdvB r Crs Proof)
 
 /-- **Wagner's forking collision experiment for the table `h`, as a function of the two vectors.** -/
 theorem forkCollExpH_eq [NeZero r] (h : HTab) (Q : ℕ) :
@@ -281,7 +281,7 @@ section Fork3
 variable (r : ℕ) {Crs Proof : Type} {rel : Unit × Digest × Challenges → (Fin (r * 128) → Cell) → Bool}
   (ps : Nark (Unit × Digest × Challenges) (Fin (r * 128) → Cell) Crs Proof rel)
   (ext : Nark.Extractor (Unit × Digest × Challenges) (Fin (r * 128) → Cell) Crs Proof)
-  (A : CodeBindingAdvRpm r Crs Proof)
+  (A : CodeBindingAdvB r Crs Proof)
 
 /-- The hash calls of an honest opening over `H` as queries. -/
 abbrev openCalls (r : ℕ) : ℕ := 322 * nPad r

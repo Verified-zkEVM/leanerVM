@@ -448,8 +448,10 @@ position to two different cells is at most `Q² / 2^256 + Q² / 2^508`, so at mo
 `(Q + 1)² · 2^-256` for `Q ≤ 2^128` (`Common.sq_add_sq_le`). -/
 theorem leanDa_positionBinding_rpm : PositionBindingRpm := by
   intro r Crs Proof rel ps A Q hQ hcap
-  rw [isWeightBound_posBindingGame, posBindingGame2, permCalls2_eq] at hQ
-  rw [runK_posBindingGame]
+  replace hQ := isWeightBound_posBindingGame r ps A Q hQ
+  rw [(runK_posBindingGame r ps A).prEvent_eq]
+  generalize relabelAdv A = A at hQ ⊢
+  rw [posBindingGame2, permCalls2_eq] at hQ
   obtain ⟨h1, -⟩ := keccak256_transfer2 (liftM ps.setup) (fun crs ↦ A ((), crs))
     (posBindingPost r ps) (fun x a ↦ duplex_posBindingPost r ps x a) Q hQ (· = true)
   refine h1.trans ((add_le_add ?_ le_rfl).trans (Common.sq_add_sq_le hcap))
@@ -484,7 +486,7 @@ variable (r : ℕ) {Crs Proof : Type} {rel : Unit × Digest × Challenges → (F
 challenges' sponge over an independent random function `F`, against the ROM adversary
 `advS2 A` (the RPM adversary with its permutation queries answered by the simulator, which
 queries `H` and `F`). -/
-noncomputable def codeBindingExpRom2 (A : CodeBindingAdvRpm r Crs Proof) : ProbComp Bool :=
+noncomputable def codeBindingExpRom2 (A : CodeBindingAdvB r Crs Proof) : ProbComp Bool :=
   romRun2 (simulateQ (hInF (E := KRest) (C := KCap)) (liftM ps.setup) >>= fun crs ↦
     advS2 keccakPadding KState.zero (A ((), crs)) >>= fun out ↦ codeBindingPost r ps crs out)
 
@@ -510,7 +512,7 @@ theorem duplex_codeBindingPost (crs : Crs)
 model.** For every argument `ps` and every adversary whose game, verifications included, makes at
 most `Q` calls of the permutation on every path, the RPM code-binding probability and the
 two-oracle ROM code-binding probability of `advS2 A` differ by at most `Q² / 2^508`. -/
-theorem leanDa_codeBinding_rpm (A : CodeBindingAdvRpm r Crs Proof) (Q : ℕ)
+theorem leanDa_codeBinding_rpm (A : CodeBindingAdvB r Crs Proof) (Q : ℕ)
     (hQ : IsWeightBound (codeBindingGame2 r ps A) permCalls2 Q) :
     Pr{let b ← codeBindingExpRpm r ps A}[b = true] ≤
         Pr{let b ← codeBindingExpRom2 r ps A}[b = true] + (Q ^ 2 : ℝ≥0∞) / 2 ^ 508 ∧

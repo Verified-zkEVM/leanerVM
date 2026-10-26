@@ -57,15 +57,32 @@ theorem ofFn_eq_ofLimbs (g : Fin 3 → K) :
   simp only [CompPoly.Extension.Ext.ofFn, ofLimbs]
   congr 1
 
+theorem kBytes_ofLane (w : UInt64) : kBytes (K.ofLane w) = LeanVM.Protocol.KeccakHash.wordBytes w :=
+  rfl
+
+/-- Lane `a` of a state, read as an element of `K`, from its eight bytes. -/
+theorem laneBytes_symm_bytes (y : KState) (a : ℕ) (ha : a < 25) :
+    laneBytes.symm (Vector.ofFn fun b : Fin 8 ↦ byteAt y (8 * a + b)) =
+      K.ofLane ((stateToLanes y)[a]'ha) := by
+  rw [Equiv.symm_apply_eq]
+  apply Vector.toList_inj.mp
+  rw [laneBytes_toList, kBytes_ofLane]
+  refine List.ext_getElem (by simp [LeanVM.Protocol.KeccakHash.wordBytes]) fun b h1 h2 ↦ ?_
+  have hb : b < 8 := by simpa using h1
+  simp only [Vector.toList_ofFn, List.getElem_ofFn]
+  have e := byteAt_stateToLanes y (8 * a + b) (by omega)
+  simp only [show (8 * a + b) / 8 = a from by omega, show (8 * a + b) % 8 = b from by omega] at e
+  rw [← e, List.getD_eq_getElem _ _ h2]
+
 /-- **The challenge an answer carries is its lanes `0 … 2`** (`Sponge.sample`). -/
 theorem daBuild_symm_fst_eq (y : KState) :
-    (daBuild.symm y).1 =
-      ofLimbs (stateToLanes y)[0] (stateToLanes y)[1] (stateToLanes y)[2] := by
+    (daBuild.symm y).1 = ofLimbs (K.ofLane (stateToLanes y)[0]) (K.ofLane (stateToLanes y)[1])
+      (K.ofLane (stateToLanes y)[2]) := by
   rw [daBuild_symm_fst, limbsEquiv_apply]
   have key : ∀ a : Fin 3, laneBytes.symm (Vector.ofFn fun b : Fin 8 ↦
-      byteAt y (finProdFinEquiv (a, b) : ℕ)) = (stateToLanes y)[(a : ℕ)] := by
+      byteAt y (finProdFinEquiv (a, b) : ℕ)) = K.ofLane (stateToLanes y)[(a : ℕ)] := by
     intro a
-    simp only [stateToLanes, Vector.getElem_ofFn, byteAt]
+    rw [← laneBytes_symm_bytes y a (by omega)]
     refine congrArg laneBytes.symm ?_
     apply Vector.ext
     intro b hb
@@ -103,7 +120,8 @@ theorem daDuplex_cap (c : DaCp) :
 /-! ## The challenges over `F` are the duplex's -/
 
 theorem daDuplex_out (y : KState) :
-    daDuplex.out y = ofLimbs (stateToLanes y)[0] (stateToLanes y)[1] (stateToLanes y)[2] :=
+    daDuplex.out y = ofLimbs (K.ofLane (stateToLanes y)[0]) (K.ofLane (stateToLanes y)[1])
+      (K.ofLane (stateToLanes y)[2]) :=
   daBuild_symm_fst_eq y
 
 theorem samplesM_eq_chainP (k : ℕ) (y : KState) :

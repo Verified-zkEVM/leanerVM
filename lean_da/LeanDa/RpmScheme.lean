@@ -13,10 +13,11 @@ they are transcribed for oracles, in any monad (`Sponge.newM`, …, `membershipC
 `walkM`, `verifyCellM`), and are the scheme's own for pure ones (`membershipChallengesM_id`,
 `verifyCellM_id`).
 
-**Lanes and bytes.** The sponge's state is `25` lanes of `K`, the permutation's `200` bytes; lane
-`i` is bytes `8 i … 8 i + 7`, little endian (`laneBytes`, which is `kBytes`: `laneBytes_toList`),
-as in Keccak-f[1600] (`Common.keccakF`, `lanesOfBytes`). `lanesToState` and `stateToLanes`
-convert, and a duplexing writes the rate lanes `0 … 15` and keeps lanes `16 … 24`, that is bytes
+**Lanes and bytes.** The sponge's state is the statement's `KState`, `25` lanes of `u64`, read
+on the permutation's `200` bytes: lane `i` is bytes `8 i … 8 i + 7`, little endian
+(`LeanVM.KState.toRpm`), as in Keccak-f[1600] (`Common.keccakF`, `lanesOfBytes`); a lane read as
+an element of `K` has the bytes `laneBytes` gives it (`laneBytes_toList`). `lanesToState` and
+`stateToLanes` convert, and a duplexing writes the rate lanes `0 … 15` and keeps lanes `16 … 24`, that is bytes
 `128 … 199`: the capacity and the last rate byte `135`, whose top bit no padded block has clear
 (`Common.keccakNF`). So every permutation call of the challenges' sponge absorbs a non-final
 block into the zero state or into an earlier answer (`duplexP_membershipChallengesR`): the duplex
@@ -48,48 +49,14 @@ theorem laneBytes_toList (a : K) : (laneBytes a).toList = kBytes a := by
   simp only [Nat.toUInt8_eq, UInt8.toNat_ofNat', Nat.shiftRight_eq_div_pow, pow_mul]
   rfl
 
-theorem toBytes_getD_cap (s : KState) (j : Fin 64) : s.toBytes.getD (136 + j) 0 = s.2[j] := by
-  rw [KState.toBytes, List.getD_eq_getElem?_getD,
-    List.getElem?_append_right (by simp)]
-  simp [show 136 + (j : ℕ) - (32 + 104) = j by omega]
-
-theorem toBytes_getD_135 (s : KState) : s.toBytes.getD 135 0 = s.1.2[103] := by
-  rw [KState.toBytes, List.getD_eq_getElem?_getD, List.append_assoc,
-    List.getElem?_append_right (by simp)]
-  simp
-
-/-- Byte `p` of the state of lanes `L` is byte `p % 8` of lane `p / 8`. -/
-theorem lanesToState_byte (L : Lanes) (p : ℕ) (hp : p < 200) :
-    (L.toList.flatMap fun a ↦ (laneBytes a).toList).getD p 0 =
-      (laneBytes L[p / 8])[p % 8] := by
-  rw [getD_flatMap_laneBytes]
-  simp only [Vector.length_toList, show p / 8 < 25 by omega, ↓reduceDIte, Vector.getElem_toList]
-
-/-- Byte `p` of a state, read back from its lanes. -/
-theorem laneBytes_stateToLanes (y : KState) (p : ℕ) (hp : p < 200) :
-    (laneBytes (stateToLanes y)[p / 8])[p % 8] = y.toBytes.getD p 0 := by
-  simp only [stateToLanes, Vector.getElem_ofFn, Equiv.apply_symm_apply]
-  congr 1
-  omega
-
 /-- **The kept lanes keep the capacity and byte `135`**: a state whose lanes `16 … 24` are those of
 `y` has `y`'s capacity and byte `135`. -/
 theorem lanesToState_keep {L : Lanes} {y : KState}
     (h : ∀ i : Fin 25, 16 ≤ (i : ℕ) → L[i] = (stateToLanes y)[i]) :
     (lanesToState L).2 = y.2 ∧ (lanesToState L).1.2[103] = y.1.2[103] := by
-  have hb : ∀ p, 128 ≤ p → p < 200 →
-      (L.toList.flatMap fun a ↦ (laneBytes a).toList).getD p 0 = y.toBytes.getD p 0 := by
-    intro p hp1 hp2
-    rw [lanesToState_byte L p hp2, ← laneBytes_stateToLanes y p hp2]
-    have := h ⟨p / 8, by omega⟩ (by simp; omega)
-    simp only [Fin.getElem_fin] at this
-    rw [this]
-  refine ⟨Vector.ext fun j hj ↦ ?_, ?_⟩
-  · simp only [lanesToState, KState.ofBytes, Vector.getElem_ofFn]
-    rw [hb _ (by omega) (by omega), toBytes_getD_cap y ⟨j, hj⟩]
-    rfl
-  · simp only [lanesToState, KState.ofBytes, Vector.getElem_ofFn]
-    rw [hb _ (by omega) (by omega), ← toBytes_getD_135 y]
+  obtain ⟨h1, h2⟩ := LeanVM.Rpm.toRpm_keep L (stateToLanes y) h
+  rw [← lanesToState_stateToLanes y]
+  exact ⟨h1, h2⟩
 
 /-! ## The challenges and the openings' verification, over oracles -/
 
@@ -202,22 +169,8 @@ theorem admissible_mono {hist hist' : List KState} {x : KState} (h : hist ⊆ hi
   · exact Or.inl hx
   · exact Or.inr ⟨y, h hy, hxy⟩
 
-theorem laneBytes_zero : laneBytes 0 = Vector.replicate 8 0 := by
-  apply Vector.toList_inj.mp
-  rw [laneBytes_toList]
-  rfl
-
-theorem stateToLanes_zero : stateToLanes KState.zero = Vector.replicate 25 0 := by
-  apply Vector.ext
-  intro i hi
-  simp only [stateToLanes, Vector.getElem_ofFn, Vector.getElem_replicate]
-  rw [Equiv.symm_apply_eq, laneBytes_zero]
-  apply Vector.ext
-  intro j hj
-  simp only [Vector.getElem_ofFn, Vector.getElem_replicate]
-  have : KState.zero.toBytes = List.replicate 200 0 := rfl
-  rw [this, List.getD_eq_getElem?_getD, List.getElem?_replicate]
-  split <;> rfl
+theorem stateToLanes_zero : stateToLanes KState.zero = Vector.replicate 25 0 :=
+  LeanVM.Rpm.ofRpm_zero
 
 /-- A sponge whose state is the lanes of an earlier answer. -/
 def SpongeOK (hist : List KState) (s : Sponge) : Prop := ∃ y ∈ hist, s.state = stateToLanes y
