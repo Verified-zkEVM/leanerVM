@@ -6,7 +6,7 @@ final assembly happens only at an index whose prepared search failed. -/
 
 open OracleComp OracleSpec ENNReal
 
-namespace Sphincs.Security.HiddenDebt
+namespace SphincsLayered.Security.HiddenDebt
 
 open HiddenCost HiddenBridge HiddenOutside HiddenReveal
 
@@ -207,4 +207,4 @@ theorem sequenceFin_prob [DecidableEq D] {α : Type} (Inv : QueryCache (D →ₒ
               rw [ENNReal.tsum_mul_right]
               exact mul_le_of_le_one_left' (OracleComp.tsum_prEvent_le_one _)
 
-end Sphincs.Security.HiddenDebt
+end SphincsLayered.Security.HiddenDebt

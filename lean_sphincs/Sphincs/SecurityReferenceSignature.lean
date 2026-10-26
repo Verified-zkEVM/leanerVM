@@ -6,7 +6,7 @@ leaf, defined also for unsigned leaves and exhausted searches. -/
 
 open OracleComp OracleSpec
 
-namespace Sphincs.Security.SignatureWitness
+namespace SphincsLayered.Security.SignatureWitness
 open Concrete
 
 attribute [local irreducible] messageDigest forestRecover otsLeaf treeFold
@@ -21,4 +21,4 @@ noncomputable def chosenCounter (f : QueryImpl HashSpec Id) (parameter : PublicP
   (ReferenceChoice.selection f parameter topLayer rootTree leaf
     (canonicalForest f parameter seed leaf)).map Prod.fst
 
-end Sphincs.Security.SignatureWitness
+end SphincsLayered.Security.SignatureWitness

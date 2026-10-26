@@ -4,7 +4,7 @@ import Sphincs.Uniform
 
 open OracleComp OracleSpec ENNReal
 
-namespace Sphincs
+namespace SphincsLayered
 
 variable [Params]
 
@@ -72,4 +72,4 @@ theorem fresh_landing_probability_inv (parameter : PublicParameter) :
     mul_comm ((2 ^ (totalHeight - subtreeHeight) : Nat) : ℝ≥0∞)⁻¹,
     ← mul_assoc, ENNReal.mul_inv_cancel (by simp) (by simp), one_mul]
 
-end Sphincs
+end SphincsLayered

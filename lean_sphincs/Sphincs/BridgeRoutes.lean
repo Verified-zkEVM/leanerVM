@@ -6,7 +6,7 @@ above-word chain values exposed. -/
 
 open OracleComp OracleSpec ENNReal
 
-namespace Sphincs.Security.HiddenBridge
+namespace SphincsLayered.Security.HiddenBridge
 
 open HiddenReveal HiddenCost Eager Short Concrete
 open Completeness SeedModel Graph Assembly Reduce HiddenGraph Internalize GraphView
@@ -122,4 +122,4 @@ theorem seedFree_le_exposeP (adversary : Adversary) (q : Nat) :
     · rcases outcome with _ | value <;> simp [HiddenReveal.StopOr, Win, RichWin]
   rw [hevent]
 
-end Sphincs.Security.HiddenBridge
+end SphincsLayered.Security.HiddenBridge

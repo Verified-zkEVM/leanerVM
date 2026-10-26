@@ -181,7 +181,7 @@ jobs:
       - name: Check the axiom footprint
         working-directory: lean_sphincs
         run: |
-          theorems="Sphincs.Lifetimes.requestedSecurity Sphincs.Lifetimes.requestedSecurityRpm Sphincs.Lifetimes.requestedSecurityRpmCalls"
+          theorems="SphincsLayered.Lifetimes.requestedSecurity Sphincs.Lifetimes.requestedSecurityRpm SphincsLayered.Lifetimes.requestedSecurityRpmCalls Sphincs.OneLayer.requestedSecurityRpm_iff"
           { echo 'import Sphincs'; for t in $theorems; do echo "#print axioms $t"; done; } > "$RUNNER_TEMP/axioms.lean"
           lake env lean "$RUNNER_TEMP/axioms.lean" | tee "$RUNNER_TEMP/axioms.txt"
           for t in $theorems; do

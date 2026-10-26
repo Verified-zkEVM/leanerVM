@@ -11,7 +11,7 @@ This is distinct from Rust's seed-derived randomizers; no equivalence is assumed
 
 open OracleComp OracleSpec
 
-namespace Sphincs.Randomized
+namespace SphincsLayered.Randomized
 
 @[expose] public section
 
@@ -52,4 +52,4 @@ noncomputable def sign (sk : Seeded.SecretKey) (message : Message) :
 
 end
 
-end Sphincs.Randomized
+end SphincsLayered.Randomized

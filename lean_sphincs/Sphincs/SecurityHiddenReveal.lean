@@ -9,7 +9,7 @@ probability `2^-128`. This is exact uniform completion of the exposed cache, rat
 assumption that a coordinate stays uniform after conditioning on earlier failed guesses. -/
 
 open OracleComp OracleSpec ENNReal
-namespace Sphincs.Security.HiddenReveal
+namespace SphincsLayered.Security.HiddenReveal
 set_option backward.isDefEq.respectTransparency false
 set_option maxRecDepth 10000
 set_option maxHeartbeats 100000
@@ -100,4 +100,4 @@ noncomputable def experiment {α : Type} (computation : OracleComp (ViewSpec ι)
     (known : Knowledge ι) : ProbComp (Option α) :=
   completion known >>= fun table => run table computation known
 
-end Sphincs.Security.HiddenReveal
+end SphincsLayered.Security.HiddenReveal

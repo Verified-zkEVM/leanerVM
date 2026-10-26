@@ -8,7 +8,7 @@ forms of the landing probability, and the final real inequality behind
 
 open ENNReal
 
-namespace Sphincs.Security.H0
+namespace SphincsLayered.Security.H0
 
 open Concrete ForestPrice ForsPotential
 
@@ -222,4 +222,4 @@ theorem final_real (q qa qb Kc Nn Ar Le Y : ℝ) (hqa : qa ≤ q) (hqb : q ≤ q
   rw [h4, h5]
   linarith
 
-end Sphincs.Security.H0
+end SphincsLayered.Security.H0

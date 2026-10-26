@@ -9,7 +9,7 @@ an explicit fixed reference: coupling a complete candidate graph to this table i
 
 open OracleComp OracleSpec ENNReal
 
-namespace Sphincs.Security.TargetAssignment
+namespace SphincsLayered.Security.TargetAssignment
 
 open Concrete Completeness
 
@@ -73,4 +73,4 @@ theorem canonical_input_excluded (parameter : PublicParameter) (table : Table) (
   simp only [targets, (parseFields_some_iff parameter input fields).2 hfields, hentry,
     hcanonical, ↓reduceIte]
 
-end Sphincs.Security.TargetAssignment
+end SphincsLayered.Security.TargetAssignment

@@ -5,7 +5,7 @@ import Sphincs.BridgeAssembly
 
 open OracleComp OracleSpec ENNReal
 
-namespace Sphincs.Security.Stop
+namespace SphincsLayered.Security.Stop
 
 open Completeness HiddenCost GraphView
 
@@ -188,4 +188,4 @@ theorem probEvent_costRun_le_cap {α : Type} (f : HashInput → HashOutput) (tab
         rw [traceCost_append, recorded_cost] at h
         omega
 
-end Sphincs.Security.Stop
+end SphincsLayered.Security.Stop

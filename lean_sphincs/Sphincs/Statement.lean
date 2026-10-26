@@ -2,7 +2,7 @@ module
 
 public import Sphincs.Randomized
 public import VCVio.OracleComp.QueryTracking.WriterCost
-public import Statement.LeanSphincs
+public import Sphincs.Layered
 
 /-!
 The SUF-CMA experiment, adapted from leanVM b7a107256 to pruning: forgeries, signing transcripts and
@@ -14,7 +14,7 @@ generation from the key's seed, is in `StatementDet`.
 
 open OracleComp OracleSpec ENNReal
 
-namespace Sphincs
+namespace SphincsLayered
 
 @[expose] public section
 
@@ -50,4 +50,4 @@ end Security
 
 end
 
-end Sphincs
+end SphincsLayered

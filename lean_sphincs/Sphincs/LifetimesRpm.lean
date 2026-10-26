@@ -1,4 +1,5 @@
 import Sphincs.StatementRpm
+import Sphincs.OneLayer
 import Sphincs.Lifetimes
 import Common.Linear
 
@@ -13,7 +14,7 @@ calls as the RPM game makes calls of `H`, `π` and `π⁻¹`.
 
 open OracleComp OracleSpec ENNReal Common Common.SufCma
 
-namespace Sphincs.Lifetimes
+namespace SphincsLayered.Lifetimes
 
 /- A weight bound of a concrete game must not be unfolded: it recurses through the whole game. -/
 attribute [local irreducible] IsWeightBound
@@ -90,4 +91,11 @@ theorem requestedSecurityRpmCalls :
     @rpmBitsCalls_of_det pruned12 127 pruned12_bits, @rpmBitsCalls_of_det pruned10 127 pruned10_bits,
     @rpmBitsCalls_of_det pruned8 127 pruned8_bits⟩
 
-end Sphincs.Lifetimes
+end SphincsLayered.Lifetimes
+
+/-- **The end theorem**: the statement's leanSPHINCS, its one tree written without layers, at every
+proved lifetime, an adversary whose game makes at most `Q` permutation calls, `1 ≤ Q ≤ 2^128`,
+forges with probability at most `(Q + 1) · 2^-127`: the layered presentation's theorem above,
+through the bijection of the signatures (`Sphincs.OneLayer.requestedSecurityRpm_iff`). -/
+theorem Sphincs.Lifetimes.requestedSecurityRpm : Sphincs.Lifetimes.RequestedSecurityRpm :=
+  Sphincs.OneLayer.requestedSecurityRpm_iff.mpr SphincsLayered.Lifetimes.requestedSecurityRpm

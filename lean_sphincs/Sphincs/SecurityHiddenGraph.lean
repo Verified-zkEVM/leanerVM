@@ -8,7 +8,7 @@ WOTS and forest chain answers are programmed from independent digest coordinates
 queries are monitored before a hidden input can expose its successor. -/
 
 open OracleComp OracleSpec ENNReal
-namespace Sphincs.Security.HiddenGraph
+namespace SphincsLayered.Security.HiddenGraph
 set_option backward.isDefEq.respectTransparency false
 set_option maxRecDepth 10000
 set_option maxHeartbeats 200000
@@ -152,4 +152,4 @@ noncomputable abbrev stoppedExperiment {α : Type} (parameter : PublicParameter)
     (computation : OracleComp SourceSpec α) (known : Knowledge) :=
   HiddenRows.stoppedExperiment (rowModel parameter active high) outside computation known
 
-end Sphincs.Security.HiddenGraph
+end SphincsLayered.Security.HiddenGraph

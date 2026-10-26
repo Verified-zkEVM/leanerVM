@@ -6,7 +6,7 @@ a fixed target or a covered FORS digest. -/
 
 open OracleComp OracleSpec
 
-namespace Sphincs.Security.HiddenBridge
+namespace SphincsLayered.Security.HiddenBridge
 
 open Concrete Completeness Graph GraphCorrectness TargetAssignment HiddenGraph Assembly SeedModel Reduce Eager
 
@@ -1099,4 +1099,4 @@ theorem win_implies_bad (hb : 0 < subtreeHeight) (adversary : Adversary) (q : Na
     f' seed hcons hbound hdata hcoord hfors hfull hagree hcached hguess forgery log htrace hgood
     hverified.symm hvalid hnotContains
 
-end Sphincs.Security.HiddenBridge
+end SphincsLayered.Security.HiddenBridge

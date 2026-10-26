@@ -15,7 +15,7 @@ adversary-visible information.
 
 open OracleComp OracleSpec
 
-namespace Sphincs.Security.Prefix
+namespace SphincsLayered.Security.Prefix
 open Concrete
 
 structure Segment where
@@ -97,4 +97,4 @@ def Avoids (segment : Segment) {α : Type} (f : QueryImpl HashSpec Id)
     (oa : OracleComp HashSpec α) : Prop :=
   ∀ bytes ∈ queriedInputs f oa, parse segment bytes = none
 
-end Sphincs.Security.Prefix
+end SphincsLayered.Security.Prefix

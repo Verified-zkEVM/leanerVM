@@ -7,7 +7,7 @@ into `G2`. -/
 
 open ENNReal
 
-namespace Sphincs.Security.H0
+namespace SphincsLayered.Security.H0
 
 open Concrete
 
@@ -610,4 +610,4 @@ theorem νeqR_eq (i : ℕ) :
   rw [avgR_sum]
   refine Finset.sum_congr rfl fun u _ => ?_
   rw [avgR_const_mul]
-end Sphincs.Security.H0
+end SphincsLayered.Security.H0

@@ -13,9 +13,9 @@ hold almost all the mass.
 
 open ENNReal
 
-namespace Sphincs.LoopWalk
+namespace SphincsLayered.LoopWalk
 
-open SphincsFors.Security.Domination Sphincs.Security.Domination
+open SphincsFors.Security.Domination SphincsLayered.Security.Domination
 
 variable {α V : Type} [Fintype α] [DecidableEq α] (σ : Equiv.Perm α) (p : ℝ≥0∞) (A : ℕ) (U : Finset V)
 
@@ -263,4 +263,4 @@ theorem grp_sgn_comm {β : Type} [Fintype β] [DecidableEq β] (τ : Equiv.Perm 
   rw [hM, ← grp_mixAp]
   exact grp_congr st' ext' (fun e => hM F e) d
 
-end Sphincs.LoopWalk
+end SphincsLayered.LoopWalk

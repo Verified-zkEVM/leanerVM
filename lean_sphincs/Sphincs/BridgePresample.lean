@@ -7,7 +7,7 @@ already sampled. -/
 
 open OracleComp OracleSpec ENNReal
 
-namespace Sphincs.Security.HiddenDebt
+namespace SphincsLayered.Security.HiddenDebt
 
 open HiddenCost HiddenBridge HiddenOutside HiddenReveal
 
@@ -336,4 +336,4 @@ theorem presample_interp (x : D) (hk : tg.kind x = .none) {α : Type}
         rw [map_eq_bind_pure_comp]
         rfl
 
-end Sphincs.Security.HiddenDebt
+end SphincsLayered.Security.HiddenDebt

@@ -9,7 +9,7 @@ surrogate boundary. -/
 
 open OracleComp OracleSpec ENNReal
 
-namespace Sphincs.Security.Assembly
+namespace SphincsLayered.Security.Assembly
 
 open Completeness SeedCoupling Internalize Eager Short SeedModel Graph
 
@@ -186,4 +186,4 @@ theorem fixedHashWorld_countHashQueries (f : QueryImpl HashSpec Id) {α : Type}
   funext input
   cases input <;> rfl
 
-end Sphincs.Security.Assembly
+end SphincsLayered.Security.Assembly

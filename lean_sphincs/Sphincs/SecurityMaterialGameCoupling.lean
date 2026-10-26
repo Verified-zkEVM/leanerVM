@@ -11,7 +11,7 @@ the prepared material table kept in the shared cache throughout.
 
 open OracleComp OracleSpec
 
-namespace Sphincs.Security.MaterialGameCoupling
+namespace SphincsLayered.Security.MaterialGameCoupling
 open SeedModel SeedCoupling PreparedScheme Completeness
 
 set_option backward.isDefEq.respectTransparency false
@@ -329,4 +329,4 @@ theorem Related.gameAfterSeed (seed : MasterSeed) (material : Material) (adversa
   rw [gameAfterSeed_eq_bind, materialGame_eq_bind, keygen_map_root, liftM_map, bind_map_left]
   simpa only [bind_map_left, reseedKey] using hgame
 
-end Sphincs.Security.MaterialGameCoupling
+end SphincsLayered.Security.MaterialGameCoupling

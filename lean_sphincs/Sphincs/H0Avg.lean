@@ -9,7 +9,7 @@ averaging the marks of the views it has drawn. -/
 
 open ENNReal
 
-namespace Sphincs.Security.H0Avg
+namespace SphincsLayered.Security.H0Avg
 
 open SphincsFors.Security.Domination SphincsFors.Security.H0
 
@@ -206,4 +206,4 @@ theorem hTermO_le_of_dominated (w lam : ℝ≥0∞) (N q : ℕ) {f : Multiset (�
     simpa [virtualOnce, avgL] using this
   exact creations_dominated lam hv q []
 
-end Sphincs.Security.H0Avg
+end SphincsLayered.Security.H0Avg

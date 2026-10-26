@@ -6,7 +6,7 @@ actual lazy outside random oracle started from the structural cache. -/
 
 open OracleComp OracleSpec ENNReal
 
-namespace Sphincs.Security.HiddenBridge
+namespace SphincsLayered.Security.HiddenBridge
 
 open Completeness SeedModel Graph Assembly Reduce HiddenGraph Eager Internalize
 
@@ -32,4 +32,4 @@ theorem probEvent_bind_congr₂ {α β γ : Type} (p : ProbComp α) (k₁ : α �
     Pr{let x ← p >>= k₁}[event₁ x] = Pr{let x ← p >>= k₂}[event₂ x] := by
   simp only [OracleComp.prEvent_bind_eq_tsum, h]
 
-end Sphincs.Security.HiddenBridge
+end SphincsLayered.Security.HiddenBridge

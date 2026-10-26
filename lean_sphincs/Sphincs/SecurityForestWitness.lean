@@ -19,7 +19,7 @@ for the four level-2 nodes of a super-child (`SuperMatch`) and the folds of 2 le
 
 open OracleComp OracleSpec
 
-namespace Sphincs.Security
+namespace SphincsLayered.Security
 open Concrete
 
 theorem superPayload_injective {tops tops' : SubIdx → Digest × Digest}
@@ -710,4 +710,4 @@ theorem Exception.queried_output_match (f : QueryImpl HashSpec Id) (parameter : 
     exact hnode.2.2.trans (merkleValue_succ f parameter _ _ _ _ level)
 
 end Forest
-end Sphincs.Security
+end SphincsLayered.Security

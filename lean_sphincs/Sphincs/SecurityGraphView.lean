@@ -12,7 +12,7 @@ the subtree and tree paths are public structural labels. -/
 
 open OracleComp OracleSpec
 
-namespace Sphincs.Security.GraphView
+namespace SphincsLayered.Security.GraphView
 open Concrete Completeness Graph GraphCorrectness HiddenGraph Prefix
 
 attribute [local irreducible] firstEncoding encodingAttemptLimit Seeded.forestKey Seeded.forestOpen
@@ -220,4 +220,4 @@ theorem eval_finishSign_assembled (f : QueryImpl HashSpec Id) (parameter : Publi
     simp only [Option.map_none, Option.map_some, evalWithAnswerFn_pure, evalWithAnswerFn_bind,
       derivedSecrets, Completeness.otsSecret]
 
-end Sphincs.Security.GraphView
+end SphincsLayered.Security.GraphView

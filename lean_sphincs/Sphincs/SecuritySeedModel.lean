@@ -21,7 +21,7 @@ distribution.
 
 open OracleComp OracleSpec
 
-namespace Sphincs.Security.SeedModel
+namespace SphincsLayered.Security.SeedModel
 
 abbrev OtsPosition := Layer × TreeIndex × LeafIndex × ChainIndex
 abbrev ForestPosition := Index × Coord × SuperIdx × SubIdx × ChildIdx × FChain
@@ -419,4 +419,4 @@ theorem eval_surrogate_prepared (f : QueryImpl HashSpec Id) (seed : MasterSeed) 
   rw [← secret_prepared f seed material h (.inr (.inr level)), Completeness.eval_deriveKey]
   rfl
 
-end Sphincs.Security.SeedModel
+end SphincsLayered.Security.SeedModel

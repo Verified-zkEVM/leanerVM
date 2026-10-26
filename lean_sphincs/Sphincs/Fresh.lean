@@ -11,7 +11,7 @@ support of oracle runs, so their conclusions apply after random key generation a
 
 open OracleComp OracleSpec
 
-namespace Sphincs.Completeness
+namespace SphincsLayered.Completeness
 
 open Concrete
 
@@ -57,12 +57,12 @@ theorem tweakableHash (target : HashInput) (parameter : PublicParameter) (domain
 
 theorem deriveKey (target : HashInput) (parameter : PublicParameter) (domain : KeygenDomain)
     (seed : MasterSeed) (hne : keygenHashInput parameter domain seed ≠ target) :
-    PreservesFresh target (Sphincs.deriveKey parameter domain seed) :=
+    PreservesFresh target (SphincsLayered.deriveKey parameter domain seed) :=
   bind (query hne) (fun _ => pure' _ _)
 
 theorem deriveOutput (target : HashInput) (parameter : PublicParameter) (domain : KeygenDomain)
     (seed : MasterSeed) (hne : keygenHashInput parameter domain seed ≠ target) :
-    PreservesFresh target (Sphincs.deriveOutput parameter domain seed) :=
+    PreservesFresh target (SphincsLayered.deriveOutput parameter domain seed) :=
   query hne
 
 theorem sequenceFin {α : Type} {n : Nat} (target : HashInput)
@@ -96,7 +96,7 @@ theorem fieldInput_ne_of_tag_ne_across (parameter parameter' : PublicParameter)
   apply htag
   obtain ⟨hprefix, _⟩ := List.append_inj h (by simp [fieldBytes, bytesLE_length])
   obtain ⟨_, hfields⟩ := List.append_inj hprefix (by simp [bytesLE_length])
-  rw [Sphincs.fieldBytes_injective hfields]
+  rw [SphincsLayered.fieldBytes_injective hfields]
 
 /-- Every derivation domain is separate from both encoding (4) and message (12). -/
 theorem keygenDomain_tag_ne (domain : KeygenDomain) (tag : Nat) (htag : tag = 4 ∨ tag = 12) :
@@ -334,4 +334,4 @@ theorem forestOpen (parameter : PublicParameter) (index : Index)
 
 end PreservesFresh
 
-end Sphincs.Completeness
+end SphincsLayered.Completeness

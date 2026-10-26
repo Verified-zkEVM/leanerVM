@@ -7,7 +7,7 @@ even when encoding exhausts. -/
 
 open OracleComp OracleSpec
 
-namespace Sphincs.Security.GraphView
+namespace SphincsLayered.Security.GraphView
 open Concrete Completeness Prefix HiddenGraph
 set_option backward.isDefEq.respectTransparency false
 attribute [local irreducible] firstEncoding ReferenceChoice.search encodingAttemptLimit
@@ -228,4 +228,4 @@ noncomputable def signCostSource (parameter : PublicParameter) (data : PublicDat
   let start ← liftM ($ᵗ Randomness : ProbComp Randomness)
   signCostSourceLoop parameter data message digestAttemptLimit start
 
-end Sphincs.Security.GraphView
+end SphincsLayered.Security.GraphView

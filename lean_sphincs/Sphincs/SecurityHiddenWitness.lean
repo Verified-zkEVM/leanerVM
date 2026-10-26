@@ -9,7 +9,7 @@ event without a small-query assumption or an honest-signature premise. -/
 
 open OracleComp OracleSpec
 
-namespace Sphincs.Security.Wots
+namespace SphincsLayered.Security.Wots
 open Concrete Chain
 
 variable (f : QueryImpl HashSpec Id) (parameter : PublicParameter) (lay : Layer)
@@ -51,9 +51,9 @@ theorem ChainException.hidden_or_output {trace : List HashInput}
   · exact contact_hidden_or_output f parameter lay tree leaf reference secret trace left hcontact
   · exact contact_hidden_or_output f parameter lay tree leaf reference secret trace index hcontact
 
-end Sphincs.Security.Wots
+end SphincsLayered.Security.Wots
 
-namespace Sphincs.Security.Forest
+namespace SphincsLayered.Security.Forest
 open Concrete
 
 /-- An unrevealed honest forest chain value at its own chain step was queried. -/
@@ -91,4 +91,4 @@ theorem Opening.covered_or_hidden (f : QueryImpl HashSpec Id) (parameter : Publi
     simp only [walkValue, forestWalk_eq_zero, evalWithAnswerFn_pure, Nat.add_zero]
     exact ((hopening c).1 j i).symm
 
-end Sphincs.Security.Forest
+end SphincsLayered.Security.Forest

@@ -2,7 +2,7 @@ import Sphincs.Scheme
 import SphincsBase.Proof.Base.Probability
 
 /-! Uniform bit extraction; adapted from leanVM b7a107256. -/
-namespace Sphincs
+namespace SphincsLayered
 open OracleComp OracleSpec ENNReal
 theorem hashOutput_eq_of_extract {width : Nat} (hwidth : width ≤ hashOutputBits) {x y : HashOutput}
     (hlow : x.extractLsb' 0 width = y.extractLsb' 0 width)
@@ -140,4 +140,4 @@ theorem probEvent_uniform_truncateHash_mem (targets : Finset Digest) :
   rw [h, SampleableType.prEvent_uniformSample]
   rw [Finset.filter_univ_mem]
 
-end Sphincs
+end SphincsLayered

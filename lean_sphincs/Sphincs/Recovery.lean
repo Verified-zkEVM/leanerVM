@@ -18,7 +18,7 @@ open OracleComp
 set_option maxRecDepth 100000
 set_option maxHeartbeats 1000000
 
-namespace Sphincs.Completeness
+namespace SphincsLayered.Completeness
 
 open Concrete Seeded
 
@@ -633,4 +633,4 @@ theorem eval_forestRecover (marks : Coord → CoordMark) :
 
 end Key
 
-end Sphincs.Completeness
+end SphincsLayered.Completeness

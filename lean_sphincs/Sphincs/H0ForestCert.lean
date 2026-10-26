@@ -8,7 +8,7 @@ linearly beyond `n1`), which dominate the averaged split terms through the momen
 
 open ENNReal NNReal
 
-namespace Sphincs.Security.H0
+namespace SphincsLayered.Security.H0
 
 open Concrete SphincsFors.Security.H0 SphincsFors.Security.Domination H0Avg
 
@@ -358,4 +358,4 @@ theorem poisMean_leaf_le {t : PoisT} (ht : checkPT t = true) {tab : List ℚ} {J
           have hJ0' : (0 : ℝ) ≤ (J : ℝ) := by exact_mod_cast hJ0
           have h1r : 0 < 1 - (t.r : ℝ) := by linarith
           exact mul_nonneg (by exact_mod_cast t.pb_nonneg _) (by positivity)
-end Sphincs.Security.H0
+end SphincsLayered.Security.H0

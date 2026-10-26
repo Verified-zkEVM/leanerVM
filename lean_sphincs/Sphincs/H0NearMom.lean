@@ -8,7 +8,7 @@ subtree `(c, j)`, has per-index mean `Σ_{c,j} Ψ1(n)^7 ΨH(n)`. -/
 
 open ENNReal
 
-namespace Sphincs.Security.H0
+namespace SphincsLayered.Security.H0
 
 open Concrete H0Avg SphincsFors.Security.Domination
 
@@ -280,4 +280,4 @@ theorem yN_le (Ms : Multiset (Coord → FieldVal)) : yN Ms ≤ 16 := by
         simp only [Finset.sum_const, Finset.card_univ, card_coord, nsmul_eq_mul, mul_one]
         norm_num
 
-end Sphincs.Security.H0
+end SphincsLayered.Security.H0

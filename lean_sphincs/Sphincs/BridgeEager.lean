@@ -6,7 +6,7 @@ uniformly sampled table on the finite set of short inputs. Private draws stay pr
 
 open OracleComp OracleSpec ENNReal
 
-namespace Sphincs.Security.Eager
+namespace SphincsLayered.Security.Eager
 
 open Completeness Internalize Short
 
@@ -130,4 +130,4 @@ theorem evalDist_romImpl_eq_table {α : Type} (oa : OracleComp OracleWorld α) (
                 exact (uniformSample_bind_update_evalDistEq (D := ShortIn) (R := HashOutput)
                   ⟨bytes, hshort⟩).bind_left ψ
 
-end Sphincs.Security.Eager
+end SphincsLayered.Security.Eager

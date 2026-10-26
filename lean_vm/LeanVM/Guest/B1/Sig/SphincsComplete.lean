@@ -38,11 +38,11 @@ variable {C : CallRel} {rd : Reader}
 
 /-- The chains' starts a signature hints. -/
 def sVals (sig : Sphincs.Signature) (i : Nat) : E :=
-  if h : i < 64 then cellOf128 ((sig.layers topLayer).chainValues ⟨i, h⟩) else 0
+  if h : i < 64 then cellOf128 (sig.chainValues ⟨i, h⟩) else 0
 
 /-- The path a signature hints. -/
 def sSibs (sig : Sphincs.Signature) (l : Nat) : E :=
-  if h : l < 26 then cellOf128 ((sig.layers topLayer).path ⟨l, h⟩) else 0
+  if h : l < 26 then cellOf128 (sig.path ⟨l, h⟩) else 0
 
 /-- The statements before the root's check. -/
 def sPre : List Stmt := sPrologue ++ (sCs.1 ++ (sMid ++ (sCw.1 ++ sEndPre)))
@@ -74,16 +74,16 @@ theorem sBack_stage (hm : MemOK rd 256) {bb : E} (hbb : ByteBits rd bb) (sig : S
     (hpost : ∀ k < 8, CoordPost (E1 k) (E2 k) k (cSt k).1 (cSt k).2.1 (cSt k).2.2 (H k) σ2)
     {Ncw : Nat}
     (hd : (digestScalars (keccak256 ((cellsBytes (σ2 (.n 162) :: σ2 (.n 164) ::
-      (List.range 16).map (sT σ2) ++ [eOfNat (sig.layers topLayer).counter.toNat])).take 292))).1 =
+      (List.range 16).map (sT σ2) ++ [eOfNat sig.counter.toNat])).take 292))).1 =
         lit (∑ i ∈ Finset.range 64, Ncw / 4 ^ i % 4 * 4 ^ i))
     (hs : ∑ i ∈ Finset.range 64, Ncw / 4 ^ i % 4 = 123) :
     Completes C rd sB sMk.2.1 (sMid ++ (sCw.1 ++ sEndPre)) σ2 (fun σ' =>
-      σ' (.n sFb.2.1) = eOfNat (sig.layers topLayer).counter.toNat ∧
+      σ' (.n sFb.2.1) = eOfNat sig.counter.toNat ∧
       (∀ q ≤ 21, σ' (.n (cwState sW (sEnc.2.1 + 10) q).2.2) = ofK (gpow (nDigits 21 Ncw q))) ∧
       (∀ i < 64, σ' (cwPos sW 21 (sEnc.2.1 + 10) (nDigits 21 Ncw) i) = sVals sig i) ∧
       (∀ l < 26, mSib σ' sBit l (mBase sNodeOf 0 l sLeaf.2.1) = sSibs sig l) ∧
       IsCanonical128 (σ' sMk.2.2) ∧
-      ∀ j < 4, σ' (.n (sB + j)) = ofK (gpow (ctrByte (sig.layers topLayer).counter.toNat j))) := by
+      ∀ j < 4, σ' (.n (sB + j)) = ofK (gpow (ctrByte sig.counter.toNat j))) := by
   obtain ⟨hB, hBE, hEM⟩ := sPre_bounds
   have hpre := sPrologue_sound hp.atoms
   have hn0 : IsCanonical128 (σ2 (sNode 0)) := by
@@ -92,7 +92,7 @@ theorem sBack_stage (hm : MemOK rd 256) {bb : E} (hbb : ByteBits rd bb) (sig : S
   refine Completes.append (m := sEnc.2.1 + 10) hBE hEM sMid_nb
     (sMid_complete hm hbb σ2 h1 hP hn0 (by rw [hpre.top0]; exact hP)
       (by rw [hpre.top1]; exact canon_add hn0 (canon_word _ _)) (sT_canon hpost) hpre.pad
-      (sig.layers topLayer).counter.isLt hd) (fun σ3 he3 hp3 => ?_)
+      sig.counter.isLt hd) (fun σ3 he3 hp3 => ?_)
   obtain ⟨m1', m2', m3', m4'⟩ := hp3
   have hag : AgreeBelow sB σ2 σ3 := he3.agree
   have hp3 := hp.frame (hag.mono hB)
@@ -140,7 +140,7 @@ theorem sStages (hm : MemOK rd 256) {p bb : E} (hbb : ByteBits rd bb) (pk : Sphi
         cellOf128 (m.extractLsb' 128 128), cellOf128 sig.randomness]).1)
       (cellNat (hcell [cellOf128 pk.parameter, word (tw 12) 0 0, cellOf128 (m.extractLsb' 0 128),
         cellOf128 (m.extractLsb' 128 128), cellOf128 sig.randomness]).2)
-      (sig.layers topLayer).counter.toNat) := by
+      sig.counter.toNat) := by
   obtain ⟨hB, hBE, hEM⟩ := sPre_bounds
   set Pc := cellOf128 pk.parameter with hPc
   set m0 := cellOf128 (m.extractLsb' 0 128) with hm0
@@ -149,7 +149,7 @@ theorem sStages (hm : MemOK rd 256) {p bb : E} (hbb : ByteBits rd bb) (pk : Sphi
   set dg := hcell [Pc, word (tw 12) 0 0, m0, m1, rho] with hdg
   set N17 := cellNat dg.1 with hN17
   set N18 := cellNat dg.2 with hN18
-  set ctr := (sig.layers topLayer).counter.toNat with hctr
+  set ctr := sig.counter.toNat with hctr
   have cPc : IsCanonical128 Pc := isCanonical128_cellOf128 _
   -- the digest
   have hmd : @messageDigest Id _ ⟨Node.keccakBits⟩ pk.parameter pk.root m sig.randomness =
@@ -186,18 +186,17 @@ theorem sStages (hm : MemOK rd 256) {p bb : E} (hbb : ByteBits rd bb) (pk : Sphi
   rw [hmd, hkey, sOtsLeaf_id] at hots
   obtain ⟨enc, henc, -⟩ := Option.map_eq_some_iff.mp hots
   have hidx26 := sIdx_lt σ2
-  have hleafI : (leafIndexAt (digestIndex (BitVec.ofNat messageDigestBits (N17 + 2 ^ 128 * N18)))
-      topLayer).val = sIdx σ2 := by
-    rw [leafIndexAt_top, digestIndex_ofNat (cellNat_lt _), hidx2]
-  have hE : cellBytes (σ2 (.n 164)) = tweakBytes (.encoding topLayer 0
-      (leafIndexAt (digestIndex (BitVec.ofNat messageDigestBits (N17 + 2 ^ 128 * N18))) topLayer)) := by
+  have hleafI : (digestIndex (BitVec.ofNat messageDigestBits (N17 + 2 ^ 128 * N18))).val = sIdx σ2 := by
+    rw [digestIndex_ofNat (cellNat_lt _), hidx2]
+  have hE : cellBytes (σ2 (.n 164)) = tweakBytes (.encoding
+      (digestIndex (BitVec.ofNat messageDigestBits (N17 + 2 ^ 128 * N18)))) := by
     rw [hpre2.top1, sNode0_eq hpre2]
     show _ = Sphincs.fieldBytes (Sphincs.tweakFields 4 0 0 _)
     rw [hleafI]
     exact encAdr_bytes hidx26
-  have hc : Sphincs.bytesLE 4 (sig.layers topLayer).counter = (cellBytes (eOfNat ctr)).take 4 := by
-    have hc32 : ctr < 2 ^ 32 := (sig.layers topLayer).counter.isLt
-    have e : BitVec.ofNat (8 * 4) (cellNat (eOfNat ctr)) = (sig.layers topLayer).counter := by
+  have hc : Sphincs.bytesLE 4 sig.counter = (cellBytes (eOfNat ctr)).take 4 := by
+    have hc32 : ctr < 2 ^ 32 := sig.counter.isLt
+    have e : BitVec.ofNat (8 * 4) (cellNat (eOfNat ctr)) = sig.counter := by
       apply BitVec.eq_of_toNat_eq
       rw [BitVec.toNat_ofNat, cellNat_eOfNat (by omega), Nat.mod_eq_of_lt (by norm_num; omega)]
       exact hctr
@@ -223,7 +222,7 @@ theorem sRoot_final {pk : Sphincs.PublicKey} {m : Sphincs.Message} {sig : Sphinc
     (hv : SRoot pk.parameter pk.root m sig pk.root) {σ : Val} {N17 N18 : Nat}
     (hf : SFinal rd σ (cellOf128 pk.parameter) (cellOf128 (m.extractLsb' 0 128))
       (cellOf128 (m.extractLsb' 128 128)) (cellOf128 sig.randomness) sig N17 N18
-      (sig.layers topLayer).counter.toNat)
+      sig.counter.toNat)
     (hh : Stmt.HoldsList C rd σ sPre True (fun _ => True)) :
     σ sMk.2.2 = cellOf128 pk.root := by
   obtain ⟨hsp, hcp, hfb, ⟨Ncw, hdg, hst⟩, hsb, hcan, -⟩ := hf
@@ -232,7 +231,7 @@ theorem sRoot_final {pk : Sphincs.PublicKey} {m : Sphincs.Message} {sig : Sphinc
   have h161 : σ (.n 161) = σ (sNode 0) + word 0 (cellNat (σ (.n 18)) / 2 ^ 106 * 2 ^ 42) 0 := by
     rw [hpre.bound0, hsp.unused, word_hi_mul hNu]
   obtain ⟨-, -, hR⟩ := sphincs_root (C := C) (rd := rd) (rest := []) (next := True) (kret := fun _ => True)
-    (by rw [List.append_nil]; exact hh) hfb (sig.layers topLayer).counter.isLt hNu h161 pk.root
+    (by rw [List.append_nil]; exact hh) hfb sig.counter.isLt hNu h161 pk.root
   rw [hsp.pp, hsp.c5, hsp.c6, show spp (cellOf128 pk.parameter) = pk.parameter from cellVal_cellOf128 _,
     show smsg (cellOf128 (m.extractLsb' 0 128)) (cellOf128 (m.extractLsb' 128 128)) = m from
       sCellPairVal_cellOf128 m] at hR
@@ -247,22 +246,23 @@ theorem sRoot_final {pk : Sphincs.PublicKey} {m : Sphincs.Message} {sig : Sphinc
       congr 1
       exact Fin.ext (Nat.mod_eq_of_lt c.isLt))
     (by
-      show (⟨BitVec.ofNat counterBits (cellNat (σ (.n sFb.2.1))),
-          fun i => sv (σ (cwStart sW 21 (sEnc.2.1 + 10) σ i.val)),
-          fun l => sv (mSib σ sBit l.val (mBase sNodeOf 0 l.val sLeaf.2.1))⟩ : LayerSignature topLayer) =
-        ⟨(sig.layers topLayer).counter, (sig.layers topLayer).chainValues, (sig.layers topLayer).path⟩
-      simp only [LayerSignature.mk.injEq]
-      refine ⟨?_, funext fun i => ?_, funext fun l => ?_⟩
-      · apply BitVec.eq_of_toNat_eq
-        rw [hfb, BitVec.toNat_ofNat, cellNat_eOfNat (by
-          have : (sig.layers topLayer).counter.toNat < 2 ^ 32 := (sig.layers topLayer).counter.isLt; omega),
-          Nat.mod_eq_of_lt (sig.layers topLayer).counter.isLt]
-      · rw [cwStart_eq_cwPos (fun q _ => nDigits_lt 21 Ncw q) hdg (show i.val < 3 * 21 + 1 by
-          have := i.isLt; simp only [numChains] at this; omega),
-          hst i.val i.isLt]
-        exact sv_dite i
-      · rw [hsb l.val l.isLt]
-        exact sv_dite l)
+      show BitVec.ofNat counterBits (cellNat (σ (.n sFb.2.1))) = sig.counter
+      apply BitVec.eq_of_toNat_eq
+      rw [hfb, BitVec.toNat_ofNat, cellNat_eOfNat (by
+        have : sig.counter.toNat < 2 ^ 32 := sig.counter.isLt; omega),
+        Nat.mod_eq_of_lt sig.counter.isLt])
+    (by
+      funext i
+      show sv (σ (cwStart sW 21 (sEnc.2.1 + 10) σ i.val)) = sig.chainValues i
+      rw [cwStart_eq_cwPos (fun q _ => nDigits_lt 21 Ncw q) hdg (show i.val < 3 * 21 + 1 by
+        have := i.isLt; simp only [numChains] at this; omega),
+        hst i.val i.isLt]
+      exact sv_dite i)
+    (by
+      funext l
+      show sv (mSib σ sBit l.val (mBase sNodeOf 0 l.val sLeaf.2.1)) = sig.path l
+      rw [hsb l.val l.isLt]
+      exact sv_dite l)
   rw [← hr]
   exact (cellOf128_cellVal hcan).symm
 
@@ -281,7 +281,7 @@ theorem sphincs_complete_val (C : CallRel) (rd : Reader) (p bb : E) (pk : Sphinc
           cellOf128 (m.extractLsb' 128 128), cellOf128 sig.randomness]).1)
         (cellNat (hcell [cellOf128 pk.parameter, word (tw 12) 0 0, cellOf128 (m.extractLsb' 0 128),
           cellOf128 (m.extractLsb' 128 128), cellOf128 sig.randomness]).2)
-        (sig.layers topLayer).counter.toNat ∧
+        sig.counter.toNat ∧
       Stmt.HoldsList C rd σf sPre True (fun _ => True) := by
   obtain ⟨hldR, hldP, hldLo, hldHi⟩ := hat
   rw [sphincsVerify_SRoot] at hv

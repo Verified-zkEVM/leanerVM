@@ -9,7 +9,7 @@ Longer adversarial inputs never meet honest work, which lets them be simulated p
 
 open OracleComp OracleSpec
 
-namespace Sphincs.Security.Short
+namespace SphincsLayered.Security.Short
 
 open Concrete
 
@@ -76,19 +76,19 @@ theorem schemeSeedInput_length (seed : MasterSeed) : (schemeSeedInput seed).leng
   simp [schemeSeedInput, seedTag, bytesLE_length]
 
 theorem Only.schemeSeed (seed : MasterSeed) :
-    Only (Sphincs.schemeSeed seed : OracleComp HashSpec MasterSeed) := by
+    Only (SphincsLayered.schemeSeed seed : OracleComp HashSpec MasterSeed) := by
   refine Only.query ?_
   simp [IsShort, bound, schemeSeedInput_length]
 
 theorem Only.deriveKey (parameter : PublicParameter) (domain : KeygenDomain) (seed : MasterSeed) :
-    Only (Sphincs.deriveKey parameter domain seed : OracleComp HashSpec Digest) := by
-  unfold Sphincs.deriveKey
+    Only (SphincsLayered.deriveKey parameter domain seed : OracleComp HashSpec Digest) := by
+  unfold SphincsLayered.deriveKey
   refine Only.bind (Only.query ?_) (fun _ => Only.pure' _)
   simp [IsShort, bound, keygenHashInput_length]
 
 theorem Only.deriveOutput (parameter : PublicParameter) (domain : KeygenDomain) (seed : MasterSeed) :
-    Only (Sphincs.deriveOutput parameter domain seed : OracleComp HashSpec HashOutput) := by
-  unfold Sphincs.deriveOutput
+    Only (SphincsLayered.deriveOutput parameter domain seed : OracleComp HashSpec HashOutput) := by
+  unfold SphincsLayered.deriveOutput
   refine Only.query ?_
   simp [IsShort, bound, keygenHashInput_length]
 
@@ -286,7 +286,7 @@ theorem Only.verify (publicKey : PublicKey) (message : Message) (signature : Sig
         (fun _ => Only.pure' _)
 
 namespace Seeded
-open Sphincs.Seeded
+open SphincsLayered.Seeded
 
 theorem Only.otsSecrets (parameter : PublicParameter) (lay : Layer) (tree : TreeIndex)
     (leaf : LeafIndex) (seed : MasterSeed) :
@@ -308,7 +308,7 @@ theorem Only.otsSignFrom (parameter : PublicParameter) (lay : Layer) (tree : Tre
       OracleComp HashSpec (Option (Counter × (ChainIndex → Digest))))
   | 0, _ => Short.Only.pure' _
   | attempts + 1, counter => by
-      rw [Sphincs.Seeded.otsSignFrom]
+      rw [SphincsLayered.Seeded.otsSignFrom]
       refine Short.Only.bind (Short.Only.encode _ _ _ _ _ _) ?_
       intro encoding
       cases encoding with
@@ -322,10 +322,10 @@ theorem Only.treeNode (parameter : PublicParameter) (lay : Layer) (tree : TreeIn
     (seed : MasterSeed) : ∀ level nodeIdx, Short.Only (treeNode parameter lay tree seed level nodeIdx :
       OracleComp HashSpec Digest)
   | 0, nodeIdx => by
-      rw [Sphincs.Seeded.treeNode_eq_zero]
+      rw [SphincsLayered.Seeded.treeNode_eq_zero]
       exact Short.Only.bind (Only.oneTimePublicKey _ _ _ _ _) (fun _ => Short.Only.leafHash _ _ _ _ _)
   | level + 1, nodeIdx => by
-      rw [Sphincs.Seeded.treeNode_eq_succ]
+      rw [SphincsLayered.Seeded.treeNode_eq_succ]
       exact Short.Only.bind (Only.treeNode parameter lay tree seed level _) (fun _ =>
         Short.Only.bind (Only.treeNode parameter lay tree seed level _) (fun _ =>
           Short.Only.tweakableHash _ _ _ (by rw [nodePayload_length]; omega)))
@@ -346,12 +346,12 @@ theorem Only.subNode (parameter : PublicParameter) (index : Index) (c : Coord) (
     (j : SubIdx) (seed : MasterSeed) : ∀ level node, Short.Only (subNode parameter index c s j seed level node :
       OracleComp HashSpec Digest)
   | 0, node => by
-      rw [Sphincs.Seeded.subNode_eq_zero]
+      rw [SphincsLayered.Seeded.subNode_eq_zero]
       exact Short.Only.bind (Only.forestSecrets _ _ _ _ _ _ _) (fun _ =>
         Short.Only.bind (Short.Only.sequenceFin _ fun _ => Short.Only.forestWalk _ _ _ _ _ _ _ _ _ _)
           (fun _ => Short.Only.childLeafHash _ _ _ _ _ _ _))
   | level + 1, node => by
-      rw [Sphincs.Seeded.subNode_eq_succ]
+      rw [SphincsLayered.Seeded.subNode_eq_succ]
       refine Short.Only.bind (Only.subNode parameter index c s j seed level _) (fun _ =>
         Short.Only.bind (Only.subNode parameter index c s j seed level _) (fun _ => ?_))
       split
@@ -360,7 +360,7 @@ theorem Only.subNode (parameter : PublicParameter) (index : Index) (c : Coord) (
 
 theorem Only.superNode (parameter : PublicParameter) (index : Index) (c : Coord) (s : SuperIdx)
     (seed : MasterSeed) : Short.Only (superNode parameter index c s seed : OracleComp HashSpec Digest) := by
-  unfold Sphincs.Seeded.superNode Concrete.superHash
+  unfold SphincsLayered.Seeded.superNode Concrete.superHash
   exact Short.Only.bind (Short.Only.sequenceFin _ fun _ =>
       Short.Only.bind (Only.subNode _ _ _ _ _ _ _ _) (fun _ =>
         Short.Only.bind (Only.subNode _ _ _ _ _ _ _ _) (fun _ => Short.Only.pure' _)))
@@ -370,10 +370,10 @@ theorem Only.topNode (parameter : PublicParameter) (index : Index) (c : Coord)
     (seed : MasterSeed) : ∀ level node, Short.Only (topNode parameter index c seed level node :
       OracleComp HashSpec Digest)
   | 0, node => by
-      rw [Sphincs.Seeded.topNode_eq_zero]
+      rw [SphincsLayered.Seeded.topNode_eq_zero]
       exact Only.superNode _ _ _ _ _
   | level + 1, node => by
-      rw [Sphincs.Seeded.topNode_eq_succ]
+      rw [SphincsLayered.Seeded.topNode_eq_succ]
       refine Short.Only.bind (Only.topNode parameter index c seed level _) (fun _ =>
         Short.Only.bind (Only.topNode parameter index c seed level _) (fun _ => ?_))
       split
@@ -383,18 +383,18 @@ theorem Only.topNode (parameter : PublicParameter) (index : Index) (c : Coord)
 theorem Only.forestKey (parameter : PublicParameter) (index : Index) (seed : MasterSeed) :
     Short.Only (forestKey parameter index seed : OracleComp HashSpec ForestKey) := by
   have htop : ∀ c, Short.Only (do
-      let left ← Sphincs.Seeded.topNode parameter index c seed (topHeight - 1) 0
-      let right ← Sphincs.Seeded.topNode parameter index c seed (topHeight - 1) 1
+      let left ← SphincsLayered.Seeded.topNode parameter index c seed (topHeight - 1) 0
+      let right ← SphincsLayered.Seeded.topNode parameter index c seed (topHeight - 1) 1
       return (left, right) : OracleComp HashSpec (Digest × Digest)) :=
     fun c => Short.Only.bind (Only.topNode parameter index c seed _ _) (fun _ =>
       Short.Only.bind (Only.topNode parameter index c seed _ _) (fun _ => Short.Only.pure' _))
-  unfold Sphincs.Seeded.forestKey
+  unfold SphincsLayered.Seeded.forestKey
   exact Short.Only.sequenceFin _ htop
 
 theorem Only.forestOpen (parameter : PublicParameter) (index : Index) (marks : Coord → CoordMark)
     (seed : MasterSeed) :
     Short.Only (forestOpen parameter index marks seed : OracleComp HashSpec (Coord → CoordOpening)) := by
-  unfold Sphincs.Seeded.forestOpen Sphincs.Seeded.coordOpen
+  unfold SphincsLayered.Seeded.forestOpen SphincsLayered.Seeded.coordOpen
   exact Short.Only.sequenceFin _ fun _ =>
     Short.Only.bind (Short.Only.sequenceFin _ fun _ =>
       Short.Only.bind (Only.forestSecrets _ _ _ _ _ _ _) (fun _ =>
@@ -409,7 +409,7 @@ variable [Params]
 omit [Params] in
 theorem Only.surrogate (parameter : PublicParameter) (seed : MasterSeed) (level : Nat) :
     Short.Only (surrogate parameter seed level : OracleComp HashSpec Digest) := by
-  unfold Sphincs.Seeded.surrogate
+  unfold SphincsLayered.Seeded.surrogate
   split
   · exact Short.Only.deriveKey _ _ _
   · exact Short.Only.pure' _
@@ -418,10 +418,10 @@ theorem Only.spineNode (parameter : PublicParameter) (lay : Layer) (tree : TreeI
     (seed : MasterSeed) : ∀ steps, Short.Only (spineNode parameter lay tree seed steps :
       OracleComp HashSpec Digest)
   | 0 => by
-      rw [Sphincs.Seeded.spineNode]
+      rw [SphincsLayered.Seeded.spineNode]
       exact Only.treeNode _ _ _ _ _ _
   | steps + 1 => by
-      rw [Sphincs.Seeded.spineNode]
+      rw [SphincsLayered.Seeded.spineNode]
       refine Short.Only.bind (Only.spineNode parameter lay tree seed steps) (fun _ =>
         Short.Only.bind (Only.surrogate _ _ _) (fun _ => ?_))
       dsimp only
@@ -443,28 +443,28 @@ theorem Only.treePath (parameter : PublicParameter) (lay : Layer) (tree : TreeIn
 
 theorem Only.keygenFromMaster (seed : MasterSeed) :
     Short.Only (keygenFromMaster seed : OracleComp HashSpec (PublicKey × SecretKey)) := by
-  unfold Sphincs.Seeded.keygenFromMaster
+  unfold SphincsLayered.Seeded.keygenFromMaster
   exact Short.Only.bind (Short.Only.deriveKey _ _ _) (fun _ =>
     Short.Only.bind (Only.treeRoot _ _ _ _) (fun _ => Short.Only.pure' _))
 
 theorem Only.keygenFromSeed (seed : MasterSeed) :
     Short.Only (keygenFromSeed seed : OracleComp HashSpec (PublicKey × SecretKey)) := by
-  unfold Sphincs.Seeded.keygenFromSeed
+  unfold SphincsLayered.Seeded.keygenFromSeed
   exact Short.Only.bind (Short.Only.schemeSeed _) (fun _ => Only.keygenFromMaster _)
 
 theorem Only.signAttempt (secretKey : SecretKey) (message : Message) (randomness : Randomness) :
     Short.Only (signAttempt secretKey message randomness : OracleComp HashSpec (Option Index)) := by
-  unfold Sphincs.Seeded.signAttempt
+  unfold SphincsLayered.Seeded.signAttempt
   exact Short.Only.bind (Short.Only.messageDigestCall _ _ _ _) (fun _ =>
     Short.Only.ite _ (Short.Only.pure' _) (Short.Only.pure' _))
 
-attribute [local irreducible] Sphincs.Seeded.treeNode Sphincs.Seeded.subNode
-  Sphincs.Seeded.topNode Sphincs.Seeded.otsSignFrom Sphincs.Seeded.forestKey
-  Sphincs.Seeded.treePath
+attribute [local irreducible] SphincsLayered.Seeded.treeNode SphincsLayered.Seeded.subNode
+  SphincsLayered.Seeded.topNode SphincsLayered.Seeded.otsSignFrom SphincsLayered.Seeded.forestKey
+  SphincsLayered.Seeded.treePath
 
 theorem Only.signLayer (secretKey : SecretKey) (index : Index) (lay : Layer) :
     Short.Only (signLayer secretKey index lay : OracleComp HashSpec (Option (LayerSignature lay))) := by
-  unfold Sphincs.Seeded.signLayer Sphincs.Seeded.layerMessage Sphincs.Seeded.otsSign
+  unfold SphincsLayered.Seeded.signLayer SphincsLayered.Seeded.layerMessage SphincsLayered.Seeded.otsSign
   dsimp only
   generalize treeIndexAt index lay = tree
   generalize leafIndexAt index lay = leaf
@@ -478,9 +478,9 @@ end Seeded
 
 variable [Params]
 
-attribute [local irreducible] Sphincs.Seeded.signLayer Sphincs.Seeded.forestOpen
+attribute [local irreducible] SphincsLayered.Seeded.signLayer SphincsLayered.Seeded.forestOpen
 
-theorem Only.finishSign (secretKey : Sphincs.Seeded.SecretKey) (message : Message)
+theorem Only.finishSign (secretKey : SphincsLayered.Seeded.SecretKey) (message : Message)
     (randomness : Randomness) :
     Only (Randomized.finishSign secretKey message randomness :
       OracleComp HashSpec (Option Signature)) := by
@@ -496,4 +496,4 @@ theorem Only.finishSign (secretKey : Sphincs.Seeded.SecretKey) (message : Messag
       rcases top with _ | top <;> exact Only.pure' _)
   · rcases layers with _ | layers <;> exact Only.pure' _
 
-end Sphincs.Security.Short
+end SphincsLayered.Security.Short

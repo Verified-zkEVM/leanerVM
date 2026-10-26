@@ -44,7 +44,8 @@ Benedikt Wagner's ([b-wagn/fv-pq-da](https://github.com/b-wagn/fv-pq-da), Apache
    of both schemes instantiates), the leanXMSS scheme and
    `LeanXmss.Rpm.LeanXmssRpmSecurityStatement` (`RpmSecure` at 127 bits).
 3. [`LeanSphincs.lean`](LeanSphincs.lean): the leanSPHINCS scheme (on the shared part, exported
-   into `Sphincs`) with the deterministic signer, the proved lifetimes, and
+   into `Sphincs`; one tree, its signature the randomizer, the forest opening, the WOTS+C counter
+   and chain values and the path) with the deterministic signer, the proved lifetimes, and
    `Sphincs.Lifetimes.RequestedSecurityRpm` (`RpmSecure` at 127 bits at each lifetime).
 4. [`Field.lean`](Field.lean): `K = GF(2^64)` (CompPoly's `BF64`), `E = GF(2^192)`, the generator
    `g`; Keccak lanes, bytes and digests as field elements.

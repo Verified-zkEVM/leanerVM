@@ -12,7 +12,7 @@ linear potential leaves `(ρ - 1 - x) 2^-128` per forest step query unused; A4 t
 
 open OracleComp OracleSpec ENNReal
 
-namespace Sphincs.Security.ForsPotential
+namespace SphincsLayered.Security.ForsPotential
 
 open Concrete HiddenGraph HiddenCost HiddenDebt GraphView Domination ForestPrice ForestSigner HiddenReveal
   SphincsFors.Security.Domination
@@ -268,4 +268,4 @@ theorem rateS_eqF : rateS = ENNReal.ofReal ((2 - 1 / (H0.scanM : ℝ)) / 2 ^ 128
 
 end Helpers
 
-end Sphincs.Security.ForsPotential
+end SphincsLayered.Security.ForsPotential

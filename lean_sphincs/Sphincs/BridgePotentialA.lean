@@ -13,7 +13,7 @@ step of the lazy comparison changes them. -/
 
 open OracleComp OracleSpec ENNReal
 
-namespace Sphincs.Security.PotentialA
+namespace SphincsLayered.Security.PotentialA
 
 open Concrete HiddenGraph HiddenDebt HiddenBridge EncodingCode
 
@@ -867,4 +867,4 @@ theorem forest_same {s s' : St} (hcw : ∀ f, K.cw s' f = K.cw s f) (hg : s'.gue
 
 end Ctx
 
-end Sphincs.Security.PotentialA
+end SphincsLayered.Security.PotentialA

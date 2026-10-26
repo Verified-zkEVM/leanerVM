@@ -9,7 +9,7 @@ lifted private randomness. -/
 
 open OracleComp OracleSpec ENNReal
 
-namespace Sphincs.Security.DetValue
+namespace SphincsLayered.Security.DetValue
 
 open HiddenCost GraphView Stop
 
@@ -636,4 +636,4 @@ theorem win_avg_le (parameter : PublicParameter) (data : PublicData) (adversary 
       ENNReal.tsum_le_tsum fun rnd => mul_le_mul' le_rfl (memo_game_le g c parameter data rnd adversary b)
     _ ≤ _ := avg_game g c parameter data _ hnr b
 
-end Sphincs.Security.DetValue
+end SphincsLayered.Security.DetValue

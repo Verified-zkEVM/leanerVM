@@ -6,7 +6,7 @@ uniform completion of the known coordinates. -/
 
 open OracleComp OracleSpec ENNReal
 
-namespace Sphincs.Security.HiddenBridge
+namespace SphincsLayered.Security.HiddenBridge
 
 open Completeness SeedModel Graph Assembly Reduce HiddenGraph
 open SphincsBase.Concrete.UniformTableSplit
@@ -222,4 +222,4 @@ theorem seedFree_le_stopped (adversary : Adversary) (q : Nat)
   rw [hiddenRun_eq]
   exact h
 
-end Sphincs.Security.HiddenBridge
+end SphincsLayered.Security.HiddenBridge

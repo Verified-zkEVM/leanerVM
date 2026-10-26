@@ -9,11 +9,11 @@ keeps one spare fresh slot. The rate of the coin is then needed only for the mes
 
 open OracleComp OracleSpec ENNReal
 
-namespace Sphincs.Security.ForsPotential
+namespace SphincsLayered.Security.ForsPotential
 
 open SphincsFors.Security
 open Concrete HiddenGraph HiddenCost HiddenDebt GraphView Domination ForestPrice ForestSigner
-  SphincsFors.Security.Domination Sphincs.LoopWalk
+  SphincsFors.Security.Domination SphincsLayered.LoopWalk
 
 set_option backward.isDefEq.respectTransparency false
 set_option maxRecDepth 10000
@@ -1072,4 +1072,4 @@ theorem goodHW_advProg (hparse : ∀ p, model.parse (pblk parameter data p) = no
 
 end GoodHW
 
-end Sphincs.Security.ForsPotential
+end SphincsLayered.Security.ForsPotential

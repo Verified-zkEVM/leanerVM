@@ -8,7 +8,7 @@ coordinates. -/
 
 open ENNReal
 
-namespace Sphincs.Security.H0Avg
+namespace SphincsLayered.Security.H0Avg
 
 open SphincsFors.Security.Domination SphincsFors.Security.H0
 
@@ -175,4 +175,4 @@ theorem avgN_prod_coords (ψ : κ → Multiset X → ℝ≥0∞) :
 
 end Coords
 
-end Sphincs.Security.H0Avg
+end SphincsLayered.Security.H0Avg

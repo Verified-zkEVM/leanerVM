@@ -6,7 +6,7 @@ targets are then fixed before the run. -/
 
 open OracleComp OracleSpec ENNReal
 
-namespace Sphincs.Security.HiddenBridge
+namespace SphincsLayered.Security.HiddenBridge
 
 open Eager Short HiddenCost Concrete
 
@@ -101,4 +101,4 @@ noncomputable def preparation (parameterOutput : HashOutput) (fixed : HiddenGrap
 
 end Game
 
-end Sphincs.Security.HiddenBridge
+end SphincsLayered.Security.HiddenBridge

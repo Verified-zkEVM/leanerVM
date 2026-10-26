@@ -8,7 +8,7 @@ wrappers, so later arguments can follow the structure of the cost-level program.
 
 open OracleComp OracleSpec ENNReal
 
-namespace Sphincs.Security.HiddenDebt
+namespace SphincsLayered.Security.HiddenDebt
 
 open HiddenCost HiddenBridge HiddenOutside HiddenReveal
 
@@ -164,4 +164,4 @@ theorem interp_bind {α β : Type} (first : OracleComp (SourceCostSpec D R ι) �
       · rw [pure_bind]
         rfl
 
-end Sphincs.Security.HiddenDebt
+end SphincsLayered.Security.HiddenDebt

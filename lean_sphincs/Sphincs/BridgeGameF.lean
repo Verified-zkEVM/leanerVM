@@ -11,7 +11,7 @@ that are exposed and upward closed on their chains. -/
 
 open OracleComp OracleSpec ENNReal
 
-namespace Sphincs.Security.ForsPotential
+namespace SphincsLayered.Security.ForsPotential
 
 open SphincsFors.Security
 open Concrete HiddenGraph HiddenCost HiddenDebt GraphView Domination ForestPrice ForestSigner HiddenBridge
@@ -493,4 +493,4 @@ theorem final_le_startF (hMp : model.parse = HiddenGraph.parse K.p (candidateAct
 
 end Steps
 
-end Sphincs.Security.ForsPotential
+end SphincsLayered.Security.ForsPotential

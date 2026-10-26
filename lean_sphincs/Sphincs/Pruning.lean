@@ -8,7 +8,7 @@ The chain and FORS recovery lemmas are adapted from leanVM b7a107256.
 
 open OracleComp
 
-namespace Sphincs.Completeness
+namespace SphincsLayered.Completeness
 
 open Concrete Seeded
 
@@ -85,4 +85,4 @@ theorem eval_treeFold_pruned_path (parameter : PublicParameter) (lay : Layer) (t
     rw [hpath _ hlt, eval_treePath,
       ite_eq_right (show ¬subtreeHeight + t < subtreeHeight by omega)]
 
-end Sphincs.Completeness
+end SphincsLayered.Completeness

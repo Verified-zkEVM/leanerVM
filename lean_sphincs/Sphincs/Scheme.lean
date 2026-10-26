@@ -2,7 +2,7 @@ module
 
 public import VCVio.OracleComp.QueryTracking.LoggingOracle.Core
 public import VCVio.OracleComp.QueryTracking.RandomOracle.Simulation
-public import Statement.LeanSphincs
+public import Sphincs.Layered
 
 /-!
 # leanSPHINCS with a two-level WOTS forest
@@ -49,7 +49,7 @@ randomizer, which changes between two grinding attempts, comes last.
 
 open OracleComp OracleSpec ENNReal
 
-namespace Sphincs
+namespace SphincsLayered
 
 @[expose] public section
 
@@ -95,7 +95,7 @@ abbrev OracleWorld := unifSpec + HashSpec
 
 /-! ### The chains, folds and trees, in their own recursion
 
-`Statement/LeanSphincs.lean` writes the chains, the path folds and the trees as instances of
+`Sphincs/Layered.lean` writes the chains, the path folds and the trees as instances of
 `walkChain`, `foldPath` and `buildTree`; their equations here are the proofs' unfolding of each,
 step by step. -/
 
@@ -303,4 +303,4 @@ end Seeded
 
 end
 
-end Sphincs
+end SphincsLayered

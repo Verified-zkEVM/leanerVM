@@ -8,7 +8,7 @@ certificate and `checkSmallF` at `qh ≈ 2^(128 + lx)`, and a cover of every lar
 rebuilt from their scalars (`fillPoisT`, `fillOpt`, `fillOptN`, `H0Fill.lean`), and the options of a
 cover are checked one by one (`checkOptB`, `checkCoverW_of`). -/
 
-namespace Sphincs.Security.H0
+namespace SphincsLayered.Security.H0
 
 set_option maxRecDepth 1000000
 set_option maxHeartbeats 0
@@ -1531,4 +1531,4 @@ theorem covers_b8_ok : ForsPotential.checkCoversH 8 8830 20278677722873367615552
   simp only [ForsPotential.checkCoversH, ForsPotential.checkCoversHeavy, Bool.and_eq_true]
   exact ⟨cover_b8_0_ok, cover_b8_1_ok, coverh_b8_0_ok, by decide +kernel⟩
 
-end Sphincs.Security.H0
+end SphincsLayered.Security.H0

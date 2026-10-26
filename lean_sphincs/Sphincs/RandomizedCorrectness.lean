@@ -6,7 +6,7 @@ assumption occurs. This is the deterministic assembly part of randomized-signing
 
 open OracleComp
 
-namespace Sphincs.Completeness
+namespace SphincsLayered.Completeness
 open Concrete Seeded
 
 variable (f : QueryImpl HashSpec Id) [Params]
@@ -46,4 +46,4 @@ theorem verify_of_finishSign (secretKey : Seeded.SecretKey) (message : Message)
       : OracleComp HashSpec Bool) = true :=
   verify_of_parts f secretKey message hroot (finishSign_spec f secretKey message randomness hland h)
 
-end Sphincs.Completeness
+end SphincsLayered.Completeness

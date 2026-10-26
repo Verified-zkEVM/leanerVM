@@ -9,7 +9,7 @@ the SUF-CMA advantage of the deterministic signer by this game plus the cost of 
 
 open OracleComp OracleSpec ENNReal
 
-namespace Sphincs.Security.Reduce
+namespace SphincsLayered.Security.Reduce
 
 open Completeness SeedCoupling Internalize Eager Short SeedModel Graph Assembly Stop HiddenCost
   GraphView
@@ -141,4 +141,4 @@ theorem probEvent_bind_mono {α β : Type} (p : ProbComp α) (k₁ k₂ : α →
   simp only [OracleComp.prEvent_bind_eq_tsum]
   exact ENNReal.tsum_le_tsum fun a => mul_le_mul' le_rfl (h a)
 
-end Sphincs.Security.Reduce
+end SphincsLayered.Security.Reduce

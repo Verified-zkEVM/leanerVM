@@ -8,7 +8,7 @@ value never changes afterwards. Nothing is assumed about the computation. -/
 
 open OracleComp OracleSpec ENNReal
 
-namespace Sphincs.Security.HiddenDebt
+namespace SphincsLayered.Security.HiddenDebt
 
 open HiddenOutside HiddenCost HiddenReveal
 
@@ -190,4 +190,4 @@ theorem interp_value_le {α : Type} (computation : OracleComp (SourceCostSpec D 
               · rw [ite_eq_left hn, ite_eq_right hn, mul_zero, add_zero, hFeq r hr hn, mul_one]
             · rw [(prEvent_eq_zero_of_not_mem_support _) hr, zero_mul, zero_mul, zero_mul, add_zero]
 
-end Sphincs.Security.HiddenDebt
+end SphincsLayered.Security.HiddenDebt

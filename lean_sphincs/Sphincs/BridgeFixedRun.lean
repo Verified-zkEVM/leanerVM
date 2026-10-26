@@ -9,7 +9,7 @@ binds, hash-only and private-only phases, and reveals. -/
 
 open OracleComp OracleSpec ENNReal
 
-namespace Sphincs.Security.HiddenBridge
+namespace SphincsLayered.Security.HiddenBridge
 
 open HiddenCost GraphView Stop Concrete Prefix
 
@@ -572,4 +572,4 @@ theorem rich_support (adversary : Adversary) (q : Nat) (parameter : PublicParame
 
 end Fixed
 
-end Sphincs.Security.HiddenBridge
+end SphincsLayered.Security.HiddenBridge

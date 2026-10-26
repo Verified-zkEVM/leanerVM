@@ -140,7 +140,7 @@ def sphincsSigR : R Sphincs.Signature := do
   let values ← many d128
   let path ← many d128
   return ⟨randomness, fun c => forest.getD c ⟨fun _ => ⟨fun _ => 0, fun _ => 0⟩, fun _ => 0⟩,
-    fun _ => ⟨BitVec.ofNat 32 counter, fn128 values, fn128 path⟩⟩
+    BitVec.ofNat 32 counter, fn128 values, fn128 path⟩
 
 def holderR {W : Type} (direct : R W) : R (Holder W) := do
   match ← tok with

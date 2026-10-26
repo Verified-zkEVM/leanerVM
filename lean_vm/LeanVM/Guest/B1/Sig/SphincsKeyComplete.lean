@@ -78,12 +78,13 @@ theorem sKey_eq {σ : Val} (hpre : SPre rd σ)
 theorem SRoot_unique {pp : PublicParameter} {R : Sphincs.Digest} {m : Sphincs.Message}
     {sig sig' : Sphincs.Signature} {r r' : Sphincs.Digest} (h : SRoot pp R m sig r) (h' : SRoot pp R m sig' r')
     (hr : sig'.randomness = sig.randomness) (hf : sig'.forest = sig.forest)
-    (hl : sig'.layers topLayer = sig.layers topLayer) : r' = r := by
+    (hc : sig'.counter = sig.counter) (hv : sig'.chainValues = sig.chainValues)
+    (hl : sig'.path = sig.path) : r' = r := by
   obtain ⟨leaf, h1, h2⟩ := h
   obtain ⟨leaf', h1', h2'⟩ := h'
-  rw [hr, hf, hl] at h1'
+  rw [hr, hf, hc, hv] at h1'
   have e : leaf' = leaf := Option.some.inj (h1'.symm.trans h1)
-  have hp : signaturePath sig' topLayer = signaturePath sig topLayer := by
+  have hp : signaturePath sig' = signaturePath sig := by
     funext l
     unfold signaturePath
     rw [hl]

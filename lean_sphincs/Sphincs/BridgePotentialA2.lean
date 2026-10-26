@@ -6,7 +6,7 @@ paid as a contact without guess record, or as pairs and one more recorded contac
 
 open OracleComp OracleSpec ENNReal
 
-namespace Sphincs.Security.PotentialA
+namespace SphincsLayered.Security.PotentialA
 
 open Concrete HiddenGraph HiddenDebt HiddenBridge EncodingCode
 
@@ -690,4 +690,4 @@ theorem step_B (hρ : K.ρ ≤ 2) (y : ℕ) {s : St} {x : HashInput} (hx : s.cac
 
 end Ctx
 
-end Sphincs.Security.PotentialA
+end SphincsLayered.Security.PotentialA

@@ -8,7 +8,7 @@ numerators of `f(u)` and `f2(u)` are evaluated by the kernel. -/
 
 open ENNReal
 
-namespace Sphincs.Security.H0
+namespace SphincsLayered.Security.H0
 
 open Concrete
 
@@ -266,4 +266,4 @@ theorem sumT2_eq (f : ℤ → ℤ → ℤ) : ∀ (d : ℕ) (a b : NT d),
       simp only [sumT2, Int.cast_add, sumT2_eq f d]
       simp
 
-end Sphincs.Security.H0
+end SphincsLayered.Security.H0

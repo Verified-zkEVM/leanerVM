@@ -5,7 +5,7 @@ import Sphincs.Digest
 
 open OracleComp OracleSpec ENNReal Finset
 
-namespace Sphincs.Completeness
+namespace SphincsLayered.Completeness
 
 open Concrete
 
@@ -161,4 +161,4 @@ theorem randomized_digest_exhaustion_bound (sk : Seeded.SecretKey) (message : Me
   rw [Finset.card_empty, Nat.mul_zero, Nat.cast_zero, ENNReal.zero_div, add_zero]
   exact (pow_le_pow_left₀ (by positivity) le_self_add _).trans (digestFactor_pow_bound sk.parameter)
 
-end Sphincs.Completeness
+end SphincsLayered.Completeness

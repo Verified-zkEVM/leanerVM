@@ -4,7 +4,7 @@ import Sphincs.Uniform
 /-! Candidate WOTS+C encoding classification and exact small-neighborhood bounds.
 Adapted from leanVM b7a107256; the candidate uses 64 two-bit digits without padding. -/
 
-namespace Sphincs.Security.EncodingCode
+namespace SphincsLayered.Security.EncodingCode
 
 open TargetSum OracleComp OracleSpec ENNReal
 open scoped BigOperators
@@ -262,4 +262,4 @@ theorem decodingDigests_card_le (words : Finset Encoding) :
     simp only [hleft, hright, Option.getD_some] at he
     exact decode_some_injective hleft (by rw [he]; exact hright)
 
-end Sphincs.Security.EncodingCode
+end SphincsLayered.Security.EncodingCode

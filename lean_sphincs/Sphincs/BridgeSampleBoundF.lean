@@ -7,7 +7,7 @@ potential, the coin part of A4, and `κ` times its near term, once
 
 open OracleComp OracleSpec ENNReal
 
-namespace Sphincs.Security.ForsPotential
+namespace SphincsLayered.Security.ForsPotential
 
 open Concrete HiddenGraph HiddenCost HiddenDebt GraphView Domination ForestPrice ForestSigner HiddenReveal
   SphincsFors.Security.Domination
@@ -379,4 +379,4 @@ theorem sample_boundF (hb : 0 < subtreeHeight) (adversary : Adversary) (hnr : ad
 
 end SampleF
 
-end Sphincs.Security.ForsPotential
+end SphincsLayered.Security.ForsPotential

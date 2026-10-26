@@ -8,7 +8,7 @@ reveals and a failing index. -/
 
 open OracleComp OracleSpec ENNReal
 
-namespace Sphincs.Security.GraphView
+namespace SphincsLayered.Security.GraphView
 
 open Concrete Completeness Prefix HiddenGraph HiddenCost HiddenDebt ForestSigner
 
@@ -198,4 +198,4 @@ def SignPost (Fail : Finset (Fin (2 ^ subtreeHeight))) (s s' : DebtState HashInp
 
 end Loop
 
-end Sphincs.Security.GraphView
+end SphincsLayered.Security.GraphView

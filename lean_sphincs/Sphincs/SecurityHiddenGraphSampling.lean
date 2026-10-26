@@ -6,7 +6,7 @@ full-output labels. Every hidden digest is extracted from a distinct actual samp
 the other128bits and all unselected answers remain explicit independent residual data. -/
 
 open OracleComp OracleSpec
-namespace Sphincs.Security.HiddenGraph
+namespace SphincsLayered.Security.HiddenGraph
 open Graph SeedModel SphincsBase.Concrete.UniformTableSplit
 set_option backward.isDefEq.respectTransparency false
 set_option maxRecDepth 10000
@@ -222,4 +222,4 @@ theorem evalDist_material_graph_continuation {α : Type}
   have h := evalDist_sampleMaterial_graph.bind_left (fun pair => next pair.1 pair.2)
   simpa only [bind_assoc, bind_map_left] using h
 
-end Sphincs.Security.HiddenGraph
+end SphincsLayered.Security.HiddenGraph

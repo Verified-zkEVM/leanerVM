@@ -10,7 +10,7 @@ state that keeps the prepared cache and every table that agrees with its exposed
 
 open OracleComp OracleSpec
 
-namespace Sphincs.Security.HiddenBridge
+namespace SphincsLayered.Security.HiddenBridge
 
 open Concrete Completeness Graph GraphCorrectness TargetAssignment HiddenGraph Assembly SeedModel Reduce Eager
 
@@ -551,4 +551,4 @@ theorem tableExtending_of_extends (known known' : HiddenReveal.Knowledge Coordin
   | none => simp [tableExtending, hk]
   | some value => simp [tableExtending, hk, h coordinate value hk]
 
-end Sphincs.Security.HiddenBridge
+end SphincsLayered.Security.HiddenBridge

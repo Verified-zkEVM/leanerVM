@@ -8,7 +8,7 @@ reads keep it, fresh answers and guesses only lower it, and exposures keep it in
 
 open OracleComp OracleSpec ENNReal
 
-namespace Sphincs.Security.HiddenDebt
+namespace SphincsLayered.Security.HiddenDebt
 
 open HiddenCost HiddenBridge HiddenOutside HiddenReveal
 
@@ -554,4 +554,4 @@ theorem baselineW_payment (total : ℕ) (htotal : (total : ℝ) ≤ spaceReal) :
         div_le_div_of_nonneg_left hnum0 (pow_pos hden 2) hsq
     _ ≤ _ := div_le_div_of_nonneg_right hnum (by positivity)
 
-end Sphincs.Security.HiddenDebt
+end SphincsLayered.Security.HiddenDebt

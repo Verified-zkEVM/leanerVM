@@ -7,7 +7,7 @@ its coefficient. -/
 
 open OracleComp OracleSpec ENNReal
 
-namespace Sphincs.Security.PotentialA
+namespace SphincsLayered.Security.PotentialA
 
 open Concrete HiddenGraph HiddenDebt HiddenBridge
 
@@ -298,4 +298,4 @@ end Model
 
 end Ctx
 
-end Sphincs.Security.PotentialA
+end SphincsLayered.Security.PotentialA

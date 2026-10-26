@@ -7,7 +7,7 @@ point; for the maximum of `u` uniform codewords, `P(M ≤ m) = H(m)^u`. -/
 
 open ENNReal
 
-namespace Sphincs.Security.H0
+namespace SphincsLayered.Security.H0
 
 open Concrete
 
@@ -142,4 +142,4 @@ theorem f2R_grid (u : ℕ) : f2R u = ∑ m : FChain → FPos, Hm m ^ u * deltaF 
   rw [f2R_eq_max, avgR_abel maxCw (fun m => Hm m ^ 2)]
   simp only [avgR_maxCw_le]
 
-end Sphincs.Security.H0
+end SphincsLayered.Security.H0

@@ -7,7 +7,7 @@ hash cost whenever `rnd` holds the answers at the seed's randomizer-derivation i
 
 open OracleComp OracleSpec ENNReal
 
-namespace Sphincs.Security.Det
+namespace SphincsLayered.Security.Det
 
 open Concrete Completeness Prefix HiddenGraph SeedCoupling GraphView
 
@@ -211,4 +211,4 @@ theorem costGameDet_correct (f : QueryImpl HashSpec Id) (parameter : PublicParam
   rw [fixedCostSource_restDet f parameter seed data table hdata htable rnd hrnd]
   simp only [simulateQ_bind, WriterT.run_bind]
 
-end Sphincs.Security.Det
+end SphincsLayered.Security.Det

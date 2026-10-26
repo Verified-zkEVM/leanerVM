@@ -9,11 +9,11 @@ weight, and the weight is a supermartingale of the run. -/
 
 open OracleComp OracleSpec ENNReal
 
-namespace Sphincs.Security.ForsPotential
+namespace SphincsLayered.Security.ForsPotential
 
 open SphincsFors.Security
 open Concrete HiddenGraph HiddenCost HiddenDebt GraphView Domination ForestPrice ForestSigner
-  SphincsFors.Security.Domination Sphincs.LoopWalk
+  SphincsFors.Security.Domination SphincsLayered.LoopWalk
 
 set_option backward.isDefEq.respectTransparency false
 set_option maxRecDepth 10000
@@ -766,4 +766,4 @@ theorem goodW_advProg (hparse : ∀ p, model.parse (pblk parameter data p) = non
 
 end GoodW
 
-end Sphincs.Security.ForsPotential
+end SphincsLayered.Security.ForsPotential

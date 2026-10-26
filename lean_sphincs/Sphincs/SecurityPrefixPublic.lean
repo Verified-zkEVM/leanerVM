@@ -6,7 +6,7 @@ selected coordinate of the secret table; their oracle is the outside oracle. -/
 
 open OracleComp OracleSpec
 
-namespace Sphincs.Security.Prefix
+namespace SphincsLayered.Security.Prefix
 open Concrete
 
 attribute [local instance] Classical.propDecidable
@@ -44,4 +44,4 @@ noncomputable def publicPath (segment : Segment) (outside : QueryImpl HashSpec I
     publicNode segment outside secrets frontier lay tree level.val (Nat.xor (leaf.val / 2 ^ level.val) 1)
   else surrogates level.val
 
-end Sphincs.Security.Prefix
+end SphincsLayered.Security.Prefix

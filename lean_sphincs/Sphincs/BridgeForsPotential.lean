@@ -10,7 +10,7 @@ pairs, ordinary queries and signing calls that the one-coin potentials of
 
 open OracleComp OracleSpec ENNReal
 
-namespace Sphincs.Security.ForsPotential
+namespace SphincsLayered.Security.ForsPotential
 
 open SphincsFors.Security
 open Concrete HiddenGraph HiddenCost HiddenDebt GraphView Domination ForestPrice ForestSigner SphincsFors.Security.Domination
@@ -725,4 +725,4 @@ theorem interpThen_none {α β : Type} (next : α → OracleComp CostSpec β) (b
 
 end SignGood
 
-end Sphincs.Security.ForsPotential
+end SphincsLayered.Security.ForsPotential

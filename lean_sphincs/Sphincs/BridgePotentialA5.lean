@@ -5,7 +5,7 @@ fresh answer, guesses at parsed inputs, canonical continuations, reveals, draws 
 
 open OracleComp OracleSpec ENNReal
 
-namespace Sphincs.Security.PotentialA
+namespace SphincsLayered.Security.PotentialA
 
 open Concrete HiddenGraph HiddenDebt HiddenBridge HiddenCost EncodingCode
 
@@ -225,4 +225,4 @@ theorem guess_cached {xr : ℝ} (hN : Numeric K.ρ xr) (y' : ℕ) {s : St} (hinv
 
 end Ctx
 
-end Sphincs.Security.PotentialA
+end SphincsLayered.Security.PotentialA

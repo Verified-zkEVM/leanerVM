@@ -6,7 +6,7 @@ hash inputs are internalized. -/
 
 open OracleComp OracleSpec
 
-namespace Sphincs.Security.ForsPotential
+namespace SphincsLayered.Security.ForsPotential
 
 open Internalize Short
 
@@ -77,4 +77,4 @@ theorem noRepeat_internalize_adversary [Params] (adversary : Adversary) (h : adv
   intro pk
   exact noRepeat_map _ _ [] (noRepeat_internalize _ [] ∅ (h pk))
 
-end Sphincs.Security.ForsPotential
+end SphincsLayered.Security.ForsPotential

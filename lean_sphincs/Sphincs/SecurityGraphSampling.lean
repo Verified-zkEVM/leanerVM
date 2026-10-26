@@ -6,7 +6,7 @@ canonical cache programming. Pruned positions keep their initial boundary labels
 
 open OracleComp OracleSpec
 
-namespace Sphincs.Security.Graph
+namespace SphincsLayered.Security.Graph
 open Concrete Completeness
 
 set_option backward.isDefEq.respectTransparency false
@@ -234,4 +234,4 @@ theorem evalDist_graph_continuation {α : Type} (program : OracleComp OracleWorl
     hfresh).bind_left _).trans ?_
   rw [bind_map_left]
 
-end Sphincs.Security.Graph
+end SphincsLayered.Security.Graph

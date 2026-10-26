@@ -6,7 +6,7 @@ erased. -/
 
 open OracleComp OracleSpec
 
-namespace Sphincs.Security.Prefix
+namespace SphincsLayered.Security.Prefix
 open SeedModel SphincsBase.Concrete.UniformTableSplit
 
 attribute [local instance] Classical.propDecidable
@@ -20,4 +20,4 @@ abbrev ErasedMaterial (segment : Segment) :=
 
 instance (segment : Segment) : Nonempty (ErasedMaterial segment) := ⟨⟨(0, fun _ => 0), rfl⟩⟩
 
-end Sphincs.Security.Prefix
+end SphincsLayered.Security.Prefix

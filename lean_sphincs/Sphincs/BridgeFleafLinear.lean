@@ -8,7 +8,7 @@ payoff plus all payments of the run. Interpreted runs have total mass one. -/
 
 open OracleComp OracleSpec ENNReal
 
-namespace Sphincs.Security.HiddenDebt
+namespace SphincsLayered.Security.HiddenDebt
 
 open HiddenCost HiddenBridge HiddenOutside HiddenReveal
 
@@ -139,4 +139,4 @@ theorem interp_potential2 {α : Type} (IsFleaf : D → Prop) (Inv : DebtState D 
       · rw [OracleComp.tsum_prEvent_pure_mul]
         simpa [digestCount, fleafCount] using hfinal budget state hstate
 
-end Sphincs.Security.HiddenDebt
+end SphincsLayered.Security.HiddenDebt

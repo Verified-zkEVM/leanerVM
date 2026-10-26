@@ -15,12 +15,12 @@ recorded contact; a forest step query costs `2^-128 (N rate + 1 - κ)`. -/
 
 open OracleComp OracleSpec ENNReal
 
-namespace Sphincs.Security.ForsPotential
+namespace SphincsLayered.Security.ForsPotential
 
 open SphincsFors.Security
 open Concrete HiddenGraph HiddenCost HiddenDebt GraphView Domination ForestPrice ForestSigner HiddenBridge
 open PotentialA
-open Sphincs.LoopWalk
+open SphincsLayered.LoopWalk
 
 set_option backward.isDefEq.respectTransparency false
 set_option maxRecDepth 10000
@@ -602,4 +602,4 @@ theorem psiF_start (Lmax : ℕ) (known : HiddenReveal.Knowledge Coordinate) (tot
 
 end Start
 
-end Sphincs.Security.ForsPotential
+end SphincsLayered.Security.ForsPotential

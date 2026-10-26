@@ -10,7 +10,7 @@ contacted), or two forest contacts at one index. -/
 
 open OracleComp OracleSpec ENNReal
 
-namespace Sphincs.Security.HiddenBridge
+namespace SphincsLayered.Security.HiddenBridge
 
 open Concrete HiddenGraph
 
@@ -131,4 +131,4 @@ def badA (parameterOutput : HashOutput) (fixed : HiddenGraph.Table) (highs : Coo
         ForestCover (truncateHash parameterOutput) (sampleData parameterOutput fixed highs remaining).root
           outcome v.1.1.2 v.2)
 
-end Sphincs.Security.HiddenBridge
+end SphincsLayered.Security.HiddenBridge

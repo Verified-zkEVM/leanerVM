@@ -8,10 +8,10 @@ pairs are hits, cached rejected ones are misses, the others are fresh and land w
 
 open OracleComp OracleSpec ENNReal
 
-namespace Sphincs.Security.GraphView
+namespace SphincsLayered.Security.GraphView
 
 open SphincsFors.Security
-open Concrete HiddenCost HiddenDebt HiddenGraph ForestSigner Sphincs.LoopWalk
+open Concrete HiddenCost HiddenDebt HiddenGraph ForestSigner SphincsLayered.LoopWalk
 
 set_option backward.isDefEq.respectTransparency false
 set_option maxRecDepth 10000
@@ -369,4 +369,4 @@ theorem avoids_source :
 
 end Post
 
-end Sphincs.Security.GraphView
+end SphincsLayered.Security.GraphView

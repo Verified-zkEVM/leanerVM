@@ -13,7 +13,7 @@ import Statement.LeanVmGuest
 import Statement.Corollaries
 import Common.Transfer
 import LeanXmss.Scheme
-import Sphincs.Scheme
+import Sphincs.Equations
 import Statement.Fast.Schemes
 import LeanDa.Scheme
 import Statement.Fast.Keccak

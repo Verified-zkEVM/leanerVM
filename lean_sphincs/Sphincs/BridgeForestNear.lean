@@ -9,7 +9,7 @@ indices of `κ E` times the near value `yN` of the index's marks. -/
 
 open OracleComp OracleSpec ENNReal
 
-namespace Sphincs.Security.ForsPotential
+namespace SphincsLayered.Security.ForsPotential
 
 open SphincsFors.Security
 open Concrete HiddenGraph HiddenCost HiddenDebt GraphView Domination ForestPrice ForestSigner SphincsFors.Security.Domination
@@ -101,9 +101,9 @@ theorem nearWitness_pos {R : List Coordinate} {d : Multiset View} (hD : DInv R d
     then (1 : ℝ≥0∞) else 0) (fun _ _ => zero_le) (Finset.mem_univ (otherSub j)))
   rw [ite_eq_left hsub]
 
-end Sphincs.Security.ForsPotential
+end SphincsLayered.Security.ForsPotential
 
-namespace Sphincs.Security.H0
+namespace SphincsLayered.Security.H0
 
 open Concrete ForestPrice SphincsFors.Security.Domination H0Avg ForsPotential
 
@@ -190,4 +190,4 @@ theorem priceNear_decomp (d : Multiset View) :
   refine Finset.sum_congr rfl fun l _ => ?_
   ring
 
-end Sphincs.Security.H0
+end SphincsLayered.Security.H0

@@ -6,7 +6,7 @@ frontier (`publicValues`). -/
 
 open OracleComp OracleSpec
 
-namespace Sphincs.Security.Prefix
+namespace SphincsLayered.Security.Prefix
 open Concrete
 
 attribute [local instance] Classical.propDecidable
@@ -56,4 +56,4 @@ noncomputable def publicValues (segment : Segment) (outside : QueryImpl HashSpec
     evalWithAnswerFn outside (chainWalk segment.parameter lay tree leaf chain 0 (word chain).val
       (secrets (lay, tree, leaf, chain)) : OracleComp HashSpec Digest)
 
-end Sphincs.Security.Prefix
+end SphincsLayered.Security.Prefix

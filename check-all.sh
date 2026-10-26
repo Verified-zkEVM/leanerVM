@@ -91,8 +91,9 @@ lean_sphincs() {
     (cd lean_sphincs && lake build "$m")
   done
   build lean_sphincs 'Sphincs(Fors|Base)?/'
-  axioms lean_sphincs Sphincs Sphincs.Lifetimes.requestedSecurity \
-    Sphincs.Lifetimes.requestedSecurityRpm Sphincs.Lifetimes.requestedSecurityRpmCalls
+  axioms lean_sphincs Sphincs SphincsLayered.Lifetimes.requestedSecurity \
+    Sphincs.Lifetimes.requestedSecurityRpm SphincsLayered.Lifetimes.requestedSecurityRpmCalls \
+    Sphincs.OneLayer.requestedSecurityRpm_iff
 }
 
 # LeanDA's security: Benedikt Wagner's framework, theorems and proofs (b-wagn/fv-pq-da), ported

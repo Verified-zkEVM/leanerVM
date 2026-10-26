@@ -8,11 +8,11 @@ live messages applied to the one-coin virtual future of the future pairs. -/
 
 open OracleComp OracleSpec ENNReal
 
-namespace Sphincs.Security.ForsPotential
+namespace SphincsLayered.Security.ForsPotential
 
 open SphincsFors.Security
 open Concrete HiddenGraph HiddenCost HiddenDebt GraphView Domination ForestPrice ForestSigner
-  SphincsFors.Security.Domination Sphincs.LoopWalk
+  SphincsFors.Security.Domination SphincsLayered.LoopWalk
 
 set_option backward.isDefEq.respectTransparency false
 set_option maxRecDepth 10000
@@ -535,4 +535,4 @@ theorem sign_term (hparse : ∀ ρ, model.parse (blk parameter data m ρ) = none
 
 end SignScan
 
-end Sphincs.Security.ForsPotential
+end SphincsLayered.Security.ForsPotential

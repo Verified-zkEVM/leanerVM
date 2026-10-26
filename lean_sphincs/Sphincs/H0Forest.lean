@@ -9,7 +9,7 @@ domination of the one-coin H-term give
 
 open ENNReal NNReal
 
-namespace Sphincs.Security.H0
+namespace SphincsLayered.Security.H0
 
 open Concrete ForestPrice SphincsFors.Security.Domination SphincsFors.Security.H0 H0Avg
 
@@ -197,4 +197,4 @@ theorem hTermO_forest_le (w lam : ℝ≥0∞) (hw : w ≤ 1) (hlam : lam ≤ 1) 
   refine le_trans (hTermO_le_poisIID_of_le id Finset.univ uniformIndex_id
     (sep_countGood hgG hhG A ENNReal.ofReal_ne_top) w lam hw hlam α γ hα hγ N q μ hμ) (le_of_eq ?_)
   exact poisIID_sep μ gbar hbar A
-end Sphincs.Security.H0
+end SphincsLayered.Security.H0

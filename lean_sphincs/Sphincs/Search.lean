@@ -20,7 +20,7 @@ open OracleComp OracleSpec ENNReal
 
 set_option maxRecDepth 10000
 
-namespace Sphincs.Completeness
+namespace SphincsLayered.Completeness
 
 variable {β γ : Type}
 
@@ -207,4 +207,4 @@ theorem otsSignFrom_eq_searchLoop (parameter : PublicParameter) (lay : Layer) (t
       refine bind_congr fun answer => ?_
       cases TargetSum.decodeDigest (truncateHash answer) <;> rfl
 
-end Sphincs.Completeness
+end SphincsLayered.Completeness

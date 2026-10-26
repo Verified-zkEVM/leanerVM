@@ -10,7 +10,7 @@ gives the uniform 234-bit digest law.
 open OracleComp OracleSpec ENNReal
 set_option exponentiation.threshold 512
 
-namespace Sphincs.Security
+namespace SphincsLayered.Security
 open Concrete
 
 /-- The oracle block induces exactly the uniform 234-bit digest law. -/
@@ -23,4 +23,4 @@ abbrev digestInput (parameter : PublicParameter) (root : Digest) (message : Mess
     (randomness : Randomness) : HashInput :=
   tweakableHashInput parameter .message (messageDigestPayload root message randomness)
 
-end Sphincs.Security
+end SphincsLayered.Security

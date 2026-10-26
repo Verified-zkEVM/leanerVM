@@ -12,7 +12,7 @@ leaf, canonical openings, and the explicit exceptional branches (`ForestExceptio
 
 open OracleComp OracleSpec
 
-namespace Sphincs.Security.SignatureWitness
+namespace SphincsLayered.Security.SignatureWitness
 
 open Concrete
 
@@ -208,4 +208,4 @@ def Exception (f : QueryImpl HashSpec Id) (pk : PublicKey) (seed : MasterSeed)
     (Completeness.otsSecret f pk.parameter topLayer rootTree leaf seed) inputs ∨
   ForestException f pk seed message signature
 
-end Sphincs.Security.SignatureWitness
+end SphincsLayered.Security.SignatureWitness

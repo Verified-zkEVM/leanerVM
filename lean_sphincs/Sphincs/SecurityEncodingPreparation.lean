@@ -7,7 +7,7 @@ complete counter exhaustion. -/
 
 open OracleComp OracleSpec
 
-namespace Sphincs.Security.ReferenceChoice
+namespace SphincsLayered.Security.ReferenceChoice
 open Concrete Completeness Prefix TargetAssignment
 
 attribute [local instance] Classical.propDecidable
@@ -98,4 +98,4 @@ theorem search_targets_empty_or_miss (f : QueryImpl HashSpec Id) (parameter : Pu
     rw [ite_eq_left hexempt']
     exact Finset.notMem_empty _
 
-end Sphincs.Security.ReferenceChoice
+end SphincsLayered.Security.ReferenceChoice

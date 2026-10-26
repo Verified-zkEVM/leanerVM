@@ -5,7 +5,7 @@ definitions only, so that their users do not depend on the potential modules). -
 
 open OracleComp OracleSpec
 
-namespace Sphincs.Security.ForsPotential
+namespace SphincsLayered.Security.ForsPotential
 
 variable [Params]
 
@@ -24,7 +24,7 @@ theorem noRepeat_sign {α : Type} (m : Message)
   Iff.rfl
 
 /-- An adversary that never requests a signature on the same message twice. -/
-def _root_.Sphincs.Security.Adversary.NoRepeat (adversary : Adversary) : Prop :=
+def _root_.SphincsLayered.Security.Adversary.NoRepeat (adversary : Adversary) : Prop :=
   ∀ pk, ForsPotential.NoRepeat (adversary.main pk) []
 
-end Sphincs.Security.ForsPotential
+end SphincsLayered.Security.ForsPotential

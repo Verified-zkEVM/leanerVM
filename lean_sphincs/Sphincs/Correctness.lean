@@ -6,7 +6,7 @@ open OracleComp
 
 set_option maxHeartbeats 250000
 
-namespace Sphincs.Completeness
+namespace SphincsLayered.Completeness
 
 open Concrete Seeded
 
@@ -254,4 +254,4 @@ theorem correct (seed : MasterSeed) (publicKey : PublicKey) (secretKey : Seeded.
   simp only [Seeded.keygenFromSeed, evalWithAnswerFn_bind] at hkey
   exact correct_master f _ publicKey secretKey message signature hkey hsign
 
-end Sphincs.Completeness
+end SphincsLayered.Completeness

@@ -30,7 +30,7 @@ Nothing here mentions hashing.
 
 open ENNReal
 
-namespace Sphincs.LoopWalk
+namespace SphincsLayered.LoopWalk
 
 /-- The status of a position for one message: digest not queried, queried and rejected, queried and
 landing. -/
@@ -810,4 +810,4 @@ theorem gv_ge (st : α → St) (item : α → ℝ≥0∞) (c favg : ℝ≥0∞) 
 
 end Group
 
-end Sphincs.LoopWalk
+end SphincsLayered.LoopWalk

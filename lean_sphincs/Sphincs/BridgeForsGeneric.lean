@@ -10,7 +10,7 @@ free of the run's budget. -/
 
 open OracleComp OracleSpec ENNReal
 
-namespace Sphincs.Security.ForsPotential
+namespace SphincsLayered.Security.ForsPotential
 
 open SphincsFors.Security
 open Concrete HiddenGraph HiddenCost HiddenDebt GraphView Domination ForestPrice ForestSigner SphincsFors.Security.Domination
@@ -471,4 +471,4 @@ theorem sign_expectG_level (hW : WitnessProps W) (gate : State → Prop)
 
 end SignPointMainG
 
-end Sphincs.Security.ForsPotential
+end SphincsLayered.Security.ForsPotential

@@ -7,7 +7,7 @@ rest is the same law as completing the table and reading them off. -/
 
 open OracleComp OracleSpec ENNReal
 
-namespace Sphincs.Security.HiddenBridge
+namespace SphincsLayered.Security.HiddenBridge
 
 open HiddenReveal HiddenCost Eager Short Concrete
 
@@ -168,4 +168,4 @@ theorem mem_aboveList {parameter : PublicParameter} {results : Index → Option 
     {c : Coordinate} : c ∈ aboveList parameter results ↔ AboveWord parameter results c := by
   simp [aboveList]
 
-end Sphincs.Security.HiddenBridge
+end SphincsLayered.Security.HiddenBridge

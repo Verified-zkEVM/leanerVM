@@ -9,7 +9,7 @@ edges, two prefix contacts, or a unit-neighbor encoding together with one prefix
 
 open OracleComp OracleSpec
 
-namespace Sphincs.Security.Wots
+namespace SphincsLayered.Security.Wots
 
 open Concrete Chain
 
@@ -216,4 +216,4 @@ def EncodingOutputMatch (referenceMessage : ForestKey) (referenceCounter : Count
     truncateHash (f (encodingInput parameter lay tree leaf message counter)) =
       truncateHash (f (encodingInput parameter lay tree leaf referenceMessage referenceCounter))
 
-end Sphincs.Security.Wots
+end SphincsLayered.Security.Wots

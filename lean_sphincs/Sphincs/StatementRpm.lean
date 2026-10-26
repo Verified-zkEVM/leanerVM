@@ -1,6 +1,6 @@
 import Sphincs.StatementDet
 import Common.Signature
-import Statement.LeanSphincs
+import Sphincs.Layered
 
 /-!
 # leanSPHINCS security statement in the random-permutation model
@@ -20,7 +20,7 @@ and `π⁻¹`, one each (`Common.SufCma.oracleCalls`).
 
 open OracleComp OracleSpec ENNReal Common Common.SufCma
 
-namespace Sphincs.Rpm
+namespace SphincsLayered.Rpm
 
 variable [Params]
 
@@ -66,4 +66,4 @@ def HasRpmSecurityBitsCalls (bits : Nat) : Prop :=
   ∀ q Q, 1 ≤ q → ∀ adversary, HasCallBound adversary q → HasPermutationBound adversary Q →
     forgeAdvantage adversary ≤ q / ((2 ^ bits : Nat) : ℝ≥0∞) + (Q ^ 2 : ℝ≥0∞) / 2 ^ 509
 
-end Sphincs.Rpm
+end SphincsLayered.Rpm
