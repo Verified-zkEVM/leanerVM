@@ -90,6 +90,14 @@ name = "leanvm-verify"
 root = "LeanvmVerify"
 srcDir = "cli"
 
+# The statement's honest prover (`LeanVM.Prover.prove`), compiled, on a program, its public input
+# and an execution (cli/LeanvmProve.lean): writes the proof in the four-file format; not a
+# default target. scripts/prover-diff.py runs it against the Lean and the Rust verifier.
+[[lean_exe]]
+name = "leanvm-prove"
+root = "LeanvmProve"
+srcDir = "cli"
+
 # The Rust vectors' costly checks, compiled (cli/NodeVectors.lean): the guest's seed against the
 # statement's `deployedSeed guest`, and the DA vector digests; CI runs it after `lake test`.
 [[lean_exe]]

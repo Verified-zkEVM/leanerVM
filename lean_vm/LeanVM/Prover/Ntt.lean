@@ -262,7 +262,7 @@ theorem stageVal_bottom {κ : ℕ} (hκ : κ ≤ 64) (msg : ℕ → K) (p : ℕ)
 /-! ## The transform -/
 
 theorem size_nttStage (N i : ℕ) (tw a : Array K) : (nttStage N i tw a).size = 2 ^ N := by
-  simp [nttStage]
+  simp [nttStage, nttStage.nttStageAt]
 
 theorem size_stageTwiddles (N i : ℕ) : (stageTwiddles N i).size = 2 ^ (N - (i + 1)) := by
   simp [stageTwiddles]
@@ -307,7 +307,7 @@ theorem nttStage_getD {κ N i : ℕ} (hi : i < κ) (hκ : κ ≤ 64) (hκN : κ 
   have hqm : (b * 2 ^ i + r % 2 ^ i) % 2 ^ i = r % 2 ^ i := by
     rw [mul_comm, Nat.mul_add_mod, Nat.mod_eq_of_lt hj]
   rw [stageVal_step hi hκ msg p]
-  simp only [nttStage]
+  simp only [nttStage, nttStage.nttStageAt]
   rw [getD_ofFn _ _ _ hp]
   simp only [← hb, ← hr]
   rw [getD_ofFn _ _ _ hq]
@@ -344,7 +344,7 @@ theorem vector_getD {n : ℕ} (v : Vector K n) (i : ℕ) : v.getD i 0 = v.toArra
 theorem stackWordFast_eq {μ : ℕ} (hμ : μ ≤ 64) (R : ℕ) (q : Column μ) :
     stackWordFast μ R q.values.toArray = stackWord μ q := by
   funext p
-  simp only [stackWordFast, stackWord, laneBits]
+  simp only [stackWordFast, stackWordFast.stackWordOf, stackWord, laneBits]
   split
   · rename_i hp
     congr 1
@@ -398,7 +398,7 @@ theorem levelCodes_getD {κ k R : ℕ} (hκ : κ ≤ 64) (g : Array E) {j : ℕ}
 theorem levelWordFast_eq {κ : ℕ} (hκ : κ ≤ 64) (k R : ℕ) (g : Array E) :
     levelWordFast κ k R g = levelWord κ k g.toList := by
   funext p
-  simp only [levelWordFast]
+  simp only [levelWordFast, levelWordFast.levelWordOf]
   split
   · rename_i hp
     rw [levelWord, laneCodes, List.flatMap_map]

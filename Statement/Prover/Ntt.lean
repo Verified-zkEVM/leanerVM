@@ -78,16 +78,20 @@ def nttTwiddles (N κ : ℕ) : Array (Array K) := Array.ofFn (n := κ) fun i ↦
 `b` the pair `(u, v)` at `lo = b·2^(i+1) + j` and `lo + 2^i` (`j < 2^i`) becomes
 `(u + t·v, u + t·v + v)`, `t = tw[b]`. The products `t·v` are computed once per pair. -/
 def nttStage (N i : ℕ) (tw : Array K) (a : Array K) : Array K :=
-  let half : Array K := Array.ofFn (n := 2 ^ (N - 1)) fun q ↦
-    let b := q.val / 2 ^ i
-    tw.getD b 0 * a.getD (b * 2 ^ (i + 1) + 2 ^ i + q.val % 2 ^ i) 0
-  Array.ofFn (n := 2 ^ N) fun p ↦
-    let b := p.val / 2 ^ (i + 1)
-    let r := p.val % 2 ^ (i + 1)
-    let j := r % 2 ^ i
-    let lo := b * 2 ^ (i + 1) + j
-    let u := a.getD lo 0 + half.getD (b * 2 ^ i + j) 0
-    if r < 2 ^ i then u else u + a.getD (lo + 2 ^ i) 0
+  nttStageAt N (2 ^ i) (2 ^ (i + 1)) tw a
+where
+  /-- The stage with `2^i` and `2^(i+1)` computed once (`pi`, `pi1`). -/
+  nttStageAt (N pi pi1 : ℕ) (tw : Array K) (a : Array K) : Array K :=
+    let half : Array K := Array.ofFn (n := 2 ^ (N - 1)) fun q ↦
+      let b := q.val / pi
+      tw.getD b 0 * a.getD (b * pi1 + pi + q.val % pi) 0
+    Array.ofFn (n := 2 ^ N) fun p ↦
+      let b := p.val / pi1
+      let r := p.val % pi1
+      let j := r % pi
+      let lo := b * pi1 + j
+      let u := a.getD lo 0 + half.getD (b * pi + j) 0
+      if r < pi then u else u + a.getD (lo + pi) 0
 
 /-- **The additive NTT** of a message of `2^κ` entries on `2^(κ+R)` positions, with the twiddles
 `tws = nttTwiddles (κ + R) κ`: the message repeated `2^R` times, then the stages
@@ -113,9 +117,13 @@ def stackCodes (μ R : ℕ) (stack : Array K) : Array (Array K) :=
 /-- **The stack's level-0 word**: leaf `p` holds the 64 lanes' codeword entries at `x_p`, in
 reverse lane order; computed below `2^(μ-6+R)`, the encoder's formula above (never read by the
 run). -/
-def stackWordFast (μ R : ℕ) (stack : Array K) : Word :=
-  let codes := stackCodes μ R stack
-  fun p ↦
+@[macro_inline] def stackWordFast (μ R : ℕ) (stack : Array K) : Word :=
+  stackWordOf μ R stack (stackCodes μ R stack)
+where
+  /-- The word from the lanes' codewords `codes`, computed once: the word is a closure over
+  them (`stackWordFast` is inlined where it is used, so that `codes` is evaluated before the
+  closure is formed). -/
+  stackWordOf (μ R : ℕ) (stack : Array K) (codes : Array (Array K)) (p : ℕ) : List K :=
     if p < 2 ^ (μ - 6 + R) then ((List.range 64).map fun u ↦ (codes.getD u #[]).getD p 0).reverse
     else ((List.range 64).map fun u ↦
       encKAt (μ - 6) (fun x ↦ stack.getD (bitsToNat x + 2 ^ (μ - 6) * u) 0) p).reverse
@@ -133,9 +141,11 @@ def levelCodes (κ k R : ℕ) (g : Array E) : Array (Array K) :=
 
 /-- **A deeper level's word**: leaf `p` holds the `2^k` lanes' entries at `x_p`, three limbs
 each; computed below `2^(κ+R)`, the encoder's formula above (never read by the run). -/
-def levelWordFast (κ k R : ℕ) (g : Array E) : Word :=
-  let codes := levelCodes κ k R g
-  fun p ↦
+@[macro_inline] def levelWordFast (κ k R : ℕ) (g : Array E) : Word :=
+  levelWordOf κ k R g (levelCodes κ k R g)
+where
+  /-- The word from the lanes' codewords `codes`, computed once (as for `stackWordFast`). -/
+  levelWordOf (κ k R : ℕ) (g : Array E) (codes : Array (Array K)) (p : ℕ) : List K :=
     if p < 2 ^ (κ + R) then
       (List.range (2 ^ k)).flatMap fun j ↦
         [(codes.getD (3 * j) #[]).getD p 0, (codes.getD (3 * j + 1) #[]).getD p 0,
