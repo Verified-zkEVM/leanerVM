@@ -16,7 +16,8 @@ import LeanerVMTests.Protocol.LogScan
 # The `leanervm-prove` executable
 
 `leanervm-prove [file] [rate] [fuel] [pure]` (or `leanervm-prove probe [rate]`, or
-`leanervm-prove tamper [file]`, or `leanervm-prove log [file]`, or `leanervm-prove m3 [lm]`)
+`leanervm-prove tamper [file]`, or `leanervm-prove tamper-at file offset delta [rate]`, or
+`leanervm-prove log [file]`, or `leanervm-prove m3 [lm]`)
 proves the hand-built leanISA witness of the constraint statement tests
 (`LeanerVMTests.Arithmetization.Statement.fillW 1 g memCnt`, the executor's `mul_192bit_word`
 with its fill blocks, `fill_satisfiedBy`) for its program
@@ -34,7 +35,9 @@ honest wire changed in each front phase and in WHIR at that phase (`frontChecksO
 `whirChecksOf`). With the fourth argument `pure`, `prove` (the same prover in `Id`) runs too and
 must return the same proof. `tamper` runs the prover four times more, each time with one front
 phase's message changed as it is sent (`tamperOps`), and checks that each proof is read to its
-end and rejected by that phase's algebra. `log` runs the prover once more with every hash logged
+end and rejected by that phase's algebra; `tamper-at` writes one such proof, with `delta` (`1`,
+`y` or `y2`: one added to the first, second or third limb) added to the scalar at `offset`, for the
+differential test against the Rust verifier. `log` runs the prover once more with every hash logged
 (the run of `honestAdversary` with BLAKE2s answering), then `verifyWith` on its proof with every
 hash logged, and checks that the proof is the file's, that the verifier accepts it, that the
 joint log has no collision and no hit (`LeanerVMTests.Protocol.LogScan.scan`), that the level-0
@@ -192,22 +195,29 @@ def proveTimed (fuel ρ : ℕ) : IO (Option (Proof PrunedMerklePaths)) := do
 chain moves with the changed scalar, every later nonce is ground and every word opened at the
 positions the moved chain draws, so the proof reads to its end and the changed message meets its
 phase's check. -/
-def tamperOps (ops : WireOps (ProveM IO)) (off : ℕ) : WireOps (ProveM IO) :=
+def tamperOps (ops : WireOps (ProveM IO)) (off : ℕ) (δ : E := 1) : WireOps (ProveM IO) :=
   { ops with
     send := fun x ↦ do
       let st ← (StateT.lift get : ProveM IO (WriterState PrunedMerklePaths))
-      ops.send (if st.stream.size == off then x + 1 else x) }
+      ops.send (if st.stream.size == off then x + δ else x) }
 
-/-- The prover with the scalar at stream offset `off` changed; the proof, or `none`. -/
-def proveTampered (fuel ρ off : ℕ) : IO (Option (Proof PrunedMerklePaths)) := do
+/-- The prover with `δ` added to the scalar at stream offset `off`; the proof, or `none`. -/
+def proveTampered (fuel ρ off : ℕ) (δ : E := 1) : IO (Option (Proof PrunedMerklePaths)) := do
   let some s := Sizes.ofWitness theWitness | return none
   if hs : s.Admissible fillProg ∧ validRate ρ then
     let q := stackOf Blake2sFlock.blake2sFlockSpec fillProg s theWitness
     let H : List UInt8 → IO Digest := fun b ↦ pure (blake2sBytes b)
     runProof fillProg mulInput
-      (writeProof H (tamperOps (proveOps H fuel) off) Blake2sFlock.blake2sFlockSpec fillProg s hs.1
-        ρ hs.2 mulInput q)
+      (writeProof H (tamperOps (proveOps H fuel) off δ) Blake2sFlock.blake2sFlockSpec fillProg s
+        hs.1 ρ hs.2 mulInput q)
   else return none
+
+/-- `δ` by name: `1`, `y` or `y2` adds one to the first, second or third limb. -/
+def deltaOf : String → Option E
+  | "1" => some 1
+  | "y" => some (E.ofLimbs 0 1 0)
+  | "y2" => some (E.ofLimbs 0 0 1)
+  | _ => none
 
 /-- Each front phase's message changed in the prover, at the offsets the mutations of the honest
 proof `f` read (`offsetsOf`): a grand-product round coefficient, a table column value, a public
@@ -408,6 +418,18 @@ def main (args : List String) : IO UInt32 := do
     let failed ← tamperChecks f (2 ^ 24) f.rate
     IO.println s!"{failed} failed"
     return if failed = 0 then 0 else 1
+  if args.head? == some "tamper-at" then
+    -- `tamper-at <file> <offset> <delta> [rate]`: write the proof with `delta` added to the
+    -- scalar at `offset` as it is sent, the prover running on (differential tests).
+    let file := args.getD 1 "tamper.proof"
+    let some off := (args[2]?).bind String.toNat? | do IO.println "no offset"; return 1
+    let some δ := deltaOf (args.getD 3 "1") | do IO.println "delta is 1, y or y2"; return 1
+    let ρ := ((args[4]?).bind String.toNat?).getD 1
+    let some p ← proveTampered (2 ^ 24) ρ off δ | do IO.println "the prover failed"; return 1
+    let some text := dump ρ fillProg mulInput p | do IO.println "an operand has no exponent"; return 1
+    IO.FS.writeFile file text
+    IO.println s!"wrote {file}: offset {off}, {p.stream.length} scalars"
+    return 0
   if args.head? == some "m3" then
     return if (← m3Clauses ((args[1]?).bind String.toNat?)) = 0 then 0 else 1
   if args.head? == some "log" then
