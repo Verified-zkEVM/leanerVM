@@ -69,7 +69,7 @@ common() {
   build common 'Common'
   axioms common Common Common.indifferentiability Common.transfer Common.transfer2 \
     Common.keccak256_indifferentiable Common.keccak256_transfer Common.keccak256_transfer2 \
-    Common.SufCma.rpm_le_rom Common.SufCma.rpm_bound Common.SufCma.rpm_bound_perm \
+    Common.SufCma.rpm_le_romB Common.SufCma.rpm_bound Common.SufCma.rpm_bound_perm \
     Common.Duplex.duplex_le Common.Duplex.duplex_ge
 }
 

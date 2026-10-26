@@ -20,13 +20,13 @@ leanXMSS and leanSPHINCS (`D = BitVec 256`, the bytes read little endian: `diges
   over the random permutation `π` read through `e`, and the adversary also queries `π` and `π⁻¹`
   (and Keccak-256 itself).
 
-`rpm_le_rom`: for an RPM adversary `A`, the ROM adversary `romAdv A` (`A` with its permutation
-queries answered by the indifferentiability simulator) wins the ROM game with probability at least
-`A`'s RPM probability minus `Q² / 2^509`, where `Q` bounds the permutation calls of the RPM game
-(`permCalls`: a hash of `n` bytes costs `⌊n / 136⌋ + 1`, a call of `π` or `π⁻¹` one), and its
-experiment makes at most `q` hash calls whenever the RPM game makes at most `q` calls of `H`, `π`
-and `π⁻¹` in all (`oracleCalls`). Both budgets bound every path of the game, whatever the
-answers (`IsWeightBound`). A ROM bound `q / 2^b` therefore gives the RPM bound
+`rpm_le_romB` (on the bytes of the states): for an RPM adversary `A`, the ROM adversary `romAdv A`
+(`A` with its permutation queries answered by the indifferentiability simulator) wins the ROM game
+with probability at least `A`'s RPM probability minus `Q² / 2^509`, where `Q` bounds the permutation
+calls of the RPM game (`permCalls`: a hash of `n` bytes costs `⌊n / 136⌋ + 1`, a call of `π` or
+`π⁻¹` one), and its experiment makes at most `q` hash calls whenever the RPM game makes at most `q`
+calls of `H`, `π` and `π⁻¹` in all (`oracleCalls`). Both budgets bound every path of the game,
+whatever the answers (`IsWeightBound`). A ROM bound `q / 2^b` therefore gives the RPM bound
 `q / 2^b + Q² / 2^509` (`rpm_bound`).
 
 The signing oracle runs inside the adversary's phase: the transfer (`keccak256_transfer`) takes as
