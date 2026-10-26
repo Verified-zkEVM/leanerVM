@@ -137,7 +137,7 @@ cargo build --release --manifest-path scripts/rust-verifier-cli/Cargo.toml
 python3 -I scripts/prover-diff.py /tmp/prover-cases --mutations 60
 ```
 
-On the four cases (memory `2^16` words, stack `2^15` cells) the Lean-made proofs are byte-identical to the Rust prover's (as the Rust verifier expands its pruned paths) and both verifiers accept them. The Lean prover takes 40 to 55 s per proof against 2.3 to 3 s for the Rust prover (multithreaded), mostly the proofs of work (`2^17` Keccak-f[1600] permutations each, at the statement's compiled Keccak).
+On the corpus (`--corpus`: 17 programs at the four rates, 68 proofs, memory `2^16` to `2^18` words, up to 175,053 instructions) every Lean-made proof is byte-identical to the Rust prover's (as the Rust verifier expands its pruned paths) and accepted by both verifiers, and 748 of 748 mutations of them are rejected by both (12 cases per proof, no verdict difference). The Lean prover takes 34 to 60 s per small proof and 344 to 808 s for `chain5000` (`2^18` words), 5,197 s in all against 290 s for the Rust prover (multithreaded), about 18 times slower; at small sizes most of it is the proofs of work (`2^17` Keccak-f[1600] permutations each, at the statement's compiled Keccak).
 
 ## Layout
 
