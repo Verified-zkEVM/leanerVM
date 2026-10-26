@@ -25,11 +25,11 @@ round and a source for every challenge round. `Prover.runWith c P` runs `P` roun
 handed to `c.send` after it is computed and each challenge read from `c.draw` before it is
 received; it returns the transcript and the prover's output.
 
-Codecs compose as schedules do (`RoundCodec.append`, reading one side by one comparison with the
-seam, as `LeanerVM.Protocol.ToArkLib.AppendLazy` does); there is one for each schedule built by
-`LeanerVM.Protocol.ToArkLib.Schedule` from encoders of its messages and a source of its
-challenges: `msg` for `say`, `chal` for `draw`, `chals` for `draws`, `round` and `rounds` for
-sumcheck rounds, `step` for a grand-product layer and `gkr` for `gkrSpec`.
+Codecs compose as schedules do (`RoundCodec.append`, by `Fin.fappend₂` as ArkLib's instances of
+`++ₚ` are, which compiled code reads by one comparison with the seam); there is one for each
+schedule built by `LeanerVM.Protocol.ToArkLib.Schedule` from encoders of its messages and a
+source of its challenges: `msg` for `say`, `chal` for `draw`, `chals` for `draws`, `round` and
+`rounds` for sumcheck rounds, `step` for a grand-product layer and `gkr` for `gkrSpec`.
 
 A prover of an oracle reduction with no shared oracle (`[]ₒ`) makes no query: its oracle
 computations run in any monad (`runNoOracle`) and are pure (`runNoOracle_eq_pure`), with that
@@ -76,13 +76,14 @@ def empty : RoundCodec w !p[] where
   send i := i.elim0
   draw i := i.elim0
 
-/-- Two schedules side by side: a round is read by one comparison with the seam. -/
+/-- Two schedules side by side, as ArkLib's instances of `++ₚ` are built; compiled code reads a
+round by one comparison with the seam. -/
 def append {m n : ℕ} {p₁ : ProtocolSpec m} {p₂ : ProtocolSpec n} (c₁ : RoundCodec w p₁)
     (c₂ : RoundCodec w p₂) : RoundCodec w (p₁ ++ₚ p₂) where
-  send := fappend₂Lazy (A := Direction) (B := Type)
+  send := Fin.fappend₂ (A := Direction) (B := Type)
     (F := fun dir type ↦ dir = .P_to_V → type → w Unit) (α₁ := p₁.dir) (β₁ := p₂.dir)
     (α₂ := p₁.Type) (β₂ := p₂.Type) c₁.send c₂.send
-  draw := fappend₂Lazy (A := Direction) (B := Type)
+  draw := Fin.fappend₂ (A := Direction) (B := Type)
     (F := fun dir type ↦ dir = .V_to_P → w type) (α₁ := p₁.dir) (β₁ := p₂.dir)
     (α₂ := p₁.Type) (β₂ := p₂.Type) c₁.draw c₂.draw
 

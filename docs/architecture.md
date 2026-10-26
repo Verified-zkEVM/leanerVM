@@ -641,13 +641,17 @@ code expands a closure returning a word, a one-field structure of a function, to
 as an argument, which rebuilds the word at every read (`commitWordCached`, `Whir.wordRows`).
 Running any prover through
 ArkLib's `Prover.run` needs the challenge samplers of its schedule, which ArkLib builds for an
-appended schedule with `Fin.fappend₂`, exponential in the depth of a schedule appended on the
-right when compiled; `LeanerVM.Protocol.ToArkLib.AppendLazy` substitutes lazy forms by
-`@[csimp]`, imported where the schedules are built. A block's selector weight is one product
-(`Blocks.selectorWeight_eq_selectorWeightFast`), and a combination of tables by powers builds each
-table once (`batchWeight_eq_batchWeightFast`). The BLAKE2s inhabitant's R1CS, `blake2sR1CS`, runs
-as `blake2sR1CSFast` (`blake2sR1CS_eq_blake2sR1CSFast`), the walks on the compiled circuit's
-64-bit words (`ProductCircuit.toBlockR1CSE`, `LeanerVM.Protocol.FlockWalks`), whose matrices are
+appended schedule with `Fin.fappend₂`, and transcripts are appended with `Fin.happend`; compiled as
+defined, both are exponential in the length of the second schedule. The forms that read an entry by
+one comparison with the seam, proposed to ArkLib with `@[csimp]` theorems, are copied in
+`LeanerVM.Protocol.ToArkLib.TupleCompiledForms`, and `LeanerVM.Protocol.ToArkLib.AppendLazy`
+compiles ArkLib's instances and `FullTranscript.append` again after them, since the pinned ArkLib
+compiled them before; both are imported where the schedules are built. A block's selector weight is
+one product (`Blocks.selectorWeight_eq_selectorWeightFast`), and a combination of tables by powers
+builds each table once (`batchWeight_eq_batchWeightFast`). The BLAKE2s inhabitant's R1CS,
+`blake2sR1CS`, runs as `blake2sR1CSFast` (`blake2sR1CS_eq_blake2sR1CSFast`), the walks on the
+compiled circuit's 64-bit words (`ProductCircuit.toBlockR1CSE`, `LeanerVM.Protocol.FlockWalks`),
+whose matrices are
 `ProductCircuit.toBlockR1CS`'s by `rfl` (`toBlockR1CSE_eq`). Over `E` the additive transform runs
 as three transforms of the limbs' words (`Whir.encodeE`, `Whir.encodeE_getElem`,
 `LeanerVM.Protocol.Whir.TransformWords`).
