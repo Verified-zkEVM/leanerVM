@@ -395,3 +395,11 @@ jobs:
           lake build leanvm-verify
           cargo build --release --manifest-path scripts/rust-verifier-cli/Cargo.toml
           python3 -I scripts/fuzz-verifier.py tests/fixtures/verifier --jobs 4
+      # The statement's honest prover (`LeanVM.Prover.prove`), compiled, on an execution the Rust
+      # interpreter runs: its proof must be accepted by the Lean and the Rust verifier, and every
+      # mutation of it rejected by both.
+      - name: The statement's prover against both verifiers (prover-diff)
+        run: |
+          scripts/export-prover-traces-rust.sh "$RUNNER_TEMP/prover-cases" > /dev/null
+          lake build leanvm-prove
+          python3 -I scripts/prover-diff.py "$RUNNER_TEMP/prover-cases" chain4-rate1 --mutations 40 --jobs 4
