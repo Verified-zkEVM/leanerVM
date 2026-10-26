@@ -1,6 +1,7 @@
 module
 
 public import Statement.Extractor
+public import Statement.Prover.Prove
 public import Statement.RandomPermutation
 public import VCVio.OracleComp.OracleComp
 public import VCVio.OracleComp.QueryTracking.QueryBound.Basic
@@ -49,10 +50,16 @@ The extractor is deterministic and computable, with running time polynomial in t
 committed size `2^μ` and the number of evaluations, not in the proof's size, and infeasible at
 deployed sizes; its cost (`Extractor.lean`) is read off its loops, not proved.
 
-**Completeness**: there is an honest prover, not required to be efficient, which, given a valid
-execution whose committed size is at most `2^28`, the most the verifier admits, at an inverse rate
-`2^ρ` with `1 ≤ ρ ≤ 4`, trying `2^25` nonces per proof of work, makes the verifier reject with
-probability at most `2^-127`.
+**Completeness** is stated for one honest prover, `prover`: `LeanVM.Prover.prove`
+(`Statement/Prover/Prove.lean`) with the oracle calls, an executable program (with Keccak-256 and
+Keccak-f[1600] it is `lake exe leanvm-prove`). Given a valid execution whose committed size is at
+most `2^28`, the most the verifier admits, at an inverse rate `2^ρ` with `1 ≤ ρ ≤ 4`, trying
+`2^25` nonces per proof of work, its proof is rejected with probability at most `2^-127`. The
+prover's definitions are in `Statement/Prover/`, which a reviewer need not read line by line: it
+is proved to make the moves of the honest prover the completeness proof follows; a reviewer only
+checks that it is a genuine prover (it computes from the execution, its only search is the nonce
+search within the fuel, and it branches on no hash or permutation answer other than through the
+challenges the verifier's program samples).
 
 **Scope and trust.**
 
@@ -84,17 +91,8 @@ open scoped ENNReal
 /-- A proof: the scalar stream and the Merkle openings. -/
 abbrev Proof := Compile.Proof
 
-/-- The bytecode the verifier reads: the sixteen slots of every instruction (`encodeSlots`),
-slot by slot: word `i + 2^logSize · s` is slot `s` of instruction `i`. -/
-def bytecodeWords (prog : Program) : List K :=
-  (List.finRange 16).flatMap fun s ↦
-    (List.finRange (2 ^ prog.logSize)).map fun i ↦ (encodeSlots (prog.code i))[s]
-
-/-- The public input as the verifier reads it: its four lanes, the digest's four words
-(`public_input_bytes`, `crates/leanvm_core/src/cpu/mod.rs:723-730`; `Digest.halves`,
-`verifier.py:225-228`). -/
-def publicDigest (input : PublicInput) : Digest :=
-  #v[(input.lanes 0).lane, (input.lanes 1).lane, (input.lanes 2).lane, (input.lanes 3).lane]
+-- The bytecode the verifier reads (`bytecodeWords`) and the public input as it reads it
+-- (`publicDigest`) are `LeanIsa.lean`'s, where the encoding is.
 
 /-- **The leanVM verifier**, for a hash function `H` and a permutation `F` in any monad `m`: does
 `proof` show that `prog` runs on `input`? -/
@@ -126,6 +124,13 @@ fuel of nonces per proof of work, a proof, computed with calls to Keccak-256 and
 (`HashSpec`), which the model answers. -/
 abbrev HonestProver : Type :=
   (prog : Program) → (input : PublicInput) → Trace prog → (ρ fuel : ℕ) → OracleComp HashSpec Proof
+
+/-- **The honest prover**: `LeanVM.Prover.prove` (`Statement/Prover/Prove.lean`) with Keccak-256 and
+Keccak-f[1600] the oracle calls. From the execution `t` it computes the witness (`witness?`, the
+empty proof unless `t` is a valid execution within `2^28` committed cells), and, at a valid rate,
+runs the honest script against the verifier's own program `leanVmProgram`, trying `fuel` nonces
+per proof of work. -/
+def prover : HonestProver := fun prog input t ρ fuel ↦ Prover.prove queryH queryF prog input t ρ fuel
 
 /-- **The committed size of an execution**: the number of cells the honest prover commits to,
 every committed column at its table's height, the least power of two holding the table's rows
@@ -305,10 +310,10 @@ noncomputable def rpmCompletenessExperiment (prover : HonestProver) (prog : Prog
     verifier queryH queryF prog input proof)).run' []
 
 /-- **Completeness in the random-permutation model**: trying `2^25` nonces per proof of work, the
-honest proof of an execution within the verifier's size cap is rejected with probability at most
-`2^-127`. -/
+honest prover's (`prover`) proof of an execution within the verifier's size cap is rejected with
+probability at most `2^-127`. -/
 def Completeness : Prop :=
-  ∃ prover : HonestProver, ∀ (prog : Program) (input : PublicInput) (t : Trace prog) (ρ : ℕ),
+  ∀ (prog : Program) (input : PublicInput) (t : Trace prog) (ρ : ℕ),
     ValidExecution prog input t → t.committedSize ≤ 2 ^ 28 → 1 ≤ ρ ∧ ρ ≤ 4 →
     Pr{let v ← rpmCompletenessExperiment prover prog input t ρ (2 ^ 25)}[v = false] ≤
       (2 : ℝ≥0∞)⁻¹ ^ 127

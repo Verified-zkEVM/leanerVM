@@ -196,7 +196,7 @@ def rowIn (memIdx : Std.HashMap UInt64 ℕ) {κ : ℕ} (img : MemImage κ) (pc f
       Array.ofFn (fun j : Fin 26 ↦ c j) ++ #[rbc]
 
 /-- The table of an opcode, in the ensemble's order. -/
-def tableOf : Opcode → ℕ
+def opTableIdx : Opcode → ℕ
   | .xor => 0
   | .mulNative => 1
   | .setConstant => 2
@@ -222,7 +222,7 @@ def stepRows (memIdx : Std.HashMap UInt64 ℕ) {κ : ℕ} (img : MemImage κ) (a
   let ⟨tabs, mem, bc⟩ := acc
   let (cs, mem) := countReads memIdx κ (addrsIn memIdx img st.fp st.ins) #[] mem
   let row := rowIn memIdx img st.pc st.fp (fun j ↦ cs.getD j 1) (bc.getD st.slot 1) st.ins
-  ⟨tabs.modify (tableOf st.ins.opcode) (·.push row), mem, bc.modify st.slot (g * ·)⟩
+  ⟨tabs.modify (opTableIdx st.ins.opcode) (·.push row), mem, bc.modify st.slot (g * ·)⟩
 
 /-- **The rows of a run**: one pass over its steps, from empty tables and every counter `1`. -/
 def rowsOf (memIdx : Std.HashMap UInt64 ℕ) {κ : ℕ} (img : MemImage κ) (logSize : ℕ)

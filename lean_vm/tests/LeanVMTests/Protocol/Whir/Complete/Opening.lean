@@ -26,6 +26,8 @@ import LeanVM.Protocol.Whir.Complete.Opening
 
 namespace LeanVMTests.Protocol.Whir.Complete.Opening
 
+open LeanVM.Prover (Script)
+
 open LeanVM.Parameters LeanVM.Protocol LeanVM.Protocol.Verifier LeanVM.Protocol.EndToEnd
   LeanVM.Protocol.Compile LeanVM.Protocol.Whir LeanVM.Protocol.Whir.Complete
 

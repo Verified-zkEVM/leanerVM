@@ -9,7 +9,6 @@ public import Statement.Prover.Public
 public import Statement.Prover.Keccak
 public import Statement.Prover.Ring
 public import Statement.Prover.Whir
-public import Statement.LeanVm
 
 /-!
 # The honest prover

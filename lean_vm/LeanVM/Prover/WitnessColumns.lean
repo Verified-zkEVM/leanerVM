@@ -66,7 +66,7 @@ theorem tableAt_skelWitness {κ : ℕ} (img : MemImage κ) (S : List Skel) (j : 
   fin_cases j <;> rfl
 
 /-- The table of the opcode of table `j` is `j`. -/
-theorem tableOf_tableOpcode (j : Fin 6) : tableOf (tableOpcode j) = j := by
+theorem tableOf_tableOpcode (j : Fin 6) : opTableIdx (tableOpcode j) = j := by
   fin_cases j <;> rfl
 
 /-- **The pass's tables are the witness's opcode tables.** -/

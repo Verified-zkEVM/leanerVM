@@ -346,8 +346,8 @@ theorem prove_eq_honestComp (hv : ValidExecution prog input t) (hcap : t.committ
       seedWith queryH queryF (bytecodeWords prog) (publicDigest input) >>= k)
     (funext fun seed ↦ runScript_corr queryH queryF fuel _ (corr_honestScript hv hcap hρ hspec) seed)
 
-/-- The prover with the oracle calls, as an `HonestProver`. -/
-def oracleProver : HonestProver := fun prog input t ρ fuel ↦ prove queryH queryF prog input t ρ fuel
+/-- The statement's honest prover is `prove` with the oracle calls. -/
+abbrev oracleProver : HonestProver := LeanVM.prover
 
 /-- **The hypothesis of the completeness theorems**: on valid executions within the cap at a
 valid rate, the prover is the specification at a child's witness. -/

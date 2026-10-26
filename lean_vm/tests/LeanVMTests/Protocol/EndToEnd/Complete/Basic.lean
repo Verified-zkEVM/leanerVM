@@ -18,6 +18,8 @@ import LeanVM.Protocol.EndToEnd.Complete.Sumcheck
 
 namespace LeanVMTests.Protocol.EndToEnd.Complete.Basic
 
+open LeanVM.Prover (Script)
+
 open LeanVM.Parameters LeanVM.Semantics LeanVM.Protocol LeanVM.Protocol.Verifier
 open LeanVM.Protocol.LeanIsa LeanVM.Protocol.Compile LeanVM.Protocol.EndToEnd
 open LeanVM.Protocol.EndToEnd.Front LeanVM.Protocol.EndToEnd.Complete

@@ -1,4 +1,4 @@
-import LeanVM.Protocol.LeanVMRpm
+import LeanVM.Prover.End
 
 /-!
 # leanVM's statements, locked

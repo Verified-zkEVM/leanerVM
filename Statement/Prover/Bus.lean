@@ -53,7 +53,7 @@ def powsA (a : E) (n : ℕ) : Array E :=
 
 /-- Row `x` of a table whose first global column is `base`, of `width` columns, as a function of
 the local column (`0` past the width). -/
-def rowOf (cols : Array (Array K)) (base width x : ℕ) (i : ℕ) : E :=
+def busRowOf (cols : Array (Array K)) (base width x : ℕ) (i : ℕ) : E :=
   if i < width then ofK ((cols.getD (base + i) #[]).getD x 0) else 0
 
 /-- A table block's leaves: `β` plus the block's fingerprint at every executed row of its owner,
@@ -64,7 +64,7 @@ def tableTabA (cols : Array (Array K)) (β : E) (w : List E) (b : BusBlock) : Ar
   let coords := b.coordinates.zipIdx.map fun cs ↦ (w.getD cs.2 0, cs.1)
   Array.ofFn (n := 2 ^ b.logRows) fun x ↦
     if x.1 < b.rows then
-      β + (coords.map fun aw ↦ aw.1 * aw.2.evaluate (rowOf cols base width x.1)).sum
+      β + (coords.map fun aw ↦ aw.1 * aw.2.evaluate (busRowOf cols base width x.1)).sum
     else 1
 
 /-- The state block's one leaf: `β` plus the fingerprint of `(SEP_STATE, pc, g⁰)`. -/

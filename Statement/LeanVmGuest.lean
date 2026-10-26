@@ -947,7 +947,7 @@ structure ChildOk (bytecode : List K) (seed : Digest) (c : Child) : Prop where
 
 open OracleComp OracleSpec in
 /-- **The honest proof of an execution of the guest program is a child the guest program accepts**:
-there is an honest prover such that
+for the honest prover `LeanVM.prover` (`LeanVm.lean`, `LeanVM.Prover.prove` with the oracle calls),
 1. in the random-permutation model, at `2^25` nonces per proof of work, `verifierNZ` rejects its
    proof of a valid execution of committed size at most `2^28`, at an inverse rate `2^ρ`,
    `1 ≤ ρ ≤ 4`, with probability at most `2^-126`;
@@ -957,19 +957,18 @@ there is an honest prover such that
    shaped) and some claims on the bytecode a child the guest program accepts (`ChildOk`).
 Proved by `LeanVM.Guest.Budget.guest_child_complete`. -/
 def GuestChildComplete : Prop :=
-  ∃ prover : HonestProver,
-    (∀ (prog : Program) (input : PublicInput) (t : Trace prog) (ρ : ℕ),
-      ValidExecution prog input t → t.committedSize ≤ 2 ^ 28 → 1 ≤ ρ ∧ ρ ≤ 4 →
-      Pr{let v ← (simulateQ LeanVM.rpmImpl (do
-          let proof ← prover prog input t ρ (2 ^ 25)
-          verifierNZ queryH queryF prog input proof)).run' []}[v = false] ≤
-        (2 : ℝ≥0∞)⁻¹ ^ 126) ∧
-    ∀ (s : NodeStatement) (t : Trace guest) (ρ : ℕ), 2 ^ 22 ≤ t.committedSize →
-      s.defer.Shaped (bytecodeWords guest) →
-      let input := EndToEnd.Front.publicInputOfDigest (statementDigest (deployedSeed guest) s)
-      let proof := atKeccak prover guest input t ρ (2 ^ 25)
-      verifierNZ (m := Id) keccak256 keccakF guest input proof = true →
-      ∃ fresh, ChildOk (bytecodeWords guest) (deployedSeed guest) ⟨s, fresh, proof⟩
+  (∀ (prog : Program) (input : PublicInput) (t : Trace prog) (ρ : ℕ),
+    ValidExecution prog input t → t.committedSize ≤ 2 ^ 28 → 1 ≤ ρ ∧ ρ ≤ 4 →
+    Pr{let v ← (simulateQ LeanVM.rpmImpl (do
+        let proof ← LeanVM.prover prog input t ρ (2 ^ 25)
+        verifierNZ queryH queryF prog input proof)).run' []}[v = false] ≤
+      (2 : ℝ≥0∞)⁻¹ ^ 126) ∧
+  ∀ (s : NodeStatement) (t : Trace guest) (ρ : ℕ), 2 ^ 22 ≤ t.committedSize →
+    s.defer.Shaped (bytecodeWords guest) →
+    let input := EndToEnd.Front.publicInputOfDigest (statementDigest (deployedSeed guest) s)
+    let proof := atKeccak LeanVM.prover guest input t ρ (2 ^ 25)
+    verifierNZ (m := Id) keccak256 keccakF guest input proof = true →
+    ∃ fresh, ChildOk (bytecodeWords guest) (deployedSeed guest) ⟨s, fresh, proof⟩
 
 end Budget
 

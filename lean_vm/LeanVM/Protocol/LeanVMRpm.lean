@@ -490,13 +490,8 @@ namespace LeanVM
 theorem knowledgeSoundness_holds : KnowledgeSoundness :=
   fun _ _ hA hQ ↦ (Rpm.knowledgeSoundnessRpm hA).trans (Rpm.soundnessRpm_le_128 hQ)
 
-/-- **Completeness holds** (in the random-permutation model), with the honest prover
-`LeanVM.Protocol.EndToEnd.Complete.honestComp`. -/
-theorem completeness_holds : Completeness :=
-  ⟨fun prog input t ρ fuel ↦ Protocol.EndToEnd.Complete.honestComp prog input t ρ fuel,
-    fun _ _ _ _ hv hbudget hρ ↦
-      (Rpm.completenessRpm (fuel := 2 ^ 25) hv hbudget hρ (by norm_num)).trans
-        Rpm.completenessRpm_le⟩
+-- `LeanVM.completeness_holds`, for the statement's prover `LeanVM.prover`, is proved in
+-- `LeanVM/Prover/End.lean` from `completeness_of_spec` (`LeanVM/Prover/Complete.lean`).
 
 /-- Keccak-256 over the deployed Keccak-f[1600] is the deployed Keccak-256, and `common`'s
 Keccak-256 sponge over it, read on bytes. -/

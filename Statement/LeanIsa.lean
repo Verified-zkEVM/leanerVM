@@ -380,6 +380,24 @@ def encodeSlots (i : Instr) : Vector K 16 :=
 
 end LeanVM.Arithmetization
 
+namespace LeanVM
+
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Arithmetization LeanVM.Protocol
+
+/-- The bytecode the verifier reads: the sixteen slots of every instruction (`encodeSlots`),
+slot by slot: word `i + 2^logSize · s` is slot `s` of instruction `i`. -/
+def bytecodeWords (prog : Program) : List K :=
+  (List.finRange 16).flatMap fun s ↦
+    (List.finRange (2 ^ prog.logSize)).map fun i ↦ (encodeSlots (prog.code i))[s]
+
+/-- The public input as the verifier reads it: its four lanes, the digest's four words
+(`public_input_bytes`, `crates/leanvm_core/src/cpu/mod.rs:723-730`; `Digest.halves`,
+`verifier.py:225-228`). -/
+def publicDigest (input : PublicInput) : Digest :=
+  #v[(input.lanes 0).lane, (input.lanes 1).lane, (input.lanes 2).lane, (input.lanes 3).lane]
+
+end LeanVM
+
 namespace LeanVM.Guest
 
 open LeanVM.Parameters LeanVM.Semantics

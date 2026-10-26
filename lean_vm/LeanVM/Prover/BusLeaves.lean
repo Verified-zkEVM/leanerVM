@@ -140,13 +140,13 @@ theorem mleK_col (hcols : ColsOk prog s q cols) (c : Col) (z : List E) :
 
 /-- **A table's row read off the arrays** is the instance's row. -/
 theorem rowOf_eq (hcols : ColsOk prog s q cols) (t : Fin 6) {x : ℕ} (hx : x < 2 ^ s.τ t) :
-    rowOf cols (globalColumnBases.getD t 0) (tables.getD t default).width x =
+    busRowOf cols (globalColumnBases.getD t 0) (tables.getD t default).width x =
       rowAt prog s q t x := by
   have h := rowAt_eq prog s q t ⟨x, hx⟩
   simp only at h
   rw [h]
   funext i
-  rw [rowVal, rowOf]
+  rw [rowVal, busRowOf]
   by_cases hi : i < width (opIdx t)
   · have hi' : i < (tables.getD t default).width := by rwa [← width_opIdx]
     simp only [hi, hi', ↓reduceDIte, ↓reduceIte]

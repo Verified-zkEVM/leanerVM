@@ -5,7 +5,8 @@ import LeanVM.Guest.Batch.Rpm
 import LeanVM.Guest.EndRpm
 import LeanVM.Guest.Budget.ClosedN
 import LeanVM.Guest.Budget.Covered
-import LeanVM.Guest.Child.End
+import LeanVM.Prover.End
+import LeanVM.Guest.Child.Covered
 import XmssSecurity.Rpm
 import Sphincs.LifetimesRpm
 import LeanDa

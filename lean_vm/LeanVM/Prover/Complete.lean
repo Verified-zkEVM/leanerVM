@@ -28,7 +28,7 @@ honest prover (`Rom.honestComp` at leanVM's seed and program, with the strategy
   `LeanVM.Guest.Budget.GuestChildComplete` hold for `A`, with the same bound `2^-126`
   (`rpmChild_at`, `rpmChild_le`, `childOk_of_verifierNZ_of`).
 
-The classical provers are instances (`completeness_holds`, `guest_child_complete`).
+The classical provers are instances (`specOnValid_honestComp`, `specOnValid_childProver`).
 -/
 
 namespace LeanVM.Prover
@@ -71,11 +71,6 @@ theorem completeness_of_spec (A : HonestProver) (hA : SpecOnValid A HonestFor) :
   rw [e]
   exact (Rpm.completenessRpm_at hw (by norm_num)).trans Rpm.completenessRpm_le
 
-/-- **`LeanVM.Completeness` holds** with any prover that is the specification at an honest
-witness. -/
-theorem completeness_of_spec' (A : HonestProver) (hA : SpecOnValid A HonestFor) : Completeness :=
-  ⟨A, completeness_of_spec A hA⟩
-
 /-- **Both parts of `GuestChildComplete`, for a prover that is the specification at a child's
 witness**: on valid executions within the cap at a valid rate (`SpecOnValid A ChildFor`), and
 everywhere the specification at a child's witness or the empty proof (`ChildSpec`). -/
@@ -100,13 +95,6 @@ theorem guestChildComplete_of_spec (A : HonestProver) (hA : SpecOnValid A ChildF
   obtain ⟨w, s, hw, hAw⟩ := hA prog input t ρ (2 ^ 25) hv hbudget hρ
   rw [hAw]
   exact (rpmChild_at hw.1 (by norm_num)).trans rpmChild_le
-
-/-- **`GuestChildComplete` holds** with any prover that is the specification at a child's
-witness. -/
-theorem guestChildComplete_of_spec' (A : HonestProver) (hA : SpecOnValid A ChildFor)
-    (hA' : ∀ (prog : Program) (input : PublicInput) (t : Trace prog) (ρ fuel : ℕ),
-      ChildSpec A prog input t ρ fuel) : Guest.Budget.GuestChildComplete :=
-  ⟨A, guestChildComplete_of_spec A hA hA'⟩
 
 /-! ## The classical provers are instances -/
 

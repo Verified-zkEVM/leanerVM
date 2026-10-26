@@ -245,17 +245,17 @@ theorem mkRows_concat (img : MemImage κ) (S : List Skel) (sk : Skel) :
 rows of `S`'s rows of its opcode, and the counters are `g` to the reads so far. -/
 structure RowsInv (img : MemImage κ) (logSize : ℕ) (acc : Rows) (S : List Skel) : Prop where
   tabs_size : acc.tabs.size = 6
-  tabs : ∀ op, (acc.tabs.getD (tableOf op) #[]).toList =
+  tabs : ∀ op, (acc.tabs.getD (opTableIdx op) #[]).toList =
     ((mkRows img (fun _ ↦ 0) (fun _ ↦ 0) S).filter fun r ↦ r.sk.ins.opcode = op).map
       (PRow.raw img)
   mem : CtrOk κ (readBump (fun _ ↦ 0) (S.flatMap fun sk ↦ readAddrs img sk.fp sk.ins)) acc.mem
   bc : CtrOk logSize (readBump (fun _ ↦ 0) (S.map (·.pc))) acc.bc
 
 /-- The table index of an opcode is below six. -/
-theorem tableOf_lt (op : Opcode) : tableOf op < 6 := by cases op <;> decide
+theorem tableOf_lt (op : Opcode) : opTableIdx op < 6 := by cases op <;> decide
 
 /-- Distinct opcodes have distinct tables. -/
-theorem tableOf_inj {op op' : Opcode} (h : tableOf op = tableOf op') : op = op' := by
+theorem tableOf_inj {op op' : Opcode} (h : opTableIdx op = opTableIdx op') : op = op' := by
   cases op <;> cases op' <;> first | rfl | exact absurd h (by decide)
 
 /-- The pass starts from the invariant. -/
@@ -281,7 +281,7 @@ theorem getD_map_pow (l : List ℕ) (j : ℕ) : (l.map (g ^ ·)).toArray.getD j 
 /-- One step of the pass, unfolded. -/
 theorem stepRows_eq (memIdx : Std.HashMap UInt64 ℕ) (img : MemImage κ) (acc : Rows) (st : Step) :
     stepRows memIdx img acc st =
-      ⟨acc.tabs.modify (tableOf st.ins.opcode) (·.push (rowIn memIdx img st.pc st.fp
+      ⟨acc.tabs.modify (opTableIdx st.ins.opcode) (·.push (rowIn memIdx img st.pc st.fp
           (fun j ↦ (countReads memIdx κ (addrsIn memIdx img st.fp st.ins) #[] acc.mem).1.getD j 1)
           (acc.bc.getD st.slot 1) st.ins)),
         (countReads memIdx κ (addrsIn memIdx img st.fp st.ins) #[] acc.mem).2,

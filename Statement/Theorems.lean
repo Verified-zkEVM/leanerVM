@@ -33,9 +33,10 @@ structure Theorems (decode : LeanVM.Node.Decoder) : Prop where
   /-- leanVM is knowledge sound for the straight-line extractor `extractorRpm`: at most
   `(Q + 2^14) · 2^-128 + 7 (Q + 2^14)² · 2^-256` for `Q ≤ 2^128` queries (`LeanVm.lean`). -/
   knowledgeSoundness : LeanVM.KnowledgeSoundness
-  /-- leanVM is complete: an honest proof of a valid execution of committed size at most `2^28`,
-  at an inverse rate `2^ρ` with `1 ≤ ρ ≤ 4` and `2^25` nonces per proof of work, is rejected with
-  probability at most `2^-127` (`LeanVm.lean`). -/
+  /-- leanVM is complete: the honest prover's (`LeanVM.prover`, the executable
+  `LeanVM.Prover.prove` of `Prover/Prove.lean`) proof of a valid execution of committed size at
+  most `2^28`, at an inverse rate `2^ρ` with `1 ≤ ρ ≤ 4` and `2^25` nonces per proof of work, is
+  rejected with probability at most `2^-127` (`LeanVm.lean`). -/
   completeness : LeanVM.Completeness
   /-- Every valid execution of the leanISA guest program proves the node statement its public
   input commits to: `decode` reads off its memory a seed, a statement whose digest under that seed
@@ -60,10 +61,10 @@ structure Theorems (decode : LeanVM.Node.Decoder) : Prop where
   children's hypotheses (`ChildOk`), which `guestChildComplete` gives honest proofs
   (`LeanVmGuest.lean`). -/
   guestCompleteCovered : LeanVM.Guest.Budget.GuestCompleteCovered
-  /-- The honest proof of an execution of the guest program is a child the guest program accepts:
-  rejected with probability at most `2^-126` in the random-permutation model, and with the
-  deployed Keccak, where accepted, meeting every hypothesis the guest program's completeness
-  assumes of a child (`LeanVmGuest.lean`). -/
+  /-- The same honest prover's proof of an execution of the guest program is a child the guest
+  program accepts: rejected with probability at most `2^-126` in the random-permutation model, and
+  with the deployed Keccak, where accepted, meeting every hypothesis the guest program's
+  completeness assumes of a child (`LeanVmGuest.lean`). -/
   guestChildComplete : LeanVM.Guest.Budget.GuestChildComplete
   /-- The batching run outside the circuit is sound: at most `(QA + QV + 1) · 2^-191 +
   5 (QA + QV)² · 2^-256` for `QA ≤ 2^128`, `QV ≤ 2^96`; it does not compose with the in-circuit
