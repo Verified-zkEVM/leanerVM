@@ -5,7 +5,7 @@ each), and how mapping the base monad commutes with query logging and with lifti
 
 open OracleComp OracleSpec
 
-namespace Sphincs.Security.Prefix
+namespace SphincsLayered.Security.Prefix
 open Concrete Completeness SeedModel PreparedScheme MaterialGameCoupling
 open SeedCoupling
 open SphincsBase.QueryCap
@@ -42,4 +42,4 @@ theorem map_lift_query {I J : Type} {spec : OracleSpec I} {target : OracleSpec J
   rw [simulateQ_map]
   rfl
 
-end Sphincs.Security.Prefix
+end SphincsLayered.Security.Prefix

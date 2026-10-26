@@ -7,7 +7,7 @@ exact serialized addresses keep those extra nodes from adding targets to an indi
 
 open OracleComp OracleSpec ENNReal
 
-namespace Sphincs.Security.PrunedGraph
+namespace SphincsLayered.Security.PrunedGraph
 
 open Concrete Completeness Graph TargetAssignment
 attribute [local instance] Classical.propDecidable
@@ -120,4 +120,4 @@ theorem referenceTable_surrogate (parameter : PublicParameter)
     (boundary parameter surrogates) labels (boundaryPosition parameter lay tree level hpositive)
     (boundary_inactive parameter surrogates _ _ hb) _ hb
 
-end Sphincs.Security.PrunedGraph
+end SphincsLayered.Security.PrunedGraph

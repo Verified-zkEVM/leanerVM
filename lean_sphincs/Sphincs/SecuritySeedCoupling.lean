@@ -11,7 +11,7 @@ cache. Preparation is not silently counted as part of an adversary's existing qu
 
 open OracleComp OracleSpec
 
-namespace Sphincs.Security.SeedCoupling
+namespace SphincsLayered.Security.SeedCoupling
 
 def finHeadTailEquiv (α : Type) (count : Nat) :
     (α × (Fin count → α)) ≃ (Fin (count + 1) → α) where
@@ -123,9 +123,9 @@ theorem evalDist_sequenceFin_uniform [Fintype R] (n : Nat) :
       exact SampleableType.map_uniformSample_evalDistEq_of_bijective
         (α := R × (Fin n → R)) (β := Fin (n + 1) → R) (finHeadTailEquiv R n).bijective
 
-end Sphincs.Security.SeedCoupling
+end SphincsLayered.Security.SeedCoupling
 
-namespace Sphincs.Security.SeedCoupling
+namespace SphincsLayered.Security.SeedCoupling
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -181,9 +181,9 @@ theorem evalDist_queryTable_fresh (inputs : J → D) (hinj : Function.Injective 
   funext outputs
   simp only [cacheTable, Equiv.symm_apply_apply]
 
-end Sphincs.Security.SeedCoupling
+end SphincsLayered.Security.SeedCoupling
 
-namespace Sphincs.Security.SeedCoupling
+namespace SphincsLayered.Security.SeedCoupling
 open SeedModel Completeness
 
 set_option backward.isDefEq.respectTransparency false
@@ -605,4 +605,4 @@ noncomputable def preparedExperiment (adversary : Adversary) : ProbComp (Bool ×
   let seed ← sampleMasterSeed
   (simulateQ countedOracle (gameAfterSeed adversary seed)).run.run' (programCache ∅ seed material)
 
-end Sphincs.Security.SeedCoupling
+end SphincsLayered.Security.SeedCoupling

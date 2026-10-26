@@ -6,7 +6,7 @@ completed. -/
 
 open OracleComp OracleSpec ENNReal
 
-namespace Sphincs.Security.HiddenDebt
+namespace SphincsLayered.Security.HiddenDebt
 
 open HiddenCost HiddenBridge HiddenOutside HiddenReveal
 
@@ -33,4 +33,4 @@ noncomputable def endValue (payoff : (ι → Digest) → DebtState D R ι → �
     ℝ≥0∞ :=
   ∑' table, Pr{let x ← completion state.known}[x = table] * payoff table state
 
-end Sphincs.Security.HiddenDebt
+end SphincsLayered.Security.HiddenDebt

@@ -1,7 +1,7 @@
 import Sphincs.Scheme
 
 /-! Byte encoding and domain separation; adapted from leanVM b7a107256. -/
-namespace Sphincs
+namespace SphincsLayered
 theorem bytesLE_injective {n : Nat} {x y : BitVec (8 * n)} (h : bytesLE n x = bytesLE n y) :
     x = y := by
   have hfun := List.ofFn_inj.mp h
@@ -50,4 +50,4 @@ theorem fieldBytes_injective {t1 t2 : TweakFields} (h : fieldBytes t1 = fieldByt
   obtain ⟨hstep, htag⟩ := bitVec_append_inj (bytesLE_injective htag)
   simp only [bytesLE_injective hlo, bytesLE_injective hhi, hstep, htag]
 
-end Sphincs
+end SphincsLayered

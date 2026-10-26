@@ -12,7 +12,7 @@ open OracleComp OracleSpec ENNReal
 
 set_option maxRecDepth 10000
 
-namespace Sphincs.Completeness
+namespace SphincsLayered.Completeness
 
 open Concrete Seeded
 
@@ -46,4 +46,4 @@ theorem probEvent_otsSign (parameter : PublicParameter) (lay : Layer) (tree : Tr
     (fun s s' hs hs' heq => encodeInput_inj parameter lay tree leaf message hs hs' heq)
     encodingAttemptLimit 0 (by simp) cache (fun s _ hsb => hfresh s hsb)
 
-end Sphincs.Completeness
+end SphincsLayered.Completeness

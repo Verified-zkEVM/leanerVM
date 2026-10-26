@@ -12,7 +12,7 @@ slack of the bound 1 - (1 - 2^-128)^(2q). The saturation theorem, with weighted 
 
 open OracleComp OracleSpec ENNReal
 
-namespace Sphincs.Security.HiddenDebt
+namespace SphincsLayered.Security.HiddenDebt
 
 open HiddenOutside HiddenReveal
 
@@ -1259,4 +1259,4 @@ theorem weight_start (known : Knowledge ι) : weight tg initial (DebtState.start
 
 end Main
 
-end Sphincs.Security.HiddenDebt
+end SphincsLayered.Security.HiddenDebt

@@ -11,7 +11,7 @@ every other answer of a forest step (canonical, cached, or at a known read coord
 
 open OracleComp OracleSpec ENNReal
 
-namespace Sphincs.Security.HiddenBridge
+namespace SphincsLayered.Security.HiddenBridge
 
 variable [Params]
 
@@ -19,9 +19,9 @@ variable [Params]
 def IsFchainIn (parameter : PublicParameter) (input : HashInput) : Prop :=
   ∃ f : PotentialA.FIn, input = f.input parameter
 
-end Sphincs.Security.HiddenBridge
+end SphincsLayered.Security.HiddenBridge
 
-namespace Sphincs.Security.PotentialA
+namespace SphincsLayered.Security.PotentialA
 
 open Concrete HiddenGraph HiddenDebt HiddenBridge HiddenCost HiddenReveal EncodingCode
 
@@ -342,4 +342,4 @@ theorem smallRoute_potentialF
 
 end Sample
 
-end Sphincs.Security.PotentialA
+end SphincsLayered.Security.PotentialA

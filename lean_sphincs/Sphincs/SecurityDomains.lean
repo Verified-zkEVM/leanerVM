@@ -6,7 +6,7 @@ set_option backward.isDefEq.respectTransparency false
 /-! Injectivity and separation of the candidate's exact byte inputs. These facts keep the
 derivation and verification addresses distinct in later random-oracle reductions. -/
 
-namespace Sphincs.Security
+namespace SphincsLayered.Security
 
 /-- The fixed-width prefix `P || A` determines its fields and parameter, with no restriction on
 payload. -/
@@ -149,4 +149,4 @@ theorem keygenInput_ne_hashInput (parameter parameter' : PublicParameter)
   Completeness.fieldInput_ne_of_tag_ne_across parameter parameter'
     (derive_tag_ne_hash_tag derive hash) _ _
 
-end Sphincs.Security
+end SphincsLayered.Security

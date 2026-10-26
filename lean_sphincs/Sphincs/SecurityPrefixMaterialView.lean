@@ -7,7 +7,7 @@ evaluates identically under both. -/
 
 open OracleComp OracleSpec
 
-namespace Sphincs.Security.Prefix
+namespace SphincsLayered.Security.Prefix
 open Concrete Completeness SeedModel
 
 attribute [local irreducible] encodingAttemptLimit digestAttemptLimit Seeded.subNode Seeded.topNode
@@ -189,4 +189,4 @@ theorem cutoff : ReferenceCutoff segment left seed ↔ ReferenceCutoff segment r
 
 end PublicAgreement
 
-end Sphincs.Security.Prefix
+end SphincsLayered.Security.Prefix

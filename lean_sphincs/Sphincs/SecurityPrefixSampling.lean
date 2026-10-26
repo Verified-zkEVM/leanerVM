@@ -8,7 +8,7 @@ secret tables whose selected coordinate is erased. Adapted from leanVM's OtsPref
 
 open OracleComp OracleSpec
 
-namespace Sphincs.Security.Prefix
+namespace SphincsLayered.Security.Prefix
 open SphincsBase.Concrete.UniformTableSplit
 
 attribute [local instance] Classical.propDecidable
@@ -23,4 +23,4 @@ abbrev ErasedSecrets (segment : Segment) := {secrets : Secrets // secrets (addre
 
 instance (segment : Segment) : Nonempty (ErasedSecrets segment) := ⟨⟨fun _ => 0, rfl⟩⟩
 
-end Sphincs.Security.Prefix
+end SphincsLayered.Security.Prefix

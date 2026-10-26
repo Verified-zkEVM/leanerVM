@@ -8,7 +8,7 @@ codeword". -/
 
 open ENNReal
 
-namespace Sphincs.Security.H0
+namespace SphincsLayered.Security.H0
 
 open Concrete
 
@@ -150,4 +150,4 @@ theorem f2R_eq_max (u : ℕ) : f2R u = avgR fun c : Fin u → LutIdx => Hm (maxC
     (fun w : LutIdx => if ∀ i, (lut w i).val ≤ (maxCw c i).val then (1 : ℝ) else 0), sq]
   rfl
 
-end Sphincs.Security.H0
+end SphincsLayered.Security.H0

@@ -6,7 +6,7 @@ game, which retain the strong signing log, and the cost of key generation on a f
 function. -/
 
 open OracleComp OracleSpec
-namespace Sphincs.Security.GraphView
+namespace SphincsLayered.Security.GraphView
 open Concrete Completeness Prefix HiddenGraph SeedCoupling
 set_option backward.isDefEq.respectTransparency false
 attribute [local irreducible] signCostSource Randomized.sign Seeded.keygenFromMaster
@@ -51,4 +51,4 @@ theorem fixedWorldCost_keygen_graph (f : QueryImpl HashSpec Id) (parameter : Pub
   simp only [Seeded.keygenFromMaster, evalWithAnswerFn_bind, evalWithAnswerFn_pure,
     hparameter, ← hdata.root]
 
-end Sphincs.Security.GraphView
+end SphincsLayered.Security.GraphView

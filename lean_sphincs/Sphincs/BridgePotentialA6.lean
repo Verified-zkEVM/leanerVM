@@ -8,7 +8,7 @@ independently at different coordinates). -/
 
 open OracleComp OracleSpec ENNReal
 
-namespace Sphincs.Security.PotentialA
+namespace SphincsLayered.Security.PotentialA
 
 open Concrete HiddenGraph HiddenDebt HiddenBridge HiddenCost HiddenReveal EncodingCode
 
@@ -552,4 +552,4 @@ theorem endValue_le_cap (total y : ℕ) (s : St) : endValue K.payoff s ≤ K.pot
 
 end Ctx
 
-end Sphincs.Security.PotentialA
+end SphincsLayered.Security.PotentialA

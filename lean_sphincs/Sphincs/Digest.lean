@@ -11,7 +11,7 @@ repeated randomizers, with its numerical bound after `2^32` trials. Adapted from
 
 open OracleComp OracleSpec ENNReal Finset
 
-namespace Sphincs.Completeness
+namespace SphincsLayered.Completeness
 
 variable [Params]
 
@@ -29,7 +29,7 @@ theorem msgInput_inj (secretKey : Seeded.SecretKey) (message : Message)
     (h : msgInput secretKey message randomness = msgInput secretKey message randomness') :
     randomness = randomness' := by
   simp only [msgInput, tweakableHashInput, messageDigestPayload, List.append_assoc] at h
-  exact Sphincs.bytesLE_injective (List.append_cancel_left (List.append_cancel_left
+  exact SphincsLayered.bytesLE_injective (List.append_cancel_left (List.append_cancel_left
     (List.append_cancel_left h)))
 
 omit [Params] in
@@ -104,4 +104,4 @@ theorem digestFactor_pow_bound (parameter : PublicParameter) :
   rw [hsplit, pow_mul]
   exact pow_le_pow_left₀ (by positivity) hhalf _
 
-end Sphincs.Completeness
+end SphincsLayered.Completeness

@@ -10,7 +10,7 @@ each option: `checkOptB` checks one option and these two numbers, `checkCoverQ` 
 cover on the numbers alone, and together they give `checkCoverW` (`checkCoverW_of`). The kernel then
 evaluates one option at a time. -/
 
-namespace Sphincs.Security.H0
+namespace SphincsLayered.Security.H0
 
 open SphincsFors.Security.H0
 
@@ -143,4 +143,4 @@ theorem checkCoverH_of {b N qstart : ℕ} {c : CoverW} (ps : List (ℚ × ℚ))
   simp only [checkCoverH, Bool.and_eq_true]
   exact ⟨⟨⟨h.1.1, h.1.2⟩, h1⟩, by rw [← chainQ_map, h2]; exact h.2⟩
 
-end Sphincs.Security.H0
+end SphincsLayered.Security.H0

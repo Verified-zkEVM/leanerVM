@@ -7,7 +7,7 @@ set_option backward.isDefEq.respectTransparency false
 
 open OracleComp OracleSpec
 
-namespace Sphincs.Security
+namespace SphincsLayered.Security
 open Concrete
 
 attribute [local semireducible] Concrete.verify
@@ -123,4 +123,4 @@ def TreeException (f : QueryImpl HashSpec Id) (parameter : PublicParameter) (see
   ∃ level, level < totalHeight ∧
     SurrogatePreimage f parameter topLayer rootTree seed leaf path value level
 
-end Sphincs.Security
+end SphincsLayered.Security

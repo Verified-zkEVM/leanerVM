@@ -6,7 +6,7 @@ known, revealed, or a successor of such a coordinate. -/
 
 open OracleComp OracleSpec ENNReal
 
-namespace Sphincs.Security.HiddenBridge
+namespace SphincsLayered.Security.HiddenBridge
 
 open HiddenCost GraphView Stop
 
@@ -394,4 +394,4 @@ theorem lazy_cached {β : Type} (computation : OracleComp CostSpec β) :
 
 end Support
 
-end Sphincs.Security.HiddenBridge
+end SphincsLayered.Security.HiddenBridge

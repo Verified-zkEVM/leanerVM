@@ -5,7 +5,7 @@ chain values and the 3 auth nodes, then the 4 top-tree auth nodes, then the WOTS
 values and authentication path, as `SphincsSignature::to_bytes` (`crates/signatures/src/lean_sphincs/scheme.rs`) lays out the
 FORS signature. -/
 
-namespace Sphincs
+namespace SphincsLayered
 
 /-- One coordinate's opening: sub-tree 0 (values, path), sub-tree 1 (values, path), top path. -/
 def serializeCoord (opening : CoordOpening) : List UInt8 :=
@@ -45,4 +45,4 @@ theorem signature_size (signature : Signature) : (serializeSignature signature).
     Finset.sum_const, Finset.card_univ, Fintype.card_fin, smul_eq_mul]
   decide
 
-end Sphincs
+end SphincsLayered

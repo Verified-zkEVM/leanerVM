@@ -6,7 +6,7 @@ table: private draws are uniform, and hash and reveal queries are answered by th
 
 open OracleComp OracleSpec
 
-namespace Sphincs.Security.GraphView
+namespace SphincsLayered.Security.GraphView
 open Concrete Completeness Prefix HiddenGraph
 attribute [local instance] Classical.propDecidable
 attribute [local irreducible] finishSource Randomized.finishSign digestAttemptLimit
@@ -17,4 +17,4 @@ noncomputable def fixedSource (f : QueryImpl HashSpec Id) (table : HiddenGraph.T
   (fun input => PMF.uniformOfFintype (unifSpec.Range input) : QueryImpl unifSpec PMF) +
     (fixedView f table).liftTarget PMF
 
-end Sphincs.Security.GraphView
+end SphincsLayered.Security.GraphView

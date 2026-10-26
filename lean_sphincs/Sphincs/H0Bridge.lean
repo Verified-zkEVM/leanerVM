@@ -11,7 +11,7 @@ bounded by the first and second moments `E[y | n] = Ψ1(n)^8`, `E[y^2 | n] = Ψ2
 
 open ENNReal
 
-namespace Sphincs.Security.H0
+namespace SphincsLayered.Security.H0
 
 open Concrete ForestPrice SphincsFors.Security.Domination H0Avg
 
@@ -353,4 +353,4 @@ theorem hS_le_quad (c1 θ : ℝ) (hc1 : 0 < c1) (hθ : 0 < θ) (Ms : Multiset (C
   calc _ ≤ _ := this
     _ = _ := by ring
 
-end Sphincs.Security.H0
+end SphincsLayered.Security.H0

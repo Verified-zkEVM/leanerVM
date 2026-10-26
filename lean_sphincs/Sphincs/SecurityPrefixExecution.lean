@@ -10,7 +10,7 @@ fresh private draws and a supplied hash function).
 
 open OracleComp OracleSpec ENNReal
 
-namespace Sphincs.Security.Prefix
+namespace SphincsLayered.Security.Prefix
 open SphincsBase.Concrete.PartialChainEndpoint
 set_option backward.isDefEq.respectTransparency false
 
@@ -42,4 +42,4 @@ private theorem counted_query {ι : Type} {spec : OracleSpec ι}
     SphincsBase.QueryCap.counted selected (liftM (spec.query input) : OracleComp spec (spec.Range input)) =
       (do let value ← liftM (spec.query input); pure (value, if selected input then 1 else 0)) := rfl
 
-end Sphincs.Security.Prefix
+end SphincsLayered.Security.Prefix

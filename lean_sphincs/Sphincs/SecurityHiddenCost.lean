@@ -5,7 +5,7 @@ honest work has an explicit natural-number cost; ordinary raw queries each cost 
 private draws and privileged disclosures are free. Every monitor can inspect this same trace. -/
 
 open OracleComp OracleSpec
-namespace Sphincs.Security.HiddenCost
+namespace SphincsLayered.Security.HiddenCost
 set_option backward.isDefEq.respectTransparency false
 set_option maxRecDepth 10000
 set_option maxHeartbeats 100000
@@ -89,4 +89,4 @@ def cap {D R ι α : Type} (computation : OracleComp (SourceCostSpec D R ι) α)
         next value (budget - sourceCost input)
       else pure none) computation
 
-end Sphincs.Security.HiddenCost
+end SphincsLayered.Security.HiddenCost

@@ -9,7 +9,7 @@ coupling that gives each item the leftover mass of the coins before it. For the 
 
 open ENNReal
 
-namespace Sphincs.Security.Domination
+namespace SphincsLayered.Security.Domination
 
 open SphincsFors.Security.Domination
 
@@ -223,4 +223,4 @@ theorem once_slot_coupling {U : Finset V} (hU : U.Nonempty) {w e : ℝ≥0∞} (
       _ = _ := by simp [List.sum_map_add, List.map_const', List.sum_replicate, nsmul_eq_mul]
   exact tsub_le_iff_right.2 hsum
 
-end Sphincs.Security.Domination
+end SphincsLayered.Security.Domination

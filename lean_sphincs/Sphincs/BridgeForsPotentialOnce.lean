@@ -9,11 +9,11 @@ by one fresh slot (`sign_term`). -/
 
 open OracleComp OracleSpec ENNReal
 
-namespace Sphincs.Security.ForsPotential
+namespace SphincsLayered.Security.ForsPotential
 
 open SphincsFors.Security
 open Concrete HiddenGraph HiddenCost HiddenDebt GraphView Domination ForestPrice ForestSigner
-  SphincsFors.Security.Domination Sphincs.LoopWalk
+  SphincsFors.Security.Domination SphincsLayered.LoopWalk
 
 set_option backward.isDefEq.respectTransparency false
 set_option maxRecDepth 10000
@@ -1492,4 +1492,4 @@ theorem goodO_sign (Lmax : ℕ) (hparse : ∀ p, model.parse (pblk parameter dat
 
 end SignPointMainO
 
-end Sphincs.Security.ForsPotential
+end SphincsLayered.Security.ForsPotential

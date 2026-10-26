@@ -7,7 +7,7 @@ successful cover check bounds the large-route term at every budget it covers. -/
 
 open ENNReal NNReal
 
-namespace Sphincs.Security.H0
+namespace SphincsLayered.Security.H0
 
 open Concrete ForestPrice SphincsFors.Security.H0 SphincsFors.Security.Domination
 
@@ -260,4 +260,4 @@ theorem fair_of_cover (b N qstart : ℕ) (cover : CoverW) (hcov : checkCoverW b 
   simp only [checkCoverW, Bool.and_eq_true, List.all_eq_true] at hcov
   exact fair_of_rate b N cover.qtop cover.tab hcov.1.1.1 hb q' hq
 
-end Sphincs.Security.H0
+end SphincsLayered.Security.H0

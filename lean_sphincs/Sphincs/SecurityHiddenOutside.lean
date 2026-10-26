@@ -5,7 +5,7 @@ be infinite (in the candidate, arbitrary byte lists). Outside responses are samp
 and cached; no probability distribution over full infinite answer functions is assumed. -/
 
 open OracleComp OracleSpec ENNReal
-namespace Sphincs.Security.HiddenOutside
+namespace SphincsLayered.Security.HiddenOutside
 set_option backward.isDefEq.respectTransparency false
 set_option maxRecDepth 10000
 set_option maxHeartbeats 100000
@@ -59,4 +59,4 @@ noncomputable def stoppedExperiment {α : Type} (model : HiddenRows.Model D R A 
   HiddenReveal.completion known >>= fun table => stopped model table computation known cache
 
 end Compiler
-end Sphincs.Security.HiddenOutside
+end SphincsLayered.Security.HiddenOutside

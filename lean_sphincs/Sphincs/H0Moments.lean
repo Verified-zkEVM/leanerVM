@@ -9,7 +9,7 @@ powers of one-mark avoidance probabilities `Q`, which decode into the codeword-l
 
 open ENNReal
 
-namespace Sphincs.Security.H0
+namespace SphincsLayered.Security.H0
 
 open Concrete
 
@@ -211,4 +211,4 @@ theorem coverR_expand (t : MT) (X : Multiset MT) :
   rw [multiset_prod_finset_prod]
   simp only [multiset_prod_finset_prod, Finset.prod_mul_distrib]
 
-end Sphincs.Security.H0
+end SphincsLayered.Security.H0

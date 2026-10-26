@@ -13,7 +13,7 @@ forgery advantage, the hash-query budget and the security-bits target.
 
 open OracleComp OracleSpec ENNReal
 
-namespace Sphincs.Security.Det
+namespace SphincsLayered.Security.Det
 
 @[expose] public section
 
@@ -49,4 +49,4 @@ def HasClassicalSecurityBitsDet (bits : Nat) : Prop :=
 
 end
 
-end Sphincs.Security.Det
+end SphincsLayered.Security.Det

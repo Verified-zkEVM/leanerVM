@@ -7,7 +7,7 @@ their prefix sums `K(m) = #{w : lut w ≤ m} = 256 H(m)`, and the numerators
 
 open ENNReal
 
-namespace Sphincs.Security.H0
+namespace SphincsLayered.Security.H0
 
 open Concrete
 
@@ -220,4 +220,4 @@ theorem f2R_num (u : ℕ) : f2R u = (f2Num u : ℝ) / 256 ^ (u + 2) := by
   push_cast
   field_simp
   ring
-end Sphincs.Security.H0
+end SphincsLayered.Security.H0

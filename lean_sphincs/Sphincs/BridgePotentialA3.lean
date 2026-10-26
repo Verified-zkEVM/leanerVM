@@ -6,7 +6,7 @@ each input class under the numeric conditions. -/
 
 open OracleComp OracleSpec ENNReal
 
-namespace Sphincs.Security.PotentialA
+namespace SphincsLayered.Security.PotentialA
 
 open Concrete HiddenGraph HiddenDebt HiddenBridge EncodingCode
 
@@ -465,4 +465,4 @@ theorem pot_record (y : ℕ) (s : St) (g : Coordinate × Digest) (hg : s.known g
 
 end Ctx
 
-end Sphincs.Security.PotentialA
+end SphincsLayered.Security.PotentialA

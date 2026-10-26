@@ -14,7 +14,7 @@ the randomizer table (one base `R0` per message, each read at most once) gives t
 
 open OracleComp OracleSpec ENNReal
 
-namespace Sphincs.Security.Det
+namespace SphincsLayered.Security.Det
 
 open Completeness SeedCoupling Internalize Eager Short SeedModel Graph Assembly Stop HiddenCost
   GraphView Reduce DetValue
@@ -456,4 +456,4 @@ theorem forgeAdvantageDet_le_seedFree (adversary : Adversary) (q : Nat)
   rw [forgeAdvantageDet_eq_budgeted adversary q hbound]
   exact budgetedAdvantageDet_le_seedFree adversary q
 
-end Sphincs.Security.Det
+end SphincsLayered.Security.Det

@@ -7,7 +7,7 @@ import Sphincs.SecurityMaterialGameCoupling
 
 open OracleComp OracleSpec
 
-namespace Sphincs.Security.Prefix
+namespace SphincsLayered.Security.Prefix
 open Concrete SeedModel PreparedScheme SeedCoupling
 
 set_option backward.isDefEq.respectTransparency false
@@ -17,4 +17,4 @@ attribute [local irreducible] programCache digestAttemptLimit encodingAttemptLim
 def materialSecrets (material : Material) : Secrets :=
   fun chain => truncateHash (material.2 (.inl chain))
 
-end Sphincs.Security.Prefix
+end SphincsLayered.Security.Prefix

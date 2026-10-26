@@ -5,7 +5,7 @@ answer and every revealed coordinate. The original win event is a function of it
 
 open OracleComp OracleSpec ENNReal
 
-namespace Sphincs.Security.HiddenBridge
+namespace SphincsLayered.Security.HiddenBridge
 
 open HiddenCost GraphView Concrete
 
@@ -176,4 +176,4 @@ noncomputable def sampleData (parameterOutput : HashOutput) (fixed : HiddenGraph
   GraphView.publicData (labelsOf (splitMaterial parameterOutput highs remaining fixed)
     (splitAnswers highs remaining fixed))
 
-end Sphincs.Security.HiddenBridge
+end SphincsLayered.Security.HiddenBridge

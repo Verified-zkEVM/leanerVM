@@ -12,7 +12,7 @@ public import LeanVM.Guest.B1.Ring.Interface
 public import LeanVM.Guest.B1.Bits.Meaning
 public import Statement.LeanVmGuest
 public import LeanXmss.Scheme
-public import Sphincs.Scheme
+public import Sphincs.Equations
 public import Statement.Fast.Schemes
 public import LeanDa.Scheme
 public import Statement.Fast.Keccak

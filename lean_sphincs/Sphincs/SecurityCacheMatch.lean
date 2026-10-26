@@ -11,7 +11,7 @@ empty target set.
 
 open OracleComp OracleSpec ENNReal
 
-namespace Sphincs.Security.CacheMatch
+namespace SphincsLayered.Security.CacheMatch
 
 open Completeness
 
@@ -21,4 +21,4 @@ set_option backward.isDefEq.respectTransparency false
 def Bad (targets : HashInput → Finset Digest) (cache : QueryCache HashSpec) : Prop :=
   ∃ input answer, cache input = some answer ∧ truncateHash answer ∈ targets input
 
-end Sphincs.Security.CacheMatch
+end SphincsLayered.Security.CacheMatch

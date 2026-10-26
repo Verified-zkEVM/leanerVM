@@ -9,7 +9,7 @@ digest. -/
 
 open ENNReal
 
-namespace Sphincs.Security.ForestPrice
+namespace SphincsLayered.Security.ForestPrice
 
 open Concrete SphincsFors.Security.Domination
 
@@ -90,4 +90,4 @@ omit [Params] in
 theorem excess_mono {V : Type} {g : Multiset V → ℝ≥0∞} (hmono : Monotone' g) (b : ℝ≥0∞) :
     Monotone' fun d => g d - b := fun _ _ hle => tsub_le_tsub_right (hmono _ _ hle) b
 
-end Sphincs.Security.ForestPrice
+end SphincsLayered.Security.ForestPrice

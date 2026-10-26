@@ -7,7 +7,7 @@ contribute zero hash calls. -/
 
 open OracleComp OracleSpec
 
-namespace Sphincs.Security.Prefix
+namespace SphincsLayered.Security.Prefix
 open Concrete SphincsBase.QueryCap
 
 attribute [local irreducible] encodingAttemptLimit digestAttemptLimit Randomized.finishSign
@@ -57,4 +57,4 @@ noncomputable def publicSignWithCost (segment : Segment) (outside : QueryImpl Ha
   | some randomness => pure (publicFinishSign segment outside secrets frontier surrogates sk.seed sk.root message randomness,
         loop.2 + hashCalls outside (Randomized.finishSign sk message randomness))
 
-end Sphincs.Security.Prefix
+end SphincsLayered.Security.Prefix

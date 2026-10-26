@@ -9,7 +9,7 @@ retained leaf. -/
 
 open OracleComp OracleSpec
 
-namespace Sphincs.Security.SignatureWitness
+namespace SphincsLayered.Security.SignatureWitness
 open Concrete
 
 attribute [local irreducible] messageDigest forestRecover otsLeaf treeFold
@@ -200,9 +200,9 @@ theorem accepted_full_classification (f : QueryImpl HashSpec Id) (pk : PublicKey
     · exact Or.inr (Or.inl ⟨value, hleaf, hrunTree, Or.inl ⟨reference.val, reference.property, hmatch⟩⟩)
     · exact Or.inr (Or.inl ⟨value, hleaf, hrunTree, Or.inr hsurrogate⟩)
 
-end Sphincs.Security.SignatureWitness
+end SphincsLayered.Security.SignatureWitness
 
-namespace Sphincs.Security.HiddenBridge
+namespace SphincsLayered.Security.HiddenBridge
 
 open Concrete Completeness Graph GraphCorrectness TargetAssignment
 
@@ -522,4 +522,4 @@ theorem encodingMatch_hit (f : QueryImpl HashSpec Id) (parameter : PublicParamet
   rw [ite_eq_right hexempt']
   exact Finset.mem_singleton.mpr hout
 
-end Sphincs.Security.HiddenBridge
+end SphincsLayered.Security.HiddenBridge

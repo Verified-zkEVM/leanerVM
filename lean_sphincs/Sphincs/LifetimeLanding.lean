@@ -7,7 +7,7 @@ the law of a fresh uniform digest that lands: landing with a kept view in a set 
 reciprocal number of subtrees times the uniform probability of that set.
 -/
 
-namespace Sphincs.Lifetime
+namespace SphincsLayered.Lifetime
 
 set_option exponentiation.threshold 512
 
@@ -78,4 +78,4 @@ theorem probEvent_landed_localDigest (parameter : PublicParameter)
     ENNReal.mul_inv (Or.inr (ENNReal.natCast_ne_top _)) (Or.inl (ENNReal.natCast_ne_top _))]
   ring
 
-end Sphincs.Lifetime
+end SphincsLayered.Lifetime

@@ -8,7 +8,7 @@ H-term at every budget is then at most `2^b E_μ[n̄]`. -/
 
 open ENNReal NNReal
 
-namespace Sphincs.Security.H0
+namespace SphincsLayered.Security.H0
 
 open Concrete ForestPrice SphincsFors.Security.H0 SphincsFors.Security.Domination H0Avg ForsPotential
 
@@ -179,4 +179,4 @@ theorem hNearOf_le (b N qtop : ℕ) (hb : subtreeHeight = b) (hN : signatureLimi
           push_cast
           exact mul_nonpos_of_nonneg_of_nonpos (by positivity) hE.le
 
-end Sphincs.Security.H0
+end SphincsLayered.Security.H0

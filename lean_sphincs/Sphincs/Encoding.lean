@@ -13,7 +13,7 @@ decodes, which by `Code.lean` is at least `2 ^ 116` times in `2 ^ 128`.
 
 open Finset ENNReal OracleComp OracleSpec
 
-namespace Sphincs.Completeness
+namespace SphincsLayered.Completeness
 
 open TargetSum
 
@@ -22,7 +22,7 @@ theorem probEvent_accept :
     Pr{let u ← ($ᵗ HashOutput : ProbComp HashOutput)}[(decodeDigest (truncateHash u)).isSome]
       = ((univ.filter fun d : Digest => (decodeDigest d).isSome).card : ℝ≥0∞)
           / (Fintype.card Digest : ℝ≥0∞) := by
-  rw [← Sphincs.probEvent_uniform_truncateHash_mem
+  rw [← SphincsLayered.probEvent_uniform_truncateHash_mem
     (univ.filter fun d : Digest => (decodeDigest d).isSome)]
   exact prEvent_congr _ _ _ fun u => by simp only [Finset.mem_filter, Finset.mem_univ, true_and]
 
@@ -68,4 +68,4 @@ theorem encoding_exhaustion_bound (parameter : PublicParameter) (lay : Layer) (t
   rw [show encodingAttemptLimit = 2 ^ 12 * 2 ^ 20 by decide, pow_mul]
   exact pow_le_pow_left₀ (by positivity) hhalf _
 
-end Sphincs.Completeness
+end SphincsLayered.Completeness

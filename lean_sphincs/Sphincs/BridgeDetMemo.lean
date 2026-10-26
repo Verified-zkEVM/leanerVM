@@ -6,7 +6,7 @@ commutes with internalizing long hash inputs. -/
 
 open OracleComp OracleSpec
 
-namespace Sphincs.Security.Memo
+namespace SphincsLayered.Security.Memo
 
 open Internalize Short ForsPotential
 
@@ -189,4 +189,4 @@ theorem internalize_memoAdv (adversary : Adversary) :
           rw [h, h'] at this
           exact this
 
-end Sphincs.Security.Memo
+end SphincsLayered.Security.Memo

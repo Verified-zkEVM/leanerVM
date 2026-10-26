@@ -7,7 +7,7 @@ the ingredients of the fair-share bound for the grinding signer. -/
 
 open OracleComp OracleSpec ENNReal
 
-namespace Sphincs.Security.HiddenDebt
+namespace SphincsLayered.Security.HiddenDebt
 
 open HiddenCost HiddenBridge HiddenOutside HiddenReveal
 
@@ -302,4 +302,4 @@ theorem two_reads_bound₂ {β : Type} (x0 x1 : D) (hne : x0 ≠ x1) (hp0 : mode
   · rw [OracleComp.tsum_prEvent_pure_mul]
     simp
 
-end Sphincs.Security.HiddenDebt
+end SphincsLayered.Security.HiddenDebt

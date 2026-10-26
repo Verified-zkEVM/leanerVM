@@ -10,7 +10,7 @@ strategy learns only whether each selected input names that seed.
 
 open OracleComp OracleSpec ENNReal
 
-namespace Sphincs.Security.SeedGuess
+namespace SphincsLayered.Security.SeedGuess
 
 attribute [local instance] Classical.propDecidable
 set_option maxRecDepth 10000
@@ -98,4 +98,4 @@ noncomputable def monitor {σ : Type} (choose : Strategy σ) (seed : MasterSeed)
 noncomputable def experiment {σ : Type} (choose : Strategy σ) (q : Nat) (state : σ) : ProbComp Bool :=
   sampleMasterSeed >>= fun seed => monitor choose seed q state
 
-end Sphincs.Security.SeedGuess
+end SphincsLayered.Security.SeedGuess

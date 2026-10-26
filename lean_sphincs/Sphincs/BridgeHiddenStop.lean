@@ -6,7 +6,7 @@ execution until the first ordinary query names a still-hidden canonical input. -
 
 open OracleComp OracleSpec ENNReal
 
-namespace Sphincs.Security.HiddenBridge
+namespace SphincsLayered.Security.HiddenBridge
 
 open HiddenCost Stop GraphView HiddenGraph
 
@@ -121,4 +121,4 @@ theorem costRun_le_stopped {α : Type} (model : HiddenRows.Model HashInput HashO
         rw [pure_bind, pure_bind, stopped_map, probEvent_stopOr_map, prEvent_map]
         exact ih () known hknown _
 
-end Sphincs.Security.HiddenBridge
+end SphincsLayered.Security.HiddenBridge

@@ -9,7 +9,7 @@ probability at least `R · 2^-128`. -/
 
 open OracleComp OracleSpec ENNReal
 
-namespace Sphincs.Security.ForestSigner
+namespace SphincsLayered.Security.ForestSigner
 
 open Concrete HiddenCost HiddenDebt GraphView
 
@@ -69,9 +69,9 @@ theorem NoMsg.search (parameter : PublicParameter) (lay : Layer) (tree : TreeInd
       | none => exact NoMsg.search parameter lay tree leaf message attempts (start + 1)
       | some _ => exact NoMsg.pure' _
 
-end Sphincs.Security.ForestSigner
+end SphincsLayered.Security.ForestSigner
 
-namespace Sphincs.Security.HiddenDebt
+namespace SphincsLayered.Security.HiddenDebt
 
 open HiddenCost HiddenBridge HiddenOutside HiddenReveal
 
@@ -109,9 +109,9 @@ theorem one_read_bound {β : Type} (x0 : D) (hp0 : model.parse x0 = none)
   · rw [OracleComp.tsum_prEvent_pure_mul]
     simp
 
-end Sphincs.Security.HiddenDebt
+end SphincsLayered.Security.HiddenDebt
 
-namespace Sphincs.Security.GraphView
+namespace SphincsLayered.Security.GraphView
 
 open SphincsFors.Security
 open Concrete Completeness Prefix HiddenGraph HiddenCost HiddenDebt ForestSigner
@@ -465,4 +465,4 @@ theorem finish_keeps_msg (hparse : ∀ ρ, model.parse (blk parameter data messa
 
 end Loop
 
-end Sphincs.Security.GraphView
+end SphincsLayered.Security.GraphView

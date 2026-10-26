@@ -5,7 +5,7 @@ The failure branch uses a fixed valid dummy word and has no exempt encoding inpu
 
 open OracleComp OracleSpec
 
-namespace Sphincs.Security.ReferenceChoice
+namespace SphincsLayered.Security.ReferenceChoice
 open Concrete Completeness Prefix
 
 set_option backward.isDefEq.respectTransparency false
@@ -129,4 +129,4 @@ theorem otsLeaf_classification (secret : ChainIndex → Digest) (message : Fores
   · exact Or.inr (Or.inr (Or.inl hmatch))
   · exact Or.inr (Or.inr (Or.inr hchain))
 
-end Sphincs.Security.ReferenceChoice
+end SphincsLayered.Security.ReferenceChoice

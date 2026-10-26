@@ -7,7 +7,7 @@ signing attempts. One seed derivation gives the starts of two chains: a one-time
 
 open OracleComp OracleSpec
 
-namespace Sphincs.Security.Prefix
+namespace SphincsLayered.Security.Prefix
 open Concrete
 
 attribute [local irreducible] encodingAttemptLimit digestAttemptLimit Seeded.treeNode
@@ -209,4 +209,4 @@ theorem hashCalls_signAttempt (f : QueryImpl HashSpec Id) (sk : Seeded.SecretKey
   rw [Seeded.signAttempt, hashCalls_bind, hashCalls_messageDigestCall]
   split <;> rfl
 
-end Sphincs.Security.Prefix
+end SphincsLayered.Security.Prefix

@@ -6,7 +6,7 @@ its query-response consistency and untouched surrogate boundary, which `BridgeAs
 for every sample. No correctness of the labels is assumed. -/
 
 open OracleComp OracleSpec
-namespace Sphincs.Security.GraphCorrectness
+namespace SphincsLayered.Security.GraphCorrectness
 open Concrete Completeness Graph PrunedGraph
 set_option backward.isDefEq.respectTransparency false
 set_option maxRecDepth 10000
@@ -949,4 +949,4 @@ theorem materialSurrogates_eq (material : SeedModel.Material)
   rw [Seeded.surrogate, dite_eq_left level.isLt]
   exact (SeedModel.eval_surrogate_prepared f seed material hagrees level).symm
 
-end Sphincs.Security.GraphCorrectness
+end SphincsLayered.Security.GraphCorrectness

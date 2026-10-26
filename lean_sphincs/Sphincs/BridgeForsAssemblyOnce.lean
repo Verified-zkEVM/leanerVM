@@ -7,7 +7,7 @@ the start value of the future-pair term of the one-coin FORS potential. -/
 
 open OracleComp OracleSpec ENNReal
 
-namespace Sphincs.Security.ForsPotential
+namespace SphincsLayered.Security.ForsPotential
 
 open Concrete HiddenGraph HiddenCost HiddenDebt GraphView Domination ForestPrice ForestSigner HiddenReveal SphincsFors.Security.Domination
 
@@ -56,4 +56,4 @@ theorem potO_start_le (parameter : PublicParameter) (data : PublicData) (wbar b0
 
 end TotalO
 
-end Sphincs.Security.ForsPotential
+end SphincsLayered.Security.ForsPotential

@@ -12,7 +12,7 @@ it is charged, honest or not. -/
 
 open OracleComp OracleSpec ENNReal
 
-namespace Sphincs.Security.Det
+namespace SphincsLayered.Security.Det
 
 open Completeness SeedCoupling Short Internalize Eager Reduce
 

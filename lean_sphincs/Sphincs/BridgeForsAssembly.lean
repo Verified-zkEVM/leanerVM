@@ -8,7 +8,7 @@ no message-digest input, and the targeting facts of one prepared sample. -/
 
 open OracleComp OracleSpec ENNReal
 
-namespace Sphincs.Security.ForsPotential
+namespace SphincsLayered.Security.ForsPotential
 
 open Concrete HiddenGraph HiddenCost HiddenDebt GraphView Domination ForestPrice ForestSigner HiddenReveal SphincsFors.Security.Domination
 
@@ -669,4 +669,4 @@ theorem div_two_pow (x : ℝ≥0∞) (n : ℕ) : x / 2 ^ n = x * (2 : ℝ≥0∞
 
 end Close
 
-end Sphincs.Security.ForsPotential
+end SphincsLayered.Security.ForsPotential

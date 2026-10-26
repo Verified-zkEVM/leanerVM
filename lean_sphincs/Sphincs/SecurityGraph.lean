@@ -10,7 +10,7 @@ Graph edges and their exact inputs follow leanVM b7a107256, specialized to the c
 
 open OracleComp OracleSpec
 
-namespace Sphincs.Security.Graph
+namespace SphincsLayered.Security.Graph
 
 open Concrete Completeness
 set_option backward.isDefEq.respectTransparency false
@@ -88,4 +88,4 @@ def prepare : List Position → CanonicalGraphLabels → OracleComp HashSpec Can
       let answer ← liftM (HashSpec.query (canonicalGraphInput parameter otsSecret ftsSecret position labels))
       prepare rest (Function.update labels position answer)
 
-end Sphincs.Security.Graph
+end SphincsLayered.Security.Graph

@@ -7,7 +7,7 @@ independent short-input table. -/
 
 open OracleComp OracleSpec ENNReal
 
-namespace Sphincs.Security.HiddenBridge
+namespace SphincsLayered.Security.HiddenBridge
 
 open Completeness SeedModel Graph Assembly Reduce HiddenGraph Eager
 
@@ -503,4 +503,4 @@ theorem seedFreeRun_mix (adversary : Adversary) (q : Nat) (fixed fresh : HiddenG
 
 end Split
 
-end Sphincs.Security.HiddenBridge
+end SphincsLayered.Security.HiddenBridge

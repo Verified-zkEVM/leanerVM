@@ -6,7 +6,7 @@ a prepared canonical node. -/
 
 open OracleComp OracleSpec
 
-namespace Sphincs.Security
+namespace SphincsLayered.Security
 open Concrete
 attribute [local irreducible] Seeded.treeNode Seeded.treeRoot Seeded.spineNode
 set_option maxHeartbeats 600000
@@ -45,4 +45,4 @@ theorem boundary_not_kept (parameter : PublicParameter) (level : Nat)
   · rw [ite_eq_right (by omega : ¬level ≤ subtreeHeight)]
     exact xor_one_ne _
 
-end Sphincs.Security
+end SphincsLayered.Security

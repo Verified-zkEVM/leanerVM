@@ -10,7 +10,7 @@ of covers of the budgets above `qh`. -/
 
 open OracleComp OracleSpec ENNReal
 
-namespace Sphincs.Security.ForsPotential
+namespace SphincsLayered.Security.ForsPotential
 
 open Concrete HiddenGraph HiddenCost HiddenDebt GraphView Domination ForestPrice ForestSigner HiddenReveal
   SphincsFors.Security.Domination
@@ -409,4 +409,4 @@ theorem det_bitsF (hb0 : 0 < subtreeHeight) (b N : ℕ) (hb : subtreeHeight = b)
     refine le_trans h (le_of_eq ?_)
     rw [Nat.cast_pow, Nat.cast_ofNat]
 
-end Sphincs.Security.ForsPotential
+end SphincsLayered.Security.ForsPotential

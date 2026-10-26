@@ -7,8 +7,10 @@ import Sphincs.Axioms
 adversary whose game makes at most `Q` permutation calls, `1 ≤ Q ≤ 2^128`, forges with probability
 at most `(Q + 1) · 2^-127` (from `Q / 2^127 + Q² / 2^509`, the sponge's indifferentiability
 added). Its proof passes through the random-oracle model
-(`Sphincs.Lifetimes.requestedSecurity`, a step). `Sphincs/Axioms.lean` pins the axiom footprint of
-every theorem of the project; the build fails if the end theorem's grows beyond Lean's three. -/
+(`SphincsLayered.Lifetimes.requestedSecurity`, a step) and the layered presentation of the scheme,
+the statement's scheme through a bijection of the signatures (`Sphincs.OneLayer`).
+`Sphincs/Axioms.lean` pins the axiom footprint of every theorem of the project; the build fails if
+the end theorem's grows beyond Lean's three. -/
 
 example : Sphincs.Lifetimes.RequestedSecurityRpm := Sphincs.Lifetimes.requestedSecurityRpm
 

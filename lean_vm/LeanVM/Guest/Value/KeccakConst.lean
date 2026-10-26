@@ -10,7 +10,7 @@ module
 public import LeanVM.Guest.Value.KeccakSponge
 public import Statement.LeanVmGuest
 public import LeanXmss.Scheme
-public import Sphincs.Scheme
+public import Sphincs.Equations
 public import Statement.Fast.Schemes
 public import LeanDa.Scheme
 public import Statement.Fast.Keccak

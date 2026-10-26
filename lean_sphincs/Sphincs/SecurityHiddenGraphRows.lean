@@ -6,7 +6,7 @@ oracle. Secret coordinates come from the material tables; all other coordinates 
 adversary-visible high halves come from the independently prepared full hash labels. -/
 
 open OracleComp OracleSpec
-namespace Sphincs.Security.HiddenGraph
+namespace SphincsLayered.Security.HiddenGraph
 open Graph
 set_option backward.isDefEq.respectTransparency false
 set_option maxRecDepth 10000
@@ -147,4 +147,4 @@ theorem programGraphCache_row_lookup (positions : List Position) (cache : QueryC
   · rw [ite_eq_right heq]
     exact programGraphCache_row_miss parameter otsSecret ftsSecret labels positions cache address value heq
 
-end Sphincs.Security.HiddenGraph
+end SphincsLayered.Security.HiddenGraph

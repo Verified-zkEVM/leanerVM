@@ -9,7 +9,7 @@ inputs is exactly the lazy outside random oracle started from the structural cac
 
 open OracleComp OracleSpec ENNReal
 
-namespace Sphincs.Security.HiddenBridge
+namespace SphincsLayered.Security.HiddenBridge
 
 open Eager Short
 
@@ -206,4 +206,4 @@ theorem evalDist_stopped_lazy {α : Type}
 
 end Lazy
 
-end Sphincs.Security.HiddenBridge
+end SphincsLayered.Security.HiddenBridge

@@ -97,49 +97,28 @@ theorem sTweak (tag step hi lo : Nat) :
 
 /-! ## Verification -/
 
-theorem verifyLayers_one (P : PublicParameter) (index : Index) (σ : Signature) (msg : ForestKey) :
-    @verifyLayers Id _ inst P index σ 1 msg =
-      (@otsLeaf Id _ inst P topLayer 0 (leafIndexAt index topLayer) msg (σ.layers topLayer).counter
-        (σ.layers topLayer).chainValues).map fun v =>
-          @treeFold Id _ inst P topLayer 0 (leafIndexAt index topLayer) (signaturePath σ topLayer)
-            (layerHeight topLayer) v := by
-  rw [verifyLayers.eq_2]
-  simp only [bind, pure, show (0 : Nat) < numLayers from Nat.one_pos, ↓reduceDIte]
-  have e : (⟨0, Nat.one_pos⟩ : Layer) = topLayer := rfl
-  simp only [e, treeIndexAt]
-  split
-  next v h =>
-    have h' : @otsLeaf Id _ inst P topLayer 0 (leafIndexAt index topLayer) msg
-        (σ.layers topLayer).counter (σ.layers topLayer).chainValues = some v := h
-    rw [h']
-    rfl
-  next h =>
-    cases h' : @otsLeaf Id _ inst P topLayer 0 (leafIndexAt index topLayer) msg
-        (σ.layers topLayer).counter (σ.layers topLayer).chainValues with
-    | none => rfl
-    | some v => exact absurd h' (h v)
+/-- The path a signature carries, as the verifier folds it: zero above the tree's height. -/
+def signaturePath (σ : Signature) (l : Nat) : Sphincs.Digest :=
+  if h : l < totalHeight then σ.path ⟨l, h⟩ else 0
 
 /-- **Verification**: the digest selects the forest key, which the one-time signature signs
 under a leaf whose path reaches the key's root. -/
 theorem sVerify_iff (pk : PublicKey) (msg : Message) (σ : Signature) :
     @Sphincs.Concrete.verify Id _ inst pk msg σ = true ↔
-      ∃ leaf, @otsLeaf Id _ inst pk.parameter topLayer 0
-          (leafIndexAt (digestIndex (@messageDigest Id _ inst pk.parameter pk.root msg σ.randomness))
-            topLayer)
+      ∃ leaf, @otsLeaf Id _ inst pk.parameter
+          (digestIndex (@messageDigest Id _ inst pk.parameter pk.root msg σ.randomness))
           (@forestRecover Id _ inst pk.parameter
             (digestIndex (@messageDigest Id _ inst pk.parameter pk.root msg σ.randomness))
             (digestMarks (@messageDigest Id _ inst pk.parameter pk.root msg σ.randomness)) σ.forest)
-          (σ.layers topLayer).counter (σ.layers topLayer).chainValues = some leaf ∧
-        @treeFold Id _ inst pk.parameter topLayer 0
-          (leafIndexAt (digestIndex (@messageDigest Id _ inst pk.parameter pk.root msg σ.randomness))
-            topLayer)
-          (signaturePath σ topLayer) (layerHeight topLayer) leaf = pk.root := by
+          σ.counter σ.chainValues = some leaf ∧
+        @treeFold Id _ inst pk.parameter
+          (digestIndex (@messageDigest Id _ inst pk.parameter pk.root msg σ.randomness))
+          (signaturePath σ) totalHeight leaf = pk.root := by
   rw [Sphincs.Concrete.verify.eq_def]
-  simp only [bind, pure, show numLayers = 1 from rfl, verifyLayers_one]
+  simp only [bind, pure]
   split
-  next r h =>
+  next v hv =>
     rw [decide_eq_true_iff]
-    obtain ⟨v, hv, rfl⟩ := Option.map_eq_some_iff.mp h
     constructor
     · intro hr; exact ⟨v, hv, hr⟩
     · rintro ⟨v', hv', hr⟩
@@ -149,91 +128,85 @@ theorem sVerify_iff (pk : PublicKey) (msg : Message) (σ : Signature) :
   next h =>
     refine ⟨fun h => absurd h Bool.false_ne_true, ?_⟩
     rintro ⟨v, hv, -⟩
-    rw [hv] at h
-    exact absurd h (by simp)
+    exact absurd hv (h v)
 
 theorem sphincsVerify_iff (pk : PublicKey) (msg : Message) (σ : Signature) :
     Node.sphincsVerify pk msg σ = true ↔
-      ∃ leaf, @otsLeaf Id _ ⟨Node.keccakBits⟩ pk.parameter topLayer 0
-          (leafIndexAt (digestIndex (@messageDigest Id _ ⟨Node.keccakBits⟩ pk.parameter pk.root msg
-            σ.randomness)) topLayer)
+      ∃ leaf, @otsLeaf Id _ ⟨Node.keccakBits⟩ pk.parameter
+          (digestIndex (@messageDigest Id _ ⟨Node.keccakBits⟩ pk.parameter pk.root msg
+            σ.randomness))
           (@forestRecover Id _ ⟨Node.keccakBits⟩ pk.parameter
             (digestIndex (@messageDigest Id _ ⟨Node.keccakBits⟩ pk.parameter pk.root msg σ.randomness))
             (digestMarks (@messageDigest Id _ ⟨Node.keccakBits⟩ pk.parameter pk.root msg σ.randomness))
             σ.forest)
-          (σ.layers topLayer).counter (σ.layers topLayer).chainValues = some leaf ∧
-        @treeFold Id _ ⟨Node.keccakBits⟩ pk.parameter topLayer 0
-          (leafIndexAt (digestIndex (@messageDigest Id _ ⟨Node.keccakBits⟩ pk.parameter pk.root msg
-            σ.randomness)) topLayer)
-          (signaturePath σ topLayer) (layerHeight topLayer) leaf = pk.root := by
+          σ.counter σ.chainValues = some leaf ∧
+        @treeFold Id _ ⟨Node.keccakBits⟩ pk.parameter
+          (digestIndex (@messageDigest Id _ ⟨Node.keccakBits⟩ pk.parameter pk.root msg
+            σ.randomness))
+          (signaturePath σ) totalHeight leaf = pk.root := by
   rw [Node.sphincsVerify.eq_def, idRun]
   exact sVerify_iff pk msg σ
 
-theorem leafIndexAt_top (index : Index) : (leafIndexAt index topLayer).val = index.val := by
-  have h : index.val < 67108864 := index.isLt
-  simp [leafIndexAt, heightBelow, heightAbove, layerHeight, maxLayerHeight, totalHeight, h]
-
-theorem signaturePath_top (σ : Signature) (l : Nat) (hl : l < maxLayerHeight) :
-    signaturePath σ topLayer l = (σ.layers topLayer).path ⟨l, hl⟩ := by
-  simp [signaturePath, layerHeight, hl]
+theorem signaturePath_lt (σ : Signature) (l : Nat) (hl : l < totalHeight) :
+    signaturePath σ l = σ.path ⟨l, hl⟩ := by
+  simp [signaturePath, hl]
 
 /-! ## The one-time signature -/
 
-theorem encode_id (P : PublicParameter) (lay : Layer) (tree : TreeIndex) (leaf : LeafIndex)
+theorem encode_id (P : PublicParameter) (leaf : Index)
     (K : ForestKey) (ctr : Counter) :
-    @encode Id _ inst P lay tree leaf K ctr =
-      TargetSum.decodeDigest (@tweakableHash Id _ inst P (.encoding lay tree leaf)
+    @encode Id _ inst P leaf K ctr =
+      TargetSum.decodeDigest (@tweakableHash Id _ inst P (.encoding leaf)
         (rootsPayload K ++ Sphincs.bytesLE 4 ctr)) := rfl
 
-theorem sOtsLeaf_id (P : PublicParameter) (lay : Layer) (tree : TreeIndex) (leaf : LeafIndex)
+theorem sOtsLeaf_id (P : PublicParameter) (leaf : Index)
     (K : ForestKey) (ctr : Counter) (vals : ChainIndex → Sphincs.Digest) :
-    @otsLeaf Id _ inst P lay tree leaf K ctr vals =
-      (@encode Id _ inst P lay tree leaf K ctr).map fun enc =>
-        @leafHash Id _ inst P lay tree leaf fun i =>
-          @recoverChain Id _ inst P lay tree leaf i (enc i) (vals i) := by
+    @otsLeaf Id _ inst P leaf K ctr vals =
+      (@encode Id _ inst P leaf K ctr).map fun enc =>
+        @leafHash Id _ inst P leaf fun i =>
+          @recoverChain Id _ inst P leaf i (enc i) (vals i) := by
   rw [otsLeaf.eq_def]
   simp only [bind, pure]
   split
   next enc h => rw [h, sSequenceFin_id]; rfl
   next h =>
-    cases h' : @encode Id _ inst P lay tree leaf K ctr with
+    cases h' : @encode Id _ inst P leaf K ctr with
     | none => rfl
     | some enc => exact absurd h' (h enc)
 
-theorem sChainWalk_succ (P : PublicParameter) (lay : Layer) (tree : TreeIndex) (leaf : LeafIndex)
+theorem sChainWalk_succ (P : PublicParameter) (leaf : Index)
     (i : ChainIndex) (start n : Nat) (v : Sphincs.Digest) :
-    @chainWalk Id _ inst P lay tree leaf i start (n + 1) v =
+    @chainWalk Id _ inst P leaf i start (n + 1) v =
       if hstep : start + n < chainLength - 1 then
-        @tweakableHash Id _ inst P (.chain lay tree leaf i ⟨start + n, hstep⟩)
-          (Sphincs.bytesLE 16 (@chainWalk Id _ inst P lay tree leaf i start n v))
+        @tweakableHash Id _ inst P (.chain leaf i ⟨start + n, hstep⟩)
+          (Sphincs.bytesLE 16 (@chainWalk Id _ inst P leaf i start n v))
       else 0 := by
   rw [chainWalk_eq_succ]
   simp only [bind]
   split <;> rfl
 
-theorem sChainWalk_shift (P : PublicParameter) (lay : Layer) (tree : TreeIndex) (leaf : LeafIndex)
+theorem sChainWalk_shift (P : PublicParameter) (leaf : Index)
     (i : ChainIndex) :
     ∀ (n start : Nat) (v : Sphincs.Digest) (hs : start < chainLength - 1),
       start + n + 1 ≤ chainLength - 1 →
-      @chainWalk Id _ inst P lay tree leaf i start (n + 1) v =
-        @chainWalk Id _ inst P lay tree leaf i (start + 1) n
-          (@tweakableHash Id _ inst P (.chain lay tree leaf i ⟨start, hs⟩) (Sphincs.bytesLE 16 v))
+      @chainWalk Id _ inst P leaf i start (n + 1) v =
+        @chainWalk Id _ inst P leaf i (start + 1) n
+          (@tweakableHash Id _ inst P (.chain leaf i ⟨start, hs⟩) (Sphincs.bytesLE 16 v))
   | 0, start, v, hs, _ => by
       rw [sChainWalk_succ, dite_of (by omega), chainWalk_eq_zero, chainWalk_eq_zero]
       rfl
   | n + 1, start, v, hs, h => by
       have h1 : start + (n + 1) < chainLength - 1 := by omega
       have h2 : start + 1 + n < chainLength - 1 := by omega
-      rw [sChainWalk_succ, dite_of h1, sChainWalk_shift P lay tree leaf i n start v hs (by omega),
+      rw [sChainWalk_succ, dite_of h1, sChainWalk_shift P leaf i n start v hs (by omega),
         sChainWalk_succ, dite_of h2]
       have : (⟨start + (n + 1), h1⟩ : ChainStep) = ⟨start + 1 + n, h2⟩ := Fin.ext (by simp only; omega)
       rw [this]
 
 /-- **A one-time chain step over cells.** -/
-theorem sChainStep_cells (hq : SQ inst) {pp a x : E} {lay : Layer} {tree : TreeIndex}
-    {leaf : LeafIndex} {i : ChainIndex} {s : ChainStep}
-    (ha : cellBytes a = tweakBytes (.chain lay tree leaf i s)) :
-    @tweakableHash Id _ inst (spp pp) (.chain lay tree leaf i s) (Sphincs.bytesLE 16 (sv x)) =
+theorem sChainStep_cells (hq : SQ inst) {pp a x : E} {leaf : Index} {i : ChainIndex} {s : ChainStep}
+    (ha : cellBytes a = tweakBytes (.chain leaf i s)) :
+    @tweakableHash Id _ inst (spp pp) (.chain leaf i s) (Sphincs.bytesLE 16 (sv x)) =
       sv (hcell [pp, a, x]).1 := by
   apply sHash_cells hq
   show Sphincs.bytesLE 16 (spp pp) ++ tweakBytes _ ++ Sphincs.bytesLE 16 (sv x) = _
@@ -248,19 +221,19 @@ def sChain (pp : E) (adr : Nat → E) : Nat → Nat → E → E
 
 /-- **A one-time chain walked from digit `d` over cells**, its step addresses' bytes the steps'
 tweaks. -/
-theorem sRecoverChain_cells (hq : SQ inst) {pp : E} {adr : Nat → E} {lay : Layer}
-    {tree : TreeIndex} {leaf : LeafIndex} {i : ChainIndex}
-    (hadr : ∀ (s : ChainStep), cellBytes (adr s) = tweakBytes (.chain lay tree leaf i s)) :
-    ∀ (d : Digit) (x : E), @recoverChain Id _ inst (spp pp) lay tree leaf i d (sv x) =
+theorem sRecoverChain_cells (hq : SQ inst) {pp : E} {adr : Nat → E}
+    {leaf : Index} {i : ChainIndex}
+    (hadr : ∀ (s : ChainStep), cellBytes (adr s) = tweakBytes (.chain leaf i s)) :
+    ∀ (d : Digit) (x : E), @recoverChain Id _ inst (spp pp) leaf i d (sv x) =
       sv (sChain pp adr (3 - d.val) d.val x) := by
   have hwalk : ∀ (n start : Nat) (x : E), start + n ≤ chainLength - 1 →
-      @chainWalk Id _ inst (spp pp) lay tree leaf i start n (sv x) = sv (sChain pp adr n start x) := by
+      @chainWalk Id _ inst (spp pp) leaf i start n (sv x) = sv (sChain pp adr n start x) := by
     intro n
     induction n with
     | zero => intro start x _; rw [chainWalk_eq_zero]; rfl
     | succ n ih =>
         intro start x h
-        rw [sChainWalk_shift _ _ _ _ _ _ _ _ (by omega) h, sChainStep_cells hq (hadr ⟨start, by omega⟩),
+        rw [sChainWalk_shift _ _ _ _ _ _ (by omega) h, sChainStep_cells hq (hadr ⟨start, by omega⟩),
           ih (start + 1) _ (by omega)]
         rfl
   intro d x
@@ -270,9 +243,8 @@ theorem sRecoverChain_cells (hq : SQ inst) {pp : E} {adr : Nat → E} {lay : Lay
   exact hwalk _ _ _ (by simp [chainLength, winternitzBits]; omega)
 
 /-- **The one-time leaf over cells.** -/
-theorem sLeafHash_cells (hq : SQ inst) {pp a : E} {lay : Layer} {tree : TreeIndex}
-    {leaf : LeafIndex} (tips : Nat → E) (ha : cellBytes a = tweakBytes (.leaf lay tree leaf)) :
-    @leafHash Id _ inst (spp pp) lay tree leaf (fun i => sv (tips i.val)) =
+theorem sLeafHash_cells (hq : SQ inst) {pp a : E} {leaf : Index} (tips : Nat → E) (ha : cellBytes a = tweakBytes (.leaf leaf)) :
+    @leafHash Id _ inst (spp pp) leaf (fun i => sv (tips i.val)) =
       sv (hcell (pp :: a :: (List.range numChains).map tips)).1 := by
   apply sHash_cells hq
   show Sphincs.bytesLE 16 (spp pp) ++ tweakBytes _ ++
@@ -284,13 +256,12 @@ theorem sLeafHash_cells (hq : SQ inst) {pp a : E} {lay : Layer} {tree : TreeInde
 
 /-- **The tree over cells**: the fold of a path whose addresses' bytes are the nodes' tweaks, its
 bits the leaf's. -/
-theorem sTreeFold_cells (hq : SQ inst) {pp : E} {A : Nat → E} {lay : Layer} {tree : TreeIndex}
-    {leaf : LeafIndex}
-    (hA : ∀ l < maxLayerHeight,
-      cellBytes (A l) = tweakBytes (.node lay tree (l + 1) (leaf.val / 2 ^ (l + 1))))
+theorem sTreeFold_cells (hq : SQ inst) {pp : E} {A : Nat → E} {leaf : Index}
+    (hA : ∀ l < totalHeight,
+      cellBytes (A l) = tweakBytes (.node (l + 1) (leaf.val / 2 ^ (l + 1))))
     (sibs : Nat → E) :
-    ∀ m ≤ maxLayerHeight, ∀ x : E,
-      @treeFold Id _ inst (spp pp) lay tree leaf (fun l => sv (sibs l)) m (sv x) =
+    ∀ m ≤ totalHeight, ∀ x : E,
+      @treeFold Id _ inst (spp pp) leaf (fun l => sv (sibs l)) m (sv x) =
         sv (xFold pp A (fun l => leaf.val.testBit l) sibs m x)
   | 0, _, x => by rw [treeFold_eq_zero]; rfl
   | m + 1, hm, x => by
@@ -317,12 +288,11 @@ theorem bytesLE_counter {x : E} (h : cellNat x < 2 ^ 32) :
 
 /-- **The encoding over cells**: the hash of `P`, the encoding's address, the sixteen top nodes and
 the counter's four bytes, the first `292` bytes of the cells. -/
-theorem sEncode_cells (hq : SQ inst) {pp aE x : E} {lay : Layer} {tree : TreeIndex}
-    {leaf : LeafIndex} {K : ForestKey} {ctr : Counter} (T : Nat → E)
+theorem sEncode_cells (hq : SQ inst) {pp aE x : E} {leaf : Index} {K : ForestKey} {ctr : Counter} (T : Nat → E)
     (hK : ∀ c : Coord, K c = (sv (T (2 * c.val)), sv (T (2 * c.val + 1))))
-    (hE : cellBytes aE = tweakBytes (.encoding lay tree leaf))
+    (hE : cellBytes aE = tweakBytes (.encoding leaf))
     (hc : Sphincs.bytesLE 4 ctr = (cellBytes x).take 4) :
-    @encode Id _ inst (spp pp) lay tree leaf K ctr =
+    @encode Id _ inst (spp pp) leaf K ctr =
       TargetSum.decodeDigest
         (sv (digestScalars (keccak256 ((cellsBytes
           (pp :: aE :: (List.range 16).map T ++ [x])).take 292))).1) := by

@@ -13,7 +13,7 @@ at most `E[(1 - w_end) + w_end 1[cover]]`, which both sides pay. -/
 
 open OracleComp OracleSpec ENNReal
 
-namespace Sphincs.Security.ForsPotential
+namespace SphincsLayered.Security.ForsPotential
 
 open Concrete HiddenGraph HiddenCost HiddenDebt GraphView Domination ForestPrice ForestSigner HiddenReveal SphincsFors.Security.Domination
 
@@ -423,4 +423,4 @@ theorem det_largeW (hb : 0 < subtreeHeight) (hN : signatureLimit ≤ 2 ^ 70) (ad
 
 end ChainW
 
-end Sphincs.Security.ForsPotential
+end SphincsLayered.Security.ForsPotential

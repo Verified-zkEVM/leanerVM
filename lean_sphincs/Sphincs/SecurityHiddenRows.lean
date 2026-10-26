@@ -4,7 +4,7 @@ import Sphincs.SecurityHiddenReveal
 coordinate and expose one successor. Instantiating the parser later keeps all byte layouts
 explicit without making the kernel unfold concrete cryptographic types here. -/
 open OracleComp OracleSpec ENNReal
-namespace Sphincs.Security.HiddenRows
+namespace SphincsLayered.Security.HiddenRows
 set_option backward.isDefEq.respectTransparency false
 set_option maxRecDepth 10000
 set_option maxHeartbeats 100000
@@ -125,4 +125,4 @@ noncomputable def stoppedExperiment {α : Type} (model : Model D R A ι) (outsid
     (computation : OracleComp (SourceSpec D R ι) α) (known : (HiddenReveal.Knowledge ι)) : ProbComp (Option α) :=
   HiddenReveal.completion known >>= fun table => stopped model table outside computation known
 
-end Sphincs.Security.HiddenRows
+end SphincsLayered.Security.HiddenRows

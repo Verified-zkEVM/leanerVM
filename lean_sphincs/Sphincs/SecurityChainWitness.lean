@@ -5,7 +5,7 @@ Adapted from leanVM b7a107256. No hash-injectivity assumption is used. -/
 
 open OracleComp OracleSpec
 
-namespace Sphincs.Security
+namespace SphincsLayered.Security
 open Concrete
 
 theorem queriedInputs_mono_bind_left {α β : Type} (f : QueryImpl HashSpec Id)
@@ -289,4 +289,4 @@ theorem chain_input_address_injective (parameter : PublicParameter) (lay : Layer
     Fin.ext (ofNat_inj_of_lt (by omega) (by omega) hstep)⟩
 
 end Chain
-end Sphincs.Security
+end SphincsLayered.Security

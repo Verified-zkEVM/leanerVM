@@ -5,7 +5,7 @@ inputs, and so do its capped, traced and erased forms. -/
 
 open OracleComp OracleSpec ENNReal
 
-namespace Sphincs.Security.HiddenBridge
+namespace SphincsLayered.Security.HiddenBridge
 
 open Short Internalize GraphView HiddenCost Concrete
 
@@ -233,4 +233,4 @@ theorem OnlyC.costGame (parameter : PublicParameter) (data : PublicData) (advers
   · exact OnlyC.costInteraction _ _ _ (OnlyAdv.map _ (OnlyAdv.internal _ _))
   · exact OnlyC.bind (OnlyC.liftHash (Short.Only.verify _ _ _)) (fun _ => OnlyC.pure' _)
 
-end Sphincs.Security.HiddenBridge
+end SphincsLayered.Security.HiddenBridge

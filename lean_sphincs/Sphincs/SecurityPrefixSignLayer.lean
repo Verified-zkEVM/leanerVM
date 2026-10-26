@@ -6,7 +6,7 @@ encoding discloses at or above the frontier. -/
 
 open OracleComp OracleSpec
 
-namespace Sphincs.Security.Prefix
+namespace SphincsLayered.Security.Prefix
 open Concrete
 
 attribute [local irreducible] encodingAttemptLimit Seeded.subNode Seeded.topNode Seeded.treePath chainWalk
@@ -30,4 +30,4 @@ def ReferenceCutoff (segment : Segment) (outside : QueryImpl HashSpec Id) (seed 
       (evalWithAnswerFn outside (Seeded.forestKey segment.parameter segment.leaf seed : OracleComp HashSpec ForestKey))
       encodingAttemptLimit 0 = some (counter, word) → segment.digit.val ≤ (word segment.chainIdx).val
 
-end Sphincs.Security.Prefix
+end SphincsLayered.Security.Prefix

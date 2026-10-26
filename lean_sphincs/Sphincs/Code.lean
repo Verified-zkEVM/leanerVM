@@ -16,7 +16,7 @@ open Finset
 
 set_option maxRecDepth 100000
 
-namespace Sphincs.Completeness
+namespace SphincsLayered.Completeness
 
 open TargetSum
 
@@ -185,4 +185,4 @@ theorem verification_chain_steps (word : Encoding) (hword : Valid word) :
     show (∑ i : ChainIndex, (word i).val) = targetSum from hword]
   simp [chainLength, winternitzBits, numChains, targetSum]
 
-end Sphincs.Completeness
+end SphincsLayered.Completeness

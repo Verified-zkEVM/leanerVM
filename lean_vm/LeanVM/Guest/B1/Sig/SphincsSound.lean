@@ -39,9 +39,8 @@ attribute [local irreducible] sCoords kMsg codewordT merkleT fkArms foldArms
 /-- **The leanSPHINCS signature `verify_sig_lean_sphincs` checks**, read off its valuation. -/
 noncomputable def sphincsSigOf (σ : Val) : Sphincs.Signature :=
   ⟨sv (σ (.n 3)), fun c => coordOpening σ c.val (cSt c.val).1 (cSt c.val).2.1 (cSt c.val).2.2,
-    fun _ => ⟨BitVec.ofNat 32 (cellNat (σ (.n sFb.2.1))),
-      fun i => sv (σ (cwStart sW 21 (sEnc.2.1 + 10) σ i.val)),
-      fun l => sv (mSib σ sBit l.val (mBase sNodeOf 0 l.val sLeaf.2.1))⟩⟩
+    BitVec.ofNat 32 (cellNat (σ (.n sFb.2.1))), fun i => sv (σ (cwStart sW 21 (sEnc.2.1 + 10) σ i.val)),
+    fun l => sv (mSib σ sBit l.val (mBase sNodeOf 0 l.val sLeaf.2.1))⟩
 
 /-- A message of two cells. -/
 def smsg (c d : E) : Sphincs.Message := cellPairVal c d
@@ -71,15 +70,15 @@ theorem bound_cell {σ : Val} (hS : ∀ c < 8, cS σ c < 16) (hA : ∀ w < 16, w
 reaching `root`. -/
 def SRoot (pp : PublicParameter) (R : Sphincs.Digest) (m : Sphincs.Message) (sig : Sphincs.Signature)
     (root : Sphincs.Digest) : Prop :=
-  ∃ leaf, @otsLeaf Id _ ⟨Node.keccakBits⟩ pp topLayer 0
-      (leafIndexAt (digestIndex (@messageDigest Id _ ⟨Node.keccakBits⟩ pp R m sig.randomness)) topLayer)
+  ∃ leaf, @otsLeaf Id _ ⟨Node.keccakBits⟩ pp
+      (digestIndex (@messageDigest Id _ ⟨Node.keccakBits⟩ pp R m sig.randomness))
       (@forestRecover Id _ ⟨Node.keccakBits⟩ pp
         (digestIndex (@messageDigest Id _ ⟨Node.keccakBits⟩ pp R m sig.randomness))
         (digestMarks (@messageDigest Id _ ⟨Node.keccakBits⟩ pp R m sig.randomness)) sig.forest)
-      (sig.layers topLayer).counter (sig.layers topLayer).chainValues = some leaf ∧
-    @treeFold Id _ ⟨Node.keccakBits⟩ pp topLayer 0
-      (leafIndexAt (digestIndex (@messageDigest Id _ ⟨Node.keccakBits⟩ pp R m sig.randomness)) topLayer)
-      (signaturePath sig topLayer) (layerHeight topLayer) leaf = root
+      sig.counter sig.chainValues = some leaf ∧
+    @treeFold Id _ ⟨Node.keccakBits⟩ pp
+      (digestIndex (@messageDigest Id _ ⟨Node.keccakBits⟩ pp R m sig.randomness))
+      (signaturePath sig) totalHeight leaf = root
 
 theorem sphincsVerify_SRoot (pk : PublicKey) (m : Sphincs.Message) (sig : Sphincs.Signature) :
     Node.sphincsVerify pk m sig = true ↔ SRoot pk.parameter pk.root m sig pk.root :=
@@ -142,26 +141,25 @@ theorem sphincs_root {σ : Val} {rest : List Stmt} {next : Prop}
     simp only
     rw [c17, c18]
   unfold SRoot
-  show ∃ leaf, @otsLeaf Id _ ⟨Node.keccakBits⟩ (spp (σ sPP)) topLayer 0
-      (leafIndexAt (digestIndex (@messageDigest Id _ ⟨Node.keccakBits⟩ (spp (σ sPP))
-        R (smsg (σ (.n 5)) (σ (.n 6))) (sv (σ (.n 3))))) topLayer)
+  show ∃ leaf, @otsLeaf Id _ ⟨Node.keccakBits⟩ (spp (σ sPP))
+      (digestIndex (@messageDigest Id _ ⟨Node.keccakBits⟩ (spp (σ sPP))
+        R (smsg (σ (.n 5)) (σ (.n 6))) (sv (σ (.n 3)))))
       (@forestRecover Id _ ⟨Node.keccakBits⟩ (spp (σ sPP))
         (digestIndex (@messageDigest Id _ ⟨Node.keccakBits⟩ (spp (σ sPP))
           R (smsg (σ (.n 5)) (σ (.n 6))) (sv (σ (.n 3)))))
         (digestMarks (@messageDigest Id _ ⟨Node.keccakBits⟩ (spp (σ sPP))
           R (smsg (σ (.n 5)) (σ (.n 6))) (sv (σ (.n 3)))))
         (sphincsSigOf σ).forest)
-      ((sphincsSigOf σ).layers topLayer).counter ((sphincsSigOf σ).layers topLayer).chainValues =
+      (sphincsSigOf σ).counter (sphincsSigOf σ).chainValues =
         some leaf ∧
-      @treeFold Id _ ⟨Node.keccakBits⟩ (spp (σ sPP)) topLayer 0
-        (leafIndexAt (digestIndex (@messageDigest Id _ ⟨Node.keccakBits⟩ (spp (σ sPP))
-          R (smsg (σ (.n 5)) (σ (.n 6))) (sv (σ (.n 3))))) topLayer)
-        (signaturePath (sphincsSigOf σ) topLayer) (layerHeight topLayer) leaf = sv (σ sMk.2.2)
+      @treeFold Id _ ⟨Node.keccakBits⟩ (spp (σ sPP))
+        (digestIndex (@messageDigest Id _ ⟨Node.keccakBits⟩ (spp (σ sPP))
+          R (smsg (σ (.n 5)) (σ (.n 6))) (sv (σ (.n 3)))))
+        (signaturePath (sphincsSigOf σ)) totalHeight leaf = sv (σ sMk.2.2)
   rw [hmd]
   set D := BitVec.ofNat messageDigestBits (encNat σ + 2 ^ 128 * Vb) with hD
   have hDidx : (digestIndex D).val = sIdx σ := by rw [hD, digestIndex_ofNat hEnc]; exact hVidx
-  have hleafI : (leafIndexAt (digestIndex D) topLayer).val = sIdx σ := by
-    rw [leafIndexAt_top, hDidx]
+  have hleafI : (digestIndex D).val = sIdx σ := hDidx
   have hmk : ∀ (c : Coord) (j : SubIdx), ((digestMarks D c).super).val = cS σ c.val ∧
       ((digestMarks D c).child j).val = cA σ c.val j.val ∧
       ((digestMarks D c).word j).val = cT σ c.val j.val := by
@@ -195,12 +193,12 @@ theorem sphincs_root {σ : Val} {rest : List Stmt} {next : Prop}
     exact coordKey_eq hpre f (hmk c 0).1 (hmk c 0).2.1 (hmk c 1).2.1 (hmk c 0).2.2 (hmk c 1).2.2 hDidx
   -- the encoding
   have hE : cellBytes (σ (.n 164)) =
-      tweakBytes (.encoding topLayer 0 (leafIndexAt (digestIndex D) topLayer)) := by
+      tweakBytes (.encoding (digestIndex D)) := by
     rw [hpre.top1, sNode0_eq hpre]
-    show _ = Sphincs.fieldBytes (Sphincs.tweakFields 4 0 0 (leafIndexAt (digestIndex D) topLayer).val)
+    show _ = Sphincs.fieldBytes (Sphincs.tweakFields 4 0 0 (digestIndex D).val)
     rw [hleafI]
     exact encAdr_bytes hidx26
-  have hcnt : Sphincs.bytesLE 4 ((sphincsSigOf σ).layers topLayer).counter =
+  have hcnt : Sphincs.bytesLE 4 (sphincsSigOf σ).counter =
       (cellBytes (σ (.n sFb.2.1))).take 4 :=
     bytesLE_counter (by rw [hx, cellNat_eOfNat (by omega)]; exact hNc32)
   set dig := cwDigit sW 21 (sEnc.2.1 + 10) σ with hdig
@@ -211,36 +209,36 @@ theorem sphincs_root {σ : Val} {rest : List Stmt} {next : Prop}
     simp only [Finset.sum_const, Finset.card_range, smul_eq_mul] at hle
     show ∑ i ∈ Finset.range (3 * 21 + 1), dig i = 123
     exact Value.gen_pow_inj (by omega) (by norm_num) (hsum.trans sTarget_eq)
-  have henc : @encode Id _ ⟨Node.keccakBits⟩ (spp (σ sPP)) topLayer 0
-      (leafIndexAt (digestIndex D) topLayer)
+  have henc : @encode Id _ ⟨Node.keccakBits⟩ (spp (σ sPP))
+      (digestIndex D)
       (fun c => (sv (sT σ (2 * c.val)), sv (sT σ (2 * c.val + 1))))
-      ((sphincsSigOf σ).layers topLayer).counter = some fun i => ⟨dig i.val, hdig4 _⟩ := by
+      (sphincsSigOf σ).counter = some fun i => ⟨dig i.val, hdig4 _⟩ := by
     rw [sEncode_cells sq_keccak (sT σ) (fun c => rfl) hE hcnt, ← hpre.top0,
       ← sEnc_sound hpre.pad hmid.left.right hNc32 hx, hd0]
     exact sDecode_lit hdig4 hsum123
   rw [hK, sOtsLeaf_id, henc, Option.map_some]
   refine ⟨_, rfl, ?_⟩
   -- the chains and the leaf
-  have hrc : (fun i : ChainIndex => @recoverChain Id _ ⟨Node.keccakBits⟩ (spp (σ sPP)) topLayer 0
-      (leafIndexAt (digestIndex D) topLayer) i ⟨dig i.val, hdig4 _⟩
-      (((sphincsSigOf σ).layers topLayer).chainValues i)) =
+  have hrc : (fun i : ChainIndex => @recoverChain Id _ ⟨Node.keccakBits⟩ (spp (σ sPP))
+      (digestIndex D) i ⟨dig i.val, hdig4 _⟩
+      ((sphincsSigOf σ).chainValues i)) =
       fun i => sv (σ (cwTip sW (sEnc.2.1 + 10) i.val)) := by
     funext i
-    show @recoverChain Id _ ⟨Node.keccakBits⟩ (spp (σ sPP)) topLayer 0
-      (leafIndexAt (digestIndex D) topLayer) i ⟨dig i.val, hdig4 _⟩
+    show @recoverChain Id _ ⟨Node.keccakBits⟩ (spp (σ sPP))
+      (digestIndex D) i ⟨dig i.val, hdig4 _⟩
       (sv (σ (cwStart sW 21 (sEnc.2.1 + 10) σ i.val))) = _
     rw [sRecoverChain_cells sq_keccak (pp := σ sPP)
       (adr := fun st => σ (sNode 0) + word (tw 1 + i.val * hiMul + st * stepMul) 0 0) (fun st => by
         rw [sNode0_eq hpre]
         show _ = Sphincs.fieldBytes (Sphincs.tweakFields 1 st.val i.val
-          (leafIndexAt (digestIndex D) topLayer).val)
+          (digestIndex D).val)
         rw [hleafI]
         exact chainAdr_bytes hidx26 i.isLt st.isLt)]
     rw [(hcw i.val i.isLt).2, chainT_eq_sChain (fun s y => rfl)]
   have haL : cellBytes (σ (.n (sCw.2.1 + 1))) =
-      tweakBytes (.leaf topLayer 0 (leafIndexAt (digestIndex D) topLayer)) := by
+      tweakBytes (.leaf (digestIndex D)) := by
     rw [hla, sNode0_eq hpre]
-    show _ = Sphincs.fieldBytes (Sphincs.tweakFields 2 0 0 (leafIndexAt (digestIndex D) topLayer).val)
+    show _ = Sphincs.fieldBytes (Sphincs.tweakFields 2 0 0 (digestIndex D).val)
     rw [hleafI]
     exact leafAdr_bytes hidx26
   rw [hrc, sLeafHash_cells sq_keccak (tips := fun i => σ (cwTip sW (sEnc.2.1 + 10) i)) haL,
@@ -248,25 +246,25 @@ theorem sphincs_root {σ : Val} {rest : List Stmt} {next : Prop}
       (List.range numChains).map (fun i => σ (cwTip sW (sEnc.2.1 + 10) i)))).1 = σ (.n sLeaf.2.2)
       from (sLeaf_sound hpre.pad hleafA).symm]
   -- the tree
-  have hpath : signaturePath (sphincsSigOf σ) topLayer =
+  have hpath : signaturePath (sphincsSigOf σ) =
       fun l => sv (if l < 26 then mSib σ sBit l (mBase sNodeOf 0 l sLeaf.2.1) else 0) := by
     funext l
     unfold signaturePath
     by_cases hl : l < 26
-    · simp only [show layerHeight topLayer = 26 from rfl, hl, ↓reduceDIte, ↓reduceIte]
+    · simp only [show totalHeight = 26 from rfl, hl, ↓reduceDIte, ↓reduceIte]
       rfl
-    · simp only [show layerHeight topLayer = 26 from rfl, hl, ↓reduceDIte, ↓reduceIte]
+    · simp only [show totalHeight = 26 from rfl, hl, ↓reduceDIte, ↓reduceIte]
       exact cellVal_zero.symm
-  have hA : ∀ l < maxLayerHeight, cellBytes (σ (mAdr sNodeOf l (mBase sNodeOf 0 l sLeaf.2.1))) =
-      tweakBytes (.node topLayer 0 (l + 1) ((leafIndexAt (digestIndex D) topLayer).val / 2 ^ (l + 1))) := by
+  have hA : ∀ l < totalHeight, cellBytes (σ (mAdr sNodeOf l (mBase sNodeOf 0 l sLeaf.2.1))) =
+      tweakBytes (.node (l + 1) ((digestIndex D).val / 2 ^ (l + 1))) := by
     intro l hl
     have hl26 : l < 26 := hl
     rw [sTree_adr hpre hmkA hl26]
     show _ = Sphincs.fieldBytes (Sphincs.tweakFields 3 0 (l + 1)
-      ((leafIndexAt (digestIndex D) topLayer).val / 2 ^ (l + 1)))
+      ((digestIndex D).val / 2 ^ (l + 1)))
     rw [hleafI]
     exact nodeAdr_bytes hidx26 hl26
-  rw [hpath, sTreeFold_cells sq_keccak (pp := σ sPP) hA _ (layerHeight topLayer) le_rfl]
+  rw [hpath, sTreeFold_cells sq_keccak (pp := σ sPP) hA _ totalHeight le_rfl]
   rw [sTree_sound hpre hmkA]
   refine congrArg sv (xFold_congr 26 (fun l hl => ⟨rfl, ?_, ?_⟩) _)
   · rw [hleafI, sIdx, bitsOf, testBit_bitsVal]

@@ -5,7 +5,7 @@ import Sphincs.SecurityPrefixMaterialCost
 
 open OracleComp OracleSpec
 
-namespace Sphincs.Security.Prefix
+namespace SphincsLayered.Security.Prefix
 open Concrete Completeness SeedModel PreparedScheme
 
 attribute [local irreducible] Seeded.treeNode Seeded.spineNode Seeded.treeRoot
@@ -42,4 +42,4 @@ theorem hashCalls_keygenFromSeed (f : QueryImpl HashSpec Id) (seed : MasterSeed)
   rw [Seeded.keygenFromSeed, hashCalls_bind, hseed, hashCalls_keygenFromMaster]
   omega
 
-end Sphincs.Security.Prefix
+end SphincsLayered.Security.Prefix

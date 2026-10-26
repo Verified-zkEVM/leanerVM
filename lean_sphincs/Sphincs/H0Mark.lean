@@ -7,7 +7,7 @@ uniform marks. -/
 
 open ENNReal
 
-namespace Sphincs.Concrete
+namespace SphincsLayered.Concrete
 
 theorem extract_val {v : FieldVal} (o len : Nat) :
     (((BitVec.ofFin v).extractLsb' o len).toFin).val = v.val / 2 ^ o % 2 ^ len := by
@@ -81,4 +81,4 @@ def markEquiv : FieldVal ≃ CoordMark where
     cases m
     simp_all
 
-end Sphincs.Concrete
+end SphincsLayered.Concrete

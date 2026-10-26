@@ -9,7 +9,7 @@ parameter `θ` and the threshold `cthr`, and carries the leaf tables `ḡ` (the 
 
 open ENNReal NNReal
 
-namespace Sphincs.Security.H0
+namespace SphincsLayered.Security.H0
 
 open Concrete ForestPrice SphincsFors.Security.H0 SphincsFors.Security.Domination H0Avg
 
@@ -352,4 +352,4 @@ theorem hTermO_le_optF {b : ℕ} (hb : subtreeHeight = b) (t : PoisT) (o : OptF)
           rw [hprefQ, mul_one_div]
           exact hB
         exact_mod_cast h8'
-end Sphincs.Security.H0
+end SphincsLayered.Security.H0

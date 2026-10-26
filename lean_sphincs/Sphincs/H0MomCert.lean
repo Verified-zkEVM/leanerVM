@@ -7,7 +7,7 @@ rational upper bounds, rounded up to `2^-128` after each stage. -/
 
 open ENNReal
 
-namespace Sphincs.Security.H0
+namespace SphincsLayered.Security.H0
 
 open Concrete SphincsFors.Security.H0
 
@@ -287,4 +287,4 @@ theorem Ψ2R_le (n : ℕ) (hn : n ≤ 150) : Ψ2R n ≤ (P2Q n : ℝ) := by
     push_cast
     exact mul_le_mul_of_nonneg_left (gR_le s (by omega)) (by positivity)
 
-end Sphincs.Security.H0
+end SphincsLayered.Security.H0

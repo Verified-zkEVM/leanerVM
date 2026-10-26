@@ -4,7 +4,7 @@ import Sphincs.Randomized
 
 open OracleComp OracleSpec
 
-namespace Sphincs.Completeness
+namespace SphincsLayered.Completeness
 
 noncomputable def romImpl : QueryImpl OracleWorld (StateT (QueryCache HashSpec) ProbComp) :=
   unifFwdImpl HashSpec + (randomOracle : QueryImpl HashSpec (StateT (QueryCache HashSpec) ProbComp))
@@ -18,4 +18,4 @@ theorem run_lift_prob {α : Type} (oa : ProbComp α) (cache : QueryCache HashSpe
       (fun x => (x, cache)) <$> oa :=
   roSim.run_liftM _ oa cache
 
-end Sphincs.Completeness
+end SphincsLayered.Completeness

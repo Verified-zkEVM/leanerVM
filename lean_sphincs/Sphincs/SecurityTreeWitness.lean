@@ -13,7 +13,7 @@ the sibling may be a surrogate rather than the root of a constructed subtree.
 
 open OracleComp OracleSpec
 
-namespace Sphincs.Security
+namespace SphincsLayered.Security
 open Concrete
 
 /-- Inputs on the actual deterministic execution path selected by `f`. -/
@@ -329,4 +329,4 @@ theorem inside_subtree_treeFold_witness (f : QueryImpl HashSpec Id)
     merkleValue, merkleFold_treeFold]
   exact hfold
 
-end Sphincs.Security
+end SphincsLayered.Security

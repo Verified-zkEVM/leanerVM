@@ -9,7 +9,7 @@ module
 
 public import Statement.LeanVmGuest
 public import LeanXmss.Scheme
-public import Sphincs.Scheme
+public import Sphincs.Equations
 public import Statement.Fast.Schemes
 public import LeanDa.Scheme
 public import Statement.Fast.Keccak
@@ -212,23 +212,20 @@ def sphincsHints (pk : Sphincs.PublicKey) (message : Sphincs.Message) (σ : Sphi
             ("sp_forest_nodes", [cell128 (((σ.forest c).sub j).path l)])) ++
       (List.finRange Sphincs.topHeight).map fun l ↦ ("sp_forest_nodes", [cell128 ((σ.forest c).top l)])
   let forestKey := Id.run (Sphincs.Concrete.forestRecover parameter index marks σ.forest)
-  let lay := Sphincs.topLayer
-  let tree := Sphincs.Concrete.treeIndexAt index lay
-  let leaf := Sphincs.Concrete.leafIndexAt index lay
-  let part := σ.layers lay
-  let encoding := Id.run (Sphincs.Concrete.encode parameter lay tree leaf forestKey part.counter)
+  let leaf := index
+  let encoding := Id.run (Sphincs.Concrete.encode parameter leaf forestKey σ.counter)
   let digits := (List.finRange Sphincs.numChains).map fun i ↦ (encoding.map (· i |>.val)).getD 0
   let starts := (List.finRange Sphincs.numChains).map fun i ↦
-    ("chain_starts", [cell128 (part.chainValues i)])
-  let wotsLeaf := (Id.run (Sphincs.Concrete.otsLeaf parameter lay tree leaf forestKey part.counter
-    part.chainValues)).getD 0
-  let path := Sphincs.Concrete.signaturePath σ lay
-  let siblings := (List.range (Sphincs.layerHeight lay)).map fun l ↦
+    ("chain_starts", [cell128 (σ.chainValues i)])
+  let wotsLeaf := (Id.run (Sphincs.Concrete.otsLeaf parameter leaf forestKey σ.counter
+    σ.chainValues)).getD 0
+  let path := fun l ↦ if h : l < Sphincs.totalHeight then σ.path ⟨l, h⟩ else 0
+  let siblings := (List.range Sphincs.totalHeight).map fun l ↦
     ("siblings", ordered (leaf.val.testBit l)
-      (Id.run (Sphincs.Concrete.treeFold parameter lay tree leaf path l wotsLeaf)) (path l))
+      (Id.run (Sphincs.Concrete.treeFold parameter leaf path l wotsLeaf)) (path l))
   [("sp_rand", [cell128 σ.randomness])] ++ values ++
     [("sp_unused", exponentBytes unused (128 - sphincsUsedBits))] ++ words ++ trees ++
-    [("sp_counter", exponentBytes part.counter.toNat 32)] ++ digitGroups digits ++ starts ++
+    [("sp_counter", exponentBytes σ.counter.toNat 32)] ++ digitGroups digits ++ starts ++
     siblings
 
 /-! ## LeanDA -/

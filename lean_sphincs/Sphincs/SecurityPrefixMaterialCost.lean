@@ -6,7 +6,7 @@ signer simulated from erased prepared material and the selected chain frontier
 
 open OracleComp OracleSpec
 
-namespace Sphincs.Security.Prefix
+namespace SphincsLayered.Security.Prefix
 open Concrete Completeness SeedModel PreparedScheme SphincsBase.QueryCap
 
 attribute [local irreducible] encodingAttemptLimit digestAttemptLimit Randomized.finishSign
@@ -41,4 +41,4 @@ noncomputable def erasedMaterialSign (segment : Segment) (outside : QueryImpl Ha
       (Seeded.surrogate segment.parameter 0 level : OracleComp HashSpec Digest))
     ⟨0, parameter erased, root⟩ message
 
-end Sphincs.Security.Prefix
+end SphincsLayered.Security.Prefix

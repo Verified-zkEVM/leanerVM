@@ -6,7 +6,7 @@ signature's randomizer are in the run's reveal list. -/
 
 open OracleComp OracleSpec ENNReal
 
-namespace Sphincs.Security.HiddenBridge
+namespace SphincsLayered.Security.HiddenBridge
 
 open HiddenCost GraphView Stop Concrete Prefix
 
@@ -225,4 +225,4 @@ theorem SignedRevealed.fchain_mem {parameter : PublicParameter} {data : PublicDa
 
 end Fixed
 
-end Sphincs.Security.HiddenBridge
+end SphincsLayered.Security.HiddenBridge

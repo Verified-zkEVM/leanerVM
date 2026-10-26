@@ -20,9 +20,9 @@ with the other operators of the virtual future.
 
 open ENNReal
 
-namespace Sphincs.LoopWalk
+namespace SphincsLayered.LoopWalk
 
-open SphincsFors.Security.Domination Sphincs.Security.Domination
+open SphincsFors.Security.Domination SphincsLayered.Security.Domination
 
 variable {α V : Type} [Fintype α] [DecidableEq α] (σ : Equiv.Perm α) (p : ℝ≥0∞) (A : ℕ) (U : Finset V)
 
@@ -407,4 +407,4 @@ theorem probe_step [Nonempty α] (hp : p ≤ 1) (hU : U.Nonempty) (st : α → S
     _ = grp σ p A U st ext F d + p * w * (idMass σ p A st * δ) := by rw [mul_assoc (p * w)]
     _ ≤ _ := hrhs
 
-end Sphincs.LoopWalk
+end SphincsLayered.LoopWalk

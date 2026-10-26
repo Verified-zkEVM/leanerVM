@@ -7,10 +7,10 @@ run does after the digest call. -/
 
 open OracleComp OracleSpec ENNReal
 
-namespace Sphincs.Security.GraphView
+namespace SphincsLayered.Security.GraphView
 
 open SphincsFors.Security
-open Concrete Completeness Prefix HiddenGraph HiddenCost HiddenDebt ForestSigner Sphincs.LoopWalk
+open Concrete Completeness Prefix HiddenGraph HiddenCost HiddenDebt ForestSigner SphincsLayered.LoopWalk
 
 set_option backward.isDefEq.respectTransparency false
 set_option maxRecDepth 10000
@@ -196,4 +196,4 @@ theorem loop_boundV
 
 end LoopV
 
-end Sphincs.Security.GraphView
+end SphincsLayered.Security.GraphView

@@ -12,11 +12,11 @@ uniform start signs with one of them (`hitMass`). -/
 
 open OracleComp OracleSpec ENNReal
 
-namespace Sphincs.Security.ForsPotential
+namespace SphincsLayered.Security.ForsPotential
 
 open SphincsFors.Security
 open Concrete HiddenGraph HiddenCost HiddenDebt GraphView Domination ForestPrice ForestSigner HiddenBridge
-open Sphincs.LoopWalk
+open SphincsLayered.LoopWalk
 open SphincsFors.Security.Domination
 
 set_option backward.isDefEq.respectTransparency false
@@ -376,4 +376,4 @@ theorem reveal_le (hparse : ∀ p, model.parse (pblk parameter data p) = none)
 
 end Reveal
 
-end Sphincs.Security.ForsPotential
+end SphincsLayered.Security.ForsPotential

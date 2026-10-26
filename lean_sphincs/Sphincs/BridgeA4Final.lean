@@ -9,7 +9,7 @@ near potential one. Through the whole game the event is paid by the start potent
 
 open OracleComp OracleSpec ENNReal
 
-namespace Sphincs.Security.ForsPotential
+namespace SphincsLayered.Security.ForsPotential
 
 open SphincsFors.Security
 open Concrete HiddenGraph HiddenCost HiddenDebt GraphView Domination ForestPrice ForestSigner HiddenBridge
@@ -187,4 +187,4 @@ theorem a4F_bound (hparse : ∀ p, model.parse (pblk K.p data p) = none)
 
 end Bound
 
-end Sphincs.Security.ForsPotential
+end SphincsLayered.Security.ForsPotential

@@ -9,7 +9,7 @@ chain; and the signing loop queries no forest step input. -/
 
 open OracleComp OracleSpec ENNReal
 
-namespace Sphincs.Security.ForsPotential
+namespace SphincsLayered.Security.ForsPotential
 
 open SphincsFors.Security
 open Concrete HiddenGraph HiddenCost HiddenDebt GraphView ForestSigner HiddenBridge
@@ -516,4 +516,4 @@ theorem avoids_loop_fchain (p : PublicParameter) (parameter : PublicParameter) (
 
 end Avoid
 
-end Sphincs.Security.ForsPotential
+end SphincsLayered.Security.ForsPotential

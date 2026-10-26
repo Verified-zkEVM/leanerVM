@@ -9,7 +9,7 @@ because its private uniform samples are outside the hash-oracle answer function.
 
 open OracleComp OracleSpec
 
-namespace Sphincs.Completeness
+namespace SphincsLayered.Completeness
 
 open Concrete
 
@@ -180,4 +180,4 @@ theorem verify_of_keygen_sign_support (seed : MasterSeed) (pk : PublicKey)
   exact hevalVerify.symm.trans
     (correct_randomized_assembly f seed pk sk message ρ signature hevalKey hland hevalSign)
 
-end Sphincs.Completeness
+end SphincsLayered.Completeness

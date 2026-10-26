@@ -9,7 +9,7 @@ forest contact is a contact without guess record or a recorded contact (both aga
 
 open OracleComp OracleSpec ENNReal
 
-namespace Sphincs.Security.PotentialA
+namespace SphincsLayered.Security.PotentialA
 
 open Concrete Completeness Graph HiddenGraph HiddenDebt HiddenBridge HiddenCost HiddenReveal EncodingCode
   TargetAssignment
@@ -418,4 +418,4 @@ theorem knownOf_extending_final (out : Run HashInput Coordinate α × St)
 
 end Final
 
-end Sphincs.Security.PotentialA
+end SphincsLayered.Security.PotentialA

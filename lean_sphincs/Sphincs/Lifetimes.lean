@@ -1,5 +1,5 @@
 import Sphincs.LifetimeCertificates
-import Statement.LeanSphincs
+import Sphincs.Layered
 
 /-! **Proved lifetimes of the forest variant** for the deterministic signer (seed-derived
 randomizers): 127 classical bits against any adversary. Small budgets use the linear potential, the
@@ -10,7 +10,7 @@ leanXMSS-leanSPHINCS-candidates). -/
 
 open OracleComp OracleSpec ENNReal
 
-namespace Sphincs.Lifetimes
+namespace SphincsLayered.Lifetimes
 
 open Security ForsPotential
 
@@ -61,4 +61,4 @@ theorem requestedSecurity :
     @Det.HasClassicalSecurityBitsDet pruned8 127 :=
   ⟨full_bits, pruned20_bits, pruned14_bits, pruned13_bits, pruned12_bits, pruned10_bits, pruned8_bits⟩
 
-end Sphincs.Lifetimes
+end SphincsLayered.Lifetimes

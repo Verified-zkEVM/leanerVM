@@ -12,7 +12,7 @@ later potential can compose them multiplicatively with other first-hit events. -
 
 open OracleComp OracleSpec ENNReal
 
-namespace Sphincs.Security.HiddenDebt
+namespace SphincsLayered.Security.HiddenDebt
 
 open HiddenOutside HiddenReveal
 
@@ -531,4 +531,4 @@ theorem withTable_fixedRun {α : Type} (model : HiddenRows.Model D R A ι)
       · simp only [fixedStep_reveal, pure_bind, lazyStep_reveal, bind_assoc]
         exact hreveal coordinate id
 
-end Sphincs.Security.HiddenDebt
+end SphincsLayered.Security.HiddenDebt

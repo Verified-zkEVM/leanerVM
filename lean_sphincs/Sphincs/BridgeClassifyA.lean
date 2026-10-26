@@ -13,7 +13,7 @@ element. -/
 
 open OracleComp OracleSpec
 
-namespace Sphincs.Security.Forest
+namespace SphincsLayered.Security.Forest
 open Concrete
 
 section Refined
@@ -125,10 +125,10 @@ theorem recovered_classification (marks : Coord → CoordMark) (opening : Coord 
 
 end Refined
 
-end Sphincs.Security.Forest
+end SphincsLayered.Security.Forest
 
 
-namespace Sphincs.Security.SignatureWitness
+namespace SphincsLayered.Security.SignatureWitness
 open Concrete
 
 attribute [local irreducible] messageDigest forestRecover otsLeaf treeFold
@@ -253,4 +253,4 @@ theorem RecoveredOpening.forest_classification {f : QueryImpl HashSpec Id} {pk :
   Forest.recovered_classification f pk.parameter (index f pk message signature) seed
     (digestMarks (verificationDigest f pk message signature)) signature.forest h.2.2.2.2
 
-end Sphincs.Security.SignatureWitness
+end SphincsLayered.Security.SignatureWitness

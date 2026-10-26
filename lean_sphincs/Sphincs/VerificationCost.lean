@@ -14,7 +14,7 @@ counted.
 
 open OracleComp OracleSpec Finset
 
-namespace Sphincs.Cost
+namespace SphincsLayered.Cost
 
 open Concrete
 
@@ -312,4 +312,4 @@ theorem verification_permutations_le (f : QueryImpl HashSpec Id) (pk : PublicKey
     permutations_bind, permutations_forestRecover, permutations_bind, permutations_verifyLayers]
   split <;> split <;> simp [permutations_pure]
 
-end Sphincs.Cost
+end SphincsLayered.Cost

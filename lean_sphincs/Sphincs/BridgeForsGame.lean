@@ -6,7 +6,7 @@ hash computation (`finishGame`). -/
 
 open OracleComp OracleSpec ENNReal
 
-namespace Sphincs.Security.ForsPotential
+namespace SphincsLayered.Security.ForsPotential
 
 open Concrete HiddenGraph HiddenCost HiddenDebt GraphView Domination ForestPrice ForestSigner SphincsFors.Security.Domination
 
@@ -84,4 +84,4 @@ theorem advProg_sign (message : Message) (next : Option Signature → OracleComp
 
 end Program
 
-end Sphincs.Security.ForsPotential
+end SphincsLayered.Security.ForsPotential

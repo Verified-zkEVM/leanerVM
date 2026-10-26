@@ -16,7 +16,7 @@ open OracleComp OracleSpec ENNReal
 set_option maxRecDepth 10000
 set_option exponentiation.threshold 512
 
-namespace Sphincs.Concrete
+namespace SphincsLayered.Concrete
 
 /-- The 26 bits of one tree's field. -/
 abbrev FieldVal := Fin (2 ^ coordBits)
@@ -190,4 +190,4 @@ def Covered (revealed : Disclosures) (view : FullDigestView) : Prop :=
 instance (revealed : Disclosures) : DecidablePred (Covered revealed) := fun view => by
   unfold Covered; infer_instance
 
-end Sphincs.Concrete
+end SphincsLayered.Concrete

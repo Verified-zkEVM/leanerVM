@@ -127,48 +127,26 @@ open _root_.Sphincs _root_.Sphincs.Concrete
 variable {m : Type → Type} [Monad m] [HasQuery HashSpec m]
 
 /-- `Sphincs.Concrete.otsLeaf`. -/
-def otsLeaf (parameter : PublicParameter) (lay : Layer) (tree : TreeIndex) (leaf : LeafIndex)
-    (message : ForestKey) (counter : Counter) (values : ChainIndex → Digest) :
-    m (Option Digest) := do
-  let some encoding ← encode parameter lay tree leaf message counter | return none
+def otsLeaf (parameter : PublicParameter) (leaf : Index) (message : ForestKey) (counter : Counter)
+    (values : ChainIndex → Digest) : m (Option Digest) := do
+  let some encoding ← encode parameter leaf message counter | return none
   let endpoints ← LeanXmss.Concrete.sequenceFin fun chainIdx =>
-    recoverChain parameter lay tree leaf chainIdx (encoding chainIdx) (values chainIdx)
-  let value ← leafHash parameter lay tree leaf endpoints
+    recoverChain parameter leaf chainIdx (encoding chainIdx) (values chainIdx)
+  let value ← leafHash parameter leaf endpoints
   return some value
 
 /-- `Sphincs.Concrete.otsLeaf` compiles as its restatement. -/
 @[csimp] theorem otsLeaf_eq : @_root_.Sphincs.Concrete.otsLeaf = @otsLeaf := rfl
 
-/-- `Sphincs.Concrete.verifyLayers`, with `otsLeaf`. -/
-def verifyLayers (parameter : PublicParameter) (index : Index) (signature : Signature) :
-    Nat → ForestKey → m (Option Digest)
-  | 0, _ => pure none
-  | remaining + 1, message => do
-      if hlayer : remaining < numLayers then
-        let lay : Layer := ⟨remaining, hlayer⟩
-        let tree := treeIndexAt index lay
-        let leaf := leafIndexAt index lay
-        let part := signature.layers lay
-        let some value ← _root_.Sphincs.Concrete.otsLeaf parameter lay tree leaf message part.counter
-            part.chainValues
-          | return none
-        let root ← treeFold parameter lay tree leaf (signaturePath signature lay) (layerHeight lay) value
-        return some root
-      else
-        pure none
-
-/-- `Sphincs.Concrete.verifyLayers` compiles as its restatement. -/
-@[csimp] theorem verifyLayers_eq : @_root_.Sphincs.Concrete.verifyLayers = @verifyLayers := by
-  funext m _ _ parameter index signature remaining message
-  cases remaining <;> rfl
-
-/-- `Sphincs.Concrete.verify`, with `verifyLayers`. -/
+/-- `Sphincs.Concrete.verify`, with `otsLeaf`. -/
 def verify (publicKey : PublicKey) (message : Message) (signature : Signature) : m Bool := do
   let digest ← messageDigest publicKey.parameter publicKey.root message signature.randomness
   let index := digestIndex digest
   let forestKey ← forestRecover publicKey.parameter index (digestMarks digest) signature.forest
-  let some root ← _root_.Sphincs.Concrete.verifyLayers publicKey.parameter index signature numLayers
-      forestKey | return false
+  let some leaf ← _root_.Sphincs.Concrete.otsLeaf publicKey.parameter index forestKey
+    signature.counter signature.chainValues | return false
+  let root ← treeFold publicKey.parameter index
+    (fun level ↦ if h : level < totalHeight then signature.path ⟨level, h⟩ else 0) totalHeight leaf
   return decide (root = publicKey.root)
 
 /-- `Sphincs.Concrete.verify` compiles as its restatement. -/

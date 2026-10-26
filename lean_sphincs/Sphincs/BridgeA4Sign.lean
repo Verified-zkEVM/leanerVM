@@ -9,7 +9,7 @@ exposed by the call is decided with chance `2^-128`, whatever the call does. -/
 
 open OracleComp OracleSpec ENNReal
 
-namespace Sphincs.Security.ForsPotential
+namespace SphincsLayered.Security.ForsPotential
 
 open SphincsFors.Security
 open Concrete HiddenGraph HiddenCost HiddenDebt GraphView Domination ForestPrice ForestSigner HiddenBridge
@@ -642,4 +642,4 @@ theorem psiF_sign (hparse : ∀ p, model.parse (pblk K.p data p) = none)
 
 end SignPays
 
-end Sphincs.Security.ForsPotential
+end SphincsLayered.Security.ForsPotential

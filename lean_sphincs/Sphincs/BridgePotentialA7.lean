@@ -9,7 +9,7 @@ the completed table. -/
 
 open OracleComp OracleSpec ENNReal
 
-namespace Sphincs.Security.PotentialA
+namespace SphincsLayered.Security.PotentialA
 
 open Concrete HiddenGraph HiddenDebt HiddenBridge HiddenCost HiddenReveal EncodingCode
 
@@ -206,4 +206,4 @@ theorem pot_start (K : Ctx) (known : Knowledge Coordinate) (_hρ : 0 ≤ K.ρ) (
   rw [hmain, budget_ofReal, ← ENNReal.ofReal_mul (by positivity),
     show (total : ℝ) / 2 ^ 128 * K.ρ = K.ρ * total / 2 ^ 128 by ring]
 
-end Sphincs.Security.PotentialA
+end SphincsLayered.Security.PotentialA

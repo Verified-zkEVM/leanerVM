@@ -8,7 +8,7 @@ initially or was queried in the run. -/
 
 open OracleComp OracleSpec ENNReal
 
-namespace Sphincs.Security.Graph
+namespace SphincsLayered.Security.Graph
 
 open Concrete Completeness TargetAssignment
 attribute [local instance] Classical.propDecidable
@@ -130,4 +130,4 @@ theorem material_freshStructural (seed : MasterSeed) (material : SeedModel.Mater
   intro position payload
   exact SeedModel.programCache_verifier ∅ seed material parameter position.domain payload
 
-end Sphincs.Security.Graph
+end SphincsLayered.Security.Graph

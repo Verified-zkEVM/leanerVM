@@ -11,7 +11,7 @@ deterministic game. -/
 
 open OracleComp OracleSpec ENNReal
 
-namespace Sphincs.Security.Internalize
+namespace SphincsLayered.Security.Internalize
 
 open Completeness SeedCoupling Short
 
@@ -310,27 +310,27 @@ noncomputable def internalize (adversary : Adversary) : Adversary :=
 
 variable [Params]
 
-noncomputable def gameImpl (sk : Sphincs.Seeded.SecretKey) :
+noncomputable def gameImpl (sk : SphincsLayered.Seeded.SecretKey) :
     QueryImpl AdvSpec (WriterT (QueryLog SigningSpec) (OracleComp OracleWorld)) :=
   QueryImpl.ofLift OracleWorld (WriterT (QueryLog SigningSpec) (OracleComp OracleWorld)) +
     signingOracle sk
 
-noncomputable def leftProg (sk : Sphincs.Seeded.SecretKey) {β : Type}
+noncomputable def leftProg (sk : SphincsLayered.Seeded.SecretKey) {β : Type}
     (M : OracleComp AdvSpec β) : OracleComp OracleWorld (β × QueryLog SigningSpec) :=
   (simulateQ (gameImpl sk) M).run
 
-noncomputable def rightProg (sk : Sphincs.Seeded.SecretKey) {β : Type}
+noncomputable def rightProg (sk : SphincsLayered.Seeded.SecretKey) {β : Type}
     (M : OracleComp AdvSpec β) (long : QueryCache HashSpec) :
     OracleComp OracleWorld ((β × QueryCache HashSpec) × QueryLog SigningSpec) :=
   (simulateQ (gameImpl sk) ((simulateQ internalImpl M).run long)).run
 
-theorem leftProg_bind (sk : Sphincs.Seeded.SecretKey) {β γ : Type} (M : OracleComp AdvSpec β)
+theorem leftProg_bind (sk : SphincsLayered.Seeded.SecretKey) {β γ : Type} (M : OracleComp AdvSpec β)
     (k : β → OracleComp AdvSpec γ) :
     leftProg sk (M >>= k) = leftProg sk M >>= fun first =>
       (fun second => (second.1, first.2 ++ second.2)) <$> leftProg sk (k first.1) := by
   simp only [leftProg, simulateQ_bind, WriterT.run_bind]
 
-theorem rightProg_bind (sk : Sphincs.Seeded.SecretKey) {β γ : Type} (M : OracleComp AdvSpec β)
+theorem rightProg_bind (sk : SphincsLayered.Seeded.SecretKey) {β γ : Type} (M : OracleComp AdvSpec β)
     (k : β → OracleComp AdvSpec γ) (long : QueryCache HashSpec) :
     rightProg sk (M >>= k) long = rightProg sk M long >>= fun first =>
       (fun second => (second.1, first.2 ++ second.2)) <$> rightProg sk (k first.1.1) first.1.2 := by
@@ -347,10 +347,10 @@ def rightView {β : Type}
     (β × QueryLog SigningSpec) × Nat × QueryCache HashSpec :=
   ((result.1.1.1.1, result.1.1.2), result.1.2, merge result.2 result.1.1.1.2)
 
-def Block (sk : Sphincs.Seeded.SecretKey) {β : Type} (M : OracleComp AdvSpec β) : Prop :=
+def Block (sk : SphincsLayered.Seeded.SecretKey) {β : Type} (M : OracleComp AdvSpec β) : Prop :=
   ∀ short long, (leftView <$> leftRun (leftProg sk M) (merge short long)) =ᵈ (rightView <$> rightRun (rightProg sk M long) short)
 
-theorem Block.bind {sk : Sphincs.Seeded.SecretKey} {β γ : Type} {M : OracleComp AdvSpec β}
+theorem Block.bind {sk : SphincsLayered.Seeded.SecretKey} {β γ : Type} {M : OracleComp AdvSpec β}
     {k : β → OracleComp AdvSpec γ} (hM : Block sk M) (hk : ∀ value, Block sk (k value)) :
     Block sk (M >>= k) := by
   intro short long
@@ -368,7 +368,7 @@ theorem Block.bind {sk : Sphincs.Seeded.SecretKey} {β γ : Type} {M : OracleCom
     exact evalDist_map_rel _ _ rightView leftView (hk first.1.1.1.1 first.2 first.1.1.1.2).symm
       (combine (rightView first)) _ _ (fun _ => rfl) (fun _ => rfl)
 
-theorem Block.pure' (sk : Sphincs.Seeded.SecretKey) {β : Type} (value : β) :
+theorem Block.pure' (sk : SphincsLayered.Seeded.SecretKey) {β : Type} (value : β) :
     Block sk (pure value : OracleComp AdvSpec β) := by
   intro short long
   simp only [leftProg, rightProg, simulateQ_pure, StateT.run_pure, WriterT.run_pure, leftRun,
@@ -376,7 +376,7 @@ theorem Block.pure' (sk : Sphincs.Seeded.SecretKey) {β : Type} (value : β) :
     StateT.run_pure, map_pure]
   rfl
 
-theorem rightProg_forward (sk : Sphincs.Seeded.SecretKey) (input : AdvSpec.Domain)
+theorem rightProg_forward (sk : SphincsLayered.Seeded.SecretKey) (input : AdvSpec.Domain)
     (hforward : internalImpl input = forward input) (long : QueryCache HashSpec) :
     rightProg sk (liftM (AdvSpec.query input)) long =
       (fun result => ((result.1, long), result.2)) <$> leftProg sk (liftM (AdvSpec.query input)) := by
@@ -385,7 +385,7 @@ theorem rightProg_forward (sk : Sphincs.Seeded.SecretKey) (input : AdvSpec.Domai
       (liftM (AdvSpec.query input) : OracleComp AdvSpec _))).run = _
   rw [simulateQ_map, simulateQ_spec_query, WriterT.run_map]
 
-theorem Block.forward (sk : Sphincs.Seeded.SecretKey) (input : AdvSpec.Domain)
+theorem Block.forward (sk : SphincsLayered.Seeded.SecretKey) (input : AdvSpec.Domain)
     (hforward : internalImpl input = forward input)
     (honly : OnlyW (gameImpl sk input).run) :
     Block sk (liftM (AdvSpec.query input)) := by
@@ -397,9 +397,9 @@ theorem Block.forward (sk : Sphincs.Seeded.SecretKey) (input : AdvSpec.Domain)
   rfl
 
 attribute [local irreducible] digestAttemptLimit encodingAttemptLimit Randomized.finishSign
-  Sphincs.Seeded.signAttempt
+  SphincsLayered.Seeded.signAttempt
 
-theorem Only.scanLoop (sk : Sphincs.Seeded.SecretKey) (message : Message) :
+theorem Only.scanLoop (sk : SphincsLayered.Seeded.SecretKey) (message : Message) :
     ∀ attempts randomness, Short.Only (Randomized.scanLoop sk message attempts randomness)
   | 0, _ => Short.Only.pure' _
   | attempts + 1, randomness => by
@@ -409,12 +409,12 @@ theorem Only.scanLoop (sk : Sphincs.Seeded.SecretKey) (message : Message) :
       | none => exact Only.scanLoop sk message attempts (randomness + 1)
       | some _ => exact Short.Only.pure' _
 
-theorem OnlyW.signDigestLoop (sk : Sphincs.Seeded.SecretKey) (message : Message)
+theorem OnlyW.signDigestLoop (sk : SphincsLayered.Seeded.SecretKey) (message : Message)
     (attempts : Nat) : OnlyW (Randomized.signDigestLoop sk message attempts) := by
   rw [Randomized.signDigestLoop]
   exact OnlyW.bind (OnlyW.liftProb _) (fun _ => OnlyW.liftHash (Only.scanLoop sk message _ _))
 
-theorem OnlyW.sign (sk : Sphincs.Seeded.SecretKey) (message : Message) :
+theorem OnlyW.sign (sk : SphincsLayered.Seeded.SecretKey) (message : Message) :
     OnlyW (Randomized.sign sk message) := by
   unfold Randomized.sign
   refine OnlyW.bind (OnlyW.signDigestLoop sk message _) (fun result => ?_)
@@ -442,21 +442,21 @@ theorem OnlyW.writerLift {α : Type} {oa : OracleComp OracleWorld α} (h : OnlyW
   rw [WriterT.run_liftM]
   exact OnlyW.map _ h
 
-theorem Block.draw (sk : Sphincs.Seeded.SecretKey) (draw : unifSpec.Domain) :
+theorem Block.draw (sk : SphincsLayered.Seeded.SecretKey) (draw : unifSpec.Domain) :
     Block sk (liftM (AdvSpec.query (.inl (.inl draw)))) :=
   Block.forward sk _ rfl (by
     change OnlyW (liftM (liftM (OracleWorld.query (.inl draw)) : OracleComp OracleWorld _) :
       WriterT (QueryLog SigningSpec) (OracleComp OracleWorld) _).run
     exact OnlyW.writerLift (OnlyW.queryDraw draw))
 
-theorem Block.short (sk : Sphincs.Seeded.SecretKey) {input : HashInput} (h : IsShort input) :
+theorem Block.short (sk : SphincsLayered.Seeded.SecretKey) {input : HashInput} (h : IsShort input) :
     Block sk (liftM (AdvSpec.query (.inl (.inr input)))) :=
   Block.forward sk _ (by simp only [internalImpl, h, ↓reduceIte]) (by
     change OnlyW (liftM (liftM (OracleWorld.query (.inr input)) : OracleComp OracleWorld _) :
       WriterT (QueryLog SigningSpec) (OracleComp OracleWorld) _).run
     exact OnlyW.writerLift (OnlyW.queryShort h))
 
-theorem Block.signing (sk : Sphincs.Seeded.SecretKey) (message : Message) :
+theorem Block.signing (sk : SphincsLayered.Seeded.SecretKey) (message : Message) :
     Block sk (liftM (AdvSpec.query (.inr message))) :=
   Block.forward sk _ rfl (by
     change OnlyW (signingOracle sk message).run
@@ -480,7 +480,7 @@ theorem run_simulateQ_ofLift_writer {α : Type} (x : OracleComp OracleWorld α) 
       rw [ih answer]
       simp
 
-theorem gameImpl_liftWorld (sk : Sphincs.Seeded.SecretKey) {α : Type}
+theorem gameImpl_liftWorld (sk : SphincsLayered.Seeded.SecretKey) {α : Type}
     (x : OracleComp OracleWorld α) :
     (simulateQ (gameImpl sk) (liftWorld x)).run = (fun value => (value, ∅)) <$> x := by
   rw [liftWorld, ← QueryImpl.simulateQ_compose]
@@ -507,7 +507,7 @@ theorem leftRun_longQuery {input : HashInput} (h : ¬IsShort input) (cache : Que
   simp only [ShortQuery, h, ↓reduceIte]
   rfl
 
-theorem Block.long (sk : Sphincs.Seeded.SecretKey) {input : HashInput} (h : ¬IsShort input) :
+theorem Block.long (sk : SphincsLayered.Seeded.SecretKey) {input : HashInput} (h : ¬IsShort input) :
     Block sk (liftM (AdvSpec.query (.inl (.inr input)))) := by
   intro short long
   have hleft : leftProg sk (liftM (AdvSpec.query (.inl (.inr input)))) =
@@ -550,7 +550,7 @@ theorem Block.long (sk : Sphincs.Seeded.SecretKey) {input : HashInput} (h : ¬Is
       refine evalDist_map_congr_of_evalDist_eq _ _ hsample _ _ (fun answer => ?_)
       simp only [leftView, rightView, merge_cacheQuery_long short long h]
 
-theorem Block.query (sk : Sphincs.Seeded.SecretKey) (input : AdvSpec.Domain) :
+theorem Block.query (sk : SphincsLayered.Seeded.SecretKey) (input : AdvSpec.Domain) :
     Block sk (liftM (AdvSpec.query input)) := by
   rcases input with (draw | bytes) | message
   · exact Block.draw sk draw
@@ -591,9 +591,9 @@ theorem rightRun_eq_split {α : Type} (oa : OracleComp OracleWorld α) (cache : 
       (simulateQ romImpl (count2 oa)).run cache := by
   rw [rightRun, countHashQueries_eq_count2, simulateQ_map, StateT.run_map]
 
-end Sphincs.Security.Internalize
+end SphincsLayered.Security.Internalize
 
-namespace Sphincs.Security.Internalize
+namespace SphincsLayered.Security.Internalize
 open Completeness SeedCoupling Short
 
 attribute [local irreducible] experiment count2 leftRun rightRun sampleMasterSeed
@@ -670,7 +670,7 @@ theorem OnlyAdv.internal {β : Type} (M : OracleComp AdvSpec β) (cache : QueryC
           · exact OnlyAdv.map _ (OnlyAdv.liftWorldProb _)
       · exact OnlyAdv.map _ (OnlyAdv.query (by simp [LongAdv]))
 
-theorem OnlyW.gameImpl (sk : Sphincs.Seeded.SecretKey) {β : Type} (M : OracleComp AdvSpec β)
+theorem OnlyW.gameImpl (sk : SphincsLayered.Seeded.SecretKey) {β : Type} (M : OracleComp AdvSpec β)
     (h : OnlyAdv M) : OnlyW (simulateQ (gameImpl sk) M).run := by
   induction M using OracleComp.inductionOn with
   | pure value => simp [OnlyW]
@@ -697,4 +697,4 @@ theorem OnlyW.gameImpl (sk : Sphincs.Seeded.SecretKey) {β : Type} (M : OracleCo
         simp only [signingOracle, QueryImpl.run_withLogging_apply]
         exact OnlyW.bind (OnlyW.sign sk message) (fun _ => OnlyW.pure' _)
 
-end Sphincs.Security.Internalize
+end SphincsLayered.Security.Internalize

@@ -8,7 +8,7 @@ honest code is compiled; adversarial hash requests must continue to use the ordi
 
 open OracleComp OracleSpec
 
-namespace Sphincs.Security.PreparedScheme
+namespace SphincsLayered.Security.PreparedScheme
 open SeedModel SeedCoupling Completeness Concrete
 
 set_option backward.isDefEq.respectTransparency false
@@ -491,9 +491,9 @@ theorem compile_sign (seed : MasterSeed) (material : Material) (root : Digest) (
     simulateQ (compileWorld seed material) (Randomized.sign ⟨seed, parameter material, root⟩ message) =
       sign material root message := compiled_sign_eq seed 0 material root message
 
-end Sphincs.Security.PreparedScheme
+end SphincsLayered.Security.PreparedScheme
 
-namespace Sphincs.Security.PreparedScheme
+namespace SphincsLayered.Security.PreparedScheme
 open SeedModel SeedCoupling Completeness Concrete
 set_option backward.isDefEq.respectTransparency false
 set_option maxHeartbeats 30000
@@ -739,4 +739,4 @@ noncomputable def materialGame (material : Material) (adversary : Adversary) :
   let verified ← liftM (Concrete.verify pk forgery.message forgery.signature : OracleComp HashSpec Bool)
   return decide (SigningTranscript.Valid log ∧ ¬SigningTranscript.Contains log forgery) && verified
 
-end Sphincs.Security.PreparedScheme
+end SphincsLayered.Security.PreparedScheme

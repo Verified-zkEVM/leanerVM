@@ -8,7 +8,7 @@ codeword-level probability `G(w, T)` that a uniform codeword stays below codewor
 
 open ENNReal
 
-namespace Sphincs.Security.H0
+namespace SphincsLayered.Security.H0
 
 open Concrete
 
@@ -209,4 +209,4 @@ theorem μR_eq (i : ℕ) :
   refine Finset.sum_congr rfl fun u _ => ?_
   rw [avgR_const_mul]
 
-end Sphincs.Security.H0
+end SphincsLayered.Security.H0

@@ -6,7 +6,7 @@ final value that is monotone in the cache. -/
 
 open OracleComp OracleSpec ENNReal
 
-namespace Sphincs.Security.HiddenDebt
+namespace SphincsLayered.Security.HiddenDebt
 
 open HiddenCost HiddenBridge HiddenOutside HiddenReveal
 
@@ -425,4 +425,4 @@ theorem interp_card_le (T : Finset D) {α : Type} (computation : OracleComp (Sou
       · rw [support_pure, Set.mem_singleton_iff] at hout
         rw [hout]; simp [traceCost]
 
-end Sphincs.Security.HiddenDebt
+end SphincsLayered.Security.HiddenDebt

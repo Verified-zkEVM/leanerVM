@@ -9,7 +9,7 @@ word of every landed leaf, yields a cached first-order hit or one of the paired 
 
 open OracleComp OracleSpec ENNReal
 
-namespace Sphincs.Security.HiddenBridge
+namespace SphincsLayered.Security.HiddenBridge
 
 open Concrete Completeness Graph GraphCorrectness TargetAssignment HiddenGraph Assembly SeedModel Reduce Eager
 
@@ -909,4 +909,4 @@ theorem expose_known_support (parameter : PublicParameter) (fixed : HiddenGraph.
   exposeR_known_support _ _ _ _ k (fun _ hc => mem_aboveList.mp hc) (fun _ _ h => h)
     (fun _ _ h => Or.inl h) hk
 
-end Sphincs.Security.HiddenBridge
+end SphincsLayered.Security.HiddenBridge

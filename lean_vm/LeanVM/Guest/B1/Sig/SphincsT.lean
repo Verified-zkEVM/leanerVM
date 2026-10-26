@@ -8,7 +8,7 @@
 module
 
 public import LeanVM.Guest.B1.Sig.WotsT
-public import Sphincs.Scheme
+public import Sphincs.Equations
 
 /-!
 # `verify_sig_lean_sphincs` as a template

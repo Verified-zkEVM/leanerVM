@@ -5,7 +5,7 @@ on FORS contacts require. -/
 
 open OracleComp OracleSpec ENNReal
 
-namespace Sphincs.Security.HiddenBridge
+namespace SphincsLayered.Security.HiddenBridge
 
 open HiddenGraph
 
@@ -19,9 +19,9 @@ def badAV (parameterOutput : HashOutput) (fixed : HiddenGraph.Table) (highs : Co
   badA parameterOutput fixed highs remaining results table v ∧
     ∃ outcome, v.1.1.1 = some outcome ∧ SigningTranscript.Valid outcome.2.1
 
-end Sphincs.Security.HiddenBridge
+end SphincsLayered.Security.HiddenBridge
 
-namespace Sphincs.Security.ForsPotential
+namespace SphincsLayered.Security.ForsPotential
 
 open Concrete HiddenGraph HiddenCost HiddenDebt GraphView Domination ForestPrice ForestSigner HiddenReveal SphincsFors.Security.Domination
 open HiddenBridge Completeness SeedModel Graph Assembly Reduce Internalize
@@ -171,4 +171,4 @@ theorem stopped_le_interp_exposeV (hb : 0 < subtreeHeight) (adversary : Adversar
   stopped_le_interpV hb adversary q hq parameterOutput fixed highs remaining prepared hprepared tg known
     (expose_known_support _ fixed prepared.1 known hk).1 (expose_known_support _ fixed prepared.1 known hk).2
 
-end Sphincs.Security.ForsPotential
+end SphincsLayered.Security.ForsPotential

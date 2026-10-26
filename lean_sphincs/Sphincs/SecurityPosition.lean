@@ -9,7 +9,7 @@ hash of the sixteen level-3 nodes of the trees: the root of a subtree (`subNode`
 and the root of a tree (`topNode` at the last level) are positions that no other position and no
 algorithm reads. -/
 
-namespace Sphincs
+namespace SphincsLayered
 
 /-- The two natural-number fields of a tree node must fit their serialized slots: 24 bits for the
 level, 32 bits for the node index. -/
@@ -320,4 +320,4 @@ theorem input_separated (parameter : PublicParameter) {left right : Position}
 end Position
 
 end Security
-end Sphincs
+end SphincsLayered

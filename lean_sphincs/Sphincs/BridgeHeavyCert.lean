@@ -9,7 +9,7 @@ with `N + 1` signatures and the heavy coin, and bounds the large-route term with
 
 open ENNReal NNReal
 
-namespace Sphincs.Security.H0
+namespace SphincsLayered.Security.H0
 
 open Concrete ForestPrice ForsPotential SphincsFors.Security.H0 SphincsFors.Security.Domination
 
@@ -297,9 +297,9 @@ theorem fair_of_coverH (b N qstart : ℕ) (cover : CoverW) (hcov : checkCoverH b
   simp only [checkCoverH, Bool.and_eq_true, List.all_eq_true] at hcov
   exact fair_of_rateH b N cover.qtop cover.tab hcov.1.1.1 hb q' hq
 
-end Sphincs.Security.H0
+end SphincsLayered.Security.H0
 
-namespace Sphincs.Security.ForsPotential
+namespace SphincsLayered.Security.ForsPotential
 
 open Concrete HiddenGraph HiddenCost HiddenDebt GraphView Domination ForestPrice ForestSigner HiddenReveal
   SphincsFors.Security.Domination
@@ -466,4 +466,4 @@ theorem det_bitsFH (hb0 : 0 < subtreeHeight) (b N : ℕ) (hb : subtreeHeight = b
   rw [Det.forgeAdvantageDet_eq_budgeted adversary q hbound]
   exact det_bitsFH_budgeted hb0 b N hb hN qh ρ t o on hpt hrt ho hon hsmall covers heavy hcov q hq1 adversary
 
-end Sphincs.Security.ForsPotential
+end SphincsLayered.Security.ForsPotential

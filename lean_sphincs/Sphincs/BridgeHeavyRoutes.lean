@@ -9,7 +9,7 @@ digests, and the start value of the potential is the excess forecast with one sp
 
 open OracleComp OracleSpec ENNReal
 
-namespace Sphincs.Security.ForsPotential
+namespace SphincsLayered.Security.ForsPotential
 
 open Concrete HiddenGraph HiddenCost HiddenDebt GraphView Domination ForestPrice ForestSigner HiddenReveal SphincsFors.Security.Domination
 
@@ -390,4 +390,4 @@ theorem det_largeH (hb : 0 < subtreeHeight) (adversary : Adversary) (q : ℕ)
 
 end ChainH
 
-end Sphincs.Security.ForsPotential
+end SphincsLayered.Security.ForsPotential

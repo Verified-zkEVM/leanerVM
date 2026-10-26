@@ -12,9 +12,9 @@ open OracleComp OracleSpec ENNReal
 
 /-! ### More algebra of the law of the signed view -/
 
-namespace Sphincs.LoopWalk
+namespace SphincsLayered.LoopWalk
 
-open SphincsFors.Security.Domination Sphincs.Security.Domination
+open SphincsFors.Security.Domination SphincsLayered.Security.Domination
 
 variable {α V : Type} [Fintype α] [DecidableEq α] {σ : Equiv.Perm α} {p : ℝ≥0∞} {A : ℕ} {U : Finset V}
 
@@ -111,13 +111,13 @@ theorem sgn_stop_le (hp : p ≤ 1) (hU : U.Nonempty) (st : α → St) (ext : α 
   exact mul_le_mul' le_rfl (Finset.sum_le_sum fun r _ =>
     walk_stop_le hp st (fun x => hF _ _ (Multiset.le_add_right _ _)) hbf le_rfl y A r)
 
-end Sphincs.LoopWalk
+end SphincsLayered.LoopWalk
 
-namespace Sphincs.Security.ForsPotential
+namespace SphincsLayered.Security.ForsPotential
 
 open SphincsFors.Security
 open Concrete HiddenGraph HiddenCost HiddenDebt GraphView Domination ForestPrice ForestSigner
-  SphincsFors.Security.Domination Sphincs.LoopWalk
+  SphincsFors.Security.Domination SphincsLayered.LoopWalk
 
 set_option backward.isDefEq.respectTransparency false
 set_option maxRecDepth 10000
@@ -1468,4 +1468,4 @@ theorem post_term_leH (hw : w ≤ 1) {f : Multiset View → ℝ≥0∞} (hf : Mo
 
 end SignPointH
 
-end Sphincs.Security.ForsPotential
+end SphincsLayered.Security.ForsPotential

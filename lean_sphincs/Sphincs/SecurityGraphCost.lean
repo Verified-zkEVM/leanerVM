@@ -8,7 +8,7 @@ natural-number ticks, including work performed before a failed WOTS search. -/
 
 open OracleComp OracleSpec
 
-namespace Sphincs.Security.GraphView
+namespace SphincsLayered.Security.GraphView
 open Concrete Completeness Prefix
 set_option backward.isDefEq.respectTransparency false
 attribute [local irreducible] firstEncoding ReferenceChoice.search encodingAttemptLimit
@@ -173,4 +173,4 @@ theorem hashCalls_finishSign_exact (f : QueryImpl HashSpec Id) (parameter : Publ
           (messageDigest parameter data.root message randomness : OracleComp HashSpec MessageDigest))) lay) <;>
     simp only [hashCalls_pure] <;> omega
 
-end Sphincs.Security.GraphView
+end SphincsLayered.Security.GraphView
