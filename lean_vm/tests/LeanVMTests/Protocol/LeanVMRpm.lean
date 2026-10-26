@@ -36,3 +36,13 @@ info: 'LeanVM.knowledgeSoundness_holds' depends on axioms: [propext, Classical.c
 info: 'LeanVM.completeness_holds' depends on axioms: [propext, Classical.choice, Quot.sound]
 -/
 #guard_msgs in #print axioms completeness_holds
+
+/--
+info: 'LeanVM.Guest.Budget.guest_child_complete' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in #print axioms LeanVM.Guest.Budget.guest_child_complete
+
+/--
+info: 'LeanVM.Prover.prove_eq_honestComp' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in #print axioms LeanVM.Prover.prove_eq_honestComp
