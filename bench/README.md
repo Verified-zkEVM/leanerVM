@@ -411,8 +411,9 @@ phases' own checks are exercised on the honest wire by the phase test modules an
 
 `bench/LeanerVMCheck.lean` is the `leanervm-check` executable: `Verify.verify` compiled, on proof
 files in the dump format, one line per file with the verdict and the stage `outcomeAt` names, for
-the differential test against the pinned Rust verifier (`scripts/check-proofs-rust.py`). The
-format of its lines is in [the test vectors' guide](../tests/vectors/README.md).
+the differential tests against the pinned Rust verifier
+([`tests/differential/`](../tests/differential/README.md)). The format of its lines is in
+[the test vectors' guide](../tests/vectors/README.md).
 
 ```sh
 lake build leanervm-check

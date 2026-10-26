@@ -3,7 +3,8 @@
 
 Builds tests/rust/proof_check.rs in a temporary crate against the checkout's crates, offline,
 and runs it on the given files (default: every tests/vectors/*.proof.gz). Exits nonzero unless
-the verifier accepts every file.
+the verifier accepts every file. With --build-only it prints the binary's path instead, for
+tests/differential/fuzz.py, which runs it as `proof-check serve`.
 """
 
 import argparse
@@ -35,7 +36,11 @@ def main() -> int:
     parser.add_argument("files", nargs="*", type=Path, help="proof files, plain or gzip")
     parser.add_argument("--target-dir", type=Path,
                         help="Cargo's target directory (default: the checkout's target/)")
+    parser.add_argument("--build-only", action="store_true",
+                        help="build, print the binary's path and run nothing")
     args = parser.parse_args()
+    if args.build_only and args.files:
+        parser.error("--build-only takes no files")
     checkout = args.rust_checkout.resolve()
     head = subprocess.run(["git", "-C", str(checkout), "rev-parse", "HEAD"], check=True,
                           capture_output=True, text=True).stdout.strip()
@@ -48,7 +53,7 @@ def main() -> int:
         raise SystemExit(f"leanVM checkout has local changes:\n{changed}")
     files = ([str(f) for f in args.files]
              or [os.path.relpath(f) for f in sorted((ROOT / "tests/vectors").glob("*.proof.gz"))])
-    if not files:
+    if not files and not args.build_only:
         raise SystemExit("no proof files")
     target = (args.target_dir or checkout / "target").resolve()
     lock = (checkout / "Cargo.lock").read_bytes()
@@ -73,7 +78,11 @@ def main() -> int:
             raise SystemExit(f"the build resolved packages the checkout does not pin: {extra}")
     if (checkout / "Cargo.lock").read_bytes() != lock:
         raise SystemExit("The reference Cargo.lock changed")
-    return subprocess.run([str(target / "release" / NAME), *files]).returncode
+    binary = target / "release" / NAME
+    if args.build_only:
+        print(binary)
+        return 0
+    return subprocess.run([str(binary), *files]).returncode
 
 
 if __name__ == "__main__":

@@ -1,14 +1,31 @@
 //! Verify proof files with the pinned leanVM verifier (`lean_vm::cpu::verify`,
-//! crates/lean_vm/src/cpu/mod.rs:711 at a386121f84292f6fa663aaa3e570c15bc0240ea2). Built and run
-//! by scripts/check-proofs-rust.py. A file is a proof in the text format of
-//! scripts/dump-proof-rust.sh, plain or gzip-compressed. Prints one line per file and exits
-//! nonzero unless every file is accepted.
+//! crates/lean_vm/src/cpu/mod.rs:711 at a386121f84292f6fa663aaa3e570c15bc0240ea2). Built by
+//! scripts/check-proofs-rust.py. A file is a proof in the text format of
+//! scripts/dump-proof-rust.sh, plain or gzip-compressed.
+//!
+//! `proof-check <file>...` prints `<file>: ACCEPT` or `<file>: REJECT <reason>` per file and exits
+//! nonzero unless every file is accepted; a file whose program hash is not its program's is
+//! rejected before `verify` runs.
+//!
+//! `proof-check serve` reads paths from standard input, one per line, and prints per path
+//! `<file>\t<verdict>\t<detail>\t<microseconds>`, flushing after each: the verdict is `ACCEPT`,
+//! `REJECT` (the detail is the verifier's error), `PARSEFAIL` (the loader refuses the file) or
+//! `PANIC` (the detail is the panic's message); a program hash that is not the program's appends
+//! `;hashmismatch` to the detail and `verify` still runs. It exits `0`; the lines carry the
+//! verdicts. This is the Rust side of tests/differential/fuzz.py.
+//!
+//! Both modes refuse a program with an operand exponent above `2^24` (environment variable
+//! `PROOF_CHECK_MAX_OPERAND` to change it) before assembling it: `bytecode_columns`
+//! (crates/lean_vm/src/cpu/layout.rs:229-241), run by `Program::assemble` and by `verify`,
+//! allocates `g^0, ..., g^m` for the largest exponent `m`, 32 GiB at `2^32 - 1`.
 
 use fiat_shamir::merkle::PrunedMerklePaths;
 use lean_vm::cpu::{DerefMode, Op, Program, Proof, verify};
 use primitives::field::{F64, F192};
 use std::collections::HashMap;
+use std::io::{BufRead, Write};
 use std::panic::{AssertUnwindSafe, catch_unwind};
+use std::time::Instant;
 
 /// What a dump holds, less its rate line: `verify` reads the rate from the stream.
 struct Dump {
@@ -167,38 +184,144 @@ fn hex(bytes: &[u8]) -> String {
     bytes.iter().map(|b| format!("{b:02x}")).collect()
 }
 
-/// The verdict on one file: `Ok` if `verify` accepts it.
-fn check(path: &str) -> Result<(), String> {
-    let dump = load(&read_text(path)?)?;
-    let program = Program::assemble(dump.ops, HashMap::new(), 0);
-    // The program hash as the dump script computes it: BLAKE2s of the bytecode table's words, as
-    // `Program::assemble` hashes them (crates/lean_vm/src/cpu/mod.rs:237-243).
-    let table = lean_vm::cpu::layout::bytecode_table(&program.prog);
-    let bytes: Vec<u8> = table.iter().flat_map(|w| w.0.to_le_bytes()).collect();
-    let hash = primitives::hash::hash(&bytes);
-    if hash != dump.program_hash {
-        return Err(format!(
+/// The largest operand exponent a program may have, `2^24` unless `PROOF_CHECK_MAX_OPERAND` says.
+fn operand_cap() -> u64 {
+    std::env::var("PROOF_CHECK_MAX_OPERAND").ok().and_then(|v| v.parse().ok()).unwrap_or(1 << 24)
+}
+
+/// The largest operand exponent of an instruction, as `bytecode_columns` reads it.
+fn max_operand(op: &Op) -> u32 {
+    match *op {
+        Op::Xor { a, b, c } | Op::Mul { a, b, c } => a.max(b).max(c),
+        Op::Set { o, .. } => o,
+        Op::Deref { o1, o2, o3, .. } => o1.max(o2).max(o3),
+        Op::Jump { oc, od, of } => oc.max(od).max(of),
+        Op::Blake2s { ins, cv, out, md } => ins.into_iter().fold(cv.max(out).max(md), u32::max),
+    }
+}
+
+enum Verdict {
+    Accept,
+    Reject(String),
+    ParseFail(String),
+    Panic(String),
+}
+
+/// The verdict on one file, whether its program hash is its program's, and `verify`'s time.
+struct Checked {
+    verdict: Verdict,
+    hash_mismatch: bool,
+    micros: u128,
+}
+
+fn panic_message(e: &(dyn std::any::Any + Send)) -> String {
+    match (e.downcast_ref::<&str>(), e.downcast_ref::<String>()) {
+        (Some(s), _) => (*s).to_string(),
+        (_, Some(s)) => s.clone(),
+        _ => "a panic without a message".into(),
+    }
+}
+
+/// Check one file. With `strict`, a program hash that is not the program's rejects the file
+/// before `verify` runs; otherwise it is noted and `verify` runs.
+fn check(path: &str, strict: bool) -> Checked {
+    let done = |verdict| Checked { verdict, hash_mismatch: false, micros: 0 };
+    let dump = match read_text(path).and_then(|text| load(&text)) {
+        Ok(dump) => dump,
+        Err(e) => return done(Verdict::ParseFail(e)),
+    };
+    let cap = operand_cap();
+    let max = dump.ops.iter().map(max_operand).max().unwrap_or(0);
+    if u64::from(max) > cap {
+        return done(Verdict::ParseFail(format!(
+            "operand exponent {max} above the cap {cap}: `bytecode_columns` would allocate \
+             {max} + 1 powers of g (layout.rs:229-241); raise PROOF_CHECK_MAX_OPERAND to run it"
+        )));
+    }
+    let assembled = catch_unwind(AssertUnwindSafe(|| {
+        let program = Program::assemble(dump.ops, HashMap::new(), 0);
+        // The program hash as the dump script computes it: BLAKE2s of the bytecode table's
+        // words, as `Program::assemble` hashes them (crates/lean_vm/src/cpu/mod.rs:237-243).
+        let table = lean_vm::cpu::layout::bytecode_table(&program.prog);
+        let bytes: Vec<u8> = table.iter().flat_map(|w| w.0.to_le_bytes()).collect();
+        (program, primitives::hash::hash(&bytes))
+    }));
+    let (program, hash) = match assembled {
+        Ok(x) => x,
+        Err(e) => return done(Verdict::Panic(format!("assemble: {}", panic_message(&*e)))),
+    };
+    let hash_mismatch = hash != dump.program_hash;
+    if strict && hash_mismatch {
+        return done(Verdict::Reject(format!(
             "program_hash {} but the program hashes to {}",
             hex(&dump.program_hash),
             hex(&hash)
-        ));
+        )));
     }
-    verify(&program, &dump.public, &dump.proof).map(|_| ()).map_err(|e| format!("{e:?}"))
+    let t = Instant::now();
+    let r = catch_unwind(AssertUnwindSafe(|| verify(&program, &dump.public, &dump.proof)));
+    let micros = t.elapsed().as_micros();
+    let verdict = match r {
+        Ok(Ok(_)) => Verdict::Accept,
+        Ok(Err(e)) => Verdict::Reject(format!("{e:?}")),
+        Err(e) => Verdict::Panic(panic_message(&*e)),
+    };
+    Checked { verdict, hash_mismatch, micros }
+}
+
+/// One field of a `serve` line: no tab or line break inside.
+fn field(s: &str) -> String {
+    s.replace(['\t', '\n', '\r'], " ")
+}
+
+/// The `serve` line of one file.
+fn serve_line(path: &str) -> String {
+    let c = check(path, false);
+    let (verdict, detail) = match c.verdict {
+        Verdict::Accept => ("ACCEPT", "accepted".to_string()),
+        Verdict::Reject(e) => ("REJECT", e),
+        Verdict::ParseFail(e) => ("PARSEFAIL", e),
+        Verdict::Panic(e) => ("PANIC", e),
+    };
+    let note = if c.hash_mismatch { ";hashmismatch" } else { "" };
+    format!("{}\t{verdict}\t{}{note}\t{}", field(path), field(&detail), c.micros)
+}
+
+fn serve() {
+    let mut out = std::io::stdout().lock();
+    for line in std::io::stdin().lock().lines() {
+        let Ok(line) = line else { break };
+        let path = line.trim_end_matches('\r');
+        if !path.is_empty() {
+            let _ = writeln!(out, "{}", serve_line(path));
+            let _ = out.flush();
+        }
+    }
 }
 
 fn main() {
-    let files: Vec<String> = std::env::args().skip(1).collect();
-    if files.is_empty() {
-        eprintln!("usage: proof-check <proof file>...");
+    // Panics are caught and reported per file; the default hook would print each to stderr.
+    std::panic::set_hook(Box::new(|_| {}));
+    let args: Vec<String> = std::env::args().skip(1).collect();
+    if args.len() == 1 && args[0] == "serve" {
+        serve();
+        return;
+    }
+    if args.is_empty() {
+        eprintln!("usage: proof-check <proof file>... | proof-check serve");
         std::process::exit(2);
     }
     let mut all = true;
-    for f in &files {
-        match catch_unwind(AssertUnwindSafe(|| check(f))).unwrap_or(Err("panic".into())) {
-            Ok(()) => println!("{f}: ACCEPT"),
-            Err(e) => {
+    for f in &args {
+        match check(f, true).verdict {
+            Verdict::Accept => println!("{f}: ACCEPT"),
+            Verdict::Reject(e) | Verdict::ParseFail(e) => {
                 all = false;
                 println!("{f}: REJECT {e}");
+            }
+            Verdict::Panic(e) => {
+                all = false;
+                println!("{f}: REJECT panic: {e}");
             }
         }
     }

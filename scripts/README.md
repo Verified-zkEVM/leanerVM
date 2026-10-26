@@ -65,7 +65,8 @@
 - `check-proofs-rust.py <leanVM checkout> [files]`: builds `tests/rust/proof_check.rs` against
   the pinned checkout's crates, offline and without changing its `Cargo.lock`, and runs the Rust
   verifier on each proof file in the dump format (default: every `tests/vectors/*.proof.gz`), one
-  verdict per file; nonzero exit unless all are accepted. See
+  verdict per file; nonzero exit unless all are accepted. `--build-only` prints the binary's
+  path, for [the differential tests](../tests/differential/README.md). See
   [the test vectors](../tests/vectors/README.md#checking-with-the-rust-verifier).
 - `dump-fs-chain-rust.sh <leanVM checkout>`: prints the pinned Fiat–Shamir chain's known
   answers (a program's hash and seed, the state after seeding, observes, squeezes and an 8-bit

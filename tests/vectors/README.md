@@ -51,6 +51,10 @@ as the dump script computes it, is rejected before `verify` runs. The public inp
 its third limbs, so a nonzero one reaches the verifier's own check (`cpu/mod.rs:141`); the Lean
 loader does not load such a file. The pinned Rust verifier accepts `fill.proof.gz`.
 
+`--build-only` prints the binary's path instead of running it. The binary's `serve` mode, which
+reads paths from standard input and answers in `leanervm-check`'s line format, is the Rust side of
+[the differential tests](../differential/README.md).
+
 ## `leanervm-check`: one verdict per file
 
 ```sh
