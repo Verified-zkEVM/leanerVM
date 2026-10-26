@@ -6,7 +6,7 @@ import Statement.LeanXmss
 # leanXMSS security statement in the random-permutation model
 
 The SUF-CMA game of `Statement.lean` with the hash `H` instantiated as Keccak-256 over a uniformly
-random permutation `π` of the 200-byte Keccak-f[1600] state (`Common`): `H` is the sponge over
+random permutation `π` of the Keccak-f[1600] state of 25 lanes (`Common`): `H` is the sponge over
 `π` (rate 136 bytes, capacity 512 bits, Keccak padding), its 32 output bytes read as the
 little-endian `HashOutput` (`Common.SufCma.digestBitVec`), and the adversary queries Keccak-256,
 `π` and `π⁻¹` besides the signing oracle. Key generation, signing and the final verification hash
