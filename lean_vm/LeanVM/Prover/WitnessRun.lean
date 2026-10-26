@@ -1,0 +1,192 @@
+/-
+  LeanVM.Prover.WitnessRun
+
+  The executable run of a trace is its run: `stepsFrom` is `run` through the address indices,
+  its steps are the run's skeletons, and `checkTrace` decides a valid execution within the
+  committed-size cap.
+-/
+
+module
+
+public import Statement.Prover.Columns
+public import LeanVM.Arithmetization.Completeness.Theorem
+public import LeanVM.Protocol.Extraction.Run
+public import LeanVM.Protocol.EndToEnd.Front.LayoutStack
+public import Statement.LeanVm
+
+/-!
+# The run of a trace
+
+`stepsFrom_eq`: the run through the indices is `run`, its steps those of the states the run
+passes through (`stepOf`). `runSteps_eq`: the run of a trace that ends in the final state gives the
+steps of its first `t.steps` states, whose skeletons are the run's (`runSkels_eq_steps`), and
+`opCount` counts them as `Trace.count` does (`opCount_runSteps`). `checkTrace_iff`: the check is
+a valid execution within the cap.
+-/
+
+namespace LeanVM.Prover
+
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Arithmetization LeanVM.Extraction
+open LeanVM.Protocol.Halting LeanVM.Protocol.Verifier LeanVM.Protocol.EndToEnd.Front
+
+@[expose] public section
+
+variable {prog : Program} {κ : ℕ}
+
+/-- The skeleton of a step. -/
+def Step.toSkel (st : Step) : Skel := ⟨st.pc, st.fp, st.ins⟩
+
+/-- The step taken from the state `r`: its registers, the bytecode slot of its counter (`0` if
+none) and the instruction fetched there (`skAt`'s default if none). -/
+noncomputable def stepOf (prog : Program) (r : Regs K) : Step :=
+  ⟨r.pc, r.fp, ((gLog? prog.logSize r.pc).map Fin.val).getD 0,
+    (prog.fetch r.pc).getD (.setConstant 0 0)⟩
+
+/-- The run through the indices is `run`, the steps recorded those of the states it passes
+through. -/
+theorem stepsFrom_eq (hκ : κ < 64) (img : MemImage κ) :
+    ∀ (n : ℕ) (r : Regs K) (acc : Array Step),
+      stepsFrom (powIndex κ) (powIndex prog.logSize) prog (Vector.ofFn prog.code) img n r acc =
+        (run prog img n r).map fun rf ↦
+          (acc ++ ((List.range n).map fun k ↦
+            stepOf prog ((run prog img k r).getD Regs.initial)).toArray, rf)
+  | 0, r, acc => by simp [stepsFrom]
+  | n + 1, r, acc => by
+    by_cases hr : r = Regs.final prog
+    · simp [stepsFrom, hr, run_succ_of_eq rfl]
+    · rw [stepsFrom, ite_eq_right hr, run_succ_of_ne_final hr,
+        gLogIn_powIndex (LeanVM.Protocol.Halting.logSize_lt prog)]
+      have hread : readIn (powIndex κ) img = img.read := by
+        funext a
+        unfold readIn MemImage.read
+        rw [gLogIn_powIndex hκ]
+      cases hg : gLog? prog.logSize r.pc with
+      | none =>
+        simp [step, Program.fetch, hg]
+      | some i =>
+        have hstep : step prog img r = execute img r (prog.code i) := by
+          simp [step, Program.fetch, hg]
+        rw [hstep]
+        have hci : (Vector.ofFn prog.code)[i] = prog.code i := by simp
+        simp only [hread, hci]
+        cases he : execute img r (prog.code i) with
+        | none =>
+          have he' : executeWith img.read r (prog.code i) = none := he
+          simp [he']
+        | some r' =>
+          have he' : executeWith img.read r (prog.code i) = some r' := he
+          simp only [he']
+          rw [stepsFrom_eq hκ img n r' _]
+          refine Option.map_congr fun rf _ ↦ ?_
+          congr 1
+          rw [List.range_succ_eq_map, List.map_cons, List.map_map]
+          have h0 : stepOf prog ((run prog img 0 r).getD Regs.initial) =
+              ⟨r.pc, r.fp, i.val, prog.code i⟩ := by
+            simp [stepOf, hg, Program.fetch]
+          have hk : ∀ k, (run prog img (k + 1) r) = run prog img k r' := fun k ↦ by
+            rw [run_succ_of_ne_final hr]
+            simp [step, Program.fetch, hg, execute, he']
+          simp only [h0, Function.comp_def, hk]
+          rw [List.toArray_cons, ← Array.append_assoc]
+          rfl
+
+/-- The steps of a trace: the steps taken from its first `t.steps` states. -/
+noncomputable def traceSteps (t : Trace prog) : List Step :=
+  (List.range t.steps).map fun k ↦ stepOf prog ((run prog t.image k Regs.initial).getD
+    Regs.initial)
+
+/-- **The run of a trace** through the indices: its steps when it ends in the final state. -/
+theorem runSteps_eq (t : Trace prog) (hκ : t.κ < 64) :
+    runSteps (powIndex t.κ) (powIndex prog.logSize) prog t =
+      if run prog t.image t.steps Regs.initial = some (Regs.final prog) then
+        some (traceSteps t).toArray
+      else none := by
+  unfold runSteps
+  rw [stepsFrom_eq hκ]
+  cases h : run prog t.image t.steps Regs.initial with
+  | none => simp
+  | some rf =>
+    by_cases hf : rf = Regs.final prog
+    · subst hf; simp [traceSteps]
+    · simp [hf]
+
+/-- The skeletons of the steps of a valid run are the run's. -/
+theorem runSkels_eq_steps {t : Trace prog}
+    (hv : run prog t.image t.steps Regs.initial = some (Regs.final prog)) :
+    (traceSteps t).map Step.toSkel = t.runSkels := by
+  rw [runSkels_eq hv, traceSteps, List.map_map]
+  rfl
+
+/-- A step of a valid run: its slot is its counter's, it fetches its instruction there, and the
+instruction executes. -/
+def StepOk (prog : Program) {κ : ℕ} (img : MemImage κ) (st : Step) : Prop :=
+  ∃ h : st.slot < 2 ^ prog.logSize, st.pc = Parameters.gpow st.slot ∧
+    prog.code ⟨st.slot, h⟩ = st.ins ∧ ∃ next, execute img st.toSkel.regs st.ins = some next
+
+/-- Every step of a valid run is sound. -/
+theorem stepOk_traceSteps {t : Trace prog}
+    (hv : run prog t.image t.steps Regs.initial = some (Regs.final prog)) :
+    ∀ st ∈ traceSteps t, StepOk prog t.image st := by
+  intro st hst
+  obtain ⟨k, hk, rfl⟩ := List.mem_map.mp hst
+  have hk' := List.mem_range.mp hk
+  obtain ⟨ins, hf, hex⟩ := stateAt_exec hv hk'
+  obtain ⟨i, hi, hci⟩ := (Program.fetch_eq_some_iff prog).mp hf
+  have hg : gLog? prog.logSize (stateAt t k).pc = some i :=
+    (gLog?_spec (LeanVM.Protocol.Halting.logSize_lt prog)).mpr hi
+  have hs : stateAt t k = (run prog t.image k Regs.initial).getD Regs.initial := rfl
+  rw [← hs]
+  have hslot : (stepOf prog (stateAt t k)).slot = i := by simp [stepOf, hg]
+  refine ⟨by rw [hslot]; exact i.isLt, ?_, ?_, ⟨stateAt t (k + 1), ?_⟩⟩
+  · simpa [stepOf, hg] using hi
+  · simp [stepOf, hg, hf, hci]
+  · simpa [stepOf, Step.toSkel, Skel.regs, hf] using hex
+
+/-- The counts of the steps of a valid run are `Trace.count`. -/
+theorem opCount_traceSteps {t : Trace prog}
+    (hv : run prog t.image t.steps Regs.initial = some (Regs.final prog)) (op : Opcode) :
+    opCount (traceSteps t).toArray op = t.count op := by
+  rw [Trace.count_eq_runRows hv, ← Trace.count_runSkels, ← runSkels_eq_steps hv]
+  unfold opCount Skel.count Skel.onTable
+  rw [List.countP_toArray, List.countP_eq_length_filter, List.filter_map, List.length_map]
+  rfl
+
+/-- The executable committed size is `Trace.committedSize` at the trace's counts. -/
+theorem committedSizeOf_eq (t : Trace prog) {count : Opcode → ℕ}
+    (h : ∀ op, count op = t.count op) :
+    committedSizeOf prog.logSize t.κ count = t.committedSize := by
+  simp only [committedSizeOf, Trace.committedSize, log2Ceil_eq_clog, h]
+
+/-- **The check of a trace decides a valid execution within the cap.** -/
+theorem checkTrace_iff (input : PublicInput) (t : Trace prog) :
+    checkTrace prog input t = true ↔ ValidExecution prog input t ∧ t.committedSize ≤ 2 ^ 28 := by
+  unfold checkTrace
+  by_cases hb : boundaryOK input t = true
+  · have hB := (boundaryOK_iff input t).mp hb
+    have hκ : t.κ < 64 := by have := hB.2.1; unfold maxLogMem at this; omega
+    rw [hb, Bool.true_and, runSteps_eq t hκ]
+    by_cases hr : run prog t.image t.steps Regs.initial = some (Regs.final prog)
+    · rw [ite_eq_left hr]
+      simp only [decide_eq_true_eq]
+      rw [committedSizeOf_eq t (opCount_traceSteps hr)]
+      exact ⟨fun h ↦ ⟨⟨hB, hr⟩, h⟩, fun h ↦ h.2⟩
+    · rw [ite_eq_right hr]
+      simp only [Bool.false_eq_true, false_iff, not_and]
+      exact fun hv ↦ absurd hv.2 hr
+  · simp only [Bool.not_eq_true] at hb
+    rw [hb, Bool.false_and]
+    simp only [Bool.false_eq_true, false_iff, not_and]
+    exact fun hv ↦ absurd ((boundaryOK_iff input t).mpr hv.1) (by rw [hb]; simp)
+
+/-- **The counts, computed**: on a valid execution the run's step counts are `Trace.count`. -/
+theorem opCount_runSteps {input : PublicInput} {t : Trace prog}
+    (hv : ValidExecution prog input t) :
+    ∃ steps, runSteps (powIndex t.κ) (powIndex prog.logSize) prog t = some steps ∧
+      ∀ op, opCount steps op = t.count op := by
+  have hκ : t.κ < 64 := by have := hv.1.2.1; unfold maxLogMem at this; omega
+  rw [runSteps_eq t hκ, ite_eq_left hv.2]
+  exact ⟨_, rfl, opCount_traceSteps hv.2⟩
+
+end
+
+end LeanVM.Prover
