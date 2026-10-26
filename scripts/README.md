@@ -62,6 +62,11 @@
 - `dump-leanisa-layout-rust.sh <leanVM checkout>`: prints the stacked size and every column's
   offset in the stack the pinned verifier reconstructs for two announced size vectors, for the
   comparison in `tests/LeanerVMTests/Protocol/LeanIsa.lean`; requires `cargo`.
+- `check-proofs-rust.py <leanVM checkout> [files]`: builds `tests/rust/proof_check.rs` against
+  the pinned checkout's crates, offline and without changing its `Cargo.lock`, and runs the Rust
+  verifier on each proof file in the dump format (default: every `tests/vectors/*.proof.gz`), one
+  verdict per file; nonzero exit unless all are accepted. See
+  [the test vectors](../tests/vectors/README.md#checking-with-the-rust-verifier).
 - `dump-fs-chain-rust.sh <leanVM checkout>`: prints the pinned Fiat–Shamir chain's known
   answers (a program's hash and seed, the state after seeding, observes, squeezes and an 8-bit
   grind) and a prover transcript with a root, two round polynomials and a grind, read back by the

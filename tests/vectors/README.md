@@ -33,6 +33,40 @@ also runs `prove` itself, in `Id`, and checks it returns the same proof. The pro
 deterministic: two runs write the same plain file. The compressed file also depends on the
 `gzip` version; compare the decompressed files.
 
+## Checking with the Rust verifier
+
+```sh
+python3 scripts/check-proofs-rust.py <leanVM checkout>   # every tests/vectors/*.proof.gz
+python3 scripts/check-proofs-rust.py <leanVM checkout> a.proof b.proof.gz
+```
+
+[`scripts/check-proofs-rust.py`](../../scripts/check-proofs-rust.py) builds
+[`tests/rust/proof_check.rs`](../rust/proof_check.rs) against the crates of a leanVM checkout at
+`a386121f84292f6fa663aaa3e570c15bc0240ea2`, offline, into the checkout's `target/`, with every
+package at the version the checkout's `Cargo.lock` pins and that lock unchanged, and runs the
+pinned verifier `lean_vm::cpu::verify` on each file, plain or compressed. It prints one line per
+file, `ACCEPT` or `REJECT` with the reason (the verifier's error, or the file's), and exits
+nonzero unless every file is accepted. A file whose `program_hash` is not BLAKE2s of the bytecode table of the program read,
+as the dump script computes it, is rejected before `verify` runs. The public input is passed with
+its third limbs, so a nonzero one reaches the verifier's own check (`cpu/mod.rs:141`); the Lean
+loader does not load such a file. The pinned Rust verifier accepts `fill.proof.gz`.
+
+## `leanervm-check`: one verdict per file
+
+```sh
+lake build leanervm-check
+gunzip -k tests/vectors/fill.proof.gz
+.lake/build/bin/leanervm-check tests/vectors/fill.proof   # or: serve, paths on stdin
+```
+
+[`bench/LeanerVMCheck.lean`](../../bench/LeanerVMCheck.lean), the `leanervm-check` executable, is
+the Lean side of the same check: `Verify.verify` compiled, on plain files only. Per file it prints
+`<file>\t<verdict>\t<stage>\t<microseconds>`: the verdict is `ACCEPT`, `REJECT` or `PARSEFAIL` (the
+loader refuses the file), `INCONSISTENT` if `verify` and `outcomeAt` disagree; the stage is the one
+`outcomeAt` names, followed by `;hashmismatch` when the file's program hash is not the program's
+(`verify` does not read it). `serve` reads the paths from standard input, one per line, and flushes
+after each verdict. The exit status is `0` whatever the verdicts; the lines carry them.
+
 ## Differences from the Rust prover's dumps
 
 - The first line is `leanvm-proof leanerVM`, where the Rust dump names its pin; the loader reads

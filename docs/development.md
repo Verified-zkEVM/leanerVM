@@ -85,7 +85,9 @@ To regenerate one, run `leanervm-prove tests/vectors/fill.proof 1` (about seven 
 memory): it proves, writes the file, reads it back, and checks that `verify` accepts it and
 rejects each mutation at the stage it names; then `gzip -9 -n -f tests/vectors/fill.proof`. The
 prover is deterministic, so the compressed file must not change. To check a stored vector,
-`gunzip -k` it and run `leanervm-verify 1 tests/vectors/fill.proof`.
+`gunzip -k` it and run `leanervm-verify 1 tests/vectors/fill.proof`, or `leanervm-check` on it
+for one verdict line; `python3 scripts/check-proofs-rust.py <leanVM checkout>` runs the pinned
+Rust verifier on every stored vector.
 
 The object files land in each package's own `.lake/build`. A worktree that shares its
 `.lake/packages` with another checkout should build an executable on a private copy of the

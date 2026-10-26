@@ -407,6 +407,18 @@ scalar of a phase is rejected by the next level's grinding check, since the chai
 last level's query message and tail rounds reach WHIR's terminal check through the stream. The
 phases' own checks are exercised on the honest wire by the phase test modules and `whirChecks`.
 
+## `leanervm-check`: one verdict per proof file
+
+`bench/LeanerVMCheck.lean` is the `leanervm-check` executable: `Verify.verify` compiled, on proof
+files in the dump format, one line per file with the verdict and the stage `outcomeAt` names, for
+the differential test against the pinned Rust verifier (`scripts/check-proofs-rust.py`). The
+format of its lines is in [the test vectors' guide](../tests/vectors/README.md).
+
+```sh
+lake build leanervm-check
+.lake/build/bin/leanervm-check tests/vectors/fill.proof   # after gunzip -k; or: serve
+```
+
 ## `leanervm-prove`: the honest prover
 
 `bench/LeanerVMProve.lean` is the `leanervm-prove` executable: the honest non-interactive prover
