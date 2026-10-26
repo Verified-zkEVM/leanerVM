@@ -26,9 +26,10 @@ queried forward and inverse, Keccak-256 the sponge over `π` and Keccak-f[1600] 
   a fresh forward query draws `π x` uniformly among the states that are not yet the output of an
   edge, a fresh inverse query `π⁻¹ y` uniformly among the states that are not yet the input of
   an edge.
-* **Keccak-256** (`keccak256With π`) is `keccak256` (`keccak_hash`, `verifier.py:191-209`) with
-  `π` in place of Keccak-f[1600]: the sponge of rate 136 bytes and capacity 512 bits, the padding
-  `0x01 ‖ 0^* ‖ 0x80`, the zero initial state, the first four lanes as the digest.
+* **Keccak-256** (`keccak256With π`, `RandomPermutation.lean`) is `keccak_hash`
+  (`verifier.py:191-209`) with `π` in place of Keccak-f[1600]: the sponge of rate 136 bytes and
+  capacity 512 bits, the padding `0x01 ‖ 0^* ‖ 0x80`, the zero initial state, the first four lanes
+  as the digest.
 * **The adversary** (`RpmAdversary`) queries `π` and `π⁻¹` only, and outputs a statement and a
   proof; a Keccak-256 evaluation is a sequence of forward queries, which it makes itself. Every
   query and its answer is recorded, in order (`Transcript`, `loggedPerm`).
@@ -42,8 +43,7 @@ transcript contains: a byte string `m` has digest `d` when the transcript holds 
 sponge path of `m`, a chain of forward queries from the zero state, each one absorbing the next
 block into the answer of the one before and each the query that first fixed its edge (an edge
 first fixed by an inverse query extends no path), as the indifferentiability simulator books it
-(`Common.pathsOf`, on the bytes of the states); `d` is the first four lanes of the path's last
-answer. An accepted proof thus commits, except with the bound's probability, to a stack whose
+(`transcriptPaths`); `d` is the first four lanes of the path's last answer. An accepted proof thus commits, except with the bound's probability, to a stack whose
 memory columns hold a valid execution, among the at most `2^18` stacks the word the adversary
 hashed is close to (proved for every admissible shape and word: `LeanVM.candidates_ncard_le`).
 The extractor is deterministic and computable, with running time polynomial in the announced
@@ -148,40 +148,6 @@ noncomputable def Semantics.Trace.committedSize {prog : Program} (t : Trace prog
     15 * height .xor + 15 * height .mulNative + 8 * height .setConstant + 15 * height .deref +
     14 * height .jump + 26 * keccakHeight + 2 ^ 6 * keccakHeight
 
-/-! ### Keccak-256 over a permutation -/
-
-namespace Rpm
-
-section With
-
-variable {m : Type → Type} [Monad m] (π : KState → m KState)
-
-/-- `absorbBlock` with `π` for Keccak-f[1600]: XOR the block's `17` little-endian lanes into the
-rate, then permute. -/
-def absorbBlockWith (state : KState) (block : List UInt8) : m KState :=
-  π (Vector.ofFn fun i ↦
-    if i.val < 17 then Keccak.lane state i ^^^ leLane block i else Keccak.lane state i)
-
-/-- `KeccakHash.absorb` with `π` for Keccak-f[1600]: `blocks` whole blocks of `136` bytes, then
-the padded last block. -/
-def absorbWith : ℕ → KState → List UInt8 → m KState
-  | 0, state, data => absorbBlockWith π state (padBlock data)
-  | blocks + 1, state, data => do
-    let state ← absorbBlockWith π state (data.take rate)
-    absorbWith blocks state (data.drop rate)
-
-end With
-
-end Rpm
-
-/-- **Keccak-256 over a permutation `π`**, in any monad: `keccak256` (`RandomPermutation.lean`)
-with `π` for Keccak-f[1600]. At `π = keccakF` it is `keccak256`
-(`LeanVM.Rpm.keccak256With_keccakF`). -/
-def keccak256With {m : Type → Type} [Monad m] (π : KState → m KState) (data : Bytes) :
-    m Digest := do
-  let state ← Rpm.absorbWith π (data.length / rate) (Vector.replicate 25 0) data
-  pure #v[Keccak.lane state 0, Keccak.lane state 1, Keccak.lane state 2, Keccak.lane state 3]
-
 /-! ### The random permutation -/
 
 /-- The oracle of the random-permutation model: `π` and `π⁻¹` on Keccak states
@@ -239,33 +205,55 @@ noncomputable def rpmExperiment (A : RpmAdversary) : ProbComp RpmOutcome := do
 
 /-! ### The extractor -/
 
-/-- The 200 bytes of a Keccak state, as `common` splits them (32 digest bytes, 104 more bytes
-of the rate, 64 bytes of capacity): byte `8i + k` is byte `k` of lane `i`, little-endian
-(`keccak_hash`'s `unpack("<17Q", ...)`, `verifier.py:207`). -/
-def KState.toRpm (s : KState) : Common.KState :=
-  Common.KState.ofBytes (s.toList.flatMap wordBytes)
+/-- The bytes Keccak-256 absorbs for the message `m`: its whole blocks of `136` bytes, then the
+padded last block (`padBlock`, as `keccak256With` absorbs them). -/
+def padded (m : Bytes) : Bytes :=
+  m.take (rate * (m.length / rate)) ++ padBlock (m.drop (rate * (m.length / rate)))
 
-/-- A digest of 32 bytes as four little-endian words (`Digest.words`, `verifier.py:221-223`). -/
-def Digest.ofRpm (d : Common.KDigest) : Digest :=
-  #v[leLane d.toList 0, leLane d.toList 1, leLane d.toList 2, leLane d.toList 3]
+/-- The message whose padding is `bs`, if any: the prefix of `bs` short of `1` to `136` bytes
+that pads to `bs` (there is at most one). -/
+def unpad (bs : Bytes) : Option Bytes :=
+  ((List.range rate).map fun k ↦ bs.take (bs.length - 1 - k)).find? (padded · = bs)
 
-/-- A query on the bytes of the states. -/
-def permQueryToRpm : Common.PermQuery KState → Common.PermQuery Common.KState
-  | .fwd x => .fwd (KState.toRpm x)
-  | .inv y => .inv (KState.toRpm y)
+/-- The extractor's bookkeeping of a transcript: the edges `(x, π x)` fixed so far, newest first,
+and the states that a chain of forward queries reaches from the zero state, each with the bytes
+its path absorbed, newest first. -/
+structure Replay where
+  /-- The edges `(x, π x)` fixed so far, newest first. -/
+  edges : PermLog
+  /-- The states reached from the zero state, with the bytes their paths absorbed. -/
+  chains : List (KState × Bytes)
 
-/-- **The sponge paths a transcript holds**: the byte strings whose whole padded sponge path the
-transcript holds, each with the path's last answer's bytes (`Common.pathsOf`, the
-indifferentiability simulator's bookkeeping replayed on the transcript, on the bytes of the
-states). -/
-def transcriptPaths (T : Transcript) : List (Bytes × Common.KDigest) :=
-  Common.pathsOf Common.keccakPadding Common.KState.zero
-    (T.map fun e ↦ (permQueryToRpm e.1, KState.toRpm e.2))
+/-- One query and its answer. A forward query `π x` that fixes a new edge extends the chain of a
+state `s` with the capacity of `x` (lanes `17 … 24`), if there is one, by the block that takes
+`s` to `x`: the bytes of their rates' XOR, lanes `0 … 16`. An inverse query extends no chain. -/
+def Replay.step (σ : Replay) : Common.PermQuery KState × KState → Replay
+  | (.fwd x, y) =>
+    match Common.fwdLookup σ.edges x with
+    | some _ => σ
+    | none =>
+      match σ.chains.find? (fun p ↦ p.1.toList.drop 17 = x.toList.drop 17) with
+      | some (s, bs) =>
+        ⟨(x, y) :: σ.edges, (y, bs ++ (List.range 17).flatMap fun i ↦
+          wordBytes (Keccak.lane s i ^^^ Keccak.lane x i)) :: σ.chains⟩
+      | none => ⟨(x, y) :: σ.edges, σ.chains⟩
+  | (.inv y, x) =>
+    match Common.invLookup σ.edges y with
+    | some _ => σ
+    | none => ⟨(x, y) :: σ.edges, σ.chains⟩
 
-/-- The Keccak-256 evaluation of `x` among the paths `P`: the first four lanes of the last answer
-of its path, if `P` holds one. -/
-def hashesOf (P : List (Bytes × Common.KDigest)) (x : Bytes) : Option Digest :=
-  (P.find? (·.1 = x)).map fun p ↦ Digest.ofRpm p.2
+/-- **The Keccak-256 evaluations a transcript holds**: the byte strings whose whole padded sponge
+path the transcript (oldest first) holds as a chain of forward queries from the zero state, each
+query absorbing the next block into the answer of the one before and each the query that first
+fixed its edge, with the first four lanes of the path's last answer (the indifferentiability
+simulator's bookkeeping, replayed). -/
+def transcriptPaths (T : Transcript) : List (Bytes × Digest) :=
+  (T.foldl Replay.step ⟨[], [(Vector.replicate 25 0, [])]⟩).chains.filterMap fun p ↦
+    (unpad p.2).map fun m ↦ (m, #v[p.1[0], p.1[1], p.1[2], p.1[3]])
+
+/-- The Keccak-256 evaluation of `x` among the paths `P`, if `P` holds one. -/
+def hashesOf (P : List (Bytes × Digest)) (x : Bytes) : Option Digest :=
+  (P.find? (·.1 = x)).map (·.2)
 
 /-- An extractor in the random-permutation model: from the adversary's transcript and the
 proof, an execution of the program. -/

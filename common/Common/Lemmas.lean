@@ -1,6 +1,6 @@
 import Common.Prob
 import Common.Sponge
-import Statement.RandomPermutation
+import Common.Defs
 
 /-!
 # Lemmas for games built on the transfer

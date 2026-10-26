@@ -1,5 +1,5 @@
 import Common.Model
-import Statement.RandomPermutation
+import Common.Defs
 
 /-!
 # The sponge construction and Keccak-256

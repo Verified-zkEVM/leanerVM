@@ -1,4 +1,4 @@
-import Statement.RandomPermutation
+import Common.Defs
 
 /-!
 # Games with direct calls of the permutation

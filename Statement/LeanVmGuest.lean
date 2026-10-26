@@ -57,7 +57,7 @@ open scoped ENNReal
 
 LeanDA's deployed algorithms (`LeanDa.commitCodewords`, `LeanDa.vectorDigest`) are `LeanDa.lean`'s
 (`crates/lean_da`, `crates/verifier/src/da.rs`), generic in the hash; here the hash is Keccak-256
-(`keccak`), its digest read as LeanDA's 32 bytes (`toBytes`).
+(`keccak`), its digest read as LeanDA's 32 bytes (`Digest.toBytes`).
 
 An aggregate's DA claim (`DaClaim`) is a blob's Merkle root and the digest of a vector; it is held
 by a matrix committed to the root whose rows are orthogonal to a vector of that digest
@@ -80,15 +80,8 @@ namespace LeanVM.Da
 
 open LeanVM.Parameters LeanVM.Semantics LeanVM.Protocol LeanVM.Protocol.KeccakHash
 
-/-- A digest as LeanDA's 32 bytes: its words, little-endian (`Digest.value`). -/
-def toBytes (d : Digest) : LeanDa.Digest :=
-  ⟨(digestBytes d).toArray, by
-    obtain ⟨⟨l⟩, hl⟩ := d
-    match l, hl with
-    | [_, _, _, _], _ => rfl⟩
-
-/-- Keccak-256 as LeanDA's hash. -/
-def keccak (input : List UInt8) : LeanDa.Digest := toBytes (keccak256 input)
+/-- Keccak-256 as LeanDA's hash: the digest's 32 bytes (`Digest.toBytes`). -/
+def keccak (input : List UInt8) : LeanDa.Digest := (keccak256 input).toBytes
 
 /-- What holds a DA claim: a matrix of codewords and the vector its rows are orthogonal to. -/
 structure Witness where
@@ -101,8 +94,8 @@ structure Witness where
 def Witness.Opens (root vd : Digest) (w : Witness) : Prop :=
   1 ≤ w.rows.length ∧ w.rows.length ≤ LeanDa.maxRows ∧
     (∀ row ∈ w.rows, row.length = 2 ^ LeanDa.logM) ∧
-    LeanDa.commitCodewords keccak w.rows = toBytes root ∧ w.vector.length = 2 ^ LeanDa.logM ∧
-    LeanDa.vectorDigest keccak w.vector = toBytes vd ∧
+    LeanDa.commitCodewords keccak w.rows = root.toBytes ∧ w.vector.length = 2 ^ LeanDa.logM ∧
+    LeanDa.vectorDigest keccak w.vector = vd.toBytes ∧
     ∀ row ∈ w.rows, LeanDa.dot (fun b ↦ w.vector.getD b 0) (fun b ↦ row.getD b 0) = 0
 
 end LeanVM.Da

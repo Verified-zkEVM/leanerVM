@@ -1,6 +1,6 @@
 import VCVio.OracleComp.QueryTracking.RandomOracle.Simulation
 import VCVio.OracleComp.Constructions.SampleableType.Measure
-import Statement.RandomPermutation
+import Common.Defs
 import Common.Game2
 
 /-!

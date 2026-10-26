@@ -3,7 +3,7 @@ import VCVio.OracleComp.Constructions.SampleableType.Measure
 import VCVio.OracleComp.QueryTracking.QueryBound.Basic
 import VCVio.OracleComp.SimSemantics.StateT.StateProjection
 import VCVio.EvalDist.ProbabilityBounds
-import Statement.RandomPermutation
+import Common.Defs
 import Common.Game2
 
 /-!

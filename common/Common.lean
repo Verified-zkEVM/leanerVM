@@ -5,6 +5,7 @@ import Common.Transfer
 import Common.Transfer2
 import Common.Keccak
 import Common.Signature
+import Common.Lanes
 import Common.Duplex.Vec
 import Common.Linear
 
@@ -70,10 +71,20 @@ axioms. -/
 #guard_msgs (whitespace := lax) in
 #print axioms Common.keccak256_transfer2
 
-/-- info: 'Common.SufCma.rpm_le_rom' depends on axioms:
+/-- info: 'Common.SufCma.rpm_le_romB' depends on axioms:
 [propext, Classical.choice, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
-#print axioms Common.SufCma.rpm_le_rom
+#print axioms Common.SufCma.rpm_le_romB
+
+/-- info: 'Common.runK_relabel' depends on axioms:
+[propext, Classical.choice, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms Common.runK_relabel
+
+/-- info: 'Common.isWeightBound_relabel_iff' depends on axioms:
+[propext, Classical.choice, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms Common.isWeightBound_relabel_iff
 
 /-- info: 'Common.SufCma.rpm_bound' depends on axioms:
 [propext, Classical.choice, Quot.sound] -/

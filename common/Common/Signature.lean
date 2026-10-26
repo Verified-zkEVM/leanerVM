@@ -2,7 +2,8 @@ import Common.Keccak
 import Common.Lemmas
 import VCVio.OracleComp.QueryTracking.LoggingOracle.Core
 import VCVio.OracleComp.QueryTracking.WriterCost
-import Statement.RandomPermutation
+import Common.Lanes
+import Common.Rerun
 
 /-!
 # Signature games in the random-permutation model
@@ -137,13 +138,43 @@ noncomputable def romExperiment (S : Scheme D Seed PK SK Req Resp F)
 
 variable (e : KDigest ≃ D)
 
-/-- Calls of `H`, `π` and `π⁻¹`, one each. -/
-def oracleCalls : KSpec.Domain → ℕ
+/-! ## The RPM game on byte states
+
+The statement's RPM game (`rpmGame`) on lanes, written on byte states (`KSpecB`): the game the
+proofs below transfer; `rpmGame_relabel` relates the two. -/
+
+/-- The hash as Keccak-256 read through `e`, on byte states. -/
+def hashKB : QueryImpl (HSpec D) (OracleComp KSpecB) :=
+  fun m ↦ e <$> (liftM (KSpecB.query (.inr (.inl m))) : OracleComp KSpecB KDigest)
+
+/-- The signing oracle on byte states. -/
+def signingOracleKB (S : Scheme D Seed PK SK Req Resp F) (sk : SK) :
+    QueryImpl (Req →ₒ Resp) (WriterT (QueryLog (Req →ₒ Resp)) (OracleComp KSpecB)) :=
+  QueryImpl.withLogging fun r ↦ simulateQ (hashKB e) (S.sign sk r)
+
+/-- The RPM game on byte states. -/
+noncomputable def rpmGameB (S : Scheme D Seed PK SK Req Resp F)
+    (main : PK → OracleComp (KSpecB + (Req →ₒ Resp)) F) : OracleComp KSpecB Bool := do
+  let seed ← liftM S.sample
+  let (pk, sk) ← simulateQ (hashKB e) (S.keygen seed)
+  let ((forgery, log) : F × QueryLog (Req →ₒ Resp)) ←
+    (simulateQ (QueryImpl.ofLift KSpecB (WriterT (QueryLog (Req →ₒ Resp)) (OracleComp KSpecB)) +
+      signingOracleKB e S sk) (main pk)).run
+  let verified ← simulateQ (hashKB e) (S.verify pk forgery)
+  return S.win log forgery && verified
+
+/-- The RPM experiment on byte states. -/
+noncomputable def rpmExperimentB (S : Scheme D Seed PK SK Req Resp F)
+    (main : PK → OracleComp (KSpecB + (Req →ₒ Resp)) F) : ProbComp Bool :=
+  runKB (rpmGameB e S main)
+
+/-- Calls of `H`, `π` and `π⁻¹`, one each, on byte states. -/
+def oracleCallsB : KSpecB.Domain → ℕ
   | .inl _ => 0
   | .inr _ => 1
 
 /-- The permutation calls are the cost of the transfer. -/
-theorem permCalls_eq : permCalls = queryCost (Dg := KDigest) (St := KState) keccakPadding := by
+theorem permCallsB_eq : permCallsB = queryCost (Dg := KDigest) (St := KState) keccakPadding := by
   funext t
   rcases t with n | m | q
   · rfl
@@ -178,14 +209,14 @@ def ofKS : QueryImpl KRom (OracleComp (World D + (Req →ₒ Resp)))
 `π⁻¹` as in the ideal world of indifferentiability (`H` read back through `e⁻¹`, the permutation
 answered by the simulator), its signing requests forwarded. -/
 noncomputable def simAdv :
-    QueryImpl (KSpec + (Req →ₒ Resp))
+    QueryImpl (KSpecB + (Req →ₒ Resp))
       (StateT (SimState KDigest KRest KCap) (OracleComp (World D + (Req →ₒ Resp))))
   | .inl t => StateT.mk fun σ ↦ simulateQ (ofKS e) ((idealImpl keccakPadding t).run σ)
   | .inr r => liftM ((World D + (Req →ₒ Resp)).query (.inr r))
 
 /-- **The ROM adversary of an RPM adversary**: its permutation queries answered by the
 simulator, from its initial state. -/
-noncomputable def romAdv (main : PK → OracleComp (KSpec + (Req →ₒ Resp)) F) (pk : PK) :
+noncomputable def romAdv (main : PK → OracleComp (KSpecB + (Req →ₒ Resp)) F) (pk : PK) :
     OracleComp (World D + (Req →ₒ Resp)) F :=
   (simulateQ (simAdv e) (main pk)).run' (SimState.init KState.zero)
 
@@ -200,8 +231,8 @@ theorem simulateQ_toK_ofK {β : Type} (X : OracleComp KRom β) :
   · simp [ofK, toK, hashR]
 
 /-- The hash of the RPM game is that of the transfer's ROM, lifted. -/
-theorem simulateQ_hashK {β : Type} (X : OracleComp (HSpec D) β) :
-    simulateQ (hashK e) X = liftH (E := KRest) (C := KCap) (simulateQ (hashR e) X) := by
+theorem simulateQ_hashKB {β : Type} (X : OracleComp (HSpec D) β) :
+    simulateQ (hashKB e) X = liftH (E := KRest) (C := KCap) (simulateQ (hashR e) X) := by
   rw [liftH, ← QueryImpl.simulateQ_compose]
   congr 1
 
@@ -242,13 +273,13 @@ theorem run_simulateQ_ofLift_writer {ι : Type} {spec : OracleSpec ι} {L β : T
 the signer**: the ROM game's middle phase, its hash read as the transfer's random oracle, is the
 ideal world of the RPM game's middle phase. -/
 theorem toK_middle (S : Scheme D Seed PK SK Req Resp F) (sk : SK) {α : Type}
-    (oa : OracleComp (KSpec + (Req →ₒ Resp)) α) (σ : SimState KDigest KRest KCap) :
+    (oa : OracleComp (KSpecB + (Req →ₒ Resp)) α) (σ : SimState KDigest KRest KCap) :
     simulateQ (toK e) ((simulateQ (QueryImpl.ofLift (World D)
       (WriterT (QueryLog (Req →ₒ Resp)) (OracleComp (World D))) + signingOracle S sk)
         ((simulateQ (simAdv e) oa).run σ)).run) =
       (fun z ↦ ((z.1.1, z.2), z.1.2)) <$> (simulateQ (idealImpl keccakPadding)
-        ((simulateQ (QueryImpl.ofLift KSpec (WriterT (QueryLog (Req →ₒ Resp)) (OracleComp KSpec)) +
-          signingOracleK e S sk) oa).run)).run σ := by
+        ((simulateQ (QueryImpl.ofLift KSpecB (WriterT (QueryLog (Req →ₒ Resp)) (OracleComp KSpecB)) +
+          signingOracleKB e S sk) oa).run)).run σ := by
   refine simulateQ_state_writer_comm _ _ _ _ _ (fun t s ↦ ?_) oa σ
   rcases t with t | r
   · have h1 : (simAdv (Req := Req) (Resp := Resp) e (.inl t)).run s =
@@ -260,9 +291,9 @@ theorem toK_middle (S : Scheme D Seed PK SK Req Resp F) (sk : SK) {α : Type}
       rcases u with n | m
       · rfl
       · simp [ofKS, ofK, run_liftM_query_writer, Functor.map_map]
-    have h2 : ((QueryImpl.ofLift KSpec (WriterT (QueryLog (Req →ₒ Resp)) (OracleComp KSpec)) +
-        signingOracleK e S sk) (.inl t)).run =
-          (·, ∅) <$> (liftM (KSpec.query t) : OracleComp KSpec _) := rfl
+    have h2 : ((QueryImpl.ofLift KSpecB (WriterT (QueryLog (Req →ₒ Resp)) (OracleComp KSpecB)) +
+        signingOracleKB e S sk) (.inl t)).run =
+          (·, ∅) <$> (liftM (KSpecB.query t) : OracleComp KSpecB _) := rfl
     rw [h1, ← QueryImpl.simulateQ_compose, run_simulateQ_writer_of_run _ _ h3, simulateQ_map,
       simulateQ_toK_ofK, h2, simulateQ_map, StateT.run_map, Functor.map_map,
       simulateQ_spec_query]
@@ -276,16 +307,16 @@ theorem toK_middle (S : Scheme D Seed PK SK Req Resp F) (sk : SK) {α : Type}
           (.inr r)).run = (fun u ↦ (u, [⟨r, u⟩])) <$>
             (liftM (S.sign sk r : OracleComp (HSpec D) Resp) : OracleComp (World D) Resp) := by
       simp [signingOracle]
-    have h3 : ((QueryImpl.ofLift KSpec (WriterT (QueryLog (Req →ₒ Resp)) (OracleComp KSpec)) +
-        signingOracleK e S sk) (.inr r)).run = (fun u ↦ (u, [⟨r, u⟩])) <$>
-          simulateQ (hashK e) (S.sign sk r) := by
-      simp [signingOracleK]
+    have h3 : ((QueryImpl.ofLift KSpecB (WriterT (QueryLog (Req →ₒ Resp)) (OracleComp KSpecB)) +
+        signingOracleKB e S sk) (.inr r)).run = (fun u ↦ (u, [⟨r, u⟩])) <$>
+          simulateQ (hashKB e) (S.sign sk r) := by
+      simp [signingOracleKB]
     have h4 : simulateQ (toK e)
         (liftM (S.sign sk r : OracleComp (HSpec D) Resp) : OracleComp (World D) Resp) =
           simulateQ (hashR e) (S.sign sk r) :=
       QueryImpl.simulateQ_liftComp_right_eq_of_apply (toK e) (hashR e) (fun _ ↦ rfl) _
     rw [h1, simulateQ_map, simulateQ_spec_query, WriterT.run_map', h2, h3, simulateQ_map,
-      simulateQ_map, simulateQ_map, h4, simulateQ_hashK, StateT.run_map, run_idealImpl_liftH,
+      simulateQ_map, simulateQ_map, h4, simulateQ_hashKB, StateT.run_map, run_idealImpl_liftH,
       Functor.map_map, Functor.map_map, Functor.map_map]
     rfl
 
@@ -299,10 +330,10 @@ noncomputable def preR (S : Scheme D Seed PK SK Req Resp F) : OracleComp KRom (P
 
 /-- The adversary of the transfer: the RPM adversary with the signing oracle. -/
 noncomputable def advK (S : Scheme D Seed PK SK Req Resp F)
-    (main : PK → OracleComp (KSpec + (Req →ₒ Resp)) F) (x : PK × SK) :
-    OracleComp KSpec (F × QueryLog (Req →ₒ Resp)) :=
-  (simulateQ (QueryImpl.ofLift KSpec (WriterT (QueryLog (Req →ₒ Resp)) (OracleComp KSpec)) +
-    signingOracleK e S x.2) (main x.1)).run
+    (main : PK → OracleComp (KSpecB + (Req →ₒ Resp)) F) (x : PK × SK) :
+    OracleComp KSpecB (F × QueryLog (Req →ₒ Resp)) :=
+  (simulateQ (QueryImpl.ofLift KSpecB (WriterT (QueryLog (Req →ₒ Resp)) (OracleComp KSpecB)) +
+    signingOracleKB e S x.2) (main x.1)).run
 
 /-- The honest part after the adversary: verify the forgery, hashing in the transfer's ROM. -/
 noncomputable def postR (S : Scheme D Seed PK SK Req Resp F) (x : PK × SK)
@@ -312,21 +343,21 @@ noncomputable def postR (S : Scheme D Seed PK SK Req Resp F) (x : PK × SK)
 
 /-- A coin computation, lifted. -/
 theorem liftH_liftM {β : Type} (p : ProbComp β) :
-    liftH (E := KRest) (C := KCap) (liftM p : OracleComp KRom β) = (liftM p : OracleComp KSpec β) := by
+    liftH (E := KRest) (C := KCap) (liftM p : OracleComp KRom β) = (liftM p : OracleComp KSpecB β) := by
   change simulateQ hEmbed (OracleComp.liftComp p _) = OracleComp.liftComp p _
   rw [QueryImpl.simulateQ_liftComp_left_eq_of_apply hEmbed (fun n ↦ hEmbed (.inl n))
     (fun _ ↦ rfl), OracleComp.liftComp_def]
   rfl
 
 /-- **The RPM game has the transfer's shape.** -/
-theorem rpmGame_eq (S : Scheme D Seed PK SK Req Resp F)
-    (main : PK → OracleComp (KSpec + (Req →ₒ Resp)) F) :
-    rpmGame e S main = Common.rpmGame (preR e S) (advK e S main) (postR e S) := by
+theorem rpmGameB_eq (S : Scheme D Seed PK SK Req Resp F)
+    (main : PK → OracleComp (KSpecB + (Req →ₒ Resp)) F) :
+    rpmGameB e S main = Common.rpmGame (preR e S) (advK e S main) (postR e S) := by
   have h1 := liftH_liftM S.sample
-  have h2 := simulateQ_hashK e (D := D) (β := Bool)
-  have h3 := simulateQ_hashK e (D := D) (β := PK × SK)
+  have h2 := simulateQ_hashKB e (D := D) (β := Bool)
+  have h3 := simulateQ_hashKB e (D := D) (β := PK × SK)
   simp only [liftH] at h1 h2 h3
-  simp only [rpmGame, Common.rpmGame, preR, postR, advK, liftH, simulateQ_bind, bind_assoc,
+  simp only [rpmGameB, Common.rpmGame, preR, postR, advK, liftH, simulateQ_bind, bind_assoc,
     h1, ← h2, ← h3, simulateQ_pure]
 
 /-- Coins, read in the transfer's ROM. -/
@@ -346,7 +377,7 @@ theorem simulateQ_toK_liftM_hash {β : Type} (X : OracleComp (HSpec D) β) :
 transfer's ROM, it is the transfer's ROM game against `advS` of the RPM adversary with the
 signer. -/
 theorem simulateQ_toK_romGame (S : Scheme D Seed PK SK Req Resp F)
-    (main : PK → OracleComp (KSpec + (Req →ₒ Resp)) F) :
+    (main : PK → OracleComp (KSpecB + (Req →ₒ Resp)) F) :
     simulateQ (toK e) (romGame S (romAdv e main)) =
       preR e S >>= fun x ↦ advS keccakPadding KState.zero (advK e S main x) >>= fun a ↦
         postR e S x a := by
@@ -426,8 +457,8 @@ theorem isWeightBound_liftM_probComp_krom {β : Type} (p : ProbComp β) :
   isWeightBound_liftM_probComp romCalls (fun _ ↦ rfl) p
 
 /-- **Each step of the ideal world makes at most one hash call**, none for a coin. -/
-theorem isWeightBound_idealImpl (t : KSpec.Domain) (s : SimState KDigest KRest KCap) :
-    IsWeightBound ((idealImpl keccakPadding t).run s) romCalls (oracleCalls t) := by
+theorem isWeightBound_idealImpl (t : KSpecB.Domain) (s : SimState KDigest KRest KCap) :
+    IsWeightBound ((idealImpl keccakPadding t).run s) romCalls (oracleCallsB t) := by
   have hu : IsWeightBound (liftM ($ᵗ KState) : OracleComp KRom KState) romCalls 0 :=
     isWeightBound_liftM_probComp_krom _
   rcases t with n | m | q
@@ -506,7 +537,7 @@ theorem count_le_of_isWeightBound {β : Type} {Y : OracleComp (World D) β} {Q :
 
 /-- The ideal world of a game of the transfer's shape is its ROM game against `advS`. -/
 theorem run'_idealImpl_rpmGame {β γ δ : Type} (pre : OracleComp KRom β)
-    (A : β → OracleComp KSpec γ) (post : β → γ → OracleComp KRom δ) :
+    (A : β → OracleComp KSpecB γ) (post : β → γ → OracleComp KRom δ) :
     (simulateQ (idealImpl keccakPadding) (Common.rpmGame pre A post)).run'
         (SimState.init KState.zero) =
       pre >>= fun x ↦ advS keccakPadding KState.zero (A x) >>= fun a ↦ post x a := by
@@ -535,21 +566,21 @@ theorem prob_romExperiment (S : Scheme D Seed PK SK Req Resp F)
   rw [← h2, prEvent_map]
 
 /-- **The RPM game against the ROM game.** For an RPM adversary whose game makes at most `Q`
-permutation calls (`permCalls`) and at most `q` calls of `H`, `π` and `π⁻¹` (`oracleCalls`) on
+permutation calls (`permCallsB`) and at most `q` calls of `H`, `π` and `π⁻¹` (`oracleCallsB`) on
 every path, the ROM adversary `romAdv e main` wins the ROM game with probability at least the RPM
 one minus `Q² / 2^509`, and its ROM experiment makes at most `q` hash calls on every outcome. -/
-theorem rpm_le_rom (S : Scheme D Seed PK SK Req Resp F)
-    (main : PK → OracleComp (KSpec + (Req →ₒ Resp)) F) (q Q : ℕ)
-    (hq : IsWeightBound (rpmGame e S main) oracleCalls q)
-    (hQ : IsWeightBound (rpmGame e S main) permCalls Q) :
-    Pr{let b ← rpmExperiment e S main}[b = true] ≤
+theorem rpm_le_romB (S : Scheme D Seed PK SK Req Resp F)
+    (main : PK → OracleComp (KSpecB + (Req →ₒ Resp)) F) (q Q : ℕ)
+    (hq : IsWeightBound (rpmGameB e S main) oracleCallsB q)
+    (hQ : IsWeightBound (rpmGameB e S main) permCallsB Q) :
+    Pr{let b ← rpmExperimentB e S main}[b = true] ≤
         Pr{let r ← romExperiment S (romAdv e main)}[r.1 = true] + (Q ^ 2 : ℝ≥0∞) / 2 ^ 509 ∧
       ∀ r ∈ support (romExperiment S (romAdv e main)), r.2 ≤ q := by
-  rw [rpmGame_eq] at hq hQ
-  rw [permCalls_eq] at hQ
+  rw [rpmGameB_eq] at hq hQ
+  rw [permCallsB_eq] at hQ
   constructor
   · obtain ⟨h1, -⟩ := keccak256_transfer (preR e S) (advK e S main) (postR e S) Q hQ (· = true)
-    rw [rpmExperiment, rpmGame_eq, prob_romExperiment, ← (romRun_toK e _).prEvent_eq,
+    rw [rpmExperimentB, rpmGameB_eq, prob_romExperiment, ← (romRun_toK e _).prEvent_eq,
       simulateQ_toK_romGame]
     exact h1
   · have h1 : IsWeightBound (simulateQ (toK e) (romGame S (romAdv e main))) romCalls q := by
@@ -566,6 +597,130 @@ theorem rpm_le_rom (S : Scheme D Seed PK SK Req Resp F)
 hash calls wins with probability at most `q / 2^bits` (`q ≥ 1`), then every RPM adversary whose
 game makes at most `q ≥ 1` calls of `H`, `π` and `π⁻¹`, and at most `Q` permutation calls, on
 every path, wins the RPM game with probability at most `q / 2^bits + Q² / 2^509`. -/
+theorem rpm_boundB (S : Scheme D Seed PK SK Req Resp F) (bits : ℕ)
+    (hrom : ∀ q, 1 ≤ q → ∀ main : PK → OracleComp (World D + (Req →ₒ Resp)) F,
+      (∀ r ∈ support (romExperiment S main), r.2 ≤ q) →
+        Pr{let r ← romExperiment S main}[r.1 = true] ≤ q / ((2 ^ bits : ℕ) : ℝ≥0∞))
+    (main : PK → OracleComp (KSpecB + (Req →ₒ Resp)) F) (q Q : ℕ) (hq1 : 1 ≤ q)
+    (hq : IsWeightBound (rpmGameB e S main) oracleCallsB q)
+    (hQ : IsWeightBound (rpmGameB e S main) permCallsB Q) :
+    Pr{let b ← rpmExperimentB e S main}[b = true] ≤
+      q / ((2 ^ bits : ℕ) : ℝ≥0∞) + (Q ^ 2 : ℝ≥0∞) / 2 ^ 509 := by
+  obtain ⟨h1, h2⟩ := rpm_le_romB e S main q Q hq hQ
+  exact h1.trans (add_le_add (hrom q hq1 _ h2) le_rfl)
+
+/-- A call of `H`, `π` or `π⁻¹` makes at least one permutation call. -/
+theorem oracleCallsB_le_permCallsB (t : KSpecB.Domain) : oracleCallsB t ≤ permCallsB t := by
+  rcases t with n | m | q <;> simp [oracleCallsB, permCallsB]
+
+/-- **The RPM bound in permutation calls alone**: `Q / 2^bits + Q² / 2^509` for an adversary
+whose game makes at most `Q ≥ 1` permutation calls on every path. -/
+theorem rpm_bound_permB (S : Scheme D Seed PK SK Req Resp F) (bits : ℕ)
+    (hrom : ∀ q, 1 ≤ q → ∀ main : PK → OracleComp (World D + (Req →ₒ Resp)) F,
+      (∀ r ∈ support (romExperiment S main), r.2 ≤ q) →
+        Pr{let r ← romExperiment S main}[r.1 = true] ≤ q / ((2 ^ bits : ℕ) : ℝ≥0∞))
+    (main : PK → OracleComp (KSpecB + (Req →ₒ Resp)) F) (Q : ℕ) (hQ1 : 1 ≤ Q)
+    (hQ : IsWeightBound (rpmGameB e S main) permCallsB Q) :
+    Pr{let b ← rpmExperimentB e S main}[b = true] ≤
+      Q / ((2 ^ bits : ℕ) : ℝ≥0∞) + (Q ^ 2 : ℝ≥0∞) / 2 ^ 509 :=
+  rpm_boundB e S bits hrom main Q Q hQ1 (hQ.mono_weight oracleCallsB_le_permCallsB) hQ
+
+/-! ## The statement's RPM game, on lanes
+
+The statement's game (`rpmGame`) queries `π` and `π⁻¹` on lane states; read on byte states
+(`Common.relabel`) it is the game above against the adversary with its permutation queries read
+on bytes (`rpmGame_relabel`), with the same distribution (`Common.runK_relabel`) and the same
+calls (`Common.isWeightBound_relabel'`). -/
+
+/-- Calls of `H`, `π` and `π⁻¹`, one each. -/
+def oracleCalls : KSpec.Domain → ℕ
+  | .inl _ => 0
+  | .inr _ => 1
+
+/-- A call of `H`, `π` or `π⁻¹` makes at least one permutation call. -/
+theorem oracleCalls_le_permCalls (t : KSpec.Domain) : oracleCalls t ≤ permCalls t := by
+  rcases t with n | m | q <;> simp [oracleCalls, permCalls]
+
+/-- The adversary's oracles read on byte states: its permutation queries through `relabel`,
+its signing requests as they are. -/
+def relabelS : QueryImpl (KSpec + (Req →ₒ Resp)) (OracleComp (KSpecB + (Req →ₒ Resp)))
+  | .inl t => simulateQ (fun u ↦ liftM ((KSpecB + (Req →ₒ Resp)).query (.inl u)) :
+      QueryImpl KSpecB (OracleComp (KSpecB + (Req →ₒ Resp)))) (relabel t)
+  | .inr r => liftM ((KSpecB + (Req →ₒ Resp)).query (.inr r))
+
+/-- **A writer layer through a simulation**: simulating a writer's run with `h` is running the
+writer `f₂` on the computation simulated with `g`, when it is so query by query. -/
+theorem simulateQ_writer_run_comm {ι ι₁ ι₂ ι₃ : Type} {spec : OracleSpec ι}
+    {spec₁ : OracleSpec ι₁} {spec₂ : OracleSpec ι₂} {spec₃ : OracleSpec ι₃} {L α : Type}
+    [EmptyCollection L] [Append L] [LawfulAppend L]
+    (f₁ : QueryImpl spec (WriterT L (OracleComp spec₁))) (h : QueryImpl spec₁ (OracleComp spec₂))
+    (g : QueryImpl spec (OracleComp spec₃)) (f₂ : QueryImpl spec₃ (WriterT L (OracleComp spec₂)))
+    (hstep : ∀ t, simulateQ h ((f₁ t).run) = (simulateQ f₂ (g t)).run) (oa : OracleComp spec α) :
+    simulateQ h ((simulateQ f₁ oa).run) = (simulateQ f₂ (simulateQ g oa)).run := by
+  induction oa using OracleComp.inductionOn with
+  | pure a => simp
+  | query_bind t k ih =>
+    simp only [simulateQ_bind, simulateQ_query, OracleQuery.input_query,
+      OracleQuery.cont_query, id_map, WriterT.run_bind', simulateQ_map, hstep, ih]
+
+/-- The hash of the statement's game, read on byte states. -/
+theorem simulateQ_relabel_hashK {β : Type} (X : OracleComp (HSpec D) β) :
+    simulateQ relabel (simulateQ (hashK e) X) = simulateQ (hashKB e) X := by
+  rw [← QueryImpl.simulateQ_compose]
+  congr 1
+
+/-- **The statement's RPM game read on byte states is the game on byte states**, against the
+adversary with its permutation queries read on bytes. -/
+theorem rpmGame_relabel (S : Scheme D Seed PK SK Req Resp F)
+    (main : PK → OracleComp (KSpec + (Req →ₒ Resp)) F) :
+    simulateQ relabel (rpmGame e S main) =
+      rpmGameB e S fun pk ↦ simulateQ relabelS (main pk) := by
+  have hmid : ∀ (sk : SK) {α : Type} (oa : OracleComp (KSpec + (Req →ₒ Resp)) α),
+      simulateQ relabel ((simulateQ (QueryImpl.ofLift KSpec
+        (WriterT (QueryLog (Req →ₒ Resp)) (OracleComp KSpec)) + signingOracleK e S sk) oa).run) =
+      (simulateQ (QueryImpl.ofLift KSpecB
+        (WriterT (QueryLog (Req →ₒ Resp)) (OracleComp KSpecB)) + signingOracleKB e S sk)
+          (simulateQ relabelS oa)).run := by
+    intro sk α oa
+    refine simulateQ_writer_run_comm _ _ _ _ (fun t ↦ ?_) oa
+    rcases t with t | r
+    · have h2 : ((QueryImpl.ofLift KSpec (WriterT (QueryLog (Req →ₒ Resp)) (OracleComp KSpec)) +
+          signingOracleK e S sk) (.inl t)).run =
+            (·, ∅) <$> (liftM (KSpec.query t) : OracleComp KSpec _) := rfl
+      have h5 : (QueryImpl.ofLift KSpecB (WriterT (QueryLog (Req →ₒ Resp)) (OracleComp KSpecB)) +
+          signingOracleKB e S sk) ∘ₛ (fun u ↦ liftM ((KSpecB + (Req →ₒ Resp)).query (.inl u)) :
+            QueryImpl KSpecB (OracleComp (KSpecB + (Req →ₒ Resp)))) =
+          QueryImpl.ofLift KSpecB (WriterT (QueryLog (Req →ₒ Resp)) (OracleComp KSpecB)) := by
+        funext u
+        simp only [QueryImpl.apply_compose, simulateQ_spec_query]
+        rfl
+      rw [h2, simulateQ_map, simulateQ_spec_query, relabelS, ← QueryImpl.simulateQ_compose, h5,
+        run_simulateQ_ofLift_writer]
+      rfl
+    · have h3 : ((QueryImpl.ofLift KSpec (WriterT (QueryLog (Req →ₒ Resp)) (OracleComp KSpec)) +
+          signingOracleK e S sk) (.inr r)).run = (fun u ↦ (u, [⟨r, u⟩])) <$>
+            simulateQ (hashK e) (S.sign sk r) := by
+        simp [signingOracleK]
+      have h3' : ((QueryImpl.ofLift KSpecB (WriterT (QueryLog (Req →ₒ Resp)) (OracleComp KSpecB)) +
+          signingOracleKB e S sk) (.inr r)).run = (fun u ↦ (u, [⟨r, u⟩])) <$>
+            simulateQ (hashKB e) (S.sign sk r) := by
+        simp [signingOracleKB]
+      rw [h3, simulateQ_map, simulateQ_relabel_hashK, relabelS, simulateQ_spec_query, h3']
+  simp only [rpmGame, rpmGameB, simulateQ_bind, simulateQ_pure, simulateQ_relabel_hashK, hmid]
+  rw [simulateQ_liftM_of_coins _ (fun n ↦ rfl)]
+
+/-- The statement's RPM experiment is the experiment on byte states, in distribution. -/
+theorem rpmExperiment_relabel (S : Scheme D Seed PK SK Req Resp F)
+    (main : PK → OracleComp (KSpec + (Req →ₒ Resp)) F) :
+    rpmExperiment e S main =ᵈ rpmExperimentB e S fun pk ↦ simulateQ relabelS (main pk) := by
+  rw [rpmExperiment, rpmExperimentB, ← rpmGame_relabel]
+  exact runK_relabel _
+
+/-- **The RPM bound from a ROM bound** (`rpm_boundB`, on lanes). If every ROM adversary whose
+experiment makes at most `q` hash calls wins with probability at most `q / 2^bits` (`q ≥ 1`),
+then every RPM adversary whose game makes at most `q ≥ 1` calls of `H`, `π` and `π⁻¹`, and at
+most `Q` permutation calls, on every path, wins the RPM game with probability at most
+`q / 2^bits + Q² / 2^509`. -/
 theorem rpm_bound (S : Scheme D Seed PK SK Req Resp F) (bits : ℕ)
     (hrom : ∀ q, 1 ≤ q → ∀ main : PK → OracleComp (World D + (Req →ₒ Resp)) F,
       (∀ r ∈ support (romExperiment S main), r.2 ≤ q) →
@@ -575,12 +730,13 @@ theorem rpm_bound (S : Scheme D Seed PK SK Req Resp F) (bits : ℕ)
     (hQ : IsWeightBound (rpmGame e S main) permCalls Q) :
     Pr{let b ← rpmExperiment e S main}[b = true] ≤
       q / ((2 ^ bits : ℕ) : ℝ≥0∞) + (Q ^ 2 : ℝ≥0∞) / 2 ^ 509 := by
-  obtain ⟨h1, h2⟩ := rpm_le_rom e S main q Q hq hQ
-  exact h1.trans (add_le_add (hrom q hq1 _ h2) le_rfl)
-
-/-- A call of `H`, `π` or `π⁻¹` makes at least one permutation call. -/
-theorem oracleCalls_le_permCalls (t : KSpec.Domain) : oracleCalls t ≤ permCalls t := by
-  rcases t with n | m | q <;> simp [oracleCalls, permCalls]
+  have hq' := isWeightBound_relabel' oracleCalls oracleCallsB (fun _ ↦ le_rfl) (fun _ ↦ le_rfl)
+    (fun _ ↦ le_rfl) hq
+  have hQ' := isWeightBound_relabel' permCalls permCallsB (fun _ ↦ le_rfl) (fun _ ↦ le_rfl)
+    (fun _ ↦ le_rfl) hQ
+  rw [rpmGame_relabel] at hq' hQ'
+  rw [(rpmExperiment_relabel e S main).prEvent_eq]
+  exact rpm_boundB e S bits hrom _ q Q hq1 hq' hQ'
 
 /-- **The RPM bound in permutation calls alone**: `Q / 2^bits + Q² / 2^509` for an adversary
 whose game makes at most `Q ≥ 1` permutation calls on every path. -/

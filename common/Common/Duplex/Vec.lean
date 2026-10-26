@@ -1,7 +1,7 @@
 import Common.Duplex.Main
 import Common.Rerun
 import VCVio.OracleComp.Constructions.SampleableType.Measure
-import Statement.RandomPermutation
+import Common.Defs
 
 /-!
 # The challenges as one random oracle of vectors

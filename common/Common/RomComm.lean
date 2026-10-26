@@ -1,5 +1,5 @@
 import Common.Prob
-import Statement.RandomPermutation
+import Common.Defs
 
 /-!
 # Random-oracle queries commute

@@ -12,11 +12,12 @@ public import VCVio.EvalDist.Monad.UniformTable
 /-!
 # Keccak and the random-permutation model
 
-Read first (`Statement/README.md` states the model): Keccak-f[1600] and Keccak-256 as leanVM
-computes them (namespaces `LeanVM.*`), then the model (namespace `Common`): `π` and `π⁻¹` lazily
-sampled, the sponge over a permutation, a cost bounded on every path, the oracles of the model
-and a game's run (`KSpec`, `permCalls`, `runK`), and the SUF-CMA game of a signature scheme
-(`SufCma`).
+Read first (`Statement/README.md` states the model): Keccak-f[1600] as leanVM computes it, and
+Keccak-256 over any permutation of its state (namespaces `LeanVM.*`), then the model (namespace
+`Common`): `π` and `π⁻¹` lazily sampled, a cost bounded on every path, the oracles of the model
+and a game's run (`KSpec`, `permCalls`, `runK`: Keccak-256 over `π`), and the SUF-CMA game of a
+signature scheme (`SufCma`). The permutation's state is one type throughout, `KState`, `25` lanes
+of `64` bits.
 -/
 
 @[expose] public section
@@ -33,8 +34,9 @@ Transcribed from `python-verifier/verifier.py` at leanVM
 `94ee12ff6b2a3d42ba8328e22d09443692e4800b` (branch `main`): the round constants, rotation
 offsets and lane permutation (`KECCAK_RC`, `KECCAK_RHO`, `KECCAK_PI`, `verifier.py:1207-1214`),
 the permutation `keccak_f` (`verifier.py:360-375`), and the hash `keccak_hash`
-(`verifier.py:191-209`): Keccak-256 as Ethereum computes it, rate `136` bytes, the message padded
-with `0x01 ‖ 0^* ‖ 0x80` (FIPS 202's SHA3-256 would put `0x06` first). The Rust is
+(`verifier.py:191-209`) over any permutation `π` in any monad (`keccak256With`), the deployed one
+over Keccak-f[1600] (`keccak256`): Keccak-256 as Ethereum computes it, rate `136` bytes, the
+message padded with `0x01 ‖ 0^* ‖ 0x80` (FIPS 202's SHA3-256 would put `0x06` first). The Rust is
 `crates/verifier/src/hash.rs` and `crates/primitives/src/hash.rs`.
 
 A state is `25` lanes of `64` bits, lane `x + 5y` at index `x + 5y`.
@@ -132,10 +134,14 @@ def padLast : UInt8 := 0x80
 def leLane (bytes : List UInt8) (i : ℕ) : UInt64 :=
   (List.range 8).foldl (fun acc k ↦ acc ||| ((bytes.getD (8 * i + k) 0).toUInt64 <<< (8 * k).toUInt64)) 0
 
-/-- Absorb one block of `136` bytes: XOR its `17` lanes into the rate, then permute
-(`verifier.py:207-208`). -/
-def absorbBlock (state : KState) (block : List UInt8) : KState :=
-  keccakF (Vector.ofFn fun i ↦
+section With
+
+variable {m : Type → Type} [Monad m] (π : KState → m KState)
+
+/-- Absorb one block of `136` bytes with the permutation `π`: XOR its `17` lanes into the rate,
+then permute (`verifier.py:207-208`). -/
+def absorbBlockWith (state : KState) (block : List UInt8) : m KState :=
+  π (Vector.ofFn fun i ↦
     if i.val < 17 then Keccak.lane state i ^^^ leLane block i else Keccak.lane state i)
 
 /-- The last block: the remaining `0` to `135` bytes, `PAD_FIRST` after them, zeros, and
@@ -145,18 +151,26 @@ def padBlock (rest : List UInt8) : List UInt8 :=
   ((rest ++ List.replicate (rate - rest.length) 0).modify rest.length (· ^^^ padFirst)).modify
     (rate - 1) (· ^^^ padLast)
 
-/-- Absorb `data` into `state`: `blocks` whole blocks of `136` bytes, then the padded last block,
-which holds the remaining `0` to `135` bytes. -/
-def absorb : (blocks : ℕ) → KState → List UInt8 → KState
-  | 0, state, data => absorbBlock state (padBlock data)
-  | blocks + 1, state, data => absorb blocks (absorbBlock state (data.take rate)) (data.drop rate)
+/-- Absorb `data` into `state` with `π`: `blocks` whole blocks of `136` bytes, then the padded
+last block, which holds the remaining `0` to `135` bytes. -/
+def absorbWith : (blocks : ℕ) → KState → List UInt8 → m KState
+  | 0, state, data => absorbBlockWith π state (padBlock data)
+  | blocks + 1, state, data => do
+    let state ← absorbBlockWith π state (data.take rate)
+    absorbWith blocks state (data.drop rate)
 
-/-- **Keccak-256 of a byte string** (`keccak_hash`, `verifier.py:200-209`): `⌊len/136⌋` whole
-blocks, then the padded last one, from the zero state; the digest is the first four lanes. The
-Python pads the whole string first (`len // RATE + 1` blocks); the blocks are the same. -/
-def keccak256 (data : List UInt8) : Digest :=
-  let state := absorb (data.length / rate) (Vector.replicate 25 0) data
-  #v[Keccak.lane state 0, Keccak.lane state 1, Keccak.lane state 2, Keccak.lane state 3]
+/-- **Keccak-256 over a permutation `π`**, in any monad (`keccak_hash`, `verifier.py:200-209`, with
+`π` for Keccak-f[1600]): `⌊len/136⌋` whole blocks, then the padded last one, from the zero state;
+the digest is the first four lanes. The Python pads the whole string first (`len // RATE + 1`
+blocks); the blocks are the same. -/
+def keccak256With (data : List UInt8) : m Digest := do
+  let state ← absorbWith π (data.length / rate) (Vector.replicate 25 0) data
+  pure #v[Keccak.lane state 0, Keccak.lane state 1, Keccak.lane state 2, Keccak.lane state 3]
+
+end With
+
+/-- **Keccak-256 of a byte string** (`keccak_hash`): Keccak-256 over Keccak-f[1600]. -/
+def keccak256 (data : List UInt8) : Digest := Id.run (keccak256With (fun s ↦ pure (keccakF s)) data)
 
 /-! ### Bytes of words and digests -/
 
@@ -168,6 +182,13 @@ def wordBytes (w : UInt64) : List UInt8 :=
 def digestBytes (d : Digest) : List UInt8 := d.toList.flatMap wordBytes
 
 end KeccakHash
+
+/-- The 32 bytes of a digest as a vector: Keccak-256's output as the model's oracle answers it. -/
+def Digest.toBytes (d : Digest) : Vector UInt8 32 :=
+  ⟨(KeccakHash.digestBytes d).toArray, by
+    obtain ⟨⟨l⟩, hl⟩ := d
+    match l, hl with
+    | [_, _, _, _], _ => rfl⟩
 
 end LeanVM.Protocol
 
@@ -213,7 +234,6 @@ noncomputable def uniformAvoiding (l : List S) : ProbComp S :=
     Subtype.val <$> ($ᵗ {y // y ∉ l})
   else $ᵗ S
 
-
 /-- **The lazily sampled random permutation.** A recorded point is answered from the log; a
 fresh forward query `π x` draws `π x` uniformly outside the current range and records `(x, π x)`;
 a fresh inverse query `π⁻¹ y` draws `π⁻¹ y` uniformly outside the current domain and records
@@ -227,123 +247,6 @@ noncomputable def lazyPerm : QueryImpl (permSpec S) (StateT (PermLog S) ProbComp
       match invLookup E y with
       | some x => pure (x, E)
       | none => (fun x ↦ (x, (x, y) :: E)) <$> uniformAvoiding (E.map Prod.fst)
-
-
-/-! ## The sponge over a permutation; Keccak-256's state, blocks and padding -/
-
-/-- Byte vectors XOR bytewise: absorbing a block XORs it into the state. -/
-instance (n : ℕ) : XorOp (Vector UInt8 n) where
-  xor a b := Vector.zipWith (· ^^^ ·) a b
-
-variable {Dg E C Msg : Type} [XorOp Dg] [XorOp E]
-
-/-- The state of a sponge with digest part `Dg`, rest of the rate `E` and capacity `C`. -/
-abbrev SpState (Dg E C : Type) := (Dg × E) × C
-
-/-- The digest part of a state: the first component of the rate. -/
-abbrev SpState.out (s : SpState Dg E C) : Dg := s.1.1
-
-/-- XOR on the rate, componentwise. -/
-def rxor (a b : Dg × E) : Dg × E := (a.1 ^^^ b.1, a.2 ^^^ b.2)
-
-/-- Absorbing a block: XOR it into the rate, keep the capacity. -/
-def absorb (s : SpState Dg E C) (B : Dg × E) : SpState Dg E C := (rxor s.1 B, s.2)
-
-/-- The block that takes the state `s` to the state `x` with the same capacity. -/
-def blockTo (s x : SpState Dg E C) : Dg × E := rxor s.1 x.1
-
-/-- Absorb the blocks `bs` from the state `s`: XOR each into the rate and permute with `π`. -/
-def absorbAll {m : Type → Type} [Monad m] (π : SpState Dg E C → m (SpState Dg E C)) :
-    SpState Dg E C → List (Dg × E) → m (SpState Dg E C)
-  | s, [] => pure s
-  | s, B :: bs => do
-    let y ← π (absorb s B)
-    absorbAll π y bs
-
-
-/-- A sponge padding: messages to lists of blocks, with a decoder. The statement uses only `pad`
-and `unpad`; the laws (`Padding.Lawful`: the decoder recognises exactly the paddings, which are
-nonempty) are proved for `keccakPadding` in `common`. -/
-structure Padding (Msg Blk : Type) where
-  /-- The padded message, as a list of blocks. -/
-  pad : Msg → List Blk
-  /-- The decoder: the message whose padding is the given block list, if any. -/
-  unpad : List Blk → Option Msg
-
-/-- **The sponge.** Absorb the padded message from the initial state `iv` with `π`, and output the
-digest part of the final state. -/
-def spongeWith {Msg : Type} {m : Type → Type} [Monad m] (P : Padding Msg (Dg × E))
-    (iv : SpState Dg E C) (π : SpState Dg E C → m (SpState Dg E C)) (msg : Msg) : m Dg :=
-  SpState.out <$> absorbAll π iv (P.pad msg)
-
-/-- A 32-byte Keccak-256 digest. -/
-abbrev KDigest := Vector UInt8 32
-
-/-- The rate bytes of the Keccak state after the digest: bytes 32 to 135. -/
-abbrev KRest := Vector UInt8 104
-
-/-- The capacity of the Keccak state: bytes 136 to 199 (512 bits). -/
-abbrev KCap := Vector UInt8 64
-
-/-- The Keccak-f[1600] state as 200 bytes, split into digest, rest of the rate and capacity.
-Byte `i` of the state is byte `i % 8` of lane `i / 8`, little-endian, as in `keccak_hash`. -/
-abbrev KState := SpState KDigest KRest KCap
-
-/-- A Keccak-256 block: the 136 rate bytes. -/
-abbrev KBlock := KDigest × KRest
-
-/-- The 200 bytes of a Keccak state, in order. -/
-def KState.toBytes (s : KState) : List UInt8 := s.1.1.toList ++ s.1.2.toList ++ s.2.toList
-
-/-- The Keccak state of 200 bytes (missing bytes read as zero). -/
-def KState.ofBytes (bs : List UInt8) : KState :=
-  ((Vector.ofFn fun i : Fin 32 ↦ bs.getD i 0, Vector.ofFn fun i : Fin 104 ↦ bs.getD (32 + i) 0),
-    Vector.ofFn fun i : Fin 64 ↦ bs.getD (136 + i) 0)
-
-/-- The all-zero initial state. -/
-def KState.zero : KState := ((Vector.replicate 32 0, Vector.replicate 104 0), Vector.replicate 64 0)
-
-/-- The block of the 136 bytes `bs` (missing bytes read as zero). -/
-def KBlock.ofBytes (bs : List UInt8) : KBlock :=
-  (Vector.ofFn fun i : Fin 32 ↦ bs.getD i 0, Vector.ofFn fun i : Fin 104 ↦ bs.getD (32 + i) 0)
-
-/-- The 136 bytes of a block. -/
-def KBlock.toBytes (B : KBlock) : List UInt8 := B.1.toList ++ B.2.toList
-
-/-- The padded message: `msg ‖ 0x01 ‖ 0^* ‖ 0x80`, with `0x01` and `0x80` merged into `0x81` when
-`msg` leaves one byte in its last block; the length is the next multiple of 136. -/
-def keccakPadBytes (msg : List UInt8) : List UInt8 :=
-  if msg.length % 136 = 135 then msg ++ [0x81]
-  else msg ++ [0x01] ++ List.replicate (134 - msg.length % 136) 0 ++ [0x80]
-
-/-- Split a byte list into 136-byte blocks. -/
-def toBlocks : List UInt8 → List KBlock
-  | [] => []
-  | b :: bs => KBlock.ofBytes ((b :: bs).take 136) :: toBlocks ((b :: bs).drop 136)
-termination_by l => l.length
-decreasing_by simp only [List.length_drop, List.length_cons]; omega
-
-/-- The bytes of a block list. -/
-def blocksToBytes (β : List KBlock) : List UInt8 := β.flatMap KBlock.toBytes
-
-/-- Undo the padding of a padded byte list (arbitrary on other inputs). -/
-def stripPad (bs : List UInt8) : List UInt8 :=
-  match bs.reverse with
-  | 0x81 :: rest => rest.reverse
-  | _ :: rest => (((rest.dropWhile (· = 0)).drop 1)).reverse
-  | [] => []
-
-/-- The Keccak-256 padding of a message into blocks. -/
-def keccakPad (msg : List UInt8) : List KBlock := toBlocks (keccakPadBytes msg)
-
-/-- The Keccak-256 decoder: strip the padding, and accept when it pads back. -/
-def keccakUnpad (β : List KBlock) : Option (List UInt8) :=
-  let msg := stripPad (blocksToBytes β)
-  if keccakPad msg = β then some msg else none
-
-
-/-- **The Keccak-256 padding**, with its decoder. -/
-def keccakPadding : Padding (List UInt8) KBlock := ⟨keccakPad, keccakUnpad⟩
 
 /-! ## A cost bounded on every path of a computation -/
 
@@ -360,35 +263,18 @@ def uInt8EquivFin : UInt8 ≃ Fin 256 where
   left_inv _ := rfl
   right_inv _ := rfl
 
-/-! ## Keccak-256 over the random permutation -/
+/-! ## The oracles of the model and a game's run -/
 
-/-- A hash `Msg → Dg` as an oracle. -/
-abbrev roSpec (Msg Dg : Type) : OracleSpec Msg := Msg →ₒ Dg
+section
 
-/-- The distinguisher's oracles: uniform coins, the hash `H : Msg → Dg`, and the permutation
-`π` and its inverse. -/
-abbrev dSpec (Msg Dg St : Type) := unifSpec + (roSpec Msg Dg + permSpec St)
+open LeanVM.Semantics LeanVM.Protocol LeanVM.Protocol.KeccakHash
 
-variable [DecidableEq Dg] [DecidableEq E] [DecidableEq C] [DecidableEq Msg]
-  [Fintype Dg] [Fintype E] [Fintype C]
-  [SampleableType Dg] [SampleableType E] [SampleableType C]
-  (P : Padding Msg (Dg × E)) (iv : SpState Dg E C)
+/-- A 32-byte Keccak-256 digest. -/
+abbrev KDigest := Vector UInt8 32
 
-/-- The real world: coins forwarded, `H` the sponge over the lazy random permutation, `π` and
-`π⁻¹` the lazy random permutation. -/
-noncomputable def realImpl (P : Padding Msg (Dg × E)) (iv : SpState Dg E C) :
-    QueryImpl (dSpec Msg Dg (SpState Dg E C)) (StateT (PermLog (SpState Dg E C)) ProbComp)
-  | .inl n => liftM (unifSpec.query n : ProbComp (Fin (n + 1)))
-  | .inr (.inl m) => spongeWith P iv (fun x ↦ lazyPerm (.fwd x)) m
-  | .inr (.inr q) => lazyPerm q
-
-/-- **The real world** run of a distinguisher, from the empty permutation. -/
-noncomputable def realGame (P : Padding Msg (Dg × E)) (iv : SpState Dg E C) {α : Type}
-    (D : OracleComp (dSpec Msg Dg (SpState Dg E C)) α) : ProbComp α :=
-  (simulateQ (realImpl P iv) D).run' []
-
-/-- **The oracles of the random-permutation model**: coins, Keccak-256 `H`, `π` and `π⁻¹`. -/
-abbrev KSpec := dSpec (List UInt8) KDigest KState
+/-- **The oracles of the random-permutation model**: coins, Keccak-256 (its digest's 32 bytes),
+`π` and `π⁻¹` on Keccak states. -/
+abbrev KSpec := unifSpec + ((List UInt8 →ₒ KDigest) + permSpec KState)
 
 /-- **Calls of the permutation**: a hash of `n` bytes costs `⌊n / 136⌋ + 1` (one per block of the
 padded message), a call of `π` or `π⁻¹` one. -/
@@ -397,60 +283,19 @@ def permCalls : KSpec.Domain → ℕ
   | .inr (.inl m) => m.length / 136 + 1
   | .inr (.inr _) => 1
 
+/-- The model's answers: coins forwarded, Keccak-256 over the lazily sampled permutation, `π`
+and `π⁻¹` the lazily sampled permutation. -/
+noncomputable def kImpl : QueryImpl KSpec (StateT (PermLog KState) ProbComp)
+  | .inl n => liftM (unifSpec.query n : ProbComp (Fin (n + 1)))
+  | .inr (.inl m) => Digest.toBytes <$> keccak256With (fun x ↦ lazyPerm (.fwd x)) m
+  | .inr (.inr q) => lazyPerm q
+
 /-- **A game in the random-permutation model, run** against the lazily sampled random
-permutation, Keccak-256 the sponge over it. -/
+permutation from no edge. -/
 noncomputable def runK {α : Type} (G : OracleComp KSpec α) : ProbComp α :=
-  realGame keccakPadding KState.zero G
+  (simulateQ kImpl G).run' []
 
-/-- The simulator's state: the edges it has answered, newest first, and the rooted states with
-their paths, newest first, ending with the initial state and the empty path. -/
-structure SimState (Dg E C : Type) where
-  /-- The answered edges `(x, π x)`, newest first. -/
-  edges : PermLog (SpState Dg E C)
-  /-- The rooted states with their block paths, newest first. -/
-  chains : List (SpState Dg E C × List (Dg × E))
-
-/-- The initial simulator state: no edges, and the initial state rooted at the empty path. -/
-def SimState.init (iv : SpState Dg E C) : SimState Dg E C := ⟨[], [(iv, [])]⟩
-
-/-- The rooted state whose capacity is that of `x`, with its path: the first such chain. -/
-def chainOf (VC : List (SpState Dg E C × List (Dg × E))) (x : SpState Dg E C) :
-    Option (SpState Dg E C × List (Dg × E)) :=
-  VC.find? fun p ↦ decide (p.1.2 = x.2)
-
-/-! ## The Keccak-256 evaluations a transcript of permutation queries contains -/
-
-/-- One step of the simulator's bookkeeping, replayed from a query and its answer. -/
-def replayStep (σ : SimState Dg E C) :
-    PermQuery (SpState Dg E C) × SpState Dg E C → SimState Dg E C
-  | (.fwd x, y) =>
-    match fwdLookup σ.edges x with
-    | some _ => σ
-    | none =>
-      match chainOf σ.chains x with
-      | some (s, β) => ⟨(x, y) :: σ.edges, (y, β ++ [blockTo s x]) :: σ.chains⟩
-      | none => ⟨(x, y) :: σ.edges, σ.chains⟩
-  | (.inv y, x) =>
-    match invLookup σ.edges y with
-    | some _ => σ
-    | none => ⟨(x, y) :: σ.edges, σ.chains⟩
-
-/-- The simulator's bookkeeping replayed from a transcript of permutation queries and answers,
-oldest first. -/
-def replay (log : List (PermQuery (SpState Dg E C) × SpState Dg E C)) : SimState Dg E C :=
-  log.foldl replayStep (SimState.init iv)
-
-/-- The hash queries whose whole sponge paths a simulator state has rooted, with the digests of
-the paths' ends. -/
-def simPaths (σ : SimState Dg E C) : List (Msg × Dg) :=
-  σ.chains.filterMap fun p ↦ (P.unpad p.2).map fun m ↦ (m, p.1.1.1)
-
-/-- **The hash queries of a permutation transcript**: the messages whose whole padded sponge path
-the transcript (oldest first) contains as a chain of forward queries from the initial state,
-each with the digest part of the path's last answer. -/
-def pathsOf (log : List (PermQuery (SpState Dg E C) × SpState Dg E C)) : List (Msg × Dg) :=
-  simPaths P (replay iv log)
-
+end
 
 /-! ## The SUF-CMA game of a hash-based signature scheme, in the random-permutation model -/
 

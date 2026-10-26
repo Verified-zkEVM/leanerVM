@@ -28,15 +28,16 @@ Benedikt Wagner's ([b-wagn/fv-pq-da](https://github.com/b-wagn/fv-pq-da), Apache
 
 ## Reading order
 
-1. [`RandomPermutation.lean`](RandomPermutation.lean): Keccak-f[1600] and Keccak-256 as leanVM
-   computes them (`keccakF`, `KeccakHash.keccak256`); the random-permutation model (`permSpec`: `π`
-   and `π⁻¹`; `lazyPerm`, the lazily sampled uniform permutation; the sponge over a permutation
-   and Keccak-256's padding, `spongeWith`, `keccakPadding`); a cost bounded on every path
-   (`IsWeightBound`); the Keccak-256 evaluations a transcript of permutation queries contains
-   (`pathsOf`); the oracles of the model (`KSpec`: coins, Keccak-256, `π`, `π⁻¹`), a game's cost
-   in permutation calls (`permCalls`) and its run against the lazy permutation (`runK`); the
-   SUF-CMA game of a hash-based signature scheme in the random-permutation model
-   (`SufCma.rpmGame`, `rpmExperiment`) and its security notion (`SufCma.RpmSecure`).
+1. [`RandomPermutation.lean`](RandomPermutation.lean): Keccak-f[1600] as leanVM computes it
+   (`keccakF`, on `KState`, `25` lanes of `64` bits: the one state type of the statement) and
+   Keccak-256 over any permutation of the state in any monad (`KeccakHash.keccak256With`), the
+   deployed one over Keccak-f[1600] (`keccak256`); the random-permutation model (`permSpec`: `π`
+   and `π⁻¹`; `lazyPerm`, the lazily sampled uniform permutation); a cost bounded on every path
+   (`IsWeightBound`); the oracles of the model (`KSpec`: coins, Keccak-256, `π`, `π⁻¹` on
+   `KState`), a game's cost in permutation calls (`permCalls`) and its run against the lazy
+   permutation, Keccak-256 the sponge over it (`runK`); the SUF-CMA game of a hash-based
+   signature scheme in the random-permutation model (`SufCma.rpmGame`, `rpmExperiment`) and its
+   security notion (`SufCma.RpmSecure`).
 2. [`LeanXmss.lean`](LeanXmss.lean): what leanXMSS and leanSPHINCS share (the tweakable hash's
    types, bytes and address, `crates/signatures/src/tweak.rs`; a hash chain, a Merkle path's fold
    and a Merkle tree's node, `walkChain`, `foldPath`, `buildTree`, which every chain, fold and tree
@@ -83,8 +84,9 @@ Benedikt Wagner's ([b-wagn/fv-pq-da](https://github.com/b-wagn/fv-pq-da), Apache
    honest prover**, `prover` (`LeanVM.Prover.prove` of [`Prover/`](Prover/) with the oracle calls),
    the committed size; the random-permutation experiment (`rpmExperiment`, the adversary's
    `Transcript`; `rpmRun`, the same with any computation in place of the verifier), the extractor on
-   the transcript (`extractorRpm`), **`LeanVM.KnowledgeSoundness`, `LeanVM.Completeness`**, and a
-   digest as a public input (`publicInputOfDigest`).
+   the transcript (`extractorRpm`, on the Keccak-256 evaluations the transcript holds,
+   `transcriptPaths`), **`LeanVM.KnowledgeSoundness`, `LeanVM.Completeness`**, and a digest as a
+   public input (`publicInputOfDigest`).
 10. [`LeanVmGuest.lean`](LeanVmGuest.lean): the leanISA guest program's specification (aggregation):
     DA claims, a node's statement, its digest (Keccak-256 of a preimage), witness and relation
     (`NodeRel`: leanXMSS and leanSPHINCS claims, DA claims, children verified by the deferring
@@ -116,9 +118,9 @@ runs it). It needs no review beyond that check.
 
 [`Fast/`](Fast/) makes the compiled definitions fast and changes nothing they mean: `@[csimp]`
 lemmas, each proved, that compile `GF(2^64)` products on machine words (`FieldWords`), the
-degree-three extension's product unrolled (`CubicExt`), Keccak-f[1600] and Keccak-256 with their
-lanes written out (`Keccak`), and the signature schemes' verifiers with a constant-depth lookup
-(`Schemes`). A `@[csimp]` lemma acts where a definition is compiled, so they are here, imported by
+degree-three extension's product unrolled (`CubicExt`), Keccak-f[1600] with its lanes written
+out and Keccak-256 without the monad, its blocks read from arrays (`Keccak`), and the signature
+schemes' verifiers with a constant-depth lookup (`Schemes`). A `@[csimp]` lemma acts where a definition is compiled, so they are here, imported by
 `Field.lean`, `LeanDa.lean` and `LeanVmGuest.lean`, for the statement's own compiled definitions
 (the verifier, the guest program's specification, LeanDA) and every module after them. They need no
 review: a `@[csimp]` lemma is an equation the kernel checks.

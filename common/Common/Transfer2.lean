@@ -1,5 +1,5 @@
 import Common.Indiff2.Bound
-import Statement.RandomPermutation
+import Common.Defs
 
 /-!
 # Transfer in the two-oracle model: a hash `H` and direct permutation calls `F`

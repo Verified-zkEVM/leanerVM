@@ -105,7 +105,9 @@ namespace LeanDa
 
 open PqDas
 
-export LeanVM.Parameters (K E K.ofBits)
+export LeanVM.Parameters (K E K.ofBits K.ofLane K.lane)
+open LeanVM.Semantics (KState)
+open LeanVM.Protocol.KeccakHash (keccak256With)
 
 /-- An enumeration of `K` through its bits, for proofs only: compiled, it would list `2^64`
 elements when a program starts. -/
@@ -396,14 +398,11 @@ end Pure
 
 /-! #### The sponge (`verifier/src/transcript.rs:32-95`)
 
-A duplex sponge in overwrite mode over a permutation `P` of `25` lanes. The crate's is
-Keccak-f[1600] (`keccak_f`, `verifier/src/hash.rs:50-69`), which `lean_vm` supplies; the
-definitions hold for every `P`. A lane is a `u64`, read as the element of `K` with its bits, so
-a scalar's limbs are lanes as they are. The rate is lanes `0 … 15`, the capacity lanes
-`16 … 24`. -/
-
-/-- The sponge's lanes (`[u64; STATE_LANES]`). -/
-abbrev Lanes := Vector K 25
+A duplex sponge in overwrite mode over a permutation `P` of the Keccak state (`KState`, `25`
+lanes, `[u64; STATE_LANES]`). The crate's is Keccak-f[1600] (`keccak_f`,
+`verifier/src/hash.rs:50-69`), which `lean_vm` supplies; the definitions hold for every `P`. A
+lane is a `u64`, read as the element of `K` with its bits (`K.ofLane`, `K.lane`), so a scalar's
+limbs are lanes as they are. The rate is lanes `0 … 15`, the capacity lanes `16 … 24`. -/
 
 /-- Lanes of the rate. -/
 def rateLanes : ℕ := 16
@@ -418,7 +417,7 @@ def dsObserve : K := K.ofBits 1
 since with their tags, at most `rateScalars` (`pending[..n_pending]`). -/
 structure Sponge where
   /-- The lanes the last permutation left (`state`). -/
-  state : Lanes
+  state : KState
   /-- The waiting scalars and their tags, in order. -/
   pending : List (E × K)
 
@@ -432,18 +431,19 @@ any monad: the games' oracles, or pure functions over `Id`. -/
 
 section Monadic
 
-variable {m : Type → Type} [Monad m] (H : List UInt8 → m Digest) (P : Lanes → m Lanes)
+variable {m : Type → Type} [Monad m] (H : List UInt8 → m Digest) (P : KState → m KState)
 
 /-- The lanes a duplexing permutes: the waiting scalars over the rate, the rest of the rate zero,
 the capacity kept. -/
-def duplexInput (s : Sponge) : Lanes :=
+def duplexInput (s : Sponge) : KState :=
   Vector.ofFn fun i : Fin 25 ↦
-    if (i : ℕ) < rateLanes then (rateWords s.pending).getD i 0 else s.state[i]
+    if (i : ℕ) < rateLanes then ((rateWords s.pending).getD i 0).lane else s.state[i]
 
 /-- The lanes of a fresh sponge: the IV's words in lanes `0 … 3`, the public input's in `4 … 7`. -/
-def newInput (iv publicInput : Digest) : Lanes :=
+def newInput (iv publicInput : Digest) : KState :=
   Vector.ofFn fun i : Fin 25 ↦
-    if (i : ℕ) < 4 then word iv i else if (i : ℕ) < 8 then word publicInput (i - 4) else 0
+    if (i : ℕ) < 4 then (word iv i).lane else if (i : ℕ) < 8 then (word publicInput (i - 4)).lane
+    else 0
 
 /-- A sponge seeded with one permutation of `newInput` (`Sponge::new`). -/
 def Sponge.newM (iv publicInput : Digest) : m Sponge := do
@@ -472,7 +472,7 @@ def Sponge.observeM (s : Sponge) (x : E) : m Sponge := Sponge.absorbM P s x dsOb
 /-- Draw a challenge: a permutation of its own, whose lanes `0 … 2` are its limbs (`sample`). -/
 def Sponge.sampleM (s : Sponge) : m (E × Sponge) := do
   let s ← Sponge.duplexM P s
-  pure (ofLimbs s.state[0] s.state[1] s.state[2], s)
+  pure (ofLimbs (K.ofLane s.state[0]) (K.ofLane s.state[1]) (K.ofLane s.state[2]), s)
 
 /-- `n` challenges, in order. -/
 def Sponge.samplesM : ℕ → Sponge → m (List E)
@@ -544,7 +544,7 @@ end Monadic
 
 /-! #### The challenges and the vector -/
 
-variable (H : List UInt8 → Digest) (P : Lanes → Lanes)
+variable (H : List UInt8 → Digest) (P : KState → KState)
 
 /-- The challenges of a root with a pure hash and permutation. -/
 def membershipChallenges (root : Digest) : List E :=
@@ -625,30 +625,11 @@ abbrev Argument (r : ℕ) (H : List UInt8 → Digest) (Crs Proof : Type) :=
 
 /-! ## LeanDA's verifier over a permutation -/
 
-/-- **A lane's bytes**, little endian. -/
-def laneBytes : K ≃ Vector UInt8 8 :=
-  BF64.equivFin.trans <| (finCongr (show 2 ^ 64 = 256 ^ 8 by norm_num)).trans <|
-    finFunctionFinEquiv.symm.trans <|
-      (Equiv.arrowCongr (Equiv.refl _) Common.uInt8EquivFin.symm).trans
-        (arrayVectorEquivFin UInt8 8).symm
-
-/-- **The permutation's state of 25 lanes**: lane `i` at bytes `8 i … 8 i + 7`. -/
-def lanesToState (L : Lanes) : KState := KState.ofBytes (L.toList.flatMap fun a ↦ (laneBytes a).toList)
-
-/-- **The lanes of a permutation's state.** -/
-def stateToLanes (s : KState) : Lanes :=
-  Vector.ofFn fun i : Fin 25 ↦ laneBytes.symm (Vector.ofFn fun j : Fin 8 ↦ s.toBytes.getD (8 * i + j) 0)
-
-/-- **The permutation on lanes** from a permutation of the state, in any monad. -/
-def lanePerm {m : Type → Type} [Monad m] (π : KState → m KState) (L : Lanes) : m Lanes :=
-  stateToLanes <$> π (lanesToState L)
-
 /-- Keccak-256 among the oracles of the random-permutation model. -/
 abbrev hK (a : List UInt8) : OracleComp KSpec Digest := liftM (KSpec.query (.inr (.inl a)))
 
-/-- A call `π x` of the permutation among the oracles, on lanes. -/
-abbrev pK (L : Lanes) : OracleComp KSpec Lanes :=
-  lanePerm (fun x ↦ liftM (KSpec.query (.inr (.inr (.fwd x))))) L
+/-- A call `π x` of the permutation among the oracles. -/
+abbrev pK (x : KState) : OracleComp KSpec KState := liftM (KSpec.query (.inr (.inr (.fwd x))))
 
 /-- The challenges of the sponge's list. -/
 def toChallenges (zs : List E) : Challenges := fun j ↦ zs.getD j 0
@@ -657,7 +638,7 @@ def toChallenges (zs : List E) : Challenges := fun j ↦ zs.getD j 0
 sponge's permutation `P` in any monad: the challenges of the commitment's root from the deployed
 duplex over `P`, the argument's verification, and the opening's. In the games `H` is Keccak-256
 and `P` is `π` (`hK`, `pK`). -/
-def verifyRpm {m : Type → Type} [Monad m] (H : List UInt8 → m Digest) (P : Lanes → m Lanes)
+def verifyRpm {m : Type → Type} [Monad m] (H : List UInt8 → m Digest) (P : KState → m KState)
     (r : ℕ) {Crs Proof : Type} {rel : Unit × Digest × Challenges → (Fin (r * 128) → Cell) → Bool}
     (ps : Nark (Unit × Digest × Challenges) (Fin (r * 128) → Cell) Crs Proof rel) (crs : Crs)
     (com : Digest × Proof) (p : Fin (r * 128)) (x : Cell) (τ : Opening) : m Bool := do
@@ -716,10 +697,10 @@ noncomputable def ksGame (B : KsAdvRpm Crs Proof) : OracleComp KSpec Bool := do
   pure (ps.verify crs stmt proof &&
     !(decide (root = stmt.2.1) && membershipCheck stmt.2.2 (ext crs stmt proof)))
 
-/-- **Keccak-256 over a permutation `π`**: the sponge over `π` from the zero state with
-Keccak-256's padding, the hash `H` of the games when the permutation is `π` (`realImpl`). -/
+/-- **Keccak-256 over a permutation `π`** (`keccak256With`), its digest's bytes: the hash `H` of
+the games when the permutation is `π` (`runK`). -/
 def keccakWith (π : KState → KState) (a : List UInt8) : Digest :=
-  Id.run (spongeWith (m := Id) keccakPadding KState.zero (fun x ↦ pure (π x)) a)
+  (Id.run (keccak256With (fun x ↦ pure (π x)) a)).toBytes
 
 /-- **The completeness experiment for a permutation `π`** (Wagner's, Foundations Definition 8,
 with the hash and the challenges over `π`): the argument's setup; the honest commitment to the
@@ -732,7 +713,7 @@ noncomputable def completenessExpRpm (π : KState → KState)
     ProbComp Bool := do
   let crs ← ps.setup
   let H : List UInt8 → Id Digest := fun a ↦ pure (keccakWith π a)
-  let P : Lanes → Id Lanes := lanePerm fun x ↦ pure (π x)
+  let P : KState → Id KState := fun x ↦ pure (π x)
   let c := (code r).encode msg
   let root := commitCells (keccakWith π) c
   let proof := ps.prove crs ((), root, toChallenges (Id.run (membershipChallengesM H P root))) c

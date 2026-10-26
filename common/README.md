@@ -12,14 +12,23 @@ Build with `lake build` (the root module `Common.lean` checks that the main theo
 ## Files
 
 The definitions the end statements need (the permutation oracle `permSpec`, the lazily sampled
-permutation `lazyPerm`, the sponge `spongeWith` and Keccak-256's padding, `IsWeightBound`, `pathsOf`,
-the oracles of the model `KSpec` and a game's run `runK`, the SUF-CMA game in the random-permutation
-model) are in [`Statement/RandomPermutation.lean`](../Statement/RandomPermutation.lean), namespace
-`Common`; the files below keep their proofs and the definitions only the proofs use (the games with
-the verifier's direct calls `rpmGame2`, `realGame2` in `Common/Game2.lean`, the random-oracle
-games, the ideal worlds, the simulators of the one- and two-oracle transfers, the duplex and its
-simulator in `Common/SimDefs.lean`, `lazyFun`, …).
+permutation `lazyPerm`, `IsWeightBound`, the oracles of the model `KSpec` and a game's run `runK`,
+Keccak-256 the sponge `keccak256With` over the permutation of the lane state `KState`, the SUF-CMA
+game in the random-permutation model) are in
+[`Statement/RandomPermutation.lean`](../Statement/RandomPermutation.lean), namespace `Common`;
+the files below keep their proofs and the definitions only the proofs use.
 
+- `Common/Defs.lean`: the sponge the proofs are written in, over a state `(Dg × E) × C` (digest
+  part, rest of the rate, capacity) with a padding and its decoder (`spongeWith`, `Padding`), the
+  Keccak state as `200` bytes (`KState`, `32 + 104 + 64`) with Keccak-256's padding
+  (`keccakPadding`), the real world `realGame`, the model on byte states (`KSpecB`,
+  `permCallsB`, `runKB`) and the simulator's bookkeeping replayed from a transcript (`pathsOf`).
+- `Common/Lanes.lean`: the statement's lane states and the proofs' byte states: the bijections
+  (`stateEquiv`, `digestEquiv`: byte `8i + k` is byte `k` of lane `i`), Keccak-256 over a
+  permutation of the lanes is `common`'s sponge over it read on bytes (`keccak256With_rpm`), the
+  lazily sampled permutation is the same on either side (`lazyPerm_relabel`), and a game of the
+  statement's model is the game with its permutation queries read on bytes (`relabel`), with the
+  same distribution (`runK_relabel`) and the same permutation calls (`isWeightBound_relabel_iff`).
 - `Common/Model.lean`: the permutation oracle (`permSpec`: `π` and `π⁻¹`), the lazily sampled
   random permutation (`lazyPerm`) and its validity (a partial permutation, extendable to a
   permutation), the lazily sampled random function (`lazyFun`).
@@ -38,7 +47,9 @@ simulator in `Common/SimDefs.lean`, `lazyFun`, …).
 - `Common/Lemmas.lean`: weight bounds through simulations, and the permutation calls of a
   Keccak-256 hash (`keccakPad_length`: `⌊n / 136⌋ + 1` for `n` bytes).
 - `Common/Signature.lean`: the SUF-CMA game of a hash-based signature scheme in the ROM and in the
-  RPM, and the transfer of its bounds (used by `lean_xmss` and `lean_sphincs`).
+  RPM (on byte states, `rpmGameB`, and the statement's on lanes, `rpmGame`, the one read on
+  bytes: `rpmGame_relabel`), and the transfer of its bounds (`rpm_bound`, `rpm_bound_perm`; used
+  by `lean_xmss` and `lean_sphincs`).
 - `Common/Eager.lean`: eager sampling of a finite part of a random oracle as a uniform table.
 - `Common/Rerun.lean`: a coin-free computation recomputed from a later cache returns the same
   result; weight bounds of prefixes and through simulations; coins through simulations.

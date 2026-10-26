@@ -1,5 +1,5 @@
 import Common.Duplex.Defs
-import Statement.RandomPermutation
+import Common.Defs
 
 /-!
 # The simulator with lazy challenges is the random function

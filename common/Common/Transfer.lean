@@ -1,5 +1,5 @@
 import Common.Indiff.Main
-import Statement.RandomPermutation
+import Common.Defs
 
 /-!
 # Transfer: from the random-oracle model to the random-permutation model
