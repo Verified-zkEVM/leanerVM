@@ -23,45 +23,6 @@ open scoped ENNReal
 
 namespace LeanDa
 
-/-! ## Oracle programs through a monad morphism -/
-
-section Map
-
-variable {m n : Type → Type} [Monad m] [LawfulMonad m] [Monad n] [LawfulMonad n]
-  (φ : ∀ {α}, m α → n α) (hpure : ∀ {α} (a : α), φ (pure a) = pure a)
-  (hbind : ∀ {α β} (x : m α) (f : α → m β), φ (x >>= f) = φ x >>= fun a ↦ φ (f a))
-  (H : List UInt8 → m Digest) (P : Lanes → m Lanes)
-
-include hpure hbind
-
-theorem samplesM_map (k : ℕ) : ∀ s : Sponge,
-    φ (Sponge.samplesM P k s) = Sponge.samplesM (fun L ↦ φ (P L)) k s := by
-  induction k with
-  | zero => intro s; exact hpure _
-  | succ k ih =>
-    intro s
-    simp only [Sponge.samplesM, Sponge.sampleM, Sponge.duplexM, hbind, hpure, ih]
-
-theorem duplexM_map (s : Sponge) : φ (Sponge.duplexM P s) = Sponge.duplexM (fun L ↦ φ (P L)) s := by
-  simp only [Sponge.duplexM, hbind, hpure]
-
-theorem absorbM_map (s : Sponge) (x : E) (tag : K) :
-    φ (Sponge.absorbM P s x tag) = Sponge.absorbM (fun L ↦ φ (P L)) s x tag := by
-  unfold Sponge.absorbM
-  rw [hbind]
-  split_ifs
-  · simp only [duplexM_map φ hpure hbind, hpure]
-  · simp only [hpure]
-
-/-- **The challenges' sponge through a monad morphism.** -/
-theorem membershipChallengesM_map (root : Digest) :
-    φ (membershipChallengesM H P root) =
-      membershipChallengesM (fun a ↦ φ (H a)) (fun L ↦ φ (P L)) root := by
-  simp only [membershipChallengesM, Sponge.fromLabelM, Sponge.newM, Sponge.observeM, hbind,
-    hpure, absorbM_map φ hpure hbind P, samplesM_map φ hpure hbind P, bind_assoc]
-
-end Map
-
 /-! ## The commitment hashes only short strings -/
 
 section Congr
@@ -111,37 +72,6 @@ theorem commitCellsM_congr {r : ℕ} (c : Fin (r * 128) → Cell) :
 
 end Congr
 
-/-! ## The commitment through a monad morphism -/
-
-section MapC
-
-variable {m n : Type → Type} [Monad m] [LawfulMonad m] [Monad n] [LawfulMonad n]
-  (φ : ∀ {α}, m α → n α) (hpure : ∀ {α} (a : α), φ (pure a) = pure a)
-  (hbind : ∀ {α β} (x : m α) (f : α → m β), φ (x >>= f) = φ x >>= fun a ↦ φ (f a))
-  (H : List UInt8 → m Digest)
-
-include hpure hbind
-
-theorem merkleRootM_map (d : ℕ) : ∀ f : ℕ → m Digest,
-    φ (merkleRootM H d f) = merkleRootM (fun a ↦ φ (H a)) d fun i ↦ φ (f i) := by
-  induction d with
-  | zero => intro f; rfl
-  | succ d ih =>
-    intro f
-    simp only [merkleRootM, ih]
-    congr 1
-    funext i
-    simp only [upM, hbind]
-
-/-- **The commitment through a monad morphism.** -/
-theorem commitCellsM_map {r : ℕ} (c : Fin (r * 128) → Cell) :
-    φ (commitCellsM H c) = commitCellsM (fun a ↦ φ (H a)) c := by
-  simp only [commitCellsM, rowRootM, colRootM, hbind, merkleRootM_map φ hpure hbind]
-  congr 1
-  congr 1; funext i; simp only [rowLeavesM, hbind, mapM_map φ hpure hbind]
-
-end MapC
-
 /-! ## The adversary of the knowledge-soundness term -/
 
 /-- Keccak-256 among the adversary's oracles. -/
@@ -187,10 +117,10 @@ theorem toOne_chal (root : Digest) :
   congr 1
 
 theorem ksGame_toOne :
-    simulateQ (toOne (E := KRest) (C := KCap)) (ksGame r ps ext (ksAdv r A)) =
+    simulateQ (toOne (E := KRest) (C := KCap)) (ksGame2 r ps ext (ksAdv r A)) =
       simulateQ (toOne (E := KRest) (C := KCap))
         (rpmGame2 (liftM ps.setup) (fun crs ↦ A ((), crs)) (postK r ps ext)) := by
-  unfold ksGame rpmGame2
+  unfold ksGame2 rpmGame2
   rw [simulateQ_bind, simulateQ_bind]
   refine bind_congr fun crs ↦ ?_
   simp only [ksAdv, postK, simulateQ_bind, simulateQ_pure, bind_assoc, pure_bind]
@@ -227,10 +157,10 @@ theorem isWeightBound_hfEmbed {α : Type} {X : OracleComp Rom2 α} {N : ℕ}
     · exact isWeightBound_query permCalls2 (.inr (.inr (.inr x)))) h
 
 theorem isWeightBound_advEmbed {α : Type} {X : OracleComp AdvSpec α} {N : ℕ}
-    (h : IsWeightBound X SufCma.permCalls N) :
+    (h : IsWeightBound X permCalls N) :
     IsWeightBound (simulateQ (advEmbed (Msg := List UInt8) (Dg := KDigest) (E := KRest) (C := KCap)) X)
       permCalls2 N :=
-  isWeightBound_simulateQ _ SufCma.permCalls permCalls2 (fun t ↦ by
+  isWeightBound_simulateQ _ permCalls permCalls2 (fun t ↦ by
     rcases t with n | m | q
     · exact isWeightBound_query permCalls2 (.inl n)
     · exact isWeightBound_query permCalls2 (.inr (.inl m))
@@ -318,7 +248,7 @@ theorem isWeightBound_postK (crs : Crs) (out : (Digest × Proof) × List (Fin (r
     (fun L ↦ isWeightBound_map _ (isWeightBound_query rCalls (.inr (.inr _)))) _).bind fun _ ↦
       isWeightBound_ksPost r ps ext crs _
 
-theorem isWeightBound_advEmbed_A (Q : ℕ) (hQ : IsWeightBound (codeBindingGame r ps A) permCalls2 Q)
+theorem isWeightBound_advEmbed_A (Q : ℕ) (hQ : IsWeightBound (codeBindingGame2 r ps A) permCalls2 Q)
     (x : Crs) (hx : x ∈ support (simulateQ (hEmbed2 (Msg := List UInt8) (Dg := KDigest)
       (E := KRest) (C := KCap)) (liftM ps.setup : OracleComp (unifSpec + roSpec (List UInt8) KDigest) Crs))) :
     IsWeightBound (simulateQ (advEmbed (Msg := List UInt8) (Dg := KDigest) (E := KRest) (C := KCap))
@@ -328,15 +258,15 @@ theorem isWeightBound_advEmbed_A (Q : ℕ) (hQ : IsWeightBound (codeBindingGame 
 /-- The permutation calls of the knowledge-soundness game of `ksAdv A`. -/
 abbrev ksCalls (r Q : ℕ) : ℕ := Q + (18 + relCalls r)
 
-theorem isWeightBound_postKGame (Q : ℕ) (hQ : IsWeightBound (codeBindingGame r ps A) permCalls2 Q) :
+theorem isWeightBound_postKGame (Q : ℕ) (hQ : IsWeightBound (codeBindingGame2 r ps A) permCalls2 Q) :
     IsWeightBound (rpmGame2 (liftM ps.setup) (fun crs ↦ A ((), crs)) (postK r ps ext)) permCalls2
       (ksCalls r Q) :=
   (IsWeightBound.bind_of_mem_support (isWeightBound_hEmbed2_setup ps.setup) fun x hx ↦
     (isWeightBound_advEmbed_A r ps A Q hQ x hx).bind fun _ ↦
       isWeightBound_hfEmbed (isWeightBound_postK r ps ext x _)).mono (by unfold ksCalls; omega)
 
-theorem isWeightBound_ksGame (Q : ℕ) (hQ : IsWeightBound (codeBindingGame r ps A) permCalls2 Q) :
-    IsWeightBound (ksGame r ps ext (ksAdv r A)) permCalls2 (ksCalls r Q) := by
+theorem isWeightBound_ksGame (Q : ℕ) (hQ : IsWeightBound (codeBindingGame2 r ps A) permCalls2 Q) :
+    IsWeightBound (ksGame2 r ps ext (ksAdv r A)) permCalls2 (ksCalls r Q) := by
   refine (IsWeightBound.bind_of_mem_support (isWeightBound_hEmbed2_setup ps.setup)
     fun x hx ↦ (?_ : IsWeightBound _ permCalls2 (ksCalls r Q))).mono (by omega)
   have e : simulateQ (advEmbed (Msg := List UInt8) (Dg := KDigest) (E := KRest) (C := KCap))
@@ -346,10 +276,10 @@ theorem isWeightBound_ksGame (Q : ℕ) (hQ : IsWeightBound (codeBindingGame r ps
     simp only [ksAdv, simulateQ_bind, simulateQ_pure]
   rw [e]
   refine (((isWeightBound_advEmbed_A r ps A Q hQ x hx).bind fun out ↦
-    (isWeightBound_advEmbed (isWeightBound_membershipChallengesM SufCma.permCalls keccakA (lanePerm piA)
-      ((isWeightBound_query SufCma.permCalls (.inr (.inl label))).mono
-        (by simp [SufCma.permCalls, label_calls]))
-      (fun L ↦ isWeightBound_map _ (isWeightBound_query SufCma.permCalls (.inr (.inr (.fwd _)))))
+    (isWeightBound_advEmbed (isWeightBound_membershipChallengesM permCalls keccakA (lanePerm piA)
+      ((isWeightBound_query permCalls (.inr (.inl label))).mono
+        (by simp [permCalls, label_calls]))
+      (fun L ↦ isWeightBound_map _ (isWeightBound_query permCalls (.inr (.inr (.fwd _)))))
       _)).bind fun _ ↦ isWeightBound_pure _ _ 0).bind fun a ↦
         isWeightBound_hfEmbed (isWeightBound_ksPost r ps ext x a)).mono (by unfold ksCalls; omega)
 
@@ -407,7 +337,7 @@ theorem duplex_postK (crs : Crs) (out : (Digest × Proof) × List (Fin (r * 128)
 
 /-- **From the two-oracle model to the RPM**: the knowledge-soundness game with the simulated
 adversary is at most the RPM experiment of `ksAdv A` plus the transfer `q² / 2^508`. -/
-theorem rom2_le_ksExpRpm (Q : ℕ) (hQ : IsWeightBound (codeBindingGame r ps A) permCalls2 Q) :
+theorem rom2_le_ksExpRpm (Q : ℕ) (hQ : IsWeightBound (codeBindingGame2 r ps A) permCalls2 Q) :
     Pr{let b ← romRun2 (simulateQ (hInF (E := KRest) (C := KCap)) (liftM ps.setup) >>= fun x ↦
         advS2 keccakPadding KState.zero (A ((), x)) >>= fun a ↦ postK r ps ext x a)}[b = true] ≤
       Pr{let b ← ksExpRpm r ps ext (ksAdv r A)}[b = true] +
@@ -427,7 +357,7 @@ noncomputable def ksIdealG (crs : Crs) : ProbComp Bool :=
         simulateQ embG (ksPostH r ps ext crs out l))).run' ∅
 
 /-- **The duplex lemma, reversed, for knowledge soundness.** -/
-theorem ksIdealG_le (Q : ℕ) (hQ : IsWeightBound (codeBindingGame r ps A) permCalls2 Q) :
+theorem ksIdealG_le (Q : ℕ) (hQ : IsWeightBound (codeBindingGame2 r ps A) permCalls2 Q) :
     Pr{let b ← ps.setup >>= ksIdealG r ps ext A}[b = true] ≤
       Pr{let b ← romRun2 (simulateQ (hInF (E := KRest) (C := KCap)) (liftM ps.setup) >>= fun x ↦
         advS2 keccakPadding KState.zero (A ((), x)) >>= fun a ↦ postK r ps ext x a)}[b = true] +

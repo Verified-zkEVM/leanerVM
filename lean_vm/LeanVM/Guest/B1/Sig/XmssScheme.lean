@@ -148,7 +148,7 @@ theorem chainWalk_succ (P : PublicParameter) (lay : Layer) (key : KeyIndex) (i :
         @tweakableHash Id _ inst P (.chain lay key ⟨start + n, hstep⟩)
           (chainPayload i (@chainWalk Id _ inst P lay key i start n v))
       else 0 := by
-  rw [chainWalk.eq_2]
+  rw [chainWalk_eq_succ]
   simp only [bind]
   split <;> rfl
 
@@ -160,7 +160,7 @@ theorem chainWalk_shift (P : PublicParameter) (lay : Layer) (key : KeyIndex) (i 
         @chainWalk Id _ inst P lay key i (start + 1) n
           (@tweakableHash Id _ inst P (.chain lay key ⟨start, hs⟩) (chainPayload i v))
   | 0, start, v, hs, _ => by
-      rw [chainWalk_succ, dite_of (by omega), chainWalk.eq_1, chainWalk.eq_1]
+      rw [chainWalk_succ, dite_of (by omega), chainWalk_eq_zero, chainWalk_eq_zero]
       rfl
   | n + 1, start, v, hs, h => by
       have h1 : start + (n + 1) < chainLength - 1 := by omega
@@ -179,7 +179,7 @@ theorem treeFold_succ (P : PublicParameter) (lay : Layer) (key : KeyIndex)
         @tweakableHash Id _ inst P (.node lay (m + 1) (key.val / 2 ^ (m + 1))) (nodePayload sibling current)
       else
         @tweakableHash Id _ inst P (.node lay (m + 1) (key.val / 2 ^ (m + 1))) (nodePayload current sibling) := by
-  rw [treeFold.eq_2]
+  rw [treeFold_eq_succ]
   simp only [bind]
 
 /-! ## Hashes of cells -/
@@ -229,7 +229,7 @@ theorem recoverChain_cells (hq : XQ inst) {pp : E} {adr : Nat → E} {lay : Laye
       @chainWalk Id _ inst (xpp pp) lay key i start n (xv x) = xv (xChain pp adr i.val n start x) := by
     intro n
     induction n with
-    | zero => intro start x _; rw [chainWalk.eq_1]; rfl
+    | zero => intro start x _; rw [chainWalk_eq_zero]; rfl
     | succ n ih =>
         intro start x h
         rw [chainWalk_shift _ _ _ _ _ _ _ (by omega) h, chainStep_cells hq (hadr ⟨start, by omega⟩),
@@ -292,7 +292,7 @@ theorem treeFold_cells (hq : XQ inst) {pp : E} {A : Nat → E} {lay : Layer} {ke
     ∀ m ≤ layerHeight, ∀ x : E,
       @treeFold Id _ inst (xpp pp) lay key (fun l => xv (sibs l.val)) m (xv x) =
         xv (xFold pp A (fun l => key.val.testBit l) sibs m x)
-  | 0, _, x => by rw [treeFold.eq_1]; rfl
+  | 0, _, x => by rw [treeFold_eq_zero]; rfl
   | m + 1, hm, x => by
       rw [treeFold_succ]
       simp only [xFold]

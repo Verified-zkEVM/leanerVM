@@ -74,10 +74,11 @@ theorem chainWalk_add (parameter : PublicParameter) (lay : Layer) (tree : TreeIn
           let mid ← chainWalk (m := OracleComp HashSpec) parameter lay tree leaf chainIdx start a value
           chainWalk parameter lay tree leaf chainIdx (start + a) b mid) := by
   induction b with
-  | zero => simp [chainWalk]
+  | zero => simp [chainWalk_eq_zero]
   | succ b ih =>
       show chainWalk (m := OracleComp HashSpec) parameter lay tree leaf chainIdx start (a + b + 1) value = _
-      simp only [chainWalk, ih, bind_assoc, Nat.add_assoc]
+      rw [chainWalk_eq_succ, ih]
+      simp only [chainWalk_eq_succ, bind_assoc, Nat.add_assoc]
 
 /-- The value the signer's chain reaches after `steps` steps from position `start`. -/
 def walk (parameter : PublicParameter) (lay : Layer) (tree : TreeIndex) (leaf : LeafIndex)
@@ -255,14 +256,14 @@ theorem node_succ (parameter : PublicParameter) (lay : Layer) (tree : TreeIndex)
       = truncateHash (f (tweakableHashInput parameter (.node lay tree (level + 1) nodeIdx)
           (nodePayload (node f parameter lay tree seed level (2 * nodeIdx))
             (node f parameter lay tree seed level (2 * nodeIdx + 1))))) := by
-  simp only [node, Seeded.treeNode, evalWithAnswerFn_bind, eval_tweakableHash]
+  simp only [node, Seeded.treeNode_eq_succ, evalWithAnswerFn_bind, eval_tweakableHash]
 
 theorem node_zero (parameter : PublicParameter) (lay : Layer) (tree : TreeIndex)
     (seed : MasterSeed) (leaf : LeafIndex) :
     node f parameter lay tree seed 0 leaf.val
       = evalWithAnswerFn f (leafHash parameter lay tree leaf
           (otsEndpoint f parameter lay tree leaf seed) : OracleComp HashSpec Digest) := by
-  simp only [node, Seeded.treeNode, evalWithAnswerFn_bind, leafOfNat_val, eval_oneTimePublicKey]
+  simp only [node, Seeded.treeNode_eq_zero, evalWithAnswerFn_bind, leafOfNat_val, eval_oneTimePublicKey]
 
 /-- Folding the honest leaf through the honest siblings reaches the honest node above it. -/
 theorem eval_treeFold_path (parameter : PublicParameter) (lay : Layer) (tree : TreeIndex)
@@ -274,10 +275,10 @@ theorem eval_treeFold_path (parameter : PublicParameter) (lay : Layer) (tree : T
         = node f parameter lay tree seed levels (leaf.val / 2 ^ levels) := by
   intro levels
   induction levels with
-  | zero => intro _; simp [treeFold]
+  | zero => intro _; simp [treeFold_eq_zero]
   | succ levels ih =>
       intro hpath
-      rw [treeFold, evalWithAnswerFn_bind,
+      rw [treeFold_eq_succ, evalWithAnswerFn_bind,
         ih (fun level hlevel => hpath level (Nat.lt_succ_of_lt hlevel))]
       rw [hpath levels (Nat.lt_succ_self levels), node_succ]
       cases hbit : leaf.val.testBit levels with
@@ -313,10 +314,11 @@ theorem forestWalk_add (start x y : Nat) (value : Digest) :
           let mid ← forestWalk (m := OracleComp HashSpec) parameter index c s j a i start x value
           forestWalk parameter index c s j a i (start + x) y mid) := by
   induction y with
-  | zero => simp [forestWalk]
+  | zero => simp [forestWalk_eq_zero]
   | succ y ih =>
       show forestWalk (m := OracleComp HashSpec) parameter index c s j a i start (x + y + 1) value = _
-      simp only [forestWalk, ih, bind_assoc, Nat.add_assoc]
+      rw [forestWalk_eq_succ, ih]
+      simp only [forestWalk_eq_succ, bind_assoc, Nat.add_assoc]
 
 /-- The value a forest chain reaches after `steps` steps from position `start`. -/
 def fwalk (start steps : Nat) (value : Digest) : Digest :=
@@ -417,13 +419,13 @@ theorem subNodeValue_succ (level node : Nat) (hlevel : level < subHeight) :
           (.subNode index c s j ⟨level, hlevel⟩ ⟨node % 2 ^ subHeight, Nat.mod_lt _ (Nat.two_pow_pos _)⟩)
           (nodePayload (subNodeValue f parameter index c s j seed level (2 * node))
             (subNodeValue f parameter index c s j seed level (2 * node + 1))))) := by
-  simp only [subNodeValue, Seeded.subNode, evalWithAnswerFn_bind, dite_eq_left hlevel, eval_tweakableHash]
+  simp only [subNodeValue, Seeded.subNode_eq_succ, evalWithAnswerFn_bind, dite_eq_left hlevel, eval_tweakableHash]
 
 theorem subNodeValue_zero (a : ChildIdx) :
     subNodeValue f parameter index c s j seed 0 a.val = childLeafValue f parameter index c s j seed a := by
   have ha : (⟨a.val % 2 ^ subHeight, Nat.mod_lt _ (Nat.two_pow_pos _)⟩ : ChildIdx) = a :=
     Fin.ext (Nat.mod_eq_of_lt a.isLt)
-  simp only [subNodeValue, Seeded.subNode, ha, eval_childLeaf]
+  simp only [subNodeValue, Seeded.subNode_eq_zero, ha, eval_childLeaf]
 
 /-- Folding the honest child leaf through the honest siblings reaches the honest node above it. -/
 theorem eval_subFold_path (a : ChildIdx) (path : Fin subHeight → Digest) :
@@ -435,11 +437,11 @@ theorem eval_subFold_path (a : ChildIdx) (path : Fin subHeight → Digest) :
         = subNodeValue f parameter index c s j seed levels (a.val / 2 ^ levels) := by
   intro levels
   induction levels with
-  | zero => intro _ _; simp [subFold]
+  | zero => intro _ _; simp [subFold_eq_zero]
   | succ levels ih =>
       intro hheight hpath
       have hlevels : levels < subHeight := Nat.lt_of_succ_le hheight
-      rw [subFold, evalWithAnswerFn_bind,
+      rw [subFold_eq_succ, evalWithAnswerFn_bind,
         ih (Nat.le_of_succ_le hheight) (fun level hlevel hlt => hpath level hlevel (Nat.lt_succ_of_lt hlt))]
       rw [dite_eq_left hlevels, hpath levels hlevels (Nat.lt_succ_self levels),
         subNodeValue_succ f parameter index c s j seed levels _ hlevels]
@@ -476,13 +478,13 @@ theorem topNodeValue_succ (level node : Nat) (hlevel : level < topHeight) :
           (.topNode index c ⟨level, hlevel⟩ ⟨node % 2 ^ topHeight, Nat.mod_lt _ (Nat.two_pow_pos _)⟩)
           (nodePayload (topNodeValue f parameter index c seed level (2 * node))
             (topNodeValue f parameter index c seed level (2 * node + 1))))) := by
-  simp only [topNodeValue, Seeded.topNode, evalWithAnswerFn_bind, dite_eq_left hlevel, eval_tweakableHash]
+  simp only [topNodeValue, Seeded.topNode_eq_succ, evalWithAnswerFn_bind, dite_eq_left hlevel, eval_tweakableHash]
 
 theorem topNodeValue_zero (s : SuperIdx) :
     topNodeValue f parameter index c seed 0 s.val = superValue f parameter index c seed s := by
   have hs : (⟨s.val % 2 ^ topHeight, Nat.mod_lt _ (Nat.two_pow_pos _)⟩ : SuperIdx) = s :=
     Fin.ext (Nat.mod_eq_of_lt s.isLt)
-  simp only [topNodeValue, Seeded.topNode, hs, superValue]
+  simp only [topNodeValue, Seeded.topNode_eq_zero, hs, superValue]
 
 theorem eval_topFold_path (s : SuperIdx) (path : Fin topHeight → Digest) :
     ∀ levels : Nat, levels ≤ topHeight →
@@ -493,11 +495,11 @@ theorem eval_topFold_path (s : SuperIdx) (path : Fin topHeight → Digest) :
         = topNodeValue f parameter index c seed levels (s.val / 2 ^ levels) := by
   intro levels
   induction levels with
-  | zero => intro _ _; simp [topFold]
+  | zero => intro _ _; simp [topFold_eq_zero]
   | succ levels ih =>
       intro hheight hpath
       have hlevels : levels < topHeight := Nat.lt_of_succ_le hheight
-      rw [topFold, evalWithAnswerFn_bind,
+      rw [topFold_eq_succ, evalWithAnswerFn_bind,
         ih (Nat.le_of_succ_le hheight) (fun level hlevel hlt => hpath level hlevel (Nat.lt_succ_of_lt hlt))]
       rw [dite_eq_left hlevels, hpath levels hlevels (Nat.lt_succ_self levels),
         topNodeValue_succ f parameter index c seed levels _ hlevels]

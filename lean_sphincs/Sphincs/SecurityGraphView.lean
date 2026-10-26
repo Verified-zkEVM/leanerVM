@@ -96,7 +96,7 @@ theorem coordinates_correct (f : QueryImpl HashSpec Id) (parameter : PublicParam
   constructor
   · intro leaf hland chain position
     by_cases hz : position.val = 0
-    · simp only [coordinates, hz, ↓reduceDIte, Chain.honestChain, chainWalk]
+    · simp only [coordinates, hz, ↓reduceDIte, Chain.honestChain, chainWalk_eq_zero]
       rfl
     · rw [coordinates, dite_eq_right hz]
       have hstep : position.val - 1 < chainLength - 1 := by have := position.isLt; omega
@@ -105,7 +105,7 @@ theorem coordinates_correct (f : QueryImpl HashSpec Id) (parameter : PublicParam
       simpa only [Nat.sub_add_cancel (by omega : 1 ≤ position.val), otsSecrets] using h
   · intro index c s j a i position
     by_cases hz : position.val = 0
-    · simp only [coordinates, hz, ↓reduceDIte, Completeness.chainValueOf, Completeness.fwalk, forestWalk]
+    · simp only [coordinates, hz, ↓reduceDIte, Completeness.chainValueOf, Completeness.fwalk, forestWalk_eq_zero]
       rfl
     · rw [coordinates, dite_eq_right hz]
       have hstep : position.val - 1 < chainTop := by have := position.isLt; omega

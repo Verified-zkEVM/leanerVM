@@ -39,9 +39,9 @@ theorem chain (lay : Layer) (tree : TreeIndex) (leaf : LeafIndex) (index : Chain
     evalWithAnswerFn left (chainWalk parameter lay tree leaf index start steps value : OracleComp HashSpec Digest) =
       evalWithAnswerFn right (chainWalk parameter lay tree leaf index start steps value : OracleComp HashSpec Digest) := by
   induction steps with
-  | zero => simp only [chainWalk, evalWithAnswerFn_pure]
+  | zero => simp only [chainWalk_eq_zero, evalWithAnswerFn_pure]
   | succ steps ih =>
-      simp only [chainWalk, evalWithAnswerFn_bind, ih]
+      simp only [chainWalk_eq_succ, evalWithAnswerFn_bind, ih]
       split
       · exact h.tweakable _ _
       · rfl
@@ -64,9 +64,9 @@ theorem forestChain (index : Index) (c : Coord) (s : SuperIdx) (j : SubIdx) (a :
     evalWithAnswerFn left (forestWalk parameter index c s j a i start steps value : OracleComp HashSpec Digest) =
       evalWithAnswerFn right (forestWalk parameter index c s j a i start steps value : OracleComp HashSpec Digest) := by
   induction steps with
-  | zero => simp only [forestWalk, evalWithAnswerFn_pure]
+  | zero => simp only [forestWalk_eq_zero, evalWithAnswerFn_pure]
   | succ steps ih =>
-      simp only [forestWalk, evalWithAnswerFn_bind, ih]
+      simp only [forestWalk_eq_succ, evalWithAnswerFn_bind, ih]
       split
       · exact h.tweakable _ _
       · rfl
@@ -86,10 +86,10 @@ theorem subNode (index : Index) (c : Coord) (s : SuperIdx) (j : SubIdx) (level n
       evalWithAnswerFn right (Seeded.subNode parameter index c s j seed level node : OracleComp HashSpec Digest) := by
   induction level generalizing node with
   | zero =>
-      simp only [Seeded.subNode, Seeded.childLeaf, evalWithAnswerFn_bind, eval_sequenceFin, h.forestSecrets,
+      simp only [Seeded.subNode_eq_zero, Seeded.childLeaf, evalWithAnswerFn_bind, eval_sequenceFin, h.forestSecrets,
         h.forestChain, childLeafHash, h.tweakable]
   | succ level ih =>
-      simp only [Seeded.subNode, evalWithAnswerFn_bind, ih]
+      simp only [Seeded.subNode_eq_succ, evalWithAnswerFn_bind, ih]
       split
       · exact h.tweakable _ _
       · rfl
@@ -99,10 +99,10 @@ theorem topNode (index : Index) (c : Coord) (level node : Nat) :
       evalWithAnswerFn right (Seeded.topNode parameter index c seed level node : OracleComp HashSpec Digest) := by
   induction level generalizing node with
   | zero =>
-      simp only [Seeded.topNode, Seeded.superNode, evalWithAnswerFn_bind, evalWithAnswerFn_pure,
+      simp only [Seeded.topNode_eq_zero, Seeded.superNode, evalWithAnswerFn_bind, evalWithAnswerFn_pure,
         eval_sequenceFin, h.subNode, superHash, h.tweakable]
   | succ level ih =>
-      simp only [Seeded.topNode, evalWithAnswerFn_bind, ih]
+      simp only [Seeded.topNode_eq_succ, evalWithAnswerFn_bind, ih]
       split
       · exact h.tweakable _ _
       · rfl

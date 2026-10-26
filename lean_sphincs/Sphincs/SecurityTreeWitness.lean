@@ -152,7 +152,7 @@ theorem merkleFold_treeFold (parameter : PublicParameter) (lay : Layer) (tree : 
   induction levels with
   | zero => rfl
   | succ levels ih =>
-      rw [merkleFold, treeFold, ih]
+      rw [merkleFold, treeFold_eq_succ, ih]
       apply bind_congr
       intro current
       cases leaf.val.testBit levels <;> rfl

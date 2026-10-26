@@ -145,7 +145,7 @@ theorem Only.chainWalk (parameter : PublicParameter) (lay : Layer) (tree : TreeI
       OracleComp HashSpec Digest)
   | 0, value => Only.pure' _
   | steps + 1, value => by
-      rw [Concrete.chainWalk]
+      rw [Concrete.chainWalk_eq_succ]
       refine Only.bind (Only.chainWalk parameter lay tree leaf chainIdx start steps value) ?_
       intro previous
       split
@@ -184,7 +184,7 @@ theorem Only.treeFold (parameter : PublicParameter) (lay : Layer) (tree : TreeIn
       OracleComp HashSpec Digest)
   | 0, value => Only.pure' _
   | levels + 1, value => by
-      rw [Concrete.treeFold]
+      rw [Concrete.treeFold_eq_succ]
       refine Only.bind (Only.treeFold parameter lay tree leaf path levels value) ?_
       intro current
       split <;> exact Only.tweakableHash _ _ _ (by rw [nodePayload_length]; omega)
@@ -195,7 +195,7 @@ theorem Only.forestWalk (parameter : PublicParameter) (index : Index) (c : Coord
       OracleComp HashSpec Digest)
   | 0, value => Only.pure' _
   | steps + 1, value => by
-      rw [Concrete.forestWalk]
+      rw [Concrete.forestWalk_eq_succ]
       refine Only.bind (Only.forestWalk parameter index c s j a i start steps value) ?_
       intro previous
       split
@@ -213,7 +213,7 @@ theorem Only.subFold (parameter : PublicParameter) (index : Index) (c : Coord) (
       OracleComp HashSpec Digest)
   | 0, value => Only.pure' _
   | levels + 1, value => by
-      rw [Concrete.subFold]
+      rw [Concrete.subFold_eq_succ]
       refine Only.bind (Only.subFold parameter index c s j a path levels value) ?_
       intro current
       dsimp only
@@ -228,7 +228,7 @@ theorem Only.topFold (parameter : PublicParameter) (index : Index) (c : Coord) (
       OracleComp HashSpec Digest)
   | 0, value => Only.pure' _
   | levels + 1, value => by
-      rw [Concrete.topFold]
+      rw [Concrete.topFold_eq_succ]
       refine Only.bind (Only.topFold parameter index c s path levels value) ?_
       intro current
       dsimp only
@@ -322,10 +322,10 @@ theorem Only.treeNode (parameter : PublicParameter) (lay : Layer) (tree : TreeIn
     (seed : MasterSeed) : ∀ level nodeIdx, Short.Only (treeNode parameter lay tree seed level nodeIdx :
       OracleComp HashSpec Digest)
   | 0, nodeIdx => by
-      rw [Sphincs.Seeded.treeNode]
+      rw [Sphincs.Seeded.treeNode_eq_zero]
       exact Short.Only.bind (Only.oneTimePublicKey _ _ _ _ _) (fun _ => Short.Only.leafHash _ _ _ _ _)
   | level + 1, nodeIdx => by
-      rw [Sphincs.Seeded.treeNode]
+      rw [Sphincs.Seeded.treeNode_eq_succ]
       exact Short.Only.bind (Only.treeNode parameter lay tree seed level _) (fun _ =>
         Short.Only.bind (Only.treeNode parameter lay tree seed level _) (fun _ =>
           Short.Only.tweakableHash _ _ _ (by rw [nodePayload_length]; omega)))
@@ -346,12 +346,12 @@ theorem Only.subNode (parameter : PublicParameter) (index : Index) (c : Coord) (
     (j : SubIdx) (seed : MasterSeed) : ∀ level node, Short.Only (subNode parameter index c s j seed level node :
       OracleComp HashSpec Digest)
   | 0, node => by
-      rw [Sphincs.Seeded.subNode]
+      rw [Sphincs.Seeded.subNode_eq_zero]
       exact Short.Only.bind (Only.forestSecrets _ _ _ _ _ _ _) (fun _ =>
         Short.Only.bind (Short.Only.sequenceFin _ fun _ => Short.Only.forestWalk _ _ _ _ _ _ _ _ _ _)
           (fun _ => Short.Only.childLeafHash _ _ _ _ _ _ _))
   | level + 1, node => by
-      rw [Sphincs.Seeded.subNode]
+      rw [Sphincs.Seeded.subNode_eq_succ]
       refine Short.Only.bind (Only.subNode parameter index c s j seed level _) (fun _ =>
         Short.Only.bind (Only.subNode parameter index c s j seed level _) (fun _ => ?_))
       split
@@ -370,10 +370,10 @@ theorem Only.topNode (parameter : PublicParameter) (index : Index) (c : Coord)
     (seed : MasterSeed) : ∀ level node, Short.Only (topNode parameter index c seed level node :
       OracleComp HashSpec Digest)
   | 0, node => by
-      rw [Sphincs.Seeded.topNode]
+      rw [Sphincs.Seeded.topNode_eq_zero]
       exact Only.superNode _ _ _ _ _
   | level + 1, node => by
-      rw [Sphincs.Seeded.topNode]
+      rw [Sphincs.Seeded.topNode_eq_succ]
       refine Short.Only.bind (Only.topNode parameter index c seed level _) (fun _ =>
         Short.Only.bind (Only.topNode parameter index c seed level _) (fun _ => ?_))
       split

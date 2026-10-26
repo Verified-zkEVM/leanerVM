@@ -28,7 +28,7 @@ digest hashes the two claim lists' digests. Every encoding on the way is injecti
 width (`digestBytes`, 32 bytes; `claimBytes`, 64; `eBytes`, 24; a DA claim, 64). So two statements
 with the same digest are equal, or one of the five Keccak-256 hashes on the way was given two
 different inputs with the same output: the pairs `collisionCandidates` lists
-(`statementDigest_binds`).
+(`statementDigest_binds`, and `digest_binds : DigestBinds`).
 
 The deferred claim's cells carry no lengths: `[x] ++ [y]` and `[x, y] ++ []` are the same cells.
 The binding needs the two deferred claims' points to have the same length, which
@@ -245,6 +245,10 @@ theorem statementDigest_binds {b : List K} {seed seed' : Digest} {s s' : NodeSta
     (seed = seed' ∧ s = s') ∨ HasCollision (collisionCandidates seed s seed' s') :=
   statementDigest_binds_of_length (hs.trans hs'.symm) h
 
+/-- **`DigestBinds`** (`Statement/LeanVmGuest.lean`): `statementDigest_binds`. -/
+theorem digest_binds : DigestBinds :=
+  fun _ _ _ _ _ hs hs' h ↦ statementDigest_binds hs hs' h
+
 /-! ## What a consumer learns -/
 
 /-- **A consumer learns the decoded statement**: it checks that the public input's digest is its
@@ -260,7 +264,7 @@ theorem decoded_binds {b : List K} {iv seed : Digest} {s₀ s : NodeStatement}
 
 /-- `decoded_binds` with the decoded statement's shape from where it comes: one the guest
 `bytecode` establishes (`NodeRel`); the consumer's deferred claim has the shape of `bytecode`
-(`AggregateSound` assumes it). -/
+(`AggregateSound`, `Statement/Corollaries.lean`, assumes it). -/
 theorem decoded_binds_of_nodeRel {bytecode : List K} {iv seed : Digest} {s₀ s : NodeStatement}
     {w : NodeWitness} {input : PublicInput} (hs₀ : s₀.defer.Shaped bytecode)
     (hrel : NodeRel bytecode seed s w)

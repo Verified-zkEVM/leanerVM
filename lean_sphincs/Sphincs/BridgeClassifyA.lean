@@ -62,7 +62,7 @@ theorem sub_refined (c : Coord) (mark : CoordMark) (j : SubIdx) (opening : SubOp
             (Completeness.forestSecret f parameter index c mark.super j (mark.child j) i seed)
             (chainTop - (lut (mark.word j) i).val) (opening.values i) (lut (mark.word j) i).val 0
             (by omega) (Nat.zero_le _) hwalk with h0 | ⟨offset, hoffset, _, hlt, hhit⟩
-        · exact False.elim (hi (by simpa only [walkValue, forestWalk, evalWithAnswerFn_pure,
+        · exact False.elim (hi (by simpa only [walkValue, forestWalk_eq_zero, forestWalk_eq_succ, evalWithAnswerFn_pure,
             Nat.add_zero, chainValueOf_eq_honest] using h0))
         · exact ⟨offset, hoffset, hlt, hhit⟩
     · exact Or.inl ⟨hends, hleaf⟩

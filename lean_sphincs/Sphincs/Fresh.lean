@@ -176,7 +176,7 @@ theorem chainWalk (parameter : PublicParameter) (lay : Layer) (tree : TreeIndex)
   induction steps with
   | zero => exact pure' _ _
   | succ steps ih =>
-      rw [Concrete.chainWalk]
+      rw [Concrete.chainWalk_eq_succ]
       refine bind ih (fun _ => ?_)
       split
       · exact tweakableHash _ _ _ _ (hs.chain _ _ _ _ _ _ _)
@@ -199,10 +199,10 @@ theorem treeNode (parameter : PublicParameter) (lay : Layer) (tree : TreeIndex)
     PreservesFresh target (Seeded.treeNode parameter lay tree seed level index) := by
   induction level generalizing index with
   | zero =>
-      rw [Seeded.treeNode]
+      rw [Seeded.treeNode_eq_zero]
       exact bind (oneTimePublicKey hs _ _ _ _ _) (fun _ => tweakableHash _ _ _ _ (hs.leaf _ _ _ _ _))
   | succ level ih =>
-      rw [Seeded.treeNode]
+      rw [Seeded.treeNode_eq_succ]
       exact bind (ih _) (fun _ => bind (ih _) (fun _ => tweakableHash _ _ _ _ (hs.node _ _ _ _ _ _)))
 
 theorem surrogate (parameter : PublicParameter) (seed : MasterSeed) (level : Nat) :
@@ -238,7 +238,7 @@ theorem forestWalk (parameter : PublicParameter) (index : Index) (c : Coord) (s 
   induction steps with
   | zero => exact pure' _ _
   | succ steps ih =>
-      rw [Concrete.forestWalk]
+      rw [Concrete.forestWalk_eq_succ]
       refine bind ih (fun _ => ?_)
       split
       · exact tweakableHash _ _ _ _ (hs.fchain _ _ _ _ _ _ _ _ _)
@@ -274,10 +274,10 @@ theorem subNode (parameter : PublicParameter) (index : Index) (c : Coord) (s : S
     PreservesFresh target (Seeded.subNode parameter index c s j seed level node) := by
   induction level generalizing node with
   | zero =>
-      rw [Seeded.subNode]
+      rw [Seeded.subNode_eq_zero]
       exact childLeaf hs _ _ _ _ _ _ _
   | succ level ih =>
-      rw [Seeded.subNode]
+      rw [Seeded.subNode_eq_succ]
       refine bind (ih _) (fun _ => bind (ih _) (fun _ => ?_))
       split
       · exact tweakableHash _ _ _ _ (hs.subNode _ _ _ _ _ _ _ _)
@@ -298,10 +298,10 @@ theorem topNode (parameter : PublicParameter) (index : Index) (c : Coord)
     PreservesFresh target (Seeded.topNode parameter index c seed level node) := by
   induction level generalizing node with
   | zero =>
-      rw [Seeded.topNode]
+      rw [Seeded.topNode_eq_zero]
       exact superNode hs _ _ _ _ _
   | succ level ih =>
-      rw [Seeded.topNode]
+      rw [Seeded.topNode_eq_succ]
       refine bind (ih _) (fun _ => bind (ih _) (fun _ => ?_))
       split
       · exact tweakableHash _ _ _ _ (hs.topNode _ _ _ _ _ _)

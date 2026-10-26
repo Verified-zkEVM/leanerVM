@@ -14,7 +14,7 @@ signing oracle. Key generation, signing and the final verification hash through 
 
 The budget counts permutation calls on every path of the game, whatever the answers: a hash of
 `n` bytes costs `⌊n / 136⌋ + 1` calls (one per block of the padded message), a query of `π` or
-`π⁻¹` one (`Common.SufCma.permCalls`). The refined statement also counts the calls of `H`, `π`
+`π⁻¹` one (`Common.permCalls`). The refined statement also counts the calls of `H`, `π`
 and `π⁻¹`, one each (`Common.SufCma.oracleCalls`).
 -/
 

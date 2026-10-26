@@ -207,7 +207,7 @@ theorem sChainWalk_succ (P : PublicParameter) (lay : Layer) (tree : TreeIndex) (
         @tweakableHash Id _ inst P (.chain lay tree leaf i ⟨start + n, hstep⟩)
           (Sphincs.bytesLE 16 (@chainWalk Id _ inst P lay tree leaf i start n v))
       else 0 := by
-  rw [chainWalk.eq_2]
+  rw [chainWalk_eq_succ]
   simp only [bind]
   split <;> rfl
 
@@ -219,7 +219,7 @@ theorem sChainWalk_shift (P : PublicParameter) (lay : Layer) (tree : TreeIndex) 
         @chainWalk Id _ inst P lay tree leaf i (start + 1) n
           (@tweakableHash Id _ inst P (.chain lay tree leaf i ⟨start, hs⟩) (Sphincs.bytesLE 16 v))
   | 0, start, v, hs, _ => by
-      rw [sChainWalk_succ, dite_of (by omega), chainWalk.eq_1, chainWalk.eq_1]
+      rw [sChainWalk_succ, dite_of (by omega), chainWalk_eq_zero, chainWalk_eq_zero]
       rfl
   | n + 1, start, v, hs, h => by
       have h1 : start + (n + 1) < chainLength - 1 := by omega
@@ -257,7 +257,7 @@ theorem sRecoverChain_cells (hq : SQ inst) {pp : E} {adr : Nat → E} {lay : Lay
       @chainWalk Id _ inst (spp pp) lay tree leaf i start n (sv x) = sv (sChain pp adr n start x) := by
     intro n
     induction n with
-    | zero => intro start x _; rw [chainWalk.eq_1]; rfl
+    | zero => intro start x _; rw [chainWalk_eq_zero]; rfl
     | succ n ih =>
         intro start x h
         rw [sChainWalk_shift _ _ _ _ _ _ _ _ (by omega) h, sChainStep_cells hq (hadr ⟨start, by omega⟩),
@@ -292,9 +292,9 @@ theorem sTreeFold_cells (hq : SQ inst) {pp : E} {A : Nat → E} {lay : Layer} {t
     ∀ m ≤ maxLayerHeight, ∀ x : E,
       @treeFold Id _ inst (spp pp) lay tree leaf (fun l => sv (sibs l)) m (sv x) =
         sv (xFold pp A (fun l => leaf.val.testBit l) sibs m x)
-  | 0, _, x => by rw [treeFold.eq_1]; rfl
+  | 0, _, x => by rw [treeFold_eq_zero]; rfl
   | m + 1, hm, x => by
-      rw [treeFold.eq_2]
+      rw [treeFold_eq_succ]
       simp only [bind, xFold]
       rw [sTreeFold_cells hq hA sibs m (by omega) x]
       split
@@ -524,9 +524,9 @@ theorem sForestWalk_cells (hq : SQ inst) {pp ka : E} {index : Index} {c : Coord}
       tweakBytes (.fchain index c s j a i t)) (start : Nat) (x : E) :
     ∀ n, start + n ≤ chainTop →
       @forestWalk Id _ inst (spp pp) index c s j a i start n (sv x) = sv (fChain pp ka i.val start x n)
-  | 0, _ => by rw [forestWalk.eq_1]; rfl
+  | 0, _ => by rw [forestWalk_eq_zero]; rfl
   | n + 1, h => by
-      rw [forestWalk.eq_2]
+      rw [forestWalk_eq_succ]
       simp only [bind]
       rw [sForestWalk_cells hq hadr start x n (by omega), dite_of (by omega)]
       apply sHash_cells hq
@@ -583,9 +583,9 @@ theorem sSubFold_cells (hq : SQ inst) {pp : E} {A : Nat → E} {index : Index} {
     ∀ m ≤ subHeight, ∀ x : E,
       @subFold Id _ inst (spp pp) index c s j a (fun l => sv (sibs l.val)) m (sv x) =
         sv (xFold pp A (fun l => a.val.testBit l) sibs m x)
-  | 0, _, x => by rw [subFold.eq_1]; rfl
+  | 0, _, x => by rw [subFold_eq_zero]; rfl
   | m + 1, hm, x => by
-      rw [subFold.eq_2]
+      rw [subFold_eq_succ]
       simp only [bind, xFold]
       rw [sSubFold_cells hq hA sibs m (by omega) x, dite_of (by omega)]
       split
@@ -609,9 +609,9 @@ theorem sTopFold_cells (hq : SQ inst) {pp : E} {A : Nat → E} {index : Index} {
     ∀ m ≤ topHeight, ∀ x : E,
       @topFold Id _ inst (spp pp) index c s (fun l => sv (sibs l.val)) m (sv x) =
         sv (xFold pp A (fun l => s.val.testBit l) sibs m x)
-  | 0, _, x => by rw [topFold.eq_1]; rfl
+  | 0, _, x => by rw [topFold_eq_zero]; rfl
   | m + 1, hm, x => by
-      rw [topFold.eq_2]
+      rw [topFold_eq_succ]
       simp only [bind, xFold]
       rw [sTopFold_cells hq hA sibs m (by omega) x, dite_of (by omega)]
       split
