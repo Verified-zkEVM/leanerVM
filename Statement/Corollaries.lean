@@ -37,8 +37,8 @@ accepts it as a proof of `guest` on the digest, under the deployed seed, of a st
 deferred claim has the guest program's shape, and yet the execution the knowledge extractor
 `extractorRpm` reads off the adversary's transcript and the proof does not explain `s` (`Explains`:
 decode to the deployed seed, `s` and a witness holding it, or give a Keccak-256 collision among
-`collisionCandidates`). It composes `KnowledgeSoundness`, `GuestKnowledge` and `DigestBinds`; its probability is at
-most the bound of `KnowledgeSoundness`,
+`collisionCandidates`). It composes `KnowledgeSoundness`, `GuestKnowledge` and `DigestBinds`;
+its probability is at most the bound of `KnowledgeSoundness`,
 `(Q + 2^14) · 2^-128 + 7 (Q + 2^14)² · 2^-256`, for an adversary of at most `Q ≤ 2^128` queries.
 Keccak-256 and Keccak-f[1600] outside the executed program are built from `π`; the statement's
 digest and the collisions are of the deployed Keccak-256, which the guest program computes. -/
@@ -84,7 +84,8 @@ abbrev GuestCompleteRecursion : Prop :=
 program**: for every seed, statement `s` and witness `w` with `NodeRel`, within the deployed limits,
 with no child and no blob held directly, at most `2048` raw leanXMSS and leanSPHINCS signatures
 together and at most `2048` declared claims and coverage slots, there is a valid execution of the
-leanISA guest program on the statement's digest of committed size in `[2^22, 2^28]`. The second family of `Covered`. -/
+leanISA guest program on the statement's digest of committed size in `[2^22, 2^28]`. The
+second family of `Covered`. -/
 abbrev GuestCompleteLeaf : Prop :=
   ∀ (seed : Digest) (s : NodeStatement) (w : NodeWitness),
     NodeRel (bytecodeWords guest) seed s w → Limits (bytecodeWords guest) s w →
