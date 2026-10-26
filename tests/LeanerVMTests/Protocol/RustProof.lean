@@ -9,7 +9,8 @@ division program of the pinned Rust test suite (`crates/lean_compiler/tests/suit
 with its fill blocks) at the test rate and prints the program, the hash of its bytecode table,
 the public input, the scalar stream and the pruned Merkle opening phases as text
 (`RustProofData.rustProofText`). `load` reads it: an operand exponent `j` is the operand
-`g ^ j`, an immediate is three limbs, a digest is its 32 bytes. The program the loader builds
+`g ^ j`, an immediate is three limbs, a public word is its two low limbs (a nonzero third limb
+does not load), a digest is its 32 bytes. The program the loader builds
 hashes to the Rust's program hash, which pins the reading of every instruction.
 
 The setup on the fixture: the announced sizes and rate are admissible; they fix a stack of
@@ -143,6 +144,9 @@ def load (text : String) : Option Fixture := do
     | ["program_hash", h] :: ["public", a0, a1, a2, b0, b1, b2] :: ["stream", n] :: ls =>
       let w0 ← hexE a0 a1 a2
       let w1 ← hexE b0 b1 b2
+      -- `PublicInput` has no third limbs; the Rust verifier rejects nonzero ones
+      -- (`crates/lean_vm/src/cpu/mod.rs:141`).
+      if w0.limb 2 ≠ 0 ∨ w1.limb 2 ≠ 0 then none
       let (stream, ls) ← takeLines scalarLine (← dec n) ls
       match ls with
       | ["merkle", p] :: ls =>
@@ -175,6 +179,16 @@ def fx : Fixture :=
 -- The public input `[g^20, 1]`.
 #guard fx.input.lanes 0 == gpow 20 && fx.input.lanes 1 == 0 && fx.input.lanes 2 == 1 &&
   fx.input.lanes 3 == 0
+
+/-- The fixture with its public line replaced. -/
+def withPublic (line : String) : String :=
+  rustProofText.replace "public 0000000000100000 0000000000000000 0000000000000000 \
+    0000000000000001 0000000000000000 0000000000000000" line
+
+-- A nonzero third limb in either public word does not load.
+#guard (load (withPublic "public 100000 0 1 1 0 0")).isNone
+#guard (load (withPublic "public 100000 0 0 1 0 1")).isNone
+#guard (load (withPublic "public 100000 0 0 1 0 0")).isSome
 
 /-! ## The setup -/
 
