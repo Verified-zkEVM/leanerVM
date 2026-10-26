@@ -9430,6 +9430,70 @@ import Sphincs.World
 #guard_msgs (whitespace := lax) in
 #print axioms Sphincs.Completeness.walk_add
 
+/-- info: 'Sphincs.Concrete.chainWalk_eq_succ' depends on axioms: [propext, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms Sphincs.Concrete.chainWalk_eq_succ
+
+/-- info: 'Sphincs.Concrete.chainWalk_eq_zero' depends on axioms: [propext, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms Sphincs.Concrete.chainWalk_eq_zero
+
+/-- info: 'Sphincs.Concrete.forestWalk_eq_succ' depends on axioms: [propext, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms Sphincs.Concrete.forestWalk_eq_succ
+
+/-- info: 'Sphincs.Concrete.forestWalk_eq_zero' depends on axioms: [propext, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms Sphincs.Concrete.forestWalk_eq_zero
+
+/-- info: 'Sphincs.Concrete.subFold_eq_succ' depends on axioms: [propext, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms Sphincs.Concrete.subFold_eq_succ
+
+/-- info: 'Sphincs.Concrete.subFold_eq_zero' depends on axioms: [propext, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms Sphincs.Concrete.subFold_eq_zero
+
+/-- info: 'Sphincs.Concrete.topFold_eq_succ' depends on axioms: [propext, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms Sphincs.Concrete.topFold_eq_succ
+
+/-- info: 'Sphincs.Concrete.topFold_eq_zero' depends on axioms: [propext, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms Sphincs.Concrete.topFold_eq_zero
+
+/-- info: 'Sphincs.Concrete.treeFold_eq_succ' depends on axioms: [propext, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms Sphincs.Concrete.treeFold_eq_succ
+
+/-- info: 'Sphincs.Concrete.treeFold_eq_zero' depends on axioms: [propext, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms Sphincs.Concrete.treeFold_eq_zero
+
+/-- info: 'Sphincs.Seeded.subNode_eq_succ' depends on axioms: [propext, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms Sphincs.Seeded.subNode_eq_succ
+
+/-- info: 'Sphincs.Seeded.subNode_eq_zero' depends on axioms: [propext, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms Sphincs.Seeded.subNode_eq_zero
+
+/-- info: 'Sphincs.Seeded.topNode_eq_succ' depends on axioms: [propext, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms Sphincs.Seeded.topNode_eq_succ
+
+/-- info: 'Sphincs.Seeded.topNode_eq_zero' depends on axioms: [propext, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms Sphincs.Seeded.topNode_eq_zero
+
+/-- info: 'Sphincs.Seeded.treeNode_eq_succ' depends on axioms: [propext, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms Sphincs.Seeded.treeNode_eq_succ
+
+/-- info: 'Sphincs.Seeded.treeNode_eq_zero' depends on axioms: [propext, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms Sphincs.Seeded.treeNode_eq_zero
+
 /-- info: 'Sphincs.codewordCodes_eq_rule' depends on axioms: [propext] -/
 #guard_msgs (whitespace := lax) in
 #print axioms Sphincs.codewordCodes_eq_rule
