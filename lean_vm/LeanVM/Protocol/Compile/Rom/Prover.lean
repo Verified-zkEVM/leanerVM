@@ -10,6 +10,7 @@ module
 
 public import LeanVM.Protocol.Compile.Prover
 public import LeanVM.Protocol.Compile.Cost
+public import Statement.Prover.Run
 
 /-!
 # The honest prover against the random oracles
@@ -19,10 +20,16 @@ the hash `H : Bytes → m Digest` and the permutation `F : KState → m KState` 
 the verifier `run` is. Its `Id` instance is `prove` (`proveM_id`); at `H = queryH` and
 `F = queryF` it is an oracle computation, the honest prover of the random-oracle model.
 
-* The Merkle tree is built level by level as lists (`parentsM`, `rootOfLevelM`, `pathOfLevelM`);
-  an opening rebuilds the tree it opens, as `openingAt` does.
-* The proof-of-work search tries the nonces `0, 1, …` in order, each absorbed into the sponge
-  with tag `4` and a challenge squeezed (`powStepM`, `searchM`).
+It is written with the statement's pieces (`Statement/Prover/Run.lean`), so that it makes the
+moves of the statement's runner `LeanVM.Prover.runFrom` (`LeanVM/Prover/Refine.lean`):
+
+* a commitment builds its Merkle tree once, every level stored (`LeanVM.Prover.buildTreeM`), and
+  the trees committed so far are carried along; an opening reads the stored tree
+  (`LeanVM.Prover.Tree.opening`) and queries nothing;
+* the proof-of-work search tries the nonces `0, 1, …, fuel - 1` in order, each absorbed into the
+  sponge with tag `4` and a challenge squeezed (`LeanVM.Prover.powStepM`,
+  `LeanVM.Prover.searchM`).
+
 * `simulateQ_proveM`: interpreting the queries of `proveM queryH queryF` by any implementation is
   running `proveM` with that implementation as the hash and the permutation.
 * `simulateQ_id_of_look`: a computation whose run against a log's answers returns `r` returns
@@ -36,6 +43,7 @@ namespace LeanVM.Protocol.Compile
 
 open LeanVM.Parameters LeanVM.Semantics LeanVM.Protocol.KeccakHash LeanVM.Protocol
 open LeanVM.Protocol.Compile.Rom LeanVM.Protocol.Rom
+open LeanVM.Prover (Tree buildTreeM leafDigestsM parentsM levelsM powStepM searchM findNonceM)
 open OracleComp OracleSpec
 
 @[expose] public section
@@ -46,93 +54,52 @@ section ProverM
 
 variable {m : Type → Type} [Monad m] (H : Bytes → m Digest) (F : KState → m KState)
 
-/-- The first `n` parents of a level: parent `j` hashes nodes `2j` and `2j + 1`. -/
-def parentsM (level : List Digest) (n : ℕ) : m (List Digest) :=
-  (List.range n).mapM fun j ↦
-    H (digestBytes (level.getD (2 * j) default) ++ digestBytes (level.getD (2 * j + 1) default))
-
-/-- The root of a level of `2^k` nodes. -/
-def rootOfLevelM : ℕ → List Digest → m Digest
-  | 0, level => pure (level.getD 0 default)
-  | k + 1, level => do rootOfLevelM k (← parentsM H level (2 ^ k))
-
-/-- The authentication path of node `i` of a level of `2^k` nodes. -/
-def pathOfLevelM : ℕ → List Digest → ℕ → m (List Digest)
-  | 0, _, _ => pure []
-  | k + 1, level, i => do
-    let up ← parentsM H level (2 ^ k)
-    let rest ← pathOfLevelM k up (i / 2)
-    pure (level.getD (MerkleTree.sibling i) default :: rest)
-
-/-- The leaf hashes of the `2^height` rows of a word. -/
-def leafHashesM (height : ℕ) (word : Word) : m (List Digest) :=
-  (List.range (2 ^ height)).mapM fun i ↦ H ((word i).flatMap kBytes)
-
-/-- The Merkle root of the `2^height` rows of a word. -/
-def treeRootM (height : ℕ) (word : Word) : m Digest := do
-  rootOfLevelM H height (← leafHashesM H height word)
-
-/-- The opening of a word's tree at position `q`. -/
-def openingAtM (height : ℕ) (word : Word) (q : ℕ) : m Opening := do
-  let path ← pathOfLevelM H height (← leafHashesM H height word) (q % 2 ^ height)
-  pure ⟨word (q % 2 ^ height), path⟩
-
-/-- The proof-of-work step of a nonce: absorbed with tag `4`, then a challenge squeezed. -/
-def powStepM (sp : Sponge) (n : E) : m (E × Sponge) := do
-  let sp' ← Compile.absorb F sp n dsPowNonce
-  squeeze F sp'
-
-/-- The nonce search at the sponge `sp`: the first nonce of `ns` whose challenge passes. -/
-def searchM (bits : ℕ) (sp : Sponge) : List ℕ → m (Option E)
-  | [] => pure none
-  | n :: ns => do
-    let r ← powStepM F sp (nonceOf n)
-    if powOk bits (nonceOf n) r.1 then pure (some (nonceOf n)) else searchM bits sp ns
-
-/-- The proof-of-work search: at `bits = 0` the nonce `0`; otherwise the first nonce below
-`fuel` that passes. -/
-def findNonceM (bits : ℕ) (sp : Sponge) (fuel : ℕ) : m (Option E) :=
-  if bits = 0 then pure (some (nonceOf 0)) else searchM F bits sp (List.range fuel)
-
-/-- The honest prover from a history `h` at sponge `sp` (`proveFrom`). -/
+/-- The honest prover from a history `h` at sponge `sp`, the trees of the commitments so far `cs`
+(`proveFrom`): each commitment's tree built once, the openings read from it. -/
 def proveFromM (S : Strategy) (fuel : ℕ) {α : Type} :
-    Prog α → Sponge → List Ev → m (Option (List E × List Opening))
-  | .ret _, _, _ => pure (some ([], []))
-  | .fail, _, _ => pure (some ([], []))
-  | .read k, sp, h => do
+    Prog α → Sponge → List Ev → List Tree → m (Option (List E × List Opening))
+  | .ret _, _, _, _ => pure (some ([], []))
+  | .fail, _, _, _ => pure (some ([], []))
+  | .read k, sp, h, cs => do
     let sp' ← Compile.absorb F sp (S.msg h) dsObserve
-    let r ← proveFromM S fuel (k (S.msg h)) sp' (h ++ [Ev.read (S.msg h)])
+    let r ← proveFromM S fuel (k (S.msg h)) sp' (h ++ [Ev.read (S.msg h)]) cs
     pure (r.map fun t ↦ (S.msg h :: t.1, t.2))
-  | .sample k, sp, h => do
+  | .sample k, sp, h, cs => do
     let r ← squeeze F sp
-    proveFromM S fuel (k r.1) r.2 (h ++ [Ev.sample r.1])
-  | .grind bits k, sp, h => do
+    proveFromM S fuel (k r.1) r.2 (h ++ [Ev.sample r.1]) cs
+  | .grind bits k, sp, h, cs => do
     match ← findNonceM F bits sp fuel with
     | none => pure none
     | some n => do
       let r ← powStepM F sp n
-      let t ← proveFromM S fuel k r.2 (h ++ [Ev.grind bits])
+      let t ← proveFromM S fuel k r.2 (h ++ [Ev.grind bits]) cs
       pure (t.map fun t ↦ (n :: t.1, t.2))
-  | .commit ht w k, sp, h => do
-    let root ← treeRootM H ht (S.word h)
-    let sp0 ← Compile.absorb F sp (digestScalars root).1 dsObserve
-    let sp1 ← Compile.absorb F sp0 (digestScalars root).2 dsObserve
-    let r ← proveFromM S fuel k sp1 (h ++ [Ev.commit ht w (S.word h)])
-    pure (r.map fun t ↦ ((digestScalars root).1 :: (digestScalars root).2 :: t.1, t.2))
-  | .query i ps k, sp, h => match (commits h)[i]? with
+  | .commit ht w k, sp, h, cs => do
+    let tree ← buildTreeM H ht (S.word h)
+    let sp0 ← Compile.absorb F sp (digestScalars tree.root).1 dsObserve
+    let sp1 ← Compile.absorb F sp0 (digestScalars tree.root).2 dsObserve
+    let r ← proveFromM S fuel k sp1 (h ++ [Ev.commit ht w (S.word h)]) (cs ++ [tree])
+    pure (r.map fun t ↦ ((digestScalars tree.root).1 :: (digestScalars tree.root).2 :: t.1, t.2))
+  | .query i ps k, sp, h, cs => match cs[i]? with
     | none => pure (some ([], []))
-    | some (ht, _, word) => do
-      let os ← ps.mapM (openingAtM H ht word)
-      let r ← proveFromM S fuel (k (ps.map fun q ↦ word (q % 2 ^ ht))) sp
-        (h ++ [Ev.query (ps.map fun q ↦ word (q % 2 ^ ht))])
-      pure (r.map fun t ↦ (t.1, os ++ t.2))
+    | some tree => do
+      let rows := ps.map fun q ↦ tree.word (q % 2 ^ tree.height)
+      let r ← proveFromM S fuel (k rows) sp (h ++ [Ev.query rows]) cs
+      pure (r.map fun t ↦ (t.1, ps.map tree.opening ++ t.2))
 
 /-- **The honest prover**, with the hash and the permutation in any monad (`prove`). -/
 def proveM (P : Prog Bool) (S : Strategy) (seed : KState) (fuel : ℕ) : m (Option Proof) := do
-  let r ← proveFromM H F S fuel P ⟨seed, []⟩ []
+  let r ← proveFromM H F S fuel P ⟨seed, []⟩ [] []
   pure (r.map fun t ↦ ⟨t.1, t.2⟩)
 
 end ProverM
+
+/-- The statement's nonce is the prover's. -/
+theorem prover_nonceOf (n : ℕ) : LeanVM.Prover.nonceOf n = nonceOf n := rfl
+
+/-- The trees of a list of commitments, as `buildTreeM` builds them in `Id`. -/
+def treesOf (H : Bytes → Digest) (cs : List (ℕ × ℕ × Word)) : List Tree :=
+  cs.map fun c ↦ buildTreeM (m := Id) H c.1 c.2.2
 
 /-! ## The `Id` instance is the pure prover -/
 
@@ -140,111 +107,141 @@ section Pure
 
 variable (H : Bytes → Digest) (F : KState → KState)
 
-theorem parentsM_id (level : List Digest) (n : ℕ) :
-    parentsM (m := Id) H level n = (List.range n).map fun j ↦
-      H (digestBytes (level.getD (2 * j) default) ++
-        digestBytes (level.getD (2 * j + 1) default)) := by
-  simp only [parentsM]
-  exact List.idRun_mapM
+theorem toArray_getD {α : Type} (l : List α) (i : ℕ) (d : α) : l.toArray.getD i d = l.getD i d := by
+  simp [Array.getD_eq_getD_getElem?, List.getD_eq_getElem?_getD]
 
-/-- The parents of a level, as lists. -/
-theorem parentsM_id_toList {k : ℕ} (level : Vector Digest (2 ^ (k + 1))) :
-    parentsM (m := Id) H level.toList (2 ^ k) =
-      (MerkleTree.parents (nodeHash H) level).toList := by
+theorem parentsM_id (level : Array Digest) (n : ℕ) :
+    parentsM (m := Id) H level n = (Array.range n).map fun j ↦
+      H (digestBytes (level.getD (2 * j) default) ++
+        digestBytes (level.getD (2 * j + 1) default)) :=
+  Array.idRun_mapM
+
+/-- The parents of a level, as arrays. -/
+theorem parentsM_id_toArray {k : ℕ} (level : Vector Digest (2 ^ (k + 1))) :
+    parentsM (m := Id) H level.toArray (2 ^ k) =
+      (MerkleTree.parents (nodeHash H) level).toArray := by
   rw [parentsM_id]
-  refine List.ext_getElem (by simp) fun j h1 h2 ↦ ?_
-  simp only [List.length_map, List.length_range] at h1
+  refine Array.ext (by simp) fun j h1 h2 ↦ ?_
+  simp only [Array.size_map, Array.size_range] at h1
   have hj1 : 2 * j < 2 ^ (k + 1) := by rw [Nat.pow_succ]; omega
   have hj2 : 2 * j + 1 < 2 ^ (k + 1) := by rw [Nat.pow_succ]; omega
-  simp only [List.getElem_map, List.getElem_range, Vector.getElem_toList,
+  simp only [Array.getElem_map, Array.getElem_range, Vector.getElem_toArray,
     MerkleTree.getElem_parents _ _ _ h1, nodeHash]
-  rw [List.getD_eq_getElem _ _ (by simpa using hj1), List.getD_eq_getElem _ _ (by simpa using hj2)]
+  rw [Array.getD_eq_getD_getElem?, Array.getD_eq_getD_getElem?,
+    Array.getElem?_eq_getElem (by simpa using hj1), Array.getElem?_eq_getElem (by simpa using hj2)]
   simp
 
-theorem rootOfLevelM_id :
-    ∀ (k : ℕ) (level : Vector Digest (2 ^ k)),
-      rootOfLevelM (m := Id) H k level.toList = MerkleTree.rootOfLevel (nodeHash H) k level
-  | 0, level => by
-    simp only [rootOfLevelM, MerkleTree.rootOfLevel]
-    rw [List.getD_eq_getElem _ _ (by simp)]
-    simp only [Vector.getElem_toList]
-    rfl
-  | k + 1, level => by
-    simp only [rootOfLevelM, MerkleTree.rootOfLevel]
-    show rootOfLevelM (m := Id) H k (parentsM (m := Id) H level.toList (2 ^ k)) = _
-    rw [parentsM_id_toList, rootOfLevelM_id k]
+theorem levelsM_id_succ (k : ℕ) (level : Array Digest) :
+    levelsM (m := Id) H (k + 1) level =
+      level :: levelsM (m := Id) H k (parentsM (m := Id) H level (2 ^ k)) := rfl
 
-theorem pathOfLevelM_id :
-    ∀ (k : ℕ) (level : Vector Digest (2 ^ k)) (i : Fin (2 ^ k)),
-      pathOfLevelM (m := Id) H k level.toList i =
-        MerkleTree.pathOfLevel (nodeHash H) k level i
+/-- The last level is the root. -/
+theorem levelsM_id_root : ∀ (k : ℕ) (level : Vector Digest (2 ^ k)),
+    ((levelsM (m := Id) H k level.toArray).getD k #[]).getD 0 default =
+      MerkleTree.rootOfLevel (nodeHash H) k level
+  | 0, level => by
+    show level.toArray.getD 0 default = level[0]
+    rw [Array.getD_eq_getD_getElem?, Array.getElem?_eq_getElem (by simp)]
+    simp
+  | k + 1, level => by
+    rw [levelsM_id_succ, List.getD_cons_succ, parentsM_id_toArray, levelsM_id_root k]
+    rfl
+
+/-- The siblings read off the levels are the authentication path. -/
+theorem levelsM_id_path : ∀ (k : ℕ) (level : Vector Digest (2 ^ k)) (i : Fin (2 ^ k)),
+    (List.range k).map (fun l ↦ ((levelsM (m := Id) H k level.toArray).getD l #[]).getD
+      (LeanVM.Prover.sibling (i.val / 2 ^ l)) default) =
+      MerkleTree.pathOfLevel (nodeHash H) k level i
   | 0, _, _ => rfl
   | k + 1, level, i => by
-    simp only [pathOfLevelM, MerkleTree.pathOfLevel]
-    show (level.toList.getD (MerkleTree.sibling i) default ::
-      pathOfLevelM (m := Id) H k (parentsM (m := Id) H level.toList (2 ^ k)) (i / 2)) = _
-    rw [parentsM_id_toList, ← pathOfLevelM_id k _ ⟨i.val / 2, MerkleTree.div_two_lt i.isLt⟩,
-      List.getD_eq_getElem _ _ (by simpa using MerkleTree.sibling_lt i.isLt)]
-    simp
+    rw [List.range_succ_eq_map, List.map_cons, List.map_map, levelsM_id_succ,
+      parentsM_id_toArray, MerkleTree.pathOfLevel]
+    congr 1
+    · rw [List.getD_cons_zero, pow_zero, Nat.div_one, Array.getD_eq_getD_getElem?,
+        Array.getElem?_eq_getElem (by rw [Vector.size_toArray]; exact MerkleTree.sibling_lt i.isLt)]
+      rfl
+    · rw [← levelsM_id_path k _ ⟨i.val / 2, MerkleTree.div_two_lt i.isLt⟩]
+      refine List.map_congr_left fun l _ ↦ ?_
+      simp only [Function.comp, List.getD_cons_succ]
+      rw [show (i : ℕ) / 2 ^ (l + 1) = (i : ℕ) / 2 / 2 ^ l by
+        rw [Nat.div_div_eq_div_mul, ← pow_succ']]
 
-theorem leafHashesM_id (height : ℕ) (word : Word) :
-    leafHashesM (m := Id) H height word = ((leavesOf height word).map (leafHash H)).toList := by
-  simp only [leafHashesM]
-  change Id.run (List.mapM _ _) = _
-  rw [List.idRun_mapM]
-  refine List.ext_getElem (by simp) fun j h1 h2 ↦ ?_
+theorem leafDigestsM_id (height : ℕ) (word : Word) :
+    leafDigestsM (m := Id) H height word = ((leavesOf height word).map (leafHash H)).toArray := by
+  refine (Array.idRun_mapM).trans (Array.ext (by simp) fun j h1 h2 ↦ ?_)
   simp [leavesOf, leafHash]
   rfl
 
-theorem treeRootM_id (height : ℕ) (word : Word) :
-    treeRootM (m := Id) H height word = treeRoot H height word := by
-  show rootOfLevelM (m := Id) H height (leafHashesM (m := Id) H height word) = _
-  rw [leafHashesM_id, rootOfLevelM_id]
+/-- The tree `buildTreeM` builds in `Id`. -/
+theorem buildTreeM_id (height : ℕ) (word : Word) :
+    buildTreeM (m := Id) H height word =
+      ⟨height, word, (levelsM (m := Id) H height (leafDigestsM (m := Id) H height word)).toArray⟩ :=
   rfl
 
-theorem openingAtM_id (height : ℕ) (word : Word) (q : ℕ) :
-    openingAtM (m := Id) H height word q = openingAt H height word q := by
-  show (⟨word (q % 2 ^ height), pathOfLevelM (m := Id) H height
-    (leafHashesM (m := Id) H height word) (q % 2 ^ height)⟩ : Opening) = _
-  rw [leafHashesM_id]
-  have := pathOfLevelM_id H height ((leavesOf height word).map (leafHash H))
-    ⟨q % 2 ^ height, Nat.mod_lt _ (Nat.two_pow_pos height)⟩
-  simp only at this
-  rw [this]
+/-- **The root of the tree built once** is `treeRoot`. -/
+theorem root_buildTreeM_id (height : ℕ) (word : Word) :
+    (buildTreeM (m := Id) H height word).root = treeRoot H height word := by
+  show ((levelsM (m := Id) H height (leafDigestsM (m := Id) H height word)).toArray.getD height
+    #[]).getD 0 default = _
+  simp only [toArray_getD, leafDigestsM_id]
+  rw [levelsM_id_root]
   rfl
+
+/-- **An opening read off the tree built once** is `openingAt`. -/
+theorem opening_buildTreeM_id (height : ℕ) (word : Word) (q : ℕ) :
+    (buildTreeM (m := Id) H height word).opening q = openingAt H height word q := by
+  have e := levelsM_id_path H height ((leavesOf height word).map (leafHash H))
+    ⟨q % 2 ^ height, Nat.mod_lt _ (Nat.two_pow_pos height)⟩
+  show (⟨word (q % 2 ^ height), (List.range height).map fun l ↦
+    ((levelsM (m := Id) H height (leafDigestsM (m := Id) H height word)).toArray.getD l #[]).getD
+      (LeanVM.Prover.sibling (q % 2 ^ height / 2 ^ l)) default⟩ : Opening) =
+    ⟨word (q % 2 ^ height), _⟩
+  simp only [toArray_getD, leafDigestsM_id]
+  exact congrArg _ e
 
 theorem powStepM_id (sp : Sponge) (n : E) : powStepM (m := Id) F sp n = powStep F sp n := rfl
 
 theorem searchM_id (bits : ℕ) (sp : Sponge) :
-    ∀ ns : List ℕ, searchM (m := Id) F bits sp ns =
-      (ns.find? fun n ↦ powOk bits (nonceOf n) (powStep F sp (nonceOf n)).1).map nonceOf
-  | [] => rfl
-  | n :: ns => by
-    simp only [searchM, List.find?_cons]
+    ∀ (count n : ℕ), searchM (m := Id) F bits sp n count =
+      ((List.range' n count).find? fun j ↦ powOk bits (nonceOf j) (powStep F sp (nonceOf j)).1).map
+        nonceOf
+  | 0, _ => rfl
+  | count + 1, n => by
+    rw [List.range'_succ, List.find?_cons]
     show (if powOk bits (nonceOf n) (powStep F sp (nonceOf n)).1 then _ else _) = _
     split <;> rename_i hp
     · simp only [hp, Option.map_some]; rfl
-    · simp only [hp]; exact searchM_id bits sp ns
+    · simp only [hp]; exact searchM_id bits sp count (n + 1)
 
 theorem findNonceM_id (bits : ℕ) (sp : Sponge) (fuel : ℕ) :
     findNonceM (m := Id) F bits sp fuel = findNonce F bits sp fuel := by
   unfold findNonceM findNonce
   split
   · rfl
-  · exact searchM_id F bits sp _
+  · rw [searchM_id, List.range_eq_range']
 
+theorem treesOf_append (h : List Ev) (ht w : ℕ) (W : Word) :
+    treesOf H (commits (h ++ [Ev.commit ht w W])) = treesOf H (commits h) ++
+      ([buildTreeM (m := Id) H ht W] : List Tree) := by
+  simp [treesOf, commits_append, commits]
+
+theorem treesOf_append_nil (h : List Ev) (e : Ev) (he : commits [e] = []) :
+    treesOf H (commits (h ++ [e])) = treesOf H (commits h) := by
+  simp [treesOf, commits_append, he]
+
+/-- The `Id` instance from the trees of a history's commitments is `proveFrom`. -/
 theorem proveFromM_id (S : Strategy) (fuel : ℕ) {α : Type} :
     ∀ (p : Prog α) (sp : Sponge) (h : List Ev),
-      proveFromM (m := Id) H F S fuel p sp h = proveFrom H F S fuel p sp h
+      proveFromM (m := Id) H F S fuel p sp h (treesOf H (commits h)) = proveFrom H F S fuel p sp h
   | .ret _, _, _ => rfl
   | .fail, _, _ => rfl
   | .read k, sp, h => by
     simp only [proveFromM, proveFrom]
-    rw [← proveFromM_id S fuel]
+    rw [← proveFromM_id S fuel, treesOf_append_nil H h (Ev.read (S.msg h)) rfl]
     rfl
   | .sample k, sp, h => by
     simp only [proveFromM, proveFrom]
-    rw [← proveFromM_id S fuel]
+    rw [← proveFromM_id S fuel, treesOf_append_nil H h (Ev.sample (squeezeI F sp).1) rfl]
     rfl
   | .grind bits k, sp, h => by
     simp only [proveFromM, proveFrom]
@@ -253,28 +250,35 @@ theorem proveFromM_id (S : Strategy) (fuel : ℕ) {α : Type} :
     rw [findNonceM_id]
     cases findNonce F bits sp fuel
     · rfl
-    · show Option.map _ (proveFromM (m := Id) H F S fuel k _ _) =
+    · show Option.map _ (proveFromM (m := Id) H F S fuel k _ _ _) =
         Option.map _ (proveFrom H F S fuel k _ _)
-      rw [proveFromM_id S fuel]
+      rw [← proveFromM_id S fuel, treesOf_append_nil H h (Ev.grind bits) rfl]
       rfl
   | .commit ht w k, sp, h => by
     simp only [proveFromM, proveFrom]
-    show (proveFromM (m := Id) H F S fuel k _ _).map _ = _
-    rw [treeRootM_id, proveFromM_id S fuel]
+    show (proveFromM (m := Id) H F S fuel k _ _ _).map _ = _
+    rw [root_buildTreeM_id, ← treesOf_append, proveFromM_id S fuel]
     rfl
   | .query i ps k, sp, h => by
     simp only [proveFromM, proveFrom]
+    have hc : (treesOf H (commits h))[i]? =
+        ((commits h)[i]?).map fun c ↦ buildTreeM (m := Id) H c.1 c.2.2 := by
+      simp [treesOf]
+    rw [hc]
     rcases (commits h)[i]? with _ | ⟨ht, w, word⟩
     · rfl
-    · show (proveFromM (m := Id) H F S fuel _ sp _).map
-        (fun t ↦ (t.1, Id.run (ps.mapM (openingAtM (m := Id) H ht word)) ++ t.2)) = _
-      rw [List.idRun_mapM, proveFromM_id S fuel]
-      simp only [Id.run, openingAtM_id]
+    · have ho : (buildTreeM (m := Id) H ht word).opening = openingAt H ht word :=
+        funext (opening_buildTreeM_id H ht word)
+      show (proveFromM (m := Id) H F S fuel (k (ps.map fun q ↦ word (q % 2 ^ ht))) sp
+          (h ++ [Ev.query (ps.map fun q ↦ word (q % 2 ^ ht))]) (treesOf H (commits h))).map
+          (fun t ↦ (t.1, ps.map (buildTreeM (m := Id) H ht word).opening ++ t.2)) = _
+      rw [ho, ← treesOf_append_nil H h (Ev.query (ps.map fun q ↦ word (q % 2 ^ ht))) rfl,
+        proveFromM_id S fuel]
 
 /-- **The `Id` instance is the honest prover.** -/
 theorem proveM_id (P : Prog Bool) (S : Strategy) (seed : KState) (fuel : ℕ) :
     proveM (m := Id) H F P S seed fuel = prove H F P S seed fuel := by
-  show (proveFromM (m := Id) H F S fuel P ⟨seed, []⟩ []).map _ = _
+  show (proveFromM (m := Id) H F S fuel P ⟨seed, []⟩ [] (treesOf H (commits []))).map _ = _
   rw [proveFromM_id]
   rfl
 
@@ -293,38 +297,29 @@ theorem simulateQ_mapM {α β : Type} (f : α → OracleComp HashSpec β) :
     simp only [List.mapM_cons, simulateQ_bind, simulateQ_pure]
     congr 1; funext b; rw [simulateQ_mapM f l]
 
-theorem simulateQ_parentsM (level : List Digest) (n : ℕ) :
+theorem simulateQ_arrayMapM {α β : Type} (f : α → OracleComp HashSpec β) (xs : Array α) :
+    simulateQ impl (xs.mapM f) = xs.mapM fun a ↦ simulateQ impl (f a) := by
+  rw [Array.mapM_eq_mapM_toList, Array.mapM_eq_mapM_toList, simulateQ_map, simulateQ_mapM]
+
+theorem simulateQ_parentsM (level : Array Digest) (n : ℕ) :
     simulateQ impl (parentsM queryH level n) = parentsM (implH impl) level n := by
-  simp only [parentsM, simulateQ_mapM, simulateQ_queryH]
+  simp only [parentsM, simulateQ_arrayMapM, simulateQ_queryH]
 
-theorem simulateQ_rootOfLevelM :
-    ∀ (k : ℕ) (level : List Digest),
-      simulateQ impl (rootOfLevelM queryH k level) = rootOfLevelM (implH impl) k level
-  | 0, _ => by simp [rootOfLevelM]
+theorem simulateQ_levelsM :
+    ∀ (k : ℕ) (level : Array Digest),
+      simulateQ impl (levelsM queryH k level) = levelsM (implH impl) k level
+  | 0, _ => by simp [levelsM]
   | k + 1, level => by
-    simp only [rootOfLevelM, simulateQ_bind, simulateQ_parentsM]
-    congr 1; funext up; exact simulateQ_rootOfLevelM k up
+    simp only [levelsM, simulateQ_bind, simulateQ_parentsM, simulateQ_pure]
+    congr 1; funext up; rw [simulateQ_levelsM k up]
 
-theorem simulateQ_pathOfLevelM :
-    ∀ (k : ℕ) (level : List Digest) (i : ℕ),
-      simulateQ impl (pathOfLevelM queryH k level i) = pathOfLevelM (implH impl) k level i
-  | 0, _, _ => by simp [pathOfLevelM]
-  | k + 1, level, i => by
-    simp only [pathOfLevelM, simulateQ_bind, simulateQ_parentsM, simulateQ_pure]
-    congr 1; funext up; rw [simulateQ_pathOfLevelM k up]
+theorem simulateQ_leafDigestsM (height : ℕ) (word : Word) :
+    simulateQ impl (leafDigestsM queryH height word) = leafDigestsM (implH impl) height word := by
+  simp only [leafDigestsM, simulateQ_arrayMapM, simulateQ_queryH]
 
-theorem simulateQ_leafHashesM (height : ℕ) (word : Word) :
-    simulateQ impl (leafHashesM queryH height word) = leafHashesM (implH impl) height word := by
-  simp only [leafHashesM, simulateQ_mapM, simulateQ_queryH]
-
-theorem simulateQ_treeRootM (height : ℕ) (word : Word) :
-    simulateQ impl (treeRootM queryH height word) = treeRootM (implH impl) height word := by
-  simp only [treeRootM, simulateQ_bind, simulateQ_leafHashesM, simulateQ_rootOfLevelM]
-
-theorem simulateQ_openingAtM (height : ℕ) (word : Word) (q : ℕ) :
-    simulateQ impl (openingAtM queryH height word q) =
-      openingAtM (implH impl) height word q := by
-  simp only [openingAtM, simulateQ_bind, simulateQ_leafHashesM, simulateQ_pathOfLevelM,
+theorem simulateQ_buildTreeM (height : ℕ) (word : Word) :
+    simulateQ impl (buildTreeM queryH height word) = buildTreeM (implH impl) height word := by
+  simp only [buildTreeM, simulateQ_bind, simulateQ_leafDigestsM, simulateQ_levelsM,
     simulateQ_pure]
 
 theorem simulateQ_powStepM (sp : Sponge) (n : E) :
@@ -332,53 +327,53 @@ theorem simulateQ_powStepM (sp : Sponge) (n : E) :
   simp only [powStepM, simulateQ_bind, simulateQ_absorb, simulateQ_squeeze]
 
 theorem simulateQ_searchM (bits : ℕ) (sp : Sponge) :
-    ∀ ns : List ℕ, simulateQ impl (searchM queryF bits sp ns) =
-      searchM (implF impl) bits sp ns
-  | [] => by simp [searchM]
-  | n :: ns => by
+    ∀ (count n : ℕ), simulateQ impl (searchM queryF bits sp n count) =
+      searchM (implF impl) bits sp n count
+  | 0, _ => by simp [searchM]
+  | count + 1, n => by
     simp only [searchM, simulateQ_bind, simulateQ_powStepM]
     congr 1; funext r
     split
     · simp
-    · exact simulateQ_searchM bits sp ns
+    · exact simulateQ_searchM bits sp count (n + 1)
 
 theorem simulateQ_findNonceM (bits : ℕ) (sp : Sponge) (fuel : ℕ) :
     simulateQ impl (findNonceM queryF bits sp fuel) = findNonceM (implF impl) bits sp fuel := by
   unfold findNonceM
   split
   · simp
-  · exact simulateQ_searchM impl bits sp _
+  · exact simulateQ_searchM impl bits sp _ _
 
 theorem simulateQ_proveFromM (S : Strategy) (fuel : ℕ) {α : Type} :
-    ∀ (p : Prog α) (sp : Sponge) (h : List Ev),
-      simulateQ impl (proveFromM queryH queryF S fuel p sp h) =
-        proveFromM (implH impl) (implF impl) S fuel p sp h
-  | .ret _, _, _ => by simp [proveFromM]
-  | .fail, _, _ => by simp [proveFromM]
-  | .read k, sp, h => by
+    ∀ (p : Prog α) (sp : Sponge) (h : List Ev) (cs : List Tree),
+      simulateQ impl (proveFromM queryH queryF S fuel p sp h cs) =
+        proveFromM (implH impl) (implF impl) S fuel p sp h cs
+  | .ret _, _, _, _ => by simp [proveFromM]
+  | .fail, _, _, _ => by simp [proveFromM]
+  | .read k, sp, h, cs => by
     simp only [proveFromM, simulateQ_bind, simulateQ_absorb, simulateQ_pure]
     congr 1; funext sp'; rw [simulateQ_proveFromM S fuel]
-  | .sample k, sp, h => by
+  | .sample k, sp, h, cs => by
     simp only [proveFromM, simulateQ_bind, simulateQ_squeeze]
-    congr 1; funext r; exact simulateQ_proveFromM S fuel _ _ _
-  | .grind bits k, sp, h => by
+    congr 1; funext r; exact simulateQ_proveFromM S fuel _ _ _ _
+  | .grind bits k, sp, h, cs => by
     simp only [proveFromM, simulateQ_bind, simulateQ_findNonceM]
     congr 1; funext o
     split
     · simp
     · simp only [simulateQ_bind, simulateQ_powStepM, simulateQ_pure]
       congr 1; funext r; rw [simulateQ_proveFromM S fuel]
-  | .commit ht w k, sp, h => by
-    simp only [proveFromM, simulateQ_bind, simulateQ_treeRootM, simulateQ_absorb,
+  | .commit ht w k, sp, h, cs => by
+    simp only [proveFromM, simulateQ_bind, simulateQ_buildTreeM, simulateQ_absorb,
       simulateQ_pure]
-    congr 1; funext root; congr 1; funext sp0; congr 1; funext sp1
+    congr 1; funext tree; congr 1; funext sp0; congr 1; funext sp1
     rw [simulateQ_proveFromM S fuel]
-  | .query i ps k, sp, h => by
+  | .query i ps k, sp, h, cs => by
     simp only [proveFromM]
     split
     · simp
-    · simp only [simulateQ_bind, simulateQ_mapM, simulateQ_openingAtM, simulateQ_pure]
-      congr 1; funext os; rw [simulateQ_proveFromM S fuel]
+    · simp only [simulateQ_bind, simulateQ_pure]
+      rw [simulateQ_proveFromM S fuel]
 
 /-- **The prover commutes with simulation.** -/
 theorem simulateQ_proveM (P : Prog Bool) (S : Strategy) (seed : KState) (fuel : ℕ) :
@@ -441,54 +436,46 @@ theorem isTotalQueryBound_mapM {α β : Type} (f : α → OracleComp HashSpec β
     exact isTotalQueryBound_bind (hf a) fun _ ↦ isTotalQueryBound_bind
       (isTotalQueryBound_mapM f c hf l) fun _ ↦ isTotalQueryBound_pure' _ 0
 
-theorem isTotalQueryBound_parentsM (level : List Digest) (n : ℕ) :
+
+theorem isTotalQueryBound_arrayMapM {α β : Type} (f : α → OracleComp HashSpec β) (c : ℕ)
+    (hf : ∀ a, IsTotalQueryBound (f a) c) (xs : Array α) :
+    IsTotalQueryBound (xs.mapM f) (xs.size * c) := by
+  rw [Array.mapM_eq_mapM_toList, map_eq_bind_pure_comp, ← Array.length_toList,
+    ← Nat.add_zero (xs.toList.length * c)]
+  exact isTotalQueryBound_bind (isTotalQueryBound_mapM f c hf xs.toList) fun _ ↦
+    isTotalQueryBound_pure' _ 0
+
+theorem isTotalQueryBound_parentsM (level : Array Digest) (n : ℕ) :
     IsTotalQueryBound (parentsM queryH level n) n := by
-  have := isTotalQueryBound_mapM (β := Digest) (fun j : ℕ ↦ queryH (digestBytes
+  have := isTotalQueryBound_arrayMapM (β := Digest) (fun j : ℕ ↦ queryH (digestBytes
     (level.getD (2 * j) default) ++ digestBytes (level.getD (2 * j + 1) default))) 1
     (fun _ ↦ isTotalQueryBound_queryH_bind (f := pure) _ fun _ ↦ isTotalQueryBound_pure' _ 0
-      |>.mono (by simp)) (List.range n)
+      |>.mono (by simp)) (Array.range n)
   simpa [parentsM, queryH] using this
 
-theorem isTotalQueryBound_rootOfLevelM :
-    ∀ (k : ℕ) (level : List Digest), IsTotalQueryBound (rootOfLevelM queryH k level) (2 ^ k)
+theorem isTotalQueryBound_levelsM :
+    ∀ (k : ℕ) (level : Array Digest), IsTotalQueryBound (levelsM queryH k level) (2 ^ k)
   | 0, _ => trivial
   | k + 1, level => by
-    simp only [rootOfLevelM]
-    rw [show 2 ^ (k + 1) = 2 ^ k + 2 ^ k by ring]
-    exact isTotalQueryBound_bind (isTotalQueryBound_parentsM level _) fun up ↦
-      isTotalQueryBound_rootOfLevelM k up
-
-theorem isTotalQueryBound_pathOfLevelM :
-    ∀ (k : ℕ) (level : List Digest) (i : ℕ),
-      IsTotalQueryBound (pathOfLevelM queryH k level i) (2 ^ k)
-  | 0, _, _ => trivial
-  | k + 1, level, i => by
-    simp only [pathOfLevelM]
+    simp only [levelsM]
     rw [show 2 ^ (k + 1) = 2 ^ k + (2 ^ k + 0) by ring]
     exact isTotalQueryBound_bind (isTotalQueryBound_parentsM level _) fun up ↦
-      isTotalQueryBound_bind (isTotalQueryBound_pathOfLevelM k up _) fun _ ↦
-        isTotalQueryBound_pure' _ 0
+      isTotalQueryBound_bind (isTotalQueryBound_levelsM k up) fun _ ↦ isTotalQueryBound_pure' _ 0
 
-theorem isTotalQueryBound_leafHashesM (height : ℕ) (word : Word) :
-    IsTotalQueryBound (leafHashesM queryH height word) (2 ^ height) := by
-  have := isTotalQueryBound_mapM (β := Digest) (fun i : ℕ ↦ queryH ((word i).flatMap kBytes)) 1
-    (fun _ ↦ isTotalQueryBound_queryH_bind (f := pure) _ fun _ ↦ isTotalQueryBound_pure' _ 0
-      |>.mono (by simp)) (List.range (2 ^ height))
-  simpa [leafHashesM, queryH] using this
+theorem isTotalQueryBound_leafDigestsM (height : ℕ) (word : Word) :
+    IsTotalQueryBound (leafDigestsM queryH height word) (2 ^ height) := by
+  have := isTotalQueryBound_arrayMapM (β := Digest) (fun i : ℕ ↦ queryH ((word i).flatMap kBytes))
+    1 (fun _ ↦ isTotalQueryBound_queryH_bind (f := pure) _ fun _ ↦ isTotalQueryBound_pure' _ 0
+      |>.mono (by simp)) (Array.range (2 ^ height))
+  simpa [leafDigestsM, queryH] using this
 
-theorem isTotalQueryBound_treeRootM (height : ℕ) (word : Word) :
-    IsTotalQueryBound (treeRootM queryH height word) (2 ^ (height + 1)) := by
-  unfold treeRootM
-  rw [show 2 ^ (height + 1) = 2 ^ height + 2 ^ height by ring]
-  exact isTotalQueryBound_bind (isTotalQueryBound_leafHashesM height word) fun l ↦
-    isTotalQueryBound_rootOfLevelM height l
-
-theorem isTotalQueryBound_openingAtM (height : ℕ) (word : Word) (q : ℕ) :
-    IsTotalQueryBound (openingAtM queryH height word q) (2 ^ (height + 1)) := by
-  unfold openingAtM
+/-- **A commitment's tree is built with at most `2^(height + 1)` queries.** -/
+theorem isTotalQueryBound_buildTreeM (height : ℕ) (word : Word) :
+    IsTotalQueryBound (buildTreeM queryH height word) (2 ^ (height + 1)) := by
+  unfold buildTreeM
   rw [show 2 ^ (height + 1) = 2 ^ height + (2 ^ height + 0) by ring]
-  exact isTotalQueryBound_bind (isTotalQueryBound_leafHashesM height word) fun l ↦
-    isTotalQueryBound_bind (isTotalQueryBound_pathOfLevelM height l _) fun _ ↦
+  exact isTotalQueryBound_bind (isTotalQueryBound_leafDigestsM height word) fun l ↦
+    isTotalQueryBound_bind (isTotalQueryBound_levelsM height l) fun _ ↦
       isTotalQueryBound_pure' _ 0
 
 /-- An absorption queries at most once. -/
@@ -515,24 +502,24 @@ theorem isTotalQueryBound_powStepM_le {β : Type} (sp : Sponge) (n : E)
   exact isTotalQueryBound_absorb_le _ _ _ fun sp' ↦ isTotalQueryBound_squeeze_le _ hg
 
 theorem isTotalQueryBound_searchM (bits : ℕ) (sp : Sponge) :
-    ∀ ns : List ℕ, IsTotalQueryBound (searchM queryF bits sp ns) (2 * ns.length)
-  | [] => trivial
-  | n :: ns => by
-    simp only [searchM, List.length_cons]
-    rw [show 2 * (ns.length + 1) = 2 * ns.length + 2 by ring]
+    ∀ (count n : ℕ), IsTotalQueryBound (searchM queryF bits sp n count) (2 * count)
+  | 0, _ => trivial
+  | count + 1, n => by
+    simp only [searchM]
+    rw [show 2 * (count + 1) = 2 * count + 2 by ring]
     refine isTotalQueryBound_powStepM_le _ _ fun r ↦ ?_
     split
     · trivial
-    · exact isTotalQueryBound_searchM bits sp ns
+    · exact isTotalQueryBound_searchM bits sp count (n + 1)
 
 theorem isTotalQueryBound_findNonceM (bits : ℕ) (sp : Sponge) (fuel : ℕ) :
     IsTotalQueryBound (findNonceM queryF bits sp fuel) (2 * fuel) := by
   unfold findNonceM
   split
   · trivial
-  · simpa using isTotalQueryBound_searchM bits sp (List.range fuel)
+  · exact isTotalQueryBound_searchM bits sp fuel 0
 
-/-- The query cost of one quarter of a program's cost: an opening or a commitment rebuilds a
+/-- The query cost of one quarter of a program's cost: a commitment builds a
 tree of height at most `height`, a proof of work searches `fuel` nonces at two queries each. -/
 def proverFactor (height fuel : ℕ) : ℕ := 2 ^ (height + 1) + 2 * fuel + 2
 
@@ -547,22 +534,19 @@ theorem pow_le_proverFactor (height fuel : ℕ) :
     2 ^ (height + 1) + 2 ≤ proverFactor height fuel := by
   unfold proverFactor; exact Nat.add_le_add_right (Nat.le_add_right _ _) 2
 
-/-- **The prover's queries.** From a history whose commitments have height at most `height`, the
-prover runs a program of cost `n` (`Prog.Costs`, in quarters) with at most
-`n · proverFactor height fuel` queries. -/
+/-- **The prover's queries.** The prover runs a program of cost `n` (`Prog.Costs`, in quarters)
+at height `height` with at most `n · proverFactor height fuel` queries. -/
 theorem isTotalQueryBound_proveFromM (S : Strategy) (fuel height : ℕ) {α : Type} :
-    ∀ (p : Prog α) (sp : Sponge) (h : List Ev) (n : ℕ) (Q : α → Prop), p.Costs height n Q →
-      (∀ c ∈ commits h, c.1 ≤ height) →
-      IsTotalQueryBound (proveFromM queryH queryF S fuel p sp h) (n * proverFactor height fuel)
+    ∀ (p : Prog α) (sp : Sponge) (h : List Ev) (cs : List Tree) (n : ℕ) (Q : α → Prop),
+      p.Costs height n Q →
+      IsTotalQueryBound (proveFromM queryH queryF S fuel p sp h cs) (n * proverFactor height fuel)
   | .ret _, _, _, _, _, _, _ => trivial
   | .fail, _, _, _, _, _, _ => trivial
-  | .read k, sp, h, n, Q, hp, hs => by
+  | .read k, sp, h, cs, n, Q, hp => by
     simp only [proveFromM]
-    have hs' : ∀ c ∈ commits (h ++ [Ev.read (S.msg h)]), c.1 ≤ height := by
-      simpa [commits_append, commits] using hs
     refine (isTotalQueryBound_absorb_le (n := (n - 1) * proverFactor height fuel + 0) _ _ _
       fun sp' ↦ isTotalQueryBound_bind (isTotalQueryBound_proveFromM S fuel height _ sp'
-        (h ++ [Ev.read (S.msg h)]) (n - 1) Q (hp.2 _) hs') fun _ ↦
+        (h ++ [Ev.read (S.msg h)]) cs (n - 1) Q (hp.2 _)) fun _ ↦
           isTotalQueryBound_pure' _ 0).mono ?_
     have h1 := hp.1
     have hF := one_le_proverFactor height fuel
@@ -570,48 +554,40 @@ theorem isTotalQueryBound_proveFromM (S : Strategy) (fuel height : ℕ) {α : Ty
     obtain ⟨n', rfl⟩ : ∃ n', n = n' + 1 := ⟨n - 1, by omega⟩
     rw [Nat.add_sub_cancel, Nat.add_mul, one_mul]
     omega
-  | .sample k, sp, h, n, Q, hp, hs => by
+  | .sample k, sp, h, cs, n, Q, hp => by
     simp only [proveFromM]
     refine (isTotalQueryBound_squeeze_le (n := (n - 4) * proverFactor height fuel) _
       fun r ↦ isTotalQueryBound_proveFromM S fuel height _ r.2
-        (h ++ [Ev.sample r.1]) (n - 4) Q (hp.2 _)
-          (by simpa [commits_append, commits] using hs)).mono ?_
+        (h ++ [Ev.sample r.1]) cs (n - 4) Q (hp.2 _)).mono ?_
     have h1 := hp.1
     have hF := one_le_proverFactor height fuel
     generalize proverFactor height fuel = F at *
     obtain ⟨n', rfl⟩ : ∃ n', n = n' + 4 := ⟨n - 4, by omega⟩
     rw [Nat.add_sub_cancel, Nat.add_mul]
     nlinarith
-  | .grind bits k, sp, h, n, Q, hp, hs => by
+  | .grind bits k, sp, h, cs, n, Q, hp => by
     simp only [proveFromM]
-    have hs' : ∀ c ∈ commits (h ++ [Ev.grind bits]), c.1 ≤ height := by
-      simpa [commits_append, commits] using hs
     refine (isTotalQueryBound_bind (isTotalQueryBound_findNonceM bits sp fuel)
       (n₂ := (n - 5) * proverFactor height fuel + 0 + 2) fun o ↦ ?_).mono ?_
     · split
       · trivial
       · exact isTotalQueryBound_powStepM_le (c := (n - 5) * proverFactor height fuel + 0) _ _
           fun r ↦ isTotalQueryBound_bind
-          (isTotalQueryBound_proveFromM S fuel height k r.2 (h ++ [Ev.grind bits]) (n - 5) Q
-            hp.2 hs') fun _ ↦ isTotalQueryBound_pure' _ 0
+          (isTotalQueryBound_proveFromM S fuel height k r.2 (h ++ [Ev.grind bits]) cs (n - 5) Q
+            hp.2) fun _ ↦ isTotalQueryBound_pure' _ 0
     · have h1 := hp.1
       have hF := fuel_le_proverFactor height fuel
       generalize proverFactor height fuel = F at *
       obtain ⟨n', rfl⟩ : ∃ n', n = n' + 5 := ⟨n - 5, by omega⟩
       rw [Nat.add_sub_cancel, Nat.add_mul]
       nlinarith
-  | .commit ht w k, sp, h, n, Q, hp, hs => by
+  | .commit ht w k, sp, h, cs, n, Q, hp => by
     simp only [proveFromM]
-    have hs' : ∀ c ∈ commits (h ++ [Ev.commit ht w (S.word h)]), c.1 ≤ height := by
-      simp only [commits_append, commits, List.mem_append, List.mem_singleton]
-      rintro c (hc | rfl)
-      · exact hs c hc
-      · exact hp.1
-    refine (isTotalQueryBound_bind (isTotalQueryBound_treeRootM ht (S.word h))
-      (n₂ := (n - 2) * proverFactor height fuel + 0 + 1 + 1) fun root ↦
+    refine (isTotalQueryBound_bind (isTotalQueryBound_buildTreeM ht (S.word h))
+      (n₂ := (n - 2) * proverFactor height fuel + 0 + 1 + 1) fun tree ↦
         isTotalQueryBound_absorb_le _ _ _ fun sp0 ↦ isTotalQueryBound_absorb_le _ _ _ fun sp1 ↦
           isTotalQueryBound_bind (isTotalQueryBound_proveFromM S fuel height k sp1
-            (h ++ [Ev.commit ht w (S.word h)]) (n - 2) Q hp.2.2 hs') fun _ ↦
+            (h ++ [Ev.commit ht w (S.word h)]) (cs ++ [tree]) (n - 2) Q hp.2.2) fun _ ↦
               isTotalQueryBound_pure' _ 0).mono ?_
     have h1 := hp.2.1
     have h2 : 2 ^ (ht + 1) ≤ 2 ^ (height + 1) := Nat.pow_le_pow_right (by norm_num) (by
@@ -622,37 +598,15 @@ theorem isTotalQueryBound_proveFromM (S : Strategy) (fuel height : ℕ) {α : Ty
     obtain ⟨n', rfl⟩ : ∃ n', n = n' + 2 := ⟨n - 2, by omega⟩
     rw [Nat.add_sub_cancel, Nat.add_mul]
     omega
-  | .query i ps k, sp, h, n, Q, hp, hs => by
+  | .query i ps k, sp, h, cs, n, Q, hp => by
     simp only [proveFromM]
     split
     · trivial
-    · rename_i ht w word hc
-      have hht : ht ≤ height := hs _ (List.mem_of_getElem? hc)
-      have hs' : ∀ c ∈ commits (h ++ [Ev.query (ps.map fun q ↦ word (q % 2 ^ ht))]),
-          c.1 ≤ height := by
-        simpa [commits_append, commits] using hs
-      refine (isTotalQueryBound_bind (isTotalQueryBound_mapM _ _
-        (isTotalQueryBound_openingAtM ht word) ps)
-        (n₂ := (n - Prog.openCost height ps.length) * proverFactor height fuel + 0) fun os ↦
-          isTotalQueryBound_bind (isTotalQueryBound_proveFromM S fuel height _ sp _ _ Q (hp.2 _)
-            hs') fun _ ↦ isTotalQueryBound_pure' _ 0).mono ?_
-      have h1 := hp.1
-      have h2 : 2 ^ (ht + 1) ≤ proverFactor height fuel :=
-        (Nat.pow_le_pow_right (by norm_num) (by omega)).trans
-          ((Nat.le_add_right _ 2).trans (pow_le_proverFactor height fuel))
-      have h3 : ps.length * 2 ^ (ht + 1) ≤
-          Prog.openCost height ps.length * proverFactor height fuel :=
-        calc ps.length * 2 ^ (ht + 1) ≤ ps.length * proverFactor height fuel :=
-              Nat.mul_le_mul_left _ h2
-          _ ≤ Prog.openCost height ps.length * proverFactor height fuel := by
-              refine Nat.mul_le_mul_right _ ?_
-              unfold Prog.openCost
-              nlinarith
-      generalize proverFactor height fuel = F at *
-      generalize Prog.openCost height ps.length = O at *
-      obtain ⟨d, hd⟩ : ∃ d, n = O + d := ⟨n - O, by omega⟩
-      rw [hd, Nat.add_sub_cancel_left, Nat.add_mul]
-      omega
+    · refine (isTotalQueryBound_bind (isTotalQueryBound_proveFromM S fuel height _ sp _ cs
+        (n - Prog.openCost height ps.length) Q (hp.2 _)) fun _ ↦
+          isTotalQueryBound_pure' _ 0).mono ?_
+      rw [Nat.add_zero]
+      exact Nat.mul_le_mul_right _ (Nat.sub_le _ _)
 
 /-- **The honest prover's queries**: at most `n · proverFactor height fuel` for a program of
 cost `n` at `height`. -/
@@ -661,8 +615,8 @@ theorem isTotalQueryBound_proveM {P : Prog Bool} {height n : ℕ} (hP : P.CostLE
     IsTotalQueryBound (proveM queryH queryF P S seed fuel) (n * proverFactor height fuel) := by
   unfold proveM
   rw [← Nat.add_zero (n * _)]
-  exact isTotalQueryBound_bind (isTotalQueryBound_proveFromM S fuel height P ⟨seed, []⟩ [] n _ hP
-    (by simp [commits])) fun _ ↦ isTotalQueryBound_pure' _ 0
+  exact isTotalQueryBound_bind (isTotalQueryBound_proveFromM S fuel height P ⟨seed, []⟩ [] [] n _
+    hP) fun _ ↦ isTotalQueryBound_pure' _ 0
 
 end Queries
 

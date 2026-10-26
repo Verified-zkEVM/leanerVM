@@ -31,6 +31,7 @@ namespace LeanVM.Rpm
 
 open LeanVM.Parameters LeanVM.Semantics LeanVM.Protocol LeanVM.Protocol.Compile
 open LeanVM.Protocol.Compile.Rom LeanVM.Protocol.Verifier LeanVM.Protocol.KeccakHash
+open LeanVM.Prover (Tree buildTreeM parentsM levelsM powStepM searchM findNonceM)
 open OracleComp OracleSpec
 
 /-! ## The discipline -/
@@ -369,29 +370,21 @@ theorem duplexVm_verifier (prog : Program) (input : PublicInput) (proof : Proof)
 
 /-! ## The honest prover -/
 
-theorem hOnly_parentsM (level : List Digest) (n : ℕ) : HOnly (parentsM queryH level n) :=
-  hOnly_mapM _ (fun _ ↦ hOnly_queryH _) _
+theorem hOnly_arrayMapM {β γ : Type} (f : γ → OracleComp HashSpec β) (hf : ∀ c, HOnly (f c))
+    (xs : Array γ) : HOnly (xs.mapM f) := by
+  rw [Array.mapM_eq_mapM_toList, map_eq_bind_pure_comp]
+  exact (hOnly_mapM f hf _).bind fun _ ↦ trivial
 
-theorem hOnly_rootOfLevelM : ∀ (k : ℕ) (level : List Digest), HOnly (rootOfLevelM queryH k level)
+theorem hOnly_parentsM (level : Array Digest) (n : ℕ) : HOnly (parentsM queryH level n) :=
+  hOnly_arrayMapM _ (fun _ ↦ hOnly_queryH _) _
+
+theorem hOnly_levelsM : ∀ (k : ℕ) (level : Array Digest), HOnly (levelsM queryH k level)
   | 0, _ => trivial
-  | k + 1, _ => (hOnly_parentsM _ _).bind fun _ ↦ hOnly_rootOfLevelM k _
+  | k + 1, _ => (hOnly_parentsM _ _).bind fun _ ↦ (hOnly_levelsM k _).bind fun _ ↦ trivial
 
-theorem hOnly_pathOfLevelM : ∀ (k : ℕ) (level : List Digest) (i : ℕ),
-    HOnly (pathOfLevelM queryH k level i)
-  | 0, _, _ => trivial
-  | k + 1, _, _ =>
-    (hOnly_parentsM _ _).bind fun _ ↦ (hOnly_pathOfLevelM k _ _).bind fun _ ↦ trivial
-
-theorem hOnly_leafHashesM (height : ℕ) (word : Word) : HOnly (leafHashesM queryH height word) :=
-  hOnly_mapM _ (fun _ ↦ hOnly_queryH _) _
-
-theorem hOnly_treeRootM (height : ℕ) (word : Word) : HOnly (treeRootM queryH height word) :=
-  (hOnly_leafHashesM _ _).bind fun _ ↦ hOnly_rootOfLevelM _ _
-
-theorem hOnly_openingAtM (height : ℕ) (word : Word) (q : ℕ) :
-    HOnly (openingAtM queryH height word q) := by
-  simp only [openingAtM]
-  exact (hOnly_leafHashesM _ _).bind fun _ ↦ (hOnly_pathOfLevelM _ _ _).bind fun _ ↦ trivial
+theorem hOnly_buildTreeM (height : ℕ) (word : Word) : HOnly (buildTreeM queryH height word) :=
+  (hOnly_arrayMapM _ (fun _ ↦ hOnly_queryH _) _).bind fun _ ↦
+    (hOnly_levelsM _ _).bind fun _ ↦ trivial
 
 theorem duplexP_powStepM {h : List KState} {sp : Sponge} (hs : sp.state ∈ h) (n : E) :
     DuplexP (powStepM queryF sp n) h fun r h' ↦ r.2.state ∈ h' :=
@@ -399,72 +392,75 @@ theorem duplexP_powStepM {h : List KState} {sp : Sponge} (hs : sp.state ∈ h) (
 
 /-- The nonce search keeps the discipline, and the sponge it searches at. -/
 theorem duplexP_searchM (bits : ℕ) {h : List KState} {sp : Sponge} (hs : sp.state ∈ h) :
-    ∀ ns : List ℕ, DuplexP (searchM queryF bits sp ns) h fun _ h' ↦ sp.state ∈ h'
-  | [] => hs
-  | n :: ns => by
+    ∀ (count n : ℕ), DuplexP (searchM queryF bits sp n count) h fun _ h' ↦ sp.state ∈ h'
+  | 0, _ => hs
+  | count + 1, n => by
     simp only [searchM]
     refine (duplexP_powStepM hs _).grow.bind fun r h' hr ↦ ?_
     split
     · exact hr.2 hs
-    · exact duplexP_searchM bits (hr.2 hs) ns
+    · exact duplexP_searchM bits (hr.2 hs) count (n + 1)
 
 theorem duplexP_findNonceM (bits : ℕ) {h : List KState} {sp : Sponge} (hs : sp.state ∈ h)
     (fuel : ℕ) : DuplexP (findNonceM queryF bits sp fuel) h fun _ h' ↦ sp.state ∈ h' := by
   simp only [findNonceM]
   split
   · exact hs
-  · exact duplexP_searchM bits hs _
+  · exact duplexP_searchM bits hs _ _
 
 /-- **The honest prover keeps the discipline**, from a sponge whose state is an earlier answer. -/
 theorem duplexP_proveFromM (S : Strategy) (fuel : ℕ) {α : Type} (P : Prog α) :
-    ∀ (sp : Sponge) (ev : List Ev) (h : List KState), sp.state ∈ h →
-      DuplexP (proveFromM queryH queryF S fuel P sp ev) h fun _ _ ↦ True := by
+    ∀ (sp : Sponge) (ev : List Ev) (cs : List Tree) (h : List KState), sp.state ∈ h →
+      DuplexP (proveFromM queryH queryF S fuel P sp ev cs) h fun _ _ ↦ True := by
   induction P with
-  | ret a => intro sp ev h _; trivial
-  | fail => intro sp ev h _; trivial
+  | ret a => intro sp ev cs h _; trivial
+  | fail => intro sp ev cs h _; trivial
   | read k ih =>
-    intro sp ev h hs
+    intro sp ev cs h hs
     simp only [proveFromM]
     exact (duplexP_absorb hs _ _).bind fun sp' h' hsp ↦
-      (ih _ _ _ _ hsp).bind fun _ _ _ ↦ trivial
+      (ih _ _ _ _ _ hsp).bind fun _ _ _ ↦ trivial
   | sample k ih =>
-    intro sp ev h hs
+    intro sp ev cs h hs
     simp only [proveFromM]
-    exact (duplexP_squeeze hs).bind fun r h' hr ↦ ih _ _ _ _ hr
+    exact (duplexP_squeeze hs).bind fun r h' hr ↦ ih _ _ _ _ _ hr
   | grind bits k ih =>
-    intro sp ev h hs
+    intro sp ev cs h hs
     simp only [proveFromM]
     refine (duplexP_findNonceM bits hs fuel).bind fun r h' hr ↦ ?_
     split
     · trivial
     · exact (duplexP_powStepM hr _).bind fun r' h'' hr' ↦
-        (ih _ _ _ hr').bind fun _ _ _ ↦ trivial
+        (ih _ _ _ _ hr').bind fun _ _ _ ↦ trivial
   | commit height width k ih =>
-    intro sp ev h hs
+    intro sp ev cs h hs
     simp only [proveFromM]
-    refine ((hOnly_treeRootM _ _).duplexP h).bind fun root h' hh ↦ ?_
+    refine ((hOnly_buildTreeM _ _).duplexP h).bind fun tree h' hh ↦ ?_
     subst hh
     exact (duplexP_absorb hs _ _).bind fun sp0 h0 hs0 ↦ (duplexP_absorb hs0 _ _).bind
-      fun sp1 h1 hs1 ↦ (ih _ _ _ hs1).bind fun _ _ _ ↦ trivial
+      fun sp1 h1 hs1 ↦ (ih _ _ _ _ hs1).bind fun _ _ _ ↦ trivial
   | query i ps k ih =>
-    intro sp ev h hs
+    intro sp ev cs h hs
     simp only [proveFromM]
     split
     · trivial
-    · refine ((hOnly_mapM _ (fun _ ↦ hOnly_openingAtM _ _ _) ps).duplexP h).bind
-        fun os h' hh ↦ ?_
-      subst hh
-      exact (ih _ _ _ _ hs).bind fun _ _ _ ↦ trivial
+    · exact (ih _ _ _ _ _ hs).bind fun _ _ _ ↦ trivial
+
+/-- **The specification's honest prover of any strategy follows the duplex discipline.** -/
+theorem duplexVm_romHonestComp (prog : Program) (input : PublicInput) (S : Strategy) (fuel : ℕ) :
+    DuplexVm (Rom.honestComp (leanVmSeed (bytecodeWords prog) (publicDigest input))
+      (leanVmProgram (bytecodeWords prog) (publicDigest input)) S fuel) [] := by
+  rw [duplexVm_iff_duplexP]
+  simp only [Rom.honestComp, seedRun_leanVmSeed, proveM, bind_assoc]
+  exact (duplexP_seedWith _ _ []).bind fun seed h' hs ↦
+    (duplexP_proveFromM _ _ _ _ _ _ _ hs).bind fun _ _ _ ↦ trivial
 
 /-- **The honest prover follows the duplex discipline.** -/
 theorem duplexVm_honestComp (prog : Program) (input : PublicInput) (t : Trace prog)
     (ρ fuel : ℕ) : DuplexVm (LeanVM.Protocol.EndToEnd.Complete.honestComp prog input t ρ fuel) [] := by
-  rw [duplexVm_iff_duplexP]
   unfold LeanVM.Protocol.EndToEnd.Complete.honestComp
   split
-  · simp only [Rom.honestComp, seedRun_leanVmSeed, proveM, bind_assoc]
-    exact (duplexP_seedWith _ _ []).bind fun seed h' hs ↦
-      (duplexP_proveFromM _ _ _ _ _ _ hs).bind fun _ _ _ ↦ trivial
+  · exact duplexVm_romHonestComp prog input _ fuel
   · trivial
 
 /-- **The honest prover, then the verifier, follow the duplex discipline.** -/

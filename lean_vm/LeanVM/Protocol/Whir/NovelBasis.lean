@@ -42,6 +42,8 @@ The claims of `def:enc` and §B.2, for `κ + R ≤ 64`:
 The rate `2^-R` is `2^κ / |D_{κ,R}|`; §B.2 assumes `R ≥ 1` (`def:enc` allows `R ≥ 0`), which none
 of the statements here needs.
 
+`bitsToNat` and `novelAt` are defined in the statement (`Statement/Prover/Code.lean`).
+
 ## Wrong readings excluded
 
 * `⟨u⟩` reads `u 0` as the *low* bit. Reading it high bit first is a different encoder (the
@@ -58,9 +60,6 @@ open LeanVM.Parameters Polynomial
 @[expose] public section
 
 /-! ## Cube points as integers -/
-
-/-- `⟨u⟩ = Σ_i u_i 2^i`, the integer whose bits are `u`, bit `0` first. -/
-def bitsToNat {κ : ℕ} (u : Fin κ → Bool) : ℕ := ∑ i, (u i).toNat * 2 ^ (i : ℕ)
 
 /-- The bijection `u ↦ ⟨u⟩` between cube points and `Fin (2^κ)`. -/
 def bitsEquiv (κ : ℕ) : (Fin κ → Bool) ≃ Fin (2 ^ κ) :=
@@ -111,10 +110,6 @@ theorem bitsToNat_testBit {κ j : ℕ} (hj : j < 2 ^ κ) :
 /-- The novel basis polynomial `X_j = ∏_i Ŵ_i^{j_i}`, over the 64 bits a word can have. -/
 noncomputable def novel (j : ℕ) : K[X] :=
   ∏ i ∈ Finset.range 64, if j.testBit i then normVanishing i else 1
-
-/-- `X_j(a)`, computed from the products. -/
-def novelAt (j : ℕ) (a : K) : K :=
-  ∏ i ∈ Finset.range 64, if j.testBit i then normVanishingAt i a else 1
 
 /-- `novelAt` evaluates `novel`. -/
 @[simp] theorem eval_novel (j : ℕ) (a : K) : (novel j).eval a = novelAt j a := by

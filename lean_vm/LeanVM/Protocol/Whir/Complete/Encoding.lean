@@ -32,6 +32,9 @@ entries at the domain point `x_p = K.ofBits p`.
   first, then the block offset (`f(u, x) = q(x, u)`), i.e. the stack's index rotated by six
   bits.
 
+The formulas `encAt`, `encKAt`, `laneMsg`, `laneCodes`, `limbsOf`, `levelWord` are defined in the
+statement (`Statement/Prover/Code.lean`), where the executable prover's level words use them.
+
 What the verifier computes from an honest opening:
 
 * `readRow_stackWord`, `extRow_levelWord`: the rows it reads are the lanes' codeword entries
@@ -54,17 +57,9 @@ open LeanVM.Parameters LeanVM.Protocol LeanVM.Protocol.Verifier LeanVM.Protocol.
 
 /-! ## The encoder at a position -/
 
-/-- `Enc(g)` at the domain point `x_p = K.ofBits p`, for every `p`. -/
-def encAt (κ : ℕ) (g : (Fin κ → Bool) → E) (p : ℕ) : E :=
-  ∑ u, g u * ofK (novelAt (bitsToNat u) (K.ofBits p))
-
 /-- `enc` at a domain point is `encAt` at its index. -/
 theorem enc_eq_encAt (κ R : ℕ) (g : (Fin κ → Bool) → E) (v : Fin (2 ^ (κ + R))) :
     enc κ R g v = encAt κ g v := rfl
-
-/-- The encoder on a `K`-valued message, at a position. -/
-def encKAt (κ : ℕ) (g : (Fin κ → Bool) → K) (p : ℕ) : K :=
-  ∑ u, g u * novelAt (bitsToNat u) (K.ofBits p)
 
 /-- The `K`-valued encoder lifted to `E` is the encoder of the lifted message. -/
 theorem ofK_encKAt (κ : ℕ) (g : (Fin κ → Bool) → K) (p : ℕ) :
@@ -94,14 +89,6 @@ theorem encAt_msgOf (κ : ℕ) (t : List E) (p : ℕ) :
 
 /-! ## Lanes -/
 
-/-- Lane `j` of a table cut along its first `k` variables: `x ↦ t[j + 2^k·⟨x⟩]`. -/
-def laneMsg (κ k : ℕ) (t : List E) (j : ℕ) : (Fin κ → Bool) → E :=
-  fun x ↦ t.getD (j + 2 ^ k * bitsToNat x) 0
-
-/-- The `2^k` lanes' codeword entries at the position `p`. -/
-def laneCodes (κ k : ℕ) (t : List E) (p : ℕ) : List E :=
-  (List.range (2 ^ k)).map fun j ↦ encAt κ (laneMsg κ k t j) p
-
 /-- **Folding commutes with the encoder.** Folding the lanes' entries at a position with the
 equality kernel of `r` gives the entry of the encoding of the table folded at `r`. -/
 theorem dot_laneCodes_eqKernel (κ : ℕ) (t r : List E) (p : ℕ)
@@ -120,20 +107,12 @@ theorem dot_laneCodes_eqKernel (κ : ℕ) (t r : List E) (p : ℕ)
 
 /-! ## The level words -/
 
-/-- The three limbs of an entry, the order `_ext_row` reads them. -/
-def limbsOf (e : E) : List K := [e.limb 0, e.limb 1, e.limb 2]
-
 /-- `_ext_row` regroups limbs written by `limbsOf`. -/
 theorem extRow_flatMap_limbsOf : ∀ l : List E, extRow (l.flatMap limbsOf) = l
   | [] => by simp [extRow]
   | e :: l => by
     simp only [List.flatMap_cons, limbsOf, List.cons_append, List.nil_append, extRow,
       ofLimbs_limb, extRow_flatMap_limbsOf l]
-
-/-- A deeper level's word: leaf `p` holds the `2^k` lanes' entries at `x_p`, three limbs
-each. -/
-def levelWord (κ k : ℕ) (g : List E) : Word :=
-  fun p ↦ (laneCodes κ k g p).flatMap limbsOf
 
 /-- Three limbs per entry. -/
 theorem length_flatMap_limbsOf : ∀ l : List E, (l.flatMap limbsOf).length = 3 * l.length

@@ -9,6 +9,7 @@
 module
 
 public import LeanVM.Parameters.Field
+public import Statement.Prover.Code
 public import Mathlib.Algebra.Polynomial.BigOperators
 public import Mathlib.Algebra.CharP.Two
 public import Mathlib.Algebra.MvPolynomial.Basic
@@ -39,6 +40,9 @@ lemma is its Lemma `lem:subspace`, parts (i) and (ii) proved here; its first sen
   degree `2^i` for `i < 64` (`natDegree_normVanishing`), additive, and `Ŵ_0 = X`
   (`normVanishing_zero`).
 
+The computable evaluations `basisVec`, `vanishingAt`, `normVanishingAt` are defined in the
+statement (`Statement/Prover/Code.lean`), where the executable prover's committed words use them.
+
 ## Wrong readings excluded
 
 * `W_i` vanishes on the *subspace* `U_i`, not on the first `2^i` integers read as field elements
@@ -55,9 +59,6 @@ open LeanVM.Parameters Polynomial
 @[expose] public section
 
 /-! ## Words and the basis `e_c` -/
-
-/-- `e_c = x^c`, the word with the single bit `c`. -/
-def basisVec (c : ℕ) : K := K.ofBits (2 ^ c)
 
 /-- `U_i = ⟨e_0, …, e_{i-1}⟩_{F₂}`, as the words whose bits lie below `i`. -/
 def subspace (i : ℕ) : Finset K := (Finset.range (2 ^ i)).image K.ofBits
@@ -150,9 +151,6 @@ theorem ofBits_eq_sum {i v : ℕ} (hv : v < 2 ^ i) :
 
 /-- `W_i(X) = ∏_{u ∈ U_i} (X + u)`, the product over the words `v < 2^i`. -/
 noncomputable def vanishing (i : ℕ) : K[X] := ∏ v ∈ Finset.range (2 ^ i), (X + C (K.ofBits v))
-
-/-- `W_i(a)`, computed from the product. -/
-def vanishingAt (i : ℕ) (a : K) : K := ∏ v ∈ Finset.range (2 ^ i), (a + K.ofBits v)
 
 /-- `vanishingAt` evaluates `vanishing`. -/
 @[simp] theorem eval_vanishing (i : ℕ) (a : K) : (vanishing i).eval a = vanishingAt i a := by
@@ -289,9 +287,6 @@ theorem vanishingAt_basisVec_ne_zero {i : ℕ} (hi : i < 64) : vanishingAt i (ba
 
 /-- `Ŵ_i = W_i / W_i(e_i)`. The hat is normalization, not multilinear extension. -/
 noncomputable def normVanishing (i : ℕ) : K[X] := C (vanishingAt i (basisVec i))⁻¹ * vanishing i
-
-/-- `Ŵ_i(a)`, computed from the product. -/
-def normVanishingAt (i : ℕ) (a : K) : K := vanishingAt i a * (vanishingAt i (basisVec i))⁻¹
 
 /-- `normVanishingAt` evaluates `normVanishing`. -/
 @[simp] theorem eval_normVanishing (i : ℕ) (a : K) :

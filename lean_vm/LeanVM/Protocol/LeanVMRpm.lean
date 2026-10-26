@@ -261,29 +261,60 @@ theorem knowledgeSoundnessRpm {A : RpmAdversary} {Q : ℕ} (hA : A.IsTotalQueryB
 
 /-! ## Completeness -/
 
-/-- The honest prover and the verifier, one oracle computation. -/
-noncomputable def honestRun (prog : Program) (input : PublicInput) (t : Trace prog) (ρ fuel : ℕ) :
-    OracleComp HashSpec Bool :=
-  EndToEnd.Complete.honestComp prog input t ρ fuel >>= fun proof ↦
-    verifier queryH queryF prog input proof
+open LeanVM.Protocol.Rom (romExperiment)
 
-/-- The verdict of the random-oracle experiment against the honest prover is the run of the honest
-prover and the verifier against the random oracles. -/
-theorem experiment_honest (prog : Program) (input : PublicInput) (t : Trace prog) (ρ fuel : ℕ) :
-    (fun z ↦ z.1.2) <$> experiment (honestProver prog input t ρ fuel) =
-      (simulateQ HashSpec.randomOracle (honestRun prog input t ρ fuel)).run' ∅ := by
-  simp only [experiment, honestProver, EndToEnd.Complete.honestProverRom, honestRun,
-    simulateQ_map, StateT.run_map, bind_map_left, map_bind, simulateQ_bind, StateT.run'_eq,
-    StateT.run_bind]
+/-- The verdict of a prover then a verifier against the random oracles is the random-oracle
+experiment's. -/
+theorem run'_bind_eq (X : OracleComp HashSpec Proof) (V : Proof → OracleComp HashSpec Bool) :
+    (simulateQ HashSpec.randomOracle (X >>= V)).run' ∅ = (fun z ↦ z.1.2) <$> romExperiment X V := by
+  simp only [romExperiment, simulateQ_map, StateT.run_map, map_bind, simulateQ_bind,
+    StateT.run'_eq, StateT.run_bind]
   refine bind_congr fun p ↦ ?_
   simp
 
-theorem isWeightBound_honestGame (prog : Program) (input : PublicInput) (t : Trace prog)
-    (ρ fuel : ℕ) :
-    Common.IsWeightBound (honestGame (honestRun prog input t ρ fuel)) gameCost
-      (completenessPermCalls fuel) := by
-  rw [honestGame, Common.rpmGame2, simulateQ_pure, pure_bind, simulateQ_pure, pure_bind]
-  exact isWeightBound_hfEmbed_toRHF (isWeightBound_honest prog input t ρ fuel)
+/-- **From the random-oracle model to the random-permutation model**, for a prover then a
+verifier: if they follow the duplex discipline and make at most `N` permutation calls, the
+rejection probability in the random-permutation model is at most the random-oracle experiment's
+plus `rpmError N` (`Common.keccak256_transfer2`). -/
+theorem rpm_le_of_rom (X : OracleComp HashSpec Proof) (V : Proof → OracleComp HashSpec Bool)
+    {N : ℕ} (hd : DuplexVm (X >>= V) []) (hN : Common.IsWeightBound (X >>= V) hashBlocks N)
+    {ε : ℝ≥0∞} (hrom : Pr{let z ← romExperiment X V}[z.1.2 = false] ≤ ε) :
+    Pr{let v ← (simulateQ rpmImpl (X >>= V)).run' []}[v = false] ≤ ε + rpmError N := by
+  have hG : Common.IsWeightBound (honestGame (X >>= V)) gameCost N := by
+    rw [honestGame, Common.rpmGame2, simulateQ_pure, pure_bind, simulateQ_pure, pure_bind]
+    exact isWeightBound_hfEmbed_toRHF hN
+  rw [(rpmHonest_evalDistEq _).prEvent_eq, honestGame]
+  obtain ⟨h1, -⟩ := Common.keccak256_transfer2 (pure ()) (fun _ ↦ (pure () : OracleComp RSpec Unit))
+    (fun _ _ ↦ simulateQ toRHF (X >>= V)) (fun _ _ ↦ duplex_toRHF _ [] hd) N hG (· = false)
+  refine h1.trans (add_le_add (le_of_eq_of_le ?_ hrom) le_rfl)
+  have e1 : Common.romRun2 (simulateQ Common.hInF (pure ()) >>= fun x ↦
+      Common.advS2 Common.keccakPadding Common.KState.zero
+        ((fun _ ↦ (pure () : OracleComp RSpec Unit)) x) >>= fun a ↦
+          (fun _ _ ↦ simulateQ toRHF (X >>= V)) x a) =
+      (simulateQ HFS.romImpl (simulateQ toRHF (X >>= V))).run' ∅ := by
+    simp [Common.romRun2, Common.advS2]
+  rw [e1, (run'_toRHF _ _).prEvent_eq, cmap_empty, run'_bind_eq, prEvent_map]
+
+/-- **Completeness in the random-permutation model, at a witness**: the specification's honest
+prover at an honest witness `w` at the sizes `s` (`HonestFor`), then the verifier, at a fuel of at
+most `2^64` nonces. -/
+theorem completenessRpm_at {prog : Program} {input : PublicInput} {t : Trace prog} {ρ : ℕ}
+    {w : Air.Flat.EnsembleWitness (Arithmetization.leanIsaEnsemble prog)} {s : LeanIsa.Sizes}
+    (hw : EndToEnd.Complete.HonestFor prog input t ρ w s) {fuel : ℕ} (hfuel : fuel ≤ 2 ^ 64) :
+    Pr{let v ← (simulateQ rpmImpl
+        (Rom.honestComp (leanVmSeed (bytecodeWords prog) (publicDigest input))
+          (leanVmProgram (bytecodeWords prog) (publicDigest input))
+          (EndToEnd.Complete.leanVmProver prog s ρ (LeanIsa.stackOf prog s w)) fuel >>= fun proof ↦
+            verifier queryH queryF prog input proof)).run' []}[v = false] ≤
+      completenessError fuel + rpmError (completenessPermCalls fuel) := by
+  refine rpm_le_of_rom _ _ ((duplexVm_romHonestComp prog input _ fuel).bind fun proof ↦
+    duplexVm_verifier prog input proof) (isWeightBound_romHonest hw fuel) ?_
+  have hV : verifier queryH queryF prog input =
+      LeanVM.Protocol.Compile.Rom.verifierComp (leanVmSeed (bytecodeWords prog) (publicDigest input))
+        (leanVmProgram (bytecodeWords prog) (publicDigest input)) :=
+    funext fun π ↦ (verifierComp_leanVm _ _ π).symm
+  rw [hV, completenessError_eq]
+  exact EndToEnd.Complete.romComplete_at hw hfuel
 
 /-- **Completeness in the random-permutation model**, for the honest prover
 `LeanVM.Protocol.EndToEnd.Complete.honestComp`. -/
@@ -294,22 +325,17 @@ theorem completenessRpm {prog : Program} {input : PublicInput} {t : Trace prog}
         (fun prog input t ρ fuel ↦ EndToEnd.Complete.honestComp prog input t ρ fuel)
         prog input t ρ fuel}[v = false] ≤
       completenessError fuel + rpmError (completenessPermCalls fuel) := by
+  obtain ⟨w, s, hw, hrep, hs, hadm⟩ := EndToEnd.Complete.exists_admissible_witness hv hbudget
+  have hex : ∃ w s, EndToEnd.Complete.HonestFor prog input t ρ w s := ⟨w, s, hρ, hw, hs, hadm, hrep⟩
   have e0 : rpmCompletenessExperiment
       (fun prog input t ρ fuel ↦ EndToEnd.Complete.honestComp prog input t ρ fuel)
-      prog input t ρ fuel = (simulateQ rpmImpl (honestRun prog input t ρ fuel)).run' [] := rfl
-  rw [e0, (rpmHonest_evalDistEq _).prEvent_eq, honestGame]
-  obtain ⟨h1, -⟩ := Common.keccak256_transfer2 (pure ()) (fun _ ↦ (pure () : OracleComp RSpec Unit))
-    (fun _ _ ↦ simulateQ toRHF (honestRun prog input t ρ fuel))
-    (fun _ _ ↦ duplex_toRHF _ [] (duplexVm_honest prog input t ρ fuel))
-    (completenessPermCalls fuel) (isWeightBound_honestGame prog input t ρ fuel) (· = false)
-  refine h1.trans (add_le_add (le_of_eq_of_le ?_ (completenessRom hv hbudget hρ hfuel)) le_rfl)
-  have e1 : Common.romRun2 (simulateQ Common.hInF (pure ()) >>= fun x ↦
-      Common.advS2 Common.keccakPadding Common.KState.zero
-        ((fun _ ↦ (pure () : OracleComp RSpec Unit)) x) >>= fun a ↦
-          (fun _ _ ↦ simulateQ toRHF (honestRun prog input t ρ fuel)) x a) =
-      (simulateQ HFS.romImpl (simulateQ toRHF (honestRun prog input t ρ fuel))).run' ∅ := by
-    simp [Common.romRun2, Common.advS2]
-  rw [e1, (run'_toRHF _ _).prEvent_eq, cmap_empty, ← experiment_honest, prEvent_map]
+      prog input t ρ fuel = (simulateQ rpmImpl
+        (EndToEnd.Complete.honestComp prog input t ρ fuel >>= fun proof ↦
+          verifier queryH queryF prog input proof)).run' [] := rfl
+  rw [e0]
+  unfold EndToEnd.Complete.honestComp
+  simp only [hex, ↓reduceDIte]
+  exact completenessRpm_at hex.choose_spec.choose_spec hfuel
 
 /-! ## The numbers -/
 

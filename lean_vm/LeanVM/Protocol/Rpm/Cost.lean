@@ -36,6 +36,7 @@ namespace LeanVM.Rpm
 open LeanVM.Parameters LeanVM.Semantics LeanVM.Protocol LeanVM.Protocol.Compile
 open LeanVM.Protocol.Compile.Rom LeanVM.Protocol.Verifier LeanVM.Protocol.KeccakHash
 open LeanVM.Protocol.EndToEnd LeanVM.Protocol.EndToEnd.Sound
+open LeanVM.Prover (Tree buildTreeM leafDigestsM parentsM levelsM powStepM searchM findNonceM)
 open OracleComp OracleSpec
 
 /-- The permutation calls of a query: a Keccak-256 hash of `n` bytes costs `⌊n / 136⌋ + 1`
@@ -428,24 +429,23 @@ theorem allQ_mapM {β γ : Type} (f : β → OracleComp HashSpec γ) :
       allQueriesSatisfy_bind (allQ_mapM f l fun a' ha' ↦ h a' (List.mem_cons_of_mem _ ha'))
         fun _ ↦ allQ_pure _
 
-theorem allQ_parentsM (level : List Digest) (n : ℕ) :
-    AllQueriesSatisfy (parentsM queryH level n) Short :=
-  allQ_mapM _ _ fun _ _ ↦ allQ_queryH (pair_length _ _)
+theorem allQ_arrayMapM {β γ : Type} (f : β → OracleComp HashSpec γ) (xs : Array β)
+    (h : ∀ a ∈ xs.toList, AllQueriesSatisfy (f a) Short) :
+    AllQueriesSatisfy (xs.mapM f) Short := by
+  rw [Array.mapM_eq_mapM_toList, map_eq_bind_pure_comp]
+  exact allQueriesSatisfy_bind (allQ_mapM f _ h) fun _ ↦ allQ_pure _
 
-theorem allQ_rootOfLevelM : ∀ (k : ℕ) (level : List Digest),
-    AllQueriesSatisfy (rootOfLevelM queryH k level) Short
+theorem allQ_parentsM (level : Array Digest) (n : ℕ) :
+    AllQueriesSatisfy (parentsM queryH level n) Short :=
+  allQ_arrayMapM _ _ fun _ _ ↦ allQ_queryH (pair_length _ _)
+
+theorem allQ_levelsM : ∀ (k : ℕ) (level : Array Digest),
+    AllQueriesSatisfy (levelsM queryH k level) Short
   | 0, _ => allQ_pure _
   | k + 1, level => by
-    simp only [rootOfLevelM]
-    exact allQueriesSatisfy_bind (allQ_parentsM _ _) fun _ ↦ allQ_rootOfLevelM k _
-
-theorem allQ_pathOfLevelM : ∀ (k : ℕ) (level : List Digest) (i : ℕ),
-    AllQueriesSatisfy (pathOfLevelM queryH k level i) Short
-  | 0, _, _ => allQ_pure _
-  | k + 1, level, i => by
-    simp only [pathOfLevelM]
+    simp only [levelsM]
     exact allQueriesSatisfy_bind (allQ_parentsM _ _) fun _ ↦
-      allQueriesSatisfy_bind (allQ_pathOfLevelM k _ _) fun _ ↦ allQ_pure _
+      allQueriesSatisfy_bind (allQ_levelsM k _) fun _ ↦ allQ_pure _
 
 /-- Rows of at most `maxWidth` words. -/
 def RowsLE (word : Word) : Prop := ∀ p, (word p).length ≤ maxWidth
@@ -457,38 +457,34 @@ theorem row_length {word : Word} (hw : RowsLE word) (p : ℕ) :
   unfold maxWidth at this
   omega
 
-theorem allQ_leafHashesM (height : ℕ) {word : Word} (hw : RowsLE word) :
-    AllQueriesSatisfy (leafHashesM queryH height word) Short :=
-  allQ_mapM _ _ fun i _ ↦ allQ_queryH (row_length hw i)
+theorem allQ_leafDigestsM (height : ℕ) {word : Word} (hw : RowsLE word) :
+    AllQueriesSatisfy (leafDigestsM queryH height word) Short :=
+  allQ_arrayMapM _ _ fun i _ ↦ allQ_queryH (row_length hw i)
 
-theorem allQ_treeRootM (height : ℕ) {word : Word} (hw : RowsLE word) :
-    AllQueriesSatisfy (treeRootM queryH height word) Short :=
-  allQueriesSatisfy_bind (allQ_leafHashesM height hw) fun _ ↦ allQ_rootOfLevelM _ _
-
-theorem allQ_openingAtM (height : ℕ) {word : Word} (hw : RowsLE word) (q : ℕ) :
-    AllQueriesSatisfy (openingAtM queryH height word q) Short :=
-  allQueriesSatisfy_bind (allQ_leafHashesM height hw) fun _ ↦
-    allQueriesSatisfy_bind (allQ_pathOfLevelM _ _ _) fun _ ↦ allQ_pure _
+theorem allQ_buildTreeM (height : ℕ) {word : Word} (hw : RowsLE word) :
+    AllQueriesSatisfy (buildTreeM queryH height word) Short :=
+  allQueriesSatisfy_bind (allQ_leafDigestsM height hw) fun _ ↦
+    allQueriesSatisfy_bind (allQ_levelsM _ _) fun _ ↦ allQ_pure _
 
 theorem allQ_powStepM (sp : Sponge) (n : E) : AllQueriesSatisfy (powStepM queryF sp n) Short :=
   allQueriesSatisfy_bind (allQ_absorb _ _ _) fun _ ↦ allQ_squeeze _
 
 theorem allQ_searchM (bits : ℕ) (sp : Sponge) :
-    ∀ ns : List ℕ, AllQueriesSatisfy (searchM queryF bits sp ns) Short
-  | [] => allQ_pure _
-  | n :: ns => by
+    ∀ (count n : ℕ), AllQueriesSatisfy (searchM queryF bits sp n count) Short
+  | 0, _ => allQ_pure _
+  | count + 1, n => by
     simp only [searchM]
     refine allQueriesSatisfy_bind (allQ_powStepM _ _) fun r ↦ ?_
     split
     · exact allQ_pure _
-    · exact allQ_searchM bits sp ns
+    · exact allQ_searchM bits sp count (n + 1)
 
 theorem allQ_findNonceM (bits : ℕ) (sp : Sponge) (fuel : ℕ) :
     AllQueriesSatisfy (findNonceM queryF bits sp fuel) Short := by
   unfold findNonceM
   split
   · exact allQ_pure _
-  · exact allQ_searchM _ _ _
+  · exact allQ_searchM _ _ _ _
 
 /-- **Locality**: the words a strategy commits along the run from `h` depend on the challenges
 only at the histories extending `h`. -/
@@ -543,32 +539,64 @@ theorem histOK_append_of_nil {h : List Ev} (e : Ev) (he : commits [e] = []) (hh 
   rw [commits_append, he, List.append_nil] at hc
   exact hh c hc
 
+/-- The trees the prover carries are those of the history's commitments: the same heights and
+words, in order. -/
+def TreesOK (cs : List Tree) (h : List Ev) : Prop :=
+  cs.map (fun t ↦ (t.height, t.word)) = (commits h).map fun c ↦ (c.1, c.2.2)
+
+theorem treesOK_append_of_nil {cs : List Tree} {h : List Ev} (e : Ev) (he : commits [e] = [])
+    (hT : TreesOK cs h) : TreesOK cs (h ++ [e]) := by
+  unfold TreesOK
+  rw [commits_append, he, List.append_nil]
+  exact hT
+
+theorem treesOK_commit {cs : List Tree} {h : List Ev} (hT : TreesOK cs h) (ht w : ℕ) (W : Word)
+    (lv : Array (Array Digest)) : TreesOK (cs ++ [⟨ht, W, lv⟩]) (h ++ [Ev.commit ht w W]) := by
+  unfold TreesOK at hT ⊢
+  rw [commits_append, List.map_append, List.map_append, hT]
+  rfl
+
+/-- An opening the prover reads off a tree is the history's answer. -/
+theorem answer_of_treesOK {cs : List Tree} {h : List Ev} (hT : TreesOK cs h) {i : ℕ}
+    {tree : Tree} (hc : cs[i]? = some tree) (ps : List ℕ) :
+    answer h i ps = some (ps.map fun q ↦ tree.word (q % 2 ^ tree.height)) := by
+  have e := congrArg (·[i]?) hT
+  simp only [List.getElem?_map, hc, Option.map_some] at e
+  unfold answer
+  rcases hci : (commits h)[i]? with _ | ⟨a, b, c⟩
+  · rw [hci] at e
+    cases e
+  · rw [hci] at e
+    simp only [Option.map_some, Option.some.injEq, Prod.mk.injEq] at e
+    obtain ⟨rfl, rfl⟩ := e
+    rfl
+
 theorem allQ_proveFromM (S : Strategy) (fuel : ℕ) {α : Type} :
-    ∀ (P : Prog α) (sp : Sponge) (h : List Ev), WidthsLE maxWidth P →
-      (∀ chal, S.ShapedFrom chal P h) → HistOK h →
-      AllQueriesSatisfy (proveFromM queryH queryF S fuel P sp h) Short
-  | .ret _, _, _, _, _, _ => allQ_pure _
-  | .fail, _, _, _, _, _ => allQ_pure _
-  | .read k, sp, h, hP, hG, hh => by
+    ∀ (P : Prog α) (sp : Sponge) (h : List Ev) (cs : List Tree), WidthsLE maxWidth P →
+      (∀ chal, S.ShapedFrom chal P h) → HistOK h → TreesOK cs h →
+      AllQueriesSatisfy (proveFromM queryH queryF S fuel P sp h cs) Short
+  | .ret _, _, _, _, _, _, _, _ => allQ_pure _
+  | .fail, _, _, _, _, _, _, _ => allQ_pure _
+  | .read k, sp, h, cs, hP, hG, hh, hT => by
     simp only [proveFromM]
     exact allQueriesSatisfy_bind (allQ_absorb _ _ _) fun sp' ↦
-      allQueriesSatisfy_bind (allQ_proveFromM S fuel _ sp' _ (hP _) (fun chal ↦ hG chal)
-        (histOK_append_of_nil _ rfl hh)) fun _ ↦ allQ_pure _
-  | .sample k, sp, h, hP, hG, hh => by
+      allQueriesSatisfy_bind (allQ_proveFromM S fuel _ sp' _ cs (hP _) (fun chal ↦ hG chal)
+        (histOK_append_of_nil _ rfl hh) (treesOK_append_of_nil _ rfl hT)) fun _ ↦ allQ_pure _
+  | .sample k, sp, h, cs, hP, hG, hh, hT => by
     simp only [proveFromM]
     exact allQueriesSatisfy_bind (allQ_squeeze _) fun r ↦
-      allQ_proveFromM S fuel _ r.2 _ (hP _) (shaped_sample S hG r.1)
-        (histOK_append_of_nil _ rfl hh)
-  | .grind bits k, sp, h, hP, hG, hh => by
+      allQ_proveFromM S fuel _ r.2 _ cs (hP _) (shaped_sample S hG r.1)
+        (histOK_append_of_nil _ rfl hh) (treesOK_append_of_nil _ rfl hT)
+  | .grind bits k, sp, h, cs, hP, hG, hh, hT => by
     simp only [proveFromM]
     refine allQueriesSatisfy_bind (allQ_findNonceM _ _ _) fun o ↦ ?_
     split
     · exact allQ_pure _
     · exact allQueriesSatisfy_bind (allQ_powStepM _ _) fun r ↦
-        allQueriesSatisfy_bind (allQ_proveFromM S fuel k r.2 _ hP (fun chal ↦ hG chal)
-          (histOK_append_of_nil _ rfl hh)) fun _ ↦ allQ_pure _
-  | .commit ht w k, sp, h, hP, hG, hh => by
-    simp only [proveFromM]
+        allQueriesSatisfy_bind (allQ_proveFromM S fuel k r.2 _ cs hP (fun chal ↦ hG chal)
+          (histOK_append_of_nil _ rfl hh) (treesOK_append_of_nil _ rfl hT)) fun _ ↦ allQ_pure _
+  | .commit ht w k, sp, h, cs, hP, hG, hh, hT => by
+    simp only [proveFromM, buildTreeM, bind_assoc, pure_bind]
     have hs : WellShaped w (S.word h) := (hG fun _ ↦ 0).1
     have hrows : RowsLE (S.word h) := fun p ↦ (hs p).symm ▸ hP.1
     have hh' : HistOK (h ++ [Ev.commit ht w (S.word h)]) := by
@@ -579,31 +607,31 @@ theorem allQ_proveFromM (S : Strategy) (fuel : ℕ) {α : Type} :
       · simp only [commits, List.mem_singleton] at hc
         subst hc
         exact hrows
-    exact allQueriesSatisfy_bind (allQ_treeRootM _ hrows) fun _ ↦
+    exact allQueriesSatisfy_bind (allQ_leafDigestsM _ hrows) fun _ ↦
+      allQueriesSatisfy_bind (allQ_levelsM _ _) fun lv ↦
       allQueriesSatisfy_bind (allQ_absorb _ _ _) fun _ ↦
         allQueriesSatisfy_bind (allQ_absorb _ _ _) fun _ ↦
-          allQueriesSatisfy_bind (allQ_proveFromM S fuel k _ _ hP.2 (fun chal ↦ (hG chal).2) hh')
-            fun _ ↦ allQ_pure _
-  | .query i ps k, sp, h, hP, hG, hh => by
+          allQueriesSatisfy_bind (allQ_proveFromM S fuel k _ _ _ hP.2 (fun chal ↦ (hG chal).2)
+            hh' (treesOK_commit hT ht w (S.word h) lv.toArray)) fun _ ↦ allQ_pure _
+  | .query i ps k, sp, h, cs, hP, hG, hh, hT => by
     simp only [proveFromM]
     split
     · exact allQ_pure _
-    · rename_i ht w word hi
-      have hrows : RowsLE word := hh _ (List.mem_of_getElem? hi)
-      have hG' : ∀ chal, S.ShapedFrom chal (k (ps.map fun q ↦ word (q % 2 ^ ht)))
-          (h ++ [Ev.query (ps.map fun q ↦ word (q % 2 ^ ht))]) := fun chal ↦ by
+    · rename_i tree hi
+      have ha := answer_of_treesOK hT hi ps
+      have hG' : ∀ chal, S.ShapedFrom chal (k (ps.map fun q ↦ tree.word (q % 2 ^ tree.height)))
+          (h ++ [Ev.query (ps.map fun q ↦ tree.word (q % 2 ^ tree.height))]) := fun chal ↦ by
         have := hG chal
-        simp only [Strategy.ShapedFrom, answer, hi, Option.map_some] at this
+        simp only [Strategy.ShapedFrom, ha] at this
         exact this
-      exact allQueriesSatisfy_bind (allQ_mapM _ _ fun q _ ↦ allQ_openingAtM ht hrows q) fun _ ↦
-        allQueriesSatisfy_bind (allQ_proveFromM S fuel _ sp _ (hP _) hG'
-          (histOK_append_of_nil _ rfl hh)) fun _ ↦ allQ_pure _
+      exact allQueriesSatisfy_bind (allQ_proveFromM S fuel _ sp _ cs (hP _) hG'
+          (histOK_append_of_nil _ rfl hh) (treesOK_append_of_nil _ rfl hT)) fun _ ↦ allQ_pure _
 
 theorem allQ_proveM (P : Prog Bool) (S : Strategy) (seed : KState) (fuel : ℕ)
     (hP : WidthsLE maxWidth P) (hs : ∀ chal, shapedI P S chal) :
     AllQueriesSatisfy (proveM queryH queryF P S seed fuel) Short :=
-  allQueriesSatisfy_bind (allQ_proveFromM S fuel P _ [] hP hs fun _ hc ↦ by simp [commits] at hc)
-    fun _ ↦ allQ_pure _
+  allQueriesSatisfy_bind (allQ_proveFromM S fuel P _ [] [] hP hs
+    (fun _ hc ↦ by simp [commits] at hc) rfl) fun _ ↦ allQ_pure _
 
 theorem allQ_romHonestComp (prog : Program) (input : PublicInput) (S : Strategy) (fuel : ℕ)
     (hs : ∀ chal, shapedI (leanVmProgram (bytecodeWords prog) (publicDigest input)) S chal) :
@@ -661,26 +689,63 @@ theorem isTotalQueryBound_honestComp' (prog : Program) (input : PublicInput) (t 
 
 end Prover
 
-/-- **The honest prover and the verifier make at most `completenessPermCalls fuel` permutation
-calls.** -/
-theorem isWeightBound_honest (prog : Program) (input : PublicInput) (t : Trace prog)
-    (ρ fuel : ℕ) :
-    Common.IsWeightBound
-      (LeanVM.Protocol.EndToEnd.Complete.honestComp prog input t ρ fuel >>= fun proof ↦
-        verifier queryH queryF prog input proof) hashBlocks (completenessPermCalls fuel) := by
-  have hN : IsTotalQueryBound
-      (Complete.honestComp prog input t ρ fuel >>= fun proof ↦
-        verifier queryH queryF prog input proof)
+/-- **A prover of at most `4 + 48017 · (2^27 + 2·fuel + 2)` short queries and the verifier make
+at most `completenessPermCalls fuel` permutation calls.** -/
+theorem isWeightBound_proverVerifier {X : OracleComp HashSpec Proof} (prog : Program)
+    (input : PublicInput) {fuel : ℕ}
+    (hX : IsTotalQueryBound X (4 + 48017 * (2 ^ 27 + 2 * fuel + 2)))
+    (hXq : AllQueriesSatisfy X Short) :
+    Common.IsWeightBound (X >>= fun proof ↦ verifier queryH queryF prog input proof) hashBlocks
+      (completenessPermCalls fuel) := by
+  have hN : IsTotalQueryBound (X >>= fun proof ↦ verifier queryH queryF prog input proof)
       (12012 + 48017 * (2 ^ 27 + 2 * fuel + 2)) := by
-    have h := isTotalQueryBound_bind (isTotalQueryBound_honestComp' prog input t ρ fuel)
-      fun proof ↦ by
+    have h := isTotalQueryBound_bind hX fun proof ↦ by
         have := isTotalQueryBound_leanVm (bytecodeWords prog) (publicDigest input) proof
         rw [leanVmQueryBound_eq, ← verifier_eq] at this
         exact this
     refine h.mono ?_
     omega
   exact isWeightBound_of_isTotalQueryBound hashBlocks (2 ^ 32) hN
-    ((allQueriesSatisfy_bind (allQ_honestComp prog input t ρ fuel) fun proof ↦
+    ((allQueriesSatisfy_bind hXq fun proof ↦
       allQ_verifier prog input proof).mono fun _ h ↦ hashBlocks_le_of_short h)
+
+/-- **The honest prover and the verifier make at most `completenessPermCalls fuel` permutation
+calls.** -/
+theorem isWeightBound_honest (prog : Program) (input : PublicInput) (t : Trace prog)
+    (ρ fuel : ℕ) :
+    Common.IsWeightBound
+      (LeanVM.Protocol.EndToEnd.Complete.honestComp prog input t ρ fuel >>= fun proof ↦
+        verifier queryH queryF prog input proof) hashBlocks (completenessPermCalls fuel) :=
+  isWeightBound_proverVerifier prog input (isTotalQueryBound_honestComp' prog input t ρ fuel)
+    (allQ_honestComp prog input t ρ fuel)
+
+/-- The specification's honest prover of any strategy makes at most
+`4 + 48017 · (2^27 + 2·fuel + 2)` queries. -/
+theorem isTotalQueryBound_romHonestComp (prog : Program) (input : PublicInput) (S : Strategy)
+    (fuel : ℕ) :
+    IsTotalQueryBound (Rom.honestComp (leanVmSeed (bytecodeWords prog) (publicDigest input))
+      (leanVmProgram (bytecodeWords prog) (publicDigest input)) S fuel)
+      (4 + 48017 * (2 ^ 27 + 2 * fuel + 2)) := by
+  have h := Rom.isTotalQueryBound_honestComp
+    (costLE_leanVmProgram (bytecodeWords prog) (publicDigest input)) S fuel
+    (σ := leanVmSeed (bytecodeWords prog) (publicDigest input))
+  have hc : leanVmCost = 48017 := by decide
+  rw [hc] at h
+  exact h
+
+-- As for `shaped_of`.
+set_option maxHeartbeats 1000000 in
+/-- **The specification's honest prover at an honest witness, then the verifier, make at most
+`completenessPermCalls fuel` permutation calls.** -/
+theorem isWeightBound_romHonest {prog : Program} {input : PublicInput} {t : Trace prog} {ρ : ℕ}
+    {s : LeanIsa.Sizes} {w : Air.Flat.EnsembleWitness (Arithmetization.leanIsaEnsemble prog)}
+    (hw : Complete.HonestFor prog input t ρ w s) (fuel : ℕ) :
+    Common.IsWeightBound
+      (Rom.honestComp (leanVmSeed (bytecodeWords prog) (publicDigest input))
+        (leanVmProgram (bytecodeWords prog) (publicDigest input))
+        (Complete.leanVmProver prog s ρ (LeanIsa.stackOf prog s w)) fuel >>= fun proof ↦
+          verifier queryH queryF prog input proof) hashBlocks (completenessPermCalls fuel) :=
+  isWeightBound_proverVerifier prog input (isTotalQueryBound_romHonestComp prog input _ fuel)
+    (allQ_romHonestComp prog input _ fuel (shaped_of hw))
 
 end LeanVM.Rpm

@@ -178,14 +178,14 @@ theorem one_le_nzPot {σ : Seed} {P P' : Prog Bool} (hNZ : NZ P' P) {S : Strateg
     cases hv'
   | none =>
     -- The prover failed: some proof-of-work search failed.
-    have hr' : proveFromM (lookH ℓ) (lookF ℓ) S fuel P ⟨seed, []⟩ [] = some none := by
-      change (proveFromM (lookH ℓ) (lookF ℓ) S fuel P ⟨seed, []⟩ []).bind _ = _ at hr
+    have hr' : proveFromM (lookH ℓ) (lookF ℓ) S fuel P ⟨seed, []⟩ [] [] = some none := by
+      change (proveFromM (lookH ℓ) (lookF ℓ) S fuel P ⟨seed, []⟩ [] []).bind _ = _ at hr
       obtain ⟨t, ht, hr⟩ := Option.bind_eq_some_iff.mp hr
       cases t with
       | none => exact ht
       | some _ => cases hr
     obtain ⟨h', b', k, sp, ha, hsp, hf⟩ :=
-      proveFromM_eq_some_none S fuel P ⟨seed, []⟩ [] (Prog.after.eq_1 P) ⟨by simp, by simp⟩ hr'
+      proveFromM_eq_some_none S fuel P ⟨seed, []⟩ [] [] (Prog.after.eq_1 P) ⟨by simp, by simp⟩ hr'
     rw [hg h' b' k ha] at hf
     obtain ⟨-, hall⟩ := findNonceM_eq_some_none hf
     -- The position of the search, the same for every nonce.

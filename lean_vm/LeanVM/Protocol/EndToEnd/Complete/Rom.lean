@@ -68,6 +68,29 @@ complete a proof of work whose nonces all failed. -/
 noncomputable def completenessError (fuel : ℕ) : ℝ≥0∞ :=
   (completenessQueries fuel : ℝ≥0∞) * missProb Whir.queryGrindingBits ^ fuel
 
+/-- **Completeness in the random-oracle model, at a witness.** For an honest witness `w` at the
+sizes `s` (`HonestFor`) and a fuel of at most `2^64` nonces, the verifier rejects the proof of the
+specification's honest prover at that witness with probability at most `completenessError fuel`. -/
+theorem romComplete_at {prog : Program} {input : PublicInput} {t : Trace prog} {ρ : ℕ}
+    {w : EnsembleWitness (leanIsaEnsemble prog)} {s : Sizes} (hw : HonestFor prog input t ρ w s)
+    {fuel : ℕ} (hfuel : fuel ≤ 2 ^ 64) :
+    Pr{let z ← romExperiment (Rom.honestComp (leanVmSeed (bytecodeWords prog) (publicDigest input))
+          (leanVmProgram (bytecodeWords prog) (publicDigest input))
+          (leanVmProver prog s ρ (stackOf prog s w)) fuel)
+        (verifierComp (leanVmSeed (bytecodeWords prog) (publicDigest input))
+          (leanVmProgram (bytecodeWords prog) (publicDigest input)))}[z.1.2 = false] ≤
+      completenessError fuel := by
+  obtain ⟨hρ, hw', hs', hadm', -⟩ := hw
+  have hq := m3Honest_stackOf hw' hs'
+  have hrun := runI_leanVmProgram hadm' hρ hq
+  have h := Rom.romComplete (leanVmProgram (bytecodeWords prog) (publicDigest input)) _
+    (leanVmSeed (bytecodeWords prog) (publicDigest input)) (bits := Whir.queryGrindingBits)
+    (by decide) (by decide) hfuel (fun _ _ _ hg ↦ Sound.grind_bits_eq _ _ hg)
+    (fun chal ↦ (hrun chal).1) (fun chal ↦ (hrun chal).2)
+    (costLE_leanVmProgram (bytecodeWords prog) (publicDigest input))
+  refine h.trans (le_of_eq ?_)
+  rfl
+
 /-- **Completeness in the random-oracle model.** For a valid execution whose committed size is at
 most `2^28`, at a valid rate, and a fuel of at most `2^64` nonces, the verifier rejects the honest
 prover's proof with probability at most `completenessError fuel`. -/
@@ -82,16 +105,7 @@ theorem romComplete_leanVm {prog : Program} {input : PublicInput} {t : Trace pro
   have hex : ∃ w s, HonestFor prog input t ρ w s := ⟨w, s, hρ, hw, hs, hadm, hrep⟩
   unfold honestComp
   simp only [hex, ↓reduceDIte]
-  obtain ⟨-, hw', hs', hadm', -⟩ := hex.choose_spec.choose_spec
-  have hq := m3Honest_stackOf hw' hs'
-  have hrun := runI_leanVmProgram hadm' hρ hq
-  have h := Rom.romComplete (leanVmProgram (bytecodeWords prog) (publicDigest input)) _
-    (leanVmSeed (bytecodeWords prog) (publicDigest input)) (bits := Whir.queryGrindingBits)
-    (by decide) (by decide) hfuel (fun _ _ _ hg ↦ Sound.grind_bits_eq _ _ hg)
-    (fun chal ↦ (hrun chal).1) (fun chal ↦ (hrun chal).2)
-    (costLE_leanVmProgram (bytecodeWords prog) (publicDigest input))
-  refine h.trans (le_of_eq ?_)
-  rfl
+  exact romComplete_at hex.choose_spec.choose_spec hfuel
 
 /-- **The numbers**: at a fuel of `2^25` nonces per proof of work, the completeness error is
 below `2^-128`. -/

@@ -54,6 +54,7 @@ namespace LeanVM.Protocol.Compile.Rom
 
 open LeanVM.Parameters LeanVM.Semantics LeanVM.Protocol.KeccakHash LeanVM.Protocol
 open LeanVM.Protocol.Rom OracleComp OracleSpec
+open LeanVM.Prover (Tree buildTreeM powStepM searchM findNonceM)
 open scoped ENNReal
 
 @[expose] public section
@@ -438,19 +439,20 @@ theorem powStepM_option {sp : Sponge} {n : ℕ} {r : E × Sponge}
     exact hu
 
 theorem searchM_eq_some_none {bits : ℕ} {sp : Sponge} :
-    ∀ ns : List ℕ, searchM F bits sp ns = some none →
-      ∀ n ∈ ns, ∃ r, powStepM F sp (nonceOf n) = some r ∧ powOk bits (nonceOf n) r.1 = false
-  | [], _ => by simp
-  | n :: ns, h => by
+    ∀ (count n : ℕ), searchM F bits sp n count = some none →
+      ∀ j, n ≤ j → j < n + count →
+        ∃ r, powStepM F sp (nonceOf j) = some r ∧ powOk bits (nonceOf j) r.1 = false
+  | 0, _, _ => fun _ h1 h2 ↦ by omega
+  | count + 1, n, h => by
     change (powStepM F sp (nonceOf n)).bind _ = _ at h
     obtain ⟨r, hr, h⟩ := Option.bind_eq_some_iff.mp h
     split at h
     · cases h
     · rename_i hp
-      intro m hm
-      rcases List.mem_cons.mp hm with rfl | hm
-      · exact ⟨r, hr, by simpa using hp⟩
-      · exact searchM_eq_some_none ns h m hm
+      intro j hj1 hj2
+      rcases Nat.eq_or_lt_of_le hj1 with rfl | hlt
+      · exact ⟨r, hr, by simpa [prover_nonceOf] using hp⟩
+      · exact searchM_eq_some_none count (n + 1) h j hlt (by omega)
 
 theorem findNonceM_eq_some_none {bits : ℕ} {sp : Sponge} {fuel : ℕ}
     (h : findNonceM F bits sp fuel = some none) :
@@ -460,7 +462,7 @@ theorem findNonceM_eq_some_none {bits : ℕ} {sp : Sponge} {fuel : ℕ}
   split at h
   · cases h
   · rename_i hb
-    exact ⟨hb, fun n hn ↦ searchM_eq_some_none _ h n (List.mem_range.mpr hn)⟩
+    exact ⟨hb, fun n hn ↦ searchM_eq_some_none fuel 0 h n (Nat.zero_le n) (by omega)⟩
 
 /-- The honest prover's sponge between its moves: at most four scalars waiting, each of tag
 `1`. -/
@@ -484,26 +486,26 @@ answered in `Option`, fails, then some proof-of-work search along the program fa
 the honest prover keeps. -/
 theorem proveFromM_eq_some_none {H : Bytes → Option Digest} (S : Strategy) (fuel : ℕ)
     {P : Prog Bool} :
-    ∀ (p : Prog Bool) (sp : Sponge) (h : List Ev), P.after h = some p → ProverSp sp →
-      proveFromM H F S fuel p sp h = some none →
+    ∀ (p : Prog Bool) (sp : Sponge) (h : List Ev) (cs : List Tree), P.after h = some p →
+      ProverSp sp → proveFromM H F S fuel p sp h cs = some none →
       ∃ h' bits k sp', P.after h' = some (.grind bits k) ∧ ProverSp sp' ∧
         findNonceM F bits sp' fuel = some none
-  | .ret _, _, _, _, _, hp => by cases hp
-  | .fail, _, _, _, _, hp => by cases hp
-  | .read k, sp, h, ha, hsp, hp => by
+  | .ret _, _, _, _, _, _, hp => by cases hp
+  | .fail, _, _, _, _, _, hp => by cases hp
+  | .read k, sp, h, cs, ha, hsp, hp => by
     have ha' := after_read_step ha (S.msg h)
     change (Compile.absorb F sp _ _).bind _ = _ at hp
     obtain ⟨sp', hsp', hp⟩ := Option.bind_eq_some_iff.mp hp
     obtain ⟨r, hr, hp⟩ := Option.bind_eq_some_iff.mp hp
     rcases r with _ | _
-    · exact proveFromM_eq_some_none S fuel _ sp' _ ha' (proverSp_absorb hsp hsp') hr
+    · exact proveFromM_eq_some_none S fuel _ sp' _ _ ha' (proverSp_absorb hsp hsp') hr
     · cases hp
-  | .sample k, sp, h, ha, hsp, hp => by
+  | .sample k, sp, h, cs, ha, hsp, hp => by
     change (squeeze F sp).bind _ = _ at hp
     obtain ⟨r, hr, hp⟩ := Option.bind_eq_some_iff.mp hp
     obtain ⟨u, -, rfl⟩ := (squeeze_option _ _ _).mp hr
-    exact proveFromM_eq_some_none S fuel _ _ _ (after_sample_step ha _) ⟨by simp, by simp⟩ hp
-  | .grind bits k, sp, h, ha, hsp, hp => by
+    exact proveFromM_eq_some_none S fuel _ _ _ _ (after_sample_step ha _) ⟨by simp, by simp⟩ hp
+  | .grind bits k, sp, h, cs, ha, hsp, hp => by
     have ha' := after_grind_step ha
     change (findNonceM F bits sp fuel).bind _ = _ at hp
     obtain ⟨o, ho, hp⟩ := Option.bind_eq_some_iff.mp hp
@@ -518,32 +520,30 @@ theorem proveFromM_eq_some_none {H : Bytes → Option Digest} (S : Strategy) (fu
         obtain ⟨u, -, rfl⟩ := (squeeze_option _ _ _).mp hs
         exact ⟨by simp, by simp⟩
       rcases t with _ | _
-      · exact proveFromM_eq_some_none S fuel _ _ _ ha' hsp' ht
+      · exact proveFromM_eq_some_none S fuel _ _ _ _ ha' hsp' ht
       · cases hp
-  | .commit ht w k, sp, h, ha, hsp, hp => by
+  | .commit ht w k, sp, h, cs, ha, hsp, hp => by
     have ha' := after_commit_step ha (S.word h)
-    change (treeRootM H ht (S.word h)).bind _ = _ at hp
-    obtain ⟨root, -, hp⟩ := Option.bind_eq_some_iff.mp hp
+    change (buildTreeM H ht (S.word h)).bind _ = _ at hp
+    obtain ⟨tree, -, hp⟩ := Option.bind_eq_some_iff.mp hp
     change (Compile.absorb F sp _ _).bind _ = _ at hp
     obtain ⟨sp0, h0, hp⟩ := Option.bind_eq_some_iff.mp hp
     change (Compile.absorb F sp0 _ _).bind _ = _ at hp
     obtain ⟨sp1, h1, hp⟩ := Option.bind_eq_some_iff.mp hp
     obtain ⟨r, hr, hp⟩ := Option.bind_eq_some_iff.mp hp
     rcases r with _ | _
-    · exact proveFromM_eq_some_none S fuel _ sp1 _ ha'
+    · exact proveFromM_eq_some_none S fuel _ sp1 _ _ ha'
         (proverSp_absorb (proverSp_absorb hsp h0) h1) hr
     · cases hp
-  | .query i ps k, sp, h, ha, hsp, hp => by
+  | .query i ps k, sp, h, cs, ha, hsp, hp => by
     simp only [proveFromM] at hp
     split at hp
     · cases hp
-    · rename_i ht w word hc
-      have ha' := after_query_step ha (ps.map fun q ↦ word (q % 2 ^ ht))
-      change Option.bind (ps.mapM (openingAtM H ht word)) _ = _ at hp
-      obtain ⟨os, -, hp⟩ := Option.bind_eq_some_iff.mp hp
+    · rename_i tree hc
+      have ha' := after_query_step ha (ps.map fun q ↦ tree.word (q % 2 ^ tree.height))
       obtain ⟨r, hr, hp⟩ := Option.bind_eq_some_iff.mp hp
       rcases r with _ | _
-      · exact proveFromM_eq_some_none S fuel _ sp _ ha' hsp hr
+      · exact proveFromM_eq_some_none S fuel _ sp _ _ ha' hsp hr
       · cases hp
 
 end Failure
@@ -620,14 +620,14 @@ theorem one_le_powPot {σ : Seed} {P : Prog Bool} {S : Strategy} {bits fuel : �
     cases hv'
   | none =>
     -- The prover failed: some proof-of-work search failed.
-    have hr' : proveFromM (lookH ℓ) (lookF ℓ) S fuel P ⟨seed, []⟩ [] = some none := by
-      change (proveFromM (lookH ℓ) (lookF ℓ) S fuel P ⟨seed, []⟩ []).bind _ = _ at hr
+    have hr' : proveFromM (lookH ℓ) (lookF ℓ) S fuel P ⟨seed, []⟩ [] [] = some none := by
+      change (proveFromM (lookH ℓ) (lookF ℓ) S fuel P ⟨seed, []⟩ [] []).bind _ = _ at hr
       obtain ⟨t, ht, hr⟩ := Option.bind_eq_some_iff.mp hr
       cases t with
       | none => exact ht
       | some _ => cases hr
     obtain ⟨h', b', k, sp, ha, hsp, hf⟩ :=
-      proveFromM_eq_some_none S fuel P ⟨seed, []⟩ [] (Prog.after.eq_1 P) ⟨by simp, by simp⟩ hr'
+      proveFromM_eq_some_none S fuel P ⟨seed, []⟩ [] [] (Prog.after.eq_1 P) ⟨by simp, by simp⟩ hr'
     rw [hg h' b' k ha] at hf
     obtain ⟨-, hall⟩ := findNonceM_eq_some_none hf
     -- The position of the search, the same for every nonce.
