@@ -12,6 +12,7 @@ module
 
 public import LeanVM.Guest.Budget.ClosedN
 public import LeanVM.Guest.Count.Deployed
+public import Statement.Corollaries
 
 namespace LeanVM.Guest.Budget
 

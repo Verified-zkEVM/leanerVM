@@ -13,10 +13,9 @@ public import Statement.Fast.Schemes
 The specification of a node of the aggregation (its statement, witness and relation `NodeRel`:
 leanXMSS and leanSPHINCS claims, DA claims, children verified by the leanVM verifier with deferred
 claims), what a proof of the leanISA guest program establishes with its witness named
-(`GuestKnowledge`, `AggregateSound`), the deployed leanISA guest program (`LeanVM.Guest.guest`,
-assembled from the generated `Statement/Data/`), its completeness on the covered nodes
-(`GuestCompleteRecursion`, `GuestCompleteLeaf`, `GuestCompleteCovered`, with the deployed limits
-they assume) and on its own honest proofs as children (`GuestChildComplete`), and the recursion
+(`GuestKnowledge`) and the binding of a statement's digest (`DigestBinds`), the deployed leanISA
+guest program (`LeanVM.Guest.guest`, assembled from the generated `Statement/Data/`), its
+completeness on the covered nodes (`GuestCompleteCovered`, with the deployed limits it assumes) and on its own honest proofs as children (`GuestChildComplete`), and the recursion
 step, the batching of the children's deferred claims, sound in the random-permutation model
 (`BatchSound`).
 
@@ -454,6 +453,16 @@ def collisionCandidates (seed : Digest) (s : NodeStatement) (seed' : Digest)
 def HasCollision (pairs : List (List UInt8 × List UInt8)) : Prop :=
   ∃ p ∈ pairs, p.1 ≠ p.2 ∧ keccak256 p.1 = keccak256 p.2
 
+/-- **The statement's digest binds the seed and the statement**: two statements whose deferred
+claims have the shape of one bytecode and whose digests (under two seeds) are equal are the same
+statement under the same seed, or one of the candidate pairs is a Keccak-256 collision. The shape
+fixes the length of the deferred claim's point, which the digest does not record. Proved by
+`LeanVM.Guest.Binding.digest_binds`. -/
+def DigestBinds : Prop :=
+  ∀ (b : List K) (seed seed' : Digest) (s s' : NodeStatement),
+    s.defer.Shaped b → s'.defer.Shaped b → statementDigest seed s = statementDigest seed' s' →
+      (seed = seed' ∧ s = s') ∨ HasCollision (collisionCandidates seed s seed' s')
+
 /-- What a decoder reads off a memory: a seed, a statement and a witness. -/
 structure Decoded where
   seed : Digest
@@ -477,35 +486,6 @@ every valid execution of `guest` on a public input, `decode` reads a seed, the n
 input commits to under that seed, and a witness proving it (`DecodesOn`). -/
 def GuestKnowledge (guest : Program) (decode : Decoder) : Prop :=
   ∀ input (t : Trace guest), ValidExecution guest input t → DecodesOn guest input (decode t.image)
-
-/-- **The decoding `d` explains the statement `s`**: it is the deployed seed, `s` and a witness
-holding `s`; or the decoded seed and statement, with the deployed seed and `s`, give a Keccak-256
-collision among the candidates. -/
-def Explains (guest : Program) (s : NodeStatement) (d : Decoded) : Prop :=
-  (d.seed = deployedSeed guest ∧ d.statement = s ∧
-      NodeRel (bytecodeWords guest) (deployedSeed guest) s d.witness) ∨
-    HasCollision (collisionCandidates d.seed d.statement (deployedSeed guest) s)
-
-open OracleComp OracleSpec in
-/-- **The outer verifier's acceptance, explained.** In the random-permutation experiment of
-`LeanVm.lean`, the adversary, querying `π` and `π⁻¹`, outputs a proof. The event: the verifier
-accepts it as a proof of `guest` on the digest, under the deployed seed, of a statement `s` whose
-deferred claim has the guest program's shape, and yet the execution the knowledge extractor
-`extractorRpm` reads off the adversary's transcript and the proof does not explain `s` (`Explains`:
-decode to the deployed seed, `s` and a witness holding it, or give a Keccak-256 collision among
-`collisionCandidates`). Its probability is at most the bound of `KnowledgeSoundness`,
-`(Q + 2^14) · 2^-128 + 7 (Q + 2^14)² · 2^-256`, for an adversary of at most `Q ≤ 2^128` queries.
-Keccak-256 and Keccak-f[1600] outside the executed program are built from `π`; the statement's
-digest and the collisions are of the deployed Keccak-256, which the guest program computes. -/
-def AggregateSound (guest : Program) (decode : Decoder) : Prop :=
-  ∀ (A : RpmAdversary) (Q : ℕ), A.IsTotalQueryBound Q → Q ≤ 2 ^ 128 →
-    Pr{let z ← rpmExperiment A}[∃ s : NodeStatement, z.accepted ∧ z.program = guest ∧
-      publicDigest z.input = statementDigest (deployedSeed guest) s ∧
-      s.defer.Shaped (bytecodeWords guest) ∧
-      ¬ ∃ t, extractorRpm z.program z.input z.transcript z.proof = some t ∧
-        Explains guest s (decode t.image)] ≤
-      (Q + 2 ^ 14 : ℝ≥0∞) * (2 : ℝ≥0∞)⁻¹ ^ 128 +
-        7 * (Q + 2 ^ 14 : ℝ≥0∞) ^ 2 * (2 : ℝ≥0∞)⁻¹ ^ 256
 
 end LeanVM.Node
 
@@ -831,45 +811,6 @@ namespace Budget
 
 open Hints
 
-/-- **Every recursion node of at most `2048` claims has a valid execution of the leanISA guest
-program**: for every seed, statement `s` and witness `w` with `NodeRel`, within the deployed limits
-(so at most `16` children, each at one of the guest program's opening arms), the caps agreeing and
-no zero challenge where the guest program divides, holding no raw leanXMSS or leanSPHINCS signature
-and no blob directly, with at most `2048` declared claims, coverage slots and children's declared
-claims, there is a valid execution of the leanISA guest program on the statement's digest of
-committed size in `[2^22, 2^28]`. Proved by `LeanVM.Guest.Budget.guest_complete_recursion`. -/
-abbrev GuestCompleteRecursion : Prop :=
-  ∀ (seed : Digest) (s : NodeStatement) (w : NodeWitness),
-    NodeRel (bytecodeWords guest) seed s w → Limits (bytecodeWords guest) s w →
-    CapsAgree (bytecodeWords guest) seed w → NoZeroChallenge (bytecodeWords guest) seed w →
-    (direct s.claims.xmss w.xmss).length = 0 → (direct s.claims.sphincs w.sphincs).length = 0 →
-    (direct s.claims.da w.da).length = 0 →
-    s.claims.xmss.length + s.claims.sphincs.length + s.claims.da.length ≤ 2048 →
-    coverage s w ≤ 2048 →
-    (w.children.map fun c ↦ c.statement.claims.xmss.length + c.statement.claims.sphincs.length +
-      c.statement.claims.da.length).sum ≤ 2048 →
-    ∃ t : Trace guest,
-      ValidExecution guest (EndToEnd.Front.publicInputOfDigest (statementDigest seed s)) t ∧
-      2 ^ 22 ≤ t.committedSize ∧ t.committedSize ≤ 2 ^ 28
-
-/-- **Every leaf of at most `2048` raw signatures has a valid execution of the leanISA guest
-program**: for every seed, statement `s` and witness `w` with `NodeRel`, within the deployed limits,
-with no child and no blob held directly, at most `2048` raw leanXMSS and leanSPHINCS signatures
-together and at most `2048` declared claims and coverage slots, there is a valid execution of the
-leanISA guest program on the statement's digest of committed size in `[2^22, 2^28]`. Proved by
-`LeanVM.Guest.Budget.guest_complete_leaf`. -/
-abbrev GuestCompleteLeaf : Prop :=
-  ∀ (seed : Digest) (s : NodeStatement) (w : NodeWitness),
-    NodeRel (bytecodeWords guest) seed s w → Limits (bytecodeWords guest) s w →
-    CapsAgree (bytecodeWords guest) seed w → NoZeroChallenge (bytecodeWords guest) seed w →
-    w.children = [] → (direct s.claims.da w.da).length = 0 →
-    (direct s.claims.xmss w.xmss).length + (direct s.claims.sphincs w.sphincs).length ≤ 2048 →
-    s.claims.xmss.length + s.claims.sphincs.length + s.claims.da.length ≤ 2048 →
-    coverage s w ≤ 2048 →
-    ∃ t : Trace guest,
-      ValidExecution guest (EndToEnd.Front.publicInputOfDigest (statementDigest seed s)) t ∧
-      2 ^ 22 ≤ t.committedSize ∧ t.committedSize ≤ 2 ^ 28
-
 /-- **The nodes the deployed budget covers**, six families by the node's children, raw signatures
 (leanXMSS and leanSPHINCS held directly), blob rows held directly, and claims (declared, coverage
 slots, the children's declared claims): a recursion node of `2048` claims; a leaf of `2048` raw
@@ -892,9 +833,12 @@ def Covered (s : NodeStatement) (w : NodeWitness) : Prop :=
   (n ≤ 4 ∧ raw = 0 ∧ rows ≤ 8 ∧ claims 2048) ∨
   (n ≤ 2 ∧ raw ≤ 256 ∧ rows ≤ 4 ∧ claims 4096)
 
-/-- **Every covered node has a valid execution of the leanISA guest program**: as
-`GuestCompleteRecursion`, for the nodes `Covered` lists. Proved by
-`LeanVM.Guest.Budget.guest_complete_covered`. -/
+/-- **Every covered node has a valid execution of the leanISA guest program**: for every seed,
+statement `s` and witness `w` with `NodeRel`, within the deployed limits (so at most `16`
+children, each at one of the guest program's opening arms), the caps agreeing and no zero
+challenge where the guest program divides, and `s` and `w` in one of the families `Covered`
+lists, there is a valid execution of the leanISA guest program on the statement's digest of
+committed size in `[2^22, 2^28]`. Proved by `LeanVM.Guest.Budget.guest_complete_covered`. -/
 abbrev GuestCompleteCovered : Prop :=
   ∀ (seed : Digest) (s : NodeStatement) (w : NodeWitness),
     NodeRel (bytecodeWords guest) seed s w → Limits (bytecodeWords guest) s w →

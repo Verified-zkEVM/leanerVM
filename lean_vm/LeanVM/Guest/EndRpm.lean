@@ -2,7 +2,7 @@
   LeanVM.Guest.EndRpm
 
   The aggregation guest's theorems that involve an adversary, in the random-permutation model:
-  `AggregateSound` of `Statement/LeanVmGuest.lean` for the deployed bytecode and the decoder
+  `AggregateSound` of `Statement/Corollaries.lean` for the deployed bytecode and the decoder
   `decode`, and the guest's completeness composed with the protocol's.
 -/
 
@@ -10,6 +10,7 @@ import LeanVM.Guest.EndFinal
 import LeanVM.Guest.Complete
 import LeanVM.Protocol.LeanVMRpm
 import Statement.LeanVmGuest
+import Statement.Corollaries
 import Common.Transfer
 import LeanXmss.Scheme
 import Sphincs.Scheme
