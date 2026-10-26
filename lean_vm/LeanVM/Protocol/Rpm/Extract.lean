@@ -15,7 +15,8 @@ In the transfer's random-oracle world the adversary of `Statement/LeanVm.lean` r
 two-oracle simulator of `common` (`Common.advS2`). It makes no hash query itself: the
 simulator queries `H m` only when a fresh forward query completes a rooted sponge path that pads
 `m`, and books the path. So the hash answers in the cache when the adversary returns are exactly
-the Keccak-256 evaluations of its transcript (`hashesOf (transcriptPaths T)`, through `Common.pathsOf`):
+the Keccak-256 evaluations of its transcript (`hashesOf (transcriptPaths T)`, which are those of
+`Common.pathsOf` on the transcript's bytes, `hashesOf_transcriptPaths`):
 
 * `advS2_advR`: the transcript the adversary records on lanes is the byte transcript `common`
   logs in the simulator's state (`Common.advImplLog2`), read on lanes;
@@ -241,8 +242,9 @@ theorem transcriptHashes_eq_of_mem_support (A : RpmAdversary)
     rw [List.map_map]
     conv_rhs => rw [← List.map_id w.2.1.2]
     exact List.map_congr_left fun e _ ↦ entryToRpm_ofRpm e
+  rw [hashesOf_transcriptPaths]
   funext m
-  simp only [hashesOf, transcriptPaths, eT]
+  simp only [hashesOfB, transcriptPathsB, eT]
   rcases hc : w.2.2 (.inl m) with _ | d
   · have hn : (Common.pathsOf Common.keccakPadding Common.KState.zero w.2.1.2).find?
         (·.1 = m) = none := by

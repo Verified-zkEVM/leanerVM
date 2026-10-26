@@ -161,7 +161,7 @@ end Extract
 /-! ## The extractor of the random-permutation model -/
 
 /-- The paths' byte strings cover their evaluations. -/
-theorem keysCover_hashesOf (P : List (Bytes × Common.KDigest)) :
+theorem keysCover_hashesOf (P : List (Bytes × Digest)) :
     KeysCover (LeanVM.hashesOf P) (P.map (·.1)) := by
   intro x d h
   simp only [LeanVM.hashesOf, Option.map_eq_some_iff] at h

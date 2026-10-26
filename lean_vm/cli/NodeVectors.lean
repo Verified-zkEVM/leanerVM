@@ -40,7 +40,7 @@ def checks : List (String × (Unit → Bool)) := [
   ("seed: the vectors' seed is deployedSeed guest", fun _ ↦ guestSeed == Spec.NodeVectors.seed),
   ("seed: the manifest's fs_seed is deployedSeed guest", fun _ ↦ manifestSeed == some guestSeed),
   ("vectorDigest", fun _ ↦ Spec.NodeVectors.da.all fun c ↦
-    LeanVM.Da.vectorDigestOf c.daRoot == LeanVM.Da.toBytes c.membershipVectorDigest)]
+    LeanVM.Da.vectorDigestOf c.daRoot == LeanVM.Protocol.Digest.toBytes c.membershipVectorDigest)]
 
 /-- The driver. -/
 def main : IO UInt32 := do

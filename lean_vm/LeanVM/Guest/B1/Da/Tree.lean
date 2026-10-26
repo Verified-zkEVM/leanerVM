@@ -36,8 +36,8 @@ open LeanVM.Guest.B1.Digest LeanVM.Guest.B1.Main
 
 /-! ## Bytes -/
 
-theorem toList_toBytes (d : Digest) : (LeanVM.Da.toBytes d).toList = digestBytes d := by
-  simp [LeanVM.Da.toBytes, Vector.toList]
+theorem toList_toBytes (d : Digest) : (LeanVM.Protocol.Digest.toBytes d).toList = digestBytes d := by
+  simp [LeanVM.Protocol.Digest.toBytes, Vector.toList]
 
 theorem kBytes_eq (a : K) : LeanDa.kBytes a = kBytes a := by
   unfold LeanDa.kBytes kBytes wordBytes
@@ -55,8 +55,8 @@ theorem limbBytes_eq (es : List E) : LeanDa.limbBytes es = es.flatMap Node.eByte
   simp [Node.eBytes, kBytes_eq, LeanDa.limb, List.append_assoc]
 
 theorem keccak_pair (a b : Digest) :
-    LeanVM.Da.keccak (LeanDa.pairBytes (LeanVM.Da.toBytes a) (LeanVM.Da.toBytes b)) =
-      LeanVM.Da.toBytes (keccak256 (digestBytes a ++ digestBytes b)) := by
+    LeanVM.Da.keccak (LeanDa.pairBytes (LeanVM.Protocol.Digest.toBytes a) (LeanVM.Protocol.Digest.toBytes b)) =
+      LeanVM.Protocol.Digest.toBytes (keccak256 (digestBytes a ++ digestBytes b)) := by
   rw [LeanVM.Da.keccak, LeanDa.pairBytes, toList_toBytes, toList_toBytes]
 
 /-! ## Trees of digests -/
@@ -70,7 +70,7 @@ def mRoot : ℕ → (ℕ → Digest) → Digest
   | d + 1, g => mRoot d (upD g)
 
 theorem toBytes_mRoot : ∀ (d : ℕ) (g : ℕ → Digest),
-    LeanVM.Da.toBytes (mRoot d g) = LeanDa.merkleRoot LeanVM.Da.keccak d (LeanVM.Da.toBytes ∘ g)
+    LeanVM.Protocol.Digest.toBytes (mRoot d g) = LeanDa.merkleRoot LeanVM.Da.keccak d (LeanVM.Protocol.Digest.toBytes ∘ g)
   | 0, _ => rfl
   | d + 1, g => by
     rw [mRoot, toBytes_mRoot d, LeanDa.merkleRoot]

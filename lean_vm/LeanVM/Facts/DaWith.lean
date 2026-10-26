@@ -28,24 +28,15 @@ open LeanVM.Parameters LeanVM.Semantics LeanVM.Protocol LeanVM.Protocol.KeccakHa
 
 @[expose] public section
 
-/-- LeanDA's sponge lanes as a Keccak state: each `K` word as its 64-bit lane. -/
-def lanesState (l : LeanDa.Lanes) : KState := l.map K.lane
-
-/-- A Keccak state as LeanDA's sponge lanes: each 64-bit lane as its `K` word. -/
-def stateLanes (s : KState) : LeanDa.Lanes := s.map K.ofLane
-
-/-- Keccak-f[1600] as LeanDA's sponge permutation. -/
-def keccakLanes (l : LeanDa.Lanes) : LeanDa.Lanes := stateLanes (keccakF (lanesState l))
-
 /-- **The vector digest of a root**, as the outer verifier derives it
 (`vector_digest(membership_vector(root))`, `crates/verifier/src/da.rs:83-104`). -/
 def vectorDigestOf (root : Digest) : LeanDa.Digest :=
-  LeanDa.vectorDigest keccak (LeanDa.membershipVector keccak keccakLanes (toBytes root))
+  LeanDa.vectorDigest keccak (LeanDa.membershipVector keccak keccakF root.toBytes)
 
 section With
 
 variable {m : Type → Type} [Monad m] (HD : List UInt8 → m LeanDa.Digest)
-  (PD : LeanDa.Lanes → m LeanDa.Lanes)
+  (PD : KState → m KState)
 
 /-! ### The commitment -/
 
@@ -92,8 +83,8 @@ def commitCodewordsWith (pc pr : LeanDa.Digest) (rows : List (List K)) : m LeanD
 /-- `LeanDa.Sponge.newM` with the permutation `PD`. -/
 def spongeNewWith (iv publicInput : LeanDa.Digest) : m LeanDa.Sponge := do
   let state ← PD (Vector.ofFn fun i : Fin 25 ↦
-    if (i : ℕ) < 4 then LeanDa.word iv i else if (i : ℕ) < 8 then LeanDa.word publicInput (i - 4)
-    else 0)
+    if (i : ℕ) < 4 then (LeanDa.word iv i).lane
+    else if (i : ℕ) < 8 then (LeanDa.word publicInput (i - 4)).lane else 0)
   pure ⟨state, []⟩
 
 /-- `LeanDa.Sponge.fromLabelM` with the hash `HD` and the permutation `PD`. -/
@@ -103,7 +94,8 @@ def spongeFromLabelWith (label : List UInt8) : m LeanDa.Sponge := do
 /-- `LeanDa.Sponge.duplexM` with the permutation `PD`. -/
 def spongeDuplexWith (s : LeanDa.Sponge) : m LeanDa.Sponge := do
   let state ← PD (Vector.ofFn fun i : Fin 25 ↦
-    if (i : ℕ) < LeanDa.rateLanes then (LeanDa.rateWords s.pending).getD i 0 else s.state[i])
+    if (i : ℕ) < LeanDa.rateLanes then ((LeanDa.rateWords s.pending).getD i 0).lane
+    else s.state[i])
   pure ⟨state, []⟩
 
 /-- `LeanDa.Sponge.absorbM` with the permutation `PD`. -/
@@ -118,7 +110,7 @@ def spongeObserveWith (s : LeanDa.Sponge) (x : E) : m LeanDa.Sponge :=
 /-- `LeanDa.Sponge.sampleM` with the permutation `PD`. -/
 def spongeSampleWith (s : LeanDa.Sponge) : m (E × LeanDa.Sponge) := do
   let s ← spongeDuplexWith PD s
-  pure (LeanDa.ofLimbs s.state[0] s.state[1] s.state[2], s)
+  pure (LeanDa.ofLimbs (K.ofLane s.state[0]) (K.ofLane s.state[1]) (K.ofLane s.state[2]), s)
 
 /-- `LeanDa.Sponge.samplesM` with the permutation `PD`. -/
 def spongeSamplesWith : ℕ → LeanDa.Sponge → m (List E)
@@ -152,21 +144,16 @@ def vectorDigestWith (vector : List E) : m LeanDa.Digest := do
 
 end With
 
-/-- This project's hash as LeanDA's: `toBytes` of the answer. -/
+/-- This project's hash as LeanDA's: the answer's bytes (`Digest.toBytes`). -/
 def daHash {m : Type → Type} [Monad m] (H : List UInt8 → m Digest) (x : List UInt8) :
     m LeanDa.Digest :=
-  toBytes <$> H x
-
-/-- This project's permutation as LeanDA's: on the lanes as 64-bit words. -/
-def daPerm {m : Type → Type} [Monad m] (F : KState → m KState) (l : LeanDa.Lanes) :
-    m LeanDa.Lanes :=
-  stateLanes <$> F (lanesState l)
+  Digest.toBytes <$> H x
 
 /-- **The vector digest of a root, with the hash `H` and the permutation `F`**
 (`vectorDigestOf`). -/
 def vectorDigestOfWith {m : Type → Type} [Monad m] (H : List UInt8 → m Digest)
     (F : KState → m KState) (root : Digest) : m LeanDa.Digest := do
-  vectorDigestWith (daHash H) (← membershipVectorWith (daHash H) (daPerm F) (toBytes root))
+  vectorDigestWith (daHash H) (← membershipVectorWith (daHash H) F root.toBytes)
 
 /-- `mapM` in `Id` is `map`. -/
 theorem mapM_id {α β : Type} (f : α → Id β) : ∀ l : List α,
@@ -176,7 +163,7 @@ theorem mapM_id {α β : Type} (f : α → Id β) : ∀ l : List α,
 
 section Id
 
-variable (H : List UInt8 → LeanDa.Digest) (P : LeanDa.Lanes → LeanDa.Lanes)
+variable (H : List UInt8 → LeanDa.Digest) (P : KState → KState)
 
 /-- A tree level with the pure hash is `LeanDa.treeLevel`. -/
 theorem treeLevelWith_id (nodes : List LeanDa.Digest) :
@@ -272,16 +259,13 @@ end Id
 /-- Keccak-256, as LeanDA's hash, is `keccak`. -/
 theorem daHash_id : daHash (m := Id) keccak256 = keccak := rfl
 
-/-- Keccak-f[1600], as LeanDA's permutation, is `keccakLanes`. -/
-theorem daPerm_id : daPerm (m := Id) keccakF = keccakLanes := rfl
-
 /-- The vector digest of a root with Keccak is `vectorDigestOf`. -/
 theorem vectorDigestOfWith_id (root : Digest) :
     Id.run (vectorDigestOfWith (m := Id) keccak256 keccakF root) = vectorDigestOf root := by
   unfold vectorDigestOfWith
-  rw [daHash_id, daPerm_id]
+  rw [daHash_id]
   show Id.run (vectorDigestWith (m := Id) keccak
-    (Id.run (membershipVectorWith (m := Id) keccak keccakLanes (toBytes root)))) = _
+    (Id.run (membershipVectorWith (m := Id) keccak keccakF root.toBytes))) = _
   rw [membershipVectorWith_id, vectorDigestWith_id]
   rfl
 

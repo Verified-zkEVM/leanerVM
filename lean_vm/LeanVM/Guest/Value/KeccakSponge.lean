@@ -128,7 +128,7 @@ theorem absorb_eq_absorbChunks : ∀ (b : ℕ) (S : KState) (data : List UInt8),
 theorem keccak256_eq_absorbChunks (data : List UInt8) :
     keccak256 data =
       digestOf (absorbChunks (data.length / rate + 1) zeroState (padBytes data)) := by
-  rw [keccak256, absorb_eq_absorbChunks _ _ _ (Nat.mul_div_le _ _)]
+  rw [keccak256_eq_absorb, absorb_eq_absorbChunks _ _ _ (Nat.mul_div_le _ _)]
   rfl
 
 /-! ## The chain of `KECCAK`s -/

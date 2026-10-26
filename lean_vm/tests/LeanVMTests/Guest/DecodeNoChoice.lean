@@ -95,7 +95,7 @@ run_meta do
 run_meta do
   let stop := ["Core.Stmt.HoldsList", "Core.Stmt.Holds", "Core.Stmt.HoldsArms",
     "Core.Program.RelL", "Core.Program.locN", "Semantics.gLog?"]
-  let forbidden := ["keccak256", "keccakF", "Keccak.round", "absorbBlock", "xmssVerify",
+  let forbidden := ["keccak256", "keccakF", "Keccak.round", "absorbBlock", "absorbBlockWith", "xmssVerify",
     "sphincsVerify", "LeanXmss.verify", "Sphincs.verify", "verifyDeferred", "verifyDeferredWith",
     "Verifier.verify", "verifyWith", "Witness.Opens", "Node.batch"]
   let (_, hits) ← traverse ``LeanVM.Guest.End.decode stop (endsWithAny · forbidden)

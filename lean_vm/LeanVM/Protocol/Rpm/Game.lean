@@ -7,7 +7,12 @@
   the random-oracle adversary the transfer gives back, on lane states.
 -/
 
-import LeanVM.Protocol.Rpm.Bytes
+import LeanVM.Protocol.Rpm.Paths
+import LeanVM.Facts.Verifier
+import LeanVM.Protocol.Verifier.Load
+import Statement.Fast.Keccak
+import Statement.Fast.CubicExt
+import Statement.Fast.FieldWords
 import LeanVM.Protocol.Rpm.Coins
 import Common.Keccak
 

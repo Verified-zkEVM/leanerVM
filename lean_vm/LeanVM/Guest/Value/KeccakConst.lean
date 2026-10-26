@@ -126,9 +126,9 @@ def daPadCellDigest : Digest :=
   #v[15569472805043175342, 18354418831448413762, 11782766640862828499, 15718207409690975807]
 
 /-- **LeanDA's padding cell digest.** -/
-theorem paddingCell_eq : LeanDa.paddingCell Da.keccak = Da.toBytes daPadCellDigest := by
+theorem paddingCell_eq : LeanDa.paddingCell Da.keccak = LeanVM.Protocol.Digest.toBytes daPadCellDigest := by
   rw [LeanDa.paddingCell, Da.keccak]
-  refine congrArg Da.toBytes ?_
+  refine congrArg LeanVM.Protocol.Digest.toBytes ?_
   rw [keccak256_eq_iff]; decide +kernel
 
 /-- **`DA_PAD_CELL_0`, `DA_PAD_CELL_1`** (`lean_ethereum.py:4013-4014`) are the cell digest's
@@ -144,9 +144,9 @@ def daPadRowDigest : Digest :=
   #v[4665334884586258498, 1553031596697948144, 7487832681283088925, 14683883899259534590]
 
 /-- **LeanDA's padding row digest.** -/
-theorem paddingRow_eq : LeanDa.paddingRow Da.keccak = Da.toBytes daPadRowDigest := by
+theorem paddingRow_eq : LeanDa.paddingRow Da.keccak = LeanVM.Protocol.Digest.toBytes daPadRowDigest := by
   rw [LeanDa.paddingRow, paddingCell_eq, Da.keccak]
-  refine congrArg Da.toBytes ?_
+  refine congrArg LeanVM.Protocol.Digest.toBytes ?_
   rw [keccak256_eq_iff]; decide +kernel
 
 /-- **`DA_PAD_ROW_0`, `DA_PAD_ROW_1`** (`lean_ethereum.py:3974-3975`) are the row digest's two

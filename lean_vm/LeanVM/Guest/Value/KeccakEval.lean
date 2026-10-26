@@ -8,6 +8,7 @@
 module
 
 public import Statement.Fast.Keccak
+public import LeanVM.Protocol.KeccakAbsorb
 
 /-!
 # Keccak by kernel evaluation
@@ -254,7 +255,7 @@ theorem absorb_toNats : ∀ (blocks : ℕ) (state : KState) (data : List UInt8),
 theorem keccak256N_eq (data : List UInt8) :
     (keccak256 data).toList.map UInt64.toNat = keccak256N (data.map UInt8.toNat) := by
   have hz : List.replicate 25 0 = toNats (Vector.replicate 25 0) := by decide
-  rw [keccak256N, List.length_map, hz, ← absorb_toNats]
+  rw [keccak256_eq_absorb, keccak256N, List.length_map, hz, ← absorb_toNats]
   simp only [getD_toNats]
   rfl
 

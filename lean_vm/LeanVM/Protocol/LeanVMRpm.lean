@@ -496,7 +496,7 @@ theorem knowledgeSoundness_holds : KnowledgeSoundness :=
 /-- Keccak-256 over the deployed Keccak-f[1600] is the deployed Keccak-256, and `common`'s
 Keccak-256 sponge over it, read on bytes. -/
 theorem keccak256_eq_rpm (data : Protocol.Compile.Bytes) :
-    keccak256With (m := Id) Semantics.keccakF data = Protocol.KeccakHash.keccak256 data ∧
+    Protocol.KeccakHash.keccak256With (m := Id) Semantics.keccakF data = Protocol.KeccakHash.keccak256 data ∧
       Protocol.KeccakHash.keccak256 data = Digest.ofRpm (Common.keccak256With (m := Id)
         (fun x ↦ KState.toRpm (Semantics.keccakF (Rpm.KState.ofRpm x))) data) :=
   ⟨Rpm.keccak256With_keccakF data, Rpm.keccak256_eq_rpm data⟩
