@@ -55,14 +55,14 @@ theorem honestChain_succ (position : Nat) (hposition : position < chainTop) :
     honestChain f parameter index c s j a i secret (position + 1)
       = truncateHash (f (tweakableHashInput parameter (.fchain index c s j a i ⟨position, hposition⟩)
           ((bytesLE 16) (honestChain f parameter index c s j a i secret position)))) := by
-  simp only [honestChain, forestWalk, evalWithAnswerFn_bind, Nat.zero_add, dite_eq_left hposition,
+  simp only [honestChain, forestWalk_eq_succ, evalWithAnswerFn_bind, Nat.zero_add, dite_eq_left hposition,
     Completeness.eval_tweakableHash]
 
 theorem walkValue_succ (start : Nat) (value : Digest) (steps : Nat) (hrange : start + steps < chainTop) :
     walkValue f parameter index c s j a i start value (steps + 1)
       = truncateHash (f (tweakableHashInput parameter (.fchain index c s j a i ⟨start + steps, hrange⟩)
           ((bytesLE 16) (walkValue f parameter index c s j a i start value steps)))) := by
-  simp only [walkValue, forestWalk, evalWithAnswerFn_bind, dite_eq_left hrange, Completeness.eval_tweakableHash]
+  simp only [walkValue, forestWalk_eq_succ, evalWithAnswerFn_bind, dite_eq_left hrange, Completeness.eval_tweakableHash]
 
 /-- A hit at a forest chain step: something other than the honest value at `position` hashing to
 the honest value at `position + 1`. -/
@@ -108,7 +108,7 @@ theorem forestWalk_query_mem (start steps : Nat) (value : Digest) (offset : Nat)
   induction steps generalizing offset with
   | zero => omega
   | succ steps ih =>
-      rw [forestWalk]
+      rw [forestWalk_eq_succ]
       split_ifs with hstep
       · rw [queriedInputs_bind]
         rcases Nat.lt_succ_iff_lt_or_eq.mp hoffset with hlt | heq
@@ -162,7 +162,7 @@ theorem merkleFold_subFold (c : Coord) (s : SuperIdx) (j : SubIdx) (a : ChildIdx
   | zero => rfl
   | succ levels ih =>
       have hl : levels < subHeight := by omega
-      rw [merkleFold, subFold, ih (by omega)]
+      rw [merkleFold, subFold_eq_succ, ih (by omega)]
       apply bind_congr
       intro current
       rw [dite_eq_left hl]
@@ -183,7 +183,7 @@ theorem merkleFold_topFold (c : Coord) (s : SuperIdx) (path : Fin topHeight → 
   | zero => rfl
   | succ levels ih =>
       have hl : levels < topHeight := by omega
-      rw [merkleFold, topFold, ih (by omega)]
+      rw [merkleFold, topFold_eq_succ, ih (by omega)]
       apply bind_congr
       intro current
       rw [dite_eq_left hl]
@@ -509,7 +509,7 @@ theorem sub_classification (c : Coord) (mark : CoordMark) (j : SubIdx) (opening 
             (Completeness.forestSecret f parameter index c mark.super j (mark.child j) i seed)
             (chainTop - (lut (mark.word j) i).val) (opening.values i) (lut (mark.word j) i).val 0
             (by omega) (Nat.zero_le _) hwalk with h0 | ⟨offset, hoffset, _, hlt, hhit⟩
-        · exact False.elim (hi (by simpa only [walkValue, forestWalk, evalWithAnswerFn_pure,
+        · exact False.elim (hi (by simpa only [walkValue, forestWalk_eq_zero, forestWalk_eq_succ, evalWithAnswerFn_pure,
             Nat.add_zero, chainValueOf_eq_honest] using h0))
         · exact ⟨offset, hoffset, hlt, hhit⟩
     · exact Or.inr (Or.inr (Or.inl ⟨hends, hleaf⟩))

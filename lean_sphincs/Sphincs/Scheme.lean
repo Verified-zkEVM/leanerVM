@@ -93,6 +93,170 @@ signing. Hashing routines work in any monad with access to `HashSpec`. -/
 /-- Private uniform sampling and the shared hash oracle. Only hash calls count toward the query budget. -/
 abbrev OracleWorld := unifSpec + HashSpec
 
+/-! ### The chains, folds and trees, in their own recursion
+
+`Statement/LeanSphincs.lean` writes the chains, the path folds and the trees as instances of
+`walkChain`, `foldPath` and `buildTree`; their equations here are the proofs' unfolding of each,
+step by step. -/
+
+namespace Concrete
+
+variable {m : Type → Type} [Monad m] [HasQuery HashSpec m] (parameter : PublicParameter)
+
+theorem chainWalk_eq_zero (lay : Layer) (tree : TreeIndex) (leaf : LeafIndex) (chainIdx : ChainIndex)
+    (start : Nat) (value : Digest) :
+    chainWalk (m := m) parameter lay tree leaf chainIdx start 0 value = pure value := rfl
+
+theorem chainWalk_eq_succ (lay : Layer) (tree : TreeIndex) (leaf : LeafIndex) (chainIdx : ChainIndex)
+    (start steps : Nat) (value : Digest) :
+    chainWalk (m := m) parameter lay tree leaf chainIdx start (steps + 1) value = (do
+      let previous ← chainWalk parameter lay tree leaf chainIdx start steps value
+      if hstep : start + steps < chainLength - 1 then
+        tweakableHash parameter (.chain lay tree leaf chainIdx ⟨start + steps, hstep⟩)
+          (bytesLE 16 previous)
+      else
+        pure 0) := rfl
+
+theorem forestWalk_eq_zero (index : Index) (c : Coord) (s : SuperIdx) (j : SubIdx) (a : ChildIdx)
+    (i : FChain) (start : Nat) (value : Digest) :
+    forestWalk (m := m) parameter index c s j a i start 0 value = pure value := rfl
+
+theorem forestWalk_eq_succ (index : Index) (c : Coord) (s : SuperIdx) (j : SubIdx) (a : ChildIdx)
+    (i : FChain) (start steps : Nat) (value : Digest) :
+    forestWalk (m := m) parameter index c s j a i start (steps + 1) value = (do
+      let previous ← forestWalk parameter index c s j a i start steps value
+      if hstep : start + steps < chainTop then
+        tweakableHash parameter (.fchain index c s j a i ⟨start + steps, hstep⟩) (bytesLE 16 previous)
+      else
+        pure 0) := rfl
+
+theorem treeFold_eq_zero (lay : Layer) (tree : TreeIndex) (leaf : LeafIndex) (path : Nat → Digest)
+    (value : Digest) : treeFold (m := m) parameter lay tree leaf path 0 value = pure value := rfl
+
+theorem treeFold_eq_succ (lay : Layer) (tree : TreeIndex) (leaf : LeafIndex) (path : Nat → Digest)
+    (levels : Nat) (value : Digest) :
+    treeFold (m := m) parameter lay tree leaf path (levels + 1) value = (do
+      let current ← treeFold parameter lay tree leaf path levels value
+      let sibling := path levels
+      let nodeIdx := leaf.val / 2 ^ (levels + 1)
+      if leaf.val.testBit levels then
+        tweakableHash parameter (.node lay tree (levels + 1) nodeIdx) (nodePayload sibling current)
+      else
+        tweakableHash parameter (.node lay tree (levels + 1) nodeIdx) (nodePayload current sibling)) := by
+  show _ >>= _ = _ >>= _
+  congr 1
+  funext current
+  split <;> rfl
+
+theorem subFold_eq_zero (index : Index) (c : Coord) (s : SuperIdx) (j : SubIdx) (a : ChildIdx)
+    (path : Fin subHeight → Digest) (value : Digest) :
+    subFold (m := m) parameter index c s j a path 0 value = pure value := rfl
+
+theorem subFold_eq_succ (index : Index) (c : Coord) (s : SuperIdx) (j : SubIdx) (a : ChildIdx)
+    (path : Fin subHeight → Digest) (levels : Nat) (value : Digest) :
+    subFold (m := m) parameter index c s j a path (levels + 1) value = (do
+      let current ← subFold parameter index c s j a path levels value
+      if hlevel : levels < subHeight then
+        let sibling := path ⟨levels, hlevel⟩
+        let node : ChildIdx := ⟨a.val / 2 ^ (levels + 1),
+          Nat.lt_of_le_of_lt (Nat.div_le_self _ _) a.isLt⟩
+        if a.val.testBit levels then
+          tweakableHash parameter (.subNode index c s j ⟨levels, hlevel⟩ node) (nodePayload sibling current)
+        else
+          tweakableHash parameter (.subNode index c s j ⟨levels, hlevel⟩ node) (nodePayload current sibling)
+      else
+        pure 0) := by
+  show _ >>= _ = _ >>= _
+  congr 1
+  funext current
+  have hnode : a.val / 2 ^ (levels + 1) % 2 ^ subHeight = a.val / 2 ^ (levels + 1) :=
+    Nat.mod_eq_of_lt (Nat.lt_of_le_of_lt (Nat.div_le_self _ _) a.isLt)
+  simp only [subNodeHash, hnode]
+  split
+  · split <;> rfl
+  · rfl
+
+theorem topFold_eq_zero (index : Index) (c : Coord) (s : SuperIdx) (path : Fin topHeight → Digest)
+    (value : Digest) : topFold (m := m) parameter index c s path 0 value = pure value := rfl
+
+theorem topFold_eq_succ (index : Index) (c : Coord) (s : SuperIdx) (path : Fin topHeight → Digest)
+    (levels : Nat) (value : Digest) :
+    topFold (m := m) parameter index c s path (levels + 1) value = (do
+      let current ← topFold parameter index c s path levels value
+      if hlevel : levels < topHeight then
+        let sibling := path ⟨levels, hlevel⟩
+        let node : SuperIdx := ⟨s.val / 2 ^ (levels + 1),
+          Nat.lt_of_le_of_lt (Nat.div_le_self _ _) s.isLt⟩
+        if s.val.testBit levels then
+          tweakableHash parameter (.topNode index c ⟨levels, hlevel⟩ node) (nodePayload sibling current)
+        else
+          tweakableHash parameter (.topNode index c ⟨levels, hlevel⟩ node) (nodePayload current sibling)
+      else
+        pure 0) := by
+  show _ >>= _ = _ >>= _
+  congr 1
+  funext current
+  have hnode : s.val / 2 ^ (levels + 1) % 2 ^ topHeight = s.val / 2 ^ (levels + 1) :=
+    Nat.mod_eq_of_lt (Nat.lt_of_le_of_lt (Nat.div_le_self _ _) s.isLt)
+  simp only [topNodeHash, hnode]
+  split
+  · split <;> rfl
+  · rfl
+
+end Concrete
+
+namespace Seeded
+
+open Concrete
+
+variable {m : Type → Type} [Monad m] [HasQuery HashSpec m] (parameter : PublicParameter)
+
+theorem treeNode_eq_zero (lay : Layer) (tree : TreeIndex) (seed : MasterSeed) (nodeIdx : Nat) :
+    treeNode (m := m) parameter lay tree seed 0 nodeIdx = (do
+      let leaf := leafOfNat nodeIdx
+      let endpoints ← oneTimePublicKey parameter lay tree leaf seed
+      leafHash parameter lay tree leaf endpoints) := rfl
+
+theorem treeNode_eq_succ (lay : Layer) (tree : TreeIndex) (seed : MasterSeed) (level nodeIdx : Nat) :
+    treeNode (m := m) parameter lay tree seed (level + 1) nodeIdx = (do
+      let left ← treeNode parameter lay tree seed level (2 * nodeIdx)
+      let right ← treeNode parameter lay tree seed level (2 * nodeIdx + 1)
+      tweakableHash parameter (.node lay tree (level + 1) nodeIdx) (nodePayload left right)) := rfl
+
+theorem subNode_eq_zero (index : Index) (c : Coord) (s : SuperIdx) (j : SubIdx) (seed : MasterSeed)
+    (node : Nat) :
+    subNode (m := m) parameter index c s j seed 0 node =
+      childLeaf parameter index c s j ⟨node % 2 ^ subHeight, Nat.mod_lt _ (Nat.two_pow_pos _)⟩ seed :=
+  rfl
+
+theorem subNode_eq_succ (index : Index) (c : Coord) (s : SuperIdx) (j : SubIdx) (seed : MasterSeed)
+    (level node : Nat) :
+    subNode (m := m) parameter index c s j seed (level + 1) node = (do
+      let left ← subNode parameter index c s j seed level (2 * node)
+      let right ← subNode parameter index c s j seed level (2 * node + 1)
+      if hlevel : level < subHeight then
+        tweakableHash parameter (.subNode index c s j ⟨level, hlevel⟩
+          ⟨node % 2 ^ subHeight, Nat.mod_lt _ (Nat.two_pow_pos _)⟩) (nodePayload left right)
+      else
+        pure 0) := rfl
+
+theorem topNode_eq_zero (index : Index) (c : Coord) (seed : MasterSeed) (node : Nat) :
+    topNode (m := m) parameter index c seed 0 node =
+      superNode parameter index c ⟨node % 2 ^ topHeight, Nat.mod_lt _ (Nat.two_pow_pos _)⟩ seed :=
+  rfl
+
+theorem topNode_eq_succ (index : Index) (c : Coord) (seed : MasterSeed) (level node : Nat) :
+    topNode (m := m) parameter index c seed (level + 1) node = (do
+      let left ← topNode parameter index c seed level (2 * node)
+      let right ← topNode parameter index c seed level (2 * node + 1)
+      if hlevel : level < topHeight then
+        tweakableHash parameter (.topNode index c ⟨level, hlevel⟩
+          ⟨node % 2 ^ topHeight, Nat.mod_lt _ (Nat.two_pow_pos _)⟩) (nodePayload left right)
+      else
+        pure 0) := rfl
+
+end Seeded
+
 /-! ### Pruning -/
 
 namespace Seeded

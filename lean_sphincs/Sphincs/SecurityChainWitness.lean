@@ -79,7 +79,7 @@ theorem honestChain_succ (position : Nat) (hposition : position < chainLength - 
       = truncateHash (f (tweakableHashInput parameter
           (.chain lay tree leaf chainIdx ⟨position, hposition⟩)
           ((bytesLE 16) (honestChain f parameter lay tree leaf chainIdx secret position)))) := by
-  simp only [honestChain, chainWalk, evalWithAnswerFn_bind, Nat.zero_add, dite_eq_left hposition,
+  simp only [honestChain, chainWalk_eq_succ, evalWithAnswerFn_bind, Nat.zero_add, dite_eq_left hposition,
     Completeness.eval_tweakableHash]
 
 theorem walkValue_succ (start : Nat) (value : Digest) (steps : Nat)
@@ -88,7 +88,7 @@ theorem walkValue_succ (start : Nat) (value : Digest) (steps : Nat)
       = truncateHash (f (tweakableHashInput parameter
           (.chain lay tree leaf chainIdx ⟨start + steps, hrange⟩)
           ((bytesLE 16) (walkValue f parameter lay tree leaf chainIdx start value steps)))) := by
-  simp only [walkValue, chainWalk, evalWithAnswerFn_bind, dite_eq_left hrange, Completeness.eval_tweakableHash]
+  simp only [walkValue, chainWalk_eq_succ, evalWithAnswerFn_bind, dite_eq_left hrange, Completeness.eval_tweakableHash]
 
 /-- A hit at a chain step: something other than the honest value at `position` hashing to the honest
 value at `position + 1`. -/
@@ -136,7 +136,7 @@ theorem chainWalk_query_mem (lay : Layer) (tree : TreeIndex) (leafIdx : LeafInde
   induction steps generalizing offset with
   | zero => omega
   | succ steps ih =>
-      rw [chainWalk]
+      rw [chainWalk_eq_succ]
       split_ifs with hstep
       · rw [queriedInputs_bind]
         rcases Nat.lt_succ_iff_lt_or_eq.mp hoffset with hlt | heq
@@ -217,7 +217,7 @@ theorem recover_value (reference digit : Digit) (value : Digest) (trace : List H
     (hrun : ContainsRun f trace (recoverChain parameter lay tree leaf chainIdx digit value))
     (hforward : ¬ForwardMatch f parameter lay tree leaf chainIdx secret reference trace) :
     value = honestChain f parameter lay tree leaf chainIdx secret digit.val := by
-  simpa only [walkValue, chainWalk, evalWithAnswerFn_pure, Nat.add_zero] using
+  simpa only [walkValue, chainWalk_eq_zero, chainWalk_eq_succ, evalWithAnswerFn_pure, Nat.add_zero] using
     recover_canonical_above f parameter lay tree leaf chainIdx secret reference digit value trace
       0 (by omega) (by omega) hendpoint hrun hforward
 

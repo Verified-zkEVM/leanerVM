@@ -356,7 +356,7 @@ signing. Hashing routines work in any monad with access to `HashSpec`. -/
 
 namespace Concrete
 
-export LeanXmss.Concrete (sequenceFin oracleHash nodePayload)
+export LeanXmss.Concrete (sequenceFin oracleHash walkChain nodePayload foldPath buildTree)
 
 variable {m : Type → Type} [Monad m] [HasQuery HashSpec m]
 
@@ -382,18 +382,12 @@ def leafIndexAt (index : Index) (lay : Layer) : LeafIndex :=
 def leafOfNat (value : Nat) : LeafIndex :=
   ⟨value % 2 ^ maxLayerHeight, Nat.mod_lt _ (Nat.two_pow_pos _)⟩
 
-/-- `steps` chain steps from position `start`: the step onto position `start + steps + 1` carries
-step `start + steps` (`chain_tweak` with `to = start + steps + 1`). -/
+/-- Chain `i` of the one-time key at a leaf: the step onto position `t + 1` carries step `t`
+(`chain_tweak` with `to = t + 1`). -/
 def chainWalk (parameter : PublicParameter) (lay : Layer) (tree : TreeIndex) (leaf : LeafIndex)
-    (chainIdx : ChainIndex) : Nat → Nat → Digest → m Digest
-  | _, 0, value => pure value
-  | start, steps + 1, value => do
-      let previous ← chainWalk parameter lay tree leaf chainIdx start steps value
-      if hstep : start + steps < chainLength - 1 then
-        tweakableHash parameter (.chain lay tree leaf chainIdx ⟨start + steps, hstep⟩)
-          (bytesLE 16 previous)
-      else
-        pure 0
+    (chainIdx : ChainIndex) : Nat → Nat → Digest → m Digest :=
+  walkChain fun step value ↦
+    tweakableHash parameter (.chain lay tree leaf chainIdx step) (bytesLE 16 value)
 
 /-- The verifier's half of a chain: walk the remaining `3 - x_i` steps. -/
 def recoverChain (parameter : PublicParameter) (lay : Layer) (tree : TreeIndex) (leaf : LeafIndex)
@@ -436,30 +430,16 @@ def otsLeaf (parameter : PublicParameter) (lay : Layer) (tree : TreeIndex) (leaf
 
 /-- `Tree.fold` (`tree_fold`): fold a leaf and a path into the root. -/
 def treeFold (parameter : PublicParameter) (lay : Layer) (tree : TreeIndex) (leaf : LeafIndex)
-    (path : Nat → Digest) : Nat → Digest → m Digest
-  | 0, value => pure value
-  | levels + 1, value => do
-      let current ← treeFold parameter lay tree leaf path levels value
-      let sibling := path levels
-      let nodeIdx := leaf.val / 2 ^ (levels + 1)
-      if leaf.val.testBit levels then
-        tweakableHash parameter (.node lay tree (levels + 1) nodeIdx) (nodePayload sibling current)
-      else
-        tweakableHash parameter (.node lay tree (levels + 1) nodeIdx) (nodePayload current sibling)
+    (path : Nat → Digest) : Nat → Digest → m Digest :=
+  foldPath (fun level nodeIdx ↦ tweakableHash parameter (.node lay tree (level + 1) nodeIdx))
+    leaf.val path
 
 /-! #### The forest -/
 
-/-- `steps` forest chain steps from position `start`; the step onto position `start + steps + 1`
-carries step `start + steps`. -/
+/-- Forest chain `i` of a child; the step onto position `t + 1` carries step `t`. -/
 def forestWalk (parameter : PublicParameter) (index : Index) (c : Coord) (s : SuperIdx) (j : SubIdx)
-    (a : ChildIdx) (i : FChain) : Nat → Nat → Digest → m Digest
-  | _, 0, value => pure value
-  | start, steps + 1, value => do
-      let previous ← forestWalk parameter index c s j a i start steps value
-      if hstep : start + steps < chainTop then
-        tweakableHash parameter (.fchain index c s j a i ⟨start + steps, hstep⟩) (bytesLE 16 previous)
-      else
-        pure 0
+    (a : ChildIdx) (i : FChain) : Nat → Nat → Digest → m Digest :=
+  walkChain fun step value ↦ tweakableHash parameter (.fchain index c s j a i step) (bytesLE 16 value)
 
 /-- The verifier's half of a forest chain: from position `4 - d` walk `d` steps. -/
 def forestRecoverChain (parameter : PublicParameter) (index : Index) (c : Coord) (s : SuperIdx) (j : SubIdx)
@@ -481,22 +461,19 @@ def childRecover (parameter : PublicParameter) (index : Index) (c : Coord) (s : 
   let ends ← sequenceFin fun i => forestRecoverChain parameter index c s j a i (word i) (values i)
   childLeafHash parameter index c s j a ends
 
+/-- The node hash of a sub-tree: at level `l + 1 ≤ 3`, node `i < 8` (`0` above). -/
+def subNodeHash (parameter : PublicParameter) (index : Index) (c : Coord) (s : SuperIdx)
+    (j : SubIdx) (level node : Nat) (payload : HashInput) : m Digest :=
+  if h : level < subHeight then
+    tweakableHash parameter (.subNode index c s j ⟨level, h⟩
+      ⟨node % 2 ^ subHeight, Nat.mod_lt _ (Nat.two_pow_pos _)⟩) payload
+  else pure 0
+
 /-- Fold a child leaf and a sub-tree path into the sub-tree root. -/
 def subFold (parameter : PublicParameter) (index : Index) (c : Coord) (s : SuperIdx) (j : SubIdx)
-    (a : ChildIdx) (path : Fin subHeight → Digest) : Nat → Digest → m Digest
-  | 0, value => pure value
-  | levels + 1, value => do
-      let current ← subFold parameter index c s j a path levels value
-      if hlevel : levels < subHeight then
-        let sibling := path ⟨levels, hlevel⟩
-        let node : ChildIdx := ⟨a.val / 2 ^ (levels + 1),
-          Nat.lt_of_le_of_lt (Nat.div_le_self _ _) a.isLt⟩
-        if a.val.testBit levels then
-          tweakableHash parameter (.subNode index c s j ⟨levels, hlevel⟩ node) (nodePayload sibling current)
-        else
-          tweakableHash parameter (.subNode index c s j ⟨levels, hlevel⟩ node) (nodePayload current sibling)
-      else
-        pure 0
+    (a : ChildIdx) (path : Fin subHeight → Digest) : Nat → Digest → m Digest :=
+  foldPath (subNodeHash parameter index c s j) a.val
+    fun level ↦ if h : level < subHeight then path ⟨level, h⟩ else 0
 
 /-- The two top nodes of a tree in index order, from the one the fold reached and the last path
 element: the reached node is node 1 exactly when `bit`, the top bit of the leaf index, is set. -/
@@ -513,22 +490,19 @@ def superHash (parameter : PublicParameter) (index : Index) (c : Coord) (s : Sup
     (tops : SubIdx → Digest × Digest) : m Digest :=
   tweakableHash parameter (.superChild index c s) (superPayload tops)
 
+/-- The node hash of a coordinate's top tree: at level `l + 1 ≤ 4`, node `i < 16` (`0` above). -/
+def topNodeHash (parameter : PublicParameter) (index : Index) (c : Coord) (level node : Nat)
+    (payload : HashInput) : m Digest :=
+  if h : level < topHeight then
+    tweakableHash parameter (.topNode index c ⟨level, h⟩
+      ⟨node % 2 ^ topHeight, Nat.mod_lt _ (Nat.two_pow_pos _)⟩) payload
+  else pure 0
+
 /-- Fold a super-child and a top path into the coordinate root. -/
 def topFold (parameter : PublicParameter) (index : Index) (c : Coord) (s : SuperIdx)
-    (path : Fin topHeight → Digest) : Nat → Digest → m Digest
-  | 0, value => pure value
-  | levels + 1, value => do
-      let current ← topFold parameter index c s path levels value
-      if hlevel : levels < topHeight then
-        let sibling := path ⟨levels, hlevel⟩
-        let node : SuperIdx := ⟨s.val / 2 ^ (levels + 1),
-          Nat.lt_of_le_of_lt (Nat.div_le_self _ _) s.isLt⟩
-        if s.val.testBit levels then
-          tweakableHash parameter (.topNode index c ⟨levels, hlevel⟩ node) (nodePayload sibling current)
-        else
-          tweakableHash parameter (.topNode index c ⟨levels, hlevel⟩ node) (nodePayload current sibling)
-      else
-        pure 0
+    (path : Fin topHeight → Digest) : Nat → Digest → m Digest :=
+  foldPath (topNodeHash parameter index c) s.val
+    fun level ↦ if h : level < topHeight then path ⟨level, h⟩ else 0
 
 /-- The last level of a sub-tree path: the other level-2 node. -/
 def subTopLevel : Fin subHeight := ⟨subHeight - 1, by decide⟩
@@ -732,15 +706,11 @@ def otsSign (parameter : PublicParameter) (lay : Layer) (tree : TreeIndex) (leaf
 
 /-- A node of the tree, computed from the one-time keys below it. -/
 def treeNode (parameter : PublicParameter) (lay : Layer) (tree : TreeIndex)
-    (seed : MasterSeed) : Nat → Nat → m Digest
-  | 0, nodeIdx => do
-      let leaf := leafOfNat nodeIdx
-      let endpoints ← oneTimePublicKey parameter lay tree leaf seed
-      leafHash parameter lay tree leaf endpoints
-  | level + 1, nodeIdx => do
-      let left ← treeNode parameter lay tree seed level (2 * nodeIdx)
-      let right ← treeNode parameter lay tree seed level (2 * nodeIdx + 1)
-      tweakableHash parameter (.node lay tree (level + 1) nodeIdx) (nodePayload left right)
+    (seed : MasterSeed) : Nat → Nat → m Digest :=
+  buildTree (fun nodeIdx ↦ do
+      leafHash parameter lay tree (leafOfNat nodeIdx)
+        (← oneTimePublicKey parameter lay tree (leafOfNat nodeIdx) seed))
+    fun level nodeIdx ↦ tweakableHash parameter (.node lay tree (level + 1) nodeIdx)
 
 /-- The starts `x_{i,0}` of the 6 chains of a child, from 3 seed derivations. Chains `2t` and
 `2t + 1` start at the two halves of derivation `t`. -/
@@ -758,16 +728,10 @@ def childLeaf (parameter : PublicParameter) (index : Index) (c : Coord) (s : Sup
 
 /-- A node of a sub-tree at tree level `level`. -/
 def subNode (parameter : PublicParameter) (index : Index) (c : Coord) (s : SuperIdx) (j : SubIdx)
-    (seed : MasterSeed) : Nat → Nat → m Digest
-  | 0, node => childLeaf parameter index c s j ⟨node % 2 ^ subHeight, Nat.mod_lt _ (Nat.two_pow_pos _)⟩ seed
-  | level + 1, node => do
-      let left ← subNode parameter index c s j seed level (2 * node)
-      let right ← subNode parameter index c s j seed level (2 * node + 1)
-      if hlevel : level < subHeight then
-        tweakableHash parameter (.subNode index c s j ⟨level, hlevel⟩
-          ⟨node % 2 ^ subHeight, Nat.mod_lt _ (Nat.two_pow_pos _)⟩) (nodePayload left right)
-      else
-        pure 0
+    (seed : MasterSeed) : Nat → Nat → m Digest :=
+  buildTree (fun node ↦ childLeaf parameter index c s j
+      ⟨node % 2 ^ subHeight, Nat.mod_lt _ (Nat.two_pow_pos _)⟩ seed)
+    (subNodeHash parameter index c s j)
 
 /-- A super-child, from the two level-2 nodes of each of its two sub-trees. -/
 def superNode (parameter : PublicParameter) (index : Index) (c : Coord) (s : SuperIdx)
@@ -780,16 +744,10 @@ def superNode (parameter : PublicParameter) (index : Index) (c : Coord) (s : Sup
 
 /-- A node of a coordinate's top tree at tree level `level`. -/
 def topNode (parameter : PublicParameter) (index : Index) (c : Coord) (seed : MasterSeed) :
-    Nat → Nat → m Digest
-  | 0, node => superNode parameter index c ⟨node % 2 ^ topHeight, Nat.mod_lt _ (Nat.two_pow_pos _)⟩ seed
-  | level + 1, node => do
-      let left ← topNode parameter index c seed level (2 * node)
-      let right ← topNode parameter index c seed level (2 * node + 1)
-      if hlevel : level < topHeight then
-        tweakableHash parameter (.topNode index c ⟨level, hlevel⟩
-          ⟨node % 2 ^ topHeight, Nat.mod_lt _ (Nat.two_pow_pos _)⟩) (nodePayload left right)
-      else
-        pure 0
+    Nat → Nat → m Digest :=
+  buildTree (fun node ↦ superNode parameter index c
+      ⟨node % 2 ^ topHeight, Nat.mod_lt _ (Nat.two_pow_pos _)⟩ seed)
+    (topNodeHash parameter index c)
 
 /-- The forest key of instance `idx`: the two level-3 nodes of every coordinate (no hash). -/
 def forestKey (parameter : PublicParameter) (index : Index) (seed : MasterSeed) : m ForestKey :=

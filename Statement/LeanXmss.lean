@@ -259,6 +259,41 @@ def sequenceFin {m : Type → Type} [Monad m] {α : Type} {n : Nat}
       let tail ← sequenceFin fun index : Fin n => computation index.succ
       return Fin.cases head tail
 
+/-! #### Hash chains and Merkle trees, for both schemes -/
+
+/-- `steps` steps of a hash chain from position `start`: the step leaving position `t < top` is
+`step t`, and a walk past position `top` gives `0`. -/
+def walkChain {m : Type → Type} [Monad m] {top : Nat} (step : Fin top → Digest → m Digest) :
+    Nat → Nat → Digest → m Digest
+  | _, 0, value => pure value
+  | start, steps + 1, value => do
+      let previous ← walkChain step start steps value
+      if h : start + steps < top then step ⟨start + steps, h⟩ previous else pure 0
+
+/-- The two children of a Merkle node. -/
+def nodePayload (left right : Digest) : HashInput :=
+  bytesLE 16 left ++ bytesLE 16 right
+
+/-- Fold the leaf at index `idx` and its path, the sibling at level `l` being `path l`, up `levels`
+levels: the node at level `l + 1` is `node l (idx / 2^(l + 1))` of its children in index order. -/
+def foldPath {m : Type → Type} [Monad m] (node : Nat → Nat → HashInput → m Digest) (idx : Nat)
+    (path : Nat → Digest) : Nat → Digest → m Digest
+  | 0, value => pure value
+  | l + 1, value => do
+      let current ← foldPath node idx path l value
+      node l (idx / 2 ^ (l + 1))
+        (if idx.testBit l then nodePayload (path l) current else nodePayload current (path l))
+
+/-- Node `index` at level `level` of the Merkle tree over the leaves `leaf i`: the node at level
+`l + 1` is `node l index` of its two children. -/
+def buildTree {m : Type → Type} [Monad m] (leaf : Nat → m Digest)
+    (node : Nat → Nat → HashInput → m Digest) : Nat → Nat → m Digest
+  | 0, index => leaf index
+  | l + 1, index => do
+      let left ← buildTree leaf node l (2 * index)
+      let right ← buildTree leaf node l (2 * index + 1)
+      node l index (nodePayload left right)
+
 variable {m : Type → Type} [Monad m] [HasQuery HashSpec m]
 
 /-- One query to the hash `H` (`HashSpec`), which the model answers. -/
@@ -277,16 +312,10 @@ def tweakableHash (parameter : PublicParameter) (domain : HashDomain) (payload :
 def chainPayload (chainIdx : ChainIndex) (value : Digest) : HashInput :=
   bytesLE 16 value ++ bytesLE 16 (BitVec.ofNat 128 chainIdx.val)
 
-/-- `steps` chain steps from position `start`; the step leaving position `s` carries step `s`. -/
+/-- Chain `i` of a one-time key; the step leaving position `s` carries step `s`. -/
 def chainWalk (parameter : PublicParameter) (lay : Layer) (key : KeyIndex)
-    (chainIdx : ChainIndex) : Nat → Nat → Digest → m Digest
-  | _, 0, value => pure value
-  | start, steps + 1, value => do
-      let previous ← chainWalk parameter lay key chainIdx start steps value
-      if hstep : start + steps < chainLength - 1 then
-        tweakableHash parameter (.chain lay key ⟨start + steps, hstep⟩) (chainPayload chainIdx previous)
-      else
-        pure 0
+    (chainIdx : ChainIndex) : Nat → Nat → Digest → m Digest :=
+  walkChain fun step value ↦ tweakableHash parameter (.chain lay key step) (chainPayload chainIdx value)
 
 /-- The verifier's half of a chain: walk the remaining `3 - x_i` steps. -/
 def recoverChain (parameter : PublicParameter) (lay : Layer) (key : KeyIndex)
@@ -320,22 +349,11 @@ def otsLeaf (parameter : PublicParameter) (lay : Layer) (key : KeyIndex) (messag
 
 /-! #### The trees -/
 
-/-- The two children of a Merkle node. -/
-def nodePayload (left right : Digest) : HashInput :=
-  bytesLE 16 left ++ bytesLE 16 right
-
 /-- `Tree.fold`: fold a key's leaf and path into its tree's root. -/
 def treeFold (parameter : PublicParameter) (lay : Layer) (key : KeyIndex)
-    (path : Fin layerHeight → Digest) : Nat → Digest → m Digest
-  | 0, value => pure value
-  | levels + 1, value => do
-      let current ← treeFold parameter lay key path levels value
-      let sibling := if hlevel : levels < layerHeight then path ⟨levels, hlevel⟩ else 0
-      let nodeIdx := key.val / 2 ^ (levels + 1)
-      if key.val.testBit levels then
-        tweakableHash parameter (.node lay (levels + 1) nodeIdx) (nodePayload sibling current)
-      else
-        tweakableHash parameter (.node lay (levels + 1) nodeIdx) (nodePayload current sibling)
+    (path : Fin layerHeight → Digest) : Nat → Digest → m Digest :=
+  foldPath (fun level nodeIdx ↦ tweakableHash parameter (.node lay (level + 1) nodeIdx)) key.val
+    fun level ↦ if h : level < layerHeight then path ⟨level, h⟩ else 0
 
 /-- The root a layer's signature by key `e` reaches from `message`, or nothing (`layer_root`). -/
 def layerRoot (parameter : PublicParameter) (lay : Layer) (key : KeyIndex) (message : HashInput)
@@ -434,15 +452,11 @@ def otsSign (parameter : PublicParameter) (lay : Layer) (key : KeyIndex) (seed :
 
 /-- Node `nodeIdx` at tree level `level` of layer `l`, from the one-time keys below it. On the bottom
 layer node indices are global: node `j` at level `level` is in bottom tree `j / 2^(16 - level)`. -/
-def treeNode (parameter : PublicParameter) (lay : Layer) (seed : MasterSeed) : Nat → Nat → m Digest
-  | 0, nodeIdx => do
+def treeNode (parameter : PublicParameter) (lay : Layer) (seed : MasterSeed) : Nat → Nat → m Digest :=
+  buildTree (fun nodeIdx ↦ do
       let key : KeyIndex := ⟨nodeIdx % lifetime, Nat.mod_lt _ (by decide)⟩
-      let endpoints ← oneTimePublicKey parameter lay key seed
-      leafHash parameter lay key endpoints
-  | level + 1, nodeIdx => do
-      let left ← treeNode parameter lay seed level (2 * nodeIdx)
-      let right ← treeNode parameter lay seed level (2 * nodeIdx + 1)
-      tweakableHash parameter (.node lay (level + 1) nodeIdx) (nodePayload left right)
+      leafHash parameter lay key (← oneTimePublicKey parameter lay key seed))
+    fun level nodeIdx ↦ tweakableHash parameter (.node lay (level + 1) nodeIdx)
 
 /-- The authentication path of key `e`: at level `level`, the sibling of `e / 2^level`. -/
 def treePath (parameter : PublicParameter) (lay : Layer) (seed : MasterSeed) (key : KeyIndex) :

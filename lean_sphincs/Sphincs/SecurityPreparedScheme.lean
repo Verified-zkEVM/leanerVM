@@ -136,9 +136,9 @@ theorem compile_chainWalk (seed : MasterSeed) (material : Material)
       (chainWalk p lay tree leaf chain start steps value : OracleComp HashSpec Digest) =
         liftM (chainWalk p lay tree leaf chain start steps value : OracleComp HashSpec Digest) := by
   induction steps with
-  | zero => simp only [chainWalk, simulateQ_pure, liftM_pure]
+  | zero => simp only [chainWalk_eq_zero, simulateQ_pure, liftM_pure]
   | succ steps ih =>
-      simp only [chainWalk, simulateQ_bind, liftM_bind, ih]
+      simp only [chainWalk_eq_succ, simulateQ_bind, liftM_bind, ih]
       apply bind_congr
       intro previous
       split <;> simp only [compile_tweakableHash, simulateQ_pure, liftM_pure]
@@ -150,9 +150,9 @@ theorem compile_forestWalk (seed : MasterSeed) (material : Material)
       (forestWalk p index c s j a i start steps value : OracleComp HashSpec Digest) =
         liftM (forestWalk p index c s j a i start steps value : OracleComp HashSpec Digest) := by
   induction steps with
-  | zero => simp only [forestWalk, simulateQ_pure, liftM_pure]
+  | zero => simp only [forestWalk_eq_zero, simulateQ_pure, liftM_pure]
   | succ steps ih =>
-      simp only [forestWalk, simulateQ_bind, liftM_bind, ih]
+      simp only [forestWalk_eq_succ, simulateQ_bind, liftM_bind, ih]
       apply bind_congr
       intro previous
       split <;> simp only [compile_tweakableHash, simulateQ_pure, liftM_pure]
@@ -193,10 +193,10 @@ theorem compiled_treeNode_eq (left right : MasterSeed) (material : Material)
       (Seeded.treeNode (parameter material) lay tree right level node : OracleComp HashSpec Digest) := by
   induction level generalizing node with
   | zero =>
-      simp only [Seeded.treeNode, simulateQ_bind, compiled_oneTimePublicKey_eq left right,
+      simp only [Seeded.treeNode_eq_zero, simulateQ_bind, compiled_oneTimePublicKey_eq left right,
         leafHash, compile_tweakableHash]
   | succ level ih =>
-      simp only [Seeded.treeNode, simulateQ_bind, ih, compile_tweakableHash]
+      simp only [Seeded.treeNode_eq_succ, simulateQ_bind, ih, compile_tweakableHash]
 
 variable [Params]
 
@@ -278,10 +278,10 @@ theorem compiled_subNode_eq (left right : MasterSeed) (material : Material)
       (Seeded.subNode (parameter material) index c s j right level node : OracleComp HashSpec Digest) := by
   induction level generalizing node with
   | zero =>
-      rw [Seeded.subNode, Seeded.subNode]
+      rw [Seeded.subNode_eq_zero, Seeded.subNode_eq_zero]
       exact compiled_childLeaf_eq left right material _ _ _ _ _
   | succ level ih =>
-      simp only [Seeded.subNode, simulateQ_bind, ih]
+      simp only [Seeded.subNode_eq_succ, simulateQ_bind, ih]
       apply bind_congr
       intro l
       apply bind_congr
@@ -307,10 +307,10 @@ theorem compiled_topNode_eq (left right : MasterSeed) (material : Material)
       (Seeded.topNode (parameter material) index c right level node : OracleComp HashSpec Digest) := by
   induction level generalizing node with
   | zero =>
-      rw [Seeded.topNode, Seeded.topNode]
+      rw [Seeded.topNode_eq_zero, Seeded.topNode_eq_zero]
       exact compiled_superNode_eq left right material _ _ _
   | succ level ih =>
-      simp only [Seeded.topNode, simulateQ_bind, ih]
+      simp only [Seeded.topNode_eq_succ, simulateQ_bind, ih]
       apply bind_congr
       intro l
       apply bind_congr

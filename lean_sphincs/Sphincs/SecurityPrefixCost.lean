@@ -60,9 +60,9 @@ theorem hashCalls_chainWalk (f : QueryImpl HashSpec Id) (parameter : PublicParam
     (start steps : Nat) (value : Digest) (hsteps : start + steps ≤ chainLength - 1) :
     hashCalls f (chainWalk parameter lay tree leaf chain start steps value : OracleComp HashSpec Digest) = steps := by
   induction steps generalizing start value with
-  | zero => simp only [chainWalk, hashCalls_pure]
+  | zero => simp only [chainWalk_eq_zero, hashCalls_pure]
   | succ steps ih =>
-      rw [chainWalk, hashCalls_bind, dite_eq_left (by omega), hashCalls_tweakableHash, ih _ _ (by omega)]
+      rw [chainWalk_eq_succ, hashCalls_bind, dite_eq_left (by omega), hashCalls_tweakableHash, ih _ _ (by omega)]
 
 /-- The 64 chain starts of a one-time key cost 32 seed derivations. -/
 theorem hashCalls_otsSecrets (f : QueryImpl HashSpec Id) (parameter : PublicParameter)
@@ -91,9 +91,9 @@ theorem hashCalls_treeNode (f : QueryImpl HashSpec Id) (parameter : PublicParame
     hashCalls f (Seeded.treeNode parameter lay tree seed level nodeIdx : OracleComp HashSpec Digest) =
       226 * 2 ^ level - 1 := by
   induction level generalizing nodeIdx with
-  | zero => simp [Seeded.treeNode, hashCalls_bind, hashCalls_oneTimePublicKey, leafHash]
+  | zero => simp [Seeded.treeNode_eq_zero, hashCalls_bind, hashCalls_oneTimePublicKey, leafHash]
   | succ level ih =>
-      simp only [Seeded.treeNode, hashCalls_bind, ih, hashCalls_tweakableHash]
+      simp only [Seeded.treeNode_eq_succ, hashCalls_bind, ih, hashCalls_tweakableHash]
       have hpos : 0 < 2 ^ level := Nat.two_pow_pos level
       rw [pow_succ]
       omega
@@ -103,9 +103,9 @@ theorem hashCalls_forestWalk (f : QueryImpl HashSpec Id) (parameter : PublicPara
     (start steps : Nat) (value : Digest) (hsteps : start + steps ≤ chainTop) :
     hashCalls f (forestWalk parameter index c s j a i start steps value : OracleComp HashSpec Digest) = steps := by
   induction steps generalizing start value with
-  | zero => simp only [forestWalk, hashCalls_pure]
+  | zero => simp only [forestWalk_eq_zero, hashCalls_pure]
   | succ steps ih =>
-      rw [forestWalk, hashCalls_bind, dite_eq_left (by omega), hashCalls_tweakableHash, ih _ _ (by omega)]
+      rw [forestWalk_eq_succ, hashCalls_bind, dite_eq_left (by omega), hashCalls_tweakableHash, ih _ _ (by omega)]
 
 theorem hashCalls_chainValue (f : QueryImpl HashSpec Id) (parameter : PublicParameter)
     (index : Index) (c : Coord) (s : SuperIdx) (j : SubIdx) (a : ChildIdx) (i : FChain)
@@ -137,9 +137,9 @@ theorem hashCalls_subNode (f : QueryImpl HashSpec Id) (parameter : PublicParamet
     hashCalls f (Seeded.subNode parameter index c s j seed level node : OracleComp HashSpec Digest) =
       29 * 2 ^ level - 1 := by
   induction level generalizing node with
-  | zero => rw [Seeded.subNode, hashCalls_childLeaf]; rfl
+  | zero => rw [Seeded.subNode_eq_zero, hashCalls_childLeaf]; rfl
   | succ level ih =>
-      rw [Seeded.subNode, hashCalls_bind, hashCalls_bind, dite_eq_left (by omega), hashCalls_tweakableHash,
+      rw [Seeded.subNode_eq_succ, hashCalls_bind, hashCalls_bind, dite_eq_left (by omega), hashCalls_tweakableHash,
         ih _ (by omega), ih _ (by omega)]
       have hp : 0 < 2 ^ level := Nat.two_pow_pos level
       rw [pow_succ]
@@ -160,9 +160,9 @@ theorem hashCalls_topNode (f : QueryImpl HashSpec Id) (parameter : PublicParamet
     hashCalls f (Seeded.topNode parameter index c seed level node : OracleComp HashSpec Digest) =
       462 * 2 ^ level - 1 := by
   induction level generalizing node with
-  | zero => rw [Seeded.topNode, hashCalls_superNode]; rfl
+  | zero => rw [Seeded.topNode_eq_zero, hashCalls_superNode]; rfl
   | succ level ih =>
-      rw [Seeded.topNode, hashCalls_bind, hashCalls_bind, dite_eq_left (by omega), hashCalls_tweakableHash,
+      rw [Seeded.topNode_eq_succ, hashCalls_bind, hashCalls_bind, dite_eq_left (by omega), hashCalls_tweakableHash,
         ih _ (by omega), ih _ (by omega)]
       have hp : 0 < 2 ^ level := Nat.two_pow_pos level
       rw [pow_succ]

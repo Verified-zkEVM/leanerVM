@@ -65,7 +65,7 @@ theorem chain_value (lay : Layer) (tree : TreeIndex) (leaf : LeafIndex)
           (otsSecrets f parameter seed lay tree leaf chain) 0 =
           otsSecrets f parameter seed lay tree leaf chain := by
         unfold Chain.honestChain
-        rw [chainWalk]
+        rw [chainWalk_eq_zero]
         rfl
       rw [hz]
       apply congrArg (fun input : HashInput => truncateHash (f input))
@@ -339,7 +339,7 @@ theorem chain_input (lay : Layer) (tree : TreeIndex) (leaf : LeafIndex)
           (otsSecrets f parameter seed lay tree leaf chain) 0 =
           otsSecrets f parameter seed lay tree leaf chain := by
         unfold Chain.honestChain
-        rw [chainWalk]
+        rw [chainWalk_eq_zero]
         rfl
       rw [hz]
       simp [canonicalGraphInput, canonicalGraphSlots, Position.domain]
@@ -530,7 +530,7 @@ theorem fchain_input (s : SuperIdx) (j : SubIdx) (a : ChildIdx) (i : FChain) (t 
           (Completeness.forestSecret f parameter index c s j a i seed) 0 =
           Completeness.forestSecret f parameter index c s j a i seed := by
         unfold Forest.honestChain
-        rw [forestWalk]
+        rw [forestWalk_eq_zero]
         rfl
       rw [hz]
       simp only [canonicalGraphInput, canonicalGraphSlots, Position.domain, ftsSecrets,

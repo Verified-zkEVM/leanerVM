@@ -159,14 +159,14 @@ theorem erases_treeNode_bottom (seed : MasterSeed) (d : Derivations) (level : Na
       (Concrete.treeNode d.parameter d.secret level (Concrete.merkleNodeOfNat j)) := by
   induction level generalizing j with
   | zero =>
-      rw [LeanXmss.Seeded.treeNode, Concrete.treeNode_zero_eq, leafKey_bottom j]
+      rw [LeanXmss.Seeded.treeNode_eq_zero, Concrete.treeNode_zero_eq, leafKey_bottom j]
       unfold LeanXmss.Seeded.oneTimePublicKey Concrete.leafAt Concrete.oneTimePublicKey
       rw [bind_assoc]
       apply (erases_pure_of_resolves (otsSecrets_bottom seed d _)).bind_known
       simp only [sequenceFin_eq, chainWalk_bottom, leafHash_bottom]
       exact .refl _ _
   | succ level ih =>
-      rw [LeanXmss.Seeded.treeNode, Concrete.treeNode_succ_eq]
+      rw [LeanXmss.Seeded.treeNode_eq_succ, Concrete.treeNode_succ_eq]
       simp only [dite_eq_left (show level < treeHeight by simp only [treeHeight]; omega)]
       have hj2 : 2 * j + 1 < 2 ^ (32 - level) := by
         rw [show 32 - level = 32 - (level + 1) + 1 by omega, pow_succ]
@@ -200,14 +200,14 @@ theorem erases_treeNode_top (seed : MasterSeed) (d : Derivations) (level : Nat) 
       (Concrete.topTreeNode d.parameter d.topSecret level (Concrete.topNodeOfNat j)) := by
   induction level generalizing j with
   | zero =>
-      rw [LeanXmss.Seeded.treeNode, Concrete.topTreeNode, leafKey_top j (by simpa using hj)]
+      rw [LeanXmss.Seeded.treeNode_eq_zero, Concrete.topTreeNode, leafKey_top j (by simpa using hj)]
       unfold LeanXmss.Seeded.oneTimePublicKey Concrete.topLeafAt Concrete.topOneTimePublicKey
       rw [bind_assoc]
       apply (erases_pure_of_resolves (otsSecrets_top seed d _)).bind_known
       simp only [sequenceFin_eq, chainWalk_top, leafHash_top]
       exact .refl _ _
   | succ level ih =>
-      rw [LeanXmss.Seeded.treeNode, Concrete.topTreeNode]
+      rw [LeanXmss.Seeded.treeNode_eq_succ, Concrete.topTreeNode]
       simp only [dite_eq_left (show level < treeHeight by simp only [treeHeight]; omega)]
       have hj2 : 2 * j + 1 < 2 ^ (16 - level) := by
         rw [show 16 - level = 16 - (level + 1) + 1 by omega, pow_succ]

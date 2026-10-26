@@ -89,7 +89,7 @@ theorem permutations_chainWalk (f : QueryImpl HashSpec Id) (parameter : PublicPa
   induction steps with
   | zero => rfl
   | succ steps ih =>
-      rw [chainWalk, permutations_bind, dite_eq_left (by omega), permutations_tweakableHash,
+      rw [chainWalk_eq_succ, permutations_bind, dite_eq_left (by omega), permutations_tweakableHash,
         bytesLE_length, ih (by omega)]
       rfl
 
@@ -128,7 +128,7 @@ theorem permutations_treeFold (f : QueryImpl HashSpec Id) (parameter : PublicPar
   induction levels with
   | zero => rfl
   | succ levels ih =>
-      rw [treeFold, permutations_bind, ih]
+      rw [treeFold_eq_succ, permutations_bind, ih]
       dsimp only
       split <;> simp [permutations_tweakableHash, nodePayload, bytesLE_length, blocks]
 
@@ -144,7 +144,7 @@ theorem permutations_forestWalk (s : SuperIdx) (j : SubIdx) (a : ChildIdx) (i : 
   induction steps with
   | zero => rfl
   | succ steps ih =>
-      rw [forestWalk, permutations_bind, dite_eq_left (by omega), permutations_tweakableHash,
+      rw [forestWalk_eq_succ, permutations_bind, dite_eq_left (by omega), permutations_tweakableHash,
         bytesLE_length, ih (by omega)]
       rfl
 
@@ -174,7 +174,7 @@ theorem permutations_subFold (s : SuperIdx) (j : SubIdx) (a : ChildIdx) (path : 
   induction levels with
   | zero => rfl
   | succ levels ih =>
-      rw [subFold, permutations_bind, ih (by omega), dite_eq_left (by omega)]
+      rw [subFold_eq_succ, permutations_bind, ih (by omega), dite_eq_left (by omega)]
       dsimp only
       split <;> simp [permutations_tweakableHash, nodePayload, bytesLE_length, blocks]
 
@@ -184,7 +184,7 @@ theorem permutations_topFold (s : SuperIdx) (path : Fin topHeight → Digest)
   induction levels with
   | zero => rfl
   | succ levels ih =>
-      rw [topFold, permutations_bind, ih (by omega), dite_eq_left (by omega)]
+      rw [topFold_eq_succ, permutations_bind, ih (by omega), dite_eq_left (by omega)]
       dsimp only
       split <;> simp [permutations_tweakableHash, nodePayload, bytesLE_length, blocks]
 

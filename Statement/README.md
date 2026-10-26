@@ -37,7 +37,9 @@ Benedikt Wagner's ([b-wagn/fv-pq-da](https://github.com/b-wagn/fv-pq-da), Apache
    SUF-CMA game of a hash-based signature scheme in the random-permutation model
    (`SufCma.rpmGame`, `rpmExperiment`) and its security notion (`SufCma.RpmSecure`).
 2. [`LeanXmss.lean`](LeanXmss.lean): what leanXMSS and leanSPHINCS share (the tweakable hash's
-   types, bytes and address, `crates/signatures/src/tweak.rs`), the leanXMSS scheme and
+   types, bytes and address, `crates/signatures/src/tweak.rs`; a hash chain, a Merkle path's fold
+   and a Merkle tree's node, `walkChain`, `foldPath`, `buildTree`, which every chain, fold and tree
+   of both schemes instantiates), the leanXMSS scheme and
    `LeanXmss.Rpm.LeanXmssRpmSecurityStatement` (`RpmSecure` at 127 bits).
 3. [`LeanSphincs.lean`](LeanSphincs.lean): the leanSPHINCS scheme (on the shared part, exported
    into `Sphincs`) with the deterministic signer, the proved lifetimes, and

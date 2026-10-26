@@ -583,7 +583,7 @@ theorem badA_of_accepted (hb : 0 < subtreeHeight) (parameterOutput : HashOutput)
             (chainTop - (lut ((marks c).word j) i).val) (((forgery.signature.forest c).sub j).values i) 0 =
             table (.fchain index c (marks c).super j ((marks c).child j) i
               ⟨chainTop - (lut ((marks c).word j) i).val + 0, by omega⟩) := by
-          simp only [Forest.walkValue, forestWalk, evalWithAnswerFn_pure, Nat.add_zero]
+          simp only [Forest.walkValue, forestWalk_eq_zero, evalWithAnswerFn_pure, Nat.add_zero]
           rw [hval, hcoord.2]
         rw [hwalk] at hm
         obtain ⟨q, hq, hrev⟩ := queried_fchain_revealedA parameterOutput fixed highs results known hknown table

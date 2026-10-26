@@ -139,7 +139,7 @@ theorem chainWalk_bottom (parameter : PublicParameter) (key : LeafIndex) (chain 
   induction steps with
   | zero => rfl
   | succ steps ih =>
-      rw [LeanXmss.Concrete.chainWalk, Concrete.chainWalk, ih]
+      rw [LeanXmss.Concrete.chainWalk_eq_succ, Concrete.chainWalk, ih]
       apply bind_congr
       intro previous
       by_cases h : start + steps < chainLength - 1
@@ -157,7 +157,7 @@ theorem chainWalk_top (parameter : PublicParameter) (key : TopIndex) (chain : Ch
   induction steps with
   | zero => rfl
   | succ steps ih =>
-      rw [LeanXmss.Concrete.chainWalk, Concrete.topChainWalk, ih]
+      rw [LeanXmss.Concrete.chainWalk_eq_succ, Concrete.topChainWalk, ih]
       apply bind_congr
       intro previous
       by_cases h : start + steps < chainLength - 1
@@ -256,7 +256,7 @@ theorem treeFold_bottom (parameter : PublicParameter) (key : LeafIndex) (signatu
   | zero => rfl
   | succ levels ih =>
       have h : levels < treeHeight := by omega
-      rw [LeanXmss.Concrete.treeFold, Concrete.authenticationRoot, ih (by omega)]
+      rw [LeanXmss.Concrete.treeFold_eq_succ, Concrete.authenticationRoot, ih (by omega)]
       apply bind_congr
       intro current
       simp only [Concrete.authenticationNodeHash, Concrete.signaturePath, dite_eq_left h,
@@ -276,7 +276,7 @@ theorem treeFold_top (parameter : PublicParameter) (key : TopIndex) (path : Fin 
   | zero => rfl
   | succ levels ih =>
       have h : levels < treeHeight := by omega
-      rw [LeanXmss.Concrete.treeFold, Concrete.topAuthenticationRoot, ih (by omega)]
+      rw [LeanXmss.Concrete.treeFold_eq_succ, Concrete.topAuthenticationRoot, ih (by omega)]
       apply bind_congr
       intro current
       simp only [dite_eq_left h, dite_eq_left (show levels < LeanXmss.layerHeight from h), topKey_val]

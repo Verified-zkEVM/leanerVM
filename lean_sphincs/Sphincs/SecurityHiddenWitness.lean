@@ -88,7 +88,7 @@ theorem Opening.covered_or_hidden (f : QueryImpl HashSpec Id) (parameter : Publi
       ⟨chainTop - (lut ((decodeMark (fields c)).word j) i).val + 0, hrange⟩, fun q hq => hnot q hq, ?_⟩
     refine hrun _ ?_
     convert hmem using 3
-    simp only [walkValue, forestWalk, evalWithAnswerFn_pure, Nat.add_zero]
+    simp only [walkValue, forestWalk_eq_zero, evalWithAnswerFn_pure, Nat.add_zero]
     exact ((hopening c).1 j i).symm
 
 end Sphincs.Security.Forest

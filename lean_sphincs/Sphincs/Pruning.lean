@@ -49,7 +49,7 @@ theorem eval_treeFold_spine (parameter : PublicParameter) (lay : Layer) (tree : 
       rw [hland]
       rfl
   | succ steps ih =>
-      rw [Nat.add_succ, treeFold, evalWithAnswerFn_bind,
+      rw [Nat.add_succ, treeFold_eq_succ, evalWithAnswerFn_bind,
         ih (fun t ht => hhigh t (Nat.lt_succ_of_lt ht)), hhigh steps (Nat.lt_succ_self _)]
       have hbit : leaf.val.testBit (subtreeHeight + steps) =
           (subtreePosition parameter / 2 ^ steps).testBit 0 := by
