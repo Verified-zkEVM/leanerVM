@@ -9,6 +9,7 @@
 module
 
 public import Statement.LeanVmVerifier
+public import Statement.Prover.Script
 public import LeanVM.Facts.Verifier
 public import Statement.Fast.Keccak
 public import Statement.Fast.CubicExt
@@ -107,8 +108,8 @@ noncomputable instance instFintypeKState : Fintype LeanVM.Semantics.KState :=
 
 /-! ## The interactive reading -/
 
-/-- A committed matrix: the row at each position, read modulo the number of rows. -/
-abbrev Word : Type := ℕ → List K
+-- `Word`, a committed matrix (the row at each position), is the statement's
+-- (`Statement/Prover/Script.lean`).
 
 /-- Every row of a word has `width` entries. -/
 def WellShaped (width : ℕ) (word : Word) : Prop := ∀ p, (word p).length = width

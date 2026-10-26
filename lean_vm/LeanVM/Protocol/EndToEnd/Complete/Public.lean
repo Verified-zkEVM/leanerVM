@@ -41,6 +41,8 @@ leanVM `4af2cdddd7cd41b9df2cc7e123e314a91b0b4462`): sample `r`, and claim of mem
 
 namespace LeanVM.Protocol.EndToEnd.Complete
 
+open LeanVM.Prover (Script)
+
 open LeanVM.Parameters LeanVM.Semantics LeanVM.Protocol.Compile LeanVM.Protocol.Verifier
 open LeanVM.Protocol.LeanIsa LeanVM.Protocol.EndToEnd.Front LeanVM.Protocol.Whir.Complete
 open LeanVM.Protocol.KeccakHash LeanVM.Protocol.PublicInput CompPoly CMlPolynomialEval

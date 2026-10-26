@@ -29,6 +29,8 @@ then the WHIR rate, each the Python's `E(n)`), then the stack's level-0 word.
 
 namespace LeanVM.Protocol.EndToEnd.Complete
 
+open LeanVM.Prover (Script)
+
 open LeanVM.Parameters LeanVM.Semantics LeanVM.Protocol.Compile LeanVM.Protocol.Verifier
 open LeanVM.Protocol.LeanIsa LeanVM.Protocol.EndToEnd.Front LeanVM.Protocol.Whir.Complete
 

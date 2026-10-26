@@ -54,6 +54,8 @@ No `require` of the GKR fails on the honest prover.
 
 namespace LeanVM.Protocol.EndToEnd.Complete
 
+open LeanVM.Prover (Script)
+
 open LeanVM.Parameters LeanVM.Protocol.Compile LeanVM.Protocol.Verifier
 open LeanVM.Protocol.Whir.Complete LeanVM.Protocol.EndToEnd Finset
 

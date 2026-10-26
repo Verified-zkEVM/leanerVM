@@ -23,6 +23,8 @@ of the stacked size's logarithm: at a child's witness the execution's committed 
 
 namespace LeanVM.Guest.Child
 
+open LeanVM.Prover (Script)
+
 open LeanVM.Parameters LeanVM.Semantics LeanVM.Arithmetization LeanVM.Protocol
 open LeanVM.Protocol.Compile LeanVM.Protocol.Verifier LeanVM.Protocol.LeanIsa
 open LeanVM.Protocol.EndToEnd.Front LeanVM.Protocol.EndToEnd.Complete LeanVM.Protocol.Whir.Complete

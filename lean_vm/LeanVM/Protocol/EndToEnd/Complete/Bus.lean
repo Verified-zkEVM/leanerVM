@@ -49,6 +49,8 @@ phase fails on the honest prover.
 
 namespace LeanVM.Protocol.EndToEnd.Complete
 
+open LeanVM.Prover (Script)
+
 open LeanVM.Parameters LeanVM.Semantics LeanVM.Protocol.Compile LeanVM.Protocol.Verifier
 open LeanVM.Protocol.LeanIsa LeanVM.Protocol.EndToEnd LeanVM.Protocol.EndToEnd.Front
 open LeanVM.Protocol.Whir.Complete Finset

@@ -43,6 +43,8 @@ and the Keccak reduction's sumchecks all instantiate it.
 
 namespace LeanVM.Protocol.EndToEnd.Complete
 
+open LeanVM.Prover (Script)
+
 open LeanVM.Parameters LeanVM.Protocol.Compile LeanVM.Protocol.Verifier
 open LeanVM.Protocol.Whir.Complete Polynomial
 

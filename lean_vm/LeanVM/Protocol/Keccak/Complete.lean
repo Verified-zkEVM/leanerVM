@@ -28,6 +28,8 @@ claims and `64` true slice claims (`Follows`, `LeanVM.Protocol.Whir.Complete.Scr
 
 namespace LeanVM.Protocol.KeccakGkr
 
+open LeanVM.Prover (Script)
+
 open LeanVM.Parameters LeanVM.Protocol.Compile LeanVM.Protocol.Verifier
 open LeanVM.Protocol.EndToEnd.Complete LeanVM.Protocol.Whir.Complete Finset
 

@@ -9,6 +9,7 @@
 module
 
 public import LeanVM.Protocol.Compile.Prover
+public import Statement.Prover.Script
 
 /-!
 # Honest prover scripts
@@ -45,39 +46,22 @@ open LeanVM.Parameters LeanVM.Protocol.Compile
 
 @[expose] public section
 
-/-! ## Scripts -/
+/-! ## Scripts
 
-/-- An honest prover as a program of its own moves. -/
-inductive Script (α : Type) : Type where
-  /-- Stop with a value. -/
-  | ret (a : α)
-  /-- Send the scalar `x`. -/
-  | send (x : E) (k : Script α)
-  /-- Receive a challenge. -/
-  | sample (k : E → Script α)
-  /-- Pass a proof of work. -/
-  | grind (k : Script α)
-  /-- Commit a word. -/
-  | commit (word : Word) (k : Script α)
-  /-- Receive the opened rows. -/
-  | query (k : List (List K) → Script α)
+The type `Script` and its moves are the statement's (`Statement/Prover/Script.lean`); the replay
+along a history and the simulation are proofs. -/
 
-namespace Script
+end
+
+end LeanVM.Protocol.Whir.Complete
+
+namespace LeanVM.Prover.Script
+
+open LeanVM.Parameters LeanVM.Protocol.Compile
+
+@[expose] public section
 
 variable {α β : Type}
-
-/-- Sequencing. -/
-def bind : Script α → (α → Script β) → Script β
-  | ret a, f => f a
-  | send x k, f => send x (k.bind f)
-  | sample k, f => sample fun c ↦ (k c).bind f
-  | grind k, f => grind (k.bind f)
-  | commit w k, f => commit w (k.bind f)
-  | query k, f => query fun r ↦ (k r).bind f
-
-instance : Monad Script where
-  pure := ret
-  bind := bind
 
 @[simp] theorem pure_eq (a : α) : (pure a : Script α) = ret a := rfl
 
@@ -94,36 +78,6 @@ theorem bind_ret (p : Script α) : p.bind ret = p := by
   | grind k ih => simp only [bind, ih]
   | commit w k ih => simp only [bind, ih]
   | query k ih => simp only [bind, ih]
-
-/-! ### Moves -/
-
-/-- Send one scalar. -/
-def sendE (x : E) : Script Unit := send x (ret ())
-
-/-- Send a list of scalars, in order. -/
-def sendList : List E → Script Unit
-  | [] => ret ()
-  | x :: xs => send x (sendList xs)
-
-/-- Receive one challenge. -/
-def sampleE : Script E := sample ret
-
-/-- Receive `n` challenges, in order. -/
-def sampleN : ℕ → Script (List E)
-  | 0 => ret []
-  | n + 1 => do
-    let x ← sampleE
-    let xs ← sampleN n
-    return x :: xs
-
-/-- Pass a proof of work. -/
-def grindS : Script Unit := grind (ret ())
-
-/-- Commit a word. -/
-def commitS (word : Word) : Script Unit := commit word (ret ())
-
-/-- Receive opened rows. -/
-def queryS : Script (List (List K)) := query ret
 
 /-! ### Replay along a history -/
 
@@ -163,7 +117,15 @@ def wordAt (H : Script α) (l : List Ev) : Word :=
   | some (commit w _) => w
   | _ => fun _ ↦ []
 
-end Script
+end
+
+end LeanVM.Prover.Script
+
+namespace LeanVM.Protocol.Whir.Complete
+
+open LeanVM.Parameters LeanVM.Protocol.Compile LeanVM.Prover
+
+@[expose] public section
 
 /-- The strategy that replays the script `H` along the events after the first `n`. -/
 def Strategy.ofScript {α : Type} (H : Script α) (n : ℕ) : Strategy where

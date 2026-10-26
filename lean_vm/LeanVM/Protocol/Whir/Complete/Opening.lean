@@ -93,6 +93,8 @@ complete.
 
 namespace LeanVM.Protocol.Whir.Complete
 
+open LeanVM.Prover (Script)
+
 open LeanVM.Parameters LeanVM.Protocol LeanVM.Protocol.Verifier LeanVM.Protocol.EndToEnd
   LeanVM.Protocol.Compile LeanVM.Protocol.Whir Finset
 open LeanVM.Semantics (KState)

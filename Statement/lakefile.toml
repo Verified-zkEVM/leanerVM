@@ -41,4 +41,4 @@ srcDir = ".."
 globs = ["Statement.RandomPermutation", "Statement.LeanXmss", "Statement.LeanSphincs",
   "Statement.Field", "Statement.LeanDa", "Statement.LeanIsa", "Statement.LeanVmVerifier",
   "Statement.Extractor", "Statement.LeanVm", "Statement.LeanVmGuest", "Statement.Theorems",
-  "Statement.Data.+", "Statement.Fast.+", "Statement.Decode.+"]
+  "Statement.Data.+", "Statement.Fast.+", "Statement.Decode.+", "Statement.Prover.+"]
