@@ -14,10 +14,11 @@ defined in the file of `Statement/` named next to it. `lean_vm/LeanVM.lean` prov
 `Statement.Theorems LeanVM.Guest.End.decode` (`LeanVM.theorems_hold`), and the build fails if its
 axioms are ever more than Lean's three (`propext`, `Classical.choice`, `Quot.sound`).
 
-The guest's two knowledge statements are about a decoder, `decode`, which names the witness of a
-valid execution: the proof supplies it (`LeanVM.Guest.End.decode`, in `lean_vm`, which reads the
-witness from the execution's memory). They are only as meaningful as that decoder: one that chose
-another statement of the same digest would satisfy `aggregateSound` through a Keccak-256 collision.
+The guest program's two knowledge statements are about a decoder, `decode`, which names the witness
+of a valid execution: the proof supplies it (`LeanVM.Guest.End.decode`, in `lean_vm`, which reads
+the witness from the execution's memory). They are only as meaningful as that decoder: one that
+chose another statement of the same digest would satisfy `aggregateSound` through a Keccak-256
+collision.
 
 Every statement involving an adversary is in the random-permutation model: one uniformly random
 permutation `π` of Keccak-f[1600]'s state, which the adversary queries forward and inverse.
@@ -36,28 +37,33 @@ structure Theorems (decode : LeanVM.Node.Decoder) : Prop where
   at an inverse rate `2^ρ` with `1 ≤ ρ ≤ 4` and `2^25` nonces per proof of work, is rejected with
   probability at most `2^-127` (`LeanVm.lean`). -/
   completeness : LeanVM.Completeness
-  /-- Every valid execution of the guest decodes to a statement of its input's digest and a
-  witness holding it (`LeanVmGuest.lean`). -/
+  /-- Every valid execution of the leanISA guest program proves the node statement its public
+  input commits to: `decode` reads off its memory a seed, a statement whose digest under that seed
+  is the input's digest, and a witness for it: each claim of the statement is held, by a
+  signature, a blob or a child whose proof is accepted (`NodeRel`, `LeanVmGuest.lean`). -/
   guestKnowledge : LeanVM.Node.GuestKnowledge LeanVM.Guest.guest decode
-  /-- An accepted guest proof is explained by the extracted execution or by a Keccak-256
-  collision, with the bound of `knowledgeSoundness`. A claim held through a child rests only on
-  that child's deferred verification; nothing composes across levels (`LeanVmGuest.lean`). -/
+  /-- An accepted proof of the leanISA guest program is explained by the extracted execution or by
+  a Keccak-256 collision, with the bound of `knowledgeSoundness`. A claim held through a child
+  rests only on that child's deferred verification; nothing composes across levels
+  (`LeanVmGuest.lean`). -/
   aggregateSound : LeanVM.Node.AggregateSound LeanVM.Guest.guest decode
-  /-- The guest is complete on every covered recursion node: at most `2048` declared claims,
-  coverage slots and children's claims, and no raw signature and no blob held by the node itself
-  (`LeanVmGuest.lean`). -/
+  /-- The leanISA guest program is complete on every covered recursion node: at most `2048`
+  declared claims, coverage slots and children's claims, and no raw signature and no blob held by
+  the node itself (`LeanVmGuest.lean`). -/
   guestCompleteRecursion : LeanVM.Guest.Budget.GuestCompleteRecursion
-  /-- The guest is complete on every covered leaf: no child, no blob held directly, at most
-  `2048` raw signatures, declared claims and coverage slots (`LeanVmGuest.lean`). -/
-  guestCompleteLeaf : LeanVM.Guest.Budget.GuestCompleteLeaf
-  /-- The guest is complete on the six families of `Covered`, mixed nodes and nodes checking a
-  blob of at most `8` rows among them. The completeness statements assume the children's
-  hypotheses (`ChildOk`), which `guestChildComplete` gives honest proofs (`LeanVmGuest.lean`). -/
-  guestCompleteCovered : LeanVM.Guest.Budget.GuestCompleteCovered
-  /-- The honest proof of a guest execution is a child the guest accepts: rejected with
-  probability at most `2^-126` in the random-permutation model, and with the deployed Keccak,
-  where accepted, meeting every hypothesis the guest's completeness assumes of a child
+  /-- The leanISA guest program is complete on every covered leaf: no child, no blob held
+  directly, at most `2048` raw signatures, declared claims and coverage slots
   (`LeanVmGuest.lean`). -/
+  guestCompleteLeaf : LeanVM.Guest.Budget.GuestCompleteLeaf
+  /-- The leanISA guest program is complete on the six families of `Covered`, mixed nodes and
+  nodes checking a blob of at most `8` rows among them. The completeness statements assume the
+  children's hypotheses (`ChildOk`), which `guestChildComplete` gives honest proofs
+  (`LeanVmGuest.lean`). -/
+  guestCompleteCovered : LeanVM.Guest.Budget.GuestCompleteCovered
+  /-- The honest proof of an execution of the guest program is a child the guest program accepts:
+  rejected with probability at most `2^-126` in the random-permutation model, and with the
+  deployed Keccak, where accepted, meeting every hypothesis the guest program's completeness
+  assumes of a child (`LeanVmGuest.lean`). -/
   guestChildComplete : LeanVM.Guest.Budget.GuestChildComplete
   /-- The batching run outside the circuit is sound: at most `(QA + QV + 1) · 2^-191 +
   5 (QA + QV)² · 2^-256` for `QA ≤ 2^128`, `QV ≤ 2^96`; it does not compose with the in-circuit

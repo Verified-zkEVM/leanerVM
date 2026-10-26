@@ -153,7 +153,7 @@ The erasure code commitment of `crates/lean_da` at leanVM
   the dual codeword `L`, the tensor `⊗_j (1, z_j)` read as novel-basis coefficients and encoded,
   that is `L(x) = ∏_j (1 + z_j Ŵ_j(x))` on the domain (Annex D, eq. dual-product), with
   `Ŵ_j` the normalized subspace polynomial of the span of `e_0 … e_(j-1)`. A matrix passes when
-  every row is orthogonal to `L` (`check_membership`, `membership.rs:94-103`; the guest's
+  every row is orthogonal to `L` (`check_membership`, `membership.rs:94-103`; the guest program's
   `da_verify`). The challenges are drawn from the root by a duplex sponge over Keccak-f[1600]
   seeded with the label's hash (`membership_challenges`); the end statements draw them by this
   duplex over the permutation (`membershipChallengesM`).
