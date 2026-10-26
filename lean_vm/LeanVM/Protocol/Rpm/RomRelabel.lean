@@ -3,8 +3,8 @@
 
   The random oracles of `common` (on bytes) against those of
   `LeanVM/Protocol/Rom/Statement.lean` (on lanes): a computation read through the bijections of
-  `Bytes.lean` has the same distribution, the caches related by `cmap`; and the query count of the
-  transfer's random-oracle adversary.
+  `common`'s `Common/Lanes.lean` has the same distribution, the caches related by `cmap`; and the
+  query count of the transfer's random-oracle adversary.
 -/
 
 import LeanVM.Protocol.Rpm.Game
