@@ -1,23 +1,21 @@
 import LeanDa.RpmCodeBinding
+import LeanDa.MerkleM
 import PqDas.Target.Scheme
 import LeanDa.Defs
 
 /-!
 # Completeness in the random-permutation model
 
-LeanDA is perfectly complete for every permutation `π` of the Keccak state (indeed every function):
-with the hash Keccak-256 over `π` (`keccakWith π`) and the membership challenges the deployed
-duplex over `π`, every position of every message's honest commitment opens and verifies
-(`leanDa_perfectlyComplete_rpm : PerfectlyCompleteRpm`).
+LeanDA is perfectly complete for every permutation `π` of the Keccak state: with the hash
+Keccak-256 over `π` (`keccakWith π`), the membership challenges the deployed duplex over `π`, and
+the argument's prover and verifier answered by `π`, every position of every message's honest
+commitment opens and verifies (`leanDa_perfectlyComplete_rpm : PerfectlyCompleteRpm`).
 
-The proof is a transfer of Benedikt Wagner's completeness proof (`PqDas.scheme_perfectlyComplete`).
-For a fixed `π` the experiment flips no coin but the argument's setup: the verifier's programs,
-over `Id`, are their pure counterparts (`membershipChallengesM_id`, `verifyCellM_id`), so the
-committer and the verifier compute the same challenges, and the verdict is the honest run's for
-those challenges. Wagner's proof shows that the
-honest run verifies for every challenge (`PqDas.honest_verify`, the core of his proof), from the
-completeness of the Merkle commitment (`merkleVC_perfectlyComplete`), of the membership test
-(`checker_complete`) and of the argument.
+The proof is a transfer of Benedikt Wagner's completeness proof (`PqDas.scheme_perfectlyComplete`):
+the honest run verifies from the completeness of the Merkle commitment (`verifyCell_openCell`),
+of the membership test (`checker_complete`, so the honest cells satisfy the relation for `π`
+whatever the root's challenges) and of the argument, which, its oracles answered by `π`, verifies
+an honest proof of a statement true for `π` with probability one.
 
 This module is part of the instantiation of Benedikt Wagner's framework for erasure code
 commitments (`PqDas`, ported from https://github.com/b-wagn/fv-pq-da) with LeanDA.
@@ -33,22 +31,30 @@ namespace LeanDa
 /-! ## Completeness -/
 
 /-- **LeanDA is perfectly complete in the random-permutation model, for every permutation**
-(Benedikt Wagner's completeness, transferred). For a fixed `π` the verifier's programs, over `Id`,
-are the scheme's pure ones (`membershipChallengesM_id`, `verifyCellM_id`), so the committer and
-the verifier draw the same challenges, and the experiment is the argument's setup followed by the
-honest run for those challenges, which verifies for every challenge (`PqDas.honest_verify`). -/
+(Benedikt Wagner's completeness, transferred). For a fixed `π` the honest commitment's cells
+satisfy the relation for `π` (they commit to the root, and a codeword passes the membership test
+on every challenge, `checker_complete`), so the argument's honest proof verifies with probability
+one; and the honest opening verifies (`verifyCell_openCell`, `verifyCellM_id`). -/
 theorem leanDa_perfectlyComplete_rpm : PerfectlyCompleteRpm := by
   intro r π Crs Proof ps hps msg p
   rw [OracleComp.prEvent_eq_one_iff]
   intro b hb
   simp only [completenessExpRpm, support_bind, Set.mem_iUnion, support_pure,
     Set.mem_singleton_iff, exists_prop] at hb
-  obtain ⟨crs, hcrs, rfl⟩ := hb
-  have h := honest_verify (code r) (merkleVC r (keccakWith π)) (checker r) ps
-    (merkleVC_perfectlyComplete r _) (checker_complete r) hps (ckVC := ()) (by simp [merkleVC])
-    hcrs msg p (toChallenges (membershipChallenges (keccakWith π) π
-      (commitCells (keccakWith π) ((code r).encode msg))))
-  simp only [merkleVC, ← verifyCellM_id] at h
-  exact h
+  obtain ⟨crs, hcrs, ok, hok, rfl⟩ := hb
+  set c := (code r).encode msg
+  have hcode : c ∈ (code r).code := ⟨msg, rfl⟩
+  have hcomm : commitCellsM (m := Id) (fun a ↦ pure (keccakWith π a)) c =
+      pure (commitCells (keccakWith π) c) :=
+    commitCellsM_eval (fun x ↦ x) (fun _ ↦ rfl) (fun _ _ ↦ rfl) _ _ (fun _ ↦ rfl) c
+  have hrel : RelationRpm r π (commitCells (keccakWith π) c) c = true := by
+    unfold RelationRpm relationM
+    rw [hcomm]
+    simp only [Id.run_bind, Id.run_pure, decide_true, Bool.true_and]
+    exact checker_complete r c hcode _
+  have h1 := hps π crs hcrs _ _ hrel
+  rw [OracleComp.prEvent_eq_one_iff] at h1
+  rw [h1 ok hok, Bool.true_and, verifyCellM_id]
+  exact verifyCell_openCell (keccakWith π) c p
 
 end LeanDa

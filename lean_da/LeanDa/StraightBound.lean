@@ -306,13 +306,13 @@ theorem isWeightBound_toV_g {α : Type} {X : OracleComp (unifSpec + GSpec (List 
 
 /-- **The straight-line verdict's probability**, for an adversary of `Q` permutation calls and
 `r ≤ 1024` rows: at most `N · 65 N / 2^256 + (Q + 14) · 14 / 2^192` for `N = 2 Q + 2^20`. -/
-theorem prT_idealT_tailH_le (A : CodeBindingAdvB r Crs Proof) (Q : ℕ)
-    (hQ : IsWeightBound (codeBindingGame2 r ps A) permCalls2 Q) (hr : r ≤ maxRows) (crs : Crs)
-    (hcrs : crs ∈ support ps.setup) :
+theorem prT_idealT_tailH_le (A : CodeBindingAdvB r Crs Proof) (Q : ℕ) (hr : r ≤ maxRows)
+    (crs : Crs) (ha : IsWeightBound (advSim r A crs) hgCalls (2 * Q + 1))
+    (hg : IsWeightBound (advSim r A crs)
+      (gCalls (Msg := List UInt8) (Dg := KDigest) (Root := Digest) (Z := E) (n := 14)) Q) :
     prT (idealT r A crs (tailH r ps ext crs)) ≤
       ((2 * Q + 2 ^ 20 : ℕ) : ℝ≥0∞) * (65 * ((2 * Q + 2 ^ 20 : ℕ) : ℝ≥0∞) / 2 ^ 256) +
         ((Q + 14 : ℕ) : ℝ≥0∞) * (14 / 2 ^ 192) := by
-  obtain ⟨ha, hg⟩ := isWeightBound_advSim r ps A Q hQ crs hcrs
   have hL : logPad r ≤ 10 := by
     unfold logPad
     exact (Nat.clog_le_iff_le_pow (by norm_num)).mpr (by simpa [maxRows] using hr)
@@ -329,15 +329,18 @@ theorem prT_idealT_tailH_le (A : CodeBindingAdvB r Crs Proof) (Q : ℕ)
     (prob_not_good_le r _ (2 * Q + 2 ^ 20) (Q + 14) h1 h2)
 
 /-- **The simulated code-binding experiment**: the knowledge-soundness one plus the straight-line
-verdict's bound. -/
-theorem codeBindingExpG_le (A : CodeBindingAdvB r Crs Proof) (Q : ℕ)
-    (hQ : IsWeightBound (codeBindingGame2 r ps A) permCalls2 Q) (hr : r ≤ maxRows) :
+verdict's bound, for a simulated adversary of at most `2 Q + 1` queries of `H` or the challenges,
+`Q` of them of the challenges (`isWeightBound_advSim`). -/
+theorem codeBindingExpG_le (A : CodeBindingAdvB r Crs Proof) (Q : ℕ) (hr : r ≤ maxRows)
+    (hA : ∀ crs ∈ support ps.setup, IsWeightBound (advSim r A crs) hgCalls (2 * Q + 1) ∧
+      IsWeightBound (advSim r A crs)
+        (gCalls (Msg := List UInt8) (Dg := KDigest) (Root := Digest) (Z := E) (n := 14)) Q) :
     prT (codeBindingExpG r ps A) ≤ prT (ps.setup >>= ksIdealG r ps ext A) +
       (((2 * Q + 2 ^ 20 : ℕ) : ℝ≥0∞) * (65 * ((2 * Q + 2 ^ 20 : ℕ) : ℝ≥0∞) / 2 ^ 256) +
         ((Q + 14 : ℕ) : ℝ≥0∞) * (14 / 2 ^ 192)) :=
   (prT_codeBindingExpG_le r ps ext A).trans (add_le_add le_rfl
     (prEvent_bind_le_of_support _ _ _ _ fun crs hcrs ↦
-      prT_idealT_tailH_le r ps ext A Q hQ hr crs hcrs))
+      prT_idealT_tailH_le r ps ext A Q hr crs (hA crs hcrs).1 (hA crs hcrs).2))
 
 end Ideal
 
