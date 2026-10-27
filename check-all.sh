@@ -106,7 +106,8 @@ lean_da() {
     LeanDa.leanDa_codeBinding LeanDa.checker_sound LeanDa.commitCodewords_eq_commitCells \
     LeanDa.dualCodeword_eq_dual LeanDa.membershipVector_eq_dual \
     LeanDa.leanDa_positionBinding_rpm LeanDa.leanDa_codeBinding_rpm \
-    LeanDa.leanDa_codeBinding_rpm_bound
+    LeanDa.leanDa_codeBinding_rpm_bound LeanDa.leanDa_codeBinding_rpm_fork \
+    LeanDa.codeBindingRpmFork_of_codeBindingRpm
 }
 
 lean_vm() {

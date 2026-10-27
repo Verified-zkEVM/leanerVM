@@ -6,6 +6,7 @@ import LeanDa.RpmWagner
 import LeanDa.RpmComplete
 import LeanDa.KsRpm
 import LeanDa.Arith
+import LeanDa.StraightBound
 import PqDas
 
 /-!
@@ -32,7 +33,12 @@ give Wagner's bound, averaged over `H`, plus `2 (Q + 15)² / 2^576` (`leanDa_cod
 His two collision terms are birthday bounds (`wpbColl_le`, `forkColl_le`) and his
 knowledge-soundness term is the argument's knowledge soundness in the random-permutation model
 (`leanDa_codeBinding_core`), so for an argument knowledge sound there LeanDA is code binding with
-explicit terms in `Q` (`leanDa_codeBinding_rpm_bound`).
+explicit terms in `Q` (`leanDa_codeBinding_rpm_fork`). The end theorem
+`leanDa_codeBinding_rpm_bound` replaces the forking step by a straight-line argument built on his
+framework and games (`LeanDa.StraightBound`): a code-binding win is a break of the argument's
+knowledge soundness or a bad event of `H` and the challenges, lazily sampled, whose probability is
+linear in the membership test's soundness; the forking route's bound follows from it
+(`codeBindingRpmFork_of_codeBindingRpm`).
 -/
 
 /-! ## The end theorems
@@ -196,12 +202,30 @@ theorem leanDa_codeBinding_core [NeZero r]
   · gcongr
   · gcongr
 
-/-- **LeanDA is code binding in the random-permutation model, for an argument knowledge sound in
-it**: Wagner's bound with its knowledge-soundness term read back in the random-permutation model
-(`ksExpRpm_ksAdv`, through `rom2_le_ksExpRpm` and `ksIdealG_le`), its collision terms birthday
-bounds (`wpbColl_le`, `forkColl_le`), and the forking lemma's square root bounded
-(`fork_sq_le`). -/
-theorem leanDa_codeBinding_rpm_bound : CodeBindingRpm := by
+/-- **The forking route's code-binding statement** (proof side, not an end statement):
+`CodeBindingRpm` with the bound Wagner's forking lemma gives,
+`(Q + c + 2^22) · 2^-k + (Q + 2^20) · 2^-93 + (Q + 2^22)² · 2^-158`, the end statement's before
+the straight-line proof. It follows from `CodeBindingRpm` (`codeBindingRpmFork_of_codeBindingRpm`)
+and from Wagner's bound (`leanDa_codeBinding_rpm_fork`). -/
+abbrev CodeBindingRpmFork : Prop :=
+  ∀ (r : ℕ) {Crs Proof : Type} {rel : Unit × Digest × Challenges → (Fin (r * 128) → Cell) → Bool}
+    (ps : Nark (Unit × Digest × Challenges) (Fin (r * 128) → Cell) Crs Proof rel)
+    (ext : Nark.Extractor (Unit × Digest × Challenges) (Fin (r * 128) → Cell) Crs Proof) (c k : ℕ),
+    (∀ (B : KsAdvRpm Crs Proof) (q : ℕ), IsWeightBound (ksGame r ps ext B) permCalls q →
+      q ≤ 2 ^ 128 → Pr{let b ← runK (ksGame r ps ext B)}[b = true] ≤
+        ((q : ℝ≥0∞) + c) * (2 : ℝ≥0∞)⁻¹ ^ k) →
+    1 ≤ r → r ≤ maxRows →
+    ∀ (A : CodeBindingAdvRpm r Crs Proof) (Q : ℕ),
+      IsWeightBound (codeBindingGame r ps A) permCalls Q → Q ≤ 2 ^ 127 →
+        Pr{let b ← runK (codeBindingGame r ps A)}[b = true] ≤
+          ((Q : ℝ≥0∞) + c + 2 ^ 22) * (2 : ℝ≥0∞)⁻¹ ^ k + ((Q : ℝ≥0∞) + 2 ^ 20) * (2 : ℝ≥0∞)⁻¹ ^ 93 +
+            ((Q : ℝ≥0∞) + 2 ^ 22) ^ 2 * (2 : ℝ≥0∞)⁻¹ ^ 158
+
+/-- **Code binding by Wagner's forking route**: his bound with its knowledge-soundness term read
+back in the random-permutation model (`ksExpRpm_ksAdv`, through `rom2_le_ksExpRpm` and
+`ksIdealG_le`), its collision terms birthday bounds (`wpbColl_le`, `forkColl_le`), and the forking
+lemma's square root bounded (`fork_sq_le`). -/
+theorem leanDa_codeBinding_rpm_fork : CodeBindingRpmFork := by
   intro r Crs Proof rel ps ext c k hks hr1 hrM A Q hQ hQcap
   replace hQ := isWeightBound_codeBindingGame r ps A Q hQ
   rw [(runK_codeBindingGame r ps A).prEvent_eq]
@@ -249,6 +273,66 @@ theorem leanDa_codeBinding_rpm_bound : CodeBindingRpm := by
         push_cast
         ring
 
+/-- **LeanDA is code binding in the random-permutation model, for an argument knowledge sound in
+it**, by the straight-line argument (`LeanDa.Straight`, built on Wagner's framework and games):
+the transfer to the two-oracle model and the duplex lemma (`codeBindingExpRpm_le_G`), then a win
+is a break of the argument's knowledge soundness, read back in the random-permutation model as
+before (`ksIdealG_le`, `rom2_le_ksExpRpm`), or a bad cache of the world with `H` and the
+challenges lazily sampled (`codeBindingExpG_le`). -/
+theorem leanDa_codeBinding_rpm_bound : CodeBindingRpm := by
+  intro r Crs Proof rel ps ext c k hks hr1 hrM A Q hQ hQcap
+  replace hQ := isWeightBound_codeBindingGame r ps A Q hQ
+  rw [(runK_codeBindingGame r ps A).prEvent_eq]
+  replace hks : ∀ (B : KsAdvB Crs Proof) (q : ℕ), IsWeightBound (ksGame2 r ps ext B) permCalls2 q →
+      q ≤ 2 ^ 128 → Pr{let b ← ksExpRpm r ps ext B}[b = true] ≤ ((q : ℝ≥0∞) + c) * (2 : ℝ≥0∞)⁻¹ ^ k :=
+    fun B q hB hq ↦ by
+      have := hks (unrelabelAdv B) q ((isWeightBound_ksGame_unrelabel r ps ext B q).mpr hB) hq
+      rwa [(runK_ksGame_unrelabel r ps ext B).prEvent_eq] at this
+  generalize relabelAdv A = A at hQ ⊢
+  have hL : logPad r ≤ 10 := by
+    unfold logPad
+    exact (Nat.clog_le_iff_le_pow (by norm_num)).mpr (by simpa [maxRows] using hrM)
+  have hN : nPad r ≤ 1024 := by
+    unfold nPad
+    calc 2 ^ logPad r ≤ 2 ^ 10 := Nat.pow_le_pow_right (by norm_num) hL
+      _ = 1024 := by norm_num
+  have hK : ksCalls r Q ≤ Q + 2 ^ 22 := by unfold ksCalls relCalls; omega
+  have hε : Pr{let b ← ksExpRpm r ps ext (ksAdv r A)}[b = true] ≤
+      ((Q : ℝ≥0∞) + c + 2 ^ 22) * (2 : ℝ≥0∞)⁻¹ ^ k := by
+    refine (hks (ksAdv r A) (ksCalls r Q) (isWeightBound_ksGame r ps ext A Q hQ)
+      (by omega)).trans ?_
+    refine mul_le_mul_left ?_ _
+    have : ((ksCalls r Q : ℕ) : ℝ≥0∞) ≤ (Q : ℝ≥0∞) + 2 ^ 22 := by exact_mod_cast hK
+    calc ((ksCalls r Q : ℕ) : ℝ≥0∞) + c ≤ (Q : ℝ≥0∞) + 2 ^ 22 + c := by gcongr
+      _ = (Q : ℝ≥0∞) + c + 2 ^ 22 := by ring
+  have hG := codeBindingExpRpm_le_G r ps A Q hQ
+  have hS := codeBindingExpG_le r ps ext A Q hQ hrM
+  have hKS : Pr{let b ← ps.setup >>= ksIdealG r ps ext A}[b = true] ≤
+      Pr{let b ← ksExpRpm r ps ext (ksAdv r A)}[b = true] + ((ksCalls r Q : ℕ) : ℝ≥0∞) ^ 2 / 2 ^ 508 +
+        dupTerm Q :=
+    (ksIdealG_le r ps ext A Q hQ).trans (add_le_add (rom2_le_ksExpRpm r ps ext A Q hQ) le_rfl)
+  have hR := straight_rest_le Q (ksCalls r Q) hK
+  calc Pr{let b ← codeBindingExpRpm r ps A}[b = true]
+      ≤ prT (codeBindingExpG r ps A) + (Q ^ 2 : ℝ≥0∞) / 2 ^ 508 + dupTerm Q := hG
+    _ ≤ Pr{let b ← ksExpRpm r ps ext (ksAdv r A)}[b = true] +
+          ((((ksCalls r Q : ℕ) : ℝ≥0∞) ^ 2 / 2 ^ 508 + dupTerm Q +
+            (((2 * Q + 2 ^ 20 : ℕ) : ℝ≥0∞) * (65 * ((2 * Q + 2 ^ 20 : ℕ) : ℝ≥0∞) / 2 ^ 256) +
+              ((Q + 14 : ℕ) : ℝ≥0∞) * (14 / 2 ^ 192))) +
+            ((Q : ℝ≥0∞) ^ 2 / 2 ^ 508 + dupTerm Q)) := by
+        refine (add_le_add (add_le_add (hS.trans (add_le_add hKS le_rfl)) le_rfl) le_rfl).trans
+          (le_of_eq ?_)
+        ring
+    _ ≤ ((Q : ℝ≥0∞) + c + 2 ^ 22) * (2 : ℝ≥0∞)⁻¹ ^ k +
+          (((Q : ℝ≥0∞) + 2 ^ 22) * (2 : ℝ≥0∞)⁻¹ ^ 188 +
+            ((Q : ℝ≥0∞) + 2 ^ 22) ^ 2 * (2 : ℝ≥0∞)⁻¹ ^ 247) := add_le_add hε hR
+    _ = _ := by ring
+
+/-- **The forking route's bound follows from the straight-line one**, which is below it for every
+`Q` (`straight_le_fork`). -/
+theorem codeBindingRpmFork_of_codeBindingRpm (h : CodeBindingRpm) : CodeBindingRpmFork := by
+  intro r Crs Proof rel ps ext c k hks hr1 hrM A Q hQ hQcap
+  exact (h r ps ext c k hks hr1 hrM A Q hQ hQcap).trans (straight_le_fork Q c k)
+
 end Core
 
 end LeanDa
@@ -295,6 +379,14 @@ standard axioms. -/
 /-- info: 'LeanDa.leanDa_codeBinding_rpm_bound' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
 #print axioms LeanDa.leanDa_codeBinding_rpm_bound
+
+/-- info: 'LeanDa.leanDa_codeBinding_rpm_fork' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms LeanDa.leanDa_codeBinding_rpm_fork
+
+/-- info: 'LeanDa.codeBindingRpmFork_of_codeBindingRpm' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms LeanDa.codeBindingRpmFork_of_codeBindingRpm
 
 /-- info: 'LeanDa.membershipChallengesM_id' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs (whitespace := lax) in

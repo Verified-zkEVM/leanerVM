@@ -20,7 +20,7 @@ LeanDA as `crates/lean_da` computes it, and its security in Benedikt Wagner's fr
 code commitments, moved to the random-permutation model.
 
 **Credit.** The framework (erasure codes and their consistency, arguments of knowledge and their
-knowledge-soundness game) and the code-binding bound are Benedikt Wagner's formalization,
+knowledge-soundness game, the code-binding game) is Benedikt Wagner's formalization,
 https://github.com/b-wagn/fv-pq-da at `4475179c19296acf3469d7d552a3186ad1feda74` (his post:
 https://ethresear.ch/t/formally-verified-security-for-pq-das-leanda/25746), ported and modified
 to build on VCVio `afa6593f` and Lean v4.34.1, under the Apache License 2.0 (`lean_da/LICENSE`,
@@ -751,23 +751,24 @@ abbrev PositionBindingRpm : Prop :=
         ((Q : ℝ≥0∞) + 1) ^ 2 * (2 : ℝ≥0∞)⁻¹ ^ 256
 
 /-- **LeanDA is code binding in the random-permutation model, for an argument knowledge sound in
-it** (Benedikt Wagner's bound, moved to the random-permutation model). For `1 ≤ r ≤ 1024` rows
-(`maxRows`, the crate's bound), every argument `ps` (any verifier, for any relation; an
-oracle-free parameter, as in Wagner's model) and extractor `ext`: if every adversary whose
-knowledge-soundness game (`ksGame`, the relation's check included) makes at most `q ≤ 2^128`
-permutation calls (`permCalls`) wins it with probability at most `(q + c) · 2^-k`, then every
-adversary whose code-binding game, verifications included, makes at most `Q ≤ 2^127` calls breaks
-code binding with probability at most
+it** (Benedikt Wagner's framework and games, moved to the random-permutation model, with a
+straight-line argument in place of his forking lemma). For `1 ≤ r ≤ 1024` rows (`maxRows`, the
+crate's bound), every argument `ps` (any verifier, for any relation; an oracle-free parameter, as
+in Wagner's model) and extractor `ext`: if every adversary whose knowledge-soundness game
+(`ksGame`, the relation's check included) makes at most `q ≤ 2^128` permutation calls
+(`permCalls`) wins it with probability at most `(q + c) · 2^-k`, then every adversary whose
+code-binding game, verifications included, makes at most `Q ≤ 2^127` calls breaks code binding
+with probability at most
 
-`(Q + c + 2^22) · 2^-k + (Q + 2^20) · 2^-93 + (Q + 2^22)² · 2^-158`.
+`(Q + c + 2^22) · 2^-k + (Q + 2^22) · 2^-188 + (Q + 2^22)² · 2^-247`.
 
 The first term is the argument's knowledge soundness against an adversary that runs the
 code-binding adversary and derives the challenges of its root (at most `Q + 2^22` calls with the
-relation's commitment). The rest gathers the transfer to the two-oracle model and the duplex
-lemma, of the two games, two birthday bounds for collisions of the hash, and the loss of Wagner's
-forking lemma, the square root of `(Q + 2) · (N² / 2^256 + 14 / 2^192 + 2^-2688)` for the fork's
-`N ≤ 2 Q + 2^21` hash calls, at most `x · 2^-95 + x² · 2^-159 + (Q + 2) · 2^-94` for
-`x = Q + 2^20`.
+relation's commitment). The second is the membership test's soundness, `14 / 2^192` for each of
+at most `Q + 14` roots whose challenges are drawn. The third gathers the transfer to the
+two-oracle model and the duplex lemma, of the two games, and the hash's bad events among at most
+`2 Q + 2^20` hash and challenge queries: a collision, or a fresh answer that is a digest an
+earlier input or a root with drawn challenges already carries.
 
 The hypothesis holds only for an argument that stays knowledge sound when the hash is `π`'s:
 `ps` proves a relation that hashes with Keccak-256 over `π`, but its prover and verifier do not
@@ -788,8 +789,8 @@ abbrev CodeBindingRpm : Prop :=
     ∀ (A : CodeBindingAdvRpm r Crs Proof) (Q : ℕ),
       IsWeightBound (codeBindingGame r ps A) permCalls Q → Q ≤ 2 ^ 127 →
         Pr{let b ← runK (codeBindingGame r ps A)}[b = true] ≤
-          ((Q : ℝ≥0∞) + c + 2 ^ 22) * (2 : ℝ≥0∞)⁻¹ ^ k + ((Q : ℝ≥0∞) + 2 ^ 20) * (2 : ℝ≥0∞)⁻¹ ^ 93 +
-            ((Q : ℝ≥0∞) + 2 ^ 22) ^ 2 * (2 : ℝ≥0∞)⁻¹ ^ 158
+          ((Q : ℝ≥0∞) + c + 2 ^ 22) * (2 : ℝ≥0∞)⁻¹ ^ k + ((Q : ℝ≥0∞) + 2 ^ 22) * (2 : ℝ≥0∞)⁻¹ ^ 188 +
+            ((Q : ℝ≥0∞) + 2 ^ 22) ^ 2 * (2 : ℝ≥0∞)⁻¹ ^ 247
 
 end LeanDa
 
