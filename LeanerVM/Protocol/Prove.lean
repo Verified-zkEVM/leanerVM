@@ -25,7 +25,8 @@ in a monad `m`:
 1. the sizes are read off the witness (`Sizes.ofWitness`) and must pass the setup checks with the
    rate (`Sizes.Admissible`, `validRate`), else `none`; they fix the leanISA instance at the Flock
    specification `F`, its stack (`stackOf`) and WHIR's deployed chain (`leanIsaChain`);
-2. from the statement's seed (`FsState.seed`), the sizes and the rate are announced;
+2. from the statement's seed (`FsState.seed`), the sizes and the rate are announced (`proveFrom`
+   starts from the state a computation `seed` gives, run once the sizes and the rate pass);
 3. the compiled protocol's honest prover (`compiledProver`, the stateful prover that runs as the
    honest prover of `listBindingDef`, `compiledProver_run`) runs round by round against the wire
    of its schedule (`compiledCodec`): each message written to the stream as the verifier reads it,
@@ -118,33 +119,48 @@ def writeProof (ops : WireOps (ProveM m)) (F : FlockSpec) (prog : Program) (s : 
     (input, fun i ↦ i.elim0) q
   hintOpenings
 
+/-- The proof of a writer run from the state `seed` computes, with an empty book; `none` when a
+grind runs out of fuel. -/
+def runProofFrom (seed : m FsState) (wr : ProveM m Unit) :
+    m (Option (Proof PrunedMerklePaths)) := do
+  let fs ← seed
+  let r ← runWrite (wr.run' ⟨#[], #[]⟩) fs
+  return r.map (·.2.proof)
+
 /-- The proof of a writer run from the statement's seed with an empty book; `none` when a grind
 runs out of fuel. -/
 def runProof (prog : Program) (input : PublicInput) (wr : ProveM m Unit) :
-    m (Option (Proof PrunedMerklePaths)) := do
-  let r ← runWrite (wr.run' ⟨#[], #[]⟩) (FsState.seed prog input)
-  return r.map (·.2.proof)
+    m (Option (Proof PrunedMerklePaths)) :=
+  runProofFrom (pure (FsState.seed prog input)) wr
 
 end Prove
 
 open Prove
 
-/-- **leanVM's honest prover**, generic in how the hash `H` is answered: the sizes read off the
-witness and checked with the rate, then the announcement, the compiled protocol's honest prover
+/-- **leanVM's honest prover from a computed start**, generic in how the hash `H` is answered and
+in how the chain's first state is computed (`seed`): the sizes read off the witness and checked
+with the rate, then, from `seed`'s state, the announcement, the compiled protocol's honest prover
 run against the chain with `fuel` candidate nonces per grind, and the openings. `none` at
 inadmissible sizes, when a grind runs out of fuel, or when the commitments and the positions
 recorded differ in number (`hintOpenings`), which cannot happen: each level commits one word and
-draws its positions once (`Prove.proveWith_eq_none`). -/
-def proveWith {m : Type → Type} [Monad m] (H : List UInt8 → m Digest) (fuel : ℕ) (F : FlockSpec)
-    (prog : Program) (input : PublicInput) (w : EnsembleWitness (leanIsaEnsemble prog)) (ρ : ℕ) :
-    m (Option (Proof PrunedMerklePaths)) :=
+draws its positions once (`Prove.proveFrom_eq_none`). -/
+def proveFrom {m : Type → Type} [Monad m] (H : List UInt8 → m Digest) (seed : m FsState)
+    (fuel : ℕ) (F : FlockSpec) (prog : Program) (input : PublicInput)
+    (w : EnsembleWitness (leanIsaEnsemble prog)) (ρ : ℕ) : m (Option (Proof PrunedMerklePaths)) :=
   match Sizes.ofWitness w with
   | none => pure none
   | some s =>
     if hs : s.Admissible prog ∧ validRate ρ then
-      runProof prog input
+      runProofFrom seed
         (writeProof H (proveOps H fuel) F prog s hs.1 ρ hs.2 input (stackOf F prog s w))
     else pure none
+
+/-- **leanVM's honest prover**, generic in how the hash `H` is answered: `proveFrom` from the
+statement's seed. -/
+def proveWith {m : Type → Type} [Monad m] (H : List UInt8 → m Digest) (fuel : ℕ) (F : FlockSpec)
+    (prog : Program) (input : PublicInput) (w : EnsembleWitness (leanIsaEnsemble prog)) (ρ : ℕ) :
+    m (Option (Proof PrunedMerklePaths)) :=
+  proveFrom H (pure (FsState.seed prog input)) fuel F prog input w ρ
 
 /-- **leanVM's honest prover** at the deployed hash, BLAKE2s-256, and the deployed Flock
 specification, the one `verify` reads. -/

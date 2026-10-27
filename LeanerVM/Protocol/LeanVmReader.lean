@@ -44,11 +44,12 @@ query positions after their 17 bits of grinding (`bad_density`,
 `prEvent_lowBitsZero`). `leanVm_misbehaves_rom` is `misbehaves_rom` at the reader, the verifier
 `verifyWith`, its query bound `verifierQueries` and the proof's roots `rootsOf`.
 
-An accepted proof's history decodes, at the sizes and rate it announces
+An accepted proof's history decodes, at the sizes and rate it announces and from any start
 (`walkChainLogged_proof_decodes`, `walkChain_proof_decodes`), and so does the history an accepted
-replay logs (`decodes_of_replay`). `verifierQueries_le_bound`: the verifier asks at most
-`verifierQueriesBound = 13697` queries whatever the program and the input, `μ_bus` at most `55`,
-the tables' heights at most `2^40`, and WHIR's walk and openings at most `8839` over the window.
+replay logs (`decodes_of_replay`, and `decodes_of_runFrom` from a computed start).
+`verifierQueries_le_bound`: the verifier asks at most `verifierQueriesBound = 13697` queries
+whatever the program and the input, `μ_bus` at most `55`, the tables' heights at most `2^40`, and
+WHIR's walk and openings at most `8839` over the window.
 
 Classification: T4 (the non-interactive compilation), soundness direction; the random-oracle
 model's half, the hash's misbehaviour bounded for every adversary with a query bound.
@@ -363,15 +364,15 @@ theorem announced?_of_setup {M : Type} {p : Proof M} {s : Sizes} {ρ : ℕ}
   · cases h
 
 /-- **The verifier's logged chain walk on a proof decodes**: if the setup accepts the proof's
-announcement and the logged chain walk at the announced ladder succeeds on the proof from the
-statement's seed, the history it logged decodes, with any words, to a transcript whose wire is the
+announcement and the logged chain walk at the announced ladder succeeds on the proof from a chain
+state `fs`, the history it logged decodes, with any words, to a transcript whose wire is the
 walk's, viewed. -/
 theorem walkChainLogged_proof_decodes {proof : Proof PrunedMerklePaths} {s : Sizes} {ρ : ℕ}
     {levels : List Parameters.Whir.Level} (hsetup : setup? prog proof = some (s, ρ))
-    (hl : ladderOf prog s ρ = some levels) {H : List UInt8 → Id Digest}
+    (hl : ladderOf prog s ρ = some levels) {H : List UInt8 → Id Digest} {fs : FsState}
     {st' : ReaderState PrunedMerklePaths} {w : Wire} {hist : List Reading}
     (h : walkChainLogged prog s input (levelShapes (stackMu prog s) levels) H
-      ⟨FsState.seed prog input, proof.stream, proof.merkle⟩ = .ok ((w, hist), st')) :
+      ⟨fs, proof.stream, proof.merkle⟩ = .ok ((w, hist), st')) :
     ∃ (hs : s.Admissible prog) (hρ : validRate ρ), ∀ W : LeanWords prog s hs ρ hρ,
       ∃ tr, decode prog input s hs ρ hρ W hist = some tr ∧
         wireOf (leanVm prog s) (leanIsaChain prog s hs ρ hρ).ladder tr =
@@ -383,23 +384,48 @@ theorem walkChainLogged_proof_decodes {proof : Proof PrunedMerklePaths} {s : Siz
     (take_eq_announcement_of_announced? (announced?_of_setup hsetup))
 
 /-- **The verifier's chain walk on a proof decodes**: if the setup accepts the proof's
-announcement and the chain walk on the proof reader at the announced ladder succeeds from the
-statement's seed, the logged walk succeeds with the same wire, and its history decodes, with any
-words, to a transcript whose wire is the walk's, viewed. -/
+announcement and the chain walk on the proof reader at the announced ladder succeeds from a chain
+state `fs`, the logged walk succeeds with the same wire, and its history decodes, with any words,
+to a transcript whose wire is the walk's, viewed. -/
 theorem walkChain_proof_decodes {proof : Proof PrunedMerklePaths} {s : Sizes} {ρ : ℕ}
     {levels : List Parameters.Whir.Level} (hsetup : setup? prog proof = some (s, ρ))
-    (hl : ladderOf prog s ρ = some levels) {H : List UInt8 → Id Digest}
+    (hl : ladderOf prog s ρ = some levels) {H : List UInt8 → Id Digest} {fs : FsState}
     {st' : ReaderState PrunedMerklePaths} {w : Wire}
     (h : runPlain (walkChain (readerOps H) prog s input (levelShapes (stackMu prog s) levels))
-      ⟨FsState.seed prog input, proof.stream, proof.merkle⟩ = .ok (w, st')) :
+      ⟨fs, proof.stream, proof.merkle⟩ = .ok (w, st')) :
     ∃ hist, walkChainLogged prog s input (levelShapes (stackMu prog s) levels) H
-        ⟨FsState.seed prog input, proof.stream, proof.merkle⟩ = .ok ((w, hist), st') ∧
+        ⟨fs, proof.stream, proof.merkle⟩ = .ok ((w, hist), st') ∧
       ∃ (hs : s.Admissible prog) (hρ : validRate ρ), ∀ W : LeanWords prog s hs ρ hρ,
         ∃ tr, decode prog input s hs ρ hρ W hist = some tr ∧
           wireOf (leanVm prog s) (leanIsaChain prog s hs ρ hρ).ladder tr =
             Wire.view (levelShapes (stackMu prog s) levels) w := by
   obtain ⟨hist, hlog⟩ := walkChainLogged_of_walkChain H h
   exact ⟨hist, hlog, walkChainLogged_proof_decodes hsetup hl hlog⟩
+
+/-- **An accepted replay from a computed start decodes**: if the verifier from the start
+`seed`, replayed on a log, accepts a proof, recording `logV`, then the start runs with a state
+`fs` and the queries `log₀`, a prefix of `logV`, and at the sizes, rate and levels the proof
+announces, the chain walk with its steps logged at the log's hash succeeds on the proof with a
+wire `w` and a history in `logV` from `fs`, and the history decodes, with any words, to a
+transcript whose wire is `w`, viewed. -/
+theorem decodes_of_runFrom {log logV : hashSpec.QueryLog}
+    {seed : StateT hashSpec.QueryLog Option FsState} {proof : Proof PrunedMerklePaths}
+    (h : (verifyFrom (QueryLog.replayImpl (MerkleTree.logAnswer log)) seed prog input proof).run
+      [] = some (true, logV)) :
+    ∃ s ρ levels fs log₀ w st₁ hist, setup? prog proof = some (s, ρ) ∧
+      ladderOf prog s ρ = some levels ∧ seed.run [] = some (fs, log₀) ∧ log₀ <+: logV ∧
+      walkChainLogged prog s input (levelShapes (stackMu prog s) levels)
+        (hashOf (MerkleTree.logAnswer log)) ⟨fs, proof.stream, proof.merkle⟩ =
+        .ok ((w, hist), st₁) ∧
+      (∀ e ∈ HashChain.queries Block.input fs.cv hist, e ∈ logV) ∧
+      ∃ (hs : s.Admissible prog) (hρ : validRate ρ), ∀ W : LeanWords prog s hs ρ hρ,
+        ∃ tr, decode prog input s hs ρ hρ W hist = some tr ∧
+          wireOf (leanVm prog s) (leanIsaChain prog s hs ρ hρ).ladder tr =
+            Wire.view (levelShapes (stackMu prog s) levels) w := by
+  obtain ⟨s, ρ, levels, fs, log₀, w, st₁, hist, hsetup, hl, hseed, hpre, hw, hq⟩ :=
+    chain_in_log_of_runFrom h
+  exact ⟨s, ρ, levels, fs, log₀, w, st₁, hist, hsetup, hl, hseed, hpre, hw, hq,
+    walkChainLogged_proof_decodes hsetup hl hw⟩
 
 /-- **An accepted replay's history decodes**: if the verifier replayed on a log accepts a proof,
 recording `logV`, then at the sizes, rate and levels the proof announces, the chain walk with its

@@ -26,7 +26,9 @@ import LeanerVMTests.Protocol.LogScan
   not decidable (its bad set quantifies over a witness), so no claim is made that the honest run
   has none.
 * **The deployed verifier** is `verifyWith` at BLAKE2s in `Id`, and the verifier on the oracle,
-  run with BLAKE2s answering, is `pure` of it (`verifyWith_simulateQ`, `verifyWith_pure`).
+  run with BLAKE2s answering, is `pure` of it (`verifyWith_simulateQ`, `verifyWith_pure`). The
+  same holds from the seed's hashes (`verifyFrom` from `FsState.seedWith`), whose state at
+  BLAKE2s is the test statement's first state.
 * **The adaptive forms.** At a fixed statement the adaptive hypothesis is the selective one
   (`blakeMisbehavesAdaptive_const`). The adaptive replayer, `pure (prog, input, proof)`, fails it
   at every `δ < 1` when `verify` accepts (`adaptiveReplayer_not_blakeMisbehaves`). An adversary
@@ -204,6 +206,8 @@ def scanAgrees (roots : List Digest) (logA logV : hashSpec.QueryLog) : Bool :=
 /-- The chain's first state at the test statement. -/
 def s₀ : Digest := (FsState.seed program input).cv
 
+#guard (Id.run (FsState.seedWith blake2sBytes program input)).cv == s₀
+
 /-- A root the chain absorbs as two observe steps, answered by `d 1` and `d 2`. -/
 def absorbed : hashSpec.QueryLog :=
   [⟨Block.input s₀ (.observe (digestScalars (d 9)).1), d 1⟩,
@@ -245,6 +249,26 @@ example (prog : Program) (input : PublicInput) (proof : Proof PrunedMerklePaths)
 example (prog : Program) (input : PublicInput) (proof : Proof PrunedMerklePaths) :
     runBlake2s (verifyWith hashQuery prog input proof) = pure (verify prog input proof) :=
   (verifyWith_simulateQ _ prog input proof).trans (verifyWith_pure _ _ _ _)
+
+/-- `verify` is `verifyFrom` at BLAKE2s from the seed's hashes, in `Id`. -/
+example (prog : Program) (input : PublicInput) (proof : Proof PrunedMerklePaths) :
+    verify prog input proof =
+      verifyFrom (m := Id) blake2sBytes (FsState.seedWith blake2sBytes prog input) prog input
+        proof := rfl
+
+/-- The verifier on the oracle from the seed's hashes as queries, run with BLAKE2s answering, is
+`pure` of `verify`. -/
+example (prog : Program) (input : PublicInput) (proof : Proof PrunedMerklePaths) :
+    runBlake2s (verifyFrom hashQuery (FsState.seedWith hashQuery prog input) prog input proof) =
+      pure (verify prog input proof) := by
+  refine (verifyFrom_simulateQ _ _ prog input proof).trans ?_
+  rw [show simulateQ _ (FsState.seedWith hashQuery prog input) = _ from
+    FsState.seedWith_simulateQ _ prog input]
+  have h := verifyFrom_hom (MonadHom.pure ProbComp) (m := Id) blake2sBytes
+    (FsState.seedWith blake2sBytes prog input) prog input proof
+  rw [FsState.seedWith_hom] at h
+  simp only [MonadHom.pure_apply] at h
+  exact h.symm
 
 /- A proof with no announcement: `verify` rejects it, and nothing is extracted. -/
 #guard !verify program input ⟨[], []⟩

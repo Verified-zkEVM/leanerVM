@@ -47,6 +47,10 @@ state. Every round of the wire runs when the grinds do (`Prover.runWith_total`),
 keeps as many commitments as positions (`book_compiled`), so the openings' size check never
 fails. So the hypothesis that the prover returned a proof is met whenever the grinds succeed.
 
+Both theorems hold from any start the prover and the verifier share
+(`baseProver_complete_of_agree_from`, `proveFrom_eq_none`); the statements from the statement's
+seed are their instances.
+
 Transcripts are passed in explicit mode (`@t`, `@Prod.fst _ _ r`), which spares the elaborator
 reducing their types (see `LeanerVM.Protocol.Prove.ReadBack`).
 
@@ -211,15 +215,16 @@ private theorem leafImage_level0Rows {ℓ b t n : ℕ} (hn : n ≤ 2 ^ ℓ) {x :
   conv_rhs => rw [← List.take_append_drop n (x.row p).toList]
   simp [level0Rows, leafImage, hdrop, hn, List.reverse_append]
 
-/-- A prover's proof is the proof of a run of its writer from the statement's seed and an empty
+/-- A prover's proof is the proof of a run of its writer from the start's state and an empty
 book. -/
-private theorem runs_of_runProof {prog : Program} {input : PublicInput} {wr : ProveM Id Unit}
-    {proof : Proof PrunedMerklePaths} (h : runProof (m := Id) prog input wr = some proof) :
-    ∃ s', proveSem.Runs wr (⟨#[], #[]⟩, ⟨FsState.seed prog input, #[], #[]⟩) () s' ∧
+private theorem runs_of_runProofFrom {seed : Id FsState} {wr : ProveM Id Unit}
+    {proof : Proof PrunedMerklePaths} (h : runProofFrom (m := Id) seed wr = some proof) :
+    ∃ s', proveSem.Runs wr (⟨#[], #[]⟩, ⟨Id.run seed, #[], #[]⟩) () s' ∧
       s'.2.proof = proof := by
-  unfold runProof runWrite at h
-  simp only [StateT.run'_eq, StateT.run_map, OptionT.run_map] at h
-  rcases hr : ((wr.run ⟨#[], #[]⟩).run ⟨FsState.seed prog input, #[], #[]⟩).run with
+  replace h : runProofFrom (m := Id) (pure (Id.run seed)) wr = some proof := h
+  unfold runProofFrom runWrite at h
+  simp only [pure_bind, StateT.run'_eq, StateT.run_map, OptionT.run_map] at h
+  rcases hr : ((wr.run ⟨#[], #[]⟩).run ⟨Id.run seed, #[], #[]⟩).run with
     _ | ⟨⟨u, bk⟩, ws⟩
   · rw [hr] at h
     cases h
@@ -235,11 +240,11 @@ private theorem length_level0Rows {ℓ b t n : ℕ} (hn : n ≤ 2 ^ ℓ) (x : KW
   simp [level0Rows, hn]
 
 /-- The verifier on a proof that passes the setup, whose ladder exists and whose openings have
-their shapes, and on which the walk and the openings read a wire and rows and consume the proof:
-the algebra on them. -/
-private theorem verifyWith_of_run {H : List UInt8 → Digest} {prog : Program} {input : PublicInput}
-    {proof : Proof PrunedMerklePaths} {s : Sizes} {ρ : ℕ} {levels : List Whir.Level}
-    {w : Verify.Wire} {rows : List (List (List K))}
+their shapes, and on which the walk and the openings read a wire and rows and consume the proof
+from the start's state: the algebra on them. -/
+private theorem verifyFrom_of_run {H : List UInt8 → Digest} {seed : Id FsState} {prog : Program}
+    {input : PublicInput} {proof : Proof PrunedMerklePaths} {s : Sizes} {ρ : ℕ}
+    {levels : List Whir.Level} {w : Verify.Wire} {rows : List (List (List K))}
     (hsetup : Verify.setup? prog proof = some (s, ρ))
     (hl : Verify.ladderOf prog s ρ = some levels)
     (hok : Verify.openingsOk (Verify.nLanes prog s) true
@@ -249,10 +254,12 @@ private theorem verifyWith_of_run {H : List UInt8 → Digest} {prog : Program} {
           (Verify.levelShapes (Verify.stackMu prog s) levels)
         Reader.finish
         return x : Verify.Walk Id (Verify.Wire × List (List (List K)))).run'
-          ⟨FsState.seed prog input, proof.stream, proof.merkle⟩).run = Except.ok (w, rows)) :
-    Verify.verifyWith (m := Id) H prog input proof =
+          ⟨Id.run seed, proof.stream, proof.merkle⟩).run = Except.ok (w, rows)) :
+    Verify.verifyFrom (m := Id) H seed prog input proof =
       Verify.algebra prog s input (Verify.levelShapes (Verify.stackMu prog s) levels) w rows := by
-  simp only [Verify.verifyWith, hsetup, hl, hok, Bool.not_true, Bool.false_eq_true, ↓reduceIte]
+  change Verify.verifyFrom (m := Id) H (pure (Id.run seed)) prog input proof = _
+  simp only [Verify.verifyFrom, hsetup, hl, hok, Bool.not_true, Bool.false_eq_true, ↓reduceIte,
+    pure_bind]
   rw [hrun]
   rfl
 
@@ -265,19 +272,21 @@ private theorem rowsOf_eq {I : M3Instance} {sh : Whir.Shape} {κ n : ℕ} {L : L
       rowsOf I L t :=
   congrArg (ladderRows L · _) (funext fun p ↦ leafImage_level0Rows hn (hz p))
 
-/-- **Completeness of the honest prover**, modulo the phases' agreement: for every byte hash `H`
-and fuel, a proof `proveWith` returns for a witness satisfying leanISA's constraint statement on
-the public input, at the deployed Flock specification, is accepted by the executable verifier at
-`H`, if, at the announcement and rate the proof carries, the executable verifier's algebra accepts
-every transcript the compiled oracle protocol's verifier accepts (`PhasesAgree`). -/
-theorem baseProver_complete_of_agree (H : List UInt8 → Digest) (fuel : ℕ) {prog : Program}
-    {input : PublicInput} {w : EnsembleWitness (leanIsaEnsemble prog)} {ρ : ℕ}
-    {proof : Proof PrunedMerklePaths} (hsat : SatisfiedBy prog input w)
+/-- **Completeness of the honest prover from a start**, modulo the phases' agreement: for every
+byte hash `H`, start and fuel, a proof `proveFrom` returns for a witness satisfying leanISA's
+constraint statement on the public input, at the deployed Flock specification, is accepted by the
+executable verifier at `H` from the same start, if, at the announcement and rate the proof
+carries, the executable verifier's algebra accepts every transcript the compiled oracle
+protocol's verifier accepts (`PhasesAgree`). -/
+theorem baseProver_complete_of_agree_from (H : List UInt8 → Digest) (seed : Id FsState)
+    (fuel : ℕ) {prog : Program} {input : PublicInput} {w : EnsembleWitness (leanIsaEnsemble prog)}
+    {ρ : ℕ} {proof : Proof PrunedMerklePaths} (hsat : SatisfiedBy prog input w)
     (hagree : ∀ (s : Sizes) (hs : s.Admissible prog) (hρ : validRate ρ),
       PhasesAgree prog s hs ρ hρ input)
-    (hp : proveWith (m := Id) H fuel Blake2sFlock.blake2sFlockSpec prog input w ρ = some proof) :
-    Verify.verifyWith (m := Id) H prog input proof = true := by
-  unfold proveWith at hp
+    (hp : proveFrom (m := Id) H seed fuel Blake2sFlock.blake2sFlockSpec prog input w ρ =
+      some proof) :
+    Verify.verifyFrom (m := Id) H seed prog input proof = true := by
+  unfold proveFrom at hp
   rcases hws : Sizes.ofWitness w with _ | s
   · rw [hws] at hp
     cases hp
@@ -285,10 +294,10 @@ theorem baseProver_complete_of_agree (H : List UInt8 → Digest) (fuel : ℕ) {p
   dsimp only at hp
   split_ifs at hp with hsρ
   obtain ⟨hs, hρ⟩ := hsρ
-  replace hp : runProof (m := Id) prog input (writeProof (m := Id) H (proveOps H fuel)
+  replace hp : runProofFrom (m := Id) seed (writeProof (m := Id) H (proveOps H fuel)
       Blake2sFlock.blake2sFlockSpec prog s hs ρ hρ input
       (stackOf Blake2sFlock.blake2sFlockSpec prog s w)) = some proof := hp
-  obtain ⟨s₃, hrun, rfl⟩ := runs_of_runProof hp
+  obtain ⟨s₃, hrun, rfl⟩ := runs_of_runProofFrom hp
   obtain ⟨u₁, s₁, hann, h₁⟩ := proveSem.bind_inv hrun
   obtain ⟨r, s₂, hrw, hho⟩ := proveSem.bind_inv h₁
   have hr := (proveSem.satisfies (Prover.runWith_eq_runWithChallenges _ _ _ _) hrw).trans
@@ -330,10 +339,24 @@ theorem baseProver_complete_of_agree (H : List UInt8 → Digest) (fuel : ℕ) {p
     rw [hm₃, hmk, hcm, hpos]
     simpa [Verify.leafWordsOf] using openingsOk_openings H (Verify.nLanes prog s)
       (leanIsaChain prog s hs ρ hρ).ladder true _ hw₀ hLR
-  rw [verifyWith_of_run (setup?_of_announce (decide_eq_true ⟨hs, hρ⟩) hstream) hl hokm
+  rw [verifyFrom_of_run (setup?_of_announce (decide_eq_true ⟨hs, hρ⟩) hstream) hl hokm
     (by rw [hsh]; exact run_of_reads (hR.bind (Reads.bind_ret (by rw [hroot]; exact hO) rfl))),
     hsh, ← Verify.algebra_erase, herase, Verify.algebra_erase]
   exact halg
+
+/-- **Completeness of the honest prover**, modulo the phases' agreement: for every byte hash `H`
+and fuel, a proof `proveWith` returns for a witness satisfying leanISA's constraint statement on
+the public input, at the deployed Flock specification, is accepted by the executable verifier at
+`H`, if, at the announcement and rate the proof carries, the executable verifier's algebra accepts
+every transcript the compiled oracle protocol's verifier accepts (`PhasesAgree`). -/
+theorem baseProver_complete_of_agree (H : List UInt8 → Digest) (fuel : ℕ) {prog : Program}
+    {input : PublicInput} {w : EnsembleWitness (leanIsaEnsemble prog)} {ρ : ℕ}
+    {proof : Proof PrunedMerklePaths} (hsat : SatisfiedBy prog input w)
+    (hagree : ∀ (s : Sizes) (hs : s.Admissible prog) (hρ : validRate ρ),
+      PhasesAgree prog s hs ρ hρ input)
+    (hp : proveWith (m := Id) H fuel Blake2sFlock.blake2sFlockSpec prog input w ρ = some proof) :
+    Verify.verifyWith (m := Id) H prog input proof = true :=
+  baseProver_complete_of_agree_from H (pure (FsState.seed prog input)) fuel hsat hagree hp
 
 /-! ## When the prover returns a proof -/
 
@@ -482,13 +505,14 @@ private theorem runs_hintOpenings_of_size {s : PState}
   simp only [h, ne_eq, not_true_eq_false, ↓reduceIte]
   exact runs_bind h' rfl
 
-/-- The proof of a writer run from the statement's seed with an empty book. -/
-private theorem runProof_of_runs {prog : Program} {input : PublicInput} {wr : ProveM Id Unit}
-    {s' : PState} (h : proveSem.Runs wr (⟨#[], #[]⟩, ⟨FsState.seed prog input, #[], #[]⟩) () s') :
-    runProof (m := Id) prog input wr = some s'.2.proof := by
-  unfold runProof runWrite
-  simp only [StateT.run'_eq, StateT.run_map, OptionT.run_map]
-  rw [show ((wr.run ⟨#[], #[]⟩).run ⟨FsState.seed prog input, #[], #[]⟩).run =
+/-- The proof of a writer run from the start's state with an empty book. -/
+private theorem runProofFrom_of_runs {seed : Id FsState} {wr : ProveM Id Unit} {s' : PState}
+    (h : proveSem.Runs wr (⟨#[], #[]⟩, ⟨Id.run seed, #[], #[]⟩) () s') :
+    runProofFrom (m := Id) seed wr = some s'.2.proof := by
+  change runProofFrom (m := Id) (pure (Id.run seed)) wr = _
+  unfold runProofFrom runWrite
+  simp only [pure_bind, StateT.run'_eq, StateT.run_map, OptionT.run_map]
+  rw [show ((wr.run ⟨#[], #[]⟩).run ⟨Id.run seed, #[], #[]⟩).run =
     some (((), s'.1), s'.2) from h]
   rfl
 
@@ -540,21 +564,22 @@ private theorem every_compiled (I : M3Instance) (n : ℕ) {sh : Whir.Shape} {κ 
 
 end Total
 
-/-- **The honest prover returns a proof** when the witness gives sizes admissible with the rate
-and no grind runs out of fuel, whatever the hash and the Flock specification. -/
-theorem proveWith_ne_none (H : List UInt8 → Digest) (fuel : ℕ) (F : FlockSpec) {prog : Program}
-    {input : PublicInput} {w : EnsembleWitness (leanIsaEnsemble prog)} {ρ : ℕ} {s : Sizes}
-    (hws : Sizes.ofWitness w = some s) (hs : s.Admissible prog) (hρ : validRate ρ)
+/-- **The honest prover returns a proof** from every start when the witness gives sizes
+admissible with the rate and no grind runs out of fuel, whatever the hash and the Flock
+specification. -/
+theorem proveFrom_ne_none (H : List UInt8 → Digest) (seed : Id FsState) (fuel : ℕ) (F : FlockSpec)
+    {prog : Program} {input : PublicInput} {w : EnsembleWitness (leanIsaEnsemble prog)} {ρ : ℕ}
+    {s : Sizes} (hws : Sizes.ofWitness w = some s) (hs : s.Admissible prog) (hρ : validRate ρ)
     (hg : ∀ fs : FsState, Id.run (fs.grind H fuel queryGrindingBits) ≠ none) :
-    proveWith (m := Id) H fuel F prog input w ρ ≠ none := by
-  unfold proveWith
+    proveFrom (m := Id) H seed fuel F prog input w ρ ≠ none := by
+  unfold proveFrom
   rw [hws]
   dsimp only
   split_ifs with hsρ
   swap
   · exact absurd ⟨hs, hρ⟩ hsρ
   obtain ⟨u₁, s₁, h₁⟩ := total_lift (fun ws ↦ addScalars_some H (announcement s ρ) ws)
-    ((⟨#[], #[]⟩, ⟨FsState.seed prog input, #[], #[]⟩) : PState)
+    ((⟨#[], #[]⟩, ⟨Id.run seed, #[], #[]⟩) : PState)
   obtain ⟨r, s₂, h₂⟩ := Prover.runWith_total proveSem _
     (compiledProver (leanIsaInstance F prog s) (leanIsa_conditions F prog s)
       (leanIsaChain_height F prog s hs ρ hρ) (leanIsaChain prog s hs ρ hρ).ladder
@@ -568,15 +593,25 @@ theorem proveWith_ne_none (H : List UInt8 → Digest) (fuel : ℕ) (F : FlockSpe
   obtain ⟨s₃, h₃⟩ := runs_hintOpenings_of_size hsz
   have hrun : proveSem.Runs (writeProof (m := Id) H (proveOps H fuel) F prog s hs ρ hρ input
       (stackOf F prog s w)) _ () s₃ := runs_bind h₁ (runs_bind h₂ h₃)
-  rw [runProof_of_runs hrun]
+  rw [runProofFrom_of_runs hrun]
   exact Option.some_ne_none _
 
-/-- **When the honest prover returns no proof**: the witness gives no sizes, or its sizes are
-not admissible, or the rate is not valid, or the grind runs out of fuel at some chain state. The
-openings' check that the commitments and the positions kept are as many never fails. -/
-theorem proveWith_eq_none (H : List UInt8 → Digest) (fuel : ℕ) (F : FlockSpec) {prog : Program}
-    {input : PublicInput} {w : EnsembleWitness (leanIsaEnsemble prog)} {ρ : ℕ}
-    (h : proveWith (m := Id) H fuel F prog input w ρ = none) :
+/-- **The honest prover returns a proof** when the witness gives sizes admissible with the rate
+and no grind runs out of fuel, whatever the hash and the Flock specification. -/
+theorem proveWith_ne_none (H : List UInt8 → Digest) (fuel : ℕ) (F : FlockSpec) {prog : Program}
+    {input : PublicInput} {w : EnsembleWitness (leanIsaEnsemble prog)} {ρ : ℕ} {s : Sizes}
+    (hws : Sizes.ofWitness w = some s) (hs : s.Admissible prog) (hρ : validRate ρ)
+    (hg : ∀ fs : FsState, Id.run (fs.grind H fuel queryGrindingBits) ≠ none) :
+    proveWith (m := Id) H fuel F prog input w ρ ≠ none :=
+  proveFrom_ne_none H (pure (FsState.seed prog input)) fuel F hws hs hρ hg
+
+/-- **When the honest prover returns no proof** from a start: the witness gives no sizes, or its
+sizes are not admissible, or the rate is not valid, or the grind runs out of fuel at some chain
+state. The openings' check that the commitments and the positions kept are as many never
+fails. -/
+theorem proveFrom_eq_none (H : List UInt8 → Digest) (seed : Id FsState) (fuel : ℕ) (F : FlockSpec)
+    {prog : Program} {input : PublicInput} {w : EnsembleWitness (leanIsaEnsemble prog)} {ρ : ℕ}
+    (h : proveFrom (m := Id) H seed fuel F prog input w ρ = none) :
     Sizes.ofWitness w = none ∨ ∃ s, Sizes.ofWitness w = some s ∧
       (¬ s.Admissible prog ∨ ¬ validRate ρ ∨
         ∃ fs : FsState, Id.run (fs.grind H fuel queryGrindingBits) = none) := by
@@ -586,7 +621,18 @@ theorem proveWith_eq_none (H : List UInt8 → Digest) (fuel : ℕ) (F : FlockSpe
   by_contra hc
   simp only [not_or, not_not, not_exists] at hc
   obtain ⟨hs, hρ, hg⟩ := hc
-  exact proveWith_ne_none H fuel F hws hs hρ hg h
+  exact proveFrom_ne_none H seed fuel F hws hs hρ hg h
+
+/-- **When the honest prover returns no proof**: the witness gives no sizes, or its sizes are
+not admissible, or the rate is not valid, or the grind runs out of fuel at some chain state. The
+openings' check that the commitments and the positions kept are as many never fails. -/
+theorem proveWith_eq_none (H : List UInt8 → Digest) (fuel : ℕ) (F : FlockSpec) {prog : Program}
+    {input : PublicInput} {w : EnsembleWitness (leanIsaEnsemble prog)} {ρ : ℕ}
+    (h : proveWith (m := Id) H fuel F prog input w ρ = none) :
+    Sizes.ofWitness w = none ∨ ∃ s, Sizes.ofWitness w = some s ∧
+      (¬ s.Admissible prog ∨ ¬ validRate ρ ∨
+        ∃ fs : FsState, Id.run (fs.grind H fuel queryGrindingBits) = none) :=
+  proveFrom_eq_none H (pure (FsState.seed prog input)) fuel F h
 
 end Prove
 

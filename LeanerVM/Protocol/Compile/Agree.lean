@@ -441,6 +441,19 @@ end Compile
 
 namespace Prove
 
+/-- **Completeness of the honest prover from a start**: for every byte hash `H`, start and fuel,
+a proof `proveFrom` returns for a witness satisfying leanISA's constraint statement on the public
+input, at the deployed Flock specification, is accepted by the executable verifier at `H` from the
+same start. -/
+theorem baseProver_complete_from (H : List UInt8 → Digest) (seed : Id FsState) (fuel : ℕ)
+    {prog : Program} {input : PublicInput} {w : EnsembleWitness (leanIsaEnsemble prog)} {ρ : ℕ}
+    {proof : Proof PrunedMerklePaths} (hsat : SatisfiedBy prog input w)
+    (hp : proveFrom (m := Id) H seed fuel Blake2sFlock.blake2sFlockSpec prog input w ρ =
+      some proof) :
+    Verify.verifyFrom (m := Id) H seed prog input proof = true :=
+  baseProver_complete_of_agree_from H seed fuel hsat
+    (fun s hs hρ ↦ Compile.phasesAgree prog s hs ρ hρ input) hp
+
 /-- **Completeness of the honest prover**: for every byte hash `H` and fuel, a proof
 `proveWith` returns for a witness satisfying leanISA's constraint statement on the public input,
 at the deployed Flock specification, is accepted by the executable verifier at `H`. -/
@@ -449,8 +462,7 @@ theorem baseProver_complete (H : List UInt8 → Digest) (fuel : ℕ) {prog : Pro
     {proof : Proof PrunedMerklePaths} (hsat : SatisfiedBy prog input w)
     (hp : proveWith (m := Id) H fuel Blake2sFlock.blake2sFlockSpec prog input w ρ = some proof) :
     Verify.verifyWith (m := Id) H prog input proof = true :=
-  baseProver_complete_of_agree H fuel hsat
-    (fun s hs hρ ↦ Compile.phasesAgree prog s hs ρ hρ input) hp
+  baseProver_complete_from H (pure (FsState.seed prog input)) fuel hsat hp
 
 end Prove
 

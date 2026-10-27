@@ -19,17 +19,17 @@ over the oracle verifiers of the phases, and transcribed for the stream order, t
 the constants from the deployed verifiers: `crates/lean_vm/src/cpu/mod.rs:695-735` (`verify`)
 and `python-verifier/verifier.py:1365-1407` (`verify_execution`).
 
-`verifyWith H prog input proof` runs in four stages.
+`verifyFrom H seed prog input proof` runs in four stages.
 
 1. **The setup** (`setup?`, `openingsOk`): the announced sizes and rate, read off the head of the
    stream, pass `read_public`'s checks; the WHIR ladder of the stack exists; the openings have the
-   number and shapes the ladder fixes. Nothing is hashed before these pass, and nothing at all on
-   a proof they reject.
-2. **The chain walk** (`walkChain`): from the statement's seed (`FsState.seed`, a constant of
-   the statement), every chain step and grinding check in stream order: the eight sizes
-   observed, the commitment root, the bus phase, the table sumcheck, the public input, the Flock
-   phase, the opening's batching challenge `λ` and WHIR. It records the wire transcript
-   (`Wire`): the scalars sent, raw, the challenges, the nonces, the roots and the positions.
+   number and shapes the ladder fixes. Nothing is hashed, and `seed` does not run, before these
+   pass, and nothing at all on a proof they reject.
+2. **The chain walk** (`walkChain`): from the state `seed` computes, every chain step and
+   grinding check in stream order: the eight sizes observed, the commitment root, the bus phase,
+   the table sumcheck, the public input, the Flock phase, the opening's batching challenge `λ`
+   and WHIR. It records the wire transcript (`Wire`): the scalars sent, raw, the challenges,
+   the nonces, the roots and the positions.
 3. **The Merkle openings** (`walkOpenings`): every level's pruned opening against its root at its
    positions, by `merkleVerifyWith H`; the rows. Then the stream and the openings must be fully
    consumed (`Reader.finish`).
@@ -41,11 +41,12 @@ and `python-verifier/verifier.py:1365-1407` (`verify_execution`).
 
 The walk and the openings are `walkProof`, written over the walk's primitives (`ChainOps`) and run
 here on the proof reader's, `readerOps H`; the same walk runs on any other reader of the chain.
-`LeanerVM.Protocol.Verify.Hom` carries `verifyWith` along a monad morphism of the hash's monads
-(`verifyWith_hom`, `verifyWith_simulateQ`, `verifyWith_pure`).
+`LeanerVM.Protocol.Verify.Hom` carries `verifyFrom` along a monad morphism of the hash's monads
+(`verifyFrom_hom`, `verifyWith_hom`, `verifyWith_simulateQ`, `verifyWith_pure`).
 
-`verify := verifyWith (m := Id) blake2sBytes`. Every function is total and computable, by
-structural recursion; a malformed proof is `false`.
+`verifyWith H` starts from the statement's seed, `pure (FsState.seed prog input)`, a constant of
+the statement, and `verify := verifyWith (m := Id) blake2sBytes`. Every function is total and
+computable, by structural recursion; a malformed proof is `false`.
 
 **The fixed public polynomials.** Two public polynomials are evaluated, which a recursive
 verifier defers instead (`VerifySummary`, `cpu/mod.rs:683-700`). The bytecode multilinear at the
@@ -157,10 +158,12 @@ def algebra (prog : Program) (s : Sizes) (input : PublicInput) (shs : List Level
 
 /-! ## The verifier -/
 
-/-- **leanVM's verifier**, generic in how the hash `H` is answered: the setup's checks before any
-hash, the chain walk, the Merkle openings and the stream fully consumed, then the algebra. -/
-def verifyWith {m : Type → Type} [Monad m] (H : List UInt8 → m Digest) (prog : Program)
-    (input : PublicInput) (proof : Proof PrunedMerklePaths) : m Bool :=
+/-- **leanVM's verifier from a computed start**, generic in how the hash `H` is answered and in
+how the chain's first state is computed (`seed`): the setup's checks before any hash and before
+`seed` runs, the chain walk from `seed`'s state, the Merkle openings and the stream fully
+consumed, then the algebra. -/
+def verifyFrom {m : Type → Type} [Monad m] (H : List UInt8 → m Digest) (seed : m FsState)
+    (prog : Program) (input : PublicInput) (proof : Proof PrunedMerklePaths) : m Bool :=
   match setup? prog proof with
   | none => pure false
   | some (s, ρ) =>
@@ -170,24 +173,47 @@ def verifyWith {m : Type → Type} [Monad m] (H : List UInt8 → m Digest) (prog
       let shs := levelShapes (stackMu prog s) levels
       if !openingsOk (nLanes prog s) true shs proof.merkle then pure false
       else do
+        let fs ← seed
         let r ← ((do
             let x ← walkProof (readerOps H) prog s input shs
             Reader.finish
             return x : Walk m (Wire × List (List (List K)))).run'
-          ⟨FsState.seed prog input, proof.stream, proof.merkle⟩).run
+          ⟨fs, proof.stream, proof.merkle⟩).run
         match r with
         | .error _ => pure false
         | .ok (w, rows) => pure (algebra prog s input shs w rows)
+
+/-- **leanVM's verifier**, generic in how the hash `H` is answered, from the statement's seed. -/
+def verifyWith {m : Type → Type} [Monad m] (H : List UInt8 → m Digest) (prog : Program)
+    (input : PublicInput) (proof : Proof PrunedMerklePaths) : m Bool :=
+  verifyFrom H (pure (FsState.seed prog input)) prog input proof
 
 /-- **leanVM's verifier** at the deployed hash, BLAKE2s-256. -/
 def verify (prog : Program) (input : PublicInput) (proof : Proof PrunedMerklePaths) : Bool :=
   verifyWith (m := Id) blake2sBytes prog input proof
 
+/-- A proof the setup rejects is rejected without a hash or the seed, whatever answers it. -/
+theorem verifyFrom_of_setup {m : Type → Type} [Monad m] (H : List UInt8 → m Digest)
+    (seed : m FsState) {prog : Program} {input : PublicInput} {proof : Proof PrunedMerklePaths}
+    (h : setup? prog proof = none) : verifyFrom H seed prog input proof = pure false := by
+  simp only [verifyFrom, h]
+
 /-- A proof the setup rejects is rejected without a hash, whatever answers it. -/
 theorem verifyWith_of_setup {m : Type → Type} [Monad m] (H : List UInt8 → m Digest)
     {prog : Program} {input : PublicInput} {proof : Proof PrunedMerklePaths}
-    (h : setup? prog proof = none) : verifyWith H prog input proof = pure false := by
-  simp only [verifyWith, h]
+    (h : setup? prog proof = none) : verifyWith H prog input proof = pure false :=
+  verifyFrom_of_setup H _ h
+
+/-- A proof whose openings have another number or shape than the ladder fixes is rejected
+without a hash or the seed, whatever answers it. -/
+theorem verifyFrom_of_openings {m : Type → Type} [Monad m] (H : List UInt8 → m Digest)
+    (seed : m FsState) {prog : Program} {input : PublicInput} {proof : Proof PrunedMerklePaths}
+    {s : Sizes} {ρ : ℕ} {levels : List Whir.Level} (hs : setup? prog proof = some (s, ρ))
+    (hl : ladderOf prog s ρ = some levels)
+    (ho : openingsOk (nLanes prog s) true (levelShapes (stackMu prog s) levels) proof.merkle =
+      false) :
+    verifyFrom H seed prog input proof = pure false := by
+  simp only [verifyFrom, hs, hl, ho, Bool.not_false, ↓reduceIte]
 
 /-- A proof whose openings have another number or shape than the ladder fixes is rejected
 without a hash, whatever answers it. -/
@@ -197,8 +223,8 @@ theorem verifyWith_of_openings {m : Type → Type} [Monad m] (H : List UInt8 →
     (hl : ladderOf prog s ρ = some levels)
     (ho : openingsOk (nLanes prog s) true (levelShapes (stackMu prog s) levels) proof.merkle =
       false) :
-    verifyWith H prog input proof = pure false := by
-  simp only [verifyWith, hs, hl, ho, Bool.not_false, ↓reduceIte]
+    verifyWith H prog input proof = pure false :=
+  verifyFrom_of_openings H _ hs hl ho
 
 end Verify
 

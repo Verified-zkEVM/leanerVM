@@ -17,11 +17,16 @@ with an early answer erased (`replay`) fails at the query it no longer answers. 
 on the verifier's own log is not run: it repeats the verifier's algebra, and
 `replay_of_mem_support_loggedGame` settles it. The bound whatever the program and the input,
 `verifierQueriesBound`, is 13697. The checks share one run of the interpreted verifier.
+
+The seed's hashes, logged, are three, in order: the program's bytes, the seed's preimage and the
+first state's input; their state is the statement's seed. From the seed's hashes as queries the
+verifier asks at most three queries more than `verifierQueries` (an `example`).
 -/
 
 namespace LeanerVMTests.Protocol.VerifierQueries
 
-open LeanerVM.Parameters LeanerVM.Protocol LeanerVM.Protocol.Blake2sHash LeanerVM.Protocol.Verify
+open LeanerVM.Parameters LeanerVM.Semantics LeanerVM.Protocol LeanerVM.Protocol.Blake2sHash
+open LeanerVM.Protocol.Verify
 open LeanerVMTests.Protocol.RustProof
 
 /-- The fixture's verdict and the log of its hashes, in order. -/
@@ -51,5 +56,22 @@ def chainReplay (log : hashSpec.QueryLog) : Option hashSpec.QueryLog :=
     LeanVmReader.verifierQueriesBound == 13697 && decide (q ≤ LeanVmReader.verifierQueriesBound) &&
     chainReplay log == some (log.take 1004) &&
     replay (log.eraseIdx 20) fx.prog fx.input fx.proof == none
+
+/-- The seed's state and the log of its hashes, in order. -/
+def seedLog : FsState × hashSpec.QueryLog :=
+  let (fs, rev) := (FsState.seedWith (m := StateM hashSpec.QueryLog)
+    (fun t ↦ do let d := blake2sBytes t; modify (⟨t, d⟩ :: ·); pure d) fx.prog fx.input).run []
+  (fs, rev.reverse)
+
+#guard seedLog.1.cv == (FsState.seed fx.prog fx.input).cv &&
+  seedLog.2.map (·.1) ==
+    [programBytes fx.prog, seedPreimage fx.prog, seedInput (fsSeed fx.prog) fx.input]
+
+example (prog : Program) (input : PublicInput) (proof : Proof PrunedMerklePaths) :
+    OracleComp.IsTotalQueryBound
+      (verifyFrom hashQuery (FsState.seedWith hashQuery prog input) prog input proof)
+      (3 + VerifierQueries.verifierQueries prog input) :=
+  VerifierQueries.verifierQueries_bound_from (VerifierQueries.isTotalQueryBound_seedWith prog input)
+    prog input proof
 
 end LeanerVMTests.Protocol.VerifierQueries
