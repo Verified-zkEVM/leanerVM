@@ -21,8 +21,9 @@ public import LeanerVM.Protocol.Replay
 On a run of the logged game (`Run`) whose joint log is consistent and whose verifier, replayed on
 that log, accepts, either the extractor finds a stack with `M3Holds` from the prover's log
 (`Extracts`), or the hash misbehaves on the run (`HashMisbehavesFrom []`): a collision on the
-joint log, a hit, or a flip of the verifier's own chain read by leanVM's reader
-(`leanVmReader.Flip`) (`core`, and `core_of_mem_support` on a possible run of the game). With the
+joint log, a hit, or a flip on the chain of the statement, read by leanVM's reader
+(`leanVmReader.FlipFor (prog, input)`) (`core`, and `core_of_mem_support` on a possible run of the
+game). A flip on the chain of the statement is a flip (`SlotReader.flip_of_flipFor`), so with the
 random-oracle bound on misbehaving this is knowledge soundness in the random-oracle model
 (`verify_knowledgeSound_rom`). The core is deterministic in the run and the statement, so it
 applies as well at a statement the prover chose.
@@ -39,7 +40,8 @@ history carries, to a transcript of the compiled protocol whose wire is the walk
 (`solved_of_decode`), so the compiled verifier accepts it (`Compile.compiled_of_algebra`). The
 state function of the compiled protocol's round-by-round knowledge soundness is then true at the
 transcript's end. Walking it back, a challenge that turns it from false to true is bad and its
-group flips (`flipAt_of_bad`); with no flip it is true after the commitment, where it says the
+group flips, its history starting at the chain's first state, which opens the statement
+(`flipAt_of_bad`); with no flip it is true after the commitment, where it says the
 commitment's pick finds a stack (`listBinding_deployed_kSF_one`). The committed word is the
 level-0 word read off the joint log under the proof's level-0 root, which with no hit is the word
 read off the prover's log (`extractRows_determined`): the word the extractor picks from.
@@ -205,12 +207,12 @@ private theorem extract_isSome (F : FlockSpec) (prog : Program) (input : PublicI
 /-- **The core of knowledge soundness in the random-oracle model**: on a run of the game whose
 joint log is consistent, whose verifier replayed on the joint log accepts, and from whose prover's
 log the extractor finds no stack with `M3Holds`, the hash misbehaves: a collision on the joint log,
-a hit, or a flip of the verifier's own chain. -/
+a hit, or a flip on the chain of the statement the verifier checks. -/
 theorem core {prog : Program} {input : PublicInput} {g : Run}
     (hc : QueryLog.Consistent g.log)
     (hV : replay g.log prog input g.proof = some (true, g.logV))
     (hX : ¬ Extracts Blake2sFlock.blake2sFlockSpec prog input g.proof g.logA) :
-    HashMisbehavesFrom [] (rootsOf prog input) leanVmReader.Flip g := by
+    HashMisbehavesFrom [] (rootsOf prog input) (leanVmReader.FlipFor (prog, input)) g := by
   by_contra hmis
   simp only [HashMisbehavesFrom, not_or] at hmis
   obtain ⟨hcoll, hhit, hflip⟩ := hmis
@@ -329,13 +331,14 @@ theorem core {prog : Program} {input : PublicInput} {g : Run}
 
 /-- **The core on a possible run of the game**: on a run of the game whose joint log is
 consistent and whose verdict accepts, if the extractor finds no stack with `M3Holds` from the
-prover's log, the hash misbehaves. A run under BLAKE2s or under the lazy random oracle is such a
-possible run (`mem_support_runBlake2s`, `mem_support_runRandom`). -/
+prover's log, the hash misbehaves, a flip being one on the chain of the statement. A run under
+BLAKE2s or under the lazy random oracle is such a possible run (`mem_support_runBlake2s`,
+`mem_support_runRandom`). -/
 theorem core_of_mem_support {prog : Program} {input : PublicInput} {A : Adversary} {g : Run}
     (hg : g ∈ support (loggedGame verifyWith prog input A)) (hc : QueryLog.Consistent g.log)
     (hok : g.ok = true)
     (hX : ¬ Extracts Blake2sFlock.blake2sFlockSpec prog input g.proof g.logA) :
-    HashMisbehavesFrom [] (rootsOf prog input) leanVmReader.Flip g :=
+    HashMisbehavesFrom [] (rootsOf prog input) (leanVmReader.FlipFor (prog, input)) g :=
   core hc (by rw [replay_of_mem_support_loggedGame hg hc, hok]) hX
 
 /-! ## Knowledge soundness in the random-oracle model -/
@@ -351,7 +354,8 @@ theorem verify_knowledgeSound_rom (prog : Program) (input : PublicInput) (A : Ad
       z.1.ok = true ∧ ¬ Extracts Blake2sFlock.blake2sFlockSpec prog input z.1.proof z.1.logA] ≤
       ((Q + 13700 : ℕ) / 2 ^ 128 + hashTerm 13700 Q : ℝ≥0) :=
   (OracleComp.prEvent_mono_of_support _ fun _ hz h ↦
-    core_of_mem_support (mem_support_runRandom hz).1 (mem_support_runRandom hz).2 h.1 h.2).trans
+    (core_of_mem_support (mem_support_runRandom hz).1 (mem_support_runRandom hz).2 h.1 h.2).mono
+      fun _ ↦ leanVmReader.flip_of_flipFor).trans
     (leanVm_misbehaves_rom_closed prog input A hQ)
 
 end Core

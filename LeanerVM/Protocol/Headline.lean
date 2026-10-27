@@ -31,12 +31,15 @@ reads leanISA's witness off the stack, and `extractExecution` reads an execution
 at a program whose sentinel slot is not a `JUMP`.
 
 * `misbehaves_rom_adaptive`: with the hash a uniformly random function and an adaptive adversary of
-  at most `Q` queries, the hash misbehaves at the statement it chose (a collision, a hit or a flip,
-  `HashMisbehavesFrom [] (rootsOf prog input) leanVmReader.Flip`) with probability at most
-  `niError εquery 13700 Q`. No digest is in play at the start: the statement's seed is three
-  queries of the hash, which the verifier asks (`FsState.seedWith`), and leanVM's reader reads the
-  statement a chain starts from off the log (`leanVmReader`, `stmtOf`). So the bound counts the
-  verifier's seed hashes, `13700 = 3 + 13697` queries.
+  at most `Q` queries, the hash misbehaves on its run with probability at most
+  `niError εquery 13700 Q`: a collision or a hit on the whole joint log, the proof's roots those at
+  the statement it chose, or a flip on any statement's chain
+  (`HashMisbehavesFrom [] (rootsOf prog input) leanVmReader.Flip`). No digest is in play at the
+  start: the statement's seed is three queries of the hash, which the verifier asks
+  (`FsState.seedWith`), and leanVM's reader reads the statement a chain starts from off the log
+  (`leanVmReader`, `stmtOf`). So the bound counts the verifier's seed hashes,
+  `13700 = 3 + 13697` queries. The event the headline theorems use, its flips restricted to the
+  chosen statement's chain (`leanVmReader.FlipFor`), is smaller, so the bound holds for it.
 * `baseVerifier_extractsWitness_rom_adaptive`: in the same model, the verifier accepts the chosen
   statement and proof while the extracted witness fails leanISA's constraint statement
   (`SatisfiedBy`) at it with probability at most `(Q + 13700)/2^128 + hashTerm 13700 Q`.
@@ -47,8 +50,9 @@ at a program whose sentinel slot is not a `JUMP`.
   program with a sentinel `JUMP` has a witness of the constraint statement and no execution on any
   memory (the test `exists_satisfiedBy_without_execution`), and `verify` accepts every proof
   `prove` returns for it.
-* `BlakeMisbehavesAdaptive A δ`: with BLAKE2s answering, the adversary's run shows a collision, a
-  hit or a flip at the statement it chose with probability at most `δ`.
+* `BlakeMisbehavesAdaptive A δ`: with BLAKE2s answering, the adversary's run shows a collision or a
+  hit on the whole joint log, or a flip on the chain of the statement it chose, with probability at
+  most `δ`.
   `blakeMisbehavesAdaptive_of_comparison`: if misbehaving is at most `δ` likelier under BLAKE2s
   than under a random function (`Blake2sActsAsRandomOracle`), `BlakeMisbehavesAdaptive` holds at
   the random-oracle bound plus `δ`.
@@ -69,10 +73,12 @@ at a program whose sentinel slot is not a `JUMP`.
 whose joint log is consistent (`mem_support_runBlake2s_adaptive`, `mem_support_runRandom_adaptive`);
 under BLAKE2s its verdict is `verify`'s (`verifyWith_simulateQ`). A possible run of the adaptive
 game is one of the game at the statement the prover chose (`mem_support_loggedGame_of_adaptive`).
-On such a run, an accepted proof whose extraction fails puts the run inside `HashMisbehavesFrom`
-(`Core.core_of_mem_support`), and `satisfiedBy_witnessOf` turns the extracted stack's `M3Holds`
-into `SatisfiedBy` at the admissible sizes `extract` returns. The random-oracle bound is
-`misbehaves_rom_of` on the adaptive game in two runs (`adaptiveGame_eq_twoRunGame`).
+On such a run, an accepted proof whose extraction fails puts the run inside `HashMisbehavesFrom`,
+its flip on the chain of the statement (`Core.core_of_mem_support`), and `satisfiedBy_witnessOf`
+turns the extracted stack's `M3Holds` into `SatisfiedBy` at the admissible sizes `extract`
+returns. The random-oracle bound is `misbehaves_rom_of` on the adaptive game in two runs
+(`adaptiveGame_eq_twoRunGame`), for flips on every statement's chain, which include those on the
+chosen one (`SlotReader.flip_of_flipFor`).
 
 **What they do not say.** An adversary with no coins has one run under BLAKE2s, so
 `BlakeMisbehavesAdaptive` at `δ < 1` says that this run does not misbehave; an adversary with
@@ -106,24 +112,27 @@ the public input and the proof `A` output; the joint log of the two runs' querie
   a digest a chain absorbed as two scalars (a Merkle root); for the verifier's queries, also a
   Merkle root the proof carries (unpredictability: no digest is known before it is computed);
 - a *flip*: a Fiat–Shamir challenge, read off a chain of the log by leanVM's reader from a first
-  state at which the log holds the three hashes of a statement's seed, as a challenge of the
-  deployed compiled protocol at that statement, that lies in the bad set of the transcript before
-  it: the challenges that turn the protocol's state function from false to true, which have
-  density at most `2^-128`, the query positions counted with their grinding (correlation
-  intractability of the chain against a sparse relation).
+  state at which the log holds the three hashes of the seed of the statement `A` output, as a
+  challenge of the deployed compiled protocol at that statement, that lies in the bad set of the
+  transcript before it: the challenges that turn the protocol's state function from false to
+  true, which have density at most `2^-128`, the query positions counted with their grinding
+  (correlation intractability of the chain against a sparse relation). Chains of the log from the
+  seeds of other statements are not read.
 
 The protocol, its bad sets and the reader are those of leanVM, fixed inside this definition. With
 no coins the run is one value, and the probability is `0` or `1`. -/
 def BlakeMisbehavesAdaptive (A : AdaptiveAdversary) (δ : ℝ≥0∞) : Prop :=
   Pr{let g ← runBlake2s (adaptiveGame verifyWith A)}[
-    HashMisbehavesFrom [] (rootsOf g.prog g.input) leanVmReader.Flip g.toRun] ≤ δ
+    HashMisbehavesFrom [] (rootsOf g.prog g.input) (leanVmReader.FlipFor (g.prog, g.input))
+      g.toRun] ≤ δ
 
 /-- **BLAKE2s misbehaves on this adversary's run with probability at most `δ`**, for the program
 `prog` and the public input `input` fixed before the adversary runs: `BlakeMisbehavesAdaptive` at
-the adversary that outputs them with its proof (`blakeMisbehavesAdaptive_const`). -/
+the adversary that outputs them with its proof (`blakeMisbehavesAdaptive_const`), its flips those
+on the chain of `(prog, input)`. -/
 def BlakeMisbehaves (prog : Program) (input : PublicInput) (A : Adversary) (δ : ℝ≥0∞) : Prop :=
   Pr{let g ← runBlake2s (loggedGame verifyWith prog input A)}[
-    HashMisbehavesFrom [] (rootsOf prog input) leanVmReader.Flip g] ≤ δ
+    HashMisbehavesFrom [] (rootsOf prog input) (leanVmReader.FlipFor (prog, input)) g] ≤ δ
 
 /-- **BLAKE2s acts as a random oracle** for the computation `G` and the event `bad`, up to `δ`:
 `bad` is at most `δ` likelier with BLAKE2s-256 answering every query than with a uniformly random
@@ -207,33 +216,36 @@ private theorem execution_of_witness {prog : Program} {input : PublicInput}
   exact ht
 
 /-- On a possible run with a consistent joint log whose verdict accepts, no satisfying witness
-through the adaptor means the hash misbehaves. -/
+through the adaptor means the hash misbehaves, a flip being one on the statement's chain. -/
 private theorem misbehaves_of_escape {prog : Program} {input : PublicInput} {A : Adversary}
     {g : Run} (hg : g ∈ support (loggedGame verifyWith prog input A) ∧ QueryLog.Consistent g.log)
     (hok : g.ok = true)
     (hX : ¬ ∃ e, extract Blake2sFlock.blake2sFlockSpec prog input g.proof g.logA = some e ∧
       SatisfiedBy prog input (witnessOf Blake2sFlock.blake2sFlockSpec prog e.1 e.2)) :
-    HashMisbehavesFrom [] (rootsOf prog input) leanVmReader.Flip g :=
+    HashMisbehavesFrom [] (rootsOf prog input) (leanVmReader.FlipFor (prog, input)) g :=
   Core.core_of_mem_support hg.1 hg.2 hok fun ⟨s, q, he, hm⟩ ↦
     hX ⟨⟨s, q⟩, he, satisfiedBy_witnessOf _ prog s q (admissible_of_extract he) hm⟩
 
 /-- On a possible run of the adaptive game with a consistent joint log whose verdict accepts, no
-satisfying witness at the chosen statement means the hash misbehaves at it. -/
+satisfying witness at the chosen statement means the hash misbehaves, a flip being one on that
+statement's chain. -/
 private theorem misbehaves_of_escape_run {A : AdaptiveAdversary} {g : AdaptiveRun}
     (hg : g ∈ support (adaptiveGame verifyWith A)) (hc : QueryLog.Consistent g.log)
     (hok : g.ok = true)
     (hX : ¬ ∃ e, extract Blake2sFlock.blake2sFlockSpec g.prog g.input g.proof g.logA = some e ∧
       SatisfiedBy g.prog g.input (witnessOf Blake2sFlock.blake2sFlockSpec g.prog e.1 e.2)) :
-    HashMisbehavesFrom [] (rootsOf g.prog g.input) leanVmReader.Flip g.toRun :=
+    HashMisbehavesFrom [] (rootsOf g.prog g.input) (leanVmReader.FlipFor (g.prog, g.input))
+      g.toRun :=
   misbehaves_of_escape ⟨mem_support_loggedGame_of_adaptive hg, hc⟩ hok hX
 
 /-! ## Knowledge soundness in the random-oracle model -/
 
 /-- **The random-oracle bound for an adversary that chooses the statement.** With the hash a
 uniformly random function and an adaptive adversary `A` of at most `Q` queries, the hash
-misbehaves at the statement `A` chose, a collision, a hit or a flip read by leanVM's reader, with
-probability at most `niError εquery 13700 Q`. No digest is in play at the start: every statement's
-seed is three queries of the hash, which the verifier asks, and its `13700` queries count them. -/
+misbehaves on its run with probability at most `niError εquery 13700 Q`: a collision or a hit on
+the joint log, the proof's roots those at the statement `A` chose, or a flip read by leanVM's
+reader on the chain of any statement. No digest is in play at the start: every statement's seed
+is three queries of the hash, which the verifier asks, and its `13700` queries count them. -/
 theorem misbehaves_rom_adaptive {A : AdaptiveAdversary} {Q : ℕ} (hQ : IsTotalQueryBound A Q) :
     Pr{let z ← runRandom (adaptiveGame verifyWith A)}[
       HashMisbehavesFrom [] (rootsOf z.1.prog z.1.input) leanVmReader.Flip z.1.toRun] ≤
@@ -264,8 +276,9 @@ theorem baseVerifier_extractsWitness_rom_adaptive {A : AdaptiveAdversary} {Q : �
         SatisfiedBy z.1.prog z.1.input (witnessOf Blake2sFlock.blake2sFlockSpec z.1.prog e.1 e.2)] ≤
       ((Q + 13700 : ℕ) / 2 ^ 128 + hashTerm 13700 Q : ℝ≥0) :=
   (OracleComp.prEvent_mono_of_support _ fun _ hz h ↦
-    misbehaves_of_escape_run (mem_support_runRandom_adaptive hz).1
-      (mem_support_runRandom_adaptive hz).2 h.1 h.2).trans
+    (misbehaves_of_escape_run (mem_support_runRandom_adaptive hz).1
+      (mem_support_runRandom_adaptive hz).2 h.1 h.2).mono
+      fun _ ↦ leanVmReader.flip_of_flipFor).trans
     ((misbehaves_rom_adaptive hQ).trans (niError_closed Q))
 
 /-- **Adaptive knowledge soundness in the random-oracle model, for an execution.** With the hash a
@@ -297,26 +310,36 @@ theorem baseVerifier_extractsExecution_rom_adaptive_wellFormed {A : AdaptiveAdve
     ⟨h.1, (hwf z hz).sentinelSafe, h.2⟩).trans (baseVerifier_extractsExecution_rom_adaptive hQ)
 
 /-- **The hypothesis from the comparison form.** If misbehaving on the run of an adaptive adversary
-of at most `Q` queries is at most `δ` likelier with BLAKE2s-256 answering than with a uniformly
-random function, BLAKE2s misbehaves on it with probability at most the random-oracle bound
-`(Q + 13700)/2^128 + hashTerm 13700 Q` plus `δ`. -/
+of at most `Q` queries, its flips on the chain of the statement it chose, is at most `δ` likelier
+with BLAKE2s-256 answering than with a uniformly random function, BLAKE2s misbehaves on it with
+probability at most the random-oracle bound `(Q + 13700)/2^128 + hashTerm 13700 Q` plus `δ`. -/
 theorem blakeMisbehavesAdaptive_of_comparison {A : AdaptiveAdversary} {Q : ℕ} {δ : ℝ≥0∞}
     (hQ : IsTotalQueryBound A Q)
     (h : Blake2sActsAsRandomOracle (adaptiveGame verifyWith A)
-      (fun g ↦ HashMisbehavesFrom [] (rootsOf g.prog g.input) leanVmReader.Flip g.toRun) δ) :
-    BlakeMisbehavesAdaptive A (((Q + 13700 : ℕ) / 2 ^ 128 + hashTerm 13700 Q : ℝ≥0) + δ) :=
-  h.trans (add_le_add_left ((misbehaves_rom_adaptive hQ).trans (niError_closed Q)) δ)
+      (fun g ↦ HashMisbehavesFrom [] (rootsOf g.prog g.input)
+        (leanVmReader.FlipFor (g.prog, g.input)) g.toRun) δ) :
+    BlakeMisbehavesAdaptive A (((Q + 13700 : ℕ) / 2 ^ 128 + hashTerm 13700 Q : ℝ≥0) + δ) := by
+  have hR : Pr{let z ← runRandom (adaptiveGame verifyWith A)}[
+      HashMisbehavesFrom [] (rootsOf z.1.prog z.1.input)
+        (leanVmReader.FlipFor (z.1.prog, z.1.input)) z.1.toRun] ≤
+      ((Q + 13700 : ℕ) / 2 ^ 128 + hashTerm 13700 Q : ℝ≥0) :=
+    (OracleComp.prEvent_mono_of_support _ fun _ _ h ↦
+      h.mono fun _ ↦ leanVmReader.flip_of_flipFor).trans
+      ((misbehaves_rom_adaptive hQ).trans (niError_closed Q))
+  exact h.trans (add_le_add_left hR δ)
 
 /-! ## Knowledge soundness of the deployed verifier -/
 
 /-- On a run of the adaptive game under BLAKE2s whose proof `verify` accepts, no satisfying
-witness through the adaptor means the hash misbehaves at the chosen statement. -/
+witness through the adaptor means the hash misbehaves, a flip being one on the chosen statement's
+chain. -/
 private theorem misbehaves_of_escape_adaptive {A : AdaptiveAdversary} {g : AdaptiveRun}
     (hg : g ∈ support (runBlake2s (adaptiveGame verifyWith A)))
     (hok : verify g.prog g.input g.proof = true)
     (hX : ¬ ∃ e, extract Blake2sFlock.blake2sFlockSpec g.prog g.input g.proof g.logA = some e ∧
       SatisfiedBy g.prog g.input (witnessOf Blake2sFlock.blake2sFlockSpec g.prog e.1 e.2)) :
-    HashMisbehavesFrom [] (rootsOf g.prog g.input) leanVmReader.Flip g.toRun :=
+    HashMisbehavesFrom [] (rootsOf g.prog g.input) (leanVmReader.FlipFor (g.prog, g.input))
+      g.toRun :=
   have ⟨hg', hc, hok'⟩ := mem_support_runBlake2s_adaptive hg
   misbehaves_of_escape ⟨hg', hc⟩ (hok'.trans hok) hX
 
@@ -341,7 +364,8 @@ the probability over the coins that BLAKE2s misbehaves on the drawn adversary's 
 theorem baseVerifier_extractsWitness_adaptive_coins {coins : ProbComp AdaptiveAdversary}
     {δ : ℝ≥0∞}
     (hB : Pr{let A ← coins; let g ← runBlake2s (adaptiveGame verifyWith A)}[
-      HashMisbehavesFrom [] (rootsOf g.prog g.input) leanVmReader.Flip g.toRun] ≤ δ) :
+      HashMisbehavesFrom [] (rootsOf g.prog g.input) (leanVmReader.FlipFor (g.prog, g.input))
+        g.toRun] ≤ δ) :
     Pr{let A ← coins; let g ← runBlake2s (adaptiveGame verifyWith A)}[
       verify g.prog g.input g.proof = true ∧ ¬ ∃ e,
         extract Blake2sFlock.blake2sFlockSpec g.prog g.input g.proof g.logA = some e ∧
@@ -420,7 +444,7 @@ most `δ`, a probability over the coins and no longer `0` or `1`. -/
 theorem baseVerifier_extractsWitness_coins {prog : Program} {input : PublicInput}
     {coins : ProbComp Adversary} {δ : ℝ≥0∞}
     (hB : Pr{let A ← coins; let g ← runBlake2s (loggedGame verifyWith prog input A)}[
-      HashMisbehavesFrom [] (rootsOf prog input) leanVmReader.Flip g] ≤ δ) :
+      HashMisbehavesFrom [] (rootsOf prog input) (leanVmReader.FlipFor (prog, input)) g] ≤ δ) :
     Pr{let A ← coins; let g ← runBlake2s (loggedGame verifyWith prog input A)}[
       verify prog input g.proof = true ∧ ¬ ∃ e,
         extract Blake2sFlock.blake2sFlockSpec prog input g.proof g.logA = some e ∧
@@ -446,15 +470,18 @@ theorem baseVerifier_extractsExecution {prog : Program} {input : PublicInput} {A
   exact ⟨t, by rw [extractTrace, he, Option.bind_some, ht], hvalid⟩
 
 /-- **The hypothesis from the comparison form** at a statement fixed before the adversary runs. If
-misbehaving on the run of an adversary of at most `Q` queries is at most `δ` likelier with
-BLAKE2s-256 answering than with a uniformly random function, BLAKE2s misbehaves on it with
-probability at most the random-oracle bound `(Q + 13700)/2^128 + hashTerm 13700 Q` plus `δ`. -/
+misbehaving on the run of an adversary of at most `Q` queries, its flips on the chain of
+`(prog, input)`, is at most `δ` likelier with BLAKE2s-256 answering than with a uniformly random
+function, BLAKE2s misbehaves on it with probability at most the random-oracle bound
+`(Q + 13700)/2^128 + hashTerm 13700 Q` plus `δ`. -/
 theorem blakeMisbehaves_of_comparison {prog : Program} {input : PublicInput} {A : Adversary}
     {Q : ℕ} {δ : ℝ≥0∞} (hQ : IsTotalQueryBound A Q)
     (h : Blake2sActsAsRandomOracle (loggedGame verifyWith prog input A)
-      (HashMisbehavesFrom [] (rootsOf prog input) leanVmReader.Flip) δ) :
+      (HashMisbehavesFrom [] (rootsOf prog input) (leanVmReader.FlipFor (prog, input))) δ) :
     BlakeMisbehaves prog input A (((Q + 13700 : ℕ) / 2 ^ 128 + hashTerm 13700 Q : ℝ≥0) + δ) :=
-  h.trans (add_le_add_left (leanVm_misbehaves_rom_closed prog input A hQ) δ)
+  h.trans (add_le_add_left ((OracleComp.prEvent_mono_of_support _ fun _ _ h ↦
+    h.mono fun _ ↦ leanVmReader.flip_of_flipFor).trans
+    (leanVm_misbehaves_rom_closed prog input A hQ)) δ)
 
 /-! ## Completeness -/
 

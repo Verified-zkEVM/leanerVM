@@ -4,11 +4,13 @@ import LeanerVM.Protocol.Core
 # The core of knowledge soundness in the random-oracle model: tests
 
 * The event the core concludes is not trivial: on a run whose logs are empty, whatever its proof
-  and verdict, the hash does not misbehave. There is no collision and no hit on an empty log, and
-  no group flips, since an empty log opens no statement and the empty history announces nothing.
+  and verdict, the hash does not misbehave, even with the flips on every statement's chain, which
+  include those on the statement's own (`SlotReader.flip_of_flipFor`). There is no collision and
+  no hit on an empty log, and no group flips, since an empty log opens no statement and the empty
+  history announces nothing.
 * `core_of_mem_support` gives the core implication in the form the base theorems use it: on every
   possible run of the game with a consistent joint log and an accepting verdict, a failed
-  extraction means the hash misbehaves.
+  extraction means the hash misbehaves, a flip being one on the chain of the statement.
 -/
 
 namespace LeanerVMTests.Protocol.Core
@@ -41,7 +43,14 @@ example (prog : Program) (input : PublicInput) (A : Adversary) :
     ∀ g ∈ support (loggedGame Verify.verifyWith prog input A),
       QueryLog.Consistent g.log → g.ok = true →
       ¬ Extracts Blake2sFlock.blake2sFlockSpec prog input g.proof g.logA →
-      HashMisbehavesFrom [] (rootsOf prog input) leanVmReader.Flip g :=
+      HashMisbehavesFrom [] (rootsOf prog input) (leanVmReader.FlipFor (prog, input)) g :=
   fun _ hg hc hok hX ↦ Core.core_of_mem_support hg hc hok hX
+
+-- A flip on the chain of the statement is a flip, so the event the core concludes lies inside
+-- the one the random-oracle bound bounds.
+example (prog : Program) (input : PublicInput) (g : Run)
+    (h : HashMisbehavesFrom [] (rootsOf prog input) (leanVmReader.FlipFor (prog, input)) g) :
+    HashMisbehavesFrom [] (rootsOf prog input) leanVmReader.Flip g :=
+  h.mono fun _ ↦ leanVmReader.flip_of_flipFor
 
 end LeanerVMTests.Protocol.Core

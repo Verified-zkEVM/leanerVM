@@ -42,9 +42,11 @@ zero prefix of the leaf image (`pcs/src/whir.rs:330-345, 1305-1316`).
   answered, at its input's first occurrence, by a digest already in play (`inPlay` from a list of
   roots in play at the start, none at leanVM, whose statement hashes are queries) or, for the
   verifier's queries, by one of the proof's roots; or a flip.
-  The proof's roots and the flip are parameters: both read the verifier's chain walk on the
-  proof, which is the transcript decoder's. A log with no hit has no fresh hit on a root in play
-  (`not_freshHit_of_not_hasHit`), the condition of the Merkle binding by log replay.
+  The proof's roots and the flip are parameters: the roots the verifier's chain walk reads off the
+  proof, which is the transcript decoder's, and the flips a reader of the log's chains finds.
+  Misbehaving with fewer flips is misbehaving with more (`HashMisbehavesFrom.mono`). A log with no
+  hit has no fresh hit on a root in play (`not_freshHit_of_not_hasHit`), the condition of the
+  Merkle binding by log replay.
 * **The bad challenges** (`Bad`, `bad_density`). At a prefix of the compiled transcript ending
   at a challenge, the challenges that turn the state function of `listBinding_deployed` from
   false to true, the extractor's witness given: the event of `rbrKnowledgeSoundnessWorstCaseWith`.
@@ -194,15 +196,23 @@ def HitFrom (seedRoots : List Digest) (rootsOf : Proof PrunedMerklePaths → Lis
       g.log[k].2 ∈ rootsOf g.proof
 
 /-- **The hash misbehaves** on a run, from the roots `seedRoots`: a collision on the joint log, a
-hit, or a flip (`Flip`, the proof's own chain choosing a bad challenge). `Flip` and `rootsOf` are
-parameters, so that the random-oracle bound holds for any reader of chain histories; `Core.core`
-and the headline theorems instantiate them at leanVM's, from no root, with the flip clause of the
-deployed reader (`leanVmReader.Flip`) and the proof's roots at the statement
-(`ProofRoots.rootsOf prog input`). With `Flip := fun _ ↦ True` the event is trivial, so only that
-instance is evidence about the hash. -/
+hit, or a flip (`Flip`, a chain of the log choosing a bad challenge). `Flip` and `rootsOf` are
+parameters, so that the random-oracle bound holds for any reader of chain histories; it bounds the
+flips of a reader on every statement's chain (`SlotReader.Flip`). `Core.core` and the headline
+theorems instantiate them at leanVM's, from no root, with the flips of the deployed reader on the
+statement's chain (`leanVmReader.FlipFor (prog, input)`) and the proof's roots at the statement
+(`ProofRoots.rootsOf prog input`). With `Flip := fun _ ↦ True` the event is trivial, so only
+those instances are evidence about the hash. -/
 def HashMisbehavesFrom (seedRoots : List Digest) (rootsOf : Proof PrunedMerklePaths → List Digest)
     (Flip : Run → Prop) (g : Run) : Prop :=
   QueryLog.HasCollision g.log ∨ HitFrom seedRoots rootsOf g ∨ Flip g
+
+/-- Misbehaving with fewer flips is misbehaving with more. -/
+theorem HashMisbehavesFrom.mono {seedRoots : List Digest}
+    {rootsOf : Proof PrunedMerklePaths → List Digest} {Flip Flip' : Run → Prop} {g : Run}
+    (h : HashMisbehavesFrom seedRoots rootsOf Flip g) (hF : ∀ g, Flip g → Flip' g) :
+    HashMisbehavesFrom seedRoots rootsOf Flip' g :=
+  Or.imp_right (Or.imp_right (hF g)) h
 
 instance (seedRoots : List Digest) (rootsOf : Proof PrunedMerklePaths → List Digest) (g : Run) :
     Decidable (HitFrom seedRoots rootsOf g) := by

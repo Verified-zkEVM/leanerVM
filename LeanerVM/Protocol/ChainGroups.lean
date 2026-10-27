@@ -42,8 +42,10 @@ statement the start opens, with the group's nonce step for a group with a nonce,
 when the challenge is marked exactly when the group has a nonce; `Group.run` is the digests of the
 group's squeezes so far, `Group.check?` the answer to its check; `isOpen` says some query of the
 group is logged and not all; `isClosed` that all are. `Flips` says the group is closed on a bad
-challenge, its proof of work passing (`PowPasses`); `FlipAt` that some group flips; `π` is the
-probability, over fresh uniform answers to its unasked queries, that the group closes on a bad
+challenge, its proof of work passing (`PowPasses`); `FlipAt` that some group flips. `FlipsFor st`
+and `FlipAtFor st` are the same on the chain of the statement `st`: the group's history starts at
+a digest that opens `st`. A flip on one statement's chain is a flip (`flip_of_flipFor`). `π` is
+the probability, over fresh uniform answers to its unasked queries, that the group closes on a bad
 challenge, `1` on a group that flips (`π_eq_one_of_flips`).
 
 **One more query** (`CleanLog`, `CleanStep`): a fresh query whose answer is no logged answer, not
@@ -351,6 +353,27 @@ def FlipAt : Prop := ∃ G, R.Flips l G
 
 /-- A flip on a run of the game: one at the end of its joint log. -/
 def Flip (g : Run) : Prop := R.FlipAt g.log
+
+/-- **A group flips on the chain of the statement `st`**: it flips, and its history starts at a
+digest that opens `st`. -/
+def FlipsFor (st : R.Stmt) (G : Group) : Prop :=
+  R.Flips l G ∧ ∃ h, chainHistory l (R.isStart l) ⟨G.cv⟩ = some h ∧ R.stmtAt l h.1 = some st
+
+/-- A flip on the chain of the statement `st` at the end of a log: some group flips on it. -/
+def FlipAtFor (st : R.Stmt) : Prop := ∃ G, R.FlipsFor l st G
+
+/-- A flip on the chain of the statement `st` on a run of the game: one at the end of its joint
+log. -/
+def FlipFor (st : R.Stmt) (g : Run) : Prop := R.FlipAtFor g.log st
+
+/-- A flip on the chain of a statement is a flip. -/
+theorem flipAt_of_flipAtFor {st : R.Stmt} (h : R.FlipAtFor l st) : R.FlipAt l :=
+  let ⟨G, hG, _⟩ := h
+  ⟨G, hG⟩
+
+/-- **A flip on the chain of a statement is a flip** on a run. -/
+theorem flip_of_flipFor {st : R.Stmt} {g : Run} (h : R.FlipFor st g) : R.Flip g :=
+  R.flipAt_of_flipAtFor g.log h
 
 /-- **The probability a group closes on a bad challenge**, over fresh uniform answers to its check
 (ignored when logged, or for a plain group) and to its unasked squeezes, the logged ones fixed. -/
