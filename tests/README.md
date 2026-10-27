@@ -132,3 +132,8 @@ The executable ISA checker and its proved contracts are documented in
 `python3 scripts/test-rust-contracts.py /path/to/leanVM` lane runs the maintained Rust fixtures
 in `tests/rust/` and validates their actual exports in Lean. It requires the pinned source
 commit and an offline Cargo cache; the ordinary Lean gate does not depend on a Rust checkout.
+`python3 scripts/check-proofs-rust.py /path/to/leanVM` runs the pinned Rust verifier on the
+prover's test vectors in [`tests/vectors/`](vectors/README.md), with the same requirements.
+[`tests/differential/`](differential/README.md) compares that verifier with leanerVM's on mutated
+and tampered proofs: a fuzzing driver over a mutation catalog, and a sweep that changes one
+prover message at a time.

@@ -78,6 +78,13 @@ srcDir = "bench"
 root = "LeanerVMVerify"
 
 [[lean_exe]]
+# The executable verifier on proof files, one verdict per file, for the differential test
+# against the Rust verifier; see tests/vectors/README.md. Not a default target.
+name = "leanervm-check"
+srcDir = "bench"
+root = "LeanerVMCheck"
+
+[[lean_exe]]
 # The honest prover on the constraint statement tests' witness, compiled: writes and checks the
 # test vectors; see bench/README.md. Not a default target.
 name = "leanervm-prove"
