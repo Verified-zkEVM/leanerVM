@@ -33,7 +33,8 @@ are checked against, is specified in full and tied to the compilation of the ora
 the two directions the theorems use: an accepted proof decodes to a transcript the compiled
 verifier accepts, and every transcript the compiled verifier accepts passes `verify`'s algebra.
 The headline theorem (Layer 13) is its knowledge soundness, with a computable extractor of the
-witness, and of the execution through leanISA's trace interface. It is selective, and the evidence
+witness, and of the execution through leanISA's trace interface. Its random-oracle evidence is selective (the
+BLAKE2s forms also hold for an adversary that picks the statement, decision 42), and the evidence
 that `δ` is small is for an adversary of at most `Q` hash queries:
 
 ```text
@@ -214,8 +215,10 @@ theorem that refutes its omission (convention *Load-bearing checks*).
   recursion (T6); `verify` is the native verifier, shaped so that the deferred variant is a
   one-function change;
 - adaptive statement soundness in the random-oracle model, where the statement may depend on the
-  oracle: the theorems here quantify over the statement outside the probability, as
-  architecture.md's T7 schema does with its fixed expected statement;
+  oracle: the random-oracle theorems here quantify over the statement outside the probability, as
+  architecture.md's T7 schema does with its fixed expected statement. The BLAKE2s forms are
+  adaptive (decision 42); the random-oracle evidence for them needs the statement's hashes
+  computed through the oracle;
 - zero knowledge, and security against quantum adversaries (the classical bound does not transfer:
   the loss is quadratic in the query count);
 - the proximity-gap theorem for Reed–Solomon codes up to the Johnson bound ([BCHKS25] Theorem
@@ -1912,6 +1915,31 @@ theorem blakeMisbehaves_of_comparison (hQ : IsTotalQueryBound A Q)
     (h : Blake2sActsAsRandomOracle (loggedGame verifyWith prog input A)
       (HashMisbehaves (rootsOf prog input) (leanVmReader prog input).Flip prog input) δ) :
     BlakeMisbehaves prog input A ((Q + 13697) / 2^128 + hashTerm 13697 Q + δ)
+-- The adaptive forms: the adversary outputs the program and the public input with its proof
+abbrev AdaptiveAdversary := OracleComp hashSpec (Program × PublicInput × Proof PrunedMerklePaths)
+structure AdaptiveRun extends Run where
+  prog : Program
+  input : PublicInput
+def adaptiveGame (V : VerifierWith) (A : AdaptiveAdversary) : OracleComp hashSpec AdaptiveRun
+def BlakeMisbehavesAdaptive (A : AdaptiveAdversary) (δ : ℝ≥0∞) : Prop :=
+  Pr[fun g ↦ HashMisbehaves (rootsOf g.prog g.input) (leanVmReader g.prog g.input).Flip g.prog g.input g.toRun
+    | runBlake2s (adaptiveGame verifyWith A)] ≤ δ
+theorem baseVerifier_extractsWitness_adaptive (hB : BlakeMisbehavesAdaptive A δ) :
+    Pr[fun g ↦ verify g.prog g.input g.proof = true ∧ ¬ ∃ e, extract F g.prog g.input g.proof g.logA = some e ∧
+          SatisfiedBy g.prog g.input (witnessOf F g.prog e.1 e.2)
+      | runBlake2s (adaptiveGame verifyWith A)] ≤ δ
+-- leanISA's trace extraction at the chosen program, nothing at a program with a sentinel `JUMP`
+def extractExecution (prog input proof log) : Option (Trace prog) :=
+  if hsafe : SentinelSafe prog then extractTrace (leanIsaTraceExtraction hsafe) input proof log else none
+theorem baseVerifier_extractsExecution_adaptive (hB : BlakeMisbehavesAdaptive A δ) :
+    Pr[fun g ↦ verify g.prog g.input g.proof = true ∧ SentinelSafe g.prog ∧
+          ¬ ∃ t, extractExecution g.prog g.input g.proof g.logA = some t ∧ ValidExecution g.prog g.input t
+      | runBlake2s (adaptiveGame verifyWith A)] ≤ δ
+theorem baseVerifier_extractsExecution_adaptive_wellFormed (hB : BlakeMisbehavesAdaptive A δ)
+    (hwf : ∀ g ∈ support (runBlake2s (adaptiveGame verifyWith A)), WellFormedBytecode g.prog) :
+    Pr[fun g ↦ verify g.prog g.input g.proof = true ∧
+          ¬ ∃ t, extractExecution g.prog g.input g.proof g.logA = some t ∧ ValidExecution g.prog g.input t
+      | runBlake2s (adaptiveGame verifyWith A)] ≤ δ
 -- Completeness, for every function answering the hash, so at BLAKE2s with no hypothesis (Prove.lean)
 def proveWith [Monad m] (H : List UInt8 → m Digest) (fuel : ℕ) (prog input) (w) (ρ) : m (Option Proof)   -- grinding searches
 def prove (fuel prog input w ρ) : Option Proof := proveWith (m := Id) blake2sBytes fuel prog input w ρ
@@ -1952,13 +1980,34 @@ well-formedness its `constraintSoundness` needs. Its extractor is computable end
 execution, which recursion (T6) needs. The witness form takes no bytecode hypothesis; the
 execution form takes it through the interface's inhabitant, and completeness from an execution
 would take it through `constraintCompleteness` (decision 27). A bytecode with a `JUMP` in the
-sentinel slot has balancing steps and no execution (a proved repository test); leanVM's compiler
-establishes it (`lean_compiler/src/lib.rs:162`). The existential corollary, "an accepted proof
+sentinel slot can have a witness of the constraint statement and no valid execution on any memory
+(`exists_satisfiedBy_without_execution`), and `verify` accepts every proof `prove` returns for that
+witness (`verify_accepts_without_execution`): constraint soundness cannot drop the condition, and
+no extractor finds an execution there because there is none (acceptance test 41). That the
+probabilistic execution form fails without it is not proved: it needs an adversary outputting that
+program that meets `BlakeMisbehavesAdaptive`, the owed "hypothesis met by an accepted adversary".
+leanVM's compiler establishes the condition (`lean_compiler/src/lib.rs:162`).
+
+The adaptive forms (`AdaptiveGame.lean`, `Headline.lean`; decision 42) let the adversary output the
+program and the public input with its proof. `core` is stated per statement and per run, so it
+holds at the statement the adversary output, a run of the adaptive game being a run of the
+selective game at that statement for the adversary that outputs only the proof
+(`mem_support_loggedGame_of_adaptive`); `baseVerifier_extractsWitness_adaptive` is then the
+headline's proof at the chosen statement. The execution form carries `SentinelSafe` in its event,
+not as a hypothesis on the adversary, and `baseVerifier_extractsExecution_adaptive_wellFormed`
+restates it for an adversary whose programs are all `WellFormedBytecode` (once the fill blocks are
+a field, that corollary asks more than soundness needs; the `_adaptive` form does not). At a fixed
+statement the adaptive hypothesis is `BlakeMisbehaves` (`blakeMisbehavesAdaptive_const`). Under
+BLAKE2s a coin-free adaptive adversary has one run, so it fixes its statement: the adaptive
+BLAKE2s theorems are the selective proof at the chosen statement, and all of adaptivity's cost sits
+in the hypothesis, `BlakeMisbehavesAdaptive`, which the random-oracle bound does not yet support:
+the statement's three hashes are computed outside the oracle (Layer 12). The existential corollary, "an accepted proof
 implies some valid execution", is not stated: it carries no knowledge (decision 34).
 
 `BlakeMisbehaves` is about one adversary, one statement and one run, and its three clauses name
 what of BLAKE2s is relied on (*For zkVM engineers* says what that makes of the headline). The
-statement is fixed before the adversary runs: the headline and `misbehaves_rom` are selective
+statement is fixed before the adversary runs in the random-oracle forms: `misbehaves_rom` and
+`baseVerifier_extractsWitness_rom` are selective, and the BLAKE2s forms have adaptive versions
 (Layer 12 says why the random-oracle bound does not lift to an adversary picking the public input
 after its queries). An adversary with coins is a distribution over coin-free ones (decision 38);
 `baseVerifier_extractsWitness_coins`, the headline applied to each and averaged, gives it the
@@ -2243,6 +2292,15 @@ witness is executable it is a test under `tests/`.
     charged once at `2^{−17}·((a_i − 1)/n_i)^{t_i}` whichever order its queries come in (so the charged
     invariant is stated for a potential). Witness: the test
     `niError εquery (2^20) (2^64) ≤ 2^{−60}`, false at the per-squeeze charge.
+41. **Constraint soundness needs the bytecode hypothesis.** Without `SentinelSafe` a program can
+    have a witness of the constraint statement and no valid execution on any memory: a `JUMP` in
+    the sentinel slot lets the state walk leave the sentinel at a wrong frame and return at frame
+    `1`. The deployed prover proves that witness and `verify` accepts, and no extractor, however
+    powerful, finds an execution, because there is none. Witness:
+    `exists_satisfiedBy_without_execution` and `verify_accepts_without_execution`, whose program
+    pins by `SET_CONSTANT` the cells its run's `JUMP` reads, so that every run over every memory
+    holding the public input either faults or halts at `(g^31, g^5)`; natively,
+    `leanervm-prove sentinel`.
 
 ## Interfaces supplied to later work
 
@@ -2461,6 +2519,7 @@ recorded here in one row. Each is reversible by a pull request to this document.
 | 39. Merkle binding by log replay | the rows are read top-down off the adversary's log (`extractRows`, on `MerkleTree.fold`), `extract` reading a missing row as zero, and `binding_of_log` proves the opened rows equal to them unless the joint log shows a collision or a hit; VCVio's extraction is not consumed (amends decision 32) | Layer 12; the ledger |
 | 40. List binding through a decoder interface | the extractor list-decodes through `ListDecoder`, specified by WHIR's list relation at level 0's threshold with no repetition, and inhabited by brute force; the `exactFast` path proved to agree at every threshold from `2^κ` to `2^{κ+R}` (`ListDecoder.exactFirst`), and faster decoders as further inhabitants. The committed word is a `K` word (`KWord`), so every member of its list is a stack (`isInK_of_cl`), read in `E` for WHIR by the zero-round `openInput`; `relist` takes the front component over the new oracles (`F'`) and a `List` with a length bound; the compilation takes the height equation `hμ : κ + sh.ℓ = I.μ`; the deployed decoder is `ListDecoder.nttFirst` over `ListDecoder.bruteForce`: the exact path by the additive transform, proved to agree (`exactNtt_spec`, `ListDecoder.decode_eq_of_codeword`) | Layer 12; *Extractors*; test 24 |
 | 41. leanISA's trace through an interface | the execution-level headline takes `TraceExtraction prog`, which leanISA declares beside `SatisfiedBy` and inhabits, and the witness-level headline is stated without it | Layer 13; *Boundaries* |
+| 42. Adaptive forms at BLAKE2s | the adversary may output the program and the public input (`AdaptiveAdversary`, `adaptiveGame`); the BLAKE2s headline, its coins form and the execution form are restated over the chosen statement (`…_adaptive`), the execution form with `SentinelSafe` in the event, extracting through `leanIsaTraceExtraction` at the chosen program (`extractExecution`, amends decision 41 for the adaptive form), and a `WellFormedBytecode` corollary; `WellFormedBytecode` holds the `sentinelSafe` field, the fill blocks a later field; the random-oracle forms stay selective until the statement's hashes are oracle queries | Layer 13; test 41 |
 
 Open:
 

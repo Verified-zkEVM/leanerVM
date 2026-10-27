@@ -1364,6 +1364,28 @@ honest prover's log holds every level-0 leaf query in the layout `extractAllRows
 `leanervm-prove log` runs `extract` on the test vector's honest log natively, and it returns the
 witness's sizes and stack; no theorem states the three pieces yet.
 
+*On merge* of the adaptive branch (`stack/45-adaptive-blake2s`, on the headline's): the BLAKE2s
+forms of the headline are adaptive. An adaptive adversary (`AdaptiveAdversary`) outputs the
+program and the public input with its proof, and the verifier runs on the statement it output
+(`adaptiveGame`, `Protocol/AdaptiveGame.lean`). A run of that game is a run of the selective game
+at the chosen statement (`mem_support_loggedGame_of_adaptive`, `mem_support_runBlake2s_adaptive`),
+so `core` applies unchanged: `baseVerifier_extractsWitness_adaptive`, its coins form, and
+`baseVerifier_extractsExecution_adaptive` (`SentinelSafe` of the chosen program a conjunct of the
+event) with the corollary `baseVerifier_extractsExecution_adaptive_wellFormed` for an adversary whose
+programs are all `WellFormedBytecode` (`Semantics/WellFormedBytecode.lean`, the `sentinelSafe`
+field; the fill blocks a later field). `#print axioms` gives the kernel's three axioms for each. The
+hypothesis is `BlakeMisbehavesAdaptive`, which at a fixed statement is `BlakeMisbehaves`
+(`blakeMisbehavesAdaptive_const`); the adaptive replayer fails it (`adaptiveReplayer_not_blakeMisbehaves`).
+Constraint soundness cannot drop `SentinelSafe`: the sentinel tests' program, whose sentinel slot is
+a `JUMP` and whose run's `JUMP` reads its destination and frame from cells `SET_CONSTANT` pins, has
+a witness of the constraint statement and no valid execution on any memory
+(`exists_satisfiedBy_without_execution`, generic in the image), and `verify` accepts every proof
+`prove` returns for it (`verify_accepts_without_execution`); natively, `leanervm-prove sentinel`
+proves it in 60 s and `verify` accepts. That the execution form itself fails without the condition
+is not proved: it would need an adversary outputting that program that meets
+`BlakeMisbehavesAdaptive`, which waits on the owed item below (the hypothesis met by an accepted
+adversary).
+
 Also owed:
 
 - **The hypothesis met by an accepted adversary.** `BlakeMisbehaves` is shown falsifiable (the
@@ -1385,7 +1407,8 @@ Also owed:
     for its game, `BlakeMisbehaves prog input (honestAdversary fuel prog input w ρ)
     ((Q + 13697)/2^128 + hashTerm 13697 Q + δ)`. It needs `IsTotalQueryBound (honestAdversary fuel
     prog input w ρ) Q` (below), and stays conditional on the comparison.
-- **The adaptive random-oracle form.** Every bound is selective: the statement's three hashes
+- **The adaptive random-oracle form.** The BLAKE2s forms are adaptive (above); every random-oracle
+  bound is selective: the statement's three hashes
   (`programHash`, `fsSeed` and the starting state `FsState.seed`) are computed by `blake2sBytes`
   outside the oracle, so under `runRandom` a query on the seed's preimage is answered uniformly
   while the chain starts at BLAKE2s's value, and for an adversary that picks `(prog, input)` after

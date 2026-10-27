@@ -427,7 +427,15 @@ lake build leanervm-prove
 .lake/build/bin/leanervm-prove log tests/vectors/fill.proof     # the honest run, every hash logged
 .lake/build/bin/leanervm-prove m3                           # M3Holds's clauses on the witness's stack
 .lake/build/bin/leanervm-prove m3 9                         # the same at memory 2^10
+.lake/build/bin/leanervm-prove sentinel                     # a proof of a statement with no execution
 ```
+
+`sentinel` runs `prove` on the sentinel tests' witness (`SentinelFixture.sentW`), whose program has
+a `JUMP` in its sentinel slot and no valid execution on the input over any memory
+(`exists_satisfiedBy_without_execution`), and checks that `verify` accepts the proof: the native
+half of acceptance test 41, `verify_accepts_without_execution` being the kernel half. Recorded on
+2026-10-27, one thread, under a 10 GB cap: the sizes are the vector's (memory `2^16`, tables
+`[0, 0, 1, 0, 2, 3]`), `prove` returns 747 scalars in 59.8 s, and `verify` accepts.
 
 `log` runs the prover once more with every hash logged (the run of `honestAdversary` with BLAKE2s
 answering), then `verifyWith` on its proof with every hash logged, and checks that the proof is
