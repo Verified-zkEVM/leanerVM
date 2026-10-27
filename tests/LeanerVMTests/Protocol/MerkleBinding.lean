@@ -1,4 +1,5 @@
 import LeanerVM.Protocol.MerkleBinding
+import LeanerVM.Protocol.Transcript
 
 /-!
 # Merkle binding by log replay tests
@@ -12,7 +13,8 @@ check accepts a payload other than the one extracted, or with none extracted, an
 targeted hypothesis fails;
 with the fresh hit, the leaf is read off the whole log but not off the adversary's part.
 
-Then leanVM's trees under BLAKE2s: the leaf parse, the rows read off the honest prover's log of
+Then leanVM's trees under BLAKE2s: the leaf parse, the node parse (the seed's 78-byte preimage is
+no node), the rows read off the honest prover's log of
 the eight-leaf tree of the pinned leanVM's tests (`fiat_shamir/src/merkle.rs:283-351`), with and
 without a zero prefix, a log missing one leaf query, and the hypotheses of `binding_of_log` on the
 log of the check of the Rust's octopus.
@@ -194,6 +196,9 @@ a leaf image of a row of the announced width. -/
   some (digestOfBytes ((List.range 32).map Nat.toUInt8),
     digestOfBytes ((List.range 32).map fun i ↦ (i + 32).toUInt8))
 #guard nodeOfBytes? ((List.range 63).map (·.toUInt8)) = none
+-- The seed's 78-byte preimage is no node.
+example (ph : Digest) : nodeOfBytes? (seedPreimageOf ph) = none := by
+  simp [nodeOfBytes?, length_seedPreimageOf]
 
 /-- The all-zero digest. -/
 def zeroDigest : Digest := Vector.replicate 8 0

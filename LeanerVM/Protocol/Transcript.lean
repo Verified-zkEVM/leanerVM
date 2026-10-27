@@ -45,9 +45,14 @@ of `fsSeed prog` followed by the four lanes of the public input (`FiatShamirStat
 
 **The hash.** Every chain operation takes the 64-byte map as an argument `H : List UInt8 → m
 Digest` in a monad `m`: the deployed chain answers it by `blake2sBytes` in `Id` (`Deployed`), a
-random-oracle model by a query. The seed is not a chain operation: `programHash`, `fsSeed` and the
-starting state `FsState.seed` are constants of the statement, computed by `blake2sBytes` directly
-and never through `H`.
+random-oracle model by a query. The seed is three hashes: of the program's bytes
+(`programBytes`), of the 78 bytes `seedPreimageOf` builds from the program hash, and of the 64
+bytes `seedInput` builds from the seed and the public input. `programHash`, `fsSeed` and the
+starting state `FsState.seed` are the three at `blake2sBytes`, constants of the statement.
+`FsState.seedWith H` computes them through `H`, and is `FsState.seed` at BLAKE2s
+(`FsState.seedWith_blake2sBytes`); `verifyWith` and `proveWith` start from `FsState.seed`. The
+preimage's 78 bytes are neither a step nor a Merkle node; the last input has a step's 64 bytes,
+and parses as one when the public input's last lane is a step's tag.
 
 **Differences from the Rust.** None in the values at the grinding bits used (`17` at every WHIR
 level, `0` elsewhere). The prover's nonce search takes fuel and returns `none` when it runs out,
@@ -71,18 +76,70 @@ def r1csDigest : List UInt8 :=
   [0x53, 0x7a, 0xd2, 0x07, 0x90, 0x30, 0x8f, 0x8e, 0xb8, 0xc0, 0xe8, 0xbd, 0x3e, 0x6c, 0x58, 0xee,
     0x64, 0x57, 0x33, 0x71, 0xe3, 0xd5, 0x3c, 0x30, 0x61, 0x3d, 0xd0, 0x4d, 0x87, 0xc0, 0xb7, 0xea]
 
+/-- The bytes the program hash hashes: the stacked bytecode table, word by word little-endian
+(`Program::assemble`, `bytecode_hash`). -/
+def programBytes (prog : Program) : List UInt8 := (bytecodeColumn prog).values.toList.flatMap kBytes
+
 /-- The program hash: BLAKE2s-256 of the stacked bytecode table, word by word little-endian
 (`Program::assemble`, `bytecode_hash`). -/
-def programHash (prog : Program) : Digest := hashWords (bytecodeColumn prog).values.toList
+def programHash (prog : Program) : Digest := blake2sBytes (programBytes prog)
 
-/-- The bytes hashed into the seed: `"leanvm"`, the length of `R1CS_DIGEST` as a little-endian
-64-bit word, `R1CS_DIGEST`, and the program hash (`fs_seed`, `cpu/mod.rs:83-89`). -/
-def seedPreimage (prog : Program) : List UInt8 :=
+/-- The 78 bytes hashed into the seed from the program hash `ph`: `"leanvm"`, the length of
+`R1CS_DIGEST` as a little-endian 64-bit word, `R1CS_DIGEST`, and `ph` (`fs_seed`,
+`cpu/mod.rs:83-89`). -/
+def seedPreimageOf (ph : Digest) : List UInt8 :=
   "leanvm".toList.map (·.toNat.toUInt8) ++ kBytes (K.ofBits r1csDigest.length) ++ r1csDigest ++
-    digestBytes (programHash prog)
+    digestBytes ph
+
+/-- The bytes hashed into the program's seed. -/
+def seedPreimage (prog : Program) : List UInt8 := seedPreimageOf (programHash prog)
 
 /-- The statement's seed, the chain's starting chaining value (`fs_seed`). -/
 def fsSeed (prog : Program) : Digest := blake2sBytes (seedPreimage prog)
+
+/-- The 64 bytes hashed into the chain's first state from the seed `iv`: `iv`, then the public
+input's four lanes, each a little-endian 64-bit word (`FiatShamirState::new`). -/
+def seedInput (iv : Digest) (input : PublicInput) : List UInt8 :=
+  digestBytes iv ++ (Vector.ofFn input.lanes).toList.flatMap kBytes
+
+/-! ## The seed's byte layout -/
+
+/-- The seed's preimage is 78 bytes. -/
+theorem length_seedPreimageOf (ph : Digest) : (seedPreimageOf ph).length = 78 := by
+  simp [seedPreimageOf, length_kBytes, length_digestBytes, r1csDigest]
+
+/-- The first state's input is 64 bytes. -/
+theorem length_seedInput (iv : Digest) (input : PublicInput) :
+    (seedInput iv input).length = 64 := by
+  simp [seedInput, length_digestBytes, length_kBytes]
+
+private theorem flatMap_kBytes_inj : ∀ {l l' : List K}, l.flatMap kBytes = l'.flatMap kBytes →
+    l = l'
+  | [], [], _ => rfl
+  | [], b :: l', h | b :: l', [], h => by
+    have := congrArg List.length h
+    simp [length_kBytes] at this <;> omega
+  | a :: l, b :: l', h => by
+    rw [List.flatMap_cons, List.flatMap_cons] at h
+    obtain ⟨h₁, h₂⟩ := List.append_inj h (by simp [length_kBytes])
+    have hk : ∀ c, kOfBytes (kBytes c) = c := fun c ↦ by simpa using kOfBytes_append c []
+    have hab : a = b := by simpa [hk] using congrArg kOfBytes h₁
+    rw [hab, flatMap_kBytes_inj h₂]
+
+/-- The seed's preimage determines the program hash. -/
+theorem seedPreimageOf_injective : Function.Injective seedPreimageOf := fun _ _ h ↦ by
+  simpa [digestOfBytes_digestBytes] using congrArg digestOfBytes (List.append_cancel_left h)
+
+/-- The first state's input determines the seed and the public input. -/
+theorem seedInput_injective : Function.Injective2 seedInput := fun _ _ input input' h ↦ by
+  obtain ⟨h₁, h₂⟩ := List.append_inj h (by simp [length_digestBytes])
+  refine ⟨by simpa [digestOfBytes_digestBytes] using congrArg digestOfBytes h₁, ?_⟩
+  rw [Vector.toList_ofFn, Vector.toList_ofFn] at h₂
+  have hl := List.ofFn_injective (flatMap_kBytes_inj h₂)
+  cases input
+  cases input'
+  cases hl
+  rfl
 
 /-! ## The chain -/
 
@@ -135,6 +192,17 @@ def seed (prog : Program) (input : PublicInput) : FsState :=
   new (fsSeed prog) (Vector.ofFn input.lanes)
 
 variable {m : Type → Type} [Monad m] (H : List UInt8 → m Digest)
+
+/-- The state a proof starts from, its three hashes answered by `H`: the program hash, the seed,
+then the first state. -/
+def seedWith (prog : Program) (input : PublicInput) : m FsState := do
+  let ph ← H (programBytes prog)
+  let iv ← H (seedPreimageOf ph)
+  FsState.mk <$> H (seedInput iv input)
+
+/-- At BLAKE2s, the seed's hashes give the statement's seed. -/
+theorem seedWith_blake2sBytes (prog : Program) (input : PublicInput) :
+    seedWith (m := Id) blake2sBytes prog input = seed prog input := rfl
 
 /-- Absorb an element (`observe`). -/
 def observe (s : FsState) (x : E) : m FsState :=
