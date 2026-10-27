@@ -440,16 +440,18 @@ half of acceptance test 41, `verify_accepts_without_execution` being the kernel 
 `log` runs the prover once more with every hash logged (the run of `honestAdversary` with BLAKE2s
 answering), then `verifyWith` on its proof with every hash logged, and checks that the proof is
 the file's, that the verifier accepts it, and that the joint log has no collision and no hit
-(`LeanerVMTests.Protocol.LogScan.scan`, one pass with hash maps, which the headline's tests check
-against `QueryLog.HasCollision` and `Hit` on small logs): the decidable clauses of the headline's
-hypothesis at `δ = 0`. The flip clause is not decidable. Then the extractor on the prover's log
+(`LeanerVMTests.Protocol.LogScan.scan`, one pass with hash maps, from no root in play at the
+start, which the headline's tests check against `QueryLog.HasCollision` and `HitFrom []` on small
+logs): the decidable clauses of the headline's hypothesis at `δ = 0`. The flip clause is not decidable. Then the extractor on the prover's log
 (`extractChecks`): the level-0 word `extract` reads off it (`wordRows` under the proof's level-0
 root) must be the committed word (`Whir.kwordRows` of the witness's stack), the commitment's list
 decoder must read it as the witness's stack alone, and `extract` itself, which decides `M3Holds`
 of the decoded stack last, must return the witness's sizes and stack: the leanVM-level witness of
 acceptance tests 24 and 37, run, where `extract_honest` would state it. Recorded on 2026-10-25:
 487250 prover queries (the grinding's candidates most of them) and 3291 verifier queries, three
-roots; the proof is the vector's, `verify` accepts it, and the joint log has no collision and no
+roots; since the statement's three seed hashes are queries (2026-10-27), 487253 and 3294, with no
+collision and no hit either, the program hashes seed preimages carry in play. The proof is the
+vector's, `verify` accepts it, and the joint log has no collision and no
 hit; the word read off the log (16384 rows, 2.8 s) is the committed word (recomputed in 2.5 s),
 the decoder returns one stack, the witness's (13.9 s), and `extract` from the log returns the
 witness's sizes and stack in 21.7 s. The two runs take 183 s, the scan 9 s, the whole check

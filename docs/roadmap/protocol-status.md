@@ -1386,6 +1386,38 @@ is not proved: it would need an adversary outputting that program that meets
 `BlakeMisbehavesAdaptive`, which waits on the owed item below (the hypothesis met by an accepted
 adversary).
 
+*On merge* of the adaptive random-oracle branches (`stack/46-statement-hashes`,
+`stack/47-start-reader` and `stack/48-adaptive-rom`, on the adaptive branch): the random-oracle
+forms are adaptive too. The verifier and the prover compute the statement's seed through the hash
+(`FsState.seedWith`: the program's bytes, the seed's 78-byte preimage, the first state's input), so
+`verifyWith` and `proveWith` ask three more queries and `verify` and `prove` keep their values
+(`FsState.seedWith_blake2sBytes`); natively the proof stays byte-identical to the test vector. The
+reader of chain histories is one for every statement (`leanVmReader`): a history reads back to a
+start test before its steps (`HashChain.history`), a state is a start when the log holds a
+statement's three seed entries answered into it (`Protocol/StatementSeeds.lean`, `stmtOf`, unique on
+a log with no collision by `programBytes_injective`), and the announcement carries the statement.
+A logged 78-byte input puts its program hash in play (`programHashSlot`): a later answer completes a
+statement's seed only as the slot of a logged preimage or the half of a logged first-state input,
+both in play, so one more clean query opens no statement but at its answer (`stmtOf_append`). No
+root is in play at the start (`HashMisbehavesFrom []`; `seedDigests`, `Hit` and `HashMisbehaves`
+are gone), the starts are safe with none (`leanVmReader_startsSafe`: the empty history announces
+nothing, which covers a first state that answers a grinding base, the lanes `0, 0, 0, 3`), and the
+charge stays `ε` per query. The verifier's bound is `13700`, its seed's three queries added
+(`verifierQueriesBound_eq`). `core` concludes `HashMisbehavesFrom [] (rootsOf prog input)
+leanVmReader.Flip` from the verifier's first state, which opens its statement while no later state
+of its chain opens one (`start_of_seedWith`). `misbehaves_rom_adaptive` bounds the adaptive game
+(`adaptiveGame_eq_twoRunGame`) at `niError εquery 13700 Q`, and
+`baseVerifier_extractsWitness_rom_adaptive`, `baseVerifier_extractsExecution_rom_adaptive`, its
+`_wellFormed` corollary and `blakeMisbehavesAdaptive_of_comparison` follow at
+`(Q + 13700)/2^128 + hashTerm 13700 Q`. The theorems at a fixed statement keep their names and are
+their instances (`adaptiveGame_const`, `blakeMisbehavesAdaptive_const`), at `13700`. Tests: an
+adversary that picks one of two statements from one hash is bounded at `Q = 1`, the adaptive
+replayer's acceptance at `Q = 0` (`adaptiveReplayer_ok_le`), and a preimage asked before its
+program's bytes is a hit, none without the slot (acceptance test 42, decision 43). Natively,
+`leanervm-verify` accepts the Rust fixture and the test vector and rejects every mutation,
+`leanervm-prove` writes the vector byte for byte, and `leanervm-prove log` finds no collision and
+no hit in the honest run (487253 prover and 3294 verifier queries).
+
 Also owed:
 
 - **The hypothesis met by an accepted adversary.** `BlakeMisbehaves` is shown falsifiable (the
@@ -1405,28 +1437,12 @@ Also owed:
     `δ = 0`. It is the same piece `extract_honest` needs; build it once.
   - *`blakeMisbehaves_of_comparison` at the honest adversary*: under `Blake2sActsAsRandomOracle`
     for its game, `BlakeMisbehaves prog input (honestAdversary fuel prog input w ρ)
-    ((Q + 13697)/2^128 + hashTerm 13697 Q + δ)`. It needs `IsTotalQueryBound (honestAdversary fuel
+    ((Q + 13700)/2^128 + hashTerm 13700 Q + δ)`. It needs `IsTotalQueryBound (honestAdversary fuel
     prog input w ρ) Q` (below), and stays conditional on the comparison.
-- **The adaptive random-oracle form.** The BLAKE2s forms are adaptive (above); every random-oracle
-  bound is selective: the statement's three hashes
-  (`programHash`, `fsSeed` and the starting state `FsState.seed`) are computed by `blake2sBytes`
-  outside the oracle, so under `runRandom` a query on the seed's preimage is answered uniformly
-  while the chain starts at BLAKE2s's value, and for an adversary that picks `(prog, input)` after
-  its queries every statement's first state would be in play from the start. Under BLAKE2s nothing
-  is lost: the headline is per statement and per coin-free adversary, and an adaptive adversary
-  with coins is a distribution over pairs of these, bounded by the same averaging as
-  `baseVerifier_extractsWitness_coins`. The random-oracle evidence is what is missing: for
-  `A : OracleComp hashSpec (Program × PublicInput × Proof)` of at most `Q` queries, in the game that
-  runs `verifyWith` on the statement `A` outputs, the probability that the verifier accepts while
-  `extract` gives no witness of `SatisfiedBy` at that statement is at most `niError εquery V Q`, `V`
-  counting the statement's hashes. Route: compute the three hashes through `H`, let the adversary
-  output the statement, and add the answers to seed-shaped queries to `inPlay`. Medium cost: it
-  touches `Transcript`, `Verify`, `Prove`, `VerifierQueries`, the reader's `seed` field and
-  `misbehaves_rom`.
 - **Completeness's remainder.** `prove_complete` says nothing of how often `prove` returns no
   proof.
   - *The honest query bound*: `IsTotalQueryBound (honestAdversary fuel prog input w ρ) Q` for an
-    explicit `Q` in `fuel` and the sizes (the test vector's honest run makes 487250 queries).
+    explicit `Q` in `fuel` and the sizes (the test vector's honest run makes 487253 queries).
     Without it neither the random-oracle bound nor the comparison route above applies to the
     honest adversary.
   - *The random-oracle bound on the grind*: for `w` with `SatisfiedBy`, admissible sizes and a valid
