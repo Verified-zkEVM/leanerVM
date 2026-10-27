@@ -5,8 +5,7 @@ import LeanerVM.Protocol.Core
 
 * The event the core concludes is not trivial: on a run whose logs are empty, whatever its proof
   and verdict, the hash does not misbehave. There is no collision and no hit on an empty log, and
-  no group flips, since the only state with a history in an empty log is the seed, whose empty
-  history announces nothing.
+  no group flips, since an empty log opens no statement and the empty history announces nothing.
 * `core_of_mem_support` gives the core implication in the form the base theorems use it: on every
   possible run of the game with a consistent joint log and an accepting verdict, a failed
   extraction means the hash misbehaves.
@@ -22,19 +21,18 @@ attribute [local irreducible] LeanerVM.Protocol.LeanIsa.leanIsaμ LeanerVM.Proto
 
 -- A run with empty logs: no collision, no hit, no flip.
 example (prog : Program) (input : PublicInput) (proof : Proof PrunedMerklePaths) (ok : Bool) :
-    ¬ HashMisbehaves (rootsOf prog input) (leanVmReader prog input).Flip prog input
-      ⟨proof, [], [], ok⟩ := by
+    ¬ HashMisbehavesFrom [] (rootsOf prog input) leanVmReader.Flip ⟨proof, [], [], ok⟩ := by
   rintro (⟨e, he, -⟩ | (⟨⟨k, hk⟩, -⟩ | ⟨⟨k, hk⟩, -⟩) | ⟨G, hG⟩)
   · simp [Run.log] at he
   · simp [Run.log] at hk
   · simp [Run.log] at hk
-  · have hann : ∀ st, (leanVmReader prog input).announcementOf st [] = none := fun _ ↦ rfl
-    have hnone : (leanVmReader prog input).groupSlot [] G = none := by
+  · have hann : ∀ st, leanVmReader.announcementOf st [] = none := fun _ ↦ rfl
+    have hnone : leanVmReader.groupSlot [] G = none := by
       simp only [SlotReader.groupSlot, chainHistory, HashChain.history, HashChain.walk,
         List.length_nil]
       split_ifs
       · simp only [Option.bind_eq_bind, Option.bind_some, hann, Option.bind_none]
-        cases (leanVmReader prog input).stmtAt [] G.cv <;> rfl
+        cases leanVmReader.stmtAt [] G.cv <;> rfl
       · rfl
     simp only [SlotReader.Flips, Run.log, List.append_nil, hnone] at hG
 
@@ -43,7 +41,7 @@ example (prog : Program) (input : PublicInput) (A : Adversary) :
     ∀ g ∈ support (loggedGame Verify.verifyWith prog input A),
       QueryLog.Consistent g.log → g.ok = true →
       ¬ Extracts Blake2sFlock.blake2sFlockSpec prog input g.proof g.logA →
-      HashMisbehaves (rootsOf prog input) (leanVmReader prog input).Flip prog input g :=
+      HashMisbehavesFrom [] (rootsOf prog input) leanVmReader.Flip g :=
   fun _ hg hc hok hX ↦ Core.core_of_mem_support hg hc hok hX
 
 end LeanerVMTests.Protocol.Core

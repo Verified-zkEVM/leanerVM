@@ -50,9 +50,10 @@ random-oracle model by a query. The seed is three hashes: of the program's bytes
 bytes `seedInput` builds from the seed and the public input. `programHash`, `fsSeed` and the
 starting state `FsState.seed` are the three at `blake2sBytes`, constants of the statement.
 `FsState.seedWith H` computes them through `H`, and is `FsState.seed` at BLAKE2s
-(`FsState.seedWith_blake2sBytes`); `verifyWith` and `proveWith` start from `FsState.seed`. The
-preimage's 78 bytes are neither a step nor a Merkle node; the last input has a step's 64 bytes,
-and parses as one when the public input's last lane is a step's tag.
+(`FsState.seedWith_blake2sBytes`); `verifyWith` and `proveWith` start from it, so the statement's
+hashes are queries of the hash like the chain's. The preimage's 78 bytes are neither a step nor a
+Merkle node; the last input has a step's 64 bytes, and parses as one when the public input's last
+lane is a step's tag.
 
 **Differences from the Rust.** None in the values at the grinding bits used (`17` at every WHIR
 level, `0` elsewhere). The prover's nonce search takes fuel and returns `none` when it runs out,

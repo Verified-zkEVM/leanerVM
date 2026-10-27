@@ -385,7 +385,7 @@ def logChecks (f : Fixture) (fuel : ℕ) : IO ℕ := do
     p.merkle.map (·.leafData) == f.proof.merkle.map (·.leafData) &&
     p.merkle.map (fun o ↦ o.siblingHashes.map (·.toList)) ==
       f.proof.merkle.map (fun o ↦ o.siblingHashes.map (·.toList))
-  let (coll, hit) := LeanerVMTests.Protocol.LogScan.scan (seedDigests fillProg mulInput) roots
+  let (coll, hit) := LeanerVMTests.Protocol.LogScan.scan [] roots
     logA.size (logA ++ logV)
   let t2 ← IO.monoNanosNow
   IO.println s!"the honest run: {logA.size} prover queries, {logV.size} verifier queries, \

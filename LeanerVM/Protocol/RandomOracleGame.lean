@@ -38,11 +38,10 @@ zero prefix of the leaf image (`pcs/src/whir.rs:330-345, 1305-1316`).
   and the first member of the list whose stack satisfies `M3Holds`. It is computable.
   `Extracts` says the extraction succeeds with a stack satisfying `M3Holds`, which every stack
   the pick returns does (`extracts_iff_isSome`).
-* **The events** (`Hit`, `HashMisbehaves`). A collision on the joint log; a hit, a query
-  answered, at its input's first occurrence, by a digest already in play (`inPlay` from the
-  chain's first state) or, for the verifier's queries, by one of the proof's roots; or a flip.
-  `HitFrom` and `HashMisbehavesFrom` are the same events from any list of roots in play at the
-  start.
+* **The events** (`HitFrom`, `HashMisbehavesFrom`). A collision on the joint log; a hit, a query
+  answered, at its input's first occurrence, by a digest already in play (`inPlay` from a list of
+  roots in play at the start, none at leanVM, whose statement hashes are queries) or, for the
+  verifier's queries, by one of the proof's roots; or a flip.
   The proof's roots and the flip are parameters: both read the verifier's chain walk on the
   proof, which is the transcript decoder's. A log with no hit has no fresh hit on a root in play
   (`not_freshHit_of_not_hasHit`), the condition of the Merkle binding by log replay.
@@ -181,10 +180,6 @@ theorem extracts_iff_isSome (F : FlockSpec) (prog : Program) (input : PublicInpu
 
 /-! ## What the hash must avoid -/
 
-/-- The digests in play before any query: the chain's first state. -/
-def seedDigests (prog : Program) (input : PublicInput) : List Digest :=
-  [(FsState.seed prog input).cv]
-
 /-- The roots a proof carries for the verifier: at most six, a root per level of the deployed
 ladders (`ProofRoots.length_rootsOf_le`). -/
 def proofDigests : ℕ := 6
@@ -198,36 +193,21 @@ def HitFrom (seedRoots : List Digest) (rootsOf : Proof PrunedMerklePaths → Lis
     ∃ k : Fin g.log.length, g.logA.length ≤ k ∧ QueryLog.Fresh (g.log.take k) g.log[k].1 ∧
       g.log[k].2 ∈ rootsOf g.proof
 
-/-- **A hit** on the statement `(prog, input)`: one from its chain's first state. -/
-def Hit (rootsOf : Proof PrunedMerklePaths → List Digest) (prog : Program) (input : PublicInput)
-    (g : Run) : Prop :=
-  HitFrom (seedDigests prog input) rootsOf g
-
 /-- **The hash misbehaves** on a run, from the roots `seedRoots`: a collision on the joint log, a
-hit, or a flip (`Flip`, the proof's own chain choosing a bad challenge). -/
+hit, or a flip (`Flip`, the proof's own chain choosing a bad challenge). `Flip` and `rootsOf` are
+parameters, so that the random-oracle bound holds for any reader of chain histories; `Core.core`
+and the headline theorems instantiate them at leanVM's, from no root, with the flip clause of the
+deployed reader (`leanVmReader.Flip`) and the proof's roots at the statement
+(`ProofRoots.rootsOf prog input`). With `Flip := fun _ ↦ True` the event is trivial, so only that
+instance is evidence about the hash. -/
 def HashMisbehavesFrom (seedRoots : List Digest) (rootsOf : Proof PrunedMerklePaths → List Digest)
     (Flip : Run → Prop) (g : Run) : Prop :=
   QueryLog.HasCollision g.log ∨ HitFrom seedRoots rootsOf g ∨ Flip g
-
-/-- **The hash misbehaves** on a run of the statement `(prog, input)`: from its chain's first
-state. `Flip` and `rootsOf` are parameters, so that the random-oracle bound holds for any reader of
-chain histories; `Core.core` and the headline theorems instantiate them at leanVM's, the flip
-clause of the deployed reader (`(leanVmReader prog input).Flip`) and the proof's roots
-(`ProofRoots.rootsOf prog input`). With `Flip := fun _ ↦ True` the event is trivial, so only that
-instance is evidence about the hash. -/
-def HashMisbehaves (rootsOf : Proof PrunedMerklePaths → List Digest) (Flip : Run → Prop)
-    (prog : Program) (input : PublicInput) (g : Run) : Prop :=
-  HashMisbehavesFrom (seedDigests prog input) rootsOf Flip g
 
 instance (seedRoots : List Digest) (rootsOf : Proof PrunedMerklePaths → List Digest) (g : Run) :
     Decidable (HitFrom seedRoots rootsOf g) := by
   letI := Digest.decEq
   unfold HitFrom
-  infer_instance
-
-instance (rootsOf : Proof PrunedMerklePaths → List Digest) (prog : Program) (input : PublicInput)
-    (g : Run) : Decidable (Hit rootsOf prog input g) := by
-  unfold Hit
   infer_instance
 
 /-- The children of a logged query read as a node are in play once it is asked: they are its

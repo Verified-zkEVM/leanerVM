@@ -22,14 +22,14 @@ the queries the replay recorded contain every step of the history it logs
 (`HashChain.queries Block.input`), from the starting state to the final one
 (`HashChain.last`).
 
-`accepts_of_replay`: a replay of the verifier that accepts walks the chain first, then the
-openings, only appending to the log (`prefix_of_runReplay_walkOpenings`, through the replay as a
-morphism of the readers' monads), and its algebra accepts their wire and rows. So
-`chain_in_log_of_replay`: when the verifier replayed on a log accepts, the
-logged chain walk at the log's hash succeeds on the proof and the replay's log holds every step of
-its history from the statement's seed. `accepts_of_runFrom` and `chain_in_log_of_runFrom` are the
-same for the verifier from a computed start (`verifyFrom`): the start runs first, its queries a
-prefix `log₀` of the log, and the walk starts from its state with `log₀` recorded.
+`accepts_of_runFrom`: a replay of the verifier from a computed start (`verifyFrom`) that accepts
+runs the start first, its queries a prefix `log₀` of the log, then walks the chain from its state
+with `log₀` recorded, then the openings, only appending to the log
+(`prefix_of_runReplay_walkOpenings`, through the replay as a morphism of the readers' monads), and
+its algebra accepts their wire and rows. So `chain_in_log_of_runFrom`: when it accepts, the logged
+chain walk at the log's hash succeeds on the proof from the start's state and the replay's log
+holds every step of its history. `accepts_of_replay` and `chain_in_log_of_replay` are the same
+for the verifier, whose start is the seed's three hashes (`FsState.seedWith`).
 -/
 
 namespace LeanerVM.Protocol
@@ -408,27 +408,26 @@ theorem accepts_of_runFrom {log : (List UInt8 →ₒ Digest).QueryLog}
     hpre⟩
 
 /-- **A replay the verifier accepts**: if the verifier replayed on a log accepts a proof,
-recording the queries `logV`, the proof announces sizes and a rate with a ladder, the chain walk
-replayed from the proof's start succeeds with a wire, recording a prefix of `logV`, the openings
-replayed after it succeed with rows, and the algebra accepts the wire and the rows. -/
+recording the queries `logV`, the proof announces sizes and a rate with a ladder, the seed's
+hashes replayed give a state `fs`, recording `log₀`, the chain walk replayed from `fs` succeeds
+with a wire, recording `log₀` and then a prefix of `logV`, the openings replayed after it succeed
+with rows, and the algebra accepts the wire and the rows. -/
 theorem accepts_of_replay {log : (List UInt8 →ₒ Digest).QueryLog} {prog : Program}
     {input : PublicInput} {proof : Proof PrunedMerklePaths} {logV : (List UInt8 →ₒ Digest).QueryLog}
     (h : replay log prog input proof = some (true, logV)) :
-    ∃ s ρ levels w st₁ log₁ rows st₂ log₂, setup? prog proof = some (s, ρ) ∧
+    ∃ s ρ levels fs log₀ w st₁ log₁ rows st₂ log₂, setup? prog proof = some (s, ρ) ∧
       ladderOf prog s ρ = some levels ∧
+      (FsState.seedWith (QueryLog.replayImpl (MerkleTree.logAnswer log)) prog input).run [] =
+        some (fs, log₀) ∧
       runReplay (walkChain (readerOps (QueryLog.replayImpl (MerkleTree.logAnswer log))) prog s
         input (levelShapes (stackMu prog s) levels))
-        ⟨FsState.seed prog input, proof.stream, proof.merkle⟩ [] = some (.ok (w, st₁), log₁) ∧
+        ⟨fs, proof.stream, proof.merkle⟩ log₀ = some (.ok (w, st₁), log₁) ∧
       runReplay (walkOpenings (readerOps (QueryLog.replayImpl (MerkleTree.logAnswer log)))
         (nLanes prog s) true w.root (levelShapes (stackMu prog s) levels) w.whir) st₁ log₁ =
         some (.ok (rows, st₂), log₂) ∧
       algebra prog s input (levelShapes (stackMu prog s) levels) w rows = true ∧
-      log₁ <+: logV := by
-  obtain ⟨s, ρ, levels, fs, log₀, w, st₁, log₁, rows, st₂, log₂, hs, hl, hseed, hc, ho, halg,
-    hpre⟩ := accepts_of_runFrom (seed := pure (FsState.seed prog input)) h
-  simp only [StateT.run_pure, Option.pure_def, Option.some.injEq, Prod.mk.injEq] at hseed
-  obtain ⟨rfl, rfl⟩ := hseed
-  exact ⟨s, ρ, levels, w, st₁, log₁, rows, st₂, log₂, hs, hl, hc, ho, halg, hpre⟩
+      log₁ <+: logV :=
+  accepts_of_runFrom h
 
 /-- **An accepted replay from a computed start holds the chain**: if the verifier from the start
 `seed`, replayed on a log, accepts a proof, recording `logV`, the proof announces sizes and a rate
@@ -456,22 +455,22 @@ theorem chain_in_log_of_runFrom {log : (List UInt8 →ₒ Digest).QueryLog}
     exact List.mem_append_right _ (hq e he)
 
 /-- **An accepted replay's log holds the chain**: if the verifier replayed on a log accepts a
-proof, recording `logV`, the proof announces sizes and a rate with a ladder, the chain walk with its
-steps logged at the log's hash succeeds on the proof, and every step of the history it logs is in
-`logV`, from the statement's seed. -/
+proof, recording `logV`, the proof announces sizes and a rate with a ladder, the seed's hashes
+replayed give a state `fs`, recording `log₀`, a prefix of `logV`, the chain walk with its steps
+logged at the log's hash succeeds on the proof from `fs`, and every step of the history it logs is
+in `logV`, from `fs`. -/
 theorem chain_in_log_of_replay {log : (List UInt8 →ₒ Digest).QueryLog} {prog : Program}
     {input : PublicInput} {proof : Proof PrunedMerklePaths} {logV : (List UInt8 →ₒ Digest).QueryLog}
     (h : replay log prog input proof = some (true, logV)) :
-    ∃ s ρ levels w st₁ hist, setup? prog proof = some (s, ρ) ∧ ladderOf prog s ρ = some levels ∧
+    ∃ s ρ levels fs log₀ w st₁ hist, setup? prog proof = some (s, ρ) ∧
+      ladderOf prog s ρ = some levels ∧
+      (FsState.seedWith (QueryLog.replayImpl (MerkleTree.logAnswer log)) prog input).run [] =
+        some (fs, log₀) ∧ log₀ <+: logV ∧
       walkChainLogged prog s input (levelShapes (stackMu prog s) levels)
-        (hashOf (MerkleTree.logAnswer log)) ⟨FsState.seed prog input, proof.stream, proof.merkle⟩ =
+        (hashOf (MerkleTree.logAnswer log)) ⟨fs, proof.stream, proof.merkle⟩ =
         .ok ((w, hist), st₁) ∧
-      ∀ e ∈ HashChain.queries Block.input (FsState.seed prog input).cv hist, e ∈ logV := by
-  obtain ⟨s, ρ, levels, fs, log₀, w, st₁, hist, hs, hl, hseed, -, hw, hq⟩ :=
-    chain_in_log_of_runFrom (seed := pure (FsState.seed prog input)) h
-  simp only [StateT.run_pure, Option.pure_def, Option.some.injEq, Prod.mk.injEq] at hseed
-  obtain ⟨rfl, rfl⟩ := hseed
-  exact ⟨s, ρ, levels, w, st₁, hist, hs, hl, hw, hq⟩
+      ∀ e ∈ HashChain.queries Block.input fs.cv hist, e ∈ logV :=
+  chain_in_log_of_runFrom h
 
 end ChainLog
 

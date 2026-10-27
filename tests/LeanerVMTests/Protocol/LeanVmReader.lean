@@ -87,11 +87,11 @@ example (l : hashSpec.QueryLog) (sh : Whir.Shape) (κ : ℕ) :
 
 /-! ## The bound in closed form -/
 
-example : verifierQueriesBound = 13697 := verifierQueriesBound_eq
+example : verifierQueriesBound = 13700 := verifierQueriesBound_eq
 
 -- At `2^64` prover queries the error is below `2^-63`: about `2^-64` for the challenges and
 -- `2^-126` for collisions and hits.
-example : niError εquery 13697 (2 ^ 64) ≤ (2 ^ 63)⁻¹ := by
+example : niError εquery 13700 (2 ^ 64) ≤ (2 ^ 63)⁻¹ := by
   rw [← NNReal.coe_le_coe]
   push_cast [niError, hashTerm, εquery]
   norm_num

@@ -1,10 +1,10 @@
 /-
   LeanerVM.Protocol.HashMisbehaves
 
-  The probability that the hash misbehaves in the random-oracle game: a collision, a hit or a flip
-  on the joint log of a cheating prover making `Q` queries and of the verifier making `V`, at most
-  `(Q + V)·ε + (Q + V)(4(Q + V) + 8)/2^256`, for a statement fixed before the prover runs and any
-  reader of chain histories whose bad challenges have density at most `ε`.
+  The probability that the hash misbehaves in a game in two runs: a collision, a hit or a flip on
+  the joint log of a cheating prover making `Q` queries and of the verifier making `V`, at most
+  `(Q + V)·ε + (Q + V)(4(Q + V) + 8)/2^256`, for any reader of chain histories whose bad challenges
+  have density at most `ε` and whose starts are safe.
 -/
 
 module
@@ -16,24 +16,22 @@ public import LeanerVM.Protocol.RandomOracleBound
 
 `misbehaves_rom_of` bounds, in any game in two runs (`twoRunGame`: a prover's logged run, then a
 verifier's logged run on the prover's output), the probability of
-`HashMisbehavesFrom seedRoots rootsOf R.Flip`, from at most one root `seedRoots` in play at the
-start and a reader `R` whose starts are safe with them (`SlotReader.StartsSafe`).
-`misbehaves_rom` is its instance on the random-oracle game `loggedGame V prog input A`
-(`loggedGame_eq_twoRunGame`), from the chain's first state and a reader of the chains from it
-alone: the probability of `HashMisbehaves rootsOf R.Flip prog input`, a collision on the joint
-log, a hit on the digests in play (the chain's first state, the halves of the queries, the roots
-the chain absorbs) or on the proof's roots for the verifier's queries, or a flip of the reader
-`R`. The prover `A` makes at most `Q` queries, the verifier at most `V` on every proof, a proof
-has at most `proofDigests` roots, and the bad challenges of `R` have density at most `ε`
-(`SlotReader.Density`). The bound is `niError ε V Q`, and `niError εquery V Q` at leanVM's
-`2^-128`.
+`HashMisbehavesFrom seedRoots rootsOf R.Flip`: a collision on the joint log, a hit on the digests
+in play (`seedRoots`, the halves of the queries and the program hashes they carry, the roots the
+chains absorb) or on the proof's roots for the verifier's queries, or a flip of the reader `R`. At
+most one root `seedRoots` is in play at the start, and the reader's starts are safe with them
+(`SlotReader.StartsSafe`). The prover makes at most `Q` queries, the verifier at most `V` on every
+output, a proof has at most `proofDigests` roots, and the bad challenges of `R` have density at
+most `ε` (`SlotReader.Density`). The bound is `niError ε V Q`, and `niError εquery V Q` at
+leanVM's `2^-128`. The prover's output is a parameter: a proof alone for a statement fixed before
+the prover runs, or a statement and a proof for one it chooses after its queries.
 
-The bound is selective: the statement `(prog, input)` is fixed before the prover runs. It does not
-cover a prover that picks the statement after its queries. The chain's first state
-`FsState.seed prog input` is computed by BLAKE2s outside the oracle, so for such a prover every
-statement's first state would be in play from the start, and a hit on one of them would not be
-unlikely; an oracle answer is in play only once its query is asked. A prover with coins is a
-distribution over coin-free ones, each meeting the bound (`misbehaves_rom_coins`).
+`misbehaves_rom` is its instance on the random-oracle game `loggedGame V prog input A`
+(`loggedGame_eq_twoRunGame`), at a statement fixed before the prover runs. A prover with coins is
+a distribution over coin-free ones, each meeting the bound (`misbehaves_rom_coins`). A statement
+the prover chooses is covered when every digest the verifier starts from is a query's answer,
+none in play at the start: leanVM's verifier computes its first state through the hash, and its
+reader reads the statement off the log.
 
 The proof runs the game on the lazy random oracle that records its fresh queries
 (`QueryHistory.freshLog`). On every run the fresh log is the joint log with each query at its first
@@ -226,15 +224,6 @@ theorem badLog_of_hashMisbehavesFrom (R : SlotReader) {seedRoots : List Digest}
     exact hr _ hmem (by simpa using hroot)
   · exact hf (R.flipAt_dedupKeys hcons hflip)
 
-/-- **A misbehaving hash leaves the fresh log unclean**, on a run of the statement
-`(prog, input)`. -/
-theorem badLog_of_hashMisbehaves (R : SlotReader) {rootsOf : Proof PrunedMerklePaths → List Digest}
-    {prog : Program} {input : PublicInput} {g : Run} (hcons : QueryLog.Consistent g.log)
-    (h : HashMisbehaves rootsOf R.Flip prog input g) :
-    ¬ R.Clean (seedDigests prog input) (rootsOf g.proof) (List.dedupKeys g.logA).length
-      (List.dedupKeys g.log) :=
-  badLog_of_hashMisbehavesFrom R hcons h
-
 /-! ## The bound -/
 
 /-- The two runs' budgets add up to the error. -/
@@ -338,39 +327,37 @@ theorem misbehaves_rom_of (R : SlotReader) {seedRoots : List Digest}
     simpa using hs'
 
 /-- **The hash misbehaves with probability at most `niError ε V Q`** in the random-oracle game,
-for a statement `(prog, input)` fixed before the prover runs (selective: the chain's first state is
-computed outside the oracle, so a prover picking the statement after its queries is not covered); a
-reader `R` of the chains from that first state alone whose bad challenges have density at most
-`ε`; a prover making at most `Q` queries; a verifier making at most `V` on every proof; and at most
-`proofDigests` roots per proof. -/
-theorem misbehaves_rom (R : SlotReader) (prog : Program) (input : PublicInput)
-    (hseed : R.toChainStarts = ChainStarts.startAt (FsState.seed prog input).cv) {ε : ℝ≥0}
-    (hbad : R.Density ε)
+for a statement `(prog, input)` fixed before the prover runs; at most one root `seedRoots` in play
+at the start and a reader `R` whose starts are safe with them and whose bad challenges have
+density at most `ε`; a prover making at most `Q` queries; a verifier making at most `V` on every
+proof; and at most `proofDigests` roots per proof. -/
+theorem misbehaves_rom (R : SlotReader) {seedRoots : List Digest} (hlen : seedRoots.length ≤ 1)
+    (hsafe : R.StartsSafe seedRoots) {ε : ℝ≥0} (hbad : R.Density ε) (prog : Program)
+    (input : PublicInput)
     (V : VerifierWith) {Vq : ℕ} (hV : ∀ proof, IsTotalQueryBound (V hashQuery prog input proof) Vq)
     (rootsOf : Proof PrunedMerklePaths → List Digest)
     (hroots : ∀ proof, (rootsOf proof).length ≤ proofDigests)
     (A : Adversary) {Q : ℕ} (hQ : IsTotalQueryBound A Q) :
     Pr{let z ← runRandom (loggedGame V prog input A)}[
-      HashMisbehaves rootsOf R.Flip prog input z.1] ≤ niError ε Vq Q := by
+      HashMisbehavesFrom seedRoots rootsOf R.Flip z.1] ≤ niError ε Vq Q := by
   rw [loggedGame_eq_twoRunGame, runRandom_map, prEvent_map]
-  exact misbehaves_rom_of R (seedRoots := seedDigests prog input) le_rfl
-    (R.startsSafe_of_seed _ hseed (List.mem_singleton_self _)) hbad id A hQ
-    (V hashQuery prog input) hV (fun _ ↦ rootsOf) fun _ ↦ hroots
+  exact misbehaves_rom_of R hlen hsafe hbad id A hQ (V hashQuery prog input) hV (fun _ ↦ rootsOf)
+    fun _ ↦ hroots
 
 /-- **The bound for a prover with coins**: a distribution over provers each making at most `Q`
 queries is a mixture of coin-free ones, each meeting the bound. -/
-theorem misbehaves_rom_coins (R : SlotReader) (prog : Program) (input : PublicInput)
-    (hseed : R.toChainStarts = ChainStarts.startAt (FsState.seed prog input).cv) {ε : ℝ≥0}
-    (hbad : R.Density ε)
+theorem misbehaves_rom_coins (R : SlotReader) {seedRoots : List Digest}
+    (hlen : seedRoots.length ≤ 1) (hsafe : R.StartsSafe seedRoots) {ε : ℝ≥0} (hbad : R.Density ε)
+    (prog : Program) (input : PublicInput)
     (V : VerifierWith) {Vq : ℕ} (hV : ∀ proof, IsTotalQueryBound (V hashQuery prog input proof) Vq)
     (rootsOf : Proof PrunedMerklePaths → List Digest)
     (hroots : ∀ proof, (rootsOf proof).length ≤ proofDigests)
     (coins : ProbComp Adversary) {Q : ℕ} (hQ : ∀ A ∈ support coins, IsTotalQueryBound A Q) :
     Pr{let A ← coins; let z ← runRandom (loggedGame V prog input A)}[
-      HashMisbehaves rootsOf R.Flip prog input z.1] ≤ niError ε Vq Q := by
+      HashMisbehavesFrom seedRoots rootsOf R.Flip z.1] ≤ niError ε Vq Q := by
   rw [← bind_assoc]
   exact prEvent_bind_le_of_forall_le_of_support _ _ _ fun A hA ↦
-    misbehaves_rom R prog input hseed hbad V hV rootsOf hroots A (hQ A hA)
+    misbehaves_rom R hlen hsafe hbad prog input V hV rootsOf hroots A (hQ A hA)
 
 end
 end LeanerVM.Protocol

@@ -25,8 +25,9 @@ in a monad `m`:
 1. the sizes are read off the witness (`Sizes.ofWitness`) and must pass the setup checks with the
    rate (`Sizes.Admissible`, `validRate`), else `none`; they fix the leanISA instance at the Flock
    specification `F`, its stack (`stackOf`) and WHIR's deployed chain (`leanIsaChain`);
-2. from the statement's seed (`FsState.seed`), the sizes and the rate are announced (`proveFrom`
-   starts from the state a computation `seed` gives, run once the sizes and the rate pass);
+2. from the statement's seed, its three hashes answered by `H` (`FsState.seedWith`), the sizes
+   and the rate are announced (`proveFrom` starts from the state a computation `seed` gives, run
+   once the sizes and the rate pass);
 3. the compiled protocol's honest prover (`compiledProver`, the stateful prover that runs as the
    honest prover of `listBindingDef`, `compiledProver_run`) runs round by round against the wire
    of its schedule (`compiledCodec`): each message written to the stream as the verifier reads it,
@@ -156,11 +157,11 @@ def proveFrom {m : Type → Type} [Monad m] (H : List UInt8 → m Digest) (seed 
     else pure none
 
 /-- **leanVM's honest prover**, generic in how the hash `H` is answered: `proveFrom` from the
-statement's seed. -/
+statement's seed, its three hashes answered by `H`. -/
 def proveWith {m : Type → Type} [Monad m] (H : List UInt8 → m Digest) (fuel : ℕ) (F : FlockSpec)
     (prog : Program) (input : PublicInput) (w : EnsembleWitness (leanIsaEnsemble prog)) (ρ : ℕ) :
     m (Option (Proof PrunedMerklePaths)) :=
-  proveFrom H (pure (FsState.seed prog input)) fuel F prog input w ρ
+  proveFrom H (FsState.seedWith H prog input) fuel F prog input w ρ
 
 /-- **leanVM's honest prover** at the deployed hash, BLAKE2s-256, and the deployed Flock
 specification, the one `verify` reads. -/

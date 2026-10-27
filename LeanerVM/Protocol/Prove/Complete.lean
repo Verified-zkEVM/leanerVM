@@ -356,7 +356,8 @@ theorem baseProver_complete_of_agree (H : List UInt8 → Digest) (fuel : ℕ) {p
       PhasesAgree prog s hs ρ hρ input)
     (hp : proveWith (m := Id) H fuel Blake2sFlock.blake2sFlockSpec prog input w ρ = some proof) :
     Verify.verifyWith (m := Id) H prog input proof = true :=
-  baseProver_complete_of_agree_from H (pure (FsState.seed prog input)) fuel hsat hagree hp
+  baseProver_complete_of_agree_from H (FsState.seedWith (m := Id) H prog input) fuel hsat hagree
+    hp
 
 /-! ## When the prover returns a proof -/
 
@@ -603,7 +604,7 @@ theorem proveWith_ne_none (H : List UInt8 → Digest) (fuel : ℕ) (F : FlockSpe
     (hws : Sizes.ofWitness w = some s) (hs : s.Admissible prog) (hρ : validRate ρ)
     (hg : ∀ fs : FsState, Id.run (fs.grind H fuel queryGrindingBits) ≠ none) :
     proveWith (m := Id) H fuel F prog input w ρ ≠ none :=
-  proveFrom_ne_none H (pure (FsState.seed prog input)) fuel F hws hs hρ hg
+  proveFrom_ne_none H (FsState.seedWith (m := Id) H prog input) fuel F hws hs hρ hg
 
 /-- **When the honest prover returns no proof** from a start: the witness gives no sizes, or its
 sizes are not admissible, or the rate is not valid, or the grind runs out of fuel at some chain
@@ -632,7 +633,7 @@ theorem proveWith_eq_none (H : List UInt8 → Digest) (fuel : ℕ) (F : FlockSpe
     Sizes.ofWitness w = none ∨ ∃ s, Sizes.ofWitness w = some s ∧
       (¬ s.Admissible prog ∨ ¬ validRate ρ ∨
         ∃ fs : FsState, Id.run (fs.grind H fuel queryGrindingBits) = none) :=
-  proveFrom_eq_none H (pure (FsState.seed prog input)) fuel F h
+  proveFrom_eq_none H (FsState.seedWith (m := Id) H prog input) fuel F h
 
 end Prove
 

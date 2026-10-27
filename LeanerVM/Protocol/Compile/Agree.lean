@@ -462,7 +462,7 @@ theorem baseProver_complete (H : List UInt8 → Digest) (fuel : ℕ) {prog : Pro
     {proof : Proof PrunedMerklePaths} (hsat : SatisfiedBy prog input w)
     (hp : proveWith (m := Id) H fuel Blake2sFlock.blake2sFlockSpec prog input w ρ = some proof) :
     Verify.verifyWith (m := Id) H prog input proof = true :=
-  baseProver_complete_from H (pure (FsState.seed prog input)) fuel hsat hp
+  baseProver_complete_from H (FsState.seedWith (m := Id) H prog input) fuel hsat hp
 
 end Prove
 

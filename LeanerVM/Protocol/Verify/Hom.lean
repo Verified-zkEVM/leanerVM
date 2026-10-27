@@ -16,14 +16,15 @@ public import VCVio.OracleComp.SimSemantics.SimulateQ
 
 `verifyFrom H seed` is written once over the hash `H : List UInt8 → m Digest` and the start
 `seed : m FsState`. `verifyFrom_hom`: for a monad morphism `φ : m →ᵐ m'`, mapping
-`verifyFrom H seed` by `φ` is `verifyFrom (fun t ↦ φ (H t)) (φ seed)`; `verifyWith_hom` is its
-instance at the statement's seed, and `FsState.seedWith_hom` carries the seed's hashes.
+`verifyFrom H seed` by `φ` is `verifyFrom (fun t ↦ φ (H t)) (φ seed)`; `FsState.seedWith_hom`
+carries the seed's hashes, and `verifyWith_hom` is the instance at the statement's seed computed
+through `H`.
 `verifyWith_simulateQ` is the instance at VCVio's `simulateQ impl`: the verifier with every hash
 a query to the oracle `List UInt8 →ₒ Digest`, simulated by `impl`, is the verifier with `impl`
 answering, so the random-oracle run, the BLAKE2s run and a logged run are one function at three
 hashes; `verifyWith_pure` makes the BLAKE2s run, answering by `pure (blake2sBytes t)`, `pure` of
-`verify`. `verifyFrom_simulateQ` and `FsState.seedWith_simulateQ` are the same for a computed
-start.
+`verify`. `verifyFrom_simulateQ` and `FsState.seedWith_simulateQ` are the same for any start and
+for the seed's hashes.
 
 Lean has no parametricity theorem, so the transport is proved through the definitions: the
 chain's steps, the reader's operations along the lifted morphism `ReadM.mapHom φ`, the Merkle
@@ -302,7 +303,7 @@ theorem verifyFrom_hom (seed : m FsState) (prog : Program) (input : PublicInput)
 of `verifyWith` with every hash's answer mapped. -/
 theorem verifyWith_hom (prog : Program) (input : PublicInput) (proof : Proof PrunedMerklePaths) :
     φ (verifyWith H prog input proof) = verifyWith (fun t ↦ φ (H t)) prog input proof := by
-  rw [verifyWith, verifyFrom_hom, MonadHom.mmap_pure]
+  rw [verifyWith, verifyFrom_hom, FsState.seedWith_hom]
   rfl
 
 /-- **The deterministic run**: the verifier with every hash answered by `pure (H t)` in a lawful

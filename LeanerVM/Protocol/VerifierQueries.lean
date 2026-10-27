@@ -24,12 +24,12 @@ one, a root two, a nonce three), so the chain walk asks at most `queryCounts.cha
 tree (`isTotalQueryBound_merkleVerifyWith`), and the setup checks the openings' shapes before any
 hash (`openingsOk`).
 
-`queryCount prog input s shs` is the bound at the sizes `s` and the levels `shs`;
-`verifierQueries prog input` its maximum over the admissible sizes and rates, and
-`verifierQueries_bound`: for every proof, the verifier at the random oracle asks at most
-`verifierQueries prog input` queries. From a computed start asking at most `k` queries, it asks
-at most `k` more (`verifierQueries_bound_from`); the seed's hashes are three
-(`isTotalQueryBound_seedWith`).
+`queryCount prog input s shs` is the bound at the sizes `s` and the levels `shs`, past the start;
+`verifierQueries prog input` its maximum over the admissible sizes and rates. From a computed
+start asking at most `k` queries, the verifier at the random oracle asks at most
+`k + verifierQueries prog input` on every proof (`verifierQueries_bound_from`); the seed's hashes
+are three (`isTotalQueryBound_seedWith`), so the verifier asks at most
+`3 + verifierQueries prog input` (`verifierQueries_bound`).
 
 Classification: T4 in the random-oracle model, the budget: the verifier's query bound that the
 random-oracle bound's error is charged at (`misbehaves_rom`).
@@ -422,14 +422,14 @@ theorem isTotalQueryBound_verifyFrom {seed : OracleComp hashSpec FsState} {k : �
     · rcases r with _ | ⟨w, rows⟩ <;> exact isTotalQueryBound_pure _ _
 
 /-- **The verifier at the random oracle**, on a proof announcing the sizes `s` and the rate `ρ`
-whose ladder has the levels `levels`, asks at most `queryCount` queries at those sizes and
-levels. -/
+whose ladder has the levels `levels`, asks at most the seed's three queries and `queryCount` at
+those sizes and levels. -/
 theorem isTotalQueryBound_verifyWith {prog : Program} {input : PublicInput}
     {proof : Proof PrunedMerklePaths} {s : Sizes} {ρ : ℕ} {levels : List Whir.Level}
     (hs : setup? prog proof = some (s, ρ)) (hl : ladderOf prog s ρ = some levels) :
     IsTotalQueryBound (verifyWith hashQuery prog input proof)
-      (queryCount prog input s (levelShapes (stackMu prog s) levels)) :=
-  (isTotalQueryBound_verifyFrom (isTotalQueryBound_pure _ 0) hs hl).mono (by omega)
+      (3 + queryCount prog input s (levelShapes (stackMu prog s) levels)) :=
+  isTotalQueryBound_verifyFrom (isTotalQueryBound_seedWith prog input) hs hl
 
 /-! ## The maximum over the admissible sizes -/
 
@@ -507,12 +507,13 @@ theorem verifierQueries_bound_from {seed : OracleComp hashSpec FsState} {k : ℕ
   exact h
 
 /-- **The verifier's queries are bounded**: on every proof, the verifier at the random oracle asks
-at most `verifierQueries prog input` queries. The sizes, the rate and the openings' shapes are
-checked before the first hash. -/
+at most `3 + verifierQueries prog input` queries, the seed's three hashes and the walk's and the
+openings' after them. The sizes, the rate and the openings' shapes are checked before the first
+hash. -/
 theorem verifierQueries_bound (prog : Program) (input : PublicInput)
     (proof : Proof PrunedMerklePaths) :
-    IsTotalQueryBound (verifyWith hashQuery prog input proof) (verifierQueries prog input) :=
-  (verifierQueries_bound_from (isTotalQueryBound_pure _ 0) prog input proof).mono (by omega)
+    IsTotalQueryBound (verifyWith hashQuery prog input proof) (3 + verifierQueries prog input) :=
+  verifierQueries_bound_from (isTotalQueryBound_seedWith prog input) prog input proof
 
 end VerifierQueries
 

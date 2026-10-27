@@ -44,8 +44,10 @@ here on the proof reader's, `readerOps H`; the same walk runs on any other reade
 `LeanerVM.Protocol.Verify.Hom` carries `verifyFrom` along a monad morphism of the hash's monads
 (`verifyFrom_hom`, `verifyWith_hom`, `verifyWith_simulateQ`, `verifyWith_pure`).
 
-`verifyWith H` starts from the statement's seed, `pure (FsState.seed prog input)`, a constant of
-the statement, and `verify := verifyWith (m := Id) blake2sBytes`. Every function is total and
+`verifyWith H` starts from the statement's seed computed through `H`, `FsState.seedWith H prog
+input`: the program's bytes, the seed's preimage and the first state's input are three more
+hashes, asked after the setup's checks. `verify := verifyWith (m := Id) blake2sBytes`, where the
+seed's hashes are the statement's seed `FsState.seed prog input`. Every function is total and
 computable, by structural recursion; a malformed proof is `false`.
 
 **The fixed public polynomials.** Two public polynomials are evaluated, which a recursive
@@ -183,10 +185,11 @@ def verifyFrom {m : Type → Type} [Monad m] (H : List UInt8 → m Digest) (seed
         | .error _ => pure false
         | .ok (w, rows) => pure (algebra prog s input shs w rows)
 
-/-- **leanVM's verifier**, generic in how the hash `H` is answered, from the statement's seed. -/
+/-- **leanVM's verifier**, generic in how the hash `H` is answered, from the statement's seed,
+its three hashes answered by `H`. -/
 def verifyWith {m : Type → Type} [Monad m] (H : List UInt8 → m Digest) (prog : Program)
     (input : PublicInput) (proof : Proof PrunedMerklePaths) : m Bool :=
-  verifyFrom H (pure (FsState.seed prog input)) prog input proof
+  verifyFrom H (FsState.seedWith H prog input) prog input proof
 
 /-- **leanVM's verifier** at the deployed hash, BLAKE2s-256. -/
 def verify (prog : Program) (input : PublicInput) (proof : Proof PrunedMerklePaths) : Bool :=

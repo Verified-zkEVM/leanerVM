@@ -18,8 +18,10 @@ import LeanerVMTests.Protocol.LogScan
   accepts the Rust proof and the test vector.
 * **The honest prover's hashes.** `scan` (`LeanerVMTests.Protocol.LogScan`) finds the collisions
   and hits of a joint log in one pass with hash maps; it agrees with `QueryLog.HasCollision` and
-  `Hit` on the logs below, which cover a hit through a half, through a root two observe steps
-  rebuild in either order, through a root of the proof, and none on a repeated query. The
+  `HitFrom []` on the logs below, which cover a hit through a half, through the program hash a
+  seed preimage carries, through a root two observe steps rebuild in either order, through a root
+  of the proof, none on a repeated query, and none on an answer equal to the test statement's
+  first state, which is in play only once its query is asked. The
   `leanervm-prove` executable (`log`) runs the honest prover on the test vector's witness and the
   verifier on its proof, every hash logged, and checks that the joint log has no collision and no
   hit, and that `extract` on the prover's log returns the witness's sizes and stack. A flip is
@@ -31,8 +33,13 @@ import LeanerVMTests.Protocol.LogScan
   BLAKE2s is the test statement's first state.
 * **The adaptive forms.** At a fixed statement the adaptive hypothesis is the selective one
   (`blakeMisbehavesAdaptive_const`). The adaptive replayer, `pure (prog, input, proof)`, fails it
-  at every `δ < 1` when `verify` accepts (`adaptiveReplayer_not_blakeMisbehaves`). An adversary
-  that only outputs the test vector's program meets the well-formedness hypothesis of
+  at every `δ < 1` when `verify` accepts (`adaptiveReplayer_not_blakeMisbehaves`), while with the
+  hash a random function its proof is accepted with probability at most
+  `13700/2^128 + hashTerm 13700 0` (`adaptiveReplayer_ok_le`, through `extract_nil`): the random
+  oracle draws the challenges after the statement is chosen. An adversary that asks one hash and
+  picks one of two statements from its answer (`chooser`) asks one query, and the adaptive
+  random-oracle theorem bounds it at `Q = 1`. An adversary that only outputs the test vector's
+  program meets the well-formedness hypothesis of
   `baseVerifier_extractsExecution_adaptive_wellFormed` (an `example`).
 * **A proof `verify` accepts of a statement with no execution**
   (`verify_accepts_without_execution`): for the sentinel tests' program, whose sentinel slot is a
@@ -181,7 +188,7 @@ theorem replayer_not_blakeMisbehaves {prog : Program} {input : PublicInput}
     ¬ BlakeMisbehaves prog input (replayer proof) δ := by
   intro hB
   have h1 : Pr{let g ← runBlake2s (loggedGame verifyWith prog input (replayer proof))}[
-      HashMisbehaves (rootsOf prog input) (leanVmReader prog input).Flip prog input g] = 1 :=
+      HashMisbehavesFrom [] (rootsOf prog input) leanVmReader.Flip g] = 1 :=
     OracleComp.prEvent_eq_one_of_forall_mem_support _ _ fun g hg ↦ by
       obtain ⟨hg', hc, hok⟩ := mem_support_runBlake2s hg
       obtain ⟨hp, hl⟩ := replayer_run hg'
@@ -193,15 +200,15 @@ theorem replayer_not_blakeMisbehaves {prog : Program} {input : PublicInput}
 
 /-! ## Collisions and hits, in one pass -/
 
-/-- `scan` at the test statement. -/
+/-- `scan` from no root in play at the start. -/
 def scanAt (roots : List Digest) (nA : ℕ) (log : hashSpec.QueryLog) : Bool × Bool :=
-  scan (seedDigests program input) roots nA (entries log)
+  scan [] roots nA (entries log)
 
-/-- `scan` agrees with the definitions on a run of the given logs, at the test statement. -/
+/-- `scan` agrees with the definitions on a run of the given logs. -/
 def scanAgrees (roots : List Digest) (logA logV : hashSpec.QueryLog) : Bool :=
   let g : Run := ⟨⟨[], []⟩, logA, logV, true⟩
   scanAt roots logA.length g.log ==
-    (decide (QueryLog.HasCollision g.log), decide (Hit (fun _ ↦ roots) program input g))
+    (decide (QueryLog.HasCollision g.log), decide (HitFrom [] (fun _ ↦ roots) g))
 
 /-- The chain's first state at the test statement. -/
 def s₀ : Digest := (FsState.seed program input).cv
@@ -233,8 +240,12 @@ the prover. -/
   (scanAt [d 9] 1 [⟨[1], d 1⟩, ⟨[2], d 9⟩]).2
 #guard scanAgrees [d 9] [⟨[2], d 9⟩] [⟨[2], d 9⟩] &&
   !(scanAt [d 9] 1 [⟨[2], d 9⟩, ⟨[2], d 9⟩]).2
-/- An answer equal to the chain's first state. -/
-#guard scanAgrees [] [⟨[3], s₀⟩] [] && (scanAt [] 1 [⟨[3], s₀⟩]).2
+/- The program hash a seed's preimage carries: a later query answered by it. -/
+#guard scanAgrees [] [⟨seedPreimageOf (d 1), d 2⟩, ⟨[5], d 1⟩] [] &&
+  (scanAt [] 2 [⟨seedPreimageOf (d 1), d 2⟩, ⟨[5], d 1⟩]).2
+/- An answer equal to the chain's first state is no hit: the state is in play only once its query
+is asked. -/
+#guard scanAgrees [] [⟨[3], s₀⟩] [] && !(scanAt [] 1 [⟨[3], s₀⟩]).2
 /- A clean log. -/
 #guard scanAgrees [d 9] [⟨[1], d 1⟩] [⟨[2], d 2⟩] &&
   scanAt [d 9] 1 [⟨[1], d 1⟩, ⟨[2], d 2⟩] == (false, false)
@@ -282,7 +293,7 @@ example (A : Adversary) {Q : ℕ} (hQ : IsTotalQueryBound A Q) :
       z.1.ok = true ∧ ¬ ∃ e,
         extract Blake2sFlock.blake2sFlockSpec program input z.1.proof z.1.logA = some e ∧
           SatisfiedBy program input (witnessOf Blake2sFlock.blake2sFlockSpec program e.1 e.2)] ≤
-      ((Q + 13697 : ℕ) / 2 ^ 128 + hashTerm 13697 Q : NNReal) :=
+      ((Q + 13700 : ℕ) / 2 ^ 128 + hashTerm 13700 Q : NNReal) :=
   baseVerifier_extractsWitness_rom hQ
 
 /- The execution form at the test vector's program, whose sentinel slot is not a `JUMP`. -/
@@ -318,8 +329,7 @@ theorem adaptiveReplayer_not_blakeMisbehaves {prog : Program} {input : PublicInp
     ¬ BlakeMisbehavesAdaptive (adaptiveReplayer prog input proof) δ := by
   intro hB
   have h1 : Pr{let g ← runBlake2s (adaptiveGame verifyWith (adaptiveReplayer prog input proof))}[
-      HashMisbehaves (rootsOf g.prog g.input) (leanVmReader g.prog g.input).Flip g.prog g.input
-        g.toRun] = 1 :=
+      HashMisbehavesFrom [] (rootsOf g.prog g.input) leanVmReader.Flip g.toRun] = 1 :=
     OracleComp.prEvent_eq_one_of_forall_mem_support _ _ fun g hg ↦ by
       obtain ⟨hg', hc, hok⟩ := mem_support_runBlake2s_adaptive hg
       obtain ⟨hp, hi, hpr, hl⟩ := adaptiveReplayer_run (QueryLog.support_simulateQ_subset _ _ hg)
@@ -330,14 +340,46 @@ theorem adaptiveReplayer_not_blakeMisbehaves {prog : Program} {input : PublicInp
   rw [h1] at hB
   exact absurd hδ (not_lt.mpr hB)
 
-/-- At a fixed statement the adaptive hypothesis is the selective one. -/
-theorem blakeMisbehavesAdaptive_const (prog : Program) (input : PublicInput) (A : Adversary)
-    (δ : ℝ≥0∞) :
+/-- **The adaptive replayer's proof is accepted with small probability** when the hash is a random
+function: nothing is extracted from its empty log, so the adaptive random-oracle theorem at
+`Q = 0` bounds its acceptance. -/
+theorem adaptiveReplayer_ok_le (prog : Program) (input : PublicInput)
+    (proof : Proof PrunedMerklePaths) :
+    Pr{let z ← runRandom (adaptiveGame verifyWith (adaptiveReplayer prog input proof))}[
+      z.1.ok = true] ≤ ((0 + 13700 : ℕ) / 2 ^ 128 + hashTerm 13700 0 : NNReal) :=
+  (OracleComp.prEvent_mono_of_support _ fun z hz h ↦ ⟨h, fun ⟨e, he, _⟩ ↦ by
+    obtain ⟨-, -, -, hl⟩ := adaptiveReplayer_run (mem_support_runRandom_adaptive hz).1
+    rw [hl, extract_nil] at he
+    cases he⟩).trans (baseVerifier_extractsWitness_rom_adaptive (Q := 0) trivial)
+
+-- At a fixed statement the adaptive hypothesis is the selective one.
+example (prog : Program) (input : PublicInput) (A : Adversary) (δ : ℝ≥0∞) :
     BlakeMisbehavesAdaptive ((fun proof ↦ (prog, input, proof)) <$> A) δ ↔
-      BlakeMisbehaves prog input A δ := by
-  unfold BlakeMisbehavesAdaptive BlakeMisbehaves
-  rw [adaptiveGame_const, runBlake2s, simulateQ_map, prEvent_map]
-  rfl
+      BlakeMisbehaves prog input A δ :=
+  blakeMisbehavesAdaptive_const prog input A δ
+
+/-- **An adversary that chooses the statement from a hash**: it asks the hash of one byte and,
+by the answer's first word's parity, outputs one of two statements with the proof. -/
+def chooser (st₀ st₁ : Program × PublicInput) (proof : Proof PrunedMerklePaths) :
+    AdaptiveAdversary := do
+  let h ← hashQuery [0]
+  let st := if h[0] % 2 = 0 then st₀ else st₁
+  return (st.1, st.2, proof)
+
+/-- The chooser asks one query. -/
+theorem chooser_queries (st₀ st₁ : Program × PublicInput) (proof : Proof PrunedMerklePaths) :
+    IsTotalQueryBound (chooser st₀ st₁ proof) 1 :=
+  isTotalQueryBound_query_bind_iff.mpr ⟨Nat.one_pos, fun _ ↦ trivial⟩
+
+-- The adaptive random-oracle theorem at the chooser, between the test statement and the test
+-- vector's: one prover query.
+example (proof : Proof PrunedMerklePaths) :
+    Pr{let z ← runRandom (adaptiveGame verifyWith
+        (chooser (program, input) (fillProg, mulInput) proof))}[z.1.ok = true ∧ ¬ ∃ e,
+      extract Blake2sFlock.blake2sFlockSpec z.1.prog z.1.input z.1.proof z.1.logA = some e ∧
+        SatisfiedBy z.1.prog z.1.input (witnessOf Blake2sFlock.blake2sFlockSpec z.1.prog e.1 e.2)] ≤
+      ((1 + 13700 : ℕ) / 2 ^ 128 + hashTerm 13700 1 : NNReal) :=
+  baseVerifier_extractsWitness_rom_adaptive (chooser_queries _ _ _)
 
 /- The execution form for an adversary that only ever outputs the test vector's program, which
 is well-formed: the hypothesis on the adversary's programs is met. -/

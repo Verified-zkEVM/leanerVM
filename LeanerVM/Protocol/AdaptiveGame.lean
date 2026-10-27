@@ -8,6 +8,7 @@
 module
 
 public import LeanerVM.Protocol.Replay
+public import LeanerVM.Protocol.HashMisbehaves
 
 /-!
 # The adaptive game
@@ -20,6 +21,10 @@ proof, after any number of hash queries, and the verifier runs on the statement 
 
 * `adaptiveGame_const`: for a prover whose statement is fixed, the adaptive game is the game on
   that statement.
+* `adaptiveGame_eq_twoRunGame`: the adaptive game is the game in two runs of the prover and the
+  verifier on the prover's output, the run's record rebuilt, so that the random-oracle bound
+  `misbehaves_rom_of` applies to it; `mem_support_runRandom_adaptive`: a run under the lazy random
+  oracle is a possible run of the adaptive game, and its joint log is consistent.
 * `mem_support_loggedGame_of_adaptive`: a run of the adaptive game is a run of the game on the
   statement the prover chose, for the prover that outputs only the proof, so that
   `Core.core_of_mem_support` applies to it at that statement.
@@ -70,6 +75,26 @@ theorem adaptiveGame_const (V : VerifierWith) (prog : Program) (input : PublicIn
     adaptiveGame V ((fun proof ↦ (prog, input, proof)) <$> A) =
       (fun g ↦ ⟨g, prog, input⟩) <$> loggedGame V prog input A := by
   simp [adaptiveGame, loggedGame, withQueryLog_map]
+
+/-- **The adaptive game in two runs**: the prover's logged run, then the verifier's logged run on
+the statement and the proof the prover output, the record rebuilt. -/
+theorem adaptiveGame_eq_twoRunGame (V : VerifierWith) (A : AdaptiveAdversary) :
+    adaptiveGame V A = (fun r ↦ (⟨r.2, r.1.1, r.1.2.1⟩ : AdaptiveRun)) <$>
+      twoRunGame (·.2.2) A (fun b ↦ V hashQuery b.1 b.2.1 b.2.2) := by
+  simp only [twoRunGame, map_bind, map_pure]
+  rfl
+
+/-- **A run of the adaptive game under the lazy random oracle** is a possible run of the game, and
+its joint log is consistent. -/
+theorem mem_support_runRandom_adaptive {V : VerifierWith} {A : AdaptiveAdversary}
+    {z : AdaptiveRun × hashSpec.QueryCache} (hz : z ∈ support (runRandom (adaptiveGame V A))) :
+    z.1 ∈ support (adaptiveGame V A) ∧ QueryLog.Consistent z.1.log := by
+  rw [adaptiveGame_eq_twoRunGame, runRandom_map, support_map] at hz
+  obtain ⟨z', hz', rfl⟩ := hz
+  obtain ⟨h₁, h₂⟩ := mem_support_runRandom_twoRunGame hz'
+  refine ⟨?_, h₂⟩
+  rw [adaptiveGame_eq_twoRunGame, support_map]
+  exact ⟨z'.1, h₁, rfl⟩
 
 /-- **A run of the adaptive game** is a run of the game on the statement the prover chose, for
 the prover that outputs only the proof. -/
