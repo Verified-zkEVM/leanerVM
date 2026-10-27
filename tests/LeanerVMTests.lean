@@ -4,6 +4,7 @@ import LeanerVMTests.Arithmetization.Bytecode
 import LeanerVMTests.Arithmetization.Channels
 import LeanerVMTests.Arithmetization.Rows
 import LeanerVMTests.Arithmetization.Sentinel
+import LeanerVMTests.Arithmetization.SentinelFixture
 import LeanerVMTests.Arithmetization.Soundness
 import LeanerVMTests.Arithmetization.Statement
 import LeanerVMTests.Arithmetization.Steps

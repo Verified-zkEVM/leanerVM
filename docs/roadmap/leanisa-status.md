@@ -366,9 +366,11 @@ module (P3).
     (declared in `Statement.lean`). Layer 9 is complete; Layer 10's soundness half is built.
     `traceOf` is a hash map from each opcode row's pulled state to its pushed state, walked
     from `(1, 1)` to the final registers with the number of opcode rows as fuel; no discrete
-    logarithm. `SentinelSafe` is load-bearing: a satisfying witness of the fixture's program
-    with a `JUMP` in its sentinel slot represents no valid execution
-    (`tests/LeanerVMTests/Arithmetization/Sentinel.lean`).
+    logarithm. `SentinelSafe` is load-bearing: some program with a `JUMP` in its sentinel slot
+    has a satisfying witness and no valid execution on the input over any memory
+    (`exists_satisfiedBy_without_execution`, `tests/LeanerVMTests/Arithmetization/Sentinel.lean`).
+    `WellFormedBytecode` (`LeanerVM/Semantics/WellFormedBytecode.lean`) holds the
+    `sentinelSafe` field; the fill blocks are a later field.
 - **A refactor waits on Clean PR #446** (issue #23, decision 15): the three named hypotheses of
   `SatisfiedBy` become fixed columns and proof-committed data inside the two boundary blocks,
   and nothing else moves. The roadmap's Layer 8 section "After Clean #446" is the plan.

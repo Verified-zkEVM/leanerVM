@@ -1,5 +1,5 @@
 import LeanerVM.Arithmetization.Soundness
-import LeanerVMTests.Arithmetization.Statement
+import LeanerVMTests.Arithmetization.SentinelFixture
 
 /-!
 # Tests: the sentinel hypothesis is load-bearing
@@ -8,19 +8,21 @@ A classic test for kernel evaluation. Constraint soundness needs `SentinelSafe p
 in the sentinel slot lets a row at the sentinel counter jump on, so a satisfying witness can
 reach the final registers through a state at which the machine halts.
 
-**The program** `sentProg` is the statement tests' fixture rearranged: the run's `JUMP` (slot `3`)
-jumps to `(g^31, g^5)` instead of `(g^31, 1)`, reading its frame word from cell `11`; the `XOR` and
-`DEREF` fill blocks share one closing `JUMP` (slots `4`, `5`, `6`), so that the `JUMP` table keeps
-four rows; and the sentinel slot `31` holds a `JUMP` in frame `g^5` to `(g^31, 1)`. The image and
-the data are the fixture's, the `BLAKE2S` fill rows too, so `Caps` holds.
+**The program and the witness** are `sentProg` and `sentW` of
+`LeanerVMTests.Arithmetization.SentinelFixture`. The witness satisfies `SatisfiedBy sentProg
+mulInput` (`sent_satisfiedBy`): its rows are steps, the sentinel row among them, and the state
+pair balances with the walk `(1, 1) → (g, 1) → (g^2, 1) → (g^3, 1) → (g^31, g^5) → (g^31, 1)`.
 
-**The witness** `sentW` satisfies `SatisfiedBy sentProg mulInput` (`sent_satisfiedBy`): its rows
-are steps, the sentinel row among them, and the state pair balances with the walk
-`(1, 1) → (g, 1) → (g^2, 1) → (g^3, 1) → (g^31, g^5) → (g^31, 1)`. But the machine halts at
-`(g^31, g^5)`, the sentinel counter with the wrong frame: no run reaches the final registers
-(`sent_no_run`), so no trace the witness represents is a valid execution
-(`sent_not_sound`): `constraintSoundness` fails without `SentinelSafe`. `traceOf` still walks the
-rows' states to the final registers in five steps (the `#guard`), a trace whose run is refuted.
+**No execution at all.** The run's first two instructions pin, by `SET_CONSTANT`, the cells the
+run's `JUMP` reads its destination and frame from, and the `JUMP`'s condition is the public word
+`input₀ = 1`. So over every image whose first word is the public input's, a run either faults or
+reaches `(g^31, g^5)`, the sentinel counter with the wrong frame, where the machine halts
+(`sent_no_run`, generic in the image: each step lemma learns the cell its step pins). No trace of
+`sentProg` is a valid execution on `mulInput` (`sent_no_execution`), whatever memory it names, so
+no extractor of any kind can find one: `exists_satisfiedBy_without_execution`. The weaker
+`sent_not_sound`, that no trace the witness represents is a valid execution, is its corollary.
+`traceOf` still walks the rows' states to the final registers in five steps (the `#guard`), a
+trace whose run is refuted.
 -/
 
 namespace LeanerVMTests.Arithmetization.Sentinel
@@ -29,96 +31,8 @@ open LeanerVM.Parameters LeanerVM.Semantics LeanerVM.Arithmetization
 open LeanerVMTests.Arithmetization.Statement
 open Air.Flat (Component EnsembleWitness)
 
-/-! ## The program -/
-
-/-- The fixture's program with a `JUMP` in its sentinel slot. -/
-def sentProg : Program :=
-  ⟨5, by decide, fun i ↦
-    match (i : ℕ) with
-    | 0 => .setConstant (gpow 2) mulX
-    | 1 => .setConstant (gpow 3) mulY
-    | 2 => .mulNative (gpow 2) (gpow 3) (gpow 4)
-    | 3 => .jump (gpow 26) (gpow 27) (gpow 11)
-    | 4 => .xor 1 1 1
-    | 5 => .deref (gpow 6) 1 1 .cell
-    | 6 => .jump g (gpow 2) (gpow 6)
-    | 8 | 9 | 10 | 11 | 12 | 13 | 14 | 15 =>
-      .blake2s ![gpow 2, gpow 3, gpow 4, gpow 5] 1 (gpow 6) (gpow 8)
-    | 16 => .jump (gpow 9) (gpow 10) (gpow 11)
-    | 31 => .jump g (gpow 22) g
-    | _ => .xor 1 1 1⟩
-
 /-- Its sentinel slot is a `JUMP`. -/
 theorem sent_not_safe : ¬ SentinelSafe sentProg := by decide
-
-/-! ## The rows -/
-
-/-- Slot `3`, the run's `JUMP` to `(g^31, g^5)`: the condition at `g^26`, the destination at
-`g^27`, the frame word `g^5` at `g^11` (its third read). -/
-def jumpRowA : JumpRow K :=
-  ⟨gpow 3, 1, gpow 26, gpow 27, gpow 11, 1, gpow 31, gpow 5, 1, 1, g ^ 2, 1⟩
-
-/-- Slot `5`, the fixture's `DEREF` fill row one slot earlier. -/
-def derefRowS : DerefRow K :=
-  ⟨gpow 5, gpow 5, gpow 6, 1, 1, 0, 0, gpow 5, #v[0, 0, 0], g, g ^ 4, g ^ 3, 1⟩
-
-/-- Slot `6`, the `JUMP` back to slot `4` closing both fill blocks. -/
-def jumpRowB : JumpRow K :=
-  ⟨gpow 6, gpow 5, g, gpow 2, gpow 6, 1, gpow 4, gpow 5, 1, 1, 1, 1⟩
-
-/-- Slot `31`, the sentinel's `JUMP` in frame `g^5` to `(g^31, 1)`: the condition and the frame
-word `1` at `g^6`, the destination `g^31` at `g^27`. -/
-def jumpRowS : JumpRow K :=
-  ⟨gpow 31, gpow 5, g, gpow 22, g, 1, gpow 31, 1, g, g, g ^ 2, 1⟩
-
-/-- The finalize counts: cell `6` read three times, cell `27` twice, cells `8` and `28` never;
-the rest as in the fixture. -/
-def sentCnt (i : ℕ) : K :=
-  if i = 6 then g ^ 3 else if i = 27 then g ^ 2 else if i = 8 ∨ i = 28 then 1 else memCnt i
-
-theorem sentCnt_of_ge {i : ℕ} (h : touched ≤ i) : sentCnt i = 1 := by
-  have h29 : 29 ≤ i := h
-  unfold sentCnt
-  rw [ite_eq_right (by omega), ite_eq_right (by omega), ite_eq_right (by omega), memCnt_of_ge h]
-
-/-- The bytecode finalize counts: slots `0` to `6`, `8` to `16` and `31` executed once. -/
-def sentBcCnt (i : Fin (2 ^ sentProg.logSize)) : K :=
-  if (i : ℕ) = 7 then 1 else if (i : ℕ) = 31 then g else bcCnt i
-
-/-! ## The witness -/
-
-def derefTS : Air.Flat.Table K :=
-  mkT derefTable (size DerefRow) ([derefRowS].map rawRow) (rows_size [derefRowS])
-
-def jumpTS : Air.Flat.Table K :=
-  mkT jumpTable (size JumpRow + 2) ([jumpRowA, jumpRowB, jumpRow16, jumpRowS].map jumpRaw)
-    (jumpRaw_size [jumpRowA, jumpRowB, jumpRow16, jumpRowS])
-
-def bcTS : Air.Flat.Table K :=
-  mkT bytecodeTable (size BytecodeRow)
-    (List.ofFn fun i ↦ (toElements (bytecodeRowOf sentProg i (sentBcCnt i))).toArray)
-    fun r hr ↦ by
-      rw [List.mem_ofFn] at hr
-      obtain ⟨i, rfl⟩ := hr
-      exact Vector.size_toArray _
-
-/-- A witness of the ensemble of `sentProg` over the fixture's data and input. -/
-def mkWS (ts : List (Air.Flat.Table K))
-    (hlen : (leanIsaEnsemble sentProg).tables.length = ts.length := by rfl)
-    (hc : ∀ i (hi : i < (leanIsaEnsemble sentProg).tables.length),
-      (leanIsaEnsemble sentProg).tables[i] = (ts[i]'(hlen ▸ hi)).component := by
-        intro i hi
-        have hi' : i < 8 := hi
-        interval_cases i <;> rfl)
-    (hd : ∀ t ∈ ts, t.data = fillData := by
-      intro t ht
-      simp only [List.mem_cons, List.not_mem_nil, or_false] at ht
-      rcases ht with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl <;> rfl) :
-    EnsembleWitness (leanIsaEnsemble sentProg) :=
-  ⟨ts, fillData, PublicIO.ofInput mulInput, hlen, hc, hd⟩
-
-def sentW : EnsembleWitness (leanIsaEnsemble sentProg) :=
-  mkWS [xorT, mulT g, setT 1, derefTS, jumpTS, blakeT, memT sentCnt, bcTS]
 
 /-! ## Proof helpers -/
 
@@ -281,7 +195,7 @@ theorem sent_satisfiedBy : SatisfiedBy sentProg mulInput sentW where
     rw [show sentW.data = fillData from rfl, fill_imageOf]
     exact read_at 1 mulInput.word1
 
-/-! ## The machine halts at the wrong frame -/
+/-! ## No run reaches the final registers, over any image -/
 
 /-- The instruction at `g^i`. -/
 theorem sent_fetch_at (i : ℕ) (ins : Instr) (hi : i < 2 ^ sentProg.logSize := by decide)
@@ -289,96 +203,149 @@ theorem sent_fetch_at (i : ℕ) (ins : Instr) (hi : i < 2 ^ sentProg.logSize := 
   rw [show gpow i = gpow ((⟨i, hi⟩ : Fin (2 ^ sentProg.logSize)) : ℕ) from rfl,
     Program.fetch_gpow, hd]
 
-theorem sent_step0 : step sentProg fillImage ⟨1, 1⟩ = some ⟨gpow 1, 1⟩ := by
-  rw [step_of_fetch_eq_some (r := ⟨1, 1⟩)
-    (by simpa using sent_fetch_at 0 (.setConstant (gpow 2) mulX))]
-  show execute fillImage ⟨1, 1⟩ (.setConstant (gpow 2) mulX) = _
-  simp only [execute, executeWith, one_mul, read_at 2 mulX]
-  decide +kernel
-
-theorem sent_step1 : step sentProg fillImage ⟨gpow 1, 1⟩ = some ⟨gpow 2, 1⟩ := by
-  rw [step_of_fetch_eq_some (r := ⟨gpow 1, 1⟩) (sent_fetch_at 1 (.setConstant (gpow 3) mulY))]
-  show execute fillImage ⟨gpow 1, 1⟩ (.setConstant (gpow 3) mulY) = _
-  simp only [execute, executeWith, one_mul, read_at 3 mulY]
-  decide +kernel
-
-theorem sent_step2 : step sentProg fillImage ⟨gpow 2, 1⟩ = some ⟨gpow 3, 1⟩ := by
-  rw [step_of_fetch_eq_some (r := ⟨gpow 2, 1⟩)
-    (sent_fetch_at 2 (.mulNative (gpow 2) (gpow 3) (gpow 4)))]
-  show execute fillImage ⟨gpow 2, 1⟩ (.mulNative (gpow 2) (gpow 3) (gpow 4)) = _
-  simp only [execute, executeWith, one_mul, read_at 2 mulX, read_at 3 mulY, read_at 4 mulXY]
-  decide +kernel
-
-theorem sent_step3 : step sentProg fillImage ⟨gpow 3, 1⟩ = some ⟨gpow 31, gpow 5⟩ := by
-  rw [step_of_fetch_eq_some (r := ⟨gpow 3, 1⟩)
-    (sent_fetch_at 3 (.jump (gpow 26) (gpow 27) (gpow 11)))]
-  show execute fillImage ⟨gpow 3, 1⟩ (.jump (gpow 26) (gpow 27) (gpow 11)) = _
-  simp only [execute, executeWith, one_mul, read_at 26 (cellK 1), read_at 27 (cellK (gpow 31)),
-    read_at 11 (cellK (gpow 5))]
-  decide +kernel
-
-/-- The run from `(1, 1)`: four steps to `(g^31, g^5)`, where it halts. -/
-theorem sent_run4 : run sentProg fillImage 4 Regs.initial = some ⟨gpow 31, gpow 5⟩ := by
-  simp (disch := decide +kernel) only [Regs.initial, run_succ_of_ne, sent_step0, sent_step1,
-    sent_step2, sent_step3, Option.bind_eq_bind, Option.bind_some, run_zero]
-
 /-- The sentinel counter is `g^31`. -/
 theorem sent_finalPc : sentProg.finalPc = gpow 31 := congrArg gpow (by decide)
 
-/-- Past four steps the run has halted. -/
-theorem sent_run_halt (k : ℕ) (r : Regs K) :
-    run sentProg fillImage (4 + (k + 1)) Regs.initial ≠ some r := by
-  intro h
-  obtain ⟨r', h1, h2⟩ := run_prefix h
-  rw [sent_run4, Option.some.injEq] at h1
-  subst h1
-  rw [run_succ_of_eq (r := ⟨gpow 31, gpow 5⟩) sent_finalPc.symm] at h2
-  cases h2
+/-- A run of `n + 1` steps takes a first step. -/
+theorem run_succ_eq_some {κ : ℕ} {prog : Program} {L : MemImage κ} {n : ℕ} {r r'' : Regs K}
+    (h : run prog L (n + 1) r = some r'') :
+    ∃ r', step prog L r = some r' ∧ run prog L n r' = some r'' := by
+  rw [run_succ_of_ne (pc_ne_finalPc_of_run_succ h)] at h
+  exact Option.bind_eq_some_iff.mp h
 
-/-- No run reaches the final registers. -/
-theorem sent_no_run (n : ℕ) :
-    run sentProg fillImage n Regs.initial ≠ some (Regs.final sentProg) := by
+/-- A `SET_CONSTANT` step pins its cell to the constant and moves to the next slot. -/
+theorem execute_setConstant_eq_some {κ : ℕ} {L : MemImage κ} {r r' : Regs K} {o : K} {k : E}
+    (h : execute L r (.setConstant o k) = some r') :
+    L.read (r.fp * o) = some k ∧ r' = r.next := by
+  simp only [execute, executeWith, Option.bind_eq_bind] at h
+  obtain ⟨v, hv, h⟩ := Option.bind_eq_some_iff.mp h
+  obtain ⟨hk, h'⟩ := (guard_bind_eq_some_iff _ _ _).mp h
+  exact ⟨hk ▸ hv, by simpa [eq_comm] using h'⟩
+
+/-- A `MUL_NATIVE` step moves to the next slot. -/
+theorem execute_mulNative_eq_some {κ : ℕ} {L : MemImage κ} {r r' : Regs K} {oA oB oC : K}
+    (h : execute L r (.mulNative oA oB oC) = some r') : r' = r.next := by
+  simp only [execute, executeWith, Option.bind_eq_bind] at h
+  obtain ⟨_, -, h⟩ := Option.bind_eq_some_iff.mp h
+  obtain ⟨_, -, h⟩ := Option.bind_eq_some_iff.mp h
+  obtain ⟨_, -, h⟩ := Option.bind_eq_some_iff.mp h
+  obtain ⟨-, h'⟩ := (guard_bind_eq_some_iff _ _ _).mp h
+  simpa [eq_comm] using h'
+
+variable {κ : ℕ} {L : MemImage κ}
+
+theorem sent_step0 {r : Regs K} (h : step sentProg L ⟨1, 1⟩ = some r) :
+    L.read (gpow 11) = some (cellK (gpow 5)) ∧ r = ⟨gpow 1, 1⟩ := by
+  rw [step_of_fetch_eq_some (r := ⟨1, 1⟩)
+    (by simpa using sent_fetch_at 0 (.setConstant (gpow 11) (cellK (gpow 5))))] at h
+  obtain ⟨h1, rfl⟩ := execute_setConstant_eq_some h
+  exact ⟨by simpa using h1, by simp [Regs.next]⟩
+
+theorem sent_step1 {r : Regs K} (h : step sentProg L ⟨gpow 1, 1⟩ = some r) :
+    L.read (gpow 27) = some (cellK (gpow 31)) ∧ r = ⟨gpow 2, 1⟩ := by
+  rw [step_of_fetch_eq_some (r := ⟨gpow 1, 1⟩)
+    (sent_fetch_at 1 (.setConstant (gpow 27) (cellK (gpow 31))))] at h
+  obtain ⟨h1, rfl⟩ := execute_setConstant_eq_some h
+  exact ⟨by simpa using h1, by simp [Regs.next, pow_succ, mul_comm]⟩
+
+theorem sent_step2 {r : Regs K} (h : step sentProg L ⟨gpow 2, 1⟩ = some r) :
+    r = ⟨gpow 3, 1⟩ := by
+  rw [step_of_fetch_eq_some (r := ⟨gpow 2, 1⟩)
+    (sent_fetch_at 2 (.mulNative (gpow 2) (gpow 3) (gpow 4)))] at h
+  rw [execute_mulNative_eq_some h]
+  simp [Regs.next, pow_succ, mul_comm]
+
+theorem sent_step3 (h0 : L.read (gpow 0) = some mulInput.word0)
+    (h27 : L.read (gpow 27) = some (cellK (gpow 31)))
+    (h11 : L.read (gpow 11) = some (cellK (gpow 5))) :
+    step sentProg L ⟨gpow 3, 1⟩ = some ⟨gpow 31, gpow 5⟩ := by
+  rw [step_of_fetch_eq_some (r := ⟨gpow 3, 1⟩) (sent_fetch_at 3 (.jump 1 (gpow 27) (gpow 11)))]
+  have h0' : L.read 1 = some mulInput.word0 := by simpa using h0
+  simp only [execute, executeWith, one_mul, h0', h27, h11]
+  decide +kernel
+
+/-- From the sentinel at frame `g^5` nothing reaches the final registers: the machine halts. -/
+theorem sent_from4 (n : ℕ) : run sentProg L n ⟨gpow 31, gpow 5⟩ ≠ some (Regs.final sentProg) := by
   intro h
-  rcases Nat.lt_or_ge n 5 with hn | hn
-  · interval_cases n
-    · exact absurd (Option.some.inj h) (by decide +kernel)
-    · simp (disch := decide +kernel) only [Regs.initial, run_succ_of_ne, sent_step0,
-        Option.bind_eq_bind, Option.bind_some, run_zero, Option.some.injEq] at h
-      revert h
-      decide +kernel
-    · simp (disch := decide +kernel) only [Regs.initial, run_succ_of_ne, sent_step0, sent_step1,
-        Option.bind_eq_bind, Option.bind_some, run_zero, Option.some.injEq] at h
-      revert h
-      decide +kernel
-    · simp (disch := decide +kernel) only [Regs.initial, run_succ_of_ne, sent_step0, sent_step1,
-        sent_step2, Option.bind_eq_bind, Option.bind_some, run_zero, Option.some.injEq] at h
-      revert h
-      decide +kernel
-    · rw [sent_run4, Option.some.injEq] at h
-      revert h
-      decide +kernel
-  · obtain ⟨m, rfl⟩ : ∃ m, n = 4 + (m + 1) := ⟨n - 5, by omega⟩
-    exact sent_run_halt m _ h
+  cases n with
+  | zero => exact absurd (Option.some.inj h) (by decide +kernel)
+  | succ n => rw [run_succ_of_eq (by rw [sent_finalPc])] at h; cases h
+
+theorem sent_from3 (h0 : L.read (gpow 0) = some mulInput.word0)
+    (h27 : L.read (gpow 27) = some (cellK (gpow 31)))
+    (h11 : L.read (gpow 11) = some (cellK (gpow 5))) (n : ℕ) :
+    run sentProg L n ⟨gpow 3, 1⟩ ≠ some (Regs.final sentProg) := by
+  intro h
+  cases n with
+  | zero => exact absurd (Option.some.inj h) (by decide +kernel)
+  | succ n =>
+    obtain ⟨r', hs, hr⟩ := run_succ_eq_some h
+    rw [sent_step3 h0 h27 h11, Option.some.injEq] at hs
+    exact sent_from4 n (hs ▸ hr)
+
+theorem sent_from2 (h0 : L.read (gpow 0) = some mulInput.word0)
+    (h27 : L.read (gpow 27) = some (cellK (gpow 31)))
+    (h11 : L.read (gpow 11) = some (cellK (gpow 5))) (n : ℕ) :
+    run sentProg L n ⟨gpow 2, 1⟩ ≠ some (Regs.final sentProg) := by
+  intro h
+  cases n with
+  | zero => exact absurd (Option.some.inj h) (by decide +kernel)
+  | succ n =>
+    obtain ⟨r', hs, hr⟩ := run_succ_eq_some h
+    exact sent_from3 h0 h27 h11 n (sent_step2 hs ▸ hr)
+
+theorem sent_from1 (h0 : L.read (gpow 0) = some mulInput.word0)
+    (h11 : L.read (gpow 11) = some (cellK (gpow 5))) (n : ℕ) :
+    run sentProg L n ⟨gpow 1, 1⟩ ≠ some (Regs.final sentProg) := by
+  intro h
+  cases n with
+  | zero => exact absurd (Option.some.inj h) (by decide +kernel)
+  | succ n =>
+    obtain ⟨r', hs, hr⟩ := run_succ_eq_some h
+    obtain ⟨h27, rfl⟩ := sent_step1 hs
+    exact sent_from2 h0 h27 h11 n hr
+
+/-- **No run reaches the final registers**, over any image whose first word is the public
+input's: every run faults or halts at the sentinel at frame `g^5`. -/
+theorem sent_no_run (h0 : L.read (gpow 0) = some mulInput.word0) (n : ℕ) :
+    run sentProg L n Regs.initial ≠ some (Regs.final sentProg) := by
+  intro h
+  cases n with
+  | zero => exact absurd (Option.some.inj h) (by decide +kernel)
+  | succ n =>
+    obtain ⟨r', hs, hr⟩ := run_succ_eq_some h
+    obtain ⟨h11, rfl⟩ := sent_step0 hs
+    exact sent_from1 h0 h11 n hr
+
+/-- **No valid execution**: no trace of `sentProg`, over any memory, is a valid execution on the
+public input. -/
+theorem sent_no_execution (t : Trace sentProg) : ¬ ValidExecution sentProg mulInput t :=
+  fun ⟨⟨_, _, h0, _⟩, hrun⟩ ↦ sent_no_run h0 t.steps hrun
+
+/-! ## Constraint soundness fails, for every extractor -/
 
 /-- Constraint soundness fails without `SentinelSafe`: the witness satisfies the statement and
 represents no valid execution. -/
 theorem sent_not_sound :
     SatisfiedBy sentProg mulInput sentW ∧
-      ¬ ∃ t, AssignmentRepresents sentW t ∧ ValidExecution sentProg mulInput t := by
-  refine ⟨sent_satisfiedBy, ?_⟩
-  rintro ⟨⟨κ, image, steps⟩, hrep, -, hrun⟩
-  have himg := assignmentRepresents_image hrep
-  rw [show sentW.data = fillData from rfl, fill_imageOf] at himg
-  obtain ⟨rfl, himg⟩ := Sigma.mk.inj himg
-  obtain rfl := eq_of_heq himg
-  exact sent_no_run steps hrun
+      ¬ ∃ t, AssignmentRepresents sentW t ∧ ValidExecution sentProg mulInput t :=
+  ⟨sent_satisfiedBy, fun ⟨t, _, ht⟩ ↦ sent_no_execution t ht⟩
+
+/-- **A witness of the constraint statement with no execution**: some program whose sentinel slot
+is a `JUMP` has a witness of the constraint statement on a public input on which it has no valid
+execution, over any memory. -/
+theorem exists_satisfiedBy_without_execution :
+    ∃ (prog : Program) (input : PublicInput) (w : EnsembleWitness (leanIsaEnsemble prog)),
+      ¬ SentinelSafe prog ∧ SatisfiedBy prog input w ∧
+        ∀ t : Trace prog, ¬ ValidExecution prog input t :=
+  ⟨sentProg, mulInput, sentW, sent_not_safe, sent_satisfiedBy, sent_no_execution⟩
 
 /-! ## The computable walk still finds the final registers -/
 
 -- `traceOf` walks the rows' states, the sentinel row among them, to the final registers in
 -- five steps; the empty memory block keeps the interpreter off the `2^16` rows.
 def sentLightW : EnsembleWitness (leanIsaEnsemble sentProg) :=
-  mkWS [xorT, mulT g, setT 1, derefTS, jumpTS, blakeT,
+  mkWS [xorT, mulTS, setTS, derefTS, jumpTS, blakeT,
     mkT memTable (size MemRow) [] (fun _ h ↦ absurd h List.not_mem_nil), bcTS]
 
 #guard (traceOf sentProg sentLightW).map (·.steps) = some 5

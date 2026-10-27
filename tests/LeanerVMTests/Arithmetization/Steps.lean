@@ -1,4 +1,5 @@
 import LeanerVM.Arithmetization.Steps
+import LeanerVM.Semantics.WellFormedBytecode
 import LeanerVMTests.Arithmetization.Statement
 
 /-!
@@ -26,6 +27,9 @@ open LeanerVMTests.Arithmetization.Statement
 
 /-- The fixture's sentinel slot is not a `JUMP`. -/
 theorem fill_sentinelSafe : SentinelSafe fillProg := by decide
+
+/-- The fixture's program is well-formed bytecode. -/
+theorem fill_wellFormed : WellFormedBytecode fillProg := ⟨fill_sentinelSafe⟩
 
 /-- The fixture's program with a `JUMP` in its sentinel slot. -/
 def jumpSentinelProg : Program :=

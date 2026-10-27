@@ -258,3 +258,4 @@ import LeanerVM.Semantics.RunTrace
 import LeanerVM.Semantics.Step
 import LeanerVM.Semantics.TraceInput
 import LeanerVM.Semantics.Walk
+import LeanerVM.Semantics.WellFormedBytecode
