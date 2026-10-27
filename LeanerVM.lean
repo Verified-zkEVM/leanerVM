@@ -24,6 +24,7 @@ import LeanerVM.Parameters.Isa
 import LeanerVM.Parameters.ToCompPoly.BF64Fast
 import LeanerVM.Parameters.ToCompPoly.ExtensionFast
 import LeanerVM.Parameters.Whir
+import LeanerVM.Protocol.AdaptiveGame
 import LeanerVM.Protocol.Blake2sCircuit
 import LeanerVM.Protocol.Blake2sHash
 import LeanerVM.Protocol.Blake2sHashFast

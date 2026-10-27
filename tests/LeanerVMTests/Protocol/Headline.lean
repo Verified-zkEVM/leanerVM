@@ -1,6 +1,7 @@
 import LeanerVM.Protocol.Headline
 import LeanerVMTests.Protocol.RandomOracleGame
 import LeanerVMTests.Arithmetization.Steps
+import LeanerVMTests.Arithmetization.Sentinel
 import LeanerVMTests.Protocol.LogScan
 
 /-!
@@ -26,6 +27,16 @@ import LeanerVMTests.Protocol.LogScan
   has none.
 * **The deployed verifier** is `verifyWith` at BLAKE2s in `Id`, and the verifier on the oracle,
   run with BLAKE2s answering, is `pure` of it (`verifyWith_simulateQ`, `verifyWith_pure`).
+* **The adaptive forms.** At a fixed statement the adaptive hypothesis is the selective one
+  (`blakeMisbehavesAdaptive_const`). The adaptive replayer, `pure (prog, input, proof)`, fails it
+  at every `δ < 1` when `verify` accepts (`adaptiveReplayer_not_blakeMisbehaves`). An adversary
+  that only outputs the test vector's program meets the well-formedness hypothesis of
+  `baseVerifier_extractsExecution_adaptive_wellFormed` (an `example`).
+* **A proof `verify` accepts of a statement with no execution**
+  (`verify_accepts_without_execution`): for the sentinel tests' program, whose sentinel slot is a
+  `JUMP`, `verify` accepts every proof `prove` returns for its witness, and the program has no
+  valid execution on the input over any memory. The `leanervm-prove sentinel` executable runs
+  `prove` on that witness and checks that `verify` accepts its proof.
 -/
 
 namespace LeanerVMTests.Protocol.Headline
@@ -36,7 +47,8 @@ open LeanerVM.Protocol.ProofRoots LeanerVM.Protocol.LeanVmReader OracleComp Orac
 open LeanerVMTests.Protocol.Proof (program input)
 open LeanerVMTests.Protocol.RandomOracleGame (d nodeA nodeV)
 open LeanerVMTests.Arithmetization.Statement (fillProg mulInput)
-open LeanerVMTests.Arithmetization.Steps (fill_sentinelSafe)
+open LeanerVMTests.Arithmetization.Steps (fill_sentinelSafe fill_wellFormed)
+open LeanerVMTests.Arithmetization.Sentinel (sentProg sentW sent_satisfiedBy sent_no_execution)
 open LeanerVMTests.Protocol.LogScan (entries scan)
 open scoped ENNReal
 
@@ -256,5 +268,76 @@ example (A : Adversary) {δ : ℝ≥0∞} (hB : BlakeMisbehaves fillProg mulInpu
         extractTrace (leanIsaTraceExtraction fill_sentinelSafe) mulInput g.proof g.logA =
           some t ∧ ValidExecution fillProg mulInput t] ≤ δ :=
   baseVerifier_extractsExecution fill_sentinelSafe hB
+
+/-! ## The adaptive theorems -/
+
+/-- **The adaptive replayer**: it outputs a stored statement and proof and asks nothing. -/
+abbrev adaptiveReplayer (prog : Program) (input : PublicInput)
+    (proof : Proof PrunedMerklePaths) : AdaptiveAdversary :=
+  pure (prog, input, proof)
+
+/-- The adaptive replayer's runs carry its statement and proof and an empty prover's log. -/
+theorem adaptiveReplayer_run {prog : Program} {input : PublicInput}
+    {proof : Proof PrunedMerklePaths} {g : AdaptiveRun}
+    (hg : g ∈ support (adaptiveGame verifyWith (adaptiveReplayer prog input proof))) :
+    g.prog = prog ∧ g.input = input ∧ g.proof = proof ∧ g.logA = [] := by
+  simp only [adaptiveGame, withQueryLog_pure, pure_bind, mem_support_bind_iff, support_pure,
+    Set.mem_singleton_iff] at hg
+  obtain ⟨_, _, rfl⟩ := hg
+  exact ⟨rfl, rfl, rfl, rfl⟩
+
+/-- **The adaptive replayer fails the hypothesis** at every `δ < 1`, when `verify` accepts its
+statement and proof: nothing is extracted from its empty log, so its one run misbehaves. -/
+theorem adaptiveReplayer_not_blakeMisbehaves {prog : Program} {input : PublicInput}
+    {proof : Proof PrunedMerklePaths} {δ : ℝ≥0∞} (hacc : verify prog input proof = true)
+    (hδ : δ < 1) :
+    ¬ BlakeMisbehavesAdaptive (adaptiveReplayer prog input proof) δ := by
+  intro hB
+  have h1 : Pr{let g ← runBlake2s (adaptiveGame verifyWith (adaptiveReplayer prog input proof))}[
+      HashMisbehaves (rootsOf g.prog g.input) (leanVmReader g.prog g.input).Flip g.prog g.input
+        g.toRun] = 1 :=
+    OracleComp.prEvent_eq_one_of_forall_mem_support _ _ fun g hg ↦ by
+      obtain ⟨hg', hc, hok⟩ := mem_support_runBlake2s_adaptive hg
+      obtain ⟨hp, hi, hpr, hl⟩ := adaptiveReplayer_run (QueryLog.support_simulateQ_subset _ _ hg)
+      subst hp hi
+      exact Core.core_of_mem_support hg' hc (hok.trans (hpr ▸ hacc))
+        (hpr ▸ hl ▸ not_extracts_nil _ _ _ _)
+  unfold BlakeMisbehavesAdaptive at hB
+  rw [h1] at hB
+  exact absurd hδ (not_lt.mpr hB)
+
+/-- At a fixed statement the adaptive hypothesis is the selective one. -/
+theorem blakeMisbehavesAdaptive_const (prog : Program) (input : PublicInput) (A : Adversary)
+    (δ : ℝ≥0∞) :
+    BlakeMisbehavesAdaptive ((fun proof ↦ (prog, input, proof)) <$> A) δ ↔
+      BlakeMisbehaves prog input A δ := by
+  unfold BlakeMisbehavesAdaptive BlakeMisbehaves
+  rw [adaptiveGame_const, runBlake2s, simulateQ_map, prEvent_map]
+  rfl
+
+/- The execution form for an adversary that only ever outputs the test vector's program, which
+is well-formed: the hypothesis on the adversary's programs is met. -/
+example (A : Adversary) {δ : ℝ≥0∞}
+    (hB : BlakeMisbehavesAdaptive ((fun proof ↦ (fillProg, mulInput, proof)) <$> A) δ) :
+    Pr{let g ← runBlake2s (adaptiveGame verifyWith
+        ((fun proof ↦ (fillProg, mulInput, proof)) <$> A))}[
+      verify g.prog g.input g.proof = true ∧ ¬ ∃ t,
+        extractExecution g.prog g.input g.proof g.logA = some t ∧
+          ValidExecution g.prog g.input t] ≤ δ :=
+  baseVerifier_extractsExecution_adaptive_wellFormed hB fun g hg ↦ by
+    have hg' := QueryLog.support_simulateQ_subset _ _ hg
+    rw [adaptiveGame_const, support_map] at hg'
+    obtain ⟨_, -, rfl⟩ := hg'
+    exact fill_wellFormed
+
+/-! ## The bytecode hypothesis cannot be dropped -/
+
+/-- **A proof `verify` accepts of a statement with no execution**: for the sentinel tests'
+program, with a `JUMP` in its sentinel slot, every proof `prove` returns for its witness. -/
+theorem verify_accepts_without_execution {fuel ρ : ℕ} {proof : Proof PrunedMerklePaths}
+    (hp : prove fuel sentProg mulInput sentW ρ = some proof) :
+    verify sentProg mulInput proof = true ∧
+      ∀ t : Trace sentProg, ¬ ValidExecution sentProg mulInput t :=
+  ⟨prove_complete fuel sent_satisfiedBy hp, sent_no_execution⟩
 
 end LeanerVMTests.Protocol.Headline

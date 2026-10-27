@@ -13,6 +13,8 @@ public import LeanerVM.Protocol.Core
 public import LeanerVM.Protocol.LeanIsa.Sound
 public import LeanerVM.Arithmetization.Soundness
 public import LeanerVM.Protocol.Compile.Agree
+public import LeanerVM.Protocol.AdaptiveGame
+public import LeanerVM.Semantics.WellFormedBytecode
 
 /-!
 # The headline theorems
@@ -20,8 +22,8 @@ public import LeanerVM.Protocol.Compile.Agree
 An adversary (`Adversary`) is a cheating prover: a computation with no coins whose only access to
 BLAKE2s-256 is the hash oracle, and which outputs a proof. The game (`loggedGame`) runs it with
 its queries logged, then leanVM's verifier on its proof with the verifier's queries logged, for a
-program `prog` and a public input `input` fixed before the adversary runs: every bound here is
-selective. The extractor is straight-line and computable: `extract` reads the announced sizes off
+program `prog` and a public input `input` fixed before the adversary runs: these bounds are
+selective (the adaptive forms below let the adversary choose them). The extractor is straight-line and computable: `extract` reads the announced sizes off
 the proof and the committed stack off the adversary's queries, `witnessOf` reads leanISA's witness
 off the stack, and `extractTrace` reads an execution off the witness.
 
@@ -43,6 +45,22 @@ off the stack, and `extractTrace` reads an execution off the witness.
 * `prove_complete`: for a witness of the constraint statement, `verify` accepts every proof the
   deployed prover `prove` returns.
 
+**The adaptive forms.** An adaptive adversary (`AdaptiveAdversary`) outputs the program and the
+public input with its proof, and the verifier runs on the statement it chose (`adaptiveGame`).
+* `BlakeMisbehavesAdaptive A δ`: with BLAKE2s answering, the adversary's run shows a collision, a
+  hit or a flip at the statement it chose with probability at most `δ`.
+* `baseVerifier_extractsWitness_adaptive`, `baseVerifier_extractsWitness_adaptive_coins`: the
+  deployed `verify` accepts the chosen statement and proof while the extracted witness fails the
+  constraint statement at it with probability at most `δ`.
+* `baseVerifier_extractsExecution_adaptive`: the same with a valid execution in place of the
+  witness, the event requiring that the chosen program's sentinel slot is not a `JUMP`;
+  `baseVerifier_extractsExecution_adaptive_wellFormed`: the same for an adversary whose programs
+  are all `WellFormedBytecode`. The execution is `extractExecution`, leanISA's trace extraction of
+  the extracted witness at a program whose sentinel slot is not a `JUMP`. The condition is needed
+  by constraint soundness: some program with a sentinel `JUMP` has a witness of the constraint
+  statement and no execution on any memory (the test `exists_satisfiedBy_without_execution`), and
+  `verify` accepts every proof `prove` returns for it.
+
 **The proofs.** A run under BLAKE2s, or under the lazy random oracle, is a possible run of the game
 whose joint log is consistent (`mem_support_runBlake2s`, `mem_support_runRandom`); under BLAKE2s its
 verdict is `verify`'s (`verifyWith_simulateQ`). On such a run, an accepted proof whose extraction
@@ -50,7 +68,9 @@ fails puts the run inside `HashMisbehaves` (`Core.core_of_mem_support`), and
 `satisfiedBy_witnessOf` turns the extracted stack's `M3Holds` into `SatisfiedBy` at the admissible
 sizes `extract` returns. The random-oracle bound is `leanVm_misbehaves_rom_closed`.
 
-**What they do not say.** An adversary with no coins has one run under BLAKE2s, so
+**What they do not say.** The random-oracle bound is selective: for an adaptive adversary the
+random-oracle evidence for `BlakeMisbehavesAdaptive` is missing, since the statement's hashes are
+computed outside the oracle. An adversary with no coins has one run under BLAKE2s, so
 `BlakeMisbehaves` at `δ < 1` says that this run does not misbehave; an adversary with coins, a
 distribution over coin-free ones, gets the bound with `δ` the probability over its coins
 (`baseVerifier_extractsWitness_coins`). The hypothesis is about one adversary and is false for
@@ -230,6 +250,98 @@ theorem prove_complete (fuel : ℕ) {prog : Program} {input : PublicInput}
     (hsat : SatisfiedBy prog input w) (hp : prove fuel prog input w ρ = some proof) :
     verify prog input proof = true :=
   Prove.baseProver_complete blake2sBytes fuel hsat hp
+
+/-! ## The adaptive theorems -/
+
+/-- **BLAKE2s misbehaves on this adaptive adversary's run with probability at most `δ`**: with
+BLAKE2s-256 answering the hash, the joint log of the adversary's run and of the verifier's run on
+the statement and proof the adversary output shows a collision, a hit or a flip at that statement
+(`BlakeMisbehaves`). With no coins the run is one value, and the probability is `0` or `1`. -/
+def BlakeMisbehavesAdaptive (A : AdaptiveAdversary) (δ : ℝ≥0∞) : Prop :=
+  Pr{let g ← runBlake2s (adaptiveGame verifyWith A)}[
+    HashMisbehaves (rootsOf g.prog g.input) (leanVmReader g.prog g.input).Flip g.prog g.input
+      g.toRun] ≤ δ
+
+/-- **The extracted execution of a chosen program**: `extractTrace` at leanISA's trace
+extraction when the program's sentinel slot is not a `JUMP`, nothing otherwise. Computable. -/
+def extractExecution (prog : Program) (input : PublicInput) (proof : Proof PrunedMerklePaths)
+    (log : hashSpec.QueryLog) : Option (Trace prog) :=
+  if hsafe : SentinelSafe prog then extractTrace (leanIsaTraceExtraction hsafe) input proof log
+  else none
+
+/-- On a run of the adaptive game under BLAKE2s whose proof `verify` accepts, no satisfying
+witness through the adaptor means the hash misbehaves at the chosen statement. -/
+private theorem misbehaves_of_escape_adaptive {A : AdaptiveAdversary} {g : AdaptiveRun}
+    (hg : g ∈ support (runBlake2s (adaptiveGame verifyWith A)))
+    (hok : verify g.prog g.input g.proof = true)
+    (hX : ¬ ∃ e, extract Blake2sFlock.blake2sFlockSpec g.prog g.input g.proof g.logA = some e ∧
+      SatisfiedBy g.prog g.input (witnessOf Blake2sFlock.blake2sFlockSpec g.prog e.1 e.2)) :
+    HashMisbehaves (rootsOf g.prog g.input) (leanVmReader g.prog g.input).Flip g.prog g.input
+      g.toRun :=
+  have ⟨hg', hc, hok'⟩ := mem_support_runBlake2s_adaptive hg
+  misbehaves_of_escape ⟨hg', hc⟩ (hok'.trans hok) hX
+
+/-- **Adaptive knowledge soundness of the deployed verifier.** With BLAKE2s-256 answering the
+hash, `verify` accepts the statement and proof the adversary outputs while the witness read off
+the stack the extractor reads off its queries does not satisfy leanISA's constraint statement at
+that statement with probability at most `δ`, if BLAKE2s misbehaves on its run with probability at
+most `δ`. -/
+theorem baseVerifier_extractsWitness_adaptive {A : AdaptiveAdversary} {δ : ℝ≥0∞}
+    (hB : BlakeMisbehavesAdaptive A δ) :
+    Pr{let g ← runBlake2s (adaptiveGame verifyWith A)}[
+      verify g.prog g.input g.proof = true ∧ ¬ ∃ e,
+        extract Blake2sFlock.blake2sFlockSpec g.prog g.input g.proof g.logA = some e ∧
+          SatisfiedBy g.prog g.input (witnessOf Blake2sFlock.blake2sFlockSpec g.prog e.1 e.2)] ≤
+      δ :=
+  (OracleComp.prEvent_mono_of_support _ fun _ hg h ↦
+    misbehaves_of_escape_adaptive hg h.1 h.2).trans hB
+
+/-- **Adaptive knowledge soundness for an adversary with coins**, a distribution `coins` over
+coin-free adaptive adversaries: the bound of `baseVerifier_extractsWitness_adaptive`, with `δ`
+the probability over the coins that BLAKE2s misbehaves on the drawn adversary's run. -/
+theorem baseVerifier_extractsWitness_adaptive_coins {coins : ProbComp AdaptiveAdversary}
+    {δ : ℝ≥0∞}
+    (hB : Pr{let A ← coins; let g ← runBlake2s (adaptiveGame verifyWith A)}[
+      HashMisbehaves (rootsOf g.prog g.input) (leanVmReader g.prog g.input).Flip g.prog g.input
+        g.toRun] ≤ δ) :
+    Pr{let A ← coins; let g ← runBlake2s (adaptiveGame verifyWith A)}[
+      verify g.prog g.input g.proof = true ∧ ¬ ∃ e,
+        extract Blake2sFlock.blake2sFlockSpec g.prog g.input g.proof g.logA = some e ∧
+          SatisfiedBy g.prog g.input (witnessOf Blake2sFlock.blake2sFlockSpec g.prog e.1 e.2)] ≤
+      δ := by
+  let : MeasurableSpace AdaptiveAdversary := ⊤
+  rw [← bind_assoc, prEvent_bind_eq_lintegral_of_discrete] at hB ⊢
+  exact (MeasureTheory.lintegral_mono fun _ ↦ baseVerifier_extractsWitness_adaptive le_rfl).trans hB
+
+/-- **Adaptive knowledge soundness of the deployed verifier, for an execution.** With BLAKE2s-256
+answering the hash, `verify` accepts the statement and proof the adversary outputs, the chosen
+program's sentinel slot is not a `JUMP`, and the trace extracted from the adversary's queries is
+no valid execution of that program on that input, with probability at most `δ`, if BLAKE2s
+misbehaves on its run with probability at most `δ`. -/
+theorem baseVerifier_extractsExecution_adaptive {A : AdaptiveAdversary} {δ : ℝ≥0∞}
+    (hB : BlakeMisbehavesAdaptive A δ) :
+    Pr{let g ← runBlake2s (adaptiveGame verifyWith A)}[
+      verify g.prog g.input g.proof = true ∧ SentinelSafe g.prog ∧ ¬ ∃ t,
+        extractExecution g.prog g.input g.proof g.logA = some t ∧
+          ValidExecution g.prog g.input t] ≤ δ := by
+  refine (OracleComp.prEvent_mono_of_support _ fun _ _ h ↦
+    ⟨h.1, fun ⟨e, he, hsat⟩ ↦ h.2.2 ?_⟩).trans (baseVerifier_extractsWitness_adaptive hB)
+  obtain ⟨t, ht, -, hvalid⟩ := (leanIsaTraceExtraction h.2.1).valid _ _ hsat
+  refine ⟨t, ?_, hvalid⟩
+  simp only [extractExecution, h.2.1, ↓reduceDIte, extractTrace, he, Option.bind_some]
+  exact ht
+
+/-- **Adaptive knowledge soundness for well-formed programs**: the execution form for an adversary
+whose programs, on its runs under BLAKE2s, are all `WellFormedBytecode`. -/
+theorem baseVerifier_extractsExecution_adaptive_wellFormed {A : AdaptiveAdversary} {δ : ℝ≥0∞}
+    (hB : BlakeMisbehavesAdaptive A δ)
+    (hwf : ∀ g ∈ support (runBlake2s (adaptiveGame verifyWith A)), WellFormedBytecode g.prog) :
+    Pr{let g ← runBlake2s (adaptiveGame verifyWith A)}[
+      verify g.prog g.input g.proof = true ∧ ¬ ∃ t,
+        extractExecution g.prog g.input g.proof g.logA = some t ∧
+          ValidExecution g.prog g.input t] ≤ δ :=
+  (OracleComp.prEvent_mono_of_support _ fun g hg h ↦
+    ⟨h.1, (hwf g hg).sentinelSafe, h.2⟩).trans (baseVerifier_extractsExecution_adaptive hB)
 
 end
 
