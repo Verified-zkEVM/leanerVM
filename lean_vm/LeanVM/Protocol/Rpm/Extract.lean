@@ -93,7 +93,7 @@ theorem advImpl2_logRel {α : Type} (A : OracleComp PermSpec α) (T : Transcript
 
 /-- The transfer's adversary is the adversary with the simulator logging the byte queries, its
 log read on lanes. -/
-theorem advS2_advR (A : RpmAdversary) :
+theorem advS2_advR (A : DetAdversary) :
     Common.advS2 Common.keccakPadding Common.KState.zero (advR A) =
       (fun y ↦ (y.1, y.2.2.map entryOfRpm)) <$>
         (simulateQ (Common.advImplLog2 Common.keccakPadding) (simulateQ relP A)).run
@@ -209,7 +209,7 @@ theorem cacheInv_run {α : Type} (A : OracleComp PermSpec α)
 
 /-- On every reachable state of the transfer's ROM adversary (from the empty cache), the
 Keccak-256 evaluations of the adversary's transcript are the random oracle's cached hash answers. -/
-theorem transcriptHashes_eq_of_mem_support (A : RpmAdversary)
+theorem transcriptHashes_eq_of_mem_support (A : DetAdversary)
     {z : ((Statement × Proof) × Transcript) ×
       (Common.hfSpec Bytes Common.KDigest Common.KState).QueryCache}
     (hz : z ∈ support ((simulateQ (Common.hfSpec Bytes Common.KDigest Common.KState).romImpl

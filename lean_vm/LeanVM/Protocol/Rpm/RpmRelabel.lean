@@ -15,8 +15,9 @@ A uniformly random permutation of the lane states, read on bytes through `stateE
 uniformly random permutation of the byte states: the lazily sampled permutation on lanes
 (`Common.lazyPerm` at `KState`) is the one on bytes (at `Common.KState`) with its edges read
 on lanes (`lazyPerm_relabel`, `Common/Lanes.lean`). With Keccak-256 over the permutation on lanes being `common`'s sponge
-over it (`keccak256With_rpm`), the experiment `rpmExperiment` (`Statement/LeanVm.lean`) is the real
-world `Common.realGame2` of the transfer game `game` (`rpmExperiment_evalDistEq`), and so is the
+over it (`keccak256With_rpm`), the experiment `rpmExperiment` (`Statement/LeanVm.lean`) of a
+deterministic adversary (`detExperiment`, `Coins.lean`) is the real world `Common.realGame2` of the
+transfer game `game` (`detExperiment_evalDistEq`), and so is the
 completeness experiment (`rpmCompleteness_evalDistEq`).
 -/
 
@@ -94,7 +95,7 @@ theorem adv_relabel {α : Type} (A : OracleComp PermSpec α) (s : Common.PermLog
     (T : Transcript) :
     (fun p ↦ (p.1.1, (projLog p.2, p.1.2))) <$>
         (simulateQ (RR ∘ₛ Common.advEmbed) ((simulateQ logRel A).run T)).run s =ᵈ
-      (simulateQ loggedPerm A).run (projLog s, T) := by
+      (simulateQ loggedPermDet A).run (projLog s, T) := by
   induction A using OracleComp.inductionOn generalizing s T with
   | pure a =>
     simp only [simulateQ_pure, StateT.run_pure, map_pure]
@@ -104,14 +105,14 @@ theorem adv_relabel {α : Type} (A : OracleComp PermSpec α) (s : Common.PermLog
     have hrel : simulateQ (RR ∘ₛ Common.advEmbed) (relP q) =
         KState.ofRpm <$> Common.lazyPerm (permQueryToRpm q) := by
       rw [relP, simulateQ_map, simulateQ_spec_query, RR_advEmbed_perm]
-    simp only [StateT.run_bind, simulateQ_bind, simulateQ_spec_query, logRel, loggedPerm,
-      StateT.run_mk, hrel, bind_map_left, map_bind]
+    simp only [StateT.run_bind, simulateQ_bind, simulateQ_spec_query, logRel, loggedPermDet,
+      loggedPerm, StateT.run_mk, hrel, bind_map_left, map_bind]
     calc _ =ᵈ ((Common.lazyPerm (permQueryToRpm q)).run s >>= fun a ↦
-            (simulateQ loggedPerm (k (KState.ofRpm a.1))).run
+            (simulateQ loggedPermDet (k (KState.ofRpm a.1))).run
               (projLog a.2, T ++ [(q, KState.ofRpm a.1)])) :=
           EvalDistEq.bind_right _ fun a ↦ ih _ _ _
       _ = ((Prod.map KState.ofRpm projLog <$> (Common.lazyPerm (permQueryToRpm q)).run s) >>=
-            fun a ↦ (simulateQ loggedPerm (k a.1)).run (a.2, T ++ [(q, a.1)])) := by
+            fun a ↦ (simulateQ loggedPermDet (k a.1)).run (a.2, T ++ [(q, a.1)])) := by
           rw [bind_map_left]; rfl
       _ =ᵈ _ := EvalDistEq.bind_left (by rw [← hq]; exact lazyPerm_relabel stateEquiv q s) _
 
@@ -129,15 +130,15 @@ theorem realGame2_eq {δ : Type} (D : OracleComp D2Spec δ) :
   rw [Common.realGame2, Common.realGame, QueryImpl.simulateQ_compose]
 
 /-- **The random-permutation experiment is the real world of the transfer game.** -/
-theorem rpmExperiment_evalDistEq (A : RpmAdversary) :
-    rpmExperiment A =ᵈ Common.realGame2 Common.keccakPadding Common.KState.zero (game A) := by
+theorem detExperiment_evalDistEq (A : DetAdversary) :
+    detExperiment A =ᵈ Common.realGame2 Common.keccakPadding Common.KState.zero (game A) := by
   rw [realGame2_eq, game, Common.rpmGame2]
   simp only [simulateQ_pure, pure_bind, simulateQ_bind, StateT.run'_eq, StateT.run_bind, map_bind]
   simp only [postR, simulateQ_map, StateT.run_map, Functor.map_map, RR,
     QueryImpl.simulateQ_compose]
   have hadv := (adv_relabel A [] []).symm
   simp only [projLog, logMap, List.map_nil, QueryImpl.simulateQ_compose] at hadv
-  rw [rpmExperiment, advR]
+  rw [detExperiment, advR]
   refine EvalDistEq.trans (EvalDistEq.bind_left hadv _) ?_
   rw [bind_map_left]
   refine EvalDistEq.bind_right _ fun p ↦ ?_

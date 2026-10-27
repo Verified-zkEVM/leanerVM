@@ -20,18 +20,21 @@ import LeanVM.Protocol.Rpm.RpmRelabel
 
 The statements are in `Statement/LeanVm.lean`: Keccak-256 the sponge over one uniformly random
 permutation `π` of the Keccak state, Keccak-f[1600] `π` itself, the adversary querying `π` and
-`π⁻¹`.
+`π⁻¹` and flipping coins.
 
-**Knowledge soundness** (`knowledgeSoundnessRpm`): for an adversary of at most `Q` queries, the
-probability that the verifier accepts while the extractor `extractorRpm` (the extractor of
+**Knowledge soundness** (`knowledgeSoundnessRpm_coins`): for an adversary of at most `Q` queries
+to `π` and `π⁻¹`, its coins free, the probability that the verifier accepts while the extractor `extractorRpm` (the extractor of
 `Extractor.lean` on the Keccak-256 evaluations of the adversary's transcript) does not return a valid execution is at most
 `soundnessError Q + (Q + 12008 · 2^32)² / 2^508`, which is at most `(Q + 2^14) · 2^-127` for
 `Q ≤ 2^120` (`soundnessRpm_le_bits`), at most `(Q + 2^14) · 2^-128 + 7 (Q + 2^14)² · 2^-256` for
 `Q ≤ 2^128` (`soundnessRpm_le_128`, the end statement `KnowledgeSoundness`) and at most `2^-63` for
 `Q ≤ 2^64` (`soundnessRpm_le`). The proof:
 
-1. the experiment is `common`'s real world of a transfer game (`rpmExperiment_evalDistEq`,
-   `RpmRelabel.lean`): the adversary, recording its transcript, then the verifier;
+0. the adversary's coins do not help (`rpmExperiment_le_det`, `Coins.lean`): the experiment is
+   bounded by that of a deterministic adversary of as many queries (`knowledgeSoundnessRpm_coins`);
+1. that adversary's experiment is `common`'s real world of a transfer game
+   (`detExperiment_evalDistEq`, `RpmRelabel.lean`): the adversary, recording its transcript, then
+   the verifier;
 2. the verifier's permutation calls follow the duplex discipline (`duplex_postR`, from
    `Duplex.lean`), and the game makes at most `Q + verifierPermCalls` permutation calls
    (`isWeightBound_game`, from `Cost.lean`);
@@ -143,7 +146,7 @@ abbrev advCost : RSpec.Domain → ℕ :=
   Common.queryCost (Dg := Common.KDigest) (St := Common.KState) Common.keccakPadding
 
 /-- The adversary's permutation queries, one each. -/
-theorem isWeightBound_advR_cost {A : RpmAdversary} {Q : ℕ} (hA : A.IsTotalQueryBound Q) :
+theorem isWeightBound_advR_cost {A : DetAdversary} {Q : ℕ} (hA : A.IsTotalQueryBound Q) :
     Common.IsWeightBound (advR A) advCost Q := by
   refine Common.isWeightBound_run_simulateQ logRel (fun _ ↦ 1) _ (fun q T ↦ ?_)
     (isWeightBound_one_of_total hA) []
@@ -179,7 +182,7 @@ theorem isWeightBound_hfEmbed_toRHF {β : Type} {V : OracleComp HashSpec β} {n 
 
 /-- **The permutation calls of the transfer game**: the adversary's `Q`, then at most
 `verifierPermCalls` of the verifier. -/
-theorem isWeightBound_game {A : RpmAdversary} {Q : ℕ} (hA : A.IsTotalQueryBound Q) :
+theorem isWeightBound_game {A : DetAdversary} {Q : ℕ} (hA : A.IsTotalQueryBound Q) :
     Common.IsWeightBound (game A) gameCost (Q + verifierPermCalls) := by
   rw [game, Common.rpmGame2, simulateQ_pure, pure_bind]
   refine (isWeightBound_advEmbed (isWeightBound_advR_cost hA)).bind fun z ↦ ?_
@@ -208,7 +211,7 @@ answers (`transcriptHashes_eq_of_mem_support`), so the extractor in the random-p
 sees what the extractor of the random-oracle model (`LeanVM.extractor`) sees: the extraction depends
 on the answers only, not on which byte strings covering them it is given as keys
 (`extractorRpm_eq_extract`). -/
-theorem romGame_le (A : RpmAdversary) :
+theorem romGame_le (A : DetAdversary) :
     Pr{let a ← Common.romRun2 (simulateQ Common.hInF (pure ()) >>= fun x ↦
         Common.advS2 Common.keccakPadding Common.KState.zero ((fun _ ↦ advR A) x) >>= fun a ↦
           (fun _ z ↦ postR z) x a)}[BreaksRpm extractorRpm a] ≤
@@ -246,18 +249,29 @@ theorem romGame_le (A : RpmAdversary) :
   simp only [BreaksRpm, Breaks, extractor, e]
   rfl
 
-/-- **Knowledge soundness in the random-permutation model.** An adversary of at most `Q` queries
-to `π` and `π⁻¹` breaks soundness, for the extractor `extractorRpm`, with probability at most the
-random-oracle error at `Q` queries plus `(Q + verifierPermCalls)² / 2^508`. -/
-theorem knowledgeSoundnessRpm {A : RpmAdversary} {Q : ℕ} (hA : A.IsTotalQueryBound Q) :
-    Pr{let z ← rpmExperiment A}[BreaksRpm extractorRpm z] ≤
+/-- **Knowledge soundness in the random-permutation model**, for a deterministic adversary. An
+adversary of at most `Q` queries to `π` and `π⁻¹` breaks soundness, for the extractor
+`extractorRpm`, with probability at most the random-oracle error at `Q` queries plus
+`(Q + verifierPermCalls)² / 2^508`. -/
+theorem knowledgeSoundnessRpm {A : DetAdversary} {Q : ℕ} (hA : A.IsTotalQueryBound Q) :
+    Pr{let z ← detExperiment A}[BreaksRpm extractorRpm z] ≤
       soundnessError Q + rpmError (Q + verifierPermCalls) := by
-  rw [(rpmExperiment_evalDistEq A).prEvent_eq, game]
+  rw [(detExperiment_evalDistEq A).prEvent_eq, game]
   obtain ⟨h1, -⟩ := Common.keccak256_transfer2 (pure ()) (fun _ ↦ advR A) (fun _ z ↦ postR z)
     (fun _ z ↦ duplex_postR z) (Q + verifierPermCalls) (isWeightBound_game hA)
     (BreaksRpm extractorRpm)
   refine h1.trans (add_le_add ((romGame_le A).trans ?_) le_rfl)
   exact knowledgeSoundness_coins (isWeightBound_romAdv hA)
+
+/-- **Knowledge soundness in the random-permutation model**, for an adversary with coins of at
+most `Q` queries to `π` and `π⁻¹`: some deterministic adversary of at most `Q` queries does as
+well (`rpmExperiment_le_det`). -/
+theorem knowledgeSoundnessRpm_coins {B : RpmAdversary} {Q : ℕ}
+    (hB : Common.IsWeightBound B permQueries Q) :
+    Pr{let z ← rpmExperiment B}[BreaksRpm extractorRpm z] ≤
+      soundnessError Q + rpmError (Q + verifierPermCalls) := by
+  obtain ⟨A, hA, hle⟩ := rpmExperiment_le_det hB (BreaksRpm extractorRpm)
+  exact hle.trans (knowledgeSoundnessRpm hA)
 
 /-! ## Completeness -/
 
@@ -488,7 +502,7 @@ namespace LeanVM
 /-- **Knowledge soundness holds** (in the random-permutation model), for the extractor
 `extractorRpm`. -/
 theorem knowledgeSoundness_holds : KnowledgeSoundness :=
-  fun _ _ hA hQ ↦ (Rpm.knowledgeSoundnessRpm hA).trans (Rpm.soundnessRpm_le_128 hQ)
+  fun _ _ hA hQ ↦ (Rpm.knowledgeSoundnessRpm_coins hA).trans (Rpm.soundnessRpm_le_128 hQ)
 
 -- `LeanVM.completeness_holds`, for the statement's prover `LeanVM.prover`, is proved in
 -- `LeanVM/Prover/End.lean` from `completeness_of_spec` (`LeanVM/Prover/Complete.lean`).

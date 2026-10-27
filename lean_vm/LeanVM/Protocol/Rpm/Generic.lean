@@ -11,14 +11,15 @@ import LeanVM.Protocol.LeanVMRpm
 /-!
 # The transfer, for any verifier
 
-`rpmRun A V` (`Statement/LeanVm.lean`): an adversary `A` against the lazily sampled permutation (its queries recorded, as in
-`rpmExperiment`), then a computation `V` on its output over the calls of `Statement.lean`, with
+`rpmRun A V` (`Statement/LeanVm.lean`), here `detRun A V` for a deterministic adversary
+(`Coins.lean`, where `rpmRun_le_det` bounds an adversary with coins by one): an adversary `A`
+against the lazily sampled permutation (its queries recorded, as in `rpmExperiment`), then a computation `V` on its output over the calls of `Statement.lean`, with
 Keccak-256 the sponge over the same permutation and Keccak-f[1600] the permutation. If `V` follows
 the duplex discipline (`DuplexVm`) and makes at most `QV` permutation calls, then for every event
 `E` there is an adversary `A'` against the two independent random oracles, of as many queries as
-`A`, whose experiment (`romStep`) has `E` with probability at least that of `rpmRun A V` less
-`rpmError (Q + QV)` (`rpmRun_le_rom`). The proof is that of `knowledgeSoundnessRpm` without the
-extractor: the experiment is the real world of a transfer game (`rpmRun_evalDistEq`),
+`A`, whose experiment (`romStep`) has `E` with probability at least that of `detRun A V` less
+`rpmError (Q + QV)` (`detRun_le_rom`). The proof is that of `knowledgeSoundnessRpm` without the
+extractor: the experiment is the real world of a transfer game (`detRun_evalDistEq`),
 `Common.keccak256_transfer2` moves it to the random-oracle game of the adversary with the
 indifferentiability simulator (`romGameG_le`), and coins do not help (`exists_det`).
 -/
@@ -42,21 +43,21 @@ def advRG (A : OracleComp PermSpec α) : OracleComp RSpec (α × Transcript) :=
 def postG (V : α → OracleComp HashSpec β) (z : α × Transcript) : OracleComp HFSpec (α × β) :=
   (fun v ↦ (z.1, v)) <$> simulateQ toRHF (V z.1)
 
-/-- **The transfer game** of `rpmRun A V`. -/
+/-- **The transfer game** of `detRun A V`. -/
 def gameG (A : OracleComp PermSpec α) (V : α → OracleComp HashSpec β) :
     OracleComp D2Spec (α × β) :=
   Common.rpmGame2 (pure ()) (fun _ ↦ advRG A) (fun _ z ↦ postG V z)
 
 /-- **The experiment is the real world of the transfer game.** -/
-theorem rpmRun_evalDistEq (A : OracleComp PermSpec α) (V : α → OracleComp HashSpec β) :
-    rpmRun A V =ᵈ Common.realGame2 Common.keccakPadding Common.KState.zero (gameG A V) := by
+theorem detRun_evalDistEq (A : OracleComp PermSpec α) (V : α → OracleComp HashSpec β) :
+    detRun A V =ᵈ Common.realGame2 Common.keccakPadding Common.KState.zero (gameG A V) := by
   rw [realGame2_eq, gameG, Common.rpmGame2]
   simp only [simulateQ_pure, pure_bind, simulateQ_bind, StateT.run'_eq, StateT.run_bind, map_bind]
   simp only [postG, simulateQ_map, StateT.run_map, Functor.map_map, RR,
     QueryImpl.simulateQ_compose]
   have hadv := (adv_relabel A [] []).symm
   simp only [projLog, logMap, List.map_nil, QueryImpl.simulateQ_compose] at hadv
-  rw [rpmRun, advRG]
+  rw [detRun, advRG]
   refine EvalDistEq.trans (EvalDistEq.bind_left hadv _) ?_
   rw [bind_map_left]
   refine EvalDistEq.bind_right _ fun p ↦ ?_
@@ -160,19 +161,19 @@ theorem romGameG_le (A : OracleComp PermSpec α) (V : α → OracleComp HashSpec
 
 /-- **From the random-permutation model to the two-oracle random-oracle model.** For an adversary
 `A` of at most `Q` queries to `π` and `π⁻¹`, and a computation `V` that follows the duplex
-discipline with at most `QV` permutation calls, every event of `rpmRun A V` has probability at
+discipline with at most `QV` permutation calls, every event of `detRun A V` has probability at
 most that of the random-oracle experiment of some adversary `A'` of at most `Q` queries to the two
 random oracles, plus `rpmError (Q + QV)`. -/
-theorem rpmRun_le_rom (A : OracleComp PermSpec α) (V : α → OracleComp HashSpec β)
+theorem detRun_le_rom (A : OracleComp PermSpec α) (V : α → OracleComp HashSpec β)
     (hV : ∀ a, DuplexVm (V a) []) {Q QV : ℕ} (hA : A.IsTotalQueryBound Q)
     (hVw : ∀ a, Common.IsWeightBound (V a) hashBlocks QV) (E : α × β → Prop) :
     ∃ A' : OracleComp HashSpec α, A'.IsTotalQueryBound Q ∧
-      Pr{let z ← rpmRun A V}[E z] ≤
+      Pr{let z ← detRun A V}[E z] ≤
         Pr{let z ← (simulateQ HashSpec.randomOracle A').run ∅ >>= romStep V}[E z] +
           rpmError (Q + QV) := by
   obtain ⟨A', hA', hle⟩ := exists_det (romStep V) E (romAdvG A) Q (isWeightBound_romAdvG hA) ∅
   refine ⟨A', hA', ?_⟩
-  rw [(rpmRun_evalDistEq A V).prEvent_eq, gameG]
+  rw [(detRun_evalDistEq A V).prEvent_eq, gameG]
   obtain ⟨h1, -⟩ := Common.keccak256_transfer2 (pure ()) (fun _ ↦ advRG A)
     (fun _ z ↦ postG V z) (fun _ z ↦ duplex_postG V hV z) (Q + QV) (isWeightBound_gameG hA hVw) E
   exact h1.trans (add_le_add ((romGameG_le A V E).trans hle) le_rfl)

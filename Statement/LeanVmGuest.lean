@@ -1048,15 +1048,15 @@ outputs a proof; the probability that the batching's verifier, Keccak-256 the sp
 Keccak-f[1600] `π`, accepts it while its stream begins with fewer than `M` children of the
 bytecode's shapes one of whose claims is false is at most
 `(QA + QV + 1) · 2^-191 + 5 (QA + QV)² · 2^-256`, for `QA ≤ 2^128` and the program's query bound
-`QV = batchQueryBound bytecode M ≤ 2^96`.
+`QV = batchQueryBound bytecode M ≤ 2^96`; the adversary's private coins are free.
 
 This is the batching run outside the circuit, with Keccak-f[1600] = `π`; it does not compose with
 the guest program's in-circuit statements, whose `KECCAK` instruction computes the deployed
 Keccak-f[1600], so soundness across recursion levels does not follow from it. -/
 def BatchSound : Prop :=
   ∀ (M : ℕ) (bytecode : List K), bytecode.length = 2 ^ Nat.log2 bytecode.length →
-    M ≤ 2 ^ 64 - 1 → ∀ (A : OracleComp PermSpec (Unit × Proof)) (QA : ℕ),
-    A.IsTotalQueryBound QA → QA ≤ 2 ^ 128 → batchQueryBound bytecode M ≤ 2 ^ 96 →
+    M ≤ 2 ^ 64 - 1 → ∀ (A : OracleComp (unifSpec + PermSpec) (Unit × Proof)) (QA : ℕ),
+    Common.IsWeightBound A permQueries QA → QA ≤ 2 ^ 128 → batchQueryBound bytecode M ≤ 2 ^ 96 →
     Pr{let z ← rpmRun A fun z ↦ batchVerifier queryH queryF M bytecode z.2}[
       z.2 = true ∧ FalseChildren bytecode M z.1.2] ≤
       (((QA + batchQueryBound bytecode M : ℕ) : ℝ≥0∞) + 1) * (2 : ℝ≥0∞)⁻¹ ^ 191 +

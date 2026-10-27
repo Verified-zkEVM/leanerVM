@@ -1,24 +1,34 @@
 /-
   LeanVM.Protocol.Rpm.Coins
 
-  Knowledge soundness in the two-oracle random-oracle model (`LeanVM/Protocol/Rom/Statement.lean`)
-  for adversaries that also have private coins: the coins do not help.
+  Private coins do not help an adversary against lazily sampled oracles: in the two-oracle
+  random-oracle model (`LeanVM/Protocol/Rom/Statement.lean`) and in the random-permutation
+  experiments of `Statement/LeanVm.lean`.
 -/
 
 import LeanVM.Protocol.LeanVMSound
+import Statement.LeanVm
 import Common.Prob
 
 /-!
 # Adversaries with coins
 
-`KnowledgeSoundnessRom` (`LeanVM/Protocol/Rom/Statement.lean`) quantifies over adversaries querying the two
-random oracles only. The random-oracle adversary that the random-permutation transfer produces
-(`Common.advS2`: the adversary with the indifferentiability simulator) also flips coins. Against
-the lazily sampled random oracles such an adversary does no better than some deterministic
-adversary with the same number of oracle queries (`exists_det`): at a coin, the best of the finitely
-many continuations; at an oracle query, the query followed by the best continuation at each answer.
-So the bound of `knowledgeSoundnessRom_holds` holds for it (`knowledgeSoundness_coins`), coins not
-counted.
+Against an oracle that answers a coin uniformly, its state unchanged, and a query with a state
+that the old state, the query and the answer determine, an adversary with coins does no better
+than some deterministic adversary of as many oracle queries, coins not counted (`exists_det_of`):
+at a coin, the best of the finitely many continuations; at an oracle query, the query followed by
+the best continuation at each answer. Two instances:
+
+* **the random oracles** (`exists_det`): `KnowledgeSoundnessRom`
+  (`LeanVM/Protocol/Rom/Statement.lean`) quantifies over adversaries querying the two random
+  oracles only, and the random-oracle adversary that the random-permutation transfer produces
+  (`Common.advS2`: the adversary with the indifferentiability simulator) also flips coins; so the
+  bound of `knowledgeSoundnessRom_holds` holds for it (`knowledgeSoundness_coins`);
+* **the random permutation** (`exists_det_rpm`): the end statements of `Statement/LeanVm.lean`
+  quantify over adversaries with coins against `loggedPerm`, the state the permutation's edges
+  and the transcript the extractor reads. Each experiment is bounded by the experiment of a
+  deterministic adversary (`DetAdversary`; `rpmExperiment_le_det`, `rpmRun_le_det`), against
+  which the proofs run (`detExperiment`, `detRun`).
 -/
 
 open OracleComp OracleSpec
@@ -26,7 +36,7 @@ open scoped ENNReal
 
 namespace LeanVM.Rpm
 
-open LeanVM.Protocol.Compile
+open LeanVM.Semantics LeanVM.Protocol.Compile
 
 /-- Oracle calls, coins free. -/
 def hashCalls : (unifSpec + HashSpec).Domain → ℕ
@@ -58,48 +68,69 @@ theorem snd_eq_stepCache {c : HashSpec.QueryCache} {t : HashSpec.Domain}
     obtain ⟨u, -, rfl⟩ := hz
     rfl
 
-/-- **Derandomization.** Against the random oracle, an adversary with coins does no better than
-some deterministic adversary of the same query budget, for any continuation and any event. -/
-theorem exists_det {α γ : Type} (g : α × HashSpec.QueryCache → ProbComp γ) (E : γ → Prop)
-    (X : OracleComp (unifSpec + HashSpec) α) :
-    ∀ (Q : ℕ), Common.IsWeightBound X hashCalls Q → ∀ c : HashSpec.QueryCache,
-      ∃ A : OracleComp HashSpec α, IsTotalQueryBound A Q ∧
-        Pr{let y ← (simulateQ HashSpec.romImpl X).run c >>= g}[E y] ≤
-          Pr{let y ← (simulateQ HashSpec.randomOracle A).run c >>= g}[E y] := by
+/-- **Derandomization**, for a stateful oracle that answers a coin uniformly, the state unchanged,
+and a query with a new state that the old state, the query and the answer determine (`next`): an
+adversary with coins does no better than some deterministic adversary of the same query budget,
+coins not counted, for any continuation and any event. At a coin, the best of the finitely many
+continuations; at an oracle query, the query followed by the best continuation at each answer. -/
+theorem exists_det_of {ι σ α γ : Type} {spec : OracleSpec.{0, 0} ι}
+    (impl : QueryImpl (unifSpec + spec) (StateT σ ProbComp)) (next : σ → (t : ι) → spec t → σ)
+    (hcoin : ∀ n s, ∀ z ∈ support ((impl (.inl n)).run s), z.2 = s)
+    (hnext : ∀ t s, ∀ z ∈ support ((impl (.inr t)).run s), z.2 = next s t z.1)
+    (w : (unifSpec + spec).Domain → ℕ) (hw0 : ∀ n, w (.inl n) = 0) (hw1 : ∀ t, w (.inr t) = 1)
+    (g : α × σ → ProbComp γ) (E : γ → Prop) (X : OracleComp (unifSpec + spec) α) :
+    ∀ (Q : ℕ), Common.IsWeightBound X w Q → ∀ s : σ,
+      ∃ A : OracleComp spec α, IsTotalQueryBound A Q ∧
+        Pr{let y ← (simulateQ impl X).run s >>= g}[E y] ≤
+          Pr{let y ← (simulateQ (fun t ↦ impl (.inr t)) A).run s >>= g}[E y] := by
   induction X using OracleComp.inductionOn with
   | pure a =>
-    intro Q _ c
+    intro Q _ s
     exact ⟨pure a, trivial, by simp⟩
   | query_bind t k ih =>
-    intro Q hX c
+    intro Q hX s
     rw [Common.isWeightBound_query_bind_iff] at hX
     obtain ⟨ht, hk⟩ := hX
     simp only [simulateQ_bind, simulateQ_query, OracleQuery.input_query,
       OracleQuery.cont_query, id_map, StateT.run_bind, bind_assoc]
     rcases t with n | t
     · -- a coin: average below the best continuation
-      have hk' : ∀ u, Common.IsWeightBound (k u) hashCalls Q := fun u ↦ by
-        simpa [hashCalls] using hk u
-      choose A hA hle using fun u ↦ ih u Q (hk' u) c
+      have hk' : ∀ u, Common.IsWeightBound (k u) w Q := fun u ↦ by
+        simpa [hw0] using hk u
+      choose A hA hle using fun u ↦ ih u Q (hk' u) s
       let f : Fin (n + 1) → ℝ≥0∞ := fun u ↦
-        Pr{let y ← (simulateQ HashSpec.randomOracle (A u)).run c >>= g}[E y]
+        Pr{let y ← (simulateQ (fun t ↦ impl (.inr t)) (A u)).run s >>= g}[E y]
       obtain ⟨u₀, hu₀⟩ := Finite.exists_max f
       refine ⟨A u₀, hA u₀, ?_⟩
       refine prEvent_bind_le_of_forall_le_of_support _ _ _ fun z hz ↦ ?_
-      rw [romImpl_inl_run, support_map] at hz
-      obtain ⟨u, -, rfl⟩ := hz
-      exact (hle u).trans (hu₀ u)
-    · -- a hash query: query it, then follow the best continuation at each answer
-      have hQ : 1 ≤ Q := ht
-      choose A hA hle using fun u ↦ ih u (Q - 1) (hk u) (stepCache c t u)
-      refine ⟨liftM (HashSpec.query t) >>= A, ?_, ?_⟩
+      rw [hcoin n s z hz]
+      exact (hle z.1).trans (hu₀ z.1)
+    · -- an oracle query: query it, then follow the best continuation at each answer
+      have hQ : 1 ≤ Q := hw1 t ▸ ht
+      have hk' : ∀ u, Common.IsWeightBound (k u) w (Q - 1) := fun u ↦ hw1 t ▸ hk u
+      choose A hA hle using fun u ↦ ih u (Q - 1) (hk' u) (next s t u)
+      refine ⟨liftM (spec.query t) >>= A, ?_, ?_⟩
       · exact isTotalQueryBound_query_bind_iff.mpr ⟨by omega, hA⟩
       · simp only [simulateQ_bind, simulateQ_query, OracleQuery.input_query,
           OracleQuery.cont_query, id_map, StateT.run_bind, bind_assoc]
         refine prEvent_bind_mono_of_forall_le_of_support _ _ _ _ _ fun z hz ↦ ?_
-        have hz' : z.2 = stepCache c t z.1 := snd_eq_stepCache hz
-        rw [hz']
+        rw [hnext t s z hz]
         exact hle z.1
+
+/-- **Derandomization against the random oracle**: an adversary with coins does no better than
+some deterministic adversary of the same query budget, for any continuation and any event. -/
+theorem exists_det {α γ : Type} (g : α × HashSpec.QueryCache → ProbComp γ) (E : γ → Prop)
+    (X : OracleComp (unifSpec + HashSpec) α) :
+    ∀ (Q : ℕ), Common.IsWeightBound X hashCalls Q → ∀ c : HashSpec.QueryCache,
+      ∃ A : OracleComp HashSpec α, IsTotalQueryBound A Q ∧
+        Pr{let y ← (simulateQ HashSpec.romImpl X).run c >>= g}[E y] ≤
+          Pr{let y ← (simulateQ HashSpec.randomOracle A).run c >>= g}[E y] :=
+  exists_det_of HashSpec.romImpl stepCache
+    (fun n c z hz ↦ by
+      rw [romImpl_inl_run, support_map] at hz
+      obtain ⟨u, -, rfl⟩ := hz
+      rfl)
+    (fun _ _ _ hz ↦ snd_eq_stepCache hz) hashCalls (fun _ ↦ rfl) (fun _ ↦ rfl) g E X
 
 /-- The random-oracle experiment (`LeanVM/Protocol/Rom/Statement.lean`) against an adversary that also has private coins. -/
 noncomputable def experimentCoins (B : OracleComp (unifSpec + HashSpec) (Statement × Proof)) :
@@ -120,5 +151,101 @@ theorem knowledgeSoundness_coins {B : OracleComp (unifSpec + HashSpec) (Statemen
         (simulateQ HashSpec.randomOracle (verifier queryH queryF p.1.1.1 p.1.1.2 p.1.2)).run p.2
       return ((p.1, verdict), cache, p.2)) (Breaks extractor) B Q hB ∅
   exact hle.trans (knowledgeSoundnessRom_holds A Q hA)
+
+/-! ## The random-permutation experiments -/
+
+/-- The oracle of a deterministic adversary: `loggedPerm` (`Statement/LeanVm.lean`) on `π` and
+`π⁻¹`. -/
+noncomputable def loggedPermDet : QueryImpl PermSpec (StateT (PermLog × Transcript) ProbComp) :=
+  fun q ↦ loggedPerm (.inr q)
+
+/-- A deterministic adversary in the random-permutation model: oracle access to `π` and `π⁻¹`,
+no coins. -/
+abbrev DetAdversary : Type := OracleComp PermSpec (Statement × Proof)
+
+/-- `rpmExperiment` (`Statement/LeanVm.lean`) for a deterministic adversary. -/
+noncomputable def detExperiment (A : DetAdversary) : ProbComp RpmOutcome := do
+  let (z, perms, transcript) ← (simulateQ loggedPermDet A).run ([], [])
+  let verdict ← (simulateQ rpmImpl (verifier queryH queryF z.1.1 z.1.2 z.2)).run' perms
+  return ((z, verdict), transcript)
+
+/-- `rpmRun` (`Statement/LeanVm.lean`) for a deterministic adversary. -/
+noncomputable def detRun {α β : Type} (A : OracleComp PermSpec α)
+    (V : α → OracleComp HashSpec β) : ProbComp (α × β) := do
+  let (z, perms, _) ← (simulateQ loggedPermDet A).run ([], [])
+  let v ← (simulateQ rpmImpl (V z)).run' perms
+  return (z, v)
+
+/-- The edges after the lazily sampled permutation answers `a` to `q` from the edges `E`. -/
+def stepLog (E : PermLog) : (q : Common.PermQuery KState) → KState → PermLog
+  | .fwd x, a => match Common.fwdLookup E x with
+    | some _ => E
+    | none => (x, a) :: E
+  | .inv y, a => match Common.invLookup E y with
+    | some _ => E
+    | none => (a, y) :: E
+
+/-- The state after a query to `π` or `π⁻¹` is determined by its answer. -/
+theorem snd_eq_stepLog {q : Common.PermQuery KState} {s : PermLog × Transcript}
+    {z : KState × (PermLog × Transcript)} (hz : z ∈ support ((loggedPerm (.inr q)).run s)) :
+    z.2 = (stepLog s.1 q z.1, s.2 ++ [(q, z.1)]) := by
+  simp only [loggedPerm, StateT.run_mk, support_map, Set.mem_image] at hz
+  obtain ⟨r, hr, rfl⟩ := hz
+  cases q with
+  | fwd x =>
+    simp only [Common.lazyPerm, StateT.run_mk] at hr
+    rcases hx : Common.fwdLookup s.1 x with _ | y
+    · rw [hx] at hr
+      simp only [support_map, Set.mem_image] at hr
+      obtain ⟨y, -, rfl⟩ := hr
+      simp [stepLog, hx]
+    · rw [hx] at hr
+      simp only [support_pure, Set.mem_singleton_iff] at hr
+      subst hr
+      simp [stepLog, hx]
+  | inv y =>
+    simp only [Common.lazyPerm, StateT.run_mk] at hr
+    rcases hy : Common.invLookup s.1 y with _ | x
+    · rw [hy] at hr
+      simp only [support_map, Set.mem_image] at hr
+      obtain ⟨x, -, rfl⟩ := hr
+      simp [stepLog, hy]
+    · rw [hy] at hr
+      simp only [support_pure, Set.mem_singleton_iff] at hr
+      subst hr
+      simp [stepLog, hy]
+
+/-- **Coins do not help in the random-permutation model**: against `loggedPerm`, an adversary
+with coins of at most `Q` queries to `π` and `π⁻¹` does no better than some deterministic
+adversary of at most `Q` queries, for any continuation and any event. -/
+theorem exists_det_rpm {α γ : Type} (g : α × (PermLog × Transcript) → ProbComp γ) (E : γ → Prop)
+    {B : OracleComp (unifSpec + PermSpec) α} {Q : ℕ} (hB : Common.IsWeightBound B permQueries Q) :
+    ∃ A : OracleComp PermSpec α, A.IsTotalQueryBound Q ∧
+      Pr{let y ← (simulateQ loggedPerm B).run ([], []) >>= g}[E y] ≤
+        Pr{let y ← (simulateQ loggedPermDet A).run ([], []) >>= g}[E y] :=
+  exists_det_of loggedPerm (fun s q a ↦ (stepLog s.1 q a, s.2 ++ [(q, a)]))
+    (fun n s z hz ↦ by
+      simp only [loggedPerm, liftM, monadLift, MonadLift.monadLift, StateT.run_lift,
+        support_bind, support_pure, Set.mem_iUnion, Set.mem_singleton_iff] at hz
+      obtain ⟨u, -, rfl⟩ := hz
+      rfl)
+    (fun _ _ _ hz ↦ snd_eq_stepLog hz) permQueries (fun _ ↦ rfl) (fun _ ↦ rfl) g E B Q hB ([], [])
+
+/-- **The experiment against an adversary with coins is bounded by a deterministic one's**:
+for every event, some deterministic adversary of as many queries to `π` and `π⁻¹`. -/
+theorem rpmExperiment_le_det {B : RpmAdversary} {Q : ℕ}
+    (hB : Common.IsWeightBound B permQueries Q) (E : RpmOutcome → Prop) :
+    ∃ A : DetAdversary, A.IsTotalQueryBound Q ∧
+      Pr{let z ← rpmExperiment B}[E z] ≤ Pr{let z ← detExperiment A}[E z] :=
+  exists_det_rpm _ E hB
+
+/-- **`rpmRun` against an adversary with coins is bounded by a deterministic one's**: for every
+event, some deterministic adversary of as many queries to `π` and `π⁻¹`. -/
+theorem rpmRun_le_det {α β : Type} {B : OracleComp (unifSpec + PermSpec) α} {Q : ℕ}
+    (hB : Common.IsWeightBound B permQueries Q) (V : α → OracleComp HashSpec β)
+    (E : α × β → Prop) :
+    ∃ A : OracleComp PermSpec α, A.IsTotalQueryBound Q ∧
+      Pr{let z ← rpmRun B V}[E z] ≤ Pr{let z ← detRun A V}[E z] :=
+  exists_det_rpm _ E hB
 
 end LeanVM.Rpm

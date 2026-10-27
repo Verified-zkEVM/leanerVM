@@ -30,9 +30,10 @@ queried forward and inverse, Keccak-256 the sponge over `π` and Keccak-f[1600] 
   (`verifier.py:191-209`) with `π` in place of Keccak-f[1600]: the sponge of rate 136 bytes and
   capacity 512 bits, the padding `0x01 ‖ 0^* ‖ 0x80`, the zero initial state, the first four lanes
   as the digest.
-* **The adversary** (`RpmAdversary`) queries `π` and `π⁻¹` only, and outputs a statement and a
-  proof; a Keccak-256 evaluation is a sequence of forward queries, which it makes itself. Every
-  query and its answer is recorded, in order (`Transcript`, `loggedPerm`).
+* **The adversary** (`RpmAdversary`) queries `π` and `π⁻¹` and flips private coins, and outputs a
+  statement and a proof; a Keccak-256 evaluation is a sequence of forward queries, which it makes
+  itself. Every query to `π` and `π⁻¹` and its answer is recorded, in order (`Transcript`,
+  `loggedPerm`); its coins are neither recorded nor counted (`permQueries`).
 * **The experiment** (`rpmExperiment`): the adversary against the lazily sampled permutation from
   no edge, then the verifier on its statement and proof against the same permutation.
 
@@ -170,19 +171,24 @@ noncomputable def rpmImpl : QueryImpl HashSpec (StateT PermLog ProbComp)
 
 /-! ### The experiment -/
 
-/-- An adversary in the random-permutation model: a computation with oracle access to `π` and
-`π⁻¹` that outputs a statement and a proof. It has no coins of its own: the extractor is fixed,
-so a randomized adversary's probability of breaking it is an average of deterministic
-adversaries' probabilities, and one of them does at least as well. -/
-abbrev RpmAdversary : Type := OracleComp PermSpec (Statement × Proof)
+/-- An adversary in the random-permutation model: a computation with private coins and oracle
+access to `π` and `π⁻¹` that outputs a statement and a proof. -/
+abbrev RpmAdversary : Type := OracleComp (unifSpec + PermSpec) (Statement × Proof)
+
+/-- The adversary's queries to `π` and `π⁻¹`, one each; its coins are free. -/
+def permQueries : (unifSpec + PermSpec).Domain → ℕ
+  | .inl _ => 0
+  | .inr _ => 1
 
 /-- A transcript: queries to `π` and `π⁻¹` with their answers, oldest first. -/
 abbrev Transcript : Type := List (Common.PermQuery KState × KState)
 
-/-- The adversary's oracle: the lazily sampled permutation, each query and its answer appended
-to the transcript. -/
-noncomputable def loggedPerm : QueryImpl PermSpec (StateT (PermLog × Transcript) ProbComp) :=
-  fun q ↦ StateT.mk fun s ↦
+/-- The adversary's oracles: a coin is uniform and not recorded; `π` and `π⁻¹` are the lazily
+sampled permutation, each query and its answer appended to the transcript. -/
+noncomputable def loggedPerm :
+    QueryImpl (unifSpec + PermSpec) (StateT (PermLog × Transcript) ProbComp)
+  | .inl n => liftM (unifSpec.query n : ProbComp (Fin (n + 1)))
+  | .inr q => StateT.mk fun s ↦
     (fun r ↦ (r.1, (r.2, s.2 ++ [(q, r.1)]))) <$> (Common.lazyPerm q).run s.1
 
 /-- An outcome of the experiment: the statement (`program`, `input`) and the `proof`, the
@@ -278,10 +284,10 @@ def BreaksRpm (extract : RpmExtractor) (z : RpmOutcome) : Prop :=
     ValidExecution z.program z.input t
 
 /-- **Knowledge soundness in the random-permutation model**, for the extractor `extractorRpm`:
-an adversary of at most `Q ≤ 2^128` queries to `π` and `π⁻¹` breaks soundness with probability at
-most `(Q + 2^14) · 2^-128 + 7 (Q + 2^14)² · 2^-256`. -/
+an adversary of at most `Q ≤ 2^128` queries to `π` and `π⁻¹` (its coins free) breaks soundness
+with probability at most `(Q + 2^14) · 2^-128 + 7 (Q + 2^14)² · 2^-256`. -/
 def KnowledgeSoundness : Prop :=
-  ∀ (A : RpmAdversary) (Q : ℕ), A.IsTotalQueryBound Q → Q ≤ 2 ^ 128 →
+  ∀ (A : RpmAdversary) (Q : ℕ), Common.IsWeightBound A permQueries Q → Q ≤ 2 ^ 128 →
     Pr{let z ← rpmExperiment A}[BreaksRpm extractorRpm z] ≤
       (Q + 2 ^ 14 : ℝ≥0∞) * (2 : ℝ≥0∞)⁻¹ ^ 128 +
         7 * (Q + 2 ^ 14 : ℝ≥0∞) ^ 2 * (2 : ℝ≥0∞)⁻¹ ^ 256
@@ -309,7 +315,7 @@ def Completeness : Prop :=
 /-- **The random-permutation experiment of an adversary and a computation**: `rpmExperiment`
 with any computation `V` over the verifier's calls in place of the verifier, without the
 transcript; the experiment of the batching's end statement (`LeanVmGuest.lean`). -/
-noncomputable def Rpm.rpmRun {α β : Type} (A : OracleComp PermSpec α)
+noncomputable def Rpm.rpmRun {α β : Type} (A : OracleComp (unifSpec + PermSpec) α)
     (V : α → OracleComp HashSpec β) : ProbComp (α × β) := do
   let (z, perms, _) ← (simulateQ loggedPerm A).run ([], [])
   let v ← (simulateQ rpmImpl (V z)).run' perms

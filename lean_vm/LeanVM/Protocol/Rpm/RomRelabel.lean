@@ -190,7 +190,7 @@ theorem isWeightBound_one_of_total {ι : Type} {spec : OracleSpec ι} {α : Type
     rw [Common.isWeightBound_query_bind_iff]
     exact ⟨h.1, fun u ↦ ih u (h.2 u)⟩
 
-theorem isWeightBound_advR {A : RpmAdversary} {Q : ℕ} (hA : A.IsTotalQueryBound Q) :
+theorem isWeightBound_advR {A : DetAdversary} {Q : ℕ} (hA : A.IsTotalQueryBound Q) :
     Common.IsWeightBound (advR A) wR Q := by
   refine Common.isWeightBound_run_simulateQ logRel (fun _ ↦ 1) wR (fun q T ↦ ?_)
     (isWeightBound_one_of_total hA) []
@@ -253,7 +253,7 @@ theorem isWeightBound_simulateQ_ofRHF {β : Type} {Y : OracleComp HFSpec β} {Q 
 
 /-- **(c) The random-oracle adversary of the transfer makes at most one oracle query per query
 of the adversary to `π` or `π⁻¹`.** -/
-theorem isWeightBound_romAdv {A : RpmAdversary} {Q : ℕ} (hA : A.IsTotalQueryBound Q) :
+theorem isWeightBound_romAdv {A : DetAdversary} {Q : ℕ} (hA : A.IsTotalQueryBound Q) :
     Common.IsWeightBound (romAdv A) hashCalls Q := by
   refine Common.isWeightBound_map _ (isWeightBound_simulateQ_ofRHF ?_)
   rw [Common.advS2, StateT.run'_eq]

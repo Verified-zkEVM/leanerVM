@@ -83,9 +83,10 @@ Benedikt Wagner's ([b-wagn/fv-pq-da](https://github.com/b-wagn/fv-pq-da), Apache
 9. [`LeanVm.lean`](LeanVm.lean): a statement (a program and a public input), the verifier on it
    (`verifier H F`), its calls as oracle queries (`HashSpec`), the honest prover's type and **the
    honest prover**, `prover` (`LeanVM.Prover.prove` of [`Prover/`](Prover/) with the oracle calls),
-   the committed size; the random-permutation experiment (`rpmExperiment`, the adversary's
-   `Transcript`; `rpmRun`, the same with any computation in place of the verifier), the extractor on
-   the transcript (`extractorRpm`, on the Keccak-256 evaluations the transcript holds,
+   the committed size; the random-permutation experiment (`rpmExperiment`: an adversary with private
+   coins, `RpmAdversary`, its queries to `π` and `π⁻¹` counted by `permQueries`, its `Transcript`;
+   `rpmRun`, the same with any computation in place of the verifier), the extractor on the
+   transcript (`extractorRpm`, on the Keccak-256 evaluations the transcript holds,
    `transcriptPaths`), **`LeanVM.KnowledgeSoundness`, `LeanVM.Completeness`**, and a digest as a
    public input (`publicInputOfDigest`).
 10. [`LeanVmGuest.lean`](LeanVmGuest.lean): the leanISA guest program's specification (aggregation):

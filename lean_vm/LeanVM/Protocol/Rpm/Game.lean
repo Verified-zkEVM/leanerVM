@@ -69,7 +69,7 @@ def logRel : QueryImpl PermSpec (StateT Transcript (OracleComp RSpec)) := fun q 
   StateT.mk fun T ↦ (fun a ↦ (a, T ++ [(q, a)])) <$> relP q
 
 /-- The adversary of the transfer: the adversary on bytes, with its transcript. -/
-def advR (A : RpmAdversary) : OracleComp RSpec ((Statement × Proof) × Transcript) :=
+def advR (A : DetAdversary) : OracleComp RSpec ((Statement × Proof) × Transcript) :=
   (simulateQ logRel A).run []
 
 /-- The two oracles of `Statement.lean`, read on bytes. -/
@@ -83,7 +83,7 @@ def postR (z : (Statement × Proof) × Transcript) : OracleComp HFSpec RpmOutcom
   (fun v ↦ ((z.1, v), z.2)) <$> simulateQ toRHF (verifier queryH queryF z.1.1.1 z.1.1.2 z.1.2)
 
 /-- **The transfer game** of the random-permutation experiment. -/
-def game (A : RpmAdversary) : OracleComp D2Spec RpmOutcome :=
+def game (A : DetAdversary) : OracleComp D2Spec RpmOutcome :=
   Common.rpmGame2 (pure ()) (fun _ ↦ advR A) (fun _ z ↦ postR z)
 
 /-- The transfer's oracles read on lanes: coins, the hash (its 32 bytes), the permutation. -/
@@ -95,7 +95,7 @@ def ofRHF : QueryImpl HFSpec (OracleComp CSpec)
 
 /-- **The random-oracle adversary of the transfer**: the adversary with the indifferentiability
 simulator (`Common.advS2`), its oracle queries read on lanes, its transcript dropped. -/
-noncomputable def romAdv (A : RpmAdversary) : OracleComp CSpec (Statement × Proof) :=
+noncomputable def romAdv (A : DetAdversary) : OracleComp CSpec (Statement × Proof) :=
   (fun z ↦ z.1) <$> simulateQ ofRHF
     (Common.advS2 Common.keccakPadding Common.KState.zero (advR A))
 

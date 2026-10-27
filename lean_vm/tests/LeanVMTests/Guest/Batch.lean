@@ -6,7 +6,7 @@ import LeanVM.Guest.Batch.Rpm
 
 * `rounds_sound`, `batch_sound`, `children_sound`, `runProof_batchAny`, `batch_rom`,
   `batch_rom_bits`, and in the random-permutation model `batch_rpm`, `batch_rpm_bits` and the
-  transfer they use, `LeanVM.Rpm.rpmRun_le_rom`, rest on Lean's three standard axioms.
+  transfer they use, `LeanVM.Rpm.detRun_le_rom`, rest on Lean's three standard axioms.
 * The random-oracle theorem's seeding is the batching's seed (`FiatShamirState::from_label`), and
   has no hash answer carried by a later hash step (so `failBound` is `5N / 2^256`).
 * The count is absorbed as `g^n` and three zeros, a whole rate.
@@ -55,9 +55,9 @@ open LeanVM.Guest.Batch
 #guard_msgs in
 #print axioms LeanVM.Guest.Batch.batch_rpm_bits
 
-/-- info: 'LeanVM.Rpm.rpmRun_le_rom' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+/-- info: 'LeanVM.Rpm.detRun_le_rom' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
-#print axioms LeanVM.Rpm.rpmRun_le_rom
+#print axioms LeanVM.Rpm.detRun_le_rom
 
 /-- The seeding, deployed, is `Node.batchSeed`; no hash answer is carried by a later step. -/
 example : Id.run (batchSeedOf.run keccak256 keccakF) = LeanVM.Node.batchSeed ∧
