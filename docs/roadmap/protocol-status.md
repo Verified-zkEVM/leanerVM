@@ -1395,28 +1395,41 @@ forms are adaptive too. The verifier and the prover compute the statement's seed
 reader of chain histories is one for every statement (`leanVmReader`): a history reads back to a
 start test before its steps (`HashChain.history`), a state is a start when the log holds a
 statement's three seed entries answered into it (`Protocol/StatementSeeds.lean`, `stmtOf`, unique on
-a log with no collision by `programBytes_injective`), and the announcement carries the statement.
-A logged 78-byte input puts its program hash in play (`programHashSlot`): a later answer completes a
+a log with no collision by `programBytes_injective`), and the announcement carries the statement. A
+logged 78-byte input puts its program hash in play (`programHashSlot`): a later answer completes a
 statement's seed only as the slot of a logged preimage or the half of a logged first-state input,
 both in play, so one more clean query opens no statement but at its answer (`stmtOf_append`). No
-root is in play at the start (`HashMisbehavesFrom []`; `seedDigests`, `Hit` and `HashMisbehaves`
-are gone), the starts are safe with none (`leanVmReader_startsSafe`: the empty history announces
+root is in play at the start (`HashMisbehavesFrom []`; `seedDigests`, `Hit` and `HashMisbehaves` are
+gone), the starts are safe with none (`leanVmReader_startsSafe`: the empty history announces
 nothing, which covers a first state that answers a grinding base, the lanes `0, 0, 0, 3`), and the
 charge stays `ε` per query. The verifier's bound is `13700`, its seed's three queries added
-(`verifierQueriesBound_eq`). `core` concludes `HashMisbehavesFrom [] (rootsOf prog input)
-leanVmReader.Flip` from the verifier's first state, which opens its statement while no later state
-of its chain opens one (`start_of_seedWith`). `misbehaves_rom_adaptive` bounds the adaptive game
-(`adaptiveGame_eq_twoRunGame`) at `niError εquery 13700 Q`, and
+(`verifierQueriesBound_eq`). `core` concludes
+`HashMisbehavesFrom [] (rootsOf prog input) (leanVmReader.FlipFor (prog, input))` from the
+verifier's first state, which opens its statement while no later state of its chain opens one
+(`start_of_seedWith`): the flipping group's history starts there, so the flip is on the chain of
+`(prog, input)` (`SlotReader.FlipFor`). `misbehaves_rom_adaptive` bounds the adaptive game
+(`adaptiveGame_eq_twoRunGame`) at `niError εquery 13700 Q` with the flips on every statement's chain
+(`leanVmReader.Flip`), which contain those (`flip_of_flipFor`, `HashMisbehavesFrom.mono`), and
 `baseVerifier_extractsWitness_rom_adaptive`, `baseVerifier_extractsExecution_rom_adaptive`, its
 `_wellFormed` corollary and `blakeMisbehavesAdaptive_of_comparison` follow at
 `(Q + 13700)/2^128 + hashTerm 13700 Q`. The theorems at a fixed statement keep their names and are
-their instances (`adaptiveGame_const`, `blakeMisbehavesAdaptive_const`), at `13700`. Tests: an
+their instances (`adaptiveGame_const`, `blakeMisbehavesAdaptive_const`), at `13700`.
+`BlakeMisbehaves prog input A δ` keeps its form; its meaning changed in its hits only. The joint log
+now holds the verifier's three seed queries, the program hash a logged seed preimage carries is in
+play (`programHashSlot`), and the chain's first state is no longer in play from the start (it was
+the one root, `seedDigests`), only once a logged input carries it as a half. Its flips are still
+those on the chain of `(prog, input)` alone (`leanVmReader.FlipFor (prog, input)`), read from the
+first state at which the log holds that statement's three seed hashes (`stmtOf`) rather than from
+the first state computed outside the oracle; `BlakeMisbehavesAdaptive` reads them on the chosen
+statement's chain. A flip on another statement's chain does not count: counted, it would fail the
+hypothesis for an adversary that explores a cheating chain of another statement and then outputs an
+honest proof (a toy reader with two starts shows the restriction, `not_flipAtFor_true`). Tests: an
 adversary that picks one of two statements from one hash is bounded at `Q = 1`, the adaptive
 replayer's acceptance at `Q = 0` (`adaptiveReplayer_ok_le`), and a preimage asked before its
 program's bytes is a hit, none without the slot (acceptance test 42, decision 43). Natively,
 `leanervm-verify` accepts the Rust fixture and the test vector and rejects every mutation,
-`leanervm-prove` writes the vector byte for byte, and `leanervm-prove log` finds no collision and
-no hit in the honest run (487253 prover and 3294 verifier queries).
+`leanervm-prove` writes the vector byte for byte, and `leanervm-prove log` finds no collision and no
+hit in the honest run (487253 prover and 3294 verifier queries).
 
 Also owed:
 
