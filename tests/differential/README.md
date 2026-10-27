@@ -129,7 +129,8 @@ rate 1). Each verifier accepts every one of them.
   rejected by both. The 17 no-op offsets are the announced sizes, the roots and the grinding
   nonces, which the Lean prover does not write through `send`.
 - **Rust tamper sweep.** A hooked copy of the pinned Rust prover covered those paths too. It
-  wrote 7 704 single-message tampers: complete on two programs, partial on three. It also wrote
+  wrote 9 342 single-message tampers, every offset × 3 on four programs (`field_div` at rates 1
+  and 3, a `2^8` BLAKE2s table, `match_arms`), plus 36 on a five-level WHIR ladder. It also wrote
   pair tampers that keep the public-input combination check true, which both verifiers reject at
   the opening. Every one was rejected by both.
 - **Sentinel slot.** The pinned Rust prover proved programs whose never-executed last slot
