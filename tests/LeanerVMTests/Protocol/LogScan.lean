@@ -7,8 +7,8 @@ import LeanerVM.Protocol.RandomOracle
 `scan` reads a joint log of the hash oracle, compactly (`Entry`: the input's bytes and the answer),
 and finds whether it has a collision and whether it has a hit, with hash maps, in one pass: the
 decidable clauses of the headline's hypothesis on a log too long for `QueryLog.HasCollision` and
-`Hit`, whose decisions are quadratic. `LeanerVMTests.Protocol.Headline` checks it against them on
-small logs; the `leanervm-prove` executable runs it on the honest prover's log. It imports only
+`HitFrom`, whose decisions are quadratic. `LeanerVMTests.Protocol.Headline` checks it against them
+on small logs; the `leanervm-prove` executable runs it on the honest prover's log. It imports only
 the definitions it reads, so that an executable importing it initialises nothing else.
 -/
 

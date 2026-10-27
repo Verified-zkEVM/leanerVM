@@ -360,7 +360,7 @@ def toyLog : List ((_ : ℕ × ℕ) × ℕ) := [⟨(0, 5), 1⟩, ⟨(1, 6), 2⟩
 
 -- The start test comes first: `1` is a start, though its own query parses as a step from `0`.
 #guard HashChain.history some toyLog (· == 1) 3 = some (1, [(6, 2), (7, 3)])
--- One fixed seed reads the whole chain, as before start tests.
+-- The start test of one fixed seed, `0`, reads the whole chain back to the seed.
 #guard HashChain.history some toyLog (HashChain.isSeed 0) 3 = some (0, [(5, 1), (6, 2), (7, 3)])
 -- With no start the walk finds no step into `0` and gives nothing.
 #guard HashChain.history some toyLog (fun _ ↦ false) 3 = none

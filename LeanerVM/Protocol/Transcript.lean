@@ -176,7 +176,8 @@ theorem programBytes_injective : Function.Injective programBytes := by
     have h₁ := congrArg (·[cubeSplit k 4 (i, (⟨j + 3, by omega⟩ : Fin 16))]) hv
     have h₃ : 3 ≤ j + 3 ∧ j + 3 < 11 := by omega
     rw [bytecodeColumn_cell, bytecodeColumn_cell] at h₁
-    simp only [Fin.getElem_fin, LeanerVM.Arithmetization.encodeSlots_getElem _ (j + 3) (by omega), h₃] at h₁
+    simp only [Fin.getElem_fin, LeanerVM.Arithmetization.encodeSlots_getElem _ (j + 3) (by omega),
+      h₃] at h₁
     simpa using h₁
   rfl
 
