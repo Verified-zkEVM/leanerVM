@@ -51,16 +51,19 @@ Benedikt Wagner's ([b-wagn/fv-pq-da](https://github.com/b-wagn/fv-pq-da), Apache
    `g`; Keccak lanes, bytes and digests as field elements.
 5. [`LeanDa.lean`](LeanDa.lean): LeanDA (fields, Reed–Solomon rows, the Merkle commitment, the
    membership test), the parts of Benedikt Wagner's framework the end statements name (the
-   consistency of opened cells, arguments of knowledge), the relation of LeanDA's argument, the
-   verifier, the commitment and the challenges' duplex over a permutation, LeanDA's games in the
-   random-permutation model, where the adversary and the verifier query the same oracles (`KSpec`;
-   position binding, code binding, the argument's knowledge soundness `ksGame`, completeness for
-   every permutation `π`), and `LeanDa.PerfectlyCompleteRpm`,
+   consistency of opened cells), the relation of LeanDA's argument (the root's challenges drawn by
+   the deployed duplex over a permutation), arguments that query the model's oracles, the
+   commitment and the challenges' duplex over a permutation, LeanDA's games in the
+   random-permutation model, where the adversary, the argument (`NarkRpm`, its extractor reading
+   the adversary's transcript) and the verifier query the same oracles (`KSpec`; position
+   binding, code binding, the argument's knowledge soundness `ksGame`, completeness for every
+   permutation `π`), and `LeanDa.PerfectlyCompleteRpm`,
    `LeanDa.PositionBindingRpm`, `LeanDa.CodeBindingRpm`. Code binding is conditional: if the
    argument is knowledge sound in the random-permutation model with error `(q + c) · 2^-k`, LeanDA
-   is code binding with error `(Q + c + 2^22) · 2^-k + (Q + 2^20) · 2^-93 + (Q + 2^22)² · 2^-158`
-   for `Q ≤ 2^127` and `r ≤ 1024` rows; the last term, Wagner's forking loss, passes 1 at about
-   `Q = 2^79`. `CodeBindingRpm`'s docstring says which arguments satisfy the hypothesis.
+   is code binding with error `(Q + c + 2^22) · 2^-k + (Q + 2^22) · 2^-188 + (Q + 2^22)² · 2^-247`
+   for `Q ≤ 2^127` and `r ≤ 1024` rows (a straight-line proof on Wagner's framework); the last
+   term passes 1 at about `Q = 2^123.5`. `CodeBindingRpm`'s docstring says which arguments satisfy
+   the hypothesis.
 6. [`LeanIsa.lean`](LeanIsa.lean): leanISA (memory, the six instructions, programs, one step, `run`,
    `ValidExecution`: a run from the initial state `(pcInitial, fpInitial)` that halts in the final
    state `(pcFinal, fpFinal)`, the instruction counts `Trace.count`, the bytecode encoding, the
@@ -174,8 +177,8 @@ theorem, `LeanVM.theorems_hold`, whose axioms the build pins to Lean's three. St
 | `LeanXmss.Rpm.LeanXmssRpmSecurityStatement` | `XmssSecurity.leanXmss_rpm_security` | [`lean_xmss/XmssSecurity/Rpm.lean`](../lean_xmss/XmssSecurity/Rpm.lean) |
 | `Sphincs.Lifetimes.RequestedSecurityRpm` | `Sphincs.Lifetimes.requestedSecurityRpm` | [`lean_sphincs/Sphincs/LifetimesRpm.lean`](../lean_sphincs/Sphincs/LifetimesRpm.lean) |
 | `LeanDa.PerfectlyCompleteRpm` | `LeanDa.leanDa_perfectlyComplete_rpm` | [`lean_da/LeanDa/RpmComplete.lean`](../lean_da/LeanDa/RpmComplete.lean) |
-| `LeanDa.PositionBindingRpm` | `LeanDa.leanDa_positionBinding_rpm` | [`lean_da/LeanDa/RpmSecurity.lean`](../lean_da/LeanDa/RpmSecurity.lean) |
-| `LeanDa.CodeBindingRpm` | `LeanDa.leanDa_codeBinding_rpm_bound` | [`lean_da/LeanDa.lean`](../lean_da/LeanDa.lean) |
+| `LeanDa.PositionBindingRpm` | `LeanDa.leanDa_positionBinding_rpm` | [`lean_da/LeanDa/RpmArg.lean`](../lean_da/LeanDa/RpmArg.lean) |
+| `LeanDa.CodeBindingRpm` | `LeanDa.leanDa_codeBinding_rpm_bound` | [`lean_da/LeanDa/RpmArg.lean`](../lean_da/LeanDa/RpmArg.lean) |
 
 The corollaries, [`Corollaries.lean`](Corollaries.lean), the fields of `Statement.Corollaries`:
 `lean_vm/LeanVM.lean` proves them from `Statement.Theorems` alone

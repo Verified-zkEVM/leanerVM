@@ -20,21 +20,23 @@ LeanDA as `crates/lean_da` computes it, and its security in Benedikt Wagner's fr
 code commitments, moved to the random-permutation model.
 
 **Credit.** The framework (erasure codes and their consistency, arguments of knowledge and their
-knowledge-soundness game) and the code-binding bound are Benedikt Wagner's formalization,
+knowledge-soundness game, the code-binding game) is Benedikt Wagner's formalization,
 https://github.com/b-wagn/fv-pq-da at `4475179c19296acf3469d7d552a3186ad1feda74` (his post:
 https://ethresear.ch/t/formally-verified-security-for-pq-das-leanda/25746), ported and modified
 to build on VCVio `afa6593f` and Lean v4.34.1, under the Apache License 2.0 (`lean_da/LICENSE`,
 `lean_da/NOTICE`); the definitions the end statements need are here, the rest of his framework
-(vector commitments, code checkers, the scheme in the random-oracle model and its games, his
-reductions) and his proofs in `lean_da/PqDas/`. The instantiation with LeanDA (`LeanDa`) follows
-his framework, and the end statements are his completeness and binding notions moved to the
-random-permutation model.
+(vector commitments, code checkers, his oracle-free arguments, the scheme in the random-oracle
+model and its games, his reductions) and his proofs in `lean_da/PqDas/`. The instantiation with
+LeanDA (`LeanDa`) follows his framework, and the end statements are his completeness and binding
+notions moved to the random-permutation model, where the argument's prover and verifier query
+the model's oracles (`NarkRpm`) and its extractor reads the adversary's transcript.
 
-The file: Wagner's framework (`PqDas`: erasure codes and the consistency of opened cells,
-arguments of knowledge), LeanDA (`LeanDa`: the code, the commitment, the membership test, the
-deployed algorithms), the verifier over a permutation, the games in the random-permutation model
-(`H` Keccak-256 over `π`, the membership challenges the deployed duplex over `π`; no random
-oracle), and the end statements (last section).
+The file: Wagner's framework (`PqDas`: erasure codes and the consistency of opened cells),
+LeanDA (`LeanDa`: the code, the commitment, the membership test, the deployed algorithms), the
+relation of LeanDA's argument (the root's challenges drawn by the deployed duplex), arguments in
+the random-permutation model, the games there (`H` Keccak-256 over `π`, the membership
+challenges the deployed duplex over `π`; no random oracle), and the end statements (last
+section).
 -/
 
 @[expose] public section
@@ -43,7 +45,7 @@ open Polynomial OracleComp OracleSpec ENNReal Common MeasureTheory
 
 set_option linter.unusedSectionVars false
 
-/-! ## Wagner's framework: erasure codes and arguments of knowledge -/
+/-! ## Wagner's framework: erasure codes -/
 
 namespace PqDas
 
@@ -69,33 +71,6 @@ instance decidableConsistent (C : ErasureCode Γ Λ k n) [Fintype Γ] [Decidable
   decidable_of_iff (∃ m : Fin k → Γ, ∀ p ∈ openings, C.encode m p.1 = p.2) Iff.rfl
 
 end ErasureCode
-
-/-- A non-interactive argument (of knowledge) for the `Bool`-valued relation
-`rel`, with statement type `Stmt`, witness type `Wit`, common reference string
-type `Crs`, and proof type `Proof` (Foundations Definition 18, with
-deterministic `prove`). -/
-structure Nark (Stmt Wit Crs Proof : Type) (rel : Stmt → Wit → Bool) where
-  /-- Sample a common reference string. -/
-  setup : ProbComp Crs
-  /-- Produce a proof for `stmt` from witness `wit` (deterministic). -/
-  prove : Crs → Stmt → Wit → Proof
-  /-- Verify a proof (deterministic). -/
-  verify : Crs → Stmt → Proof → Bool
-
-namespace Nark
-
-variable {Stmt Wit Crs Proof : Type} {rel : Stmt → Wit → Bool}
-
-/-- Perfect completeness: honestly generated proofs for true statements verify. -/
-def PerfectlyComplete (ps : Nark Stmt Wit Crs Proof rel) : Prop :=
-  ∀ crs ∈ support ps.setup, ∀ stmt wit, rel stmt wit = true →
-    ps.verify crs stmt (ps.prove crs stmt wit) = true
-
-/-- A straightline knowledge extractor: computes a witness from the crs, the
-statement, and the proof alone (Foundations Definition 18). -/
-def Extractor (Stmt Wit Crs Proof : Type) := Crs → Stmt → Proof → Wit
-
-end Nark
 
 end PqDas
 
@@ -613,17 +588,19 @@ noncomputable def code (r : ℕ) : ErasureCode Payload Cell r (r * 128) := ⟨en
 /-- The challenges of the membership test. -/
 abbrev Challenges := Fin 14 → E
 
-/-- **The relation the argument proves**: the cells commit to the root and pass the membership test
-on the challenges. -/
-noncomputable def Relation (r : ℕ) (H : List UInt8 → Digest) (stmt : Unit × Digest × Challenges)
-    (c : Fin (r * 128) → Cell) : Bool :=
-  decide (commitCells H c = stmt.2.1) && membershipCheck stmt.2.2 c
+/-- The challenges of the sponge's list. -/
+def toChallenges (zs : List E) : Challenges := fun j ↦ zs.getD j 0
 
-/-- An argument of knowledge for `Relation r H`. -/
-abbrev Argument (r : ℕ) (H : List UInt8 → Digest) (Crs Proof : Type) :=
-  Nark (Unit × Digest × Challenges) (Fin (r * 128) → Cell) Crs Proof (Relation r H)
+/-- **The relation the argument proves**, with a hash `H` and the sponge's permutation `P` in any
+monad: the cells commit to the root and pass the membership test on the root's challenges, drawn
+by the deployed duplex (`membershipChallengesM`). In the games `H` is Keccak-256 and `P` is `π`. -/
+noncomputable def relationM {m : Type → Type} [Monad m] (H : List UInt8 → m Digest)
+    (P : KState → m KState) {r : ℕ} (root : Digest) (c : Fin (r * 128) → Cell) : m Bool := do
+  let zs ← membershipChallengesM H P root
+  let d ← commitCellsM H c
+  pure (decide (d = root) && membershipCheck (toChallenges zs) c)
 
-/-! ## LeanDA's verifier over a permutation -/
+/-! ## Arguments in the random-permutation model -/
 
 /-- Keccak-256 among the oracles of the random-permutation model. -/
 abbrev hK (a : List UInt8) : OracleComp KSpec Digest := liftM (KSpec.query (.inr (.inl a)))
@@ -631,44 +608,79 @@ abbrev hK (a : List UInt8) : OracleComp KSpec Digest := liftM (KSpec.query (.inr
 /-- A call `π x` of the permutation among the oracles. -/
 abbrev pK (x : KState) : OracleComp KSpec KState := liftM (KSpec.query (.inr (.inr (.fwd x))))
 
-/-- The challenges of the sponge's list. -/
-def toChallenges (zs : List E) : Challenges := fun j ↦ zs.getD j 0
+/-- **An argument in the random-permutation model** (Wagner's arguments of knowledge, Foundations
+Definition 18, with oracle access): its prover and verifier query the model's oracles (`KSpec`:
+coins, Keccak-256, `π` and `π⁻¹`), the oracles the adversary and LeanDA's verifier query. -/
+structure NarkRpm (Stmt Wit Crs Proof : Type) where
+  /-- Sample a common reference string. -/
+  setup : ProbComp Crs
+  /-- Produce a proof for `stmt` from witness `wit`, querying the oracles. -/
+  prove : Crs → Stmt → Wit → OracleComp KSpec Proof
+  /-- Verify a proof, querying the oracles. -/
+  verify : Crs → Stmt → Proof → OracleComp KSpec Bool
 
-/-- **Verification of an opening** (the verification of Wagner's scheme), with a hash `H` and the
-sponge's permutation `P` in any monad: the challenges of the commitment's root from the deployed
-duplex over `P`, the argument's verification, and the opening's. In the games `H` is Keccak-256
-and `P` is `π` (`hK`, `pK`). -/
-def verifyRpm {m : Type → Type} [Monad m] (H : List UInt8 → m Digest) (P : KState → m KState)
-    (r : ℕ) {Crs Proof : Type} {rel : Unit × Digest × Challenges → (Fin (r * 128) → Cell) → Bool}
-    (ps : Nark (Unit × Digest × Challenges) (Fin (r * 128) → Cell) Crs Proof rel) (crs : Crs)
-    (com : Digest × Proof) (p : Fin (r * 128)) (x : Cell) (τ : Opening) : m Bool := do
-  let zs ← membershipChallengesM H P com.1
-  let v ← verifyCellM H r com.1 p x τ
-  pure (ps.verify crs ((), com.1, toChallenges zs) com.2 && v)
+/-- A transcript: the queries of the model's oracles with their answers, in order (VCVio's
+`QueryLog`). -/
+abbrev Transcript := QueryLog KSpec
+
+/-- **A straight-line extractor in the random-permutation model**: a witness from the crs, the
+statement, the proof and the transcript of the adversary's queries. -/
+abbrev ExtractorRpm (Stmt Wit Crs Proof : Type) := Crs → Stmt → Proof → Transcript → Wit
+
+/-- **Keccak-256 over a permutation `π`** (`keccak256With`), its digest's bytes: the hash `H` of
+the games when the permutation is `π` (`runK`). -/
+def keccakWith (π : KState → KState) (a : List UInt8) : Digest :=
+  (Id.run (keccak256With (fun x ↦ pure (π x)) a)).toBytes
+
+/-- **The model's oracles answered by a permutation `π`**: coins uniform, Keccak-256 over `π`,
+`π` and `π⁻¹`. -/
+noncomputable def permImpl (π : Equiv.Perm KState) : QueryImpl KSpec ProbComp
+  | .inl n => (unifSpec.query n : ProbComp (Fin (n + 1)))
+  | .inr (.inl a) => pure (keccakWith π a)
+  | .inr (.inr (.fwd x)) => pure (π x)
+  | .inr (.inr (.inv y)) => pure (π.symm y)
+
+/-- **Perfect completeness for every permutation**: with the oracles answered by any permutation
+`π`, an honest proof of a statement the relation `rel π` holds for verifies with probability
+one. -/
+def NarkRpm.PerfectlyComplete {Stmt Wit Crs Proof : Type} (ps : NarkRpm Stmt Wit Crs Proof)
+    (rel : Equiv.Perm KState → Stmt → Wit → Bool) : Prop :=
+  ∀ (π : Equiv.Perm KState), ∀ crs ∈ support ps.setup, ∀ stmt wit, rel π stmt wit = true →
+    Pr{let b ← simulateQ (permImpl π) (ps.prove crs stmt wit >>= ps.verify crs stmt)}[b = true] = 1
+
+/-- **LeanDA's relation for a permutation `π`**: `relationM` with Keccak-256 over `π` and `π`. -/
+noncomputable def RelationRpm (r : ℕ) (π : Equiv.Perm KState) (root : Digest)
+    (c : Fin (r * 128) → Cell) : Bool :=
+  Id.run (relationM (fun a ↦ pure (keccakWith π a)) (fun x ↦ pure (π x)) root c)
+
+/-- An argument for LeanDA's relation: the statement a root, the witness the cells. -/
+abbrev ArgumentRpm (r : ℕ) (Crs Proof : Type) := NarkRpm Digest (Fin (r * 128) → Cell) Crs Proof
 
 /-! ## The games in the random-permutation model
 
-Every party queries the same oracles (`KSpec`): the adversary Keccak-256, `π` and `π⁻¹`; the
-verifier Keccak-256 and, in the challenges' duplex, `π`. A game is run against the lazily sampled
-permutation (`runK`), and its cost counts every party's calls (`permCalls`). -/
+Every party queries the same oracles (`KSpec`): the adversary, the argument's prover and verifier
+Keccak-256, `π` and `π⁻¹`; LeanDA's verifier Keccak-256. A game is run against the lazily sampled
+permutation (`runK`), and its cost counts every party's calls (`permCalls`). LeanDA's verifier
+verifies the argument's proof for the commitment's root once, and each opening's path. -/
 
-variable (r : ℕ) {Crs Proof : Type} {rel : Unit × Digest × Challenges → (Fin (r * 128) → Cell) → Bool}
-  (ps : Nark (Unit × Digest × Challenges) (Fin (r * 128) → Cell) Crs Proof rel)
-  (ext : Nark.Extractor (Unit × Digest × Challenges) (Fin (r * 128) → Cell) Crs Proof)
+variable (r : ℕ) {Crs Proof : Type} (ps : ArgumentRpm r Crs Proof)
+  (ext : ExtractorRpm Digest (Fin (r * 128) → Cell) Crs Proof)
 
 /-- A position-binding adversary: from the commitment key, a commitment, a position, and two cells
 with their openings. -/
 abbrev PosBindingAdvRpm (Crs Proof : Type) :=
   Unit × Crs → OracleComp KSpec ((Digest × Proof) × Fin (r * 128) × Cell × Opening × Cell × Opening)
 
-/-- **The position-binding game**: the argument's setup, the adversary, then the two
-verifications; it wins when both openings verify, at two different cells. -/
+/-- **The position-binding game**: the argument's setup, the adversary, then the verifications:
+the argument's of the root's proof and the two openings'; it wins when all verify, at two
+different cells. -/
 def posBindingGame (A : PosBindingAdvRpm r Crs Proof) : OracleComp KSpec Bool := do
   let crs ← liftM ps.setup
   let (com, p, x, τ, x', τ') ← A ((), crs)
-  let b ← verifyRpm hK pK r ps crs com p x τ
-  let b' ← verifyRpm hK pK r ps crs com p x' τ'
-  pure (decide (x ≠ x') && b && b')
+  let ok ← ps.verify crs com.1 com.2
+  let b ← verifyCellM hK r com.1 p x τ
+  let b' ← verifyCellM hK r com.1 p x' τ'
+  pure (decide (x ≠ x') && ok && b && b')
 
 /-- A code-binding adversary: from the commitment key, a commitment and a list of opened
 positions. -/
@@ -676,111 +688,106 @@ abbrev CodeBindingAdvRpm (Crs Proof : Type) :=
   Unit × Crs → OracleComp KSpec ((Digest × Proof) × List (Fin (r * 128) × Cell × Opening))
 
 /-- **The code-binding game**: the argument's setup, the adversary, then the verifications; it wins
-when every opening verifies and no codeword agrees with the opened cells. -/
+when the root's proof and every opening verify and no codeword agrees with the opened cells. -/
 noncomputable def codeBindingGame (A : CodeBindingAdvRpm r Crs Proof) : OracleComp KSpec Bool := do
   let crs ← liftM ps.setup
   let (com, opened) ← A ((), crs)
-  let verdicts ← opened.mapM fun o ↦ verifyRpm hK pK r ps crs com o.1 o.2.1 o.2.2
-  pure (verdicts.all id && !decide ((code r).Consistent (opened.map fun o ↦ (o.1, o.2.1))))
+  let ok ← ps.verify crs com.1 com.2
+  let verdicts ← opened.mapM fun o ↦ verifyCellM hK r com.1 o.1 o.2.1 o.2.2
+  pure (ok && verdicts.all id && !decide ((code r).Consistent (opened.map fun o ↦ (o.1, o.2.1))))
 
-/-- A knowledge-soundness adversary: from the crs, a statement and a proof. -/
-abbrev KsAdvRpm (Crs Proof : Type) := Crs → OracleComp KSpec ((Unit × Digest × Challenges) × Proof)
+/-- **The adversary's oracles, logged**: each query asked, and appended with its answer to the
+transcript. -/
+def loggedK : QueryImpl KSpec (StateT Transcript (OracleComp KSpec)) := fun t ↦ do
+  let u ← liftM (KSpec.query t)
+  modify (· ++ [⟨t, u⟩])
+  pure u
 
-/-- **The argument's knowledge-soundness game** (Wagner's, Foundations Definition 18, with the hash
-over `π`): the argument's setup, the adversary, then the verification and the relation's check; it
-wins when the proof verifies and the extracted cells do not satisfy the relation (`Relation`),
-their root hashed with Keccak-256. -/
+/-- A knowledge-soundness adversary: from the crs, a root and a proof. -/
+abbrev KsAdvRpm (Crs Proof : Type) := Crs → OracleComp KSpec (Digest × Proof)
+
+/-- **The argument's knowledge-soundness game** (Wagner's, Foundations Definition 18, in the
+random-permutation model with a straight-line extractor): the argument's setup, the adversary with
+its queries logged, the argument's verification, then the relation's check on the cells the
+extractor reads off the proof and the adversary's transcript; it wins when the proof verifies and
+the extracted cells do not satisfy the relation (`relationM` over Keccak-256 and `π`). -/
 noncomputable def ksGame (B : KsAdvRpm Crs Proof) : OracleComp KSpec Bool := do
   let crs ← liftM ps.setup
-  let (stmt, proof) ← B crs
-  let root ← commitCellsM hK (ext crs stmt proof)
-  pure (ps.verify crs stmt proof &&
-    !(decide (root = stmt.2.1) && membershipCheck stmt.2.2 (ext crs stmt proof)))
-
-/-- **Keccak-256 over a permutation `π`** (`keccak256With`), its digest's bytes: the hash `H` of
-the games when the permutation is `π` (`runK`). -/
-def keccakWith (π : KState → KState) (a : List UInt8) : Digest :=
-  (Id.run (keccak256With (fun x ↦ pure (π x)) a)).toBytes
+  let ((root, proof), log) ← (simulateQ loggedK (B crs)).run []
+  let v ← ps.verify crs root proof
+  let ok ← relationM hK pK root (ext crs root proof log)
+  pure (v && !ok)
 
 /-- **The completeness experiment for a permutation `π`** (Wagner's, Foundations Definition 8,
-with the hash and the challenges over `π`): the argument's setup; the honest commitment to the
-message `msg`, the root of its encoding's cells hashed with Keccak-256 over `π` and the argument's
-proof for the challenges of the root, drawn by the deployed duplex over `π`
-(`membershipChallengesM`); the honest opening of the position `p`; and the binding games'
-verification (`verifyRpm`) of the encoding's cell at `p` with that opening, over `π`. -/
-noncomputable def completenessExpRpm (π : KState → KState)
-    (ps : Argument r (keccakWith π) Crs Proof) (msg : Fin r → Payload) (p : Fin (r * 128)) :
-    ProbComp Bool := do
+with the hash and the oracles answered by `π`): the argument's setup; the honest commitment to the
+message `msg`, the root of its encoding's cells hashed with Keccak-256 over `π`; the argument's
+honest proof for the root and its verification, both with the oracles answered by `π`; and the
+verification of the encoding's cell at `p` with its honest opening. -/
+noncomputable def completenessExpRpm (π : Equiv.Perm KState) (ps : ArgumentRpm r Crs Proof)
+    (msg : Fin r → Payload) (p : Fin (r * 128)) : ProbComp Bool := do
   let crs ← ps.setup
-  let H : List UInt8 → Id Digest := fun a ↦ pure (keccakWith π a)
-  let P : KState → Id KState := fun x ↦ pure (π x)
   let c := (code r).encode msg
   let root := commitCells (keccakWith π) c
-  let proof := ps.prove crs ((), root, toChallenges (Id.run (membershipChallengesM H P root))) c
-  pure (Id.run (verifyRpm H P r ps crs (root, proof) p (c p) (openCell (keccakWith π) c p)))
+  let ok ← simulateQ (permImpl π) (ps.prove crs root c >>= ps.verify crs root)
+  pure (ok && Id.run (verifyCellM (fun a ↦ pure (keccakWith π a)) r root p (c p)
+    (openCell (keccakWith π) c p)))
 
 /-! ### The end statements -/
 
 /-- **LeanDA is perfectly complete in the random-permutation model, for every permutation.**
-For any number `r` of rows, every permutation `π` of the Keccak state (indeed every function), the
-hash Keccak-256 over `π` and the membership challenges the deployed duplex over `π`, and every
-perfectly complete argument `ps` for the relation with that hash: every position `p` of the
-honest commitment to every message `msg` opens and verifies with probability one
-(`completenessExpRpm`, over the argument's setup). Holding for each `π`, it holds for every
-outcome of the binding statements' uniformly random permutation. The proof is Wagner's
-completeness proof, transferred. Proved by `LeanDa.leanDa_perfectlyComplete_rpm`. (Such an argument
-does not satisfy `CodeBindingRpm`'s hypothesis: see there.) -/
+For any number `r` of rows, every permutation `π` of the Keccak state, and every argument `ps`
+perfectly complete for LeanDA's relation for every permutation (`RelationRpm`, the hash
+Keccak-256 over `π` and the challenges the deployed duplex over `π`; the argument's prover and
+verifier answered by `π`): every position `p` of the honest commitment to every message `msg`
+opens and verifies with probability one (`completenessExpRpm`). Holding for each `π`, it holds
+for every outcome of the binding statements' uniformly random permutation. The proof is Wagner's
+completeness proof, transferred. Proved by `LeanDa.leanDa_perfectlyComplete_rpm`. -/
 abbrev PerfectlyCompleteRpm : Prop :=
-  ∀ (r : ℕ) (π : KState → KState) {Crs Proof : Type} (ps : Argument r (keccakWith π) Crs Proof),
-    ps.PerfectlyComplete →
+  ∀ (r : ℕ) (π : Equiv.Perm KState) {Crs Proof : Type} (ps : ArgumentRpm r Crs Proof),
+    ps.PerfectlyComplete (RelationRpm r) →
       ∀ (msg : Fin r → Payload) (p : Fin (r * 128)),
         Pr{let b ← completenessExpRpm r π ps msg p}[b = true] = 1
 
 /-- **LeanDA is position binding in the random-permutation model.** For every argument `ps` (any
-verifier, for any relation) and every adversary whose game, verifications included, makes at most
-`Q` calls of the permutation on every path (`permCalls`: a hash of `n` bytes costs
-`⌊n / 136⌋ + 1`, a call of `π` or `π⁻¹` one, the verifier's sponge's included), the probability
-of opening a position to two different cells is at most `(Q + 1)² · 2^-256`, for `Q ≤ 2^128`.
-Proved by `LeanDa.leanDa_positionBinding_rpm`. -/
+prover and verifier) and every adversary whose game, verifications included, makes at most `Q`
+calls of the permutation on every path (`permCalls`: a hash of `n` bytes costs `⌊n / 136⌋ + 1`, a
+call of `π` or `π⁻¹` one, the argument's verifier's included), the probability of opening a
+position to two different cells is at most `(Q + 1)² · 2^-256`, for `Q ≤ 2^128`. Proved by
+`LeanDa.leanDa_positionBinding_rpm`. -/
 abbrev PositionBindingRpm : Prop :=
-  ∀ (r : ℕ) {Crs Proof : Type} {rel : Unit × Digest × Challenges → (Fin (r * 128) → Cell) → Bool}
-    (ps : Nark (Unit × Digest × Challenges) (Fin (r * 128) → Cell) Crs Proof rel)
-    (A : PosBindingAdvRpm r Crs Proof) (Q : ℕ),
-    IsWeightBound (posBindingGame r ps A) permCalls Q → Q ≤ 2 ^ 128 →
+  ∀ (r : ℕ) {Crs Proof : Type} (ps : ArgumentRpm r Crs Proof) (A : PosBindingAdvRpm r Crs Proof)
+    (Q : ℕ), IsWeightBound (posBindingGame r ps A) permCalls Q → Q ≤ 2 ^ 128 →
       Pr{let b ← runK (posBindingGame r ps A)}[b = true] ≤
         ((Q : ℝ≥0∞) + 1) ^ 2 * (2 : ℝ≥0∞)⁻¹ ^ 256
 
 /-- **LeanDA is code binding in the random-permutation model, for an argument knowledge sound in
-it** (Benedikt Wagner's bound, moved to the random-permutation model). For `1 ≤ r ≤ 1024` rows
-(`maxRows`, the crate's bound), every argument `ps` (any verifier, for any relation; an
-oracle-free parameter, as in Wagner's model) and extractor `ext`: if every adversary whose
-knowledge-soundness game (`ksGame`, the relation's check included) makes at most `q ≤ 2^128`
-permutation calls (`permCalls`) wins it with probability at most `(q + c) · 2^-k`, then every
-adversary whose code-binding game, verifications included, makes at most `Q ≤ 2^127` calls breaks
-code binding with probability at most
+it** (Benedikt Wagner's framework and games, moved to the random-permutation model, with a
+straight-line argument in place of his forking lemma). For `1 ≤ r ≤ 1024` rows (`maxRows`, the
+crate's bound), every argument `ps` (its prover and verifier querying the model's oracles) and
+straight-line extractor `ext` (reading the adversary's transcript): if every adversary whose
+knowledge-soundness game (`ksGame`, the argument's verifier and the relation's check included)
+makes at most `q ≤ 2^128` permutation calls (`permCalls`) wins it with probability at most
+`(q + c) · 2^-k`, then every adversary whose code-binding game, verifications included, makes at
+most `Q ≤ 2^127` calls breaks code binding with probability at most
 
-`(Q + c + 2^22) · 2^-k + (Q + 2^20) · 2^-93 + (Q + 2^22)² · 2^-158`.
+`(Q + c + 2^22) · 2^-k + (Q + 2^22) · 2^-188 + (Q + 2^22)² · 2^-247`.
 
-The first term is the argument's knowledge soundness against an adversary that runs the
-code-binding adversary and derives the challenges of its root (at most `Q + 2^22` calls with the
-relation's commitment). The rest gathers the transfer to the two-oracle model and the duplex
-lemma, of the two games, two birthday bounds for collisions of the hash, and the loss of Wagner's
-forking lemma, the square root of `(Q + 2) · (N² / 2^256 + 14 / 2^192 + 2^-2688)` for the fork's
-`N ≤ 2 Q + 2^21` hash calls, at most `x · 2^-95 + x² · 2^-159 + (Q + 2) · 2^-94` for
-`x = Q + 2^20`.
+The first term is the argument's knowledge soundness against the code-binding adversary itself,
+its transcript handed to the extractor (at most `Q + 2^22` calls with the relation's check). The
+second is the membership test's soundness, `14 / 2^192` for each of at most `Q + 14` roots whose
+challenges are drawn. The third gathers the transfer to the two-oracle model and the duplex
+lemma, of the two games, and the hash's bad events among at most `2 Q + 2^20` hash and challenge
+queries: a collision, or a fresh answer that is a digest an earlier input or a root with drawn
+challenges already carries.
 
-The hypothesis holds only for an argument that stays knowledge sound when the hash is `π`'s:
-`ps` proves a relation that hashes with Keccak-256 over `π`, but its prover and verifier do not
-call `π`, so an argument that accepts any statement accepts it for every `π`, while the relation
-holds for few `π`; an argument without access to `π` (or a simulation of it) satisfies the
-hypothesis only if it accepts essentially nothing. An argument complete for every `π`
-(`PerfectlyCompleteRpm`) does not, so completeness and code binding are not both meaningful for
-one argument, as in Wagner's random-oracle original. Giving the argument oracle access would close
-this; it is not done. Proved by `LeanDa.leanDa_codeBinding_rpm_bound`. -/
+The argument queries the oracles the adversary does, so its knowledge soundness here is the
+usual one of an argument in the random-permutation model, with a straight-line extractor reading
+the adversary's queries, as leanVM's (`LeanVM.KnowledgeSoundness`); an argument may satisfy it and
+be perfectly complete for every permutation (`PerfectlyCompleteRpm`). Proved by
+`LeanDa.leanDa_codeBinding_rpm_bound`. -/
 abbrev CodeBindingRpm : Prop :=
-  ∀ (r : ℕ) {Crs Proof : Type} {rel : Unit × Digest × Challenges → (Fin (r * 128) → Cell) → Bool}
-    (ps : Nark (Unit × Digest × Challenges) (Fin (r * 128) → Cell) Crs Proof rel)
-    (ext : Nark.Extractor (Unit × Digest × Challenges) (Fin (r * 128) → Cell) Crs Proof) (c k : ℕ),
+  ∀ (r : ℕ) {Crs Proof : Type} (ps : ArgumentRpm r Crs Proof)
+    (ext : ExtractorRpm Digest (Fin (r * 128) → Cell) Crs Proof) (c k : ℕ),
     (∀ (B : KsAdvRpm Crs Proof) (q : ℕ), IsWeightBound (ksGame r ps ext B) permCalls q →
       q ≤ 2 ^ 128 → Pr{let b ← runK (ksGame r ps ext B)}[b = true] ≤
         ((q : ℝ≥0∞) + c) * (2 : ℝ≥0∞)⁻¹ ^ k) →
@@ -788,8 +795,8 @@ abbrev CodeBindingRpm : Prop :=
     ∀ (A : CodeBindingAdvRpm r Crs Proof) (Q : ℕ),
       IsWeightBound (codeBindingGame r ps A) permCalls Q → Q ≤ 2 ^ 127 →
         Pr{let b ← runK (codeBindingGame r ps A)}[b = true] ≤
-          ((Q : ℝ≥0∞) + c + 2 ^ 22) * (2 : ℝ≥0∞)⁻¹ ^ k + ((Q : ℝ≥0∞) + 2 ^ 20) * (2 : ℝ≥0∞)⁻¹ ^ 93 +
-            ((Q : ℝ≥0∞) + 2 ^ 22) ^ 2 * (2 : ℝ≥0∞)⁻¹ ^ 158
+          ((Q : ℝ≥0∞) + c + 2 ^ 22) * (2 : ℝ≥0∞)⁻¹ ^ k + ((Q : ℝ≥0∞) + 2 ^ 22) * (2 : ℝ≥0∞)⁻¹ ^ 188 +
+            ((Q : ℝ≥0∞) + 2 ^ 22) ^ 2 * (2 : ℝ≥0∞)⁻¹ ^ 247
 
 end LeanDa
 

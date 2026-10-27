@@ -79,8 +79,8 @@ structure Theorems (decode : LeanVM.Node.Decoder) : Prop where
   leanDaComplete : LeanDa.PerfectlyCompleteRpm
   /-- LeanDA is position binding: at most `(Q + 1)² · 2^-256` for `Q ≤ 2^128` (`LeanDa.lean`). -/
   leanDaPositionBinding : LeanDa.PositionBindingRpm
-  /-- LeanDA is code binding if its argument is knowledge sound in the random-permutation model;
-  the argument cannot query `π`, so the hypothesis fails for any useful argument (`LeanDa.lean`). -/
+  /-- LeanDA is code binding if its argument, querying the model's oracles, is knowledge sound in
+  the random-permutation model with a straight-line extractor (`LeanDa.lean`). -/
   leanDaCodeBinding : LeanDa.CodeBindingRpm
 
 end Statement

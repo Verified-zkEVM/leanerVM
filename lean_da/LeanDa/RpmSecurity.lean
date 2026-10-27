@@ -17,13 +17,13 @@ challenges' duplex follow the duplex discipline, so the two-oracle transfer
 (`keccak256_transfer2`) moves both games to the two-oracle random-oracle model (`H` a random oracle,
 `F` an independent random function) within `Q² / 2^508` for `Q` permutation calls.
 
-* **Position binding** (`leanDa_positionBinding_rpm`): there, a win is a collision of `H` among
-  the cached answers (`posBindingPost_win`, by `openingsCollision_spec`), at most
-  `Q² / 2^256` (`prob_hCollision_le`); in all `Q² / 2^256 + Q² / 2^508`.
-* **Code binding** (`leanDa_codeBinding_rpm`): the RPM probability is within `Q² / 2^508` of the
-  two-oracle ROM one against the simulated adversary. From there, the duplex lemma makes the
-  challenges a random oracle of the roots (`LeanDa.RpmCodeBinding`), and sampling `H` in advance
-  makes the game Wagner's for each hash (`LeanDa.RpmWagner`): `leanDa_codeBinding_rpm_bound`.
+* **Position binding**: there, a win is a collision of `H` among the cached answers, at most
+  `Q² / 2^256` (`prob_hCollision_le`); the end theorem (`leanDa_positionBinding_rpm`,
+  `LeanDa.RpmArg`) runs the argument's verification with the adversary.
+* **Code binding** (`leanDa_codeBinding_rpm`, for an oracle-free argument): the RPM probability is
+  within `Q² / 2^508` of the two-oracle ROM one against the simulated adversary, the first step of
+  Wagner's forking route and of the straight-line proof (`LeanDa.RpmCodeBinding`,
+  `LeanDa.RpmArg`).
 
 This module is part of the instantiation of Benedikt Wagner's framework for erasure code
 commitments (`PqDas`, ported from https://github.com/b-wagn/fv-pq-da) with LeanDA.
@@ -432,48 +432,6 @@ theorem prob_hCollision_le {α : Type} (X : OracleComp Rom2 α) (Q : ℕ)
       · exact hkeep _ fun b ↦ by rw [h]
       · exact hkeep _ fun b ↦ by rw [h, cacheQuery_inr_inl]
       · cases h
-
-/-! ## Position binding -/
-
-section PositionBinding
-
-variable (r : ℕ) {Crs Proof : Type} {rel : Unit × Digest × Challenges → (Fin (r * 128) → Cell) → Bool}
-  (ps : Nark (Unit × Digest × Challenges) (Fin (r * 128) → Cell) Crs Proof rel)
-
-/-- **LeanDA is position binding in the random-permutation model.** For every argument `ps` (any
-verifier, for any relation) and every adversary whose game, verifications included, makes at most
-`Q` calls of the permutation on every path (`permCalls`: a hash of `n` bytes costs
-`⌊n / 136⌋ + 1`, a call of `π` or `π⁻¹` one, the verifier's sponge's included), the probability of opening a
-position to two different cells is at most `Q² / 2^256 + Q² / 2^508`, so at most
-`(Q + 1)² · 2^-256` for `Q ≤ 2^128` (`Common.sq_add_sq_le`). -/
-theorem leanDa_positionBinding_rpm : PositionBindingRpm := by
-  intro r Crs Proof rel ps A Q hQ hcap
-  replace hQ := isWeightBound_posBindingGame r ps A Q hQ
-  rw [(runK_posBindingGame r ps A).prEvent_eq]
-  generalize relabelAdv A = A at hQ ⊢
-  rw [posBindingGame2, permCalls2_eq] at hQ
-  obtain ⟨h1, -⟩ := keccak256_transfer2 (liftM ps.setup) (fun crs ↦ A ((), crs))
-    (posBindingPost r ps) (fun x a ↦ duplex_posBindingPost r ps x a) Q hQ (· = true)
-  refine h1.trans ((add_le_add ?_ le_rfl).trans (Common.sq_add_sq_le hcap))
-  have hX : IsWeightBound (simulateQ (hInF (E := KRest) (C := KCap)) (liftM ps.setup) >>= fun x ↦
-      advS2 keccakPadding KState.zero (A ((), x)) >>= fun a ↦ posBindingPost r ps x a)
-      hCalls Q := by
-    rw [← shadow_rpmGame2, StateT.run'_eq]
-    exact isWeightBound_map _ (isWeightBound_run_simulateQ _ _ _ isWeightBound_shadowImpl hQ _)
-  have hwin : ∀ z ∈ support ((simulateQ (hfSpec (List UInt8) KDigest KState).romImpl
-      (simulateQ (hInF (E := KRest) (C := KCap)) (liftM ps.setup) >>= fun x ↦
-        advS2 keccakPadding KState.zero (A ((), x)) >>= fun a ↦ posBindingPost r ps x a)).run ∅),
-      z.1 = true → HCollision z.2 := by
-    intro z hz
-    simp only [simulateQ_bind, StateT.run_bind, mem_support_bind_iff] at hz
-    obtain ⟨w₁, -, w₂, -, hz⟩ := hz
-    exact posBindingPost_win r ps _ _ _ hz
-  rw [romRun2, StateT.run'_eq, prEvent_map]
-  calc _ ≤ _ := prEvent_mono_of_support _ _ _ hwin
-    _ ≤ Q * ((Q : ℝ≥0∞) / 2 ^ 256) := prob_hCollision_le _ Q hX
-    _ = (Q ^ 2 : ℝ≥0∞) / 2 ^ 256 := by rw [← mul_div_assoc, ← pow_two]
-
-end PositionBinding
 
 /-! ## Code binding -/
 

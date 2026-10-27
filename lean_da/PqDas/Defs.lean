@@ -17,8 +17,9 @@ modified for VCVio afa6593: codewords of an erasure code, vector commitments and
 adversaries, code checkers, the code-binding adversary, the random-oracle simulation of his
 reductions, the relation of the scheme's argument, and his reductions (committed soundness, the
 fork and its collision, knowledge soundness and weak position binding). The erasure code's
-consistency and arguments of knowledge (`Nark`) are in `Statement/LeanDa.lean`, which the end
-statements name.
+consistency is in `Statement/LeanDa.lean`, which the end statements name; his arguments of
+knowledge (`Nark`, oracle-free), moved back here when the end statements took arguments that
+query the random-permutation model's oracles (`LeanDa.NarkRpm`), are below.
 -/
 
 section
@@ -27,7 +28,30 @@ open OracleComp ENNReal
 
 namespace PqDas
 
+/-- A non-interactive argument (of knowledge) for the `Bool`-valued relation
+`rel`, with statement type `Stmt`, witness type `Wit`, common reference string
+type `Crs`, and proof type `Proof` (Foundations Definition 18, with
+deterministic `prove`). -/
+structure Nark (Stmt Wit Crs Proof : Type) (rel : Stmt → Wit → Bool) where
+  /-- Sample a common reference string. -/
+  setup : ProbComp Crs
+  /-- Produce a proof for `stmt` from witness `wit` (deterministic). -/
+  prove : Crs → Stmt → Wit → Proof
+  /-- Verify a proof (deterministic). -/
+  verify : Crs → Stmt → Proof → Bool
+
 namespace Nark
+
+variable {Stmt Wit Crs Proof : Type} {rel : Stmt → Wit → Bool}
+
+/-- Perfect completeness: honestly generated proofs for true statements verify. -/
+def PerfectlyComplete (ps : Nark Stmt Wit Crs Proof rel) : Prop :=
+  ∀ crs ∈ support ps.setup, ∀ stmt wit, rel stmt wit = true →
+    ps.verify crs stmt (ps.prove crs stmt wit) = true
+
+/-- A straightline knowledge extractor: computes a witness from the crs, the
+statement, and the proof alone (Foundations Definition 18). -/
+def Extractor (Stmt Wit Crs Proof : Type) := Crs → Stmt → Proof → Wit
 
 variable {Stmt Wit Crs Proof : Type} {rel : Stmt → Wit → Bool}
 

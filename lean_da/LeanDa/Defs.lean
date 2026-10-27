@@ -15,6 +15,46 @@ This module is part of the instantiation of Benedikt Wagner's framework for eras
 commitments (`PqDas`, ported from https://github.com/b-wagn/fv-pq-da) with LeanDA.
 -/
 
+/-! ## Wagner's relation and verifier, with an oracle-free argument
+
+His argument of LeanDA (`Argument`, an oracle-free `Nark`) proves `Relation`, the statement
+carrying the challenges; his scheme's verification (`verifyRpm`) draws the challenges of the root
+by the deployed duplex and verifies the argument for each opening. His theorems and his forking
+route are about these; the end statements' arguments query the model's oracles instead
+(`Statement/LeanDa.lean`). -/
+
+section
+
+namespace LeanDa
+
+open PqDas
+
+/-- **Wagner's relation for LeanDA**: the cells commit to the root and pass the membership test on
+the challenges the statement carries. -/
+noncomputable def Relation (r : ℕ) (H : List UInt8 → Digest) (stmt : Unit × Digest × Challenges)
+    (c : Fin (r * 128) → Cell) : Bool :=
+  decide (commitCells H c = stmt.2.1) && membershipCheck stmt.2.2 c
+
+/-- An argument of knowledge for `Relation r H`. -/
+abbrev Argument (r : ℕ) (H : List UInt8 → Digest) (Crs Proof : Type) :=
+  Nark (Unit × Digest × Challenges) (Fin (r * 128) → Cell) Crs Proof (Relation r H)
+
+/-- **Verification of an opening** in Wagner's scheme, with a hash `H` and the sponge's
+permutation `P` in any monad: the challenges of the commitment's root from the deployed duplex
+over `P`, the argument's verification, and the opening's. -/
+def verifyRpm {m : Type → Type} [Monad m] (H : List UInt8 → m Digest)
+    (P : LeanVM.Semantics.KState → m LeanVM.Semantics.KState)
+    (r : ℕ) {Crs Proof : Type} {rel : Unit × Digest × Challenges → (Fin (r * 128) → Cell) → Bool}
+    (ps : Nark (Unit × Digest × Challenges) (Fin (r * 128) → Cell) Crs Proof rel) (crs : Crs)
+    (com : Digest × Proof) (p : Fin (r * 128)) (x : Cell) (τ : Opening) : m Bool := do
+  let zs ← membershipChallengesM H P com.1
+  let v ← verifyCellM H r com.1 p x τ
+  pure (ps.verify crs ((), com.1, toChallenges zs) com.2 && v)
+
+end LeanDa
+
+end
+
 /-! ## LeanDA's Merkle collisions -/
 
 section
