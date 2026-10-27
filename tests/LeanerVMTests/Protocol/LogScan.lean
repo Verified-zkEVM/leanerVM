@@ -27,9 +27,10 @@ attribute [local instance] Digest.hashable in
 /-- **The collisions and hits of a joint log**, in one pass with hash maps. The first `nA` entries
 are the prover's; `seed` lists the digests in play from the start, `roots` the proof's roots. An
 entry is a collision when its digest answered an earlier, different input; a hit when its input is
-new and its digest is in play (the seed, a half of an earlier input, a root rebuilt from two
-earlier observe steps) or, past the prover's entries, a root of the proof. Then its halves and the
-roots its observe step completes are put in play. -/
+new and its digest is in play (one of `seed`, a half of an earlier input, the program hash an
+earlier input carries, a root rebuilt from two earlier observe steps) or, past the prover's
+entries, a root of the proof. Then its halves, the program hash it carries and the roots its
+observe step completes are put in play. -/
 def scan (seed roots : List Digest) (nA : ℕ) (log : Array Entry) : Bool × Bool := Id.run do
   let rootSet : Std.HashSet Digest := Std.HashSet.ofList roots
   let mut answers : Std.HashMap Digest ByteArray := {}
@@ -47,7 +48,7 @@ def scan (seed roots : List Digest) (nA : ℕ) (log : Array Entry) : Bool × Boo
     if !seen.contains t && (play.contains a || (nA ≤ k && rootSet.contains a)) then hit := true
     seen := seen.insert t
     let q := t.toList
-    for h in halves q do
+    for h in halves q ++ programHashSlot q do
       play := play.insert h
     if let some (cv, x) := observed? q then
       match firstObs[cv]? with

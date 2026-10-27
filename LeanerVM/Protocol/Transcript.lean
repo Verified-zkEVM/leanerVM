@@ -113,7 +113,8 @@ theorem length_seedInput (iv : Digest) (input : PublicInput) :
     (seedInput iv input).length = 64 := by
   simp [seedInput, length_digestBytes, length_kBytes]
 
-private theorem flatMap_kBytes_inj : ∀ {l l' : List K}, l.flatMap kBytes = l'.flatMap kBytes →
+/-- Words are determined by their bytes. -/
+theorem flatMap_kBytes_inj : ∀ {l l' : List K}, l.flatMap kBytes = l'.flatMap kBytes →
     l = l'
   | [], [], _ => rfl
   | [], b :: l', h | b :: l', [], h => by

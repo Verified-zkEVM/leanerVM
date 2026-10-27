@@ -47,9 +47,11 @@ answered by it that parses as a step (`Block.parse?`), with the state each block
 Merkle node is also a 64-byte input of the same oracle and may parse as a step; it is one more
 entry of the log. A chain from one fixed seed is read with `HashChain.isSeed seed`. The digests in
 play after a log (`inPlay`) are a fixed list of roots, the two halves of every logged 64-byte
-input (`halves`: the chaining value and the block of a step, the two children of a node), and the
-Merkle roots the log's chains absorb as two consecutive observes (`rebuiltRoots`, one per observe
-step).
+input (`halves`: the chaining value and the block of a step, the two children of a node), the
+program hash every logged 78-byte input carries in its last 32 bytes (`programHashSlot`, the slot
+of a seed's preimage), and the Merkle roots the log's chains absorb as two consecutive observes
+(`rebuiltRoots`, one per observe step). A query is 64 or 78 bytes, never both, so an entry puts at
+most two digests in play besides its absorbed root.
 
 * `chainHistory_of_noCollision`: a chain whose every step is logged is its history, when the log
   has no collision and no later state of the chain is a start; `chainHistory_of_noCollision_noSeed`
@@ -68,7 +70,7 @@ step).
 * `chainHistory_dedupKeys`, `inPlay_dedupKeys`: in a consistent log, histories and the digests in
   play are those of the log with each query at its first occurrence only (`List.dedupKeys`),
   the fresh log of a lazy random oracle.
-* `length_inPlay_le`: at most the roots, two halves and one absorbed root per entry are in play.
+* `length_inPlay_le`: at most the roots, two digests and one absorbed root per entry are in play.
 -/
 
 namespace LeanerVM.Protocol
@@ -291,10 +293,28 @@ def rebuiltRoots (log : hashSpec.QueryLog) : List Digest :=
   log.filterMap fun e ↦ (observed? e.1).bind fun p ↦
     (observedInto log p.1).bind fun x₁ ↦ digestOfScalars (x₁, p.2)
 
-/-- The digests in play after a log: `roots` (the seed among them), the halves of every logged
-input, and the roots the log's chains absorb. -/
+/-- The program hash a 78-byte input carries: its last 32 bytes, read as a digest, the slot of
+a seed's preimage (`seedPreimageOf`). Other inputs carry none. -/
+def programHashSlot (q : List UInt8) : List Digest :=
+  if q.length = 78 then [digestOfBytes (q.drop 46)] else []
+
+/-- A seed's preimage carries its program hash. -/
+theorem mem_programHashSlot_seedPreimageOf (ph : Digest) :
+    ph ∈ programHashSlot (seedPreimageOf ph) := by
+  have h : (seedPreimageOf ph).drop 46 = digestBytes ph :=
+    List.drop_left' (by simp [length_kBytes, r1csDigest])
+  simp [programHashSlot, length_seedPreimageOf, h, digestOfBytes_digestBytes]
+
+/-- The seed of a first state's input is its first half. -/
+theorem mem_halves_seedInput (iv : Digest) (input : PublicInput) :
+    iv ∈ halves (seedInput iv input) := by
+  simp only [halves, length_seedInput, ↓reduceIte, List.mem_cons]
+  exact .inl (by simp [seedInput, digestOfBytes_append])
+
+/-- The digests in play after a log: `roots`, the halves of every logged input and the program
+hash it carries, and the roots the log's chains absorb. -/
 def inPlay (roots : List Digest) (log : hashSpec.QueryLog) : List Digest :=
-  roots ++ log.flatMap (fun e ↦ halves e.1) ++ rebuiltRoots log
+  roots ++ log.flatMap (fun e ↦ halves e.1 ++ programHashSlot e.1) ++ rebuiltRoots log
 
 /-- The digests in play only grow along a log. -/
 theorem inPlay_mono (roots : List Digest) :
@@ -316,6 +336,20 @@ theorem halves_mem_inPlay (roots : List Digest) :
     ∀ (l : hashSpec.QueryLog) (e : (_ : List UInt8) × Digest), ∀ d ∈ halves e.1,
       d ∈ inPlay roots (l ++ [e]) :=
   fun _ e _ hd ↦ by simp [inPlay, hd]
+
+/-- The halves of a logged input are in play. -/
+theorem mem_inPlay_of_mem_halves {roots : List Digest} {l : hashSpec.QueryLog}
+    {e : (_ : List UInt8) × Digest} (he : e ∈ l) {x : Digest} (hx : x ∈ halves e.1) :
+    x ∈ inPlay roots l := by
+  simp only [inPlay, List.mem_append, List.mem_flatMap]
+  exact .inl (.inr ⟨e, he, .inl hx⟩)
+
+/-- The program hash a logged input carries is in play. -/
+theorem mem_inPlay_of_mem_programHashSlot {roots : List Digest} {l : hashSpec.QueryLog}
+    {e : (_ : List UInt8) × Digest} (he : e ∈ l) {x : Digest} (hx : x ∈ programHashSlot e.1) :
+    x ∈ inPlay roots l := by
+  simp only [inPlay, List.mem_append, List.mem_flatMap]
+  exact .inl (.inr ⟨e, he, .inr hx⟩)
 
 /-- The chain's history in a log: from the state `s` back to a start, at each state other than a
 start the unique logged query answered by it that parses as a step, each block with the state it
@@ -441,8 +475,7 @@ theorem start_of_chainHistory {log : hashSpec.QueryLog} {isStart : Digest → Bo
   · exact .inl (HashChain.start_of_history h).2
   · obtain ⟨e, he, -, hp⟩ := HashChain.step_of_history h 0 (by simp)
     simp only [List.take_zero, HashChain.last] at hp
-    simp only [inPlay, List.mem_append, List.mem_flatMap]
-    exact .inr (.inl (.inr ⟨e, he, mem_halves_of_parse? hp⟩))
+    exact .inr (mem_inPlay_of_mem_halves he (mem_halves_of_parse? hp))
 
 /-- **One more query.** An answer not in play before its query leaves the history of every other
 state unchanged, under start tests that agree off the answer. -/
@@ -454,8 +487,7 @@ theorem chainHistory_append {log : hashSpec.QueryLog} {roots : List Digest}
   obtain ⟨x, b⟩ := p
   simp only at hpu
   subst hpu
-  simp only [inPlay, List.mem_append, List.mem_flatMap]
-  exact .inl (.inr ⟨e', he, mem_halves_of_parse? hp⟩)
+  exact mem_inPlay_of_mem_halves he (mem_halves_of_parse? hp)
 
 /-- **Deduplication.** In a consistent log, a history is that of the log with each input at its
 first occurrence only. -/
@@ -482,15 +514,23 @@ theorem length_halves_le (q : List UInt8) : (halves q).length ≤ 2 := by
   unfold halves
   split <;> simp
 
-/-- At most the roots, two halves per entry and one absorbed root per entry are in play. -/
+/-- A query puts at most two digests in play: two halves of 64 bytes, or the program hash of 78
+bytes. -/
+theorem length_halves_append_programHashSlot_le (q : List UInt8) :
+    (halves q ++ programHashSlot q).length ≤ 2 := by
+  unfold halves programHashSlot
+  split_ifs with h₁ h₂ <;> simp_all
+
+/-- At most the roots, two digests per entry and one absorbed root per entry are in play. -/
 theorem length_inPlay_le (roots : List Digest) (log : hashSpec.QueryLog) :
     (inPlay roots log).length ≤ roots.length + 3 * log.length := by
-  have h1 : (log.flatMap fun e ↦ halves e.1).length ≤ 2 * log.length := by
+  have h1 : (log.flatMap fun e ↦ halves e.1 ++ programHashSlot e.1).length ≤ 2 * log.length := by
     induction log with
     | nil => simp
     | cons e log ih =>
-      simp only [List.flatMap_cons, List.length_append, List.length_cons]
-      have := length_halves_le e.1
+      simp only [List.flatMap_cons, List.length_append, List.length_cons] at ih ⊢
+      have := length_halves_append_programHashSlot_le e.1
+      simp only [List.length_append] at this
       omega
   have h2 : (rebuiltRoots log).length ≤ log.length := List.length_filterMap_le _ _
   simp only [inPlay, List.length_append]

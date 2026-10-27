@@ -503,18 +503,11 @@ theorem logAnswer_append_self {l : hashSpec.QueryLog} {t : List UInt8} {u : Dige
   simp only [logAnswer, Option.map_eq_none_iff] at h₀
   simp [logAnswer, List.find?_append, h₀]
 
-/-- The halves of a logged query are in play. -/
-private theorem mem_inPlay_of_mem {roots : List Digest} {l : hashSpec.QueryLog}
-    {e : (_ : List UInt8) × Digest} (he : e ∈ l) {x : Digest} (hx : x ∈ halves e.1) :
-    x ∈ inPlay roots l := by
-  simp only [inPlay, List.mem_append, List.mem_flatMap]
-  exact .inl (.inr ⟨e, he, hx⟩)
-
 /-- The halves of an answered query are in play. -/
 theorem mem_inPlay_of_logAnswer {roots : List Digest} {l : hashSpec.QueryLog} {q : List UInt8}
     {d : Digest} (h : logAnswer l q = some d) {x : Digest} (hx : x ∈ halves q) :
     x ∈ inPlay roots l :=
-  mem_inPlay_of_mem (MerkleTree.mem_of_logAnswer_eq_some h) hx
+  mem_inPlay_of_mem_halves (MerkleTree.mem_of_logAnswer_eq_some h) hx
 
 /-! ## Clean logs and one more clean query -/
 
@@ -1104,15 +1097,16 @@ theorem cv_mem_of_mem_touched {G : Group} (h : G ∈ R.touched l t) :
     obtain ⟨(rfl | ⟨y, ⟨e, he, hy⟩, rfl⟩) | ⟨e, he, hg⟩, -⟩ := h
     · exact .inl (mem_halves_of_parse? hx)
     · split at hy <;> cases hy
-      exact .inr (mem_inPlay_of_mem he (mem_halves_of_parse? ‹_›))
+      exact .inr (mem_inPlay_of_mem_halves he (mem_halves_of_parse? ‹_›))
     · split at hg <;> cases hg
-      exact .inr (mem_inPlay_of_mem he (mem_halves_of_parse? ‹_›))
+      exact .inr (mem_inPlay_of_mem_halves he (mem_halves_of_parse? ‹_›))
   · rename_i y n hy
     simp only [List.mem_cons, List.mem_map, baseStates, List.mem_filterMap,
       Option.ite_none_right_eq_some, Option.some.injEq] at h
     rcases h with rfl | ⟨cv, ⟨e, he, ⟨-, hb⟩, rfl⟩, rfl⟩
     · exact .inl (mem_halves_of_parse? hy)
-    · exact .inr (mem_inPlay_of_mem he (by rw [congrArg halves hb]; exact mem_halves_baseInput _))
+    · exact .inr (mem_inPlay_of_mem_halves he
+        (by rw [congrArg halves hb]; exact mem_halves_baseInput _))
   · simp at h
 
 /-- **A flip after one more clean query** is a group open before it or opened by it, which flips

@@ -101,6 +101,7 @@ import LeanerVM.Protocol.Spine.Phase
 import LeanerVM.Protocol.Spine.Seams
 import LeanerVM.Protocol.Spine.Toy
 import LeanerVM.Protocol.Stack
+import LeanerVM.Protocol.StatementSeeds
 import LeanerVM.Protocol.TableSumcheck
 import LeanerVM.Protocol.ToArkLib.AppendLazy
 import LeanerVM.Protocol.ToArkLib.Batch

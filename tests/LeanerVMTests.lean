@@ -83,6 +83,7 @@ import LeanerVMTests.Protocol.Spine
 import LeanerVMTests.Protocol.Stack
 import LeanerVMTests.Protocol.Stacking
 import LeanerVMTests.Protocol.StatefulProvers
+import LeanerVMTests.Protocol.StatementSeeds
 import LeanerVMTests.Protocol.Sumcheck
 import LeanerVMTests.Protocol.SumcheckFold
 import LeanerVMTests.Protocol.TableSumcheck
