@@ -143,6 +143,43 @@ theorem seedInput_injective : Function.Injective2 seedInput := fun _ _ input inp
   cases hl
   rfl
 
+/-! ## The program's bytes -/
+
+/-- The program's bytes are eight per word of the bytecode column. -/
+theorem length_programBytes (prog : Program) :
+    (programBytes prog).length = 2 ^ (prog.logSize + 4) * 8 := by
+  simp [programBytes, List.length_flatMap, length_kBytes]
+
+/-- The bytecode column's cell at an instruction and a slot is that slot. -/
+private theorem bytecodeColumn_cell (prog : Program) (i : Fin (2 ^ prog.logSize)) (s : Fin 16) :
+    (bytecodeColumn prog).values[cubeSplit prog.logSize 4 (i, s)] =
+      (LeanerVM.Arithmetization.encodeSlots (prog.code i))[s] := by
+  simp [bytecodeColumn]
+
+/-- **The program's bytes determine the program.** -/
+theorem programBytes_injective : Function.Injective programBytes := by
+  intro p p' h
+  have hk : p.logSize = p'.logSize := by
+    have hlen := congrArg List.length h
+    rw [length_programBytes, length_programBytes] at hlen
+    have := Nat.pow_right_injective (le_refl 2) (Nat.eq_of_mul_eq_mul_right (by norm_num) hlen)
+    omega
+  obtain ⟨k, hk₁, c⟩ := p
+  obtain ⟨k', hk₂, c'⟩ := p'
+  dsimp only at hk
+  subst hk
+  have hv : (bytecodeColumn ⟨k, hk₁, c⟩).values = (bytecodeColumn ⟨k, hk₂, c'⟩).values :=
+    Vector.toList_inj.mp (flatMap_kBytes_inj h)
+  obtain rfl : c = c' := by
+    funext i
+    refine LeanerVM.Arithmetization.entry_injective (Vector.ext fun j hj ↦ ?_)
+    have h₁ := congrArg (·[cubeSplit k 4 (i, (⟨j + 3, by omega⟩ : Fin 16))]) hv
+    have h₃ : 3 ≤ j + 3 ∧ j + 3 < 11 := by omega
+    rw [bytecodeColumn_cell, bytecodeColumn_cell] at h₁
+    simp only [Fin.getElem_fin, LeanerVM.Arithmetization.encodeSlots_getElem _ (j + 3) (by omega), h₃] at h₁
+    simpa using h₁
+  rfl
+
 /-! ## The chain -/
 
 /-- The chain state: the chaining value, a BLAKE2s-256 digest (`FiatShamirState`). -/

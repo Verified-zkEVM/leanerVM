@@ -21,8 +21,8 @@ the statement `(prog, input)` at `σ` when it holds the three entries (`SeedLogg
 `stmtOf l σ` is a statement whose seed the log logs at `σ`, `none` when there is none. It is
 chosen classically and read only in proofs.
 
-* `programBytes_injective`: the program's bytes determine the program, so on a log with no
-  collision a state opens one statement at most (`stmtOf_eq_of_seedLogged`).
+* `stmtOf_eq_of_seedLogged`: on a log with no collision a state opens one statement at most,
+  the program's bytes determining the program (`programBytes_injective`, `Transcript.lean`).
 * `stmtOf_append`: one more query of a clean log, its answer `u` fresh and not in play, opens or
   closes no statement at another state. The answer completes a logged seed only as one of its
   three answers: as the first state it is `u` itself; as the seed it is the first half of a logged
@@ -39,46 +39,9 @@ These are the laws of `ChainStarts` for `stmtOf`, the start test of leanVM's rea
 
 namespace LeanerVM.Protocol
 
-open LeanerVM.Parameters LeanerVM.Semantics LeanerVM.Arithmetization Blake2sHash OracleSpec
+open LeanerVM.Parameters LeanerVM.Semantics Blake2sHash OracleSpec
 
 @[expose] public section
-
-/-! ## The program's bytes -/
-
-/-- The program's bytes are eight per word of the bytecode column. -/
-theorem length_programBytes (prog : Program) :
-    (programBytes prog).length = 2 ^ (prog.logSize + 4) * 8 := by
-  simp [programBytes, List.length_flatMap, length_kBytes]
-
-/-- The bytecode column's cell at an instruction and a slot is that slot. -/
-private theorem bytecodeColumn_cell (prog : Program) (i : Fin (2 ^ prog.logSize)) (s : Fin 16) :
-    (bytecodeColumn prog).values[cubeSplit prog.logSize 4 (i, s)] =
-      (encodeSlots (prog.code i))[s] := by
-  simp [bytecodeColumn]
-
-/-- **The program's bytes determine the program.** -/
-theorem programBytes_injective : Function.Injective programBytes := by
-  intro p p' h
-  have hk : p.logSize = p'.logSize := by
-    have hlen := congrArg List.length h
-    rw [length_programBytes, length_programBytes] at hlen
-    have := Nat.pow_right_injective (le_refl 2) (Nat.eq_of_mul_eq_mul_right (by norm_num) hlen)
-    omega
-  obtain ⟨k, hk₁, c⟩ := p
-  obtain ⟨k', hk₂, c'⟩ := p'
-  dsimp only at hk
-  subst hk
-  have hv : (bytecodeColumn ⟨k, hk₁, c⟩).values = (bytecodeColumn ⟨k, hk₂, c'⟩).values :=
-    Vector.toList_inj.mp (flatMap_kBytes_inj h)
-  obtain rfl : c = c' := by
-    funext i
-    refine entry_injective (Vector.ext fun j hj ↦ ?_)
-    have h₁ := congrArg (·[cubeSplit k 4 (i, (⟨j + 3, by omega⟩ : Fin 16))]) hv
-    have h₃ : 3 ≤ j + 3 ∧ j + 3 < 11 := by omega
-    rw [bytecodeColumn_cell, bytecodeColumn_cell] at h₁
-    simp only [Fin.getElem_fin, encodeSlots_getElem _ (j + 3) (by omega), h₃] at h₁
-    simpa using h₁
-  rfl
 
 /-! ## The statement of a state -/
 
