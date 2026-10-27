@@ -98,10 +98,10 @@ theorem toyDecode_one {hs : List (Block × Digest)} {tr : toySpec.Transcript 1}
 
 /-- The toy reader. -/
 def toyReader (seed : Digest) : SlotReader where
-  seed := seed
+  toChainStarts := .startAt seed
   powBits := 1
   Ann := Unit
-  announcementOf _ := some ()
+  announcementOf _ _ := some ()
   n _ := 2
   spec _ := toySpec
   sampleable _ i := toySampleable i
@@ -389,10 +389,10 @@ theorem pairDecode_start {hs : List (Block × Digest)} {k : Fin 4} {tr : pairSpe
 
 /-- The two-challenge reader, both challenges unmarked. -/
 def pairReader (seed : Digest) : SlotReader where
-  seed := seed
+  toChainStarts := .startAt seed
   powBits := 1
   Ann := Unit
-  announcementOf _ := some ()
+  announcementOf _ _ := some ()
   n _ := 3
   spec _ := pairSpec
   sampleable _ i := pairSampleable i

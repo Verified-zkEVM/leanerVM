@@ -20,25 +20,31 @@ grinding check of a nonce against the base of the state before the nonce, the no
 and the `m` squeezes from the state it leads to. A `Group` names one: the state before it and, for
 a marked one, the nonce.
 
+**Where histories start** (`ChainStarts`). A reader reads off the log the statement a digest
+opens (`stmtAt`); the digests that open one are the starts the chain walks back to
+(`ChainStarts.isStart`). One more clean query opens or closes no statement but at its answer, and
+deduplication changes none. `ChainStarts.startAt seed` is the reader of one fixed seed.
+
 **Reading a history** (`SlotReader`). How a history of the chain is read as a prefix of a
-protocol's transcript is a parameter: the announcement a history opens with, the protocol at it,
-the longest prefix of its transcript a history reads (`decodePrefix`), each challenge as a
-`SqueezeSlot` (the number of squeezes, the challenge their digests give, and that uniform digests
-give a uniform challenge), the marked challenges, and the bad challenges at each prefix. It
-carries the facts about the decoder that tie a group's challenge to the protocol's: the words of
-the oracle messages depend on the log only under the roots the history absorbs, a challenge reads
-its squeezes, no slot reads the state an observe or a nonce step leads to, a marked challenge
-follows a nonce, and a challenge reads a squeeze at least.
+protocol's transcript is a parameter: where histories start, the announcement a history opens
+with at the statement its start opens, the protocol at it, the longest prefix of its transcript a
+history reads (`decodePrefix`), each challenge as a `SqueezeSlot` (the number of squeezes, the
+challenge their digests give, and that uniform digests give a uniform challenge), the marked
+challenges, and the bad challenges at each prefix. It carries the facts about the decoder that
+tie a group's challenge to the protocol's: the words of the oracle messages depend on the log only
+under the roots the history absorbs, a challenge reads its squeezes, no slot reads the state an
+observe or a nonce step leads to, a marked challenge follows a nonce, and a challenge reads a
+squeeze at least.
 
 **A group's status in a log** of fresh queries, read through first occurrences (`logAnswer`):
-`groupSlot` reads the group's challenge off the history of its state, with the group's nonce step
-for a group with a nonce, and keeps it when the challenge is marked exactly when the group has a
-nonce; `Group.run` is the digests of the group's squeezes so far, `Group.check?` the answer to its
-check; `isOpen` says some query of the group is logged and not all; `isClosed` that all are.
-`Flips` says the group is closed on a bad challenge, its proof of work passing (`PowPasses`);
-`FlipAt` that some group flips; `π` is the probability, over fresh uniform answers to its unasked
-queries, that the group closes on a bad challenge, `1` on a group that flips
-(`π_eq_one_of_flips`).
+`groupSlot` reads the group's challenge off the history of its state from a start and the
+statement the start opens, with the group's nonce step for a group with a nonce, and keeps it
+when the challenge is marked exactly when the group has a nonce; `Group.run` is the digests of the
+group's squeezes so far, `Group.check?` the answer to its check; `isOpen` says some query of the
+group is logged and not all; `isClosed` that all are. `Flips` says the group is closed on a bad
+challenge, its proof of work passing (`PowPasses`); `FlipAt` that some group flips; `π` is the
+probability, over fresh uniform answers to its unasked queries, that the group closes on a bad
+challenge, `1` on a group that flips (`π_eq_one_of_flips`).
 
 **One more query** (`CleanLog`, `CleanStep`): a fresh query whose answer is no logged answer, not
 in play and not a half of the query. Then the history of every other state and the words read
@@ -105,20 +111,90 @@ structure SqueezeSlot (C : Type) [SampleableType C] where
   uniform : ∀ p : C → Prop,
     Pr{let d ← $ᵗ (Fin m → Digest)}[p (assemble d)] = Pr{let c ← $ᵗ C}[p c]
 
+/-! ## Clean logs and where histories start -/
+
+/-- A log of fresh queries, each input once, with no collision and no hit on the digests in play
+from `roots`. -/
+structure CleanLog (roots : List Digest) (l : hashSpec.QueryLog) : Prop where
+  /-- Each input once. -/
+  nodup : (l.map (·.1)).Nodup
+  /-- No collision. -/
+  noCollision : ¬ QueryLog.HasCollision l
+  /-- No hit. -/
+  noHit : ¬ QueryLog.HasHit (inPlay roots) l
+
+/-- **One more clean query**: fresh, answered by a digest that answers no logged query, is not in
+play, and is not a half of the query. -/
+structure CleanStep (roots : List Digest) (l : hashSpec.QueryLog) (t : List UInt8) (u : Digest) :
+    Prop where
+  /-- The query is fresh. -/
+  fresh : QueryLog.Fresh l t
+  /-- No logged query has the answer. -/
+  notAnswer : ∀ e ∈ l, e.2 ≠ u
+  /-- The answer is not in play. -/
+  notInPlay : u ∉ inPlay roots l
+  /-- The answer is not a half of the query. -/
+  notHalf : u ∉ halves t
+
+/-- A log clean from some roots is clean from none. -/
+theorem CleanLog.toNil {roots : List Digest} {l : hashSpec.QueryLog} (hl : CleanLog roots l) :
+    CleanLog [] l :=
+  ⟨hl.nodup, hl.noCollision, fun ⟨i, hfr, hin⟩ ↦ hl.noHit ⟨i, hfr, by
+    simp only [inPlay, List.nil_append, List.mem_append] at hin ⊢
+    exact hin.imp_left .inr⟩⟩
+
+/-- **Where a reader's histories start**: the statement a digest opens, read off the log, a
+start being a digest that opens one. One more clean query opens or closes no statement at another
+digest, and deduplicating a consistent log changes none. -/
+structure ChainStarts where
+  /-- The statements a history may open. -/
+  Stmt : Type
+  /-- The statement a digest opens in a log; `none` off the starts. -/
+  stmtAt : hashSpec.QueryLog → Digest → Option Stmt
+  /-- One more clean query changes the statement at no digest but its answer. -/
+  stmtAt_append : ∀ l t u d, CleanLog [] (l ++ [⟨t, u⟩]) → d ≠ u →
+    stmtAt (l ++ [⟨t, u⟩]) d = stmtAt l d
+  /-- The statements of a consistent log are those of its deduplication. -/
+  stmtAt_dedupKeys : ∀ l, QueryLog.Consistent l → ∀ d, stmtAt (List.dedupKeys l) d = stmtAt l d
+
+namespace ChainStarts
+
+/-- The start test of a log: the digests that open a statement. -/
+def isStart (S : ChainStarts) (l : hashSpec.QueryLog) (d : Digest) : Bool := (S.stmtAt l d).isSome
+
+/-- **One fixed start**: `seed` opens the one statement in every log, and no other digest opens
+one. -/
+def startAt (seed : Digest) : ChainStarts where
+  Stmt := Unit
+  stmtAt _ d := if d = seed then some () else none
+  stmtAt_append _ _ _ _ _ _ := rfl
+  stmtAt_dedupKeys _ _ _ := rfl
+
+/-- The start test of one fixed start is the test of that seed. -/
+@[simp] theorem isStart_startAt (seed : Digest) (l : hashSpec.QueryLog) :
+    (startAt seed).isStart l = HashChain.isSeed seed := by
+  funext d
+  by_cases h : d = seed <;> simp [isStart, startAt, HashChain.isSeed, h]
+
+/-- The seed of one fixed start opens its statement. -/
+@[simp] theorem stmtAt_startAt (seed : Digest) (l : hashSpec.QueryLog) :
+    (startAt seed).stmtAt l seed = some () := by
+  simp [startAt]
+
+end ChainStarts
+
 /-! ## Reading a history -/
 
-/-- **A reader of chain histories**: the protocol a history of the chain is a transcript prefix
-of, how a history is read, and the facts about the reading that tie a group's challenge to the
-protocol's. -/
-structure SlotReader where
-  /-- The chain's first state. -/
-  seed : Digest
+/-- **A reader of chain histories**: where histories start and the statement a start opens, the
+protocol a history of the chain is a transcript prefix of, how a history is read, and the facts
+about the reading that tie a group's challenge to the protocol's. -/
+structure SlotReader extends ChainStarts where
   /-- The low zero bits a proof of work asks for. -/
   powBits : ℕ
   /-- The announcements a history may open with. -/
   Ann : Type
-  /-- The announcement a history opens with. -/
-  announcementOf : List (Block × Digest) → Option Ann
+  /-- The announcement a history from a start opening a statement opens with. -/
+  announcementOf : Stmt → List (Block × Digest) → Option Ann
   /-- The number of rounds at an announcement. -/
   n : Ann → ℕ
   /-- The protocol at an announcement. -/
@@ -234,14 +310,16 @@ namespace SlotReader
 
 variable (R : SlotReader) (l : hashSpec.QueryLog)
 
-/-- **The challenge a group fixes**, read off the log: the history of its state, the announcement
-the history opens with, and the prefix the history, with the group's nonce step, reads, when the
-next round is a challenge, marked exactly when the group has a nonce. -/
+/-- **The challenge a group fixes**, read off the log: the history of its state from a start, the
+statement the start opens, the announcement the history opens with, and the prefix the history,
+with the group's nonce step, reads, when the next round is a challenge, marked exactly when the
+group has a nonce. -/
 def groupSlot (G : Group) :
     Option (Σ a : R.Ann, Σ i : (R.spec a).ChallengeIdx, (R.spec a).Transcript i.1.castSucc) := do
-  let hs ← chainHistory l ⟨R.seed⟩ ⟨G.cv⟩
-  let a ← R.announcementOf hs
-  let p ← R.decodePrefix a (R.wordsAt a l hs) (hs ++ G.nonceBlock)
+  let h ← chainHistory l (R.isStart l) ⟨G.cv⟩
+  let st ← R.stmtAt l h.1
+  let a ← R.announcementOf st h.2
+  let p ← R.decodePrefix a (R.wordsAt a l h.2) (h.2 ++ G.nonceBlock)
   let ⟨i, tr⟩ ← asChallenge p
   if R.mark a i = G.nonce.isSome then some ⟨a, i, tr⟩ else none
 
@@ -440,29 +518,6 @@ theorem mem_inPlay_of_logAnswer {roots : List Digest} {l : hashSpec.QueryLog} {q
 
 /-! ## Clean logs and one more clean query -/
 
-/-- A log of fresh queries, each input once, with no collision and no hit on the digests in play
-from `roots`. -/
-structure CleanLog (roots : List Digest) (l : hashSpec.QueryLog) : Prop where
-  /-- Each input once. -/
-  nodup : (l.map (·.1)).Nodup
-  /-- No collision. -/
-  noCollision : ¬ QueryLog.HasCollision l
-  /-- No hit. -/
-  noHit : ¬ QueryLog.HasHit (inPlay roots) l
-
-/-- **One more clean query**: fresh, answered by a digest that answers no logged query, is not in
-play, and is not a half of the query. -/
-structure CleanStep (roots : List Digest) (l : hashSpec.QueryLog) (t : List UInt8) (u : Digest) :
-    Prop where
-  /-- The query is fresh. -/
-  fresh : QueryLog.Fresh l t
-  /-- No logged query has the answer. -/
-  notAnswer : ∀ e ∈ l, e.2 ≠ u
-  /-- The answer is not in play. -/
-  notInPlay : u ∉ inPlay roots l
-  /-- The answer is not a half of the query. -/
-  notHalf : u ∉ halves t
-
 variable {roots : List Digest} {l : hashSpec.QueryLog} {t : List UInt8} {u : Digest}
 
 /-- A log with each input once is consistent. -/
@@ -562,7 +617,8 @@ private theorem findSome?_eq_some_of {α γ : Type} {f : α → Option γ} {y : 
 consecutive observes of a history are logged steps, the second from the state the first leads
 to, so the root they encode is one the log rebuilds. -/
 private theorem historyRoots_subset_rebuiltRoots (hcoll : ¬ QueryLog.HasCollision l)
-    {seed s : FsState} {hs : List (Block × Digest)} (h : chainHistory l seed s = some hs) :
+    {isStart : Digest → Bool} {s : FsState} {σ : Digest} {hs : List (Block × Digest)}
+    (h : chainHistory l isStart s = some (σ, hs)) :
     ∀ r ∈ historyRoots hs, r ∈ rebuiltRoots l := by
   intro r hr
   obtain ⟨j, hj, x₁, x₂, h₁, h₂, hr⟩ := mem_historyRoots hr
@@ -584,8 +640,9 @@ private theorem historyRoots_subset_rebuiltRoots (hcoll : ¬ QueryLog.HasCollisi
 roots are in play, so no fresh hit reaches them, and the rows under them are those of the log
 before the query. -/
 private theorem SlotReader.wordsAt_append (R : SlotReader) (hl : CleanLog roots (l ++ [⟨t, u⟩]))
-    {s : FsState} {h' : List (Block × Digest)} (h : chainHistory l ⟨R.seed⟩ s = some h')
-    (a : R.Ann) : R.wordsAt a (l ++ [⟨t, u⟩]) h' = R.wordsAt a l h' := by
+    {s : FsState} {σ : Digest} {h' : List (Block × Digest)}
+    (h : chainHistory l (R.isStart l) s = some (σ, h')) (a : R.Ann) :
+    R.wordsAt a (l ++ [⟨t, u⟩]) h' = R.wordsAt a l h' := by
   have hcons := hl.consistent
   refine R.wordsAt_congr a l _ h' fun root hr depth rowWords leafWords p ↦ ?_
   have hin : root ∈ inPlay roots l := by
@@ -598,11 +655,19 @@ private theorem SlotReader.wordsAt_append (R : SlotReader) (hl : CleanLog roots 
 starts from its answer. -/
 theorem SlotReader.groupSlot_append (R : SlotReader) (hl : CleanLog roots (l ++ [⟨t, u⟩]))
     {G : Group} (hG : G.cv ≠ u) : R.groupSlot (l ++ [⟨t, u⟩]) G = R.groupSlot l G := by
+  have hst : ∀ d, d ≠ u → R.stmtAt (l ++ [⟨t, u⟩]) d = R.stmtAt l d :=
+    fun d hd ↦ R.stmtAt_append l t u d hl.toNil hd
+  have hu := hl.notInPlay_of_append
   unfold SlotReader.groupSlot
-  rw [chainHistory_append (e := ⟨t, u⟩) hl.notInPlay_of_append ⟨R.seed⟩ (s := ⟨G.cv⟩) hG]
-  rcases h : chainHistory l ⟨R.seed⟩ ⟨G.cv⟩ with _ | h'
+  rw [chainHistory_append (e := ⟨t, u⟩) hu (isStart := R.isStart l)
+    (fun d hd ↦ by simp only [ChainStarts.isStart, hst d hd]) (s := ⟨G.cv⟩) hG]
+  rcases h : chainHistory l (R.isStart l) ⟨G.cv⟩ with _ | ⟨σ, h'⟩
   · rfl
-  · simp only [Option.bind_eq_bind, Option.bind_some, R.wordsAt_append hl h]
+  · have hσ : σ ≠ u := by
+      rcases (start_of_chainHistory h roots).2 with h₁ | h₁
+      · exact h₁ ▸ hG
+      · exact fun h₂ ↦ hu (h₂ ▸ h₁)
+    simp only [Option.bind_eq_bind, Option.bind_some, hst σ hσ, R.wordsAt_append hl h]
 
 /-! ## A group's queries after one more query -/
 
@@ -1068,13 +1133,16 @@ theorem flipAt_append (hl : CleanLog roots l) (hs : CleanStep roots l t u) (hno 
 log. -/
 theorem groupSlot_dedupKeys (hcons : QueryLog.Consistent l) (G : Group) :
     R.groupSlot (List.dedupKeys l) G = R.groupSlot l G := by
+  have hst := R.stmtAt_dedupKeys l hcons
+  have hS : R.isStart (List.dedupKeys l) = R.isStart l := funext fun d ↦ by
+    simp only [ChainStarts.isStart, hst d]
   unfold groupSlot
-  rw [chainHistory_dedupKeys hcons]
-  cases h : chainHistory l ⟨R.seed⟩ ⟨G.cv⟩ with
+  rw [hS, chainHistory_dedupKeys hcons]
+  cases h : chainHistory l (R.isStart l) ⟨G.cv⟩ with
   | none => rfl
   | some hs =>
-    simp only [Option.bind_eq_bind, Option.bind_some,
-      R.wordsAt_congr _ l _ hs fun root _ depth rowWords leafWords p ↦
+    simp only [Option.bind_eq_bind, Option.bind_some, hst,
+      R.wordsAt_congr _ l _ hs.2 fun root _ depth rowWords leafWords p ↦
         extractRows_dedupKeys hcons root depth rowWords leafWords p]
 
 /-- **A flip of a consistent log is one of its deduplication**, the log of a lazy random

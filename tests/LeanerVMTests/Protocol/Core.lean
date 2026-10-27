@@ -28,12 +28,13 @@ example (prog : Program) (input : PublicInput) (proof : Proof PrunedMerklePaths)
   · simp [Run.log] at he
   · simp [Run.log] at hk
   · simp [Run.log] at hk
-  · have hann : (leanVmReader prog input).announcementOf [] = none := rfl
+  · have hann : ∀ st, (leanVmReader prog input).announcementOf st [] = none := fun _ ↦ rfl
     have hnone : (leanVmReader prog input).groupSlot [] G = none := by
       simp only [SlotReader.groupSlot, chainHistory, HashChain.history, HashChain.walk,
         List.length_nil]
       split_ifs
       · simp only [Option.bind_eq_bind, Option.bind_some, hann, Option.bind_none]
+        cases (leanVmReader prog input).stmtAt [] G.cv <;> rfl
       · rfl
     simp only [SlotReader.Flips, Run.log, List.append_nil, hnone] at hG
 

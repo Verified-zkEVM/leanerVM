@@ -207,7 +207,7 @@ theorem core {prog : Program} {input : PublicInput} {g : Run}
     (hX : ¬ Extracts Blake2sFlock.blake2sFlockSpec prog input g.proof g.logA) :
     HashMisbehaves (rootsOf prog input) (leanVmReader prog input).Flip prog input g := by
   by_contra hmis
-  simp only [HashMisbehaves, not_or] at hmis
+  simp only [HashMisbehaves, HashMisbehavesFrom, not_or] at hmis
   obtain ⟨hcoll, hhit, hflip⟩ := hmis
   -- the accepted replay
   obtain ⟨s, ρ, levels, w, st₁, log₁, rows, st₂, log₂, hsetup, hl, hrc, hro, halg, hpre⟩ :=

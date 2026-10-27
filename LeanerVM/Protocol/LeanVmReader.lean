@@ -22,6 +22,8 @@ public import LeanerVM.Protocol.DecodeAgree
 
 `leanVmReader prog input` is the `SlotReader` of leanVM's verifier on `prog` and `input`:
 
+* **The start**: the statement's seed `FsState.seed prog input` alone (`ChainStarts.startAt`), the
+  chain's first state.
 * **The announcement** (`announcementOf`): a history's first eight readings' scalars, decoded
   (`decodeAnnouncement`) to sizes and a rate that pass the setup checks.
 * **The protocol** at an announcement: the compiled protocol of the leanISA instance at WHIR's
@@ -273,10 +275,10 @@ theorem readsWell_decoder (a : Ann prog) (W : LeanWords prog a.1.1 a.2.1 a.1.2 a
 
 /-- **The reader of leanVM's chain histories** on `prog` and `input`. -/
 def leanVmReader : SlotReader where
-  seed := (FsState.seed prog input).cv
+  toChainStarts := .startAt (FsState.seed prog input).cv
   powBits := Parameters.Whir.queryGrindingBits
   Ann := Ann prog
-  announcementOf := announcementOf prog
+  announcementOf _ := announcementOf prog
   -- spelled as `deployedSpec`'s length, so that the two unify syntactically
   n a := 1 + busRounds (leanIsaInstance Blake2sFlock.blake2sFlockSpec prog a.1.1) +
     tableRounds (leanIsaInstance Blake2sFlock.blake2sFlockSpec prog a.1.1) + 2 +
@@ -476,15 +478,16 @@ theorem wordsOf_prefix (prog : Program) (input : PublicInput) (s : Sizes)
   show level0Word prog s _ l (rootAt hist 8) = level0Word prog s _ l (rootAt (hist ++ rest) 8)
   rw [rootAt_prefix hist rest (by omega)]
 
-/-- **The history of a state on the verifier's chain**: on a log with no collision and no answer
-equal to the seed, holding every step of the verifier's history from the seed, the chain history of
-the state after any prefix of it is that prefix. -/
-theorem chainHistory_of_log {log : hashSpec.QueryLog} {seed : FsState}
-    (hcoll : ¬ QueryLog.HasCollision log) (hseed : ∀ e ∈ log, e.2 ≠ seed.cv)
-    {hist : List (Block × Digest)}
-    (hchain : ∀ e ∈ HashChain.queries Block.input seed.cv hist, e ∈ log) (j : ℕ) :
-    chainHistory log seed ⟨HashChain.last seed.cv (hist.take j)⟩ = some (hist.take j) := by
-  refine chainHistory_of_noCollision_noSeed hcoll hseed _ fun e he ↦ hchain e ?_
+/-- **The history of a state on the verifier's chain**: on a log with no collision, holding every
+step of the verifier's history from a start whose later states are no starts, the chain history of
+the state after any prefix of it is that prefix, from the start. -/
+theorem chainHistory_of_log {log : hashSpec.QueryLog} {isStart : Digest → Bool}
+    (hcoll : ¬ QueryLog.HasCollision log) {start : Digest} (hstart : isStart start = true)
+    {hist : List (Block × Digest)} (hlater : ∀ x ∈ hist.map (·.2), isStart x = false)
+    (hchain : ∀ e ∈ HashChain.queries Block.input start hist, e ∈ log) (j : ℕ) :
+    chainHistory log isStart ⟨HashChain.last start (hist.take j)⟩ = some (start, hist.take j) := by
+  refine chainHistory_of_noCollision hcoll hstart _
+    (fun x hx ↦ hlater x (List.map_subset _ (List.take_subset _ _) hx)) fun e he ↦ hchain e ?_
   rw [← List.take_append_drop j hist, HashChain.queries_append]
   exact List.mem_append_left _ he
 

@@ -40,9 +40,12 @@ deployed protocol.
   group is the expectation, over the next answer, of its probability after it.
 * `π_le_of_not_asked`: a group with no logged query closes on a bad challenge with probability at
   most `ε`, when every challenge is bad with probability at most `ε` (a marked one after a uniform
-  check passes, `Density`); `sum_openedBy_le`: the groups one query opens are worth `ε` together;
-  `charge_le`: within `L` queries the charge is at most
-  `(4L + |seedRoots| + |proofRoots|) / 2^256 + ε`.
+  check passes, `Density`); `sum_openedBy_le`: the groups one query opens are worth `ε` together,
+  when the reader's starts are safe (`StartsSafe`: every start is one of `seedRoots`, or announces
+  nothing at the empty history, so that a grinding base's answer that is a start fixes no
+  challenge); `charge_le`: within `L` queries the charge is at most
+  `(4L + |seedRoots| + |proofRoots|) / 2^256 + ε`. `startsSafe_of_seed`: a reader of one fixed
+  seed among the roots has safe starts.
 * `Φ_empty`: the potential starts at `0`; `Φ_start`: with the roots past a whole log it is the
   potential with no roots; `one_le_Φ`: it is at least `1` off a clean state.
 -/
@@ -100,6 +103,26 @@ def Density (ε : ℝ≥0∞) : Prop :=
   ∀ a i tr, (if R.mark a i then Pr{let d ← $ᵗ Digest}[
     FsState.lowBitsZero d R.powBits = true] else 1) *
       Pr{let c ← $ᵗ ((R.spec a).Challenge i)}[c ∈ R.Bad a i tr] ≤ ε
+
+/-- **The starts are safe** with the roots `roots`: every digest that opens a statement in a log is
+one of the roots, or its statement announces nothing at the empty history. A start that is a root
+answers no query of a clean log; one that is not may be a fresh answer, the grinding base's say,
+and then its own history fixes no challenge. -/
+def StartsSafe : Prop :=
+  ∀ l σ st, R.stmtAt l σ = some st → σ ∈ seedRoots ∨ R.announcementOf st [] = none
+
+/-- **Starts among the roots are safe.** -/
+theorem startsSafe_of_roots (h : ∀ l d, R.isStart l d = true → d ∈ seedRoots) :
+    R.StartsSafe seedRoots :=
+  fun l σ _ hσ ↦ .inl (h l σ (by simp [ChainStarts.isStart, hσ]))
+
+/-- **One fixed start among the roots is safe.** -/
+theorem startsSafe_of_seed {seed : Digest} (hR : R.toChainStarts = ChainStarts.startAt seed)
+    (hseed : seed ∈ seedRoots) : R.StartsSafe seedRoots :=
+  R.startsSafe_of_roots seedRoots fun l d hd ↦ by
+    have : (ChainStarts.startAt seed).isStart l d = true := hR ▸ hd
+    simp only [ChainStarts.isStart_startAt, HashChain.isSeed_eq_true] at this
+    exact this ▸ hseed
 
 end SlotReader
 
@@ -393,7 +416,7 @@ private theorem SlotReader.mark_eq_of_groupSlot {G : Group} {a : R.Ann}
     R.mark a i = G.nonce.isSome := by
   unfold SlotReader.groupSlot at h
   simp only [Option.bind_eq_bind, Option.bind_eq_some_iff] at h
-  obtain ⟨hs, -, a', -, p, -, ⟨i', tr'⟩, -, h⟩ := h
+  obtain ⟨hs, -, st, -, a', -, p, -, ⟨i', tr'⟩, -, h⟩ := h
   split_ifs at h with hm
   cases h
   exact hm
@@ -452,35 +475,46 @@ private theorem baseStates_unique (hcoll : ¬ QueryLog.HasCollision l) {y cv cv'
   by_contra hne
   exact hcoll ⟨e, he, e', he', fun hq ↦ hne (by rw [hq]), hy.trans hy'.symm⟩
 
-/-- On a clean log, a base answer is no state's: a nonce step from it fixes no challenge. -/
+/-- On a clean log, a base answer is no state's: a nonce step from it fixes no challenge, when the
+reader's starts are safe. -/
 private theorem SlotReader.groupSlot_of_mem_baseStates (hl : CleanLog seedRoots l)
-    (hseed : R.seed ∈ seedRoots) {y cv : Digest} (h : cv ∈ baseStates l y) (n : Option E) :
+    (hsafe : R.StartsSafe seedRoots) {y cv : Digest} (h : cv ∈ baseStates l y) (n : Option E) :
     R.groupSlot l ⟨y, n⟩ = none := by
   simp only [baseStates, List.mem_filterMap, Option.ite_none_right_eq_some] at h
   obtain ⟨e, he, ⟨hey, hb⟩, -⟩ := h
-  have hy : y ≠ R.seed := by
-    rintro rfl
+  have hroot : y ∉ seedRoots := fun hy ↦ by
     obtain ⟨p, hp, hfresh, hpe⟩ := QueryLog.first_occurrence hl.consistent he
     refine hl.noHit ⟨⟨p, hp⟩, by simpa [hpe] using hfresh, ?_⟩
     simp only [Fin.getElem_fin, hpe, hey]
-    exact mem_inPlay_of_mem_roots hseed
-  have hpre : HashChain.preimages Block.parse? l y = [] := by
-    refine List.filterMap_eq_nil_iff.mpr fun e' he' ↦ ?_
-    split
-    · rename_i he'y
-      have : e'.1 = e.1 :=
-        by_contra fun hne ↦ hl.noCollision ⟨e', he', e, he, hne, he'y.trans hey.symm⟩
-      rw [this, hb, parse?_baseInput]
-    · rfl
-  have : chainHistory l ⟨R.seed⟩ ⟨y⟩ = none := by
-    unfold chainHistory HashChain.history
-    cases l.length <;> simp [HashChain.walk, hy, hpre, HashChain.unique?]
-  simp [SlotReader.groupSlot, this]
+    exact mem_inPlay_of_mem_roots hy
+  cases hst : R.stmtAt l y with
+  | some st =>
+    -- a start: its empty history announces nothing
+    have hann := (hsafe l y st hst).resolve_left hroot
+    have hch : chainHistory l (R.isStart l) ⟨y⟩ = some (y, []) := by
+      have : R.isStart l y = true := by simp [ChainStarts.isStart, hst]
+      unfold chainHistory HashChain.history
+      cases l.length <;> simp [HashChain.walk, this]
+    simp [SlotReader.groupSlot, hch, hst, hann]
+  | none =>
+    -- no start, and the log shows no step into it
+    have hpre : HashChain.preimages Block.parse? l y = [] := by
+      refine List.filterMap_eq_nil_iff.mpr fun e' he' ↦ ?_
+      split
+      · rename_i he'y
+        have : e'.1 = e.1 :=
+          by_contra fun hne ↦ hl.noCollision ⟨e', he', e, he, hne, he'y.trans hey.symm⟩
+        rw [this, hb, parse?_baseInput]
+      · rfl
+    have : chainHistory l (R.isStart l) ⟨y⟩ = none :=
+      HashChain.history_eq_none (by simp [ChainStarts.isStart, hst]) hpre
+    simp [SlotReader.groupSlot, this]
 
 /-- **The groups a query opens** have probabilities summing to at most `ε` on a clean log: a
 squeeze opens the plain group at its state alone, and a nonce step the group it absorbs and the
 group it checks, of which the first fixes no challenge when the second exists. -/
-private theorem SlotReader.sum_openedBy_le (hl : CleanLog seedRoots l) (hseed : R.seed ∈ seedRoots)
+private theorem SlotReader.sum_openedBy_le (hl : CleanLog seedRoots l)
+    (hsafe : R.StartsSafe seedRoots)
     {ε : ℝ≥0∞} (hε : ∀ G, G.asked l (R.size l G) = false → R.π l G ≤ ε) :
     ∑ G ∈ R.openedBy l t, R.π l G ≤ ε := by
   refine sum_le_of_unique (fun G hG G' hG' hπ hπ' ↦ ?_)
@@ -516,7 +550,7 @@ private theorem SlotReader.sum_openedBy_le (hl : CleanLog seedRoots l) (hseed : 
     rw [hy] at hG'
     simp only [List.mem_cons, List.mem_map] at hG hG'
     have hzero : ∀ cv, cv ∈ baseStates l y → R.π l ⟨y, some n⟩ = 0 := fun cv hcv ↦ by
-      simp [SlotReader.π, R.groupSlot_of_mem_baseStates hl hseed hcv]
+      simp [SlotReader.π, R.groupSlot_of_mem_baseStates hl hsafe hcv]
     rcases hG with rfl | ⟨cv, hcv, rfl⟩ <;> rcases hG' with rfl | ⟨cv', hcv', rfl⟩
     · rfl
     · exact absurd (hzero cv' hcv') hπ
@@ -526,8 +560,8 @@ private theorem SlotReader.sum_openedBy_le (hl : CleanLog seedRoots l) (hseed : 
 
 /-- **The charge is bounded** at a state reached within `L` fresh queries: at most
 `(4L + |seedRoots| + |proofRoots|) / 2^256` for the answer, and `ε` for the groups the query
-opens when the bad challenges have density at most `ε`. -/
-theorem SlotReader.charge_le (hseed : R.seed ∈ seedRoots) {ε : ℝ≥0∞} (hbad : R.Density ε)
+opens when the bad challenges have density at most `ε` and the reader's starts are safe. -/
+theorem SlotReader.charge_le (hsafe : R.StartsSafe seedRoots) {ε : ℝ≥0∞} (hbad : R.Density ε)
     {s : OracleState} {L : ℕ} (hL : s.1.enncard + 1 ≤ L) (t : List UInt8) :
     R.charge seedRoots proofRoots k₀ s t ≤
       ((4 * L + seedRoots.length + proofRoots.length : ℕ) : ℝ≥0∞) / 2 ^ 256 + ε := by
@@ -536,7 +570,7 @@ theorem SlotReader.charge_le (hseed : R.seed ∈ seedRoots) {ε : ℝ≥0∞} (h
   split_ifs with hgood
   · obtain ⟨hinv, hcl⟩ := hgood
     refine add_le_add (ENNReal.div_le_div_right (Nat.cast_le.mpr ?_) _)
-      (R.sum_openedBy_le hcl.1 hseed fun G hG ↦ R.π_le_of_not_asked hbad hG)
+      (R.sum_openedBy_le hcl.1 hsafe fun G hG ↦ R.π_le_of_not_asked hbad hG)
     have hl : s.2.length + 1 ≤ L := by
       rw [hinv.enncard_eq] at hL
       exact_mod_cast hL
