@@ -437,7 +437,8 @@ end LeanVM.Protocol.Compile
 
 namespace LeanVM.Protocol.Verifier
 
-open LeanVM.Parameters LeanVM.Semantics
+open LeanVM.Parameters hiding gpow
+open LeanVM.Semantics
 
 /-!
 ## Verifier arithmetic (`verifier.py:179-331`)
@@ -471,7 +472,7 @@ def eToNat (e : E) : ℕ :=
 def gen : E := eOfNat 2
 
 /-- `_gpow(index) = GEN ** index` (`verifier.py:723-724`): `Parameters.gpow index`, the same
-power in `K`, in limb `0`; where both are open, the expected type selects one. -/
+power in `K`, in limb `0` (this file opens `Parameters` without its `gpow`). -/
 def gpow (index : ℕ) : E := gen ^ index
 
 /-- `E.sum(values)`: the sum from `ZERO`, left to right (`verifier.py:120-122`). -/
