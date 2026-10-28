@@ -7,6 +7,7 @@
 
 module
 
+public import LeanVM.Protocol.Verifier.Claims
 public import LeanVM.Guest.B1.VerifySub.NZBridge
 public import LeanVM.Guest.B1.VerifySub.CompleteSpec
 public import LeanVM.Guest.B1.VerifySub.Sizes
@@ -61,7 +62,7 @@ theorem specPre_flat (c : FixedClaims) (bytecode : List K) (pi : Digest) :
   simp only [Tables.tablesSeg, Prog.bind_assoc, Prog.bind_eq, Prog.pure_eq, Prog.ret_bind]
   refine congrArg _ (funext fun alphas ↦ congrArg _ (funext fun beta ↦ congrArg _ (funext fun r ↦
     congrArg _ (funext fun bus ↦ congrArg _ (funext fun cl ↦ congrArg _ (funext fun pc ↦ ?_))))))
-  simp only [keccakPhase, lanesOf, Prog.bind_eq, Prog.pure_eq, Prog.bind_assoc, Prog.ret_bind]
+  simp only [keccakPhaseClaims, lanesOf, Prog.bind_eq, Prog.pure_eq, Prog.bind_assoc, Prog.ret_bind]
   refine congrArg _ (funext fun _ ↦ ?_)
   simp only [keccakSeg, Prog.bind_eq, Prog.pure_eq, Prog.bind_assoc, Prog.ret_bind]
   refine congrArg _ (funext fun kr ↦ ?_)

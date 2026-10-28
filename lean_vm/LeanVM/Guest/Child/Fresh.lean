@@ -8,6 +8,7 @@
 
 module
 
+public import LeanVM.Protocol.Verifier.Claims
 public import LeanVM.Guest.LimitsNZ
 public import LeanVM.Protocol.Verifier.Deferred
 
@@ -79,16 +80,16 @@ def execWith (ev : (List K → List E → Prog E)) (opening : ℕ → ℕ → Li
   let (layout, logInverseRate) ← readSizes bytecode
   commitStack layout.stackLog logInverseRate
   let bus ← verifyBusBalance ev layout
-  let claims ← tablePhase layout bus
+  let claims ← tablePhaseClaims layout bus
   let publicClaims ← publicInputPhase layout publicInput
   let claims := claims ++ publicClaims
-  let (claims, keccakPoint, keccakSlices) ← keccakPhase layout claims
+  let (claims, keccakPoint, keccakSlices) ← keccakPhaseClaims layout claims
   let (ringTarget, ringWeight) ← ringSwitch keccakPoint keccakSlices
   opening layout.stackLog logInverseRate
-    (ringSwitchClaim layout ringTarget ringWeight :: claims.map (·.onStack layout))
+    (ringSwitchClaim layout ringTarget ringWeight :: claims.map (·.stackClaim layout))
 
 theorem verifyExecution_eq (ev : (List K → List E → Prog E)) (bytecode : List K) (publicInput : Digest) :
-    verifyExecution ev bytecode publicInput =
+    verifyExecutionClaims ev bytecode publicInput =
       execWith ev verifyStackedOpening bytecode publicInput := rfl
 
 theorem verifyExecutionNZ_eq (ev : (List K → List E → Prog E)) (bytecode : List K) (publicInput : Digest) :
@@ -155,13 +156,13 @@ def suffixProg (opening : ℕ → ℕ → List StackClaim → Prog Unit) (public
     (v : E) : Prog Unit := do
   let layout := y.layout
   let bus := busOf y v
-  let claims ← tablePhase layout bus
+  let claims ← tablePhaseClaims layout bus
   let publicClaims ← publicInputPhase layout publicInput
   let claims := claims ++ publicClaims
-  let (claims, keccakPoint, keccakSlices) ← keccakPhase layout claims
+  let (claims, keccakPoint, keccakSlices) ← keccakPhaseClaims layout claims
   let (ringTarget, ringWeight) ← ringSwitch keccakPoint keccakSlices
   opening layout.stackLog y.rate
-    (ringSwitchClaim layout ringTarget ringWeight :: claims.map (·.onStack layout))
+    (ringSwitchClaim layout ringTarget ringWeight :: claims.map (·.stackClaim layout))
 
 /-- **The verifier, split at its evaluation of the bytecode.** -/
 theorem execSplit (ev : (List K → List E → Prog E)) (opening : ℕ → ℕ → List StackClaim → Prog Unit)

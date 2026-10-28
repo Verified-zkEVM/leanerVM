@@ -7,6 +7,7 @@
 
 module
 
+public import LeanVM.Protocol.Verifier.Claims
 public import LeanVM.Guest.B1.VerifySub.NZBridge
 public import LeanVM.Guest.Child.Fresh
 public import LeanVM.Guest.Child.Reads
@@ -310,7 +311,7 @@ theorem noCommit_verifyBusBalance_computed (layout : Layout) :
 
 theorem noCommit_restClaims_computed (layout : Layout) (pi : Digest) :
     NoCommit (restClaims computedValue layout pi) := by
-  unfold restClaims keccakPhase ringSwitch
+  unfold restClaims keccakPhaseClaims ringSwitch
   simp only [Prog.bind_eq, Prog.pure_eq, Prog.bind_assoc, Prog.ret_bind]
   refine NoCommit.bind (noCommit_verifyBusBalance_computed _) fun _ ↦ ?_
   refine NoCommit.bind (noCommit_tablePhase _ _) fun _ ↦ ?_
@@ -338,10 +339,10 @@ theorem inRange_commitStack (μ r : ℕ) (hs : List ℕ) :
 /-- **The verifier program opens in range**, from no commitment. -/
 theorem inRange_leanVmProgram (bytecode : List K) (publicInput : Digest) :
     InRange (leanVmProgram bytecode publicInput) [] fun _ _ ↦ True := by
-  unfold leanVmProgram
+  rw [leanVmProgram_eq]
   rw [verifyExecution_pre]
   unfold specPre
-  simp only [Prog.bind_eq, Prog.bind_assoc]
+  simp only [Prog.bind_assoc]
   refine InRange.nc_bind (noCommit_readSizes _) fun ls _ ↦ ?_
   refine InRange.bind (inRange_commitStack _ _ []) fun _ hs' hc ↦ ?_
   obtain ⟨level, rest, hcfg, rfl⟩ := hc

@@ -8,6 +8,7 @@
 
 module
 
+public import LeanVM.Protocol.Verifier.Claims
 public import LeanVM.Protocol.Compile.Prog
 
 /-!
@@ -245,8 +246,8 @@ theorem verifyBusBalance_le {ev ev' : (List K → List E → Prog E)} {layout : 
 /-- **The verifier's run refines with its evaluations.** -/
 theorem verifyExecution_le {ev ev' : (List K → List E → Prog E)} {bytecode : List K}
     (hev : Evaluations.Le bytecode ev ev') (publicInput : Digest) :
-    Prog.Le (verifyExecution ev bytecode publicInput) (verifyExecution ev' bytecode publicInput) := by
-  unfold verifyExecution
+    Prog.Le (verifyExecutionClaims ev bytecode publicInput) (verifyExecutionClaims ev' bytecode publicInput) := by
+  unfold verifyExecutionClaims
   refine (Prog.Le.refl _).bind_of fun x hx ↦ ?_
   obtain ⟨layout, r⟩ := x
   have hb : layout.bytecode = bytecode := readSizes_bytecode hx
@@ -259,8 +260,9 @@ theorem verify_of_verifyDeferred {bytecode : List K} {publicInput : Digest} {c :
     {π : Proof} (hc : c.Holds bytecode)
     (h : verifyDeferred bytecode (fiatShamirIv bytecode) publicInput c π = true) :
     verify bytecode publicInput π = true := by
-  have hle : Prog.Le (deferredProgram c bytecode publicInput) (leanVmProgram bytecode publicInput) :=
-    .bind (verifyExecution_le (claimed_le_computed hc) publicInput) fun _ ↦ .refl _
+  have hle : Prog.Le (deferredProgram c bytecode publicInput) (leanVmProgram bytecode publicInput) := by
+    rw [deferredProgram_eq, leanVmProgram_eq]
+    exact .bind (verifyExecution_le (claimed_le_computed hc) publicInput) fun _ ↦ .refl _
   exact runProof_of_le keccak256 keccakF hle h
 
 end

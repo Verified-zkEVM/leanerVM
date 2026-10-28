@@ -7,6 +7,7 @@
 
 module
 
+public import LeanVM.Protocol.Verifier.Claims
 public import LeanVM.Guest.B1.Tables.VtC.ZBase
 public import LeanVM.Guest.B1.Tables.Vt.SpecPhase
 public import LeanVM.Guest.B1.Tables.Vt.SpecBus
@@ -233,7 +234,7 @@ theorem vt_spec {H : VtHonest} (h : H.Ok) :
   subst hp
   simp only [List.append_nil] at he2
   subst he2
-  unfold tablePhase at r2
+  unfold tablePhaseClaims at r2
   obtain ⟨xi, ys1, ys2, u1, hy, q1, q2⟩ := RunsTo.unbind r2 c1
   obtain ⟨exi, eu1, ey1⟩ := runsTo_det q1 (runsTo_sampleE _) c1 (r1 := ys2) (r2 := ys1 ++ ys2)
     (by simp)
@@ -248,7 +249,7 @@ theorem vt_spec {H : VtHonest} (h : H.Ok) :
   simp only [List.append_nil] at hz
   subst hz
   -- the sumcheck
-  unfold tableSumcheck at w1
+  unfold tableSumcheckClaims at w1
   obtain ⟨⟨ch, cl⟩, v1s, v2s, u3, hv, g1, g2⟩ := RunsTo.unbind w1 c2
   have hzc := zc_run H.cap0 H.target hxR
   obtain ⟨ech, eu3, ev2⟩ := runsTo_det g1 hzc c2 (r1 := v2s) (r2 := H.evsT.flatten) hv.symm

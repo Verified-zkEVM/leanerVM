@@ -8,6 +8,7 @@
 
 module
 
+public import LeanVM.Protocol.Verifier.Claims
 public import LeanVM.Guest.Child.Honest
 
 /-!
@@ -74,7 +75,7 @@ theorem msgAt_sendList {α : Type} : ∀ (l : List E) (f : Unit → Script α) (
 theorem leanVmProgram_readN (bytecode : List K) (publicInput : Digest) :
     ∃ k, leanVmProgram bytecode publicInput = (Prog.readN 8).bind k :=
   ⟨_, by
-    simp only [leanVmProgram, verifyExecution, readSizes, Prog.bind_eq, Prog.bind_assoc]
+    simp only [leanVmProgram_eq, verifyExecutionClaims, readSizes, Prog.bind_eq, Prog.bind_assoc]
     rfl⟩
 
 theorem script_bind_assoc {α β γ : Type} (p : Script α) (f : α → Script β) (g : β → Script γ) :

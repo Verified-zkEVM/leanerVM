@@ -8,6 +8,7 @@
 
 module
 
+public import LeanVM.Protocol.Verifier.Claims
 public import LeanVM.Protocol.EndToEnd.Front.TablePhase
 public import LeanVM.Protocol.EndToEnd.Front.TableFidLeanIsaBus
 public import LeanVM.Protocol.EndToEnd.Front.BusTable
@@ -118,7 +119,7 @@ theorem retOK_verifyKeccak_count (logSteps : ℕ) (inst output : List E) :
 /-- The Keccak phase returns at most one claim more than it receives. -/
 theorem retOK_keccakPhase (layout : Verifier.Layout) (claims : List Verifier.ColumnClaim) :
     RetOK (fun r : List Verifier.ColumnClaim × List E × List E ↦
-      r.1.length ≤ claims.length + 1) (keccakPhase layout claims) := by
+      r.1.length ≤ claims.length + 1) (keccakPhaseClaims layout claims) := by
   refine RetOK.bind_true fun _ ↦ (retOK_verifyKeccak_count _ _ _).bind fun r hr ↦ RetOK.ret ?_
   simp only [List.length_append]
   have := List.length_filter_le (fun c : Verifier.ColumnClaim ↦ decide (c.column ∉ keccakOutputColumns)) claims
@@ -386,7 +387,7 @@ coordinates, the program's claim on `QKECCAK` holds of a candidate on the stack 
 value is the extension of `q_keccak`'s words at its point. -/
 theorem qkHolds_iff (q : Column (verifierLayout prog s).stackLog) (c : Verifier.ColumnClaim)
     (hc : c.column = qkeccak) (hl : c.point.length = s.τ 5 + 6) :
-    StackClaim.Holds (verifierLayout prog s).stackLog (c.onStack (verifierLayout prog s)) q ↔
+    StackClaim.Holds (verifierLayout prog s).stackLog (c.stackClaim (verifierLayout prog s)) q ↔
       c.value = ∑ n ∈ range (2 ^ (s.τ 5 + 6)),
         KeccakGkr.eqAt c.point n * ofK (qkOf (verifierLayout prog s) q n) := by
   obtain ⟨col, pt, v⟩ := c
@@ -396,7 +397,7 @@ theorem qkHolds_iff (q : Column (verifierLayout prog s).stackLog) (c : Verifier.
   have hnm : pyCol keccakCol ∉ keccakOutputColumns := by decide +kernel
   have h := wireHolds_iff prog s keccakCol z v q
   rw [pyCol_keccakCol, wireHolds_of_not_mem prog s hnm] at h
-  refine (show StackClaim.Holds _ ((⟨qkeccak, pt, v⟩ : Verifier.ColumnClaim).onStack _) q ↔ _
+  refine (show StackClaim.Holds _ ((⟨qkeccak, pt, v⟩ : Verifier.ColumnClaim).stackClaim _) q ↔ _
     from h).trans ?_
   have hs : ∀ n ∈ range (2 ^ (s.τ 5 + 6)), KeccakGkr.eqAt pt n *
       ofK (((leanIsaInstance prog s).column (toI prog s q) keccakCol).values.getD n 0) =
@@ -511,7 +512,7 @@ abbrev LanesOk (claims : List Verifier.ColumnClaim) : Prop :=
 
 /-- The Keccak phase is the check on the lanes, then the reduction on them. -/
 theorem keccakPhase_eq (layout : Verifier.Layout) (claims : List Verifier.ColumnClaim) :
-    keccakPhase layout claims = (Prog.require (LanesOk claims)).bind fun _ ↦
+    keccakPhaseClaims layout claims = (Prog.require (LanesOk claims)).bind fun _ ↦
       (verifyKeccak (layout.tableLogHeights.getD opKeccak 0) ((lanesOf claims).headD default).point
         ((lanesOf claims).map (·.value))).bind fun r ↦
         Prog.ret (claims.filter (fun c ↦ c.column ∉ keccakOutputColumns) ++ r.1, r.2.1, r.2.2) :=
@@ -591,7 +592,7 @@ challenges), every later group at most `L₀ · 46/|E|`. -/
 noncomputable def keccakPhaseSpec (hst : Stable C) {L₀ : ℕ} (hcard : ∀ h, (C h).ncard ≤ L₀)
     {εmax T : ℝ≥0∞} (hT : T ≤ εmax) (h46 : (L₀ : ℝ≥0∞) * KeccakGkr.errE 46 ≤ εmax)
     (claims : List Verifier.ColumnClaim) :
-    Spec (keccakPhase (verifierLayout prog s) claims) (KeccakPre prog s C claims)
+    Spec (keccakPhaseClaims (verifierLayout prog s) claims) (KeccakPre prog s C claims)
       (KeccakOut prog s C) εmax ((L₀ : ℝ≥0∞) * KeccakGkr.errE 6) T :=
   haveI := finite_column (verifierLayout prog s).stackLog
   have hP : s.τ 5 - 4 + 4 = s.τ 5 := by

@@ -8,6 +8,7 @@
 
 module
 
+public import LeanVM.Protocol.Verifier.Claims
 public import LeanVM.Protocol.EndToEnd.Sound.Assemble
 public import LeanVM.Protocol.EndToEnd.Sound.Runs
 public import LeanVM.Protocol.EndToEnd.Execution
@@ -70,7 +71,8 @@ def DoomedRun {P : Prog Bool} (C : Cert P) (σ : Seed) (π : Proof) (c : HashSpe
 /-- Doom never holds at the empty history: the announced sizes are not at stake. -/
 theorem leanVmSpec_D_nil : ¬ (leanVmSpec prog input).D [] [] := by
   intro hD
-  have hs : (verifyExecution computedValue (bytecodeWords prog) (publicDigest input)).retSplit [] = none :=
+  rw [leanVmSpec, Spec.congr_D] at hD
+  have hs : (verifyExecutionClaims computedValue (bytecodeWords prog) (publicDigest input)).retSplit [] = none :=
     retSplit_eq_none_of_after rfl (verifyExecution_ne_ret _ _)
   have h1 : (veSpec prog input).D [] [] := (Spec.bindD_none hs).1 hD
   have hs' : (readSizes (bytecodeWords prog)).retSplit [] = none :=
@@ -112,19 +114,20 @@ theorem leanVmSpec_D_commit {l₁ : List Ev} {a : Verifier.Layout × ℕ}
     (hpost : CommitPost prog input a () (l₁ ++ [e])) :
     (leanVmSpec prog input).D [] (l₁ ++ [e]) := by
   obtain ⟨lay, ρ⟩ := a
-  have hve : (verifyExecution computedValue (bytecodeWords prog) (publicDigest input)).after (l₁ ++ [e]) =
-      some ((verifyBusBalance computedValue lay).bind fun bus ↦ (tablePhase lay bus).bind fun cl ↦
+  have hve : (verifyExecutionClaims computedValue (bytecodeWords prog) (publicDigest input)).after (l₁ ++ [e]) =
+      some ((verifyBusBalance computedValue lay).bind fun bus ↦ (tablePhaseClaims lay bus).bind fun cl ↦
         (Verifier.publicInputPhase lay (publicDigest input)).bind fun pc ↦
-        (keccakPhase lay (cl ++ pc)).bind fun r ↦
+        (keccakPhaseClaims lay (cl ++ pc)).bind fun r ↦
         (ringSwitch r.2.1 r.2.2).bind fun y ↦ verifyStackedOpening lay.stackLog ρ
-          (ringSwitchClaim lay y.1 y.2 :: r.1.map (·.onStack lay))) := by
+          (ringSwitchClaim lay y.1 y.2 :: r.1.map (·.stackClaim lay))) := by
     rw [verifyExecution_eq, Prog.after_bind_append _ hl₁]
     exact Prog.after_bind_append _ hce []
-  have hs : (verifyExecution computedValue (bytecodeWords prog) (publicDigest input)).retSplit (l₁ ++ [e]) =
+  have hs : (verifyExecutionClaims computedValue (bytecodeWords prog) (publicDigest input)).retSplit (l₁ ++ [e]) =
       none := by
     refine retSplit_eq_none_of_after hve fun u h ↦ ?_
     obtain ⟨b, hb, -⟩ := bind_eq_ret_iff h
     exact verifyBusBalance_ne_ret _ _ hb
+  rw [leanVmSpec, Spec.congr_D]
   refine (Spec.bindD_none hs).2 ?_
   refine (Spec.bindD_after (Prog.retSplit_of_after _ l₁ [e] hl₁) (List.cons_ne_nil _ _)).2 ?_
   have hex : ∃ s, Good prog (lay, ρ) s := ⟨s, hg⟩
@@ -222,6 +225,7 @@ theorem doomed_of_not_extracted {c : HashSpec.QueryCache} {π : Proof}
     (leanVmProgram (bytecodeWords prog) (publicDigest input)) π with hhist
   obtain ⟨hafter, hws⟩ := after_extractedHistory (fun x ↦ c (.inl x)) (fun s ↦ c (.inr s)) hv
   rw [← hhist] at hafter hws
+  rw [leanVmProgram_eq] at hafter
   -- The run: the announced sizes, the root, the rest.
   obtain ⟨u, m, m', hm, hve, -⟩ := after_bind_ret hafter
   rw [verifyExecution_eq] at hve

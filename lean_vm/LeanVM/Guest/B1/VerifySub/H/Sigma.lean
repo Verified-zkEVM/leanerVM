@@ -7,6 +7,7 @@
 
 module
 
+public import LeanVM.Protocol.Verifier.Claims
 public import LeanVM.Guest.B1.VerifySub.H.Outs
 public import LeanVM.Guest.B1.VerifySub.H.Sec
 
@@ -67,7 +68,7 @@ theorem target_eq (hbl : bytecode.length = 2 ^ 23) :
       (S.m0 :: S.chs)).map (·.2) =
       polyEval (S.slices.map (phiMap · (S.m0 :: S.chs))) gen ::
         ((notLanes S.claims).map (·.value) ++ [S.word]) := by
-    simp [stackClaims, ringSwitchClaim, ColumnClaim.onStack, notLanes]
+    simp [stackClaims, ringSwitchClaim, ColumnClaim.stackClaim, notLanes]
   have hl : (stackClaims S.layout S.claims [⟨qkeccak, S.op, S.word⟩] S.kpt S.slices
       (S.m0 :: S.chs)).length = 140 + 2 := by
     rw [← hn]; simp [stackClaims, notLanes]

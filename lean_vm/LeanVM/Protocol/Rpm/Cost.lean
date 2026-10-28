@@ -5,6 +5,7 @@
   has at most `2^39` bytes, so every query costs at most `2^32` permutation calls.
 -/
 
+import LeanVM.Protocol.Verifier.Claims
 import LeanVM.Protocol.LeanVM
 import Statement.LeanVm
 import Common.Transfer
@@ -246,7 +247,7 @@ theorem widthsLE_commitStack (logN logInvRate : ℕ) :
       exact WidthsLE.commitP (pow_le (ladder_folds _ _ _ hc level (by simp)))
 
 theorem widthsLE_verifyExecution (bytecode : List K) (publicInput : Digest) :
-    WidthsLE maxWidth (verifyExecution computedValue bytecode publicInput) := by
+    WidthsLE maxWidth (verifyExecutionClaims computedValue bytecode publicInput) := by
   refine WidthsLE.seq (WidthsLE.of_moves (movesOK_readSizes bytecode)) fun p ↦ ?_
   obtain ⟨layout, logInverseRate⟩ := p
   refine WidthsLE.seq (widthsLE_commitStack _ _) fun _ ↦
@@ -264,8 +265,9 @@ end Phases
 
 /-- **Every commitment of the leanVM verifier program has width at most `192`.** -/
 theorem widthsLE_leanVmProgram (bytecode : List K) (publicInput : Digest) :
-    WidthsLE maxWidth (leanVmProgram bytecode publicInput) :=
-  WidthsLE.seq (widthsLE_verifyExecution bytecode publicInput) fun _ ↦ trivial
+    WidthsLE maxWidth (leanVmProgram bytecode publicInput) := by
+  rw [leanVmProgram_eq]
+  exact WidthsLE.seq (widthsLE_verifyExecution bytecode publicInput) fun _ ↦ trivial
 
 /-! ## The verifier's queries -/
 

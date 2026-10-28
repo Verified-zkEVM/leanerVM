@@ -9,6 +9,7 @@
 
 module
 
+public import LeanVM.Protocol.Verifier.Claims
 public import LeanVM.Protocol.Whir.Params.Deployed
 public import LeanVM.Protocol.Whir.Sound.Candidates
 public import LeanVM.Protocol.EndToEnd.Front.BusTable
@@ -108,7 +109,7 @@ theorem stackedPre_of_ringPost (prog : Program) (s : Sizes) (ρ : ℕ)
     StackedPre (verifierLayout prog s).stackLog ρ
       (Whir.Params.deployedCodes (verifierLayout prog s).stackLog ρ 0)
       (ringSwitchClaim (verifierLayout prog s) r.1 r.2 ::
-        cl.map (·.onStack (verifierLayout prog s))) (commits h) := by
+        cl.map (·.stackClaim (verifierLayout prog s))) (commits h) := by
   refine ⟨hJ, fun q hq ↦ ?_⟩
   by_contra hall
   simp only [not_exists, not_and, not_not] at hall
@@ -158,7 +159,7 @@ theorem isMultiaffine_eqEval_any (z : List E) (n : ℕ) : IsMultiaffine n (eqEva
 
 /-- The weight of a column claim on the stack is multiaffine. -/
 theorem isMultiaffine_onStack (layout : Verifier.Layout) (c : Verifier.ColumnClaim) :
-    IsMultiaffine layout.stackLog (c.onStack layout).1 :=
+    IsMultiaffine layout.stackLog (c.stackClaim layout).1 :=
   isMultiaffine_eqEval_any _ _
 
 /-! ## The error arithmetic -/

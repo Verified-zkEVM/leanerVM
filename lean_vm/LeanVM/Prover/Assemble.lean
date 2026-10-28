@@ -294,7 +294,9 @@ theorem corr_honestScript (hv : ValidExecution prog input t) (hcap : t.committed
       kr.1.map (ClaimDesc.column (verifierLayout prog s))).map ClaimDesc.denote =
       openingClaims prog s (r.target, fun rPrime ↦ ringWeight r.point rPrime
         (ringCoefficients r.challenges)) kr.1 := by
-    simp [openingClaims, RingOut.claim, ClaimDesc.denote, Function.comp_def]
+    simp only [openingClaims, RingOut.claim, ClaimDesc.denote, List.map_cons, List.map_map,
+      Function.comp_def]
+    rfl
   refine Corr.bind (R := fun _ _ ↦ True) (fun _ _ _ ↦ by unfold Corr; trivial) _ _ ?_
   rw [← hcl]
   exact corr_openingFast hμ ρ q _

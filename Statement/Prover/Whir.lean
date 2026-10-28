@@ -11,7 +11,7 @@ The honest prover of the stacked opening (`verifyStackedOpening`, then `verify_w
 arrays: `openingFast μ R stack claims`.
 
 * The claims are descriptions (`ClaimDesc`): the ring-switching claim (`ringSwitchClaim` of the
-  ring's target, point and coefficients) and the column claims (`ColumnClaim.onStack`); their
+  ring's target, point and coefficients) and the column claims (at their placements); their
   denotations are the specification's stack claims (`ClaimDesc.denote`), whose weights are
   closures the prover never evaluates on the cube.
 * The weight table of the starting claim, `Σ_k λ^k·w_k` at the rotated cube point, is built by
@@ -50,7 +50,8 @@ inductive ClaimDesc where
 def ClaimDesc.denote : ClaimDesc → StackClaim
   | .ring layout target point challenges =>
     ringSwitchClaim layout target fun rPrime ↦ ringWeight point rPrime (ringCoefficients challenges)
-  | .column layout c => c.onStack layout
+  | .column layout c =>
+    (fun x ↦ eqEval ((layout.placement c.column).stackPoint c.point layout.stackLog) x, c.value)
 
 /-- The ring-switching claim of ring switching's result. -/
 def RingOut.claim (r : RingOut) (layout : Layout) : ClaimDesc :=

@@ -7,6 +7,7 @@
 
 module
 
+public import LeanVM.Protocol.Verifier.Claims
 public import LeanVM.Guest.B1.VerifySub.NZRun
 public import LeanVM.Guest.B1.VerifySub.Split
 
@@ -203,16 +204,16 @@ theorem noCommit_gkrPhase (depth : ℕ) : NoCommit (Tables.gkrPhase depth) := by
 
 theorem noCommit_tableTerms (cP fP point : List E) :
     ∀ (rows : List (Table × ℕ × List Form × E)) (cursor : ℕ) (final : E)
-      (claims : List ColumnClaim), NoCommit (tableTerms cP fP point rows cursor final claims)
+      (claims : List ColumnClaim), NoCommit (tableTermsClaims cP fP point rows cursor final claims)
   | [], _, _, _ => noCommit_ret _
   | (table, height, forms, weight) :: rest, cursor, final, claims => by
-    unfold tableTerms
+    unfold tableTermsClaims
     simp only [Prog.bind_eq]
     exact NoCommit.bind (noCommit_readN _) fun _ ↦ noCommit_tableTerms cP fP point rest _ _ _
 
 theorem noCommit_tablePhase (layout : Layout) (bus : BusResult) :
-    NoCommit (tablePhase layout bus) := by
-  unfold tablePhase tableSumcheck
+    NoCommit (tablePhaseClaims layout bus) := by
+  unfold tablePhaseClaims tableSumcheckClaims
   simp only [Prog.bind_eq, Prog.pure_eq, Prog.bind_assoc]
   refine NoCommit.bind noCommit_sampleE fun _ ↦ ?_
   refine NoCommit.bind ?_ ?_

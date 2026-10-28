@@ -7,6 +7,7 @@
 
 module
 
+public import LeanVM.Protocol.Verifier.Claims
 public import LeanVM.Protocol.EndToEnd.Sound.Frame
 public import LeanVM.Protocol.EndToEnd.Sound.Glue
 public import LeanVM.Protocol.EndToEnd.Sound.Moves
@@ -97,17 +98,17 @@ theorem good_of_readSizes (prog : Program) {l : List Ev} {a : Verifier.Layout ×
 def veBody (publicInput : Digest) (layout : Verifier.Layout) (ρ : ℕ) : Prog Unit := do
   Verifier.commitStack layout.stackLog ρ
   let bus ← Verifier.verifyBusBalance computedValue layout
-  let claims ← Verifier.tablePhase layout bus
+  let claims ← Verifier.tablePhaseClaims layout bus
   let publicClaims ← Verifier.publicInputPhase layout publicInput
   let claims := claims ++ publicClaims
-  let (claims, keccakPoint, keccakSlices) ← Verifier.keccakPhase layout claims
+  let (claims, keccakPoint, keccakSlices) ← Verifier.keccakPhaseClaims layout claims
   let (ringTarget, ringWeight) ← Verifier.ringSwitch keccakPoint keccakSlices
   Verifier.verifyStackedOpening layout.stackLog ρ
-    (Verifier.ringSwitchClaim layout ringTarget ringWeight :: claims.map (·.onStack layout))
+    (Verifier.ringSwitchClaim layout ringTarget ringWeight :: claims.map (·.stackClaim layout))
 
 /-- `verify_execution` is the announced sizes, then `veBody`. -/
 theorem verifyExecution_eq (bytecode : List K) (publicInput : Digest) :
-    verifyExecution computedValue bytecode publicInput =
+    verifyExecutionClaims computedValue bytecode publicInput =
       (readSizes bytecode).bind fun a ↦ veBody publicInput a.1 a.2 := rfl
 
 /-! ## The phases at sizes `s` and rate `ρ` -/
@@ -184,7 +185,7 @@ noncomputable def stackedGen {μ R : ℕ} (hw : Whir.Admissible μ R) (claims : 
 theorem openingClaims_multiaffine (layout : Verifier.Layout) (r : E × (List E → E))
     (cl : List Verifier.ColumnClaim)
     (hq : IsMultilinearFn layout.stackLog (ringSwitchClaim layout r.1 r.2).1) :
-    ∀ c ∈ ringSwitchClaim layout r.1 r.2 :: cl.map (·.onStack layout),
+    ∀ c ∈ ringSwitchClaim layout r.1 r.2 :: cl.map (·.stackClaim layout),
       IsMultiaffine layout.stackLog c.1 := by
   intro c hc'
   rcases List.mem_cons.1 hc' with rfl | hc'
@@ -199,7 +200,7 @@ noncomputable def stackedPart (hw : Whir.Admissible (verifierLayout prog s).stac
     (cl : List Verifier.ColumnClaim) (r : E × (List E → E)) :
     Spec (verifyStackedOpening (verifierLayout prog s).stackLog ρ
         (ringSwitchClaim (verifierLayout prog s) r.1 r.2 ::
-          cl.map (·.onStack (verifierLayout prog s))))
+          cl.map (·.stackClaim (verifierLayout prog s))))
       (fun h ↦ (RingPost (verifierLayout prog s) (Cs prog s ρ) cl r h ∧
           IsMultilinearFn (verifierLayout prog s).stackLog
             (ringSwitchClaim (verifierLayout prog s) r.1 r.2).1) ∧
@@ -224,7 +225,7 @@ noncomputable def ringPart (hw : Whir.Admissible (verifierLayout prog s).stackLo
     (cl : List Verifier.ColumnClaim) (pt sv : List E) :
     Spec ((ringSwitch pt sv).bind fun y ↦ verifyStackedOpening (verifierLayout prog s).stackLog ρ
         (ringSwitchClaim (verifierLayout prog s) y.1 y.2 ::
-          cl.map (·.onStack (verifierLayout prog s))))
+          cl.map (·.stackClaim (verifierLayout prog s))))
       (fun h ↦ ((pt.length = s.τ 5 + 6 ∧ sv.length = 64) ∧
           RingPre (verifierLayout prog s) (Cs prog s ρ) cl (s.τ 5) pt sv h) ∧
         StackShape (verifierLayout prog s).stackLog ρ h)
@@ -242,11 +243,11 @@ open Classical in
 noncomputable def keccakPart (hw : Whir.Admissible (verifierLayout prog s).stackLog ρ)
     (hlb : LayoutBounds (verifierLayout prog s)) (cl : List Verifier.ColumnClaim)
     (hcl : cl.length ≤ 549) :
-    Spec ((keccakPhase (verifierLayout prog s) cl).bind fun r ↦
+    Spec ((keccakPhaseClaims (verifierLayout prog s) cl).bind fun r ↦
         (ringSwitch r.2.1 r.2.2).bind fun y ↦
           verifyStackedOpening (verifierLayout prog s).stackLog ρ
             (ringSwitchClaim (verifierLayout prog s) y.1 y.2 ::
-              r.1.map (·.onStack (verifierLayout prog s))))
+              r.1.map (·.stackClaim (verifierLayout prog s))))
       (fun h ↦ KeccakPre prog s (Cs prog s ρ) cl h ∧
         StackShape (verifierLayout prog s).stackLog ρ h)
       (fun _ _ ↦ False) εLean ((L₀ : ℝ≥0∞) * KeccakGkr.errE 6) 0 :=
@@ -274,10 +275,10 @@ noncomputable def pubPartAt (hw : Whir.Admissible (verifierLayout prog s).stackL
     (hcl : cl.length ≤ 545)
     (pt : Vector E (leanIsaInstance prog s).τmax) :
     Spec ((Verifier.publicInputPhase (verifierLayout prog s) (publicDigest input)).bind fun pc ↦
-        (keccakPhase (verifierLayout prog s) (cl ++ pc)).bind fun r ↦
+        (keccakPhaseClaims (verifierLayout prog s) (cl ++ pc)).bind fun r ↦
         (ringSwitch r.2.1 r.2.2).bind fun y ↦ verifyStackedOpening (verifierLayout prog s).stackLog ρ
           (ringSwitchClaim (verifierLayout prog s) y.1 y.2 ::
-            r.1.map (·.onStack (verifierLayout prog s))))
+            r.1.map (·.stackClaim (verifierLayout prog s))))
       (fun h ↦ (OutLanesAt s cl pt.toList ∧
           PubPre prog s (verifierLayout prog s) (Cs prog s ρ) (toI prog s) (WireHolds prog s) cl
             input pt h) ∧
@@ -315,7 +316,7 @@ theorem candsOf_bound (hw : Whir.Admissible (verifierLayout prog s).stackLog ρ)
 variable (prog s ρ) in
 /-- The bus phase and the table sumcheck commit nothing. -/
 theorem movesOK_busTable (layout : Verifier.Layout) :
-    MovesOK (fun _ ↦ False) False ((verifyBusBalance computedValue layout).bind (tablePhase layout)) :=
+    MovesOK (fun _ ↦ False) False ((verifyBusBalance computedValue layout).bind (tablePhaseClaims layout)) :=
   (movesOK_verifyBusBalance layout).bind (movesOK_tablePhase layout)
 
 open Classical in
@@ -326,12 +327,12 @@ noncomputable def restSpec
     (hw : Whir.Admissible (verifierLayout prog s).stackLog ρ)
     (hlb : LayoutBounds (verifierLayout prog s)) :
     Spec ((verifyBusBalance computedValue (verifierLayout prog s)).bind fun bus ↦
-        (tablePhase (verifierLayout prog s) bus).bind fun cl ↦
+        (tablePhaseClaims (verifierLayout prog s) bus).bind fun cl ↦
         (Verifier.publicInputPhase (verifierLayout prog s) (publicDigest input)).bind fun pc ↦
-        (keccakPhase (verifierLayout prog s) (cl ++ pc)).bind fun r ↦
+        (keccakPhaseClaims (verifierLayout prog s) (cl ++ pc)).bind fun r ↦
         (ringSwitch r.2.1 r.2.2).bind fun y ↦ verifyStackedOpening (verifierLayout prog s).stackLog ρ
           (ringSwitchClaim (verifierLayout prog s) y.1 y.2 ::
-            r.1.map (·.onStack (verifierLayout prog s))))
+            r.1.map (·.stackClaim (verifierLayout prog s))))
       (fun h ↦ CommitPost prog input (verifierLayout prog s, ρ) () h)
       (fun _ _ ↦ False) εLean (abError (leanIsaInstance prog s) L₀ + 0) 0 :=
   have he := phase_errors (leanIsaInstance prog s) (μBus_le prog s hlb)
@@ -389,19 +390,20 @@ noncomputable def bodySpec (a : Verifier.Layout × ℕ) :
 
 /-- **The specification of `verify_execution`.** -/
 noncomputable def veSpec :
-    Spec (verifyExecution computedValue (bytecodeWords prog) (publicDigest input)) (fun _ ↦ False)
+    Spec (verifyExecutionClaims computedValue (bytecodeWords prog) (publicDigest input)) (fun _ ↦ False)
       (fun _ _ ↦ False) εLean 0 0 :=
   (readSizesSpec (bytecodeWords prog) (fun _ _ ↦ False)).bind' (bodySpec prog input)
 
 /-- **The specification of the leanVM verifier program**: from no doom, rejecting where it
 returns in doom, every group's escape at most `2^-128` (discounted by its proof of work), lead
-`0`. -/
-noncomputable def leanVmSpec :
+`0`, transported to the statement's program (`leanVmProgram_eq`); irreducible, so that
+elaboration does not reduce the transport. -/
+@[irreducible] noncomputable def leanVmSpec :
     Spec (leanVmProgram (bytecodeWords prog) (publicDigest input)) (fun _ ↦ False)
       (fun b _ ↦ b = false) εLean 0 0 :=
-  (veSpec prog input).bind' fun _ ↦
+  ((veSpec prog input).bind' fun _ ↦
     (Spec.ret (Post := fun b _ ↦ b = false) true).mono (fun _ h ↦ h.elim) (fun _ _ h ↦ h)
-      le_rfl le_rfl le_rfl
+      le_rfl le_rfl le_rfl).congr (leanVmProgram_eq _ _).symm
 
 /-- **The doom certificate of the leanVM verifier.** -/
 noncomputable def leanVmCert : Cert (leanVmProgram (bytecodeWords prog) (publicDigest input)) :=

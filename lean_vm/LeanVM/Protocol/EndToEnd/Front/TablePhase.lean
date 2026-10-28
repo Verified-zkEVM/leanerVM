@@ -8,6 +8,7 @@
 
 module
 
+public import LeanVM.Protocol.Verifier.Claims
 public import LeanVM.Protocol.EndToEnd.Front.BusPhase
 public import LeanVM.Protocol.EndToEnd.Front.TableArk
 public import LeanVM.Protocol.EndToEnd.Front.TableTerms
@@ -133,7 +134,7 @@ noncomputable def tableSumcheckSpec (colOf : I.ColumnId → ℕ) (w : BusWit)
     (fid : TableFid I hI input layout colOf w) (hd : I.d ≤ 2) {L₀ : ℕ}
     (hfin : ∀ W, (cands W).Finite) (hcard : ∀ W, (cands W).ncard ≤ L₀) {T : ℝ≥0∞}
     (he : roundError L₀ 3 + T ≤ εmax) (hT : T ≤ εmax) (ξ : E) :
-    Spec (Verifier.tableSumcheck layout.tableLogHeights (w.result layout).forms (cpsOf ξ)
+    Spec (Verifier.tableSumcheckClaims layout.tableLogHeights (w.result layout).forms (cpsOf ξ)
         (fpsOf ξ) (w.result layout).point (dot (fpsOf ξ) (w.result layout).totals))
       (HDoom cands (SumcheckRound.rel (tableFamily I) 0)
         ((busStmt I hI input w, ξ), (#v[], dot (fpsOf ξ) (w.result layout).totals)))
@@ -180,7 +181,7 @@ noncomputable def tablePhaseSpec (colOf : I.ColumnId → ℕ) (w : BusWit)
     (fid : TableFid I hI input layout colOf w) (hd : I.d ≤ 2) {L₀ : ℕ}
     (hfin : ∀ W, (cands W).Finite) (hcard : ∀ W, (cands W).ncard ≤ L₀) {T : ℝ≥0∞}
     (he : roundError L₀ 3 + T ≤ εmax) (hT : T ≤ εmax) :
-    Spec (tablePhase layout (w.result layout)) (BusAt I hI cands input w)
+    Spec (tablePhaseClaims layout (w.result layout)) (BusAt I hI cands input w)
       (TablePost I cands input colOf) εmax
       (xiError I L₀ + sumcheckLead (List.replicate (layout.tableLogHeights.foldl max 0) none) T)
       T :=

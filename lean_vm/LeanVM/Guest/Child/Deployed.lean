@@ -83,7 +83,10 @@ theorem childOk_of_verifierRZ_of {A : HonestProver} {s : NodeStatement} {t : Tra
   obtain ⟨c, hc, hrz⟩ := runProof_claimed_of_computed_rz keccak256 keccakF
     verifyStackedOpening (bytecodeWords guest) (publicDigest (publicInputOf d)) hacc'
   rw [hpd] at hrz
-  have hRZ : Limits.verifyDeferredRZ bytecode (deployedSeed guest) d c proof = true := hrz
+  have hRZ : Limits.verifyDeferredRZ bytecode (deployedSeed guest) d c proof = true := by
+    unfold Limits.verifyDeferredRZ
+    rw [deferredProgram_eq]
+    exact hrz
   have hV := Limits.verifyDeferred_of_nz (verifyDeferredNZ_of_rz hRZ)
   -- the pure prover's proof
   obtain ⟨w, sz, hchild, hprove⟩ := prove_of_verifierNZ_of hA (verifierNZ_of_rz hacc)
@@ -96,8 +99,9 @@ theorem childOk_of_verifierRZ_of {A : HonestProver} {s : NodeStatement} {t : Tra
     exact muMin_le_announced hchild h22 rest
   · -- the caps
     intro b hb
-    have hle : Prog.Le (deferredProgram c bytecode d) (leanVmProgram bytecode d) :=
-      .bind (verifyExecution_le (claimed_le_computed hc) d) fun _ ↦ .refl _
+    have hle : Prog.Le (deferredProgram c bytecode d) (leanVmProgram bytecode d) := by
+      rw [deferredProgram_eq, leanVmProgram_eq]
+      exact .bind (verifyExecution_le (claimed_le_computed hc) d) fun _ ↦ .refl _
     have hb' := queriesOf_le hle hb
     have hq := m3Honest_stackOf hw hs
     have hrun := runI_leanVmProgram (input := publicInputOf d) hadm hρ hq

@@ -8,6 +8,7 @@
 
 module
 
+public import LeanVM.Protocol.Verifier.Claims
 public import LeanVM.Protocol.EndToEnd.Front.TableFidLeanIsaBus
 public import LeanVM.Protocol.EndToEnd.Front.BusTable
 public import LeanVM.Protocol.EndToEnd.Complete.TableMath
@@ -749,7 +750,7 @@ noncomputable def busTableSpec_leanIsa {L₀ : ℕ} (hfin : ∀ W, (cands W).Fin
     (hTf : T ≤ εmax)
     (hxi : xiError (leanIsaWith prog s fl) L₀ + sumcheckLead
       (List.replicate ((verifierLayout prog s).tableLogHeights.foldl max 0) none) T ≤ εmax) :
-    Spec ((verifyBusBalance computedValue (verifierLayout prog s)).bind (tablePhase (verifierLayout prog s)))
+    Spec ((verifyBusBalance computedValue (verifierLayout prog s)).bind (tablePhaseClaims (verifierLayout prog s)))
       (HDoom cands (Seam.commit (leanIsaWith prog s fl)) input)
       (TablePost (leanIsaWith prog s fl) cands input pyCol) εmax
       (abError (leanIsaWith prog s fl) L₀ + 0) T :=

@@ -7,6 +7,7 @@
 
 module
 
+public import LeanVM.Protocol.Verifier.Claims
 public import LeanVM.Guest.B1.Tables.Interface
 public import LeanVM.Guest.B1.Placement.Interface
 public import LeanVM.Guest.B1.KeccakGkr.Interface
@@ -56,7 +57,7 @@ the stack, batched by the powers of `lam`. -/
 def stackWeight (layout : Layout) (claims : List ColumnClaim) (ringPoint coeffs : List E)
     (lam : E) (x : List E) : E :=
   let all := ringSwitchClaim layout 0 (fun rPrime ↦ ringWeight ringPoint rPrime coeffs) ::
-    claims.map (·.onStack layout)
+    claims.map (·.stackClaim layout)
   dot (powers lam all.length) (all.map fun c ↦ c.1 x)
 
 /-! ## The terminal's precondition -/

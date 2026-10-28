@@ -8,6 +8,7 @@
 
 module
 
+public import LeanVM.Protocol.Verifier.Claims
 public import LeanVM.Protocol.EndToEnd.Complete.TableMath
 public import LeanVM.Protocol.EndToEnd.Complete.Facts
 public import LeanVM.Protocol.EndToEnd.Complete.Flushes
@@ -79,12 +80,12 @@ theorem follows_tableTerms (cp fp point : List E) :
       (∀ p ∈ pairs, p.2.length = p.1.1.width) →
       Follows (fun cs' _ b ↦ cs' = cs ∧ b = termsPure cp fp point pairs cursor final claims)
         (Script.sendList (pairs.flatMap (·.2)))
-        (tableTerms cp fp point (pairs.map (·.1)) cursor final claims) cs
+        (tableTermsClaims cp fp point (pairs.map (·.1)) cursor final claims) cs
   | [], cursor, final, claims, cs, _ => by
-    simp [Script.sendList, tableTerms, termsPure, Follows]
+    simp [Script.sendList, tableTermsClaims, termsPure, Follows]
   | ((table, height, forms, weight), ev) :: rest, cursor, final, claims, cs, h => by
     have hev : ev.length = table.width := h ((table, height, forms, weight), ev) (by simp)
-    simp only [List.flatMap_cons, List.map_cons, tableTerms, termsPure, Prog.bind_eq]
+    simp only [List.flatMap_cons, List.map_cons, tableTermsClaims, termsPure, Prog.bind_eq]
     rw [sendList_append, ← hev]
     refine Follows.bind (fun cs' _ b hb ↦ ?_) _ _ _ (Follows.sendList_readN cs ev)
     obtain ⟨rfl, rfl⟩ := hb
@@ -554,7 +555,7 @@ theorem follows_tableTail (claims : List Verifier.ColumnClaim) (cp fp pt : List 
     Follows (fun cs' a b ↦ cs' = cs ∧ a = b ∧ Good b)
       ((Script.sendList (P.flatMap (·.2))).bind fun _ ↦
         Script.ret (claims ++ (termsPure cp fp pt P 0 0 []).2))
-      ((tableTerms cp fp pt (P.map (·.1)) 0 0 []).bind fun a ↦
+      ((tableTermsClaims cp fp pt (P.map (·.1)) 0 0 []).bind fun a ↦
         ((Prog.require (a.1 = fin)).bind fun _ ↦ pure a.2).bind fun tableClaims ↦
           pure (claims ++ tableClaims)) cs := by
   refine Follows.bind (fun cs' _ b h ↦ ?_) _ _ _ (follows_tableTerms cp fp pt P 0 0 [] cs hP)
@@ -721,8 +722,8 @@ theorem follows_tablePhase {input : PublicInput} (hq : M3Holds (inst prog s) inp
     Follows (fun cs' a b ↦ cs' = cs ∧ a = b ∧ TrueClaims prog s q b ∧
         ∃ tc, b = bus.claims ++ tc ∧ ∃ z : Vector E (s.τ 5),
           tc.filter (fun c ↦ c.column ∈ keccakOutputColumns) = honestLanes prog s q z)
-      (hTable prog s q bus) (tablePhase (verifierLayout prog s) bus) cs := by
-  unfold tablePhase tableSumcheck hTable
+      (hTable prog s q bus) (tablePhaseClaims (verifierLayout prog s) bus) cs := by
+  unfold tablePhaseClaims tableSumcheckClaims hTable
   simp only [Prog.bind_eq]
   refine Follows.bind (fun cs₁ xi xi' h ↦ ?_) _ _ _ (Follows.sampleE_sampleE cs)
   obtain ⟨rfl, rfl⟩ := h

@@ -7,6 +7,7 @@
 
 module
 
+public import LeanVM.Protocol.Verifier.Claims
 public import LeanVM.Guest.B1.Tables.Vt.SpecTotals
 
 /-!
@@ -46,7 +47,7 @@ theorem vt_tableSumcheck_run (heights : List ℕ) (busForms : List (List Form))
     (hw : ∀ p ∈ List.zip (vtRows heights busForms eqPoint pts) evs, p.2.length = p.1.1.width)
     (hfin : (termsPure cp fp pts.reverse (List.zip (vtRows heights busForms eqPoint pts) evs) 0 0
       []).1 = claimN) :
-    RunsTo (tableSumcheck heights busForms cp fp eqPoint target) s (xs ++ evs.flatten)
+    RunsTo (tableSumcheckClaims heights busForms cp fp eqPoint target) s (xs ++ evs.flatten)
       (termsPure cp fp pts.reverse (List.zip (vtRows heights busForms eqPoint pts) evs) 0 0 []).2
       (s1.absorbAll evs.flatten dsObserve) := by
   set pairs := List.zip (vtRows heights busForms eqPoint pts) evs
@@ -61,7 +62,7 @@ theorem vt_tableSumcheck_run (heights : List ℕ) (busForms : List (List Form))
   simp only at hfin ⊢
   have hr := tb_runsTo_require hfin (s1.absorbAll evs.flatten dsObserve)
   have h3 := hr.bind (f := fun _ ↦ (pure cl : Prog (List ColumnClaim))) (runsTo_ret _ _)
-  unfold tableSumcheck
+  unfold tableSumcheckClaims
   rw [hn]
   refine RunsTo.of_eq (hsc.bind (ht.bind h3)) rfl (by simp) rfl rfl
 
@@ -80,7 +81,7 @@ theorem vt_tablePhase_run (layout : Layout) (bus : BusResult) (s0 : Fs) {n : ℕ
       ((powers s0.squeeze.1 ((tables.map Table.nConstraints).sum + 3)).drop
         (tables.map Table.nConstraints).sum) pts.reverse
       (List.zip (vtRows layout.tableLogHeights bus.forms bus.point pts) evs) 0 0 []).1 = claimN) :
-    RunsTo (tablePhase layout bus) s0 (xs ++ evs.flatten)
+    RunsTo (tablePhaseClaims layout bus) s0 (xs ++ evs.flatten)
       (bus.claims ++ (termsPure ((powers s0.squeeze.1
           ((tables.map Table.nConstraints).sum + 3)).take (tables.map Table.nConstraints).sum)
         ((powers s0.squeeze.1 ((tables.map Table.nConstraints).sum + 3)).drop
@@ -92,7 +93,7 @@ theorem vt_tablePhase_run (layout : Layout) (bus : BusResult) (s0 : Fs) {n : ℕ
     hlen hw hfin
   have h3 := h2.bind (f := fun c ↦ (pure (bus.claims ++ c) : Prog (List ColumnClaim)))
     (runsTo_ret _ _)
-  unfold tablePhase
+  unfold tablePhaseClaims
   exact RunsTo.of_eq (h1.bind h3) rfl (by simp) rfl rfl
 
 /-- **`publicInputPhase` as a run.** -/

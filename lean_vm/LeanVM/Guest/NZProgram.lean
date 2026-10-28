@@ -10,6 +10,7 @@
 
 module
 
+public import LeanVM.Protocol.Verifier.Claims
 public import Statement.LeanVmGuest
 
 @[expose] public section
@@ -108,13 +109,13 @@ def verifyExecutionNZ (ev : (List K → List E → Prog E)) (bytecode : List K) 
   let (layout, logInverseRate) ← readSizes bytecode
   commitStack layout.stackLog logInverseRate
   let bus ← verifyBusBalance ev layout
-  let claims ← tablePhase layout bus
+  let claims ← tablePhaseClaims layout bus
   let publicClaims ← publicInputPhase layout publicInput
   let claims := claims ++ publicClaims
-  let (claims, keccakPoint, keccakSlices) ← keccakPhase layout claims
+  let (claims, keccakPoint, keccakSlices) ← keccakPhaseClaims layout claims
   let (ringTarget, ringWeight) ← ringSwitch keccakPoint keccakSlices
   verifyStackedOpeningNZ layout.stackLog logInverseRate
-    (ringSwitchClaim layout ringTarget ringWeight :: claims.map (·.onStack layout))
+    (ringSwitchClaim layout ringTarget ringWeight :: claims.map (·.stackClaim layout))
 
 /-- `deferredProgram` whose stacked opening refuses a zero fold, tail or level batching
 challenge. -/

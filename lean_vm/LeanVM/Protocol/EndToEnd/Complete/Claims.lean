@@ -8,6 +8,7 @@
 
 module
 
+public import LeanVM.Protocol.Verifier.Claims
 public import LeanVM.Protocol.EndToEnd.Front.LayoutInstance
 public import LeanVM.Protocol.Whir.Complete.Tables
 
@@ -76,7 +77,7 @@ stack. -/
 theorem TrueClaim.holds {prog : Program} {s : Sizes} {q : Column (leanIsaμ prog s)}
     {cl : Verifier.ColumnClaim} (h : TrueClaim prog s q cl)
     (hout : cl.column ∉ keccakOutputColumns) :
-    StackClaim.Holds (leanIsaμ prog s) (cl.onStack (verifierLayout prog s)) q := by
+    StackClaim.Holds (leanIsaμ prog s) (cl.stackClaim (verifierLayout prog s)) q := by
   obtain ⟨c, z, rfl⟩ := h
   exact (onStack_holds_iff prog s c ((mem_keccakOutputColumns_pyCol c).not.mp hout) z _ q).mpr
     rfl
@@ -93,7 +94,7 @@ theorem length_stackPoint (prog : Program) (s : Sizes) (c : Col) (hc : ¬ IsOut 
 theorem TrueClaim.multilinear {prog : Program} {s : Sizes} {q : Column (leanIsaμ prog s)}
     {cl : Verifier.ColumnClaim} (h : TrueClaim prog s q cl)
     (hout : cl.column ∉ keccakOutputColumns) :
-    IsMultilinearFn (leanIsaμ prog s) (cl.onStack (verifierLayout prog s)).1 := by
+    IsMultilinearFn (leanIsaμ prog s) (cl.stackClaim (verifierLayout prog s)).1 := by
   obtain ⟨c, z, rfl⟩ := h
   have hm := isMultilinearFn_eqEval (((verifierLayout prog s).placement (pyCol c)).stackPoint
     z.toList (verifierLayout prog s).stackLog)

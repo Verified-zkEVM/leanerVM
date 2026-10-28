@@ -7,6 +7,7 @@
 
 module
 
+public import LeanVM.Protocol.Verifier.Claims
 public import LeanVM.Guest.B1.Terminal.EqMath
 public import LeanVM.Guest.B1.Terminal.Sum
 
@@ -43,7 +44,7 @@ theorem wOf_committed {layout : Layout} {x : List E} {c : ColumnClaim} {κ o : �
     (hpl : layout.placement c.column = Placement.mk κ o 0) (hp : c.point.length = κ)
     (hx : x.length = layout.stackLog) (hκ : κ ≤ layout.stackLog) :
     wOf layout x c = eqEval c.point (x.take κ) * selProd o κ (layout.stackLog - κ) x := by
-  simp only [wOf, ColumnClaim.onStack, Placement.stackPoint, hpl]
+  simp only [wOf, ColumnClaim.stackClaim, Placement.stackPoint, hpl]
   exact stack_eqEval hp hx hκ
 
 /-- **A `q_keccak` lane's claim.** -/

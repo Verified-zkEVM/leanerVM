@@ -7,6 +7,7 @@
 
 module
 
+public import LeanVM.Protocol.Verifier.Claims
 public import LeanVM.Guest.B1.Tables.VtC.AComplete
 
 /-!
@@ -95,7 +96,7 @@ theorem tableTerms_any (cp fp point : List E) (hs : List ℕ) (fs : List (List F
     (h1 : 6 ≤ hs.length) (h2 : 6 ≤ fs.length) (h3 : 6 ≤ ws.length) (u : Fs) (ys : List E)
     (hy : ys.length = 157) :
     ∃ (b : E × List ColumnClaim) (v : Fs),
-      RunsTo (tableTerms cp fp point (List.zip tables (List.zip hs (List.zip fs ws))) 0 0 []) u ys
+      RunsTo (tableTermsClaims cp fp point (List.zip tables (List.zip hs (List.zip fs ws))) 0 0 []) u ys
         b v := by
   obtain ⟨e1, e2, hw⟩ := zip_chunks (List.zip tables (List.zip hs (List.zip fs ws)))
     (List.map_fst_zip (by simp only [List.length_zip]; show 6 ≤ _; omega)) ys hy
@@ -160,7 +161,7 @@ theorem vtH_run {bc : List K} {lm : ℕ} {pi : Digest} {alphas point values : Li
     obtain ⟨-, eu7, ep2⟩ := runsTo_ret_inv o2 (RunsTo.carries o1 c2')
     subst ep2
     -- the table phase
-    unfold tablePhase at r2
+    unfold tablePhaseClaims at r2
     obtain ⟨xi, ys1, ys2, u1, hy, q1, q2⟩ := RunsTo.unbind r2 c1
     obtain ⟨-, eu1, ey1⟩ := runsTo_det q1 (runsTo_sampleE _) c1 (r1 := ys2) (r2 := ys1 ++ ys2)
       (by simp)
@@ -170,7 +171,7 @@ theorem vtH_run {bc : List K} {lm : ℕ} {pi : Digest} {alphas point values : Li
     obtain ⟨tc, zs1, zs2, u2, hz, w1, w2⟩ := RunsTo.unbind q2 c2
     obtain ⟨-, -, ez2⟩ := runsTo_ret_inv w2 (RunsTo.carries w1 c2)
     subst ez2
-    unfold tableSumcheck at w1
+    unfold tableSumcheckClaims at w1
     obtain ⟨⟨ch, cl⟩, v1s, v2s, u3, hv, g1, g2⟩ := RunsTo.unbind w1 c2
     have l2 : v1s.length = 3 * n := runsTo_len g1 c2 fun ys hy ↦ ⟨_, _, zc_run _ _ hy⟩
     have c3 := RunsTo.carries g1 c2

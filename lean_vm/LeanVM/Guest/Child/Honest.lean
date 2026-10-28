@@ -166,7 +166,10 @@ theorem verifierRZ_eq (prog : Program) (input : PublicInput) (π : Proof) :
       Id.run (runProof (m := Id) keccak256 keccakF
         ((execWith computedValue verifyStackedOpening (bytecodeWords prog)
           (publicDigest input)).bind fun _ ↦ Prog.ret true).refuseZero
-        (seed (bytecodeWords prog) (publicDigest input)) π) := rfl
+        (seed (bytecodeWords prog) (publicDigest input)) π) := by
+  unfold Budget.verifierRZ
+  rw [Verifier.leanVmProgram_eq]
+  rfl
 
 /-- **No program reading first accepts the empty proof.** -/
 theorem runProof_read_empty (H : Bytes → Id Digest) (F : KState → Id KState) (k : E → Prog Bool)

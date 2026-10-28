@@ -9,6 +9,7 @@
 
 module
 
+public import LeanVM.Protocol.Verifier.Claims
 public import LeanVM.Protocol.EndToEnd.Complete.Sizes
 public import LeanVM.Protocol.EndToEnd.Complete.Public
 public import LeanVM.Protocol.EndToEnd.Complete.Facts
@@ -77,7 +78,7 @@ structure Phases.Honest (prog : Program) (s : Sizes) (q : Column (leanIsaμ prog
     Follows (fun cs' a b ↦ cs' = cs ∧ a = b ∧ TrueClaims prog s q b ∧
         ∃ tc, b = bus.claims ++ tc ∧ ∃ z : Vector E (s.τ 5),
           tc.filter (fun c ↦ c.column ∈ keccakOutputColumns) = honestLanes prog s q z)
-      (P.table bus) (tablePhase (verifierLayout prog s) bus) cs
+      (P.table bus) (tablePhaseClaims (verifierLayout prog s) bus) cs
   /-- The Keccak phase, from true claims whose output lanes are the honest ones, ends in true
   claims on no output lane and the true slices of `q_keccak`. -/
   keccak : ∀ claims, TrueClaims prog s q claims → ∀ z : Vector E (s.τ 5),
@@ -85,7 +86,7 @@ structure Phases.Honest (prog : Program) (s : Sizes) (q : Column (leanIsaμ prog
     Follows (fun cs' a b ↦ cs' = cs ∧ a = b ∧
         (∀ c ∈ b.1, TrueClaim prog s q c ∧ c.column ∉ keccakOutputColumns) ∧
         KeccakGkr.slicesTrue (s.τ 5) (qkH prog s q) b.2.1 b.2.2)
-      (P.keccak claims) (keccakPhase (verifierLayout prog s) claims) cs
+      (P.keccak claims) (keccakPhaseClaims (verifierLayout prog s) claims) cs
   /-- Ring switching, from the true slices, ends in a true multilinear claim. -/
   ring : ∀ r : List E × List E, KeccakGkr.slicesTrue (s.τ 5) (qkH prog s q) r.1 r.2 → ∀ cs,
     Follows (fun cs' a b ↦ cs' = cs ∧ a = b ∧
@@ -97,7 +98,7 @@ structure Phases.Honest (prog : Program) (s : Sizes) (q : Column (leanIsaμ prog
 def openingClaims (prog : Program) (s : Sizes) (rs : E × (List E → E))
     (claims : List Verifier.ColumnClaim) : List StackClaim :=
   ringSwitchClaim (verifierLayout prog s) rs.1 rs.2 ::
-    claims.map (·.onStack (verifierLayout prog s))
+    claims.map (·.stackClaim (verifierLayout prog s))
 
 /-- **The honest run of `verify_execution`**: announce, commit, then the phases in order, then
 the stacked opening of every claim the run accumulated. -/
@@ -120,9 +121,9 @@ theorem follows_verifyExecution {prog : Program} {s : Sizes} {input : PublicInpu
     {q : Column (leanIsaμ prog s)} (hs : s.Admissible prog) (hρ : validRate ρ)
     (hq : M3Holds (inst prog s) input q) (P : Phases) (hP : P.Honest prog s q) :
     Follows (fun _ _ _ ↦ True) (honestRun prog s ρ q P)
-      (verifyExecution computedValue (bytecodeWords prog) (publicDigest input)) [] := by
+      (verifyExecutionClaims computedValue (bytecodeWords prog) (publicDigest input)) [] := by
   have hadm := whirAdmissible prog hs hρ
-  unfold verifyExecution honestRun
+  unfold verifyExecutionClaims honestRun
   simp only [Prog.bind_eq]
   refine Follows.bind (fun cs₁ _ b hb ↦ ?_) _ _ _ (follows_readSizes prog hs hρ [])
   obtain ⟨rfl, rfl⟩ := hb
@@ -172,8 +173,9 @@ theorem follows_leanVmProgram {prog : Program} {s : Sizes} {input : PublicInput}
     {q : Column (leanIsaμ prog s)} (hs : s.Admissible prog) (hρ : validRate ρ)
     (hq : M3Holds (inst prog s) input q) (P : Phases) (hP : P.Honest prog s q) :
     Follows (fun _ _ b ↦ b = true) (honestProver prog s ρ q P)
-      (leanVmProgram (bytecodeWords prog) (publicDigest input)) [] :=
-  Follows.bind_of (follows_verifyExecution hs hρ hq P hP) fun _ _ _ _ ↦ rfl
+      (leanVmProgram (bytecodeWords prog) (publicDigest input)) [] := by
+  rw [leanVmProgram_eq]
+  exact Follows.bind_of (follows_verifyExecution hs hρ hq P hP) fun _ _ _ _ ↦ rfl
 
 /-- **The honest strategy wins every interactive run** of the verifier program, with
 well-shaped words, from honest phases. -/

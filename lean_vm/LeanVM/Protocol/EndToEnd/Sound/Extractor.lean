@@ -305,7 +305,8 @@ theorem commitment_eq {c : HashSpec.QueryCache} {π : Proof}
   -- The run: the announced sizes, the root, the rest.
   have hP : leanVmProgram (bytecodeWords prog) (publicDigest input) =
       ((readSizes (bytecodeWords prog)).bind fun a ↦ veBody (publicDigest input) a.1 a.2).bind
-        fun _ ↦ .ret true := rfl
+        fun _ ↦ .ret true := by
+    rw [leanVmProgram_eq, verifyExecution_eq]
   rw [hP, xrun_bind, Option.bind_eq_some_iff] at hx
   obtain ⟨⟨u, s3, h3⟩, hx3, hfin⟩ := hx
   simp only [xrun, Option.some.injEq, Prod.mk.injEq] at hfin

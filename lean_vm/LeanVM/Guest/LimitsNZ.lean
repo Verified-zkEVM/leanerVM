@@ -7,6 +7,7 @@
 
 module
 
+public import LeanVM.Protocol.Verifier.Claims
 public import LeanVM.Guest.Limits
 
 /-!
@@ -223,9 +224,10 @@ theorem verifyStackedOpeningNZ_refines (stackLog logInvRate : ℕ) (claims : Lis
 
 theorem deferredProgramNZ_refines (c : FixedClaims) (bytecode : List K) (publicInput : Digest) :
     Refines (deferredProgramNZ c bytecode publicInput) (deferredProgram c bytecode publicInput) := by
-  unfold deferredProgramNZ deferredProgram
+  unfold deferredProgramNZ
+  rw [deferredProgram_eq]
   refine Refines.bind ?_ fun _ ↦ Refines.refl _
-  unfold verifyExecutionNZ verifyExecution
+  unfold verifyExecutionNZ verifyExecutionClaims
   repeat (first | exact verifyStackedOpeningNZ_refines _ _ _ | refines_step)
 
 /-- **The zero-challenge refusal only restricts**: the deferring verifier refusing a zero challenge

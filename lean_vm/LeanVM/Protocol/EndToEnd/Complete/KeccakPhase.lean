@@ -8,6 +8,7 @@
 
 module
 
+public import LeanVM.Protocol.Verifier.Claims
 public import LeanVM.Protocol.EndToEnd.Complete.Table
 public import LeanVM.Protocol.EndToEnd.Front.KeccakBridge
 public import LeanVM.Protocol.Keccak.Complete
@@ -263,7 +264,7 @@ theorem follows_keccakPhase {input : PublicInput} (hq : M3Holds (inst prog s) in
     Follows (fun cs' a b ↦ cs' = cs ∧ a = b ∧
         (∀ c ∈ b.1, TrueClaim prog s q c ∧ c.column ∉ keccakOutputColumns) ∧
         slicesTrue (s.τ 5) (qkH prog s q) b.2.1 b.2.2)
-      (hKeccakPhase prog s q claims) (keccakPhase (verifierLayout prog s) claims) cs := by
+      (hKeccakPhase prog s q claims) (keccakPhaseClaims (verifierLayout prog s) claims) cs := by
   have hP : s.τ 5 - 4 + 4 = s.τ 5 := by
     have := s.minSteps_le
     simp only [keccakMinStepsLog] at this

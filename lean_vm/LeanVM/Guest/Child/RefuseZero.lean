@@ -126,7 +126,7 @@ theorem verifyDeferredNZ_of_rz {bytecode : List K} {iv publicInput : Digest} {c 
   unfold Limits.verifyDeferredRZ at h
   unfold Limits.verifyDeferredNZ
   refine Limits.runProof_refines (refines_refuseZero_of_nz ?_) _ π h
-  rw [deferredProgramNZ_eq]
+  rw [deferredProgramNZ_eq, deferredProgram_eq]
   exact nz_program (claimedValue c) bytecode publicInput
 
 /-- A child the guest program accepts is accepted by the guest's deferring verifier refusing a
@@ -144,6 +144,7 @@ theorem verifierNZ_of_rz {prog : Program} {input : PublicInput} {π : Proof}
   unfold Budget.verifierRZ at h
   unfold Budget.verifierNZ
   refine Limits.runProof_refines (refines_refuseZero_of_nz ?_) _ π h
+  rw [leanVmProgram_eq]
   exact nz_program computedValue (bytecodeWords prog) (publicDigest input)
 
 /-! ## The claim a run evaluates -/

@@ -1,3 +1,4 @@
+import LeanVM.Protocol.Verifier.Claims
 import LeanVM.Protocol.EndToEnd.Complete.Theorem
 
 /-!
@@ -36,7 +37,7 @@ example : ∀ {prog : Program} {s : Sizes} {q : Column (leanIsaμ prog s)} {inpu
     Follows (fun cs' a b ↦ cs' = cs ∧ a = b ∧ TrueClaims prog s q b ∧
         ∃ tc, b = bus.claims ++ tc ∧ ∃ z : Vector E (s.τ 5),
           tc.filter (fun c ↦ c.column ∈ keccakOutputColumns) = honestLanes prog s q z)
-      (hTable prog s q bus) (tablePhase (verifierLayout prog s) bus) cs :=
+      (hTable prog s q bus) (tablePhaseClaims (verifierLayout prog s) bus) cs :=
   follows_tablePhase
 
 example : ∀ (prog : Program) (s : Sizes) (q : Column (leanIsaμ prog s)) {input : PublicInput},
@@ -45,7 +46,7 @@ example : ∀ (prog : Program) (s : Sizes) (q : Column (leanIsaμ prog s)) {inpu
     Follows (fun cs' a b ↦ cs' = cs ∧ a = b ∧
         (∀ c ∈ b.1, TrueClaim prog s q c ∧ c.column ∉ keccakOutputColumns) ∧
         KeccakGkr.slicesTrue (s.τ 5) (qkH prog s q) b.2.1 b.2.2)
-      (hKeccakPhase prog s q claims) (keccakPhase (verifierLayout prog s) claims) cs :=
+      (hKeccakPhase prog s q claims) (keccakPhaseClaims (verifierLayout prog s) claims) cs :=
   follows_keccakPhase
 
 example : ∀ {prog : Program} {s : Sizes} {q : Column (leanIsaμ prog s)} (r : List E × List E),

@@ -7,6 +7,7 @@
 
 module
 
+public import LeanVM.Protocol.Verifier.Claims
 public import LeanVM.Guest.B1.VerifySub.Interface
 public import LeanVM.Guest.B1.Whir.Interface
 public import LeanVM.Guest.B1.Gkr.Interface
@@ -48,7 +49,7 @@ def stackClaims (layout : Layout) (claims : List ColumnClaim) (outs : List Colum
     (ringPoint slices challenges : List E) : List StackClaim :=
   ringSwitchClaim layout (polyEval (slices.map (phiMap · challenges)) gen)
       (fun rPrime ↦ ringWeight ringPoint rPrime (ringCoefficients challenges)) ::
-    (claims.filter (fun c ↦ c.column ∉ keccakOutputColumns) ++ outs).map (·.onStack layout)
+    (claims.filter (fun c ↦ c.column ∉ keccakOutputColumns) ++ outs).map (·.stackClaim layout)
 
 /-- **The deferring verifier's program, regrouped.** -/
 def deferredFlat (c : FixedClaims) (bytecode : List K) (pi : Digest) : Prog Bool :=
@@ -71,14 +72,14 @@ def deferredFlat (c : FixedClaims) (bytecode : List K) (pi : Digest) : Prog Bool
 
 theorem deferred_eq (c : FixedClaims) (bytecode : List K) (pi : Digest) :
     deferredProgram c bytecode pi = deferredFlat c bytecode pi := by
-  simp only [deferredProgram, verifyExecution, deferredFlat, Prog.bind_eq, Prog.pure_eq,
+  simp only [deferredProgram_eq, verifyExecutionClaims, deferredFlat, Prog.bind_eq,
     Prog.bind_assoc]
   refine congrArg _ (funext fun ls ↦ congrArg _ (funext fun _ ↦ ?_))
   rw [verifyBusBalance_split]
   simp only [Tables.tablesSeg, Prog.bind_assoc, Prog.bind_eq, Prog.pure_eq, Prog.ret_bind]
   refine congrArg _ (funext fun alphas ↦ congrArg _ (funext fun beta ↦ congrArg _ (funext fun r ↦
     congrArg _ (funext fun bus ↦ congrArg _ (funext fun cl ↦ congrArg _ (funext fun pc ↦ ?_))))))
-  simp only [keccakPhase, lanesOf, Prog.bind_eq, Prog.pure_eq, Prog.bind_assoc, Prog.ret_bind]
+  simp only [keccakPhaseClaims, lanesOf, Prog.bind_eq, Prog.pure_eq, Prog.bind_assoc, Prog.ret_bind]
   refine congrArg _ (funext fun _ ↦ ?_)
   simp only [keccakSeg, Prog.bind_eq, Prog.pure_eq, Prog.bind_assoc, Prog.ret_bind]
   refine congrArg _ (funext fun kr ↦ ?_)

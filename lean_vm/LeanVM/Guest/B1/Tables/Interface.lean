@@ -8,6 +8,7 @@
 
 module
 
+public import LeanVM.Protocol.Verifier.Claims
 public import LeanVM.Guest.B1.Gkr.Fs
 public import LeanVM.Guest.B1.Placement.Interface
 public import LeanVM.Guest.B1.Selectors.Interface
@@ -122,7 +123,7 @@ binding (V:2307-2311); the bus result and every column claim, the public input's
 def tablesSeg (ev : (List K → List E → Prog E)) (layout : Layout) (publicInput : Digest) (alphas : List E)
     (beta : E) (point treeValues : List E) : Prog (BusResult × List ColumnClaim) := do
   let bus ← busRest ev layout alphas beta point treeValues
-  let claims ← tablePhase layout bus
+  let claims ← tablePhaseClaims layout bus
   let publicClaims ← publicInputPhase layout publicInput
   return (bus, claims ++ publicClaims)
 

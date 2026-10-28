@@ -8,6 +8,7 @@
 
 module
 
+public import LeanVM.Protocol.Verifier.Claims
 public import LeanVM.Guest.B1.VerifySub.NoCommit
 
 /-!
@@ -44,11 +45,11 @@ steps 3-7): the bus, the tables, the public input, the Keccak reduction, the rin
 def restClaims (ev : (List K → List E → Prog E)) (layout : Layout) (publicInput : Digest) :
     Prog (List StackClaim) := do
   let bus ← verifyBusBalance ev layout
-  let claims ← tablePhase layout bus
+  let claims ← tablePhaseClaims layout bus
   let publicClaims ← publicInputPhase layout publicInput
-  let (claims, keccakPoint, keccakSlices) ← keccakPhase layout (claims ++ publicClaims)
+  let (claims, keccakPoint, keccakSlices) ← keccakPhaseClaims layout (claims ++ publicClaims)
   let (ringTarget, ringWeight) ← ringSwitch keccakPoint keccakSlices
-  return ringSwitchClaim layout ringTarget ringWeight :: claims.map (·.onStack layout)
+  return ringSwitchClaim layout ringTarget ringWeight :: claims.map (·.stackClaim layout)
 
 /-- **The deferring verifier up to its stacked opening**: the layout, the rate and the claims. -/
 def specPre (ev : (List K → List E → Prog E)) (bytecode : List K) (publicInput : Digest) :
@@ -58,9 +59,9 @@ def specPre (ev : (List K → List E → Prog E)) (bytecode : List K) (publicInp
   (restClaims ev ls.1 publicInput).bind fun cl ↦ Prog.ret (ls.1, ls.2, cl)
 
 theorem verifyExecution_pre (ev : (List K → List E → Prog E)) (bytecode : List K) (pi : Digest) :
-    verifyExecution ev bytecode pi =
+    verifyExecutionClaims ev bytecode pi =
       (specPre ev bytecode pi).bind fun q ↦ verifyStackedOpening q.1.stackLog q.2.1 q.2.2 := by
-  simp only [verifyExecution, specPre, restClaims, Prog.bind_eq, Prog.pure_eq, Prog.bind_assoc,
+  simp only [verifyExecutionClaims, specPre, restClaims, Prog.bind_eq, Prog.pure_eq, Prog.bind_assoc,
     Prog.ret_bind]
 
 theorem verifyExecutionNZ_pre (ev : (List K → List E → Prog E)) (bytecode : List K) (pi : Digest) :
@@ -201,7 +202,7 @@ theorem noCommit_verifyKeccak (logSteps : ℕ) (inst output : List E) :
 
 theorem noCommit_restClaims (c : FixedClaims) (layout : Layout) (pi : Digest) :
     NoCommit (restClaims (claimedValue c) layout pi) := by
-  unfold restClaims keccakPhase ringSwitch
+  unfold restClaims keccakPhaseClaims ringSwitch
   simp only [Prog.bind_eq, Prog.pure_eq, Prog.bind_assoc, Prog.ret_bind]
   refine NoCommit.bind ?_ ?_
   · exact noCommit_verifyBusBalance _ _
@@ -360,7 +361,7 @@ theorem deferredProgram_pre (c : FixedClaims) (bytecode : List K) (pi : Digest) 
       (Prog.sampleE.bind fun lam ↦
         (Whir.whirOpen q.1.stackLog q.2.1 (batchTarget q.2.2 lam)).bind fun w ↦
           Prog.require (w.Accepts (batchBasis q.2.2 lam))).bind fun _ ↦ Prog.ret true := by
-  simp only [deferredProgram, Prog.bind_eq, Prog.pure_eq, verifyExecution_pre, Prog.bind_assoc,
+  simp only [deferredProgram_eq, verifyExecution_pre, Prog.bind_assoc,
     verifyStackedOpening_split]
 
 /-- **The opening's caps from the run's**: at the opening's start `nz_open_of_nz` gives, the

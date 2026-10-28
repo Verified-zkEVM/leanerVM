@@ -8,6 +8,7 @@
 
 module
 
+public import LeanVM.Protocol.Verifier.Claims
 public import LeanVM.Protocol.Compile.Cost
 public import LeanVM.Protocol.Verifier
 
@@ -404,7 +405,7 @@ the rows' heights. -/
 theorem costs_tableTerms (constraintPowers formPowers point : List E) :
     ∀ (rows : List (Table × ℕ × List Form × E)) (cursor : ℕ) (final : E)
       (claims : List ColumnClaim), ClaimsShort claims → (∀ r ∈ rows, r.2.1 ≤ 32) →
-      Prog.Costs height (tableTerms constraintPowers formPowers point rows cursor final claims)
+      Prog.Costs height (tableTermsClaims constraintPowers formPowers point rows cursor final claims)
         (rows.map (·.1.width)).sum fun r ↦ ClaimsShort r.2
   | [], _, _, claims, hc, _ => hc
   | (table, h, forms, weight) :: rest, cursor, final, claims, hc, hh => by
@@ -444,7 +445,7 @@ theorem costs_tableSumcheck (heights : List ℕ) (busForms : List (List Form))
     (constraintPowers formPowers equalityPoint : List E) (target : E)
     (hh : ∀ h ∈ heights, h ≤ 32) :
     Prog.Costs height
-      (tableSumcheck heights busForms constraintPowers formPowers equalityPoint target)
+      (tableSumcheckClaims heights busForms constraintPowers formPowers equalityPoint target)
       (32 * 7 + tableWidthSum) fun cl ↦ ClaimsShort cl := by
   have hmax := foldl_max_le 32 heights 0 (Nat.zero_le _) hh
   refine Prog.Costs.seq (costs_sumcheck _ _ _) (fun r _ ↦ ?_) ?_
@@ -468,7 +469,7 @@ theorem costs_tableSumcheck (heights : List ℕ) (busForms : List (List Form))
 /-- **The table phase** on a built layout. -/
 theorem costs_tablePhase {layout : Layout} (hl : LayoutBounds layout) (bus : BusResult)
     (hbus : ClaimsShort bus.claims) :
-    Prog.Costs height (tablePhase layout bus) (4 + (32 * 7 + tableWidthSum))
+    Prog.Costs height (tablePhaseClaims layout bus) (4 + (32 * 7 + tableWidthSum))
       fun cl ↦ ClaimsShort cl :=
   Prog.Costs.seq Prog.Costs.sampleE (fun _ _ ↦ Prog.Costs.seq
     (costs_tableSumcheck _ _ _ _ _ _ hl.heights_le) (fun cl hcl ↦ by
@@ -603,7 +604,7 @@ theorem headD_filter_short : ∀ (l : List ColumnClaim), ClaimsShort l →
 /-- **The Keccak phase**, its claims at points of at most `32` coordinates. -/
 theorem costs_keccakPhase (layout : Layout) (claims : List ColumnClaim)
     (hc : ClaimsShort claims) :
-    Prog.Costs height (keccakPhase layout claims) (keccakCost 29) fun _ ↦ True := by
+    Prog.Costs height (keccakPhaseClaims layout claims) (keccakCost 29) fun _ ↦ True := by
   exact Prog.Costs.seq (Prog.Costs.require (n := 0) _) (fun _ _ ↦ Prog.Costs.seq
     (costs_verifyKeccak _ _ _ (headD_filter_short claims hc)) (fun _ _ ↦ trivial) le_rfl)
     (Nat.zero_le _)
@@ -828,7 +829,7 @@ theorem ladder_cost (μ logInvRate : ℕ) (levels : List Whir.Level)
 
 /-- **The cost of `verify_execution`.** -/
 theorem costs_verifyExecution (bytecode : List K) (publicInput : Digest) :
-    Prog.Costs costHeight (verifyExecution computedValue bytecode publicInput) leanVmCost
+    Prog.Costs costHeight (verifyExecutionClaims computedValue bytecode publicInput) leanVmCost
       fun _ ↦ True := by
   unfold leanVmCost
   refine Prog.Costs.seq (costs_readSizes bytecode) (fun p hp ↦ ?_) (by omega)
@@ -856,8 +857,9 @@ theorem costs_verifyExecution (bytecode : List K) (publicInput : Digest) :
 `leanVmCost` quarters, every commitment having height at most `costHeight`, for every bytecode
 and public input. -/
 theorem costLE_leanVmProgram (bytecode : List K) (publicInput : Digest) :
-    (leanVmProgram bytecode publicInput).CostLE costHeight leanVmCost :=
-  Prog.Costs.seq (costs_verifyExecution bytecode publicInput) (fun _ _ ↦ trivial) le_rfl
+    (leanVmProgram bytecode publicInput).CostLE costHeight leanVmCost := by
+  rw [leanVmProgram_eq]
+  exact Prog.Costs.seq (costs_verifyExecution bytecode publicInput) (fun _ _ ↦ trivial) le_rfl
 
 /-! ## The seed and the query bound -/
 

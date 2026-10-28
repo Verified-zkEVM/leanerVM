@@ -8,6 +8,7 @@
 
 module
 
+public import LeanVM.Protocol.Verifier.Claims
 public import LeanVM.Protocol.EndToEnd.Front.LayoutInstance
 public import LeanVM.Protocol.EndToEnd.Front.PubPhase
 
@@ -78,13 +79,13 @@ def WireHolds (c : Verifier.ColumnClaim) (q : Column (verifierLayout prog s).sta
       eval₂Mle ((leanIsaInstance prog s).column (toI prog s q)
           (outCol ⟨(c.column - 111) % 25, Nat.mod_lt _ (by norm_num)⟩)).values (algebraMap K E)
         (⟨c.point.toArray, by simpa using hl⟩ : Vector E (s.τ 5)) = c.value
-  else StackClaim.Holds (verifierLayout prog s).stackLog (c.onStack (verifierLayout prog s)) q
+  else StackClaim.Holds (verifierLayout prog s).stackLog (c.stackClaim (verifierLayout prog s)) q
 
 /-- A claim off the output lanes is read on the stack. -/
 theorem wireHolds_of_not_mem {c : Verifier.ColumnClaim} (hc : c.column ∉ keccakOutputColumns)
     (q : Column (verifierLayout prog s).stackLog) :
     WireHolds prog s c q ↔
-      StackClaim.Holds (verifierLayout prog s).stackLog (c.onStack (verifierLayout prog s)) q := by
+      StackClaim.Holds (verifierLayout prog s).stackLog (c.stackClaim (verifierLayout prog s)) q := by
   unfold WireHolds
   rw [ite_eq_right hc]
 

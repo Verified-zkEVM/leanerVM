@@ -1063,19 +1063,17 @@ structure Layout where
   /-- The tables' log-heights, each the least `h` with `rows ≤ 2 ^ h`, at least its floor. -/
   tableLogHeights : List ℕ
 
-/-- The placement of a committed column (`layout.placements[column]`). The verifier asks it only
-of committed columns: a `KECCAK` output lane's claims leave the batch before the opening
-(`keccakPhase`). -/
+/-- The placement of a committed column (`layout.placements[column]`), which the verifier reads
+of `MEMORY_0` and `QKECCAK`. -/
 def Layout.placement (layout : Layout) (column : ℕ) : Placement :=
   (layout.placements.getD column none).getD default
 
 /-- `ColumnClaim.on_stack` (`verifier.py:561-567`): the claim as an equality weight on the
-stack. At the pin `on_stack` returns `None` for a column without placement, a `KECCAK` output
-lane, and the opening drops those claims (`verifier.py:1517-1518`); here they leave the claims
-before the opening (`keccakPhase`), which is the same list of stack claims in the same order. -/
-def ColumnClaim.onStack (c : ColumnClaim) (layout : Layout) : StackClaim :=
-  let point := (layout.placement c.column).stackPoint c.point layout.stackLog
-  (fun x ↦ eqEval point x, c.value)
+stack; `none` for a column nothing commits (a `KECCAK` output lane), whose claim never reaches
+the stack. -/
+def ColumnClaim.onStack (c : ColumnClaim) (layout : Layout) : Option StackClaim :=
+  (layout.placements.getD c.column none).map fun placement ↦
+    (fun x ↦ eqEval (placement.stackPoint c.point layout.stackLog) x, c.value)
 
 /-- The bus blocks of every table, side by side: pushes, pulls, counts, each block at its
 table's log-height and row count (`verifier.py:979-989`). -/
@@ -1320,8 +1318,8 @@ def verifyBusBalance (ev : List K → List E → Prog E) (layout : Layout) : Pro
 ## The table sumcheck (`verifier.py:649-678`)
 
 One plain-mode sumcheck over `max` of the tables' log-heights, its challenges reversed the point;
-the terminal claim is `Σ weight · (constraints + forms)`, and each row evaluation the prover sends
-becomes a claim on its global column at the point's first `h` coordinates.
+the terminal claim is `Σ weight · (constraints + forms)`, and a table of log-height `h` has its
+evaluations at the point's first `h` coordinates.
 -/
 
 /-- The tables' weights at the point (`verifier.py:662-666`): coordinate `v` contributes
@@ -1333,36 +1331,34 @@ def tableWeights (heights : List ℕ) (equalityPoint point : List E) : List E :=
       weights heights) (heights.map fun _ ↦ 1)
 
 /-- The per-table loop of `table_sumcheck` (`verifier.py:668-676`): read each table's row
-evaluations, add its weighted terms to `final`, and collect its column claims. -/
+evaluations, add its weighted terms to `final`, and collect its point and evaluations. -/
 def tableTerms (constraintPowers formPowers point : List E) :
-    List (Table × ℕ × List Form × E) → ℕ → E → List ColumnClaim → Prog (E × List ColumnClaim)
-  | [], _, final, claims => return (final, claims)
-  | (table, height, forms, weight) :: rest, cursor, final, claims => do
+    List (Table × ℕ × List Form × E) → ℕ → E → Prog (E × List (List E × List E))
+  | [], _, final => return (final, [])
+  | (table, height, forms, weight) :: rest, cursor, final => do
     let evaluations ← Prog.readN table.width
     let summand := dot ((constraintPowers.drop cursor).take table.nConstraints)
       (table.constraints evaluations)
     let final := final +
       weight * (summand + dot formPowers (forms.map (·.evaluate (evaluations.getD · 0))))
-    let claims := claims ++ evaluations.zipIdx.map fun (value, column) ↦
-      ⟨globalColumnBases.getD table.opcode 0 + column, point.take height, value⟩
-    tableTerms constraintPowers formPowers point rest (cursor + table.nConstraints) final claims
+    let (final, rows) ← tableTerms constraintPowers formPowers point rest
+      (cursor + table.nConstraints) final
+    return (final, (point.take height, evaluations) :: rows)
 
 /-- `table_sumcheck(table_log_heights, bus_forms, constraint_powers, form_powers,
-equality_point, target)` (`verifier.py:649-678`). At the pin `table_sumcheck` returns each table's
-point and its columns' evaluations there, and `verify_execution` builds the column claims from
-them (`verifier.py:1492-1495`); this returns those claims, `ColumnClaim(base + local, point,
-value)` table by table in opcode order and column by column, the same list. -/
+equality_point, target)` (`verifier.py:649-678`): each table's point and its columns'
+evaluations there. -/
 def tableSumcheck (heights : List ℕ) (busForms : List (List Form))
     (constraintPowers formPowers equalityPoint : List E) (target : E) :
-    Prog (List ColumnClaim) := do
+    Prog (List (List E × List E)) := do
   let nRounds := heights.foldl max 0
   let (challenges, claim) ← sumcheck target 4 (List.replicate nRounds none)
   let point := challenges.reverse
   let weights := tableWeights heights equalityPoint point
   let rows := List.zip tables (List.zip heights (List.zip busForms weights))
-  let (final, claims) ← tableTerms constraintPowers formPowers point rows 0 0 []
+  let (final, evaluations) ← tableTerms constraintPowers formPowers point rows 0 0
   Prog.require (final = claim)
-  return claims
+  return evaluations
 
 /-!
 ## The WHIR opening (`verifier.py:1016-1202, 1453-1459`)
@@ -1930,18 +1926,16 @@ def readSizes (bytecode : List K) : Prog (Layout × ℕ) := do
   Prog.require (Whir.minLogStack ≤ layout.stackLog ∧ layout.stackLog ≤ Whir.maxLogStack)
   return (layout, logInverseRate)
 
-/-- Step 4, the table sumcheck at the bus point (`verifier.py:1485-1495`): the claims of the bus
-and of the tables (`tableSumcheck` builds the tables' claims, which the pin builds here). -/
-def tablePhase (layout : Layout) (bus : BusResult) : Prog (List ColumnClaim) := do
+/-- Step 4, the table sumcheck at the bus point (`verifier.py:1485-1491`): each table's point and
+evaluations. -/
+def tablePhase (layout : Layout) (bus : BusResult) : Prog (List (List E × List E)) := do
   let xi ← Prog.sampleE
   let nConstraints := (tables.map Table.nConstraints).sum
   let xiPowers := powers xi (nConstraints + 3)
   let constraintPowers := xiPowers.take nConstraints
   let formPowers := xiPowers.drop nConstraints
   let target := dot formPowers bus.totals
-  let tableClaims ← tableSumcheck layout.tableLogHeights bus.forms constraintPowers formPowers
-    bus.point target
-  return bus.claims ++ tableClaims
+  tableSumcheck layout.tableLogHeights bus.forms constraintPowers formPowers bus.point target
 
 /-- Step 5, binding the public input (`verifier.py:1497-1503`): a challenge, and claims on the
 three memory columns at `(challenge, 0, …, 0)`, each limb's claim the line through that limb of
@@ -1957,30 +1951,15 @@ def publicInputPhase (layout : Layout) (publicInput : Digest) : Prog (List Colum
   return List.zipWith (fun column value ↦ ⟨column, publicPoint, value⟩)
     [memory0, memory1, memory2] publicLimbs
 
-/-- Step 6, `KECCAK`'s validity (`verifier.py:1505-1509`): the table's claims on its output lanes,
-one per lane, in lane order and all at one point, leave the batch and are the Keccak reduction's
-claim on the permutation's output; the reduction's column claims join the batch. The claims left,
-and the point and slices of `q_keccak` the reduction leaves for ring switching.
-
-This takes the output lanes' claims out of the list and checks that there is one per lane, in lane
-order, all at one point (every lane's point is the first's, the lanes being nonempty by the first
-check). The pin instead reads the `KECCAK` table's point and
-`values[KECCAK_OUT : KECCAK_OUT + STATE_LANES]` off the table sumcheck's result, keeps the lanes'
-claims in the list, and drops them at the opening (`ColumnClaim.on_stack` is `None` for them,
-`verifier.py:1517-1518`). The two are the same verifier: the claims reaching this step are the
-bus's (on the five framework columns), the tables' (one per column, a table's all at its point,
-in column order) and the public input's (on the memory columns), so the check holds of every
-run, the lanes are exactly the `KECCAK` table's output-lane claims, at its point, with the values
-the pin passes, and the claims left are, in order, those whose stack claims the pin opens. -/
-def keccakPhase (layout : Layout) (claims : List ColumnClaim) :
-    Prog (List ColumnClaim × List E × List E) := do
-  let lanes := claims.filter fun c ↦ c.column ∈ keccakOutputColumns
-  Prog.require (lanes.map (·.column) = keccakOutputColumns ∧
-    ∀ c ∈ lanes, c.point = (lanes.headD default).point)
-  let claims := claims.filter fun c ↦ c.column ∉ keccakOutputColumns
-  let (outputs, point, slices) ← verifyKeccak (layout.tableLogHeights.getD opKeccak 0)
-    (lanes.headD default).point (lanes.map (·.value))
-  return (claims ++ outputs, point, slices)
+/-- Step 6, `KECCAK`'s validity (`verifier.py:1505-1509`): the `KECCAK` table's point and its
+output lanes' evaluations, `values[KECCAK_OUT : KECCAK_OUT + STATE_LANES]`, are the Keccak
+reduction's claim on the permutation's output. The reduction's column claims, and the point and
+slices of `q_keccak` it leaves for ring switching. -/
+def keccakPhase (layout : Layout) (evaluations : List (List E × List E)) :
+    Prog (List ColumnClaim × List E × List E) :=
+  let (point, values) := evaluations.getD opKeccak ([], [])
+  verifyKeccak (layout.tableLogHeights.getD opKeccak 0) point
+    (keccakOutputs.map fun name ↦ values.getD (colIdx keccakColumns name) 0)
 
 /-- Step 7's ring-switching claim on the stack: supported on `q_keccak`'s region, its weight
 carries the placement's selector (`verifier.py:1514-1516`). -/
@@ -1998,17 +1977,20 @@ def verifyExecution (ev : List K → List E → Prog E) (bytecode : List K) (pub
   commitStack layout.stackLog logInverseRate
   -- 3] the bus
   let bus ← verifyBusBalance ev layout
-  -- 4] the table sumcheck
-  let claims ← tablePhase layout bus
+  -- 4] the table sumcheck, and the tables' column claims
+  let evaluations ← tablePhase layout bus
+  let claims := bus.claims ++ (globalColumnBases.zip evaluations).flatMap fun (base, point, values) ↦
+    values.zipIdx.map fun (value, column) ↦ ⟨base + column, point, value⟩
   -- 5] the public input
   let publicClaims ← publicInputPhase layout publicInput
   let claims := claims ++ publicClaims
   -- 6] KECCAK validity, by GKR over the rounds
-  let (claims, keccakPoint, keccakSlices) ← keccakPhase layout claims
-  -- 7] ring switching, then one opening of the stack for every claim
+  let (outputs, keccakPoint, keccakSlices) ← keccakPhase layout evaluations
+  let claims := claims ++ outputs
+  -- 7] ring switching, then one opening of the stack for every claim with a placement
   let (ringTarget, ringWeight) ← ringSwitch keccakPoint keccakSlices
   verifyStackedOpening layout.stackLog logInverseRate
-    (ringSwitchClaim layout ringTarget ringWeight :: claims.map (·.onStack layout))
+    (ringSwitchClaim layout ringTarget ringWeight :: claims.filterMap (·.onStack layout))
 
 /-! ### The fixed polynomial's value -/
 

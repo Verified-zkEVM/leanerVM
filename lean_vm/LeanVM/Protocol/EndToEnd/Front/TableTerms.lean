@@ -7,6 +7,7 @@
 
 module
 
+public import LeanVM.Protocol.Verifier.Claims
 public import LeanVM.Protocol.EndToEnd.Front.BusSpec
 public import LeanVM.Protocol.Verifier
 
@@ -63,7 +64,7 @@ noncomputable def tableTermsSpec {T : ℝ≥0∞} (hT : T ≤ εmax) (P : List E
     (hP : ∀ h x, P h → P (h ++ [Ev.read x])) (cps fps point : List E) :
     (rows : List (Table × ℕ × List Form × E)) → (∀ r ∈ rows, 0 < r.1.width) →
       (cursor : ℕ) → (final : E) → (claims : List Verifier.ColumnClaim) →
-      Spec (tableTerms cps fps point rows cursor final claims) P
+      Spec (tableTermsClaims cps fps point rows cursor final claims) P
         (fun r h ↦ ∃ evs, ReadShape rows evs ∧
           r = pyTableTerms cps fps point rows evs cursor final claims ∧ P h) εmax
         (rowsLead rows T) T
@@ -75,13 +76,13 @@ noncomputable def tableTermsSpec {T : ℝ≥0∞} (hT : T ≤ εmax) (P : List E
     have hw0 : 0 < table.width := hw _ List.mem_cons_self
     Spec.congr (show (do
         let evaluations ← Prog.readN (table.width - 1 + 1)
-        tableTerms cps fps point rest (cursor + table.nConstraints)
+        tableTermsClaims cps fps point rest (cursor + table.nConstraints)
           (final + weight * (dot ((cps.drop cursor).take table.nConstraints)
             (table.constraints evaluations) +
             dot fps (forms.map (·.evaluate (evaluations.getD · 0)))))
           (claims ++ evaluations.zipIdx.map fun (value, column) ↦
             ⟨globalColumnBases.getD table.opcode 0 + column, point.take height, value⟩)) =
-        tableTerms cps fps point ((table, height, forms, weight) :: rest) cursor final claims by
+        tableTermsClaims cps fps point ((table, height, forms, weight) :: rest) cursor final claims by
       rw [Nat.sub_add_cancel hw0]
       rfl)
       ((readNSuccSpec P hP (le_trans (rowsLead_le rest T) hT) (table.width - 1)).bind'

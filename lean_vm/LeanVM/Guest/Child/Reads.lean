@@ -8,6 +8,7 @@
 
 module
 
+public import LeanVM.Protocol.Verifier.Claims
 public import LeanVM.Protocol.Verifier.Cost
 public import Statement.LeanVmGuest
 
@@ -371,7 +372,7 @@ theorem reads_verifyBusBalance_le {ev : (List K → List E → Prog E)} (hev : R
 theorem reads_tableTerms (constraintPowers formPowers point : List E) :
     ∀ (rows : List (Table × ℕ × List Form × E)) (cursor : ℕ) (final : E)
       (claims : List ColumnClaim), ClaimsShort claims → (∀ r ∈ rows, r.2.1 ≤ 32) →
-      Reads (tableTerms constraintPowers formPowers point rows cursor final claims)
+      Reads (tableTermsClaims constraintPowers formPowers point rows cursor final claims)
         (rows.map (·.1.width)).sum fun r ↦ ClaimsShort r.2
   | [], _, _, claims, hc, _ => hc
   | (table, h, forms, weight) :: rest, cursor, final, claims, hc, hh => by
@@ -399,7 +400,7 @@ private theorem foldl_max_le' (M : ℕ) : ∀ (l : List ℕ) (acc : ℕ), acc �
 theorem reads_tableSumcheck (heights : List ℕ) (busForms : List (List Form))
     (constraintPowers formPowers equalityPoint : List E) (target : E)
     (hh : ∀ h ∈ heights, h ≤ 32) :
-    Reads (tableSumcheck heights busForms constraintPowers formPowers equalityPoint target)
+    Reads (tableSumcheckClaims heights busForms constraintPowers formPowers equalityPoint target)
       (32 * 3 + tableWidthSum) fun cl ↦ ClaimsShort cl := by
   have hmax := foldl_max_le' 32 heights 0 (Nat.zero_le _) hh
   refine Reads.seq (reads_sumcheck _ _ _) (fun r _ ↦ ?_) ?_
@@ -422,7 +423,7 @@ theorem reads_tableSumcheck (heights : List ℕ) (busForms : List (List Form))
 
 theorem reads_tablePhase {layout : Layout} (hl : LayoutBounds layout) (bus : BusResult)
     (hbus : ClaimsShort bus.claims) :
-    Reads (tablePhase layout bus) (32 * 3 + tableWidthSum) fun cl ↦ ClaimsShort cl :=
+    Reads (tablePhaseClaims layout bus) (32 * 3 + tableWidthSum) fun cl ↦ ClaimsShort cl :=
   Reads.seq Reads.sampleE (fun _ _ ↦ Reads.seq
     (reads_tableSumcheck _ _ _ _ _ _ hl.heights_le) (fun cl hcl ↦ by
       intro c hc hcol
@@ -532,7 +533,7 @@ theorem reads_verifyKeccak (logSteps : ℕ) (inst output : List E) (hi : inst.le
 
 theorem reads_keccakPhase (layout : Layout) (claims : List ColumnClaim)
     (hc : ClaimsShort claims) :
-    Reads (keccakPhase layout claims) (keccakReads 29) fun _ ↦ True := by
+    Reads (keccakPhaseClaims layout claims) (keccakReads 29) fun _ ↦ True := by
   exact Reads.seq (Reads.require (n := 0) _) (fun _ _ ↦ Reads.seq
     (reads_verifyKeccak _ _ _ (headD_filter_short claims hc)) (fun _ _ ↦ trivial) le_rfl)
     (Nat.zero_le _)
@@ -680,7 +681,7 @@ theorem reads_readSizes (bytecode : List K) : Reads (readSizes bytecode) 8 Sizes
 nothing. -/
 theorem reads_verifyExecution {ev : (List K → List E → Prog E)} (hev : ReadsNothing ev) (bytecode : List K)
     (publicInput : Digest) :
-    Reads (verifyExecution ev bytecode publicInput) childReads fun _ ↦ True := by
+    Reads (verifyExecutionClaims ev bytecode publicInput) childReads fun _ ↦ True := by
   unfold childReads
   refine Reads.seq (reads_readSizes bytecode) (fun p hp ↦ ?_) (by omega)
   obtain ⟨layout, logInverseRate⟩ := p
@@ -709,8 +710,9 @@ theorem childReads_le : childReads ≤ LeanVM.Guest.Hints.streamCap := by decide
 theorem stream_le_of_verifyDeferred {bytecode : List K} {iv publicInput : Digest}
     {c : FixedClaims} {π : Proof} (h : verifyDeferred bytecode iv publicInput c π = true) :
     π.stream.length ≤ LeanVM.Guest.Hints.streamCap := by
-  have hP : Reads (deferredProgram c bytecode publicInput) childReads fun _ ↦ True :=
-    Reads.seq (reads_verifyExecution (readsNothing_claimed c) bytecode publicInput)
+  have hP : Reads (deferredProgram c bytecode publicInput) childReads fun _ ↦ True := by
+    rw [deferredProgram_eq]
+    exact Reads.seq (reads_verifyExecution (readsNothing_claimed c) bytecode publicInput)
       (fun _ _ ↦ trivial) le_rfl
   exact (stream_le_of_runProof keccak256 keccakF hP h).trans childReads_le
 

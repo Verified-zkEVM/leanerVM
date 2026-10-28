@@ -7,6 +7,7 @@
 
 module
 
+public import LeanVM.Protocol.Verifier.Claims
 public import LeanVM.Guest.B1.Terminal.Interface
 
 /-!
@@ -103,7 +104,7 @@ theorem stack_dot (R wo lam : E) (Ws : List E) :
   ring
 
 /-- A pooled claim's weight on the stack at `x`. -/
-def wOf (layout : Layout) (x : List E) (c : ColumnClaim) : E := (c.onStack layout).1 x
+def wOf (layout : Layout) (x : List E) (c : ColumnClaim) : E := (c.stackClaim layout).1 x
 
 /-- **The batched weight, as the guest sums it.** -/
 theorem stackWeight_eq (layout : Layout) {claims : List ColumnClaim} (out : ColumnClaim)
@@ -130,7 +131,7 @@ theorem stackWeight_eq (layout : Layout) {claims : List ColumnClaim} (out : Colu
     simp only [P]
     rw [hcol i (by have := List.mem_range.mp hi; omega)]
   have hmap : (ringSwitchClaim layout 0 (fun rP ↦ ringWeight ringPoint rP coeffs) ::
-      (openedClaims claims [out]).map (·.onStack layout)).map (fun c ↦ c.1 x) =
+      (openedClaims claims [out]).map (·.stackClaim layout)).map (fun c ↦ c.1 x) =
       (ringSwitchClaim layout 0 (fun rP ↦ ringWeight ringPoint rP coeffs)).1 x ::
         ((claims.filter P).map (wOf layout x) ++ [wOf layout x out]) := by
     simp [openedClaims, wOf, P]

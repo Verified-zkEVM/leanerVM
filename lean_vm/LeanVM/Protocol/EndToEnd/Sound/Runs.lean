@@ -8,6 +8,7 @@
 
 module
 
+public import LeanVM.Protocol.Verifier.Claims
 public import LeanVM.Protocol.Compile.Rom.Sound
 public import LeanVM.Protocol.EndToEnd.Sound.Frame
 
@@ -137,7 +138,7 @@ theorem readSizes_ne_ret (bytecode : List K) (a : Layout × ℕ) : readSizes byt
 
 /-- `verify_execution` does not return without an event. -/
 theorem verifyExecution_ne_ret (bytecode : List K) (publicInput : Digest) (u : Unit) :
-    verifyExecution computedValue bytecode publicInput ≠ .ret u := by
+    verifyExecutionClaims computedValue bytecode publicInput ≠ .ret u := by
   intro h
   obtain ⟨a, ha, -⟩ := bind_eq_ret_iff h
   exact readSizes_ne_ret bytecode a ha

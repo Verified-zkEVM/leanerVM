@@ -7,6 +7,7 @@
 
 module
 
+public import LeanVM.Protocol.Verifier.Claims
 public import LeanVM.Guest.B1.VerifySub.Always
 
 /-!
@@ -73,11 +74,11 @@ theorem always_tableTerms (cP fP point : List E) (hK : ℕ) :
     ∀ (rows : List (Table × ℕ × List Form × E)) (cursor : ℕ) (final : E)
       (claims : List ColumnClaim), RowsOk rows hK →
       (∀ c ∈ claims, c.column ∈ keccakOutputColumns → c.point = point.take hK) →
-      Always (tableTerms cP fP point rows cursor final claims)
+      Always (tableTermsClaims cP fP point rows cursor final claims)
         fun r ↦ ∀ c ∈ r.2, c.column ∈ keccakOutputColumns → c.point = point.take hK
   | [], _, _, _, _, hc => hc
   | (table, height, forms, weight) :: rest, cursor, final, claims, hrows, hc => by
-    unfold tableTerms
+    unfold tableTermsClaims
     simp only [Prog.bind_eq]
     refine Always.bind (fun evs hevs ↦ ?_) _ (always_readN table.width)
     refine always_tableTerms cP fP point hK rest _ _ _
@@ -94,10 +95,10 @@ theorem always_tableTerms (cP fP point : List E) (hK : ℕ) :
 
 theorem always_tableSumcheck (heights : List ℕ) (busForms : List (List Form))
     (cP fP eqPt : List E) (target : E) :
-    Always (tableSumcheck heights busForms cP fP eqPt target) fun claims ↦
+    Always (tableSumcheckClaims heights busForms cP fP eqPt target) fun claims ↦
       ∃ pt : List E, pt.length = heights.foldl max 0 ∧
         ∀ c ∈ claims, c.column ∈ keccakOutputColumns → c.point = pt.take (heights.getD opKeccak 0) := by
-  unfold tableSumcheck
+  unfold tableSumcheckClaims
   simp only [Prog.bind_eq]
   refine Always.bind (fun r hr ↦ ?_) _ (always_sumcheck 4 _ target)
   obtain ⟨chs, cl⟩ := r
@@ -133,11 +134,11 @@ theorem always_busRest (ev : (List K → List E → Prog E)) (L : Layout) (alpha
 
 theorem always_tablePhase (L : Layout) (bus : BusResult)
     (hb : ∀ c ∈ bus.claims, c.column ∉ keccakOutputColumns) :
-    Always (tablePhase L bus) fun claims ↦
+    Always (tablePhaseClaims L bus) fun claims ↦
       ∃ pt : List E, pt.length = L.tableLogHeights.foldl max 0 ∧
         ∀ c ∈ claims, c.column ∈ keccakOutputColumns →
           c.point = pt.take (L.tableLogHeights.getD opKeccak 0) := by
-  unfold tablePhase
+  unfold tablePhaseClaims
   simp only [Prog.bind_eq]
   refine Always.bind (fun xi _ ↦ ?_) _ (always_true _)
   refine Always.bind (fun cl hcl ↦ ?_) _ (always_tableSumcheck _ _ _ _ _ _)

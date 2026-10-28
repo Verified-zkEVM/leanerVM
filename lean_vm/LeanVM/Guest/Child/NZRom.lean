@@ -60,11 +60,10 @@ theorem zeroPot_append_inl (ℓ : Log) (p : Bytes × Digest) : zeroPot (ℓ ++ [
 /-- The challenge of a uniform state is zero with probability `2^-192`. -/
 theorem sum_challengeOf_zero :
     (∑ u : KState, ind (challengeOf u = 0)) / Fintype.card KState = (2 : ℝ≥0∞)⁻¹ ^ 192 := by
-  rw [sum_challengeOf_div (fun c ↦ ind (c = 0)), card_E]
-  have h1 : (∑ c : E, ind (c = 0)) = 1 := by
-    rw [Finset.sum_eq_single (0 : E) (fun b _ hb ↦ by simp [ind, hb]) (by simp)]
-    simp [ind]
-  rw [h1, Nat.cast_pow, Nat.cast_ofNat, one_div, ENNReal.inv_pow]
+  rw [sum_challengeOf_div (fun c ↦ ind (c = 0)), card_E,
+    Finset.sum_eq_single (0 : E) (fun b _ hb ↦ by simp [ind, hb]) (by simp)]
+  simp only [ind, ↓reduceIte]
+  rw [Nat.cast_pow, Nat.cast_ofNat, one_div, ENNReal.inv_pow]
 
 /-- **The zero-challenge potential's step**: a fresh permutation query raises it by at most
 `2^-192` in expectation. -/
@@ -290,18 +289,21 @@ theorem romCompleteNZ (P P' : Prog Bool) (hNZ : NZ P' P) (S : Strategy) (σ : Se
 def nzProgram (bytecode : List K) (publicInput : Digest) : Prog Bool :=
   (execWith computedValue Limits.verifyStackedOpeningNZ bytecode publicInput).bind fun _ ↦ Prog.ret true
 
-theorem leanVmProgram_eq (bytecode : List K) (publicInput : Digest) :
+theorem leanVmProgram_execWith (bytecode : List K) (publicInput : Digest) :
     leanVmProgram bytecode publicInput =
-      (execWith computedValue verifyStackedOpening bytecode publicInput).bind fun _ ↦ Prog.ret true :=
+      (execWith computedValue verifyStackedOpening bytecode publicInput).bind fun _ ↦ Prog.ret true := by
+  rw [Verifier.leanVmProgram_eq]
   rfl
 
 theorem nz_nzProgram (bytecode : List K) (publicInput : Digest) :
-    NZ (nzProgram bytecode publicInput) (leanVmProgram bytecode publicInput) :=
-  nz_program computedValue bytecode publicInput
+    NZ (nzProgram bytecode publicInput) (leanVmProgram bytecode publicInput) := by
+  rw [leanVmProgram_execWith]
+  exact nz_program computedValue bytecode publicInput
 
 /-- The program refusing zero challenges only fails more. -/
 theorem refines_nzProgram (bytecode : List K) (publicInput : Digest) :
     Limits.Refines (nzProgram bytecode publicInput) (leanVmProgram bytecode publicInput) := by
+  rw [leanVmProgram_execWith]
   refine Limits.Refines.bind ?_ fun _ ↦ Limits.Refines.refl _
   unfold execWith
   refine Limits.Refines.bind (Limits.Refines.refl _) fun ls ↦ ?_

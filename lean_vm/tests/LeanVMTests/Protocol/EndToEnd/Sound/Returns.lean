@@ -1,3 +1,4 @@
+import LeanVM.Protocol.Verifier.Claims
 import LeanVM.Protocol.EndToEnd.Sound.Returns
 
 /-!
@@ -20,7 +21,7 @@ open LeanVM.Protocol.EndToEnd.Sound
 example (layout : LeanVM.Protocol.Verifier.Layout) :
     RetOK (fun claims : List LeanVM.Protocol.Verifier.ColumnClaim ↦ claims.length ≤ 545)
       ((LeanVM.Protocol.Verifier.verifyBusBalance LeanVM.Protocol.Verifier.computedValue layout).bind
-        (LeanVM.Protocol.Verifier.tablePhase layout)) :=
+        (LeanVM.Protocol.Verifier.tablePhaseClaims layout)) :=
   retOK_busTable layout
 
 example (layout : LeanVM.Protocol.Verifier.Layout) (publicInput : Digest) :

@@ -1,3 +1,4 @@
+import LeanVM.Protocol.Verifier.Claims
 import LeanVM.Protocol.EndToEnd.Front.LayoutSizes
 import LeanVM.Protocol.EndToEnd.Front.CommitDoom
 
@@ -95,7 +96,7 @@ example (c : Col) (h : IsOut c) : (verifierLayout prog4 s₂).placements.getD (p
 example (c : Col) (hc : ¬ IsOut c) (z : Vector E (kappa prog4 s₁ c)) (v : E)
     (q : Column (leanIsaμ prog4 s₁)) :
     StackClaim.Holds (leanIsaμ prog4 s₁)
-        ((⟨pyCol c, z.toList, v⟩ : Verifier.ColumnClaim).onStack (verifierLayout prog4 s₁)) q ↔
+        ((⟨pyCol c, z.toList, v⟩ : Verifier.ColumnClaim).stackClaim (verifierLayout prog4 s₁)) q ↔
       (⟨c, z, v⟩ : LeanVM.Protocol.ColumnClaim (leanIsaInstance prog4 s₁)).Holds q :=
   onStack_holds_iff prog4 s₁ c hc z v q
 

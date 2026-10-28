@@ -7,6 +7,7 @@
 
 module
 
+public import LeanVM.Protocol.Verifier.Claims
 public import LeanVM.Guest.B1.Tables.Vt.SpecWeights
 public import LeanVM.Guest.B1.Gkr.Spec
 public import LeanVM.Protocol.EndToEnd.Complete.Table
@@ -46,11 +47,11 @@ theorem vt_absorbAll_append (s : Fs) (a b : List E) (t : ℕ) :
 theorem vt_runsTo_tableTerms (cp fp point : List E) :
     ∀ (pairs : List ((Table × ℕ × List Form × E) × List E)) (cursor : ℕ) (final : E)
       (claims : List ColumnClaim) (s : Fs), (∀ p ∈ pairs, p.2.length = p.1.1.width) →
-      RunsTo (tableTerms cp fp point (pairs.map (·.1)) cursor final claims) s
+      RunsTo (tableTermsClaims cp fp point (pairs.map (·.1)) cursor final claims) s
         (pairs.flatMap (·.2)) (termsPure cp fp point pairs cursor final claims)
         (s.absorbAll (pairs.flatMap (·.2)) dsObserve)
   | [], cursor, final, claims, s, _ => by
-    simp only [List.map_nil, tableTerms, List.flatMap_nil, termsPure]
+    simp only [List.map_nil, tableTermsClaims, List.flatMap_nil, termsPure]
     exact runsTo_ret _ _
   | ((table, height, forms, weight), ev) :: rest, cursor, final, claims, s, h => by
     have hev : ev.length = table.width := h ((table, height, forms, weight), ev) (by simp)
@@ -62,13 +63,13 @@ theorem vt_runsTo_tableTerms (cp fp point : List E) :
       (s.absorbAll ev dsObserve) fun p hp ↦ h p (by simp [hp])
     have hr := runsTo_readN s ev
     rw [hev] at hr
-    have hb := hr.bind (f := fun evaluations ↦ tableTerms cp fp point (rest.map (·.1))
+    have hb := hr.bind (f := fun evaluations ↦ tableTermsClaims cp fp point (rest.map (·.1))
       (cursor + table.nConstraints)
       (final + weight * (dot ((cp.drop cursor).take table.nConstraints)
         (table.constraints evaluations) + dot fp (forms.map (·.evaluate (evaluations.getD · 0)))))
       (claims ++ evaluations.zipIdx.map fun (value, column) ↦
         ⟨globalColumnBases.getD table.opcode 0 + column, point.take height, value⟩)) ih
-    simp only [List.map_cons, tableTerms, List.flatMap_cons, termsPure]
+    simp only [List.map_cons, tableTermsClaims, List.flatMap_cons, termsPure]
     rw [vt_absorbAll_append]
     exact hb
 

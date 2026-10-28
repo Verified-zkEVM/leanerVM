@@ -7,6 +7,7 @@
 
 module
 
+public import LeanVM.Protocol.Verifier.Claims
 public import LeanVM.Guest.B1.VerifySub.Back
 public import LeanVM.Guest.B1.VerifySub.Body
 public import LeanVM.Guest.B1.VerifySub.Stack
@@ -56,7 +57,7 @@ theorem vsWords_eq {bytecode : List K} {C : CallRel} {rd : Reader} {σ : Val}
 theorem stackClaims_values (L : Layout) (claims : List ColumnClaim) (out : ColumnClaim)
     (rp sl chs : List E) : (stackClaims L claims [out] rp sl chs).map (·.2) =
       polyEval (sl.map (phiMap · chs)) gen :: ((notLanes claims).map (·.value) ++ [out.value]) := by
-  simp [stackClaims, ringSwitchClaim, ColumnClaim.onStack, notLanes]
+  simp [stackClaims, ringSwitchClaim, ColumnClaim.stackClaim, notLanes]
 
 theorem stackClaims_length (L : Layout) (claims : List ColumnClaim) (out : ColumnClaim)
     (rp sl chs : List E) :

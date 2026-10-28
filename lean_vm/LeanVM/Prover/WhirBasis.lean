@@ -7,6 +7,7 @@
 
 module
 
+public import LeanVM.Protocol.Verifier.Claims
 public import LeanVM.Prover.WhirTables
 public import LeanVM.Protocol.EndToEnd.Front.RingFidelity
 
@@ -122,7 +123,7 @@ theorem onStack_boolPoint {layout : Layout} {c : ColumnClaim} {μ y : ℕ}
     (hlow : (layout.placement c.column).low = 0)
     (hlen : c.point.length = (layout.placement c.column).vars)
     (hv : (layout.placement c.column).vars ≤ μ) (hμ : layout.stackLog = μ) (hy : y < 2 ^ μ) :
-    (c.onStack layout).1 (boolPoint μ y) =
+    (c.stackClaim layout).1 (boolPoint μ y) =
       if blockOff μ (layout.placement c.column).vars (layout.placement c.column).index ≤ y ∧
           y < blockOff μ (layout.placement c.column).vars (layout.placement c.column).index +
             2 ^ (layout.placement c.column).vars then
@@ -131,7 +132,7 @@ theorem onStack_boolPoint {layout : Layout} {c : ColumnClaim} {μ y : ℕ}
       else 0 := by
   set pl := layout.placement c.column with hpl
   rw [← block_ite pl.index (fun j ↦ (eqKernel c.point).getD j 0)]
-  simp only [ColumnClaim.onStack, Placement.stackPoint, ← hpl, hlow, hμ, List.take_zero,
+  simp only [ColumnClaim.stackClaim, Placement.stackPoint, ← hpl, hlow, hμ, List.take_zero,
     List.nil_append, zero_add, Front.selectorPoint_eq_boolPoint, Front.drop_boolPoint]
   rw [boolPoint_split hv y, eqEval_append _ _ _ _ (by rw [hlen, length_boolPoint]),
     eqEval_selector hv hy, eqKernel_getD_eqAt _ (by rw [hlen]; exact Nat.mod_lt _ (by positivity)),
@@ -184,7 +185,10 @@ theorem addClaim_spec {μ : ℕ} (s : E) (d : ClaimDesc) (acc : Array E) (hs : a
       obtain ⟨h1, h2⟩ := addSlice_spec (blockOff μ (layout.placement c.column).vars
         (layout.placement c.column).index) (eqKernelA c.point) s (eqKernelA c.point).size acc
       refine ⟨by rw [h1, hs], fun y hy ↦ ?_⟩
-      rw [h2 y (by rw [hs]; exact hy), ClaimDesc.denote, onStack_boolPoint hlow hlen hv hμ hy,
+      rw [h2 y (by rw [hs]; exact hy), ClaimDesc.denote,
+        show (fun x ↦ eqEval ((layout.placement c.column).stackPoint c.point layout.stackLog) x,
+          c.value).1 (boolPoint μ y) = (c.stackClaim layout).1 (boolPoint μ y) from rfl,
+        onStack_boolPoint hlow hlen hv hμ hy,
         size_eqKernelA, hlen, mul_ite, mul_zero, eqKernelA_getD]
     · obtain ⟨h1, h2⟩ := addFull_spec μ (ClaimDesc.column layout c).denote.1 s acc
       exact ⟨by rw [h1, hs], fun y hy ↦ h2 y (by rw [hs]; exact hy)⟩

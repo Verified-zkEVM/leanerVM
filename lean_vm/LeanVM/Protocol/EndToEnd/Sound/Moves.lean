@@ -8,6 +8,7 @@
 
 module
 
+public import LeanVM.Protocol.Verifier.Claims
 public import LeanVM.Protocol.Compile.Spec
 public import LeanVM.Protocol.Verifier
 
@@ -316,7 +317,7 @@ theorem movesOK_tableTerms (constraintPowers formPowers point : List E) :
     ∀ (rows : List (Table × ℕ × List Form × E)) (cursor : ℕ) (final : E)
       (claims : List ColumnClaim),
       MovesOK (fun _ ↦ False) False
-        (tableTerms constraintPowers formPowers point rows cursor final claims)
+        (tableTermsClaims constraintPowers formPowers point rows cursor final claims)
   | [], _, _, _ => MovesOK.pure _
   | (_, _, _, _) :: rest, _, _, _ =>
     MovesOK.seq (MovesOK.readN _) fun _ ↦
@@ -326,7 +327,7 @@ theorem movesOK_tableTerms (constraintPowers formPowers point : List E) :
 theorem movesOK_tableSumcheck (heights : List ℕ) (busForms : List (List Form))
     (constraintPowers formPowers equalityPoint : List E) (target : E) :
     MovesOK (fun _ ↦ False) False
-      (tableSumcheck heights busForms constraintPowers formPowers equalityPoint target) := by
+      (tableSumcheckClaims heights busForms constraintPowers formPowers equalityPoint target) := by
   refine MovesOK.seq (movesOK_sumcheck _ _ _) fun r ↦ ?_
   obtain ⟨challenges, claim⟩ := r
   refine MovesOK.seq (movesOK_tableTerms _ _ _ _ 0 0 []) fun r ↦ ?_
@@ -335,7 +336,7 @@ theorem movesOK_tableSumcheck (heights : List ℕ) (busForms : List (List Form))
 
 /-- The table phase makes no prover move other than reads. -/
 theorem movesOK_tablePhase (layout : Layout) (bus : BusResult) :
-    MovesOK (fun _ ↦ False) False (tablePhase layout bus) :=
+    MovesOK (fun _ ↦ False) False (tablePhaseClaims layout bus) :=
   MovesOK.seq MovesOK.sampleE fun _ ↦ MovesOK.seq (movesOK_tableSumcheck _ _ _ _ _ _) fun _ ↦
     MovesOK.pure _
 
@@ -401,7 +402,7 @@ theorem movesOK_verifyKeccak (logSteps : ℕ) (inst output : List E) :
 
 /-- The Keccak phase makes no prover move other than reads. -/
 theorem movesOK_keccakPhase (layout : Layout) (claims : List ColumnClaim) :
-    MovesOK (fun _ ↦ False) False (keccakPhase layout claims) :=
+    MovesOK (fun _ ↦ False) False (keccakPhaseClaims layout claims) :=
   MovesOK.seq (MovesOK.require _) fun _ ↦ MovesOK.seq (movesOK_verifyKeccak _ _ _) fun r ↦ by
     obtain ⟨outputs, point, slices⟩ := r
     exact MovesOK.pure _
@@ -499,7 +500,7 @@ theorem movesOK_verifyStackedOpening (stackLog logInvRate : ℕ) (claims : List 
 
 /-- `verify_execution`: commitments, and proofs of work of `Whir.queryGrindingBits` bits. -/
 theorem movesOK_verifyExecution (bytecode : List K) (publicInput : Digest) :
-    MovesOK (· = Whir.queryGrindingBits) True (verifyExecution computedValue bytecode publicInput) := by
+    MovesOK (· = Whir.queryGrindingBits) True (verifyExecutionClaims computedValue bytecode publicInput) := by
   refine MovesOK.seq (MovesOK.of_none (movesOK_readSizes bytecode)) fun p ↦ ?_
   obtain ⟨layout, logInverseRate⟩ := p
   refine MovesOK.seq ((movesOK_commitStack _ _).mono (fun _ h ↦ h.elim) id) fun _ ↦
@@ -517,8 +518,9 @@ end Phases
 /-- **The leanVM verifier program**: its commitments, and proofs of work of
 `Whir.queryGrindingBits = 17` bits. -/
 theorem movesOK_leanVmProgram (bytecode : List K) (publicInput : Digest) :
-    MovesOK (· = Whir.queryGrindingBits) True (leanVmProgram bytecode publicInput) :=
-  MovesOK.seq (movesOK_verifyExecution bytecode publicInput) fun _ ↦ MovesOK.pure _
+    MovesOK (· = Whir.queryGrindingBits) True (leanVmProgram bytecode publicInput) := by
+  rw [leanVmProgram_eq]
+  exact MovesOK.seq (movesOK_verifyExecution bytecode publicInput) fun _ ↦ MovesOK.pure _
 
 /-- **Every reachable history of the leanVM verifier ends with a proof of work of at most 64
 bits.** -/

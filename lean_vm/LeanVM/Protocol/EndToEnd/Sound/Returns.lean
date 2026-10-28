@@ -8,6 +8,7 @@
 
 module
 
+public import LeanVM.Protocol.Verifier.Claims
 public import LeanVM.Protocol.Compile.SpecRules.Basic
 public import LeanVM.Protocol.Verifier.Cost
 
@@ -118,7 +119,7 @@ theorem retOK_tableTerms (constraintPowers formPowers point : List E) (w : ℕ) 
     ∀ (rows : List (Table × ℕ × List Form × E)) (cursor : ℕ) (final : E)
       (claims : List ColumnClaim), (∀ r ∈ rows, r.1.width ≤ w) →
       RetOK (fun r : E × List ColumnClaim ↦ r.2.length ≤ claims.length + rows.length * w)
-        (tableTerms constraintPowers formPowers point rows cursor final claims)
+        (tableTermsClaims constraintPowers formPowers point rows cursor final claims)
   | [], _, _, _, _ => RetOK.ret (by simp)
   | (table, h, forms, weight) :: rest, cursor, final, claims, hw => by
     have h0 := hw _ List.mem_cons_self
@@ -136,8 +137,8 @@ theorem tables_width_le : ∀ t ∈ tables, t.width ≤ 90 := by decide +kernel
 theorem retOK_tableSumcheck (heights : List ℕ) (busForms : List (List Form))
     (constraintPowers formPowers equalityPoint : List E) (target : E) :
     RetOK (fun claims : List ColumnClaim ↦ claims.length ≤ 6 * 90)
-      (tableSumcheck heights busForms constraintPowers formPowers equalityPoint target) := by
-  unfold tableSumcheck
+      (tableSumcheckClaims heights busForms constraintPowers formPowers equalityPoint target) := by
+  unfold tableSumcheckClaims
   refine RetOK.bind_true fun r ↦ ?_
   obtain ⟨challenges, claim⟩ := r
   have hrows : ∀ r ∈ List.zip tables (List.zip heights (List.zip busForms
@@ -157,8 +158,8 @@ theorem retOK_tableSumcheck (heights : List ℕ) (busForms : List (List Form))
 /-- The table phase returns the bus's claims and at most `6 · 90` more. -/
 theorem retOK_tablePhase (layout : Layout) (bus : BusResult) :
     RetOK (fun claims : List ColumnClaim ↦ claims.length ≤ bus.claims.length + 6 * 90)
-      (tablePhase layout bus) := by
-  unfold tablePhase
+      (tablePhaseClaims layout bus) := by
+  unfold tablePhaseClaims
   refine RetOK.bind_true fun _ ↦ (retOK_tableSumcheck _ _ _ _ _ _).bind fun claims hc ↦
     RetOK.ret ?_
   simp only [List.length_append]
@@ -167,7 +168,7 @@ theorem retOK_tablePhase (layout : Layout) (bus : BusResult) :
 /-- The bus phase and the table sumcheck return at most `5 + 6·90` claims. -/
 theorem retOK_busTable (layout : Layout) :
     RetOK (fun claims : List ColumnClaim ↦ claims.length ≤ 545)
-      ((verifyBusBalance computedValue layout).bind (tablePhase layout)) :=
+      ((verifyBusBalance computedValue layout).bind (tablePhaseClaims layout)) :=
   (retOK_verifyBusBalance layout).bind fun bus hb ↦
     (retOK_tablePhase layout bus).mono fun _ h ↦ by omega
 

@@ -8,6 +8,7 @@
 
 module
 
+public import LeanVM.Protocol.Verifier.Claims
 public import LeanVM.Protocol.EndToEnd.Front.LayoutStack
 public import LeanVM.Protocol.LeanIsa.Read
 public import LeanVM.Protocol.Verifier
@@ -618,9 +619,9 @@ the verifier's layout, holds of a stack exactly when the instance's claim on `c`
 theorem onStack_holds_iff (prog : Program) (s : Sizes) (c : Col) (hc : ¬ IsOut c)
     (z : Vector E (kappa prog s c)) (v : E) (q : Column (leanIsaμ prog s)) :
     StackClaim.Holds (leanIsaμ prog s)
-        ((⟨pyCol c, z.toList, v⟩ : Verifier.ColumnClaim).onStack (verifierLayout prog s)) q ↔
+        ((⟨pyCol c, z.toList, v⟩ : Verifier.ColumnClaim).stackClaim (verifierLayout prog s)) q ↔
       (⟨c, z, v⟩ : LeanVM.Protocol.ColumnClaim (leanIsaInstance prog s)).Holds q := by
-  unfold Verifier.ColumnClaim.onStack
+  unfold Verifier.ColumnClaim.stackClaim
   simp only
   rw [stackPoint_eq_extend prog s c hc z, stackClaim_holds_eqEval_iff]
   show _ ↔ eval₂Mle ((leanIsaInstance prog s).column q c).values (algebraMap K E) z = v

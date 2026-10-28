@@ -7,6 +7,7 @@
 
 module
 
+public import LeanVM.Protocol.Verifier.Claims
 public import LeanVM.Protocol.Verifier.Deferred
 
 /-!
@@ -292,9 +293,9 @@ theorem verifyBusBalance_bytecodePoint {c : FixedClaims} {layout : Layout} {b : 
 /-- **The verifier's claims, of the verifier's shapes**: a run of the verifier on the claimed
 evaluator that may return makes claims of the lengths the program fixes. -/
 theorem verifyExecution_shaped {c : FixedClaims} {bytecode : List K} {publicInput : Digest}
-    {u : Unit} (h : Prog.Returns (verifyExecution (claimedValue c) bytecode publicInput) u) :
+    {u : Unit} (h : Prog.Returns (verifyExecutionClaims (claimedValue c) bytecode publicInput) u) :
     c.bytecodePoint.length = Nat.log2 bytecode.length := by
-  unfold verifyExecution at h
+  unfold verifyExecutionClaims at h
   obtain ⟨⟨layout, r⟩, hl, h⟩ := Prog.returns_bind h
   obtain ⟨_, -, h⟩ := Prog.returns_bind h
   obtain ⟨_, hb, -⟩ := Prog.returns_bind h
@@ -307,7 +308,7 @@ theorem verifyDeferred_shaped {bytecode : List K} {iv publicInput : Digest} {c :
     {π : Proof} (h : verifyDeferred bytecode iv publicInput c π = true) :
     c.bytecodePoint.length = Nat.log2 bytecode.length := by
   have hP := Prog.returns_of_runProof keccak256 keccakF h
-  unfold deferredProgram at hP
+  rw [deferredProgram_eq] at hP
   obtain ⟨_, hu, -⟩ := Prog.returns_bind hP
   exact verifyExecution_shaped hu
 
