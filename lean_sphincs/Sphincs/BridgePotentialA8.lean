@@ -295,9 +295,9 @@ theorem revealedContact_split (reveals : List Coordinate)
   · exact Or.inr ⟨index, c, sp, j, a, i, t, hrev, hrec⟩
 
 /-- A near cover whose contact carries its guess record. -/
-def ForestNearRecorded (K : Ctx) (root : Digest) (outcome : Outcome) (reveals : List Coordinate) : Prop :=
+def ForestNearRecorded (K : Ctx) (outcome : Outcome) (reveals : List Coordinate) : Prop :=
   SigningTranscript.Valid outcome.2.1 ∧
-  ∃ digest, cachedDigest s.cache K.p root outcome.1.message outcome.1.signature.randomness = some digest ∧
+  ∃ digest, cachedDigest s.cache K.p outcome.1.message outcome.1.signature.randomness = some digest ∧
     Landed K.p (digestIndex digest) ∧
     (∀ entry ∈ outcome.2.1, ∀ signature, entry.2 = some signature →
       ¬(entry.1 = outcome.1.message ∧ signature.randomness = outcome.1.signature.randomness)) ∧
@@ -308,10 +308,10 @@ def ForestNearRecorded (K : Ctx) (root : Digest) (outcome : Outcome) (reveals : 
 include hprepared in
 /-- **Near covers.** Without a guess record the contact is a payoff event; what remains is a near
 cover with a recorded contact. -/
-theorem forestNear_split (root : Digest) (outcome : Outcome) (reveals : List Coordinate)
-    (h : ForestNear (truncateHash parameterOutput) T s.cache root outcome reveals) :
+theorem forestNear_split (outcome : Outcome) (reveals : List Coordinate)
+    (h : ForestNear (truncateHash parameterOutput) T s.cache outcome reveals) :
     (∃ f, (ctxA parameterOutput fixed highs remaining prepared known ρ).FCT T s f ∧ ¬Ctx.Recd s f) ∨
-      ForestNearRecorded s T (ctxA parameterOutput fixed highs remaining prepared known ρ) root outcome reveals := by
+      ForestNearRecorded s T (ctxA parameterOutput fixed highs remaining prepared known ρ) outcome reveals := by
   obtain ⟨hvalid, digest, hdigest, hland, hunsigned, c, j, i, t, hc, hcov⟩ := h
   rcases fContactAt_split parameterOutput fixed highs remaining prepared hprepared known ρ s T hc with hng | hrec
   · exact Or.inl hng
@@ -328,8 +328,8 @@ theorem badA_split (hfix : tableExtending (knownOf (truncateHash parameterOutput
         RecordedContactAt s T (ctxA parameterOutput fixed highs remaining prepared known ρ) index c sp j a i t) ∨
       ∃ outcome, res = some outcome ∧
         (ForestNearRecorded s T (ctxA parameterOutput fixed highs remaining prepared known ρ)
-            (sampleData parameterOutput fixed highs remaining).root outcome reveals ∨
-          ForestCover (truncateHash parameterOutput) (sampleData parameterOutput fixed highs remaining).root
+            outcome reveals ∨
+          ForestCover (truncateHash parameterOutput)
             outcome reveals s.cache) := by
   set K := ctxA parameterOutput fixed highs remaining prepared known ρ with hK
   have hpay : ∀ P : Prop, (P → Hit K.tg prepared.2 T s ∨ K.WotsBad s ∨ (∃ f, K.FCT T s f ∧ ¬Ctx.Recd s f) ∨
@@ -349,7 +349,7 @@ theorem badA_split (hfix : tableExtending (knownOf (truncateHash parameterOutput
     · exact Or.inr (Or.inl hrec)
   · exact Or.inl (hpay _ (fun h => Or.inr (Or.inr (Or.inr (twoFors_of_contacts parameterOutput fixed highs
       remaining prepared hprepared known ρ s T h)))) htwo)
-  · rcases forestNear_split parameterOutput fixed highs remaining prepared hprepared known ρ s T _ outcome
+  · rcases forestNear_split parameterOutput fixed highs remaining prepared hprepared known ρ s T outcome
       reveals hnear with hng | hrec
     · exact Or.inl (hpay _ (fun h => Or.inr (Or.inr (Or.inl h))) hng)
     · exact Or.inr (Or.inr ⟨outcome, hres, Or.inl hrec⟩)

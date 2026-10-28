@@ -29,8 +29,8 @@ abbrev State := DebtState HashInput HashOutput Coordinate
 noncomputable instance viewInhabited : Inhabited View := ⟨(⟨0, Nat.two_pow_pos _⟩, fun _ => ⟨0, Nat.two_pow_pos _⟩)⟩
 
 omit [Params] in
-theorem payload_pair_injective (root : Digest) {m m' : Message} {ρ ρ' : Randomness}
-    (h : messageDigestPayload root m ρ = messageDigestPayload root m' ρ') : m = m' ∧ ρ = ρ' := by
+theorem payload_pair_injective {m m' : Message} {ρ ρ' : Randomness}
+    (h : messageDigestPayload m ρ = messageDigestPayload m' ρ') : m = m' ∧ ρ = ρ' := by
   have hparts := List.append_inj h (by simp [bytesLE_length])
   exact ⟨bytesLE_injective hparts.1, bytesLE_injective hparts.2⟩
 
@@ -44,7 +44,7 @@ abbrev pblk (p : Pair) : HashInput := blk parameter data p.1 p.2
 omit [Params] in
 theorem pblk_injective {p q : Pair} (h : pblk parameter data p = pblk parameter data q) : p = q := by
   obtain ⟨-, -, hpayload⟩ := tweakableInput_injective h
-  obtain ⟨hm, hρ⟩ := payload_pair_injective data.root hpayload
+  obtain ⟨hm, hρ⟩ := payload_pair_injective hpayload
   exact Prod.ext hm hρ
 
 omit [Params] in
@@ -328,11 +328,13 @@ variable (parameter : PublicParameter) (data : PublicData) (Qtot : ℕ) {A : Typ
   (tg : Targeting HashInput HashOutput Coordinate) (initial : HiddenOutside.Cache HashInput HashOutput)
   (model : HiddenRows.Model HashInput HashOutput A Coordinate)
 
-/-- The final value: a forest cover with no decided hit. -/
-noncomputable def finalValue (R : List Coordinate) (out : Run HashInput Coordinate HiddenBridge.Outcome × State) :
-    ℝ≥0∞ :=
+/-- The final value: a forest cover with no decided hit. The public data is unused (the message
+digest hashes no root); the argument keeps the layer's signatures. -/
+noncomputable def finalValue (parameter : PublicParameter) (_ : PublicData)
+    (tg : Targeting HashInput HashOutput Coordinate) (initial : HiddenOutside.Cache HashInput HashOutput)
+    (R : List Coordinate) (out : Run HashInput Coordinate HiddenBridge.Outcome × State) : ℝ≥0∞ :=
   out.1.1.elim 0 fun outcome =>
-    if HiddenBridge.ForestCover parameter data.root outcome (R ++ out.1.2.1) out.2.cache ∧ ¬Realized tg initial out.2
+    if HiddenBridge.ForestCover parameter outcome (R ++ out.1.2.1) out.2.cache ∧ ¬Realized tg initial out.2
     then 1 else 0
 
 /-- Cached digest entries of every message, plus the remaining budget, stay bounded. -/
@@ -379,15 +381,15 @@ theorem ordinaryStep_extends (x : HashInput) (s : State) :
   intro r hr
   exact extends_costStep model (.inl (.inr (.inl x))) s r (by rw [costStep_ordinary]; exact hr)
 
-theorem forestCover_mono (parameter : PublicParameter) (root : Digest) (outcome : HiddenBridge.Outcome)
+theorem forestCover_mono (parameter : PublicParameter) (outcome : HiddenBridge.Outcome)
     (reveals : List Coordinate) {c c' : QueryCache HashSpec} (h : ∀ x v, c x = some v → c' x = some v)
-    (hc : HiddenBridge.ForestCover parameter root outcome reveals c) :
-    HiddenBridge.ForestCover parameter root outcome reveals c' := by
+    (hc : HiddenBridge.ForestCover parameter outcome reveals c) :
+    HiddenBridge.ForestCover parameter outcome reveals c' := by
   obtain ⟨hvalid, digest, hdig, hrest⟩ := hc
   refine ⟨hvalid, digest, ?_, hrest⟩
   unfold HiddenBridge.cachedDigest at hdig ⊢
   cases h0 : c (tweakableHashInput parameter .message
-      (messageDigestPayload root outcome.1.message outcome.1.signature.randomness)) with
+      (messageDigestPayload outcome.1.message outcome.1.signature.randomness)) with
   | none => rw [h0] at hdig; cases hdig
   | some a =>
       rw [h0] at hdig
@@ -418,7 +420,7 @@ theorem finalValue_presample (y : HashInput) (hk : tg.kind y = .none) (R : List 
       simp only [Option.elim]
       split_ifs with h1 h2
       · exact le_rfl
-      · exact absurd ⟨forestCover_mono parameter data.root outcome _ hgrow h1.1, fun h => h1.2 (hreal.1 h)⟩ h2
+      · exact absurd ⟨forestCover_mono parameter outcome _ hgrow h1.1, fun h => h1.2 (hreal.1 h)⟩ h2
       · exact bot_le
       · exact le_rfl
 

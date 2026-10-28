@@ -38,9 +38,9 @@ variable [Params]
 opening and all other chains are evaluated using the outside function. -/
 noncomputable def publicFinishSign (segment : Segment) (outside : QueryImpl HashSpec Id)
     (secrets : Secrets) (frontier : Digest) (surrogates : Nat → Digest)
-    (seed : MasterSeed) (root : Digest) (message : Message) (randomness : Randomness) : Option Signature :=
+    (seed : MasterSeed) (message : Message) (randomness : Randomness) : Option Signature :=
   let digest := evalWithAnswerFn outside
-    (messageDigest segment.parameter root message randomness : OracleComp HashSpec MessageDigest)
+    (messageDigest segment.parameter message randomness : OracleComp HashSpec MessageDigest)
   let index := digestIndex digest
   let opening := evalWithAnswerFn outside (Seeded.forestOpen segment.parameter index (digestMarks digest) seed :
     OracleComp HashSpec (Coord → CoordOpening))

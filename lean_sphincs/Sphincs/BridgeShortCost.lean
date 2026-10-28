@@ -171,7 +171,7 @@ theorem OnlyC.coordCostSource (data : PublicData) (index : Index) (c : Coord) (m
 theorem OnlyC.finishCostSource (parameter : PublicParameter) (data : PublicData) (message : Message)
     (randomness : Randomness) : OnlyC (GraphView.finishCostSource parameter data message randomness) := by
   unfold GraphView.finishCostSource
-  refine OnlyC.bind (OnlyC.liftHash (Short.Only.messageDigest _ _ _ _)) (fun digest => ?_)
+  refine OnlyC.bind (OnlyC.liftHash (Short.Only.messageDigest _ _ _)) (fun digest => ?_)
   refine OnlyC.bind (OnlyC.tick _) (fun _ => ?_)
   refine OnlyC.bind (OnlyC.liftHash (Only.search _ _ _ _ _ _ _)) (fun found => ?_)
   rcases found with _ | ⟨counter, word⟩
@@ -186,7 +186,7 @@ theorem OnlyC.signCostSourceLoop (parameter : PublicParameter) (data : PublicDat
   | 0, _ => OnlyC.pure' _
   | attempts + 1, randomness => by
       rw [GraphView.signCostSourceLoop]
-      refine OnlyC.bind (OnlyC.liftHash (Short.Only.messageDigestCall _ _ _ _)) (fun first => ?_)
+      refine OnlyC.bind (OnlyC.liftHash (Short.Only.messageDigestCall _ _ _)) (fun first => ?_)
       split
       · exact OnlyC.finishCostSource _ _ _ _
       · exact OnlyC.signCostSourceLoop parameter data message attempts (randomness + 1)

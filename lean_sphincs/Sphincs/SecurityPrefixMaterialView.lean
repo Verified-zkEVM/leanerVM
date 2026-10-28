@@ -120,14 +120,14 @@ theorem forsOpen (index : Index) (marks : Coord → CoordMark) :
   simp only [Seeded.forestOpen, Seeded.coordOpen, eval_sequenceFin, evalWithAnswerFn_bind,
     evalWithAnswerFn_pure, h.forestSecrets, h.forestChain, h.subNode, h.topNode]
 
-theorem digestCall (root : Digest) (message : Message) (randomness : Randomness) :
-    evalWithAnswerFn left (messageDigestCall parameter root message randomness : OracleComp HashSpec HashOutput) =
-      evalWithAnswerFn right (messageDigestCall parameter root message randomness : OracleComp HashSpec HashOutput) :=
-  h.hash .message (messageDigestPayload root message randomness)
+theorem digestCall (message : Message) (randomness : Randomness) :
+    evalWithAnswerFn left (messageDigestCall parameter message randomness : OracleComp HashSpec HashOutput) =
+      evalWithAnswerFn right (messageDigestCall parameter message randomness : OracleComp HashSpec HashOutput) :=
+  h.hash .message (messageDigestPayload message randomness)
 
-theorem digest (root : Digest) (message : Message) (randomness : Randomness) :
-    evalWithAnswerFn left (messageDigest parameter root message randomness : OracleComp HashSpec MessageDigest) =
-      evalWithAnswerFn right (messageDigest parameter root message randomness : OracleComp HashSpec MessageDigest) := by
+theorem digest (message : Message) (randomness : Randomness) :
+    evalWithAnswerFn left (messageDigest parameter message randomness : OracleComp HashSpec MessageDigest) =
+      evalWithAnswerFn right (messageDigest parameter message randomness : OracleComp HashSpec MessageDigest) := by
   simp only [messageDigest, evalWithAnswerFn_bind, h.digestCall, evalWithAnswerFn_pure]
 
 variable (segment : Segment) (hparameter : parameter = segment.parameter)
@@ -176,9 +176,9 @@ theorem layer (secrets : Secrets) (frontier : Digest) (surrogates : Nat → Dige
   simp only [publicLayer, h.firstEncoding_eq, h.values segment rfl, h.path segment rfl]
 
 theorem finishSign (secrets : Secrets) (frontier : Digest) (surrogates : Nat → Digest)
-    (root : Digest) (message : Message) (randomness : Randomness) :
-    publicFinishSign segment left secrets frontier surrogates seed root message randomness =
-      publicFinishSign segment right secrets frontier surrogates seed root message randomness := by
+    (message : Message) (randomness : Randomness) :
+    publicFinishSign segment left secrets frontier surrogates seed message randomness =
+      publicFinishSign segment right secrets frontier surrogates seed message randomness := by
   subst parameter
   simp only [publicFinishSign, h.digest, h.forsOpen, h.forsKey, h.layer segment rfl]
 

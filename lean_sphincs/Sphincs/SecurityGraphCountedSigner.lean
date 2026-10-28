@@ -155,7 +155,7 @@ variable [Params]
 
 noncomputable def finishCostSource (parameter : PublicParameter) (data : PublicData)
     (message : Message) (randomness : Randomness) : OracleComp CostSpec (Option Signature) := do
-  let digest ← liftM (messageDigest parameter data.root message randomness :
+  let digest ← liftM (messageDigest parameter message randomness :
     OracleComp HashSpec MessageDigest)
   HiddenCost.tick 118080
   let index := digestIndex digest
@@ -180,10 +180,10 @@ theorem fixed_finishCostSource (f : QueryImpl HashSpec Id) (parameter : PublicPa
     ← PMF.monad_pure_eq_pure, pure_bind, assembled, finishHashCost,
     ReferenceChoice.eval_search, hashCalls_messageDigest]
   cases hs : firstEncoding f parameter topLayer rootTree
-      (digestIndex (evalWithAnswerFn f (messageDigest parameter data.root message randomness :
+      (digestIndex (evalWithAnswerFn f (messageDigest parameter message randomness :
         OracleComp HashSpec MessageDigest)))
       (data.forestKey (digestIndex (evalWithAnswerFn f
-        (messageDigest parameter data.root message randomness : OracleComp HashSpec MessageDigest))))
+        (messageDigest parameter message randomness : OracleComp HashSpec MessageDigest))))
       encodingAttemptLimit 0 with
   | none =>
       simp only [simulateQ_pure, WriterT.run_pure, Option.map_none, Option.isSome_none,
@@ -202,10 +202,10 @@ theorem finishCostSource_correct (f : QueryImpl HashSpec Id) (parameter : Public
     (hdata : DataCorrect f parameter seed data) (htable : CoordinatesCorrect f parameter seed table)
     (message : Message) (randomness : Randomness)
     (hland : Landed parameter (digestIndex (evalWithAnswerFn f
-      (messageDigest parameter data.root message randomness : OracleComp HashSpec MessageDigest)))) :
+      (messageDigest parameter message randomness : OracleComp HashSpec MessageDigest)))) :
     simulateQ (fixedCostSource f table) (finishCostSource parameter data message randomness) =
       simulateQ (fixedWorldCost f)
-        (liftM (Randomized.finishSign ⟨seed, parameter, data.root⟩ message randomness) :
+        (liftM (Randomized.finishSign ⟨seed, parameter⟩ message randomness) :
           OracleComp OracleWorld (Option Signature)) := by
   rw [fixed_finishCostSource, fixedWorldCost_lift_hash,
     eval_finishSign_assembled f parameter seed data table hdata htable message randomness hland,
@@ -216,7 +216,7 @@ noncomputable def signCostSourceLoop (parameter : PublicParameter) (data : Publi
     (message : Message) : Nat → Randomness → OracleComp CostSpec (Option Signature)
   | 0, _ => pure none
   | attempts + 1, randomness => do
-      let first ← liftM (messageDigestCall parameter data.root message randomness :
+      let first ← liftM (messageDigestCall parameter message randomness :
         OracleComp HashSpec HashOutput)
       if Landed parameter (blockIndex first) then
         finishCostSource parameter data message randomness

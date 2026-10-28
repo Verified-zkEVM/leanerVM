@@ -134,7 +134,7 @@ theorem afterKeygen_budget (adversary : LeanXmss.Security.Adversary) (q : Nat)
   have hrun := run_countHashQueries_lift_of_resolves (c := realKeygen seed) (queryCount_realKeygen seed)
     h.realKeygen
   have hfirst := hashQueryBound_bind (realKeygen seed) (fun keys => realRest adversary keys.1 keys.2) cache
-    (q - 1) hprep (((⟨r.1.1, d.parameter⟩, ⟨seed, d.parameter, r.1.1⟩), keygenQueries - 1), cache)
+    (q - 1) hprep (((⟨r.1.1, d.parameter⟩, ⟨seed, d.parameter⟩), keygenQueries - 1), cache)
     (by rw [hrun]; simp)
   have hK : keygenQueries - 1 ≤ q - 1 := hfirst.1
   have hK' := keygenQueries_eq

@@ -44,7 +44,7 @@ theorem finish_bound₁W (randomness : Randomness)
     rw [readOutside_cached _ state u0 hc0, pure_bind, OracleComp.tsum_prEvent_map_mul]
     refine interp_weight_mul_leW tg initial model _ _ state _ _ fun out hout => ?_
     have hk0 := interp_avoids_cache tg initial model _ _ (avoids_mono (fun x hx => by
-        subst hx; exact msgInput_digestInput parameter data.root message randomness)
+        subst hx; exact msgInput_digestInput parameter message randomness)
       (avoids_finishRest parameter data message randomness _)) _ state out hout
       (blk parameter data message randomness) rfl
     split_ifs
@@ -262,7 +262,7 @@ theorem comb_fin (hparse : ∀ ρ, model.parse (blk parameter data message ρ) =
         (pairWeight parameter data message reference gf gp ρ) else 0) := by
   have hkeep := finish_keeps_msg tg initial model parameter data message hparse ρ b s' u0 hs0 out hout
   have hk : ∀ ρ', out.2.cache (blk parameter data message ρ') = s'.cache (blk parameter data message ρ') :=
-    fun ρ' => hkeep _ (msgInput_digestInput parameter data.root message ρ')
+    fun ρ' => hkeep _ (msgInput_digestInput parameter message ρ')
   by_cases hsome : out.1.1.isSome
   · rw [ite_eq_left hsome, hk ρ, hs0]
     simp only [Option.elim]

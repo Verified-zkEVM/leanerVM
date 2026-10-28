@@ -38,7 +38,7 @@ noncomputable def signDigestLoop (sk : Seeded.SecretKey) (message : Message) (at
 /-- Assemble the signature after a randomizer lands, using the reference hash layouts. -/
 def finishSign (sk : Seeded.SecretKey) (message : Message) (randomness : Randomness) :
     OracleComp HashSpec (Option Signature) := do
-  let digest ← messageDigest sk.parameter sk.root message randomness
+  let digest ← messageDigest sk.parameter message randomness
   let index := digestIndex digest
   let opening ← Seeded.forestOpen sk.parameter index (digestMarks digest) sk.seed
   let some layers ← sequenceLayers (fun lay => Seeded.signLayer sk index lay) | return none

@@ -37,6 +37,10 @@ def keygenHashInput (parameter : PublicParameter) (domain : KeygenDomain)
     (seed : MasterSeed) : HashInput :=
   bytesLE 16 parameter ++ fieldBytes (keygenDomainFields domain) ++ bytesLE 32 seed
 
+/-- The leaf index of the untruncated digest call. -/
+def blockIndex (first : HashOutput) : Index :=
+  Concrete.digestIndex (truncateMessageDigest first)
+
 variable {m : Type → Type} [Monad m] [HasQuery HashSpec m]
 
 /-- One seed derivation, first 16 bytes. -/

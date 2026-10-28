@@ -107,10 +107,10 @@ theorem compile_tweakableHash (seed : MasterSeed) (material : Material)
   rfl
 
 theorem compile_messageDigestCall (seed : MasterSeed) (material : Material)
-    (p : PublicParameter) (root : Digest) (message : Message) (randomness : Randomness) :
+    (p : PublicParameter) (message : Message) (randomness : Randomness) :
     simulateQ (compileHash seed material)
-      (messageDigestCall p root message randomness : OracleComp HashSpec HashOutput) =
-        liftM (messageDigestCall p root message randomness : OracleComp HashSpec HashOutput) := by
+      (messageDigestCall p message randomness : OracleComp HashSpec HashOutput) =
+        liftM (messageDigestCall p message randomness : OracleComp HashSpec HashOutput) := by
   rw [messageDigestCall, compile_oracleHash, compileHash, programCache_verifier]
   rfl
 
@@ -366,7 +366,7 @@ theorem compiled_otsSignFrom_eq (left right : MasterSeed) (material : Material)
 
 /-- Replace only the private seed field, retaining the public fields used by signing. -/
 def reseedKey (seed : MasterSeed) (key : Seeded.SecretKey) : Seeded.SecretKey :=
-  ⟨seed, key.parameter, key.root⟩
+  ⟨seed, key.parameter⟩
 
 /-- Key generation compiles identically except for its explicit private seed field. -/
 theorem compiled_keygen_eq (left right : MasterSeed) (material : Material) :
@@ -385,12 +385,12 @@ theorem compile_keygen (seed : MasterSeed) (material : Material) :
       (fun result => (result.1, reseedKey seed result.2)) <$> keygen material :=
   compiled_keygen_eq seed 0 material
 
-theorem compiled_signLayer_eq (left right : MasterSeed) (material : Material) (root : Digest)
+theorem compiled_signLayer_eq (left right : MasterSeed) (material : Material)
     (index : Index) (lay : Layer) :
     simulateQ (compileHash left material)
-      (Seeded.signLayer ⟨left, parameter material, root⟩ index lay : OracleComp HashSpec _) =
+      (Seeded.signLayer ⟨left, parameter material⟩ index lay : OracleComp HashSpec _) =
     simulateQ (compileHash right material)
-      (Seeded.signLayer ⟨right, parameter material, root⟩ index lay : OracleComp HashSpec _) := by
+      (Seeded.signLayer ⟨right, parameter material⟩ index lay : OracleComp HashSpec _) := by
   simp only [Seeded.signLayer, Seeded.layerMessage, simulateQ_bind, compiled_forestKey_eq left right,
     Seeded.otsSign, compiled_otsSignFrom_eq left right]
   apply bind_congr
@@ -404,19 +404,19 @@ theorem compiled_signLayer_eq (left right : MasterSeed) (material : Material) (r
 
 omit [Params] in
 theorem compile_messageDigest (seed : MasterSeed) (material : Material)
-    (p : PublicParameter) (root : Digest) (message : Message) (randomness : Randomness) :
+    (p : PublicParameter) (message : Message) (randomness : Randomness) :
     simulateQ (compileHash seed material)
-      (messageDigest p root message randomness : OracleComp HashSpec MessageDigest) =
-      liftM (messageDigest p root message randomness : OracleComp HashSpec MessageDigest) := by
+      (messageDigest p message randomness : OracleComp HashSpec MessageDigest) =
+      liftM (messageDigest p message randomness : OracleComp HashSpec MessageDigest) := by
   simp only [messageDigest, simulateQ_bind, compile_messageDigestCall,
     simulateQ_pure, liftM_bind, liftM_pure]
 
-theorem compiled_finishSign_eq (left right : MasterSeed) (material : Material) (root : Digest)
+theorem compiled_finishSign_eq (left right : MasterSeed) (material : Material)
     (message : Message) (randomness : Randomness) :
     simulateQ (compileHash left material)
-      (Randomized.finishSign ⟨left, parameter material, root⟩ message randomness) =
+      (Randomized.finishSign ⟨left, parameter material⟩ message randomness) =
     simulateQ (compileHash right material)
-      (Randomized.finishSign ⟨right, parameter material, root⟩ message randomness) := by
+      (Randomized.finishSign ⟨right, parameter material⟩ message randomness) := by
   simp only [Randomized.finishSign, simulateQ_bind, compile_messageDigest]
   apply bind_congr
   intro digest
@@ -429,23 +429,23 @@ theorem compiled_finishSign_eq (left right : MasterSeed) (material : Material) (
   cases layer <;> simp only [simulateQ_pure, pure_bind]
 
 theorem compile_signAttempt (seed : MasterSeed) (material : Material)
-    (p : PublicParameter) (root : Digest) (message : Message) (randomness : Randomness) :
+    (p : PublicParameter) (message : Message) (randomness : Randomness) :
     simulateQ (compileHash seed material)
-      (Seeded.signAttempt ⟨seed, p, root⟩ message randomness : OracleComp HashSpec (Option Index)) =
-      liftM (Seeded.signAttempt ⟨0, p, root⟩ message randomness : OracleComp HashSpec (Option Index)) := by
+      (Seeded.signAttempt ⟨seed, p⟩ message randomness : OracleComp HashSpec (Option Index)) =
+      liftM (Seeded.signAttempt ⟨0, p⟩ message randomness : OracleComp HashSpec (Option Index)) := by
   simp only [Seeded.signAttempt, simulateQ_bind, compile_messageDigestCall, liftM_bind]
   apply bind_congr
   intro first
   split <;> simp only [simulateQ_pure, liftM_pure]
 
 /-- The scan from a start makes only digest calls, which do not depend on the seed. -/
-theorem compiled_scanLoop_eq (left right : MasterSeed) (material : Material) (root : Digest)
+theorem compiled_scanLoop_eq (left right : MasterSeed) (material : Material)
     (message : Message) :
     ∀ (attempts : Nat) (randomness : Randomness),
       simulateQ (compileHash left material)
-        (Randomized.scanLoop ⟨left, parameter material, root⟩ message attempts randomness) =
+        (Randomized.scanLoop ⟨left, parameter material⟩ message attempts randomness) =
       simulateQ (compileHash right material)
-        (Randomized.scanLoop ⟨right, parameter material, root⟩ message attempts randomness) := by
+        (Randomized.scanLoop ⟨right, parameter material⟩ message attempts randomness) := by
   intro attempts
   induction attempts with
   | zero => intro randomness; simp only [Randomized.scanLoop, simulateQ_pure]
@@ -459,21 +459,21 @@ theorem compiled_scanLoop_eq (left right : MasterSeed) (material : Material) (ro
       | some index => rw [simulateQ_pure, simulateQ_pure]
 
 /-- The genuinely private start draw is retained while compiling the grinding loop. -/
-theorem compiled_signDigestLoop_eq (left right : MasterSeed) (material : Material) (root : Digest)
+theorem compiled_signDigestLoop_eq (left right : MasterSeed) (material : Material)
     (message : Message) (attempts : Nat) :
     simulateQ (compileWorld left material)
-      (Randomized.signDigestLoop ⟨left, parameter material, root⟩ message attempts) =
+      (Randomized.signDigestLoop ⟨left, parameter material⟩ message attempts) =
     simulateQ (compileWorld right material)
-      (Randomized.signDigestLoop ⟨right, parameter material, root⟩ message attempts) := by
+      (Randomized.signDigestLoop ⟨right, parameter material⟩ message attempts) := by
   simp only [Randomized.signDigestLoop, simulateQ_bind, compileWorld_lift_prob,
     compileWorld_lift_hash, compiled_scanLoop_eq left right]
 
-theorem compiled_sign_eq (left right : MasterSeed) (material : Material) (root : Digest)
+theorem compiled_sign_eq (left right : MasterSeed) (material : Material)
     (message : Message) :
     simulateQ (compileWorld left material)
-      (Randomized.sign ⟨left, parameter material, root⟩ message) =
+      (Randomized.sign ⟨left, parameter material⟩ message) =
     simulateQ (compileWorld right material)
-      (Randomized.sign ⟨right, parameter material, root⟩ message) := by
+      (Randomized.sign ⟨right, parameter material⟩ message) := by
   simp only [Randomized.sign, simulateQ_bind, compiled_signDigestLoop_eq left right]
   apply bind_congr
   intro result
@@ -482,14 +482,14 @@ theorem compiled_sign_eq (left right : MasterSeed) (material : Material) (root :
   | some randomness =>
       rw [compileWorld_lift_hash, compileWorld_lift_hash, compiled_finishSign_eq left right]
 
-/-- Signing is a computation of material and public root; it has no hidden-seed argument. -/
-noncomputable def sign (material : Material) (root : Digest) (message : Message) :
+/-- Signing is a computation of material alone; it has no hidden-seed argument. -/
+noncomputable def sign (material : Material) (message : Message) :
     OracleComp PreparedWorld (Option Signature) :=
-  simulateQ (compileWorld 0 material) (Randomized.sign ⟨0, parameter material, root⟩ message)
+  simulateQ (compileWorld 0 material) (Randomized.sign ⟨0, parameter material⟩ message)
 
-theorem compile_sign (seed : MasterSeed) (material : Material) (root : Digest) (message : Message) :
-    simulateQ (compileWorld seed material) (Randomized.sign ⟨seed, parameter material, root⟩ message) =
-      sign material root message := compiled_sign_eq seed 0 material root message
+theorem compile_sign (seed : MasterSeed) (material : Material) (message : Message) :
+    simulateQ (compileWorld seed material) (Randomized.sign ⟨seed, parameter material⟩ message) =
+      sign material message := compiled_sign_eq seed 0 material message
 
 end SphincsLayered.Security.PreparedScheme
 
@@ -714,7 +714,7 @@ theorem keygen_eq (material : Material) :
       let _ ← tick
       let root ← simulateQ (compileHash 0 material)
         (Seeded.treeRoot (parameter material) topLayer rootTree 0 : OracleComp HashSpec Digest)
-      return (⟨root, parameter material⟩, ⟨0, parameter material, root⟩)) := by
+      return (⟨root, parameter material⟩, ⟨0, parameter material⟩)) := by
   simp only [keygen, Seeded.keygenFromMaster, simulateQ_bind, compile_parameter,
     bind_assoc, pure_bind, simulateQ_pure]
 
@@ -724,9 +724,9 @@ noncomputable def ordinaryWorld : QueryImpl OracleWorld (OracleComp PreparedWorl
   | .inr input => liftM (PreparedWorld.query (.inr (.inl input)))
 
 /-- The material sign oracle retains the same message/signature transcript as the actual game. -/
-noncomputable def materialSigningOracle (material : Material) (root : Digest) :
+noncomputable def materialSigningOracle (material : Material) :
     QueryImpl SigningSpec (WriterT (QueryLog SigningSpec) (OracleComp PreparedWorld)) :=
-  QueryImpl.withLogging fun message => liftM (sign material root message)
+  QueryImpl.withLogging fun message => liftM (sign material message)
 
 /-- A literally seed-independent frontend: honest derivations use the material compiler,
 adversarial queries remain ordinary calls, and all calls retain their original unit cost. -/
@@ -735,7 +735,7 @@ noncomputable def materialGame (material : Material) (adversary : Adversary) :
   let (pk, _) ← liftM (keygen material)
   let ((forgery, log) : Forgery × QueryLog SigningSpec) ←
     (simulateQ (ordinaryWorld.liftTarget (WriterT (QueryLog SigningSpec) (OracleComp PreparedWorld)) +
-      materialSigningOracle material pk.root) (adversary.main pk)).run
+      materialSigningOracle material) (adversary.main pk)).run
   let verified ← liftM (Concrete.verify pk forgery.message forgery.signature : OracleComp HashSpec Bool)
   return decide (SigningTranscript.Valid log ∧ ¬SigningTranscript.Contains log forgery) && verified
 

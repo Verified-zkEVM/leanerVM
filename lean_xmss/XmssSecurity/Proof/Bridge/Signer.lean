@@ -84,7 +84,7 @@ theorem realBottomPath (h : Prepared seed d result cache) (index : LeafIndex) :
 
 /-- The real top signature of bottom tree `b`, as the key stores it. -/
 theorem realTopLayer (h : Prepared seed d result cache) (key : TopIndex) :
-    Resolves cache (LeanXmss.Seeded.signLayer ⟨seed, d.parameter, result.1.1⟩ LeanXmss.topLayer (topKey key)
+    Resolves cache (LeanXmss.Seeded.signLayer ⟨seed, d.parameter⟩ LeanXmss.topLayer (topKey key)
         (LeanXmss.bytesLE 16 (h.root key)) :
           OracleComp LeanXmss.HashSpec (Option LeanXmss.LayerSignature))
       (((modelSecretKey d result).topSigned key).map fun _ => layerToReal (Concrete.topPart (modelSecretKey d result) key)) := by
@@ -186,7 +186,7 @@ theorem root_resolves (h : Prepared seed d result cache) (index : LeafIndex) :
 
 /-- The real signer erases to the table signer, its signatures translated. -/
 theorem erases_sign (h : Prepared seed d result cache) (index : LeafIndex) (message : Message) :
-    Erases cache (LeanXmss.Seeded.sign ⟨seed, d.parameter, result.1.1⟩ index message :
+    Erases cache (LeanXmss.Seeded.sign ⟨seed, d.parameter⟩ index message :
         OracleComp LeanXmss.HashSpec (Option LeanXmss.Signature))
       (Option.map (toRealSig index) <$> (tableSign d.rnd (modelSecretKey d result) index message :
         OracleComp HashSpec (Option Signature))) := by

@@ -199,7 +199,7 @@ theorem sample_boundH (hb : 0 < subtreeHeight) (adversary : Adversary) (hnr : ad
   set model := sampleModel parameterOutput highs with hmodel
   set start : State := DebtState.start prepared.2 known with hstart
   have hparse : ∀ p, model.parse (pblk param data p) = none := fun p =>
-    hcompat.digestParse _ (hmsg _ (msgInput_digestInput param data.root p.1 p.2)).2
+    hcompat.digestParse _ (hmsg _ (msgInput_digestInput param p.1 p.2)).2
   refine le_trans (stopped_le_interp hb adversary q hq parameterOutput fixed highs remaining prepared hprepared tg) ?_
   -- a correct guess or a bad cache is a decided hit
   refine le_trans (prEvent_mono_of_support _ _ (fun r => Hit tg prepared.2 r.1 r.2.2 ∨ CoverOf param data r.2)
@@ -226,9 +226,9 @@ theorem sample_boundH (hb : 0 < subtreeHeight) (adversary : Adversary) (hnr : ad
   by_cases hK : keygenCost ≤ q
   · rw [interp_tick_bind tg prepared.2 model _ _ q start hK, bind_map_left]
     refine le_trans (le_of_eq ?_) (rest_boundH param data wbar Fail tg prepared.2 model hcompat htrunc hparse
-      (fun p => (hmsg _ (msgInput_digestInput param data.root p.1 p.2)).1)
-      (fun p => (hmsg _ (msgInput_digestInput param data.root p.1 p.2)).2)
-      (fun p => hclean _ (msgInput_digestInput param data.root p.1 p.2)) hfail (q - keygenCost) htotal Lmax hfair
+      (fun p => (hmsg _ (msgInput_digestInput param p.1 p.2)).1)
+      (fun p => (hmsg _ (msgInput_digestInput param p.1 p.2)).2)
+      (fun p => hclean _ (msgInput_digestInput param p.1 p.2)) hfail (q - keygenCost) htotal Lmax hfair
       ((internalize adversary).main ⟨data.root, param⟩)
       (noRepeat_internalize_adversary adversary hnr _) known)
     rw [costRestX_eq, OracleComp.prEvent_bind_eq_tsum, OracleComp.prEvent_bind_eq_tsum]

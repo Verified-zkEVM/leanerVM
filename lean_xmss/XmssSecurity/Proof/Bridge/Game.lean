@@ -153,7 +153,7 @@ theorem erases_oracles (h : Prepared seed d result cache) (input : (LeanXmss.Ora
     Erases (worldKnown cache)
       ((QueryImpl.ofLift LeanXmss.OracleWorld
         (WriterT (QueryLog LeanXmss.SigningSpec) (OracleComp LeanXmss.OracleWorld)) +
-          LeanXmss.Security.signingOracle ⟨seed, d.parameter, result.1.1⟩) input).run
+          LeanXmss.Security.signingOracle ⟨seed, d.parameter⟩) input).run
       ((fun p => (p.1, p.2.map toRealEntry)) <$>
         (((forwardOracles + signingOracle (tableScheme d.rnd) (modelSecretKey d result)) ∘ₛ adversaryImpl)
           input).run) := by
@@ -185,7 +185,7 @@ theorem erases_oracles (h : Prepared seed d result cache) (input : (LeanXmss.Ora
 
 theorem erases_rest (h : Prepared seed d result cache) (adversary : LeanXmss.Security.Adversary) :
     Erases (worldKnown cache)
-      (realRest adversary ⟨result.1.1, d.parameter⟩ ⟨seed, d.parameter, result.1.1⟩)
+      (realRest adversary ⟨result.1.1, d.parameter⟩ ⟨seed, d.parameter⟩)
       (Seeded.gameRest (tableScheme d.rnd) (toModelAdversary adversary) (modelPublicKey d result)
         (modelSecretKey d result)) := by
   unfold realRest Seeded.gameRest toModelAdversary

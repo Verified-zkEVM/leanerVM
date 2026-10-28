@@ -74,14 +74,14 @@ theorem digestIndex_truncate (first : HashOutput) :
 
 def digestValue (secretKey : Seeded.SecretKey) (message : Message) (randomness : Randomness) :
     MessageDigest :=
-  evalWithAnswerFn f (messageDigest secretKey.parameter secretKey.root message randomness
+  evalWithAnswerFn f (messageDigest secretKey.parameter message randomness
     : OracleComp HashSpec MessageDigest)
 
 omit [Params] in
 theorem digestValue_index (secretKey : Seeded.SecretKey) (message : Message)
     (randomness : Randomness) :
     digestIndex (digestValue f secretKey message randomness) =
-      blockIndex (evalWithAnswerFn f (messageDigestCall secretKey.parameter secretKey.root
+      blockIndex (evalWithAnswerFn f (messageDigestCall secretKey.parameter
         message randomness : OracleComp HashSpec HashOutput)) := by
   simp only [digestValue, messageDigest, evalWithAnswerFn_bind, evalWithAnswerFn_pure,
     digestIndex_truncate]
@@ -178,7 +178,7 @@ theorem eval_layer (secretKey : Seeded.SecretKey) (index : Index) (lay : Layer)
 
 /-- Every successful signature verifies under every fixed hash function, for any pruning height. -/
 theorem verify_of_parts (secretKey : Seeded.SecretKey) (message : Message) {signature : Signature}
-    (hroot : secretKey.root = evalWithAnswerFn f (Seeded.treeRoot secretKey.parameter topLayer
+    {root : Digest} (hroot : root = evalWithAnswerFn f (Seeded.treeRoot secretKey.parameter topLayer
       rootTree secretKey.seed : OracleComp HashSpec Digest))
     (hparts :
     Landed secretKey.parameter (digestIndex (digestValue f secretKey message signature.randomness))
@@ -189,7 +189,7 @@ theorem verify_of_parts (secretKey : Seeded.SecretKey) (message : Message) {sign
       ∧ ∀ lay : Layer, evalWithAnswerFn f (Seeded.signLayer secretKey
           (digestIndex (digestValue f secretKey message signature.randomness)) lay
           : OracleComp HashSpec (Option (LayerSignature lay))) = some (signature.layers lay)) :
-    evalWithAnswerFn f (Concrete.verify ⟨secretKey.root, secretKey.parameter⟩ message signature
+    evalWithAnswerFn f (Concrete.verify ⟨root, secretKey.parameter⟩ message signature
       : OracleComp HashSpec Bool) = true := by
   obtain ⟨hland, hforest, hlayers⟩ := hparts
   set digest := digestValue f secretKey message signature.randomness
@@ -202,9 +202,9 @@ theorem verify_of_parts (secretKey : Seeded.SecretKey) (message : Message) {sign
   have hfold' : evalWithAnswerFn f (treeFold secretKey.parameter topLayer (treeIndexAt index topLayer)
       (leafIndexAt index topLayer) (signaturePath signature topLayer) (layerHeight topLayer)
       (node f secretKey.parameter topLayer (treeIndexAt index topLayer) secretKey.seed 0 index.val)
-        : OracleComp HashSpec Digest) = secretKey.root := by
+        : OracleComp HashSpec Digest) = root := by
     rw [hfold, treeIndexAt_eq, ← hroot]
-  have hdig : evalWithAnswerFn f (messageDigest secretKey.parameter secretKey.root message
+  have hdig : evalWithAnswerFn f (messageDigest secretKey.parameter message
       signature.randomness : OracleComp HashSpec MessageDigest) = digest := rfl
   rw [Concrete.verify]
   simp only [evalWithAnswerFn_bind, hdig, ← hindex, hkey]
@@ -215,11 +215,11 @@ theorem verify_of_parts (secretKey : Seeded.SecretKey) (message : Message) {sign
 
 /-- Every successful signature verifies under every fixed hash function, for any pruning height. -/
 theorem verify_of_sign (secretKey : Seeded.SecretKey) (message : Message) {signature : Signature}
-    (hroot : secretKey.root = evalWithAnswerFn f (Seeded.treeRoot secretKey.parameter topLayer
+    {root : Digest} (hroot : root = evalWithAnswerFn f (Seeded.treeRoot secretKey.parameter topLayer
       rootTree secretKey.seed : OracleComp HashSpec Digest))
     (h : evalWithAnswerFn f (Seeded.sign secretKey message
         : OracleComp HashSpec (Option Signature)) = some signature) :
-    evalWithAnswerFn f (Concrete.verify ⟨secretKey.root, secretKey.parameter⟩ message signature
+    evalWithAnswerFn f (Concrete.verify ⟨root, secretKey.parameter⟩ message signature
       : OracleComp HashSpec Bool) = true := by
   exact verify_of_parts f secretKey message hroot (sign_spec f secretKey message h)
 
@@ -240,7 +240,7 @@ theorem correct_master (seed : MasterSeed) (publicKey : PublicKey) (secretKey : 
   obtain ⟨hpk, hsk⟩ := hkey
   subst publicKey
   subst secretKey
-  exact verify_of_sign f ⟨seed, parameter, root⟩ message hrootval.symm hsign
+  exact verify_of_sign f ⟨seed, parameter⟩ message hrootval.symm hsign
 
 /-- **Correctness.** Every successful forest signature verifies, under every fixed hash function and
 every pruning height. -/

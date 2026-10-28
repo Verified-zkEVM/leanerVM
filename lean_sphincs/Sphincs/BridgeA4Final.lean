@@ -27,20 +27,20 @@ variable [Params]
 
 /-- **The event of A4** against a completed table: a recorded contact at a chain opened at or below
 its step, or a near cover with a recorded contact. -/
-def A4ev (K : Ctx) (root : Digest) (T : Coordinate → Digest) (s : State) (outcome : Outcome)
+def A4ev (K : Ctx) (T : Coordinate → Digest) (s : State) (outcome : Outcome)
     (R : List Coordinate) : Prop :=
   (∃ index c sp j a i t, (∃ q : FPos, q.val ≤ t.val ∧ Coordinate.fchain index c sp j a i q ∈ R) ∧
     RecordedContactAt s T K index c sp j a i t) ∨
-  ForestNearRecorded s T K root outcome R
+  ForestNearRecorded s T K outcome R
 
 /-- The final value of A4: the chance of a valid transcript and the event over the completion. -/
-noncomputable def finalA4 (K : Ctx) (root : Digest) : FinalF := fun o R s =>
+noncomputable def finalA4 (K : Ctx) : FinalF := fun o R s =>
   o.elim 0 fun outcome =>
-    Pr{let T ← completion s.known}[SigningTranscript.Valid outcome.2.1 ∧ A4ev K root T s outcome R]
+    Pr{let T ← completion s.known}[SigningTranscript.Valid outcome.2.1 ∧ A4ev K T s outcome R]
 
 /-- The final value of A4 is at most one. -/
-theorem finalA4_le_one (K : Ctx) (root : Digest) (o : Option HiddenBridge.Outcome) (R : List Coordinate)
-    (s : State) : finalA4 K root o R s ≤ 1 := by
+theorem finalA4_le_one (K : Ctx) (o : Option HiddenBridge.Outcome) (R : List Coordinate)
+    (s : State) : finalA4 K o R s ≤ 1 := by
   unfold finalA4
   cases o with
   | none => exact zero_le_one
@@ -60,7 +60,7 @@ theorem potNF_ge_of_near (hw : wbar ≤ 1) {budget : ℕ} {s : State} {P : List 
     {d : Multiset View}
     {R : List Coordinate} (hB : BInvF K data Qtot model s P Ms d R budget) {T : Coordinate → Digest}
     {forgery : Forgery} {L : QueryLog SigningSpec} {verified : Bool}
-    (h : ForestNearRecorded s T K data.root (forgery, L, verified) R) :
+    (h : ForestNearRecorded s T K (forgery, L, verified) R) :
     1 ≤ potNF K data wbar Fail s P Ms L d budget := by
   obtain ⟨hvalid, digest, hdig, hland, hunsigned, c, j, i, t, -, hcov⟩ := h
   set q : Pair := (forgery.message, forgery.signature.randomness) with hq
@@ -68,12 +68,12 @@ theorem potNF_ge_of_near (hw : wbar ≤ 1) {budget : ℕ} {s : State} {P : List 
   cases h0 : s.cache (pblk K.p data q) with
   | none =>
       have h0' : s.cache (tweakableHashInput K.p .message
-          (messageDigestPayload data.root forgery.message forgery.signature.randomness)) = none := h0
+          (messageDigestPayload forgery.message forgery.signature.randomness)) = none := h0
       rw [h0'] at hdig
       cases hdig
   | some a =>
       have h0' : s.cache (tweakableHashInput K.p .message
-          (messageDigestPayload data.root forgery.message forgery.signature.randomness)) = some a := h0
+          (messageDigestPayload forgery.message forgery.signature.randomness)) = some a := h0
       rw [h0'] at hdig
       have hdig' : truncateMessageDigest a = digest := by simpa using hdig
       subst hdig'
@@ -99,7 +99,7 @@ theorem potNF_ge_of_near (hw : wbar ≤ 1) {budget : ℕ} {s : State} {P : List 
 
 /-- **The end of the game.** -/
 theorem psiF_final (hw : wbar ≤ 1) (Lmax : ℕ) :
-    FinalPaysF K data Qtot model (psiF K data wbar κ Fail Lmax) (finalA4 K data.root) := by
+    FinalPaysF K data Qtot model (psiF K data wbar κ Fail Lmax) (finalA4 K) := by
   intro budget s P Ms L d R hB forgery verified
   unfold finalA4
   rw [Option.elim_some]
@@ -110,7 +110,7 @@ theorem psiF_final (hw : wbar ≤ 1) (Lmax : ℕ) :
   rw [ite_eq_right hL]
   refine le_trans ?_ (le_trans le_self_add (le_trans le_self_add le_self_add))
   let near : Prop := 1 ≤ potNF K data wbar Fail s P Ms L d budget
-  have hsub : ∀ T, SigningTranscript.Valid L ∧ A4ev K data.root T s (forgery, L, verified) R →
+  have hsub : ∀ T, SigningTranscript.Valid L ∧ A4ev K T s (forgery, L, verified) R →
       ∃ f ∈ (Finset.univ : Finset FIn), K.FCT T s f ∧ Ctx.Recd s f ∧ (Settled R f ∨ near) := by
     rintro T ⟨-, h | h⟩
     · obtain ⟨index, c, sp, j, a, i, t, ⟨q, hq, hmem⟩, v, hfct, hrec⟩ := h
@@ -118,7 +118,7 @@ theorem psiF_final (hw : wbar ≤ 1) (Lmax : ℕ) :
     · have hn := potNF_ge_of_near K data wbar Fail Qtot model hw hB h
       obtain ⟨-, digest, -, -, -, c, j, i, t, ⟨v, hfct, hrec⟩, -⟩ := h
       exact ⟨_, Finset.mem_univ _, hfct, hrec, Or.inr hn⟩
-  calc Pr{let T ← completion s.known}[SigningTranscript.Valid L ∧ A4ev K data.root T s (forgery, L, verified) R]
+  calc Pr{let T ← completion s.known}[SigningTranscript.Valid L ∧ A4ev K T s (forgery, L, verified) R]
       ≤ Pr{let T ← completion s.known}[∃ f ∈ (Finset.univ : Finset FIn), K.FCT T s f ∧ Ctx.Recd s f ∧ (Settled R f ∨ near)] := prEvent_mono_of_support _ _ _ fun T _ h => hsub T h
     _ ≤ ∑ f ∈ (Finset.univ : Finset FIn),
           Pr{let T ← completion s.known}[K.FCT T s f ∧ Ctx.Recd s f ∧ (Settled R f ∨ near)] :=
@@ -171,7 +171,7 @@ theorem a4F_bound (hparse : ∀ p, model.parse (pblk K.p data p) = none)
     (M : OracleComp (OracleWorld + SigningSpec) Forgery) (hnr : NoRepeat M [])
     (known : HiddenReveal.Knowledge Coordinate) (hinv : K.Inv (DebtState.start K.initial known)) :
     ∑' out, Pr{let x ← interp K.tg K.initial model (advProg K.p data M []) total (DebtState.start K.initial known)}[x = out] *
-        finalA4 K data.root out.1.1 out.1.2.1 out.2 ≤
+        finalA4 K out.1.1 out.1.2.1 out.2 ≤
       (ν * (((Nat.choose total 2 : ℕ) : ℝ≥0∞) * rateS) +
         κ * ν * ∑ j ∈ Finset.range total, ((j : ℝ≥0∞) * (startNearF wbar j + failMass Fail) +
           signatureLimit * failMass Fail) + lam Lmax 0 total) +
@@ -179,8 +179,8 @@ theorem a4F_bound (hparse : ∀ p, model.parse (pblk K.p data p) = none)
           expCount K model (IsFchainIn K.p) (advProg K.p data M []) total (DebtState.start K.initial known) := by
   rw [← psiF_start K data wbar κ Fail Lmax known total]
   exact final_le_startF K data model (IsFchainIn K.p) _ hMp hMi hparse
-    (fun p => by rintro ⟨f, hf⟩; exact msg_ne_fchain (msgInput_digestInput K.p data.root p.1 p.2) hf) hclean total
-    (fun _ _ => rfl) (finalA4_le_one K data.root) (psiF_newPair K data wbar κ Fail total model hfair hQ)
+    (fun p => by rintro ⟨f, hf⟩; exact msg_ne_fchain (msgInput_digestInput K.p p.1 p.2) hf) hclean total
+    (fun _ _ => rfl) (finalA4_le_one K) (psiF_newPair K data wbar κ Fail total model hfair hQ)
     (psiF_ordinary K data wbar κ Fail total model hMp hMi hfair.le_one hκ Lmax)
     (psiF_sign K data wbar κ Fail total model hMp hMi hMo hparse hfail hfair.le_one Lmax)
     (psiF_final K data wbar κ Fail total model hfair.le_one Lmax) M hnr known hinv

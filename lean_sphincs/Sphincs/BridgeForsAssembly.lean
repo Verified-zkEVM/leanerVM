@@ -25,10 +25,12 @@ variable (parameter : PublicParameter) (data : PublicData) (wbar : ℝ≥0∞) (
   {A : Type} (tg : Targeting HashInput HashOutput Coordinate)
   (initial : HiddenOutside.Cache HashInput HashOutput) (model : HiddenRows.Model HashInput HashOutput A Coordinate)
 
-/-- A FORS cover of a completed run. -/
-def CoverOf (out : Run HashInput Coordinate HiddenBridge.Outcome × State) : Prop :=
+/-- A FORS cover of a completed run. The public data is unused (the message digest hashes no
+root); the argument keeps the layer's signatures. -/
+def CoverOf (parameter : PublicParameter) (_ : PublicData)
+    (out : Run HashInput Coordinate HiddenBridge.Outcome × State) : Prop :=
   ∃ outcome, out.1.1 = some outcome ∧
-    HiddenBridge.ForestCover parameter data.root outcome out.1.2.1 out.2.cache
+    HiddenBridge.ForestCover parameter outcome out.1.2.1 out.2.cache
 
 theorem start_pinv (hclean : ∀ p, initial (pblk parameter data p) = none) (known : Knowledge Coordinate) :
     PInv parameter data (DebtState.start initial known) [] := by
@@ -127,7 +129,7 @@ def badFor (parameterOutput : HashOutput) (fixed : HiddenGraph.Table) (highs : C
   CacheMatch.Bad (TargetAssignment.targets (truncateHash parameterOutput)
       (compTable parameterOutput fixed highs remaining table results)) v.2 ∨
     ∃ outcome, v.1.1.1 = some outcome ∧
-      ForestCover (truncateHash parameterOutput) (sampleData parameterOutput fixed highs remaining).root outcome v.1.1.2 v.2
+      ForestCover (truncateHash parameterOutput) outcome v.1.1.2 v.2
 
 /-- One table: the stopped run against the comparison run. -/
 theorem stopped_table_le (hb : 0 < subtreeHeight) (adversary : Adversary) (q : ℕ) (hq : q < 2 ^ 256)

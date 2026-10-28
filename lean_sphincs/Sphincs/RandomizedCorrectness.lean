@@ -38,11 +38,11 @@ theorem finishSign_spec (secretKey : Seeded.SecretKey) (message : Message)
 /-- Every signature assembled after a randomizer lands verifies for the generated root. -/
 theorem verify_of_finishSign (secretKey : Seeded.SecretKey) (message : Message)
     (randomness : Randomness) {signature : Signature}
-    (hroot : secretKey.root = evalWithAnswerFn f (Seeded.treeRoot secretKey.parameter topLayer
+    {root : Digest} (hroot : root = evalWithAnswerFn f (Seeded.treeRoot secretKey.parameter topLayer
       rootTree secretKey.seed : OracleComp HashSpec Digest))
     (hland : Landed secretKey.parameter (digestIndex (digestValue f secretKey message randomness)))
     (h : evalWithAnswerFn f (Randomized.finishSign secretKey message randomness) = some signature) :
-    evalWithAnswerFn f (Concrete.verify ⟨secretKey.root, secretKey.parameter⟩ message signature
+    evalWithAnswerFn f (Concrete.verify ⟨root, secretKey.parameter⟩ message signature
       : OracleComp HashSpec Bool) = true :=
   verify_of_parts f secretKey message hroot (finishSign_spec f secretKey message randomness hland h)
 

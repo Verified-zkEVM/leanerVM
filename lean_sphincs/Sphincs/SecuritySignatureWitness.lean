@@ -16,7 +16,7 @@ namespace SphincsLayered.Security.SignatureWitness
 
 open Concrete
 
-attribute [local irreducible] messageDigest forestRecover otsLeaf treeFold
+attribute [local irreducible] messageDigest forestRecover treeFold
   Seeded.forestKey Seeded.treeRoot Seeded.treePath chainWalk encode
 
 def index (f : QueryImpl HashSpec Id) (pk : PublicKey) (message : Message)
@@ -165,14 +165,14 @@ theorem finishSign_randomness (f : QueryImpl HashSpec Id) (sk : Seeded.SecretKey
 
 /-- A successful honest assembly supplies a canonical opening and its concrete reference
 certificate. Only the randomizer's actual landing condition is required. -/
-theorem canonical_of_finishSign (f : QueryImpl HashSpec Id) (sk : Seeded.SecretKey)
+theorem canonical_of_finishSign (f : QueryImpl HashSpec Id) (sk : Seeded.SecretKey) (root : Digest)
     (message : Message) (randomness : Randomness) (signature : Signature)
     (hland : Landed sk.parameter (digestIndex (Completeness.digestValue f sk message randomness)))
     (hsign : evalWithAnswerFn f (Randomized.finishSign sk message randomness) = some signature) :
     ∃ word,
       ReferenceCertificate f sk.parameter sk.seed
-        (index f ⟨sk.root, sk.parameter⟩ message signature) (signature.layers topLayer).counter word ∧
-      CanonicalOpening f ⟨sk.root, sk.parameter⟩ sk.seed message signature
+        (index f ⟨root, sk.parameter⟩ message signature) (signature.layers topLayer).counter word ∧
+      CanonicalOpening f ⟨root, sk.parameter⟩ sk.seed message signature
         (signature.layers topLayer).counter word := by
   obtain ⟨hland, hforest, hlayers⟩ := Completeness.finishSign_spec f sk message randomness hland hsign
   obtain ⟨word, href, hvalues, hpath⟩ := reference_of_signLayer f sk _ _ (hlayers topLayer)

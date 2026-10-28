@@ -34,11 +34,11 @@ variable [Params]
 
 /-- The simulator receives the erased material and the frontier, never the selected low secret. -/
 noncomputable def erasedMaterialSign (segment : Segment) (outside : QueryImpl HashSpec Id)
-    (material : Material) (frontier root : Digest) (message : Message) : PMF (Option Signature × Nat) :=
+    (material : Material) (frontier : Digest) (message : Message) : PMF (Option Signature × Nat) :=
   let erased := replaceMaterial segment material 0
   publicSignWithCost segment (preparedOracle outside 0 erased) (materialSecrets erased) frontier
     (fun level => evalWithAnswerFn (preparedOracle outside 0 erased)
       (Seeded.surrogate segment.parameter 0 level : OracleComp HashSpec Digest))
-    ⟨0, parameter erased, root⟩ message
+    ⟨0, parameter erased⟩ message
 
 end SphincsLayered.Security.Prefix

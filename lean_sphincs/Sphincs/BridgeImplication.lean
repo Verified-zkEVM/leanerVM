@@ -44,19 +44,20 @@ theorem otsSignFrom_firstEncoding (f : QueryImpl HashSpec Id) (parameter : Publi
           obtain ⟨rfl, -⟩ := h
           exact ⟨encoding, by simp only [Prefix.firstEncoding, hencode]⟩
 
-theorem honest_counter (f : QueryImpl HashSpec Id) (sk : Seeded.SecretKey) (message : Message)
+theorem honest_counter (f : QueryImpl HashSpec Id) (sk : Seeded.SecretKey) (root : Digest)
+    (message : Message)
     (randomness : Randomness) (signature : Signature)
     (hland : Landed sk.parameter (digestIndex (Completeness.digestValue f sk message randomness)))
     (hsign : evalWithAnswerFn f (Randomized.finishSign sk message randomness) = some signature) :
     SignatureWitness.chosenCounter f sk.parameter sk.seed
-      (SignatureWitness.index f ⟨sk.root, sk.parameter⟩ message signature) =
+      (SignatureWitness.index f ⟨root, sk.parameter⟩ message signature) =
         some (signature.layers topLayer).counter := by
   obtain ⟨-, -, hlayers⟩ := Completeness.finishSign_spec f sk message randomness hland hsign
   obtain ⟨hots, -⟩ := Completeness.signLayer_spec f sk _ topLayer (hlayers topLayer)
   simp only [Completeness.treeIndexAt_eq, Completeness.leafIndexAt_eq] at hots
   obtain ⟨word, hword⟩ := otsSignFrom_firstEncoding f sk.parameter topLayer rootTree _ sk.seed _
     encodingAttemptLimit 0 hots
-  have hindex : SignatureWitness.index f ⟨sk.root, sk.parameter⟩ message signature =
+  have hindex : SignatureWitness.index f ⟨root, sk.parameter⟩ message signature =
       digestIndex (Completeness.digestValue f sk message signature.randomness) := rfl
   rw [hindex]
   simp only [SignatureWitness.chosenCounter, ReferenceChoice.selection]
@@ -105,9 +106,9 @@ noncomputable def compTable (table : HiddenGraph.Table) (results : Index → Opt
 end Events
 
 /-- The verifier's message digest of a forgery, read from a cache. -/
-def cachedDigest (cache : QueryCache HashSpec) (parameter : PublicParameter) (root : Digest)
+def cachedDigest (cache : QueryCache HashSpec) (parameter : PublicParameter)
     (message : Message) (randomness : Randomness) : Option MessageDigest := do
-  let first ← cache (tweakableHashInput parameter .message (messageDigestPayload root message randomness))
+  let first ← cache (tweakableHashInput parameter .message (messageDigestPayload message randomness))
   return truncateMessageDigest first
 
 /-- Forest chain positions revealed by the run. -/
@@ -116,10 +117,10 @@ noncomputable def revealedSet (reveals : List HiddenGraph.Coordinate) : Disclosu
 
 /-- A cached, landed digest of an unsigned message-randomizer pair whose forest openings were all
 revealed by the run (at or below the positions it needs). -/
-def ForestCover (parameter : PublicParameter) (root : Digest) (outcome : Outcome)
+def ForestCover (parameter : PublicParameter) (outcome : Outcome)
     (reveals : List HiddenGraph.Coordinate) (cache : QueryCache HashSpec) : Prop :=
   SigningTranscript.Valid outcome.2.1 ∧
-  ∃ digest, cachedDigest cache parameter root outcome.1.message outcome.1.signature.randomness = some digest ∧
+  ∃ digest, cachedDigest cache parameter outcome.1.message outcome.1.signature.randomness = some digest ∧
     Landed parameter (digestIndex digest) ∧
     (∀ entry ∈ outcome.2.1, ∀ signature, entry.2 = some signature →
       ¬(entry.1 = outcome.1.message ∧ signature.randomness = outcome.1.signature.randomness)) ∧
@@ -455,7 +456,7 @@ omit [Params] in
 theorem digestInputs_mem (f : QueryImpl HashSpec Id) (pk : PublicKey) (message : Message)
     (signature : Signature) :
     tweakableHashInput pk.parameter .message
-        (messageDigestPayload pk.root message signature.randomness) ∈
+        (messageDigestPayload message signature.randomness) ∈
       SignatureWitness.trace f pk message signature := by
   unfold SignatureWitness.trace
   rw [Concrete.verify]
@@ -726,7 +727,7 @@ theorem revealed_chain_word (f : QueryImpl HashSpec Id) (parameter : PublicParam
   obtain ⟨entry, -, signature, -, hcoordinate⟩ := hgood.2 _ hmem
   unfold revealsOf at hcoordinate
   dsimp only at hcoordinate
-  generalize hindex : digestIndex (evalWithAnswerFn f (messageDigest parameter data.root entry.1
+  generalize hindex : digestIndex (evalWithAnswerFn f (messageDigest parameter entry.1
     signature.randomness : OracleComp HashSpec MessageDigest)) = index at hcoordinate
   cases hfound : Prefix.firstEncoding f parameter topLayer rootTree index (data.forestKey index)
       encodingAttemptLimit 0 with
@@ -748,35 +749,36 @@ theorem revealed_chain_word (f : QueryImpl HashSpec Id) (parameter : PublicParam
         cases hk
 
 /-- A canonical opening sharing an honest signature's message and randomizer is that signature. -/
-theorem canonical_signed_eq (f : QueryImpl HashSpec Id) (sk : Seeded.SecretKey) (message : Message)
+theorem canonical_signed_eq (f : QueryImpl HashSpec Id) (sk : Seeded.SecretKey) (root : Digest)
+    (message : Message)
     (randomness : Randomness) (signature honest : Signature)
     (hland : Landed sk.parameter (digestIndex (Completeness.digestValue f sk message randomness)))
     (hfinish : evalWithAnswerFn f (Randomized.finishSign sk message randomness) = some honest)
     (hrandomness : honest.randomness = signature.randomness) (counter : Counter)
     (hchosen : SignatureWitness.chosenCounter f sk.parameter sk.seed
-      (SignatureWitness.index f ⟨sk.root, sk.parameter⟩ message signature) = some counter)
-    (hcanonical : SignatureWitness.CanonicalOpening f ⟨sk.root, sk.parameter⟩ sk.seed message signature counter
+      (SignatureWitness.index f ⟨root, sk.parameter⟩ message signature) = some counter)
+    (hcanonical : SignatureWitness.CanonicalOpening f ⟨root, sk.parameter⟩ sk.seed message signature counter
       (SignatureWitness.chosenWord f sk.parameter sk.seed
-        (SignatureWitness.index f ⟨sk.root, sk.parameter⟩ message signature))) :
+        (SignatureWitness.index f ⟨root, sk.parameter⟩ message signature))) :
     signature = honest := by
-  have hindex : SignatureWitness.index f ⟨sk.root, sk.parameter⟩ message honest =
-      SignatureWitness.index f ⟨sk.root, sk.parameter⟩ message signature := by
+  have hindex : SignatureWitness.index f ⟨root, sk.parameter⟩ message honest =
+      SignatureWitness.index f ⟨root, sk.parameter⟩ message signature := by
     simp only [SignatureWitness.index, verificationDigest, hrandomness]
-  have hcounter := honest_counter f sk message randomness honest hland hfinish
+  have hcounter := honest_counter f sk root message randomness honest hland hfinish
   rw [hindex, hchosen, Option.some.injEq] at hcounter
-  obtain ⟨word, href, hhonest⟩ := SignatureWitness.canonical_of_finishSign f sk message randomness honest
+  obtain ⟨word, href, hhonest⟩ := SignatureWitness.canonical_of_finishSign f sk root message randomness honest
     hland hfinish
   rw [hindex] at href
   rw [← hcounter] at href hhonest
   -- the honest word is the chosen word
   obtain ⟨pair, hpair⟩ : ∃ pair, ReferenceChoice.selection f sk.parameter topLayer rootTree
-      (SignatureWitness.index f ⟨sk.root, sk.parameter⟩ message signature)
+      (SignatureWitness.index f ⟨root, sk.parameter⟩ message signature)
       (SignatureWitness.canonicalForest f sk.parameter sk.seed
-        (SignatureWitness.index f ⟨sk.root, sk.parameter⟩ message signature)) = some pair := by
+        (SignatureWitness.index f ⟨root, sk.parameter⟩ message signature)) = some pair := by
     cases h : ReferenceChoice.selection f sk.parameter topLayer rootTree
-        (SignatureWitness.index f ⟨sk.root, sk.parameter⟩ message signature)
+        (SignatureWitness.index f ⟨root, sk.parameter⟩ message signature)
         (SignatureWitness.canonicalForest f sk.parameter sk.seed
-          (SignatureWitness.index f ⟨sk.root, sk.parameter⟩ message signature)) with
+          (SignatureWitness.index f ⟨root, sk.parameter⟩ message signature)) with
     | none => simp [SignatureWitness.chosenCounter, h] at hchosen
     | some pair => exact ⟨pair, rfl⟩
   have hpairCounter : pair.1 = counter := by
@@ -785,7 +787,7 @@ theorem canonical_signed_eq (f : QueryImpl HashSpec Id) (sk : Seeded.SecretKey) 
     encodingAttemptLimit 0 pair.1 pair.2 hpair
   rw [hpairCounter] at hencode
   have hword : word = SignatureWitness.chosenWord f sk.parameter sk.seed
-      (SignatureWitness.index f ⟨sk.root, sk.parameter⟩ message signature) := by
+      (SignatureWitness.index f ⟨root, sk.parameter⟩ message signature) := by
     have h := href.symm.trans hencode
     rw [Option.some.injEq] at h
     rw [h]
@@ -804,15 +806,15 @@ theorem cachedDigest_eq (parameterOutput : HashOutput) (highs : CoordinateHighs)
     (root : Digest) (message : Message) (signature : Signature)
     (htrace : ∀ input ∈ SignatureWitness.trace f ⟨root, truncateHash parameterOutput⟩ message signature,
       Sum.inl input ∈ entries) :
-    cachedDigest cacheF (truncateHash parameterOutput) root message signature.randomness =
+    cachedDigest cacheF (truncateHash parameterOutput) message signature.randomness =
       some (verificationDigest f ⟨root, truncateHash parameterOutput⟩ message signature) := by
   have hread : cacheF (tweakableHashInput (truncateHash parameterOutput) .message
-      (messageDigestPayload root message signature.randomness)) =
+      (messageDigestPayload message signature.randomness)) =
       some (f (tweakableHashInput (truncateHash parameterOutput) .message
-        (messageDigestPayload root message signature.randomness))) := by
+        (messageDigestPayload message signature.randomness))) := by
     have hentry := htrace _ (digestInputs_mem f ⟨root, truncateHash parameterOutput⟩ message signature)
     have hnot := message_not_row parameterOutput highs table
-      (messageDigestPayload root message signature.randomness)
+      (messageDigestPayload message signature.randomness)
     obtain ⟨answer, hanswer⟩ := Option.ne_none_iff_exists'.mp (hcached _ hentry hnot)
     have hfin := finalFn_unparsed parameterOutput highs table cacheF _ hnot
     rw [hanswer] at hfin
@@ -867,7 +869,7 @@ theorem bad_of_accepted (hb : 0 < subtreeHeight) (parameterOutput : HashOutput) 
     (hvalid : SigningTranscript.Valid log) (hnotContains : ¬SigningTranscript.Contains log forgery) :
     CacheMatch.Bad (targets (truncateHash parameterOutput)
         (compTable parameterOutput fixed highs remaining table results)) cacheF ∨
-      ForestCover (truncateHash parameterOutput) (sampleData parameterOutput fixed highs remaining).root
+      ForestCover (truncateHash parameterOutput)
         (forgery, log, true) reveals cacheF := by
   have hhit : ∀ input ∈ SignatureWitness.trace f ⟨(sampleData parameterOutput fixed highs remaining).root,
       truncateHash parameterOutput⟩ forgery.message forgery.signature,
@@ -890,8 +892,8 @@ theorem bad_of_accepted (hb : 0 < subtreeHeight) (parameterOutput : HashOutput) 
       obtain ⟨entry, hentry, honest, hhonest, hmessage, hrandomness⟩ := hsigned
       obtain ⟨randomness, hlandR, hfinish⟩ := hgood.1 entry hentry honest hhonest
       rw [hmessage] at hlandR hfinish
-      have heq := canonical_signed_eq f ⟨seed, truncateHash parameterOutput,
-        (sampleData parameterOutput fixed highs remaining).root⟩ forgery.message randomness
+      have heq := canonical_signed_eq f ⟨seed, truncateHash parameterOutput⟩
+        (sampleData parameterOutput fixed highs remaining).root forgery.message randomness
         forgery.signature honest hlandR hfinish hrandomness counter hchosen hcanon
       apply hnotContains
       exact ⟨entry, hentry, hmessage, by rw [hhonest, heq]⟩
@@ -1026,7 +1028,7 @@ theorem win_implies_bad (hb : 0 < subtreeHeight) (adversary : Adversary) (q : Na
     (hwin : outcomeWins outcome = true) :
     CacheMatch.Bad (targets (truncateHash parameterOutput)
         (compTable parameterOutput fixed highs remaining table prepared.1)) cacheF ∨
-      ForestCover (truncateHash parameterOutput) (sampleData parameterOutput fixed highs remaining).root
+      ForestCover (truncateHash parameterOutput)
         outcome reveals cacheF := by
   obtain ⟨hgrow, hrun, hguess⟩ := lazy_support (sampleModel parameterOutput highs) table _
     (knownOf (truncateHash parameterOutput) fixed) prepared.2 cacheF _ entries hstop

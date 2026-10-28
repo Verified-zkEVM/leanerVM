@@ -75,11 +75,11 @@ theorem sequenceFin {α : Type} {n : Nat} (target : HashInput)
       rw [Concrete.sequenceFin]
       exact bind (h 0) (fun _ => bind (ih _ (fun i => h i.succ)) (fun _ => pure' _ _))
 
-theorem messageDigest {target : HashInput} (parameter : PublicParameter) (root : Digest)
+theorem messageDigest {target : HashInput} (parameter : PublicParameter)
     (message : Message) (randomness : Randomness)
     (hs : tweakableHashInput parameter .message
-        (messageDigestPayload root message randomness) ≠ target) :
-    PreservesFresh target (Concrete.messageDigest parameter root message randomness) := by
+        (messageDigestPayload message randomness) ≠ target) :
+    PreservesFresh target (Concrete.messageDigest parameter message randomness) := by
   rw [Concrete.messageDigest]
   exact bind (query hs) (fun _ => pure' _ _)
 
@@ -148,21 +148,21 @@ theorem structuralFresh_encoding (parameter : PublicParameter) (lay : Layer)
     _ 4 (Or.inl rfl) rfl
 
 /-- Message hashing cannot populate any encoding-search cache entry, even for another key. -/
-theorem messageInput_ne_encoding (parameter : PublicParameter) (root : Digest)
+theorem messageInput_ne_encoding (parameter : PublicParameter)
     (message : Message) (randomness : Randomness)
     (encodingParameter : PublicParameter) (lay : Layer) (tree : TreeIndex)
     (leaf : LeafIndex) (encodingMessage : ForestKey) (c : Nat) :
     tweakableHashInput parameter .message
-      (messageDigestPayload root message randomness) ≠
+      (messageDigestPayload message randomness) ≠
         encodeInput encodingParameter lay tree leaf encodingMessage c := by
   apply fieldInput_ne_of_tag_ne_across
   simp [hashDomainFields, tweakFields]
 
 /-- Message inputs are separate from structural key generation for all public parameters. -/
-theorem structuralFresh_message (parameter : PublicParameter) (root : Digest)
+theorem structuralFresh_message (parameter : PublicParameter)
     (message : Message) (randomness : Randomness) :
     StructuralFresh (tweakableHashInput parameter .message
-      (messageDigestPayload root message randomness)) :=
+      (messageDigestPayload message randomness)) :=
   structuralFresh_of_tag parameter (hashDomainFields .message) _ 12 (Or.inr rfl) rfl
 
 namespace PreservesFresh

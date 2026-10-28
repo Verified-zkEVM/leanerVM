@@ -886,11 +886,11 @@ theorem goodHW_pure (hw : w ≤ 1) (L : QueryLog SigningSpec) (forgery : Forgery
   cases h0 : s.cache (pblk parameter data q) with
   | none =>
       have h0' : s.cache (tweakableHashInput parameter .message
-          (messageDigestPayload data.root forgery.message forgery.signature.randomness)) = none := h0
+          (messageDigestPayload forgery.message forgery.signature.randomness)) = none := h0
       rw [h0'] at hdig; cases hdig
   | some a =>
       have h0' : s.cache (tweakableHashInput parameter .message
-          (messageDigestPayload data.root forgery.message forgery.signature.randomness)) = some a := h0
+          (messageDigestPayload forgery.message forgery.signature.randomness)) = some a := h0
       rw [h0'] at hdig
       have hdig' : truncateMessageDigest a = digest := by
         simpa using hdig

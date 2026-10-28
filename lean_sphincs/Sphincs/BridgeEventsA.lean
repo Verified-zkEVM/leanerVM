@@ -103,9 +103,9 @@ def TwoForestContacts : Prop :=
     FContactAt parameter table cache index c s j a i t ∧ FContactAt parameter table cache index c' s' j' a' i' t'
 
 /-- A cached, landed, unsigned forgery digest covered at every chain but one, which is contacted. -/
-def ForestNear (root : Digest) (outcome : Outcome) (reveals : List Coordinate) : Prop :=
+def ForestNear (outcome : Outcome) (reveals : List Coordinate) : Prop :=
   SigningTranscript.Valid outcome.2.1 ∧
-  ∃ digest, cachedDigest cache parameter root outcome.1.message outcome.1.signature.randomness = some digest ∧
+  ∃ digest, cachedDigest cache parameter outcome.1.message outcome.1.signature.randomness = some digest ∧
     Landed parameter (digestIndex digest) ∧
     (∀ entry ∈ outcome.2.1, ∀ signature, entry.2 = some signature →
       ¬(entry.1 = outcome.1.message ∧ signature.randomness = outcome.1.signature.randomness)) ∧
@@ -126,9 +126,9 @@ def badA (parameterOutput : HashOutput) (fixed : HiddenGraph.Table) (highs : Coo
     RevealedContact (truncateHash parameterOutput) table v.2 v.1.1.2 ∨
     TwoForestContacts (truncateHash parameterOutput) table v.2 ∨
     ∃ outcome, v.1.1.1 = some outcome ∧
-      (ForestNear (truncateHash parameterOutput) table v.2 (sampleData parameterOutput fixed highs remaining).root
+      (ForestNear (truncateHash parameterOutput) table v.2
           outcome v.1.1.2 ∨
-        ForestCover (truncateHash parameterOutput) (sampleData parameterOutput fixed highs remaining).root
+        ForestCover (truncateHash parameterOutput)
           outcome v.1.1.2 v.2)
 
 end SphincsLayered.Security.HiddenBridge

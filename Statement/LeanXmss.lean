@@ -382,11 +382,10 @@ namespace Seeded
 
 open Concrete
 
-/-- The signer's key: the scheme's seed `S`, the parameter and the root. -/
+/-- The signer's key: the scheme's seed `S` and the parameter. -/
 structure SecretKey where
   seed : MasterSeed
   parameter : PublicParameter
-  root : Digest
 
 variable {m : Type → Type} [Monad m] [HasQuery HashSpec m]
 
@@ -446,7 +445,7 @@ def keygenFromSeed (keySeed : MasterSeed) : OracleComp HashSpec (PublicKey × Se
   let seed ← taggedSeed seedTag keySeed
   let parameter ← th 0 (keygenDomainFields .parameter) (bytesLE 32 seed)
   let root ← treeNode parameter topLayer seed layerHeight 0
-  return (⟨root, parameter⟩, ⟨seed, parameter, root⟩)
+  return (⟨root, parameter⟩, ⟨seed, parameter⟩)
 
 /-- One layer's signature by key `e` of `message`: the one-time signature and the path. -/
 def signLayer (secretKey : SecretKey) (lay : Layer) (key : KeyIndex) (message : HashInput) :

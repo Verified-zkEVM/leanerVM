@@ -199,10 +199,10 @@ theorem ordinaryWorld_lift_hash {α : Type} (computation : OracleComp HashSpec �
 
 variable [Params]
 
-theorem Related.sign (seed : MasterSeed) (material : Material) (root : Digest) (message : Message) :
+theorem Related.sign (seed : MasterSeed) (material : Material) (message : Message) :
     Related (programCache ∅ seed material)
-      (Randomized.sign ⟨seed, parameter material, root⟩ message) (PreparedScheme.sign material root message) := by
-  have h := Related.honest seed material (Randomized.sign ⟨seed, parameter material, root⟩ message)
+      (Randomized.sign ⟨seed, parameter material⟩ message) (PreparedScheme.sign material message) := by
+  have h := Related.honest seed material (Randomized.sign ⟨seed, parameter material⟩ message)
   rw [compile_sign] at h
   exact h
 
@@ -213,11 +213,11 @@ theorem Related.adversary (seed : MasterSeed) (material : Material) (root : Dige
     Related (programCache ∅ seed material)
       (simulateQ (QueryImpl.ofLift OracleWorld
         (WriterT (QueryLog SigningSpec) (OracleComp OracleWorld)) +
-        signingOracle ⟨seed, parameter material, root⟩)
+        signingOracle ⟨seed, parameter material⟩)
         (adversary.main ⟨root, parameter material⟩)).run
       (simulateQ (ordinaryWorld.liftTarget
         (WriterT (QueryLog SigningSpec) (OracleComp PreparedWorld)) +
-        materialSigningOracle material root)
+        materialSigningOracle material)
         (adversary.main ⟨root, parameter material⟩)).run := by
   apply Related.simulateQ_writer
   intro input
@@ -234,7 +234,7 @@ theorem Related.adversary (seed : MasterSeed) (material : Material) (root : Dige
   | inr message =>
       simp only [QueryImpl.add_apply_inr, signingOracle, materialSigningOracle,
         QueryImpl.run_withLogging_apply, bind_pure_comp]
-      exact (Related.sign seed material root message).map _
+      exact (Related.sign seed material message).map _
 
 omit [Params] in
 theorem targetRun_map {α β : Type} (f : α → β) (computation : OracleComp PreparedWorld α)
@@ -275,13 +275,13 @@ noncomputable def targetRest (material : Material) (adversary : Adversary) (publ
     OracleComp PreparedWorld Bool := do
   let ((forgery, log) : Forgery × QueryLog SigningSpec) ←
     (simulateQ (ordinaryWorld.liftTarget (WriterT (QueryLog SigningSpec) (OracleComp PreparedWorld)) +
-      materialSigningOracle material publicKey.root) (adversary.main publicKey)).run
+      materialSigningOracle material) (adversary.main publicKey)).run
   let verified ← liftM (Concrete.verify publicKey forgery.message forgery.signature : OracleComp HashSpec Bool)
   return decide (SigningTranscript.Valid log ∧ ¬SigningTranscript.Contains log forgery) && verified
 
 theorem Related.rest (seed : MasterSeed) (material : Material) (root : Digest) (adversary : Adversary) :
     Related (programCache ∅ seed material)
-      (sourceRest adversary ⟨root, parameter material⟩ ⟨seed, parameter material, root⟩)
+      (sourceRest adversary ⟨root, parameter material⟩ ⟨seed, parameter material⟩)
       (targetRest material adversary ⟨root, parameter material⟩) := by
   unfold sourceRest targetRest
   apply (Related.adversary seed material root adversary).bind
@@ -299,7 +299,7 @@ noncomputable def materialRoot (material : Material) : OracleComp PreparedHashSp
     (Seeded.treeRoot (parameter material) topLayer Concrete.rootTree 0 : OracleComp HashSpec Digest)
 
 theorem keygen_map_root (material : Material) :
-    keygen material = (fun root => (⟨root, parameter material⟩, ⟨0, parameter material, root⟩)) <$>
+    keygen material = (fun root => (⟨root, parameter material⟩, ⟨0, parameter material⟩)) <$>
       materialRoot material := by
   rw [keygen_eq]
   simp only [materialRoot, map_bind, bind_pure_comp]

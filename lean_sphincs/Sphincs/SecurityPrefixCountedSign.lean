@@ -54,7 +54,7 @@ noncomputable def publicSignWithCost (segment : Segment) (outside : QueryImpl Ha
     (counted SourceHash (Randomized.signDigestLoop sk message digestAttemptLimit))
   match loop.1 with
   | none => pure (none, loop.2)
-  | some randomness => pure (publicFinishSign segment outside secrets frontier surrogates sk.seed sk.root message randomness,
+  | some randomness => pure (publicFinishSign segment outside secrets frontier surrogates sk.seed message randomness,
         loop.2 + hashCalls outside (Randomized.finishSign sk message randomness))
 
 end SphincsLayered.Security.Prefix

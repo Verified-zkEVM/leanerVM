@@ -137,16 +137,16 @@ noncomputable def finishRest (parameter : PublicParameter) (data : PublicData) (
 theorem finishCostSource_eq (parameter : PublicParameter) (data : PublicData) (message : Message)
     (randomness : Randomness) :
     finishCostSource parameter data message randomness =
-      liftM (CostSpec.query (.inl (.inr (.inl (Security.digestInput parameter data.root message randomness))))) >>=
+      liftM (CostSpec.query (.inl (.inr (.inl (Security.digestInput parameter message randomness))))) >>=
         fun first => finishRest parameter data message randomness (truncateMessageDigest first) := by
   unfold finishCostSource finishRest messageDigest messageDigestCall
   simp only [liftM_bind, bind_assoc, liftM_pure, pure_bind]
   rfl
 
 omit [Params] in
-theorem msgInput_digestInput (parameter : PublicParameter) (root : Digest) (message : Message)
+theorem msgInput_digestInput (parameter : PublicParameter) (message : Message)
     (randomness : Randomness) :
-    IsMsgInput (Security.digestInput parameter root message randomness) :=
+    IsMsgInput (Security.digestInput parameter message randomness) :=
   ⟨parameter, _, rfl⟩
 
 omit [Params] in
@@ -212,18 +212,18 @@ variable {A : Type} (tg : Targeting HashInput HashOutput Coordinate) (initial : 
 /-- **Final assembly, one cached block.** -/
 theorem finish_bound₁ (parameter : PublicParameter) (data : PublicData) (message : Message)
     (randomness : Randomness)
-    (hparse : model.parse (Security.digestInput parameter data.root message randomness) = none)
+    (hparse : model.parse (Security.digestInput parameter message randomness) = none)
     (state : DebtState HashInput HashOutput Coordinate) (u0 : HashOutput)
-    (hc0 : state.cache (Security.digestInput parameter data.root message randomness) = some u0)
+    (hc0 : state.cache (Security.digestInput parameter message randomness) = some u0)
     (g : HashOutput → ℝ≥0∞) (budget : ℕ) :
     ∑' out, Pr{let x ← interp tg initial model (finishCostSource parameter data message randomness) budget state}[x = out] *
         (if out.1.1.isSome then
-          (out.2.cache (Security.digestInput parameter data.root message randomness)).elim 0 g else 0) ≤ g u0 := by
+          (out.2.cache (Security.digestInput parameter message randomness)).elim 0 g else 0) ≤ g u0 := by
   rw [finishCostSource_eq]
   exact one_read_bound tg initial model _ hparse state u0 hc0
     (fun a => finishRest parameter data message randomness (truncateMessageDigest a))
     (fun a => avoids_mono (fun x hx => by
-        rw [hx]; exact msgInput_digestInput parameter data.root message randomness)
+        rw [hx]; exact msgInput_digestInput parameter message randomness)
       (avoids_finishRest parameter data message randomness _)) g budget
 
 end FinishOne
@@ -292,9 +292,11 @@ variable {A : Type} (tg : Targeting HashInput HashOutput Coordinate)
   (initial : HiddenOutside.Cache HashInput HashOutput) (model : HiddenRows.Model HashInput HashOutput A Coordinate)
   (parameter : PublicParameter) (data : PublicData) (message : Message)
 
-/-- The digest block of the signed message with a randomizer. -/
-abbrev blk (randomness : Randomness) : HashInput :=
-  Security.digestInput parameter data.root message randomness
+/-- The digest block of the signed message with a randomizer. It does not read the public data
+(the message digest hashes no root); the unused argument keeps the hidden-debt layer's signatures. -/
+abbrev blk (parameter : PublicParameter) (_ : PublicData) (message : Message) (randomness : Randomness) :
+    HashInput :=
+  Security.digestInput parameter message randomness
 
 /-- Weight of a selected pair with a known block: fresh pairs (relative to the reference state)
 use `gf` (landed only), pool pairs use `gp`. -/
@@ -342,15 +344,15 @@ noncomputable def landedCount (state : DebtState HashInput HashOutput Coordinate
     Landed parameter (blockIndex u0)).card
 
 omit [Params] in
-theorem payload_randomness_injective (root : Digest) (message : Message) {ρ ρ' : Randomness}
-    (h : messageDigestPayload root message ρ = messageDigestPayload root message ρ') : ρ = ρ' := by
+theorem payload_randomness_injective (message : Message) {ρ ρ' : Randomness}
+    (h : messageDigestPayload message ρ = messageDigestPayload message ρ') : ρ = ρ' := by
   have hparts := List.append_inj h (by simp [bytesLE_length])
   exact bytesLE_injective hparts.2
 
 omit [Params] in
 theorem blk_ne_of_ne {ρ ρ' : Randomness} (h : ρ ≠ ρ') :
     blk parameter data message ρ ≠ blk parameter data message ρ' := fun heq =>
-  h (payload_randomness_injective data.root message (tweakableInput_injective heq).2.2)
+  h (payload_randomness_injective message (tweakableInput_injective heq).2.2)
 
 theorem related_store (reference state : DebtState HashInput HashOutput Coordinate)
     (hrel : Related parameter data message reference state) (ρ : Randomness)

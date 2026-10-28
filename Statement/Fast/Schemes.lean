@@ -140,7 +140,7 @@ def otsLeaf (parameter : PublicParameter) (leaf : Index) (message : ForestKey) (
 
 /-- `Sphincs.Concrete.verify`, with `otsLeaf`. -/
 def verify (publicKey : PublicKey) (message : Message) (signature : Signature) : m Bool := do
-  let digest ← messageDigest publicKey.parameter publicKey.root message signature.randomness
+  let digest ← messageDigest publicKey.parameter message signature.randomness
   let index := digestIndex digest
   let forestKey ← forestRecover publicKey.parameter index (digestMarks digest) signature.forest
   let some leaf ← _root_.Sphincs.Concrete.otsLeaf publicKey.parameter index forestKey

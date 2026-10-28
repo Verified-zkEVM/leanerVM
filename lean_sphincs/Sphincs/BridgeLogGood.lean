@@ -26,9 +26,9 @@ def SignedRevealed (parameter : PublicParameter) (data : PublicData) (log : Quer
     (reveals : List HiddenGraph.Coordinate) : Prop :=
   ∀ entry ∈ log, ∀ signature, entry.2 = some signature →
     (∃ pair, firstEncoding f parameter topLayer rootTree
-      (digestIndex (evalWithAnswerFn f (messageDigest parameter data.root entry.1 signature.randomness :
+      (digestIndex (evalWithAnswerFn f (messageDigest parameter entry.1 signature.randomness :
         OracleComp HashSpec MessageDigest)))
-      (data.forestKey (digestIndex (evalWithAnswerFn f (messageDigest parameter data.root entry.1
+      (data.forestKey (digestIndex (evalWithAnswerFn f (messageDigest parameter entry.1
         signature.randomness : OracleComp HashSpec MessageDigest)))) encodingAttemptLimit 0 = some pair) ∧
     ∀ coordinate ∈ revealsOf f parameter data entry.1 signature.randomness, coordinate ∈ reveals
 
@@ -51,16 +51,16 @@ theorem assembled_some (parameter : PublicParameter) (data : PublicData) (messag
     (h : assembled f parameter data table message randomness = some signature) :
     signature.randomness = randomness ∧
       ∃ pair, firstEncoding f parameter topLayer rootTree
-        (digestIndex (evalWithAnswerFn f (messageDigest parameter data.root message randomness :
+        (digestIndex (evalWithAnswerFn f (messageDigest parameter message randomness :
           OracleComp HashSpec MessageDigest)))
-        (data.forestKey (digestIndex (evalWithAnswerFn f (messageDigest parameter data.root message
+        (data.forestKey (digestIndex (evalWithAnswerFn f (messageDigest parameter message
           randomness : OracleComp HashSpec MessageDigest)))) encodingAttemptLimit 0 = some pair := by
   unfold assembled at h
   dsimp only at h
   cases hfound : firstEncoding f parameter topLayer rootTree
-      (digestIndex (evalWithAnswerFn f (messageDigest parameter data.root message randomness :
+      (digestIndex (evalWithAnswerFn f (messageDigest parameter message randomness :
         OracleComp HashSpec MessageDigest)))
-      (data.forestKey (digestIndex (evalWithAnswerFn f (messageDigest parameter data.root message randomness :
+      (data.forestKey (digestIndex (evalWithAnswerFn f (messageDigest parameter message randomness :
         OracleComp HashSpec MessageDigest)))) encodingAttemptLimit 0 with
   | none => rw [hfound] at h; cases h
   | some pair =>
@@ -78,9 +78,9 @@ theorem signLoop_revealed (parameter : PublicParameter) (data : PublicData) (mes
       (signCostSourceLoop parameter data message attempts randomness)))) :
     ∀ signature, result.1.1 = some signature →
       (∃ pair, firstEncoding f parameter topLayer rootTree
-        (digestIndex (evalWithAnswerFn f (messageDigest parameter data.root message signature.randomness :
+        (digestIndex (evalWithAnswerFn f (messageDigest parameter message signature.randomness :
           OracleComp HashSpec MessageDigest)))
-        (data.forestKey (digestIndex (evalWithAnswerFn f (messageDigest parameter data.root message
+        (data.forestKey (digestIndex (evalWithAnswerFn f (messageDigest parameter message
           signature.randomness : OracleComp HashSpec MessageDigest)))) encodingAttemptLimit 0 = some pair) ∧
       result.1.2 = revealsOf f parameter data message signature.randomness := by
   induction attempts generalizing result randomness with
@@ -110,9 +110,9 @@ theorem sign_revealed (parameter : PublicParameter) (data : PublicData) (message
     (hresult : result ∈ support (costRun f table (withReveals (signCostSource parameter data message)))) :
     ∀ signature, result.1.1 = some signature →
       (∃ pair, firstEncoding f parameter topLayer rootTree
-        (digestIndex (evalWithAnswerFn f (messageDigest parameter data.root message signature.randomness :
+        (digestIndex (evalWithAnswerFn f (messageDigest parameter message signature.randomness :
           OracleComp HashSpec MessageDigest)))
-        (data.forestKey (digestIndex (evalWithAnswerFn f (messageDigest parameter data.root message
+        (data.forestKey (digestIndex (evalWithAnswerFn f (messageDigest parameter message
           signature.randomness : OracleComp HashSpec MessageDigest)))) encodingAttemptLimit 0 = some pair) ∧
       result.1.2 = revealsOf f parameter data message signature.randomness := by
   rw [signCostSource] at hresult
@@ -206,14 +206,14 @@ theorem SignedRevealed.fchain_mem {parameter : PublicParameter} {data : PublicDa
     (h : SignedRevealed f parameter data log reveals) (entry : (t : SigningSpec.Domain) × SigningSpec.Range t)
     (hentry : entry ∈ log) (signature : Signature) (hsig : entry.2 = some signature) (c : Coord) (j : SubIdx)
     (ch : FChain) (k : FPos)
-    (hk : (GraphView.openedPos (digestMarks (evalWithAnswerFn f (messageDigest parameter data.root entry.1
+    (hk : (GraphView.openedPos (digestMarks (evalWithAnswerFn f (messageDigest parameter entry.1
       signature.randomness : OracleComp HashSpec MessageDigest)) c) j ch).val ≤ k.val) :
     HiddenGraph.Coordinate.fchain
-      (digestIndex (evalWithAnswerFn f (messageDigest parameter data.root entry.1 signature.randomness :
+      (digestIndex (evalWithAnswerFn f (messageDigest parameter entry.1 signature.randomness :
         OracleComp HashSpec MessageDigest))) c
-      (digestMarks (evalWithAnswerFn f (messageDigest parameter data.root entry.1 signature.randomness :
+      (digestMarks (evalWithAnswerFn f (messageDigest parameter entry.1 signature.randomness :
         OracleComp HashSpec MessageDigest)) c).super j
-      ((digestMarks (evalWithAnswerFn f (messageDigest parameter data.root entry.1 signature.randomness :
+      ((digestMarks (evalWithAnswerFn f (messageDigest parameter entry.1 signature.randomness :
         OracleComp HashSpec MessageDigest)) c).child j) ch k ∈ reveals := by
   obtain ⟨⟨pair, hpair⟩, hsub⟩ := h entry hentry signature hsig
   apply hsub

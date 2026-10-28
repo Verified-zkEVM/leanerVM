@@ -54,8 +54,7 @@ theorem sample_boundF_of (hb : 0 < subtreeHeight) (adversary : Adversary) (hnr :
       (signatureLimit : ℝ) * (123 * ((2 : ℝ) ^ subtreeHeight * 2 ^ 15)⁻¹) ≤ κ) (hκ1 : κ ≤ 1)
     (b N : ℕ) (hbb : subtreeHeight = b) (hNN : signatureLimit = N)
     (dig : HashInput → Prop)
-    (hdig : ∀ m r, dig (Security.digestInput (truncateHash parameterOutput)
-      (sampleData parameterOutput fixed highs remaining).root m r))
+    (hdig : ∀ m r, dig (Security.digestInput (truncateHash parameterOutput) m r))
     (t : H0.PoisT) (o : H0.OptF) (on : H0.OptN) (hpt : H0.checkPT t = true) (qtop : ℕ)
     (hrt : H0.checkRate b N qtop t = true) (hqtop : q - keygenCost ≤ qtop)
     (ho : H0.checkOptF b t o = true) (hon : H0.checkOptN t on = true) (hcthr : (o.cthr : ℝ) ≤ ρ / 2 ^ 128)
@@ -111,11 +110,11 @@ theorem sample_boundF_of (hb : 0 < subtreeHeight) (adversary : Adversary) (hnr :
     | some qq =>
         exfalso
         obtain ⟨hx, -⟩ := (parse_some_iff _ _ _ qq).1 h
-        exact msg_not_graph param qq.1.position _ _ (msgInput_digestInput param data.root p.1 p.2) hx
+        exact msg_not_graph param qq.1.position _ _ (msgInput_digestInput param p.1 p.2) hx
   have hdigest : ∀ p, tgA.digest (pblk param data p) := fun p => hdig p.1 p.2
   have hclean : ∀ p, prepared.2 (pblk param data p) = none := fun p =>
     prepared_clean parameterOutput fixed highs remaining prepared hprepared _
-      (msgInput_digestInput param data.root p.1 p.2)
+      (msgInput_digestInput param p.1 p.2)
   have hfail : ∀ m ρ' digest budget (s1 : State), Prepared prepared.2 s1 →
       ∀ out ∈ support (interp tgA prepared.2 model (finishRest param data m ρ' digest) budget s1),
         out.1.1 = some none → (Lifetime.localDigestView digest).1 ∈ Fset :=
@@ -175,7 +174,7 @@ theorem sample_boundF_of (hb : 0 < subtreeHeight) (adversary : Adversary) (hnr :
       rfl
   -- the contact bound A4
   have hκspl : ν ≤ payB + κE * ν := arm_splitF κ
-  have hA4 : ∑' out, Pr{let x ← run}[x = out] * finalA4 K data.root out.1.1 out.1.2.1 out.2 ≤
+  have hA4 : ∑' out, Pr{let x ← run}[x = out] * finalA4 K out.1.1 out.1.2.1 out.2 ≤
       ν * (((Nat.choose q' 2 : ℕ) : ℝ≥0∞) * rateS) +
         κE * ν * ((q' : ℕ) * ((q' : ℕ) * (ENNReal.ofReal ((c / 2 : ℚ) : ℝ) + φ) + signatureLimit * φ)) +
         lam Lmax 0 q' +
@@ -208,14 +207,14 @@ theorem sample_boundF_of (hb : 0 < subtreeHeight) (adversary : Adversary) (hnr :
       Pr{let x ← (fun table => (table, out)) <$> completion out.2.known}[CorrectGuess x.1 x.2.2 ∨ badAV parameterOutput fixed highs remaining prepared.1 x.1
           (((x.2.1.1, x.2.1.2.1), x.2.1.2.2.1), x.2.2.cache)] ≤
       Pr{let x ← run}[x = out] * ((endValue pay out.2 + finalValue param data tgA prepared.2 [] out) +
-        finalA4 K data.root out.1.1 out.1.2.1 out.2) := by
+        finalA4 K out.1.1 out.1.2.1 out.2) := by
     intro out
     by_cases hout : out ∈ support run
     · refine mul_le_mul_right ?_ _
       rw [prEvent_map]
       set E4 : (Coordinate → Digest) → Prop := fun T => ∃ outcome, out.1.1 = some outcome ∧
-        SigningTranscript.Valid outcome.2.1 ∧ A4ev K data.root T out.2 outcome out.1.2.1 with hE4
-      have hE4le : Pr{let x ← completion out.2.known}[E4 x] ≤ finalA4 K data.root out.1.1 out.1.2.1 out.2 := by
+        SigningTranscript.Valid outcome.2.1 ∧ A4ev K T out.2 outcome out.1.2.1 with hE4
+      have hE4le : Pr{let x ← completion out.2.known}[E4 x] ≤ finalA4 K out.1.1 out.1.2.1 out.2 := by
         cases hres : out.1.1 with
         | none =>
             refine le_of_eq_of_le (prEvent_eq_zero_of_forall_mem_support _ _ fun T _ h => ?_) bot_le
@@ -248,7 +247,7 @@ theorem sample_boundF_of (hb : 0 < subtreeHeight) (adversary : Adversary) (hnr :
         _ ≤ Pr{let T ← completion out.2.known}[pay T out.2 = 1] +
             Pr{let T ← completion out.2.known}[E4 T ∨ finalValue param data tgA prepared.2 [] out = 1] :=
             prEvent_or_le _ _ _
-        _ ≤ endValue pay out.2 + (finalA4 K data.root out.1.1 out.1.2.1 out.2 +
+        _ ≤ endValue pay out.2 + (finalA4 K out.1.1 out.1.2.1 out.2 +
               finalValue param data tgA prepared.2 [] out) := by
             refine add_le_add (probEvent_le_endValueF pay out.2 _ fun T h => h) ?_
             refine le_trans (prEvent_or_le _ _ _) (add_le_add hE4le ?_)
@@ -261,10 +260,10 @@ theorem sample_boundF_of (hb : 0 < subtreeHeight) (adversary : Adversary) (hnr :
   rw [OracleComp.prEvent_bind_eq_tsum]
   refine le_trans (ENNReal.tsum_le_tsum hstep) ?_
   have hsplit : ∑' out, Pr{let x ← run}[x = out] * ((endValue pay out.2 + finalValue param data tgA prepared.2 [] out) +
-        finalA4 K data.root out.1.1 out.1.2.1 out.2) =
+        finalA4 K out.1.1 out.1.2.1 out.2) =
       (∑' out, Pr{let x ← run}[x = out] * endValue pay out.2 +
         ∑' out, Pr{let x ← run}[x = out] * finalValue param data tgA prepared.2 [] out) +
-        ∑' out, Pr{let x ← run}[x = out] * finalA4 K data.root out.1.1 out.1.2.1 out.2 := by
+        ∑' out, Pr{let x ← run}[x = out] * finalA4 K out.1.1 out.1.2.1 out.2 := by
     rw [← ENNReal.tsum_add, ← ENNReal.tsum_add]
     refine tsum_congr fun out => ?_
     ring
@@ -291,7 +290,7 @@ theorem sample_boundF_of (hb : 0 < subtreeHeight) (adversary : Adversary) (hnr :
         = κE * nearM + κE * nearF := by rw [hnearM, hnearF]; ring
       _ ≤ κE * nearM + 1 * nearF := by gcongr
       _ = κE * nearM + nearF := by rw [one_mul]
-  calc (Ev + Efin) + ∑' out, Pr{let x ← run}[x = out] * finalA4 K data.root out.1.1 out.1.2.1 out.2
+  calc (Ev + Efin) + ∑' out, Pr{let x ← run}[x = out] * finalA4 K out.1.1 out.1.2.1 out.2
       ≤ (Ev + (cov + lm + b0 * Ed)) + (coin + κE * ν * ((q' : ℕ) * ((q' : ℕ) *
           (ENNReal.ofReal ((c / 2 : ℚ) : ℝ) + φ) + signatureLimit * φ)) + lm +
           (ν * ((signatureLimit : ℝ≥0∞) * revRate) + payB) * Ef) :=
@@ -375,7 +374,7 @@ theorem sample_boundF (hb : 0 < subtreeHeight) (adversary : Adversary) (hnr : ad
       exact smallRoute_potentialF parameterOutput fixed highs remaining prepared known ρ hk tgA rfl 0
         (numeric_monoF hN (by rw [hq0]) (by norm_num)) (costGameX param data (internalize adversary))
   exact sample_boundF_of hb adversary hnr q hq parameterOutput fixed highs remaining prepared hprepared known hk ρ κ hκ hκ1 b N hbb hNN IsMsgInput
-    (fun m r => msgInput_digestInput _ _ m r) t o on hpt qtop hrt hqtop ho hon hcthr _ hA3
+    (fun m r => msgInput_digestInput _ m r) t o on hpt qtop hrt hqtop ho hon hcthr _ hA3
 
 end SampleF
 

@@ -309,7 +309,7 @@ variable [Params]
 /-- The coordinates the signer reveals for a randomizer under a fixed function. -/
 noncomputable def revealsOf (parameter : PublicParameter) (data : PublicData) (message : Message)
     (randomness : Randomness) : List HiddenGraph.Coordinate :=
-  let digest := evalWithAnswerFn f (messageDigest parameter data.root message randomness :
+  let digest := evalWithAnswerFn f (messageDigest parameter message randomness :
     OracleComp HashSpec MessageDigest)
   let index := digestIndex digest
   match firstEncoding f parameter topLayer rootTree index (data.forestKey index) encodingAttemptLimit 0 with
@@ -337,9 +337,9 @@ theorem finish_support (parameter : PublicParameter) (data : PublicData) (messag
   simp only [ReferenceChoice.eval_search] at h6
   unfold assembled revealsOf
   cases hfound : firstEncoding f parameter topLayer rootTree
-      (digestIndex (evalWithAnswerFn f (messageDigest parameter data.root message randomness :
+      (digestIndex (evalWithAnswerFn f (messageDigest parameter message randomness :
         OracleComp HashSpec MessageDigest)))
-      (data.forestKey (digestIndex (evalWithAnswerFn f (messageDigest parameter data.root message randomness :
+      (data.forestKey (digestIndex (evalWithAnswerFn f (messageDigest parameter message randomness :
         OracleComp HashSpec MessageDigest)))) encodingAttemptLimit 0 with
   | none =>
       rw [hfound] at h6
@@ -372,8 +372,8 @@ def SignOutcome (parameter : PublicParameter) (seed : MasterSeed) (data : Public
     (message : Message) (result : Option Signature × List HiddenGraph.Coordinate) : Prop :=
   (result.1 = none → result.2 = []) ∧
   ∀ signature, result.1 = some signature → ∃ randomness,
-    Landed parameter (digestIndex (Completeness.digestValue f ⟨seed, parameter, data.root⟩ message randomness)) ∧
-    evalWithAnswerFn f (Randomized.finishSign ⟨seed, parameter, data.root⟩ message randomness) =
+    Landed parameter (digestIndex (Completeness.digestValue f ⟨seed, parameter⟩ message randomness)) ∧
+    evalWithAnswerFn f (Randomized.finishSign ⟨seed, parameter⟩ message randomness) =
       some signature ∧
     result.2 = revealsOf f parameter data message randomness
 
@@ -385,9 +385,9 @@ theorem revealsOf_of_assembled_none (parameter : PublicParameter) (data : Public
   unfold revealsOf
   dsimp only at h ⊢
   cases hfound : firstEncoding f parameter topLayer rootTree
-      (digestIndex (evalWithAnswerFn f (messageDigest parameter data.root message randomness :
+      (digestIndex (evalWithAnswerFn f (messageDigest parameter message randomness :
         OracleComp HashSpec MessageDigest)))
-      (data.forestKey (digestIndex (evalWithAnswerFn f (messageDigest parameter data.root message randomness :
+      (data.forestKey (digestIndex (evalWithAnswerFn f (messageDigest parameter message randomness :
         OracleComp HashSpec MessageDigest)))) encodingAttemptLimit 0 with
   | none => rfl
   | some pair => rw [hfound] at h; cases h
@@ -412,7 +412,7 @@ theorem signLoop_support (parameter : PublicParameter) (seed : MasterSeed) (data
       split at h4
       · rename_i hland
         have hland' : Landed parameter (digestIndex (Completeness.digestValue f
-            ⟨seed, parameter, data.root⟩ message randomness)) := by
+            ⟨seed, parameter⟩ message randomness)) := by
           simpa only [Completeness.digestValue, messageDigest, evalWithAnswerFn_bind,
             evalWithAnswerFn_pure, Completeness.digestIndex_truncate] using hland
         obtain ⟨hvalue, hreveals⟩ := finish_support f table parameter data message randomness r4 h4
@@ -440,8 +440,8 @@ revealed by some logged signature. -/
 def LogGood (parameter : PublicParameter) (seed : MasterSeed) (data : PublicData)
     (log : QueryLog SigningSpec) (reveals : List HiddenGraph.Coordinate) : Prop :=
   (∀ entry ∈ log, ∀ signature, entry.2 = some signature → ∃ randomness,
-    Landed parameter (digestIndex (Completeness.digestValue f ⟨seed, parameter, data.root⟩ entry.1 randomness)) ∧
-    evalWithAnswerFn f (Randomized.finishSign ⟨seed, parameter, data.root⟩ entry.1 randomness) =
+    Landed parameter (digestIndex (Completeness.digestValue f ⟨seed, parameter⟩ entry.1 randomness)) ∧
+    evalWithAnswerFn f (Randomized.finishSign ⟨seed, parameter⟩ entry.1 randomness) =
       some signature) ∧
   ∀ coordinate ∈ reveals, ∃ entry ∈ log, ∃ signature, entry.2 = some signature ∧
     coordinate ∈ revealsOf f parameter data entry.1 signature.randomness

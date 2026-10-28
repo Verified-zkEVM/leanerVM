@@ -135,8 +135,8 @@ theorem childPayload_length (ends : FChain → Digest) :
   rw [childPayload, flatMap_bytes_length]
   rfl
 
-theorem messageDigestPayload_length (root : Digest) (message : Message) (randomness : Randomness) :
-    (messageDigestPayload root message randomness).length = 48 := by
+theorem messageDigestPayload_length (message : Message) (randomness : Randomness) :
+    (messageDigestPayload message randomness).length = 48 := by
   simp [messageDigestPayload, bytesLE_length]
 
 theorem Only.chainWalk (parameter : PublicParameter) (lay : Layer) (tree : TreeIndex)
@@ -251,21 +251,21 @@ theorem Only.forestRecover (parameter : PublicParameter) (index : Index)
     exact Only.bind (Only.tweakableHash _ _ _ (by rw [superPayload_length]; omega))
       (fun _ => Only.bind (Only.topFold _ _ _ _ _ _ _) (fun _ => Only.pure' _))
 
-theorem Only.messageDigestCall (parameter : PublicParameter) (root : Digest) (message : Message)
+theorem Only.messageDigestCall (parameter : PublicParameter) (message : Message)
     (randomness : Randomness) :
-    Only (Concrete.messageDigestCall parameter root message randomness :
+    Only (Concrete.messageDigestCall parameter message randomness :
       OracleComp HashSpec HashOutput) := by
   unfold Concrete.messageDigestCall
   apply Only.query
   simp only [IsShort, bound, tweakableHashInput_length, messageDigestPayload_length]
   omega
 
-theorem Only.messageDigest (parameter : PublicParameter) (root : Digest) (message : Message)
+theorem Only.messageDigest (parameter : PublicParameter) (message : Message)
     (randomness : Randomness) :
-    Only (Concrete.messageDigest parameter root message randomness :
+    Only (Concrete.messageDigest parameter message randomness :
       OracleComp HashSpec MessageDigest) := by
   unfold Concrete.messageDigest
-  exact Only.bind (Only.messageDigestCall _ _ _ _) (fun _ => Only.pure' _)
+  exact Only.bind (Only.messageDigestCall _ _ _) (fun _ => Only.pure' _)
 
 attribute [local irreducible] Concrete.treeFold Concrete.chainWalk
   Concrete.otsLeaf Concrete.forestRecover Concrete.messageDigest
@@ -273,7 +273,7 @@ attribute [local irreducible] Concrete.treeFold Concrete.chainWalk
 theorem Only.verify (publicKey : PublicKey) (message : Message) (signature : Signature) :
     Only (Concrete.verify publicKey message signature : OracleComp HashSpec Bool) := by
   rw [verify_eq_single_layer]
-  refine Only.bind (Only.messageDigest _ _ _ _) ?_
+  refine Only.bind (Only.messageDigest _ _ _) ?_
   intro digest
   refine Only.bind (Only.forestRecover _ _ _ _) ?_
   intro key
@@ -455,7 +455,7 @@ theorem Only.keygenFromSeed (seed : MasterSeed) :
 theorem Only.signAttempt (secretKey : SecretKey) (message : Message) (randomness : Randomness) :
     Short.Only (signAttempt secretKey message randomness : OracleComp HashSpec (Option Index)) := by
   unfold SphincsLayered.Seeded.signAttempt
-  exact Short.Only.bind (Short.Only.messageDigestCall _ _ _ _) (fun _ =>
+  exact Short.Only.bind (Short.Only.messageDigestCall _ _ _) (fun _ =>
     Short.Only.ite _ (Short.Only.pure' _) (Short.Only.pure' _))
 
 attribute [local irreducible] SphincsLayered.Seeded.treeNode SphincsLayered.Seeded.subNode
@@ -485,7 +485,7 @@ theorem Only.finishSign (secretKey : SphincsLayered.Seeded.SecretKey) (message :
     Only (Randomized.finishSign secretKey message randomness :
       OracleComp HashSpec (Option Signature)) := by
   unfold Randomized.finishSign
-  refine Only.bind (Only.messageDigest _ _ _ _) (fun digest => ?_)
+  refine Only.bind (Only.messageDigest _ _ _) (fun digest => ?_)
   dsimp only
   generalize digestIndex digest = index
   generalize digestMarks digest = marks

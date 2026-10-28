@@ -146,7 +146,7 @@ def coordSource (data : PublicData) (index : Index) (c : Coord) (mark : CoordMar
 opened forest chains are read; all path values are public structural labels. -/
 def finishSource (parameter : PublicParameter) (data : PublicData)
     (message : Message) (randomness : Randomness) : OracleComp HashViewSpec (Option Signature) := do
-  let digest ← liftM (messageDigest parameter data.root message randomness :
+  let digest ← liftM (messageDigest parameter message randomness :
     OracleComp HashSpec MessageDigest)
   let index := digestIndex digest
   let some (counter, word) ← liftM (ReferenceChoice.search parameter topLayer rootTree index
@@ -166,7 +166,7 @@ def assembledForest (data : PublicData) (table : HiddenGraph.Table) (index : Ind
 noncomputable def assembled (f : QueryImpl HashSpec Id) (parameter : PublicParameter)
     (data : PublicData) (table : HiddenGraph.Table) (message : Message) (randomness : Randomness) :
     Option Signature :=
-  let digest := evalWithAnswerFn f (messageDigest parameter data.root message randomness :
+  let digest := evalWithAnswerFn f (messageDigest parameter message randomness :
     OracleComp HashSpec MessageDigest)
   let index := digestIndex digest
   (firstEncoding f parameter topLayer rootTree index (data.forestKey index) encodingAttemptLimit 0).map
@@ -191,18 +191,18 @@ theorem eval_finishSign_assembled (f : QueryImpl HashSpec Id) (parameter : Publi
     (htable : CoordinatesCorrect f parameter seed table)
     (message : Message) (randomness : Randomness)
     (hland : Landed parameter (digestIndex (evalWithAnswerFn f
-      (messageDigest parameter data.root message randomness : OracleComp HashSpec MessageDigest)))) :
-    evalWithAnswerFn f (Randomized.finishSign ⟨seed, parameter, data.root⟩ message randomness) =
+      (messageDigest parameter message randomness : OracleComp HashSpec MessageDigest)))) :
+    evalWithAnswerFn f (Randomized.finishSign ⟨seed, parameter⟩ message randomness) =
       assembled f parameter data table message randomness := by
   have hchains (word : Encoding) :
       (fun chain => table (.chain topLayer rootTree
-        (digestIndex (evalWithAnswerFn f (messageDigest parameter data.root message randomness :
+        (digestIndex (evalWithAnswerFn f (messageDigest parameter message randomness :
           OracleComp HashSpec MessageDigest))) chain (word chain))) =
       (fun chain => evalWithAnswerFn f (chainWalk parameter topLayer rootTree
-        (digestIndex (evalWithAnswerFn f (messageDigest parameter data.root message randomness :
+        (digestIndex (evalWithAnswerFn f (messageDigest parameter message randomness :
           OracleComp HashSpec MessageDigest))) chain 0 (word chain).val
           (Completeness.otsSecret f parameter topLayer rootTree
-            (digestIndex (evalWithAnswerFn f (messageDigest parameter data.root message randomness :
+            (digestIndex (evalWithAnswerFn f (messageDigest parameter message randomness :
               OracleComp HashSpec MessageDigest))) seed chain) : OracleComp HashSpec Digest)) := by
     funext chain
     exact htable.1 _ hland chain (word chain)
@@ -211,10 +211,10 @@ theorem eval_finishSign_assembled (f : QueryImpl HashSpec Id) (parameter : Publi
     Seeded.otsSign, otsSignFrom_eq_firstEncoding, hdata.forestKey,
     hdata.treePath _ hland, hchains, eval_forestOpen_assembled f parameter seed data table hdata htable]
   cases hs : firstEncoding f parameter topLayer rootTree
-      (digestIndex (evalWithAnswerFn f (messageDigest parameter data.root message randomness :
+      (digestIndex (evalWithAnswerFn f (messageDigest parameter message randomness :
         OracleComp HashSpec MessageDigest)))
       (evalWithAnswerFn f (Seeded.forestKey parameter
-        (digestIndex (evalWithAnswerFn f (messageDigest parameter data.root message randomness :
+        (digestIndex (evalWithAnswerFn f (messageDigest parameter message randomness :
           OracleComp HashSpec MessageDigest))) seed : OracleComp HashSpec ForestKey))
       encodingAttemptLimit 0 <;>
     simp only [Option.map_none, Option.map_some, evalWithAnswerFn_pure, evalWithAnswerFn_bind,

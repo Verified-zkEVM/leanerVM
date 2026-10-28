@@ -151,7 +151,7 @@ theorem hashCalls_signLayer_exact (f : QueryImpl HashSpec Id) (sk : Seeded.Secre
 noncomputable def finishHashCost (f : QueryImpl HashSpec Id) (parameter : PublicParameter)
     (data : PublicData) (message : Message) (randomness : Randomness) : Nat :=
   let index := digestIndex (evalWithAnswerFn f
-    (messageDigest parameter data.root message randomness : OracleComp HashSpec MessageDigest))
+    (messageDigest parameter message randomness : OracleComp HashSpec MessageDigest))
   118081 + hashCalls f (ReferenceChoice.search parameter topLayer rootTree index
     (data.forestKey index) encodingAttemptLimit 0) +
     if (firstEncoding f parameter topLayer rootTree index (data.forestKey index)
@@ -163,14 +163,14 @@ WOTS fails. -/
 theorem hashCalls_finishSign_exact (f : QueryImpl HashSpec Id) (parameter : PublicParameter)
     (seed : MasterSeed) (data : PublicData) (hdata : DataCorrect f parameter seed data)
     (message : Message) (randomness : Randomness) :
-    hashCalls f (Randomized.finishSign ⟨seed, parameter, data.root⟩ message randomness) =
+    hashCalls f (Randomized.finishSign ⟨seed, parameter⟩ message randomness) =
       finishHashCost f parameter data message randomness := by
   simp only [Randomized.finishSign, hashCalls_bind, hashCalls_messageDigest, hashCalls_forsOpen_exact,
     hashCalls_sequenceLayers, hashCalls_signLayer_exact, finishHashCost, hdata.forestKey]
   cases hLayer : evalWithAnswerFn f (sequenceLayers fun lay =>
-      Seeded.signLayer ⟨seed, parameter, data.root⟩
+      Seeded.signLayer ⟨seed, parameter⟩
         (digestIndex (evalWithAnswerFn f
-          (messageDigest parameter data.root message randomness : OracleComp HashSpec MessageDigest))) lay) <;>
+          (messageDigest parameter message randomness : OracleComp HashSpec MessageDigest))) lay) <;>
     simp only [hashCalls_pure] <;> omega
 
 end SphincsLayered.Security.GraphView

@@ -48,7 +48,7 @@ theorem signCostSourceLoop_succ (parameter : PublicParameter) (data : PublicData
     (attempts : ℕ) (randomness : Randomness) :
     signCostSourceLoop parameter data message (attempts + 1) randomness =
       liftM (CostSpec.query (.inl (.inr (.inl
-        (Security.digestInput parameter data.root message randomness))))) >>= fun first =>
+        (Security.digestInput parameter message randomness))))) >>= fun first =>
           if Landed parameter (blockIndex first) then finishCostSource parameter data message randomness
           else signCostSourceLoop parameter data message attempts (nextRand randomness) := by
   rw [signCostSourceLoop]
@@ -289,7 +289,7 @@ theorem scan_post (hparse : ∀ ρ, model.parse (blk parameter data message ρ) 
             finish_post tg initial model parameter data message hparse Fail hfail ρ _ res.2 hprep1 res.1 hb0 o ho r hr
           refine Or.inr ⟨ρ, res.1, ⟨hf0, hl, hb0s, fun ρ' hρ' => ?_⟩, hfrev, hfsig, fun hn => ?_⟩
           · refine Or.inl ?_
-            rw [hfother _ (msgInput_digestInput parameter data.root message ρ'),
+            rw [hfother _ (msgInput_digestInput parameter message ρ'),
               hrest _ (blk_ne_of_ne parameter data message hρ')]
           · obtain ⟨hrv, hfl⟩ := hffail hn
             exact ⟨hrv, fun _ => hfl⟩

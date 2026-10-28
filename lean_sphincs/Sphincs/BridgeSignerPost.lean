@@ -141,7 +141,7 @@ theorem finish_post (hparse : ∀ ρ, model.parse (blk parameter data message ρ
     have havoid := interp_avoids_cache tg initial model IsMsgInput _
       (avoids_finishRest parameter data message ρ (truncateMessageDigest u0)) _ s1 o ho
     refine ⟨?_, fun x hx => havoid x hx, ?_, hsig, ?_⟩
-    · rw [havoid _ (msgInput_digestInput parameter data.root message ρ), hc0]
+    · rw [havoid _ (msgInput_digestInput parameter message ρ), hc0]
     · intro c hc
       exact interp_reveals tg initial model _ (revealsIn_finishRest parameter data message ρ _) _ _ o ho c hc
     · intro hnone

@@ -217,16 +217,16 @@ encoding absorbs it. -/
   rfl
 
 @[simp] theorem permutations_messageDigestCall (f : QueryImpl HashSpec Id)
-    (parameter : PublicParameter) (root : Digest) (message : Message)
+    (parameter : PublicParameter) (message : Message)
     (randomness : Randomness) :
-    permutations f (messageDigestCall parameter root message randomness) = 1 := by
+    permutations f (messageDigestCall parameter message randomness) = 1 := by
   simp only [messageDigestCall, permutations_oracleHash, tweakableHashInput_length,
     messageDigestPayload, List.length_append, bytesLE_length]
   rfl
 
 @[simp] theorem permutations_messageDigest (f : QueryImpl HashSpec Id)
-    (parameter : PublicParameter) (root : Digest) (message : Message) (randomness : Randomness) :
-    permutations f (messageDigest parameter root message randomness) = 1 := by
+    (parameter : PublicParameter) (message : Message) (randomness : Randomness) :
+    permutations f (messageDigest parameter message randomness) = 1 := by
   simp only [messageDigest, permutations_bind, permutations_messageDigestCall,
     permutations_pure]
 

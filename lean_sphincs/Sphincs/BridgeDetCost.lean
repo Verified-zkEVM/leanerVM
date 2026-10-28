@@ -68,9 +68,9 @@ theorem eval_signAttempt (f : QueryImpl HashSpec Id) (sk : Seeded.SecretKey) (me
     (randomness : Randomness) :
     evalWithAnswerFn f (Seeded.signAttempt sk message randomness : OracleComp HashSpec (Option Index)) =
       if Landed sk.parameter (blockIndex (evalWithAnswerFn f
-          (messageDigestCall sk.parameter sk.root message randomness : OracleComp HashSpec HashOutput)))
+          (messageDigestCall sk.parameter message randomness : OracleComp HashSpec HashOutput)))
       then some (blockIndex (evalWithAnswerFn f
-          (messageDigestCall sk.parameter sk.root message randomness : OracleComp HashSpec HashOutput)))
+          (messageDigestCall sk.parameter message randomness : OracleComp HashSpec HashOutput)))
       else none := by
   simp only [Seeded.signAttempt, evalWithAnswerFn_bind]
   split <;> rfl
@@ -82,19 +82,19 @@ theorem fixed_signCostDetLoop (f : QueryImpl HashSpec Id) (parameter : PublicPar
     (hdata : DataCorrect f parameter seed data) (htable : CoordinatesCorrect f parameter seed table)
     (message : Message) (attempts : Nat) (start : Randomness) :
     simulateQ (fixedCostSource f table) (signCostSourceLoop parameter data message attempts start) =
-      simulateQ (fixedWorldCost f) (liftM (seededFrom ⟨seed, parameter, data.root⟩ message attempts start) :
+      simulateQ (fixedWorldCost f) (liftM (seededFrom ⟨seed, parameter⟩ message attempts start) :
         OracleComp OracleWorld (Option Signature)) := by
   induction attempts generalizing start with
   | zero =>
       simp only [signCostSourceLoop, seededFrom, Seeded.signDigestLoop, pure_bind, simulateQ_pure,
         liftM_pure]
   | succ attempts ih =>
-      have hX : seededFrom ⟨seed, parameter, data.root⟩ message (attempts + 1) start =
-          (Seeded.signAttempt ⟨seed, parameter, data.root⟩ message start :
+      have hX : seededFrom ⟨seed, parameter⟩ message (attempts + 1) start =
+          (Seeded.signAttempt ⟨seed, parameter⟩ message start :
               OracleComp HashSpec (Option Index)) >>= fun result =>
                 match result with
-                | some _ => Randomized.finishSign ⟨seed, parameter, data.root⟩ message start
-                | none => seededFrom ⟨seed, parameter, data.root⟩ message attempts (start + 1) := by
+                | some _ => Randomized.finishSign ⟨seed, parameter⟩ message start
+                | none => seededFrom ⟨seed, parameter⟩ message attempts (start + 1) := by
         simp only [seededFrom, Seeded.signDigestLoop, bind_assoc]
         refine bind_congr fun result => ?_
         cases result <;> simp
@@ -104,9 +104,9 @@ theorem fixed_signCostDetLoop (f : QueryImpl HashSpec Id) (parameter : PublicPar
       simp only [evalWithAnswerFn_bind, hashCalls_bind, hashCalls_signAttempt, eval_signAttempt,
         hashCalls_messageDigestCall]
       by_cases hland : Landed parameter (blockIndex (evalWithAnswerFn f
-        (messageDigestCall parameter data.root message start : OracleComp HashSpec HashOutput)))
+        (messageDigestCall parameter message start : OracleComp HashSpec HashOutput)))
       · have hland' : Landed parameter (digestIndex (evalWithAnswerFn f
-            (messageDigest parameter data.root message start : OracleComp HashSpec MessageDigest))) := by
+            (messageDigest parameter message start : OracleComp HashSpec MessageDigest))) := by
           simpa only [messageDigest, evalWithAnswerFn_bind, evalWithAnswerFn_pure,
             digestIndex_truncate] using hland
         apply WriterT.ext
@@ -126,12 +126,12 @@ theorem signCostDet_correct (f : QueryImpl HashSpec Id) (parameter : PublicParam
     (rnd : RTable) (hrnd : ∀ message, f (randomizerHashInput parameter seed message) = rnd message)
     (message : Message) :
     simulateQ (fixedCostSource f table) (signCostDet parameter data rnd message) =
-      simulateQ (fixedWorldCost f) (liftM (Seeded.sign ⟨seed, parameter, data.root⟩ message :
+      simulateQ (fixedWorldCost f) (liftM (Seeded.sign ⟨seed, parameter⟩ message :
         OracleComp HashSpec (Option Signature)) : OracleComp OracleWorld (Option Signature)) := by
-  have hX : (Seeded.sign ⟨seed, parameter, data.root⟩ message :
+  have hX : (Seeded.sign ⟨seed, parameter⟩ message :
       OracleComp HashSpec (Option Signature)) =
       (deriveRandomizer parameter seed message : OracleComp HashSpec Randomness) >>= fun base =>
-        seededFrom ⟨seed, parameter, data.root⟩ message digestAttemptLimit base := by
+        seededFrom ⟨seed, parameter⟩ message digestAttemptLimit base := by
     rw [seededSign_eq]
     rfl
   rw [hX, fixedWorldCost_lift_hash]
@@ -150,7 +150,7 @@ theorem fixedCostSource_interactionDet (f : QueryImpl HashSpec Id) (parameter : 
       (fixedWorldCost f).writerTMapBase
         (QueryImpl.ofLift OracleWorld
           (WriterT (QueryLog SigningSpec) (OracleComp OracleWorld)) +
-          signingOracleDet ⟨seed, parameter, data.root⟩) := by
+          signingOracleDet ⟨seed, parameter⟩) := by
   funext request
   cases request with
   | inl request =>
@@ -166,12 +166,12 @@ theorem fixedCostSource_interactionDet (f : QueryImpl HashSpec Id) (parameter : 
       change ((fixedCostSource f table).writerTMapBase
         (QueryImpl.withLogging (spec := SigningSpec) (m := OracleComp CostSpec)
           (fun message => signCostDet parameter data rnd message))) message =
-        ((fixedWorldCost f).writerTMapBase (signingOracleDet ⟨seed, parameter, data.root⟩)) message
+        ((fixedWorldCost f).writerTMapBase (signingOracleDet ⟨seed, parameter⟩)) message
       rw [signingOracleDet, map_logging_query, map_logging_query]
       have hsign : (fun message => simulateQ (fixedCostSource f table)
           (signCostDet parameter data rnd message)) =
           (fun message => simulateQ (fixedWorldCost f)
-            (liftM (Seeded.sign ⟨seed, parameter, data.root⟩ message :
+            (liftM (Seeded.sign ⟨seed, parameter⟩ message :
               OracleComp HashSpec (Option Signature)) : OracleComp OracleWorld (Option Signature))) := by
         funext message
         exact signCostDet_correct f parameter seed data table hdata htable rnd hrnd message
@@ -188,7 +188,7 @@ theorem fixedCostSource_restDet (f : QueryImpl HashSpec Id) (parameter : PublicP
         let pk : PublicKey := ⟨data.root, parameter⟩
         let (forgery, log) ← (simulateQ (QueryImpl.ofLift OracleWorld
           (WriterT (QueryLog SigningSpec) (OracleComp OracleWorld)) +
-          signingOracleDet ⟨seed, parameter, data.root⟩) (adversary.main pk)).run
+          signingOracleDet ⟨seed, parameter⟩) (adversary.main pk)).run
         let verified ← liftM (Concrete.verify pk forgery.message forgery.signature : OracleComp HashSpec Bool)
         return decide (SigningTranscript.Valid log ∧ ¬SigningTranscript.Contains log forgery) && verified) := by
   simp only [costRestDet, simulateQ_bind, simulateQ_pure, QueryImpl.simulateQ_writerTMapBase_run,

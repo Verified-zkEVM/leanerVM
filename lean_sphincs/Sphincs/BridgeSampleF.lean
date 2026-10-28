@@ -111,8 +111,7 @@ theorem small_pointwiseF (out : Run HashInput Coordinate HiddenBridge.Outcome ×
       (((out.1.1, out.1.2.1), out.1.2.2.1), out.2.cache)) :
     payoffA parameterOutput fixed highs remaining prepared known ρ T out.2 = 1 ∨
       (∃ outcome, out.1.1 = some outcome ∧ SigningTranscript.Valid outcome.2.1 ∧
-        A4ev (ctxA parameterOutput fixed highs remaining prepared known ρ)
-          (sampleData parameterOutput fixed highs remaining).root T out.2 outcome out.1.2.1) ∨
+        A4ev (ctxA parameterOutput fixed highs remaining prepared known ρ) T out.2 outcome out.1.2.1) ∨
       finalValue (truncateHash parameterOutput) (sampleData parameterOutput fixed highs remaining)
         (targetingA parameterOutput fixed highs remaining prepared.1) prepared.2 [] out = 1 := by
   set K := ctxA parameterOutput fixed highs remaining prepared known ρ with hK

@@ -422,7 +422,7 @@ theorem psiF_newPair {Cmax Lmax : ℕ} (hfair : FairS wbar Cmax Lmax) (hQ : Qtot
   simp only [ite_eq_right hL]
   have hi := initial_none_of_fresh K.initial s hB.inv.prepared _ hp0
   have hnf : ∀ f : FIn, pblk K.p data p ≠ f.input K.p := fun f =>
-    msg_ne_fchain (msgInput_digestInput K.p data.root p.1 p.2)
+    msg_ne_fchain (msgInput_digestInput K.p p.1 p.2)
   have hw' : ∀ (g : FIn → ℝ≥0∞) u, K.wsum g (withPair K.p data s p u) = K.wsum g s := fun g u =>
     K.wsum_store_other g u hp0 hi hnf
   set wS := K.wsum (gA R 0) s with hwS

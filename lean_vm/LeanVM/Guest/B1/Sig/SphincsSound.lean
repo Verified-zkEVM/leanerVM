@@ -66,22 +66,21 @@ theorem bound_cell {σ : Val} (hS : ∀ c < 8, cS σ c < 16) (hA : ∀ w < 16, w
     eOfNat192_add_shift (by omega), ← hm, show 2 ^ 64 * (N * 2 ^ 42) = 2 ^ 106 * N by ring,
     eOfNat192_add_shift (by rw [hm]; omega)]
 
-/-- **What leanSPHINCS's verification checks**, the root `R` given to the digest and the tree
-reaching `root`. -/
-def SRoot (pp : PublicParameter) (R : Sphincs.Digest) (m : Sphincs.Message) (sig : Sphincs.Signature)
+/-- **What leanSPHINCS's verification checks**: the tree reaching `root`. -/
+def SRoot (pp : PublicParameter) (m : Sphincs.Message) (sig : Sphincs.Signature)
     (root : Sphincs.Digest) : Prop :=
   ∃ leaf, @otsLeaf Id _ ⟨Node.keccakBits⟩ pp
-      (digestIndex (@messageDigest Id _ ⟨Node.keccakBits⟩ pp R m sig.randomness))
+      (digestIndex (@messageDigest Id _ ⟨Node.keccakBits⟩ pp m sig.randomness))
       (@forestRecover Id _ ⟨Node.keccakBits⟩ pp
-        (digestIndex (@messageDigest Id _ ⟨Node.keccakBits⟩ pp R m sig.randomness))
-        (digestMarks (@messageDigest Id _ ⟨Node.keccakBits⟩ pp R m sig.randomness)) sig.forest)
+        (digestIndex (@messageDigest Id _ ⟨Node.keccakBits⟩ pp m sig.randomness))
+        (digestMarks (@messageDigest Id _ ⟨Node.keccakBits⟩ pp m sig.randomness)) sig.forest)
       sig.counter sig.chainValues = some leaf ∧
     @treeFold Id _ ⟨Node.keccakBits⟩ pp
-      (digestIndex (@messageDigest Id _ ⟨Node.keccakBits⟩ pp R m sig.randomness))
+      (digestIndex (@messageDigest Id _ ⟨Node.keccakBits⟩ pp m sig.randomness))
       (signaturePath sig) totalHeight leaf = root
 
 theorem sphincsVerify_SRoot (pk : PublicKey) (m : Sphincs.Message) (sig : Sphincs.Signature) :
-    Node.sphincsVerify pk m sig = true ↔ SRoot pk.parameter pk.root m sig pk.root :=
+    Node.sphincsVerify pk m sig = true ↔ SRoot pk.parameter m sig pk.root :=
   sphincsVerify_iff pk m sig
 
 variable {C : CallRel} {rd : Reader} {kret : List E → Prop}
@@ -92,9 +91,9 @@ holds reaches the tree's root `σ sMk.2.2`. -/
 theorem sphincs_root {σ : Val} {rest : List Stmt} {next : Prop}
     (h : Stmt.HoldsList C rd σ (sPrologue ++ (sCs.1 ++ (sMid ++ (sCw.1 ++ (sEndPre ++ rest))))) next kret)
     {Nc Nu : Nat} (hx : σ (.n sFb.2.1) = eOfNat Nc) (hNc32 : Nc < 2 ^ 32) (hNu : Nu < 2 ^ 22)
-    (h161 : σ (.n 161) = σ (sNode 0) + word 0 (Nu * 2 ^ 42) 0) (R : Sphincs.Digest) :
+    (h161 : σ (.n 161) = σ (sNode 0) + word 0 (Nu * 2 ^ 42) 0) :
     Stmt.HoldsList C rd σ rest next kret ∧ SPre rd σ ∧
-      SRoot (spp (σ sPP)) R (smsg (σ (.n 5)) (σ (.n 6))) (sphincsSigOf σ) (sv (σ sMk.2.2)) := by
+      SRoot (spp (σ sPP)) (smsg (σ (.n 5)) (σ (.n 6))) (sphincsSigOf σ) (sv (σ sMk.2.2)) := by
   have s0 := holdsList_split_atoms sPrologue_atoms h
   have hpa := atomsHold_of_holdsList sPrologue_atoms s0.1
   have hpre := sPrologue_sound hpa
@@ -131,7 +130,7 @@ theorem sphincs_root {σ : Val} {rest : List Stmt} {next : Prop}
   set Vb := sIdx σ + marksNat σ + 2 ^ 106 * Nu with hVbdef
   have c17 : cellNat (σ (.n 17)) = encNat σ := by rw [h17, cellNat_eOfNat192 hEnc]
   have c18 : cellNat (σ (.n 18)) = Vb := by rw [acc2, cellNat_eOfNat192 hVb]
-  have hmd : @messageDigest Id _ ⟨Node.keccakBits⟩ (spp (σ sPP)) R
+  have hmd : @messageDigest Id _ ⟨Node.keccakBits⟩ (spp (σ sPP))
       (smsg (σ (.n 5)) (σ (.n 6))) (sv (σ (.n 3))) =
       BitVec.ofNat messageDigestBits (encNat σ + 2 ^ 128 * Vb) := by
     rw [sMessageDigest_cells sq_keccak (a := σ (.n 4)) (m := smsg (σ (.n 5)) (σ (.n 6)))
@@ -142,19 +141,15 @@ theorem sphincs_root {σ : Val} {rest : List Stmt} {next : Prop}
     rw [c17, c18]
   unfold SRoot
   show ∃ leaf, @otsLeaf Id _ ⟨Node.keccakBits⟩ (spp (σ sPP))
-      (digestIndex (@messageDigest Id _ ⟨Node.keccakBits⟩ (spp (σ sPP))
-        R (smsg (σ (.n 5)) (σ (.n 6))) (sv (σ (.n 3)))))
+      (digestIndex (@messageDigest Id _ ⟨Node.keccakBits⟩ (spp (σ sPP)) (smsg (σ (.n 5)) (σ (.n 6))) (sv (σ (.n 3)))))
       (@forestRecover Id _ ⟨Node.keccakBits⟩ (spp (σ sPP))
-        (digestIndex (@messageDigest Id _ ⟨Node.keccakBits⟩ (spp (σ sPP))
-          R (smsg (σ (.n 5)) (σ (.n 6))) (sv (σ (.n 3)))))
-        (digestMarks (@messageDigest Id _ ⟨Node.keccakBits⟩ (spp (σ sPP))
-          R (smsg (σ (.n 5)) (σ (.n 6))) (sv (σ (.n 3)))))
+        (digestIndex (@messageDigest Id _ ⟨Node.keccakBits⟩ (spp (σ sPP)) (smsg (σ (.n 5)) (σ (.n 6))) (sv (σ (.n 3)))))
+        (digestMarks (@messageDigest Id _ ⟨Node.keccakBits⟩ (spp (σ sPP)) (smsg (σ (.n 5)) (σ (.n 6))) (sv (σ (.n 3)))))
         (sphincsSigOf σ).forest)
       (sphincsSigOf σ).counter (sphincsSigOf σ).chainValues =
         some leaf ∧
       @treeFold Id _ ⟨Node.keccakBits⟩ (spp (σ sPP))
-        (digestIndex (@messageDigest Id _ ⟨Node.keccakBits⟩ (spp (σ sPP))
-          R (smsg (σ (.n 5)) (σ (.n 6))) (sv (σ (.n 3)))))
+        (digestIndex (@messageDigest Id _ ⟨Node.keccakBits⟩ (spp (σ sPP)) (smsg (σ (.n 5)) (σ (.n 6))) (sv (σ (.n 3)))))
         (signaturePath (sphincsSigOf σ)) totalHeight leaf = sv (σ sMk.2.2)
   rw [hmd]
   set D := BitVec.ofNat messageDigestBits (encNat σ + 2 ^ 128 * Vb) with hD
@@ -292,7 +287,7 @@ theorem verify_sig_lean_sphincs_sound_holds : verify_sig_lean_sphincs_sound_Spec
   have hNc32 : Nc < 2 ^ 32 := by simpa using hNclt
   obtain ⟨Nu, hNu, h161⟩ := sPrologue_bound hκ hbb hpa
   rw [sEnd_split] at h
-  obtain ⟨-, -, hR⟩ := sphincs_root h (hcp.trans hNc) hNc32 hNu h161 (sv (σ (.n sMk.2.1)))
+  obtain ⟨-, -, hR⟩ := sphincs_root h (hcp.trans hNc) hNc32 hNu h161
   refine ⟨σ (.n sMk.2.1), σ sPP, σ (.n 5), σ (.n 6), ⟨hld0, hpre.ldP, hpre.ld2, hpre.ld3⟩, ?_⟩
   show Node.sphincsVerify ⟨sv (σ (.n sMk.2.1)), spp (σ sPP)⟩ (smsg (σ (.n 5)) (σ (.n 6)))
     (sphincsSigOf σ) = true

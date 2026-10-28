@@ -21,7 +21,7 @@ open Concrete
 abbrev msgInput (secretKey : Seeded.SecretKey) (message : Message) (randomness : Randomness) :
     HashInput :=
   tweakableHashInput secretKey.parameter .message
-    (messageDigestPayload secretKey.root message randomness)
+    (messageDigestPayload message randomness)
 
 omit [Params] in
 theorem msgInput_inj (secretKey : Seeded.SecretKey) (message : Message)

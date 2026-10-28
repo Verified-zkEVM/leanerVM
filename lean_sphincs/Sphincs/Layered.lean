@@ -517,13 +517,13 @@ def forestRecover (parameter : PublicParameter) (index : Index) (marks : Coord �
 /-- `m || rho`, what the message digest hashes after the parameter and the address: the input
 `P || A || m || rho` is 80 bytes, one block. The root is not hashed (`P` binds the key); the
 argument is kept for the callers. -/
-def messageDigestPayload (_root : Digest) (message : Message) (randomness : Randomness) : HashInput :=
+def messageDigestPayload (message : Message) (randomness : Randomness) : HashInput :=
   bytesLE 32 message ++ bytesLE 16 randomness
 
 /-- The single untruncated digest call (`digest_block`). -/
-def messageDigestCall (parameter : PublicParameter) (root : Digest) (message : Message)
+def messageDigestCall (parameter : PublicParameter) (message : Message)
     (randomness : Randomness) : m HashOutput :=
-  oracleHash (tweakableHashInput parameter .message (messageDigestPayload root message randomness))
+  oracleHash (tweakableHashInput parameter .message (messageDigestPayload message randomness))
 
 /-- Bit offset of the index: the low 26 bits of the last 16 bytes of the digest. -/
 def indexOffset : Nat := 128
@@ -538,9 +538,9 @@ def blockIndex (first : HashOutput) : Index :=
 
 /-- `Digest(P, m, rho)` (`message_digest`): the single call, truncated to 234 bits. The root is not
 an input of the hash. -/
-def messageDigest (parameter : PublicParameter) (root : Digest) (message : Message)
+def messageDigest (parameter : PublicParameter) (message : Message)
     (randomness : Randomness) : m MessageDigest := do
-  let first ← messageDigestCall parameter root message randomness
+  let first ← messageDigestCall parameter message randomness
   return truncateMessageDigest first
 
 /-- Bit offset of the codeword index of sub-tree `j` of coordinate `c`: byte `2c + j` of the digest. -/
@@ -585,7 +585,7 @@ def verifyLayers (parameter : PublicParameter) (index : Index) (signature : Sign
 /-- `Ver(pk, m, sigma)`: recompute the digest, recover the forest key, recover the one-time leaf,
 fold the path and compare with the root. -/
 def verify (publicKey : PublicKey) (message : Message) (signature : Signature) : m Bool := do
-  let digest ← messageDigest publicKey.parameter publicKey.root message signature.randomness
+  let digest ← messageDigest publicKey.parameter message signature.randomness
   let index := digestIndex digest
   let forestKey ← forestRecover publicKey.parameter index (digestMarks digest) signature.forest
   let some root ← verifyLayers publicKey.parameter index signature numLayers forestKey | return false
@@ -801,7 +801,7 @@ subtree, and build the root. -/
 def keygenFromMaster (seed : MasterSeed) : OracleComp HashSpec (PublicKey × SecretKey) := do
   let parameter ← deriveKey 0 .parameter seed
   let root ← treeRoot parameter topLayer rootTree seed
-  return (⟨root, parameter⟩, ⟨seed, parameter, root⟩)
+  return (⟨root, parameter⟩, ⟨seed, parameter⟩)
 
 /-- `Gen` (`key_gen_from_seed`): hash the key's seed `S0` into the scheme seed `S`, then generate
 from `S`. -/
@@ -812,7 +812,7 @@ def keygenFromSeed (seed : MasterSeed) : OracleComp HashSpec (PublicKey × Secre
 /-- One grinding attempt: the leaf index of the digest call (`digest_index`). -/
 def signAttempt (secretKey : SecretKey) (message : Message) (randomness : Randomness) :
     m (Option Index) := do
-  let first ← messageDigestCall secretKey.parameter secretKey.root message randomness
+  let first ← messageDigestCall secretKey.parameter message randomness
   if Landed secretKey.parameter (blockIndex first) then
     return some (blockIndex first)
   else
@@ -846,7 +846,7 @@ def sign (secretKey : SecretKey) (message : Message) : m (Option Signature) := d
   let base ← deriveRandomizer secretKey.parameter secretKey.seed message
   let some (randomness, _) ← signDigestLoop secretKey message digestAttemptLimit base
     | return none
-  let digest ← messageDigest secretKey.parameter secretKey.root message randomness
+  let digest ← messageDigest secretKey.parameter message randomness
   let index := digestIndex digest
   let opening ← forestOpen secretKey.parameter index (digestMarks digest) secretKey.seed
   let some layers ← sequenceLayers (fun lay => signLayer secretKey index lay) | return none

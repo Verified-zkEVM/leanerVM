@@ -353,7 +353,7 @@ theorem verifyLayers_one (parameter : PublicParameter) (index : SphincsLayered.I
 theorem verify_layered (publicKey : PublicKey) (message : Message)
     (signature : SphincsLayered.Signature) :
     SphincsLayered.Concrete.verify (m := m) publicKey message signature = (do
-      let digest ← SphincsLayered.Concrete.messageDigest publicKey.parameter publicKey.root message
+      let digest ← SphincsLayered.Concrete.messageDigest publicKey.parameter message
         signature.randomness
       let index := SphincsLayered.Concrete.digestIndex digest
       let key ← SphincsLayered.Concrete.forestRecover publicKey.parameter index
@@ -379,6 +379,24 @@ theorem verify_eq (publicKey : PublicKey) (message : Message) (signature : Signa
 
 variable [Params]
 
+omit [Params] in
+theorem digestIndex_truncate (first : HashOutput) :
+    Concrete.digestIndex (truncateMessageDigest first) = SphincsLayered.Concrete.blockIndex first := by
+  unfold Concrete.digestIndex truncateMessageDigest SphincsLayered.Concrete.blockIndex
+  rw [BitVec.extractLsb'_extractLsb'_of_le (by decide)]
+  rfl
+
+omit [LawfulMonad m] in
+/-- One grinding attempt, the same hash. -/
+theorem signAttempt_eq (secretKey : LeanXmss.Seeded.SecretKey) (message : Message)
+    (randomness : Randomness) :
+    Seeded.signAttempt (m := m) secretKey message randomness =
+      SphincsLayered.Seeded.signAttempt secretKey message randomness := by
+  unfold Seeded.signAttempt SphincsLayered.Seeded.signAttempt
+  refine congrArg₂ (· >>= ·) rfl (funext fun first ↦ ?_)
+  rw [digestIndex_truncate]
+  rfl
+
 omit [LawfulMonad m] in
 /-- The grinding loop, the same hashes. -/
 theorem signDigestLoop_eq (secretKey : LeanXmss.Seeded.SecretKey) (message : Message) :
@@ -387,7 +405,7 @@ theorem signDigestLoop_eq (secretKey : LeanXmss.Seeded.SecretKey) (message : Mes
         SphincsLayered.Seeded.signDigestLoop secretKey message attempts randomness
   | 0, _ => rfl
   | attempts + 1, randomness => by
-    rw [Seeded.signDigestLoop, SphincsLayered.Seeded.signDigestLoop]
+    rw [Seeded.signDigestLoop, SphincsLayered.Seeded.signDigestLoop, signAttempt_eq]
     refine bind_congr fun found ↦ ?_
     rcases found with _ | index
     · exact signDigestLoop_eq secretKey message attempts (randomness + 1)
@@ -400,7 +418,7 @@ theorem sign_layered (secretKey : LeanXmss.Seeded.SecretKey) (message : Message)
       let base ← SphincsLayered.deriveRandomizer secretKey.parameter secretKey.seed message
       let some (randomness, _) ← SphincsLayered.Seeded.signDigestLoop secretKey message
           SphincsLayered.digestAttemptLimit base | return none
-      let digest ← SphincsLayered.Concrete.messageDigest secretKey.parameter secretKey.root message
+      let digest ← SphincsLayered.Concrete.messageDigest secretKey.parameter message
         randomness
       let index := SphincsLayered.Concrete.digestIndex digest
       let opening ← SphincsLayered.Seeded.forestOpen secretKey.parameter index

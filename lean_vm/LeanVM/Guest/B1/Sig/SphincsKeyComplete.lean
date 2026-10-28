@@ -75,8 +75,8 @@ theorem sKey_eq {σ : Val} (hpre : SPre rd σ)
   · rw [digestIndex_ofNat hN17, hidx]
 
 /-- **What verification reads fixes the root.** -/
-theorem SRoot_unique {pp : PublicParameter} {R : Sphincs.Digest} {m : Sphincs.Message}
-    {sig sig' : Sphincs.Signature} {r r' : Sphincs.Digest} (h : SRoot pp R m sig r) (h' : SRoot pp R m sig' r')
+theorem SRoot_unique {pp : PublicParameter} {m : Sphincs.Message}
+    {sig sig' : Sphincs.Signature} {r r' : Sphincs.Digest} (h : SRoot pp m sig r) (h' : SRoot pp m sig' r')
     (hr : sig'.randomness = sig.randomness) (hf : sig'.forest = sig.forest)
     (hc : sig'.counter = sig.counter) (hv : sig'.chainValues = sig.chainValues)
     (hl : sig'.path = sig.path) : r' = r := by

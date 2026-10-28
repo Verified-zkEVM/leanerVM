@@ -476,15 +476,14 @@ def forestRecover (parameter : PublicParameter) (index : Index) (marks : Coord �
 /-! #### The message digest -/
 
 /-- `m || rho`, what the message digest hashes after the parameter and the address: the input
-`P || A || m || rho` is 80 bytes, one block. The root is not hashed (`P` binds the key); the
-argument is kept for the callers. -/
-def messageDigestPayload (_root : Digest) (message : Message) (randomness : Randomness) : HashInput :=
+`P || A || m || rho` is 80 bytes, one block. The root is not hashed (`P` binds the key). -/
+def messageDigestPayload (message : Message) (randomness : Randomness) : HashInput :=
   bytesLE 32 message ++ bytesLE 16 randomness
 
 /-- The single untruncated digest call (`message_digest_bytes`, `scheme.rs`). -/
-def messageDigestCall (parameter : PublicParameter) (root : Digest) (message : Message)
+def messageDigestCall (parameter : PublicParameter) (message : Message)
     (randomness : Randomness) : m HashOutput :=
-  thPair parameter (hashDomainFields .message) (messageDigestPayload root message randomness)
+  thPair parameter (hashDomainFields .message) (messageDigestPayload message randomness)
 
 /-- Bit offset of the index: the low 26 bits of the last 16 bytes of the digest. -/
 def indexOffset : Nat := 128
@@ -493,15 +492,10 @@ def indexOffset : Nat := 128
 def digestIndex (digest : MessageDigest) : Index :=
   (digest.extractLsb' indexOffset totalHeight).toFin
 
-/-- The leaf index of the digest call (`marks_of`'s index, `scheme.rs`). -/
-def blockIndex (first : HashOutput) : Index :=
-  (first.extractLsb' indexOffset totalHeight).toFin
-
-/-- `Digest(P, m, rho)` (`message_digest`): the single call, truncated to 234 bits. The root is not
-an input of the hash. -/
-def messageDigest (parameter : PublicParameter) (root : Digest) (message : Message)
+/-- `Digest(P, m, rho)` (`message_digest`): the single call, truncated to 234 bits. -/
+def messageDigest (parameter : PublicParameter) (message : Message)
     (randomness : Randomness) : m MessageDigest := do
-  let first ← messageDigestCall parameter root message randomness
+  let first ← messageDigestCall parameter message randomness
   return truncateMessageDigest first
 
 /-- Bit offset of the codeword index of sub-tree `j` of coordinate `c`: byte `2c + j` of the digest. -/
@@ -524,7 +518,7 @@ def digestMarks (digest : MessageDigest) : Coord → CoordMark := fun c =>
 /-- `Ver(pk, m, sigma)` (`verify`, `scheme.rs`): recompute the digest, recover the forest key,
 recover the one-time leaf at `e = idx`, fold the path and compare with the root. -/
 def verify (publicKey : PublicKey) (message : Message) (signature : Signature) : m Bool := do
-  let digest ← messageDigest publicKey.parameter publicKey.root message signature.randomness
+  let digest ← messageDigest publicKey.parameter message signature.randomness
   let index := digestIndex digest
   let forestKey ← forestRecover publicKey.parameter index (digestMarks digest) signature.forest
   let some leaf ← otsLeaf publicKey.parameter index forestKey signature.counter
@@ -710,7 +704,7 @@ subtree, and build the root. -/
 def keygenFromMaster (seed : MasterSeed) : OracleComp HashSpec (PublicKey × SecretKey) := do
   let parameter ← th 0 (keygenDomainFields .parameter) (bytesLE 32 seed)
   let root ← treeRoot parameter seed
-  return (⟨root, parameter⟩, ⟨seed, parameter, root⟩)
+  return (⟨root, parameter⟩, ⟨seed, parameter⟩)
 
 /-- `Gen` (`key_gen_from_seed`): hash the key's seed `S0` into the scheme seed `S`, then generate
 from `S`. -/
@@ -722,9 +716,9 @@ def keygenFromSeed (seed : MasterSeed) : OracleComp HashSpec (PublicKey × Secre
 `scheme.rs`). -/
 def signAttempt (secretKey : SecretKey) (message : Message) (randomness : Randomness) :
     m (Option Index) := do
-  let first ← messageDigestCall secretKey.parameter secretKey.root message randomness
-  if Landed secretKey.parameter (blockIndex first) then
-    return some (blockIndex first)
+  let first ← messageDigestCall secretKey.parameter message randomness
+  if Landed secretKey.parameter (digestIndex (truncateMessageDigest first)) then
+    return some (digestIndex (truncateMessageDigest first))
   else
     return none
 
@@ -746,7 +740,7 @@ def sign (secretKey : SecretKey) (message : Message) : m (Option Signature) := d
     (bytesLE 32 secretKey.seed ++ bytesLE 32 message)
   let some (randomness, _) ← signDigestLoop secretKey message digestAttemptLimit base
     | return none
-  let digest ← messageDigest secretKey.parameter secretKey.root message randomness
+  let digest ← messageDigest secretKey.parameter message randomness
   let index := digestIndex digest
   let opening ← forestOpen secretKey.parameter index (digestMarks digest) secretKey.seed
   let key ← forestKey secretKey.parameter index secretKey.seed

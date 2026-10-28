@@ -11,11 +11,11 @@ namespace SphincsLayered.Security
 open Concrete
 
 attribute [local semireducible] Concrete.verify
-attribute [local irreducible] messageDigest forestRecover otsLeaf treeFold
+attribute [local irreducible] messageDigest forestRecover treeFold
 
 theorem verify_eq_single_layer (pk : PublicKey) (message : Message) (signature : Signature) :
     (Concrete.verify pk message signature : OracleComp HashSpec Bool) = (do
-      let digest ← messageDigest pk.parameter pk.root message signature.randomness
+      let digest ← messageDigest pk.parameter message signature.randomness
       let index := digestIndex digest
       let fts ← forestRecover pk.parameter index (digestMarks digest) signature.forest
       let some value ← otsLeaf pk.parameter topLayer rootTree index fts
@@ -41,7 +41,7 @@ theorem verify_eq_single_layer (pk : PublicKey) (message : Message) (signature :
 /-- Digest used by the verifier, from its single digest call. -/
 def verificationDigest (f : QueryImpl HashSpec Id) (pk : PublicKey) (message : Message)
     (signature : Signature) : MessageDigest :=
-  evalWithAnswerFn f (messageDigest pk.parameter pk.root message signature.randomness :
+  evalWithAnswerFn f (messageDigest pk.parameter message signature.randomness :
     OracleComp HashSpec MessageDigest)
 
 /-- The candidate forest key recovered before WOTS verification. -/

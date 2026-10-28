@@ -129,7 +129,7 @@ theorem sphincs_msg_bytes (m : Sphincs.Message) :
 
 /-- **The stages complete**, from a valuation holding the claim's pointer and the byte table. -/
 theorem sStages (hm : MemOK rd 256) {p bb : E} (hbb : ByteBits rd bb) (pk : Sphincs.PublicKey)
-    (m : Sphincs.Message) (sig : Sphincs.Signature) (hv : SRoot pk.parameter pk.root m sig pk.root)
+    (m : Sphincs.Message) (sig : Sphincs.Signature) (hv : SRoot pk.parameter m sig pk.root)
     (σ0 : Val) (h0 : σ0 (.n 0) = p) (h1 : σ0 (.n 1) = bb)
     (hldP : LoadHolds rd p 1 (cellOf128 pk.parameter))
     (hld2 : LoadHolds rd p 2 (cellOf128 (m.extractLsb' 0 128)))
@@ -152,10 +152,10 @@ theorem sStages (hm : MemOK rd 256) {p bb : E} (hbb : ByteBits rd bb) (pk : Sphi
   set ctr := sig.counter.toNat with hctr
   have cPc : IsCanonical128 Pc := isCanonical128_cellOf128 _
   -- the digest
-  have hmd : @messageDigest Id _ ⟨Node.keccakBits⟩ pk.parameter pk.root m sig.randomness =
+  have hmd : @messageDigest Id _ ⟨Node.keccakBits⟩ pk.parameter m sig.randomness =
       BitVec.ofNat messageDigestBits (N17 + 2 ^ 128 * N18) := by
     have := sMessageDigest_cells sq_keccak (pp := Pc) (a := word (tw 12) 0 0) (m0 := m0) (m1 := m1)
-      (rho := rho) (root := pk.root) (m := m) msgAdr_bytes (sphincs_msg_bytes m)
+      (rho := rho) (m := m) msgAdr_bytes (sphincs_msg_bytes m)
     rwa [show spp Pc = pk.parameter from cellVal_cellOf128 _,
       show sv rho = sig.randomness from cellVal_cellOf128 _] at this
   unfold sPre
@@ -219,7 +219,7 @@ theorem sStages (hm : MemOK rd 256) {p bb : E} (hbb : ByteBits rd bb) (pk : Sphi
 
 /-- **The root the final valuation reaches is the key's.** -/
 theorem sRoot_final {pk : Sphincs.PublicKey} {m : Sphincs.Message} {sig : Sphincs.Signature}
-    (hv : SRoot pk.parameter pk.root m sig pk.root) {σ : Val} {N17 N18 : Nat}
+    (hv : SRoot pk.parameter m sig pk.root) {σ : Val} {N17 N18 : Nat}
     (hf : SFinal rd σ (cellOf128 pk.parameter) (cellOf128 (m.extractLsb' 0 128))
       (cellOf128 (m.extractLsb' 128 128)) (cellOf128 sig.randomness) sig N17 N18
       sig.counter.toNat)
@@ -231,7 +231,7 @@ theorem sRoot_final {pk : Sphincs.PublicKey} {m : Sphincs.Message} {sig : Sphinc
   have h161 : σ (.n 161) = σ (sNode 0) + word 0 (cellNat (σ (.n 18)) / 2 ^ 106 * 2 ^ 42) 0 := by
     rw [hpre.bound0, hsp.unused, word_hi_mul hNu]
   obtain ⟨-, -, hR⟩ := sphincs_root (C := C) (rd := rd) (rest := []) (next := True) (kret := fun _ => True)
-    (by rw [List.append_nil]; exact hh) hfb sig.counter.isLt hNu h161 pk.root
+    (by rw [List.append_nil]; exact hh) hfb sig.counter.isLt hNu h161
   rw [hsp.pp, hsp.c5, hsp.c6, show spp (cellOf128 pk.parameter) = pk.parameter from cellVal_cellOf128 _,
     show smsg (cellOf128 (m.extractLsb' 0 128)) (cellOf128 (m.extractLsb' 128 128)) = m from
       sCellPairVal_cellOf128 m] at hR

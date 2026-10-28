@@ -106,13 +106,13 @@ under a leaf whose path reaches the key's root. -/
 theorem sVerify_iff (pk : PublicKey) (msg : Message) (σ : Signature) :
     @Sphincs.Concrete.verify Id _ inst pk msg σ = true ↔
       ∃ leaf, @otsLeaf Id _ inst pk.parameter
-          (digestIndex (@messageDigest Id _ inst pk.parameter pk.root msg σ.randomness))
+          (digestIndex (@messageDigest Id _ inst pk.parameter msg σ.randomness))
           (@forestRecover Id _ inst pk.parameter
-            (digestIndex (@messageDigest Id _ inst pk.parameter pk.root msg σ.randomness))
-            (digestMarks (@messageDigest Id _ inst pk.parameter pk.root msg σ.randomness)) σ.forest)
+            (digestIndex (@messageDigest Id _ inst pk.parameter msg σ.randomness))
+            (digestMarks (@messageDigest Id _ inst pk.parameter msg σ.randomness)) σ.forest)
           σ.counter σ.chainValues = some leaf ∧
         @treeFold Id _ inst pk.parameter
-          (digestIndex (@messageDigest Id _ inst pk.parameter pk.root msg σ.randomness))
+          (digestIndex (@messageDigest Id _ inst pk.parameter msg σ.randomness))
           (signaturePath σ) totalHeight leaf = pk.root := by
   rw [Sphincs.Concrete.verify.eq_def]
   simp only [bind, pure]
@@ -133,15 +133,15 @@ theorem sVerify_iff (pk : PublicKey) (msg : Message) (σ : Signature) :
 theorem sphincsVerify_iff (pk : PublicKey) (msg : Message) (σ : Signature) :
     Node.sphincsVerify pk msg σ = true ↔
       ∃ leaf, @otsLeaf Id _ ⟨Node.keccakBits⟩ pk.parameter
-          (digestIndex (@messageDigest Id _ ⟨Node.keccakBits⟩ pk.parameter pk.root msg
+          (digestIndex (@messageDigest Id _ ⟨Node.keccakBits⟩ pk.parameter msg
             σ.randomness))
           (@forestRecover Id _ ⟨Node.keccakBits⟩ pk.parameter
-            (digestIndex (@messageDigest Id _ ⟨Node.keccakBits⟩ pk.parameter pk.root msg σ.randomness))
-            (digestMarks (@messageDigest Id _ ⟨Node.keccakBits⟩ pk.parameter pk.root msg σ.randomness))
+            (digestIndex (@messageDigest Id _ ⟨Node.keccakBits⟩ pk.parameter msg σ.randomness))
+            (digestMarks (@messageDigest Id _ ⟨Node.keccakBits⟩ pk.parameter msg σ.randomness))
             σ.forest)
           σ.counter σ.chainValues = some leaf ∧
         @treeFold Id _ ⟨Node.keccakBits⟩ pk.parameter
-          (digestIndex (@messageDigest Id _ ⟨Node.keccakBits⟩ pk.parameter pk.root msg
+          (digestIndex (@messageDigest Id _ ⟨Node.keccakBits⟩ pk.parameter msg
             σ.randomness))
           (signaturePath σ) totalHeight leaf = pk.root := by
   rw [Node.sphincsVerify.eq_def, idRun]
@@ -388,13 +388,13 @@ theorem truncateMessageDigest_keccakBits (I : List UInt8) :
   rw [Nat.shiftRight_zero, keccakBits_toNat]
 
 /-- **The message digest over cells**: the two cells of the hash of `P | A | m | ρ`. -/
-theorem sMessageDigest_cells (hq : SQ inst) {pp a m0 m1 rho : E} {root : Sphincs.Digest}
+theorem sMessageDigest_cells (hq : SQ inst) {pp a m0 m1 rho : E}
     {m : Message} (ha : cellBytes a = tweakBytes .message)
     (hm : Sphincs.bytesLE 32 m = cellBytes m0 ++ cellBytes m1) :
-    @messageDigest Id _ inst (spp pp) root m (sv rho) =
+    @messageDigest Id _ inst (spp pp) m (sv rho) =
       BitVec.ofNat messageDigestBits (cellNat (hcell [pp, a, m0, m1, rho]).1 +
         2 ^ 128 * cellNat (hcell [pp, a, m0, m1, rho]).2) := by
-  have hI : tweakableHashInput (spp pp) .message (messageDigestPayload root m (sv rho)) =
+  have hI : tweakableHashInput (spp pp) .message (messageDigestPayload m (sv rho)) =
       [pp, a, m0, m1, rho].flatMap cellBytes := by
     show Sphincs.bytesLE 16 (spp pp) ++ tweakBytes _ ++
       (Sphincs.bytesLE 32 m ++ Sphincs.bytesLE 16 (sv rho)) = _
@@ -403,7 +403,7 @@ theorem sMessageDigest_cells (hq : SQ inst) {pp a m0 m1 rho : E} {root : Sphincs
   rw [messageDigest.eq_def]
   simp only [bind, pure, messageDigestCall, thPair, oracleHash]
   rw [hq, truncateMessageDigest_keccakBits,
-    show thInput (spp pp) (hashDomainFields .message) (messageDigestPayload root m (sv rho)) = _ from hI]
+    show thInput (spp pp) (hashDomainFields .message) (messageDigestPayload m (sv rho)) = _ from hI]
   rfl
 
 theorem mod_div_mod {x n k w : Nat} (h : k + w ≤ n) :

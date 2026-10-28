@@ -346,7 +346,7 @@ theorem scan_bound_comb
   · intro ρ s' u0 b hoff hs0 out hout
     have hkeep := finish_keeps_msg tg initial model parameter data m hparse ρ b s' u0 hs0 out hout
     have hk : ∀ ρ', out.2.cache (blk parameter data m ρ') = s'.cache (blk parameter data m ρ') :=
-      fun ρ' => hkeep _ (msgInput_digestInput parameter data.root m ρ')
+      fun ρ' => hkeep _ (msgInput_digestInput parameter m ρ')
     show freshNewWeight parameter data m s gf ((out.1.1, [], [], []), out.2) +
       outWeight parameter data m s 0 gp ((out.1.1, [], [], []), out.2) ≤ _
     by_cases hsome : out.1.1.isSome

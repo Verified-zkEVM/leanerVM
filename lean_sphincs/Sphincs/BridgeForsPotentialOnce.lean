@@ -853,11 +853,11 @@ theorem goodO_pure (hw : w ≤ 1) (L : QueryLog SigningSpec) (forgery : Forgery)
   cases h0 : s.cache (pblk parameter data q) with
   | none =>
       have h0' : s.cache (tweakableHashInput parameter .message
-          (messageDigestPayload data.root forgery.message forgery.signature.randomness)) = none := h0
+          (messageDigestPayload forgery.message forgery.signature.randomness)) = none := h0
       rw [h0'] at hdig; cases hdig
   | some a =>
       have h0' : s.cache (tweakableHashInput parameter .message
-          (messageDigestPayload data.root forgery.message forgery.signature.randomness)) = some a := h0
+          (messageDigestPayload forgery.message forgery.signature.randomness)) = some a := h0
       rw [h0'] at hdig
       have hdig' : truncateMessageDigest a = digest := by
         simpa using hdig
@@ -920,7 +920,7 @@ theorem other_message_keptS (budget : ℕ) (s : State)
     (q : Pair) (hq : q.1 ≠ m) :
     out.2.cache (pblk parameter data q) = s.cache (pblk parameter data q) := by
   refine interp_avoids_cache tg initial model _ _ (avoids_source parameter data m) budget s out hout _ ⟨?_, ?_⟩
-  · exact msgInput_digestInput parameter data.root q.1 q.2
+  · exact msgInput_digestInput parameter q.1 q.2
   · intro ρ h
     exact hq (congrArg Prod.fst
       (pblk_injective parameter data (show pblk parameter data q = pblk parameter data (m, ρ) from h)))

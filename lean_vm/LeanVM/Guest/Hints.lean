@@ -193,7 +193,7 @@ def sphincsHints (pk : Sphincs.PublicKey) (message : Sphincs.Message) (σ : Sphi
     List (String × Entry) :=
   letI : HasQuery Sphincs.HashSpec Id := ⟨keccakBits⟩
   let parameter := pk.parameter
-  let call := Id.run (Sphincs.Concrete.messageDigestCall parameter pk.root message σ.randomness)
+  let call := Id.run (Sphincs.Concrete.messageDigestCall parameter message σ.randomness)
   let digest := Sphincs.truncateMessageDigest call
   let index := Sphincs.Concrete.digestIndex digest
   let marks := Sphincs.Concrete.digestMarks digest

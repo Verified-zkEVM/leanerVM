@@ -504,13 +504,13 @@ theorem avoids_loop_fchain (p : PublicParameter) (parameter : PublicParameter) (
       refine (avoids_query_bind _ _ _).2 ⟨fun bytes hb hx => ?_, fun first => ?_⟩
       · cases hb
         obtain ⟨f, hf⟩ := hx
-        exact PotentialA.msg_ne_fchain (msgInput_digestInput parameter data.root message ρ) hf
+        exact PotentialA.msg_ne_fchain (msgInput_digestInput parameter message ρ) hf
       · split_ifs
         · rw [finishCostSource_eq]
           refine (avoids_query_bind _ _ _).2 ⟨fun bytes hb hx => ?_, fun a => ?_⟩
           · cases hb
             obtain ⟨f, hf⟩ := hx
-            exact PotentialA.msg_ne_fchain (msgInput_digestInput parameter data.root message ρ) hf
+            exact PotentialA.msg_ne_fchain (msgInput_digestInput parameter message ρ) hf
           exact avoids_finishRest_fchain p parameter data message ρ _
         · exact ih _
 

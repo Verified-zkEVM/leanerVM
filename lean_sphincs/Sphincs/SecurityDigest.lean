@@ -19,8 +19,8 @@ theorem evalDist_digestBlock_uniform :
   evalDist_hashOutput_extract_uniform (width := messageDigestBits) (by decide)
 
 /-- The exact byte string queried for a message digest. -/
-abbrev digestInput (parameter : PublicParameter) (root : Digest) (message : Message)
+abbrev digestInput (parameter : PublicParameter) (message : Message)
     (randomness : Randomness) : HashInput :=
-  tweakableHashInput parameter .message (messageDigestPayload root message randomness)
+  tweakableHashInput parameter .message (messageDigestPayload message randomness)
 
 end SphincsLayered.Security

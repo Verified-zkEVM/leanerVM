@@ -9,7 +9,7 @@ open OracleComp OracleSpec
 namespace SphincsLayered.Security.SignatureWitness
 open Concrete
 
-attribute [local irreducible] messageDigest forestRecover otsLeaf treeFold
+attribute [local irreducible] messageDigest forestRecover treeFold
   Seeded.forestKey Seeded.treeRoot Seeded.treePath chainWalk encode
 
 noncomputable def chosenWord (f : QueryImpl HashSpec Id) (parameter : PublicParameter)

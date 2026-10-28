@@ -45,7 +45,7 @@ theorem fixedWorldCost_keygen_graph (f : QueryImpl HashSpec Id) (parameter : Pub
     (hparameter : evalWithAnswerFn f (deriveKey 0 .parameter seed : OracleComp HashSpec Digest) = parameter) :
     simulateQ (fixedWorldCost f) (liftM (Seeded.keygenFromMaster seed) :
       OracleComp OracleWorld (PublicKey × Seeded.SecretKey)) =
-      WriterT.mk (PMF.pure ((⟨data.root, parameter⟩, ⟨seed, parameter, data.root⟩),
+      WriterT.mk (PMF.pure ((⟨data.root, parameter⟩, ⟨seed, parameter⟩),
         Multiplicative.ofAdd (226 * 2 ^ subtreeHeight + 2 * (totalHeight - subtreeHeight)))) := by
   rw [fixedWorldCost_lift_hash, hashCalls_keygenFromMaster]
   simp only [Seeded.keygenFromMaster, evalWithAnswerFn_bind, evalWithAnswerFn_pure,

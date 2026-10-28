@@ -156,7 +156,7 @@ theorem correct_randomized_assembly (f : QueryImpl HashSpec Id) (seed : MasterSe
   obtain ⟨hpk, hsk⟩ := hkey
   subst pk
   subst sk
-  exact verify_of_finishSign f ⟨seed, parameter, root⟩ message ρ hrootval.symm hland hsign
+  exact verify_of_finishSign f ⟨seed, parameter⟩ message ρ hrootval.symm hland hsign
 
 /-- Every successful honest signature verifies in the actual lazy random oracle, for any pruning
 height and any initial cache. Private uniform randomizer sampling is included in the run. -/

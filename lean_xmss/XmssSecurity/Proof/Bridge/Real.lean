@@ -26,7 +26,7 @@ def realKeygen (seed : MasterSeed) : OracleComp HashSpec (LeanXmss.PublicKey × 
   (do
     let parameter ← LeanXmss.deriveKey 0 .parameter seed
     let root ← LeanXmss.Seeded.treeNode parameter LeanXmss.topLayer seed LeanXmss.layerHeight 0
-    return (⟨root, parameter⟩, ⟨seed, parameter, root⟩) : OracleComp LeanXmss.HashSpec _)
+    return (⟨root, parameter⟩, ⟨seed, parameter⟩) : OracleComp LeanXmss.HashSpec _)
 
 theorem keygenFromSeed_eq (keySeed : MasterSeed) :
     LeanXmss.Seeded.keygenFromSeed keySeed =
@@ -258,7 +258,7 @@ theorem realTopNode (h : Prepared seed d result cache) (level : Nat) (hlevel : l
 /-- The real key generation from `S` resolves to the model's public key. -/
 theorem realKeygen (h : Prepared seed d result cache) :
     Resolves cache (Bridge.realKeygen seed)
-      ((⟨result.1.1, d.parameter⟩ : LeanXmss.PublicKey), (⟨seed, d.parameter, result.1.1⟩ : LeanXmss.Seeded.SecretKey)) := by
+      ((⟨result.1.1, d.parameter⟩ : LeanXmss.PublicKey), (⟨seed, d.parameter⟩ : LeanXmss.Seeded.SecretKey)) := by
   unfold Bridge.realKeygen LeanXmss.deriveKey LeanXmss.Concrete.th
   rw [bind_assoc]
   have hparam : cache (paramInput seed) = some d.param := h.prog_le (progCache_param seed d)

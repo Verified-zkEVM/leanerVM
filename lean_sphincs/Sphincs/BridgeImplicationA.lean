@@ -627,8 +627,8 @@ theorem badA_of_accepted (hb : 0 < subtreeHeight) (parameterOutput : HashOutput)
             (hrevAll c j i ⟨t.val, by omega⟩ (by simp only [GraphView.openedPos]; exact ht))
       obtain ⟨randomness, hlandR, hfinish⟩ := hgood.1 entry hentry honest hhonest
       rw [hmessage] at hlandR hfinish
-      have heq := canonical_signed_eq f ⟨seed, truncateHash parameterOutput,
-        (sampleData parameterOutput fixed highs remaining).root⟩ forgery.message randomness
+      have heq := canonical_signed_eq f ⟨seed, truncateHash parameterOutput⟩
+        (sampleData parameterOutput fixed highs remaining).root forgery.message randomness
         forgery.signature honest hlandR hfinish hrandomness counter hchosen (hrec.canonical hopen)
       apply hnotContains
       exact ⟨entry, hentry, hmessage, by rw [hhonest, heq]⟩
