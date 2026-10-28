@@ -42,34 +42,34 @@ namespace LeanDa
 abbrev Cache2 := (hfSpec (List UInt8) KDigest KState).QueryCache
 
 /-- The hash function a cache gives: its cached answers, `default` elsewhere. -/
-def hOf (c : Cache2) (a : List UInt8) : Digest := (c (.inl a)).getD default
+def hOf (c : Cache2) (a : List UInt8) : Common.KDigest := (c (.inl a)).getD default
 
-theorem hOf_of_le {c c' : Cache2} (h : c ≤ c') {a : List UInt8} {d : Digest}
+theorem hOf_of_le {c c' : Cache2} (h : c ≤ c') {a : List UInt8} {d : Common.KDigest}
     (ha : c (.inl a) = some d) : hOf c' a = d := by
   simp [hOf, h ha]
 
 /-- An `H` query caches its answer. -/
-theorem mem_support_run_hR (a : List UInt8) (c : Cache2) {z : Digest × Cache2}
+theorem mem_support_run_hR (a : List UInt8) (c : Cache2) {z : Common.KDigest × Cache2}
     (hz : z ∈ support ((simulateQ (hfSpec (List UInt8) KDigest KState).romImpl (hR a)).run c)) :
     c ≤ z.2 ∧ z.2 (.inl a) = some z.1 := by
   rw [hR, hQuery, run_hq] at hz
   exact le_of_mem_support_roStep _ c hz
 
 /-- The inputs a climb hashes. -/
-def walkInputs (H : List UInt8 → Digest) : ℕ → Digest → List Digest → List (List UInt8)
+def walkInputs (H : List UInt8 → Common.KDigest) : ℕ → Common.KDigest → List Common.KDigest → List (List UInt8)
   | _, _, [] => []
   | idx, node, s :: rest =>
     (if idx % 2 = 0 then pairBytes node s else pairBytes s node) ::
       walkInputs H (idx / 2) (H (if idx % 2 = 0 then pairBytes node s else pairBytes s node)) rest
 
-theorem walk_cons (H : List UInt8 → Digest) (idx : ℕ) (node s : Digest) (rest : List Digest) :
+theorem walk_cons (H : List UInt8 → Common.KDigest) (idx : ℕ) (node s : Common.KDigest) (rest : List Common.KDigest) :
     walk H idx node (s :: rest) =
       walk H (idx / 2) (H (if idx % 2 = 0 then pairBytes node s else pairBytes s node)) rest := by
   rw [walk, apply_ite H]
 
 /-- The inputs of an opening's climb are the cell's bytes, the climb's, and the root's. -/
-theorem hashInputs_eq (H : List UInt8 → Digest) (idx : ℕ) (a : List UInt8) (path : List Digest)
-    (rr : Digest) :
+theorem hashInputs_eq (H : List UInt8 → Common.KDigest) (idx : ℕ) (a : List UInt8) (path : List Common.KDigest)
+    (rr : Common.KDigest) :
     hashInputs H idx a path rr =
       a :: (walkInputs H idx (H a) path ++ [pairBytes rr (walk H idx (H a) path)]) := by
   induction path generalizing idx a with
@@ -80,8 +80,8 @@ theorem hashInputs_eq (H : List UInt8 → Digest) (idx : ℕ) (a : List UInt8) (
 
 /-- **A climb's run**: the cache grows, and in every later cache the climb's result and inputs
 are those of the cache's hash function, its inputs cached. -/
-theorem run_walkM (idx : ℕ) (node : Digest) (path : List Digest) (c : Cache2)
-    {z : Digest × Cache2}
+theorem run_walkM (idx : ℕ) (node : Common.KDigest) (path : List Common.KDigest) (c : Cache2)
+    {z : Common.KDigest × Cache2}
     (hz : z ∈ support ((simulateQ (hfSpec (List UInt8) KDigest KState).romImpl
       (walkM hR idx node path)).run c)) :
     c ≤ z.2 ∧ ∀ c', z.2 ≤ c' → z.1 = walk (hOf c') idx node path ∧
@@ -110,7 +110,7 @@ theorem run_walkM (idx : ℕ) (node : Digest) (path : List Digest) (c : Cache2)
 
 /-- **An opening's verification run**: the cache grows, and in every later cache the result is
 `verifyCell` of the cache's hash function, the opening's hash inputs cached. -/
-theorem run_verifyCellM (r : ℕ) (com : Digest) (p : Fin (r * 128)) (x : Cell) (τ : Opening)
+theorem run_verifyCellM (r : ℕ) (com : Common.KDigest) (p : Fin (r * 128)) (x : Cell) (τ : Opening)
     (c : Cache2) {z : Bool × Cache2}
     (hz : z ∈ support ((simulateQ (hfSpec (List UInt8) KDigest KState).romImpl
       (verifyCellM hR r com p x τ)).run c)) :
@@ -138,7 +138,7 @@ theorem run_verifyCellM (r : ℕ) (com : Digest) (p : Fin (r * 128)) (x : Cell) 
     · rw [List.mem_singleton.mp ha, ← hw, hc' hroot]; simp
 
 /-- `findCollision` returns inputs of its two lists, unless it returns two equal ones. -/
-theorem findCollision_mem (H : List UInt8 → Digest) (l₁ l₂ : List (List UInt8))
+theorem findCollision_mem (H : List UInt8 → Common.KDigest) (l₁ l₂ : List (List UInt8))
     (h : (findCollision H l₁ l₂).1 ≠ (findCollision H l₁ l₂).2) :
     (findCollision H l₁ l₂).1 ∈ l₁ ∧ (findCollision H l₁ l₂).2 ∈ l₂ := by
   induction l₁ generalizing l₂ with
@@ -169,12 +169,12 @@ theorem permCalls2_eq :
 
 section Games
 
-variable (r : ℕ) {Crs Proof : Type} {rel : Unit × Digest × Challenges → (Fin (r * 128) → Cell) → Bool}
-  (ps : Nark (Unit × Digest × Challenges) (Fin (r * 128) → Cell) Crs Proof rel)
+variable (r : ℕ) {Crs Proof : Type} {rel : Unit × Common.KDigest × Challenges → (Fin (r * 128) → Cell) → Bool}
+  (ps : Nark (Unit × Common.KDigest × Challenges) (Fin (r * 128) → Cell) Crs Proof rel)
 
 /-- **A verification's run**: the cache grows, and an accepting verification makes the opening
 verify for the hash function of every later cache, its hash inputs cached. -/
-theorem run_verifyRpm (crs : Crs) (com : Digest × Proof) (p : Fin (r * 128)) (x : Cell)
+theorem run_verifyRpm (crs : Crs) (com : Common.KDigest × Proof) (p : Fin (r * 128)) (x : Cell)
     (τ : Opening) (c : Cache2) {z : Bool × Cache2}
     (hz : z ∈ support ((simulateQ (hfSpec (List UInt8) KDigest KState).romImpl
       (verifyRpm hR pR r ps crs com p x τ)).run c)) :
@@ -200,7 +200,7 @@ theorem cache_eq_hOf {c : Cache2} {a : List UInt8} (h : c (.inl a) ≠ none) :
 
 /-- **A win of the position-binding game is a collision of `H` in the final cache.** -/
 theorem posBindingPost_win (crs : Crs)
-    (out : (Digest × Proof) × Fin (r * 128) × Cell × Opening × Cell × Opening) (c : Cache2)
+    (out : (Common.KDigest × Proof) × Fin (r * 128) × Cell × Opening × Cell × Opening) (c : Cache2)
     {z : Bool × Cache2}
     (hz : z ∈ support ((simulateQ (hfSpec (List UInt8) KDigest KState).romImpl
       (posBindingPost r ps crs out)).run c)) (hwin : z.1 = true) : HCollision z.2 := by
@@ -224,18 +224,18 @@ theorem posBindingPost_win (crs : Crs)
 
 /-! ### The duplex discipline of the verifier -/
 
-theorem duplexP_walkM (idx : ℕ) (node : Digest) (path : List Digest) (hist : List KState) :
+theorem duplexP_walkM (idx : ℕ) (node : Common.KDigest) (path : List Common.KDigest) (hist : List KState) :
     DuplexP (fun _ _ ↦ True) (walkM hR idx node path) hist := by
   induction path generalizing idx node with
   | nil => exact duplexP_pure trivial
   | cons s rest ih => exact duplexP_hR_bind _ _ hist fun d ↦ ih _ _
 
-theorem duplexP_verifyCellM (com : Digest) (p : Fin (r * 128)) (x : Cell) (τ : Opening)
+theorem duplexP_verifyCellM (com : Common.KDigest) (p : Fin (r * 128)) (x : Cell) (τ : Opening)
     (hist : List KState) : DuplexP (fun _ _ ↦ True) (verifyCellM hR r com p x τ) hist :=
   duplexP_hR_bind _ _ hist fun _ ↦ duplexP_bind (duplexP_walkM _ _ _ hist) fun _ hist' _ ↦
     duplexP_hR_bind _ _ hist' fun _ ↦ duplexP_pure trivial
 
-theorem duplexP_verifyRpm (crs : Crs) (com : Digest × Proof) (p : Fin (r * 128)) (x : Cell)
+theorem duplexP_verifyRpm (crs : Crs) (com : Common.KDigest × Proof) (p : Fin (r * 128)) (x : Cell)
     (τ : Opening) (hist : List KState) :
     DuplexP (fun _ _ ↦ True) (verifyRpm hR pR r ps crs com p x τ) hist :=
   duplexP_bind (duplexP_membershipChallengesR com.1 hist) fun _ hist' _ ↦
@@ -243,7 +243,7 @@ theorem duplexP_verifyRpm (crs : Crs) (com : Digest × Proof) (p : Fin (r * 128)
 
 /-- **The position-binding verifier follows the duplex discipline.** -/
 theorem duplex_posBindingPost (crs : Crs)
-    (out : (Digest × Proof) × Fin (r * 128) × Cell × Opening × Cell × Opening) :
+    (out : (Common.KDigest × Proof) × Fin (r * 128) × Cell × Opening × Cell × Opening) :
     Duplex KState.zero keccakNF (posBindingPost r ps crs out) [] :=
   duplex_of_duplexP (Q := fun _ _ ↦ True) <|
     duplexP_bind (duplexP_verifyRpm r ps crs _ _ _ _ []) fun _ hist _ ↦
@@ -303,7 +303,7 @@ theorem isWeightBound_shadowImpl (t : (dSpec2 (List UInt8) KDigest KState).Domai
 /-- The inputs of `H` a cache holds. -/
 def hDom (c : Cache2) : Set (List UInt8) := {a | c (.inl a) ≠ none}
 
-theorem card_digest : Fintype.card Digest = 2 ^ 256 := by
+theorem card_digest : Fintype.card Common.KDigest = 2 ^ 256 := by
   rw [card_vector_uInt8]; norm_num
 
 /-- The caches of one step of the two-oracle random oracle. -/
@@ -333,7 +333,7 @@ theorem cacheQuery_inr_inl (c : Cache2) (x : KState) (u : KState) (a : List UInt
     (c.cacheQuery (.inr x) u) (.inl a) = c (.inl a) :=
   QueryCache.cacheQuery_of_ne _ _ (by simp)
 
-theorem cacheQuery_inl_inl (c : Cache2) (a b : List UInt8) (u : Digest) :
+theorem cacheQuery_inl_inl (c : Cache2) (a b : List UInt8) (u : Common.KDigest) :
     (c.cacheQuery (.inl a) u) (.inl b) = if b = a then some u else c (.inl b) := by
   by_cases h : b = a
   · subst h; simp
@@ -392,8 +392,8 @@ theorem prob_hCollision_le {α : Type} (X : OracleComp Rom2 α) (Q : ℕ)
     · rw [romImpl_inr_run]
       rcases h : c (.inl a) with _ | v
       · rw [roStep_of_none h, bind_pure_comp, prEvent_map]
-        let V : Finset Digest := hc.toFinset.image (hOf c)
-        have hmem : ∀ u : Digest, HCollision (c.cacheQuery (.inl a) u) → u ∈ V := by
+        let V : Finset Common.KDigest := hc.toFinset.image (hOf c)
+        have hmem : ∀ u : Common.KDigest, HCollision (c.cacheQuery (.inl a) u) → u ∈ V := by
           rintro u ⟨a₁, b₁, hne, h₁, he⟩
           simp only [cacheQuery_inl_inl] at h₁ he
           by_cases ha₁ : a₁ = a
@@ -414,8 +414,8 @@ theorem prob_hCollision_le {α : Type} (X : OracleComp Rom2 α) (Q : ℕ)
           rw [← Set.ncard_eq_toFinset_card _ hc] at h1
           have h2 : (hDom c).ncard + 1 ≤ Q := by simpa [hCalls] using hN
           exact_mod_cast (h1.trans (by omega))
-        calc Pr{let x ← ($ᵗ Digest : ProbComp Digest)}[HCollision (c.cacheQuery (.inl a) x)]
-            ≤ Pr{let x ← ($ᵗ Digest : ProbComp Digest)}[x ∈ V] :=
+        calc Pr{let x ← ($ᵗ Common.KDigest : ProbComp Common.KDigest)}[HCollision (c.cacheQuery (.inl a) x)]
+            ≤ Pr{let x ← ($ᵗ Common.KDigest : ProbComp Common.KDigest)}[x ∈ V] :=
               prEvent_mono _ _ _ fun u hu ↦ hmem u hu
           _ = V.card / 2 ^ 256 := by
               rw [SampleableType.prEvent_uniformSample, card_digest, Finset.filter_mem_eq_inter,
@@ -437,8 +437,8 @@ theorem prob_hCollision_le {α : Type} (X : OracleComp Rom2 α) (Q : ℕ)
 
 section CodeBinding
 
-variable (r : ℕ) {Crs Proof : Type} {rel : Unit × Digest × Challenges → (Fin (r * 128) → Cell) → Bool}
-  (ps : Nark (Unit × Digest × Challenges) (Fin (r * 128) → Cell) Crs Proof rel)
+variable (r : ℕ) {Crs Proof : Type} {rel : Unit × Common.KDigest × Challenges → (Fin (r * 128) → Cell) → Bool}
+  (ps : Nark (Unit × Common.KDigest × Challenges) (Fin (r * 128) → Cell) Crs Proof rel)
 
 /-- **The code-binding game in the two-oracle random-oracle model**: `H` a random oracle, the
 challenges' sponge over an independent random function `F`, against the ROM adversary
@@ -460,7 +460,7 @@ theorem duplexP_mapM {β γ : Type} (f : β → OracleComp Rom2 γ)
 
 /-- **The code-binding verifier follows the duplex discipline.** -/
 theorem duplex_codeBindingPost (crs : Crs)
-    (out : (Digest × Proof) × List (Fin (r * 128) × Cell × Opening)) :
+    (out : (Common.KDigest × Proof) × List (Fin (r * 128) × Cell × Opening)) :
     Duplex KState.zero keccakNF (codeBindingPost r ps crs out) [] :=
   duplex_of_duplexP (Q := fun _ _ ↦ True) <|
     duplexP_bind (duplexP_mapM _ (fun _ hist ↦ duplexP_verifyRpm r ps crs _ _ _ _ hist) _ [])

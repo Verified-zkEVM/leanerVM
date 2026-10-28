@@ -105,7 +105,7 @@ theorem tableTerms_any (cp fp point : List E) (hs : List ℕ) (fs : List (List F
 
 /-- **`verify_tables`' honest data of a run of `tablesSeg`** on the words `xs`. -/
 noncomputable def vtHOf (bc : List K) (lm : ℕ) (pi : Digest) (alphas point values : List E)
-    (beta : E) (rows : List ℕ) (f : List E) (ev : Evaluations) (bv : E) (xs : List E)
+    (beta : E) (rows : List ℕ) (f : List E) (ev : (List K → List E → Prog E)) (bv : E) (xs : List E)
     (bus : BusResult) (claims : List ColumnClaim) (cap' : List E) : VtHonest :=
   ⟨bc, lm, pi, alphas, point, values, beta, rows, f, ev, bv, xs.take 5,
     (xs.drop 5).take (3 * (tableHeightsOf rows).foldl max 0),
@@ -125,7 +125,7 @@ set_option maxHeartbeats 2000000 in
 /-- **A run of `tablesSeg` is `verify_tables`' honest run**: its words cut in place, `Ok`, and
 nothing waiting at its end. -/
 theorem vtH_run {bc : List K} {lm : ℕ} {pi : Digest} {alphas point values : List E} {beta : E}
-    {rows : List ℕ} {f : List E} {ev : Evaluations} {bv : E} {xs : List E} {bus : BusResult}
+    {rows : List ℕ} {f : List E} {ev : (List K → List E → Prog E)} {bv : E} {xs : List E} {bus : BusResult}
     {claims : List ColumnClaim} {s' : Fs} (hr : rows.length = 6)
     (h : RunsTo (tablesSeg ev (layoutOf bc lm rows) pi alphas beta point values) ⟨f, []⟩ xs
       (bus, claims) s')

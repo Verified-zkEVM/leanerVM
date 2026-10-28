@@ -124,32 +124,32 @@ namespace LeanDa
 
 /-- **The straight-line world's oracles**: coins, `H`, and the challenges as one random oracle of
 vectors. -/
-abbrev VS := VSpec (List UInt8) KDigest Digest E 14
+abbrev VS := VSpec (List UInt8) KDigest Common.KDigest E 14
 
 /-- Its cache. -/
 abbrev VCache := VS.QueryCache
 
 /-- The hash function of a cache: its cached answers, `default` elsewhere. -/
-def fOf (c : VCache) (a : List UInt8) : Digest := (c (.inl a)).getD default
+def fOf (c : VCache) (a : List UInt8) : Common.KDigest := (c (.inl a)).getD default
 
 /-- The inputs of `H` a cache holds. -/
 def domH (c : VCache) : Set (List UInt8) := {a | c (.inl a) ≠ none}
 
 /-- The roots whose challenges a cache holds. -/
-def domG (c : VCache) : Set Digest := {d | c (.inr d) ≠ none}
+def domG (c : VCache) : Set Common.KDigest := {d | c (.inr d) ≠ none}
 
 /-- **A good cache**: `H` injective on its cached inputs, and for every root `d` with cached
 challenges `v`, every matrix whose commitment's inputs are cached, which commits to `d` and passes
 the membership test on `v`, a codeword. -/
 def Good (r : ℕ) (c : VCache) : Prop :=
-  Set.InjOn (fOf c) (domH c) ∧ ∀ (d : Digest) (v : Challenges), c (.inr d) = some v →
+  Set.InjOn (fOf c) (domH c) ∧ ∀ (d : Common.KDigest) (v : Challenges), c (.inr d) = some v →
     ∀ w : Fin (r * 128) → Cell, commitIn (fOf c) w ⊆ domH c → commitCells (fOf c) w = d →
       membershipCheck v w = true → w ∈ (code r).code
 
 theorem good_empty (r : ℕ) : Good r ∅ :=
   ⟨fun a ha ↦ (ha rfl).elim, fun _ _ h ↦ by simp at h⟩
 
-theorem fOf_of_mem {c : VCache} {a : List UInt8} {u : Digest} (h : c (.inl a) = some u) :
+theorem fOf_of_mem {c : VCache} {a : List UInt8} {u : Common.KDigest} (h : c (.inl a) = some u) :
     fOf c a = u := by simp [fOf, h]
 
 theorem cache_inl_eq_fOf {c : VCache} {a : List UInt8} (h : a ∈ domH c) :
@@ -162,47 +162,47 @@ section Insert
 
 variable (c : VCache)
 
-theorem vcache_inl_inl (a b : List UInt8) (u : Digest) :
+theorem vcache_inl_inl (a b : List UInt8) (u : Common.KDigest) :
     (c.cacheQuery (.inl a) u) (.inl b) = if b = a then some u else c (.inl b) := by
   by_cases h : b = a
   · subst h; simp
   · rw [QueryCache.cacheQuery_of_ne _ _ (by simpa using h)]; simp [h]
 
-theorem vcache_inl_inr (a : List UInt8) (u : Digest) (d : Digest) :
+theorem vcache_inl_inr (a : List UInt8) (u : Common.KDigest) (d : Common.KDigest) :
     (c.cacheQuery (.inl a) u) (.inr d) = c (.inr d) :=
   QueryCache.cacheQuery_of_ne _ _ (by simp)
 
-theorem vcache_inr_inl (d : Digest) (v : Challenges) (a : List UInt8) :
+theorem vcache_inr_inl (d : Common.KDigest) (v : Challenges) (a : List UInt8) :
     (c.cacheQuery (.inr d) v) (.inl a) = c (.inl a) :=
   QueryCache.cacheQuery_of_ne _ _ (by simp)
 
-theorem vcache_inr_inr (d e : Digest) (v : Challenges) :
+theorem vcache_inr_inr (d e : Common.KDigest) (v : Challenges) :
     (c.cacheQuery (.inr d) v) (.inr e) = if e = d then some v else c (.inr e) := by
   by_cases h : e = d
   · subst h; simp
   · rw [QueryCache.cacheQuery_of_ne _ _ (by simpa using h)]; simp [h]
 
-theorem fOf_insertH (a : List UInt8) (u : Digest) (b : List UInt8) :
+theorem fOf_insertH (a : List UInt8) (u : Common.KDigest) (b : List UInt8) :
     fOf (c.cacheQuery (.inl a) u) b = if b = a then u else fOf c b := by
   simp only [fOf, vcache_inl_inl]
   split_ifs <;> rfl
 
-theorem domH_insertH (a : List UInt8) (u : Digest) :
+theorem domH_insertH (a : List UInt8) (u : Common.KDigest) :
     domH (c.cacheQuery (.inl a) u) = insert a (domH c) := by
   ext b
   simp only [domH, Set.mem_ofPred_eq, Set.mem_insert_iff, vcache_inl_inl]
   by_cases h : b = a <;> simp [h]
 
-theorem domG_insertH (a : List UInt8) (u : Digest) : domG (c.cacheQuery (.inl a) u) = domG c := by
+theorem domG_insertH (a : List UInt8) (u : Common.KDigest) : domG (c.cacheQuery (.inl a) u) = domG c := by
   ext d; simp [domG]
 
-theorem fOf_insertG (d : Digest) (v : Challenges) : fOf (c.cacheQuery (.inr d) v) = fOf c := by
+theorem fOf_insertG (d : Common.KDigest) (v : Challenges) : fOf (c.cacheQuery (.inr d) v) = fOf c := by
   funext a; simp [fOf]
 
-theorem domH_insertG (d : Digest) (v : Challenges) : domH (c.cacheQuery (.inr d) v) = domH c := by
+theorem domH_insertG (d : Common.KDigest) (v : Challenges) : domH (c.cacheQuery (.inr d) v) = domH c := by
   ext a; simp [domH]
 
-theorem domG_insertG (d : Digest) (v : Challenges) :
+theorem domG_insertG (d : Common.KDigest) (v : Challenges) :
     domG (c.cacheQuery (.inr d) v) = insert d (domG c) := by
   ext e
   simp only [domG, Set.mem_ofPred_eq, Set.mem_insert_iff, vcache_inr_inr]
@@ -213,7 +213,7 @@ end Insert
 /-- **A fresh answer of `H` keeps a cache good** unless it collides with a cached answer, is a
 digest the query or a cached input carries, or is a root with cached challenges. -/
 theorem good_insertH {r : ℕ} {c : VCache} (hc : Good r c) {a : List UInt8} (ha : c (.inl a) = none)
-    {u : Digest} (hran : ∀ b ∈ domH c, fOf c b ≠ u)
+    {u : Common.KDigest} (hran : ∀ b ∈ domH c, fOf c b ≠ u)
     (hch : ∀ b, (b = a ∨ b ∈ domH c) → u ∉ chunks b) (hG : c (.inr u) = none) :
     Good r (c.cacheQuery (.inl a) u) := by
   have haD : a ∉ domH c := fun h ↦ h ha
@@ -260,7 +260,7 @@ theorem good_insertH {r : ℕ} {c : VCache} (hc : Good r c) {a : List UInt8} (ha
 
 /-- **Fresh challenges keep a cache good** when every matrix whose commitment's inputs are cached
 and which commits to the root passes the test on them only if it is a codeword. -/
-theorem good_insertG {r : ℕ} {c : VCache} (hc : Good r c) {d : Digest} {v : Challenges}
+theorem good_insertG {r : ℕ} {c : VCache} (hc : Good r c) {d : Common.KDigest} {v : Challenges}
     (hv : ∀ w : Fin (r * 128) → Cell, commitIn (fOf c) w ⊆ domH c → commitCells (fOf c) w = d →
       membershipCheck v w = true → w ∈ (code r).code) :
     Good r (c.cacheQuery (.inr d) v) := by
@@ -319,9 +319,9 @@ theorem prob_insertH_le {r : ℕ} {c : VCache} (hc : Good r c) (hfin : VFin c) {
     Pr{let u ← ($ᵗ KDigest : ProbComp KDigest)}[¬ Good r (c.cacheQuery (.inl a) u)] ≤
       65 * N / 2 ^ 256 := by
   classical
-  let V : Finset Digest := hfin.1.toFinset.image (fOf c) ∪
+  let V : Finset Common.KDigest := hfin.1.toFinset.image (fOf c) ∪
     (insert a hfin.1.toFinset).biUnion chunks ∪ hfin.2.toFinset
-  have hmem : ∀ u : Digest, ¬ Good r (c.cacheQuery (.inl a) u) → u ∈ V := by
+  have hmem : ∀ u : Common.KDigest, ¬ Good r (c.cacheQuery (.inl a) u) → u ∈ V := by
     intro u hu
     by_contra hV
     refine hu (good_insertH hc ha (fun b hb he ↦ hV ?_) (fun b hb hch ↦ hV ?_) ?_)
@@ -359,7 +359,7 @@ theorem prob_insertH_le {r : ℕ} {c : VCache} (hc : Good r c) (hfin : VFin c) {
 
 /-- **The probability that fresh challenges spoil a good cache** is at most `14 / 2^192`: the one
 matrix committed to the root is fixed before they are drawn. -/
-theorem prob_insertG_le {r : ℕ} {c : VCache} (hc : Good r c) (d : Digest) :
+theorem prob_insertG_le {r : ℕ} {c : VCache} (hc : Good r c) (d : Common.KDigest) :
     Pr{let v ← ($ᵗ Challenges : ProbComp Challenges)}[¬ Good r (c.cacheQuery (.inr d) v)] ≤
       14 / 2 ^ 192 := by
   classical

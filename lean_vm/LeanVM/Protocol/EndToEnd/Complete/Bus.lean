@@ -622,7 +622,7 @@ def busK1 (L : Verifier.Layout) (D : ℕ) (alphas : List E) : Prog BusResult :=
   Prog.sampleE.bind (busK2 L D alphas)
 
 theorem verifyBusBalance_eq' (L : Verifier.Layout) :
-    verifyBusBalance .computed L = (Prog.sampleN busBits).bind
+    verifyBusBalance computedValue L = (Prog.sampleN busBits).bind
       (busK1 L (busLayout [0, L.logMemory, L.logBytecode] L.push).depth) := by
   rw [verifyBusBalance_eq]
   rfl
@@ -662,7 +662,7 @@ theorem follows_verifyBusBalance {prog : Program} {s : Sizes} {input : PublicInp
     {q : Column (leanIsaμ prog s)} (_hs : s.Admissible prog)
     (hq : M3Honest (inst prog s) input q) (cs : Commits) :
     Follows (fun cs' a b ↦ cs' = cs ∧ a = b ∧ BusGood prog s q b) (hBus prog s q)
-      (verifyBusBalance .computed (verifierLayout prog s)) cs := by
+      (verifyBusBalance computedValue (verifierLayout prog s)) cs := by
   obtain ⟨⟨-, hbal, hcnt, -, -⟩, hP⟩ := hq
   rw [verifyBusBalance_eq', busLayout_depth_verifier, hBus]
   refine Follows.bind (fun cs₁ a b h ↦ ?_) _ _ _ (Follows.sampleN_sampleN cs busBits)

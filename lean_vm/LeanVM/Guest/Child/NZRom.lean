@@ -288,16 +288,16 @@ theorem romCompleteNZ (P P' : Prog Bool) (hNZ : NZ P' P) (S : Strategy) (σ : Se
 
 /-- The verifier program refusing a zero fold, tail or level batching challenge. -/
 def nzProgram (bytecode : List K) (publicInput : Digest) : Prog Bool :=
-  (execWith .computed Limits.verifyStackedOpeningNZ bytecode publicInput).bind fun _ ↦ Prog.ret true
+  (execWith computedValue Limits.verifyStackedOpeningNZ bytecode publicInput).bind fun _ ↦ Prog.ret true
 
 theorem leanVmProgram_eq (bytecode : List K) (publicInput : Digest) :
     leanVmProgram bytecode publicInput =
-      (execWith .computed verifyStackedOpening bytecode publicInput).bind fun _ ↦ Prog.ret true :=
+      (execWith computedValue verifyStackedOpening bytecode publicInput).bind fun _ ↦ Prog.ret true :=
   rfl
 
 theorem nz_nzProgram (bytecode : List K) (publicInput : Digest) :
     NZ (nzProgram bytecode publicInput) (leanVmProgram bytecode publicInput) :=
-  nz_program .computed bytecode publicInput
+  nz_program computedValue bytecode publicInput
 
 /-- The program refusing zero challenges only fails more. -/
 theorem refines_nzProgram (bytecode : List K) (publicInput : Digest) :

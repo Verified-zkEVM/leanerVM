@@ -58,7 +58,7 @@ theorem RR_hfEmbed_toRHF_H (m : Bytes) :
 
 /-- `π` on lanes is the lane reading of `π` on bytes. -/
 theorem perm_eq_lanePerm :
-    (perm : KState → StateT PermLog ProbComp KState) =
+    (perm : KState → StateT (Common.PermLog KState) ProbComp KState) =
       lanePerm (fun x ↦ KState.toRpm <$> perm (KState.ofRpm x)) := by
   funext s
   simp only [lanePerm, Functor.map_map, ofRpm_toRpm, id_map']
@@ -91,7 +91,7 @@ theorem post_relabel {β : Type} (X : OracleComp HashSpec β) (s : Common.PermLo
 
 /-- **The adversary on bytes with its transcript, in the real world, is the adversary of the
 random-permutation experiment**, the permutation's edges read on lanes. -/
-theorem adv_relabel {α : Type} (A : OracleComp PermSpec α) (s : Common.PermLog Common.KState)
+theorem adv_relabel {α : Type} (A : OracleComp (Common.permSpec KState) α) (s : Common.PermLog Common.KState)
     (T : Transcript) :
     (fun p ↦ (p.1.1, (projLog p.2, p.1.2))) <$>
         (simulateQ (RR ∘ₛ Common.advEmbed) ((simulateQ logRel A).run T)).run s =ᵈ

@@ -10,7 +10,7 @@ module
 public import LeanVM.Guest.B1.Fwd.Canon
 
 /-!
-# Evaluations on two memories
+# (List K → List E → Prog E) on two memories
 
 A range check `rangeCheck x y t1 t2 k` reads the memory at `x` and `y` into `t1`, `t2`
 (`auxIdx`); in the guest's bodies nothing else uses them (`deadB`). `ev_agree`: then `Fwd.ev` on

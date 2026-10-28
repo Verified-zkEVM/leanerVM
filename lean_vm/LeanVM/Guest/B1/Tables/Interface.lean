@@ -88,7 +88,7 @@ def layoutOf (bytecode : List K) (logMemory : ℕ) (tableRows : List ℕ) : Layo
 /-! ## The programs -/
 
 /-- `verifyBusBalance` after the GKR walk (V:1492-1513), from its challenges, point and values. -/
-def busRest (ev : Evaluations) (layout : Layout) (alphas : List E) (beta : E)
+def busRest (ev : (List K → List E → Prog E)) (layout : Layout) (alphas : List E) (beta : E)
     (point treeValues : List E) : Prog BusResult := do
   let frameworkLogRows := [0, layout.logMemory, layout.logBytecode]
   let pushLayout := busLayout frameworkLogRows layout.push
@@ -105,7 +105,7 @@ def busRest (ev : Evaluations) (layout : Layout) (alphas : List E) (beta : E)
       memory) ++
     [⟨memoryFinalCounters, memoryLow, memoryFinal⟩, ⟨bytecodeFinalCounters, bytecodeLow,
       bytecodeFinal⟩]
-  let bytecodeValue ← ev.bytecode layout.bytecode (bytecodeLow ++ alphas)
+  let bytecodeValue ← ev layout.bytecode (bytecodeLow ++ alphas)
   let fp := fingerprints weights memory memoryLow bytecodeLow bytecodeValue
   let pcFinal := Verifier.gpow (2 ^ layout.logBytecode - 1)
   let forms0 : List (List Form) := tables.map fun _ ↦ [{}, {}, {}]
@@ -119,7 +119,7 @@ def busRest (ev : Evaluations) (layout : Layout) (alphas : List E) (beta : E)
 
 /-- What `verify_tables` runs: the bus after GKR, the table sumcheck and the public input's
 binding (V:2307-2311); the bus result and every column claim, the public input's last. -/
-def tablesSeg (ev : Evaluations) (layout : Layout) (publicInput : Digest) (alphas : List E)
+def tablesSeg (ev : (List K → List E → Prog E)) (layout : Layout) (publicInput : Digest) (alphas : List E)
     (beta : E) (point treeValues : List E) : Prog (BusResult × List ColumnClaim) := do
   let bus ← busRest ev layout alphas beta point treeValues
   let claims ← tablePhase layout bus

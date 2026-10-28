@@ -155,7 +155,7 @@ theorem atKeccak_childComp {prog : Program} {input : PublicInput} {t : Trace pro
 theorem verifierNZ_eq (prog : Program) (input : PublicInput) (π : Proof) :
     Budget.verifierNZ (m := Id) keccak256 keccakF prog input π =
       Id.run (runProof (m := Id) keccak256 keccakF
-        ((execWith .computed Limits.verifyStackedOpeningNZ (bytecodeWords prog)
+        ((execWith computedValue Limits.verifyStackedOpeningNZ (bytecodeWords prog)
           (publicDigest input)).bind fun _ ↦ Prog.ret true)
         (seed (bytecodeWords prog) (publicDigest input)) π) := rfl
 
@@ -164,7 +164,7 @@ challenges. -/
 theorem verifierRZ_eq (prog : Program) (input : PublicInput) (π : Proof) :
     Budget.verifierRZ (m := Id) keccak256 keccakF prog input π =
       Id.run (runProof (m := Id) keccak256 keccakF
-        ((execWith .computed verifyStackedOpening (bytecodeWords prog)
+        ((execWith computedValue verifyStackedOpening (bytecodeWords prog)
           (publicDigest input)).bind fun _ ↦ Prog.ret true).refuseZero
         (seed (bytecodeWords prog) (publicDigest input)) π) := rfl
 
@@ -173,7 +173,7 @@ theorem runProof_read_empty (H : Bytes → Id Digest) (F : KState → Id KState)
     (sd : KState) : Id.run (runProof H F (Prog.read k) sd ⟨[], []⟩) = false := rfl
 
 /-- The verifier reads first. -/
-theorem execWith_bind_read (ev : Evaluations) (opening : ℕ → ℕ → List StackClaim → Prog Unit)
+theorem execWith_bind_read (ev : (List K → List E → Prog E)) (opening : ℕ → ℕ → List StackClaim → Prog Unit)
     (bytecode : List K) (publicInput : Digest) (f : Unit → Prog Bool) :
     ∃ k, (execWith ev opening bytecode publicInput).bind f = Prog.read k :=
   ⟨_, rfl⟩
@@ -195,7 +195,7 @@ theorem prove_of_verifierNZ_of {A : HonestProver} {prog : Program} {input : Publ
       rw [hA, simulateQ_pure]
       rfl
     rw [e, verifierNZ_eq] at hacc
-    obtain ⟨k, hk⟩ := execWith_bind_read .computed Limits.verifyStackedOpeningNZ
+    obtain ⟨k, hk⟩ := execWith_bind_read computedValue Limits.verifyStackedOpeningNZ
       (bytecodeWords prog) (publicDigest input) fun _ ↦ Prog.ret true
     rw [hk] at hacc
     exact absurd hacc (by simp [runProof_read_empty])
@@ -208,7 +208,7 @@ theorem prove_of_verifierNZ_of {A : HonestProver} {prog : Program} {input : Publ
     | none =>
       intro hacc
       rw [verifierNZ_eq] at hacc
-      obtain ⟨k, hk⟩ := execWith_bind_read .computed Limits.verifyStackedOpeningNZ
+      obtain ⟨k, hk⟩ := execWith_bind_read computedValue Limits.verifyStackedOpeningNZ
         (bytecodeWords prog) (publicDigest input) fun _ ↦ Prog.ret true
       rw [hk] at hacc
       exact absurd hacc (by simp [runProof_read_empty])
@@ -233,7 +233,7 @@ theorem prove_of_verifierNZ {prog : Program} {input : PublicInput} {t : Trace pr
     | none =>
       intro hacc
       rw [verifierNZ_eq] at hacc
-      obtain ⟨k, hk⟩ := execWith_bind_read .computed Limits.verifyStackedOpeningNZ
+      obtain ⟨k, hk⟩ := execWith_bind_read computedValue Limits.verifyStackedOpeningNZ
         (bytecodeWords prog) (publicDigest input) fun _ ↦ Prog.ret true
       rw [hk] at hacc
       exact absurd hacc (by simp [runProof_read_empty])
@@ -243,7 +243,7 @@ theorem prove_of_verifierNZ {prog : Program} {input : PublicInput} {t : Trace pr
       simp only [h, ↓reduceDIte, simulateQ_pure]
       rfl
     rw [e, verifierNZ_eq] at hacc
-    obtain ⟨k, hk⟩ := execWith_bind_read .computed Limits.verifyStackedOpeningNZ
+    obtain ⟨k, hk⟩ := execWith_bind_read computedValue Limits.verifyStackedOpeningNZ
       (bytecodeWords prog) (publicDigest input) fun _ ↦ Prog.ret true
     rw [hk] at hacc
     exact absurd hacc (by simp [runProof_read_empty])

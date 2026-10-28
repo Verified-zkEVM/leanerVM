@@ -26,10 +26,10 @@ namespace LeanDa
 
 section Defs
 
-variable {m : Type → Type} [Monad m] (H : List UInt8 → m Digest)
+variable {m : Type → Type} [Monad m] (H : List UInt8 → m Common.KDigest)
 
 /-- The authentication path over an oracle (`merklePath`). -/
-def merklePathM : ℕ → (ℕ → m Digest) → ℕ → m (List Digest)
+def merklePathM : ℕ → (ℕ → m Common.KDigest) → ℕ → m (List Common.KDigest)
   | 0, _, _ => pure []
   | d + 1, f, idx => do
     let s ← f (sibling idx)
@@ -43,7 +43,7 @@ def openCellM {r : ℕ} (c : Fin (r * 128) → Cell) (p : Fin (r * 128)) : m Ope
   pure ⟨rr, path⟩
 
 /-- The hash inputs of a climb over an oracle (`hashInputs`). -/
-def hashInputsM : ℕ → List UInt8 → List Digest → Digest → m (List (List UInt8))
+def hashInputsM : ℕ → List UInt8 → List Common.KDigest → Common.KDigest → m (List (List UInt8))
   | _, a, [], rr => do
     let d ← H a
     pure [a, pairBytes rr d]
@@ -73,15 +73,15 @@ section Eval
 variable {m n : Type → Type} [Monad m] [LawfulMonad m] [Monad n] [LawfulMonad n]
   (φ : ∀ {α}, m α → n α) (hpure : ∀ {α} (a : α), φ (pure a) = pure a)
   (hbind : ∀ {α β} (x : m α) (f : α → m β), φ (x >>= f) = φ x >>= fun a ↦ φ (f a))
-  (H : List UInt8 → m Digest) (H' : List UInt8 → Digest) (hH : ∀ a, φ (H a) = pure (H' a))
+  (H : List UInt8 → m Common.KDigest) (H' : List UInt8 → Common.KDigest) (hH : ∀ a, φ (H a) = pure (H' a))
 
 include hpure hbind hH
 
-theorem upM_eval (f : ℕ → m Digest) (f' : ℕ → Digest) (hf : ∀ i, φ (f i) = pure (f' i))
+theorem upM_eval (f : ℕ → m Common.KDigest) (f' : ℕ → Common.KDigest) (hf : ∀ i, φ (f i) = pure (f' i))
     (i : ℕ) : φ (upM H f i) = pure (up H' f' i) := by
   simp only [upM, hbind, hf, pure_bind, hH, up]
 
-theorem merkleRootM_eval (d : ℕ) : ∀ (f : ℕ → m Digest) (f' : ℕ → Digest),
+theorem merkleRootM_eval (d : ℕ) : ∀ (f : ℕ → m Common.KDigest) (f' : ℕ → Common.KDigest),
     (∀ i, φ (f i) = pure (f' i)) → φ (merkleRootM H d f) = pure (merkleRoot H' d f') := by
   induction d with
   | zero => intro f f' hf; exact hf 0
@@ -89,7 +89,7 @@ theorem merkleRootM_eval (d : ℕ) : ∀ (f : ℕ → m Digest) (f' : ℕ → Di
     intro f f' hf
     exact ih _ _ (upM_eval φ hpure hbind H H' hH f f' hf)
 
-theorem merklePathM_eval (d : ℕ) : ∀ (f : ℕ → m Digest) (f' : ℕ → Digest),
+theorem merklePathM_eval (d : ℕ) : ∀ (f : ℕ → m Common.KDigest) (f' : ℕ → Common.KDigest),
     (∀ i, φ (f i) = pure (f' i)) → ∀ idx,
       φ (merklePathM H d f idx) = pure (merklePath H' d f' idx) := by
   induction d with
@@ -125,7 +125,7 @@ theorem openCellM_eval {r : ℕ} (c : Fin (r * 128) → Cell) (p : Fin (r * 128)
     pure_bind, hpure]
   rfl
 
-theorem hashInputsM_eval (path : List Digest) : ∀ (idx : ℕ) (a : List UInt8) (rr : Digest),
+theorem hashInputsM_eval (path : List Common.KDigest) : ∀ (idx : ℕ) (a : List UInt8) (rr : Common.KDigest),
     φ (hashInputsM H idx a path rr) = pure (hashInputs H' idx a path rr) := by
   induction path with
   | nil => intro idx a rr; simp only [hashInputsM, hashInputs, hbind, hH, pure_bind, hpure]
@@ -192,19 +192,19 @@ theorem isWeightBound_mapM {γ : Type} (f : γ → OracleComp spec β) (w : ι �
     exact ((hf a).bind fun _ ↦ ih.bind fun _ ↦ isWeightBound_pure _ _ 0).mono
       (by simp only [List.length_cons]; ring_nf; omega)
 
-variable (H : List UInt8 → OracleComp spec Digest) (w : ι → ℕ) (cP cC cR : ℕ)
+variable (H : List UInt8 → OracleComp spec Common.KDigest) (w : ι → ℕ) (cP cC cR : ℕ)
   (hP : ∀ a b, IsWeightBound (H (pairBytes a b)) w cP)
   (hC : ∀ x, IsWeightBound (H (cellBytes x)) w cC)
-  (hR : ∀ ds : List Digest, ds.length = 64 → IsWeightBound (H (ds.flatMap Vector.toList)) w cR)
+  (hR : ∀ ds : List Common.KDigest, ds.length = 64 → IsWeightBound (H (ds.flatMap Vector.toList)) w cR)
 
 include hP in
-theorem isWeightBound_upM (f : ℕ → OracleComp spec Digest) (c : ℕ)
+theorem isWeightBound_upM (f : ℕ → OracleComp spec Common.KDigest) (c : ℕ)
     (hf : ∀ i, IsWeightBound (f i) w c) (i : ℕ) :
     IsWeightBound (upM H f i) w (2 * c + cP) :=
   ((hf _).bind fun _ ↦ (hf _).bind fun _ ↦ hP _ _).mono (by omega)
 
 include hP in
-theorem isWeightBound_merkleRootM (d : ℕ) : ∀ (f : ℕ → OracleComp spec Digest) (c : ℕ),
+theorem isWeightBound_merkleRootM (d : ℕ) : ∀ (f : ℕ → OracleComp spec Common.KDigest) (c : ℕ),
     (∀ i, IsWeightBound (f i) w c) →
       IsWeightBound (merkleRootM H d f) w (2 ^ d * c + (2 ^ d - 1) * cP) := by
   induction d with
@@ -220,7 +220,7 @@ theorem isWeightBound_merkleRootM (d : ℕ) : ∀ (f : ℕ → OracleComp spec D
     exact le_of_eq (by ring)
 
 include hP in
-theorem isWeightBound_merklePathM (d : ℕ) : ∀ (f : ℕ → OracleComp spec Digest) (c : ℕ),
+theorem isWeightBound_merklePathM (d : ℕ) : ∀ (f : ℕ → OracleComp spec Common.KDigest) (c : ℕ),
     (∀ i, IsWeightBound (f i) w c) → ∀ idx,
       IsWeightBound (merklePathM H d f idx) w ((2 ^ d - 1) * (c + cP)) := by
   induction d with
@@ -275,8 +275,8 @@ theorem isWeightBound_openCellM {r : ℕ} (c : Fin (r * 128) → Cell) (p : Fin 
   zify [h1, show 1 ≤ 128 * 2 ^ logPad r by omega]
   nlinarith
 
-theorem isWeightBound_hashInputsM (h1 : ∀ a, IsWeightBound (H a) w 1) (path : List Digest) :
-    ∀ (idx : ℕ) (a : List UInt8) (rr : Digest),
+theorem isWeightBound_hashInputsM (h1 : ∀ a, IsWeightBound (H a) w 1) (path : List Common.KDigest) :
+    ∀ (idx : ℕ) (a : List UInt8) (rr : Common.KDigest),
       IsWeightBound (hashInputsM H idx a path rr) w (path.length + 1) := by
   induction path with
   | nil => intro idx a rr; exact ((h1 a).bind fun _ ↦ isWeightBound_pure _ _ 0)

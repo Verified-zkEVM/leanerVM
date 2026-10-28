@@ -409,7 +409,7 @@ theorem dualCodeword_eq_dual (z : Fin 14 → E) :
   rw [heval, dual]
   simp only [normW_eval]
 
-variable (H : List UInt8 → Digest) (P : LeanVM.Semantics.KState → LeanVM.Semantics.KState)
+variable (H : List UInt8 → Common.KDigest) (P : LeanVM.Semantics.KState → LeanVM.Semantics.KState)
 
 /-- `Sponge.samplesM n` draws `n` challenges. -/
 theorem length_samples : ∀ (n : ℕ) (s : Sponge),
@@ -419,19 +419,19 @@ theorem length_samples : ∀ (n : ℕ) (s : Sponge),
       (length_samples n (Id.run (Sponge.sampleM (m := Id) (fun L ↦ pure (P L)) s)).2)
 
 /-- A root has `14` challenges. -/
-theorem length_membershipChallenges (root : Digest) :
+theorem length_membershipChallenges (root : Common.KDigest) :
     (membershipChallenges H P root).length = 14 :=
   length_samples P logK _
 
 /-- **The membership vector of a root is the dual codeword of its challenges.** -/
-theorem membershipVector_eq_dual (root : Digest) (z : Fin 14 → E)
+theorem membershipVector_eq_dual (root : Common.KDigest) (z : Fin 14 → E)
     (hz : membershipChallenges H P root = List.ofFn z) :
     membershipVector H P root = List.ofFn (dual z) := by
   rw [membershipVector, hz, dualCodeword_eq_dual]
 
 /-- The membership vector of a root is the dual codeword of its challenges, `z_i` entry `i` of
 `membershipChallenges`. -/
-theorem membershipVector_eq_dual_challenges (root : Digest) :
+theorem membershipVector_eq_dual_challenges (root : Common.KDigest) :
     membershipVector H P root = List.ofFn (dual fun i : Fin 14 ↦
       (membershipChallenges H P root)[(i : ℕ)]'(by
         rw [length_membershipChallenges]; exact i.isLt)) :=

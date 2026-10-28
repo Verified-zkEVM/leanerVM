@@ -140,11 +140,8 @@ completeness and position binding hold for every `r`, code binding for `1 ≤ r 
 (`maxRows`). The deployed algorithms (last of this part, for `lean_vm`'s DA claims) take the hash
 `H` and the sponge's permutation `P` as parameters: the crate's are Keccak-256
 (`verifier/src/hash.rs:79-97`) and Keccak-f[1600]; in the end statements `H` is Keccak-256 over
-`π` and `P` is `π` itself.
+`π` and `P` is `π` itself. A digest is 32 bytes, `KDigest` (`fiat_shamir::merkle::Hash`).
 -/
-
-/-- A digest of the hash, 32 bytes (`fiat_shamir::merkle::Hash`, `[u8; 32]`). -/
-abbrev Digest := Vector UInt8 32
 
 /-! ### Shapes (`lib.rs:23-39`) -/
 
@@ -210,7 +207,7 @@ def rowOf {r : ℕ} (c : Fin (r * 128) → Cell) (i : Fin r) : Row :=
 
 section Pure
 
-variable (H : List UInt8 → Digest)
+variable (H : List UInt8 → KDigest)
 
 /-- The eight little-endian bytes of a symbol (`as_bytes`). -/
 def kBytes (a : K) : List UInt8 := (List.range 8).map fun t ↦ (a.toBitVec.toNat >>> (8 * t)).toUInt8
@@ -219,10 +216,10 @@ def kBytes (a : K) : List UInt8 := (List.range 8).map fun t ↦ (a.toBitVec.toNa
 def cellBytes (x : Cell) : List UInt8 := (List.ofFn x).flatMap kBytes
 
 /-- The 64 bytes of a pair of digests (`hash_pair`, `tree_from_leaves`). -/
-def pairBytes (a b : Digest) : List UInt8 := a.toList ++ b.toList
+def pairBytes (a b : KDigest) : List UInt8 := a.toList ++ b.toList
 
 /-- The digest of a cell (`hash_cells`). -/
-def cellDigest (x : Cell) : Digest := H (cellBytes x)
+def cellDigest (x : Cell) : KDigest := H (cellBytes x)
 
 /-- `⌈log₂ r⌉`: the padded row count `2^⌈log₂ r⌉` is `r.next_power_of_two()`. -/
 def logPad (r : ℕ) : ℕ := Nat.clog 2 r
@@ -235,10 +232,10 @@ def paddedCell {r : ℕ} (c : Fin (r * 128) → Cell) (i j : ℕ) : Cell :=
   if h : i < r ∧ j < 128 then c (pos ⟨i, h.1⟩ ⟨j, h.2⟩) else 0
 
 /-- One level up a Merkle tree: node `i` hashes nodes `2i` and `2i + 1`. -/
-def up (f : ℕ → Digest) (i : ℕ) : Digest := H (pairBytes (f (2 * i)) (f (2 * i + 1)))
+def up (f : ℕ → KDigest) (i : ℕ) : KDigest := H (pairBytes (f (2 * i)) (f (2 * i + 1)))
 
 /-- The root of the Merkle tree over the leaves `f 0 … f (2^d - 1)` (`tree_from_leaves`). -/
-def merkleRoot : ℕ → (ℕ → Digest) → Digest
+def merkleRoot : ℕ → (ℕ → KDigest) → KDigest
   | 0, f => f 0
   | d + 1, f => merkleRoot d (up H f)
 
@@ -246,27 +243,27 @@ def merkleRoot : ℕ → (ℕ → Digest) → Digest
 def sibling (idx : ℕ) : ℕ := if idx % 2 = 0 then idx + 1 else idx - 1
 
 /-- The authentication path of leaf `idx`, siblings from the bottom. -/
-def merklePath : ℕ → (ℕ → Digest) → ℕ → List Digest
+def merklePath : ℕ → (ℕ → KDigest) → ℕ → List KDigest
   | 0, _, _ => []
   | d + 1, f, idx => f (sibling idx) :: merklePath d (up H f) (idx / 2)
 
 /-- The row tree's leaves: each padded row's digest of its first `64` cell digests. -/
-def rowLeaves {r : ℕ} (c : Fin (r * 128) → Cell) (i : ℕ) : Digest :=
+def rowLeaves {r : ℕ} (c : Fin (r * 128) → Cell) (i : ℕ) : KDigest :=
   H ((List.ofFn fun j : Fin 64 ↦ cellDigest H (paddedCell c i j)).flatMap Vector.toList)
 
 /-- The column tree's leaves: leaf `j · 2^⌈log₂ r⌉ + i` is cell `j` of padded row `i`. -/
-def colLeaves {r : ℕ} (c : Fin (r * 128) → Cell) (l : ℕ) : Digest :=
+def colLeaves {r : ℕ} (c : Fin (r * 128) → Cell) (l : ℕ) : KDigest :=
   cellDigest H (paddedCell c (l % nPad r) (l / nPad r))
 
 /-- The row root (`root_row`). -/
-def rowRoot {r : ℕ} (c : Fin (r * 128) → Cell) : Digest := merkleRoot H (logPad r) (rowLeaves H c)
+def rowRoot {r : ℕ} (c : Fin (r * 128) → Cell) : KDigest := merkleRoot H (logPad r) (rowLeaves H c)
 
 /-- The column root (`root_col`). -/
-def colRoot {r : ℕ} (c : Fin (r * 128) → Cell) : Digest :=
+def colRoot {r : ℕ} (c : Fin (r * 128) → Cell) : KDigest :=
   merkleRoot H (7 + logPad r) (colLeaves H c)
 
 /-- **The root of a matrix** (`commit_codewords`): `H(rowRoot ‖ colRoot)`. -/
-def commitCells {r : ℕ} (c : Fin (r * 128) → Cell) : Digest :=
+def commitCells {r : ℕ} (c : Fin (r * 128) → Cell) : KDigest :=
   H (pairBytes (rowRoot H c) (colRoot H c))
 
 /-! ### Openings -/
@@ -274,9 +271,9 @@ def commitCells {r : ℕ} (c : Fin (r * 128) → Cell) : Digest :=
 /-- The opening of a cell: the row root and the cell's path in the column tree. -/
 structure Opening where
   /-- The row root. -/
-  rowRoot : Digest
+  rowRoot : KDigest
   /-- The siblings from the cell's leaf up to the column root. -/
-  path : List Digest
+  path : List KDigest
 deriving Inhabited
 
 /-- The column tree index of a position: cell `j` of row `i` is leaf `j · 2^⌈log₂ r⌉ + i`. -/
@@ -312,12 +309,12 @@ the crate's order, each tree built level by level. It is `commitCells` of the ma
 form (`commitCodewords_eq_commitCells`, `LeanDa.Commitment`). -/
 
 /-- One level of a Merkle tree: the digests of neighbouring pairs (`tree_from_leaves`). -/
-def treeLevel (nodes : List Digest) : List Digest :=
+def treeLevel (nodes : List KDigest) : List KDigest :=
   (List.range (nodes.length / 2)).map (up H fun i ↦ nodes.getD i default)
 
 /-- The root of the Merkle tree over a power-of-two number of digests (`tree_from_leaves`; on
 other lengths, which `commitCodewords` never passes, the crate panics). -/
-def treeRoot (nodes : List Digest) : Digest :=
+def treeRoot (nodes : List KDigest) : KDigest :=
   if nodes.length ≤ 1 then nodes.headD default else treeRoot (treeLevel H nodes)
 termination_by nodes.length
 decreasing_by simp only [treeLevel, List.length_map, List.length_range]; omega
@@ -326,21 +323,21 @@ decreasing_by simp only [treeLevel, List.length_map, List.length_range]; omega
 def listCell (row : List K) (j : ℕ) : List K := (row.drop (j * cellSymbols)).take cellSymbols
 
 /-- The digest of cell `j` of a codeword (`hash_cells`). -/
-def listCellDigest (row : List K) (j : ℕ) : Digest := H ((listCell row j).flatMap kBytes)
+def listCellDigest (row : List K) (j : ℕ) : KDigest := H ((listCell row j).flatMap kBytes)
 
 /-- A row's digest: the hash of its payload cells' digests. -/
-def rowDigest (row : List K) : Digest :=
+def rowDigest (row : List K) : KDigest :=
   H ((List.range payloadCells).flatMap fun j ↦ (listCellDigest H row j).toList)
 
 /-- The digest of the zero cell, which pads the columns (`padding_digests`). -/
-def paddingCell : Digest := H ((List.replicate cellSymbols 0).flatMap kBytes)
+def paddingCell : KDigest := H ((List.replicate cellSymbols 0).flatMap kBytes)
 
 /-- The digest of the zero row, which pads the row tree (`padding_digests`). -/
-def paddingRow : Digest := H ((List.replicate payloadCells (paddingCell H)).flatMap Vector.toList)
+def paddingRow : KDigest := H ((List.replicate payloadCells (paddingCell H)).flatMap Vector.toList)
 
 /-- **The root of a matrix of codewords, as the crate computes it** (`commit_codewords`): the
 rows padded to a power of two, the hash of the row tree's root and the column tree's. -/
-def commitCodewords (rows : List (List K)) : Digest :=
+def commitCodewords (rows : List (List K)) : KDigest :=
   let n := nPad rows.length
   let rowTree := treeRoot H
     (rows.map (rowDigest H) ++ List.replicate (n - rows.length) (paddingRow H))
@@ -361,7 +358,7 @@ def label : List UInt8 := "leanDA/rs-membership/v1".toUTF8.toList
 def ofBytes (bytes : List UInt8) : K := K.ofBits (bytes.foldr (fun b acc ↦ b.toNat + 256 * acc) 0)
 
 /-- Word `i` of a digest, its bytes `8 i … 8 i + 7` (`Digest::words`). -/
-def word (d : Digest) (i : ℕ) : K := ofBytes ((d.toList.drop (8 * i)).take 8)
+def word (d : KDigest) (i : ℕ) : K := ofBytes ((d.toList.drop (8 * i)).take 8)
 
 /-- The element `c0 + c1·y + c2·y²` (`E::new`). -/
 def ofLimbs (c0 c1 c2 : K) : E := CompPoly.Extension.Ext.ofVector #v[c0, c1, c2]
@@ -406,7 +403,7 @@ any monad: the games' oracles, or pure functions over `Id`. -/
 
 section Monadic
 
-variable {m : Type → Type} [Monad m] (H : List UInt8 → m Digest) (P : KState → m KState)
+variable {m : Type → Type} [Monad m] (H : List UInt8 → m KDigest) (P : KState → m KState)
 
 /-- The lanes a duplexing permutes: the waiting scalars over the rate, the rest of the rate zero,
 the capacity kept. -/
@@ -415,13 +412,13 @@ def duplexInput (s : Sponge) : KState :=
     if (i : ℕ) < rateLanes then ((rateWords s.pending).getD i 0).lane else s.state[i]
 
 /-- The lanes of a fresh sponge: the IV's words in lanes `0 … 3`, the public input's in `4 … 7`. -/
-def newInput (iv publicInput : Digest) : KState :=
+def newInput (iv publicInput : KDigest) : KState :=
   Vector.ofFn fun i : Fin 25 ↦
     if (i : ℕ) < 4 then (word iv i).lane else if (i : ℕ) < 8 then (word publicInput (i - 4)).lane
     else 0
 
 /-- A sponge seeded with one permutation of `newInput` (`Sponge::new`). -/
-def Sponge.newM (iv publicInput : Digest) : m Sponge := do
+def Sponge.newM (iv publicInput : KDigest) : m Sponge := do
   let state ← P (newInput iv publicInput)
   pure ⟨state, []⟩
 
@@ -460,14 +457,14 @@ def Sponge.samplesM : ℕ → Sponge → m (List E)
 /-- **The challenges `z_0 … z_13` of a root** (`membership_challenges`, `verifier/src/da.rs:15-22`):
 a sponge from the label, the root's words observed as two scalars `(w_0, w_1, 0)` and
 `(w_2, w_3, 0)`, then `14` samples. -/
-def membershipChallengesM (root : Digest) : m (List E) := do
+def membershipChallengesM (root : KDigest) : m (List E) := do
   let s ← Sponge.fromLabelM H P label
   let s ← Sponge.observeM P s (ofLimbs (word root 0) (word root 1) 0)
   let s ← Sponge.observeM P s (ofLimbs (word root 2) (word root 3) 0)
   Sponge.samplesM P logK s
 
 /-- Climb from `node` at index `idx` along the siblings `path`. -/
-def walkM : ℕ → Digest → List Digest → m Digest
+def walkM : ℕ → KDigest → List KDigest → m KDigest
   | _, node, [] => pure node
   | idx, node, s :: rest => do
     let d ← H (if idx % 2 = 0 then pairBytes node s else pairBytes s node)
@@ -475,42 +472,42 @@ def walkM : ℕ → Digest → List Digest → m Digest
 
 /-- **Verification of a cell opening**: a path of the column tree's height that climbs from the
 cell's digest to a column root, which hashed after the row root gives the commitment. -/
-def verifyCellM (r : ℕ) (com : Digest) (p : Fin (r * 128)) (x : Cell) (τ : Opening) : m Bool := do
+def verifyCellM (r : ℕ) (com : KDigest) (p : Fin (r * 128)) (x : Cell) (τ : Opening) : m Bool := do
   let d ← H (cellBytes x)
   let w ← walkM H (colIndex p) d τ.path
   let root ← H (pairBytes τ.rowRoot w)
   pure (decide (τ.path.length = 7 + logPad r) && decide (root = com))
 
 /-- One level up a Merkle tree over an oracle (`up`). -/
-def upM (f : ℕ → m Digest) (i : ℕ) : m Digest := do
+def upM (f : ℕ → m KDigest) (i : ℕ) : m KDigest := do
   let a ← f (2 * i)
   let b ← f (2 * i + 1)
   H (pairBytes a b)
 
 /-- The root of a Merkle tree over an oracle (`merkleRoot`). -/
-def merkleRootM : ℕ → (ℕ → m Digest) → m Digest
+def merkleRootM : ℕ → (ℕ → m KDigest) → m KDigest
   | 0, f => f 0
   | d + 1, f => merkleRootM d (upM H f)
 
 /-- The row tree's leaves over an oracle (`rowLeaves`). -/
-def rowLeavesM {r : ℕ} (c : Fin (r * 128) → Cell) (i : ℕ) : m Digest := do
+def rowLeavesM {r : ℕ} (c : Fin (r * 128) → Cell) (i : ℕ) : m KDigest := do
   let ds ← (List.range 64).mapM fun j ↦ H (cellBytes (paddedCell c i j))
   H (ds.flatMap Vector.toList)
 
 /-- The column tree's leaves over an oracle (`colLeaves`). -/
-def colLeavesM {r : ℕ} (c : Fin (r * 128) → Cell) (l : ℕ) : m Digest :=
+def colLeavesM {r : ℕ} (c : Fin (r * 128) → Cell) (l : ℕ) : m KDigest :=
   H (cellBytes (paddedCell c (l % nPad r) (l / nPad r)))
 
 /-- The row root over an oracle (`rowRoot`). -/
-def rowRootM {r : ℕ} (c : Fin (r * 128) → Cell) : m Digest :=
+def rowRootM {r : ℕ} (c : Fin (r * 128) → Cell) : m KDigest :=
   merkleRootM H (logPad r) (rowLeavesM H c)
 
 /-- The column root over an oracle (`colRoot`). -/
-def colRootM {r : ℕ} (c : Fin (r * 128) → Cell) : m Digest :=
+def colRootM {r : ℕ} (c : Fin (r * 128) → Cell) : m KDigest :=
   merkleRootM H (7 + logPad r) (colLeavesM H c)
 
 /-- **The root of a matrix over an oracle** (`commitCells`). -/
-def commitCellsM {r : ℕ} (c : Fin (r * 128) → Cell) : m Digest := do
+def commitCellsM {r : ℕ} (c : Fin (r * 128) → Cell) : m KDigest := do
   let a ← rowRootM H c
   let b ← colRootM H c
   H (pairBytes a b)
@@ -519,19 +516,19 @@ end Monadic
 
 /-! #### The vector's digest -/
 
-variable (H : List UInt8 → Digest)
+variable (H : List UInt8 → KDigest)
 
 /-- The bytes of entries: three little-endian limbs each. -/
 def limbBytes (entries : List E) : List UInt8 :=
   (entries.flatMap fun e ↦ [limb e 0, limb e 1, limb e 2]).flatMap kBytes
 
 /-- The digest of column `j` of a vector, its entries `256 j … 256 j + 255`. -/
-def columnDigest (vector : List E) (j : ℕ) : Digest :=
+def columnDigest (vector : List E) (j : ℕ) : KDigest :=
   H (limbBytes ((vector.drop (j * cellSymbols)).take cellSymbols))
 
 /-- **The digest of a vector** (`vector_digest`, `verifier/src/da.rs:87-96`): the hash of its
 `128` columns' digests, in order. The crate takes vectors of `2^15` entries and panics on others. -/
-def vectorDigest (vector : List E) : Digest :=
+def vectorDigest (vector : List E) : KDigest :=
   H ((List.range cellsPerRow).flatMap fun j ↦ (columnDigest H vector j).toList)
 
 /-! ## LeanDA's code and the argument's relation -/
@@ -548,8 +545,8 @@ def toChallenges (zs : List E) : Challenges := fun j ↦ zs.getD j 0
 /-- **The relation the argument proves**, with a hash `H` and the sponge's permutation `P` in any
 monad: the cells commit to the root and pass the membership test on the root's challenges, drawn
 by the deployed duplex (`membershipChallengesM`). In the games `H` is Keccak-256 and `P` is `π`. -/
-noncomputable def relationM {m : Type → Type} [Monad m] (H : List UInt8 → m Digest)
-    (P : KState → m KState) {r : ℕ} (root : Digest) (c : Fin (r * 128) → Cell) : m Bool := do
+noncomputable def relationM {m : Type → Type} [Monad m] (H : List UInt8 → m KDigest)
+    (P : KState → m KState) {r : ℕ} (root : KDigest) (c : Fin (r * 128) → Cell) : m Bool := do
   let zs ← membershipChallengesM H P root
   let d ← commitCellsM H c
   pure (decide (d = root) && membershipCheck (toChallenges zs) c)
@@ -557,7 +554,7 @@ noncomputable def relationM {m : Type → Type} [Monad m] (H : List UInt8 → m 
 /-! ## Arguments in the random-permutation model -/
 
 /-- Keccak-256 among the oracles of the random-permutation model. -/
-abbrev hK (a : List UInt8) : OracleComp KSpec Digest := liftM (KSpec.query (.inr (.inl a)))
+abbrev hK (a : List UInt8) : OracleComp KSpec KDigest := liftM (KSpec.query (.inr (.inl a)))
 
 /-- A call `π x` of the permutation among the oracles. -/
 abbrev pK (x : KState) : OracleComp KSpec KState := liftM (KSpec.query (.inr (.inr (.fwd x))))
@@ -583,7 +580,7 @@ abbrev ExtractorRpm (Stmt Wit Crs Proof : Type) := Crs → Stmt → Proof → Tr
 
 /-- **Keccak-256 over a permutation `π`** (`keccak256With`), its digest's bytes: the hash `H` of
 the games when the permutation is `π` (`runK`). -/
-def keccakWith (π : KState → KState) (a : List UInt8) : Digest :=
+def keccakWith (π : KState → KState) (a : List UInt8) : KDigest :=
   (Id.run (keccak256With (fun x ↦ pure (π x)) a)).toBytes
 
 /-- **The model's oracles answered by a permutation `π`**: coins uniform, Keccak-256 over `π`,
@@ -603,12 +600,12 @@ def NarkRpm.PerfectlyComplete {Stmt Wit Crs Proof : Type} (ps : NarkRpm Stmt Wit
     Pr{let b ← simulateQ (permImpl π) (ps.prove crs stmt wit >>= ps.verify crs stmt)}[b = true] = 1
 
 /-- **LeanDA's relation for a permutation `π`**: `relationM` with Keccak-256 over `π` and `π`. -/
-noncomputable def RelationRpm (r : ℕ) (π : Equiv.Perm KState) (root : Digest)
+noncomputable def RelationRpm (r : ℕ) (π : Equiv.Perm KState) (root : KDigest)
     (c : Fin (r * 128) → Cell) : Bool :=
   Id.run (relationM (fun a ↦ pure (keccakWith π a)) (fun x ↦ pure (π x)) root c)
 
 /-- An argument for LeanDA's relation: the statement a root, the witness the cells. -/
-abbrev ArgumentRpm (r : ℕ) (Crs Proof : Type) := NarkRpm Digest (Fin (r * 128) → Cell) Crs Proof
+abbrev ArgumentRpm (r : ℕ) (Crs Proof : Type) := NarkRpm KDigest (Fin (r * 128) → Cell) Crs Proof
 
 /-! ## The games in the random-permutation model
 
@@ -618,12 +615,12 @@ permutation (`runK`), and its cost counts every party's calls (`permCalls`). Lea
 verifies the argument's proof for the commitment's root once, and each opening's path. -/
 
 variable (r : ℕ) {Crs Proof : Type} (ps : ArgumentRpm r Crs Proof)
-  (ext : ExtractorRpm Digest (Fin (r * 128) → Cell) Crs Proof)
+  (ext : ExtractorRpm KDigest (Fin (r * 128) → Cell) Crs Proof)
 
 /-- A position-binding adversary: from the commitment key, a commitment, a position, and two cells
 with their openings. -/
 abbrev PosBindingAdvRpm (Crs Proof : Type) :=
-  Unit × Crs → OracleComp KSpec ((Digest × Proof) × Fin (r * 128) × Cell × Opening × Cell × Opening)
+  Unit × Crs → OracleComp KSpec ((KDigest × Proof) × Fin (r * 128) × Cell × Opening × Cell × Opening)
 
 /-- **The position-binding game**: the argument's setup, the adversary, then the verifications:
 the argument's of the root's proof and the two openings'; it wins when all verify, at two
@@ -639,7 +636,7 @@ def posBindingGame (A : PosBindingAdvRpm r Crs Proof) : OracleComp KSpec Bool :=
 /-- A code-binding adversary: from the commitment key, a commitment and a list of opened
 positions. -/
 abbrev CodeBindingAdvRpm (Crs Proof : Type) :=
-  Unit × Crs → OracleComp KSpec ((Digest × Proof) × List (Fin (r * 128) × Cell × Opening))
+  Unit × Crs → OracleComp KSpec ((KDigest × Proof) × List (Fin (r * 128) × Cell × Opening))
 
 /-- **The code-binding game**: the argument's setup, the adversary, then the verifications; it wins
 when the root's proof and every opening verify and no codeword agrees with the opened cells. -/
@@ -658,7 +655,7 @@ def loggedK : QueryImpl KSpec (StateT Transcript (OracleComp KSpec)) := fun t �
   pure u
 
 /-- A knowledge-soundness adversary: from the crs, a root and a proof. -/
-abbrev KsAdvRpm (Crs Proof : Type) := Crs → OracleComp KSpec (Digest × Proof)
+abbrev KsAdvRpm (Crs Proof : Type) := Crs → OracleComp KSpec (KDigest × Proof)
 
 /-- **The argument's knowledge-soundness game** (Wagner's, Foundations Definition 18, in the
 random-permutation model with a straight-line extractor): the argument's setup, the adversary with
@@ -742,7 +739,7 @@ be perfectly complete for every permutation (`PerfectlyCompleteRpm`). Proved by
 `LeanDa.leanDa_codeBinding_rpm_bound`. -/
 abbrev CodeBindingRpm : Prop :=
   ∀ (r : ℕ) {Crs Proof : Type} (ps : ArgumentRpm r Crs Proof)
-    (ext : ExtractorRpm Digest (Fin (r * 128) → Cell) Crs Proof) (c k : ℕ),
+    (ext : ExtractorRpm KDigest (Fin (r * 128) → Cell) Crs Proof) (c k : ℕ),
     (∀ (B : KsAdvRpm Crs Proof) (q : ℕ), IsWeightBound (ksGame r ps ext B) permCalls q →
       q ≤ 2 ^ 128 → Pr{let b ← runK (ksGame r ps ext B)}[b = true] ≤
         ((q : ℝ≥0∞) + c) * (2 : ℝ≥0∞)⁻¹ ^ k) →

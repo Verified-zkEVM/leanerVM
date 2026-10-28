@@ -102,7 +102,7 @@ structure VtHonest where
   /-- The carried capacity. -/
   f : List E
   /-- The evaluator. -/
-  ev : Evaluations
+  ev : (List K → List E → Prog E)
   /-- Its bytecode value. -/
   bv : E
   /-- The five framework words. -/

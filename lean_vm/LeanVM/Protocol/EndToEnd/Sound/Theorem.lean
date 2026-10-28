@@ -70,7 +70,7 @@ def DoomedRun {P : Prog Bool} (C : Cert P) (σ : Seed) (π : Proof) (c : HashSpe
 /-- Doom never holds at the empty history: the announced sizes are not at stake. -/
 theorem leanVmSpec_D_nil : ¬ (leanVmSpec prog input).D [] [] := by
   intro hD
-  have hs : (verifyExecution .computed (bytecodeWords prog) (publicDigest input)).retSplit [] = none :=
+  have hs : (verifyExecution computedValue (bytecodeWords prog) (publicDigest input)).retSplit [] = none :=
     retSplit_eq_none_of_after rfl (verifyExecution_ne_ret _ _)
   have h1 : (veSpec prog input).D [] [] := (Spec.bindD_none hs).1 hD
   have hs' : (readSizes (bytecodeWords prog)).retSplit [] = none :=
@@ -112,15 +112,15 @@ theorem leanVmSpec_D_commit {l₁ : List Ev} {a : Verifier.Layout × ℕ}
     (hpost : CommitPost prog input a () (l₁ ++ [e])) :
     (leanVmSpec prog input).D [] (l₁ ++ [e]) := by
   obtain ⟨lay, ρ⟩ := a
-  have hve : (verifyExecution .computed (bytecodeWords prog) (publicDigest input)).after (l₁ ++ [e]) =
-      some ((verifyBusBalance .computed lay).bind fun bus ↦ (tablePhase lay bus).bind fun cl ↦
+  have hve : (verifyExecution computedValue (bytecodeWords prog) (publicDigest input)).after (l₁ ++ [e]) =
+      some ((verifyBusBalance computedValue lay).bind fun bus ↦ (tablePhase lay bus).bind fun cl ↦
         (Verifier.publicInputPhase lay (publicDigest input)).bind fun pc ↦
         (keccakPhase lay (cl ++ pc)).bind fun r ↦
         (ringSwitch r.2.1 r.2.2).bind fun y ↦ verifyStackedOpening lay.stackLog ρ
           (ringSwitchClaim lay y.1 y.2 :: r.1.map (·.onStack lay))) := by
     rw [verifyExecution_eq, Prog.after_bind_append _ hl₁]
     exact Prog.after_bind_append _ hce []
-  have hs : (verifyExecution .computed (bytecodeWords prog) (publicDigest input)).retSplit (l₁ ++ [e]) =
+  have hs : (verifyExecution computedValue (bytecodeWords prog) (publicDigest input)).retSplit (l₁ ++ [e]) =
       none := by
     refine retSplit_eq_none_of_after hve fun u h ↦ ?_
     obtain ⟨b, hb, -⟩ := bind_eq_ret_iff h

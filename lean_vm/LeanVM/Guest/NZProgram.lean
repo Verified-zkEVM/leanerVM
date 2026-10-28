@@ -103,7 +103,7 @@ def verifyStackedOpeningNZ (stackLog logInvRate : ℕ) (claims : List StackClaim
 
 /-- `verifyExecution` whose stacked opening refuses a zero fold, tail or level batching
 challenge. -/
-def verifyExecutionNZ (ev : Evaluations) (bytecode : List K) (publicInput : Digest) :
+def verifyExecutionNZ (ev : (List K → List E → Prog E)) (bytecode : List K) (publicInput : Digest) :
     Prog Unit := do
   let (layout, logInverseRate) ← readSizes bytecode
   commitStack layout.stackLog logInverseRate
@@ -120,7 +120,7 @@ def verifyExecutionNZ (ev : Evaluations) (bytecode : List K) (publicInput : Dige
 challenge. -/
 def deferredProgramNZ (c : FixedClaims) (bytecode : List K) (publicInput : Digest) :
     Prog Bool := do
-  verifyExecutionNZ (.claimed c) bytecode publicInput
+  verifyExecutionNZ (claimedValue c) bytecode publicInput
   return true
 
 /-- **The deployed deferring verifier refusing a zero challenge where the guest program divides**:
@@ -140,7 +140,7 @@ def verifierNZ {m : Type → Type} [Monad m] (H : Bytes → m Digest) (F : KStat
     (prog : Program) (input : PublicInput) (proof : Proof) : m Bool := do
   let seed ← seedWith H F (bytecodeWords prog) (publicDigest input)
   runProof H F (do
-    Limits.verifyExecutionNZ .computed (bytecodeWords prog) (publicDigest input)
+    Limits.verifyExecutionNZ computedValue (bytecodeWords prog) (publicDigest input)
     return true) seed proof
 
 end Budget

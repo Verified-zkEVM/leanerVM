@@ -74,7 +74,7 @@ theorem run_bind' {α β : Type} (H : Bytes → Id Digest) (F : KState → Id KS
 /-! ## The verifier, split at its evaluation -/
 
 /-- `verify_execution` with the evaluation `ev` and the stacked opening `opening`. -/
-def execWith (ev : Evaluations) (opening : ℕ → ℕ → List StackClaim → Prog Unit)
+def execWith (ev : (List K → List E → Prog E)) (opening : ℕ → ℕ → List StackClaim → Prog Unit)
     (bytecode : List K) (publicInput : Digest) : Prog Unit := do
   let (layout, logInverseRate) ← readSizes bytecode
   commitStack layout.stackLog logInverseRate
@@ -87,11 +87,11 @@ def execWith (ev : Evaluations) (opening : ℕ → ℕ → List StackClaim → P
   opening layout.stackLog logInverseRate
     (ringSwitchClaim layout ringTarget ringWeight :: claims.map (·.onStack layout))
 
-theorem verifyExecution_eq (ev : Evaluations) (bytecode : List K) (publicInput : Digest) :
+theorem verifyExecution_eq (ev : (List K → List E → Prog E)) (bytecode : List K) (publicInput : Digest) :
     verifyExecution ev bytecode publicInput =
       execWith ev verifyStackedOpening bytecode publicInput := rfl
 
-theorem verifyExecutionNZ_eq (ev : Evaluations) (bytecode : List K) (publicInput : Digest) :
+theorem verifyExecutionNZ_eq (ev : (List K → List E → Prog E)) (bytecode : List K) (publicInput : Digest) :
     Limits.verifyExecutionNZ ev bytecode publicInput =
       execWith ev Limits.verifyStackedOpeningNZ bytecode publicInput := rfl
 
@@ -164,10 +164,10 @@ def suffixProg (opening : ℕ → ℕ → List StackClaim → Prog Unit) (public
     (ringSwitchClaim layout ringTarget ringWeight :: claims.map (·.onStack layout))
 
 /-- **The verifier, split at its evaluation of the bytecode.** -/
-theorem execSplit (ev : Evaluations) (opening : ℕ → ℕ → List StackClaim → Prog Unit)
+theorem execSplit (ev : (List K → List E → Prog E)) (opening : ℕ → ℕ → List StackClaim → Prog Unit)
     (bytecode : List K) (publicInput : Digest) :
     execWith ev opening bytecode publicInput = (prefixProg bytecode).bind fun y ↦
-      (ev.bytecode y.layout.bytecode (busPoint y)).bind (suffixProg opening publicInput y) := by
+      (ev y.layout.bytecode (busPoint y)).bind (suffixProg opening publicInput y) := by
   simp only [execWith, prefixProg, Prog.bind_eq, Prog.pure_eq, Prog.bind_assoc, Prog.ret_bind]
   refine congrArg _ (funext fun ls ↦ ?_)
   obtain ⟨layout, rate⟩ := ls
@@ -203,9 +203,9 @@ value at the point the run evaluates. -/
 theorem run_claimed_of_computed (H : Bytes → Id Digest) (F : KState → Id KState)
     (opening : ℕ → ℕ → List StackClaim → Prog Unit) (bytecode : List K) (publicInput : Digest)
     (k : Unit → Prog Bool) {st : St} {r : Bool × St}
-    (h : Compile.run H F ((execWith .computed opening bytecode publicInput).bind k) st = some r) :
+    (h : Compile.run H F ((execWith computedValue opening bytecode publicInput).bind k) st = some r) :
     ∃ c : FixedClaims, c.Holds bytecode ∧
-      Compile.run H F ((execWith (.claimed c) opening bytecode publicInput).bind k) st =
+      Compile.run H F ((execWith (claimedValue c) opening bytecode publicInput).bind k) st =
         some r := by
   rw [execSplit, Prog.bind_assoc, run_bind'] at h
   rcases hp : Compile.run H F (prefixProg bytecode) st with _ | ⟨y, s1⟩
@@ -217,7 +217,7 @@ theorem run_claimed_of_computed (H : Bytes → Id Digest) (F : KState → Id KSt
   rw [execSplit, Prog.bind_assoc, run_bind', hp]
   simp only [Option.bind_some] at h ⊢
   rw [← h, hy]
-  simp only [Evaluations.claimed, Evaluations.computed, Prog.require, Prog.bind_eq,
+  simp only [claimedValue, computedValue, Prog.require, Prog.bind_eq,
     Prog.pure_eq, Prog.ret_bind, ↓reduceIte]
 
 /-! ## The deferring verifiers -/
@@ -225,7 +225,7 @@ theorem run_claimed_of_computed (H : Bytes → Id Digest) (F : KState → Id KSt
 /-- The deferring program refusing a zero challenge, as a sequence. -/
 theorem deferredProgramNZ_eq (c : FixedClaims) (bytecode : List K) (publicInput : Digest) :
     Limits.deferredProgramNZ c bytecode publicInput =
-      (execWith (.claimed c) Limits.verifyStackedOpeningNZ bytecode publicInput).bind
+      (execWith (claimedValue c) Limits.verifyStackedOpeningNZ bytecode publicInput).bind
         fun _ ↦ Prog.ret true := rfl
 
 end

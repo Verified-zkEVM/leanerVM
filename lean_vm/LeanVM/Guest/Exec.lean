@@ -61,6 +61,9 @@ open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest
 
 @[expose] public section
 
+-- The statement derives no `Repr`; the guest's derived ones need these.
+deriving instance Repr for LeanVM.Semantics.DerefMode, LeanVM.Guest.OInstr
+
 /-! ## Evaluation order
 
 The kernel evaluates by substitution and does not share the evaluation of a term between its

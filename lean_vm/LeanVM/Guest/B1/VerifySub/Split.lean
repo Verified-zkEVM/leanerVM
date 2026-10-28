@@ -31,7 +31,7 @@ open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile LeanVM.P
 @[expose] public section
 
 /-- `verifyBusBalance` (V:1481) as the challenges, `gkrPhase` and `busRest`. -/
-theorem verifyBusBalance_split (ev : Evaluations) (layout : Layout) :
+theorem verifyBusBalance_split (ev : (List K → List E → Prog E)) (layout : Layout) :
     verifyBusBalance ev layout =
       (Prog.sampleN busBits).bind fun alphas ↦ Prog.sampleE.bind fun beta ↦
         (Tables.gkrPhase (busLayout [0, layout.logMemory, layout.logBytecode] layout.push).depth).bind
@@ -57,7 +57,7 @@ def deferredFlat (c : FixedClaims) (bytecode : List K) (pi : Digest) : Prog Bool
   (Prog.sampleN busBits).bind fun alphas ↦
   Prog.sampleE.bind fun beta ↦
   (Tables.gkrPhase (busLayout [0, ls.1.logMemory, ls.1.logBytecode] ls.1.push).depth).bind fun r ↦
-  (Tables.tablesSeg (.claimed c) ls.1 pi alphas beta r.2.1 r.2.2).bind fun bc ↦
+  (Tables.tablesSeg (claimedValue c) ls.1 pi alphas beta r.2.1 r.2.2).bind fun bc ↦
   (Prog.require ((lanesOf bc.2).map (·.column) = keccakOutputColumns ∧
     ∀ c ∈ lanesOf bc.2, c.point = ((lanesOf bc.2).headD default).point)).bind fun _ ↦
   (keccakSeg (ls.1.tableLogHeights.getD opKeccak 0) ((lanesOf bc.2).headD default).point

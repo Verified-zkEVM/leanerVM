@@ -14,7 +14,7 @@ import LeanVMTests.Spec.NodeVectors
 /-!
 # The deferring verifier and the node's statement: inhabitants, known answers and mutations
 
-* `Evaluations.claimed` answers with the claimed value at the claimed point and rejects
+* `claimedValue` answers with the claimed value at the claimed point and rejects
   elsewhere, and the deferring verifier's seed is the deployed verifier's.
 * The deferring verifier rejects garbage, and so does the deployed one on the same proof.
 * `DeferredClaim.Shaped` rejects a bytecode point one coordinate short, which the digest alone
@@ -58,12 +58,12 @@ def utf8 (s : String) : List UInt8 := s.toUTF8.toList
 def c : FixedClaims := ⟨[1, 0], 1⟩
 
 example (words : List K) :
-    (Evaluations.claimed c).bytecode words c.bytecodePoint = .ret c.bytecodeValue := by
-  simp [Evaluations.claimed, Prog.require]; rfl
+    claimedValue c words c.bytecodePoint = .ret c.bytecodeValue := by
+  simp [claimedValue, Prog.require]; rfl
 
 -- Mutation: at another point the claimed evaluation rejects.
-example (words : List K) : (Evaluations.claimed c).bytecode words [0, 0] = .fail := by
-  simp [Evaluations.claimed, Prog.require, c]; rfl
+example (words : List K) : claimedValue c words [0, 0] = .fail := by
+  simp [claimedValue, Prog.require, c]; rfl
 
 /-- The deferring verifier's seed is the deployed verifier's, from the deployed IV. -/
 example (bytecode : List K) (publicInput : Digest) :

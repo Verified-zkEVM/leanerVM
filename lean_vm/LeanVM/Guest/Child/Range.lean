@@ -297,19 +297,19 @@ theorem inRange_whirLevels (logN laneFolds : ℕ) (evaluateBasis : List E → E)
 /-! ## The verifier program -/
 
 theorem noCommit_busRest_computed (L : Layout) (alphas : List E) (beta : E) (point tv : List E) :
-    NoCommit (LeanVM.Guest.B1.Tables.busRest .computed L alphas beta point tv) := by
+    NoCommit (LeanVM.Guest.B1.Tables.busRest computedValue L alphas beta point tv) := by
   unfold LeanVM.Guest.B1.Tables.busRest
-  simp only [Evaluations.computed]
+  simp only [computedValue]
   nc
 
 theorem noCommit_verifyBusBalance_computed (layout : Layout) :
-    NoCommit (verifyBusBalance .computed layout) := by
+    NoCommit (verifyBusBalance computedValue layout) := by
   rw [verifyBusBalance_split]
   exact NoCommit.bind (noCommit_sampleN _) fun _ ↦ NoCommit.bind noCommit_sampleE fun _ ↦
     NoCommit.bind (noCommit_gkrPhase _) fun _ ↦ noCommit_busRest_computed _ _ _ _ _
 
 theorem noCommit_restClaims_computed (layout : Layout) (pi : Digest) :
-    NoCommit (restClaims .computed layout pi) := by
+    NoCommit (restClaims computedValue layout pi) := by
   unfold restClaims keccakPhase ringSwitch
   simp only [Prog.bind_eq, Prog.pure_eq, Prog.bind_assoc, Prog.ret_bind]
   refine NoCommit.bind (noCommit_verifyBusBalance_computed _) fun _ ↦ ?_

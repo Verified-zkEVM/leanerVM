@@ -96,7 +96,7 @@ theorem good_of_readSizes (prog : Program) {l : List Ev} {a : Verifier.Layout ×
 /-- `verify_execution` after the announced sizes `(layout, ρ)`. -/
 def veBody (publicInput : Digest) (layout : Verifier.Layout) (ρ : ℕ) : Prog Unit := do
   Verifier.commitStack layout.stackLog ρ
-  let bus ← Verifier.verifyBusBalance .computed layout
+  let bus ← Verifier.verifyBusBalance computedValue layout
   let claims ← Verifier.tablePhase layout bus
   let publicClaims ← Verifier.publicInputPhase layout publicInput
   let claims := claims ++ publicClaims
@@ -107,7 +107,7 @@ def veBody (publicInput : Digest) (layout : Verifier.Layout) (ρ : ℕ) : Prog U
 
 /-- `verify_execution` is the announced sizes, then `veBody`. -/
 theorem verifyExecution_eq (bytecode : List K) (publicInput : Digest) :
-    verifyExecution .computed bytecode publicInput =
+    verifyExecution computedValue bytecode publicInput =
       (readSizes bytecode).bind fun a ↦ veBody publicInput a.1 a.2 := rfl
 
 /-! ## The phases at sizes `s` and rate `ρ` -/
@@ -315,7 +315,7 @@ theorem candsOf_bound (hw : Whir.Admissible (verifierLayout prog s).stackLog ρ)
 variable (prog s ρ) in
 /-- The bus phase and the table sumcheck commit nothing. -/
 theorem movesOK_busTable (layout : Verifier.Layout) :
-    MovesOK (fun _ ↦ False) False ((verifyBusBalance .computed layout).bind (tablePhase layout)) :=
+    MovesOK (fun _ ↦ False) False ((verifyBusBalance computedValue layout).bind (tablePhase layout)) :=
   (movesOK_verifyBusBalance layout).bind (movesOK_tablePhase layout)
 
 open Classical in
@@ -325,7 +325,7 @@ the opening. -/
 noncomputable def restSpec
     (hw : Whir.Admissible (verifierLayout prog s).stackLog ρ)
     (hlb : LayoutBounds (verifierLayout prog s)) :
-    Spec ((verifyBusBalance .computed (verifierLayout prog s)).bind fun bus ↦
+    Spec ((verifyBusBalance computedValue (verifierLayout prog s)).bind fun bus ↦
         (tablePhase (verifierLayout prog s) bus).bind fun cl ↦
         (Verifier.publicInputPhase (verifierLayout prog s) (publicDigest input)).bind fun pc ↦
         (keccakPhase (verifierLayout prog s) (cl ++ pc)).bind fun r ↦
@@ -389,7 +389,7 @@ noncomputable def bodySpec (a : Verifier.Layout × ℕ) :
 
 /-- **The specification of `verify_execution`.** -/
 noncomputable def veSpec :
-    Spec (verifyExecution .computed (bytecodeWords prog) (publicDigest input)) (fun _ ↦ False)
+    Spec (verifyExecution computedValue (bytecodeWords prog) (publicDigest input)) (fun _ ↦ False)
       (fun _ _ ↦ False) εLean 0 0 :=
   (readSizesSpec (bytecodeWords prog) (fun _ _ ↦ False)).bind' (bodySpec prog input)
 

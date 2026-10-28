@@ -405,11 +405,11 @@ def busTailK {β : Type} (k : BusWit → Prog β) (alphas : List E) (beta : E)
 /-- **The bus phase followed by `f`** is the fingerprint challenges, the grand product at the push
 side's depth, and the tail followed by `f` of the result. -/
 theorem verifyBusBalance_bind_eq {β : Type} (layout : Verifier.Layout) (f : BusResult → Prog β) :
-    (verifyBusBalance .computed layout).bind f =
+    (verifyBusBalance computedValue layout).bind f =
       abProg.bind fun ab ↦ (verifyGkrGrandProducts
         (busLayout [0, layout.logMemory, layout.logBytecode] layout.push).depth).bind
         (busTailK (fun w ↦ f (w.result layout)) ab.1 ab.2) := by
-  unfold verifyBusBalance Evaluations.computed abProg busTailK BusWit.result
+  unfold verifyBusBalance computedValue abProg busTailK BusWit.result
   simp only [Prog.bind_eq, Prog.bind_assoc, Prog.ret_bind, Prog.pure_eq]
   rfl
 
@@ -483,7 +483,7 @@ noncomputable def busThenSpec {β : Type} {f : BusResult → Prog β} {Q : β �
     (hdepth : (busLayout [0, layout.logMemory, layout.logBytecode] layout.push).depth = I.μBus)
     (hab : abError I L₀ < 1) (he : roundError L₀ 4 ≤ εmax)
     (hT : interpLead L₀ 2 (lambdaError L₀) ≤ εmax) (hlam : lambdaError L₀ + 0 ≤ εmax) :
-    Spec ((verifyBusBalance .computed layout).bind f) (HDoom cands (Seam.commit I) input) Q εmax
+    Spec ((verifyBusBalance computedValue layout).bind f) (HDoom cands (Seam.commit I) input) Q εmax
       (abError I L₀ + 0) T :=
   Spec.congr (verifyBusBalance_bind_eq layout f).symm
     ((abSpec I cands input hI hfin hcard hab (T := 0)).bind' fun ab ↦
@@ -498,7 +498,7 @@ noncomputable def busPhaseSpec {T : ℝ≥0∞} (hTf : T ≤ εmax) {L₀ : ℕ}
     (hdepth : (busLayout [0, layout.logMemory, layout.logBytecode] layout.push).depth = I.μBus)
     (hab : abError I L₀ < 1) (he : roundError L₀ 4 ≤ εmax)
     (hT : interpLead L₀ 2 (lambdaError L₀) ≤ εmax) (hlam : lambdaError L₀ + 0 ≤ εmax) :
-    Spec (verifyBusBalance .computed layout) (HDoom cands (Seam.commit I) input)
+    Spec (verifyBusBalance computedValue layout) (HDoom cands (Seam.commit I) input)
       (BusPost I hI cands input layout) εmax (abError I L₀ + 0) T :=
   Spec.congr (Prog.bind_ret _)
     (busThenSpec I hI cands input layout hTf

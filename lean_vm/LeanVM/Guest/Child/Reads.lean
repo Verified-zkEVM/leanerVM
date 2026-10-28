@@ -329,15 +329,15 @@ theorem reads_verifyGkrGrandProducts (depth : ℕ) :
 
 /-- An evaluation of the fixed polynomial that reads nothing: the deployed one and the claimed
 ones. -/
-def ReadsNothing (ev : Evaluations) : Prop :=
-  ∀ words point, Reads (ev.bytecode words point) 0 fun _ ↦ True
+def ReadsNothing (ev : (List K → List E → Prog E)) : Prop :=
+  ∀ words point, Reads (ev words point) 0 fun _ ↦ True
 
-theorem readsNothing_computed : ReadsNothing .computed := fun _ _ ↦ trivial
+theorem readsNothing_computed : ReadsNothing computedValue := fun _ _ ↦ trivial
 
-theorem readsNothing_claimed (c : FixedClaims) : ReadsNothing (.claimed c) := fun _ _ ↦
+theorem readsNothing_claimed (c : FixedClaims) : ReadsNothing (claimedValue c) := fun _ _ ↦
   Reads.seq (Reads.require (n := 0) _) (fun _ _ ↦ trivial) le_rfl
 
-theorem reads_verifyBusBalance {ev : Evaluations} (hev : ReadsNothing ev) (layout : Layout)
+theorem reads_verifyBusBalance {ev : (List K → List E → Prog E)} (hev : ReadsNothing ev) (layout : Layout)
     (hm : layout.logMemory ≤ 32) (hb : layout.logBytecode ≤ 32) :
     Reads (verifyBusBalance ev layout)
       (2 + gkrReads (busLayout [0, layout.logMemory, layout.logBytecode]
@@ -362,7 +362,7 @@ theorem reads_verifyBusBalance {ev : Evaluations} (hev : ReadsNothing ev) (layou
 
 theorem gkrReads_le : ∀ D ≤ 38, gkrReads D 0 ≤ gkrReads 38 0 := by decide
 
-theorem reads_verifyBusBalance_le {ev : Evaluations} (hev : ReadsNothing ev) {layout : Layout}
+theorem reads_verifyBusBalance_le {ev : (List K → List E → Prog E)} (hev : ReadsNothing ev) {layout : Layout}
     (h : LayoutBounds layout) :
     Reads (verifyBusBalance ev layout) (2 + gkrReads 38 0 + 5) fun r ↦ ClaimsShort r.claims :=
   (reads_verifyBusBalance hev layout h.logMemory_le h.logBytecode_le).mono
@@ -678,7 +678,7 @@ theorem reads_readSizes (bytecode : List K) : Reads (readSizes bytecode) 8 Sizes
 
 /-- **The reads of `verify_execution`**, for an evaluation of the fixed polynomial that reads
 nothing. -/
-theorem reads_verifyExecution {ev : Evaluations} (hev : ReadsNothing ev) (bytecode : List K)
+theorem reads_verifyExecution {ev : (List K → List E → Prog E)} (hev : ReadsNothing ev) (bytecode : List K)
     (publicInput : Digest) :
     Reads (verifyExecution ev bytecode publicInput) childReads fun _ ↦ True := by
   unfold childReads

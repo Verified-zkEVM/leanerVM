@@ -74,7 +74,7 @@ def vtBus (layout : Layout) (alphas : List E) (beta : E) (point treeValues memor
         (treeValues.getD 2 0)).2]⟩
 
 /-- **`busRest` as a run.** -/
-theorem vt_busRest_run (ev : Evaluations) (layout : Layout) (alphas : List E) (beta : E)
+theorem vt_busRest_run (ev : (List K → List E → Prog E)) (layout : Layout) (alphas : List E) (beta : E)
     (point treeValues : List E) (memory : List E) (hm : memory.length = 3) (mf bf bv : E)
     (hbv : BytecodeAt ev layout.bytecode (point.take layout.logBytecode ++ alphas) bv) (s : Fs) :
     RunsTo (busRest ev layout alphas beta point treeValues) s (memory ++ [mf, bf])

@@ -17,11 +17,11 @@ commitments (`PqDas`, ported from https://github.com/b-wagn/fv-pq-da) with LeanD
 
 namespace LeanDa
 
-variable (H : List UInt8 → Digest)
+variable (H : List UInt8 → Common.KDigest)
 
 /-! ## Byte encodings are injective -/
 
-theorem pairBytes_injective {a b c d : Digest} (h : pairBytes a b = pairBytes c d) :
+theorem pairBytes_injective {a b c d : Common.KDigest} (h : pairBytes a b = pairBytes c d) :
     a = c ∧ b = d := by
   obtain ⟨h1, h2⟩ := List.append_inj h (by simp)
   exact ⟨Vector.toList_inj.mp h1, Vector.toList_inj.mp h2⟩
@@ -67,7 +67,7 @@ theorem cellBytes_injective : Function.Injective cellBytes := by
 
 /-! ## Completeness -/
 
-theorem walk_merklePath (d : ℕ) (f : ℕ → Digest) (idx : ℕ) (h : idx < 2 ^ d) :
+theorem walk_merklePath (d : ℕ) (f : ℕ → Common.KDigest) (idx : ℕ) (h : idx < 2 ^ d) :
     walk H idx (f idx) (merklePath H d f idx) = merkleRoot H d f := by
   induction d generalizing f idx with
   | zero =>
@@ -84,7 +84,7 @@ theorem walk_merklePath (d : ℕ) (f : ℕ → Digest) (idx : ℕ) (h : idx < 2 
       simp only [h2', ↓reduceIte]
       rw [show 2 * (idx / 2) + 1 = idx by omega, show 2 * (idx / 2) = idx - 1 by omega]
 
-theorem length_merklePath (d : ℕ) (f : ℕ → Digest) (idx : ℕ) :
+theorem length_merklePath (d : ℕ) (f : ℕ → Common.KDigest) (idx : ℕ) :
     (merklePath H d f idx).length = d := by
   induction d generalizing f idx with
   | zero => rfl
@@ -128,7 +128,7 @@ theorem verifyCell_openCell {r : ℕ} (c : Fin (r * 128) → Cell) (p : Fin (r *
 
 /-! ## Collisions from two openings -/
 
-theorem findCollision_spec (idx : ℕ) (a b : List UInt8) (p q : List Digest) (rp rq : Digest)
+theorem findCollision_spec (idx : ℕ) (a b : List UInt8) (p q : List Common.KDigest) (rp rq : Common.KDigest)
     (hlen : p.length = q.length) (hab : a ≠ b)
     (hroot : H (pairBytes rp (walk H idx (H a) p)) = H (pairBytes rq (walk H idx (H b) q))) :
     (findCollision H (hashInputs H idx a p rp) (hashInputs H idx b q rq)).1 ≠
@@ -162,7 +162,7 @@ theorem findCollision_spec (idx : ℕ) (a b : List UInt8) (p q : List Digest) (r
         rwa [← apply_ite H, ← apply_ite H] at hroot
 
 /-- **Two verifying openings of one position to different cells give a collision.** -/
-theorem openingsCollision_spec {r : ℕ} {com : Digest} {p : Fin (r * 128)} {x x' : Cell}
+theorem openingsCollision_spec {r : ℕ} {com : Common.KDigest} {p : Fin (r * 128)} {x x' : Cell}
     {τ τ' : Opening} (hx : x ≠ x') (hτ : verifyCell H r com p x τ = true)
     (hτ' : verifyCell H r com p x' τ' = true) :
     (openingsCollision H r p x τ x' τ').1 ≠ (openingsCollision H r p x τ x' τ').2 ∧

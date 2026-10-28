@@ -294,7 +294,7 @@ theorem movesOK_verifyGkrGrandProducts (depth : ℕ) :
 
 /-- The bus makes no prover move other than reads. -/
 theorem movesOK_verifyBusBalance (layout : Layout) :
-    MovesOK (fun _ ↦ False) False (verifyBusBalance .computed layout) := by
+    MovesOK (fun _ ↦ False) False (verifyBusBalance computedValue layout) := by
   refine MovesOK.seq (MovesOK.sampleN _) fun _ ↦ MovesOK.seq MovesOK.sampleE fun _ ↦
     MovesOK.seq (movesOK_verifyGkrGrandProducts _) fun r ↦ ?_
   obtain ⟨countRoot, point, treeValues⟩ := r
@@ -499,7 +499,7 @@ theorem movesOK_verifyStackedOpening (stackLog logInvRate : ℕ) (claims : List 
 
 /-- `verify_execution`: commitments, and proofs of work of `Whir.queryGrindingBits` bits. -/
 theorem movesOK_verifyExecution (bytecode : List K) (publicInput : Digest) :
-    MovesOK (· = Whir.queryGrindingBits) True (verifyExecution .computed bytecode publicInput) := by
+    MovesOK (· = Whir.queryGrindingBits) True (verifyExecution computedValue bytecode publicInput) := by
   refine MovesOK.seq (MovesOK.of_none (movesOK_readSizes bytecode)) fun p ↦ ?_
   obtain ⟨layout, logInverseRate⟩ := p
   refine MovesOK.seq ((movesOK_commitStack _ _).mono (fun _ h ↦ h.elim) id) fun _ ↦

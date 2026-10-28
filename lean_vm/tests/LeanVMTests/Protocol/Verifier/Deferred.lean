@@ -30,10 +30,10 @@ theorem le_ret {a b : E} (h : Prog.Le (Prog.ret a) (Prog.ret b)) : a = b := by
 def claimAt (value : E) : FixedClaims := ⟨[], value⟩
 
 /-- A false claim does not refine: the empty bytecode's value is `0`, the claim `1`. -/
-example : ¬ Evaluations.Le [] (.claimed (claimAt 1)) .computed := by
+example : ¬ Evaluations.Le [] (claimedValue (claimAt 1)) computedValue := by
   intro h
   have h0 := h []
-  simp only [Evaluations.claimed, Evaluations.computed, Prog.require, claimAt, ↓reduceIte] at h0
+  simp only [claimedValue, computedValue, Prog.require, claimAt, ↓reduceIte] at h0
   have := le_ret h0
   simp [multilinearEval] at this
 

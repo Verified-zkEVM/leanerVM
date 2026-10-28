@@ -12,7 +12,7 @@ public import LeanVM.Protocol.Verifier.Deferred
 /-!
 # The shapes of the accepted claims
 
-The claimed evaluator (`Evaluations.claimed c`) answers only at the point of `c`, so a run of
+The claimed evaluator (`claimedValue c`) answers only at the point of `c`, so a run of
 the deferring verifier that returns passes through its call at `c`'s point, which is the
 verifier's own: the bus's `bytecodeLow ++ alphas`. Its length is fixed by the program
 (`verifyDeferred_shaped`).
@@ -197,7 +197,7 @@ theorem returns_verifyGkrGrandProducts {depth : ℕ} {x : E × List E × List E}
 
 /-- The claimed bytecode value is given only at the claimed point. -/
 theorem returns_claimed_bytecode {c : FixedClaims} {words : List K} {point : List E} {v : E}
-    (h : Prog.Returns ((Evaluations.claimed c).bytecode words point) v) :
+    (h : Prog.Returns (claimedValue c words point) v) :
     point = c.bytecodePoint := by
   obtain ⟨_, h, -⟩ := Prog.returns_bind h
   exact Prog.returns_require h
@@ -272,7 +272,7 @@ theorem readSizes_logBytecode {bytecode : List K} {x : Layout × ℕ}
 
 /-- The bus asks for the bytecode at a point of length `logBytecode + busBits`. -/
 theorem verifyBusBalance_bytecodePoint {c : FixedClaims} {layout : Layout} {b : BusResult}
-    (h : Prog.Returns (verifyBusBalance (.claimed c) layout) b) :
+    (h : Prog.Returns (verifyBusBalance (claimedValue c) layout) b) :
     c.bytecodePoint.length = layout.logBytecode + busBits := by
   unfold verifyBusBalance at h
   obtain ⟨alphas, ha, h⟩ := Prog.returns_bind h
@@ -292,7 +292,7 @@ theorem verifyBusBalance_bytecodePoint {c : FixedClaims} {layout : Layout} {b : 
 /-- **The verifier's claims, of the verifier's shapes**: a run of the verifier on the claimed
 evaluator that may return makes claims of the lengths the program fixes. -/
 theorem verifyExecution_shaped {c : FixedClaims} {bytecode : List K} {publicInput : Digest}
-    {u : Unit} (h : Prog.Returns (verifyExecution (.claimed c) bytecode publicInput) u) :
+    {u : Unit} (h : Prog.Returns (verifyExecution (claimedValue c) bytecode publicInput) u) :
     c.bytecodePoint.length = Nat.log2 bytecode.length := by
   unfold verifyExecution at h
   obtain ⟨⟨layout, r⟩, hl, h⟩ := Prog.returns_bind h

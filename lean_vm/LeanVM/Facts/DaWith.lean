@@ -30,32 +30,32 @@ open LeanVM.Parameters LeanVM.Semantics LeanVM.Protocol LeanVM.Protocol.KeccakHa
 
 /-- **The vector digest of a root**, as the outer verifier derives it
 (`vector_digest(membership_vector(root))`, `crates/verifier/src/da.rs:83-104`). -/
-def vectorDigestOf (root : Digest) : LeanDa.Digest :=
+def vectorDigestOf (root : Digest) : Common.KDigest :=
   LeanDa.vectorDigest keccak (LeanDa.membershipVector keccak keccakF root.toBytes)
 
 section With
 
-variable {m : Type → Type} [Monad m] (HD : List UInt8 → m LeanDa.Digest)
+variable {m : Type → Type} [Monad m] (HD : List UInt8 → m Common.KDigest)
   (PD : KState → m KState)
 
 /-! ### The commitment -/
 
 /-- `LeanDa.listCellDigest` with the hash `HD`. -/
-def listCellDigestWith (row : List K) (j : ℕ) : m LeanDa.Digest :=
+def listCellDigestWith (row : List K) (j : ℕ) : m Common.KDigest :=
   HD ((LeanDa.listCell row j).flatMap LeanDa.kBytes)
 
 /-- `LeanDa.rowDigest` with the hash `HD`. -/
-def rowDigestWith (row : List K) : m LeanDa.Digest := do
+def rowDigestWith (row : List K) : m Common.KDigest := do
   let ds ← (List.range LeanDa.payloadCells).mapM fun j ↦ listCellDigestWith HD row j
   HD (ds.flatMap fun d ↦ d.toList)
 
 /-- `LeanDa.treeLevel` with the hash `HD`. -/
-def treeLevelWith (nodes : List LeanDa.Digest) : m (List LeanDa.Digest) :=
+def treeLevelWith (nodes : List Common.KDigest) : m (List Common.KDigest) :=
   (List.range (nodes.length / 2)).mapM fun i ↦
     HD (LeanDa.pairBytes (nodes.getD (2 * i) default) (nodes.getD (2 * i + 1) default))
 
 /-- `LeanDa.treeRoot` with the hash `HD`, at most `fuel` levels. -/
-def treeRootFuel : ℕ → List LeanDa.Digest → m LeanDa.Digest
+def treeRootFuel : ℕ → List Common.KDigest → m Common.KDigest
   | 0, nodes => pure (nodes.headD default)
   | fuel + 1, nodes =>
     if nodes.length ≤ 1 then pure (nodes.headD default) else do
@@ -63,12 +63,12 @@ def treeRootFuel : ℕ → List LeanDa.Digest → m LeanDa.Digest
       treeRootFuel fuel next
 
 /-- `LeanDa.treeRoot` with the hash `HD`. -/
-def treeRootWith (nodes : List LeanDa.Digest) : m LeanDa.Digest :=
+def treeRootWith (nodes : List Common.KDigest) : m Common.KDigest :=
   treeRootFuel HD nodes.length nodes
 
 /-- **`LeanDa.commitCodewords` with the hash `HD`** and the padding digests `pc` (a zero cell) and
 `pr` (a zero row). -/
-def commitCodewordsWith (pc pr : LeanDa.Digest) (rows : List (List K)) : m LeanDa.Digest := do
+def commitCodewordsWith (pc pr : Common.KDigest) (rows : List (List K)) : m Common.KDigest := do
   let n := LeanDa.nPad rows.length
   let rds ← rows.mapM (rowDigestWith HD)
   let rowTree ← treeRootWith HD (rds ++ List.replicate (n - rows.length) pr)
@@ -81,7 +81,7 @@ def commitCodewordsWith (pc pr : LeanDa.Digest) (rows : List (List K)) : m LeanD
 /-! ### The challenges' sponge -/
 
 /-- `LeanDa.Sponge.newM` with the permutation `PD`. -/
-def spongeNewWith (iv publicInput : LeanDa.Digest) : m LeanDa.Sponge := do
+def spongeNewWith (iv publicInput : Common.KDigest) : m LeanDa.Sponge := do
   let state ← PD (Vector.ofFn fun i : Fin 25 ↦
     if (i : ℕ) < 4 then (LeanDa.word iv i).lane
     else if (i : ℕ) < 8 then (LeanDa.word publicInput (i - 4)).lane else 0)
@@ -121,24 +121,24 @@ def spongeSamplesWith : ℕ → LeanDa.Sponge → m (List E)
     pure (c :: rest)
 
 /-- `LeanDa.membershipChallengesM` with the hash `HD` and the permutation `PD`. -/
-def membershipChallengesWith (root : LeanDa.Digest) : m (List E) := do
+def membershipChallengesWith (root : Common.KDigest) : m (List E) := do
   let s ← spongeFromLabelWith HD PD LeanDa.label
   let s ← spongeObserveWith PD s (LeanDa.ofLimbs (LeanDa.word root 0) (LeanDa.word root 1) 0)
   let s ← spongeObserveWith PD s (LeanDa.ofLimbs (LeanDa.word root 2) (LeanDa.word root 3) 0)
   spongeSamplesWith PD LeanDa.logK s
 
 /-- `LeanDa.membershipVector` with the hash `HD` and the permutation `PD`. -/
-def membershipVectorWith (root : LeanDa.Digest) : m (List E) :=
+def membershipVectorWith (root : Common.KDigest) : m (List E) :=
   LeanDa.dualCodeword <$> membershipChallengesWith HD PD root
 
 /-! ### The vector digest -/
 
 /-- `LeanDa.columnDigest` with the hash `HD`. -/
-def columnDigestWith (vector : List E) (j : ℕ) : m LeanDa.Digest :=
+def columnDigestWith (vector : List E) (j : ℕ) : m Common.KDigest :=
   HD (LeanDa.limbBytes ((vector.drop (j * LeanDa.cellSymbols)).take LeanDa.cellSymbols))
 
 /-- `LeanDa.vectorDigest` with the hash `HD`: the hash of the column digests. -/
-def vectorDigestWith (vector : List E) : m LeanDa.Digest := do
+def vectorDigestWith (vector : List E) : m Common.KDigest := do
   let ds ← (List.range LeanDa.cellsPerRow).mapM (columnDigestWith HD vector)
   HD (ds.flatMap fun d ↦ d.toList)
 
@@ -146,13 +146,13 @@ end With
 
 /-- This project's hash as LeanDA's: the answer's bytes (`Digest.toBytes`). -/
 def daHash {m : Type → Type} [Monad m] (H : List UInt8 → m Digest) (x : List UInt8) :
-    m LeanDa.Digest :=
+    m Common.KDigest :=
   Digest.toBytes <$> H x
 
 /-- **The vector digest of a root, with the hash `H` and the permutation `F`**
 (`vectorDigestOf`). -/
 def vectorDigestOfWith {m : Type → Type} [Monad m] (H : List UInt8 → m Digest)
-    (F : KState → m KState) (root : Digest) : m LeanDa.Digest := do
+    (F : KState → m KState) (root : Digest) : m Common.KDigest := do
   vectorDigestWith (daHash H) (← membershipVectorWith (daHash H) F root.toBytes)
 
 /-- `mapM` in `Id` is `map`. -/
@@ -163,21 +163,21 @@ theorem mapM_id {α β : Type} (f : α → Id β) : ∀ l : List α,
 
 section Id
 
-variable (H : List UInt8 → LeanDa.Digest) (P : KState → KState)
+variable (H : List UInt8 → Common.KDigest) (P : KState → KState)
 
 /-- A tree level with the pure hash is `LeanDa.treeLevel`. -/
-theorem treeLevelWith_id (nodes : List LeanDa.Digest) :
+theorem treeLevelWith_id (nodes : List Common.KDigest) :
     Id.run (treeLevelWith (m := Id) H nodes) = LeanDa.treeLevel H nodes := by
   simp only [treeLevelWith, mapM_id, LeanDa.treeLevel]
   rfl
 
 /-- A tree level halves the nodes. -/
-theorem length_treeLevel (nodes : List LeanDa.Digest) :
+theorem length_treeLevel (nodes : List Common.KDigest) :
     (LeanDa.treeLevel H nodes).length = nodes.length / 2 := by
   simp [LeanDa.treeLevel]
 
 /-- Enough fuel builds the tree. -/
-theorem treeRootFuel_id : ∀ (fuel : ℕ) (nodes : List LeanDa.Digest), nodes.length ≤ fuel →
+theorem treeRootFuel_id : ∀ (fuel : ℕ) (nodes : List Common.KDigest), nodes.length ≤ fuel →
     Id.run (treeRootFuel (m := Id) H fuel nodes) = LeanDa.treeRoot H nodes
   | 0, nodes, h => by
     rw [LeanDa.treeRoot]
@@ -193,7 +193,7 @@ theorem treeRootFuel_id : ∀ (fuel : ℕ) (nodes : List LeanDa.Digest), nodes.l
       rw [treeLevelWith_id, treeRootFuel_id fuel _ (by omega)]
 
 /-- The tree's root with the pure hash is `LeanDa.treeRoot`. -/
-theorem treeRootWith_id (nodes : List LeanDa.Digest) :
+theorem treeRootWith_id (nodes : List Common.KDigest) :
     Id.run (treeRootWith (m := Id) H nodes) = LeanDa.treeRoot H nodes :=
   treeRootFuel_id H _ nodes le_rfl
 
@@ -238,7 +238,7 @@ theorem spongeObserveWith_id (s : LeanDa.Sponge) (x : E) :
   split <;> rfl
 
 /-- The membership vector with the pure hash and permutation is `LeanDa.membershipVector`. -/
-theorem membershipVectorWith_id (root : LeanDa.Digest) :
+theorem membershipVectorWith_id (root : Common.KDigest) :
     Id.run (membershipVectorWith (m := Id) H P root) = LeanDa.membershipVector H P root := by
   show LeanDa.dualCodeword (Id.run (spongeSamplesWith (m := Id) P _
     (Id.run (spongeObserveWith (m := Id) P (Id.run (spongeObserveWith (m := Id) P

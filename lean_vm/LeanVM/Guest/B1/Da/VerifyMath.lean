@@ -66,8 +66,8 @@ theorem block_eq {α : Type} [Inhabited α] (f : ℕ → List α) (m : ℕ) (hf 
     rw [← List.getD_eq_getElem _ d hk, show j * m + e = m * j + e by ring, this,
       List.getD_eq_getElem _ _ (by rw [hf]; exact h2)]
 
-theorem merkleRoot_congr (H : List UInt8 → LeanDa.Digest) :
-    ∀ (d : ℕ) {f g : ℕ → LeanDa.Digest}, (∀ i < 2 ^ d, f i = g i) →
+theorem merkleRoot_congr (H : List UInt8 → Common.KDigest) :
+    ∀ (d : ℕ) {f g : ℕ → Common.KDigest}, (∀ i < 2 ^ d, f i = g i) →
       LeanDa.merkleRoot H d f = LeanDa.merkleRoot H d g
   | 0, f, g, h => h 0 (by norm_num)
   | d + 1, f, g, h => by

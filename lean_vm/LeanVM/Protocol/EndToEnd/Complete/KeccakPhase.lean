@@ -108,7 +108,7 @@ open LeanVM.Protocol.EndToEnd.Sound (RetOK RetOK.ret RetOK.bind_true) in
 /-- The bus phase claims the framework's columns only. -/
 theorem retOK_busColumns (layout : Verifier.Layout) :
     RetOK (fun bus : BusResult ↦ ∀ c ∈ bus.claims, c.column < 6)
-      (verifyBusBalance .computed layout) := by
+      (verifyBusBalance computedValue layout) := by
   unfold verifyBusBalance
   refine RetOK.bind_true fun _ ↦ RetOK.bind_true fun _ ↦ RetOK.bind_true fun r ↦ ?_
   obtain ⟨countRoot, point, treeValues⟩ := r

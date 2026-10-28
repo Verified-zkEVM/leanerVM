@@ -77,14 +77,14 @@ theorem advS2_map {α β : Type} (f : α → β) (X : OracleComp KSpecB α) :
 section Virtual
 
 variable (r : ℕ) {Crs Proof : Type} (ps : ArgumentRpm r Crs Proof)
-  (ext : ExtractorRpm Digest (Fin (r * 128) → Cell) Crs Proof)
+  (ext : ExtractorRpm Common.KDigest (Fin (r * 128) → Cell) Crs Proof)
 
 /-- The proof of the virtual argument: the argument's proof, the adversary's transcript and the
 argument's verdict. -/
 abbrev PrfV (Proof : Type) := Option Proof × Transcript × Bool
 
 /-- **The virtual oracle-free argument**: it reads the verdict its proof carries. -/
-def psV : Nark (Unit × Digest × Challenges) (Fin (r * 128) → Cell) Crs (PrfV Proof)
+def psV : Nark (Unit × Common.KDigest × Challenges) (Fin (r * 128) → Cell) Crs (PrfV Proof)
     (fun _ _ ↦ true) where
   setup := ps.setup
   prove _ _ _ := (none, [], false)
@@ -92,7 +92,7 @@ def psV : Nark (Unit × Digest × Challenges) (Fin (r * 128) → Cell) Crs (PrfV
 
 /-- **The virtual extractor**: the extractor on the proof and the transcript the virtual proof
 carries. -/
-def extV : Nark.Extractor (Unit × Digest × Challenges) (Fin (r * 128) → Cell) Crs (PrfV Proof) :=
+def extV : Nark.Extractor (Unit × Common.KDigest × Challenges) (Fin (r * 128) → Cell) Crs (PrfV Proof) :=
   fun crs stmt p ↦ match p.1 with
     | some proof => ext crs stmt.2.1 proof p.2.1
     | none => fun _ _ ↦ 0
@@ -176,14 +176,14 @@ theorem relabel_ksGame (A : CodeBindingAdvRpm r Crs Proof) :
 
 /-- **The position-binding adversary followed by the argument's verification.** -/
 noncomputable def advP (A : PosBindingAdvRpm r Crs Proof) (ck : Unit × Crs) :
-    OracleComp KSpec ((Digest × (Proof × Bool)) × Fin (r * 128) × Cell × Opening × Cell × Opening) := do
+    OracleComp KSpec ((Common.KDigest × (Proof × Bool)) × Fin (r * 128) × Cell × Opening × Cell × Opening) := do
   let (com, p, x, τ, x', τ') ← A ck
   let ok ← ps.verify ck.2 com.1 com.2
   pure ((com.1, (com.2, ok)), p, x, τ, x', τ')
 
 /-- The climbs of the position-binding game, with the argument's verdict. -/
 def posPostV (_ : Crs)
-    (out : (Digest × (Proof × Bool)) × Fin (r * 128) × Cell × Opening × Cell × Opening) :
+    (out : (Common.KDigest × (Proof × Bool)) × Fin (r * 128) × Cell × Opening × Cell × Opening) :
     OracleComp Rom2 Bool := do
   let b ← verifyCellM hR r out.1.1 out.2.1 out.2.2.1 out.2.2.2.1
   let b' ← verifyCellM hR r out.1.1 out.2.1 out.2.2.2.2.1 out.2.2.2.2.2
@@ -215,7 +215,7 @@ section PositionBinding
 variable (r : ℕ) {Crs Proof : Type} (ps : ArgumentRpm r Crs Proof)
 
 theorem duplex_posPostV (crs : Crs)
-    (out : (Digest × (Proof × Bool)) × Fin (r * 128) × Cell × Opening × Cell × Opening) :
+    (out : (Common.KDigest × (Proof × Bool)) × Fin (r * 128) × Cell × Opening × Cell × Opening) :
     Duplex KState.zero keccakNF (posPostV r crs out) [] :=
   duplex_of_duplexP (Q := fun _ _ ↦ True) <|
     duplexP_bind (duplexP_verifyCellM r _ _ _ _ []) fun _ hist _ ↦
@@ -223,7 +223,7 @@ theorem duplex_posPostV (crs : Crs)
 
 /-- **A win of the climbs is a collision of `H` in the final cache.** -/
 theorem posPostV_win (crs : Crs)
-    (out : (Digest × (Proof × Bool)) × Fin (r * 128) × Cell × Opening × Cell × Opening)
+    (out : (Common.KDigest × (Proof × Bool)) × Fin (r * 128) × Cell × Opening × Cell × Opening)
     (c : Cache2) {z : Bool × Cache2}
     (hz : z ∈ support ((simulateQ (hfSpec (List UInt8) KDigest KState).romImpl
       (posPostV r crs out)).run c)) (hwin : z.1 = true) : HCollision z.2 := by
@@ -315,7 +315,7 @@ theorem run'_bind_const {ι : Type} [DecidableEq ι] {hs : OracleSpec.{0, 0} ι}
 section CodeBinding
 
 variable (r : ℕ) {Crs Proof : Type} (ps : ArgumentRpm r Crs Proof)
-  (ext : ExtractorRpm Digest (Fin (r * 128) → Cell) Crs Proof)
+  (ext : ExtractorRpm Common.KDigest (Fin (r * 128) → Cell) Crs Proof)
 
 theorem duplex_cbPostV (crs : Crs) (out : CbOut r (PrfV Proof)) :
     Duplex KState.zero keccakNF (cbPostV r ps crs out) [] :=
@@ -487,7 +487,7 @@ theorem leanDa_codeBinding_rpm_bound : CodeBindingRpm := by
   have hA : ∀ crs ∈ support (psV r ps).setup,
       IsWeightBound (advSim r (relabelAdv (advV r ps A)) crs) hgCalls (2 * Q + 1) ∧
         IsWeightBound (advSim r (relabelAdv (advV r ps A)) crs)
-          (gCalls (Msg := List UInt8) (Dg := KDigest) (Root := Digest) (Z := E) (n := 14)) Q := by
+          (gCalls (Msg := List UInt8) (Dg := KDigest) (Root := Common.KDigest) (Z := E) (n := 14)) Q := by
     intro crs hcrs
     obtain ⟨h1, h2⟩ := isWeightBound_advSim r (psV r ps) _ Q hQ0 crs hcrs
     rw [relabelAdv_advV0, advSim_map] at h1 h2

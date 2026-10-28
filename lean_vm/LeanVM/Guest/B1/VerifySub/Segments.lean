@@ -45,7 +45,7 @@ def flatPre (c : FixedClaims) (bytecode : List K) (pi : Digest) :
   (Prog.sampleN busBits).bind fun alphas ↦
   Prog.sampleE.bind fun beta ↦
   (Tables.gkrPhase (busLayout [0, ls.1.logMemory, ls.1.logBytecode] ls.1.push).depth).bind fun r ↦
-  (Tables.tablesSeg (.claimed c) ls.1 pi alphas beta r.2.1 r.2.2).bind fun bc ↦
+  (Tables.tablesSeg (claimedValue c) ls.1 pi alphas beta r.2.1 r.2.2).bind fun bc ↦
   (Prog.require ((lanesOf bc.2).map (·.column) = keccakOutputColumns ∧
     ∀ c ∈ lanesOf bc.2, c.point = ((lanesOf bc.2).headD default).point)).bind fun _ ↦
   (keccakSeg (ls.1.tableLogHeights.getD opKeccak 0) ((lanesOf bc.2).headD default).point
@@ -54,7 +54,7 @@ def flatPre (c : FixedClaims) (bytecode : List K) (pi : Digest) :
   Prog.ret (ls.1, ls.2, stackClaims ls.1 bc.2 km.1.1 km.1.2.1 km.1.2.2 (km.2 :: chs))
 
 theorem specPre_flat (c : FixedClaims) (bytecode : List K) (pi : Digest) :
-    specPre (.claimed c) bytecode pi = flatPre c bytecode pi := by
+    specPre (claimedValue c) bytecode pi = flatPre c bytecode pi := by
   simp only [specPre, flatPre, restClaims, Prog.bind_eq, Prog.pure_eq, Prog.bind_assoc]
   refine congrArg _ (funext fun ls ↦ congrArg _ (funext fun _ ↦ ?_))
   rw [verifyBusBalance_split]
@@ -448,7 +448,7 @@ structure ChildSegs (bytecode : List K) (seed : Digest) (c : Node.Child) : Type 
   bus : BusResult
   claims : List ColumnClaim
   s6 : Fs
-  runT : RunsTo (Tables.tablesSeg (.claimed c.fresh) layout (Node.statementDigest seed c.statement)
+  runT : RunsTo (Tables.tablesSeg (claimedValue c.fresh) layout (Node.statementDigest seed c.statement)
     alphas s3.squeeze.1 rG.2.1 rG.2.2) s5 xsT (bus, claims) s6
   /-- The output lanes: the table's columns, one point. -/
   hlanes : (lanesOf claims).map (·.column) = keccakOutputColumns ∧

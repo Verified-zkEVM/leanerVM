@@ -77,7 +77,7 @@ namespace LeanVM.Da
 open LeanVM.Parameters LeanVM.Semantics LeanVM.Protocol LeanVM.Protocol.KeccakHash
 
 /-- Keccak-256 as LeanDA's hash: the digest's 32 bytes (`Digest.toBytes`). -/
-def keccak (input : List UInt8) : LeanDa.Digest := (keccak256 input).toBytes
+def keccak (input : List UInt8) : Common.KDigest := (keccak256 input).toBytes
 
 /-- What holds a DA claim: a matrix of codewords and the vector its rows are orthogonal to. -/
 structure Witness where
@@ -909,7 +909,7 @@ the guest program's in-circuit statements, whose `KECCAK` instruction computes t
 Keccak-f[1600], so soundness across recursion levels does not follow from it. -/
 def BatchSound : Prop :=
   ∀ (M : ℕ) (bytecode : List K), bytecode.length = 2 ^ Nat.log2 bytecode.length →
-    M ≤ 2 ^ 64 - 1 → ∀ (A : OracleComp (unifSpec + PermSpec) (Unit × Proof)) (QA : ℕ),
+    M ≤ 2 ^ 64 - 1 → ∀ (A : OracleComp (unifSpec + Common.permSpec KState) (Unit × Proof)) (QA : ℕ),
     Common.IsWeightBound A permQueries QA → QA ≤ 2 ^ 128 → batchQueryBound bytecode M ≤ 2 ^ 96 →
     Pr{let z ← rpmRun A fun z ↦ batchRun queryH queryF (batchAny M bytecode) z.2}[
       z.2 = true ∧ FalseChildren bytecode M z.1.2] ≤

@@ -13,7 +13,7 @@ proof with a hash function `H : Bytes → m Digest` and a permutation `F : KStat
 monad `m`), and the verifier (Part 3), ending with `verifyWith H F bytecode publicInput proof`.
 
 The verifier takes the value of the polynomial the statement fixes (the bytecode's multilinear
-extension) from a parameter `ev : Evaluations`. The deployed verifier computes it. The deferring
+extension) from a parameter `ev : List K → List E → Prog E`. The deployed verifier computes it. The deferring
 verifier (`verifyDeferred`), which has no counterpart in the Python, takes it from a claim, as an
 aggregate's in-circuit verifier of its children does
 (`crates/rec_aggregation/guests/lean_ethereum.py`, `verify_sub`).
@@ -1237,13 +1237,6 @@ def verifyGkrGrandProducts (depth : ℕ) : Prog (E × List E × List E) := do
   let s ← gkrLayers depth ⟨[shared, shared, count], []⟩
   return (count, s.point, s.values)
 
-/-- **Where the verifier gets the value of the fixed polynomial**, the stacked bytecode's
-multilinear extension at the bus point (`verifyBusBalance`, `verifier.py:605`), which the statement
-fixes and the proof does not: the deployed verifier computes it (`Evaluations.computed`); the
-verifier inside an aggregate takes it from a claim that it hands on (`Evaluations.claimed`). -/
-structure Evaluations where
-  bytecode (words : List K) (point : List E) : Prog E
-
 /-- `BusResult`: the framework columns' claims, the GKR point (which the table sumcheck reuses),
 each table's form per side (`forms[table][side]`), and the three sides' totals. -/
 structure BusResult where
@@ -1254,7 +1247,7 @@ structure BusResult where
 
 /-- The three framework fingerprints of a side (`verifier.py:603-615`, `fingerprints`; the
 Python hoists `memory_index` and `bytecode_index`, pure values inlined here; `bytecode_value` is
-the bytecode's value, from `Evaluations`). -/
+the bytecode's value, from `ev`). -/
 def fingerprints (weights memory memoryLow bytecodeLow : List E) (bytecodeValue : E)
     (pc memoryCount bytecodeCount : E) : List E :=
   [dot (weights.take 3) [sepState, pc, gpow 0],
@@ -1287,8 +1280,12 @@ def accumulateSide (forms : List (List Form)) (side : ℕ) (blocks : List BusBlo
   let onesPadding := sumE (frameworkSelectors ++ tableSelectors) + 1
   (forms, treeValue + known + onesPadding + paddingRows)
 
-/-- `verify_bus_balance(layout)` (`verifier.py:581-643`), the bytecode's value from `ev`. -/
-def verifyBusBalance (ev : Evaluations) (layout : Layout) : Prog BusResult := do
+/-- `verify_bus_balance(layout)` (`verifier.py:581-643`). **Where the verifier gets the value of the
+fixed polynomial**, the stacked bytecode's multilinear extension at the bus point (`verifier.py:605`),
+which the statement fixes and the proof does not: from `ev`, which the deployed verifier computes
+(`computedValue`) and the verifier inside an aggregate takes from a claim it hands on
+(`claimedValue`). -/
+def verifyBusBalance (ev : List K → List E → Prog E) (layout : Layout) : Prog BusResult := do
   let frameworkLogRows := [0, layout.logMemory, layout.logBytecode]
   let pushLayout := busLayout frameworkLogRows layout.push
   let pullLayout := busLayout frameworkLogRows layout.pull
@@ -1308,7 +1305,7 @@ def verifyBusBalance (ev : Evaluations) (layout : Layout) : Prog BusResult := do
       memory) ++
     [⟨memoryFinalCounters, memoryLow, memoryFinal⟩, ⟨bytecodeFinalCounters, bytecodeLow,
       bytecodeFinal⟩]
-  let bytecodeValue ← ev.bytecode layout.bytecode (bytecodeLow ++ alphas)
+  let bytecodeValue ← ev layout.bytecode (bytecodeLow ++ alphas)
   let fp := fingerprints weights memory memoryLow bytecodeLow bytecodeValue
   let pcFinal := gpow (2 ^ layout.logBytecode - 1)
   let forms0 : List (List Form) := tables.map fun _ ↦ [{}, {}, {}]
@@ -1994,7 +1991,7 @@ def ringSwitchClaim (layout : Layout) (target : E) (weight : List E → E) : Sta
 
 /-- `verify_execution(bytecode, public_input, proof)` without its `finish`
 (`verifier.py:1462-1518`), the fixed polynomial's value from `ev`. -/
-def verifyExecution (ev : Evaluations) (bytecode : List K) (publicInput : Digest) :
+def verifyExecution (ev : List K → List E → Prog E) (bytecode : List K) (publicInput : Digest) :
     Prog Unit := do
   -- 1] memory log-size, table row counts, and the WHIR rate
   let (layout, logInverseRate) ← readSizes bytecode
@@ -2017,8 +2014,8 @@ def verifyExecution (ev : Evaluations) (bytecode : List K) (publicInput : Digest
 /-! ### The fixed polynomial's value -/
 
 /-- The deployed verifier computes the fixed polynomial's value. -/
-def Evaluations.computed : Evaluations where
-  bytecode words point := pure (multilinearEval (words.map ofK) point)
+def computedValue (words : List K) (point : List E) : Prog E :=
+  pure (multilinearEval (words.map ofK) point)
 
 /-- What a proof claims of the fixed polynomial, for a verifier that does not evaluate it: the
 bytecode's value at its point. -/
@@ -2028,10 +2025,9 @@ structure FixedClaims where
 
 /-- The value claimed by `c`, at the point of `c` only: the run fails where the verifier asks
 elsewhere. -/
-def Evaluations.claimed (c : FixedClaims) : Evaluations where
-  bytecode _ point := do
-    Prog.require (point = c.bytecodePoint)
-    return c.bytecodeValue
+def claimedValue (c : FixedClaims) (_ : List K) (point : List E) : Prog E := do
+  Prog.require (point = c.bytecodePoint)
+  return c.bytecodeValue
 
 /-- The claim is true of `bytecode`. -/
 def FixedClaims.Holds (bytecode : List K) (c : FixedClaims) : Prop :=
@@ -2042,12 +2038,12 @@ def FixedClaims.Holds (bytecode : List K) (c : FixedClaims) : Prop :=
 /-- **The leanVM verifier program**: `verify_execution` in the verifier language, accepting
 where the Python returns. -/
 def leanVmProgram (bytecode : List K) (publicInput : Digest) : Prog Bool := do
-  verifyExecution .computed bytecode publicInput
+  verifyExecution computedValue bytecode publicInput
   return true
 
 /-- The verifier program with the fixed polynomial's value claimed by `c`. -/
 def deferredProgram (c : FixedClaims) (bytecode : List K) (publicInput : Digest) : Prog Bool := do
-  verifyExecution (.claimed c) bytecode publicInput
+  verifyExecution (claimedValue c) bytecode publicInput
   return true
 
 /-! ### The seed and the compiled verifier -/

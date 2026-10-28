@@ -225,12 +225,12 @@ theorem noCommit_tablePhase (layout : Layout) (bus : BusResult) :
 
 theorem noCommit_tablesSeg (c : FixedClaims) (L : Layout) (pi : Digest) (alphas : List E)
     (beta : E) (point tv : List E) :
-    NoCommit (Tables.tablesSeg (.claimed c) L pi alphas beta point tv) := by
+    NoCommit (Tables.tablesSeg (claimedValue c) L pi alphas beta point tv) := by
   unfold Tables.tablesSeg
   simp only [Prog.bind_eq, Prog.pure_eq]
   refine NoCommit.bind ?_ fun _ ↦ NoCommit.bind (noCommit_tablePhase _ _) fun _ ↦ ?_
   · unfold Tables.busRest
-    simp only [Evaluations.claimed]
+    simp only [claimedValue]
     nc
   · unfold publicInputPhase
     nc

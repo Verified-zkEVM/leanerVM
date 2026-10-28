@@ -70,7 +70,7 @@ namespace LeanDa
 
 /-! ## The commitment (`commit.rs`) -/
 
-variable (H : List UInt8 → Digest)
+variable (H : List UInt8 → Common.KDigest)
 
 /-! ## Openings -/
 
@@ -110,7 +110,7 @@ variable (P : LeanVM.Semantics.KState → LeanVM.Semantics.KState)
 /-! ### The challenges and the vector -/
 
 /-- The challenges of a root with a pure hash and permutation. -/
-def membershipChallenges (root : Digest) : List E :=
+def membershipChallenges (root : Common.KDigest) : List E :=
   Id.run (membershipChallengesM (fun a ↦ pure (H a)) (fun L ↦ pure (P L)) root)
 
 /-- Row `i` of the subspace evaluations before scaling: `s_i` at the basis elements `x^j`,
@@ -153,7 +153,7 @@ def dualCodeword (z : List E) : List E :=
   encode (z.foldl (fun t challenge ↦ t ++ t.map (· * challenge)) [1])
 
 /-- **The membership vector of a root** (`membership_vector`). -/
-def membershipVector (root : Digest) : List E := dualCodeword (membershipChallenges H P root)
+def membershipVector (root : Common.KDigest) : List E := dualCodeword (membershipChallenges H P root)
 
 end
 

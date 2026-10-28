@@ -246,7 +246,7 @@ theorem widthsLE_commitStack (logN logInvRate : ℕ) :
       exact WidthsLE.commitP (pow_le (ladder_folds _ _ _ hc level (by simp)))
 
 theorem widthsLE_verifyExecution (bytecode : List K) (publicInput : Digest) :
-    WidthsLE maxWidth (verifyExecution .computed bytecode publicInput) := by
+    WidthsLE maxWidth (verifyExecution computedValue bytecode publicInput) := by
   refine WidthsLE.seq (WidthsLE.of_moves (movesOK_readSizes bytecode)) fun p ↦ ?_
   obtain ⟨layout, logInverseRate⟩ := p
   refine WidthsLE.seq (widthsLE_commitStack _ _) fun _ ↦

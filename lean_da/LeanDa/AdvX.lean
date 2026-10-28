@@ -48,12 +48,12 @@ theorem col_tImplX (h : HTab) (t : (unifSpec + TSpec).Domain) (s : HCache) :
 
 section Adversary
 
-variable (r : ℕ) {Crs Proof : Type} {rel : Unit × Digest × Challenges → (Fin (r * 128) → Cell) → Bool}
-  (ps : Nark (Unit × Digest × Challenges) (Fin (r * 128) → Cell) Crs Proof rel)
+variable (r : ℕ) {Crs Proof : Type} {rel : Unit × Common.KDigest × Challenges → (Fin (r * 128) → Cell) → Bool}
+  (ps : Nark (Unit × Common.KDigest × Challenges) (Fin (r * 128) → Cell) Crs Proof rel)
 
 /-- **Wagner's adversary with `H` on short strings as queries of `XS`** (`advH`). -/
 noncomputable def advX (A : CodeBindingAdvB r Crs Proof) (ck : Unit × Crs) :
-    OracleComp (WSpec + XS) ((Digest × Proof) × List (Fin (r * 128) × Cell × Opening)) :=
+    OracleComp (WSpec + XS) ((Common.KDigest × Proof) × List (Fin (r * 128) × Cell × Opening)) :=
   (simulateQ tImplX (simulateQ (swapImpl ∘ₛ toV) (advSim r A (fixCrs r ps ck.2)))).run' ∅
 
 /-- **Answered by `h`, it is Wagner's adversary for the table `h`.** -/
@@ -63,7 +63,7 @@ theorem advH_eq (A : CodeBindingAdvB r Crs Proof) (h : HTab) (ck : Unit × Crs) 
     simulateQ_map, run_simulateQ_col_of h _ _ (col_tImplX h)]
 
 /-- Calls of `H` in the simulated world. -/
-def hCallsG : (unifSpec + GSpec (List UInt8) KDigest Digest E 14).Domain → ℕ
+def hCallsG : (unifSpec + GSpec (List UInt8) KDigest Common.KDigest E 14).Domain → ℕ
   | .inr (.inl _) => 1
   | _ => 0
 
@@ -90,10 +90,10 @@ theorem isWeightBound_advS2_h (A : CodeBindingAdvB r Crs Proof) (Q : ℕ)
     rwa [OracleComp.support_liftComp]
   exact (hX.of_bind_mem_support hmem).of_bind
 
-theorem isWeightBound_simImpl_h (t : Rom2.Domain) (s : SimSt KState Digest 14) :
+theorem isWeightBound_simImpl_h (t : Rom2.Domain) (s : SimSt KState Common.KDigest 14) :
     IsWeightBound ((simImpl daDuplex hP gaP t).run s) hCallsG (hCalls t) := by
   have hu : ∀ {β : Type} (p : ProbComp β),
-      IsWeightBound (liftM p : OracleComp (unifSpec + GSpec (List UInt8) KDigest Digest E 14) β)
+      IsWeightBound (liftM p : OracleComp (unifSpec + GSpec (List UInt8) KDigest Common.KDigest E 14) β)
         hCallsG 0 :=
     fun p ↦ isWeightBound_liftM_probComp hCallsG (fun _ ↦ rfl) p
   rcases t with k | m | x

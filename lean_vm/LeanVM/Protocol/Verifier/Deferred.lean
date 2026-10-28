@@ -15,7 +15,7 @@ public import LeanVM.Protocol.Compile.Prog
 
 The deferring verifier (`verifyDeferred`) differs from the deployed one (`verify`) in two
 places: its IV is given rather than hashed from the bytecode, and it takes the fixed polynomials'
-values from claims (`Evaluations.claimed c`) instead of computing them (`Evaluations.computed`).
+values from claims (`claimedValue c`) instead of computing them (`computedValue`).
 Under the deployed IV the seeds agree, and where the claims are true (`FixedClaims.Holds`) each
 claimed value is either refused (the verifier asks at another point) or the computed one. So the
 deferring program refines the deployed one (`Prog.Le`: it does what the deployed one does, or
@@ -199,14 +199,14 @@ open LeanVM.Parameters LeanVM.Semantics LeanVM.Protocol.Compile LeanVM.Protocol.
 
 /-- **`ev` refines `ev'` on the bytecode `bytecode`**: at every point, `ev`'s value is `ev'`'s or
 refused. -/
-def Evaluations.Le (bytecode : List K) (ev ev' : Evaluations) : Prop :=
-  ∀ point, Prog.Le (ev.bytecode bytecode point) (ev'.bytecode bytecode point)
+def Evaluations.Le (bytecode : List K) (ev ev' : (List K → List E → Prog E)) : Prop :=
+  ∀ point, Prog.Le (ev bytecode point) (ev' bytecode point)
 
 /-- True claims refine the computed values. -/
 theorem claimed_le_computed {bytecode : List K} {c : FixedClaims} (hc : c.Holds bytecode) :
-    Evaluations.Le bytecode (.claimed c) .computed := by
+    Evaluations.Le bytecode (claimedValue c) computedValue := by
   intro point
-  simp only [Evaluations.claimed, Evaluations.computed, Prog.require]
+  simp only [claimedValue, computedValue, Prog.require]
   split
   · next h => rw [h, ← hc]; exact .ret _
   · exact .fail _
@@ -233,7 +233,7 @@ theorem readSizes_bytecode {bytecode : List K} {x : Layout × ℕ}
       · simp only [Option.some.injEq] at ho; rw [← ho]
       · simp at ho
 
-theorem verifyBusBalance_le {ev ev' : Evaluations} {layout : Layout}
+theorem verifyBusBalance_le {ev ev' : (List K → List E → Prog E)} {layout : Layout}
     (hev : Evaluations.Le layout.bytecode ev ev') :
     Prog.Le (verifyBusBalance ev layout) (verifyBusBalance ev' layout) := by
   unfold verifyBusBalance
@@ -243,7 +243,7 @@ theorem verifyBusBalance_le {ev ev' : Evaluations} {layout : Layout}
     .bind (.refl _) fun _ ↦ .bind (hev _) fun _ ↦ .refl _
 
 /-- **The verifier's run refines with its evaluations.** -/
-theorem verifyExecution_le {ev ev' : Evaluations} {bytecode : List K}
+theorem verifyExecution_le {ev ev' : (List K → List E → Prog E)} {bytecode : List K}
     (hev : Evaluations.Le bytecode ev ev') (publicInput : Digest) :
     Prog.Le (verifyExecution ev bytecode publicInput) (verifyExecution ev' bytecode publicInput) := by
   unfold verifyExecution

@@ -106,7 +106,7 @@ def τ : ℕ := S.hs.getD 5 0
 /-- **`verify_tables`' honest data.** -/
 noncomputable def H : Tables.VtHonest :=
   Tables.vtHOf bytecode S.logMem (statementDigest seed c.statement) S.alphas S.point S.vals S.β S.rowsN S.s5.cap
-    (.claimed c.fresh) c.fresh.bytecodeValue S.xsT S.bus S.claims S.s6.cap
+    (claimedValue c.fresh) c.fresh.bytecodeValue S.xsT S.bus S.claims S.s6.cap
 
 theorem hs_length : S.hs.length = 6 := tableHeights_length _ S.hrowsL
 
@@ -165,7 +165,7 @@ theorem fresh_eq (hbl : bytecode.length = 2 ^ 23) :
   rw [← hp']
 
 theorem bytecodeAt (hbl : bytecode.length = 2 ^ 23) :
-    Tables.BytecodeAt (.claimed c.fresh) (Tables.layoutOf bytecode S.logMem S.rowsN).bytecode
+    Tables.BytecodeAt (claimedValue c.fresh) (Tables.layoutOf bytecode S.logMem S.rowsN).bytecode
       (S.point.take (Tables.layoutOf bytecode S.logMem S.rowsN).logBytecode ++ S.alphas)
       c.fresh.bytecodeValue := by
   rw [logBytecode_eq hbl, S.fresh_eq hbl]

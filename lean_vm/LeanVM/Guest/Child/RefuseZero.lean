@@ -127,7 +127,7 @@ theorem verifyDeferredNZ_of_rz {bytecode : List K} {iv publicInput : Digest} {c 
   unfold Limits.verifyDeferredNZ
   refine Limits.runProof_refines (refines_refuseZero_of_nz ?_) _ π h
   rw [deferredProgramNZ_eq]
-  exact nz_program (.claimed c) bytecode publicInput
+  exact nz_program (claimedValue c) bytecode publicInput
 
 /-- A child the guest program accepts is accepted by the guest's deferring verifier refusing a
 zero fold, tail or level batching challenge. -/
@@ -144,7 +144,7 @@ theorem verifierNZ_of_rz {prog : Program} {input : PublicInput} {π : Proof}
   unfold Budget.verifierRZ at h
   unfold Budget.verifierNZ
   refine Limits.runProof_refines (refines_refuseZero_of_nz ?_) _ π h
-  exact nz_program .computed (bytecodeWords prog) (publicDigest input)
+  exact nz_program computedValue (bytecodeWords prog) (publicDigest input)
 
 /-! ## The claim a run evaluates -/
 
@@ -153,10 +153,10 @@ claim**, refusing zero challenges: the claim of the value at the point the run e
 theorem run_claimed_of_computed_rz (H : Bytes → Id Digest) (F : KState → Id KState)
     (opening : ℕ → ℕ → List StackClaim → Prog Unit) (bytecode : List K) (publicInput : Digest)
     (k : Unit → Prog Bool) {st : St} {r : Bool × St}
-    (h : Compile.run H F ((execWith .computed opening bytecode publicInput).bind k).refuseZero st =
+    (h : Compile.run H F ((execWith computedValue opening bytecode publicInput).bind k).refuseZero st =
       some r) :
     ∃ c : FixedClaims, c.Holds bytecode ∧
-      Compile.run H F ((execWith (.claimed c) opening bytecode publicInput).bind k).refuseZero st =
+      Compile.run H F ((execWith (claimedValue c) opening bytecode publicInput).bind k).refuseZero st =
         some r := by
   rw [execSplit, Prog.bind_assoc, refuseZero_bind, run_bind'] at h
   rcases hp : Compile.run H F (prefixProg bytecode).refuseZero st with _ | ⟨y, s1⟩
@@ -169,7 +169,7 @@ theorem run_claimed_of_computed_rz (H : Bytes → Id Digest) (F : KState → Id 
   rw [execSplit, Prog.bind_assoc, refuseZero_bind, run_bind', hp]
   simp only [Option.bind_some] at h ⊢
   rw [← h, hy]
-  simp only [Evaluations.claimed, Evaluations.computed, Prog.require, Prog.bind_eq,
+  simp only [claimedValue, computedValue, Prog.require, Prog.bind_eq,
     Prog.pure_eq, Prog.ret_bind, ↓reduceIte]
 
 /-- **An accepted proof with the computed value, refusing zero challenges, is accepted with a true
@@ -177,14 +177,14 @@ claim**, refusing zero challenges. -/
 theorem runProof_claimed_of_computed_rz (H : Bytes → Id Digest) (F : KState → Id KState)
     (opening : ℕ → ℕ → List StackClaim → Prog Unit) (bytecode : List K) (publicInput : Digest)
     {sd : KState} {π : Proof}
-    (h : Id.run (runProof H F ((execWith .computed opening bytecode publicInput).bind
+    (h : Id.run (runProof H F ((execWith computedValue opening bytecode publicInput).bind
       fun _ ↦ Prog.ret true).refuseZero sd π) = true) :
     ∃ c : FixedClaims, c.Holds bytecode ∧
-      Id.run (runProof H F ((execWith (.claimed c) opening bytecode publicInput).bind
+      Id.run (runProof H F ((execWith (claimedValue c) opening bytecode publicInput).bind
         fun _ ↦ Prog.ret true).refuseZero sd π) = true := by
   unfold runProof at h ⊢
   revert h
-  match hr : Compile.run H F ((execWith .computed opening bytecode publicInput).bind
+  match hr : Compile.run H F ((execWith computedValue opening bytecode publicInput).bind
       fun _ ↦ Prog.ret true).refuseZero ⟨⟨sd, []⟩, π.stream, π.openings, []⟩ with
   | some (true, s) =>
     intro h

@@ -147,7 +147,7 @@ theorem nz_verifyStackedOpening (stackLog logInvRate : ℕ) (claims : List Stack
   repeat (first | exact nz_verifyWhir _ _ _ _ | nz_step)
 
 /-- **The verifier refusing zero challenges is the verifier refusing zero challenges.** -/
-theorem nz_program (ev : Evaluations) (bytecode : List K) (publicInput : Digest) :
+theorem nz_program (ev : (List K → List E → Prog E)) (bytecode : List K) (publicInput : Digest) :
     NZ ((execWith ev Limits.verifyStackedOpeningNZ bytecode publicInput).bind
         fun _ ↦ Prog.ret true)
       ((execWith ev verifyStackedOpening bytecode publicInput).bind fun _ ↦ Prog.ret true) := by

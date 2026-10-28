@@ -87,7 +87,7 @@ theorem always_const {α β : Type} {Q : Prop} {p : Prog α} {f : α → Prog β
 /-- **The claimed evaluator is asked at its point.** -/
 theorem claimed_point {c : FixedClaims} {L : Layout} {pi : Digest} {alphas : List E} {beta : E}
     {point values : List E} {s s' : Fs} {xs : List E} {bc : BusResult × List ColumnClaim}
-    (h : RunsTo (Tables.tablesSeg (.claimed c) L pi alphas beta point values) s xs bc s')
+    (h : RunsTo (Tables.tablesSeg (claimedValue c) L pi alphas beta point values) s xs bc s')
     (hc : ∃ sp, s.Carries sp) : c.bytecodePoint = point.take L.logBytecode ++ alphas := by
   obtain ⟨sp, hsp⟩ := hc
   refine (RunsTo.always (P := fun _ ↦ point.take L.logBytecode ++ alphas = c.bytecodePoint) h hsp
@@ -101,7 +101,7 @@ theorem claimed_point {c : FixedClaims} {L : Layout} {pi : Digest} {alphas : Lis
   refine Always.bind (fun _ _ ↦ ?_) _ (always_true _)
   refine Always.bind (fun _ _ ↦ ?_) _ (always_true _)
   refine always_const ?_
-  simp only [Evaluations.claimed, Prog.bind_eq]
+  simp only [claimedValue, Prog.bind_eq]
   exact Always.bind (fun _ hq ↦ by show _ = _; exact hq) _ (always_require _)
 
 theorem always_bind_true {α β : Type} {p : Prog α} {f : α → Prog β} {P : β → Prop}

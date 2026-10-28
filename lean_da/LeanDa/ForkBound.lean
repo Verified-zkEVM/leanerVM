@@ -30,16 +30,16 @@ namespace LeanDa
 
 section Fork
 
-variable (r : ℕ) {Crs Proof : Type} {rel : Unit × Digest × Challenges → (Fin (r * 128) → Cell) → Bool}
-  (ps : Nark (Unit × Digest × Challenges) (Fin (r * 128) → Cell) Crs Proof rel)
-  (ext : Nark.Extractor (Unit × Digest × Challenges) (Fin (r * 128) → Cell) Crs Proof)
+variable (r : ℕ) {Crs Proof : Type} {rel : Unit × Common.KDigest × Challenges → (Fin (r * 128) → Cell) → Bool}
+  (ps : Nark (Unit × Common.KDigest × Challenges) (Fin (r * 128) → Cell) Crs Proof rel)
+  (ext : Nark.Extractor (Unit × Common.KDigest × Challenges) (Fin (r * 128) → Cell) Crs Proof)
   (A : CodeBindingAdvB r Crs Proof)
 
 /-- Wagner's reduction to committed soundness (`csReduction`) with `H` as queries. -/
-noncomputable def csX (ckVC : Unit) : OracleComp (WSpec + XS) (Digest × (Fin (r * 128) → Cell)) := do
+noncomputable def csX (ckVC : Unit) : OracleComp (WSpec + XS) (Common.KDigest × (Fin (r * 128) → Cell)) := do
   let crs ← liftL (liftM ps.setup : OracleComp WSpec Crs)
   let out ← advX r ps A (ckVC, crs)
-  let l ← liftL (HasQuery.query (spec := (Digest →ₒ Challenges)) (m := OracleComp WSpec) out.1.1)
+  let l ← liftL (HasQuery.query (spec := (Common.KDigest →ₒ Challenges)) (m := OracleComp WSpec) out.1.1)
   pure (out.1.1, ext crs (ckVC, out.1.1, l) out.1.2)
 
 theorem csReduction_eq (h : HTab) (ckVC : Unit) :
@@ -48,9 +48,9 @@ theorem csReduction_eq (h : HTab) (ckVC : Unit) :
   rfl
 
 /-- The wrapped adversary of the fork (`wrappedAdv`) with `H` as queries. -/
-noncomputable def wrX : OracleComp (WSpec + XS) (Digest × (Fin (r * 128) → Cell) × Challenges) := do
+noncomputable def wrX : OracleComp (WSpec + XS) (Common.KDigest × (Fin (r * 128) → Cell) × Challenges) := do
   let out ← csX r ps ext A ()
-  let l ← liftL (HasQuery.query (spec := (Digest →ₒ Challenges)) (m := OracleComp WSpec) out.1)
+  let l ← liftL (HasQuery.query (spec := (Common.KDigest →ₒ Challenges)) (m := OracleComp WSpec) out.1)
   pure (out.1, out.2, l)
 
 theorem wrappedAdv_eq (h : HTab) :
@@ -60,20 +60,20 @@ theorem wrappedAdv_eq (h : HTab) :
   rfl
 
 /-- The win of a run of the fork (`winOn`) with `H` as queries. -/
-noncomputable def winX (out : Digest × (Fin (r * 128) → Cell) × Challenges) :
+noncomputable def winX (out : Common.KDigest × (Fin (r * 128) → Cell) × Challenges) :
     OracleComp (wrappedSpec Challenges + XS) Bool := do
   let root ← commitCellsM hS out.2.1
   pure (decide (out.2.1 ∉ (code r).code) && (checker r).check out.2.2 out.2.1 && decide (root = out.1))
 
-theorem winX_eval (h : HTab) (out : Digest × (Fin (r * 128) → Cell) × Challenges) :
+theorem winX_eval (h : HTab) (out : Common.KDigest × (Fin (r * 128) → Cell) × Challenges) :
     simulateQ (col h) (winX r out) = pure (winOn (code r) (merkleVC r (Hh h)) (checker r) () out) := by
   rw [winX, simulateQ_bind, commitCellsM_eval (fun x ↦ simulateQ (col h) x) (fun a ↦ rfl)
     (fun x f ↦ simulateQ_bind _ x f) hS (Hh h) (simulateQ_col_hS h), pure_bind]
   rfl
 
 /-- **A run of the fork** (`runTrace`) with `H` as queries. -/
-noncomputable def mainX : OracleComp (wrappedSpec Challenges + XS) (Trace Cell (r * 128) Digest Challenges) := do
-  let p ← (simulateQ (extImpl (unifForward Digest Challenges + roImpl Digest Challenges))
+noncomputable def mainX : OracleComp (wrappedSpec Challenges + XS) (Trace Cell (r * 128) Common.KDigest Challenges) := do
+  let p ← (simulateQ (extImpl (unifForward Common.KDigest Challenges + roImpl Common.KDigest Challenges))
     (wrX r ps ext A)).run (∅, [])
   let w ← winX r p.1
   pure { com := p.1.1, vec := p.1.2.1, chal := p.1.2.2, roCache := p.2.1, queryLog := p.2.2, win := w }
@@ -128,14 +128,14 @@ end Fork
 
 /-! ## The openings of two different vectors and their collision -/
 
-theorem findCollision_self (H : List UInt8 → Digest) (l : List (List UInt8)) :
+theorem findCollision_self (H : List UInt8 → Common.KDigest) (l : List (List UInt8)) :
     findCollision H l l = ([], []) := by
   induction l with
   | nil => rfl
   | cons a l ih => simp [findCollision, ih]
 
 /-- The two climbs Wagner's forking reduction compares, from two vectors. -/
-def colPair (r : ℕ) [NeZero r] (H : List UInt8 → Digest)
+def colPair (r : ℕ) [NeZero r] (H : List UInt8 → Common.KDigest)
     (vv : (Fin (r * 128) → Cell) × (Fin (r * 128) → Cell)) : List UInt8 × List UInt8 :=
   if hv : vv.1 = vv.2 then ([], [])
   else
@@ -157,14 +157,14 @@ def colPairX (r : ℕ) [NeZero r] (vv : (Fin (r * 128) → Cell) × (Fin (r * 12
         τ'.rowRoot
       findCollisionM hS l₁ (l₂.take (9 + logPad r))
 
-theorem length_hashInputs (H : List UInt8 → Digest) (path : List Digest) :
-    ∀ (idx : ℕ) (a : List UInt8) (rr : Digest), (hashInputs H idx a path rr).length = path.length + 2 := by
+theorem length_hashInputs (H : List UInt8 → Common.KDigest) (path : List Common.KDigest) :
+    ∀ (idx : ℕ) (a : List UInt8) (rr : Common.KDigest), (hashInputs H idx a path rr).length = path.length + 2 := by
   induction path with
   | nil => intro idx a rr; rfl
   | cons s rest ih => intro idx a rr; simp [hashInputs, ih]
 
-theorem mem_hashInputs (H : List UInt8 → Digest) (path : List Digest) :
-    ∀ (idx : ℕ) (a : List UInt8) (rr : Digest) (x : List UInt8), x ∈ hashInputs H idx a path rr →
+theorem mem_hashInputs (H : List UInt8 → Common.KDigest) (path : List Common.KDigest) :
+    ∀ (idx : ℕ) (a : List UInt8) (rr : Common.KDigest) (x : List UInt8), x ∈ hashInputs H idx a path rr →
       x = a ∨ ∃ d₁ d₂, x = pairBytes d₁ d₂ := by
   induction path with
   | nil =>
@@ -182,15 +182,15 @@ theorem mem_hashInputs (H : List UInt8 → Digest) (path : List Digest) :
       · split <;> exact Or.inr ⟨_, _, rfl⟩
       · exact Or.inr h
 
-theorem shortP_of_mem_hashInputs (H : List UInt8 → Digest) (path : List Digest) (idx : ℕ)
-    (x : Cell) (rr : Digest) (y : List UInt8) (hy : y ∈ hashInputs H idx (cellBytes x) path rr) :
+theorem shortP_of_mem_hashInputs (H : List UInt8 → Common.KDigest) (path : List Common.KDigest) (idx : ℕ)
+    (x : Cell) (rr : Common.KDigest) (y : List UInt8) (hy : y ∈ hashInputs H idx (cellBytes x) path rr) :
     shortP y := by
   rcases mem_hashInputs H path idx _ rr y hy with rfl | ⟨d₁, d₂, rfl⟩
   · simp [shortP, length_cellBytes]
   · simp [shortP, length_pairBytes]
 
 /-- **The climbs' colliding inputs are short.** -/
-theorem shortP_colPair (r : ℕ) [NeZero r] (H : List UInt8 → Digest)
+theorem shortP_colPair (r : ℕ) [NeZero r] (H : List UInt8 → Common.KDigest)
     (vv : (Fin (r * 128) → Cell) × (Fin (r * 128) → Cell))
     (hne : (colPair r H vv).1 ≠ (colPair r H vv).2) :
     shortP (colPair r H vv).1 ∧ shortP (colPair r H vv).2 := by
@@ -225,9 +225,9 @@ theorem colPairX_eval (r : ℕ) [NeZero r] (h : HTab)
 
 section Fork2
 
-variable (r : ℕ) {Crs Proof : Type} {rel : Unit × Digest × Challenges → (Fin (r * 128) → Cell) → Bool}
-  (ps : Nark (Unit × Digest × Challenges) (Fin (r * 128) → Cell) Crs Proof rel)
-  (ext : Nark.Extractor (Unit × Digest × Challenges) (Fin (r * 128) → Cell) Crs Proof)
+variable (r : ℕ) {Crs Proof : Type} {rel : Unit × Common.KDigest × Challenges → (Fin (r * 128) → Cell) → Bool}
+  (ps : Nark (Unit × Common.KDigest × Challenges) (Fin (r * 128) → Cell) Crs Proof rel)
+  (ext : Nark.Extractor (Unit × Common.KDigest × Challenges) (Fin (r * 128) → Cell) Crs Proof)
   (A : CodeBindingAdvB r Crs Proof)
 
 /-- **Wagner's forking collision experiment for the table `h`, as a function of the two vectors.** -/
@@ -278,9 +278,9 @@ end Weight
 
 section Fork3
 
-variable (r : ℕ) {Crs Proof : Type} {rel : Unit × Digest × Challenges → (Fin (r * 128) → Cell) → Bool}
-  (ps : Nark (Unit × Digest × Challenges) (Fin (r * 128) → Cell) Crs Proof rel)
-  (ext : Nark.Extractor (Unit × Digest × Challenges) (Fin (r * 128) → Cell) Crs Proof)
+variable (r : ℕ) {Crs Proof : Type} {rel : Unit × Common.KDigest × Challenges → (Fin (r * 128) → Cell) → Bool}
+  (ps : Nark (Unit × Common.KDigest × Challenges) (Fin (r * 128) → Cell) Crs Proof rel)
+  (ext : Nark.Extractor (Unit × Common.KDigest × Challenges) (Fin (r * 128) → Cell) Crs Proof)
   (A : CodeBindingAdvB r Crs Proof)
 
 /-- The hash calls of an honest opening over `H` as queries. -/
@@ -307,7 +307,7 @@ theorem isWeightBound_openCellM_hS {ι : Type} {Ψ : OracleSpec ι} (c : Fin (r 
     (fun _ _ ↦ isWeightBound_hS (Ψ := Ψ) _) c i
   exact this.mono (le_of_eq (by ring))
 
-theorem isWeightBound_winX (out : Digest × (Fin (r * 128) → Cell) × Challenges) :
+theorem isWeightBound_winX (out : Common.KDigest × (Fin (r * 128) → Cell) × Challenges) :
     IsWeightBound (winX r out) xCalls (commitCalls r) := by
   have := (isWeightBound_commitCellsM_hS r (Ψ := wrappedSpec Challenges) out.2.1).bind
     fun root ↦ isWeightBound_pure (spec := wrappedSpec Challenges + XS)
@@ -324,9 +324,9 @@ theorem isWeightBound_mainX (Q : ℕ) (hQ : IsWeightBound (codeBindingGame2 r ps
     (hcs.bind fun _ ↦ (isWeightBound_liftL _).bind fun _ ↦ isWeightBound_pure _ _ 0).mono
       (by omega)
   have hrun := isWeightBound_run_simulateQ
-    (extImpl (Ψ := wrappedSpec Challenges) (unifForward Digest Challenges + roImpl Digest Challenges))
+    (extImpl (Ψ := wrappedSpec Challenges) (unifForward Common.KDigest Challenges + roImpl Common.KDigest Challenges))
     xCalls xCalls (isWeightBound_extImpl _) hwr
-    (((∅ : (Digest →ₒ Challenges).QueryCache), ([] : List Digest)) : SimState Digest Challenges)
+    (((∅ : (Common.KDigest →ₒ Challenges).QueryCache), ([] : List Common.KDigest)) : SimState Common.KDigest Challenges)
   exact (hrun.bind fun p ↦ ((isWeightBound_winX r p.1).bind fun w ↦
     isWeightBound_pure _ _ 0)).mono le_rfl
 
@@ -339,7 +339,7 @@ theorem isWeightBound_colPairX [NeZero r] (vv : (Fin (r * 128) → Cell) × (Fin
   · exact isWeightBound_pure _ _ _
   · have hO : ∀ c i, IsWeightBound (openCellM (hS (Ψ := unifSpec)) c i) xCalls (openCalls r) :=
       fun c i ↦ isWeightBound_openCellM_hS r c i
-    have hI : ∀ idx a (path : List Digest) rr, IsWeightBound
+    have hI : ∀ idx a (path : List Common.KDigest) rr, IsWeightBound
         (hashInputsM hS idx a (path.take (7 + logPad r)) rr) xCalls (7 + logPad r + 1) :=
       fun idx a path rr ↦ (isWeightBound_hashInputsM (hS (Ψ := unifSpec)) xCalls
         (fun _ ↦ isWeightBound_hS _) _ idx a rr).mono (by simp only [List.length_take]; omega)

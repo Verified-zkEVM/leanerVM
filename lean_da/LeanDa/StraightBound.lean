@@ -55,15 +55,15 @@ theorem prEvent_bind_le_of_support {α β : Type} (mx : ProbComp α) (f : α →
 
 section Ideal
 
-variable (r : ℕ) {Crs Proof : Type} {rel : Unit × Digest × Challenges → (Fin (r * 128) → Cell) → Bool}
-  (ps : Nark (Unit × Digest × Challenges) (Fin (r * 128) → Cell) Crs Proof rel)
-  (ext : Nark.Extractor (Unit × Digest × Challenges) (Fin (r * 128) → Cell) Crs Proof)
+variable (r : ℕ) {Crs Proof : Type} {rel : Unit × Common.KDigest × Challenges → (Fin (r * 128) → Cell) → Bool}
+  (ps : Nark (Unit × Common.KDigest × Challenges) (Fin (r * 128) → Cell) Crs Proof rel)
+  (ext : Nark.Extractor (Unit × Common.KDigest × Challenges) (Fin (r * 128) → Cell) Crs Proof)
 
 /-- **The simulated world with a verdict `T`** after the challenges of the adversary's root. -/
 noncomputable def idealT (A : CodeBindingAdvB r Crs Proof) (crs : Crs)
     (T : CbOut r Proof → Challenges → OracleComp (unifSpec + roSpec (List UInt8) KDigest) Bool) :
     ProbComp Bool :=
-  (simulateQ (GSpec (List UInt8) KDigest Digest E 14).romImpl
+  (simulateQ (GSpec (List UInt8) KDigest Common.KDigest E 14).romImpl
     (advSim r A crs >>= fun out ↦ readVec (Msg := List UInt8) (Dg := KDigest) out.1.1 >>= fun l ↦
       simulateQ embG (T out l))).run' ∅
 
@@ -81,7 +81,7 @@ theorem idealT_evalDistEq (A : CodeBindingAdvB r Crs Proof) {crs : Crs}
     (TP : HTab → CbOut r Proof → Challenges → Bool)
     (hT : ∀ h out l s, (simulateQ (phiG h) (simulateQ embG (T out l))).run s = pure (TP h out l, s)) :
     idealT r A crs T =ᵈ ($ᵗ HTab >>= fun h ↦
-      (simulateQ (Digest →ₒ Challenges).romImpl (advH r ps A h ((), crs) >>= fun out ↦
+      (simulateQ (Common.KDigest →ₒ Challenges).romImpl (advH r ps A h ((), crs) >>= fun out ↦
         TP h out <$> readVecW out.1.1)).run' ∅) := by
   rw [idealT]
   refine (run'_romImpl_evalDistEq_vec _).trans ?_
@@ -106,9 +106,9 @@ theorem idealT_evalDistEq (A : CodeBindingAdvB r Crs Proof) {crs : Crs}
 /-- Wagner's world with a pure verdict, as the verdict of one run. -/
 theorem run'_verdict_eq (A : CodeBindingAdvB r Crs Proof) (h : HTab) (crs : Crs)
     (F : CbOut r Proof → Challenges → Bool) :
-    (simulateQ (Digest →ₒ Challenges).romImpl (advH r ps A h ((), crs) >>= fun out ↦
+    (simulateQ (Common.KDigest →ₒ Challenges).romImpl (advH r ps A h ((), crs) >>= fun out ↦
         F out <$> readVecW out.1.1)).run' ∅ =
-      (fun p ↦ F p.1 p.2) <$> (simulateQ (Digest →ₒ Challenges).romImpl
+      (fun p ↦ F p.1 p.2) <$> (simulateQ (Common.KDigest →ₒ Challenges).romImpl
         (advH r ps A h ((), crs) >>= fun out ↦ (out, ·) <$> readVecW out.1.1)).run' ∅ := by
   have e : (advH r ps A h ((), crs) >>= fun out ↦ F out <$> readVecW out.1.1) =
       (fun p ↦ F p.1 p.2) <$> (advH r ps A h ((), crs) >>= fun out ↦
@@ -179,8 +179,8 @@ theorem isWeightBound_zero {ι : Type} {spec : OracleSpec.{0, 0} ι} {α : Type}
   | query_bind t k ih => exact (isWeightBound_query_bind_iff _ _ _ _).mpr ⟨le_rfl, fun u ↦ ih u⟩
 
 theorem isWeightBound_walkM {ι : Type} {spec : OracleSpec.{0, 0} ι}
-    (H : List UInt8 → OracleComp spec Digest) (w : ι → ℕ) (hH : ∀ a, IsWeightBound (H a) w 1)
-    (path : List Digest) : ∀ (idx : ℕ) (node : Digest),
+    (H : List UInt8 → OracleComp spec Common.KDigest) (w : ι → ℕ) (hH : ∀ a, IsWeightBound (H a) w 1)
+    (path : List Common.KDigest) : ∀ (idx : ℕ) (node : Common.KDigest),
       IsWeightBound (walkM H idx node path) w path.length := by
   induction path with
   | nil => intro idx node; exact isWeightBound_pure _ _ _
@@ -189,8 +189,8 @@ theorem isWeightBound_walkM {ι : Type} {spec : OracleSpec.{0, 0} ι}
     exact ((hH _).bind fun _ ↦ ih _ _).mono (by simp only [List.length_cons]; omega)
 
 theorem isWeightBound_verifyCellM {ι : Type} {spec : OracleSpec.{0, 0} ι}
-    (H : List UInt8 → OracleComp spec Digest) (w : ι → ℕ) (hH : ∀ a, IsWeightBound (H a) w 1)
-    (com : Digest) (p : Fin (r * 128)) (x : Cell) (τ : Opening) :
+    (H : List UInt8 → OracleComp spec Common.KDigest) (w : ι → ℕ) (hH : ∀ a, IsWeightBound (H a) w 1)
+    (com : Common.KDigest) (p : Fin (r * 128)) (x : Cell) (τ : Opening) :
     IsWeightBound (verifyCellM H r com p x τ) w (τ.path.length + 2) :=
   ((hH _).bind fun _ ↦ (isWeightBound_walkM H w hH _ _ _).bind fun _ ↦
     (hH _).bind fun _ ↦ isWeightBound_pure _ _ 0).mono (by omega)
@@ -218,26 +218,26 @@ theorem isWeightBound_tailH (crs : Crs) (out : CbOut r Proof) (l : Challenges) :
 
 theorem isWeightBound_embG_h {α : Type} {Y : OracleComp (unifSpec + roSpec (List UInt8) KDigest) α}
     {N : ℕ} (h : IsWeightBound Y tCount N) :
-    IsWeightBound (simulateQ (embG (Root := Digest) (Z := E) (n := 14)) Y) hgCalls N :=
+    IsWeightBound (simulateQ (embG (Root := Common.KDigest) (Z := E) (n := 14)) Y) hgCalls N :=
   isWeightBound_simulateQ _ tCount hgCalls (fun t ↦ by
     rcases t with k | a
     · exact isWeightBound_query hgCalls (.inl k)
     · exact isWeightBound_query hgCalls (.inr (.inl a))) h
 
 theorem isWeightBound_embG_g {α : Type} (Y : OracleComp (unifSpec + roSpec (List UInt8) KDigest) α) :
-    IsWeightBound (simulateQ (embG (Root := Digest) (Z := E) (n := 14)) Y)
-      (gCalls (Msg := List UInt8) (Dg := KDigest) (Root := Digest)
+    IsWeightBound (simulateQ (embG (Root := Common.KDigest) (Z := E) (n := 14)) Y)
+      (gCalls (Msg := List UInt8) (Dg := KDigest) (Root := Common.KDigest)
       (Z := E) (n := 14)) 0 :=
   isWeightBound_simulateQ _ (fun _ ↦ 0) _ (fun t ↦ by
     rcases t with k | a
     · exact isWeightBound_query gCalls (.inl k)
     · exact isWeightBound_query gCalls (.inr (.inl a))) (isWeightBound_zero Y)
 
-theorem isWeightBound_readVec (w : (unifSpec + GSpec (List UInt8) KDigest Digest E 14).Domain → ℕ)
-    (hw : ∀ d j, w (.inr (.inr (d, j))) = 1) (d : Digest) :
+theorem isWeightBound_readVec (w : (unifSpec + GSpec (List UInt8) KDigest Common.KDigest E 14).Domain → ℕ)
+    (hw : ∀ d j, w (.inr (.inr (d, j))) = 1) (d : Common.KDigest) :
     IsWeightBound (readVec (Msg := List UInt8) (Dg := KDigest) (Z := E) (n := 14) d) w 14 := by
   refine isWeightBound_map _ ((isWeightBound_mapM _ w 1 (fun j ↦ ?_) _).mono (by simp))
-  have := isWeightBound_query (spec := unifSpec + GSpec (List UInt8) KDigest Digest E 14) w
+  have := isWeightBound_query (spec := unifSpec + GSpec (List UInt8) KDigest Common.KDigest E 14) w
     (.inr (.inr (d, j)))
   rwa [hw] at this
 
@@ -248,12 +248,12 @@ theorem isWeightBound_tailV_hg (crs : Crs) (out : CbOut r Proof) :
 
 theorem isWeightBound_tailV_g (crs : Crs) (out : CbOut r Proof) :
     IsWeightBound (tailV r ps ext crs out)
-      (gCalls (Msg := List UInt8) (Dg := KDigest) (Root := Digest) (Z := E) (n := 14)) 14 :=
+      (gCalls (Msg := List UInt8) (Dg := KDigest) (Root := Common.KDigest) (Z := E) (n := 14)) 14 :=
   ((isWeightBound_readVec gCalls (fun _ _ ↦ rfl) _).bind fun _ ↦ isWeightBound_embG_g _).mono
     (by omega)
 
 theorem hgCalls_eq : (fun t ↦ hCallsG t + gCalls (Msg := List UInt8) (Dg := KDigest)
-    (Root := Digest) (Z := E) (n := 14) t) = hgCalls := by
+    (Root := Common.KDigest) (Z := E) (n := 14) t) = hgCalls := by
   funext t
   rcases t with k | m | x <;> rfl
 
@@ -264,7 +264,7 @@ theorem isWeightBound_advSim (A : CodeBindingAdvB r Crs Proof) (Q : ℕ)
     (hcrs : crs ∈ support ps.setup) :
     IsWeightBound (advSim r A crs) hgCalls (2 * Q + 1) ∧
       IsWeightBound (advSim r A crs)
-        (gCalls (Msg := List UInt8) (Dg := KDigest) (Root := Digest) (Z := E) (n := 14)) Q := by
+        (gCalls (Msg := List UInt8) (Dg := KDigest) (Root := Common.KDigest) (Z := E) (n := 14)) Q := by
   have hBh := isWeightBound_advS2_h r ps A Q hQ crs hcrs
   have hPh : IsWeightBound (Common.Duplex.hQ (St := KState) daDuplex.label >>= fun _ ↦
       advS2 keccakPadding KState.zero (A ((), crs))) hCalls (1 + Q) :=
@@ -280,14 +280,14 @@ theorem isWeightBound_advSim (A : CodeBindingAdvB r Crs Proof) (Q : ℕ)
   have h1 : IsWeightBound (advSim r A crs) hCallsG (1 + Q) := by
     rw [advSim, StateT.run'_eq]; exact isWeightBound_map _ hSh
   have h2 : IsWeightBound (advSim r A crs)
-      (gCalls (Msg := List UInt8) (Dg := KDigest) (Root := Digest) (Z := E) (n := 14)) Q := by
+      (gCalls (Msg := List UInt8) (Dg := KDigest) (Root := Common.KDigest) (Z := E) (n := 14)) Q := by
     rw [advSim, StateT.run'_eq]; exact isWeightBound_map _ hSf
   refine ⟨?_, h2⟩
   have := h1.add h2
   rw [hgCalls_eq] at this
   exact this.mono (by omega)
 
-theorem isWeightBound_toV_v {α : Type} {X : OracleComp (unifSpec + GSpec (List UInt8) KDigest Digest E 14) α}
+theorem isWeightBound_toV_v {α : Type} {X : OracleComp (unifSpec + GSpec (List UInt8) KDigest Common.KDigest E 14) α}
     {N : ℕ} (h : IsWeightBound X hgCalls N) : IsWeightBound (simulateQ toV X) vCalls N :=
   isWeightBound_simulateQ _ hgCalls vCalls (fun t ↦ by
     rcases t with k | m | ⟨d, j⟩
@@ -295,8 +295,8 @@ theorem isWeightBound_toV_v {α : Type} {X : OracleComp (unifSpec + GSpec (List 
     · exact isWeightBound_query vCalls (.inr (.inl m))
     · exact isWeightBound_map _ (isWeightBound_query vCalls (.inr (.inr d)))) h
 
-theorem isWeightBound_toV_g {α : Type} {X : OracleComp (unifSpec + GSpec (List UInt8) KDigest Digest E 14) α}
-    {N : ℕ} (h : IsWeightBound X (gCalls (Msg := List UInt8) (Dg := KDigest) (Root := Digest)
+theorem isWeightBound_toV_g {α : Type} {X : OracleComp (unifSpec + GSpec (List UInt8) KDigest Common.KDigest E 14) α}
+    {N : ℕ} (h : IsWeightBound X (gCalls (Msg := List UInt8) (Dg := KDigest) (Root := Common.KDigest)
       (Z := E) (n := 14)) N) : IsWeightBound (simulateQ toV X) gvCalls N :=
   isWeightBound_simulateQ _ gCalls gvCalls (fun t ↦ by
     rcases t with k | m | ⟨d, j⟩
@@ -309,7 +309,7 @@ theorem isWeightBound_toV_g {α : Type} {X : OracleComp (unifSpec + GSpec (List 
 theorem prT_idealT_tailH_le (A : CodeBindingAdvB r Crs Proof) (Q : ℕ) (hr : r ≤ maxRows)
     (crs : Crs) (ha : IsWeightBound (advSim r A crs) hgCalls (2 * Q + 1))
     (hg : IsWeightBound (advSim r A crs)
-      (gCalls (Msg := List UInt8) (Dg := KDigest) (Root := Digest) (Z := E) (n := 14)) Q) :
+      (gCalls (Msg := List UInt8) (Dg := KDigest) (Root := Common.KDigest) (Z := E) (n := 14)) Q) :
     prT (idealT r A crs (tailH r ps ext crs)) ≤
       ((2 * Q + 2 ^ 20 : ℕ) : ℝ≥0∞) * (65 * ((2 * Q + 2 ^ 20 : ℕ) : ℝ≥0∞) / 2 ^ 256) +
         ((Q + 14 : ℕ) : ℝ≥0∞) * (14 / 2 ^ 192) := by
@@ -334,7 +334,7 @@ verdict's bound, for a simulated adversary of at most `2 Q + 1` queries of `H` o
 theorem codeBindingExpG_le (A : CodeBindingAdvB r Crs Proof) (Q : ℕ) (hr : r ≤ maxRows)
     (hA : ∀ crs ∈ support ps.setup, IsWeightBound (advSim r A crs) hgCalls (2 * Q + 1) ∧
       IsWeightBound (advSim r A crs)
-        (gCalls (Msg := List UInt8) (Dg := KDigest) (Root := Digest) (Z := E) (n := 14)) Q) :
+        (gCalls (Msg := List UInt8) (Dg := KDigest) (Root := Common.KDigest) (Z := E) (n := 14)) Q) :
     prT (codeBindingExpG r ps A) ≤ prT (ps.setup >>= ksIdealG r ps ext A) +
       (((2 * Q + 2 ^ 20 : ℕ) : ℝ≥0∞) * (65 * ((2 * Q + 2 ^ 20 : ℕ) : ℝ≥0∞) / 2 ^ 256) +
         ((Q + 14 : ℕ) : ℝ≥0∞) * (14 / 2 ^ 192)) :=

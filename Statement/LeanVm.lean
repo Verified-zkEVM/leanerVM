@@ -59,6 +59,7 @@ namespace LeanVM
 open LeanVM.Parameters LeanVM.Semantics LeanVM.Arithmetization LeanVM.Protocol
 open LeanVM.Protocol.Compile LeanVM.Protocol.Verifier LeanVM.Protocol.KeccakHash
 open OracleComp OracleSpec
+open Common (permSpec PermLog)
 open scoped ENNReal
 
 /-! ### The verifier on a statement -/
@@ -122,21 +123,15 @@ noncomputable def Semantics.Trace.committedSize {prog : Program} (t : Trace prog
 
 /-! ### The random permutation -/
 
-/-- The oracle of the random-permutation model: `π` and `π⁻¹` on Keccak states
-(`Common.permSpec`; a query is `.fwd x` or `.inv y`). -/
-abbrev PermSpec : OracleSpec (Common.PermQuery KState) := Common.permSpec KState
-
-/-- The state of the lazily sampled permutation: the edges `(x, π x)` fixed so far, newest
-first. -/
-abbrev PermLog : Type := Common.PermLog KState
-
-/-- `π x`: a forward query to the lazily sampled uniform permutation (`Common.lazyPerm`). -/
-noncomputable def perm (x : KState) : StateT PermLog ProbComp KState :=
+/-- `π x`: a forward query to the lazily sampled uniform permutation (`Common.lazyPerm`), whose
+state is the edges `(x, π x)` fixed so far, newest first. The model's oracle is `permSpec KState`:
+`π` and `π⁻¹` on Keccak states, a query `.fwd x` or `.inv y`. -/
+noncomputable def perm (x : KState) : StateT (PermLog KState) ProbComp KState :=
   Common.lazyPerm (.fwd x)
 
 /-- **The verifier's calls (`HashSpec`) in the random-permutation model**: Keccak-256 is the
 sponge over the random permutation, Keccak-f[1600] is the random permutation. -/
-noncomputable def rpmImpl : QueryImpl HashSpec (StateT PermLog ProbComp)
+noncomputable def rpmImpl : QueryImpl HashSpec (StateT (PermLog KState) ProbComp)
   | .inl x => keccak256With perm x
   | .inr s => perm s
 
@@ -144,10 +139,10 @@ noncomputable def rpmImpl : QueryImpl HashSpec (StateT PermLog ProbComp)
 
 /-- An adversary in the random-permutation model: a computation with private coins and oracle
 access to `π` and `π⁻¹` that outputs a statement and a proof. -/
-abbrev RpmAdversary : Type := OracleComp (unifSpec + PermSpec) (Statement × Proof)
+abbrev RpmAdversary : Type := OracleComp (unifSpec + permSpec KState) (Statement × Proof)
 
 /-- The adversary's queries to `π` and `π⁻¹`, one each; its coins are free. -/
-def permQueries : (unifSpec + PermSpec).Domain → ℕ
+def permQueries : (unifSpec + permSpec KState).Domain → ℕ
   | .inl _ => 0
   | .inr _ => 1
 
@@ -157,7 +152,7 @@ abbrev Transcript : Type := List (Common.PermQuery KState × KState)
 /-- The adversary's oracles: a coin is uniform and not recorded; `π` and `π⁻¹` are the lazily
 sampled permutation, each query and its answer appended to the transcript. -/
 noncomputable def loggedPerm :
-    QueryImpl (unifSpec + PermSpec) (StateT (PermLog × Transcript) ProbComp)
+    QueryImpl (unifSpec + permSpec KState) (StateT (PermLog KState × Transcript) ProbComp)
   | .inl n => liftM (unifSpec.query n : ProbComp (Fin (n + 1)))
   | .inr q => StateT.mk fun s ↦
     (fun r ↦ (r.1, (r.2, s.2 ++ [(q, r.1)]))) <$> (Common.lazyPerm q).run s.1
@@ -197,7 +192,7 @@ and the states that a chain of forward queries reaches from the zero state, each
 its path absorbed, newest first. -/
 structure Replay where
   /-- The edges `(x, π x)` fixed so far, newest first. -/
-  edges : PermLog
+  edges : PermLog KState
   /-- The states reached from the zero state, with the bytes their paths absorbed. -/
   chains : List (KState × Bytes)
 
@@ -285,7 +280,7 @@ def Completeness : Prop :=
 /-- **The random-permutation experiment of an adversary and a computation**: `rpmExperiment`
 with any computation `V` over the verifier's calls in place of the verifier, without the
 transcript; the experiment of the batching's end statement (`LeanVmGuest.lean`). -/
-noncomputable def Rpm.rpmRun {α β : Type} (A : OracleComp (unifSpec + PermSpec) α)
+noncomputable def Rpm.rpmRun {α β : Type} (A : OracleComp (unifSpec + permSpec KState) α)
     (V : α → OracleComp HashSpec β) : ProbComp (α × β) := do
   let (z, perms, _) ← (simulateQ loggedPerm A).run ([], [])
   let v ← (simulateQ rpmImpl (V z)).run' perms

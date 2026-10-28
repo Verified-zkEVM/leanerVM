@@ -45,7 +45,7 @@ theorem deferred_accepts {bytecode : List K} {seed pi : Digest} {c : FixedClaims
     (h5 : RunsTo (Tables.gkrPhase (busLayout [0, L.logMemory, L.logBytecode] L.push).depth) s4 xsG
       r s5)
     {xsT : List E} {bc : BusResult × List ColumnClaim} {s6 : Fs}
-    (h6 : RunsTo (Tables.tablesSeg (.claimed c) L pi alphas beta r.2.1 r.2.2) s5 xsT bc s6)
+    (h6 : RunsTo (Tables.tablesSeg (claimedValue c) L pi alphas beta r.2.1 r.2.2) s5 xsT bc s6)
     (h7 : (lanesOf bc.2).map (·.column) = keccakOutputColumns ∧
       ∀ c ∈ lanesOf bc.2, c.point = ((lanesOf bc.2).headD default).point)
     {xsK : List E} {km : (List ColumnClaim × List E × List E) × E} {s7 : Fs}

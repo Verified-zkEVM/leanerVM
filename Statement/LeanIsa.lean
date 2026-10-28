@@ -31,7 +31,7 @@ inductive Opcode
   | deref
   | jump
   | keccak
-  deriving DecidableEq, Repr
+  deriving DecidableEq
 
 /-- The bus code of an opcode: `g^0, …, g^5` in constructor order (specification §6.4). -/
 def Opcode.code : Opcode → K
@@ -92,7 +92,7 @@ inductive DerefMode
   | cell
   | pc
   | fp
-  deriving DecidableEq, Repr
+  deriving DecidableEq
 
 /-- The six instructions. -/
 inductive Instr
@@ -209,7 +209,6 @@ def readCells (read : K → Option E) (fp : K) (offset : Fin 13 → K) : Option 
 structure Regs (F : Type) where
   pc : F
   fp : F
-  deriving Repr
 
 /-- Register equality is decided field by field. Not derived: the derived instance decides the
 second field under `h ▸` for the first, whose `Eq.rec` makes the kernel compare two register
@@ -425,7 +424,7 @@ inductive OInstr
   thirteen cells `fp[out + k]` (`k < 13`) hold its Keccak-f[1600] in the layout `outOdd`
   (`KeccakCells`; `Op::Keccak`, `crates/leanvm_core/src/cpu/isa.rs`). -/
   | keccak (m0 m1 m2 m3 tail b8 cap out : ℕ) (inOdd outOdd : Bool)
-  deriving DecidableEq, Repr
+  deriving DecidableEq
 
 /-- The padding instruction, `SET fp[0] = 0`. -/
 def OInstr.pad : OInstr := .set 0 0 0 0

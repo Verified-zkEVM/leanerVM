@@ -103,8 +103,8 @@ theorem cellRoot_mRoot : ∀ (d : ℕ) (g : ℕ → Digest),
 
 /-- **A root over blocks**: the root over `2^(a + b)` leaves is the root over the roots of the
 `2^a` blocks of `2^b` leaves. -/
-theorem merkleRoot_add (H : List UInt8 → LeanDa.Digest) (a : ℕ) :
-    ∀ (b : ℕ) (f : ℕ → LeanDa.Digest), LeanDa.merkleRoot H (a + b) f =
+theorem merkleRoot_add (H : List UInt8 → Common.KDigest) (a : ℕ) :
+    ∀ (b : ℕ) (f : ℕ → Common.KDigest), LeanDa.merkleRoot H (a + b) f =
       LeanDa.merkleRoot H a fun j => LeanDa.merkleRoot H b fun i => f (j * 2 ^ b + i)
   | 0, f => by simp [LeanDa.merkleRoot]
   | b + 1, f => by
@@ -119,7 +119,7 @@ theorem merkleRoot_add (H : List UInt8 → LeanDa.Digest) (a : ℕ) :
 
 /-! ## Trees built level by level -/
 
-theorem treeLevel_range (H : List UInt8 → LeanDa.Digest) (d : ℕ) (f : ℕ → LeanDa.Digest) :
+theorem treeLevel_range (H : List UInt8 → Common.KDigest) (d : ℕ) (f : ℕ → Common.KDigest) :
     LeanDa.treeLevel H ((List.range (2 ^ (d + 1))).map f) = (List.range (2 ^ d)).map (LeanDa.up H f) := by
   have hlen : 2 ^ (d + 1) / 2 = 2 ^ d := by rw [pow_succ, Nat.mul_div_cancel _ (by norm_num)]
   rw [LeanDa.treeLevel, List.length_map, List.length_range, hlen]
@@ -131,7 +131,7 @@ theorem treeLevel_range (H : List UInt8 → LeanDa.Digest) (d : ℕ) (f : ℕ �
     List.getElem?_range h2, Option.map_some, Option.getD_some]
 
 /-- **A tree built level by level has LeanDA's root.** -/
-theorem treeRoot_range (H : List UInt8 → LeanDa.Digest) (d : ℕ) (f : ℕ → LeanDa.Digest) :
+theorem treeRoot_range (H : List UInt8 → Common.KDigest) (d : ℕ) (f : ℕ → Common.KDigest) :
     LeanDa.treeRoot H ((List.range (2 ^ d)).map f) = LeanDa.merkleRoot H d f := by
   induction d generalizing f with
   | zero => rw [LeanDa.treeRoot]; simp [LeanDa.merkleRoot]

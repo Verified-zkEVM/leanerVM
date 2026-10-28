@@ -156,12 +156,12 @@ theorem knowledgeSoundness_coins {B : OracleComp (unifSpec + HashSpec) (Statemen
 
 /-- The oracle of a deterministic adversary: `loggedPerm` (`Statement/LeanVm.lean`) on `π` and
 `π⁻¹`. -/
-noncomputable def loggedPermDet : QueryImpl PermSpec (StateT (PermLog × Transcript) ProbComp) :=
+noncomputable def loggedPermDet : QueryImpl (Common.permSpec KState) (StateT (Common.PermLog KState × Transcript) ProbComp) :=
   fun q ↦ loggedPerm (.inr q)
 
 /-- A deterministic adversary in the random-permutation model: oracle access to `π` and `π⁻¹`,
 no coins. -/
-abbrev DetAdversary : Type := OracleComp PermSpec (Statement × Proof)
+abbrev DetAdversary : Type := OracleComp (Common.permSpec KState) (Statement × Proof)
 
 /-- `rpmExperiment` (`Statement/LeanVm.lean`) for a deterministic adversary. -/
 noncomputable def detExperiment (A : DetAdversary) : ProbComp RpmOutcome := do
@@ -170,14 +170,14 @@ noncomputable def detExperiment (A : DetAdversary) : ProbComp RpmOutcome := do
   return ((z, verdict), transcript)
 
 /-- `rpmRun` (`Statement/LeanVm.lean`) for a deterministic adversary. -/
-noncomputable def detRun {α β : Type} (A : OracleComp PermSpec α)
+noncomputable def detRun {α β : Type} (A : OracleComp (Common.permSpec KState) α)
     (V : α → OracleComp HashSpec β) : ProbComp (α × β) := do
   let (z, perms, _) ← (simulateQ loggedPermDet A).run ([], [])
   let v ← (simulateQ rpmImpl (V z)).run' perms
   return (z, v)
 
 /-- The edges after the lazily sampled permutation answers `a` to `q` from the edges `E`. -/
-def stepLog (E : PermLog) : (q : Common.PermQuery KState) → KState → PermLog
+def stepLog (E : Common.PermLog KState) : (q : Common.PermQuery KState) → KState → (Common.PermLog KState)
   | .fwd x, a => match Common.fwdLookup E x with
     | some _ => E
     | none => (x, a) :: E
@@ -186,8 +186,8 @@ def stepLog (E : PermLog) : (q : Common.PermQuery KState) → KState → PermLog
     | none => (a, y) :: E
 
 /-- The state after a query to `π` or `π⁻¹` is determined by its answer. -/
-theorem snd_eq_stepLog {q : Common.PermQuery KState} {s : PermLog × Transcript}
-    {z : KState × (PermLog × Transcript)} (hz : z ∈ support ((loggedPerm (.inr q)).run s)) :
+theorem snd_eq_stepLog {q : Common.PermQuery KState} {s : (Common.PermLog KState) × Transcript}
+    {z : KState × (Common.PermLog KState × Transcript)} (hz : z ∈ support ((loggedPerm (.inr q)).run s)) :
     z.2 = (stepLog s.1 q z.1, s.2 ++ [(q, z.1)]) := by
   simp only [loggedPerm, StateT.run_mk, support_map, Set.mem_image] at hz
   obtain ⟨r, hr, rfl⟩ := hz
@@ -218,9 +218,9 @@ theorem snd_eq_stepLog {q : Common.PermQuery KState} {s : PermLog × Transcript}
 /-- **Coins do not help in the random-permutation model**: against `loggedPerm`, an adversary
 with coins of at most `Q` queries to `π` and `π⁻¹` does no better than some deterministic
 adversary of at most `Q` queries, for any continuation and any event. -/
-theorem exists_det_rpm {α γ : Type} (g : α × (PermLog × Transcript) → ProbComp γ) (E : γ → Prop)
-    {B : OracleComp (unifSpec + PermSpec) α} {Q : ℕ} (hB : Common.IsWeightBound B permQueries Q) :
-    ∃ A : OracleComp PermSpec α, A.IsTotalQueryBound Q ∧
+theorem exists_det_rpm {α γ : Type} (g : α × (Common.PermLog KState × Transcript) → ProbComp γ) (E : γ → Prop)
+    {B : OracleComp (unifSpec + Common.permSpec KState) α} {Q : ℕ} (hB : Common.IsWeightBound B permQueries Q) :
+    ∃ A : OracleComp (Common.permSpec KState) α, A.IsTotalQueryBound Q ∧
       Pr{let y ← (simulateQ loggedPerm B).run ([], []) >>= g}[E y] ≤
         Pr{let y ← (simulateQ loggedPermDet A).run ([], []) >>= g}[E y] :=
   exists_det_of loggedPerm (fun s q a ↦ (stepLog s.1 q a, s.2 ++ [(q, a)]))
@@ -241,10 +241,10 @@ theorem rpmExperiment_le_det {B : RpmAdversary} {Q : ℕ}
 
 /-- **`rpmRun` against an adversary with coins is bounded by a deterministic one's**: for every
 event, some deterministic adversary of as many queries to `π` and `π⁻¹`. -/
-theorem rpmRun_le_det {α β : Type} {B : OracleComp (unifSpec + PermSpec) α} {Q : ℕ}
+theorem rpmRun_le_det {α β : Type} {B : OracleComp (unifSpec + Common.permSpec KState) α} {Q : ℕ}
     (hB : Common.IsWeightBound B permQueries Q) (V : α → OracleComp HashSpec β)
     (E : α × β → Prop) :
-    ∃ A : OracleComp PermSpec α, A.IsTotalQueryBound Q ∧
+    ∃ A : OracleComp (Common.permSpec KState) α, A.IsTotalQueryBound Q ∧
       Pr{let z ← rpmRun B V}[E z] ≤ Pr{let z ← detRun A V}[E z] :=
   exists_det_rpm _ E hB
 

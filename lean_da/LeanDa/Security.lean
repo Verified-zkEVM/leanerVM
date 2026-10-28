@@ -120,13 +120,13 @@ theorem checker_sound (r : ℕ) : (checker r).Sound (code r) (14 / 2 ^ 192) := b
 
 /-! ## The vector commitment -/
 
-theorem merkleVC_perfectlyComplete (r : ℕ) (H : List UInt8 → Digest) :
+theorem merkleVC_perfectlyComplete (r : ℕ) (H : List UInt8 → Common.KDigest) :
     (merkleVC r H).PerfectlyComplete :=
   fun _ _ c p ↦ verifyCell_openCell H c p
 
 /-- **Position binding of the Merkle commitment**, by reduction to an `H` collision. -/
-theorem posBindingExp_le_hashCollisionExp (r : ℕ) (H : List UInt8 → Digest)
-    (A : VectorCommitment.PosBindingAdv Cell (r * 128) Unit Digest Opening) :
+theorem posBindingExp_le_hashCollisionExp (r : ℕ) (H : List UInt8 → Common.KDigest)
+    (A : VectorCommitment.PosBindingAdv Cell (r * 128) Unit Common.KDigest Opening) :
     Pr{let b ← (merkleVC r H).posBindingExp A}[b = true] ≤
       Pr{let b ← hashCollisionExp H (merkleCollider r H A)}[b = true] := by
   unfold VectorCommitment.posBindingExp hashCollisionExp merkleCollider merkleVC
@@ -143,9 +143,9 @@ theorem posBindingExp_le_hashCollisionExp (r : ℕ) (H : List UInt8 → Digest)
 Merkle commitment with the hash `H`, the membership test and an argument of knowledge `ps`, the
 challenges a random oracle of the roots. His theorems for it are steps of the proofs of the end
 statements, which are in the random-permutation model. -/
-noncomputable def leanDa (r : ℕ) (H : List UInt8 → Digest) {Crs Proof : Type}
+noncomputable def leanDa (r : ℕ) (H : List UInt8 → Common.KDigest) {Crs Proof : Type}
     (ps : WArgument r H Crs Proof) :=
-  scheme (m := OracleComp (unifSpec + (Digest →ₒ Challenges))) (code r) (merkleVC r H)
+  scheme (m := OracleComp (unifSpec + (Common.KDigest →ₒ Challenges))) (code r) (merkleVC r H)
     (checker r) ps
 
 end LeanDa

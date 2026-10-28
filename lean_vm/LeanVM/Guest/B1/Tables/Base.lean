@@ -44,8 +44,8 @@ abbrev tbRun {α : Type} (p : Prog α) (s : St) : Option (α × St) :=
   Compile.run (m := Id) keccak256 keccakF p s
 
 /-- `ev` takes `value` for the fixed polynomial of `words` at `point`, consuming nothing. -/
-def BytecodeAt (ev : Evaluations) (words : List K) (point : List E) (value : E) : Prop :=
-  ∀ s, tbRun (ev.bytecode words point) s = some (value, s)
+def BytecodeAt (ev : (List K → List E → Prog E)) (words : List K) (point : List E) (value : E) : Prop :=
+  ∀ s, tbRun (ev words point) s = some (value, s)
 
 /-- The order of `g`. -/
 abbrev tbOrdG : ℕ := 2 ^ 64 - 1

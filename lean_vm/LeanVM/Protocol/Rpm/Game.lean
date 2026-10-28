@@ -60,12 +60,12 @@ def permQueryOfRpm : Common.PermQuery Common.KState → Common.PermQuery KState
   | .inv y => .inv (KState.ofRpm y)
 
 /-- A permutation query of the adversary, read on bytes. -/
-def relP : QueryImpl PermSpec (OracleComp RSpec) := fun q ↦
+def relP : QueryImpl (Common.permSpec KState) (OracleComp RSpec) := fun q ↦
   KState.ofRpm <$> (liftM (RSpec.query (.inr (.inr (permQueryToRpm q)))) :
     OracleComp RSpec Common.KState)
 
 /-- A permutation query of the adversary, read on bytes, recorded in the transcript. -/
-def logRel : QueryImpl PermSpec (StateT Transcript (OracleComp RSpec)) := fun q ↦
+def logRel : QueryImpl (Common.permSpec KState) (StateT Transcript (OracleComp RSpec)) := fun q ↦
   StateT.mk fun T ↦ (fun a ↦ (a, T ++ [(q, a)])) <$> relP q
 
 /-- The adversary of the transfer: the adversary on bytes, with its transcript. -/

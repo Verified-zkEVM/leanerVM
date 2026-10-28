@@ -37,7 +37,7 @@ section Map
 variable {m n : Type → Type} [Monad m] [LawfulMonad m] [Monad n] [LawfulMonad n]
   (φ : ∀ {α}, m α → n α) (hpure : ∀ {α} (a : α), φ (pure a) = pure a)
   (hbind : ∀ {α β} (x : m α) (f : α → m β), φ (x >>= f) = φ x >>= fun a ↦ φ (f a))
-  (H : List UInt8 → m Digest) (P : Lanes → m Lanes)
+  (H : List UInt8 → m Common.KDigest) (P : Lanes → m Lanes)
 
 include hpure hbind
 
@@ -61,20 +61,20 @@ theorem absorbM_map (s : Sponge) (x : E) (tag : K) :
   · simp only [hpure]
 
 /-- **The challenges' sponge through a monad morphism.** -/
-theorem membershipChallengesM_map (root : Digest) :
+theorem membershipChallengesM_map (root : Common.KDigest) :
     φ (membershipChallengesM H P root) =
       membershipChallengesM (fun a ↦ φ (H a)) (fun L ↦ φ (P L)) root := by
   simp only [membershipChallengesM, Sponge.fromLabelM, Sponge.newM, Sponge.observeM, hbind,
     hpure, absorbM_map φ hpure hbind P, samplesM_map φ hpure hbind P, bind_assoc]
 
-theorem walkM_map (idx : ℕ) (node : Digest) (path : List Digest) :
+theorem walkM_map (idx : ℕ) (node : Common.KDigest) (path : List Common.KDigest) :
     φ (walkM H idx node path) = walkM (fun a ↦ φ (H a)) idx node path := by
   induction path generalizing idx node with
   | nil => exact hpure _
   | cons s rest ih =>
     simp only [walkM, hbind, ih]
 
-theorem verifyCellM_map (r : ℕ) (com : Digest) (p : Fin (r * 128)) (x : Cell) (τ : Opening) :
+theorem verifyCellM_map (r : ℕ) (com : Common.KDigest) (p : Fin (r * 128)) (x : Cell) (τ : Opening) :
     φ (verifyCellM H r com p x τ) = verifyCellM (fun a ↦ φ (H a)) r com p x τ := by
   simp only [verifyCellM, hbind, hpure, walkM_map φ hpure hbind]
 
@@ -84,7 +84,7 @@ theorem mapM_map {β γ : Type} (f : β → m γ) (l : List β) :
   | nil => simp [hpure]
   | cons b l ih => simp only [List.mapM_cons, hbind, ih, hpure]
 
-theorem merkleRootM_map (d : ℕ) : ∀ f : ℕ → m Digest,
+theorem merkleRootM_map (d : ℕ) : ∀ f : ℕ → m Common.KDigest,
     φ (merkleRootM H d f) = merkleRootM (fun a ↦ φ (H a)) d fun i ↦ φ (f i) := by
   induction d with
   | zero => intro f; rfl
@@ -104,9 +104,9 @@ theorem commitCellsM_map {r : ℕ} (c : Fin (r * 128) → Cell) :
 
 /-- **The verification through a monad morphism.** -/
 theorem verifyRpm_map (r : ℕ) {Crs Proof : Type}
-    {rel : Unit × Digest × Challenges → (Fin (r * 128) → Cell) → Bool}
-    (ps : Nark (Unit × Digest × Challenges) (Fin (r * 128) → Cell) Crs Proof rel) (crs : Crs)
-    (com : Digest × Proof) (p : Fin (r * 128)) (x : Cell) (τ : Opening) :
+    {rel : Unit × Common.KDigest × Challenges → (Fin (r * 128) → Cell) → Bool}
+    (ps : Nark (Unit × Common.KDigest × Challenges) (Fin (r * 128) → Cell) Crs Proof rel) (crs : Crs)
+    (com : Common.KDigest × Proof) (p : Fin (r * 128)) (x : Cell) (τ : Opening) :
     φ (verifyRpm H P r ps crs com p x τ) =
       verifyRpm (fun a ↦ φ (H a)) (fun L ↦ φ (P L)) r ps crs com p x τ := by
   simp only [verifyRpm, hbind, hpure, membershipChallengesM_map φ hpure hbind,
@@ -130,9 +130,9 @@ theorem toK_pR (L : Lanes) : simulateQ toK (pR L) = pKB L := by
 
 /-- The verifier's programs through `toK` are those of the games on byte states. -/
 theorem toK_verifyRpm (r : ℕ) {Crs Proof : Type}
-    {rel : Unit × Digest × Challenges → (Fin (r * 128) → Cell) → Bool}
-    (ps : Nark (Unit × Digest × Challenges) (Fin (r * 128) → Cell) Crs Proof rel) (crs : Crs)
-    (com : Digest × Proof) (p : Fin (r * 128)) (x : Cell) (τ : Opening) :
+    {rel : Unit × Common.KDigest × Challenges → (Fin (r * 128) → Cell) → Bool}
+    (ps : Nark (Unit × Common.KDigest × Challenges) (Fin (r * 128) → Cell) Crs Proof rel) (crs : Crs)
+    (com : Common.KDigest × Proof) (p : Fin (r * 128)) (x : Cell) (τ : Opening) :
     simulateQ toK (verifyRpm hR pR r ps crs com p x τ) = verifyRpm hKB pKB r ps crs com p x τ := by
   rw [verifyRpm_map (fun x ↦ simulateQ toK x) (fun _ ↦ simulateQ_pure _ _)
     (fun _ _ ↦ simulateQ_bind _ _ _)]
@@ -195,9 +195,9 @@ theorem isWeightBound_toOne_iff {α : Type} (D : OracleComp (dSpec2 (List UInt8)
 
 section Games
 
-variable (r : ℕ) {Crs Proof : Type} {rel : Unit × Digest × Challenges → (Fin (r * 128) → Cell) → Bool}
-  (ps : Nark (Unit × Digest × Challenges) (Fin (r * 128) → Cell) Crs Proof rel)
-  (ext : Nark.Extractor (Unit × Digest × Challenges) (Fin (r * 128) → Cell) Crs Proof)
+variable (r : ℕ) {Crs Proof : Type} {rel : Unit × Common.KDigest × Challenges → (Fin (r * 128) → Cell) → Bool}
+  (ps : Nark (Unit × Common.KDigest × Challenges) (Fin (r * 128) → Cell) Crs Proof rel)
+  (ext : Nark.Extractor (Unit × Common.KDigest × Challenges) (Fin (r * 128) → Cell) Crs Proof)
 
 /-! ### The statement's oracles, read on byte states -/
 
@@ -214,13 +214,13 @@ theorem relabel_commitCellsM (c : Fin (r * 128) → Cell) :
     (fun _ _ ↦ simulateQ_bind _ _ _)]
   simp only [relabel_hK]
 
-theorem relabel_verifyCellM (com : Digest) (p : Fin (r * 128)) (x : Cell) (τ : Opening) :
+theorem relabel_verifyCellM (com : Common.KDigest) (p : Fin (r * 128)) (x : Cell) (τ : Opening) :
     simulateQ relabel (verifyCellM hK r com p x τ) = verifyCellM hKB r com p x τ := by
   rw [verifyCellM_map (fun x ↦ simulateQ relabel x) (fun _ ↦ simulateQ_pure _ _)
     (fun _ _ ↦ simulateQ_bind _ _ _)]
   simp only [relabel_hK]
 
-theorem relabel_membershipChallengesM (root : Digest) :
+theorem relabel_membershipChallengesM (root : Common.KDigest) :
     simulateQ relabel (membershipChallengesM hK pK root) = membershipChallengesM hKB pKB root := by
   rw [membershipChallengesM_map (fun x ↦ simulateQ relabel x) (fun _ ↦ simulateQ_pure _ _)
     (fun _ _ ↦ simulateQ_bind _ _ _)]

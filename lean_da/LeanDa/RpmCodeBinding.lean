@@ -25,21 +25,21 @@ namespace LeanDa
 /-! ## The verification with `H` alone -/
 
 /-- `H` among coins and `H`. -/
-abbrev hH (a : List UInt8) : OracleComp (unifSpec + roSpec (List UInt8) KDigest) Digest :=
+abbrev hH (a : List UInt8) : OracleComp (unifSpec + roSpec (List UInt8) KDigest) Common.KDigest :=
   liftM ((unifSpec + roSpec (List UInt8) KDigest).query (.inr a))
 
 section Post
 
-variable (r : ℕ) {Crs Proof : Type} {rel : Unit × Digest × Challenges → (Fin (r * 128) → Cell) → Bool}
-  (ps : Nark (Unit × Digest × Challenges) (Fin (r * 128) → Cell) Crs Proof rel)
+variable (r : ℕ) {Crs Proof : Type} {rel : Unit × Common.KDigest × Challenges → (Fin (r * 128) → Cell) → Bool}
+  (ps : Nark (Unit × Common.KDigest × Challenges) (Fin (r * 128) → Cell) Crs Proof rel)
 
 /-- The win of a code-binding adversary from its openings' verdicts and the argument's. -/
-noncomputable def cbWin (out : (Digest × Proof) × List (Fin (r * 128) × Cell × Opening))
+noncomputable def cbWin (out : (Common.KDigest × Proof) × List (Fin (r * 128) × Cell × Opening))
     (vs : List Bool) (b : Bool) : Bool :=
   (vs.all id && b) && !decide ((code r).Consistent (out.2.map fun o ↦ (o.1, o.2.1)))
 
 /-- **The verification of the openings with the challenges `l`**, hashing with `H`. -/
-noncomputable def postV (crs : Crs) (out : (Digest × Proof) × List (Fin (r * 128) × Cell × Opening))
+noncomputable def postV (crs : Crs) (out : (Common.KDigest × Proof) × List (Fin (r * 128) × Cell × Opening))
     (l : Challenges) : OracleComp (unifSpec + roSpec (List UInt8) KDigest) Bool := do
   let vs ← out.2.mapM fun o ↦ verifyCellM hH r out.1.1 o.1 o.2.1 o.2.2
   pure (cbWin r out vs (ps.verify crs ((), out.1.1, l) out.1.2))
@@ -50,7 +50,7 @@ theorem simulateQ_embH_hH (a : List UInt8) :
   rfl
 
 theorem simulateQ_embH_postV (crs : Crs)
-    (out : (Digest × Proof) × List (Fin (r * 128) × Cell × Opening)) (l : Challenges) :
+    (out : (Common.KDigest × Proof) × List (Fin (r * 128) × Cell × Opening)) (l : Challenges) :
     simulateQ (embH (Msg := List UInt8) (Dg := KDigest) (St := KState)) (postV r ps crs out l) =
       (do
         let vs ← out.2.mapM fun o ↦ verifyCellM hR r out.1.1 o.1 o.2.1 o.2.2
@@ -65,14 +65,14 @@ theorem simulateQ_embH_postV (crs : Crs)
     verifyCellM_map (fun x ↦ simulateQ embH x) hp hb, simulateQ_embH_hH]
 
 /-- The challenges of the root, the duplex's. -/
-noncomputable abbrev chalR (root : Digest) : OracleComp Rom2 (List E) := chalP daDuplex root
+noncomputable abbrev chalR (root : Common.KDigest) : OracleComp Rom2 (List E) := chalP daDuplex root
 
 theorem all_cons_map_and (b v : Bool) (vs : List Bool) :
     ((b && v) :: vs.map (b && ·)).all id = ((v :: vs).all id && b) := by
   cases b <;> simp
 
 /-- Recomputed challenges, from a cache extending one where they were computed. -/
-theorem run_mapM_rerun (crs : Crs) (out : (Digest × Proof) × List (Fin (r * 128) × Cell × Opening))
+theorem run_mapM_rerun (crs : Crs) (out : (Common.KDigest × Proof) × List (Fin (r * 128) × Cell × Opening))
     {c₀ : Cache2} {w : List E × Cache2}
     (hw : w ∈ support ((simulateQ (hfSpec (List UInt8) KDigest KState).romImpl
       (chalR out.1.1)).run c₀))
@@ -102,7 +102,7 @@ theorem consistent_nil : (code r).Consistent [] := ⟨fun _ ↦ 0, fun _ h ↦ b
 
 /-- **The verifier computes the challenges once.** -/
 theorem prob_codeBindingPost (crs : Crs)
-    (out : (Digest × Proof) × List (Fin (r * 128) × Cell × Opening)) (c : Cache2) :
+    (out : (Common.KDigest × Proof) × List (Fin (r * 128) × Cell × Opening)) (c : Cache2) :
     Pr{let b ← (simulateQ (hfSpec (List UInt8) KDigest KState).romImpl
         (codeBindingPost r ps crs out)).run' c}[b = true] =
       Pr{let b ← (simulateQ (hfSpec (List UInt8) KDigest KState).romImpl
@@ -187,8 +187,8 @@ theorem isWeightBound_shadowImpl_f (t : (dSpec2 (List UInt8) KDigest KState).Dom
 
 section CodeBinding
 
-variable (r : ℕ) {Crs Proof : Type} {rel : Unit × Digest × Challenges → (Fin (r * 128) → Cell) → Bool}
-  (ps : Nark (Unit × Digest × Challenges) (Fin (r * 128) → Cell) Crs Proof rel)
+variable (r : ℕ) {Crs Proof : Type} {rel : Unit × Common.KDigest × Challenges → (Fin (r * 128) → Cell) → Bool}
+  (ps : Nark (Unit × Common.KDigest × Challenges) (Fin (r * 128) → Cell) Crs Proof rel)
 
 /-- **The simulated adversary calls `F` at most `Q` times** for every crs the setup can output,
 when the RPM game makes at most `Q` permutation calls. -/
@@ -214,7 +214,7 @@ random oracle `G` on `(root, j)`, the adversary's direct calls of `F` answered b
 lemma's simulator from `H` and `G` (`simImpl`), then the openings verified with `H` and the
 challenges `G (root, ·)`. -/
 noncomputable def cbIdealG (A : CodeBindingAdvB r Crs Proof) (crs : Crs) : ProbComp Bool :=
-  (simulateQ (GSpec (List UInt8) KDigest Digest E 14).romImpl
+  (simulateQ (GSpec (List UInt8) KDigest Common.KDigest E 14).romImpl
     ((simulateQ (simImpl daDuplex hP gaP) (hQ (St := KState) daDuplex.label >>= fun _ ↦
         advS2 keccakPadding KState.zero (A ((), crs)))).run' SimSt.init >>= fun out ↦
       readVec (Msg := List UInt8) (Dg := KDigest) out.1.1 >>= fun l ↦
@@ -250,7 +250,7 @@ theorem codeBindingExpRpm_le_G (A : CodeBindingAdvB r Crs Proof) (Q : ℕ)
       Pr{let b ← (simulateQ (hfSpec (List UInt8) KDigest KState).romImpl
         (advS2 keccakPadding KState.zero (A ((), crs)) >>= fun out ↦ chalR out.1.1 >>= fun zs ↦
           simulateQ embH (postV r ps crs out (toVec zs)))).run' ∅}[b = true] := by
-    have e : ∀ (K : ((Digest × Proof) × List (Fin (r * 128) × Cell × Opening)) →
+    have e : ∀ (K : ((Common.KDigest × Proof) × List (Fin (r * 128) × Cell × Opening)) →
         OracleComp Rom2 Bool),
         (simulateQ (hfSpec (List UInt8) KDigest KState).romImpl
           (advS2 keccakPadding KState.zero (A ((), crs)) >>= K)).run' ∅ =

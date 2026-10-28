@@ -203,7 +203,7 @@ theorem verify_sub_sound_w (bytecode : List K) : Main.SubSoundW bytecode vsPiOf 
     (busLayout [0, F.logMem, (Tables.layoutOf bytecode F.logMem F.rowsN).logBytecode]
       (Tables.layoutOf bytecode F.logMem F.rowsN).push).depth from
     (pushDepth_eq hbl F.logMem F.rowsN F.hrowsL).symm] at h5
-  have h6 := F.hrunT (.claimed (vsFixed σ F.r.2.1)) (by
+  have h6 := F.hrunT (claimedValue (vsFixed σ F.r.2.1)) (by
     rw [logBytecode_eq hbl]; exact bytecodeAt_claimed bytecode _ _)
   rw [← F.hcapT] at h6
   have hne : lanesOf F.claims ≠ [] := by intro h; rw [h] at hl25; simp at hl25

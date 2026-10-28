@@ -15,7 +15,7 @@ public import LeanVM.Protocol.EndToEnd.Complete.Table
 # Runs of the table loop (V:664-673)
 
 * `vt_runsTo_const`: a program that leaves every state as it is and returns `a` runs to `a`,
-  reading nothing (the bytecode's value from `Evaluations`, `BytecodeAt`);
+  reading nothing (the bytecode's value from `(List K → List E → Prog E)`, `BytecodeAt`);
 * `vt_runsTo_tableTerms`: `tableTerms` over tables with their evaluations reads the evaluations
   in turn and returns `termsPure`'s terminal value and claims.
 -/
@@ -34,8 +34,8 @@ theorem vt_runsTo_const {α : Type} {p : Prog α} {a : α} (h : ∀ st, runId p 
   fun sp hs rest os roots ↦ ⟨sp, hs, by rw [List.nil_append]; exact h _⟩
 
 /-- The bytecode's value. -/
-theorem vt_runsTo_bytecode {ev : Evaluations} {words : List K} {point : List E} {v : E}
-    (h : BytecodeAt ev words point v) (s : Fs) : RunsTo (ev.bytecode words point) s [] v s :=
+theorem vt_runsTo_bytecode {ev : (List K → List E → Prog E)} {words : List K} {point : List E} {v : E}
+    (h : BytecodeAt ev words point v) (s : Fs) : RunsTo (ev words point) s [] v s :=
   vt_runsTo_const h s
 
 theorem vt_absorbAll_append (s : Fs) (a b : List E) (t : ℕ) :

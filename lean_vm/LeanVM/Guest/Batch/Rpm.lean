@@ -124,7 +124,7 @@ shapes one of whose claims is false is at most `batch_rom`'s bound,
 `(QA + QV) · (2/|E| + failBound (QA + QV))`, plus `rpmError (QA + QV · 2^32)`, `QV` the program's
 query bound. -/
 theorem batch_rpm (hb : bytecode.length = 2 ^ Nat.log2 bytecode.length) (hM : M ≤ 2 ^ 64 - 1)
-    (A : OracleComp PermSpec (Unit × Proof)) (QA : ℕ) (hA : A.IsTotalQueryBound QA) :
+    (A : OracleComp (Common.permSpec KState) (Unit × Proof)) (QA : ℕ) (hA : A.IsTotalQueryBound QA) :
     Pr{let z ← detRun A (verifierFam batchSeeds (batchAny M bytecode))}[
       z.2 = true ∧ FalseChildren bytecode M z.1.2] ≤
       ((QA + batchQueryBound bytecode M : ℕ) : ℝ≥0∞) *
@@ -176,7 +176,7 @@ theorem two_mul_inv_pow_189 : 2 * (2 : ℝ≥0∞)⁻¹ ^ 189 = (2 : ℝ≥0∞)
 adversary's queries to `π` and `π⁻¹` and the program's query bound), the program accepts children
 with a false claim with probability at most `(QA + QV) · 2^-188`. -/
 theorem batch_rpm_bits (hb : bytecode.length = 2 ^ Nat.log2 bytecode.length)
-    (hM : M ≤ 2 ^ 64 - 1) (A : OracleComp PermSpec (Unit × Proof)) (QA : ℕ)
+    (hM : M ≤ 2 ^ 64 - 1) (A : OracleComp (Common.permSpec KState) (Unit × Proof)) (QA : ℕ)
     (hA : A.IsTotalQueryBound QA) (hQ : QA + batchQueryBound bytecode M ≤ 2 ^ 64) :
     Pr{let z ← detRun A (verifierFam batchSeeds (batchAny M bytecode))}[
       z.2 = true ∧ FalseChildren bytecode M z.1.2] ≤

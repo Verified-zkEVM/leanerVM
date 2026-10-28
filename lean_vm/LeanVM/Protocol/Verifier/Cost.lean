@@ -230,7 +230,7 @@ def ClaimsShort (claims : List ColumnClaim) : Prop :=
 /-- The bus phase, at the push side's depth. -/
 theorem costs_verifyBusBalance (layout : Layout) (hm : layout.logMemory ≤ 32)
     (hb : layout.logBytecode ≤ 32) :
-    Prog.Costs height (verifyBusBalance .computed layout)
+    Prog.Costs height (verifyBusBalance computedValue layout)
       (4 * busBits + 4 + (2 + gkrCost (busLayout [0, layout.logMemory, layout.logBytecode]
         layout.push).depth 0) + 3 + 2) fun r ↦ ClaimsShort r.claims := by
   refine Prog.Costs.seq (Prog.Costs.sampleN _) (fun _ _ ↦ Prog.Costs.seq Prog.Costs.sampleE
@@ -388,7 +388,7 @@ theorem gkrCost_le : ∀ D ≤ 38, gkrCost D 0 ≤ gkrBound := by decide
 
 /-- **The bus phase** on a built layout. -/
 theorem costs_verifyBusBalance_le {height : ℕ} {layout : Layout} (h : LayoutBounds layout) :
-    Prog.Costs height (verifyBusBalance .computed layout)
+    Prog.Costs height (verifyBusBalance computedValue layout)
       (4 * busBits + 4 + (2 + gkrBound) + 3 + 2) fun r ↦ ClaimsShort r.claims :=
   (costs_verifyBusBalance layout h.logMemory_le h.logBytecode_le).mono
     (by have := gkrCost_le _ (pushDepth_le h); omega) fun _ h ↦ h
@@ -828,7 +828,7 @@ theorem ladder_cost (μ logInvRate : ℕ) (levels : List Whir.Level)
 
 /-- **The cost of `verify_execution`.** -/
 theorem costs_verifyExecution (bytecode : List K) (publicInput : Digest) :
-    Prog.Costs costHeight (verifyExecution .computed bytecode publicInput) leanVmCost
+    Prog.Costs costHeight (verifyExecution computedValue bytecode publicInput) leanVmCost
       fun _ ↦ True := by
   unfold leanVmCost
   refine Prog.Costs.seq (costs_readSizes bytecode) (fun p hp ↦ ?_) (by omega)

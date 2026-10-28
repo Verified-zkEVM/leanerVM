@@ -137,14 +137,14 @@ theorem readSizes_ne_ret (bytecode : List K) (a : Layout × ℕ) : readSizes byt
 
 /-- `verify_execution` does not return without an event. -/
 theorem verifyExecution_ne_ret (bytecode : List K) (publicInput : Digest) (u : Unit) :
-    verifyExecution .computed bytecode publicInput ≠ .ret u := by
+    verifyExecution computedValue bytecode publicInput ≠ .ret u := by
   intro h
   obtain ⟨a, ha, -⟩ := bind_eq_ret_iff h
   exact readSizes_ne_ret bytecode a ha
 
 /-- The bus phase starts with its fingerprint challenges. -/
 theorem verifyBusBalance_ne_ret (layout : Layout) (b : BusResult) :
-    verifyBusBalance .computed layout ≠ .ret b := by
+    verifyBusBalance computedValue layout ≠ .ret b := by
   intro h
   obtain ⟨x, hx, -⟩ := bind_eq_ret_iff h
   simp [busBits, Prog.sampleN, Prog.sampleE, Prog.bind] at hx

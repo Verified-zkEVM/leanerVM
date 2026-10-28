@@ -111,7 +111,7 @@ theorem always_tableSumcheck (heights : List ℕ) (busForms : List (List Form))
 
 /-! ## The segment -/
 
-theorem always_busRest (ev : Evaluations) (L : Layout) (alphas : List E) (beta : E)
+theorem always_busRest (ev : (List K → List E → Prog E)) (L : Layout) (alphas : List E) (beta : E)
     (point tv : List E) :
     Always (Tables.busRest ev L alphas beta point tv) fun bus ↦
       ∀ c ∈ bus.claims, c.column ∉ keccakOutputColumns := by
@@ -161,7 +161,7 @@ theorem always_publicInputPhase (L : Layout) (pi : Digest) :
 
 /-- **The output lanes' point**: every claim `tablesSeg` returns on a `KECCAK` output lane is at
 the table sumcheck's point cut to the `KECCAK` table's height. -/
-theorem tablesSeg_lanes (ev : Evaluations) (L : Layout) (pi : Digest) (alphas : List E)
+theorem tablesSeg_lanes (ev : (List K → List E → Prog E)) (L : Layout) (pi : Digest) (alphas : List E)
     (beta : E) (point tv : List E) :
     Always (Tables.tablesSeg ev L pi alphas beta point tv) fun bc ↦
       ∃ pt : List E, pt.length = L.tableLogHeights.foldl max 0 ∧

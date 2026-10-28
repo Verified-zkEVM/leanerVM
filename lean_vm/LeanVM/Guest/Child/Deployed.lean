@@ -44,14 +44,14 @@ open Air.Flat (EnsembleWitness)
 theorem runProof_claimed_of_computed (H : Bytes → Id Digest) (F : KState → Id KState)
     (opening : ℕ → ℕ → List StackClaim → Prog Unit) (bytecode : List K) (publicInput : Digest)
     {sd : KState} {π : Proof}
-    (h : Id.run (runProof H F ((execWith .computed opening bytecode publicInput).bind
+    (h : Id.run (runProof H F ((execWith computedValue opening bytecode publicInput).bind
       fun _ ↦ Prog.ret true) sd π) = true) :
     ∃ c : FixedClaims, c.Holds bytecode ∧
-      Id.run (runProof H F ((execWith (.claimed c) opening bytecode publicInput).bind
+      Id.run (runProof H F ((execWith (claimedValue c) opening bytecode publicInput).bind
         fun _ ↦ Prog.ret true) sd π) = true := by
   unfold runProof at h ⊢
   revert h
-  match hr : Compile.run H F ((execWith .computed opening bytecode publicInput).bind
+  match hr : Compile.run H F ((execWith computedValue opening bytecode publicInput).bind
       fun _ ↦ Prog.ret true) ⟨⟨sd, []⟩, π.stream, π.openings, []⟩ with
   | some (true, s) =>
     intro h

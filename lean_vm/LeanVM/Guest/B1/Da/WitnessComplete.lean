@@ -98,7 +98,7 @@ theorem witness_eq {w : LeanVM.Da.Witness} {root vd : Digest} (hw : w.Opens root
 
 theorem toBytes_inj {d d' : Digest} (h : LeanVM.Protocol.Digest.toBytes d = LeanVM.Protocol.Digest.toBytes d') : d = d' := by
   apply LeanVM.Protocol.KeccakHash.digestBytes_injective
-  have := congrArg (fun x : LeanDa.Digest => x.toList) h
+  have := congrArg (fun x : Common.KDigest => x.toList) h
   simpa [LeanVM.Protocol.Digest.toBytes] using this
 
 theorem wSyms_len {w : LeanVM.Da.Witness} {root vd : Digest} (hw : w.Opens root vd) (i j : ℕ) :

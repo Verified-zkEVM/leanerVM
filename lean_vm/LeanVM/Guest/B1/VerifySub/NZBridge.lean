@@ -41,7 +41,7 @@ open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile LeanVM.P
 
 /-- The claims the stacked opening batches, from the stack's commitment on (`verifyExecution`,
 steps 3-7): the bus, the tables, the public input, the Keccak reduction, the ring switch. -/
-def restClaims (ev : Evaluations) (layout : Layout) (publicInput : Digest) :
+def restClaims (ev : (List K → List E → Prog E)) (layout : Layout) (publicInput : Digest) :
     Prog (List StackClaim) := do
   let bus ← verifyBusBalance ev layout
   let claims ← tablePhase layout bus
@@ -51,19 +51,19 @@ def restClaims (ev : Evaluations) (layout : Layout) (publicInput : Digest) :
   return ringSwitchClaim layout ringTarget ringWeight :: claims.map (·.onStack layout)
 
 /-- **The deferring verifier up to its stacked opening**: the layout, the rate and the claims. -/
-def specPre (ev : Evaluations) (bytecode : List K) (publicInput : Digest) :
+def specPre (ev : (List K → List E → Prog E)) (bytecode : List K) (publicInput : Digest) :
     Prog (Layout × ℕ × List StackClaim) :=
   (readSizes bytecode).bind fun ls ↦
   (commitStack ls.1.stackLog ls.2).bind fun _ ↦
   (restClaims ev ls.1 publicInput).bind fun cl ↦ Prog.ret (ls.1, ls.2, cl)
 
-theorem verifyExecution_pre (ev : Evaluations) (bytecode : List K) (pi : Digest) :
+theorem verifyExecution_pre (ev : (List K → List E → Prog E)) (bytecode : List K) (pi : Digest) :
     verifyExecution ev bytecode pi =
       (specPre ev bytecode pi).bind fun q ↦ verifyStackedOpening q.1.stackLog q.2.1 q.2.2 := by
   simp only [verifyExecution, specPre, restClaims, Prog.bind_eq, Prog.pure_eq, Prog.bind_assoc,
     Prog.ret_bind]
 
-theorem verifyExecutionNZ_pre (ev : Evaluations) (bytecode : List K) (pi : Digest) :
+theorem verifyExecutionNZ_pre (ev : (List K → List E → Prog E)) (bytecode : List K) (pi : Digest) :
     Limits.verifyExecutionNZ ev bytecode pi =
       (specPre ev bytecode pi).bind fun q ↦
         Limits.verifyStackedOpeningNZ q.1.stackLog q.2.1 q.2.2 := by
@@ -135,13 +135,13 @@ theorem verifyStackedOpeningNZ_split (μ r : ℕ) (cl : List StackClaim) :
 /-! ## The prefix commits only the stack -/
 
 theorem noCommit_busRest (c : FixedClaims) (L : Layout) (alphas : List E) (beta : E)
-    (point tv : List E) : NoCommit (Tables.busRest (.claimed c) L alphas beta point tv) := by
+    (point tv : List E) : NoCommit (Tables.busRest (claimedValue c) L alphas beta point tv) := by
   unfold Tables.busRest
-  simp only [Evaluations.claimed]
+  simp only [claimedValue]
   nc
 
 theorem noCommit_verifyBusBalance (c : FixedClaims) (layout : Layout) :
-    NoCommit (verifyBusBalance (.claimed c) layout) := by
+    NoCommit (verifyBusBalance (claimedValue c) layout) := by
   rw [verifyBusBalance_split]
   refine NoCommit.bind ?_ ?_
   · exact noCommit_sampleN _
@@ -200,7 +200,7 @@ theorem noCommit_verifyKeccak (logSteps : ℕ) (inst output : List E) :
   exact noCommit_ret _
 
 theorem noCommit_restClaims (c : FixedClaims) (layout : Layout) (pi : Digest) :
-    NoCommit (restClaims (.claimed c) layout pi) := by
+    NoCommit (restClaims (claimedValue c) layout pi) := by
   unfold restClaims keccakPhase ringSwitch
   simp only [Prog.bind_eq, Prog.pure_eq, Prog.bind_assoc, Prog.ret_bind]
   refine NoCommit.bind ?_ ?_
@@ -256,7 +256,7 @@ theorem commitStack_runF {μ r : ℕ} {st : Whir.FSt} {u : Unit} {st' : Whir.FSt
 /-- **The prefix's commitments**: from no commitment, the stack's root alone, the openings kept. -/
 theorem specPre_runF {c : FixedClaims} {bytecode : List K} {pi : Digest} {st : Whir.FSt}
     {q : Layout × ℕ × List StackClaim} {st1 : Whir.FSt} (h0 : st.roots = [])
-    (h : Whir.runF (specPre (.claimed c) bytecode pi) st = some (q, st1)) :
+    (h : Whir.runF (specPre (claimedValue c) bytecode pi) st = some (q, st1)) :
     (∃ root, st1.roots = [(root, Whir.stackShape q.1.stackLog q.2.1)]) ∧
       st1.openings = st.openings := by
   unfold specPre at h
@@ -319,7 +319,7 @@ theorem nz_open_of_nz {bytecode : List K} {seed pi : Digest} {c : FixedClaims} {
     (h : Limits.verifyDeferredNZ bytecode seed pi c π = true) :
     ∃ (q : Layout × ℕ × List StackClaim) (sq : Fs) (root : Digest) (xsW : List E) (w : Whir.WhirEnd)
       (s' : Fs) (roots' : List (Digest × ℕ × ℕ)),
-      Whir.runF (specPre (.claimed c) bytecode pi) (deferStart seed pi π) =
+      Whir.runF (specPre (claimedValue c) bytecode pi) (deferStart seed pi π) =
         some (q, ⟨sq, xsW, π.openings, [(root, Whir.stackShape q.1.stackLog q.2.1)]⟩) ∧
       Whir.RunsWith (Whir.whirOpen q.1.stackLog q.2.1 (batchTarget q.2.2 sq.squeeze.1))
         ⟨capOf sq.perm, []⟩ xsW π.openings [(root, Whir.stackShape q.1.stackLog q.2.1)] w s'
@@ -356,7 +356,7 @@ theorem nz_open_of_nz {bytecode : List K} {seed pi : Digest} {c : FixedClaims} {
 /-! ## The caps -/
 
 theorem deferredProgram_pre (c : FixedClaims) (bytecode : List K) (pi : Digest) :
-    deferredProgram c bytecode pi = (specPre (.claimed c) bytecode pi).bind fun q ↦
+    deferredProgram c bytecode pi = (specPre (claimedValue c) bytecode pi).bind fun q ↦
       (Prog.sampleE.bind fun lam ↦
         (Whir.whirOpen q.1.stackLog q.2.1 (batchTarget q.2.2 lam)).bind fun w ↦
           Prog.require (w.Accepts (batchBasis q.2.2 lam))).bind fun _ ↦ Prog.ret true := by
@@ -368,7 +368,7 @@ opening's query steps are among the deferring verifier's, so their agreement is 
 `CapsAgree`. -/
 theorem caps_open_of_caps {bytecode : List K} {seed pi : Digest} {c : FixedClaims} {π : Proof}
     {q : Layout × ℕ × List StackClaim} {sq : Fs} {root : Digest} {xsW : List E}
-    (hpre : Whir.runF (specPre (.claimed c) bytecode pi) (deferStart seed pi π) =
+    (hpre : Whir.runF (specPre (claimedValue c) bytecode pi) (deferStart seed pi π) =
       some (q, ⟨sq, xsW, π.openings, [(root, Whir.stackShape q.1.stackLog q.2.1)]⟩))
     (hcaps : ∀ b ∈ Limits.queriesOf (deferredProgram c bytecode pi)
       ⟨⟨keccakF (seedInput seed pi), []⟩, π.stream, π.openings, []⟩, Limits.BatchAgrees b.1 b.2) :
@@ -405,7 +405,7 @@ theorem child_open {bytecode : List K} (seed : Digest) (c : Node.Child)
       (Hints.childStart seed c), Limits.BatchAgrees b.1 b.2) :
     ∃ (q : Layout × ℕ × List StackClaim) (sq : Fs) (root : Digest) (xsW : List E)
       (w : Whir.WhirEnd) (s' : Fs) (roots' : List (Digest × ℕ × ℕ)),
-      Whir.runF (specPre (.claimed c.fresh) bytecode (Node.statementDigest seed c.statement))
+      Whir.runF (specPre (claimedValue c.fresh) bytecode (Node.statementDigest seed c.statement))
         (deferStart seed (Node.statementDigest seed c.statement) c.proof) =
         some (q, ⟨sq, xsW, c.proof.openings, [(root, Whir.stackShape q.1.stackLog q.2.1)]⟩) ∧
       Whir.RunsWith (Whir.whirOpen q.1.stackLog q.2.1 (batchTarget q.2.2 sq.squeeze.1))

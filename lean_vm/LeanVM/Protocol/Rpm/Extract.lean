@@ -67,7 +67,7 @@ theorem entryOfRpm_toRpm (e : Common.PermQuery KState × KState) :
 
 /-- **The lane transcript is the byte log**: the adversary recording its transcript on lanes,
 with the simulator, is the adversary with the simulator logging the byte queries in its state. -/
-theorem advImpl2_logRel {α : Type} (A : OracleComp PermSpec α) (T : Transcript) (σ : KSim) :
+theorem advImpl2_logRel {α : Type} (A : OracleComp (Common.permSpec KState) α) (T : Transcript) (σ : KSim) :
     (fun x ↦ (x.1.1, (x.2, x.1.2.map entryToRpm))) <$>
         (simulateQ (Common.advImpl2 Common.keccakPadding) ((simulateQ logRel A).run T)).run σ =
       (simulateQ (Common.advImplLog2 Common.keccakPadding) (simulateQ relP A)).run
@@ -176,7 +176,7 @@ theorem cacheInv_step (q : Common.PermQuery Common.KState) (σ : KSim) (c : HFS.
 
 /-- **The invariant along the adversary's run**: the adversary makes permutation queries only, so
 every cached hash answer is an evaluation of the simulator's rooted paths. -/
-theorem cacheInv_run {α : Type} (A : OracleComp PermSpec α)
+theorem cacheInv_run {α : Type} (A : OracleComp (Common.permSpec KState) α)
     (s : (KSim × RLog) × HFS.QueryCache) (hs : CacheInv s.1.1 s.2) :
     ∀ w ∈ support ((simulateQ (Common.foldRO
         (Common.advImplLog2 (Msg := Bytes) Common.keccakPadding)) (simulateQ relP A)).run s),

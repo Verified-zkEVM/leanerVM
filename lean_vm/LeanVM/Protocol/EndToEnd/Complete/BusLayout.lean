@@ -58,7 +58,7 @@ def busOut (layout : Verifier.Layout) (alphas : List E) (beta : E)
 
 /-- `verify_bus_balance` reads, then computes `busOut`. -/
 theorem verifyBusBalance_eq (layout : Verifier.Layout) :
-    verifyBusBalance .computed layout = (do
+    verifyBusBalance computedValue layout = (do
       let alphas ← Prog.sampleN busBits
       let beta ← Prog.sampleE
       let g ← verifyGkrGrandProducts
