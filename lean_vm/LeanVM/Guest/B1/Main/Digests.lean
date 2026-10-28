@@ -74,16 +74,16 @@ theorem claims_digest {α : Type} (dec : E → E → E → E → α) (bytes : α
   rfl
 
 theorem xmss_digest {p : E} {o : ℕ → ℕ} {n : ℕ} {cells : List E} (h : SlotsHold rd p o n cells) :
-    xmssListDigest ((List.range n).map fun j => xmssAt rd p (o j)) = keccak256 (cellsBytes cells) := by
-  unfold xmssListDigest xmssPreimage
+    claimListDigest ((List.range n).map fun j => xmssAt rd p (o j)) = keccak256 (cellsBytes cells) := by
+  unfold claimListDigest claimsPreimage
   rw [← claims_digest Sig.xmssClaimOf (fun c : XmssClaim => claimBytes c.1.root c.1.parameter c.2)
     (fun a b c d => claimBytes_cells a b c d) h]
   rfl
 
 theorem sphincs_digest {p : E} {o : ℕ → ℕ} {n : ℕ} {cells : List E} (h : SlotsHold rd p o n cells) :
-    sphincsListDigest ((List.range n).map fun j => sphincsAt rd p (o j)) =
+    claimListDigest ((List.range n).map fun j => sphincsAt rd p (o j)) =
       keccak256 (cellsBytes cells) := by
-  unfold sphincsListDigest sphincsPreimage
+  unfold claimListDigest claimsPreimage
   rw [← claims_digest Sig.sphincsClaimOf
     (fun c : SphincsClaim => claimBytes c.1.root c.1.parameter c.2)
     (fun a b c d => claimBytes_cells a b c d) h]
@@ -100,11 +100,11 @@ theorem da_digest {p : E} {o : ℕ → ℕ} {n : ℕ} {cells : List E} (h : Slot
   rfl
 
 theorem xmss_digest_id {p : E} {n : ℕ} {cells : List E} (h : SlotsHold rd p id n cells) :
-    xmssListDigest ((List.range n).map (xmssAt rd p)) = keccak256 (cellsBytes cells) :=
+    claimListDigest ((List.range n).map (xmssAt rd p)) = keccak256 (cellsBytes cells) :=
   xmss_digest h
 
 theorem sphincs_digest_id {p : E} {n : ℕ} {cells : List E} (h : SlotsHold rd p id n cells) :
-    sphincsListDigest ((List.range n).map (sphincsAt rd p)) = keccak256 (cellsBytes cells) :=
+    claimListDigest ((List.range n).map (sphincsAt rd p)) = keccak256 (cellsBytes cells) :=
   sphincs_digest h
 
 theorem da_digest_id {p : E} {n : ℕ} {cells : List E} (h : SlotsHold rd p id n cells) :
@@ -121,8 +121,8 @@ theorem digestBytes_of_cells {d : Digest} {a b : E} (h : [a, b] = digestCells d)
 
 /-- **The signer set's digest**, of lists whose digests are `[cx0, cx1]`, `[cs0, cs1]`. -/
 theorem signers_eq {xs : List XmssClaim} {ss : List SphincsClaim} {cx0 cx1 cs0 cs1 : E}
-    (hx : [cx0, cx1] = digestCells (xmssListDigest xs))
-    (hs : [cs0, cs1] = digestCells (sphincsListDigest ss)) :
+    (hx : [cx0, cx1] = digestCells (claimListDigest xs))
+    (hs : [cs0, cs1] = digestCells (claimListDigest ss)) :
     signersDigest xs ss = keccak256 (cellsBytes [cx0, cx1, cs0, cs1]) := by
   unfold signersDigest signersPreimage
   rw [digestBytes_of_cells hx, digestBytes_of_cells hs]

@@ -33,7 +33,7 @@ family's modules.
 | --- | --- | --- | --- |
 | `statement_digest` | 3766-3797 | `core21` | Keccak-256 of the six header cells and the 24 deferred cells, three limbs each (`statementDigest`, N:197) |
 | `list_split` | 3812-3824 | `core22` | `n = 17 · groups + rest`, `groups < 2^16`, `rest < 17` |
-| `claim_list_digest` | 3827-3849 | `core23` | Keccak-256 of the `4n` canonical cells of the list (`xmssListDigest`, `sphincsListDigest`, N:172-180) |
+| `claim_list_digest` | 3827-3849 | `core23` | Keccak-256 of the `4n` canonical cells of the list (`claimListDigest`, `claimListDigest`, N:172-180) |
 | `child_claim_list_digest` | 3876-3903 | `core24` | the same over cells read at hinted slots of this node's table, each slot marked in the coverage table |
 | `da_list_digest` | 4063-4075 | `core29` | Keccak-256 of the `4n` canonical cells of `n ≤ 16` DA claims (`daListDigest`, N:187) |
 | `cover_da_root` | 4078-4083 | `core30` | a hinted DA slot, below the bound, marked; its four cells |

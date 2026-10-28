@@ -87,7 +87,7 @@ theorem mainGoalClXTB (hL : Limits s w) {SB SK : String → ℕ}
     hLS hL16 hCL
   have ha : (hm fs fp seed s w).a77 = gen ^ mfB fs fp seed s w 1 := rfl
   have hn' : (hm fs fp seed s w).nlx = s.claims.xmss.length := rfl
-  have hd : (hm fs fp seed s w).xd = xmssListDigest s.claims.xmss := rfl
+  have hd : (hm fs fp seed s w).xd = claimListDigest s.claims.xmss := rfl
   unfold MainGoalClXTB clHonest
   rw [ha, hn', hd, mf_xmss_digest]
   exact key
@@ -122,7 +122,7 @@ theorem mainGoalClSTB (hL : Limits s w) {SB SK : String → ℕ}
     hLS hL16 hCL
   have ha : (hm fs fp seed s w).a80 = gen ^ mfB fs fp seed s w 2 := rfl
   have hn' : (hm fs fp seed s w).nls = s.claims.sphincs.length := rfl
-  have hd : (hm fs fp seed s w).sd = sphincsListDigest s.claims.sphincs := rfl
+  have hd : (hm fs fp seed s w).sd = claimListDigest s.claims.sphincs := rfl
   unfold MainGoalClSTB clHonest
   rw [ha, hn', hd, mf_sphincs_digest]
   exact key

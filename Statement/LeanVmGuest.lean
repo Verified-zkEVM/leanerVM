@@ -200,24 +200,18 @@ def bytes16 (value : BitVec 128) : List UInt8 := LeanXmss.bytesLE 16 value
 def claimBytes (root parameter : BitVec 128) (message : BitVec 256) : List UInt8 :=
   bytes16 root ++ bytes16 parameter ++ LeanXmss.bytesLE 32 message
 
-/-- The bytes `xmssListDigest claims` hashes. -/
-def xmssPreimage (claims : List XmssClaim) : List UInt8 :=
+/-- The bytes `claimListDigest claims` hashes. Both schemes' keys are a root and a parameter
+(`XmssClaim` and `SphincsClaim` are one type). -/
+def claimsPreimage (claims : List XmssClaim) : List UInt8 :=
   claims.flatMap fun c ↦ claimBytes c.1.root c.1.parameter c.2
 
-/-- The digest of the leanXMSS claims (`claim_list_digest`, `aggregation.rs:215-217`,
-`lean_ethereum.py:3827-3849`). -/
-def xmssListDigest (claims : List XmssClaim) : Digest := keccak256 (xmssPreimage claims)
-
-/-- The bytes `sphincsListDigest claims` hashes. -/
-def sphincsPreimage (claims : List SphincsClaim) : List UInt8 :=
-  claims.flatMap fun c ↦ claimBytes c.1.root c.1.parameter c.2
-
-/-- The digest of the leanSPHINCS claims (`claim_list_digest`). -/
-def sphincsListDigest (claims : List SphincsClaim) : Digest := keccak256 (sphincsPreimage claims)
+/-- The digest of a list of leanXMSS or leanSPHINCS claims (`claim_list_digest`,
+`aggregation.rs:215-217`, `lean_ethereum.py:3827-3849`). -/
+def claimListDigest (claims : List XmssClaim) : Digest := keccak256 (claimsPreimage claims)
 
 /-- The bytes `signersDigest xmss sphincs` hashes: the two lists' digests. -/
 def signersPreimage (xmss : List XmssClaim) (sphincs : List SphincsClaim) : List UInt8 :=
-  digestBytes (xmssListDigest xmss) ++ digestBytes (sphincsListDigest sphincs)
+  digestBytes (claimListDigest xmss) ++ digestBytes (claimListDigest sphincs)
 
 /-- **The signer set's digest** (`signers_hash`, `aggregation.rs:242-251`). Each list's digest
 binds its length through Keccak's padding. -/
@@ -509,8 +503,8 @@ def collisionCandidates (seed : Digest) (s : NodeStatement) (seed' : Digest)
   [(statementPreimage seed s, statementPreimage seed' s'),
     (signersPreimage s.claims.xmss s.claims.sphincs,
       signersPreimage s'.claims.xmss s'.claims.sphincs),
-    (xmssPreimage s.claims.xmss, xmssPreimage s'.claims.xmss),
-    (sphincsPreimage s.claims.sphincs, sphincsPreimage s'.claims.sphincs),
+    (claimsPreimage s.claims.xmss, claimsPreimage s'.claims.xmss),
+    (claimsPreimage s.claims.sphincs, claimsPreimage s'.claims.sphincs),
     (daPreimage s.claims.da, daPreimage s'.claims.da)]
 
 /-- **A collision**: a pair of different inputs with the same Keccak-256 digest, among

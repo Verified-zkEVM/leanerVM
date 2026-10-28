@@ -50,11 +50,11 @@ def sphincsVerifyWith (pk : Sphincs.PublicKey) (message : Sphincs.Message)
 
 /-! ### The statement's digest -/
 
-/-- `xmssListDigest` with the hash `H`. -/
+/-- `claimListDigest` with the hash `H`. -/
 def xmssListDigestWith (claims : List XmssClaim) : m Digest :=
   H (claims.flatMap fun c ↦ claimBytes c.1.root c.1.parameter c.2)
 
-/-- `sphincsListDigest` with the hash `H`. -/
+/-- `claimListDigest` with the hash `H`. -/
 def sphincsListDigestWith (claims : List SphincsClaim) : m Digest :=
   H (claims.flatMap fun c ↦ claimBytes c.1.root c.1.parameter c.2)
 

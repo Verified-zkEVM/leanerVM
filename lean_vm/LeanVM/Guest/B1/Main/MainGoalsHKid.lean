@@ -92,8 +92,8 @@ theorem daCells_canonical (c : DaClaim) : AllCanonical (daCells c) := by
 /-! ## The lists' digests are their cells' -/
 
 theorem xmssList_cells (l : List XmssClaim) :
-    xmssListDigest l = keccak256 (cellsBytes (l.flatMap fun c => claimCells c.1.root c.1.parameter c.2)) := by
-  unfold xmssListDigest xmssPreimage
+    claimListDigest l = keccak256 (cellsBytes (l.flatMap fun c => claimCells c.1.root c.1.parameter c.2)) := by
+  unfold claimListDigest claimsPreimage
   congr 1
   simp only [cellsBytes, List.flatMap_assoc]
   congr 1
@@ -101,9 +101,9 @@ theorem xmssList_cells (l : List XmssClaim) :
   exact (cellsBytes_claimCells _ _ _).symm
 
 theorem sphincsList_cells (l : List SphincsClaim) :
-    sphincsListDigest l =
+    claimListDigest l =
       keccak256 (cellsBytes (l.flatMap fun c => claimCells c.1.root c.1.parameter c.2)) := by
-  unfold sphincsListDigest sphincsPreimage
+  unfold claimListDigest claimsPreimage
   congr 1
   simp only [cellsBytes, List.flatMap_assoc]
   congr 1
@@ -176,8 +176,8 @@ def hKid (c : ℕ) : KidH where
   es := hEs w c
   ed := hEd w c
   base := gen ^ hW s w c
-  cx := (w.children.map fun ch => digestScalars (xmssListDigest ch.statement.claims.xmss)).getD c (0, 0)
-  cs := (w.children.map fun ch => digestScalars (sphincsListDigest ch.statement.claims.sphincs)).getD c
+  cx := (w.children.map fun ch => digestScalars (claimListDigest ch.statement.claims.xmss)).getD c (0, 0)
+  cs := (w.children.map fun ch => digestScalars (claimListDigest ch.statement.claims.sphincs)).getD c
     (0, 0)
   slot d := ((dPlan s w).children.getD c []).getD d 0
   root d := ((w.children.map fun ch => ch.statement.claims.da.map daCells).getD c []).getD d [0, 0, 0, 0]
@@ -199,11 +199,11 @@ theorem hKid_ed {c : ℕ} (hc : c < w.children.length) :
     (hKid s w c).ed = w.children[c].statement.claims.da.length := getD_map_lt _ _ _ hc
 
 theorem hKid_cx {c : ℕ} (hc : c < w.children.length) :
-    (hKid s w c).cx = digestScalars (xmssListDigest w.children[c].statement.claims.xmss) :=
+    (hKid s w c).cx = digestScalars (claimListDigest w.children[c].statement.claims.xmss) :=
   getD_map_lt _ _ _ hc
 
 theorem hKid_cs {c : ℕ} (hc : c < w.children.length) :
-    (hKid s w c).cs = digestScalars (sphincsListDigest w.children[c].statement.claims.sphincs) :=
+    (hKid s w c).cs = digestScalars (claimListDigest w.children[c].statement.claims.sphincs) :=
   getD_map_lt _ _ _ hc
 
 theorem hKid_defer {c : ℕ} (hc : c < w.children.length) :

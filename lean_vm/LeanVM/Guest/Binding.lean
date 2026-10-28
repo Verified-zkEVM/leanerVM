@@ -56,10 +56,10 @@ theorem signersDigest_eq (xmss : List XmssClaim) (sphincs : List SphincsClaim) :
     signersDigest xmss sphincs = keccak256 (signersPreimage xmss sphincs) := rfl
 
 theorem xmssListDigest_eq (claims : List XmssClaim) :
-    xmssListDigest claims = keccak256 (xmssPreimage claims) := rfl
+    claimListDigest claims = keccak256 (claimsPreimage claims) := rfl
 
 theorem sphincsListDigest_eq (claims : List SphincsClaim) :
-    sphincsListDigest claims = keccak256 (sphincsPreimage claims) := rfl
+    claimListDigest claims = keccak256 (claimsPreimage claims) := rfl
 
 theorem daListDigest_eq (claims : List DaClaim) :
     daListDigest claims = keccak256 (daPreimage claims) := rfl
@@ -131,7 +131,7 @@ theorem length_claimBytes (r p : BitVec 128) (m : BitVec 256) :
     (claimBytes r p m).length = 64 := by
   simp [claimBytes, bytes16, length_bytesLE]
 
-theorem xmssPreimage_inj {l l' : List XmssClaim} (h : xmssPreimage l = xmssPreimage l') :
+theorem xmssPreimage_inj {l l' : List XmssClaim} (h : claimsPreimage l = claimsPreimage l') :
     l = l' :=
   flatMap_inj (n := 64) (by decide) (fun _ ↦ length_claimBytes _ _ _)
     (fun ⟨⟨_, _⟩, _⟩ ⟨⟨_, _⟩, _⟩ h ↦ by
@@ -139,7 +139,7 @@ theorem xmssPreimage_inj {l l' : List XmssClaim} (h : xmssPreimage l = xmssPreim
       rfl) h
 
 theorem sphincsPreimage_inj {l l' : List SphincsClaim}
-    (h : sphincsPreimage l = sphincsPreimage l') : l = l' :=
+    (h : claimsPreimage l = claimsPreimage l') : l = l' :=
   flatMap_inj (n := 64) (by decide) (fun _ ↦ length_claimBytes _ _ _)
     (fun ⟨⟨_, _⟩, _⟩ ⟨⟨_, _⟩, _⟩ h ↦ by
       obtain ⟨rfl, rfl, rfl⟩ := claimBytes_inj h
@@ -157,7 +157,7 @@ theorem daPreimage_inj {l l' : List DaClaim} (h : daPreimage l = daPreimage l') 
 
 theorem signersPreimage_inj {x x' : List XmssClaim} {p p' : List SphincsClaim}
     (h : signersPreimage x p = signersPreimage x' p') :
-    xmssListDigest x = xmssListDigest x' ∧ sphincsListDigest p = sphincsListDigest p' := by
+    claimListDigest x = claimListDigest x' ∧ claimListDigest p = claimListDigest p' := by
   obtain ⟨h1, h2⟩ := List.append_inj h (by rw [digestBytes_length, digestBytes_length])
   exact ⟨digestBytes_injective h1, digestBytes_injective h2⟩
 
@@ -212,13 +212,13 @@ theorem statementDigest_binds_of_length {seed seed' : Digest} {s s' : NodeStatem
   · exact Or.inr ⟨(signersPreimage s.claims.xmss s.claims.sphincs,
       signersPreimage s'.claims.xmss s'.claims.sphincs), by simp [collisionCandidates], h1, hsig⟩
   obtain ⟨hx, hp⟩ := signersPreimage_inj h1
-  by_cases h2 : xmssPreimage s.claims.xmss = xmssPreimage s'.claims.xmss
+  by_cases h2 : claimsPreimage s.claims.xmss = claimsPreimage s'.claims.xmss
   swap
-  · exact Or.inr ⟨(xmssPreimage s.claims.xmss, xmssPreimage s'.claims.xmss),
+  · exact Or.inr ⟨(claimsPreimage s.claims.xmss, claimsPreimage s'.claims.xmss),
       by simp [collisionCandidates], h2, hx⟩
-  by_cases h3 : sphincsPreimage s.claims.sphincs = sphincsPreimage s'.claims.sphincs
+  by_cases h3 : claimsPreimage s.claims.sphincs = claimsPreimage s'.claims.sphincs
   swap
-  · exact Or.inr ⟨(sphincsPreimage s.claims.sphincs, sphincsPreimage s'.claims.sphincs),
+  · exact Or.inr ⟨(claimsPreimage s.claims.sphincs, claimsPreimage s'.claims.sphincs),
       by simp [collisionCandidates], h3, hp⟩
   by_cases h4 : daPreimage s.claims.da = daPreimage s'.claims.da
   swap

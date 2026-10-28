@@ -20,7 +20,7 @@ import LeanVMTests.Spec.NodeVectors
 * `DeferredClaim.Shaped` rejects a bytecode point one coordinate short, which the digest alone
   cannot tell apart (`statementDigest` carries no lengths: the short claim's odd cell count is
   paired with a zero cell).
-* Known answers for the statement's encodings (`xmssListDigest`, `sphincsListDigest`,
+* Known answers for the statement's encodings (`claimListDigest` of each scheme's claims,
   `signersDigest`, `daListDigest`, `statementDigest`), the batching transcript's seed
   (`batchSeed`) and the batching of two children (`batch`): computed by an independent Python
   transcription of `claim_list_digest`, `signers_hash`, `statement_digest`, `FiatShamirState` and
@@ -127,17 +127,17 @@ def seed0 : Digest := keccak256 (utf8 "seed")
 def defer0 : DeferredClaim :=
   ⟨[e 1 2 3, e 4 5 6, e 7 8 9, e 10 11 12, e 0xffffffffffffffff 0 1], e 13 14 15⟩
 
-#guard xmssListDigest xmss =
+#guard claimListDigest xmss =
   #v[0x414fd0b2c209e3b8, 0x6538b0954fa462a9, 0xe56f9cc0c9d4fdc7, 0xa490bc2e93724856]
 
-#guard sphincsListDigest sphincs =
+#guard claimListDigest sphincs =
   #v[0xe8d78086d65bb925, 0x7ace3a6c82dbaf4e, 0xbf24729b60a19887, 0xc1ffa4b8c5dee59e]
 
 #guard signersDigest xmss sphincs =
   #v[0x578e3156cf55ddb9, 0x0752842f4119e935, 0xecc3dd9961739c13, 0x55c151b417effdac]
 
 /- An empty list hashes the empty string. -/
-#guard xmssListDigest [] =
+#guard claimListDigest [] =
   #v[0x3c23f7860146d2c5, 0xc003c7dcb27d7e92, 0x3b2782ca53b600e5, 0x70a4855d04d8fa7b]
 
 #guard daListDigest da =
@@ -225,8 +225,8 @@ def batchedPoint : List E :=
 
 /-! ## The Rust vectors -/
 
-#guard xmssListDigest NodeVectors.xmss = NodeVectors.xmssListDigest
-#guard sphincsListDigest NodeVectors.sphincs = NodeVectors.sphincsListDigest
+#guard claimListDigest NodeVectors.xmss = NodeVectors.xmssListDigest
+#guard claimListDigest NodeVectors.sphincs = NodeVectors.sphincsListDigest
 #guard signersDigest NodeVectors.xmss NodeVectors.sphincs = NodeVectors.signersDigest
 #guard daListDigest NodeVectors.da = NodeVectors.daListDigest
 

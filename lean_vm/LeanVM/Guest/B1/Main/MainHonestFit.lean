@@ -198,8 +198,8 @@ theorem hMainMem (hlog : Nat.log2 bytecode.length = 23) (hr : NodeRel bytecode s
   · have := hR 3 (by omega)
     simp only [hOwn, List.getD_cons_succ, List.getD_cons_zero, signersDigest, signersPreimage] at this
     show ReadsAt rd (gen ^ ((mPos (hData seed s w) (fp + fs "main")).getD 3 0))
-      (B1.Digest.digestCells (keccak256 (cellsBytes (B1.Digest.digestCells (xmssListDigest s.claims.xmss) ++
-        B1.Digest.digestCells (sphincsListDigest s.claims.sphincs)))))
+      (B1.Digest.digestCells (keccak256 (cellsBytes (B1.Digest.digestCells (claimListDigest s.claims.xmss) ++
+        B1.Digest.digestCells (claimListDigest s.claims.sphincs)))))
     rw [cellsBytes_digestCells]
     exact this
   · have := hR 9 (by omega) 0 (by simp [hOwn])

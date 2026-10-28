@@ -86,7 +86,7 @@ theorem mainGoalClXT (hL : Limits s w) : MainGoalClXT fs cert fp seed s w := by
     (fun k hk => mf_region fs fp seed s w (i := 1) (by omega) (by rw [e, List.length_append]; omega))
   have ha : (hm fs fp seed s w).a77 = gen ^ mfB fs fp seed s w 1 := rfl
   have hn' : (hm fs fp seed s w).nlx = s.claims.xmss.length := rfl
-  have hd : (hm fs fp seed s w).xd = xmssListDigest s.claims.xmss := rfl
+  have hd : (hm fs fp seed s w).xd = claimListDigest s.claims.xmss := rfl
   unfold MainGoalClXT clHonest
   rw [ha, hn', hd, mf_xmss_digest]
   exact key
@@ -115,7 +115,7 @@ theorem mainGoalClST (hL : Limits s w) : MainGoalClST fs cert fp seed s w := by
     (fun k hk => mf_region fs fp seed s w (i := 2) (by omega) (by rw [e, List.length_append]; omega))
   have ha : (hm fs fp seed s w).a80 = gen ^ mfB fs fp seed s w 2 := rfl
   have hn' : (hm fs fp seed s w).nls = s.claims.sphincs.length := rfl
-  have hd : (hm fs fp seed s w).sd = sphincsListDigest s.claims.sphincs := rfl
+  have hd : (hm fs fp seed s w).sd = claimListDigest s.claims.sphincs := rfl
   unfold MainGoalClST clHonest
   rw [ha, hn', hd, mf_sphincs_digest]
   exact key

@@ -108,8 +108,8 @@ def hData : MainData where
   ndd := (dPlan s w).dups.length
   seed := seed
   dad := daListDigest s.claims.da
-  xd := xmssListDigest s.claims.xmss
-  sd := sphincsListDigest s.claims.sphincs
+  xd := claimListDigest s.claims.xmss
+  sd := claimListDigest s.claims.sphincs
   sdg := statementDigest seed s
   daR := ((hRawD s w).map fun p => daCells p.1).headD [0, 0, 0, 0]
   leaf := s.defer.bytecodeValue
