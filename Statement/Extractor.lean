@@ -17,13 +17,15 @@ The fixed straight-line extractor of `KnowledgeSoundness` (`Statement/LeanVm.lea
 which `LeanVM.extractorRpm` applies to the program's bytecode and to the Keccak-256 evaluations of
 the adversary's transcript of queries to the random permutation (the byte strings whose whole
 sponge path the adversary queried, with their digests, and the list of those byte strings,
-`keys`). It reads the proof and those evaluations, and nothing else: it neither queries the
-permutation, nor sees the verifier's queries, nor runs the adversary again. It is deterministic
-and computable (no coins, no classical choice: every loop is a traversal of an explicitly sized
-list or array, or a recursion on an explicit natural number). Its running time is polynomial in
-the announced committed size `2^μ` and the number `N` of evaluations given, not in the proof's
-size, which is polylogarithmic in `2^μ`; it is infeasible at deployed sizes except on a word
-without errors (`fastStacks`). The cost table below is read off its loops, not proved.
+`keys`). It reads the statement (the program, its bytecode and the public input), the proof and
+those evaluations, and nothing else: it neither queries the permutation, nor sees the verifier's
+queries, nor runs the adversary again. It is deterministic and computable (no coins, no classical
+choice: every loop is a traversal of an explicitly sized list or array, or a recursion on an
+explicit natural number). Of the proof it reads only the stream's first `10` scalars (the
+announced sizes and the stack's root), so its running time does not grow with the proof: it is
+polynomial in the announced committed size `2^μ` and the number `N` of evaluations given, and
+linear in the bytecode; it is infeasible at deployed sizes except on a word without errors
+(`fastStacks`). The cost table below is read off its loops, not proved.
 
 1. **The announced sizes and the stack's root** (`afterRoot`): read off the proof as the
    verifier's steps 1 and 2 read them (`verifier.py:1469-1480`), with every hash and permutation
@@ -31,9 +33,9 @@ without errors (`fastStacks`). The cost table below is read off its loops, not p
 2. **The committed word** (`committedLeaves`, `leafAt`): the Merkle tree under the root inverted
    through the evaluations, top down: a node's children are the two digests its unique answered
    64-byte preimage holds, a leaf the words of its unique answered preimage; an unanswered node
-   gives zero leaves. Leaf `v` is then the leaf of the opening at position `v` that climbs to the
-   root through the evaluations (the check of `Transcript.merkle`, `verifier.py:433-445`), if
-   there is one, and the zero row otherwise (proved when no two strings have one digest).
+   gives zero leaves. Proved, when no two answered strings share a digest: leaf `v` is the leaf of
+   any opening at position `v` that climbs to the root through the evaluations (the check of
+   `Transcript.merkle`, `verifier.py:433-445`).
 3. **The candidates** (`decodeStacks`). Level 0 commits the stack (the committed columns, stacked,
    `2^μ` words of `K`) in `2^6` lanes: lane `u` is the stack's block `u`, its cells
    `j + 2^(μ−6)·u` for `j < 2^(μ−6)`, read as coefficients in the novel polynomial basis `X_j`,
@@ -61,7 +63,7 @@ decoder's multiplicity and `ℓ ≤ 12291` its `Y`-degree (`gsMultiplicityAt`), 
 
 | Step | Cost |
 | --- | --- |
-| sizes and root (`afterRoot`) | linear in the proof and the bytecode |
+| sizes and root (`afterRoot`) | the stream's first `10` scalars; the bytecode's length |
 | Merkle inversion (`committedLeaves`) | `N` evaluations, then `2^(height+1)` scans of `N` pairs |
 | one lane's list (`gsLaneAt`): interpolation, roots | Lee–O'Sullivan on `n·m(m+1)/2` conditions; Roth–Ruckenstein, `ℓ·2^κ` root findings of degree at most `ℓ`, each `64` squarings and `64` trace splittings |
 | novel coefficients (`toNovel`, `novelInv`, `novelFwd`) | `2^κ` evaluations, `κ·2^(κ+R)` butterflies |

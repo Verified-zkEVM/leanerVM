@@ -360,8 +360,9 @@ noncomputable def rpmExperiment (S : Scheme D Seed PK SK Req Resp F)
   runK (rpmGame e S main)
 
 /-- **`bits` bits of SUF-CMA security in the random-permutation model**: every adversary `main`
-(coins, Keccak-256, `π`, `π⁻¹` and the signing oracle) whose game makes at most `Q` permutation
-calls on every path, `1 ≤ Q ≤ 2^128`, wins with probability at most `(Q + 1) · 2^-bits`. -/
+(coins, Keccak-256, `π`, `π⁻¹` and the signing oracle) whose game, key generation, the signer's
+answers and the forgery's verification included, makes at most `Q` permutation calls on every
+path, `1 ≤ Q ≤ 2^128`, wins with probability at most `(Q + 1) · 2^-bits`. -/
 def RpmSecure (S : Scheme D Seed PK SK Req Resp F) (bits : ℕ) : Prop :=
   ∀ Q, 1 ≤ Q → Q ≤ 2 ^ 128 → ∀ main : PK → OracleComp (KSpec + (Req →ₒ Resp)) F,
     IsWeightBound (rpmGame e S main) permCalls Q →

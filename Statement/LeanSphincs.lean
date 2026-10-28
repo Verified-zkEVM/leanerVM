@@ -220,7 +220,8 @@ inductive HashDomain where
 deriving DecidableEq
 
 /-- The address of a hash domain: types `TWEAK_CHAIN = 1`, ..., `TWEAK_MSG = 12`, forest types 15 to
-20. In the tree `lo` is the leaf (or the node index) and `hi` the chain (or the node level); a chain
+19 (`lean_sphincs/hash.rs`); type 20 (`roots`) is not the crate's, a label of the proofs under which
+no algorithm hashes. In the tree `lo` is the leaf (or the node index) and `hi` the chain (or the node level); a chain
 step carries its step. In a forest instance `lo` is `idx` and `hi` the packed position; a forest chain
 step from position `t` carries step `t`. An address has no layer and no tree field (`Tweak`,
 `tweak.rs`). -/
@@ -352,7 +353,7 @@ def leafOfNat (value : Nat) : Index :=
   ⟨value % 2 ^ totalHeight, Nat.mod_lt _ (Nat.two_pow_pos _)⟩
 
 /-- Chain `i` of the one-time key at a leaf: the step onto position `t + 1` carries step `t`
-(`chain_tweak` with `to = t + 1`). -/
+(`chain`, `wots.rs`: a step carries the position it leaves). -/
 def chainWalk (parameter : PublicParameter) (leaf : Index) (chainIdx : ChainIndex) :
     Nat → Nat → Digest → m Digest :=
   walkChain fun step value ↦
@@ -385,7 +386,7 @@ def encode (parameter : PublicParameter) (leaf : Index) (message : ForestKey) (c
   let digest ← tweakableHash parameter (.encoding leaf) (rootsPayload message ++ bytesLE 4 counter)
   return TargetSum.decodeDigest digest
 
-/-- `Ots.leaf` (`wots_recover`): the verifier's leaf, or nothing if the counter does not encode the message. -/
+/-- `Ots.leaf` (`wots_leaf`, `wots.rs`): the verifier's leaf, or nothing if the counter does not encode the message. -/
 def otsLeaf (parameter : PublicParameter) (leaf : Index) (message : ForestKey) (counter : Counter)
     (values : ChainIndex → Digest) : m (Option Digest) := do
   let some encoding ← encode parameter leaf message counter | return none
@@ -506,7 +507,7 @@ argument is kept for the callers. -/
 def messageDigestPayload (_root : Digest) (message : Message) (randomness : Randomness) : HashInput :=
   bytesLE 32 message ++ bytesLE 16 randomness
 
-/-- The single untruncated digest call (`digest_block`). -/
+/-- The single untruncated digest call (`message_digest_bytes`, `scheme.rs`). -/
 def messageDigestCall (parameter : PublicParameter) (root : Digest) (message : Message)
     (randomness : Randomness) : m HashOutput :=
   oracleHash (tweakableHashInput parameter .message (messageDigestPayload root message randomness))
@@ -518,7 +519,7 @@ def indexOffset : Nat := 128
 def digestIndex (digest : MessageDigest) : Index :=
   (digest.extractLsb' indexOffset totalHeight).toFin
 
-/-- The leaf index of the digest call (`index_of_block`). -/
+/-- The leaf index of the digest call (`marks_of`'s index, `scheme.rs`). -/
 def blockIndex (first : HashOutput) : Index :=
   (first.extractLsb' indexOffset totalHeight).toFin
 
@@ -573,7 +574,8 @@ full key). -/
 def subtreePosition (parameter : PublicParameter) : Nat :=
   parameter.toNat % 2 ^ (totalHeight - subtreeHeight)
 
-/-- The kept subtree holds leaves `s * 2^b .. (s + 1) * 2^b` (`XmssTree::contains`). -/
+/-- The kept subtree holds leaves `s * 2^b .. (s + 1) * 2^b` (`LeanSphincsSecretKey::keeps`,
+`scheme.rs`). -/
 def Landed (parameter : PublicParameter) (index : Index) : Prop :=
   index.val / 2 ^ subtreeHeight = subtreePosition parameter
 
@@ -717,7 +719,7 @@ def surrogate (parameter : PublicParameter) (seed : MasterSeed) (level : Nat) : 
   if hlevel : level < totalHeight then deriveKey parameter (.surrogate ⟨level, hlevel⟩) seed else pure 0
 
 /-- The node at level `b + steps` above the kept subtree: the subtree root folded with the first
-`steps` surrogates (`XmssTree::from_leaves`). -/
+`steps` surrogates (the surrogate fold of `key_gen_from_seed`, `scheme.rs`). -/
 def spineNode (parameter : PublicParameter) (seed : MasterSeed) : Nat → m Digest
   | 0 => treeNode parameter seed subtreeHeight (subtreePosition parameter)
   | steps + 1 => do
@@ -735,7 +737,7 @@ def spineNode (parameter : PublicParameter) (seed : MasterSeed) : Nat → m Dige
 def treeRoot (parameter : PublicParameter) (seed : MasterSeed) : m Digest :=
   spineNode parameter seed (totalHeight - subtreeHeight)
 
-/-- The authentication path of a kept leaf (`XmssTree::path`): subtree nodes below level `b`,
+/-- The authentication path of a kept leaf (`LeanSphincsSecretKey::path`, `scheme.rs`): subtree nodes below level `b`,
 surrogates from level `b` on. -/
 def treePath (parameter : PublicParameter) (seed : MasterSeed) (leaf : Index) :
     m (Fin totalHeight → Digest) :=
@@ -758,7 +760,8 @@ def keygenFromSeed (seed : MasterSeed) : OracleComp HashSpec (PublicKey × Secre
   let master ← schemeSeed seed
   keygenFromMaster master
 
-/-- One grinding attempt: the leaf index of the digest call (`digest_index`). -/
+/-- One grinding attempt: the leaf index of the digest call (the `find_map` of `sign`,
+`scheme.rs`). -/
 def signAttempt (secretKey : SecretKey) (message : Message) (randomness : Randomness) :
     m (Option Index) := do
   let first ← messageDigestCall secretKey.parameter secretKey.root message randomness

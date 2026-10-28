@@ -77,7 +77,7 @@ abbrev GuestCompleteRecursion : Prop :=
     (w.children.map fun c ↦ c.statement.claims.xmss.length + c.statement.claims.sphincs.length +
       c.statement.claims.da.length).sum ≤ 2048 →
     ∃ t : Trace guest,
-      ValidExecution guest (EndToEnd.Front.publicInputOfDigest (statementDigest seed s)) t ∧
+      ValidExecution guest (PublicInput.ofDigest (statementDigest seed s)) t ∧
       2 ^ 22 ≤ t.committedSize ∧ t.committedSize ≤ 2 ^ 28
 
 /-- **Every leaf of at most `2048` raw signatures has a valid execution of the leanISA guest
@@ -95,7 +95,7 @@ abbrev GuestCompleteLeaf : Prop :=
     s.claims.xmss.length + s.claims.sphincs.length + s.claims.da.length ≤ 2048 →
     coverage s w ≤ 2048 →
     ∃ t : Trace guest,
-      ValidExecution guest (EndToEnd.Front.publicInputOfDigest (statementDigest seed s)) t ∧
+      ValidExecution guest (PublicInput.ofDigest (statementDigest seed s)) t ∧
       2 ^ 22 ≤ t.committedSize ∧ t.committedSize ≤ 2 ^ 28
 
 end LeanVM.Guest.Budget

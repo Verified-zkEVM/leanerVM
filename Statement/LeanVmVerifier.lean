@@ -162,11 +162,8 @@ end LeanVM.Parameters.Whir
 
 The Python verifier touches the proof through five operations of its `Transcript`
 (`verifier.py:336-458`), and computes everything else from their results; `Prog α` is the free
-monad over them. A verifier written in it has two readings, one program: the *compiled* reading
-(`run`, `runProof`), the deployed non-interactive verifier, the challenges squeezed out of a duplex
-sponge and the rows authenticated by Merkle paths; and the *interactive-oracle* reading, a
-public-coin protocol in which the prover sends field elements and whole matrices, which the
-soundness proof works with (outside this file).
+monad over them, run (`run`, `runProof`) as the deployed non-interactive verifier: the challenges
+squeezed out of a duplex sponge and the rows authenticated by Merkle paths.
 
 The sponge is the Rust's (`crates/verifier/src/transcript.rs:34-91`, `Sponge`; the prover's
 `crates/fiat_shamir/src/lib.rs`): a duplex over Keccak-f[1600] in overwrite mode, the rate lanes
@@ -469,10 +466,11 @@ def eToNat (e : E) : ℕ :=
   kToNat (e.limb 0) + 2 ^ 64 * kToNat (e.limb 1) + 2 ^ 128 * kToNat (e.limb 2)
 
 /-- `GEN = E(2)`, the generator `x` whose powers index the bytecode and the memory
-(`verifier.py:181`). -/
+(`verifier.py:181`): `Field.lean`'s `g` in limb `0`. -/
 def gen : E := eOfNat 2
 
-/-- `_gpow(index) = GEN ** index` (`verifier.py:723-724`). -/
+/-- `_gpow(index) = GEN ** index` (`verifier.py:723-724`): `Parameters.gpow index`, the same
+power in `K`, in limb `0`; where both are open, the expected type selects one. -/
 def gpow (index : ℕ) : E := gen ^ index
 
 /-- `E.sum(values)`: the sum from `ZERO`, left to right (`verifier.py:120-122`). -/

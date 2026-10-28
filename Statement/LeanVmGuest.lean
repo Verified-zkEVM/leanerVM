@@ -33,7 +33,9 @@ rather than evaluates (`NodeStatement`). Its public input is the statement's dig
 the guest program's Fiat-Shamir IV (`statementDigest`). A node holds every claim either directly, by
 a leanXMSS or leanSPHINCS signature or a blob matrix, or through a child that makes the same claim.
 A child is a statement under the same seed and a proof that the deferring verifier accepts for it
-(`LeanVM.Protocol.Verifier.verifyDeferred`, the guest program's `verify_sub`). The node batches the
+(`LeanVM.Protocol.Verifier.verifyDeferred`, the guest program's `verify_sub`), which reads only the
+bytecode's length: the bytecode's value at the child's point is taken from the witness (`fresh`)
+and checked only at the root, in the batched claim. The node batches the
 claims that its children's proofs make of the bytecode, with those its children's statements defer,
 into its own deferred claim (`batch`).
 
@@ -43,10 +45,9 @@ since "some signature verifies" says little (some signature verifies for almost 
 message). The soundness statements take the decoder that reads the witness as a parameter: the end
 theorems name `LeanVM.Guest.End.decode` (`lean_vm`), which reads every component off the memory and
 chooses nothing; they hold of any decoder that outputs valid witnesses, and their content is in the
-decoder they name. That the root's statement makes every claim held at the leaves is a separate
-argument, conditional on a heuristic: a child's proof is sound only if Keccak, computed inside
-the guest program, behaves as Keccak-256 and Keccak-f[1600] built from the random permutation of
-`LeanVM.KnowledgeSoundness`.
+decoder they name. That the root's statement makes every claim held at the leaves is not proved:
+it would need Keccak, computed inside the guest program, to behave as Keccak-256 and Keccak-f[1600]
+built from the random permutation of `LeanVM.KnowledgeSoundness`.
 -/
 
 @[expose] public section
@@ -401,7 +402,8 @@ def DaHeld (children : List Child) (claim : DaClaim) : Holder Da.Witness → Pro
 `bytecode` and under the seed `seed`:
 * every deferred claim, the node's and its children's, has the bytecode's shape;
 * the deferring verifier accepts every child's proof, for the child's statement under the same
-  seed;
+  seed, the bytecode's value at the child's point taken from the witness (`fresh`; checked only at
+  the root, in the batched claim);
 * every claim of `s` is held;
 * `s` defers the batching of the children's claims on the bytecode, and a node without children
   the bytecode at zero. -/
@@ -468,8 +470,8 @@ abbrev Decoder : Type := ∀ {κ : ℕ}, MemImage κ → Decoded
 /-- **What a valid execution of `guest` on `input` contains**, as `d` reads it off the memory: a
 seed and a node statement whose digest under that seed is the input's digest (the statement the
 input commits to), and a witness proving that statement (`NodeRel`: each of its claims is held, by
-a signature, a blob or a child whose proof is accepted, and its deferred claim is the batching of
-its children's). -/
+a signature, a blob or a child whose proof the deferring verifier accepts, and its deferred claim is
+the batching of its children's). -/
 def DecodesOn (guest : Program) (input : PublicInput) (d : Decoded) : Prop :=
   statementDigest d.seed d.statement = publicDigest input ∧
     NodeRel (bytecodeWords guest) d.seed d.statement d.witness
@@ -492,7 +494,7 @@ open LeanVM.Protocol.Compile LeanVM.Protocol.Verifier LeanVM.Node
 /-- The leanISA guest program's bytecode. -/
 def guest : Program := assemble Data.functions 19 (by decide)
 
-/-! ## The honest streams' plan, which the limits read -/
+/-! ## Coverage slots (read by `Limits`, `Covered`) -/
 
 namespace Hints
 
@@ -751,7 +753,7 @@ def CapsAgree (bytecode : List K) (seed : Digest) (w : NodeWitness) : Prop :=
 
 open Hints in
 /-- The coverage table's slots (`n_total`, G:4135): each region's declared claims and its
-duplicates, as `honestPushes` plans them. -/
+duplicates, as `plan` assigns them. -/
 def coverage (s : NodeStatement) (w : NodeWitness) : ℕ :=
   let ch := w.children
   s.claims.xmss.length + (plan s.claims.xmss ((direct s.claims.xmss w.xmss).map (·.1))
@@ -762,21 +764,21 @@ def coverage (s : NodeStatement) (w : NodeWitness) : ℕ :=
       (ch.map (·.statement.claims.da))).dups.length
 
 open Hints in
-/-- **The deployed limits** (the triage's findings), where `NodeRel` admits witnesses the guest
+/-- **The deployed limits**, where `NodeRel` admits witnesses the guest
 program cannot run. Implied by these, with `NodeRel`, and so not limits of their own: a child's
 stack log at most `28` and rate in `[1, 4]` (`readSizes`), the duplicate DA slots below `258`
 (G:4127-4129), every count of `meta` below `2^16` (G:4114-4119), the bus depth at most `32`
 (G:1630), the tables' heights at most `28` (G:2010). -/
 structure Limits (bytecode : List K) (s : NodeStatement) (w : NodeWitness) : Prop where
-  /-- 1. A child's stack log is at least `MU_MIN = 22`: the guest program has one opening arm per
-  stack log in `[22, 28]` (G:3314-3316); the Spec admits `15`. -/
+  /-- A child's stack log is at least `MU_MIN = 22`: the guest program has one opening arm per
+  stack log in `[22, 28]` (G:3314-3316); the verifier admits stack logs from `minStackedLog`. -/
   stackLog : ∀ c ∈ w.children, ∀ layout r, announced bytecode c.proof.stream = some (layout, r) →
     muMin ≤ layout.stackLog
-  /-- 2. A child's proof stream is at most `STREAM_CAP = 8192` scalars (G:3165). -/
+  /-- A child's proof stream is at most `STREAM_CAP = 8192` scalars (G:3165). -/
   stream : ∀ c ∈ w.children, c.proof.stream.length ≤ streamCap
-  /-- 3. At most one DA claim is held directly (G:4121). -/
+  /-- At most one DA claim is held directly (G:4121). -/
   directDa : (direct s.claims.da w.da).length ≤ 1
-  /-- 4. A claim declared `n` times is held `n` times, by witnesses or by distinct entries of the
+  /-- A claim declared `n` times is held `n` times, by witnesses or by distinct entries of the
   children's lists: each coverage slot is written once (G:3871-3872, 4080-4081, 4262), where
   `NodeRel` lets two equal claims share one holder. -/
   xmssHeld : ∀ x, s.claims.xmss.count x ≤ ((direct s.claims.xmss w.xmss).map (·.1)).count x +
@@ -785,17 +787,17 @@ structure Limits (bytecode : List K) (s : NodeStatement) (w : NodeWitness) : Pro
     (w.children.map fun c ↦ c.statement.claims.sphincs.count x).sum
   daHeld : ∀ x, s.claims.da.count x ≤ ((direct s.claims.da w.da).map (·.1)).count x +
     (w.children.map fun c ↦ c.statement.claims.da.count x).sum
-  /-- 5. At most `MAX_RECURSIONS = 16` children (G:4120). -/
+  /-- At most `MAX_RECURSIONS = 16` children (G:4120). -/
   children : w.children.length ≤ 16
-  /-- 5. At most `MAX_DA_ROOTS = 16` DA claims in the statement and in each child (G:4126,
+  /-- At most `MAX_DA_ROOTS = 16` DA claims in the statement and in each child (G:4126,
   4246). -/
   daRoots : s.claims.da.length ≤ 16 ∧ ∀ c ∈ w.children, c.statement.claims.da.length ≤ 16
-  /-- 5. Every child's signature list below `2^16` (G:4233-4234). -/
+  /-- Every child's signature list below `2^16` (G:4233-4234). -/
   lists : ∀ c ∈ w.children, c.statement.claims.xmss.length < 2 ^ 16 ∧
     c.statement.claims.sphincs.length < 2 ^ 16
-  /-- 5. The coverage table below `2^16` (G:4135-4136). -/
+  /-- The coverage table below `2^16` (G:4135-4136). -/
   coverage : coverage s w < 2 ^ 16
-  /-- 6. At least one declared claim (G:4174). -/
+  /-- At least one declared claim (G:4174). -/
   nonempty : 0 < s.claims.xmss.length + s.claims.sphincs.length + s.claims.da.length
 
 /-! ## The leanISA guest program's completeness on the covered nodes -/
@@ -838,7 +840,7 @@ abbrev GuestCompleteCovered : Prop :=
     CapsAgree (bytecodeWords guest) seed w → NoZeroChallenge (bytecodeWords guest) seed w →
     Covered s w →
     ∃ t : Trace guest,
-      ValidExecution guest (EndToEnd.Front.publicInputOfDigest (statementDigest seed s)) t ∧
+      ValidExecution guest (PublicInput.ofDigest (statementDigest seed s)) t ∧
       2 ^ 22 ≤ t.committedSize ∧ t.committedSize ≤ 2 ^ 28
 
 /-! ### Honest proofs are children the guest program accepts
@@ -902,7 +904,7 @@ def GuestChildComplete : Prop :=
       (2 : ℝ≥0∞)⁻¹ ^ 126) ∧
   ∀ (s : NodeStatement) (t : Trace guest) (ρ : ℕ), 2 ^ 22 ≤ t.committedSize →
     s.defer.Shaped (bytecodeWords guest) →
-    let input := EndToEnd.Front.publicInputOfDigest (statementDigest (deployedSeed guest) s)
+    let input := PublicInput.ofDigest (statementDigest (deployedSeed guest) s)
     let proof := atKeccak LeanVM.prover guest input t ρ (2 ^ 25)
     verifierNZ (m := Id) keccak256 keccakF guest input proof = true →
     ∃ fresh, ChildOk (bytecodeWords guest) (deployedSeed guest) ⟨s, fresh, proof⟩

@@ -29,7 +29,7 @@ followed by a return (`publicInputPhase_eq`).
 **The fidelity check.** On the leanISA instance no public line is sent (`unsentLines`): the ArkLib
 phase (`publicInputPhase`) reads an empty message and pools, for every line, the value it computes
 from the statement, the line through its two cells. When the instance's statement is the digest's
-(`digestScalars publicInput = (input.word0, input.word1)`, `publicInputOfDigest`), those values
+(`digestScalars publicInput = (input.word0, input.word1)`, `PublicInput.ofDigest`), those values
 are the program's limbs (`lineValue_eq_pubLimb`): the program's three claims are the phase's three
 line claims (`lineClaim_eq`). No mismatch.
 
@@ -107,7 +107,7 @@ theorem pubLimb_eq (publicInput : Digest) (r : E) (ℓ : Fin 3) :
 
 /-- The digest's halves are the two public words of its public input. -/
 theorem digestScalars_eq_words (d : Digest) :
-    digestScalars d = ((publicInputOfDigest d).word0, (publicInputOfDigest d).word1) := rfl
+    digestScalars d = ((PublicInput.ofDigest d).word0, (PublicInput.ofDigest d).word1) := rfl
 
 /-! ## The fidelity of the claims -/
 

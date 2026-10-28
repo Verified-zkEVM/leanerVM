@@ -294,7 +294,7 @@ noncomputable def normW (j : Fin 14) : K[X] :=
   AdditiveNTT.normalizedW (ZMod 2) basis (Fin.castLE (by omega) j)
 
 /-- **The dual codeword of challenges `z`** (`dual_codeword`): `L(x) = ∏_j (1 + z_j Ŵ_j(x))` on
-the domain, the encoding of `tensor z` (`dual_eq_encode_tensor`). -/
+the domain, the encoding of `tensor z` (`lean_da`'s `dual_eq_sum`). -/
 noncomputable def dual (z : Fin 14 → E) (b : Fin (2 ^ 15)) : E :=
   ∏ j : Fin 14, (1 + z j * ι ((normW j).eval (point b)))
 

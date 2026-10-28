@@ -85,7 +85,7 @@ theorem guestChildComplete_of_spec (A : HonestProver) (hA : SpecOnValid A ChildF
         (2 : ℝ≥0∞)⁻¹ ^ 126) ∧
     ∀ (s : NodeStatement) (t : Trace Guest.guest) (ρ : ℕ), 2 ^ 22 ≤ t.committedSize →
       s.defer.Shaped (bytecodeWords Guest.guest) →
-      let input := EndToEnd.Front.publicInputOfDigest (statementDigest (deployedSeed Guest.guest) s)
+      let input := PublicInput.ofDigest (statementDigest (deployedSeed Guest.guest) s)
       let proof := Guest.Budget.atKeccak A Guest.guest input t ρ (2 ^ 25)
       Guest.Budget.verifierNZ (m := Id) keccak256 keccakF Guest.guest input proof = true →
       ∃ fresh, Guest.Budget.ChildOk (bytecodeWords Guest.guest) (deployedSeed Guest.guest)

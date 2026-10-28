@@ -11,71 +11,45 @@ public import VCVio.EvalDist.ProbabilityNotation
 # leanVM: knowledge soundness and completeness
 
 A statement (a program and a public input), the verifier on it, and the end statements in the
-random-permutation model, `LeanVM.KnowledgeSoundness` and `LeanVM.Completeness`, proved by
-`LeanVM.knowledgeSoundness_holds` and `completeness_holds` (`LeanVM/Protocol/LeanVMRpm.lean`;
-`lean_vm/README.md` says how they reach this model).
+random-permutation model (`RandomPermutation.lean`), `LeanVM.KnowledgeSoundness` and
+`LeanVM.Completeness`, proved by `LeanVM.knowledgeSoundness_holds` and `completeness_holds`
+(`lean_vm/README.md` says how they reach this model).
 
-The verifier receives a statement as the program's bytecode and the public input's digest, and a
-proof. It is written for any hash function `H` and permutation `F` in any monad (`verifier H F`).
-It and the honest prover call Keccak-256 and Keccak-f[1600] as oracle queries (`HashSpec`), which
-the random-permutation model answers: one uniformly random permutation `π` of the Keccak state,
-queried forward and inverse, Keccak-256 the sponge over `π` and Keccak-f[1600] `π` itself.
-
-* **The permutation** is `Common.lazyPerm`, the lazily sampled uniform permutation
-  (`RandomPermutation.lean`): its state is the list of edges `(x, π x)` fixed so far (`PermLog`);
-  a fresh forward query draws `π x` uniformly among the states that are not yet the output of an
-  edge, a fresh inverse query `π⁻¹ y` uniformly among the states that are not yet the input of
-  an edge.
-* **Keccak-256** (`keccak256With π`, `RandomPermutation.lean`) is `keccak_hash`
-  (`verifier.py:191-209`) with `π` in place of Keccak-f[1600]: the sponge of rate 136 bytes and
-  capacity 512 bits, the padding `0x01 ‖ 0^* ‖ 0x80`, the zero initial state, the first four lanes
-  as the digest.
-* **The adversary** (`RpmAdversary`) queries `π` and `π⁻¹` and flips private coins, and outputs a
-  statement and a proof; a Keccak-256 evaluation is a sequence of forward queries, which it makes
-  itself. Every query to `π` and `π⁻¹` and its answer is recorded, in order (`Transcript`,
-  `loggedPerm`); its coins are neither recorded nor counted (`permQueries`).
-* **The experiment** (`rpmExperiment`): the adversary against the lazily sampled permutation from
-  no edge, then the verifier on its statement and proof against the same permutation.
+The verifier (`verifier H F`, for any hash function `H` and permutation `F` in any monad) and the
+honest prover call Keccak-256 and Keccak-f[1600] as oracle queries (`HashSpec`), which the model
+answers (`rpmImpl`): Keccak-256 the sponge over the lazily sampled permutation `π`
+(`keccak256With`, `Common.lazyPerm`), Keccak-f[1600] `π` itself. The adversary (`RpmAdversary`)
+flips private coins and queries `π` and `π⁻¹`, every query and its answer recorded, in order
+(`Transcript`), its coins neither recorded nor counted (`permQueries`); a Keccak-256 evaluation is
+a sequence of forward queries, which it makes itself. The experiment (`rpmExperiment`) runs it from
+no edge, then the verifier on its statement and proof against the same permutation.
 
 **Knowledge soundness** is stated for one extractor, `extractorRpm`, which is straight-line: it
-reads the proof and the adversary's transcript, and nothing else (it neither queries `π` nor
-rewinds the adversary). It is `Extractor.lean`'s `extract` on the Keccak-256 evaluations the
-transcript contains: a byte string `m` has digest `d` when the transcript holds the whole padded
-sponge path of `m`, a chain of forward queries from the zero state, each one absorbing the next
-block into the answer of the one before and each the query that first fixed its edge (an edge
-first fixed by an inverse query extends no path), as the indifferentiability simulator books it
-(`transcriptPaths`); `d` is the first four lanes of the path's last answer. An accepted proof thus commits, except with the bound's probability, to a stack whose
-memory columns hold a valid execution, among the at most `2^18` stacks the word the adversary
-hashed is close to (proved for every admissible shape and word: `LeanVM.candidates_ncard_le`).
-The extractor is deterministic and computable, with running time polynomial in the announced
-committed size `2^μ` and the number of evaluations, not in the proof's size, and infeasible at
-deployed sizes; its cost (`Extractor.lean`) is read off its loops, not proved.
+reads the statement, the proof and the adversary's transcript, and nothing else (it neither queries
+`π` nor rewinds the adversary). It is `Extractor.lean`'s `extract` on the Keccak-256 evaluations the
+transcript holds (`transcriptPaths`). An accepted proof thus commits, except with the bound's
+probability, to a stack whose memory columns hold a valid execution, among the at most `2^18` stacks
+the word the adversary hashed is close to (proved for every admissible shape and word:
+`LeanVM.candidates_ncard_le`).
 
 **Completeness** is stated for one honest prover, `prover`: `LeanVM.Prover.prove`
 (`Statement/Prover/Prove.lean`) with the oracle calls, an executable program (with Keccak-256 and
-Keccak-f[1600] it is `lake exe leanvm-prove`). Given a valid execution whose committed size is at
-most `2^28`, the most the verifier admits, at an inverse rate `2^ρ` with `1 ≤ ρ ≤ 4`, trying
-`2^25` nonces per proof of work, its proof is rejected with probability at most `2^-256`. The
-prover's definitions are in `Statement/Prover/`, which a reviewer need not read line by line: it
-is proved to make the moves of the honest prover the completeness proof follows; a reviewer only
-checks that it is a genuine prover (it computes from the execution, its only search is the nonce
-search within the fuel, and it branches on no hash or permutation answer other than through the
-challenges the verifier's program samples).
+Keccak-f[1600] it is `lake exe leanvm-prove`; `Statement/README.md` says what a reviewer checks of
+it). Given a valid execution whose committed size is at most `2^28`, the most the verifier admits,
+at an inverse rate `2^ρ` with `1 ≤ ρ ≤ 4`, trying `2^25` nonces per proof of work, its proof is
+rejected with probability at most `2^-256`.
 
 **Scope and trust.**
 
-* The permutation is uniformly random; the deployed Keccak-f[1600] is a fixed permutation, and
-  that it behaves as a random one is the assumption of this model. Inside the executed program the
-  `KECCAK` instruction computes the deployed Keccak-f[1600], not `π`.
+* The deployed Keccak-f[1600] is a fixed permutation; that it behaves as a random one is the
+  assumption of this model. Inside the executed program the `KECCAK` instruction computes the
+  deployed Keccak-f[1600], not `π`.
 * A proof is the Python verifier's format: the scalar stream and one full Merkle path per query.
   The Rust prover ships pruned paths, which the deployed Rust verifier expands into these paths;
   that expansion is not formalized.
 * That `verifier` is the Python and Rust verifiers is test evidence: it is a transcription of the
   Python, it accepts the Rust prover's proofs, and on mutated proofs it gives the Rust verifier's
   verdict every time (`scripts/fuzz-verifier.py`).
-* The definitions rest on Mathlib, CompPoly (the fields), VCVio (oracle computations, query
-  bounds) and the statement's own files; the model's definitions (namespace `Common`) are
-  `RandomPermutation.lean`'s, and the proof project `common` proves about them.
 -/
 
 @[expose] public section
@@ -140,8 +114,8 @@ every committed column at its table's height, the least power of two holding the
 one of `2^logSize` rows. Each opcode has a table of one row per instruction of that opcode the
 execution executes (`Trace.count`), with `15, 15, 8, 15, 14, 26` committed columns for `XOR`,
 `MUL_NATIVE`, `SET_CONSTANT`, `DEREF`, `JUMP`, `KECCAK` (of the `KECCAK` table's `90` columns, the
-fifty value lanes are committed in `q_keccak`, or not at all, and fourteen more in `q_keccak`'s
-spare slots); and `q_keccak` has `2^6` rows per row of the `KECCAK` table. -/
+`25` input lanes and `14` more ride `q_keccak`'s slots and the `25` output lanes are not committed,
+`verifier.py:931-953`); and `q_keccak` has `2^6` rows per row of the `KECCAK` table. -/
 noncomputable def Semantics.Trace.committedSize {prog : Program} (t : Trace prog) : ℕ :=
   let height (op : Opcode) : ℕ := 2 ^ Nat.clog 2 (t.count op)
   let keccakHeight : ℕ := 2 ^ max (Nat.clog 2 (t.count .keccak)) 9
@@ -251,8 +225,8 @@ def Replay.step (σ : Replay) : Common.PermQuery KState × KState → Replay
 /-- **The Keccak-256 evaluations a transcript holds**: the byte strings whose whole padded sponge
 path the transcript (oldest first) holds as a chain of forward queries from the zero state, each
 query absorbing the next block into the answer of the one before and each the query that first
-fixed its edge, with the first four lanes of the path's last answer (the indifferentiability
-simulator's bookkeeping, replayed). -/
+fixed its edge (an edge first fixed by an inverse query extends no path), with the first four lanes
+of the path's last answer. -/
 def transcriptPaths (T : Transcript) : List (Bytes × Digest) :=
   (T.foldl Replay.step ⟨[], [(Vector.replicate 25 0, [])]⟩).chains.filterMap fun p ↦
     (unpad p.2).map fun m ↦ (m, #v[p.1[0], p.1[1], p.1[2], p.1[3]])
@@ -320,12 +294,6 @@ noncomputable def Rpm.rpmRun {α β : Type} (A : OracleComp (unifSpec + PermSpec
   let (z, perms, _) ← (simulateQ loggedPerm A).run ([], [])
   let v ← (simulateQ rpmImpl (V z)).run' perms
   return (z, v)
-
-/-- The public input a digest gives the instance: its four `u64` lanes as `K` words, the memory's
-first two words being the digest's halves (`Digest.halves`, `verifier.py:225-228`;
-`public_input_bytes`, `crates/leanvm_core/src/cpu/mod.rs:723-730`). -/
-def Protocol.EndToEnd.Front.publicInputOfDigest (d : Digest) : PublicInput :=
-  ⟨![K.ofLane d[0], K.ofLane d[1], K.ofLane d[2], K.ofLane d[3]]⟩
 
 end LeanVM
 

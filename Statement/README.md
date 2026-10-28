@@ -67,7 +67,8 @@ Benedikt Wagner's ([b-wagn/fv-pq-da](https://github.com/b-wagn/fv-pq-da), Apache
 6. [`LeanIsa.lean`](LeanIsa.lean): leanISA (memory, the six instructions, programs, one step, `run`,
    `ValidExecution`: a run from the initial state `(pcInitial, fpInitial)` that halts in the final
    state `(pcFinal, fpFinal)`, the instruction counts `Trace.count`, the bytecode encoding, the
-   bytecode table the verifier reads, `bytecodeWords`, and the public input's digest, `publicDigest`), and a
+   bytecode table the verifier reads, `bytecodeWords`, and the public input's digest, `publicDigest`, with
+   its inverse, `PublicInput.ofDigest`), and a
    program assembled from compiled functions (`CompiledFn`, `assemble`).
 7. [`LeanVmVerifier.lean`](LeanVmVerifier.lean): the verifier, `python-verifier/verifier.py`
    transcribed section by section, for any hash function and permutation in any monad
@@ -90,8 +91,7 @@ Benedikt Wagner's ([b-wagn/fv-pq-da](https://github.com/b-wagn/fv-pq-da), Apache
    coins, `RpmAdversary`, its queries to `π` and `π⁻¹` counted by `permQueries`, its `Transcript`;
    `rpmRun`, the same with any computation in place of the verifier), the extractor on the
    transcript (`extractorRpm`, on the Keccak-256 evaluations the transcript holds,
-   `transcriptPaths`), **`LeanVM.KnowledgeSoundness`, `LeanVM.Completeness`**, and a digest as a
-   public input (`publicInputOfDigest`).
+   `transcriptPaths`), **`LeanVM.KnowledgeSoundness`, `LeanVM.Completeness`**.
 10. [`LeanVmGuest.lean`](LeanVmGuest.lean): the leanISA guest program's specification (aggregation):
     DA claims, a node's statement, its digest (Keccak-256 of a preimage), witness and relation
     (`NodeRel`: leanXMSS and leanSPHINCS claims, DA claims, children verified by the deferring

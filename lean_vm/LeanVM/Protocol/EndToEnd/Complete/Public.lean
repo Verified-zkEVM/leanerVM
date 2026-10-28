@@ -30,7 +30,7 @@ leanVM `4af2cdddd7cd41b9df2cc7e123e314a91b0b4462`): sample `r`, and claim of mem
 * `publicDigest input`: the digest of a public input, its four lanes as `u64` words, so that its
   two halves are the public input's two memory words
   (`digestScalars_publicDigest`); the inverse of the soundness side's reading
-  `Front.publicInputOfDigest`.
+  `PublicInput.ofDigest`.
 * `hPub`: the honest prover receives `r` and sends nothing; it returns the claims at the
   extensions of the three memory limbs at `(r, 0, …, 0)`, the lines through their cells `0, 1`
   (`PublicInput.eval₂Mle_linePoint`).

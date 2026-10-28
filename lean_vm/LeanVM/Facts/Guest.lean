@@ -33,8 +33,8 @@ namespace End
 abbrev bytecode : List K := bytecodeWords guest
 
 /-- The public input a digest is: its four words, the digest's halves in memory words `0` and `1`
-(`Front.publicInputOfDigest`). -/
-abbrev publicInputOf (d : Digest) : PublicInput := EndToEnd.Front.publicInputOfDigest d
+(`PublicInput.ofDigest`). -/
+abbrev publicInputOf (d : Digest) : PublicInput := PublicInput.ofDigest d
 
 /-- **A node's work**: what the size of its run grows with. -/
 structure Work where

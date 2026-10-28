@@ -396,6 +396,10 @@ def bytecodeWords (prog : Program) : List K :=
 def publicDigest (input : PublicInput) : Digest :=
   #v[(input.lanes 0).lane, (input.lanes 1).lane, (input.lanes 2).lane, (input.lanes 3).lane]
 
+/-- The public input whose digest is `d` (`publicDigest`'s inverse): its four lanes as `K` words. -/
+def Semantics.PublicInput.ofDigest (d : Digest) : PublicInput :=
+  ⟨![K.ofLane d[0], K.ofLane d[1], K.ofLane d[2], K.ofLane d[3]]⟩
+
 end LeanVM
 
 namespace LeanVM.Guest
