@@ -9,6 +9,7 @@ module
 public import LeanVM.Guest.B1.Main.AggSqueeze
 public import LeanVM.Guest.Value.KeccakConst
 public import LeanVM.Guest.B1.Main.Body
+public import LeanVM.Guest.Batch.Def
 
 /-!
 # `aggregate_claims`' body

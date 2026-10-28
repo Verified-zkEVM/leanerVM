@@ -9,6 +9,7 @@ module
 
 public import LeanVM.Guest.B1.Main.AggBody
 public import LeanVM.Guest.B1.Sumcheck.Batch
+public import LeanVM.Guest.Batch.Def
 
 /-!
 # `aggregate_claims` (TRIAGE G #97)

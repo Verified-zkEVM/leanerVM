@@ -24,7 +24,7 @@ program's query bound, each query at most `2^32` permutation calls. `batch_rpm_b
 `QA + QV ≤ 2^64`, at most `(QA + QV) · 2^-188`. `batch_bound_le`: for `QA ≤ 2^128` and
 `QV ≤ 2^96`, at most `(QA + QV + 1) · 2^-191 + 5 (QA + QV)² · 2^-256`; `batch_sound_holds` is it as
 the end statement `BatchSound` of `Statement/LeanVmGuest.lean` states it: the verifier written out
-(`batchVerifier`, the seeding `F(H(label) ‖ 0)` then the program).
+(`batchRun`, the seeding `F(H(label) ‖ 0)` then the program).
 
 The proof is `Rpm.detRun_le_rom` with `batch_rom` (and, for an adversary with coins, first
 `Rpm.rpmRun_le_det`, `Coins.lean`): the program follows the duplex discipline (its
@@ -230,19 +230,19 @@ theorem batch_bound_le {QA QV : ℕ} (hQA : QA ≤ 2 ^ 128) (hQV : QV ≤ 2 ^ 96
 
 /-- The batching's statement family run on a proof is the batching's verifier
 (`Statement/LeanVmGuest.lean`) with the oracle calls. -/
-theorem verifierFam_eq_batchVerifier (M : ℕ) (bytecode : List K) :
+theorem verifierFam_eq_batchRun (M : ℕ) (bytecode : List K) :
     verifierFam batchSeeds (batchAny M bytecode) =
-      fun z ↦ batchVerifier queryH queryF M bytecode z.2 := by
+      fun z ↦ batchRun queryH queryF (batchAny M bytecode) z.2 := by
   funext z
   rw [verifierFam_batch]
-  simp only [verifierComp, Rom.verify, Seed.run, batchSeedOf, Seed.hsRun, batchVerifier,
+  simp only [verifierComp, Rom.verify, Seed.run, batchSeedOf, Seed.hsRun, batchRun,
     bind_assoc, pure_bind, List.nil_append, List.getD_cons_zero]
 
 /-- **`BatchSound`** (`Statement/LeanVmGuest.lean`): the adversary's coins do not help
 (`rpmRun_le_det`), then `batch_rpm` and `batch_bound_le`. -/
 theorem batch_sound_holds : BatchSound := by
   intro M bytecode hb hM B QA hB hQA hQV
-  rw [← verifierFam_eq_batchVerifier]
+  rw [← verifierFam_eq_batchRun]
   obtain ⟨A, hA, hle⟩ := rpmRun_le_det hB (verifierFam batchSeeds (batchAny M bytecode))
     (fun z ↦ z.2 = true ∧ FalseChildren bytecode M z.1.2)
   exact hle.trans ((batch_rpm hb hM A QA hA).trans (batch_bound_le hQA hQV))

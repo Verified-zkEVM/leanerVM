@@ -37,13 +37,6 @@ open LeanVM.Protocol.Compile LeanVM.Protocol.Verifier LeanVM.Node
 
 @[expose] public section
 
-/-! ## The stream -/
-
-/-- The prover's stream of a batching: the count's and the children's cells, the rounds'
-messages, the final value. -/
-def batchStream (cs : List ChildClaims) (h : BatchHints) : List E :=
-  batchWords cs ++ h.bytecodeRounds.flatMap (fun g ↦ [g.1, g.2]) ++ [h.bytecodeValue]
-
 /-! ## The cells -/
 
 theorem padRate_eq (ws : List E) : padRate ws = ws ++ List.replicate (padLen ws.length) 0 := rfl

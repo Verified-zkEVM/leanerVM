@@ -130,7 +130,7 @@ theorem after_readCount {M n : ℕ} (hM : M ≤ 2 ^ 64 - 1) (hn : n < M) :
 theorem after_batchAny {M : ℕ} (hM : M ≤ 2 ^ 64 - 1) {bytecode : List K} {cs : List ChildClaims}
     (hn : cs.length < M) (hs : ∀ c ∈ cs, ChildShaped bytecode c) (l : List Ev) :
     (batchAny M bytecode).after ((batchWords cs).map Ev.read ++ l) =
-      (batchRest bytecode cs).after l := by
+      (batchRest (DeferredClaim.Holds bytecode) bytecode cs).after l := by
   rw [batchWords, List.map_append, List.append_assoc]
   exact (Prog.after_bind_append _ (after_readCount hM hn) _).trans
     (Prog.after_bind_append _ (after_readChildren hs) l)
@@ -189,7 +189,7 @@ theorem movesOK_require (q : Prop) (inst : Decidable q) :
   MovesOK.require q
 
 theorem movesOK_batchRest (bytecode : List K) (cs : List ChildClaims) :
-    MovesOK (· ≤ 64) False (batchRest bytecode cs) := by
+    MovesOK (· ≤ 64) False (batchRest (DeferredClaim.Holds bytecode) bytecode cs) := by
   unfold batchRest
   refine MovesOK.seq (movesOK_sampleL _) fun _ ↦ ?_
   refine MovesOK.seq (movesOK_roundsProg _ _) fun _ ↦ ?_
@@ -219,11 +219,11 @@ def hist (p : BatchPre M bytecode) : List Ev := (batchWords p.cs).map Ev.read
 
 /-- The certificate of the batching after a prefix's children: `restSpec`'s. -/
 noncomputable def cert (hb : bytecode.length = 2 ^ Nat.log2 bytecode.length)
-    (p : BatchPre M bytecode) : Cert (batchRest bytecode p.cs) :=
+    (p : BatchPre M bytecode) : Cert (batchRest (DeferredClaim.Holds bytecode) bytecode p.cs) :=
   (restSpec hb p.shaped p.gap).toCertOfLead
 
 theorem after_hist (hM : M ≤ 2 ^ 64 - 1) (p : BatchPre M bytecode) :
-    (batchAny M bytecode).after p.hist = some (batchRest bytecode p.cs) := by
+    (batchAny M bytecode).after p.hist = some (batchRest (DeferredClaim.Holds bytecode) bytecode p.cs) := by
   rw [hist, ← List.append_nil (List.map _ _), after_batchAny hM p.lt p.shaped]
   simp [Prog.after]
 
@@ -346,7 +346,7 @@ theorem batchCert_bound (hM : M ≤ 2 ^ 64 - 1) (h : List Ev) :
   · obtain ⟨p, h', rfl⟩ := hx
     show _ * batchCertε hb _ ≤ _
     rw [batchCertε_eq hb hM, p.grindBits_hist]
-    by_cases hr : (batchRest bytecode p.cs).Reachable h'
+    by_cases hr : (batchRest (DeferredClaim.Holds bytecode) bytecode p.cs).Reachable h'
     · rw [min_eq_left ((movesOK_batchRest bytecode p.cs).grindBits_le hr)]
       exact Spec.toCertOfLead_bound _ le_rfl h'
     · simp only [BatchPre.cert, Spec.toCertOfLead, Spec.toCert_ε, hr, false_and, ↓reduceIte,
@@ -416,7 +416,7 @@ theorem costs_roundsProg : ∀ (k : ℕ) (claim : E), Costs 0 (roundsProg claim 
 /-- The batching after `n` children costs `8n` for the lambdas, `6` per round, and the final
 read. -/
 theorem costs_batchRest (bytecode : List K) {cs : List ChildClaims} {n : ℕ} (hn : cs.length = n) :
-    CostLE 0 (batchRest bytecode cs) (8 * n + 6 * Nat.log2 bytecode.length + 1) := by
+    CostLE 0 (batchRest (DeferredClaim.Holds bytecode) bytecode cs) (8 * n + 6 * Nat.log2 bytecode.length + 1) := by
   unfold batchRest
   refine Costs.seq (costs_sampleL _) (fun _ _ ↦ ?_) (by omega)
   refine Costs.seq (costs_roundsProg _ _) (fun _ _ ↦ ?_) (by omega)
@@ -483,7 +483,7 @@ theorem doomed_of_falseChildren (hb : bytecode.length = 2 ^ Nat.log2 bytecode.le
   refine ⟨p.hist, ?_, Nat.zero_le _, ?_, ?_⟩
   · obtain ⟨seed, s, -, hxr⟩ := xrun_of_verify_from [] hv
     have ha : (batchAny M bytecode).after ((batchWords cs).map Ev.read) =
-        some (batchRest bytecode cs) := p.after_hist hM
+        some (batchRest (DeferredClaim.Holds bytecode) bytecode cs) := p.after_hist hM
     have h := xrun_reads _ _ _ _ _ [] ha hpre hxr
     rw [List.nil_append] at h
     exact h

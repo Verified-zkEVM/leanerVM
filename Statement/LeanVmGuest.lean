@@ -37,7 +37,7 @@ A child is a statement under the same seed and a proof that the deferring verifi
 bytecode's length: the bytecode's value at the child's point is taken from the witness (`fresh`)
 and checked only at the root, in the batched claim. The node batches the
 claims that its children's proofs make of the bytecode, with those its children's statements defer,
-into its own deferred claim (`batch`).
+into its own deferred claim (`Batch.batchOf`).
 
 What a valid execution of the leanISA guest program establishes is `NodeRel` of the witness its
 memory holds, on Keccak as the guest program computes it: the witness is the knowledge content,
@@ -254,19 +254,6 @@ def statementDigest (seed : Digest) (s : NodeStatement) : Digest :=
 /-! ## Batching the deferred claims (`aggregate_claims`, `lean_ethereum.py:4285-4392`;
 `aggregate_deferred_claims`, `aggregation.rs:939-1041`) -/
 
-/-- A Fiat-Shamir chain: the verifier's duplex sponge over Keccak-f[1600] (`FiatShamirState`). -/
-abbrev Chain : Type → Type := StateM Sponge
-
-/-- Absorb a scalar (`observe`). -/
-def observe (x : E) : Chain Unit :=
-  modify fun sp ↦ Id.run (Compile.absorb (m := Id) keccakF sp x dsObserve)
-
-/-- Squeeze a challenge (`sample`). -/
-def sample : Chain E := do
-  let (c, sp) := Id.run (Compile.squeeze (m := Id) keccakF (← get))
-  set sp
-  return c
-
 /-- Words padded with zeros to a whole rate, `rateScalars` words (`pad`,
 `aggregation.rs:949-953`; `AGG_CHILD_PAD`). -/
 def padRate (words : List E) : List E :=
@@ -301,19 +288,6 @@ polynomial whose `g(0)` the claim fixes. -/
 def _root_.LeanVM.Guest.Batch.roundPoly (claim : E) (g : E × E) (x : E) : E :=
   (g.2 * x + ((claim + g.1) + g.1 + g.2)) * x + (claim + g.1)
 
-/-- The rounds of a batching sumcheck from the running claim: each round absorbs `g(1)` and
-`g(∞)`, squeezes the challenge, and folds the round polynomial (`batch_sumcheck`,
-`lean_ethereum.py:1007-1024`; `absorb_round`, `aggregation.rs:880-896`). The challenges and the
-final claim. -/
-def batchRounds : E → List (E × E) → Chain (List E × E)
-  | claim, [] => return ([], claim)
-  | claim, (g1, gInf) :: rest => do
-    observe g1
-    observe gInf
-    let r ← sample
-    let (rs, final) ← batchRounds (Guest.Batch.roundPoly claim (g1, gInf) r) rest
-    return (r :: rs, final)
-
 /-- The prover's part of a batching: the sumcheck's rounds and the bytecode's value at its end
 (`bc_sumcheck_msgs`, `bc_star_hint`). -/
 structure BatchHints where
@@ -323,32 +297,147 @@ structure BatchHints where
 /-- The batching transcript's label (`RECURSION_AGG_LABEL`, `aggregation.rs:72`). -/
 def batchLabel : List UInt8 := "leanvm/recursion-aggregation/v1".toUTF8.toList
 
-/-- The batching transcript's initial state (`FiatShamirState::from_label`): Keccak-f of the
-label's hash in lanes `0..4`, the other lanes zero. The guest program bakes its capacity
-(`AGG_SEED_*`, `aggregation.rs:2557-2560`). -/
-def batchSeed : KState := keccakF (seedInput (keccak256 batchLabel) (Vector.replicate 4 0))
+end LeanVM.Node
 
-/-- **The batching**: one transcript absorbs the children's count, then every child's public
-input and claims, each group padded to a whole rate; it squeezes two coefficients per child,
-and one sumcheck reduces every child's two claims on the bytecode to one point. The claim
-deferred there, if the sumcheck closes. -/
-def batch (children : List ChildClaims) (h : BatchHints) : Option DeferredClaim :=
-  go.run' ⟨batchSeed, []⟩
-where
-  /-- The transcript. -/
-  go : Chain (Option DeferredClaim) := do
-    for x in padRate [gpow children.length] do observe x
-    for c in children do
-      for x in padRate c.words do observe x
-    let mut lambdas : List (E × E) := []
-    for _ in children do
-      let lf ← sample
-      let lc ← sample
-      lambdas := lambdas ++ [(lf, lc)]
-    let (r, final) ← batchRounds (Guest.Batch.claimBOf children lambdas) h.bytecodeRounds
-    if final = h.bytecodeValue * Guest.Batch.bytecodeWeight children lambdas r then
-      return some ⟨r, h.bytecodeValue⟩
-    else return none
+/-! The batching as a program of the verifier's language (`Prog`): the count `n` as `g^n` then
+three zeros, `n` children of `bytecode`'s shapes, each its words then zeros to a whole rate
+(`readChildren`), then the lambdas, the sumcheck's `log₂ |bytecode|` rounds (`roundsProg`) and
+the final value, accepted if the final claim is the value times the batched weight and the
+deferred claim meets a check (`batchRest`); run from the batching transcript's seed
+(`batchRun`). A node's batching (`NodeRel`) runs `batchOf`, the check that the claim is the node's;
+the recursion step's end statement (`BatchSound`) runs `batchAny`, the count read below a bound
+and the check that the claim holds of `bytecode`. -/
+
+namespace LeanVM.Guest.Batch
+
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Protocol LeanVM.Protocol.KeccakHash
+open LeanVM.Protocol.Compile LeanVM.Protocol.Verifier LeanVM.Node
+
+/-- The words of a child at `nB` bytecode coordinates: its public input's two, its proof's
+claim, its statement's claim. -/
+def childLen (nB : ℕ) : ℕ := 2 + (nB + 1) + (nB + 1)
+
+/-- The zeros that pad `k` words to a whole rate. -/
+def padLen (k : ℕ) : ℕ := (rateScalars - k % rateScalars) % rateScalars
+
+/-- A child read off its words (`ChildClaims.words`), at `nB` bytecode coordinates; `none` where
+the public input does not decode. -/
+def parseChild (nB : ℕ) (xs : List E) : Option ChildClaims := do
+  let pi ← digestOfScalars (xs.getD 0 0, xs.getD 1 0)
+  let ys := xs.drop 2
+  let zs := ys.drop (nB + 1)
+  return ⟨pi, ⟨ys.take nB, ys.getD nB 0⟩, ⟨zs.take nB, zs.getD nB 0⟩⟩
+
+/-- A child has the bytecode's shapes: its proof's claim and its statement's are at points of
+`log₂` of the bytecode's length. -/
+def ChildShaped (bytecode : List K) (c : ChildClaims) : Prop :=
+  c.fresh.bytecodePoint.length = Nat.log2 bytecode.length ∧ c.carried.Shaped bytecode
+
+/-- Read a child: its words, then the zeros to a whole rate. -/
+def readChild (nB : ℕ) : Prog ChildClaims := do
+  let xs ← Prog.readN (childLen nB + padLen (childLen nB))
+  Prog.require (xs.drop (childLen nB) = List.replicate (padLen (childLen nB)) 0)
+  liftOption (parseChild nB xs)
+
+/-- Read `n` children. -/
+def readChildren (nB : ℕ) : ℕ → Prog (List ChildClaims)
+  | 0 => pure []
+  | n + 1 => do
+    let c ← readChild nB
+    let cs ← readChildren nB n
+    return c :: cs
+
+open Classical in
+/-- The count below `M` whose power of the generator is `x`, if any. -/
+noncomputable def countOf (M : ℕ) (x : E) : Option ℕ :=
+  if h : ∃ n, n < M ∧ Verifier.gpow n = x then some (Nat.find h) else none
+
+/-- Read the count: `g^n`, then three zeros. -/
+noncomputable def readCount (M : ℕ) : Prog ℕ := do
+  let xs ← Prog.readN rateScalars
+  Prog.require (xs.drop 1 = List.replicate (rateScalars - 1) 0)
+  liftOption (countOf M (xs.getD 0 0))
+
+/-- Sample a pair of lambdas per child. -/
+def sampleL : ℕ → Prog (List (E × E))
+  | 0 => pure []
+  | n + 1 => do
+    let a ← Prog.sampleE
+    let b ← Prog.sampleE
+    let l ← sampleL n
+    return (a, b) :: l
+
+/-- `k` rounds of the batching sumcheck from `claim`: read `g(1)` and `g(∞)`, sample the
+challenge, fold (`roundPoly`). The challenges and the final claim. -/
+def roundsProg : E → ℕ → Prog (List E × E)
+  | claim, 0 => pure ([], claim)
+  | claim, k + 1 => do
+    let g1 ← Prog.readE
+    let gInf ← Prog.readE
+    let r ← Prog.sampleE
+    let rest ← roundsProg (roundPoly claim (g1, gInf) r) k
+    return (r :: rest.1, rest.2)
+
+open Classical in
+/-- **The batching after its children**: the lambdas, the sumcheck's `log₂ |bytecode|` rounds,
+the final value (`bc_star_hint`, read after the last challenge: no challenge follows), the final
+check, and `check` of the deferred claim. -/
+noncomputable def batchRest (check : DeferredClaim → Prop) (bytecode : List K)
+    (cs : List ChildClaims) : Prog Bool := do
+  let l ← sampleL cs.length
+  let rb ← roundsProg (claimBOf cs l) (Nat.log2 bytecode.length)
+  let bv ← Prog.readE
+  Prog.require (rb.2 = bv * bytecodeWeight cs l rb.1 ∧ check ⟨rb.1, bv⟩)
+  return true
+
+/-- **The batching of `n` children.** -/
+noncomputable def batchProg (check : DeferredClaim → Prop) (bytecode : List K) (n : ℕ) :
+    Prog Bool := do
+  let cs ← readChildren (Nat.log2 bytecode.length) n
+  batchRest check bytecode cs
+
+/-- The count's cells: the generator's power, padded to a whole rate. -/
+def headCells (n : ℕ) : List E := padRate [Verifier.gpow n]
+
+/-- A child's cells: its words, padded to a whole rate. -/
+def childCells (c : ChildClaims) : List E := padRate c.words
+
+/-- What the batching absorbs before its first challenge. -/
+def batchWords (cs : List ChildClaims) : List E := headCells cs.length ++ cs.flatMap childCells
+
+/-- **The batching of a node's `n` children** (`aggregate_claims`): the count's cells, then the
+batching of `n`, its deferred claim meeting `check`. -/
+noncomputable def batchOf (check : DeferredClaim → Prop) (bytecode : List K) (n : ℕ) :
+    Prog Bool := do
+  let xs ← Prog.readN rateScalars
+  Prog.require (xs = headCells n)
+  batchProg check bytecode n
+
+/-- **The batching as a verifier program**, of fewer than `M` children: the count, then the
+batching of that many, its deferred claim true of `bytecode`. -/
+noncomputable def batchAny (M : ℕ) (bytecode : List K) : Prog Bool := do
+  let n ← readCount M
+  batchProg (DeferredClaim.Holds bytecode) bytecode n
+
+/-- **The batching transcript run**, for a hash function `H` and a permutation `F` in any monad:
+from the seed `F(H(label) ‖ 0)` (`FiatShamirState::from_label`; the guest program bakes its
+capacity, `AGG_SEED_*`, `aggregation.rs:2557-2560`), the program on the proof. -/
+noncomputable def batchRun {m : Type → Type} [Monad m] (H : Bytes → m Digest)
+    (F : KState → m KState) (prog : Prog Bool) (proof : Proof) : m Bool := do
+  let seed ← F (seedInput (← H batchLabel) (Vector.replicate 4 0))
+  runProof H F prog seed proof
+
+/-- The stream of a node's batching: the count's and the children's cells, the sumcheck's
+messages `(g(1), g(∞))`, the final value. -/
+def batchStream (cs : List ChildClaims) (h : BatchHints) : List E :=
+  batchWords cs ++ h.bytecodeRounds.flatMap (fun g ↦ [g.1, g.2]) ++ [h.bytecodeValue]
+
+end LeanVM.Guest.Batch
+
+namespace LeanVM.Node
+
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Protocol LeanVM.Protocol.KeccakHash
+open LeanVM.Protocol.Compile LeanVM.Protocol.Verifier
 
 /-! ## The node -/
 
@@ -386,8 +475,8 @@ def Held {α W : Type} (holds : α → W → Prop) (claimsOf : Claims → List �
   seed, the bytecode's value at the child's point taken from the witness (`fresh`; checked only at
   the root, in the batched claim);
 * every claim of `s` is held;
-* `s` defers the batching of the children's claims on the bytecode, and a node without children
-  the bytecode at zero. -/
+* `s` defers the batching of the children's claims on the bytecode (`batchOf`, on the stream of
+  the children's claims and the hints), and a node without children the bytecode at zero. -/
 def NodeRel (bytecode : List K) (seed : Digest) (s : NodeStatement) (w : NodeWitness) : Prop :=
   s.defer.Shaped bytecode ∧
   (∀ c ∈ w.children, c.statement.defer.Shaped bytecode ∧
@@ -401,8 +490,10 @@ def NodeRel (bytecode : List K) (seed : Digest) (s : NodeStatement) (w : NodeWit
   List.Forall₂ (Held (fun (c : DaClaim) (m : Da.Witness) ↦
     m.Opens c.daRoot c.membershipVectorDigest) Claims.da w.children) s.claims.da w.da ∧
   if w.children = [] then s.defer.AtZero bytecode
-  else batch (w.children.map fun c ↦
-    ⟨statementDigest seed c.statement, c.fresh, c.statement.defer⟩) w.hints = some s.defer
+  else Guest.Batch.batchRun (m := Id) keccak256 keccakF
+    (Guest.Batch.batchOf (· = s.defer) bytecode w.children.length)
+    ⟨Guest.Batch.batchStream (w.children.map fun c ↦
+      ⟨statementDigest seed c.statement, c.fresh, c.statement.defer⟩) w.hints, []⟩ = true
 
 /-- The guest program's deployed seed: its Fiat-Shamir IV (`fs_seed`,
 `crates/leanvm_core/src/cpu/mod.rs:68-80`). -/
@@ -786,122 +877,10 @@ end Budget
 
 /-! ## The recursion step: the batching in the random-permutation model
 
-The batching (`batch`) written as a program of the verifier's language (`Prog`): `batchAny M
-bytecode` reads the count `n < M` as `g^n` then three zeros (`readCount`), `n` children of
-`bytecode`'s shapes, each its words then zeros to a whole rate (`readChildren`), then samples the
-lambdas, runs the sumcheck's `log₂ |bytecode|` rounds (`roundsProg`), reads the final value, and
-accepts if the final claim is the value times the batched weight and the deferred claim holds of
-`bytecode` (`batchRest`). It runs from the batching transcript's seed `F(H(label) ‖ 0)`
-(`batchVerifier`). That the program, run with Keccak-256 and Keccak-f[1600] on the stream of a
-node's children and hints, accepts exactly where `batch` defers a claim that holds is proved in
-`lean_vm` (`LeanVM.Guest.Batch.runProof_batchAny`). The experiment is `rpmRun` (`LeanVm.lean`),
-the adversary's output with the unit statement (the batching has no statement of its own). -/
+The experiment is `rpmRun` (`LeanVm.lean`), the adversary's output with the unit statement (the
+batching has no statement of its own). -/
 
 namespace Batch
-
-/-- The words of a child at `nB` bytecode coordinates: its public input's two, its proof's
-claim, its statement's claim. -/
-def childLen (nB : ℕ) : ℕ := 2 + (nB + 1) + (nB + 1)
-
-/-- The zeros that pad `k` words to a whole rate. -/
-def padLen (k : ℕ) : ℕ := (rateScalars - k % rateScalars) % rateScalars
-
-/-- A child read off its words (`ChildClaims.words`), at `nB` bytecode coordinates; `none` where
-the public input does not decode. -/
-def parseChild (nB : ℕ) (xs : List E) : Option ChildClaims := do
-  let pi ← digestOfScalars (xs.getD 0 0, xs.getD 1 0)
-  let ys := xs.drop 2
-  let zs := ys.drop (nB + 1)
-  return ⟨pi, ⟨ys.take nB, ys.getD nB 0⟩, ⟨zs.take nB, zs.getD nB 0⟩⟩
-
-/-- A child has the bytecode's shapes: its proof's claim and its statement's are at points of
-`log₂` of the bytecode's length. -/
-def ChildShaped (bytecode : List K) (c : ChildClaims) : Prop :=
-  c.fresh.bytecodePoint.length = Nat.log2 bytecode.length ∧ c.carried.Shaped bytecode
-
-/-- Read a child: its words, then the zeros to a whole rate. -/
-def readChild (nB : ℕ) : Prog ChildClaims := do
-  let xs ← Prog.readN (childLen nB + padLen (childLen nB))
-  Prog.require (xs.drop (childLen nB) = List.replicate (padLen (childLen nB)) 0)
-  liftOption (parseChild nB xs)
-
-/-- Read `n` children. -/
-def readChildren (nB : ℕ) : ℕ → Prog (List ChildClaims)
-  | 0 => pure []
-  | n + 1 => do
-    let c ← readChild nB
-    let cs ← readChildren nB n
-    return c :: cs
-
-open Classical in
-/-- The count below `M` whose power of the generator is `x`, if any. -/
-noncomputable def countOf (M : ℕ) (x : E) : Option ℕ :=
-  if h : ∃ n, n < M ∧ Verifier.gpow n = x then some (Nat.find h) else none
-
-/-- Read the count: `g^n`, then three zeros. -/
-noncomputable def readCount (M : ℕ) : Prog ℕ := do
-  let xs ← Prog.readN rateScalars
-  Prog.require (xs.drop 1 = List.replicate (rateScalars - 1) 0)
-  liftOption (countOf M (xs.getD 0 0))
-
-/-- Sample a pair of lambdas per child. -/
-def sampleL : ℕ → Prog (List (E × E))
-  | 0 => pure []
-  | n + 1 => do
-    let a ← Prog.sampleE
-    let b ← Prog.sampleE
-    let l ← sampleL n
-    return (a, b) :: l
-
-/-- `k` rounds of the batching sumcheck from `claim`: read `g(1)` and `g(∞)`, sample the
-challenge, fold (`roundPoly`). The challenges and the final claim. -/
-def roundsProg : E → ℕ → Prog (List E × E)
-  | claim, 0 => pure ([], claim)
-  | claim, k + 1 => do
-    let g1 ← Prog.readE
-    let gInf ← Prog.readE
-    let r ← Prog.sampleE
-    let rest ← roundsProg (roundPoly claim (g1, gInf) r) k
-    return (r :: rest.1, rest.2)
-
-open Classical in
-/-- **The batching after its children**: the lambdas and the sumcheck, the final value, the
-final check, and the deferred claim true of `bytecode`. -/
-noncomputable def batchRest (bytecode : List K) (cs : List ChildClaims) : Prog Bool := do
-  let l ← sampleL cs.length
-  let rb ← roundsProg (claimBOf cs l) (Nat.log2 bytecode.length)
-  let bv ← Prog.readE
-  Prog.require (rb.2 = bv * bytecodeWeight cs l rb.1 ∧
-    DeferredClaim.Holds bytecode ⟨rb.1, bv⟩)
-  return true
-
-/-- **The batching of `n` children.** -/
-noncomputable def batchProg (bytecode : List K) (n : ℕ) : Prog Bool := do
-  let cs ← readChildren (Nat.log2 bytecode.length) n
-  batchRest bytecode cs
-
-/-- **The batching as a verifier program**, of fewer than `M` children: the count, then the
-batching of that many. -/
-noncomputable def batchAny (M : ℕ) (bytecode : List K) : Prog Bool := do
-  let n ← readCount M
-  batchProg bytecode n
-
-/-- **The batching's verifier**, for a hash function `H` and a permutation `F` in any monad: the
-batching transcript's seed `F(H(label) ‖ 0)` (`batchSeed`, with `H` and `F`), then the program
-`batchAny M bytecode` on the proof. -/
-noncomputable def batchVerifier {m : Type → Type} [Monad m] (H : Bytes → m Digest)
-    (F : KState → m KState) (M : ℕ) (bytecode : List K) (proof : Proof) : m Bool := do
-  let seed ← F (seedInput (← H batchLabel) (Vector.replicate 4 0))
-  runProof H F (batchAny M bytecode) seed proof
-
-/-- The count's cells: the generator's power, padded to a whole rate. -/
-def headCells (n : ℕ) : List E := padRate [Verifier.gpow n]
-
-/-- A child's cells: its words, padded to a whole rate. -/
-def childCells (c : ChildClaims) : List E := padRate c.words
-
-/-- What the batching absorbs before its first challenge. -/
-def batchWords (cs : List ChildClaims) : List E := headCells cs.length ++ cs.flatMap childCells
 
 /-- The proof's stream begins with the count's and the cells of fewer than `M` children of the
 bytecode's shapes, one of whose claims is false. -/
@@ -932,7 +911,7 @@ def BatchSound : Prop :=
   ∀ (M : ℕ) (bytecode : List K), bytecode.length = 2 ^ Nat.log2 bytecode.length →
     M ≤ 2 ^ 64 - 1 → ∀ (A : OracleComp (unifSpec + PermSpec) (Unit × Proof)) (QA : ℕ),
     Common.IsWeightBound A permQueries QA → QA ≤ 2 ^ 128 → batchQueryBound bytecode M ≤ 2 ^ 96 →
-    Pr{let z ← rpmRun A fun z ↦ batchVerifier queryH queryF M bytecode z.2}[
+    Pr{let z ← rpmRun A fun z ↦ batchRun queryH queryF (batchAny M bytecode) z.2}[
       z.2 = true ∧ FalseChildren bytecode M z.1.2] ≤
       (((QA + batchQueryBound bytecode M : ℕ) : ℝ≥0∞) + 1) * (2 : ℝ≥0∞)⁻¹ ^ 191 +
         5 * ((QA + batchQueryBound bytecode M : ℕ) : ℝ≥0∞) ^ 2 * (2 : ℝ≥0∞)⁻¹ ^ 256

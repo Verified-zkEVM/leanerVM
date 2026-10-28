@@ -1,5 +1,6 @@
 import LeanVM.Guest.Value.Keccak
 import LeanVM.Guest.Core
+import LeanVM.Guest.Batch.Def
 
 /-!
 # Tests: the Keccak library

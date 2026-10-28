@@ -104,7 +104,7 @@ Benedikt Wagner's ([b-wagn/fv-pq-da](https://github.com/b-wagn/fv-pq-da), Apache
     **`LeanVM.Guest.Budget.GuestCompleteCovered`** (the nodes `Covered` lists), the honest proof as
     a child (`verifierRZ`, `atKeccak`,
     **`GuestChildComplete`**); and the recursion step: the batching of the children's claims as a
-    verifier program (`batchAny`, run from the batching's seed by `batchVerifier`), an adversary's
+    verifier program (`batchAny`, run from the batching's seed by `batchRun`), an adversary's
     proof run through it in the random-permutation model (`LeanVM.Rpm.rpmRun`, `LeanVm.lean`), the
     event that it accepts children with a false claim (`FalseChildren`), the program's query bound
     (`batchQueryBound`), and **`LeanVM.Guest.Batch.BatchSound`**: the batching run outside the

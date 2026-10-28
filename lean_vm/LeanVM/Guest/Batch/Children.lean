@@ -10,6 +10,7 @@ module
 
 public import LeanVM.Guest.Batch.Sound
 public import LeanVM.Protocol.Verifier.DeferredShape
+public import LeanVM.Guest.Batch.Node
 
 /-!
 # A node's children
@@ -52,7 +53,7 @@ theorem children_sound {bytecode : List K} {s : NodeStatement} {w : NodeWitness}
           true ∧
           c.statement.defer.Holds bytecode) ∨
       BatchBad bytecode (childClaimsOf (fiatShamirIv bytecode) w) w.hints := by
-  obtain ⟨-, hch, -, -, -, hbat⟩ := hN
+  obtain ⟨-, hch, -, -, -, hbat⟩ := nodeRel_iff.mp hN
   by_cases hw : w.children = []
   · exact Or.inl fun c hc ↦ absurd hc (by simp [hw])
   simp only [hw, ↓reduceIte] at hbat

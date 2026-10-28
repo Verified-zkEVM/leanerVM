@@ -7,6 +7,7 @@
 module
 
 public import LeanVM.Guest.B1.Main.AggCLib
+public import LeanVM.Guest.Batch.Def
 
 /-!
 # Honest values, step by step

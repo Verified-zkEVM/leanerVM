@@ -9,6 +9,7 @@ module
 
 public import LeanVM.Guest.B1.Main.Holders
 public import LeanVM.Guest.B1.Bits.Tables
+public import LeanVM.Guest.Batch.Node
 
 /-!
 # `main`, soundly
@@ -119,8 +120,8 @@ theorem main_sound_C {bytecode : List K} (hbl : bytecode.length = 2 ^ bytecodeVa
     rw [← hown, loadHolds_unique MF.pub.1 hp0, loadHolds_unique MF.pub.2 hp1]
     rfl
   have hdlen : (readCells rd (σ (.n 417)) 24).length = 24 := length_readCells _ _ _
-  refine ⟨hdig, ?_, ?_, xmss_held MF hK hW hC cw, sphincs_held MF hK hW hC cw,
-    da_held MF hK hW hC hm cw, ?_⟩
+  refine ⟨hdig, nodeRel_iff.mpr ⟨?_, ?_, xmss_held MF hK hW hC cw, sphincs_held MF hK hW hC cw,
+    da_held MF hK hW hC hm cw, ?_⟩⟩
   · -- the deferred claim's shape
     show (deferOfCells (readCells rd (σ (.n 417)) 24)).bytecodePoint.length = _
     rw [deferOfCells_point hdlen, hlog]

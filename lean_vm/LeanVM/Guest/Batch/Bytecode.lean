@@ -8,6 +8,7 @@ module
 
 public import LeanVM.Guest.Batch.Cube
 public import Statement.LeanVmGuest
+public import LeanVM.Guest.Batch.Def
 public import LeanXmss.Scheme
 public import Sphincs.Equations
 public import Statement.Fast.Schemes

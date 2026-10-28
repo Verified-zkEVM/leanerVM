@@ -315,7 +315,7 @@ the rounds tracked, then a fixed fact. -/
 noncomputable def restSpec {bytecode : List K}
     (hb : bytecode.length = 2 ^ Nat.log2 bytecode.length) {cs : List ChildClaims}
     (hs : ∀ c ∈ cs, ChildShaped bytecode c) (hg : SomeGap bytecode cs) :
-    Spec (batchRest bytecode cs) (fun h ↦ h = []) (fun b _ ↦ b = false) batchε batchε 0 :=
+    Spec (batchRest (DeferredClaim.Holds bytecode) bytecode cs) (fun h ↦ h = []) (fun b _ ↦ b = false) batchε batchε 0 :=
   ((lamSpec (gapsB bytecode cs) cs.length 0 [] rfl).bind' fun l ↦
     ((roundsSpec (bytecode_quadraticIn hb (bytecodePoints hs) l) _ (claimBOf cs l) []
         (by simp)).mono (fun _ h ↦ claimB_ne hb hs h.1 h.2) (fun _ _ h ↦ h) le_rfl le_rfl
