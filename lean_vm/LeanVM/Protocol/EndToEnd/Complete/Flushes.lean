@@ -660,7 +660,7 @@ theorem pyCountColumns : ∀ t : Fin 6,
   | 5 => by
     rw [show (LeanIsa.counts (opIdx 5)).map (·.val) = (List.range 27).map (63 + ·) by
       decide +kernel]
-    simp [Table.countColumns, tables, keccakColumns, laneNames, decimal, decimals, List.range_succ]
+    simp [Table.countColumns, tables, keccakColumns, laneNames, decimal, List.range_succ]
 
 /-- Only `JUMP` has constraints, two. -/
 theorem pyNConstraints : tables.map Table.nConstraints = [0, 0, 0, 0, 2, 0] := by

@@ -773,14 +773,12 @@ def jumpColumns : List String :=
   ["pc", "fp", "o_c", "o_d", "o_f", "v_cond", "v_pc", "v_fp", "cnt_c", "cnt_d", "cnt_f", "cnt_bc",
     "w", "b"]
 
-/-- The decimal numerals `0, …, 25` the column names spell (`f"{n}"`), as literals; `toString`
-past them. -/
-def decimals : List String :=
-  ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16",
-    "17", "18", "19", "20", "21", "22", "23", "24", "25"]
-
-/-- The decimal numeral of `n` (`f"{n}"`). -/
-def decimal (n : ℕ) : String := decimals.getD n (toString n)
+/-- The decimal numeral of `n` (`f"{n}"`): its digits below `100`, the column names' numbers
+(`toString` past them). -/
+def decimal (n : ℕ) : String :=
+  if n < 10 then (Char.ofNat (48 + n)).toString
+  else if n < 100 then (Char.ofNat (48 + n / 10)).toString ++ (Char.ofNat (48 + n % 10)).toString
+  else toString n
 
 /-- The names of the `25` lanes of a state, with a prefix: `prefix_0, …, prefix_24`. -/
 def laneNames (pre : String) : List String := (List.range 25).map fun l ↦ pre ++ "_" ++ decimal l
