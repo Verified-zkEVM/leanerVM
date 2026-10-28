@@ -178,26 +178,22 @@ def foldRoundsA : ℕ → WhirState → List E → Array E → Array E →
   | 0, s, levelFolds, W, g => return (s, levelFolds, W, g)
   | n + 1, s, levelFolds, W, g => do
     let challenge ← Script.sampleE
-    let target := polyEval s.quad challenge
     let W' := foldPairsW challenge W
     let g' := foldPairsW challenge g
-    let quad ← roundA target W' g'
-    foldRoundsA n { s with target, quad, folds := s.folds ++ [challenge] }
-      (levelFolds ++ [challenge]) W' g'
+    let quad ← roundA (polyEval s.quad challenge) W' g'
+    foldRoundsA n { s with quad, folds := s.folds ++ [challenge] } (levelFolds ++ [challenge]) W' g'
 
 /-- The final level's tail rounds. -/
-def tailRoundsA : ℕ → E → List E → Array E → Array E → Script (List E × E)
-  | 0, target, _, _, _ => return ([], target)
-  | n + 1, _, quad, W, g => do
+def tailRoundsA : ℕ → List E → Array E → Array E → Script Unit
+  | 0, _, _, _ => return ()
+  | n + 1, quad, W, g => do
     let challenge ← Script.sampleE
-    let target := polyEval quad challenge
-    if n = 0 then return ([challenge], target)
+    if n = 0 then return ()
     else do
       let W' := foldPairsW challenge W
       let g' := foldPairsW challenge g
-      let quad ← roundA target W' g'
-      let (rest, target) ← tailRoundsA n target quad W' g'
-      return (challenge :: rest, target)
+      let quad ← roundA (polyEval quad challenge) W' g'
+      tailRoundsA n quad W' g'
 
 /-- The query positions (`sampleQueriesAux`), received as the verifier samples them. -/
 def sampleQueriesS (depth : ℕ) : ℕ → ℕ → Script (List ℕ)
@@ -221,7 +217,7 @@ def levelsA (μ : ℕ) : ℕ → List Whir.Level → WhirState → Array E → A
     let (residual, pending, tables) ← match rest with
       | [] => do
         Script.sendList g.toList
-        pure (g, ([] : List (E × List E × (List E → E))), ([] : List (Array E)))
+        pure (g, ([] : List (List E × (List E → E))), ([] : List (Array E)))
       | next :: _ => do
         Script.commitS (levelWordFast (messageLog - next.fold) next.fold next.logInvRate g)
         let oodPoint ← Script.sampleN messageLog
@@ -229,7 +225,7 @@ def levelsA (μ : ℕ) : ℕ → List Whir.Level → WhirState → Array E → A
         Script.sendE oodValue
         let T := eqKernelA oodPoint
         let quad ← roundA oodValue T g
-        pure (#[], [(oodValue, quad, fun x ↦ eqEval oodPoint x)], [T])
+        pure (#[], [(quad, fun x ↦ eqEval oodPoint x)], [T])
     Script.grindS
     let queries ← sampleQueriesS (messageLog + level.logInvRate) level.queries level.queries
     let lam ← Script.sampleE
@@ -240,14 +236,11 @@ def levelsA (μ : ℕ) : ℕ → List Whir.Level → WhirState → Array E → A
     let enforced := enforcedSum rows levelFolds queryWeights
     let T := queryTableA messageLog queries queryWeights
     let quad ← roundA enforced T g
-    let pending := pending ++
-      [(enforced, quad, fun x ↦ inducedWeight messageLog queries queryWeights x)]
+    let pending := pending ++ [(quad, fun x ↦ inducedWeight messageLog queries queryWeights x)]
     let s := glue lam s pending
     let W := glueTablesA lam W (tables ++ [T])
     match rest with
-    | [] => do
-      let _ ← tailRoundsA messageLog s.target s.quad W residual
-      return ()
+    | [] => tailRoundsA messageLog s.quad W residual
     | _ :: _ => levelsA μ (index + 1) rest s W g
 
 /-- **The honest prover of the stacked opening** (`verify_stacked_opening`, then `verify_whir`):
@@ -263,7 +256,7 @@ def openingFast (μ R : ℕ) (stack : Array K) (claims : List ClaimDesc) : Scrip
     let W₀ := basisTableA μ scales claims
     let target := dot scales (claims.map fun d ↦ d.denote.2)
     let quad ← roundA target W₀ f₀
-    levelsA μ 0 config ⟨target, quad, [], []⟩ W₀ f₀
+    levelsA μ 0 config ⟨quad, [], []⟩ W₀ f₀
 
 end LeanVM.Prover
 

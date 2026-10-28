@@ -6,6 +6,7 @@
   chunks, distinct powers in the glued claim, and the shape of the final statements.
 -/
 
+import LeanVM.Protocol.Verifier.WhirTarget
 import LeanVM.Protocol.Whir.Sound.Spec
 
 /-!
@@ -115,7 +116,7 @@ noncomputable example {μ R : ℕ} {codes : ℕ → LevelCode} {εmax : ENNReal}
     (hκ₀ : (codes 0).κ = μ - LeanVM.Protocol.EndToEnd.laneBits) (hR₀ : (codes 0).R = R)
     (hw : LeanVM.Protocol.EndToEnd.IsMultilinearFn μ w)
     (hA : LadderArith μ codes 0 0 (level :: rest)) (hε : whirEps codes (level :: rest) ≤ εmax) :
-    Spec (verifyWhir μ R t w) (fun h ↦ WhirPre μ R (codes 0) w t (commits h)) (fun _ _ ↦ False)
+    Spec (verifyWhirT μ R t w) (fun h ↦ WhirPre μ R (codes 0) w t (commits h)) (fun _ _ ↦ False)
       εmax 0 0 :=
   whirSpec hc hℓ hμ hκ₀ hR₀ (isMultiaffine_of_isMultilinearFn hw) hA hε 0
 

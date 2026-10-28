@@ -7,6 +7,7 @@
 
 module
 
+public import LeanVM.Protocol.Verifier.WhirTarget
 public import LeanVM.Guest.B1.Whir.SpecPrim
 
 /-!
@@ -32,20 +33,20 @@ theorem Ref.bind_refl {α β : Type} (p : Prog α) {f' f : α → Prog β} (hf :
     Ref (p.bind f') (p.bind f) := Ref.bind (Ref.refl p) hf
 
 /-- **`foldRoundsNZ` refines `foldRounds`.** -/
-theorem foldRoundsNZ_ref : ∀ (n : ℕ) (s : WhirState) (lf : List E),
-    Ref (foldRoundsNZ n s lf) (foldRounds n s lf)
+theorem foldRoundsNZ_ref : ∀ (n : ℕ) (s : WhirStateT) (lf : List E),
+    Ref (foldRoundsNZ n s lf) (foldRoundsT n s lf)
   | 0, s, lf => Ref.refl _
   | n + 1, s, lf => by
-    simp only [foldRoundsNZ, foldRounds, Prog.bind_eq]
+    simp only [foldRoundsNZ, foldRoundsT, Prog.bind_eq]
     refine Ref.bind_refl _ fun c ↦ Ref.require _ (Ref.bind_refl _ fun q ↦ ?_)
     exact foldRoundsNZ_ref n _ _
 
 /-- **`tailRoundsNZ` refines `tailRounds`.** -/
 theorem tailRoundsNZ_ref : ∀ (n : ℕ) (t : E) (quad : List E),
-    Ref (tailRoundsNZ n t quad) (tailRounds n t quad)
+    Ref (tailRoundsNZ n t quad) (tailRoundsT n t quad)
   | 0, t, quad => Ref.refl _
   | n + 1, t, quad => by
-    simp only [tailRoundsNZ, tailRounds, Prog.bind_eq, Prog.pure_eq]
+    simp only [tailRoundsNZ, tailRoundsT, Prog.bind_eq, Prog.pure_eq]
     refine Ref.bind_refl _ fun c ↦ Ref.require _ ?_
     by_cases hn : n = 0
     · simp only [hn, ↓reduceIte]; exact Ref.refl _
@@ -54,7 +55,7 @@ theorem tailRoundsNZ_ref : ∀ (n : ℕ) (t : E) (quad : List E),
 
 /-- **`whirLevelsOpenNZ` refines `whirLevelsOpen`.** -/
 theorem whirLevelsOpenNZ_ref (logN lane : ℕ) : ∀ (index : ℕ) (levels : List Whir.Level)
-    (s : WhirState), Ref (whirLevelsOpenNZ logN lane index levels s)
+    (s : WhirStateT), Ref (whirLevelsOpenNZ logN lane index levels s)
       (whirLevelsOpen logN lane index levels s)
   | _, [], _ => Ref.refl _
   | index, level :: rest, s => by

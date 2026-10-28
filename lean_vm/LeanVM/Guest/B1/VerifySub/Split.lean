@@ -7,6 +7,7 @@
 
 module
 
+public import LeanVM.Protocol.Verifier.WhirTarget
 public import LeanVM.Protocol.Verifier.Claims
 public import LeanVM.Guest.B1.VerifySub.Interface
 public import LeanVM.Guest.B1.Whir.Interface
@@ -87,7 +88,7 @@ theorem deferred_eq (c : FixedClaims) (bytecode : List K) (pi : Digest) :
   rw [show ringMapShifts.length = 5 + 1 from rfl, Prog.sampleN]
   simp only [Prog.bind_eq, Prog.pure_eq, Prog.bind_assoc, Prog.ret_bind]
   refine congrArg _ (funext fun m ↦ congrArg _ (funext fun chs ↦ ?_))
-  simp only [verifyStackedOpening, B1.Whir.verifyWhir_split, stackClaims, Prog.bind_eq,
+  simp only [verifyStackedOpening, verifyWhir_eq_target, B1.Whir.verifyWhir_split, stackClaims, Prog.bind_eq,
     Prog.bind_assoc]
   refine congrArg _ (funext fun lam ↦ congrArg _ (funext fun w ↦ ?_))
   rfl

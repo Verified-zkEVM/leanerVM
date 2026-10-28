@@ -7,6 +7,7 @@
 
 module
 
+public import LeanVM.Protocol.Verifier.WhirTarget
 public import LeanVM.Protocol.Whir.Sound.Tail
 
 /-!
@@ -35,22 +36,22 @@ section Program
 variable (μ ℓ₀ : ℕ) (w : List E → E) (i : ℕ) (level : Whir.Level)
 
 /-- The state glued on the final level. -/
-def glueFin (r : WhirState × List E) (qs : List ℕ) (lam : E) (words : List (List K))
-    (hq : List E) : WhirState :=
-  glue lam r.1 ([] ++ [(enfOf i r.2 qs lam words, hq,
+def glueFin (r : WhirStateT × List E) (qs : List ℕ) (lam : E) (words : List (List K))
+    (hq : List E) : WhirStateT :=
+  glueT lam r.1 ([] ++ [(enfOf i r.2 qs lam words, hq,
     fun x ↦ Verifier.inducedWeight (μ - r.1.folds.length) qs (powers lam qs.length) x)])
 
 /-- After the query group of the final level. -/
-def finFinish (r : WhirState × List E) (residual : List E) (qs : List ℕ) (lam : E)
+def finFinish (r : WhirStateT × List E) (residual : List E) (qs : List ℕ) (lam : E)
     (words : List (List K)) : Prog Unit :=
   (sumcheckRoundPoly 3 (enfOf i r.2 qs lam words) none).bind fun hq ↦
-    (tailRounds (μ - r.1.folds.length) (glueFin μ i r qs lam words hq).target
+    (tailRoundsT (μ - r.1.folds.length) (glueFin μ i r qs lam words hq).target
       (glueFin μ i r qs lam words hq).quad).bind fun x ↦
       Prog.require (runW w ℓ₀ (glueFin μ i r qs lam words hq) x.1 *
         multilinearEval residual x.1 = x.2)
 
 /-- After the fold rounds of the final level. -/
-def finTail (r : WhirState × List E) : Prog Unit :=
+def finTail (r : WhirStateT × List E) : Prog Unit :=
   (readN (2 ^ (μ - r.1.folds.length))).bind fun residual ↦
   (grindP Whir.queryGrindingBits).bind fun _ ↦
   (sampleQueries (μ - r.1.folds.length + level.logInvRate) level.queries).bind fun qs ↦
@@ -58,12 +59,12 @@ def finTail (r : WhirState × List E) : Prog Unit :=
     finFinish μ ℓ₀ w i r residual qs lam words
 
 /-- The final level, unfolded. -/
-def finProg (s : WhirState) : Prog Unit :=
-  (foldRounds level.fold s []).bind fun r ↦ finTail μ ℓ₀ w i level r
+def finProg (s : WhirStateT) : Prog Unit :=
+  (foldRoundsT level.fold s []).bind fun r ↦ finTail μ ℓ₀ w i level r
 
 /-- **`whirLevels` on the final level is `finProg`.** -/
-theorem whirLevels_fin (s : WhirState) :
-    whirLevels μ ℓ₀ w i [level] s = finProg μ ℓ₀ w i level s := rfl
+theorem whirLevels_fin (s : WhirStateT) :
+    whirLevelsT μ ℓ₀ w i [level] s = finProg μ ℓ₀ w i level s := rfl
 
 end Program
 
@@ -72,7 +73,7 @@ section Doom
 variable (μ ℓ₀ : ℕ) (w : List E → E) (i : ℕ) (P : LevelCode) (ℓ pre : ℕ)
 
 /-- After the query group of the final level: the residual violates the glued claim. -/
-def GlueFinC (r : WhirState × List E) (res : List E) (g : List ℕ × E × List (List K))
+def GlueFinC (r : WhirStateT × List E) (res : List E) (g : List ℕ × E × List (List K))
     (cs : List (ℕ × ℕ × Word)) : Prop :=
   (res.length = 2 ^ (μ - r.1.folds.length) ∧ AfterFold μ ℓ₀ w i P ℓ pre r cs) ∧
     ∑ x : Fin P.κ → Bool, runW w ℓ₀ (glueFin μ i r g.1 g.2.1 g.2.2 []) (bitsL x) * resMsg res x ≠
@@ -84,7 +85,7 @@ section Lemmas
 
 variable {μ ℓ₀ : ℕ} {w : List E → E} {i : ℕ} {P : LevelCode} {ℓ pre : ℕ}
 
-theorem glueFin_runW (r : WhirState × List E) (qs : List ℕ) (lam : E) (words : List (List K))
+theorem glueFin_runW (r : WhirStateT × List E) (qs : List ℕ) (lam : E) (words : List (List K))
     (hq : List E) :
     runW w ℓ₀ (glueFin μ i r qs lam words hq) = fun x ↦ runW w ℓ₀ r.1 x +
       1 * lam * Verifier.inducedWeight (μ - r.1.folds.length) qs (powers lam qs.length) x := by
@@ -95,7 +96,7 @@ theorem glueFin_runW (r : WhirState × List E) (qs : List ℕ) (lam : E) (words 
   simp only [List.map_cons, List.map_nil, List.sum_cons, List.sum_nil, add_zero] at this
   exact this
 
-theorem glueFin_target (r : WhirState × List E) (qs : List ℕ) (lam : E) (words : List (List K))
+theorem glueFin_target (r : WhirStateT × List E) (qs : List ℕ) (lam : E) (words : List (List K))
     (hq : List E) :
     (glueFin μ i r qs lam words hq).target = r.1.target + 1 * lam * enfOf i r.2 qs lam words := by
   rw [glueFin, List.nil_append, glue_one]
@@ -109,7 +110,7 @@ theorem claimSum_tailMsg_nil {n κ : ℕ} (h : n = κ) (Φ : List E → E) (res 
   rfl
 
 /-- **The tail invariant at the start of the tail.** -/
-theorem tailInv_start (hw : IsMultiaffine μ w) (hℓ₀ : ℓ₀ ≤ μ) (r : WhirState × List E)
+theorem tailInv_start (hw : IsMultiaffine μ w) (hℓ₀ : ℓ₀ ≤ μ) (r : WhirStateT × List E)
     (res : List E) (g : List ℕ × E × List (List K)) (hq : List E) (cs : List (ℕ × ℕ × Word))
     (hglue : GlueFinC μ ℓ₀ w i P ℓ pre r res g cs)
     (hhq : QuadOK hq (enfOf i r.2 g.1 g.2.1 g.2.2)) :
@@ -159,7 +160,7 @@ variable {μ ℓ₀ : ℕ} {w : List E → E} {i : ℕ} {P : LevelCode} {level :
 /-- The query group of the final level, the tail and the terminal check. -/
 noncomputable def finQuerySpec (H : FinHyp μ ℓ₀ w P level pre)
     (hQlt : eQueryFinal P level.queries < 1) (hεT : eTail ≤ εmax)
-    (r : WhirState × List E) (res : List E) :
+    (r : WhirStateT × List E) (res : List E) :
     Spec ((queryFrag (μ - r.1.folds.length + level.logInvRate) level.queries i).bind fun g ↦
         finFinish μ ℓ₀ w i r res g.1 g.2.1 g.2.2)
       (fun h ↦ res.length = 2 ^ (μ - r.1.folds.length) ∧
@@ -195,7 +196,7 @@ noncomputable def finQuerySpec (H : FinHyp μ ℓ₀ w P level pre)
 noncomputable def finTailSpec (H : FinHyp μ ℓ₀ w P level pre)
     (hQlt : eQueryFinal P level.queries < 1)
     (hεQ : (2 : ENNReal)⁻¹ ^ Whir.queryGrindingBits * eQueryFinal P level.queries ≤ εmax)
-    (hεT : eTail ≤ εmax) (r : WhirState × List E) :
+    (hεT : eTail ≤ εmax) (r : WhirStateT × List E) :
     Spec (finTail μ ℓ₀ w i level r)
       (fun h ↦ AfterFold μ ℓ₀ w i P level.fold pre r (commits h)) (fun _ _ ↦ False) εmax 0 0 :=
   (readNInv (AfterFold μ ℓ₀ w i P level.fold pre r) (T := 0) zero_le
@@ -211,8 +212,8 @@ noncomputable def finTailSpec (H : FinHyp μ ℓ₀ w P level pre)
 noncomputable def finSpec (H : FinHyp μ ℓ₀ w P level pre)
     (hεF : eFold P level.fold ≤ εmax) (hQlt : eQueryFinal P level.queries < 1)
     (hεQ : (2 : ENNReal)⁻¹ ^ Whir.queryGrindingBits * eQueryFinal P level.queries ≤ εmax)
-    (hεT : eTail ≤ εmax) (s : WhirState) :
-    Spec (whirLevels μ ℓ₀ w i [level] s)
+    (hεT : eTail ≤ εmax) (s : WhirStateT) :
+    Spec (whirLevelsT μ ℓ₀ w i [level] s)
       (fun h ↦ LevelPre μ ℓ₀ w i P level.fold pre s (commits h)) (fun _ _ ↦ False) εmax εmax 0 :=
   (((foldRoundsSpec μ ℓ₀ w i P level.fold pre (ShapeOK i P level.fold) H.hw H.hℓ₀ hεF
       level.fold s []).bind' fun r ↦ finTailSpec H hQlt hεQ hεT r).mono

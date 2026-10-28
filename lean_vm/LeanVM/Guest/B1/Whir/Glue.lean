@@ -7,6 +7,7 @@
 
 module
 
+public import LeanVM.Protocol.Verifier.WhirTarget
 public import LeanVM.Guest.B1.Whir.Folds
 
 /-!
@@ -58,21 +59,21 @@ theorem osGlue_sound {beta v c0 c1 c2 : ℕ} {s : OsSt} (h : AllOk C rd σ (osGl
   · simp only [osGlue, a7, m6]
 
 /-- The Spec's `glue` of one claim. -/
-theorem glue_one (lam : E) (s : WhirState) (v : E) (i : List E) (w : List E → E) :
-    glue lam s [(v, i, w)] =
+theorem glue_one (lam : E) (s : WhirStateT) (v : E) (i : List E) (w : List E → E) :
+    glueT lam s [(v, i, w)] =
       { s with quad := List.zipWith (fun q x ↦ q + 1 * lam * x) s.quad i,
                target := s.target + 1 * lam * v,
                glued := s.glued ++ [⟨1 * lam, s.folds.length, w⟩] } := rfl
 
 /-- The Spec's `glue` of two claims. -/
-theorem glue_two (lam : E) (s : WhirState) (v v' : E) (i i' : List E) (w w' : List E → E) :
-    glue lam s [(v, i, w), (v', i', w')] =
+theorem glue_two (lam : E) (s : WhirStateT) (v v' : E) (i i' : List E) (w w' : List E → E) :
+    glueT lam s [(v, i, w), (v', i', w')] =
       { s with quad := List.zipWith (fun q x ↦ q + 1 * lam * lam * x)
                  (List.zipWith (fun q x ↦ q + 1 * lam * x) s.quad i) i',
                target := s.target + 1 * lam * v + 1 * lam * lam * v',
                glued := s.glued ++ [⟨1 * lam, s.folds.length, w⟩,
                  ⟨1 * lam * lam, s.folds.length, w'⟩] } := by
-  simp [glue]
+  simp [glueT]
 
 end
 end LeanVM.Guest.B1.Whir

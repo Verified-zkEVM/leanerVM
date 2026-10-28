@@ -8,6 +8,7 @@
 
 module
 
+public import LeanVM.Protocol.Verifier.WhirTarget
 public import LeanVM.Protocol.Verifier.Claims
 public import LeanVM.Guest.B1.VerifySub.NoCommit
 
@@ -85,10 +86,10 @@ theorem verifyStackedOpening_split (μ r : ℕ) (cl : List StackClaim) :
     verifyStackedOpening μ r cl = Prog.sampleE.bind fun lam ↦
       (Whir.whirOpen μ r (batchTarget cl lam)).bind fun w ↦
         Prog.require (w.Accepts (batchBasis cl lam)) := by
-  simp only [verifyStackedOpening, Whir.verifyWhir_split, Prog.bind_eq, batchTarget]
+  simp only [verifyStackedOpening, verifyWhir_eq_target, Whir.verifyWhir_split, Prog.bind_eq, batchTarget]
   rfl
 
-theorem foldRoundsNZ_eq : ∀ (n : ℕ) (s : WhirState) (lf : List E),
+theorem foldRoundsNZ_eq : ∀ (n : ℕ) (s : WhirStateT) (lf : List E),
     Limits.foldRoundsNZ n s lf = Whir.foldRoundsNZ n s lf
   | 0, _, _ => rfl
   | n + 1, s, lf => by
@@ -101,7 +102,7 @@ theorem tailRoundsNZ_eq : ∀ (n : ℕ) (t : E) (quad : List E),
     simp only [Limits.tailRoundsNZ, Whir.tailRoundsNZ, tailRoundsNZ_eq n]
 
 theorem whirLevelsNZ_split (logN laneFolds : ℕ) (eb : List E → E) :
-    ∀ (index : ℕ) (levels : List Whir.Level) (s : WhirState),
+    ∀ (index : ℕ) (levels : List Whir.Level) (s : WhirStateT),
       Limits.whirLevelsNZ logN laneFolds eb index levels s =
         (Whir.whirLevelsOpenNZ logN laneFolds index levels s).bind fun w ↦
           Prog.require (w.Accepts eb)

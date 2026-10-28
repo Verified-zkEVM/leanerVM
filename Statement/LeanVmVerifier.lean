@@ -1461,12 +1461,9 @@ structure GluedClaim where
 
 /-! ### The level loop (`verifier.py:1124-1202`) -/
 
-/-- The running state of `verify_whir`: `running_target`, `running_quad`, every fold challenge
-so far, and the glued claims so far. The Python sets `running_target` only in the final level's
-tail rounds, which overwrite the value threaded here, every final message log being at least
-`2`. -/
+/-- The running state of `verify_whir`: `running_quad`, every fold challenge so far, and the glued
+claims so far (`running_target` is the final level's tail rounds', `tailRounds`). -/
 structure WhirState where
-  target : E
   quad : List E
   folds : List E
   glued : List GluedClaim
@@ -1477,33 +1474,30 @@ def foldRounds : ℕ → WhirState → List E → Prog (WhirState × List E)
   | 0, s, levelFolds => return (s, levelFolds)
   | n + 1, s, levelFolds => do
     let challenge ← Prog.sampleE
-    let target := polyEval s.quad challenge
-    let quad ← sumcheckRoundPoly 3 target none
-    foldRounds n { s with target, quad, folds := s.folds ++ [challenge] }
-      (levelFolds ++ [challenge])
+    let quad ← sumcheckRoundPoly 3 (polyEval s.quad challenge) none
+    foldRounds n { s with quad, folds := s.folds ++ [challenge] } (levelFolds ++ [challenge])
 
 /-- The final level's tail rounds: sample, fold, and read the next quadratic unless it is the
-last round (`verifier.py:1183-1189`). The tail challenges and the final running claim. -/
-def tailRounds : ℕ → E → List E → Prog (List E × E)
-  | 0, target, _ => return ([], target)
-  | n + 1, _, quad => do
+last round (`verifier.py:1183-1189`). The tail challenges and the final running claim, which no
+round leaves unset: the Python then raises at the terminal check. -/
+def tailRounds : ℕ → List E → Prog (List E × E)
+  | 0, _ => Prog.fail
+  | n + 1, quad => do
     let challenge ← Prog.sampleE
     let target := polyEval quad challenge
     if n = 0 then return ([challenge], target)
     else do
       let quad ← sumcheckRoundPoly 3 target none
-      let (rest, target) ← tailRounds n target quad
+      let (rest, target) ← tailRounds n quad
       return (challenge :: rest, target)
 
-/-- Glue a level's pending claims into the running sumcheck with powers of `λ`, the running claim
-keeping `λ⁰` (`verifier.py:1174-1178`). Their values go into `target` too, where Python has no
-`running_target` to add them to; `target` never reaches the verdict (`WhirState.target`). -/
-def glue (lam : E) (s : WhirState) (pending : List (E × List E × (List E → E))) : WhirState :=
-  (pending.foldl (fun (acc : WhirState × E) (value, intro, weightAt) ↦
+/-- Glue a level's pending claims, each an intro message and a weight, into the running sumcheck
+with powers of `λ`, the running claim keeping `λ⁰` (`verifier.py:1174-1178`). -/
+def glue (lam : E) (s : WhirState) (pending : List (List E × (List E → E))) : WhirState :=
+  (pending.foldl (fun (acc : WhirState × E) (intro, weightAt) ↦
     let scalar := acc.2 * lam
     let s := acc.1
     ({ s with quad := List.zipWith (fun q i ↦ q + scalar * i) s.quad intro,
-              target := s.target + scalar * value,
               glued := s.glued ++ [⟨scalar, s.folds.length, weightAt⟩] }, scalar)) (s, 1)).1
 
 /-- The shape of the commitment a level opens: `2^(message_log + rate)` leaves of `width`
@@ -1525,14 +1519,14 @@ def whirLevels (logN laneFolds : ℕ) (evaluateBasis : List E → E) :
     let (residual, pending) ← match rest with
       | [] => do
         let residual ← Prog.readN (2 ^ messageLog)
-        pure (residual, ([] : List (E × List E × (List E → E))))
+        pure (residual, ([] : List (List E × (List E → E))))
       | next :: _ => do
         let (height, width) := levelShape messageLog next (3 * 2 ^ next.fold)
         Prog.commitP height width
         let oodPoint ← Prog.sampleN messageLog
         let oodValue ← Prog.readE
         let intro ← sumcheckRoundPoly 3 oodValue none
-        pure ([], [(oodValue, intro, fun x ↦ eqEval oodPoint x)])
+        pure ([], [(intro, fun x ↦ eqEval oodPoint x)])
     Prog.grindP Whir.queryGrindingBits
     let queries ← sampleQueries (messageLog + level.logInvRate) level.queries
     let lam ← Prog.sampleE
@@ -1542,12 +1536,11 @@ def whirLevels (logN laneFolds : ℕ) (evaluateBasis : List E → E) :
       if index = 0 then words.map fun row ↦ row.reverse.map ofK else words.map extRow
     let enforced := enforcedSum rows levelFolds queryWeights
     let intro ← sumcheckRoundPoly 3 enforced none
-    let pending := pending ++
-      [(enforced, intro, fun x ↦ inducedWeight messageLog queries queryWeights x)]
+    let pending := pending ++ [(intro, fun x ↦ inducedWeight messageLog queries queryWeights x)]
     let s := glue lam s pending
     match rest with
     | [] => do
-      let (tailFolds, target) ← tailRounds messageLog s.target s.quad
+      let (tailFolds, target) ← tailRounds messageLog s.quad
       let point := s.folds ++ tailFolds
       let weight := s.glued.foldl
         (fun weight claim ↦
@@ -1562,8 +1555,7 @@ def whirLevels (logN laneFolds : ℕ) (evaluateBasis : List E → E) :
 def verifyWhir (logN logInvRate : ℕ) (target : E) (evaluateBasis : List E → E) : Prog Unit := do
   let config ← liftOption (Whir.ladder logN logInvRate)
   let quad ← sumcheckRoundPoly 3 target none
-  whirLevels logN ((config.head?.map (·.fold)).getD 0) evaluateBasis 0 config
-    ⟨target, quad, [], []⟩
+  whirLevels logN ((config.head?.map (·.fold)).getD 0) evaluateBasis 0 config ⟨quad, [], []⟩
 
 /-- Read the stack's root (`verify_execution`, step 2, `verifier.py:1480`): commitment `0`, the
 shape level `0` opens it at. -/

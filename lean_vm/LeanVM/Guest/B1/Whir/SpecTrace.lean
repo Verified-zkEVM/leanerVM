@@ -7,6 +7,7 @@
 
 module
 
+public import LeanVM.Protocol.Verifier.WhirTarget
 public import LeanVM.Guest.B1.Whir.SpecInv
 public import LeanVM.Guest.B1.Whir.Open
 
@@ -47,7 +48,7 @@ def SpLv.wend (L : SpLv) (lane : ℕ) (xsR : List E) : WhirEnd :=
     (tailTr L.ml L.Fend L.wsEnd.quad L.wsEnd.target xsR).2.2⟩
 
 /-- **The honest chain of levels.** -/
-def SpChain (logN lane : ℕ) : ℕ → List Whir.Level → WhirState → Fs → List E → List Opening →
+def SpChain (logN lane : ℕ) : ℕ → List Whir.Level → WhirStateT → Fs → List E → List Opening →
     List (Digest × ℕ × ℕ) → List SpLv → WhirEnd × FSt → Prop
   | index, [level], ws, F, xs, os, R, [L], res =>
     L.logN = logN ∧ L.index = index ∧ L.level = level ∧ L.fin = true ∧ L.ws = ws ∧ L.F = F ∧
@@ -64,9 +65,9 @@ def SpChain (logN lane : ℕ) : ℕ → List Whir.Level → WhirState → Fs →
           (R ++ [(d, levelShape L.ml next (3 * 2 ^ next.fold))]) Ls res
   | _, _, _, _, _, _, _, _, _ => False
 
-theorem glue_folds (lam : E) (s : WhirState) (pending : List (E × List E × (List E → E))) :
-    (glue lam s pending).folds = s.folds := by
-  unfold glue
+theorem glue_folds (lam : E) (s : WhirStateT) (pending : List (E × List E × (List E → E))) :
+    (glueT lam s pending).folds = s.folds := by
+  unfold glueT
   generalize (1 : E) = e
   induction pending generalizing s e with
   | nil => rfl
@@ -79,7 +80,7 @@ theorem SpLv.wsEnd_folds (L : SpLv) : L.wsEnd.folds = L.ws.folds ++ L.chs := by
 
 /-- **The levels of an accepting run, chained.** -/
 theorem nz_chain {c : OsCfg} {logN lane : ℕ} : ∀ (lvs : List OsLv) (cfg : List Whir.Level)
-    (index : ℕ) (ws : WhirState) (F : Fs) (xs : List E) (os : List Opening)
+    (index : ℕ) (ws : WhirStateT) (F : Fs) (xs : List E) (os : List Opening)
     (R : List (Digest × ℕ × ℕ)) (res : WhirEnd × FSt),
     LevelsOk c logN index lvs cfg → ws.folds.length = (lvs.headD default).foldsOff →
     F.pend.length = 2 → index < R.length →

@@ -8,6 +8,7 @@
 
 module
 
+public import LeanVM.Protocol.Verifier.WhirTarget
 public import LeanVM.Protocol.Whir.Sound.Generic
 
 /-!
@@ -47,13 +48,13 @@ section
 variable (μ ℓ₀ : ℕ) (w : List E → E) (i : ℕ) (P : LevelCode) (ℓ pre : ℕ)
 
 /-- **The fold invariant `A(i, j)`** after the challenges `lf` of level `i`. -/
-def FoldInv (s : WhirState) (lf : List E) (cs : List (ℕ × ℕ × Word)) : Prop :=
+def FoldInv (s : WhirStateT) (lf : List E) (cs : List (ℕ × ℕ × Word)) : Prop :=
   s.folds.length = pre + lf.length ∧ lf.length ≤ ℓ ∧ P.κ + pre + ℓ = μ ∧ GluedOK μ s ∧
     QuadOK s.quad s.target ∧
     Viol P (rowsOf (ℓ - lf.length) (foldsN lf (laneO i cs P.n))) (runW w ℓ₀ s) s.target
 
 /-- The doom right after a fold challenge, before the next round polynomial. -/
-def FoldMid (s : WhirState) (lf : List E) (c : E) (cs : List (ℕ × ℕ × Word)) : Prop :=
+def FoldMid (s : WhirStateT) (lf : List E) (c : E) (cs : List (ℕ × ℕ × Word)) : Prop :=
   s.folds.length = pre + lf.length ∧ lf.length < ℓ ∧ P.κ + pre + ℓ = μ ∧ GluedOK μ s ∧
     Viol P (rowsOf (ℓ - (lf.length + 1)) (foldsN (lf ++ [c]) (laneO i cs P.n)))
       (fun r ↦ runW w ℓ₀ s (c :: r)) (polyEval s.quad c)
@@ -62,7 +63,7 @@ variable {μ ℓ₀ w i P ℓ pre}
 
 open Classical in
 /-- One round's escape: at most `2·listMax + 2^(ℓ−1)·mcaMax` challenges break the invariant. -/
-theorem card_foldBad_le_eFold (hw : IsMultiaffine μ w) (hℓ₀ : ℓ₀ ≤ μ) (s : WhirState)
+theorem card_foldBad_le_eFold (hw : IsMultiaffine μ w) (hℓ₀ : ℓ₀ ≤ μ) (s : WhirStateT)
     (lf : List E) (hlf : lf.length < ℓ) (cs : List (ℕ × ℕ × Word))
     (hI : FoldInv μ ℓ₀ w i P ℓ pre s lf cs) :
     (univ.filter fun c ↦ ¬ FoldMid μ ℓ₀ w i P ℓ pre s lf c cs).card ≤
@@ -88,7 +89,7 @@ theorem card_foldBad_le_eFold (hw : IsMultiaffine μ w) (hℓ₀ : ℓ₀ ≤ μ
 
 open Classical in
 /-- The escape count as the calculus averages it. -/
-theorem avg_foldBad_le (hw : IsMultiaffine μ w) (hℓ₀ : ℓ₀ ≤ μ) (s : WhirState)
+theorem avg_foldBad_le (hw : IsMultiaffine μ w) (hℓ₀ : ℓ₀ ≤ μ) (s : WhirStateT)
     (lf : List E) (hlf : lf.length < ℓ) (cs : List (ℕ × ℕ × Word))
     (hI : FoldInv μ ℓ₀ w i P ℓ pre s lf cs) :
     (Fintype.card E : ENNReal)⁻¹ *
@@ -99,7 +100,7 @@ theorem avg_foldBad_le (hw : IsMultiaffine μ w) (hℓ₀ : ℓ₀ ≤ μ) (s : 
   exact_mod_cast card_foldBad_le_eFold hw hℓ₀ s lf hlf cs hI
 
 /-- After the round polynomial: the invariant with one more challenge. -/
-theorem foldInv_step (s : WhirState) (lf : List E) (c : E) (cs : List (ℕ × ℕ × Word))
+theorem foldInv_step (s : WhirStateT) (lf : List E) (c : E) (cs : List (ℕ × ℕ × Word))
     (quad : List E) (hmid : FoldMid μ ℓ₀ w i P ℓ pre s lf c cs)
     (hq : QuadOK quad (polyEval s.quad c)) :
     FoldInv μ ℓ₀ w i P ℓ pre
@@ -121,8 +122,8 @@ invariant `X` of the commitments, which the rounds do not touch), the rounds kee
 (each escaping at most `eFold P ℓ`) and return it with all `ℓ` challenges. -/
 noncomputable def foldRoundsSpec {εmax : ENNReal} (X : CInv) (hw : IsMultiaffine μ w)
     (hℓ₀ : ℓ₀ ≤ μ) (hε : eFold P ℓ ≤ εmax) :
-    (n : ℕ) → (s : WhirState) → (lf : List E) →
-      Spec (foldRounds n s lf)
+    (n : ℕ) → (s : WhirStateT) → (lf : List E) →
+      Spec (foldRoundsT n s lf)
         (fun h ↦ (FoldInv μ ℓ₀ w i P ℓ pre s lf (commits h) ∧ X (commits h)) ∧
           lf.length + n = ℓ)
         (fun r h ↦ (FoldInv μ ℓ₀ w i P ℓ pre r.1 r.2 (commits h) ∧ X (commits h)) ∧

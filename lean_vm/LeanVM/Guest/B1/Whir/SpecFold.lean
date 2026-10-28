@@ -6,6 +6,7 @@
 
 module
 
+public import LeanVM.Protocol.Verifier.WhirTarget
 public import LeanVM.Guest.B1.Whir.SpecNZ
 public import LeanVM.Guest.B1.Whir.CFold
 
@@ -78,8 +79,8 @@ theorem squeeze_absorb_two (F : Fs) (d0 d2 : E) :
   simp [Fs.absorb, Fs.squeeze, foldStep, rateScalars]
 
 /-- **The fold rounds, backwards.** -/
-theorem foldsNZ_inv {β : Type} {K : WhirState × List E → Prog β} :
-    ∀ (n : ℕ) (ws : WhirState) (lf : List E) (F : Fs) (xs : List E) (os : List Opening)
+theorem foldsNZ_inv {β : Type} {K : WhirStateT × List E → Prog β} :
+    ∀ (n : ℕ) (ws : WhirStateT) (lf : List E) (F : Fs) (xs : List E) (os : List Opening)
       (R : List (Digest × ℕ × ℕ)) (r : β × FSt),
       runF ((foldRoundsNZ n ws lf).bind K) ⟨F, xs, os, R⟩ = some r →
         2 * n ≤ xs.length ∧ (∀ c ∈ (foldsTr n F ws.quad ws.target xs).2.1, c ≠ 0) ∧

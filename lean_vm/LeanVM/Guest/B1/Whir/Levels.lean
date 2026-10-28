@@ -6,6 +6,7 @@
 
 module
 
+public import LeanVM.Protocol.Verifier.WhirTarget
 public import LeanVM.Guest.B1.Whir.Level
 public import LeanVM.Guest.B1.Whir.LevelSpec
 
@@ -29,7 +30,7 @@ open LeanVM.Guest.Value LeanVM.Protocol LeanVM.Protocol.Compile LeanVM.Protocol.
 variable {rd : Reader} {σ : Val}
 
 /-- `whirLevelsOpen` up to the tail: the levels' heads. -/
-def whirLevelsHead (logN : ℕ) : ℕ → List Whir.Level → WhirState → Prog (List E × ℕ × WhirState)
+def whirLevelsHead (logN : ℕ) : ℕ → List Whir.Level → WhirStateT → Prog (List E × ℕ × WhirStateT)
   | _, [], _ => Prog.fail
   | index, [level], s => levelHead logN index level [] s
   | index, level :: next :: rest, s =>
@@ -38,7 +39,7 @@ def whirLevelsHead (logN : ℕ) : ℕ → List Whir.Level → WhirState → Prog
 
 /-- **The levels, then the tail.** -/
 theorem whirLevelsOpen_eq (logN laneFolds : ℕ) : ∀ (index : ℕ) (cfg : List Whir.Level)
-    (s : WhirState), cfg ≠ [] →
+    (s : WhirStateT), cfg ≠ [] →
     whirLevelsOpen logN laneFolds index cfg s =
       (whirLevelsHead logN index cfg s).bind fun r ↦ levelTail laneFolds r.2.1 r.1 r.2.2
   | _, [], _, h => absurd rfl h
@@ -75,12 +76,12 @@ def QWOk (rd : Reader) (C : CallRel) (Wf : ℕ → OsLv → List E → List E �
 /-- **The levels** run `whirLevelsHead`, on the openings their queries' witnesses name. -/
 theorem osLevels_sound {c : OsCfg} {logN : ℕ} {C : CallRel} (hle : CallRel.Le C (coreProgram.Rel rd))
     {Wf : ℕ → OsLv → List E → List E → List QW} : ∀ (lvs : List OsLv) (cfg : List Whir.Level)
-    (lvl : ℕ) (st : OsSt) (ws : WhirState) (R : List (Digest × ℕ × ℕ)) (root : Digest),
+    (lvl : ℕ) (st : OsSt) (ws : WhirStateT) (R : List (Digest × ℕ × ℕ)) (root : Digest),
     LevelsOk c logN lvl lvs cfg → CalleesOk rd c lvl lvs → QWOk rd C Wf lvl lvs →
     LvIn rd σ lvl (lvs.headD default) st ws R root →
     AllOk C rd σ (osLevels c lvl lvs st).1 →
     ∃ (xs : List E) (os : List Opening) (R' : List (Digest × ℕ × ℕ)) (ms : List E)
-      (ws' : WhirState) (rs : List OsRec),
+      (ws' : WhirStateT) (rs : List OsRec),
       ReadsAt rd (st.cur σ) xs ∧
       RunsWith (whirLevelsHead logN lvl cfg ws) (st.F σ) xs os R
         (ms, (lvs.getLastD default).logCols, ws') ((osLevels c lvl lvs st).2.F σ) R' ∧

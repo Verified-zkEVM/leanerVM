@@ -8,6 +8,7 @@
 
 module
 
+public import LeanVM.Protocol.Verifier.WhirTarget
 public import LeanVM.Guest.B1.Common.Run
 public import LeanVM.Guest.B1.Whir.Interface
 
@@ -143,7 +144,7 @@ def levelMid (messageLog : ℕ) : List Whir.Level →
 
 /-- A level's proof of work, queries and glue (V:1811-1823), after its folds and its claims. -/
 def levelQueries (messageLog index : ℕ) (level : Whir.Level) (levelFolds : List E)
-    (s : WhirState) (pending : List (E × List E × (List E → E))) : Prog WhirState := do
+    (s : WhirStateT) (pending : List (E × List E × (List E → E))) : Prog WhirStateT := do
   Prog.grindP Whir.queryGrindingBits
   let queries ← sampleQueries (messageLog + level.logInvRate) level.queries
   let lam ← Prog.sampleE
@@ -153,12 +154,12 @@ def levelQueries (messageLog index : ℕ) (level : Whir.Level) (levelFolds : Lis
     if index = 0 then words.map fun row ↦ row.reverse.map ofK else words.map extRow
   let enforced := enforcedSum rows levelFolds queryWeights
   let intro ← sumcheckRoundPoly 3 enforced none
-  return glue lam s (pending ++
+  return glueT lam s (pending ++
     [(enforced, intro, fun x ↦ inducedWeight messageLog queries queryWeights x)])
 
 /-- The last level's tail (V:1824-1833), from its glued state and its residual. -/
-def levelTail (laneFolds messageLog : ℕ) (residual : List E) (s : WhirState) : Prog WhirEnd := do
-  let (tailFolds, target) ← tailRounds messageLog s.target s.quad
+def levelTail (laneFolds messageLog : ℕ) (residual : List E) (s : WhirStateT) : Prog WhirEnd := do
+  let (tailFolds, target) ← tailRoundsT messageLog s.target s.quad
   let point := s.folds ++ tailFolds
   let inner := s.glued.foldl
     (fun weight claim ↦
@@ -169,9 +170,9 @@ def levelTail (laneFolds messageLog : ℕ) (residual : List E) (s : WhirState) :
 /-- **A level of `whirLevelsOpen`**: its folds, its claims, its queries and glue, then the tail
 (the last level) or the next level. -/
 theorem whirLevelsOpen_cons (logN laneFolds index : ℕ) (level : Whir.Level)
-    (rest : List Whir.Level) (s : WhirState) :
+    (rest : List Whir.Level) (s : WhirStateT) :
     whirLevelsOpen logN laneFolds index (level :: rest) s = (do
-      let (s, levelFolds) ← foldRounds level.fold s []
+      let (s, levelFolds) ← foldRoundsT level.fold s []
       let messageLog := logN - s.folds.length
       let (residual, pending) ← levelMid messageLog rest
       let s ← levelQueries messageLog index level levelFolds s pending

@@ -8,6 +8,7 @@
 
 module
 
+public import LeanVM.Protocol.Verifier.WhirTarget
 public import LeanVM.Protocol.Whir.Sound.GroupEscape
 
 /-!
@@ -54,19 +55,19 @@ def enfOf (lf : List E) (qs : List ℕ) (lam : E) (words : List (List K)) : E :=
     (powers lam qs.length)
 
 /-- The state glued at the end of a level with a next commitment. -/
-def glueMid (r : WhirState × List E) (z : List E) (y : E) (hy : List E) (qs : List ℕ) (lam : E)
-    (words : List (List K)) (hq : List E) : WhirState :=
-  glue lam r.1 [(y, hy, fun x ↦ eqEval z x), (enfOf i r.2 qs lam words, hq,
+def glueMid (r : WhirStateT × List E) (z : List E) (y : E) (hy : List E) (qs : List ℕ) (lam : E)
+    (words : List (List K)) (hq : List E) : WhirStateT :=
+  glueT lam r.1 [(y, hy, fun x ↦ eqEval z x), (enfOf i r.2 qs lam words, hq,
     fun x ↦ Verifier.inducedWeight (μ - r.1.folds.length) qs (powers lam qs.length) x)]
 
 /-- After the query group: the query intro polynomial, then the next level. -/
-def midFinish (r : WhirState × List E) (z : List E) (y : E) (hy : List E) (qs : List ℕ) (lam : E)
+def midFinish (r : WhirStateT × List E) (z : List E) (y : E) (hy : List E) (qs : List ℕ) (lam : E)
     (words : List (List K)) : Prog Unit :=
   (sumcheckRoundPoly 3 (enfOf i r.2 qs lam words) none).bind fun hq ↦
-    whirLevels μ ℓ₀ w (i + 1) (next :: rest) (glueMid μ i r z y hy qs lam words hq)
+    whirLevelsT μ ℓ₀ w (i + 1) (next :: rest) (glueMid μ i r z y hy qs lam words hq)
 
 /-- After the fold rounds. -/
-def midTail (r : WhirState × List E) : Prog Unit :=
+def midTail (r : WhirStateT × List E) : Prog Unit :=
   (commitP (μ - r.1.folds.length - next.fold + next.logInvRate) (3 * 2 ^ next.fold)).bind fun _ ↦
   (sampleN (μ - r.1.folds.length)).bind fun z ↦ readE.bind fun y ↦
   (sumcheckRoundPoly 3 y none).bind fun hy ↦
@@ -76,12 +77,12 @@ def midTail (r : WhirState × List E) : Prog Unit :=
     midFinish μ ℓ₀ w i next rest r z y hy qs lam words
 
 /-- The level, unfolded. -/
-def midProg (s : WhirState) : Prog Unit :=
-  (foldRounds level.fold s []).bind fun r ↦ midTail μ ℓ₀ w i level next rest r
+def midProg (s : WhirStateT) : Prog Unit :=
+  (foldRoundsT level.fold s []).bind fun r ↦ midTail μ ℓ₀ w i level next rest r
 
 /-- **`whirLevels` on a level with a next commitment is `midProg`.** -/
-theorem whirLevels_mid (s : WhirState) :
-    whirLevels μ ℓ₀ w i (level :: next :: rest) s = midProg μ ℓ₀ w i level next rest s := rfl
+theorem whirLevels_mid (s : WhirStateT) :
+    whirLevelsT μ ℓ₀ w i (level :: next :: rest) s = midProg μ ℓ₀ w i level next rest s := rfl
 
 /-- The query group as one fragment. -/
 theorem query_bind (d t : ℕ) (K : List ℕ → E → List (List K) → Prog Unit) :
@@ -98,21 +99,21 @@ section Doom
 variable (μ ℓ₀ : ℕ) (w : List E → E) (i : ℕ) (P P' : LevelCode) (ℓ ℓ' pre : ℕ)
 
 /-- After the fold rounds. -/
-def AfterFold (r : WhirState × List E) (cs : List (ℕ × ℕ × Word)) : Prop :=
+def AfterFold (r : WhirStateT × List E) (cs : List (ℕ × ℕ × Word)) : Prop :=
   (FoldInv μ ℓ₀ w i P ℓ pre r.1 r.2 cs ∧ ShapeOK i P ℓ cs) ∧ r.2.length = ℓ
 
 /-- After the commitment of the next oracle. -/
-def MidC (r : WhirState × List E) (cs : List (ℕ × ℕ × Word)) : Prop :=
+def MidC (r : WhirStateT × List E) (cs : List (ℕ × ℕ × Word)) : Prop :=
   ∃ cs₀ W', cs = cs₀ ++ [(P'.κ + P'.R, 3 * 2 ^ ℓ', W')] ∧ WellShaped (3 * 2 ^ ℓ') W' ∧
     AfterFold μ ℓ₀ w i P ℓ pre r cs₀
 
 /-- After the out-of-domain point: the next list is separated at `z`. -/
-def OodC (r : WhirState × List E) (z : List E) (cs : List (ℕ × ℕ × Word)) : Prop :=
+def OodC (r : WhirStateT × List E) (z : List E) (cs : List (ℕ × ℕ × Word)) : Prop :=
   MidC μ ℓ₀ w i P P' ℓ ℓ' pre r cs ∧ z.length = P.κ ∧
     OodSep P' (rowsOf ℓ' (laneO (i + 1) cs P'.n)) z
 
 /-- After the query group: every member of the next list violates the glued claim. -/
-def GlueC (r : WhirState × List E) (z : List E) (y : E) (hy : List E)
+def GlueC (r : WhirStateT × List E) (z : List E) (y : E) (hy : List E)
     (g : List ℕ × E × List (List K)) (cs : List (ℕ × ℕ × Word)) : Prop :=
   (QuadOK hy y ∧ OodC μ ℓ₀ w i P P' ℓ ℓ' pre r z cs) ∧
     Viol P' (rowsOf ℓ' (laneO (i + 1) cs P'.n))
@@ -127,19 +128,19 @@ section Lemmas
 
 variable {μ ℓ₀ : ℕ} {w : List E → E} {i : ℕ} {P P' : LevelCode} {ℓ ℓ' pre : ℕ}
 
-theorem afterFold_len {r : WhirState × List E} {cs : List (ℕ × ℕ × Word)}
+theorem afterFold_len {r : WhirStateT × List E} {cs : List (ℕ × ℕ × Word)}
     (h : AfterFold μ ℓ₀ w i P ℓ pre r cs) : r.1.folds.length = pre + ℓ := by
   obtain ⟨⟨⟨hl, -⟩, -⟩, hr⟩ := h
   omega
 
-theorem afterFold_κ {r : WhirState × List E} {cs : List (ℕ × ℕ × Word)}
+theorem afterFold_κ {r : WhirStateT × List E} {cs : List (ℕ × ℕ × Word)}
     (h : AfterFold μ ℓ₀ w i P ℓ pre r cs) : μ - r.1.folds.length = P.κ := by
   have := afterFold_len h
   obtain ⟨⟨⟨-, -, hκ, -⟩, -⟩, -⟩ := h
   omega
 
 /-- The glued state's weight and target. -/
-theorem glueMid_runW (r : WhirState × List E) (z : List E) (y : E) (hy : List E) (qs : List ℕ)
+theorem glueMid_runW (r : WhirStateT × List E) (z : List E) (y : E) (hy : List E) (qs : List ℕ)
     (lam : E) (words : List (List K)) (hq : List E) :
     runW w ℓ₀ (glueMid μ i r z y hy qs lam words hq) = fun x ↦ runW w ℓ₀ r.1 x +
       1 * lam * eqEval z x + 1 * lam * lam *
@@ -153,7 +154,7 @@ theorem glueMid_runW (r : WhirState × List E) (z : List E) (y : E) (hy : List E
   rw [← add_assoc] at this
   exact this
 
-theorem glueMid_target (r : WhirState × List E) (z : List E) (y : E) (hy : List E) (qs : List ℕ)
+theorem glueMid_target (r : WhirStateT × List E) (z : List E) (y : E) (hy : List E) (qs : List ℕ)
     (lam : E) (words : List (List K)) (hq : List E) :
     (glueMid μ i r z y hy qs lam words hq).target =
       r.1.target + 1 * lam * y + 1 * lam * lam * enfOf i r.2 qs lam words := by
@@ -169,7 +170,7 @@ theorem enfOf_eq {cs : List (ℕ × ℕ × Word)} (hshape : ShapeOK i P ℓ cs) 
   exact enforcedSum_eq i cs lf hlf qs hqs lam fun q _ ↦ length_wordOf hshape q
 
 /-- **The next level's doom** from the glued doom and the query intro polynomial. -/
-theorem levelPre_next (hP' : P'.κ + (pre + ℓ) + ℓ' = μ) (r : WhirState × List E) (z : List E)
+theorem levelPre_next (hP' : P'.κ + (pre + ℓ) + ℓ' = μ) (r : WhirStateT × List E) (z : List E)
     (y : E)
     (hy : List E) (g : List ℕ × E × List (List K)) (hq : List E) (cs : List (ℕ × ℕ × Word))
     (hglue : GlueC μ ℓ₀ w i P P' ℓ ℓ' pre r z y hy g cs)
@@ -207,7 +208,7 @@ theorem levelPre_next (hP' : P'.κ + (pre + ℓ) + ℓ' = μ) (r : WhirState × 
     · simpa [wdOf] using hW'
 
 /-- After the commitment: the next oracle's word is appended. -/
-theorem midC_of_commit {r : WhirState × List E} {cs : List (ℕ × ℕ × Word)} {W : Word}
+theorem midC_of_commit {r : WhirStateT × List E} {cs : List (ℕ × ℕ × Word)} {W : Word}
     (next : Whir.Level) (hℓ' : next.fold = ℓ') (hP' : P'.κ + (pre + ℓ) + ℓ' = μ)
     (hR' : P'.R = next.logInvRate) (h : AfterFold μ ℓ₀ w i P ℓ pre r cs)
     (hW : WellShaped (3 * 2 ^ next.fold) W) :
@@ -220,7 +221,7 @@ theorem midC_of_commit {r : WhirState × List E} {cs : List (ℕ × ℕ × Word)
   omega
 
 /-- The commitments after the next commitment, at index `i`. -/
-theorem midC_word {r : WhirState × List E} {cs : List (ℕ × ℕ × Word)}
+theorem midC_word {r : WhirStateT × List E} {cs : List (ℕ × ℕ × Word)}
     (h : MidC μ ℓ₀ w i P P' ℓ ℓ' pre r cs) :
     ∃ cs₀, cs[i]? = some (P.κ + P.R, wdOf i ℓ, wordOf cs₀ i) ∧ wordOf cs i = wordOf cs₀ i ∧
       laneO i cs P.n = laneO i cs₀ P.n ∧ AfterFold μ ℓ₀ w i P ℓ pre r cs₀ := by

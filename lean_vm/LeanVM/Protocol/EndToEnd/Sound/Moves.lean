@@ -8,6 +8,7 @@
 
 module
 
+public import LeanVM.Protocol.Verifier.WhirTarget
 public import LeanVM.Protocol.Verifier.Claims
 public import LeanVM.Protocol.Compile.Spec
 public import LeanVM.Protocol.Verifier
@@ -415,8 +416,8 @@ theorem movesOK_ringSwitch (point s : List E) :
 /-! ## WHIR -/
 
 /-- A WHIR level's fold rounds are reads and samples. -/
-theorem movesOK_foldRounds : ∀ (n : ℕ) (s : WhirState) (levelFolds : List E),
-    MovesOK (fun _ ↦ False) False (foldRounds n s levelFolds)
+theorem movesOK_foldRounds : ∀ (n : ℕ) (s : WhirStateT) (levelFolds : List E),
+    MovesOK (fun _ ↦ False) False (foldRoundsT n s levelFolds)
   | 0, _, _ => MovesOK.pure _
   | n + 1, _, _ =>
     MovesOK.seq MovesOK.sampleE fun _ ↦ MovesOK.seq (movesOK_sumcheckRoundPoly 3 _ none)
@@ -424,7 +425,7 @@ theorem movesOK_foldRounds : ∀ (n : ℕ) (s : WhirState) (levelFolds : List E)
 
 /-- The final WHIR level's tail rounds are reads and samples. -/
 theorem movesOK_tailRounds : ∀ (n : ℕ) (target : E) (quad : List E),
-    MovesOK (fun _ ↦ False) False (tailRounds n target quad)
+    MovesOK (fun _ ↦ False) False (tailRoundsT n target quad)
   | 0, _, _ => MovesOK.pure _
   | n + 1, _, _ =>
     MovesOK.seq MovesOK.sampleE fun _ ↦ MovesOK.ite (fun _ ↦ MovesOK.pure _) fun _ ↦
@@ -446,8 +447,8 @@ theorem queryGrindingBits_le : Whir.queryGrindingBits ≤ 64 := by decide
 
 /-- The WHIR levels: commitments, and proofs of work of `Whir.queryGrindingBits` bits. -/
 theorem movesOK_whirLevels (logN laneFolds : ℕ) (evaluateBasis : List E → E) :
-    ∀ (levels : List Whir.Level) (index : ℕ) (s : WhirState),
-      MovesOK (· = Whir.queryGrindingBits) True (whirLevels logN laneFolds evaluateBasis index levels s)
+    ∀ (levels : List Whir.Level) (index : ℕ) (s : WhirStateT),
+      MovesOK (· = Whir.queryGrindingBits) True (whirLevelsT logN laneFolds evaluateBasis index levels s)
   | [], _, _ => MovesOK.fail
   | [level], index, s => by
     refine MovesOK.seq (MovesOK.of_none (movesOK_foldRounds level.fold s [])) fun r ↦ ?_
@@ -477,7 +478,7 @@ theorem movesOK_whirLevels (logN laneFolds : ℕ) (evaluateBasis : List E → E)
 
 /-- WHIR: its levels' commitments, and proofs of work of `Whir.queryGrindingBits` bits. -/
 theorem movesOK_verifyWhir (logN logInvRate : ℕ) (target : E) (evaluateBasis : List E → E) :
-    MovesOK (· = Whir.queryGrindingBits) True (verifyWhir logN logInvRate target evaluateBasis) :=
+    MovesOK (· = Whir.queryGrindingBits) True (verifyWhirT logN logInvRate target evaluateBasis) :=
   MovesOK.seq (MovesOK.liftOption _) fun config ↦
     MovesOK.seq (MovesOK.of_none (movesOK_sumcheckRoundPoly 3 _ none)) fun _ ↦
       movesOK_whirLevels logN _ evaluateBasis config 0 _
@@ -493,8 +494,9 @@ theorem movesOK_commitStack (logN logInvRate : ℕ) :
 /-- The stacked opening: WHIR's commitments and its proofs of work of `Whir.queryGrindingBits`
 bits. -/
 theorem movesOK_verifyStackedOpening (stackLog logInvRate : ℕ) (claims : List StackClaim) :
-    MovesOK (· = Whir.queryGrindingBits) True (verifyStackedOpening stackLog logInvRate claims) :=
-  MovesOK.seq MovesOK.sampleE fun _ ↦ movesOK_verifyWhir _ _ _ _
+    MovesOK (· = Whir.queryGrindingBits) True (verifyStackedOpening stackLog logInvRate claims) := by
+  rw [verifyStackedOpening_eq_target]
+  exact MovesOK.seq MovesOK.sampleE fun _ ↦ movesOK_verifyWhir _ _ _ _
 
 /-! ## The whole program -/
 

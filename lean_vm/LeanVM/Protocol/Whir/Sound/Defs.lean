@@ -7,6 +7,7 @@
 
 module
 
+public import LeanVM.Protocol.Verifier.WhirTarget
 public import LeanVM.Protocol.Whir.Sound.Interface
 
 /-!
@@ -45,7 +46,7 @@ def ShapeOK (i : ℕ) (P : LevelCode) (ℓ : ℕ) (cs : List (ℕ × ℕ × Word
   cs.length = i + 1 ∧ ∃ W, cs[i]? = some (P.κ + P.R, wdOf i ℓ, W) ∧ WellShaped (wdOf i ℓ) W
 
 /-- **The doom at the start of level `i`**: `A(i, 0)` and the commitments' shape. -/
-def LevelPre (μ ℓ₀ : ℕ) (w : List E → E) (i : ℕ) (P : LevelCode) (ℓ pre : ℕ) (s : WhirState)
+def LevelPre (μ ℓ₀ : ℕ) (w : List E → E) (i : ℕ) (P : LevelCode) (ℓ pre : ℕ) (s : WhirStateT)
     (cs : List (ℕ × ℕ × Word)) : Prop :=
   FoldInv μ ℓ₀ w i P ℓ pre s [] cs ∧ ShapeOK i P ℓ cs
 

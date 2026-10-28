@@ -7,6 +7,7 @@
 
 module
 
+public import LeanVM.Protocol.Verifier.WhirTarget
 public import LeanVM.Guest.Child.Fresh
 
 /-!
@@ -78,20 +79,20 @@ end NZ
 
 /-! ## The programs -/
 
-theorem nz_foldRounds : ∀ (n : ℕ) (s : WhirState) (lf : List E),
-    NZ (Limits.foldRoundsNZ n s lf) (foldRounds n s lf)
+theorem nz_foldRounds : ∀ (n : ℕ) (s : WhirStateT) (lf : List E),
+    NZ (Limits.foldRoundsNZ n s lf) (foldRoundsT n s lf)
   | 0, s, lf => NZ.refl _
   | n + 1, s, lf => by
-    unfold Limits.foldRoundsNZ foldRounds
+    unfold Limits.foldRoundsNZ foldRoundsT
     refine NZ.sample_bind fun c hc ↦ ?_
     refine NZ.require_bind_of hc ?_
     exact NZ.bind (NZ.refl _) fun _ ↦ nz_foldRounds n _ _
 
 theorem nz_tailRounds : ∀ (n : ℕ) (t : E) (quad : List E),
-    NZ (Limits.tailRoundsNZ n t quad) (tailRounds n t quad)
+    NZ (Limits.tailRoundsNZ n t quad) (tailRoundsT n t quad)
   | 0, t, quad => NZ.refl _
   | n + 1, t, quad => by
-    unfold Limits.tailRoundsNZ tailRounds
+    unfold Limits.tailRoundsNZ tailRoundsT
     refine NZ.sample_bind fun c hc ↦ ?_
     refine NZ.require_bind_of hc ?_
     split
@@ -115,14 +116,14 @@ local macro "nz_step" : tactic => `(tactic| first
   | exact NZ.refl _)
 
 theorem nz_whirLevels (logN laneFolds : ℕ) (eb : List E → E) (levels : List Whir.Level) :
-    ∀ (index : ℕ) (s : WhirState),
+    ∀ (index : ℕ) (s : WhirStateT),
       NZ (Limits.whirLevelsNZ logN laneFolds eb index levels s)
-        (whirLevels logN laneFolds eb index levels s) := by
+        (whirLevelsT logN laneFolds eb index levels s) := by
   induction levels with
   | nil => intro index s; exact NZ.refl _
   | cons level rest ih =>
     intro index s
-    unfold Limits.whirLevelsNZ whirLevels
+    unfold Limits.whirLevelsNZ whirLevelsT
     apply NZ.bind (nz_foldRounds _ _ _)
     intro p
     obtain ⟨s', lf⟩ := p
@@ -136,14 +137,15 @@ theorem nz_whirLevels (logN laneFolds : ℕ) (eb : List E → E) (levels : List 
       repeat (first | exact ih _ _ | nz_step)
 
 theorem nz_verifyWhir (logN logInvRate : ℕ) (target : E) (eb : List E → E) :
-    NZ (Limits.verifyWhirNZ logN logInvRate target eb) (verifyWhir logN logInvRate target eb) := by
-  unfold Limits.verifyWhirNZ verifyWhir
+    NZ (Limits.verifyWhirNZ logN logInvRate target eb) (verifyWhirT logN logInvRate target eb) := by
+  unfold Limits.verifyWhirNZ verifyWhirT
   repeat (first | exact nz_whirLevels _ _ _ _ _ _ | nz_step)
 
 theorem nz_verifyStackedOpening (stackLog logInvRate : ℕ) (claims : List StackClaim) :
     NZ (Limits.verifyStackedOpeningNZ stackLog logInvRate claims)
       (verifyStackedOpening stackLog logInvRate claims) := by
   unfold Limits.verifyStackedOpeningNZ verifyStackedOpening
+  simp only [verifyWhir_eq_target]
   repeat (first | exact nz_verifyWhir _ _ _ _ | nz_step)
 
 /-- **The verifier refusing zero challenges is the verifier refusing zero challenges.** -/

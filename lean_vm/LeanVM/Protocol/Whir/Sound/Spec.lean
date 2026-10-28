@@ -9,6 +9,7 @@
 
 module
 
+public import LeanVM.Protocol.Verifier.WhirTarget
 public import LeanVM.Protocol.Whir.Sound.Start
 
 /-!
@@ -74,7 +75,7 @@ noncomputable def levelEps : ℕ → List Whir.Level → ENNReal
 noncomputable def whirEps (config : List Whir.Level) : ENNReal := levelEps codes 0 config
 
 /-- The doom at the start of the levels from `i`. -/
-def LevelPreL (ℓ₀ : ℕ) (w : List E → E) : ℕ → ℕ → List Whir.Level → WhirState →
+def LevelPreL (ℓ₀ : ℕ) (w : List E → E) : ℕ → ℕ → List Whir.Level → WhirStateT →
     List (ℕ × ℕ × Word) → Prop
   | _, _, [], _, _ => True
   | i, pre, level :: _, s, cs => LevelPre μ ℓ₀ w i (codes i) level.fold pre s cs
@@ -96,8 +97,8 @@ variable {μ ℓ₀ : ℕ} {w : List E → E} {codes : ℕ → LevelCode} {εmax
 /-- **The levels' specification.** -/
 noncomputable def levelsSpec (hw : IsMultiaffine μ w) (hℓ₀ : ℓ₀ ≤ μ) :
     (levels : List Whir.Level) → (i pre : ℕ) → LadderArith μ codes i pre levels →
-      levelEps codes i levels ≤ εmax → (s : WhirState) →
-      Spec (whirLevels μ ℓ₀ w i levels s)
+      levelEps codes i levels ≤ εmax → (s : WhirStateT) →
+      Spec (whirLevelsT μ ℓ₀ w i levels s)
         (fun h ↦ LevelPreL μ codes ℓ₀ w i pre levels s (commits h)) (fun _ _ ↦ False) εmax εmax 0
   | [], i, pre, _, _, s => (Spec.fail (Pre := fun h ↦ LevelPreL μ codes ℓ₀ w i pre [] s (commits h))
       (Post := fun _ _ ↦ False)).mono (fun _ h ↦ h) (fun _ _ h ↦ h) le_rfl zero_le le_rfl
@@ -122,9 +123,9 @@ noncomputable def levelsSpec (hw : IsMultiaffine μ w) (hℓ₀ : ℓ₀ ≤ μ)
 /-- `verifyWhir` on an admissible shape: the first round polynomial, then the levels. -/
 theorem verifyWhir_eq {R : ℕ} {t : E} {level : Whir.Level} {rest : List Whir.Level}
     (hc : Whir.ladder μ R = some (level :: rest)) :
-    verifyWhir μ R t w = (sumcheckRoundPoly 3 t none).bind fun quad ↦
-      whirLevels μ level.fold w 0 (level :: rest) ⟨t, quad, [], []⟩ := by
-  rw [verifyWhir, hc]
+    verifyWhirT μ R t w = (sumcheckRoundPoly 3 t none).bind fun quad ↦
+      whirLevelsT μ level.fold w 0 (level :: rest) ⟨t, quad, [], []⟩ := by
+  rw [verifyWhirT, hc]
   rfl
 
 /-- **The specification of the WHIR opening.** From `WhirPre` (the level-0 commitment is the
@@ -136,9 +137,9 @@ noncomputable def whirSpec {R : ℕ} {t : E} {level : Whir.Level} {rest : List W
     (hμ : laneBits ≤ μ) (hκ₀ : (codes 0).κ = μ - laneBits) (hR₀ : (codes 0).R = R)
     (hw : IsMultiaffine μ w) (hA : LadderArith μ codes 0 0 (level :: rest))
     (hε : whirEps codes (level :: rest) ≤ εmax) (T : ENNReal) :
-    Spec (verifyWhir μ R t w) (fun h ↦ WhirPre μ R (codes 0) w t (commits h))
+    Spec (verifyWhirT μ R t w) (fun h ↦ WhirPre μ R (codes 0) w t (commits h))
       (fun _ _ ↦ False) εmax 0 T :=
-  anyT (Spec.congr (p' := verifyWhir μ R t w) (by rw [verifyWhir_eq hc, hℓ]; rfl)
+  anyT (Spec.congr (p' := verifyWhirT μ R t w) (by rw [verifyWhir_eq hc, hℓ]; rfl)
     ((roundPolyInv (WhirPre μ R (codes 0) w t) t (T := εmax) le_rfl).bind' fun quad ↦
       (levelsSpec (ℓ₀ := laneBits) hw hμ (level :: rest) 0 0 hA hε ⟨t, quad, [], []⟩).mono
         (fun h hp ↦ by
@@ -260,8 +261,10 @@ theorem card_batch_bad_le {μ R : ℕ} (P₀ : LevelCode) (hκ : P₀.κ = μ - 
 /-- `verifyStackedOpening`: the batching challenge, then the opening. -/
 theorem verifyStackedOpening_eq (stackLog R : ℕ) (claims : List StackClaim) :
     verifyStackedOpening stackLog R claims = Prog.sampleE.bind fun ρ ↦
-      verifyWhir stackLog R (dot (powers ρ claims.length) (claims.map (·.2)))
-        (fun point ↦ dot (powers ρ claims.length) (claims.map fun c ↦ c.1 point)) := rfl
+      verifyWhirT stackLog R (dot (powers ρ claims.length) (claims.map (·.2)))
+        (fun point ↦ dot (powers ρ claims.length) (claims.map fun c ↦ c.1 point)) := by
+  rw [verifyStackedOpening_eq_target]
+  rfl
 
 open Classical in
 /-- **The specification of the stacked opening.** From `StackedPre` (every candidate violates one

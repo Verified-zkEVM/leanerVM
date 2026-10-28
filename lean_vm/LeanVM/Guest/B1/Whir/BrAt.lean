@@ -6,6 +6,7 @@
 
 module
 
+public import LeanVM.Protocol.Verifier.WhirTarget
 public import LeanVM.Guest.B1.Whir.BrChain
 
 /-!
@@ -35,7 +36,7 @@ structure SpAt (logN : ℕ) (cfg : List Whir.Level) (lvl n i : ℕ) (L : SpLv) :
   level : L.level = cfg.getD i ⟨0, 0, 0⟩
   fin : L.fin = true ↔ i + 1 = n
 
-theorem chain_at : ∀ (cfg : List Whir.Level) (lvl : ℕ) (ws : WhirState) (F : Fs) (xs : List E)
+theorem chain_at : ∀ (cfg : List Whir.Level) (lvl : ℕ) (ws : WhirStateT) (F : Fs) (xs : List E)
     (os : List Opening) (R : List (Digest × ℕ × ℕ)) (Ls : List SpLv) (res : WhirEnd × FSt),
     SpChain logN lane lvl cfg ws F xs os R Ls res →
     Ls.length = cfg.length ∧ (∀ i < Ls.length, SpAt logN cfg lvl Ls.length i (Ls.getD i default)) ∧
@@ -73,7 +74,7 @@ theorem chain_at : ∀ (cfg : List Whir.Level) (lvl : ℕ) (ws : WhirState) (F :
   | _ :: _ :: _, _, _, _, _, _, _, [], _, h => by simp [SpChain] at h
 
 /-- **Each level after the first opens the commitment the previous one read.** -/
-theorem chain_roots : ∀ (cfg : List Whir.Level) (lvl : ℕ) (ws : WhirState) (F : Fs) (xs : List E)
+theorem chain_roots : ∀ (cfg : List Whir.Level) (lvl : ℕ) (ws : WhirStateT) (F : Fs) (xs : List E)
     (os : List Opening) (R : List (Digest × ℕ × ℕ)) (Ls : List SpLv) (res : WhirEnd × FSt),
     SpChain logN lane lvl cfg ws F xs os R Ls res → R.length = lvl + 1 →
     ∀ i, i + 1 < Ls.length → (Ls.getD (i + 1) default).root = (Ls.getD i default).dn
@@ -99,7 +100,7 @@ theorem chain_roots : ∀ (cfg : List Whir.Level) (lvl : ℕ) (ws : WhirState) (
   | _ :: _ :: _, _, _, _, _, _, _, [], _, h, _, _, _ => by simp [SpChain] at h
 
 /-- **Every level's fold challenges are a prefix of the last level's.** -/
-theorem chain_folds : ∀ (cfg : List Whir.Level) (lvl : ℕ) (ws : WhirState) (F : Fs) (xs : List E)
+theorem chain_folds : ∀ (cfg : List Whir.Level) (lvl : ℕ) (ws : WhirStateT) (F : Fs) (xs : List E)
     (os : List Opening) (R : List (Digest × ℕ × ℕ)) (Ls : List SpLv) (res : WhirEnd × FSt),
     SpChain logN lane lvl cfg ws F xs os R Ls res →
     ∀ i < Ls.length, (Ls.getD i default).wsEnd.folds <+: (Ls.getLastD default).wsEnd.folds

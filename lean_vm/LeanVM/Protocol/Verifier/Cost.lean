@@ -8,6 +8,7 @@
 
 module
 
+public import LeanVM.Protocol.Verifier.WhirTarget
 public import LeanVM.Protocol.Verifier.Claims
 public import LeanVM.Protocol.Compile.Cost
 public import LeanVM.Protocol.Verifier
@@ -623,8 +624,8 @@ section Whir
 variable {height : ℕ}
 
 /-- A level's fold rounds, six each; they append one fold challenge each. -/
-theorem costs_foldRounds : ∀ (n : ℕ) (s : WhirState) (levelFolds : List E),
-    Prog.Costs height (foldRounds n s levelFolds) (6 * n)
+theorem costs_foldRounds : ∀ (n : ℕ) (s : WhirStateT) (levelFolds : List E),
+    Prog.Costs height (foldRoundsT n s levelFolds) (6 * n)
       fun r ↦ r.1.folds.length = s.folds.length + n
   | 0, _, _ => rfl
   | n + 1, s, levelFolds => by
@@ -638,7 +639,7 @@ theorem costs_foldRounds : ∀ (n : ℕ) (s : WhirState) (levelFolds : List E),
 
 /-- The final level's tail rounds, at most six each. -/
 theorem costs_tailRounds : ∀ (n : ℕ) (target : E) (quad : List E),
-    Prog.Costs height (tailRounds n target quad) (6 * n) fun _ ↦ True
+    Prog.Costs height (tailRoundsT n target quad) (6 * n) fun _ ↦ True
   | 0, _, _ => trivial
   | n + 1, _, quad => by
     refine Prog.Costs.seq Prog.Costs.sampleE (fun c _ ↦ Prog.Costs.ite (fun _ ↦ trivial)
@@ -690,9 +691,9 @@ theorem costs_sampleQueries (depth count : ℕ) (hd : 1 ≤ depth ∧ depth ≤ 
   costs_sampleQueriesAux depth hd.1 hd.2 count count
 
 /-- Gluing claims keeps the fold challenges. -/
-theorem glue_folds (lam : E) (s : WhirState) (pending : List (E × List E × (List E → E))) :
-    (glue lam s pending).folds = s.folds := by
-  unfold glue
+theorem glue_folds (lam : E) (s : WhirStateT) (pending : List (E × List E × (List E → E))) :
+    (glueT lam s pending).folds = s.folds := by
+  unfold glueT
   generalize (1 : E) = c
   induction pending generalizing s c with
   | nil => rfl
@@ -708,10 +709,10 @@ theorem openCost_mono {height : ℕ} {k k' : ℕ} (h : k ≤ k') :
 /-- **The WHIR levels** from a message of `μ` variables cost `whirCost`, when their commitments
 have height at most `height` and their query positions at most `64` bits. -/
 theorem costs_whirLevels (logN laneFolds : ℕ) (evaluateBasis : List E → E) :
-    ∀ (levels : List Whir.Level) (index : ℕ) (s : WhirState) (μ : ℕ),
+    ∀ (levels : List Whir.Level) (index : ℕ) (s : WhirStateT) (μ : ℕ),
       logN - s.folds.length = μ → whirHeightsLE height μ levels = true →
       queryDepthsLE μ levels = true →
-      Prog.Costs height (whirLevels logN laneFolds evaluateBasis index levels s)
+      Prog.Costs height (whirLevelsT logN laneFolds evaluateBasis index levels s)
         (whirCost height μ levels) fun _ ↦ True
   | [], _, _, _, _, _, _ => trivial
   | [level], index, s, μ, hμ, _, hD => by
@@ -769,7 +770,7 @@ theorem costs_verifyWhir (logN logInvRate : ℕ) (target : E) (evaluateBasis : L
     (W : ℕ) (hW : ∀ levels, Whir.ladder logN logInvRate = some levels →
       whirHeightsLE height logN levels = true ∧ queryDepthsLE logN levels = true ∧
         whirCost height logN levels ≤ W) :
-    Prog.Costs height (verifyWhir logN logInvRate target evaluateBasis) (2 + W)
+    Prog.Costs height (verifyWhirT logN logInvRate target evaluateBasis) (2 + W)
       fun _ ↦ True := by
   refine Prog.Costs.seq (costs_liftOption _ 0) (fun config hc ↦ Prog.Costs.seq
     (costs_sumcheckRoundPoly 3 _ none) (fun quad _ ↦
@@ -797,8 +798,9 @@ theorem costs_verifyStackedOpening (stackLog logInvRate : ℕ) (claims : List St
       whirHeightsLE height stackLog levels = true ∧ queryDepthsLE stackLog levels = true ∧
         whirCost height stackLog levels ≤ W) :
     Prog.Costs height (verifyStackedOpening stackLog logInvRate claims) (4 + (2 + W))
-      fun _ ↦ True :=
-  Prog.Costs.seq Prog.Costs.sampleE (fun _ _ ↦
+      fun _ ↦ True := by
+  rw [verifyStackedOpening_eq_target]
+  exact Prog.Costs.seq Prog.Costs.sampleE (fun _ _ ↦
     (costs_verifyWhir _ _ _ _ W hW).mono (by omega) fun _ h ↦ h) (by omega)
 
 end Whir

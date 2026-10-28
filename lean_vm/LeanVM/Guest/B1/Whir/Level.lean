@@ -7,6 +7,7 @@
 
 module
 
+public import LeanVM.Protocol.Verifier.WhirTarget
 public import LeanVM.Guest.B1.Whir.LevelB
 public import LeanVM.Guest.B1.Whir.Final
 
@@ -32,9 +33,9 @@ open LeanVM.Protocol.Verifier
 variable {rd : Reader} {σ : Val}
 
 theorem levelHead_eq (logN index : ℕ) (level : Whir.Level) (rest : List Whir.Level)
-    (s : WhirState) :
+    (s : WhirStateT) :
     levelHead logN index level rest s =
-      (foldRounds level.fold s []).bind fun p ↦
+      (foldRoundsT level.fold s []).bind fun p ↦
         (do
           let r ← levelMid (logN - p.1.folds.length) rest
           Prog.grindP Whir.queryGrindingBits
@@ -90,7 +91,7 @@ def lvWidth (lvl : ℕ) (lv : OsLv) : ℕ := if lvl = 0 then lv.interleave else 
 /-- **A level's start**: the guest's state against the Spec's: the sponge, the claim and the
 quadratic, the fold challenges so far in `fold_challenges`, the commitments so far, the level's
 root stored in `level_roots`. -/
-structure LvIn (rd : Reader) (σ : Val) (lvl : ℕ) (lv : OsLv) (st : OsSt) (ws : WhirState)
+structure LvIn (rd : Reader) (σ : Val) (lvl : ℕ) (lv : OsLv) (st : OsSt) (ws : WhirStateT)
     (R : List (Digest × ℕ × ℕ)) (root : Digest) : Prop where
   fs : st.fs.length = 5
   co : st.co ≤ 8
@@ -148,10 +149,10 @@ theorem osLevel_nonfinal_sound {c : OsCfg} {lvl : ℕ} {lv lv' : OsLv} {logN : �
     (hlvl : (lvl + 1) * ligColsCap < u128Bound) (hnf : lvl ≠ c.yrLevel)
     (hoff' : lv'.foldsOff = lv.foldsOff + lv.folds)
     (hshape : levelShape lv.logCols next (3 * 2 ^ next.fold) = (lv'.depth, lvWidth (lvl + 1) lv'))
-    {st : OsSt} {ws : WhirState} {R : List (Digest × ℕ × ℕ)} {root : Digest}
+    {st : OsSt} {ws : WhirStateT} {R : List (Digest × ℕ × ℕ)} {root : Digest}
     (hin : LvIn rd σ lvl lv st ws R root)
     (hok : AllOk C rd σ (osLevel c lvl lv st).1) :
-    ∃ (xs : List E) (os : List Opening) (ws' : WhirState) (root' : Digest) (r : OsRec),
+    ∃ (xs : List E) (os : List Opening) (ws' : WhirStateT) (root' : Digest) (r : OsRec),
       ReadsAt rd (st.cur σ) xs ∧
       RunsWith (levelHead logN lvl level (next :: rest) ws) (st.F σ) xs os R
         ([], lv.logCols, ws') ((osLevel c lvl lv st).2.F σ) (R ++ [(root', lv'.depth, lvWidth (lvl + 1) lv')]) ∧
@@ -272,10 +273,10 @@ theorem osLevel_final_sound {c : OsCfg} {lvl : ℕ} {lv : OsLv} {logN : ℕ} {le
     (hfold : level.fold = lv.folds) (h4 : 1 ≤ lv.folds)
     (hml : logN - (lv.foldsOff + lv.folds) = lv.logCols) (hlen : 2 ^ lv.logCols = c.yrLen)
     (hfin : lvl = c.yrLevel)
-    {st : OsSt} {ws : WhirState} {R : List (Digest × ℕ × ℕ)} {root : Digest}
+    {st : OsSt} {ws : WhirStateT} {R : List (Digest × ℕ × ℕ)} {root : Digest}
     (hin : LvIn rd σ lvl lv st ws R root)
     (hok : AllOk C rd σ (osLevel c lvl lv st).1) :
-    ∃ (xs : List E) (os : List Opening) (ws' : WhirState) (ms : List E) (r : OsRec),
+    ∃ (xs : List E) (os : List Opening) (ws' : WhirStateT) (ms : List E) (r : OsRec),
       ReadsAt rd (st.cur σ) xs ∧
       RunsWith (levelHead logN lvl level [] ws) (st.F σ) xs os R
         (ms, lv.logCols, ws') ((osLevel c lvl lv st).2.F σ) R ∧

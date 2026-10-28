@@ -1,3 +1,4 @@
+import LeanVM.Protocol.Verifier.WhirTarget
 import LeanVM.Protocol.Whir.Complete.Opening
 
 /-!
@@ -54,12 +55,12 @@ example : ∀ (H : Bytes → Digest) (F : LeanVM.Semantics.KState → LeanVM.Sem
   @exists_prove_runProof_openingProgram
 
 example : ∀ {μ lf : ℕ} {f₀ : List E} {B : List E → E}, f₀.length = 2 ^ μ → μ ≤ 64 →
-    ∀ (levels : List Whir.Level) (index : ℕ) (s : WhirState) (W : List E) (cs : Commits),
+    ∀ (levels : List Whir.Level) (index : ℕ) (s : WhirStateT) (W : List E) (cs : Commits),
       levels ≠ [] → Inv μ lf f₀ B s W → (levels.map (·.fold)).sum ≤ μ - s.folds.length →
       (∀ level ∈ levels.head?,
         LevelCommit cs index (μ - s.folds.length) (foldAll f₀ s.folds) level) →
       Follows (fun _ _ _ ↦ True) (hLevels μ f₀ index levels s W)
-        (whirLevels μ lf B index levels s) cs :=
+        (whirLevelsT μ lf B index levels s) cs :=
   @follows_whirLevels
 
 example : ∀ {μ R q₀ : ℕ} {rest : List Whir.Level}, laneBits ≤ μ → μ ≤ 64 →
@@ -81,7 +82,7 @@ example (μ R : ℕ) (claims : List StackClaim) :
 
 /-- `verifyWhir` is `whirRun` on the derived configuration. -/
 example (μ R : ℕ) (target : E) (B : List E → E) :
-    verifyWhir μ R target B =
+    verifyWhirT μ R target B =
       Verifier.liftOption (Whir.ladder μ R) >>= fun config ↦ whirRun μ config target B := rfl
 
 /-- The stack's commitment is opened at level `0` with the shape `commitStack` announces. -/

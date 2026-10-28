@@ -6,6 +6,7 @@
 
 module
 
+public import LeanVM.Protocol.Verifier.WhirTarget
 public import LeanVM.Prover.WhirBasis
 public import LeanVM.Prover.Ring
 
@@ -91,10 +92,10 @@ theorem corr_roundA' {claim : E} {W g : Array E} {W' g' : List E} (hW : W.toList
 
 /-- **The fold rounds**, both tables folded in place. -/
 theorem corr_foldRoundsA (f₀ : List E) :
-    ∀ (n : ℕ) (s : WhirState) (lf : List E) (W g : Array E), g.toList = foldAll f₀ s.folds →
-      Corr (fun a b ↦ a.1 = b.1 ∧ a.2.1 = b.2.1 ∧ a.2.2.1.toList = b.2.2 ∧
+    ∀ (n : ℕ) (s : WhirStateT) (lf : List E) (W g : Array E), g.toList = foldAll f₀ s.folds →
+      Corr (fun a b ↦ a.1 = b.1.forget ∧ a.2.1 = b.2.1 ∧ a.2.2.1.toList = b.2.2 ∧
           a.2.2.2.toList = foldAll f₀ b.1.folds)
-        (foldRoundsA n s lf W g) (hFoldRounds f₀ n s lf W.toList)
+        (foldRoundsA n s.forget lf W g) (hFoldRounds f₀ n s lf W.toList)
   | 0, s, lf, W, g, hg => by
     simp only [foldRoundsA, hFoldRounds]
     exact ⟨rfl, rfl, rfl, hg⟩
@@ -114,7 +115,7 @@ theorem corr_foldRoundsA (f₀ : List E) :
 
 /-- **The tail rounds.** -/
 theorem corr_tailRoundsA : ∀ (n : ℕ) (target : E) (quad : List E) (W g : Array E),
-    Corr (fun _ _ ↦ True) (tailRoundsA n target quad W g)
+    Corr (fun _ _ ↦ True) (tailRoundsA n quad W g)
       (hTailRounds n target quad W.toList g.toList)
   | 0, _, _, _, _ => by simp only [tailRoundsA, hTailRounds]; trivial
   | n + 1, target, quad, W, g => by
@@ -130,7 +131,8 @@ theorem corr_tailRoundsA : ∀ (n : ℕ) (target : E) (quad : List E) (W g : Arr
         (roundQuad (polyEval quad c) (foldPairs c W.toList) (foldPairs c g.toList))
         (foldPairsW c W) (foldPairsW c g)
       rw [toList_foldPairsW, toList_foldPairsW] at this
-      exact Corr.bind' this fun _ _ _ ↦ trivial
+      rw [← Script.bind_ret (tailRoundsA n _ _ _)]
+      exact Corr.bind (fun _ _ _ ↦ trivial) _ _ this
 
 /-- The query positions are received as the specification receives them. -/
 theorem sampleQueriesS_eq (depth : ℕ) : ∀ fuel remaining : ℕ,
@@ -145,19 +147,21 @@ theorem corrW_pure {α β γ δ : Type} {S : α → β → Prop} {a : γ} {b : �
     {g : δ → Script β} (h : Corr S (f a) (g b)) : Corr S (pure a >>= f) (pure b >>= g) := h
 
 /-- The tail rounds, then nothing, from related tables. -/
-theorem corr_tailRoundsA' {n : ℕ} {target : E} {quad : List E} {W g : Array E} {W' g' : List E}
-    (hW : W.toList = W') (hg : g.toList = g') :
-    Corr (fun _ _ ↦ True) (tailRoundsA n target quad W g >>= fun _ ↦ pure ())
-      (hTailRounds n target quad W' g' >>= fun _ ↦ pure ()) := by
-  subst hW hg
-  exact Corr.bind' (corr_tailRoundsA _ _ _ _ _) fun _ _ _ ↦ trivial
+theorem corr_tailRoundsA' {n : ℕ} {target : E} {quad quad' : List E} {W g : Array E}
+    {W' g' : List E} (hq : quad = quad') (hW : W.toList = W') (hg : g.toList = g') :
+    Corr (fun _ _ ↦ True) (tailRoundsA n quad W g)
+      (hTailRounds n target quad' W' g' >>= fun _ ↦ pure ()) := by
+  subst hq hW hg
+  rw [← Script.bind_ret (tailRoundsA n quad W g)]
+  exact Corr.bind (fun _ _ _ ↦ trivial) _ _ (corr_tailRoundsA _ _ _ _ _)
 
 /-- **The WHIR levels**: from related tables, the executable levels make the specification's
 moves. -/
 theorem corr_levelsA {μ : ℕ} (hμ : μ ≤ 64) (f₀ : List E) :
-    ∀ (levels : List Whir.Level) (index : ℕ) (s : WhirState) (W g : Array E),
+    ∀ (levels : List Whir.Level) (index : ℕ) (s : WhirStateT) (W g : Array E),
       g.toList = foldAll f₀ s.folds →
-      Corr (fun _ _ ↦ True) (levelsA μ index levels s W g) (hLevels μ f₀ index levels s W.toList) := by
+      Corr (fun _ _ ↦ True) (levelsA μ index levels s.forget W g)
+        (hLevels μ f₀ index levels s W.toList) := by
   intro levels
   induction levels with
   | nil => intro _ _ _ _ _; simp only [levelsA, hLevels]; trivial
@@ -171,13 +175,14 @@ theorem corr_levelsA {μ : ℕ} (hμ : μ ≤ 64) (f₀ : List E) :
     simp only at h1 h2 h3 hg₁
     subst h1 h2 h3
     dsimp only
-    have hm : μ - s₁.folds.length ≤ 64 := by omega
-    have hih : ∀ (s' : WhirState) (Wa : Array E) (Wl : List E), Wa.toList = Wl →
-        g₁.toList = foldAll f₀ s'.folds →
-        Corr (fun _ _ ↦ True) (levelsA μ (index + 1) rest s' Wa g₁)
+    rw [show sb.forget.folds = sb.folds from rfl]
+    have hm : μ - sb.folds.length ≤ 64 := by omega
+    have hih : ∀ (sp : WhirState) (s' : WhirStateT) (Wa : Array E) (Wl : List E), sp = s'.forget →
+        Wa.toList = Wl → g₁.toList = foldAll f₀ s'.folds →
+        Corr (fun _ _ ↦ True) (levelsA μ (index + 1) rest sp Wa g₁)
           (hLevels μ f₀ (index + 1) rest s' Wl) := by
-      intro s' Wa Wl hW hg'
-      subst hW
+      intro sp s' Wa Wl hsp hW hg'
+      subst hsp hW
       exact ih (index + 1) s' Wa g₁ hg'
     cases rest with
     | nil =>
@@ -189,10 +194,10 @@ theorem corr_levelsA {μ : ℕ} (hμ : μ ≤ 64) (f₀ : List E) :
       refine corrW_sampleE fun lam ↦ ?_
       refine corrW_queryS fun words ↦ ?_
       refine Corr.bind' (corr_roundA'
-        (W' := queryTable (μ - s₁.folds.length) queries (powers lam queries.length))
+        (W' := queryTable (μ - sb.folds.length) queries (powers lam queries.length))
         (toList_queryTableA hm _ _) hg₁) fun quad _ hq ↦ ?_
       subst hq
-      refine corr_tailRoundsA' ?_ hg₁
+      refine corr_tailRoundsA' rfl ?_ hg₁
       rw [toList_glueTablesA]
       simp [toList_queryTableA hm]
     | cons next rest' =>
@@ -201,7 +206,7 @@ theorem corr_levelsA {μ : ℕ} (hμ : μ ≤ 64) (f₀ : List E) :
       obtain ⟨rfl, hz⟩ := hz
       refine corrW_sendE (by rw [multilinearEvalA_eq, hg₁]) ?_
       rw [multilinearEvalA_eq, hg₁]
-      refine Corr.bind' (corr_roundA' (W' := tableOf (μ - s₁.folds.length) (eqEval z))
+      refine Corr.bind' (corr_roundA' (W' := tableOf (μ - sb.folds.length) (eqEval z))
         (by rw [toList_eqKernelA, eqKernel_eq_tableOf z hz]) hg₁) fun quad _ hq ↦ ?_
       subst hq
       refine corrW_pure ?_
@@ -212,10 +217,10 @@ theorem corr_levelsA {μ : ℕ} (hμ : μ ≤ 64) (f₀ : List E) :
       refine corrW_sampleE fun lam ↦ ?_
       refine corrW_queryS fun words ↦ ?_
       refine Corr.bind' (corr_roundA'
-        (W' := queryTable (μ - s₁.folds.length) queries (powers lam queries.length))
+        (W' := queryTable (μ - sb.folds.length) queries (powers lam queries.length))
         (toList_queryTableA hm _ _) hg₁) fun quad _ hq ↦ ?_
       subst hq
-      refine hih _ _ _ ?_ (by rw [glue_folds]; exact hg₁)
+      refine hih _ (glueT lam sb _) _ _ rfl ?_ (by rw [glue_folds]; exact hg₁)
       rw [toList_glueTablesA]
       simp [toList_queryTableA hm, toList_eqKernelA, eqKernel_eq_tableOf z hz]
 

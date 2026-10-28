@@ -6,6 +6,7 @@
 
 module
 
+public import LeanVM.Protocol.Verifier.WhirTarget
 public import LeanVM.Guest.B1.Whir.LevelRest
 
 /-!
@@ -187,7 +188,7 @@ theorem specRows_eq (lvl : ℕ) (words : List (List K)) :
 
 /-- **The Spec's `levelRest`** from a sponge with nothing waiting: the positions of `nsq`
 squeezes, the batching challenge, the openings, the intro's two words. -/
-theorem levelRest_run {ml lvl : ℕ} {level : Whir.Level} {lf : List E} {ws : WhirState}
+theorem levelRest_run {ml lvl : ℕ} {level : Whir.Level} {lf : List E} {ws : WhirStateT}
     {pending : List (E × List E × (List E → E))} {F : Fs} {d nsq : ℕ}
     (hd : ml + level.logInvRate = d) (hper : 1 ≤ 192 / d)
     (hn : nsq = ceilDiv level.queries (192 / d)) {R : List (Digest × ℕ × ℕ)} {root : Digest}
@@ -201,7 +202,7 @@ theorem levelRest_run {ml lvl : ℕ} {level : Whir.Level} {lf : List E} {ws : Wh
     let lam := (F.squeezeN nsq).2.squeeze.1
     let enf := enforcedSum ((os.map (·.leaf)).map (specRow lvl)) lf (powers lam qs.length)
     RunsWith (levelRest ml lvl level lf ws pending) F [ic0, ic2] os R
-      (glue lam ws (pending ++ [(enf, [ic0, enf + ic2, ic2],
+      (glueT lam ws (pending ++ [(enf, [ic0, enf + ic2, ic2],
         fun x ↦ inducedWeight ml qs (powers lam qs.length) x)]))
       ⟨(F.squeezeN nsq).2.squeeze.2.cap, [(ic0, dsObserve), (ic2, dsObserve)]⟩ R := by
   subst hn
@@ -225,7 +226,7 @@ theorem levelRest_run {ml lvl : ℕ} {level : Whir.Level} {lf : List E} {ws : Wh
         Prog.sampleE.bind fun lam ↦ (Prog.queryP lvl queries).bind fun words ↦
           (sumcheckRoundPoly 3 (enforcedSum (words.map (specRow lvl)) lf
             (powers lam queries.length)) none).bind fun intro ↦
-            Prog.ret (glue lam ws (pending ++ [(enforcedSum (words.map (specRow lvl)) lf
+            Prog.ret (glueT lam ws (pending ++ [(enforcedSum (words.map (specRow lvl)) lf
               (powers lam queries.length), intro,
               fun x ↦ inducedWeight ml queries (powers lam queries.length) x)])) := by
     simp only [levelRest, specRows_eq, Prog.bind_eq, Prog.pure_eq]
@@ -256,7 +257,7 @@ theorem osLevelB_sound {C : CallRel} (hle : CallRel.Le C (coreProgram.Rel rd)) {
       MeaningOpeningQueriesW (lv.queries % 2 * (if lvl = 0 then 1 else 0))
         (if lvl = 0 then 1 else 0) lv.interleave lv.depth lv.capDepth rd (W args rets) args rets)
     (hfs : st.fs.length = 5) (hpad : PadOk σ st.pad)
-    {ws : WhirState} (hquad : ws.quad = st.quad σ) (ht : ws.target = σ (.n st.t))
+    {ws : WhirStateT} (hquad : ws.quad = st.quad σ) (ht : ws.target = σ (.n st.t))
     {lf : List E} (hlf : lf.length = lv.folds)
     (hfch : ∀ j < lv.folds, LoadHolds rd (σ (.n osFch)) (lv.foldsOff + j) (lf.getD j 0))
     {R : List (Digest × ℕ × ℕ)} {root : Digest}
@@ -264,12 +265,12 @@ theorem osLevelB_sound {C : CallRel} (hle : CallRel.Le C (coreProgram.Rel rd)) {
     (hr0 : LoadHolds rd (σ (.n osRoots)) (2 * lvl) (digestScalars root).1)
     (hr1 : LoadHolds rd (σ (.n osRoots)) (2 * lvl + 1) (digestScalars root).2)
     {pending : List (E × List E × (List E → E))} (hpend : PendOk rd σ c lvl pending) :
-    ∃ (xs : List E) (os : List Opening) (ws' : WhirState) (lam : E) (qs : List ℕ),
+    ∃ (xs : List E) (os : List Opening) (ws' : WhirStateT) (lam : E) (qs : List ℕ),
       os = bOs c lvl lv st rd σ W ∧ ReadsAt rd (st.cur σ) xs ∧ xs.length = 2 ∧
       RunsWith (levelRest ml lvl level lf ws pending) ⟨st.fsv σ, []⟩ xs os R ws'
         ((osLevelB c lvl lv st).2.F σ) R ∧
       ws'.quad = (osLevelB c lvl lv st).2.quad σ ∧ ws'.target = σ (.n (osLevelB c lvl lv st).2.t) ∧
-      (∃ (enf : E) (intro : List E), ws' = glue lam ws (pending ++
+      (∃ (enf : E) (intro : List E), ws' = glueT lam ws (pending ++
         [(enf, intro, fun x ↦ inducedWeight ml qs (powers lam qs.length) x)])) ∧
       LvRec rd σ c lvl lv lam qs ∧
       (osLevelB c lvl lv st).2.fs.length = 5 ∧ PadOk σ (osLevelB c lvl lv st).2.pad ∧

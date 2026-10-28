@@ -6,6 +6,7 @@
 
 module
 
+public import LeanVM.Protocol.Verifier.WhirTarget
 public import LeanVM.Guest.B1.Whir.TailSpec
 public import LeanVM.Guest.B1.Whir.Level
 
@@ -33,11 +34,11 @@ words at the cursor read, they run `tailRounds yrLog`; its challenges are stored
 `tail_challenges` (the returned pointer), the entries past them zero, its claim the state's. -/
 theorem osTail_sound (hC : ∀ args rets, C "opening_fold" args rets → MeaningOpeningFold rd args rets)
     {c : OsCfg} {st : OsSt} (hy : 1 ≤ c.yrLog) (hfs : st.fs.length = 5) (hco : st.co < u128Bound)
-    (hpad : PadOk σ (some (st.pad.getD 0))) (ws : WhirState) (hq : ws.quad = st.quad σ)
+    (hpad : PadOk σ (some (st.pad.getD 0))) (ws : WhirStateT) (hq : ws.quad = st.quad σ)
     (ht : ws.target = σ (.n st.t)) (hok : AllOk C rd σ (osTail c st).1) :
     ∃ (xs chs : List E) (F' : Fs), xs.length = 2 * (c.yrLog - 1) ∧ chs.length = c.yrLog ∧
       ReadsAt rd (st.cur σ) xs ∧
-      RunsTo ((tailRounds c.yrLog ws.target ws.quad).bind fun r ↦ Prog.ret ([] ++ r.1, r.2))
+      RunsTo ((tailRoundsT c.yrLog ws.target ws.quad).bind fun r ↦ Prog.ret ([] ++ r.1, r.2))
         (st.F σ) xs (chs, σ (.n (osTail c st).2.1.t)) F' ∧
       (∀ i (hi : i < chs.length), LoadHolds rd (σ (.n (osTail c st).2.2)) i chs[i]) ∧
       (∀ i, i < yrLogCap - c.yrLog → LoadHolds rd (σ (.n (osTail c st).2.2)) (c.yrLog + i) 0) := by
@@ -87,7 +88,7 @@ theorem osTail_sound (hC : ∀ args rets, C "opening_fold" args rets → Meaning
       σ (.n (j + 47))) (f2.F σ).squeeze.2 := by
     rw [hchv, hclaim]
     exact RunsTo.bind' (runsTo_sampleE _) (runsTo_ret _ _)
-  have h3 := RunsTo.bind' (f := fun pp : WhirState × List E ↦ Prog.sampleE.bind fun cc ↦
+  have h3 := RunsTo.bind' (f := fun pp : WhirStateT × List E ↦ Prog.sampleE.bind fun cc ↦
     Prog.ret (pp.2 ++ [cc], polyEval pp.1.quad cc)) hrun h2
   have e := tailRounds_eq n ws.target ws.quad ws.folds ws.glued []
   refine ⟨xs, chs ++ [σ (.n (j + 42))], (f2.F σ).squeeze.2, by rw [hxl], by simp [hcl, hn], hrd, ?_, ?_, ?_⟩

@@ -8,6 +8,7 @@
 
 module
 
+public import LeanVM.Protocol.Verifier.WhirTarget
 public import LeanVM.Guest.B1.Common.Sponge
 public import LeanVM.Protocol.Compile.Prog
 
@@ -67,10 +68,10 @@ structure WhirEnd where
   target : E
 
 /-- `whirLevels` (V:1791) without the final `require`: it returns what the terminal reads. -/
-def whirLevelsOpen (logN laneFolds : ℕ) : ℕ → List Whir.Level → WhirState → Prog WhirEnd
+def whirLevelsOpen (logN laneFolds : ℕ) : ℕ → List Whir.Level → WhirStateT → Prog WhirEnd
   | _, [], _ => Prog.fail
   | index, level :: rest, s => do
-    let (s, levelFolds) ← foldRounds level.fold s []
+    let (s, levelFolds) ← foldRoundsT level.fold s []
     let messageLog := logN - s.folds.length
     let (residual, pending) ← match rest with
       | [] => do
@@ -94,10 +95,10 @@ def whirLevelsOpen (logN laneFolds : ℕ) : ℕ → List Whir.Level → WhirStat
     let intro ← sumcheckRoundPoly 3 enforced none
     let pending := pending ++
       [(enforced, intro, fun x ↦ inducedWeight messageLog queries queryWeights x)]
-    let s := glue lam s pending
+    let s := glueT lam s pending
     match rest with
     | [] => do
-      let (tailFolds, target) ← tailRounds messageLog s.target s.quad
+      let (tailFolds, target) ← tailRoundsT messageLog s.target s.quad
       let point := s.folds ++ tailFolds
       let inner := s.glued.foldl
         (fun weight claim ↦
@@ -129,27 +130,27 @@ theorem prog_bind_congr {α β : Type} {p : Prog α} {f g : α → Prog β} (h :
     p.bind f = p.bind g := by rw [funext h]
 
 theorem whirLevels_split (logN laneFolds : ℕ) (eb : List E → E) :
-    ∀ (index : ℕ) (levels : List Whir.Level) (s : WhirState),
-      whirLevels logN laneFolds eb index levels s =
+    ∀ (index : ℕ) (levels : List Whir.Level) (s : WhirStateT),
+      whirLevelsT logN laneFolds eb index levels s =
         (whirLevelsOpen logN laneFolds index levels s).bind fun w ↦ Prog.require (w.Accepts eb)
   | _, [], _ => rfl
   | index, [level], s => by
-    rw [whirLevels, whirLevelsOpen]
+    rw [whirLevelsT, whirLevelsOpen]
     simp only [Prog.bind_eq, Prog.pure_eq, Prog.bind_assoc, Prog.ret_bind, WhirEnd.Accepts]
     repeat refine prog_bind_congr fun _ ↦ ?_
     rw [foldl_add_shift _ (eb _), add_comm (eb _)]
     congr 1
   | index, level :: next :: rest, s => by
-    rw [whirLevels, whirLevelsOpen]
+    rw [whirLevelsT, whirLevelsOpen]
     simp only [Prog.bind_eq, Prog.pure_eq, Prog.bind_assoc, Prog.ret_bind,
       whirLevels_split logN laneFolds eb (index + 1) (next :: rest)]
 
 /-- **`verifyWhir` is `whirOpen`, then the terminal's check.** -/
 theorem verifyWhir_split (logN logInvRate : ℕ) (target : E) (eb : List E → E) :
-    verifyWhir logN logInvRate target eb = (do
+    verifyWhirT logN logInvRate target eb = (do
       let w ← whirOpen logN logInvRate target
       Prog.require (w.Accepts eb)) := by
-  simp only [verifyWhir, whirOpen, Prog.bind_eq, Prog.bind_assoc, whirLevels_split]
+  simp only [verifyWhirT, whirOpen, Prog.bind_eq, Prog.bind_assoc, whirLevels_split]
 
 /-- The shape `commitStack` gives the stack's root (V:1844): `(height, width)`. -/
 def stackShape (logN logInvRate : ℕ) : ℕ × ℕ :=

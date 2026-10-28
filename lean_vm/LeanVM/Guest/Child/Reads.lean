@@ -8,6 +8,7 @@
 
 module
 
+public import LeanVM.Protocol.Verifier.WhirTarget
 public import LeanVM.Protocol.Verifier.Claims
 public import LeanVM.Protocol.Verifier.Cost
 public import Statement.LeanVmGuest
@@ -547,8 +548,8 @@ end Phases
 
 section Whir
 
-theorem reads_foldRounds : ∀ (n : ℕ) (s : WhirState) (levelFolds : List E),
-    Reads (foldRounds n s levelFolds) (2 * n) fun r ↦ r.1.folds.length = s.folds.length + n
+theorem reads_foldRounds : ∀ (n : ℕ) (s : WhirStateT) (levelFolds : List E),
+    Reads (foldRoundsT n s levelFolds) (2 * n) fun r ↦ r.1.folds.length = s.folds.length + n
   | 0, _, _ => rfl
   | n + 1, s, levelFolds => by
     refine Reads.seq Reads.sampleE (fun c _ ↦ Reads.seq
@@ -560,7 +561,7 @@ theorem reads_foldRounds : ∀ (n : ℕ) (s : WhirState) (levelFolds : List E),
     · omega
 
 theorem reads_tailRounds : ∀ (n : ℕ) (target : E) (quad : List E),
-    Reads (tailRounds n target quad) (2 * n) fun _ ↦ True
+    Reads (tailRoundsT n target quad) (2 * n) fun _ ↦ True
   | 0, _, _ => trivial
   | n + 1, _, quad => by
     refine Reads.seq Reads.sampleE (fun c _ ↦ Reads.ite (fun _ ↦ trivial)
@@ -580,9 +581,9 @@ theorem reads_sampleQueriesAux (depth : ℕ) :
       le_rfl
 
 theorem reads_whirLevels (logN laneFolds : ℕ) (evaluateBasis : List E → E) :
-    ∀ (levels : List Whir.Level) (index : ℕ) (s : WhirState) (μ : ℕ),
+    ∀ (levels : List Whir.Level) (index : ℕ) (s : WhirStateT) (μ : ℕ),
       logN - s.folds.length = μ →
-      Reads (whirLevels logN laneFolds evaluateBasis index levels s)
+      Reads (whirLevelsT logN laneFolds evaluateBasis index levels s)
         (whirReads μ levels) fun _ ↦ True
   | [], _, _, _, _ => trivial
   | [level], index, s, μ, hμ => by
@@ -632,7 +633,7 @@ theorem reads_whirLevels (logN laneFolds : ℕ) (evaluateBasis : List E → E) :
 
 theorem reads_verifyWhir (logN logInvRate : ℕ) (target : E) (evaluateBasis : List E → E)
     (W : ℕ) (hW : ∀ levels, Whir.ladder logN logInvRate = some levels → whirReads logN levels ≤ W) :
-    Reads (verifyWhir logN logInvRate target evaluateBasis) (2 + W) fun _ ↦ True := by
+    Reads (verifyWhirT logN logInvRate target evaluateBasis) (2 + W) fun _ ↦ True := by
   refine Reads.seq (Reads.liftOption _ 0) (fun config hc ↦ Reads.seq
     (reads_sumcheckRoundPoly 3 _ none) (fun quad _ ↦
       ((reads_whirLevels logN _ evaluateBasis config 0 _ logN rfl).mono
@@ -650,8 +651,9 @@ theorem reads_commitStack (logN logInvRate : ℕ) :
 theorem reads_verifyStackedOpening (stackLog logInvRate : ℕ) (claims : List StackClaim)
     (W : ℕ) (hW : ∀ levels, Whir.ladder stackLog logInvRate = some levels →
       whirReads stackLog levels ≤ W) :
-    Reads (verifyStackedOpening stackLog logInvRate claims) (2 + W) fun _ ↦ True :=
-  Reads.seq Reads.sampleE (fun _ _ ↦
+    Reads (verifyStackedOpening stackLog logInvRate claims) (2 + W) fun _ ↦ True := by
+  rw [verifyStackedOpening_eq_target]
+  exact Reads.seq Reads.sampleE (fun _ _ ↦
     (reads_verifyWhir _ _ _ _ W hW).mono (by omega) fun _ h ↦ h) (by omega)
 
 /-- Over every admissible ladder the WHIR levels read at most `whirReadsBound` scalars. -/

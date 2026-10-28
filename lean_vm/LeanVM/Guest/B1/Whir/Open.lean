@@ -6,6 +6,7 @@
 
 module
 
+public import LeanVM.Protocol.Verifier.WhirTarget
 public import LeanVM.Guest.B1.Whir.OpenAux
 public import LeanVM.Guest.B1.Whir.InterfaceW
 public import LeanVM.Guest.B1.Opening.QueriesW
@@ -98,9 +99,9 @@ theorem lv_getD {c : OsCfg} {i : ℕ} (h : i < c.levels.length) :
     c.levels.getD i default = c.levels[i] := List.getD_eq_getElem _ _ h
 
 /-- `levelTail` with its tail rounds as the guest runs them. -/
-theorem levelTail_eq (lane ml : ℕ) (ms : List E) (s : WhirState) :
+theorem levelTail_eq (lane ml : ℕ) (ms : List E) (s : WhirStateT) :
     levelTail lane ml ms s =
-      ((tailRounds ml s.target s.quad).bind fun r ↦ Prog.ret ([] ++ r.1, r.2)).bind fun r ↦
+      ((tailRoundsT ml s.target s.quad).bind fun r ↦ Prog.ret ([] ++ r.1, r.2)).bind fun r ↦
         Prog.ret (⟨(s.folds ++ r.1).drop lane ++ (s.folds ++ r.1).take lane,
           s.glued.foldl (fun weight claim ↦
             weight + claim.scalar * claim.weightAt (s.folds.drop claim.foldStart ++ r.1)) 0,

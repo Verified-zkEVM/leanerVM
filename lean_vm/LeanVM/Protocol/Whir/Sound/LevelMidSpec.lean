@@ -6,6 +6,7 @@
 
 module
 
+public import LeanVM.Protocol.Verifier.WhirTarget
 public import LeanVM.Protocol.Whir.Sound.LevelMid
 
 /-!
@@ -47,10 +48,10 @@ variable {μ ℓ₀ : ℕ} {w : List E → E} {i : ℕ} {P P' : LevelCode} {leve
 the next level. -/
 noncomputable def midQuerySpec (H : MidHyp μ ℓ₀ w P P' level next pre)
     (hQlt : eQuery P P' level.queries < 1)
-    (K : ∀ s', Spec (whirLevels μ ℓ₀ w (i + 1) (next :: rest) s')
+    (K : ∀ s', Spec (whirLevelsT μ ℓ₀ w (i + 1) (next :: rest) s')
       (fun h ↦ LevelPre μ ℓ₀ w (i + 1) P' next.fold (pre + level.fold) s' (commits h))
       (fun _ _ ↦ False) εmax εmax 0)
-    (r : WhirState × List E) (z : List E) (y : E) (hy : List E) :
+    (r : WhirStateT × List E) (z : List E) (y : E) (hy : List E) :
     Spec ((queryFrag (μ - r.1.folds.length + level.logInvRate) level.queries i).bind fun g ↦
         midFinish μ ℓ₀ w i next rest r z y hy g.1 g.2.1 g.2.2)
       (fun h ↦ QuadOK hy y ∧ OodC μ ℓ₀ w i P P' level.fold next.fold pre r z (commits h))
@@ -84,10 +85,10 @@ noncomputable def midQuerySpec (H : MidHyp μ ℓ₀ w P P' level next pre)
 noncomputable def midTailSpec (H : MidHyp μ ℓ₀ w P P' level next pre)
     (hεO : eOod P' P.κ ≤ εmax) (hOlt : eOod P' P.κ < 1) (hQlt : eQuery P P' level.queries < 1)
     (hεQ : (2 : ENNReal)⁻¹ ^ Whir.queryGrindingBits * eQuery P P' level.queries ≤ εmax)
-    (K : ∀ s', Spec (whirLevels μ ℓ₀ w (i + 1) (next :: rest) s')
+    (K : ∀ s', Spec (whirLevelsT μ ℓ₀ w (i + 1) (next :: rest) s')
       (fun h ↦ LevelPre μ ℓ₀ w (i + 1) P' next.fold (pre + level.fold) s' (commits h))
       (fun _ _ ↦ False) εmax εmax 0)
-    (r : WhirState × List E) :
+    (r : WhirStateT × List E) :
     Spec (midTail μ ℓ₀ w i level next rest r)
       (fun h ↦ AfterFold μ ℓ₀ w i P level.fold pre r (commits h)) (fun _ _ ↦ False) εmax 0 0 :=
   (commitInv (AfterFold μ ℓ₀ w i P level.fold pre r)
@@ -122,11 +123,11 @@ noncomputable def midSpec (H : MidHyp μ ℓ₀ w P P' level next pre)
     (hεF : eFold P level.fold ≤ εmax)
     (hεO : eOod P' P.κ ≤ εmax) (hOlt : eOod P' P.κ < 1) (hQlt : eQuery P P' level.queries < 1)
     (hεQ : (2 : ENNReal)⁻¹ ^ Whir.queryGrindingBits * eQuery P P' level.queries ≤ εmax)
-    (K : ∀ s', Spec (whirLevels μ ℓ₀ w (i + 1) (next :: rest) s')
+    (K : ∀ s', Spec (whirLevelsT μ ℓ₀ w (i + 1) (next :: rest) s')
       (fun h ↦ LevelPre μ ℓ₀ w (i + 1) P' next.fold (pre + level.fold) s' (commits h))
       (fun _ _ ↦ False) εmax εmax 0)
-    (s : WhirState) :
-    Spec (whirLevels μ ℓ₀ w i (level :: next :: rest) s)
+    (s : WhirStateT) :
+    Spec (whirLevelsT μ ℓ₀ w i (level :: next :: rest) s)
       (fun h ↦ LevelPre μ ℓ₀ w i P level.fold pre s (commits h)) (fun _ _ ↦ False) εmax εmax 0 :=
   (((foldRoundsSpec μ ℓ₀ w i P level.fold pre (ShapeOK i P level.fold) H.hw H.hℓ₀ hεF
       level.fold s []).bind' fun r ↦ midTailSpec H hεO hOlt hQlt hεQ K r).mono

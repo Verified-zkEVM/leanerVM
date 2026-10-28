@@ -5,6 +5,7 @@
   has at most `2^39` bytes, so every query costs at most `2^32` permutation calls.
 -/
 
+import LeanVM.Protocol.Verifier.WhirTarget
 import LeanVM.Protocol.Verifier.Claims
 import LeanVM.Protocol.LeanVM
 import Statement.LeanVm
@@ -198,9 +199,9 @@ section Phases
 attribute [local irreducible] WidthsLE MovesOK
 
 theorem widthsLE_whirLevels (logN laneFolds : ℕ) (evaluateBasis : List E → E) :
-    ∀ (levels : List Whir.Level) (index : ℕ) (s : WhirState), (∀ l ∈ levels, l.fold ≤ 6) →
-      WidthsLE maxWidth (whirLevels logN laneFolds evaluateBasis index levels s)
-  | [], _, _, _ => by unfold whirLevels; exact WidthsLE.of_moves (g := fun _ ↦ True) MovesOK.fail
+    ∀ (levels : List Whir.Level) (index : ℕ) (s : WhirStateT), (∀ l ∈ levels, l.fold ≤ 6) →
+      WidthsLE maxWidth (whirLevelsT logN laneFolds evaluateBasis index levels s)
+  | [], _, _, _ => by unfold whirLevelsT; exact WidthsLE.of_moves (g := fun _ ↦ True) MovesOK.fail
   | [level], index, s, _ => by
     refine WidthsLE.of_moves (g := fun _ ↦ True) ?_
     refine MovesOK.seq (MovesOK.of_none (movesOK_foldRounds level.fold s [])) fun r ↦ ?_
@@ -233,7 +234,7 @@ theorem widthsLE_whirLevels (logN laneFolds : ℕ) (evaluateBasis : List E → E
           fun l hl ↦ hf l (List.mem_cons_of_mem _ hl)
 
 theorem widthsLE_verifyWhir (logN logInvRate : ℕ) (target : E) (evaluateBasis : List E → E) :
-    WidthsLE maxWidth (verifyWhir logN logInvRate target evaluateBasis) :=
+    WidthsLE maxWidth (verifyWhirT logN logInvRate target evaluateBasis) :=
   WidthsLE.liftOption_seq fun config hc ↦
     WidthsLE.seq (WidthsLE.of_moves (movesOK_sumcheckRoundPoly 3 _ none)) fun _ ↦
       widthsLE_whirLevels logN _ evaluateBasis config 0 _ (ladder_folds _ _ _ hc)
@@ -258,6 +259,8 @@ theorem widthsLE_verifyExecution (bytecode : List K) (publicInput : Digest) :
   obtain ⟨claims, keccakPoint, keccakSlices⟩ := r
   refine WidthsLE.seq (WidthsLE.of_moves (movesOK_ringSwitch keccakPoint keccakSlices)) fun r ↦ ?_
   obtain ⟨ringTarget, ringWeight⟩ := r
+  dsimp only
+  rw [verifyStackedOpening_eq_target]
   exact WidthsLE.seq (WidthsLE.of_moves (g := fun _ ↦ True) MovesOK.sampleE) fun _ ↦
     widthsLE_verifyWhir _ _ _ _
 

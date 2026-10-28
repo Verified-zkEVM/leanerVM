@@ -10,6 +10,7 @@
 
 module
 
+public import LeanVM.Protocol.Verifier.WhirTarget
 public import LeanVM.Protocol.Verifier.Claims
 public import Statement.LeanVmGuest
 
@@ -23,7 +24,7 @@ open LeanVM.Protocol.Compile LeanVM.Protocol.Verifier LeanVM.Node
 namespace Limits
 
 /-- `foldRounds` refusing a zero challenge. -/
-def foldRoundsNZ : ℕ → WhirState → List E → Prog (WhirState × List E)
+def foldRoundsNZ : ℕ → WhirStateT → List E → Prog (WhirStateT × List E)
   | 0, s, levelFolds => return (s, levelFolds)
   | n + 1, s, levelFolds => do
     let challenge ← Prog.sampleE
@@ -48,7 +49,7 @@ def tailRoundsNZ : ℕ → E → List E → Prog (List E × E)
 
 /-- `whirLevels` refusing a zero fold, tail or level batching challenge. -/
 def whirLevelsNZ (logN laneFolds : ℕ) (evaluateBasis : List E → E) :
-    ℕ → List Whir.Level → WhirState → Prog Unit
+    ℕ → List Whir.Level → WhirStateT → Prog Unit
   | _, [], _ => Prog.fail
   | index, level :: rest, s => do
     let (s, levelFolds) ← foldRoundsNZ level.fold s []
@@ -76,7 +77,7 @@ def whirLevelsNZ (logN laneFolds : ℕ) (evaluateBasis : List E → E) :
     let intro ← sumcheckRoundPoly 3 enforced none
     let pending := pending ++
       [(enforced, intro, fun x ↦ inducedWeight messageLog queries queryWeights x)]
-    let s := glue lam s pending
+    let s := glueT lam s pending
     match rest with
     | [] => do
       let (tailFolds, target) ← tailRoundsNZ messageLog s.target s.quad

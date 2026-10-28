@@ -7,6 +7,7 @@
 
 module
 
+public import LeanVM.Protocol.Verifier.WhirTarget
 public import LeanVM.Protocol.Verifier.Claims
 public import LeanVM.Guest.Limits
 
@@ -153,21 +154,21 @@ end Run
 
 /-! ## The deferring program refusing a zero challenge -/
 
-theorem foldRoundsNZ_refines : ∀ (n : ℕ) (s : WhirState) (lf : List E),
-    Refines (foldRoundsNZ n s lf) (foldRounds n s lf)
+theorem foldRoundsNZ_refines : ∀ (n : ℕ) (s : WhirStateT) (lf : List E),
+    Refines (foldRoundsNZ n s lf) (foldRoundsT n s lf)
   | 0, s, lf => Refines.refl _
   | n + 1, s, lf => by
-    unfold foldRoundsNZ foldRounds
+    unfold foldRoundsNZ foldRoundsT
     refine Refines.bind (Refines.refl _) fun c ↦ ?_
     refine Refines.require_bind ?_
     refine Refines.bind (Refines.refl _) fun quad ↦ ?_
     exact foldRoundsNZ_refines n _ _
 
 theorem tailRoundsNZ_refines : ∀ (n : ℕ) (t : E) (quad : List E),
-    Refines (tailRoundsNZ n t quad) (tailRounds n t quad)
+    Refines (tailRoundsNZ n t quad) (tailRoundsT n t quad)
   | 0, t, quad => Refines.refl _
   | n + 1, t, quad => by
-    unfold tailRoundsNZ tailRounds
+    unfold tailRoundsNZ tailRoundsT
     refine Refines.bind (Refines.refl _) fun c ↦ ?_
     refine Refines.require_bind ?_
     split
@@ -191,14 +192,14 @@ local macro "refines_step" : tactic => `(tactic| first
   | exact Refines.refl _)
 
 theorem whirLevelsNZ_refines (logN laneFolds : ℕ) (eb : List E → E) (levels : List Whir.Level) :
-    ∀ (index : ℕ) (s : WhirState),
+    ∀ (index : ℕ) (s : WhirStateT),
       Refines (whirLevelsNZ logN laneFolds eb index levels s)
-        (whirLevels logN laneFolds eb index levels s) := by
+        (whirLevelsT logN laneFolds eb index levels s) := by
   induction levels with
   | nil => intro index s; exact Refines.refl _
   | cons level rest ih =>
     intro index s
-    unfold whirLevelsNZ whirLevels
+    unfold whirLevelsNZ whirLevelsT
     apply Refines.bind (foldRoundsNZ_refines _ _ _)
     intro p
     obtain ⟨s', lf⟩ := p
@@ -212,14 +213,15 @@ theorem whirLevelsNZ_refines (logN laneFolds : ℕ) (eb : List E → E) (levels 
       repeat (first | exact ih _ _ | refines_step)
 
 theorem verifyWhirNZ_refines (logN logInvRate : ℕ) (target : E) (eb : List E → E) :
-    Refines (verifyWhirNZ logN logInvRate target eb) (verifyWhir logN logInvRate target eb) := by
-  unfold verifyWhirNZ verifyWhir
+    Refines (verifyWhirNZ logN logInvRate target eb) (verifyWhirT logN logInvRate target eb) := by
+  unfold verifyWhirNZ verifyWhirT
   repeat (first | exact whirLevelsNZ_refines _ _ _ _ _ _ | refines_step)
 
 theorem verifyStackedOpeningNZ_refines (stackLog logInvRate : ℕ) (claims : List StackClaim) :
     Refines (verifyStackedOpeningNZ stackLog logInvRate claims)
       (verifyStackedOpening stackLog logInvRate claims) := by
   unfold verifyStackedOpeningNZ verifyStackedOpening
+  simp only [verifyWhir_eq_target]
   repeat (first | exact verifyWhirNZ_refines _ _ _ _ | refines_step)
 
 theorem deferredProgramNZ_refines (c : FixedClaims) (bytecode : List K) (publicInput : Digest) :

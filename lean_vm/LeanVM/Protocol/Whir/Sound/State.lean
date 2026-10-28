@@ -8,6 +8,7 @@
 
 module
 
+public import LeanVM.Protocol.Verifier.WhirTarget
 public import LeanVM.Protocol.Whir.Sound.Escape
 public import LeanVM.Protocol.Whir.Sound.Prob
 
@@ -47,7 +48,7 @@ open LeanVM.Parameters LeanVM.Protocol.Compile LeanVM.Protocol.Verifier
 /-! ## The running weight -/
 
 /-- The running weight of the state `s` at the point `x` of the remaining variables. -/
-def runW (w : List E → E) (ℓ₀ : ℕ) (s : WhirState) (x : List E) : E :=
+def runW (w : List E → E) (ℓ₀ : ℕ) (s : WhirStateT) (x : List E) : E :=
   s.glued.foldl (fun weight claim ↦
       weight + claim.scalar * claim.weightAt (s.folds.drop claim.foldStart ++ x))
     (w (rotL ℓ₀ (s.folds ++ x)))
@@ -59,18 +60,18 @@ theorem foldl_add_map {γ : Type*} (f : γ → E) (a : E) (l : List γ) :
   | nil => simp
   | cons c l ih => rw [List.foldl_cons, ih, List.map_cons, List.sum_cons, add_assoc]
 
-theorem runW_eq (w : List E → E) (ℓ₀ : ℕ) (s : WhirState) (x : List E) :
+theorem runW_eq (w : List E → E) (ℓ₀ : ℕ) (s : WhirStateT) (x : List E) :
     runW w ℓ₀ s x = w (rotL ℓ₀ (s.folds ++ x)) +
       (s.glued.map fun c ↦ c.scalar * c.weightAt (s.folds.drop c.foldStart ++ x)).sum :=
   foldl_add_map _ _ _
 
 /-- Every glued claim started at or before the current fold and owes a multiaffine weight on the
 variables left when it was glued. -/
-def GluedOK (μ : ℕ) (s : WhirState) : Prop :=
+def GluedOK (μ : ℕ) (s : WhirStateT) : Prop :=
   ∀ c ∈ s.glued, c.foldStart ≤ s.folds.length ∧ IsMultiaffine (μ - c.foldStart) c.weightAt
 
 /-- **A fold binds the first remaining variable.** -/
-theorem runW_fold (w : List E → E) (ℓ₀ : ℕ) (s : WhirState) (c t : E) (q : List E)
+theorem runW_fold (w : List E → E) (ℓ₀ : ℕ) (s : WhirStateT) (c t : E) (q : List E)
     (hg : ∀ g ∈ s.glued, g.foldStart ≤ s.folds.length) (x : List E) :
     runW w ℓ₀ { s with target := t, quad := q, folds := s.folds ++ [c] } x =
       runW w ℓ₀ s (c :: x) := by
@@ -92,7 +93,7 @@ theorem isMultiaffine_listSum_mem {n : ℕ} {γ : Type*} (xs : List γ) (F : γ 
 
 /-- **The running weight is multiaffine** in the remaining variables. -/
 theorem isMultiaffine_runW {μ : ℕ} {w : List E → E} (hw : IsMultiaffine μ w) {ℓ₀ : ℕ}
-    (hℓ₀ : ℓ₀ ≤ μ) (s : WhirState) (hs : s.folds.length ≤ μ) (hg : GluedOK μ s) :
+    (hℓ₀ : ℓ₀ ≤ μ) (s : WhirStateT) (hs : s.folds.length ≤ μ) (hg : GluedOK μ s) :
     IsMultiaffine (μ - s.folds.length) (runW w ℓ₀ s) := by
   have hrot : IsMultiaffine (s.folds.length + (μ - s.folds.length))
       fun l ↦ w (rotL ℓ₀ l) := by
@@ -146,27 +147,27 @@ theorem quadOK_zipWith {q i : List E} {σ v : E} (hq : QuadOK q σ) (hi : QuadOK
 
 /-- Gluing two claims (a level with a next commitment): the out-of-domain claim with `λ`, the
 consistency claims with `λ²`. -/
-theorem glue_two (lam : E) (s : WhirState) (y e : E) (hy he : List E) (wy we : List E → E) :
-    glue lam s [(y, hy, wy), (e, he, we)] =
+theorem glue_two (lam : E) (s : WhirStateT) (y e : E) (hy he : List E) (wy we : List E → E) :
+    glueT lam s [(y, hy, wy), (e, he, we)] =
       { target := s.target + 1 * lam * y + 1 * lam * lam * e
         quad := List.zipWith (fun q i ↦ q + 1 * lam * lam * i)
           (List.zipWith (fun q i ↦ q + 1 * lam * i) s.quad hy) he
         folds := s.folds
         glued := s.glued ++
           [⟨1 * lam, s.folds.length, wy⟩, ⟨1 * lam * lam, s.folds.length, we⟩] } := by
-  simp [glue]
+  simp [glueT]
 
 /-- Gluing one claim (the final level): the consistency claims with `λ`. -/
-theorem glue_one (lam : E) (s : WhirState) (e : E) (he : List E) (we : List E → E) :
-    glue lam s [(e, he, we)] =
+theorem glue_one (lam : E) (s : WhirStateT) (e : E) (he : List E) (we : List E → E) :
+    glueT lam s [(e, he, we)] =
       { target := s.target + 1 * lam * e
         quad := List.zipWith (fun q i ↦ q + 1 * lam * i) s.quad he
         folds := s.folds
         glued := s.glued ++ [⟨1 * lam, s.folds.length, we⟩] } := by
-  simp [glue]
+  simp [glueT]
 
 /-- Glued claims at the current fold add their weights. -/
-theorem runW_glue (w : List E → E) (ℓ₀ : ℕ) (s : WhirState) (new : List GluedClaim)
+theorem runW_glue (w : List E → E) (ℓ₀ : ℕ) (s : WhirStateT) (new : List GluedClaim)
     (hnew : ∀ c ∈ new, c.foldStart = s.folds.length) (x : List E) :
     runW w ℓ₀ { s with glued := s.glued ++ new } x =
       runW w ℓ₀ s x + (new.map fun c ↦ c.scalar * c.weightAt x).sum := by

@@ -9,6 +9,7 @@
 
 module
 
+public import LeanVM.Protocol.Verifier.WhirTarget
 public import LeanVM.Protocol.Whir.Complete.Script
 public import LeanVM.Protocol.Whir.Complete.Encoding
 
@@ -119,7 +120,7 @@ theorem follows_round (W g : List E) (claim : E) (cs : Commits) :
 /-- The fold rounds of a level (`foldRounds`): receive the challenge, fix the first coordinate
 of both tables at it, send the next round polynomial. -/
 def hFoldRounds (f₀ : List E) :
-    ℕ → WhirState → List E → List E → Script (WhirState × List E × List E)
+    ℕ → WhirStateT → List E → List E → Script (WhirStateT × List E × List E)
   | 0, s, levelFolds, W => return (s, levelFolds, W)
   | n + 1, s, levelFolds, W => do
     let challenge ← Script.sampleE
@@ -169,7 +170,7 @@ def readRow (index : ℕ) (row : List K) : List E :=
 
 /-- **The honest prover of the WHIR levels** (`whirLevels`), from the level `index` with the
 verifier's state `s` and the weight table `W`. -/
-def hLevels (μ : ℕ) (f₀ : List E) : ℕ → List Whir.Level → WhirState → List E → Script Unit
+def hLevels (μ : ℕ) (f₀ : List E) : ℕ → List Whir.Level → WhirStateT → List E → Script Unit
   | _, [], _, _ => return ()
   | index, level :: rest, s, W => do
     let (s, levelFolds, W) ← hFoldRounds f₀ level.fold s [] W
@@ -200,7 +201,7 @@ def hLevels (μ : ℕ) (f₀ : List E) : ℕ → List Whir.Level → WhirState �
     let pending := pending ++
       [(enforced, roundQuad enforced T g,
         fun x ↦ Verifier.inducedWeight messageLog queries queryWeights x)]
-    let s := glue lam s pending
+    let s := glueT lam s pending
     let W := glueTables lam W (tables ++ [T])
     match rest with
     | [] => do
@@ -213,7 +214,7 @@ def hLevels (μ : ℕ) (f₀ : List E) : ℕ → List Whir.Level → WhirState �
 /-- The weight the verifier evaluates at the terminal point `s.folds ++ p`: the basis at the
 rotated point plus every glued claim's weight on its level's coordinates (`verify_whir`'s
 `weight`). -/
-def termWeight (lf : ℕ) (B : List E → E) (s : WhirState) (p : List E) : E :=
+def termWeight (lf : ℕ) (B : List E → E) (s : WhirStateT) (p : List E) : E :=
   s.glued.foldl (fun weight claim ↦
       weight + claim.scalar * claim.weightAt (s.folds.drop claim.foldStart ++ p))
     (B ((s.folds ++ p).drop lf ++ (s.folds ++ p).take lf))
@@ -221,7 +222,7 @@ def termWeight (lf : ℕ) (B : List E → E) (s : WhirState) (p : List E) : E :=
 /-- **The prover's invariant**: the verifier's state `s` is the running claim `Σ W·g` of the
 weight table `W` and the folded stack `g = foldAll f₀ s.folds`, with its round polynomial, and
 the terminal weight is the extension of `W`. -/
-structure Inv (μ lf : ℕ) (f₀ : List E) (B : List E → E) (s : WhirState) (W : List E) : Prop where
+structure Inv (μ lf : ℕ) (f₀ : List E) (B : List E → E) (s : WhirStateT) (W : List E) : Prop where
   folds_le : s.folds.length ≤ μ
   len_W : W.length = 2 ^ (μ - s.folds.length)
   target : s.target = dot W (foldAll f₀ s.folds)
@@ -251,7 +252,7 @@ private theorem foldl_glued_congr (F G : E → GluedClaim → E) :
     exact foldl_glued_congr F G L _ fun c' hc' ↦ h c' (by simp [hc'])
 
 /-- After a fold, the terminal weight at `p` is the one before at `c :: p`. -/
-theorem termWeight_fold (s : WhirState) (c : E) (t : E) (qd : List E)
+theorem termWeight_fold (s : WhirStateT) (c : E) (t : E) (qd : List E)
     (hs : ∀ cl ∈ s.glued, cl.foldStart ≤ s.folds.length) (p : List E) :
     termWeight lf B { s with target := t, quad := qd, folds := s.folds ++ [c] } p =
       termWeight lf B s (c :: p) := by
@@ -260,7 +261,7 @@ theorem termWeight_fold (s : WhirState) (c : E) (t : E) (qd : List E)
     rw [List.drop_append_of_le_length (hs cl hcl), List.append_assoc, List.singleton_append]
 
 /-- **A fold keeps the invariant.** -/
-theorem Inv.fold (hf₀ : f₀.length = 2 ^ μ) {s : WhirState} {W : List E}
+theorem Inv.fold (hf₀ : f₀.length = 2 ^ μ) {s : WhirStateT} {W : List E}
     (hI : Inv μ lf f₀ B s W) (hlt : s.folds.length < μ) (c : E) :
     Inv μ lf f₀ B
       { s with target := polyEval s.quad c,
@@ -290,7 +291,7 @@ def HonestClaim (m : ℕ) (g : List E) (item : E × List E × (List E → E)) (T
     ∀ p : List E, p.length = m → item.2.2 p = multilinearEval T p
 
 /-- One glue step keeps the invariant. -/
-theorem Inv.glue_step {s : WhirState} {W : List E} (hI : Inv μ lf f₀ B s W) (sc : E)
+theorem Inv.glue_step {s : WhirStateT} {W : List E} (hI : Inv μ lf f₀ B s W) (sc : E)
     {item : E × List E × (List E → E)} {T : List E}
     (hT : HonestClaim (μ - s.folds.length) (foldAll f₀ s.folds) item T) :
     Inv μ lf f₀ B
@@ -319,11 +320,11 @@ theorem Inv.glue_step {s : WhirState} {W : List E} (hI : Inv μ lf f₀ B s W) (
 
 /-- **Gluing keeps the invariant** when every glued claim is honest. -/
 theorem Inv.glue (lam : E) :
-    ∀ (pending : List (E × List E × (List E → E))) (Ts : List (List E)) (s : WhirState)
+    ∀ (pending : List (E × List E × (List E → E))) (Ts : List (List E)) (s : WhirStateT)
       (W : List E) (sc : E), Inv μ lf f₀ B s W →
       List.Forall₂ (HonestClaim (μ - s.folds.length) (foldAll f₀ s.folds)) pending Ts →
       Inv μ lf f₀ B
-        (pending.foldl (fun (acc : WhirState × E) (item : E × List E × (List E → E)) ↦
+        (pending.foldl (fun (acc : WhirStateT × E) (item : E × List E × (List E → E)) ↦
           let scalar := acc.2 * lam
           let s := acc.1
           ({ s with quad := List.zipWith (fun q i ↦ q + scalar * i) s.quad item.2.1,
@@ -340,9 +341,9 @@ theorem Inv.glue (lam : E) :
   | _ :: _, [], _, _, _, _, hF => by simp at hF
 
 /-- `glue` unfolded: the left fold over the pending claims, the running claim keeping `λ⁰`. -/
-theorem glue_eq (lam : E) (s : WhirState) (pending : List (E × List E × (List E → E))) :
-    glue lam s pending =
-      (pending.foldl (fun (acc : WhirState × E) (item : E × List E × (List E → E)) ↦
+theorem glue_eq (lam : E) (s : WhirStateT) (pending : List (E × List E × (List E → E))) :
+    glueT lam s pending =
+      (pending.foldl (fun (acc : WhirStateT × E) (item : E × List E × (List E → E)) ↦
           let scalar := acc.2 * lam
           let s := acc.1
           ({ s with quad := List.zipWith (fun q i ↦ q + scalar * i) s.quad item.2.1,
@@ -351,11 +352,11 @@ theorem glue_eq (lam : E) (s : WhirState) (pending : List (E × List E × (List 
           (s, 1)).1 := rfl
 
 /-- Gluing leaves the fold challenges unchanged. -/
-theorem glue_folds (lam : E) (s : WhirState) (pending : List (E × List E × (List E → E))) :
-    (glue lam s pending).folds = s.folds := by
+theorem glue_folds (lam : E) (s : WhirStateT) (pending : List (E × List E × (List E → E))) :
+    (glueT lam s pending).folds = s.folds := by
   rw [glue_eq]
-  suffices h : ∀ (L : List (E × List E × (List E → E))) (a : WhirState × E),
-      (L.foldl (fun (acc : WhirState × E) (item : E × List E × (List E → E)) ↦
+  suffices h : ∀ (L : List (E × List E × (List E → E))) (a : WhirStateT × E),
+      (L.foldl (fun (acc : WhirStateT × E) (item : E × List E × (List E → E)) ↦
           let scalar := acc.2 * lam
           let s := acc.1
           ({ s with quad := List.zipWith (fun q i ↦ q + scalar * i) s.quad item.2.1,
@@ -377,16 +378,16 @@ variable {μ lf : ℕ} {f₀ : List E} {B : List E → E}
 
 /-- **The fold rounds.** -/
 theorem follows_foldRounds (hf₀ : f₀.length = 2 ^ μ) :
-    ∀ (n : ℕ) (s : WhirState) (lfs W : List E) (cs : Commits), Inv μ lf f₀ B s W →
+    ∀ (n : ℕ) (s : WhirStateT) (lfs W : List E) (cs : Commits), Inv μ lf f₀ B s W →
       s.folds.length + n ≤ μ →
       Follows (fun cs' a b ↦ cs' = cs ∧ b = (a.1, a.2.1) ∧ Inv μ lf f₀ B a.1 a.2.2 ∧
           ∃ new : List E, new.length = n ∧ a.1.folds = s.folds ++ new ∧ a.2.1 = lfs ++ new)
-        (hFoldRounds f₀ n s lfs W) (foldRounds n s lfs) cs
+        (hFoldRounds f₀ n s lfs W) (foldRoundsT n s lfs) cs
   | 0, s, lfs, W, cs, hI, _ => by
-    simp only [hFoldRounds, foldRounds]
+    simp only [hFoldRounds, foldRoundsT]
     exact ⟨rfl, rfl, hI, [], rfl, by simp, by simp⟩
   | n + 1, s, lfs, W, cs, hI, hn => by
-    simp only [hFoldRounds, foldRounds]
+    simp only [hFoldRounds, foldRoundsT]
     refine Follows.bind_of (Follows.sampleE_sampleE cs) ?_
     rintro cs' c c' ⟨rfl, rfl⟩
     refine Follows.bind_of (follows_round _ _ (polyEval s.quad c) cs') ?_
@@ -404,15 +405,15 @@ theorem follows_tailRounds :
       W.length = 2 ^ n → g.length = 2 ^ n → target = dot W g → quad = roundQuad target W g →
       Follows (fun cs' a b ↦ cs' = cs ∧ a = b ∧ b.1.length = n ∧
           b.2 = multilinearEval W b.1 * multilinearEval g b.1)
-        (hTailRounds n target quad W g) (tailRounds n target quad) cs
+        (hTailRounds n target quad W g) (tailRoundsT n target quad) cs
   | 0, target, quad, W, g, cs, hW, hg, ht, _ => by
-    simp only [hTailRounds, tailRounds]
+    simp only [hTailRounds, tailRoundsT]
     refine ⟨rfl, rfl, rfl, ?_⟩
     obtain ⟨w, rfl⟩ : ∃ w, W = [w] := List.length_eq_one_iff.mp hW
     obtain ⟨x, rfl⟩ : ∃ x, g = [x] := List.length_eq_one_iff.mp hg
     simp [ht, dot_cons, multilinearEval]
   | n + 1, target, quad, W, g, cs, hW, hg, ht, hq => by
-    simp only [hTailRounds, tailRounds]
+    simp only [hTailRounds, tailRoundsT]
     refine Follows.bind_of (Follows.sampleE_sampleE cs) ?_
     rintro cs' c c' ⟨rfl, rfl⟩
     have hWg : W.length = g.length := by rw [hW, hg]
@@ -508,19 +509,19 @@ theorem readRows_eq (index : ℕ) (words : List (List K)) :
 /-- **The honest prover of the WHIR levels follows `whirLevels`** from any state satisfying the
 invariant, provided the remaining folds fit and the level's word is committed at its index. -/
 theorem follows_whirLevels (hf₀ : f₀.length = 2 ^ μ) (hμ : μ ≤ 64) :
-    ∀ (levels : List Whir.Level) (index : ℕ) (s : WhirState) (W : List E) (cs : Commits),
+    ∀ (levels : List Whir.Level) (index : ℕ) (s : WhirStateT) (W : List E) (cs : Commits),
       levels ≠ [] → Inv μ lf f₀ B s W →
       (levels.map (·.fold)).sum ≤ μ - s.folds.length →
       (∀ level ∈ levels.head?,
         LevelCommit cs index (μ - s.folds.length) (foldAll f₀ s.folds) level) →
       Follows (fun _ _ _ ↦ True) (hLevels μ f₀ index levels s W)
-        (whirLevels μ lf B index levels s) cs
+        (whirLevelsT μ lf B index levels s) cs
   | [], _, _, _, _, h, _, _, _ => absurd rfl h
   | level :: rest, index, s, W, cs, _, hI, hsum, hC => by
     obtain ⟨hcl, w, word, hcs, hrow⟩ := hC level (by simp)
     simp only [List.map_cons, List.sum_cons] at hsum
     have hle := hI.folds_le
-    rw [hLevels, whirLevels]
+    rw [hLevels, whirLevelsT]
     refine Follows.bind_of (follows_foldRounds hf₀ level.fold s [] W cs hI (by omega)) ?_
     rintro cs1 ⟨s1, lfs1, W1⟩ b ⟨hcs1, rfl, hI1, new, hnl, hs1, hlf1⟩
     simp only [List.nil_append] at hlf1
@@ -613,7 +614,7 @@ theorem follows_whirLevels (hf₀ : f₀.length = 2 ^ μ) (hμ : μ ≤ 64) :
       have hq' := honestClaim_query hκ (foldAll f₀ s.folds) new hg queries
         (powers lam queries.length)
       rw [hgg] at hq'
-      have hI2 : Inv μ lf f₀ B (glue lam s1 (pending ++ _)) (glueTables lam W1 (tables ++ _)) :=
+      have hI2 : Inv μ lf f₀ B (glueT lam s1 (pending ++ _)) (glueTables lam W1 (tables ++ _)) :=
         Inv.glue lam _ _ s1 W1 1 hI1 (List.rel_append hF (List.Forall₂.cons hq' List.Forall₂.nil))
       have hfolds := glue_folds lam s1 (pending ++ [(enforcedSum
         (queries.map (laneCodes (μ - s1.folds.length) new.length (foldAll f₀ s.folds))) new
@@ -759,11 +760,11 @@ theorem multilinearEval_basisTable {μ : ℕ} (hμ : laneBits ≤ μ) (scales : 
 `levels` from the claim `target` on the basis `B`. -/
 def whirRun (μ : ℕ) (levels : List Whir.Level) (target : E) (B : List E → E) : Prog Unit := do
   let quad ← sumcheckRoundPoly 3 target none
-  whirLevels μ ((levels.head?.map (·.fold)).getD 0) B 0 levels ⟨target, quad, [], []⟩
+  whirLevelsT μ ((levels.head?.map (·.fold)).getD 0) B 0 levels ⟨target, quad, [], []⟩
 
 /-- `verifyWhir` is `whirRun` on the configuration `derive_config` returns. -/
 theorem verifyWhir_eq (μ R : ℕ) (target : E) (B : List E → E) :
-    verifyWhir μ R target B =
+    verifyWhirT μ R target B =
       Verifier.liftOption (Whir.ladder μ R) >>= fun config ↦ whirRun μ config target B := rfl
 
 /-- The honest prover of `whirRun`: the round polynomial of the starting claim `Σ W₀·f₀`, then
@@ -839,7 +840,7 @@ theorem follows_verifyStackedOpening {μ R : ℕ} (hadm : Whir.Admissible μ R) 
   obtain ⟨q₀, rest, hc, hsum⟩ := exists_ladder hadm
   have hμ6 : laneBits ≤ μ := le_trans (by decide) hadm.1
   have hμ64 : μ ≤ 64 := le_trans hadm.2.1 (by decide)
-  simp only [honestOpening, verifyStackedOpening, verifyWhir_eq]
+  simp only [honestOpening, verifyStackedOpening, verifyWhir_eq_target, verifyWhir_eq]
   refine Follows.bind_of (Follows.sampleE_sampleE _) ?_
   rintro cs c _ ⟨rfl, rfl⟩
   simp only [hc, Verifier.liftOption, Prog.bind_eq, Prog.ret_bind]

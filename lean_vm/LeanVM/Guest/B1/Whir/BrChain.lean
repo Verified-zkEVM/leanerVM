@@ -6,6 +6,7 @@
 
 module
 
+public import LeanVM.Protocol.Verifier.WhirTarget
 public import LeanVM.Guest.B1.Whir.BrLevelH
 
 /-!
@@ -100,7 +101,7 @@ theorem words_length {c : OsCfg} {lvl : ℕ} {lv : OsLv} {L : SpLv} (h : SpLvFit
 
 /-- **The chain of levels gives the levels' hypotheses.** -/
 theorem lvsH_sp {C : CallRel} {rd : Reader} {P : OsPtrs} {c : OsCfg} {logN lane : ℕ}
-    (sq wp : ℕ → E) : ∀ (lvs : List OsLv) (cfg : List Whir.Level) (lvl : ℕ) (ws : WhirState)
+    (sq wp : ℕ → E) : ∀ (lvs : List OsLv) (cfg : List Whir.Level) (lvl : ℕ) (ws : WhirStateT)
     (F : Fs) (xs : List E) (os : List Opening) (R : List (Digest × ℕ × ℕ)) (Ls : List SpLv)
     (res : WhirEnd × FSt) (cur : E),
     LevelsOk c logN lvl lvs cfg → SpChain logN lane lvl cfg ws F xs os R Ls res →

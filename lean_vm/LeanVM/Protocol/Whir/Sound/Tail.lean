@@ -8,6 +8,7 @@
 
 module
 
+public import LeanVM.Protocol.Verifier.WhirTarget
 public import LeanVM.Protocol.Whir.Sound.LevelMidSpec
 
 /-!
@@ -43,7 +44,7 @@ def resO (res : List E) : ℕ → Unit → E := fun j _ ↦ res.getD j 0
 def tailMsg (τ res : List E) (n : ℕ) : (Fin n → Bool) → (Fin 0 → Bool) → E :=
   fun u _ ↦ foldsN τ (resO res) (bitsToNat u) ()
 
-variable (ℓ₀ : ℕ) (w : List E → E) (s : WhirState) (res : List E)
+variable (ℓ₀ : ℕ) (w : List E → E) (s : WhirStateT) (res : List E)
 
 /-- **The tail invariant**: the folded residual violates the running claim. -/
 def TailInv (τ : List E) (n : ℕ) (target : E) (quad : List E) : Prop :=
@@ -86,7 +87,7 @@ variable (ℓ₀ w s res)
 /-- **The tail rounds' specification.** -/
 noncomputable def tailSpec {εmax : ENNReal} (hεT : eTail ≤ εmax) :
     (n : ℕ) → (τ : List E) → (target : E) → (quad : List E) →
-      Spec (tailRounds n target quad) (fun _ ↦ TailInv ℓ₀ w s res τ n target quad)
+      Spec (tailRoundsT n target quad) (fun _ ↦ TailInv ℓ₀ w s res τ n target quad)
         (fun x _ ↦ TailDone ℓ₀ w s res (τ ++ x.1) x.2) εmax eTail 0
   | 0, τ, target, quad => (Spec.ret ([], target)).mono
       (fun _ h ↦ ⟨by simpa using h.1, by simpa using h.2.2.2⟩) (fun _ _ h ↦ h) le_rfl zero_le

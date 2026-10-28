@@ -6,6 +6,7 @@
 
 module
 
+public import LeanVM.Protocol.Verifier.WhirTarget
 public import LeanVM.Guest.B1.Whir.SpecFold
 
 /-!
@@ -120,8 +121,8 @@ theorem qs_sampleQueries_bind {d q : ℕ} (hd : 1 ≤ 192 / d) (k : List ℕ →
   qs_sampleQueriesAux_bind d hd q q k F xs os R (ceilDiv_le_self hd)
 
 /-- **The fold rounds query nothing.** -/
-theorem qs_folds {K : WhirState × List E → Prog β} :
-    ∀ (n : ℕ) (ws : WhirState) (lf : List E) (F : Fs) (xs : List E) (os : List Opening)
+theorem qs_folds {K : WhirStateT × List E → Prog β} :
+    ∀ (n : ℕ) (ws : WhirStateT) (lf : List E) (F : Fs) (xs : List E) (os : List Opening)
       (R : List (Digest × ℕ × ℕ)), 2 * n ≤ xs.length →
       (∀ c ∈ (foldsTr n F ws.quad ws.target xs).2.1, c ≠ 0) →
       queryStepsOf ((foldRoundsNZ n ws lf).bind K) ⟨F, xs, os, R⟩ =

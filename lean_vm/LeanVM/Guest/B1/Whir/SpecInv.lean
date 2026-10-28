@@ -7,6 +7,7 @@
 
 module
 
+public import LeanVM.Protocol.Verifier.WhirTarget
 public import LeanVM.Guest.B1.Whir.SpecLevel
 public import LeanVM.Guest.B1.Whir.SpecQS
 
@@ -47,9 +48,9 @@ theorem take_append_drop' (xs : List E) (n : ℕ) : xs = xs.take n ++ xs.drop n 
   (List.take_append_drop n xs).symm
 
 /-- The query steps of a level's queries and intro: the query, then the continuation's. -/
-theorem rest_qs {β : Type} {ml index : ℕ} {level : Whir.Level} {lf : List E} {ws1 : WhirState}
+theorem rest_qs {β : Type} {ml index : ℕ} {level : Whir.Level} {lf : List E} {ws1 : WhirStateT}
     {pending : List (E × List E × (List E → E))} {F2 : Fs} {R : List (Digest × ℕ × ℕ)}
-    (hd : 1 ≤ 192 / (ml + level.logInvRate)) {K : WhirState → Prog β}
+    (hd : 1 ≤ 192 / (ml + level.logInvRate)) {K : WhirStateT → Prog β}
     {osL osR : List Opening} {ic0 ic2 : E} {xsR : List E} {root : Digest} {height width : ℕ}
     (hlam : (F2.squeezeN (ceilDiv level.queries (192 / (ml + level.logInvRate)))).2.squeeze.1 ≠ 0)
     (hR : R[index]? = some (root, height, width))
@@ -67,7 +68,7 @@ theorem rest_qs {β : Type} {ml index : ℕ} {level : Whir.Level} {lf : List E} 
         (Prog.queryP index queries).bind fun words ↦
           (sumcheckRoundPoly 3 (enforcedSum (if index = 0 then words.map fun row ↦ row.reverse.map ofK
             else words.map extRow) lf (powers lam queries.length)) none).bind fun intro ↦
-            K (glue lam ws1 (pending ++ [(enforcedSum (if index = 0 then
+            K (glueT lam ws1 (pending ++ [(enforcedSum (if index = 0 then
               words.map fun row ↦ row.reverse.map ofK else words.map extRow) lf
               (powers lam queries.length), intro,
               fun x ↦ inducedWeight ml queries (powers lam queries.length) x)])))
@@ -75,7 +76,7 @@ theorem rest_qs {β : Type} {ml index : ℕ} {level : Whir.Level} {lf : List E} 
       (height, (queriesOf (192 / (ml + level.logInvRate)) (ml + level.logInvRate)
           (F2.squeezeN (ceilDiv level.queries (192 / (ml + level.logInvRate)))).1
           level.queries).zip osL) ::
-        queryStepsOf (K (glue (F2.squeezeN (ceilDiv level.queries (192 / (ml + level.logInvRate)))).2.squeeze.1
+        queryStepsOf (K (glueT (F2.squeezeN (ceilDiv level.queries (192 / (ml + level.logInvRate)))).2.squeeze.1
           ws1 (pending ++ [(enforcedSum (if index = 0 then
           (osL.map (·.leaf)).map fun row ↦ row.reverse.map ofK else (osL.map (·.leaf)).map extRow)
           lf (powers (F2.squeezeN (ceilDiv level.queries (192 / (ml + level.logInvRate)))).2.squeeze.1
@@ -131,7 +132,7 @@ theorem head_inv {μ r : ℕ} {target : E} {F : Fs} {xs : List E} {os : List Ope
 
 /-- **A level that is not the last, backwards.** -/
 theorem level_nf_inv {logN lane index : ℕ} {level next : Whir.Level} {rest : List Whir.Level}
-    {ws : WhirState} {F : Fs} {xs : List E} {os : List Opening} {R : List (Digest × ℕ × ℕ)}
+    {ws : WhirStateT} {F : Fs} {xs : List E} {os : List Opening} {R : List (Digest × ℕ × ℕ)}
     {res : WhirEnd × FSt} (hF : F.pend.length = 2) (hR : index < R.length)
     (hml : 1 ≤ logN - (ws.folds.length + level.fold))
     (hd : 1 ≤ 192 / (logN - (ws.folds.length + level.fold) + level.logInvRate))
@@ -215,7 +216,7 @@ theorem level_nf_inv {logN lane index : ℕ} {level next : Whir.Level} {rest : L
   have eEnf : L.enforced = enforcedSum L.rows (foldsTr level.fold F ws.quad ws.target xs).2.1
       (powers L.lam L.qs.length) := by
     rw [SpLv.enforced, eChs]
-  have eWsEnd : L.wsEnd = glue L.lam L.ws1 (L.pending ++ [(L.enforced,
+  have eWsEnd : L.wsEnd = glueT L.lam L.ws1 (L.pending ++ [(L.enforced,
       [ic0, L.enforced + ic2, ic2], fun x ↦ inducedWeight L.ml L.qs (powers L.lam L.qs.length) x)]) :=
     rfl
   have eFend : L.Fend = foldStep (Fs.squeezeN (ceilDiv level.queries (192 / (logN - (ws.folds ++
@@ -253,7 +254,7 @@ theorem level_nf_inv {logN lane index : ℕ} {level next : Whir.Level} {rest : L
     exact rest_qs hd' hlam hroot hol hok
 
 /-- **The last level, backwards**: its words and openings, then its tail rounds and the end. -/
-theorem level_fin_inv {logN lane index : ℕ} {level : Whir.Level} {ws : WhirState} {F : Fs}
+theorem level_fin_inv {logN lane index : ℕ} {level : Whir.Level} {ws : WhirStateT} {F : Fs}
     {xs : List E} {os : List Opening} {R : List (Digest × ℕ × ℕ)} {res : WhirEnd × FSt}
     (hd : 1 ≤ 192 / (logN - (ws.folds.length + level.fold) + level.logInvRate))
     (h : runF (whirLevelsOpenNZ logN lane index [level] ws) ⟨F, xs, os, R⟩ = some res) :
@@ -322,14 +323,14 @@ theorem level_fin_inv {logN lane index : ℕ} {level : Whir.Level} {ws : WhirSta
   have eEnf : L.enforced = enforcedSum L.rows (foldsTr level.fold F ws.quad ws.target xs).2.1
       (powers L.lam L.qs.length) := by
     rw [SpLv.enforced, eChs]
-  have eWsEnd : L.wsEnd = glue L.lam L.ws1 (L.pending ++ [(L.enforced,
+  have eWsEnd : L.wsEnd = glueT L.lam L.ws1 (L.pending ++ [(L.enforced,
       [ic0, L.enforced + ic2, ic2], fun x ↦ inducedWeight L.ml L.qs (powers L.lam L.qs.length) x)]) :=
     rfl
   have eFend : L.Fend = foldStep (((((foldsTr level.fold F ws.quad ws.target xs).1.absorbAll ms
         dsObserve).absorb nonce dsPowNonce).squeeze.2).squeezeN
         (ceilDiv level.queries (192 / (ml + level.logInvRate)))).2 ic0 ic2 := by
     rw [SpLv.Fend, eF2, eNsq]
-  have eW : L.wsEnd = glue (((((foldsTr level.fold F ws.quad ws.target xs).1.absorbAll ms
+  have eW : L.wsEnd = glueT (((((foldsTr level.fold F ws.quad ws.target xs).1.absorbAll ms
         dsObserve).absorb nonce dsPowNonce).squeeze.2).squeezeN
         (ceilDiv level.queries (192 / (ml + level.logInvRate)))).2.squeeze.1
       { ws with

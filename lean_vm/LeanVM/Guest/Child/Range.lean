@@ -7,6 +7,7 @@
 
 module
 
+public import LeanVM.Protocol.Verifier.WhirTarget
 public import LeanVM.Protocol.Verifier.Claims
 public import LeanVM.Guest.B1.VerifySub.NZBridge
 public import LeanVM.Guest.Child.Fresh
@@ -161,33 +162,33 @@ end InRange
 
 /-! ## WHIR -/
 
-theorem foldRounds_returns : ∀ (n : ℕ) (s : WhirState) (lf : List E) {r : WhirState × List E},
-    Prog.Returns (foldRounds n s lf) r → r.1.folds.length = s.folds.length + n
+theorem foldRounds_returns : ∀ (n : ℕ) (s : WhirStateT) (lf : List E) {r : WhirStateT × List E},
+    Prog.Returns (foldRoundsT n s lf) r → r.1.folds.length = s.folds.length + n
   | 0, s, lf, r, h => by
     have := Prog.returns_ret h
     subst this
     rfl
   | n + 1, s, lf, r, h => by
-    unfold foldRounds at h
+    unfold foldRoundsT at h
     obtain ⟨c, -, h⟩ := Prog.returns_bind h
     obtain ⟨_, -, h⟩ := Prog.returns_bind h
     have := foldRounds_returns n _ _ h
     simp only [List.length_append, List.length_singleton] at this
     omega
 
-theorem noCommit_foldRounds : ∀ (n : ℕ) (s : WhirState) (lf : List E),
-    NoCommit (foldRounds n s lf)
+theorem noCommit_foldRounds : ∀ (n : ℕ) (s : WhirStateT) (lf : List E),
+    NoCommit (foldRoundsT n s lf)
   | 0, _, _ => noCommit_ret _
   | n + 1, s, lf => by
-    unfold foldRounds
+    unfold foldRoundsT
     simp only [Prog.bind_eq]
     exact NoCommit.bind noCommit_sampleE fun _ ↦ NoCommit.bind
       (noCommit_sumcheckRoundPoly _ _ _) fun _ ↦ noCommit_foldRounds n _ _
 
-theorem noCommit_tailRounds : ∀ (n : ℕ) (t : E) (quad : List E), NoCommit (tailRounds n t quad)
+theorem noCommit_tailRounds : ∀ (n : ℕ) (t : E) (quad : List E), NoCommit (tailRoundsT n t quad)
   | 0, _, _ => noCommit_ret _
   | n + 1, t, quad => by
-    unfold tailRounds
+    unfold tailRoundsT
     simp only [Prog.bind_eq, Prog.pure_eq]
     refine NoCommit.bind noCommit_sampleE fun _ ↦ ?_
     split
@@ -231,15 +232,15 @@ theorem sampleQueriesAux_returns (depth : ℕ) : ∀ (fuel remaining : ℕ) {qs 
 /-- **The WHIR levels open in range**: at level `index`, the heights so far end with the
 current level's, `logN − folds − fold + rate`. -/
 theorem inRange_whirLevels (logN laneFolds : ℕ) (evaluateBasis : List E → E) :
-    ∀ (levels : List Whir.Level) (index : ℕ) (s : WhirState) (hs : List ℕ),
+    ∀ (levels : List Whir.Level) (index : ℕ) (s : WhirStateT) (hs : List ℕ),
       hs.length = index + 1 →
       (∀ level ∈ levels.head?,
         hs.getD index 0 = logN - s.folds.length - level.fold + level.logInvRate) →
-      InRange (whirLevels logN laneFolds evaluateBasis index levels s) hs fun _ _ ↦ True
+      InRange (whirLevelsT logN laneFolds evaluateBasis index levels s) hs fun _ _ ↦ True
   | [], _, _, _, _, _ => trivial
   | level :: rest, index, s, hs, hl, hh => by
     have hh' := hh level rfl
-    unfold whirLevels
+    unfold whirLevelsT
     refine InRange.nc_bind (noCommit_foldRounds _ _ _) fun r hr ↦ ?_
     obtain ⟨s', levelFolds⟩ := r
     have hf := foldRounds_returns _ _ _ hr
@@ -259,7 +260,7 @@ theorem inRange_whirLevels (logN laneFolds : ℕ) (evaluateBasis : List E → E)
         exact sampleQueriesAux_returns _ _ _ hq q hqq
       · refine InRange.nc_bind (p := sumcheckRoundPoly 3 _ none)
           (noCommit_sumcheckRoundPoly _ _ _) fun _ _ ↦ ?_
-        refine InRange.nc_bind (p := tailRounds _ _ _) (noCommit_tailRounds _ _ _) fun r _ ↦ ?_
+        refine InRange.nc_bind (p := tailRoundsT _ _ _) (noCommit_tailRounds _ _ _) fun r _ ↦ ?_
         obtain ⟨tf, tg⟩ := r
         exact (InRange.of_noCommit (noCommit_require _)).mono fun _ _ _ ↦ trivial
     | cons next rest' =>
@@ -348,7 +349,9 @@ theorem inRange_leanVmProgram (bytecode : List K) (publicInput : Digest) :
   obtain ⟨level, rest, hcfg, rfl⟩ := hc
   refine InRange.nc_bind (noCommit_restClaims_computed _ _) fun cl _ ↦ ?_
   simp only [Prog.ret_bind]
-  unfold verifyStackedOpening verifyWhir
+  unfold verifyStackedOpening
+  simp only [verifyWhir_eq_target]
+  unfold verifyWhirT
   simp only [Prog.bind_eq, Prog.bind_assoc]
   refine InRange.nc_bind noCommit_sampleE fun _ _ ↦ ?_
   refine InRange.nc_bind (noCommit_liftOption _) fun config hc ↦ ?_

@@ -7,6 +7,7 @@
 
 module
 
+public import LeanVM.Protocol.Verifier.WhirTarget
 public import LeanVM.Guest.B1.Whir.SpecFold
 public import LeanVM.Guest.B1.Whir.CCommit
 
@@ -107,7 +108,7 @@ structure SpLv where
   index : ℕ
   level : Whir.Level
   fin : Bool
-  ws : WhirState
+  ws : WhirStateT
   F : Fs
   xf : List E
   ra : E
@@ -136,7 +137,7 @@ def chs : List E := L.tr.2.1
 /-- The sponge after the rounds. -/
 def F1 : Fs := L.tr.1
 /-- The state after the rounds. -/
-def ws1 : WhirState :=
+def ws1 : WhirStateT :=
   { L.ws with target := L.tr.2.2.2, quad := L.tr.2.2.1, folds := L.ws.folds ++ L.chs }
 /-- The message log after the rounds. -/
 def ml : ℕ := L.logN - L.ws1.folds.length
@@ -162,8 +163,8 @@ def enforced : E := enforcedSum L.rows L.chs (powers L.lam L.qs.length)
 def pending : List (E × List E × (List E → E)) :=
   if L.fin then [] else [(L.y, [L.c0, L.y + L.c2, L.c2], fun x ↦ eqEval (oodZ L.F1 L.ra L.rb L.ml) x)]
 /-- The state after the glue. -/
-def wsEnd : WhirState :=
-  glue L.lam L.ws1 (L.pending ++ [(L.enforced, [L.ic0, L.enforced + L.ic2, L.ic2],
+def wsEnd : WhirStateT :=
+  glueT L.lam L.ws1 (L.pending ++ [(L.enforced, [L.ic0, L.enforced + L.ic2, L.ic2],
     fun x ↦ inducedWeight L.ml L.qs (powers L.lam L.qs.length) x)])
 /-- The next level's sponge. -/
 def Fend : Fs := foldStep (L.F2.squeezeN L.nsq).2 L.ic0 L.ic2
@@ -200,16 +201,16 @@ end SpLv
 /-! ## The level's queries, backwards -/
 
 /-- **A level's queries and intro, backwards**, from the sponge `F2` with nothing waiting. -/
-theorem rest_inv {β : Type} {ml index : ℕ} {level : Whir.Level} {lf : List E} {ws1 : WhirState}
+theorem rest_inv {β : Type} {ml index : ℕ} {level : Whir.Level} {lf : List E} {ws1 : WhirStateT}
     {pending : List (E × List E × (List E → E))} {F2 : Fs} {xs : List E} {os : List Opening}
     {R : List (Digest × ℕ × ℕ)} {r : β × FSt} (hd : 1 ≤ 192 / (ml + level.logInvRate))
-    {K : WhirState → Prog β}
+    {K : WhirStateT → Prog β}
     (h : runF ((sampleQueries (ml + level.logInvRate) level.queries).bind fun queries ↦
       Prog.sampleE.bind fun lam ↦ (Prog.require (lam ≠ 0)).bind fun _ ↦
         (Prog.queryP index queries).bind fun words ↦
           (sumcheckRoundPoly 3 (enforcedSum (if index = 0 then words.map fun row ↦ row.reverse.map ofK
             else words.map extRow) lf (powers lam queries.length)) none).bind fun intro ↦
-            K (glue lam ws1 (pending ++ [(enforcedSum (if index = 0 then
+            K (glueT lam ws1 (pending ++ [(enforcedSum (if index = 0 then
               words.map fun row ↦ row.reverse.map ofK else words.map extRow) lf
               (powers lam queries.length), intro,
               fun x ↦ inducedWeight ml queries (powers lam queries.length) x)])))
@@ -223,7 +224,7 @@ theorem rest_inv {β : Type} {ml index : ℕ} {level : Whir.Level} {lf : List E}
       R[index]? = some (root, height, width) ∧ osL.length = qs.length ∧
       (∀ k (hk : k < qs.length) (ho : k < osL.length),
         Id.run (Compile.openOne (m := Id) keccak256 root height width qs[k] osL[k]) = true) ∧
-      runF (K (glue lam ws1 (pending ++ [(enforcedSum (if index = 0 then
+      runF (K (glueT lam ws1 (pending ++ [(enforcedSum (if index = 0 then
           (osL.map (·.leaf)).map fun row ↦ row.reverse.map ofK else (osL.map (·.leaf)).map extRow)
           lf (powers lam qs.length),
           [ic0, enforcedSum (if index = 0 then
@@ -246,8 +247,8 @@ theorem rest_inv {β : Type} {ml index : ℕ} {level : Whir.Level} {lf : List E}
 /-! ## The last level's shape -/
 
 /-- A level's queries and glue after its proof of work, refusing a zero `λ`. -/
-def levelRestNZ (ml index : ℕ) (level : Whir.Level) (lf : List E) (s : WhirState)
-    (pending : List (E × List E × (List E → E))) : Prog WhirState := do
+def levelRestNZ (ml index : ℕ) (level : Whir.Level) (lf : List E) (s : WhirStateT)
+    (pending : List (E × List E × (List E → E))) : Prog WhirStateT := do
   let queries ← sampleQueries (ml + level.logInvRate) level.queries
   let lam ← Prog.sampleE
   Prog.require (lam ≠ 0)
@@ -257,11 +258,11 @@ def levelRestNZ (ml index : ℕ) (level : Whir.Level) (lf : List E) (s : WhirSta
     if index = 0 then words.map fun row ↦ row.reverse.map ofK else words.map extRow
   let enforced := enforcedSum rows lf queryWeights
   let intro ← sumcheckRoundPoly 3 enforced none
-  return glue lam s (pending ++
+  return glueT lam s (pending ++
     [(enforced, intro, fun x ↦ inducedWeight ml queries queryWeights x)])
 
 /-- The last level's tail, refusing a zero challenge. -/
-def levelTailNZ (lane ml : ℕ) (residual : List E) (s : WhirState) : Prog WhirEnd := do
+def levelTailNZ (lane ml : ℕ) (residual : List E) (s : WhirStateT) : Prog WhirEnd := do
   let (tailFolds, target) ← tailRoundsNZ ml s.target s.quad
   let point := s.folds ++ tailFolds
   let inner := s.glued.foldl
@@ -270,7 +271,7 @@ def levelTailNZ (lane ml : ℕ) (residual : List E) (s : WhirState) : Prog WhirE
   return ⟨point.drop lane ++ point.take lane, inner, multilinearEval residual tailFolds, target⟩
 
 /-- **The last level**: its folds, its final message, its proof of work, its queries, its tail. -/
-theorem whirLevelsOpenNZ_last (logN lane index : ℕ) (level : Whir.Level) (s : WhirState) :
+theorem whirLevelsOpenNZ_last (logN lane index : ℕ) (level : Whir.Level) (s : WhirStateT) :
     whirLevelsOpenNZ logN lane index [level] s = (do
       let (s, levelFolds) ← foldRoundsNZ level.fold s []
       let messageLog := logN - s.folds.length
@@ -282,10 +283,10 @@ theorem whirLevelsOpenNZ_last (logN lane index : ℕ) (level : Whir.Level) (s : 
   simp only [levelRestNZ, levelTailNZ, Prog.bind_eq, Prog.pure_eq, Prog.bind_assoc, Prog.ret_bind]
 
 /-- `rest_inv` on `levelRestNZ`. -/
-theorem rest_inv' {β : Type} {ml index : ℕ} {level : Whir.Level} {lf : List E} {ws1 : WhirState}
+theorem rest_inv' {β : Type} {ml index : ℕ} {level : Whir.Level} {lf : List E} {ws1 : WhirStateT}
     {pending : List (E × List E × (List E → E))} {F2 : Fs} {xs : List E} {os : List Opening}
     {R : List (Digest × ℕ × ℕ)} {r : β × FSt} (hd : 1 ≤ 192 / (ml + level.logInvRate))
-    {K : WhirState → Prog β}
+    {K : WhirStateT → Prog β}
     (h : runF ((levelRestNZ ml index level lf ws1 pending).bind K) ⟨F2, xs, os, R⟩ = some r) :
     let nsq := ceilDiv level.queries (192 / (ml + level.logInvRate))
     let qs := queriesOf (192 / (ml + level.logInvRate)) (ml + level.logInvRate)
@@ -296,7 +297,7 @@ theorem rest_inv' {β : Type} {ml index : ℕ} {level : Whir.Level} {lf : List E
       R[index]? = some (root, height, width) ∧ osL.length = qs.length ∧
       (∀ k (hk : k < qs.length) (ho : k < osL.length),
         Id.run (Compile.openOne (m := Id) keccak256 root height width qs[k] osL[k]) = true) ∧
-      runF (K (glue lam ws1 (pending ++ [(enforcedSum (if index = 0 then
+      runF (K (glueT lam ws1 (pending ++ [(enforcedSum (if index = 0 then
           (osL.map (·.leaf)).map fun row ↦ row.reverse.map ofK else (osL.map (·.leaf)).map extRow)
           lf (powers lam qs.length),
           [ic0, enforcedSum (if index = 0 then
