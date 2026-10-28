@@ -490,15 +490,6 @@ def Valid (log : QueryLog SigningSpec) : Prop :=
 instance (log : QueryLog SigningSpec) : Decidable (Valid log) :=
   inferInstanceAs (Decidable ((log.map fun entry => entry.1.leafIndex).Nodup))
 
-/-- The signer returned the forgery: some request for its message was answered with its signature.
-Any other signature of a signed message is a strong forgery. -/
-def Contains (log : QueryLog SigningSpec) (forgery : Forgery) : Prop :=
-  ∃ entry ∈ log, entry.1.message = forgery.message ∧ entry.2 = some forgery.signature
-
-instance (log : QueryLog SigningSpec) (forgery : Forgery) : Decidable (Contains log forgery) :=
-  inferInstanceAs
-    (Decidable (∃ entry ∈ log, entry.1.message = forgery.message ∧ entry.2 = some forgery.signature))
-
 end SigningTranscript
 
 /-! ## Security in the random-permutation model -/
@@ -508,7 +499,7 @@ namespace Rpm
 open Common Common.SufCma
 
 /-- leanXMSS in the generic SUF-CMA game: the seed, key generation, the signer of a request, the
-verifier, and the winning condition (`SigningTranscript`, above). -/
+verifier, and the winning condition: a valid transcript without the forgery (`Contains`). -/
 noncomputable def scheme :
     Scheme MasterSeed PublicKey Seeded.SecretKey SignRequest (Option Signature)
       Forgery where
@@ -517,7 +508,8 @@ noncomputable def scheme :
   sign sk request := Seeded.sign (m := OracleComp HashSpec) sk request.leafIndex request.message
   verify pk forgery := Concrete.verify (m := OracleComp HashSpec) pk forgery.message forgery.signature
   win log forgery :=
-    decide (SigningTranscript.Valid log ∧ ¬SigningTranscript.Contains log forgery)
+    decide (SigningTranscript.Valid log ∧
+      ¬Contains SignRequest.message log forgery.message forgery.signature)
 
 /-- **leanXMSS in the random-permutation model**: an adversary whose game makes at most `Q`
 permutation calls, `Q ≥ 1`, forges with probability at most `(Q + 1) · 2^-127`

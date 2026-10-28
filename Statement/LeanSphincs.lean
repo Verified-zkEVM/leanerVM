@@ -767,13 +767,6 @@ def Valid (log : QueryLog SigningSpec) : Prop := log.length ≤ signatureLimit
 instance (log : QueryLog SigningSpec) : Decidable (Valid log) :=
   inferInstanceAs (Decidable (log.length ≤ signatureLimit))
 
-def Contains (log : QueryLog SigningSpec) (forgery : Forgery) : Prop :=
-  ∃ entry ∈ log, entry.1 = forgery.message ∧ entry.2 = some forgery.signature
-
-instance (log : QueryLog SigningSpec) (forgery : Forgery) : Decidable (Contains log forgery) :=
-  inferInstanceAs
-    (Decidable (∃ entry ∈ log, entry.1 = forgery.message ∧ entry.2 = some forgery.signature))
-
 end SigningTranscript
 
 /-! ## Security in the random-permutation model -/
@@ -785,7 +778,7 @@ open Common Common.SufCma
 variable [Params]
 
 /-- leanSPHINCS in the generic SUF-CMA game: the seed, key generation, the deterministic signer,
-the verifier, and the winning condition (`SigningTranscript`, above). -/
+the verifier, and the winning condition: a valid transcript without the forgery (`Contains`). -/
 noncomputable def scheme :
     Scheme MasterSeed PublicKey Seeded.SecretKey Message (Option Signature)
       Forgery where
@@ -794,7 +787,7 @@ noncomputable def scheme :
   sign sk message := Seeded.sign (m := OracleComp HashSpec) sk message
   verify pk forgery := Concrete.verify (m := OracleComp HashSpec) pk forgery.message forgery.signature
   win log forgery :=
-    decide (SigningTranscript.Valid log ∧ ¬SigningTranscript.Contains log forgery)
+    decide (SigningTranscript.Valid log ∧ ¬Contains id log forgery.message forgery.signature)
 
 end Rpm
 

@@ -74,4 +74,8 @@ theorem thInput_randomizer (parameter : PublicParameter) (lay : Layer) (key : Ke
     thInput parameter (tweakFields 7 0 (layerHi lay 0) key) (bytesLE 32 seed ++ message) =
       randomizerHashInput parameter lay key seed message := rfl
 
+/-- The signer returned the forgery (`Common.SufCma.Contains` at the requests' messages). -/
+abbrev SigningTranscript.Contains (log : OracleSpec.QueryLog SigningSpec) (forgery : Forgery) : Prop :=
+  Common.SufCma.Contains SignRequest.message log forgery.message forgery.signature
+
 end LeanXmss

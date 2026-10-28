@@ -330,6 +330,16 @@ structure Scheme (Seed PK SK Req Resp F : Type) where
 
 variable {Seed PK SK Req Resp F : Type}
 
+/-- The signer returned the forgery: some request with the forgery's message (`message`) was
+answered with its signature. Any other signature of a signed message is a strong forgery. -/
+def Contains {M S : Type} (message : Req → M) (log : QueryLog (Req →ₒ Option S)) (m : M) (s : S) :
+    Prop :=
+  ∃ entry ∈ log, message entry.1 = m ∧ entry.2 = some s
+
+instance {M S : Type} [DecidableEq M] [DecidableEq S] (message : Req → M)
+    (log : QueryLog (Req →ₒ Option S)) (m : M) (s : S) : Decidable (Contains message log m s) :=
+  inferInstanceAs (Decidable (∃ entry ∈ log, message entry.1 = m ∧ entry.2 = some s))
+
 /-- The hash as Keccak-256 (`digestBitVec`), in the random-permutation model. -/
 def hashK : QueryImpl HSpec (OracleComp KSpec) :=
   fun m ↦ digestBitVec <$> (liftM (KSpec.query (.inr (.inl m))) : OracleComp KSpec KDigest)

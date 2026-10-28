@@ -486,7 +486,7 @@ theorem win_eq (log : QueryLog SphincsLayered.SigningSpec) (forgery : Forgery) :
   refine and_congr ?_ (not_congr ?_)
   · exact Iff.of_eq (congrArg (· ≤ signatureLimit)
       (by simp [mapLog] : (mapLog (Option.map signatureEquiv) log).length = log.length))
-  · unfold SigningTranscript.Contains SphincsLayered.SigningTranscript.Contains mapLog
+  · unfold Common.SufCma.Contains SphincsLayered.SigningTranscript.Contains mapLog
     constructor
     · rintro ⟨entry', hmem, hmsg, hsig⟩
       obtain ⟨entry, hentry, rfl⟩ := List.mem_map.mp hmem

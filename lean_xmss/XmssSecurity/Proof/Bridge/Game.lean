@@ -99,7 +99,8 @@ theorem contains_map (log : QueryLog SigningSpec) (forgery : LeanXmss.Forgery) :
     LeanXmss.SigningTranscript.Contains (log.map toRealEntry) forgery ↔
       SigningTranscript.Contains log (toModelForgery forgery) := by
   rcases forgery with ⟨fmessage, fsignature⟩
-  simp only [LeanXmss.SigningTranscript.Contains, SigningTranscript.Contains, List.mem_map]
+  simp only [LeanXmss.SigningTranscript.Contains, Common.SufCma.Contains, SigningTranscript.Contains,
+    List.mem_map]
   constructor
   · rintro ⟨_, ⟨entry, hentry, rfl⟩, hmessage, hsignature⟩
     obtain ⟨request, answer⟩ := entry
