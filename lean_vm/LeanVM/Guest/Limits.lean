@@ -11,6 +11,7 @@ module
 public import LeanVM.Guest.Hints
 public import LeanVM.Protocol.Verifier.DeferredShape
 public import Statement.LeanVmGuest
+public import LeanVM.Guest.NZProgram
 
 /-!
 # The limits of the guest's completeness
@@ -50,14 +51,6 @@ open Limits
 /-- **Every child is one the guest accepts.** -/
 abbrev ChildrenOk (bytecode : List K) (seed : Digest) (w : NodeWitness) : Prop :=
   ∀ c ∈ w.children, ChildOk bytecode seed c
-
-/-- A child the guest accepts is accepted by the deferring verifier refusing a zero fold, tail or
-level batching challenge. -/
-theorem Limits.verifyDeferredNZ_of_childOk {bytecode : List K} {seed : Digest} {c : Child}
-    (h : ChildOk bytecode seed c) :
-    Limits.verifyDeferredNZ bytecode seed (statementDigest seed c.statement) c.fresh c.proof =
-      true :=
-  h.noZeroChallenge
 
 /-! ## What `NodeRel` gives of the children's fresh claims -/
 

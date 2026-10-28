@@ -26,7 +26,7 @@ honest prover (`Rom.honestComp` at leanVM's seed and program, with the strategy
 * `guestChildComplete_of_spec`: if moreover the witness is a child's, and everywhere `A` is the
   specification at a child's witness or the empty proof (`ChildSpec`), then both parts of
   `LeanVM.Guest.Budget.GuestChildComplete` hold for `A`, with the same bound `2^-126`
-  (`rpmChild_at`, `rpmChild_le`, `childOk_of_verifierNZ_of`).
+  (`rpmChild_at`, `rpmChild_le`, `childOk_of_verifierRZ_of`).
 
 The classical provers are instances (`specOnValid_honestComp`, `specOnValid_childProver`).
 -/
@@ -81,17 +81,17 @@ theorem guestChildComplete_of_spec (A : HonestProver) (hA : SpecOnValid A ChildF
       ValidExecution prog input t → t.committedSize ≤ 2 ^ 28 → 1 ≤ ρ ∧ ρ ≤ 4 →
       Pr{let v ← (simulateQ LeanVM.rpmImpl (do
           let proof ← A prog input t ρ (2 ^ 25)
-          Guest.Budget.verifierNZ queryH queryF prog input proof)).run' []}[v = false] ≤
+          Guest.Budget.verifierRZ queryH queryF prog input proof)).run' []}[v = false] ≤
         (2 : ℝ≥0∞)⁻¹ ^ 126) ∧
     ∀ (s : NodeStatement) (t : Trace Guest.guest) (ρ : ℕ), 2 ^ 22 ≤ t.committedSize →
       s.defer.Shaped (bytecodeWords Guest.guest) →
       let input := PublicInput.ofDigest (statementDigest (deployedSeed Guest.guest) s)
       let proof := Guest.Budget.atKeccak A Guest.guest input t ρ (2 ^ 25)
-      Guest.Budget.verifierNZ (m := Id) keccak256 keccakF Guest.guest input proof = true →
-      ∃ fresh, Guest.LeanVM.Guest.ChildOk (bytecodeWords Guest.guest) (deployedSeed Guest.guest)
+      Guest.Budget.verifierRZ (m := Id) keccak256 keccakF Guest.guest input proof = true →
+      ∃ fresh, LeanVM.Guest.ChildOk (bytecodeWords Guest.guest) (deployedSeed Guest.guest)
         ⟨s, fresh, proof⟩ := by
   refine ⟨fun prog input t ρ hv hbudget hρ ↦ ?_, fun s t ρ h22 hsh hacc ↦
-    childOk_of_verifierNZ_of (hA' _ _ _ _ _) h22 hsh hacc⟩
+    childOk_of_verifierRZ_of (hA' _ _ _ _ _) h22 hsh hacc⟩
   obtain ⟨w, s, hw, hAw⟩ := hA prog input t ρ (2 ^ 25) hv hbudget hρ
   rw [hAw]
   exact (rpmChild_at hw.1 (by norm_num)).trans rpmChild_le

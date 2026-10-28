@@ -99,8 +99,10 @@ Benedikt Wagner's ([b-wagn/fv-pq-da](https://github.com/b-wagn/fv-pq-da), Apache
     guest program establishes with it (**`GuestKnowledge`**), the candidate collisions of two
     statements' digests and **`LeanVM.Node.DigestBinds`** (a digest binds the seed and a statement
     of a given shape, up to a Keccak-256 collision), the deployed leanISA guest program
-    (`LeanVM.Guest.guest`, from [`Data/`](Data/)), its deployed limits (`Limits`, `CapsAgree`,
-    `NoZeroChallenge`), **`LeanVM.Guest.Budget.GuestCompleteCovered`** (the nodes `Covered` lists), the honest proof as a child (`verifierNZ`, `atKeccak`, `ChildOk`,
+    (`LeanVM.Guest.guest`, from [`Data/`](Data/)), its deployed limits (`Limits`, and of each child
+    `ChildOk`, its zero-challenge refusal `Prog.refuseZero`),
+    **`LeanVM.Guest.Budget.GuestCompleteCovered`** (the nodes `Covered` lists), the honest proof as
+    a child (`verifierRZ`, `atKeccak`,
     **`GuestChildComplete`**); and the recursion step: the batching of the children's claims as a
     verifier program (`batchAny`, run from the batching's seed by `batchVerifier`), an adversary's
     proof run through it in the random-permutation model (`LeanVM.Rpm.rpmRun`, `LeanVm.lean`), the

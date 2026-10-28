@@ -537,117 +537,30 @@ def childStart (seed : Digest) (c : Child) : St :=
 
 end Hints
 
-/-! ## The deployed limits -/
+/-! ## The deployed limits
+
+The guest program divides by some of the verifier's challenges (the WHIR fold and tail challenges
+and each level's batching challenge `λ`, G:1253, 1560, 1565), so a zero one makes it reject a child
+the verifier accepts; its hypothesis refuses a zero challenge anywhere (`Prog.refuseZero`), a
+slightly stronger one, each challenge being zero with probability `2^-192`. -/
+
+/-- **`P` refusing a zero challenge**: every sampled challenge `0` fails. -/
+def _root_.LeanVM.Protocol.Compile.Prog.refuseZero {α : Type} : Prog α → Prog α
+  | .ret a => .ret a
+  | .fail => .fail
+  | .read k => .read fun x ↦ (k x).refuseZero
+  | .sample k => .sample fun x ↦ if x = 0 then .fail else (k x).refuseZero
+  | .grind bits k => .grind bits k.refuseZero
+  | .commit height width k => .commit height width k.refuseZero
+  | .query i ps k => .query i ps fun rows ↦ (k rows).refuseZero
 
 namespace Limits
 
-/-- `foldRounds` refusing a zero challenge. -/
-def foldRoundsNZ : ℕ → WhirState → List E → Prog (WhirState × List E)
-  | 0, s, levelFolds => return (s, levelFolds)
-  | n + 1, s, levelFolds => do
-    let challenge ← Prog.sampleE
-    Prog.require (challenge ≠ 0)
-    let target := polyEval s.quad challenge
-    let quad ← sumcheckRoundPoly 3 target none
-    foldRoundsNZ n { s with target, quad, folds := s.folds ++ [challenge] }
-      (levelFolds ++ [challenge])
-
-/-- `tailRounds` refusing a zero challenge. -/
-def tailRoundsNZ : ℕ → E → List E → Prog (List E × E)
-  | 0, target, _ => return ([], target)
-  | n + 1, _, quad => do
-    let challenge ← Prog.sampleE
-    Prog.require (challenge ≠ 0)
-    let target := polyEval quad challenge
-    if n = 0 then return ([challenge], target)
-    else do
-      let quad ← sumcheckRoundPoly 3 target none
-      let (rest, target) ← tailRoundsNZ n target quad
-      return (challenge :: rest, target)
-
-/-- `whirLevels` refusing a zero fold, tail or level batching challenge. -/
-def whirLevelsNZ (logN laneFolds : ℕ) (evaluateBasis : List E → E) :
-    ℕ → List Whir.Level → WhirState → Prog Unit
-  | _, [], _ => Prog.fail
-  | index, level :: rest, s => do
-    let (s, levelFolds) ← foldRoundsNZ level.fold s []
-    let messageLog := logN - s.folds.length
-    let (residual, pending) ← match rest with
-      | [] => do
-        let residual ← Prog.readN (2 ^ messageLog)
-        pure (residual, ([] : List (E × List E × (List E → E))))
-      | next :: _ => do
-        let (height, width) := levelShape messageLog next (3 * 2 ^ next.fold)
-        Prog.commitP height width
-        let oodPoint ← Prog.sampleN messageLog
-        let oodValue ← Prog.readE
-        let intro ← sumcheckRoundPoly 3 oodValue none
-        pure ([], [(oodValue, intro, fun x ↦ eqEval oodPoint x)])
-    Prog.grindP Whir.queryGrindingBits
-    let queries ← sampleQueries (messageLog + level.logInvRate) level.queries
-    let lam ← Prog.sampleE
-    Prog.require (lam ≠ 0)
-    let queryWeights := powers lam queries.length
-    let words ← Prog.queryP index queries
-    let rows : List (List E) :=
-      if index = 0 then words.map fun row ↦ row.reverse.map ofK else words.map extRow
-    let enforced := enforcedSum rows levelFolds queryWeights
-    let intro ← sumcheckRoundPoly 3 enforced none
-    let pending := pending ++
-      [(enforced, intro, fun x ↦ inducedWeight messageLog queries queryWeights x)]
-    let s := glue lam s pending
-    match rest with
-    | [] => do
-      let (tailFolds, target) ← tailRoundsNZ messageLog s.target s.quad
-      let point := s.folds ++ tailFolds
-      let weight := s.glued.foldl
-        (fun weight claim ↦
-          weight + claim.scalar * claim.weightAt (s.folds.drop claim.foldStart ++ tailFolds))
-        (evaluateBasis (point.drop laneFolds ++ point.take laneFolds))
-      let terminal := weight * multilinearEval residual tailFolds
-      Prog.require (terminal = target)
-    | _ :: _ => whirLevelsNZ logN laneFolds evaluateBasis (index + 1) rest s
-
-/-- `verifyWhir` refusing a zero fold, tail or level batching challenge. -/
-def verifyWhirNZ (logN logInvRate : ℕ) (target : E) (evaluateBasis : List E → E) : Prog Unit := do
-  let config ← liftOption (Whir.ladder logN logInvRate)
-  let quad ← sumcheckRoundPoly 3 target none
-  whirLevelsNZ logN ((config.head?.map (·.fold)).getD 0) evaluateBasis 0 config
-    ⟨target, quad, [], []⟩
-
-/-- `verifyStackedOpening` refusing a zero fold, tail or level batching challenge. -/
-def verifyStackedOpeningNZ (stackLog logInvRate : ℕ) (claims : List StackClaim) : Prog Unit := do
-  let scales := powers (← Prog.sampleE) claims.length
-  verifyWhirNZ stackLog logInvRate (dot scales (claims.map (·.2)))
-    fun point ↦ dot scales (claims.map fun c ↦ c.1 point)
-
-/-- `verifyExecution` whose stacked opening refuses a zero fold, tail or level batching
-challenge. -/
-def verifyExecutionNZ (ev : Evaluations) (bytecode : List K) (publicInput : Digest) :
-    Prog Unit := do
-  let (layout, logInverseRate) ← readSizes bytecode
-  commitStack layout.stackLog logInverseRate
-  let bus ← verifyBusBalance ev layout
-  let claims ← tablePhase layout bus
-  let publicClaims ← publicInputPhase layout publicInput
-  let claims := claims ++ publicClaims
-  let (claims, keccakPoint, keccakSlices) ← keccakPhase layout claims
-  let (ringTarget, ringWeight) ← ringSwitch keccakPoint keccakSlices
-  verifyStackedOpeningNZ layout.stackLog logInverseRate
-    (ringSwitchClaim layout ringTarget ringWeight :: claims.map (·.onStack layout))
-
-/-- `deferredProgram` whose stacked opening refuses a zero fold, tail or level batching
-challenge. -/
-def deferredProgramNZ (c : FixedClaims) (bytecode : List K) (publicInput : Digest) :
-    Prog Bool := do
-  verifyExecutionNZ (.claimed c) bytecode publicInput
-  return true
-
-/-- **The deployed deferring verifier refusing a zero challenge where the guest program divides**:
-`verifyDeferred` with `deferredProgramNZ`. -/
-def verifyDeferredNZ (bytecode : List K) (iv publicInput : Digest) (c : FixedClaims)
+/-- **The deployed deferring verifier refusing a zero challenge** (`Prog.refuseZero`):
+`verifyDeferred` with every sampled challenge `0` a failure. -/
+def verifyDeferredRZ (bytecode : List K) (iv publicInput : Digest) (c : FixedClaims)
     (π : Proof) : Bool :=
-  Id.run (runProof (m := Id) keccak256 keccakF (deferredProgramNZ c bytecode publicInput)
+  Id.run (runProof (m := Id) keccak256 keccakF (deferredProgram c bytecode publicInput).refuseZero
     (keccakF (seedInput iv publicInput)) π)
 
 /-- **The query steps of a run** of the compiled verifier (Keccak-256, Keccak-f[1600]): each
@@ -716,9 +629,8 @@ each child, `NodeRel`'s two conditions (`shaped`, `verifies`) and the deployed o
 * its openings agree in the guest program's Merkle caps: at every query step of its deferring
   verifier, run under the node's seed, the step's openings agree wherever they meet (one tree's
   openings, the honest prover's, agree);
-* no zero challenge where the guest program divides (G:1253, 1560, 1565): its proof is accepted
-  by the deferring verifier whose stacked opening also refuses a zero fold challenge, a zero tail
-  challenge and a zero level batching challenge `λ`. -/
+* no zero challenge: its proof is accepted by the deferring verifier refusing a zero challenge
+  anywhere (`verifyDeferredRZ`), as the guest program divides by some (above). -/
 structure ChildOk (bytecode : List K) (seed : Digest) (c : Child) : Prop where
   shaped : c.statement.defer.Shaped bytecode
   verifies : verifyDeferred bytecode seed (statementDigest seed c.statement) c.fresh c.proof = true
@@ -729,7 +641,7 @@ structure ChildOk (bytecode : List K) (seed : Digest) (c : Child) : Prop where
       (deferredProgram c.fresh bytecode (statementDigest seed c.statement)) (Hints.childStart seed c),
     Limits.BatchAgrees b.1 b.2
   noZeroChallenge :
-    Limits.verifyDeferredNZ bytecode seed (statementDigest seed c.statement) c.fresh c.proof = true
+    Limits.verifyDeferredRZ bytecode seed (statementDigest seed c.statement) c.fresh c.proof = true
 
 open Hints in
 /-- The coverage table's slots (`n_total`, G:4135): each region's declared claims and its
@@ -821,16 +733,14 @@ abbrev GuestCompleteCovered : Prop :=
 The statements above assume of each child what `ChildOk` bundles. The guest program checks a child
 with the deployed Keccak, so the honest proof is made with it (`atKeccak`); what it can fail by (a
 proof of work without a nonce within its fuel, a zero challenge where the guest program divides) is
-bounded in the random-permutation model for the same prover and check (`verifierNZ`). -/
+bounded in the random-permutation model for the same prover and check (`verifierRZ`). -/
 
-/-- **The leanVM verifier refusing a zero challenge where the guest program divides**:
-`verifier H F` with `Limits.verifyExecutionNZ`. -/
-def verifierNZ {m : Type → Type} [Monad m] (H : Bytes → m Digest) (F : KState → m KState)
+/-- **The leanVM verifier refusing a zero challenge** (`Prog.refuseZero`): `verifier H F` with
+every sampled challenge `0` a failure. -/
+def verifierRZ {m : Type → Type} [Monad m] (H : Bytes → m Digest) (F : KState → m KState)
     (prog : Program) (input : PublicInput) (proof : Proof) : m Bool := do
   let seed ← seedWith H F (bytecodeWords prog) (publicDigest input)
-  runProof H F (do
-    Limits.verifyExecutionNZ .computed (bytecodeWords prog) (publicDigest input)
-    return true) seed proof
+  runProof H F (leanVmProgram (bytecodeWords prog) (publicDigest input)).refuseZero seed proof
 
 /-- Keccak-256 and Keccak-f[1600] answering the calls `HashSpec`. -/
 def keccakImpl : QueryImpl HashSpec Id
@@ -846,26 +756,29 @@ def atKeccak (prover : HonestProver) (prog : Program) (input : PublicInput)
 open OracleComp OracleSpec in
 /-- **The honest proof of an execution of the guest program is a child the guest program accepts**:
 for the honest prover `LeanVM.prover` (`LeanVm.lean`, `LeanVM.Prover.prove` with the oracle calls),
-1. in the random-permutation model, at `2^25` nonces per proof of work, `verifierNZ` rejects its
+1. in the random-permutation model, at `2^25` nonces per proof of work, `verifierRZ` rejects its
    proof of a valid execution of committed size at most `2^28`, at an inverse rate `2^ρ`,
    `1 ≤ ρ ≤ 4`, with probability at most `2^-126`;
 2. its proof with the deployed Keccak (`atKeccak`) of an execution of the leanISA guest program of
    committed size at least `2^22` on a statement's digest under the deployed seed, wherever
-   `verifierNZ` with the deployed Keccak accepts it, is with the statement (its deferred claim
-   shaped) and some claims on the bytecode a child the guest program accepts (`ChildOk`).
+   `verifierRZ` with the deployed Keccak accepts it, forms with the statement (its deferred claim
+   shaped) and some claim `fresh` on the bytecode a child the guest program accepts (`ChildOk`).
+Reading part 1 for the deployed Keccak, so that part 2 applies to the honest proof, is the
+heuristic that the deployed Keccak-f[1600] behaves as a random permutation, applied to this
+prover.
 Proved by `LeanVM.Guest.Budget.guest_child_complete`. -/
 def GuestChildComplete : Prop :=
   (∀ (prog : Program) (input : PublicInput) (t : Trace prog) (ρ : ℕ),
     ValidExecution prog input t → t.committedSize ≤ 2 ^ 28 → 1 ≤ ρ ∧ ρ ≤ 4 →
     Pr{let v ← (simulateQ LeanVM.rpmImpl (do
         let proof ← LeanVM.prover prog input t ρ (2 ^ 25)
-        verifierNZ queryH queryF prog input proof)).run' []}[v = false] ≤
+        verifierRZ queryH queryF prog input proof)).run' []}[v = false] ≤
       (2 : ℝ≥0∞)⁻¹ ^ 126) ∧
   ∀ (s : NodeStatement) (t : Trace guest) (ρ : ℕ), 2 ^ 22 ≤ t.committedSize →
     s.defer.Shaped (bytecodeWords guest) →
     let input := PublicInput.ofDigest (statementDigest (deployedSeed guest) s)
     let proof := atKeccak LeanVM.prover guest input t ρ (2 ^ 25)
-    verifierNZ (m := Id) keccak256 keccakF guest input proof = true →
+    verifierRZ (m := Id) keccak256 keccakF guest input proof = true →
     ∃ fresh, ChildOk (bytecodeWords guest) (deployedSeed guest) ⟨s, fresh, proof⟩
 
 end Budget

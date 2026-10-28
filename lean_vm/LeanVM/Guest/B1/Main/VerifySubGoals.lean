@@ -12,6 +12,7 @@ module
 public import LeanVM.Guest.B1.Main.MainGoalsHL5TB
 public import LeanVM.Guest.B1.VerifySub.CompleteBT
 public import LeanVM.Guest.B1.Main.MainGoalsDvTB
+public import LeanVM.Guest.Child.RefuseZero
 
 /-!
 # The children's `verify_sub` calls, bounded

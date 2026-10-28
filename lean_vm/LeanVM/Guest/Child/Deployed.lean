@@ -11,12 +11,13 @@ module
 public import LeanVM.Guest.Child.Merkle
 public import LeanVM.Guest.Child.StackLog
 public import LeanVM.Guest.Start
+public import LeanVM.Guest.Child.RefuseZero
 
 /-!
 # Honest children at Keccak
 
-`childOk_of_verifierNZ`: from the acceptance of the verifier refusing a zero challenge
-(`Budget.verifierNZ`) at Keccak, of the child prover's proof (`childProver`), of a guest execution
+`childOk_of_verifierRZ`: from the acceptance of the verifier refusing a zero challenge
+(`Budget.verifierRZ`, which accepts only what `Budget.verifierNZ` does) at Keccak, of the child prover's proof (`childProver`), of a guest execution
 on a statement's digest under the deployed seed:
 
 * the deferring verifier refusing a zero challenge accepts it with the claim its run evaluates,
@@ -63,10 +64,10 @@ theorem runProof_claimed_of_computed (H : Bytes → Id Digest) (F : KState → I
 
 /-- **An accepted proof of a prover that is the specification at a child's witness (or the empty
 proof) is a child the guest accepts.** -/
-theorem childOk_of_verifierNZ_of {A : HonestProver} {s : NodeStatement} {t : Trace guest} {ρ : ℕ}
+theorem childOk_of_verifierRZ_of {A : HonestProver} {s : NodeStatement} {t : Trace guest} {ρ : ℕ}
     (hA : ChildSpec A guest (publicInputOf (statementDigest (deployedSeed guest) s)) t ρ (2 ^ 25))
     (h22 : 2 ^ 22 ≤ t.committedSize) (hsh : s.defer.Shaped bytecode)
-    (hacc : Budget.verifierNZ (m := Id) keccak256 keccakF guest
+    (hacc : Budget.verifierRZ (m := Id) keccak256 keccakF guest
       (publicInputOf (statementDigest (deployedSeed guest) s))
       (Budget.atKeccak A guest (publicInputOf (statementDigest (deployedSeed guest) s))
         t ρ (2 ^ 25)) = true) :
@@ -78,17 +79,17 @@ theorem childOk_of_verifierNZ_of {A : HonestProver} {s : NodeStatement} {t : Tra
   have hpd : publicDigest (publicInputOf d) = d := publicDigest_publicInputOf d
   -- the claim the run evaluates
   have hacc' := hacc
-  rw [verifierNZ_eq] at hacc'
-  obtain ⟨c, hc, hnz⟩ := runProof_claimed_of_computed keccak256 keccakF
-    Limits.verifyStackedOpeningNZ (bytecodeWords guest) (publicDigest (publicInputOf d)) hacc'
-  rw [hpd] at hnz
-  have hNZ : Limits.verifyDeferredNZ bytecode (deployedSeed guest) d c proof = true := hnz
-  have hV := Limits.verifyDeferred_of_nz hNZ
+  rw [verifierRZ_eq] at hacc'
+  obtain ⟨c, hc, hrz⟩ := runProof_claimed_of_computed_rz keccak256 keccakF
+    verifyStackedOpening (bytecodeWords guest) (publicDigest (publicInputOf d)) hacc'
+  rw [hpd] at hrz
+  have hRZ : Limits.verifyDeferredRZ bytecode (deployedSeed guest) d c proof = true := hrz
+  have hV := Limits.verifyDeferred_of_nz (verifyDeferredNZ_of_rz hRZ)
   -- the pure prover's proof
-  obtain ⟨w, sz, hchild, hprove⟩ := prove_of_verifierNZ_of hA hacc
+  obtain ⟨w, sz, hchild, hprove⟩ := prove_of_verifierNZ_of hA (verifierNZ_of_rz hacc)
   obtain ⟨⟨hρ, hw, hs, hadm, -⟩, -⟩ := id hchild
   obtain ⟨rest, hrest⟩ := stream_prefix keccak256 keccakF hprove
-  refine ⟨c, ⟨hsh, hV, ?_, stream_le_of_verifyDeferred hV, ?_, hNZ⟩⟩
+  refine ⟨c, ⟨hsh, hV, ?_, stream_le_of_verifyDeferred hV, ?_, hRZ⟩⟩
   · -- the stack log
     show ∀ layout r, announced bytecode proof.stream = some (layout, r) → _
     rw [hrest]
@@ -116,16 +117,16 @@ theorem childOk_of_verifierNZ_of {A : HonestProver} {s : NodeStatement} {t : Tra
     exact batchAgrees_honest hps
 
 /-- **The child prover's accepted proof is a child the guest accepts.** -/
-theorem childOk_of_verifierNZ {s : NodeStatement} {t : Trace guest} {ρ : ℕ}
+theorem childOk_of_verifierRZ {s : NodeStatement} {t : Trace guest} {ρ : ℕ}
     (h22 : 2 ^ 22 ≤ t.committedSize) (hsh : s.defer.Shaped bytecode)
-    (hacc : Budget.verifierNZ (m := Id) keccak256 keccakF guest
+    (hacc : Budget.verifierRZ (m := Id) keccak256 keccakF guest
       (publicInputOf (statementDigest (deployedSeed guest) s))
       (Budget.atKeccak childProver guest (publicInputOf (statementDigest (deployedSeed guest) s))
         t ρ (2 ^ 25)) = true) :
     ∃ fresh, LeanVM.Guest.ChildOk bytecode (deployedSeed guest) ⟨s, fresh,
       Budget.atKeccak childProver guest (publicInputOf (statementDigest (deployedSeed guest) s))
         t ρ (2 ^ 25)⟩ :=
-  childOk_of_verifierNZ_of (childSpec_childProver _ _ _ _ _) h22 hsh hacc
+  childOk_of_verifierRZ_of (childSpec_childProver _ _ _ _ _) h22 hsh hacc
 
 end
 end LeanVM.Guest.Child

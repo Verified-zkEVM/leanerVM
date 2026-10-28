@@ -159,6 +159,15 @@ theorem verifierNZ_eq (prog : Program) (input : PublicInput) (π : Proof) :
           (publicDigest input)).bind fun _ ↦ Prog.ret true)
         (seed (bytecodeWords prog) (publicDigest input)) π) := rfl
 
+/-- The statement's refusing verifier, at Keccak, is the run of `execWith` refusing zero
+challenges. -/
+theorem verifierRZ_eq (prog : Program) (input : PublicInput) (π : Proof) :
+    Budget.verifierRZ (m := Id) keccak256 keccakF prog input π =
+      Id.run (runProof (m := Id) keccak256 keccakF
+        ((execWith .computed verifyStackedOpening (bytecodeWords prog)
+          (publicDigest input)).bind fun _ ↦ Prog.ret true).refuseZero
+        (seed (bytecodeWords prog) (publicDigest input)) π) := rfl
+
 /-- **No program reading first accepts the empty proof.** -/
 theorem runProof_read_empty (H : Bytes → Id Digest) (F : KState → Id KState) (k : E → Prog Bool)
     (sd : KState) : Id.run (runProof H F (Prog.read k) sd ⟨[], []⟩) = false := rfl

@@ -7,6 +7,7 @@
 -/
 
 import LeanVM.Guest.Child.NZRom
+import LeanVM.Guest.Child.RefuseZero
 import LeanVM.Guest.Child.Honest
 import LeanVM.Protocol.LeanVMRpm
 
@@ -14,9 +15,12 @@ import LeanVM.Protocol.LeanVMRpm
 # Refusing a zero challenge, in the random-permutation model
 
 `romChild`: against the two random oracles, the child prover's proof (`childComp`) is rejected
-by the verifier refusing a zero challenge (`Budget.verifierNZ`) with probability at most
+by the verifier refusing a zero challenge anywhere (`Budget.verifierRZ`, which is an `NZ` refusal:
+`nz_refuseZero`) with probability at most
 `nzCompletenessError fuel = Q · ((1 - 2^-17)^fuel + 2^-192)`, `Q = completenessQueries fuel`
-(`romCompleteNZ` at leanVM's program and seed). `rpmChild`: in the random-permutation model, at
+(`romCompleteNZ` at leanVM's program and seed: the zero-challenge term is a union bound over
+every permutation answer, each a zero challenge with probability `2^-192`, so refusing a zero at
+every sampled challenge costs no more than at some). `rpmChild`: in the random-permutation model, at
 most that plus `rpmError (completenessPermCalls fuel)`, the transfer of `completenessRpm`: the
 prover and the verifier follow the duplex discipline (`duplexVm_childRun`) and make at most
 `completenessPermCalls fuel` permutation calls (`isWeightBound_childRun`). `rpmChild_le`: at a
@@ -31,19 +35,38 @@ open LeanVM.Protocol.LeanIsa LeanVM.Protocol.EndToEnd.Front LeanVM.Protocol.EndT
 open LeanVM.Protocol.Rom LeanVM.Protocol.KeccakHash LeanVM.Rpm OracleComp OracleSpec
 open scoped ENNReal
 
+/-! ## The program refusing a zero challenge anywhere -/
+
+/-- The verifier program refusing a zero challenge anywhere (`Prog.refuseZero`). -/
+def rzProgram (bytecode : List K) (publicInput : Digest) : Prog Bool :=
+  (leanVmProgram bytecode publicInput).refuseZero
+
+theorem nz_rzProgram (bytecode : List K) (publicInput : Digest) :
+    NZ (rzProgram bytecode publicInput) (leanVmProgram bytecode publicInput) :=
+  nz_refuseZero _
+
+theorem refines_rzProgram (bytecode : List K) (publicInput : Digest) :
+    Limits.Refines (rzProgram bytecode publicInput) (leanVmProgram bytecode publicInput) :=
+  refines_refuseZero _
+
+theorem costLE_rzProgram (bytecode : List K) (publicInput : Digest) :
+    (rzProgram bytecode publicInput).CostLE costHeight leanVmCost :=
+  costs_of_refines (refines_rzProgram bytecode publicInput)
+    (costLE_leanVmProgram bytecode publicInput)
+
 /-! ## The run -/
 
 /-- The child prover, then the verifier refusing a zero challenge. -/
 noncomputable def childRun (prog : Program) (input : PublicInput) (t : Trace prog) (ρ fuel : ℕ) :
     OracleComp HashSpec Bool :=
-  childComp prog input t ρ fuel >>= fun proof ↦ Budget.verifierNZ queryH queryF prog input proof
+  childComp prog input t ρ fuel >>= fun proof ↦ Budget.verifierRZ queryH queryF prog input proof
 
-/-- The verifier refusing a zero challenge is the seeded verifier of `nzProgram`. -/
-theorem verifierNZ_eq_comp (prog : Program) (input : PublicInput) (π : Proof) :
-    Budget.verifierNZ queryH queryF prog input π =
+/-- The verifier refusing a zero challenge is the seeded verifier of `rzProgram`. -/
+theorem verifierRZ_eq_comp (prog : Program) (input : PublicInput) (π : Proof) :
+    Budget.verifierRZ queryH queryF prog input π =
       verifierComp (leanVmSeed (bytecodeWords prog) (publicDigest input))
-        (nzProgram (bytecodeWords prog) (publicDigest input)) π := by
-  simp only [verifierComp, Rom.verify, Budget.verifierNZ, seedRun_leanVmSeed]
+        (rzProgram (bytecodeWords prog) (publicDigest input)) π := by
+  simp only [verifierComp, Rom.verify, Budget.verifierRZ, seedRun_leanVmSeed]
   rfl
 
 /-! ## Against the random oracles -/
@@ -62,19 +85,19 @@ theorem romChild_at {prog : Program} {input : PublicInput} {t : Trace prog} {ρ 
     Pr{let z ← romExperiment (Rom.honestComp (leanVmSeed (bytecodeWords prog) (publicDigest input))
           (leanVmProgram (bytecodeWords prog) (publicDigest input))
           (leanVmProver prog s ρ (stackOf prog s w)) fuel)
-        (fun π ↦ Budget.verifierNZ queryH queryF prog input π)}[z.1.2 = false] ≤
+        (fun π ↦ Budget.verifierRZ queryH queryF prog input π)}[z.1.2 = false] ≤
       nzCompletenessError fuel := by
   obtain ⟨hρ', hw', hs', hadm', -⟩ := hw
   have hq := m3Honest_stackOf hw' hs'
   have hrun := runI_leanVmProgram (input := input) hadm' hρ' hq
-  simp only [verifierNZ_eq_comp]
+  simp only [verifierRZ_eq_comp]
   have h := romCompleteNZ (leanVmProgram (bytecodeWords prog) (publicDigest input))
-    (nzProgram (bytecodeWords prog) (publicDigest input)) (nz_nzProgram _ _) _
+    (rzProgram (bytecodeWords prog) (publicDigest input)) (nz_rzProgram _ _) _
     (leanVmSeed (bytecodeWords prog) (publicDigest input)) (bits := Whir.queryGrindingBits)
     (by decide) (by decide) hfuel (fun _ _ _ hg ↦ EndToEnd.Sound.grind_bits_eq _ _ hg)
     (fun chal ↦ (hrun chal).1) (fun chal ↦ (hrun chal).2)
     (costLE_leanVmProgram (bytecodeWords prog) (publicDigest input))
-    (costLE_nzProgram (bytecodeWords prog) (publicDigest input))
+    (costLE_rzProgram (bytecodeWords prog) (publicDigest input))
   refine h.trans (le_of_eq ?_)
   rfl
 
@@ -83,7 +106,7 @@ theorem romChild {prog : Program} {input : PublicInput} {t : Trace prog} {ρ : �
     (hv : ValidExecution prog input t) (hbudget : t.committedSize ≤ 2 ^ maxMu)
     (hρ : validRate ρ) {fuel : ℕ} (hfuel : fuel ≤ 2 ^ 64) :
     Pr{let z ← romExperiment (childComp prog input t ρ fuel)
-        (fun π ↦ Budget.verifierNZ queryH queryF prog input π)}[z.1.2 = false] ≤
+        (fun π ↦ Budget.verifierRZ queryH queryF prog input π)}[z.1.2 = false] ≤
       nzCompletenessError fuel := by
   have hex := exists_childFor hv hbudget hρ
   unfold childComp
@@ -99,15 +122,15 @@ theorem duplexVm_childComp (prog : Program) (input : PublicInput) (t : Trace pro
   · exact duplexVm_romHonestComp prog input _ fuel
   · trivial
 
-theorem duplexVm_verifierNZ (prog : Program) (input : PublicInput) (proof : Proof) :
-    DuplexVm (Budget.verifierNZ queryH queryF prog input proof) [] := by
+theorem duplexVm_verifierRZ (prog : Program) (input : PublicInput) (proof : Proof) :
+    DuplexVm (Budget.verifierRZ queryH queryF prog input proof) [] := by
   rw [duplexVm_iff_duplexP]
-  simp only [Budget.verifierNZ]
+  simp only [Budget.verifierRZ]
   exact (duplexP_seedWith _ _ []).bind fun seed h' hs ↦ duplexP_runProof _ hs _
 
 theorem duplexVm_childRun (prog : Program) (input : PublicInput) (t : Trace prog) (ρ fuel : ℕ) :
     DuplexVm (childRun prog input t ρ fuel) [] :=
-  (duplexVm_childComp prog input t ρ fuel).bind fun proof ↦ duplexVm_verifierNZ prog input proof
+  (duplexVm_childComp prog input t ρ fuel).bind fun proof ↦ duplexVm_verifierRZ prog input proof
 
 /-- A refining program commits words no wider. -/
 theorem widthsLE_of_refines {α : Type} {W : ℕ} {P' P : Prog α} (h : Limits.Refines P' P) :
@@ -121,11 +144,11 @@ theorem widthsLE_of_refines {α : Type} {W : ℕ} {P' P : Prog α} (h : Limits.R
   | commit _ ih => intro hc; exact ⟨hc.1, ih hc.2⟩
   | query _ ih => intro hc; exact fun r ↦ ih r (hc r)
 
-theorem allQ_verifierNZ (prog : Program) (input : PublicInput) (proof : Proof) :
-    AllQueriesSatisfy (Budget.verifierNZ queryH queryF prog input proof) Short := by
-  rw [verifierNZ_eq_comp]
+theorem allQ_verifierRZ (prog : Program) (input : PublicInput) (proof : Proof) :
+    AllQueriesSatisfy (Budget.verifierRZ queryH queryF prog input proof) Short := by
+  rw [verifierRZ_eq_comp]
   exact allQueriesSatisfy_bind (allQ_seedRun prog input) fun seed ↦
-    allQ_runProof _ seed proof (widthsLE_of_refines (refines_nzProgram _ _)
+    allQ_runProof _ seed proof (widthsLE_of_refines (refines_rzProgram _ _)
       (widthsLE_leanVmProgram _ _))
 
 set_option maxHeartbeats 1000000 in
@@ -161,16 +184,16 @@ theorem isWeightBound_proverNZ {X : OracleComp HashSpec Proof} (prog : Program)
     (input : PublicInput) {fuel : ℕ}
     (hX : IsTotalQueryBound X (4 + 48017 * (2 ^ 27 + 2 * fuel + 2)))
     (hXq : AllQueriesSatisfy X Short) :
-    Common.IsWeightBound (X >>= fun proof ↦ Budget.verifierNZ queryH queryF prog input proof)
+    Common.IsWeightBound (X >>= fun proof ↦ Budget.verifierRZ queryH queryF prog input proof)
       hashBlocks (completenessPermCalls fuel) := by
-  have hN : IsTotalQueryBound (X >>= fun proof ↦ Budget.verifierNZ queryH queryF prog input proof)
+  have hN : IsTotalQueryBound (X >>= fun proof ↦ Budget.verifierRZ queryH queryF prog input proof)
       (12012 + 48017 * (2 ^ 27 + 2 * fuel + 2)) := by
     have h := isTotalQueryBound_bind hX
       fun proof ↦ by
         have := isTotalQueryBound_verifierComp
-          (costLE_nzProgram (bytecodeWords prog) (publicDigest input))
+          (costLE_rzProgram (bytecodeWords prog) (publicDigest input))
           (leanVmSeed (bytecodeWords prog) (publicDigest input)) proof
-        rw [← verifierNZ_eq_comp] at this
+        rw [← verifierRZ_eq_comp] at this
         exact this
     refine h.mono ?_
     have : leanVmCost / 4 = 12004 := by decide
@@ -178,7 +201,7 @@ theorem isWeightBound_proverNZ {X : OracleComp HashSpec Proof} (prog : Program)
     omega
   exact isWeightBound_of_isTotalQueryBound hashBlocks (2 ^ 32) hN
     ((allQueriesSatisfy_bind hXq fun proof ↦
-      allQ_verifierNZ prog input proof).mono fun _ h ↦ hashBlocks_le_of_short h)
+      allQ_verifierRZ prog input proof).mono fun _ h ↦ hashBlocks_le_of_short h)
 
 /-- **The child prover and the verifier refusing a zero challenge make at most
 `completenessPermCalls fuel` permutation calls.** -/
@@ -201,10 +224,10 @@ theorem rpmChild_at {prog : Program} {input : PublicInput} {t : Trace prog} {ρ 
         (Rom.honestComp (leanVmSeed (bytecodeWords prog) (publicDigest input))
           (leanVmProgram (bytecodeWords prog) (publicDigest input))
           (leanVmProver prog s ρ (stackOf prog s w)) fuel >>= fun proof ↦
-            Budget.verifierNZ queryH queryF prog input proof)).run' []}[v = false] ≤
+            Budget.verifierRZ queryH queryF prog input proof)).run' []}[v = false] ≤
       nzCompletenessError fuel + rpmError (completenessPermCalls fuel) :=
   rpm_le_of_rom _ _ ((duplexVm_romHonestComp prog input _ fuel).bind fun proof ↦
-      duplexVm_verifierNZ prog input proof)
+      duplexVm_verifierRZ prog input proof)
     (isWeightBound_proverNZ prog input (isTotalQueryBound_romHonestComp prog input _ fuel)
       (allQ_romHonestComp prog input _ fuel (shaped_of hw)))
     (romChild_at hw hfuel)
@@ -217,7 +240,7 @@ theorem rpmChild {prog : Program} {input : PublicInput} {t : Trace prog} {ρ : �
     Pr{let v ← (simulateQ rpmImpl (childRun prog input t ρ fuel)).run' []}[v = false] ≤
       nzCompletenessError fuel + rpmError (completenessPermCalls fuel) :=
   rpm_le_of_rom (childComp prog input t ρ fuel)
-    (fun proof ↦ Budget.verifierNZ queryH queryF prog input proof)
+    (fun proof ↦ Budget.verifierRZ queryH queryF prog input proof)
     (duplexVm_childRun prog input t ρ fuel) (isWeightBound_childRun prog input t ρ fuel)
     (romChild hv hbudget hρ hfuel)
 
