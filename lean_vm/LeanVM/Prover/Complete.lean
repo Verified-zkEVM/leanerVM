@@ -22,7 +22,7 @@ honest prover (`Rom.honestComp` at leanVM's seed and program, with the strategy
 
 * `completeness_of_spec`: if on every valid execution within the cap, at a valid rate, `A` is the
   specification at an honest witness, then the body of `LeanVM.Completeness` holds for `A`, with
-  the same bound `2^-127` (`completenessRpm_at`, `completenessRpm_le`);
+  the same bound `2^-256` (`completenessRpm_at`, `completenessRpm_le`);
 * `guestChildComplete_of_spec`: if moreover the witness is a child's, and everywhere `A` is the
   specification at a child's witness or the empty proof (`ChildSpec`), then both parts of
   `LeanVM.Guest.Budget.GuestChildComplete` hold for `A`, with the same bound `2^-126`
@@ -58,7 +58,7 @@ theorem completeness_of_spec (A : HonestProver) (hA : SpecOnValid A HonestFor) :
     ∀ (prog : Program) (input : PublicInput) (t : Trace prog) (ρ : ℕ),
       ValidExecution prog input t → t.committedSize ≤ 2 ^ 28 → 1 ≤ ρ ∧ ρ ≤ 4 →
       Pr{let v ← rpmCompletenessExperiment A prog input t ρ (2 ^ 25)}[v = false] ≤
-        (2 : ℝ≥0∞)⁻¹ ^ 127 := by
+        (2 : ℝ≥0∞)⁻¹ ^ 256 := by
   intro prog input t ρ hv hbudget hρ
   obtain ⟨w, s, hw, hAw⟩ := hA prog input t ρ (2 ^ 25) hv hbudget hρ
   have e : rpmCompletenessExperiment A prog input t ρ (2 ^ 25) = (simulateQ rpmImpl

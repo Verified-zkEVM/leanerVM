@@ -18,7 +18,7 @@ example {prog : Program} {input : PublicInput} {t : Trace prog}
       completenessError fuel :=
   completenessRom hv hbudget hρ hfuel
 
-example : completenessError (2 ^ 25) ≤ (2 : ENNReal)⁻¹ ^ 128 := completenessError_le
+example : completenessError (2 ^ 25) ≤ (2 : ENNReal)⁻¹ ^ 257 := completenessError_le
 
 /-- info: 'LeanVM.completenessRom' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in #print axioms completenessRom

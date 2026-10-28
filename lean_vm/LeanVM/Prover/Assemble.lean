@@ -385,7 +385,7 @@ theorem completeness_prove :
     ∀ (prog : Program) (input : PublicInput) (t : Trace prog) (ρ : ℕ),
       ValidExecution prog input t → t.committedSize ≤ 2 ^ 28 → 1 ≤ ρ ∧ ρ ≤ 4 →
       Pr{let v ← rpmCompletenessExperiment oracleProver prog input t ρ (2 ^ 25)}[v = false] ≤
-        (2 : ENNReal)⁻¹ ^ 127 :=
+        (2 : ENNReal)⁻¹ ^ 256 :=
   completeness_of_spec oracleProver specOnValid_prove_honest
 
 

@@ -12,6 +12,7 @@ public import LeanVM.Protocol.Compile.Rom.Prover
 public import LeanVM.Protocol.Compile.Rom.Step
 public import LeanVM.Protocol.Compile.Rom.Final
 public import Mathlib.Analysis.Complex.Exponential
+public import Mathlib.Analysis.Complex.ExponentialBounds
 
 /-!
 # Completeness in the random-oracle model
@@ -120,6 +121,39 @@ theorem missProb_pow_le (b k : ℕ) : missProb b ^ (2 ^ b * k) ≤ 2⁻¹ ^ k :=
   calc ENNReal.ofReal ((1 - (1 / 2 : ℝ) ^ b) ^ (2 ^ b)) ≤ ENNReal.ofReal (1 / 2) :=
         ENNReal.ofReal_le_ofReal (one_sub_pow_le_half b)
     _ = 2⁻¹ := by rw [one_div, ENNReal.ofReal_inv_of_pos (by norm_num)]; norm_num
+
+/-- `(1 - 2^-b)^(2^b) ≤ e^-1 < 3/8`, over the reals. -/
+theorem one_sub_pow_le_three_eighths (b : ℕ) : (1 - (1 / 2 : ℝ) ^ b) ^ (2 ^ b) ≤ 3 / 8 := by
+  have hy0 : 0 ≤ 1 - (1 / 2 : ℝ) ^ b := by
+    have : (1 / 2 : ℝ) ^ b ≤ 1 := pow_le_one₀ (by norm_num) (by norm_num)
+    linarith
+  have he : Real.exp (-1) < 3 / 8 := by
+    have h := Real.exp_one_gt_d9
+    rw [Real.exp_neg, inv_lt_comm₀ (Real.exp_pos 1) (by norm_num)]
+    linarith
+  calc (1 - (1 / 2 : ℝ) ^ b) ^ (2 ^ b) ≤ (Real.exp (-(1 / 2 : ℝ) ^ b)) ^ (2 ^ b) :=
+        pow_le_pow_left₀ hy0 (by have := Real.add_one_le_exp (-(1 / 2 : ℝ) ^ b); linarith) _
+    _ = Real.exp (-1) := by
+        rw [← Real.exp_nat_mul]; congr 1
+        push_cast
+        rw [mul_neg, ← mul_pow]; norm_num
+    _ ≤ 3 / 8 := he.le
+
+/-- **`2^b · 4k` failed nonces are as unlikely as `5k` fair coins all landing tails**:
+`(1 - 2^-b)^(2^b · 4k) ≤ e^-4k < 2^-5k`, as `(3/8)^4 < 2^-5`. -/
+theorem missProb_pow_four_le (b k : ℕ) : missProb b ^ (2 ^ b * 4 * k) ≤ 2⁻¹ ^ (5 * k) := by
+  rw [pow_mul, pow_mul, pow_mul]
+  refine pow_le_pow_left₀ bot_le ?_ k
+  have hy : 0 ≤ 1 - (1 / 2 : ℝ) ^ b := by
+    have : (1 / 2 : ℝ) ^ b ≤ 1 := pow_le_one₀ (by norm_num) (by norm_num)
+    linarith
+  rw [missProb_eq_ofReal, ← ENNReal.ofReal_pow hy, ← ENNReal.ofReal_pow (pow_nonneg hy _)]
+  calc ENNReal.ofReal (((1 - (1 / 2 : ℝ) ^ b) ^ (2 ^ b)) ^ 4) ≤ ENNReal.ofReal ((1 / 2) ^ 5) :=
+        ENNReal.ofReal_le_ofReal ((pow_le_pow_left₀ (pow_nonneg hy _)
+          (one_sub_pow_le_three_eighths b) 4).trans (by norm_num))
+    _ = 2⁻¹ ^ 5 := by
+        rw [ENNReal.ofReal_pow (by norm_num), one_div, ENNReal.ofReal_inv_of_pos (by norm_num)]
+        norm_num
 
 /-! ## Proof-of-work positions -/
 

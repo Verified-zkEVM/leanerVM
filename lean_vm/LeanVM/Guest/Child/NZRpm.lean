@@ -224,7 +224,7 @@ theorem rpmChild {prog : Program} {input : PublicInput} {t : Trace prog} {ρ : �
 /-! ## The numbers -/
 
 /-- **At a fuel of `2^25` nonces per proof of work, at most `2^-126`**: `completenessRpm_le`'s two
-terms, each at most `2^-128`, and `Q · 2^-192 ≤ 2^44 · 2^-192`. -/
+terms, each at most `2^-257`, and `Q · 2^-192 ≤ 2^44 · 2^-192`, each taken at `2^-128`. -/
 theorem rpmChild_le :
     nzCompletenessError (2 ^ 25) + rpmError (completenessPermCalls (2 ^ 25)) ≤
       (2 : ℝ≥0∞)⁻¹ ^ 126 := by
@@ -245,8 +245,9 @@ theorem rpmChild_le :
         (completenessQueries (2 ^ 25) : ℝ≥0∞) * (2 : ℝ≥0∞)⁻¹ ^ 192 +
         rpmError (completenessPermCalls (2 ^ 25))
       ≤ (2 : ℝ≥0∞)⁻¹ ^ 128 + (2 : ℝ≥0∞)⁻¹ ^ 128 + (2 : ℝ≥0∞)⁻¹ ^ 128 :=
-        add_le_add (add_le_add EndToEnd.Complete.completenessError_le hz)
-          rpmError_completenessPermCalls_le
+        add_le_add (add_le_add (EndToEnd.Complete.completenessError_le.trans
+            (Common.inv_two_pow_le_of_le (by norm_num))) hz)
+          (rpmError_completenessPermCalls_le.trans (Common.inv_two_pow_le_of_le (by norm_num)))
     _ ≤ 4 * (2 : ℝ≥0∞)⁻¹ ^ 128 := by
         rw [show (4 : ℝ≥0∞) = 1 + 1 + 1 + 1 by norm_num]
         simp only [add_mul, one_mul]

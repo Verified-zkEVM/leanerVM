@@ -40,7 +40,7 @@ structure Theorems (decode : LeanVM.Node.Decoder) : Prop where
   /-- leanVM is complete: the honest prover's (`LeanVM.prover`, the executable
   `LeanVM.Prover.prove` of `Prover/Prove.lean`) proof of a valid execution of committed size at
   most `2^28`, at an inverse rate `2^ρ` with `1 ≤ ρ ≤ 4` and `2^25` nonces per proof of work, is
-  rejected with probability at most `2^-127` (`LeanVm.lean`). -/
+  rejected with probability at most `2^-256` (`LeanVm.lean`). -/
   completeness : LeanVM.Completeness
   /-- Every valid execution of the leanISA guest program proves the node statement its public
   input commits to: `decode` reads off its memory a seed, a statement whose digest under that seed

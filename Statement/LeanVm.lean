@@ -55,7 +55,7 @@ deployed sizes; its cost (`Extractor.lean`) is read off its loops, not proved.
 (`Statement/Prover/Prove.lean`) with the oracle calls, an executable program (with Keccak-256 and
 Keccak-f[1600] it is `lake exe leanvm-prove`). Given a valid execution whose committed size is at
 most `2^28`, the most the verifier admits, at an inverse rate `2^ρ` with `1 ≤ ρ ≤ 4`, trying
-`2^25` nonces per proof of work, its proof is rejected with probability at most `2^-127`. The
+`2^25` nonces per proof of work, its proof is rejected with probability at most `2^-256`. The
 prover's definitions are in `Statement/Prover/`, which a reviewer need not read line by line: it
 is proved to make the moves of the honest prover the completeness proof follows; a reviewer only
 checks that it is a genuine prover (it computes from the execution, its only search is the nonce
@@ -305,12 +305,12 @@ noncomputable def rpmCompletenessExperiment (prover : HonestProver) (prog : Prog
 
 /-- **Completeness in the random-permutation model**: trying `2^25` nonces per proof of work, the
 honest prover's (`prover`) proof of an execution within the verifier's size cap is rejected with
-probability at most `2^-127`. -/
+probability at most `2^-256`. -/
 def Completeness : Prop :=
   ∀ (prog : Program) (input : PublicInput) (t : Trace prog) (ρ : ℕ),
     ValidExecution prog input t → t.committedSize ≤ 2 ^ 28 → 1 ≤ ρ ∧ ρ ≤ 4 →
     Pr{let v ← rpmCompletenessExperiment prover prog input t ρ (2 ^ 25)}[v = false] ≤
-      (2 : ℝ≥0∞)⁻¹ ^ 127
+      (2 : ℝ≥0∞)⁻¹ ^ 256
 
 /-- **The random-permutation experiment of an adversary and a computation**: `rpmExperiment`
 with any computation `V` over the verifier's calls in place of the verifier, without the

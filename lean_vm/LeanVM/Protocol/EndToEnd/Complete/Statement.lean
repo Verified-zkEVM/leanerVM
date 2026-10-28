@@ -25,7 +25,7 @@ evaluated (`completenessError_eq`):
 
   `completenessError fuel = (12012 + 48017 · (2^27 + 2·fuel + 2)) · (1 - 2^-17)^fuel`,
 
-below `2^-128` at a fuel of `2^25` nonces per proof of work (`statement_completenessError_le`).
+below `2^-257` at a fuel of `2^25` nonces per proof of work (`statement_completenessError_le`).
 `completeness_holds` is `LeanVM.CompletenessRom`, with the honest prover `honestProverRom`.
 -/
 
@@ -91,9 +91,9 @@ theorem completeness_le {prog : Program} {input : PublicInput} {t : Trace prog}
   exact h
 
 /-- **The numbers**: at a fuel of `2^25` nonces per proof of work, the statement's completeness
-error is below `2^-128`. -/
+error is below `2^-257`. -/
 theorem statement_completenessError_le :
-    LeanVM.completenessError (2 ^ 25) ≤ (2 : ℝ≥0∞)⁻¹ ^ 128 := by
+    LeanVM.completenessError (2 ^ 25) ≤ (2 : ℝ≥0∞)⁻¹ ^ 257 := by
   rw [completenessError_eq]
   exact completenessError_le
 
