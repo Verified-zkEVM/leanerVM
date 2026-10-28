@@ -108,7 +108,7 @@ def whirLevelsOpen (logN laneFolds : ℕ) : ℕ → List Whir.Level → WhirStat
 
 /-- `verifyWhir` (V:1836) up to its terminal: what `open_stacked` runs. -/
 def whirOpen (logN logInvRate : ℕ) (target : E) : Prog WhirEnd := do
-  let config ← liftOption (deriveConfig logN logInvRate)
+  let config ← liftOption (Whir.ladder logN logInvRate)
   let quad ← sumcheckRoundPoly 3 target none
   whirLevelsOpen logN ((config.head?.map (·.fold)).getD 0) 0 config ⟨target, quad, [], []⟩
 
@@ -153,13 +153,13 @@ theorem verifyWhir_split (logN logInvRate : ℕ) (target : E) (eb : List E → E
 
 /-- The shape `commitStack` gives the stack's root (V:1844): `(height, width)`. -/
 def stackShape (logN logInvRate : ℕ) : ℕ × ℕ :=
-  match deriveConfig logN logInvRate with
+  match Whir.ladder logN logInvRate with
   | some (level :: _) => levelShape logN level (2 ^ level.fold)
   | _ => (0, 0)
 
 /-- **`commitStack` commits the stack's shape**, when the configuration has a level. -/
 theorem commitStack_eq {logN logInvRate : ℕ} {level : Whir.Level} {rest : List Whir.Level}
-    (h : deriveConfig logN logInvRate = some (level :: rest)) :
+    (h : Whir.ladder logN logInvRate = some (level :: rest)) :
     commitStack logN logInvRate =
       Prog.commitP (stackShape logN logInvRate).1 (stackShape logN logInvRate).2 := by
   simp only [commitStack, stackShape, h, Prog.bind_eq]

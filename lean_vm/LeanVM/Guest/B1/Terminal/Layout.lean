@@ -99,7 +99,7 @@ theorem placementsOf_getD (kappas : List ℕ) {g : ℕ} (hg : g < kappas.length)
   rfl
 
 theorem placementsOf_snd (kappas : List ℕ) :
-    (placementsOf kappas).2 = max minStackedLog (stackOffsets (Tables.committedKappas kappas)).2 :=
+    (placementsOf kappas).2 = max Whir.minLogStack (stackOffsets (Tables.committedKappas kappas)).2 :=
   rfl
 
 /-- **A committed column's placement**: its size and `stackOffsets`'s offset. -/

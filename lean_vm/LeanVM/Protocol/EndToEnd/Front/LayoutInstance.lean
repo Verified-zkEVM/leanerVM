@@ -466,7 +466,7 @@ theorem placementsOf_pyKappas (prog : Program) (s : Sizes) :
         | none =>
           if column ∈ keccakOutputColumns then none
           else some { vars := kappa, index := pyOffset prog s column },
-      max minStackedLog (stackOffsets (((List.range (pyKappas prog s).length).filter
+      max Whir.minLogStack (stackOffsets (((List.range (pyKappas prog s).length).filter
         fun c ↦ (keccakSlot c).isNone ∧ c ∉ keccakOutputColumns).map
           ((pyKappas prog s).getD · 0))).2) := rfl
 

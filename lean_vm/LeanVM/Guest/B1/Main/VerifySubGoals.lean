@@ -71,7 +71,7 @@ theorem verifySubGoalsTB_of (hbl : bytecode.length = 2 ^ 23) (hrf : Lift.RunsFit
   set outE := hP fs fp seed s w 7 + 24 * c with hout
   have h := verify_sub_completeBT (fs := fs) (cert := cert) hbl hrf hap W le_rfl hvk seed
     w.children[c] e (e + 34) outE
-    (log2Lin e (e + 34) ++ [(outE, fixedCells w.children[c].fresh)])
+    (log2Lin e (e + 34) ++ [(outE, DeferredClaim.cells w.children[c].fresh)])
     (hl.stackLog _ hmem) (hl.stream _ hmem) (hnz _ hmem) (hca _ hmem)
     (fun q hq => List.mem_append_left _ hq) (List.mem_append_right _ (List.mem_singleton_self _))
   have hB : vsBoundAt W Bvk (childShape bytecode w.children[c]).1
@@ -85,8 +85,8 @@ theorem verifySubGoalsTB_of (hbl : bytecode.length = 2 ^ 23) (hrf : Lift.RunsFit
         < 28 ∧ Budget.FlatShape coreProgram "verify_sub"
           (vsTs fs W Bvk (childShape bytecode w.children[c]).1 (childShape bytecode w.children[c]).2) t)
     le_rfl fun t ht _ => ⟨by unfold B1.Whir.candidate; omega, ht⟩
-  have hlen : ∀ a ∈ w.children, (fixedCells a.fresh).length = 24 := fun a ha => by
-    simp [fixedCells, (kid_shapes hbl hr a ha).1, bytecodeVars]
+  have hlen : ∀ a ∈ w.children, (DeferredClaim.cells a.fresh).length = 24 := fun a ha => by
+    simp [DeferredClaim.cells, (kid_shapes hbl hr a ha).1, bytecodeVars]
   have e1 : (hm fs fp seed s w).et1 = ofK (gpow e) := gen_pow_eq_ofK _
   have e2 : (hm fs fp seed s w).et2 = ofK (gpow (e + 34)) := gen_pow_eq_ofK _
   have e3 : (hm fs fp seed s w).a400 * gen ^ (24 * c) = ofK (gpow outE) := by

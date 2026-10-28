@@ -82,7 +82,7 @@ example (μ R : ℕ) (claims : List StackClaim) :
 /-- `verifyWhir` is `whirRun` on the derived configuration. -/
 example (μ R : ℕ) (target : E) (B : List E → E) :
     verifyWhir μ R target B =
-      Verifier.liftOption (deriveConfig μ R) >>= fun config ↦ whirRun μ config target B := rfl
+      Verifier.liftOption (Whir.ladder μ R) >>= fun config ↦ whirRun μ config target B := rfl
 
 /-- The stack's commitment is opened at level `0` with the shape `commitStack` announces. -/
 example : stackCommit 15 1 ⟨Vector.replicate _ 0⟩ = (10, 64, stackWord 15 ⟨Vector.replicate _ 0⟩) :=

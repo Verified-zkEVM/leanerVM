@@ -293,7 +293,7 @@ theorem hDvB_le {bytecode : List K} {seed : Digest} {s : NodeStatement} {w : Nod
   | [], _ => simp
   | [p], _ =>
     have hw : p.2.Opens p.1.daRoot p.1.membershipVectorDigest :=
-      direct_held (H := DaHeld w.children)
+      direct_held (H := Held (fun (c : DaClaim) (m : LeanVM.Da.Witness) ↦ m.Opens c.daRoot c.membershipVectorDigest) Claims.da w.children)
         (P := fun c x => x.Opens c.daRoot c.membershipVectorDigest) (fun _ _ h => h)
         hr.2.2.2.2.1 p (show p ∈ hRawD s w by rw [hp]; exact List.mem_singleton_self p)
     have hb := Da.nPad_bounds hw.1

@@ -348,11 +348,11 @@ def commitCodewords (rows : List (List K)) : Digest :=
     if h : i < rows.length then listCellDigest H rows[i] j else paddingCell H)
   H (pairBytes rowTree columnTree)
 
-/-! ### The deployed membership vector (`verifier/src/da.rs:15-96`)
+/-! ### The membership challenges (`verifier/src/da.rs:15-22`)
 
 The challenges, drawn from the root by the duplex sponge (over the permutation `π` in the end
-statements), and the dual codeword as the crate computes it, by the additive NTT, which computes `dual`
-(`membershipVector_eq_dual`, `LeanDa.Dual`). -/
+statements). The crate's membership vector, their dual codeword by the additive NTT, is `lean_da`'s
+(`membershipVector`, which computes `dual`: `membershipVector_eq_dual`). -/
 
 /-- `leanDA/rs-membership/v1`, the label of the challenges' transcript (`LABEL`). -/
 def label : List UInt8 := "leanDA/rs-membership/v1".toUTF8.toList
@@ -517,55 +517,9 @@ def commitCellsM {r : ℕ} (c : Fin (r * 128) → Cell) : m Digest := do
 
 end Monadic
 
-/-! #### The challenges and the vector -/
+/-! #### The vector's digest -/
 
-variable (H : List UInt8 → Digest) (P : KState → KState)
-
-/-- The challenges of a root with a pure hash and permutation. -/
-def membershipChallenges (root : Digest) : List E :=
-  Id.run (membershipChallengesM (fun a ↦ pure (H a)) (fun L ↦ pure (P L)) root)
-
-/-- Row `i` of the subspace evaluations before scaling: `s_i` at the basis elements `x^j`,
-`j ≥ i`. -/
-def subspaceRow : ℕ → List K
-  | 0 => (List.range logM).map fun j ↦ K.ofBits (2 ^ j)
-  | i + 1 =>
-    let previous := subspaceRow i
-    (previous.drop 1).map fun value ↦ value * (value + previous.headD 0)
-
-/-- Row `i` of the subspace evaluations, scaled so that its first entry is one
-(`subspace_evaluations`). -/
-def subspaceEvaluations (i : ℕ) : List K :=
-  (subspaceRow i).map (· * ((subspaceRow i).headD 0)⁻¹)
-
-/-- One butterfly block: `u += v·t`, then `v += u`. -/
-def butterfly (twiddle : K) (block : List E) : List E :=
-  let top := block.take (block.length / 2)
-  let bottom := block.drop (block.length / 2)
-  let top := List.zipWith (fun u v ↦ u + v * CompPoly.Extension.Ext.ofBase twiddle) top bottom
-  top ++ List.zipWith (· + ·) bottom top
-
-/-- Layer `layer` of the additive NTT: blocks of `2^(logM - layer)` points, block `b`'s twiddle
-the subset sum of the row's entries that `b`'s bits pick. -/
-def encodeLayer (layer : ℕ) (codeword : List E) : List E :=
-  let row := (subspaceEvaluations (logM - layer - 1)).drop 1
-  let size := 2 ^ (logM - layer)
-  (List.range (codeword.length / size)).flatMap fun b ↦
-    let twiddle := ((List.range layer).filter b.testBit).foldl (fun t bit ↦ t + row.getD bit 0) 0
-    butterfly twiddle ((codeword.drop (b * size)).take size)
-
-/-- The codeword of the `2^14` novel-basis coefficients `message`: the message twice, then the
-layers `1 … 14` (`encode`). -/
-def encode (message : List E) : List E :=
-  (List.range' 1 (logM - 1)).foldl (fun codeword layer ↦ encodeLayer layer codeword)
-    (message ++ message)
-
-/-- The dual codeword, the tensor of the `(1, z_j)` encoded (`dual_codeword`). -/
-def dualCodeword (z : List E) : List E :=
-  encode (z.foldl (fun t challenge ↦ t ++ t.map (· * challenge)) [1])
-
-/-- **The membership vector of a root** (`membership_vector`). -/
-def membershipVector (root : Digest) : List E := dualCodeword (membershipChallenges H P root)
+variable (H : List UInt8 → Digest)
 
 /-- The bytes of entries: three little-endian limbs each. -/
 def limbBytes (entries : List E) : List UInt8 :=

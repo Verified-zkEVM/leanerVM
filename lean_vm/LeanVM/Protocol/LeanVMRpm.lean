@@ -214,7 +214,7 @@ on the answers only, not on which byte strings covering them it is given as keys
 theorem romGame_le (A : DetAdversary) :
     Pr{let a ← Common.romRun2 (simulateQ Common.hInF (pure ()) >>= fun x ↦
         Common.advS2 Common.keccakPadding Common.KState.zero ((fun _ ↦ advR A) x) >>= fun a ↦
-          (fun _ z ↦ postR z) x a)}[BreaksRpm extractorRpm a] ≤
+          (fun _ z ↦ postR z) x a)}[BreaksRpm a] ≤
       Pr{let z ← experimentCoins (romAdv A)}[Breaks extractor z] := by
   set X := Common.advS2 Common.keccakPadding Common.KState.zero (advR A)
   set J := (simulateQ HFS.romImpl X).run ∅ with hJ
@@ -239,7 +239,7 @@ theorem romGame_le (A : DetAdversary) :
   rw [postR, simulateQ_map, StateT.run'_eq, StateT.run_map, prEvent_map, prEvent_map,
     verifierPhase, prEvent_map]
   have h := (run'_toRHF (verifier queryH queryF p.1.1.1.1 p.1.1.1.2 p.1.1.2) p.2).prEvent_eq
-    (fun v ↦ BreaksRpm extractorRpm ((p.1.1, v), p.1.2))
+    (fun v ↦ BreaksRpm ((p.1.1, v), p.1.2))
   rw [StateT.run'_eq, StateT.run'_eq, prEvent_map, prEvent_map] at h
   refine h.trans ?_
   congr 2
@@ -254,12 +254,12 @@ adversary of at most `Q` queries to `π` and `π⁻¹` breaks soundness, for the
 `extractorRpm`, with probability at most the random-oracle error at `Q` queries plus
 `(Q + verifierPermCalls)² / 2^508`. -/
 theorem knowledgeSoundnessRpm {A : DetAdversary} {Q : ℕ} (hA : A.IsTotalQueryBound Q) :
-    Pr{let z ← detExperiment A}[BreaksRpm extractorRpm z] ≤
+    Pr{let z ← detExperiment A}[BreaksRpm z] ≤
       soundnessError Q + rpmError (Q + verifierPermCalls) := by
   rw [(detExperiment_evalDistEq A).prEvent_eq, game]
   obtain ⟨h1, -⟩ := Common.keccak256_transfer2 (pure ()) (fun _ ↦ advR A) (fun _ z ↦ postR z)
     (fun _ z ↦ duplex_postR z) (Q + verifierPermCalls) (isWeightBound_game hA)
-    (BreaksRpm extractorRpm)
+    (BreaksRpm)
   refine h1.trans (add_le_add ((romGame_le A).trans ?_) le_rfl)
   exact knowledgeSoundness_coins (isWeightBound_romAdv hA)
 
@@ -268,9 +268,9 @@ most `Q` queries to `π` and `π⁻¹`: some deterministic adversary of at most 
 well (`rpmExperiment_le_det`). -/
 theorem knowledgeSoundnessRpm_coins {B : RpmAdversary} {Q : ℕ}
     (hB : Common.IsWeightBound B permQueries Q) :
-    Pr{let z ← rpmExperiment B}[BreaksRpm extractorRpm z] ≤
+    Pr{let z ← rpmExperiment B}[BreaksRpm z] ≤
       soundnessError Q + rpmError (Q + verifierPermCalls) := by
-  obtain ⟨A, hA, hle⟩ := rpmExperiment_le_det hB (BreaksRpm extractorRpm)
+  obtain ⟨A, hA, hle⟩ := rpmExperiment_le_det hB (BreaksRpm)
   exact hle.trans (knowledgeSoundnessRpm hA)
 
 /-! ## Completeness -/

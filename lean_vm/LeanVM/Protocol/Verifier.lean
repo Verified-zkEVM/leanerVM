@@ -62,7 +62,7 @@ queried position, the shape coming from the commitment it opens. `Proof.openings
 string already cut (`LeanVM.Protocol.Compile.Run`, *Deviation*). The cut is computed here from
 the verifier's own configuration rather than by a second interpreter of the program: the
 announced sizes at the head of the stream, read by the program's own `readSizes`, fix the stack's
-log-size and the rate exponent, and `deriveConfig` fixes the WHIR ladder, whose level `ℓ` opens
+log-size and the rate exponent, and `Whir.ladder` fixes the WHIR ladder, whose level `ℓ` opens
 commitment `ℓ` at `queries_ℓ` positions in the shape `levelShape` gives (`openingShapes`). These
 are the only openings the program makes (commitment `0` is the stack, read by `commitStack`; the
 others are WHIR's), and `sampleQueries` returns exactly `queries_ℓ` positions.
@@ -161,7 +161,7 @@ def whirOpeningShapes (logN : ℕ) : List Whir.Level → List (ℕ × ℕ)
 /-- The shape of every opening `verify` makes on a proof with this stream, in order. -/
 def openingShapes (bytecode : List K) (stream : List E) : Option (List (ℕ × ℕ)) := do
   let (layout, logInverseRate) ← announced bytecode stream
-  let config ← deriveConfig layout.stackLog logInverseRate
+  let config ← Whir.ladder layout.stackLog logInverseRate
   return whirOpeningShapes layout.stackLog config
 
 /-- The proof in the files `stream.bin` and `merkle_openings.bin`, for this bytecode. -/

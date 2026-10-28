@@ -86,7 +86,7 @@ theorem hkids_words {bytecode : List K} (hbl : bytecode.length = 2 ^ bytecodeVar
   simp only [hOwn, List.getD_cons_succ, List.getD_cons_zero] at r6 r7 r8
   have p6 := readsAt_flatMap_of (w := 2) w.children (fun _ _ => rfl) r6 c hc
   have p7 := readsAt_flatMap_of (w := 24) w.children
-    (fun a ha => by simp [fixedCells, (hsh a ha).1, hb]) r7 c hc
+    (fun a ha => by simp [DeferredClaim.cells, (hsh a ha).1, hb]) r7 c hc
   have p8 := readsAt_flatMap_of (w := 24) w.children
     (fun a ha => by simp [DeferredClaim.cells, (hsh a ha).2, hb]) r8 c hc
   simp only [hKids, List.getElem_map]

@@ -49,7 +49,7 @@ def verify_sub_complete_Spec (bytecode : List K) : Prop :=
     (∀ b ∈ Limits.queriesOf (deferredProgram c.fresh bytecode (statementDigest seed c.statement))
       (Hints.childStart seed c), Limits.BatchAgrees b.1 b.2) →
     (∀ q ∈ log2Lin lpE sqE, q ∈ Lin) →
-    (outE, fixedCells c.fresh) ∈ Lin →
+    (outE, DeferredClaim.cells c.fresh) ∈ Lin →
     CompleteAtD fs cert κ "verify_sub" Lin
       [(digestScalars (statementDigest seed c.statement)).1,
         (digestScalars (statementDigest seed c.statement)).2, (digestScalars seed).1,

@@ -255,7 +255,7 @@ and the weight table of the claims. -/
 def openingFast (μ R : ℕ) (stack : Array K) (claims : List ClaimDesc) : Script Unit := do
   let c ← Script.sampleE
   let scales := powers c claims.length
-  match deriveConfig μ R with
+  match Whir.ladder μ R with
   | none => return ()
   | some config =>
     let f₀ := stackTableA μ stack

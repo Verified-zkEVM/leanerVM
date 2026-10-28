@@ -107,7 +107,7 @@ theorem xs_verify (hn : NodeRel bytecode seed s w) (d0 : XmssClaim × LeanXmss.S
     xmssVerify ((hRawX s w).getD i d0).1.1 ((hRawX s w).getD i d0).1.2 ((hRawX s w).getD i d0).2 =
       true := by
   rw [List.getD_eq_getElem _ _ hi]
-  exact direct_held (H := XmssHeld w.children) (P := fun c σ => xmssVerify c.1 c.2 σ = true)
+  exact direct_held (H := Held (fun (c : XmssClaim) σ ↦ xmssVerify c.1 c.2 σ = true) Claims.xmss w.children) (P := fun c σ => xmssVerify c.1 c.2 σ = true)
     (fun _ _ h => h) hn.2.2.1 _ (List.getElem_mem hi)
 
 theorem xs_cover {rd : Reader} (hL : MemL rd (hLmain fs fp seed s w)) {i : ℕ}
@@ -182,7 +182,7 @@ theorem ss_verify (hn : NodeRel bytecode seed s w) (d0 : SphincsClaim × Sphincs
     sphincsVerify ((hRawS s w).getD j d0).1.1 ((hRawS s w).getD j d0).1.2 ((hRawS s w).getD j d0).2 =
       true := by
   rw [List.getD_eq_getElem _ _ hj]
-  exact direct_held (H := SphincsHeld w.children) (P := fun c σ => sphincsVerify c.1 c.2 σ = true)
+  exact direct_held (H := Held (fun (c : SphincsClaim) σ ↦ sphincsVerify c.1 c.2 σ = true) Claims.sphincs w.children) (P := fun c σ => sphincsVerify c.1 c.2 σ = true)
     (fun _ _ h => h) hn.2.2.2.1 _ (List.getElem_mem hj)
 
 theorem ss_cover {rd : Reader} (hL : MemL rd (hLmain fs fp seed s w)) {j : ℕ}
@@ -266,7 +266,7 @@ theorem mainGoalDv (hn : NodeRel bytecode seed s w) (hrf : Lift.RunsFit fs cert)
   obtain ⟨p, hp, hR⟩ := direct_da fs fp h1
   rw [hR]
   have hw : p.2.Opens p.1.daRoot p.1.membershipVectorDigest :=
-    direct_held (H := DaHeld w.children)
+    direct_held (H := Held (fun (c : DaClaim) (m : LeanVM.Da.Witness) ↦ m.Opens c.daRoot c.membershipVectorDigest) Claims.da w.children)
       (P := fun c x => x.Opens c.daRoot c.membershipVectorDigest) (fun _ _ h => h)
       hn.2.2.2.2.1 p (show p ∈ hRawD s w by rw [hp]; exact List.mem_singleton_self p)
   have hL := wLog_lt hw

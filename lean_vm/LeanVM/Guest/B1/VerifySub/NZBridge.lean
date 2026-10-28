@@ -229,7 +229,7 @@ theorem commitStack_runF {μ r : ℕ} {st : Whir.FSt} {u : Unit} {st' : Whir.FSt
     (h : Whir.runF (commitStack μ r) st = some (u, st')) :
     (∃ root, st'.roots = st.roots ++ [(root, Whir.stackShape μ r)]) ∧
       st'.openings = st.openings := by
-  cases hc : deriveConfig μ r with
+  cases hc : Whir.ladder μ r with
   | none =>
     unfold commitStack at h
     rw [hc] at h

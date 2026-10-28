@@ -144,7 +144,8 @@ def Admissible (μ logInvRate : ℕ) : Prop :=
 instance {μ logInvRate : ℕ} : Decidable (Admissible μ logInvRate) :=
   inferInstanceAs (Decidable (_ ∧ _ ∧ _ ∧ _))
 
-/-- The ladder of an admissible stack size and rate: the geometry of `shape` paired with the
+/-- The ladder of an admissible stack size and rate (`derive_config(log_n, log_inv_rate)`,
+`verifier.py:1038-1053`): the geometry of `shape` paired with the
 tabulated query counts, level by level. `none` outside the window, and `none` if the table did
 not have one count per level (`verifier.py:1052`), so that no level is silently dropped. -/
 def ladder (μ logInvRate : ℕ) : Option (List Level) :=
@@ -615,8 +616,6 @@ def keccakBits : ℕ := 1600
 def keccakLocalBits : ℕ := 11
 
 def keccakLaneBits : ℕ := 5
-def minStackedLog : ℕ := Whir.minLogStack
-def maxStackedLog : ℕ := Whir.maxLogStack
 
 /-- `SEP_STATE = ONE`. -/
 def sepState : E := 1
@@ -649,7 +648,7 @@ structure Placement where
   vars : ℕ
   index : ℕ
   low : ℕ := 0
-  deriving Inhabited, DecidableEq, Repr
+  deriving Inhabited, DecidableEq
 
 /-- `Placement.stack_point`: the point on the stacked cube. -/
 def Placement.stackPoint (p : Placement) (point : List E) (stackLog : ℕ) : List E :=
@@ -1125,7 +1124,7 @@ def placementsOf (kappas : List ℕ) : List (Option Placement) × ℕ :=
     | some slot => some ({ vars := kappa, index := offsetOf qkeccak + slot * 2 ^ kappa } : Placement)
     | none =>
       if column ∈ keccakOutputColumns then none else some { vars := kappa, index := offsetOf column }
-  (placements, max minStackedLog totalLog)
+  (placements, max Whir.minLogStack totalLog)
 
 /-- `build_layout(bytecode, log_memory, table_rows)` (`verifier.py:973-1013`); `none` where the
 Python raises. A table's log-height is the least `h` with `rows ≤ 2^h` (`log2Ceil`), and at least
@@ -1402,10 +1401,6 @@ level-0 reversal and the regrouping of deeper rows into `E` (`_ext_row`) are the
   `derive_config` never returns.
 -/
 
-/-- `derive_config(log_n, log_inv_rate)`: the ladder of levels, `none` outside the window
-(`verifier.py:1038-1053`). -/
-def deriveConfig (logN logInvRate : ℕ) : Option (List Whir.Level) := Whir.ladder logN logInvRate
-
 /-- The loop of `sample_queries`: each sample yields up to `192 / depth` positions of `depth`
 bits, low bits first (`verifier.py:1061-1069`). -/
 def sampleQueriesAux (depth : ℕ) : ℕ → ℕ → Prog (List ℕ)
@@ -1573,7 +1568,7 @@ def whirLevels (logN laneFolds : ℕ) (evaluateBasis : List E → E) :
 /-- `verify_whir(log_n, log_inv_rate, target, root, evaluate_basis)`, the root being commitment
 `0` (`verifier.py:1124-1202`). -/
 def verifyWhir (logN logInvRate : ℕ) (target : E) (evaluateBasis : List E → E) : Prog Unit := do
-  let config ← liftOption (deriveConfig logN logInvRate)
+  let config ← liftOption (Whir.ladder logN logInvRate)
   let quad ← sumcheckRoundPoly 3 target none
   whirLevels logN ((config.head?.map (·.fold)).getD 0) evaluateBasis 0 config
     ⟨target, quad, [], []⟩
@@ -1581,7 +1576,7 @@ def verifyWhir (logN logInvRate : ℕ) (target : E) (evaluateBasis : List E → 
 /-- Read the stack's root (`verify_execution`, step 2, `verifier.py:1480`): commitment `0`, the
 shape level `0` opens it at. -/
 def commitStack (logN logInvRate : ℕ) : Prog Unit := do
-  let config ← liftOption (deriveConfig logN logInvRate)
+  let config ← liftOption (Whir.ladder logN logInvRate)
   match config with
   | [] => Prog.fail
   | level :: _ =>
@@ -1936,7 +1931,7 @@ def readSizes (bytecode : List K) : Prog (Layout × ℕ) := do
   let logInverseRate := kToNat ((announced.getLastD 0).limb 0)
   Prog.require (1 ≤ logInverseRate ∧ logInverseRate ≤ 4)
   let layout ← liftOption (buildLayout bytecode logMemory tableRows)
-  Prog.require (minStackedLog ≤ layout.stackLog ∧ layout.stackLog ≤ maxStackedLog)
+  Prog.require (Whir.minLogStack ≤ layout.stackLog ∧ layout.stackLog ≤ Whir.maxLogStack)
   return (layout, logInverseRate)
 
 /-- Step 4, the table sumcheck at the bus point (`verifier.py:1485-1495`): the claims of the bus

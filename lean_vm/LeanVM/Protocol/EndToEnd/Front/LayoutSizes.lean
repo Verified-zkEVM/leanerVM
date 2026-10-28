@@ -132,7 +132,7 @@ theorem readSizes_ret {bytecode : List K} {l : List Ev} {a : Verifier.Layout × 
       1 ≤ a.2 ∧ a.2 ≤ 4 ∧ a.2 = kToNat ((xs.getLastD 0).limb 0) ∧
       buildLayout bytecode (kToNat ((xs.headD 0).limb 0))
         (((xs.drop 1).take 6).map fun value ↦ kToNat (value.limb 0)) = some a.1 ∧
-      minStackedLog ≤ a.1.stackLog ∧ a.1.stackLog ≤ maxStackedLog := by
+      Whir.minLogStack ≤ a.1.stackLog ∧ a.1.stackLog ≤ Whir.maxLogStack := by
   unfold readSizes at h
   simp only [Prog.bind_eq] at h
   rcases Prog.after_bind_cases _ h with ⟨q, hq, hr⟩ | ⟨xs, l₁, l₂, rfl, h1, h2, h3⟩
@@ -150,7 +150,7 @@ theorem readSizes_ret {bytecode : List K} {l : List Ev} {a : Verifier.Layout × 
             fail_bind'] at hk
           cases hk
         | some layout =>
-          by_cases c3 : minStackedLog ≤ layout.stackLog ∧ layout.stackLog ≤ maxStackedLog
+          by_cases c3 : Whir.minLogStack ≤ layout.stackLog ∧ layout.stackLog ≤ Whir.maxLogStack
           · simp only [Prog.require, c1, c2, hb, c3, Verifier.liftOption, ↓reduceIte, and_self,
               Prog.ret_bind, Prog.pure_eq, Prog.ret.injEq] at hk
             subst hk
@@ -171,7 +171,7 @@ theorem readSizes_ret {bytecode : List K} {l : List Ev} {a : Verifier.Layout × 
         (Verifier.liftOption (buildLayout bytecode (kToNat ((announced.headD 0).limb 0))
           (((announced.drop 1).take tables.length).map fun value ↦ kToNat (value.limb 0)))).bind
             fun layout ↦
-          (Prog.require (minStackedLog ≤ layout.stackLog ∧ layout.stackLog ≤ maxStackedLog)).bind
+          (Prog.require (Whir.minLogStack ≤ layout.stackLog ∧ layout.stackLog ≤ Whir.maxLogStack)).bind
             fun _ ↦ (pure (layout, kToNat ((announced.getLastD 0).limb 0)) : Prog _)) xs) :=
       (isPure_require _).bind fun _ ↦ (isPure_require _).bind fun _ ↦
         (isPure_liftOption _).bind fun _ ↦ (isPure_require _).bind fun _ ↦ .inl ⟨_, rfl⟩
@@ -210,7 +210,7 @@ theorem readSizes_ret_sizes (prog : Program) {l : List Ev} {a : Verifier.Layout 
       hb] at hb'
     split_ifs at hb' with hok
     · simp only [Option.some.injEq] at hb'
-      have hμ : (verifierLayout prog s).stackLog ≤ maxStackedLog := hb' ▸ hμ2
+      have hμ : (verifierLayout prog s).stackLog ≤ Whir.maxLogStack := hb' ▸ hμ2
       rw [stackLog_verifierLayout] at hμ
       refine ⟨s, ⟨hok.1, hok.2.1, hok.2.2, hμ⟩, ⟨hρ1, hρ2⟩, hb', ?_⟩
       simp only [List.all_cons, List.all_nil, Bool.and_true, Bool.and_eq_true,

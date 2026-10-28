@@ -81,7 +81,7 @@ theorem hOwn_lengths (hlog : Nat.log2 bytecode.length = 23) (hr : NodeRel byteco
   · simp
   · rw [length_flatMap_const _ _ 2 fun c _ => by simp [B1.Digest.digestCells]]
     simp [hData]
-  · rw [length_flatMap_const _ _ 24 fun c hc => by simp [fixedCells, hf c hc]]
+  · rw [length_flatMap_const _ _ 24 fun c hc => by simp [DeferredClaim.cells, hf c hc]]
     simp [hData]
   · rw [length_flatMap_const _ _ 24 fun c hc => by
       simp [DeferredClaim.cells, Eq.trans (hch c hc).1 hlog]]

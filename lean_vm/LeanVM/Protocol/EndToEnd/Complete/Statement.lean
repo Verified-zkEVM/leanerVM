@@ -40,7 +40,7 @@ open scoped ENNReal
 @[expose] public section
 
 /-- The statement's verifier, on a statement and a proof. -/
-abbrev stmtVerifier : LeanVM.Statement × LeanVM.Proof → OracleComp LeanVM.HashSpec Bool :=
+abbrev stmtVerifier : LeanVM.Statement × LeanVM.Protocol.Compile.Proof → OracleComp LeanVM.HashSpec Bool :=
   fun z ↦ LeanVM.verifier LeanVM.queryH LeanVM.queryF z.1.1 z.1.2 z.2
 
 /-- **The statement's experiment, without the adversary's cache, is the random-oracle theorem's

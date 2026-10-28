@@ -295,7 +295,7 @@ theorem commitment_eq {c : HashSpec.QueryCache} {π : Proof}
       ∃ st, Extraction.afterRoot (bytecodeWords prog) π = some ((verifierLayout prog s, ρ), st) ∧
         st.roots.head? = some (root, ht, w)) ∧
       Good prog (verifierLayout prog s, ρ) s ∧
-      ∃ level rest, deriveConfig (verifierLayout prog s).stackLog ρ = some (level :: rest) := by
+      ∃ level rest, Whir.ladder (verifierLayout prog s).stackLog ρ = some (level :: rest) := by
   set H : Bytes → Option Digest := fun x ↦ c (.inl x)
   set F : KState → Option KState := fun s ↦ c (.inr s)
   set hist := extractedHistory H F (leanVmSeed (bytecodeWords prog) (publicDigest input))
@@ -397,7 +397,7 @@ theorem certOf_e_eq : ∀ μ < 29, ∀ R < 5, Whir.Admissible μ R →
 /-- **The specification's threshold is level 0's**, `thrOf`, at every admissible shape with a
 ladder: through its real form (`Extraction.johnsonThreshold_eq_real`). -/
 theorem thrOf_eq_johnsonThreshold {μ R : ℕ} (h : Whir.Admissible μ R) {level : Whir.Level}
-    {rest : List Whir.Level} (hc : deriveConfig μ R = some (level :: rest)) :
+    {rest : List Whir.Level} (hc : Whir.ladder μ R = some (level :: rest)) :
     thrOf μ R = Extraction.johnsonThreshold μ R := by
   rw [← Extraction.johnsonThreshold_eq_real]
   have hc' : Whir.ladder μ R = some (level :: rest) := hc
@@ -467,7 +467,7 @@ theorem candidates_of_values {μ R A : ℕ} {W : Word} {q : Vector K (2 ^ μ)}
 
 /-- An admissible shape has a ladder. -/
 theorem exists_ladder {μ R : ℕ} (h : Whir.Admissible μ R) :
-    ∃ level rest, deriveConfig μ R = some (level :: rest) := by
+    ∃ level rest, Whir.ladder μ R = some (level :: rest) := by
   have hμ : μ < 29 := by have := h.2.1; unfold Whir.maxLogStack at this; omega
   have hR : R < 5 := by have := h.2.2.2; unfold Whir.maxLogInvRate at this; omega
   have hok := Whir.Params.shapeOK_all μ hμ R hR h
@@ -477,7 +477,7 @@ theorem exists_ladder {μ R : ℕ} (h : Whir.Admissible μ R) :
     simp at hok
   · have hl := Whir.ladder_length h config hc
     match config, hl with
-    | level :: rest, _ => exact ⟨level, rest, hc⟩
+    | level :: rest, _ => exact ⟨level, rest, rfl⟩
 
 /-- **The specification's candidates are at most `2^18`**: at every admissible shape, the
 stacks whose encoding agrees with a word on at least the Johnson threshold of columns are among

@@ -49,8 +49,8 @@ example : ¬ MovesOK (fun _ ↦ False) False (Prog.commitP 1 1) := fun h ↦ h.1
 stack. -/
 example : ¬ MovesOK (fun _ ↦ False) False (commitStack 28 1) := by
   intro h
-  obtain ⟨level, rest, hd⟩ : ∃ level rest, deriveConfig 28 1 = some (level :: rest) := by
-    cases hd : deriveConfig 28 1 with
+  obtain ⟨level, rest, hd⟩ : ∃ level rest, Whir.ladder 28 1 = some (level :: rest) := by
+    cases hd : Whir.ladder 28 1 with
     | none => exact absurd hd (by decide)
     | some l =>
       cases l with

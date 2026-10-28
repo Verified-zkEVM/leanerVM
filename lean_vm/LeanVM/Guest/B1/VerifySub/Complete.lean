@@ -72,7 +72,7 @@ memory, and its valuation is the honest one (`completeAt_flatDepR`'s and `comple
 theorem vs_obligations {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) {seed : Digest}
     {c : Child} (S : ChildSegs bytecode seed c) (fs : String → ℕ) {lpE sqE outE : ℕ}
     {Lin : Main.Layout} {κ : ℕ} (hκ : 16 ≤ κ) (hexpL : ∀ q ∈ log2Lin lpE sqE, q ∈ Lin)
-    (hout : (outE, fixedCells c.fresh) ∈ Lin) :
+    (hout : (outE, DeferredClaim.cells c.fresh) ∈ Lin) :
     let K := fun fp ↦ S.kids (bases (fp + fs "verify_sub") (vsSizes S.μ)) lpE sqE
     let own := fun fp ↦ bufL (fp + fs "verify_sub") (vsSizes S.μ) S.ownW
     let args := [(digestScalars (statementDigest seed c.statement)).1,
@@ -176,8 +176,8 @@ theorem vs_obligations {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) {see
     have hfx := hL _ hout
     obtain ⟨⟨D⟩, G⟩ := vs_sig (rd := rd) hbl S rfl _ outs O hκ hlow hmem hlp hsq hfx
     have hpl := (S.runG' hbl).2.2.1
-    have hcl : 24 ≤ (fixedCells c.fresh).length := by
-      rw [fixedCells, S.fresh_eq hbl]
+    have hcl : 24 ≤ (DeferredClaim.cells c.fresh).length := by
+      rw [DeferredClaim.cells, S.fresh_eq hbl]
       simp only [List.length_append, List.length_take, List.length_cons, List.length_nil, hpl,
         S.alphas_length]
       have := (S.μ_bounds hbl).1

@@ -64,7 +64,7 @@ theorem kid_sub {bytecode : List K} {wX : E → LeanXmss.Signature} {wS : E → 
     (hC : Cover rd (σ (.n 117)) (segsOf σ Kr) (LXS σ) (LSS σ) (DAS σ) sl) {c : ℕ}
     (hc : c < lg σ 6) :
     (decKid rd σ wV c).fresh.bytecodePoint.length = bytecodeVars ∧
-      ReadsAt rd (σ (.n 400) * gen ^ (24 * c)) (fixedCells (decKid rd σ wV c).fresh) ∧
+      ReadsAt rd (σ (.n 400) * gen ^ (24 * c)) (DeferredClaim.cells (decKid rd σ wV c).fresh) ∧
       verifyDeferred bytecode (decSeed σ) (statementDigest (decSeed σ) (kidStmt rd σ c))
         (decKid rd σ wV c).fresh (decKid rd σ wV c).proof = true := by
   have k := hK c hc
@@ -78,8 +78,8 @@ theorem kid_sub {bytecode : List K} {wX : E → LeanXmss.Signature} {wS : E → 
   have hpi : pi = statementDigest (decSeed σ) (kidStmt rd σ c) := by
     apply digestCells_inj
     rw [← kid_digest MF hK hW hC hc, digestCells, ← hp]
-  have hlen : (fixedCells fresh).length = 24 := by
-    simp [fixedCells, hfl, bytecodeVars]
+  have hlen : (DeferredClaim.cells fresh).length = 24 := by
+    simp [DeferredClaim.cells, hfl, bytecodeVars]
   have hfresh : (decKid rd σ wV c).fresh = fresh := by
     show fixedOfCells (readCells rd (σ (.n 400) * gen ^ (24 * c)) 24) = fresh
     rw [readCells_of_readsAt hfr hlen, fixedOfCells_cells hfl]

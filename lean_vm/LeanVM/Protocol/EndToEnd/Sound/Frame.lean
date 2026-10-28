@@ -156,9 +156,9 @@ noncomputable def commitSpec (Post : Unit → List Ev → Prop) (logN logInvRate
 /-- The doom of the stack's root, right after it: the postcondition. -/
 theorem commitSpec_D (Post : Unit → List Ev → Prop) {logN logInvRate : ℕ} (hT : T ≤ εmax)
     {level : Whir.Level} {rest : List Whir.Level}
-    (hc : deriveConfig logN logInvRate = some (level :: rest)) (h₀ : List Ev) (e : Ev) :
+    (hc : Whir.ladder logN logInvRate = some (level :: rest)) (h₀ : List Ev) (e : Ev) :
     (commitSpec Post logN logInvRate hT).D h₀ [e] ↔ Post () (h₀ ++ [e]) := by
-  have hs : (liftOption (deriveConfig logN logInvRate)).retSplit [e] =
+  have hs : (liftOption (Whir.ladder logN logInvRate)).retSplit [e] =
       some (level :: rest, [], [e]) := by
     rw [hc]
     exact Prog.retSplit_of_after (Prog.ret (level :: rest)) [] [e] rfl

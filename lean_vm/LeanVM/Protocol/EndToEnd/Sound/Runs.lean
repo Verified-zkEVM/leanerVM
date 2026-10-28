@@ -153,11 +153,11 @@ theorem verifyBusBalance_ne_ret (layout : Layout) (b : BusResult) :
 level. -/
 theorem commitStack_after_ret {logN logInvRate : ℕ} {m : List Ev}
     (h : (commitStack logN logInvRate).after m = some (.ret ())) :
-    ∃ level rest W, deriveConfig logN logInvRate = some (level :: rest) ∧
+    ∃ level rest W, Whir.ladder logN logInvRate = some (level :: rest) ∧
       m = [Ev.commit (levelShape logN level (2 ^ level.fold)).1
         (levelShape logN level (2 ^ level.fold)).2 W] := by
   obtain ⟨cfg, l₁, l₂, rfl, h1, h2⟩ := after_bind_ret h
-  rcases hc : deriveConfig logN logInvRate with _ | c
+  rcases hc : Whir.ladder logN logInvRate with _ | c
   · rw [hc] at h1
     cases l₁ with
     | nil => simp [Verifier.liftOption, Prog.after] at h1

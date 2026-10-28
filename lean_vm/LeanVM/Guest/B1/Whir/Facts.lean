@@ -15,7 +15,7 @@ public import LeanVM.Guest.B1.Merkle.Meaning
 # A candidate's facts, decided
 
 `candB m μ r` checks, by computation, everything `open_generic` asks of candidate `m` at the
-stack log `μ` and the rate `r` (`CandFacts`: the configuration `deriveConfig μ r` against the
+stack log `μ` and the rate `r` (`CandFacts`: the configuration `Whir.ladder μ r` against the
 `LIG_*` rows level by level, the vanishing tables) and the names of its callees in B1-a's tables
 (`NamesOk`); `candB_sound` turns it into the propositions. `Whir/Facts{m}.lean` decide it, one
 candidate a module.
@@ -114,7 +114,7 @@ instance (c : OsCfg) (lvl : ℕ) (lv : OsLv) : Decidable (NamesOk c lvl lv) := b
 
 /-- The candidate's facts, checked. -/
 def candB (m μ r : ℕ) : Bool :=
-  match deriveConfig μ r with
+  match Whir.ladder μ r with
   | none => false
   | some cfg =>
     let c := osCfg m

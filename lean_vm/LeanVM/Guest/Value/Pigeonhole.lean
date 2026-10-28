@@ -170,7 +170,7 @@ theorem forall₂_ofFn {α β : Type*} {R : α → β → Prop} :
 /-- **A cover holds every claim**: if every slot `s` of the claim list `cs` has a writer
 `i < N` with `slot i = s`, and each writer's holder holds the claim in its slot, then there is a
 list of holders, one a claim, `List.Forall₂`-related to the claims (as `NodeRel`'s
-`List.Forall₂ (XmssHeld …)`, N:362-365, asks). -/
+`List.Forall₂ (Held …)`, N:362-365, asks). -/
 theorem forall₂_of_cover {α β : Type*} {R : α → β → Prop} {cs : List α} {N : ℕ}
     {slot : ℕ → ℕ} (holder : ℕ → β) (hcover : ∀ s < cs.length, ∃ i < N, slot i = s)
     (hR : ∀ i < N, ∀ h : slot i < cs.length, R cs[slot i] (holder i)) :

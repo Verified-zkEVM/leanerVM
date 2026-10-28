@@ -116,7 +116,7 @@ def whirLevelsOpenNZ (logN laneFolds : ℕ) : ℕ → List Whir.Level → WhirSt
 
 /-- `whirOpen` refusing a zero fold, tail or batching challenge. -/
 def whirOpenNZ (logN logInvRate : ℕ) (target : E) : Prog WhirEnd := do
-  let config ← liftOption (deriveConfig logN logInvRate)
+  let config ← liftOption (Whir.ladder logN logInvRate)
   let quad ← sumcheckRoundPoly 3 target none
   whirLevelsOpenNZ logN ((config.head?.map (·.fold)).getD 0) 0 config ⟨target, quad, [], []⟩
 

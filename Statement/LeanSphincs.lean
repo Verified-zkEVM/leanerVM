@@ -871,13 +871,8 @@ call, `2^32` encoding counters of three, and `treePath` rebuilding the kept subt
 `2^33.9`), so at the largest lifetime, `N ≈ 2^30.4` signatures, `Q ≥ 2^65` and the bound is about
 `2^-62`. Proved by `Sphincs.Lifetimes.requestedSecurityRpm`. -/
 abbrev RequestedSecurityRpm : Prop :=
-  RpmSecure digestBitVec (@Rpm.scheme full) 127 ∧
-  RpmSecure digestBitVec (@Rpm.scheme pruned20) 127 ∧
-  RpmSecure digestBitVec (@Rpm.scheme pruned14) 127 ∧
-  RpmSecure digestBitVec (@Rpm.scheme pruned13) 127 ∧
-  RpmSecure digestBitVec (@Rpm.scheme pruned12) 127 ∧
-  RpmSecure digestBitVec (@Rpm.scheme pruned10) 127 ∧
-  RpmSecure digestBitVec (@Rpm.scheme pruned8) 127
+  ∀ P ∈ [full, pruned20, pruned14, pruned13, pruned12, pruned10, pruned8],
+    RpmSecure digestBitVec (@Rpm.scheme P) 127
 
 end Lifetimes
 

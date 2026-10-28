@@ -186,7 +186,7 @@ theorem term_sigma (B : TermBases) (Lin : Main.Layout) {layout : Layout} {bus : 
   set τ := layout.tableLogHeights.getD opKeccak 0 with hτ
   set m := layout.logMemory with hmdef
   have hKClen : KC.length = Tables.nCommittedCols := Tables.committedKappas_length _ hkap
-  have hLdef : layout.stackLog = max minStackedLog (stackOffsets KC).2 := by
+  have hLdef : layout.stackLog = max Whir.minLogStack (stackOffsets KC).2 := by
     rw [hSL, placementsOf_snd]
   have hK : ∀ c < Tables.nCommittedCols, KC.getD c 0 ≤ layout.stackLog := fun c hc ↦ by
     have := size_le_stackOffsets KC (i := c) (by omega); rw [hLdef]; omega

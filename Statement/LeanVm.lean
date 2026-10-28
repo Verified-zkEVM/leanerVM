@@ -63,9 +63,6 @@ open scoped ENNReal
 
 /-! ### The verifier on a statement -/
 
-/-- A proof: the scalar stream and the Merkle openings. -/
-abbrev Proof := Compile.Proof
-
 -- The bytecode the verifier reads (`bytecodeWords`) and the public input as it reads it
 -- (`publicDigest`) are `LeanIsa.lean`'s, where the encoding is.
 
@@ -235,26 +232,23 @@ def transcriptPaths (T : Transcript) : List (Bytes × Digest) :=
 def hashesOf (P : List (Bytes × Digest)) (x : Bytes) : Option Digest :=
   (P.find? (·.1 = x)).map (·.2)
 
-/-- An extractor in the random-permutation model: from the adversary's transcript and the
-proof, an execution of the program. -/
-abbrev RpmExtractor : Type :=
-  (prog : Program) → PublicInput → Transcript → Proof → Option (Trace prog)
-
-/-- **The extractor in the random-permutation model**: the extractor of `Extractor.lean`
-(`LeanVM.Extraction.extract`) on the Keccak-256 evaluations of the adversary's transcript
+/-- **The extractor in the random-permutation model**: from the statement, the adversary's
+transcript and the proof, an execution of the program: the extractor of `Extractor.lean`
+(`LeanVM.Extraction.extract`) on the Keccak-256 evaluations of the transcript
 (`hashesOf (transcriptPaths T)`), the byte strings they answer being those of the transcript's
 paths. The paths are computed once. -/
-def extractorRpm : RpmExtractor := fun prog input T proof ↦
+def extractorRpm (prog : Program) (input : PublicInput) (T : Transcript) (proof : Proof) :
+    Option (Trace prog) :=
   let paths := transcriptPaths T
   Extraction.extract prog input (bytecodeWords prog) (hashesOf paths) (paths.map (·.1)) proof
 
 /-! ### Knowledge soundness -/
 
 /-- **The adversary breaks soundness**: the verifier accepts its statement and proof, and the
-execution extracted from the transcript and the proof is not a valid execution of the program on
-the public input. -/
-def BreaksRpm (extract : RpmExtractor) (z : RpmOutcome) : Prop :=
-  z.accepted ∧ ¬ ∃ t, extract z.program z.input z.transcript z.proof = some t ∧
+execution `extractorRpm` extracts from the transcript and the proof is not a valid execution of the
+program on the public input. -/
+def BreaksRpm (z : RpmOutcome) : Prop :=
+  z.accepted ∧ ¬ ∃ t, extractorRpm z.program z.input z.transcript z.proof = some t ∧
     ValidExecution z.program z.input t
 
 /-- **Knowledge soundness in the random-permutation model**, for the extractor `extractorRpm`:
@@ -262,7 +256,7 @@ an adversary of at most `Q ≤ 2^128` queries to `π` and `π⁻¹` (its coins f
 with probability at most `(Q + 2^14) · 2^-128 + 7 (Q + 2^14)² · 2^-256`. -/
 def KnowledgeSoundness : Prop :=
   ∀ (A : RpmAdversary) (Q : ℕ), Common.IsWeightBound A permQueries Q → Q ≤ 2 ^ 128 →
-    Pr{let z ← rpmExperiment A}[BreaksRpm extractorRpm z] ≤
+    Pr{let z ← rpmExperiment A}[BreaksRpm z] ≤
       (Q + 2 ^ 14 : ℝ≥0∞) * (2 : ℝ≥0∞)⁻¹ ^ 128 +
         7 * (Q + 2 ^ 14 : ℝ≥0∞) ^ 2 * (2 : ℝ≥0∞)⁻¹ ^ 256
 

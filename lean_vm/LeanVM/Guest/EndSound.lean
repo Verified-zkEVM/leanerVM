@@ -56,7 +56,7 @@ theorem soundHyps_of {W : Val → Reader → FrameMap → NodeWitness} (hvs : Vs
     (hm : Located.MainSoundV bytecode W) : SoundHyps W :=
   ⟨b2SoundL_of hvs, hm⟩
 
-variable {piOf : Reader → Val → FrameMap → Proof}
+variable {piOf : Reader → Val → FrameMap → Protocol.Compile.Proof}
 
 /-- **Soundness of the deployed guest, its witness named**, from `verify_sub`'s statement. -/
 theorem guest_knowledge_sub (hv : B1.Main.SubSoundW bytecode piOf) :

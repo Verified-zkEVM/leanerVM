@@ -14,7 +14,7 @@ public import LeanVM.Protocol.Whir.Sound.Start
 /-!
 # The specification of the WHIR opening
 
-For the ladder of levels `config = derive_config(μ, R)` (`LeanVM.Protocol.Verifier.deriveConfig`)
+For the ladder of levels `config = derive_config(μ, R)` (`LeanVM.Parameters.Whir.ladder`)
 and a code `codes i` per level (message variables `κ_i`, rate `2^-R_i`, Johnson slack `η_i`):
 
 * `LadderArith`: the arithmetic of the ladder (`κ_i` is the number of variables left after level
@@ -121,7 +121,7 @@ noncomputable def levelsSpec (hw : IsMultiaffine μ w) (hℓ₀ : ℓ₀ ≤ μ)
 
 /-- `verifyWhir` on an admissible shape: the first round polynomial, then the levels. -/
 theorem verifyWhir_eq {R : ℕ} {t : E} {level : Whir.Level} {rest : List Whir.Level}
-    (hc : deriveConfig μ R = some (level :: rest)) :
+    (hc : Whir.ladder μ R = some (level :: rest)) :
     verifyWhir μ R t w = (sumcheckRoundPoly 3 t none).bind fun quad ↦
       whirLevels μ level.fold w 0 (level :: rest) ⟨t, quad, [], []⟩ := by
   rw [verifyWhir, hc]
@@ -132,7 +132,7 @@ history's first, of the shape of the ladder's level `0`, and every candidate of 
 `(w, t)`), the opening's groups escape with probability at most `εmax ≥ whirEps codes config`
 each, and it never returns in doom. -/
 noncomputable def whirSpec {R : ℕ} {t : E} {level : Whir.Level} {rest : List Whir.Level}
-    (hc : deriveConfig μ R = some (level :: rest)) (hℓ : level.fold = laneBits)
+    (hc : Whir.ladder μ R = some (level :: rest)) (hℓ : level.fold = laneBits)
     (hμ : laneBits ≤ μ) (hκ₀ : (codes 0).κ = μ - laneBits) (hR₀ : (codes 0).R = R)
     (hw : IsMultiaffine μ w) (hA : LadderArith μ codes 0 0 (level :: rest))
     (hε : whirEps codes (level :: rest) ≤ εmax) (T : ENNReal) :
@@ -269,7 +269,7 @@ of the `J` claims), the batching challenge escapes with probability at most
 `eBatch J P₀ = (J − 1)·L₀/|E|` and the opening (`whirSpec`) follows. -/
 noncomputable def stackedSpec {R : ℕ} {level : Whir.Level} {rest : List Whir.Level}
     (claims : List StackClaim) (hcl : ∀ c ∈ claims, IsMultiaffine μ c.1)
-    (hc : deriveConfig μ R = some (level :: rest)) (hℓ : level.fold = laneBits)
+    (hc : Whir.ladder μ R = some (level :: rest)) (hℓ : level.fold = laneBits)
     (hμ : laneBits ≤ μ) (hκ₀ : (codes 0).κ = μ - laneBits) (hR₀ : (codes 0).R = R)
     (hA : LadderArith μ codes 0 0 (level :: rest))
     (hε : whirEps codes (level :: rest) ≤ εmax) (T : ENNReal) :

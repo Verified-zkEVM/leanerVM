@@ -177,7 +177,7 @@ shape: level 0 folds `laneBits` variables at `κ = μ − laneBits` and rate `R`
 arithmetic holds, every group escapes with probability at most `2^-128`, and level 0's list
 bound is at most `2^18`. -/
 theorem deployed_spec_hyps {μ R : ℕ} (h : Whir.Admissible μ R) {level : Whir.Level}
-    {rest : List Whir.Level} (hc : deriveConfig μ R = some (level :: rest)) :
+    {rest : List Whir.Level} (hc : Whir.ladder μ R = some (level :: rest)) :
     level.fold = laneBits ∧ laneBits ≤ μ ∧ (deployedCodes μ R 0).κ = μ - laneBits ∧
       (deployedCodes μ R 0).R = R ∧ (deployedCodes μ R 0).listMax ≤ 2 ^ 18 ∧
       LadderArith μ (deployedCodes μ R) 0 0 (level :: rest) ∧
@@ -203,7 +203,7 @@ theorem deployed_spec_hyps {μ R : ℕ} (h : Whir.Admissible μ R) {level : Whir
 
 /-- **Codes with escapes at most `2^-128` exist for every admissible shape.** -/
 theorem exists_codes {μ R : ℕ} (h : Whir.Admissible μ R) {config : List Whir.Level}
-    (hc : deriveConfig μ R = some config) :
+    (hc : Whir.ladder μ R = some config) :
     ∃ codes : ℕ → LevelCode, LadderArith μ codes 0 0 config ∧
       whirEps codes config ≤ (2 : ENNReal)⁻¹ ^ 128 := by
   obtain ⟨level, rest, rfl⟩ : ∃ level rest, config = level :: rest := by

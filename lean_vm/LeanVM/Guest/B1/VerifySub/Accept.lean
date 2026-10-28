@@ -36,7 +36,7 @@ theorem deferred_accepts {bytecode : List K} {seed pi : Digest} {c : FixedClaims
     {L : Layout} {lir : ℕ} {xs0 : List E} {s1 : Fs}
     (h1 : RunsTo (readSizes bytecode) s0 xs0 (L, lir) s1)
     {level : Whir.Level} {rest : List Whir.Level}
-    (hcfg : deriveConfig L.stackLog lir = some (level :: rest))
+    (hcfg : Whir.ladder L.stackLog lir = some (level :: rest))
     {x0 x1 : E} {root : Digest} (hroot : digestOfScalars (x0, x1) = some root)
     {alphas : List E} {s3 : Fs}
     (h3 : ((s1.absorb x0 dsObserve).absorb x1 dsObserve).squeezeN busBits = (alphas, s3))

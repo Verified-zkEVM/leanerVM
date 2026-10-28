@@ -20,7 +20,7 @@ public import LeanVM.Guest.B1.Whir.DataSpec
 # A candidate, soundly
 
 `open_generic`: a candidate `m` whose core IR is its template (`OsData m`) and whose
-configuration has the facts `CandFacts m μ r cfg` (the configuration `deriveConfig μ r = cfg`,
+configuration has the facts `CandFacts m μ r cfg` (the configuration `Whir.ladder μ r = cfg`,
 level by level; the `LIG_*` rows; the vanishing tables), its callees by their meanings: a call
 establishes `OpenOut`. The head, the levels, the tail and the finish compose
 (`osHead_sound`, `osLevels_sound`, `osTail_sound`, `osFinish_sound`), the glued weight by
@@ -51,7 +51,7 @@ structure LvStatic (c : OsCfg) (i : ℕ) (lv : OsLv) : Prop where
 
 /-- **A candidate's facts**: its configuration against the Spec's, its rows. -/
 structure CandFacts (c : OsCfg) (μ r : ℕ) (cfg : List Whir.Level) : Prop where
-  dc : deriveConfig μ r = some cfg
+  dc : Whir.ladder μ r = some cfg
   lok : LevelsOk c μ 0 c.levels cfg
   shape : stackShape μ r = ((c.levels.headD default).depth,
     lvWidth 0 (c.levels.headD default))
@@ -110,7 +110,7 @@ theorem levelTail_eq (lane ml : ℕ) (ms : List E) (s : WhirState) :
 
 /-- **`whirOpen`, as the guest runs it**: the first round polynomial, the levels' heads, the
 tail. -/
-theorem whirOpen_eq {μ r : ℕ} {cfg : List Whir.Level} (hdc : deriveConfig μ r = some cfg)
+theorem whirOpen_eq {μ r : ℕ} {cfg : List Whir.Level} (hdc : Whir.ladder μ r = some cfg)
     (hne : cfg ≠ []) (target : E) :
     whirOpen μ r target = (sumcheckRoundPoly 3 target none).bind fun quad ↦
       (whirLevelsHead μ 0 cfg ⟨target, quad, [], []⟩).bind fun res ↦

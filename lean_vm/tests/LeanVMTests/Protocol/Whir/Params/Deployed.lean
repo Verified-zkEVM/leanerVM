@@ -88,7 +88,7 @@ example : ¬ (Cert.mk 6 6 16 136360984253).OK := by decide +kernel
 
 /-- `stackedSpec` at `εmax = 2^-128` for every admissible shape. -/
 noncomputable example {μ R : ℕ} (h : Whir.Admissible μ R) {level : Whir.Level}
-    {rest : List Whir.Level} (hc : deriveConfig μ R = some (level :: rest))
+    {rest : List Whir.Level} (hc : Whir.ladder μ R = some (level :: rest))
     (claims : List StackClaim) (hcl : ∀ c ∈ claims, IsMultiaffine μ c.1) (T : ENNReal) :
     LeanVM.Protocol.Compile.Spec (verifyStackedOpening μ R claims)
       (fun h ↦ StackedPre μ R (deployedCodes μ R 0) claims (LeanVM.Protocol.Compile.commits h))

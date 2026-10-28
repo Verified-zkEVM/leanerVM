@@ -99,7 +99,7 @@ theorem tau_lt {rowsN : List ℕ} (h : rowsN.length = 6)
 /-! ## The stack's configuration -/
 
 theorem cfg_cons {μ r : ℕ} (h1 : 22 ≤ μ) (h2 : μ ≤ 28) (h3 : 1 ≤ r) (h4 : r ≤ 4) :
-    ∃ level rest, deriveConfig μ r = some (level :: rest) := by
+    ∃ level rest, Whir.ladder μ r = some (level :: rest) := by
   obtain ⟨cfg, hF, -, -⟩ := B1.Whir.candB_sound (B1.Whir.candB_all μ r h1 h2 h3 h4)
   rcases cfg with _ | ⟨level, rest⟩
   · exfalso

@@ -254,7 +254,7 @@ theorem verify_sub_sound_w (bytecode : List K) : Main.SubSoundW bytecode vsPiOf 
     rfl
   · have hd20 := depth_ge (logMem := F.logMem) hsL
     have hrl := F.hptL
-    simp only [Node.fixedCells, vsFixed]
+    simp only [Node.DeferredClaim.cells, vsFixed]
     rw [readsAt_append, readsAt_append, List.length_take, min_eq_left (by omega)]
     refine ⟨⟨fun k hk ↦ ?_, fun k hk ↦ ?_⟩, fun k hk ↦ ?_⟩
     · have hk' : k < 19 := by simp at hk; omega

@@ -115,7 +115,7 @@ theorem vs_sig {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) {seed : Dige
     (hmem : ∀ i < 16, ReadsAt rd (ofK (gpow (bs.getD i 0))) (S.ownW.getD i []))
     (hlp : ReadsAt rd (ofK (gpow lpE)) ((List.range 34).map fun j ↦ eOfNat (2 ^ j)))
     (hsq : ReadsAt rd (ofK (gpow sqE)) Tables.gSquaresList)
-    (hfx : ReadsAt rd (ofK (gpow outE)) (fixedCells c.fresh)) :
+    (hfx : ReadsAt rd (ofK (gpow outE)) (DeferredClaim.cells c.fresh)) :
     Nonempty (VsSecData rd (vsW bs outs) args) ∧
       VsSig S bs sqE outs args (vsσ rd (vsW bs outs) args) := by
   have hl : args.length = 7 := by rw [hargs]; rfl

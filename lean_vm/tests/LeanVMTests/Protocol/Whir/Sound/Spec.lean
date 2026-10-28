@@ -109,7 +109,7 @@ private def lams : List E := [E.ofLimbs (K.ofBits 2) 0 0, E.ofLimbs (K.ofBits 3)
 
 noncomputable example {μ R : ℕ} {codes : ℕ → LevelCode} {εmax : ENNReal} {t : E} {w : List E → E}
     {level : Whir.Level} {rest : List Whir.Level}
-    (hc : deriveConfig μ R = some (level :: rest))
+    (hc : Whir.ladder μ R = some (level :: rest))
     (hℓ : level.fold = LeanVM.Protocol.EndToEnd.laneBits)
     (hμ : LeanVM.Protocol.EndToEnd.laneBits ≤ μ)
     (hκ₀ : (codes 0).κ = μ - LeanVM.Protocol.EndToEnd.laneBits) (hR₀ : (codes 0).R = R)

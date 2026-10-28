@@ -18,14 +18,9 @@ Statements that follow from these, in their composed form (what an accepted proo
 guest program establishes; the guest program's completeness on recursion nodes and leaves), are in
 `Corollaries.lean`, proved from the fields of `Theorems` alone; a reviewer may skip it.
 
-The guest program's two knowledge statements are about a decoder, `decode`, which names the witness
-of a valid execution: the proof supplies it (`LeanVM.Guest.End.decode`, in `lean_vm`, which reads
-the witness from the execution's memory). They are only as meaningful as that decoder: one that
-chose another statement of the same digest would satisfy `Corollaries`' `aggregateSound` through a
-Keccak-256 collision.
-
-Every statement involving an adversary is in the random-permutation model: one uniformly random
-permutation `π` of Keccak-f[1600]'s state, which the adversary queries forward and inverse.
+The guest program's knowledge statement takes the decoder that names the witness as a parameter,
+`decode` (`LeanVmGuest.lean` says why its content is in that decoder). Every statement with an
+adversary is in the random-permutation model (`Statement/README.md`).
 -/
 
 @[expose] public section

@@ -82,7 +82,7 @@ theorem check_opening_terminal_holds (hcs : Tables.column_selector_Spec)
   set KC := Tables.committedKappas kappas with hKCdef
   set τ := layout.tableLogHeights.getD opKeccak 0 with hτ
   have hKClen : KC.length = Tables.nCommittedCols := Tables.committedKappas_length _ hkap
-  have hLdef : layout.stackLog = max minStackedLog (stackOffsets KC).2 := by
+  have hLdef : layout.stackLog = max Whir.minLogStack (stackOffsets KC).2 := by
     rw [hSL, placementsOf_snd]
   have hK : ∀ c < Tables.nCommittedCols, KC.getD c 0 ≤ layout.stackLog := fun c hc ↦ by
     have := size_le_stackOffsets KC (i := c) (by omega); rw [hLdef]; omega

@@ -117,7 +117,7 @@ theorem childCells_eq (cc : ChildClaims) (h1 : cc.fresh.bytecodePoint.length = 2
     (h2 : cc.carried.bytecodePoint.length = 23) :
     Batch.childCells cc = cc.words ++ [0, 0] := by
   have hl : cc.words.length = 50 := by
-    simp [ChildClaims.words, fixedCells, DeferredClaim.cells, h1, h2]
+    simp [ChildClaims.words, DeferredClaim.cells, h1, h2]
   rw [Batch.childCells, padRate, hl]
   rfl
 
@@ -135,7 +135,7 @@ theorem kid_words {cpi cfresh ccarried : E} {c : ℕ} {cc : ChildClaims}
   have b23 : bytecodeVars = 23 := rfl
   rw [b23] at h1 h2
   rw [e24]
-  have hfl : (fixedCells cc.fresh).length = 24 := by simp [fixedCells, h1]
+  have hfl : (DeferredClaim.cells cc.fresh).length = 24 := by simp [DeferredClaim.cells, h1]
   have hcl : cc.carried.cells.length = 24 := by simp [DeferredClaim.cells, h2]
   have pf := (readsAt_append.mp (show ReadsAt rd _ (cc.fresh.bytecodePoint ++
     [cc.fresh.bytecodeValue]) from hf)).1
@@ -143,14 +143,14 @@ theorem kid_words {cpi cfresh ccarried : E} {c : ℕ} {cc : ChildClaims}
     [cc.carried.bytecodeValue]) from hc)).1
   refine ⟨?_, ?_, ?_, ?_, ?_⟩
   · rw [memAt_of_reads hf (by omega)]
-    simp [fixedCells, List.getD_eq_getElem?_getD, h1]
+    simp [DeferredClaim.cells, List.getD_eq_getElem?_getD, h1]
   · rw [memAt_of_reads hc (by omega)]
     simp [DeferredClaim.cells, List.getD_eq_getElem?_getD, h2]
   · rw [readsAt_memRun pf, h1]
   · rw [readsAt_memRun pc, h2]
   · rw [childCells_eq cc h1 h2]
     have hwl : (cc.words ++ [0, 0]).length = 52 := by
-      simp [ChildClaims.words, fixedCells, DeferredClaim.cells, h1, h2]
+      simp [ChildClaims.words, DeferredClaim.cells, h1, h2]
     refine list_eq_of_getD (n := 52) (by simp [l25Words]) hwl fun w hw => ?_
     have lhs : (l25Words rd cpi cfresh ccarried (gen ^ c)).getD w 0 =
         l25Word rd cpi cfresh ccarried (gen ^ c) w := by
@@ -159,29 +159,29 @@ theorem kid_words {cpi cfresh ccarried : E} {c : ℕ} {cc : ChildClaims}
     generalize hA2 : ([(digestScalars cc.publicInput).1, (digestScalars cc.publicInput).2] :
       List E) = A2
     have hA : A2.length = 2 := by rw [← hA2]; rfl
-    have hAF : (A2 ++ fixedCells cc.fresh).length = 26 := by simp [hA, hfl]
-    have hAFC : (A2 ++ fixedCells cc.fresh ++ cc.carried.cells).length = 50 := by
+    have hAF : (A2 ++ DeferredClaim.cells cc.fresh).length = 26 := by simp [hA, hfl]
+    have hAFC : (A2 ++ DeferredClaim.cells cc.fresh ++ cc.carried.cells).length = 50 := by
       simp [hA, hfl, hcl]
     by_cases ha : w < 50
-    · rw [List.getD_append (A2 ++ fixedCells cc.fresh ++ cc.carried.cells) [0, 0] 0 w
+    · rw [List.getD_append (A2 ++ DeferredClaim.cells cc.fresh ++ cc.carried.cells) [0, 0] 0 w
         (by rw [hAFC]; exact ha)]
       by_cases hb : w < 26
-      · rw [List.getD_append (A2 ++ fixedCells cc.fresh) cc.carried.cells 0 w
+      · rw [List.getD_append (A2 ++ DeferredClaim.cells cc.fresh) cc.carried.cells 0 w
           (by rw [hAF]; exact hb)]
         by_cases hc2 : w < 2
-        · rw [ite_pos' hc2, List.getD_append A2 (fixedCells cc.fresh) 0 w (by rw [hA]; exact hc2),
+        · rw [ite_pos' hc2, List.getD_append A2 (DeferredClaim.cells cc.fresh) 0 w (by rw [hA]; exact hc2),
             ← hA2]
           rcases (show w = 0 ∨ w = 1 by omega) with rfl | rfl
           · exact memAt_of_load ((loadHolds_mul_gen_pow rd _ _ _ _).mpr hp0)
           · exact memAt_of_load ((loadHolds_mul_gen_pow rd _ _ _ _).mpr hp1)
         · rw [ite_neg' hc2, ite_pos' hb,
-            List.getD_append_right A2 (fixedCells cc.fresh) 0 w (by rw [hA]; omega), hA,
+            List.getD_append_right A2 (DeferredClaim.cells cc.fresh) 0 w (by rw [hA]; omega), hA,
             memAt_of_reads hf (by omega)]
       · rw [ite_neg' (show ¬ w < 2 by omega), ite_neg' hb, ite_pos' ha,
-          List.getD_append_right (A2 ++ fixedCells cc.fresh) cc.carried.cells 0 w
+          List.getD_append_right (A2 ++ DeferredClaim.cells cc.fresh) cc.carried.cells 0 w
             (by rw [hAF]; omega), hAF, memAt_of_reads hc (by omega)]
     · rw [ite_neg' (show ¬ w < 2 by omega), ite_neg' (show ¬ w < 26 by omega), ite_neg' ha,
-        List.getD_append_right (A2 ++ fixedCells cc.fresh ++ cc.carried.cells) [0, 0] 0 w
+        List.getD_append_right (A2 ++ DeferredClaim.cells cc.fresh ++ cc.carried.cells) [0, 0] 0 w
           (by rw [hAFC]; omega), hAFC]
       rcases (show w = 50 ∨ w = 51 by omega) with rfl | rfl <;> rfl
 

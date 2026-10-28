@@ -162,9 +162,9 @@ theorem deferOfCells_point {cells : List E} (hl : cells.length = 24) :
   simp [deferOfCells, hl, bytecodeVars]
 
 theorem fixedOfCells_cells {f : FixedClaims} (hl : f.bytecodePoint.length = bytecodeVars) :
-    fixedOfCells (fixedCells f) = f := by
+    fixedOfCells (DeferredClaim.cells f) = f := by
   have hb : bytecodeVars = 23 := rfl
-  unfold fixedOfCells fixedCells
+  unfold fixedOfCells DeferredClaim.cells
   rw [List.take_append_of_le_length (by omega), List.take_of_length_le (by omega),
     List.getD_eq_getElem?_getD, List.getElem?_append_right (by omega), hl]
   simp

@@ -204,7 +204,7 @@ theorem readSizes_inv {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) {st :
       st.stream = (eOfNat logMem :: rowsN.map eOfNat ++ [eOfNat r]) ++ st'.stream ∧
       L = Tables.layoutOf bytecode logMem rowsN ∧ 16 ≤ logMem ∧ logMem ≤ 32 ∧
       rowsN.length = 6 ∧ (∀ n ∈ rowsN, n ≤ 2 ^ 32) ∧ 1 ≤ r ∧ r ≤ 4 ∧
-      minStackedLog ≤ L.stackLog ∧ L.stackLog ≤ maxStackedLog := by
+      Whir.minLogStack ≤ L.stackLog ∧ L.stackLog ≤ Whir.maxLogStack := by
   unfold readSizes at h
   simp only [Prog.bind_eq, Prog.pure_eq] at h
   obtain ⟨xs, s1, h1, h⟩ := Whir.runF_bind_some h
@@ -376,7 +376,7 @@ theorem commitStack_runF' {μ r : ℕ} {st : Whir.FSt} {u : Unit} {st' : Whir.FS
       st.stream = x0 :: x1 :: st'.stream ∧
       st'.sponge = (st.sponge.absorb x0 dsObserve).absorb x1 dsObserve ∧
       st'.roots = st.roots ++ [(root, Whir.stackShape μ r)] ∧ st'.openings = st.openings := by
-  cases hc : deriveConfig μ r with
+  cases hc : Whir.ladder μ r with
   | none =>
     unfold commitStack at h
     rw [hc] at h

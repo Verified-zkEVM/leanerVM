@@ -108,7 +108,7 @@ theorem rest_qs {β : Type} {ml index : ℕ} {level : Whir.Level} {lf : List E} 
 theorem head_inv {μ r : ℕ} {target : E} {F : Fs} {xs : List E} {os : List Opening}
     {R : List (Digest × ℕ × ℕ)} {res : WhirEnd × FSt}
     (h : runF (whirOpenNZ μ r target) ⟨F, xs, os, R⟩ = some res) :
-    ∃ (cfg : List Whir.Level) (c0 c2 : E) (xs' : List E), deriveConfig μ r = some cfg ∧
+    ∃ (cfg : List Whir.Level) (c0 c2 : E) (xs' : List E), Whir.ladder μ r = some cfg ∧
       xs = c0 :: c2 :: xs' ∧
       runF (whirLevelsOpenNZ μ ((cfg.head?.map (·.fold)).getD 0) 0 cfg ⟨target, [c0, target + c2, c2],
         [], []⟩) ⟨(F.absorb c0 dsObserve).absorb c2 dsObserve, xs', os, R⟩ = some res ∧
@@ -117,7 +117,7 @@ theorem head_inv {μ r : ℕ} {target : E} {F : Fs} {xs : List E} {os : List Ope
           ⟨target, [c0, target + c2, c2], [], []⟩)
           ⟨(F.absorb c0 dsObserve).absorb c2 dsObserve, xs', os, R⟩ := by
   simp only [whirOpenNZ, Prog.bind_eq] at h
-  cases hc : deriveConfig μ r with
+  cases hc : Whir.ladder μ r with
   | none => simp [hc, Verifier.liftOption, Prog.bind, runF] at h
   | some cfg =>
     simp only [hc, Verifier.liftOption, Prog.ret_bind] at h

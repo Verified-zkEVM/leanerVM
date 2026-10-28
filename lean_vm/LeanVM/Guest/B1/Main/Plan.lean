@@ -509,23 +509,6 @@ end Generic
 
 section Node
 
-/-- `==` on DA claims (`Hints`' instance: roots' and vector digests' words) is equality. -/
-instance : LawfulBEq DaClaim where
-  rfl {a} := by
-    show (a.daRoot.toList == a.daRoot.toList &&
-      a.membershipVectorDigest.toList == a.membershipVectorDigest.toList) = true
-    simp
-  eq_of_beq {a b} h := by
-    change (a.daRoot.toList == b.daRoot.toList &&
-      a.membershipVectorDigest.toList == b.membershipVectorDigest.toList) = true at h
-    simp only [Bool.and_eq_true, beq_iff_eq] at h
-    obtain ⟨r, v⟩ := a
-    obtain ⟨r', v'⟩ := b
-    have e1 : r = r' := Vector.toList_inj.mp h.1
-    have e2 : v = v' := Vector.toList_inj.mp h.2
-    subst e1 e2
-    rfl
-
 variable (s : NodeStatement) (w : NodeWitness)
 
 /-- The leanXMSS region's plan, as `honestPushes` makes it. -/

@@ -89,12 +89,12 @@ theorem aggregate_sound_outer_of (h : SoundHyps W) : AggregateSound guest (decod
 
 /-- **What the outer verifier's acceptance establishes**, from B2 and `verify_sub`'s
 statement. -/
-theorem aggregate_sound_outer_V {piOf : Reader → Val → FrameMap → Proof} (hb2 : B2SoundL)
+theorem aggregate_sound_outer_V {piOf : Reader → Val → FrameMap → Protocol.Compile.Proof} (hb2 : B2SoundL)
     (hv : B1.Main.SubSoundW bytecode piOf) : AggregateSound guest (decodeV piOf) :=
   aggregate_sound_outer_of (soundHyps_of_sub hb2 hv)
 
 /-- **What the outer verifier's acceptance establishes**, from `verify_sub`'s statement. -/
-theorem aggregate_sound_outer_sub {piOf : Reader → Val → FrameMap → Proof}
+theorem aggregate_sound_outer_sub {piOf : Reader → Val → FrameMap → Protocol.Compile.Proof}
     (hv : B1.Main.SubSoundW bytecode piOf) : AggregateSound guest (decodeV piOf) :=
   aggregate_sound_outer_V b2SoundL hv
 

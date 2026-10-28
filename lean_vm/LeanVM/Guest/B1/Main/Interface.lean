@@ -92,7 +92,7 @@ def ChildWordsAt (rd : Reader) (cpi cfresh ccarried : E) (c : ℕ) (cc : ChildCl
   cc.fresh.bytecodePoint.length = bytecodeVars ∧ cc.carried.bytecodePoint.length = bytecodeVars ∧
     LoadHolds rd cpi (2 * c) (digestScalars cc.publicInput).1 ∧
     LoadHolds rd cpi (2 * c + 1) (digestScalars cc.publicInput).2 ∧
-    ReadsAt rd (cfresh * gen ^ (24 * c)) (fixedCells cc.fresh) ∧
+    ReadsAt rd (cfresh * gen ^ (24 * c)) (DeferredClaim.cells cc.fresh) ∧
     ReadsAt rd (ccarried * gen ^ (24 * c)) cc.carried.cells
 
 /-- **`aggregate_claims(n_children_g, child_pi, child_fresh, child_carried, defer_stmt)`**, for
@@ -123,7 +123,7 @@ def VerifySubOut (bytecode : List K) (rd : Reader) (args : List E) (π : Proof) 
   ∃ pi0 pi1 s0 s1 glp gsq out, args = [pi0, pi1, s0, s1, glp, gsq, out] ∧
     ∃ (seed pi : Digest) (fresh : FixedClaims), (s0, s1) = digestScalars seed ∧
       (pi0, pi1) = digestScalars pi ∧ fresh.bytecodePoint.length = bytecodeVars ∧
-      ReadsAt rd out (fixedCells fresh) ∧ verifyDeferred bytecode seed pi fresh π = true
+      ReadsAt rd out (DeferredClaim.cells fresh) ∧ verifyDeferred bytecode seed pi fresh π = true
 
 /-- **The callees' contracts with witness functions**, on the call relation `coreProgram.Rel`. -/
 structure CalleesW (bytecode : List K) (rd : Reader) (wX : E → LeanXmss.Signature)

@@ -323,10 +323,10 @@ theorem noCommit_restClaims_computed (layout : Layout) (pi : Digest) :
 /-- The stack's commitment: the height of the ladder's first level. -/
 theorem inRange_commitStack (μ r : ℕ) (hs : List ℕ) :
     InRange (commitStack μ r) hs fun _ hs' ↦ ∃ level rest,
-      deriveConfig μ r = some (level :: rest) ∧ hs' = hs ++ [μ - level.fold + level.logInvRate] := by
+      Whir.ladder μ r = some (level :: rest) ∧ hs' = hs ++ [μ - level.fold + level.logInvRate] := by
   unfold commitStack
   refine InRange.nc_bind (noCommit_liftOption _) fun config hc ↦ ?_
-  have hc' : deriveConfig μ r = some config := by
+  have hc' : Whir.ladder μ r = some config := by
     unfold Verifier.liftOption at hc
     split at hc
     · cases hc
@@ -351,7 +351,7 @@ theorem inRange_leanVmProgram (bytecode : List K) (publicInput : Digest) :
   simp only [Prog.bind_eq, Prog.bind_assoc]
   refine InRange.nc_bind noCommit_sampleE fun _ _ ↦ ?_
   refine InRange.nc_bind (noCommit_liftOption _) fun config hc ↦ ?_
-  have hc' : deriveConfig ls.1.stackLog ls.2 = some config := by
+  have hc' : Whir.ladder ls.1.stackLog ls.2 = some config := by
     unfold Verifier.liftOption at hc
     split at hc
     · cases hc

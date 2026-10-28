@@ -349,7 +349,7 @@ theorem verify_sub_completeB {bytecode : List K} (hbl : bytecode.length = 2 ^ 23
       c.proof = true)
     (hcaps : ∀ b ∈ Limits.queriesOf (deferredProgram c.fresh bytecode
       (statementDigest seed c.statement)) (Hints.childStart seed c), Limits.BatchAgrees b.1 b.2)
-    (hexpL : ∀ q ∈ log2Lin lpE sqE, q ∈ Lin) (hout : (outE, fixedCells c.fresh) ∈ Lin) :
+    (hexpL : ∀ q ∈ log2Lin lpE sqE, q ∈ Lin) (hout : (outE, DeferredClaim.cells c.fresh) ∈ Lin) :
     CompleteAtDTB fs cert κ "verify_sub" Lin
       [(digestScalars (statementDigest seed c.statement)).1,
         (digestScalars (statementDigest seed c.statement)).2, (digestScalars seed).1,

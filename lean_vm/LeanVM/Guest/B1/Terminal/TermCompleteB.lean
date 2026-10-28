@@ -274,7 +274,7 @@ theorem check_opening_terminal_completeAtB (κ : ℕ) (hκ : 6 ≤ κ) (B : Term
   set kappas := columnKappas layout.logMemory layout.logBytecode layout.tableLogHeights with hkdef
   set KC := Tables.committedKappas kappas with hKCdef
   set τ := layout.tableLogHeights.getD opKeccak 0 with hτ
-  have hLdef : layout.stackLog = max minStackedLog (stackOffsets KC).2 := by
+  have hLdef : layout.stackLog = max Whir.minLogStack (stackOffsets KC).2 := by
     rw [hSL, placementsOf_snd]
   have hKClen : KC.length = Tables.nCommittedCols := Tables.committedKappas_length _ hkap
   have hK : ∀ c < Tables.nCommittedCols, KC.getD c 0 ≤ layout.stackLog := fun c hc ↦ by

@@ -354,8 +354,8 @@ theorem layoutBounds_of_buildLayout {bytecode : List K} {logMemory : ℕ} {table
 /-- The sizes a run of `readSizes` returns: a layout `buildLayout` built, the stack in the
 window, the rate exponent in `1..4`. -/
 def SizesOK (p : Layout × ℕ) : Prop :=
-  LayoutBounds p.1 ∧ 1 ≤ p.2 ∧ p.2 ≤ 4 ∧ minStackedLog ≤ p.1.stackLog ∧
-    p.1.stackLog ≤ maxStackedLog
+  LayoutBounds p.1 ∧ 1 ≤ p.2 ∧ p.2 ≤ 4 ∧ Whir.minLogStack ≤ p.1.stackLog ∧
+    p.1.stackLog ≤ Whir.maxLogStack
 
 /-- The announced sizes: eight reads, and sizes in the window the program checks. -/
 theorem costs_readSizes {height : ℕ} (bytecode : List K) :
@@ -765,7 +765,7 @@ theorem costs_whirLevels (logN laneFolds : ℕ) (evaluateBasis : List E → E) :
 
 /-- **WHIR** on a stack whose every ladder costs at most `W`. -/
 theorem costs_verifyWhir (logN logInvRate : ℕ) (target : E) (evaluateBasis : List E → E)
-    (W : ℕ) (hW : ∀ levels, deriveConfig logN logInvRate = some levels →
+    (W : ℕ) (hW : ∀ levels, Whir.ladder logN logInvRate = some levels →
       whirHeightsLE height logN levels = true ∧ queryDepthsLE logN levels = true ∧
         whirCost height logN levels ≤ W) :
     Prog.Costs height (verifyWhir logN logInvRate target evaluateBasis) (2 + W)
@@ -779,7 +779,7 @@ theorem costs_verifyWhir (logN logInvRate : ℕ) (target : E) (evaluateBasis : L
 
 /-- **The stack's commitment**, at a height the ladder bounds. -/
 theorem costs_commitStack (logN logInvRate : ℕ)
-    (hH : ∀ levels, deriveConfig logN logInvRate = some levels →
+    (hH : ∀ levels, Whir.ladder logN logInvRate = some levels →
       stackHeightLE height logN levels = true) :
     Prog.Costs height (commitStack logN logInvRate) 2 fun _ ↦ True := by
   refine Prog.Costs.seq (costs_liftOption _ 0) (fun config hc ↦ ?_) (Nat.zero_le _)
@@ -792,7 +792,7 @@ theorem costs_commitStack (logN logInvRate : ℕ)
 
 /-- **The stacked opening**: the batching challenge and WHIR. -/
 theorem costs_verifyStackedOpening (stackLog logInvRate : ℕ) (claims : List StackClaim)
-    (W : ℕ) (hW : ∀ levels, deriveConfig stackLog logInvRate = some levels →
+    (W : ℕ) (hW : ∀ levels, Whir.ladder stackLog logInvRate = some levels →
       whirHeightsLE height stackLog levels = true ∧ queryDepthsLE stackLog levels = true ∧
         whirCost height stackLog levels ≤ W) :
     Prog.Costs height (verifyStackedOpening stackLog logInvRate claims) (4 + (2 + W))

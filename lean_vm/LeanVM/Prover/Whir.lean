@@ -230,7 +230,7 @@ theorem corr_openingFast {μ : ℕ} (hμ : μ ≤ 64) (R : ℕ) (q : Column μ)
       (honestOpening μ R q (claims.map ClaimDesc.denote)) := by
   simp only [openingFast, honestOpening, List.length_map]
   refine corrW_sampleE fun c ↦ ?_
-  cases deriveConfig μ R with
+  cases Whir.ladder μ R with
   | none => trivial
   | some config =>
     dsimp only

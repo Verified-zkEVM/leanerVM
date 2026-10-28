@@ -31,13 +31,13 @@ sumcheck and the public input (`verify_tables`), the Keccak reduction (`verify_k
 ring switch (`ring_switch_target`, `c_table`), the batching challenge, the placement
 (`certify_placement`), the stacked opening (`open_stacked__L{j}`) and its terminal
 (`check_opening_terminal`); it stores the claim on the bytecode the run leaves at `defer_out`
-(`Node.fixedCells`: the bus point's `BYTECODE_LOG = 19` row coordinates, the four bus challenges,
+(`Node.DeferredClaim.cells`: the bus point's `BYTECODE_LOG = 19` row coordinates, the four bus challenges,
 the value).
 
 * `MeaningVerifySub bytecode`: the cells are a seed and a public input, and for some claim `c` on
   the bytecode of the guest's shape (`23` coordinates) and some proof `π`, the deferring verifier
   accepts `π` for the public input under the seed (`verifyDeferred`, V:2344), with
-  `fixedCells c` at `defer_out`;
+  `DeferredClaim.cells c` at `defer_out`;
 * `VerifySubPre`: `g_logs_pow2`, `g_squares` hold the exponent tables (`ExpTables`);
 * `verify_sub_Spec bytecode`: on a memory image of at most `2^32` words, under `VerifySubPre`, the
   relation gives the meaning, for the bytecode of `2^23` words (`bytecodeWords guest`).
@@ -60,14 +60,14 @@ abbrev bytecodeVars : ℕ := 23
 /-- **`verify_sub`'s meaning** on `[pi_0, pi_1, seed_0, seed_1, g_logs_pow2, g_squares,
 defer_out]`: the cells of a seed `seed` and a public input `pi`, and for some claim `c` on the
 bytecode with `23` coordinates and some proof `π`, the deferring verifier accepts `π` for `pi`
-under `seed` (`verifyDeferred`, V:2344), with `fixedCells c` at `defer_out`; it returns
+under `seed` (`verifyDeferred`, V:2344), with `DeferredClaim.cells c` at `defer_out`; it returns
 nothing. -/
 def MeaningVerifySub (bytecode : List K) (rd : Reader) : List E → List E → Prop
   | [pi0, pi1, s0, s1, _, _, out], rets =>
       rets = [] ∧ ∃ (seed pi : Digest) (c : FixedClaims) (π : Proof),
         (s0, s1) = digestScalars seed ∧ (pi0, pi1) = digestScalars pi ∧
         verifyDeferred bytecode seed pi c π = true ∧ c.bytecodePoint.length = bytecodeVars ∧
-        ReadsAt rd out (Node.fixedCells c)
+        ReadsAt rd out (Node.DeferredClaim.cells c)
   | _, _ => False
 
 /-- What `verify_sub`'s callers establish: the exponent tables at `g_logs_pow2`, `g_squares`

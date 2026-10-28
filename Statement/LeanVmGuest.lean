@@ -45,7 +45,8 @@ since "some signature verifies" says little (some signature verifies for almost 
 message). The soundness statements take the decoder that reads the witness as a parameter: the end
 theorems name `LeanVM.Guest.End.decode` (`lean_vm`), which reads every component off the memory and
 chooses nothing; they hold of any decoder that outputs valid witnesses, and their content is in the
-decoder they name. That the root's statement makes every claim held at the leaves is not proved:
+decoder they name: one that chose another statement of the same digest would satisfy
+`AggregateSound` (`Corollaries.lean`) through a Keccak-256 collision. That the root's statement makes every claim held at the leaves is not proved:
 it would need Keccak, computed inside the guest program, to behave as Keccak-256 and Keccak-f[1600]
 built from the random permutation of `LeanVM.KnowledgeSoundness`.
 -/
@@ -60,21 +61,15 @@ LeanDA's deployed algorithms (`LeanDa.commitCodewords`, `LeanDa.vectorDigest`) a
 (`crates/lean_da`, `crates/verifier/src/da.rs`), generic in the hash; here the hash is Keccak-256
 (`keccak`), its digest read as LeanDA's 32 bytes (`Digest.toBytes`).
 
-An aggregate's DA claim (`DaClaim`) is a blob's Merkle root and the digest of a vector; it is held
-by a matrix committed to the root whose rows are orthogonal to a vector of that digest
-(`Witness.Opens`: the guest program's `da_verify`, `lean_ethereum.py:3920-4060`), the vector digest
-being two-level, the hash of the `128` column digests of `256` entries each (`LeanDa.vectorDigest`;
-the guest program's `da_vector_cell`, `lean_ethereum.py:4048-4060`). The guest program takes the
-vector digest from the statement; the deployed outer verifier derives it from the root, as the
-root's membership vector (`verifier::da::list_digest`, `crates/verifier/src/da.rs:99-104`, called by
-`EthereumProof::verify`, `aggregation.rs:697-719`), which no end statement here assumes. Only
-then are the rows orthogonal to the one vector the root determines, and only up to a collision of
-the vector digest or of its column hashes, which is not among `collisionCandidates`; orthogonality
-to that vector, the code's dual codeword (`lean_da`'s `membershipVector_eq_dual`), makes the rows
-codewords except with the membership test's soundness error (`lean_da`'s `checker_sound`). The
-link from this check to `lean_da`'s code binding is not proved. The prover's copy of the
-membership vector (`crates/lean_da/src/membership.rs`) is not transcribed; that it agrees with
-`crates/verifier/src/da.rs` is an implementation fact, which honest aggregates rely on.
+A DA claim (`DaClaim`) is held by a matrix committed to its root whose rows are orthogonal to a
+vector of its vector digest (`Witness.Opens`: the guest program's `da_verify`,
+`lean_ethereum.py:3920-4060`; the digest two-level, `LeanDa.vectorDigest`, `da_vector_cell`,
+`lean_ethereum.py:4048-4060`). Only where the vector is the root's membership vector, as the deployed
+outer verifier requires (no end statement here assumes it), are the rows codewords, except with the
+membership test's error (`lean_da`'s `membershipVector_eq_dual`, `checker_sound`) and up to a
+collision of the vector digest, which is not among `collisionCandidates`; the link to `lean_da`'s
+code binding is not proved. The prover's copy of the membership vector
+(`crates/lean_da/src/membership.rs`) is not transcribed.
 -/
 
 namespace LeanVM.Da
@@ -149,7 +144,7 @@ structure DaClaim where
   from the statement; the deployed outer verifier requires it to be
   `vector_digest(membership_vector(root))` (`crates/verifier/src/da.rs:83-96`). -/
   membershipVectorDigest : Digest
-  deriving DecidableEq, Inhabited, Repr
+  deriving DecidableEq, Inhabited
 
 /-- A node's claims: leanXMSS claims, leanSPHINCS claims, and DA claims. -/
 structure Claims where
@@ -158,10 +153,8 @@ structure Claims where
   da : List DaClaim
 
 /-- The claim the statement defers on the stacked bytecode: its value at a point
-(`DeferredClaim`, `aggregation.rs:261-264`). -/
-structure DeferredClaim where
-  bytecodePoint : List E
-  bytecodeValue : E
+(`DeferredClaim`, `aggregation.rs:261-264`), the shape of a proof's claim (`FixedClaims`). -/
+abbrev DeferredClaim : Type := FixedClaims
 
 /-- A node's statement: its claims and its deferred claim. -/
 structure NodeStatement where
@@ -186,15 +179,11 @@ the outer verifier's to check. -/
 def DeferredClaim.AtZero (bytecode : List K) (c : DeferredClaim) : Prop :=
   c.bytecodePoint = List.replicate (Nat.log2 bytecode.length) 0
 
-/-- The cells a deferred claim is hashed and absorbed as: the point, then the value
-(`DeferredClaim::cells`, `aggregation.rs:316-320`; the guest program's `defer_stmt`). -/
+/-- The cells a deferred claim is hashed and absorbed as, and a proof's claim on the bytecode
+exported as: the point, then the value (`DeferredClaim::cells`, `aggregation.rs:316-320`; the guest
+program's `defer_stmt`, and `verify_sub`'s `defer_out`, `lean_ethereum.py:3331-3335`, the point
+being the bus point's row coordinates, then the selector challenges). -/
 def DeferredClaim.cells (c : DeferredClaim) : List E :=
-  c.bytecodePoint ++ [c.bytecodeValue]
-
-/-- The cells of a proof's claim on the bytecode, in the order the guest program exports them
-(`verify_sub`'s `defer_out`, `lean_ethereum.py:3331-3335`): the point (the bus point's row
-coordinates, then the selector challenges), then the value. -/
-def fixedCells (c : FixedClaims) : List E :=
   c.bytecodePoint ++ [c.bytecodeValue]
 
 /-! ## The statement's digest
@@ -292,7 +281,7 @@ structure ChildClaims where
 /-- The words the batching absorbs of a child: its public input's two cells, its proof's claim,
 the claim its statement defers (`AGG_CHILD_WORDS`, `lean_ethereum.py:342`). -/
 def ChildClaims.words (c : ChildClaims) : List E :=
-  [(digestScalars c.publicInput).1, (digestScalars c.publicInput).2] ++ fixedCells c.fresh ++
+  [(digestScalars c.publicInput).1, (digestScalars c.publicInput).2] ++ DeferredClaim.cells c.fresh ++
     c.carried.cells
 
 /-- The bytecode's batched claim at the lambdas `lB`. -/
@@ -382,21 +371,12 @@ structure NodeWitness where
   da : List (Holder Da.Witness)
   hints : BatchHints
 
-/-- The leanXMSS claim is held: by a signature, at any leaf index, or by a child making it. -/
-def XmssHeld (children : List Child) (claim : XmssClaim) : Holder LeanXmss.Signature → Prop
-  | .direct σ => xmssVerify claim.1 claim.2 σ = true
-  | .child i => ∃ c, children[i]? = some c ∧ claim ∈ c.statement.claims.xmss
-
-/-- The leanSPHINCS claim is held: by a signature, or by a child making it. -/
-def SphincsHeld (children : List Child) (claim : SphincsClaim) :
-    Holder Sphincs.Signature → Prop
-  | .direct σ => sphincsVerify claim.1 claim.2 σ = true
-  | .child i => ∃ c, children[i]? = some c ∧ claim ∈ c.statement.claims.sphincs
-
-/-- The DA claim is held: by a matrix, or by a child making it. -/
-def DaHeld (children : List Child) (claim : DaClaim) : Holder Da.Witness → Prop
-  | .direct w => w.Opens claim.daRoot claim.membershipVectorDigest
-  | .child i => ∃ c, children[i]? = some c ∧ claim ∈ c.statement.claims.da
+/-- **A claim is held**: by a witness `w` that `holds`, or by a child whose claims of the kind
+(`claimsOf`) make it. -/
+def Held {α W : Type} (holds : α → W → Prop) (claimsOf : Claims → List α) (children : List Child)
+    (claim : α) : Holder W → Prop
+  | .direct w => holds claim w
+  | .child i => ∃ c, children[i]? = some c ∧ claim ∈ claimsOf c.statement.claims
 
 /-- **What the witness `w` establishes of a node's statement `s`**, for the guest program's bytecode
 `bytecode` and under the seed `seed`:
@@ -411,9 +391,14 @@ def NodeRel (bytecode : List K) (seed : Digest) (s : NodeStatement) (w : NodeWit
   s.defer.Shaped bytecode ∧
   (∀ c ∈ w.children, c.statement.defer.Shaped bytecode ∧
     verifyDeferred bytecode seed (statementDigest seed c.statement) c.fresh c.proof = true) ∧
-  List.Forall₂ (XmssHeld w.children) s.claims.xmss w.xmss ∧
-  List.Forall₂ (SphincsHeld w.children) s.claims.sphincs w.sphincs ∧
-  List.Forall₂ (DaHeld w.children) s.claims.da w.da ∧
+  -- a leanXMSS claim by a signature at any leaf index, a leanSPHINCS claim by a signature, a DA
+  -- claim by a matrix
+  List.Forall₂ (Held (fun (c : XmssClaim) σ ↦ xmssVerify c.1 c.2 σ = true) Claims.xmss
+    w.children) s.claims.xmss w.xmss ∧
+  List.Forall₂ (Held (fun (c : SphincsClaim) σ ↦ sphincsVerify c.1 c.2 σ = true) Claims.sphincs
+    w.children) s.claims.sphincs w.sphincs ∧
+  List.Forall₂ (Held (fun (c : DaClaim) (m : Da.Witness) ↦
+    m.Opens c.daRoot c.membershipVectorDigest) Claims.da w.children) s.claims.da w.da ∧
   if w.children = [] then s.defer.AtZero bytecode
   else batch (w.children.map fun c ↦
     ⟨statementDigest seed c.statement, c.fresh, c.statement.defer⟩) w.hints = some s.defer
@@ -421,13 +406,6 @@ def NodeRel (bytecode : List K) (seed : Digest) (s : NodeStatement) (w : NodeWit
 /-- The guest program's deployed seed: its Fiat-Shamir IV (`fs_seed`,
 `crates/leanvm_core/src/cpu/mod.rs:68-80`). -/
 abbrev deployedSeed (guest : Program) : Digest := fiatShamirIv (bytecodeWords guest)
-
-/-- The deployed leanISA guest program's seed, the value of `fs_seed`
-(`crates/leanvm_core/src/cpu/mod.rs:68-80`) on the guest program at the pin, as
-`scripts/guest-export` reads it off the Rust: `deployedSeed guest` (`lake exe node-vectors` checks
-that the two agree). -/
-def fsSeed : Digest :=
-  #v[9284083069595081681, 2363718961664804005, 18391321528110328235, 16439801573991227313]
 
 /-! ## What a proof of the leanISA guest program establishes, its witness named -/
 
@@ -551,10 +529,6 @@ def direct {α W : Type} : List α → List (Holder W) → List (α × W)
   | _ :: cs, .child _ :: hs => direct cs hs
   | _, _ => []
 
-/-- DA claims are equal when their roots and their vector digests are. -/
-instance : BEq DaClaim := ⟨fun a b ↦ a.daRoot.toList == b.daRoot.toList &&
-  a.membershipVectorDigest.toList == b.membershipVectorDigest.toList⟩
-
 /-- The deferring verifier's initial state on a child's proof under the node's seed
 (`verifyDeferredWith`). -/
 def childStart (seed : Digest) (c : Child) : St :=
@@ -636,7 +610,7 @@ def whirLevelsNZ (logN laneFolds : ℕ) (evaluateBasis : List E → E) :
 
 /-- `verifyWhir` refusing a zero fold, tail or level batching challenge. -/
 def verifyWhirNZ (logN logInvRate : ℕ) (target : E) (evaluateBasis : List E → E) : Prog Unit := do
-  let config ← liftOption (deriveConfig logN logInvRate)
+  let config ← liftOption (Whir.ladder logN logInvRate)
   let quad ← sumcheckRoundPoly 3 target none
   whirLevelsNZ logN ((config.head?.map (·.fold)).getD 0) evaluateBasis 0 config
     ⟨target, quad, [], []⟩
@@ -771,7 +745,7 @@ stack log at most `28` and rate in `[1, 4]` (`readSizes`), the duplicate DA slot
 (G:1630), the tables' heights at most `28` (G:2010). -/
 structure Limits (bytecode : List K) (s : NodeStatement) (w : NodeWitness) : Prop where
   /-- A child's stack log is at least `MU_MIN = 22`: the guest program has one opening arm per
-  stack log in `[22, 28]` (G:3314-3316); the verifier admits stack logs from `minStackedLog`. -/
+  stack log in `[22, 28]` (G:3314-3316); the verifier admits stack logs from `Whir.minLogStack`. -/
   stackLog : ∀ c ∈ w.children, ∀ layout r, announced bytecode c.proof.stream = some (layout, r) →
     muMin ≤ layout.stackLog
   /-- A child's proof stream is at most `STREAM_CAP = 8192` scalars (G:3165). -/

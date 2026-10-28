@@ -92,8 +92,8 @@ theorem follows_readSizes (prog : Program) {s : Sizes} (hs : s.Admissible prog) 
   have hok : LayoutOk s := ⟨h1, h2, h3⟩
   have hb := buildLayout_eq prog s
   simp only [hok, ↓reduceIte] at hb
-  have hwin : minStackedLog ≤ (verifierLayout prog s).stackLog ∧
-      (verifierLayout prog s).stackLog ≤ maxStackedLog := by
+  have hwin : Whir.minLogStack ≤ (verifierLayout prog s).stackLog ∧
+      (verifierLayout prog s).stackLog ≤ Whir.maxLogStack := by
     rw [stackLog_verifierLayout]
     exact ⟨le_max_right _ _, h5⟩
   simp only [Prog.require, hlimbs, ↓reduceIte, Prog.ret_bind, hlast, hhead, htab, hb,

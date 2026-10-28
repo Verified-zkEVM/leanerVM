@@ -630,7 +630,7 @@ theorem reads_whirLevels (logN laneFolds : ℕ) (evaluateBasis : List E → E) :
     all_goals omega
 
 theorem reads_verifyWhir (logN logInvRate : ℕ) (target : E) (evaluateBasis : List E → E)
-    (W : ℕ) (hW : ∀ levels, deriveConfig logN logInvRate = some levels → whirReads logN levels ≤ W) :
+    (W : ℕ) (hW : ∀ levels, Whir.ladder logN logInvRate = some levels → whirReads logN levels ≤ W) :
     Reads (verifyWhir logN logInvRate target evaluateBasis) (2 + W) fun _ ↦ True := by
   refine Reads.seq (Reads.liftOption _ 0) (fun config hc ↦ Reads.seq
     (reads_sumcheckRoundPoly 3 _ none) (fun quad _ ↦
@@ -647,7 +647,7 @@ theorem reads_commitStack (logN logInvRate : ℕ) :
   | cons level rest => exact Reads.commitP _ _
 
 theorem reads_verifyStackedOpening (stackLog logInvRate : ℕ) (claims : List StackClaim)
-    (W : ℕ) (hW : ∀ levels, deriveConfig stackLog logInvRate = some levels →
+    (W : ℕ) (hW : ∀ levels, Whir.ladder stackLog logInvRate = some levels →
       whirReads stackLog levels ≤ W) :
     Reads (verifyStackedOpening stackLog logInvRate claims) (2 + W) fun _ ↦ True :=
   Reads.seq Reads.sampleE (fun _ _ ↦

@@ -117,23 +117,23 @@ theorem guest_sound_of (h : SoundHyps W) (input : PublicInput) (t : Trace guest)
 /-- **The guest's decoder, for the child proof `piOf`**: the seed and the statement off `main`'s
 frame, the witness `B1.Main.decWitV` off `main`'s valuation, the memory and the memory's frame
 map. -/
-noncomputable def decodeV (piOf : Reader → Val → FrameMap → Proof) : Decoder :=
+noncomputable def decodeV (piOf : Reader → Val → FrameMap → Protocol.Compile.Proof) : Decoder :=
   decodeWith fun σ rd V ↦ B1.Main.decWitV σ rd V piOf
 
 /-- **What the theorems rest on, with B1's witnesses**: B2, and `verify_sub`'s statement with its
 proof named by `piOf`. -/
-theorem soundHyps_of_sub {piOf : Reader → Val → FrameMap → Proof} (hb2 : B2SoundL)
+theorem soundHyps_of_sub {piOf : Reader → Val → FrameMap → Protocol.Compile.Proof} (hb2 : B2SoundL)
     (hv : B1.Main.SubSoundW bytecode piOf) :
     SoundHyps fun σ rd V ↦ B1.Main.decWitV σ rd V piOf :=
   ⟨hb2, B1.Main.main_sound_V_of_sub hv⟩
 
 /-- **Soundness of the deployed guest, its witness named**, from B2 and `verify_sub`'s statement. -/
-theorem guest_knowledge_V {piOf : Reader → Val → FrameMap → Proof} (hb2 : B2SoundL)
+theorem guest_knowledge_V {piOf : Reader → Val → FrameMap → Protocol.Compile.Proof} (hb2 : B2SoundL)
     (hv : B1.Main.SubSoundW bytecode piOf) : GuestKnowledge guest (decodeV piOf) :=
   guest_knowledge_of (soundHyps_of_sub hb2 hv)
 
 /-- **What a consumer learns**, from B2 and `verify_sub`'s statement. -/
-theorem decode_binds_V {piOf : Reader → Val → FrameMap → Proof} (hb2 : B2SoundL)
+theorem decode_binds_V {piOf : Reader → Val → FrameMap → Protocol.Compile.Proof} (hb2 : B2SoundL)
     (hv : B1.Main.SubSoundW bytecode piOf) {input : PublicInput} {t : Trace guest}
     (hvt : ValidExecution guest input t) {iv : Digest} {s₀ : NodeStatement}
     (hs₀ : s₀.defer.Shaped bytecode) (hpub : publicDigest input = statementDigest iv s₀) :

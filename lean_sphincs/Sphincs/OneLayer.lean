@@ -503,8 +503,10 @@ end Algorithms
 /-- **The end statement is the layered one**: at every lifetime, the statement's leanSPHINCS has
 `RpmSecure` at 127 bits exactly when the layered presentation has. -/
 theorem requestedSecurityRpm_iff :
-    Lifetimes.RequestedSecurityRpm ↔ SphincsLayered.Lifetimes.RequestedSecurityRpm :=
-  and_congr (@rpmSecure_iff Lifetimes.full 127) <| and_congr (@rpmSecure_iff Lifetimes.pruned20 127) <|
+    Lifetimes.RequestedSecurityRpm ↔ SphincsLayered.Lifetimes.RequestedSecurityRpm := by
+  simp only [Lifetimes.RequestedSecurityRpm, List.mem_cons, List.not_mem_nil, or_false,
+    forall_eq_or_imp, forall_eq]
+  exact and_congr (@rpmSecure_iff Lifetimes.full 127) <| and_congr (@rpmSecure_iff Lifetimes.pruned20 127) <|
     and_congr (@rpmSecure_iff Lifetimes.pruned14 127) <|
     and_congr (@rpmSecure_iff Lifetimes.pruned13 127) <|
     and_congr (@rpmSecure_iff Lifetimes.pruned12 127) <|

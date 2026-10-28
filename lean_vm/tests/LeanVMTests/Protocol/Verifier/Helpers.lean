@@ -131,7 +131,7 @@ def divmodInputs : List (ℕ × ℕ) :=
 def keccakConstants : List ℕ :=
   [keccakDepth, keccakSegments, keccakSegmentBits, qkeccakSlotBits, keccakMinStepsLog, keccakBits,
     keccakLocalBits, keccakLaneBits, kBits, pack, embedBits, productBits, numGlobalColumns,
-    busBits, minStackedLog, maxStackedLog]
+    busBits, Whir.minLogStack, Whir.maxLogStack]
 
 /-! ## Constants and conventions -/
 
@@ -174,8 +174,8 @@ On each input the driver ran `build_layout` and recorded whether it raised. -/
 
 /-! ## `derive_config` outside the window -/
 
-#guard (deriveConfig 14 1).isNone ∧ (deriveConfig 29 1).isNone
-#guard (deriveConfig 20 0).isNone ∧ (deriveConfig 20 5).isNone
+#guard (Whir.ladder 14 1).isNone ∧ (Whir.ladder 29 1).isNone
+#guard (Whir.ladder 20 0).isNone ∧ (Whir.ladder 20 5).isNone
 
 /-! ## Field and multilinear arithmetic (`verifier.py:184-331`, `723`) -/
 
@@ -737,7 +737,7 @@ def pythonConfigs : List (ℕ × ℕ × List ℕ × List ℕ × List ℕ) :=
 
 #guard pythonConfigs.length = 56
 #guard pythonConfigs.all fun (n, r, folds, rates, queries) ↦
-  decide ((deriveConfig n r).map (fun ls ↦
+  decide ((Whir.ladder n r).map (fun ls ↦
     (ls.map (·.fold), ls.map (·.logInvRate), ls.map (·.queries))) = some (folds, rates, queries))
 
 /-! ## Keccak GKR and the RMFE (`verifier.py:1207-1308, 1357-1360`) -/

@@ -52,7 +52,7 @@ theorem length_words {bytecode : List K} {c : ChildClaims} (hc : ChildShaped byt
     c.words.length = childLen (Nat.log2 bytecode.length) := by
   obtain ⟨h1, h2⟩ := hc
   simp only [DeferredClaim.Shaped] at h2
-  simp [ChildClaims.words, fixedCells, DeferredClaim.cells, childLen, h1, h2]
+  simp [ChildClaims.words, DeferredClaim.cells, childLen, h1, h2]
   omega
 
 /-- A child of the bytecode's shapes has `childLen` words, then the padding. -/
@@ -74,7 +74,7 @@ theorem parseChild_words {bytecode : List K} {c : ChildClaims} (hc : ChildShaped
   simp only [DeferredClaim.Shaped] at h1 h2
   generalize Nat.log2 bytecode.length = nB at *
   subst h1
-  simp [parseChild, ChildClaims.words, fixedCells, DeferredClaim.cells,
+  simp [parseChild, ChildClaims.words, DeferredClaim.cells,
     digestOfScalars_digestScalars, List.getD_eq_getElem?_getD, List.drop_append, h2, List.drop_eq_nil_of_le]
 
 /-- The padded words are read back off. -/
@@ -86,7 +86,7 @@ theorem parseChild_childCells {bytecode : List K} {c : ChildClaims} (hc : ChildS
   simp only [DeferredClaim.Shaped] at h1 h2
   generalize Nat.log2 bytecode.length = nB at *
   subst h1
-  simp [parseChild, ChildClaims.words, fixedCells, DeferredClaim.cells,
+  simp [parseChild, ChildClaims.words, DeferredClaim.cells,
     List.getD_eq_getElem?_getD, List.drop_append, h2,
     List.drop_eq_nil_of_le]
 

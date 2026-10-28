@@ -88,7 +88,7 @@ theorem mark_kid {m : ℕ} (h0 : (segsOf σ Kr).a 0 ≤ m) (hm : m < LXS σ + LS
 theorem xmss_held {bytecode : List K} {wX : E → LeanXmss.Signature} {wS : E → Sphincs.Signature}
     {wD : List E → List E → LeanVM.Da.Witness} {wV : List E → Proof} {wA : List E → BatchHints}
     (cw : CalleesWC bytecode C rd (σ (.n 119)) wX wS wD wV wA) :
-    List.Forall₂ (XmssHeld (kidsOf rd σ wV)) (decStmt σ rd).claims.xmss
+    List.Forall₂ (Held (fun (c : XmssClaim) σ ↦ xmssVerify c.1 c.2 σ = true) Claims.xmss (kidsOf rd σ wV)) (decStmt σ rd).claims.xmss
       (decWit σ rd wX wS wD wV wA).xmss := by
   have hT := MF.total.2
   have eX : LXS σ = lg σ 0 + lg σ 1 := rfl
@@ -139,7 +139,7 @@ theorem xmss_held {bytecode : List K} {wX : E → LeanXmss.Signature} {wS : E �
 theorem sphincs_held {bytecode : List K} {wX : E → LeanXmss.Signature} {wS : E → Sphincs.Signature}
     {wD : List E → List E → LeanVM.Da.Witness} {wV : List E → Proof} {wA : List E → BatchHints}
     (cw : CalleesWC bytecode C rd (σ (.n 119)) wX wS wD wV wA) :
-    List.Forall₂ (SphincsHeld (kidsOf rd σ wV)) (decStmt σ rd).claims.sphincs
+    List.Forall₂ (Held (fun (c : SphincsClaim) σ ↦ sphincsVerify c.1 c.2 σ = true) Claims.sphincs (kidsOf rd σ wV)) (decStmt σ rd).claims.sphincs
       (decWit σ rd wX wS wD wV wA).sphincs := by
   have hT := MF.total.2
   have eX : LXS σ = lg σ 0 + lg σ 1 := rfl
@@ -194,7 +194,7 @@ theorem sphincs_held {bytecode : List K} {wX : E → LeanXmss.Signature} {wS : E
 theorem da_held {bytecode : List K} {wX : E → LeanXmss.Signature} {wS : E → Sphincs.Signature}
     {wD : List E → List E → LeanVM.Da.Witness} {wV : List E → Proof} {wA : List E → BatchHints}
     (hm : MemOk rd) (cw : CalleesWC bytecode C rd (σ (.n 119)) wX wS wD wV wA) :
-    List.Forall₂ (DaHeld (kidsOf rd σ wV)) (decStmt σ rd).claims.da
+    List.Forall₂ (Held (fun (c : DaClaim) (m : LeanVM.Da.Witness) ↦ m.Opens c.daRoot c.membershipVectorDigest) Claims.da (kidsOf rd σ wV)) (decStmt σ rd).claims.da
       (decWit σ rd wX wS wD wV wA).da := by
   have hT := MF.total.2
   have eX : LXS σ = lg σ 0 + lg σ 1 := rfl

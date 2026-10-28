@@ -71,7 +71,7 @@ theorem mainGoalDvTB (hn : NodeRel bytecode seed s w) (hrf : Lift.RunsFit fs cer
   rw [hR, hDvNH, hDvB, hp]
   simp only [List.map_cons, List.map_nil, List.headD_cons]
   have hw : p.2.Opens p.1.daRoot p.1.membershipVectorDigest :=
-    direct_held (H := DaHeld w.children)
+    direct_held (H := Held (fun (c : DaClaim) (m : LeanVM.Da.Witness) ↦ m.Opens c.daRoot c.membershipVectorDigest) Claims.da w.children)
       (P := fun c x => x.Opens c.daRoot c.membershipVectorDigest) (fun _ _ h => h)
       hn.2.2.2.2.1 p (show p ∈ hRawD s w by rw [hp]; exact List.mem_singleton_self p)
   have hL := wLog_lt hw

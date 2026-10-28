@@ -123,7 +123,7 @@ def hOwn : List (List E) :=
     hCover s w,
     (List.range 256).map fun v => word v 0 0,
     w.children.flatMap (fun c => B1.Digest.digestCells (statementDigest seed c.statement)),
-    w.children.flatMap (fun c => fixedCells c.fresh),
+    w.children.flatMap (fun c => DeferredClaim.cells c.fresh),
     w.children.flatMap (fun c => c.statement.defer.cells),
     (List.range (w.children.length + 1)).map (fun c => gen ^ hW s w c),
     s.defer.cells]

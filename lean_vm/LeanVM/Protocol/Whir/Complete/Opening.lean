@@ -78,7 +78,7 @@ the enforced sum is the pairing of the folded message with the column weights
 
 ## Hypotheses
 
-* `Whir.Admissible μ R`: the ladder exists (`deriveConfig` returns it), starts with the lane
+* `Whir.Admissible μ R`: the ladder exists (`Whir.ladder` returns it), starts with the lane
   fold `6` at rate `R`, and its folds fit in the stack (`ladder_head_sum`, decided over the 56
   pairs); `μ ≤ 64` keeps every message log within the novel basis.
 * Every stack claim holds of `q` (`StackClaim.Holds`) and has a multilinear weight
@@ -670,7 +670,7 @@ theorem ladder_head_sum {μ R : ℕ} (h : Whir.Admissible μ R) :
 
 /-- The ladder of an admissible pair, with its first level made explicit. -/
 theorem exists_ladder {μ R : ℕ} (h : Whir.Admissible μ R) :
-    ∃ q₀ rest, deriveConfig μ R = some (⟨laneBits, R, q₀⟩ :: rest) ∧
+    ∃ q₀ rest, Whir.ladder μ R = some (⟨laneBits, R, q₀⟩ :: rest) ∧
       laneBits + (rest.map (·.fold)).sum ≤ μ := by
   obtain ⟨config, hc⟩ := Option.isSome_iff_exists.mp (Whir.ladder_isSome h)
   obtain ⟨hhead, hsum⟩ := ladder_head_sum h config hc
@@ -764,7 +764,7 @@ def whirRun (μ : ℕ) (levels : List Whir.Level) (target : E) (B : List E → E
 /-- `verifyWhir` is `whirRun` on the configuration `derive_config` returns. -/
 theorem verifyWhir_eq (μ R : ℕ) (target : E) (B : List E → E) :
     verifyWhir μ R target B =
-      Verifier.liftOption (deriveConfig μ R) >>= fun config ↦ whirRun μ config target B := rfl
+      Verifier.liftOption (Whir.ladder μ R) >>= fun config ↦ whirRun μ config target B := rfl
 
 /-- The honest prover of `whirRun`: the round polynomial of the starting claim `Σ W₀·f₀`, then
 the levels. -/
@@ -778,7 +778,7 @@ receive the batching challenge, then run the levels from the starting claim
 def honestOpening (μ R : ℕ) (q : Column μ) (claims : List StackClaim) : Script Unit := do
   let c ← Script.sampleE
   let scales := powers c claims.length
-  match deriveConfig μ R with
+  match Whir.ladder μ R with
   | none => return ()
   | some config =>
     hWhirRun μ (stackTable μ q) (basisTable μ scales claims) config (dot scales (claims.map (·.2)))
