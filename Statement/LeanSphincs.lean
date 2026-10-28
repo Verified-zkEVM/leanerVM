@@ -866,9 +866,9 @@ height (`b` = 26, 20, 14, 13, 12, 10, 8, the instances `full`, `pruned20`, …, 
 their signature limits), an adversary whose game makes at most `Q` permutation calls,
 `Q ≥ 1`, forges with probability at most `(Q + 1) · 2^-127` (`RpmSecure` at 127 bits).
 `Q` counts every call on the game's worst path, the honest signer's included (`IsWeightBound` is
-structural): a signature costs about `2^35` calls at `b = 26` (`2^32` grinding attempts of one
-call, `2^32` encoding counters of three, and `treePath` rebuilding the kept subtree, about
-`2^33.9`), so at the largest lifetime, `N ≈ 2^30.4` signatures, `Q ≥ 2^65` and the bound is about
+structural): a signature costs about `2^35` calls at `b = 26` (`2^32` encoding counters of three
+calls, `2^33.6`; `treePath` rebuilding the kept subtree, `2^33.9`; the grinding into the kept
+subtree is one call at `b = 26` and up to `2^32` below), so at the largest lifetime, `N ≈ 2^30.4` signatures, `Q ≥ 2^65` and the bound is about
 `2^-62`. Proved by `Sphincs.Lifetimes.requestedSecurityRpm`. -/
 abbrev RequestedSecurityRpm : Prop :=
   ∀ P ∈ [full, pruned20, pruned14, pruned13, pruned12, pruned10, pruned8],

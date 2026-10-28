@@ -168,7 +168,8 @@ def DeferredClaim.Shaped (bytecode : List K) (c : DeferredClaim) : Prop :=
 
 /-- **The deferred claim is true** of the bytecode `bytecode`: it has the shape, and the value is
 the bytecode's multilinear extension at the point (`DeferredClaim::recompute_scalar`,
-`aggregation.rs:282-314`). -/
+`aggregation.rs:282-314`). The length being `2 ^ len` is part of it: `Shaped` reads `Nat.log2` of
+the length, which a bytecode of other length shares, and the extension is of `2 ^ len` values. -/
 def DeferredClaim.Holds (bytecode : List K) (c : DeferredClaim) : Prop :=
   c.Shaped bytecode ∧ 2 ^ c.bytecodePoint.length = bytecode.length ∧
     multilinearEval (bytecode.map ofK) c.bytecodePoint = c.bytecodeValue

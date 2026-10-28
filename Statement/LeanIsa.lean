@@ -23,7 +23,7 @@ checks a relation on the words it reads, so all nondeterminism is the choice of 
 
 namespace LeanVM.Parameters
 
-/-- The six instructions, in bus-code order (`tables.rs:99-104`). -/
+/-- The six instructions, in bus-code order (`crates/leanvm_core/src/tables.rs:99-104`). -/
 inductive Opcode
   | xor
   | mulNative
@@ -42,10 +42,10 @@ def Opcode.code : Opcode → K
   | .jump => gpow 4
   | .keccak => gpow 5
 
-/-- The least memory log-size, `2^16` cells (`cpu/mod.rs:41`, `MIN_LOG_MEM`). -/
+/-- The least memory log-size, `2^16` cells (`crates/leanvm_core/src/cpu/mod.rs:41`, `MIN_LOG_MEM`). -/
 def minLogMem : ℕ := 16
 
-/-- The greatest memory log-size, `2^32` cells (`cpu/mod.rs:42`, `MAX_LOG_MEM`). -/
+/-- The greatest memory log-size, `2^32` cells (`crates/leanvm_core/src/cpu/mod.rs:42`, `MAX_LOG_MEM`). -/
 def maxLogMem : ℕ := 32
 
 /-- The greatest bytecode log-size, in instructions (`crates/verifier/src/layout.rs:487`;
@@ -347,13 +347,13 @@ open LeanVM.Parameters LeanVM.Semantics
 /-! ## The bytecode encoding (specification §8.1) -/
 
 /-- The `DEREF` store-mode flags `(f_pc, f_fp)`: `cell ↦ (0, 0)`, `pc ↦ (1, 0)`, `fp ↦ (0, 1)`
-(`isa.rs:68-75`; specification §7.4). -/
+(`crates/leanvm_core/src/cpu/isa.rs:68-75`; specification §7.4). -/
 def derefFlags : DerefMode → K × K
   | .cell => (0, 0)
   | .pc => (1, 0)
   | .fp => (0, 1)
 
-/-- A layout flag as the bytecode carries it: `0` or `1` (`flag`, `cpu/layout.rs:311`). -/
+/-- A layout flag as the bytecode carries it: `0` or `1` (`flag`, `crates/leanvm_core/src/cpu/layout.rs:311`). -/
 def flagK (b : Bool) : K := if b then 1 else 0
 
 /-- The bus entry of an instruction, `(opcode, op₁, …, op₁₀)`: slots 3 to 13 of specification
@@ -373,7 +373,7 @@ def entry : Instr → Vector K 11
         flagK outOdd]
 
 /-- The sixteen slots of an instruction (specification §8.1; `BYTECODE_PUBLIC_SLOT = 3`,
-`leaf.rs:770`): the entry at slots 3 to 13, zero elsewhere. -/
+`crates/leanvm_core/src/leaf.rs:770`): the entry at slots 3 to 13, zero elsewhere. -/
 def encodeSlots (i : Instr) : Vector K 16 :=
   let e := entry i
   #v[0, 0, 0, e[0], e[1], e[2], e[3], e[4], e[5], e[6], e[7], e[8], e[9], e[10], 0, 0]
