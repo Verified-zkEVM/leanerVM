@@ -543,11 +543,8 @@ def subtreePosition (parameter : PublicParameter) : Nat :=
 
 /-- The kept subtree holds leaves `s * 2^b .. (s + 1) * 2^b` (`LeanSphincsSecretKey::keeps`,
 `scheme.rs`). -/
-def Landed (parameter : PublicParameter) (index : Index) : Prop :=
+abbrev Landed (parameter : PublicParameter) (index : Index) : Prop :=
   index.val / 2 ^ subtreeHeight = subtreePosition parameter
-
-instance (parameter : PublicParameter) (index : Index) : Decidable (Landed parameter index) :=
-  inferInstanceAs (Decidable (index.val / 2 ^ subtreeHeight = subtreePosition parameter))
 
 end Pruning
 
@@ -762,10 +759,7 @@ namespace SigningTranscript
 
 variable [Params]
 
-def Valid (log : QueryLog SigningSpec) : Prop := log.length ≤ signatureLimit
-
-instance (log : QueryLog SigningSpec) : Decidable (Valid log) :=
-  inferInstanceAs (Decidable (log.length ≤ signatureLimit))
+abbrev Valid (log : QueryLog SigningSpec) : Prop := log.length ≤ signatureLimit
 
 end SigningTranscript
 

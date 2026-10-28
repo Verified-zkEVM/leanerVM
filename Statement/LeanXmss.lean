@@ -484,11 +484,8 @@ abbrev SigningSpec := SignRequest →ₒ Option Signature
 namespace SigningTranscript
 
 /-- A transcript is valid when no leaf index occurs twice. -/
-def Valid (log : QueryLog SigningSpec) : Prop :=
+abbrev Valid (log : QueryLog SigningSpec) : Prop :=
   (log.map fun entry => entry.1.leafIndex).Nodup
-
-instance (log : QueryLog SigningSpec) : Decidable (Valid log) :=
-  inferInstanceAs (Decidable ((log.map fun entry => entry.1.leafIndex).Nodup))
 
 end SigningTranscript
 
