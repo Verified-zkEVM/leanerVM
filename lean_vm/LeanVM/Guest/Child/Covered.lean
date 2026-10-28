@@ -148,7 +148,7 @@ theorem covered_iff (s : NodeStatement) (w : NodeWitness) : Covered s w ↔ Cove
 
 /-- **Every covered node has a valid execution of the guest.** -/
 theorem guest_complete_covered : GuestCompleteCovered := by
-  intro seed s w hrel hlim hcap hnz hcov
+  intro seed s w hrel hlim hok hcov
   replace hcov := (covered_iff s w).1 hcov
   have hlen : (work s w).childShapes.length = (work s w).children := by simp [work]
   have hch : (work s w).children ≤ 16 := by simpa [work] using hlim.children
@@ -162,7 +162,7 @@ theorem guest_complete_covered : GuestCompleteCovered := by
     intro h0
     simp only [work, List.length_eq_zero_iff] at h0 ⊢
     simp [h0]
-  refine guest_complete_numeric seed s w hrel hlim hcap hnz ?_
+  refine guest_complete_numeric seed s w hrel hlim hok ?_
   rcases hcov with ⟨hraw, hd, hdecl, hcov, hcc⟩ | ⟨h0, hd, hraw, hdecl, hcov⟩ |
     ⟨hk, hraw, hd, hdecl, hcov, hcc⟩ | ⟨hk, hraw, hd, hdecl, hcov, hcc⟩ |
     ⟨hk, hraw, hr, hdecl, hcov, hcc⟩ | ⟨hk, hraw, hr, hdecl, hcov, hcc⟩

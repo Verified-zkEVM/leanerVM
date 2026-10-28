@@ -29,7 +29,7 @@ variable (fs : String → ℕ) (cert : String → V → ℕ) (fp : ℕ) (seed : 
   (w : NodeWitness)
 
 /-- **`claim_list_digest` on the leanXMSS table's declared claims.** -/
-theorem mainGoalClX {bytecode : List K} (hL : Limits bytecode s w) : MainGoalClX fs cert fp seed s w := by
+theorem mainGoalClX (hL : Limits s w) : MainGoalClX fs cert fp seed s w := by
   have hn : s.claims.xmss.length < claimGroup * maxKeys := by
     have := hL.coverage
     simp only [coverage] at this
@@ -58,7 +58,7 @@ theorem mainGoalClX {bytecode : List K} (hL : Limits bytecode s w) : MainGoalClX
   exact key
 
 /-- **`claim_list_digest` on the leanSPHINCS table's declared claims.** -/
-theorem mainGoalClS {bytecode : List K} (hL : Limits bytecode s w) : MainGoalClS fs cert fp seed s w := by
+theorem mainGoalClS (hL : Limits s w) : MainGoalClS fs cert fp seed s w := by
   have hn : s.claims.sphincs.length < claimGroup * maxKeys := by
     have := hL.coverage
     simp only [coverage] at this

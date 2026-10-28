@@ -70,7 +70,7 @@ variable {fs : String → ℕ} {cert : String → V → ℕ} {fp : ℕ} {seed : 
 /-- **`main`'s non-static callees on the honest run within their bounds, by trees of honest
 shape.** -/
 theorem mainGoalsTB_honest {SB SK : String → ℕ} {Pvs : ℕ → Tree → Prop} {Bv : ℕ → ℕ}
-    (hbl : bytecode.length = 2 ^ 23) (hr : NodeRel bytecode seed s w) (hl : Limits bytecode s w)
+    (hbl : bytecode.length = 2 ^ 23) (hr : NodeRel bytecode seed s w) (hl : Limits s w)
     (hrf : Lift.RunsFit fs cert) (hS : MainStatics fs SB SK)
     (hV : VerifySubGoalsTB fs cert fp seed s w Pvs Bv) :
     MainGoalsTB fs cert fp seed s w (mainPredsH s w (hDvNH s w) Pvs) (mainBsH fs SB SK Bv s w) :=
@@ -89,7 +89,7 @@ and the statement's digest at words `0`, `1`, `main` holds at `fp` by its node a
 values, its walk's calls and buffers, its callees' trees satisfying `mainPredsH` and, the
 non-static ones, within their bounds. -/
 theorem main_honest_budgetB {SB SK : String → ℕ} {Pvs : ℕ → Tree → Prop} {Bv : ℕ → ℕ}
-    (hbl : bytecode.length = 2 ^ 23) (hr : NodeRel bytecode seed s w) (hl : Limits bytecode s w)
+    (hbl : bytecode.length = 2 ^ 23) (hr : NodeRel bytecode seed s w) (hl : Limits s w)
     (hxc : Sig.verify_lean_xmss_complete_Spec)
     (hsc : Sig.verify_sig_lean_sphincs_complete_loads_Spec) (hrf : Lift.RunsFit fs cert)
     (hS : MainStatics fs SB SK) (hV : VerifySubGoalsTB fs cert fp seed s w Pvs Bv) :

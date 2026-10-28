@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.LimitsNZ
 
-  `NoZeroChallenge` restricts the Spec's deferring verifier: a child's proof the verifier refusing
+  The zero-challenge refusal restricts the Spec's deferring verifier: a child's proof the verifier refusing
   a zero challenge accepts, the Spec's accepts.
 -/
 
@@ -15,7 +15,7 @@ public import LeanVM.Guest.Limits
 `Refines P' P`: the program `P'` is `P` with failures inserted, step for step. Running a refining
 program is running the program, where it does not fail (`run_refines`, `runProof_refines`). The
 deferring program refusing a zero fold, tail or level batching challenge refines the deferring
-program (`deferredProgramNZ_refines`), so `NoZeroChallenge` gives every child's acceptance by the
+program (`deferredProgramNZ_refines`), so `ChildOk`'s refusal gives every child's acceptance by the
 Spec's deferring verifier (`verifyDeferred_of_nz`): it only removes runs, those with a zero
 challenge where the guest divides.
 -/
@@ -228,7 +228,7 @@ theorem deferredProgramNZ_refines (c : FixedClaims) (bytecode : List K) (publicI
   unfold verifyExecutionNZ verifyExecution
   repeat (first | exact verifyStackedOpeningNZ_refines _ _ _ | refines_step)
 
-/-- **`NoZeroChallenge` only restricts**: the deferring verifier refusing a zero challenge
+/-- **The zero-challenge refusal only restricts**: the deferring verifier refusing a zero challenge
 accepts only proofs the Spec's deferring verifier accepts. -/
 theorem verifyDeferred_of_nz {bytecode : List K} {iv publicInput : Digest} {c : FixedClaims}
     {π : Proof} (h : verifyDeferredNZ bytecode iv publicInput c π = true) :
@@ -236,13 +236,6 @@ theorem verifyDeferred_of_nz {bytecode : List K} {iv publicInput : Digest} {c : 
   unfold verifyDeferredNZ at h
   unfold verifyDeferred verifyDeferredWith
   exact runProof_refines (deferredProgramNZ_refines c bytecode publicInput) _ π h
-
-/-- Under `NoZeroChallenge`, every child's proof is accepted by the deferring verifier. -/
-theorem children_verify_of_nz {bytecode : List K} {seed : Digest} {w : NodeWitness}
-    (h : NoZeroChallenge bytecode seed w) :
-    ∀ c ∈ w.children,
-      verifyDeferred bytecode seed (statementDigest seed c.statement) c.fresh c.proof = true :=
-  fun c hc ↦ verifyDeferred_of_nz (h c hc)
 
 end
 end LeanVM.Guest.Limits

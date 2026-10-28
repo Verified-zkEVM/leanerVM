@@ -42,7 +42,7 @@ theorem freshShaped_of (hbl : bytecode.length = 2 ^ 23) (hr : NodeRel bytecode s
 
 /-- **`main`'s callees on the honest run**, but the children's loop and the aggregation. -/
 theorem mainGoals_of (hbl : bytecode.length = 2 ^ 23) (hr : NodeRel bytecode seed s w)
-    (hl : Limits bytecode s w) (hxc : Sig.verify_lean_xmss_complete_Spec)
+    (hl : Limits s w) (hxc : Sig.verify_lean_xmss_complete_Spec)
     (hsc : Sig.verify_sig_lean_sphincs_complete_loads_Spec) (hrf : Lift.RunsFit fs cert)
     (hl5 : MainGoalL5 fs cert fp seed s w) (hag : MainGoalAg fs cert fp seed s w) :
     MainGoals fs cert fp seed s w where
@@ -63,7 +63,7 @@ theorem mainGoals_of (hbl : bytecode.length = 2 ^ 23) (hr : NodeRel bytecode see
 /-- **`main` at `fp` on the honest run**: `main_honest_relAtInW`, its callees discharged but the
 children's loop and the aggregation. -/
 theorem main_honest_end (hbl : bytecode.length = 2 ^ 23) (hr : NodeRel bytecode seed s w)
-    (hl : Limits bytecode s w) (hxc : Sig.verify_lean_xmss_complete_Spec)
+    (hl : Limits s w) (hxc : Sig.verify_lean_xmss_complete_Spec)
     (hsc : Sig.verify_sig_lean_sphincs_complete_loads_Spec) (hrf : Lift.RunsFit fs cert)
     (hl5 : MainGoalL5 fs cert fp seed s w) (hag : MainGoalAg fs cert fp seed s w) :
     ∃ (n : ℕ) (L : B1.Main.Layout), Within L fp n ∧ (∀ q ∈ L, fp + fs "main" ≤ q.1) ∧ DisjL L ∧
@@ -89,7 +89,7 @@ def VerifySubGoals (fs : String → ℕ) (cert : String → V → ℕ) (fp : ℕ
 /-- **`main` at `fp` on the honest run**, every callee discharged but the signature schemes'
 completeness (B1-e), the frame runs' certificate facts and each child's `verify_sub` (B1-d). -/
 theorem main_honest_full (hbl : bytecode.length = 2 ^ 23) (hr : NodeRel bytecode seed s w)
-    (hl : Limits bytecode s w) (hxc : Sig.verify_lean_xmss_complete_Spec)
+    (hl : Limits s w) (hxc : Sig.verify_lean_xmss_complete_Spec)
     (hsc : Sig.verify_sig_lean_sphincs_complete_loads_Spec) (hrf : Lift.RunsFit fs cert)
     (hV : VerifySubGoals fs cert fp seed s w) :
     ∃ (n : ℕ) (L : B1.Main.Layout), Within L fp n ∧ (∀ q ∈ L, fp + fs "main" ≤ q.1) ∧ DisjL L ∧

@@ -45,19 +45,19 @@ theorem mainComplete_of_main (fs : String → ℕ) (cert : String → V → ℕ)
     (hfs : 2 ≤ fs "main") (hxc : B1.Sig.verify_lean_xmss_complete_Spec)
     (hsc : B1.Sig.verify_sig_lean_sphincs_complete_loads_Spec) (hrf : Lift.RunsFit fs cert)
     (hS : MainStatics fs SB SK)
-    (hV : ∀ seed s w, NodeRel bytecode seed s w → Limits bytecode s w →
-      CapsAgree bytecode seed w → NoZeroChallenge bytecode seed w →
+    (hV : ∀ seed s w, NodeRel bytecode seed s w → Limits s w →
+      ChildrenOk bytecode seed w →
       VerifySubGoalsTB fs cert 0 seed s w (Pvs w) (childBv Bvf w))
     (hcnt : ∀ (rd : Reader) (t : Tree), t.Valid coreProgram rd [] [] → ∀ op,
       cnt t op ≤ t.weight (ω op) + jt op)
     (K5 : Opcode → NodeStatement → NodeWitness → ℕ)
-    (h5 : ∀ seed s w, NodeRel bytecode seed s w → Limits bytecode s w → ∀ op (rd : Reader)
+    (h5 : ∀ seed s w, NodeRel bytecode seed s w → Limits s w → ∀ op (rd : Reader)
       (t : Tree) (args rets : List E), t.name = "__loop5" → t.Valid coreProgram rd args rets →
       t.BufsOk coreProgram → (mainPredsH s w (hDvNH s w) (Pvs w)).T5 t →
         t.weight (ω op) ≤ K5 op s w)
-    (hwords : ∀ seed s w, NodeRel bytecode seed s w → Limits bytecode s w →
+    (hwords : ∀ seed s w, NodeRel bytecode seed s w → Limits s w →
       Bmain fs SB SK (childBv Bvf w) 0 seed s w ≤ b.words.eval (work s w))
-    (hinstrs : ∀ seed s w, NodeRel bytecode seed s w → Limits bytecode s w → ∀ op,
+    (hinstrs : ∀ seed s w, NodeRel bytecode seed s w → Limits s w → ∀ op,
       mainCount (H op) (hm fs 0 seed s w) (mainBsH fs SB SK (childBv Bvf w) s w) (K5 op s w) +
         jt op ≤ (b.instrs op).eval (work s w)) :
     MainComplete fs cert cnt b := by
@@ -69,9 +69,9 @@ theorem mainComplete_of_main (fs : String → ℕ) (cert : String → V → ℕ)
           ((mainPredsH s w (hDvNH s w) (Pvs w)).withTotal fs (mainBsH fs SB SK (childBv Bvf w) s w))) ks ∧
       calls (B1.Main.mEvs σ) = B1.Main.mCalls σ (hm fs 0 seed s w) ∧ bufs = B1.Main.mSizes (hData seed s w))
     (fun seed s w => Bmain fs SB SK (childBv Bvf w) 0 seed s w) hfs ?_ ?_ hwords
-  · intro seed s w hrel hlim hcap hnz
+  · intro seed s w hrel hlim hok
     obtain ⟨n, L, hn, hW, hab, hD, -, hR⟩ := main_honest_budgetB bytecode_length hrel hlim hxc hsc
-      hrf hS (hV seed s w hrel hlim hcap hnz)
+      hrf hS (hV seed s w hrel hlim hok)
     exact ⟨n, L, hn, hW, fun q hq => by simpa using hab q hq, hD, hR⟩
   · intro seed s w hrel hlim rd t hTt hv hb op
     obtain ⟨σ, bufs, ks, ht, hMV, hT, hc, -⟩ := hTt
@@ -99,12 +99,12 @@ theorem mainComplete_budget (fs : String → ℕ) (cert : String → V → ℕ) 
     (hfs : 2 ≤ fs "main") (hxc : B1.Sig.verify_lean_xmss_complete_Spec)
     (hsc : B1.Sig.verify_sig_lean_sphincs_complete_loads_Spec) (hrf : Lift.RunsFit fs cert)
     (hS : MainStatics fs SB SK)
-    (hV : ∀ seed s w, NodeRel bytecode seed s w → Limits bytecode s w →
-      CapsAgree bytecode seed w → NoZeroChallenge bytecode seed w →
+    (hV : ∀ seed s w, NodeRel bytecode seed s w → Limits s w →
+      ChildrenOk bytecode seed w →
       VerifySubGoalsTB fs cert 0 seed s w (Pvs w) (childBv Bvf w))
     (hcnt : ∀ (rd : Reader) (t : Tree), t.Valid coreProgram rd [] [] → ∀ op,
       cnt t op ≤ t.weight (ω op) + jt op) (c5 s5 : Opcode → ℕ) (v5 : Opcode → ℕ → ℕ → ℕ)
-    (h5 : ∀ seed s w, NodeRel bytecode seed s w → Limits bytecode s w → ∀ op (rd : Reader)
+    (h5 : ∀ seed s w, NodeRel bytecode seed s w → Limits s w → ∀ op (rd : Reader)
       (t : Tree) (args rets : List E), t.name = "__loop5" → t.Valid coreProgram rd args rets →
       t.BufsOk coreProgram → (mainPredsH s w (hDvNH s w) (Pvs w)).T5 t →
         t.weight (ω op) ≤ l5Lin (c5 op) (s5 op) (v5 op) (work s w)) :

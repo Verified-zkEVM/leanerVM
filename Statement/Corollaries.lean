@@ -61,15 +61,14 @@ open LeanVM.Protocol.Compile LeanVM.Protocol.Verifier LeanVM.Node LeanVM.Guest L
 
 /-- **Every recursion node of at most `2048` claims has a valid execution of the leanISA guest
 program**: for every seed, statement `s` and witness `w` with `NodeRel`, within the deployed limits
-(so at most `16` children, each at one of the guest program's opening arms), the caps agreeing and
-no zero challenge where the guest program divides, holding no raw leanXMSS or leanSPHINCS signature
-and no blob directly, with at most `2048` declared claims, coverage slots and children's declared
-claims, there is a valid execution of the leanISA guest program on the statement's digest of
+(so at most `16` children), every child one the guest program accepts (`ChildOk`), holding no raw
+leanXMSS or leanSPHINCS signature and no blob directly, with at most `2048` declared claims,
+coverage slots and children's declared claims, there is a valid execution of the leanISA guest program on the statement's digest of
 committed size in `[2^22, 2^28]`. The first family of `Covered`. -/
 abbrev GuestCompleteRecursion : Prop :=
   ∀ (seed : Digest) (s : NodeStatement) (w : NodeWitness),
-    NodeRel (bytecodeWords guest) seed s w → Limits (bytecodeWords guest) s w →
-    CapsAgree (bytecodeWords guest) seed w → NoZeroChallenge (bytecodeWords guest) seed w →
+    NodeRel (bytecodeWords guest) seed s w → Limits s w →
+    (∀ c ∈ w.children, ChildOk (bytecodeWords guest) seed c) →
     (direct s.claims.xmss w.xmss).length = 0 → (direct s.claims.sphincs w.sphincs).length = 0 →
     (direct s.claims.da w.da).length = 0 →
     s.claims.xmss.length + s.claims.sphincs.length + s.claims.da.length ≤ 2048 →
@@ -82,14 +81,14 @@ abbrev GuestCompleteRecursion : Prop :=
 
 /-- **Every leaf of at most `2048` raw signatures has a valid execution of the leanISA guest
 program**: for every seed, statement `s` and witness `w` with `NodeRel`, within the deployed limits,
-with no child and no blob held directly, at most `2048` raw leanXMSS and leanSPHINCS signatures
+every child one the guest program accepts (vacuous here), with no child and no blob held directly, at most `2048` raw leanXMSS and leanSPHINCS signatures
 together and at most `2048` declared claims and coverage slots, there is a valid execution of the
 leanISA guest program on the statement's digest of committed size in `[2^22, 2^28]`. The
 second family of `Covered`. -/
 abbrev GuestCompleteLeaf : Prop :=
   ∀ (seed : Digest) (s : NodeStatement) (w : NodeWitness),
-    NodeRel (bytecodeWords guest) seed s w → Limits (bytecodeWords guest) s w →
-    CapsAgree (bytecodeWords guest) seed w → NoZeroChallenge (bytecodeWords guest) seed w →
+    NodeRel (bytecodeWords guest) seed s w → Limits s w →
+    (∀ c ∈ w.children, ChildOk (bytecodeWords guest) seed c) →
     w.children = [] → (direct s.claims.da w.da).length = 0 →
     (direct s.claims.xmss w.xmss).length + (direct s.claims.sphincs w.sphincs).length ≤ 2048 →
     s.claims.xmss.length + s.claims.sphincs.length + s.claims.da.length ≤ 2048 →

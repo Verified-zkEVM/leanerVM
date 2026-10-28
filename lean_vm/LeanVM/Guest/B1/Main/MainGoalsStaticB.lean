@@ -106,7 +106,7 @@ theorem mainGoalL2B (hT : TotalLeOn coreProgram fs "__loop2" LoopPre (fun a => l
       simpa [logG_gen hl] using this).toDTB
 
 /-- **`da_list_digest` on the DA table's declared claims.** -/
-theorem mainGoalDlB {bytecode : List K} (hL : Limits bytecode s w) {SB : String → ℕ}
+theorem mainGoalDlB (hL : Limits s w) {SB : String → ℕ}
     (hT : TotalLe coreProgram fs "da_list_digest" (fun _ => SB "da_list_digest")) :
     MainGoalDlB fs cert fp seed s w SB := by
   refine daList_completeAtB fs cert _ hT fun rd h => ?_
@@ -142,7 +142,7 @@ theorem mainGoalStB {bytecode : List K} (hR : NodeRel bytecode seed s w)
       (digestBytes_eq_cells _) (digestBytes_eq_cells _) rfl hlen)
 
 /-- **`__loop3` on an honest run.** -/
-theorem mainGoalL3B (hn : NodeRel bytecode seed s w) (hl : Limits bytecode s w)
+theorem mainGoalL3B (hn : NodeRel bytecode seed s w) (hl : Limits s w)
     (hc : Sig.verify_lean_xmss_complete_Spec) {SK : String → ℕ}
     (hT : TotalLeOn coreProgram fs "__loop3" LoopPre (fun a => logG (a.getD 1 0) * SK "__loop3")) :
     MainGoalL3B fs cert fp seed s w SK := by
@@ -156,7 +156,7 @@ theorem mainGoalL3B (hn : NodeRel bytecode seed s w) (hl : Limits bytecode s w)
   exact h
 
 /-- **`__loop4` on an honest run.** -/
-theorem mainGoalL4B (hn : NodeRel bytecode seed s w) (hl : Limits bytecode s w)
+theorem mainGoalL4B (hn : NodeRel bytecode seed s w) (hl : Limits s w)
     (hc : Sig.verify_sig_lean_sphincs_complete_loads_Spec) {SK : String → ℕ}
     (hT : TotalLeOn coreProgram fs "__loop4" LoopPre (fun a => logG (a.getD 1 0) * SK "__loop4")) :
     MainGoalL4B fs cert fp seed s w SK := by
@@ -170,7 +170,7 @@ theorem mainGoalL4B (hn : NodeRel bytecode seed s w) (hl : Limits bytecode s w)
   exact h
 
 /-- **`cover_da_root` on an honest run.** -/
-theorem mainGoalCvB (hl : Limits bytecode s w) : MainGoalCvB fs cert fp seed s w := by
+theorem mainGoalCvB (hl : Limits s w) : MainGoalCvB fs cert fp seed s w := by
   intro h1
   obtain ⟨p, hp, hR⟩ := direct_da fs fp h1
   rw [hR]

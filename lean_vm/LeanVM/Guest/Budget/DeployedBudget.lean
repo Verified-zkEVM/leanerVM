@@ -34,8 +34,8 @@ noncomputable def deployedBudget (Bvf : ℕ → ℕ → ℕ) : Budget :=
 /-- **The guest is complete within the deployed budget**, each child's `verify_sub` complete within
 `Bvf` words at its announced stack log and rate, by a tree of `vsCnt op` instructions at it. -/
 theorem guest_complete_deployed {Pvs : NodeWitness → ℕ → Tree → Prop} {Bvf : ℕ → ℕ → ℕ}
-    (hV : ∀ seed s w, NodeRel bytecode seed s w → Limits bytecode s w →
-      CapsAgree bytecode seed w → NoZeroChallenge bytecode seed w →
+    (hV : ∀ seed s w, NodeRel bytecode seed s w → Limits s w →
+      ChildrenOk bytecode seed w →
       VerifySubGoalsTB B2C.fs B2C.cert 0 seed s w (Pvs w) (childBv Bvf w))
     (hPv : ∀ op (w : NodeWitness) c (hc : c < w.children.length) (rd : Reader) (t : Tree)
       (args rets : List E), Pvs w c t → t.Valid coreProgram rd args rets → t.BufsOk coreProgram →

@@ -46,7 +46,7 @@ variable {bytecode : List K} {seed : Digest} {s : NodeStatement} {w : NodeWitnes
 /-! ## Bounds -/
 
 /-- The coverage table is below `2^16`. -/
-theorem regions_lt (hl : Limits bytecode s w) : rX s w + rY s w + rS s w < 2 ^ 16 := by
+theorem regions_lt (hl : Limits s w) : rX s w + rY s w + rS s w < 2 ^ 16 := by
   have := hl.coverage
   rw [coverage_eq] at this
   simp only [List.length_append] at this
@@ -156,7 +156,7 @@ def rawXD (hn : NodeRel bytecode seed s w) (d0 : XmssClaim × LeanXmss.Signature
   regClaim _ hi _ hk := xs_regClaim hi hk
 
 /-- **`__loop3` on an honest run.** -/
-theorem mainGoalL3 (hn : NodeRel bytecode seed s w) (hl : Limits bytecode s w)
+theorem mainGoalL3 (hn : NodeRel bytecode seed s w) (hl : Limits s w)
     (hc : Sig.verify_lean_xmss_complete_Spec) : MainGoalL3 fs cert fp seed s w := by
   intro h0
   have hpos : 0 < (hRawX s w).length := Nat.pos_of_ne_zero h0
@@ -235,7 +235,7 @@ def rawSD (hn : NodeRel bytecode seed s w) (d0 : SphincsClaim × Sphincs.Signatu
   regBytes _ hv := bytes_region hv
 
 /-- **`__loop4` on an honest run.** -/
-theorem mainGoalL4 (hn : NodeRel bytecode seed s w) (hl : Limits bytecode s w)
+theorem mainGoalL4 (hn : NodeRel bytecode seed s w) (hl : Limits s w)
     (hc : Sig.verify_sig_lean_sphincs_complete_loads_Spec) : MainGoalL4 fs cert fp seed s w := by
   intro h0
   have hpos : 0 < (hRawS s w).length := Nat.pos_of_ne_zero h0
@@ -294,7 +294,7 @@ theorem mainGoalDv (hn : NodeRel bytecode seed s w) (hrf : Lift.RunsFit fs cert)
       show i < etB fs (mK0 (hData seed s w) fs fp) + 34 + (etTabs.getD 1 []).length by omega⟩
 
 /-- **`cover_da_root` on an honest run.** -/
-theorem mainGoalCv (hl : Limits bytecode s w) : MainGoalCv fs cert fp seed s w := by
+theorem mainGoalCv (hl : Limits s w) : MainGoalCv fs cert fp seed s w := by
   intro h1
   obtain ⟨p, hp, hR⟩ := direct_da fs fp h1
   rw [hR]

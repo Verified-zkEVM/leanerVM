@@ -31,7 +31,7 @@ theorem mainGoalAgTB (cert : String → V → ℕ) (SB SK : String → ℕ)
     (hbs : TotalLe coreProgram fs "batch_sumcheck__L23" (fun _ => SB "batch_sumcheck__L23"))
     {bytecode : List K}
     (hbl : bytecode.length = 2 ^ bytecodeVars) (hrel : NodeRel bytecode seed s w)
-    (hl : Limits bytecode s w) : (hm fs fp seed s w).nc ≠ 0 →
+    (hl : Limits s w) : (hm fs fp seed s w).nc ≠ 0 →
       CompleteAtDTB fs cert 16 "aggregate_claims" (hLmain fs fp seed s w)
         [gen ^ (hm fs fp seed s w).nc, (hm fs fp seed s w).a394, (hm fs fp seed s w).a400,
           (hm fs fp seed s w).a406, (hm fs fp seed s w).a417] (Returns [])

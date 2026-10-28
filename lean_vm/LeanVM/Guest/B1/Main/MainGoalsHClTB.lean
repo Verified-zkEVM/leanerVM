@@ -34,7 +34,7 @@ open LeanVM.Guest.B1.Digest (ccB)
 variable {fs : String → ℕ} {fp : ℕ} {seed : Digest} {s : NodeStatement} {w : NodeWitness}
 
 /-- **Child `c`'s leanXMSS list is complete.** -/
-theorem kidTB_hX (cert : String → V → ℕ) {bytecode : List K} (hl : Limits bytecode s w) {c : ℕ}
+theorem kidTB_hX (cert : String → V → ℕ) (hl : Limits s w) {c : ℕ}
     (hc : c < w.children.length) {SB : String → ℕ}
     (hLS : TotalLe coreProgram fs "list_split" (fun _ => SB "list_split")) :
     CompleteAtDTB fs cert 16 "child_claim_list_digest" (hLmain fs fp seed s w)
@@ -115,7 +115,7 @@ theorem kidTB_hX (cert : String → V → ℕ) {bytecode : List K} (hl : Limits 
   rwa [pow_zero] at this
 
 /-- **Child `c`'s leanSPHINCS list is complete.** -/
-theorem kidTB_hS (cert : String → V → ℕ) {bytecode : List K} (hl : Limits bytecode s w) {c : ℕ}
+theorem kidTB_hS (cert : String → V → ℕ) (hl : Limits s w) {c : ℕ}
     (hc : c < w.children.length) {SB : String → ℕ}
     (hLS : TotalLe coreProgram fs "list_split" (fun _ => SB "list_split")) :
     CompleteAtDTB fs cert 16 "child_claim_list_digest" (hLmain fs fp seed s w)
@@ -202,8 +202,8 @@ theorem kidTB_hS (cert : String → V → ℕ) {bytecode : List K} (hl : Limits 
 
 /-- **The children's claim lists' digests on the honest run, by trees of honest shape, within
 `ccB`.** -/
-theorem childListGoalsTB_honest (cert : String → V → ℕ) {bytecode : List K}
-    (hl : Limits bytecode s w) {SB : String → ℕ}
+theorem childListGoalsTB_honest (cert : String → V → ℕ)
+    (hl : Limits s w) {SB : String → ℕ}
     (hLS : TotalLe coreProgram fs "list_split" (fun _ => SB "list_split")) :
     ChildListGoalsTB fs cert fp seed s w (fun c => ccHonest (hKid s w c).ex)
       (fun c => ccHonest (hKid s w c).es) (fun c => ccB fs SB (hKid s w c).ex)

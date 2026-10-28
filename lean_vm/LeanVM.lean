@@ -224,13 +224,13 @@ theorem LeanVM.corollaries_of_theorems {decode : LeanVM.Node.Decoder}
     · exact Or.inl ⟨h1, h2, h1 ▸ h2 ▸ hrel⟩
     · exact Or.inr hc
   guestCompleteRecursion := by
-    intro seed s w hrel hlim hcap hnz hx hs hd hdecl hcov hkids
-    refine h.guestCompleteCovered seed s w hrel hlim hcap hnz ?_
+    intro seed s w hrel hlim hok hx hs hd hdecl hcov hkids
+    refine h.guestCompleteCovered seed s w hrel hlim hok ?_
     simp only [LeanVM.Guest.Budget.Covered]
     exact Or.inl ⟨by omega, hd, hdecl, hcov, hkids⟩
   guestCompleteLeaf := by
-    intro seed s w hrel hlim hcap hnz hch hd hraw hdecl hcov
-    refine h.guestCompleteCovered seed s w hrel hlim hcap hnz ?_
+    intro seed s w hrel hlim hok hch hd hraw hdecl hcov
+    refine h.guestCompleteCovered seed s w hrel hlim hok ?_
     simp only [LeanVM.Guest.Budget.Covered]
     exact Or.inr (Or.inl ⟨by simp [hch], hd, hraw, hdecl, hcov⟩)
 

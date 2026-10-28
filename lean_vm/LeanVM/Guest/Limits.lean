@@ -17,34 +17,21 @@ public import Statement.LeanVmGuest
 
 `NodeRel bytecode seed s w` (`Statement/LeanVmGuest.lean`) admits witnesses on which the deployed guest
 (`crates/rec_aggregation/guests/lean_ethereum.py` at leanVM `4af2cddd`, `G:N` its lines) does
-not run to completion. Completeness assumes three hypotheses beside `NodeRel`, each a precise
+not run to completion. Completeness assumes two hypotheses beside `NodeRel`, each a precise
 predicate on the witness:
 
-* **`Limits s w`, the deployed limits**: the guest's fixed capacities and range checks, which the
-  Spec does not have (a child's stack log at least `22`, its proof stream at most `8192` scalars,
-  at most `16` children, ...; listed at the structure). They are the triage's findings (the
-  README's "The guest's triage"): an honest prover within them is never refused, and
-  `aggregate_with_stats` refuses to aggregate outside most of them.
-* **`CapsAgree bytecode seed w`, the openings agree in the caps**: the guest writes each level's
-  Merkle cap once (write-once memory), so two openings of one query step meeting at a node of the
-  tree must give it one digest; the Spec checks each opening alone against the root. One tree's
-  openings agree; two that disagree at a node give a Keccak-256 collision (the root's
-  preimages; an argument in prose, not proved here). Stated, as `B1.Whir.CapsAgree` is for one opening, at every node of the tree, which
-  is stronger than the cap levels alone and fails on the same collisions.
-* **`NoZeroChallenge bytecode seed w`, no zero challenge where the guest divides** (new at
-  `keccak-gkr`): the guest computes `μ = 1/λ` for each WHIR level's batching challenge `λ`
-  (`opening_queries`, G:1253) and the basis coefficients `(1 + c)/(c·inv)` for the fold and tail
-  challenges `c` (`open_stacked`, G:1560, G:1565), so a zero challenge there makes it reject a
-  child the Spec accepts. Stated as: every child's proof is accepted by the deferring verifier
-  whose stacked opening also rejects a zero fold, tail or level batching challenge
-  (`verifyDeferredNZ`). Each challenge is a squeeze of Keccak-f[1600] (three lanes, `2^192`
-  values), so in the random-permutation model an honest child's proof meets one with probability
-  about `(number of those challenges)·2^-192` (an estimate in prose, not proved here).
-
-`NoZeroChallenge` is the node-level form of `B1.Whir.NoZeroChallenge` (the opening's run from a
-sponge state, `B1/Whir/CompleteIface.lean`); `verifyDeferredNZ`'s opening is `whirLevelsNZ`, the
-Spec's `whirLevels` with exactly that program's three `require`s (`foldRoundsNZ`,
-`tailRoundsNZ`, `lam ≠ 0`).
+* **`Limits s w`, the deployed limits** of the node: the guest's fixed capacities and range
+  checks, which the Spec does not have (at most `16` children, ...; listed at the structure). An
+  honest prover within them is never refused, and `aggregate_with_stats` refuses to aggregate
+  outside most of them.
+* **`ChildrenOk bytecode seed w`, every child one the guest accepts** (`ChildOk`): besides
+  `NodeRel`'s conditions, a child's stack log at least `22` and its proof stream at most `8192`
+  scalars; its openings agree in the guest's Merkle caps (the guest writes each level's Merkle
+  cap once, so two openings of one query step meeting at a node of the tree must give it one
+  digest; one tree's openings agree; two that disagree at a node give a Keccak-256 collision, an
+  argument in prose, not proved here); and no zero challenge where the guest divides (the guest
+  computes `μ = 1/λ` for each WHIR level's batching challenge `λ`, G:1253, and the basis
+  coefficients `(1 + c)/(c·inv)` for the fold and tail challenges `c`, G:1560, G:1565).
 
 The coverage table's size (`coverage`) is `Hints.plan`'s, as an honest run lays it out.
 -/
@@ -58,7 +45,19 @@ open LeanVM.Protocol.Compile LeanVM.Protocol.Verifier LeanVM.Node
 
 open Limits
 
-/-! ## The three hypotheses -/
+/-! ## The children's hypotheses -/
+
+/-- **Every child is one the guest accepts.** -/
+abbrev ChildrenOk (bytecode : List K) (seed : Digest) (w : NodeWitness) : Prop :=
+  ∀ c ∈ w.children, ChildOk bytecode seed c
+
+/-- A child the guest accepts is accepted by the deferring verifier refusing a zero fold, tail or
+level batching challenge. -/
+theorem Limits.verifyDeferredNZ_of_childOk {bytecode : List K} {seed : Digest} {c : Child}
+    (h : ChildOk bytecode seed c) :
+    Limits.verifyDeferredNZ bytecode seed (statementDigest seed c.statement) c.fresh c.proof =
+      true :=
+  h.noZeroChallenge
 
 /-! ## What `NodeRel` gives of the children's fresh claims -/
 

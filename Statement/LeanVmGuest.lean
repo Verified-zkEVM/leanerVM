@@ -708,22 +708,28 @@ def BatchAgrees (depth : ℕ) (qs : List (ℕ × Opening)) : Prop :=
 
 end Limits
 
-open Limits in
-/-- **No zero challenge where the guest program divides** (`G:1253, 1560, 1565`): every child's
-proof is accepted by the deferring verifier whose stacked opening also refuses a zero fold
-challenge, a zero tail challenge and a zero level batching challenge `λ`, under the node's seed. -/
-def NoZeroChallenge (bytecode : List K) (seed : Digest) (w : NodeWitness) : Prop :=
-  ∀ c ∈ w.children,
-    verifyDeferredNZ bytecode seed (statementDigest seed c.statement) c.fresh c.proof = true
-
-open Limits in
-/-- **A child's openings agree in the guest program's Merkle caps**: at every query step of each
-child's deferring verifier, run under the node's seed, the step's openings agree wherever they meet.
-One tree's openings, the honest prover's, agree. -/
-def CapsAgree (bytecode : List K) (seed : Digest) (w : NodeWitness) : Prop :=
-  ∀ c ∈ w.children, ∀ b ∈ queriesOf
+/-- **A child the guest program accepts** under the seed `seed`: what the guest program asks of
+each child, `NodeRel`'s two conditions (`shaped`, `verifies`) and the deployed ones:
+* its stack log is at least `MU_MIN = 22`: the guest program has one opening arm per stack log in
+  `[22, 28]` (G:3314-3316); the verifier admits stack logs from `Whir.minLogStack`;
+* its proof stream is at most `STREAM_CAP = 8192` scalars (G:3165);
+* its openings agree in the guest program's Merkle caps: at every query step of its deferring
+  verifier, run under the node's seed, the step's openings agree wherever they meet (one tree's
+  openings, the honest prover's, agree);
+* no zero challenge where the guest program divides (G:1253, 1560, 1565): its proof is accepted
+  by the deferring verifier whose stacked opening also refuses a zero fold challenge, a zero tail
+  challenge and a zero level batching challenge `λ`. -/
+structure ChildOk (bytecode : List K) (seed : Digest) (c : Child) : Prop where
+  shaped : c.statement.defer.Shaped bytecode
+  verifies : verifyDeferred bytecode seed (statementDigest seed c.statement) c.fresh c.proof = true
+  stackLog : ∀ layout r, announced bytecode c.proof.stream = some (layout, r) →
+    Hints.muMin ≤ layout.stackLog
+  stream : c.proof.stream.length ≤ Hints.streamCap
+  capsAgree : ∀ b ∈ Limits.queriesOf
       (deferredProgram c.fresh bytecode (statementDigest seed c.statement)) (Hints.childStart seed c),
-    BatchAgrees b.1 b.2
+    Limits.BatchAgrees b.1 b.2
+  noZeroChallenge :
+    Limits.verifyDeferredNZ bytecode seed (statementDigest seed c.statement) c.fresh c.proof = true
 
 open Hints in
 /-- The coverage table's slots (`n_total`, G:4135): each region's declared claims and its
@@ -738,18 +744,12 @@ def coverage (s : NodeStatement) (w : NodeWitness) : ℕ :=
       (ch.map (·.statement.claims.da))).dups.length
 
 open Hints in
-/-- **The deployed limits**, where `NodeRel` admits witnesses the guest
-program cannot run. Implied by these, with `NodeRel`, and so not limits of their own: a child's
-stack log at most `28` and rate in `[1, 4]` (`readSizes`), the duplicate DA slots below `258`
+/-- **The deployed limits**, where `NodeRel` admits witnesses the guest program cannot run; a
+child's own limits are `ChildOk`'s. Implied by these, with `NodeRel` and `ChildOk`, and so not
+limits of their own: a child's stack log at most `28` and rate in `[1, 4]` (`readSizes`), the duplicate DA slots below `258`
 (G:4127-4129), every count of `meta` below `2^16` (G:4114-4119), the bus depth at most `32`
 (G:1630), the tables' heights at most `28` (G:2010). -/
-structure Limits (bytecode : List K) (s : NodeStatement) (w : NodeWitness) : Prop where
-  /-- A child's stack log is at least `MU_MIN = 22`: the guest program has one opening arm per
-  stack log in `[22, 28]` (G:3314-3316); the verifier admits stack logs from `Whir.minLogStack`. -/
-  stackLog : ∀ c ∈ w.children, ∀ layout r, announced bytecode c.proof.stream = some (layout, r) →
-    muMin ≤ layout.stackLog
-  /-- A child's proof stream is at most `STREAM_CAP = 8192` scalars (G:3165). -/
-  stream : ∀ c ∈ w.children, c.proof.stream.length ≤ streamCap
+structure Limits (s : NodeStatement) (w : NodeWitness) : Prop where
   /-- At most one DA claim is held directly (G:4121). -/
   directDa : (direct s.claims.da w.da).length ≤ 1
   /-- A claim declared `n` times is held `n` times, by witnesses or by distinct entries of the
@@ -804,15 +804,14 @@ def Covered (s : NodeStatement) (w : NodeWitness) : Prop :=
 
 /-- **Every covered node has a valid execution of the leanISA guest program**: for every seed,
 statement `s` and witness `w` with `NodeRel`, within the deployed limits (so at most `16`
-children, each at one of the guest program's opening arms), the caps agreeing and no zero
-challenge where the guest program divides, and `s` and `w` in one of the families `Covered`
-lists, there is a valid execution of the leanISA guest program on the statement's digest of
+children), every child one the guest program accepts (`ChildOk`: at one of its opening arms, its
+openings agreeing in the caps, no zero challenge), and `s` and `w` in one of the families
+`Covered` lists, there is a valid execution of the leanISA guest program on the statement's digest of
 committed size in `[2^22, 2^28]`. Proved by `LeanVM.Guest.Budget.guest_complete_covered`. -/
 abbrev GuestCompleteCovered : Prop :=
   ∀ (seed : Digest) (s : NodeStatement) (w : NodeWitness),
-    NodeRel (bytecodeWords guest) seed s w → Limits (bytecodeWords guest) s w →
-    CapsAgree (bytecodeWords guest) seed w → NoZeroChallenge (bytecodeWords guest) seed w →
-    Covered s w →
+    NodeRel (bytecodeWords guest) seed s w → Limits s w →
+    (∀ c ∈ w.children, ChildOk (bytecodeWords guest) seed c) → Covered s w →
     ∃ t : Trace guest,
       ValidExecution guest (PublicInput.ofDigest (statementDigest seed s)) t ∧
       2 ^ 22 ≤ t.committedSize ∧ t.committedSize ≤ 2 ^ 28
@@ -843,20 +842,6 @@ open OracleComp in
 def atKeccak (prover : HonestProver) (prog : Program) (input : PublicInput)
     (t : Trace prog) (ρ fuel : ℕ) : Proof :=
   Id.run (simulateQ keccakImpl (prover prog input t ρ fuel))
-
-/-- **A child the guest program accepts** under the seed `seed`: what `NodeRel`, `Limits`,
-`CapsAgree` and `NoZeroChallenge` ask of each child. -/
-structure ChildOk (bytecode : List K) (seed : Digest) (c : Child) : Prop where
-  shaped : c.statement.defer.Shaped bytecode
-  verifies : verifyDeferred bytecode seed (statementDigest seed c.statement) c.fresh c.proof = true
-  stackLog : ∀ layout r, announced bytecode c.proof.stream = some (layout, r) →
-    Hints.muMin ≤ layout.stackLog
-  stream : c.proof.stream.length ≤ Hints.streamCap
-  capsAgree : ∀ b ∈ Limits.queriesOf
-      (deferredProgram c.fresh bytecode (statementDigest seed c.statement)) (Hints.childStart seed c),
-    Limits.BatchAgrees b.1 b.2
-  noZeroChallenge :
-    Limits.verifyDeferredNZ bytecode seed (statementDigest seed c.statement) c.fresh c.proof = true
 
 open OracleComp OracleSpec in
 /-- **The honest proof of an execution of the guest program is a child the guest program accepts**:

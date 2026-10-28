@@ -536,34 +536,34 @@ theorem made_count {α : Type} [BEq α] {R : List α} {Cs : List (List α)} (x :
 
 variable {bytecode : List K} {s w}
 
-theorem xPlan_held (hl : Limits bytecode s w) : ∀ x, s.claims.xmss.count x ≤
+theorem xPlan_held (hl : Limits s w) : ∀ x, s.claims.xmss.count x ≤
     (made ((direct s.claims.xmss w.xmss).map (·.1)) (w.children.map (·.statement.claims.xmss))).count x :=
   fun x => by rw [made_count, List.map_map]; exact hl.xmssHeld x
 
-theorem sPlan_held (hl : Limits bytecode s w) : ∀ x, s.claims.sphincs.count x ≤
+theorem sPlan_held (hl : Limits s w) : ∀ x, s.claims.sphincs.count x ≤
     (made ((direct s.claims.sphincs w.sphincs).map (·.1))
       (w.children.map (·.statement.claims.sphincs))).count x :=
   fun x => by rw [made_count, List.map_map]; exact hl.sphincsHeld x
 
-theorem dPlan_held (hl : Limits bytecode s w) : ∀ x, s.claims.da.count x ≤
+theorem dPlan_held (hl : Limits s w) : ∀ x, s.claims.da.count x ≤
     (made ((direct s.claims.da w.da).map (·.1)) (w.children.map (·.statement.claims.da))).count x :=
   fun x => by rw [made_count, List.map_map]; exact hl.daHeld x
 
 /-- **Under `Limits`, each region's slots are its table's indices.** -/
-theorem xPlan_perm (hl : Limits bytecode s w) :
+theorem xPlan_perm (hl : Limits s w) :
     (slotsOf (xPlan s w)).Perm (List.range (s.claims.xmss ++ (xPlan s w).dups).length) :=
   plan_perm _ _ _ (xPlan_held hl)
 
-theorem sPlan_perm (hl : Limits bytecode s w) :
+theorem sPlan_perm (hl : Limits s w) :
     (slotsOf (sPlan s w)).Perm (List.range (s.claims.sphincs ++ (sPlan s w).dups).length) :=
   plan_perm _ _ _ (sPlan_held hl)
 
-theorem dPlan_perm (hl : Limits bytecode s w) :
+theorem dPlan_perm (hl : Limits s w) :
     (slotsOf (dPlan s w)).Perm (List.range (s.claims.da ++ (dPlan s w).dups).length) :=
   plan_perm _ _ _ (dPlan_held hl)
 
 /-- **Under `Limits`, the coverage table has one slot per claim made**, raw or by a child. -/
-theorem coverage_made (hl : Limits bytecode s w) : coverage s w =
+theorem coverage_made (hl : Limits s w) : coverage s w =
     (made ((direct s.claims.xmss w.xmss).map (·.1)) (w.children.map (·.statement.claims.xmss))).length +
     (made ((direct s.claims.sphincs w.sphincs).map (·.1))
       (w.children.map (·.statement.claims.sphincs))).length +

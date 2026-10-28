@@ -88,7 +88,7 @@ theorem guestChildComplete_of_spec (A : HonestProver) (hA : SpecOnValid A ChildF
       let input := PublicInput.ofDigest (statementDigest (deployedSeed Guest.guest) s)
       let proof := Guest.Budget.atKeccak A Guest.guest input t ρ (2 ^ 25)
       Guest.Budget.verifierNZ (m := Id) keccak256 keccakF Guest.guest input proof = true →
-      ∃ fresh, Guest.Budget.ChildOk (bytecodeWords Guest.guest) (deployedSeed Guest.guest)
+      ∃ fresh, Guest.LeanVM.Guest.ChildOk (bytecodeWords Guest.guest) (deployedSeed Guest.guest)
         ⟨s, fresh, proof⟩ := by
   refine ⟨fun prog input t ρ hv hbudget hρ ↦ ?_, fun s t ρ h22 hsh hacc ↦
     childOk_of_verifierNZ_of (hA' _ _ _ _ _) h22 hsh hacc⟩

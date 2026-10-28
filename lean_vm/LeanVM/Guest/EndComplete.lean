@@ -43,8 +43,7 @@ on every memory holding which with the statement's digest as its header `main` h
 placed at `0`, of `N` words, loading from its own data or its header, within the budget's
 instruction counts. -/
 def MainComplete : Prop :=
-  ∀ seed s w, NodeRel bytecode seed s w → Limits bytecode s w → CapsAgree bytecode seed w →
-    NoZeroChallenge bytecode seed w → b.size (work s w) ≤ 2 ^ 28 →
+  ∀ seed s w, NodeRel bytecode seed s w → Limits s w → ChildrenOk bytecode seed w → b.size (work s w) ≤ 2 ^ 28 →
     ∃ (N : ℕ) (L : Layout), LConsistent L ∧ (∀ q ∈ L, 2 ≤ q.1 ∧ q.1 + q.2.length ≤ N) ∧
       N ≤ 2 ^ 32 ∧ N ≤ b.words.eval (work s w) ∧
       ∀ rd, LowDef 16 rd → MemL rd L → rd 1 = some (hdrOf (statementDigest seed s)).1 →
@@ -88,13 +87,12 @@ variable {fs H C cert cnt b}
 invariance. -/
 theorem honest_of_main (hm : MainComplete fs cert cnt b) (hk : KFactsAll fs H C cert)
     (hc : CntRetemp fs cnt) :
-    ∀ seed s w, NodeRel bytecode seed s w → Limits bytecode s w → CapsAgree bytecode seed w →
-      NoZeroChallenge bytecode seed w → b.size (work s w) ≤ 2 ^ 28 →
+    ∀ seed s w, NodeRel bytecode seed s w → Limits s w → ChildrenOk bytecode seed w → b.size (work s w) ≤ 2 ^ 28 →
       ∃ (rd : Reader) (T : Tree), T.name = "main" ∧
         HonestAt coreProgram fs H C (hdrOf (statementDigest seed s)) T cert rd [] [] ∧
         T.total fs ≤ b.words.eval (work s w) ∧ ∀ op, cnt T op ≤ (b.instrs op).eval (work s w) := by
-  intro seed s w hrel hlim hcap hnz hbs
-  obtain ⟨N, L, hcons, hin, hN, hNb, hrelL⟩ := hm seed s w hrel hlim hcap hnz hbs
+  intro seed s w hrel hlim hok hbs
+  obtain ⟨N, L, hcons, hin, hN, hNb, hrelL⟩ := hm seed s w hrel hlim hok hbs
   set hdr := hdrOf (statementDigest seed s) with hhdr
   have h16 : 16 ≤ logMem N := minLogMem_le_logMem N
   have h64 : logMem N < 64 := by have := logMem_le_maxLogMem hN; unfold maxLogMem at this; omega

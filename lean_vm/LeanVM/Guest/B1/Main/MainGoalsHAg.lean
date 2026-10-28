@@ -100,7 +100,7 @@ theorem hkids_words {bytecode : List K} (hbl : bytecode.length = 2 ^ bytecodeVar
 bytecode of `2^bytecodeVars` words. -/
 theorem mainGoalAg (cert : String → V → ℕ) {bytecode : List K}
     (hbl : bytecode.length = 2 ^ bytecodeVars) (hrel : NodeRel bytecode seed s w)
-    (hl : Limits bytecode s w) : MainGoalAg fs cert fp seed s w := by
+    (hl : Limits s w) : MainGoalAg fs cert fp seed s w := by
   intro hnc
   have hnc' : w.children.length ≠ 0 := hnc
   have hne : w.children ≠ [] := fun h => hnc' (by rw [h, List.length_nil])

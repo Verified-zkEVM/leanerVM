@@ -125,8 +125,8 @@ an execution of the guest on the statement's digest whose honest proof, at an in
 `completenessError fuel + rpmError (completenessPermCalls fuel)` (`Rpm.completenessRpm`). -/
 theorem aggregate_complete_of {budget : NodeStatement → NodeWitness → ℕ}
     (h : GuestComplete budget) {seed : Digest} {s : NodeStatement} {w : NodeWitness}
-    (hrel : NodeRel bytecode seed s w) (hlim : Limits bytecode s w)
-    (hcap : CapsAgree bytecode seed w) (hnz : NoZeroChallenge bytecode seed w) (hbudget : budget s w ≤ 2 ^ 28) :
+    (hrel : NodeRel bytecode seed s w) (hlim : Limits s w)
+    (hok : ChildrenOk bytecode seed w) (hbudget : budget s w ≤ 2 ^ 28) :
     ∃ t : Trace guest, ValidExecution guest (publicInputOf (statementDigest seed s)) t ∧
       ∀ ρ fuel, 1 ≤ ρ ∧ ρ ≤ 4 → fuel ≤ 2 ^ 64 →
         Pr{let v ← rpmCompletenessExperiment
@@ -134,7 +134,7 @@ theorem aggregate_complete_of {budget : NodeStatement → NodeWitness → ℕ}
               LeanVM.Protocol.EndToEnd.Complete.honestComp prog input t ρ fuel)
             guest (publicInputOf (statementDigest seed s)) t ρ fuel}[v = false] ≤
           completenessError fuel + rpmError (completenessPermCalls fuel) := by
-  obtain ⟨t, hv, -, hsize⟩ := h seed s w hrel hlim hcap hnz hbudget
+  obtain ⟨t, hv, -, hsize⟩ := h seed s w hrel hlim hok hbudget
   exact ⟨t, hv, fun _ _ hρ hfuel ↦ Rpm.completenessRpm hv (by omega) hρ hfuel⟩
 
 end LeanVM.Guest.End

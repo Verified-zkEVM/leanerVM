@@ -70,7 +70,7 @@ theorem childOk_of_verifierNZ_of {A : HonestProver} {s : NodeStatement} {t : Tra
       (publicInputOf (statementDigest (deployedSeed guest) s))
       (Budget.atKeccak A guest (publicInputOf (statementDigest (deployedSeed guest) s))
         t ρ (2 ^ 25)) = true) :
-    ∃ fresh, Budget.ChildOk bytecode (deployedSeed guest) ⟨s, fresh,
+    ∃ fresh, LeanVM.Guest.ChildOk bytecode (deployedSeed guest) ⟨s, fresh,
       Budget.atKeccak A guest (publicInputOf (statementDigest (deployedSeed guest) s))
         t ρ (2 ^ 25)⟩ := by
   set d := statementDigest (deployedSeed guest) s with hd
@@ -122,7 +122,7 @@ theorem childOk_of_verifierNZ {s : NodeStatement} {t : Trace guest} {ρ : ℕ}
       (publicInputOf (statementDigest (deployedSeed guest) s))
       (Budget.atKeccak childProver guest (publicInputOf (statementDigest (deployedSeed guest) s))
         t ρ (2 ^ 25)) = true) :
-    ∃ fresh, Budget.ChildOk bytecode (deployedSeed guest) ⟨s, fresh,
+    ∃ fresh, LeanVM.Guest.ChildOk bytecode (deployedSeed guest) ⟨s, fresh,
       Budget.atKeccak childProver guest (publicInputOf (statementDigest (deployedSeed guest) s))
         t ρ (2 ^ 25)⟩ :=
   childOk_of_verifierNZ_of (childSpec_childProver _ _ _ _ _) h22 hsh hacc

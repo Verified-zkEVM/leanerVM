@@ -225,7 +225,7 @@ theorem kid_counts (w : NodeWitness) (c : ℕ) : hEx w c + hEs w c + hEd w c =
   cases w.children[c]? <;> rfl
 
 /-- A child's DA roots are at most `16` (`MAX_DA_ROOTS`). -/
-theorem hEd_le {bytecode : List K} {s : NodeStatement} {w : NodeWitness} (hl : Limits bytecode s w)
+theorem hEd_le {s : NodeStatement} {w : NodeWitness} (hl : Limits s w)
     (c : ℕ) : hEd w c ≤ 16 := by
   simp only [hEd, List.getD_eq_getElem?_getD, List.getElem?_map]
   cases h : w.children[c]? with
@@ -234,8 +234,8 @@ theorem hEd_le {bytecode : List K} {s : NodeStatement} {w : NodeWitness} (hl : L
 
 /-- **The children's loop's words**: a constant, each child's constant and `verify_sub`'s bound
 `Bv c`, and a slope per child's claim. -/
-theorem l5B_le (Bv : ℕ → ℕ) {bytecode : List K} {s : NodeStatement} {w : NodeWitness}
-    (hl : Limits bytecode s w) (hnc : w.children.length ≠ 0) :
+theorem l5B_le (Bv : ℕ → ℕ) {s : NodeStatement} {w : NodeWitness}
+    (hl : Limits s w) (hnc : w.children.length ≠ 0) :
     l5B fs SB (fun c => B1.Digest.ccB fs SB (hKid s w c).ex) (fun c => B1.Digest.ccB fs SB (hKid s w c).es)
       Bv s w ≤ l5A0 fs + w.children.length * l5A1 fs SB +
         ∑ c ∈ Finset.range w.children.length, Bv c + l5A2 fs * (End.work s w).childClaims := by
@@ -283,7 +283,7 @@ theorem l5B_le (Bv : ℕ → ℕ) {bytecode : List K} {s : NodeStatement} {w : N
 /-! ## `da_verify` at the direct witness, `aggregate_claims` -/
 
 theorem hDvB_le {bytecode : List K} {seed : Digest} {s : NodeStatement} {w : NodeWitness}
-    (hr : NodeRel bytecode seed s w) (hl : Limits bytecode s w) :
+    (hr : NodeRel bytecode seed s w) (hl : Limits s w) :
     hDvB fs SB SK s w ≤ (End.work s w).rawDa * dvC fs SB + (End.work s w).rawDaRows * dvS SB SK := by
   have h1 := hl.directDa
   unfold hDvB
@@ -414,7 +414,7 @@ theorem kidsBoundL_mKids (m : MainIn) (L : Layout) (b : MainBs) :
 /-- **`main`'s words on the honest run within the budget**, child `c`'s `verify_sub` within
 `childBv Bvf w c`. -/
 theorem Bmain_le (Bvf : ℕ → ℕ → ℕ) {bytecode : List K} {seed : Digest} {s : NodeStatement}
-    {w : NodeWitness} (hr : NodeRel bytecode seed s w) (hl : Limits bytecode s w) :
+    {w : NodeWitness} (hr : NodeRel bytecode seed s w) (hl : Limits s w) :
     Bmain fs SB SK (childBv Bvf w) 0 seed s w ≤ (mainWords fs SB SK Bvf).eval (End.work s w) := by
   have hmsz := mSizes_sum seed s w
   have hX := clB_le fs SB SK s.claims.xmss.length

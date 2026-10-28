@@ -59,7 +59,7 @@ theorem MainGoalClSTB.toT {SB SK : String → ℕ} (h : MainGoalClSTB fs cert fp
 
 /-- **`claim_list_digest` on the leanXMSS table's declared claims, by a tree of honest shape, within
 `clB`.** -/
-theorem mainGoalClXTB {bytecode : List K} (hL : Limits bytecode s w) {SB SK : String → ℕ}
+theorem mainGoalClXTB (hL : Limits s w) {SB SK : String → ℕ}
     (hLS : TotalLe coreProgram fs "list_split" (fun _ => SB "list_split"))
     (hL16 : TotalLeOn coreProgram fs "__loop16" LoopPre (fun a => logG (a.getD 1 0) * SK "__loop16"))
     (hCL : ∀ j < 17, TotalLe coreProgram fs clNames[j]! (fun _ => SB clNames[j]!)) :
@@ -94,7 +94,7 @@ theorem mainGoalClXTB {bytecode : List K} (hL : Limits bytecode s w) {SB SK : St
 
 /-- **`claim_list_digest` on the leanSPHINCS table's declared claims, by a tree of honest shape,
 within `clB`.** -/
-theorem mainGoalClSTB {bytecode : List K} (hL : Limits bytecode s w) {SB SK : String → ℕ}
+theorem mainGoalClSTB (hL : Limits s w) {SB SK : String → ℕ}
     (hLS : TotalLe coreProgram fs "list_split" (fun _ => SB "list_split"))
     (hL16 : TotalLeOn coreProgram fs "__loop16" LoopPre (fun a => logG (a.getD 1 0) * SK "__loop16"))
     (hCL : ∀ j < 17, TotalLe coreProgram fs clNames[j]! (fun _ => SB clNames[j]!)) :

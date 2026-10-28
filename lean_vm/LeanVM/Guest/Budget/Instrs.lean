@@ -88,7 +88,7 @@ children's loop within `l5Lin c5 s5 v5`. -/
 theorem mainCount_le (H : MainCounts ω fs) (SB SK : String → ℕ) (Bv : ℕ → ℕ) (c5 s5 : ℕ)
     (v5 : ℕ → ℕ → ℕ) (jt : ℕ) {bytecode : List K}
     {seed : Digest} {s : NodeStatement} {w : NodeWitness} (hr : NodeRel bytecode seed s w)
-    (hl : Limits bytecode s w) :
+    (hl : Limits s w) :
     mainCount H (hm fs 0 seed s w) (mainBsH fs SB SK Bv s w) (l5Lin c5 s5 v5 (work s w)) + jt ≤
       (mainInstrs H SB SK c5 s5 v5 jt).eval (work s w) := by
   have hX := clB_le fs SB SK s.claims.xmss.length

@@ -20,9 +20,9 @@ public import Statement.LeanVmGuest
 # Completeness
 
 **The statement** (`GuestComplete budget`): for every seed, statement `s` and witness `w` with
-`NodeRel bytecode seed s w`, within the deployed limits (`Limits`), the children's openings
-agreeing in the guest's Merkle caps (`CapsAgree`), no zero challenge where the guest divides
-(`NoZeroChallenge`, new at `keccak-gkr`) and the node within the budget (`budget s w ≤ 2^28`),
+`NodeRel bytecode seed s w`, within the deployed limits (`Limits`), every child one the guest
+accepts (`ChildrenOk`: its openings agreeing in the guest's Merkle caps, no zero challenge where
+the guest divides, ...) and the node within the budget (`budget s w ≤ 2^28`),
 there is a valid execution of the guest on the statement's digest whose committed size is at least
 `2^22` and at most `2^28`: at most the most the verifier admits, and at least `2^MU_MIN`, so the
 honest proof of it has a stack log the guest's opening arms take (an argument in prose, not proved
@@ -164,8 +164,7 @@ children's openings agreeing in the caps, no zero challenge where the guest divi
 within the budget give a valid execution of the guest on the statement's digest within the
 verifier's committed size. -/
 def GuestComplete (budget : NodeStatement → NodeWitness → ℕ) : Prop :=
-  ∀ seed s w, NodeRel bytecode seed s w → Limits bytecode s w → CapsAgree bytecode seed w →
-    NoZeroChallenge bytecode seed w → budget s w ≤ 2 ^ 28 →
+  ∀ seed s w, NodeRel bytecode seed s w → Limits s w → ChildrenOk bytecode seed w → budget s w ≤ 2 ^ 28 →
     ∃ t : Trace guest, ValidExecution guest (publicInputOf (statementDigest seed s)) t ∧
       2 ^ 22 ≤ t.committedSize ∧ t.committedSize ≤ 2 ^ 28
 
@@ -182,8 +181,7 @@ structure CompletePieces (fs : String → ℕ) (H : Memory.Inst → ℕ → E ×
   /-- B1 (`main`'s completeness at the bump allocator's `HeapBuf` pointers), `Program.Rel.tree`
   and the discharge of `Honest`: under the hypotheses, a call tree of `main`, honest with the
   statement's digest as `main`'s header, of cost within the node's budget. -/
-  honest : ∀ seed s w, NodeRel bytecode seed s w → Limits bytecode s w → CapsAgree bytecode seed w →
-    NoZeroChallenge bytecode seed w → budget s w ≤ 2 ^ 28 →
+  honest : ∀ seed s w, NodeRel bytecode seed s w → Limits s w → ChildrenOk bytecode seed w → budget s w ≤ 2 ^ 28 →
     ∃ (rd : Reader) (T : Memory.Tree), T.name = "main" ∧
       Memory.HonestAt coreProgram fs H C (hdrOf (statementDigest seed s)) T cert rd [] [] ∧
       cost T ≤ budget s w
@@ -209,8 +207,7 @@ structure CompletePiecesWithin (fs : String → ℕ) (H : Memory.Inst → ℕ �
     (C : Memory.Inst → List (ℕ × E)) (cert : String → V → ℕ) (cnt : Memory.Tree → Opcode → ℕ)
     (b : Budget) : Prop where
   /-- As `CompletePieces.honest`, the tree within the budget's words and instruction counts. -/
-  honest : ∀ seed s w, NodeRel bytecode seed s w → Limits bytecode s w → CapsAgree bytecode seed w →
-    NoZeroChallenge bytecode seed w → b.size (work s w) ≤ 2 ^ 28 →
+  honest : ∀ seed s w, NodeRel bytecode seed s w → Limits s w → ChildrenOk bytecode seed w → b.size (work s w) ≤ 2 ^ 28 →
     ∃ (rd : Reader) (T : Memory.Tree), T.name = "main" ∧
       Memory.HonestAt coreProgram fs H C (hdrOf (statementDigest seed s)) T cert rd [] [] ∧
       T.total fs ≤ b.words.eval (work s w) ∧ ∀ op, cnt T op ≤ (b.instrs op).eval (work s w)
@@ -231,8 +228,8 @@ theorem CompletePiecesWithin.pieces {fs : String → ℕ} {H : Memory.Inst → �
     {C : Memory.Inst → List (ℕ × E)} {cert : String → V → ℕ} {cnt : Memory.Tree → Opcode → ℕ}
     {b : Budget} (h : CompletePiecesWithin fs H C cert cnt b) :
     CompletePieces fs H C cert (fun T ↦ sizeOf (T.total fs) (cnt T)) fun s w ↦ b.size (work s w) where
-  honest seed s w hrel hlim hcap hnz hb := by
-    obtain ⟨rd, T, hname, hH, hw, hc⟩ := h.honest seed s w hrel hlim hcap hnz hb
+  honest seed s w hrel hlim hok hb := by
+    obtain ⟨rd, T, hname, hH, hw, hc⟩ := h.honest seed s w hrel hlim hok hb
     exact ⟨rd, T, hname, hH, sizeOf_mono hw hc⟩
   table := h.table
   b2 := h.b2
@@ -268,8 +265,8 @@ theorem jumpTables_honest {fs : String → ℕ} {H : Memory.Inst → ℕ → E �
 theorem guest_complete_of {fs : String → ℕ} {H : Memory.Inst → ℕ → E × E}
     {C : Memory.Inst → List (ℕ × E)} {cert : String → V → ℕ} {cost : Memory.Tree → ℕ}
     {budget : NodeStatement → NodeWitness → ℕ} (h : CompletePieces fs H C cert cost budget) :
-    GuestComplete budget := fun seed s w hrel hlim hcap hnz hbudget ↦ by
-  obtain ⟨rd, T, hname, hH, hcost⟩ := h.honest seed s w hrel hlim hcap hnz hbudget
+    GuestComplete budget := fun seed s w hrel hlim hok hbudget ↦ by
+  obtain ⟨rd, T, hname, hH, hcost⟩ := h.honest seed s w hrel hlim hok hbudget
   have hb := hH.toHonest.publicBoundary (prog := guest)
   have hreach := (reach_jumpTables (jumpTables_honest hH.toHonest hname h.table)).trans
     (h.b2 _ rd T hname hH)

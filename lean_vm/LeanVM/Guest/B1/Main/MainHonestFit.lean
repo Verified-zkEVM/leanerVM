@@ -118,7 +118,7 @@ theorem hW_eq (c : ℕ) : hW s w c = (hRawX s w).length + (hRawS s w).length + (
 theorem length_raw {α W : Type} (l : List (α × W)) : (l.map (·.1)).length = l.length := by simp
 
 /-- **After the last child, the running count is the coverage table's size.** -/
-theorem hW_total (hl : Limits bytecode s w) : hW s w w.children.length = coverage s w := by
+theorem hW_total (hl : Limits s w) : hW s w w.children.length = coverage s w := by
   rw [hW_eq, List.take_length, coverage_made hl, length_made, length_made, length_made]
   simp only [hRawX, hRawS, hRawD, length_raw, List.map_map]
   simp only [Function.comp_def]
@@ -135,7 +135,7 @@ theorem sum_le_16 {α : Type} (l : List α) (f : α → ℕ) (h : ∀ a ∈ l, f
     nlinarith
 
 /-- **The DA region has at most `257` slots**: one direct claim and `16` per child. -/
-theorem da_slots (hl : Limits bytecode s w) : (s.claims.da ++ (dPlan s w).dups).length ≤ 257 := by
+theorem da_slots (hl : Limits s w) : (s.claims.da ++ (dPlan s w).dups).length ≤ 257 := by
   rw [dPlan, plan_table_length _ _ _ (dPlan_held hl), length_made, length_raw, List.map_map]
   have h1 := hl.directDa
   have h2 := sum_le_16 w.children (List.length ∘ (·.statement.claims.da)) fun c hc => hl.daRoots.2 c hc
@@ -149,7 +149,7 @@ theorem raw_le_table {α W : Type} [BEq α] [LawfulBEq α] (D : List α) (R : Li
   rw [plan_table_length _ _ _ hc, length_made, length_raw]; omega
 
 /-- **`main`'s honest counts are within its bounds**, under the deployed limits. -/
-theorem hData_bounds (hl : Limits bytecode s w) (fs : String → ℕ) (fp : ℕ) :
+theorem hData_bounds (hl : Limits s w) (fs : String → ℕ) (fp : ℕ) :
     MainBounds ((hData seed s w).toIn fs fp) := by
   have hc := hl.coverage
   rw [coverage_eq] at hc
@@ -183,7 +183,7 @@ theorem cellsBytes_digestCells (x y : Digest) :
 
 /-- **`main`'s header-free reads hold on a memory holding its honest buffers.** -/
 theorem hMainMem (hlog : Nat.log2 bytecode.length = 23) (hr : NodeRel bytecode seed s w)
-    (hf : FreshShaped w) (hl : Limits bytecode s w) (fs : String → ℕ) (fp : ℕ) (rd : Reader)
+    (hf : FreshShaped w) (hl : Limits s w) (fs : String → ℕ) (fp : ℕ) (rd : Reader)
     (hM : B1.Main.MemL rd (bufL (fp + fs "main") (mSizes (hData seed s w)) (hOwn seed s w)))
     (h0 : LoadHolds rd 1 0 (digestScalars (statementDigest seed s)).1)
     (h1 : LoadHolds rd gen 0 (digestScalars (statementDigest seed s)).2) :

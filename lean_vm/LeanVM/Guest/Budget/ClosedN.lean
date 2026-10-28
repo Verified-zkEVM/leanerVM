@@ -20,10 +20,10 @@ open LeanVM.Guest.End (GuestCompleteWithin bytecode bytecode_length)
 
 /-- **Completeness within a larger budget**, larger on the nodes the hypotheses admit. -/
 theorem guestComplete_mono {b b' : NodeStatement → NodeWitness → ℕ} (h : End.GuestComplete b)
-    (hle : ∀ seed s w, NodeRel bytecode seed s w → Limits bytecode s w →
-      CapsAgree bytecode seed w → NoZeroChallenge bytecode seed w → b s w ≤ b' s w) :
+    (hle : ∀ seed s w, NodeRel bytecode seed s w → Limits s w →
+      ChildrenOk bytecode seed w → b s w ≤ b' s w) :
     End.GuestComplete b' :=
-  fun seed s w hr hl hca hnz hb => h seed s w hr hl hca hnz ((hle seed s w hr hl hca hnz).trans hb)
+  fun seed s w hr hl hok hb => h seed s w hr hl hok ((hle seed s w hr hl hok).trans hb)
 
 /-- The deployed budget grows with `verify_sub`'s words at the work's children's shapes. -/
 theorem deployedBudget_size_mono {Bvf Bvf' : ℕ → ℕ → ℕ} (u : End.Work)
@@ -94,11 +94,11 @@ theorem vsBoundAt_eq_deployedBvAt {μ r : ℕ} (h1 : 22 ≤ μ) (h2 : μ ≤ 28)
 child of announced stack log `μ` and rate `r` `deployedBvAt μ r`: the budget's words
 `Count.deployedWords deployedBvAt`, its instructions `Count.deployedInstrs op`. -/
 theorem guest_complete_numeric : GuestCompleteWithin (deployedBudget deployedBvAt) :=
-  guestComplete_mono guest_complete fun seed s w _ hl hca hnz => deployedBudget_size_mono _
+  guestComplete_mono guest_complete fun seed s w _ _ hok => deployedBudget_size_mono _
     fun p hp => by
       obtain ⟨ch, hch, rfl⟩ :=
         List.mem_map.mp (show p ∈ w.children.map (childShape bytecode) from hp)
-      obtain ⟨h1, h2, h3, h4⟩ := B1.Main.childShape_bounds bytecode_length hl hca hnz hch
+      obtain ⟨h1, h2, h3, h4⟩ := B1.Main.childShape_bounds bytecode_length hok hch
       exact (vsBoundAt_eq_deployedBvAt h1 h2 h3 h4).le
 
 /-- The largest child's words: `μ = 28` at rate `1`. -/

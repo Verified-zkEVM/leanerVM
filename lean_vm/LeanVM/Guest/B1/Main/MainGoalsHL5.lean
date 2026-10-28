@@ -184,7 +184,7 @@ variable {fs : String → ℕ} {fp : ℕ} {seed : Digest}
 theorem belowLog_of {o L : ℕ} (h : o < L) (hL : L < 2 ^ 32) : B1.Digest.BelowLog (gen ^ L) o :=
   ⟨by omega, L - o - 1, by omega, by congr 1; omega⟩
 
-theorem cover_bound {bytecode : List K} (hl : Limits bytecode s w) :
+theorem cover_bound (hl : Limits s w) :
     s.claims.xmss.length + (xPlan s w).dups.length +
       (s.claims.sphincs.length + (sPlan s w).dups.length) +
       (s.claims.da.length + (dPlan s w).dups.length) < 2 ^ 16 := by
@@ -194,7 +194,7 @@ theorem cover_bound {bytecode : List K} (hl : Limits bytecode s w) :
   omega
 
 /-- **Child `c`'s leanXMSS list is complete.** -/
-theorem kid_hX (cert : String → V → ℕ) {bytecode : List K} (hl : Limits bytecode s w) {c : ℕ}
+theorem kid_hX (cert : String → V → ℕ) (hl : Limits s w) {c : ℕ}
     (hc : c < w.children.length) :
     CompleteAtD fs cert 16 "child_claim_list_digest" (hLmain fs fp seed s w)
       [(hm fs fp seed s w).a77, (hm fs fp seed s w).a117, (hKid s w c).base, 1,
@@ -272,7 +272,7 @@ theorem kid_hX (cert : String → V → ℕ) {bytecode : List K} (hl : Limits by
   rwa [pow_zero] at this
 
 /-- **Child `c`'s leanSPHINCS list is complete.** -/
-theorem kid_hS (cert : String → V → ℕ) {bytecode : List K} (hl : Limits bytecode s w) {c : ℕ}
+theorem kid_hS (cert : String → V → ℕ) (hl : Limits s w) {c : ℕ}
     (hc : c < w.children.length) :
     CompleteAtD fs cert 16 "child_claim_list_digest" (hLmain fs fp seed s w)
       [(hm fs fp seed s w).a80, (hm fs fp seed s w).a117, (hKid s w c).base * gen ^ (hKid s w c).ex,
@@ -362,7 +362,7 @@ theorem length_piCells : (w.children.flatMap fun c =>
 /-- **Child `c` is as `__loop5` needs it**, at `main`'s honest words. -/
 theorem kidOk (cert : String → V → ℕ) {bytecode : List K}
     (hbl : bytecode.length = 2 ^ bytecodeVars) (hrel : NodeRel bytecode seed s w)
-    (hl : Limits bytecode s w)
+    (hl : Limits s w)
     (hV : ∀ c (hc : c < w.children.length), CompleteAtD fs cert 16 "verify_sub" (hLmain fs fp seed s w)
       [(digestScalars (statementDigest seed w.children[c].statement)).1,
         (digestScalars (statementDigest seed w.children[c].statement)).2,
@@ -484,7 +484,7 @@ theorem kidOk (cert : String → V → ℕ) {bytecode : List K}
 `2^bytecodeVars` words, given each child's `verify_sub` call complete at `main`'s words. -/
 theorem mainGoalL5 (cert : String → V → ℕ) {bytecode : List K}
     (hbl : bytecode.length = 2 ^ bytecodeVars) (hrel : NodeRel bytecode seed s w)
-    (hl : Limits bytecode s w)
+    (hl : Limits s w)
     (hV : ∀ c (hc : c < w.children.length), CompleteAtD fs cert 16 "verify_sub" (hLmain fs fp seed s w)
       [(digestScalars (statementDigest seed w.children[c].statement)).1,
         (digestScalars (statementDigest seed w.children[c].statement)).2,

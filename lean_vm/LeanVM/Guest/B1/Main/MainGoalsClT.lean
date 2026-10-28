@@ -63,7 +63,7 @@ theorem MainGoalClST.goal (h : MainGoalClST fs cert fp seed s w) : MainGoalClS f
   CompleteAtDT.toD h
 
 /-- **`claim_list_digest` on the leanXMSS table's declared claims, by a tree of honest shape.** -/
-theorem mainGoalClXT {bytecode : List K} (hL : Limits bytecode s w) : MainGoalClXT fs cert fp seed s w := by
+theorem mainGoalClXT (hL : Limits s w) : MainGoalClXT fs cert fp seed s w := by
   have hn : s.claims.xmss.length < claimGroup * maxKeys := by
     have := hL.coverage
     simp only [coverage] at this
@@ -92,7 +92,7 @@ theorem mainGoalClXT {bytecode : List K} (hL : Limits bytecode s w) : MainGoalCl
   exact key
 
 /-- **`claim_list_digest` on the leanSPHINCS table's declared claims, by a tree of honest shape.** -/
-theorem mainGoalClST {bytecode : List K} (hL : Limits bytecode s w) : MainGoalClST fs cert fp seed s w := by
+theorem mainGoalClST (hL : Limits s w) : MainGoalClST fs cert fp seed s w := by
   have hn : s.claims.sphincs.length < claimGroup * maxKeys := by
     have := hL.coverage
     simp only [coverage] at this

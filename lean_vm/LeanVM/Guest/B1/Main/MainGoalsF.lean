@@ -259,7 +259,7 @@ theorem mainGoalL2 : MainGoalL2 fs cert fp seed s w := fun hne =>
   completeAt_of_rel_pureD mfLoop_pure (by simp [mfLoopSet]) (fun rd _ => mfL2_rel rd _ _ hne) 16
 
 /-- **`da_list_digest` on the DA table's declared claims.** -/
-theorem mainGoalDl {bytecode : List K} (hL : Limits bytecode s w) : MainGoalDl fs cert fp seed s w := by
+theorem mainGoalDl (hL : Limits s w) : MainGoalDl fs cert fp seed s w := by
   refine daList_completeAt fs cert fun rd h => ?_
   have h0 := mf_reads fs fp seed s w h (i := 0) (by omega)
   rw [show (hOwn seed s w).getD 0 [] = s.claims.da.flatMap daCells ++ (dPlan s w).dups.flatMap daCells

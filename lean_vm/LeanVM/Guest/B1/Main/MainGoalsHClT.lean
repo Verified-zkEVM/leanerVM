@@ -31,7 +31,7 @@ open LeanVM.Guest.B1 (CompleteAtD CompleteAtDT Returns bufL)
 variable {fs : String → ℕ} {fp : ℕ} {seed : Digest} {s : NodeStatement} {w : NodeWitness}
 
 /-- **Child `c`'s leanXMSS list is complete.** -/
-theorem kidT_hX (cert : String → V → ℕ) {bytecode : List K} (hl : Limits bytecode s w) {c : ℕ}
+theorem kidT_hX (cert : String → V → ℕ) (hl : Limits s w) {c : ℕ}
     (hc : c < w.children.length) :
     CompleteAtDT fs cert 16 "child_claim_list_digest" (hLmain fs fp seed s w)
       [(hm fs fp seed s w).a77, (hm fs fp seed s w).a117, (hKid s w c).base, 1,
@@ -109,7 +109,7 @@ theorem kidT_hX (cert : String → V → ℕ) {bytecode : List K} (hl : Limits b
   rwa [pow_zero] at this
 
 /-- **Child `c`'s leanSPHINCS list is complete.** -/
-theorem kidT_hS (cert : String → V → ℕ) {bytecode : List K} (hl : Limits bytecode s w) {c : ℕ}
+theorem kidT_hS (cert : String → V → ℕ) (hl : Limits s w) {c : ℕ}
     (hc : c < w.children.length) :
     CompleteAtDT fs cert 16 "child_claim_list_digest" (hLmain fs fp seed s w)
       [(hm fs fp seed s w).a80, (hm fs fp seed s w).a117, (hKid s w c).base * gen ^ (hKid s w c).ex,
@@ -192,8 +192,8 @@ theorem kidT_hS (cert : String → V → ℕ) {bytecode : List K} (hl : Limits b
   exact this
 
 /-- **The children's claim lists' digests on the honest run, by trees of honest shape.** -/
-theorem childListGoalsT_honest (cert : String → V → ℕ) {bytecode : List K}
-    (hl : Limits bytecode s w) :
+theorem childListGoalsT_honest (cert : String → V → ℕ)
+    (hl : Limits s w) :
     ChildListGoalsT fs cert fp seed s w (fun c => ccHonest (hKid s w c).ex)
       (fun c => ccHonest (hKid s w c).es) := fun _ hc =>
   ⟨kidT_hX cert hl hc, kidT_hS cert hl hc⟩
