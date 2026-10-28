@@ -706,11 +706,12 @@ abbrev PerfectlyCompleteRpm : Prop :=
 prover and verifier) and every adversary whose game, verifications included, makes at most `Q`
 calls of the permutation on every path (`permCalls`: a hash of `n` bytes costs `⌊n / 136⌋ + 1`, a
 call of `π` or `π⁻¹` one, the argument's verifier's included), the probability of opening a
-position to two different cells is at most `(Q + 1)² · 2^-256`, for `Q ≤ 2^128`. Proved by
+position to two different cells is at most `(Q + 1)² · 2^-256`, for every `Q` (past `2^128` the
+bound exceeds one). Proved by
 `LeanDa.leanDa_positionBinding_rpm`. -/
 abbrev PositionBindingRpm : Prop :=
   ∀ (r : ℕ) {Crs Proof : Type} (ps : ArgumentRpm r Crs Proof) (A : PosBindingAdvRpm r Crs Proof)
-    (Q : ℕ), IsWeightBound (posBindingGame r ps A) permCalls Q → Q ≤ 2 ^ 128 →
+    (Q : ℕ), IsWeightBound (posBindingGame r ps A) permCalls Q →
       Pr{let b ← runK (posBindingGame r ps A)}[b = true] ≤
         ((Q : ℝ≥0∞) + 1) ^ 2 * (2 : ℝ≥0∞)⁻¹ ^ 256
 
@@ -722,7 +723,7 @@ straight-line extractor `ext` (reading the adversary's transcript): if every adv
 knowledge-soundness game (`ksGame`, the argument's verifier and the relation's check included)
 makes at most `q ≤ 2^128` permutation calls (`permCalls`) wins it with probability at most
 `(q + c) · 2^-k`, then every adversary whose code-binding game, verifications included, makes at
-most `Q ≤ 2^127` calls breaks code binding with probability at most
+most `Q` calls breaks code binding with probability at most
 
 `(Q + c + 2^22) · 2^-k + (Q + 2^22) · 2^-188 + (Q + 2^22)² · 2^-247`.
 
@@ -732,7 +733,7 @@ second is the membership test's soundness, `14 / 2^192` for each of at most `Q +
 challenges are drawn. The third gathers the transfer to the two-oracle model and the duplex
 lemma, of the two games, and the hash's bad events among at most `2 Q + 2^20` hash and challenge
 queries: a collision, or a fresh answer that is a digest an earlier input or a root with drawn
-challenges already carries.
+challenges already carries; it exceeds one before `Q = 2^124`.
 
 The argument queries the oracles the adversary does, so its knowledge soundness here is the
 usual one of an argument in the random-permutation model, with a straight-line extractor reading
@@ -747,7 +748,7 @@ abbrev CodeBindingRpm : Prop :=
         ((q : ℝ≥0∞) + c) * (2 : ℝ≥0∞)⁻¹ ^ k) →
     1 ≤ r → r ≤ maxRows →
     ∀ (A : CodeBindingAdvRpm r Crs Proof) (Q : ℕ),
-      IsWeightBound (codeBindingGame r ps A) permCalls Q → Q ≤ 2 ^ 127 →
+      IsWeightBound (codeBindingGame r ps A) permCalls Q →
         Pr{let b ← runK (codeBindingGame r ps A)}[b = true] ≤
           ((Q : ℝ≥0∞) + c + 2 ^ 22) * (2 : ℝ≥0∞)⁻¹ ^ k + ((Q : ℝ≥0∞) + 2 ^ 22) * (2 : ℝ≥0∞)⁻¹ ^ 188 +
             ((Q : ℝ≥0∞) + 2 ^ 22) ^ 2 * (2 : ℝ≥0∞)⁻¹ ^ 247

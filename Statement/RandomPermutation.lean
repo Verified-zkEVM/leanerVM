@@ -309,64 +309,61 @@ def digestBitVec : KDigest ≃ BitVec 256 :=
       finFunctionFinEquiv.trans <| (finCongr (show 256 ^ 32 = 2 ^ 256 by norm_num)).trans
         ⟨BitVec.ofFin, BitVec.toFin, fun _ ↦ rfl, fun _ ↦ rfl⟩
 
-/-- A hash `List UInt8 → D`. -/
-abbrev HSpec (D : Type) := List UInt8 →ₒ D
+/-- The hash of a signature scheme, `H : List UInt8 → BitVec 256`: in the model Keccak-256, its
+digest read as a little-endian number (`digestBitVec`). -/
+abbrev HSpec := List UInt8 →ₒ BitVec 256
 
-/-- **A signature scheme** with hash `H : List UInt8 → D`: a seed sampler, key generation from a
+/-- **A signature scheme** with the hash `H` (`HSpec`): a seed sampler, key generation from a
 seed, the signer answering a request `Req` with `Resp`, the verifier of a claimed forgery `F`, and
 the winning condition on the signing transcript and the forgery. -/
-structure Scheme (D Seed PK SK Req Resp F : Type) where
+structure Scheme (Seed PK SK Req Resp F : Type) where
   /-- Sample the secret seed. -/
   sample : ProbComp Seed
   /-- Generate the keys from the seed. -/
-  keygen : Seed → OracleComp (HSpec D) (PK × SK)
+  keygen : Seed → OracleComp HSpec (PK × SK)
   /-- Answer a signing request. -/
-  sign : SK → Req → OracleComp (HSpec D) Resp
+  sign : SK → Req → OracleComp HSpec Resp
   /-- Verify a claimed forgery. -/
-  verify : PK → F → OracleComp (HSpec D) Bool
+  verify : PK → F → OracleComp HSpec Bool
   /-- The transcript and the forgery make a win (when the forgery verifies). -/
   win : QueryLog (Req →ₒ Resp) → F → Bool
 
-variable {D Seed PK SK Req Resp F : Type}
+variable {Seed PK SK Req Resp F : Type}
 
-variable [SampleableType D]
-
-variable (e : KDigest ≃ D)
-
-/-- The hash as Keccak-256 read through `e`, in the random-permutation model. -/
-def hashK : QueryImpl (HSpec D) (OracleComp KSpec) :=
-  fun m ↦ e <$> (liftM (KSpec.query (.inr (.inl m))) : OracleComp KSpec KDigest)
+/-- The hash as Keccak-256 (`digestBitVec`), in the random-permutation model. -/
+def hashK : QueryImpl HSpec (OracleComp KSpec) :=
+  fun m ↦ digestBitVec <$> (liftM (KSpec.query (.inr (.inl m))) : OracleComp KSpec KDigest)
 
 /-- The signing oracle in the random-permutation model. -/
-def signingOracleK (S : Scheme D Seed PK SK Req Resp F) (sk : SK) :
+def signingOracleK (S : Scheme Seed PK SK Req Resp F) (sk : SK) :
     QueryImpl (Req →ₒ Resp) (WriterT (QueryLog (Req →ₒ Resp)) (OracleComp KSpec)) :=
-  QueryImpl.withLogging fun r ↦ simulateQ (hashK e) (S.sign sk r)
+  QueryImpl.withLogging fun r ↦ simulateQ hashK (S.sign sk r)
 
-/-- **The RPM game**: the game with `H` Keccak-256 over the permutation, read through `e`, and
-an adversary that also queries Keccak-256, `π` and `π⁻¹`. -/
-noncomputable def rpmGame (S : Scheme D Seed PK SK Req Resp F)
+/-- **The RPM game**: the game with `H` Keccak-256 over the permutation, and an adversary that
+also queries Keccak-256, `π` and `π⁻¹`. -/
+noncomputable def rpmGame (S : Scheme Seed PK SK Req Resp F)
     (main : PK → OracleComp (KSpec + (Req →ₒ Resp)) F) : OracleComp KSpec Bool := do
   let seed ← liftM S.sample
-  let (pk, sk) ← simulateQ (hashK e) (S.keygen seed)
+  let (pk, sk) ← simulateQ hashK (S.keygen seed)
   let ((forgery, log) : F × QueryLog (Req →ₒ Resp)) ←
     (simulateQ (QueryImpl.ofLift KSpec (WriterT (QueryLog (Req →ₒ Resp)) (OracleComp KSpec)) +
-      signingOracleK e S sk) (main pk)).run
-  let verified ← simulateQ (hashK e) (S.verify pk forgery)
+      signingOracleK S sk) (main pk)).run
+  let verified ← simulateQ hashK (S.verify pk forgery)
   return S.win log forgery && verified
 
 /-- **The RPM experiment**: the RPM game against the lazily sampled random permutation. -/
-noncomputable def rpmExperiment (S : Scheme D Seed PK SK Req Resp F)
+noncomputable def rpmExperiment (S : Scheme Seed PK SK Req Resp F)
     (main : PK → OracleComp (KSpec + (Req →ₒ Resp)) F) : ProbComp Bool :=
-  runK (rpmGame e S main)
+  runK (rpmGame S main)
 
 /-- **`bits` bits of SUF-CMA security in the random-permutation model**: every adversary `main`
 (coins, Keccak-256, `π`, `π⁻¹` and the signing oracle) whose game, key generation, the signer's
-answers and the forgery's verification included, makes at most `Q` permutation calls on every
-path, `1 ≤ Q ≤ 2^128`, wins with probability at most `(Q + 1) · 2^-bits`. -/
-def RpmSecure (S : Scheme D Seed PK SK Req Resp F) (bits : ℕ) : Prop :=
-  ∀ Q, 1 ≤ Q → Q ≤ 2 ^ 128 → ∀ main : PK → OracleComp (KSpec + (Req →ₒ Resp)) F,
-    IsWeightBound (rpmGame e S main) permCalls Q →
-      Pr{let b ← rpmExperiment e S main}[b = true] ≤ ((Q : ℝ≥0∞) + 1) * (2 : ℝ≥0∞)⁻¹ ^ bits
+answers and the forgery's verification included, makes at most `Q ≥ 1` permutation calls on every
+path wins with probability at most `(Q + 1) · 2^-bits`. -/
+def RpmSecure (S : Scheme Seed PK SK Req Resp F) (bits : ℕ) : Prop :=
+  ∀ Q, 1 ≤ Q → ∀ main : PK → OracleComp (KSpec + (Req →ₒ Resp)) F,
+    IsWeightBound (rpmGame S main) permCalls Q →
+      Pr{let b ← rpmExperiment S main}[b = true] ≤ ((Q : ℝ≥0∞) + 1) * (2 : ℝ≥0∞)⁻¹ ^ bits
 
 end SufCma
 

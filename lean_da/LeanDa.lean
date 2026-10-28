@@ -287,8 +287,8 @@ abbrev CodeBindingRpmFork : Prop :=
 /-- **The forking route's bound follows from the straight-line one**, which is below it for every
 `Q` (`straight_le_fork`). -/
 theorem codeBindingRpmFork_of_codeBindingRpm (h : CodeBindingRpm) : CodeBindingRpmFork := by
-  intro r Crs Proof ps ext c k hks hr1 hrM A Q hQ hQcap
-  exact (h r ps ext c k hks hr1 hrM A Q hQ hQcap).trans (straight_le_fork Q c k)
+  intro r Crs Proof ps ext c k hks hr1 hrM A Q hQ _
+  exact (h r ps ext c k hks hr1 hrM A Q hQ).trans (straight_le_fork Q c k)
 
 end Core
 

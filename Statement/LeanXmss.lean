@@ -244,7 +244,8 @@ end Codeword
 `Concrete` contains the hash and verification routines; `Seeded` contains key generation and
 signing. Hashing routines work in any monad with access to `HashSpec`. -/
 
-/-- A hash query takes an arbitrary byte string and returns 32 bytes. -/
+/-- A hash query takes an arbitrary byte string and returns 32 bytes (the SUF-CMA game's
+`Common.SufCma.HSpec`). -/
 abbrev HashSpec := HashInput →ₒ HashOutput
 
 namespace Concrete
@@ -537,23 +538,23 @@ open Common Common.SufCma
 /-- leanXMSS in the generic SUF-CMA game: the seed, key generation, the signer of a request, the
 verifier, and the winning condition (`SigningTranscript`, above). -/
 noncomputable def scheme :
-    Scheme HashOutput MasterSeed PublicKey Seeded.SecretKey SignRequest (Option Signature)
+    Scheme MasterSeed PublicKey Seeded.SecretKey SignRequest (Option Signature)
       Forgery where
   sample := sampleMasterSeed
   keygen := Seeded.keygenFromSeed
-  sign sk request := Seeded.sign sk request.leafIndex request.message
-  verify pk forgery := Concrete.verify pk forgery.message forgery.signature
+  sign sk request := Seeded.sign (m := OracleComp HashSpec) sk request.leafIndex request.message
+  verify pk forgery := Concrete.verify (m := OracleComp HashSpec) pk forgery.message forgery.signature
   win log forgery :=
     decide (SigningTranscript.Valid log ∧ ¬SigningTranscript.Contains log forgery)
 
 /-- **leanXMSS in the random-permutation model**: an adversary whose game makes at most `Q`
-permutation calls, `1 ≤ Q ≤ 2^128`, forges with probability at most `(Q + 1) · 2^-127`
+permutation calls, `Q ≥ 1`, forges with probability at most `(Q + 1) · 2^-127`
 (`RpmSecure` at 127 bits). `Q` counts every call on the game's worst path, the honest signer's
 included (`IsWeightBound` is structural): a signing request costs about `2^33` calls (each layer's
 `2^32` grinding trials, and the paths and the bottom root rebuilt, about `2^25`), so `Q ≥ 2^65`
 once the adversary uses all `2^32` leaves, where the bound is about `2^-62`. -/
 abbrev LeanXmssRpmSecurityStatement : Prop :=
-  RpmSecure (digestBitVec : KDigest ≃ HashOutput) scheme 127
+  RpmSecure scheme 127
 
 end Rpm
 

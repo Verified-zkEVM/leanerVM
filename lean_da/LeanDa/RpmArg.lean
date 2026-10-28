@@ -251,11 +251,20 @@ theorem posPostV_win (crs : Crs)
 every adversary whose game, the argument's verification included, makes at most `Q` calls of the
 permutation on every path, the probability of opening a position to two different cells is at
 most `Q² / 2^256 + Q² / 2^508`, so at most `(Q + 1)² · 2^-256` for `Q ≤ 2^128`
-(`Common.sq_add_sq_le`): the adversary followed by the argument's verification is an adversary of
+(`Common.sq_add_sq_le`), and for every `Q`, the bound being at least one past `2^128`: the adversary followed by the argument's verification is an adversary of
 the two-oracle transfer, and a win of the climbs is a collision of `H` (`posPostV_win`,
 `prob_hCollision_le`). -/
 theorem leanDa_positionBinding_rpm : PositionBindingRpm := by
-  intro r Crs Proof ps A Q hQ hcap
+  intro r Crs Proof ps A Q hQ
+  rcases le_or_gt Q (2 ^ 128) with hcap | hcap
+  swap
+  · -- past `2^128` the bound is at least one
+    refine (prEvent_le_one _).trans (Common.one_le_mul_inv_two_pow ?_)
+    calc (2 : ℝ≥0∞) ^ 256 = ((2 : ℝ≥0∞) ^ 128) ^ 2 := by rw [← pow_mul]
+      _ ≤ ((Q : ℝ≥0∞) + 1) ^ 2 := by
+        gcongr
+        calc (2 : ℝ≥0∞) ^ 128 ≤ (Q : ℝ≥0∞) := by exact_mod_cast hcap.le
+          _ ≤ (Q : ℝ≥0∞) + 1 := le_self_add
   have e := relabel_posBindingGame r ps A
   replace hQ : IsWeightBound (rpmGame2 (liftM ps.setup)
       (fun crs ↦ relabelAdv (advP r ps A) ((), crs)) (posPostV r)) permCalls2 Q := by
@@ -440,7 +449,17 @@ statement's game of the code-binding adversary itself (`relabel_ksGame`, through
 and `rom2_le_ksExpRpm`), or a bad cache of the world with `H` and the challenges lazily sampled
 (`codeBindingExpG_le`). -/
 theorem leanDa_codeBinding_rpm_bound : CodeBindingRpm := by
-  intro r Crs Proof ps ext c k hks hr1 hrM A Q hQ hQcap
+  intro r Crs Proof ps ext c k hks hr1 hrM A Q hQ
+  rcases le_or_gt Q (2 ^ 127) with hQcap | hQcap
+  swap
+  · -- past `2^127` the last term is at least one
+    refine (prEvent_le_one _).trans (le_add_left (Common.one_le_mul_inv_two_pow ?_))
+    calc (2 : ℝ≥0∞) ^ 247 ≤ ((2 : ℝ≥0∞) ^ 127) ^ 2 := by
+          rw [← pow_mul]; exact pow_le_pow_right₀ one_le_two (by norm_num)
+      _ ≤ ((Q : ℝ≥0∞) + 2 ^ 22) ^ 2 := by
+        gcongr
+        calc (2 : ℝ≥0∞) ^ 127 ≤ (Q : ℝ≥0∞) := by exact_mod_cast hQcap.le
+          _ ≤ (Q : ℝ≥0∞) + 2 ^ 22 := le_self_add
   have hQ0 := isWeightBound_codeBindingGame2_advV0 r ps A Q hQ
   have hL : logPad r ≤ 10 := by
     unfold logPad

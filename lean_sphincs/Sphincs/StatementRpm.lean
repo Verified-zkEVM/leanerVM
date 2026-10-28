@@ -1,5 +1,6 @@
 import Sphincs.StatementDet
 import Common.Signature
+import Common.Linear
 import Sphincs.Layered
 
 /-!
@@ -32,11 +33,11 @@ structure Adversary where
 /-- The game: the seed, key generation, the adversary with the signing oracle, the final
 verification, all hashing with Keccak-256 over the permutation. -/
 noncomputable def game (adversary : Adversary) : OracleComp KSpec Bool :=
-  rpmGame (digestBitVec : KDigest ≃ HashOutput) scheme adversary.main
+  rpmGame scheme adversary.main
 
 /-- The probability of a successful forgery against the lazily sampled random permutation. -/
 noncomputable def forgeAdvantage (adversary : Adversary) : ℝ≥0∞ :=
-  Pr{let b ← rpmExperiment (digestBitVec : KDigest ≃ HashOutput) scheme adversary.main}[b = true]
+  Pr{let b ← rpmExperiment scheme adversary.main}[b = true]
 
 /-- Every path of the game makes at most `Q` permutation calls, the sponge's included. -/
 def HasPermutationBound (adversary : Adversary) (Q : Nat) : Prop :=
@@ -50,10 +51,14 @@ def HasRpmSecurityBits (bits : Nat) : Prop :=
 
 /- A weight bound of a concrete game must not be unfolded: it recurses through the whole game. -/
 attribute [local irreducible] IsWeightBound in
-/-- `HasRpmSecurityBits` is the statement's `RpmSecure`. -/
-theorem rpmSecure_of_bits {bits : Nat} (h : HasRpmSecurityBits bits) :
-    RpmSecure (digestBitVec : KDigest ≃ HashOutput) scheme bits :=
-  fun Q hQ hcap main hbound ↦ h Q hQ hcap ⟨main⟩ hbound
+/-- `HasRpmSecurityBits` gives the statement's `RpmSecure`, whose bound is at least one past
+`Q = 2^128` for `bits ≤ 128`. -/
+theorem rpmSecure_of_bits {bits : Nat} (h : HasRpmSecurityBits bits) (hb : bits ≤ 128) :
+    RpmSecure scheme bits := by
+  intro Q hQ main hbound
+  rcases le_or_gt Q (2 ^ 128) with hcap | hcap
+  · exact h Q hQ hcap ⟨main⟩ hbound
+  · exact Common.le_succ_mul_inv_two_pow_of_lt (prEvent_le_one _) hb hcap
 
 /-- Every path of the game makes at most `q` calls of `H`, `π` and `π⁻¹` in all. -/
 def HasCallBound (adversary : Adversary) (q : Nat) : Prop :=

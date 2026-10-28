@@ -66,15 +66,15 @@ structure Theorems (decode : LeanVM.Node.Decoder) : Prop where
   5 (QA + QV)² · 2^-256` for `QA ≤ 2^128`, `QV ≤ 2^96`; it does not compose with the in-circuit
   statements (`LeanVmGuest.lean`). -/
   batchSound : LeanVM.Guest.Batch.BatchSound
-  /-- leanXMSS is strongly unforgeable: at most `(Q + 1) · 2^-127` for `1 ≤ Q ≤ 2^128` permutation
+  /-- leanXMSS is strongly unforgeable: at most `(Q + 1) · 2^-127` for `Q ≥ 1` permutation
   calls (`LeanXmss.lean`). -/
   leanXmss : LeanXmss.Rpm.LeanXmssRpmSecurityStatement
   /-- leanSPHINCS is strongly unforgeable at every proved lifetime: at most `(Q + 1) · 2^-127` for
-  `1 ≤ Q ≤ 2^128` permutation calls (`LeanSphincs.lean`). -/
+  `Q ≥ 1` permutation calls (`LeanSphincs.lean`). -/
   leanSphincs : Sphincs.Lifetimes.RequestedSecurityRpm
   /-- LeanDA is perfectly complete, for every `π` (`LeanDa.lean`). -/
   leanDaComplete : LeanDa.PerfectlyCompleteRpm
-  /-- LeanDA is position binding: at most `(Q + 1)² · 2^-256` for `Q ≤ 2^128` (`LeanDa.lean`). -/
+  /-- LeanDA is position binding: at most `(Q + 1)² · 2^-256` for every `Q` (`LeanDa.lean`). -/
   leanDaPositionBinding : LeanDa.PositionBindingRpm
   /-- LeanDA is code binding if its argument, querying the model's oracles, is knowledge sound in
   the random-permutation model with a straight-line extractor (`LeanDa.lean`). -/

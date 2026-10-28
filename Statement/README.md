@@ -61,7 +61,7 @@ Benedikt Wagner's ([b-wagn/fv-pq-da](https://github.com/b-wagn/fv-pq-da), Apache
    `LeanDa.PositionBindingRpm`, `LeanDa.CodeBindingRpm`. Code binding is conditional: if the
    argument is knowledge sound in the random-permutation model with error `(q + c) · 2^-k`, LeanDA
    is code binding with error `(Q + c + 2^22) · 2^-k + (Q + 2^22) · 2^-188 + (Q + 2^22)² · 2^-247`
-   for `Q ≤ 2^127` and `r ≤ 1024` rows (a straight-line proof on Wagner's framework); the last
+   for every `Q` and `r ≤ 1024` rows (a straight-line proof on Wagner's framework); the last
    term passes 1 at about `Q = 2^123.5`. `CodeBindingRpm`'s docstring says which arguments satisfy
    the hypothesis.
 6. [`LeanIsa.lean`](LeanIsa.lean): leanISA (memory, the six instructions, programs, one step, `run`,

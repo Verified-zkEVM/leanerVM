@@ -27,11 +27,9 @@ variable [Params]
 theorem experimentDet_eq
     (main : PublicKey → OracleComp (OracleWorld + SigningSpec) Forgery) :
     Security.Det.experimentDet ⟨main⟩ = romExperiment Rpm.scheme main := by
-  have h : Security.countedOracle = countedImpl (D := HashOutput) := by
+  have h : Security.countedOracle = countedImpl := by
     unfold Security.countedOracle countedImpl
     congr 1
-    funext t
-    rcases t with n | m <;> rfl
   unfold Security.Det.experimentDet romExperiment
   rw [h]
   rfl
@@ -41,7 +39,7 @@ the bound `q / 2^bits + Q² / 2^509` in the random-permutation model. -/
 theorem rpmBitsCalls_of_det {bits : Nat} (h : Security.Det.HasClassicalSecurityBitsDet bits) :
     Rpm.HasRpmSecurityBitsCalls bits := by
   have hrom : ∀ q, 1 ≤ q →
-      ∀ main : PublicKey → OracleComp (World HashOutput + SigningSpec) Forgery,
+      ∀ main : PublicKey → OracleComp (OracleWorld + SigningSpec) Forgery,
         (∀ r ∈ support (romExperiment Rpm.scheme main), r.2 ≤ q) →
           Pr{let r ← romExperiment Rpm.scheme main}[r.1 = true] ≤
             q / ((2 ^ bits : ℕ) : ℝ≥0∞) := by
@@ -49,7 +47,7 @@ theorem rpmBitsCalls_of_det {bits : Nat} (h : Security.Det.HasClassicalSecurityB
     rw [← experimentDet_eq] at hb ⊢
     exact h q hq ⟨main⟩ hb
   intro q Q hq1 adversary hq hQ
-  exact rpm_bound (digestBitVec : KDigest ≃ HashOutput) Rpm.scheme bits hrom adversary.main q Q
+  exact rpm_bound Rpm.scheme bits hrom adversary.main q Q
     hq1 hq hQ
 
 /-- **From the ROM to the RPM**: `bits ≤ 253` classical bits for the deterministic signer give the
@@ -65,15 +63,15 @@ end
 
 /-- **The forest lifetimes in the random-permutation model**: at each proved subtree height
 (`b` = 26, 20, 14, 13, 12, 10, 8), an adversary whose game makes at most `Q` permutation calls,
-`1 ≤ Q ≤ 2^128`, forges with probability at most `(Q + 1) · 2^-127`. -/
+`Q ≥ 1`, forges with probability at most `(Q + 1) · 2^-127`. -/
 theorem requestedSecurityRpm : RequestedSecurityRpm :=
-  ⟨@Rpm.rpmSecure_of_bits full 127 (@rpmBits_of_det full 127 full_bits (by norm_num)),
-    @Rpm.rpmSecure_of_bits pruned20 127 (@rpmBits_of_det pruned20 127 pruned20_bits (by norm_num)),
-    @Rpm.rpmSecure_of_bits pruned14 127 (@rpmBits_of_det pruned14 127 pruned14_bits (by norm_num)),
-    @Rpm.rpmSecure_of_bits pruned13 127 (@rpmBits_of_det pruned13 127 pruned13_bits (by norm_num)),
-    @Rpm.rpmSecure_of_bits pruned12 127 (@rpmBits_of_det pruned12 127 pruned12_bits (by norm_num)),
-    @Rpm.rpmSecure_of_bits pruned10 127 (@rpmBits_of_det pruned10 127 pruned10_bits (by norm_num)),
-    @Rpm.rpmSecure_of_bits pruned8 127 (@rpmBits_of_det pruned8 127 pruned8_bits (by norm_num))⟩
+  ⟨@Rpm.rpmSecure_of_bits full 127 (@rpmBits_of_det full 127 full_bits (by norm_num)) (by norm_num),
+    @Rpm.rpmSecure_of_bits pruned20 127 (@rpmBits_of_det pruned20 127 pruned20_bits (by norm_num)) (by norm_num),
+    @Rpm.rpmSecure_of_bits pruned14 127 (@rpmBits_of_det pruned14 127 pruned14_bits (by norm_num)) (by norm_num),
+    @Rpm.rpmSecure_of_bits pruned13 127 (@rpmBits_of_det pruned13 127 pruned13_bits (by norm_num)) (by norm_num),
+    @Rpm.rpmSecure_of_bits pruned12 127 (@rpmBits_of_det pruned12 127 pruned12_bits (by norm_num)) (by norm_num),
+    @Rpm.rpmSecure_of_bits pruned10 127 (@rpmBits_of_det pruned10 127 pruned10_bits (by norm_num)) (by norm_num),
+    @Rpm.rpmSecure_of_bits pruned8 127 (@rpmBits_of_det pruned8 127 pruned8_bits (by norm_num)) (by norm_num)⟩
 
 /-- **The forest lifetimes in the random-permutation model, refined**: at each proved subtree
 height, an adversary whose game makes at most `q ≥ 1` calls of `H`, `π` and `π⁻¹` and at most `Q`

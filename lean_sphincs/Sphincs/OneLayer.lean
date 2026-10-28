@@ -38,7 +38,7 @@ namespace Sphincs.OneLayer
 
 section Transport
 
-variable {D Seed PK SK Req Resp₁ Resp₂ F₁ F₂ : Type} [SampleableType D] (e : KDigest ≃ D)
+variable {Seed PK SK Req Resp₁ Resp₂ F₁ F₂ : Type}
 
 /-- A signing log, every answer read through `φ`. -/
 def mapLog (φ : Resp₁ → Resp₂) (log : QueryLog (Req →ₒ Resp₁)) : QueryLog (Req →ₒ Resp₂) :=
@@ -52,27 +52,26 @@ def mapAnswers (φ : Resp₁ → Resp₂) :
   | .inr r => φ <$> liftM ((KSpec + (Req →ₒ Resp₁)).query (.inr r))
 
 /-- The game's oracles: the permutation's queries lifted, the signing oracle logging. -/
-abbrev gameImpl {Resp F : Type} (S : Scheme D Seed PK SK Req Resp F) (sk : SK) :=
+abbrev gameImpl {Resp F : Type} (S : Scheme Seed PK SK Req Resp F) (sk : SK) :=
   QueryImpl.ofLift KSpec (WriterT (QueryLog (Req →ₒ Resp)) (OracleComp KSpec)) +
-    signingOracleK e S sk
+    signingOracleK S sk
 
-omit [SampleableType D] in
 /-- **The adversary's run, through the map**: run against the second scheme's oracles, an
 adversary's run is its run against the first's with the signing answers read through `φ`, the
 log read through `φ`. -/
-theorem run_gameImpl (S₁ : Scheme D Seed PK SK Req Resp₁ F₁) (S₂ : Scheme D Seed PK SK Req Resp₂ F₂)
+theorem run_gameImpl (S₁ : Scheme Seed PK SK Req Resp₁ F₁) (S₂ : Scheme Seed PK SK Req Resp₂ F₂)
     (φ : Resp₁ → Resp₂) (hsign : ∀ sk r, S₂.sign sk r = φ <$> S₁.sign sk r) (sk : SK) {α : Type}
     (oa : OracleComp (KSpec + (Req →ₒ Resp₂)) α) :
-    (simulateQ (gameImpl e S₂ sk) oa).run =
+    (simulateQ (gameImpl S₂ sk) oa).run =
       (fun z ↦ (z.1, mapLog φ z.2)) <$>
-        (simulateQ (gameImpl e S₁ sk) (simulateQ (mapAnswers φ) oa)).run := by
+        (simulateQ (gameImpl S₁ sk) (simulateQ (mapAnswers φ) oa)).run := by
   induction oa using OracleComp.inductionOn with
   | pure a => simp [mapLog]
   | query_bind t k ih =>
     rcases t with t | r
-    · have h₂ : (gameImpl e S₂ sk (.inl t)).run =
+    · have h₂ : (gameImpl S₂ sk (.inl t)).run =
           (·, ∅) <$> (liftM (KSpec.query t) : OracleComp KSpec _) := rfl
-      have h₁ : (simulateQ (gameImpl e S₁ sk) (mapAnswers φ (.inl t))).run =
+      have h₁ : (simulateQ (gameImpl S₁ sk) (mapAnswers φ (.inl t))).run =
           (·, ∅) <$> (liftM (KSpec.query t) : OracleComp KSpec _) := by
         simp only [mapAnswers, simulateQ_spec_query]
         rfl
@@ -81,13 +80,13 @@ theorem run_gameImpl (S₁ : Scheme D Seed PK SK Req Resp₁ F₁) (S₂ : Schem
         Functor.map_map]
       refine bind_congr fun u ↦ ?_
       congr 1
-    · have h₂ : (gameImpl e S₂ sk (.inr r)).run = (fun u ↦ (u, [⟨r, u⟩])) <$>
-          simulateQ (hashK e) (S₂.sign sk r) := by
+    · have h₂ : (gameImpl S₂ sk (.inr r)).run = (fun u ↦ (u, [⟨r, u⟩])) <$>
+          simulateQ (hashK) (S₂.sign sk r) := by
         simp [gameImpl, signingOracleK]
-      have h₁ : (simulateQ (gameImpl e S₁ sk) (mapAnswers φ (.inr r))).run =
-          (fun u ↦ (φ u, [⟨r, u⟩])) <$> simulateQ (hashK e) (S₁.sign sk r) := by
-        have hs : (gameImpl e S₁ sk (.inr r)).run =
-            (fun u ↦ (u, [⟨r, u⟩])) <$> simulateQ (hashK e) (S₁.sign sk r) := by
+      have h₁ : (simulateQ (gameImpl S₁ sk) (mapAnswers φ (.inr r))).run =
+          (fun u ↦ (φ u, [⟨r, u⟩])) <$> simulateQ (hashK) (S₁.sign sk r) := by
+        have hs : (gameImpl S₁ sk (.inr r)).run =
+            (fun u ↦ (u, [⟨r, u⟩])) <$> simulateQ (hashK) (S₁.sign sk r) := by
           simp [gameImpl, signingOracleK]
         simp only [mapAnswers, simulateQ_map, simulateQ_spec_query, WriterT.run_map']
         rw [hs, Functor.map_map]
@@ -104,45 +103,43 @@ def mapAdversary (φ : Resp₁ → Resp₂) (ψ : F₂ → F₁) (main : PK → 
     (pk : PK) : OracleComp (KSpec + (Req →ₒ Resp₁)) F₁ :=
   ψ <$> simulateQ (mapAnswers φ) (main pk)
 
-omit [SampleableType D] in
 /-- **The same game**: when the second scheme samples and generates keys as the first, signs as the
 first through `φ`, verifies a forgery as the first verifies it through `ψ`, and wins on a log read
 through `φ` as the first wins on the log with the forgery through `ψ`, the second scheme's game
 against `main` is the first's against `mapAdversary φ ψ main`. -/
-theorem rpmGame_eq (S₁ : Scheme D Seed PK SK Req Resp₁ F₁) (S₂ : Scheme D Seed PK SK Req Resp₂ F₂)
+theorem rpmGame_eq (S₁ : Scheme Seed PK SK Req Resp₁ F₁) (S₂ : Scheme Seed PK SK Req Resp₂ F₂)
     (φ : Resp₁ → Resp₂) (ψ : F₂ → F₁) (hsample : S₂.sample = S₁.sample)
     (hkeygen : S₂.keygen = S₁.keygen) (hsign : ∀ sk r, S₂.sign sk r = φ <$> S₁.sign sk r)
     (hverify : ∀ pk f, S₂.verify pk f = S₁.verify pk (ψ f))
     (hwin : ∀ log f, S₂.win (mapLog φ log) f = S₁.win log (ψ f))
     (main : PK → OracleComp (KSpec + (Req →ₒ Resp₂)) F₂) :
-    rpmGame e S₂ main = rpmGame e S₁ (mapAdversary φ ψ main) := by
+    rpmGame S₂ main = rpmGame S₁ (mapAdversary φ ψ main) := by
   unfold rpmGame mapAdversary
   rw [hsample, hkeygen]
   refine bind_congr fun seed ↦ bind_congr fun keys ↦ ?_
   rcases keys with ⟨pk, sk⟩
   dsimp only
-  have h := run_gameImpl e S₁ S₂ φ hsign sk (main pk)
+  have h := run_gameImpl S₁ S₂ φ hsign sk (main pk)
   simp only [gameImpl] at h
   rw [h, simulateQ_map, WriterT.run_map', bind_map_left, bind_map_left]
   refine bind_congr fun z ↦ ?_
   simp only [Prod.map, id, hverify, hwin]
 
-omit [SampleableType D] in
 /-- **`RpmSecure` through the maps**: under the hypotheses of `rpmGame_eq`, the second scheme has
 the first's bits of security. -/
-theorem rpmSecure_of_map (S₁ : Scheme D Seed PK SK Req Resp₁ F₁)
-    (S₂ : Scheme D Seed PK SK Req Resp₂ F₂) (φ : Resp₁ → Resp₂) (ψ : F₂ → F₁)
+theorem rpmSecure_of_map (S₁ : Scheme Seed PK SK Req Resp₁ F₁)
+    (S₂ : Scheme Seed PK SK Req Resp₂ F₂) (φ : Resp₁ → Resp₂) (ψ : F₂ → F₁)
     (hsample : S₂.sample = S₁.sample) (hkeygen : S₂.keygen = S₁.keygen)
     (hsign : ∀ sk r, S₂.sign sk r = φ <$> S₁.sign sk r)
     (hverify : ∀ pk f, S₂.verify pk f = S₁.verify pk (ψ f))
     (hwin : ∀ log f, S₂.win (mapLog φ log) f = S₁.win log (ψ f)) {bits : ℕ}
-    (h : RpmSecure e S₁ bits) : RpmSecure e S₂ bits := by
-  intro Q hQ hcap main hbound
-  have hgame := rpmGame_eq e S₁ S₂ φ ψ hsample hkeygen hsign hverify hwin main
+    (h : RpmSecure S₁ bits) : RpmSecure S₂ bits := by
+  intro Q hQ main hbound
+  have hgame := rpmGame_eq S₁ S₂ φ ψ hsample hkeygen hsign hverify hwin main
   rw [hgame] at hbound
   unfold rpmExperiment
   rw [hgame]
-  exact h Q hQ hcap _ hbound
+  exact h Q hQ _ hbound
 
 theorem mapLog_mapLog {Resp₃ : Type} (φ : Resp₁ → Resp₂) (φ' : Resp₂ → Resp₃)
     (log : QueryLog (Req →ₒ Resp₁)) :
@@ -152,18 +149,17 @@ theorem mapLog_mapLog {Resp₃ : Type} (φ : Resp₁ → Resp₂) (φ' : Resp₂
 theorem mapLog_id (log : QueryLog (Req →ₒ Resp₁)) : mapLog id log = log := by
   simp [mapLog]
 
-omit [SampleableType D] in
 /-- **`RpmSecure` through bijections, both ways**: under the hypotheses of `rpmGame_eq` with `φ`
 and `ψ` bijections, the two schemes have the same bits of security. -/
-theorem rpmSecure_iff_of_equiv (S₁ : Scheme D Seed PK SK Req Resp₁ F₁)
-    (S₂ : Scheme D Seed PK SK Req Resp₂ F₂) (φ : Resp₁ ≃ Resp₂) (ψ : F₂ ≃ F₁)
+theorem rpmSecure_iff_of_equiv (S₁ : Scheme Seed PK SK Req Resp₁ F₁)
+    (S₂ : Scheme Seed PK SK Req Resp₂ F₂) (φ : Resp₁ ≃ Resp₂) (ψ : F₂ ≃ F₁)
     (hsample : S₂.sample = S₁.sample) (hkeygen : S₂.keygen = S₁.keygen)
     (hsign : ∀ sk r, S₂.sign sk r = φ <$> S₁.sign sk r)
     (hverify : ∀ pk f, S₂.verify pk f = S₁.verify pk (ψ f))
     (hwin : ∀ log f, S₂.win (mapLog φ log) f = S₁.win log (ψ f)) (bits : ℕ) :
-    RpmSecure e S₂ bits ↔ RpmSecure e S₁ bits := by
-  refine ⟨rpmSecure_of_map e S₂ S₁ φ.symm ψ.symm hsample.symm hkeygen.symm ?_ ?_ ?_,
-    rpmSecure_of_map e S₁ S₂ φ ψ hsample hkeygen hsign hverify hwin⟩
+    RpmSecure S₂ bits ↔ RpmSecure S₁ bits := by
+  refine ⟨rpmSecure_of_map S₂ S₁ φ.symm ψ.symm hsample.symm hkeygen.symm ?_ ?_ ?_,
+    rpmSecure_of_map S₁ S₂ φ ψ hsample hkeygen hsign hverify hwin⟩
   · intro sk r
     rw [hsign, Functor.map_map]
     simp
@@ -491,9 +487,9 @@ theorem win_eq (log : QueryLog SphincsLayered.SigningSpec) (forgery : Forgery) :
 /-- **The same game**: the statement's scheme has the layered scheme's bits of security, and
 conversely, through the bijection. -/
 theorem rpmSecure_iff (bits : ℕ) :
-    RpmSecure digestBitVec Rpm.scheme bits ↔
-      RpmSecure digestBitVec SphincsLayered.Rpm.scheme bits :=
-  rpmSecure_iff_of_equiv _ SphincsLayered.Rpm.scheme Rpm.scheme
+    RpmSecure Rpm.scheme bits ↔
+      RpmSecure SphincsLayered.Rpm.scheme bits :=
+  rpmSecure_iff_of_equiv SphincsLayered.Rpm.scheme Rpm.scheme
     (Equiv.optionCongr signatureEquiv) forgeryEquiv.symm rfl
     (funext keygenFromSeed_eq) (fun sk message ↦ sign_eq sk message)
     (fun pk forgery ↦ verify_eq pk forgery.message forgery.signature) win_eq bits

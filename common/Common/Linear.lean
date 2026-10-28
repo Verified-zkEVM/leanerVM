@@ -38,6 +38,22 @@ theorem two_pow_mul_inv_pow (a b : ℕ) :
 theorem inv_two_pow_le_of_le {a b : ℕ} (h : a ≤ b) : (2 : ℝ≥0∞)⁻¹ ^ b ≤ (2 : ℝ≥0∞)⁻¹ ^ a :=
   pow_le_pow_of_le_one zero_le (ENNReal.inv_le_one.2 one_le_two) h
 
+/-- `1 ≤ x · 2^-b` once `2^b ≤ x`: a bound past one, which every probability meets. -/
+theorem one_le_mul_inv_two_pow {x : ℝ≥0∞} {b : ℕ} (h : (2 : ℝ≥0∞) ^ b ≤ x) :
+    1 ≤ x * (2 : ℝ≥0∞)⁻¹ ^ b :=
+  calc (1 : ℝ≥0∞) = (2 : ℝ≥0∞) ^ b * (2 : ℝ≥0∞)⁻¹ ^ b := by
+        rw [← mul_pow, ENNReal.mul_inv_cancel two_ne_zero ENNReal.ofNat_ne_top, one_pow]
+    _ ≤ x * (2 : ℝ≥0∞)⁻¹ ^ b := mul_le_mul_left h _
+
+/-- **The bound `(Q + 1) · 2^-bits` past `Q = 2^128`**, for `bits ≤ 128`: it is at least one, so
+every probability `p` meets it. -/
+theorem le_succ_mul_inv_two_pow_of_lt {p : ℝ≥0∞} (hp : p ≤ 1) {Q bits : ℕ} (hb : bits ≤ 128)
+    (hQ : 2 ^ 128 < Q) : p ≤ ((Q : ℝ≥0∞) + 1) * (2 : ℝ≥0∞)⁻¹ ^ bits := by
+  refine hp.trans (one_le_mul_inv_two_pow ?_)
+  calc (2 : ℝ≥0∞) ^ bits ≤ 2 ^ 128 := pow_le_pow_right₀ one_le_two hb
+    _ ≤ (Q : ℝ≥0∞) := by exact_mod_cast hQ.le
+    _ ≤ (Q : ℝ≥0∞) + 1 := le_self_add
+
 /-- **A signature bound in bits**: for `Q ≤ 2^128` and `bits ≤ 253`,
 `Q / 2^bits + Q² / 2^509 ≤ (Q + 1) · 2^-bits`. -/
 theorem bits_add_sq_le {Q bits : ℕ} (hQ : Q ≤ 2 ^ 128) (hb : bits ≤ 253) :

@@ -834,12 +834,12 @@ variable [Params]
 /-- leanSPHINCS in the generic SUF-CMA game: the seed, key generation, the deterministic signer,
 the verifier, and the winning condition (`SigningTranscript`, above). -/
 noncomputable def scheme :
-    Scheme HashOutput MasterSeed PublicKey Seeded.SecretKey Message (Option Signature)
+    Scheme MasterSeed PublicKey Seeded.SecretKey Message (Option Signature)
       Forgery where
   sample := sampleMasterSeed
   keygen := Seeded.keygenFromSeed
-  sign sk message := Seeded.sign sk message
-  verify pk forgery := Concrete.verify pk forgery.message forgery.signature
+  sign sk message := Seeded.sign (m := OracleComp HashSpec) sk message
+  verify pk forgery := Concrete.verify (m := OracleComp HashSpec) pk forgery.message forgery.signature
   win log forgery :=
     decide (SigningTranscript.Valid log ∧ ¬SigningTranscript.Contains log forgery)
 
@@ -864,7 +864,7 @@ abbrev pruned8 : Params := ⟨8, 8830, by decide⟩
 /-- **leanSPHINCS in the random-permutation model, at every proved lifetime**: at each subtree
 height (`b` = 26, 20, 14, 13, 12, 10, 8, the instances `full`, `pruned20`, …, `pruned8` with
 their signature limits), an adversary whose game makes at most `Q` permutation calls,
-`1 ≤ Q ≤ 2^128`, forges with probability at most `(Q + 1) · 2^-127` (`RpmSecure` at 127 bits).
+`Q ≥ 1`, forges with probability at most `(Q + 1) · 2^-127` (`RpmSecure` at 127 bits).
 `Q` counts every call on the game's worst path, the honest signer's included (`IsWeightBound` is
 structural): a signature costs about `2^35` calls at `b = 26` (`2^32` grinding attempts of one
 call, `2^32` encoding counters of three, and `treePath` rebuilding the kept subtree, about
@@ -872,7 +872,7 @@ call, `2^32` encoding counters of three, and `treePath` rebuilding the kept subt
 `2^-62`. Proved by `Sphincs.Lifetimes.requestedSecurityRpm`. -/
 abbrev RequestedSecurityRpm : Prop :=
   ∀ P ∈ [full, pruned20, pruned14, pruned13, pruned12, pruned10, pruned8],
-    RpmSecure digestBitVec (@Rpm.scheme P) 127
+    RpmSecure (@Rpm.scheme P) 127
 
 end Lifetimes
 
