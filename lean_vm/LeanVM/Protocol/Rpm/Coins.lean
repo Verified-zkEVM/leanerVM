@@ -169,7 +169,7 @@ noncomputable def detExperiment (A : DetAdversary) : ProbComp RpmOutcome := do
   let verdict ← (simulateQ rpmImpl (verifier queryH queryF z.1.1 z.1.2 z.2)).run' perms
   return ((z, verdict), transcript)
 
-/-- `rpmRun` (`Statement/LeanVm.lean`) for a deterministic adversary. -/
+/-- `rpmRun` (`Statement/LeanVm.lean`) for a deterministic adversary, without the transcript. -/
 noncomputable def detRun {α β : Type} (A : OracleComp (Common.permSpec KState) α)
     (V : α → OracleComp HashSpec β) : ProbComp (α × β) := do
   let (z, perms, _) ← (simulateQ loggedPermDet A).run ([], [])
@@ -240,12 +240,20 @@ theorem rpmExperiment_le_det {B : RpmAdversary} {Q : ℕ}
   exists_det_rpm _ E hB
 
 /-- **`rpmRun` against an adversary with coins is bounded by a deterministic one's**: for every
-event, some deterministic adversary of as many queries to `π` and `π⁻¹`. -/
+event of the outputs, some deterministic adversary of as many queries to `π` and `π⁻¹`. -/
 theorem rpmRun_le_det {α β : Type} {B : OracleComp (unifSpec + Common.permSpec KState) α} {Q : ℕ}
     (hB : Common.IsWeightBound B permQueries Q) (V : α → OracleComp HashSpec β)
     (E : α × β → Prop) :
     ∃ A : OracleComp (Common.permSpec KState) α, A.IsTotalQueryBound Q ∧
-      Pr{let z ← rpmRun B V}[E z] ≤ Pr{let z ← detRun A V}[E z] :=
-  exists_det_rpm _ E hB
+      Pr{let z ← rpmRun B V}[E z.1] ≤ Pr{let z ← detRun A V}[E z] := by
+  obtain ⟨A, hA, hle⟩ := exists_det_rpm (fun p ↦ do
+      let v ← (simulateQ rpmImpl (V p.1)).run' p.2.1
+      return ((p.1, v), p.2.2)) (fun z ↦ E z.1) hB
+  refine ⟨A, hA, hle.trans (le_of_eq ?_)⟩
+  have h : detRun A V = (fun z ↦ z.1) <$> ((simulateQ loggedPermDet A).run ([], []) >>= fun p ↦ do
+      let v ← (simulateQ rpmImpl (V p.1)).run' p.2.1
+      return ((p.1, v), p.2.2)) := by
+    simp only [detRun, map_bind, map_pure]
+  rw [h, prEvent_map]
 
 end LeanVM.Rpm

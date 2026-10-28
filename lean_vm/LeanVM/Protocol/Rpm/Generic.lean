@@ -11,7 +11,7 @@ import LeanVM.Protocol.LeanVMRpm
 /-!
 # The transfer, for any verifier
 
-`rpmRun A V` (`Statement/LeanVm.lean`), here `detRun A V` for a deterministic adversary
+`rpmRun A V` (`Statement/LeanVm.lean`, its outputs), here `detRun A V` for a deterministic adversary
 (`Coins.lean`, where `rpmRun_le_det` bounds an adversary with coins by one): an adversary `A`
 against the lazily sampled permutation (its queries recorded, as in `rpmExperiment`), then a computation `V` on its output over the calls of `Statement.lean`, with
 Keccak-256 the sponge over the same permutation and Keccak-f[1600] the permutation. If `V` follows

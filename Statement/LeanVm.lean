@@ -167,13 +167,19 @@ abbrev RpmOutcome.proof (z : RpmOutcome) : Proof := z.1.1.2
 abbrev RpmOutcome.accepted (z : RpmOutcome) : Prop := z.1.2 = true
 abbrev RpmOutcome.transcript (z : RpmOutcome) : Transcript := z.2
 
-/-- **The random-permutation experiment**: the adversary against the lazily sampled permutation
-from no edge, its queries recorded; then the verifier on its statement and proof, with
-Keccak-256 the sponge over the same permutation and Keccak-f[1600] the permutation. -/
-noncomputable def rpmExperiment (A : RpmAdversary) : ProbComp RpmOutcome := do
+/-- **The random-permutation experiment of an adversary and a computation**: the adversary
+against the lazily sampled permutation from no edge, its queries recorded; then a computation `V`
+over the verifier's calls on its output, with Keccak-256 the sponge over the same permutation and
+Keccak-f[1600] the permutation. The outputs, and the transcript. -/
+noncomputable def Rpm.rpmRun {α β : Type} (A : OracleComp (unifSpec + permSpec KState) α)
+    (V : α → OracleComp HashSpec β) : ProbComp ((α × β) × Transcript) := do
   let (z, perms, transcript) ← (simulateQ loggedPerm A).run ([], [])
-  let verdict ← (simulateQ rpmImpl (verifier queryH queryF z.1.1 z.1.2 z.2)).run' perms
-  return ((z, verdict), transcript)
+  let v ← (simulateQ rpmImpl (V z)).run' perms
+  return ((z, v), transcript)
+
+/-- **The random-permutation experiment**: the verifier on the adversary's statement and proof. -/
+noncomputable abbrev rpmExperiment (A : RpmAdversary) : ProbComp RpmOutcome :=
+  Rpm.rpmRun A fun z ↦ verifier queryH queryF z.1.1 z.1.2 z.2
 
 /-! ### The extractor -/
 
@@ -276,15 +282,6 @@ def Completeness : Prop :=
     ValidExecution prog input t → t.committedSize ≤ 2 ^ 28 → 1 ≤ ρ ∧ ρ ≤ 4 →
     Pr{let v ← rpmCompletenessExperiment prover prog input t ρ (2 ^ 25)}[v = false] ≤
       (2 : ℝ≥0∞)⁻¹ ^ 256
-
-/-- **The random-permutation experiment of an adversary and a computation**: `rpmExperiment`
-with any computation `V` over the verifier's calls in place of the verifier, without the
-transcript; the experiment of the batching's end statement (`LeanVmGuest.lean`). -/
-noncomputable def Rpm.rpmRun {α β : Type} (A : OracleComp (unifSpec + permSpec KState) α)
-    (V : α → OracleComp HashSpec β) : ProbComp (α × β) := do
-  let (z, perms, _) ← (simulateQ loggedPerm A).run ([], [])
-  let v ← (simulateQ rpmImpl (V z)).run' perms
-  return (z, v)
 
 end LeanVM
 
