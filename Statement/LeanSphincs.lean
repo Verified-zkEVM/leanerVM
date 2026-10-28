@@ -47,7 +47,7 @@ namespace Sphincs
 
 export LeanXmss (digestBits hashOutputBits messageBits publicParameterBits winternitzBits
   chainLength MasterSeed Digest HashOutput Message PublicParameter Randomness Digit ChainStep
-  HashInput truncateHash upperHash hashHalf PublicKey bytesLE TweakFields fieldBytes tweakFields
+  HashInput truncateHash upperHash hashHalf PublicKey bytesLE TweakFields fieldBytes tweakFields thInput
   HashSpec sampleMasterSeed)
 
 def counterBits : Nat := 32
@@ -239,22 +239,6 @@ def hashDomainFields : HashDomain → TweakFields
   | .roots index => tweakFields 20 0 0 index
   | .message => tweakFields 12 0 0 0
 
-/-- The exact 16 address bytes of a hash domain. -/
-def tweakBytes (domain : HashDomain) : HashInput :=
-  fieldBytes (hashDomainFields domain)
-
-/-- The hash input `P || A || payload` of every tweakable hash call and of the message
-digest. -/
-def tweakableHashInput (parameter : PublicParameter) (domain : HashDomain)
-    (message : HashInput) : HashInput :=
-  bytesLE 16 parameter ++ tweakBytes domain ++ message
-
-/-- `P || A(7, 0, 0) || S || m` (`TWEAK_RANDOMIZER = 7`): the randomizer base of a message. -/
-def randomizerHashInput (parameter : PublicParameter) (seed : MasterSeed)
-    (message : Message) : HashInput :=
-  bytesLE 16 parameter ++ fieldBytes ⟨7#5, 0#3, 0#24, 0#32⟩ ++
-    bytesLE 32 seed ++ bytesLE 32 message
-
 /-- The pair of chains a chain of a one-time key belongs to. -/
 def chainPair (chain : ChainIndex) : ChainPair :=
   ⟨chain.val / 2, by have h : chain.val < 64 := chain.isLt; omega⟩
@@ -289,16 +273,6 @@ def keygenDomainFields : KeygenDomain → TweakFields
 
 /-- `SEED_TAG`, the 11 ASCII bytes of `leanSPHINCS`. -/
 def seedTag : HashInput := [0x6c, 0x65, 0x61, 0x6e, 0x53, 0x50, 0x48, 0x49, 0x4e, 0x43, 0x53]
-
-/-- `leanSPHINCS || S0` (`scheme_seed`), 43 bytes: its hash is the scheme seed `S`, the seed every
-other input below derives from. It has no parameter and no address. -/
-def schemeSeedInput (seed : MasterSeed) : HashInput :=
-  seedTag ++ bytesLE 32 seed
-
-/-- `P || A || S`; parameter derivation uses `P = 0`. -/
-def keygenHashInput (parameter : PublicParameter) (domain : KeygenDomain)
-    (seed : MasterSeed) : HashInput :=
-  bytesLE 16 parameter ++ fieldBytes (keygenDomainFields domain) ++ bytesLE 32 seed
 
 /-! #### The target-sum code
 
@@ -336,15 +310,15 @@ signing. Hashing routines work in any monad with access to `HashSpec`. -/
 
 namespace Concrete
 
-export LeanXmss.Concrete (sequenceFin oracleHash walkChain nodePayload foldPath buildTree)
+export LeanXmss.Concrete (sequenceFin oracleHash walkChain nodePayload foldPath buildTree th thPair
+  taggedSeed)
 
 variable {m : Type → Type} [Monad m] [HasQuery HashSpec m]
 
-/-- `Th(P, tw, M) = Truncate_n(H(P || tw || M))`. -/
-def tweakableHash (parameter : PublicParameter) (domain : HashDomain) (payload : HashInput) :
-    m Digest := do
-  let output ← oracleHash (tweakableHashInput parameter domain payload)
-  return truncateHash output
+/-- The tweakable hash at a hash domain's address (`th`). -/
+abbrev tweakableHash (parameter : PublicParameter) (domain : HashDomain) (payload : HashInput) :
+    m Digest :=
+  th parameter (hashDomainFields domain) payload
 
 /-! #### The one-time signature -/
 
@@ -510,7 +484,7 @@ def messageDigestPayload (_root : Digest) (message : Message) (randomness : Rand
 /-- The single untruncated digest call (`message_digest_bytes`, `scheme.rs`). -/
 def messageDigestCall (parameter : PublicParameter) (root : Digest) (message : Message)
     (randomness : Randomness) : m HashOutput :=
-  oracleHash (tweakableHashInput parameter .message (messageDigestPayload root message randomness))
+  thPair parameter (hashDomainFields .message) (messageDigestPayload root message randomness)
 
 /-- Bit offset of the index: the low 26 bits of the last 16 bytes of the digest. -/
 def indexOffset : Nat := 128
@@ -584,25 +558,6 @@ instance (parameter : PublicParameter) (index : Index) : Decidable (Landed param
 
 end Pruning
 
-/-- One seed derivation, first 16 bytes: the parameter and the surrogates. -/
-def deriveKey {m : Type → Type} [Monad m] [HasQuery HashSpec m]
-    (parameter : PublicParameter) (domain : KeygenDomain) (seed : MasterSeed) : m Digest := do
-  return truncateHash (← Concrete.oracleHash (keygenHashInput parameter domain seed))
-
-/-- One seed derivation, all 32 bytes (`th_pair`): the starts of two chains are its two halves. -/
-def deriveOutput {m : Type → Type} [Monad m] [HasQuery HashSpec m]
-    (parameter : PublicParameter) (domain : KeygenDomain) (seed : MasterSeed) : m HashOutput :=
-  Concrete.oracleHash (keygenHashInput parameter domain seed)
-
-def deriveRandomizer {m : Type → Type} [Monad m] [HasQuery HashSpec m]
-    (parameter : PublicParameter) (seed : MasterSeed)
-    (message : Message) : m Randomness := do
-  return truncateHash (← Concrete.oracleHash (randomizerHashInput parameter seed message))
-
-/-- `scheme_seed`: the scheme seed `S`, the whole hash of `leanSPHINCS || S0`. -/
-def schemeSeed {m : Type → Type} [Monad m] [HasQuery HashSpec m] (seed : MasterSeed) : m MasterSeed :=
-  Concrete.oracleHash (schemeSeedInput seed)
-
 namespace Seeded
 
 open Concrete
@@ -615,7 +570,8 @@ variable {m : Type → Type} [Monad m] [HasQuery HashSpec m]
 derivations. Chains `2t` and `2t + 1` start at the two halves of derivation `t`. -/
 def otsSecrets (parameter : PublicParameter) (leaf : Index) (seed : MasterSeed) :
     m (ChainIndex → Digest) := do
-  let outputs ← sequenceFin fun pair : ChainPair => deriveOutput parameter (.ots leaf pair) seed
+  let outputs ← sequenceFin fun pair : ChainPair =>
+    thPair parameter (keygenDomainFields (.ots leaf pair)) (bytesLE 32 seed)
   return fun chainIdx => hashHalf chainIdx.val (outputs (chainPair chainIdx))
 
 def oneTimePublicKey (parameter : PublicParameter) (leaf : Index) (seed : MasterSeed) :
@@ -650,7 +606,8 @@ def treeNode (parameter : PublicParameter) (seed : MasterSeed) : Nat → Nat →
 `2t + 1` start at the two halves of derivation `t`. -/
 def forestSecrets (parameter : PublicParameter) (index : Index) (c : Coord) (s : SuperIdx)
     (j : SubIdx) (a : ChildIdx) (seed : MasterSeed) : m (FChain → Digest) := do
-  let outputs ← sequenceFin fun pair : FPair => deriveOutput parameter (.forest index c s j a pair) seed
+  let outputs ← sequenceFin fun pair : FPair =>
+    thPair parameter (keygenDomainFields (.forest index c s j a pair)) (bytesLE 32 seed)
   return fun i => hashHalf i.val (outputs (fchainPair i))
 
 /-- The leaf of a child, from its 6 chain tops. -/
@@ -716,7 +673,8 @@ variable [Params]
 /-- The surrogate sibling at `level >= b`, derived from the seed (`TWEAK_SURROGATE`). Honest calls
 have `level < h`. -/
 def surrogate (parameter : PublicParameter) (seed : MasterSeed) (level : Nat) : m Digest :=
-  if hlevel : level < totalHeight then deriveKey parameter (.surrogate ⟨level, hlevel⟩) seed else pure 0
+  if hlevel : level < totalHeight then th parameter (keygenDomainFields (.surrogate ⟨level, hlevel⟩)) (bytesLE 32 seed)
+  else pure 0
 
 /-- The node at level `b + steps` above the kept subtree: the subtree root folded with the first
 `steps` surrogates (the surrogate fold of `key_gen_from_seed`, `scheme.rs`). -/
@@ -750,14 +708,14 @@ def treePath (parameter : PublicParameter) (seed : MasterSeed) (leaf : Index) :
 /-- Key generation from the scheme seed `S`: derive the public parameter, which places the kept
 subtree, and build the root. -/
 def keygenFromMaster (seed : MasterSeed) : OracleComp HashSpec (PublicKey × SecretKey) := do
-  let parameter ← deriveKey 0 .parameter seed
+  let parameter ← th 0 (keygenDomainFields .parameter) (bytesLE 32 seed)
   let root ← treeRoot parameter seed
   return (⟨root, parameter⟩, ⟨seed, parameter, root⟩)
 
 /-- `Gen` (`key_gen_from_seed`): hash the key's seed `S0` into the scheme seed `S`, then generate
 from `S`. -/
 def keygenFromSeed (seed : MasterSeed) : OracleComp HashSpec (PublicKey × SecretKey) := do
-  let master ← schemeSeed seed
+  let master ← taggedSeed seedTag seed
   keygenFromMaster master
 
 /-- One grinding attempt: the leaf index of the digest call (the `find_map` of `sign`,
@@ -783,7 +741,9 @@ def signDigestLoop (secretKey : SecretKey) (message : Message) : Nat → Randomn
 `R0, R0 + 1, ...` into the kept subtree, compute the digest, open the forest, sign its key (the
 sixteen level-3 nodes) with WOTS+C at `e = idx` and attach the path. -/
 def sign (secretKey : SecretKey) (message : Message) : m (Option Signature) := do
-  let base ← deriveRandomizer secretKey.parameter secretKey.seed message
+  -- the randomizer base `S || m` (`TWEAK_RANDOMIZER = 7`)
+  let base ← th secretKey.parameter (tweakFields 7 0 0 0)
+    (bytesLE 32 secretKey.seed ++ bytesLE 32 message)
   let some (randomness, _) ← signDigestLoop secretKey message digestAttemptLimit base
     | return none
   let digest ← messageDigest secretKey.parameter secretKey.root message randomness

@@ -44,7 +44,7 @@ theorem queryCount_realHash (parameter : PublicParameter) (domain : LeanXmss.Has
     (payload : HashInput) :
     QueryCount (LeanXmss.Concrete.tweakableHash parameter domain payload :
       OracleComp LeanXmss.HashSpec LeanXmss.Digest) 1 := by
-  unfold LeanXmss.Concrete.tweakableHash
+  unfold LeanXmss.Concrete.tweakableHash LeanXmss.Concrete.th
   have h := (queryCount_oracleHash (LeanXmss.tweakableHashInput parameter domain payload)).bind
     (f := fun output => (pure (LeanXmss.truncateHash output) : OracleComp HashSpec LeanXmss.Digest))
     fun _ => QueryCount.pure _
@@ -106,7 +106,7 @@ theorem queryCount_realTreeNode (parameter : PublicParameter) (lay : LeanXmss.La
 
 theorem queryCount_realKeygen (seed : MasterSeed) :
     QueryCount (realKeygen seed) (keygenQueries - 1) := by
-  unfold realKeygen LeanXmss.deriveKey
+  unfold realKeygen LeanXmss.deriveKey LeanXmss.Concrete.th
   rw [bind_assoc, show keygenQueries - 1 = 1 + (0 + (nodeQueries LeanXmss.layerHeight + 0)) by decide]
   refine (queryCount_oracleHash _).bind fun output => (QueryCount.pure _).bind fun parameter => ?_
   exact (queryCount_realTreeNode _ _ _ _ _).bind fun _ => .pure _
@@ -259,7 +259,7 @@ theorem realTopNode (h : Prepared seed d result cache) (level : Nat) (hlevel : l
 theorem realKeygen (h : Prepared seed d result cache) :
     Resolves cache (Bridge.realKeygen seed)
       ((⟨result.1.1, d.parameter⟩ : LeanXmss.PublicKey), (⟨seed, d.parameter, result.1.1⟩ : LeanXmss.Seeded.SecretKey)) := by
-  unfold Bridge.realKeygen LeanXmss.deriveKey
+  unfold Bridge.realKeygen LeanXmss.deriveKey LeanXmss.Concrete.th
   rw [bind_assoc]
   have hparam : cache (paramInput seed) = some d.param := h.prog_le (progCache_param seed d)
   change Resolves cache (liftM (HashSpec.query (paramInput seed)) >>= _) _

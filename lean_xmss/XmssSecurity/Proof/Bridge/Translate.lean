@@ -48,8 +48,8 @@ theorem hash_eq {parameter : PublicParameter} {domain : LeanXmss.HashDomain} {do
     (LeanXmss.Concrete.tweakableHash parameter domain payload :
         OracleComp LeanXmss.HashSpec LeanXmss.Digest) =
       (Concrete.tweakableHash parameter domain' payload' : OracleComp HashSpec Digest) := by
-  unfold Concrete.tweakableHash LeanXmss.Concrete.tweakableHash
-  rw [h]
+  unfold Concrete.tweakableHash LeanXmss.Concrete.tweakableHash LeanXmss.Concrete.th
+  rw [LeanXmss.thInput_hashDomainFields, h]
   rfl
 
 theorem chain_input (parameter : PublicParameter) (key : LeafIndex) (chain : ChainIndex)

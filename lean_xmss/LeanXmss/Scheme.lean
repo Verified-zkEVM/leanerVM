@@ -3,6 +3,7 @@ module
 public import VCVio.OracleComp.QueryTracking.LoggingOracle.Core
 public import VCVio.OracleComp.QueryTracking.RandomOracle.Simulation
 public import Statement.LeanXmss
+public import LeanXmss.Compat
 
 /-!
 # leanXMSS

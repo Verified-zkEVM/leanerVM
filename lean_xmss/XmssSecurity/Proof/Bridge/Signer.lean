@@ -88,7 +88,7 @@ theorem realTopLayer (h : Prepared seed d result cache) (key : TopIndex) :
         (LeanXmss.bytesLE 16 (h.root key)) :
           OracleComp LeanXmss.HashSpec (Option LeanXmss.LayerSignature))
       (((modelSecretKey d result).topSigned key).map fun _ => layerToReal (Concrete.topPart (modelSecretKey d result) key)) := by
-  unfold LeanXmss.Seeded.signLayer LeanXmss.Seeded.otsSign LeanXmss.deriveRandomizer
+  unfold LeanXmss.Seeded.signLayer LeanXmss.Seeded.otsSign LeanXmss.Concrete.th
   simp only [bind_assoc, pure_bind]
   have hbase : cache (topRndInput d.parameter seed (key, h.root key)) = some (d.topRnd (key, h.root key)) :=
     h.prog_le (progCache_topRnd seed d (key, h.root key))
@@ -191,7 +191,8 @@ theorem erases_sign (h : Prepared seed d result cache) (index : LeafIndex) (mess
       (Option.map (toRealSig index) <$> (tableSign d.rnd (modelSecretKey d result) index message :
         OracleComp HashSpec (Option Signature))) := by
   rw [LeanXmss.Seeded.sign]
-  simp only [keyAt_bottom, keyAt_top, signLayer_bottom, LeanXmss.deriveRandomizer, bind_assoc, pure_bind]
+  simp only [keyAt_bottom, keyAt_top, signLayer_bottom, LeanXmss.deriveRandomizer, LeanXmss.Concrete.th, bind_assoc,
+    pure_bind]
   unfold tableSign
   have hR0 : cache (rndInput d.parameter seed ⟨index, message⟩) = some (d.rnd ⟨index, message⟩) :=
     h.prog_le (progCache_rnd seed d ⟨index, message⟩)

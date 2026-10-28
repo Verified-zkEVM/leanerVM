@@ -52,9 +52,10 @@ first cell of their `hcell`. -/
 theorem tweakableHash_cells (hq : XQ inst) {P : PublicParameter} {dom : HashDomain}
     {payload : HashInput} {cs : List E} (h : tweakableHashInput P dom payload = cs.flatMap cellBytes) :
     @tweakableHash Id _ inst P dom payload = cellVal (hcell cs).1 := by
-  rw [tweakableHash.eq_def]
+  unfold tweakableHash th
   simp only [bind, pure, oracleHash]
-  rw [hq, h, truncateHash_keccakBits]
+  rw [hq, show thInput P (hashDomainFields dom) payload = cs.flatMap cellBytes from h,
+    truncateHash_keccakBits]
   rfl
 
 theorem sequenceFin_id {α : Type} : ∀ {n : Nat} (f : Fin n → Id α), sequenceFin f = f

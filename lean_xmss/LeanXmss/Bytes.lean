@@ -111,7 +111,7 @@ theorem seedHashInput_ne_randomizer (keySeed : MasterSeed) (parameter : PublicPa
     seedHashInput keySeed ≠ randomizerHashInput parameter lay key seed message := by
   intro h
   have := congrArg List.length h
-  simp [seedHashInput_length, randomizerHashInput, fieldBytes, bytesLE_length] at this
+  simp [seedHashInput_length, randomizerHashInput, thInput, fieldBytes, bytesLE_length] at this
   omega
 
 theorem seedHashInput_ne_tweakable (keySeed : MasterSeed) (parameter : PublicParameter)

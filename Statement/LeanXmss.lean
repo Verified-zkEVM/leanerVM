@@ -104,6 +104,12 @@ def fieldBytes (fields : TweakFields) : HashInput :=
 def tweakFields (tag step hi lo : Nat) : TweakFields :=
   ⟨BitVec.ofNat 5 tag, BitVec.ofNat 3 step, BitVec.ofNat 24 hi, BitVec.ofNat 32 lo⟩
 
+/-- `P || A || payload`, the input of every tweakable hash call at the address `fields`
+(`hasher`, `tweak.rs`). -/
+def thInput (parameter : PublicParameter) (fields : TweakFields) (payload : HashInput) :
+    HashInput :=
+  bytesLE 16 parameter ++ fieldBytes fields ++ payload
+
 /-! ### leanXMSS's parameters, types and hash-input layout -/
 
 /-- `v`, the chains of a one-time key. -/
@@ -169,21 +175,8 @@ def hashDomainFields : HashDomain → TweakFields
   | .node lay level nodeIdx => tweakFields 3 0 (layerHi lay level) nodeIdx
   | .message lay key => tweakFields 12 0 (layerHi lay 0) key
 
-/-- The exact 16 address bytes of a hash domain. -/
-def tweakBytes (domain : HashDomain) : HashInput :=
-  fieldBytes (hashDomainFields domain)
-
-/-- The hash input `P || A || payload` of every tweakable hash call. -/
-def tweakableHashInput (parameter : PublicParameter) (domain : HashDomain)
-    (payload : HashInput) : HashInput :=
-  bytesLE 16 parameter ++ tweakBytes domain ++ payload
-
 /-- `leanXMSS`, the 8 ASCII bytes hashed before the key's seed (`SEED_TAG`). -/
 def seedTag : HashInput := [0x6c, 0x65, 0x61, 0x6e, 0x58, 0x4d, 0x53, 0x53]
-
-/-- `"leanXMSS" || S_0`, the 40-byte input of the scheme's seed `S`. -/
-def seedHashInput (keySeed : MasterSeed) : HashInput :=
-  seedTag ++ bytesLE 32 keySeed
 
 /-- The seed derivations: the parameter (under `P = 0`), and the starts of chains `2t` and `2t + 1`
 of a one-time key, the two halves of one hash. -/
@@ -196,17 +189,6 @@ deriving DecidableEq
 def keygenDomainFields : KeygenDomain → TweakFields
   | .parameter => tweakFields 5 0 0 0
   | .ots lay key pair => tweakFields 0 0 (layerHi lay pair) key
-
-/-- `P || A || S`. -/
-def keygenHashInput (parameter : PublicParameter) (domain : KeygenDomain)
-    (seed : MasterSeed) : HashInput :=
-  bytesLE 16 parameter ++ fieldBytes (keygenDomainFields domain) ++ bytesLE 32 seed
-
-/-- `P || A_rnd(l, e) || S || M` (`TWEAK_RANDOMIZER = 7`): the randomizer base of a message. -/
-def randomizerHashInput (parameter : PublicParameter) (lay : Layer) (key : KeyIndex)
-    (seed : MasterSeed) (message : HashInput) : HashInput :=
-  bytesLE 16 parameter ++ fieldBytes (tweakFields 7 0 (layerHi lay 0) key) ++ bytesLE 32 seed ++
-    message
 
 /-- The pair of chains a chain belongs to. -/
 def chainPair (chain : ChainIndex) : ChainPair :=
@@ -301,11 +283,23 @@ variable {m : Type → Type} [Monad m] [HasQuery HashSpec m]
 def oracleHash (input : HashInput) : m HashOutput :=
   HasQuery.query (spec := HashSpec) (m := m) input
 
-/-- `Th(P, A, M) = Truncate_n(H(P || A || M))`. -/
-def tweakableHash (parameter : PublicParameter) (domain : HashDomain) (payload : HashInput) :
-    m Digest := do
-  let output ← oracleHash (tweakableHashInput parameter domain payload)
-  return truncateHash output
+/-- `Th(P, A, M) = Truncate_n(H(P || A || M))` (`th`, `tweak.rs`). -/
+def th (parameter : PublicParameter) (fields : TweakFields) (payload : HashInput) : m Digest := do
+  return truncateHash (← oracleHash (thInput parameter fields payload))
+
+/-- `H(P || A || M)`, untruncated: two secrets for one hash (`th_pair`). -/
+def thPair (parameter : PublicParameter) (fields : TweakFields) (payload : HashInput) :
+    m HashOutput :=
+  oracleHash (thInput parameter fields payload)
+
+/-- `H(tag || S_0)`, all 32 bytes (`tagged_seed`): the seed `S` a scheme derives from. -/
+def taggedSeed (tag : HashInput) (seed : MasterSeed) : m MasterSeed :=
+  oracleHash (tag ++ bytesLE 32 seed)
+
+/-- The tweakable hash at a hash domain's address. -/
+abbrev tweakableHash (parameter : PublicParameter) (domain : HashDomain) (payload : HashInput) :
+    m Digest :=
+  th parameter (hashDomainFields domain) payload
 
 /-! #### The one-time signature -/
 
@@ -379,26 +373,6 @@ attribute [irreducible] verify
 
 end Concrete
 
-/-- `S = H("leanXMSS" || S_0)`, all 32 bytes (`scheme_seed`): the seed every derivation hashes. -/
-def schemeSeed {m : Type → Type} [Monad m] [HasQuery HashSpec m] (keySeed : MasterSeed) : m MasterSeed :=
-  Concrete.oracleHash (seedHashInput keySeed)
-
-/-- One seed derivation, first 16 bytes: the parameter. -/
-def deriveKey {m : Type → Type} [Monad m] [HasQuery HashSpec m]
-    (parameter : PublicParameter) (domain : KeygenDomain) (seed : MasterSeed) : m Digest := do
-  return truncateHash (← Concrete.oracleHash (keygenHashInput parameter domain seed))
-
-/-- One seed derivation, all 32 bytes (`th_pair`): the starts of two chains are its two halves. -/
-def deriveOutput {m : Type → Type} [Monad m] [HasQuery HashSpec m]
-    (parameter : PublicParameter) (domain : KeygenDomain) (seed : MasterSeed) : m HashOutput :=
-  Concrete.oracleHash (keygenHashInput parameter domain seed)
-
-/-- `R0`, the randomizer base of a message, first 16 bytes. -/
-def deriveRandomizer {m : Type → Type} [Monad m] [HasQuery HashSpec m]
-    (parameter : PublicParameter) (lay : Layer) (key : KeyIndex) (seed : MasterSeed)
-    (message : HashInput) : m Randomness := do
-  return truncateHash (← Concrete.oracleHash (randomizerHashInput parameter lay key seed message))
-
 /-- The key's seed `S_0`, uniform. -/
 noncomputable def sampleMasterSeed : ProbComp MasterSeed :=
   letI := SampleableType.ofFintype MasterSeed
@@ -420,7 +394,8 @@ variable {m : Type → Type} [Monad m] [HasQuery HashSpec m]
 Chains `2t` and `2t + 1` start at the two halves of derivation `t`. -/
 def otsSecrets (parameter : PublicParameter) (lay : Layer) (key : KeyIndex) (seed : MasterSeed) :
     m (ChainIndex → Digest) := do
-  let outputs ← sequenceFin fun pair : ChainPair => deriveOutput parameter (.ots lay key pair) seed
+  let outputs ← sequenceFin fun pair : ChainPair =>
+    thPair parameter (keygenDomainFields (.ots lay key pair)) (bytesLE 32 seed)
   return fun chainIdx => hashHalf chainIdx.val (outputs (chainPair chainIdx))
 
 /-- The chain ends of a one-time key. -/
@@ -448,7 +423,8 @@ def otsSignFrom (parameter : PublicParameter) (lay : Layer) (key : KeyIndex) (se
 /-- `wots_sign`: derive `R0`, take the least admissible trial, then open the chains. -/
 def otsSign (parameter : PublicParameter) (lay : Layer) (key : KeyIndex) (seed : MasterSeed)
     (message : HashInput) : m (Option (Randomness × (ChainIndex → Digest))) := do
-  let base ← deriveRandomizer parameter lay key seed message
+  -- `R0`, the randomizer base (`TWEAK_RANDOMIZER = 7`)
+  let base ← th parameter (tweakFields 7 0 (layerHi lay 0) key) (bytesLE 32 seed ++ message)
   otsSignFrom parameter lay key seed message base randomizerAttemptLimit 0
 
 /-- Node `nodeIdx` at tree level `level` of layer `l`, from the one-time keys below it. On the bottom
@@ -467,8 +443,8 @@ def treePath (parameter : PublicParameter) (lay : Layer) (seed : MasterSeed) (ke
 /-- `Gen` (`key_gen`): hash the key's seed `S_0` into `S`, derive the public parameter and build the
 top tree. -/
 def keygenFromSeed (keySeed : MasterSeed) : OracleComp HashSpec (PublicKey × SecretKey) := do
-  let seed ← schemeSeed keySeed
-  let parameter ← deriveKey 0 .parameter seed
+  let seed ← taggedSeed seedTag keySeed
+  let parameter ← th 0 (keygenDomainFields .parameter) (bytesLE 32 seed)
   let root ← treeNode parameter topLayer seed layerHeight 0
   return (⟨root, parameter⟩, ⟨seed, parameter, root⟩)
 

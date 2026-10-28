@@ -1,6 +1,7 @@
 module
 
 public import Statement.LeanSphincs
+public import Sphincs.Compat
 
 /-!
 # The statement's chains, folds and trees, step by step

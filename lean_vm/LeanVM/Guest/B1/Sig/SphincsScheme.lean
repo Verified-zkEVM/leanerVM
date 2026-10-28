@@ -67,9 +67,9 @@ theorem sflatMap_bytesLE_sv : ∀ (l : List E),
 theorem sHash_bytes (hq : SQ inst) {P : PublicParameter} {dom : HashDomain}
     {payload : HashInput} {r : List UInt8} (h : tweakableHashInput P dom payload = r) :
     @tweakableHash Id _ inst P dom payload = sv (digestScalars (keccak256 r)).1 := by
-  rw [tweakableHash.eq_def]
+  unfold tweakableHash th
   simp only [bind, pure, oracleHash]
-  rw [hq, h, sphincs_truncateHash_keccakBits]
+  rw [hq, show thInput P (hashDomainFields dom) payload = r from h, sphincs_truncateHash_keccakBits]
   rfl
 
 /-- **A hash of cells**: a tweakable hash whose input is the bytes of cells is the value of the
@@ -401,8 +401,9 @@ theorem sMessageDigest_cells (hq : SQ inst) {pp a m0 m1 rho : E} {root : Sphincs
     rw [bytesLE_spp, bytesLE_sv, ← ha, hm]
     simp
   rw [messageDigest.eq_def]
-  simp only [bind, pure, messageDigestCall, oracleHash]
-  rw [hq, truncateMessageDigest_keccakBits, hI]
+  simp only [bind, pure, messageDigestCall, thPair, oracleHash]
+  rw [hq, truncateMessageDigest_keccakBits,
+    show thInput (spp pp) (hashDomainFields .message) (messageDigestPayload root m (sv rho)) = _ from hI]
   rfl
 
 theorem mod_div_mod {x n k w : Nat} (h : k + w ≤ n) :
