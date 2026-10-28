@@ -526,8 +526,6 @@ def verify (publicKey : PublicKey) (message : Message) (signature : Signature) :
     (fun level ↦ if h : level < totalHeight then signature.path ⟨level, h⟩ else 0) totalHeight leaf
   return decide (root = publicKey.root)
 
-attribute [irreducible] verify
-
 end Concrete
 
 /-! #### Pruning -/

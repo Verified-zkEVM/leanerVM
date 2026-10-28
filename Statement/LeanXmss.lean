@@ -366,8 +366,6 @@ def verify (publicKey : PublicKey) (message : Message) (signature : Signature) :
       (bytesLE 16 bottomRoot) (signature.layers topLayer) | return false
   return decide (root = publicKey.root)
 
-attribute [irreducible] verify
-
 end Concrete
 
 /-- The key's seed `S_0`, uniform. -/
