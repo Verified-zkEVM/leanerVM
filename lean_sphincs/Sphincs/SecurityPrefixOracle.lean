@@ -27,7 +27,7 @@ structure Segment where
   digit : Digit
 
 abbrev Query (segment : Segment) := Fin segment.digit.val × Digest
-abbrev High := BitVec (hashOutputBits - digestBits)
+abbrev High := BitVec (256 - digestBits)
 
 def step (segment : Segment) (index : Fin segment.digit.val) : ChainStep :=
   ⟨index.val, by have := index.isLt; have := segment.digit.isLt; omega⟩

@@ -45,10 +45,9 @@ namespace Sphincs
 
 /-! ### The instance: parameters, types, and hash-input layout -/
 
-export LeanXmss (digestBits hashOutputBits messageBits publicParameterBits winternitzBits
-  chainLength MasterSeed Digest HashOutput Message PublicParameter Randomness Digit ChainStep
-  HashInput truncateHash upperHash hashHalf PublicKey bytesLE TweakFields fieldBytes tweakFields thInput
-  HashSpec sampleMasterSeed)
+export LeanXmss (digestBits winternitzBits chainLength MasterSeed Digest HashOutput Message
+  PublicParameter Randomness Digit ChainStep HashInput truncateHash upperHash hashHalf PublicKey
+  bytesLE TweakFields fieldBytes tweakFields thInput HashSpec sampleMasterSeed)
 
 def counterBits : Nat := 32
 def numChains : Nat := 64

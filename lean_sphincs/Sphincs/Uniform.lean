@@ -4,45 +4,45 @@ import SphincsBase.Proof.Base.Probability
 /-! Uniform bit extraction; adapted from leanVM b7a107256. -/
 namespace SphincsLayered
 open OracleComp OracleSpec ENNReal
-theorem hashOutput_eq_of_extract {width : Nat} (hwidth : width ≤ hashOutputBits) {x y : HashOutput}
+theorem hashOutput_eq_of_extract {width : Nat} (hwidth : width ≤ 256) {x y : HashOutput}
     (hlow : x.extractLsb' 0 width = y.extractLsb' 0 width)
-    (hhigh : x.extractLsb' width (hashOutputBits - width)
-      = y.extractLsb' width (hashOutputBits - width)) : x = y := by
+    (hhigh : x.extractLsb' width (256 - width)
+      = y.extractLsb' width (256 - width)) : x = y := by
   apply BitVec.eq_of_getLsbD_eq
   intro i hi
   by_cases hlt : i < width
   · have := congrArg (fun b : BitVec width => b.getLsbD i) hlow
     simpa [BitVec.getLsbD_extractLsb', hlt] using this
-  · have hshift : i - width < hashOutputBits - width := by omega
-    have := congrArg (fun b : BitVec (hashOutputBits - width) => b.getLsbD (i - width)) hhigh
+  · have hshift : i - width < 256 - width := by omega
+    have := congrArg (fun b : BitVec (256 - width) => b.getLsbD (i - width)) hhigh
     simp only [BitVec.getLsbD_extractLsb', hshift, decide_true, Bool.true_and] at this
     rwa [show width + (i - width) = i by omega] at this
 
 def splitHashOutput (width : Nat) (output : HashOutput) :
-    BitVec width × BitVec (hashOutputBits - width) :=
+    BitVec width × BitVec (256 - width) :=
   (output.extractLsb' 0 width,
-    output.extractLsb' width (hashOutputBits - width))
+    output.extractLsb' width (256 - width))
 
-theorem splitHashOutput_injective {width : Nat} (hwidth : width ≤ hashOutputBits) :
+theorem splitHashOutput_injective {width : Nat} (hwidth : width ≤ 256) :
     Function.Injective (splitHashOutput width) := by
   intro left right heq
   apply hashOutput_eq_of_extract hwidth
   · exact congrArg Prod.fst heq
   · exact congrArg Prod.snd heq
 
-theorem splitHashOutput_bijective {width : Nat} (hwidth : width ≤ hashOutputBits) :
+theorem splitHashOutput_bijective {width : Nat} (hwidth : width ≤ 256) :
     Function.Bijective (splitHashOutput width) := by
   apply (Fintype.bijective_iff_injective_and_card _).2
   refine ⟨splitHashOutput_injective hwidth, ?_⟩
   rw [Fintype.card_prod, Fintype.card_bitVec, Fintype.card_bitVec, Fintype.card_bitVec, ← pow_add]
-  congr
+  congr 1
   omega
 
-noncomputable def splitHashOutputEquiv (width : Nat) (hwidth : width ≤ hashOutputBits) :
-    HashOutput ≃ BitVec width × BitVec (hashOutputBits - width) :=
+noncomputable def splitHashOutputEquiv (width : Nat) (hwidth : width ≤ 256) :
+    HashOutput ≃ BitVec width × BitVec (256 - width) :=
   Equiv.ofBijective (splitHashOutput width) (splitHashOutput_bijective hwidth)
 
-theorem evalDist_hashOutput_extract_uniform {width : Nat} (hwidth : width ≤ hashOutputBits) :
+theorem evalDist_hashOutput_extract_uniform {width : Nat} (hwidth : width ≤ 256) :
     ((fun output : HashOutput => output.extractLsb' 0 width) <$>
         ($ᵗ HashOutput : ProbComp HashOutput)) =ᵈ ($ᵗ BitVec width : ProbComp (BitVec width)) := by
   let split := splitHashOutput width
@@ -53,10 +53,10 @@ theorem evalDist_hashOutput_extract_uniform {width : Nat} (hwidth : width ≤ ha
     simp [Functor.map_map, split, splitHashOutput]
   rw [hmap]
   have hsplit :
-      (split <$> ($ᵗ HashOutput : ProbComp HashOutput)) =ᵈ ($ᵗ (BitVec width × BitVec (hashOutputBits - width)) :
-          ProbComp (BitVec width × BitVec (hashOutputBits - width))) :=
+      (split <$> ($ᵗ HashOutput : ProbComp HashOutput)) =ᵈ ($ᵗ (BitVec width × BitVec (256 - width)) :
+          ProbComp (BitVec width × BitVec (256 - width))) :=
     SampleableType.map_uniformSample_evalDistEq_of_bijective
-      (α := HashOutput) (β := BitVec width × BitVec (hashOutputBits - width))
+      (α := HashOutput) (β := BitVec width × BitVec (256 - width))
       (splitHashOutput_bijective hwidth)
   refine (hsplit.map Prod.fst).trans fun p => ?_
   rw [prEvent_map]
@@ -64,11 +64,11 @@ theorem evalDist_hashOutput_extract_uniform {width : Nat} (hwidth : width ≤ ha
 
 /-- The three parts of a hash output around the `width` bits at `offset`. -/
 def splitHashOutputAt (offset width : Nat) (output : HashOutput) :
-    BitVec width × (BitVec offset × BitVec (hashOutputBits - (offset + width))) :=
+    BitVec width × (BitVec offset × BitVec (256 - (offset + width))) :=
   (output.extractLsb' offset width,
-    (output.extractLsb' 0 offset, output.extractLsb' (offset + width) (hashOutputBits - (offset + width))))
+    (output.extractLsb' 0 offset, output.extractLsb' (offset + width) (256 - (offset + width))))
 
-theorem splitHashOutputAt_bijective {offset width : Nat} (hwidth : offset + width ≤ hashOutputBits) :
+theorem splitHashOutputAt_bijective {offset width : Nat} (hwidth : offset + width ≤ 256) :
     Function.Bijective (splitHashOutputAt offset width) := by
   apply (Fintype.bijective_iff_injective_and_card _).2
   refine ⟨?_, ?_⟩
@@ -87,19 +87,19 @@ theorem splitHashOutputAt_bijective {offset width : Nat} (hwidth : offset + widt
         have := congrArg (fun b : BitVec width => b.getLsbD (i - offset)) hmid
         simp only [BitVec.getLsbD_extractLsb', hshift, decide_true, Bool.true_and] at this
         rwa [show offset + (i - offset) = i by omega] at this
-      · have hshift : i - (offset + width) < hashOutputBits - (offset + width) := by omega
-        have := congrArg (fun b : BitVec (hashOutputBits - (offset + width)) =>
+      · have hshift : i - (offset + width) < 256 - (offset + width) := by omega
+        have := congrArg (fun b : BitVec (256 - (offset + width)) =>
           b.getLsbD (i - (offset + width))) hhigh
         simp only [BitVec.getLsbD_extractLsb', hshift, decide_true, Bool.true_and] at this
         rwa [show offset + width + (i - (offset + width)) = i by omega] at this
   · rw [Fintype.card_prod, Fintype.card_prod, Fintype.card_bitVec, Fintype.card_bitVec, Fintype.card_bitVec, Fintype.card_bitVec,
       ← pow_add, ← pow_add]
-    congr
+    congr 1
     omega
 
 /-- The `width` bits at any offset of a uniform hash output are uniform. -/
 theorem evalDist_hashOutput_extractAt_uniform {offset width : Nat}
-    (hwidth : offset + width ≤ hashOutputBits) :
+    (hwidth : offset + width ≤ 256) :
     ((fun output : HashOutput => output.extractLsb' offset width) <$>
         ($ᵗ HashOutput : ProbComp HashOutput)) =ᵈ ($ᵗ BitVec width : ProbComp (BitVec width)) := by
   let split := splitHashOutputAt offset width
@@ -110,11 +110,11 @@ theorem evalDist_hashOutput_extractAt_uniform {offset width : Nat}
     simp [Functor.map_map, split, splitHashOutputAt]
   rw [hmap]
   have hsplit :
-      (split <$> ($ᵗ HashOutput : ProbComp HashOutput)) =ᵈ ($ᵗ (BitVec width × (BitVec offset × BitVec (hashOutputBits - (offset + width)))) :
-          ProbComp (BitVec width × (BitVec offset × BitVec (hashOutputBits - (offset + width))))) :=
+      (split <$> ($ᵗ HashOutput : ProbComp HashOutput)) =ᵈ ($ᵗ (BitVec width × (BitVec offset × BitVec (256 - (offset + width)))) :
+          ProbComp (BitVec width × (BitVec offset × BitVec (256 - (offset + width))))) :=
     SampleableType.map_uniformSample_evalDistEq_of_bijective
       (α := HashOutput)
-      (β := BitVec width × (BitVec offset × BitVec (hashOutputBits - (offset + width))))
+      (β := BitVec width × (BitVec offset × BitVec (256 - (offset + width))))
       (splitHashOutputAt_bijective hwidth)
   refine (hsplit.map Prod.fst).trans fun p => ?_
   rw [prEvent_map]

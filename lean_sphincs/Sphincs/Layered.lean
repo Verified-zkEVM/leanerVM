@@ -26,7 +26,7 @@ namespace SphincsLayered
 
 /-! ### The instance: parameters, types, and hash-input layout -/
 
-export LeanXmss (digestBits hashOutputBits messageBits publicParameterBits winternitzBits
+export LeanXmss (digestBits winternitzBits
   chainLength MasterSeed Digest HashOutput Message PublicParameter Randomness Digit ChainStep
   HashInput truncateHash upperHash hashHalf PublicKey bytesLE TweakFields fieldBytes tweakFields
   HashSpec sampleMasterSeed)

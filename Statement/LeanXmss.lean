@@ -49,16 +49,13 @@ around it, which `crates/signatures/src/tweak.rs` gives both schemes (`Statement
 exports them into `Sphincs`). -/
 
 def digestBits : Nat := 128
-def hashOutputBits : Nat := 256
-def messageBits : Nat := 256
-def publicParameterBits : Nat := 128
 def winternitzBits : Nat := 2
 def chainLength : Nat := 2 ^ winternitzBits
 abbrev MasterSeed := BitVec 256
 abbrev Digest := BitVec digestBits
-abbrev HashOutput := BitVec hashOutputBits
-abbrev Message := BitVec messageBits
-abbrev PublicParameter := BitVec publicParameterBits
+abbrev HashOutput := BitVec 256
+abbrev Message := BitVec 256
+abbrev PublicParameter := BitVec 128
 abbrev Randomness := Digest
 abbrev Digit := Fin chainLength
 abbrev ChainStep := Fin (chainLength - 1)
