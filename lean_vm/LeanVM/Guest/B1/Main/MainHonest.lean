@@ -119,7 +119,6 @@ def hOwn : List (List E) :=
   [(s.claims.da ++ (dPlan s w).dups).flatMap daCells,
     (s.claims.xmss ++ (xPlan s w).dups).flatMap (fun c => claimCells c.1.root c.1.parameter c.2),
     (s.claims.sphincs ++ (sPlan s w).dups).flatMap (fun c => claimCells c.1.root c.1.parameter c.2),
-    B1.Digest.digestCells (signersDigest s.claims.xmss s.claims.sphincs),
     hCover s w,
     (List.range 256).map fun v => word v 0 0,
     w.children.flatMap (fun c => B1.Digest.digestCells (statementDigest seed c.statement)),

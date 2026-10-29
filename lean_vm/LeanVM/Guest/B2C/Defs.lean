@@ -20,7 +20,7 @@ public import LeanVM.Guest.Data.CplArms
 # The honest memory's frames
 
 `cert f v` is the certificate's cell of value `v` of `f` and `fs f` its frame size (`main`'s
-frame also holds the jump table, cells `427 + s`). An instance's cells (`C`) are, first one per
+frame also holds the jump table, cells `408 + s`). An instance's cells (`C`) are, first one per
 cell (`frameE`): its range checks' temporaries, its frame runs, its fixed cells (`Plumb.stat`:
 constants and frame-pointer products), every value its path names (`namedOf`: parameters, the
 events' values, the returned values), the callee frame pointer and dispatch target of each call
@@ -54,7 +54,7 @@ noncomputable def cert (f : String) (v : V) : ℕ :=
   | none => 0
 
 /-- `main`'s frame: its cells and the jump table after them. -/
-def mainFrame : ℕ := 427 + 8473
+def mainFrame : ℕ := 408 + 8473
 
 /-- **The frame sizes**: the compiler's (`fsAt`), `main`'s holding the jump table, at least the
 header. -/

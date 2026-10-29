@@ -282,21 +282,19 @@ theorem l4_stepC {rd : Reader} {C : CallRel} (hC : Unfolds rd C) (hm : MemOk rd)
 
 
 /-- **Child `x`'s facts**: its base `written[x]`, its counts `g^ex`, `g^es`, `g^ed`, its two
-rebuilt claim lists' digests, its signer-set digest at `sp`, its DA roots, its statement's
-digest at `child_pi · x^2`, its proof's check, and `written[x · g] = base · g^(ex + es + ed)`. -/
+rebuilt claim lists' digests, its DA roots, its statement's digest at `child_pi · x^2`, its
+proof's check, and `written[x · g] = base · g^(ex + es + ed)`. -/
 def KidStepC (C : CallRel) (rd : Reader) (written lxt cover lxs lst lss carried roots dcov dslots s0 s1 cpi glp
     gsq cfresh x : E) : Prop :=
-  ∃ (base sp cx0 cx1 cs0 cs1 d0 d1 p0 p1 cda : E) (ex es ed : ℕ),
+  ∃ (base cx0 cx1 cs0 cs1 d0 d1 p0 p1 cda : E) (ex es ed : ℕ),
     LoadHolds rd (written * x) 0 base ∧ ex ≤ 65535 ∧ es ≤ 65535 ∧ ed ≤ 16 ∧
     coreProgram.Rel rd "child_claim_list_digest" [lxt, cover, base, 1, lxs, gen ^ ex] [cx0, cx1] ∧
     coreProgram.Rel rd "child_claim_list_digest" [lst, cover, base * gen ^ ex, lxs, lss, gen ^ es]
       [cs0, cs1] ∧
-    AllCanonical [cx0, cx1, cs0, cs1] ∧
-    LoadHolds rd sp 0 (digestScalars (keccak256 (cellsBytes [cx0, cx1, cs0, cs1]))).1 ∧
-    LoadHolds rd sp 1 (digestScalars (keccak256 (cellsBytes [cx0, cx1, cs0, cs1]))).2 ∧
     (∀ d < ed, KidDaStep rd cda roots dcov dslots base (gen ^ ex * gen ^ es) (gen ^ d)) ∧
     coreProgram.Rel rd "da_list_digest" [cda, gen ^ ed] [d0, d1] ∧
-    coreProgram.Rel rd "statement_digest" [s0, s1, sp, d0, d1, carried * x ^ 24] [p0, p1] ∧
+    coreProgram.Rel rd "statement_digest" [s0, s1, cx0, cx1, cs0, cs1, d0, d1, carried * x ^ 24]
+      [p0, p1] ∧
     LoadHolds rd (cpi * x ^ 2) 0 p0 ∧ LoadHolds rd (cpi * x ^ 2) 1 p1 ∧
     C "verify_sub" [p0, p1, s0, s1, glp, gsq, cfresh * x ^ 24] [] ∧
     LoadHolds rd (written * x) 1 (base * (gen ^ ex * gen ^ es) * gen ^ ed)
@@ -313,8 +311,8 @@ theorem l5_stepC {rd : Reader} {C : CallRel} (hC : Unfolds rd C)
   have hf := find_of_idx l5_idx (by rw [coreProgram_length]; omega)
   have hok := l5_ok
   simp only [l5Ok, Bool.and_eq_true, decide_eq_true_eq] at hok
-  obtain ⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨hshape, hlen⟩, hm18⟩, hl19⟩, hrc20⟩, hrc21⟩, hm30⟩, hc31⟩,
-    hcx⟩, hm34⟩, hcs⟩, hss⟩, hm62⟩, hrc63⟩, hg28⟩, hdl⟩, hsd⟩, hm79⟩, hl76⟩, hm80⟩, hl77⟩,
+  obtain ⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨hshape, hlen⟩, hm18⟩, hl19⟩, hrc20⟩, hrc21⟩, hm30⟩, hc31⟩,
+    hcx⟩, hm34⟩, hcs⟩, hm62⟩, hrc63⟩, hg28⟩, hdl⟩, hsd⟩, hm79⟩, hl76⟩, hm80⟩, hl77⟩,
     hm86⟩, hvs⟩, hm87⟩, hm88⟩, hm89⟩, hl88⟩ := hok
   obtain ⟨σ, hx, hps, hall, hnext⟩ := loop_stepC hC hf hshape h
   refine ⟨fun N written lxt cover lxs lst lss carried roots dcov dslots s0 s1 cpi glp gsq cfresh hN
@@ -335,22 +333,21 @@ theorem l5_stepC {rd : Reader} {C : CallRel} (hC : Unfolds rd C)
   have h31 : σ (.n 31) = 1 := by rw [const_sound hc31 hat, word_one]
   have h18 : σ (.n 18) = written * x := by rw [isMul_sound hm18 hat, hwr, hx]
   have h30 : σ (.n 30) = gen ^ ex * gen ^ es := by rw [isMul_sound hm30 hat, hnx, hns]
-  obtain ⟨hcan, hsp0, hsp1⟩ := pairHash_sound hss hat
   -- the child's DA roots
-  have hdas : ∀ d < ed, KidDaStep rd (σ (.n 70)) roots dcov dslots (σ (.n 19))
+  have hdas : ∀ d < ed, KidDaStep rd (σ (.n 50)) roots dcov dslots (σ (.n 19))
       (gen ^ ex * gen ^ es) (gen ^ d) := by
     have := loop_sound (f := "__loop28")
-      (ps := [σ (.n 63), σ (.n 70), σ (.n 9), σ (.n 10), σ (.n 11), σ (.n 19), σ (.n 30)])
-      (N := σ (.n 63)) (m := ed)
-      (B := KidDaStep rd (σ (.n 70)) (σ (.n 9)) (σ (.n 10)) (σ (.n 11)) (σ (.n 19)) (σ (.n 30)))
+      (ps := [σ (.n 43), σ (.n 50), σ (.n 9), σ (.n 10), σ (.n 11), σ (.n 19), σ (.n 30)])
+      (N := σ (.n 43)) (m := ed)
+      (B := KidDaStep rd (σ (.n 50)) (σ (.n 9)) (σ (.n 10)) (σ (.n 11)) (σ (.n 19)) (σ (.n 30)))
       (by unfold ordG; omega) hnd
       (fun y hy => by
         obtain ⟨h1, h2⟩ := l28_step hy
         exact ⟨h1 _ _ _ _ _ _ _ rfl, h2⟩)
       (fun hne => hle _ _ _ (by simpa using guard_soundC hg28 hall hne))
     rwa [hroots, hdcov, hdsl, h30] at this
-  refine ⟨σ (.n 19), σ (.n 56), σ (.n 32), σ (.n 33), σ (.n 35), σ (.n 36), σ (.n 74), σ (.n 75),
-    σ (.n 76), σ (.n 77), σ (.n 70), ex, es, ed, ?_, hex, hes, hed, ?_, ?_, hcan, hsp0, hsp1, hdas,
+  refine ⟨σ (.n 19), σ (.n 32), σ (.n 33), σ (.n 35), σ (.n 36), σ (.n 54), σ (.n 55),
+    σ (.n 56), σ (.n 57), σ (.n 50), ex, es, ed, ?_, hex, hes, hed, ?_, ?_, hdas,
     ?_, ?_, ?_, ?_, ?_, ?_⟩
   · have := load_sound hl19 hat; rwa [h18] at this
   · have := hle _ _ _ (call_of_flat hall hcx)

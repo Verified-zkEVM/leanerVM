@@ -91,10 +91,10 @@ def kcL17 : Opcode → ℕ
 def omT : Opcode → List ℕ
   | .xor => [187, 2, 2]
   | .mulNative => [599, 21, 41]
-  | .setConstant => [31, 9, 18]
-  | .deref => [767, 42, 68]
+  | .setConstant => [31, 9, 12]
+  | .deref => [767, 42, 69]
   | .jump => [35, 5, 8]
-  | .keccak => [14, 1, 1]
+  | .keccak => [14, 1, 0]
 
 /-- `verify_tables`' instructions (`B1.VerifySub.vtWB Count.vsWords`). -/
 def kcVtW : Opcode → ℕ

@@ -251,13 +251,12 @@ theorem hKid_pi {c : ℕ} (hc : c < w.children.length)
     (hlen : w.children[c].statement.defer.cells.length = 24) :
     (hKid s w c).pi (digestScalars seed).1 (digestScalars seed).2 =
       digestScalars (statementDigest seed w.children[c].statement) := by
-  unfold KidH.pi KidH.sp KidH.dl
+  unfold KidH.pi KidH.dl
   rw [hKid_cx hc, hKid_cs hc, hKid_cdaW hc, hKid_defer hc,
-    statementDigest_parts (digestBytes_eq_cells seed) ?_ ?_ rfl hlen]
-  · rw [signers_eq rfl rfl]
-    exact digestBytes_eq_cells _
-  · rw [daList_cells]
-    exact digestBytes_eq_cells _
+    statementDigest_parts (digestBytes_eq_cells seed) (digestBytes_eq_cells _)
+      (digestBytes_eq_cells _) ?_ rfl hlen]
+  rw [daList_cells]
+  exact digestBytes_eq_cells _
 
 end
 end LeanVM.Guest.B1.Main

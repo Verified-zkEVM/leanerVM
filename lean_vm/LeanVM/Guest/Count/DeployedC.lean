@@ -33,7 +33,7 @@ theorem ccC_eq : ccC B2C.fs wSB = 5349 := by
     wSB_idx (j := 22) (f := "list_split") (by decide +kernel)]
   decide +kernel
 
-theorem l5A0_eq : l5A0 B2C.fs = 100 := by
+theorem l5A0_eq : l5A0 B2C.fs = 80 := by
   unfold l5A0
   rw [fs_idx (j := 37) (f := "__loop5") (by decide +kernel)]
   decide +kernel

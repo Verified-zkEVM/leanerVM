@@ -15,8 +15,7 @@ The evaluated block's equations (`Fwd.ev_spec`) give the oracle's values and the
 and constants the proof reads; the atoms hold block by block (`atoms_holds_stores`): the range
 checks on the memory defined below `2^16` (`rc_side`), the reads of the running count and the
 header, the equality checks on the honest words, the nonzero check on a declared claim; then the
-stores: the signer set's digest (its chain, `chain_final`), the byte table, the first running count
-and the leaf's deferred claim.
+stores: the byte table, the first running count and the leaf's deferred claim.
 -/
 
 namespace LeanVM.Guest.B1.Main
@@ -116,54 +115,54 @@ theorem main_core {rd : Reader} {m : MainIn} (hl : Sig.MemOK rd (2 ^ 16)) (hb : 
       gM 91 0 3 (by norm_num) (by norm_num) (by simp [mDefAtoms]), v0, v3, v40, ← pow_add, ← pow_add]
   have v94 : σ (.n 94) = gen ^ (m.nlx + m.nls + m.nda) + 1 := by
     rw [gA 94 92 93 (by simp [mDefAtoms]), v92, gC 93 (word 1 0 0) (by simp [mDefAtoms]), word_one]
-  have v117 : σ (.n 117) = m.a117 := by rw [hO (by decide)]; simp [mOrc]
-  have v118 : σ (.n 118) = m.a117 * gen ^ (m.nlx + m.nxd + (m.nls + m.nsd)) := by
-    rw [gM 118 117 57 (by norm_num) (by norm_num) (by simp [mDefAtoms]), v117, v57]
+  have v117 : σ (.n 97) = m.a117 := by rw [hO (by decide)]; simp [mOrc]
+  have v118 : σ (.n 98) = m.a117 * gen ^ (m.nlx + m.nxd + (m.nls + m.nsd)) := by
+    rw [gM 98 97 57 (by norm_num) (by norm_num) (by simp [mDefAtoms]), v117, v57]
   have one : ∀ d, Atom.const (.n d) (word 1 0 0) ∈ mDefAtoms → σ (.n d) = 1 := fun d h => by
     rw [gC d _ h, word_one]
   have gd : ∀ d x y e, Atom.const (.n x) (word 1 0 0) ∈ mDefAtoms →
       Atom.add (.n d) (.n x) (.n y) ∈ mDefAtoms → σ (.n y) = gen ^ e → σ (.n d) = 1 + gen ^ e :=
     fun d x y e hx hd hy => by rw [gA d x y hd, one x hx, hy]
-  have v383 : σ (.n 383) = gen ^ m.nd + gen := by
-    rw [gA 383 7 382 (by simp [mDefAtoms]), v7, gC 382 (word 2 0 0) (by simp [mDefAtoms]), word_gen]
-  have v388 : σ (.n 388) = gen ^ (m.nrx + m.nrs) := by
-    rw [gM 388 2 5 (by norm_num) (by norm_num) (by simp [mDefAtoms]), v2, v5, pow_add]
-  have v395 : σ (.n 395) = gen ^ (2 * m.nc) := by
-    rw [gM 395 6 6 (by norm_num) (by norm_num) (by simp [mDefAtoms]), v6, ← pow_add, two_mul]
-  have v396 : σ (.n 396) = gen ^ (3 * m.nc) := by
-    rw [gM 396 395 6 (by norm_num) (by norm_num) (by simp [mDefAtoms]), v395, v6, ← pow_add]
+  have v383 : σ (.n 363) = gen ^ m.nd + gen := by
+    rw [gA 363 7 362 (by simp [mDefAtoms]), v7, gC 362 (word 2 0 0) (by simp [mDefAtoms]), word_gen]
+  have v388 : σ (.n 368) = gen ^ (m.nrx + m.nrs) := by
+    rw [gM 368 2 5 (by norm_num) (by norm_num) (by simp [mDefAtoms]), v2, v5, pow_add]
+  have v395 : σ (.n 375) = gen ^ (2 * m.nc) := by
+    rw [gM 375 6 6 (by norm_num) (by norm_num) (by simp [mDefAtoms]), v6, ← pow_add, two_mul]
+  have v396 : σ (.n 376) = gen ^ (3 * m.nc) := by
+    rw [gM 376 375 6 (by norm_num) (by norm_num) (by simp [mDefAtoms]), v395, v6, ← pow_add]
     congr 1; ring
-  have v399 : σ (.n 399) = gen ^ (24 * m.nc) := by
-    rw [gM 399 398 398 (by norm_num) (by norm_num) (by simp [mDefAtoms]),
-      gM 398 397 397 (by norm_num) (by norm_num) (by simp [mDefAtoms]),
-      gM 397 396 396 (by norm_num) (by norm_num) (by simp [mDefAtoms]), v396, ← pow_add, ← pow_add,
+  have v399 : σ (.n 379) = gen ^ (24 * m.nc) := by
+    rw [gM 379 378 378 (by norm_num) (by norm_num) (by simp [mDefAtoms]),
+      gM 378 377 377 (by norm_num) (by norm_num) (by simp [mDefAtoms]),
+      gM 377 376 376 (by norm_num) (by norm_num) (by simp [mDefAtoms]), v396, ← pow_add, ← pow_add,
       ← pow_add]
     congr 1; ring
-  have v402 : σ (.n 402) = gen ^ (3 * m.nc) := by
-    rw [gM 402 401 6 (by norm_num) (by norm_num) (by simp [mDefAtoms]),
-      gM 401 6 6 (by norm_num) (by norm_num) (by simp [mDefAtoms]), v6, ← pow_add, ← pow_add]
+  have v402 : σ (.n 382) = gen ^ (3 * m.nc) := by
+    rw [gM 382 381 6 (by norm_num) (by norm_num) (by simp [mDefAtoms]),
+      gM 381 6 6 (by norm_num) (by norm_num) (by simp [mDefAtoms]), v6, ← pow_add, ← pow_add]
     congr 1; ring
-  have v405 : σ (.n 405) = gen ^ (24 * m.nc) := by
-    rw [gM 405 404 404 (by norm_num) (by norm_num) (by simp [mDefAtoms]),
-      gM 404 403 403 (by norm_num) (by norm_num) (by simp [mDefAtoms]),
-      gM 403 402 402 (by norm_num) (by norm_num) (by simp [mDefAtoms]), v402, ← pow_add, ← pow_add,
+  have v405 : σ (.n 385) = gen ^ (24 * m.nc) := by
+    rw [gM 385 384 384 (by norm_num) (by norm_num) (by simp [mDefAtoms]),
+      gM 384 383 383 (by norm_num) (by norm_num) (by simp [mDefAtoms]),
+      gM 383 382 382 (by norm_num) (by norm_num) (by simp [mDefAtoms]), v402, ← pow_add, ← pow_add,
       ← pow_add]
     congr 1; ring
-  have v408 : σ (.n 408) = gen ^ (m.nc + 1) := by
-    rw [gM 408 6 407 (by norm_num) (by norm_num) (by simp [mDefAtoms]), v6,
-      gC 407 (word 2 0 0) (by simp [mDefAtoms]), word_gen, pow_succ]
-  have v411 : σ (.n 411) = gen ^ (m.nrx + m.nrs + m.nd) := by
-    rw [gM 411 410 7 (by norm_num) (by norm_num) (by simp [mDefAtoms]),
-      gM 410 2 5 (by norm_num) (by norm_num) (by simp [mDefAtoms]), v2, v5, v7, ← pow_add, ← pow_add]
-  have v409 : σ (.n 409) = m.a409 := by rw [hO (by decide)]; simp [mOrc]
-  have v415 : σ (.n 415) = m.a409 * gen ^ m.nc := by
-    rw [gM 415 409 6 (by norm_num) (by norm_num) (by simp [mDefAtoms]), v409, v6]
-  have v419 : σ (.n 419) = gen ^ m.nc + 1 := by
-    rw [gA 419 6 418 (by simp [mDefAtoms]), v6, one 418 (by simp [mDefAtoms])]
-  have v446 : σ (.n 446) = 1 := one 446 (by simp [mDefAtoms])
-  have v450 : σ (.n 450) = gen := by
-    rw [gM 450 448 449 (by norm_num) (by norm_num) (by simp [mDefAtoms]), one 448 (by simp [mDefAtoms]),
-      gC 449 (word 2 0 0) (by simp [mDefAtoms]), word_gen, one_mul]
+  have v408 : σ (.n 388) = gen ^ (m.nc + 1) := by
+    rw [gM 388 6 387 (by norm_num) (by norm_num) (by simp [mDefAtoms]), v6,
+      gC 387 (word 2 0 0) (by simp [mDefAtoms]), word_gen, pow_succ]
+  have v411 : σ (.n 391) = gen ^ (m.nrx + m.nrs + m.nd) := by
+    rw [gM 391 390 7 (by norm_num) (by norm_num) (by simp [mDefAtoms]),
+      gM 390 2 5 (by norm_num) (by norm_num) (by simp [mDefAtoms]), v2, v5, v7, ← pow_add, ← pow_add]
+  have v409 : σ (.n 389) = m.a409 := by rw [hO (by decide)]; simp [mOrc]
+  have v415 : σ (.n 395) = m.a409 * gen ^ m.nc := by
+    rw [gM 395 389 6 (by norm_num) (by norm_num) (by simp [mDefAtoms]), v409, v6]
+  have v419 : σ (.n 399) = gen ^ m.nc + 1 := by
+    rw [gA 399 6 398 (by simp [mDefAtoms]), v6, one 398 (by simp [mDefAtoms])]
+  have v446 : σ (.n 426) = 1 := one 426 (by simp [mDefAtoms])
+  have v450 : σ (.n 430) = gen := by
+    rw [gM 430 428 429 (by norm_num) (by norm_num) (by simp [mDefAtoms]), one 428 (by simp [mDefAtoms]),
+      gC 429 (word 2 0 0) (by simp [mDefAtoms]), word_gen, one_mul]
   -- the side conditions
   have hS : ∀ a ∈ atomsIn mFlat, a ∉ mStores → needsSide a = true →
       a.Holds rd σ ∨ Side rd mStores σ a := by
@@ -209,16 +208,15 @@ theorem main_core {rd : Reader} {m : MainIn} (hl : Sig.MemOK rd (2 ^ 16)) (hb : 
       rw [hd, hp] at hnS ⊢
       simp only [Side]
       rw [ite_neg' hnS]
-      rcases hl' with ((((⟨e1, e2, rfl⟩ | ⟨e1, e2, rfl⟩ | ⟨e1, e2, rfl⟩) | hs) | hs) | hs) | hs
+      rcases hl' with (((⟨e1, e2, rfl⟩ | ⟨e1, e2, rfl⟩ | ⟨e1, e2, rfl⟩) | hs) | hs) | hs
       · rw [e2, v415]; exact ⟨hm.wN.1, by rw [hm.wN.2]; rfl⟩
       · rw [e2, v446]; exact ⟨hm.h0.1, by rw [hm.h0.2]; rfl⟩
       · rw [e2, v450]; exact ⟨hm.h1.1, by rw [hm.h1.2]; rfl⟩
       all_goals exfalso; apply hnS; rw [mStores_eq]
-      · obtain ⟨e1, ⟨e2, rfl⟩ | ⟨e2, rfl⟩⟩ := hs <;> rw [e1, e2] <;> simp [mStoresL]
       · obtain ⟨⟨e1, e2⟩, e3⟩ := hs
         rw [e1, e2]
         simp only [mStoresL, List.mem_append, List.mem_map, List.mem_range]
-        exact Or.inl (Or.inl (Or.inl (Or.inr ⟨o, e3, rfl⟩)))
+        exact Or.inl (Or.inl (Or.inl ⟨o, e3, rfl⟩))
       · obtain ⟨⟨e1, e2⟩, rfl⟩ := hs
         rw [e1, e2]; simp [mStoresL]
       · obtain ⟨e1, ⟨e3, e2⟩ | ⟨rfl, e2⟩⟩ := hs
@@ -231,18 +229,18 @@ theorem main_core {rd : Reader} {m : MainIn} (hl : Sig.MemOK rd (2 ^ 16)) (hb : 
         or_false] at hok
       simp only [Side]
       rw [e_add_eq_zero_iff]
-      have rd447 : σ (.n 447) = (digestScalars m.sdg).1 := by
-        have h := hD (.load (.n 447) (.n 446) 0) (by simp [mDefAtoms])
+      have rd447 : σ (.n 427) = (digestScalars m.sdg).1 := by
+        have h := hD (.load (.n 427) (.n 426) 0) (by simp [mDefAtoms])
         rcases h with h | h
         · exact absurd (by rw [mStores_eq] at h; exact h) (by simp [mStoresL])
         · rw [h, v446, rdAt_of_load hm.h0]
-      have rd451 : σ (.n 451) = (digestScalars m.sdg).2 := by
-        have h := hD (.load (.n 451) (.n 450) 0) (by simp [mDefAtoms])
+      have rd451 : σ (.n 431) = (digestScalars m.sdg).2 := by
+        have h := hD (.load (.n 431) (.n 430) 0) (by simp [mDefAtoms])
         rcases h with h | h
         · exact absurd (by rw [mStores_eq] at h; exact h) (by simp [mStoresL])
         · rw [h, v450, rdAt_of_load hm.h1]
-      have rd416 : σ (.n 416) = gen ^ m.total := by
-        have h := hD (.load (.n 416) (.n 415) 0) (by simp [mDefAtoms])
+      have rd416 : σ (.n 396) = gen ^ m.total := by
+        have h := hD (.load (.n 396) (.n 395) 0) (by simp [mDefAtoms])
         rcases h with h | h
         · exact absurd (by rw [mStores_eq] at h; exact h) (by simp [mStoresL])
         · rw [h, v415, rdAt_of_load hm.wN]
@@ -272,66 +270,38 @@ theorem main_core {rd : Reader} {m : MainIn} (hl : Sig.MemOK rd (2 ^ 16)) (hb : 
     simp only [List.mem_cons, List.not_mem_nil, or_false] at hi
     rcases hi with rfl | rfl | rfl | rfl <;> rw [hO (by decide)] <;> simp only [mOrc] <;>
       norm_num <;> first | exact (digestScalars_canonical _).1 | exact (digestScalars_canonical _).2
-  have hbyte : ∀ v < 256, σ (.n (120 + v)) = word v 0 0 := by
+  have hbyte : ∀ v < 256, σ (.n (100 + v)) = word v 0 0 := by
     intro v hv
     obtain ⟨b, hb', he⟩ := List.any_eq_true.mp (List.all_eq_true.mp mByte_ok v (List.mem_range.mpr hv))
     have := hG _ (atom_mem_of_atomsIn' hb')
     rw [← atomEqb_sound he] at this
     exact this
-  have hleafc : ∀ k < 23, σ (.n (421 + k)) = 0 := by
+  have hleafc : ∀ k < 23, σ (.n (401 + k)) = 0 := by
     intro k hk
     obtain ⟨b, hb', he⟩ := List.any_eq_true.mp (List.all_eq_true.mp mLeafC_ok k (List.mem_range.mpr hk))
     have := hG _ (atom_mem_of_atomsIn' hb')
     rw [← atomEqb_sound he] at this
-    rw [show σ (.n (421 + k)) = word 0 0 0 from this, word_zero]
-  have hq : ∀ a, isLoadB a = false → decide (a ∉ mStores) = true := by
-    intro a ha
-    simp only [decide_eq_true_eq]
-    intro hm'
-    rw [mStores_eq] at hm'
-    simp only [mStoresL, List.mem_append, List.mem_map, List.mem_cons, List.not_mem_nil, or_false,
-      List.mem_range] at hm'
-    rcases hm' with ((((rfl | rfl) | ⟨v, -, rfl⟩) | rfl) | ⟨v, -, rfl⟩) | rfl <;> simp [isLoadB] at ha
+    rw [show σ (.n (401 + k)) = word 0 0 0 from this, word_zero]
   have hstore : (∀ b ∈ atomsIn mPre, b ∉ mStores → b.Holds rd σ) → ∀ a ∈ mStoresL,
       (isLeafStore a = true → m.nc = 0) → a.Holds rd σ := by
-    intro hpre a ha hlf
+    intro _ a ha hlf
     simp only [mStoresL, List.mem_append, List.mem_map, List.mem_cons, List.not_mem_nil, or_false,
       List.mem_range] at ha
-    have hpair := mPair_ok
-    simp only [pairHashOk, Bool.and_eq_true] at hpair
-    have hchk' := hpair.1.1
-    rw [← check_filter hq] at hchk'
-    obtain ⟨hd, -⟩ := chain_final hchk' rfl (fun b hb => hpre b (List.mem_filter.mp hb).1
-      (by simpa using (List.mem_filter.mp hb).2)) (pre := []) (n := 0) rfl
-      (fun c => (cellsOfState_zero false c).symm)
-    have hv : ((pairSpec (.n 81) (.n 82) (.n 83) (.n 84) (atomsIn mPre)).vals σ).take
-        ((pairSpec (.n 81) (.n 82) (.n 83) (.n 84) (atomsIn mPre)).len / 16) =
-        digestCells m.xd ++ digestCells m.sd := by
-      simp only [pairSpec, ChainSpec.vals, List.map_cons, List.map_nil, srcVal]
-      rw [hO (by decide), hO (by decide), hO (by decide), hO (by decide)]
-      simp [mOrc, digestCells]
-    rw [hv, List.nil_append, mPair_out.1, mPair_out.2] at hd
-    simp only [Prod.ext_iff] at hd
-    have h116 : σ (.n 116) = m.a116 := by rw [hO (by decide)]; simp [mOrc]
-    rcases ha with ((((rfl | rfl) | ⟨v, hv', rfl⟩) | rfl) | ⟨k, hk, rfl⟩) | rfl
-    · show LoadHolds rd (σ (.n 116)) 0 (σ (.n 103))
-      rw [h116, hd.1]; exact hm.sig 0 (by simp [digestCells])
-    · show LoadHolds rd (σ (.n 116)) 1 (σ (.n 104))
-      rw [h116, hd.2]; exact hm.sig 1 (by simp [digestCells])
-    · show LoadHolds rd (σ (.n 119)) v (σ (.n (120 + v)))
+    rcases ha with (((⟨v, hv', rfl⟩ | rfl) | ⟨k, hk, rfl⟩) | rfl)
+    · show LoadHolds rd (σ (.n 99)) v (σ (.n (100 + v)))
       rw [hO (by decide), hbyte v hv']
       have := hm.bytes v (by simpa using hv')
       simpa [mOrc] using this
-    · show LoadHolds rd (σ (.n 409)) 0 (σ (.n 411))
+    · show LoadHolds rd (σ (.n 389)) 0 (σ (.n 391))
       rw [v409, v411]; exact hm.w0
     · have h0 := hlf rfl
-      show LoadHolds rd (σ (.n 417)) k (σ (.n (421 + k)))
+      show LoadHolds rd (σ (.n 397)) k (σ (.n (401 + k)))
       rw [hO (by decide), hleafc k hk]
       have := hm.leaf h0 k (by simp; omega)
       rw [List.getElem_append_left (by simp; omega), List.getElem_replicate] at this
       simpa [mOrc] using this
     · have h0 := hlf rfl
-      show LoadHolds rd (σ (.n 417)) 23 (σ (.n 420))
+      show LoadHolds rd (σ (.n 397)) 23 (σ (.n 400))
       rw [hO (by decide), hO (by decide)]
       have := hm.leaf h0 23 (by simp)
       simpa [mOrc] using this
@@ -377,14 +347,14 @@ theorem main_core {rd : Reader} {m : MainIn} (hl : Sig.MemOK rd (2 ^ 16)) (hb : 
     fun a ha => hB1 a (mem_atomsIn' (by
       simp only [List.mem_append]; exact Or.inr (atom_mem_of_atomsIn' ha))),
     hDa, hLeaf, horc, v50, v55, v56, v57, v58, v68, v76, v79, v118, v388,
-    by rw [gM 393 6 6 (by norm_num) (by norm_num) (by simp [mDefAtoms]), v6, ← pow_add, two_mul],
+    by rw [gM 373 6 6 (by norm_num) (by norm_num) (by simp [mDefAtoms]), v6, ← pow_add, two_mul],
     v399, v405, v408, gd 71 70 50 _ (by simp [mDefAtoms]) (by simp [mDefAtoms]) v50,
     one 72 (by simp [mDefAtoms]), gd 86 85 1 _ (by simp [mDefAtoms]) (by simp [mDefAtoms]) v1,
     one 87 (by simp [mDefAtoms]), gd 89 88 4 _ (by simp [mDefAtoms]) (by simp [mDefAtoms]) v4,
-    one 90 (by simp [mDefAtoms]), gd 377 376 2 _ (by simp [mDefAtoms]) (by simp [mDefAtoms]) v2,
-    one 378 (by simp [mDefAtoms]), gd 380 379 5 _ (by simp [mDefAtoms]) (by simp [mDefAtoms]) v5,
-    one 381 (by simp [mDefAtoms]), v383, gd 413 412 6 _ (by simp [mDefAtoms]) (by simp [mDefAtoms]) v6,
-    one 414 (by simp [mDefAtoms]), v419, v415, v446, v450⟩
+    one 90 (by simp [mDefAtoms]), gd 357 356 2 _ (by simp [mDefAtoms]) (by simp [mDefAtoms]) v2,
+    one 358 (by simp [mDefAtoms]), gd 360 359 5 _ (by simp [mDefAtoms]) (by simp [mDefAtoms]) v5,
+    one 361 (by simp [mDefAtoms]), v383, gd 393 392 6 _ (by simp [mDefAtoms]) (by simp [mDefAtoms]) v6,
+    one 394 (by simp [mDefAtoms]), v419, v415, v446, v450⟩
 
 end
 end LeanVM.Guest.B1.Main

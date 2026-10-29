@@ -77,8 +77,11 @@ def MainGoalCvB : Prop :=
 
 def MainGoalStB : Prop :=
   CompleteAtDTB fs cert 16 "statement_digest" (hLmain fs fp seed s w)
-    [(digestScalars (hm fs fp seed s w).seed).1, (digestScalars (hm fs fp seed s w).seed).2, (hm fs fp seed s w).a116, (digestScalars (hm fs fp seed s w).dad).1,
-      (digestScalars (hm fs fp seed s w).dad).2, (hm fs fp seed s w).a417] (Returns (B1.Digest.digestCells (hm fs fp seed s w).sdg)) (fun _ => True)
+    [(digestScalars (hm fs fp seed s w).seed).1, (digestScalars (hm fs fp seed s w).seed).2,
+      (digestScalars (hm fs fp seed s w).xd).1, (digestScalars (hm fs fp seed s w).xd).2,
+      (digestScalars (hm fs fp seed s w).sd).1, (digestScalars (hm fs fp seed s w).sd).2,
+      (digestScalars (hm fs fp seed s w).dad).1, (digestScalars (hm fs fp seed s w).dad).2,
+      (hm fs fp seed s w).a417] (Returns (B1.Digest.digestCells (hm fs fp seed s w).sdg)) (fun _ => True)
     (SB "statement_digest")
 
 variable {fs cert fp seed s w SB SK} {bytecode : List K}
@@ -118,8 +121,8 @@ theorem mainGoalDlB (hL : Limits s w) {SB : String → ℕ}
     mf_canon_flatMap _ mf_daCells_canon _, ?_⟩
   exact congrArg digestCells (mf_da_digest s.claims.da)
 
-/-- **`statement_digest` on the signer set's cells and the deferred claim**, a bytecode of `2^23`
-words making the deferred claim `24` cells. -/
+/-- **`statement_digest` on the claim lists' digests and the deferred claim**, a bytecode of
+`2^23` words making the deferred claim `24` cells. -/
 theorem mainGoalStB {bytecode : List K} (hR : NodeRel bytecode seed s w)
     (hbl : bytecode.length = 2 ^ bytecodeVars) {SB : String → ℕ}
     (hT : TotalLe coreProgram fs "statement_digest" (fun _ => SB "statement_digest")) :
@@ -129,17 +132,14 @@ theorem mainGoalStB {bytecode : List K} (hR : NodeRel bytecode seed s w)
     rw [hbl, Nat.log2_two_pow] at h1
     simp [DeferredClaim.cells, h1, bytecodeVars]
   refine statement_completeAtB fs cert _ hT fun rd h => ?_
-  have h3 := mf_reads fs fp seed s w h (i := 3) (by omega)
-  have h10 := mf_reads fs fp seed s w h (i := 10) (by omega)
-  refine ⟨(digestScalars (signersDigest s.claims.xmss s.claims.sphincs)).1,
-    (digestScalars (signersDigest s.claims.xmss s.claims.sphincs)).2, s.defer.cells,
-    h3 0 (by simp [hOwn, digestCells]), h3 1 (by simp [hOwn, digestCells]), hlen, h10, ?_, ?_⟩
+  have h9 := mf_reads fs fp seed s w h (i := 9) (by omega)
+  refine ⟨s.defer.cells, hlen, h9, ?_, ?_⟩
   · intro c hc
     simp only [List.mem_cons, List.not_mem_nil, or_false] at hc
-    rcases hc with rfl | rfl | rfl | rfl | rfl | rfl
+    rcases hc with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl
     all_goals first | exact (digestScalars_canonical _).1 | exact (digestScalars_canonical _).2
   · exact congrArg digestCells (statementDigest_parts (digestBytes_eq_cells _)
-      (digestBytes_eq_cells _) (digestBytes_eq_cells _) rfl hlen)
+      (digestBytes_eq_cells _) (digestBytes_eq_cells _) (digestBytes_eq_cells _) rfl hlen)
 
 /-- **`__loop3` on an honest run.** -/
 theorem mainGoalL3B (hn : NodeRel bytecode seed s w) (hl : Limits s w)
@@ -181,12 +181,12 @@ theorem mainGoalCvB (hl : Limits s w) : MainGoalCvB fs cert fp seed s w := by
   have hb := regions_lt hl
   have hilt := slotD_lt s w hk
   have h := cover_completeAtB fs cert (R := hPos seed s w fs fp 0)
-    (C := hPos seed s w fs fp 4 + (rX s w + rY s w)) (n := rS s w) (i := (slotsOf (dPlan s w))[0])
+    (C := hPos seed s w fs fp 3 + (rX s w + rY s w)) (n := rS s w) (i := (slotsOf (dPlan s w))[0])
     (mark := gen ^ ((hRawX s w).length + (hRawS s w).length)) (r := daCells p.1) (by omega) hilt
     (daCells_length _) (Lin := hLmain fs fp seed s w) (fun rd hM => ⟨?_, tableD_reads hM hc⟩)
     (by rw [Nat.add_assoc]; exact cover_region (by omega)) (fun c hc4 => tableD_region hilt hc4)
   · have key : CompleteAtDTB fs cert 16 "cover_da_root" (hLmain fs fp seed s w)
-        [gen ^ hPos seed s w fs fp 0, gen ^ hPos seed s w fs fp 4 * gen ^ (rX s w + rY s w),
+        [gen ^ hPos seed s w fs fp 0, gen ^ hPos seed s w fs fp 3 * gen ^ (rX s w + rY s w),
           gen ^ rS s w, gen ^ ((hRawX s w).length + (hRawS s w).length)] (Returns (daCells p.1))
         (fun _ => True) (fs "cover_da_root") := by
       rw [← pow_add]; exact h

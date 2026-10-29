@@ -47,7 +47,7 @@ theorem kidT_hX (cert : String → V → ℕ) (hl : Limits s w) {c : ℕ}
       (w.children.map (·.statement.claims.xmss)) (c := c) (j := j) (by simpa using hc)
       (by simpa using hj)
   have := B1.Digest.child_claim_list_digest_completeAtT fs cert (κ := 16) le_rfl
-    (Lin := hLmain fs fp seed s w) (eP := hP fs fp seed s w 1) (cv := hP fs fp seed s w 4) (og := 0)
+    (Lin := hLmain fs fp seed s w) (eP := hP fs fp seed s w 1) (cv := hP fs fp seed s w 3) (og := 0)
     (L := s.claims.xmss.length + (xPlan s w).dups.length) (n := (hKid s w c).ex)
     (base := (hKid s w c).base) (o := fun j => ((xPlan s w).children.getD c []).getD j 0)
     (cells := w.children[c].statement.claims.xmss.flatMap fun c => claimCells c.1.root c.1.parameter c.2)
@@ -94,7 +94,7 @@ theorem kidT_hX (cert : String → V → ℕ) (hl : Limits s w) {c : ℕ}
           s.claims.xmss.length + (xPlan s w).dups.length := by
         have := (slot j hj).1; rw [List.length_append] at this; exact this
       rw [Nat.add_assoc]
-      exact region_buf fs fp seed s w (i := 4) (by omega)
+      exact region_buf fs fp seed s w (i := 3) (by omega)
         (show _ < (hCover s w).length by rw [kid_length_hCover]; omega))
     (fun j hj i hi => by
       rw [hKid_ex hc] at hj
@@ -126,7 +126,7 @@ theorem kidT_hS (cert : String → V → ℕ) (hl : Limits s w) {c : ℕ}
       (w.children.map (·.statement.claims.sphincs)) (c := c) (j := j) (by simpa using hc)
       (by simpa using hj)
   have := B1.Digest.child_claim_list_digest_completeAtT fs cert (κ := 16) le_rfl
-    (Lin := hLmain fs fp seed s w) (eP := hP fs fp seed s w 2) (cv := hP fs fp seed s w 4)
+    (Lin := hLmain fs fp seed s w) (eP := hP fs fp seed s w 2) (cv := hP fs fp seed s w 3)
     (og := s.claims.xmss.length + (xPlan s w).dups.length)
     (L := s.claims.sphincs.length + (sPlan s w).dups.length) (n := (hKid s w c).es)
     (base := (hKid s w c).base * gen ^ (hKid s w c).ex)
@@ -177,7 +177,7 @@ theorem kidT_hS (cert : String → V → ℕ) (hl : Limits s w) {c : ℕ}
           s.claims.sphincs.length + (sPlan s w).dups.length := by
         have := (slot j hj).1; rw [List.length_append] at this; exact this
       rw [Nat.add_assoc]
-      exact region_buf fs fp seed s w (i := 4) (by omega)
+      exact region_buf fs fp seed s w (i := 3) (by omega)
         (show _ < (hCover s w).length by rw [kid_length_hCover]; omega))
     (fun j hj i hi => by
       rw [hKid_es hc] at hj

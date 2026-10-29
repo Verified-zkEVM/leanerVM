@@ -67,7 +67,7 @@ theorem hOwn_lengths (hlog : Nat.log2 bytecode.length = 23) (hr : NodeRel byteco
     (hf : FreshShaped w) : (hOwn seed s w).map List.length = mSizes (hData seed s w) := by
   obtain ⟨hsd, hch, -, -, -, -⟩ := hr
   simp only [hOwn, mSizes, List.map_cons, List.map_nil, List.cons.injEq]
-  refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, trivial⟩
+  refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, trivial⟩
   · rw [length_flatMap_const _ _ 4 fun c _ => length_daCells c]
     simp [hData, MainData.S]
   · rw [length_flatMap_const _ (fun c : XmssClaim => claimCells c.1.root c.1.parameter c.2) 4
@@ -76,7 +76,6 @@ theorem hOwn_lengths (hlog : Nat.log2 bytecode.length = 23) (hr : NodeRel byteco
   · rw [length_flatMap_const _ (fun c : SphincsClaim => claimCells c.1.root c.1.parameter c.2) 4
       fun c _ => length_claimCells _ _ _]
     simp [hData, MainData.Y]
-  · simp [B1.Digest.digestCells]
   · exact length_hCover
   · simp
   · rw [length_flatMap_const _ _ 2 fun c _ => by simp [B1.Digest.digestCells]]
@@ -176,11 +175,6 @@ theorem mem_bufL_getD {b : ℕ} {sizes : List ℕ} {own : List (List E)} (hlen :
   have := List.getElem_mem h3
   rwa [List.getElem_zip] at this
 
-theorem cellsBytes_digestCells (x y : Digest) :
-    cellsBytes (B1.Digest.digestCells x ++ B1.Digest.digestCells y) = digestBytes x ++ digestBytes y := by
-  rw [digestBytes_eq_cells, digestBytes_eq_cells]
-  simp [cellsBytes, B1.Digest.digestCells]
-
 /-- **`main`'s header-free reads hold on a memory holding its honest buffers.** -/
 theorem hMainMem (hlog : Nat.log2 bytecode.length = 23) (hr : NodeRel bytecode seed s w)
     (hf : FreshShaped w) (hl : Limits s w) (fs : String → ℕ) (fp : ℕ) (rd : Reader)
@@ -190,25 +184,18 @@ theorem hMainMem (hlog : Nat.log2 bytecode.length = 23) (hr : NodeRel bytecode s
     MainMem rd ((hData seed s w).toIn fs fp) := by
   have hlen : (hOwn seed s w).length = (mSizes (hData seed s w)).length := by
     rw [← hOwn_lengths hlog hr hf, List.length_map]
-  have hR : ∀ i < 11, ReadsAt rd (gen ^ ((mPos (hData seed s w) (fp + fs "main")).getD i 0))
+  have hR : ∀ i < 10, ReadsAt rd (gen ^ ((mPos (hData seed s w) (fp + fs "main")).getD i 0))
       ((hOwn seed s w).getD i []) := fun i hi =>
     by rw [gen_pow_eq_ofK]; exact hM _ (mem_bufL_getD hlen (by simp [mSizes]; omega))
   obtain ⟨-, -, -, -, -, hz⟩ := hr
-  refine ⟨?_, hR 5 (by omega), ?_, ?_, ?_, h0, h1⟩
-  · have := hR 3 (by omega)
-    simp only [hOwn, List.getD_cons_succ, List.getD_cons_zero, signersDigest, signersPreimage] at this
-    show ReadsAt rd (gen ^ ((mPos (hData seed s w) (fp + fs "main")).getD 3 0))
-      (B1.Digest.digestCells (keccak256 (cellsBytes (B1.Digest.digestCells (claimListDigest s.claims.xmss) ++
-        B1.Digest.digestCells (claimListDigest s.claims.sphincs)))))
-    rw [cellsBytes_digestCells]
-    exact this
-  · have := hR 9 (by omega) 0 (by simp [hOwn])
+  refine ⟨hR 4 (by omega), ?_, ?_, ?_, h0, h1⟩
+  · have := hR 8 (by omega) 0 (by simp [hOwn])
     simpa [hOwn, MainData.toIn, hData, hW] using this
-  · have := hR 9 (by omega) w.children.length (by simp [hOwn])
+  · have := hR 8 (by omega) w.children.length (by simp [hOwn])
     simp only [hOwn, List.getD_cons_succ, List.getD_cons_zero, List.getElem_map,
       List.getElem_range] at this
     rw [hW_total hl, coverage_eq] at this
-    show LoadHolds rd (gen ^ ((mPos (hData seed s w) (fp + fs "main")).getD 9 0) * gen ^ w.children.length) 0
+    show LoadHolds rd (gen ^ ((mPos (hData seed s w) (fp + fs "main")).getD 8 0) * gen ^ w.children.length) 0
       (gen ^ (s.claims.xmss.length + (xPlan s w).dups.length + (s.claims.sphincs.length +
         (sPlan s w).dups.length) + (s.claims.da.length + (dPlan s w).dups.length)))
     rw [loadHolds_mul_gen_pow, Nat.add_zero]
@@ -219,7 +206,7 @@ theorem hMainMem (hlog : Nat.log2 bytecode.length = 23) (hr : NodeRel bytecode s
     simp only [hc, ↓reduceIte] at hz
     have hz' : s.defer.bytecodePoint = List.replicate (Nat.log2 bytecode.length) 0 := hz
     rw [hlog] at hz'
-    have := hR 10 (by omega)
+    have := hR 9 (by omega)
     simp only [hOwn, List.getD_cons_succ, List.getD_cons_zero, DeferredClaim.cells, hz'] at this
     exact this
 end

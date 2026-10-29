@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.Binding
 
-  The statement's digest binds the seed and the statement, unless one of five named pairs of
+  The statement's digest binds the seed and the statement, unless one of four named pairs of
   byte strings is a Keccak-256 collision.
 -/
 
@@ -21,14 +21,13 @@ public import LeanVM.Protocol.KeccakHash
 /-!
 # The statement's digest binds
 
-`statementDigest seed s` hashes the seed, the signer set's digest, the DA list's digest and the
-deferred claim's cells, an odd count paired with a zero cell (`statement_digest`,
-`crates/rec_aggregation/src/aggregation.rs:344-365` at leanVM `3375f7a13`); the signer set's
-digest hashes the two claim lists' digests. Every encoding on the way is injective at a fixed
-width (`digestBytes`, 32 bytes; `claimBytes`, 64; `eBytes`, 24; a DA claim, 64). So two statements
-with the same digest are equal, or one of the five Keccak-256 hashes on the way was given two
-different inputs with the same output: the pairs `collisionCandidates` lists
-(`statementDigest_binds`, and `digest_binds : DigestBinds`).
+`statementDigest seed s` hashes the seed, the two claim lists' digests, the DA list's digest and
+the deferred claim's cells, an odd count paired with a zero cell (`statement_digest`,
+`crates/rec_aggregation/src/aggregation.rs:335-364` at leanVM `990b9352`). Every encoding on the
+way is injective at a fixed width (`digestBytes`, 32 bytes; `claimBytes`, 64; `eBytes`, 24; a DA
+claim, 64). So two statements with the same digest are equal, or one of the four Keccak-256
+hashes on the way was given two different inputs with the same output: the pairs
+`collisionCandidates` lists (`statementDigest_binds`, and `digest_binds : DigestBinds`).
 
 The deferred claim's cells carry no lengths: `[x] ++ [y]` and `[x, y] ++ []` are the same cells.
 The binding needs the two deferred claims' points to have the same length, which
@@ -51,9 +50,6 @@ open LeanVM.Parameters LeanVM.Semantics LeanVM.Protocol LeanVM.Protocol.KeccakHa
 
 theorem statementDigest_eq (seed : Digest) (s : NodeStatement) :
     statementDigest seed s = keccak256 (statementPreimage seed s) := rfl
-
-theorem signersDigest_eq (xmss : List XmssClaim) (sphincs : List SphincsClaim) :
-    signersDigest xmss sphincs = keccak256 (signersPreimage xmss sphincs) := rfl
 
 theorem xmssListDigest_eq (claims : List XmssClaim) :
     claimListDigest claims = keccak256 (claimsPreimage claims) := rfl
@@ -155,12 +151,6 @@ theorem daPreimage_inj {l l' : List DaClaim} (h : daPreimage l = daPreimage l') 
       subst e1 e2
       rfl) h
 
-theorem signersPreimage_inj {x x' : List XmssClaim} {p p' : List SphincsClaim}
-    (h : signersPreimage x p = signersPreimage x' p') :
-    claimListDigest x = claimListDigest x' ∧ claimListDigest p = claimListDigest p' := by
-  obtain ⟨h1, h2⟩ := List.append_inj h (by rw [digestBytes_length, digestBytes_length])
-  exact ⟨digestBytes_injective h1, digestBytes_injective h2⟩
-
 /-- Two deferred claims with the same cells and points of the same length are equal. -/
 theorem cells_inj {c c' : DeferredClaim}
     (hb : c.bytecodePoint.length = c'.bytecodePoint.length) (h : c.cells = c'.cells) : c = c' := by
@@ -172,26 +162,26 @@ theorem cells_inj {c c' : DeferredClaim}
   subst h1 h2
   rfl
 
-/-- The outer preimage determines the seed, the two nested digests and, at a fixed point
+/-- The outer preimage determines the seed, the three nested digests and, at a fixed point
 length, the deferred claim. -/
 theorem statementPreimage_inj {seed seed' : Digest} {s s' : NodeStatement}
     (hb : s.defer.bytecodePoint.length = s'.defer.bytecodePoint.length)
     (h : statementPreimage seed s = statementPreimage seed' s') :
-    seed = seed' ∧
-      signersDigest s.claims.xmss s.claims.sphincs =
-        signersDigest s'.claims.xmss s'.claims.sphincs ∧
+    seed = seed' ∧ claimListDigest s.claims.xmss = claimListDigest s'.claims.xmss ∧
+      claimListDigest s.claims.sphincs = claimListDigest s'.claims.sphincs ∧
       daListDigest s.claims.da = daListDigest s'.claims.da ∧ s.defer = s'.defer := by
   have hc : s.defer.cells.length = s'.defer.cells.length := by
     simp [DeferredClaim.cells, hb]
   unfold statementPreimage at h
-  obtain ⟨h123, h4⟩ := List.append_inj h (by simp [digestBytes_length])
+  obtain ⟨h1234, h5⟩ := List.append_inj h (by simp [digestBytes_length])
+  obtain ⟨h123, h4⟩ := List.append_inj h1234 (by simp [digestBytes_length])
   obtain ⟨h12, h3⟩ := List.append_inj h123 (by simp [digestBytes_length])
   obtain ⟨h1, h2⟩ := List.append_inj h12 (by simp [digestBytes_length])
-  have hp := flatMap_inj (n := 24) (by decide) length_eBytes (fun _ _ ↦ eBytes_inj) h4
+  have hp := flatMap_inj (n := 24) (by decide) length_eBytes (fun _ _ ↦ eBytes_inj) h5
   unfold paddedCells at hp
   obtain ⟨hcells, -⟩ := List.append_inj hp hc
   exact ⟨digestBytes_injective h1, digestBytes_injective h2, digestBytes_injective h3,
-    cells_inj hb hcells⟩
+    digestBytes_injective h4, cells_inj hb hcells⟩
 
 /-! ## The binding -/
 
@@ -205,13 +195,7 @@ theorem statementDigest_binds_of_length {seed seed' : Digest} {s s' : NodeStatem
   swap
   · exact Or.inr ⟨(statementPreimage seed s, statementPreimage seed' s'),
       by simp [collisionCandidates], h0, h⟩
-  obtain ⟨hseed, hsig, hda, hdef⟩ := statementPreimage_inj hb h0
-  by_cases h1 : signersPreimage s.claims.xmss s.claims.sphincs =
-      signersPreimage s'.claims.xmss s'.claims.sphincs
-  swap
-  · exact Or.inr ⟨(signersPreimage s.claims.xmss s.claims.sphincs,
-      signersPreimage s'.claims.xmss s'.claims.sphincs), by simp [collisionCandidates], h1, hsig⟩
-  obtain ⟨hx, hp⟩ := signersPreimage_inj h1
+  obtain ⟨hseed, hx, hp, hda, hdef⟩ := statementPreimage_inj hb h0
   by_cases h2 : claimsPreimage s.claims.xmss = claimsPreimage s'.claims.xmss
   swap
   · exact Or.inr ⟨(claimsPreimage s.claims.xmss, claimsPreimage s'.claims.xmss),

@@ -126,8 +126,10 @@ def MainGoalAg : Prop :=
 def MainGoalSt : Prop :=
   CompleteAtD fs cert 16 "statement_digest" (hLmain fs fp seed s w)
     [(digestScalars (hm fs fp seed s w).seed).1, (digestScalars (hm fs fp seed s w).seed).2,
-      (hm fs fp seed s w).a116, (digestScalars (hm fs fp seed s w).dad).1,
-      (digestScalars (hm fs fp seed s w).dad).2, (hm fs fp seed s w).a417]
+      (digestScalars (hm fs fp seed s w).xd).1, (digestScalars (hm fs fp seed s w).xd).2,
+      (digestScalars (hm fs fp seed s w).sd).1, (digestScalars (hm fs fp seed s w).sd).2,
+      (digestScalars (hm fs fp seed s w).dad).1, (digestScalars (hm fs fp seed s w).dad).2,
+      (hm fs fp seed s w).a417]
     (Returns (B1.Digest.digestCells (hm fs fp seed s w).sdg))
 
 end

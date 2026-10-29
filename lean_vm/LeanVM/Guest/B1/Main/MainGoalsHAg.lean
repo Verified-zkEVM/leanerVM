@@ -42,14 +42,14 @@ theorem mem_bufL {b : ℕ} {sizes : List ℕ} {cs : List (List E)} {i : ℕ} (h1
 variable (fs : String → ℕ) (fp : ℕ) (seed : Digest) (s : NodeStatement) (w : NodeWitness)
 
 /-- **Buffer `i` of `main`'s honest words** sits at its base. -/
-theorem mem_hLmain {i : ℕ} (hi : i < 11) :
+theorem mem_hLmain {i : ℕ} (hi : i < 10) :
     ((mPos (hData seed s w) (fp + fs "main")).getD i 0, (hOwn seed s w).getD i []) ∈
       hLmain fs fp seed s w :=
   List.mem_append_left _ (mem_bufL (by simp [mSizes]; omega) (by simp [hOwn]; omega))
 
 /-- `main`'s words read buffer `i` at `g` to its base. -/
 theorem reads_hLmain {rd : Reader} (hM : B1.Main.MemL rd (hLmain fs fp seed s w)) {i : ℕ}
-    (hi : i < 11) : ReadsAt rd (gen ^ (mPos (hData seed s w) (fp + fs "main")).getD i 0)
+    (hi : i < 10) : ReadsAt rd (gen ^ (mPos (hData seed s w) (fp + fs "main")).getD i 0)
       ((hOwn seed s w).getD i []) :=
   B1.Da.reads_of_memL hM (mem_hLmain fs fp seed s w hi)
 
@@ -81,9 +81,9 @@ theorem hkids_words {bytecode : List K} (hbl : bytecode.length = 2 ^ bytecodeVar
   rw [List.length_map] at hc
   have hmem := List.getElem_mem hc
   obtain ⟨hf, hd⟩ := hsh _ hmem
-  have r6 := reads_hLmain fs fp seed s w hM (i := 6) (by omega)
-  have r7 := reads_hLmain fs fp seed s w hM (i := 7) (by omega)
-  have r8 := reads_hLmain fs fp seed s w hM (i := 8) (by omega)
+  have r6 := reads_hLmain fs fp seed s w hM (i := 5) (by omega)
+  have r7 := reads_hLmain fs fp seed s w hM (i := 6) (by omega)
+  have r8 := reads_hLmain fs fp seed s w hM (i := 7) (by omega)
   simp only [hOwn, List.getD_cons_succ, List.getD_cons_zero] at r6 r7 r8
   have p6 := readsAt_flatMap_of (w := 2) w.children (fun _ _ => rfl) r6 c hc
   have p7 := readsAt_flatMap_of (w := 24) w.children
@@ -112,7 +112,7 @@ theorem mainGoalAg (cert : String → V → ℕ) {bytecode : List K}
     have hpt : s.defer.bytecodePoint.length = 23 := by rw [hrel.1, hlog]
     rw [(batch_out hb).1, aggOut, aggRun, bsRun_len] at hpt
     exact hpt
-  have hdst := mem_hLmain fs fp seed s w (i := 10) (by omega)
+  have hdst := mem_hLmain fs fp seed s w (i := 9) (by omega)
   simp only [hOwn, List.getD_cons_succ, List.getD_cons_zero] at hdst
   have := aggregate_claims_completeAt fs cert (m := w.children.length) (by omega) hl.children
     (cs := hKids seed w) (by rw [List.length_map]) hrl hb

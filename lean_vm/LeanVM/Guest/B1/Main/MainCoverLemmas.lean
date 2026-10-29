@@ -269,12 +269,12 @@ variable (fs : String → ℕ) (fp : ℕ)
 /-- `main`'s buffer `i`'s first word. -/
 abbrev hPos (i : ℕ) : ℕ := (mPos (hData seed s w) (fp + fs "main")).getD i 0
 
-theorem hOwn_length : (hOwn seed s w).length = 11 := rfl
+theorem hOwn_length : (hOwn seed s w).length = 10 := rfl
 
-theorem hOwn_mem {i : ℕ} (hi : i < 11) :
+theorem hOwn_mem {i : ℕ} (hi : i < 10) :
     (hPos seed s w fs fp i, (hOwn seed s w).getD i []) ∈ hLmain fs fp seed s w := by
   refine List.mem_append_left _ ?_
-  have hb : (bases (fp + fs "main") (mSizes (hData seed s w))).length = 11 := by
+  have hb : (bases (fp + fs "main") (mSizes (hData seed s w))).length = 10 := by
     rw [length_bases]; rfl
   rw [bufL, List.mem_iff_getElem]
   refine ⟨i, by rw [List.length_zip, hb, hOwn_length]; omega, ?_⟩
@@ -285,23 +285,23 @@ theorem hOwn_mem {i : ℕ} (hi : i < 11) :
 
 variable {seed s w fs fp}
 
-theorem hOwn_reads {rd : Reader} (h : MemL rd (hLmain fs fp seed s w)) {i : ℕ} (hi : i < 11) :
+theorem hOwn_reads {rd : Reader} (h : MemL rd (hLmain fs fp seed s w)) {i : ℕ} (hi : i < 10) :
     ReadsAt rd (gen ^ hPos seed s w fs fp i) ((hOwn seed s w).getD i []) :=
   reads_of_memL h (hOwn_mem seed s w fs fp hi)
 
-theorem hOwn_region {i k : ℕ} (hi : i < 11) (hk : k < ((hOwn seed s w).getD i []).length) :
+theorem hOwn_region {i k : ℕ} (hi : i < 10) (hk : k < ((hOwn seed s w).getD i []).length) :
     RegionL (hLmain fs fp seed s w) (hPos seed s w fs fp i + k) :=
   regionL_of_mem (hOwn_mem seed s w fs fp hi) hk
 
 /-- The coverage table's word at `t`. -/
 theorem cover_load {rd : Reader} (h : MemL rd (hLmain fs fp seed s w)) {t : ℕ} {v : E}
-    (ht : (hCover s w)[t]? = some v) : LoadHolds rd (gen ^ hPos seed s w fs fp 4) t v := by
+    (ht : (hCover s w)[t]? = some v) : LoadHolds rd (gen ^ hPos seed s w fs fp 3) t v := by
   obtain ⟨htl, rfl⟩ := List.getElem?_eq_some_iff.mp ht
-  exact hOwn_reads h (i := 4) (by omega) t htl
+  exact hOwn_reads h (i := 3) (by omega) t htl
 
 theorem cover_region {t : ℕ} (ht : t < rX s w + rY s w + rS s w) :
-    RegionL (hLmain fs fp seed s w) (hPos seed s w fs fp 4 + t) :=
-  hOwn_region (i := 4) (by omega) (by
+    RegionL (hLmain fs fp seed s w) (hPos seed s w fs fp 3 + t) :=
+  hOwn_region (i := 3) (by omega) (by
     show t < (hCover s w).length
     rw [hCover_length]; exact ht)
 
@@ -459,13 +459,13 @@ theorem tableD_region {t k : ℕ} (ht : t < rS s w) (hk : k < 4) :
 
 /-- The byte table. -/
 theorem bytes_hold {rd : Reader} (h : MemL rd (hLmain fs fp seed s w)) :
-    Sig.ByteBits rd (gen ^ hPos seed s w fs fp 5) := fun v hv => by
-  have := hOwn_reads h (i := 5) (by omega) v (by simpa [hOwn] using hv)
+    Sig.ByteBits rd (gen ^ hPos seed s w fs fp 4) := fun v hv => by
+  have := hOwn_reads h (i := 4) (by omega) v (by simpa [hOwn] using hv)
   simpa [hOwn] using this
 
 theorem bytes_region {v : ℕ} (hv : v < 256) :
-    RegionL (hLmain fs fp seed s w) (hPos seed s w fs fp 5 + v) :=
-  hOwn_region (i := 5) (by omega) (by simpa [hOwn] using hv)
+    RegionL (hLmain fs fp seed s w) (hPos seed s w fs fp 4 + v) :=
+  hOwn_region (i := 4) (by omega) (by simpa [hOwn] using hv)
 
 end
 end LeanVM.Guest.B1.Main

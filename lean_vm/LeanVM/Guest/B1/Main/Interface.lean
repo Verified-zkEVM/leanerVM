@@ -156,9 +156,9 @@ structure CalleesW (bytecode : List K) (rd : Reader) (wX : E → LeanXmss.Signat
 `n_da = .n 40`, `n_da_dup = .n 41` (each `g^count`); the region sizes `da_slots = .n 50`,
 `lx_slots = .n 55`, `ls_slots = .n 56`, `da_base = .n 57`, `n_total = .n 58`; `fs_seed = .n 63,
 .n 64`; the exponent tables `.n 65`, `.n 66`; the pointers `da_roots = .n 69`,
-`lx_table = .n 77`, `ls_table = .n 80`, `cover = .n 117`, `child_pi = .n 394`,
-`child_fresh = .n 400`, `child_carried = .n 406`, `written = .n 409`, `defer_stmt = .n 417`; the
-direct DA check's words `.n 384 … .n 387`. -/
+`lx_table = .n 77`, `ls_table = .n 80`, `cover = .n 97`, `child_pi = .n 374`,
+`child_fresh = .n 380`, `child_carried = .n 386`, `written = .n 389`, `defer_stmt = .n 397`; the
+direct DA check's words `.n 364 … .n 367`. -/
 
 /-- The four cells of slot `s` of a table at `p`. -/
 noncomputable def slotCells (rd : Reader) (p : E) (s : ℕ) : List E := readCells rd (p * gen ^ (4 * s)) 4
@@ -180,10 +180,10 @@ noncomputable def daAt (rd : Reader) (p : E) (s : ℕ) : DaClaim :=
   ⟨digestOfCells (c.getD 0 0) (c.getD 1 0), digestOfCells (c.getD 2 0) (c.getD 3 0)⟩
 
 /-- The mark in coverage slot `s`, as a log. -/
-noncomputable def markOf (rd : Reader) (σ : Val) (s : ℕ) : ℕ := gLog (cellAt rd (σ (.n 117)) s)
+noncomputable def markOf (rd : Reader) (σ : Val) (s : ℕ) : ℕ := gLog (cellAt rd (σ (.n 97)) s)
 
 /-- The running count `written[c]`, as a log. -/
-noncomputable def countOf (rd : Reader) (σ : Val) (c : ℕ) : ℕ := gLog (cellAt rd (σ (.n 409)) c)
+noncomputable def countOf (rd : Reader) (σ : Val) (c : ℕ) : ℕ := gLog (cellAt rd (σ (.n 389)) c)
 
 /-- The number of children. -/
 noncomputable def nKids (σ : Val) : ℕ := gLog (σ (.n 6))
@@ -220,17 +220,17 @@ noncomputable def kidStmt (rd : Reader) (σ : Val) (c : ℕ) : NodeStatement :=
       (a + nx + j)),
     (List.range nd).map fun j => daAt rd (σ (.n 69)) (slotOf rd σ (lxSlots σ + lsSlots σ)
       (daSlots σ) (a + nx + ns + j))⟩,
-   deferOfCells (readCells rd (σ (.n 406) * gen ^ (24 * c)) 24)⟩
+   deferOfCells (readCells rd (σ (.n 386) * gen ^ (24 * c)) 24)⟩
 
 /-- The words of child `c`'s `verify_sub` call. -/
 noncomputable def subArgs (rd : Reader) (σ : Val) (c : ℕ) : List E :=
-  [cellAt rd (σ (.n 394)) (2 * c), cellAt rd (σ (.n 394)) (2 * c + 1), σ (.n 63), σ (.n 64),
-    σ (.n 65), σ (.n 66), σ (.n 400) * gen ^ (24 * c)]
+  [cellAt rd (σ (.n 374)) (2 * c), cellAt rd (σ (.n 374)) (2 * c + 1), σ (.n 63), σ (.n 64),
+    σ (.n 65), σ (.n 66), σ (.n 380) * gen ^ (24 * c)]
 
 /-- **Child `c`**: its statement (`kidStmt`), its fresh claim at `child_fresh · g^(24c)`, its
 proof `wV` at its `verify_sub` call's words. -/
 noncomputable def decKid (rd : Reader) (σ : Val) (wV : List E → Proof) (c : ℕ) : Child :=
-  ⟨kidStmt rd σ c, fixedOfCells (readCells rd (σ (.n 400) * gen ^ (24 * c)) 24),
+  ⟨kidStmt rd σ c, fixedOfCells (readCells rd (σ (.n 380) * gen ^ (24 * c)) 24),
     wV (subArgs rd σ c)⟩
 
 /-- **The seed**: the cells `fs_seed`. -/
@@ -242,7 +242,7 @@ noncomputable def decStmt (σ : Val) (rd : Reader) : NodeStatement :=
   ⟨⟨(List.range (gLog (σ (.n 0)))).map (xmssAt rd (σ (.n 77))),
     (List.range (gLog (σ (.n 3)))).map (sphincsAt rd (σ (.n 80))),
     (List.range (gLog (σ (.n 40)))).map (daAt rd (σ (.n 69)))⟩,
-   deferOfCells (readCells rd (σ (.n 417)) 24)⟩
+   deferOfCells (readCells rd (σ (.n 397)) 24)⟩
 
 /-- The number of raw leanXMSS signatures, raw leanSPHINCS signatures, direct DA checks. -/
 noncomputable def nRawX (σ : Val) : ℕ := gLog (σ (.n 2))
@@ -265,9 +265,9 @@ noncomputable def decWit (σ : Val) (rd : Reader) (wX : E → LeanXmss.Signature
     (List.range (gLog (σ (.n 40)))).map fun k =>
       let e := markOf rd σ (lxSlots σ + lsSlots σ + k)
       if e < nRawX σ + nRawS σ + nDirect σ then
-        .direct (wD [σ (.n 66)] [σ (.n 384), σ (.n 385), σ (.n 386), σ (.n 387)])
+        .direct (wD [σ (.n 66)] [σ (.n 364), σ (.n 365), σ (.n 366), σ (.n 367)])
       else .child (kidOf rd σ e),
-    wA [σ (.n 6), σ (.n 394), σ (.n 400), σ (.n 406), σ (.n 417)]⟩
+    wA [σ (.n 6), σ (.n 374), σ (.n 380), σ (.n 386), σ (.n 397)]⟩
 
 /-! ## The statement -/
 

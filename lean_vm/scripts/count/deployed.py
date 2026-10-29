@@ -61,12 +61,12 @@ def numbers(g, A, certs):
     v['clS'] = 1 + (SK('__loop16') + 16) // 17
     v['ccS'] = 1 + (fs('__loop17') + 16) // 17
     v['l5A0'] = fs('__loop5')
-    v['l5A1'] = (fs('__loop5') + 2 + 2 * v['ccC'] + (64 + 16 * (fs('__loop28') + fs('cover_da_root'))
+    v['l5A1'] = (fs('__loop5') + 2 * v['ccC'] + (64 + 16 * (fs('__loop28') + fs('cover_da_root'))
                  + fs('__loop28')) + SB('da_list_digest') + SB('statement_digest'))
     v['l5A2'] = v['ccS']
     v['agA0'] = fs('aggregate_claims') + 97 + SB('batch_sumcheck__L23')
     v['agA1'] = 32 + SK('__loop25') + SK('__loop26') + SK('__loop27')
-    base = (fs('main') + 283 + fs('exponent_tables') + 68 + fs('__loop0') + SB('da_list_digest')
+    base = (fs('main') + 281 + fs('exponent_tables') + 68 + fs('__loop0') + SB('da_list_digest')
             + fs('da_list_digest') + 2 * (v['clC'] + fs('claim_list_digest')) + fs('__loop1') + fs('__loop2')
             + fs('__loop3') + fs('__loop4') + 2 * v['l5A0'] + (v['agA0'] + fs('aggregate_claims'))
             + SB('statement_digest') + fs('statement_digest'))

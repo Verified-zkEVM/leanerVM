@@ -170,23 +170,23 @@ theorem kcCov_weightLe (op : Opcode) :
 
 /-- `statement_digest`'s instructions. -/
 def kcSd : Opcode → ℕ
-  | .xor => 120
-  | .mulNative => 90
+  | .xor => 124
+  | .mulNative => 94
   | .setConstant => 10
-  | .deref => 26
+  | .deref => 24
   | .jump => 37
-  | .keccak => 5
+  | .keccak => 6
 
 /-- **`statement_digest`'s instructions.** -/
 theorem kcSd_weightLe (op : Opcode) :
     WeightLe coreProgram (B2C.ωArm B2C.xmssArmC op) "statement_digest" fun _ => kcSd op := by
   cases op
-  · exact kwx_weightLe (by rw [kwxcertOf_of_idx (j := 21) (by decide +kernel)]; rfl : kwxcertOf "statement_digest" = .stat [] ⟨120, []⟩ [])
-  · exact kwm_weightLe (by rw [kwmcertOf_of_idx (j := 21) (by decide +kernel)]; rfl : kwmcertOf "statement_digest" = .stat [] ⟨90, []⟩ [])
+  · exact kwx_weightLe (by rw [kwxcertOf_of_idx (j := 21) (by decide +kernel)]; rfl : kwxcertOf "statement_digest" = .stat [] ⟨124, []⟩ [])
+  · exact kwm_weightLe (by rw [kwmcertOf_of_idx (j := 21) (by decide +kernel)]; rfl : kwmcertOf "statement_digest" = .stat [] ⟨94, []⟩ [])
   · exact kws_weightLe (by rw [kwscertOf_of_idx (j := 21) (by decide +kernel)]; rfl : kwscertOf "statement_digest" = .stat [] ⟨10, []⟩ [])
-  · exact kwd_weightLe (by rw [kwdcertOf_of_idx (j := 21) (by decide +kernel)]; rfl : kwdcertOf "statement_digest" = .stat [] ⟨26, []⟩ [])
+  · exact kwd_weightLe (by rw [kwdcertOf_of_idx (j := 21) (by decide +kernel)]; rfl : kwdcertOf "statement_digest" = .stat [] ⟨24, []⟩ [])
   · exact kwj_weightLe (by rw [kwjcertOf_of_idx (j := 21) (by decide +kernel)]; rfl : kwjcertOf "statement_digest" = .stat [] ⟨37, []⟩ [])
-  · exact kwk_weightLe (by rw [kwkcertOf_of_idx (j := 21) (by decide +kernel)]; rfl : kwkcertOf "statement_digest" = .stat [] ⟨5, []⟩ [])
+  · exact kwk_weightLe (by rw [kwkcertOf_of_idx (j := 21) (by decide +kernel)]; rfl : kwkcertOf "statement_digest" = .stat [] ⟨6, []⟩ [])
 
 /-- `__loop0`'s instructions per iteration. -/
 def kcL0 : Opcode → ℕ
@@ -414,9 +414,9 @@ theorem kwDl_totalLe : TotalLe coreProgram B2C.fs "da_list_digest" fun _ => 254 
 theorem kwCov_totalLe : TotalLe coreProgram B2C.fs "cover_da_root" fun _ => 21 :=
   fs_totalLe (by rw [wcertOf_of_idx (j := 30) (by decide +kernel)]; rfl : wcertOf "cover_da_root" = .stat [] ⟨21, []⟩ [])
 
-/-- **`statement_digest`**: at most 367 words. -/
-theorem kwSd_totalLe : TotalLe coreProgram B2C.fs "statement_digest" fun _ => 367 :=
-  fs_totalLe (by rw [wcertOf_of_idx (j := 21) (by decide +kernel)]; rfl : wcertOf "statement_digest" = .stat [] ⟨367, []⟩ [])
+/-- **`statement_digest`**: at most 389 words. -/
+theorem kwSd_totalLe : TotalLe coreProgram B2C.fs "statement_digest" fun _ => 389 :=
+  fs_totalLe (by rw [wcertOf_of_idx (j := 21) (by decide +kernel)]; rfl : wcertOf "statement_digest" = .stat [] ⟨389, []⟩ [])
 
 /-- **`__loop0`**: at most 32 words per iteration. -/
 theorem kwL0_loopTotalLe : LoopTotalLe B2C.fs "__loop0" 32 := by

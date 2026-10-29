@@ -145,8 +145,8 @@ theorem l5_weight_le (op : Opcode) {ex es ed X S : ℕ → ℕ} {Pvs : ℕ → T
         List.mem_append_left _ (B1.Main.atom_mem_of_atomsIn' (of_decide_eq_true ha)),
         by simp [slEvs]⟩)
       exact this
-    have v72 : σ (.n 72) = σ (.n 71) + σ (.n 63) := hatom (.add (.n 72) (.n 71) (.n 63)) (by decide +kernel)
-    have v71 : σ (.n 71) = word 1 0 0 := hatom (.const (.n 71) (word 1 0 0)) (by decide +kernel)
+    have v52 : σ (.n 52) = σ (.n 51) + σ (.n 43) := hatom (.add (.n 52) (.n 51) (.n 43)) (by decide +kernel)
+    have v51 : σ (.n 51) = word 1 0 0 := hatom (.const (.n 51) (word 1 0 0)) (by decide +kernel)
     have hk' := kids_weight_leL (B2C.ωArm B2C.xmssArmC op) (l5CallList σ)
       (l5Ts (ccHonest (X c)) (ccHonest (S c)) (Pvs c)
         (L5From ex es ed (fun c => ccHonest (X c)) (fun c => ccHonest (S c)) Pvs m (c + 1)))
@@ -160,9 +160,9 @@ theorem l5_weight_le (op : Opcode) {ex es ed X S : ℕ → ℕ} {Pvs : ℕ → T
             List.getElem_cons_zero, List.getElem_cons_succ] at ht hn hv'' hT' ⊢
         · exact ccl_weight_le op (hX c) hT' hv'' hb''
         · exact ccl_weight_le op (hS c) hT' hv'' hb''
-        · have h72 : σ (.n 72) ≠ 0 := by simpa using ht
-          rw [v72, v71, B1.word_one, h63] at h72
-          have hed0 := ne_zero_of_guard h72
+        · have h52 : σ (.n 52) ≠ 0 := by simpa using ht
+          rw [v52, v51, B1.word_one, h63] at h52
+          have hed0 := ne_zero_of_guard h52
           have := kcL28_loop op rd t' _ rets' 0 (ed c) hn hv'' hb''
             (by simp only [List.map_cons, List.getD_cons_zero]; rw [h73, one_eq_ofK])
             (by simp only [List.map_cons, List.getD_cons_succ, List.getD_cons_zero]

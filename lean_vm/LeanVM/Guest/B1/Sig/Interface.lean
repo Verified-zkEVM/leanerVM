@@ -45,7 +45,7 @@ words at `p` are a claim that `sig` verifies under Keccak-256 (`Node.xmssVerify`
 * `verify_sig_lean_sphincs_sound_Spec sigOf`: the same for leanSPHINCS, on a memory image of at most
   `2^32` words (the range checks of `sp_from_bytes` are bounded discrete logarithms there,
   `rangeCheck_iff`), when its `byte_bits` argument holds the table `main` writes (`ByteBits`:
-  `byte_bits[g^v] = v`, `lean_ethereum.py:4189-4192`): the counter is then a 32-bit integer, so the
+  `byte_bits[g^v] = v`, `lean_ethereum.py:4186-4189`): the counter is then a 32-bit integer, so the
   encoding hash's 292 bytes are the scheme's.
 * `verify_lean_xmss_complete_Spec`, `verify_sig_lean_sphincs_complete_Spec`: for a claim held at `p`
   in its canonical cells and a signature that verifies it, on a memory of at least `64`
@@ -107,7 +107,7 @@ def SphincsSigned (rd : Reader) (p : E) : Prop := ∃ sig, SphincsOut rd p sig
 
 /-! ## Preconditions -/
 
-/-- **The byte table** `main` writes (`lean_ethereum.py:4189-4192`): `byte_bits[g^v] = v` for every
+/-- **The byte table** `main` writes (`lean_ethereum.py:4186-4189`): `byte_bits[g^v] = v` for every
 byte `v`, the word whose bits spell `v`. -/
 def ByteBits (rd : Reader) (bb : E) : Prop := ∀ v < 256, LoadHolds rd bb v (word v 0 0)
 

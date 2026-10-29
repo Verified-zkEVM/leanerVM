@@ -97,7 +97,7 @@ theorem allQ_batchSeed : AllQueriesSatisfy (batchSeedOf.run queryH queryF) Short
   refine allQueriesSatisfy_bind (allQ_hsRun _ _ fun f hf ds ↦ ?_) fun _ ↦ allQ_queryF _
   simp only [batchSeedOf, List.mem_cons, List.not_mem_nil, or_false] at hf
   subst hf
-  exact batchLabel_length
+  exact batchLabel_length.trans (Nat.le_add_right _ _)
 
 theorem allQ_batch (M : ℕ) (bytecode : List K) (z : Unit × Proof) :
     AllQueriesSatisfy (verifierFam batchSeeds (batchAny M bytecode) z) Short := by

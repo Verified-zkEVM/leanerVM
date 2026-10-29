@@ -189,7 +189,7 @@ theorem ccB_le (n : ℕ) : B1.Digest.ccB fs SB n ≤ ccC fs SB + n * ccS fs := b
 `HeapBuf`s, its claim lists' digests' constants, `__loop28` over at most `16` DA roots
 (`MAX_DA_ROOTS`, `Limits.daRoots`), `da_list_digest`, `statement_digest`. -/
 def l5A1 : ℕ :=
-  fs "__loop5" + 2 + 2 * ccC fs SB + (64 + 16 * (fs "__loop28" + fs "cover_da_root") +
+  fs "__loop5" + 2 * ccC fs SB + (64 + 16 * (fs "__loop28" + fs "cover_da_root") +
     fs "__loop28") + SB "da_list_digest" + SB "statement_digest"
 
 /-- The children's loop's words per child's claim. -/
@@ -372,7 +372,7 @@ theorem sum_childBv (Bvf : ℕ → ℕ → ℕ) (s : NodeStatement) (w : NodeWit
 and each callee's frame and bound, child `c`'s `verify_sub` within `Bvf` at its announced stack log
 and rate. -/
 def mainWords (Bvf : ℕ → ℕ → ℕ) : End.Linear where
-  base := fs "main" + 283 + fs "exponent_tables" + 68 + fs "__loop0" + SB "da_list_digest" +
+  base := fs "main" + 281 + fs "exponent_tables" + 68 + fs "__loop0" + SB "da_list_digest" +
     fs "da_list_digest" + 2 * (clC fs SB + fs "claim_list_digest") + fs "__loop1" + fs "__loop2" +
     fs "__loop3" + fs "__loop4" + 2 * l5A0 fs + (agA0 fs SB + fs "aggregate_claims") + SB "statement_digest" +
     fs "statement_digest"
@@ -387,7 +387,7 @@ def mainWords (Bvf : ℕ → ℕ → ℕ) : End.Linear where
   childShape := Bvf
 
 theorem mSizes_sum (seed : Digest) (s : NodeStatement) (w : NodeWitness) :
-    (mSizes (hData seed s w)).sum = 5 * coverage s w + 51 * w.children.length + 283 := by
+    (mSizes (hData seed s w)).sum = 5 * coverage s w + 51 * w.children.length + 281 := by
   rw [coverage_eq]
   simp only [mSizes, MainData.T, MainData.X, MainData.Y, MainData.S, hData, List.sum_cons,
     List.sum_nil, List.length_append]

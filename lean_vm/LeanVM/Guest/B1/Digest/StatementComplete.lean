@@ -15,9 +15,8 @@ public import LeanVM.Guest.B1.Digest.Chain
 # `statement_digest`, completely
 
 The honest valuation is the template evaluated on the arguments (`Fwd.ev`, its checks in
-`StatementChk`): the header's two loads and the pairs' (`pair_holds`) hold on the words the
-meaning reads, the `KECCAK` inputs are canonical (the header cells by the meaning, the pairs' cells
-packed, the constants), so every atom holds (`Fwd.atoms_holds`). The relation then holds at the
+`StatementChk`): the pairs' loads (`pair_holds`) hold on the words the meaning reads, the `KECCAK`
+inputs are canonical (the header cells by the meaning, the pairs' cells packed, the constants), so every atom holds (`Fwd.atoms_holds`). The relation then holds at the
 valuation's returns, which soundness makes the meaning's digest; the meaning's words are the
 memory's, so its returns are these.
 -/
@@ -30,7 +29,7 @@ open LeanVM.Guest.B1.Fwd
 
 @[expose] public section
 
-theorem mem_sd_pair {p : ℕ} (hp : p < 12) {a : Atom} (ha : a ∈ pairAtoms (.n 5) (2 * p) (12 + 27 * p)) :
+theorem mem_sd_pair {p : ℕ} (hp : p < 12) {a : Atom} (ha : a ∈ pairAtoms (.n 8) (2 * p) (17 + 27 * p)) :
     a ∈ sdAtoms := by
   unfold sdAtoms
   refine List.mem_append_left _ (List.mem_append_left _ (List.mem_append_left _
@@ -47,7 +46,7 @@ theorem mem_sd_const {a : Atom} (ha : a ∈ sdConsts) : a ∈ sdAtoms := by
   exact List.mem_append_left _ (List.mem_append_left _ (List.mem_append_left _
     (List.mem_append_left _ (List.mem_append_right _ ha))))
 
-theorem mem_sd_blk4 {a : Atom} (ha : a ∈ sdBlk4) : a ∈ sdAtoms := by
+theorem mem_sd_blk5 {a : Atom} (ha : a ∈ sdBlk5) : a ∈ sdAtoms := by
   unfold sdAtoms
   exact List.mem_append_left _ (List.mem_append_right _ ha)
 
@@ -55,10 +54,9 @@ theorem mem_sd_blk4 {a : Atom} (ha : a ∈ sdBlk4) : a ∈ sdAtoms := by
 theorem statement_digest_unique {rd : Reader} {args r r' : List E}
     (h : MeaningStatementDigest rd args r) (h' : MeaningStatementDigest rd args r') : r = r' := by
   match args, h, h' with
-  | [s0, s1, sp, a0, a1, dp], h, h' =>
-    obtain ⟨h0, h1, cells, l0, l1, hlen, hreads, -, hr⟩ := h
-    obtain ⟨h0', h1', cells', l0', l1', hlen', hreads', -, hr'⟩ := h'
-    rw [loadHolds_unique l0' l0, loadHolds_unique l1' l1] at hr'
+  | [s0, s1, x0, x1, y0, y1, a0, a1, dp], h, h' =>
+    obtain ⟨cells, hlen, hreads, -, hr⟩ := h
+    obtain ⟨cells', hlen', hreads', -, hr'⟩ := h'
     have hc : cells' = cells := by
       rw [readsAt_memRun hreads, readsAt_memRun hreads', hlen, hlen']
     rw [hr, hr', hc]
@@ -68,103 +66,88 @@ set_option maxRecDepth 10000 in
 theorem statement_digest_complete : statement_digest_complete_Spec := by
   intro rd args rets h
   match args, h with
-  | [s0, s1, sp, a0, a1, dp], h =>
+  | [s0, s1, x0, x1, y0, y1, a0, a1, dp], h =>
     have hM := h
-    obtain ⟨h0, h1, cells, l0, l1, hlen, hreads, hcan, -⟩ := h
-    let args : List E := [s0, s1, sp, a0, a1, dp]
+    obtain ⟨cells, hlen, hreads, hcan, -⟩ := h
+    let args : List E := [s0, s1, x0, x1, y0, y1, a0, a1, dp]
     let σ : Val := B1.Val.ofArgs (ev rd (fun _ => 0) args sdBody)
     obtain ⟨-, -, hgs⟩ := ev_spec rd (fun _ => 0) sdBody args sd_chk
-    rw [show args.length = 6 from rfl, sd_stores] at hgs
+    rw [show args.length = 9 from rfl, sd_stores] at hgs
     have hg : ∀ a ∈ sdAtoms, Good rd [] (fun _ => 0) σ a := fun a ha =>
       hgs (.atom a) (List.mem_append_left _ (List.mem_map_of_mem ha))
-    have hpar : ∀ i < 6, σ (.n i) = args.getD i 0 := fun i hi => ev_params rd _ (l := args) sd_chk hi
-    have e0 : σ (.n 0) = s0 := hpar 0 (by omega)
-    have e1 : σ (.n 1) = s1 := hpar 1 (by omega)
-    have e2 : σ (.n 2) = sp := hpar 2 (by omega)
-    have e3 : σ (.n 3) = a0 := hpar 3 (by omega)
-    have e4 : σ (.n 4) = a1 := hpar 4 (by omega)
-    have e5 : σ (.n 5) = dp := hpar 5 (by omega)
+    have hpar : ∀ i < 9, σ (.n i) = args.getD i 0 := fun i hi => ev_params rd _ (l := args) sd_chk hi
+    have e8 : σ (.n 8) = dp := hpar 8 (by omega)
     have hl24 : cells.length = 24 := hlen
     -- the pairs
-    have hP : ∀ p < 12, ∀ a ∈ pairAtoms (.n 5) (2 * p) (12 + 27 * p), a.Holds rd σ := by
+    have hP : ∀ p < 12, ∀ a ∈ pairAtoms (.n 8) (2 * p) (17 + 27 * p), a.Holds rd σ := by
       intro p hp
       refine pair_holds (fun a ha => hg a (mem_sd_pair hp ha)) (fun a ha => absurd ha (by simp))
         (s := cells[2 * p]'(by omega)) (t := cells[2 * p + 1]'(by omega)) ?_ ?_
-      · rw [e5]; exact hreads _ _
-      · rw [e5]; exact hreads _ _
+      · rw [e8]; exact hreads _ _
+      · rw [e8]; exact hreads _ _
     -- the header
-    have hH : ∀ a ∈ sdHdr, a.Holds rd σ := by
-      have g := fun a (ha : a ∈ sdHdr) => hg a (mem_sd_hdr ha)
-      simp only [sdHdr, List.forall_mem_cons, List.not_mem_nil, IsEmpty.forall_iff,
-        implies_true, and_true] at g ⊢
-      obtain ⟨g6, g7, g8, g9, g10, g11⟩ := g
-      simp only [Good, List.not_mem_nil, false_or] at g6 g7 g8 g9 g10 g11
-      refine ⟨g6, g7, ?_, ?_, g10, g11⟩
-      · show LoadHolds rd (σ (.n 2)) 0 (σ (.n 8))
-        rw [g8, e2, rdAt_of_load l0]; exact l0
-      · show LoadHolds rd (σ (.n 2)) 1 (σ (.n 9))
-        rw [g9, e2, rdAt_of_load l1]; exact l1
+    have g := fun a (ha : a ∈ sdHdr) => hg a (mem_sd_hdr ha)
+    simp only [sdHdr, List.forall_mem_cons, List.not_mem_nil, IsEmpty.forall_iff,
+      implies_true, and_true] at g
+    obtain ⟨g9, g10, g11, g12, g13, g14, g15, g16⟩ := g
+    simp only [Good] at g9 g10 g11 g12 g13 g14 g15 g16
     -- the canonical values
     have hA : ∀ i ∈ sdA, IsCanonical128 (σ (.n i)) := by
-      have hc := fun x (hx : x ∈ [s0, s1, h0, h1, a0, a1]) => hcan x hx
+      have hc := fun x (hx : x ∈ [s0, s1, x0, x1, y0, y1, a0, a1]) => hcan x hx
       simp only [List.mem_cons, List.not_mem_nil, or_false, forall_eq_or_imp, forall_eq] at hc
-      obtain ⟨c0, c1, c2, c3, c4, c5⟩ := hc
-      have g := fun a (ha : a ∈ sdHdr) => hg a (mem_sd_hdr ha)
-      simp only [sdHdr, List.forall_mem_cons, List.not_mem_nil, IsEmpty.forall_iff,
-        implies_true, and_true] at g
-      obtain ⟨g6, g7, g8, g9, g10, g11⟩ := g
-      simp only [Good, List.not_mem_nil, false_or] at g6 g7 g8 g9 g10 g11
+      obtain ⟨c0, c1, c2, c3, c4, c5, c6, c7⟩ := hc
       have gc := fun a (ha : a ∈ sdConsts) => hg a (mem_sd_const ha)
       simp only [sdConsts, List.forall_mem_cons, List.not_mem_nil, IsEmpty.forall_iff,
         implies_true, and_true, Good] at gc
-      obtain ⟨k336, k337, k338, k339, k340⟩ := gc
-      have g4 := fun a (ha : a ∈ sdBlk4) => hg a (mem_sd_blk4 ha)
-      simp only [sdBlk4, List.forall_mem_append, List.forall_mem_cons, List.not_mem_nil,
-        IsEmpty.forall_iff, implies_true, and_true, Good] at g4
-      obtain ⟨-, k428, -, -⟩ := g4
+      obtain ⟨k341, k342, k343, k344, k345⟩ := gc
+      have g5 := fun a (ha : a ∈ sdBlk5) => hg a (mem_sd_blk5 ha)
+      simp only [sdBlk5, List.forall_mem_cons, List.not_mem_nil,
+        IsEmpty.forall_iff, implies_true, and_true, Good] at g5
+      obtain ⟨-, -, -, k450, -, -⟩ := g5
       intro i hi
       simp only [sdA, List.mem_append] at hi
       rcases hi with (hi | hi) | hi
       · simp only [List.mem_cons, List.not_mem_nil, or_false] at hi
-        rcases hi with rfl | rfl | rfl | rfl | rfl | rfl
-        · rw [g6, e0]; exact c0
-        · rw [g7, e1]; exact c1
-        · rw [g8, e2, rdAt_of_load l0]; exact c2
-        · rw [g9, e2, rdAt_of_load l1]; exact c3
-        · rw [g10, e3]; exact c4
-        · rw [g11, e4]; exact c5
+        rcases hi with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl
+        · rw [g9, hpar 0 (by omega)]; exact c0
+        · rw [g10, hpar 1 (by omega)]; exact c1
+        · rw [g11, hpar 2 (by omega)]; exact c2
+        · rw [g12, hpar 3 (by omega)]; exact c3
+        · rw [g13, hpar 4 (by omega)]; exact c4
+        · rw [g14, hpar 5 (by omega)]; exact c5
+        · rw [g15, hpar 6 (by omega)]; exact c6
+        · rw [g16, hpar 7 (by omega)]; exact c7
       · obtain ⟨p, hp, hi⟩ := List.mem_flatMap.mp hi
         obtain ⟨-, -, hc3⟩ := pair_fwd (hP p (List.mem_range.mp hp))
-        have hm : σ (.n i) ∈ [σ (.n (12 + 27 * p + 8)), σ (.n (12 + 27 * p + 17)),
-            σ (.n (12 + 27 * p + 26))] := by
+        have hm : σ (.n i) ∈ [σ (.n (17 + 27 * p + 8)), σ (.n (17 + 27 * p + 17)),
+            σ (.n (17 + 27 * p + 26))] := by
           simp only [List.mem_cons, List.not_mem_nil, or_false] at hi ⊢
           rcases hi with rfl | rfl | rfl <;> simp
         rw [hc3] at hm
         exact pairCells_canonical _ _ _ hm
       · simp only [List.mem_cons, List.not_mem_nil, or_false] at hi
         rcases hi with rfl | rfl | rfl | rfl | rfl | rfl
-        · rw [k336]; exact isCanonical128_word _ _
-        · rw [k337]; exact isCanonical128_word _ _
-        · rw [k338]; exact isCanonical128_word _ _
-        · rw [k339]; exact isCanonical128_word _ _
-        · rw [k340]; exact isCanonical128_word _ _
-        · rw [k428]; exact isCanonical128_word _ _
+        · rw [k341]; exact isCanonical128_word _ _
+        · rw [k342]; exact isCanonical128_word _ _
+        · rw [k343]; exact isCanonical128_word _ _
+        · rw [k344]; exact isCanonical128_word _ _
+        · rw [k345]; exact isCanonical128_word _ _
+        · rw [k450]; exact isCanonical128_word _ _
     -- every atom
     have hat : ∀ a ∈ sdAtoms, a.Holds rd σ := by
       refine atoms_holds (fun v => rfl) sd_canon hg hA fun a ha hn => Or.inl ?_
       have hf : a ∈ sdAtoms.filter needsSide := List.mem_filter.mpr ⟨ha, hn⟩
       rw [sd_needs] at hf
-      rcases List.mem_append.mp hf with hf | hf
-      · exact hH a (List.mem_filter.mp hf).1
-      · obtain ⟨p, hp, hf⟩ := List.mem_flatMap.mp hf
-        exact hP p (List.mem_range.mp hp) a (List.mem_filter.mp hf).1
+      obtain ⟨p, hp, hf⟩ := List.mem_flatMap.mp hf
+      exact hP p (List.mem_range.mp hp) a (List.mem_filter.mp hf).1
     -- the relation, and its returns
-    have hrel : coreProgram.Rel rd "statement_digest" args [σ (.n 443), σ (.n 444)] := by
+    have hrel : coreProgram.Rel rd "statement_digest" args [σ (.n 465), σ (.n 466)] := by
       refine (rel_iff_sem find_statement_digest _ _).mpr ⟨σ, ?_, ?_⟩
       · rw [core21_params]
         simp only [List.map_cons, List.map_nil]
         rw [hpar 0 (by omega), hpar 1 (by omega), hpar 2 (by omega), hpar 3 (by omega),
-          hpar 4 (by omega), hpar 5 (by omega)]
+          hpar 4 (by omega), hpar 5 (by omega), hpar 6 (by omega), hpar 7 (by omega),
+          hpar 8 (by omega)]
         rfl
       · rw [core21_body, holdsList_atoms_ret]
         exact ⟨hat, rfl⟩
@@ -176,7 +159,10 @@ theorem statement_digest_complete : statement_digest_complete_Spec := by
   | [_, _, _], h => exact h.elim
   | [_, _, _, _], h => exact h.elim
   | [_, _, _, _, _], h => exact h.elim
-  | _ :: _ :: _ :: _ :: _ :: _ :: _ :: _, h => exact h.elim
+  | [_, _, _, _, _, _], h => exact h.elim
+  | [_, _, _, _, _, _, _], h => exact h.elim
+  | [_, _, _, _, _, _, _, _], h => exact h.elim
+  | _ :: _ :: _ :: _ :: _ :: _ :: _ :: _ :: _ :: _ :: _, h => exact h.elim
 
 end
 end LeanVM.Guest.B1.Digest

@@ -112,7 +112,7 @@ theorem xs_verify (hn : NodeRel bytecode seed s w) (d0 : XmssClaim × LeanXmss.S
 
 theorem xs_cover {rd : Reader} (hL : MemL rd (hLmain fs fp seed s w)) {i : ℕ}
     (hi : i < (hRawX s w).length) :
-    LoadHolds rd (gen ^ hPos seed s w fs fp 4) ((slotsOf (xPlan s w)).getD i 0) (gen ^ i) := by
+    LoadHolds rd (gen ^ hPos seed s w fs fp 3) ((slotsOf (xPlan s w)).getD i 0) (gen ^ i) := by
   obtain ⟨hk, -⟩ := xslot hi
   have := coverX_load hL hk
   rw [hMarkX_raw s w hi] at this
@@ -131,7 +131,7 @@ theorem xs_claim {rd : Reader} (hL : MemL rd (hLmain fs fp seed s w))
   exact tableX_claim hL hc
 
 theorem xs_regCover {i : ℕ} (hi : i < (hRawX s w).length) :
-    RegionL (hLmain fs fp seed s w) (hPos seed s w fs fp 4 + (slotsOf (xPlan s w)).getD i 0) :=
+    RegionL (hLmain fs fp seed s w) (hPos seed s w fs fp 3 + (slotsOf (xPlan s w)).getD i 0) :=
   cover_region (by have := xs_lt hi; omega)
 
 theorem xs_regClaim {i : ℕ} (hi : i < (hRawX s w).length) {k : ℕ} (hk : k < 4) :
@@ -142,7 +142,7 @@ end
 
 /-- **The raw leanXMSS signatures' honest data.** -/
 def rawXD (hn : NodeRel bytecode seed s w) (d0 : XmssClaim × LeanXmss.Signature) :
-    RawXData (hRawX s w).length (rX s w) (hPos seed s w fs fp 4) (hPos seed s w fs fp 1)
+    RawXData (hRawX s w).length (rX s w) (hPos seed s w fs fp 3) (hPos seed s w fs fp 1)
       (hLmain fs fp seed s w) where
   slot i := (slotsOf (xPlan s w)).getD i 0
   pk i := ((hRawX s w).getD i d0).1.1
@@ -187,7 +187,7 @@ theorem ss_verify (hn : NodeRel bytecode seed s w) (d0 : SphincsClaim × Sphincs
 
 theorem ss_cover {rd : Reader} (hL : MemL rd (hLmain fs fp seed s w)) {j : ℕ}
     (hj : j < (hRawS s w).length) :
-    LoadHolds rd (gen ^ hPos seed s w fs fp 4) (rX s w + (slotsOf (sPlan s w)).getD j 0)
+    LoadHolds rd (gen ^ hPos seed s w fs fp 3) (rX s w + (slotsOf (sPlan s w)).getD j 0)
       (gen ^ ((hRawX s w).length + j)) := by
   obtain ⟨hk, -⟩ := sslot hj
   have := coverS_load hL hk
@@ -208,7 +208,7 @@ theorem ss_claim {rd : Reader} (hL : MemL rd (hLmain fs fp seed s w))
 
 theorem ss_regCover {j : ℕ} (hj : j < (hRawS s w).length) :
     RegionL (hLmain fs fp seed s w)
-      (hPos seed s w fs fp 4 + (rX s w + (slotsOf (sPlan s w)).getD j 0)) :=
+      (hPos seed s w fs fp 3 + (rX s w + (slotsOf (sPlan s w)).getD j 0)) :=
   cover_region (by have := ss_lt hj; omega)
 
 theorem ss_regClaim {j : ℕ} (hj : j < (hRawS s w).length) {k : ℕ} (hk : k < 4) :
@@ -219,8 +219,8 @@ end
 
 /-- **The raw leanSPHINCS signatures' honest data.** -/
 def rawSD (hn : NodeRel bytecode seed s w) (d0 : SphincsClaim × Sphincs.Signature) :
-    RawSData (hRawS s w).length (rY s w) (rX s w) (hRawX s w).length (hPos seed s w fs fp 4)
-      (hPos seed s w fs fp 2) (hPos seed s w fs fp 5) (hLmain fs fp seed s w) where
+    RawSData (hRawS s w).length (rY s w) (rX s w) (hRawX s w).length (hPos seed s w fs fp 3)
+      (hPos seed s w fs fp 2) (hPos seed s w fs fp 4) (hLmain fs fp seed s w) where
   slot j := (slotsOf (sPlan s w)).getD j 0
   pk j := ((hRawS s w).getD j d0).1.1
   msg j := ((hRawS s w).getD j d0).1.2
@@ -305,12 +305,12 @@ theorem mainGoalCv (hl : Limits s w) : MainGoalCv fs cert fp seed s w := by
   have hb := regions_lt hl
   have hilt := slotD_lt s w hk
   have h := cover_completeAt fs cert (R := hPos seed s w fs fp 0)
-    (C := hPos seed s w fs fp 4 + (rX s w + rY s w)) (n := rS s w) (i := (slotsOf (dPlan s w))[0])
+    (C := hPos seed s w fs fp 3 + (rX s w + rY s w)) (n := rS s w) (i := (slotsOf (dPlan s w))[0])
     (mark := gen ^ ((hRawX s w).length + (hRawS s w).length)) (r := daCells p.1) (by omega) hilt
     (daCells_length _) (Lin := hLmain fs fp seed s w) (fun rd hM => ⟨?_, tableD_reads hM hc⟩)
     (by rw [Nat.add_assoc]; exact cover_region (by omega)) (fun c hc4 => tableD_region hilt hc4)
   · have key : CompleteAtD fs cert 16 "cover_da_root" (hLmain fs fp seed s w)
-        [gen ^ hPos seed s w fs fp 0, gen ^ hPos seed s w fs fp 4 * gen ^ (rX s w + rY s w),
+        [gen ^ hPos seed s w fs fp 0, gen ^ hPos seed s w fs fp 3 * gen ^ (rX s w + rY s w),
           gen ^ rS s w, gen ^ ((hRawX s w).length + (hRawS s w).length)] (Returns (daCells p.1)) := by
       rw [← pow_add]; exact h
     exact key

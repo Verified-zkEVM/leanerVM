@@ -26,9 +26,9 @@ def F0 : Facts := {}
 /-- Its atoms: the instructions it executes, the not-taken `JUMP` reading its cells in `K`, and
 the return. -/
 def canonicalAtoms : List Atom :=
-  [.instr 9254 (.xor 2 4 5), .instr 9255 (.set 6 1 0 1), .instr 9256 (.mul 5 6 7),
-    .instr 9257 (.set 8 0 0 0), .jump 8 4 7, .instr 9259 (.set 3 0 0 0),
-    .instr 9260 (.set 9 1 0 0), .jump 9 0 1]
+  [.instr 9249 (.xor 2 4 5), .instr 9250 (.set 6 1 0 1), .instr 9251 (.mul 5 6 7),
+    .instr 9252 (.set 8 0 0 0), .jump 8 4 7, .instr 9254 (.set 3 0 0 0),
+    .instr 9255 (.set 9 1 0 0), .jump 9 0 1]
 
 theorem canonical_name : Data.f2.name = "assert_canonical" := by decide +kernel
 
@@ -40,13 +40,13 @@ theorem canonical_shape : (exec F0 Data.f2).segs.map (fun s ↦ (s.start, s.env.
 /-- **`assert_canonical`'s contract**, from the executor: a halting run entering it returns, in
 fewer steps, with every atom holding. -/
 theorem canonical_spec {κ : ℕ} {L : MemImage κ} (hκ : κ ≤ 32) :
-    FunSpec guest L 9254 (fun _ ↦ True) (fun fp ↦ ∀ a ∈ canonicalAtoms, a.Holds L fp) := by
+    FunSpec guest L 9249 (fun _ ↦ True) (fun fp ↦ ∀ a ∈ canonicalAtoms, a.Holds L fp) := by
   intro fp k _ h
   obtain ⟨s, hs, he⟩ := List.mem_map.mp (canonical_shape ▸ List.mem_singleton_self _)
   simp only [Prod.mk.injEq] at he
   obtain ⟨h0, henv, hb, hatoms, hkind⟩ := he
   have hctx : Ctx F0 κ fp := ⟨trivial, fun h ↦ absurd h (by decide), hκ⟩
-  have hentry : Data.f2.entry + s.start = 9254 := by rw [h0]; rfl
+  have hentry : Data.f2.entry + s.start = 9249 := by rw [h0]; rfl
   have hrun := exec_sound hctx (guest_fetches (mem_functions (j := 2) rfl)) hs
     (EnvHolds.nil.sub henv) (hentry ▸ h)
   obtain ⟨hall, k', -, hlt, -, -, r, hr, hsafe⟩ :=
@@ -60,11 +60,11 @@ theorem canonical_spec {κ : ℕ} {L : MemImage κ} (hκ : κ ≤ 32) :
 `fp[19..22]`, in the even layout, to `fp[5..17]`, in the even layout. -/
 def hashIns : OInstr := .keccak 18 19 19 19 19 23 19 5 false false
 
-theorem hash_name : Data.f378.name = "da_hash_roots__L0" ∧ Data.f378.entry = 276079 := by
+theorem hash_name : Data.f378.name = "da_hash_roots__L0" ∧ Data.f378.entry = 276075 := by
   decide +kernel
 
 theorem hash_shape : (exec F0 Data.f378).segs.map (fun s ↦ (s.start, s.env.sub Sym.beq .nil,
-    (branchExits s.items).isEmpty, (s.items.filterMap Item.atom?).contains (.instr 276085 hashIns),
+    (branchExits s.items).isEmpty, (s.items.filterMap Item.atom?).contains (.instr 276081 hashIns),
       s.exit.kind)) = [(0, true, true, true, .ret)] := by
   decide +kernel
 
@@ -72,7 +72,7 @@ theorem hash_shape : (exec F0 Data.f378).segs.map (fun s ↦ (s.start, s.env.sub
 its `KECCAK` holding: the cells it reads hold a state whose Keccak-f[1600] the cells it writes
 hold. -/
 theorem hash_spec {κ : ℕ} {L : MemImage κ} (hκ : κ ≤ 32) :
-    FunSpec guest L 276079 (fun _ ↦ True) (fun fp ↦ ∃ input output : Fin 13 → E,
+    FunSpec guest L 276075 (fun _ ↦ True) (fun fp ↦ ∃ input output : Fin 13 → E,
       (∀ c : Fin 13, L.read (fp * gpow (keccakInOff 18 19 19 19 19 23 19 c.val)) = some (input c)) ∧
       (∀ c : Fin 13, L.read (fp * gpow (5 + c.val)) = some (output c)) ∧
       KeccakCells input false output false) := by
@@ -81,7 +81,7 @@ theorem hash_spec {κ : ℕ} {L : MemImage κ} (hκ : κ ≤ 32) :
   simp only [Prod.mk.injEq] at he
   obtain ⟨h0, henv, hb, hmem, hkind⟩ := he
   have hctx : Ctx F0 κ fp := ⟨trivial, fun h ↦ absurd h (by decide), hκ⟩
-  have hentry : Data.f378.entry + s.start = 276079 := by rw [h0]; rfl
+  have hentry : Data.f378.entry + s.start = 276075 := by rw [h0]; rfl
   have hrun := exec_sound hctx (guest_fetches (mem_functions (j := 378) rfl)) hs
     (EnvHolds.nil.sub henv) (hentry ▸ h)
   obtain ⟨hall, k', -, hlt, -, -, r, hr, hsafe⟩ :=

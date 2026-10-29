@@ -47,7 +47,7 @@ theorem mainGoalAgTB (cert : String → V → ℕ) (SB SK : String → ℕ)
     have hpt : s.defer.bytecodePoint.length = 23 := by rw [hrel.1, hlog]
     rw [(batch_out hb).1, aggOut, aggRun, bsRun_len] at hpt
     exact hpt
-  have hdst := mem_hLmain fs fp seed s w (i := 10) (by omega)
+  have hdst := mem_hLmain fs fp seed s w (i := 9) (by omega)
   simp only [hOwn, List.getD_cons_succ, List.getD_cons_zero] at hdst
   have := aggregate_claims_completeAtTB fs cert SB SK h25 h26 h27 hbs (m := w.children.length) (by omega) hl.children
     (cs := hKids seed w) (by rw [List.length_map]) hrl hb

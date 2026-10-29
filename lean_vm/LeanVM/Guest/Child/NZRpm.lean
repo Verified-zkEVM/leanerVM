@@ -165,7 +165,7 @@ theorem allQ_childComp (prog : Program) (input : PublicInput) (t : Trace prog) (
 
 theorem isTotalQueryBound_childComp (prog : Program) (input : PublicInput) (t : Trace prog)
     (ρ fuel : ℕ) :
-    IsTotalQueryBound (childComp prog input t ρ fuel) (4 + 48017 * (2 ^ 27 + 2 * fuel + 2)) := by
+    IsTotalQueryBound (childComp prog input t ρ fuel) (2 + 48017 * (2 ^ 27 + 2 * fuel + 2)) := by
   unfold childComp
   split
   · rename_i hex
@@ -178,16 +178,16 @@ theorem isTotalQueryBound_childComp (prog : Program) (input : PublicInput) (t : 
     exact h
   · trivial
 
-/-- **A prover of at most `4 + 48017 · (2^27 + 2·fuel + 2)` short queries and the verifier
+/-- **A prover of at most `2 + 48017 · (2^27 + 2·fuel + 2)` short queries and the verifier
 refusing a zero challenge make at most `completenessPermCalls fuel` permutation calls.** -/
 theorem isWeightBound_proverNZ {X : OracleComp HashSpec Proof} (prog : Program)
     (input : PublicInput) {fuel : ℕ}
-    (hX : IsTotalQueryBound X (4 + 48017 * (2 ^ 27 + 2 * fuel + 2)))
+    (hX : IsTotalQueryBound X (2 + 48017 * (2 ^ 27 + 2 * fuel + 2)))
     (hXq : AllQueriesSatisfy X Short) :
     Common.IsWeightBound (X >>= fun proof ↦ Budget.verifierRZ queryH queryF prog input proof)
       hashBlocks (completenessPermCalls fuel) := by
   have hN : IsTotalQueryBound (X >>= fun proof ↦ Budget.verifierRZ queryH queryF prog input proof)
-      (12012 + 48017 * (2 ^ 27 + 2 * fuel + 2)) := by
+      (12008 + 48017 * (2 ^ 27 + 2 * fuel + 2)) := by
     have h := isTotalQueryBound_bind hX
       fun proof ↦ by
         have := isTotalQueryBound_verifierComp

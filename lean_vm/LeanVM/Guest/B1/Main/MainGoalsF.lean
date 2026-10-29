@@ -26,9 +26,9 @@ public import LeanVM.Protocol.Verifier.Load
   bytes are the bytes the Spec's list digest hashes (`mf_da_digest`); at most `16` (`Limits`).
   The claim tables' cells (`claimCells`) likewise (`mf_xmss_digest`, `mf_sphincs_digest`);
 * `mf_reads`, `mf_region`: buffer `i` of `hLmain` holds `hOwn`'s list `i`;
-* `mainGoalSt`: the signer set's cells and the deferred claim's `24` cells (`NodeRel`'s shape on
-  a bytecode of `2^23` words) hash, with the seed and the DA list's digest, to the statement's
-  digest (`statementDigest_parts`).
+* `mainGoalSt`: the deferred claim's `24` cells (`NodeRel`'s shape on a bytecode of `2^23` words)
+  hash, with the seed, the claim lists' and the DA list's digests, to the statement's digest
+  (`statementDigest_parts`).
 -/
 
 namespace LeanVM.Guest.B1.Main
@@ -231,18 +231,18 @@ variable (fs : String → ℕ) (cert : String → V → ℕ) (fp : ℕ) (seed : 
 /-- `main`'s buffer `i`'s first word. -/
 abbrev mfB (i : ℕ) : ℕ := (Memory.bases (fp + fs "main") (mSizes (hData seed s w))).getD i 0
 
-theorem mf_mem {i : ℕ} (hi : i < 11) :
+theorem mf_mem {i : ℕ} (hi : i < 10) :
     (mfB fs fp seed s w i, (hOwn seed s w).getD i []) ∈ bufL (fp + fs "main") (mSizes (hData seed s w))
       (hOwn seed s w) :=
   mf_mem_bufL _ _ _ i (by simp only [mSizes, List.length_cons, List.length_nil]; omega)
     (by simp only [hOwn, List.length_cons, List.length_nil]; omega)
 
 /-- **Buffer `i` holds `main`'s honest words.** -/
-theorem mf_reads {rd : Reader} (h : MemL rd (hLmain fs fp seed s w)) {i : ℕ} (hi : i < 11) :
+theorem mf_reads {rd : Reader} (h : MemL rd (hLmain fs fp seed s w)) {i : ℕ} (hi : i < 10) :
     ReadsAt rd (gen ^ mfB fs fp seed s w i) ((hOwn seed s w).getD i []) :=
   Da.reads_of_memL (memL_append.mp h).1 (mf_mem fs fp seed s w hi)
 
-theorem mf_region {i : ℕ} (hi : i < 11) {k : ℕ} (hk : k < ((hOwn seed s w).getD i []).length) :
+theorem mf_region {i : ℕ} (hi : i < 10) {k : ℕ} (hk : k < ((hOwn seed s w).getD i []).length) :
     RegionL (hLmain fs fp seed s w) (mfB fs fp seed s w i + k) := by
   obtain ⟨q, hq, h⟩ := Da.regionL_of_mem (mf_mem fs fp seed s w hi) hk
   exact ⟨q, List.mem_append_left _ hq, h⟩
@@ -269,8 +269,8 @@ theorem mainGoalDl (hL : Limits s w) : MainGoalDl fs cert fp seed s w := by
     mf_canon_flatMap _ mf_daCells_canon _, ?_⟩
   exact congrArg digestCells (mf_da_digest s.claims.da)
 
-/-- **`statement_digest` on the signer set's cells and the deferred claim**, a bytecode of `2^23`
-words making the deferred claim `24` cells. -/
+/-- **`statement_digest` on the claim lists' digests and the deferred claim**, a bytecode of
+`2^23` words making the deferred claim `24` cells. -/
 theorem mainGoalSt {bytecode : List K} (hR : NodeRel bytecode seed s w)
     (hbl : bytecode.length = 2 ^ bytecodeVars) : MainGoalSt fs cert fp seed s w := by
   have hlen : s.defer.cells.length = 24 := by
@@ -278,17 +278,14 @@ theorem mainGoalSt {bytecode : List K} (hR : NodeRel bytecode seed s w)
     rw [hbl, Nat.log2_two_pow] at h1
     simp [DeferredClaim.cells, h1, bytecodeVars]
   refine statement_completeAt fs cert fun rd h => ?_
-  have h3 := mf_reads fs fp seed s w h (i := 3) (by omega)
-  have h10 := mf_reads fs fp seed s w h (i := 10) (by omega)
-  refine ⟨(digestScalars (signersDigest s.claims.xmss s.claims.sphincs)).1,
-    (digestScalars (signersDigest s.claims.xmss s.claims.sphincs)).2, s.defer.cells,
-    h3 0 (by simp [hOwn, digestCells]), h3 1 (by simp [hOwn, digestCells]), hlen, h10, ?_, ?_⟩
+  have h9 := mf_reads fs fp seed s w h (i := 9) (by omega)
+  refine ⟨s.defer.cells, hlen, h9, ?_, ?_⟩
   · intro c hc
     simp only [List.mem_cons, List.not_mem_nil, or_false] at hc
-    rcases hc with rfl | rfl | rfl | rfl | rfl | rfl
+    rcases hc with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl
     all_goals first | exact (digestScalars_canonical _).1 | exact (digestScalars_canonical _).2
   · exact congrArg digestCells (statementDigest_parts (digestBytes_eq_cells _)
-      (digestBytes_eq_cells _) (digestBytes_eq_cells _) rfl hlen)
+      (digestBytes_eq_cells _) (digestBytes_eq_cells _) (digestBytes_eq_cells _) rfl hlen)
 
 end
 end LeanVM.Guest.B1.Main

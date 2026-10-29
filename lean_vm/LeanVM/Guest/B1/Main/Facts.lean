@@ -17,7 +17,7 @@ public import LeanVM.Guest.B1.Main.LoopsC
 and lies below `coreProgram.Rel`) gives
 `MainFacts`: the counts as powers of `g` (`lg σ v`, the exponent of `σ (.n v)`) with their
 bounds, the region sizes, the exponent tables, the declared lists' and the DA list's digests, the
-signer set, the byte table, every raw signature's and every child's iteration, the direct DA
+byte table, every raw signature's and every child's iteration, the direct DA
 check, the running counts, the leaf's or the batching's deferred claim, and the statement's digest
 in the public input cells. The signature checks, the DA check, the child proofs' checks and the
 batching stay calls of `C`; the other calls are `coreProgram.Rel`'s.
@@ -65,31 +65,27 @@ structure MainFacts (C : CallRel) (rd : Reader) (σ : Val) : Prop where
   dalist : ClaimListOut rd (σ (.n 69)) (lg σ 40) [σ (.n 73), σ (.n 74)]
   xlist : ClaimListOut rd (σ (.n 77)) (lg σ 0) [σ (.n 81), σ (.n 82)]
   slist : ClaimListOut rd (σ (.n 80)) (lg σ 3) [σ (.n 83), σ (.n 84)]
-  signers : AllCanonical [σ (.n 81), σ (.n 82), σ (.n 83), σ (.n 84)] ∧
-    LoadHolds rd (σ (.n 116)) 0
-      (digestScalars (keccak256 (cellsBytes [σ (.n 81), σ (.n 82), σ (.n 83), σ (.n 84)]))).1 ∧
-    LoadHolds rd (σ (.n 116)) 1
-      (digestScalars (keccak256 (cellsBytes [σ (.n 81), σ (.n 82), σ (.n 83), σ (.n 84)]))).2
-  dacover : σ (.n 118) = σ (.n 117) * gen ^ (lg σ 0 + lg σ 1 + (lg σ 3 + lg σ 4))
-  bytes : Sig.ByteBits rd (σ (.n 119))
-  rawx : ∀ i < lg σ 2, RawXStepC C rd (σ (.n 55)) (σ (.n 117)) (σ (.n 77)) (gen ^ i)
-  raws : ∀ j < lg σ 5, RawSStepC C rd (σ (.n 56)) (σ (.n 117)) (σ (.n 55)) (σ (.n 2)) (σ (.n 80))
-    (σ (.n 119)) (gen ^ j)
+  dacover : σ (.n 98) = σ (.n 97) * gen ^ (lg σ 0 + lg σ 1 + (lg σ 3 + lg σ 4))
+  bytes : Sig.ByteBits rd (σ (.n 99))
+  rawx : ∀ i < lg σ 2, RawXStepC C rd (σ (.n 55)) (σ (.n 97)) (σ (.n 77)) (gen ^ i)
+  raws : ∀ j < lg σ 5, RawSStepC C rd (σ (.n 56)) (σ (.n 97)) (σ (.n 55)) (σ (.n 2)) (σ (.n 80))
+    (σ (.n 99)) (gen ^ j)
   da : lg σ 7 = 1 →
-    C "da_verify" [σ (.n 66)] [σ (.n 384), σ (.n 385), σ (.n 386), σ (.n 387)] ∧
-    coreProgram.Rel rd "cover_da_root" [σ (.n 69), σ (.n 118), σ (.n 50), gen ^ (lg σ 2 + lg σ 5)]
-      [σ (.n 384), σ (.n 385), σ (.n 386), σ (.n 387)]
-  written0 : LoadHolds rd (σ (.n 409)) 0 (gen ^ (lg σ 2 + lg σ 5 + lg σ 7))
-  children : ∀ c < lg σ 6, KidStepC C rd (σ (.n 409)) (σ (.n 77)) (σ (.n 117)) (σ (.n 55))
-    (σ (.n 80)) (σ (.n 56)) (σ (.n 406)) (σ (.n 69)) (σ (.n 118)) (σ (.n 50)) (σ (.n 63))
-    (σ (.n 64)) (σ (.n 394)) (σ (.n 65)) (σ (.n 66)) (σ (.n 400)) (gen ^ c)
-  writtenN : LoadHolds rd (σ (.n 409)) (lg σ 6) (σ (.n 58))
-  leaf : lg σ 6 = 0 → ∀ k < 23, LoadHolds rd (σ (.n 417)) k 0
+    C "da_verify" [σ (.n 66)] [σ (.n 364), σ (.n 365), σ (.n 366), σ (.n 367)] ∧
+    coreProgram.Rel rd "cover_da_root" [σ (.n 69), σ (.n 98), σ (.n 50), gen ^ (lg σ 2 + lg σ 5)]
+      [σ (.n 364), σ (.n 365), σ (.n 366), σ (.n 367)]
+  written0 : LoadHolds rd (σ (.n 389)) 0 (gen ^ (lg σ 2 + lg σ 5 + lg σ 7))
+  children : ∀ c < lg σ 6, KidStepC C rd (σ (.n 389)) (σ (.n 77)) (σ (.n 97)) (σ (.n 55))
+    (σ (.n 80)) (σ (.n 56)) (σ (.n 386)) (σ (.n 69)) (σ (.n 98)) (σ (.n 50)) (σ (.n 63))
+    (σ (.n 64)) (σ (.n 374)) (σ (.n 65)) (σ (.n 66)) (σ (.n 380)) (gen ^ c)
+  writtenN : LoadHolds rd (σ (.n 389)) (lg σ 6) (σ (.n 58))
+  leaf : lg σ 6 = 0 → ∀ k < 23, LoadHolds rd (σ (.n 397)) k 0
   agg : lg σ 6 ≠ 0 → C "aggregate_claims"
-    [σ (.n 6), σ (.n 394), σ (.n 400), σ (.n 406), σ (.n 417)] []
+    [σ (.n 6), σ (.n 374), σ (.n 380), σ (.n 386), σ (.n 397)] []
   own : coreProgram.Rel rd "statement_digest"
-    [σ (.n 63), σ (.n 64), σ (.n 116), σ (.n 73), σ (.n 74), σ (.n 417)] [σ (.n 444), σ (.n 445)]
-  pub : LoadHolds rd 1 0 (σ (.n 444)) ∧ LoadHolds rd 1 1 (σ (.n 445))
+    [σ (.n 63), σ (.n 64), σ (.n 81), σ (.n 82), σ (.n 83), σ (.n 84), σ (.n 73), σ (.n 74),
+      σ (.n 397)] [σ (.n 424), σ (.n 425)]
+  pub : LoadHolds rd 1 0 (σ (.n 424)) ∧ LoadHolds rd 1 1 (σ (.n 425))
 
 end
 end LeanVM.Guest.B1.Main
@@ -134,8 +130,8 @@ theorem main_facts {rd : Reader} {C : CallRel} (hC : Unfolds rd C)
   simp only [midOk, Bool.and_eq_true] at hM
   simp only [leafOk, Bool.and_eq_true, List.all_eq_true, List.mem_range] at hL
   simp only [postOk, Bool.and_eq_true] at hQ
-  obtain ⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨pflat, prc⟩, prc6⟩, prc7⟩, prc40⟩, prc41⟩, prc50⟩, prc58⟩,
-    pm50⟩, pm55⟩, pm56⟩, pm57⟩, pm58⟩, pexp⟩, pdl⟩, pxl⟩, psl⟩, psig⟩, pm118⟩, pbytes⟩, pl3⟩,
+  obtain ⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨pflat, prc⟩, prc6⟩, prc7⟩, prc40⟩, prc41⟩, prc50⟩, prc58⟩,
+    pm50⟩, pm55⟩, pm56⟩, pm57⟩, pm58⟩, pexp⟩, pdl⟩, pxl⟩, psl⟩, pm118⟩, pbytes⟩, pl3⟩,
     pl4⟩, pa383⟩, pc382⟩ := hP
   obtain ⟨⟨⟨⟨⟨⟨⟨dflat, dver⟩, dm388⟩, dcov⟩, de1⟩, de2⟩, de3⟩, de4⟩ := hD
   obtain ⟨⟨⟨⟨⟨⟨⟨⟨⟨mflat, mm410⟩, mm411⟩, ml411⟩, ml5⟩, mm415⟩, ml416⟩, meq⟩, ma419⟩, mc418⟩ := hM
@@ -190,7 +186,7 @@ theorem main_facts {rd : Reader} {C : CallRel} (hC : Unfolds rd C)
   have hguard3 := guard_soundC pl3 hpre
   have hguard4 := guard_soundC pl4 hpre
   refine ⟨fun v hv => ?_, ⟨l6, by omega⟩, ⟨l7, by omega⟩, ⟨l40, by omega⟩, ⟨h50', by omega⟩, h55, h56,
-    ⟨h58', by omega⟩, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
+    ⟨h58', by omega⟩, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
   · simp only [List.mem_cons, List.mem_nil_iff, or_false] at hv
     rcases hv with rfl | rfl | rfl | rfl | rfl | rfl <;> exact hcl _ (by omega)
   · -- the exponent tables
@@ -213,29 +209,28 @@ theorem main_facts {rd : Reader} {C : CallRel} (hC : Unfolds rd C)
     have hn' : n < 1114112 := hn
     have := gen_pow_inj34 (by omega) (by omega) hng
     rwa [this]
-  · exact pairHash_sound psig atP
   · rw [isMul_sound pm118 atP, h57]
   · intro v hv
     obtain ⟨hcv, hlv⟩ := pbytes v hv
     have := load_sound hlv atP
     rwa [const_sound hcv atP] at this
   · -- raw leanXMSS
-    refine loop_soundC (f := "__loop3") (ps := [σ (.n 2), σ (.n 55), σ (.n 117), σ (.n 77)])
-      (N := σ (.n 2)) (B := RawXStepC C rd (σ (.n 55)) (σ (.n 117)) (σ (.n 77)))
+    refine loop_soundC (f := "__loop3") (ps := [σ (.n 2), σ (.n 55), σ (.n 97), σ (.n 77)])
+      (N := σ (.n 2)) (B := RawXStepC C rd (σ (.n 55)) (σ (.n 97)) (σ (.n 77)))
       (by unfold ordG; omega) c2 (fun x hx => ?_) (fun hne => by simpa using hguard3 hne)
     obtain ⟨h1, h2⟩ := l3_stepC hC hm hx
     exact ⟨h1 _ _ _ _ rfl, h2⟩
   · -- raw leanSPHINCS
     refine loop_soundC (f := "__loop4")
-      (ps := [σ (.n 5), σ (.n 56), σ (.n 117), σ (.n 55), σ (.n 2), σ (.n 80), σ (.n 119)])
+      (ps := [σ (.n 5), σ (.n 56), σ (.n 97), σ (.n 55), σ (.n 2), σ (.n 80), σ (.n 99)])
       (N := σ (.n 5))
-      (B := RawSStepC C rd (σ (.n 56)) (σ (.n 117)) (σ (.n 55)) (σ (.n 2)) (σ (.n 80)) (σ (.n 119)))
+      (B := RawSStepC C rd (σ (.n 56)) (σ (.n 97)) (σ (.n 55)) (σ (.n 2)) (σ (.n 80)) (σ (.n 99)))
       (by unfold ordG; omega) c5 (fun x hx => ?_) (fun hne => by simpa using hguard4 hne)
     obtain ⟨h1, h2⟩ := l4_stepC hC hm hx
     exact ⟨h1 _ _ _ _ _ _ _ rfl, h2⟩
   · -- the direct DA check
     intro h71
-    have h383 : σ (.n 383) = 0 := by
+    have h383 : σ (.n 363) = 0 := by
       rw [add_sound pa383 atP, const_sound pc382 atP, word_gen, l7, h71, pow_one, e_add_self]
     obtain ⟨hdall, -⟩ := holdsList_flat mDa dflat _ _ (hdz h383)
     have atD := atoms_of_flat hdall
@@ -249,9 +244,9 @@ theorem main_facts {rd : Reader} {C : CallRel} (hC : Unfolds rd C)
   · -- the children
     have hguard5 := guard_soundC ml5 hmid
     refine loop_soundC (f := "__loop5")
-      (ps := [σ (.n 6), σ (.n 409), σ (.n 77), σ (.n 117), σ (.n 55), σ (.n 80), σ (.n 56),
-        σ (.n 406), σ (.n 69), σ (.n 118), σ (.n 50), σ (.n 63), σ (.n 64), σ (.n 394), σ (.n 65),
-        σ (.n 66), σ (.n 400)])
+      (ps := [σ (.n 6), σ (.n 389), σ (.n 77), σ (.n 97), σ (.n 55), σ (.n 80), σ (.n 56),
+        σ (.n 386), σ (.n 69), σ (.n 98), σ (.n 50), σ (.n 63), σ (.n 64), σ (.n 374), σ (.n 65),
+        σ (.n 66), σ (.n 380)])
       (N := σ (.n 6)) (by unfold ordG; omega) l6 (fun x hx => ?_)
       (fun hne => by simpa using hguard5 hne)
     obtain ⟨h1, h2⟩ := l5_stepC hC hle hm hx
@@ -261,7 +256,7 @@ theorem main_facts {rd : Reader} {C : CallRel} (hC : Unfolds rd C)
     have := (loadHolds_mul_gen_pow rd _ (lg σ 6) 0 _).mp this
     simpa using this
   · intro h60 k hk
-    have h419 : σ (.n 419) = 0 := by
+    have h419 : σ (.n 399) = 0 := by
       rw [add_sound ma419 atM, const_sound mc418 atM, word_one, l6, h60, pow_zero, e_add_self]
     obtain ⟨hlall, -⟩ := holdsList_flat mLeaf (List.all_eq_true.mpr lflat) _ _ (hlz h419)
     have atL := atoms_of_flat hlall
@@ -269,7 +264,7 @@ theorem main_facts {rd : Reader} {C : CallRel} (hC : Unfolds rd C)
     have := load_sound hl atL
     rwa [const_sound hz atL, word_zero] at this
   · intro h60
-    have h419 : σ (.n 419) ≠ 0 := by
+    have h419 : σ (.n 399) ≠ 0 := by
       rw [add_sound ma419 atM, const_sound mc418 atM, word_one, l6]
       intro he
       have h2 : gen ^ 0 = gen ^ lg σ 6 := (pow_zero gen).trans (e_add_eq_zero_iff.mp he).symm
@@ -283,7 +278,7 @@ theorem main_facts {rd : Reader} {C : CallRel} (hC : Unfolds rd C)
     rw [isMul_sound qm450 atQ, const_sound qc448 atQ, const_sound qc449 atQ, word_one, word_gen,
       one_mul, assertEq_sound qe2 atQ] at l2
     refine ⟨l1, ?_⟩
-    have l2' : LoadHolds rd (1 * gen ^ 1) 0 (σ (.n 445)) := by rwa [one_mul, pow_one]
+    have l2' : LoadHolds rd (1 * gen ^ 1) 0 (σ (.n 425)) := by rwa [one_mul, pow_one]
     have := (loadHolds_mul_gen_pow rd 1 1 0 _).mp l2'
     simpa using this
 

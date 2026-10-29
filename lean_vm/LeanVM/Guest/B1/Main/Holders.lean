@@ -73,8 +73,8 @@ theorem region_raw (S : Segs) (m : ℕ) :
 section Held
 
 variable (MF : MainFacts C rd σ) (hK : ∀ c < lg σ 6, KidOk C rd σ c (Kr c))
-  (hW : Writers rd (σ (.n 117)) (segsOf σ Kr) (LXS σ) (LSS σ) (DAS σ))
-  (hC : Cover rd (σ (.n 117)) (segsOf σ Kr) (LXS σ) (LSS σ) (DAS σ) sl)
+  (hW : Writers rd (σ (.n 97)) (segsOf σ Kr) (LXS σ) (LSS σ) (DAS σ))
+  (hC : Cover rd (σ (.n 97)) (segsOf σ Kr) (LXS σ) (LSS σ) (DAS σ) sl)
 include MF hK hW hC
 
 omit MF hK hC in
@@ -87,7 +87,7 @@ theorem mark_kid {m : ℕ} (h0 : (segsOf σ Kr).a 0 ≤ m) (hm : m < LXS σ + LS
 
 theorem xmss_held {bytecode : List K} {wX : E → LeanXmss.Signature} {wS : E → Sphincs.Signature}
     {wD : List E → List E → LeanVM.Da.Witness} {wV : List E → Proof} {wA : List E → BatchHints}
-    (cw : CalleesWC bytecode C rd (σ (.n 119)) wX wS wD wV wA) :
+    (cw : CalleesWC bytecode C rd (σ (.n 99)) wX wS wD wV wA) :
     List.Forall₂ (Held (fun (c : XmssClaim) σ ↦ xmssVerify c.1 c.2 σ = true) Claims.xmss (kidsOf rd σ wV)) (decStmt σ rd).claims.xmss
       (decWit σ rd wX wS wD wV wA).xmss := by
   have hT := MF.total.2
@@ -138,7 +138,7 @@ theorem xmss_held {bytecode : List K} {wX : E → LeanXmss.Signature} {wS : E �
 
 theorem sphincs_held {bytecode : List K} {wX : E → LeanXmss.Signature} {wS : E → Sphincs.Signature}
     {wD : List E → List E → LeanVM.Da.Witness} {wV : List E → Proof} {wA : List E → BatchHints}
-    (cw : CalleesWC bytecode C rd (σ (.n 119)) wX wS wD wV wA) :
+    (cw : CalleesWC bytecode C rd (σ (.n 99)) wX wS wD wV wA) :
     List.Forall₂ (Held (fun (c : SphincsClaim) σ ↦ sphincsVerify c.1 c.2 σ = true) Claims.sphincs (kidsOf rd σ wV)) (decStmt σ rd).claims.sphincs
       (decWit σ rd wX wS wD wV wA).sphincs := by
   have hT := MF.total.2
@@ -193,7 +193,7 @@ theorem sphincs_held {bytecode : List K} {wX : E → LeanXmss.Signature} {wS : E
 
 theorem da_held {bytecode : List K} {wX : E → LeanXmss.Signature} {wS : E → Sphincs.Signature}
     {wD : List E → List E → LeanVM.Da.Witness} {wV : List E → Proof} {wA : List E → BatchHints}
-    (hm : MemOk rd) (cw : CalleesWC bytecode C rd (σ (.n 119)) wX wS wD wV wA) :
+    (hm : MemOk rd) (cw : CalleesWC bytecode C rd (σ (.n 99)) wX wS wD wV wA) :
     List.Forall₂ (Held (fun (c : DaClaim) (m : LeanVM.Da.Witness) ↦ m.Opens c.daRoot c.membershipVectorDigest) Claims.da (kidsOf rd σ wV)) (decStmt σ rd).claims.da
       (decWit σ rd wX wS wD wV wA).da := by
   have hT := MF.total.2
@@ -233,8 +233,8 @@ theorem da_held {bytecode : List K} {wX : E → LeanXmss.Signature} {wS : E → 
     subst hik
     obtain ⟨root, vd, hop, hrets⟩ := cw.da _ _ hdv (fun j hj => (MF.exp j hj).2)
     have hsc : slotCells rd (σ (.n 69)) i =
-        [σ (.n 384), σ (.n 385), σ (.n 386), σ (.n 387)] :=
-      slotCells_of_loads (v := fun c => [σ (.n 384), σ (.n 385), σ (.n 386), σ (.n 387)].getD c 0)
+        [σ (.n 364), σ (.n 365), σ (.n 366), σ (.n 367)] :=
+      slotCells_of_loads (v := fun c => [σ (.n 364), σ (.n 365), σ (.n 366), σ (.n 367)].getD c 0)
         hroots
     have hda : daAt rd (σ (.n 69)) i = ⟨root, vd⟩ := by
       unfold daAt

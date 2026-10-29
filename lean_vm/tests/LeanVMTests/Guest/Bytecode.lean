@@ -16,26 +16,26 @@ open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest
 
 example : Data.functions.length = 900 := by decide +kernel
 
-example : Data.codeLen = 363731 := rfl
+example : Data.codeLen = 363727 := rfl
 
 /-- `verify_sig_lean_sphincs` is function 21. -/
 theorem sphincs_mem : Data.f21 ∈ Data.functions := mem_functions (j := 21) rfl
 
-example : Data.f21.name = "verify_sig_lean_sphincs" ∧ Data.f21.entry = 53220 ∧
+example : Data.f21.name = "verify_sig_lean_sphincs" ∧ Data.f21.entry = 53215 ∧
     Data.f21.len = 100444 := ⟨rfl, rfl, rfl⟩
 
 /-- Its first instruction, `DEREF *(fp[2]·g^1) = fp[4]`. -/
-example : guest.fetch (gpow 53220) = some (OInstr.deref 2 1 4 .cell).toInstr :=
+example : guest.fetch (gpow 53215) = some (OInstr.deref 2 1 4 .cell).toInstr :=
   guest_fetch_of sphincs_mem (i := 0) (by decide +kernel) (by decide +kernel) (by decide +kernel)
 
 /-- Its last, the return `JUMP if fp[26] ≠ 0: pc = fp[0], fp = fp[1]`. -/
-example : guest.fetch (gpow 153663) = some (OInstr.jump 26 0 1).toInstr :=
+example : guest.fetch (gpow 153658) = some (OInstr.jump 26 0 1).toInstr :=
   guest_fetch_of sphincs_mem (i := 100443) (by decide +kernel) (by decide +kernel)
     (by decide +kernel)
 
 /-- A `KECCAK` writing the odd layout, `KECCAK fp[3296..+13] odd = keccak_f(fp[139], fp[140],
 fp[141], fp[142], tail = fp[143..+4], b8 = fp[147], cap = fp[29..+4]) even`. -/
-example : guest.fetch (gpow (53220 + 76547)) =
+example : guest.fetch (gpow (53215 + 76547)) =
     some (OInstr.keccak 139 140 141 142 143 147 29 3296 false true).toInstr :=
   guest_fetch_of sphincs_mem (i := 76547) (by decide +kernel) rfl (by decide +kernel)
 
@@ -44,14 +44,14 @@ example : guest.fetch (gpow 8473) = some (OInstr.set 10 9272771591053052074 0 0)
   guest_fetch_of (f := Data.f1) (mem_functions (j := 1) rfl) (i := 0) (by decide +kernel)
     (by decide +kernel) (by decide +kernel)
 
-/-- `main`'s first `KECCAK`, both layouts even. -/
-example : guest.fetch (gpow 8595) =
-    some (OInstr.keccak 80 81 84 85 112 117 113 99 false false).toInstr :=
-  guest_fetch_of (f := Data.f1) (mem_functions (j := 1) rfl) (i := 122) (by decide +kernel)
+/-- `da_hash_roots__L0`'s `KECCAK`, both layouts even (`main` has none). -/
+example : guest.fetch (gpow 276081) =
+    some (OInstr.keccak 18 19 19 19 19 23 19 5 false false).toInstr :=
+  guest_fetch_of (f := Data.f378) (mem_functions (j := 378) rfl) (i := 6) (by decide +kernel)
     (by decide +kernel) (by decide +kernel)
 
-/-- The first instruction of the program, in `__jump_tables`, `SET fp[427] = g^159283`. -/
-example : guest.fetch (gpow 0) = some (OInstr.set 427 16960105817094266212 0 0).toInstr :=
+/-- The first instruction of the program, in `__jump_tables`, `SET fp[408] = g^159279`. -/
+example : guest.fetch (gpow 0) = some (OInstr.set 408 14895064668850555357 0 0).toInstr :=
   guest_fetch_of (f := Data.f0) (mem_functions (j := 0) rfl) (i := 0) (by decide +kernel)
     (by decide +kernel) (by decide +kernel)
 

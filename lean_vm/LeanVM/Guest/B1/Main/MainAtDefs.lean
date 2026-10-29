@@ -15,8 +15,7 @@ public import LeanVM.Guest.B1.Main.ExpTablesAt
 # `main`, placed: the definitions
 
 `MainData`: what `main`'s oracle supplies besides pointers. At `fp`, `main` allocates from
-`b0 = fp + fs "main"` the DA table, the two claim tables, the signer set's digest, the coverage
-table, the byte table, the children's digests, fresh and carried claims, the running counts and
+`b0 = fp + fs "main"` the DA table, the two claim tables, the coverage table, the byte table, the children's digests, fresh and carried claims, the running counts and
 the deferred claim (`mSizes`); its first callee, `exponent_tables`, sits after them, its tables
 after its frame. `MainData.toIn` is the oracle with those pointers. `mKids`: `main`'s other callees
 in call order, each reading `main`'s words `Lin`, the conditional blocks' only when they run.
@@ -61,7 +60,7 @@ def MainData.T : ℕ := d.X + d.Y + d.S
 
 /-- `main`'s `HeapBuf` sizes, in allocation order. -/
 def mSizes : List ℕ :=
-  [4 * d.S, 4 * d.X, 4 * d.Y, 2, d.T, 256, 2 * d.nc, 24 * d.nc, 24 * d.nc, d.nc + 1, 24]
+  [4 * d.S, 4 * d.X, 4 * d.Y, d.T, 256, 2 * d.nc, 24 * d.nc, 24 * d.nc, d.nc + 1, 24]
 
 /-- The buffers' first words from `b0`. -/
 def mPos (b0 : ℕ) : List ℕ := Memory.bases b0 (mSizes d)
@@ -76,9 +75,9 @@ def MainData.toIn (fs : String → ℕ) (fp : ℕ) : MainIn :=
   { nlx := d.nlx, nxd := d.nxd, nrx := d.nrx, nls := d.nls, nsd := d.nsd, nrs := d.nrs, nc := d.nc,
     nd := d.nd, nda := d.nda, ndd := d.ndd, seed := d.seed, et1 := gen ^ e, et2 := gen ^ (e + 34),
     a69 := gen ^ p.getD 0 0, a77 := gen ^ p.getD 1 0, a80 := gen ^ p.getD 2 0,
-    a116 := gen ^ p.getD 3 0, a117 := gen ^ p.getD 4 0, a119 := gen ^ p.getD 5 0,
-    a394 := gen ^ p.getD 6 0, a400 := gen ^ p.getD 7 0, a406 := gen ^ p.getD 8 0,
-    a409 := gen ^ p.getD 9 0, a417 := gen ^ p.getD 10 0, dad := d.dad, xd := d.xd, sd := d.sd,
+    a117 := gen ^ p.getD 3 0, a119 := gen ^ p.getD 4 0,
+    a394 := gen ^ p.getD 5 0, a400 := gen ^ p.getD 6 0, a406 := gen ^ p.getD 7 0,
+    a409 := gen ^ p.getD 8 0, a417 := gen ^ p.getD 9 0, dad := d.dad, xd := d.xd, sd := d.sd,
     sdg := d.sdg, daR := d.daR, leaf := d.leaf }
 
 /-- `exponent_tables`' tables, placed. -/
@@ -110,7 +109,8 @@ def mKids (m : MainIn) (Lin : B1.Main.Layout) : List Kid :=
     (digestScalars m.seed).2, m.a394, m.et1, m.et2, m.a400], Lin, Returns []⟩] ++
   (if m.nc = 0 then [] else
     [⟨"aggregate_claims", true, [gen ^ m.nc, m.a394, m.a400, m.a406, m.a417], Lin, Returns []⟩]) ++
-  [⟨"statement_digest", true, [(digestScalars m.seed).1, (digestScalars m.seed).2, m.a116,
+  [⟨"statement_digest", true, [(digestScalars m.seed).1, (digestScalars m.seed).2,
+    (digestScalars m.xd).1, (digestScalars m.xd).2, (digestScalars m.sd).1, (digestScalars m.sd).2,
     (digestScalars m.dad).1, (digestScalars m.dad).2, m.a417], Lin, Returns (digestCells m.sdg)⟩]
 
 end

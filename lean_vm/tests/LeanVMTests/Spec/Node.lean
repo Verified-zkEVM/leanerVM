@@ -21,12 +21,13 @@ import LeanVMTests.Spec.NodeVectors
   cannot tell apart (`statementDigest` carries no lengths: the short claim's odd cell count is
   paired with a zero cell).
 * Known answers for the statement's encodings (`claimListDigest` of each scheme's claims,
-  `signersDigest`, `daListDigest`, `statementDigest`), the batching transcript's seed
-  (`batchSeed`) and the batching of two children (`batch`): computed by an independent Python
-  transcription of `claim_list_digest`, `signers_hash`, `statement_digest`, `FiatShamirState` and
-  `aggregate_deferred_claims` (`crates/rec_aggregation/src/aggregation.rs`,
-  `crates/fiat_shamir/src/lib.rs` at leanVM `4af2cdddd7cd41b9df2cc7e123e314a91b0b4462`) over the
-  Python verifier's Keccak and field arithmetic (`python-verifier/verifier.py`). The batching's
+  `daListDigest`, `statementDigest`), the batching transcript's seed (`batchSeed`) and the
+  batching of two children (`batch`): computed by an independent Python transcription of
+  `claim_list_digest`, `statement_digest`, `FiatShamirState` and `aggregate_deferred_claims`
+  (`crates/rec_aggregation/src/aggregation.rs`, `crates/fiat_shamir/src/lib.rs` at leanVM
+  `4af2cdddd7cd41b9df2cc7e123e314a91b0b4462`, the statement's digest at
+  `990b935263dc7f793f280914f262ca7955ddc3e0`) over the Python verifier's Keccak and field
+  arithmetic (`python-verifier/verifier.py`). The batching's
   hints are the Python's honest sumcheck messages; Lean's transcript must squeeze the same
   challenges for the claim to close at the Python's point, which is a true claim on the table.
   Mutations: a wrong final value, or a child's false claim, and the batching rejects.
@@ -133,9 +134,6 @@ def defer0 : DeferredClaim :=
 #guard claimListDigest sphincs =
   #v[0xe8d78086d65bb925, 0x7ace3a6c82dbaf4e, 0xbf24729b60a19887, 0xc1ffa4b8c5dee59e]
 
-#guard signersDigest xmss sphincs =
-  #v[0x578e3156cf55ddb9, 0x0752842f4119e935, 0xecc3dd9961739c13, 0x55c151b417effdac]
-
 /- An empty list hashes the empty string. -/
 #guard claimListDigest [] =
   #v[0x3c23f7860146d2c5, 0xc003c7dcb27d7e92, 0x3b2782ca53b600e5, 0x70a4855d04d8fa7b]
@@ -144,15 +142,16 @@ def defer0 : DeferredClaim :=
   #v[0x67506ad9379ddcc3, 0xa767051b758c2b81, 0x474eb5e9359b5a34, 0x2b312eb8ef5489da]
 
 #guard statementDigest seed0 ⟨⟨xmss, sphincs, da⟩, defer0⟩ =
-  #v[0xbb11042ec04d4824, 0xf6d5bf5ee4c7123c, 0x0e7010e5449877bc, 0x5815b6affbacaa7e]
+  #v[0x90cc93b7b553dc6b, 0x23a9c75acd39dabd, 0xfb565cf9a24de404, 0x4df0cfca12580e2c]
 
 /- The same claim one coordinate short: five cells, paired with a zero cell. -/
 #guard statementDigest seed0 ⟨⟨xmss, sphincs, da⟩, { defer0 with
     bytecodePoint := defer0.bytecodePoint.take 4 }⟩ =
-  #v[0x05e8a745fea55d18, 0x7c4dc87271b326da, 0x83d47fbc1faa0995, 0xfecc538bbfca72bf]
+  #v[0x49cb78275b5b04cf, 0x870c7459f513971d, 0x209354b146cd1084, 0x488483980ac24875]
 
--- Mutation: other lists give another digest.
-#guard signersDigest [] [] ≠ signersDigest xmss sphincs
+-- Mutation: other signature lists give another digest.
+#guard statementDigest seed0 ⟨⟨[], [], da⟩, defer0⟩ =
+  #v[0xeac43f7f240fc801, 0x1fd46a11da66ae47, 0x2e7b5bf82f510a7b, 0x4d75397ae44c3f46]
 
 /-! ## The batching: known answers and mutations -/
 
@@ -227,7 +226,6 @@ def batchedPoint : List E :=
 
 #guard claimListDigest NodeVectors.xmss = NodeVectors.xmssListDigest
 #guard claimListDigest NodeVectors.sphincs = NodeVectors.sphincsListDigest
-#guard signersDigest NodeVectors.xmss NodeVectors.sphincs = NodeVectors.signersDigest
 #guard daListDigest NodeVectors.da = NodeVectors.daListDigest
 
 /-- The statement of the vectors' claims, deferring their claim. -/

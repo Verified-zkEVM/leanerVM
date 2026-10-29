@@ -69,7 +69,7 @@ theorem verifySubGoalsTB_of (hbl : bytecode.length = 2 ^ 23) (hrf : Lift.RunsFit
   intro c hc
   have hmem := List.getElem_mem hc
   set e := etB fs (mK0 (hData seed s w) fs fp) with he
-  set outE := hP fs fp seed s w 7 + 24 * c with hout
+  set outE := hP fs fp seed s w 6 + 24 * c with hout
   have h := verify_sub_completeBT (fs := fs) (cert := cert) hbl hrf hap W le_rfl hvk seed
     w.children[c] e (e + 34) outE
     (log2Lin e (e + 34) ++ [(outE, DeferredClaim.cells w.children[c].fresh)])
@@ -100,7 +100,7 @@ theorem verifySubGoalsTB_of (hbl : bytecode.length = 2 ^ 23) (hrf : Lift.RunsFit
       exact hM q (List.mem_append_right _ hq)
     · rw [List.mem_singleton] at hq
       subst hq
-      have r7 := reads_hLmain fs fp seed s w hM (i := 7) (by omega)
+      have r7 := reads_hLmain fs fp seed s w hM (i := 6) (by omega)
       simp only [hOwn, List.getD_cons_succ, List.getD_cons_zero] at r7
       have := B1.Main.readsAt_flatMap_of w.children hlen r7 c hc
       rw [← gen_pow_eq_ofK, pow_add]
@@ -112,13 +112,13 @@ theorem verifySubGoalsTB_of (hbl : bytecode.length = 2 ^ 23) (hrf : Lift.RunsFit
     · rw [List.mem_singleton] at hq
       subst hq
       simp only [hlen _ hmem] at h2
-      have hk : 24 * c + (i - outE) < ((hOwn seed s w).getD 7 []).length := by
+      have hk : 24 * c + (i - outE) < ((hOwn seed s w).getD 6 []).length := by
         simp only [hOwn, List.getD_cons_succ, List.getD_cons_zero]
         rw [length_flatMap_const _ _ 24 hlen]
         have : c + 1 ≤ w.children.length := hc
         omega
-      have := region_buf fs fp seed s w (i := 7) (by omega) hk
-      rwa [show hP fs fp seed s w 7 + (24 * c + (i - outE)) = i by omega] at this
+      have := region_buf fs fp seed s w (i := 6) (by omega) hk
+      rwa [show hP fs fp seed s w 6 + (24 * c + (i - outE)) = i by omega] at this
 
 end
 end LeanVM.Guest.B1.Main

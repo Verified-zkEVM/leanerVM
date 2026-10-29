@@ -24,7 +24,7 @@ the same words, so it steps to the same registers and executes the same instruct
 execution (`validExecution_pad`) of the same counts, its committed size the original's but for
 the memory's `4 · 2^κ'` cells (`committedSize_pad`). The aggregation guest pads its runs to a
 committed size of at least `2^22` this way, so its proofs have a stack log at least `MU_MIN`,
-the least the guest has an opening arm for (`aggregation.rs:1921-1925` grows the `SET` table
+the least the guest has an opening arm for (`aggregation.rs:1920-1924` grows the `SET` table
 instead; the committed size is what both secure).
 -/
 

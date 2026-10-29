@@ -15,7 +15,6 @@ public import LeanVM.Guest.B1.Main.Decode
 * `slotCells_of_loads`: a slot's four cells, from four loads;
 * `xmss_digest`, `sphincs_digest`, `da_digest`: a list of claims decoded at slots whose cells are
   `cells`, four a slot, hashes as `cells`;
-* `signers_eq`: the signer set's digest of two lists of digests `[cx0, cx1]`, `[cs0, cs1]`;
 * `statementDigest_parts`: a statement's digest from the bytes of its header cells and deferred
   cells (`stmtBytes`);
 * `deferOfCells_cells`, `fixedOfCells_cells`, `readCells_of_readsAt`: the deferred claims of
@@ -119,28 +118,21 @@ theorem digestBytes_of_cells {d : Digest} {a b : E} (h : [a, b] = digestCells d)
   simp only [digestCells, List.cons.injEq, and_true] at h
   rw [h.1, h.2]
 
-/-- **The signer set's digest**, of lists whose digests are `[cx0, cx1]`, `[cs0, cs1]`. -/
-theorem signers_eq {xs : List XmssClaim} {ss : List SphincsClaim} {cx0 cx1 cs0 cs1 : E}
-    (hx : [cx0, cx1] = digestCells (claimListDigest xs))
-    (hs : [cs0, cs1] = digestCells (claimListDigest ss)) :
-    signersDigest xs ss = keccak256 (cellsBytes [cx0, cx1, cs0, cs1]) := by
-  unfold signersDigest signersPreimage
-  rw [digestBytes_of_cells hx, digestBytes_of_cells hs]
-  simp [cellsBytes]
-
-theorem cellsBytes_six (a b c d e f : E) :
-    cellsBytes [a, b, c, d, e, f] = cellsBytes [a, b] ++ cellsBytes [c, d] ++ cellsBytes [e, f] := by
+theorem cellsBytes_eight (a b c d e f g h : E) :
+    cellsBytes [a, b, c, d, e, f, g, h] =
+      cellsBytes [a, b] ++ cellsBytes [c, d] ++ cellsBytes [e, f] ++ cellsBytes [g, h] := by
   simp [cellsBytes]
 
 /-- **A statement's digest from its parts**: the header cells' bytes and the 24 deferred cells. -/
-theorem statementDigest_parts {seed : Digest} {s : NodeStatement} {s0 s1 h0 h1 d0 d1 : E}
+theorem statementDigest_parts {seed : Digest} {s : NodeStatement} {s0 s1 x0 x1 y0 y1 d0 d1 : E}
     {defer : List E} (hseed : digestBytes seed = cellsBytes [s0, s1])
-    (hsig : digestBytes (signersDigest s.claims.xmss s.claims.sphincs) = cellsBytes [h0, h1])
+    (hx : digestBytes (claimListDigest s.claims.xmss) = cellsBytes [x0, x1])
+    (hs : digestBytes (claimListDigest s.claims.sphincs) = cellsBytes [y0, y1])
     (hda : digestBytes (daListDigest s.claims.da) = cellsBytes [d0, d1])
     (hdef : s.defer.cells = defer) (hlen : defer.length = 24) :
-    statementDigest seed s = keccak256 (stmtBytes [s0, s1, h0, h1, d0, d1] defer) := by
+    statementDigest seed s = keccak256 (stmtBytes [s0, s1, x0, x1, y0, y1, d0, d1] defer) := by
   unfold statementDigest statementPreimage paddedCells stmtBytes
-  rw [hseed, hsig, hda, hdef, hlen, cellsBytes_six]
+  rw [hseed, hx, hs, hda, hdef, hlen, cellsBytes_eight]
   simp
 
 /-! ## Deferred claims of 24 cells -/

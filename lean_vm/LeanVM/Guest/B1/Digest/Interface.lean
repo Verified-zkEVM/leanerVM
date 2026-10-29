@@ -31,7 +31,7 @@ family's modules.
 
 | function | G | core | meaning |
 | --- | --- | --- | --- |
-| `statement_digest` | 3766-3797 | `core21` | Keccak-256 of the six header cells and the 24 deferred cells, three limbs each (`statementDigest`, N:197) |
+| `statement_digest` | 3766-3797 | `core21` | Keccak-256 of the eight header cells and the 24 deferred cells, three limbs each (`statementDigest`, N:197) |
 | `list_split` | 3812-3824 | `core22` | `n = 17 · groups + rest`, `groups < 2^16`, `rest < 17` |
 | `claim_list_digest` | 3827-3849 | `core23` | Keccak-256 of the `4n` canonical cells of the list (`claimListDigest`, `claimListDigest`, N:172-180) |
 | `child_claim_list_digest` | 3876-3903 | `core24` | the same over cells read at hinted slots of this node's table, each slot marked in the coverage table |
@@ -76,19 +76,19 @@ abbrev ginvW : E := word 9223372036854775821 0 0
 coordinates and the value. -/
 abbrev deferStmtCells : ℕ := 24
 
-/-- The bytes `statement_digest` hashes: the header cells (seed, signer-set digest, DA list
-digest), then the deferred cells, three limbs each. `24` is even: no zero partner. -/
+/-- The bytes `statement_digest` hashes: the header cells (the seed, the two claim lists' digests,
+the DA list digest), then the deferred cells, three limbs each. `24` is even: no zero partner. -/
 def stmtBytes (hdr defer : List E) : List UInt8 := cellsBytes hdr ++ defer.flatMap Node.eBytes
 
-/-- **`statement_digest(seed_0, seed_1, signers_hash, da_0, da_1, defer)`**: the signer-set
-digest's two cells at `signers_hash`, the 24 deferred cells at `defer`; the six header cells are
-canonical (the `KECCAK` reads them), and the function returns the two cells of the Keccak-256
-digest of the header cells and the deferred cells' limbs. -/
+/-- **`statement_digest(seed_0, seed_1, xd_0, xd_1, sd_0, sd_1, da_0, da_1, defer)`**: the 24
+deferred cells at `defer`; the eight header cells are canonical (the `KECCAK` reads them), and the
+function returns the two cells of the Keccak-256 digest of the header cells and the deferred
+cells' limbs. -/
 def MeaningStatementDigest (rd : Reader) : List E → List E → Prop
-  | [s0, s1, sp, a0, a1, dp], rets => ∃ h0 h1 : E, ∃ cells : List E,
-      LoadHolds rd sp 0 h0 ∧ LoadHolds rd sp 1 h1 ∧ cells.length = deferStmtCells ∧
-      ReadsAt rd dp cells ∧ AllCanonical [s0, s1, h0, h1, a0, a1] ∧
-      rets = digestCells (keccak256 (stmtBytes [s0, s1, h0, h1, a0, a1] cells))
+  | [s0, s1, x0, x1, y0, y1, a0, a1, dp], rets => ∃ cells : List E,
+      cells.length = deferStmtCells ∧ ReadsAt rd dp cells ∧
+      AllCanonical [s0, s1, x0, x1, y0, y1, a0, a1] ∧
+      rets = digestCells (keccak256 (stmtBytes [s0, s1, x0, x1, y0, y1, a0, a1] cells))
   | _, _ => False
 
 /-- `statement_digest`'s core IR gives its meaning. -/

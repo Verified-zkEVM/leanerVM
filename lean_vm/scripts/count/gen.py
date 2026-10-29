@@ -41,7 +41,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 OPS = [('xor', 'X', 0), ('mulNative', 'M', 1), ('setConstant', 'S', 2), ('deref', 'D', 3),
        ('jump', 'J', 4), ('keccak', 'K', 5)]
 XMSS = 'verify_lean_xmss'
-MAIN_FRAME = 427 + 8473  # B2C.mainFrame
+MAIN_FRAME = 408 + 8473  # B2C.mainFrame
 # `main`'s statically bounded callees, and `__loop5`'s loop over a child's DA roots.
 CONST_ROOTS = [('Exp', 'exponent_tables'), ('Dl', 'da_list_digest'), ('Cov', 'cover_da_root'),
                ('Sd', 'statement_digest')]
