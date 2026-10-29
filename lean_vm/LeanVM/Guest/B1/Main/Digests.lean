@@ -13,8 +13,9 @@ public import LeanVM.Guest.B1.Main.Decode
 # Decoded digests
 
 * `slotCells_of_loads`: a slot's four cells, from four loads;
-* `xmss_digest`, `sphincs_digest`, `da_digest`: a list of claims decoded at slots whose cells are
-  `cells`, four a slot, hashes as `cells`;
+* `xmss_digest`, `sphincs_digest`: a list of claims decoded at slots whose cells are `cells`, four
+  a slot, hashes as `cells`;
+* `daDigestAt_of_loads`: a DA digest slot of `da_digests` of two loads, its bytes theirs;
 * `statementDigest_parts`: a statement's digest from the bytes of its header cells and deferred
   cells (`stmtBytes`);
 * `deferOfCells_cells`, `fixedOfCells_cells`, `readCells_of_readsAt`: the deferred claims of
@@ -88,16 +89,6 @@ theorem sphincs_digest {p : E} {o : ℕ → ℕ} {n : ℕ} {cells : List E} (h :
     (fun a b c d => claimBytes_cells a b c d) h]
   rfl
 
-theorem da_digest {p : E} {o : ℕ → ℕ} {n : ℕ} {cells : List E} (h : SlotsHold rd p o n cells) :
-    daListDigest ((List.range n).map fun j => daAt rd p (o j)) = keccak256 (cellsBytes cells) := by
-  unfold daListDigest daPreimage
-  rw [← claims_digest (fun a b c d => DaClaim.mk (digestOfCells a b) (digestOfCells c d))
-    (fun c : DaClaim => digestBytes c.daRoot ++ digestBytes c.membershipVectorDigest)
-    (fun a b c d => by
-      simp only [digestBytes_ofCells, cellsBytes, List.flatMap_cons, List.flatMap_nil,
-        List.append_nil, List.append_assoc]) h]
-  rfl
-
 theorem xmss_digest_id {p : E} {n : ℕ} {cells : List E} (h : SlotsHold rd p id n cells) :
     claimListDigest ((List.range n).map (xmssAt rd p)) = keccak256 (cellsBytes cells) :=
   xmss_digest h
@@ -106,9 +97,23 @@ theorem sphincs_digest_id {p : E} {n : ℕ} {cells : List E} (h : SlotsHold rd p
     claimListDigest ((List.range n).map (sphincsAt rd p)) = keccak256 (cellsBytes cells) :=
   sphincs_digest h
 
-theorem da_digest_id {p : E} {n : ℕ} {cells : List E} (h : SlotsHold rd p id n cells) :
-    daListDigest ((List.range n).map (daAt rd p)) = keccak256 (cellsBytes cells) :=
-  da_digest h
+/-! ## DA digests -/
+
+/-- Two zero cells decode to the zero digest. -/
+theorem digestOfCells_zero : digestOfCells 0 0 = zeroDigest := by
+  simp only [digestOfCells, zeroDigest, limb_zero]
+  rfl
+
+/-- A DA digest slot of `da_digests` holding the cells `d0`, `d1` decodes to their digest, whose
+bytes are theirs. -/
+theorem daDigestAt_of_loads {σ : Val} {k : ℕ} {d0 d1 : E}
+    (h0 : LoadHolds rd (σ (.n 334)) (2 * k) d0) (h1 : LoadHolds rd (σ (.n 334)) (2 * k + 1) d1) :
+    daDigestAt rd σ k = digestOfCells d0 d1 ∧
+      digestBytes (daDigestAt rd σ k) = cellsBytes [d0, d1] := by
+  have e : daDigestAt rd σ k = digestOfCells d0 d1 := by
+    unfold daDigestAt
+    rw [cellAt_eq_memAt, memAt_of_load h0, memAt_of_load h1]
+  exact ⟨e, by rw [e, digestBytes_ofCells]⟩
 
 /-! ## The statement -/
 
@@ -128,7 +133,7 @@ theorem statementDigest_parts {seed : Digest} {s : NodeStatement} {s0 s1 x0 x1 y
     {defer : List E} (hseed : digestBytes seed = cellsBytes [s0, s1])
     (hx : digestBytes (claimListDigest s.claims.xmss) = cellsBytes [x0, x1])
     (hs : digestBytes (claimListDigest s.claims.sphincs) = cellsBytes [y0, y1])
-    (hda : digestBytes (daListDigest s.claims.da) = cellsBytes [d0, d1])
+    (hda : digestBytes s.claims.da = cellsBytes [d0, d1])
     (hdef : s.defer.cells = defer) (hlen : defer.length = 24) :
     statementDigest seed s = keccak256 (stmtBytes [s0, s1, x0, x1, y0, y1, d0, d1] defer) := by
   unfold statementDigest statementPreimage paddedCells stmtBytes
