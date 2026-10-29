@@ -342,19 +342,19 @@ theorem da_verify_complete_mem (hm : MemOk rd) {gsq : E} (hsq : SquaresAt rd gsq
   -- the calls
   have find359 := find_of_idx (by
     have h := l18_ok; simp only [Bool.and_eq_true, decide_eq_true_eq] at h; exact h.2)
-    (show 359 < coreProgram.length by rw [coreProgram_length]; omega)
+    (show 356 < coreProgram.length by rw [coreProgram_length]; omega)
   have find360 := find_of_idx (by
     have h := l19_ok; simp only [Bool.and_eq_true, decide_eq_true_eq] at h; exact h.2)
-    (show 360 < coreProgram.length by rw [coreProgram_length]; omega)
+    (show 357 < coreProgram.length by rw [coreProgram_length]; omega)
   have find363 := find_of_idx (by
     have h := l22_ok; simp only [Bool.and_eq_true, decide_eq_true_eq] at h; exact h.2)
-    (show 363 < coreProgram.length by rw [coreProgram_length]; omega)
+    (show 360 < coreProgram.length by rw [coreProgram_length]; omega)
   have find365 := find_of_idx (by
     have h := l23_ok; simp only [Bool.and_eq_true, decide_eq_true_eq] at h; exact h.2)
-    (show 365 < coreProgram.length by rw [coreProgram_length]; omega)
+    (show 362 < coreProgram.length by rw [coreProgram_length]; omega)
   have find366 := find_of_idx (by
     have h := l24_ok; simp only [Bool.and_eq_true, decide_eq_true_eq] at h; exact h.2)
-    (show 366 < coreProgram.length by rw [coreProgram_length]; omega)
+    (show 363 < coreProgram.length by rw [coreProgram_length]; omega)
   obtain ⟨⟨s18, -⟩, ⟨s19, -⟩, ⟨s22, -⟩, ⟨s24, -⟩⟩ := dvloops_shape
   have s23 : loopShapeF (coreProgram.getD 362 default) "__loop22" = true := by
     have h := l23_ok
