@@ -308,20 +308,12 @@ the Fiat--Shamir initial value prover and verifier derive from the bytecode; a t
 \begin{itemize}
 \item a list $X$ of leanXMSS claims and a list $S$ of leanSPHINCS claims, each a pair $(pk, m)$
 meaning ``$pk$ signed $m$'';
-\item a list $D$ of data-availability claims (\lean{DaClaim}), each a pair of digests
-$(\rho, \delta)$ about one blob. A blob is a matrix of $1$ to $1024$ rows of $2^{15}$ elements of
-$\mathbb{K}$ (each row meant to be a codeword: $2^{14}$ symbols of data and their extension), and
-$\rho$ (\lean{daRoot}) is the hash of its content, a Merkle root over its rows and columns: each
-blob has its own root. $\delta$ (\lean{membershipVectorDigest}) is the
-digest of a vector $u$ of $2^{15}$ elements of $\mathbb{E}$. The claim means: some matrix commits
-to $\rho$ and some vector $u$ has digest $\delta$, and every row of the matrix is orthogonal to $u$
-(\lean{Da.Witness.Opens}).
-
-Why a vector: LeanDA's test that the rows are codewords is orthogonality to one dual codeword
-derived from $\rho$, the root's \emph{membership vector} (Section~\ref{sec:schemes}). The guest
-program checks orthogonality to the vector $\delta$ names, whichever it is; the outer verifier
-checks that $\delta$ is the digest of $\rho$'s membership vector. Together, the rows are codewords
-except with probability $14/2^{192}$ per root;
+\item a list $D$ of data-availability claims (\lean{DaClaim}), each about one blob, a matrix of
+$1$ to $1024$ rows of $2^{15}$ elements of $\mathbb{K}$: the blob's Merkle root $\rho$
+(\lean{daRoot}) and the digest $\delta$ (\lean{membershipVectorDigest}) of a vector $u$. The
+claim: some blob with root $\rho$ has every row orthogonal to some $u$ with digest $\delta$
+(\lean{Da.Witness.Opens}). The outer verifier checks that $u$ is $\rho$'s membership vector
+(Section~\ref{sec:schemes}), which makes the rows codewords except with probability $14/2^{192}$;
 \item a \emph{deferred claim} $c = (z, v)$, $z \in \mathbb{E}^{23}$, $v \in \mathbb{E}$, meaning
 that the multilinear extension $\widehat{B}$ of the bytecode, as a function on $\{0,1\}^{23}$,
 satisfies $\widehat{B}(z) = v$ (\lean{DeferredClaim.Holds}).
