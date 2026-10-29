@@ -37,7 +37,7 @@ open LeanVM.Parameters LeanVM.Semantics LeanVM.Protocol LeanVM.Protocol.Compile
 open LeanVM.Protocol.Verifier
 
 /-- **The honest script** of an execution's witness `W` at the layout `layout` and the rate
-`ρ`: the eight moves of `verify_execution` (`verifier.py:1462-1518`), each phase's executable
+`ρ`: the eight moves of `verify_execution` (`verifier.py:1463-1516`), each phase's executable
 prover. -/
 def honestScript (W : Witness) (layout : Layout) (ρ : ℕ) : Script Unit :=
   (Script.sendList (W.announce ρ)).bind fun _ ↦

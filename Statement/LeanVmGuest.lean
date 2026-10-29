@@ -63,8 +63,8 @@ LeanDA's deployed algorithms (`LeanDa.commitCodewords`, `LeanDa.vectorDigest`) a
 
 A DA claim (`DaClaim`) is held by a matrix committed to its root whose rows are orthogonal to a
 vector of its vector digest (`Witness.Opens`: the guest program's `da_verify`,
-`lean_ethereum.py:3920-4060`; the digest two-level, `LeanDa.vectorDigest`, `da_vector_cell`,
-`lean_ethereum.py:4048-4060`). Only where the vector is the root's membership vector, as the deployed
+`lean_ethereum.py:3922-4062`; the digest two-level, `LeanDa.vectorDigest`, `da_vector_cell`,
+`lean_ethereum.py:4050-4062`). Only where the vector is the root's membership vector, as the deployed
 outer verifier requires (no end statement here assumes it), are the rows codewords, except with the
 membership test's error (`lean_da`'s `membershipVector_eq_dual`, `checker_sound`) and up to a
 collision of the vector digest, which is not among `collisionCandidates`; the link to `lean_da`'s
@@ -132,15 +132,15 @@ abbrev XmssClaim : Type := LeanXmss.PublicKey × LeanXmss.Message
 abbrev SphincsClaim : Type := Sphincs.PublicKey × Sphincs.Message
 
 /-- **A DA claim**: a blob's Merkle root, an entry of an aggregate's `da_roots`
-(`aggregation.rs:400-401`; the guest program's `da_roots`, `lean_ethereum.py:4151-4154`), with the
+(`aggregation.rs:396-397`; the guest program's `da_roots`, `lean_ethereum.py:4153-4156`), with the
 digest of the vector the blob's rows are orthogonal to. The two are hashed as `da_claim_cells` and
-`verifier::da::list_digest` hash them, the root then the vector digest (`aggregation.rs:563-566`,
+`verifier::da::list_digest` hash them, the root then the vector digest (`aggregation.rs:559-562`,
 `crates/verifier/src/da.rs:98-104`): `daListDigest`. -/
 structure DaClaim where
-  /-- The blob's Merkle root (`da_roots`, `aggregation.rs:401`): the commitment to its matrix of
+  /-- The blob's Merkle root (`da_roots`, `aggregation.rs:397`): the commitment to its matrix of
   codewords (`Da.Witness.Opens`). -/
   daRoot : Digest
-  /-- The digest of the vector (`vector_hash`, `aggregation.rs:564`), which the guest program takes
+  /-- The digest of the vector (`vector_hash`, `aggregation.rs:560`), which the guest program takes
   from the statement; the deployed outer verifier requires it to be
   `vector_digest(membership_vector(root))` (`crates/verifier/src/da.rs:83-96`). -/
   membershipVectorDigest : Digest
@@ -153,7 +153,7 @@ structure Claims where
   da : List DaClaim
 
 /-- The claim the statement defers on the stacked bytecode: its value at a point
-(`DeferredClaim`, `aggregation.rs:261-264`), the shape of a proof's claim (`FixedClaims`). -/
+(`DeferredClaim`, `aggregation.rs:246-249`), the shape of a proof's claim (`FixedClaims`). -/
 abbrev DeferredClaim : Type := FixedClaims
 
 /-- A node's statement: its claims and its deferred claim. -/
@@ -162,26 +162,26 @@ structure NodeStatement where
   defer : DeferredClaim
 
 /-- The deferred claim has the shape of the bytecode `bytecode`: a point of `log₂` of its length
-(`bytecode_vars`, `aggregation.rs:824-826`; `BYTECODE_VARS`, `lean_ethereum.py:330`). -/
+(`bytecode_vars`, `aggregation.rs:822-824`; `BYTECODE_VARS`, `lean_ethereum.py:330`). -/
 def DeferredClaim.Shaped (bytecode : List K) (c : DeferredClaim) : Prop :=
   c.bytecodePoint.length = Nat.log2 bytecode.length
 
 /-- **The deferred claim is true** of the bytecode `bytecode`: it has the shape, and the value is
 the bytecode's multilinear extension at the point (`DeferredClaim::recompute_scalar`,
-`aggregation.rs:282-314`). The length being `2 ^ len` is part of it: `Shaped` reads `Nat.log2` of
+`aggregation.rs:267-299`). The length being `2 ^ len` is part of it: `Shaped` reads `Nat.log2` of
 the length, which a bytecode of other length shares, and the extension is of `2 ^ len` values. -/
 def DeferredClaim.Holds (bytecode : List K) (c : DeferredClaim) : Prop :=
   c.Shaped bytecode ∧ 2 ^ c.bytecodePoint.length = bytecode.length ∧
     multilinearEval (bytecode.map ofK) c.bytecodePoint = c.bytecodeValue
 
 /-- What a leaf defers: the bytecode at the all-zero point (`DeferredClaim::leaf`,
-`aggregation.rs:269-271`; `main`'s leaf branch, `lean_ethereum.py:4266-4274`). The value is
+`aggregation.rs:254-256`; `main`'s leaf branch, `lean_ethereum.py:4258-4266`). The value is
 the outer verifier's to check. -/
 def DeferredClaim.AtZero (bytecode : List K) (c : DeferredClaim) : Prop :=
   c.bytecodePoint = List.replicate (Nat.log2 bytecode.length) 0
 
 /-- The cells a deferred claim is hashed and absorbed as, and a proof's claim on the bytecode
-exported as: the point, then the value (`DeferredClaim::cells`, `aggregation.rs:316-320`; the guest
+exported as: the point, then the value (`DeferredClaim::cells`, `aggregation.rs:301-305`; the guest
 program's `defer_stmt`, and `verify_sub`'s `defer_out`, `lean_ethereum.py:3331-3335`, the point
 being the bus point's row coordinates, then the selector challenges). -/
 def DeferredClaim.cells (c : DeferredClaim) : List E :=
@@ -206,23 +206,14 @@ def claimsPreimage (claims : List XmssClaim) : List UInt8 :=
   claims.flatMap fun c ↦ claimBytes c.1.root c.1.parameter c.2
 
 /-- The digest of a list of leanXMSS or leanSPHINCS claims (`claim_list_digest`,
-`aggregation.rs:215-217`, `lean_ethereum.py:3827-3849`). -/
+`aggregation.rs:215-217`, `lean_ethereum.py:3829-3851`). -/
 def claimListDigest (claims : List XmssClaim) : Digest := keccak256 (claimsPreimage claims)
-
-/-- The bytes `signersDigest xmss sphincs` hashes: the two lists' digests. -/
-def signersPreimage (xmss : List XmssClaim) (sphincs : List SphincsClaim) : List UInt8 :=
-  digestBytes (claimListDigest xmss) ++ digestBytes (claimListDigest sphincs)
-
-/-- **The signer set's digest** (`signers_hash`, `aggregation.rs:242-251`). Each list's digest
-binds its length through Keccak's padding. -/
-def signersDigest (xmss : List XmssClaim) (sphincs : List SphincsClaim) : Digest :=
-  keccak256 (signersPreimage xmss sphincs)
 
 /-- The bytes `daListDigest claims` hashes: each root, then its vector digest. -/
 def daPreimage (claims : List DaClaim) : List UInt8 :=
   claims.flatMap fun c ↦ digestBytes c.daRoot ++ digestBytes c.membershipVectorDigest
 
-/-- The DA claims' digest (`da_list_digest` in the guest program, `lean_ethereum.py:4063-4075`; the
+/-- The DA claims' digest (`da_list_digest` in the guest program, `lean_ethereum.py:4065-4077`; the
 outer verifier's `verifier::da::list_digest` derives the vector digests from the roots). -/
 def daListDigest (claims : List DaClaim) : Digest := keccak256 (daPreimage claims)
 
@@ -233,23 +224,25 @@ def eBytes (x : E) : List UInt8 := kBytes (x.limb 0) ++ kBytes (x.limb 1) ++ kBy
 def paddedCells (c : DeferredClaim) : List E :=
   c.cells ++ if c.cells.length % 2 = 1 then [0] else []
 
-/-- The bytes `statementDigest seed s` hashes: the seed, the signer set's and the DA claims'
-digests, then the padded deferred cells. -/
+/-- The bytes `statementDigest seed s` hashes: the seed, the leanXMSS, leanSPHINCS and DA claims'
+digests, then the padded deferred cells. Each list's digest binds its length through Keccak's
+padding. -/
 def statementPreimage (seed : Digest) (s : NodeStatement) : List UInt8 :=
-  digestBytes seed ++ digestBytes (signersDigest s.claims.xmss s.claims.sphincs) ++
-    digestBytes (daListDigest s.claims.da) ++ (paddedCells s.defer).flatMap eBytes
+  digestBytes seed ++ digestBytes (claimListDigest s.claims.xmss) ++
+    digestBytes (claimListDigest s.claims.sphincs) ++ digestBytes (daListDigest s.claims.da) ++
+    (paddedCells s.defer).flatMap eBytes
 
-/-- **The statement's digest under `seed`** (`statement_digest`, `aggregation.rs:347-368`,
+/-- **The statement's digest under `seed`** (`statement_digest`, `aggregation.rs:335-364`,
 `lean_ethereum.py:3766-3797`). The cells carry no lengths: the digest tells two deferred claims
 apart only at one shape. -/
 def statementDigest (seed : Digest) (s : NodeStatement) : Digest :=
   keccak256 (statementPreimage seed s)
 
-/-! ## Batching the deferred claims (`aggregate_claims`, `lean_ethereum.py:4285-4392`;
-`aggregate_deferred_claims`, `aggregation.rs:939-1041`) -/
+/-! ## Batching the deferred claims (`aggregate_claims`, `lean_ethereum.py:4277-4384`;
+`aggregate_deferred_claims`, `aggregation.rs:937-1039`) -/
 
 /-- Words padded with zeros to a whole rate, `rateScalars` words (`pad`,
-`aggregation.rs:949-953`; `AGG_CHILD_PAD`). -/
+`aggregation.rs:947-951`; `AGG_CHILD_PAD`). -/
 def padRate (words : List E) : List E :=
   words ++ List.replicate ((rateScalars - words.length % rateScalars) % rateScalars) 0
 
@@ -415,7 +408,7 @@ noncomputable def batchAny (M : ℕ) (bytecode : List K) : Prog Bool := do
 
 /-- **The batching transcript run**, for a hash function `H` and a permutation `F` in any monad:
 from the seed `F(H(label) ‖ 0)` (`FiatShamirState::from_label`; the guest program bakes its
-capacity, `AGG_SEED_*`, `aggregation.rs:2557-2560`), the program on the proof. -/
+capacity, `AGG_SEED_*`, `aggregation.rs:2556-2559`), the program on the proof. -/
 noncomputable def batchRun {m : Type → Type} [Monad m] (H : Bytes → m Digest)
     (F : KState → m KState) (prog : Prog Bool) (proof : Proof) : m Bool := do
   let seed ← F (seedInput (← H batchLabel) (Vector.replicate 4 0))
@@ -490,19 +483,16 @@ def NodeRel (bytecode : List K) (seed : Digest) (s : NodeStatement) (w : NodeWit
       ⟨statementDigest seed c.statement, c.fresh, c.statement.defer⟩) w.hints, []⟩ = true
 
 /-- The guest program's deployed seed: its Fiat-Shamir IV (`fs_seed`,
-`crates/leanvm_core/src/cpu/mod.rs:68-80`). -/
+`crates/leanvm_core/src/cpu/mod.rs:63-67`). -/
 abbrev deployedSeed (guest : Program) : Digest := fiatShamirIv (bytecodeWords guest)
 
 /-! ## What a proof of the leanISA guest program establishes, its witness named -/
 
-/-- **The candidate collisions** of two statements' digests: the pairs of inputs of the five
-hashes the digests compute, the outer one, the signer set's, the two claim lists' and the DA
-list's. -/
+/-- **The candidate collisions** of two statements' digests: the pairs of inputs of the four
+hashes the digests compute, the outer one, the two claim lists' and the DA list's. -/
 def collisionCandidates (seed : Digest) (s : NodeStatement) (seed' : Digest)
     (s' : NodeStatement) : List (List UInt8 × List UInt8) :=
   [(statementPreimage seed s, statementPreimage seed' s'),
-    (signersPreimage s.claims.xmss s.claims.sphincs,
-      signersPreimage s'.claims.xmss s'.claims.sphincs),
     (claimsPreimage s.claims.xmss, claimsPreimage s'.claims.xmss),
     (claimsPreimage s.claims.sphincs, claimsPreimage s'.claims.sphincs),
     (daPreimage s.claims.da, daPreimage s'.claims.da)]
@@ -562,10 +552,10 @@ def guest : Program := assemble Data.functions 19 (by decide)
 
 namespace Hints
 
-/-- `STREAM_CAP` (`aggregation.rs:1355`): a child's proof stream is zero-padded to it. -/
+/-- `STREAM_CAP` (`aggregation.rs:1353`): a child's proof stream is zero-padded to it. -/
 def streamCap : ℕ := 8192
 
-/-- `MU_MIN` (`aggregation.rs:1346`): the least stack log the guest program has an opening arm
+/-- `MU_MIN` (`aggregation.rs:1344`): the least stack log the guest program has an opening arm
 for. -/
 def muMin : ℕ := 22
 

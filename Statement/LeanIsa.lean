@@ -48,8 +48,8 @@ def minLogMem : ℕ := 16
 /-- The greatest memory log-size, `2^32` cells (`crates/leanvm_core/src/cpu/mod.rs:42`, `MAX_LOG_MEM`). -/
 def maxLogMem : ℕ := 32
 
-/-- The greatest bytecode log-size, in instructions (`crates/verifier/src/layout.rs:487`;
-`verifier.py:975`). -/
+/-- The greatest bytecode log-size, in instructions (`crates/verifier/src/layout.rs:490`;
+`verifier.py:976`). -/
 def maxLogBytecode : ℕ := 32
 
 end LeanVM.Parameters
@@ -137,7 +137,7 @@ noncomputable def Program.fetch (prog : Program) (pc : K) : Option Instr :=
 
 How the 25 lanes of a Keccak state are held in thirteen memory words, two lanes to a word, in the
 words' limbs `0` and `1`, the `y²` limb zero (specification §2, the `KECCAK` paragraph;
-`_keccak_cell_lanes`, `verifier.py:871-883`; `cell_lanes`, `crates/leanvm_core/src/keccak.rs:68-89`):
+`_keccak_cell_lanes`, `verifier.py:872-884`; `cell_lanes`, `crates/leanvm_core/src/keccak.rs:59-80`):
 
 * even layout: cell `c < 8` holds lanes `(2c, 2c + 1)`, cell `8` holds `(16, ·)`;
 * odd layout: cell `0` holds `(·, 0)`, cell `1 ≤ c ≤ 8` holds `(2c − 1, 2c)`;
@@ -146,7 +146,7 @@ words' limbs `0` and `1`, the `y²` limb zero (specification §2, the `KECCAK` p
 A limb `·` holds no lane: it is ignored when read and zero when written. -/
 
 /-- The lanes cell `c` holds in limbs `0` and `1`, in the layout `odd`; `none` marks a limb that
-holds no lane (`_keccak_cell_lanes`, `verifier.py:871-883`, which the verifier's flushes read
+holds no lane (`_keccak_cell_lanes`, `verifier.py:872-884`, which the verifier's flushes read
 too). -/
 def cellLanes (odd : Bool) (c : ℕ) : Option ℕ × Option ℕ :=
   if 9 ≤ c ∨ (odd ∧ 1 ≤ c) then (some (2 * c - 1), some (2 * c))
@@ -155,7 +155,7 @@ def cellLanes (odd : Bool) (c : ℕ) : Option ℕ × Option ℕ :=
   else (some (2 * c), some (2 * c + 1))
 
 /-- The state thirteen cells hold in the layout `odd`: lane `l` is the limb of the cell that holds
-it (`state_of_cells`, `crates/leanvm_core/src/keccak.rs:91-103`). -/
+it (`state_of_cells`, `crates/leanvm_core/src/keccak.rs:82-94`). -/
 def stateOfCells (cells : Fin 13 → E) (odd : Bool) : KState :=
   (List.finRange 13).foldl (fun s (c : Fin 13) ↦
     let (lo, hi) := cellLanes odd c.val
@@ -167,7 +167,7 @@ def stateOfCells (cells : Fin 13 → E) (odd : Bool) : KState :=
       | none => s) (Vector.replicate 25 0)
 
 /-- The thirteen cells holding a state in the layout `odd`, a limb holding no lane zero, the `y²`
-limb zero (`cells_of_state`, `crates/leanvm_core/src/keccak.rs:105-116`). -/
+limb zero (`cells_of_state`, `crates/leanvm_core/src/keccak.rs:96-107`). -/
 def cellsOfState (s : KState) (odd : Bool) (c : Fin 13) : E :=
   let limb := fun (l : Option ℕ) ↦ match l with
     | some l => K.ofLane (Keccak.lane s l)
@@ -188,7 +188,7 @@ instance {input : Fin 13 → E} {inOdd : Bool} {output : Fin 13 → E} {outOdd :
 
 /-- The address of read cell `c` relative to the frame: `o_m₀, …, o_m₃`, then `g^k · o_tail`
 (`k < 4`), `o_b8`, then `g^k · o_cap` (`k < 4`) (`_flushes_keccak`'s `address`,
-`verifier.py:906-911`). -/
+`verifier.py:907-912`). -/
 def keccakInOffset (om : Fin 4 → K) (otail ob8 ocap : K) (c : Fin 13) : K :=
   if h : c.val < 4 then om ⟨c.val, h⟩
   else if c.val < 8 then g ^ (c.val - 4) * otail
@@ -352,11 +352,11 @@ def derefFlags : DerefMode → K × K
   | .pc => (1, 0)
   | .fp => (0, 1)
 
-/-- A layout flag as the bytecode carries it: `0` or `1` (`flag`, `crates/leanvm_core/src/cpu/layout.rs:311`). -/
+/-- A layout flag as the bytecode carries it: `0` or `1` (`flag`, `crates/leanvm_core/src/cpu/layout.rs:297`). -/
 def flagK (b : Bool) : K := if b then 1 else 0
 
 /-- The bus entry of an instruction, `(opcode, op₁, …, op₁₀)`: slots 3 to 13 of specification
-§8.1, the eleven public columns of `bytecode_columns` (`cpu/layout.rs:288-367`): offsets as
+§8.1, the eleven public columns of `bytecode_columns` (`cpu/layout.rs:288-353`): offsets as
 g-powers, a `SET` immediate as its three limbs, the `DEREF` store-mode flags and `KECCAK`'s
 layout flags as `0` or `1`, unused slots zero. -/
 def entry : Instr → Vector K 11
@@ -390,7 +390,7 @@ def bytecodeWords (prog : Program) : List K :=
     (List.finRange (2 ^ prog.logSize)).map fun i ↦ (encodeSlots (prog.code i))[s]
 
 /-- The public input as the verifier reads it: its four lanes, the digest's four words
-(`public_input_bytes`, `crates/leanvm_core/src/cpu/mod.rs:723-730`; `Digest.halves`,
+(`public_input_bytes`, `crates/leanvm_core/src/cpu/mod.rs:716-723`; `Digest.halves`,
 `verifier.py:225-228`). -/
 def publicDigest (input : PublicInput) : Digest :=
   #v[(input.lanes 0).lane, (input.lanes 1).lane, (input.lanes 2).lane, (input.lanes 3).lane]

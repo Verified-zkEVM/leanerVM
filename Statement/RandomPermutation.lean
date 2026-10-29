@@ -31,8 +31,8 @@ set_option linter.unusedSectionVars false
 ## Keccak
 
 Transcribed from `python-verifier/verifier.py` at leanVM
-`94ee12ff6b2a3d42ba8328e22d09443692e4800b` (branch `main`): the round constants, rotation
-offsets and lane permutation (`KECCAK_RC`, `KECCAK_RHO`, `KECCAK_PI`, `verifier.py:1207-1214`),
+`990b935263dc7f793f280914f262ca7955ddc3e0` (branch `main`): the round constants, rotation
+offsets and lane permutation (`KECCAK_RC`, `KECCAK_RHO`, `KECCAK_PI`, `verifier.py:1208-1215`),
 the permutation `keccak_f` (`verifier.py:360-375`), and the hash `keccak_hash`
 (`verifier.py:191-209`) over any permutation `π` in any monad (`keccak256With`), the deployed one
 over Keccak-f[1600] (`keccak256`): Keccak-256 as Ethereum computes it, rate `136` bytes, the
@@ -44,7 +44,7 @@ A state is `25` lanes of `64` bits, lane `x + 5y` at index `x + 5y`.
 
 namespace LeanVM.Parameters
 
-/-- `KECCAK_RC` (`verifier.py:1207-1212`): the round constants of the `24` rounds. -/
+/-- `KECCAK_RC` (`verifier.py:1208-1213`): the round constants of the `24` rounds. -/
 def keccakRC : List UInt64 := [
   0x0000000000000001, 0x0000000000008082, 0x800000000000808A, 0x8000000080008000,
   0x000000000000808B, 0x0000000080000001, 0x8000000080008081, 0x8000000000008009,
@@ -53,11 +53,11 @@ def keccakRC : List UInt64 := [
   0x8000000000008002, 0x8000000000000080, 0x000000000000800A, 0x800000008000000A,
   0x8000000080008081, 0x8000000000008080, 0x0000000080000001, 0x8000000080008008]
 
-/-- `KECCAK_RHO` (`verifier.py:1213`): the rotation of each lane, by index `x + 5y`. -/
+/-- `KECCAK_RHO` (`verifier.py:1214`): the rotation of each lane, by index `x + 5y`. -/
 def keccakRho : List ℕ :=
   [0, 1, 62, 28, 27, 36, 44, 6, 55, 20, 3, 10, 43, 25, 39, 41, 45, 15, 21, 8, 18, 2, 61, 56, 14]
 
-/-- `KECCAK_PI` (`verifier.py:1214`): where lane `i = x + 5y` lands,
+/-- `KECCAK_PI` (`verifier.py:1215`): where lane `i = x + 5y` lands,
 `i // 5 + 5 · ((2 · (i % 5) + 3 · (i // 5)) % 5)`. -/
 def keccakPi (i : ℕ) : ℕ := i / 5 + 5 * ((2 * (i % 5) + 3 * (i / 5)) % 5)
 

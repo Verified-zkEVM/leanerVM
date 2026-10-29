@@ -5,7 +5,7 @@ public import Statement.Prover.KeccakLayer
 /-!
 # The Keccak prover
 
-The honest prover of `verifyKeccak` (`verifier.py:1372-1405`) and of the Keccak phase of
+The honest prover of `verifyKeccak` (`verifier.py:1373-1406`) and of the Keccak phase of
 `verify_execution` (`keccakPhase`), each table computed once:
 
 * the column's slots at the steps' point `inst`, `Σ_x eq(inst, x)·col(x + 2^h·o)` for the `64`
@@ -57,12 +57,12 @@ def slotWords (col : ℕ → K) (h : ℕ) (inst : List E) : Array E :=
   let eq := eqTable inst
   Array.ofFn (n := 64) fun o ↦ sumRange (2 ^ h) fun x ↦ eq.getD x 0 * ofK (col (x + 2 ^ h * o.val))
 
-/-- The first claim's position weights: `eq(r_lane, ℓ)·x^z` (`verifier.py:1381`). -/
+/-- The first claim's position weights: `eq(r_lane, ℓ)·x^z` (`verifier.py:1382`). -/
 def firstWeightsOf (lanesPt : List E) : List E :=
   let e := eqKernel lanesPt
   (List.range keccakBits).map fun j ↦ e.getD (j / 64) 0 * eOfNat (2 ^ (j % 64))
 
-/-- The first claim (`verifier.py:1382-1384`). -/
+/-- The first claim (`verifier.py:1383-1385`). -/
 def firstClaimOf (inst segment lanesPt output : List E) (committed : E) : KeccakClaim :=
   ⟨committed + (eqKernel segment).getD (keccakSegments - 1) 0 *
       dot ((eqKernel lanesPt).take 25) output,
@@ -135,7 +135,7 @@ def keccakProve (col : ℕ → K) (P : ℕ) (inst output : List E) :
   (Script.sendE word).bind fun _ ↦
   inputProve col P claim [⟨qkeccak, inst.take 4 ++ inst.drop 4 ++ x.1, word⟩]
 
-/-- **The honest prover of the Keccak phase** (`keccakPhase`, `verifier.py:1505-1509`): the
+/-- **The honest prover of the Keccak phase** (`keccakPhase`, `verifier.py:1503-1507`): the
 output lanes' claims leave the batch and become the reduction's, on `q_keccak`'s words (the
 column `qkeccak` of `cols`), the `KECCAK` table of log-height `τ`. -/
 def keccakPhaseProve (τ : ℕ) (cols : Array (Array K)) (claims : List ColumnClaim) :

@@ -178,7 +178,7 @@ def tableClaims (logs : List ℕ) (pt : List E) (st : TableState) : List ColumnC
   (List.range 6).flatMap fun t ↦ (finalEvals (st.cols.getD t #[])).zipIdx.map
     fun (value, column) ↦ ⟨globalColumnBases.getD t 0 + column, pt.take (logs.getD t 0), value⟩
 
-/-- The constraint powers of `ξ` and its form powers, one per side (`verifier.py:1382-1384`). -/
+/-- The constraint powers of `ξ` and its form powers, one per side (`verifier.py:1383-1385`). -/
 def xiPowers (xi : E) : List E × List E :=
   let nc := (tables.map Table.nConstraints).sum
   ((powers xi (nc + 3)).take nc, (powers xi (nc + 3)).drop nc)

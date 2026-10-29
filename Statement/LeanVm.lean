@@ -108,12 +108,12 @@ def prover : HonestProver := fun prog input t ρ fuel ↦ Prover.prove queryH qu
 /-- **The committed size of an execution**: the number of cells the honest prover commits to,
 every committed column at its table's height, the least power of two holding the table's rows
 (`1` for no row), and at least `2^9` for the `KECCAK` table (`TABLE_LOG_FLOORS`,
-`verifier.py:970`). The memory has four columns of `2^κ` rows, and the bytecode's counts (`BFCNT`)
+`verifier.py:971`). The memory has four columns of `2^κ` rows, and the bytecode's counts (`BFCNT`)
 one of `2^logSize` rows. Each opcode has a table of one row per instruction of that opcode the
 execution executes (`Trace.count`), with `15, 15, 8, 15, 14, 26` committed columns for `XOR`,
 `MUL_NATIVE`, `SET_CONSTANT`, `DEREF`, `JUMP`, `KECCAK` (of the `KECCAK` table's `90` columns, the
 `25` input lanes and `14` more ride `q_keccak`'s slots and the `25` output lanes are not committed,
-`verifier.py:931-953`); and `q_keccak` has `2^6` rows per row of the `KECCAK` table. -/
+`verifier.py:932-954`); and `q_keccak` has `2^6` rows per row of the `KECCAK` table. -/
 noncomputable def Semantics.Trace.committedSize {prog : Program} (t : Trace prog) : ℕ :=
   let height (op : Opcode) : ℕ := 2 ^ Nat.clog 2 (t.count op)
   let keccakHeight : ℕ := 2 ^ max (Nat.clog 2 (t.count .keccak)) 9
@@ -255,7 +255,7 @@ def BreaksRpm (z : RpmOutcome) : Prop :=
 /-- **Knowledge soundness in the random-permutation model**, for the extractor `extractorRpm`:
 an adversary of at most `Q ≤ 2^128` queries to `π` and `π⁻¹` (its coins free) breaks soundness
 with probability at most `(Q + 2^14) · 2^-128 + 7 (Q + 2^14)² · 2^-256`, the `2^14` covering the
-verifier's own `12008` oracle calls and two terms of `2^-128` (a guessed stack root, the transfer
+verifier's own `12006` oracle calls and two terms of `2^-128` (a guessed stack root, the transfer
 from two random oracles to one permutation). -/
 def KnowledgeSoundness : Prop :=
   ∀ (A : RpmAdversary) (Q : ℕ), Common.IsWeightBound A permQueries Q → Q ≤ 2 ^ 128 →

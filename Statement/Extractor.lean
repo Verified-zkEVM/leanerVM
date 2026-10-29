@@ -28,7 +28,7 @@ linear in the bytecode; it is infeasible at deployed sizes except on a word with
 (`fastStacks`). The cost table below is read off its loops, not proved.
 
 1. **The announced sizes and the stack's root** (`afterRoot`): read off the proof as the
-   verifier's steps 1 and 2 read them (`verifier.py:1469-1480`), with every hash and permutation
+   verifier's steps 1 and 2 read them (`verifier.py:1467-1478`), with every hash and permutation
    answered by a constant (`runPure`): what they read does not depend on the sponge.
 2. **The committed word** (`committedLeaves`, `leafAt`): the Merkle tree under the root inverted
    through the evaluations, top down: a node's children are the two digests its unique answered
@@ -40,7 +40,7 @@ linear in the bytecode; it is infeasible at deployed sizes except on a word with
    `2^μ` words of `K`) in `2^6` lanes: lane `u` is the stack's block `u`, its cells
    `j + 2^(μ−6)·u` for `j < 2^(μ−6)`, read as coefficients in the novel polynomial basis `X_j`,
    and column `v` of the word is the leaf holding the values of the `64` lanes at the domain point
-   `x_v = K.ofBits v`, in reverse order (`verifier.py:1165-1166`, `tuple(reversed(row))`): the
+   `x_v = K.ofBits v`, in reverse order (`verifier.py:1166-1167`, `tuple(reversed(row))`): the
    binary Reed–Solomon code of Annex B, §B.2 (`doc/leanvm/body/b-polynomial-commitment-scheme.tex`)
    and the encoder of Annex D, `def:enc` (`doc/leanvm/body/d-novel-basis.tex`). The candidates are
    the stacks whose encoding agrees with the word on at least the Johnson threshold of columns
@@ -108,7 +108,7 @@ open CompPoly CompPoly.GuruswamiSudan CompPoly.CPolynomial.Roots.FiniteField
 
 /-! ### 1. The announced sizes and the stack's root -/
 
-/-- `verify_execution`'s steps 1 and 2 (`verifier.py:1469-1480`): read the announced sizes, then
+/-- `verify_execution`'s steps 1 and 2 (`verifier.py:1467-1478`): read the announced sizes, then
 the stack's root; the layout and the WHIR rate exponent. -/
 def announceSizesAndRoot (bytecode : List K) : Prog (Layout × ℕ) := do
   let (layout, logInverseRate) ← readSizes bytecode
@@ -410,7 +410,7 @@ def fastStacks (μ R : ℕ) (W : ℕ → List K) : List (Vector K (2 ^ μ)) :=
 /-! ### 7. The execution -/
 
 /-- **The memory image of a stack**: `2^logMemory` words, word `i` the three limbs at cell `i` of
-the memory columns `MEMORY_0`, `MEMORY_1`, `MEMORY_2` (`verifier.py:687`), each at its placement's
+the memory columns `MEMORY_0`, `MEMORY_1`, `MEMORY_2` (`verifier.py:688`), each at its placement's
 offset on the stack. -/
 def memoryImage (layout : Layout) {μ : ℕ} (q : Vector K (2 ^ μ)) : MemImage layout.logMemory :=
   fun i ↦

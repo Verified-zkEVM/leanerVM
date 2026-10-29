@@ -5,7 +5,7 @@ public import Statement.Prover.KeccakTables
 /-!
 # The Keccak prover: a layer
 
-One layer of the Keccak GKR (`verifyKeccakLayer`, `verifier.py:1311-1354`), run by an honest
+One layer of the Keccak GKR (`verifyKeccakLayer`, `verifier.py:1312-1355`), run by an honest
 prover that computes each table once:
 
 * the bits entering χ (`layerMasks`): per segment and step, the state `e` rounds into the
@@ -210,7 +210,7 @@ def posFold (st : PosState) (c : E) : PosState :=
 
 /-! ## A layer -/
 
-/-- The verifier's batched weights (`verifier.py:1352`) from an equality table. -/
+/-- The verifier's batched weights (`verifier.py:1353`) from an equality table. -/
 def batchWeights (p : List E) (beta : E) : List E :=
   let e := eqTable p
   (List.range keccakBits).map fun j ↦

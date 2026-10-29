@@ -8,7 +8,7 @@ public import Statement.Prover.Witness
 From the rows of a run (`rowsOf`, `Witness.lean`):
 
 * the announced sizes: the memory log-size and the six tables' row counts, the tables'
-  log-heights as `build_layout` computes them (`tableLogsOf`, `verifier.py:973-1013`), the
+  log-heights as `build_layout` computes them (`tableLogsOf`, `verifier.py:974-1014`), the
   columns' log-sizes (`columnKappas`) and the stack's log-size (`placementsOf`);
 * every column of the instance as an array, indexed by the verifier's global column number
   (`colsOf`): the memory's three limbs and finalize counts, the bytecode's finalize counts,
@@ -34,7 +34,7 @@ open LeanVM.Protocol.Verifier
 /-! ## Sizes -/
 
 /-- The tables' log-heights from their row counts: the least `h` with `rows ≤ 2^h`, at least the
-table's floor (`build_layout`, `verifier.py:976-978`). -/
+table's floor (`build_layout`, `verifier.py:977-979`). -/
 def tableLogsOf (rows : List ℕ) : List ℕ :=
   List.zipWith (fun r floor ↦ max (log2Ceil r) floor) rows tableLogFloors
 
@@ -70,7 +70,7 @@ def outStates (R : Array (Array K)) (mids : Array KState) : Array KState :=
   Array.ofFn (n := mids.size) fun x ↦ if x.val < R.size then segment 1 mids[x] else zOut
 
 /-- The `KECCAK` column spare slot `50 + k` of `QKECCAK` carries: column `k` for `k < 13`, then
-column `63` (`_KECCAK_COMMITTED[:QKECCAK_SPARE]`, `verifier.py:947-953`). -/
+column `63` (`_KECCAK_COMMITTED[:QKECCAK_SPARE]`, `verifier.py:948-954`). -/
 def spareCol (k : ℕ) : ℕ := if k < 13 then k else 63
 
 /-- `QKECCAK` of the `KECCAK` table at the height `2^h`: slot `l < 25` of step `x` is input lane
@@ -128,7 +128,7 @@ def colsOf {κ : ℕ} (img : MemImage κ) (acc : Rows) (logs : List ℕ) : Array
 
 /-! ## The stack -/
 
-/-- The committed columns' global numbers, in global order (`block_cols`, `verifier.py:997`). -/
+/-- The committed columns' global numbers, in global order (`block_cols`, `verifier.py:998`). -/
 def blockColumns : List ℕ :=
   (List.range 163).filter fun c ↦ (keccakSlot c).isNone ∧ c ∉ keccakOutputColumns
 
