@@ -1,4 +1,5 @@
-import LeanerVM.Arithmetization.Completeness.Basics
+import LeanerVM.Arithmetization.Completeness.Rows
+import LeanerVM.Arithmetization.Rows
 
 /-!
 # Layer 8 tests: the constraint statement
@@ -38,9 +39,12 @@ untouched suffix, whose seed and finalize messages coincide because its finalize
 reaches them through `instantiate` and `toSubcircuit`, which the kernel does not unfold (status
 finding E8), and the active messages of a direction in their multiplicity-`1` form
 (`activeMessages_of_mults`), since Clean decides `mult ≠ 0` by the field's generic equality,
-which the kernel does not reduce. Balance is Clean's multiset check on the three channels
-(`balanced_of`): every multiplicity `1`, fewer than `2^64` interactions, and each channel's
-pushes a permutation of its pulls.
+which the kernel does not reduce. On the three channels the messages of the verifier, the six
+opcode tables and the bytecode block are first rewritten to their closed forms
+(`intsOver_messages`, `verifier_msgs`, from `Completeness.Messages`), so that the kernel decides
+each permutation without evaluating a circuit. Balance is Clean's multiset check on the three
+channels (`balanced_of`): every multiplicity `1` (`interactions_mult_eq_one`), fewer than `2^64`
+interactions, and each channel's pushes a permutation of its pulls.
 
 **Rejections**, each the honest witness with one thing changed, and each failing exactly the
 conjunct named. A wrong finalize count unbalances the memory channel (§6.2 "Nothing checks the
@@ -528,13 +532,59 @@ theorem activeMessages_of_mults {l : List (Interaction K)} (h : ∀ i ∈ l, i.m
   rw [decide_eq_decide]
   exact ⟨And.left, fun h' ↦ ⟨h', by rw [h i hi]; exact one_ne_zero_K⟩⟩
 
-/-- The messages of a witness whose interactions all have multiplicity `1`, in the form the
-kernel evaluates. -/
-theorem messagesOn_of_mults {w : EnsembleWitness (leanIsaEnsemble fillProg minLogMem)}
-    (hm : ∀ i ∈ w.interactions, i.mult = 1) (c : RawChannel K) (d : BusDir) :
-    messagesOn w c d =
-      ((w.interactions.filter (·.channel.name = c.name)).filter (·.direction = d)).map (·.msg) :=
-  activeMessages_of_mults (fun i hi ↦ hm i (List.mem_of_mem_filter hi)) d
+/-- A table's messages over `D` on a channel in a direction, read off the closed forms of its
+rows' sends (`Completeness.Messages`), so that the kernel evaluates no circuit. -/
+theorem intsOver_messages (D : ProverData K) (t : Air.Flat.Table K) {Row : TypeMap}
+    [ProvableType Row] {rows : List (Row K)} {raw : Row K → Array K}
+    (ht : t.table = rows.map raw)
+    (hm : ∀ i ∈ t.component.rowOperations.interactions, i.mult = 1)
+    {f : Row K → List (String × BusDir × Array K)}
+    (hf : ∀ r, rowSends t.component (.fromArray (raw r) D) = f r) (c : RawChannel K) (d : BusDir) :
+    activeMessages ((intsOver D t).filter (·.channel.name = c.name)) d =
+      rows.flatMap fun r ↦ chanOf c.name d (f r) := by
+  rw [activeMessages_filter_name _ (fun i hi ↦ ?_)]
+  · rw [intsOver, List.map_flatMap, ht, List.flatMap_map, chanOf_flatMap]
+    exact List.flatMap_congr fun r _ ↦ by rw [← hf r]; rfl
+  · obtain ⟨row, -, hi⟩ := List.mem_flatMap.mp hi
+    obtain ⟨j, hj, rfl⟩ := List.mem_map.mp hi
+    rw [eval_mult_eq_one (hm j hj)]
+    exact one_ne_zero_K
+
+/-- The verifier's messages on a channel in a direction, in closed form. -/
+theorem verifier_msgs (prog : Program) (env : Environment K) (c : RawChannel K) (d : BusDir) :
+    activeMessages (((leanIsaEnsemble prog minLogMem).verifierOperations.interactionValues
+      env).filter (·.channel.name = c.name)) d =
+      chanOf c.name d [(StateChannel.name, .push, #[1, 1]),
+        (StateChannel.name, .pull, #[prog.finalPc, 1])] := by
+  rw [activeMessages_filter_name _
+    (fun i hi ↦ by rw [verifier_mults _ _ _ i hi]; exact one_ne_zero_K), verifier_sends]
+
+/-- Rewrites the messages of the verifier and the six opcode tables over the data `D`, with the
+read counts `c` and `rA`, to their closed forms. -/
+local macro "rw_msgs" D:term:max c:term:max rA:term:max
+    loc:(ppSpace Lean.Parser.Tactic.location)? : tactic => `(tactic|
+  simp only [verifier_msgs,
+    intsOver_messages $D xorT (rows := [xorRow]) rfl (opComponent_mults .xor)
+      (fun r ↦ xor_sends_gen (varFromOffset XorRow 0) _ (size XorRow) _ (eval_rowVar r $D)),
+    intsOver_messages $D (mulT $rA) (rows := [mulRow $rA]) rfl (opComponent_mults .mulNative)
+      (fun r ↦ mul_sends_gen (varFromOffset MulRow 0) _ (size MulRow) _ (eval_rowVar r $D)),
+    intsOver_messages $D (setT $c) (rows := [setRow0 $c, setRow1]) rfl
+      (opComponent_mults .setConstant)
+      (fun r ↦ set_sends_gen (varFromOffset SetRow 0) _ (size SetRow) _ (eval_rowVar r $D)),
+    intsOver_messages $D derefT (rows := [derefRow]) rfl (opComponent_mults .deref)
+      (fun r ↦ deref_sends_gen (varFromOffset DerefRow 0) _ (size DerefRow) _
+        (eval_rowVar r $D)),
+    intsOver_messages $D jumpT (rows := [jumpRow3, jumpRow5, jumpRow7, jumpRow16])
+      (raw := fun r ↦ LeanerVM.Arithmetization.jumpRaw r 1 1) rfl (opComponent_mults .jump)
+      (fun r ↦ jumpRaw_sends r 1 1 $D),
+    intsOver_messages $D blakeT (rows := List.ofFn blakeRow) blakeT_table
+      (opComponent_mults .blake2s)
+      (fun r ↦ blake2s_sends_gen (varFromOffset Blake2sRow 0) _ (size Blake2sRow) _
+        (eval_rowVar r $D)),
+    intsOver_messages $D bcT (rows := List.ofFn fun i ↦ bytecodeRowOf fillProg i (bcCntFin i))
+      (by rw [bcT_table, bcRows, List.map_ofFn]; rfl) (bytecode_mults fillProg)
+      (fun r ↦ bytecode_sends_gen (varFromOffset BytecodeRow 0) _ (size BytecodeRow) _
+        (eval_rowVar r $D))] $(loc)?)
 
 /-- A table whose row circuit interacts on no channel named `c` sends nothing on `c`. -/
 theorem intsOver_filter_nil (D : ProverData K) (t : Air.Flat.Table K) (c : RawChannel K)
@@ -826,41 +876,42 @@ theorem fill_constraints (c rA : K) (cnt : ℕ → K) : (fillW c rA cnt).Constra
   · exact fun _ _ ↦ mem_constraints _ _
   · exact fun _ _ ↦ bytecode_constraints _ _
 
-/-- Every interaction has multiplicity `1`. -/
-theorem fill_mults : ∀ i ∈ (fillW 1 g memCnt).interactions, i.mult = 1 := by
-  rw [fillW_interactions]
-  simp only [List.flatMap_cons, List.flatMap_nil, List.append_nil, List.forall_mem_append]
-  refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, memT_mults _ _, ?_⟩ <;> decide +kernel
-
 /-- The state channel balances: the run's four steps against the boundary, and the three closed
 walks of the fill blocks. -/
 theorem fill_state_perm : (messagesOn (fillW 1 g memCnt) StateChannel.toRaw .push).Perm
     (messagesOn (fillW 1 g memCnt) StateChannel.toRaw .pull) := by
-  rw [messagesOn_of_mults fill_mults, messagesOn_of_mults fill_mults, fillW_interactions]
+  unfold messagesOn
+  rw [fillW_interactions]
   simp only [List.flatMap_cons, List.flatMap_nil, List.append_nil, List.filter_append,
-    memT_filter memCnt StateChannel.toRaw (by decide), bcT_filter StateChannel.toRaw (by decide)]
+    activeMessages_append, memT_filter memCnt StateChannel.toRaw (by decide),
+    bcT_filter StateChannel.toRaw (by decide)]
+  rw_msgs (fillW 1 g memCnt).data 1 g
   decide +kernel
 
 /-- The bytecode channel balances: every executed slot read once, the seeds and finalizes of all
 thirty-two. -/
 theorem fill_bytecode_perm : (messagesOn (fillW 1 g memCnt) BytecodeChannel.toRaw .push).Perm
     (messagesOn (fillW 1 g memCnt) BytecodeChannel.toRaw .pull) := by
-  rw [messagesOn_of_mults fill_mults, messagesOn_of_mults fill_mults, fillW_interactions]
+  unfold messagesOn
+  rw [fillW_interactions]
   simp only [List.flatMap_cons, List.flatMap_nil, List.append_nil, List.filter_append,
-    memT_filter memCnt BytecodeChannel.toRaw (by decide)]
+    activeMessages_append, memT_filter memCnt BytecodeChannel.toRaw (by decide)]
+  rw_msgs (fillW 1 g memCnt).data 1 g
   decide +kernel
 
 /-- The memory channel balances. -/
 theorem fill_mem_perm : (messagesOn (fillW 1 g memCnt) MemChannel.toRaw .push).Perm
     (messagesOn (fillW 1 g memCnt) MemChannel.toRaw .pull) := by
-  rw [mem_perm_iff 1 g memCnt fun _ ↦ memCnt_of_ge,
-    activeMessages_of_mults (l := memSmall 1 g memCnt) (by decide +kernel),
-    activeMessages_of_mults (l := memSmall 1 g memCnt) (by decide +kernel)]
+  rw [mem_perm_iff 1 g memCnt fun _ ↦ memCnt_of_ge]
+  simp only [memSmall, List.flatMap_cons, List.flatMap_nil, List.append_nil, List.filter_append,
+    activeMessages_append]
+  rw_msgs (fillW 1 g memCnt).data 1 g
   decide +kernel
 
 /-- The three channels balance as multisets. -/
 theorem fill_balanced : (fillW 1 g memCnt).Balanced .multiset :=
-  balanced_of fill_mults (fill_length 1 g memCnt) fill_state_perm fill_mem_perm fill_bytecode_perm
+  balanced_of (interactions_mult_eq_one _) (fill_length 1 g memCnt) fill_state_perm fill_mem_perm
+    fill_bytecode_perm
 
 /-- Every read count is nonzero. -/
 theorem fill_countsNonzero : CountsNonzero (fillW 1 g memCnt) := by
@@ -997,9 +1048,10 @@ theorem wrongCnt_of_ge {i : ℕ} (h : 29 ≤ i) : wrongCnt i = 1 := by
 balance. -/
 example : ¬ (fillW 1 g wrongCnt).Balanced .multiset := fun h ↦ by
   have hp := perm_of_balanced h mem_channel_mem
-  rw [mem_perm_iff 1 g wrongCnt fun _ ↦ wrongCnt_of_ge,
-    activeMessages_of_mults (l := memSmall 1 g wrongCnt) (by decide +kernel),
-    activeMessages_of_mults (l := memSmall 1 g wrongCnt) (by decide +kernel)] at hp
+  rw [mem_perm_iff 1 g wrongCnt fun _ ↦ wrongCnt_of_ge] at hp
+  simp only [memSmall, List.flatMap_cons, List.flatMap_nil, List.append_nil, List.filter_append,
+    activeMessages_append] at hp
+  rw_msgs (fillW 1 g wrongCnt).data 1 g at hp
   revert hp
   decide +kernel
 
@@ -1012,32 +1064,33 @@ theorem zeroCnt_of_ge {i : ℕ} (h : 29 ≤ i) : zeroCnt i = 1 := by
   unfold zeroCnt
   rw [ite_eq_right (by omega), memCnt_of_ge h]
 
-theorem zero_mults : ∀ i ∈ (fillW 0 1 zeroCnt).interactions, i.mult = 1 := by
-  rw [fillW_interactions]
-  simp only [List.flatMap_cons, List.flatMap_nil, List.append_nil, List.forall_mem_append]
-  refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, memT_mults _ _, ?_⟩ <;> decide +kernel
-
 theorem zero_state_perm : (messagesOn (fillW 0 1 zeroCnt) StateChannel.toRaw .push).Perm
     (messagesOn (fillW 0 1 zeroCnt) StateChannel.toRaw .pull) := by
-  rw [messagesOn_of_mults zero_mults, messagesOn_of_mults zero_mults, fillW_interactions]
+  unfold messagesOn
+  rw [fillW_interactions]
   simp only [List.flatMap_cons, List.flatMap_nil, List.append_nil, List.filter_append,
-    memT_filter zeroCnt StateChannel.toRaw (by decide), bcT_filter StateChannel.toRaw (by decide)]
+    activeMessages_append, memT_filter zeroCnt StateChannel.toRaw (by decide),
+    bcT_filter StateChannel.toRaw (by decide)]
+  rw_msgs (fillW 0 1 zeroCnt).data 0 1
   decide +kernel
 
 theorem zero_bytecode_perm : (messagesOn (fillW 0 1 zeroCnt) BytecodeChannel.toRaw .push).Perm
     (messagesOn (fillW 0 1 zeroCnt) BytecodeChannel.toRaw .pull) := by
-  rw [messagesOn_of_mults zero_mults, messagesOn_of_mults zero_mults, fillW_interactions]
+  unfold messagesOn
+  rw [fillW_interactions]
   simp only [List.flatMap_cons, List.flatMap_nil, List.append_nil, List.filter_append,
-    memT_filter zeroCnt BytecodeChannel.toRaw (by decide)]
+    activeMessages_append, memT_filter zeroCnt BytecodeChannel.toRaw (by decide)]
+  rw_msgs (fillW 0 1 zeroCnt).data 0 1
   decide +kernel
 
 /-- The zero-count witness balances the memory channel: a pull and a push of one tuple cancel,
 which is what the count product exists to reject (§6.2 "The count product", Theorem 6.4). -/
 theorem zero_mem_perm : (messagesOn (fillW 0 1 zeroCnt) MemChannel.toRaw .push).Perm
     (messagesOn (fillW 0 1 zeroCnt) MemChannel.toRaw .pull) := by
-  rw [mem_perm_iff 0 1 zeroCnt fun _ ↦ zeroCnt_of_ge,
-    activeMessages_of_mults (l := memSmall 0 1 zeroCnt) (by decide +kernel),
-    activeMessages_of_mults (l := memSmall 0 1 zeroCnt) (by decide +kernel)]
+  rw [mem_perm_iff 0 1 zeroCnt fun _ ↦ zeroCnt_of_ge]
+  simp only [memSmall, List.flatMap_cons, List.flatMap_nil, List.append_nil, List.filter_append,
+    activeMessages_append]
+  rw_msgs (fillW 0 1 zeroCnt).data 0 1
   decide +kernel
 
 /-- The count product is load-bearing: the zero-count witness satisfies every other conjunct
@@ -1050,7 +1103,7 @@ theorem zero_count_witness :
     (imageOf (fillW 0 1 zeroCnt).data).2.read (gpow 1) = some mulInput.word1 ∧
     ¬ CountsNonzero (fillW 0 1 zeroCnt) :=
   ⟨rfl, fill_constraints 0 1 zeroCnt,
-    balanced_of zero_mults (fill_length 0 1 zeroCnt) zero_state_perm zero_mem_perm
+    balanced_of (interactions_mult_eq_one _) (fill_length 0 1 zeroCnt) zero_state_perm zero_mem_perm
       zero_bytecode_perm,
     fill_caps 0 1 zeroCnt, fill_blake2sValid 0 1 zeroCnt, fill_word0 0 1 zeroCnt,
     fill_word1 0 1 zeroCnt, by

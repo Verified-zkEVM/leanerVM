@@ -225,13 +225,6 @@ theorem bcTS_filter (c : RawChannel K) (hc : c.name ≠ BytecodeChannel.name) (D
     simp only [List.mem_cons, List.not_mem_nil, or_false]
     rintro i (rfl | rfl) <;> exact fun h ↦ hc (h.symm.trans rfl))
 
-/-- Every interaction has multiplicity `1`. -/
-theorem sent_mults : ∀ i ∈ sentW.interactions, i.mult = 1 := by
-  rw [sentW_interactions]
-  simp only [sentTables, List.flatMap_cons, List.flatMap_nil, List.append_nil,
-    List.forall_mem_append]
-  refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, memT_mults _ _, ?_⟩ <;> decide +kernel
-
 /-- Fewer interactions than `2^64`. -/
 theorem sent_length : sentW.interactions.length < FiniteField.size K := by
   rw [sentW_interactions]
@@ -244,12 +237,36 @@ theorem sent_length : sentW.interactions.length < FiniteField.size K := by
     List.length_ofFn]
   decide +kernel
 
-/-- The messages on a channel in a direction, in the form the kernel evaluates. -/
-theorem sent_messagesOn (c : RawChannel K) (d : BusDir) :
-    messagesOn sentW c d =
-      ((sentW.interactions.filter (·.channel.name = c.name)).filter (·.direction = d)).map
-        (·.msg) :=
-  activeMessages_of_mults (fun i hi ↦ sent_mults i (List.mem_of_mem_filter hi)) d
+/-- Rewrites the messages of the verifier, the six opcode tables and the bytecode block over the
+witness's data to their closed forms (`intsOver_messages`). -/
+local macro "rw_sent_msgs" loc:(ppSpace Lean.Parser.Tactic.location)? : tactic => `(tactic|
+  simp only [verifier_msgs,
+    intsOver_messages sentW.data xorT (rows := [xorRow]) rfl (opComponent_mults .xor)
+      (fun r ↦ xor_sends_gen (varFromOffset XorRow 0) _ (size XorRow) _
+        (eval_rowVar r sentW.data)),
+    intsOver_messages sentW.data (mulT g) (rows := [mulRow g]) rfl (opComponent_mults .mulNative)
+      (fun r ↦ mul_sends_gen (varFromOffset MulRow 0) _ (size MulRow) _
+        (eval_rowVar r sentW.data)),
+    intsOver_messages sentW.data (setT 1) (rows := [setRow0 1, setRow1]) rfl
+      (opComponent_mults .setConstant)
+      (fun r ↦ set_sends_gen (varFromOffset SetRow 0) _ (size SetRow) _
+        (eval_rowVar r sentW.data)),
+    intsOver_messages sentW.data derefTS (rows := [derefRowS]) rfl (opComponent_mults .deref)
+      (fun r ↦ deref_sends_gen (varFromOffset DerefRow 0) _ (size DerefRow) _
+        (eval_rowVar r sentW.data)),
+    intsOver_messages sentW.data jumpTS (rows := [jumpRowA, jumpRowB, jumpRow16, jumpRowS])
+      (raw := fun r ↦ LeanerVM.Arithmetization.jumpRaw r 1 1) rfl (opComponent_mults .jump)
+      (fun r ↦ jumpRaw_sends r 1 1 sentW.data),
+    intsOver_messages sentW.data blakeT (rows := List.ofFn blakeRow) blakeT_table
+      (opComponent_mults .blake2s)
+      (fun r ↦ blake2s_sends_gen (varFromOffset Blake2sRow 0) _ (size Blake2sRow) _
+        (eval_rowVar r sentW.data)),
+    intsOver_messages sentW.data bcTS
+      (rows := List.ofFn fun i ↦ bytecodeRowOf sentProg i (sentBcCnt i))
+      (by dsimp only [bcTS, mkT, tableOf]; rw [bcRowsS, List.map_ofFn]; rfl)
+      (bytecode_mults sentProg)
+      (fun r ↦ bytecode_sends_gen (varFromOffset BytecodeRow 0) _ (size BytecodeRow) _
+        (eval_rowVar r sentW.data))] $(loc)?)
 
 /-- The memory messages of the verifier and the six opcode tables. -/
 def sentMemSmall : List (Interaction K) :=
@@ -313,22 +330,29 @@ theorem sent_constraints : sentW.Constraints := by
 
 theorem sent_state_perm : (messagesOn sentW StateChannel.toRaw .push).Perm
     (messagesOn sentW StateChannel.toRaw .pull) := by
-  rw [sent_messagesOn, sent_messagesOn, sentW_interactions]
+  unfold messagesOn
+  rw [sentW_interactions]
   simp only [sentTables, List.flatMap_cons, List.flatMap_nil, List.append_nil, List.filter_append,
-    memT_filter sentCnt StateChannel.toRaw (by decide), bcTS_filter StateChannel.toRaw (by decide)]
+    activeMessages_append, memT_filter sentCnt StateChannel.toRaw (by decide),
+    bcTS_filter StateChannel.toRaw (by decide)]
+  rw_sent_msgs
   decide +kernel
 
 theorem sent_bytecode_perm : (messagesOn sentW BytecodeChannel.toRaw .push).Perm
     (messagesOn sentW BytecodeChannel.toRaw .pull) := by
-  rw [sent_messagesOn, sent_messagesOn, sentW_interactions]
+  unfold messagesOn
+  rw [sentW_interactions]
   simp only [sentTables, List.flatMap_cons, List.flatMap_nil, List.append_nil, List.filter_append,
-    memT_filter sentCnt BytecodeChannel.toRaw (by decide)]
+    activeMessages_append, memT_filter sentCnt BytecodeChannel.toRaw (by decide)]
+  rw_sent_msgs
   decide +kernel
 
 theorem sent_mem_perm : (messagesOn sentW MemChannel.toRaw .push).Perm
     (messagesOn sentW MemChannel.toRaw .pull) := by
-  rw [sent_mem_perm_iff, activeMessages_of_mults (l := sentMemSmall) (by decide +kernel),
-    activeMessages_of_mults (l := sentMemSmall) (by decide +kernel)]
+  rw [sent_mem_perm_iff]
+  simp only [sentMemSmall, List.flatMap_cons, List.flatMap_nil, List.append_nil,
+    List.filter_append, activeMessages_append]
+  rw_sent_msgs
   decide +kernel
 
 /-- The three channels balance as multisets. -/
@@ -336,7 +360,7 @@ theorem sent_balanced : sentW.Balanced .multiset := by
   intro c hc
   rw [EnsembleWitness.interactionsWith_eq_filter_name hc]
   refine ⟨lt_of_le_of_lt (List.length_filter_le _ _) sent_length,
-    fun i hi ↦ Or.inr (sent_mults i (List.mem_of_mem_filter hi)), ?_⟩
+    fun i hi ↦ Or.inr (interactions_mult_eq_one _ i (List.mem_of_mem_filter hi)), ?_⟩
   have hp : (messagesOn sentW c .push).Perm (messagesOn sentW c .pull) := by
     simp only [leanIsaEnsemble, List.mem_cons, List.not_mem_nil, or_false] at hc
     rcases hc with rfl | rfl | rfl
