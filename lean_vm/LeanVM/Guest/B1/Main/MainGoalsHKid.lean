@@ -2,7 +2,7 @@
   LeanVM.Guest.B1.Main.MainGoalsHKid
 
   A child of `main`'s honest run as `__loop4` reads it (`hKid`): its counts, its base, its lists'
-  digests, its DA roots' slots and words, its deferred cells; and its statement's digest.
+  digests, its DA digest, its deferred cells; and its statement's digest.
 -/
 
 module
@@ -15,8 +15,8 @@ public import LeanVM.Protocol.Verifier.Load
 /-!
 # The honest children
 
-`cellsBytes_claimCells`: a claim's four cells are its 64 bytes; so the claim lists' and the DA
-list's digests are their cells' (`xmssList_cells`, `sphincsList_cells`, `daList_cells`).
+`cellsBytes_claimCells`: a claim's four cells are its 64 bytes; so the claim lists' digests are
+their cells' (`xmssList_cells`, `sphincsList_cells`).
 `kid_segOf_sum`: the children's claim `base + j` is child `c`'s claim `j`. `hKid c`: child `c`'s
 `KidH`, whose statement digest (`hKid_pi`) is the child's statement's.
 -/
@@ -77,18 +77,6 @@ theorem claimCells_canonical (r p : BitVec 128) (m : BitVec 256) :
   simp only [List.mem_cons, List.not_mem_nil, or_false] at hx
   rcases hx with rfl | rfl | rfl | rfl <;> rfl
 
-theorem kid_length_daCells (c : DaClaim) : (daCells c).length = 4 := rfl
-
-theorem daCells_canonical (c : DaClaim) : AllCanonical (daCells c) := by
-  intro x hx
-  simp only [daCells, B1.Digest.digestCells, List.cons_append, List.nil_append, List.mem_cons,
-    List.not_mem_nil, or_false] at hx
-  rcases hx with rfl | rfl | rfl | rfl
-  · exact (digestScalars_canonical _).1
-  · exact (digestScalars_canonical _).2
-  · exact (digestScalars_canonical _).1
-  · exact (digestScalars_canonical _).2
-
 /-! ## The lists' digests are their cells' -/
 
 theorem xmssList_cells (l : List XmssClaim) :
@@ -109,15 +97,6 @@ theorem sphincsList_cells (l : List SphincsClaim) :
   congr 1
   funext c
   exact (cellsBytes_claimCells _ _ _).symm
-
-theorem daList_cells (l : List DaClaim) : daListDigest l = keccak256 (cellsBytes (l.flatMap daCells)) := by
-  unfold daListDigest daPreimage
-  congr 1
-  simp only [cellsBytes, List.flatMap_assoc]
-  congr 1
-  funext c
-  rw [digestBytes_eq_cells, digestBytes_eq_cells]
-  simp [daCells, B1.Digest.digestCells, cellsBytes]
 
 /-! ## Lists -/
 
@@ -174,13 +153,11 @@ variable (seed : Digest) (s : NodeStatement) (w : NodeWitness)
 def hKid (c : ℕ) : KidH where
   ex := hEx w c
   es := hEs w c
-  ed := hEd w c
   base := gen ^ hW s w c
   cx := (w.children.map fun ch => digestScalars (claimListDigest ch.statement.claims.xmss)).getD c (0, 0)
   cs := (w.children.map fun ch => digestScalars (claimListDigest ch.statement.claims.sphincs)).getD c
     (0, 0)
-  slot d := ((dPlan s w).children.getD c []).getD d 0
-  root d := ((w.children.map fun ch => ch.statement.claims.da.map daCells).getD c []).getD d [0, 0, 0, 0]
+  da := (w.children.map fun ch => digestScalars ch.statement.claims.da).getD c (0, 0)
   defer := (w.children.map fun ch => ch.statement.defer.cells).getD c []
 
 variable {s w}
@@ -195,9 +172,6 @@ theorem hKid_ex {c : ℕ} (hc : c < w.children.length) :
 theorem hKid_es {c : ℕ} (hc : c < w.children.length) :
     (hKid s w c).es = w.children[c].statement.claims.sphincs.length := getD_map_lt _ _ _ hc
 
-theorem hKid_ed {c : ℕ} (hc : c < w.children.length) :
-    (hKid s w c).ed = w.children[c].statement.claims.da.length := getD_map_lt _ _ _ hc
-
 theorem hKid_cx {c : ℕ} (hc : c < w.children.length) :
     (hKid s w c).cx = digestScalars (claimListDigest w.children[c].statement.claims.xmss) :=
   getD_map_lt _ _ _ hc
@@ -206,57 +180,21 @@ theorem hKid_cs {c : ℕ} (hc : c < w.children.length) :
     (hKid s w c).cs = digestScalars (claimListDigest w.children[c].statement.claims.sphincs) :=
   getD_map_lt _ _ _ hc
 
+theorem hKid_da {c : ℕ} (hc : c < w.children.length) :
+    (hKid s w c).da = digestScalars w.children[c].statement.claims.da := getD_map_lt _ _ _ hc
+
 theorem hKid_defer {c : ℕ} (hc : c < w.children.length) :
     (hKid s w c).defer = w.children[c].statement.defer.cells := getD_map_lt _ _ _ hc
-
-theorem len_getD_getD (LL : List (List (List E))) (h : ∀ l ∈ LL, ∀ x ∈ l, x.length = 4)
-    (c d : ℕ) : ((LL.getD c []).getD d [0, 0, 0, 0]).length = 4 := by
-  have h1 : ∀ x ∈ LL.getD c [], x.length = 4 := by
-    intro x hx
-    rw [List.getD_eq_getElem?_getD] at hx
-    cases e : LL[c]? with
-    | none => simp only [e, Option.getD_none, List.not_mem_nil] at hx
-    | some l =>
-      simp only [e, Option.getD_some] at hx
-      exact h l (List.mem_of_getElem? e) x hx
-  rw [List.getD_eq_getElem?_getD]
-  cases e : (LL.getD c [])[d]? with
-  | none => rfl
-  | some x =>
-    simp only [Option.getD_some]
-    exact h1 x (List.mem_of_getElem? e)
-
-theorem hKid_root_len (c d : ℕ) : ((hKid s w c).root d).length = 4 :=
-  len_getD_getD _ (fun l hl x hx => by
-    obtain ⟨ch, -, rfl⟩ := List.mem_map.mp hl
-    obtain ⟨a, -, rfl⟩ := List.mem_map.mp hx
-    rfl) c d
-
-theorem hKid_root {c d : ℕ} (hc : c < w.children.length)
-    (hd : d < w.children[c].statement.claims.da.length) :
-    (hKid s w c).root d = daCells w.children[c].statement.claims.da[d] := by
-  show ((w.children.map fun ch => ch.statement.claims.da.map daCells).getD c []).getD d [0, 0, 0, 0] = _
-  rw [getD_map_lt _ _ _ hc, getD_map_lt _ _ _ hd]
-
-theorem hKid_cdaW {c : ℕ} (hc : c < w.children.length) :
-    (hKid s w c).cdaW = w.children[c].statement.claims.da.flatMap daCells := by
-  show (List.range (hKid s w c).ed).flatMap _ = _
-  rw [hKid_ed hc, ← flatMap_range_getD _ daCells [0, 0, 0, 0]]
-  show (List.range _).flatMap (fun d =>
-    ((w.children.map fun ch => ch.statement.claims.da.map daCells).getD c []).getD d [0, 0, 0, 0]) = _
-  rw [getD_map_lt _ _ _ hc]
 
 /-- **Child `c`'s statement digest**, as `__loop4` computes it, is the child's statement's. -/
 theorem hKid_pi {c : ℕ} (hc : c < w.children.length)
     (hlen : w.children[c].statement.defer.cells.length = 24) :
     (hKid s w c).pi (digestScalars seed).1 (digestScalars seed).2 =
       digestScalars (statementDigest seed w.children[c].statement) := by
-  unfold KidH.pi KidH.dl
-  rw [hKid_cx hc, hKid_cs hc, hKid_cdaW hc, hKid_defer hc,
+  unfold KidH.pi
+  rw [hKid_cx hc, hKid_cs hc, hKid_da hc, hKid_defer hc,
     statementDigest_parts (digestBytes_eq_cells seed) (digestBytes_eq_cells _)
-      (digestBytes_eq_cells _) ?_ rfl hlen]
-  rw [daList_cells]
-  exact digestBytes_eq_cells _
+      (digestBytes_eq_cells _) (digestBytes_eq_cells _) rfl hlen]
 
 end
 end LeanVM.Guest.B1.Main

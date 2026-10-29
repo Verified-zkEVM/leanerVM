@@ -11,16 +11,18 @@ public import LeanVM.Guest.B1.Main.MainLocChk
 public import LeanVM.Guest.B1.Digest.ChainFilter
 public import LeanVM.Guest.B1.Digest.PairComplete
 public import LeanVM.Guest.B1.Digest.Range
+public import LeanVM.Guest.B1.Digest.CoverComplete
 
 /-!
 # `main`'s honest valuation
 
-`MainIn`: what `main`'s oracle supplies (the counts of `meta` and `da_meta`, the seed, the
-exponent tables' pointers, its `HeapBuf`s, the digests its callees return, the leaf's deferred
+`MainIn`: what `main`'s oracle supplies (the counts of `meta`, the seed, the exponent tables'
+pointers, its `HeapBuf`s, the digests its callees return, the picked DA slot, the leaf's deferred
 value); `mσ rd m` is `mFlatE` evaluated on it (`Fwd.ev`). `main_core`: on a memory defined below
-`2^16` (the range checks) holding `main`'s stored words (`MainMem`: the byte table, the first and last running counts, the leaf's deferred claim, the header), for counts
-within their bounds (`MainBounds`), every atom of the executed blocks holds and the words `main`
-passes to its callees are the honest ones (`MVals`).
+`2^16` (the range checks) holding `main`'s stored and read words (`MainMem`: the byte table, the
+first and last running counts, the own and the published DA digests, the leaf's deferred claim,
+the header), for counts within their bounds (`MainBounds`), every atom of the executed blocks
+holds and the words `main` passes to its callees are the honest ones (`MVals`).
 -/
 
 namespace LeanVM.Guest.B1.Main
@@ -43,56 +45,57 @@ structure MainIn where
   nrs : ℕ
   nc : ℕ
   nd : ℕ
-  nda : ℕ
-  ndd : ℕ
+  pick : ℕ
   seed : Digest
   et1 : E
   et2 : E
-  a69 : E
   a77 : E
   a80 : E
   a117 : E
   a119 : E
+  aDa : E
   a394 : E
   a400 : E
   a406 : E
   a409 : E
   a417 : E
-  dad : Digest
   xd : Digest
   sd : Digest
   sdg : Digest
   daR : List E
+  dap : Digest
   leaf : E
 
 /-- The counts of `meta`. -/
 def MainIn.cnt (m : MainIn) : List ℕ := [m.nlx, m.nxd, m.nrx, m.nls, m.nsd, m.nrs, m.nc, m.nd]
 
 /-- The coverage table's slots. -/
-def MainIn.total (m : MainIn) : ℕ := m.nlx + m.nxd + (m.nls + m.nsd) + (m.nda + m.ndd)
+def MainIn.total (m : MainIn) : ℕ := m.nlx + m.nxd + (m.nls + m.nsd)
+
+/-- The own DA digest's cells: the checked claim's digest, or zeros. -/
+noncomputable def MainIn.ownDa (m : MainIn) : List E :=
+  if m.nd = 1 then digestCells (keccak256 (cellsBytes m.daR)) else [0, 0]
 
 /-- **`main`'s oracle**: hints, `HeapBuf`s, calls' returns. -/
 noncomputable def mOrc (m : MainIn) (j : ℕ) : E :=
   if j < 8 then gen ^ m.cnt.getD j 0
-  else if j = 40 then gen ^ m.nda else if j = 41 then gen ^ m.ndd
-  else if j = 63 then (digestScalars m.seed).1 else if j = 64 then (digestScalars m.seed).2
-  else if j = 65 then m.et1 else if j = 66 then m.et2 else if j = 69 then m.a69
-  else if j = 73 then (digestScalars m.dad).1 else if j = 74 then (digestScalars m.dad).2
-  else if j = 77 then m.a77 else if j = 80 then m.a80
-  else if j = 81 then (digestScalars m.xd).1 else if j = 82 then (digestScalars m.xd).2
-  else if j = 83 then (digestScalars m.sd).1 else if j = 84 then (digestScalars m.sd).2
-  else if j = 97 then m.a117 else if j = 99 then m.a119
-  else if 364 ≤ j ∧ j < 368 then m.daR.getD (j - 364) 0
-  else if 369 ≤ j ∧ j < 373 then m.daR.getD (j - 369) 0
-  else if j = 374 then m.a394 else if j = 380 then m.a400 else if j = 386 then m.a406
-  else if j = 389 then m.a409 else if j = 397 then m.a417 else if j = 400 then m.leaf
-  else if j = 424 then (digestScalars m.sdg).1 else if j = 425 then (digestScalars m.sdg).2
+  else if j = 47 then (digestScalars m.seed).1 else if j = 48 then (digestScalars m.seed).2
+  else if j = 49 then m.et1 else if j = 50 then m.et2
+  else if j = 53 then m.a77 else if j = 56 then m.a80
+  else if j = 57 then (digestScalars m.xd).1 else if j = 58 then (digestScalars m.xd).2
+  else if j = 59 then (digestScalars m.sd).1 else if j = 60 then (digestScalars m.sd).2
+  else if j = 67 then m.a117 else if j = 68 then m.a119 else if j = 334 then m.aDa
+  else if 339 ≤ j ∧ j < 343 then m.daR.getD (j - 339) 0
+  else if j = 365 then m.a394 else if j = 371 then m.a400 else if j = 377 then m.a406
+  else if j = 380 then m.a409 else if j = 387 then gen ^ m.pick else if j = 402 then m.a417
+  else if j = 405 then m.leaf
+  else if j = 431 then (digestScalars m.sdg).1 else if j = 432 then (digestScalars m.sdg).2
   else 0
 
 /-- **`main`'s honest valuation.** -/
 noncomputable def mσ (rd : Reader) (m : MainIn) : Val := B1.Val.ofArgs (ev rd (mOrc m) [] mFlatE)
 
-/-- The counts' bounds (the range checks'), and a declared claim. -/
+/-- The counts' bounds (the range checks'), the picked DA slot, the checked claim's cells. -/
 structure MainBounds (m : MainIn) : Prop where
   lx : m.nlx ≤ 65535
   xd : m.nxd ≤ 65535
@@ -102,17 +105,18 @@ structure MainBounds (m : MainIn) : Prop where
   rs : m.nrs ≤ 65535
   nc : m.nc ≤ 16
   nd : m.nd ≤ 1
-  nda : m.nda ≤ 16
-  ndd : m.ndd ≤ 257
-  slots : m.nda + m.ndd ≤ 257
   total : m.total ≤ 65535
-  nz : m.nlx + m.nls + m.nda ≠ 0
+  pick : m.pick ≤ m.nc
+  pickD : m.nd = 1 → m.pick = m.nc
+  daR : m.nd = 1 → m.daR.length = 4 ∧ AllCanonical m.daR
 
 /-- **The words `main` stores or reads in its buffers and its header.** -/
 structure MainMem (rd : Reader) (m : MainIn) : Prop where
   bytes : ReadsAt rd m.a119 ((List.range 256).map fun v => word v 0 0)
-  w0 : LoadHolds rd m.a409 0 (gen ^ (m.nrx + m.nrs + m.nd))
+  w0 : LoadHolds rd m.a409 0 (gen ^ (m.nrx + m.nrs))
   wN : LoadHolds rd (m.a409 * gen ^ m.nc) 0 (gen ^ m.total)
+  own : ReadsAt rd (m.aDa * gen ^ (2 * m.nc)) m.ownDa
+  dap : ReadsAt rd (m.aDa * gen ^ (2 * m.pick)) (digestCells m.dap)
   leaf : m.nc = 0 → ReadsAt rd m.a417 (List.replicate 23 0 ++ [m.leaf])
   h0 : LoadHolds rd 1 0 (digestScalars m.sdg).1
   h1 : LoadHolds rd gen 0 (digestScalars m.sdg).2
@@ -122,42 +126,41 @@ structure MVals (rd : Reader) (σ : Val) (m : MainIn) : Prop where
   pre : ∀ a ∈ atomsIn mPre, a.Holds rd σ
   mid : ∀ a ∈ atomsIn mMid, a.Holds rd σ
   post : ∀ a ∈ atomsIn mPost, a.Holds rd σ
-  da : ∀ a ∈ atomsIn mDa, a.Holds rd σ
+  da : m.nd = 1 → ∀ a ∈ atomsIn mDa, a.Holds rd σ
+  daZ : m.nd ≠ 1 → ∀ a ∈ atomsIn mDaZ, a.Holds rd σ
   leaf : m.nc = 0 → ∀ a ∈ atomsIn mLeaf, a.Holds rd σ
-  orc : ∀ j ∈ [0, 1, 2, 3, 4, 5, 6, 7, 40, 41, 63, 64, 65, 66, 69, 73, 74, 77, 80, 81, 82, 83, 84,
-    97, 99, 364, 365, 366, 367, 369, 370, 371, 372, 374, 380, 386, 389, 397, 400, 424, 425],
-    σ (.n j) = mOrc m j
-  v50 : σ (.n 50) = gen ^ (m.nda + m.ndd)
-  v55 : σ (.n 55) = gen ^ (m.nlx + m.nxd)
-  v56 : σ (.n 56) = gen ^ (m.nls + m.nsd)
-  v57 : σ (.n 57) = gen ^ (m.nlx + m.nxd + (m.nls + m.nsd))
-  v58 : σ (.n 58) = gen ^ m.total
-  v68 : σ (.n 68) = gen ^ (4 * (m.nda + m.ndd))
-  v76 : σ (.n 76) = gen ^ (4 * (m.nlx + m.nxd))
-  v79 : σ (.n 79) = gen ^ (4 * (m.nls + m.nsd))
-  v118 : σ (.n 98) = m.a117 * gen ^ (m.nlx + m.nxd + (m.nls + m.nsd))
-  v388 : σ (.n 368) = gen ^ (m.nrx + m.nrs)
-  v393 : σ (.n 373) = gen ^ (2 * m.nc)
-  v399 : σ (.n 379) = gen ^ (24 * m.nc)
-  v405 : σ (.n 385) = gen ^ (24 * m.nc)
-  v408 : σ (.n 388) = gen ^ (m.nc + 1)
-  g71 : σ (.n 71) = 1 + gen ^ (m.nda + m.ndd)
-  g72 : σ (.n 72) = 1
-  g86 : σ (.n 86) = 1 + gen ^ m.nxd
-  g87 : σ (.n 87) = 1
-  g89 : σ (.n 89) = 1 + gen ^ m.nsd
-  g90 : σ (.n 90) = 1
-  g377 : σ (.n 357) = 1 + gen ^ m.nrx
-  g378 : σ (.n 358) = 1
-  g380 : σ (.n 360) = 1 + gen ^ m.nrs
-  g381 : σ (.n 361) = 1
-  v383 : σ (.n 363) = gen ^ m.nd + gen
-  g413 : σ (.n 393) = 1 + gen ^ m.nc
-  g414 : σ (.n 394) = 1
-  v419 : σ (.n 399) = gen ^ m.nc + 1
-  v415 : σ (.n 395) = m.a409 * gen ^ m.nc
-  v446 : σ (.n 426) = 1
-  v450 : σ (.n 430) = gen
+  orc : ∀ j ∈ [0, 1, 2, 3, 4, 5, 6, 7, 47, 48, 49, 50, 53, 56, 57, 58, 59, 60, 67, 68, 334, 339,
+    340, 341, 342, 365, 371, 377, 380, 387, 402, 405, 431, 432], σ (.n j) = mOrc m j
+  v40 : σ (.n 40) = gen ^ (m.nlx + m.nxd)
+  v41 : σ (.n 41) = gen ^ (m.nls + m.nsd)
+  v42 : σ (.n 42) = gen ^ m.total
+  v52 : σ (.n 52) = gen ^ (4 * (m.nlx + m.nxd))
+  v55 : σ (.n 55) = gen ^ (4 * (m.nls + m.nsd))
+  g62 : σ (.n 62) = 1 + gen ^ m.nxd
+  g63 : σ (.n 63) = 1
+  g65 : σ (.n 65) = 1 + gen ^ m.nsd
+  g66 : σ (.n 66) = 1
+  g326 : σ (.n 326) = 1 + gen ^ m.nrx
+  g327 : σ (.n 327) = 1
+  g329 : σ (.n 329) = 1 + gen ^ m.nrs
+  g330 : σ (.n 330) = 1
+  v333 : σ (.n 333) = gen ^ (2 * (m.nc + 1))
+  v336 : σ (.n 336) = m.aDa * gen ^ (2 * m.nc)
+  v338 : σ (.n 338) = gen ^ m.nd + gen
+  v364 : σ (.n 364) = gen ^ (2 * m.nc)
+  v370 : σ (.n 370) = gen ^ (24 * m.nc)
+  v376 : σ (.n 376) = gen ^ (24 * m.nc)
+  v379 : σ (.n 379) = gen ^ (m.nc + 1)
+  v381 : σ (.n 381) = gen ^ (m.nrx + m.nrs)
+  g383 : σ (.n 383) = 1 + gen ^ m.nc
+  g384 : σ (.n 384) = 1
+  v385 : σ (.n 385) = m.a409 * gen ^ m.nc
+  v401 : σ (.n 401) = m.aDa * gen ^ (2 * m.pick)
+  v404 : σ (.n 404) = gen ^ m.nc + 1
+  r429 : σ (.n 429) = (digestScalars m.dap).1
+  r430 : σ (.n 430) = (digestScalars m.dap).2
+  v433 : σ (.n 433) = 1
+  v437 : σ (.n 437) = gen
 
 /-! ## Helpers -/
 
@@ -230,8 +233,8 @@ theorem goodS_defs {rd : Reader} {S : List Atom} {w : ℕ → E} {σ : Val} {s :
   | _ => simp [defsOf] at hv
 
 /-- The oracle's values, as `MVals.orc` lists them. -/
-def mOrcIdx : List ℕ := [0, 1, 2, 3, 4, 5, 6, 7, 40, 41, 63, 64, 65, 66, 69, 73, 74, 77, 80, 81, 82,
-  83, 84, 97, 99, 364, 365, 366, 367, 369, 370, 371, 372, 374, 380, 386, 389, 397, 400, 424, 425]
+def mOrcIdx : List ℕ := [0, 1, 2, 3, 4, 5, 6, 7, 47, 48, 49, 50, 53, 56, 57, 58, 59, 60, 67, 68, 334,
+  339, 340, 341, 342, 365, 371, 377, 380, 387, 402, 405, 431, 432]
 
 set_option maxRecDepth 100000 in
 theorem mOrcIdx_defs : ∀ j ∈ mOrcIdx, ∃ s ∈ mOrcStmts, V.n j ∈ defsOf s := by decide +kernel

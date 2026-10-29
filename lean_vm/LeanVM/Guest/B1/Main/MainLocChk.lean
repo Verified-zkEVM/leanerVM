@@ -46,6 +46,13 @@ theorem mStoresIn :
         [.load (.n 405) (.n 402) 23] := by
   decide +kernel
 
+theorem mem_storesIn {P : List Stmt} {L : List Atom}
+    (h : (atomsIn P).filter (fun a => decide (a ∈ mStoresL)) = L) {a : Atom} (ha : a ∈ atomsIn P)
+    (hs : a ∈ mStores) : a ∈ L := by
+  rw [mStores_eq] at hs
+  rw [← h]
+  exact List.mem_filter.mpr ⟨ha, by simpa using hs⟩
+
 set_option maxRecDepth 100000 in
 theorem mDaZC_ok : (atomsIn mDaZ).any (atomEqb (.const (.n 362) (word 0 0 0))) = true ∧
     (atomsIn mDaZ).any (atomEqb (.const (.n 363) (word 0 0 0))) = true := by decide +kernel

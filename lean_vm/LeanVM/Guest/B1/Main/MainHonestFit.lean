@@ -9,6 +9,7 @@
 module
 
 public import LeanVM.Guest.B1.Main.MainGoals
+public import LeanVM.Guest.B1.Main.Basic
 
 /-!
 # `main`'s honest run fits
@@ -23,7 +24,7 @@ namespace LeanVM.Guest.B1.Main
 
 open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Value LeanVM.Guest.Memory
 open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Verifier LeanVM.Node
-open LeanVM.Guest.Hints (direct claimCells cellsOfBytes plan)
+open LeanVM.Guest.Hints (direct claimCells cellsOfBytes plan daPick)
 open LeanVM.Guest.Value.Keccak (cellsBytes)
 
 @[expose] public section
@@ -59,7 +60,7 @@ theorem length_flatMap_const {α : Type} (l : List α) (f : α → List E) (k : 
 variable {bytecode : List K} {seed : Digest} {s : NodeStatement} {w : NodeWitness}
 
 theorem length_hCover : (hCover s w).length = (hData seed s w).T := by
-  simp only [hCover, hData, MainData.T, MainData.X, MainData.Y, MainData.S, List.length_append,
+  simp only [hCover, hData, MainData.T, MainData.X, MainData.Y, List.length_append,
     List.length_map, List.length_range]
 
 /-- **The honest buffers have their sizes.** -/
@@ -68,8 +69,6 @@ theorem hOwn_lengths (hlog : Nat.log2 bytecode.length = 23) (hr : NodeRel byteco
   obtain ⟨hsd, hch, -, -, -, -⟩ := hr
   simp only [hOwn, mSizes, List.map_cons, List.map_nil, List.cons.injEq]
   refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, trivial⟩
-  · rw [length_flatMap_const _ _ 4 fun c _ => length_daCells c]
-    simp [hData, MainData.S]
   · rw [length_flatMap_const _ (fun c : XmssClaim => claimCells c.1.root c.1.parameter c.2) 4
       fun c _ => length_claimCells _ _ _]
     simp [hData, MainData.X]
@@ -78,6 +77,8 @@ theorem hOwn_lengths (hlog : Nat.log2 bytecode.length = 23) (hr : NodeRel byteco
     simp [hData, MainData.Y]
   · exact length_hCover
   · simp
+  · rw [length_flatMap_const _ _ 2 fun c _ => by simp [B1.Digest.digestCells]]
+    simp [hData]; ring
   · rw [length_flatMap_const _ _ 2 fun c _ => by simp [B1.Digest.digestCells]]
     simp [hData]
   · rw [length_flatMap_const _ _ 24 fun c hc => by simp [DeferredClaim.cells, hf c hc]]
@@ -100,15 +101,14 @@ theorem length_made {α : Type} (R : List α) (Cs : List (List α)) :
   simp [made, List.length_flatten]
 
 /-- The running count before child `c`: the raw claims, then the first `c` children's. -/
-theorem hW_eq (c : ℕ) : hW s w c = (hRawX s w).length + (hRawS s w).length + (hRawD s w).length +
+theorem hW_eq (c : ℕ) : hW s w c = (hRawX s w).length + (hRawS s w).length +
     (((w.children.take c).map (·.statement.claims.xmss.length)).sum +
-      ((w.children.take c).map (·.statement.claims.sphincs.length)).sum +
-      ((w.children.take c).map (·.statement.claims.da.length)).sum) := by
+      ((w.children.take c).map (·.statement.claims.sphincs.length)).sum) := by
   induction c with
   | zero => simp [hW]
   | succ c ih =>
     rw [hW, ih, List.take_add_one]
-    simp only [hEx, hEs, hEd, List.map_append, List.sum_append, List.getD_eq_getElem?_getD,
+    simp only [hEx, hEs, List.map_append, List.sum_append, List.getD_eq_getElem?_getD,
       List.getElem?_map]
     rcases w.children[c]? with _ | ch
     · simp
@@ -118,34 +118,92 @@ theorem length_raw {α W : Type} (l : List (α × W)) : (l.map (·.1)).length = 
 
 /-- **After the last child, the running count is the coverage table's size.** -/
 theorem hW_total (hl : Limits s w) : hW s w w.children.length = coverage s w := by
-  rw [hW_eq, List.take_length, coverage_made hl, length_made, length_made, length_made]
-  simp only [hRawX, hRawS, hRawD, length_raw, List.map_map]
+  rw [hW_eq, List.take_length, coverage_made hl, length_made, length_made]
+  simp only [hRawX, hRawS, length_raw, List.map_map]
   simp only [Function.comp_def]
-  omega
-
-theorem sum_le_16 {α : Type} (l : List α) (f : α → ℕ) (h : ∀ a ∈ l, f a ≤ 16) :
-    (l.map f).sum ≤ l.length * 16 := by
-  induction l with
-  | nil => simp
-  | cons a l ih =>
-    simp only [List.map_cons, List.sum_cons, List.length_cons]
-    have := h a (by simp)
-    have := ih fun b hb => h b (List.mem_cons_of_mem _ hb)
-    nlinarith
-
-/-- **The DA region has at most `257` slots**: one direct claim and `16` per child. -/
-theorem da_slots (hl : Limits s w) : (s.claims.da ++ (dPlan s w).dups).length ≤ 257 := by
-  rw [dPlan, plan_table_length _ _ _ (dPlan_held hl), length_made, length_raw, List.map_map]
-  have h1 := hl.directDa
-  have h2 := sum_le_16 w.children (List.length ∘ (·.statement.claims.da)) fun c hc => hl.daRoots.2 c hc
-  have h3 := hl.children
-  have : w.children.length * 16 ≤ 256 := by omega
   omega
 
 theorem raw_le_table {α W : Type} [BEq α] [LawfulBEq α] (D : List α) (R : List (α × W))
     (Cs : List (List α)) (hc : ∀ x, D.count x ≤ (made (R.map (·.1)) Cs).count x) :
     R.length ≤ (D ++ (plan D (R.map (·.1)) Cs).dups).length := by
   rw [plan_table_length _ _ _ hc, length_made, length_raw]; omega
+
+/-! ## The published DA digest -/
+
+theorem digestCells_zero : B1.Digest.digestCells zeroDigest = [0, 0] := by
+  simp [B1.Digest.digestCells, digestScalars, zeroDigest]
+
+theorem daPick_le : daPick s w ≤ w.children.length := by
+  unfold daPick
+  split
+  · exact le_rfl
+  · cases h : w.children.findIdx? (fun c ↦ c.statement.claims.da == s.claims.da) with
+    | none => exact le_rfl
+    | some i => exact (List.findIdx?_eq_some_iff_getElem.mp h).1.le
+
+theorem daPick_da (h : w.da.isSome = true) : daPick s w = w.children.length := by
+  simp [daPick, h]
+
+/-- **The picked slot holds the published digest**: the children's DA digests, then the own. -/
+theorem daPick_digest (hr : NodeRel bytecode seed s w) :
+    (w.children.map (·.statement.claims.da) ++ [hOwnDa w]).getD (daPick s w) 0 = s.claims.da := by
+  obtain ⟨-, -, -, -, hda, -⟩ := hr
+  have hown : daPick s w = w.children.length →
+      (w.children.map (·.statement.claims.da) ++ [hOwnDa w]).getD (daPick s w) 0 = hOwnDa w := by
+    intro e
+    rw [e, List.getD_eq_getElem _ _ (by simp), List.getElem_append_right (by simp)]
+    simp
+  unfold daPick at hown ⊢
+  cases hw : w.da with
+  | some p =>
+    rw [hw] at hda
+    simp only [hw, Option.isSome_some, Bool.true_or, ↓reduceIte] at hown ⊢
+    rw [hown rfl, hOwnDa, hw, hda.1]
+  | none =>
+    rw [hw] at hda
+    simp only [hw, Option.isSome_none, Bool.false_or] at hown ⊢
+    by_cases hz : (s.claims.da == zeroDigest) = true
+    · simp only [hz, ↓reduceIte] at hown ⊢
+      rw [hown rfl, hOwnDa, hw, (beq_iff_eq.mp hz)]
+    · simp only [hz, Bool.false_eq_true, ↓reduceIte] at hown ⊢
+      cases hf : w.children.findIdx? (fun c ↦ c.statement.claims.da == s.claims.da) with
+      | none =>
+        exfalso
+        rcases hda with h | ⟨c, hc, hcd⟩
+        · exact hz (beq_iff_eq.mpr h)
+        · have := List.findIdx?_eq_none_iff.mp hf c hc
+          simp [hcd] at this
+      | some i =>
+        obtain ⟨hi, hp, -⟩ := List.findIdx?_eq_some_iff_getElem.mp hf
+        rw [Option.getD_some, List.getD_eq_getElem _ _ (by simp; omega),
+          List.getElem_append_left (by simp; omega), List.getElem_map]
+        exact beq_iff_eq.mp hp
+
+theorem daCells_canon (c : DaClaim) : AllCanonical (daCells c) := by
+  intro x hx
+  simp only [daCells, B1.Digest.digestCells, List.mem_append, List.mem_cons, List.not_mem_nil,
+    or_false] at hx
+  rcases hx with (rfl | rfl) | (rfl | rfl)
+  exacts [(digestScalars_canonical _).1, (digestScalars_canonical _).2,
+    (digestScalars_canonical _).1, (digestScalars_canonical _).2]
+
+theorem daCells_bytes (c : DaClaim) :
+    cellsBytes (daCells c) = digestBytes c.daRoot ++ digestBytes c.membershipVectorDigest := by
+  rw [digestBytes_eq_cells, digestBytes_eq_cells]
+  simp [daCells, B1.Digest.digestCells, cellsBytes]
+
+/-- A run of digests' cells: digest `k`'s at `2k`. -/
+theorem readsAt_digests {rd : Reader} {p : E} {L : List Digest}
+    (h : ReadsAt rd p (L.flatMap B1.Digest.digestCells)) {k : ℕ} (hk : k < L.length) :
+    ReadsAt rd (p * gen ^ (2 * k)) (B1.Digest.digestCells (L.getD k 0)) := by
+  have hL : L = L.take k ++ L[k] :: L.drop (k + 1) := by simp
+  rw [hL, List.flatMap_append, List.flatMap_cons, B1.Digest.readsAt_append,
+    B1.Digest.readsAt_append] at h
+  have hlen : ((L.take k).flatMap B1.Digest.digestCells).length = 2 * k := by
+    rw [length_flatMap_const _ _ 2 fun c _ => by simp [B1.Digest.digestCells]]
+    simp; omega
+  rw [List.getD_eq_getElem _ _ hk, ← hlen]
+  exact h.2.1
 
 /-- **`main`'s honest counts are within its bounds**, under the deployed limits. -/
 theorem hData_bounds (hl : Limits s w) (fs : String → ℕ) (fp : ℕ) :
@@ -157,11 +215,19 @@ theorem hData_bounds (hl : Limits s w) (fs : String → ℕ) (fp : ℕ) :
   have hs : (direct s.claims.sphincs w.sphincs).length ≤
       (s.claims.sphincs ++ (sPlan s w).dups).length :=
     raw_le_table s.claims.sphincs (direct s.claims.sphincs w.sphincs) _ (sPlan_held hl)
-  have hd := da_slots hl
-  simp only [List.length_append] at hc hx hs hd
-  refine ⟨?_, ?_, ?_, ?_, ?_, ?_, hl.children, hl.directDa, hl.daRoots.1, ?_, ?_, ?_, ?_⟩
-  all_goals simp only [MainData.toIn, hData, MainIn.total, hRawX, hRawS]
-  all_goals first | exact Nat.pos_iff_ne_zero.mp hl.nonempty | omega
+  simp only [List.length_append] at hc hx hs
+  refine ⟨?_, ?_, ?_, ?_, ?_, ?_, hl.children, ?_, ?_, daPick_le, fun h => ?_, fun h => ?_⟩
+  all_goals simp only [MainData.toIn, hData, MainIn.total, hRawX, hRawS] at h ⊢
+  all_goals try omega
+  · cases w.da <;> simp
+  · cases hw : w.da <;> simp only [hw, Option.map_some, Option.map_none, Option.getD_some,
+      Option.getD_none, zero_ne_one] at h
+    exact daPick_da (by simp [hw])
+  · cases hw : w.da with
+    | none => simp [hw] at h
+    | some p =>
+      simp only [Option.map_some, Option.getD_some]
+      exact ⟨length_daCells _, daCells_canon _⟩
 
 /-! ## `main`'s words on an honest memory -/
 
@@ -187,8 +253,12 @@ theorem hMainMem (hlog : Nat.log2 bytecode.length = 23) (hr : NodeRel bytecode s
   have hR : ∀ i < 10, ReadsAt rd (gen ^ ((mPos (hData seed s w) (fp + fs "main")).getD i 0))
       ((hOwn seed s w).getD i []) := fun i hi =>
     by rw [gen_pow_eq_ofK]; exact hM _ (mem_bufL_getD hlen (by simp [mSizes]; omega))
-  obtain ⟨-, -, -, -, -, hz⟩ := hr
-  refine ⟨hR 4 (by omega), ?_, ?_, ?_, h0, h1⟩
+  have hD : ReadsAt rd (gen ^ ((mPos (hData seed s w) (fp + fs "main")).getD 4 0))
+      ((w.children.map (·.statement.claims.da) ++ [hOwnDa w]).flatMap B1.Digest.digestCells) :=
+    hR 4 (by omega)
+  have hdig := daPick_digest hr
+  obtain ⟨-, -, -, -, hda, hz⟩ := hr
+  refine ⟨hR 3 (by omega), ?_, ?_, ?_, ?_, ?_, h0, h1⟩
   · have := hR 8 (by omega) 0 (by simp [hOwn])
     simpa [hOwn, MainData.toIn, hData, hW] using this
   · have := hR 8 (by omega) w.children.length (by simp [hOwn])
@@ -197,9 +267,28 @@ theorem hMainMem (hlog : Nat.log2 bytecode.length = 23) (hr : NodeRel bytecode s
     rw [hW_total hl, coverage_eq] at this
     show LoadHolds rd (gen ^ ((mPos (hData seed s w) (fp + fs "main")).getD 8 0) * gen ^ w.children.length) 0
       (gen ^ (s.claims.xmss.length + (xPlan s w).dups.length + (s.claims.sphincs.length +
-        (sPlan s w).dups.length) + (s.claims.da.length + (dPlan s w).dups.length)))
+        (sPlan s w).dups.length)))
     rw [loadHolds_mul_gen_pow, Nat.add_zero]
     simp only [List.length_append] at this
+    exact this
+  · have := readsAt_digests hD (k := w.children.length) (by simp)
+    rw [List.getD_eq_getElem _ _ (by simp), List.getElem_append_right (by simp)] at this
+    simp only [List.length_map, Nat.sub_self, List.getElem_cons_zero] at this
+    show ReadsAt rd (gen ^ _ * gen ^ (2 * w.children.length)) (MainIn.ownDa _)
+    unfold MainIn.ownDa hOwnDa at *
+    cases hw : w.da with
+    | some p =>
+      rw [hw] at this
+      simp only [hData, MainData.toIn, hw, Option.map_some, Option.getD_some, ↓reduceIte]
+      rw [daClaimDigest, daPreimage, ← daCells_bytes] at this
+      exact this
+    | none =>
+      rw [hw, digestCells_zero] at this
+      simp only [hData, MainData.toIn, hw, Option.map_none, Option.getD_none, zero_ne_one,
+        ↓reduceIte]
+      exact this
+  · have := readsAt_digests hD (k := daPick s w) (by simp; have := daPick_le (s := s) (w := w); omega)
+    rw [hdig] at this
     exact this
   · intro hnc
     have hc : w.children = [] := List.eq_nil_of_length_eq_zero hnc
