@@ -19,16 +19,16 @@ open LeanVM.Guest.B1.Main (nameSum dlK colC colS colP clC clS ccC ccS dvC dvS dv
 
 theorem colC1_eq : colC B2C.fs "da_verify_column__L1" "__loop416" = 3627 := by
   unfold colC
-  rw [fs_idx (j := 769) (f := "da_verify_column__L1") (by decide +kernel),
+  rw [fs_idx (j := 748) (f := "da_verify_column__L1") (by decide +kernel),
     fs_idx (j := 28) (f := "da_vector_cell") (by decide +kernel),
-    fs_idx (j := 896) (f := "__loop416") (by decide +kernel)]
+    fs_idx (j := 875) (f := "__loop416") (by decide +kernel)]
   decide +kernel
 
 theorem colC0_eq : colC B2C.fs "da_verify_column__L0" "__loop418" = 3627 := by
   unfold colC
-  rw [fs_idx (j := 770) (f := "da_verify_column__L0") (by decide +kernel),
+  rw [fs_idx (j := 749) (f := "da_verify_column__L0") (by decide +kernel),
     fs_idx (j := 28) (f := "da_vector_cell") (by decide +kernel),
-    fs_idx (j := 898) (f := "__loop418") (by decide +kernel)]
+    fs_idx (j := 877) (f := "__loop418") (by decide +kernel)]
   decide +kernel
 
 /-- **`da_verify`'s constant words.** -/
@@ -37,33 +37,33 @@ theorem dvC_eq : dvC B2C.fs wSB = 479940 := by
   rw [colC1_eq, colC0_eq,
     fs_idx (j := 25) (f := "da_verify") (by decide +kernel),
     fs_idx (j := 26) (f := "da_row_shape") (by decide +kernel),
-    fs_idx (j := 366) (f := "__loop23") (by decide +kernel),
-    fs_idx (j := 361) (f := "__loop19") (by decide +kernel),
-    fs_idx (j := 362) (f := "__loop20") (by decide +kernel),
-    wSB_idx (j := 364) (f := "da_levels__L128_L7") (by decide +kernel)]
+    fs_idx (j := 363) (f := "__loop23") (by decide +kernel),
+    fs_idx (j := 358) (f := "__loop19") (by decide +kernel),
+    fs_idx (j := 359) (f := "__loop20") (by decide +kernel),
+    wSB_idx (j := 361) (f := "da_levels__L128_L7") (by decide +kernel)]
   decide +kernel
 
 /-- **`da_verify`'s words per row.** -/
 theorem dvS_eq : dvS wSK = 212653 := by
   unfold dvS colS
-  rw [wSK_idx (j := 359) (f := "__loop17") (by decide +kernel),
-    wSK_idx (j := 360) (f := "__loop18") (by decide +kernel),
-    wSK_idx (j := 363) (f := "__loop21") (by decide +kernel),
-    wSK_idx (j := 365) (f := "__loop22") (by decide +kernel),
-    wSK_idx (j := 366) (f := "__loop23") (by decide +kernel),
-    wSK_idx (j := 895) (f := "__loop415") (by decide +kernel),
-    wSK_idx (j := 896) (f := "__loop416") (by decide +kernel),
-    wSK_idx (j := 897) (f := "__loop417") (by decide +kernel),
-    wSK_idx (j := 898) (f := "__loop418") (by decide +kernel)]
+  rw [wSK_idx (j := 356) (f := "__loop17") (by decide +kernel),
+    wSK_idx (j := 357) (f := "__loop18") (by decide +kernel),
+    wSK_idx (j := 360) (f := "__loop21") (by decide +kernel),
+    wSK_idx (j := 362) (f := "__loop22") (by decide +kernel),
+    wSK_idx (j := 363) (f := "__loop23") (by decide +kernel),
+    wSK_idx (j := 874) (f := "__loop415") (by decide +kernel),
+    wSK_idx (j := 875) (f := "__loop416") (by decide +kernel),
+    wSK_idx (j := 876) (f := "__loop417") (by decide +kernel),
+    wSK_idx (j := 877) (f := "__loop418") (by decide +kernel)]
   decide +kernel
 
 /-- **`da_verify`'s words per padded row.** -/
 theorem dvP_eq : dvP wSB wSK = 17672 := by
   unfold dvP colP
   rw [dlK_eq,
-    wSK_idx (j := 366) (f := "__loop23") (by decide +kernel),
-    wSK_idx (j := 896) (f := "__loop416") (by decide +kernel),
-    wSK_idx (j := 898) (f := "__loop418") (by decide +kernel)]
+    wSK_idx (j := 363) (f := "__loop23") (by decide +kernel),
+    wSK_idx (j := 875) (f := "__loop416") (by decide +kernel),
+    wSK_idx (j := 877) (f := "__loop418") (by decide +kernel)]
   decide +kernel
 
 end
