@@ -7,10 +7,10 @@ import LeanerVMTests.Arithmetization.Statement
 A classic test for kernel evaluation. The closed forms of `LeanerVM.Arithmetization.Rows` are
 evaluated on the rows of the hand-built witness of the constraint-statement tests
 (`LeanerVMTests.Arithmetization.Statement`) and compared, channel by channel and in the
-kernel, with Clean's own evaluation of each row circuit (`rowMessagesOn_eq`, through
-`Component.rowOperations`), which is independent of the theorems; the theorems are then
-applied to the same rows. The memory block is tested on a one-row table, never on the
-witness's `2^16` rows.
+kernel, with Clean's own evaluation of each row circuit (through `Component.rowOperations`,
+each channel and direction filtered by name and tag), which is independent of the theorems; the
+theorems are then applied to the same rows. Every interaction of a row has multiplicity `1`. The
+memory block's closed form is tested on one row, never on the witness's `2^16` rows.
 
 Concrete readings: the `XOR` fill row reads the zero cell `g^5` three times with counts
 `1, g, g²` and pushes `g, g², g³`; the product row's third read carries the executor's product
@@ -25,14 +25,19 @@ open LeanerVM.Parameters LeanerVM.Semantics LeanerVM.Arithmetization
 open LeanerVMTests.Arithmetization.Statement
 open Air.Flat (Component EnsembleWitness)
 
-/-! ## The six channels of a row, by Clean's evaluation -/
+/-! ## The three channels of a row in both directions, by Clean's evaluation -/
 
-/-- A row's messages on the six channels, through Clean's row circuit. -/
+/-- A row's interactions, through Clean's row circuit. -/
+def rowInts (t : Air.Flat.Table K) (row : Array K) : List (Interaction K) :=
+  t.component.rowOperations.interactions.map (·.eval (t.environment row))
+
+/-- A row's messages on the three channels in both directions, through Clean's row circuit: the
+state pull and push, the bytecode pull and push, the memory pulls and pushes. -/
 def viaClean (t : Air.Flat.Table K) (row : Array K) : List (List (Array K)) :=
-  [StatePull.toRaw, StatePush.toRaw, BytecodePull.toRaw, BytecodePush.toRaw, MemPull.toRaw,
-    MemPush.toRaw].map fun c ↦
-      ((t.component.rowOperations.interactions.map (·.eval (t.environment row))).filter
-        (·.channel.name = c.name)).map (·.msg)
+  [(StateChannel.toRaw, (.pull : BusDir)), (StateChannel.toRaw, .push),
+    (BytecodeChannel.toRaw, .pull), (BytecodeChannel.toRaw, .push), (MemChannel.toRaw, .pull),
+    (MemChannel.toRaw, .push)].map fun (c, d) ↦
+      (((rowInts t row).filter (·.channel.name = c.name)).filter (·.direction = d)).map (·.msg)
 
 /-- The same six lists from an `OpcodeSends`. -/
 def viaSends (s : OpcodeSends) : List (List (Array K)) :=
@@ -57,19 +62,24 @@ example : viaClean jumpT (jumpRaw jumpRow16) = viaSends (jumpSends jumpRow16 1) 
 example : viaClean blakeT (rawRow (blakeRow 3)) = viaSends (blake2sSends (blakeRow 3)) := by
   decide +kernel
 
+/-- Every interaction of the rows has multiplicity `1`, so Clean's `activeMessages` drops none. -/
+example : ∀ i ∈ rowInts xorT (rawRow xorRow) ++ rowInts jumpT (jumpRaw jumpRow3) ++
+    rowInts blakeT (rawRow (blakeRow 3)), i.mult = 1 := by
+  decide +kernel
+
 /-! ## The theorems on the same rows -/
 
 /-- The `XOR` fill row sends `xorSends xorRow`: its typed row read back is itself. -/
 example : SendsOpcode xorT (rawRow xorRow) (xorSends xorRow) := by
   have h := xor_sendsOpcode (t := xorT) rfl (rawRow xorRow)
   rwa [show valueFromOffset XorRow 0 (xorT.environment (rawRow xorRow)) = xorRow from
-    rowAt_toElements fillData xorRow] at h
+    rowAt_toElements _ xorRow] at h
 
 /-- The `BLAKE2S` row sends `blake2sSends` of itself. -/
 example (j : Fin 8) : SendsOpcode blakeT (rawRow (blakeRow j)) (blake2sSends (blakeRow j)) := by
   have h := blake2s_sendsOpcode (t := blakeT) rfl (rawRow (blakeRow j))
   rwa [show valueFromOffset Blake2sRow 0 (blakeT.environment (rawRow (blakeRow j))) =
-    blakeRow j from rowAt_toElements fillData (blakeRow j)] at h
+    blakeRow j from rowAt_toElements _ (blakeRow j)] at h
 
 /-- The `JUMP` row's indicator is the raw cell after its columns and its inverse witness. -/
 example : (jumpRaw jumpRow3)[size JumpRow + 1]?.getD 0 = 1 := by decide +kernel
@@ -110,33 +120,32 @@ example : (xorSends xorRow).mem.length = 3 ∧ (setSends setRow1).mem.length = 1
 /-- Row `4` of the memory block: cell `4`, the product `x · y`, finalized at count `g`. -/
 def memRow4 : MemRow K := ⟨gpow 4, g, #v[mulXY.limb 0, mulXY.limb 1, mulXY.limb 2]⟩
 
-/-- A one-row memory block over the fixture's data. -/
-def memT1 : Air.Flat.Table K := mkT memTable (size MemRow) ([memRow4].map rawRow) (rows_size _)
-
-/-- Its row pushes `(g^4, 1, x·y)` and pulls `(g^4, g, x·y)`, by Clean's evaluation. -/
-example : viaClean memT1 (rawRow memRow4) =
+/-- It pushes `(g^4, 1, x·y)` and pulls `(g^4, g, x·y)` on the memory channel, by Clean's
+evaluation (on the block's component; the row's place in the block plays no part). -/
+example : viaClean (memT memCnt) (rawRow memRow4) =
     [[], [], [], [], [#[gpow 4, g, mulXY.limb 0, mulXY.limb 1, mulXY.limb 2]],
       [#[gpow 4, 1, mulXY.limb 0, mulXY.limb 1, mulXY.limb 2]]] := by
   decide +kernel
 
-/-- The same by the closed form, which sends nothing on the state channels. -/
-example : rowMessagesOn memT1 (rawRow memRow4) MemPull.toRaw =
+/-- The same by the closed form, which sends nothing on the state channel. -/
+example : rowMessagesOn (memT memCnt) (rawRow memRow4) MemChannel.toRaw .pull =
     [#[gpow 4, g, mulXY.limb 0, mulXY.limb 1, mulXY.limb 2]] := by
-  rw [memBlock_rowMessagesOn rfl (rawRow memRow4) (rowAt_toElements fillData memRow4)]
+  rw [memBlock_rowMessagesOn rfl (rawRow memRow4) (rowAt_toElements _ memRow4)]
   decide +kernel
-example : rowMessagesOn memT1 (rawRow memRow4) StatePull.toRaw = [] := by
-  rw [memBlock_rowMessagesOn rfl (rawRow memRow4) (rowAt_toElements fillData memRow4)]
+example : rowMessagesOn (memT memCnt) (rawRow memRow4) StateChannel.toRaw .pull = [] := by
+  rw [memBlock_rowMessagesOn rfl (rawRow memRow4) (rowAt_toElements _ memRow4)]
   decide +kernel
 
-/-- The verifier of the fixture's program pulls the sentinel `(g^31, 1)`, and sends nothing on
-the memory channels. -/
-example : rowMessagesOn (fillW 1 g memCnt).verifierTable
-    (toElements (fillW 1 g memCnt).publicInput).toArray StatePull.toRaw = [#[gpow 31, 1]] := by
-  rw [verifier_rowMessagesOn rfl]
+/-- The verifier of the fixture's program pulls the sentinel `(g^31, 1)` and pushes `(1, 1)`,
+and sends nothing on the memory channel. -/
+example : verifierMessagesOn (fillW 1 g memCnt) StateChannel.toRaw .pull = [#[gpow 31, 1]] := by
+  rw [verifier_messagesOn]
   decide +kernel
-example : rowMessagesOn (fillW 1 g memCnt).verifierTable
-    (toElements (fillW 1 g memCnt).publicInput).toArray MemPull.toRaw = [] := by
-  rw [verifier_rowMessagesOn rfl]
+example : verifierMessagesOn (fillW 1 g memCnt) StateChannel.toRaw .push = [#[1, 1]] := by
+  rw [verifier_messagesOn]
+  decide +kernel
+example : verifierMessagesOn (fillW 1 g memCnt) MemChannel.toRaw .pull = [] := by
+  rw [verifier_messagesOn]
   decide +kernel
 
 /-- Every row of the fixture's six opcode tables sends some `OpcodeSends` with at most nine
@@ -144,5 +153,8 @@ memory reads. -/
 example : ∀ t ∈ (fillW 1 g memCnt).tables.take 6, ∀ row,
     ∃ s, SendsOpcode t row s ∧ s.mem.length ≤ 9 :=
   exists_sendsOpcode _
+
+/-- Every interaction of the fixture has multiplicity `1`, by the theorem. -/
+example : ∀ i ∈ (fillW 1 g memCnt).interactions, i.mult = 1 := interactions_mult_eq_one _
 
 end LeanerVMTests.Arithmetization.Rows

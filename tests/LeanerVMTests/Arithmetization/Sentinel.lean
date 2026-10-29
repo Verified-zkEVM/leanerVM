@@ -12,15 +12,16 @@ reach the final registers through a state at which the machine halts.
 jumps to `(g^31, g^5)` instead of `(g^31, 1)`, reading its frame word from cell `11`; the `XOR` and
 `DEREF` fill blocks share one closing `JUMP` (slots `4`, `5`, `6`), so that the `JUMP` table keeps
 four rows; and the sentinel slot `31` holds a `JUMP` in frame `g^5` to `(g^31, 1)`. The image and
-the data are the fixture's, the `BLAKE2S` fill rows too, so `Caps` holds.
+the image is the fixture's, the `BLAKE2S` fill rows too, so `Caps` holds.
 
 **The witness** `sentW` satisfies `SatisfiedBy sentProg mulInput` (`sent_satisfiedBy`): its rows
-are steps, the sentinel row among them, and the state pair balances with the walk
+are steps, the sentinel row among them, and the state channel balances with the walk
 `(1, 1) → (g, 1) → (g^2, 1) → (g^3, 1) → (g^31, g^5) → (g^31, 1)`. But the machine halts at
 `(g^31, g^5)`, the sentinel counter with the wrong frame: no run reaches the final registers
 (`sent_no_run`), so no trace the witness represents is a valid execution
 (`sent_not_sound`): `constraintSoundness` fails without `SentinelSafe`. `traceOf` still walks the
-rows' states to the final registers in five steps (the `#guard`), a trace whose run is refuted.
+rows' states to the final registers in five steps (the `#guard`, on the witness's opcode tables
+with a one-row memory block), a trace whose run is refuted.
 -/
 
 namespace LeanerVMTests.Arithmetization.Sentinel
@@ -88,131 +89,277 @@ def sentBcCnt (i : Fin (2 ^ sentProg.logSize)) : K :=
 /-! ## The witness -/
 
 def derefTS : Air.Flat.Table K :=
-  mkT derefTable (size DerefRow) ([derefRowS].map rawRow) (rows_size [derefRowS])
+  mkT derefComponent ([derefRowS].map rawRow) (rawRows_size [derefRowS])
 
 def jumpTS : Air.Flat.Table K :=
-  mkT jumpTable (size JumpRow + 2) ([jumpRowA, jumpRowB, jumpRow16, jumpRowS].map jumpRaw)
+  mkT jumpComponent ([jumpRowA, jumpRowB, jumpRow16, jumpRowS].map jumpRaw)
     (jumpRaw_size [jumpRowA, jumpRowB, jumpRow16, jumpRowS])
 
+/-- The bytecode block's rows: the program's. -/
+def bcRowsS : List (Array K) :=
+  List.ofFn fun i ↦ rawRow (bytecodeRowOf sentProg i (sentBcCnt i))
+
+/-- They agree with the block's fixed columns. -/
+theorem bcRowsS_fixed : (bytecodeComponent sentProg).FixedRowsMatch bcRowsS := by
+  unfold bcRowsS
+  refine ⟨?_, fun i hi ↦ ?_⟩
+  · rw [List.length_ofFn]
+    exact (UInt64.toNat_ofNat_of_lt' (by decide)).symm
+  · have hi' : i < 2 ^ sentProg.logSize := by rwa [List.length_ofFn] at hi
+    rw [List.getElem_ofFn]
+    show (bytecodeMode sentProg).FixedAt (UInt64.ofNat i) (fromElements (Air.Flat.rowPrefix
+      (size BytecodeRow) (rawRow (bytecodeRowOf sentProg ⟨i, hi'⟩ (sentBcCnt ⟨i, hi'⟩)))))
+    rw [fromElements_rawRow, bytecodeMode_fixedAt_iff sentProg hi']
+    exact ⟨rfl, cons_append_ops _⟩
+
 def bcTS : Air.Flat.Table K :=
-  mkT bytecodeTable (size BytecodeRow)
-    (List.ofFn fun i ↦ (toElements (bytecodeRowOf sentProg i (sentBcCnt i))).toArray)
-    fun r hr ↦ by
-      rw [List.mem_ofFn] at hr
+  mkT (bytecodeComponent sentProg) bcRowsS (by
+      intro r hr
+      rw [bcRowsS, List.mem_ofFn] at hr
       obtain ⟨i, rfl⟩ := hr
-      exact Vector.size_toArray _
+      exact rawRow_size _) (by rw [bcRowsS, List.length_ofFn]; decide) bcRowsS_fixed
 
-/-- A witness of the ensemble of `sentProg` over the fixture's data and input. -/
-def mkWS (ts : List (Air.Flat.Table K))
-    (hlen : (leanIsaEnsemble sentProg).tables.length = ts.length := by rfl)
-    (hc : ∀ i (hi : i < (leanIsaEnsemble sentProg).tables.length),
-      (leanIsaEnsemble sentProg).tables[i] = (ts[i]'(hlen ▸ hi)).component := by
-        intro i hi
-        have hi' : i < 8 := hi
-        interval_cases i <;> rfl)
-    (hd : ∀ t ∈ ts, t.data = fillData := by
-      intro t ht
-      simp only [List.mem_cons, List.not_mem_nil, or_false] at ht
-      rcases ht with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl <;> rfl) :
-    EnsembleWitness (leanIsaEnsemble sentProg) :=
-  ⟨ts, fillData, PublicIO.ofInput mulInput, hlen, hc, hd⟩
+/-- The tables of the witness. -/
+def sentTables : List (Air.Flat.Table K) :=
+  [xorT, mulT g, setT 1, derefTS, jumpTS, blakeT, memT sentCnt, bcTS]
 
-def sentW : EnsembleWitness (leanIsaEnsemble sentProg) :=
-  mkWS [xorT, mulT g, setT 1, derefTS, jumpTS, blakeT, memT sentCnt, bcTS]
+/-- A witness of the ensemble of `sentProg` at the minimum memory size, over the fixture's
+input. -/
+def sentW : EnsembleWitness (leanIsaEnsemble sentProg minLogMem) :=
+  witnessOfTables sentProg minLogMem (PublicIO.ofInput mulInput) sentTables rfl
 
-/-! ## Proof helpers -/
+/-! ## Proof helpers: the tables and the image -/
 
-theorem bcTS_table :
-    bcTS.table =
-      List.ofFn fun i ↦ (toElements (bytecodeRowOf sentProg i (sentBcCnt i))).toArray := by
-  dsimp only [bcTS, mkT]
+theorem bcTS_table : bcTS.table = bcRowsS := by
+  dsimp only [bcTS, mkT, tableOf]
 
-/-- The bytecode block sends nothing on a channel that is not its pair. -/
-theorem bcTS_filter (c : RawChannel K) (hc : c.name ≠ BytecodePush.name)
-    (hc' : c.name ≠ BytecodePull.name) :
-    bcTS.interactions.filter (·.channel.name = c.name) = [] :=
-  filter_eq_nil_of_rowOps _ c (by
-    rw [show bcTS.component = ⟨bytecodeTable⟩ from rfl, bytecodeTable_rowOps]
+theorem sentW_data : sentW.data = Air.Flat.deriveProverData sentTables :=
+  witnessOfTables_data (hc := rfl)
+
+/-- A table of the witness has the component and rows of one of `sentTables`. -/
+theorem mem_sentW {t : Air.Flat.Table K} (ht : t ∈ sentW.tables) :
+    ∃ t₀ ∈ sentTables, t.component = t₀.component ∧ t.table = t₀.table := by
+  have hm : sentW.tables.map (fun t ↦ (t.component, t.table)) =
+      sentTables.map fun t ↦ (t.component, t.table) := witnessOfTables_map (hc := rfl)
+  have h : (t.component, t.table) ∈ sentTables.map fun t ↦ (t.component, t.table) :=
+    hm ▸ List.mem_map_of_mem ht
+  obtain ⟨t₀, h₀, he⟩ := List.mem_map.mp h
+  exact ⟨t₀, h₀, (Prod.mk.inj he).1.symm, (Prod.mk.inj he).2.symm⟩
+
+theorem sent_tableAt_five : (tableAt sentW 5).table = blakeT.table := by
+  simp only [tableAt, sentW, witnessOfTables, Air.Flat.withDerivedData, List.getElem_map,
+    List.getElem_attach]
+  rfl
+
+/-- Row `k` of the data's `"mem"` table: the fixture's word `k` (finding E8: through
+`getElem?`). -/
+theorem sent_memRows_get? (k : ℕ) (hk : k < 2 ^ minLogMem) :
+    (memRows sentW.data)[k]? = some #v[(fillImage ⟨k, hk⟩).limb 0,
+      (fillImage ⟨k, hk⟩).limb 1, (fillImage ⟨k, hk⟩).limb 2] := by
+  have hmem : memT sentCnt ∈ sentTables := by
+    simp only [sentTables, List.mem_cons, true_or, or_true]
+  rw [memRows, ProverData.getRows, sentW_data,
+    show memDataName = (memT sentCnt).component.circuit.name from rfl,
+    Air.Flat.deriveProverData_eq_of_mem _ (names_nodup rfl) hmem, Air.Flat.Table.rowPrefixes,
+    memT_table, Array.getElem?_map, Array.getElem?_map, List.getElem?_toArray, List.getElem?_map,
+    List.getElem?_ofFn, dite_eq_left hk, Option.map_some, Option.map_some]
+  exact congrArg (fun r : MemRow K ↦ some r.m) (fromElements_rawRow _)
+
+theorem sent_logSize : (imageOf sentW.data).1 = minLogMem := imageOf_data_fst (by decide)
+
+theorem sent_pow_eq : 2 ^ (imageOf sentW.data).1 = 2 ^ minLogMem := by rw [sent_logSize]
+
+theorem sent_image_apply' (k : ℕ) (hk : k < 2 ^ (imageOf sentW.data).1) :
+    (imageOf sentW.data).2 ⟨k, hk⟩ = fillImage ⟨k, by rw [← sent_pow_eq]; exact hk⟩ := by
+  conv_rhs => rw [← ofLimbs_limb (fillImage ⟨k, _⟩)]
+  exact imageOf_apply ⟨k, hk⟩ (v := #v[(fillImage ⟨k, _⟩).limb 0, (fillImage ⟨k, _⟩).limb 1,
+    (fillImage ⟨k, _⟩).limb 2]) (sent_memRows_get? k _)
+
+/-- The image the data names is the fixture's, as one equality of dependent pairs (finding
+E8). -/
+theorem sent_imageOf : imageOf sentW.data = ⟨minLogMem, fillImage⟩ := by
+  have hκ : (imageOf sentW.data).1 = minLogMem := sent_logSize
+  have hpow : 2 ^ (imageOf sentW.data).1 = 2 ^ minLogMem := sent_pow_eq
+  have hf : ∀ i, (imageOf sentW.data).2 i = fillImage (Fin.cast hpow i) :=
+    fun i ↦ sent_image_apply' i i.isLt
+  revert hκ hpow hf
+  generalize imageOf sentW.data = s
+  obtain ⟨κ, img⟩ := s
+  intro hκ hpow hf
+  dsimp only at hκ hpow hf
+  subst hκ
+  exact congrArg _ (funext fun i ↦ (hf i).trans (congrArg fillImage (Fin.ext rfl)))
+
+/-! ## Proof helpers: interactions -/
+
+/-- A built witness's interactions: the verifier's, then each table's over the derived
+data. -/
+theorem witnessOfTables_interactions (ts : List (Air.Flat.Table K)) (hc) :
+    (witnessOfTables sentProg minLogMem (PublicIO.ofInput mulInput) ts hc).interactions =
+      (leanIsaEnsemble sentProg minLogMem).verifierOperations.interactionValues
+          (.fromInput (PublicIO.ofInput mulInput)
+            (witnessOfTables sentProg minLogMem (PublicIO.ofInput mulInput) ts hc).data) ++
+        ts.flatMap (intsOver
+          (witnessOfTables sentProg minLogMem (PublicIO.ofInput mulInput) ts hc).data) := by
+  rw [EnsembleWitness.interactions]
+  congr 1
+  show (List.map _ ts.attach).flatMap _ = _
+  rw [List.flatMap_map, List.flatMap_subtype (g := intsOver _) (fun t _ ↦ ?_),
+    List.unattach_attach]
+  rw [table_interactions_eq, witnessOfTables_data]
+  rfl
+
+/-- The witness's interactions: the verifier's, then the eight tables' over its data. -/
+theorem sentW_interactions :
+    sentW.interactions =
+      (leanIsaEnsemble sentProg minLogMem).verifierOperations.interactionValues
+          (.fromInput (PublicIO.ofInput mulInput) sentW.data) ++
+        sentTables.flatMap (intsOver sentW.data) :=
+  witnessOfTables_interactions _ _
+
+/-- The bytecode block sends nothing on another channel. -/
+theorem bcTS_filter (c : RawChannel K) (hc : c.name ≠ BytecodeChannel.name) (D : ProverData K) :
+    (intsOver D bcTS).filter (·.channel.name = c.name) = [] :=
+  intsOver_filter_nil D _ c (by
+    rw [show bcTS.component = bytecodeComponent sentProg from rfl, bytecodeComponent_rowOps]
     simp only [List.mem_cons, List.not_mem_nil, or_false]
-    rintro i (rfl | rfl)
-    · exact fun h ↦ hc (h.symm.trans rfl)
-    · exact fun h ↦ hc' (h.symm.trans rfl))
+    rintro i (rfl | rfl) <;> exact fun h ↦ hc (h.symm.trans rfl))
 
-theorem verifierS_constraints (env : Environment K) :
-    (⟨leanIsaVerifier sentProg⟩ : Component K).operations.ConstraintsHold env := by
-  rw [Component.constraintsHold_iff]
-  simp only [circuit_norm, leanIsaVerifier, -BitVec.reduceNeg]
+/-- Every interaction has multiplicity `1`. -/
+theorem sent_mults : ∀ i ∈ sentW.interactions, i.mult = 1 := by
+  rw [sentW_interactions]
+  simp only [sentTables, List.flatMap_cons, List.flatMap_nil, List.append_nil,
+    List.forall_mem_append]
+  refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, memT_mults _ _, ?_⟩ <;> decide +kernel
 
-theorem jumpTS_constraints : jumpTS.Constraints := by
+/-- Fewer interactions than `2^64`. -/
+theorem sent_length : sentW.interactions.length < FiniteField.size K := by
+  rw [sentW_interactions]
+  simp only [sentTables, List.flatMap_cons, List.flatMap_nil, List.append_nil,
+    List.length_append, intsOver_length, Operations.interactionValues, List.length_map,
+    show (mulT g).table.length = 1 from rfl, show (setT 1).table.length = 2 from rfl,
+    show (mulT g).component = mulComponent from rfl,
+    show (setT 1).component = setComponent from rfl,
+    show (memT sentCnt).component = memComponent minLogMem from rfl, memT_table,
+    List.length_ofFn]
+  decide +kernel
+
+/-- The messages on a channel in a direction, in the form the kernel evaluates. -/
+theorem sent_messagesOn (c : RawChannel K) (d : BusDir) :
+    messagesOn sentW c d =
+      ((sentW.interactions.filter (·.channel.name = c.name)).filter (·.direction = d)).map
+        (·.msg) :=
+  activeMessages_of_mults (fun i hi ↦ sent_mults i (List.mem_of_mem_filter hi)) d
+
+/-- The memory messages of the verifier and the six opcode tables. -/
+def sentMemSmall : List (Interaction K) :=
+  ((leanIsaEnsemble sentProg minLogMem).verifierOperations.interactionValues
+      (.fromInput (PublicIO.ofInput mulInput) sentW.data) ++
+    [xorT, mulT g, setT 1, derefTS, jumpTS, blakeT].flatMap (intsOver sentW.data)).filter
+      (·.channel.name = MemChannel.toRaw.name)
+
+/-- The memory channel, reduced to the touched cells. -/
+theorem sent_mem_perm_iff :
+    (messagesOn sentW MemChannel.toRaw .push).Perm (messagesOn sentW MemChannel.toRaw .pull) ↔
+      (activeMessages sentMemSmall .push ++
+        List.ofFn fun i : Fin touched ↦ seedMsg (Fin.castAdd untouched i)).Perm
+      (activeMessages sentMemSmall .pull ++
+        List.ofFn fun i : Fin touched ↦ finMsg sentCnt (Fin.castAdd untouched i)) := by
+  unfold messagesOn
+  rw [sentW_interactions,
+    show sentTables.flatMap (intsOver sentW.data) =
+      [xorT, mulT g, setT 1, derefTS, jumpTS, blakeT].flatMap (intsOver sentW.data) ++
+        (intsOver sentW.data (memT sentCnt) ++ intsOver sentW.data bcTS) by
+      simp only [sentTables, List.flatMap_cons, List.flatMap_nil, List.append_nil,
+        List.append_assoc],
+    ← List.append_assoc, ← List.append_assoc, List.filter_append, List.filter_append,
+    bcTS_filter MemChannel.toRaw (by decide), List.append_nil, activeMessages_append,
+    activeMessages_append, memT_pushes, memT_pulls, seeds_split,
+    fins_split sentCnt fun _ ↦ sentCnt_of_ge, ← List.append_assoc, ← List.append_assoc]
+  exact List.perm_append_right_iff _
+
+/-! ## Proof helpers: constraints -/
+
+theorem jumpTS_constraints (D : ProverData K) :
+    ∀ row ∈ jumpTS.table,
+      jumpComponent.operations.ConstraintsHold (Environment.fromArray row D) := by
   intro r hr
-  simp only [jumpTS, mkT, List.map_cons, List.map_nil, List.mem_cons, List.not_mem_nil,
+  simp only [jumpTS, mkT, tableOf, List.map_cons, List.map_nil, List.mem_cons, List.not_mem_nil,
     or_false] at hr
   rcases hr with rfl | rfl | rfl | rfl <;>
   · rw [Component.constraintsHold_iff]
-    simp only [jumpTS, mkT, circuit_norm, jumpTable, instructionStep, memRead, bytecodeRead,
+    simp only [circuit_norm, jumpComponent, jumpTable, instructionStep, memRead, bytecodeRead,
       -BitVec.reduceNeg]
-    rintro e (rfl | rfl) <;> decide +kernel
+    rintro e (rfl | rfl) <;> rw [eval_fromArray _ D fun _ _ ↦ #[]] <;> decide +kernel
 
 /-! ## The witness satisfies the statement -/
 
 theorem sent_constraints : sentW.Constraints := by
-  intro t ht
-  simp only [EnsembleWitness.allTables, sentW, mkWS, List.mem_cons, List.not_mem_nil,
-    or_false] at ht
-  rcases ht with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl
-  · exact fun _ _ ↦ verifierS_constraints _
-  · exact fun _ _ ↦ xor_constraints _
-  · exact fun _ _ ↦ mul_constraints _
-  · exact fun _ _ ↦ set_constraints _
-  · exact fun _ _ ↦ deref_constraints _
-  · exact jumpTS_constraints
-  · exact fun _ _ ↦ blake2s_constraints _
-  · exact fun _ _ ↦ mem_constraints _
-  · exact fun _ _ ↦ bytecode_constraints _
+  intro t ht row hrow
+  have hd : t.data = sentW.data := sentW.same_data t ht
+  obtain ⟨t₀, h₀, hcomp, hr⟩ := mem_sentW ht
+  rw [Air.Flat.Table.environment, hd, hcomp]
+  have hrow₀ : row ∈ t₀.table := hr ▸ hrow
+  simp only [sentTables, List.mem_cons, List.not_mem_nil, or_false] at h₀
+  rcases h₀ with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl
+  · exact xor_constraints _
+  · exact mul_constraints _
+  · exact set_constraints _
+  · exact deref_constraints _
+  · exact jumpTS_constraints _ _ hrow₀
+  · exact blake2s_constraints _
+  · exact mem_constraints _ _
+  · exact bytecode_constraints _ _
 
-/-- A message as a numeral, injectively, so that the kernel decides a permutation of messages
-by comparing numerals. -/
-def msgCode (a : Array K) : ℕ := Encodable.encode (a.toList.map fun x ↦ x.toBitVec.toNat)
-
-/-- Distinct messages have distinct codes. -/
-theorem msgCode_injective : Function.Injective msgCode := fun _ _ h ↦
-  Array.toList_inj.mp <| List.map_injective_iff.mpr
-    (fun _ _ h' ↦ BF64.toBitVec_injective (BitVec.eq_of_toNat_eq h')) (Encodable.encode_injective h)
-
-/-- The three pairs balance: one kernel evaluation, which evaluates each row's messages once,
-decides the three permutations on the messages' codes. The memory pair is reduced to the touched
-cells, the untouched seeds and finalizes cancelling. -/
-theorem sent_balanced : BalancedPair sentW StatePull.toRaw StatePush.toRaw ∧
-    BalancedPair sentW BytecodePull.toRaw BytecodePush.toRaw ∧
-    BalancedPair sentW MemPull.toRaw MemPush.toRaw := by
-  unfold BalancedPair messagesOn
-  simp only [EnsembleWitness.interactions, EnsembleWitness.allTables, sentW, mkWS,
-    List.flatMap_cons, List.flatMap_nil, List.append_nil, List.filter_append, List.map_append,
-    memT_filter sentCnt StatePush.toRaw (by decide) (by decide),
-    memT_filter sentCnt StatePull.toRaw (by decide) (by decide),
-    memT_filter sentCnt BytecodePush.toRaw (by decide) (by decide),
-    memT_filter sentCnt BytecodePull.toRaw (by decide) (by decide),
-    bcTS_filter StatePush.toRaw (by decide) (by decide),
-    bcTS_filter StatePull.toRaw (by decide) (by decide),
-    bcTS_filter MemPush.toRaw (by decide) (by decide),
-    bcTS_filter MemPull.toRaw (by decide) (by decide), memT_pushes, memT_pulls, seeds_split,
-    fins_split sentCnt fun _ ↦ sentCnt_of_ge, ← List.append_assoc, List.perm_append_right_iff,
-    ← List.map_perm_map_iff msgCode_injective]
-  simp only [table_interactions_eq]
+theorem sent_state_perm : (messagesOn sentW StateChannel.toRaw .push).Perm
+    (messagesOn sentW StateChannel.toRaw .pull) := by
+  rw [sent_messagesOn, sent_messagesOn, sentW_interactions]
+  simp only [sentTables, List.flatMap_cons, List.flatMap_nil, List.append_nil, List.filter_append,
+    memT_filter sentCnt StateChannel.toRaw (by decide), bcTS_filter StateChannel.toRaw (by decide)]
   decide +kernel
+
+theorem sent_bytecode_perm : (messagesOn sentW BytecodeChannel.toRaw .push).Perm
+    (messagesOn sentW BytecodeChannel.toRaw .pull) := by
+  rw [sent_messagesOn, sent_messagesOn, sentW_interactions]
+  simp only [sentTables, List.flatMap_cons, List.flatMap_nil, List.append_nil, List.filter_append,
+    memT_filter sentCnt BytecodeChannel.toRaw (by decide)]
+  decide +kernel
+
+theorem sent_mem_perm : (messagesOn sentW MemChannel.toRaw .push).Perm
+    (messagesOn sentW MemChannel.toRaw .pull) := by
+  rw [sent_mem_perm_iff, activeMessages_of_mults (l := sentMemSmall) (by decide +kernel),
+    activeMessages_of_mults (l := sentMemSmall) (by decide +kernel)]
+  decide +kernel
+
+/-- The three channels balance as multisets. -/
+theorem sent_balanced : sentW.Balanced .multiset := by
+  intro c hc
+  rw [EnsembleWitness.interactionsWith_eq_filter_name hc]
+  refine ⟨lt_of_le_of_lt (List.length_filter_le _ _) sent_length,
+    fun i hi ↦ Or.inr (sent_mults i (List.mem_of_mem_filter hi)), ?_⟩
+  have hp : (messagesOn sentW c .push).Perm (messagesOn sentW c .pull) := by
+    simp only [leanIsaEnsemble, List.mem_cons, List.not_mem_nil, or_false] at hc
+    rcases hc with rfl | rfl | rfl
+    · exact sent_state_perm
+    · exact sent_mem_perm
+    · exact sent_bytecode_perm
+  unfold messagesOn at hp
+  convert hp using 3
 
 theorem sent_countsNonzero : CountsNonzero sentW := by
   unfold CountsNonzero
-  simp only [sentW, mkWS, table_interactions_eq]
+  simp only [table_interactions_eq]
   decide +kernel
 
 theorem sent_caps : Caps sentW where
-  minLogMem_le := by rw [show sentW.data = fillData from rfl, fill_logSize]
-  le_maxLogMem := by rw [show sentW.data = fillData from rfl, fill_logSize]; decide
+  minLogMem_le := le_rfl
+  le_maxLogMem := by decide
   heights := by
     intro t ht
-    simp only [sentW, mkWS, List.mem_cons, List.not_mem_nil, or_false] at ht
-    rcases ht with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl
+    obtain ⟨t₀, h₀, -, hr⟩ := mem_sentW ht
+    rw [hr]
+    simp only [sentTables, List.mem_cons, List.not_mem_nil, or_false] at h₀
+    rcases h₀ with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl
     · exact ⟨0, by decide, rfl⟩
     · exact ⟨0, by decide, rfl⟩
     · exact ⟨1, by decide, rfl⟩
@@ -220,65 +367,30 @@ theorem sent_caps : Caps sentW where
     · exact ⟨2, by decide, rfl⟩
     · exact ⟨3, by decide, by rw [blakeT_table, List.length_map, List.length_ofFn]; rfl⟩
     · exact ⟨minLogMem, by decide, by rw [memT_table, List.length_ofFn]⟩
-    · exact ⟨5, by decide, by rw [bcTS_table, List.length_ofFn]; rfl⟩
+    · exact ⟨5, by decide, by rw [bcTS_table, bcRowsS, List.length_ofFn]; rfl⟩
   blake2s_height := by
-    rw [blake2sRows, show tableAt sentW 5 = blakeT from rfl, blakeT_table, List.length_map,
-      List.length_ofFn]
+    rw [blake2sRows, sent_tableAt_five, blakeT_table, List.length_map, List.length_ofFn]
     decide
-  well_shaped := fill_wellShaped
-
-theorem sent_memBlockRows : memBlockRows sentW = List.ofFn (memRowArr sentCnt) := by
-  rw [memBlockRows, show tableAt sentW 6 = memT sentCnt from rfl, memT_table]
-
-theorem sent_indexColumns : IndexColumnsAreRowIndices sentW := by
-  intro i hi
-  simp only [sent_memBlockRows]
-  rw [List.getElem_ofFn, memRowArr, memRowAt_toElements]
-
-/-- The seed-rows conjunct for a destructured witness over the fixture's data, the image
-substituted before anything is compared. -/
-theorem seedRowsS_of {tables : List (Air.Flat.Table K)} {pi : PublicIO K} {h1 h2 h3}
-    (hrows : memBlockRows (⟨tables, fillData, pi, h1, h2, h3⟩ :
-      EnsembleWitness (leanIsaEnsemble sentProg)) = List.ofFn (memRowArr sentCnt)) :
-    SeedRowsAreTheImage (⟨tables, fillData, pi, h1, h2, h3⟩ :
-      EnsembleWitness (leanIsaEnsemble sentProg)) := by
-  unfold SeedRowsAreTheImage
-  dsimp only
-  have key : ∀ s : (κ : ℕ) × MemImage κ, s = ⟨minLogMem, fillImage⟩ →
-      ∃ idx cntFin : Fin (2 ^ s.1) → K,
-        memBlockRows (⟨tables, fillData, pi, h1, h2, h3⟩ :
-          EnsembleWitness (leanIsaEnsemble sentProg)) = List.ofFn fun i ↦
-            (toElements (⟨idx i, cntFin i, #v[(s.2 i).limb 0, (s.2 i).limb 1, (s.2 i).limb 2]⟩ :
-              MemRow K)).toArray := by
-    rintro s rfl
-    exact ⟨fun i ↦ gpow i, fun i ↦ sentCnt i, hrows⟩
-  exact key (imageOf fillData) fill_imageOf
 
 theorem sent_satisfiedBy : SatisfiedBy sentProg mulInput sentW where
   public_input_eq := rfl
   constraints := sent_constraints
-  state_balanced := sent_balanced.1
-  mem_balanced := sent_balanced.2.2
-  bytecode_balanced := sent_balanced.2.1
+  balanced := sent_balanced
   counts_nonzero := sent_countsNonzero
   caps := sent_caps
-  index_columns := sent_indexColumns
-  seed_rows := seedRowsS_of sent_memBlockRows
-  bytecode_rows := ⟨sentBcCnt, by rw [bytecodeBlockRows, show tableAt sentW 7 = bcTS from rfl,
-    bcTS_table]⟩
   blake2s_valid := by
     intro r hr
-    rw [blake2sRows, show tableAt sentW 5 = blakeT from rfl, blakeT_table, List.mem_map] at hr
+    rw [blake2sRows, sent_tableAt_five, blakeT_table, List.mem_map] at hr
     obtain ⟨rj, hrj, rfl⟩ := hr
     rw [List.mem_ofFn] at hrj
     obtain ⟨j, rfl⟩ := hrj
     rw [rawRow, blake2sRowAt_toElements]
     exact blakeRow_relation j
   word0_eq := by
-    rw [show sentW.data = fillData from rfl, fill_imageOf]
+    rw [sent_imageOf]
     exact read_at 0 mulInput.word0
   word1_eq := by
-    rw [show sentW.data = fillData from rfl, fill_imageOf]
+    rw [sent_imageOf]
     exact read_at 1 mulInput.word1
 
 /-! ## The machine halts at the wrong frame -/
@@ -368,7 +480,7 @@ theorem sent_not_sound :
   refine ⟨sent_satisfiedBy, ?_⟩
   rintro ⟨⟨κ, image, steps⟩, hrep, -, hrun⟩
   have himg := assignmentRepresents_image hrep
-  rw [show sentW.data = fillData from rfl, fill_imageOf] at himg
+  rw [sent_imageOf] at himg
   obtain ⟨rfl, himg⟩ := Sigma.mk.inj himg
   obtain rfl := eq_of_heq himg
   exact sent_no_run steps hrun
@@ -376,10 +488,24 @@ theorem sent_not_sound :
 /-! ## The computable walk still finds the final registers -/
 
 -- `traceOf` walks the rows' states, the sentinel row among them, to the final registers in
--- five steps; the empty memory block keeps the interpreter off the `2^16` rows.
-def sentLightW : EnsembleWitness (leanIsaEnsemble sentProg) :=
-  mkWS [xorT, mulT g, setT 1, derefTS, jumpTS, blakeT,
-    mkT memTable (size MemRow) [] (fun _ h ↦ absurd h List.not_mem_nil), bcTS]
+-- five steps; a one-row memory block at `κ = 0` keeps the interpreter off the `2^16` rows.
+
+/-- A one-row memory block at `κ = 0`: cell `g^0`, the zero word. -/
+def memT0 : Air.Flat.Table K :=
+  mkT (memComponent 0) ([(⟨1, 1, #v[0, 0, 0]⟩ : MemRow K)].map rawRow)
+    (rawRows_size [(⟨1, 1, #v[0, 0, 0]⟩ : MemRow K)]) (by decide)
+    ⟨rfl, fun i hi ↦ by
+      obtain rfl : i = 0 := by simpa using hi
+      refine (memMode_fixedAt_iff (κ := 0) hi (by decide) _).mpr ?_
+      show (fromElements (Air.Flat.rowPrefix (size MemRow)
+        (rawRow (⟨1, 1, #v[0, 0, 0]⟩ : MemRow K))) : MemRow K).idx = gpow 0
+      rw [fromElements_rawRow]
+      exact (pow_zero g).symm⟩
+
+/-- The witness's opcode tables with the one-row memory block. -/
+def sentLightW : EnsembleWitness (leanIsaEnsemble sentProg 0) :=
+  witnessOfTables sentProg 0 (PublicIO.ofInput mulInput)
+    [xorT, mulT g, setT 1, derefTS, jumpTS, blakeT, memT0, bcTS] rfl
 
 #guard (traceOf sentProg sentLightW).map (·.steps) = some 5
 
