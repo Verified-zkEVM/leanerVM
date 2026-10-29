@@ -11,6 +11,7 @@ import LeanerVM.Arithmetization.Completeness.Rows
 import LeanerVM.Arithmetization.Completeness.Satisfied
 import LeanerVM.Arithmetization.Completeness.Theorem
 import LeanerVM.Arithmetization.Completeness.Witness
+import LeanerVM.Arithmetization.Equivalence
 import LeanerVM.Arithmetization.Rows
 import LeanerVM.Arithmetization.Soundness
 import LeanerVM.Arithmetization.Statement
@@ -44,7 +45,9 @@ import LeanerVM.Protocol.FlockSpec
 import LeanerVM.Protocol.LeanIsa
 import LeanerVM.Protocol.LeanIsa.Bus
 import LeanerVM.Protocol.LeanIsa.Complete
+import LeanerVM.Protocol.LeanIsa.Conditions
 import LeanerVM.Protocol.LeanIsa.Read
+import LeanerVM.Protocol.LeanIsa.Refinement
 import LeanerVM.Protocol.LeanIsa.Relation
 import LeanerVM.Protocol.LeanIsa.Sound
 import LeanerVM.Protocol.Merkle
@@ -107,7 +110,6 @@ import LeanerVM.Protocol.ToArkLib.TranscriptMap
 import LeanerVM.Protocol.ToArkLib.WeightBatch
 import LeanerVM.Protocol.ToArkLib.WeightCombination
 import LeanerVM.Protocol.ToClean.ComponentPolynomial
-import LeanerVM.Protocol.ToClean.ExpressionPolynomial
 import LeanerVM.Protocol.ToCompPoly.AmbientStacking
 import LeanerVM.Protocol.ToCompPoly.BitProductTable
 import LeanerVM.Protocol.ToCompPoly.Fingerprint

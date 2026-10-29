@@ -17,14 +17,16 @@ public import LeanerVM.Protocol.LeanIsa.Relation
 satisfies `SatisfiedBy` on it. Every conjunct of `SatisfiedBy` comes from one clause of `M3Holds`,
 from admissibility, or from how the witness is read:
 
-* the Clean constraints, the three channel pairs' balances and the nonzero read counts from the
+* the Clean constraints, the three channels' balances and the nonzero read counts from the
   constraints, the bus and the count clauses, through the witness agreeing with its stack
-  (`agrees_witnessOf`, with the equivalences of `LeanIsa/Relation.lean`);
+  (`agrees_witnessOf`, with the equivalences of `LeanIsa/Relation.lean`); Clean's multiset
+  balance also bounds each channel's interactions, which the caps do
+  (`interactionsWith_length_lt`);
 * the public input and the two public words from the three public lines, which fix the first two
-  cells of the memory columns (`publicLines_cells`), and the image the data names, which is the
-  memory columns at the announced size (`imageOf_witnessOf`);
-* the caps from admissibility; the index column, the seed rows and the bytecode rows by
-  construction;
+  cells of the memory columns (`publicLines_cells`), and the image the data names, derived from
+  the memory block, which is the memory columns at the announced size (`imageOf_witnessOf`);
+* the caps from admissibility, which also make every table fit Clean's 64-bit row indices
+  (`Sizes.Fits`); the fixed index and program columns by construction (`witnessOf`);
 * **the BLAKE2s validity** (`blake2sRowsValid_witnessOf`) from the Flock clause. leanISA's
   `Blake2sRowsValid` asks every `BLAKE2S` row to satisfy `Blake2sRelation`, the compression on its
   eighteen limbs. The instance never commits the limbs: it reads them off the Flock region at the
@@ -59,9 +61,43 @@ theorem blake2sRelation_ofFn {n : ℕ} (r : Fin n → K) (hn : 27 ≤ n) (data :
 
 variable (F : FlockSpec) (prog : Program) (s : Sizes) (q : Column (leanIsaμ prog s))
 
-/-- The `BLAKE2S` rows of the witness read off a stack are the rows of opcode table `5`. -/
-private theorem blake2sRows_witnessOf :
-    blake2sRows (witnessOf F prog s q) = opcodeRows F prog s q 5 := rfl
+/-- The tables of the witness read off a stack are the tables read off it, up to their data. -/
+private theorem tableAt_witnessOf (j : Fin 8) :
+    (tableAt (witnessOf F prog s q) j).table =
+      ((tablesOf F prog s q)[(j : ℕ)]'(by simp [tablesOf])).table := by
+  have h := witnessOfTables_map (prog := prog) (κ := s.logMem) (pi := publicInputOf F prog s q)
+    (ts := tablesOf F prog s q) (hc := tablesOf_components F prog s q)
+  have hl := congrArg List.length h
+  simp only [List.length_map] at hl
+  have := List.getElem_of_eq h (i := (j : ℕ)) (by rw [List.length_map, hl]; simp [tablesOf])
+  simp only [List.getElem_map] at this
+  exact congrArg Prod.snd this
+
+/-- Opcode table `j` read off a stack is the stack's rows, or none. -/
+private theorem opTableOf_table (j : Fin 6) :
+    (opTableOf F prog s q j).table = if s.τ j ≤ 64 then opcodeRows F prog s q j else [] := by
+  unfold opTableOf
+  split <;> simp_all [tableOf]
+
+/-- The table at opcode position `j` of the witness read off a stack is opcode table `j` read
+off it. -/
+private theorem opTable_witnessOf_eq (j : Fin 6) :
+    (opTable (witnessOf F prog s q) j).table = (opTableOf F prog s q j).table := by
+  refine (tableAt_witnessOf F prog s q ⟨j, by omega⟩).trans ?_
+  fin_cases j <;> rfl
+
+/-- The opcode tables of the witness read off a stack are the stack's rows, within `2^64`. -/
+private theorem opTable_witnessOf (j : Fin 6) (h : s.τ j ≤ 64) :
+    (opTable (witnessOf F prog s q) j).table = opcodeRows F prog s q j := by
+  simp only [opTable_witnessOf_eq, opTableOf_table, h, ↓reduceIte]
+
+/-- The memory block of the witness read off a stack is the stack's, below `2^64` rows. -/
+theorem memBlockRows_witnessOf (h : s.logMem < 64) :
+    memBlockRows (witnessOf F prog s q) = memBlockRowsOf F prog s q := by
+  refine (tableAt_witnessOf F prog s q 6).trans ?_
+  show (memTableOf F prog s q).table = _
+  simp only [memTableOf, h, ↓reduceDIte]
+  rfl
 
 /-- **The BLAKE2s validity.** On a stack whose Flock region satisfies the region predicate, every
 `BLAKE2S` row of the witness read off it is a compression: its limbs are the cells the region's
@@ -70,7 +106,13 @@ compression. -/
 theorem blake2sRowsValid_witnessOf (h : (leanIsaInstance F prog s).aux q) :
     Blake2sRowsValid (witnessOf F prog s q) := by
   intro row hrow
-  rw [blake2sRows_witnessOf, opcodeRows, List.mem_ofFn] at hrow
+  rw [blake2sRows, show (tableAt (witnessOf F prog s q) 5).table =
+    (opTable (witnessOf F prog s q) 5).table from rfl, opTable_witnessOf_eq, opTableOf_table]
+    at hrow
+  split_ifs at hrow
+  swap
+  · exact absurd hrow List.not_mem_nil
+  rw [opcodeRows, List.mem_ofFn] at hrow
   obtain ⟨x, rfl⟩ := hrow
   refine (blake2sRelation_ofFn _ (le_trans (by decide : 27 ≤ 37) width_blake2s.ge) _).mpr ?_
   have hc := F.compress_of_holds _ (h (flockRegion prog s F) rfl) x
@@ -79,28 +121,19 @@ theorem blake2sRowsValid_witnessOf (h : (leanIsaInstance F prog s).aux q) :
 
 /-! ## The witness agrees with its stack -/
 
-/-- The opcode tables of the witness read off a stack are the stack's rows. -/
-private theorem opTable_witnessOf (j : Fin 6) :
-    (opTable (witnessOf F prog s q) j).table = opcodeRows F prog s q j := by
-  fin_cases j <;> rfl
-
-/-- The witness read off a stack agrees with it. -/
-theorem agrees_witnessOf : Agrees F s q (witnessOf F prog s q) where
-  length j := by rw [opTable_witnessOf, opcodeRows, List.length_ofFn]
+/-- The witness read off a stack whose sizes fit Clean's tables agrees with it. -/
+theorem agrees_witnessOf (hs : s.Fits) : Agrees F s q (witnessOf F prog s q) where
+  length j := by rw [opTable_witnessOf F prog s q j (hs.2 j), opcodeRows, List.length_ofFn]
   cells j x i := by
-    rw [cellOf, opTable_witnessOf, opcodeRows]
+    rw [cellOf, opTable_witnessOf F prog s q j (hs.2 j), opcodeRows]
     have hlt : (i : ℕ) < (shape prog s).width (opIdx j) := i.isLt
     simp only [List.getElem?_ofFn, Array.getElem?_ofFn, Option.bind_some, Fin.is_lt, dite_true,
       hlt, Option.getD_some]
     rfl
-  memRows := rfl
-  bytecodeRows := rfl
+  memRows := memBlockRows_witnessOf F prog s q hs.1
+  bytecodeRows := tableAt_witnessOf F prog s q 7
 
 /-! ## The image and the public input -/
-
-/-- The prover data's `"mem"` table is the image read off the memory columns. -/
-private theorem memRows_witnessOf : memRows (witnessOf F prog s q).data = imageRows F prog s q := by
-  simp [memRows, witnessOf, dataOf]
 
 /-- Two images are equal when their sizes are and their words agree. -/
 theorem image_sigma_eq {κ κ' : ℕ} (h : κ = κ') (f : MemImage κ) (g : MemImage κ')
@@ -117,17 +150,17 @@ abbrev imageWord (x : Fin (2 ^ s.logMem)) : E :=
     (cell F prog s q (memCol 2) x)
 
 /-- Within the memory cap, the image the witness's data names is the memory columns, word by
-word, at the announced memory size. -/
+word, at the announced memory size: the data's `"mem"` table is the memory block's rows. -/
 theorem imageOf_witnessOf (h : s.logMem ≤ maxLogMem) :
     imageOf (witnessOf F prog s q).data = ⟨s.logMem, imageWord F prog s q⟩ := by
-  unfold imageOf
-  rw [memRows_witnessOf]
-  have hsz : (imageRows F prog s q).size = 2 ^ s.logMem := Array.size_ofFn
-  refine image_sigma_eq (by rw [hsz, Nat.log_pow (by norm_num), Nat.min_eq_left h]) _ _
-    fun i ↦ ?_
-  have hi : (i : ℕ) < 2 ^ s.logMem := hsz ▸ (i.isLt.trans_le (by
-    rw [hsz, Nat.log_pow (by norm_num), Nat.min_eq_left h]))
-  simp [imageRows, hi]
+  have hκ : s.logMem < 64 := lt_of_le_of_lt h (by decide)
+  obtain ⟨hlen, hrows⟩ := memBlock_rows (witnessOf F prog s q) h
+  have hm := memBlockRows_witnessOf F prog s q hκ
+  refine image_sigma_eq (imageOf_data_fst h) _ _ fun i ↦ ?_
+  have hi : (i : ℕ) < 2 ^ s.logMem := lt_of_lt_of_eq i.isLt (by rw [imageOf_data_fst h])
+  have hi' : (i : ℕ) < (memBlockRows (witnessOf F prog s q)).length := hlen ▸ hi
+  refine (imageOf_apply i (hrows i hi').2).trans ?_
+  simp only [hm, memBlockRowsOf, List.getElem_ofFn, memRowAt_toElements]
   rfl
 
 /-- The three public lines fix the first two cells of the three memory columns. -/
@@ -150,61 +183,52 @@ private theorem constraintsHold_of_nil (c : Component K) (h₁ : c.rowOperations
   rw [Air.Flat.Component.constraintsHold_iff, Operations.ConstraintsHold, h₁, h₂]
   simp
 
-/-- On a stack whose constraint polynomials vanish, every table of the witness read off it
-satisfies its Clean constraints. -/
-theorem constraints_witnessOf (hcv : (leanIsaInstance F prog s).ConstraintsVanish q) :
+/-- On a stack whose sizes fit and whose constraint polynomials vanish, every table of the
+witness read off it satisfies its Clean constraints. -/
+theorem constraints_witnessOf (hs : s.Fits)
+    (hcv : (leanIsaInstance F prog s).ConstraintsVanish q) :
     (witnessOf F prog s q).Constraints := by
   intro t ht
-  rcases List.mem_cons.mp ht with rfl | ht
-  · exact fun _ _ ↦ constraintsHold_of_nil _ rfl rfl _
-  · obtain ⟨⟨j, hj⟩, rfl⟩ := mem_tables_iff.mp ht
-    by_cases h6 : j < 6
-    · exact (opcode_constraints_iff (agrees_witnessOf F prog s q) ⟨j, h6⟩).mpr
-        fun x C hC ↦ hcv (opIdx ⟨j, h6⟩) C hC x
-    · have : j = 6 ∨ j = 7 := by omega
-      rcases this with rfl | rfl
-      · intro row _
-        rw [tableAt_component]
-        exact constraintsHold_of_nil _ rfl rfl _
-      · intro row _
-        rw [tableAt_component]
-        exact constraintsHold_of_nil _ rfl rfl _
+  obtain ⟨⟨j, hj⟩, rfl⟩ := mem_tables_iff.mp ht
+  by_cases h6 : j < 6
+  · exact (opcode_constraints_iff (agrees_witnessOf F prog s q hs) ⟨j, h6⟩).mpr
+      fun x C hC ↦ hcv (opIdx ⟨j, h6⟩) C hC x
+  · have : j = 6 ∨ j = 7 := by omega
+    rcases this with rfl | rfl
+    · intro row _
+      rw [tableAt_component]
+      exact constraintsHold_of_nil _ rfl rfl _
+    · intro row _
+      rw [tableAt_component]
+      exact constraintsHold_of_nil _ rfl rfl _
 
-/-- The tables of the witness read off a stack have the announced heights. -/
-private theorem table_length_witnessOf (j : Fin 8) :
+/-- The tables of the witness read off a stack whose sizes fit have the announced heights. -/
+private theorem table_length_witnessOf (hs : s.Fits) (j : Fin 8) :
     (tableAt (witnessOf F prog s q) j).table.length =
       2 ^ (![s.τ 0, s.τ 1, s.τ 2, s.τ 3, s.τ 4, s.τ 5, s.logMem, prog.logSize] j) := by
-  fin_cases j <;> exact List.length_ofFn
+  have hA := agrees_witnessOf F prog s q hs
+  fin_cases j
+  · exact hA.length 0
+  · exact hA.length 1
+  · exact hA.length 2
+  · exact hA.length 3
+  · exact hA.length 4
+  · exact hA.length 5
+  · exact (congrArg List.length hA.memRows).trans List.length_ofFn
+  · exact (congrArg List.length hA.bytecodeRows).trans List.length_ofFn
 
 /-- On admissible sizes, the witness read off a stack is within the caps. -/
 theorem caps_witnessOf (hs : s.Admissible prog) : Caps (witnessOf F prog s q) := by
+  have hf := hs.fits
   obtain ⟨hmin, hmax, hτ, hb2, -⟩ := hs
-  have himg := imageOf_witnessOf F prog s q hmax
-  refine ⟨?_, ?_, ?_, ?_, ⟨?_⟩⟩
-  · rw [himg]
-    exact hmin
-  · rw [himg]
-    exact hmax
+  refine ⟨hmin, hmax, ?_, ?_⟩
   · intro t ht
     obtain ⟨j, rfl⟩ := mem_tables_iff.mp ht
-    refine ⟨_, ?_, table_length_witnessOf F prog s q j⟩
+    refine ⟨_, ?_, table_length_witnessOf F prog s q hf j⟩
     fin_cases j
     exacts [hτ 0, hτ 1, hτ 2, hτ 3, hτ 4, hτ 5, hmax, prog.logSize_le]
-  · rw [blake2sRows, table_length_witnessOf F prog s q 5]
+  · rw [blake2sRows, table_length_witnessOf F prog s q hf 5]
     exact Nat.pow_le_pow_right (by norm_num) hb2
-  · rw [memRows_witnessOf, himg]
-    exact Array.size_ofFn
-
-/-- The seed rows are the image, for an image given as a dependent pair. -/
-private def SeedRowsAre {prog : Program} (w : EnsembleWitness (leanIsaEnsemble prog))
-    (d : (κ : ℕ) × MemImage κ) : Prop :=
-  ∃ idx cntFin : Fin (2 ^ d.1) → K, memBlockRows w = List.ofFn fun i ↦
-    (toElements (⟨idx i, cntFin i, #v[(d.2 i).limb 0, (d.2 i).limb 1, (d.2 i).limb 2]⟩ :
-      MemRow K)).toArray
-
-/-- `SeedRowsAreTheImage` is `SeedRowsAre` of the image the data names. -/
-private theorem seedRows_iff {prog : Program} (w : EnsembleWitness (leanIsaEnsemble prog)) :
-    SeedRowsAreTheImage w ↔ SeedRowsAre w (imageOf w.data) := Iff.rfl
 
 /-! ## The adaptor -/
 
@@ -215,25 +239,17 @@ theorem satisfiedBy_witnessOf {input : PublicInput} (hs : s.Admissible prog)
     (h : M3Holds (leanIsaInstance F prog s) input q) :
     SatisfiedBy prog input (witnessOf F prog s q) := by
   obtain ⟨hcv, hbal, hcnt, hpl, haux⟩ := h
-  have hmax : s.logMem ≤ maxLogMem := hs.2.1
-  have hA := agrees_witnessOf F prog s q
-  have hpairs := (balanced_iff_pairs hA).mp hbal
-  have himg := imageOf_witnessOf F prog s q hmax
+  have hA := agrees_witnessOf F prog s q hs.fits
+  have hcaps := caps_witnessOf F prog s q hs
+  have himg := imageOf_witnessOf F prog s q hs.2.1
   obtain ⟨c00, c01, c10, c11, c20, c21⟩ := publicLines_cells F prog s q hpl
-  have hκ : s.logMem < 64 := lt_of_le_of_lt hmax (by decide)
-  refine ⟨?_, constraints_witnessOf F prog s q hcv, hpairs 0, hpairs 1, hpairs 2,
-    (countsNonzero_iff hA).mpr hcnt, caps_witnessOf F prog s q hs, ?_, ?_, ⟨_, rfl⟩,
-    blake2sRowsValid_witnessOf F prog s q haux, ?_, ?_⟩
+  have hκ : s.logMem < 64 := hs.fits.1
+  refine ⟨?_, constraints_witnessOf F prog s q hs.fits hcv,
+    (balanced_multiset_iff _).mpr ⟨interactionsWith_length_lt hcaps,
+      (balanced_iff_channels hA).mp hbal⟩,
+    (countsNonzero_iff hA).mpr hcnt, hcaps, blake2sRowsValid_witnessOf F prog s q haux, ?_, ?_⟩
   · show publicInputOf F prog s q = PublicIO.ofInput input
     rw [publicInputOf, PublicIO.ofInput, c00, c01, c10, c11]
-  · intro i hi
-    show (memRowAt _ ((memBlockRowsOf F prog s q)[i]'hi)).idx = gpow i
-    simp only [memBlockRowsOf, List.getElem_ofFn, memRowAt_toElements]
-  · rw [seedRows_iff, himg]
-    refine ⟨fun x ↦ gpow x, fun x ↦ cell F prog s q (memCol 3) x, ?_⟩
-    show memBlockRowsOf F prog s q = _
-    simp only [memBlockRowsOf, imageWord, limb_ofLimbs]
-    rfl
   · rw [himg]
     have := MemImage.read_gpow hκ (imageWord F prog s q) ⟨0, Nat.two_pow_pos _⟩
     refine this.trans ?_
