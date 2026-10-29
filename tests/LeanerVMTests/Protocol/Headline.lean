@@ -327,16 +327,23 @@ example (proof : Proof PrunedMerklePaths) (log : hashSpec.QueryLog) :
 /-! ## Completeness from an execution -/
 
 /- **The completeness headline at an instance**: its hypotheses hold of the one-step trace of
-well-formed bytecode in the completeness tests, so its conclusion is not vacuous there. -/
+well-formed bytecode in the completeness tests, so its conclusion is not vacuous there, the
+conjunct on when `prove` returns a proof included. -/
 example : ∃ t' : Trace ladderJumpProg, t'.PaddedFrom badTrace ∧
     ValidExecution ladderJumpProg badInput t' ∧
       ∃ w : Air.Flat.EnsembleWitness (leanIsaEnsemble ladderJumpProg t'.κ),
-        SatisfiedBy ladderJumpProg badInput w ∧ AssignmentRepresents w t' ∧ ∀ fuel ρ,
-          (∀ proof, prove fuel ladderJumpProg badInput w ρ = some proof →
-            verify ladderJumpProg badInput proof = true) ∧
-          (prove fuel ladderJumpProg badInput w ρ = none → ∃ s, Sizes.ofWitness w = some s ∧
-            (maxMu < leanIsaμ ladderJumpProg s ∨ ¬ validRate ρ ∨
-              ∃ fs : FsState, Id.run (fs.grind blake2sBytes fuel queryGrindingBits) = none)) :=
+        SatisfiedBy ladderJumpProg badInput w ∧ AssignmentRepresents w t' ∧
+          ∃ s, Sizes.ofWitness w = some s ∧ ∀ fuel ρ,
+            (∀ proof, prove fuel ladderJumpProg badInput w ρ = some proof →
+              verify ladderJumpProg badInput proof = true) ∧
+            (prove fuel ladderJumpProg badInput w ρ = none →
+              maxMu < leanIsaμ ladderJumpProg s ∨ ¬ validRate ρ ∨
+                ∃ fs, ProveReaches fuel ladderJumpProg badInput w ρ fs ∧
+                  Id.run (fs.grind blake2sBytes fuel queryGrindingBits) = none) ∧
+            (leanIsaμ ladderJumpProg s ≤ maxMu → validRate ρ →
+              (∀ fs, ProveReaches fuel ladderJumpProg badInput w ρ fs →
+                Id.run (fs.grind blake2sBytes fuel queryGrindingBits) ≠ none) →
+              prove fuel ladderJumpProg badInput w ρ ≠ none) :=
   prove_complete_of_execution ladderJump_wellFormed badTrace_valid badTrace_fits
 
 /-! ## The adaptive theorems -/

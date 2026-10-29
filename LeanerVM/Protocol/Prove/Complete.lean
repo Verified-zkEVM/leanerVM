@@ -42,10 +42,13 @@ The proof:
    shapes and the stream and the openings are consumed.
 
 `proveWith_eq_none`: the prover returns no proof only when the witness gives no sizes, its sizes
-are not admissible, the rate is not valid, or a grind finds no nonce within its fuel at some chain
-state. Every round of the wire runs when the grinds do (`Prover.runWith_total`), and the book
-keeps as many commitments as positions (`book_compiled`), so the openings' size check never
-fails. So the hypothesis that the prover returned a proof is met whenever the grinds succeed.
+are not admissible, the rate is not valid, or a grind finds no nonce within its fuel at a chain
+state the run reaches (`RunReaches`); `proveWith_ne_none` is the same as a sufficient condition
+for a proof. Every round of the wire but the grind runs from every state, and the grind from every
+state at which it finds a nonce, so the run returns or its first rounds reach a state at which a
+grind fails (`Prover.runWith_total_or`); the book keeps as many commitments as positions
+(`book_compiled`), so the openings' size check never fails. So the hypothesis that the prover
+returned a proof is met whenever the grinds on the run succeed.
 
 Both theorems hold from any start the prover and the verifier share
 (`baseProver_complete_of_agree_from`, `proveFrom_eq_none`); the statements from the statement's
@@ -397,15 +400,16 @@ private theorem total_send (x : E) : proveSem.Total ((proveOps H fuel).send x) :
 private theorem total_sample : proveSem.Total (proveOps H fuel).sample :=
   total_lift fun _ ↦ ⟨_, _, rfl⟩
 
-private theorem total_grind
-    (hg : ∀ fs : FsState, Id.run (fs.grind H fuel queryGrindingBits) ≠ none) :
-    proveSem.Total (proveOps H fuel).grind := by
-  refine total_lift fun ws ↦ ?_
-  rcases hq : Id.run (ws.fs.grind H fuel queryGrindingBits) with _ | ⟨nonce, fs'⟩
-  · exact absurd hq (hg _)
-  · refine ⟨(), { ws with fs := fs', stream := ws.stream.push nonce }, ?_⟩
+/-- The grind runs from every state at which it finds a nonce among its `fuel` candidates. -/
+private theorem runs_grind_or (st : PState) :
+    (∃ a s', proveSem.Runs (proveOps H fuel).grind st a s') ∨
+      Id.run (st.2.fs.grind H fuel queryGrindingBits) = none := by
+  rcases hq : Id.run (st.2.fs.grind H fuel queryGrindingBits) with _ | ⟨nonce, fs'⟩
+  · exact .inr rfl
+  · refine .inl ⟨(), (st.1, { st.2 with fs := fs', stream := st.2.stream.push nonce }),
+      runs_lift.mpr ⟨rfl, ?_⟩⟩
     simp [Writer.grind, StateT.run_bind,
-      show ws.fs.grind (m := Id) H fuel queryGrindingBits = Pure.pure (some (nonce, fs'))
+      show st.2.fs.grind (m := Id) H fuel queryGrindingBits = Pure.pure (some (nonce, fs'))
         from hq]
     rfl
 
@@ -437,50 +441,6 @@ private theorem total_positions (depth t : ℕ) :
     proveSem.Total (positions (proveOps H fuel) depth t) :=
   total_bind (total_positionsWith H fuel depth t t) fun ps ↦
     total_bind (total_record H fuel ps) fun _ ↦ total_pure _
-
-/-- Every round of a wire runs from every state. -/
-private abbrev Every {n : ℕ} {pSpec : ProtocolSpec n} (c : RoundCodec (ProveM Id) pSpec) : Prop :=
-  RoundCodec.Every (fun _ x ↦ proveSem.Total x) c
-
-/-- Every round of each phase's wire runs from every state. -/
-private theorem every_bus (I : M3Instance) : Every (busCodec (proveOps H fuel) I) :=
-  (((RoundCodec.every_chal (total_bind (total_samples H fuel 4) fun _ ↦
-      total_bind (total_sample H fuel) fun _ ↦ total_pure _)).append
-    (RoundCodec.every_msg fun _ ↦ total_bind (total_send H fuel _) fun _ ↦
-      total_send H fuel _)).append
-    (RoundCodec.every_gkr I.μBus (fun _ ↦ total_sendAll H fuel _) (fun _ ↦ total_sendAll H fuel _)
-      (fun _ ↦ total_sendAll H fuel _) (fun _ ↦ total_sendAll H fuel _)
-      (total_sample H fuel))).append
-    (RoundCodec.every_msg fun _ ↦ total_sendAll H fuel _)
-
-private theorem every_table (I : M3Instance) : Every (tableCodec (proveOps H fuel) I) :=
-  ((RoundCodec.every_chal (total_sample H fuel)).append
-    (RoundCodec.every_rounds (fun _ ↦ total_sendAll H fuel _) (total_sample H fuel) _)).append
-    (RoundCodec.every_msg fun _ ↦ total_sendAll H fuel _)
-
-private theorem every_pub : Every (pubCodec (proveOps H fuel)) :=
-  ⟨fun i h x ↦ (match i, h, x with
-    | ⟨0, _⟩, h, _ => nomatch h
-    | ⟨1, _⟩, _, xs => total_sendAll H fuel xs), fun i h ↦ match i, h with
-    | ⟨0, _⟩, _ => total_sample H fuel
-    | ⟨1, _⟩, h => nomatch h⟩
-
-private theorem every_flockOf (k : ℕ) : Every (flockCodecOf (proveOps H fuel) k) :=
-  (((((((((RoundCodec.every_chals (total_sample H fuel) (k + 1)).append
-    (RoundCodec.every_msg fun _ ↦ total_sendAll H fuel _)).append
-    (RoundCodec.every_chal (total_sample H fuel))).append
-    (RoundCodec.every_rounds (fun _ ↦ total_sendAll H fuel _) (total_sample H fuel) 8)).append
-    (RoundCodec.every_rounds (fun _ ↦ total_sendAll H fuel _) (total_sample H fuel) k)).append
-    (RoundCodec.every_msg fun _ ↦ total_sendAll H fuel _)).append
-    (RoundCodec.every_chal (total_sample H fuel))).append
-    (RoundCodec.every_rounds (fun _ ↦ total_sendAll H fuel _) (total_sample H fuel) 8)).append
-    (RoundCodec.every_msg fun _ ↦ total_sendAll H fuel _)).append
-    (RoundCodec.every_chals (total_sample H fuel) 6)
-
-private theorem every_flockOpt (I : M3Instance) :
-    ∀ o, Every (flockCodecOpt (proveOps H fuel) I o)
-  | none => RoundCodec.every_empty
-  | some r => every_flockOf H fuel r.kBatch
 
 /-- The openings' loop runs from every state. -/
 private theorem total_forIn_openings : ∀ l : List ((Σ k, MerkleCommitment k) × List ℕ),
@@ -518,124 +478,220 @@ private theorem runProofFrom_of_runs {seed : Id FsState} {wr : ProveM Id Unit} {
     some (((), s'.1), s'.2) from h]
   rfl
 
-variable (hg : ∀ fs : FsState, Id.run (fs.grind H fuel queryGrindingBits) ≠ none)
-include hg
+section Every
 
-/-- WHIR's levels run from every state when no grind runs out of fuel. -/
+/-! A property `P` of every round of a wire, given that every computation running from every state
+has it and the grind has it. -/
+
+variable {P : ∀ α : Type, ProveM Id α → Prop}
+  (hP : ∀ {α : Type} {x : ProveM Id α}, proveSem.Total x → P α x)
+include hP
+
+/-- The writer's primitives but the grind, and their sequences, have the property `P`. -/
+private theorem p_sample : P E (proveOps H fuel).sample := hP (total_sample H fuel)
+
+private theorem p_sendAll (l : List E) : P Unit (sendAll (proveOps H fuel) l) :=
+  hP (total_sendAll H fuel l)
+
+/-- Every round of each phase's wire has the property `P`. -/
+private theorem every_bus (I : M3Instance) : RoundCodec.Every P (busCodec (proveOps H fuel) I) :=
+  (((RoundCodec.every_chal (hP (total_bind (total_samples H fuel 4) fun _ ↦
+      total_bind (total_sample H fuel) fun _ ↦ total_pure _))).append
+    (RoundCodec.every_msg fun _ ↦ hP (total_bind (total_send H fuel _) fun _ ↦
+      total_send H fuel _))).append
+    (RoundCodec.every_gkr I.μBus (fun _ ↦ p_sendAll H fuel hP _) (fun _ ↦ p_sendAll H fuel hP _)
+      (fun _ ↦ p_sendAll H fuel hP _) (fun _ ↦ p_sendAll H fuel hP _) (p_sample H fuel hP))).append
+    (RoundCodec.every_msg (fun _ ↦ p_sendAll H fuel hP _))
+
+private theorem every_table (I : M3Instance) :
+    RoundCodec.Every P (tableCodec (proveOps H fuel) I) :=
+  ((RoundCodec.every_chal (p_sample H fuel hP)).append
+    (RoundCodec.every_rounds (fun _ ↦ p_sendAll H fuel hP _) (p_sample H fuel hP) _)).append
+    (RoundCodec.every_msg (fun _ ↦ p_sendAll H fuel hP _))
+
+private theorem every_pub : RoundCodec.Every P (pubCodec (proveOps H fuel)) :=
+  ⟨fun i h x ↦ (match i, h, x with
+    | ⟨0, _⟩, h, _ => nomatch h
+    | ⟨1, _⟩, _, xs => p_sendAll H fuel hP xs), fun i h ↦ match i, h with
+    | ⟨0, _⟩, _ => p_sample H fuel hP
+    | ⟨1, _⟩, h => nomatch h⟩
+
+private theorem every_flockOf (k : ℕ) : RoundCodec.Every P (flockCodecOf (proveOps H fuel) k) :=
+  (((((((((RoundCodec.every_chals (p_sample H fuel hP) (k + 1)).append
+    (RoundCodec.every_msg (fun _ ↦ p_sendAll H fuel hP _))).append
+    (RoundCodec.every_chal (p_sample H fuel hP))).append
+    (RoundCodec.every_rounds (fun _ ↦ p_sendAll H fuel hP _) (p_sample H fuel hP) 8)).append
+    (RoundCodec.every_rounds (fun _ ↦ p_sendAll H fuel hP _) (p_sample H fuel hP) k)).append
+    (RoundCodec.every_msg (fun _ ↦ p_sendAll H fuel hP _))).append
+    (RoundCodec.every_chal (p_sample H fuel hP))).append
+    (RoundCodec.every_rounds (fun _ ↦ p_sendAll H fuel hP _) (p_sample H fuel hP) 8)).append
+    (RoundCodec.every_msg (fun _ ↦ p_sendAll H fuel hP _))).append
+    (RoundCodec.every_chals (p_sample H fuel hP) 6)
+
+private theorem every_flockOpt (I : M3Instance) :
+    ∀ o, RoundCodec.Every P (flockCodecOpt (proveOps H fuel) I o)
+  | none => RoundCodec.every_empty
+  | some r => every_flockOf H fuel hP r.kBatch
+
+variable (hgr : P Unit (proveOps H fuel).grind)
+include hgr
+
+/-- WHIR's levels have the property `P` when the grind does. -/
 private theorem every_ladder : ∀ {sh : Whir.Shape} {κ : ℕ} (L : Ladder sh κ),
-    Every (ladderCodec (proveOps H fuel) L)
+    RoundCodec.Every P (ladderCodec (proveOps H fuel) L)
   | _, _, .last sh nf =>
-    (RoundCodec.every_chal (total_sample H fuel)).append <|
-    (RoundCodec.every_rounds (fun _ ↦ total_sendAll H fuel _) (total_sample H fuel) _).append <|
-    (RoundCodec.every_msg fun _ ↦ total_sendAll H fuel _).append <|
-    (RoundCodec.every_msg fun _ ↦ total_sendAll H fuel _).append <|
-    (RoundCodec.every_msg fun _ ↦ total_grind H fuel hg).append <|
-    (RoundCodec.every_chal (total_positions H fuel _ _)).append <|
-    (RoundCodec.every_chal (total_sample H fuel)).append <|
+    (RoundCodec.every_chal (p_sample H fuel hP)).append <|
+    (RoundCodec.every_rounds (fun _ ↦ p_sendAll H fuel hP _) (p_sample H fuel hP) _).append <|
+    (RoundCodec.every_msg (fun _ ↦ p_sendAll H fuel hP _)).append <|
+    (RoundCodec.every_msg (fun _ ↦ p_sendAll H fuel hP _)).append <|
+    (RoundCodec.every_msg fun _ ↦ hgr).append <|
+    (RoundCodec.every_chal (hP (total_positions H fuel _ _))).append <|
+    (RoundCodec.every_chal (p_sample H fuel hP)).append <|
     RoundCodec.every_empty.append <|
-    (RoundCodec.every_msg fun _ ↦ total_sendAll H fuel _).append <|
+    (RoundCodec.every_msg (fun _ ↦ p_sendAll H fuel hP _)).append <|
     RoundCodec.every_empty.append <|
-    (RoundCodec.every_chal (total_sample H fuel)).append <|
-    (RoundCodec.every_rounds (fun _ ↦ total_sendAll H fuel _) (total_sample H fuel) _).append
+    (RoundCodec.every_chal (p_sample H fuel hP)).append <|
+    (RoundCodec.every_rounds (fun _ ↦ p_sendAll H fuel hP _) (p_sample H fuel hP) _).append
       RoundCodec.every_empty
   | _, _, @Ladder.cons sh sh' κ' L =>
-    (RoundCodec.every_chal (total_sample H fuel)).append <|
-    (RoundCodec.every_rounds (fun _ ↦ total_sendAll H fuel _) (total_sample H fuel) _).append <|
-    (RoundCodec.every_msg fun _ ↦ total_sendAll H fuel _).append <|
-    (RoundCodec.every_msg fun _ ↦ total_commit H fuel _ _ _).append <|
-    (RoundCodec.every_chals (total_sample H fuel) _).append <|
-    (RoundCodec.every_msg (total_send H fuel)).append <|
-    (RoundCodec.every_msg fun _ ↦ total_sendAll H fuel _).append <|
-    (RoundCodec.every_msg fun _ ↦ total_grind H fuel hg).append <|
-    (RoundCodec.every_chal (total_positions H fuel _ _)).append <|
-    (RoundCodec.every_chal (total_sample H fuel)).append <|
+    (RoundCodec.every_chal (p_sample H fuel hP)).append <|
+    (RoundCodec.every_rounds (fun _ ↦ p_sendAll H fuel hP _) (p_sample H fuel hP) _).append <|
+    (RoundCodec.every_msg (fun _ ↦ p_sendAll H fuel hP _)).append <|
+    (RoundCodec.every_msg fun _ ↦ hP (total_commit H fuel _ _ _)).append <|
+    (RoundCodec.every_chals (p_sample H fuel hP) _).append <|
+    (RoundCodec.every_msg fun _ ↦ hP (total_send H fuel _)).append <|
+    (RoundCodec.every_msg (fun _ ↦ p_sendAll H fuel hP _)).append <|
+    (RoundCodec.every_msg fun _ ↦ hgr).append <|
+    (RoundCodec.every_chal (hP (total_positions H fuel _ _))).append <|
+    (RoundCodec.every_chal (p_sample H fuel hP)).append <|
     RoundCodec.every_empty.append <|
-    (RoundCodec.every_msg fun _ ↦ total_sendAll H fuel _).append <|
+    (RoundCodec.every_msg (fun _ ↦ p_sendAll H fuel hP _)).append <|
     RoundCodec.every_empty.append (every_ladder L)
 
-/-- Every round of the wire of the compiled schedule runs from every state when no grind runs out
-of fuel. -/
+/-- Every round of the wire of the compiled schedule has the property `P` when the grind does. -/
 private theorem every_compiled (I : M3Instance) (n : ℕ) {sh : Whir.Shape} {κ : ℕ}
-    (L : Ladder sh κ) : Every (compiledCodec (proveOps H fuel) I n L) :=
-  (((((((RoundCodec.every_sendOne fun _ ↦ total_commit H fuel _ _ _).append
-    (every_bus H fuel I)).append (every_table H fuel I)).append (every_pub H fuel)).append
-    (every_flockOpt H fuel I I.flock)).append
-    (RoundCodec.every_chal (total_sample H fuel))).append RoundCodec.every_empty).append
-    (RoundCodec.every_empty.append ((RoundCodec.every_msg fun _ ↦ total_sendAll H fuel _).append
-      (every_ladder H fuel hg L)))
+    (L : Ladder sh κ) : RoundCodec.Every P (compiledCodec (proveOps H fuel) I n L) :=
+  (((((((RoundCodec.every_sendOne fun _ ↦ hP (total_commit H fuel _ _ _)).append
+    (every_bus H fuel hP I)).append (every_table H fuel hP I)).append
+    (every_pub H fuel hP)).append (every_flockOpt H fuel hP I I.flock)).append
+    (RoundCodec.every_chal (p_sample H fuel hP))).append RoundCodec.every_empty).append
+    (RoundCodec.every_empty.append ((RoundCodec.every_msg (fun _ ↦ p_sendAll H fuel hP _)).append
+      (every_ladder H fuel hP hgr L)))
+
+end Every
 
 end Total
 
+/-- A writer run from a chain state with an empty book, read off the prover's run. -/
+private theorem runWrite_of_runs {α : Type} {x : ProveM Id α} {fs : FsState} {a : α} {s' : PState}
+    (h : proveSem.Runs x (⟨#[], #[]⟩, ⟨fs, #[], #[]⟩) a s') :
+    runWrite (m := Id) (x.run' ⟨#[], #[]⟩) fs = some (a, s'.2) := by
+  unfold runWrite
+  simp only [StateT.run'_eq, StateT.run_map, OptionT.run_map]
+  rw [show ((x.run ⟨#[], #[]⟩).run ⟨fs, #[], #[]⟩).run = some ((a, s'.1), s'.2) from h]
+  rfl
+
+/-- **The honest prover returns a proof, or a grind on its run runs out of fuel**, from every
+start, at sizes admissible with the rate, whatever the hash and the Flock specification. -/
+private theorem proveFrom_some_or (H : List UInt8 → Digest) (seed : Id FsState) (fuel : ℕ)
+    (F : FlockSpec) {prog : Program} {input : PublicInput} {κ : ℕ}
+    {w : EnsembleWitness (leanIsaEnsemble prog κ)} {ρ : ℕ} {s : Sizes}
+    (hws : Sizes.ofWitness w = some s) (hs : s.Admissible prog) (hρ : validRate ρ) :
+    (∃ proof, proveFrom (m := Id) H seed fuel F prog input w ρ = some proof) ∨
+      ∃ fs, RunReaches H seed fuel F prog input w ρ fs ∧
+        Id.run (fs.grind H fuel queryGrindingBits) = none := by
+  obtain ⟨u₁, s₁, h₁⟩ := total_lift (fun ws ↦ addScalars_some H (announcement s ρ) ws)
+    ((⟨#[], #[]⟩, ⟨Id.run seed, #[], #[]⟩) : PState)
+  rcases Prover.runWith_total_or proveSem _
+    (compiledProver (leanIsaInstance F prog s) (leanIsa_conditions F prog s)
+      (leanIsaChain_height F prog s hs ρ hρ) (leanIsaChain prog s hs ρ hρ).ladder
+      ((leanIsaChain prog s hs ρ hρ).ladder.headPar (leanIsaChain prog s hs ρ hρ).pars).hb)
+    (fun st ↦ Id.run (st.2.fs.grind H fuel queryGrindingBits) = none)
+    (fun _ _ ↦ rfl) (fun h₁ h₂ ↦ runs_bind h₁ h₂)
+    (every_compiled H fuel
+      (P := fun _ x ↦ ∀ st, (∃ a s', proveSem.Runs x st a s') ∨
+        Id.run (st.2.fs.grind H fuel queryGrindingBits) = none)
+      (fun h st ↦ .inl (h st)) (runs_grind_or H fuel) _
+      (Verify.nLanes prog s) (leanIsaChain prog s hs ρ hρ).ladder)
+    (input, fun i ↦ i.elim0) (stackOf F prog s w) s₁ with ⟨r, s₂, h₂⟩ | ⟨i, r, s₂, h₂, hbad⟩
+  · refine .inl ?_
+    obtain ⟨-, -, -, hok, -⟩ := leanIsaChain_walk hs hρ
+    have hsz := book_compiled H fuel _ _ _ (fun x hx ↦ (hok x hx).2)
+      (Prover.runWith_runsAs proveSem _ _ _ _ h₂) (by rw [(runs_lift.mp h₁).1]; rfl)
+    obtain ⟨s₃, h₃⟩ := runs_hintOpenings_of_size hsz
+    have hrun : proveSem.Runs (writeProof (m := Id) H (proveOps H fuel) F prog s hs ρ hρ input
+        (stackOf F prog s w)) _ () s₃ := runs_bind h₁ (runs_bind h₂ h₃)
+    unfold proveFrom
+    rw [hws]
+    dsimp only
+    split_ifs with hsρ
+    · rw [runProofFrom_of_runs hrun]
+      exact ⟨_, rfl⟩
+    · exact absurd ⟨hs, hρ⟩ hsρ
+  · exact .inr ⟨s₂.2.fs, ⟨s, hws, hs, hρ, i, r, s₂.2, runWrite_of_runs (runs_bind h₁ h₂), rfl⟩,
+      hbad⟩
+
 /-- **The honest prover returns a proof** from every start when the witness gives sizes
-admissible with the rate and no grind runs out of fuel, whatever the hash and the Flock
-specification. -/
+admissible with the rate and no grind runs out of fuel at a chain state its run reaches, whatever
+the hash and the Flock specification. -/
 theorem proveFrom_ne_none (H : List UInt8 → Digest) (seed : Id FsState) (fuel : ℕ) (F : FlockSpec)
     {prog : Program} {input : PublicInput}
     {κ : ℕ} {w : EnsembleWitness (leanIsaEnsemble prog κ)} {ρ : ℕ}
     {s : Sizes} (hws : Sizes.ofWitness w = some s) (hs : s.Admissible prog) (hρ : validRate ρ)
-    (hg : ∀ fs : FsState, Id.run (fs.grind H fuel queryGrindingBits) ≠ none) :
+    (hg : ∀ fs, RunReaches H seed fuel F prog input w ρ fs →
+      Id.run (fs.grind H fuel queryGrindingBits) ≠ none) :
     proveFrom (m := Id) H seed fuel F prog input w ρ ≠ none := by
-  unfold proveFrom
-  rw [hws]
-  dsimp only
-  split_ifs with hsρ
-  swap
-  · exact absurd ⟨hs, hρ⟩ hsρ
-  obtain ⟨u₁, s₁, h₁⟩ := total_lift (fun ws ↦ addScalars_some H (announcement s ρ) ws)
-    ((⟨#[], #[]⟩, ⟨Id.run seed, #[], #[]⟩) : PState)
-  obtain ⟨r, s₂, h₂⟩ := Prover.runWith_total proveSem _
-    (compiledProver (leanIsaInstance F prog s) (leanIsa_conditions F prog s)
-      (leanIsaChain_height F prog s hs ρ hρ) (leanIsaChain prog s hs ρ hρ).ladder
-      ((leanIsaChain prog s hs ρ hρ).ladder.headPar (leanIsaChain prog s hs ρ hρ).pars).hb)
-    (fun _ _ ↦ rfl) (fun h₁ h₂ ↦ runs_bind h₁ h₂)
-    (every_compiled H fuel hg _ (Verify.nLanes prog s) (leanIsaChain prog s hs ρ hρ).ladder)
-    (input, fun i ↦ i.elim0) (stackOf F prog s w) s₁
-  obtain ⟨-, -, -, hok, -⟩ := leanIsaChain_walk hs hρ
-  have hsz := book_compiled H fuel _ _ _ (fun x hx ↦ (hok x hx).2)
-    (Prover.runWith_runsAs proveSem _ _ _ _ h₂) (by rw [(runs_lift.mp h₁).1]; rfl)
-  obtain ⟨s₃, h₃⟩ := runs_hintOpenings_of_size hsz
-  have hrun : proveSem.Runs (writeProof (m := Id) H (proveOps H fuel) F prog s hs ρ hρ input
-      (stackOf F prog s w)) _ () s₃ := runs_bind h₁ (runs_bind h₂ h₃)
-  rw [runProofFrom_of_runs hrun]
-  exact Option.some_ne_none _
+  rcases proveFrom_some_or H seed fuel F hws hs hρ with ⟨_, hp⟩ | ⟨fs, hr, hn⟩
+  · rw [hp]
+    exact Option.some_ne_none _
+  · exact absurd hn (hg fs hr)
 
 /-- **The honest prover returns a proof** when the witness gives sizes admissible with the rate
-and no grind runs out of fuel, whatever the hash and the Flock specification. -/
+and no grind runs out of fuel at a chain state its run reaches, whatever the hash and the Flock
+specification. -/
 theorem proveWith_ne_none (H : List UInt8 → Digest) (fuel : ℕ) (F : FlockSpec) {prog : Program}
     {input : PublicInput} {κ : ℕ} {w : EnsembleWitness (leanIsaEnsemble prog κ)} {ρ : ℕ}
     {s : Sizes} (hws : Sizes.ofWitness w = some s) (hs : s.Admissible prog) (hρ : validRate ρ)
-    (hg : ∀ fs : FsState, Id.run (fs.grind H fuel queryGrindingBits) ≠ none) :
+    (hg : ∀ fs, RunReaches H (FsState.seedWith H prog input) fuel F prog input w ρ fs →
+      Id.run (fs.grind H fuel queryGrindingBits) ≠ none) :
     proveWith (m := Id) H fuel F prog input w ρ ≠ none :=
   proveFrom_ne_none H (FsState.seedWith (m := Id) H prog input) fuel F hws hs hρ hg
 
 /-- **When the honest prover returns no proof** from a start: the witness gives no sizes, or its
-sizes are not admissible, or the rate is not valid, or the grind runs out of fuel at some chain
-state. The openings' check that the commitments and the positions kept are as many never
-fails. -/
+sizes are not admissible, or the rate is not valid, or a grind finds no nonce among its `fuel`
+candidates at a chain state the prover's run reaches (`RunReaches`). The openings' check that the
+commitments and the positions kept are as many never fails. -/
 theorem proveFrom_eq_none (H : List UInt8 → Digest) (seed : Id FsState) (fuel : ℕ) (F : FlockSpec)
     {prog : Program} {input : PublicInput}
     {κ : ℕ} {w : EnsembleWitness (leanIsaEnsemble prog κ)} {ρ : ℕ}
     (h : proveFrom (m := Id) H seed fuel F prog input w ρ = none) :
     Sizes.ofWitness w = none ∨ ∃ s, Sizes.ofWitness w = some s ∧
-      (¬ s.Admissible prog ∨ ¬ validRate ρ ∨
-        ∃ fs : FsState, Id.run (fs.grind H fuel queryGrindingBits) = none) := by
+      (¬ s.Admissible prog ∨ ¬ validRate ρ ∨ ∃ fs, RunReaches H seed fuel F prog input w ρ fs ∧
+        Id.run (fs.grind H fuel queryGrindingBits) = none) := by
   rcases hws : Sizes.ofWitness w with _ | s
-  · exact Or.inl rfl
-  refine Or.inr ⟨s, rfl, ?_⟩
-  by_contra hc
-  simp only [not_or, not_not, not_exists] at hc
-  obtain ⟨hs, hρ, hg⟩ := hc
-  exact proveFrom_ne_none H seed fuel F hws hs hρ hg h
+  · exact .inl rfl
+  refine .inr ⟨s, rfl, ?_⟩
+  by_cases hs : s.Admissible prog
+  · by_cases hρ : validRate ρ
+    · refine .inr (.inr ?_)
+      rcases proveFrom_some_or H seed fuel F hws hs hρ with ⟨_, hp⟩ | hr
+      · rw [hp] at h
+        cases h
+      · exact hr
+    · exact .inr (.inl hρ)
+  · exact .inl hs
 
 /-- **When the honest prover returns no proof**: the witness gives no sizes, or its sizes are
-not admissible, or the rate is not valid, or the grind runs out of fuel at some chain state. The
-openings' check that the commitments and the positions kept are as many never fails. -/
+not admissible, or the rate is not valid, or a grind finds no nonce among its `fuel` candidates at
+a chain state the prover's run reaches (`RunReaches`). The openings' check that the commitments
+and the positions kept are as many never fails. -/
 theorem proveWith_eq_none (H : List UInt8 → Digest) (fuel : ℕ) (F : FlockSpec) {prog : Program}
     {input : PublicInput} {κ : ℕ} {w : EnsembleWitness (leanIsaEnsemble prog κ)} {ρ : ℕ}
     (h : proveWith (m := Id) H fuel F prog input w ρ = none) :
     Sizes.ofWitness w = none ∨ ∃ s, Sizes.ofWitness w = some s ∧
       (¬ s.Admissible prog ∨ ¬ validRate ρ ∨
-        ∃ fs : FsState, Id.run (fs.grind H fuel queryGrindingBits) = none) :=
+        ∃ fs, RunReaches H (FsState.seedWith H prog input) fuel F prog input w ρ fs ∧
+          Id.run (fs.grind H fuel queryGrindingBits) = none) :=
   proveFrom_eq_none H (FsState.seedWith (m := Id) H prog input) fuel F h
 
 end Prove

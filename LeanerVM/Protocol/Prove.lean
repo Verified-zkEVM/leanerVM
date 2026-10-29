@@ -36,6 +36,9 @@ in a monad `m`:
    (`none` when it runs out);
 4. every committed word is opened at its level's positions (`merkleOpen`), in level order.
 
+`Prove.RunReaches` names the chain states the run reaches after the announcement and its first
+rounds, among them the state every grind starts at; `ProveReaches` is it for `prove`.
+
 `prove` is `proveWith (m := Id) blake2sBytes` at the deployed Flock specification
 (`Blake2sFlock.blake2sFlockSpec`), the one `verify` reads. `honestAdversary` is the prover in
 the random-oracle game: every hash a query, an empty proof when the grinding runs out of fuel.
@@ -156,6 +159,24 @@ def proveFrom {m : Type → Type} [Monad m] (H : List UInt8 → m Digest) (seed 
         (writeProof H (proveOps H fuel) F prog s hs.1 ρ hs.2 input (stackOf F prog s w))
     else pure none
 
+/-- **A chain state the prover's run reaches** from the state `seed` computes: the witness has
+sizes `s`, admissible with the rate, and the writer, run from `seed`'s state with an empty book,
+writes the announcement and the first `i` rounds of the compiled protocol's honest prover against
+the wire, as `writeProof` writes them, ending at the chain state `fs`, for some `i`. A grind of
+the run starts at such a state. -/
+def Prove.RunReaches (H : List UInt8 → Digest) (seed : Id FsState) (fuel : ℕ) (F : FlockSpec)
+    (prog : Program) (input : PublicInput) {κ : ℕ} (w : EnsembleWitness (leanIsaEnsemble prog κ))
+    (ρ : ℕ) (fs : FsState) : Prop :=
+  ∃ s, Sizes.ofWitness w = some s ∧ ∃ (hs : s.Admissible prog) (hρ : validRate ρ), ∃ i r ws,
+    runWrite (m := Id) ((StateT.lift (Writer.announce H s ρ) >>= fun _ ↦ Prover.runToRoundWith
+      (compiledCodec (proveOps (m := Id) H fuel) (leanIsaInstance F prog s) (Verify.nLanes prog s)
+        (leanIsaChain prog s hs ρ hρ).ladder)
+      (compiledProver (leanIsaInstance F prog s) (leanIsa_conditions F prog s)
+        (leanIsaChain_height F prog s hs ρ hρ) (leanIsaChain prog s hs ρ hρ).ladder
+        ((leanIsaChain prog s hs ρ hρ).ladder.headPar (leanIsaChain prog s hs ρ hρ).pars).hb)
+      i (input, fun i ↦ i.elim0) (stackOf F prog s w)).run' ⟨#[], #[]⟩) (Id.run seed) =
+      some (r, ws) ∧ ws.fs = fs
+
 /-- **leanVM's honest prover**, generic in how the hash `H` is answered: `proveFrom` from the
 statement's seed, its three hashes answered by `H`. -/
 def proveWith {m : Type → Type} [Monad m] (H : List UInt8 → m Digest) (fuel : ℕ) (F : FlockSpec)
@@ -168,6 +189,13 @@ specification, the one `verify` reads. -/
 def prove (fuel : ℕ) (prog : Program) (input : PublicInput) {κ : ℕ}
     (w : EnsembleWitness (leanIsaEnsemble prog κ)) (ρ : ℕ) : Option (Proof PrunedMerklePaths) :=
   proveWith (m := Id) blake2sBytes fuel Blake2sFlock.blake2sFlockSpec prog input w ρ
+
+/-- **A chain state the deployed prover's run reaches**: `Prove.RunReaches` as `prove` runs, at
+BLAKE2s-256 from the statement's seed, at the deployed Flock specification. -/
+def ProveReaches (fuel : ℕ) (prog : Program) (input : PublicInput) {κ : ℕ}
+    (w : EnsembleWitness (leanIsaEnsemble prog κ)) (ρ : ℕ) (fs : FsState) : Prop :=
+  Prove.RunReaches blake2sBytes (FsState.seedWith blake2sBytes prog input) fuel
+    Blake2sFlock.blake2sFlockSpec prog input w ρ fs
 
 /-- **The honest prover as an adversary** of the random-oracle game: every hash a query; out of
 fuel, the empty proof, which `verify` rejects. -/

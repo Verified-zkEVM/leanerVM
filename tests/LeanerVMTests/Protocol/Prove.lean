@@ -18,8 +18,9 @@ which writes the test vectors and checks that `verify` accepts them. Here, inter
 * **Completeness.** `baseProver_complete_of_agree` as stated, given `PhasesAgree`, and
   `baseProver_complete` with it proved (`Compile.phasesAgree`); a stored level-0 row is read as
   the word's row exactly when the lanes past the stored ones vanish.
-* **When the prover returns no proof.** `proveWith_eq_none` as stated; at a rate outside its
-  window the prover returns no proof, before any hash.
+* **When the prover returns no proof.** `proveWith_eq_none` and `proveWith_ne_none` as stated, the
+  grind's failure at a chain state the run reaches (`RunReaches`); at a rate outside its window the
+  prover returns no proof, before any hash.
 -/
 
 namespace LeanerVMTests.Protocol.Prove
@@ -124,15 +125,29 @@ example (H : List UInt8 → Digest) (fuel : ℕ) {prog : Program} {input : Publi
 
 open LeanerVM.Protocol.LeanIsa in
 /-- When the honest prover returns no proof, as stated: the witness gives no sizes, or they are
-not admissible, or the rate is not valid, or a grind runs out of fuel; never the openings. -/
+not admissible, or the rate is not valid, or a grind runs out of fuel at a chain state the run
+reaches; never the openings. -/
 example (H : List UInt8 → Digest) (fuel : ℕ) (F : FlockSpec) {prog : Program}
     {input : PublicInput}
     {κ : ℕ} {w : Air.Flat.EnsembleWitness (LeanerVM.Arithmetization.leanIsaEnsemble prog κ)} {ρ : ℕ}
     (h : proveWith (m := Id) H fuel F prog input w ρ = none) :
     Sizes.ofWitness w = none ∨ ∃ s, Sizes.ofWitness w = some s ∧
       (¬ s.Admissible prog ∨ ¬ validRate ρ ∨
-        ∃ fs : FsState, Id.run (fs.grind H fuel Whir.queryGrindingBits) = none) :=
+        ∃ fs, RunReaches H (FsState.seedWith H prog input) fuel F prog input w ρ fs ∧
+          Id.run (fs.grind H fuel Whir.queryGrindingBits) = none) :=
   proveWith_eq_none H fuel F h
+
+open LeanerVM.Protocol.LeanIsa in
+/-- When the honest prover returns a proof, as stated: at admissible sizes and a valid rate, when
+no grind runs out of fuel at a chain state its run reaches. -/
+example (H : List UInt8 → Digest) (fuel : ℕ) (F : FlockSpec) {prog : Program}
+    {input : PublicInput}
+    {κ : ℕ} {w : Air.Flat.EnsembleWitness (LeanerVM.Arithmetization.leanIsaEnsemble prog κ)} {ρ : ℕ}
+    {s : Sizes} (hws : Sizes.ofWitness w = some s) (hs : s.Admissible prog) (hρ : validRate ρ)
+    (hg : ∀ fs, RunReaches H (FsState.seedWith H prog input) fuel F prog input w ρ fs →
+      Id.run (fs.grind H fuel Whir.queryGrindingBits) ≠ none) :
+    proveWith (m := Id) H fuel F prog input w ρ ≠ none :=
+  proveWith_ne_none H fuel F hws hs hρ hg
 
 /-! ## The setup -/
 

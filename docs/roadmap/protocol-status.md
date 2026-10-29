@@ -1235,11 +1235,14 @@ below proves.
     honest word's lanes past them vanish (`level0Word_honest`, by `runWithChallenges_append_fst`;
     `kwordOf_stackOf_high`), so the rows read are the word's.
   - *When the prover returns a proof* (`proveWith_ne_none`, `proveWith_eq_none`): every round of
-    the wire runs from every state when no grind runs out of fuel (`Prover.runWith_total`,
-    `RoundCodec.Every`, `ToArkLib/RunTrace.lean`), and the book keeps as many commitments as
-    positions (`book_compiled`), so the openings' size check never fails: `proveWith` returns
-    `none` only when the witness gives no sizes, its sizes are not admissible, the rate is not
-    valid, or a grind finds no nonce within its fuel at some chain state.
+    the wire but the grind runs from every state, the grind from every state at which it finds a
+    nonce, so the run returns or its first rounds reach a state at which a grind fails
+    (`Prover.runWith_total_or`, `RoundCodec.Every`, `ToArkLib/RunTrace.lean`); the book keeps as
+    many commitments as positions (`book_compiled`), so the openings' size check never fails:
+    `proveWith` returns `none` only when the witness gives no sizes, its sizes are not admissible,
+    the rate is not valid, or a grind finds no nonce within its fuel at a chain state the run
+    reaches (`Prove.RunReaches`: the writer's state after the announcement and some first rounds
+    of the compiled protocol's honest prover).
   - Owed: the honest prover's query bound and the random-oracle bound on a grind running out of
     fuel; the headline's branch below states both.
 
@@ -1336,7 +1339,8 @@ query bound. `prove_complete` is completeness for the deployed pair, `Prove.base
 BLAKE2s: for a witness with `SatisfiedBy`, `prove fuel prog input w ρ = some proof → verify prog
 input proof = true`. `prove` returns no proof in four cases only (`Prove.proveWith_eq_none`): the
 witness's memory log-size is `0`, so `Sizes.ofWitness` reads no sizes; the sizes are not admissible;
-the rate is not valid; or a grind finds no nonce among its `fuel` candidates at some chain state.
+the rate is not valid; or a grind finds no nonce among its `fuel` candidates at a chain state the
+prover's run reaches (`ProveReaches`); `prove_ne_none` says the same as a sufficient condition.
 `mem_support_runBlake2s` and `mem_support_runRandom` make every run under either oracle a possible
 run of the game with a consistent joint log, and under BLAKE2s give it `verify`'s verdict; on such a
 run `Core.core_of_mem_support` puts an accepted proof whose extraction fails inside
@@ -1481,15 +1485,24 @@ adversary's queries a `ValidExecution`; new are `baseVerifier_extractsExecution_
 `baseVerifier_extractsWitness…` forms stay as the constraint forms they are proved from.
 Completeness: `prove_complete_of_execution`, for `WellFormedBytecode` (now with the fill blocks)
 and a valid execution that `Fits`, gives a padding with the same steps, valid, and a witness of the
-constraint statement representing it on which every proof `prove` returns is accepted, with
-`prove_eq_none` saying when `prove` returns none: the stack above `2^maxMu`, an invalid rate, or a
-grind out of fuel (`admissible_iff_of_satisfiedBy`: the statement's caps give the rest). The
+constraint statement representing it, with sizes `s`, on which every proof `prove` returns is
+accepted; `prove` returns none only when the stack is above `2^maxMu`, the rate is invalid, or a
+grind runs out of fuel at a chain state the prover's run reaches (`ProveReaches`), and returns a
+proof when none of these holds (`prove_eq_none`, `prove_ne_none`;
+`admissible_iff_of_satisfiedBy`: the statement's caps give the rest of admissibility). The
 witness exists and is not computed (leanISA's padded witness reads the image through the classical
 `MemImage.read`). The stack's statements took the κ of `leanIsaEnsemble prog κ`; the DEREF reads
 stay in the Rust's flush order, to which leanISA's completeness rows were brought; the separator
-check of the bytecode blocks reads one channel. Owed: that a fitting execution's witness has its
-stack within `2^maxMu`, and the grind's random-oracle bound above, without which completeness
-says nothing of how often `prove` returns a proof.
+check of the bytecode blocks reads one channel. Owed, for an unconditional "`prove` returns a
+proof":
+  - a fit at the level of `Sizes`: `Trace.Fits` bounds the memory and each table, not the stack.
+    `prove` returns none at every fuel and rate for every `t.κ ≥ 26`, because the witness's four
+    memory columns at height `2^(t.κ+1)` hold `2^(t.κ+3)` cells, above `2^maxMu = 2^28`; more
+    generally whenever the filled tables exceed `2^28` cells, within the per-table cap `2^32`. A
+    resource hypothesis on the trace that bounds `leanIsaμ` closes it;
+  - the honest grind bound above: for `honestAdversary` under `runRandom`, the probability that a
+    grind runs out of fuel is at most `grinds · (1 − 2^-17)^fuel`. No deterministic form at
+    BLAKE2s can drop the grind clause: a fixed function can fail a grind at any given fuel.
 
 ## Upstream watch
 
