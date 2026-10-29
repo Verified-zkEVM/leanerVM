@@ -97,9 +97,13 @@ def maxLogInvRate : ℕ := 4
 
 /-- Out-of-domain samples taken after a level's commitment: none at level 0, whose commitment the
 opening's own evaluation claim binds, and one at every later level (`whir_config.rs:108-115`).
-The Rust production test fixes the count for stack sizes 22 to 28 (`whir_config.rs:1021, 1033`);
-for 15 to 21 it is the second verifier's, which takes one sample per level after the first
-(`verifier.py:1033-1037`). -/
+The Rust derives the count at each later level as the fewest samples `s ∈ 1..8` whose
+out-of-domain bits `s·(192 − log μ) − (2 log L − 1)` clear 128 (`optimize_johnson_level`,
+`whir_config.rs:677-685`), and its production test fixes the result at one for stack sizes 22
+to 28 (`whir_config.rs:1021, 1033`); the second verifier takes one sample per level after the
+first (`verifier.py:1033-1037`). `scripts/whir-mca-budget.py`, which reproduces the Rust's
+search at its `η`, finds one sample at all 168 later levels of the window, one sample giving
+between 150.4 and 172.4 bits. -/
 def oodSamples (level : ℕ) : ℕ := if level = 0 then 0 else 1
 
 /-! ## The ladder -/

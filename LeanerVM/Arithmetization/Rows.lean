@@ -140,17 +140,18 @@ def setSends (r : SetRow K) : OpcodeSends where
 
 /-- What a `DEREF` row sends (specification §7.4; `tables.rs:616-623`): the fall-through step,
 the bytecode tuple `(DEREF, o₁, o₂, o₃, f_pc, f_fp, 0, 0)`, and three memory reads, the pointer,
-the local word and the target, which carries the store coordinates of the flags. The reads are
-in the specification's order; the Rust flushes the target before the local word, which balance,
-a multiset equality, does not see. -/
+the target, which carries the store coordinates of the flags, and the local word. The reads are
+in the Rust's flush order (`tables.rs:641-643`), the circuit's; the specification's flush list
+has the local word second, which balance, a multiset equality, does not see. -/
 def derefSends (r : DerefRow K) : OpcodeSends where
   pull := ⟨r.pc, r.fp⟩
   push := ⟨g * r.pc, r.fp⟩
   bc := ⟨r.pc, r.rbc, Opcode.deref.code, #v[r.o1, r.o2, r.o3, r.fpc, r.ffp, 0, 0]⟩
-  mem := [⟨r.fp * r.o1, r.r1, #v[r.p, 0, 0]⟩, ⟨r.fp * r.o3, r.r3, r.v3⟩,
+  mem := [⟨r.fp * r.o1, r.r1, #v[r.p, 0, 0]⟩,
     ⟨r.p * r.o2, r.r2,
       #v[(1 + r.fpc + r.ffp) * r.v3[0] + r.fpc * (g ^ 2 * r.pc) + r.ffp * r.fp,
-         (1 + r.fpc + r.ffp) * r.v3[1], (1 + r.fpc + r.ffp) * r.v3[2]]⟩]
+         (1 + r.fpc + r.ffp) * r.v3[1], (1 + r.fpc + r.ffp) * r.v3[2]]⟩,
+    ⟨r.fp * r.o3, r.r3, r.v3⟩]
 
 /-- What a `JUMP` row with indicator `b` sends (specification §7.5; `tables.rs:724-760`): the
 step to `(b·v_pc + b·g·pc + g·pc, b·v_fp + b·fp + fp)`, the bytecode tuple

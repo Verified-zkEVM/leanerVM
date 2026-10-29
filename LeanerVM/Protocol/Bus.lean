@@ -198,7 +198,7 @@ variable {I} in
 /-- A boundary coordinate's reader: a constant, or its column's cells. -/
 def coordReader (q : Column I.μ) {κ : ℕ} : Coord I.toShape κ → K ⊕ Vector K (2 ^ κ)
   | .const c => .inl c
-  | .known col => .inr col.values
+  | .known col _ _ => .inr col.get.values
   | .committed c h => .inr (Vector.cast (congrArg (2 ^ ·) h) (I.column q c).values)
 
 /-- A reader's cell `x`. -/
@@ -423,7 +423,7 @@ theorem Conditions.κ_le_of_boundaryColumn (h : Conditions I) {c : I.ColumnId}
   obtain ⟨s, hs, b, ⟨hb, rfl⟩, co, -, hco⟩ := hc
   cases co with
   | const _ => cases hco
-  | known _ => cases hco
+  | known _ _ _ => cases hco
   | committed c' hτ =>
     cases hco
     have hmem (k : Fin 3) (hk : sources I k = sideSources I b.side) :
@@ -451,7 +451,7 @@ variable {I}
 a known column its extension, a committed column its extension read off the stack. -/
 def coordEval (q : Column I.μ) {κ : ℕ} : Coord I.toShape κ → Vector E κ → E
   | .const c, _ => ofK c
-  | .known col, z => eval₂Mle col.values (algebraMap K E) z
+  | .known col _ _, z => eval₂Mle col.get.values (algebraMap K E) z
   | .committed c h, z => eval₂Mle (I.column q c).values (algebraMap K E) (Vector.cast h.symm z)
 
 /-- The extension of a block's leaves at a point of the block, as the verifier writes it:
@@ -490,7 +490,7 @@ private theorem evalMle_coordCell (q : Column I.μ) {κ : ℕ} (co : Coord I.toS
     rw [show (Vector.ofFn fun x : Fin (2 ^ κ) ↦ ofK (I.coordCell q (.const c) x)) =
       Vector.replicate (2 ^ κ) (ofK c) from Vector.ext fun i hi ↦ by simp [M3Instance.coordCell]]
     exact evalMle_replicate _ z
-  | known col =>
+  | known col _ _ =>
     refine congrArg (evalMle · z) (Vector.ext fun i hi ↦ ?_)
     simp [M3Instance.coordCell, CMlPolynomialEval.map, Extension.Ext.algebraMap_eq_ofBase,
       Vector.get_eq_getElem]
@@ -771,7 +771,7 @@ def valueOf (vals : Vector E I.busClaims) (c : I.ColumnId) : E :=
 extension, or the value sent for a committed column. -/
 def coordValue (vals : Vector E I.busClaims) {κ : ℕ} : Coord I.toShape κ → Vector E κ → E
   | .const c, _ => ofK c
-  | .known col, z => eval₂Mle col.values (algebraMap K E) z
+  | .known _ ext _, z => ext z
   | .committed c _, _ => valueOf vals c
 
 /-- The part of a block the verifier evaluates from the values sent: a boundary block's leaf
@@ -963,7 +963,7 @@ private theorem coordValue_eq (h : Conditions I) (q : Column I.μ) (ζ : Vector 
     coordValue vals co (Gkr.lowPoint ζ ⟨κ, hκ⟩) = coordEval q co (Gkr.lowPoint ζ ⟨κ, hκ⟩) := by
   cases co with
   | const c => rfl
-  | known col => rfl
+  | known col ext h => exact h _
   | committed c hc =>
     have hmem := hco c rfl
     obtain ⟨i, hi⟩ : ∃ i, I.boundaryColumns.finIdxOf? c = some i := by

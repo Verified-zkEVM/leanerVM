@@ -150,6 +150,13 @@ former code in parentheses is for reading older pull requests.
   least `τ_max` coordinates (`constraints.rs:250-253`). §8 states none of these. (F15)
 - *The program in the Python verifier.* It takes the program as the stacked table and does not
   check that the unused slots are zero (`py:566, 857`).
+- *The order of `DEREF`'s flushes.* §7.4 lists the three memory reads pointer, local, target
+  (`07-instruction-tables.tex:87-90`, against its own prose, `:72-74`); the Rust flushes them
+  pointer, target, local (`lean_vm/src/tables.rs:641-643`, `py:779-781`). The order places the
+  blocks in the bus's leaf stacks, ties falling to flush order, so the table sumcheck's forms
+  depend on it. The leanISA table followed §7.4, and the executable verifier rejected the Rust
+  proof at the table sumcheck's final check, every other table's forms equal to the Python
+  verifier's; the table now reads in the Rust's order (`Arithmetization/Tables/Deref.lean`).
 
 **The specification leaves it to the code** (the blueprint transcribes these).
 
@@ -243,6 +250,26 @@ former code in parentheses is for reading older pull requests.
   a path sibling is the prover's, so the verifier can be made to evaluate the map on a string of
   the chain's shape. No attack follows; the consequence is that the Merkle compilation is proved
   on the one shared function rather than on independent oracles per role.
+
+**The executable verifier on a Rust proof.** `Verify.verify` (`Protocol/Verify.lean`) accepts
+the proof the pinned prover makes of the division program of the Rust suite
+(`scripts/dump-proof-rust.sh`): the grinding checks pass at all four WHIR levels, which pins the
+chain state at each to the prover's, the four Merkle openings authenticate, the stream and the
+openings are consumed, and every phase's algebra and WHIR's terminal check pass; the bus totals,
+the table sumcheck's final claim and the ring-switching target are the values the second
+verifier computes on the same proof. The one difference it found is the order of `DEREF`'s
+flushes above, which the leanISA table followed from §7.4 and now reads in the Rust's order.
+The verifier departs from the Rust only in when it checks, never in what it accepts: it reads
+the eight sizes before checking them (`read_public` checks each as it reads it), checks the
+number and shapes of the openings before any hash, walks the whole chain before any Merkle
+opening and the openings before any algebra (the Rust interleaves them; openings are not
+absorbed, so no challenge moves), and computes WHIR's terminal weight as the oracle reduction's
+glued weight rather than the Rust's closed forms (`whir.rs:2264-2308`), equal on this proof. It
+evaluates the program's share of the bus totals as one value, the bytecode multilinear
+`B̃(ζ_{<κ_bc}, α)` (`settleFixedClaims`), where the Rust's totals evaluate the eight entry columns
+one by one (`leaf.rs:453`) and hand the multilinear on unchecked for recursion
+(`leaf.rs:627-637`); the two are equal (`bytecodeShare_eq`), and a recursive verifier defers the
+one claim. This is implementation evidence about one proof, not a statement about the Rust.
 
 **Not a discrepancy.** The Python verifier checks the caps (`16 ≤ log_mem ≤ 32`, every height at
 most 32, `τ_BLAKE2S ≥ 3`, a power-of-two program: `py:856-864`, called at `py:1378`). The former

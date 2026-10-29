@@ -113,6 +113,22 @@ def counted (c : RawChannel K) : Bool := c.name = MemPull.name || c.name = Bytec
 def opcodeTable (j : Fin 6) : M3Table K Arithmetization.Direction :=
   (opcodeComponent j).toM3 channelSep channelDir counted
 
+/-- The opcode tables, each built once: compiled code reads this table in place of
+`opcodeTable`, whose argument is a variable at most call sites, so that a table's polynomials are
+converted from its component once per run. -/
+def opcodeTableTab : Fin 6 → M3Table K Arithmetization.Direction
+  | ⟨0, _⟩ => opcodeTable 0
+  | ⟨1, _⟩ => opcodeTable 1
+  | ⟨2, _⟩ => opcodeTable 2
+  | ⟨3, _⟩ => opcodeTable 3
+  | ⟨4, _⟩ => opcodeTable 4
+  | ⟨5, _⟩ => opcodeTable 5
+
+/-- The table is the conversion: compiled code reads the table. -/
+@[csimp] theorem opcodeTable_eq_tab : @opcodeTable = @opcodeTableTab := by
+  funext j
+  fin_cases j <;> rfl
+
 /-- The side of the bus a direction flushes on. -/
 def sideOf : Arithmetization.Direction → Side
   | .push => .push
@@ -141,6 +157,23 @@ def width : Fin 9 → ℕ
   | ⟨1, _⟩ => 1
   | ⟨2, _⟩ => 1
   | ⟨j + 3, h⟩ => (opcodeComponent ⟨j, by omega⟩).width
+
+/-- The widths, each computed once: compiled code reads this table in place of `width`. -/
+def widthTab : Fin 9 → ℕ
+  | ⟨0, _⟩ => 4
+  | ⟨1, _⟩ => 1
+  | ⟨2, _⟩ => 1
+  | ⟨3, _⟩ => (opcodeComponent 0).width
+  | ⟨4, _⟩ => (opcodeComponent 1).width
+  | ⟨5, _⟩ => (opcodeComponent 2).width
+  | ⟨6, _⟩ => (opcodeComponent 3).width
+  | ⟨7, _⟩ => (opcodeComponent 4).width
+  | ⟨8, _⟩ => (opcodeComponent 5).width
+
+/-- The table is the widths: compiled code reads the table. -/
+@[csimp] theorem width_eq_tab : @width = @widthTab := by
+  funext j
+  fin_cases j <;> rfl
 
 /-- The log-heights: the memory's, the program's, the Flock region's `8 + τ_BLAKE2S`, then the
 announced ones. -/
@@ -459,22 +492,33 @@ coordinate `k + 1` of the bytecode tuple at every slot. -/
 def entryColumn (k : Fin 8) : Column prog.logSize :=
   ⟨Vector.ofFn fun i ↦ (entry (prog.code i))[k]⟩
 
+/-- The index column as a known coordinate, its extension evaluated in closed form
+(`idxColumnEval`, the Rust's `index_mle`, `leaf.rs:444`). -/
+def idxCoord {S : Shape} (κ : ℕ) : Coord S κ :=
+  .known (.mk fun _ ↦ idxColumn κ) idxColumnEval fun z ↦ (idxColumn_eval z).symm
+
+/-- Entry column `k` as a known coordinate, its extension evaluated from its cells (the Rust's
+`mle_eval_par` of the public column, `leaf.rs:453`). -/
+def entryCoord {S : Shape} (k : Fin 8) : Coord S prog.logSize :=
+  .known (.mk fun _ ↦ entryColumn prog k)
+    (fun z ↦ eval₂Mle (entryColumn prog k).values (algebraMap K E) z) fun _ ↦ rfl
+
 /-- The six boundary blocks (`layout.rs:349-395`): the state boundary, the memory seed and
 finalize, the bytecode seed and finalize. -/
 def boundary : List (BoundaryBlock (shape prog s)) :=
   let entries : List (Coord (shape prog s) prog.logSize) :=
-    (List.finRange 8).map fun k ↦ .known (entryColumn prog k)
+    (List.finRange 8).map fun k ↦ entryCoord prog k
   [⟨0, .push, coords [.const (channelSep StatePush.toRaw), .const 1, .const 1]⟩,
-    ⟨s.logMem, .push, coords [.const (channelSep MemPush.toRaw), .known (idxColumn s.logMem),
+    ⟨s.logMem, .push, coords [.const (channelSep MemPush.toRaw), idxCoord s.logMem,
       .const 1, .committed (memCol 0) rfl, .committed (memCol 1) rfl, .committed (memCol 2) rfl]⟩,
     ⟨prog.logSize, .push, coords ([.const (channelSep BytecodePush.toRaw),
-      .known (idxColumn prog.logSize), .const 1] ++ entries)⟩,
+      idxCoord prog.logSize, .const 1] ++ entries)⟩,
     ⟨0, .pull, coords [.const (channelSep StatePull.toRaw), .const prog.finalPc, .const 1]⟩,
-    ⟨s.logMem, .pull, coords [.const (channelSep MemPull.toRaw), .known (idxColumn s.logMem),
+    ⟨s.logMem, .pull, coords [.const (channelSep MemPull.toRaw), idxCoord s.logMem,
       .committed (memCol 3) rfl, .committed (memCol 0) rfl, .committed (memCol 1) rfl,
       .committed (memCol 2) rfl]⟩,
     ⟨prog.logSize, .pull, coords ([.const (channelSep BytecodePull.toRaw),
-      .known (idxColumn prog.logSize), .committed bfcntCol rfl] ++ entries)⟩]
+      idxCoord prog.logSize, .committed bfcntCol rfl] ++ entries)⟩]
 
 /-- The three public lines (§8.2): `MEM_LO` holds `input₀, input₂` at cells `0, 1`, `MEM_HI`
 holds `input₁, input₃`, both sent; `MEM_TOP` holds `0, 0`, not sent. -/

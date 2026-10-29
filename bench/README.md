@@ -340,6 +340,35 @@ leanVM's commitment takes 48 ms and its PCS opening 1.00 s on one thread. From `
 by twiddles of `K` lifted to `E`, a full `E` product where three `K` products would do, and an `E`
 value's limbs above `2^63` are heap-allocated numbers; both are left for a later pass.
 
+## `leanervm-verify`: the verifier on the Rust proof
+
+`bench/LeanerVMVerify.lean` is the `leanervm-verify` executable: `Verify.verify` compiled, on the
+proof the pinned Rust prover makes of the division program of its test suite
+(`scripts/dump-proof-rust.sh`; the fixture `tests/LeanerVMTests/Protocol/RustProofData.lean`).
+Interpreted, one run takes over a minute, so the test module checks only the honest proof and the
+mutations rejected before the chain walk passes its setup's reads; the executable runs the rest.
+
+```sh
+lake build leanervm-verify          # compiles every transitive module to C, then links
+.lake/build/bin/leanervm-verify 5   # the checks, then five timed runs of `verify`
+```
+
+It prints the honest proof's verdict, then each mutation of
+`LeanerVMTests.Protocol.Verify.mutations` with the stage that rejects it (`outcome`: the setup,
+the openings' shapes, a read with the reader's error, or a phase of the algebra) against the
+stage recorded for it, the same for the statement's mutations (`statementMutations`: the proof
+of the fixture against a changed input or program), and WHIR's algebra on the honest transcript
+with its mutations at every level (`whirChecks`); the exit code is `1` if any check fails. The
+timed runs exclude the fixture's parsing.
+
+Recorded on 2026-10-23 at the fixture of leanVM `a386121f` (770 scalars, four openings of 223,
+56, 32 and 22 rows, a stack of `2^20` cells), on the machine of the table above: every check
+passes, and `verify` takes 1.7 to 1.9 s a run over five runs (2.6 to 3.1 s before the compiled
+fast paths of the bus output, the totals, the row folds and the lincheck terminal). A flipped
+scalar of a phase is rejected by the next level's grinding check, since the chain moves; only the
+last level's query message and tail rounds reach WHIR's terminal check through the stream. The
+phases' own checks are exercised on the honest wire by the phase test modules and `whirChecks`.
+
 Further runtime benchmark groups belong here once leanerVM has executable semantics. Each such
 group must name the workload, parameter revision, expected result, and whether it measures Lean code
 or a native boundary. Smoke tests must not be presented as performance benchmarks.

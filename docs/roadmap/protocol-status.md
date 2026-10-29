@@ -518,6 +518,7 @@ pinned sources is [archived](../reviews/protocol-spine-revision.md).
     deployed `blake2s_row_values`, `verifier.py:1180-1295`, and the Rust `marginal_walk`) are owed
     by the leanISA instance, whose region they evaluate; they enter through
     `FlockSpec.compress_of_region` and `region_holds_gen`, which need only the matrices to agree.
+    The forward walk is the verifier's `blake2sRows`, proved equal (`blake2sRows_eq`).
   - The honest run is on a tiny argument (two skipped values, two blocks of four wires): an
     `E` multiplication costs about 2 ms in the interpreter and an inversion about 1 s, and
     leanVM's sizes are a block of `2^14` positions. The slot's typing, the constants and the zero
@@ -993,6 +994,122 @@ blueprint has the three edits these definitions asked of it: Layer 11's threshol
 `HashMisbehaves` take the proof's roots and the flip as parameters, with no "earlier answer" in play
 (an earlier answer to another input is a collision). Still owed: the flip, the proof's roots,
 `core` and `misbehaves_rom`.
+
+*On merge* of the executable verifier's stacked pull requests (on the proof object's and the
+Merkle trees', with the fast field arithmetic merged), the rest of Layer 12's verifier is on
+`main`, slice by slice.
+
+- **The setup** (`Protocol/Verify/Setup.lean`): `setup?` reads the announced sizes and rate off
+  the stream and makes `read_public`'s checks before any hash; `leanVm prog s`, `stackMu`,
+  `nLanes` (the level-0 rows' committed lanes, `witness.rs:97-101`) and `ladderOf` are what they
+  fix; `walkSetup` observes the sizes and reads the root; `samples`, `readRound(s)` and
+  `replayRounds` are the walk's primitives and the algebra's round decoding. Two changes keep the
+  verifier from building what it never reads: a known boundary coordinate carries its column as a
+  thunk and the evaluator of its extension (`Coord.known`, `Coord.ofColumn`; leanISA's
+  `idxCoord`, the closed form `idxColumnEval`, and `entryCoord`), so that the leanISA instance's
+  boundary no longer computes the `2^logMem` index column; and two `@[csimp]` theorems
+  (`LeanIsa.opcodeTable_eq_tab`, `LeanIsa.width_eq_tab`: each opcode table is converted from its
+  component once), beside the stateful provers' `Blocks.selectorWeight_eq_selectorWeightFast` (a
+  block's selector weight is a product, not an entry of a whole Lagrange basis). The fixture:
+  `scripts/dump-proof-rust.sh` proves the
+  division program of the Rust suite (`lean_compiler/tests/suite/field_div.rs`, with its fill
+  blocks, 2048 instructions) at the test rate and prints the program, its hash, the public input,
+  the stream (770 scalars) and the pruned openings (four levels) as the text of
+  `tests/LeanerVMTests/Protocol/RustProofData.lean`; `RustProof.lean` loads it, checks the
+  program against the Rust's program hash, and checks the setup against the second verifier's
+  reading (`μ = 20`, 33 lanes, queries `224, 56, 32, 22`, `μ_bus = 18`, five boundary columns,
+  104 column values) and its rejections.
+- **The bus phase** (`Protocol/Verify/Bus.lean`): `walkBus` reads `α`, `β`, the two roots, the
+  combiners and the layers from the root down (`gkrRadices`: one binary layer first at an odd
+  depth) and the boundary values; `busReplay` checks the count root and replays the layers at
+  the shapes the depth fixes (`replayGkr`: each round decoded with the point's equality weights,
+  the descendants checked by the oracle verifier's `Gkr.combineCheck`, the next statement its
+  `Gkr.interpDone`), and `busStep` hands on the oracle verifier's own `Bus.busOut`, generic over
+  the instance. At leanISA's instance (`leanVmBus`) the two bytecode blocks' entry columns enter
+  the totals as one value, the program's share `B̃(ζ_{<κ_bc}, α)`, which `settleFixedClaims`
+  evaluates (`busOutWith`; `bytecodeShare_eq`: it is `Σ_k eq(α, 3 + k)·P̃_k(ζ_{<κ_bc})`, what the
+  instance's known coordinates evaluate column by column), so a recursive verifier defers that
+  one claim. On the fixture the walk squeezes the second verifier's challenges, the nine layers
+  replay to its bus point, the three totals are its totals, and the totals with the settled
+  share are `Bus.busOut`'s (`tests/LeanerVMTests/Protocol/VerifyBus.lean`, with the zero count, a
+  flipped descendant, a flipped round coefficient, a changed root, a layer of another shape, a
+  missing layer, a missing value and another share rejected or changing the totals).
+- **The table sumcheck and the public input** (`Protocol/Verify/Tables.lean`): `walkTables` and
+  `walkPub`; `tableStep` is the oracle verifier's (the target batched from the totals, the rounds
+  decoded, `Sumcheck.finalCheck` of the table summand, `TableSumcheck.tableOut`), `pubStep` the
+  deployed one in its guarded form (`PublicInput.accepts` of `checkWords`, `verdict` of
+  `pooledFrom`). The fixture found the `DEREF` table's
+  flush order differing from the Rust's ([leanvm-target.md](../leanvm-target.md#known-discrepancies-at-the-pin));
+  the leanISA table now reads in the Rust's order, and on the fixture both phases pass
+  (`VerifyTables.lean`, with a flipped column value, a flipped round coefficient, a missing value,
+  a flipped public value and a third public value rejected).
+- **The Flock phase** (`Protocol/Verify/Flock.lean`, `Verify/Blake2sWalk.lean`): `walkFlock`
+  reads the zerocheck, the lincheck and the six ring-switching coefficients; `flockStep` replays
+  the oracle verifier's steps (`skipClaim`, the normalized rounds, `termNext`, `alphaNext`, the
+  lincheck rounds, `linNext`, `ringWeight` and `ringTarget`, `FlockPhase.finish`), the lincheck's
+  check made as `Flock.linCheck` makes it, from the step's own statement, with the circuit's
+  matrices evaluated by a supplied walk (`Flock.linTerminalWith rows`). The region's block R1CS
+  (`blake2sCircuit.toBlockR1CS`) evaluates its matrices entry by entry, `2^28` terms each, which
+  nothing can run; the verifier runs the circuit's own builder on the column weights instead
+  (`blake2sRows`: the gadgets are written over a carrier of linear values, and the circuit is
+  their run on GF(2) forms). `blake2sRows_eq` proves
+  `blake2sRows w = (blake2sCircuit.toBlockR1CS E).rows w` for every `w`, by the builder's
+  naturality under evaluation at `w` (`blake2sGates_map`, `evalAt_hom`, `toBlockR1CS_rows`); the
+  tests also check the walk at `E` at rows of every kind, and the Rust proof's lincheck passes on
+  it. On the fixture the phase hands
+  on the Python verifier's ring-switching target (`VerifyFlock.lean`, with a flipped slice, skip
+  value, zerocheck and lincheck coefficient, `â` and a missing coefficient rejected).
+- **WHIR, the openings and the verifier** (`Protocol/Verify/Whir.lean`, `Protocol/Verify.lean`):
+  `levelShapes` and `openingsOk` (the number and shapes of the openings, before any hash);
+  `walkWhir` (the fold rounds, the next roots, the out-of-domain samples, the grinding checks, the
+  query positions, `⌊192/(κ + R)⌋` to a squeeze, the batching challenges, the tail rounds) and
+  `walkOpenings` (each level's pruned opening by `merkleVerifyWith`, after the walk: level 0's
+  rows `nLanes` words of `K`, its leaves `2^ℓ` words, its tree of depth `κ + R`, the rows read in
+  reverse, one lane a word, as the Rust does); `whirCheck`, WHIR's algebra on the oracle
+  reduction's weights (`relayoutWeight`, `Whir.foldWeight`, `Whir.gluedWeight`,
+  `Whir.queryWeight`, `Whir.foldRow`, `Whir.batchMessage`) with the terminal check;
+  `openingClaim`, the pool of `Opening.poolList` batched by `λ`; and
+  `verifyWith H prog input proof`, total and structurally recursive, in the four stages, with
+  `verify := verifyWith (m := Id) blake2sBytes`. The wire transcript (`Wire`) holds, per phase,
+  the scalars read (round wires raw, the dropped coefficient left to the algebra), the
+  challenges, the nonces, the roots and the positions. **`verify` accepts the Rust proof**, in
+  about 80 s interpreted (`tests/LeanerVMTests/Protocol/Verify.lean`) and about 1.8 s compiled
+  (`leanervm-verify`). The executable runs every mutation with the stage that rejects it
+  (`outcome`): the setup rejects a nonzero upper limb in a size, a size above its cap and a rate
+  outside its window; the openings' shapes a row of the wrong width at level 0 and after, more
+  rows than queries, a missing and a surplus opening; the reads a nonzero third limb in a half of
+  the commitment root and of a level's root, a wrong grinding nonce at each level, a wrong
+  sibling, a truncated path, a surplus sibling, a duplicated position, a missing row, a changed
+  stored word, a trailing scalar and a truncated stream. A flipped scalar in a phase before a
+  level's grinding nonce moves the chain and is rejected by that level's grinding check; the
+  last level's query message and the last round's coefficient come after the last grinding
+  check and are rejected by WHIR's terminal check. The phases' own checks are exercised on the
+  honest wire: the phase tests above, and WHIR's algebra, which rejects a flipped stored word at
+  levels 0 and 2, the last level's residual value and batching challenge, level 1's out-of-domain
+  value, coordinate and round polynomial, a fold challenge of level 0, and level 2's batching
+  challenge and query message. One out-of-domain sample a level after the first is the Rust's
+  derived count: `scripts/whir-mca-budget.py` finds it at all 168 such levels of the window, one
+  sample giving 150.4 to 172.4 bits (`Parameters/Whir.lean`, `oodSamples`). The test module
+  checks the honest proof and the mutations rejected before the walk passes its setup's reads;
+  the executable also rejects a changed input lane and a changed instruction (the seed moves) and
+  two exchanged rows of a level, and WHIR's algebra a changed first round polynomial. Owed: `verifierQueries`,
+  `proofDigests`, `rounds` and their bounds, `decodePrefix` and `verify_iff_compiled`, which
+  rests on `blake2sRows_eq` and the instance's known-coordinate evaluators equal to the
+  extensions (they are, by the field `ext_eq`). The bus phase's algebra
+  with the program's share settled is the oracle verifier's step (`leanVmBus_eq_busStep`).
+
+- **The walk's primitives and the transport** (`Protocol/Verify/Setup.lean`,
+  `Protocol/Verify/Hom.lean`): every walk is written once over `ChainOps n`, the five primitives
+  in any monad (read a scalar, squeeze a challenge, read a root, read and check a grinding nonce,
+  which returns the nonce, and open the next commitment); `readerOps H` is the proof reader's,
+  `ChainOps.logged` records any reader's steps, and `walkProof` is the verifier's reads in their
+  stages, the whole chain walk before any opening (on the fixture the logged walk reads the whole
+  stream, checks four nonces and opens the four commitments last). `verifyWith_hom`: for a monad
+  morphism `φ`, `φ (verifyWith H prog input proof) = verifyWith (fun t ↦ φ (H t)) prog input
+  proof`, proved through every walk along any morphism of its primitives (`walkProof_hom`), the
+  reader's operations along the lifted morphism (`ReadM.mapHom`), the chain's steps and the
+  Merkle check (`MerkleTree.octopusRoot_hom`, generic); `verifyWith_simulateQ` is its instance at
+  `simulateQ impl` for the hash oracle `List UInt8 →ₒ Digest` of the random-oracle game.
 
 ## Upstream watch
 

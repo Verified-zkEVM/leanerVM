@@ -131,7 +131,7 @@ def check : ReadM Id Unit (E × E × Digest × Vector E 4 × Vector E 5 × E) :=
   let d ← Reader.nextRoot blake2sBytes
   let c ← Reader.nextRoundPoly blake2sBytes 3 plainClaim none
   let c' ← Reader.nextRoundPoly blake2sBytes 4 eqClaim (some r)
-  Reader.checkPow blake2sBytes 8
+  let _ ← Reader.checkPow blake2sBytes 8
   let p2 ← Reader.sample blake2sBytes
   return (p1, y, d, c, c', p2)
 

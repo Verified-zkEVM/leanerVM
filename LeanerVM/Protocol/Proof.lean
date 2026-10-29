@@ -35,8 +35,8 @@ unread stream and the unread openings, and fails with a `ReadError` (`Error`, `:
   characteristic two, so a decoded polynomial passes its round's check and no check remains
   (`RoundPoly.check_of_decode`); the decoding is injective (`RoundPoly.encode_decode`) and keeps
   every polynomial that passes the check (`RoundPoly.decode_encode`).
-* `sample` squeezes a challenge; `checkPow bits` reads a nonce, checks the proof of work and
-  absorbs the nonce, failing after the absorb (`grind_check`, `:314-323`).
+* `sample` squeezes a challenge; `checkPow bits` reads a nonce, checks the proof of work,
+  absorbs the nonce and returns it, failing after the absorb (`grind_check`, `:314-323`).
 * `nextOpening auth` takes the next opening phase and authenticates it with `auth`
   (`next_merkle_batch`, `:263-279`); openings are not absorbed.
 * `finish` fails unless the stream and the openings are fully consumed (`:212-219`).
@@ -268,12 +268,13 @@ def sample : ReadM m M E := do
   return p.1
 
 /-- Read a grinding nonce, check it clears `bits` and absorb it, failing after the absorb
-(`grind_check`). -/
-def checkPow (bits : ℕ) : ReadM m M Unit := do
+(`grind_check`): the nonce. -/
+def checkPow (bits : ℕ) : ReadM m M E := do
   let nonce ← takeRaw
   let r ← ((← get).fs.checkPow H bits nonce : m (Bool × FsState))
   modify fun st ↦ { st with fs := r.2 }
   unless r.1 do throw .powFailed
+  return nonce
 
 /-- Take the next opening phase and authenticate it (`next_merkle_batch`); not observed. -/
 def nextOpening {α : Type} (auth : M → m (Option α)) : ReadM m M α := do
@@ -598,7 +599,7 @@ theorem readsBack_grind (fuel bits : ℕ) :
   rcases hg : Id.run (w.fs.grind H fuel bits) with _ | ⟨nonce, fs'⟩ <;>
     simp [Writer.grind, StateT.run_bind, show w.fs.grind H fuel bits = Pure.pure _ from hg] at hw
   cases hw
-  refine ⟨[nonce], [], (), by simp, by simp, trivial, fun _ _ ↦ ?_⟩
+  refine ⟨[nonce], [], nonce, by simp, by simp, trivial, fun _ _ ↦ ?_⟩
   simp [Reader.checkPow, Reader.takeRaw, StateT.run_bind,
     show w.fs.checkPow H bits nonce = Pure.pure (true, fs') from FsState.checkPow_of_grind H hg]
   rfl

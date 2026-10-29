@@ -96,7 +96,7 @@ def countPull : BoundaryBlock shape where
   κ := 1
   side := .pull
   coords := Vector.ofFn fun k ↦
-    if k.val = 0 then .known ⟨#v[1, 1]⟩ else if k.val = 1 then .committed ⟨0, 1⟩ rfl else .const 0
+    if k.val = 0 then .ofColumn ⟨#v[1, 1]⟩ else if k.val = 1 then .committed ⟨0, 1⟩ rfl else .const 0
 
 /-- The instance. -/
 abbrev busToy : M3Instance where

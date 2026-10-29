@@ -71,6 +71,8 @@ import LeanerVM.Protocol.ToArkLib.CachedProver
 import LeanerVM.Protocol.ToArkLib.CachedRounds
 import LeanerVM.Protocol.ToArkLib.CachedSteps
 import LeanerVM.Protocol.ToArkLib.Component
+import LeanerVM.Protocol.ToArkLib.DecodeSteps
+import LeanerVM.Protocol.ToArkLib.DecodeTranscript
 import LeanerVM.Protocol.ToArkLib.ExtractIn
 import LeanerVM.Protocol.ToArkLib.FirstRound
 import LeanerVM.Protocol.ToArkLib.Flock.BlockR1CS
@@ -157,6 +159,14 @@ import LeanerVM.Protocol.ToVCVio.QueryLog
 import LeanerVM.Protocol.ToVCVio.ScalarExpectation
 import LeanerVM.Protocol.ToVCVio.UniformSample
 import LeanerVM.Protocol.Transcript
+import LeanerVM.Protocol.Verify
+import LeanerVM.Protocol.Verify.Blake2sWalk
+import LeanerVM.Protocol.Verify.Bus
+import LeanerVM.Protocol.Verify.Flock
+import LeanerVM.Protocol.Verify.Hom
+import LeanerVM.Protocol.Verify.Setup
+import LeanerVM.Protocol.Verify.Tables
+import LeanerVM.Protocol.Verify.Whir
 import LeanerVM.Protocol.Whir.BoundarySound
 import LeanerVM.Protocol.Whir.Cached
 import LeanerVM.Protocol.Whir.Counting
