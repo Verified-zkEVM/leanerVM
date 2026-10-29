@@ -255,7 +255,7 @@ theorem hEd_le {s : NodeStatement} {w : NodeWitness} (hl : Limits s w)
 theorem l5B_le (Bv : ℕ → ℕ) {s : NodeStatement} {w : NodeWitness}
     (hl : Limits s w) (hnc : w.children.length ≠ 0) :
     l5B fs SB (fun c => B1.Digest.ccB fs SB (hKid s w c).ex) (fun c => B1.Digest.ccB fs SB (hKid s w c).es)
-      Bv s w ≤ l5A0 fs + w.children.length * l5A1 fs SB +
+      Bv w ≤ l5A0 fs + w.children.length * l5A1 fs SB +
         ∑ c ∈ Finset.range w.children.length, Bv c + l5A2 fs * (End.work s w).childClaims := by
   unfold l5B
   have h := l5Chain_le fs (fun c => l5K fs SB (B1.Digest.ccB fs SB (hKid s w c).ex)
@@ -302,7 +302,7 @@ theorem l5B_le (Bv : ℕ → ℕ) {s : NodeStatement} {w : NodeWitness}
 
 theorem hDvB_le {bytecode : List K} {seed : Digest} {s : NodeStatement} {w : NodeWitness}
     (hr : NodeRel bytecode seed s w) (hl : Limits s w) :
-    hDvB fs SB SK s w ≤ (End.work s w).rawDa * dvC fs SB + (End.work s w).rawDaRows * dvS SK +
+    hDvB fs SB SK w ≤ (End.work s w).rawDa * dvC fs SB + (End.work s w).rawDaRows * dvS SK +
       (End.work s w).rawDaPad * dvP SB SK := by
   have h1 := hl.directDa
   unfold hDvB
@@ -420,7 +420,7 @@ theorem mSizes_sum (seed : Digest) (s : NodeStatement) (w : NodeWitness) :
 /-- **`main`'s callees' words**: each callee's bound and frame, the children's loop's frame
 alone when there is no child. -/
 theorem kidsBoundL_mKids (m : MainIn) (L : Layout) (b : MainBs) :
-    kidsBoundL fs (mKids m L) (mBs fs SB SK m b) ≤
+    kidsBoundL fs (mKids m L) (mBs SB SK m b) ≤
       (m.nda + m.ndd) * SK "__loop0" + fs "__loop0" + SB "da_list_digest" + fs "da_list_digest" +
       b.Bx + b.Bs + 2 * fs "claim_list_digest" + m.nxd * SK "__loop0" + fs "__loop0" +
       m.nsd * SK "__loop1" + fs "__loop1" + m.nrx * SK "__loop2" + fs "__loop2" +
@@ -457,9 +457,9 @@ theorem Bmain_le (Bvf : ℕ → ℕ → ℕ) {bytecode : List K} {seed : Digest}
     (mainBsH fs SB SK (childBv Bvf w) s w)
   have hB : Bmain fs SB SK (childBv Bvf w) 0 seed s w = fs "main" + (mSizes (hData seed s w)).sum +
       (fs "exponent_tables" + 68 + kidsBoundL fs (mKids (hm fs 0 seed s w) (hLmain fs 0 seed s w))
-        (mBs fs SB SK (hm fs 0 seed s w) (mainBsH fs SB SK (childBv Bvf w) s w))) := rfl
+        (mBs SB SK (hm fs 0 seed s w) (mainBsH fs SB SK (childBv Bvf w) s w))) := rfl
   generalize kidsBoundL fs (mKids (hm fs 0 seed s w) (hLmain fs 0 seed s w))
-    (mBs fs SB SK (hm fs 0 seed s w) (mainBsH fs SB SK (childBv Bvf w) s w)) = KB at hK hB
+    (mBs SB SK (hm fs 0 seed s w) (mainBsH fs SB SK (childBv Bvf w) s w)) = KB at hK hB
   rw [hB, hmsz]
   have hd : (hm fs 0 seed s w).nd ≤ 1 := hl.directDa
   have hcl : s.claims.xmss.length + s.claims.sphincs.length ≤ (End.work s w).declared := by
@@ -476,11 +476,11 @@ theorem Bmain_le (Bvf : ℕ → ℕ → ℕ) {bytecode : List K} {seed : Digest}
   have e7 : (mainBsH fs SB SK (childBv Bvf w) s w).Bx = B1.Digest.clB fs SB SK s.claims.xmss.length := rfl
   have e8 : (mainBsH fs SB SK (childBv Bvf w) s w).Bs = B1.Digest.clB fs SB SK s.claims.sphincs.length :=
     rfl
-  have e9 : (mainBsH fs SB SK (childBv Bvf w) s w).Bd = hDvB fs SB SK s w := rfl
+  have e9 : (mainBsH fs SB SK (childBv Bvf w) s w).Bd = hDvB fs SB SK w := rfl
   have e10 : (mainBsH fs SB SK (childBv Bvf w) s w).Ba = aggB fs SB SK w.children.length := rfl
   have e11 : (mainBsH fs SB SK (childBv Bvf w) s w).B5 = l5B fs SB
       (fun c => B1.Digest.ccB fs SB (hKid s w c).ex) (fun c => B1.Digest.ccB fs SB (hKid s w c).es)
-      (childBv Bvf w) s w := rfl
+      (childBv Bvf w) w := rfl
   rw [e0, e1, e2, e3, e4, e7, e8, e9, e10, e11] at hK
   rw [hcov'] at c0 c1 c2 ⊢
   rw [e6]

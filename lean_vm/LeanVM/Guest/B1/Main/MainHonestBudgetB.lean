@@ -54,9 +54,9 @@ child's claim lists' digests within `ccB`, child `c`'s `verify_sub` within `Bv c
 def mainBsH (fs : String → ℕ) (SB SK : String → ℕ) (Bv : ℕ → ℕ) (s : NodeStatement) (w : NodeWitness) :
     MainBs :=
   ⟨B1.Digest.clB fs SB SK s.claims.xmss.length, B1.Digest.clB fs SB SK s.claims.sphincs.length,
-    hDvB fs SB SK s w, aggB fs SB SK w.children.length,
+    hDvB fs SB SK w, aggB fs SB SK w.children.length,
     l5B fs SB (fun c => B1.Digest.ccB fs SB (hKid s w c).ex) (fun c => B1.Digest.ccB fs SB (hKid s w c).es)
-      Bv s w⟩
+      Bv w⟩
 
 /-- **`main`'s words on the honest run** at `fp`: its frame and buffers, `exponent_tables`', every
 other callee's bound (`mBs`, `kidsBoundL` over `mKids`). -/
@@ -78,7 +78,7 @@ theorem mainGoalsTB_honest {SB SK : String → ℕ} {Pvs : ℕ → Tree → Prop
     mainGoalClSTB fs cert fp seed s w hl hS.ls hS.l16 hS.cl,
     mainGoalDvTB fs cert fp hr hrf hS.dv,
     mainGoalAgTB fs fp cert SB SK hS.l25 hS.l26 hS.l27 hS.bs hbl hr hl,
-    mainGoalL5TB fs cert SB hS.main.st hS.main.dl hbl hr hl hV (childListGoalsTB_honest cert hl hS.ls)⟩
+    mainGoalL5TB fs cert SB hS.main.st hbl hr hl hV (childListGoalsTB_honest cert hl hS.ls)⟩
 
 /-- **`main`'s completeness on the honest run within its words**: for `NodeRel` within `Limits`
 and a bytecode of `2^23` words, from the signature schemes' completeness (B1-e), the frame runs'

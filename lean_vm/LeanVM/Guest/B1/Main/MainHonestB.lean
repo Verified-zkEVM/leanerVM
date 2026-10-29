@@ -15,7 +15,7 @@ public import LeanVM.Guest.B1.Main.MainGoalsStaticB
 
 `MainBs`: the bounds of `main`'s non-static callees (its claim lists' digests, `da_verify`,
 `aggregate_claims`, the children's loop). `mBs`: every callee's bound, aligned with `mKids`: the
-static ones' (`SB`, the loops' counts times `SK`, `cover_da_root`'s frame), then `MainBs`'.
+static ones' (`SB`, the loops' counts times `SK`), then `MainBs`'.
 `MainStaticGoalsB`, `MainGoalsTB`: the callees within those bounds. `mainKidsDTB`: `KidsDTB`.
 `MainPreds.withTotal`: each non-static callee's predicate with its tree's words within its bound
 (`CompleteAtDTB.with_total`). `main_honest_relAtInTB`: `main_relAtInTB` on the honest run.
@@ -39,16 +39,15 @@ structure MainBs where
   B5 : ℕ
 
 /-- **Every callee's bound**, aligned with `mKids`. -/
-def mBs (fs : String → ℕ) (SB SK : String → ℕ) (m : MainIn) (b : MainBs) : List ℕ :=
-  [(m.nda + m.ndd) * SK "__loop0", SB "da_list_digest", b.Bx, b.Bs, m.nxd * SK "__loop0",
-    m.nsd * SK "__loop1", m.nrx * SK "__loop2", m.nrs * SK "__loop3"] ++
-    (if m.nd = 1 then [b.Bd, fs "cover_da_root"] else []) ++ [b.B5] ++
+def mBs (SB SK : String → ℕ) (m : MainIn) (b : MainBs) : List ℕ :=
+  [b.Bx, b.Bs, m.nxd * SK "__loop0", m.nsd * SK "__loop1", m.nrx * SK "__loop2",
+    m.nrs * SK "__loop3"] ++ (if m.nd = 1 then [b.Bd] else []) ++ [b.B5] ++
     (if m.nc = 0 then [] else [b.Ba]) ++ [SB "statement_digest"]
 
 /-- **`main`'s words**, its callees within `mBs`. -/
 def mainBH (fs : String → ℕ) (SB SK : String → ℕ) (d : MainData) (m : MainIn) (Lin : Layout)
     (b : MainBs) : ℕ :=
-  mainB fs d (mKids m Lin) (mBs fs SB SK m b)
+  mainB fs d (mKids m Lin) (mBs SB SK m b)
 
 /-- Each non-static callee's predicate, its tree's words within its bound. -/
 def MainPreds.withTotal (p : MainPreds) (fs : String → ℕ) (b : MainBs) : MainPreds :=
@@ -61,13 +60,10 @@ variable (fs : String → ℕ) (cert : String → V → ℕ) (fp : ℕ) (seed : 
 
 /-- **`main`'s static callees within their bounds.** -/
 structure MainStaticGoalsB (SB SK : String → ℕ) : Prop where
-  l0 : MainGoalL0B fs cert fp seed s w SK
-  dl : MainGoalDlB fs cert fp seed s w SB
   l1 : MainGoalL1B fs cert fp seed s w SK
   l2 : MainGoalL2B fs cert fp seed s w SK
   l3 : MainGoalL3B fs cert fp seed s w SK
   l4 : MainGoalL4B fs cert fp seed s w SK
-  cv : MainGoalCvB fs cert fp seed s w
   st : MainGoalStB fs cert fp seed s w SB
 
 /-- **`main`'s non-static callees within their bounds `b`, by trees satisfying `p`.** -/
@@ -90,10 +86,7 @@ structure MainGoalsTB (p : MainPreds) (b : MainBs) : Prop where
       [1, gen ^ (hm fs fp seed s w).nc, (hm fs fp seed s w).a409, (hm fs fp seed s w).a77,
         (hm fs fp seed s w).a117, gen ^ ((hm fs fp seed s w).nlx + (hm fs fp seed s w).nxd),
         (hm fs fp seed s w).a80, gen ^ ((hm fs fp seed s w).nls + (hm fs fp seed s w).nsd),
-        (hm fs fp seed s w).a406, (hm fs fp seed s w).a69,
-        (hm fs fp seed s w).a117 * gen ^ ((hm fs fp seed s w).nlx + (hm fs fp seed s w).nxd +
-          ((hm fs fp seed s w).nls + (hm fs fp seed s w).nsd)),
-        gen ^ ((hm fs fp seed s w).nda + (hm fs fp seed s w).ndd),
+        (hm fs fp seed s w).a406, (hm fs fp seed s w).aDa,
         (digestScalars (hm fs fp seed s w).seed).1, (digestScalars (hm fs fp seed s w).seed).2,
         (hm fs fp seed s w).a394, (hm fs fp seed s w).et1, (hm fs fp seed s w).et2,
         (hm fs fp seed s w).a400] (Returns []) p.T5 b.B5
@@ -110,27 +103,23 @@ theorem MainGoalsTB.withTotal {p : MainPreds} {b : MainBs} (h : MainGoalsTB fs c
 theorem mainKidsDTB {SB SK : String → ℕ} {p : MainPreds} {b : MainBs}
     (hg : MainStaticGoalsB fs cert fp seed s w SB SK) (hT : MainGoalsTB fs cert fp seed s w p b) :
     KidsDTB fs cert 16 (mKids (hm fs fp seed s w) (hLmain fs fp seed s w))
-      (mTs (hm fs fp seed s w) p) (mBs fs SB SK (hm fs fp seed s w) b) := by
+      (mTs (hm fs fp seed s w) p) (mBs SB SK (hm fs fp seed s w) b) := by
   unfold mKids mTs mBs
   by_cases hnd : (hm fs fp seed s w).nd = 1 <;> by_cases hnc : (hm fs fp seed s w).nc = 0 <;>
     simp only [hnd, hnc, ↓reduceIte]
-  · exact ⟨fun ht => hg.l0 (of_decide_eq_true ht), fun _ => hg.dl, fun _ => hT.clx,
-      fun _ => hT.cls, fun ht => hg.l1 (of_decide_eq_true ht),
+  · exact ⟨fun _ => hT.clx, fun _ => hT.cls, fun ht => hg.l1 (of_decide_eq_true ht),
       fun ht => hg.l2 (of_decide_eq_true ht), fun ht => hg.l3 (of_decide_eq_true ht),
-      fun ht => hg.l4 (of_decide_eq_true ht), fun _ => hT.dv hnd, fun _ => hg.cv hnd,
+      fun ht => hg.l4 (of_decide_eq_true ht), fun _ => hT.dv hnd,
       fun ht => by simp at ht, fun _ => hg.st, trivial⟩
-  · exact ⟨fun ht => hg.l0 (of_decide_eq_true ht), fun _ => hg.dl, fun _ => hT.clx,
-      fun _ => hT.cls, fun ht => hg.l1 (of_decide_eq_true ht),
+  · exact ⟨fun _ => hT.clx, fun _ => hT.cls, fun ht => hg.l1 (of_decide_eq_true ht),
       fun ht => hg.l2 (of_decide_eq_true ht), fun ht => hg.l3 (of_decide_eq_true ht),
-      fun ht => hg.l4 (of_decide_eq_true ht), fun _ => hT.dv hnd, fun _ => hg.cv hnd,
+      fun ht => hg.l4 (of_decide_eq_true ht), fun _ => hT.dv hnd,
       fun ht => hT.l5 (of_decide_eq_true ht), fun _ => hT.ag hnc, fun _ => hg.st, trivial⟩
-  · exact ⟨fun ht => hg.l0 (of_decide_eq_true ht), fun _ => hg.dl, fun _ => hT.clx,
-      fun _ => hT.cls, fun ht => hg.l1 (of_decide_eq_true ht),
+  · exact ⟨fun _ => hT.clx, fun _ => hT.cls, fun ht => hg.l1 (of_decide_eq_true ht),
       fun ht => hg.l2 (of_decide_eq_true ht), fun ht => hg.l3 (of_decide_eq_true ht),
       fun ht => hg.l4 (of_decide_eq_true ht),
       fun ht => by simp at ht, fun _ => hg.st, trivial⟩
-  · exact ⟨fun ht => hg.l0 (of_decide_eq_true ht), fun _ => hg.dl, fun _ => hT.clx,
-      fun _ => hT.cls, fun ht => hg.l1 (of_decide_eq_true ht),
+  · exact ⟨fun _ => hT.clx, fun _ => hT.cls, fun ht => hg.l1 (of_decide_eq_true ht),
       fun ht => hg.l2 (of_decide_eq_true ht), fun ht => hg.l3 (of_decide_eq_true ht),
       fun ht => hg.l4 (of_decide_eq_true ht),
       fun ht => hT.l5 (of_decide_eq_true ht), fun _ => hT.ag hnc, fun _ => hg.st, trivial⟩
@@ -154,18 +143,16 @@ theorem main_honest_relAtInTB {SB SK : String → ℕ} {p : MainPreds} {b : Main
             KidsT (mCalls σ (hm fs fp seed s w)) ((fun _ => True) :: mTs (hm fs fp seed s w) p) ks ∧
             calls (mEvs σ) = mCalls σ (hm fs fp seed s w) ∧ bufs = mSizes (hData seed s w)) :=
   main_relAtInTB fs cert fp (hData seed s w) (hOwn seed s w)
-    (hOwn_fit (log2_of_length hbl) hr (freshShaped_of hbl hr)) (hData_bounds hl fs fp) hData_daR _ _
+    (hOwn_fit (log2_of_length hbl) hr (freshShaped_of hbl hr)) (hData_bounds hl fs fp) _ _
     (mainKidsDTB hg hT)
     (fun rd hM h0 h1 => hMainMem (log2_of_length hbl) hr (freshShaped_of hbl hr) hl fs fp rd hM h0 h1)
 
 /-- **The static bounds of `main`'s own static callees** (G7-cnt's certificates). -/
 structure MainStaticsMain (fs : String → ℕ) (SB SK : String → ℕ) : Prop where
-  l0 : TotalLeOn coreProgram fs "__loop0" LoopPre (fun a => logG (a.getD 1 0) * SK "__loop0")
   l1 : TotalLeOn coreProgram fs "__loop0" LoopPre (fun a => logG (a.getD 1 0) * SK "__loop0")
   l2 : TotalLeOn coreProgram fs "__loop1" LoopPre (fun a => logG (a.getD 1 0) * SK "__loop1")
   l3 : TotalLeOn coreProgram fs "__loop2" LoopPre (fun a => logG (a.getD 1 0) * SK "__loop2")
   l4 : TotalLeOn coreProgram fs "__loop3" LoopPre (fun a => logG (a.getD 1 0) * SK "__loop3")
-  dl : TotalLe coreProgram fs "da_list_digest" (fun _ => SB "da_list_digest")
   st : TotalLe coreProgram fs "statement_digest" (fun _ => SB "statement_digest")
 
 /-- **`main`'s static callees on the honest run, within their bounds.** -/
@@ -175,10 +162,8 @@ theorem mainStaticGoalsB_of {SB SK : String → ℕ} (hbl : bytecode.length = 2 
     (hsc : Sig.verify_sig_lean_sphincs_complete_loads_Spec) (hS : MainStaticsMain fs SB SK) :
     MainStaticGoalsB fs cert fp seed s w SB SK := by
   have hb : MainBounds (hm fs fp seed s w) := hData_bounds hl fs fp
-  exact ⟨mainGoalL0B hS.l0 (by have := hb.slots; omega), mainGoalDlB hl hS.dl,
-    mainGoalL1B hS.l1 (by have := hb.xd; omega), mainGoalL2B hS.l2 (by have := hb.sd; omega),
-    mainGoalL3B hr hl hxc hS.l3, mainGoalL4B hr hl hsc hS.l4, mainGoalCvB hl,
-    mainGoalStB hr hbl hS.st⟩
+  exact ⟨mainGoalL1B hS.l1 (by have := hb.xd; omega), mainGoalL2B hS.l2 (by have := hb.sd; omega),
+    mainGoalL3B hr hl hxc hS.l3, mainGoalL4B hr hl hsc hS.l4, mainGoalStB hr hbl hS.st⟩
 
 end
 end LeanVM.Guest.B1.Main
