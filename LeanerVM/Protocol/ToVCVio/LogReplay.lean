@@ -22,7 +22,8 @@ returns `x` and appends exactly `log`. The support of a simulation is in the sup
 computation it simulates (`support_simulateQ_subset`, VCVio's `support_simulateQ_run'_subset`),
 so the same holds of a logged run under any implementation of the oracle: a stateless one such as
 `pure ∘ f` (`replay_of_mem_support_simulateQ`), or a stateful one such as a lazy random oracle
-(`replay_of_mem_support_simulateQ_run'`).
+(`replay_of_mem_support_simulateQ_run'`). Under a function `f`, a stateless implementation, every
+logged answer is `f`'s (`mem_support_simulateQ_pure_withQueryLog`).
 -/
 
 namespace LeanerVM.Protocol.QueryLog
@@ -122,6 +123,26 @@ theorem replay_of_mem_support_simulateQ_run' {α σ : Type} {n : Type → Type} 
     (hans : ∀ e ∈ log, ans e.1 = some e.2) :
     (simulateQ (replayImpl ans) oa).run [] = some (x, log) := by
   simpa using run_simulateQ_replayImpl ans oa (support_simulateQ_run'_subset impl _ s h) hans []
+
+/-- **A logged run under a function**: in a logged run of `oa` with every query `t` answered by
+`f t`, the value is a value of the simulated run and every logged answer is the function's. -/
+theorem mem_support_simulateQ_pure_withQueryLog {α : Type} (f : Q → D)
+    (oa : OracleComp (Q →ₒ D) α) {x : α} {log : (Q →ₒ D).QueryLog}
+    (h : (x, log) ∈ support (simulateQ (fun t ↦ (pure (f t) : ProbComp D)) oa.withQueryLog)) :
+    x ∈ support (simulateQ (fun t ↦ (pure (f t) : ProbComp D)) oa) ∧ ∀ e ∈ log, e.2 = f e.1 := by
+  induction oa using OracleComp.inductionOn generalizing x log with
+  | pure y =>
+    simp only [withQueryLog_pure, simulateQ_pure, support_pure, Set.mem_singleton_iff,
+      Prod.mk.injEq] at h
+    obtain ⟨rfl, rfl⟩ := h
+    simp
+  | query_bind t mx ih =>
+    rw [withQueryLog_bind, withQueryLog_query, bind_assoc] at h
+    simp only [pure_bind, simulateQ_bind, simulateQ_spec_query, simulateQ_map, support_map,
+      Set.mem_image] at h
+    obtain ⟨⟨x', log'⟩, hx', rfl, rfl⟩ := h
+    obtain ⟨h₁, h₂⟩ := ih (f t) hx'
+    exact ⟨by simpa using h₁, List.forall_mem_cons.mpr ⟨rfl, h₂⟩⟩
 
 end
 

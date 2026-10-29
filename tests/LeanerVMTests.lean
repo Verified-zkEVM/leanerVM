@@ -31,6 +31,7 @@ import LeanerVMTests.Protocol.ClaimWeights
 import LeanerVMTests.Protocol.Compile
 import LeanerVMTests.Protocol.CompileWhir
 import LeanerVMTests.Protocol.ComponentPolynomial
+import LeanerVMTests.Protocol.Core
 import LeanerVMTests.Protocol.DecodeChain
 import LeanerVMTests.Protocol.DecodeTranscript
 import LeanerVMTests.Protocol.FastProvers
@@ -46,6 +47,7 @@ import LeanerVMTests.Protocol.GrandProduct
 import LeanerVMTests.Protocol.GrandProductPoly
 import LeanerVMTests.Protocol.GrandProductSecurity
 import LeanerVMTests.Protocol.HashMisbehaves
+import LeanerVMTests.Protocol.Headline
 import LeanerVMTests.Protocol.LeanIsa
 import LeanerVMTests.Protocol.LeanIsaComplete
 import LeanerVMTests.Protocol.LeanIsaSound
@@ -54,6 +56,7 @@ import LeanerVMTests.Protocol.ListBinding
 import LeanerVMTests.Protocol.ListBindingBudget
 import LeanerVMTests.Protocol.ListBindingDeployed
 import LeanerVMTests.Protocol.LogReplay
+import LeanerVMTests.Protocol.LogScan
 import LeanerVMTests.Protocol.Merkle
 import LeanerVMTests.Protocol.MerkleBinding
 import LeanerVMTests.Protocol.Multilinear

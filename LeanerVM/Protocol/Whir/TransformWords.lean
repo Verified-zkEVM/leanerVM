@@ -23,10 +23,10 @@ transform over `K` on the elements' 64-bit words, `xor` for the sum and `mulWord
 `encodeE κ R m` is the encoder by three such transforms per coset (`encodeE_getElem`: its entries
 are `encode`'s, on `κ + R ≤ 64` positions' bits).
 
-`fwd` itself reads each node's halves inside the closures that build the node's outputs, so its
-compiled code rebuilds a half at every entry. `fwd_eq_fwdLet` and `encodeFast_eq_encodeFastLet`
-(`@[csimp]`) run it, over any ring, with the halves read once: code compiled after this module
-runs the transform in `j · 2 ^ (j - 1)` products and linear work per level.
+`fwd` itself reads each node's halves inside the closures that build the node's outputs; compiled
+code runs it as `fwdFast`, with the halves read once (`fwd_eq_fwdFast`, `@[csimp]`, in
+`LeanerVM.Protocol.Whir.Transform`): the transform in `j · 2 ^ (j - 1)` products and linear work
+per level, over any ring.
 -/
 
 namespace LeanerVM.Protocol
@@ -50,50 +50,6 @@ private theorem joinHalves_map (a b : Vector α (2 ^ j)) :
   split <;> simp
 
 end Halves
-
-/-! ## The transform with each node's halves read once -/
-
-section Let
-
-variable {S : Type*} [CommRing S] (φ : K →+* S)
-
-/-- `fwd` with each node's halves read once. `fwd` reads the halves inside the closures that build
-a node's two outputs, and compiled code evaluates them there, at every entry: `2 ^ (2 j)` work at
-a node of `2 ^ (j + 1)` entries. -/
-def fwdLet : (j : ℕ) → Vector S (2 ^ j) → K → Vector S (2 ^ j)
-  | 0, m, _ => m
-  | j + 1, m, s =>
-    let t := φ (twiddle j s)
-    let lo := lowHalf m
-    let hi := highHalf m
-    let a : Vector S (2 ^ j) := Vector.ofFn fun i ↦ lo[i] + t * hi[i]
-    let b : Vector S (2 ^ j) := Vector.ofFn fun i ↦ a[i] + hi[i]
-    joinHalves (fwdLet j a s) (fwdLet j b (s + domainPt (2 ^ j)))
-
-/-- `fwdLet` is `fwd`. -/
-private theorem fwdLet_eq : ∀ (j : ℕ) (m : Vector S (2 ^ j)) (s : K), fwdLet φ j m s = fwd φ j m s
-  | 0, _, _ => rfl
-  | j + 1, m, s => by simp only [fwdLet, fwd, fwdLet_eq j]
-
-end Let
-
-/-- Compiled code runs `fwd` with each node's halves read once. -/
-@[csimp] theorem fwd_eq_fwdLet : @fwd = @fwdLet := by
-  funext S _ φ j m s
-  exact (fwdLet_eq φ j m s).symm
-
-/-- `encodeFast`, compiled after `fwd_eq_fwdLet`, so that its compiled body runs `fwdLet`:
-`encodeFast`'s own was compiled before. It stays below that theorem. -/
-def encodeFastLet {S : Type*} [CommRing S] (φ : K →+* S) (κ R : ℕ) (m : Vector S (2 ^ κ)) :
-    Vector S (2 ^ (κ + R)) :=
-  let cosets : Vector (Vector S (2 ^ κ)) (2 ^ R) :=
-    Vector.ofFn fun c ↦ fwd φ κ m (domainPt (c.val * 2 ^ κ))
-  Vector.ofFn fun y ↦
-    (cosets[y.val / 2 ^ κ]'(Nat.div_lt_of_lt_mul (by rw [← pow_add]; exact y.isLt)))[y.val % 2 ^ κ]'
-      (Nat.mod_lt _ (Nat.two_pow_pos κ))
-
-/-- Compiled code runs `encodeFast` through `fwdLet`. -/
-@[csimp] theorem encodeFast_eq_encodeFastLet : @encodeFast = @encodeFastLet := rfl
 
 /-! ## The transform on words -/
 

@@ -39,6 +39,13 @@ import LeanerVM.Protocol.Compile.Front
 import LeanerVM.Protocol.Compile.Rounds
 import LeanerVM.Protocol.Compile.Tables
 import LeanerVM.Protocol.Compile.Whir
+import LeanerVM.Protocol.Core
+import LeanerVM.Protocol.Core.Decoded
+import LeanerVM.Protocol.Core.Flip
+import LeanerVM.Protocol.Core.Grinding
+import LeanerVM.Protocol.Core.History
+import LeanerVM.Protocol.Core.Openings
+import LeanerVM.Protocol.Core.Solved
 import LeanerVM.Protocol.DecodeAgree
 import LeanerVM.Protocol.DecodeChain
 import LeanerVM.Protocol.DecodeWalk
@@ -52,6 +59,7 @@ import LeanerVM.Protocol.FlockFields
 import LeanerVM.Protocol.FlockSpec
 import LeanerVM.Protocol.FlockWalks
 import LeanerVM.Protocol.HashMisbehaves
+import LeanerVM.Protocol.Headline
 import LeanerVM.Protocol.HonestProver
 import LeanerVM.Protocol.LeanIsa
 import LeanerVM.Protocol.LeanIsa.Bus
@@ -152,11 +160,13 @@ import LeanerVM.Protocol.ToArkLib.SendChecked
 import LeanerVM.Protocol.ToArkLib.SendEncoded
 import LeanerVM.Protocol.ToArkLib.SendOracle
 import LeanerVM.Protocol.ToArkLib.SendOracleBeside
+import LeanerVM.Protocol.ToArkLib.StateWalk
 import LeanerVM.Protocol.ToArkLib.StepSchedule
 import LeanerVM.Protocol.ToArkLib.Sumcheck
 import LeanerVM.Protocol.ToArkLib.SumcheckCached
 import LeanerVM.Protocol.ToArkLib.SumcheckRound
 import LeanerVM.Protocol.ToArkLib.TranscriptMap
+import LeanerVM.Protocol.ToArkLib.TupleCompiledForms
 import LeanerVM.Protocol.ToArkLib.WeightBatch
 import LeanerVM.Protocol.ToArkLib.WeightCombination
 import LeanerVM.Protocol.ToClean.ComponentPolynomial

@@ -244,13 +244,15 @@ stateless honest provers when the fifth argument is `spec`.
 .lake/build/bin/leanervm-bench 1 protocol pub 15         # the smallest admissible size
 ```
 
-ArkLib builds an appended schedule's challenge samplers with `Fin.fappend₂`, which, compiled,
-evaluates the inner schedules' entries at every step: `Prover.run` of `SumcheckRound.rounds`, a
-schedule appended on the right once per round, took 0.6 ms at 4 rounds, 1.3 s at 7, 18 s at 8 and
-261 s at 9. With the lazy instances of `LeanerVM.Protocol.ToArkLib.AppendLazy` it takes 0.5 ms at
-8 rounds and 1.8 ms at 32. The plain sumcheck of three tables of `2^16` entries runs in 6.0 s with
-state and 38.1 s without (the stateless prover also computes each message twice, once to send it
-and once for its output statement). Recorded on 2026-10-23, each pair printing the same checksum:
+ArkLib builds an appended schedule's challenge samplers with `Fin.fappend₂`, which, compiled as
+defined, evaluates the inner schedules' entries at every step: `Prover.run` of
+`SumcheckRound.rounds`, each of whose rounds is prepended to the rest, took 0.6 ms at 4 rounds,
+1.3 s at 7, 18 s at 8 and 261 s at 9. With the forms by one comparison with the seam
+(`LeanerVM.Protocol.ToArkLib.TupleCompiledForms`, ArkLib's instances compiled again after them in
+`LeanerVM.Protocol.ToArkLib.AppendLazy`) it takes 0.1 ms at 8 rounds and 0.7 ms at 32
+(2026-10-26). The plain sumcheck of three tables of `2^16` entries runs in 6.0 s with state and
+38.1 s without (the stateless prover also computes each message twice, once to send it and once
+for its output statement). Recorded on 2026-10-23, each pair printing the same checksum:
 
 | Phase | `2^15` cells, `2^8` leaves: stateless | with state | `2^19` cells, `2^17` leaves: with state |
 | --- | ---: | ---: | ---: |
@@ -354,11 +356,10 @@ Each line came from its own fix. Before them, at `μ = 19`: the word took 256 s,
 
 * The additive transform `fwd` reads each node's halves inside the closures that build the node's
   outputs, so compiled code rebuilt a half at every entry: 2.1 s for one coset of `2^13`
-  coefficients over `E` and 2.0 s over `K`. `fwd_eq_fwdLet` (`@[csimp]`) reads them once, over
-  any ring (0.17 s and 34 ms; `encodeFast` runs it through `encodeFastLet`, compiled after the
-  csimp), and over `E` the transform runs as three transforms of the limbs' 64-bit words,
-  `xor` and `mulWord` (`Whir.encodeE`): 13 ms a limb, 87 ms a lane of `2^13` coefficients onto
-  `2^14` positions.
+  coefficients over `E` and 2.0 s over `K`. `fwd_eq_fwdFast` (`@[csimp]`) reads them once, over
+  any ring (0.17 s and 34 ms), and over `E` the transform runs as three transforms of the limbs'
+  64-bit words, `xor` and `mulWord` (`Whir.encodeE`): 13 ms a limb, 87 ms a lane of `2^13`
+  coefficients onto `2^14` positions.
 * A word is a function in compiled code, and a closure returning one is expanded to take the
   position as one more argument: the next level's word, a message computed by a closure, was
   rebuilt at every row the queries and the verifier read (0.64 s a row at the second level of
@@ -402,7 +403,8 @@ timed runs exclude the fixture's parsing.
 Recorded on 2026-10-23 at the fixture of leanVM `a386121f` (770 scalars, four openings of 223,
 56, 32 and 22 rows, a stack of `2^20` cells), on the machine of the table above: every check
 passes, and `verify` takes 1.7 to 1.9 s a run over five runs (2.6 to 3.1 s before the compiled
-fast paths of the bus output, the totals, the row folds and the lincheck terminal). A flipped
+fast paths of the bus output, the totals, the row folds and the lincheck terminal); on 2026-10-25,
+after `fwd_eq_fwdFast`, 0.76 to 0.81 s, every check passing. A flipped
 scalar of a phase is rejected by the next level's grinding check, since the chain moves; only the
 last level's query message and tail rounds reach WHIR's terminal check through the stream. The
 phases' own checks are exercised on the honest wire by the phase test modules and `whirChecks`.
@@ -422,7 +424,51 @@ lake build leanervm-prove
 .lake/build/bin/leanervm-prove tests/vectors/fill.proof 1   # the proof, its checks, the times
 .lake/build/bin/leanervm-prove probe 1                      # the commitment's steps, one by one
 .lake/build/bin/leanervm-prove tamper tests/vectors/fill.proof  # four provers, one message changed
+.lake/build/bin/leanervm-prove log tests/vectors/fill.proof     # the honest run, every hash logged
+.lake/build/bin/leanervm-prove m3                           # M3Holds's clauses on the witness's stack
+.lake/build/bin/leanervm-prove m3 9                         # the same at memory 2^10
 ```
+
+`log` runs the prover once more with every hash logged (the run of `honestAdversary` with BLAKE2s
+answering), then `verifyWith` on its proof with every hash logged, and checks that the proof is
+the file's, that the verifier accepts it, and that the joint log has no collision and no hit
+(`LeanerVMTests.Protocol.LogScan.scan`, one pass with hash maps, which the headline's tests check
+against `QueryLog.HasCollision` and `Hit` on small logs): the decidable clauses of the headline's
+hypothesis at `δ = 0`. The flip clause is not decidable. Then the extractor on the prover's log
+(`extractChecks`): the level-0 word `extract` reads off it (`wordRows` under the proof's level-0
+root) must be the committed word (`Whir.kwordRows` of the witness's stack), the commitment's list
+decoder must read it as the witness's stack alone, and `extract` itself, which decides `M3Holds`
+of the decoded stack last, must return the witness's sizes and stack: the leanVM-level witness of
+acceptance tests 24 and 37, run, where `extract_honest` would state it. Recorded on 2026-10-25:
+487250 prover queries (the grinding's candidates most of them) and 3291 verifier queries, three
+roots; the proof is the vector's, `verify` accepts it, and the joint log has no collision and no
+hit; the word read off the log (16384 rows, 2.8 s) is the committed word (recomputed in 2.5 s),
+the decoder returns one stack, the witness's (13.9 s), and `extract` from the log returns the
+witness's sizes and stack in 21.7 s. The two runs take 183 s, the scan 9 s, the whole check
+4 min, 6.4 GB at the peak (the logged prover's).
+
+Before `a53dc86` and `67c9a6d`, `extract` was not run at this size: the committed word took 231 s
+and the decoder 250 s (the transform rebuilt each half at every entry of a step, quadratic in
+its length; `fwd_eq_fwdFast`), and deciding `M3Holds` read each committed column of a boundary
+block once per tuple, decided the bus's permutation by `List.decidablePerm`, quadratic in its
+65698 tuples a side, and rebuilt each of the Flock region's 64 bit tables at every position it
+read. A native run of `extract` was stopped after more than 10 minutes, and one on the empty log
+grew to 40 GB and was killed. `m3` decides each clause
+on the witness's stack, at its sizes or at memory `2^(lm + 1)`; compiled code now sorts the
+tuples' keys (`M3Instance.instDecidableBalanced_eq`), reads each column once
+(`M3Instance.boundaryTuples_eq_boundaryTuplesFast`, `M3Instance.instDecidableCountsNonzero_eq`)
+and builds each bit table once (`BlockR1CS.instDecidableBatchHolds_eq`). Recorded on 2026-10-25,
+one thread, 0.8 GB at the peak:
+
+| `M3Holds` on the witness's stack | memory `2^10`, stack `2^15`: before | after | memory `2^16`, stack `2^19`: before | after |
+| --- | ---: | ---: | ---: | ---: |
+| the boundary's tuples, both sides | 3.8 s | 0.005 s | about 4 h (extrapolated, quadratic) | 0.42 s |
+| `Balanced` (its tuples included) | 3.9 s | 0.17 s | not run | 1.1 s |
+| `aux`, the Flock region's R1CS on `2^3` blocks | 32 s | 4.5 s | not run (the same region) | 4.5 s |
+| `M3Holds`, after the clauses above | 33 s | 1.6 s | not run | 2.7 s |
+
+`aux` includes, the first time, 3.3 s to build the BLAKE2s circuit's row table; the other clauses
+take under 0.2 s. The bus has 1186 tuples a side at memory `2^10` and 65698 at `2^16`.
 
 Beside the mutations of the proof, both `leanervm-prove` and `leanervm-verify` run the algebra on
 the honest wire with one message changed in each front phase (a grand-product round coefficient
@@ -437,27 +483,33 @@ checks that the proof is read to its end and rejected by that phase's algebra. R
 value, a Flock slice) are rejected at the bus phase, the table sumcheck, the public input and the
 Flock phase, about 440 s each.
 
-Recorded on 2026-10-23 on the machine of the tables above, one thread, 6.1 GB at the peak:
+On the machine of the tables above, one thread: "before" recorded on 2026-10-23 (6.1 GB at the
+peak), "after" on 2026-10-25, after `fwd_eq_fwdFast` (6.4 GB at the peak) but without the Flock and
+WHIR provers on words, and "stack top" on 2026-10-25 at the top of the stack, with both (1.06 GB at
+the peak):
 
-| Phase | Time |
-| --- | ---: |
-| the stack (`stackOf`) | 3.9 s |
-| the commitment: the level-0 word's rows by the transform, the tree, the root | 228 s |
-| bus phase (cached) | 9.0 s |
-| table sumcheck (cached) | 0.44 s |
-| public input | 6 ms |
-| Flock phase (cached) | 16.6 s |
-| the opening's batching and WHIR's first round polynomial | 129 s |
-| WHIR's levels (cached), their commitments and grinding, the openings | 47 s |
-| **the prover, from the witness** | **434 s** |
-| `verify` on the proof | 1.36 s |
+| Phase | Before | After | Stack top |
+| --- | ---: | ---: | ---: |
+| the stack (`stackOf`) | 3.9 s | 4.1 s | 3.8 s |
+| the commitment: the level-0 word's rows by the transform, the tree, the root | 228 s | 3.1 s | 3.2 s |
+| bus phase (cached) | 9.0 s | 8.4 s | 8.4 s |
+| table sumcheck (cached) | 0.44 s | 0.39 s | 0.38 s |
+| public input | 6 ms | 6 ms | 6 ms |
+| Flock phase (cached) | 16.6 s | 15.6 s | 16.3 s |
+| the opening's batching and WHIR's first round polynomial | 129 s | 108 s | 7.7 s |
+| WHIR's levels (cached), their commitments and grinding, the openings | 47 s | 41 s | 12.9 s |
+| **the prover, from the witness** | **434 s** | **181 s** | **52.7 s** |
+| `verify` on the proof | 1.36 s | 0.63 s | 0.62 s |
 
-`prove` in `Id` takes 425 s and returns the same proof, byte for byte. Of the commitment, the
-probe gives 228 s to the 64 lanes' encodings by the additive transform over `K`, 0.04 s to the
-stored rows and 0.85 s to the Merkle tree of `2^14` leaves. Rust leanVM at the pin proves its
-smallest run in 3.5 s on one thread on the same machine, so the prover is about 125 times slower,
-outside the blueprint's one to two orders of magnitude: the transform's `K` products and the
-batched weight's table dominate. Every mutation is rejected at the stage it names.
+`prove` in `Id` takes 175 s (425 s before) and returns the same proof, byte for byte, and both
+return the vector's. Of the commitment, the probe gives 2.4 s (228 s before) to the 64 lanes'
+encodings by the additive transform over `K`, 0.04 s to the stored rows and 0.76 s to the Merkle
+tree of `2^14` leaves. Before `fwd_eq_fwdFast` a step of the transform rebuilt each half of its
+input at every entry it wrote. Rust leanVM at the pin proves its smallest run in 3.5 s on one
+thread on the same machine, so the prover at the top of the stack is about 15 times slower (50
+times without the provers on words), within the blueprint's one to two orders of magnitude; the
+Flock phase and WHIR now dominate. Every mutation is rejected at the
+stage it names.
 
 Further runtime benchmark groups belong here once leanerVM has executable semantics. Each such
 group must name the workload, parameter revision, expected result, and whether it measures Lean code

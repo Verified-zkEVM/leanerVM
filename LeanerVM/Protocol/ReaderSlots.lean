@@ -91,11 +91,11 @@ end UniformSlot
 
 /-! ## Families over a schedule's challenges -/
 
-private theorem append_dir_castAdd {m n : ℕ} {pSpec₁ : ProtocolSpec m} {pSpec₂ : ProtocolSpec n}
+theorem append_dir_castAdd {m n : ℕ} {pSpec₁ : ProtocolSpec m} {pSpec₂ : ProtocolSpec n}
     (i : Fin m) : (pSpec₁ ++ₚ pSpec₂).dir (Fin.castAdd n i) = pSpec₁.dir i := by
   simp only [Fin.vappend_eq_append, Fin.append_left]
 
-private theorem append_dir_natAdd {m n : ℕ} {pSpec₁ : ProtocolSpec m} {pSpec₂ : ProtocolSpec n}
+theorem append_dir_natAdd {m n : ℕ} {pSpec₁ : ProtocolSpec m} {pSpec₂ : ProtocolSpec n}
     (j : Fin n) : (pSpec₁ ++ₚ pSpec₂).dir (Fin.natAdd m j) = pSpec₂.dir j := by
   simp only [Fin.vappend_eq_append, Fin.append_right]
 
