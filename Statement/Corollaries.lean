@@ -39,7 +39,7 @@ deferred claim has the guest program's shape, and yet the execution the knowledg
 decode to the deployed seed, `s` and a witness holding it, or give a Keccak-256 collision among
 `collisionCandidates`). It composes `KnowledgeSoundness`, `GuestKnowledge` and `DigestBinds`;
 its probability is at most the bound of `KnowledgeSoundness`,
-`(Q + 2^14) · 2^-128 + 7 (Q + 2^14)² · 2^-256`, for at most `Q ≤ 2^128` queries to `π`, `π⁻¹`.
+`(Q + 2^14) · 2^-128 + 5 (Q + 2^14)² · 2^-256`, for at most `Q ≤ 2^128` queries to `π`, `π⁻¹`.
 Keccak-256 and Keccak-f[1600] outside the executed program are built from `π`; the statement's
 digest and the collisions are of the deployed Keccak-256, which the guest program computes. -/
 def AggregateSound (guest : Program) (decode : Decoder) : Prop :=
@@ -50,7 +50,7 @@ def AggregateSound (guest : Program) (decode : Decoder) : Prop :=
       ¬ ∃ t, extractorRpm z.program z.input z.transcript z.proof = some t ∧
         Explains guest s (decode t.image)] ≤
       (Q + 2 ^ 14 : ℝ≥0∞) * (2 : ℝ≥0∞)⁻¹ ^ 128 +
-        7 * (Q + 2 ^ 14 : ℝ≥0∞) ^ 2 * (2 : ℝ≥0∞)⁻¹ ^ 256
+        5 * (Q + 2 ^ 14 : ℝ≥0∞) ^ 2 * (2 : ℝ≥0∞)⁻¹ ^ 256
 
 end LeanVM.Node
 

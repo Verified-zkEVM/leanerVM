@@ -254,14 +254,14 @@ def BreaksRpm (z : RpmOutcome) : Prop :=
 
 /-- **Knowledge soundness in the random-permutation model**, for the extractor `extractorRpm`:
 an adversary of at most `Q ≤ 2^128` queries to `π` and `π⁻¹` (its coins free) breaks soundness
-with probability at most `(Q + 2^14) · 2^-128 + 7 (Q + 2^14)² · 2^-256`, the `2^14` covering the
+with probability at most `(Q + 2^14) · 2^-128 + 5 (Q + 2^14)² · 2^-256`, the `2^14` covering the
 verifier's own `12006` oracle calls and two terms of `2^-128` (a guessed stack root, the transfer
 from two random oracles to one permutation). -/
 def KnowledgeSoundness : Prop :=
   ∀ (A : RpmAdversary) (Q : ℕ), Common.IsWeightBound A permQueries Q → Q ≤ 2 ^ 128 →
     Pr{let z ← rpmExperiment A}[BreaksRpm z] ≤
       (Q + 2 ^ 14 : ℝ≥0∞) * (2 : ℝ≥0∞)⁻¹ ^ 128 +
-        7 * (Q + 2 ^ 14 : ℝ≥0∞) ^ 2 * (2 : ℝ≥0∞)⁻¹ ^ 256
+        5 * (Q + 2 ^ 14 : ℝ≥0∞) ^ 2 * (2 : ℝ≥0∞)⁻¹ ^ 256
 
 /-! ### Completeness -/
 

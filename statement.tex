@@ -6,7 +6,7 @@
 \sloppy\emergencystretch=3em
 \setlength{\parskip}{0.35em}
 \title{What is proved about leanVM}
-\author{leanerVM, branch \texttt{mumbai-bump-990b} at \texttt{f8bc6892}, about leanVM \texttt{990b9352}}
+\author{leanerVM, branch \texttt{mumbai}, about leanVM \texttt{990b9352}}
 \date{29 October 2026}
 \begin{document}
 \maketitle
@@ -129,7 +129,7 @@ $Q \le 2^{128}$ queries to $\pi$ and $\pi^{-1}$ on every path,
 \[
 \boxed{\ \Pr\left[\begin{array}{l}\text{the verifier accepts } (P,x,\text{proof}) \text{ and the}\\
 \text{extractor outputs no valid execution of } P \text{ on } x\end{array}\right]
-\le (Q+2^{14})\cdot 2^{-128} + 7\,(Q+2^{14})^2\cdot 2^{-256}\ }
+\le (Q+2^{14})\cdot 2^{-128} + 5\,(Q+2^{14})^2\cdot 2^{-256}\ }
 \]
 (\lean{LeanVM.knowledgeSoundness\_holds}). The constant $2^{14}$ absorbs the verifier's $12006$
 calls and two further terms of at most $2^{-128}$ each: the transfer to the RPM, and the
@@ -586,16 +586,16 @@ Rust prover on the test corpus, and no complexity bound is proved.
 
 \section{Status}
 
-This document describes \texttt{mumbai-bump-990b} at \texttt{f8bc6892}, about leanVM \texttt{990b9352}.
+This document describes \texttt{mumbai}, about leanVM \texttt{990b9352}.
 Recent changes, newest first:
 \begin{itemize}
-\item \texttt{131bc3fd}$\to$\texttt{f8bc6892}, leanVM \texttt{94ee12ff}$\to$\texttt{990b9352}
+\item \texttt{131bc3fd}$\to$ this version, leanVM \texttt{94ee12ff}$\to$\texttt{990b9352}
 ($7066 \to 7048$ lines): the Fiat--Shamir IV is $H(\mathit{TAG} \,\|\, \bar B)$, the version tag
 in place of the relation label and the bytecode's hash; the statement's digest hashes $H(\bar X)$
 and $H(\bar S)$ directly, without the signer-set digest, so \lean{DigestBinds} has four pairs (was
 five). The verifier makes at most $12006$ calls (was $12008$), the honest prover and verifier
-together $12008 + 48017\,(2^{27}+2f+2)$ (was $12012 + \dots$); the proved soundness error's
-coefficient is $5$ (was $7$), and the end statement keeps its bound with $7$. The guest program
+together $12008 + 48017\,(2^{27}+2f+2)$ (was $12012 + \dots$); knowledge soundness's
+quadratic coefficient is $5$ (was $7$). The guest program
 has $363{,}727$ instructions (was $363{,}731$); its budget's base is $18106$ words (was $18123$), a
 child's $14257$ as before; the coverage families and the capacities are unchanged.
 \item \texttt{8651788b}$\to$\texttt{eb18d3a2}, a review's cleanup that weakens nothing

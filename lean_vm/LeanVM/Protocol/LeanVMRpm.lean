@@ -26,7 +26,7 @@ permutation `π` of the Keccak state, Keccak-f[1600] `π` itself, the adversary 
 to `π` and `π⁻¹`, its coins free, the probability that the verifier accepts while the extractor `extractorRpm` (the extractor of
 `Extractor.lean` on the Keccak-256 evaluations of the adversary's transcript) does not return a valid execution is at most
 `soundnessError Q + (Q + 12006 · 2^32)² / 2^508`, which is at most `(Q + 2^14) · 2^-127` for
-`Q ≤ 2^120` (`soundnessRpm_le_bits`), at most `(Q + 2^14) · 2^-128 + 7 (Q + 2^14)² · 2^-256` for
+`Q ≤ 2^120` (`soundnessRpm_le_bits`), at most `(Q + 2^14) · 2^-128 + 5 (Q + 2^14)² · 2^-256` for
 `Q ≤ 2^128` (`soundnessRpm_le_128`, the end statement `KnowledgeSoundness`) and at most `2^-63` for
 `Q ≤ 2^64` (`soundnessRpm_le`). The proof:
 
@@ -421,14 +421,14 @@ theorem soundnessRpm_le_bits {Q : ℕ} (hQ : Q ≤ 2 ^ 120) :
     _ = (Q + 2 ^ 14) * 2 ^ 381 := by rw [mul_assoc, ← pow_add]
 
 /-- **The knowledge-soundness bound up to `2^128` queries**: for `Q ≤ 2^128` queries to `π` and
-`π⁻¹`, at most `(Q + 2^14) · 2^-128 + 7 (Q + 2^14)² · 2^-256`. The random-oracle error is
+`π⁻¹`, at most `(Q + 2^14) · 2^-128 + 5 (Q + 2^14)² · 2^-256`. The random-oracle error is
 `A · 2^-128 + 5 A² · 2^-256 + V / 2^256` with `A = Q + V`, `V = 12006`; the verifier's
 `V / 2^256` and the transfer's `(Q + verifierPermCalls)² / 2^508` are each at most `2^-128`, and
 `A + 2 ≤ Q + 2^14`. -/
 theorem soundnessRpm_le_128 {Q : ℕ} (hQ : Q ≤ 2 ^ 128) :
     soundnessError Q + rpmError (Q + verifierPermCalls) ≤
       (Q + 2 ^ 14 : ℝ≥0∞) * (2 : ℝ≥0∞)⁻¹ ^ 128 +
-        7 * (Q + 2 ^ 14 : ℝ≥0∞) ^ 2 * (2 : ℝ≥0∞)⁻¹ ^ 256 := by
+        5 * (Q + 2 ^ 14 : ℝ≥0∞) ^ 2 * (2 : ℝ≥0∞)⁻¹ ^ 256 := by
   have hA2 : ((Q + verifierQueries : ℕ) : ℝ≥0∞) + 2 ≤ (Q + 2 ^ 14 : ℝ≥0∞) := by
     have h : Q + verifierQueries + 2 ≤ Q + 2 ^ 14 := by
       rw [Nat.add_assoc]
@@ -471,7 +471,7 @@ theorem soundnessRpm_le_128 {Q : ℕ} (hQ : Q ≤ 2 ^ 128) :
     _ = (((Q + verifierQueries : ℕ) : ℝ≥0∞) + 2) * (2 : ℝ≥0∞)⁻¹ ^ 128 +
           5 * ((Q + verifierQueries : ℕ) : ℝ≥0∞) ^ 2 * (2 : ℝ≥0∞)⁻¹ ^ 256 := by ring
     _ ≤ (Q + 2 ^ 14 : ℝ≥0∞) * (2 : ℝ≥0∞)⁻¹ ^ 128 +
-          7 * (Q + 2 ^ 14 : ℝ≥0∞) ^ 2 * (2 : ℝ≥0∞)⁻¹ ^ 256 := by
+          5 * (Q + 2 ^ 14 : ℝ≥0∞) ^ 2 * (2 : ℝ≥0∞)⁻¹ ^ 256 := by
         gcongr ?_ * _ + ?_ * ?_ ^ 2 * _
         all_goals first | assumption | norm_num
 

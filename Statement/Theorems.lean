@@ -30,7 +30,7 @@ namespace Statement
 /-- **The end theorems.** -/
 structure Theorems (decode : LeanVM.Node.Decoder) : Prop where
   /-- leanVM is knowledge sound for the straight-line extractor `extractorRpm`: at most
-  `(Q + 2^14) · 2^-128 + 7 (Q + 2^14)² · 2^-256` for `Q ≤ 2^128` queries (`LeanVm.lean`). -/
+  `(Q + 2^14) · 2^-128 + 5 (Q + 2^14)² · 2^-256` for `Q ≤ 2^128` queries (`LeanVm.lean`). -/
   knowledgeSoundness : LeanVM.KnowledgeSoundness
   /-- leanVM is complete: the honest prover's (`LeanVM.prover`, the executable
   `LeanVM.Prover.prove` of `Prover/Prove.lean`) proof of a valid execution of committed size at
