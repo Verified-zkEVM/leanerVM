@@ -6,8 +6,8 @@
 \sloppy\emergencystretch=3em
 \setlength{\parskip}{0.35em}
 \title{What is proved about leanVM}
-\author{leanerVM, branch \texttt{mumbai} at \texttt{eb18d3a2}, about leanVM \texttt{94ee12ff}}
-\date{28 October 2026}
+\author{leanerVM, branch \texttt{mumbai-bump-990b} at \texttt{f8bc6892}, about leanVM \texttt{990b9352}}
+\date{29 October 2026}
 \begin{document}
 \maketitle
 
@@ -17,10 +17,10 @@ data-availability claims and other proofs, is sound and complete as an aggregati
 and leanSPHINCS are strongly unforgeable; and LeanDA binds its commitments. Each is a Lean~4
 proposition proved using only Lean's three axioms (\lean{propext}, \lean{Classical.choice},
 \lean{Quot.sound}): no \lean{sorry}, no \lean{native\_decide}, no added axiom. The system is
-leanVM at commit \texttt{94ee12ff} of its \texttt{main} branch.
+leanVM at commit \texttt{990b9352} of its \texttt{main} branch.
 
 \paragraph{Where to read it.} The statements live in one folder, \lean{Statement/}: twelve files
-of definitions and end statements ($7066$ lines with their documentation), which import Mathlib,
+of definitions and end statements ($7048$ lines with their documentation), which import Mathlib,
 VCVio and CompPoly and nothing of the proofs. Beside them sit the honest prover the completeness
 statements name (\lean{Statement/Prover/}, $2477$ lines; it is proved to make the specification's
 honest moves, so a reviewer only needs to see that it is a genuine prover), the guest program's
@@ -131,9 +131,9 @@ $Q \le 2^{128}$ queries to $\pi$ and $\pi^{-1}$ on every path,
 \text{extractor outputs no valid execution of } P \text{ on } x\end{array}\right]
 \le (Q+2^{14})\cdot 2^{-128} + 7\,(Q+2^{14})^2\cdot 2^{-256}\ }
 \]
-(\lean{LeanVM.knowledgeSoundness\_holds}). The constant $2^{14}$ absorbs the verifier's $12008$
+(\lean{LeanVM.knowledgeSoundness\_holds}). The constant $2^{14}$ absorbs the verifier's $12006$
 calls and two further terms of at most $2^{-128}$ each: the transfer to the RPM, and the
-verifier's own $12008/2^{256}$.
+verifier's own $12006/2^{256}$.
 
 \paragraph{Completeness} (\lean{LeanVM.Completeness}). The statement names its honest prover,
 \lean{LeanVM.prover}: the executable \lean{LeanVM.Prover.prove} (\lean{Statement/Prover/}), its
@@ -156,7 +156,7 @@ because the proof of work is bounded: for any fuel $f \le 2^{64}$ the rejection 
 most
 \[
 \delta(f) = Q_f\,(1-2^{-17})^{f} + (Q_f\cdot 2^{32})^2/2^{508}, \qquad
-Q_f = 12012 + 48017\,(2^{27} + 2f + 2)
+Q_f = 12008 + 48017\,(2^{27} + 2f + 2)
 \]
 (\lean{LeanVM.Rpm.completenessRpm}). The \emph{committed size} (\lean{Trace.committedSize}) of an
 execution is
@@ -291,14 +291,18 @@ about it. Every definition named here is in \lean{Statement/LeanVmGuest.lean} un
 \subsection{The objects}
 
 \paragraph{The guest program} $G$ (\lean{LeanVM.Guest.guest}) is leanVM's compiled aggregation
-program (\texttt{crates/rec\_aggregation/guests/lean\_ethereum.py} at \texttt{94ee12ff}),
+program (\texttt{crates/rec\_aggregation/guests/lean\_ethereum.py} at \texttt{990b9352}),
 transcribed as generated data (\lean{Statement/Data/}). Its bytecode $B$ has $2^{19}$ instruction
 slots of $16$ words of $\mathbb{F} = \mathrm{GF}(2^{64})$, so $2^{23}$ words
-(\lean{bytecode\_length}, in \lean{lean\_vm}). Its \emph{deployed seed}
-$iv_G = \mathrm{IV}(B)$ (\lean{deployedSeed}) is the Fiat--Shamir initial value prover and
-verifier derive from the bytecode; a test run by the gate (\texttt{lake exe node-vectors}) checks
-it against leanVM's \texttt{fs\_seed}. Below, $H$ is Keccak-256 and
-$\mathbb{E} = \mathbb{F}[y]/(y^3+y+1)$, the field of $2^{192}$ elements.
+(\lean{bytecode\_length}, in \lean{lean\_vm}). Below, $H$ is Keccak-256 and
+$\mathbb{E} = \mathbb{F}[y]/(y^3+y+1)$, the field of $2^{192}$ elements. Its \emph{deployed seed}
+\[
+iv_G = \mathrm{IV}(B) = H(\mathit{TAG} \,\|\, \bar B), \qquad \mathit{TAG} = \texttt{leanvm-v1}
+\]
+(\lean{deployedSeed}, \lean{fiatShamirIvWith}, \texttt{verifier.py:684, 1464}), the hash of the
+proof system's $9$-byte version tag and the bytecode's words as $8$-byte little-endian strings, is
+the Fiat--Shamir initial value prover and verifier derive from the bytecode; a test run by the gate
+(\texttt{lake exe node-vectors}) checks it against leanVM's \texttt{fs\_seed}.
 
 \paragraph{A statement} $s$ (\lean{NodeStatement}) consists of
 \begin{itemize}
@@ -316,9 +320,9 @@ satisfies $\widehat{B}(z) = v$ (\lean{DeferredClaim.Holds}).
 \end{itemize}
 
 \paragraph{The statement's digest} under a seed $\sigma$ (\lean{statementDigest},
-\texttt{aggregation.rs:347-368}) is
+\texttt{aggregation.rs:335-364}) is
 \[
-\mathrm{dig}_\sigma(s) = H\big(\sigma \,\|\, H(H(\bar X) \,\|\, H(\bar S)) \,\|\, H(\bar D)
+\mathrm{dig}_\sigma(s) = H\big(\sigma \,\|\, H(\bar X) \,\|\, H(\bar S) \,\|\, H(\bar D)
 \,\|\, \bar c\big),
 \]
 where $\bar X$ concatenates, per claim, the key's root ($16$ bytes), its parameter ($16$) and the
@@ -364,7 +368,7 @@ the value of $f_i$ and $v'_i$ that of $c_i$, to one claim on $\widehat{B}$ at a 
 run on the real Keccak, accepts its proof. Whether that makes them true is the soundness of leanVM
 with Keccak instantiated, which is not proved (Section~\ref{sec:notgive}).
 
-\paragraph{The outer verifier} (\texttt{EthereumProof::verify}, \texttt{aggregation.rs:697-719})
+\paragraph{The outer verifier} (\texttt{EthereumProof::verify}, \texttt{aggregation.rs:694-717})
 additionally checks that each DA claim's \lean{membershipVectorDigest} is the digest of its root's
 membership vector, that the deferred claim holds ($\widehat{B}(z) = v$), and the lists' form
 (sorted, no repeats, fewer than $2^{16}$ signature claims, at most $16$ DA roots). The soundness
@@ -395,9 +399,9 @@ execution $t$ of $G$ on $x$, with $(\sigma', s', w') = \mathrm{dec}(t)$:
 that is, $\mathrm{dig}_{\sigma'}(s') = x$ and $\mathrm{NodeRel}(B, \sigma', s', w')$.
 \item \lean{DigestBinds} (no decoder): for every bytecode $B$, seeds $\sigma, \sigma_0$ and
 statements $s, s_0$ whose deferred claims have $B$'s shape, if $\mathrm{dig}_{\sigma}(s) =
-\mathrm{dig}_{\sigma_0}(s_0)$ then $(\sigma, s) = (\sigma_0, s_0)$, or one of five explicit pairs
-of byte strings, the inputs of the five hashes in $\mathrm{dig}$ (\lean{collisionCandidates}), is a
-Keccak-256 collision.
+\mathrm{dig}_{\sigma_0}(s_0)$ then $(\sigma, s) = (\sigma_0, s_0)$, or one of four explicit pairs
+of byte strings, the inputs of the four hashes in $\mathrm{dig}$ (the outer hash and those of
+$\bar X$, $\bar S$ and $\bar D$, \lean{collisionCandidates}), is a Keccak-256 collision.
 \end{itemize}
 Together they give \lean{decode\_binds} (\lean{lean\_vm}): the decoded $(\sigma', s')$ is any shaped
 $(\sigma_0, s_0)$ of digest $x$, up to such a collision. Here Keccak-256 is the real function the
@@ -412,7 +416,7 @@ $G$ on public input $\mathrm{dig}_{iv_G}(s)$ with $s$'s deferred claim of the by
 yet the extractor outputs no execution $t$ that \emph{explains} $s$, is at most the bound of
 \lean{KnowledgeSoundness}. An execution explains $s$ (\lean{Explains}) if $\mathrm{dec}(t) =
 (iv_G, s, w')$ with $\mathrm{NodeRel}(B, iv_G, s, w')$, or the decoded seed and statement, with
-$(iv_G, s)$, give a Keccak-256 collision among the five pairs.
+$(iv_G, s)$, give a Keccak-256 collision among the four pairs.
 \item \lean{aggregate\_knowledge} (\lean{lean\_vm}): with the same bound, the verifier accepts a
 proof of $G$ on some public input $x$ while the extractor outputs no execution whose decoding
 $(\sigma', s', w')$ satisfies $\mathrm{dig}_{\sigma'}(s') = x$ and $\mathrm{NodeRel}(B, \sigma',
@@ -481,7 +485,7 @@ declared claims (all three lists), $k$ coverage slots, $n_X$ and $n_S$ signature
 $n_D$ DA matrices held directly with $n_R$ rows in all, $n_C$ children with $n_{CC}$ claims in all,
 and each child's announced stack log $\mu$ and rate exponent $r$. A run allocates at most
 \[
-W = 18123 + 35d + 109k + 6459n_X + 7328n_S + 480986n_D + 247997n_R + 14257n_C + 30n_{CC}
+W = 18106 + 35d + 109k + 6459n_X + 7328n_S + 480986n_D + 247997n_R + 14257n_C + 30n_{CC}
   + \sum_{\text{children}} \beta(\mu, r)
 \]
 words, where $\beta(\mu,r)$, the words of verifying one child, is:
@@ -582,9 +586,18 @@ Rust prover on the test corpus, and no complexity bound is proved.
 
 \section{Status}
 
-This document describes \texttt{mumbai} at \texttt{eb18d3a2}, about leanVM \texttt{94ee12ff}.
+This document describes \texttt{mumbai-bump-990b} at \texttt{f8bc6892}, about leanVM \texttt{990b9352}.
 Recent changes, newest first:
 \begin{itemize}
+\item \texttt{131bc3fd}$\to$\texttt{f8bc6892}, leanVM \texttt{94ee12ff}$\to$\texttt{990b9352}
+($7066 \to 7048$ lines): the Fiat--Shamir IV is $H(\mathit{TAG} \,\|\, \bar B)$, the version tag
+in place of the relation label and the bytecode's hash; the statement's digest hashes $H(\bar X)$
+and $H(\bar S)$ directly, without the signer-set digest, so \lean{DigestBinds} has four pairs (was
+five). The verifier makes at most $12006$ calls (was $12008$), the honest prover and verifier
+together $12008 + 48017\,(2^{27}+2f+2)$ (was $12012 + \dots$); the proved soundness error's
+coefficient is $5$ (was $7$), and the end statement keeps its bound with $7$. The guest program
+has $363{,}727$ instructions (was $363{,}731$); its budget's base is $18106$ words (was $18123$), a
+child's $14257$ as before; the coverage families and the capacities are unchanged.
 \item \texttt{8651788b}$\to$\texttt{eb18d3a2}, a review's cleanup that weakens nothing
 ($7447 \to 7066$ lines): completeness is bounded by $2^{-256}$ (was $2^{-127}$); a child's absence
 of a zero challenge is one transformation of the verifier program, \lean{Prog.refuseZero}, in
