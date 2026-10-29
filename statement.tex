@@ -309,25 +309,26 @@ the Fiat--Shamir initial value prover and verifier derive from the bytecode; a t
 \begin{itemize}
 \item a list $X$ of leanXMSS claims and a list $S$ of leanSPHINCS claims, each a pair $(pk, m)$
 meaning ``$pk$ signed $m$'';
-\item a list $D$ of data-availability claims (\lean{DaClaim}), each a matrix root $\rho$
-(\lean{daRoot}) and the digest $\delta$ (\lean{membershipVectorDigest}) of a vector $u$. The
-claim: some matrix of $1$ to $1024$ encoded blobs with root $\rho$ has every row orthogonal to some $u$ with digest $\delta$
-(\lean{Da.Witness.Opens}). The outer verifier checks that $u$ is $\rho$'s membership vector
-(Section~\ref{sec:schemes}), which makes the rows codewords except with probability $14/2^{192}$;
+\item a \emph{DA digest} $\mathit{da}$ (\lean{Claims.da}): either $H(\rho \,\|\, \delta)$ of one
+data-availability claim (\lean{DaClaim}, \lean{daClaimDigest}), a matrix root $\rho$
+(\lean{daRoot}) and the digest $\delta$ (\lean{membershipVectorDigest}) of a vector $u$, or $32$
+zero bytes without one (\lean{zeroDigest}; \texttt{da\_digest}, \texttt{aggregation.rs:550-562}).
+The claim: some matrix of $1$ to $1024$ encoded blobs with root $\rho$ has every row orthogonal to
+some $u$ with digest $\delta$ (\lean{Da.Witness.Opens}). The outer verifier holds $\rho$, derives
+$\delta$ from $\rho$'s membership vector (Section~\ref{sec:schemes}), which makes the rows codewords
+except with probability $14/2^{192}$, and checks $\mathit{da} = H(\rho \,\|\, \delta)$;
 \item a \emph{deferred claim} $c = (z, v)$, $z \in \mathbb{E}^{23}$, $v \in \mathbb{E}$, meaning
 that the multilinear extension $\widehat{B}$ of the bytecode, as a function on $\{0,1\}^{23}$,
 satisfies $\widehat{B}(z) = v$ (\lean{DeferredClaim.Holds}).
 \end{itemize}
 
 \paragraph{The statement's digest} under a seed $\sigma$ (\lean{statementDigest},
-\texttt{aggregation.rs:335-364}) is
+\texttt{aggregation.rs:331-360}) is
 \[
-\mathrm{dig}_\sigma(s) = H\big(\sigma \,\|\, H(\bar X) \,\|\, H(\bar S) \,\|\, H(\bar D)
-\,\|\, \bar c\big),
+\mathrm{dig}_\sigma(s) = H\big(\sigma \,\|\, H(\bar X) \,\|\, H(\bar S) \,\|\, \mathit{da} \,\|\, \bar c\big),
 \]
 where $\bar X$ concatenates, per claim, the key's root ($16$ bytes), its parameter ($16$) and the
-message ($32$); $\bar S$ likewise; $\bar D$ concatenates, per claim, \lean{daRoot} and
-\lean{membershipVectorDigest}; and $\bar c$ is the $24$-byte encodings of $z_1, \dots, z_{23}, v$,
+message ($32$); $\bar S$ likewise; and $\bar c$ is the $24$-byte encodings of $z_1, \dots, z_{23}, v$,
 padded with one zero element to an even number. The lists' lengths are bound by Keccak's padding;
 the deferred claim's encoding carries no length, so deferred claims are told apart only at one
 shape. The guest program's public input is this $32$-byte digest.
@@ -341,8 +342,9 @@ $\sigma = iv_G$.
 \begin{itemize}
 \item a list of \emph{children}, each a statement $s_i$, a proof $p_i$, and a \emph{fresh} claim
 $f_i = (z_i, v_i)$ on the bytecode, the evaluation the child's proof leaves to be checked;
-\item for each claim of $s$, a \emph{holder}: a direct witness (a leanXMSS or leanSPHINCS
-signature, or a LeanDA matrix) or the index of a child;
+\item for each signature claim of $s$, a \emph{holder}: a direct signature (leanXMSS or
+leanSPHINCS) or the index of a child;
+\item optionally, one LeanDA matrix the node checks directly, with the DA claim it opens;
 \item the \emph{batching hints}: the round messages of one sumcheck, and a final value.
 \end{itemize}
 
@@ -357,9 +359,12 @@ accepts its proof: $\mathrm{verifyDeferred}(B, \sigma, \mathrm{dig}_\sigma(s_i),
 \mathsf{true}$. The deferring verifier is the zkVM verifier except that, instead of evaluating
 $\widehat{B}$ at the point it reaches, it outputs that evaluation as the claim $f_i$. It runs on
 the real Keccak-256 and Keccak-f[1600], the ones the guest program computes.
-\item Every claim of $s$ is held: a direct signature verifies under the claim's key and message
-(Keccak-256 as the schemes' hash, at any leaf index); a direct matrix opens the DA claim; a child
-holder $i$ means the claim occurs in the corresponding list of $s_i$.
+\item Every signature claim of $s$ is held: a direct signature verifies under the claim's key and
+message (Keccak-256 as the schemes' hash, at any leaf index); a child holder $i$ means the claim
+occurs in the corresponding list of $s_i$.
+\item The DA digest is accounted for: with a direct matrix, $\mathit{da} = H(\rho \,\|\, \delta)$ of the claim
+it opens; without one, $\mathit{da}$ is zero or some child's DA digest (the guest program's
+\texttt{da\_pick}, \texttt{lean\_ethereum.py:4207-4211}).
 \item The deferred claim batches the children's. With no children, its point is all-zero (its
 value is left to the outer verifier); otherwise $\mathrm{batch}\big((\mathrm{dig}_\sigma(s_i),
 f_i, c_i)_i, \text{hints}\big) = c$ (\lean{batch}), with $c_i$ the deferred claim of $s_i$. The
@@ -374,9 +379,9 @@ run on the real Keccak, accepts its proof. Whether that makes them true is the s
 with Keccak instantiated, which is not proved (Section~\ref{sec:notgive}).
 
 \paragraph{The outer verifier} (\texttt{EthereumProof::verify}, \texttt{aggregation.rs:694-717})
-additionally checks that each DA claim's \lean{membershipVectorDigest} is the digest of its root's
+additionally checks that the DA digest is that of its root with the digest of the root's
 membership vector, that the deferred claim holds ($\widehat{B}(z) = v$), and the lists' form
-(sorted, no repeats, fewer than $2^{16}$ signature claims, at most $16$ DA roots). The soundness
+(sorted, no repeats, fewer than $2^{16}$ signature claims). The soundness
 statements below assume none of this: of the accepted statement they assume only that its deferred
 claim has the bytecode's shape, which makes them stronger than statements about the outer
 verifier.
@@ -461,11 +466,10 @@ across recursion levels does not follow from it.
 \paragraph{The hypotheses,} on a seed $\sigma$, a statement $s$ and a witness $w$ with
 $\mathrm{NodeRel}(B, \sigma, s, w)$:
 \begin{enumerate}
-\item \lean{Limits}, the limits the guest program enforces on the node: at most one DA claim held
-directly; a claim declared $n$ times is held $n$ times, by direct witnesses or by distinct entries
-of the children's lists; at most $16$ children; at most $16$ DA claims in $s$ and in each child;
-each child's signature lists shorter than $2^{16}$; the coverage table (the declared claims plus the
-duplicates the guest program records) shorter than $2^{16}$; at least one declared claim.
+\item \lean{Limits}, the limits the guest program enforces on the node: a signature claim declared
+$n$ times is held $n$ times, by direct signatures or by distinct entries of the children's lists;
+at most $16$ children; each child's signature lists shorter than $2^{16}$; the coverage table (the
+declared claims plus the duplicates the guest program records) shorter than $2^{16}$.
 \item \lean{ChildOk} for every child, what the guest program asks of a child beyond
 \lean{NodeRel}:
   \begin{itemize}
@@ -486,7 +490,7 @@ duplicates the guest program records) shorter than $2^{16}$; at least one declar
 \end{enumerate}
 
 \paragraph{The budget} (\lean{lean_vm}). The node's \emph{work} (\lean{work}) consists of $d$
-declared claims (all three lists), $k$ coverage slots, $n_X$ and $n_S$ signatures held directly,
+declared claims (both signature lists), $k$ coverage slots, $n_X$ and $n_S$ signatures held directly,
 $n_D$ DA matrices held directly with $n_R$ rows in all, padded to $n_P$ rows ($2^{\lceil\log_2 r\rceil}$
 for a matrix of $r$ rows), $n_C$ children with $n_{CC}$ claims in all,
 and each child's announced stack log $\mu$ and rate exponent $r$. A run allocates at most
