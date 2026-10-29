@@ -53,7 +53,7 @@ namespace Blake2sHash
 def lastBlock : UInt32 := 0xFFFFFFFF
 
 /-- The initial chaining value of an unkeyed BLAKE2s-256: `iv` with the parameter block
-`0x01010020` (digest length 32, key length 0, fanout 1, depth 1; RFC 7693 §2.8) XORed into word 0
+`0x01010020` (digest length 32, key length 0, fanout 1, depth 1; RFC 7693 §2.5) XORed into word 0
 (`hash.rs:66-81`, `init_state`, `PARAM_IV`). -/
 def paramIv : Vector UInt32 8 := iv.set 0 (iv[0] ^^^ 0x01010020)
 
