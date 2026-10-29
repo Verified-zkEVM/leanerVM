@@ -1,5 +1,5 @@
 //! Known answers of the deployed Rust for `Statement/LeanVmGuest.lean`, at the guest's real shape: the
-//! claim lists' digests, the signer set's, the DA list's, the statement's digest under the
+//! claim lists' digests, the DA list's, the statement's digest under the
 //! deployed seed, and a batching of two children with true claims on the guest's stacked
 //! bytecode (`aggregate_deferred_claims`, its sumcheck over all `bytecode_vars()` variables), as
 //! `tests/LeanVMTests/Spec/NodeVectors.lean`. The successor of the BLAKE2s-era
@@ -95,7 +95,6 @@ pub fn file() -> File {
         .collect();
     let xmss_digest = claim_list_digest(xmss_typed.iter().map(lean_xmss_claim_cells));
     let sphincs_digest = claim_list_digest(sphincs_typed.iter().map(lean_sphincs_claim_cells));
-    let signers = signers_hash(&xmss_typed, &sphincs_typed);
     let roots: Vec<[u8; 32]> = (0..2).map(|_| bytes32(&mut rng)).collect();
     let vector_digests: Vec<[u8; 32]> = roots
         .iter()
@@ -109,7 +108,7 @@ pub fn file() -> File {
         bytecode_value: element(&mut rng),
     };
     let seed = leanvm_core::cpu::fs_seed(unified_guest());
-    let statement = statement_digest(signers, da_digest, &defer);
+    let statement = statement_digest(&xmss_typed, &sphincs_typed, da_digest, &defer);
 
     // Two children with true claims on the stacked bytecode.
     let subproofs: Vec<DeferredSubproof> = (0..2)
@@ -161,7 +160,6 @@ pub fn file() -> File {
     )
     .unwrap();
     writeln!(out, "def sphincsListDigest : Digest := {}\n", cells_digest(&sphincs_digest)).unwrap();
-    writeln!(out, "def signersDigest : Digest := {}\n", cells_digest(&signers)).unwrap();
     writeln!(
         out,
         "/-- DA claims: each root with the vector digest the Rust derives from it. -/\ndef da : List DaClaim :=\n  {}\n",

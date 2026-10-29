@@ -2704,534 +2704,526 @@ def fn_verify_sig_lean_sphincs : Func :=
 
 /-- `statement_digest`. -/
 def fn_statement_digest : Func :=
-  { name := "statement_digest", params := [⟨"seed_0", (.runtime .scalar)⟩, ⟨"seed_1", (.runtime .scalar)⟩, ⟨"signers_hash", (.runtime .scalar)⟩, ⟨"da_0", (.runtime .scalar)⟩, ⟨"da_1", (.runtime .scalar)⟩, ⟨"defer", (.runtime .scalar)⟩], returnShapes := [.scalar, .scalar],
+  { name := "statement_digest", params := [⟨"seed_0", (.runtime .scalar)⟩, ⟨"seed_1", (.runtime .scalar)⟩, ⟨"xd_0", (.runtime .scalar)⟩, ⟨"xd_1", (.runtime .scalar)⟩, ⟨"sd_0", (.runtime .scalar)⟩, ⟨"sd_1", (.runtime .scalar)⟩, ⟨"da_0", (.runtime .scalar)⟩, ⟨"da_1", (.runtime .scalar)⟩, ⟨"defer", (.runtime .scalar)⟩], returnShapes := [.scalar, .scalar],
     inline := false,
     body := [
-      .mk 3779 (.let_ "cells" (.stackBuf 42)),
+      .mk 3779 (.let_ "cells" (.stackBuf 44)),
       .mk 3780 (.store (.var "cells") (.lit 0) (.var "seed_0")),
       .mk 3781 (.store (.var "cells") (.lit 1) (.var "seed_1")),
-      .mk 3782 (.store (.var "cells") (.lit 2) (.index (.var "signers_hash") (.lit 1))),
-      .mk 3783 (.store (.var "cells") (.lit 3) (.index (.var "signers_hash") .gen)),
-      .mk 3784 (.store (.var "cells") (.lit 4) (.var "da_0")),
-      .mk 3785 (.store (.var "cells") (.lit 5) (.var "da_1")),
-      .mk 3786 (.unroll "p" (.lit 0) (.lit 12) [
-        .mk 3787 (.let_ "s" (.index (.var "defer") (.genPow (.mul (.lit 2) (.var "p"))))),
-        .mk 3788 (.ite true (.add (.mul (.lit 2) (.var "p")) (.lit 1)) (.lit 24) [
-          .mk 3789 (.let_ "t" (.lit 0))] [
-          .mk 3791 (.let_ "t" (.index (.var "defer") (.genPow (.add (.mul (.lit 2) (.var "p")) (.lit 1)))))] true),
-        .mk 3792 (.call "pack_pair" [(.var "cells"), (.add (.lit 6) (.mul (.lit 3) (.var "p"))), (.var "s"), (.var "t")])]),
-      .mk 3793 (.let_ "st" (.stackBuf 13)),
-      .mk 3794 (.call "keccak_cells" [(.var "cells"), (.var "st")]),
-      .mk 3795 (.ret [(.index (.var "st") (.lit 0)), (.index (.var "st") (.lit 1))])] }
+      .mk 3782 (.store (.var "cells") (.lit 2) (.var "xd_0")),
+      .mk 3783 (.store (.var "cells") (.lit 3) (.var "xd_1")),
+      .mk 3784 (.store (.var "cells") (.lit 4) (.var "sd_0")),
+      .mk 3785 (.store (.var "cells") (.lit 5) (.var "sd_1")),
+      .mk 3786 (.store (.var "cells") (.lit 6) (.var "da_0")),
+      .mk 3787 (.store (.var "cells") (.lit 7) (.var "da_1")),
+      .mk 3788 (.unroll "p" (.lit 0) (.lit 12) [
+        .mk 3789 (.let_ "s" (.index (.var "defer") (.genPow (.mul (.lit 2) (.var "p"))))),
+        .mk 3790 (.ite true (.add (.mul (.lit 2) (.var "p")) (.lit 1)) (.lit 24) [
+          .mk 3791 (.let_ "t" (.lit 0))] [
+          .mk 3793 (.let_ "t" (.index (.var "defer") (.genPow (.add (.mul (.lit 2) (.var "p")) (.lit 1)))))] true),
+        .mk 3794 (.call "pack_pair" [(.var "cells"), (.add (.lit 8) (.mul (.lit 3) (.var "p"))), (.var "s"), (.var "t")])]),
+      .mk 3795 (.let_ "st" (.stackBuf 13)),
+      .mk 3796 (.call "keccak_cells" [(.var "cells"), (.var "st")]),
+      .mk 3797 (.ret [(.index (.var "st") (.lit 0)), (.index (.var "st") (.lit 1))])] }
 
 /-- `zero_state`. -/
 def fn_zero_state : Func :=
   { name := "zero_state", params := [⟨"chain", (.runtime .scalar)⟩], returnShapes := [],
     inline := true,
     body := [
-      .mk 3807 (.unroll "k" (.lit 0) (.lit 13) [
-        .mk 3808 (.store (.var "chain") (.genPow (.var "k")) (.lit 0))]),
-      .mk 3809 (.ret [])] }
+      .mk 3809 (.unroll "k" (.lit 0) (.lit 13) [
+        .mk 3810 (.store (.var "chain") (.genPow (.var "k")) (.lit 0))]),
+      .mk 3811 (.ret [])] }
 
 /-- `list_split`. -/
 def fn_list_split : Func :=
   { name := "list_split", params := [⟨"n_g", (.runtime .scalar)⟩], returnShapes := [.scalar, .scalar],
     inline := false,
     body := [
-      .mk 3815 (.let_ "split" (.stackBuf 2)),
-      .mk 3816 (.hintWitness (.var "split") "signers_split"),
-      .mk 3817 (.let_ "groups" (.index (.var "split") (.lit 0))),
-      .mk 3818 (.let_ "rest" (.index (.var "split") (.lit 1))),
-      .mk 3819 (.assertLt (.var "rest") (.const 17)),
-      .mk 3820 (.assertLt (.var "groups") (.const 65536)),
-      .mk 3823 (.assertEq (.mul (.pow (.var "groups") (.lit 17)) (.var "rest")) (.var "n_g")),
-      .mk 3824 (.ret [(.var "groups"), (.var "rest")])] }
+      .mk 3817 (.let_ "split" (.stackBuf 2)),
+      .mk 3818 (.hintWitness (.var "split") "signers_split"),
+      .mk 3819 (.let_ "groups" (.index (.var "split") (.lit 0))),
+      .mk 3820 (.let_ "rest" (.index (.var "split") (.lit 1))),
+      .mk 3821 (.assertLt (.var "rest") (.const 17)),
+      .mk 3822 (.assertLt (.var "groups") (.const 65536)),
+      .mk 3825 (.assertEq (.mul (.pow (.var "groups") (.lit 17)) (.var "rest")) (.var "n_g")),
+      .mk 3826 (.ret [(.var "groups"), (.var "rest")])] }
 
 /-- `claim_list_digest`. -/
 def fn_claim_list_digest : Func :=
   { name := "claim_list_digest", params := [⟨"entries_ptr", (.runtime .scalar)⟩, ⟨"n_g", (.runtime .scalar)⟩], returnShapes := [.scalar, .scalar],
     inline := false,
     body := [
-      .mk 3831 (.let_ "digest" (.stackBuf 13)),
-      .mk 3832 (.ite true (.var "n_g") (.lit 1) [
-        .mk 3833 (.call "keccak" [(.list [(.lit 0), (.lit 0)]), (.list [(.lit 0), (.lit 0)]), (.var "digest"), (.call "__kw_len" [(.lit 0)])])] [
-        .mk 3835 (.letTuple ["groups", "rest"] "list_split" [(.var "n_g")]),
-        .mk 3836 (.let_ "chain" (.heapBufDyn (.pow (.mul (.var "groups") .gen) (.lit 13)))),
-        .mk 3837 (.call "zero_state" [(.var "chain")]),
-        .mk 3838 (.for_ "xq" 0 (.runtime (.var "groups")) [
-          .mk 3839 (.let_ "st" (.mul (.var "chain") (.pow (.var "xq") (.lit 13)))),
-          .mk 3840 (.let_ "nxt" (.mul (.var "st") (.gpow 13))),
-          .mk 3841 (.let_ "blk" (.mul (.var "entries_ptr") (.pow (.var "xq") (.mul (.lit 4) (.lit 17))))),
-          .mk 3842 (.unroll "j" (.lit 0) (.lit 17) [
-            .mk 3843 (.hintWitness (.slice (.var "blk") (.mul (.lit 4) (.var "j")) (.add (.mul (.lit 4) (.var "j")) (.lit 4))) "claims")]),
-          .mk 3844 (.call "keccak_cells" [(.slice (.var "blk") (.lit 0) (.mul (.lit 4) (.lit 17))), (.slice (.var "nxt") (.lit 0) (.lit 13)), (.call "__kw_state" [(.slice (.var "st") (.lit 0) (.lit 13))]), (.call "__kw_final" [(.lit 0)])])]),
-        .mk 3845 (.let_ "last" (.mul (.var "chain") (.pow (.var "groups") (.lit 13)))),
-        .mk 3846 (.match_ [(.var "d0"), (.var "d1")] (.var "rest") [(.call "claim_list_last" [(.var "last"), (.mul (.var "entries_ptr") (.pow (.var "groups") (.mul (.lit 4) (.lit 17)))), (.lit 0)]), (.call "claim_list_last" [(.var "last"), (.mul (.var "entries_ptr") (.pow (.var "groups") (.mul (.lit 4) (.lit 17)))), (.lit 1)]), (.call "claim_list_last" [(.var "last"), (.mul (.var "entries_ptr") (.pow (.var "groups") (.mul (.lit 4) (.lit 17)))), (.lit 2)]), (.call "claim_list_last" [(.var "last"), (.mul (.var "entries_ptr") (.pow (.var "groups") (.mul (.lit 4) (.lit 17)))), (.lit 3)]), (.call "claim_list_last" [(.var "last"), (.mul (.var "entries_ptr") (.pow (.var "groups") (.mul (.lit 4) (.lit 17)))), (.lit 4)]), (.call "claim_list_last" [(.var "last"), (.mul (.var "entries_ptr") (.pow (.var "groups") (.mul (.lit 4) (.lit 17)))), (.lit 5)]), (.call "claim_list_last" [(.var "last"), (.mul (.var "entries_ptr") (.pow (.var "groups") (.mul (.lit 4) (.lit 17)))), (.lit 6)]), (.call "claim_list_last" [(.var "last"), (.mul (.var "entries_ptr") (.pow (.var "groups") (.mul (.lit 4) (.lit 17)))), (.lit 7)]), (.call "claim_list_last" [(.var "last"), (.mul (.var "entries_ptr") (.pow (.var "groups") (.mul (.lit 4) (.lit 17)))), (.lit 8)]), (.call "claim_list_last" [(.var "last"), (.mul (.var "entries_ptr") (.pow (.var "groups") (.mul (.lit 4) (.lit 17)))), (.lit 9)]), (.call "claim_list_last" [(.var "last"), (.mul (.var "entries_ptr") (.pow (.var "groups") (.mul (.lit 4) (.lit 17)))), (.lit 10)]), (.call "claim_list_last" [(.var "last"), (.mul (.var "entries_ptr") (.pow (.var "groups") (.mul (.lit 4) (.lit 17)))), (.lit 11)]), (.call "claim_list_last" [(.var "last"), (.mul (.var "entries_ptr") (.pow (.var "groups") (.mul (.lit 4) (.lit 17)))), (.lit 12)]), (.call "claim_list_last" [(.var "last"), (.mul (.var "entries_ptr") (.pow (.var "groups") (.mul (.lit 4) (.lit 17)))), (.lit 13)]), (.call "claim_list_last" [(.var "last"), (.mul (.var "entries_ptr") (.pow (.var "groups") (.mul (.lit 4) (.lit 17)))), (.lit 14)]), (.call "claim_list_last" [(.var "last"), (.mul (.var "entries_ptr") (.pow (.var "groups") (.mul (.lit 4) (.lit 17)))), (.lit 15)]), (.call "claim_list_last" [(.var "last"), (.mul (.var "entries_ptr") (.pow (.var "groups") (.mul (.lit 4) (.lit 17)))), (.lit 16)])]),
-        .mk 3847 (.store (.var "digest") (.lit 0) (.var "d0")),
-        .mk 3848 (.store (.var "digest") (.lit 1) (.var "d1"))] false),
-      .mk 3849 (.ret [(.index (.var "digest") (.lit 0)), (.index (.var "digest") (.lit 1))])] }
+      .mk 3833 (.let_ "digest" (.stackBuf 13)),
+      .mk 3834 (.ite true (.var "n_g") (.lit 1) [
+        .mk 3835 (.call "keccak" [(.list [(.lit 0), (.lit 0)]), (.list [(.lit 0), (.lit 0)]), (.var "digest"), (.call "__kw_len" [(.lit 0)])])] [
+        .mk 3837 (.letTuple ["groups", "rest"] "list_split" [(.var "n_g")]),
+        .mk 3838 (.let_ "chain" (.heapBufDyn (.pow (.mul (.var "groups") .gen) (.lit 13)))),
+        .mk 3839 (.call "zero_state" [(.var "chain")]),
+        .mk 3840 (.for_ "xq" 0 (.runtime (.var "groups")) [
+          .mk 3841 (.let_ "st" (.mul (.var "chain") (.pow (.var "xq") (.lit 13)))),
+          .mk 3842 (.let_ "nxt" (.mul (.var "st") (.gpow 13))),
+          .mk 3843 (.let_ "blk" (.mul (.var "entries_ptr") (.pow (.var "xq") (.mul (.lit 4) (.lit 17))))),
+          .mk 3844 (.unroll "j" (.lit 0) (.lit 17) [
+            .mk 3845 (.hintWitness (.slice (.var "blk") (.mul (.lit 4) (.var "j")) (.add (.mul (.lit 4) (.var "j")) (.lit 4))) "claims")]),
+          .mk 3846 (.call "keccak_cells" [(.slice (.var "blk") (.lit 0) (.mul (.lit 4) (.lit 17))), (.slice (.var "nxt") (.lit 0) (.lit 13)), (.call "__kw_state" [(.slice (.var "st") (.lit 0) (.lit 13))]), (.call "__kw_final" [(.lit 0)])])]),
+        .mk 3847 (.let_ "last" (.mul (.var "chain") (.pow (.var "groups") (.lit 13)))),
+        .mk 3848 (.match_ [(.var "d0"), (.var "d1")] (.var "rest") [(.call "claim_list_last" [(.var "last"), (.mul (.var "entries_ptr") (.pow (.var "groups") (.mul (.lit 4) (.lit 17)))), (.lit 0)]), (.call "claim_list_last" [(.var "last"), (.mul (.var "entries_ptr") (.pow (.var "groups") (.mul (.lit 4) (.lit 17)))), (.lit 1)]), (.call "claim_list_last" [(.var "last"), (.mul (.var "entries_ptr") (.pow (.var "groups") (.mul (.lit 4) (.lit 17)))), (.lit 2)]), (.call "claim_list_last" [(.var "last"), (.mul (.var "entries_ptr") (.pow (.var "groups") (.mul (.lit 4) (.lit 17)))), (.lit 3)]), (.call "claim_list_last" [(.var "last"), (.mul (.var "entries_ptr") (.pow (.var "groups") (.mul (.lit 4) (.lit 17)))), (.lit 4)]), (.call "claim_list_last" [(.var "last"), (.mul (.var "entries_ptr") (.pow (.var "groups") (.mul (.lit 4) (.lit 17)))), (.lit 5)]), (.call "claim_list_last" [(.var "last"), (.mul (.var "entries_ptr") (.pow (.var "groups") (.mul (.lit 4) (.lit 17)))), (.lit 6)]), (.call "claim_list_last" [(.var "last"), (.mul (.var "entries_ptr") (.pow (.var "groups") (.mul (.lit 4) (.lit 17)))), (.lit 7)]), (.call "claim_list_last" [(.var "last"), (.mul (.var "entries_ptr") (.pow (.var "groups") (.mul (.lit 4) (.lit 17)))), (.lit 8)]), (.call "claim_list_last" [(.var "last"), (.mul (.var "entries_ptr") (.pow (.var "groups") (.mul (.lit 4) (.lit 17)))), (.lit 9)]), (.call "claim_list_last" [(.var "last"), (.mul (.var "entries_ptr") (.pow (.var "groups") (.mul (.lit 4) (.lit 17)))), (.lit 10)]), (.call "claim_list_last" [(.var "last"), (.mul (.var "entries_ptr") (.pow (.var "groups") (.mul (.lit 4) (.lit 17)))), (.lit 11)]), (.call "claim_list_last" [(.var "last"), (.mul (.var "entries_ptr") (.pow (.var "groups") (.mul (.lit 4) (.lit 17)))), (.lit 12)]), (.call "claim_list_last" [(.var "last"), (.mul (.var "entries_ptr") (.pow (.var "groups") (.mul (.lit 4) (.lit 17)))), (.lit 13)]), (.call "claim_list_last" [(.var "last"), (.mul (.var "entries_ptr") (.pow (.var "groups") (.mul (.lit 4) (.lit 17)))), (.lit 14)]), (.call "claim_list_last" [(.var "last"), (.mul (.var "entries_ptr") (.pow (.var "groups") (.mul (.lit 4) (.lit 17)))), (.lit 15)]), (.call "claim_list_last" [(.var "last"), (.mul (.var "entries_ptr") (.pow (.var "groups") (.mul (.lit 4) (.lit 17)))), (.lit 16)])]),
+        .mk 3849 (.store (.var "digest") (.lit 0) (.var "d0")),
+        .mk 3850 (.store (.var "digest") (.lit 1) (.var "d1"))] false),
+      .mk 3851 (.ret [(.index (.var "digest") (.lit 0)), (.index (.var "digest") (.lit 1))])] }
 
 /-- `claim_list_last`. -/
 def fn_claim_list_last : Func :=
   { name := "claim_list_last", params := [⟨"state", (.runtime .scalar)⟩, ⟨"blk", (.runtime .scalar)⟩, ⟨"k", .const⟩], returnShapes := [.scalar, .scalar],
     inline := false,
     body := [
-      .mk 3853 (.let_ "digest" (.stackBuf 13)),
-      .mk 3854 (.ite true (.var "k") (.lit 0) [
-        .mk 3855 (.call "keccak_cells" [(.list [(.lit 0)]), (.var "digest"), (.call "__kw_state" [(.slice (.var "state") (.lit 0) (.lit 13))]), (.call "__kw_len" [(.lit 0)])])] [
-        .mk 3857 (.unroll "j" (.lit 0) (.var "k") [
-          .mk 3858 (.hintWitness (.slice (.var "blk") (.mul (.lit 4) (.var "j")) (.add (.mul (.lit 4) (.var "j")) (.lit 4))) "claims")]),
-        .mk 3859 (.call "keccak_cells" [(.slice (.var "blk") (.lit 0) (.mul (.lit 4) (.var "k"))), (.var "digest"), (.call "__kw_state" [(.slice (.var "state") (.lit 0) (.lit 13))])])] true),
-      .mk 3860 (.ret [(.index (.var "digest") (.lit 0)), (.index (.var "digest") (.lit 1))])] }
+      .mk 3855 (.let_ "digest" (.stackBuf 13)),
+      .mk 3856 (.ite true (.var "k") (.lit 0) [
+        .mk 3857 (.call "keccak_cells" [(.list [(.lit 0)]), (.var "digest"), (.call "__kw_state" [(.slice (.var "state") (.lit 0) (.lit 13))]), (.call "__kw_len" [(.lit 0)])])] [
+        .mk 3859 (.unroll "j" (.lit 0) (.var "k") [
+          .mk 3860 (.hintWitness (.slice (.var "blk") (.mul (.lit 4) (.var "j")) (.add (.mul (.lit 4) (.var "j")) (.lit 4))) "claims")]),
+        .mk 3861 (.call "keccak_cells" [(.slice (.var "blk") (.lit 0) (.mul (.lit 4) (.var "k"))), (.var "digest"), (.call "__kw_state" [(.slice (.var "state") (.lit 0) (.lit 13))])])] true),
+      .mk 3862 (.ret [(.index (.var "digest") (.lit 0)), (.index (.var "digest") (.lit 1))])] }
 
 /-- `child_claims`. -/
 def fn_child_claims : Func :=
   { name := "child_claims", params := [⟨"entries_ptr", (.runtime .scalar)⟩, ⟨"cover", (.runtime .scalar)⟩, ⟨"marks", (.runtime .scalar)⟩, ⟨"origin_g", (.runtime .scalar)⟩, ⟨"limit_g", (.runtime .scalar)⟩, ⟨"blk", (.runtime .scalar)⟩, ⟨"n", .const⟩], returnShapes := [],
     inline := true,
     body := [
-      .mk 3869 (.unroll "j" (.lit 0) (.var "n") [
-        .mk 3870 (.letHintWitness "off_hint" "child_claim_index"),
-        .mk 3871 (.assertLt (.var "off_hint") (.runtime (.var "limit_g"))),
-        .mk 3872 (.store (.var "cover") (.mul (.var "origin_g") (.var "off_hint")) (.mul (.var "marks") (.genPow (.var "j")))),
-        .mk 3873 (.let_ "entry" (.mul (.var "entries_ptr") (.pow (.var "off_hint") (.lit 4)))),
-        .mk 3874 (.unroll "c" (.lit 0) (.lit 4) [
-          .mk 3875 (.store (.var "blk") (.add (.mul (.lit 4) (.var "j")) (.var "c")) (.index (.var "entry") (.genPow (.var "c"))))])]),
-      .mk 3876 (.ret [])] }
+      .mk 3871 (.unroll "j" (.lit 0) (.var "n") [
+        .mk 3872 (.letHintWitness "off_hint" "child_claim_index"),
+        .mk 3873 (.assertLt (.var "off_hint") (.runtime (.var "limit_g"))),
+        .mk 3874 (.store (.var "cover") (.mul (.var "origin_g") (.var "off_hint")) (.mul (.var "marks") (.genPow (.var "j")))),
+        .mk 3875 (.let_ "entry" (.mul (.var "entries_ptr") (.pow (.var "off_hint") (.lit 4)))),
+        .mk 3876 (.unroll "c" (.lit 0) (.lit 4) [
+          .mk 3877 (.store (.var "blk") (.add (.mul (.lit 4) (.var "j")) (.var "c")) (.index (.var "entry") (.genPow (.var "c"))))])]),
+      .mk 3878 (.ret [])] }
 
 /-- `child_claim_list_digest`. -/
 def fn_child_claim_list_digest : Func :=
   { name := "child_claim_list_digest", params := [⟨"entries_ptr", (.runtime .scalar)⟩, ⟨"cover", (.runtime .scalar)⟩, ⟨"base", (.runtime .scalar)⟩, ⟨"origin_g", (.runtime .scalar)⟩, ⟨"limit_g", (.runtime .scalar)⟩, ⟨"n_g", (.runtime .scalar)⟩], returnShapes := [.scalar, .scalar],
     inline := false,
     body := [
-      .mk 3883 (.let_ "digest" (.stackBuf 13)),
-      .mk 3884 (.ite true (.var "n_g") (.lit 1) [
-        .mk 3885 (.call "keccak" [(.list [(.lit 0), (.lit 0)]), (.list [(.lit 0), (.lit 0)]), (.var "digest"), (.call "__kw_len" [(.lit 0)])])] [
-        .mk 3887 (.letTuple ["groups", "rest"] "list_split" [(.var "n_g")]),
-        .mk 3888 (.let_ "chain" (.heapBufDyn (.pow (.mul (.var "groups") .gen) (.lit 13)))),
-        .mk 3889 (.call "zero_state" [(.var "chain")]),
-        .mk 3890 (.for_ "xq" 0 (.runtime (.var "groups")) [
-          .mk 3891 (.let_ "st" (.mul (.var "chain") (.pow (.var "xq") (.lit 13)))),
-          .mk 3892 (.let_ "nxt" (.mul (.var "st") (.gpow 13))),
-          .mk 3893 (.let_ "blk" (.stackBuf 68)),
-          .mk 3894 (.call "child_claims" [(.var "entries_ptr"), (.var "cover"), (.mul (.var "base") (.pow (.var "xq") (.lit 17))), (.var "origin_g"), (.var "limit_g"), (.var "blk"), (.lit 17)]),
-          .mk 3895 (.call "keccak_cells" [(.var "blk"), (.slice (.var "nxt") (.lit 0) (.lit 13)), (.call "__kw_state" [(.slice (.var "st") (.lit 0) (.lit 13))]), (.call "__kw_final" [(.lit 0)])])]),
-        .mk 3896 (.let_ "last" (.mul (.var "chain") (.pow (.var "groups") (.lit 13)))),
-        .mk 3897 (.match_ [(.var "d0"), (.var "d1")] (.var "rest") [(.call "child_claim_list_last" [(.var "last"), (.var "entries_ptr"), (.var "cover"), (.mul (.var "base") (.pow (.var "groups") (.lit 17))), (.var "origin_g"), (.var "limit_g"), (.lit 0)]), (.call "child_claim_list_last" [(.var "last"), (.var "entries_ptr"), (.var "cover"), (.mul (.var "base") (.pow (.var "groups") (.lit 17))), (.var "origin_g"), (.var "limit_g"), (.lit 1)]), (.call "child_claim_list_last" [(.var "last"), (.var "entries_ptr"), (.var "cover"), (.mul (.var "base") (.pow (.var "groups") (.lit 17))), (.var "origin_g"), (.var "limit_g"), (.lit 2)]), (.call "child_claim_list_last" [(.var "last"), (.var "entries_ptr"), (.var "cover"), (.mul (.var "base") (.pow (.var "groups") (.lit 17))), (.var "origin_g"), (.var "limit_g"), (.lit 3)]), (.call "child_claim_list_last" [(.var "last"), (.var "entries_ptr"), (.var "cover"), (.mul (.var "base") (.pow (.var "groups") (.lit 17))), (.var "origin_g"), (.var "limit_g"), (.lit 4)]), (.call "child_claim_list_last" [(.var "last"), (.var "entries_ptr"), (.var "cover"), (.mul (.var "base") (.pow (.var "groups") (.lit 17))), (.var "origin_g"), (.var "limit_g"), (.lit 5)]), (.call "child_claim_list_last" [(.var "last"), (.var "entries_ptr"), (.var "cover"), (.mul (.var "base") (.pow (.var "groups") (.lit 17))), (.var "origin_g"), (.var "limit_g"), (.lit 6)]), (.call "child_claim_list_last" [(.var "last"), (.var "entries_ptr"), (.var "cover"), (.mul (.var "base") (.pow (.var "groups") (.lit 17))), (.var "origin_g"), (.var "limit_g"), (.lit 7)]), (.call "child_claim_list_last" [(.var "last"), (.var "entries_ptr"), (.var "cover"), (.mul (.var "base") (.pow (.var "groups") (.lit 17))), (.var "origin_g"), (.var "limit_g"), (.lit 8)]), (.call "child_claim_list_last" [(.var "last"), (.var "entries_ptr"), (.var "cover"), (.mul (.var "base") (.pow (.var "groups") (.lit 17))), (.var "origin_g"), (.var "limit_g"), (.lit 9)]), (.call "child_claim_list_last" [(.var "last"), (.var "entries_ptr"), (.var "cover"), (.mul (.var "base") (.pow (.var "groups") (.lit 17))), (.var "origin_g"), (.var "limit_g"), (.lit 10)]), (.call "child_claim_list_last" [(.var "last"), (.var "entries_ptr"), (.var "cover"), (.mul (.var "base") (.pow (.var "groups") (.lit 17))), (.var "origin_g"), (.var "limit_g"), (.lit 11)]), (.call "child_claim_list_last" [(.var "last"), (.var "entries_ptr"), (.var "cover"), (.mul (.var "base") (.pow (.var "groups") (.lit 17))), (.var "origin_g"), (.var "limit_g"), (.lit 12)]), (.call "child_claim_list_last" [(.var "last"), (.var "entries_ptr"), (.var "cover"), (.mul (.var "base") (.pow (.var "groups") (.lit 17))), (.var "origin_g"), (.var "limit_g"), (.lit 13)]), (.call "child_claim_list_last" [(.var "last"), (.var "entries_ptr"), (.var "cover"), (.mul (.var "base") (.pow (.var "groups") (.lit 17))), (.var "origin_g"), (.var "limit_g"), (.lit 14)]), (.call "child_claim_list_last" [(.var "last"), (.var "entries_ptr"), (.var "cover"), (.mul (.var "base") (.pow (.var "groups") (.lit 17))), (.var "origin_g"), (.var "limit_g"), (.lit 15)]), (.call "child_claim_list_last" [(.var "last"), (.var "entries_ptr"), (.var "cover"), (.mul (.var "base") (.pow (.var "groups") (.lit 17))), (.var "origin_g"), (.var "limit_g"), (.lit 16)])]),
-        .mk 3898 (.store (.var "digest") (.lit 0) (.var "d0")),
-        .mk 3899 (.store (.var "digest") (.lit 1) (.var "d1"))] false),
-      .mk 3900 (.ret [(.index (.var "digest") (.lit 0)), (.index (.var "digest") (.lit 1))])] }
+      .mk 3885 (.let_ "digest" (.stackBuf 13)),
+      .mk 3886 (.ite true (.var "n_g") (.lit 1) [
+        .mk 3887 (.call "keccak" [(.list [(.lit 0), (.lit 0)]), (.list [(.lit 0), (.lit 0)]), (.var "digest"), (.call "__kw_len" [(.lit 0)])])] [
+        .mk 3889 (.letTuple ["groups", "rest"] "list_split" [(.var "n_g")]),
+        .mk 3890 (.let_ "chain" (.heapBufDyn (.pow (.mul (.var "groups") .gen) (.lit 13)))),
+        .mk 3891 (.call "zero_state" [(.var "chain")]),
+        .mk 3892 (.for_ "xq" 0 (.runtime (.var "groups")) [
+          .mk 3893 (.let_ "st" (.mul (.var "chain") (.pow (.var "xq") (.lit 13)))),
+          .mk 3894 (.let_ "nxt" (.mul (.var "st") (.gpow 13))),
+          .mk 3895 (.let_ "blk" (.stackBuf 68)),
+          .mk 3896 (.call "child_claims" [(.var "entries_ptr"), (.var "cover"), (.mul (.var "base") (.pow (.var "xq") (.lit 17))), (.var "origin_g"), (.var "limit_g"), (.var "blk"), (.lit 17)]),
+          .mk 3897 (.call "keccak_cells" [(.var "blk"), (.slice (.var "nxt") (.lit 0) (.lit 13)), (.call "__kw_state" [(.slice (.var "st") (.lit 0) (.lit 13))]), (.call "__kw_final" [(.lit 0)])])]),
+        .mk 3898 (.let_ "last" (.mul (.var "chain") (.pow (.var "groups") (.lit 13)))),
+        .mk 3899 (.match_ [(.var "d0"), (.var "d1")] (.var "rest") [(.call "child_claim_list_last" [(.var "last"), (.var "entries_ptr"), (.var "cover"), (.mul (.var "base") (.pow (.var "groups") (.lit 17))), (.var "origin_g"), (.var "limit_g"), (.lit 0)]), (.call "child_claim_list_last" [(.var "last"), (.var "entries_ptr"), (.var "cover"), (.mul (.var "base") (.pow (.var "groups") (.lit 17))), (.var "origin_g"), (.var "limit_g"), (.lit 1)]), (.call "child_claim_list_last" [(.var "last"), (.var "entries_ptr"), (.var "cover"), (.mul (.var "base") (.pow (.var "groups") (.lit 17))), (.var "origin_g"), (.var "limit_g"), (.lit 2)]), (.call "child_claim_list_last" [(.var "last"), (.var "entries_ptr"), (.var "cover"), (.mul (.var "base") (.pow (.var "groups") (.lit 17))), (.var "origin_g"), (.var "limit_g"), (.lit 3)]), (.call "child_claim_list_last" [(.var "last"), (.var "entries_ptr"), (.var "cover"), (.mul (.var "base") (.pow (.var "groups") (.lit 17))), (.var "origin_g"), (.var "limit_g"), (.lit 4)]), (.call "child_claim_list_last" [(.var "last"), (.var "entries_ptr"), (.var "cover"), (.mul (.var "base") (.pow (.var "groups") (.lit 17))), (.var "origin_g"), (.var "limit_g"), (.lit 5)]), (.call "child_claim_list_last" [(.var "last"), (.var "entries_ptr"), (.var "cover"), (.mul (.var "base") (.pow (.var "groups") (.lit 17))), (.var "origin_g"), (.var "limit_g"), (.lit 6)]), (.call "child_claim_list_last" [(.var "last"), (.var "entries_ptr"), (.var "cover"), (.mul (.var "base") (.pow (.var "groups") (.lit 17))), (.var "origin_g"), (.var "limit_g"), (.lit 7)]), (.call "child_claim_list_last" [(.var "last"), (.var "entries_ptr"), (.var "cover"), (.mul (.var "base") (.pow (.var "groups") (.lit 17))), (.var "origin_g"), (.var "limit_g"), (.lit 8)]), (.call "child_claim_list_last" [(.var "last"), (.var "entries_ptr"), (.var "cover"), (.mul (.var "base") (.pow (.var "groups") (.lit 17))), (.var "origin_g"), (.var "limit_g"), (.lit 9)]), (.call "child_claim_list_last" [(.var "last"), (.var "entries_ptr"), (.var "cover"), (.mul (.var "base") (.pow (.var "groups") (.lit 17))), (.var "origin_g"), (.var "limit_g"), (.lit 10)]), (.call "child_claim_list_last" [(.var "last"), (.var "entries_ptr"), (.var "cover"), (.mul (.var "base") (.pow (.var "groups") (.lit 17))), (.var "origin_g"), (.var "limit_g"), (.lit 11)]), (.call "child_claim_list_last" [(.var "last"), (.var "entries_ptr"), (.var "cover"), (.mul (.var "base") (.pow (.var "groups") (.lit 17))), (.var "origin_g"), (.var "limit_g"), (.lit 12)]), (.call "child_claim_list_last" [(.var "last"), (.var "entries_ptr"), (.var "cover"), (.mul (.var "base") (.pow (.var "groups") (.lit 17))), (.var "origin_g"), (.var "limit_g"), (.lit 13)]), (.call "child_claim_list_last" [(.var "last"), (.var "entries_ptr"), (.var "cover"), (.mul (.var "base") (.pow (.var "groups") (.lit 17))), (.var "origin_g"), (.var "limit_g"), (.lit 14)]), (.call "child_claim_list_last" [(.var "last"), (.var "entries_ptr"), (.var "cover"), (.mul (.var "base") (.pow (.var "groups") (.lit 17))), (.var "origin_g"), (.var "limit_g"), (.lit 15)]), (.call "child_claim_list_last" [(.var "last"), (.var "entries_ptr"), (.var "cover"), (.mul (.var "base") (.pow (.var "groups") (.lit 17))), (.var "origin_g"), (.var "limit_g"), (.lit 16)])]),
+        .mk 3900 (.store (.var "digest") (.lit 0) (.var "d0")),
+        .mk 3901 (.store (.var "digest") (.lit 1) (.var "d1"))] false),
+      .mk 3902 (.ret [(.index (.var "digest") (.lit 0)), (.index (.var "digest") (.lit 1))])] }
 
 /-- `child_claim_list_last`. -/
 def fn_child_claim_list_last : Func :=
   { name := "child_claim_list_last", params := [⟨"state", (.runtime .scalar)⟩, ⟨"entries_ptr", (.runtime .scalar)⟩, ⟨"cover", (.runtime .scalar)⟩, ⟨"marks", (.runtime .scalar)⟩, ⟨"origin_g", (.runtime .scalar)⟩, ⟨"limit_g", (.runtime .scalar)⟩, ⟨"k", .const⟩], returnShapes := [.scalar, .scalar],
     inline := false,
     body := [
-      .mk 3904 (.let_ "digest" (.stackBuf 13)),
-      .mk 3905 (.ite true (.var "k") (.lit 0) [
-        .mk 3906 (.call "keccak_cells" [(.list [(.lit 0)]), (.var "digest"), (.call "__kw_state" [(.slice (.var "state") (.lit 0) (.lit 13))]), (.call "__kw_len" [(.lit 0)])])] [
-        .mk 3908 (.let_ "blk" (.stackBuf 68)),
-        .mk 3909 (.call "child_claims" [(.var "entries_ptr"), (.var "cover"), (.var "marks"), (.var "origin_g"), (.var "limit_g"), (.var "blk"), (.var "k")]),
-        .mk 3910 (.call "keccak_cells" [(.slice (.var "blk") (.lit 0) (.mul (.lit 4) (.var "k"))), (.var "digest"), (.call "__kw_state" [(.slice (.var "state") (.lit 0) (.lit 13))])])] true),
-      .mk 3911 (.ret [(.index (.var "digest") (.lit 0)), (.index (.var "digest") (.lit 1))])] }
+      .mk 3906 (.let_ "digest" (.stackBuf 13)),
+      .mk 3907 (.ite true (.var "k") (.lit 0) [
+        .mk 3908 (.call "keccak_cells" [(.list [(.lit 0)]), (.var "digest"), (.call "__kw_state" [(.slice (.var "state") (.lit 0) (.lit 13))]), (.call "__kw_len" [(.lit 0)])])] [
+        .mk 3910 (.let_ "blk" (.stackBuf 68)),
+        .mk 3911 (.call "child_claims" [(.var "entries_ptr"), (.var "cover"), (.var "marks"), (.var "origin_g"), (.var "limit_g"), (.var "blk"), (.var "k")]),
+        .mk 3912 (.call "keccak_cells" [(.slice (.var "blk") (.lit 0) (.mul (.lit 4) (.var "k"))), (.var "digest"), (.call "__kw_state" [(.slice (.var "state") (.lit 0) (.lit 13))])])] true),
+      .mk 3913 (.ret [(.index (.var "digest") (.lit 0)), (.index (.var "digest") (.lit 1))])] }
 
 /-- `da_verify`. -/
 def fn_da_verify : Func :=
   { name := "da_verify", params := [⟨"g_squares", (.runtime .scalar)⟩], returnShapes := [.scalar, .scalar, .scalar, .scalar],
     inline := false,
     body := [
-      .mk 3927 (.let_ "shape" (.stackBuf 2)),
-      .mk 3928 (.hintWitness (.var "shape") "da_shape"),
-      .mk 3929 (.let_ "n_blob_g" (.index (.var "shape") (.lit 0))),
-      .mk 3930 (.let_ "g_log_pad" (.index (.var "shape") (.lit 1))),
-      .mk 3931 (.letTuple ["n_pad_g", "gap_g"] "da_row_shape" [(.var "n_blob_g"), (.var "g_log_pad"), (.var "g_squares")]),
-      .mk 3933 (.let_ "prefix_digests" (.heapBufDyn (.pow (.var "n_pad_g") (.mul (.lit 2) (.lit 64))))),
-      .mk 3934 (.let_ "prefix_bases" (.heapBufDyn (.var "n_blob_g"))),
-      .mk 3935 (.for_ "xi" 0 (.runtime (.var "n_blob_g")) [
-        .mk 3936 (.store (.var "prefix_bases") (.var "xi") (.mul (.var "prefix_digests") (.pow (.var "xi") (.mul (.lit 2) (.lit 64)))))]),
-      .mk 3940 (.let_ "column_digests" (.heapBuf 256)),
-      .mk 3943 (.let_ "acc" (.heapBufDyn (.pow (.var "n_blob_g") (.add (.lit 128) (.lit 1))))),
-      .mk 3944 (.let_ "rowbase" (.heapBufDyn (.var "n_blob_g"))),
-      .mk 3945 (.for_ "xi" 0 (.runtime (.var "n_blob_g")) [
-        .mk 3946 (.let_ "chain" (.mul (.var "acc") (.pow (.var "xi") (.add (.lit 128) (.lit 1))))),
-        .mk 3947 (.store (.var "rowbase") (.var "xi") (.var "chain")),
-        .mk 3948 (.store (.var "chain") (.lit 1) (.lit 0))]),
-      .mk 3952 (.let_ "coltree" (.heapBuf 512)),
-      .mk 3953 (.for_ "xb" 0 (.const 64) [
-        .mk 3954 (.call "da_verify_column" [(.var "xb"), (.var "n_blob_g"), (.var "n_pad_g"), (.var "gap_g"), (.var "g_log_pad"), (.var "prefix_bases"), (.var "coltree"), (.var "rowbase"), (.var "column_digests"), (.lit 1)])]),
-      .mk 3955 (.for_ "xb" 64 (.const 128) [
-        .mk 3956 (.call "da_verify_column" [(.var "xb"), (.var "n_blob_g"), (.var "n_pad_g"), (.var "gap_g"), (.var "g_log_pad"), (.var "prefix_bases"), (.var "coltree"), (.var "rowbase"), (.var "column_digests"), (.lit 0)])]),
-      .mk 3958 (.for_ "xi" 0 (.runtime (.var "n_blob_g")) [
-        .mk 3959 (.let_ "chain" (.index (.var "rowbase") (.var "xi"))),
-        .mk 3960 (.assertEq (.index (.var "chain") (.gpow 128)) (.lit 0))]),
-      .mk 3961 (.letTuple ["rc0", "rc1"] "da_levels" [(.var "coltree"), (.lit 128), (.lit 7)]),
-      .mk 3964 (.let_ "rowtree" (.heapBufDyn (.pow (.var "n_pad_g") (.lit 4)))),
-      .mk 3965 (.for_ "xi" 0 (.runtime (.var "n_blob_g")) [
-        .mk 3966 (.let_ "run" (.index (.var "prefix_bases") (.var "xi"))),
-        .mk 3967 (.let_ "st" (.stackBuf 13)),
-        .mk 3968 (.call "keccak_cells" [(.slice (.var "run") (.lit 0) (.mul (.lit 2) (.lit 64))), (.var "st")]),
-        .mk 3969 (.let_ "slot" (.mul (.var "rowtree") (.pow (.var "xi") (.lit 2)))),
-        .mk 3970 (.store (.var "slot") (.lit 1) (.index (.var "st") (.lit 0))),
-        .mk 3971 (.store (.var "slot") .gen (.index (.var "st") (.lit 1)))]),
-      .mk 3972 (.for_ "xd" 0 (.runtime (.var "gap_g")) [
-        .mk 3973 (.let_ "pad" (.mul (.mul (.var "rowtree") (.pow (.var "n_blob_g") (.lit 2))) (.pow (.var "xd") (.lit 2)))),
-        .mk 3974 (.store (.var "pad") (.lit 1) (.call "f192" [(.lit 4665334884586258498), (.lit 1553031596697948144), (.lit 0)])),
-        .mk 3975 (.store (.var "pad") .gen (.call "f192" [(.lit 7487832681283088925), (.lit 14683883899259534590), (.lit 0)]))]),
-      .mk 3976 (.match_ [(.var "rr0"), (.var "rr1")] (.var "g_log_pad") [(.call "da_levels" [(.var "rowtree"), (.pow (.lit 2) (.lit 0)), (.lit 0)]), (.call "da_levels" [(.var "rowtree"), (.pow (.lit 2) (.lit 1)), (.lit 1)]), (.call "da_levels" [(.var "rowtree"), (.pow (.lit 2) (.lit 2)), (.lit 2)]), (.call "da_levels" [(.var "rowtree"), (.pow (.lit 2) (.lit 3)), (.lit 3)]), (.call "da_levels" [(.var "rowtree"), (.pow (.lit 2) (.lit 4)), (.lit 4)]), (.call "da_levels" [(.var "rowtree"), (.pow (.lit 2) (.lit 5)), (.lit 5)]), (.call "da_levels" [(.var "rowtree"), (.pow (.lit 2) (.lit 6)), (.lit 6)]), (.call "da_levels" [(.var "rowtree"), (.pow (.lit 2) (.lit 7)), (.lit 7)]), (.call "da_levels" [(.var "rowtree"), (.pow (.lit 2) (.lit 8)), (.lit 8)]), (.call "da_levels" [(.var "rowtree"), (.pow (.lit 2) (.lit 9)), (.lit 9)]), (.call "da_levels" [(.var "rowtree"), (.pow (.lit 2) (.lit 10)), (.lit 10)])]),
-      .mk 3978 (.let_ "root" (.stackBuf 13)),
-      .mk 3979 (.call "keccak" [(.list [(.var "rr0"), (.var "rr1")]), (.list [(.var "rc0"), (.var "rc1")]), (.var "root")]),
-      .mk 3980 (.let_ "vector" (.stackBuf 13)),
-      .mk 3981 (.call "keccak_cells" [(.slice (.var "column_digests") (.lit 0) (.mul (.lit 2) (.lit 128))), (.var "vector")]),
-      .mk 3982 (.ret [(.index (.var "root") (.lit 0)), (.index (.var "root") (.lit 1)), (.index (.var "vector") (.lit 0)), (.index (.var "vector") (.lit 1))])] }
+      .mk 3929 (.let_ "shape" (.stackBuf 2)),
+      .mk 3930 (.hintWitness (.var "shape") "da_shape"),
+      .mk 3931 (.let_ "n_blob_g" (.index (.var "shape") (.lit 0))),
+      .mk 3932 (.let_ "g_log_pad" (.index (.var "shape") (.lit 1))),
+      .mk 3933 (.letTuple ["n_pad_g", "gap_g"] "da_row_shape" [(.var "n_blob_g"), (.var "g_log_pad"), (.var "g_squares")]),
+      .mk 3935 (.let_ "prefix_digests" (.heapBufDyn (.pow (.var "n_pad_g") (.mul (.lit 2) (.lit 64))))),
+      .mk 3936 (.let_ "prefix_bases" (.heapBufDyn (.var "n_blob_g"))),
+      .mk 3937 (.for_ "xi" 0 (.runtime (.var "n_blob_g")) [
+        .mk 3938 (.store (.var "prefix_bases") (.var "xi") (.mul (.var "prefix_digests") (.pow (.var "xi") (.mul (.lit 2) (.lit 64)))))]),
+      .mk 3942 (.let_ "column_digests" (.heapBuf 256)),
+      .mk 3945 (.let_ "acc" (.heapBufDyn (.pow (.var "n_blob_g") (.add (.lit 128) (.lit 1))))),
+      .mk 3946 (.let_ "rowbase" (.heapBufDyn (.var "n_blob_g"))),
+      .mk 3947 (.for_ "xi" 0 (.runtime (.var "n_blob_g")) [
+        .mk 3948 (.let_ "chain" (.mul (.var "acc") (.pow (.var "xi") (.add (.lit 128) (.lit 1))))),
+        .mk 3949 (.store (.var "rowbase") (.var "xi") (.var "chain")),
+        .mk 3950 (.store (.var "chain") (.lit 1) (.lit 0))]),
+      .mk 3954 (.let_ "coltree" (.heapBuf 512)),
+      .mk 3955 (.for_ "xb" 0 (.const 64) [
+        .mk 3956 (.call "da_verify_column" [(.var "xb"), (.var "n_blob_g"), (.var "n_pad_g"), (.var "gap_g"), (.var "g_log_pad"), (.var "prefix_bases"), (.var "coltree"), (.var "rowbase"), (.var "column_digests"), (.lit 1)])]),
+      .mk 3957 (.for_ "xb" 64 (.const 128) [
+        .mk 3958 (.call "da_verify_column" [(.var "xb"), (.var "n_blob_g"), (.var "n_pad_g"), (.var "gap_g"), (.var "g_log_pad"), (.var "prefix_bases"), (.var "coltree"), (.var "rowbase"), (.var "column_digests"), (.lit 0)])]),
+      .mk 3960 (.for_ "xi" 0 (.runtime (.var "n_blob_g")) [
+        .mk 3961 (.let_ "chain" (.index (.var "rowbase") (.var "xi"))),
+        .mk 3962 (.assertEq (.index (.var "chain") (.gpow 128)) (.lit 0))]),
+      .mk 3963 (.letTuple ["rc0", "rc1"] "da_levels" [(.var "coltree"), (.lit 128), (.lit 7)]),
+      .mk 3966 (.let_ "rowtree" (.heapBufDyn (.pow (.var "n_pad_g") (.lit 4)))),
+      .mk 3967 (.for_ "xi" 0 (.runtime (.var "n_blob_g")) [
+        .mk 3968 (.let_ "run" (.index (.var "prefix_bases") (.var "xi"))),
+        .mk 3969 (.let_ "st" (.stackBuf 13)),
+        .mk 3970 (.call "keccak_cells" [(.slice (.var "run") (.lit 0) (.mul (.lit 2) (.lit 64))), (.var "st")]),
+        .mk 3971 (.let_ "slot" (.mul (.var "rowtree") (.pow (.var "xi") (.lit 2)))),
+        .mk 3972 (.store (.var "slot") (.lit 1) (.index (.var "st") (.lit 0))),
+        .mk 3973 (.store (.var "slot") .gen (.index (.var "st") (.lit 1)))]),
+      .mk 3974 (.for_ "xd" 0 (.runtime (.var "gap_g")) [
+        .mk 3975 (.let_ "pad" (.mul (.mul (.var "rowtree") (.pow (.var "n_blob_g") (.lit 2))) (.pow (.var "xd") (.lit 2)))),
+        .mk 3976 (.store (.var "pad") (.lit 1) (.call "f192" [(.lit 4665334884586258498), (.lit 1553031596697948144), (.lit 0)])),
+        .mk 3977 (.store (.var "pad") .gen (.call "f192" [(.lit 7487832681283088925), (.lit 14683883899259534590), (.lit 0)]))]),
+      .mk 3978 (.match_ [(.var "rr0"), (.var "rr1")] (.var "g_log_pad") [(.call "da_levels" [(.var "rowtree"), (.pow (.lit 2) (.lit 0)), (.lit 0)]), (.call "da_levels" [(.var "rowtree"), (.pow (.lit 2) (.lit 1)), (.lit 1)]), (.call "da_levels" [(.var "rowtree"), (.pow (.lit 2) (.lit 2)), (.lit 2)]), (.call "da_levels" [(.var "rowtree"), (.pow (.lit 2) (.lit 3)), (.lit 3)]), (.call "da_levels" [(.var "rowtree"), (.pow (.lit 2) (.lit 4)), (.lit 4)]), (.call "da_levels" [(.var "rowtree"), (.pow (.lit 2) (.lit 5)), (.lit 5)]), (.call "da_levels" [(.var "rowtree"), (.pow (.lit 2) (.lit 6)), (.lit 6)]), (.call "da_levels" [(.var "rowtree"), (.pow (.lit 2) (.lit 7)), (.lit 7)]), (.call "da_levels" [(.var "rowtree"), (.pow (.lit 2) (.lit 8)), (.lit 8)]), (.call "da_levels" [(.var "rowtree"), (.pow (.lit 2) (.lit 9)), (.lit 9)]), (.call "da_levels" [(.var "rowtree"), (.pow (.lit 2) (.lit 10)), (.lit 10)])]),
+      .mk 3980 (.let_ "root" (.stackBuf 13)),
+      .mk 3981 (.call "keccak" [(.list [(.var "rr0"), (.var "rr1")]), (.list [(.var "rc0"), (.var "rc1")]), (.var "root")]),
+      .mk 3982 (.let_ "vector" (.stackBuf 13)),
+      .mk 3983 (.call "keccak_cells" [(.slice (.var "column_digests") (.lit 0) (.mul (.lit 2) (.lit 128))), (.var "vector")]),
+      .mk 3984 (.ret [(.index (.var "root") (.lit 0)), (.index (.var "root") (.lit 1)), (.index (.var "vector") (.lit 0)), (.index (.var "vector") (.lit 1))])] }
 
 /-- `da_row_shape`. -/
 def fn_da_row_shape : Func :=
   { name := "da_row_shape", params := [⟨"n_blob_g", (.runtime .scalar)⟩, ⟨"g_log_pad", (.runtime .scalar)⟩, ⟨"g_squares", (.runtime .scalar)⟩], returnShapes := [.scalar, .scalar],
     inline := false,
     body := [
-      .mk 3986 (.assertNe (.var "n_blob_g") (.lit 1)),
-      .mk 3987 (.assertLt (.var "n_blob_g") (.const 1025)),
-      .mk 3988 (.assertLt (.var "g_log_pad") (.const 11)),
-      .mk 3989 (.let_ "n_pad_g" (.index (.var "g_squares") (.var "g_log_pad"))),
-      .mk 3991 (.let_ "gap_g" (.fdiv (.var "n_pad_g") (.var "n_blob_g"))),
-      .mk 3992 (.assertLt (.var "gap_g") (.const 1025)),
-      .mk 3993 (.assertLt (.fdiv (.mul (.var "n_blob_g") (.var "n_blob_g")) (.mul (.var "n_pad_g") .gen)) (.const 1024)),
-      .mk 3994 (.ret [(.var "n_pad_g"), (.var "gap_g")])] }
+      .mk 3988 (.assertNe (.var "n_blob_g") (.lit 1)),
+      .mk 3989 (.assertLt (.var "n_blob_g") (.const 1025)),
+      .mk 3990 (.assertLt (.var "g_log_pad") (.const 11)),
+      .mk 3991 (.let_ "n_pad_g" (.index (.var "g_squares") (.var "g_log_pad"))),
+      .mk 3993 (.let_ "gap_g" (.fdiv (.var "n_pad_g") (.var "n_blob_g"))),
+      .mk 3994 (.assertLt (.var "gap_g") (.const 1025)),
+      .mk 3995 (.assertLt (.fdiv (.mul (.var "n_blob_g") (.var "n_blob_g")) (.mul (.var "n_pad_g") .gen)) (.const 1024)),
+      .mk 3996 (.ret [(.var "n_pad_g"), (.var "gap_g")])] }
 
 /-- `da_verify_column`. -/
 def fn_da_verify_column : Func :=
   { name := "da_verify_column", params := [⟨"xb", (.runtime .scalar)⟩, ⟨"n_blob_g", (.runtime .scalar)⟩, ⟨"n_pad_g", (.runtime .scalar)⟩, ⟨"gap_g", (.runtime .scalar)⟩, ⟨"g_log_pad", (.runtime .scalar)⟩, ⟨"prefix_bases", (.runtime .scalar)⟩, ⟨"coltree", (.runtime .scalar)⟩, ⟨"rowbase", (.runtime .scalar)⟩, ⟨"column_digests", (.runtime .scalar)⟩, ⟨"store", .const⟩], returnShapes := [],
     inline := false,
     body := [
-      .mk 3998 (.let_ "lvals" (.call "da_vector_cell" [(.mul (.var "column_digests") (.mul (.var "xb") (.var "xb")))])),
-      .mk 3999 (.let_ "node" (.heapBufDyn (.pow (.var "n_pad_g") (.lit 4)))),
-      .mk 4000 (.for_ "xi" 0 (.runtime (.var "n_blob_g")) [
-        .mk 4001 (.letTuple ["d0", "d1", "s"] "da_verify_cell" [(.var "lvals")]),
-        .mk 4002 (.let_ "chain" (.mul (.index (.var "rowbase") (.var "xi")) (.var "xb"))),
-        .mk 4003 (.store (.var "chain") .gen (.add (.index (.var "chain") (.lit 1)) (.var "s"))),
-        .mk 4004 (.let_ "leaf" (.mul (.var "node") (.pow (.var "xi") (.lit 2)))),
-        .mk 4005 (.store (.var "leaf") (.lit 1) (.var "d0")),
-        .mk 4006 (.store (.var "leaf") .gen (.var "d1")),
-        .mk 4007 (.ite true (.var "store") (.lit 1) [
-          .mk 4008 (.let_ "slot" (.mul (.index (.var "prefix_bases") (.var "xi")) (.mul (.var "xb") (.var "xb")))),
-          .mk 4009 (.store (.var "slot") (.lit 1) (.var "d0")),
-          .mk 4010 (.store (.var "slot") .gen (.var "d1"))] [] true)]),
-      .mk 4011 (.for_ "xd" 0 (.runtime (.var "gap_g")) [
-        .mk 4012 (.let_ "pad" (.mul (.mul (.var "node") (.pow (.var "n_blob_g") (.lit 2))) (.pow (.var "xd") (.lit 2)))),
-        .mk 4013 (.store (.var "pad") (.lit 1) (.call "f192" [(.lit 15569472805043175342), (.lit 18354418831448413762), (.lit 0)])),
-        .mk 4014 (.store (.var "pad") .gen (.call "f192" [(.lit 11782766640862828499), (.lit 15718207409690975807), (.lit 0)]))]),
-      .mk 4015 (.match_ [(.var "c0"), (.var "c1")] (.var "g_log_pad") [(.call "da_levels" [(.var "node"), (.pow (.lit 2) (.lit 0)), (.lit 0)]), (.call "da_levels" [(.var "node"), (.pow (.lit 2) (.lit 1)), (.lit 1)]), (.call "da_levels" [(.var "node"), (.pow (.lit 2) (.lit 2)), (.lit 2)]), (.call "da_levels" [(.var "node"), (.pow (.lit 2) (.lit 3)), (.lit 3)]), (.call "da_levels" [(.var "node"), (.pow (.lit 2) (.lit 4)), (.lit 4)]), (.call "da_levels" [(.var "node"), (.pow (.lit 2) (.lit 5)), (.lit 5)]), (.call "da_levels" [(.var "node"), (.pow (.lit 2) (.lit 6)), (.lit 6)]), (.call "da_levels" [(.var "node"), (.pow (.lit 2) (.lit 7)), (.lit 7)]), (.call "da_levels" [(.var "node"), (.pow (.lit 2) (.lit 8)), (.lit 8)]), (.call "da_levels" [(.var "node"), (.pow (.lit 2) (.lit 9)), (.lit 9)]), (.call "da_levels" [(.var "node"), (.pow (.lit 2) (.lit 10)), (.lit 10)])]),
-      .mk 4016 (.let_ "out" (.mul (.var "coltree") (.mul (.var "xb") (.var "xb")))),
-      .mk 4017 (.store (.var "out") (.lit 1) (.var "c0")),
-      .mk 4018 (.store (.var "out") .gen (.var "c1")),
-      .mk 4019 (.ret [])] }
+      .mk 4000 (.let_ "lvals" (.call "da_vector_cell" [(.mul (.var "column_digests") (.mul (.var "xb") (.var "xb")))])),
+      .mk 4001 (.let_ "node" (.heapBufDyn (.pow (.var "n_pad_g") (.lit 4)))),
+      .mk 4002 (.for_ "xi" 0 (.runtime (.var "n_blob_g")) [
+        .mk 4003 (.letTuple ["d0", "d1", "s"] "da_verify_cell" [(.var "lvals")]),
+        .mk 4004 (.let_ "chain" (.mul (.index (.var "rowbase") (.var "xi")) (.var "xb"))),
+        .mk 4005 (.store (.var "chain") .gen (.add (.index (.var "chain") (.lit 1)) (.var "s"))),
+        .mk 4006 (.let_ "leaf" (.mul (.var "node") (.pow (.var "xi") (.lit 2)))),
+        .mk 4007 (.store (.var "leaf") (.lit 1) (.var "d0")),
+        .mk 4008 (.store (.var "leaf") .gen (.var "d1")),
+        .mk 4009 (.ite true (.var "store") (.lit 1) [
+          .mk 4010 (.let_ "slot" (.mul (.index (.var "prefix_bases") (.var "xi")) (.mul (.var "xb") (.var "xb")))),
+          .mk 4011 (.store (.var "slot") (.lit 1) (.var "d0")),
+          .mk 4012 (.store (.var "slot") .gen (.var "d1"))] [] true)]),
+      .mk 4013 (.for_ "xd" 0 (.runtime (.var "gap_g")) [
+        .mk 4014 (.let_ "pad" (.mul (.mul (.var "node") (.pow (.var "n_blob_g") (.lit 2))) (.pow (.var "xd") (.lit 2)))),
+        .mk 4015 (.store (.var "pad") (.lit 1) (.call "f192" [(.lit 15569472805043175342), (.lit 18354418831448413762), (.lit 0)])),
+        .mk 4016 (.store (.var "pad") .gen (.call "f192" [(.lit 11782766640862828499), (.lit 15718207409690975807), (.lit 0)]))]),
+      .mk 4017 (.match_ [(.var "c0"), (.var "c1")] (.var "g_log_pad") [(.call "da_levels" [(.var "node"), (.pow (.lit 2) (.lit 0)), (.lit 0)]), (.call "da_levels" [(.var "node"), (.pow (.lit 2) (.lit 1)), (.lit 1)]), (.call "da_levels" [(.var "node"), (.pow (.lit 2) (.lit 2)), (.lit 2)]), (.call "da_levels" [(.var "node"), (.pow (.lit 2) (.lit 3)), (.lit 3)]), (.call "da_levels" [(.var "node"), (.pow (.lit 2) (.lit 4)), (.lit 4)]), (.call "da_levels" [(.var "node"), (.pow (.lit 2) (.lit 5)), (.lit 5)]), (.call "da_levels" [(.var "node"), (.pow (.lit 2) (.lit 6)), (.lit 6)]), (.call "da_levels" [(.var "node"), (.pow (.lit 2) (.lit 7)), (.lit 7)]), (.call "da_levels" [(.var "node"), (.pow (.lit 2) (.lit 8)), (.lit 8)]), (.call "da_levels" [(.var "node"), (.pow (.lit 2) (.lit 9)), (.lit 9)]), (.call "da_levels" [(.var "node"), (.pow (.lit 2) (.lit 10)), (.lit 10)])]),
+      .mk 4018 (.let_ "out" (.mul (.var "coltree") (.mul (.var "xb") (.var "xb")))),
+      .mk 4019 (.store (.var "out") (.lit 1) (.var "c0")),
+      .mk 4020 (.store (.var "out") .gen (.var "c1")),
+      .mk 4021 (.ret [])] }
 
 /-- `da_verify_cell`. -/
 def fn_da_verify_cell : Func :=
   { name := "da_verify_cell", params := [⟨"lvals", (.runtime .scalar)⟩], returnShapes := [.scalar, .scalar, .scalar],
     inline := false,
     body := [
-      .mk 4024 (.let_ "sym" (.stackBuf 256)),
-      .mk 4025 (.hintWitness (.var "sym") "da_symbols"),
-      .mk 4026 (.let_ "packed" (.stackBuf 128)),
-      .mk 4027 (.let_ "s" (.lit 0)),
-      .mk 4028 (.unroll "e" (.lit 0) (.lit 128) [
-        .mk 4029 (.store (.var "packed") (.var "e") (.call "pack64x2" [(.index (.var "sym") (.mul (.lit 2) (.var "e"))), (.index (.var "sym") (.add (.mul (.lit 2) (.var "e")) (.lit 1)))])),
-        .mk 4030 (.let_ "s" (.add (.var "s") (.mul (.index (.var "lvals") (.genPow (.mul (.lit 2) (.var "e")))) (.index (.var "sym") (.mul (.lit 2) (.var "e")))))),
-        .mk 4031 (.let_ "s" (.add (.var "s") (.mul (.index (.var "lvals") (.genPow (.add (.mul (.lit 2) (.var "e")) (.lit 1)))) (.index (.var "sym") (.add (.mul (.lit 2) (.var "e")) (.lit 1))))))]),
-      .mk 4032 (.let_ "st" (.stackBuf 13)),
-      .mk 4033 (.call "keccak_cells" [(.var "packed"), (.var "st")]),
-      .mk 4034 (.ret [(.index (.var "st") (.lit 0)), (.index (.var "st") (.lit 1)), (.var "s")])] }
+      .mk 4026 (.let_ "sym" (.stackBuf 256)),
+      .mk 4027 (.hintWitness (.var "sym") "da_symbols"),
+      .mk 4028 (.let_ "packed" (.stackBuf 128)),
+      .mk 4029 (.let_ "s" (.lit 0)),
+      .mk 4030 (.unroll "e" (.lit 0) (.lit 128) [
+        .mk 4031 (.store (.var "packed") (.var "e") (.call "pack64x2" [(.index (.var "sym") (.mul (.lit 2) (.var "e"))), (.index (.var "sym") (.add (.mul (.lit 2) (.var "e")) (.lit 1)))])),
+        .mk 4032 (.let_ "s" (.add (.var "s") (.mul (.index (.var "lvals") (.genPow (.mul (.lit 2) (.var "e")))) (.index (.var "sym") (.mul (.lit 2) (.var "e")))))),
+        .mk 4033 (.let_ "s" (.add (.var "s") (.mul (.index (.var "lvals") (.genPow (.add (.mul (.lit 2) (.var "e")) (.lit 1)))) (.index (.var "sym") (.add (.mul (.lit 2) (.var "e")) (.lit 1))))))]),
+      .mk 4034 (.let_ "st" (.stackBuf 13)),
+      .mk 4035 (.call "keccak_cells" [(.var "packed"), (.var "st")]),
+      .mk 4036 (.ret [(.index (.var "st") (.lit 0)), (.index (.var "st") (.lit 1)), (.var "s")])] }
 
 /-- `da_levels`. -/
 def fn_da_levels : Func :=
   { name := "da_levels", params := [⟨"tree", (.runtime .scalar)⟩, ⟨"n", .const⟩, ⟨"log_n", .const⟩], returnShapes := [.scalar, .scalar],
     inline := false,
     body := [
-      .mk 4040 (.unroll "lvl" (.lit 0) (.var "log_n") [
-        .mk 4041 (.for_ "xp" 0 (.runtime (.genPow (.div (.var "n") (.pow (.lit 2) (.add (.var "lvl") (.lit 1)))))) [
-          .mk 4042 (.let_ "a" (.mul (.mul (.var "tree") (.genPow (.sub (.mul (.lit 4) (.var "n")) (.div (.mul (.lit 4) (.var "n")) (.pow (.lit 2) (.var "lvl")))))) (.pow (.var "xp") (.lit 4)))),
-          .mk 4043 (.let_ "b" (.mul (.mul (.var "tree") (.genPow (.sub (.mul (.lit 4) (.var "n")) (.div (.mul (.lit 4) (.var "n")) (.pow (.lit 2) (.add (.var "lvl") (.lit 1))))))) (.mul (.var "xp") (.var "xp")))),
-          .mk 4044 (.call "keccak" [(.slice (.var "a") (.lit 0) (.lit 2)), (.slice (.var "a") (.lit 2) (.lit 4)), (.slice (.var "b") (.lit 0) (.lit 2))])])]),
-      .mk 4045 (.ret [(.index (.var "tree") (.genPow (.sub (.mul (.lit 4) (.var "n")) (.lit 4)))), (.index (.var "tree") (.genPow (.sub (.mul (.lit 4) (.var "n")) (.lit 3))))])] }
+      .mk 4042 (.unroll "lvl" (.lit 0) (.var "log_n") [
+        .mk 4043 (.for_ "xp" 0 (.runtime (.genPow (.div (.var "n") (.pow (.lit 2) (.add (.var "lvl") (.lit 1)))))) [
+          .mk 4044 (.let_ "a" (.mul (.mul (.var "tree") (.genPow (.sub (.mul (.lit 4) (.var "n")) (.div (.mul (.lit 4) (.var "n")) (.pow (.lit 2) (.var "lvl")))))) (.pow (.var "xp") (.lit 4)))),
+          .mk 4045 (.let_ "b" (.mul (.mul (.var "tree") (.genPow (.sub (.mul (.lit 4) (.var "n")) (.div (.mul (.lit 4) (.var "n")) (.pow (.lit 2) (.add (.var "lvl") (.lit 1))))))) (.mul (.var "xp") (.var "xp")))),
+          .mk 4046 (.call "keccak" [(.slice (.var "a") (.lit 0) (.lit 2)), (.slice (.var "a") (.lit 2) (.lit 4)), (.slice (.var "b") (.lit 0) (.lit 2))])])]),
+      .mk 4047 (.ret [(.index (.var "tree") (.genPow (.sub (.mul (.lit 4) (.var "n")) (.lit 4)))), (.index (.var "tree") (.genPow (.sub (.mul (.lit 4) (.var "n")) (.lit 3))))])] }
 
 /-- `da_vector_cell`. -/
 def fn_da_vector_cell : Func :=
   { name := "da_vector_cell", params := [⟨"digest", (.runtime .scalar)⟩], returnShapes := [.scalar],
     inline := false,
     body := [
-      .mk 4051 (.let_ "weights" (.stackBuf 256)),
-      .mk 4052 (.hintWitness (.slice (.var "weights") (.lit 0) (.lit 256)) "da_weights"),
-      .mk 4053 (.let_ "packed" (.stackBuf 384)),
-      .mk 4054 (.unroll "p" (.lit 0) (.div (.lit 256) (.lit 2)) [
-        .mk 4055 (.call "pack_pair" [(.var "packed"), (.mul (.lit 3) (.var "p")), (.index (.var "weights") (.mul (.lit 2) (.var "p"))), (.index (.var "weights") (.add (.mul (.lit 2) (.var "p")) (.lit 1)))])]),
-      .mk 4056 (.call "keccak_cells" [(.var "packed"), (.slice (.var "digest") (.lit 0) (.lit 2))]),
-      .mk 4057 (.let_ "weights_ptr" (.call "addr" [(.var "weights")])),
-      .mk 4058 (.ret [(.var "weights_ptr")])] }
+      .mk 4053 (.let_ "weights" (.stackBuf 256)),
+      .mk 4054 (.hintWitness (.slice (.var "weights") (.lit 0) (.lit 256)) "da_weights"),
+      .mk 4055 (.let_ "packed" (.stackBuf 384)),
+      .mk 4056 (.unroll "p" (.lit 0) (.div (.lit 256) (.lit 2)) [
+        .mk 4057 (.call "pack_pair" [(.var "packed"), (.mul (.lit 3) (.var "p")), (.index (.var "weights") (.mul (.lit 2) (.var "p"))), (.index (.var "weights") (.add (.mul (.lit 2) (.var "p")) (.lit 1)))])]),
+      .mk 4058 (.call "keccak_cells" [(.var "packed"), (.slice (.var "digest") (.lit 0) (.lit 2))]),
+      .mk 4059 (.let_ "weights_ptr" (.call "addr" [(.var "weights")])),
+      .mk 4060 (.ret [(.var "weights_ptr")])] }
 
 /-- `da_list_digest`. -/
 def fn_da_list_digest : Func :=
   { name := "da_list_digest", params := [⟨"roots", (.runtime .scalar)⟩, ⟨"n_g", (.runtime .scalar)⟩], returnShapes := [.scalar, .scalar],
     inline := false,
     body := [
-      .mk 4065 (.match_ [(.var "a"), (.var "b")] (.var "n_g") [(.call "da_hash_roots" [(.var "roots"), (.lit 0)]), (.call "da_hash_roots" [(.var "roots"), (.lit 1)]), (.call "da_hash_roots" [(.var "roots"), (.lit 2)]), (.call "da_hash_roots" [(.var "roots"), (.lit 3)]), (.call "da_hash_roots" [(.var "roots"), (.lit 4)]), (.call "da_hash_roots" [(.var "roots"), (.lit 5)]), (.call "da_hash_roots" [(.var "roots"), (.lit 6)]), (.call "da_hash_roots" [(.var "roots"), (.lit 7)]), (.call "da_hash_roots" [(.var "roots"), (.lit 8)]), (.call "da_hash_roots" [(.var "roots"), (.lit 9)]), (.call "da_hash_roots" [(.var "roots"), (.lit 10)]), (.call "da_hash_roots" [(.var "roots"), (.lit 11)]), (.call "da_hash_roots" [(.var "roots"), (.lit 12)]), (.call "da_hash_roots" [(.var "roots"), (.lit 13)]), (.call "da_hash_roots" [(.var "roots"), (.lit 14)]), (.call "da_hash_roots" [(.var "roots"), (.lit 15)]), (.call "da_hash_roots" [(.var "roots"), (.lit 16)])]),
-      .mk 4066 (.ret [(.var "a"), (.var "b")])] }
+      .mk 4067 (.match_ [(.var "a"), (.var "b")] (.var "n_g") [(.call "da_hash_roots" [(.var "roots"), (.lit 0)]), (.call "da_hash_roots" [(.var "roots"), (.lit 1)]), (.call "da_hash_roots" [(.var "roots"), (.lit 2)]), (.call "da_hash_roots" [(.var "roots"), (.lit 3)]), (.call "da_hash_roots" [(.var "roots"), (.lit 4)]), (.call "da_hash_roots" [(.var "roots"), (.lit 5)]), (.call "da_hash_roots" [(.var "roots"), (.lit 6)]), (.call "da_hash_roots" [(.var "roots"), (.lit 7)]), (.call "da_hash_roots" [(.var "roots"), (.lit 8)]), (.call "da_hash_roots" [(.var "roots"), (.lit 9)]), (.call "da_hash_roots" [(.var "roots"), (.lit 10)]), (.call "da_hash_roots" [(.var "roots"), (.lit 11)]), (.call "da_hash_roots" [(.var "roots"), (.lit 12)]), (.call "da_hash_roots" [(.var "roots"), (.lit 13)]), (.call "da_hash_roots" [(.var "roots"), (.lit 14)]), (.call "da_hash_roots" [(.var "roots"), (.lit 15)]), (.call "da_hash_roots" [(.var "roots"), (.lit 16)])]),
+      .mk 4068 (.ret [(.var "a"), (.var "b")])] }
 
 /-- `da_hash_roots`. -/
 def fn_da_hash_roots : Func :=
   { name := "da_hash_roots", params := [⟨"roots", (.runtime .scalar)⟩, ⟨"n", .const⟩], returnShapes := [.scalar, .scalar],
     inline := false,
     body := [
-      .mk 4070 (.let_ "digest" (.stackBuf 13)),
-      .mk 4071 (.ite true (.var "n") (.lit 0) [
-        .mk 4072 (.call "keccak" [(.list [(.lit 0), (.lit 0)]), (.list [(.lit 0), (.lit 0)]), (.var "digest"), (.call "__kw_len" [(.lit 0)])])] [
-        .mk 4074 (.call "keccak_cells" [(.slice (.var "roots") (.lit 0) (.mul (.lit 4) (.var "n"))), (.var "digest")])] true),
-      .mk 4075 (.ret [(.index (.var "digest") (.lit 0)), (.index (.var "digest") (.lit 1))])] }
+      .mk 4072 (.let_ "digest" (.stackBuf 13)),
+      .mk 4073 (.ite true (.var "n") (.lit 0) [
+        .mk 4074 (.call "keccak" [(.list [(.lit 0), (.lit 0)]), (.list [(.lit 0), (.lit 0)]), (.var "digest"), (.call "__kw_len" [(.lit 0)])])] [
+        .mk 4076 (.call "keccak_cells" [(.slice (.var "roots") (.lit 0) (.mul (.lit 4) (.var "n"))), (.var "digest")])] true),
+      .mk 4077 (.ret [(.index (.var "digest") (.lit 0)), (.index (.var "digest") (.lit 1))])] }
 
 /-- `cover_da_root`. -/
 def fn_cover_da_root : Func :=
   { name := "cover_da_root", params := [⟨"roots", (.runtime .scalar)⟩, ⟨"cover", (.runtime .scalar)⟩, ⟨"n_slots_g", (.runtime .scalar)⟩, ⟨"mark", (.runtime .scalar)⟩], returnShapes := [.scalar, .scalar, .scalar, .scalar],
     inline := false,
     body := [
-      .mk 4079 (.letHintWitness "index" "da_index"),
-      .mk 4080 (.assertLt (.var "index") (.runtime (.var "n_slots_g"))),
-      .mk 4081 (.store (.var "cover") (.var "index") (.var "mark")),
-      .mk 4082 (.let_ "root" (.mul (.var "roots") (.pow (.var "index") (.lit 4)))),
-      .mk 4083 (.ret [(.index (.var "root") (.lit 1)), (.index (.var "root") .gen), (.index (.var "root") (.gpow 2)), (.index (.var "root") (.gpow 3))])] }
+      .mk 4081 (.letHintWitness "index" "da_index"),
+      .mk 4082 (.assertLt (.var "index") (.runtime (.var "n_slots_g"))),
+      .mk 4083 (.store (.var "cover") (.var "index") (.var "mark")),
+      .mk 4084 (.let_ "root" (.mul (.var "roots") (.pow (.var "index") (.lit 4)))),
+      .mk 4085 (.ret [(.index (.var "root") (.lit 1)), (.index (.var "root") .gen), (.index (.var "root") (.gpow 2)), (.index (.var "root") (.gpow 3))])] }
 
 /-- `main`. -/
 def fn_main : Func :=
   { name := "main", params := [], returnShapes := [],
     inline := false,
     body := [
-      .mk 4104 (.let_ "meta" (.stackBuf 8)),
-      .mk 4105 (.hintWitness (.var "meta") "meta"),
-      .mk 4106 (.let_ "n_lx_g" (.index (.var "meta") (.lit 0))),
-      .mk 4107 (.let_ "n_xdup_g" (.index (.var "meta") (.lit 1))),
-      .mk 4108 (.let_ "n_raw_x_g" (.index (.var "meta") (.lit 2))),
-      .mk 4109 (.let_ "n_lean_sphincs_g" (.index (.var "meta") (.lit 3))),
-      .mk 4110 (.let_ "n_sdup_g" (.index (.var "meta") (.lit 4))),
-      .mk 4111 (.let_ "n_raw_s_g" (.index (.var "meta") (.lit 5))),
-      .mk 4112 (.let_ "n_children_g" (.index (.var "meta") (.lit 6))),
-      .mk 4113 (.let_ "n_direct_da_g" (.index (.var "meta") (.lit 7))),
-      .mk 4114 (.assertLt (.var "n_lx_g") (.const 65536)),
-      .mk 4115 (.assertLt (.var "n_xdup_g") (.const 65536)),
-      .mk 4116 (.assertLt (.var "n_raw_x_g") (.const 65536)),
-      .mk 4117 (.assertLt (.var "n_lean_sphincs_g") (.const 65536)),
-      .mk 4118 (.assertLt (.var "n_sdup_g") (.const 65536)),
-      .mk 4119 (.assertLt (.var "n_raw_s_g") (.const 65536)),
-      .mk 4120 (.assertLt (.var "n_children_g") (.const 17)),
-      .mk 4121 (.assertLt (.var "n_direct_da_g") (.const 2)),
-      .mk 4122 (.let_ "da_meta" (.stackBuf 2)),
-      .mk 4123 (.hintWitness (.var "da_meta") "da_meta"),
-      .mk 4124 (.let_ "n_da_g" (.index (.var "da_meta") (.lit 0))),
-      .mk 4125 (.let_ "n_da_dup_g" (.index (.var "da_meta") (.lit 1))),
-      .mk 4126 (.assertLt (.var "n_da_g") (.const 17)),
-      .mk 4127 (.assertLt (.var "n_da_dup_g") (.const 258)),
-      .mk 4128 (.let_ "da_slots_g" (.mul (.var "n_da_g") (.var "n_da_dup_g"))),
-      .mk 4129 (.assertLt (.var "da_slots_g") (.const 258)),
-      .mk 4130 (.let_ "lx_slots_g" (.mul (.var "n_lx_g") (.var "n_xdup_g"))),
-      .mk 4131 (.let_ "lean_sphincs_slots_g" (.mul (.var "n_lean_sphincs_g") (.var "n_sdup_g"))),
-      .mk 4134 (.let_ "da_base_g" (.mul (.var "lx_slots_g") (.var "lean_sphincs_slots_g"))),
-      .mk 4135 (.let_ "n_total_g" (.mul (.var "da_base_g") (.var "da_slots_g"))),
-      .mk 4136 (.assertLt (.var "n_total_g") (.const 65536)),
-      .mk 4142 (.let_ "fs_seed" (.stackBuf 2)),
-      .mk 4143 (.hintWitness (.var "fs_seed") "fs_seed"),
-      .mk 4144 (.let_ "seed_0" (.index (.var "fs_seed") (.lit 0))),
-      .mk 4145 (.let_ "seed_1" (.index (.var "fs_seed") (.lit 1))),
-      .mk 4148 (.letTuple ["g_logs_pow2", "g_squares"] "exponent_tables" []),
-      .mk 4151 (.let_ "da_roots" (.heapBufDyn (.pow (.var "da_slots_g") (.lit 4)))),
-      .mk 4152 (.for_ "xd" 0 (.runtime (.var "da_slots_g")) [
-        .mk 4153 (.let_ "root" (.mul (.var "da_roots") (.pow (.var "xd") (.lit 4)))),
-        .mk 4154 (.hintWitness (.slice (.var "root") (.lit 0) (.lit 4)) "da_roots")]),
-      .mk 4155 (.letTuple ["da_0", "da_1"] "da_list_digest" [(.var "da_roots"), (.var "n_da_g")]),
-      .mk 4162 (.let_ "lx_table" (.heapBufDyn (.pow (.var "lx_slots_g") (.lit 4)))),
-      .mk 4163 (.let_ "lean_sphincs_table" (.heapBufDyn (.pow (.var "lean_sphincs_slots_g") (.lit 4)))),
-      .mk 4164 (.letTuple ["xd_0", "xd_1"] "claim_list_digest" [(.var "lx_table"), (.var "n_lx_g")]),
-      .mk 4165 (.letTuple ["sd_0", "sd_1"] "claim_list_digest" [(.var "lean_sphincs_table"), (.var "n_lean_sphincs_g")]),
-      .mk 4167 (.for_ "xd" 0 (.runtime (.var "n_xdup_g")) [
-        .mk 4168 (.let_ "dup" (.mul (.var "lx_table") (.pow (.mul (.var "n_lx_g") (.var "xd")) (.lit 4)))),
-        .mk 4169 (.hintWitness (.slice (.var "dup") (.lit 0) (.lit 4)) "dup_claims")]),
-      .mk 4170 (.for_ "xd" 0 (.runtime (.var "n_sdup_g")) [
-        .mk 4171 (.let_ "dup" (.mul (.var "lean_sphincs_table") (.pow (.mul (.var "n_lean_sphincs_g") (.var "xd")) (.lit 4)))),
-        .mk 4172 (.hintWitness (.slice (.var "dup") (.lit 0) (.lit 4)) "dup_claims")]),
-      .mk 4174 (.assertNe (.mul (.mul (.var "n_lx_g") (.var "n_lean_sphincs_g")) (.var "n_da_g")) (.lit 1)),
-      .mk 4175 (.let_ "signers" (.stackBuf 13)),
-      .mk 4176 (.call "keccak" [(.list [(.var "xd_0"), (.var "xd_1")]), (.list [(.var "sd_0"), (.var "sd_1")]), (.var "signers")]),
-      .mk 4177 (.let_ "signers_hash" (.heapBuf 2)),
-      .mk 4178 (.store (.var "signers_hash") (.lit 1) (.index (.var "signers") (.lit 0))),
-      .mk 4179 (.store (.var "signers_hash") .gen (.index (.var "signers") (.lit 1))),
-      .mk 4187 (.let_ "cover" (.heapBufDyn (.var "n_total_g"))),
-      .mk 4188 (.let_ "da_cover" (.mul (.var "cover") (.var "da_base_g"))),
-      .mk 4190 (.let_ "byte_bits" (.heapBuf 256)),
-      .mk 4191 (.unroll "v" (.lit 0) (.lit 256) [
-        .mk 4192 (.store (.var "byte_bits") (.genPow (.var "v")) (.var "v"))]),
-      .mk 4193 (.for_ "xi" 0 (.runtime (.var "n_raw_x_g")) [
-        .mk 4194 (.letHintWitness "idx" "raw_index"),
-        .mk 4200 (.assertLt (.var "idx") (.runtime (.var "lx_slots_g"))),
-        .mk 4201 (.store (.var "cover") (.var "idx") (.var "xi")),
-        .mk 4202 (.call "verify_lean_xmss" [(.mul (.var "lx_table") (.pow (.var "idx") (.lit 4)))])]),
-      .mk 4203 (.for_ "xj" 0 (.runtime (.var "n_raw_s_g")) [
-        .mk 4204 (.letHintWitness "off_hint" "sp_raw_index"),
-        .mk 4205 (.assertLt (.var "off_hint") (.runtime (.var "lean_sphincs_slots_g"))),
-        .mk 4206 (.store (.var "cover") (.mul (.var "lx_slots_g") (.var "off_hint")) (.mul (.var "n_raw_x_g") (.var "xj"))),
-        .mk 4207 (.call "verify_sig_lean_sphincs" [(.mul (.var "lean_sphincs_table") (.pow (.var "off_hint") (.lit 4))), (.var "byte_bits")])]),
-      .mk 4209 (.ite true (.var "n_direct_da_g") .gen [
-        .mk 4210 (.letTuple ["root_0", "root_1", "vector_0", "vector_1"] "da_verify" [(.var "g_squares")]),
-        .mk 4211 (.letTuple ["expected_0", "expected_1", "expected_v0", "expected_v1"] "cover_da_root" [(.var "da_roots"), (.var "da_cover"), (.var "da_slots_g"), (.mul (.var "n_raw_x_g") (.var "n_raw_s_g"))]),
-        .mk 4212 (.assertEq (.var "root_0") (.var "expected_0")),
-        .mk 4213 (.assertEq (.var "root_1") (.var "expected_1")),
-        .mk 4214 (.assertEq (.var "vector_0") (.var "expected_v0")),
-        .mk 4215 (.assertEq (.var "vector_1") (.var "expected_v1"))] [] false),
-      .mk 4218 (.let_ "child_pi" (.heapBufDyn (.mul (.var "n_children_g") (.var "n_children_g")))),
-      .mk 4219 (.let_ "child_fresh" (.heapBufDyn (.pow (.var "n_children_g") (.lit 24)))),
-      .mk 4220 (.let_ "child_carried" (.heapBufDyn (.pow (.var "n_children_g") (.lit 24)))),
-      .mk 4221 (.let_ "written" (.heapBufDyn (.mul (.var "n_children_g") .gen))),
-      .mk 4222 (.store (.var "written") (.gpow 0) (.mul (.mul (.var "n_raw_x_g") (.var "n_raw_s_g")) (.var "n_direct_da_g"))),
-      .mk 4223 (.for_ "xc" 0 (.runtime (.var "n_children_g")) [
-        .mk 4224 (.let_ "base" (.index (.var "written") (.var "xc"))),
-        .mk 4229 (.let_ "child_meta" (.stackBuf 2)),
-        .mk 4230 (.hintWitness (.var "child_meta") "child_meta"),
-        .mk 4231 (.let_ "nsub_x_g" (.index (.var "child_meta") (.lit 0))),
-        .mk 4232 (.let_ "nsub_s_g" (.index (.var "child_meta") (.lit 1))),
-        .mk 4233 (.assertLt (.var "nsub_x_g") (.const 65536)),
-        .mk 4234 (.assertLt (.var "nsub_s_g") (.const 65536)),
-        .mk 4235 (.let_ "nsub_g" (.mul (.var "nsub_x_g") (.var "nsub_s_g"))),
-        .mk 4236 (.letTuple ["cx_0", "cx_1"] "child_claim_list_digest" [(.var "lx_table"), (.var "cover"), (.var "base"), (.lit 1), (.var "lx_slots_g"), (.var "nsub_x_g")]),
-        .mk 4237 (.letTuple ["cs_0", "cs_1"] "child_claim_list_digest" [(.var "lean_sphincs_table"), (.var "cover"), (.mul (.var "base") (.var "nsub_x_g")), (.var "lx_slots_g"), (.var "lean_sphincs_slots_g"), (.var "nsub_s_g")]),
-        .mk 4238 (.let_ "sub_signers" (.stackBuf 13)),
-        .mk 4239 (.call "keccak" [(.list [(.var "cx_0"), (.var "cx_1")]), (.list [(.var "cs_0"), (.var "cs_1")]), (.var "sub_signers")]),
-        .mk 4240 (.let_ "sub_hash" (.heapBuf 2)),
-        .mk 4241 (.store (.var "sub_hash") (.lit 1) (.index (.var "sub_signers") (.lit 0))),
-        .mk 4242 (.store (.var "sub_hash") .gen (.index (.var "sub_signers") (.lit 1))),
-        .mk 4243 (.let_ "carried" (.mul (.var "child_carried") (.pow (.var "xc") (.lit 24)))),
-        .mk 4244 (.hintWitness (.slice (.var "carried") (.lit 0) (.lit 24)) "child_defer"),
-        .mk 4245 (.letHintWitness "nsub_da_g" "child_da_count"),
-        .mk 4246 (.assertLt (.var "nsub_da_g") (.const 17)),
-        .mk 4247 (.let_ "child_da" (.heapBufDyn (.pow (.var "nsub_da_g") (.lit 4)))),
-        .mk 4248 (.for_ "xd" 0 (.runtime (.var "nsub_da_g")) [
-          .mk 4249 (.let_ "root" (.mul (.var "child_da") (.pow (.var "xd") (.lit 4)))),
-          .mk 4250 (.letTuple ["root_0", "root_1", "vector_0", "vector_1"] "cover_da_root" [(.var "da_roots"), (.var "da_cover"), (.var "da_slots_g"), (.mul (.mul (.var "base") (.var "nsub_g")) (.var "xd"))]),
-          .mk 4251 (.store (.var "root") (.lit 1) (.var "root_0")),
-          .mk 4252 (.store (.var "root") .gen (.var "root_1")),
-          .mk 4253 (.store (.var "root") (.gpow 2) (.var "vector_0")),
-          .mk 4254 (.store (.var "root") (.gpow 3) (.var "vector_1"))]),
-        .mk 4255 (.letTuple ["child_da_0", "child_da_1"] "da_list_digest" [(.var "child_da"), (.var "nsub_da_g")]),
-        .mk 4256 (.letTuple ["pi_0", "pi_1"] "statement_digest" [(.var "seed_0"), (.var "seed_1"), (.var "sub_hash"), (.var "child_da_0"), (.var "child_da_1"), (.var "carried")]),
-        .mk 4257 (.let_ "pi" (.mul (.var "xc") (.var "xc"))),
-        .mk 4258 (.store (.var "child_pi") (.var "pi") (.var "pi_0")),
-        .mk 4259 (.store (.var "child_pi") (.mul (.var "pi") .gen) (.var "pi_1")),
-        .mk 4260 (.call "verify_sub" [(.var "pi_0"), (.var "pi_1"), (.var "seed_0"), (.var "seed_1"), (.var "g_logs_pow2"), (.var "g_squares"), (.mul (.var "child_fresh") (.pow (.var "xc") (.lit 24)))]),
-        .mk 4261 (.store (.var "written") (.mul (.var "xc") .gen) (.mul (.mul (.var "base") (.var "nsub_g")) (.var "nsub_da_g")))]),
-      .mk 4262 (.assertEq (.index (.var "written") (.var "n_children_g")) (.var "n_total_g")),
-      .mk 4265 (.let_ "defer_stmt" (.heapBuf 24)),
-      .mk 4266 (.ite true (.var "n_children_g") (.lit 1) [
-        .mk 4271 (.letHintWitness "leaf_value" "leaf_defer"),
-        .mk 4272 (.unroll "k" (.lit 0) (.lit 23) [
-          .mk 4273 (.store (.var "defer_stmt") (.genPow (.var "k")) (.lit 0))]),
-        .mk 4274 (.store (.var "defer_stmt") (.gpow 23) (.var "leaf_value"))] [
-        .mk 4276 (.call "aggregate_claims" [(.var "n_children_g"), (.var "child_pi"), (.var "child_fresh"), (.var "child_carried"), (.var "defer_stmt")])] false),
-      .mk 4278 (.letTuple ["own_0", "own_1"] "statement_digest" [(.var "seed_0"), (.var "seed_1"), (.var "signers_hash"), (.var "da_0"), (.var "da_1"), (.var "defer_stmt")]),
-      .mk 4279 (.let_ "pub_ptr" (.gpow 0)),
-      .mk 4280 (.assertEq (.index (.var "pub_ptr") (.lit 1)) (.var "own_0")),
-      .mk 4281 (.assertEq (.index (.var "pub_ptr") .gen) (.var "own_1")),
-      .mk 4282 (.ret [])] }
+      .mk 4106 (.let_ "meta" (.stackBuf 8)),
+      .mk 4107 (.hintWitness (.var "meta") "meta"),
+      .mk 4108 (.let_ "n_lx_g" (.index (.var "meta") (.lit 0))),
+      .mk 4109 (.let_ "n_xdup_g" (.index (.var "meta") (.lit 1))),
+      .mk 4110 (.let_ "n_raw_x_g" (.index (.var "meta") (.lit 2))),
+      .mk 4111 (.let_ "n_lean_sphincs_g" (.index (.var "meta") (.lit 3))),
+      .mk 4112 (.let_ "n_sdup_g" (.index (.var "meta") (.lit 4))),
+      .mk 4113 (.let_ "n_raw_s_g" (.index (.var "meta") (.lit 5))),
+      .mk 4114 (.let_ "n_children_g" (.index (.var "meta") (.lit 6))),
+      .mk 4115 (.let_ "n_direct_da_g" (.index (.var "meta") (.lit 7))),
+      .mk 4116 (.assertLt (.var "n_lx_g") (.const 65536)),
+      .mk 4117 (.assertLt (.var "n_xdup_g") (.const 65536)),
+      .mk 4118 (.assertLt (.var "n_raw_x_g") (.const 65536)),
+      .mk 4119 (.assertLt (.var "n_lean_sphincs_g") (.const 65536)),
+      .mk 4120 (.assertLt (.var "n_sdup_g") (.const 65536)),
+      .mk 4121 (.assertLt (.var "n_raw_s_g") (.const 65536)),
+      .mk 4122 (.assertLt (.var "n_children_g") (.const 17)),
+      .mk 4123 (.assertLt (.var "n_direct_da_g") (.const 2)),
+      .mk 4124 (.let_ "da_meta" (.stackBuf 2)),
+      .mk 4125 (.hintWitness (.var "da_meta") "da_meta"),
+      .mk 4126 (.let_ "n_da_g" (.index (.var "da_meta") (.lit 0))),
+      .mk 4127 (.let_ "n_da_dup_g" (.index (.var "da_meta") (.lit 1))),
+      .mk 4128 (.assertLt (.var "n_da_g") (.const 17)),
+      .mk 4129 (.assertLt (.var "n_da_dup_g") (.const 258)),
+      .mk 4130 (.let_ "da_slots_g" (.mul (.var "n_da_g") (.var "n_da_dup_g"))),
+      .mk 4131 (.assertLt (.var "da_slots_g") (.const 258)),
+      .mk 4132 (.let_ "lx_slots_g" (.mul (.var "n_lx_g") (.var "n_xdup_g"))),
+      .mk 4133 (.let_ "lean_sphincs_slots_g" (.mul (.var "n_lean_sphincs_g") (.var "n_sdup_g"))),
+      .mk 4136 (.let_ "da_base_g" (.mul (.var "lx_slots_g") (.var "lean_sphincs_slots_g"))),
+      .mk 4137 (.let_ "n_total_g" (.mul (.var "da_base_g") (.var "da_slots_g"))),
+      .mk 4138 (.assertLt (.var "n_total_g") (.const 65536)),
+      .mk 4144 (.let_ "fs_seed" (.stackBuf 2)),
+      .mk 4145 (.hintWitness (.var "fs_seed") "fs_seed"),
+      .mk 4146 (.let_ "seed_0" (.index (.var "fs_seed") (.lit 0))),
+      .mk 4147 (.let_ "seed_1" (.index (.var "fs_seed") (.lit 1))),
+      .mk 4150 (.letTuple ["g_logs_pow2", "g_squares"] "exponent_tables" []),
+      .mk 4153 (.let_ "da_roots" (.heapBufDyn (.pow (.var "da_slots_g") (.lit 4)))),
+      .mk 4154 (.for_ "xd" 0 (.runtime (.var "da_slots_g")) [
+        .mk 4155 (.let_ "root" (.mul (.var "da_roots") (.pow (.var "xd") (.lit 4)))),
+        .mk 4156 (.hintWitness (.slice (.var "root") (.lit 0) (.lit 4)) "da_roots")]),
+      .mk 4157 (.letTuple ["da_0", "da_1"] "da_list_digest" [(.var "da_roots"), (.var "n_da_g")]),
+      .mk 4164 (.let_ "lx_table" (.heapBufDyn (.pow (.var "lx_slots_g") (.lit 4)))),
+      .mk 4165 (.let_ "lean_sphincs_table" (.heapBufDyn (.pow (.var "lean_sphincs_slots_g") (.lit 4)))),
+      .mk 4166 (.letTuple ["xd_0", "xd_1"] "claim_list_digest" [(.var "lx_table"), (.var "n_lx_g")]),
+      .mk 4167 (.letTuple ["sd_0", "sd_1"] "claim_list_digest" [(.var "lean_sphincs_table"), (.var "n_lean_sphincs_g")]),
+      .mk 4169 (.for_ "xd" 0 (.runtime (.var "n_xdup_g")) [
+        .mk 4170 (.let_ "dup" (.mul (.var "lx_table") (.pow (.mul (.var "n_lx_g") (.var "xd")) (.lit 4)))),
+        .mk 4171 (.hintWitness (.slice (.var "dup") (.lit 0) (.lit 4)) "dup_claims")]),
+      .mk 4172 (.for_ "xd" 0 (.runtime (.var "n_sdup_g")) [
+        .mk 4173 (.let_ "dup" (.mul (.var "lean_sphincs_table") (.pow (.mul (.var "n_lean_sphincs_g") (.var "xd")) (.lit 4)))),
+        .mk 4174 (.hintWitness (.slice (.var "dup") (.lit 0) (.lit 4)) "dup_claims")]),
+      .mk 4176 (.assertNe (.mul (.mul (.var "n_lx_g") (.var "n_lean_sphincs_g")) (.var "n_da_g")) (.lit 1)),
+      .mk 4184 (.let_ "cover" (.heapBufDyn (.var "n_total_g"))),
+      .mk 4185 (.let_ "da_cover" (.mul (.var "cover") (.var "da_base_g"))),
+      .mk 4187 (.let_ "byte_bits" (.heapBuf 256)),
+      .mk 4188 (.unroll "v" (.lit 0) (.lit 256) [
+        .mk 4189 (.store (.var "byte_bits") (.genPow (.var "v")) (.var "v"))]),
+      .mk 4190 (.for_ "xi" 0 (.runtime (.var "n_raw_x_g")) [
+        .mk 4191 (.letHintWitness "idx" "raw_index"),
+        .mk 4197 (.assertLt (.var "idx") (.runtime (.var "lx_slots_g"))),
+        .mk 4198 (.store (.var "cover") (.var "idx") (.var "xi")),
+        .mk 4199 (.call "verify_lean_xmss" [(.mul (.var "lx_table") (.pow (.var "idx") (.lit 4)))])]),
+      .mk 4200 (.for_ "xj" 0 (.runtime (.var "n_raw_s_g")) [
+        .mk 4201 (.letHintWitness "off_hint" "sp_raw_index"),
+        .mk 4202 (.assertLt (.var "off_hint") (.runtime (.var "lean_sphincs_slots_g"))),
+        .mk 4203 (.store (.var "cover") (.mul (.var "lx_slots_g") (.var "off_hint")) (.mul (.var "n_raw_x_g") (.var "xj"))),
+        .mk 4204 (.call "verify_sig_lean_sphincs" [(.mul (.var "lean_sphincs_table") (.pow (.var "off_hint") (.lit 4))), (.var "byte_bits")])]),
+      .mk 4206 (.ite true (.var "n_direct_da_g") .gen [
+        .mk 4207 (.letTuple ["root_0", "root_1", "vector_0", "vector_1"] "da_verify" [(.var "g_squares")]),
+        .mk 4208 (.letTuple ["expected_0", "expected_1", "expected_v0", "expected_v1"] "cover_da_root" [(.var "da_roots"), (.var "da_cover"), (.var "da_slots_g"), (.mul (.var "n_raw_x_g") (.var "n_raw_s_g"))]),
+        .mk 4209 (.assertEq (.var "root_0") (.var "expected_0")),
+        .mk 4210 (.assertEq (.var "root_1") (.var "expected_1")),
+        .mk 4211 (.assertEq (.var "vector_0") (.var "expected_v0")),
+        .mk 4212 (.assertEq (.var "vector_1") (.var "expected_v1"))] [] false),
+      .mk 4215 (.let_ "child_pi" (.heapBufDyn (.mul (.var "n_children_g") (.var "n_children_g")))),
+      .mk 4216 (.let_ "child_fresh" (.heapBufDyn (.pow (.var "n_children_g") (.lit 24)))),
+      .mk 4217 (.let_ "child_carried" (.heapBufDyn (.pow (.var "n_children_g") (.lit 24)))),
+      .mk 4218 (.let_ "written" (.heapBufDyn (.mul (.var "n_children_g") .gen))),
+      .mk 4219 (.store (.var "written") (.gpow 0) (.mul (.mul (.var "n_raw_x_g") (.var "n_raw_s_g")) (.var "n_direct_da_g"))),
+      .mk 4220 (.for_ "xc" 0 (.runtime (.var "n_children_g")) [
+        .mk 4221 (.let_ "base" (.index (.var "written") (.var "xc"))),
+        .mk 4226 (.let_ "child_meta" (.stackBuf 2)),
+        .mk 4227 (.hintWitness (.var "child_meta") "child_meta"),
+        .mk 4228 (.let_ "nsub_x_g" (.index (.var "child_meta") (.lit 0))),
+        .mk 4229 (.let_ "nsub_s_g" (.index (.var "child_meta") (.lit 1))),
+        .mk 4230 (.assertLt (.var "nsub_x_g") (.const 65536)),
+        .mk 4231 (.assertLt (.var "nsub_s_g") (.const 65536)),
+        .mk 4232 (.let_ "nsub_g" (.mul (.var "nsub_x_g") (.var "nsub_s_g"))),
+        .mk 4233 (.letTuple ["cx_0", "cx_1"] "child_claim_list_digest" [(.var "lx_table"), (.var "cover"), (.var "base"), (.lit 1), (.var "lx_slots_g"), (.var "nsub_x_g")]),
+        .mk 4234 (.letTuple ["cs_0", "cs_1"] "child_claim_list_digest" [(.var "lean_sphincs_table"), (.var "cover"), (.mul (.var "base") (.var "nsub_x_g")), (.var "lx_slots_g"), (.var "lean_sphincs_slots_g"), (.var "nsub_s_g")]),
+        .mk 4235 (.let_ "carried" (.mul (.var "child_carried") (.pow (.var "xc") (.lit 24)))),
+        .mk 4236 (.hintWitness (.slice (.var "carried") (.lit 0) (.lit 24)) "child_defer"),
+        .mk 4237 (.letHintWitness "nsub_da_g" "child_da_count"),
+        .mk 4238 (.assertLt (.var "nsub_da_g") (.const 17)),
+        .mk 4239 (.let_ "child_da" (.heapBufDyn (.pow (.var "nsub_da_g") (.lit 4)))),
+        .mk 4240 (.for_ "xd" 0 (.runtime (.var "nsub_da_g")) [
+          .mk 4241 (.let_ "root" (.mul (.var "child_da") (.pow (.var "xd") (.lit 4)))),
+          .mk 4242 (.letTuple ["root_0", "root_1", "vector_0", "vector_1"] "cover_da_root" [(.var "da_roots"), (.var "da_cover"), (.var "da_slots_g"), (.mul (.mul (.var "base") (.var "nsub_g")) (.var "xd"))]),
+          .mk 4243 (.store (.var "root") (.lit 1) (.var "root_0")),
+          .mk 4244 (.store (.var "root") .gen (.var "root_1")),
+          .mk 4245 (.store (.var "root") (.gpow 2) (.var "vector_0")),
+          .mk 4246 (.store (.var "root") (.gpow 3) (.var "vector_1"))]),
+        .mk 4247 (.letTuple ["child_da_0", "child_da_1"] "da_list_digest" [(.var "child_da"), (.var "nsub_da_g")]),
+        .mk 4248 (.letTuple ["pi_0", "pi_1"] "statement_digest" [(.var "seed_0"), (.var "seed_1"), (.var "cx_0"), (.var "cx_1"), (.var "cs_0"), (.var "cs_1"), (.var "child_da_0"), (.var "child_da_1"), (.var "carried")]),
+        .mk 4249 (.let_ "pi" (.mul (.var "xc") (.var "xc"))),
+        .mk 4250 (.store (.var "child_pi") (.var "pi") (.var "pi_0")),
+        .mk 4251 (.store (.var "child_pi") (.mul (.var "pi") .gen) (.var "pi_1")),
+        .mk 4252 (.call "verify_sub" [(.var "pi_0"), (.var "pi_1"), (.var "seed_0"), (.var "seed_1"), (.var "g_logs_pow2"), (.var "g_squares"), (.mul (.var "child_fresh") (.pow (.var "xc") (.lit 24)))]),
+        .mk 4253 (.store (.var "written") (.mul (.var "xc") .gen) (.mul (.mul (.var "base") (.var "nsub_g")) (.var "nsub_da_g")))]),
+      .mk 4254 (.assertEq (.index (.var "written") (.var "n_children_g")) (.var "n_total_g")),
+      .mk 4257 (.let_ "defer_stmt" (.heapBuf 24)),
+      .mk 4258 (.ite true (.var "n_children_g") (.lit 1) [
+        .mk 4263 (.letHintWitness "leaf_value" "leaf_defer"),
+        .mk 4264 (.unroll "k" (.lit 0) (.lit 23) [
+          .mk 4265 (.store (.var "defer_stmt") (.genPow (.var "k")) (.lit 0))]),
+        .mk 4266 (.store (.var "defer_stmt") (.gpow 23) (.var "leaf_value"))] [
+        .mk 4268 (.call "aggregate_claims" [(.var "n_children_g"), (.var "child_pi"), (.var "child_fresh"), (.var "child_carried"), (.var "defer_stmt")])] false),
+      .mk 4270 (.letTuple ["own_0", "own_1"] "statement_digest" [(.var "seed_0"), (.var "seed_1"), (.var "xd_0"), (.var "xd_1"), (.var "sd_0"), (.var "sd_1"), (.var "da_0"), (.var "da_1"), (.var "defer_stmt")]),
+      .mk 4271 (.let_ "pub_ptr" (.gpow 0)),
+      .mk 4272 (.assertEq (.index (.var "pub_ptr") (.lit 1)) (.var "own_0")),
+      .mk 4273 (.assertEq (.index (.var "pub_ptr") .gen) (.var "own_1")),
+      .mk 4274 (.ret [])] }
 
 /-- `aggregate_claims`. -/
 def fn_aggregate_claims : Func :=
   { name := "aggregate_claims", params := [⟨"n_children_g", (.runtime .scalar)⟩, ⟨"child_pi", (.runtime .scalar)⟩, ⟨"child_fresh", (.runtime .scalar)⟩, ⟨"child_carried", (.runtime .scalar)⟩, ⟨"defer_stmt", (.runtime .scalar)⟩], returnShapes := [],
     inline := false,
     body := [
-      .mk 4291 (.let_ "bc_msgs" (.heapBuf 46)),
-      .mk 4292 (.hintWitness (.slice (.var "bc_msgs") (.lit 0) (.mul (.lit 2) (.lit 23))) "bc_sumcheck_msgs"),
-      .mk 4293 (.letHintWitness "bytecode_star" "bc_star_hint"),
-      .mk 4299 (.let_ "fresh_row" (.heapBufDyn (.var "n_children_g"))),
-      .mk 4300 (.let_ "carried_row" (.heapBufDyn (.var "n_children_g"))),
-      .mk 4301 (.let_ "seed" (.list [(.lit 1562680967124014521), (.lit 219987477440241922375488438384259330662), (.lit 280280212661789141853795656654516100829), (.lit 200796963667835759483519841953162816397), (.lit 2936886303028784551432414362146044553)])),
-      .mk 4302 (.let_ "rate" (.stackBuf 8)),
-      .mk 4303 (.call "fs_pack" [(.var "rate"), (.lit 0), (.var "n_children_g"), (.lit 1)]),
-      .mk 4304 (.unroll "j" (.lit 1) (.lit 4) [
-        .mk 4305 (.call "fs_pack" [(.var "rate"), (.var "j"), (.lit 0), (.lit 1)])]),
-      .mk 4306 (.let_ "absorb" (.heapBufDyn (.pow (.mul (.var "n_children_g") .gen) (.lit 13)))),
-      .mk 4307 (.unroll "j" (.lit 0) (.lit 5) [
-        .mk 4308 (.store (.var "absorb") (.genPow (.var "j")) (.index (.var "seed") (.var "j")))]),
-      .mk 4309 (.unroll "j" (.lit 0) (.lit 8) [
-        .mk 4310 (.store (.var "absorb") (.genPow (.add (.lit 5) (.var "j"))) (.index (.var "rate") (.var "j")))]),
-      .mk 4311 (.for_ "xc" 0 (.runtime (.var "n_children_g")) [
-        .mk 4312 (.let_ "row" (.mul (.var "absorb") (.pow (.var "xc") (.lit 13)))),
-        .mk 4313 (.let_ "row_cap" (.call "fs_load" [(.var "row"), (.lit 0), (.lit 1)])),
-        .mk 4314 (.let_ "st" (.call "fs_perm_pending" [(.var "row_cap"), (.var "row"), (.lit 5)])),
-        .mk 4315 (.let_ "rate" (.stackBuf 8)),
-        .mk 4316 (.let_ "pi" (.mul (.var "xc") (.var "xc"))),
-        .mk 4317 (.let_ "fresh" (.mul (.var "child_fresh") (.pow (.var "xc") (.lit 24)))),
-        .mk 4318 (.store (.var "fresh_row") (.var "xc") (.var "fresh")),
-        .mk 4319 (.let_ "carried" (.mul (.var "child_carried") (.pow (.var "xc") (.lit 24)))),
-        .mk 4320 (.store (.var "carried_row") (.var "xc") (.var "carried")),
-        .mk 4321 (.unroll "pos" (.lit 0) (.add (.lit 50) (.lit 2)) [
-          .mk 4322 (.ite true (.mod (.var "pos") (.lit 4)) (.lit 0) [
-            .mk 4323 (.ite false (.var "pos") (.lit 0) [
-              .mk 4324 (.let_ "st" (.call "fs_perm" [(.var "st"), (.var "rate"), (.lit 4)])),
-              .mk 4325 (.let_ "rate" (.stackBuf 8))] [] false)] [] false),
-          .mk 4326 (.ite true (.div (.var "pos") (.lit 2)) (.lit 0) [
-            .mk 4327 (.call "fs_pack" [(.var "rate"), (.mod (.var "pos") (.lit 4)), (.index (.var "child_pi") (.mul (.var "pi") (.genPow (.var "pos")))), (.lit 1)])] [] true),
-          .mk 4328 (.ite false (.div (.var "pos") (.lit 2)) (.lit 0) [
-            .mk 4329 (.ite true (.div (.sub (.var "pos") (.lit 2)) (.lit 24)) (.lit 0) [
-              .mk 4330 (.call "fs_pack" [(.var "rate"), (.mod (.var "pos") (.lit 4)), (.index (.var "fresh") (.genPow (.sub (.var "pos") (.lit 2)))), (.lit 1)])] [] true),
-            .mk 4331 (.ite false (.div (.sub (.var "pos") (.lit 2)) (.lit 24)) (.lit 0) [
-              .mk 4332 (.ite true (.div (.sub (.sub (.var "pos") (.lit 2)) (.lit 24)) (.lit 24)) (.lit 0) [
-                .mk 4333 (.call "fs_pack" [(.var "rate"), (.mod (.var "pos") (.lit 4)), (.index (.var "carried") (.genPow (.sub (.sub (.var "pos") (.lit 2)) (.lit 24)))), (.lit 1)])] [] true),
-              .mk 4334 (.ite false (.div (.sub (.sub (.var "pos") (.lit 2)) (.lit 24)) (.lit 24)) (.lit 0) [
-                .mk 4335 (.call "fs_pack" [(.var "rate"), (.mod (.var "pos") (.lit 4)), (.lit 0), (.lit 1)])] [] true)] [] true)] [] true)]),
-        .mk 4336 (.let_ "nxt" (.mul (.var "row") (.gpow 13))),
-        .mk 4337 (.call "fs_store" [(.var "nxt"), (.lit 0), (.lit 1), (.var "st")]),
-        .mk 4338 (.unroll "j" (.lit 0) (.lit 8) [
-          .mk 4339 (.store (.var "nxt") (.genPow (.add (.lit 5) (.var "j"))) (.index (.var "rate") (.var "j")))])]),
-      .mk 4340 (.let_ "absorbed" (.mul (.var "absorb") (.pow (.var "n_children_g") (.lit 13)))),
-      .mk 4346 (.let_ "lam_bc" (.heapBufDyn (.mul (.var "n_children_g") (.var "n_children_g")))),
-      .mk 4347 (.let_ "bc_chain" (.heapBufDyn (.pow (.mul (.var "n_children_g") .gen) (.lit 14)))),
-      .mk 4348 (.unroll "j" (.lit 0) (.lit 5) [
-        .mk 4349 (.store (.var "bc_chain") (.genPow (.add (.lit 0) (.var "j"))) (.index (.var "absorbed") (.genPow (.var "j"))))]),
-      .mk 4350 (.unroll "j" (.lit 0) (.lit 8) [
-        .mk 4351 (.store (.var "bc_chain") (.genPow (.add (.lit 5) (.var "j"))) (.index (.var "absorbed") (.genPow (.add (.lit 5) (.var "j")))))]),
-      .mk 4352 (.store (.var "bc_chain") (.gpow 13) (.lit 0)),
-      .mk 4353 (.for_ "xc" 0 (.runtime (.var "n_children_g")) [
-        .mk 4354 (.let_ "row" (.mul (.var "bc_chain") (.pow (.var "xc") (.lit 14)))),
-        .mk 4355 (.let_ "row_cap" (.call "fs_load" [(.var "row"), (.lit 0), (.lit 1)])),
-        .mk 4356 (.let_ "st" (.call "fs_perm_pending" [(.var "row_cap"), (.var "row"), (.lit 5)])),
-        .mk 4357 (.let_ "lam_fresh" (.call "challenge_from_state" [(.var "st")])),
-        .mk 4358 (.let_ "no_rate" (.stackBuf 8)),
-        .mk 4359 (.letTuple ["st", "lam_carried"] "squeeze" [(.var "st"), (.var "no_rate"), (.lit 0)]),
-        .mk 4360 (.let_ "pair" (.mul (.var "xc") (.var "xc"))),
-        .mk 4361 (.store (.var "lam_bc") (.var "pair") (.var "lam_fresh")),
-        .mk 4362 (.store (.var "lam_bc") (.mul (.var "pair") .gen) (.var "lam_carried")),
-        .mk 4363 (.let_ "fresh" (.index (.var "fresh_row") (.var "xc"))),
-        .mk 4364 (.let_ "carried" (.index (.var "carried_row") (.var "xc"))),
-        .mk 4365 (.let_ "nxt" (.mul (.var "row") (.gpow 14))),
-        .mk 4366 (.call "fs_store" [(.var "nxt"), (.lit 0), (.lit 1), (.var "st")]),
-        .mk 4367 (.unroll "j" (.lit 0) (.lit 8) [
-          .mk 4368 (.store (.var "nxt") (.genPow (.add (.lit 5) (.var "j"))) (.lit 0))]),
-        .mk 4369 (.store (.var "nxt") (.gpow 13) (.add (.add (.index (.var "row") (.gpow 13)) (.mul (.var "lam_fresh") (.index (.var "fresh") (.gpow 23)))) (.mul (.var "lam_carried") (.index (.var "carried") (.gpow 23)))))]),
-      .mk 4370 (.let_ "bc_end" (.mul (.var "bc_chain") (.pow (.var "n_children_g") (.lit 14)))),
-      .mk 4371 (.let_ "bc_running" (.index (.var "bc_end") (.gpow 13))),
-      .mk 4372 (.let_ "bc_point" (.heapBuf 23)),
-      .mk 4373 (.letTuple ["fs0", "fs1", "fs2", "fs3", "fs4", "bc_running"] "batch_sumcheck" [(.index (.var "bc_end") (.gpow 0)), (.index (.var "bc_end") (.gpow 1)), (.index (.var "bc_end") (.gpow 2)), (.index (.var "bc_end") (.gpow 3)), (.index (.var "bc_end") (.gpow 4)), (.var "bc_msgs"), (.var "bc_running"), (.var "bc_point"), (.lit 23)]),
-      .mk 4374 (.let_ "bc_wsum" (.heapBufDyn (.mul (.var "n_children_g") .gen))),
-      .mk 4375 (.store (.var "bc_wsum") (.gpow 0) (.lit 0)),
-      .mk 4376 (.for_ "xc" 0 (.runtime (.var "n_children_g")) [
-        .mk 4377 (.let_ "fresh" (.index (.var "fresh_row") (.var "xc"))),
-        .mk 4378 (.let_ "carried" (.index (.var "carried_row") (.var "xc"))),
-        .mk 4379 (.let_ "eq_fresh" (.gpow 0)),
-        .mk 4380 (.let_ "eq_carried" (.gpow 0)),
-        .mk 4381 (.unroll "k" (.lit 0) (.lit 23) [
-          .mk 4382 (.let_ "rk" (.index (.var "bc_point") (.genPow (.var "k")))),
-          .mk 4383 (.let_ "eq_fresh" (.mul (.var "eq_fresh") (.add (.add (.lit 1) (.index (.var "fresh") (.genPow (.var "k")))) (.var "rk")))),
-          .mk 4384 (.let_ "eq_carried" (.mul (.var "eq_carried") (.add (.add (.lit 1) (.index (.var "carried") (.genPow (.var "k")))) (.var "rk"))))]),
-        .mk 4385 (.let_ "pair" (.mul (.var "xc") (.var "xc"))),
-        .mk 4386 (.store (.var "bc_wsum") (.mul (.var "xc") .gen) (.add (.add (.index (.var "bc_wsum") (.var "xc")) (.mul (.index (.var "lam_bc") (.var "pair")) (.var "eq_fresh"))) (.mul (.index (.var "lam_bc") (.mul (.var "pair") .gen)) (.var "eq_carried"))))]),
-      .mk 4387 (.assertEq (.var "bc_running") (.mul (.var "bytecode_star") (.index (.var "bc_wsum") (.var "n_children_g")))),
-      .mk 4389 (.unroll "k" (.lit 0) (.lit 23) [
-        .mk 4390 (.store (.var "defer_stmt") (.genPow (.var "k")) (.index (.var "bc_point") (.genPow (.var "k"))))]),
-      .mk 4391 (.store (.var "defer_stmt") (.gpow 23) (.var "bytecode_star")),
-      .mk 4392 (.ret [])] }
+      .mk 4283 (.let_ "bc_msgs" (.heapBuf 46)),
+      .mk 4284 (.hintWitness (.slice (.var "bc_msgs") (.lit 0) (.mul (.lit 2) (.lit 23))) "bc_sumcheck_msgs"),
+      .mk 4285 (.letHintWitness "bytecode_star" "bc_star_hint"),
+      .mk 4291 (.let_ "fresh_row" (.heapBufDyn (.var "n_children_g"))),
+      .mk 4292 (.let_ "carried_row" (.heapBufDyn (.var "n_children_g"))),
+      .mk 4293 (.let_ "seed" (.list [(.lit 1562680967124014521), (.lit 219987477440241922375488438384259330662), (.lit 280280212661789141853795656654516100829), (.lit 200796963667835759483519841953162816397), (.lit 2936886303028784551432414362146044553)])),
+      .mk 4294 (.let_ "rate" (.stackBuf 8)),
+      .mk 4295 (.call "fs_pack" [(.var "rate"), (.lit 0), (.var "n_children_g"), (.lit 1)]),
+      .mk 4296 (.unroll "j" (.lit 1) (.lit 4) [
+        .mk 4297 (.call "fs_pack" [(.var "rate"), (.var "j"), (.lit 0), (.lit 1)])]),
+      .mk 4298 (.let_ "absorb" (.heapBufDyn (.pow (.mul (.var "n_children_g") .gen) (.lit 13)))),
+      .mk 4299 (.unroll "j" (.lit 0) (.lit 5) [
+        .mk 4300 (.store (.var "absorb") (.genPow (.var "j")) (.index (.var "seed") (.var "j")))]),
+      .mk 4301 (.unroll "j" (.lit 0) (.lit 8) [
+        .mk 4302 (.store (.var "absorb") (.genPow (.add (.lit 5) (.var "j"))) (.index (.var "rate") (.var "j")))]),
+      .mk 4303 (.for_ "xc" 0 (.runtime (.var "n_children_g")) [
+        .mk 4304 (.let_ "row" (.mul (.var "absorb") (.pow (.var "xc") (.lit 13)))),
+        .mk 4305 (.let_ "row_cap" (.call "fs_load" [(.var "row"), (.lit 0), (.lit 1)])),
+        .mk 4306 (.let_ "st" (.call "fs_perm_pending" [(.var "row_cap"), (.var "row"), (.lit 5)])),
+        .mk 4307 (.let_ "rate" (.stackBuf 8)),
+        .mk 4308 (.let_ "pi" (.mul (.var "xc") (.var "xc"))),
+        .mk 4309 (.let_ "fresh" (.mul (.var "child_fresh") (.pow (.var "xc") (.lit 24)))),
+        .mk 4310 (.store (.var "fresh_row") (.var "xc") (.var "fresh")),
+        .mk 4311 (.let_ "carried" (.mul (.var "child_carried") (.pow (.var "xc") (.lit 24)))),
+        .mk 4312 (.store (.var "carried_row") (.var "xc") (.var "carried")),
+        .mk 4313 (.unroll "pos" (.lit 0) (.add (.lit 50) (.lit 2)) [
+          .mk 4314 (.ite true (.mod (.var "pos") (.lit 4)) (.lit 0) [
+            .mk 4315 (.ite false (.var "pos") (.lit 0) [
+              .mk 4316 (.let_ "st" (.call "fs_perm" [(.var "st"), (.var "rate"), (.lit 4)])),
+              .mk 4317 (.let_ "rate" (.stackBuf 8))] [] false)] [] false),
+          .mk 4318 (.ite true (.div (.var "pos") (.lit 2)) (.lit 0) [
+            .mk 4319 (.call "fs_pack" [(.var "rate"), (.mod (.var "pos") (.lit 4)), (.index (.var "child_pi") (.mul (.var "pi") (.genPow (.var "pos")))), (.lit 1)])] [] true),
+          .mk 4320 (.ite false (.div (.var "pos") (.lit 2)) (.lit 0) [
+            .mk 4321 (.ite true (.div (.sub (.var "pos") (.lit 2)) (.lit 24)) (.lit 0) [
+              .mk 4322 (.call "fs_pack" [(.var "rate"), (.mod (.var "pos") (.lit 4)), (.index (.var "fresh") (.genPow (.sub (.var "pos") (.lit 2)))), (.lit 1)])] [] true),
+            .mk 4323 (.ite false (.div (.sub (.var "pos") (.lit 2)) (.lit 24)) (.lit 0) [
+              .mk 4324 (.ite true (.div (.sub (.sub (.var "pos") (.lit 2)) (.lit 24)) (.lit 24)) (.lit 0) [
+                .mk 4325 (.call "fs_pack" [(.var "rate"), (.mod (.var "pos") (.lit 4)), (.index (.var "carried") (.genPow (.sub (.sub (.var "pos") (.lit 2)) (.lit 24)))), (.lit 1)])] [] true),
+              .mk 4326 (.ite false (.div (.sub (.sub (.var "pos") (.lit 2)) (.lit 24)) (.lit 24)) (.lit 0) [
+                .mk 4327 (.call "fs_pack" [(.var "rate"), (.mod (.var "pos") (.lit 4)), (.lit 0), (.lit 1)])] [] true)] [] true)] [] true)]),
+        .mk 4328 (.let_ "nxt" (.mul (.var "row") (.gpow 13))),
+        .mk 4329 (.call "fs_store" [(.var "nxt"), (.lit 0), (.lit 1), (.var "st")]),
+        .mk 4330 (.unroll "j" (.lit 0) (.lit 8) [
+          .mk 4331 (.store (.var "nxt") (.genPow (.add (.lit 5) (.var "j"))) (.index (.var "rate") (.var "j")))])]),
+      .mk 4332 (.let_ "absorbed" (.mul (.var "absorb") (.pow (.var "n_children_g") (.lit 13)))),
+      .mk 4338 (.let_ "lam_bc" (.heapBufDyn (.mul (.var "n_children_g") (.var "n_children_g")))),
+      .mk 4339 (.let_ "bc_chain" (.heapBufDyn (.pow (.mul (.var "n_children_g") .gen) (.lit 14)))),
+      .mk 4340 (.unroll "j" (.lit 0) (.lit 5) [
+        .mk 4341 (.store (.var "bc_chain") (.genPow (.add (.lit 0) (.var "j"))) (.index (.var "absorbed") (.genPow (.var "j"))))]),
+      .mk 4342 (.unroll "j" (.lit 0) (.lit 8) [
+        .mk 4343 (.store (.var "bc_chain") (.genPow (.add (.lit 5) (.var "j"))) (.index (.var "absorbed") (.genPow (.add (.lit 5) (.var "j")))))]),
+      .mk 4344 (.store (.var "bc_chain") (.gpow 13) (.lit 0)),
+      .mk 4345 (.for_ "xc" 0 (.runtime (.var "n_children_g")) [
+        .mk 4346 (.let_ "row" (.mul (.var "bc_chain") (.pow (.var "xc") (.lit 14)))),
+        .mk 4347 (.let_ "row_cap" (.call "fs_load" [(.var "row"), (.lit 0), (.lit 1)])),
+        .mk 4348 (.let_ "st" (.call "fs_perm_pending" [(.var "row_cap"), (.var "row"), (.lit 5)])),
+        .mk 4349 (.let_ "lam_fresh" (.call "challenge_from_state" [(.var "st")])),
+        .mk 4350 (.let_ "no_rate" (.stackBuf 8)),
+        .mk 4351 (.letTuple ["st", "lam_carried"] "squeeze" [(.var "st"), (.var "no_rate"), (.lit 0)]),
+        .mk 4352 (.let_ "pair" (.mul (.var "xc") (.var "xc"))),
+        .mk 4353 (.store (.var "lam_bc") (.var "pair") (.var "lam_fresh")),
+        .mk 4354 (.store (.var "lam_bc") (.mul (.var "pair") .gen) (.var "lam_carried")),
+        .mk 4355 (.let_ "fresh" (.index (.var "fresh_row") (.var "xc"))),
+        .mk 4356 (.let_ "carried" (.index (.var "carried_row") (.var "xc"))),
+        .mk 4357 (.let_ "nxt" (.mul (.var "row") (.gpow 14))),
+        .mk 4358 (.call "fs_store" [(.var "nxt"), (.lit 0), (.lit 1), (.var "st")]),
+        .mk 4359 (.unroll "j" (.lit 0) (.lit 8) [
+          .mk 4360 (.store (.var "nxt") (.genPow (.add (.lit 5) (.var "j"))) (.lit 0))]),
+        .mk 4361 (.store (.var "nxt") (.gpow 13) (.add (.add (.index (.var "row") (.gpow 13)) (.mul (.var "lam_fresh") (.index (.var "fresh") (.gpow 23)))) (.mul (.var "lam_carried") (.index (.var "carried") (.gpow 23)))))]),
+      .mk 4362 (.let_ "bc_end" (.mul (.var "bc_chain") (.pow (.var "n_children_g") (.lit 14)))),
+      .mk 4363 (.let_ "bc_running" (.index (.var "bc_end") (.gpow 13))),
+      .mk 4364 (.let_ "bc_point" (.heapBuf 23)),
+      .mk 4365 (.letTuple ["fs0", "fs1", "fs2", "fs3", "fs4", "bc_running"] "batch_sumcheck" [(.index (.var "bc_end") (.gpow 0)), (.index (.var "bc_end") (.gpow 1)), (.index (.var "bc_end") (.gpow 2)), (.index (.var "bc_end") (.gpow 3)), (.index (.var "bc_end") (.gpow 4)), (.var "bc_msgs"), (.var "bc_running"), (.var "bc_point"), (.lit 23)]),
+      .mk 4366 (.let_ "bc_wsum" (.heapBufDyn (.mul (.var "n_children_g") .gen))),
+      .mk 4367 (.store (.var "bc_wsum") (.gpow 0) (.lit 0)),
+      .mk 4368 (.for_ "xc" 0 (.runtime (.var "n_children_g")) [
+        .mk 4369 (.let_ "fresh" (.index (.var "fresh_row") (.var "xc"))),
+        .mk 4370 (.let_ "carried" (.index (.var "carried_row") (.var "xc"))),
+        .mk 4371 (.let_ "eq_fresh" (.gpow 0)),
+        .mk 4372 (.let_ "eq_carried" (.gpow 0)),
+        .mk 4373 (.unroll "k" (.lit 0) (.lit 23) [
+          .mk 4374 (.let_ "rk" (.index (.var "bc_point") (.genPow (.var "k")))),
+          .mk 4375 (.let_ "eq_fresh" (.mul (.var "eq_fresh") (.add (.add (.lit 1) (.index (.var "fresh") (.genPow (.var "k")))) (.var "rk")))),
+          .mk 4376 (.let_ "eq_carried" (.mul (.var "eq_carried") (.add (.add (.lit 1) (.index (.var "carried") (.genPow (.var "k")))) (.var "rk"))))]),
+        .mk 4377 (.let_ "pair" (.mul (.var "xc") (.var "xc"))),
+        .mk 4378 (.store (.var "bc_wsum") (.mul (.var "xc") .gen) (.add (.add (.index (.var "bc_wsum") (.var "xc")) (.mul (.index (.var "lam_bc") (.var "pair")) (.var "eq_fresh"))) (.mul (.index (.var "lam_bc") (.mul (.var "pair") .gen)) (.var "eq_carried"))))]),
+      .mk 4379 (.assertEq (.var "bc_running") (.mul (.var "bytecode_star") (.index (.var "bc_wsum") (.var "n_children_g")))),
+      .mk 4381 (.unroll "k" (.lit 0) (.lit 23) [
+        .mk 4382 (.store (.var "defer_stmt") (.genPow (.var "k")) (.index (.var "bc_point") (.genPow (.var "k"))))]),
+      .mk 4383 (.store (.var "defer_stmt") (.gpow 23) (.var "bytecode_star")),
+      .mk 4384 (.ret [])] }
 
 /-- The constant array `COORD_BASIS`. -/
 def arr_COORD_BASIS : List (Nat × Nat × Nat) :=
