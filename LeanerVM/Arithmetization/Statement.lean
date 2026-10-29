@@ -133,12 +133,14 @@ two, and the image determines the run. The remaining rows are the closed walks o
 which nothing is claimed. `constraintSoundness` (Layer 10) yields a trace the witness
 represents, and `constraintCompleteness` a witness representing the trace.
 
-## Layer 9, blocked
+## Bus soundness
 
-The bus-soundness statements of roadmap Layer 9 belong at the end of this file and are block
-comments there until Clean supplies direction-tagged, `ℕ`-counted balance (the roadmap's
-dependency table; issue #16, Clean #452), whose consumers are Clean's
-`addVm_soundVmChannel_of_soundChannels` and the `SoundChannels` machinery.
+The two lookup theorems, `mem_channel_sound` and `bytecode_channel_sound`, are proved from
+`SatisfiedBy` alone in `LeanerVM.Arithmetization.Bus`, on the closed forms of what each row
+sends (`LeanerVM.Arithmetization.Rows`): balance as a permutation counted in `ℕ` and the count
+product are all they need. That every row is a step and that no row pulls the sentinel counter
+are `LeanerVM.Arithmetization.Steps`'s, and the run they make, constraint soundness and the
+computable trace of `TraceExtraction` are `LeanerVM.Arithmetization.Soundness`'s.
 
 ## Wrong readings excluded
 
@@ -361,6 +363,21 @@ structure AssignmentRepresents (w : EnsembleWitness (leanIsaEnsemble prog)) (t :
   /-- Each step of the register sequence occurs as some row's state pull and push. -/
   regs_embed : ∀ k (hk : k + 1 < t.regs.length), RowSteps w t.regs[k] t.regs[k + 1]
 
+/-! ## The trace interface -/
+
+/-- A computable execution of every satisfying witness: `traceOf` returns, on every witness of
+the constraint statement, a trace the witness represents and that is a valid execution of the
+program on the input. The interface the proof system's execution-level headline takes; it is
+inhabited, for a program whose sentinel slot is not a `JUMP`, by `leanIsaTraceExtraction`
+(`LeanerVM.Arithmetization.Soundness`). -/
+structure TraceExtraction (prog : Program) where
+  /-- The trace of a witness, if one is found. -/
+  traceOf : PublicInput → EnsembleWitness (leanIsaEnsemble prog) → Option (Trace prog)
+  /-- On a satisfying witness, a trace is found, the witness represents it, and it is a valid
+  execution. -/
+  valid : ∀ input w, SatisfiedBy prog input w →
+    ∃ t, traceOf input w = some t ∧ AssignmentRepresents w t ∧ ValidExecution prog input t
+
 /-! ## Load-bearing lemmas -/
 
 /-- A raw row written from a typed row reads back as it: reading at offset `0` inverts
@@ -438,45 +455,5 @@ theorem assignmentRepresents_image {w : EnsembleWitness (leanIsaEnsemble prog)} 
   congr 1
   funext ⟨i, hi⟩
   exact himage i hi
-
-/-! ## Layer 9: bus soundness, blocked
-
-The four statements of roadmap Layer 9 consume Clean's direction-tagged, `ℕ`-counted balance
-and `addVm_soundVmChannel_of_soundChannels` (the roadmap's dependency table; issue #16, Clean
-#452), which Clean `42fe4b26` does not supply. They are recorded here as the roadmap's
-convention requires, never as an unproved declaration. Channels are identified by name and a
-pulled message is read as its typed form, as the module does (`messagesOn`, `memRowAt`):
-
-```lean
-/-- Specification Lemma 6.3, Thm. 6.4, Cor. 6.5: with nonzero counts and fewer than `2^64 - 1`
-reads, balance of the memory pair makes every pulled memory tuple a correct read. -/
-theorem mem_channel_sound (h : SatisfiedBy prog input w) :
-    ∀ i ∈ w.interactions, i.channel.name = MemPull.name →
-      ∀ m : MemMsg K, i.msg = (toElements m).toArray → MemPull.Guarantees m w.data
-
-/-- The same for the bytecode pair, in the strong form: every pulled entry is the public
-program's at the pulled counter (from `BytecodeRowsAreTheProgram prog`), which implies the
-pull's guarantee, that it decodes, and is what Layer 10 joins to `execute` by
-`execute_of_step`. -/
-theorem bytecode_channel_sound (h : SatisfiedBy prog input w) :
-    ∀ i ∈ w.interactions, i.channel.name = BytecodePull.name →
-      ∀ m : BytecodeMsg K, i.msg = (toElements m).toArray →
-        ∃ k : Fin (2 ^ prog.logSize), m.pc = gpow k ∧ #v[m.opcode] ++ m.op = entry (prog.code k)
-
-/-- No row sits at the sentinel counter: its bytecode entry is not a `JUMP`, so the row would
-push `(g^N_prog, fp)`, a counter no bytecode read can balance (acceptance test 20). -/
-theorem no_row_at_sentinel (hwf : WellFormedBytecode prog) (h : SatisfiedBy prog input w) :
-    ∀ i ∈ w.interactions, i.channel.name = StatePull.name →
-      ∀ pc fp : K, i.msg = #[pc, fp] → pc ≠ prog.finalPc
-
-/-- Specification Prop. 6.1: a balanced state channel over rows that are steps contains a run
-from `(1, 1)` to `(g^(N_prog - 1), 1)`; the remaining rows are closed walks. -/
-theorem exists_run_of_balanced (hwf : WellFormedBytecode prog) (h : SatisfiedBy prog input w) :
-    ∃ n, run prog (imageOf w.data).2 n Regs.initial = some (Regs.final prog)
-```
-
-The read bound `mem_channel_sound` needs is derived from `Caps` (`≤ 10 · 6 · 2^32`), never
-assumed; `WellFormedBytecode` is Layer 10's.
--/
 
 end LeanerVM.Arithmetization

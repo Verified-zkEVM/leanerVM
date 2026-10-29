@@ -1,8 +1,12 @@
 import LeanerVM.Arithmetization.Basic
 import LeanerVM.Arithmetization.Boundary
+import LeanerVM.Arithmetization.Bus
 import LeanerVM.Arithmetization.Bytecode
 import LeanerVM.Arithmetization.Channels
+import LeanerVM.Arithmetization.Rows
+import LeanerVM.Arithmetization.Soundness
 import LeanerVM.Arithmetization.Statement
+import LeanerVM.Arithmetization.Steps
 import LeanerVM.Arithmetization.Tables.Basic
 import LeanerVM.Arithmetization.Tables.Blake2s
 import LeanerVM.Arithmetization.Tables.Deref
@@ -138,3 +142,4 @@ import LeanerVM.Semantics.Memory
 import LeanerVM.Semantics.RunTrace
 import LeanerVM.Semantics.Step
 import LeanerVM.Semantics.TraceInput
+import LeanerVM.Semantics.Walk
