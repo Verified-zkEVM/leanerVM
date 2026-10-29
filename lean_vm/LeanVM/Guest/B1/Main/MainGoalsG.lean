@@ -2,7 +2,7 @@
   LeanVM.Guest.B1.Main.MainGoalsG
 
   `main`'s raw-signature loops and its direct DA check on an honest run: `MainGoalL3`,
-  `MainGoalL4`, `MainGoalDv`, `MainGoalCv`.
+  `MainGoalL4`, `MainGoalDv`.
 
   The DA witness and `Da.Witness.Opens` are Benedikt Wagner's LeanDA formalization, as ported here.
 -/
@@ -15,7 +15,7 @@ public import LeanVM.Guest.B1.Main.KidCoverAt
 public import LeanVM.Guest.B1.Da.WitnessAt
 
 /-!
-# `main`'s raw signatures and direct DA claim, honestly
+# `main`'s raw signatures and checked DA claim, honestly
 
 For a statement `s` held by `w` (`NodeRel`) within the deployed limits (`Limits`), on `main`'s
 honest words `hLmain`:
@@ -25,10 +25,8 @@ honest words `hLmain`:
   (`hMarkX_raw`, `hMarkS_raw`) and whose table entry is its claim;
 * `mainGoalL3`, `mainGoalL4`: `__loop2`, `__loop3` from the counter `1 = g^0` (`rawX_completeAt`,
   `rawS_completeAt`), the regions below `2^16` by `Limits.coverage`;
-* `mainGoalDv`: `da_verify` on the direct DA claim's witness (`da_verify_completeAt_runs`), its
-  squares table `exponent_tables`' second (`wLog_lt`: the padded count's log is below `34`);
-* `mainGoalCv`: `cover_da_root` at the direct DA claim's slot, marked `g^(nrx + nrs)`
-  (`cover_completeAt`).
+* `mainGoalDv`: `da_verify` on the checked DA claim's witness (`da_verify_completeAt_runs`), its
+  squares table `exponent_tables`' second (`wLog_lt`: the padded count's log is below `34`).
 -/
 
 namespace LeanVM.Guest.B1.Main
@@ -46,11 +44,11 @@ variable {bytecode : List K} {seed : Digest} {s : NodeStatement} {w : NodeWitnes
 /-! ## Bounds -/
 
 /-- The coverage table is below `2^16`. -/
-theorem regions_lt (hl : Limits s w) : rX s w + rY s w + rS s w < 2 ^ 16 := by
+theorem regions_lt (hl : Limits s w) : rX s w + rY s w < 2 ^ 16 := by
   have := hl.coverage
   rw [coverage_eq] at this
   simp only [List.length_append] at this
-  simp only [rX, rY, rS]
+  simp only [rX, rY]
   omega
 
 /-- The padded count's log is below `34`: at most `1024` rows. -/
@@ -82,14 +80,6 @@ theorem sslot {i : ℕ} (hi : i < (hRawS s w).length) :
   rw [← e, List.getElem_map] at hc
   exact ⟨hs, hc⟩
 
-theorem dslot {i : ℕ} (hi : i < (hRawD s w).length) :
-    ∃ hk : i < (slotsOf (dPlan s w)).length,
-      (s.claims.da ++ (dPlan s w).dups)[(slotsOf (dPlan s w))[i]]? = some ((hRawD s w)[i]).1 := by
-  obtain ⟨hk', hs, e, hc⟩ := plan_raw s.claims.da ((hRawD s w).map (·.1))
-    (w.children.map (·.statement.claims.da)) (k := i) (by simpa using hi)
-  rw [← e, List.getElem_map] at hc
-  exact ⟨hs, hc⟩
-
 /-! ## The raw leanXMSS signatures -/
 
 variable (fs : String → ℕ) (cert : String → V → ℕ) (fp : ℕ)
@@ -112,7 +102,7 @@ theorem xs_verify (hn : NodeRel bytecode seed s w) (d0 : XmssClaim × LeanXmss.S
 
 theorem xs_cover {rd : Reader} (hL : MemL rd (hLmain fs fp seed s w)) {i : ℕ}
     (hi : i < (hRawX s w).length) :
-    LoadHolds rd (gen ^ hPos seed s w fs fp 3) ((slotsOf (xPlan s w)).getD i 0) (gen ^ i) := by
+    LoadHolds rd (gen ^ hPos seed s w fs fp 2) ((slotsOf (xPlan s w)).getD i 0) (gen ^ i) := by
   obtain ⟨hk, -⟩ := xslot hi
   have := coverX_load hL hk
   rw [hMarkX_raw s w hi] at this
@@ -121,7 +111,7 @@ theorem xs_cover {rd : Reader} (hL : MemL rd (hLmain fs fp seed s w)) {i : ℕ}
 
 theorem xs_claim {rd : Reader} (hL : MemL rd (hLmain fs fp seed s w))
     (d0 : XmssClaim × LeanXmss.Signature) {i : ℕ} (hi : i < (hRawX s w).length) :
-    Sig.ClaimAt rd (gen ^ (hPos seed s w fs fp 1 + 4 * (slotsOf (xPlan s w)).getD i 0))
+    Sig.ClaimAt rd (gen ^ (hPos seed s w fs fp 0 + 4 * (slotsOf (xPlan s w)).getD i 0))
       (Sig.cellOf128 ((hRawX s w).getD i d0).1.1.root)
       (Sig.cellOf128 ((hRawX s w).getD i d0).1.1.parameter)
       (Sig.cellOf128 (((hRawX s w).getD i d0).1.2.extractLsb' 0 128))
@@ -131,18 +121,18 @@ theorem xs_claim {rd : Reader} (hL : MemL rd (hLmain fs fp seed s w))
   exact tableX_claim hL hc
 
 theorem xs_regCover {i : ℕ} (hi : i < (hRawX s w).length) :
-    RegionL (hLmain fs fp seed s w) (hPos seed s w fs fp 3 + (slotsOf (xPlan s w)).getD i 0) :=
+    RegionL (hLmain fs fp seed s w) (hPos seed s w fs fp 2 + (slotsOf (xPlan s w)).getD i 0) :=
   cover_region (by have := xs_lt hi; omega)
 
 theorem xs_regClaim {i : ℕ} (hi : i < (hRawX s w).length) {k : ℕ} (hk : k < 4) :
-    RegionL (hLmain fs fp seed s w) (hPos seed s w fs fp 1 + 4 * (slotsOf (xPlan s w)).getD i 0 + k) :=
+    RegionL (hLmain fs fp seed s w) (hPos seed s w fs fp 0 + 4 * (slotsOf (xPlan s w)).getD i 0 + k) :=
   tableX_region (xs_lt hi) hk
 
 end
 
 /-- **The raw leanXMSS signatures' honest data.** -/
 def rawXD (hn : NodeRel bytecode seed s w) (d0 : XmssClaim × LeanXmss.Signature) :
-    RawXData (hRawX s w).length (rX s w) (hPos seed s w fs fp 3) (hPos seed s w fs fp 1)
+    RawXData (hRawX s w).length (rX s w) (hPos seed s w fs fp 2) (hPos seed s w fs fp 0)
       (hLmain fs fp seed s w) where
   slot i := (slotsOf (xPlan s w)).getD i 0
   pk i := ((hRawX s w).getD i d0).1.1
@@ -187,7 +177,7 @@ theorem ss_verify (hn : NodeRel bytecode seed s w) (d0 : SphincsClaim × Sphincs
 
 theorem ss_cover {rd : Reader} (hL : MemL rd (hLmain fs fp seed s w)) {j : ℕ}
     (hj : j < (hRawS s w).length) :
-    LoadHolds rd (gen ^ hPos seed s w fs fp 3) (rX s w + (slotsOf (sPlan s w)).getD j 0)
+    LoadHolds rd (gen ^ hPos seed s w fs fp 2) (rX s w + (slotsOf (sPlan s w)).getD j 0)
       (gen ^ ((hRawX s w).length + j)) := by
   obtain ⟨hk, -⟩ := sslot hj
   have := coverS_load hL hk
@@ -197,7 +187,7 @@ theorem ss_cover {rd : Reader} (hL : MemL rd (hLmain fs fp seed s w)) {j : ℕ}
 
 theorem ss_claim {rd : Reader} (hL : MemL rd (hLmain fs fp seed s w))
     (d0 : SphincsClaim × Sphincs.Signature) {j : ℕ} (hj : j < (hRawS s w).length) :
-    Sig.ClaimAt rd (gen ^ (hPos seed s w fs fp 2 + 4 * (slotsOf (sPlan s w)).getD j 0))
+    Sig.ClaimAt rd (gen ^ (hPos seed s w fs fp 1 + 4 * (slotsOf (sPlan s w)).getD j 0))
       (Sig.cellOf128 ((hRawS s w).getD j d0).1.1.root)
       (Sig.cellOf128 ((hRawS s w).getD j d0).1.1.parameter)
       (Sig.cellOf128 (((hRawS s w).getD j d0).1.2.extractLsb' 0 128))
@@ -208,19 +198,19 @@ theorem ss_claim {rd : Reader} (hL : MemL rd (hLmain fs fp seed s w))
 
 theorem ss_regCover {j : ℕ} (hj : j < (hRawS s w).length) :
     RegionL (hLmain fs fp seed s w)
-      (hPos seed s w fs fp 3 + (rX s w + (slotsOf (sPlan s w)).getD j 0)) :=
+      (hPos seed s w fs fp 2 + (rX s w + (slotsOf (sPlan s w)).getD j 0)) :=
   cover_region (by have := ss_lt hj; omega)
 
 theorem ss_regClaim {j : ℕ} (hj : j < (hRawS s w).length) {k : ℕ} (hk : k < 4) :
-    RegionL (hLmain fs fp seed s w) (hPos seed s w fs fp 2 + 4 * (slotsOf (sPlan s w)).getD j 0 + k) :=
+    RegionL (hLmain fs fp seed s w) (hPos seed s w fs fp 1 + 4 * (slotsOf (sPlan s w)).getD j 0 + k) :=
   tableS_region (ss_lt hj) hk
 
 end
 
 /-- **The raw leanSPHINCS signatures' honest data.** -/
 def rawSD (hn : NodeRel bytecode seed s w) (d0 : SphincsClaim × Sphincs.Signature) :
-    RawSData (hRawS s w).length (rY s w) (rX s w) (hRawX s w).length (hPos seed s w fs fp 3)
-      (hPos seed s w fs fp 2) (hPos seed s w fs fp 4) (hLmain fs fp seed s w) where
+    RawSData (hRawS s w).length (rY s w) (rX s w) (hRawX s w).length (hPos seed s w fs fp 2)
+      (hPos seed s w fs fp 1) (hPos seed s w fs fp 3) (hLmain fs fp seed s w) where
   slot j := (slotsOf (sPlan s w)).getD j 0
   pk j := ((hRawS s w).getD j d0).1.1
   msg j := ((hRawS s w).getD j d0).1.2
@@ -248,29 +238,27 @@ theorem mainGoalL4 (hn : NodeRel bytecode seed s w) (hl : Limits s w)
 
 /-! ## The direct DA claim -/
 
-/-- The direct DA claim, when there is one. -/
-theorem direct_da (h1 : (hRawD s w).length = 1) :
-    ∃ p, hRawD s w = [p] ∧ (hm fs fp seed s w).daR = daCells p.1 := by
-  obtain ⟨p, t, hp, ht⟩ := exists_of_length_succ (show (hRawD s w).length = 0 + 1 from h1)
-  rw [List.length_eq_zero_iff] at ht
-  subst ht
-  refine ⟨p, hp, ?_⟩
-  show ((hRawD s w).map fun p => daCells p.1).headD [0, 0, 0, 0] = _
-  rw [hp]
-  rfl
+/-- **The checked DA claim**, when `main` checks one: its witness opens its root and vector
+digest, `da_verify`'s returns its cells. -/
+theorem checked_da (hn : NodeRel bytecode seed s w) (h1 : (hm fs fp seed s w).nd = 1) :
+    ∃ p, w.da = some p ∧ (hm fs fp seed s w).daR = daCells p.1 ∧
+      p.2.Opens p.1.daRoot p.1.membershipVectorDigest := by
+  obtain ⟨-, -, -, -, hda, -⟩ := hn
+  obtain ⟨p, hw⟩ : ∃ p, w.da = some p := by
+    cases hw : w.da with
+    | none => simp [hm, hData, MainData.toIn, hw] at h1
+    | some p => exact ⟨p, rfl⟩
+  rw [hw] at hda
+  exact ⟨p, hw, by simp [hm, hData, MainData.toIn, hw], hda.2⟩
 
 /-- **`da_verify` on an honest run.** -/
 theorem mainGoalDv (hn : NodeRel bytecode seed s w) (hrf : Lift.RunsFit fs cert) :
     MainGoalDv fs cert fp seed s w := by
   intro h1
-  obtain ⟨p, hp, hR⟩ := direct_da fs fp h1
+  obtain ⟨p, -, hR, hw'⟩ := checked_da fs fp hn h1
   rw [hR]
-  have hw : p.2.Opens p.1.daRoot p.1.membershipVectorDigest :=
-    direct_held (H := Held (fun (c : DaClaim) (m : LeanVM.Da.Witness) ↦ m.Opens c.daRoot c.membershipVectorDigest) Claims.da w.children)
-      (P := fun c x => x.Opens c.daRoot c.membershipVectorDigest) (fun _ _ h => h)
-      hn.2.2.2.2.1 p (show p ∈ hRawD s w by rw [hp]; exact List.mem_singleton_self p)
-  have hL := wLog_lt hw
-  have h := Da.da_verify_completeAt_runs fs cert hrf hw (etB fs (mK0 (hData seed s w) fs fp) + 34)
+  have hL := wLog_lt hw'
+  have h := Da.da_verify_completeAt_runs fs cert hrf hw' (etB fs (mK0 (hData seed s w) fs fp) + 34)
   have hq : (etB fs (mK0 (hData seed s w) fs fp) + 34, etTabs.getD 1 []) ∈ hLmain fs fp seed s w :=
     List.mem_append_right _ (by simp [etL])
   have hlen : (etTabs.getD 1 []).length = 34 := by simp [etTabs]
@@ -292,32 +280,6 @@ theorem mainGoalDv (hn : NodeRel bytecode seed s w) (hrf : Lift.RunsFit fs cert)
     simp only [List.length_singleton] at h1 h2
     exact ⟨_, hq, show etB fs (mK0 (hData seed s w) fs fp) + 34 ≤ i by omega,
       show i < etB fs (mK0 (hData seed s w) fs fp) + 34 + (etTabs.getD 1 []).length by omega⟩
-
-/-- **`cover_da_root` on an honest run.** -/
-theorem mainGoalCv (hl : Limits s w) : MainGoalCv fs cert fp seed s w := by
-  intro h1
-  obtain ⟨p, hp, hR⟩ := direct_da fs fp h1
-  rw [hR]
-  have h0 : 0 < (hRawD s w).length := by rw [hp]; simp
-  obtain ⟨hk, hc⟩ := dslot h0
-  have hp0 : (hRawD s w)[0] = p := by simp only [hp, List.getElem_cons_zero]
-  rw [hp0] at hc
-  have hb := regions_lt hl
-  have hilt := slotD_lt s w hk
-  have h := cover_completeAt fs cert (R := hPos seed s w fs fp 0)
-    (C := hPos seed s w fs fp 3 + (rX s w + rY s w)) (n := rS s w) (i := (slotsOf (dPlan s w))[0])
-    (mark := gen ^ ((hRawX s w).length + (hRawS s w).length)) (r := daCells p.1) (by omega) hilt
-    (daCells_length _) (Lin := hLmain fs fp seed s w) (fun rd hM => ⟨?_, tableD_reads hM hc⟩)
-    (by rw [Nat.add_assoc]; exact cover_region (by omega)) (fun c hc4 => tableD_region hilt hc4)
-  · have key : CompleteAtD fs cert 16 "cover_da_root" (hLmain fs fp seed s w)
-        [gen ^ hPos seed s w fs fp 0, gen ^ hPos seed s w fs fp 3 * gen ^ (rX s w + rY s w),
-          gen ^ rS s w, gen ^ ((hRawX s w).length + (hRawS s w).length)] (Returns (daCells p.1)) := by
-      rw [← pow_add]; exact h
-    exact key
-  · have := coverD_load hM hk
-    rw [hMarkD_raw s w h0, Nat.add_zero] at this
-    rw [pow_add, loadHolds_mul_gen_pow]
-    exact this
 
 end
 end LeanVM.Guest.B1.Main

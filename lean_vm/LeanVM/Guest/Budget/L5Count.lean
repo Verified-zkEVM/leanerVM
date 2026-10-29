@@ -2,8 +2,8 @@
   LeanVM.Guest.Budget.L5Count
 
   The children loop's instructions, per opcode, iteration by iteration: each child's claim lists'
-  digests, DA roots, digests and `verify_sub` by their static counts, `verify_sub` within a bound
-  `V c` per child.
+  digests and statement digest by their static counts, `verify_sub` within a bound `V c` per
+  child.
 -/
 
 module
@@ -22,8 +22,7 @@ public import LeanVM.Guest.Count.VsMax
 `list_split`'s, `n / 17` iterations of `__loop16` and the last group's
 `child_claim_list_last__L{n % 17}` (`ccl_weight_le`, on a tree of honest shape `ccHonest n`).
 `l5B op X S V c`: iteration `c` of `__loop4`: its frame's weight, the two claim lists' digests
-(`X c`, `S c` claims), at most `16` DA roots' `__loop28` iterations, `da_list_digest`,
-`statement_digest`, and `verify_sub` within `V c`. `l5_weight_le`: the iterations from `c`
+(`X c`, `S c` claims), `statement_digest`, and `verify_sub` within `V c`. `l5_weight_le`: the iterations from `c`
 (`L5From`) weigh at most the sum of their `l5B`. `l5B_le`: `l5B` is at most a constant `l5C op`,
 `ccS op` per claim, and `V c` (`ccW_le`: `n / 17` iterations within `⌈K / 17⌉` per claim).
 -/
@@ -34,7 +33,7 @@ open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Memory Le
 open LeanVM.Guest.Count
 open LeanVM.Protocol.Verifier (gen)
 open LeanVM.Node LeanVM.Protocol LeanVM.Protocol.KeccakHash
-open LeanVM.Guest.B1.Main (ccHonest L5From l5CallList l5Ts l5Ts6 l5Evs l5Pre l5Tail l5Body
+open LeanVM.Guest.B1.Main (ccHonest L5From l5CallList l5Ts l5Ts4 l5Evs l5Pre l5Tail l5Body
   l5Body_split l5Pre_straight l5_body find_l5)
 
 @[expose] public section
@@ -102,10 +101,9 @@ theorem ccl_weight_le (op : Opcode) {n : ℕ} (hn : n / 17 < 2 ^ 64 - 1) {rd : R
     omega
 
 /-- **Iteration `c` of `__loop4`**: its frame, the claim lists' digests on `X c` and `S c` claims,
-at most `16` iterations of `__loop28`, the DA roots' and the statement's digests, and
-`verify_sub` within `V c`. -/
+the statement's digest, and `verify_sub` within `V c`. -/
 def l5B (op : Opcode) (X S V : ℕ → ℕ) (c : ℕ) : ℕ :=
-  (omT op).getD 2 0 + ccW op (X c) + ccW op (S c) + 16 * kcL28 op + kcDl op + kcSd op + V c
+  (omT op).getD 2 0 + ccW op (X c) + ccW op (S c) + kcSd op + V c
 
 theorem l5_walk {σ : Val} {fn : Fn} {es : List Ev} {vs : List V}
     (hf : coreProgram.find? "__loop4" = some fn) (hw : walk σ fn.body = .ret es vs) :
@@ -122,55 +120,35 @@ set_option maxHeartbeats 4000000 in
 set_option maxRecDepth 10000 in
 /-- **The children loop's instructions**: the iterations from child `c` weigh at most the sum of
 their `l5B`. -/
-theorem l5_weight_le (op : Opcode) {ex es ed X S : ℕ → ℕ} {Pvs : ℕ → Tree → Prop} (V : ℕ → ℕ)
+theorem l5_weight_le (op : Opcode) {ex es X S : ℕ → ℕ} {Pvs : ℕ → Tree → Prop} (V : ℕ → ℕ)
     (N : ℕ) (hX : ∀ c, X c / 17 < 2 ^ 64 - 1) (hS : ∀ c, S c / 17 < 2 ^ 64 - 1)
     (hV : ∀ c, c < N → ∀ (rd : Reader) (t : Tree) (args rets : List E), Pvs c t →
       t.Valid coreProgram rd args rets → t.BufsOk coreProgram →
         t.weight (B2C.ωArm B2C.xmssArmC op) ≤ V c) :
     ∀ m c (rd : Reader) (t : Tree) (args rets : List E), c + m ≤ N →
-      L5From ex es ed (fun c => ccHonest (X c)) (fun c => ccHonest (S c)) Pvs m c t →
+      L5From ex es (fun c => ccHonest (X c)) (fun c => ccHonest (S c)) Pvs m c t →
       t.Valid coreProgram rd args rets → t.BufsOk coreProgram →
         t.weight (B2C.ωArm B2C.xmssArmC op) ≤ iterSum (l5B op X S V) c m
   | 0, _, _, _, _, _, _, h, _, _ => h.elim
   | m + 1, c, rd, t, args, rets, hN, h, hv, hb => by
-    obtain ⟨σ, bufs, ks, rfl, -, -, h63, h73, hed, hcalls, hKT⟩ := h
+    obtain ⟨σ, bufs, ks, rfl, -, -, hcalls, hKT⟩ := h
     have hv' := hv
     obtain ⟨fn, hf, -, es', vs', hw, -, hes, hk⟩ := hv'
     have he := l5_walk hf hw
     subst he
     rw [hcalls] at hk
-    have hatom : ∀ a : Atom, decide (a ∈ B1.Digest.atomsIn l5Pre) = true → a.Holds rd σ := by
-      intro a ha
-      have := hes (.atom a) (List.mem_flatMap.mpr ⟨.atom a,
-        List.mem_append_left _ (B1.Main.atom_mem_of_atomsIn' (of_decide_eq_true ha)),
-        by simp [slEvs]⟩)
-      exact this
-    have v52 : σ (.n 52) = σ (.n 51) + σ (.n 43) := hatom (.add (.n 52) (.n 51) (.n 43)) (by decide +kernel)
-    have v51 : σ (.n 51) = word 1 0 0 := hatom (.const (.n 51) (word 1 0 0)) (by decide +kernel)
     have hk' := kids_weight_leL (B2C.ωArm B2C.xmssArmC op) (l5CallList σ)
       (l5Ts (ccHonest (X c)) (ccHonest (S c)) (Pvs c)
-        (L5From ex es ed (fun c => ccHonest (X c)) (fun c => ccHonest (S c)) Pvs m (c + 1)))
-      [ccW op (X c), ccW op (S c), 16 * kcL28 op, kcDl op, kcSd op, V c,
-        iterSum (l5B op X S V) (c + 1) m] ks hk hb.2 hKT (by simp [l5CallList, l5Ts, l5Ts6])
-      (by simp [l5CallList])
+        (L5From ex es (fun c => ccHonest (X c)) (fun c => ccHonest (S c)) Pvs m (c + 1)))
+      [ccW op (X c), ccW op (S c), kcSd op, V c, iterSum (l5B op X S V) (c + 1) m] ks hk hb.2 hKT
+      (by simp [l5CallList, l5Ts, l5Ts4]) (by simp [l5CallList])
       (fun i hi _ _ ht t' rets' hn hv'' hb'' hT' => by
-        have hi7 : i < 7 := by simpa [l5CallList] using hi
+        have hi5 : i < 5 := by simpa [l5CallList] using hi
         interval_cases i <;>
-          simp only [l5CallList, l5Ts, l5Ts6, List.cons_append, List.nil_append,
+          simp only [l5CallList, l5Ts, l5Ts4, List.cons_append, List.nil_append,
             List.getElem_cons_zero, List.getElem_cons_succ] at ht hn hv'' hT' ⊢
         · exact ccl_weight_le op (hX c) hT' hv'' hb''
         · exact ccl_weight_le op (hS c) hT' hv'' hb''
-        · have h52 : σ (.n 52) ≠ 0 := by simpa using ht
-          rw [v52, v51, B1.word_one, h63] at h52
-          have hed0 := ne_zero_of_guard h52
-          have := kcL28_loop op rd t' _ rets' 0 (ed c) hn hv'' hb''
-            (by simp only [List.map_cons, List.getD_cons_zero]; rw [h73, one_eq_ofK])
-            (by simp only [List.map_cons, List.getD_cons_succ, List.getD_cons_zero]
-                rw [h63, Value.gen_pow_eq_ofK]) (by omega)
-            (by omega)
-          have h16 : (ed c - 0) * kcL28 op ≤ 16 * kcL28 op := Nat.mul_le_mul_right _ (by omega)
-          omega
-        · exact kcDl_weightLe op rd t' _ rets' hn hv'' hb''
         · exact kcSd_weightLe op rd t' _ rets' hn hv'' hb''
         · exact hV c (by omega) rd t' _ rets' hT' hv'' hb''
         · exact l5_weight_le op V N hX hS hV m (c + 1) rd t' _ rets' (by omega) hT' hv'' hb'')
@@ -178,8 +156,8 @@ theorem l5_weight_le (op : Opcode) {ex es ed X S : ℕ → ℕ} {Pvs : ℕ → T
     simp only [omNames, List.getD_cons_succ, List.getD_cons_zero] at hom
     rw [Tree.weight, iterSum_succ, hom]
     simp only [List.sum_cons, List.sum_nil] at hk'
-    have hl5 : l5B op X S V c = (omT op).getD 2 0 + ccW op (X c) + ccW op (S c) + 16 * kcL28 op +
-      kcDl op + kcSd op + V c := rfl
+    have hl5 : l5B op X S V c = (omT op).getD 2 0 + ccW op (X c) + ccW op (S c) + kcSd op + V c :=
+      rfl
     omega
 
 /-- The per-claim slope of `ccW`: `⌈K / 17⌉` of `__loop16`'s `K` per iteration and `1` more. -/
@@ -203,7 +181,7 @@ theorem ccW_le (op : Opcode) (n : ℕ) : ccW op n ≤ ccA op + n * ccS op := by
     omega
 
 /-- **An iteration's constant**: all but the claims' slope and `verify_sub`. -/
-def l5C (op : Opcode) : ℕ := (omT op).getD 2 0 + 2 * ccA op + 16 * kcL28 op + kcDl op + kcSd op
+def l5C (op : Opcode) : ℕ := (omT op).getD 2 0 + 2 * ccA op + kcSd op
 
 theorem l5B_le (op : Opcode) (X S V : ℕ → ℕ) (c : ℕ) :
     l5B op X S V c ≤ l5C op + ccS op * (X c + S c) + V c := by
@@ -321,7 +299,7 @@ theorem l5_honest_weight_le (op : Opcode) {s : NodeStatement} {w : NodeWitness}
     simp only [End.work, List.map_map]
     rfl
   let C : List ℕ := w.children.map fun ch => ch.statement.claims.xmss.length +
-    ch.statement.claims.sphincs.length + ch.statement.claims.da.length
+    ch.statement.claims.sphincs.length
   have hXS : iterSum (fun i => (B1.Main.hKid s w i).ex + (B1.Main.hKid s w i).es) 0
       w.children.length ≤ (End.work s w).childClaims := by
     have hle := iterSum_le (A := fun i => (B1.Main.hKid s w i).ex + (B1.Main.hKid s w i).es)

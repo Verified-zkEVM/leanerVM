@@ -35,7 +35,7 @@ open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest LeanVM.Guest.Core LeanVM.Gu
 open LeanVM.Node LeanVM.Protocol
 open LeanVM.Guest.End (MainComplete Budget work bytecode bytecode_length)
 open LeanVM.Guest.B1.Main (Bmain mainBsH hm hData mainPredsH hDvNH VerifySubGoalsTB MainStatics
-  main_honest_budgetB hData_bounds childBv hRawD direct_held)
+  main_honest_budgetB hData_bounds childBv)
 
 @[expose] public section
 
@@ -56,18 +56,18 @@ theorem mainComplete_of_main (fs : String → ℕ) (cert : String → V → ℕ)
     (hx : ∀ seed s w, NodeRel bytecode seed s w → Limits s w → ∀ op (rd : Reader)
       (t : Tree) (args rets : List E), t.name = "claim_list_digest" →
       t.Valid coreProgram rd args rets → t.BufsOk coreProgram →
-      (mainPredsH s w (hDvNH s w) (Pvs w)).Px t → t.weight (ω op) ≤ Kx op s w)
+      (mainPredsH s w (hDvNH w) (Pvs w)).Px t → t.weight (ω op) ≤ Kx op s w)
     (hs : ∀ seed s w, NodeRel bytecode seed s w → Limits s w → ∀ op (rd : Reader)
       (t : Tree) (args rets : List E), t.name = "claim_list_digest" →
       t.Valid coreProgram rd args rets → t.BufsOk coreProgram →
-      (mainPredsH s w (hDvNH s w) (Pvs w)).Ps t → t.weight (ω op) ≤ Ks op s w)
+      (mainPredsH s w (hDvNH w) (Pvs w)).Ps t → t.weight (ω op) ≤ Ks op s w)
     (hd : ∀ seed s w, NodeRel bytecode seed s w → Limits s w → (hm fs 0 seed s w).nd = 1 →
       ∀ op (rd : Reader) (t : Tree) (args rets : List E), t.name = "da_verify" →
       t.Valid coreProgram rd args rets → t.BufsOk coreProgram →
-      (mainPredsH s w (hDvNH s w) (Pvs w)).Pd t → t.weight (ω op) ≤ Kd op s w)
+      (mainPredsH s w (hDvNH w) (Pvs w)).Pd t → t.weight (ω op) ≤ Kd op s w)
     (h5 : ∀ seed s w, NodeRel bytecode seed s w → Limits s w → ∀ op (rd : Reader)
       (t : Tree) (args rets : List E), t.name = "__loop4" → t.Valid coreProgram rd args rets →
-      t.BufsOk coreProgram → (mainPredsH s w (hDvNH s w) (Pvs w)).T5 t →
+      t.BufsOk coreProgram → (mainPredsH s w (hDvNH w) (Pvs w)).T5 t →
         t.weight (ω op) ≤ K5 op s w)
     (hwords : ∀ seed s w, NodeRel bytecode seed s w → Limits s w →
       Bmain fs SB SK (childBv Bvf w) 0 seed s w ≤ b.words.eval (work s w))
@@ -80,7 +80,7 @@ theorem mainComplete_of_main (fs : String → ℕ) (cert : String → V → ℕ)
       B1.Main.MVals rd σ (hm fs 0 seed s w) ∧
       KidsT (B1.Main.mCalls σ (hm fs 0 seed s w))
         ((fun _ => True) :: B1.Main.mTs (hm fs 0 seed s w)
-          ((mainPredsH s w (hDvNH s w) (Pvs w)).withTotal fs (mainBsH fs SB SK (childBv Bvf w) s w))) ks ∧
+          ((mainPredsH s w (hDvNH w) (Pvs w)).withTotal fs (mainBsH fs SB SK (childBv Bvf w) s w))) ks ∧
       calls (B1.Main.mEvs σ) = B1.Main.mCalls σ (hm fs 0 seed s w) ∧ bufs = B1.Main.mSizes (hData seed s w))
     (fun seed s w => Bmain fs SB SK (childBv Bvf w) 0 seed s w) hfs ?_ ?_ hwords
   · intro seed s w hrel hlim hok
@@ -113,27 +113,21 @@ theorem clHonest_weight {ω fs : String → ℕ} (H : MainCounts ω fs) {n : ℕ
     (hb : t.BufsOk coreProgram) (hT : B1.Main.clHonest n t) : t.weight ω ≤ H.clA + H.clS * n :=
   H.cl rd t args rets n hnm hv hb hT (by omega)
 
-/-- **`main`'s `da_verify`'s instructions** on its honest tree at the direct blob: `dvA`, `dvR` per
-row and `dvP` per padded row. -/
+/-- **`main`'s `da_verify`'s instructions** on its honest tree at the checked blob matrix: `dvA`,
+`dvR` per row and `dvP` per padded row. -/
 theorem dvNH_weight {ω fs : String → ℕ} (H : MainCounts ω fs) {seed : Digest} {s : NodeStatement} {w : NodeWitness}
     (hr : NodeRel bytecode seed s w) (hnd : (hm fs 0 seed s w).nd = 1) (rd : Reader) (t : Tree)
     (args rets : List E) (hnm : t.name = "da_verify") (hv : t.Valid coreProgram rd args rets)
-    (hb : t.BufsOk coreProgram) (hT : hDvNH s w t) :
+    (hb : t.BufsOk coreProgram) (hT : hDvNH w t) :
     t.weight ω ≤ H.dvA + H.dvR * (work s w).rawDaRows + H.dvP * (work s w).rawDaPad := by
-  obtain ⟨p, hp⟩ := List.length_eq_one_iff.mp (show (hRawD s w).length = 1 from hnd)
-  have hw : p.2.Opens p.1.daRoot p.1.membershipVectorDigest :=
-    direct_held (H := Held (fun (c : DaClaim) (m : LeanVM.Da.Witness) ↦ m.Opens c.daRoot c.membershipVectorDigest) Claims.da w.children)
-      (P := fun c x => x.Opens c.daRoot c.membershipVectorDigest) (fun _ _ h => h)
-      hr.2.2.2.2.1 p (show p ∈ hRawD s w by rw [hp]; exact List.mem_singleton_self p)
+  obtain ⟨p, hp, -, hw⟩ := B1.Main.checked_da fs 0 hr hnd
   have er : (work s w).rawDaRows = p.2.rows.length := by
-    show ((hRawD s w).map fun p => p.2.rows.length).sum = _
-    rw [hp]; simp
+    simp [work, hp]
   have ep : (work s w).rawDaPad = 2 ^ B1.Da.wLog p.2 := by
-    show ((hRawD s w).map fun p => LeanDa.nPad p.2.rows.length).sum = _
-    rw [hp]; simp [LeanDa.nPad, B1.Da.wLog]
+    simp [work, hp, LeanDa.nPad, B1.Da.wLog]
   unfold hDvNH at hT
   rw [hp] at hT
-  simp only [List.map_cons, List.map_nil, List.headD_cons] at hT
+  simp only [Option.map_some, Option.getD_some] at hT
   rw [er, ep]
   exact H.dv rd t args rets _ _ hnm hv hb hT hw.1 hw.2.1 rfl
 
@@ -151,7 +145,7 @@ theorem mainComplete_budget (fs : String → ℕ) (cert : String → V → ℕ) 
       cnt t op ≤ t.weight (ω op) + jt op) (c5 s5 : Opcode → ℕ) (v5 : Opcode → ℕ → ℕ → ℕ)
     (h5 : ∀ seed s w, NodeRel bytecode seed s w → Limits s w → ∀ op (rd : Reader)
       (t : Tree) (args rets : List E), t.name = "__loop4" → t.Valid coreProgram rd args rets →
-      t.BufsOk coreProgram → (mainPredsH s w (hDvNH s w) (Pvs w)).T5 t →
+      t.BufsOk coreProgram → (mainPredsH s w (hDvNH w) (Pvs w)).T5 t →
         t.weight (ω op) ≤ l5Lin (c5 op) (s5 op) (v5 op) (work s w)) :
     MainComplete fs cert cnt (mainBudget fs SB SK Bvf ω H c5 s5 v5 jt) :=
   mainComplete_of_main fs cert cnt _ ω jt H hfs hxc hsc hrf hS hV hcnt

@@ -15,7 +15,7 @@ public import LeanVM.Guest.B1.Da.WitnessAtT
 /-!
 # `da_verify` on an honest run, its honest shape
 
-`hDvNH s w`: `da_verify`'s honest shape on the directly held DA claim's witness (no constraint
+`hDvNH w`: `da_verify`'s honest shape on the directly held DA claim's witness (no constraint
 without one). `MainGoalDvT`: `MainGoalDv` by such a tree; `mainGoalDvT`: as `mainGoalDv`.
 -/
 
@@ -29,16 +29,16 @@ open LeanVM.Guest.B1.Da (reads_of_memL exists_of_length_succ wLog)
 
 @[expose] public section
 
-/-- **`da_verify`'s honest shape on the direct DA witness.** -/
-def hDvNH (s : NodeStatement) (w : NodeWitness) : Tree → Prop :=
-  ((hRawD s w).map fun p => Da.dvNH p.2.rows.length (wLog p.2)).headD fun _ => True
+/-- **`da_verify`'s honest shape on the checked DA claim's witness.** -/
+def hDvNH (w : NodeWitness) : Tree → Prop :=
+  (w.da.map fun p => Da.dvNH p.2.rows.length (wLog p.2)).getD fun _ => True
 
 /-- `da_verify` complete by a tree of its honest shape. -/
 def MainGoalDvT (fs : String → ℕ) (cert : String → V → ℕ) (fp : ℕ) (seed : Digest)
     (s : NodeStatement) (w : NodeWitness) : Prop :=
   (hm fs fp seed s w).nd = 1 →
     CompleteAtDT fs cert 16 "da_verify" (hLmain fs fp seed s w) [(hm fs fp seed s w).et2]
-      (Returns (hm fs fp seed s w).daR) (hDvNH s w)
+      (Returns (hm fs fp seed s w).daR) (hDvNH w)
 
 theorem MainGoalDvT.goal {fs : String → ℕ} {cert : String → V → ℕ} {fp : ℕ} {seed : Digest}
     {s : NodeStatement} {w : NodeWitness} (h : MainGoalDvT fs cert fp seed s w) :
@@ -52,13 +52,9 @@ variable (fs : String → ℕ) (cert : String → V → ℕ) (fp : ℕ)
 theorem mainGoalDvT (hn : NodeRel bytecode seed s w) (hrf : Lift.RunsFit fs cert) :
     MainGoalDvT fs cert fp seed s w := by
   intro h1
-  obtain ⟨p, hp, hR⟩ := direct_da fs fp h1
+  obtain ⟨p, hp, hR, hw⟩ := checked_da fs fp hn h1
   rw [hR, hDvNH, hp]
-  simp only [List.map_cons, List.map_nil, List.headD_cons]
-  have hw : p.2.Opens p.1.daRoot p.1.membershipVectorDigest :=
-    direct_held (H := Held (fun (c : DaClaim) (m : LeanVM.Da.Witness) ↦ m.Opens c.daRoot c.membershipVectorDigest) Claims.da w.children)
-      (P := fun c x => x.Opens c.daRoot c.membershipVectorDigest) (fun _ _ h => h)
-      hn.2.2.2.2.1 p (show p ∈ hRawD s w by rw [hp]; exact List.mem_singleton_self p)
+  simp only [Option.map_some, Option.getD_some]
   have hL := wLog_lt hw
   have h := Da.da_verify_completeAtT fs cert hrf hw (etB fs (mK0 (hData seed s w) fs fp) + 34)
   have hq : (etB fs (mK0 (hData seed s w) fs fp) + 34, etTabs.getD 1 []) ∈ hLmain fs fp seed s w :=

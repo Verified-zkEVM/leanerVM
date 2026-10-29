@@ -2,8 +2,8 @@
   LeanVM.Guest.B1.Main.MainGoalsF
 
   `main`'s callees on an honest run, the first ones: the loops writing the hinted claims
-  (`__loop0`, `__loop0`, `__loop1`), the DA list's digest and the statement's digest; the claim
-  lists' cells and bytes (their digests in `MainGoalsFCl`).
+  (`__loop0`, `__loop1`) and the statement's digest; the claim lists' cells and bytes (their
+  digests in `MainGoalsFCl`).
 -/
 
 module
@@ -19,15 +19,14 @@ public import LeanVM.Protocol.Verifier.Load
 /-!
 # `main`'s first callees on an honest run
 
-* `mainGoalL0`, `mainGoalL1`, `mainGoalL2`: the loops are atoms and a heap hint, so they hold on
-  every memory (`loopF_complete` at an explicit valuation of each block) and place nothing
-  (`mfLoop_pure`);
-* `mainGoalDl`: the DA table's declared claims are their cells (`daCells`), canonical, whose
-  bytes are the bytes the Spec's list digest hashes (`mf_da_digest`); at most `16` (`Limits`).
-  The claim tables' cells (`claimCells`) likewise (`mf_xmss_digest`, `mf_sphincs_digest`);
+* `mainGoalL1`, `mainGoalL2`: the loops are atoms and a heap hint, so they hold on every memory
+  (`loopF_complete` at an explicit valuation of each block) and place nothing (`mfLoop_pure`);
+* the claim tables' cells (`claimCells`) are canonical, their bytes the bytes the Spec's list
+  digest hashes (`mf_xmss_digest`, `mf_sphincs_digest`);
 * `mf_reads`, `mf_region`: buffer `i` of `hLmain` holds `hOwn`'s list `i`;
 * `mainGoalSt`: the deferred claim's `24` cells (`NodeRel`'s shape on a bytecode of `2^23` words)
-  hash, with the seed, the claim lists' and the DA list's digests, to the statement's digest
+  hash, with the seed, the claim lists' digests and the published DA digest, to the statement's
+  digest
   (`statementDigest_parts`).
 -/
 
@@ -43,32 +42,12 @@ open LeanVM.Guest.B1 (CompleteAtD Returns bufL completeAt_of_rel_pureD)
 
 /-! ## The loops -/
 
-/-- `__loop0`'s valuation at the counter `x`, the end `N`, the DA table `a`. -/
-def mfσ0 (x N a : E) : Val :=
-  B1.Val.ofArgs [x, N, a, x * x, x * x * (x * x), a * (x * x * (x * x)), word 2 0 0,
-    x * word 2 0 0, x * word 2 0 0 + N, word 2 0 0, x * word 2 0 0]
-
 /-- `__loop0`'s and `__loop1`'s valuation at the counter `x`, the end `N`, the table `a` and the
 declared count's `b`. -/
 def mfσ1 (x N a b : E) : Val :=
   B1.Val.ofArgs [x, N, a, b, b * x, b * x * (b * x), b * x * (b * x) * (b * x * (b * x)),
     a * (b * x * (b * x) * (b * x * (b * x))), word 2 0 0, x * word 2 0 0, x * word 2 0 0 + N,
     word 2 0 0, x * word 2 0 0]
-
-theorem mfL0_rel (rd : Reader) (a : E) {m : ℕ} (hm : m ≠ 0) :
-    coreProgram.Rel rd "__loop0" [1, gen ^ m, a] [] := by
-  have hf := find_of_idx mfL0_idx (by rw [coreProgram_length]; omega)
-  have hblk : ∀ j < m, LoopBlock rd (coreProgram.getD 32 default) (gen ^ j) (gen ^ m) [a] := by
-    intro j _
-    refine ⟨mfσ0 (gen ^ j) (gen ^ m) a, rfl, ?_⟩
-    rw [show loopPre (coreProgram.getD 32 default) = Data.core32.body.take 9 from rfl]
-    intro t ht
-    simp only [Data.core32.body, List.take_succ_cons, List.take_zero, List.mem_cons,
-      List.not_mem_nil, or_false] at ht
-    rcases ht with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl
-    all_goals first | exact And.intro rfl trivial | exact And.intro trivial trivial
-  have h := loopF_complete hf mfL0_shape rfl hblk 0 (by omega)
-  rwa [pow_zero] at h
 
 theorem mfL1_rel (rd : Reader) (a b : E) {m : ℕ} (hm : m ≠ 0) :
     coreProgram.Rel rd "__loop0" [1, gen ^ m, a, b] [] := by
@@ -157,26 +136,6 @@ theorem mf_digestCells_canon (d : Digest) : AllCanonical (digestCells d) := by
   rcases hc with rfl | rfl
   exacts [(digestScalars_canonical d).1, (digestScalars_canonical d).2]
 
-/-! ### The DA claims -/
-
-theorem mf_daCells_length (c : DaClaim) : (daCells c).length = 4 := by
-  simp [daCells, digestCells]
-
-theorem mf_daCells_canon (c : DaClaim) : AllCanonical (daCells c) := by
-  intro x hx
-  rcases List.mem_append.mp hx with h | h
-  exacts [mf_digestCells_canon _ x h, mf_digestCells_canon _ x h]
-
-theorem mf_daCells_bytes (c : DaClaim) :
-    cellsBytes (daCells c) = digestBytes c.daRoot ++ digestBytes c.membershipVectorDigest := by
-  rw [digestBytes_eq_cells, digestBytes_eq_cells]
-  simp [daCells, digestCells, cellsBytes]
-
-/-- **The DA list's digest is its cells'.** -/
-theorem mf_da_digest (l : List DaClaim) : daListDigest l = keccak256 (cellsBytes (l.flatMap daCells)) := by
-  rw [daListDigest, daPreimage, mf_cellsBytes_flatMap]
-  simp only [mf_daCells_bytes]
-
 /-! ### The signature claims -/
 
 theorem mf_claimBytes_length (r p : BitVec 128) (m : BitVec 256) : (claimBytes r p m).length = 64 := by
@@ -249,25 +208,11 @@ theorem mf_region {i : ℕ} (hi : i < 10) {k : ℕ} (hk : k < ((hOwn seed s w).g
 
 /-! ## The goals -/
 
-theorem mainGoalL0 : MainGoalL0 fs cert fp seed s w := fun hne =>
-  completeAt_of_rel_pureD mfLoop_pure (by simp [mfLoopSet]) (fun rd _ => mfL0_rel rd _ hne) 16
-
 theorem mainGoalL1 : MainGoalL1 fs cert fp seed s w := fun hne =>
   completeAt_of_rel_pureD mfLoop_pure (by simp [mfLoopSet]) (fun rd _ => mfL1_rel rd _ _ hne) 16
 
 theorem mainGoalL2 : MainGoalL2 fs cert fp seed s w := fun hne =>
   completeAt_of_rel_pureD mfLoop_pure (by simp [mfLoopSet]) (fun rd _ => mfL2_rel rd _ _ hne) 16
-
-/-- **`da_list_digest` on the DA table's declared claims.** -/
-theorem mainGoalDl (hL : Limits s w) : MainGoalDl fs cert fp seed s w := by
-  refine daList_completeAt fs cert fun rd h => ?_
-  have h0 := mf_reads fs fp seed s w h (i := 0) (by omega)
-  rw [show (hOwn seed s w).getD 0 [] = s.claims.da.flatMap daCells ++ (dPlan s w).dups.flatMap daCells
-    by rw [← List.flatMap_append]; rfl] at h0
-  refine ⟨s.claims.da.length, hL.daRoots.1, rfl, s.claims.da.flatMap daCells,
-    mf_length_flatMap _ mf_daCells_length _, (readsAt_append'.mp h0).1,
-    mf_canon_flatMap _ mf_daCells_canon _, ?_⟩
-  exact congrArg digestCells (mf_da_digest s.claims.da)
 
 /-- **`statement_digest` on the claim lists' digests and the deferred claim**, a bytecode of
 `2^23` words making the deferred claim `24` cells. -/

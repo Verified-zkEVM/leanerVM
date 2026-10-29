@@ -13,7 +13,7 @@ public import LeanVM.Guest.B1.Main.MainHonestFit
 /-!
 # `main` on an honest run
 
-`MainGoals`: the thirteen callee statements of `MainGoals.lean`. `mainKids_ok`: they are what
+`MainGoals`: the ten callee statements of `MainGoals.lean`. `mainKids_ok`: they are what
 `main_relAtInW` asks of `mKids`. `main_honest_relAtInW`: for `NodeRel` within `Limits`, on every
 memory holding `main`'s honest layout and the statement's digest at words `0`, `1`, `main` holds
 by its node at `fp`, at a valuation with the honest values (`MVals` of `hm`).
@@ -32,8 +32,6 @@ variable (fs : String → ℕ) (cert : String → V → ℕ) (fp : ℕ) (seed : 
 
 /-- **`main`'s callees on the honest run.** -/
 structure MainGoals : Prop where
-  l0 : MainGoalL0 fs cert fp seed s w
-  dl : MainGoalDl fs cert fp seed s w
   clx : MainGoalClX fs cert fp seed s w
   cls : MainGoalClS fs cert fp seed s w
   l1 : MainGoalL1 fs cert fp seed s w
@@ -41,7 +39,6 @@ structure MainGoals : Prop where
   l3 : MainGoalL3 fs cert fp seed s w
   l4 : MainGoalL4 fs cert fp seed s w
   dv : MainGoalDv fs cert fp seed s w
-  cv : MainGoalCv fs cert fp seed s w
   l5 : MainGoalL5 fs cert fp seed s w
   ag : MainGoalAg fs cert fp seed s w
   st : MainGoalSt fs cert fp seed s w
@@ -54,9 +51,7 @@ theorem mainKids_ok (hg : MainGoals fs cert fp seed s w) :
       CompleteAtD fs cert 16 k.f k.Lin k.args k.Out := by
   intro k hk ht
   simp only [mKids, List.mem_append, List.mem_cons, List.not_mem_nil, or_false] at hk
-  rcases hk with ((((hk | hk | hk | hk | hk | hk | hk | hk) | hk) | hk) | hk) | hk
-  · subst hk; exact hg.l0 (of_decide_eq_true ht)
-  · subst hk; exact hg.dl
+  rcases hk with ((((hk | hk | hk | hk | hk | hk) | hk) | hk) | hk) | hk
   · subst hk; exact hg.clx
   · subst hk; exact hg.cls
   · subst hk; exact hg.l1 (of_decide_eq_true ht)
@@ -66,9 +61,7 @@ theorem mainKids_ok (hg : MainGoals fs cert fp seed s w) :
   · split at hk
     · rename_i hnd
       simp only [List.mem_cons, List.not_mem_nil, or_false] at hk
-      rcases hk with hk | hk
-      · subst hk; exact hg.dv hnd
-      · subst hk; exact hg.cv hnd
+      subst hk; exact hg.dv hnd
     · simp at hk
   · subst hk; exact hg.l5 (of_decide_eq_true ht)
   · split at hk
@@ -77,12 +70,6 @@ theorem mainKids_ok (hg : MainGoals fs cert fp seed s w) :
       simp only [List.mem_cons, List.not_mem_nil, or_false] at hk
       subst hk; exact hg.ag hnc
   · subst hk; exact hg.st
-
-theorem hData_daR : (hData seed s w).daR.length = 4 := by
-  simp only [hData]
-  cases h : hRawD s w with
-  | nil => rfl
-  | cons p ps => simp [length_daCells]
 
 variable {bytecode : List K}
 
@@ -101,7 +88,7 @@ theorem main_honest_relAtInW (hlog : Nat.log2 bytecode.length = 23) (hr : NodeRe
         RelAtInW coreProgram fs cert rd (fun i => i < 2) (fun _ => False) fp n "main" [] []
           (fun σ => MVals rd σ (hm fs fp seed s w)) :=
   main_relAtInW fs cert fp (hData seed s w) (hOwn seed s w) (hOwn_fit hlog hr hf)
-    (hData_bounds hl fs fp) hData_daR (mainKids_ok hg)
+    (hData_bounds hl fs fp) (mainKids_ok hg)
     (fun rd hM h0 h1 => hMainMem hlog hr hf hl fs fp rd hM h0 h1)
 
 end

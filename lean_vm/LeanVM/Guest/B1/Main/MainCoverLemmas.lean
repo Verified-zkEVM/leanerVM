@@ -19,16 +19,16 @@ public import LeanVM.Protocol.Verifier.Load
 
 * `direct_held`, `direct_length_le`: the claims held directly are held, and no more than declared;
 * `idxOf_slot`: the slots are taken once each, so the taker of slot `(slotsOf p)[k]` is `k`;
-* `segOf_sum`, `hMarkX_raw` … `hMarkD_child`: the marks of the raw claims and of child `c`'s
-  claim `j` (`hW c + j`, after the child's leanXMSS claims for leanSPHINCS, …);
-* `hCover_x`, `hCover_s`, `hCover_d`: the coverage table's word at each region's slot `t` (the
-  leanSPHINCS region after the leanXMSS one, the DA region after both); `hCover_takerX` … : at
-  the slot of taker `k`, `g` to `k`'s mark;
+* `segOf_sum`, `hMarkX_raw` … `hMarkS_child`: the marks of the raw claims and of child `c`'s
+  claim `j` (`hW c + j`, after the child's leanXMSS claims for leanSPHINCS);
+* `hCover_x`, `hCover_s`: the coverage table's word at each region's slot `t` (the leanSPHINCS
+  region after the leanXMSS one); `hCover_takerX`, `hCover_takerS`: at the slot of taker `k`, `g`
+  to `k`'s mark;
 * `claimCells_eq`: a claim's four cells are `cellOf128` of its key's root and parameter and its
   message's halves;
 * on `hLmain` (`hPos i`: `main`'s buffer `i`'s first word): `coverX_load` … (any taker),
   `coverX_child` … (child `c`'s claim `j`: its slot's word `g` to its mark, the table's entry
-  there its claim), `tableX_claim`, `tableS_claim`, `tableD_reads` (any slot), `bytes_hold`, and
+  there its claim), `tableX_claim`, `tableS_claim` (any slot), `bytes_hold`, and
   the words' regions.
 -/
 
@@ -98,10 +98,6 @@ theorem hMarkS_raw {k : ℕ} (hk : k < (hRawS s w).length) :
     hMarkS s w k = (hRawX s w).length + k := by
   simp [hMarkS, hk]
 
-theorem hMarkD_raw {k : ℕ} (hk : k < (hRawD s w).length) :
-    hMarkD s w k = (hRawX s w).length + (hRawS s w).length + k := by
-  simp [hMarkD, hk]
-
 /-- **Child `c`'s leanXMSS claim `j`'s mark** is `hW c + j`. -/
 theorem hMarkX_child {c j : ℕ} (hc : c < w.children.length)
     (hj : j < (w.children[c]).statement.claims.xmss.length) :
@@ -132,49 +128,24 @@ theorem hMarkS_child {c j : ℕ} (hc : c < w.children.length)
     (by simpa using hc) (by simpa using hj)
   simp only [e, hMarkS, h1, ↓reduceIte, Nat.add_assoc, Nat.add_sub_cancel_left, h2]
 
-/-- **Child `c`'s DA claim `j`'s mark** is `hW c + hEx c + hEs c + j`. -/
-theorem hMarkD_child {c j : ℕ} (hc : c < w.children.length)
-    (hj : j < (w.children[c]).statement.claims.da.length) :
-    hMarkD s w ((hRawD s w).length +
-      (((w.children.map (·.statement.claims.da)).take c).map List.length).sum + j) =
-      hW s w c + hEx w c + hEs w c + j := by
-  have e : ((w.children.map (·.statement.claims.da)).take c).map List.length =
-      (w.children.map (·.statement.claims.da.length)).take c := by
-    rw [List.map_take, List.map_map]; rfl
-  have h1 : ¬ (hRawD s w).length + (((w.children.map (·.statement.claims.da.length)).take c).sum + j) <
-      (hRawD s w).length := by omega
-  have h2 := segOf_sum (w.children.map (·.statement.claims.da.length)) (c := c) (j := j)
-    (by simpa using hc) (by simpa using hj)
-  simp only [e, hMarkD, h1, ↓reduceIte, Nat.add_assoc, Nat.add_sub_cancel_left, h2]
-
 /-! ## The coverage table's words -/
 
-/-- The leanXMSS, leanSPHINCS and DA regions' sizes. -/
+/-- The leanXMSS and leanSPHINCS regions' sizes. -/
 abbrev rX : ℕ := s.claims.xmss.length + (xPlan s w).dups.length
 abbrev rY : ℕ := s.claims.sphincs.length + (sPlan s w).dups.length
-abbrev rS : ℕ := s.claims.da.length + (dPlan s w).dups.length
 
-theorem hCover_length : (hCover s w).length = rX s w + rY s w + rS s w := by
+theorem hCover_length : (hCover s w).length = rX s w + rY s w := by
   rw [hCover]
-  simp only [List.length_append, List.length_map, List.length_range, rX, rY, rS]
+  simp only [List.length_append, List.length_map, List.length_range, rX, rY]
 
 theorem hCover_x {t : ℕ} (ht : t < rX s w) :
     (hCover s w)[t]? = some (gen ^ hMarkX s w ((slotsOf (xPlan s w)).idxOf t)) := by
-  rw [hCover, List.append_assoc, List.getElem?_append_left (by simpa using ht)]
+  rw [hCover, List.getElem?_append_left (by simpa using ht)]
   simp [List.getElem?_map, List.getElem?_range (by simpa using ht)]
 
 theorem hCover_s {t : ℕ} (ht : t < rY s w) :
     (hCover s w)[rX s w + t]? = some (gen ^ hMarkS s w ((slotsOf (sPlan s w)).idxOf t)) := by
-  rw [hCover, List.append_assoc, List.getElem?_append_right (by simp),
-    List.getElem?_append_left (by simpa using ht)]
-  simp [List.getElem?_map, List.getElem?_range (by simpa using ht)]
-
-theorem hCover_d {t : ℕ} (ht : t < rS s w) :
-    (hCover s w)[rX s w + rY s w + t]? = some (gen ^ hMarkD s w ((slotsOf (dPlan s w)).idxOf t)) := by
   rw [hCover, List.getElem?_append_right (by simp)]
-  simp only [List.length_append, List.length_map, List.length_range]
-  rw [show rX s w + rY s w + t - (s.claims.xmss.length + (xPlan s w).dups.length +
-    (s.claims.sphincs.length + (sPlan s w).dups.length)) = t by simp only [rX, rY]; omega]
   simp [List.getElem?_map, List.getElem?_range (by simpa using ht)]
 
 theorem slotX_lt {k : ℕ} (hk : k < (slotsOf (xPlan s w)).length) : (slotsOf (xPlan s w))[k] < rX s w := by
@@ -184,11 +155,6 @@ theorem slotX_lt {k : ℕ} (hk : k < (slotsOf (xPlan s w)).length) : (slotsOf (x
 
 theorem slotS_lt {k : ℕ} (hk : k < (slotsOf (sPlan s w)).length) : (slotsOf (sPlan s w))[k] < rY s w := by
   have := plan_lt _ _ _ _ (List.getElem_mem (l := slotsOf (sPlan s w)) hk)
-  rw [List.length_append] at this
-  exact this
-
-theorem slotD_lt {k : ℕ} (hk : k < (slotsOf (dPlan s w)).length) : (slotsOf (dPlan s w))[k] < rS s w := by
-  have := plan_lt _ _ _ _ (List.getElem_mem (l := slotsOf (dPlan s w)) hk)
   rw [List.length_append] at this
   exact this
 
@@ -202,11 +168,6 @@ theorem hCover_takerS {k : ℕ} (hk : k < (slotsOf (sPlan s w)).length) :
     (hCover s w)[rX s w + (slotsOf (sPlan s w))[k]]? = some (gen ^ hMarkS s w k) := by
   rw [hCover_s s w (slotS_lt s w hk)]
   rw [show (slotsOf (sPlan s w)).idxOf (slotsOf (sPlan s w))[k] = k from idxOf_slot _ _ _ hk]
-
-theorem hCover_takerD {k : ℕ} (hk : k < (slotsOf (dPlan s w)).length) :
-    (hCover s w)[rX s w + rY s w + (slotsOf (dPlan s w))[k]]? = some (gen ^ hMarkD s w k) := by
-  rw [hCover_d s w (slotD_lt s w hk)]
-  rw [show (slotsOf (dPlan s w)).idxOf (slotsOf (dPlan s w))[k] = k from idxOf_slot _ _ _ hk]
 
 /-! ## A claim's cells -/
 
@@ -259,9 +220,6 @@ theorem length_flatMap_of {α β : Type} {f : α → List β} {w : ℕ} : ∀ (l
       length_flatMap_of l fun b hb => h b (List.mem_cons_of_mem _ hb), List.length_cons]
     ring
 
-theorem daCells_length (c : DaClaim) : (daCells c).length = 4 := by
-  simp [daCells, B1.Digest.digestCells]
-
 /-! ## On `main`'s honest words -/
 
 variable (fs : String → ℕ) (fp : ℕ)
@@ -295,13 +253,13 @@ theorem hOwn_region {i k : ℕ} (hi : i < 10) (hk : k < ((hOwn seed s w).getD i 
 
 /-- The coverage table's word at `t`. -/
 theorem cover_load {rd : Reader} (h : MemL rd (hLmain fs fp seed s w)) {t : ℕ} {v : E}
-    (ht : (hCover s w)[t]? = some v) : LoadHolds rd (gen ^ hPos seed s w fs fp 3) t v := by
+    (ht : (hCover s w)[t]? = some v) : LoadHolds rd (gen ^ hPos seed s w fs fp 2) t v := by
   obtain ⟨htl, rfl⟩ := List.getElem?_eq_some_iff.mp ht
-  exact hOwn_reads h (i := 3) (by omega) t htl
+  exact hOwn_reads h (i := 2) (by omega) t htl
 
-theorem cover_region {t : ℕ} (ht : t < rX s w + rY s w + rS s w) :
-    RegionL (hLmain fs fp seed s w) (hPos seed s w fs fp 3 + t) :=
-  hOwn_region (i := 3) (by omega) (by
+theorem cover_region {t : ℕ} (ht : t < rX s w + rY s w) :
+    RegionL (hLmain fs fp seed s w) (hPos seed s w fs fp 2 + t) :=
+  hOwn_region (i := 2) (by omega) (by
     show t < (hCover s w).length
     rw [hCover_length]; exact ht)
 
@@ -316,13 +274,6 @@ theorem coverS_load {rd : Reader} (h : MemL rd (hLmain fs fp seed s w)) {k : ℕ
     (hk : k < (slotsOf (sPlan s w)).length) :
     LoadHolds rd (hm fs fp seed s w).a117 (rX s w + (slotsOf (sPlan s w))[k]) (gen ^ hMarkS s w k) :=
   cover_load h (hCover_takerS s w hk)
-
-/-- **The coverage word at DA taker `k`'s slot**, read. -/
-theorem coverD_load {rd : Reader} (h : MemL rd (hLmain fs fp seed s w)) {k : ℕ}
-    (hk : k < (slotsOf (dPlan s w)).length) :
-    LoadHolds rd (hm fs fp seed s w).a117 (rX s w + rY s w + (slotsOf (dPlan s w))[k])
-      (gen ^ hMarkD s w k) :=
-  cover_load h (hCover_takerD s w hk)
 
 /-- **Child `c`'s leanXMSS claim `j`**: its slot's coverage word is `g` to its mark, and the table
 holds the claim there. -/
@@ -370,47 +321,24 @@ theorem coverS_child {rd : Reader} (h : MemL rd (hLmain fs fp seed s w)) {c j : 
   simp only [List.getElem_map] at hcl
   exact ⟨hc', hj', hl, hcl⟩
 
-/-- **Child `c`'s DA claim `j`**: its slot's coverage word is `g` to its mark, and the table
-holds the claim there. -/
-theorem coverD_child {rd : Reader} (h : MemL rd (hLmain fs fp seed s w)) {c j : ℕ}
-    (hc : c < w.children.length) (hj : j < (w.children[c]).statement.claims.da.length) :
-    ∃ (hc' : c < (dPlan s w).children.length) (hj' : j < ((dPlan s w).children[c]).length),
-      LoadHolds rd (hm fs fp seed s w).a117 (rX s w + rY s w + ((dPlan s w).children[c])[j])
-        (gen ^ (hW s w c + hEx w c + hEs w c + j)) ∧
-      (s.claims.da ++ (dPlan s w).dups)[((dPlan s w).children[c])[j]]? =
-        some ((w.children[c]).statement.claims.da[j]) := by
-  obtain ⟨hc', hj', hs, e, hcl⟩ := plan_child s.claims.da ((hRawD s w).map (·.1))
-    (w.children.map (·.statement.claims.da)) (c := c) (k := j) (by simpa using hc) (by simpa using hj)
-  have e' : (slotsOf (dPlan s w))[base ((hRawD s w).map (·.1)) (w.children.map (·.statement.claims.da)) c + j]'hs =
-      ((dPlan s w).children[c]'hc')[j]'hj' := e
-  have hl := coverD_load h hs
-  rw [e'] at hl
-  have hmk : hMarkD s w (base ((hRawD s w).map (·.1)) (w.children.map (·.statement.claims.da)) c + j) =
-      hW s w c + hEx w c + hEs w c + j := by
-    rw [base, List.length_map]
-    exact hMarkD_child s w hc hj
-  rw [hmk] at hl
-  simp only [List.getElem_map] at hcl
-  exact ⟨hc', hj', hl, hcl⟩
-
 /-- The leanXMSS table holds the claim at slot `t`. -/
 theorem tableX_claim {rd : Reader} (h : MemL rd (hLmain fs fp seed s w)) {t : ℕ} {c : XmssClaim}
     (ht : (s.claims.xmss ++ (xPlan s w).dups)[t]? = some c) :
-    Sig.ClaimAt rd (gen ^ (hPos seed s w fs fp 1 + 4 * t)) (Sig.cellOf128 c.1.root)
+    Sig.ClaimAt rd (gen ^ (hPos seed s w fs fp 0 + 4 * t)) (Sig.cellOf128 c.1.root)
       (Sig.cellOf128 c.1.parameter) (Sig.cellOf128 (c.2.extractLsb' 0 128))
       (Sig.cellOf128 (c.2.extractLsb' 128 128)) := by
   have hc4 : claimCells c.1.root c.1.parameter c.2 = _ := claimCells_eq _ _ _
   obtain ⟨htl, rfl⟩ := List.getElem?_eq_some_iff.mp ht
   have hr := B1.Main.readsAt_flatMap_of (w := 4) _
     (fun (c : XmssClaim) _ => claimCells_length c.1.root c.1.parameter c.2)
-    (hOwn_reads h (i := 1) (by omega)) t htl
+    (hOwn_reads h (i := 0) (by omega)) t htl
   rw [← pow_add, hc4] at hr
   exact ⟨hr 0 (by simp), hr 1 (by simp), hr 2 (by simp), hr 3 (by simp)⟩
 
 theorem tableX_region {t k : ℕ} (ht : t < rX s w) (hk : k < 4) :
-    RegionL (hLmain fs fp seed s w) (hPos seed s w fs fp 1 + 4 * t + k) := by
+    RegionL (hLmain fs fp seed s w) (hPos seed s w fs fp 0 + 4 * t + k) := by
   rw [Nat.add_assoc]
-  refine hOwn_region (i := 1) (by omega) ?_
+  refine hOwn_region (i := 0) (by omega) ?_
   show 4 * t + k < ((s.claims.xmss ++ (xPlan s w).dups).flatMap _).length
   rw [length_flatMap_of _ fun (c : XmssClaim) _ => claimCells_length c.1.root c.1.parameter c.2, List.length_append]
   simp only [rX] at ht
@@ -419,53 +347,35 @@ theorem tableX_region {t k : ℕ} (ht : t < rX s w) (hk : k < 4) :
 /-- The leanSPHINCS table holds the claim at slot `t`. -/
 theorem tableS_claim {rd : Reader} (h : MemL rd (hLmain fs fp seed s w)) {t : ℕ} {c : SphincsClaim}
     (ht : (s.claims.sphincs ++ (sPlan s w).dups)[t]? = some c) :
-    Sig.ClaimAt rd (gen ^ (hPos seed s w fs fp 2 + 4 * t)) (Sig.cellOf128 c.1.root)
+    Sig.ClaimAt rd (gen ^ (hPos seed s w fs fp 1 + 4 * t)) (Sig.cellOf128 c.1.root)
       (Sig.cellOf128 c.1.parameter) (Sig.cellOf128 (c.2.extractLsb' 0 128))
       (Sig.cellOf128 (c.2.extractLsb' 128 128)) := by
   have hc4 : claimCells c.1.root c.1.parameter c.2 = _ := claimCells_eq _ _ _
   obtain ⟨htl, rfl⟩ := List.getElem?_eq_some_iff.mp ht
   have hr := B1.Main.readsAt_flatMap_of (w := 4) _
     (fun (c : SphincsClaim) _ => claimCells_length c.1.root c.1.parameter c.2)
-    (hOwn_reads h (i := 2) (by omega)) t htl
+    (hOwn_reads h (i := 1) (by omega)) t htl
   rw [← pow_add, hc4] at hr
   exact ⟨hr 0 (by simp), hr 1 (by simp), hr 2 (by simp), hr 3 (by simp)⟩
 
 theorem tableS_region {t k : ℕ} (ht : t < rY s w) (hk : k < 4) :
-    RegionL (hLmain fs fp seed s w) (hPos seed s w fs fp 2 + 4 * t + k) := by
+    RegionL (hLmain fs fp seed s w) (hPos seed s w fs fp 1 + 4 * t + k) := by
   rw [Nat.add_assoc]
-  refine hOwn_region (i := 2) (by omega) ?_
+  refine hOwn_region (i := 1) (by omega) ?_
   show 4 * t + k < ((s.claims.sphincs ++ (sPlan s w).dups).flatMap _).length
   rw [length_flatMap_of _ fun (c : SphincsClaim) _ => claimCells_length c.1.root c.1.parameter c.2, List.length_append]
   simp only [rY] at ht
   omega
 
-/-- The DA table holds the claim's cells at slot `t`. -/
-theorem tableD_reads {rd : Reader} (h : MemL rd (hLmain fs fp seed s w)) {t : ℕ} {c : DaClaim}
-    (ht : (s.claims.da ++ (dPlan s w).dups)[t]? = some c) :
-    ReadsAt rd (gen ^ (hPos seed s w fs fp 0 + 4 * t)) (daCells c) := by
-  obtain ⟨htl, rfl⟩ := List.getElem?_eq_some_iff.mp ht
-  have hr := B1.Main.readsAt_flatMap_of (w := 4) _ (fun (c : DaClaim) _ => daCells_length c)
-    (hOwn_reads h (i := 0) (by omega)) t htl
-  rwa [← pow_add] at hr
-
-theorem tableD_region {t k : ℕ} (ht : t < rS s w) (hk : k < 4) :
-    RegionL (hLmain fs fp seed s w) (hPos seed s w fs fp 0 + 4 * t + k) := by
-  rw [Nat.add_assoc]
-  refine hOwn_region (i := 0) (by omega) ?_
-  show 4 * t + k < ((s.claims.da ++ (dPlan s w).dups).flatMap _).length
-  rw [length_flatMap_of _ fun (c : DaClaim) _ => daCells_length c, List.length_append]
-  simp only [rS] at ht
-  omega
-
 /-- The byte table. -/
 theorem bytes_hold {rd : Reader} (h : MemL rd (hLmain fs fp seed s w)) :
-    Sig.ByteBits rd (gen ^ hPos seed s w fs fp 4) := fun v hv => by
-  have := hOwn_reads h (i := 4) (by omega) v (by simpa [hOwn] using hv)
+    Sig.ByteBits rd (gen ^ hPos seed s w fs fp 3) := fun v hv => by
+  have := hOwn_reads h (i := 3) (by omega) v (by simpa [hOwn] using hv)
   simpa [hOwn] using this
 
 theorem bytes_region {v : ℕ} (hv : v < 256) :
-    RegionL (hLmain fs fp seed s w) (hPos seed s w fs fp 4 + v) :=
-  hOwn_region (i := 4) (by omega) (by simpa [hOwn] using hv)
+    RegionL (hLmain fs fp seed s w) (hPos seed s w fs fp 3 + v) :=
+  hOwn_region (i := 3) (by omega) (by simpa [hOwn] using hv)
 
 end
 end LeanVM.Guest.B1.Main

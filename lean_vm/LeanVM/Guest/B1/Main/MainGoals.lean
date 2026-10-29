@@ -13,7 +13,7 @@ public import LeanVM.Guest.B1.Main.MainHonest
 # `main`'s callees on an honest run
 
 `hm`, `hLmain`: `main`'s honest oracle and words at `fp` (its buffers `hOwn`, then
-`exponent_tables`' tables). One statement per callee (`MainGoalL0` … `MainGoalSt`), each the
+`exponent_tables`' tables). One statement per callee (`MainGoalClX` … `MainGoalSt`), each the
 `CompleteAtD` `mKids` asks for; `completeAtD_lin_mono` moves a callee's completeness to a
 larger caller layout.
 -/
@@ -49,15 +49,6 @@ abbrev hLmain : B1.Main.Layout :=
   bufL (fp + fs "main") (mSizes (hData seed s w)) (hOwn seed s w) ++ etL (hData seed s w) fs fp
 
 /-! ## The callees -/
-
-def MainGoalL0 : Prop :=
-  (hm fs fp seed s w).nda + (hm fs fp seed s w).ndd ≠ 0 →
-    CompleteAtD fs cert 16 "__loop0" (hLmain fs fp seed s w)
-      [1, gen ^ ((hm fs fp seed s w).nda + (hm fs fp seed s w).ndd), (hm fs fp seed s w).a69] (Returns [])
-
-def MainGoalDl : Prop :=
-  CompleteAtD fs cert 16 "da_list_digest" (hLmain fs fp seed s w)
-    [(hm fs fp seed s w).a69, gen ^ (hm fs fp seed s w).nda] (Returns (B1.Digest.digestCells (hm fs fp seed s w).dad))
 
 def MainGoalClX : Prop :=
   CompleteAtD fs cert 16 "claim_list_digest" (hLmain fs fp seed s w)
@@ -95,24 +86,13 @@ def MainGoalDv : Prop :=
     CompleteAtD fs cert 16 "da_verify" (hLmain fs fp seed s w) [(hm fs fp seed s w).et2]
       (Returns (hm fs fp seed s w).daR)
 
-def MainGoalCv : Prop :=
-  (hm fs fp seed s w).nd = 1 →
-    CompleteAtD fs cert 16 "cover_da_root" (hLmain fs fp seed s w)
-      [(hm fs fp seed s w).a69, (hm fs fp seed s w).a117 * gen ^ ((hm fs fp seed s w).nlx +
-        (hm fs fp seed s w).nxd + ((hm fs fp seed s w).nls + (hm fs fp seed s w).nsd)),
-        gen ^ ((hm fs fp seed s w).nda + (hm fs fp seed s w).ndd),
-        gen ^ ((hm fs fp seed s w).nrx + (hm fs fp seed s w).nrs)] (Returns (hm fs fp seed s w).daR)
-
 def MainGoalL5 : Prop :=
   (hm fs fp seed s w).nc ≠ 0 →
     CompleteAtD fs cert 16 "__loop4" (hLmain fs fp seed s w)
       [1, gen ^ (hm fs fp seed s w).nc, (hm fs fp seed s w).a409, (hm fs fp seed s w).a77,
         (hm fs fp seed s w).a117, gen ^ ((hm fs fp seed s w).nlx + (hm fs fp seed s w).nxd),
         (hm fs fp seed s w).a80, gen ^ ((hm fs fp seed s w).nls + (hm fs fp seed s w).nsd),
-        (hm fs fp seed s w).a406, (hm fs fp seed s w).a69,
-        (hm fs fp seed s w).a117 * gen ^ ((hm fs fp seed s w).nlx + (hm fs fp seed s w).nxd +
-          ((hm fs fp seed s w).nls + (hm fs fp seed s w).nsd)),
-        gen ^ ((hm fs fp seed s w).nda + (hm fs fp seed s w).ndd),
+        (hm fs fp seed s w).a406, (hm fs fp seed s w).aDa,
         (digestScalars (hm fs fp seed s w).seed).1, (digestScalars (hm fs fp seed s w).seed).2,
         (hm fs fp seed s w).a394, (hm fs fp seed s w).et1, (hm fs fp seed s w).et2,
         (hm fs fp seed s w).a400] (Returns [])
@@ -128,7 +108,7 @@ def MainGoalSt : Prop :=
     [(digestScalars (hm fs fp seed s w).seed).1, (digestScalars (hm fs fp seed s w).seed).2,
       (digestScalars (hm fs fp seed s w).xd).1, (digestScalars (hm fs fp seed s w).xd).2,
       (digestScalars (hm fs fp seed s w).sd).1, (digestScalars (hm fs fp seed s w).sd).2,
-      (digestScalars (hm fs fp seed s w).dad).1, (digestScalars (hm fs fp seed s w).dad).2,
+      (digestScalars (hm fs fp seed s w).dap).1, (digestScalars (hm fs fp seed s w).dap).2,
       (hm fs fp seed s w).a417]
     (Returns (B1.Digest.digestCells (hm fs fp seed s w).sdg))
 

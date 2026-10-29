@@ -46,8 +46,6 @@ theorem mainGoals_of (hbl : bytecode.length = 2 ^ 23) (hr : NodeRel bytecode see
     (hsc : Sig.verify_sig_lean_sphincs_complete_loads_Spec) (hrf : Lift.RunsFit fs cert)
     (hl5 : MainGoalL5 fs cert fp seed s w) (hag : MainGoalAg fs cert fp seed s w) :
     MainGoals fs cert fp seed s w where
-  l0 := mainGoalL0 fs cert fp seed s w
-  dl := mainGoalDl fs cert fp seed s w hl
   clx := mainGoalClX fs cert fp seed s w hl
   cls := mainGoalClS fs cert fp seed s w hl
   l1 := mainGoalL1 fs cert fp seed s w
@@ -55,7 +53,6 @@ theorem mainGoals_of (hbl : bytecode.length = 2 ^ 23) (hr : NodeRel bytecode see
   l3 := mainGoalL3 (fs := fs) (cert := cert) (fp := fp) hr hl hxc
   l4 := mainGoalL4 (fs := fs) (cert := cert) (fp := fp) hr hl hsc
   dv := mainGoalDv (fs := fs) (cert := cert) (fp := fp) hr hrf
-  cv := mainGoalCv (fs := fs) (cert := cert) (fp := fp) hl
   l5 := hl5
   ag := hag
   st := mainGoalSt fs cert fp seed s w hr hbl

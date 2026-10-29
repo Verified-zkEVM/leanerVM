@@ -52,7 +52,7 @@ theorem kidTB_hX (cert : String → V → ℕ) (hl : Limits s w) {c : ℕ}
       (w.children.map (·.statement.claims.xmss)) (c := c) (j := j) (by simpa using hc)
       (by simpa using hj)
   have := B1.Digest.child_claim_list_digest_completeAtTB fs cert (κ := 16) le_rfl
-    (Lin := hLmain fs fp seed s w) (eP := hP fs fp seed s w 1) (cv := hP fs fp seed s w 3) (og := 0)
+    (Lin := hLmain fs fp seed s w) (eP := hP fs fp seed s w 0) (cv := hP fs fp seed s w 2) (og := 0)
     (L := s.claims.xmss.length + (xPlan s w).dups.length) (n := (hKid s w c).ex)
     (base := (hKid s w c).base) (o := fun j => ((xPlan s w).children.getD c []).getD j 0)
     (cells := w.children[c].statement.claims.xmss.flatMap fun c => claimCells c.1.root c.1.parameter c.2)
@@ -68,7 +68,7 @@ theorem kidTB_hX (cert : String → V → ℕ) (hl : Limits s w) {c : ℕ}
       have hlt' : ((xPlan s w).children.getD c []).getD j 0 <
           s.claims.xmss.length + (xPlan s w).dups.length := by
         have := hlt; rw [List.length_append] at this; exact this
-      obtain ⟨r0, r1, r2, r4, -⟩ := reads_buf fs fp seed s w hM
+      obtain ⟨r1, r2, r4, -⟩ := reads_buf fs fp seed s w hM
       refine ⟨belowLog_of hlt' (by omega), ?_, fun i hi => ?_⟩
       · rw [pow_zero, one_mul, loadHolds_mul_gen_pow, Nat.add_zero,
           show (hKid s w c).base * gen ^ j = gen ^ (hW s w c + j) from (pow_add _ _ _).symm]
@@ -99,7 +99,7 @@ theorem kidTB_hX (cert : String → V → ℕ) (hl : Limits s w) {c : ℕ}
           s.claims.xmss.length + (xPlan s w).dups.length := by
         have := (slot j hj).1; rw [List.length_append] at this; exact this
       rw [Nat.add_assoc]
-      exact region_buf fs fp seed s w (i := 3) (by omega)
+      exact region_buf fs fp seed s w (i := 2) (by omega)
         (show _ < (hCover s w).length by rw [kid_length_hCover]; omega))
     (fun j hj i hi => by
       rw [hKid_ex hc] at hj
@@ -107,7 +107,7 @@ theorem kidTB_hX (cert : String → V → ℕ) (hl : Limits s w) {c : ℕ}
           s.claims.xmss.length + (xPlan s w).dups.length := by
         have := (slot j hj).1; rw [List.length_append] at this; exact this
       rw [Nat.add_assoc]
-      exact region_buf fs fp seed s w (i := 1) (by omega)
+      exact region_buf fs fp seed s w (i := 0) (by omega)
         (show _ < ((s.claims.xmss ++ (xPlan s w).dups).flatMap
           fun c => claimCells c.1.root c.1.parameter c.2).length by rw [hT]; omega))
     hLS
@@ -134,7 +134,7 @@ theorem kidTB_hS (cert : String → V → ℕ) (hl : Limits s w) {c : ℕ}
       (w.children.map (·.statement.claims.sphincs)) (c := c) (j := j) (by simpa using hc)
       (by simpa using hj)
   have := B1.Digest.child_claim_list_digest_completeAtTB fs cert (κ := 16) le_rfl
-    (Lin := hLmain fs fp seed s w) (eP := hP fs fp seed s w 2) (cv := hP fs fp seed s w 3)
+    (Lin := hLmain fs fp seed s w) (eP := hP fs fp seed s w 1) (cv := hP fs fp seed s w 2)
     (og := s.claims.xmss.length + (xPlan s w).dups.length)
     (L := s.claims.sphincs.length + (sPlan s w).dups.length) (n := (hKid s w c).es)
     (base := (hKid s w c).base * gen ^ (hKid s w c).ex)
@@ -153,7 +153,7 @@ theorem kidTB_hS (cert : String → V → ℕ) (hl : Limits s w) {c : ℕ}
       have hlt' : ((sPlan s w).children.getD c []).getD j 0 <
           s.claims.sphincs.length + (sPlan s w).dups.length := by
         have := hlt; rw [List.length_append] at this; exact this
-      obtain ⟨r0, r1, r2, r4, -⟩ := reads_buf fs fp seed s w hM
+      obtain ⟨r1, r2, r4, -⟩ := reads_buf fs fp seed s w hM
       refine ⟨belowLog_of hlt' (by omega), ?_, fun i hi => ?_⟩
       · rw [← pow_add, loadHolds_mul_gen_pow, Nat.add_zero,
           show (hKid s w c).base * gen ^ (hKid s w c).ex * gen ^ j = gen ^ (hW s w c + hEx w c + j) by
@@ -185,7 +185,7 @@ theorem kidTB_hS (cert : String → V → ℕ) (hl : Limits s w) {c : ℕ}
           s.claims.sphincs.length + (sPlan s w).dups.length := by
         have := (slot j hj).1; rw [List.length_append] at this; exact this
       rw [Nat.add_assoc]
-      exact region_buf fs fp seed s w (i := 3) (by omega)
+      exact region_buf fs fp seed s w (i := 2) (by omega)
         (show _ < (hCover s w).length by rw [kid_length_hCover]; omega))
     (fun j hj i hi => by
       rw [hKid_es hc] at hj
@@ -193,7 +193,7 @@ theorem kidTB_hS (cert : String → V → ℕ) (hl : Limits s w) {c : ℕ}
           s.claims.sphincs.length + (sPlan s w).dups.length := by
         have := (slot j hj).1; rw [List.length_append] at this; exact this
       rw [Nat.add_assoc]
-      exact region_buf fs fp seed s w (i := 2) (by omega)
+      exact region_buf fs fp seed s w (i := 1) (by omega)
         (show _ < ((s.claims.sphincs ++ (sPlan s w).dups).flatMap
           fun c => claimCells c.1.root c.1.parameter c.2).length by rw [hT]; omega))
     hLS

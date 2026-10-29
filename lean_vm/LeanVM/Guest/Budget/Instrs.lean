@@ -27,7 +27,7 @@ namespace LeanVM.Guest.Budget
 open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest LeanVM.Guest.Core LeanVM.Guest.Memory
 open LeanVM.Node LeanVM.Protocol LeanVM.Protocol.KeccakHash
 open LeanVM.Guest.End (Linear work)
-open LeanVM.Guest.B1.Main (hm coverage_eq xPlan sPlan dPlan)
+open LeanVM.Guest.B1.Main (hm hData hData_bounds coverage_eq xPlan sPlan)
 
 @[expose] public section
 
@@ -41,12 +41,12 @@ variable {ω fs : String → ℕ}
 /-- **The instruction budget** at `ω`: `mainCount`'s terms, linearly in the work, the children's
 loop's at `l5Lin c5 s5 v5`. -/
 def mainInstrs (H : MainCounts ω fs) (c5 s5 : ℕ) (v5 : ℕ → ℕ → ℕ) (jt : ℕ) : Linear where
-  base := ω "main" + H.kExp + H.kDl + H.kSd + jt + 2 * H.clA
+  base := ω "main" + H.kExp + H.kSd + jt + 2 * H.clA
   declared := H.clS
-  coverage := H.kL0 + H.kL1 + H.kL2
+  coverage := H.kL1 + H.kL2
   rawXmss := H.kL3
   rawSphincs := H.kL4
-  rawDa := H.dvA + H.kCov
+  rawDa := H.dvA
   rawDaRows := H.dvR
   rawDaPad := H.dvP
   children := c5 + H.aggC + H.aggD
@@ -65,21 +65,16 @@ theorem mainCount_le (H : MainCounts ω fs) (c5 s5 : ℕ) (v5 : ℕ → ℕ → 
       (l5Lin c5 s5 v5 (work s w)) + jt ≤ (mainInstrs H c5 s5 v5 jt).eval (work s w) := by
   have hcov := coverage_eq (s := s) (w := w)
   simp only [List.length_append] at hcov
-  have hd : (hm fs 0 seed s w).nd ≤ 1 := hl.directDa
+  have hd : (hm fs 0 seed s w).nd ≤ 1 := (hData_bounds hl fs 0).nd
   have hdecl : s.claims.xmss.length + s.claims.sphincs.length ≤ (work s w).declared := by
     simp only [work]; omega
   have hcov' : coverage s w = (work s w).coverage := rfl
-  have e0 : (hm fs 0 seed s w).nda + (hm fs 0 seed s w).ndd =
-      s.claims.da.length + (dPlan s w).dups.length := rfl
   have e1 : (hm fs 0 seed s w).nxd = (xPlan s w).dups.length := rfl
   have e2 : (hm fs 0 seed s w).nsd = (sPlan s w).dups.length := rfl
   have e3 : (hm fs 0 seed s w).nrx = (work s w).rawXmss := rfl
   have e4 : (hm fs 0 seed s w).nrs = (work s w).rawSphincs := rfl
   have e5 : (hm fs 0 seed s w).nc = (work s w).children := rfl
   have e6 : (hm fs 0 seed s w).nd = (work s w).rawDa := rfl
-  have c0 : ((hm fs 0 seed s w).nda + (hm fs 0 seed s w).ndd) * H.kL0 ≤
-      H.kL0 * (work s w).coverage := by
-    rw [e0, Nat.mul_comm]; exact Nat.mul_le_mul_left _ (by omega)
   have c1 : (hm fs 0 seed s w).nxd * H.kL1 ≤ H.kL1 * (work s w).coverage := by
     rw [e1, Nat.mul_comm]; exact Nat.mul_le_mul_left _ (by omega)
   have c2 : (hm fs 0 seed s w).nsd * H.kL2 ≤ H.kL2 * (work s w).coverage := by
@@ -94,8 +89,8 @@ theorem mainCount_le (H : MainCounts ω fs) (c5 s5 : ℕ) (v5 : ℕ → ℕ → 
   have r4 : (work s w).rawSphincs * H.kL4 = H.kL4 * (work s w).rawSphincs := Nat.mul_comm _ _
   -- the direct blob
   have hDa : (if (hm fs 0 seed s w).nd = 1 then
-      H.dvA + H.dvR * (work s w).rawDaRows + H.dvP * (work s w).rawDaPad + H.kCov else 0) ≤
-      (H.dvA + H.kCov) * (work s w).rawDa + H.dvR * (work s w).rawDaRows +
+      H.dvA + H.dvR * (work s w).rawDaRows + H.dvP * (work s w).rawDaPad else 0) ≤
+      H.dvA * (work s w).rawDa + H.dvR * (work s w).rawDaRows +
         H.dvP * (work s w).rawDaPad := by
     split_ifs with h1
     · have hra : (work s w).rawDa = 1 := by rw [← e6, h1]
@@ -115,7 +110,7 @@ theorem mainCount_le (H : MainCounts ω fs) (c5 s5 : ℕ) (v5 : ℕ → ℕ → 
       rw [e5]
       unfold l5Lin
       omega
-  have ecov : (H.kL0 + H.kL1 + H.kL2) * (work s w).coverage = H.kL0 * (work s w).coverage +
+  have ecov : (H.kL1 + H.kL2) * (work s w).coverage =
       H.kL1 * (work s w).coverage + H.kL2 * (work s w).coverage := by ring
   omega
 

@@ -77,7 +77,7 @@ theorem main_honest_budget_dv (hbl : bytecode.length = 2 ^ 23) (hr : NodeRel byt
         RelAtInT coreProgram fs cert rd (fun i => i < 2) (fun _ => False) fp n "main" [] []
           (fun t => ∃ σ bufs ks, t = .node "main" σ bufs ks ∧ MVals rd σ (hm fs fp seed s w) ∧
             KidsT (mCalls σ (hm fs fp seed s w))
-              ((fun _ => True) :: mTs (hm fs fp seed s w) (mainPredsH s w (hDvNH s w) Pvs)) ks ∧
+              ((fun _ => True) :: mTs (hm fs fp seed s w) (mainPredsH s w (hDvNH w) Pvs)) ks ∧
             calls (mEvs σ) = mCalls σ (hm fs fp seed s w) ∧ bufs = mSizes (hData seed s w)) :=
   main_honest_budget hbl hr hl hxc hsc hrf hV (mainGoalDvT fs cert fp hr hrf)
 

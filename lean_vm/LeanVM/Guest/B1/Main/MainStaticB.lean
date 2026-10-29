@@ -1,9 +1,9 @@
 /-
   LeanVM.Guest.B1.Main.MainStaticB
 
-  `main`'s statically bounded callees within their words: `cover_da_root` within its frame, the
-  pure ones (`__loop0`…`__loop3`, `da_list_digest`, `statement_digest`) within the bounds the static
-  certificates give every valid tree (`TotalLe`, `TotalLeOn`).
+  `main`'s statically bounded callees within their words: the pure ones (`__loop0`…`__loop3`,
+  `statement_digest`) within the bounds the static certificates give every valid tree (`TotalLe`,
+  `TotalLeOn`).
 -/
 
 module
@@ -20,7 +20,7 @@ The static bounds' convention: `SB g` bounds every valid tree of a statically bo
 (`TotalLe coreProgram fs g (fun _ => SB g)`), `SK g` an iteration of a statically bounded loop
 helper `g` (`TotalLeOn coreProgram fs g LoopPre (fun a => logG (a.getD 1 0) * SK g)`).
 `rawX_completeAtB`, `rawS_completeAtB`: the raw signatures' loops within those bounds
-(`cover_completeAtB`, `daList_completeAtB`, `statement_completeAtB` are in `KidCoverAtB`).
+(`statement_completeAtB` is in `KidCoverAtB`).
 -/
 
 namespace LeanVM.Guest.B1.Main
@@ -28,8 +28,7 @@ namespace LeanVM.Guest.B1.Main
 open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Value LeanVM.Guest.Memory
 open LeanVM.Protocol.Verifier (gen)
 open LeanVM.Guest.B1.Digest LeanVM.Guest.B1.Fwd
-open LeanVM.Guest.B1.Da (relAtIn_atoms RunIn SlOk slEvs_holds regionL_of_mem limb0_gen_pow_mul
-  fn_name_of_find)
+open LeanVM.Guest.B1.Da (relAtIn_atoms RunIn SlOk slEvs_holds regionL_of_mem limb0_gen_pow_mul)
 open LeanVM.Guest.B1 (CompleteAtD CompleteAtDTB Returns DisjL Within disj_append within_append LowDef
   completeAt_of_rel_pureD completeAt_of_rel_pureBat completeAtDTB_of_relIn)
 

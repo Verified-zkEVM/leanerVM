@@ -373,14 +373,8 @@ noncomputable def mainCounts (op : Opcode) :
     Budget.MainCounts (B2C.ωArm B2C.xmssArmC op) B2C.fs where
   kExp := kcExp op
   exp := kcExp_weightLe op
-  kDl := kcDl op
-  dl := kcDl_weightLe op
-  kCov := kcCov op
-  cov := kcCov_weightLe op
   kSd := kcSd op
   sd := kcSd_weightLe op
-  kL0 := kcL0 op
-  l0 := kcL0_loop op
   kL1 := kcL1 op
   l1 := kcL1_loop op
   kL2 := kcL2 op

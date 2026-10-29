@@ -162,20 +162,17 @@ theorem blobLeaf_size_le (u : End.Work) (hraw : u.rawXmss + u.rawSphincs = 0) (h
   · have hb := instr_shapes hlen op
     cases op <;> simp only [End.Linear.eval, Count.deployedInstrs] at hb ⊢ <;> omega
 
-/-- **A matrix's padded height within a power of two**: at most one matrix held directly, of at
-most `2^k` rows, is padded to at most `2^k` rows. -/
+/-- **A matrix's padded height within a power of two**: the matrix checked directly, of at most
+`2^k` rows, is padded to at most `2^k` rows. -/
 theorem pad_le {s : NodeStatement} {w : NodeWitness} {k : ℕ}
-    (hd : (Hints.direct s.claims.da w.da).length ≤ 1) (hr : (work s w).rawDaRows ≤ 2 ^ k) :
-    (work s w).rawDaPad ≤ 2 ^ k := by
+    (hr : (work s w).rawDaRows ≤ 2 ^ k) : (work s w).rawDaPad ≤ 2 ^ k := by
   simp only [work] at hr ⊢
-  match h : Hints.direct s.claims.da w.da, hd with
-  | [], _ => simp
-  | [p], _ =>
+  cases h : w.da with
+  | none => simp
+  | some p =>
     rw [h] at hr
-    simp only [List.map_cons, List.map_nil, List.sum_cons, List.sum_nil, Nat.add_zero,
-      LeanDa.nPad, LeanDa.logPad] at hr ⊢
+    simp only [Option.map_some, Option.getD_some, LeanDa.nPad, LeanDa.logPad] at hr ⊢
     exact Nat.pow_le_pow_right (by norm_num) (Nat.clog_le_of_le_pow hr)
-  | _ :: _ :: _, h' => simp at h'
 
 /-- `Covered`, by the node's work: `Covered s w` is `CoveredW (work s w)` by definition. -/
 def CoveredW (u : End.Work) : Prop :=
@@ -205,17 +202,18 @@ theorem guest_complete_covered : GuestCompleteCovered := by
   replace hcov := (covered_iff s w).1 hcov
   have hlen : (work s w).childShapes.length = (work s w).children := by simp [work]
   have hch : (work s w).children ≤ 16 := by simpa [work] using hlim.children
-  have hda : (work s w).rawDa ≤ 1 := by simpa [work] using hlim.directDa
+  have hda : (work s w).rawDa ≤ 1 := by
+    simp only [work]; cases w.da <;> simp
   have hrows : (work s w).rawDa = 0 → (work s w).rawDaRows = 0 := by
     intro hd
-    simp only [work, List.length_eq_zero_iff] at hd ⊢
-    simp [hd]
+    simp only [work] at hd ⊢
+    cases h : w.da <;> simp_all
   have hpad0 : (work s w).rawDa = 0 → (work s w).rawDaPad = 0 := by
     intro hd
-    simp only [work, List.length_eq_zero_iff] at hd ⊢
-    simp [hd]
+    simp only [work] at hd ⊢
+    cases h : w.da <;> simp_all
   have hpad : (work s w).rawDaRows ≤ 32 → (work s w).rawDaPad ≤ 32 := fun h ↦ by
-    simpa using pad_le (k := 5) hlim.directDa (by simpa using h)
+    simpa using pad_le (k := 5) (by simpa using h)
   have hshapes : (work s w).children = 0 → (work s w).childShapes = [] ∧
       (work s w).childClaims = 0 := by
     intro h0

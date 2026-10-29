@@ -54,9 +54,9 @@ child's claim lists' digests within `ccB`, child `c`'s `verify_sub` within `Bv c
 def mainBsH (fs : String → ℕ) (SB SK : String → ℕ) (Bv : ℕ → ℕ) (s : NodeStatement) (w : NodeWitness) :
     MainBs :=
   ⟨B1.Digest.clB fs SB SK s.claims.xmss.length, B1.Digest.clB fs SB SK s.claims.sphincs.length,
-    hDvB fs SB SK s w, aggB fs SB SK w.children.length,
+    hDvB fs SB SK w, aggB fs SB SK w.children.length,
     l5B fs SB (fun c => B1.Digest.ccB fs SB (hKid s w c).ex) (fun c => B1.Digest.ccB fs SB (hKid s w c).es)
-      Bv s w⟩
+      Bv w⟩
 
 /-- **`main`'s words on the honest run** at `fp`: its frame and buffers, `exponent_tables`', every
 other callee's bound (`mBs`, `kidsBoundL` over `mKids`). -/
@@ -73,12 +73,12 @@ theorem mainGoalsTB_honest {SB SK : String → ℕ} {Pvs : ℕ → Tree → Prop
     (hbl : bytecode.length = 2 ^ 23) (hr : NodeRel bytecode seed s w) (hl : Limits s w)
     (hrf : Lift.RunsFit fs cert) (hS : MainStatics fs SB SK)
     (hV : VerifySubGoalsTB fs cert fp seed s w Pvs Bv) :
-    MainGoalsTB fs cert fp seed s w (mainPredsH s w (hDvNH s w) Pvs) (mainBsH fs SB SK Bv s w) :=
+    MainGoalsTB fs cert fp seed s w (mainPredsH s w (hDvNH w) Pvs) (mainBsH fs SB SK Bv s w) :=
   ⟨mainGoalClXTB fs cert fp seed s w hl hS.ls hS.l16 hS.cl,
     mainGoalClSTB fs cert fp seed s w hl hS.ls hS.l16 hS.cl,
     mainGoalDvTB fs cert fp hr hrf hS.dv,
     mainGoalAgTB fs fp cert SB SK hS.l25 hS.l26 hS.l27 hS.bs hbl hr hl,
-    mainGoalL5TB fs cert SB hS.main.st hS.main.dl hbl hr hl hV (childListGoalsTB_honest cert hl hS.ls)⟩
+    mainGoalL5TB fs cert SB hS.main.st hbl hr hl hV (childListGoalsTB_honest cert hl hS.ls)⟩
 
 /-- **`main`'s completeness on the honest run within its words**: for `NodeRel` within `Limits`
 and a bytecode of `2^23` words, from the signature schemes' completeness (B1-e), the frame runs'
@@ -103,7 +103,7 @@ theorem main_honest_budgetB {SB SK : String → ℕ} {Pvs : ℕ → Tree → Pro
           (fun t => ∃ σ bufs ks, t = .node "main" σ bufs ks ∧ MVals rd σ (hm fs fp seed s w) ∧
             KidsT (mCalls σ (hm fs fp seed s w))
               ((fun _ => True) :: mTs (hm fs fp seed s w)
-                ((mainPredsH s w (hDvNH s w) Pvs).withTotal fs (mainBsH fs SB SK Bv s w))) ks ∧
+                ((mainPredsH s w (hDvNH w) Pvs).withTotal fs (mainBsH fs SB SK Bv s w))) ks ∧
             calls (mEvs σ) = mCalls σ (hm fs fp seed s w) ∧ bufs = mSizes (hData seed s w)) :=
   main_honest_relAtInTB hbl hr hl (mainStaticGoalsB_of hbl hr hl hxc hsc hS.main)
     (mainGoalsTB_honest hbl hr hl hrf hS hV).withTotal

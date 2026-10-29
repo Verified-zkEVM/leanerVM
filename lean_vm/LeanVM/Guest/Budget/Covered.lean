@@ -140,12 +140,8 @@ with at most `2048` declared claims, coverage slots and children's claims, there
 execution of the guest on the statement's digest of committed size in `[2^22, 2^28]`. -/
 theorem guest_complete_recursion : GuestCompleteRecursion := by
   intro seed s w hrel hlim hok hx hs hd hdecl hcov hcc
-  refine guest_complete_numeric seed s w hrel hlim hok (recursion_size_le _ hx hs hd ?_ ?_ hdecl
-    hcov hcc ?_ ?_)
-  · simp only [work, List.length_eq_zero_iff] at hd ⊢
-    simp [hd]
-  · simp only [work, List.length_eq_zero_iff] at hd ⊢
-    simp [hd]
+  refine guest_complete_numeric seed s w hrel hlim hok (recursion_size_le _ hx hs
+    (by simp [work, hd]) (by simp [work, hd]) (by simp [work, hd]) hdecl hcov hcc ?_ ?_)
   · simpa [work] using hlim.children
   · simpa [work] using hlim.children
 
@@ -156,12 +152,8 @@ no blob held directly, at most `2048` raw leanXMSS and leanSPHINCS signatures to
 statement's digest of committed size in `[2^22, 2^28]`. -/
 theorem guest_complete_leaf : GuestCompleteLeaf := by
   intro seed s w hrel hlim hok hch hd hxs hdecl hcov
-  refine guest_complete_numeric seed s w hrel hlim hok (leaf_size_le _ hxs hd ?_ ?_ hdecl hcov
-    ?_ ?_ ?_)
-  · simp only [work, List.length_eq_zero_iff] at hd ⊢
-    simp [hd]
-  · simp only [work, List.length_eq_zero_iff] at hd ⊢
-    simp [hd]
+  refine guest_complete_numeric seed s w hrel hlim hok (leaf_size_le _ hxs (by simp [work, hd])
+    (by simp [work, hd]) (by simp [work, hd]) hdecl hcov ?_ ?_ ?_)
   · simp [work, hch]
   · simp [work, hch]
   · simp [work, hch]

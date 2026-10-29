@@ -227,12 +227,12 @@ theorem LeanVM.corollaries_of_theorems {decode : LeanVM.Node.Decoder}
     intro seed s w hrel hlim hok hx hs hd hdecl hcov hkids
     refine h.guestCompleteCovered seed s w hrel hlim hok ?_
     simp only [LeanVM.Guest.Budget.Covered]
-    exact Or.inl ⟨by omega, hd, hdecl, hcov, hkids⟩
+    exact Or.inl ⟨by omega, by simp [hd], hdecl, hcov, hkids⟩
   guestCompleteLeaf := by
     intro seed s w hrel hlim hok hch hd hraw hdecl hcov
     refine h.guestCompleteCovered seed s w hrel hlim hok ?_
     simp only [LeanVM.Guest.Budget.Covered]
-    exact Or.inr (Or.inl ⟨by simp [hch], hd, hraw, hdecl, hcov⟩)
+    exact Or.inr (Or.inl ⟨by simp [hch], by simp [hd], hraw, hdecl, hcov⟩)
 
 /-- info: 'LeanVM.corollaries_of_theorems' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
