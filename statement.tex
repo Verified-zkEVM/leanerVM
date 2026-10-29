@@ -309,8 +309,10 @@ the Fiat--Shamir initial value prover and verifier derive from the bytecode; a t
 \item a list $X$ of leanXMSS claims and a list $S$ of leanSPHINCS claims, each a pair $(pk, m)$
 meaning ``$pk$ signed $m$'';
 \item a list $D$ of data-availability claims (\lean{DaClaim}), each a pair of digests
-$(\rho, \delta)$: $\rho$ (\lean{daRoot}) is the Merkle root of a blob, a matrix of $1$ to $1024$
-rows of $2^{15}$ elements of $\mathbb{K}$, and $\delta$ (\lean{membershipVectorDigest}) is the
+$(\rho, \delta)$ about one blob. A blob is a matrix of $1$ to $1024$ rows of $2^{15}$ elements of
+$\mathbb{K}$ (each row meant to be a codeword: $2^{14}$ symbols of data and their extension), and
+$\rho$ (\lean{daRoot}) is the hash of its content, a Merkle root over its rows and columns: each
+blob has its own root. $\delta$ (\lean{membershipVectorDigest}) is the
 digest of a vector $u$ of $2^{15}$ elements of $\mathbb{E}$. The claim means: some matrix commits
 to $\rho$ and some vector $u$ has digest $\delta$, and every row of the matrix is orthogonal to $u$
 (\lean{Da.Witness.Opens}).
