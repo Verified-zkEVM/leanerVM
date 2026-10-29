@@ -13,14 +13,14 @@ public import LeanVM.Guest.Value.Pigeonhole
 /-!
 # The coverage table
 
-The writers of `main`'s coverage table (G:4181-4262) store the marks `g^m`, `m < T`, one each:
-the raw leanXMSS signatures (`m < RX`), the raw leanSPHINCS ones (`RX ≤ m < RX + RS`), the direct
-DA check (`m = RX + RS` when `ND = 1`), and child `c`'s claims, from its base `a c`: its leanXMSS
-claims, its leanSPHINCS ones, its DA roots (`Segs`). Each writer's slot lies in its region:
-leanXMSS slots below `LXS`, leanSPHINCS slots in `[LXS, LXS + LSS)`, DA slots from `LXS + LSS`
-(`region`, `InRegion`). The slots lie below `T = LXS + LSS + DAS`, write-once memory keeps the
-marks apart, so the writers fill every slot once (`cover_bij`, from `Value.cover_of_writeOnce`):
-the mark in slot `s` (`markAt`) has its writer there, in the slot's region.
+The writers of `main`'s coverage table (G:4141-4205) store the marks `g^m`, `m < T`, one each:
+the raw leanXMSS signatures (`m < RX`), the raw leanSPHINCS ones (`RX ≤ m < RX + RS`), and child
+`c`'s claims, from its base `a c`: its leanXMSS claims, then its leanSPHINCS ones (`Segs`). Each
+writer's slot lies in its region: leanXMSS slots below `LXS`, leanSPHINCS slots in
+`[LXS, LXS + LSS)` (`region`, `InRegion`). The slots lie below `T = LXS + LSS`, write-once memory
+keeps the marks apart, so the writers fill every slot once (`cover_bij`, from
+`Value.cover_of_writeOnce`): the mark in slot `s` (`markAt`) has its writer there, in the slot's
+region.
 
 For the decoders: `find_first` (the child whose segment holds a mark), `find_unique` (the slot
 holding a mark), `filter_card` (the number of a segment's marks in a region).
@@ -88,15 +88,13 @@ theorem filter_card {P : ℕ → Bool} {len k : ℕ} (f : ℕ → ℕ) (hf : ∀
 
 /-! ## The segments -/
 
-/-- The writers' structure: raw signature counts, the direct DA flag, the children's counts. -/
+/-- The writers' structure: raw signature counts, the children's counts. -/
 structure Segs where
   RX : ℕ
   RS : ℕ
-  ND : ℕ
   NC : ℕ
   ex : ℕ → ℕ
   es : ℕ → ℕ
-  ed : ℕ → ℕ
 
 namespace Segs
 
@@ -104,19 +102,18 @@ variable (S : Segs)
 
 /-- Child `c`'s base: the marks before its segment. -/
 def a : ℕ → ℕ
-  | 0 => S.RX + S.RS + S.ND
-  | c + 1 => a c + (S.ex c + S.es c + S.ed c)
+  | 0 => S.RX + S.RS
+  | c + 1 => a c + (S.ex c + S.es c)
 
 theorem a_mono : Monotone S.a := monotone_nat_of_le_succ fun c => by simp [a]
 
 /-- The child whose segment holds the mark `m`. -/
 noncomputable def kid (m : ℕ) : ℕ := ((List.range S.NC).find? fun c => decide (m < S.a (c + 1))).getD 0
 
-/-- The region of the mark `m`'s writer: `0` leanXMSS, `1` leanSPHINCS, `2` DA. -/
+/-- The region of the mark `m`'s writer: `0` leanXMSS, `1` leanSPHINCS. -/
 noncomputable def region (m : ℕ) : ℕ :=
-  if m < S.RX then 0 else if m < S.RX + S.RS then 1 else if m < S.a 0 then 2 else
-  if m - S.a (S.kid m) < S.ex (S.kid m) then 0
-  else if m - S.a (S.kid m) < S.ex (S.kid m) + S.es (S.kid m) then 1 else 2
+  if m < S.RX then 0 else if m < S.RX + S.RS then 1 else
+  if m - S.a (S.kid m) < S.ex (S.kid m) then 0 else 1
 
 theorem seg_exists {m : ℕ} (h0 : S.a 0 ≤ m) :
     ∀ n, m < S.a n → ∃ c, c < n ∧ S.a c ≤ m ∧ m < S.a (c + 1) := by
@@ -141,32 +138,29 @@ theorem kid_spec {m : ℕ} (h0 : S.a 0 ≤ m) (h1 : m < S.a S.NC) :
 end Segs
 
 /-- The slot `s` lies in the region `r` of a table of `LXS` leanXMSS slots, then `LSS`
-leanSPHINCS slots, then the DA slots. -/
+leanSPHINCS slots. -/
 def InRegion (LXS LSS : ℕ) (r s : ℕ) : Prop :=
-  (r = 0 → s < LXS) ∧ (r = 1 → LXS ≤ s ∧ s < LXS + LSS) ∧ (r = 2 → LXS + LSS ≤ s)
+  (r = 0 → s < LXS) ∧ (r = 1 → LXS ≤ s ∧ s < LXS + LSS)
 
 /-! ## The writers -/
 
 /-- **What the writers establish**, for the coverage table at `cover`. -/
-structure Writers (rd : Reader) (cover : E) (S : Segs) (LXS LSS DAS : ℕ) : Prop where
+structure Writers (rd : Reader) (cover : E) (S : Segs) (LXS LSS : ℕ) : Prop where
   rawx : ∀ i < S.RX, ∃ s < LXS, LoadHolds rd cover s (gen ^ i)
   raws : ∀ j < S.RS, ∃ s < LSS, LoadHolds rd cover (LXS + s) (gen ^ (S.RX + j))
-  direct : S.ND ≤ 1 ∧ (S.ND = 1 → ∃ s < DAS, LoadHolds rd cover (LXS + LSS + s) (gen ^ (S.RX + S.RS)))
   kidx : ∀ c < S.NC, ∀ j < S.ex c, ∃ s < LXS, LoadHolds rd cover s (gen ^ (S.a c + j))
   kids : ∀ c < S.NC, ∀ j < S.es c, ∃ s < LSS,
     LoadHolds rd cover (LXS + s) (gen ^ (S.a c + S.ex c + j))
-  kidd : ∀ c < S.NC, ∀ d < S.ed c, ∃ s < DAS,
-    LoadHolds rd cover (LXS + LSS + s) (gen ^ (S.a c + S.ex c + S.es c + d))
-  total : S.a S.NC = LXS + LSS + DAS
-  small : LXS + LSS + DAS < 2 ^ 34
+  total : S.a S.NC = LXS + LSS
+  small : LXS + LSS < 2 ^ 34
 
 namespace Writers
 
-variable {rd : Reader} {cover : E} {S : Segs} {LXS LSS DAS : ℕ}
+variable {rd : Reader} {cover : E} {S : Segs} {LXS LSS : ℕ}
 
 /-- Every mark below the total is written into a slot of its region. -/
-theorem slot_exists (W : Writers rd cover S LXS LSS DAS) :
-    ∀ m < LXS + LSS + DAS, ∃ s, s < LXS + LSS + DAS ∧ LoadHolds rd cover s (gen ^ m) ∧
+theorem slot_exists (W : Writers rd cover S LXS LSS) :
+    ∀ m < LXS + LSS, ∃ s, s < LXS + LSS ∧ LoadHolds rd cover s (gen ^ m) ∧
       InRegion LXS LSS (S.region m) s := by
   intro m hm
   unfold Segs.region
@@ -177,28 +171,18 @@ theorem slot_exists (W : Writers rd cover S LXS LSS DAS) :
   · obtain ⟨s, hs, hl⟩ := W.raws (m - S.RX) (by omega)
     rw [show S.RX + (m - S.RX) = m by omega] at hl
     exact ⟨LXS + s, by omega, hl, by simp [InRegion, h1, h2]; omega⟩
-  by_cases h3 : m < S.a 0
-  · have hND1 := W.direct.1
-    have hND : S.ND = 1 := by simp [Segs.a] at h3; omega
-    obtain ⟨s, hs, hl⟩ := W.direct.2 hND
-    have : m = S.RX + S.RS := by simp [Segs.a] at h3; omega
-    subst this
-    exact ⟨LXS + LSS + s, by omega, hl, by simp [InRegion, h1, h3]⟩
-  obtain ⟨hc, hc1, hc2⟩ := S.kid_spec (m := m) (by omega) (by rw [W.total]; exact hm)
+  obtain ⟨hc, hc1, hc2⟩ := S.kid_spec (m := m) (by simp [Segs.a]; omega)
+    (by rw [W.total]; exact hm)
   set c := S.kid m
-  have hac : S.a (c + 1) = S.a c + (S.ex c + S.es c + S.ed c) := rfl
-  simp only [h1, h2, h3, ↓reduceIte]
+  have hac : S.a (c + 1) = S.a c + (S.ex c + S.es c) := rfl
+  simp only [h1, h2, ↓reduceIte]
   by_cases h4 : m - S.a c < S.ex c
   · obtain ⟨s, hs, hl⟩ := W.kidx c hc (m - S.a c) h4
     rw [show S.a c + (m - S.a c) = m by omega] at hl
     exact ⟨s, by omega, hl, by simp [InRegion, h4]; omega⟩
-  by_cases h5 : m - S.a c < S.ex c + S.es c
   · obtain ⟨s, hs, hl⟩ := W.kids c hc (m - S.a c - S.ex c) (by omega)
     rw [show S.a c + S.ex c + (m - S.a c - S.ex c) = m by omega] at hl
-    exact ⟨LXS + s, by omega, hl, by simp [InRegion, h4, h5]; omega⟩
-  · obtain ⟨s, hs, hl⟩ := W.kidd c hc (m - S.a c - S.ex c - S.es c) (by omega)
-    rw [show S.a c + S.ex c + S.es c + (m - S.a c - S.ex c - S.es c) = m by omega] at hl
-    exact ⟨LXS + LSS + s, by omega, hl, by simp [InRegion, h4, h5]⟩
+    exact ⟨LXS + s, by omega, hl, by simp [InRegion, h4]; omega⟩
 
 end Writers
 
@@ -207,26 +191,25 @@ noncomputable def markAt (rd : Reader) (cover : E) (s : ℕ) : ℕ := gLog (memA
 
 /-- **The coverage table**: a slot function for the marks below `T`, each in its region, and every
 slot below `T` holding the mark whose slot it is. -/
-structure Cover (rd : Reader) (cover : E) (S : Segs) (LXS LSS DAS : ℕ) (sl : ℕ → ℕ) : Prop where
-  lt : ∀ m < LXS + LSS + DAS, sl m < LXS + LSS + DAS
-  wr : ∀ m < LXS + LSS + DAS, LoadHolds rd cover (sl m) (gen ^ m)
-  reg : ∀ m < LXS + LSS + DAS, InRegion LXS LSS (S.region m) (sl m)
-  mark : ∀ s < LXS + LSS + DAS, markAt rd cover s < LXS + LSS + DAS ∧ sl (markAt rd cover s) = s
-  uniq : ∀ s < LXS + LSS + DAS, ∀ m < LXS + LSS + DAS, LoadHolds rd cover s (gen ^ m) → s = sl m
+structure Cover (rd : Reader) (cover : E) (S : Segs) (LXS LSS : ℕ) (sl : ℕ → ℕ) : Prop where
+  lt : ∀ m < LXS + LSS, sl m < LXS + LSS
+  wr : ∀ m < LXS + LSS, LoadHolds rd cover (sl m) (gen ^ m)
+  reg : ∀ m < LXS + LSS, InRegion LXS LSS (S.region m) (sl m)
+  mark : ∀ s < LXS + LSS, markAt rd cover s < LXS + LSS ∧ sl (markAt rd cover s) = s
+  uniq : ∀ s < LXS + LSS, ∀ m < LXS + LSS, LoadHolds rd cover s (gen ^ m) → s = sl m
 
 /-- **The writers fill the table once.** -/
-theorem cover_bij {rd : Reader} {cover : E} {S : Segs} {LXS LSS DAS : ℕ}
-    (W : Writers rd cover S LXS LSS DAS) : ∃ sl, Cover rd cover S LXS LSS DAS sl := by
+theorem cover_bij {rd : Reader} {cover : E} {S : Segs} {LXS LSS : ℕ}
+    (W : Writers rd cover S LXS LSS) : ∃ sl, Cover rd cover S LXS LSS sl := by
   have hex := W.slot_exists
   choose! sl hlt hwr hreg using hex
   have hT := W.small
-  have hmem : ∀ m < LXS + LSS + DAS, memAt rd cover (sl m) = gen ^ m :=
+  have hmem : ∀ m < LXS + LSS, memAt rd cover (sl m) = gen ^ m :=
     fun m hm => memAt_of_load (hwr m hm)
-  have hbij := cover_of_writeOnce (N := LXS + LSS + DAS) (M := LXS + LSS + DAS) (slot := sl)
+  have hbij := cover_of_writeOnce (N := LXS + LSS) (M := LXS + LSS) (slot := sl)
     (mark := fun m => gen ^ m) (mem := memAt rd cover) hlt
     (fun i hi j hj h => gen_pow_inj34 (by omega) (by omega) h) hmem le_rfl
-  have hmark : ∀ s < LXS + LSS + DAS, markAt rd cover s < LXS + LSS + DAS ∧
-      sl (markAt rd cover s) = s := by
+  have hmark : ∀ s < LXS + LSS, markAt rd cover s < LXS + LSS ∧ sl (markAt rd cover s) = s := by
     intro s hs
     obtain ⟨m, ⟨hm, hms⟩, -⟩ := hbij s hs
     have : markAt rd cover s = m := by
