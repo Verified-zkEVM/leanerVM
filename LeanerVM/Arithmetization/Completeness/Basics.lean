@@ -26,10 +26,10 @@ them back and its proofs are unchanged.
   (`Component.rowOperations`): the form the kernel evaluates and the form this layer rewrites.
   `Component.operations` reaches them through `instantiate` and `toSubcircuit`, which the kernel
   does not unfold (status finding E8). `rowMessagesOn_eq` is the same for one row.
-* `filter_eq_nil_of_rowOps`, `memTable_rowOps` and `bytecodeTable_rowOps`: a table whose row
+* `filter_eq_nil_of_rowOps`, `memComponent_rowOps` and `bytecodeComponent_rowOps`: a table whose row
   circuit has no interaction on a channel sends nothing on it, and the two blocks' interactions
   are their seed push and finalize pull on the row's variables.
-* `xor_constraints` and its six siblings: the components with no constraint satisfy their
+* `xor_constraints` and its five siblings: the components with no constraint satisfy their
   constraints on every row, in every environment, since only the `JUMP` table asserts anything
   (`tables.rs:724-731`).
 
@@ -74,31 +74,33 @@ theorem table_interactions_eq (t : Air.Flat.Table K) :
       t.component.rowOperations.interactions.map (·.eval (t.environment row)) := by
   simp only [Air.Flat.Table.interactions, Operations.interactionValues, Component.interactions_eq]
 
-/-- A row's messages on a channel, through the row circuit. -/
-theorem rowMessagesOn_eq (t : Air.Flat.Table K) (r : Array K) (c : RawChannel K) :
-    rowMessagesOn t r c =
-      ((t.component.rowOperations.interactions.map (·.eval (t.environment r))).filter
-        (·.channel.name = c.name)).map (·.msg) := by
+/-- A row's messages on a channel in a direction, through the row circuit. -/
+theorem rowMessagesOn_eq (t : Air.Flat.Table K) (r : Array K) (c : RawChannel K) (d : BusDir) :
+    rowMessagesOn t r c d =
+      activeMessages ((t.component.rowOperations.interactions.map
+        (·.eval (t.environment r))).filter (·.channel.name = c.name)) d := by
   rw [rowMessagesOn, Operations.interactionValues, Component.interactions_eq]
 
 /-- The memory block's two interactions, on a row's variables. -/
-theorem memTable_rowOps :
-    (⟨memTable⟩ : Component K).rowOperations.interactions =
-      [⟨MemPush.toRaw, 1, toElements (⟨var ⟨0⟩, 1, #v[var ⟨2⟩, var ⟨3⟩, var ⟨4⟩]⟩ :
-          MemMsg (Expression K)), false⟩,
-       ⟨MemPull.toRaw, -1, toElements (⟨var ⟨0⟩, var ⟨1⟩, #v[var ⟨2⟩, var ⟨3⟩, var ⟨4⟩]⟩ :
-          MemMsg (Expression K)), true⟩] := by
+theorem memComponent_rowOps (κ : ℕ) :
+    (memComponent κ).rowOperations.interactions =
+      [⟨MemChannel.toRaw, .push, 1, toElements (⟨var ⟨0⟩, 1, #v[var ⟨2⟩, var ⟨3⟩, var ⟨4⟩]⟩ :
+          MemMsg (Expression K))⟩,
+       ⟨MemChannel.toRaw, .pull, 1, toElements (⟨var ⟨0⟩, var ⟨1⟩,
+          #v[var ⟨2⟩, var ⟨3⟩, var ⟨4⟩]⟩ : MemMsg (Expression K))⟩] := by
   with_unfolding_all rfl
 
 /-- The bytecode block's two interactions, on a row's variables. -/
-theorem bytecodeTable_rowOps :
-    (⟨bytecodeTable⟩ : Component K).rowOperations.interactions =
-      [⟨BytecodePush.toRaw, 1, toElements (⟨var ⟨0⟩, 1, var ⟨2⟩,
+theorem bytecodeComponent_rowOps (prog : Program) :
+    (bytecodeComponent prog).rowOperations.interactions =
+      [⟨BytecodeChannel.toRaw, .push, 1, toElements (⟨var ⟨0⟩, 1, var ⟨2⟩,
           #v[var ⟨3⟩, var ⟨4⟩, var ⟨5⟩, var ⟨6⟩, var ⟨7⟩, var ⟨8⟩, var ⟨9⟩]⟩ :
-          BytecodeMsg (Expression K)), false⟩,
-       ⟨BytecodePull.toRaw, -1, toElements (⟨var ⟨0⟩, var ⟨1⟩, var ⟨2⟩,
+          BytecodeMsg (Expression K))⟩,
+       ⟨BytecodeChannel.toRaw, .pull, 1, toElements (⟨var ⟨0⟩, var ⟨1⟩, var ⟨2⟩,
           #v[var ⟨3⟩, var ⟨4⟩, var ⟨5⟩, var ⟨6⟩, var ⟨7⟩, var ⟨8⟩, var ⟨9⟩]⟩ :
-          BytecodeMsg (Expression K)), true⟩] := by
+          BytecodeMsg (Expression K))⟩] := by
+  show ((bytecodeTable.main (varFromOffset BytecodeRow 0)).operations
+    (size BytecodeRow)).interactions = _
   with_unfolding_all rfl
 
 /-- A table whose row circuit interacts on no channel named `c` sends nothing on `c`, whatever
@@ -118,50 +120,44 @@ theorem filter_eq_nil_of_rowOps (t : Air.Flat.Table K) (c : RawChannel K)
 
 /-- The `XOR` table asserts nothing: its constraints hold in every environment. -/
 theorem xor_constraints (env : Environment K) :
-    (⟨xorTable⟩ : Component K).operations.ConstraintsHold env := by
+    xorComponent.operations.ConstraintsHold env := by
   rw [Component.constraintsHold_iff]
-  simp only [circuit_norm, xorTable, memRead, bytecodeRead, -BitVec.reduceNeg]
+  simp only [circuit_norm, xorComponent, xorTable, instructionStep, memRead, bytecodeRead, -BitVec.reduceNeg]
 
 /-- The `MUL_NATIVE` table asserts nothing. -/
 theorem mul_constraints (env : Environment K) :
-    (⟨mulTable⟩ : Component K).operations.ConstraintsHold env := by
+    mulComponent.operations.ConstraintsHold env := by
   rw [Component.constraintsHold_iff]
-  simp only [circuit_norm, mulTable, memRead, bytecodeRead, -BitVec.reduceNeg]
+  simp only [circuit_norm, mulComponent, mulTable, instructionStep, memRead, bytecodeRead, -BitVec.reduceNeg]
 
 /-- The `SET_CONSTANT` table asserts nothing. -/
 theorem set_constraints (env : Environment K) :
-    (⟨setTable⟩ : Component K).operations.ConstraintsHold env := by
+    setComponent.operations.ConstraintsHold env := by
   rw [Component.constraintsHold_iff]
-  simp only [circuit_norm, setTable, memRead, bytecodeRead, -BitVec.reduceNeg]
+  simp only [circuit_norm, setComponent, setTable, instructionStep, memRead, bytecodeRead, -BitVec.reduceNeg]
 
 /-- The `DEREF` table asserts nothing. -/
 theorem deref_constraints (env : Environment K) :
-    (⟨derefTable⟩ : Component K).operations.ConstraintsHold env := by
+    derefComponent.operations.ConstraintsHold env := by
   rw [Component.constraintsHold_iff]
-  simp only [circuit_norm, derefTable, memRead, bytecodeRead, -BitVec.reduceNeg]
+  simp only [circuit_norm, derefComponent, derefTable, instructionStep, memRead, bytecodeRead, -BitVec.reduceNeg]
 
 /-- The `BLAKE2S` table asserts nothing: the compression is Flock's (`Blake2sRowsValid`). -/
 theorem blake2s_constraints (env : Environment K) :
-    (⟨blake2sTable⟩ : Component K).operations.ConstraintsHold env := by
+    blake2sComponent.operations.ConstraintsHold env := by
   rw [Component.constraintsHold_iff]
-  simp only [circuit_norm, blake2sTable, memRead, bytecodeRead, -BitVec.reduceNeg]
+  simp only [circuit_norm, blake2sComponent, blake2sTable, instructionStep, memRead, bytecodeRead, -BitVec.reduceNeg]
 
 /-- The memory block asserts nothing. -/
-theorem mem_constraints (env : Environment K) :
-    (⟨memTable⟩ : Component K).operations.ConstraintsHold env := by
+theorem mem_constraints (κ : ℕ) (env : Environment K) :
+    (memComponent κ).operations.ConstraintsHold env := by
   rw [Component.constraintsHold_iff]
-  simp only [circuit_norm, memTable, -BitVec.reduceNeg]
+  simp only [circuit_norm, memComponent, memTable, -BitVec.reduceNeg]
 
 /-- The bytecode block asserts nothing. -/
-theorem bytecode_constraints (env : Environment K) :
-    (⟨bytecodeTable⟩ : Component K).operations.ConstraintsHold env := by
+theorem bytecode_constraints (prog : Program) (env : Environment K) :
+    (bytecodeComponent prog).operations.ConstraintsHold env := by
   rw [Component.constraintsHold_iff]
-  simp only [circuit_norm, bytecodeTable, -BitVec.reduceNeg]
-
-/-- The verifier asserts nothing, for any program. -/
-theorem verifier_constraints (prog : Program) (env : Environment K) :
-    (⟨leanIsaVerifier prog⟩ : Component K).operations.ConstraintsHold env := by
-  rw [Component.constraintsHold_iff]
-  simp only [circuit_norm, leanIsaVerifier, -BitVec.reduceNeg]
+  simp only [circuit_norm, bytecodeComponent, bytecodeTable, -BitVec.reduceNeg]
 
 end LeanerVM.Arithmetization

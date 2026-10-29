@@ -135,6 +135,7 @@ def MulSpec (r : MulRow K) (next : Regs K) (data : ProverData K) : Prop :=
 of `(MUL, o_A, o_B, o_C, 0, 0, 0, 0)`, the two operand reads, and the result read carrying the
 tower product's three lanes. Returns the pushed successor `(g·pc, fp)`. -/
 def mulTable : GeneralFormalCircuit K MulRow Regs where
+  name := "mul_native"
   main r := do
     let next : Var Regs K := ⟨Expression.const g * r.pc, r.fp⟩
     instructionStep r.pc r.fp r.rbc next .mulNative #v[r.oA, r.oB, r.oC, 0, 0, 0, 0]
@@ -147,8 +148,8 @@ def mulTable : GeneralFormalCircuit K MulRow Regs where
            r.vA[2] * r.vB[2],
          r.vA[0] * r.vB[2] + r.vA[1] * r.vB[1] + r.vA[2] * r.vB[0] + r.vA[2] * r.vB[2]]
     pure next
-  -- The push channels: their requirements are vacuous (Layer 5), the obligation is `Spec`.
-  channelsWithRequirements := [StatePush.toRaw, MemPush.toRaw, BytecodePush.toRaw]
+  -- The three channels: each push owes its channel's guarantee (Layer 5).
+  channelsWithRequirements := [StateChannel.toRaw, MemChannel.toRaw, BytecodeChannel.toRaw]
   requirementsChannelsLawful input offset := by
     -- Without core's `BitVec.reduceNeg` simproc, which misreads `-1 : K` (finding E6).
     simp only [circuit_norm, instructionStep, memRead, bytecodeRead, -BitVec.reduceNeg]
@@ -160,10 +161,12 @@ def mulTable : GeneralFormalCircuit K MulRow Regs where
   -- `mul_exec_complete`.
   ProverAssumptions r data _ := ∃ next, MulSpec r next data
   soundness := by
-    circuit_proof_start [StatePull, StatePush, MemPull, MemPush, BytecodePull, BytecodePush,
+    circuit_proof_start [StateChannel, MemChannel, BytecodeChannel,
       instructionStep, memRead, bytecodeRead]
-    -- The bytecode guarantee, that the tuple decodes, is unused (see `XOR`).
-    obtain ⟨-, hA, hB, hC⟩ := h_holds
+    -- The bytecode guarantee, that the tuple decodes, serves only its push (see `XOR`).
+    obtain ⟨hbc, hA, hB, hC⟩ := h_holds
+    -- Each push re-sends its pull's message: what it owes is what the pull is granted.
+    refine ⟨?_, fun _ ↦ hbc, fun _ ↦ hA, fun _ ↦ hB, fun _ ↦ hC⟩
     obtain ⟨_, _, _, _, _, hvA, hvB, _, _, _, _⟩ := h_input
     subst hvA hvB
     refine (mul_refines_iff _ _ _).mpr ⟨⟨?_, ?_⟩, ?_, rfl⟩
@@ -171,7 +174,7 @@ def mulTable : GeneralFormalCircuit K MulRow Regs where
     · simpa only [Vector.getElem_map] using hB
     · simpa only [mul_limbs, Vector.getElem_map] using hC
   completeness := by
-    circuit_proof_start [StatePull, StatePush, MemPull, MemPush, BytecodePull, BytecodePush,
+    circuit_proof_start [StateChannel, MemChannel, BytecodeChannel,
       instructionStep, memRead, bytecodeRead]
     -- The four pull guarantees, from the semantic premise: the tuple `main` emits decodes
     -- (Layer 4), and the result read carries the limbs of the product a valid execution reads

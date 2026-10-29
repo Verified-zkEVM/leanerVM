@@ -193,6 +193,7 @@ residual constraints, the state pull and the push of the derived successor, the 
 of `(JMP, o_c, o_d, o_f, 0, 0, 0, 0)`, and the three single-limb reads. Returns the pushed
 successor. -/
 def jumpTable : GeneralFormalCircuit K JumpRow Regs where
+  name := "jump"
   main r := do
     -- The honest inverse `w = v_cond⁻¹` (`0` when `v_cond = 0`) and the indicator `b`.
     let w ← witness (.ite (r.vcond =? 0) 0 r.vcond⁻¹)
@@ -207,8 +208,8 @@ def jumpTable : GeneralFormalCircuit K JumpRow Regs where
     memRead (r.fp * r.od) r.rd #v[r.vpc, 0, 0]
     memRead (r.fp * r.of) r.rf #v[r.vfp, 0, 0]
     pure next
-  -- The push channels: their requirements are vacuous (Layer 5), the obligation is `Spec`.
-  channelsWithRequirements := [StatePush.toRaw, MemPush.toRaw, BytecodePush.toRaw]
+  -- The three channels: each push owes its channel's guarantee (Layer 5).
+  channelsWithRequirements := [StateChannel.toRaw, MemChannel.toRaw, BytecodeChannel.toRaw]
   requirementsChannelsLawful input offset := by
     -- Without core's `BitVec.reduceNeg` simproc, which misreads `-1 : K` (finding E6).
     simp only [circuit_norm, instructionStep, memRead, bytecodeRead, -BitVec.reduceNeg]
@@ -220,10 +221,12 @@ def jumpTable : GeneralFormalCircuit K JumpRow Regs where
   -- valid execution by `jumpRowOf_refines`; see `jump_exec_complete`.
   ProverAssumptions r data _ := ∃ next, JumpSpec r next data
   soundness := by
-    circuit_proof_start [StatePull, StatePush, MemPull, MemPush, BytecodePull, BytecodePush,
+    circuit_proof_start [StateChannel, MemChannel, BytecodeChannel,
       instructionStep, memRead, bytecodeRead]
-    -- The bytecode guarantee, that the tuple decodes, is unused (see `XOR`).
-    obtain ⟨hw, hb, -, hc, hd, hf⟩ := h_holds
+    -- The bytecode guarantee, that the tuple decodes, serves only its push (see `XOR`).
+    obtain ⟨hw, hb, hbc, hc, hd, hf⟩ := h_holds
+    -- Each push re-sends its pull's message: what it owes is what the pull is granted.
+    refine ⟨?_, fun _ ↦ hbc, fun _ ↦ hc, fun _ ↦ hd, fun _ ↦ hf⟩
     have hind := flags_sound hw hb
     refine (jump_refines_iff _ _ _).mpr ⟨⟨hc, hd, hf⟩, ?_⟩
     split_ifs at hind ⊢ with hc0
@@ -232,7 +235,7 @@ def jumpTable : GeneralFormalCircuit K JumpRow Regs where
     · -- Taken: `b = 1`, the successor is `(v_pc, v_fp)` since `x + x = 0`.
       simp only [hind, one_mul, add_assoc, CharTwo.add_self_eq_zero, add_zero]
   completeness := by
-    circuit_proof_start [StatePull, StatePush, MemPull, MemPush, BytecodePull, BytecodePush,
+    circuit_proof_start [StateChannel, MemChannel, BytecodeChannel,
       instructionStep, memRead, bytecodeRead]
     -- The four pull guarantees are the bindings of the semantic premise, the tuple `main`
     -- emits decodes (Layer 4), and the two residuals hold of the honest witnesses.

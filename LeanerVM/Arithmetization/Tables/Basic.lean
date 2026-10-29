@@ -9,6 +9,7 @@
 module
 
 public import LeanerVM.Arithmetization.Channels
+public import Clean.Air.WitnessGeneration.Generation
 
 @[expose] public section
 
@@ -21,10 +22,12 @@ arithmetic (`add_limbs`, `mul_limbs`, `ofK_eq_ofLimbs`, `isInK_ofLimbs`, `ofLimb
 `ofLimbs_eq_zero_iff`, `E.ofCell`) is Layer 0's (`LeanerVM.Parameters.Field`), and reading a
 word of the image back as a row's limbs (`MemImage.limbsAt`, `MemImage.cellAt`) is Layer 2's
 (`LeanerVM.Semantics.Memory`). A row's three-limb column `v` is the word
-`E.ofLimbs v[0] v[1] v[2]`, spelled as Layer 5's `MemPull.Guarantees` spells it.
+`E.ofLimbs v[0] v[1] v[2]`, spelled as Layer 5's `MemChannel.Guarantees` spells it.
 
 * `instructionStep` is what every opcode row does first: pull its state `(pc, fp)`, push its
   successor, and read its bytecode entry at `pc`.
+* `opcodeGeneration Row` is the witness-generation metadata of an opcode table, a Clean demand
+  component on the state channel. No theorem uses Clean's generator.
 * `rowEnv data` is the prover environment of a row of a table without local witnesses: no
   witness slots, the data, no hints. `*_exec_complete` states completeness in it, and so do the
   boundary blocks of Layer 7 (`LeanerVM.Arithmetization.Boundary`).
@@ -41,9 +44,21 @@ open LeanerVM.Parameters LeanerVM.Semantics
 `next`, and read the bytecode entry `(op, operands)` at `pc` with count `rbc`. -/
 def instructionStep (pc fp rbc : Expression K) (next : Var Regs K) (op : Opcode)
     (operands : Vector (Expression K) 7) : Circuit K Unit := do
-  StatePull.pull ⟨pc, fp⟩
-  StatePush.push next
+  StateChannel.pull ⟨pc, fp⟩
+  StateChannel.push next
   bytecodeRead pc rbc (Expression.const op.code) operands
+
+/-- The witness-generation metadata of an opcode table: a demand component on the state channel,
+one row per pushed state, which it pulls into its first two cells (every table's `pc`, `fp`);
+the other cells are placeholders. No theorem uses Clean's generator. -/
+def opcodeGeneration (Row : TypeMap) [ProvableType Row] :
+    Air.Flat.WitnessGeneration.Generation K Row :=
+  .demand
+    { channel := StateChannel
+      trigger := .push
+      input s := pure (fromElements (Vector.ofFn fun j : Fin (size Row) ↦
+        if j.val = 0 then (s.pc : Air.Flat.WitnessGeneration.Cell K)
+        else if j.val = 1 then s.fp else 0)) }
 
 /-- The prover environment of a row of a table without local witnesses: no witness slots
 (every slot reads `0`), the data, no hints. -/
