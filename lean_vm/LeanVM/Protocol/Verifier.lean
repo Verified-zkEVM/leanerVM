@@ -109,7 +109,7 @@ def decodeAll {α : Type} (size : ℕ) (decode : Bytes → α) (b : Bytes) : Opt
   | some (xs, []) => some xs
   | _ => none
 
-/-- `bytecode.bin`: the bytecode's words (`main`, `verifier.py:1533-1534`). -/
+/-- `bytecode.bin`: the bytecode's words (`main`, `verifier.py:1531-1532`). -/
 def decodeWords (b : Bytes) : Option (List K) := decodeAll 8 kOfBytes b
 
 /-- `public_input.bin`: the 32-byte public input (`Digest.__post_init__`). -/
@@ -151,7 +151,7 @@ def laterOpeningShapes : ℕ → List Whir.Level → List (ℕ × ℕ)
 
 /-- The openings of a WHIR run on a `logN`-variable stack, level by level: level `0` opens the
 stack at `commitStack`'s shape, level `ℓ + 1` the commitment read at level `ℓ`
-(`verify_whir`, `verifier.py:1124-1202`). -/
+(`verify_whir`, `verifier.py:1125-1203`). -/
 def whirOpeningShapes (logN : ℕ) : List Whir.Level → List (ℕ × ℕ)
   | [] => []
   | level :: rest =>

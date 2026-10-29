@@ -23,20 +23,19 @@ family's seeds put the program at the statement's root history.
   bytecode and public input. The root of a statement is its history of reads (`stmtHistory`),
   at which `anyProgram` is the statement's verifier program (`after_stmtHistory`). The reads
   are never absorbed: they only index the statement in the program.
-* **The seedings** (`leanVmSeeds`): the statement's seeding and root. Its hash answers are each
-  carried later (the bytecode's and the relation's digests in the IV's preimage at bytes `46` and
-  `14`, the IV in the permutation input's first lanes), the permutation input has zero capacity,
-  and, computed through answers without collisions, names the statement, because the bytecode
-  words name the program (`bytecodeWords_injective`) and the digest names the public input
-  (`publicDigest_injective`).
+* **The seedings** (`leanVmSeeds`): the statement's seeding and root. Its one hash answer, the
+  IV, is carried in the permutation input's first lanes, the permutation input has zero capacity,
+  and, computed through answers without collisions, names the statement, because the IV's
+  preimage is the version tag then the bytecode's words, which name the program
+  (`bytecodeWords_injective`), and the digest names the public input (`publicDigest_injective`).
 * **The certificate** (`anyCert`): past a statement's root, the doom of `leanVmCert` of that
   statement on the rest of the history. Roots are prefix-free (`stmt_eq_of_prefix`), so the
   history names the statement and every obligation is `leanVmCert`'s.
 
 `leanVm_knowledge` and `leanVm_execution` state knowledge soundness for an adversary of `QA`
-queries that outputs a statement and a proof: with `N = QA + 12008`, the verifier accepts while
+queries that outputs a statement and a proof: with `N = QA + 12006`, the verifier accepts while
 the extractor finds no witness of the adversary's statement with probability at most
-`N · (2^-128 + 7N / 2^256)`.
+`N · (2^-128 + 5N / 2^256)`.
 -/
 
 namespace LeanVM.Protocol.EndToEnd.Sound
@@ -368,24 +367,6 @@ theorem length_flatMap_kBytes (ws : List K) : (ws.flatMap kBytes).length = 8 * w
   | nil => rfl
   | cons w ws ih => simp [List.flatMap_cons, kBytes_length, ih]; ring
 
-/-- The IV's preimage carries the relation's digest at byte `14` and the bytecode's at byte
-`46`. -/
-theorem chunkAt_ivPreimage (rel bc : Digest) :
-    chunkAt 14 (ivPreimage rel bc) = digestBytes rel ∧
-      chunkAt 46 (ivPreimage rel bc) = digestBytes bc := by
-  have h8 := wordBytes_length (digestBytes rel).length.toUInt64
-  have hr := digestBytes_length rel
-  have hb := digestBytes_length bc
-  constructor
-  · simp only [chunkAt, ivPreimage, List.append_assoc]
-    rw [show (14 : ℕ) = 6 + 8 from rfl, ← List.drop_drop, List.drop_left' (by rfl),
-      List.drop_left' h8]
-    exact List.take_left' hr
-  · simp only [chunkAt, ivPreimage, List.append_assoc]
-    rw [show (46 : ℕ) = 6 + (8 + 32) from rfl, ← List.drop_drop, List.drop_left' (by rfl),
-      ← List.drop_drop, List.drop_left' h8, List.drop_left' hr]
-    exact List.take_of_length_le (by omega)
-
 /-- The public digest of a seeding's permutation input: its lanes `4 … 7`. -/
 def pdOf (t : KState) : Digest :=
   #v[Keccak.lane t 4, Keccak.lane t 5, Keccak.lane t 6, Keccak.lane t 7]
@@ -395,64 +376,43 @@ theorem pdOf_seedInput (iv pd : Digest) : pdOf (seedInput iv pd) = pd := by
   simp only [pdOf]
   interval_cases i <;> simp [seedInput, lane_ofFn]
 
-/-- The leanVM seeding has three hash steps. -/
+/-- The leanVM seeding has one hash step, the IV's. -/
 theorem length_leanVmSeed_hs (bytecode : List K) (pd : Digest) :
-    (leanVmSeed bytecode pd).hs.length = 3 := rfl
+    (leanVmSeed bytecode pd).hs.length = 1 := rfl
 
-/-- **The seedings of the statements**: the statement's seeding (the bytecode's hash, the
-relation's, the IV's, then the permutation of the IV and the public digest) and root. The IV's
-preimage carries the relation's digest at byte `14` and the bytecode's at byte `46`; the IV is
+/-- **The seedings of the statements**: the statement's seeding (the IV, the hash of the version
+tag and the bytecode, then the permutation of the IV and the public digest) and root. The IV is
 the permutation input's first four lanes. -/
 def leanVmSeeds : Seeds Statement where
   seed x := leanVmSeed (bytecodeWords x.1) (publicDigest x.2)
   root := stmtHistory
-  offs := [14, 46]
+  offs := []
   refs x ds hds i hi := by
     rw [length_leanVmSeed_hs] at hds
     have hd0 : ds.getD 0 default = ds[0] := by simp [List.getD_eq_getElem?_getD, hds]
-    have hd1 : ds.getD 1 default = ds[1] := by simp [List.getD_eq_getElem?_getD, hds]
-    have hd2 : ds.getD 2 default = ds[2] := by simp [List.getD_eq_getElem?_getD, hds]
-    have hiv := chunkAt_ivPreimage ds[1] ds[0]
-    have h0 : (ds.take 2).getD 0 default = ds[0] := by
-      simp [List.getD_eq_getElem?_getD, hds]
-    have h1 : (ds.take 2).getD 1 default = ds[1] := by
-      simp [List.getD_eq_getElem?_getD, hds]
     rw [hds] at hi
     interval_cases i
-    · exact Or.inr ⟨2, _, by norm_num, rfl, 46, by simp, by simp only [h0, h1]; exact hiv.2⟩
-    · exact Or.inr ⟨2, _, by norm_num, rfl, 14, by simp, by simp only [h0, h1]; exact hiv.1⟩
-    · left
-      show laneDigest (seedInput (ds.getD 2 default) (publicDigest x.2)) = ds[2]
-      rw [laneDigest_seedInput, hd2]
+    left
+    show laneDigest (seedInput (ds.getD 0 default) (publicDigest x.2)) = ds[0]
+    rw [laneDigest_seedInput, hd0]
   cap0 x ds := capOf_seedInput _ _
   inj H hH x x' ds ds' ha ha' he := by
-    have hl : ds.length = 3 := ha.1
-    have hl' : ds'.length = 3 := ha'.1
-    have hiv : ds.getD 2 default = ds'.getD 2 default := by
+    have hl : ds.length = 1 := ha.1
+    have hl' : ds'.length = 1 := ha'.1
+    have hiv : ds.getD 0 default = ds'.getD 0 default := by
       have := congrArg laneDigest he
       simpa [leanVmSeed, laneDigest_seedInput] using this
     have hpd : publicDigest x.2 = publicDigest x'.2 := by
       have := congrArg pdOf he
       simpa [leanVmSeed, pdOf_seedInput] using this
-    obtain ⟨f2, hf2, hH2⟩ := ha.2 2 (by omega)
-    obtain ⟨f2', hf2', hH2'⟩ := ha'.2 2 (by omega)
     obtain ⟨f0, hf0, hH0⟩ := ha.2 0 (by omega)
     obtain ⟨f0', hf0', hH0'⟩ := ha'.2 0 (by omega)
-    simp only [leanVmSeed, List.getElem?_cons_succ, List.getElem?_cons_zero,
-      Option.some.injEq] at hf2 hf2' hf0 hf0'
-    subst hf2 hf2' hf0 hf0'
-    have e2 : ds[2] = ds'[2] := by
-      simpa [List.getD_eq_getElem?_getD, hl, hl'] using hiv
-    rw [e2] at hH2
-    have hpre := hH _ _ _ hH2 hH2'
-    have hbc : (ds.take 2).getD 0 default = (ds'.take 2).getD 0 default := by
-      have := congrArg (chunkAt 46) hpre
-      rw [(chunkAt_ivPreimage _ _).2, (chunkAt_ivPreimage _ _).2] at this
-      exact digestBytes_injective this
+    simp only [leanVmSeed, List.getElem?_cons_zero, Option.some.injEq] at hf0 hf0'
+    subst hf0 hf0'
     have e0 : ds[0] = ds'[0] := by
-      simpa [List.getD_eq_getElem?_getD, hl, hl'] using hbc
+      simpa [List.getD_eq_getElem?_getD, hl, hl'] using hiv
     rw [e0] at hH0
-    have hb := hH _ _ _ hH0 hH0'
+    have hb := List.append_cancel_left (hH _ _ _ hH0 hH0')
     have hlen : (bytecodeWords x.1).length = (bytecodeWords x'.1).length := by
       have := congrArg List.length hb
       rw [length_flatMap_kBytes, length_flatMap_kBytes] at this
@@ -668,12 +628,12 @@ that outputs a statement and a proof makes the deployed verifier, with Keccak-25
 random oracles,
 accept while `extractStack` does not extract admissible sizes `s` and a stack satisfying
 `M3Holds (leanIsaInstance prog s) input` for the adversary's statement with
-probability at most `(QA + 12008) · (2^-128 + failBound leanVmSeeds (QA + 12008))`. -/
+probability at most `(QA + 12006) · (2^-128 + failBound leanVmSeeds (QA + 12006))`. -/
 theorem leanVm_knowledge (A : OracleComp HashSpec (Statement × Proof)) (QA : ℕ)
     (hA : IsTotalQueryBound A QA) :
     Pr{let z ← romExperiment A (verifierFam leanVmSeeds anyProgram)}[z.1.2 = true ∧
       ¬ Extracted z.1.1.1.1 z.1.1.1.2 z.2 z.1.1.2] ≤
-      ((QA + 12008 : ℕ) : ℝ≥0∞) * ((2 : ℝ≥0∞)⁻¹ ^ 128 + failBound leanVmSeeds (QA + 12008)) := by
+      ((QA + 12006 : ℕ) : ℝ≥0∞) * ((2 : ℝ≥0∞)⁻¹ ^ 128 + failBound leanVmSeeds (QA + 12006)) := by
   have h := romSound_of_imp anyProgram anyCert leanVmSeeds (fun x ↦ rootOk_stmtHistory x) εLean
     anyCert_bound A QA hA leanVmQueryBound isTotalQueryBound_leanVmFam
     (fun z c ↦ ¬ Extracted z.1.1 z.1.2 c z.2)
@@ -686,7 +646,7 @@ theorem leanVm_knowledge (A : OracleComp HashSpec (Statement × Proof)) (QA : �
 of `QA` queries that outputs a statement and a proof makes the deployed verifier accept, for a
 program with well-formed bytecode, while `extractStack` does not extract sizes `s` and a stack
 `q` whose witness represents a valid execution of the adversary's program on its public input,
-with probability at most `(QA + 12008) · (2^-128 + failBound leanVmSeeds (QA + 12008))`. -/
+with probability at most `(QA + 12006) · (2^-128 + failBound leanVmSeeds (QA + 12006))`. -/
 theorem leanVm_execution (A : OracleComp HashSpec (Statement × Proof)) (QA : ℕ)
     (hA : IsTotalQueryBound A QA) :
     Pr{let z ← romExperiment A (verifierFam leanVmSeeds anyProgram)}[z.1.2 = true ∧
@@ -695,7 +655,7 @@ theorem leanVm_execution (A : OracleComp HashSpec (Statement × Proof)) (QA : �
           some (⟨s, q⟩ : Σ s : Sizes, Column (leanIsaμ z.1.1.1.1 s)) ∧
         ∃ t, AssignmentRepresents (witnessOf z.1.1.1.1 s q) t ∧
           ValidExecution z.1.1.1.1 z.1.1.1.2 t] ≤
-      ((QA + 12008 : ℕ) : ℝ≥0∞) * ((2 : ℝ≥0∞)⁻¹ ^ 128 + failBound leanVmSeeds (QA + 12008)) := by
+      ((QA + 12006 : ℕ) : ℝ≥0∞) * ((2 : ℝ≥0∞)⁻¹ ^ 128 + failBound leanVmSeeds (QA + 12006)) := by
   have h := romSound_of_imp anyProgram anyCert leanVmSeeds (fun x ↦ rootOk_stmtHistory x) εLean
     anyCert_bound A QA hA leanVmQueryBound isTotalQueryBound_leanVmFam
     (fun z c ↦ ¬ ∃ (s : Sizes) (q : Column (leanIsaμ z.1.1 s)),
@@ -720,19 +680,19 @@ theorem inv_pow_eq_div (k n : ℕ) (h : k ≤ n) :
 /-- **The numeric bound**: for an adversary of at most `2^64` queries, the bound of the
 knowledge statement is at most `2^-63`. -/
 theorem leanVm_bound_le {QA : ℕ} (hQ : QA ≤ 2 ^ 64) :
-    ((QA + 12008 : ℕ) : ℝ≥0∞) * ((2 : ℝ≥0∞)⁻¹ ^ 128 + failBound leanVmSeeds (QA + 12008)) ≤
+    ((QA + 12006 : ℕ) : ℝ≥0∞) * ((2 : ℝ≥0∞)⁻¹ ^ 128 + failBound leanVmSeeds (QA + 12006)) ≤
       (2 : ℝ≥0∞)⁻¹ ^ 63 := by
-  set N := QA + 12008 with hN
-  have hfail : failBound leanVmSeeds N = ((7 * N : ℕ) : ℝ≥0∞) / ((2 ^ 256 : ℕ) : ℝ≥0∞) := by
+  set N := QA + 12006 with hN
+  have hfail : failBound leanVmSeeds N = ((5 * N : ℕ) : ℝ≥0∞) / ((2 ^ 256 : ℕ) : ℝ≥0∞) := by
     rw [failBound, Nat.cast_pow, Nat.cast_ofNat]
     rfl
   rw [hfail, inv_pow_eq_div 128 256 (by norm_num), ENNReal.div_add_div_same, ← mul_div_assoc,
     ← Nat.cast_add, ← Nat.cast_mul, inv_pow_eq_div 63 256 (by norm_num)]
   refine ENNReal.div_le_div_right (Nat.cast_le.2 ?_) _
-  have hN' : N ≤ 2 ^ 64 + 12008 := by omega
+  have hN' : N ≤ 2 ^ 64 + 12006 := by omega
   rw [show 256 - 128 = 128 from rfl, show 256 - 63 = 193 from rfl]
-  calc N * (2 ^ 128 + 7 * N) ≤ (2 ^ 64 + 12008) * (2 ^ 128 + 7 * (2 ^ 64 + 12008)) :=
-        Nat.mul_le_mul hN' (Nat.add_le_add_left (Nat.mul_le_mul_left 7 hN') _)
+  calc N * (2 ^ 128 + 5 * N) ≤ (2 ^ 64 + 12006) * (2 ^ 128 + 5 * (2 ^ 64 + 12006)) :=
+        Nat.mul_le_mul hN' (Nat.add_le_add_left (Nat.mul_le_mul_left 5 hN') _)
     _ ≤ 2 ^ 193 := by norm_num
 
 end

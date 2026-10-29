@@ -40,9 +40,9 @@ window:
   admissible ladders (`ladder_cost`, decided), every commitment of height at most
   `costHeight = 26`.
 
-In total `leanVmCost = 48017` quarters (`costLE_leanVmProgram`). The seed of `seedWith` is three hashes
+In total `leanVmCost = 48017` quarters (`costLE_leanVmProgram`). The seed of `seedWith` is one hash
 and one permutation (`leanVmSeed`, `seedRun_leanVmSeed`), so the compiled verifier makes at most
-`leanVmQueryBound = 3 + 1 + leanVmCost / 4 = 12008` queries on every proof
+`leanVmQueryBound = 1 + 1 + leanVmCost / 4 = 12006` queries on every proof
 (`isTotalQueryBound_leanVm`). The bound is crude where a tight one would cost proof without
 changing the soundness bound, in which it enters linearly: the bus depth, the table heights and
 the Keccak point are bounded by the announced sizes' window (`32`), not by the stack's size, and
@@ -865,12 +865,11 @@ theorem costLE_leanVmProgram (bytecode : List K) (publicInput : Digest) :
 
 /-! ## The seed and the query bound -/
 
-/-- **The leanVM seeding**: the bytecode's hash, the relation label's hash, the IV around them,
-then the permutation of the IV and the public input (`seedWith`). -/
+/-- **The leanVM seeding**: the IV, the hash of the version tag and the bytecode, then the
+permutation of the IV and the public input (`seedWith`). -/
 def leanVmSeed (bytecode : List K) (publicInput : Digest) : Seed where
-  hs := [fun _ ↦ bytecode.flatMap kBytes, fun _ ↦ relationLabel,
-    fun ds ↦ ivPreimage (ds.getD 1 default) (ds.getD 0 default)]
-  fin ds := seedInput (ds.getD 2 default) publicInput
+  hs := [fun _ ↦ versionTag ++ bytecode.flatMap kBytes]
+  fin ds := seedInput (ds.getD 0 default) publicInput
 
 /-- The seeding computes `seedWith`, with any hash and permutation in any lawful monad. -/
 theorem seedRun_leanVmSeed {m : Type → Type} [Monad m] [LawfulMonad m] (H : Bytes → m Digest)
@@ -885,14 +884,14 @@ theorem verifierComp_leanVm (bytecode : List K) (publicInput : Digest) (π : Pro
       verifyWith queryH queryF bytecode publicInput π := by
   simp only [verifierComp, Rom.verify, verifyWith, seedRun_leanVmSeed]
 
-/-- **The query bound of the leanVM verifier**: three seeding hashes, the seed's permutation, and
-the program's cost in quarters. -/
-def leanVmQueryBound : ℕ := 3 + 1 + leanVmCost / 4
+/-- **The query bound of the leanVM verifier**: the IV's hash, the seed's permutation, and the
+program's cost in quarters. -/
+def leanVmQueryBound : ℕ := 1 + 1 + leanVmCost / 4
 
 /-- The bound, evaluated. -/
-theorem leanVmQueryBound_eq : leanVmQueryBound = 12008 := by decide
+theorem leanVmQueryBound_eq : leanVmQueryBound = 12006 := by decide
 
-/-- **The compiled leanVM verifier makes at most `leanVmQueryBound = 12008` queries** to the random
+/-- **The compiled leanVM verifier makes at most `leanVmQueryBound = 12006` queries** to the random
 oracles on every proof, for every bytecode and public input: the hypothesis `hV` of `romSound`
 at the leanVM program and seed. -/
 theorem isTotalQueryBound_leanVm (bytecode : List K) (publicInput : Digest) (π : Proof) :

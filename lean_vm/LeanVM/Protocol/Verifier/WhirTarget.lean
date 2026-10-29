@@ -14,7 +14,7 @@ public import LeanVM.Parameters.Whir
 # The WHIR level loop with a threaded running claim
 
 `Statement/LeanVmVerifier.lean` transcribes `verify_whir` as the Python writes it
-(`verifier.py:1124-1202`): `running_target` is set only in the final level's tail rounds, which
+(`verifier.py:1125-1203`): `running_target` is set only in the final level's tail rounds, which
 fail when there are none. The proofs reason on a form that threads the running claim through
 every fold round and adds the glued claims' values to it (`WhirStateT.target`); the tail rounds
 overwrite it, so it never reaches the verdict.

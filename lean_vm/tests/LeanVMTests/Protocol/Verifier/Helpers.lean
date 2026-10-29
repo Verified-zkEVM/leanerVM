@@ -5,8 +5,10 @@ import LeanVM.Protocol.Verifier
 
 Every expected value below was printed by `python-verifier/verifier.py` at leanVM
 `4af2cdddd7cd41b9df2cc7e123e314a91b0b4462` (CPython, the verifier imported as a module) on
-inputs drawn from the word generator `fw`, which the driver mirrors exactly; the driver lives in
-the port's scratch, not in the repository. Compiled checks (`#guard`): `E` multiplication does not
+inputs drawn from the word generator `fw`, which the driver mirrors exactly, but the tag, the IV
+and the seed, printed at `990b935263dc7f793f280914f262ca7955ddc3e0` (the only functions checked
+here that changed between the two); the drivers live in the port's scratch, not in the
+repository. The line citations are to `990b935263dc7f793f280914f262ca7955ddc3e0`. Compiled checks (`#guard`): `E` multiplication does not
 reduce in the kernel from module files.
 
 Covered: `powers`, `eq_kernel`, `multilinear_eval` (on `E` and on lifted `K` tables), `eq_eval`,
@@ -22,7 +24,7 @@ bus block's shape and flushed tuple at a sample row), `bus_layout` of the three 
 `keccak_instance_weights`, `_keccak_slot_weights`, `RMFE_FACTORS`, `RMFE_EMBED`, `RMFE_PROJECT`,
 `_carryless`, `_carryless_divmod` and the Keccak reduction's constants; `KECCAK_RC`, `KECCAK_RHO`,
 `KECCAK_PI`, `keccak_f`, `keccak_hash` across the block boundary, the sponge's `_duplex` and
-`sample`; `RELATION_LABEL`, the IV preimage, the IV (`fiatShamirIv`), the public input's halves,
+`sample`; `TAG` (`versionTag`), the IV (`fiatShamirIv`), the public input's halves,
 and the Fiat-Shamir seed (`Transcript.__init__`: Keccak-f of `iv ‖ pi ‖ 0`). `build_layout`'s
 rejections are checked against what the Python raises on the same inputs.
 -/
@@ -111,7 +113,7 @@ def sampleClaim : KeccakClaim := ⟨fe 609, fes 640 16, fes 610 6, fes 1000 1600
 
 /-- `_keccak_slot_weights(9, sampleClaim, first, count)`: the number of rows, whether each is 64
 wide, and all of them batched by powers of `fe 620`. At the pin these weights are computed inside
-`_keccak_open` (`verifier.py:1362-1366`), by the same lines up to the names `STATE_LANES` and
+`_keccak_open` (`verifier.py:1363-1367`), by the same lines up to the names `STATE_LANES` and
 `PACK_BITS`; the expected values were printed by the function of the previous pin `3375f7a13`. -/
 def slotProbe (first count : ℕ) : ℕ × Bool × E :=
   let w := keccakSlotWeights 9 sampleClaim first count
@@ -177,7 +179,7 @@ On each input the driver ran `build_layout` and recorded whether it raised. -/
 #guard (Whir.ladder 14 1).isNone ∧ (Whir.ladder 29 1).isNone
 #guard (Whir.ladder 20 0).isNone ∧ (Whir.ladder 20 5).isNone
 
-/-! ## Field and multilinear arithmetic (`verifier.py:184-331`, `723`) -/
+/-! ## Field and multilinear arithmetic (`verifier.py:184-331`, `724`) -/
 
 #guard (powers (fe 1) 6) =
     [(e 0x1 0x0 0x0), (e 0x9f9ad90ed849d843 0x71502341a9dcc546 0x43056d747b6fb249),
@@ -234,7 +236,7 @@ On each input the driver ran `build_layout` and recorded whether it raised. -/
     [(e 0x1 0x0 0x0), (e 0x0 0x0 0x0), (e 0x1 0x0 0x0), (e 0x1 0x0 0x0), (e 0x0 0x0 0x0),
      (e 0x0 0x0 0x0)]
 
-/-! ## WHIR helpers (`verifier.py:1056-1108`) -/
+/-! ## WHIR helpers (`verifier.py:1057-1109`) -/
 
 #guard (subspaceRoots 12) =
     [(e 0x1 0x0 0x0), (e 0x6 0x0 0x0), (e 0x168 0x0 0x0), (e 0x1166880 0x0 0x0),
@@ -256,7 +258,7 @@ On each input the driver ran `build_layout` and recorded whether it raised. -/
 #guard (enforcedSum kRows [fe 66, fe 67] [fe 68, fe 69, fe 70]) =
     (e 0xda0d62a8fab09447 0xf78fdc7451a4bb0a 0x2bb794332b986985)
 
-/-! ## Ring switching (`verifier.py:1411-1444`) -/
+/-! ## Ring switching (`verifier.py:1412-1445`) -/
 
 /- `ring_switch`'s Frobenius coefficients, read off its weight closure -/
 #guard (ringCoefficients (fes 80 6)) =
@@ -351,7 +353,7 @@ On each input the driver ran `build_layout` and recorded whether it raised. -/
 #guard (samplePlacement.eqAbove (fes 93 9)) =
     (e 0xde054c747e1b6da3 0x6695c3146656e56c 0xa8e74e9510e94f3b)
 
-/-! ## The tables (`verifier.py:775-970`) -/
+/-! ## The tables (`verifier.py:776-971`) -/
 
 #guard (tables.map Table.columns) =
     [["pc", "fp", "o_a", "o_b", "o_c", "va_0", "va_1", "va_2", "vb_0", "vb_1", "vb_2", "cnt_a",
@@ -449,7 +451,7 @@ On each input the driver ran `build_layout` and recorded whether it raised. -/
     [111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 128, 129,
      130, 131, 132, 133, 134, 135]
 
-/-! ## `build_layout` on the sample (`verifier.py:547-552, 973-1013`) -/
+/-! ## `build_layout` on the sample (`verifier.py:547-552, 974-1014`) -/
 
 #guard (sampleLayout.tableLogHeights) =
     [2, 1, 1, 2, 2, 9]
@@ -682,7 +684,7 @@ On each input the driver ran `build_layout` and recorded whether it raised. -/
       (9, 6144), (9, 6656), (9, 7168), (9, 7680), (9, 8192), (9, 8704), (9, 9216), (9, 9728),
       (9, 10240), (9, 10752), (9, 11264), (9, 11776), (9, 12288), (9, 12800), (9, 13312)])
 
-/-! ## `derive_config` (`verifier.py:1018-1053`) -/
+/-! ## `derive_config` (`verifier.py:1019-1054`) -/
 
 /-- `derive_config(log_n, rate)` for every admissible pair: folds, rates, queries. -/
 def pythonConfigs : List (ℕ × ℕ × List ℕ × List ℕ × List ℕ) :=
@@ -740,7 +742,7 @@ def pythonConfigs : List (ℕ × ℕ × List ℕ × List ℕ × List ℕ) :=
   decide ((Whir.ladder n r).map (fun ls ↦
     (ls.map (·.fold), ls.map (·.logInvRate), ls.map (·.queries))) = some (folds, rates, queries))
 
-/-! ## Keccak GKR and the RMFE (`verifier.py:1207-1308, 1357-1360`) -/
+/-! ## Keccak GKR and the RMFE (`verifier.py:1208-1309, 1358-1361`) -/
 
 #guard (alongPairs.map fun (j, k) ↦ keccakAlong j k) =
     [64, 319, 192, 127, 1064, 1535, 1280]
@@ -878,28 +880,15 @@ def pythonConfigs : List (ℕ × ℕ × List ℕ × List ℕ × List ℕ) :=
       0xc423cd04d2d6b248, 0x2e89040fcc61f189, 0x75c84d5504e01c28, 0xbf54aece417c3beb,
       0x4d44fe1a93147d07], (e 0x64dc67f1e0409331 0x2bbdabde4d11810f 0x5f84b465ed2dc183))
 
-/-! ## The relation, the IV and the seed (`verifier.py:681-683, 1463-1467`) -/
+/-! ## The tag, the IV and the seed (`verifier.py:684, 1464-1465`) -/
 
-#guard (relationLabel) =
-    [108, 101, 97, 110, 86, 77, 32, 107, 101, 99, 99, 97, 107, 32, 71, 75, 82, 58, 32, 107, 101, 99,
-     99, 97, 107, 45, 102, 32, 105, 110, 32, 116, 119, 111, 32, 99, 101, 108, 108, 32, 108, 97, 121,
-     111, 117, 116, 115, 44, 32, 100, 101, 112, 116, 104, 32, 49, 50, 44, 32, 112, 97, 99, 107, 115,
-     32, 111, 102, 32, 49, 54, 32, 105, 110, 32, 100, 101, 103, 114, 101, 101, 32, 50, 51, 44, 32,
-     108, 97, 110, 101, 32, 115, 108, 111, 116, 115, 32, 116, 104, 101, 110, 32, 116, 97, 98, 108,
-     101, 32, 99, 111, 108, 117, 109, 110, 115, 44, 32, 111, 117, 116, 112, 117, 116, 32, 99, 108,
-     97, 105, 109, 101, 100, 32, 98, 121, 32, 116, 104, 101, 32, 98, 117, 115]
+#guard (versionTag) = [108, 101, 97, 110, 118, 109, 45, 118, 49]
 
 #guard ((keccak256 (sampleBytecode.flatMap kBytes)).toList) =
     [0x5ee1b7ed85bd7f40, 0xe30f235e90f241ba, 0x2c5175ed6d0af92b, 0x99aaaff5bf8937b8]
 
-#guard (ivPreimage (keccak256 relationLabel) (keccak256 (sampleBytecode.flatMap kBytes))) =
-    [108, 101, 97, 110, 118, 109, 32, 0, 0, 0, 0, 0, 0, 0, 22, 201, 202, 83, 87, 135, 229, 215, 206,
-     134, 67, 160, 36, 200, 245, 94, 18, 216, 84, 26, 0, 235, 240, 206, 157, 152, 159, 170, 178, 18,
-     64, 225, 64, 127, 189, 133, 237, 183, 225, 94, 186, 65, 242, 144, 94, 35, 15, 227, 43, 249, 10,
-     109, 237, 117, 81, 44, 184, 55, 137, 191, 245, 175, 170, 153]
-
 #guard ((fiatShamirIv sampleBytecode).toList) =
-    [0x3dddb718ca25fbcf, 0x2853bcebc23c61f0, 0x2ccc521e040d67df, 0x8e367254f7ecd131]
+    [0x388a48ed64bdc88, 0xc56fdc9a5bbfc60b, 0x9177eb91e2b31ac9, 0x60b15bff515ffc9a]
 
 #guard (samplePublicInput.toList) =
     [0xdfcab5a08b76614c, 0x87725d48331e09f4, 0x2f1a05f0dbc6b19c, 0xd7c2ad98836e5944]
@@ -908,12 +897,12 @@ def pythonConfigs : List (ℕ × ℕ × List ℕ × List ℕ × List ℕ) :=
     [(e 0xdfcab5a08b76614c 0x87725d48331e09f4 0x0), (e 0x2f1a05f0dbc6b19c 0xd7c2ad98836e5944 0x0)]
 
 #guard ((seed sampleBytecode samplePublicInput).toList) =
-    [0x786c86154463cc9e, 0xbf2a85eb21f4efd5, 0x2e1813ddc1869ebb, 0x7a7eed3d488cce52,
-     0x49e48bb3667a1262, 0x85c3d69adcfcb238, 0x3189b5abaee279d3, 0x66d667323a8c09c5,
-     0x769886b4b9303e5f, 0x38702bf7cd23bd94, 0x165202cbc07e9f4f, 0x46225ce9ff6ef7d8,
-     0xfe986583bdc77a9f, 0xaf20531763af0019, 0x414695b225bd740a, 0x5c241ad14319b461,
-     0x589dd68ca3c01e24, 0xce4a9cfc95752fb3, 0x24d79885a686dc, 0xc9452db581a60445,
-     0x33ee82d47346ae52, 0x66f778031918bda8, 0xf97bfcaafb6bf63d, 0x8232146254da8070,
-     0x3bd7ab4b17191e6]
+    [0x9d7d4eb7cc97e374, 0xb724b7ba8b1c3421, 0x14d14d64d9182a28, 0x1c1a4bc2a316a26c,
+     0xe410600d8d0706c8, 0x4dd78f280a2db761, 0x50dc9d77b0f34b74, 0x2d2743bc3e4da033,
+     0xf266f7f60648d489, 0xa55b889e0f5c5da7, 0x2f671d6a94b8c6aa, 0xcda35ca721ea79e1,
+     0xbbcb869a8f7e0386, 0xa00ae0785cf727df, 0xd9b984d1efc0d523, 0x354259a0706ebaeb,
+     0x7fa694082e9b86c0, 0xe22eb021ce923a65, 0x43dc097da59a77b9, 0xa5084af5f4153506,
+     0xb1ced25d740086b4, 0x26aaa2d4102a5604, 0x60ee864b6821e0aa, 0x8f239df976d3a9ef,
+     0x6d5f9ca9bf33253e]
 
 end LeanVMTests.Protocol.Verifier.Helpers

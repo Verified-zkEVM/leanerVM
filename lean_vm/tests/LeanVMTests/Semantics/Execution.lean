@@ -10,12 +10,12 @@ to reduce there; they do from a plain file and not from a `module`.
 Nothing here evaluates `gLog?`: every fetch and read is `Program.fetch_gpow` or
 `MemImage.read_gpow` at a literal index, or one of the failure lemmas.
 
-Fixtures, from leanVM's executor tests at the pin (`94ee12ff`): `mul_192bit_word`
-(`crates/leanvm_core/src/cpu/mod.rs:925-943`, operands and product as the test computes them with
+Fixtures, from leanVM's executor tests at the pin (`990b9352`): `mul_192bit_word`
+(`crates/leanvm_core/src/cpu/mod.rs:918-936`, operands and product as the test computes them with
 the executor's `F192` arithmetic at `a386121f`, the test unchanged since but for unwrapping the now
 fallible `execute`) as a `ValidExecution`; the first `KECCAK` row of
-`keccak_permutes_in_both_layouts` (`cpu/mod.rs:842-875`) on that test's cells, with a mutation;
-`halts_in_the_final_state` (`cpu/mod.rs:885-923`): the machine halts in the final state
+`keccak_permutes_in_both_layouts` (`cpu/mod.rs:835-868`) on that test's cells, with a mutation;
+`halts_in_the_final_state` (`cpu/mod.rs:878-916`): the machine halts in the final state
 `(g^(N_prog - 1), 1)`, so a `JUMP` in the last slot, reached in another frame, is a step of a valid
 execution, and a `SET_CONSTANT` there leaves no valid execution, whatever the memory. Also a taken
 `JUMP`; a `DEREF` in `pc` mode; the rejections of failed reads, a step from the final state, the
@@ -71,7 +71,7 @@ example : (1: K) + 1 = 0 := by decide
 /-- Register equality decides in the kernel on a product against a power. -/
 example : Regs.next ⟨1, 1⟩ = ⟨gpow 1, 1⟩ := by decide +kernel
 
-/-! ## `mul_192bit_word` (`cpu/mod.rs:925-943`) -/
+/-! ## `mul_192bit_word` (`cpu/mod.rs:918-936`) -/
 
 -- The operands and product of the executor test `mul_192bit_word` at leanVM a386121f.
 def mulX : E :=
@@ -375,9 +375,9 @@ example : ∀ n, run haltProg ctlImage n Regs.initial ≠ some (Regs.final haltP
       run_succ_of_ne (prog := haltProg) (r := ⟨gpow 2, g⟩) (by decide +kernel) n, halt_past]
     exact fun h ↦ Option.some_ne_none _ h.symm
 
-/-! ## `KECCAK` (`keccak_permutes_in_both_layouts`, `cpu/mod.rs:842-875`) -/
+/-! ## `KECCAK` (`keccak_permutes_in_both_layouts`, `cpu/mod.rs:835-868`) -/
 
--- The input cells of the executor test `keccak_permutes_in_both_layouts` at leanVM `94ee12ff`:
+-- The input cells of the executor test `keccak_permutes_in_both_layouts` at leanVM `990b9352`:
 -- the words `a, b` (each read twice through the aliased `m` pairs), the padding's first byte in
 -- the tail, its last bit in `b8` (whose free high limb `0x5555` is ignored), and a zero capacity.
 def kA : E := E.ofLimbs (K.ofBits 0x0123456789abcdef) (K.ofBits 0xfedcba9876543210) 0
@@ -473,7 +473,7 @@ example : step (oneStep keccakIns) (keccakImage (kOut 0 + ofK 1)) ⟨1, 1⟩ = n
   rw [keccak_reads]
   decide +kernel
 
-/-! ## `halts_in_the_final_state` (`cpu/mod.rs:885-923`)
+/-! ## `halts_in_the_final_state` (`cpu/mod.rs:878-916`)
 
 The machine halts in the final state `(g^7, 1)`, not at the last slot: leanVM's eight-slot program
 sets cell `2` to `1`, cell `3` to `g^7` and cell `4` to `g`, jumps to `(g^7, g)`, the last slot in

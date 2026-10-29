@@ -13,7 +13,7 @@ public import LeanVM.Protocol.Compile.Prog
 # The claim-list form of `verify_execution`
 
 `Statement/LeanVmVerifier.lean` transcribes steps 4 to 7 of `verify_execution` as the Python
-writes them (`verifier.py:1485-1518`): `tableSumcheck` returns each table's point and
+writes them (`verifier.py:1483-1516`): `tableSumcheck` returns each table's point and
 evaluations, step 6 reads the `KECCAK` row's output lanes off them, and the opening drops the
 claims `ColumnClaim.onStack` finds no placement for, the output lanes'. The proofs reason on the
 claim-list form `verifyExecutionClaims`: the table sumcheck returns the tables' column claims, the
@@ -362,7 +362,7 @@ theorem allRet_tablePhase {layout : Layout} {bus : BusResult} (hl : LayoutOk lay
   exact AllRet.bind (fun _ _ ↦ allRet_tableSumcheck hl.1 hb.1 _ _ _ _) _ (allRet_true _)
 
 /-- The tables' column claims, `ColumnClaim(base + local, point, value)` table by table
-(`verifier.py:1493-1495`). -/
+(`verifier.py:1491-1493`). -/
 abbrev tableClaims (evaluations : List (List E × List E)) : List ColumnClaim :=
   (globalColumnBases.zip evaluations).flatMap fun (base, point, values) ↦
     values.zipIdx.map fun (value, column) ↦ ⟨base + column, point, value⟩

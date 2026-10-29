@@ -22,7 +22,7 @@ open LeanVM.Parameters LeanVM.Semantics
 
 @[expose] public section
 
-/-- The guard of `verifier.py:950` (an `assert` when the module loads): every spare slot of
+/-- The guard of `verifier.py:951` (an `assert` when the module loads): every spare slot of
 `q_keccak` has a committed `KECCAK` column to carry. -/
 theorem qkeccakSpare_le_length_keccakCommitted : qkeccakSpare ≤ keccakCommitted.length := by
   decide +kernel
@@ -38,10 +38,10 @@ open LeanVM.Protocol.Compile LeanVM.Protocol.KeccakHash
 /-- `E(0, 1)`, the tower generator `y` with `y^3 = y + 1`. -/
 def yE : E := E.ofLimbs 0 1 0
 
-/-- `KECCAK_OUT` (`verifier.py:941`): the local column of output lane `0`. -/
+/-- `KECCAK_OUT` (`verifier.py:942`): the local column of output lane `0`. -/
 def keccakOut : ℕ := colIdx keccakColumns "out_0"
 
-/-- `PACK_BITS` (`verifier.py:1223`): a pack is `2 ^ PACK_BITS` consecutive steps. -/
+/-- `PACK_BITS` (`verifier.py:1224`): a pack is `2 ^ PACK_BITS` consecutive steps. -/
 def packBits : ℕ := 4
 
 /-- The steps of a pack, `2 ^ PACK_BITS = 16`. -/

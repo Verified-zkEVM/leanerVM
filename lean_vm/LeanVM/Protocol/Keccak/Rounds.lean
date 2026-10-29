@@ -25,7 +25,7 @@ sumcheck family when, for each `acc`, `x ↦ F q (acc ++ [x])` is a polynomial o
   the round's check (`RoundSplit`, by construction: the derived coefficient).
 * `sumcheckSpec` (plain rounds, `verifier.py:461-468`): from doom of `claim = F q acc`, to doom
   of `final = F q (acc ++ point)`; each challenge escapes at `L₀ · d/|E|`.
-* `packSpec` (`keccakPackRounds`, `verifier.py:1332-1339`): the equality-mode rounds, the value
+* `packSpec` (`keccakPackRounds`, `verifier.py:1333-1340`): the equality-mode rounds, the value
   scaled by `1 + r + c` each round: from doom of `value = scale · F q acc` to doom of
   `value' = scale' · F q (acc ++ point)`; each challenge escapes at `L₀ · (d + 1)/|E|`, the
   scale `1 + r + c` adding a root.

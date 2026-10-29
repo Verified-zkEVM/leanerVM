@@ -10,7 +10,7 @@ Regression and negative tests for `LeanVM.Protocol.Compile.Cost` and
   the cost the accounting gives, and the conditions doing the work are load-bearing: a
   commitment taller than the height bound, an opening charged per position and level, and a
   budget one short are refuted.
-* The leanVM constants: the bound is `12008`; the WHIR bound and the height bound are attained
+* The leanVM constants: the bound is `12006`; the WHIR bound and the height bound are attained
   by an admissible ladder (`μ = 28` at rates `1` and `4`), so they are not slack in the ladder
   table.
 * The seed: the leanVM seeding has three hash steps.
@@ -60,7 +60,7 @@ example : ¬ (Prog.queryP 0 [0, 1]).CostLE 3 31 := fun h ↦ absurd h.1 (by deci
 
 /-! ## The leanVM constants -/
 
-example : leanVmQueryBound = 12008 := leanVmQueryBound_eq
+example : leanVmQueryBound = 12006 := leanVmQueryBound_eq
 
 /-- The WHIR bound is attained by the ladder at `μ = 28`, rate `1`. -/
 example : whirCost costHeight 28 ((Whir.ladder 28 1).getD []) = whirBound := by decide +kernel
@@ -73,9 +73,9 @@ example : stackHeightLE (costHeight - 1) 28 ((Whir.ladder 28 4).getD []) = false
 /-- The bus depth bound: `54` blocks of `2^32` rows. -/
 example : gkrCost 38 0 = gkrBound := by decide
 
-/-- The seed has `3` hashes. -/
+/-- The seed has `1` hash, the IV's. -/
 example (bytecode : List K) (publicInput : Digest) :
-    (leanVmSeed bytecode publicInput).hs.length = 3 := rfl
+    (leanVmSeed bytecode publicInput).hs.length = 1 := rfl
 
 /-! ## An executed run -/
 
@@ -113,11 +113,11 @@ def countingPerm (s : KState) : StateM ℕ KState := do
 def countedRun (n : ℕ) : Bool × ℕ :=
   (verifyWith countingHash countingPerm sampleBytecode samplePublicInput ⟨stream n, []⟩).run 0
 
--- Rejected at the first GKR layer (the depth is odd, so one level), after the `3` seeding hashes
--- and the seed's permutation, then the sponge's permutations: the fifth of the `8` sizes, the
+-- Rejected at the first GKR layer (the depth is odd, so one level), after the IV's hash and the
+-- seed's permutation, then the sponge's permutations: the fifth of the `8` sizes, the
 -- first half of the root, the `5` bus challenges, the first layer's combiner, and the fifth of the
 -- `3 · 2` children (four scalars waiting each time); the failed check itself queries nothing.
-#guard countedRun 100 = (false, 3 + 1 + 1 + 1 + 5 + 1 + 1)
+#guard countedRun 100 = (false, 1 + 1 + 1 + 1 + 5 + 1 + 1)
 #guard (countedRun 100).2 ≤ leanVmQueryBound
 
 end LeanVMTests.Protocol.Verifier.Cost

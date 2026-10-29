@@ -33,7 +33,7 @@ noncomputable example (prog : Program) (input : PublicInput) :
 example (A : OracleComp HashSpec (Statement × Proof)) (QA : ℕ) (hA : IsTotalQueryBound A QA) :
     Pr{let z ← romExperiment A (verifierFam leanVmSeeds anyProgram)}[z.1.2 = true ∧
       ¬ Extracted z.1.1.1.1 z.1.1.1.2 z.2 z.1.1.2] ≤
-      ((QA + 12008 : ℕ) : ℝ≥0∞) * ((2 : ℝ≥0∞)⁻¹ ^ 128 + failBound leanVmSeeds (QA + 12008)) :=
+      ((QA + 12006 : ℕ) : ℝ≥0∞) * ((2 : ℝ≥0∞)⁻¹ ^ 128 + failBound leanVmSeeds (QA + 12006)) :=
   leanVm_knowledge A QA hA
 
 example (A : OracleComp HashSpec (Statement × Proof)) (QA : ℕ) (hA : IsTotalQueryBound A QA) :
@@ -43,11 +43,11 @@ example (A : OracleComp HashSpec (Statement × Proof)) (QA : ℕ) (hA : IsTotalQ
           some (⟨s, q⟩ : Σ s : Sizes, Column (leanIsaμ z.1.1.1.1 s)) ∧
         ∃ t, AssignmentRepresents (witnessOf z.1.1.1.1 s q) t ∧
           ValidExecution z.1.1.1.1 z.1.1.1.2 t] ≤
-      ((QA + 12008 : ℕ) : ℝ≥0∞) * ((2 : ℝ≥0∞)⁻¹ ^ 128 + failBound leanVmSeeds (QA + 12008)) :=
+      ((QA + 12006 : ℕ) : ℝ≥0∞) * ((2 : ℝ≥0∞)⁻¹ ^ 128 + failBound leanVmSeeds (QA + 12006)) :=
   leanVm_execution A QA hA
 
 example (QA : ℕ) (hQ : QA ≤ 2 ^ 64) :
-    ((QA + 12008 : ℕ) : ℝ≥0∞) * ((2 : ℝ≥0∞)⁻¹ ^ 128 + failBound leanVmSeeds (QA + 12008)) ≤
+    ((QA + 12006 : ℕ) : ℝ≥0∞) * ((2 : ℝ≥0∞)⁻¹ ^ 128 + failBound leanVmSeeds (QA + 12006)) ≤
       (2 : ℝ≥0∞)⁻¹ ^ 63 :=
   leanVm_bound_le hQ
 

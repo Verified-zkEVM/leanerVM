@@ -56,7 +56,7 @@ In a log without failure, an entry whose output a later input refers to comes be
 
 ## The seeding
 
-leanVM's seed is `F(seedInput(H(ivPreimage(H(label), H(bytecode))), pi))`. A seeding (`Seed`) is
+leanVM's seed is `F(seedInput(H(tag ‖ bytecode), pi))`. A seeding (`Seed`) is
 a list of hash steps, each input a function of the answers before it, then one permutation step
 whose input is a function of all of them. The theorem takes a family of seedings (`Seeds`), one
 per statement: the adversary chooses the statement. Every hash answer of a seeding is referred to

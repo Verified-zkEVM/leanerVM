@@ -16,7 +16,7 @@ public import LeanVM.Protocol.EndToEnd.Front.TableTerms
 /-!
 # The table sumcheck on doom
 
-`tablePhase layout bus` (`verifier.py:1485-1495` and `649-678`) is the oracle protocol's
+`tablePhase layout bus` (`verifier.py:1483-1493` and `649-678`) is the oracle protocol's
 `tableSumcheck` (`LeanVM.Protocol.TableSumcheck`) on the wire: the batching challenge `ξ`, the
 plain sumcheck of four coefficients per round (one left out on the wire), the evaluations of every
 table's columns, and the final check. Its doom is stated on the protocol's relations at the
@@ -174,7 +174,7 @@ noncomputable def tableSumcheckSpec (colOf : I.ColumnId → ℕ) (w : BusWit)
       le_rfl le_rfl
 
 open Classical in
-/-- **The table sumcheck** (`tablePhase`, `verifier.py:1485-1495`, `649-678`) after the bus phase
+/-- **The table sumcheck** (`tablePhase`, `verifier.py:1483-1493`, `649-678`) after the bus phase
 read `w`: from the bus seam at `w` to the table seam on the wire. `ξ` is charged
 `L₀ · (B + 2) / |E|`, each round `L₀ · 3 / |E|`. -/
 noncomputable def tablePhaseSpec (colOf : I.ColumnId → ℕ) (w : BusWit)

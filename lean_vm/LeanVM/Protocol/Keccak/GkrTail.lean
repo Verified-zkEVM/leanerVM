@@ -12,7 +12,7 @@ public import LeanVM.Protocol.Keccak.OpenIn
 /-!
 # The inputs' opening as a specification
 
-`inputTail` is the end of `verify_keccak` (`verifier.py:1398-1405`): the instance rounds, the
+`inputTail` is the end of `verify_keccak` (`verifier.py:1399-1406`): the instance rounds, the
 slot rounds (`_keccak_open` with `first = 0, count = 2`), the `64` slices and the check
 `μ̃(λ)·⟨W̃(ρ), s⟩ = value`. `inputSpec`: from doom of "the claim at depth `12` holds of the
 committed inputs" to doom of "the `64` slice claims hold at `(λ, r_pack, ρ)`", each of the ten

@@ -14,7 +14,7 @@ public import LeanVM.Protocol.Keccak.Layers
 
 `committed` claims `eq(r_seg, 0)·Σ_ℓ eq(r_lane, ℓ)·mid_ℓ(inst)` (`OpenTrue`), the middle state's
 lanes being the slots `25 + ℓ` of `q_keccak` at the steps' point `inst`. `_keccak_open` with
-`first = 1, count = 1` (`verifier.py:1394-1396`) proves it by a degree-two sumcheck over the six
+`first = 1, count = 1` (`verifier.py:1395-1397`) proves it by a degree-two sumcheck over the six
 slot bits of
 
   `Σ_o W(o) · Q(o)`,  `W(o) = slotW … o 0` (the slot weights at slice `0`),

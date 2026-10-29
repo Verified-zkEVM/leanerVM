@@ -13,7 +13,7 @@ public import LeanVM.Protocol.Keccak.Multilinear
 /-!
 # The embedding
 
-`_rmfe()` (`verifier.py:1248-1271`, `rmfe`) gives sixteen binary polynomials `emb_a` of degree
+`_rmfe()` (`verifier.py:1249-1272`, `rmfe`) gives sixteen binary polynomials `emb_a` of degree
 at most `23` (`rmfeEmbed`) and sixteen masks over the `47` coefficients of a product
 (`rmfeProject`); the lemma of `doc/leanvm` §`keccak:rmfe-proof` is that the parity of
 `mask_i ∧ (emb(u)·emb(v))` is `u_i ∧ v_i`. By bilinearity it is enough on unit vectors:
@@ -300,7 +300,7 @@ theorem sumE_zip_filterMap (p : ℕ → Prop) [DecidablePred p] :
   | [], _ :: _, h => by simp at h
   | _ :: _, [], h => by simp at h
 
-/-- **The verifier's projected value** (`verifier.py:1316`): `Σ_c (Σ_{i ∋ c} μ_i) · G_c` is
+/-- **The verifier's projected value** (`verifier.py:1317`): `Σ_c (Σ_{i ∋ c} μ_i) · G_c` is
 `Σ_i μ_i · projE_i(G)`, for coefficients `G_c = product[c]`. -/
 theorem projected_eq (mu product : List E) (hmu : mu.length = 16) (G : E[X])
     (hG : ∀ c < 47, product.getD c 0 = G.coeff c) :

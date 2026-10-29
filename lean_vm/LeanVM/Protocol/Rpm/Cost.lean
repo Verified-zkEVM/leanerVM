@@ -2,7 +2,7 @@
   LeanVM.Protocol.Rpm.Cost
 
   The permutation calls of the leanVM verifier and of the honest prover: every Keccak-256 input
-  has at most `2^39` bytes, so every query costs at most `2^32` permutation calls.
+  has at most `2^39 + 9` bytes, so every query costs at most `2^32` permutation calls.
 -/
 
 import LeanVM.Protocol.Verifier.WhirTarget
@@ -21,16 +21,16 @@ import Common.Prob
 
 In the random-permutation model a Keccak-256 hash of `n` bytes costs `⌊n / 136⌋ + 1` calls of the
 permutation, one per block of the padded message, and a direct permutation call costs one
-(`hashBlocks`). Every hash the verifier and the honest prover compute has at most `2^39` bytes
-(`Short`): the bytecode (`16 · 2^logSize` words of `8` bytes, `logSize ≤ 32`), the relation
-label, the IV's preimage (`78` bytes), Merkle nodes (`64` bytes) and Merkle leaves (`8 · width`
+(`hashBlocks`). Every hash the verifier and the honest prover compute has at most `2^39 + 9`
+bytes (`Short`): the IV's preimage (the `9`-byte version tag, then the bytecode, `16 · 2^logSize`
+words of `8` bytes, `logSize ≤ 32`), Merkle nodes (`64` bytes) and Merkle leaves (`8 · width`
 bytes, every commitment of the leanVM verifier program having width at most `192`, `WidthsLE`).
-So every query costs at most `⌊2^39 / 136⌋ + 1 ≤ 2^32` calls, and a computation of `N` queries
-at most `N · 2^32` (`isWeightBound_of_isTotalQueryBound`):
+So every query costs at most `⌊(2^39 + 9) / 136⌋ + 1 ≤ 2^32` calls, and a computation of `N`
+queries at most `N · 2^32` (`isWeightBound_of_isTotalQueryBound`):
 
-* `isWeightBound_verifier`: the verifier, `12008` queries, at most `verifierPermCalls`;
+* `isWeightBound_verifier`: the verifier, `12006` queries, at most `verifierPermCalls`;
 * `isWeightBound_honest`: the honest prover then the verifier,
-  `12012 + 48017 · (2^27 + 2·fuel + 2)` queries, at most `completenessPermCalls fuel`.
+  `12008 + 48017 · (2^27 + 2·fuel + 2)` queries, at most `completenessPermCalls fuel`.
 -/
 
 namespace LeanVM.Rpm
@@ -47,9 +47,9 @@ def hashBlocks : HashSpec.Domain → ℕ
   | .inl x => x.length / 136 + 1
   | .inr _ => 1
 
-/-- A short query: a hash of at most `2^39` bytes, or a permutation. -/
+/-- A short query: a hash of at most `2^39 + 9` bytes, or a permutation. -/
 def Short : HashSpec.Domain → Prop
-  | .inl x => x.length ≤ 2 ^ 39
+  | .inl x => x.length ≤ 2 ^ 39 + 9
   | .inr _ => True
 
 /-- A short query costs at most `2^32` permutation calls. -/
@@ -83,8 +83,12 @@ theorem isWeightBound_of_isTotalQueryBound {ι : Type} {spec : OracleSpec ι} {�
 theorem allQ_queryF (s : KState) : AllQueriesSatisfy (queryF s) Short :=
   (allQueriesSatisfy_query_iff (spec := HashSpec) (.inr s) Short).mpr trivial
 
-theorem allQ_queryH {x : Bytes} (hx : x.length ≤ 2 ^ 39) : AllQueriesSatisfy (queryH x) Short :=
+theorem allQ_queryH {x : Bytes} (hx : x.length ≤ 2 ^ 39 + 9) :
+    AllQueriesSatisfy (queryH x) Short :=
   (allQueriesSatisfy_query_iff (spec := HashSpec) (.inl x) Short).mpr hx
+
+theorem allQ_queryH₀ {x : Bytes} (hx : x.length ≤ 2 ^ 39) : AllQueriesSatisfy (queryH x) Short :=
+  allQ_queryH (hx.trans (Nat.le_add_right _ _))
 
 theorem allQ_pure {α : Type} (a : α) : AllQueriesSatisfy (pure a : OracleComp HashSpec α) Short :=
   trivial
@@ -96,11 +100,6 @@ theorem flatMap_kBytes_length (l : List K) : (l.flatMap kBytes).length = 8 * l.l
 
 theorem pair_length (a b : Digest) : (digestBytes a ++ digestBytes b).length ≤ 2 ^ 39 := by
   simp [digestBytes_length]
-
-theorem relationLabel_length : relationLabel.length ≤ 2 ^ 39 := by decide +kernel
-
-theorem ivPreimage_length (a b : Digest) : (ivPreimage a b).length ≤ 2 ^ 39 := by
-  simp [ivPreimage, digestBytes_length, wordBytes_length]
 
 theorem bytecodeWords_length (prog : Program) :
     (bytecodeWords prog).length = 16 * 2 ^ prog.logSize := by
@@ -295,7 +294,7 @@ theorem allQ_climb : ∀ (node : Digest) (q : ℕ) (ss : List Digest),
   | node, q, s :: ss => by
     simp only [climb]
     split <;>
-      exact allQueriesSatisfy_bind (allQ_queryH (pair_length _ _)) fun _ ↦ allQ_climb _ _ ss
+      exact allQueriesSatisfy_bind (allQ_queryH₀ (pair_length _ _)) fun _ ↦ allQ_climb _ _ ss
 
 theorem allQ_openOne (root : Digest) (height width q : ℕ) (o : Opening)
     (hw : width ≤ maxWidth) : AllQueriesSatisfy (openOne queryH root height width q o) Short := by
@@ -377,7 +376,7 @@ theorem allQ_runProof (P : Prog Bool) (seed : KState) (π : Proof) (hP : WidthsL
   split <;> trivial
 
 theorem allQ_hsRun : ∀ (fs : List (List Digest → Bytes)) (ds : List Digest),
-    (∀ f ∈ fs, ∀ ds, (f ds).length ≤ 2 ^ 39) →
+    (∀ f ∈ fs, ∀ ds, (f ds).length ≤ 2 ^ 39 + 9) →
       AllQueriesSatisfy (Seed.hsRun queryH fs ds) Short
   | [], _, _ => trivial
   | f :: fs, ds, h => by
@@ -385,15 +384,18 @@ theorem allQ_hsRun : ∀ (fs : List (List Digest → Bytes)) (ds : List Digest),
     exact allQueriesSatisfy_bind (allQ_queryH (h f (by simp) ds)) fun d ↦
       allQ_hsRun fs _ fun g hg ↦ h g (List.mem_cons_of_mem _ hg)
 
+/-- `TAG` is nine bytes. -/
+theorem versionTag_length : versionTag.length = 9 := by decide +kernel
+
 theorem allQ_seedRun (prog : Program) (input : PublicInput) :
     AllQueriesSatisfy ((leanVmSeed (bytecodeWords prog) (publicDigest input)).run queryH queryF)
       Short := by
   refine allQueriesSatisfy_bind (allQ_hsRun _ _ fun f hf ds ↦ ?_) fun _ ↦ allQ_queryF _
   simp only [leanVmSeed, List.mem_cons, List.not_mem_nil, or_false] at hf
-  rcases hf with rfl | rfl | rfl
-  · exact bytecode_length prog
-  · exact relationLabel_length
-  · exact ivPreimage_length _ _
+  subst hf
+  rw [List.length_append, versionTag_length]
+  have := bytecode_length prog
+  omega
 
 /-- The verifier of the statement is the seeded verifier at the leanVM seed and program. -/
 theorem verifier_eq (prog : Program) (input : PublicInput) (proof : Proof) :
@@ -442,7 +444,7 @@ theorem allQ_arrayMapM {β γ : Type} (f : β → OracleComp HashSpec γ) (xs : 
 
 theorem allQ_parentsM (level : Array Digest) (n : ℕ) :
     AllQueriesSatisfy (parentsM queryH level n) Short :=
-  allQ_arrayMapM _ _ fun _ _ ↦ allQ_queryH (pair_length _ _)
+  allQ_arrayMapM _ _ fun _ _ ↦ allQ_queryH₀ (pair_length _ _)
 
 theorem allQ_levelsM : ∀ (k : ℕ) (level : Array Digest),
     AllQueriesSatisfy (levelsM queryH k level) Short
@@ -464,7 +466,7 @@ theorem row_length {word : Word} (hw : RowsLE word) (p : ℕ) :
 
 theorem allQ_leafDigestsM (height : ℕ) {word : Word} (hw : RowsLE word) :
     AllQueriesSatisfy (leafDigestsM queryH height word) Short :=
-  allQ_arrayMapM _ _ fun i _ ↦ allQ_queryH (row_length hw i)
+  allQ_arrayMapM _ _ fun i _ ↦ allQ_queryH₀ (row_length hw i)
 
 theorem allQ_buildTreeM (height : ℕ) {word : Word} (hw : RowsLE word) :
     AllQueriesSatisfy (buildTreeM queryH height word) Short :=
@@ -677,7 +679,7 @@ prover's factor. -/
 theorem isTotalQueryBound_honestComp' (prog : Program) (input : PublicInput) (t : Trace prog)
     (ρ fuel : ℕ) :
     IsTotalQueryBound (Complete.honestComp prog input t ρ fuel)
-      (4 + 48017 * (2 ^ 27 + 2 * fuel + 2)) := by
+      (2 + 48017 * (2 ^ 27 + 2 * fuel + 2)) := by
   by_cases hex : ∃ w s, Complete.HonestFor prog input t ρ w s
   · unfold Complete.honestComp
     simp only [hex, ↓reduceDIte]
@@ -694,16 +696,16 @@ theorem isTotalQueryBound_honestComp' (prog : Program) (input : PublicInput) (t 
 
 end Prover
 
-/-- **A prover of at most `4 + 48017 · (2^27 + 2·fuel + 2)` short queries and the verifier make
+/-- **A prover of at most `2 + 48017 · (2^27 + 2·fuel + 2)` short queries and the verifier make
 at most `completenessPermCalls fuel` permutation calls.** -/
 theorem isWeightBound_proverVerifier {X : OracleComp HashSpec Proof} (prog : Program)
     (input : PublicInput) {fuel : ℕ}
-    (hX : IsTotalQueryBound X (4 + 48017 * (2 ^ 27 + 2 * fuel + 2)))
+    (hX : IsTotalQueryBound X (2 + 48017 * (2 ^ 27 + 2 * fuel + 2)))
     (hXq : AllQueriesSatisfy X Short) :
     Common.IsWeightBound (X >>= fun proof ↦ verifier queryH queryF prog input proof) hashBlocks
       (completenessPermCalls fuel) := by
   have hN : IsTotalQueryBound (X >>= fun proof ↦ verifier queryH queryF prog input proof)
-      (12012 + 48017 * (2 ^ 27 + 2 * fuel + 2)) := by
+      (12008 + 48017 * (2 ^ 27 + 2 * fuel + 2)) := by
     have h := isTotalQueryBound_bind hX fun proof ↦ by
         have := isTotalQueryBound_leanVm (bytecodeWords prog) (publicDigest input) proof
         rw [leanVmQueryBound_eq, ← verifier_eq] at this
@@ -725,12 +727,12 @@ theorem isWeightBound_honest (prog : Program) (input : PublicInput) (t : Trace p
     (allQ_honestComp prog input t ρ fuel)
 
 /-- The specification's honest prover of any strategy makes at most
-`4 + 48017 · (2^27 + 2·fuel + 2)` queries. -/
+`2 + 48017 · (2^27 + 2·fuel + 2)` queries. -/
 theorem isTotalQueryBound_romHonestComp (prog : Program) (input : PublicInput) (S : Strategy)
     (fuel : ℕ) :
     IsTotalQueryBound (Rom.honestComp (leanVmSeed (bytecodeWords prog) (publicDigest input))
       (leanVmProgram (bytecodeWords prog) (publicDigest input)) S fuel)
-      (4 + 48017 * (2 ^ 27 + 2 * fuel + 2)) := by
+      (2 + 48017 * (2 ^ 27 + 2 * fuel + 2)) := by
   have h := Rom.isTotalQueryBound_honestComp
     (costLE_leanVmProgram (bytecodeWords prog) (publicDigest input)) S fuel
     (σ := leanVmSeed (bytecodeWords prog) (publicDigest input))

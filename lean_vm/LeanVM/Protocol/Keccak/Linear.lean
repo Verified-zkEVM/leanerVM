@@ -15,9 +15,9 @@ public import Mathlib.Tactic.Ring
 /-!
 # The linear map over `E` and its transpose
 
-A layer of the reduction (`verify_keccak_layer`, `verifier.py:1311-1354`) moves a claim's
+A layer of the reduction (`verify_keccak_layer`, `verifier.py:1312-1355`) moves a claim's
 position weights across the round's linear map with `keccak_linear_transpose`
-(`verifier.py:1291-1302`, `keccakLinearTranspose`), whose defining property is
+(`verifier.py:1292-1303`, `keccakLinearTranspose`), whose defining property is
 `⟨w, L(a)⟩ = ⟨Lᵀ(w), a⟩` (`doc/leanvm`, §`keccak:layer`, step 6). This module proves it:
 
 * `bitE`: a bit as `0` or `1` of `E`; in characteristic two XOR is `+`, AND is `·` and NOT is
@@ -307,7 +307,7 @@ theorem keccakLinearTranspose_length (w : List E) : (keccakLinearTranspose w).le
   rw [flatMap_length]
 
 /-- **The transpose.** For every vector `v` on the positions,
-`Σ_j w_j (L v)_j = Σ_j (keccakLinearTranspose w)_j v_j` (`verifier.py:1291-1302`). -/
+`Σ_j w_j (L v)_j = Σ_j (keccakLinearTranspose w)_j v_j` (`verifier.py:1292-1303`). -/
 theorem transpose (w : List E) (v : ℕ → E) :
     ∑ j ∈ range 1600, w.getD j 0 * Llin v j =
       ∑ j ∈ range 1600, (keccakLinearTranspose w).getD j 0 * v j := by

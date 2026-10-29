@@ -71,8 +71,7 @@ the bound. When `εmax ≥ 1` the bound exceeds one (the verifier queries at lea
   the group's escape probability multiply.
 * Keccak-f[1600] is modelled as a random function on states, not a random permutation.
 * Each seeding is hash steps then one permutation (`Seed`): leanVM's
-  `F(IV ‖ pi ‖ 0)` with `IV = H("leanvm" ‖ … ‖ H(label) ‖ H(bytecode))` is three hash steps and
-  the permutation.
+  `F(IV ‖ pi ‖ 0)` with `IV = H(tag ‖ bytecode)` is one hash step and the permutation.
 * The statement is the adversary's: one program `P` with one certificate covers every statement
   by its root history, and the family's seeds are told apart by their permutation inputs
   (`Seeds.inj`). A fixed statement is a family of one.

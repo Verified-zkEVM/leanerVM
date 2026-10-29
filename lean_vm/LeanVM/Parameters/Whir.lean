@@ -32,7 +32,7 @@ namespace LeanVM.Parameters.Whir
 opening's own evaluation claim binds, and one at every later level (`whir_config.rs:107-114`).
 The Rust production test fixes the count for stack sizes 22 to 28 (`whir_config.rs:983, 995`);
 for 15 to 21 it is the second verifier's, which takes one sample per level after the first
-(`verifier.py:1147-1153`). -/
+(`verifier.py:1148-1154`). -/
 def oodSamples (level : ℕ) : ℕ := if level = 0 then 0 else 1
 
 /-- The variables left after every fold: the size of the residual sent in the clear. -/

@@ -342,7 +342,7 @@ theorem duplexP_runProof (P : Prog Bool) {seed : KState} {h : List KState} (hs :
 theorem hOnly_fiatShamirIvWith (bytecode : List K) :
     HOnly (fiatShamirIvWith queryH bytecode) := by
   simp only [fiatShamirIvWith]
-  exact (hOnly_queryH _).bind fun _ ↦ (hOnly_queryH _).bind fun _ ↦ hOnly_queryH _
+  exact hOnly_queryH _
 
 /-- The seed's input is zero from lane `8` on. -/
 theorem admissibleVm_seedInput (h : List KState) (iv publicInput : Digest) :

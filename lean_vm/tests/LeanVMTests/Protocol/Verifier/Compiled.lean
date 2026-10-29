@@ -14,9 +14,10 @@ halves, then `n` scalars `fe(10 + k)`.
   five challenges, in the compiled reading, give the challenges and the sponge state the
   Python's `Transcript` gives on the same stream after `next_scalars(8)`,
   `from_halves(next_scalars(2))` and `samples(5)` (`python-verifier/verifier.py` at leanVM
-  `4af2cdddd7cd41b9df2cc7e123e314a91b0b4462`, driver `compiled_driver.py` of the port). This binds
-  the IV preimage, the seed permutation of the IV and the public input, the duplex absorbs with
-  their domain tags, the squeezes, the order of the reads, and the stack root's shape.
+  `990b935263dc7f793f280914f262ca7955ddc3e0`, a driver of the port's scratch). This binds the IV's
+  preimage (the version tag, then the bytecode), the seed permutation of the IV and the public
+  input, the duplex absorbs with their domain tags, the squeezes, the order of the reads, and the
+  stack root's shape.
 * A root half with a nonzero top limb is rejected, as `Digest.from_halves` rejects it.
 * Garbage proofs run to a rejection: the empty proof and the stream cut after the root (the
   Python: `proof stream exhausted`), a hundred scalars after it (the Python: `GKR layer 17:
@@ -67,20 +68,20 @@ def prefixRun (s : List E) : Option (List E × St) :=
 /-! ## The sponge agrees with the Python's -/
 
 #guard ((prefixRun (stream 4 0)).map (·.1)) =
-    some [(e 0xd790895a57ecc448 0x1d3f6a34ba276267 0xd84f736a7ca14a72),
-     (e 0xd5e90535f68cfea9 0xbbc49cb20b116769 0x79a750f4c329c3d3),
-     (e 0xa77a8da5d12628f3 0x628f9f71648bb439 0xff7344540018cf53),
-     (e 0xd8ebb4231e51a997 0x36c7386d30fe9fcd 0x70b54020d618de60),
-     (e 0xc4c1773fb367cac6 0xae8c3da5fab70731 0xf44a7f14b39c8cca)]
+    some [(e 0x76cab5c46908a6e3 0x9f181ecbe76275b1 0xa299f132fa7fe5e1),
+     (e 0xf9194a2a1e2d0d6c 0x7bbc1deff5f4dc6d 0xad36a57c0987b12a),
+     (e 0xfb6dc5c12b3900be 0xb2092b8150b236f5 0x92e08d928c2e528b),
+     (e 0x73259fba69ae5358 0x11bfca90fb00349b 0x11a90a9b4f271b5),
+     (e 0x9b3200d078d47019 0x62b965389bbb4e49 0xf57085b9e4651c61)]
 
 #guard ((prefixRun (stream 4 0)).map fun r ↦ (r.2.sponge.state.toList, r.2.sponge.pending.length)) =
-    some ([0xc4c1773fb367cac6, 0xae8c3da5fab70731, 0xf44a7f14b39c8cca, 0x5e9745ea05eef225,
-      0x487a8664795cfe0a, 0x5e4264d9289dfa7d, 0xe32f50eb1f5b7401, 0x5bbca26d605f030e,
-      0xa4af9fe4557d02a5, 0x10da4d4b578ef012, 0xecd37a4ba588b299, 0xdf7f4908d22e1734,
-      0x81eab84c9c062458, 0x70b4a1d3a309071b, 0xbd14d827401edcb5, 0xf269eb844eefd8af,
-      0xb8c5f0d786acf104, 0x54d43adbf6b12746, 0xa9d7ab15287a87d9, 0x5738a45fd96a22be,
-      0x4b96cebdc18d3dfc, 0xc3cfdcc776d936f1, 0xf5a34dd2e7f118ac, 0x70aab75027e95e95,
-      0x282ee27cc904a7e5], 0)
+    some ([0x9b3200d078d47019, 0x62b965389bbb4e49, 0xf57085b9e4651c61, 0xb1484e8bde27e39d,
+      0x44efeab650789cde, 0x4e27247d2d610549, 0xd92c47fef3c79ed, 0xc9d261e57715fe8b,
+      0x42ee445bb8e2f3a6, 0xf3fa10fa300924da, 0xb0b97f2d3e92fdb4, 0xf7639b34004e4baf,
+      0xf3859d8e9a8fe3db, 0x34f02e7a301daeee, 0x80ee193a1c62fd5, 0x515009f201dd757c,
+      0xe622fa19cca68986, 0xf79fd1193220fca4, 0x7e46e300dc243e6c, 0x8acc56faa906dbee,
+      0xb7008d591670d327, 0x6130e0da364e4521, 0x31b93326d2b0ddcc, 0x8d2b0d0b07870a40,
+      0xbfc73c4740cd253e], 0)
 
 /- The stack root is commitment `0`, of `2^(19 - 6 + 4)` leaves of `2^6` words. -/
 #guard ((prefixRun (stream 4 0)).map fun r ↦ r.2.roots.map fun c ↦ (c.2.1, c.2.2)) =

@@ -27,7 +27,7 @@ entries at the domain point `x_p = K.ofBits p`.
   leaf stores their `K`-valued codeword entries in reverse lane order. `stackWord_agrees`: it is
   the encoding of the stack in the sense of `Agrees`, on every column.
 * `levelWord κ k g`: a deeper level's word, each `E` entry written as its three limbs, the layout
-  `_ext_row` regroups (`verifier.py:960-962`).
+  `_ext_row` regroups (`verifier.py:961-963`).
 * `stackTable μ q`: the stack as a table in the WHIR variable order: the six lane variables
   first, then the block offset (`f(u, x) = q(x, u)`), i.e. the stack's index rotated by six
   bits.

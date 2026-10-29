@@ -31,11 +31,11 @@ example (prog : Program) (input : PublicInput) (P : OracleComp HashSpec LeanVM.P
       soundnessError Q :=
   knowledgeSoundnessRom ((OracleComp.isQueryBound_map_iff P _ Q _ _).mpr hP)
 
-/-- The numbers: `12008` verifier queries, a collision term of `7` per pair of queries. -/
+/-- The numbers: `12006` verifier queries, a collision term of `5` per pair of queries. -/
 example (Q : ℕ) : soundnessError Q =
-    ((Q + 12008 : ℕ) : ENNReal) *
-        ((2 : ENNReal)⁻¹ ^ 128 + ((7 * (Q + 12008) : ℕ) : ENNReal) / 2 ^ 256) +
-      ((12008 : ℕ) : ENNReal) / 2 ^ 256 := rfl
+    ((Q + 12006 : ℕ) : ENNReal) *
+        ((2 : ENNReal)⁻¹ ^ 128 + ((5 * (Q + 12006) : ℕ) : ENNReal) / 2 ^ 256) +
+      ((12006 : ℕ) : ENNReal) / 2 ^ 256 := rfl
 
 example {Q : ℕ} (hQ : Q ≤ 2 ^ 64) : soundnessError Q ≤ (2 : ENNReal)⁻¹ ^ 63 :=
   soundnessError_le hQ

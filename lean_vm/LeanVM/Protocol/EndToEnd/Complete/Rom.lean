@@ -26,10 +26,10 @@ adversary, the verifier rejects with probability at most (`Rom.romComplete`)
 
   `completenessError fuel = Q · (1 - 2^-17)^fuel`,
 
-`Q = (3 + 1) + 48017 · (2^27 + 2·fuel + 2) + 12008` the queries of the prover and the verifier
-together (`completenessQueries`): the seed's three hashes and one permutation, `leanVmCost = 48017`
+`Q = (1 + 1) + 48017 · (2^27 + 2·fuel + 2) + 12006` the queries of the prover and the verifier
+together (`completenessQueries`): the seed's hash and permutation, `leanVmCost = 48017`
 moves of the program each costing the prover at most `proverFactor costHeight fuel =
-2^27 + 2·fuel + 2` queries, and the verifier's `leanVmQueryBound = 12008`
+2^27 + 2·fuel + 2` queries, and the verifier's `leanVmQueryBound = 12006`
 (`romComplete_leanVm`). At `fuel = 2^25`, it is below `2^-257` (`completenessError_le`): `Q ≤ 2^44`,
 and the seventeen-bit proofs of work fail with probability `(1 - 2^-17)^(2^25) ≤ e^-256 < 2^-320`
 each.
@@ -59,10 +59,9 @@ noncomputable def honestComp (prog : Program) (input : PublicInput) (t : Trace p
   else pure ⟨[], []⟩
 
 /-- The queries of the honest prover and the verifier together, at a fuel of `fuel`: the seed's
-three hashes and one permutation, the program's moves at the prover's factor, and the verifier's
-bound. -/
+hash and permutation, the program's moves at the prover's factor, and the verifier's bound. -/
 def completenessQueries (fuel : ℕ) : ℕ :=
-  3 + 1 + leanVmCost * proverFactor costHeight fuel + leanVmQueryBound
+  1 + 1 + leanVmCost * proverFactor costHeight fuel + leanVmQueryBound
 
 /-- **The completeness error** at a fuel of `fuel` nonces per proof of work: every query may
 complete a proof of work whose nonces all failed. -/

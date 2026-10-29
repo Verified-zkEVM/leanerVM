@@ -10,7 +10,7 @@
   permutation; the guest's proofs also need them answered by a log. The deployed padding digests
   are parameters (`pc`, `pr`; deployed: the hashes of the zero cell and the zero row, which the
   guest bakes as constants, `DA_PAD_CELL_*`, `DA_PAD_ROW_*`,
-  `crates/rec_aggregation/src/aggregation.rs:2575-2578`). The tree is built with `nodes.length` as
+  `crates/rec_aggregation/src/aggregation.rs:2574-2577`). The tree is built with `nodes.length` as
   fuel, which is enough (`treeRootFuel_id`).
 -/
 
