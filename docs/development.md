@@ -37,6 +37,11 @@ This recursively inspects declaration dependencies and permits only `propext`,
 and CI's independent production-only lean-action audit. The negative control checks
 transitive rejection through production and test declarations in a temporary fixture.
 
+The source policy also rejects `debug.skipKernelTC` overrides. This debugging option can
+accept an invalid kernel decision without adding an unexpected axiom, so an axiom footprint
+does not by itself show that kernel checking ran. Keep the source/options gate and the
+transitive axiom audit as separate validation steps.
+
 ## Adding a production module
 
 1. Choose its owner layer using `docs/architecture.md`.

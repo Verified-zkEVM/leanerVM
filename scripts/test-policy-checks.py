@@ -91,6 +91,7 @@ def test_source_audit() -> None:
             ("set_option autoImplicit true", "must not be overridden"),
             ("set_option relaxedAutoImplicit true", "must not be overridden"),
             ("set_option warningAsError false", "must not be overridden"),
+            ("set_option debug.skipKernelTC true", "must not be overridden"),
             ("set_option linter.unusedVariables false", "must not be overridden"),
             ("set_option weak.linter.mathlibStandardSet false", "must not be overridden"),
         )
@@ -106,6 +107,7 @@ def test_source_audit() -> None:
                 "autoImplicit true",
                 "relaxedAutoImplicit true",
                 "warningAsError false",
+                "debug.skipKernelTC true",
                 "linter.unusedVariables false",
                 "weak.linter.mathlibStandardSet false",
             ):
@@ -127,12 +129,20 @@ def test_source_audit() -> None:
                 "«autoImplicit» true",
                 "«relaxedAutoImplicit» true",
                 "«warningAsError» false",
+                "debug.«skipKernelTC» true",
+                "«debug».skipKernelTC true",
                 "«linter».unusedVariables false",
                 "weak.«linter».mathlibStandardSet false",
             ):
                 source = f"set_option /- separator -/ {option}"
                 write(probe, f"module\n\n{source}\n")
                 require_failure(run(root, "audit-lean.sh"), source, "must not be overridden")
+            # Kernel TC can be skipped without an unexpected axiom. Reject the actual
+            # false-equality proof shape too, rather than relying only on axiom closure.
+            write(probe, "import Lean\nset_option debug.skipKernelTC true in\n"
+                  "theorem invalidEquality : (0 : Nat) = 1 := by decide +kernel\n")
+            require_failure(run(root, "audit-lean.sh"), "kernel-TC skip false equality",
+                            "must not be overridden")
             # Delimiters in strings must not hide a later command. The policy remains
             # conservative: command-shaped text in strings/comments is also rejected.
             for source in (
