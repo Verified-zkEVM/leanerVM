@@ -72,7 +72,7 @@ impl Out {
         self.e(c.bytecode_value);
     }
 
-    /// `NodeStatement`: the claims, each DA root with its vector digest, and the deferred claim.
+    /// `NodeStatement`: the claims, the DA digest (`da_digest`), and the deferred claim.
     fn statement(&mut self, p: &EthereumProof) {
         self.tag("xmss");
         self.n(p.xmss_signers.len());
@@ -87,11 +87,7 @@ impl Out {
             self.bytes(m);
         }
         self.tag("da");
-        self.n(p.da_roots.len());
-        for root in &p.da_roots {
-            self.bytes(root);
-            self.bytes(&lean_da::vector_digest(&lean_da::membership_vector(root)));
-        }
+        self.bytes(&da_digest(p.da_root));
         self.deferred(&p.defer);
     }
 
@@ -225,26 +221,26 @@ fn export(
             &mut out,
         );
     }
-    let da_children: Vec<&[[u8; 32]]> = children.iter().map(|c| c.da_roots.as_slice()).collect();
+    // The directly held matrix: its root, its vector digest, its rows and its membership vector.
     let direct = (!blobs.is_empty()).then(|| lean_da::commit(blobs));
-    out.tag("holders_da");
-    out.n(node.da_roots.len());
-    for root in &node.da_roots {
-        let raw = direct.as_ref().filter(|(commitment, _)| commitment.root == *root);
-        let write = raw.map(|(_, witness)| {
-            move |out: &mut Out| {
-                let rows: Vec<&[u64]> = witness.codewords.chunks(CODEWORD_SYMBOLS).collect();
-                out.n(rows.len());
-                for row in rows {
-                    out.n(row.len());
-                    for w in row {
-                        write!(out.0, "{w:x} ").unwrap();
-                    }
+    out.tag("da_witness");
+    match &direct {
+        Some((commitment, witness)) => {
+            let root = commitment.root;
+            out.0.push_str("direct ");
+            out.bytes(&root);
+            out.bytes(&lean_da::vector_digest(&lean_da::membership_vector(&root)));
+            let rows: Vec<&[u64]> = witness.codewords.chunks(CODEWORD_SYMBOLS).collect();
+            out.n(rows.len());
+            for row in rows {
+                out.n(row.len());
+                for w in row {
+                    write!(out.0, "{w:x} ").unwrap();
                 }
-                out.es(&lean_da::membership_vector(root));
             }
-        });
-        holder(root, write, &da_children, &mut out);
+            out.es(&lean_da::membership_vector(&root));
+        }
+        None => out.0.push_str("none "),
     }
     out.tag("batch");
     let rounds = |name: &str| stream(name).map_or(vec![], |e| e[0].clone());

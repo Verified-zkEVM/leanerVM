@@ -95,12 +95,9 @@ pub fn file() -> File {
         .collect();
     let xmss_digest = claim_list_digest(xmss_typed.iter().map(lean_xmss_claim_cells));
     let sphincs_digest = claim_list_digest(sphincs_typed.iter().map(lean_sphincs_claim_cells));
-    let roots: Vec<[u8; 32]> = (0..2).map(|_| bytes32(&mut rng)).collect();
-    let vector_digests: Vec<[u8; 32]> = roots
-        .iter()
-        .map(|r| lean_da::vector_digest(&lean_da::membership_vector(r)))
-        .collect();
-    let da_digest = da_list_digest(&roots);
+    let root = bytes32(&mut rng);
+    let vector_digest = lean_da::vector_digest(&lean_da::membership_vector(&root));
+    let da = da_digest(Some(root));
 
     // A deferred claim of the guest's shape, its value arbitrary (the digest does not care).
     let defer = DeferredClaim {
@@ -108,7 +105,7 @@ pub fn file() -> File {
         bytecode_value: element(&mut rng),
     };
     let seed = leanvm_core::cpu::fs_seed(unified_guest());
-    let statement = statement_digest(&xmss_typed, &sphincs_typed, da_digest, &defer);
+    let statement = statement_digest(&xmss_typed, &sphincs_typed, da, &defer);
 
     // Two children with true claims on the stacked bytecode.
     let subproofs: Vec<DeferredSubproof> = (0..2)
@@ -162,17 +159,13 @@ pub fn file() -> File {
     writeln!(out, "def sphincsListDigest : Digest := {}\n", cells_digest(&sphincs_digest)).unwrap();
     writeln!(
         out,
-        "/-- DA claims: each root with the vector digest the Rust derives from it. -/\ndef da : List DaClaim :=\n  {}\n",
-        list(
-            roots
-                .iter()
-                .zip(&vector_digests)
-                .map(|(r, v)| format!("⟨{}, {}⟩", digest(r), digest(v)))
-                .collect()
-        )
+        "/-- A DA claim: a root with the vector digest the Rust derives from it. -/\ndef daClaim : DaClaim := ⟨{}, {}⟩\n",
+        digest(&root),
+        digest(&vector_digest)
     )
     .unwrap();
-    writeln!(out, "def daListDigest : Digest := {}\n", digest(&da_digest)).unwrap();
+    writeln!(out, "/-- The statement's DA field for it (`da_digest`). -/\ndef daDigest : Digest := {}\n", digest(&da)).unwrap();
+    writeln!(out, "/-- The statement's DA field without a root. -/\ndef daNone : Digest := {}\n", digest(&da_digest(None))).unwrap();
     writeln!(
         out,
         "/-- A deferred claim of the guest's shape. -/\ndef defer : DeferredClaim :=\n  ⟨{},\n   {}⟩\n",
