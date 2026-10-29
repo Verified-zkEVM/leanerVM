@@ -31,11 +31,11 @@ open LeanVM.Guest.B1.Fwd
 
 variable {rd : Reader}
 
-theorem ccc_all {k : ℕ} (hk : k < 17) : cccOk k (coreProgram.getD (342 + k) default) = true := by
+theorem ccc_all {k : ℕ} (hk : k < 17) : cccOk k (coreProgram.getD (339 + k) default) = true := by
   rcases Nat.lt_or_ge k 9 with h | h
   · exact ccc_lo k h
   · have := ccc_hi (k - 9) (by omega)
-    rwa [show 9 + (k - 9) = k by omega, show 351 + (k - 9) = 342 + k by omega] at this
+    rwa [show 9 + (k - 9) = k by omega, show 348 + (k - 9) = 339 + k by omega] at this
 
 theorem storesOf_load : ∀ {c : ℕ} {ss : List Stmt} {a : Atom}, a ∈ storesOf c ss →
     ∃ d p o, a = .load d p o
@@ -108,7 +108,7 @@ theorem ccLast_complete {k : ℕ} (hk : k < 17) {sp entries cover marks origin l
   have hf := find_of_idx (ccl_idx k hk) (by rw [coreProgram_length]; omega)
   have hok := ccl_all k hk
   have hcok := ccc_all hk
-  set fn := coreProgram.getD (342 + k) default
+  set fn := coreProgram.getD (339 + k) default
   simp only [cclOk, Bool.and_eq_true, decide_eq_true_eq] at hok
   obtain ⟨hpar, hok⟩ := hok
   simp only [cccOk, Bool.and_eq_true, Option.isSome_iff_exists] at hcok

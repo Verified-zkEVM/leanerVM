@@ -58,11 +58,11 @@ def clOk (k : ℕ) (f : Fn) : Bool :=
   | _ => false
 
 set_option maxRecDepth 100000 in
-theorem cl_all : ∀ k < 17, clOk k (coreProgram.getD (324 + k) default) = true := by
+theorem cl_all : ∀ k < 17, clOk k (coreProgram.getD (321 + k) default) = true := by
   decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem cl_idx : ∀ k < 17, coreProgram.indexOf? (clNames.getD k "") = some (324 + k) := by
+theorem cl_idx : ∀ k < 17, coreProgram.indexOf? (clNames.getD k "") = some (321 + k) := by
   decide +kernel
 
 /-- **`claim_list_last__L{k}`**: from a state at its first argument after whole blocks `pre`, it
@@ -76,7 +76,7 @@ theorem claimLast_sound {k : ℕ} (hk : k < 17) {rd : Reader} {args rets : List 
   have hf := find_of_idx (cl_idx k hk) (by rw [coreProgram_length]; omega)
   obtain ⟨σ, hp, hb⟩ := (rel_iff_sem hf args rets).mp h
   have hok := cl_all k hk
-  set f := coreProgram.getD (324 + k) default
+  set f := coreProgram.getD (321 + k) default
   simp only [clOk, Bool.and_eq_true, decide_eq_true_eq] at hok
   obtain ⟨hpar, hok⟩ := hok
   rw [hpar] at hp

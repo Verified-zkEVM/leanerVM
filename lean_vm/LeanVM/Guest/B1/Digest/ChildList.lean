@@ -312,11 +312,11 @@ def cclOk (k : ℕ) (f : Fn) : Bool :=
   | _ => false
 
 set_option maxRecDepth 100000 in
-theorem ccl_all : ∀ k < 17, cclOk k (coreProgram.getD (342 + k) default) = true := by
+theorem ccl_all : ∀ k < 17, cclOk k (coreProgram.getD (339 + k) default) = true := by
   decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem ccl_idx : ∀ k < 17, coreProgram.indexOf? (cclNames.getD k "") = some (342 + k) := by
+theorem ccl_idx : ∀ k < 17, coreProgram.indexOf? (cclNames.getD k "") = some (339 + k) := by
   decide +kernel
 
 theorem length_ccMsg (o0 n : ℕ) : (ccMsg o0 n).length = 4 * n := by simp [ccMsg]
@@ -333,7 +333,7 @@ theorem childLast_sound {rd : Reader} (hm : MemOk rd) {k : ℕ} (hk : k < 17) {a
   have hf := find_of_idx (ccl_idx k hk) (by rw [coreProgram_length]; omega)
   obtain ⟨σ, hp, hb⟩ := (rel_iff_sem hf args rets).mp h
   have hok := ccl_all k hk
-  set f := coreProgram.getD (342 + k) default
+  set f := coreProgram.getD (339 + k) default
   simp only [cclOk, Bool.and_eq_true, decide_eq_true_eq] at hok
   obtain ⟨hpar, hok⟩ := hok
   rw [hpar] at hp

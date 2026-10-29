@@ -1,8 +1,8 @@
 /-
   LeanVM.Guest.B1.Main.Loops
 
-  B1 for `main`'s loop helpers: the raw signatures (`__loop2`, `__loop3`), a child's DA roots
-  (`__loop28`) and the children (`__loop4`), each body checked by evaluation.
+  B1 for `main`'s loop helpers: the raw signatures (`__loop2`, `__loop3`) and the children
+  (`__loop4`), each body checked by evaluation.
 -/
 
 module
@@ -13,17 +13,15 @@ public import LeanVM.Guest.B1.Digest.Loops
 /-!
 # `main`'s loops
 
-Each helper's body (`loopPre`) is checked by evaluation (`l3Ok`, `l4Ok`, `l28Ok`, `l5Ok`), and its
-run at `x` gives one iteration's facts (`RawXStep`, `RawSStep`, `KidDaStep`, `KidStep`) and the
-run at `x·g` (`loop_stepF`).
+Each helper's body (`loopPre`) is checked by evaluation (`l3Ok`, `l4Ok`, `l5Ok`), and its run at
+`x` gives one iteration's facts (`RawXStep`, `RawSStep`, `KidStep`) and the run at `x·g`
+(`loop_stepF`).
 
 * `__loop2` (G:4193-4202): a raw leanXMSS signature `i`: a slot `s` below the leanXMSS region,
   `cover[g^s] = g^i`, `verify_lean_xmss(lx_table · g^(4s))`;
 * `__loop3` (G:4203-4207): a raw leanSPHINCS signature `j`: a slot `s` below the leanSPHINCS
   region, `cover[lx_slots · g^s] = n_raw_x · g^j`, `verify_sig_lean_sphincs(ls_table · g^(4s), byte_bits)`;
-* `__loop28` (G:4231-4238): a child's DA root `d`: `cover_da_root(da_roots, da_cover, da_slots,
-  base · n_sub · g^d)`, its four words copied to `child_da · g^(4d)`;
-* `__loop4` (G:4219-4260): child `c`.
+* `__loop4` (G:4180-4206): child `c`, its DA digest hinted at `da_digests · c^2`.
 -/
 
 namespace LeanVM.Guest.B1.Main
@@ -177,69 +175,6 @@ theorem l4_step {rd : Reader} (hm : MemOk rd) {x : E} {ps : List E}
     rwa [List.map_cons, List.map_cons, List.map_nil, monoIs_sound hm19 hat, hs, hlst, hbb,
       ← pow_mul, mul_comm s 4] at this
 
-/-! ## `__loop28`: a child's DA roots -/
-
-def l28Ok (fn : Fn) : Bool :=
-  loopShapeF fn "__loop28" && decide (fn.params.length = 8) &&
-    monoIs (atomsIn (loopPre fn)) (.n 10) (.n 2) (.n 0) 4 &&
-    isMul (atomsIn (loopPre fn)) (.n 11) (.n 6) (.n 7) &&
-    isMul (atomsIn (loopPre fn)) (.n 12) (.n 11) (.n 0) &&
-    hasCall (loopPre fn) "cover_da_root" [.n 3, .n 4, .n 5, .n 12] [.n 13, .n 14, .n 15, .n 16] &&
-    (List.range 4).all fun c => (atomsIn (loopPre fn)).any (isLoadAt (.n (13 + c)) (.n 10) c)
-
-set_option maxRecDepth 100000 in
-theorem l28_ok : l28Ok (coreProgram.getD 398 default) = true := by decide +kernel
-
-set_option maxRecDepth 100000 in
-theorem l28_idx : coreProgram.indexOf? "__loop28" = some 381 := by decide +kernel
-
-/-- **A child's DA root** at the counter `x`: `cover_da_root` with the mark `base · n_sub · x`,
-its four words copied to `child_da · x^4`. -/
-def KidDaStep (rd : Reader) (cda roots dcov dslots base nsub x : E) : Prop :=
-  ∃ r : List E, r.length = 4 ∧
-    coreProgram.Rel rd "cover_da_root" [roots, dcov, dslots, base * nsub * x] r ∧
-    ReadsAt rd (cda * x ^ 4) r
-
-theorem l28_step {rd : Reader} {x : E} {ps : List E}
-    (h : coreProgram.Rel rd "__loop28" (x :: ps) []) :
-    (∀ N cda roots dcov dslots base nsub, ps = [N, cda, roots, dcov, dslots, base, nsub] →
-      KidDaStep rd cda roots dcov dslots base nsub x) ∧
-      (x * gen + ps.headD 0 ≠ 0 → coreProgram.Rel rd "__loop28" (x * gen :: ps) []) := by
-  have hf := find_of_idx l28_idx (by rw [coreProgram_length]; omega)
-  have hok := l28_ok
-  simp only [l28Ok, Bool.and_eq_true, decide_eq_true_eq, List.all_eq_true, List.mem_range] at hok
-  obtain ⟨⟨⟨⟨⟨⟨hshape, hlen⟩, hm10⟩, hm11⟩, hm12⟩, hcall⟩, hl⟩ := hok
-  obtain ⟨σ, hx, hps, hall, hnext⟩ := loop_stepF hf hshape h
-  refine ⟨fun N cda roots dcov dslots base nsub hN => ?_, hnext⟩
-  have hat := atoms_of_flat hall
-  have hpar : (coreProgram.getD 398 default).params =
-      [V.n 0, V.n 1, V.n 2, V.n 3, V.n 4, V.n 5, V.n 6, V.n 7] := by
-    have hs := hshape
-    simp only [loopShapeF, Bool.and_eq_true, decide_eq_true_eq] at hs
-    rw [hs.1.2, hlen]; rfl
-  rw [hpar, hN] at hps
-  simp only [List.tail_cons, List.map_cons, List.map_nil, List.cons.injEq, and_true] at hps
-  obtain ⟨-, hcda, hroots, hdcov, hdslots, hbase, hnsub⟩ := hps
-  have hc := call_of_flat hall hcall
-  simp only [List.map_cons, List.map_nil] at hc
-  rw [isMul_sound hm12 hat, isMul_sound hm11 hat, hroots, hdcov, hdslots, hbase, hnsub, hx] at hc
-  refine ⟨_, rfl, hc, fun k hk => ?_⟩
-  have hk4 : k < 4 := by simpa using hk
-  have := load_sound (hl k hk4) hat
-  rw [monoIs_sound hm10 hat, hcda, hx] at this
-  interval_cases k <;> exact this
-
-end
-end LeanVM.Guest.B1.Main
-
-namespace LeanVM.Guest.B1.Main
-
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Value LeanVM.Guest.Value.Keccak
-open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile LeanVM.Protocol.Verifier
-open LeanVM.Guest.B1.Digest LeanVM.Node
-
-@[expose] public section
-
 /-! ## A two-digest hash in a block -/
 
 /-- The chain of `keccak([a, b], [c, d], out)`: four cells, `64` bytes, from the zero state. -/
@@ -284,25 +219,32 @@ def isLoad (atoms : List Atom) (x p : V) (o : ℕ) : Bool := atoms.any (isLoadAt
 def l5Ok (fn : Fn) : Bool :=
   let P := loopPre fn
   let A := atomsIn P
-  loopShapeF fn "__loop4" && decide (fn.params.length = 18) &&
-  isMul A (.n 18) (.n 2) (.n 0) && isLoad A (.n 19) (.n 18) 0 &&
-  rcConstOk A (.n 20) 9272771591053052074 && rcConstOk A (.n 21) 9272771591053052074 &&
-  isMul A (.n 30) (.n 20) (.n 21) && A.any (isConstAt (.n 31) 1 0) &&
-  hasCall P "child_claim_list_digest" [.n 3, .n 4, .n 19, .n 31, .n 5, .n 20] [.n 32, .n 33] &&
-  isMul A (.n 34) (.n 19) (.n 20) &&
-  hasCall P "child_claim_list_digest" [.n 6, .n 4, .n 34, .n 5, .n 7, .n 21] [.n 35, .n 36] &&
-  monoIs A (.n 42) (.n 8) (.n 0) 24 &&
-  rcConstOk A (.n 43) 65536 &&
-  guardOk P (.n 52) "__loop28" (.n 53) (.n 43) [.n 50, .n 9, .n 10, .n 11, .n 19, .n 30] &&
-  hasCall P "da_list_digest" [.n 50, .n 43] [.n 54, .n 55] &&
-  hasCall P "statement_digest" [.n 12, .n 13, .n 32, .n 33, .n 35, .n 36, .n 54, .n 55, .n 42]
-    [.n 56, .n 57] &&
-  monoIs A (.n 59) (.n 14) (.n 0) 2 && isLoad A (.n 56) (.n 59) 0 &&
-  monoIs A (.n 60) (.n 14) (.n 0) 2 && isLoad A (.n 57) (.n 60) 1 &&
-  monoIs A (.n 66) (.n 17) (.n 0) 24 &&
-  hasCall P "verify_sub" [.n 56, .n 57, .n 12, .n 13, .n 15, .n 16, .n 66] [] &&
-  isMul A (.n 67) (.n 19) (.n 30) && isMul A (.n 68) (.n 67) (.n 43) &&
-  isMul A (.n 69) (.n 2) (.n 0) && isLoad A (.n 68) (.n 69) 1
+  loopShapeF fn "__loop4" &&
+  decide (fn.params.length = 16) &&
+  isMul A (.n 16) (.n 2) (.n 0) &&
+  isLoad A (.n 17) (.n 16) 0 &&
+  rcConstOk A (.n 18) 9272771591053052074 &&
+  rcConstOk A (.n 19) 9272771591053052074 &&
+  isMul A (.n 28) (.n 18) (.n 19) &&
+  A.any (isConstAt (.n 29) 1 0) &&
+  hasCall P "child_claim_list_digest" [.n 3, .n 4, .n 17, .n 29, .n 5, .n 18] [.n 30, .n 31] &&
+  isMul A (.n 32) (.n 17) (.n 18) &&
+  hasCall P "child_claim_list_digest" [.n 6, .n 4, .n 32, .n 5, .n 7, .n 19] [.n 33, .n 34] &&
+  monoIs A (.n 40) (.n 8) (.n 0) 24 &&
+  monoIs A (.n 42) (.n 9) (.n 0) 2 &&
+  isLoad A (.n 43) (.n 42) 0 &&
+  isLoad A (.n 44) (.n 42) 1 &&
+  hasCall P "statement_digest" [.n 10, .n 11, .n 30, .n 31, .n 33, .n 34, .n 43, .n 44, .n 40]
+    [.n 45, .n 46] &&
+  monoIs A (.n 48) (.n 12) (.n 0) 2 &&
+  isLoad A (.n 45) (.n 48) 0 &&
+  monoIs A (.n 49) (.n 12) (.n 0) 2 &&
+  isLoad A (.n 46) (.n 49) 1 &&
+  monoIs A (.n 55) (.n 15) (.n 0) 24 &&
+  hasCall P "verify_sub" [.n 45, .n 46, .n 10, .n 11, .n 13, .n 14, .n 55] [] &&
+  isMul A (.n 56) (.n 17) (.n 28) &&
+  isMul A (.n 57) (.n 2) (.n 0) &&
+  isLoad A (.n 56) (.n 57) 1
 
 set_option maxRecDepth 100000 in
 theorem l5_ok : l5Ok (coreProgram.getD 34 default) = true := by decide +kernel
@@ -310,89 +252,69 @@ theorem l5_ok : l5Ok (coreProgram.getD 34 default) = true := by decide +kernel
 set_option maxRecDepth 100000 in
 theorem l5_idx : coreProgram.indexOf? "__loop4" = some 34 := by decide +kernel
 
-/-- **Child `x`'s facts**: its base `written[x]`, its counts `g^ex`, `g^es`, `g^ed`, its two
-rebuilt claim lists' digests, its DA roots, its statement's digest at `child_pi · x^2`, its
-proof's check, and `written[x · g] = base · g^(ex + es + ed)`. -/
-def KidStep (rd : Reader) (written lxt cover lxs lst lss carried roots dcov dslots s0 s1 cpi glp
-    gsq cfresh x : E) : Prop :=
-  ∃ (base cx0 cx1 cs0 cs1 d0 d1 p0 p1 cda : E) (ex es ed : ℕ),
-    LoadHolds rd (written * x) 0 base ∧ ex ≤ 65535 ∧ es ≤ 65535 ∧ ed ≤ 16 ∧
+/-- **Child `x`'s facts**: its base `written[x]`, its counts `g^ex`, `g^es`, its two rebuilt claim
+lists' digests, its DA digest's cells at `da_digests · x^2`, its statement's digest at
+`child_pi · x^2`, its proof's check, and `written[x · g] = base · g^(ex + es)`. -/
+def KidStep (rd : Reader) (written lxt cover lxs lst lss carried dadig s0 s1 cpi glp gsq cfresh
+    x : E) : Prop :=
+  ∃ (base cx0 cx1 cs0 cs1 d0 d1 p0 p1 : E) (ex es : ℕ),
+    LoadHolds rd (written * x) 0 base ∧ ex ≤ 65535 ∧ es ≤ 65535 ∧
     coreProgram.Rel rd "child_claim_list_digest" [lxt, cover, base, 1, lxs, gen ^ ex] [cx0, cx1] ∧
     coreProgram.Rel rd "child_claim_list_digest" [lst, cover, base * gen ^ ex, lxs, lss, gen ^ es]
       [cs0, cs1] ∧
-    (∀ d < ed, KidDaStep rd cda roots dcov dslots base (gen ^ ex * gen ^ es) (gen ^ d)) ∧
-    coreProgram.Rel rd "da_list_digest" [cda, gen ^ ed] [d0, d1] ∧
+    LoadHolds rd (dadig * x ^ 2) 0 d0 ∧ LoadHolds rd (dadig * x ^ 2) 1 d1 ∧
     coreProgram.Rel rd "statement_digest" [s0, s1, cx0, cx1, cs0, cs1, d0, d1, carried * x ^ 24]
       [p0, p1] ∧
     LoadHolds rd (cpi * x ^ 2) 0 p0 ∧ LoadHolds rd (cpi * x ^ 2) 1 p1 ∧
     coreProgram.Rel rd "verify_sub" [p0, p1, s0, s1, glp, gsq, cfresh * x ^ 24] [] ∧
-    LoadHolds rd (written * x) 1 (base * (gen ^ ex * gen ^ es) * gen ^ ed)
+    LoadHolds rd (written * x) 1 (base * (gen ^ ex * gen ^ es))
 
 theorem l5_step {rd : Reader} (hm : MemOk rd) {x : E} {ps : List E}
     (h : coreProgram.Rel rd "__loop4" (x :: ps) []) :
-    (∀ N written lxt cover lxs lst lss carried roots dcov dslots s0 s1 cpi glp gsq cfresh,
-      ps = [N, written, lxt, cover, lxs, lst, lss, carried, roots, dcov, dslots, s0, s1, cpi, glp,
-        gsq, cfresh] →
-      KidStep rd written lxt cover lxs lst lss carried roots dcov dslots s0 s1 cpi glp gsq cfresh
-        x) ∧
+    (∀ N written lxt cover lxs lst lss carried dadig s0 s1 cpi glp gsq cfresh,
+      ps = [N, written, lxt, cover, lxs, lst, lss, carried, dadig, s0, s1, cpi, glp, gsq,
+        cfresh] →
+      KidStep rd written lxt cover lxs lst lss carried dadig s0 s1 cpi glp gsq cfresh x) ∧
       (x * gen + ps.headD 0 ≠ 0 → coreProgram.Rel rd "__loop4" (x * gen :: ps) []) := by
   have hf := find_of_idx l5_idx (by rw [coreProgram_length]; omega)
   have hok := l5_ok
   simp only [l5Ok, Bool.and_eq_true, decide_eq_true_eq] at hok
-  obtain ⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨hshape, hlen⟩, hm18⟩, hl19⟩, hrc20⟩, hrc21⟩, hm30⟩, hc31⟩,
-    hcx⟩, hm34⟩, hcs⟩, hm62⟩, hrc63⟩, hg28⟩, hdl⟩, hsd⟩, hm79⟩, hl76⟩, hm80⟩, hl77⟩,
-    hm86⟩, hvs⟩, hm87⟩, hm88⟩, hm89⟩, hl88⟩ := hok
+  obtain ⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨hshape, hlen⟩, hm16⟩, hl17⟩, hrc18⟩, hrc19⟩, hm28⟩, hc29⟩, hcx⟩, hm32⟩, hcs⟩, hm40⟩, hm42⟩, hl43⟩, hl44⟩, hsd⟩, hm48⟩, hl45⟩, hm49⟩, hl46⟩, hm55⟩, hvs⟩, hm56⟩, hm57⟩, hl56⟩ := hok
   obtain ⟨σ, hx, hps, hall, hnext⟩ := loop_stepF hf hshape h
-  refine ⟨fun N written lxt cover lxs lst lss carried roots dcov dslots s0 s1 cpi glp gsq cfresh hN
+  refine ⟨fun N written lxt cover lxs lst lss carried dadig s0 s1 cpi glp gsq cfresh hN
     => ?_, hnext⟩
   have hat := atoms_of_flat hall
-  have hpar : (coreProgram.getD 34 default).params = (List.range 18).map V.n := by
+  have hpar : (coreProgram.getD 34 default).params = (List.range 16).map V.n := by
     have hs := hshape
     simp only [loopShapeF, Bool.and_eq_true, decide_eq_true_eq] at hs
     rw [hs.1.2, hlen]
   rw [hpar, hN] at hps
   simp only [List.range_succ, List.range_zero, List.nil_append, List.map_cons,
     List.map_nil, List.cons_append, List.tail_cons, List.cons.injEq, and_true] at hps
-  obtain ⟨-, hwr, hlxt, hcov, hlxs, hlst, hlss, hcar, hroots, hdcov, hdsl, hs0, hs1, hcpi, hglp,
-    hgsq, hcf⟩ := hps
-  obtain ⟨ex, hex, hnx⟩ := rcConst_sound hm (by norm_num) word_gmax hrc20 hat
-  obtain ⟨es, hes, hns⟩ := rcConst_sound hm (by norm_num) word_gmax hrc21 hat
-  obtain ⟨ed, hed, hnd⟩ := rcConst_sound hm (by norm_num) word_g16 hrc63 hat
-  have h31 : σ (.n 31) = 1 := by rw [const_sound hc31 hat, word_one]
-  have h18 : σ (.n 18) = written * x := by rw [isMul_sound hm18 hat, hwr, hx]
-  have h30 : σ (.n 30) = gen ^ ex * gen ^ es := by rw [isMul_sound hm30 hat, hnx, hns]
-  -- the child's DA roots
-  have hdas : ∀ d < ed, KidDaStep rd (σ (.n 50)) roots dcov dslots (σ (.n 19))
-      (gen ^ ex * gen ^ es) (gen ^ d) := by
-    have := loop_sound (f := "__loop28")
-      (ps := [σ (.n 43), σ (.n 50), σ (.n 9), σ (.n 10), σ (.n 11), σ (.n 19), σ (.n 30)])
-      (N := σ (.n 43)) (m := ed)
-      (B := KidDaStep rd (σ (.n 50)) (σ (.n 9)) (σ (.n 10)) (σ (.n 11)) (σ (.n 19)) (σ (.n 30)))
-      (by unfold ordG; omega) hnd
-      (fun y hy => by
-        obtain ⟨h1, h2⟩ := l28_step hy
-        exact ⟨h1 _ _ _ _ _ _ _ rfl, h2⟩)
-      (fun hne => by simpa using guard_sound hg28 hall hne)
-    rwa [hroots, hdcov, hdsl, h30] at this
-  refine ⟨σ (.n 19), σ (.n 32), σ (.n 33), σ (.n 35), σ (.n 36), σ (.n 54), σ (.n 55),
-    σ (.n 56), σ (.n 57), σ (.n 50), ex, es, ed, ?_, hex, hes, hed, ?_, ?_, hdas,
-    ?_, ?_, ?_, ?_, ?_, ?_⟩
-  · have := load_sound hl19 hat; rwa [h18] at this
+  obtain ⟨-, hwr, hlxt, hcov, hlxs, hlst, hlss, hcar, hdad, hs0, hs1, hcpi, hglp, hgsq,
+    hcf⟩ := hps
+  obtain ⟨ex, hex, hnx⟩ := rcConst_sound hm (by norm_num) word_gmax hrc18 hat
+  obtain ⟨es, hes, hns⟩ := rcConst_sound hm (by norm_num) word_gmax hrc19 hat
+  have h29 : σ (.n 29) = 1 := by rw [const_sound hc29 hat, word_one]
+  have h16 : σ (.n 16) = written * x := by rw [isMul_sound hm16 hat, hwr, hx]
+  have h28 : σ (.n 28) = gen ^ ex * gen ^ es := by rw [isMul_sound hm28 hat, hnx, hns]
+  refine ⟨σ (.n 17), σ (.n 30), σ (.n 31), σ (.n 33), σ (.n 34), σ (.n 43), σ (.n 44),
+    σ (.n 45), σ (.n 46), ex, es, ?_, hex, hes, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
+  · have := load_sound hl17 hat; rwa [h16] at this
   · have := call_of_flat hall hcx
-    simpa [h31, hlxt, hcov, hlxs, hnx] using this
+    simpa [h29, hlxt, hcov, hlxs, hnx] using this
   · have := call_of_flat hall hcs
-    simpa [isMul_sound hm34 hat, hlst, hcov, hlxs, hlss, hnx, hns] using this
-  · have := call_of_flat hall hdl
-    simpa [hnd] using this
+    simpa [isMul_sound hm32 hat, hlst, hcov, hlxs, hlss, hnx, hns] using this
+  · have := load_sound hl43 hat; rwa [monoIs_sound hm42 hat, hdad, hx] at this
+  · have := load_sound hl44 hat; rwa [monoIs_sound hm42 hat, hdad, hx] at this
   · have := call_of_flat hall hsd
-    simpa [monoIs_sound hm62 hat, hs0, hs1, hcar, hx] using this
-  · have := load_sound hl76 hat; rwa [monoIs_sound hm79 hat, hcpi, hx] at this
-  · have := load_sound hl77 hat; rwa [monoIs_sound hm80 hat, hcpi, hx] at this
+    simpa [monoIs_sound hm40 hat, hs0, hs1, hcar, hx] using this
+  · have := load_sound hl45 hat; rwa [monoIs_sound hm48 hat, hcpi, hx] at this
+  · have := load_sound hl46 hat; rwa [monoIs_sound hm49 hat, hcpi, hx] at this
   · have := call_of_flat hall hvs
-    simpa [monoIs_sound hm86 hat, hs0, hs1, hglp, hgsq, hcf, hx] using this
-  · have := load_sound hl88 hat
-    rwa [isMul_sound hm89 hat, isMul_sound hm88 hat, isMul_sound hm87 hat, h30, hnd, hwr, hx]
-      at this
+    simpa [monoIs_sound hm55 hat, hs0, hs1, hglp, hgsq, hcf, hx] using this
+  · have := load_sound hl56 hat
+    rwa [isMul_sound hm57 hat, isMul_sound hm56 hat, h28, hwr, hx] at this
 
 end
 end LeanVM.Guest.B1.Main

@@ -15,11 +15,11 @@ open LeanVM.Guest.Core
 @[expose] public section
 
 set_option maxRecDepth 100000 in
-theorem ccc_lo : ∀ k < 9, cccOk k (coreProgram.getD (342 + k) default) = true := by
+theorem ccc_lo : ∀ k < 9, cccOk k (coreProgram.getD (339 + k) default) = true := by
   decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem ccc_hi : ∀ k < 8, cccOk (9 + k) (coreProgram.getD (351 + k) default) = true := by
+theorem ccc_hi : ∀ k < 8, cccOk (9 + k) (coreProgram.getD (348 + k) default) = true := by
   decide +kernel
 
 end

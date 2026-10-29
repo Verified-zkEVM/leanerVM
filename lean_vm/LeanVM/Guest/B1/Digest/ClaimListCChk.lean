@@ -125,11 +125,11 @@ set_option maxRecDepth 100000 in
 theorem l16c_ok : l16cOk (coreProgram.getD 320 default) = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem clc_lo : ∀ k < 9, clcOk k (coreProgram.getD (324 + k) default) = true := by
+theorem clc_lo : ∀ k < 9, clcOk k (coreProgram.getD (321 + k) default) = true := by
   decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem clc_hi : ∀ k < 8, clcOk (9 + k) (coreProgram.getD (333 + k) default) = true := by
+theorem clc_hi : ∀ k < 8, clcOk (9 + k) (coreProgram.getD (330 + k) default) = true := by
   decide +kernel
 
 end
