@@ -23,8 +23,8 @@ duplicate slot. With `made := R ++ Cs.flatten` and `slots` the slots in taking o
   table is taken (`plan_perm`: the slots are a permutation of the table's indices, whose number
   is the number of claims made);
 * `plan_children`: the per-child segments of the slots;
-* the three regions of a node under `Limits` (`xmssPlan_*`, `sphincsPlan_*`, `daPlan_*`) and
-  `coverage` as the three tables' sizes (`coverage_eq`).
+* the two regions of a node under `Limits` (`xPlan_*`, `sPlan_*`) and `coverage` as the two
+  tables' sizes (`coverage_eq`).
 -/
 
 namespace LeanVM.Guest.B1.Main
@@ -505,7 +505,7 @@ theorem plan_raw (D R : List α) (Cs : List (List α)) {k : ℕ} (hk : k < R.len
 
 end Generic
 
-/-! ## A node's three regions -/
+/-! ## A node's two regions -/
 
 section Node
 
@@ -520,14 +520,10 @@ def sPlan : Region SphincsClaim :=
   plan s.claims.sphincs ((direct s.claims.sphincs w.sphincs).map (·.1))
     (w.children.map (·.statement.claims.sphincs))
 
-/-- The DA region's plan. -/
-def dPlan : Region DaClaim :=
-  plan s.claims.da ((direct s.claims.da w.da).map (·.1)) (w.children.map (·.statement.claims.da))
-
-/-- **The coverage table's slots** are the three regions' tables'. -/
+/-- **The coverage table's slots** are the two regions' tables'. -/
 theorem coverage_eq : coverage s w = (s.claims.xmss ++ (xPlan s w).dups).length +
-    (s.claims.sphincs ++ (sPlan s w).dups).length + (s.claims.da ++ (dPlan s w).dups).length := by
-  simp only [coverage, xPlan, sPlan, dPlan, List.length_append]
+    (s.claims.sphincs ++ (sPlan s w).dups).length := by
+  simp only [coverage, xPlan, sPlan, List.length_append]
   omega
 
 theorem made_count {α : Type} [BEq α] {R : List α} {Cs : List (List α)} (x : α) :
@@ -545,10 +541,6 @@ theorem sPlan_held (hl : Limits s w) : ∀ x, s.claims.sphincs.count x ≤
       (w.children.map (·.statement.claims.sphincs))).count x :=
   fun x => by rw [made_count, List.map_map]; exact hl.sphincsHeld x
 
-theorem dPlan_held (hl : Limits s w) : ∀ x, s.claims.da.count x ≤
-    (made ((direct s.claims.da w.da).map (·.1)) (w.children.map (·.statement.claims.da))).count x :=
-  fun x => by rw [made_count, List.map_map]; exact hl.daHeld x
-
 /-- **Under `Limits`, each region's slots are its table's indices.** -/
 theorem xPlan_perm (hl : Limits s w) :
     (slotsOf (xPlan s w)).Perm (List.range (s.claims.xmss ++ (xPlan s w).dups).length) :=
@@ -558,18 +550,13 @@ theorem sPlan_perm (hl : Limits s w) :
     (slotsOf (sPlan s w)).Perm (List.range (s.claims.sphincs ++ (sPlan s w).dups).length) :=
   plan_perm _ _ _ (sPlan_held hl)
 
-theorem dPlan_perm (hl : Limits s w) :
-    (slotsOf (dPlan s w)).Perm (List.range (s.claims.da ++ (dPlan s w).dups).length) :=
-  plan_perm _ _ _ (dPlan_held hl)
-
 /-- **Under `Limits`, the coverage table has one slot per claim made**, raw or by a child. -/
 theorem coverage_made (hl : Limits s w) : coverage s w =
     (made ((direct s.claims.xmss w.xmss).map (·.1)) (w.children.map (·.statement.claims.xmss))).length +
     (made ((direct s.claims.sphincs w.sphincs).map (·.1))
-      (w.children.map (·.statement.claims.sphincs))).length +
-    (made ((direct s.claims.da w.da).map (·.1)) (w.children.map (·.statement.claims.da))).length := by
-  rw [coverage_eq, xPlan, sPlan, dPlan, plan_table_length _ _ _ (xPlan_held hl),
-    plan_table_length _ _ _ (sPlan_held hl), plan_table_length _ _ _ (dPlan_held hl)]
+      (w.children.map (·.statement.claims.sphincs))).length := by
+  rw [coverage_eq, xPlan, sPlan, plan_table_length _ _ _ (xPlan_held hl),
+    plan_table_length _ _ _ (sPlan_held hl)]
 
 end Node
 

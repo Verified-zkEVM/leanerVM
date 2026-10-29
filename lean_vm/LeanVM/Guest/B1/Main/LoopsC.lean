@@ -281,90 +281,70 @@ theorem l4_stepC {rd : Reader} {C : CallRel} (hC : Unfolds rd C) (hm : MemOk rd)
       ← pow_mul, mul_comm s 4] at this
 
 
-/-- **Child `x`'s facts**: its base `written[x]`, its counts `g^ex`, `g^es`, `g^ed`, its two
-rebuilt claim lists' digests, its DA roots, its statement's digest at `child_pi · x^2`, its
-proof's check, and `written[x · g] = base · g^(ex + es + ed)`. -/
-def KidStepC (C : CallRel) (rd : Reader) (written lxt cover lxs lst lss carried roots dcov dslots s0 s1 cpi glp
+/-- **Child `x`'s facts**: its base `written[x]`, its counts `g^ex`, `g^es`, its two rebuilt claim
+lists' digests, its DA digest's cells at `da_digests · x^2`, its statement's digest at
+`child_pi · x^2`, its proof's check (in `C`), and `written[x · g] = base · g^(ex + es)`. -/
+def KidStepC (C : CallRel) (rd : Reader) (written lxt cover lxs lst lss carried dadig s0 s1 cpi glp
     gsq cfresh x : E) : Prop :=
-  ∃ (base cx0 cx1 cs0 cs1 d0 d1 p0 p1 cda : E) (ex es ed : ℕ),
-    LoadHolds rd (written * x) 0 base ∧ ex ≤ 65535 ∧ es ≤ 65535 ∧ ed ≤ 16 ∧
+  ∃ (base cx0 cx1 cs0 cs1 d0 d1 p0 p1 : E) (ex es : ℕ),
+    LoadHolds rd (written * x) 0 base ∧ ex ≤ 65535 ∧ es ≤ 65535 ∧
     coreProgram.Rel rd "child_claim_list_digest" [lxt, cover, base, 1, lxs, gen ^ ex] [cx0, cx1] ∧
     coreProgram.Rel rd "child_claim_list_digest" [lst, cover, base * gen ^ ex, lxs, lss, gen ^ es]
       [cs0, cs1] ∧
-    (∀ d < ed, KidDaStep rd cda roots dcov dslots base (gen ^ ex * gen ^ es) (gen ^ d)) ∧
-    coreProgram.Rel rd "da_list_digest" [cda, gen ^ ed] [d0, d1] ∧
+    LoadHolds rd (dadig * x ^ 2) 0 d0 ∧ LoadHolds rd (dadig * x ^ 2) 1 d1 ∧
     coreProgram.Rel rd "statement_digest" [s0, s1, cx0, cx1, cs0, cs1, d0, d1, carried * x ^ 24]
       [p0, p1] ∧
     LoadHolds rd (cpi * x ^ 2) 0 p0 ∧ LoadHolds rd (cpi * x ^ 2) 1 p1 ∧
     C "verify_sub" [p0, p1, s0, s1, glp, gsq, cfresh * x ^ 24] [] ∧
-    LoadHolds rd (written * x) 1 (base * (gen ^ ex * gen ^ es) * gen ^ ed)
+    LoadHolds rd (written * x) 1 (base * (gen ^ ex * gen ^ es))
 
 theorem l5_stepC {rd : Reader} {C : CallRel} (hC : Unfolds rd C)
     (hle : CallRel.Le C (coreProgram.Rel rd)) (hm : MemOk rd) {x : E} {ps : List E}
     (h : C "__loop4" (x :: ps) []) :
-    (∀ N written lxt cover lxs lst lss carried roots dcov dslots s0 s1 cpi glp gsq cfresh,
-      ps = [N, written, lxt, cover, lxs, lst, lss, carried, roots, dcov, dslots, s0, s1, cpi, glp,
-        gsq, cfresh] →
-      KidStepC C rd written lxt cover lxs lst lss carried roots dcov dslots s0 s1 cpi glp gsq cfresh
-        x) ∧
+    (∀ N written lxt cover lxs lst lss carried dadig s0 s1 cpi glp gsq cfresh,
+      ps = [N, written, lxt, cover, lxs, lst, lss, carried, dadig, s0, s1, cpi, glp, gsq,
+        cfresh] →
+      KidStepC C rd written lxt cover lxs lst lss carried dadig s0 s1 cpi glp gsq cfresh x) ∧
       (x * gen + ps.headD 0 ≠ 0 → C "__loop4" (x * gen :: ps) []) := by
   have hf := find_of_idx l5_idx (by rw [coreProgram_length]; omega)
   have hok := l5_ok
   simp only [l5Ok, Bool.and_eq_true, decide_eq_true_eq] at hok
-  obtain ⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨hshape, hlen⟩, hm18⟩, hl19⟩, hrc20⟩, hrc21⟩, hm30⟩, hc31⟩,
-    hcx⟩, hm34⟩, hcs⟩, hm62⟩, hrc63⟩, hg28⟩, hdl⟩, hsd⟩, hm79⟩, hl76⟩, hm80⟩, hl77⟩,
-    hm86⟩, hvs⟩, hm87⟩, hm88⟩, hm89⟩, hl88⟩ := hok
+  obtain ⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨hshape, hlen⟩, hm16⟩, hl17⟩, hrc18⟩, hrc19⟩, hm28⟩, hc29⟩, hcx⟩, hm32⟩, hcs⟩, hm40⟩, hm42⟩, hl43⟩, hl44⟩, hsd⟩, hm48⟩, hl45⟩, hm49⟩, hl46⟩, hm55⟩, hvs⟩, hm56⟩, hm57⟩, hl56⟩ := hok
   obtain ⟨σ, hx, hps, hall, hnext⟩ := loop_stepC hC hf hshape h
-  refine ⟨fun N written lxt cover lxs lst lss carried roots dcov dslots s0 s1 cpi glp gsq cfresh hN
+  refine ⟨fun N written lxt cover lxs lst lss carried dadig s0 s1 cpi glp gsq cfresh hN
     => ?_, hnext⟩
   have hat := atoms_of_flat hall
-  have hpar : (coreProgram.getD 34 default).params = (List.range 18).map V.n := by
+  have hpar : (coreProgram.getD 34 default).params = (List.range 16).map V.n := by
     have hs := hshape
     simp only [loopShapeF, Bool.and_eq_true, decide_eq_true_eq] at hs
     rw [hs.1.2, hlen]
   rw [hpar, hN] at hps
   simp only [List.range_succ, List.range_zero, List.nil_append, List.map_cons,
     List.map_nil, List.cons_append, List.tail_cons, List.cons.injEq, and_true] at hps
-  obtain ⟨-, hwr, hlxt, hcov, hlxs, hlst, hlss, hcar, hroots, hdcov, hdsl, hs0, hs1, hcpi, hglp,
-    hgsq, hcf⟩ := hps
-  obtain ⟨ex, hex, hnx⟩ := rcConst_sound hm (by norm_num) word_gmax hrc20 hat
-  obtain ⟨es, hes, hns⟩ := rcConst_sound hm (by norm_num) word_gmax hrc21 hat
-  obtain ⟨ed, hed, hnd⟩ := rcConst_sound hm (by norm_num) word_g16 hrc63 hat
-  have h31 : σ (.n 31) = 1 := by rw [const_sound hc31 hat, word_one]
-  have h18 : σ (.n 18) = written * x := by rw [isMul_sound hm18 hat, hwr, hx]
-  have h30 : σ (.n 30) = gen ^ ex * gen ^ es := by rw [isMul_sound hm30 hat, hnx, hns]
-  -- the child's DA roots
-  have hdas : ∀ d < ed, KidDaStep rd (σ (.n 50)) roots dcov dslots (σ (.n 19))
-      (gen ^ ex * gen ^ es) (gen ^ d) := by
-    have := loop_sound (f := "__loop28")
-      (ps := [σ (.n 43), σ (.n 50), σ (.n 9), σ (.n 10), σ (.n 11), σ (.n 19), σ (.n 30)])
-      (N := σ (.n 43)) (m := ed)
-      (B := KidDaStep rd (σ (.n 50)) (σ (.n 9)) (σ (.n 10)) (σ (.n 11)) (σ (.n 19)) (σ (.n 30)))
-      (by unfold ordG; omega) hnd
-      (fun y hy => by
-        obtain ⟨h1, h2⟩ := l28_step hy
-        exact ⟨h1 _ _ _ _ _ _ _ rfl, h2⟩)
-      (fun hne => hle _ _ _ (by simpa using guard_soundC hg28 hall hne))
-    rwa [hroots, hdcov, hdsl, h30] at this
-  refine ⟨σ (.n 19), σ (.n 32), σ (.n 33), σ (.n 35), σ (.n 36), σ (.n 54), σ (.n 55),
-    σ (.n 56), σ (.n 57), σ (.n 50), ex, es, ed, ?_, hex, hes, hed, ?_, ?_, hdas,
-    ?_, ?_, ?_, ?_, ?_, ?_⟩
-  · have := load_sound hl19 hat; rwa [h18] at this
+  obtain ⟨-, hwr, hlxt, hcov, hlxs, hlst, hlss, hcar, hdad, hs0, hs1, hcpi, hglp, hgsq,
+    hcf⟩ := hps
+  obtain ⟨ex, hex, hnx⟩ := rcConst_sound hm (by norm_num) word_gmax hrc18 hat
+  obtain ⟨es, hes, hns⟩ := rcConst_sound hm (by norm_num) word_gmax hrc19 hat
+  have h29 : σ (.n 29) = 1 := by rw [const_sound hc29 hat, word_one]
+  have h16 : σ (.n 16) = written * x := by rw [isMul_sound hm16 hat, hwr, hx]
+  have h28 : σ (.n 28) = gen ^ ex * gen ^ es := by rw [isMul_sound hm28 hat, hnx, hns]
+  refine ⟨σ (.n 17), σ (.n 30), σ (.n 31), σ (.n 33), σ (.n 34), σ (.n 43), σ (.n 44),
+    σ (.n 45), σ (.n 46), ex, es, ?_, hex, hes, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
+  · have := load_sound hl17 hat; rwa [h16] at this
   · have := hle _ _ _ (call_of_flat hall hcx)
-    simpa [h31, hlxt, hcov, hlxs, hnx] using this
+    simpa [h29, hlxt, hcov, hlxs, hnx] using this
   · have := hle _ _ _ (call_of_flat hall hcs)
-    simpa [isMul_sound hm34 hat, hlst, hcov, hlxs, hlss, hnx, hns] using this
-  · have := hle _ _ _ (call_of_flat hall hdl)
-    simpa [hnd] using this
+    simpa [isMul_sound hm32 hat, hlst, hcov, hlxs, hlss, hnx, hns] using this
+  · have := load_sound hl43 hat; rwa [monoIs_sound hm42 hat, hdad, hx] at this
+  · have := load_sound hl44 hat; rwa [monoIs_sound hm42 hat, hdad, hx] at this
   · have := hle _ _ _ (call_of_flat hall hsd)
-    simpa [monoIs_sound hm62 hat, hs0, hs1, hcar, hx] using this
-  · have := load_sound hl76 hat; rwa [monoIs_sound hm79 hat, hcpi, hx] at this
-  · have := load_sound hl77 hat; rwa [monoIs_sound hm80 hat, hcpi, hx] at this
+    simpa [monoIs_sound hm40 hat, hs0, hs1, hcar, hx] using this
+  · have := load_sound hl45 hat; rwa [monoIs_sound hm48 hat, hcpi, hx] at this
+  · have := load_sound hl46 hat; rwa [monoIs_sound hm49 hat, hcpi, hx] at this
   · have := call_of_flat hall hvs
-    simpa [monoIs_sound hm86 hat, hs0, hs1, hglp, hgsq, hcf, hx] using this
-  · have := load_sound hl88 hat
-    rwa [isMul_sound hm89 hat, isMul_sound hm88 hat, isMul_sound hm87 hat, h30, hnd, hwr, hx]
-      at this
+    simpa [monoIs_sound hm55 hat, hs0, hs1, hglp, hgsq, hcf, hx] using this
+  · have := load_sound hl56 hat
+    rwa [isMul_sound hm57 hat, isMul_sound hm56 hat, h28, hwr, hx] at this
 
 end
 end LeanVM.Guest.B1.Main
