@@ -14,7 +14,8 @@ public import LeanerVM.Protocol.LeanIsa.Sound
 
 `m3Holds_stackOf`: a witness `w` satisfying `SatisfiedBy prog input w` stacks, at the sizes it
 carries (`Sizes.ofWitness`, which `sizes_of_satisfiedBy` shows it has), into a column satisfying
-`M3Holds` of the leanISA instance. `witnessOf_stackOf`: reading a witness back off that stack
+`M3Holds` of the leanISA instance. Those sizes are admissible exactly when the stack fits
+`2^maxMu` (`admissible_iff_of_satisfiedBy`): the statement's caps give the rest. `witnessOf_stackOf`: reading a witness back off that stack
 gives `w`'s opcode tables within their widths, its two blocks, its public input and its image.
 
 The stack agrees with the witness (`agrees_stackOf`): its committed columns are the witness's
@@ -158,6 +159,21 @@ private theorem opTable_length {input : PublicInput} (h : SatisfiedBy prog input
     mem_tables_iff.mpr ⟨⟨j, by omega⟩, rfl⟩
   obtain ⟨τ, -, hτ⟩ := h.caps.heights _ hmem
   rw [hτ, Nat.log_pow (by norm_num)]
+
+/-- The sizes a witness satisfying the constraint system carries are admissible exactly when the
+stack fits `2^maxMu`: the other conditions are the statement's caps. -/
+theorem admissible_iff_of_satisfiedBy {input : PublicInput} (h : SatisfiedBy prog input w)
+    (hs : Sizes.ofWitness w = some s) : s.Admissible prog ↔ leanIsaμ prog s ≤ maxMu := by
+  refine ⟨fun ha ↦ ha.2.2.2.2, fun hμ ↦ ?_⟩
+  obtain ⟨hp, rfl⟩ := eq_of_ofWitness hs
+  refine ⟨h.caps.minLogMem_le, h.caps.le_maxLogMem, fun j ↦ ?_, ?_, hμ⟩
+  · obtain ⟨τ, hτ, hlen⟩ := h.caps.heights _ (mem_tables_iff.mpr ⟨⟨j, by omega⟩, rfl⟩)
+    show Nat.log 2 (opTable w j).table.length ≤ maxLogRows
+    rw [opTable, hlen, Nat.log_pow (by norm_num)]
+    exact hτ
+  · have hb : 2 ^ minLogRowsBlake2s ≤ (opTable w 5).table.length := h.caps.blake2s_height
+    rw [opTable_length h 5] at hb
+    exact (Nat.pow_le_pow_iff_right (by norm_num)).mp hb
 
 /-- The sizes a witness satisfying the constraint system carries fit Clean's tables. -/
 private theorem fits_of_satisfiedBy {input : PublicInput} (h : SatisfiedBy prog input w)
