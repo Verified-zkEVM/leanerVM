@@ -35,7 +35,7 @@ theorem mainGoalClX (hL : Limits s w) : MainGoalClX fs cert fp seed s w := by
     simp only [coverage] at this
     simp only [claimGroup, maxKeys]
     omega
-  have e : (hOwn seed s w).getD 1 [] =
+  have e : (hOwn seed s w).getD 0 [] =
       s.claims.xmss.flatMap (fun c => claimCells c.1.root c.1.parameter c.2) ++
         (xPlan s w).dups.flatMap (fun c => claimCells c.1.root c.1.parameter c.2) := by
     rw [← List.flatMap_append]; rfl
@@ -44,13 +44,13 @@ theorem mainGoalClX (hL : Limits s w) : MainGoalClX fs cert fp seed s w := by
   have hc := mf_canon_flatMap (fun c : XmssClaim => claimCells c.1.root c.1.parameter c.2)
     (fun c => mf_claimCells_canon c.1.root c.1.parameter c.2) s.claims.xmss
   have key := claim_list_digest_completeAt fs cert (Lin := hLmain fs fp seed s w)
-    (eP := mfB fs fp seed s w 1) hn hl hc
+    (eP := mfB fs fp seed s w 0) hn hl hc
     (fun rd h => by
-      have h1 := mf_reads fs fp seed s w h (i := 1) (by omega)
+      have h1 := mf_reads fs fp seed s w h (i := 0) (by omega)
       rw [e] at h1
       exact (readsAt_append'.mp h1).1)
-    (fun k hk => mf_region fs fp seed s w (i := 1) (by omega) (by rw [e, List.length_append]; omega))
-  have ha : (hm fs fp seed s w).a77 = gen ^ mfB fs fp seed s w 1 := rfl
+    (fun k hk => mf_region fs fp seed s w (i := 0) (by omega) (by rw [e, List.length_append]; omega))
+  have ha : (hm fs fp seed s w).a77 = gen ^ mfB fs fp seed s w 0 := rfl
   have hn' : (hm fs fp seed s w).nlx = s.claims.xmss.length := rfl
   have hd : (hm fs fp seed s w).xd = claimListDigest s.claims.xmss := rfl
   unfold MainGoalClX
@@ -64,7 +64,7 @@ theorem mainGoalClS (hL : Limits s w) : MainGoalClS fs cert fp seed s w := by
     simp only [coverage] at this
     simp only [claimGroup, maxKeys]
     omega
-  have e : (hOwn seed s w).getD 2 [] =
+  have e : (hOwn seed s w).getD 1 [] =
       s.claims.sphincs.flatMap (fun c => claimCells c.1.root c.1.parameter c.2) ++
         (sPlan s w).dups.flatMap (fun c => claimCells c.1.root c.1.parameter c.2) := by
     rw [← List.flatMap_append]; rfl
@@ -73,13 +73,13 @@ theorem mainGoalClS (hL : Limits s w) : MainGoalClS fs cert fp seed s w := by
   have hc := mf_canon_flatMap (fun c : SphincsClaim => claimCells c.1.root c.1.parameter c.2)
     (fun c => mf_claimCells_canon c.1.root c.1.parameter c.2) s.claims.sphincs
   have key := claim_list_digest_completeAt fs cert (Lin := hLmain fs fp seed s w)
-    (eP := mfB fs fp seed s w 2) hn hl hc
+    (eP := mfB fs fp seed s w 1) hn hl hc
     (fun rd h => by
-      have h1 := mf_reads fs fp seed s w h (i := 2) (by omega)
+      have h1 := mf_reads fs fp seed s w h (i := 1) (by omega)
       rw [e] at h1
       exact (readsAt_append'.mp h1).1)
-    (fun k hk => mf_region fs fp seed s w (i := 2) (by omega) (by rw [e, List.length_append]; omega))
-  have ha : (hm fs fp seed s w).a80 = gen ^ mfB fs fp seed s w 2 := rfl
+    (fun k hk => mf_region fs fp seed s w (i := 1) (by omega) (by rw [e, List.length_append]; omega))
+  have ha : (hm fs fp seed s w).a80 = gen ^ mfB fs fp seed s w 1 := rfl
   have hn' : (hm fs fp seed s w).nls = s.claims.sphincs.length := rfl
   have hd : (hm fs fp seed s w).sd = claimListDigest s.claims.sphincs := rfl
   unfold MainGoalClS

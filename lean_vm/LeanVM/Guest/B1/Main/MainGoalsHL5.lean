@@ -338,7 +338,7 @@ theorem length_piCells : (w.children.flatMap fun c =>
 /-- The DA digests' cells, two a slot. -/
 theorem length_daDigests : ((w.children.map (·.statement.claims.da) ++ [hOwnDa w]).flatMap
     B1.Digest.digestCells).length = 2 * (w.children.length + 1) := by
-  rw [kid_length_flatMap_const _ fun _ _ => rfl]
+  rw [kid_length_flatMap_const (f := B1.Digest.digestCells) (k := 2) _ fun _ _ => rfl]
   simp
 
 /-- **Child `c` is as `__loop4` needs it**, at `main`'s honest words. -/
