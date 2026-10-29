@@ -2,7 +2,8 @@
   LeanVM.Guest.Child.Covered
 
   What the deployed budget covers beyond `Budget/Covered.lean`'s two families: recursion nodes of
-  at most `8` children and `2^15` claims, mixed nodes, and nodes checking a blob.
+  at most `8` children and `2^15` claims, mixed nodes, and nodes checking a matrix of up to `32`
+  rows.
 -/
 
 module
@@ -22,8 +23,12 @@ at most `2^28`:
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | `≤ 8` children, `2^15` claims | `≤ 2^24` | `21` | `22` | `21` | `21` | `20` | `18` |
 | `≤ 4` children, `1024` signatures, `8192` claims | `≤ 2^24` | `21` | `21` | `20` | `20` | `19` | `19` |
-| `≤ 4` children, a blob of `8` rows, `2048` claims | `≤ 2^24` | `21` | `22` | `21` | `22` | `20` | `17` |
-| `≤ 2` children, `256` signatures, a blob of `4` rows, `4096` claims | `≤ 2^24` | `20` | `21` | `20` | `22` | `19` | `18` |
+| `≤ 4` children, `32` rows, `8192` claims | `≤ 2^24` | `22` | `22` | `19` | `21` | `20` | `18` |
+| `≤ 2` children, `256` signatures, `32` rows, `8192` claims | `≤ 2^24` | `22` | `22` | `19` | `21` | `20` | `18` |
+| `≤ 2` children, `32` rows, `2^14` claims | `≤ 2^24` | `22` | `22` | `19` | `21` | `20` | `17` |
+| no child, `32` rows, `2^15` claims | `≤ 2^24` | `22` | `22` | `20` | `21` | `20` | `17` |
+
+A matrix of `r ≤ 32` rows is charged at its padded height `nPad r ≤ 32` too (`rawDaPad`).
 
 `guest_complete_covered`: `GuestCompleteCovered`, from `guest_complete_numeric`.
 -/
@@ -70,7 +75,7 @@ theorem size_le_of (u : End.Work) (k : Opcode → ℕ)
 
 /-- **A recursion node of at most `8` children and `2^15` claims fits.** -/
 theorem narrow_size_le (u : End.Work) (hraw : u.rawXmss + u.rawSphincs = 0) (hd : u.rawDa = 0)
-    (hr : u.rawDaRows = 0) (hdecl : u.declared ≤ 2 ^ 15) (hcov : u.coverage ≤ 2 ^ 15)
+    (hr : u.rawDaRows = 0) (hp : u.rawDaPad = 0) (hdecl : u.declared ≤ 2 ^ 15) (hcov : u.coverage ≤ 2 ^ 15)
     (hcc : u.childClaims ≤ 2 ^ 15) (hch : u.children ≤ 8) (hlen : u.childShapes.length ≤ 8) :
     (deployedBudget deployedBvAt).size u ≤ 2 ^ 28 := by
   refine size_le_of u (fun op ↦ match op with
@@ -85,7 +90,7 @@ theorem narrow_size_le (u : End.Work) (hraw : u.rawXmss + u.rawSphincs = 0) (hd 
 /-- **A node of at most `4` children and `1024` raw signatures, with at most `8192` claims,
 fits.** -/
 theorem mixed_size_le (u : End.Work) (hraw : u.rawXmss + u.rawSphincs ≤ 1024) (hd : u.rawDa = 0)
-    (hr : u.rawDaRows = 0) (hdecl : u.declared ≤ 8192) (hcov : u.coverage ≤ 8192)
+    (hr : u.rawDaRows = 0) (hp : u.rawDaPad = 0) (hdecl : u.declared ≤ 8192) (hcov : u.coverage ≤ 8192)
     (hcc : u.childClaims ≤ 8192) (hch : u.children ≤ 4) (hlen : u.childShapes.length ≤ 4) :
     (deployedBudget deployedBvAt).size u ≤ 2 ^ 28 := by
   refine size_le_of u (fun op ↦ match op with
@@ -97,14 +102,44 @@ theorem mixed_size_le (u : End.Work) (hraw : u.rawXmss + u.rawSphincs ≤ 1024) 
   · have hb := instr_shapes hlen op
     cases op <;> simp only [End.Linear.eval, Count.deployedInstrs] at hb ⊢ <;> omega
 
-/-- **A node of at most `4` children checking a blob of at most `8` rows, with at most `2048`
-claims, fits.** -/
+/-- **A node of at most `4` children checking a matrix of at most `32` rows, with at most `8192` claims, fits.** -/
 theorem blob_size_le (u : End.Work) (hraw : u.rawXmss + u.rawSphincs = 0) (hd : u.rawDa ≤ 1)
-    (hr : u.rawDaRows ≤ 8) (hdecl : u.declared ≤ 2048) (hcov : u.coverage ≤ 2048)
-    (hcc : u.childClaims ≤ 2048) (hch : u.children ≤ 4) (hlen : u.childShapes.length ≤ 4) :
+    (hr : u.rawDaRows ≤ 32) (hp : u.rawDaPad ≤ 32) (hdecl : u.declared ≤ 8192)
+    (hcov : u.coverage ≤ 8192) (hcc : u.childClaims ≤ 8192) (hch : u.children ≤ 4)
+    (hlen : u.childShapes.length ≤ 4) :
     (deployedBudget deployedBvAt).size u ≤ 2 ^ 28 := by
   refine size_le_of u (fun op ↦ match op with
-    | .xor => 21 | .mulNative => 22 | .setConstant => 21 | .deref => 22 | .jump => 20
+    | .xor => 22 | .mulNative => 22 | .setConstant => 19 | .deref => 21 | .jump => 20
+    | .keccak => 18) ?_ (fun op ↦ ?_) (by norm_num)
+  · have hb := shapes_sum_le_of deployedBvAt deployedBvAt_le hlen
+    simp only [End.Linear.eval, Count.deployedWords]
+    omega
+  · have hb := instr_shapes hlen op
+    cases op <;> simp only [End.Linear.eval, Count.deployedInstrs] at hb ⊢ <;> omega
+
+/-- **A node of at most `2` children and `256` raw signatures checking a matrix of at most `32` rows, with at most `8192` claims, fits.** -/
+theorem blobMixed_size_le (u : End.Work) (hraw : u.rawXmss + u.rawSphincs ≤ 256) (hd : u.rawDa ≤ 1)
+    (hr : u.rawDaRows ≤ 32) (hp : u.rawDaPad ≤ 32) (hdecl : u.declared ≤ 8192)
+    (hcov : u.coverage ≤ 8192) (hcc : u.childClaims ≤ 8192) (hch : u.children ≤ 2)
+    (hlen : u.childShapes.length ≤ 2) :
+    (deployedBudget deployedBvAt).size u ≤ 2 ^ 28 := by
+  refine size_le_of u (fun op ↦ match op with
+    | .xor => 22 | .mulNative => 22 | .setConstant => 19 | .deref => 21 | .jump => 20
+    | .keccak => 18) ?_ (fun op ↦ ?_) (by norm_num)
+  · have hb := shapes_sum_le_of deployedBvAt deployedBvAt_le hlen
+    simp only [End.Linear.eval, Count.deployedWords]
+    omega
+  · have hb := instr_shapes hlen op
+    cases op <;> simp only [End.Linear.eval, Count.deployedInstrs] at hb ⊢ <;> omega
+
+/-- **A node of at most `2` children checking a matrix of at most `32` rows, with at most `2^14` claims, fits.** -/
+theorem blobWide_size_le (u : End.Work) (hraw : u.rawXmss + u.rawSphincs = 0) (hd : u.rawDa ≤ 1)
+    (hr : u.rawDaRows ≤ 32) (hp : u.rawDaPad ≤ 32) (hdecl : u.declared ≤ 2 ^ 14)
+    (hcov : u.coverage ≤ 2 ^ 14) (hcc : u.childClaims ≤ 2 ^ 14) (hch : u.children ≤ 2)
+    (hlen : u.childShapes.length ≤ 2) :
+    (deployedBudget deployedBvAt).size u ≤ 2 ^ 28 := by
+  refine size_le_of u (fun op ↦ match op with
+    | .xor => 22 | .mulNative => 22 | .setConstant => 19 | .deref => 21 | .jump => 20
     | .keccak => 17) ?_ (fun op ↦ ?_) (by norm_num)
   · have hb := shapes_sum_le_of deployedBvAt deployedBvAt_le hlen
     simp only [End.Linear.eval, Count.deployedWords]
@@ -112,21 +147,35 @@ theorem blob_size_le (u : End.Work) (hraw : u.rawXmss + u.rawSphincs = 0) (hd : 
   · have hb := instr_shapes hlen op
     cases op <;> simp only [End.Linear.eval, Count.deployedInstrs] at hb ⊢ <;> omega
 
-/-- **A node of at most `2` children and `256` raw signatures checking a blob of at most `4`
-rows, with at most `4096` claims, fits.** -/
-theorem blobMixed_size_le (u : End.Work) (hraw : u.rawXmss + u.rawSphincs ≤ 256)
-    (hd : u.rawDa ≤ 1) (hr : u.rawDaRows ≤ 4) (hdecl : u.declared ≤ 4096)
-    (hcov : u.coverage ≤ 4096) (hcc : u.childClaims ≤ 4096) (hch : u.children ≤ 2)
-    (hlen : u.childShapes.length ≤ 2) :
+/-- **A node of no child checking a matrix of at most `32` rows, with at most `2^15` declared claims and coverage slots, fits.** -/
+theorem blobLeaf_size_le (u : End.Work) (hraw : u.rawXmss + u.rawSphincs = 0) (hd : u.rawDa ≤ 1)
+    (hr : u.rawDaRows ≤ 32) (hp : u.rawDaPad ≤ 32) (hdecl : u.declared ≤ 2 ^ 15)
+    (hcov : u.coverage ≤ 2 ^ 15) (hcc : u.childClaims = 0) (hch : u.children = 0)
+    (hlen : u.childShapes.length ≤ 0) :
     (deployedBudget deployedBvAt).size u ≤ 2 ^ 28 := by
   refine size_le_of u (fun op ↦ match op with
-    | .xor => 20 | .mulNative => 21 | .setConstant => 20 | .deref => 22 | .jump => 19
-    | .keccak => 18) ?_ (fun op ↦ ?_) (by norm_num)
+    | .xor => 22 | .mulNative => 22 | .setConstant => 20 | .deref => 21 | .jump => 20
+    | .keccak => 17) ?_ (fun op ↦ ?_) (by norm_num)
   · have hb := shapes_sum_le_of deployedBvAt deployedBvAt_le hlen
     simp only [End.Linear.eval, Count.deployedWords]
     omega
   · have hb := instr_shapes hlen op
     cases op <;> simp only [End.Linear.eval, Count.deployedInstrs] at hb ⊢ <;> omega
+
+/-- **A matrix's padded height within a power of two**: at most one matrix held directly, of at
+most `2^k` rows, is padded to at most `2^k` rows. -/
+theorem pad_le {s : NodeStatement} {w : NodeWitness} {k : ℕ}
+    (hd : (Hints.direct s.claims.da w.da).length ≤ 1) (hr : (work s w).rawDaRows ≤ 2 ^ k) :
+    (work s w).rawDaPad ≤ 2 ^ k := by
+  simp only [work] at hr ⊢
+  match h : Hints.direct s.claims.da w.da, hd with
+  | [], _ => simp
+  | [p], _ =>
+    rw [h] at hr
+    simp only [List.map_cons, List.map_nil, List.sum_cons, List.sum_nil, Nat.add_zero,
+      LeanDa.nPad, LeanDa.logPad] at hr ⊢
+    exact Nat.pow_le_pow_right (by norm_num) (Nat.clog_le_of_le_pow hr)
+  | _ :: _ :: _, h' => simp at h'
 
 /-- `Covered`, by the node's work: `Covered s w` is `CoveredW (work s w)` by definition. -/
 def CoveredW (u : End.Work) : Prop :=
@@ -138,10 +187,14 @@ def CoveredW (u : End.Work) : Prop :=
     u.declared ≤ 2 ^ 15 ∧ u.coverage ≤ 2 ^ 15 ∧ u.childClaims ≤ 2 ^ 15) ∨
   (u.children ≤ 4 ∧ u.rawXmss + u.rawSphincs ≤ 1024 ∧ u.rawDa = 0 ∧
     u.declared ≤ 8192 ∧ u.coverage ≤ 8192 ∧ u.childClaims ≤ 8192) ∨
-  (u.children ≤ 4 ∧ u.rawXmss + u.rawSphincs = 0 ∧ u.rawDaRows ≤ 8 ∧
-    u.declared ≤ 2048 ∧ u.coverage ≤ 2048 ∧ u.childClaims ≤ 2048) ∨
-  (u.children ≤ 2 ∧ u.rawXmss + u.rawSphincs ≤ 256 ∧ u.rawDaRows ≤ 4 ∧
-    u.declared ≤ 4096 ∧ u.coverage ≤ 4096 ∧ u.childClaims ≤ 4096)
+  (u.children ≤ 4 ∧ u.rawXmss + u.rawSphincs = 0 ∧ u.rawDaRows ≤ 32 ∧
+    u.declared ≤ 8192 ∧ u.coverage ≤ 8192 ∧ u.childClaims ≤ 8192) ∨
+  (u.children ≤ 2 ∧ u.rawXmss + u.rawSphincs ≤ 256 ∧ u.rawDaRows ≤ 32 ∧
+    u.declared ≤ 8192 ∧ u.coverage ≤ 8192 ∧ u.childClaims ≤ 8192) ∨
+  (u.children ≤ 2 ∧ u.rawXmss + u.rawSphincs = 0 ∧ u.rawDaRows ≤ 32 ∧
+    u.declared ≤ 2 ^ 14 ∧ u.coverage ≤ 2 ^ 14 ∧ u.childClaims ≤ 2 ^ 14) ∨
+  (u.children = 0 ∧ u.rawXmss + u.rawSphincs = 0 ∧ u.rawDaRows ≤ 32 ∧
+    u.declared ≤ 2 ^ 15 ∧ u.coverage ≤ 2 ^ 15)
 
 theorem covered_iff (s : NodeStatement) (w : NodeWitness) : Covered s w ↔ CoveredW (work s w) :=
   Iff.rfl
@@ -157,6 +210,12 @@ theorem guest_complete_covered : GuestCompleteCovered := by
     intro hd
     simp only [work, List.length_eq_zero_iff] at hd ⊢
     simp [hd]
+  have hpad0 : (work s w).rawDa = 0 → (work s w).rawDaPad = 0 := by
+    intro hd
+    simp only [work, List.length_eq_zero_iff] at hd ⊢
+    simp [hd]
+  have hpad : (work s w).rawDaRows ≤ 32 → (work s w).rawDaPad ≤ 32 := fun h ↦ by
+    simpa using pad_le (k := 5) hlim.directDa (by simpa using h)
   have hshapes : (work s w).children = 0 → (work s w).childShapes = [] ∧
       (work s w).childClaims = 0 := by
     intro h0
@@ -165,14 +224,19 @@ theorem guest_complete_covered : GuestCompleteCovered := by
   refine guest_complete_numeric seed s w hrel hlim hok ?_
   rcases hcov with ⟨hraw, hd, hdecl, hcov, hcc⟩ | ⟨h0, hd, hraw, hdecl, hcov⟩ |
     ⟨hk, hraw, hd, hdecl, hcov, hcc⟩ | ⟨hk, hraw, hd, hdecl, hcov, hcc⟩ |
-    ⟨hk, hraw, hr, hdecl, hcov, hcc⟩ | ⟨hk, hraw, hr, hdecl, hcov, hcc⟩
-  · exact recursion_size_le _ (by omega) (by omega) hd (hrows hd) hdecl hcov hcc hch (by omega)
+    ⟨hk, hraw, hr, hdecl, hcov, hcc⟩ | ⟨hk, hraw, hr, hdecl, hcov, hcc⟩ |
+    ⟨hk, hraw, hr, hdecl, hcov, hcc⟩ | ⟨h0, hraw, hr, hdecl, hcov⟩
+  · exact recursion_size_le _ (by omega) (by omega) hd (hrows hd) (hpad0 hd) hdecl hcov hcc hch
+      (by omega)
   · obtain ⟨hsh, hcc⟩ := hshapes h0
-    exact leaf_size_le _ hraw hd (hrows hd) hdecl hcov h0 hcc hsh
-  · exact narrow_size_le _ hraw hd (hrows hd) hdecl hcov hcc hk (by omega)
-  · exact mixed_size_le _ hraw hd (hrows hd) hdecl hcov hcc hk (by omega)
-  · exact blob_size_le _ hraw hda hr hdecl hcov hcc hk (by omega)
-  · exact blobMixed_size_le _ hraw hda hr hdecl hcov hcc hk (by omega)
+    exact leaf_size_le _ hraw hd (hrows hd) (hpad0 hd) hdecl hcov h0 hcc hsh
+  · exact narrow_size_le _ hraw hd (hrows hd) (hpad0 hd) hdecl hcov hcc hk (by omega)
+  · exact mixed_size_le _ hraw hd (hrows hd) (hpad0 hd) hdecl hcov hcc hk (by omega)
+  · exact blob_size_le _ hraw hda hr (hpad hr) hdecl hcov hcc hk (by omega)
+  · exact blobMixed_size_le _ hraw hda hr (hpad hr) hdecl hcov hcc hk (by omega)
+  · exact blobWide_size_le _ hraw hda hr (hpad hr) hdecl hcov hcc hk (by omega)
+  · obtain ⟨hsh, hcc⟩ := hshapes h0
+    exact blobLeaf_size_le _ hraw hda hr (hpad hr) hdecl hcov hcc h0 (by simp [hsh])
 
 end
 end LeanVM.Guest.Budget

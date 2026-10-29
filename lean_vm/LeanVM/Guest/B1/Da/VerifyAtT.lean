@@ -20,7 +20,8 @@ public import LeanVM.Guest.B1.Da.ColLoopAtT
 
 `dvQ r L`: `v1 = g^r` (the end of the row loops `__loop18`, `__loop19`, `__loop22`, `__loop23`),
 `v2 = g^L`, `v3 = g^(2^L)`, `v4 = g^(2^L - r)` (`da_row_shape`'s returns; the end of `__loop24`),
-and the buffers' sizes' operands `v11 = g^(128·2^L)`, `v25 = g^(129·r)`, `v40 = g^(4·2^L)`.
+the buffers' sizes' operands `v11 = g^(128·2^L)`, `v25 = g^(129·r)`, `v40 = g^(4·2^L)`, and the
+row loops' starts `v16 = v30 = v36 = v44 = v47 = 1` (read by the budget's counts).
 `dvCallList r L`: its ten calls. `dvTs r L`: `__loop20`'s tree `l20NH r L` (64 iterations from
 counter `0`, each column `da_verify_column__L1` of `colNH`), `__loop21`'s `l21NH r L` (64 from
 `64`, `da_verify_column__L0`), no predicate on the others. `dvNH r L`: `da_verify`'s honest shape,
@@ -42,10 +43,11 @@ open LeanVM.Guest.B1.Main (Layout MemL RegionL memL_append)
 
 @[expose] public section
 
-/-- The words `da_verify`'s loops end at and its buffers' sizes are read from. -/
+/-- The words `da_verify`'s loops start and end at and its buffers' sizes are read from. -/
 def dvQ (r L : ℕ) (σ : Val) : Prop :=
   σ (.n 1) = gen ^ r ∧ σ (.n 2) = gen ^ L ∧ σ (.n 3) = gen ^ 2 ^ L ∧ σ (.n 4) = gen ^ (2 ^ L - r) ∧
-    σ (.n 11) = gen ^ (128 * 2 ^ L) ∧ σ (.n 25) = gen ^ (129 * r) ∧ σ (.n 40) = gen ^ (4 * 2 ^ L)
+    σ (.n 11) = gen ^ (128 * 2 ^ L) ∧ σ (.n 25) = gen ^ (129 * r) ∧ σ (.n 40) = gen ^ (4 * 2 ^ L) ∧
+    σ (.n 16) = 1 ∧ σ (.n 30) = 1 ∧ σ (.n 36) = 1 ∧ σ (.n 44) = 1 ∧ σ (.n 47) = 1
 
 /-- `da_verify`'s calls. -/
 def dvCallList (r L : ℕ) : List Call :=
@@ -301,7 +303,8 @@ theorem dvT_completeAt (fs : String → ℕ) (cert : String → V → ℕ)
     (dvTs r L) ?_ ?_ (fun i hi => by obtain ⟨q, hq, -⟩ := hi; simp at hq)
   · have h' := relAtInT_nodeHonest (Q := dvQ r L) (cs := fun _ => dvCallList r L)
       (bs := fun _ => dvSizes r L) (Ts := dvTs r L) h find_da_verify hw
-      ⟨hV.v1, hV.v2, hV.v3, hV.v4, hV.v11, hV.v25, hV.v40⟩ hcalls hal (by simp [dvCallList, dvTs])
+      ⟨hV.v1, hV.v2, hV.v3, hV.v4, hV.v11, hV.v25, hV.v40, hV.g16, hV.g30, hV.g36, hV.g44,
+        hV.g47⟩ hcalls hal (by simp [dvCallList, dvTs])
     rw [hal] at h'
     exact h'
   · rw [hcalls, hal]

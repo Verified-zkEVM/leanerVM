@@ -64,21 +64,34 @@ theorem dl_le {L : ℕ} (hL : L < 11) : SB Da.dlNames[L]! ≤ dlK SB * 2 ^ L := 
 /-- A DA column's constant words. -/
 def colC (fname gl : String) : ℕ := fs fname + fs "da_vector_cell" + fs gl
 
-/-- A DA column's words per row. -/
-def colS (rl gl : String) : ℕ := 8 + SK rl + SK gl + 2 * dlK SB
+/-- **`r` rows of a loop and `P - r` of another within `r · (a - b) + P · b`**, with equality when
+`b ≤ a`: the row and padding loops share the padded height. -/
+theorem rows_gap_le {a b r P : ℕ} (h : r ≤ P) : r * a + (P - r) * b ≤ r * (a - b) + P * b := by
+  rcases le_total b a with hab | hab
+  · obtain ⟨c, rfl⟩ := Nat.exists_eq_add_of_le hab
+    obtain ⟨d, rfl⟩ := Nat.exists_eq_add_of_le h
+    rw [Nat.add_sub_cancel_left, Nat.add_sub_cancel_left]
+    exact le_of_eq (by ring)
+  · have e : r * b + (P - r) * b = P * b := by rw [← Nat.add_mul, Nat.add_sub_cancel' h]
+    have : r * a ≤ r * b := Nat.mul_le_mul_left _ hab
+    rw [Nat.sub_eq_zero_of_le hab, Nat.mul_zero, Nat.zero_add]
+    omega
 
-theorem colB_le {fname rl gl : String} {r L : ℕ} (hP : 2 ^ L ≤ 2 * r) (hL : L < 11) :
-    Da.colB fs SB SK fname rl gl r L ≤ colC fs fname gl + r * colS SB SK rl gl := by
-  unfold Da.colB colC colS
-  have h1 : (if 2 ^ L - r ≠ 0 then (2 ^ L - r) * SK gl else fs gl) ≤ r * SK gl + fs gl := by
-    split
-    · have : (2 ^ L - r) * SK gl ≤ r * SK gl := Nat.mul_le_mul_right _ (by omega)
-      omega
-    · omega
+/-- A DA column's words per row: its row loop's past its padding loop's. -/
+def colS (rl gl : String) : ℕ := SK rl - SK gl
+
+/-- A DA column's words per padded row: its node tree, its padding loop's, its levels'. -/
+def colP (gl : String) : ℕ := 4 + SK gl + dlK SB
+
+theorem colB_le {fname rl gl : String} {r L : ℕ} (hr : r ≤ 2 ^ L) (hL : L < 11) :
+    Da.colB fs SB SK fname rl gl r L ≤
+      colC fs fname gl + r * colS SK rl gl + 2 ^ L * colP SB SK gl := by
+  unfold Da.colB colC colS colP
+  have h1 : (if 2 ^ L - r ≠ 0 then (2 ^ L - r) * SK gl else fs gl) ≤ (2 ^ L - r) * SK gl + fs gl := by
+    split <;> omega
+  have hg := rows_gap_le (a := SK rl) (b := SK gl) hr
   have h2 := dl_le SB hL
-  have h4 : dlK SB * 2 ^ L ≤ dlK SB * (2 * r) := Nat.mul_le_mul_left _ hP
-  have h3 : r * (8 + SK rl + SK gl + 2 * dlK SB) =
-      8 * r + r * SK rl + r * SK gl + dlK SB * (2 * r) := by ring
+  have h3 : 2 ^ L * (4 + SK gl + dlK SB) = 4 * 2 ^ L + 2 ^ L * SK gl + dlK SB * 2 ^ L := by ring
   omega
 
 /-- `da_verify`'s constant words. -/
@@ -89,37 +102,42 @@ def dvC : ℕ :=
 
 /-- `da_verify`'s words per row. -/
 def dvS : ℕ :=
-  395 + SK "__loop18" + SK "__loop19" + SK "__loop22" + SK "__loop23" + SK "__loop24" +
-    2 * dlK SB + 64 * colS SB SK "__loop417" "__loop418" + 64 * colS SB SK "__loop419" "__loop420"
+  131 + SK "__loop18" + SK "__loop19" + SK "__loop22" + (SK "__loop23" - SK "__loop24") +
+    64 * colS SK "__loop417" "__loop418" + 64 * colS SK "__loop419" "__loop420"
 
-theorem clLoop_le {f : String} {Bc C S r : ℕ} (h : Bc ≤ C + r * S) :
-    Da.clB fs f Bc 64 ≤ 65 * fs f + 64 * C + r * (64 * S) := by
+/-- `da_verify`'s words per padded row. -/
+def dvP : ℕ :=
+  132 + SK "__loop24" + dlK SB + 64 * colP SB SK "__loop418" + 64 * colP SB SK "__loop420"
+
+theorem clLoop_le {f : String} {Bc C S Q r p : ℕ} (h : Bc ≤ C + r * S + p * Q) :
+    Da.clB fs f Bc 64 ≤ 65 * fs f + 64 * C + r * (64 * S) + p * (64 * Q) := by
   unfold Da.clB
   have : r * (64 * S) = 64 * (r * S) := by ring
+  have : p * (64 * Q) = 64 * (p * Q) := by ring
   omega
 
-theorem dvB_le {r L : ℕ} (hr : 1 ≤ r) (hP : 2 ^ L ≤ 2 * r) (hL : L < 11) :
-    Da.dvB fs SB SK r L ≤ dvC fs SB + r * dvS SB SK := by
-  unfold Da.dvB Da.dvKB dvC dvS Da.dvSizes
+theorem dvB_le {r L : ℕ} (hr : r ≤ 2 ^ L) (hL : L < 11) :
+    Da.dvB fs SB SK r L ≤ dvC fs SB + r * dvS SK + 2 ^ L * dvP SB SK := by
+  unfold Da.dvB Da.dvKB dvC dvS dvP Da.dvSizes
   have c1 := clLoop_le fs (f := "__loop20") (colB_le fs SB SK (fname := "da_verify_column__L1")
-    (rl := "__loop417") (gl := "__loop418") hP hL)
+    (rl := "__loop417") (gl := "__loop418") hr hL)
   have c0 := clLoop_le fs (f := "__loop21") (colB_le fs SB SK (fname := "da_verify_column__L0")
-    (rl := "__loop419") (gl := "__loop420") hP hL)
+    (rl := "__loop419") (gl := "__loop420") hr hL)
   have h24 : (if 2 ^ L - r ≠ 0 then (2 ^ L - r) * SK "__loop24" else fs "__loop24") ≤
-      r * SK "__loop24" + fs "__loop24" := by
-    split
-    · have : (2 ^ L - r) * SK "__loop24" ≤ r * SK "__loop24" := Nat.mul_le_mul_right _ (by omega)
-      omega
-    · omega
+      (2 ^ L - r) * SK "__loop24" + fs "__loop24" := by
+    split <;> omega
+  have hg := rows_gap_le (a := SK "__loop23") (b := SK "__loop24") hr
   have hd := dl_le SB hL
-  have h4 : dlK SB * 2 ^ L ≤ dlK SB * (2 * r) := Nat.mul_le_mul_left _ hP
   simp only [List.sum_cons, List.sum_nil]
-  have e : r * (395 + SK "__loop18" + SK "__loop19" + SK "__loop22" + SK "__loop23" +
-      SK "__loop24" + 2 * dlK SB + 64 * colS SB SK "__loop417" "__loop418" +
-      64 * colS SB SK "__loop419" "__loop420") =
-      395 * r + r * SK "__loop18" + r * SK "__loop19" + r * SK "__loop22" + r * SK "__loop23" +
-      r * SK "__loop24" + dlK SB * (2 * r) + r * (64 * colS SB SK "__loop417" "__loop418") +
-      r * (64 * colS SB SK "__loop419" "__loop420") := by ring
+  have e : r * (131 + SK "__loop18" + SK "__loop19" + SK "__loop22" + (SK "__loop23" - SK "__loop24") +
+      64 * colS SK "__loop417" "__loop418" + 64 * colS SK "__loop419" "__loop420") =
+      131 * r + r * SK "__loop18" + r * SK "__loop19" + r * SK "__loop22" +
+      r * (SK "__loop23" - SK "__loop24") + r * (64 * colS SK "__loop417" "__loop418") +
+      r * (64 * colS SK "__loop419" "__loop420") := by ring
+  have e' : 2 ^ L * (132 + SK "__loop24" + dlK SB + 64 * colP SB SK "__loop418" +
+      64 * colP SB SK "__loop420") =
+      132 * 2 ^ L + 2 ^ L * SK "__loop24" + dlK SB * 2 ^ L + 2 ^ L * (64 * colP SB SK "__loop418") +
+      2 ^ L * (64 * colP SB SK "__loop420") := by ring
   omega
 
 /-! ## The claim lists
@@ -284,11 +302,13 @@ theorem l5B_le (Bv : ℕ → ℕ) {s : NodeStatement} {w : NodeWitness}
 
 theorem hDvB_le {bytecode : List K} {seed : Digest} {s : NodeStatement} {w : NodeWitness}
     (hr : NodeRel bytecode seed s w) (hl : Limits s w) :
-    hDvB fs SB SK s w ≤ (End.work s w).rawDa * dvC fs SB + (End.work s w).rawDaRows * dvS SB SK := by
+    hDvB fs SB SK s w ≤ (End.work s w).rawDa * dvC fs SB + (End.work s w).rawDaRows * dvS SK +
+      (End.work s w).rawDaPad * dvP SB SK := by
   have h1 := hl.directDa
   unfold hDvB
   show _ ≤ (hRawD s w).length * dvC fs SB +
-    ((hRawD s w).map fun p => p.2.rows.length).sum * dvS SB SK
+    ((hRawD s w).map fun p => p.2.rows.length).sum * dvS SK +
+    ((hRawD s w).map fun p => LeanDa.nPad p.2.rows.length).sum * dvP SB SK
   match hp : hRawD s w, h1 with
   | [], _ => simp
   | [p], _ =>
@@ -306,7 +326,10 @@ theorem hDvB_le {bytecode : List K} {seed : Digest} {s : NodeStatement} {w : Nod
       exact (Nat.pow_lt_pow_iff_right (by norm_num)).mp this
     simp only [List.map_cons, List.map_nil, List.headD_cons, List.sum_cons, List.sum_nil, Nat.add_zero,
       List.length_singleton, Nat.one_mul]
-    exact dvB_le fs SB SK hw.1 (by unfold Da.wLog; omega) hL
+    refine (dvB_le fs SB SK (r := p.2.rows.length) (by unfold Da.wLog; omega) hL).trans
+      (le_of_eq ?_)
+    unfold Da.wLog LeanDa.nPad
+    ring
   | _ :: _ :: _, h =>
     exact absurd h (by rw [show Hints.direct s.claims.da w.da = hRawD s w from rfl, hp]; simp)
 
@@ -381,7 +404,8 @@ def mainWords (Bvf : ℕ → ℕ → ℕ) : End.Linear where
   rawXmss := SK "__loop3"
   rawSphincs := SK "__loop4"
   rawDa := dvC fs SB + fs "da_verify" + 2 * fs "cover_da_root"
-  rawDaRows := dvS SB SK
+  rawDaRows := dvS SK
+  rawDaPad := dvP SB SK
   children := 51 + l5A1 fs SB + agA1 SK
   childClaims := l5A2 fs
   childShape := Bvf
@@ -471,7 +495,9 @@ theorem Bmain_le (Bvf : ℕ → ℕ → ℕ) {bytecode : List K} {seed : Digest}
     Nat.mul_comm _ _
   have r5 : SK "__loop4" * (End.work s w).rawSphincs = (End.work s w).rawSphincs * SK "__loop4" :=
     Nat.mul_comm _ _
-  have r6 : dvS SB SK * (End.work s w).rawDaRows = (End.work s w).rawDaRows * dvS SB SK :=
+  have r6 : dvS SK * (End.work s w).rawDaRows = (End.work s w).rawDaRows * dvS SK :=
+    Nat.mul_comm _ _
+  have r6' : dvP SB SK * (End.work s w).rawDaPad = (End.work s w).rawDaPad * dvP SB SK :=
     Nat.mul_comm _ _
   have r8 : (dvC fs SB + fs "da_verify" + 2 * fs "cover_da_root") * (End.work s w).rawDa =
       (End.work s w).rawDa * dvC fs SB + (End.work s w).rawDa * (fs "da_verify" + 2 * fs "cover_da_root") :=

@@ -57,20 +57,5 @@ theorem LoopT.at {fs : String → ℕ} {f : String} {K : ℕ} (h : LoopT fs f K)
     (by omega) he
   simpa using this
 
-/-- **A function's weight within a ratio of its words** (G7-cnt's `Count/Ratio`): every valid tree
-of `f` counts at most `α / 1000` per word it allocates. -/
-def WeightRatio (fs ω : String → ℕ) (f : String) (α : ℕ) : Prop :=
-  ∀ (rd : Reader) (t : Tree) (args rets : List E), t.name = f → t.Valid coreProgram rd args rets →
-    t.BufsOk coreProgram → 1000 * t.weight ω ≤ α * t.total fs
-
-theorem WeightRatio.le {fs ω : String → ℕ} {f : String} {α B : ℕ} (h : WeightRatio fs ω f α)
-    {rd : Reader} {t : Tree} {args rets : List E} (hn : t.name = f)
-    (hv : t.Valid coreProgram rd args rets) (hb : t.BufsOk coreProgram) (hB : t.total fs ≤ B) :
-    t.weight ω ≤ α * B / 1000 := by
-  have h1 := h rd t args rets hn hv hb
-  have h2 : α * t.total fs ≤ α * B := Nat.mul_le_mul_left _ hB
-  rw [Nat.le_div_iff_mul_le (by norm_num)]
-  omega
-
 end
 end LeanVM.Guest.Budget

@@ -80,6 +80,7 @@ structure Linear where
   rawSphincs : ℕ
   rawDa : ℕ
   rawDaRows : ℕ
+  rawDaPad : ℕ
   children : ℕ
   childClaims : ℕ
   childShape : ℕ → ℕ → ℕ
@@ -88,7 +89,7 @@ structure Linear where
 def Linear.eval (l : Linear) (u : Work) : ℕ :=
   l.base + l.declared * u.declared + l.coverage * u.coverage + l.rawXmss * u.rawXmss +
     l.rawSphincs * u.rawSphincs + l.rawDa * u.rawDa + l.rawDaRows * u.rawDaRows +
-    l.children * u.children + l.childClaims * u.childClaims +
+    l.rawDaPad * u.rawDaPad + l.children * u.children + l.childClaims * u.childClaims +
     (u.childShapes.map fun p ↦ l.childShape p.1 p.2).sum
 
 /-- **A size budget**: bounds on the words a run allocates and on the instructions of each opcode

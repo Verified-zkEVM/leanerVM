@@ -3,14 +3,13 @@
 
   The budget's static hypotheses at the deployed frame sizes, from the certificate families: the
   words of `main`'s statically bounded callees and of its non-static callees' static callees
-  (`mainStatics`), `main`'s callees' instruction counts per opcode (`mainCounts`), and
-  `open_stacked`'s named callees and residual loops (`osLeafBounds`, `osLoopBounds`).
+  (`mainStatics`), and `open_stacked`'s named callees and residual loops (`osLeafBounds`,
+  `osLoopBounds`). `main`'s callees' instruction counts (`mainCounts`) are `Budget/MvCount`'s.
 -/
 
 module
 
 public import LeanVM.Guest.Count.Words
-public import LeanVM.Guest.Count.Ratio
 public import LeanVM.Guest.Budget.MainCount
 public import LeanVM.Guest.B1.Main.MainHonestBudgetB
 public import LeanVM.Guest.B1.Place.OsFinalB
@@ -20,8 +19,7 @@ public import LeanVM.Guest.B1.Place.OsFinalB
 
 Words at `B2C.fs` by name (`Count.Words`): `wSB f`, `f`'s constant, and `wSK f`, a loop helper's
 words per iteration, each function found by `wIdx` (`wIdxL` for `__loop{n}`) and checked by
-`decide +kernel`. Instruction counts at `B2C.ωArm B2C.xmssArmC op` (`Count.Static`,
-`Count.Ratio`).
+`decide +kernel`.
 -/
 
 namespace LeanVM.Guest.Count
@@ -74,36 +72,6 @@ theorem mainStatics : B1.Main.MainStatics B2C.fs wSB wSK where
   l26 := wSK_totalLeOn (j := wIdxL 26) (by decide +kernel)
   l27 := wSK_totalLeOn (j := wIdxL 27) (by decide +kernel)
   bs := wSB_totalLe (j := wIdx "batch_sumcheck__L23") (by decide +kernel)
-
-/-- **The weights of `main`'s callees at `op`'s instructions**: the static ones' certificates,
-the others within their ratios of their words. -/
-noncomputable def mainCounts (op : Opcode) :
-    Budget.MainCounts (B2C.ωArm B2C.xmssArmC op) B2C.fs where
-  kExp := kcExp op
-  exp := kcExp_weightLe op
-  kDl := kcDl op
-  dl := kcDl_weightLe op
-  kCov := kcCov op
-  cov := kcCov_weightLe op
-  kSd := kcSd op
-  sd := kcSd_weightLe op
-  kL0 := kcL0 op
-  l0 := kcL0_loop op
-  kL1 := kcL1 op
-  l1 := kcL1_loop op
-  kL2 := kcL2 op
-  l2 := kcL2_loop op
-  kL3 := kcL3 op
-  l3 := kcL3_loop op
-  kL4 := kcL4 op
-  l4 := kcL4_loop op
-  aggC := kcAggC op
-  aggD := kcAggD op
-  agg := kcAgg_le op
-  αcl := krClA op
-  cl := krCl_weight op
-  αdv := krDvA op
-  dv := krDv_weight op
 
 /-- `open_stacked`'s named callees, checked. -/
 theorem osKind_ok : B1.osKindTable.all (fun p => wOkB (wIdx p.1) p.1) = true := by

@@ -21,19 +21,19 @@ theorem kvksplit_322_2222 : blockR (kvklookJ 322) (kvkomLookJ 322) false [(.n 21
   decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem kvkstaticRange_323 : kvkStaticRange 323 30 := by
+theorem kvkstaticRange_323 : kvkStaticRange 323 25 := by
   unfold kvkStaticRange; decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem kvkstaticRange_353 : kvkStaticRange 353 30 := by
+theorem kvkstaticRange_348 : kvkStaticRange 348 23 := by
   unfold kvkStaticRange; decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem kvkstaticRange_383 : kvkStaticRange 383 30 := by
+theorem kvkstaticRange_371 : kvkStaticRange 371 30 := by
   unfold kvkStaticRange; decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem kvkstaticRange_413 : kvkStaticRange 413 22 := by
+theorem kvkstaticRange_401 : kvkStaticRange 401 24 := by
   unfold kvkStaticRange; decide +kernel
 
 end

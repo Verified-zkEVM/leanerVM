@@ -16,7 +16,8 @@ public import LeanVM.Guest.B1.Da.AtT
 # A column, its honest shape
 
 `colNH fname rl gl r L`: the column's node at a valuation with `v1 = g^r` (its row loop's end),
-`v3 = g^(2^L - r)` (its padding loop's end) and `v13 = g^(4·2^L)` (its node tree's size), its
+`v3 = g^(2^L - r)` (its padding loop's end), `v13 = g^(4·2^L)` (its node tree's size) and
+`v17 = v20 = 1` (its loops' starts, read by the budget's counts), its
 calls `colCalls` (the vector cell, the row loop, the padding loop when `2^L > r`, the tree's
 levels), its `HeapBuf`s `[4·2^L]`, no predicate on its callees. `col_completeAtT`:
 `col_completeAt` (same proof) by such a tree.
@@ -36,9 +37,10 @@ open LeanVM.Guest.B1.Main (Layout MemL RegionL memL_append)
 
 @[expose] public section
 
-/-- The words a column's loops end at and its node tree's size. -/
+/-- The words a column's loops start and end at and its node tree's size. -/
 def colQ (r L : ℕ) (σ : Val) : Prop :=
-  σ (.n 1) = gen ^ r ∧ σ (.n 3) = gen ^ (2 ^ L - r) ∧ σ (.n 13) = gen ^ (4 * 2 ^ L)
+  σ (.n 1) = gen ^ r ∧ σ (.n 3) = gen ^ (2 ^ L - r) ∧ σ (.n 13) = gen ^ (4 * 2 ^ L) ∧
+    σ (.n 17) = 1 ∧ σ (.n 20) = 1
 
 /-- A column's calls. -/
 def colCalls (rl gl : String) (r L : ℕ) : List Call :=
@@ -233,7 +235,7 @@ theorem col_completeAtT (fs : String → ℕ) (cert : String → V → ℕ)
       simp at hq)
     [] ?_ ?_ (fun i hi => by obtain ⟨q, hq, -⟩ := hi; simp at hq)
   · have h' := relAtInT_nodeHonest_true (Q := colQ r L) (cs := fun _ => colCalls rl gl r L)
-      (bs := fun _ => [4 * 2 ^ L]) (k := 4) h hfc hw ⟨rfl, rfl, h13⟩ hcalls hal (by simp [colCalls])
+      (bs := fun _ => [4 * 2 ^ L]) (k := 4) h hfc hw ⟨rfl, rfl, h13, word_one, word_one⟩ hcalls hal (by simp [colCalls])
     rw [hal] at h'
     simp only [List.sum_cons, List.sum_nil, Nat.add_zero] at h'
     rwa [show fs fname + 4 * N + (fs "da_vector_cell" + Nk) =

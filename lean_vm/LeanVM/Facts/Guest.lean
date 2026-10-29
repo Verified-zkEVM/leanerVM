@@ -50,6 +50,8 @@ structure Work where
   rawDa : ℕ
   /-- Their rows: the blobs held directly. -/
   rawDaRows : ℕ
+  /-- Their padded heights (`LeanDa.nPad` of their rows). -/
+  rawDaPad : ℕ
   /-- The children. -/
   children : ℕ
   /-- The children's declared claims, of the three lists. -/
@@ -65,6 +67,7 @@ def work (s : NodeStatement) (w : NodeWitness) : Work where
   rawSphincs := (Hints.direct s.claims.sphincs w.sphincs).length
   rawDa := (Hints.direct s.claims.da w.da).length
   rawDaRows := ((Hints.direct s.claims.da w.da).map fun p ↦ p.2.rows.length).sum
+  rawDaPad := ((Hints.direct s.claims.da w.da).map fun p ↦ LeanDa.nPad p.2.rows.length).sum
   children := w.children.length
   childClaims := (w.children.map fun c ↦ c.statement.claims.xmss.length +
     c.statement.claims.sphincs.length + c.statement.claims.da.length).sum

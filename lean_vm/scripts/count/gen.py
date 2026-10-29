@@ -21,14 +21,14 @@ written under `LeanVM/Guest/`. `CMD` is one of
   `RATIOV_ROOTS` (`verify_sub`'s callees with no static bound but `verify_tables` and the terminal,
   and the terminal's `__loop15` and `ring_switch_weight`) within ratios of their words;
 * `vscount`: `Count/VsCountData.lean`, `Count/VsCountChk*.lean`, the `V` families' counts as tables
-  (`vscount.py`, used by `Budget/VsCount.lean`, `Budget/L5Count.lean`);
+  (`vscount.py`, used by `Budget/VsCount.lean`, `Budget/L5Count.lean`), and
+  `Count/MvCountData.lean`, `Count/MvCountChk*.lean`, those of `main`'s `claim_list_digest` and
+  `da_verify` (used by `Budget/MvCount.lean`);
 * `static`: `Count/Static.lean`, the bounds of `ROOTS` the families give, per opcode and in words,
   and `Count/Words.lean`, every function's words by name (`wSB`, `wSK`; `Count/Instances.lean`
   instantiates the budget's hypotheses with them);
-* `ratio`: `Count/RatioData.lean`, `Count/RatioChk*.lean` and `Count/Ratio.lean`, the counts of
-  `RATIO_ROOTS` (no static bound) within ratios of their words, per opcode (`ratio.py`);
 * `deployed`: `Count/Deployed*.lean`, the numbers of `Budget.deployedBudget Bv` (`deployed.py`);
-* `all`: `words`, `cnt`, `static`, `ratio` and `deployed`.
+* `all`: `words`, `cnt`, `static`, `cntv`, `cntw`, `ratiov`, `vscount` and `deployed`.
 
 The checker is `checker.py`, a mirror of `Memory/Static.lean`; `--cache` keeps the parsed core IR.
 Build the families' parts one module at a time (each is a few GB)."""
@@ -49,15 +49,16 @@ LOOP_ROOTS = [('L0', '__loop0'), ('L1', '__loop1'), ('L2', '__loop2'), ('L3', '_
               ('L4', '__loop4'), ('L28', '__loop28')]
 AGG = 'aggregate_claims'
 ROOTS = [n for _, n in CONST_ROOTS] + [n for _, n in LOOP_ROOTS] + [AGG]
-# Functions bounded by a ratio of their words: (name in Lean, function).
-RATIO_ROOTS = [('Cl', 'claim_list_digest'), ('Dv', 'da_verify'), ('Agg', 'aggregate_claims')]
-# `verify_sub`'s statically bounded callees (each child's opening arm among them) and
-# `child_claim_list_digest`'s callees: the `V` count families (`Memory/GuestCntV*`), apart from
-# `main`'s so that neither family's change rebuilds the other's dependents.
+# `verify_sub`'s statically bounded callees (each child's opening arm among them),
+# `child_claim_list_digest`'s callees, and the statically bounded callees of `main`'s
+# `claim_list_digest` and `da_verify`, whose trees' shapes count them (`vscount.MV_*`): the `V`
+# count families (`Memory/GuestCntV*`), apart from `main`'s static callees' so that neither
+# family's change rebuilds the other's dependents.
 VROOTS = (['open_stacked__L%d' % c for c in range(28)] +
           ['g_power_of_word', 'assert_canonical', 'log2_ceil_in_the_exponent__L0_L34',
            'log2_ceil_in_the_exponent__L15_L34', 'certify_placement', 'ring_switch_target',
-           'list_split', '__loop17'] + ['child_claim_list_last__L%d' % k for k in range(17)])
+           'list_split', '__loop17'] + ['child_claim_list_last__L%d' % k for k in range(17)] +
+          vscount.MV_ST + vscount.MV_LP + vscount.MV_DL + vscount.MV_CL + ['__loop16'])
 # `verify_tables`' and `check_opening_terminal`'s statically bounded callees, `verify_tables`' rounds
 # loop, `shared_selector_tables`' callees and the terminal's `__loop15`: the `W` count families
 # (`Memory/GuestCntW*`), which bound those two callees of `verify_sub` by their trees' shapes.
@@ -325,19 +326,9 @@ def cmd_words_by_name(g, wcert):
     print('words by name: %d names, %d loops' % (len(names), len(loops)))
 
 
-def ratio_A(g):
-    """`kr<N>A`, as `ratio.write` computes it."""
-    fsN = lambda j: MAIN_FRAME if j == 1 else max(2, g.fsz[j])
-    out = {}
-    for N, r in RATIO_ROOTS:
-        J = sorted(g.by[n] for n in g.closure([r]))
-        out[N] = [max(-(-1000 * g.pm[j + 1][k] // fsN(j + 1)) for j in J) for k in range(6)]
-    return out
-
-
 def cmd_deployed(g, fams=None):
     if fams is None: fams = g.cnt_certs()[1]
-    deployed.write(g, ratio_A(g), {P: c for _, P, _, _, c in fams}, OPS)
+    deployed.write(g, {P: c for _, P, _, _, c in fams}, OPS)
 
 
 def show(c):
@@ -370,7 +361,7 @@ def cmd_report(g):
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument('lean_vm')
-    ap.add_argument('cmd', choices=['report', 'words', 'cnt', 'cntv', 'cntw', 'static', 'ratio', 'ratiov', 'vscount', 'deployed',
+    ap.add_argument('cmd', choices=['report', 'words', 'cnt', 'cntv', 'cntw', 'static', 'ratiov', 'vscount', 'deployed',
                                     'all'])
     ap.add_argument('--cache', default=None)
     a = ap.parse_args()
@@ -381,19 +372,20 @@ def main():
     elif a.cmd == 'cntv': cmd_cnt(g, 'V')
     elif a.cmd == 'cntw': cmd_cnt(g, 'W')
     elif a.cmd == 'static': cmd_static(g)
-    elif a.cmd == 'ratio': ratio.write(g, RATIO_ROOTS, opdef)
     elif a.cmd == 'ratiov': ratio.write(g, RATIOV_ROOTS, opdef, fam='RatioV', CH=24, W=450, two=True)
-    elif a.cmd == 'vscount': vscount.write(g, OPS)
+    elif a.cmd == 'vscount':
+        vscount.write(g, OPS)
+        vscount.write_main(g, OPS)
     elif a.cmd == 'deployed': cmd_deployed(g)
     else:
         w = cmd_words(g)
         _, fams = cmd_cnt(g)
         cmd_static(g, w, fams)
-        ratio.write(g, RATIO_ROOTS, opdef)
         cmd_cnt(g, 'V')
         cmd_cnt(g, 'W')
         ratio.write(g, RATIOV_ROOTS, opdef, fam='RatioV', CH=24, W=450, two=True)
         vscount.write(g, OPS)
+        vscount.write_main(g, OPS)
         cmd_deployed(g, fams)
 
 

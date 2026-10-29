@@ -487,10 +487,11 @@ duplicates the guest program records) shorter than $2^{16}$; at least one declar
 
 \paragraph{The budget} (\lean{lean_vm}). The node's \emph{work} (\lean{work}) consists of $d$
 declared claims (all three lists), $k$ coverage slots, $n_X$ and $n_S$ signatures held directly,
-$n_D$ DA matrices held directly with $n_R$ rows in all, $n_C$ children with $n_{CC}$ claims in all,
+$n_D$ DA matrices held directly with $n_R$ rows in all, padded to $n_P$ rows ($2^{\lceil\log_2 r\rceil}$
+for a matrix of $r$ rows), $n_C$ children with $n_{CC}$ claims in all,
 and each child's announced stack log $\mu$ and rate exponent $r$. A run allocates at most
 \[
-W = 18106 + 35d + 109k + 6459n_X + 7328n_S + 480986n_D + 247997n_R + 14257n_C + 30n_{CC}
+W = 18106 + 35d + 109k + 6459n_X + 7328n_S + 480986n_D + 212653n_R + 17672n_P + 14257n_C + 30n_{CC}
   + \sum_{\text{children}} \beta(\mu, r)
 \]
 words, where $\beta(\mu,r)$, the words of verifying one child, is:
@@ -504,8 +505,8 @@ $r=4$ & 389193 & 393074 & 408904 & 413004 & 417160 & 423729 & 439992
 \end{tabular}
 \end{center}
 The instructions of each opcode are bounded by linear forms of the same shape
-(\lean{Count.deployedInstrs}; for \texttt{KECCAK}, $202 + 2d + 398n_X + 390n_S + 15839n_D +
-8184n_R + 70n_C + n_{CC} + \sum \kappa(\mu, r)$ with $\kappa$ between $4922$ and $9979$). The
+(\lean{Count.deployedInstrs}; for \texttt{KECCAK}, $32 + d + 398n_X + 390n_S + 6047n_D +
+2064n_R + 129n_P + 70n_C + n_{CC} + \sum \kappa(\mu, r)$ with $\kappa$ between $4922$ and $9979$). The
 budget's size is the committed size of Section~\ref{sec:zkvm} at these bounds: memory
 $2^{\max(\lceil\log_2 W\rceil, 20)}$ and each table's height the least power of two at least its
 bound (at least $2^9$ for \texttt{KECCAK}). These are proved bounds on the guest program's runs,
@@ -515,9 +516,9 @@ counted from its code, not measurements.
 $\mathrm{dig}_\sigma(s)$ with $2^{22} \le \mathrm{size}(t) \le 2^{28}$ (committed size).
 \begin{itemize}
 \item \lean{GuestCompleteCovered}: under hypotheses 1 and 2 (the budget is discharged in the
-proof), for every node in one of six families (\lean{Covered}), by its $n_C$ children, $n_X + n_S$
-raw signatures, $n_R$ blobs held directly, and claim counts $d$, $k$, $n_{CC}$ each at most
-the family's cap:
+proof), for every node in one of eight families (\lean{Covered}), by its $n_C$ children, $n_X + n_S$
+raw signatures, $n_R$ blobs held directly (the rows of at most one matrix), and claim counts $d$,
+$k$, $n_{CC}$ each at most the family's cap:
 \begin{center}\small
 \begin{tabular}{lrrrr}
 \toprule
@@ -526,8 +527,10 @@ recursion & any & $0$ & $0$ & $2048$\\
 leaf & $0$ & $\le 2048$ & $0$ & $2048$\\
 & $\le 8$ & $0$ & $0$ & $2^{15}$\\
 & $\le 4$ & $\le 1024$ & $0$ & $8192$\\
-& $\le 4$ & $0$ & $\le 8$ & $2048$\\
-& $\le 2$ & $\le 256$ & $\le 4$ & $4096$\\
+& $\le 4$ & $0$ & $\le 32$ & $8192$\\
+& $\le 2$ & $\le 256$ & $\le 32$ & $8192$\\
+& $\le 2$ & $0$ & $\le 32$ & $2^{14}$\\
+& $0$ & $0$ & $\le 32$ & $2^{15}$\\
 \bottomrule
 \end{tabular}
 \end{center}
@@ -537,7 +540,8 @@ any $\mu \in [22,28]$ and $r \in [1,4]$.
 \item \lean{guest_complete_numeric} (\lean{lean_vm}): under hypotheses 1 and 2, whenever the
 budget's size is at most $2^{28}$. Evaluating the budget also places under $2^{28}$ a leaf of up to
 $2538$ leanXMSS or $2242$ leanSPHINCS signatures (each declared once), and a node holding one DA
-claim directly with up to $10$ rows.
+claim directly with up to $57$ rows. On leanVM's own aggregations of $16$ and $32$ blobs the
+budget's size is the measured committed size, $2^{26.486}$ and $2^{27.482}$.
 \item \lean{aggregate_complete_of} (\lean{lean_vm}, in the RPM): the execution so obtained,
 proved by the honest prover at $\rho \in [1,4]$ with $f \le 2^{64}$ nonces, is rejected with
 probability at most $\delta(f)$ of Section~\ref{sec:zkvm}.

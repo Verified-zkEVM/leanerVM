@@ -230,7 +230,7 @@ theorem col_completeAtTB (fs : String → ℕ) (cert : String → V → ℕ)
       simp at hq)
     [] ?_ ?_ (fun i hi => by obtain ⟨q, hq, -⟩ := hi; simp at hq)
   · have h' := relAtInT_nodeHonest_true (Q := colQ r L) (cs := fun _ => colCalls rl gl r L)
-      (bs := fun _ => [4 * 2 ^ L]) (k := 4) h hfc hw ⟨rfl, rfl, h13⟩ hcalls hal (by simp [colCalls])
+      (bs := fun _ => [4 * 2 ^ L]) (k := 4) h hfc hw ⟨rfl, rfl, h13, word_one, word_one⟩ hcalls hal (by simp [colCalls])
     rw [hal] at h'
     simp only [List.sum_cons, List.sum_nil, Nat.add_zero] at h'
     rwa [show fs fname + 4 * N + (fs "da_vector_cell" + Nk) =

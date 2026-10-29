@@ -52,9 +52,9 @@ structure Theorems (decode : LeanVM.Node.Decoder) : Prop where
   collision. The composed bound is `Statement.Corollaries`' `aggregateSound`, proved in `lean_vm`
   as `LeanVM.Guest.End.aggregate_sound_outer`. -/
   digestBinds : LeanVM.Node.DigestBinds
-  /-- The leanISA guest program is complete on the six families of `Covered`, mixed nodes and
-  nodes checking a blob of at most `8` rows among them. The completeness statements assume the
-  children's hypotheses (`ChildOk`), which `guestChildComplete` gives honest proofs
+  /-- The leanISA guest program is complete on the eight families of `Covered`, mixed nodes and
+  nodes checking one DA matrix of at most `32` rows among them. The completeness statements assume
+  the children's hypotheses (`ChildOk`), which `guestChildComplete` gives honest proofs
   (`LeanVmGuest.lean`). -/
   guestCompleteCovered : LeanVM.Guest.Budget.GuestCompleteCovered
   /-- The same honest prover's proof of an execution of the guest program is a child the guest

@@ -9,7 +9,7 @@ DL = ["da_levels__L1_L0", "da_levels__L2_L1", "da_levels__L4_L2", "da_levels__L8
       "da_levels__L256_L8", "da_levels__L512_L9", "da_levels__L1024_L10"]
 CL = ['claim_list_last__L%d' % k for k in range(17)]
 CCL = ['child_claim_list_last__L%d' % k for k in range(17)]
-FIELDS = ['base', 'declared', 'coverage', 'rawXmss', 'rawSphincs', 'rawDa', 'rawDaRows', 'children',
+FIELDS = ['base', 'declared', 'coverage', 'rawXmss', 'rawSphincs', 'rawDa', 'rawDaRows', 'rawDaPad', 'children',
           'childClaims', 'childShape']
 
 HDR = '''/-
@@ -25,8 +25,8 @@ module
 namespace LeanVM.Guest.Count
 
 open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Memory LeanVM.Guest
-open LeanVM.Guest.B1.Main (nameSum dlK colC colS clC clS ccC ccS dvC dvS l5A0 l5A1 l5A2 agA0 agA1
-  mainWords)
+open LeanVM.Guest.B1.Main (nameSum dlK colC colS colP clC clS ccC ccS dvC dvS dvP l5A0 l5A1 l5A2 agA0
+  agA1 mainWords)
 
 @[expose] public section
 %s
@@ -35,7 +35,7 @@ end LeanVM.Guest.Count
 '''
 
 
-def numbers(g, A, certs):
+def numbers(g, certs):
     fsd = g.fs_words()
     w = g.words_certs()
     def fs(n): return fsd.get(n, 2)
@@ -49,14 +49,16 @@ def numbers(g, A, certs):
     v['cl'] = sum(SB(n) for n in CL)
     v['ccl'] = sum(fs(n) for n in CCL)
     colC = lambda f, gl: fs(f) + fs('da_vector_cell') + fs(gl)
-    colS = lambda rl, gl: 8 + SK(rl) + SK(gl) + 2 * v['dlK']
+    colP = lambda gl: 4 + SK(gl) + v['dlK']
     v['colC1'] = colC('da_verify_column__L1', '__loop418')
     v['colC0'] = colC('da_verify_column__L0', '__loop420')
     v['clC'] = fs('claim_list_digest') + 13 + SB('list_split') + fs('__loop16') + v['cl']
     v['dvC'] = (fs('da_verify') + 768 + fs('da_row_shape') + fs('__loop24') + SB('da_levels__L128_L7')
                 + (65 * fs('__loop20') + 64 * v['colC1']) + (65 * fs('__loop21') + 64 * v['colC0']))
-    v['dvS'] = (395 + SK('__loop18') + SK('__loop19') + SK('__loop22') + SK('__loop23') + SK('__loop24')
-                + 2 * v['dlK'] + 64 * colS('__loop417', '__loop418') + 64 * colS('__loop419', '__loop420'))
+    sub = lambda a, b: max(0, SK(a) - SK(b))
+    v['dvS'] = (131 + SK('__loop18') + SK('__loop19') + SK('__loop22') + sub('__loop23', '__loop24')
+                + 64 * sub('__loop417', '__loop418') + 64 * sub('__loop419', '__loop420'))
+    v['dvP'] = 132 + SK('__loop24') + v['dlK'] + 64 * colP('__loop418') + 64 * colP('__loop420')
     v['ccC'] = fs('child_claim_list_digest') + 13 + SB('list_split') + fs('__loop17') + v['ccl']
     v['clS'] = 1 + (SK('__loop16') + 16) // 17
     v['ccS'] = 1 + (fs('__loop17') + 16) // 17
@@ -71,9 +73,10 @@ def numbers(g, A, certs):
             + fs('__loop3') + fs('__loop4') + 2 * v['l5A0'] + (v['agA0'] + fs('aggregate_claims'))
             + SB('statement_digest') + fs('statement_digest'))
     words = [base, v['clS'], 5 + SK('__loop0') + SK('__loop1') + SK('__loop2'), SK('__loop3'),
-             SK('__loop4'), v['dvC'] + fs('da_verify') + 2 * fs('cover_da_root'), v['dvS'], 51 + v['l5A1'] + v['agA1'], v['l5A2']]
+             SK('__loop4'), v['dvC'] + fs('da_verify') + 2 * fs('cover_da_root'), v['dvS'], v['dvP'], 51 + v['l5A1'] + v['agA1'], v['l5A2']]
     instrs = {}
     tbl = vscount.tables(g)
+    _, _, _, dv_aff, cl_aff = vscount.main_tables(g)
     for lop, P, k in OPS_:
         c = certs[P]
         st = lambda n: c[n][2][0]
@@ -81,15 +84,16 @@ def numbers(g, A, certs):
         agg = c['aggregate_claims']
         aggC, aggD = agg[2][0], sum(a for _, a in agg[2][1])
         jt = 8473 if lop == 'setConstant' else 0
-        acl, adv = A['Cl'][k], A['Dv'][k]
+        clA, clS = cl_aff(k)
+        dvA, dvR, dvP = dv_aff(k)
         om5, ccA, ccS, vst = vscount.l5_parts(tbl, k)
         # `Budget.l5C`: `__loop5`'s frame, two claim lists' constants, 16 DA roots, the digests.
         l5C = om5 + 2 * ccA + 16 * lp('__loop28') + st('da_list_digest') + st('statement_digest')
         instrs[lop] = ([g.pm[1][k] + st('exponent_tables') + st('da_list_digest') + st('statement_digest') + jt
-                        + 2 * (acl * v['clC'] // 1000 + 1),
-                        acl * v['clS'] // 1000 + 1,
+                        + 2 * clA,
+                        clS,
                         lp('__loop0') + lp('__loop1') + lp('__loop2'), lp('__loop3'), lp('__loop4'),
-                        adv * v['dvC'] // 1000 + 1 + st('cover_da_root'), adv * v['dvS'] // 1000 + 1,
+                        dvA + st('cover_da_root'), dvR, dvP,
                         l5C + aggC + aggD, ccS], vst)
     return v, words, instrs
 
@@ -105,10 +109,10 @@ def idx_rw(g, fs=(), sb=(), sk=()):
     return ',\n    '.join(out)
 
 
-def write(g, ratio_A, certs, ops):
+def write(g, certs, ops):
     global OPS_
     OPS_ = ops
-    v, words, instrs = numbers(g, ratio_A, certs)
+    v, words, instrs = numbers(g, certs)
     D = os.path.join(g.lv, 'LeanVM', 'Guest', 'Count')
     def mod(name, doc, imports, body):
         open(os.path.join(D, name + '.lean'), 'w', encoding='utf-8').write(HDR % (name, doc, imports, body))
@@ -136,13 +140,16 @@ theorem ccl_sum : nameSum (fun g => B2C.fs g) B1.Digest.cclNames 17 = %d := by d
                fs=['da_verify_column__L0', 'da_vector_cell', '__loop420'])
     dvc = thm('dvC_eq', 'dvC B2C.fs wSB', v['dvC'], 'dvC', ['colC1_eq', 'colC0_eq'],
               fs=['da_verify', 'da_row_shape', '__loop24', '__loop20', '__loop21'], sb=['da_levels__L128_L7'])
-    dvs = thm('dvS_eq', 'dvS wSB wSK', v['dvS'], 'dvS colS', ['dlK_eq'],
+    dvs = thm('dvS_eq', 'dvS wSK', v['dvS'], 'dvS colS', [],
               sk=['__loop18', '__loop19', '__loop22', '__loop23', '__loop24', '__loop417', '__loop418',
                   '__loop419', '__loop420'])
+    dvp = thm('dvP_eq', 'dvP wSB wSK', v['dvP'], 'dvP colP', ['dlK_eq'],
+              sk=['__loop24', '__loop418', '__loop420'])
     mod('DeployedB', '`da_verify`\'s columns\' words, its constant and per row.',
         'public import LeanVM.Guest.Count.DeployedA\n',
         '\n' + col1 + '\n' + col0 + '\n/-- **`da_verify`\'s constant words.** -/\n' + dvc
-        + '\n/-- **`da_verify`\'s words per row.** -/\n' + dvs)
+        + '\n/-- **`da_verify`\'s words per row.** -/\n' + dvs
+        + '\n/-- **`da_verify`\'s words per padded row.** -/\n' + dvp)
     body = '\n'.join([
         thm('clC_eq', 'clC B2C.fs wSB', v['clC'], 'clC', ['cl_sum'], fs=['claim_list_digest', '__loop16'],
             sb=['list_split']),
@@ -178,7 +185,7 @@ set_option maxRecDepth 100000 in
 theorem deployedBudget_words (Bvf : ℕ → ℕ → ℕ) :
     (Budget.deployedBudget Bvf).words = deployedWords Bvf := by
   simp only [Budget.deployedBudget, Budget.mainBudget, mainWords, deployedWords]
-  rw [clC_eq, clS_eq, dvC_eq, dvS_eq, l5A0_eq, l5A1_eq, l5A2_eq, agA0_eq, agA1_eq]
+  rw [clC_eq, clS_eq, dvC_eq, dvS_eq, dvP_eq, l5A0_eq, l5A1_eq, l5A2_eq, agA0_eq, agA1_eq]
   congr 1
 
 set_option maxRecDepth 100000 in
@@ -186,9 +193,8 @@ set_option maxRecDepth 100000 in
 theorem deployedBudget_instrs (Bvf : ℕ → ℕ → ℕ) (op : Opcode) :
     (Budget.deployedBudget Bvf).instrs op = deployedInstrs op := by
   simp only [Budget.deployedBudget, Budget.mainBudget, Budget.mainInstrs]
-  rw [clC_eq, clS_eq, dvC_eq, dvS_eq]
   cases op <;> simp only [deployedInstrs, mainCounts, kcExp, kcDl, kcSd, kcCov, kcL0, kcL1, kcL2, kcL3,
-    kcL4, kcAggC, kcAggD, krClA, krDvA, B2C.jtSets] <;> congr 1
+    kcL4, kcAggC, kcAggD, kcClA, kcClS, kcDvA, kcDvR, kcDvP, B2C.jtSets] <;> congr 1
 '''
     mod('Deployed', 'The numbers of the deployed budget: `deployedBudget_words`, `deployedBudget_instrs`.',
         'public import LeanVM.Guest.Count.DeployedB\npublic import LeanVM.Guest.Count.DeployedC\n', body)

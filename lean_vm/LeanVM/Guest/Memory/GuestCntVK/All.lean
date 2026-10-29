@@ -27,6 +27,7 @@ public import LeanVM.Guest.Memory.GuestCntVK.Part17
 public import LeanVM.Guest.Memory.GuestCntVK.Part18
 public import LeanVM.Guest.Memory.GuestCntVK.Part19
 public import LeanVM.Guest.Memory.GuestCntVK.Part20
+public import LeanVM.Guest.Memory.GuestCntVK.Part21
 
 namespace LeanVM.Guest
 
@@ -216,65 +217,65 @@ theorem kvkchkIdx_all : ∀ j < 899, kvkchkIdx j = true := by
   · exact kvkstaticRange_320.get (by omega) (by omega)
   by_cases h26 : j < 322
   · exact kvkstaticRange_321.get (by omega) (by omega)
-  by_cases h27 : j < 353
+  by_cases h27 : j < 348
   · exact kvkstaticRange_323.get (by omega) (by omega)
-  by_cases h28 : j < 383
-  · exact kvkstaticRange_353.get (by omega) (by omega)
-  by_cases h29 : j < 413
-  · exact kvkstaticRange_383.get (by omega) (by omega)
-  by_cases h30 : j < 435
-  · exact kvkstaticRange_413.get (by omega) (by omega)
-  by_cases h31 : j < 457
-  · exact kvkstaticRange_435.get (by omega) (by omega)
-  by_cases h32 : j < 480
-  · exact kvkstaticRange_457.get (by omega) (by omega)
-  by_cases h33 : j < 501
-  · exact kvkstaticRange_480.get (by omega) (by omega)
-  by_cases h34 : j < 521
-  · exact kvkstaticRange_501.get (by omega) (by omega)
-  by_cases h35 : j < 541
-  · exact kvkstaticRange_521.get (by omega) (by omega)
-  by_cases h36 : j < 562
-  · exact kvkstaticRange_541.get (by omega) (by omega)
-  by_cases h37 : j < 583
-  · exact kvkstaticRange_562.get (by omega) (by omega)
-  by_cases h38 : j < 604
-  · exact kvkstaticRange_583.get (by omega) (by omega)
-  by_cases h39 : j < 624
-  · exact kvkstaticRange_604.get (by omega) (by omega)
-  by_cases h40 : j < 644
-  · exact kvkstaticRange_624.get (by omega) (by omega)
-  by_cases h41 : j < 664
-  · exact kvkstaticRange_644.get (by omega) (by omega)
-  by_cases h42 : j < 684
-  · exact kvkstaticRange_664.get (by omega) (by omega)
-  by_cases h43 : j < 705
-  · exact kvkstaticRange_684.get (by omega) (by omega)
-  by_cases h44 : j < 726
-  · exact kvkstaticRange_705.get (by omega) (by omega)
-  by_cases h45 : j < 747
-  · exact kvkstaticRange_726.get (by omega) (by omega)
-  by_cases h46 : j < 768
-  · exact kvkstaticRange_747.get (by omega) (by omega)
-  by_cases h47 : j < 798
-  · exact kvkstaticRange_768.get (by omega) (by omega)
-  by_cases h48 : j < 828
-  · exact kvkstaticRange_798.get (by omega) (by omega)
-  by_cases h49 : j < 843
-  · exact kvkstaticRange_828.get (by omega) (by omega)
-  by_cases h50 : j < 855
-  · exact kvkstaticRange_843.get (by omega) (by omega)
-  by_cases h51 : j < 863
-  · exact kvkstaticRange_855.get (by omega) (by omega)
-  by_cases h52 : j < 872
-  · exact kvkstaticRange_863.get (by omega) (by omega)
-  by_cases h53 : j < 878
-  · exact kvkstaticRange_872.get (by omega) (by omega)
-  by_cases h54 : j < 886
-  · exact kvkstaticRange_878.get (by omega) (by omega)
-  by_cases h55 : j < 893
-  · exact kvkstaticRange_886.get (by omega) (by omega)
-  exact kvkstaticRange_893.get (by omega) (by omega)
+  by_cases h28 : j < 371
+  · exact kvkstaticRange_348.get (by omega) (by omega)
+  by_cases h29 : j < 401
+  · exact kvkstaticRange_371.get (by omega) (by omega)
+  by_cases h30 : j < 425
+  · exact kvkstaticRange_401.get (by omega) (by omega)
+  by_cases h31 : j < 447
+  · exact kvkstaticRange_425.get (by omega) (by omega)
+  by_cases h32 : j < 470
+  · exact kvkstaticRange_447.get (by omega) (by omega)
+  by_cases h33 : j < 492
+  · exact kvkstaticRange_470.get (by omega) (by omega)
+  by_cases h34 : j < 513
+  · exact kvkstaticRange_492.get (by omega) (by omega)
+  by_cases h35 : j < 533
+  · exact kvkstaticRange_513.get (by omega) (by omega)
+  by_cases h36 : j < 554
+  · exact kvkstaticRange_533.get (by omega) (by omega)
+  by_cases h37 : j < 575
+  · exact kvkstaticRange_554.get (by omega) (by omega)
+  by_cases h38 : j < 596
+  · exact kvkstaticRange_575.get (by omega) (by omega)
+  by_cases h39 : j < 617
+  · exact kvkstaticRange_596.get (by omega) (by omega)
+  by_cases h40 : j < 637
+  · exact kvkstaticRange_617.get (by omega) (by omega)
+  by_cases h41 : j < 657
+  · exact kvkstaticRange_637.get (by omega) (by omega)
+  by_cases h42 : j < 677
+  · exact kvkstaticRange_657.get (by omega) (by omega)
+  by_cases h43 : j < 698
+  · exact kvkstaticRange_677.get (by omega) (by omega)
+  by_cases h44 : j < 719
+  · exact kvkstaticRange_698.get (by omega) (by omega)
+  by_cases h45 : j < 740
+  · exact kvkstaticRange_719.get (by omega) (by omega)
+  by_cases h46 : j < 761
+  · exact kvkstaticRange_740.get (by omega) (by omega)
+  by_cases h47 : j < 786
+  · exact kvkstaticRange_761.get (by omega) (by omega)
+  by_cases h48 : j < 810
+  · exact kvkstaticRange_786.get (by omega) (by omega)
+  by_cases h49 : j < 831
+  · exact kvkstaticRange_810.get (by omega) (by omega)
+  by_cases h50 : j < 844
+  · exact kvkstaticRange_831.get (by omega) (by omega)
+  by_cases h51 : j < 856
+  · exact kvkstaticRange_844.get (by omega) (by omega)
+  by_cases h52 : j < 865
+  · exact kvkstaticRange_856.get (by omega) (by omega)
+  by_cases h53 : j < 874
+  · exact kvkstaticRange_865.get (by omega) (by omega)
+  by_cases h54 : j < 880
+  · exact kvkstaticRange_874.get (by omega) (by omega)
+  by_cases h55 : j < 887
+  · exact kvkstaticRange_880.get (by omega) (by omega)
+  exact kvkstaticRange_887.get (by omega) (by omega)
 
 end
 end LeanVM.Guest

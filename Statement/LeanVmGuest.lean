@@ -768,12 +768,13 @@ namespace Budget
 
 open Hints
 
-/-- **The nodes the deployed budget covers**, six families by the node's children, raw signatures
-(leanXMSS and leanSPHINCS held directly), blob rows held directly, and claims (declared, coverage
-slots, the children's declared claims): a recursion node of `2048` claims; a leaf of `2048` raw
-signatures and claims; `8` children and `2^15` claims; `4` children, `1024` raw signatures and
-`8192` claims; `4` children, a blob of `8` rows and `2048` claims; `2` children, `256` raw
-signatures, a blob of `4` rows and `4096` claims. -/
+/-- **The nodes the deployed budget covers**, eight families by the node's children, raw
+signatures (leanXMSS and leanSPHINCS held directly), blob rows held directly (one matrix at most,
+`Limits`), and claims (declared, coverage slots, the children's declared claims): a recursion node
+of `2048` claims; a leaf of `2048` raw signatures and claims; `8` children and `2^15` claims; `4`
+children, `1024` raw signatures and `8192` claims; `4` children, a matrix of `32` rows and `8192`
+claims; `2` children, `256` raw signatures, a matrix of `32` rows and `8192` claims; `2` children,
+a matrix of `32` rows and `2^14` claims; no child, a matrix of `32` rows and `2^15` claims. -/
 def Covered (s : NodeStatement) (w : NodeWitness) : Prop :=
   let n := w.children.length
   let raw := (direct s.claims.xmss w.xmss).length + (direct s.claims.sphincs w.sphincs).length
@@ -787,8 +788,10 @@ def Covered (s : NodeStatement) (w : NodeWitness) : Prop :=
   (n = 0 ∧ blobs = 0 ∧ raw ≤ 2048 ∧ declared ≤ 2048 ∧ coverage s w ≤ 2048) ∨
   (n ≤ 8 ∧ raw = 0 ∧ blobs = 0 ∧ claims (2 ^ 15)) ∨
   (n ≤ 4 ∧ raw ≤ 1024 ∧ blobs = 0 ∧ claims 8192) ∨
-  (n ≤ 4 ∧ raw = 0 ∧ rows ≤ 8 ∧ claims 2048) ∨
-  (n ≤ 2 ∧ raw ≤ 256 ∧ rows ≤ 4 ∧ claims 4096)
+  (n ≤ 4 ∧ raw = 0 ∧ rows ≤ 32 ∧ claims 8192) ∨
+  (n ≤ 2 ∧ raw ≤ 256 ∧ rows ≤ 32 ∧ claims 8192) ∨
+  (n ≤ 2 ∧ raw = 0 ∧ rows ≤ 32 ∧ claims (2 ^ 14)) ∨
+  (n = 0 ∧ raw = 0 ∧ rows ≤ 32 ∧ declared ≤ 2 ^ 15 ∧ coverage s w ≤ 2 ^ 15)
 
 /-- **Every covered node has a valid execution of the leanISA guest program**: for every seed,
 statement `s` and witness `w` with `NodeRel`, within the deployed limits (so at most `16`

@@ -1,5 +1,6 @@
-"""`Count/RatioData.lean`, `Count/RatioChk*.lean` and `Count/Ratio.lean`: the counts of functions
-with no static bound within ratios of their words (`Count/RatioBase.kr_weight`), per opcode.
+"""`Count/RatioVData.lean`, `Count/RatioVChk*.lean` and `Count/RatioV.lean` (`gen.py ratiov`): the
+counts of `verify_sub`'s callees with no static bound within ratios of their words
+(`Count/RatioBase.kr_weight`), per opcode.
 
 For each function `f`, `kr<N>J` lists the core indices of the functions its paths reach, `kr<N>C`
 their calls by index, and `kr<N>A op` the largest `pathMax g op / fs g` over them in thousandths,
@@ -74,7 +75,7 @@ def wrap(prefix, items, w=100):
     return '\n'.join(out)
 
 
-def write(g, roots, opdef, CH=48, W=750, fam='Ratio', two=False):
+def write(g, roots, opdef, CH=48, W=750, fam='RatioV', two=False):
     D = os.path.join(g.lv, 'LeanVM', 'Guest', 'Count')
     for f in os.listdir(D):
         if f.startswith(fam + 'Chk') or f in (fam + 'Data.lean', fam + '.lean'): os.remove(os.path.join(D, f))

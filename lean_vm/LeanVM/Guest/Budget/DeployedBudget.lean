@@ -2,7 +2,7 @@
   LeanVM.Guest.Budget.DeployedBudget
 
   The deployed budget (`deployedBudget Bvf`): `mainBudget` at the deployed frame sizes, the static
-  certificates' words (`Count.wSB`, `Count.wSK`) and counts (`Count.mainCounts`), the children's
+  certificates' words (`Count.wSB`, `Count.wSK`) and counts (`Count.mainCounts`, `Budget/MvCount`), the children's
   loop's static counts (`l5C`, `ccS`, `vsCnt`, `Budget/L5Count`), the jump table's `SET`s and
   `verify_lean_xmss`'s arms (`B2C.xmssArmC`); and the guest's completeness within it, from each
   child's `verify_sub` within `Bvf` words and `vsCnt` instructions at its announced stack log and
@@ -13,6 +13,7 @@ module
 
 public import LeanVM.Guest.Budget.Deployed
 public import LeanVM.Guest.Count.Instances
+public import LeanVM.Guest.Budget.MvCount
 public import LeanVM.Guest.B2C.ArmBound
 public import LeanVM.Guest.Budget.L5Count
 

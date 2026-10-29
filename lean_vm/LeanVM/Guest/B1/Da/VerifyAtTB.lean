@@ -294,7 +294,8 @@ theorem dvT_completeAtB (fs : String → ℕ) (cert : String → V → ℕ)
     (dvTs r L) ?_ ?_ (fun i hi => by obtain ⟨q, hq, -⟩ := hi; simp at hq)
   · have h' := relAtInT_nodeHonest (Q := dvQ r L) (cs := fun _ => dvCallList r L)
       (bs := fun _ => dvSizes r L) (Ts := dvTs r L) h find_da_verify hw
-      ⟨hV.v1, hV.v2, hV.v3, hV.v4, hV.v11, hV.v25, hV.v40⟩ hcalls hal (by simp [dvCallList, dvTs])
+      ⟨hV.v1, hV.v2, hV.v3, hV.v4, hV.v11, hV.v25, hV.v40, hV.g16, hV.g30, hV.g36, hV.g44,
+        hV.g47⟩ hcalls hal (by simp [dvCallList, dvTs])
     rw [hal] at h'
     exact h'
   · rw [hcalls, hal]
