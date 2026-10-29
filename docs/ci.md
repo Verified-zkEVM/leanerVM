@@ -13,6 +13,15 @@ keeping only checks justified by leanerVM's current Lean-only surface.
 | `PR summary` | Post an automated summary using policy from the trusted base revision | Informational |
 | `PR review` | Run a member-triggered `/review` pass | Informational |
 | `Upstream drift` | Report newer Lean and tracked library releases each week | Informational |
+| `Owned Lean artifact audit (Mumbai launcher)` | Manually select a Mumbai source ref and one of six packages, build its configured targets, run source-owner controls, audit declarations, and upload the report | Manual, informational |
+
+The manual audit uses `.github/workflows/artifact-audit.yml` on both branches, with different
+contents: default `main` provides the launcher and `mumbai` provides the worker workflow and
+auditor implementation. Dispatch the launcher with `--ref main`; its `source_ref` input selects
+the Mumbai ref or full commit to check out before toolchain setup. Both companion changes must
+be installed before a useful run. The selected ref must contain the worker scripts and the
+chosen package. This optional lane does not replace the required main checks or establish that
+all six packages have been audited.
 
 Configure branch protection with the four required checks above after publishing the
 repository. Do not make timing a merge gate: hosted-runner timings are noisy and the retained
