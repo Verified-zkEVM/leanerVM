@@ -238,20 +238,25 @@ theorem mainGoalL4 (hn : NodeRel bytecode seed s w) (hl : Limits s w)
 
 /-! ## The direct DA claim -/
 
-/-- **`da_verify` on an honest run.** -/
-theorem mainGoalDv (hn : NodeRel bytecode seed s w) (hrf : Lift.RunsFit fs cert) :
-    MainGoalDv fs cert fp seed s w := by
-  intro h1
+/-- **The checked DA claim**, when `main` checks one: its witness opens its root and vector
+digest, `da_verify`'s returns its cells. -/
+theorem checked_da (hn : NodeRel bytecode seed s w) (h1 : (hm fs fp seed s w).nd = 1) :
+    ∃ p, w.da = some p ∧ (hm fs fp seed s w).daR = daCells p.1 ∧
+      p.2.Opens p.1.daRoot p.1.membershipVectorDigest := by
   obtain ⟨-, -, -, -, hda, -⟩ := hn
   obtain ⟨p, hw⟩ : ∃ p, w.da = some p := by
     cases hw : w.da with
     | none => simp [hm, hData, MainData.toIn, hw] at h1
     | some p => exact ⟨p, rfl⟩
   rw [hw] at hda
-  have hR : (hm fs fp seed s w).daR = daCells p.1 := by
-    simp [hm, hData, MainData.toIn, hw]
+  exact ⟨p, hw, by simp [hm, hData, MainData.toIn, hw], hda.2⟩
+
+/-- **`da_verify` on an honest run.** -/
+theorem mainGoalDv (hn : NodeRel bytecode seed s w) (hrf : Lift.RunsFit fs cert) :
+    MainGoalDv fs cert fp seed s w := by
+  intro h1
+  obtain ⟨p, -, hR, hw'⟩ := checked_da fs fp hn h1
   rw [hR]
-  have hw' : p.2.Opens p.1.daRoot p.1.membershipVectorDigest := hda.2
   have hL := wLog_lt hw'
   have h := Da.da_verify_completeAt_runs fs cert hrf hw' (etB fs (mK0 (hData seed s w) fs fp) + 34)
   have hq : (etB fs (mK0 (hData seed s w) fs fp) + 34, etTabs.getD 1 []) ∈ hLmain fs fp seed s w :=

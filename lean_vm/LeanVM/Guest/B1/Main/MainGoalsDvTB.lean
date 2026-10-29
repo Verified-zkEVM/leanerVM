@@ -51,7 +51,7 @@ def MainGoalDvTB (fs : String → ℕ) (cert : String → V → ℕ) (fp : ℕ) 
     (s : NodeStatement) (w : NodeWitness) (SB SK : String → ℕ) : Prop :=
   (hm fs fp seed s w).nd = 1 →
     CompleteAtDTB fs cert 16 "da_verify" (hLmain fs fp seed s w) [(hm fs fp seed s w).et2]
-      (Returns (hm fs fp seed s w).daR) (hDvNH s w) (hDvB fs SB SK s w)
+      (Returns (hm fs fp seed s w).daR) (hDvNH w) (hDvB fs SB SK s w)
 
 theorem MainGoalDvTB.goal {fs : String → ℕ} {cert : String → V → ℕ} {fp : ℕ} {seed : Digest}
     {s : NodeStatement} {w : NodeWitness} {SB SK : String → ℕ}

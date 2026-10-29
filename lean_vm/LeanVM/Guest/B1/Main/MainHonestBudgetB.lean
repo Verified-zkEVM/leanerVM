@@ -73,7 +73,7 @@ theorem mainGoalsTB_honest {SB SK : String → ℕ} {Pvs : ℕ → Tree → Prop
     (hbl : bytecode.length = 2 ^ 23) (hr : NodeRel bytecode seed s w) (hl : Limits s w)
     (hrf : Lift.RunsFit fs cert) (hS : MainStatics fs SB SK)
     (hV : VerifySubGoalsTB fs cert fp seed s w Pvs Bv) :
-    MainGoalsTB fs cert fp seed s w (mainPredsH s w (hDvNH s w) Pvs) (mainBsH fs SB SK Bv s w) :=
+    MainGoalsTB fs cert fp seed s w (mainPredsH s w (hDvNH w) Pvs) (mainBsH fs SB SK Bv s w) :=
   ⟨mainGoalClXTB fs cert fp seed s w hl hS.ls hS.l16 hS.cl,
     mainGoalClSTB fs cert fp seed s w hl hS.ls hS.l16 hS.cl,
     mainGoalDvTB fs cert fp hr hrf hS.dv,
@@ -103,7 +103,7 @@ theorem main_honest_budgetB {SB SK : String → ℕ} {Pvs : ℕ → Tree → Pro
           (fun t => ∃ σ bufs ks, t = .node "main" σ bufs ks ∧ MVals rd σ (hm fs fp seed s w) ∧
             KidsT (mCalls σ (hm fs fp seed s w))
               ((fun _ => True) :: mTs (hm fs fp seed s w)
-                ((mainPredsH s w (hDvNH s w) Pvs).withTotal fs (mainBsH fs SB SK Bv s w))) ks ∧
+                ((mainPredsH s w (hDvNH w) Pvs).withTotal fs (mainBsH fs SB SK Bv s w))) ks ∧
             calls (mEvs σ) = mCalls σ (hm fs fp seed s w) ∧ bufs = mSizes (hData seed s w)) :=
   main_honest_relAtInTB hbl hr hl (mainStaticGoalsB_of hbl hr hl hxc hsc hS.main)
     (mainGoalsTB_honest hbl hr hl hrf hS hV).withTotal

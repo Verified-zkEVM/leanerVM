@@ -56,18 +56,18 @@ theorem mainComplete_of_main (fs : String → ℕ) (cert : String → V → ℕ)
     (hx : ∀ seed s w, NodeRel bytecode seed s w → Limits s w → ∀ op (rd : Reader)
       (t : Tree) (args rets : List E), t.name = "claim_list_digest" →
       t.Valid coreProgram rd args rets → t.BufsOk coreProgram →
-      (mainPredsH s w (hDvNH s w) (Pvs w)).Px t → t.weight (ω op) ≤ Kx op s w)
+      (mainPredsH s w (hDvNH w) (Pvs w)).Px t → t.weight (ω op) ≤ Kx op s w)
     (hs : ∀ seed s w, NodeRel bytecode seed s w → Limits s w → ∀ op (rd : Reader)
       (t : Tree) (args rets : List E), t.name = "claim_list_digest" →
       t.Valid coreProgram rd args rets → t.BufsOk coreProgram →
-      (mainPredsH s w (hDvNH s w) (Pvs w)).Ps t → t.weight (ω op) ≤ Ks op s w)
+      (mainPredsH s w (hDvNH w) (Pvs w)).Ps t → t.weight (ω op) ≤ Ks op s w)
     (hd : ∀ seed s w, NodeRel bytecode seed s w → Limits s w → (hm fs 0 seed s w).nd = 1 →
       ∀ op (rd : Reader) (t : Tree) (args rets : List E), t.name = "da_verify" →
       t.Valid coreProgram rd args rets → t.BufsOk coreProgram →
-      (mainPredsH s w (hDvNH s w) (Pvs w)).Pd t → t.weight (ω op) ≤ Kd op s w)
+      (mainPredsH s w (hDvNH w) (Pvs w)).Pd t → t.weight (ω op) ≤ Kd op s w)
     (h5 : ∀ seed s w, NodeRel bytecode seed s w → Limits s w → ∀ op (rd : Reader)
       (t : Tree) (args rets : List E), t.name = "__loop4" → t.Valid coreProgram rd args rets →
-      t.BufsOk coreProgram → (mainPredsH s w (hDvNH s w) (Pvs w)).T5 t →
+      t.BufsOk coreProgram → (mainPredsH s w (hDvNH w) (Pvs w)).T5 t →
         t.weight (ω op) ≤ K5 op s w)
     (hwords : ∀ seed s w, NodeRel bytecode seed s w → Limits s w →
       Bmain fs SB SK (childBv Bvf w) 0 seed s w ≤ b.words.eval (work s w))
@@ -80,7 +80,7 @@ theorem mainComplete_of_main (fs : String → ℕ) (cert : String → V → ℕ)
       B1.Main.MVals rd σ (hm fs 0 seed s w) ∧
       KidsT (B1.Main.mCalls σ (hm fs 0 seed s w))
         ((fun _ => True) :: B1.Main.mTs (hm fs 0 seed s w)
-          ((mainPredsH s w (hDvNH s w) (Pvs w)).withTotal fs (mainBsH fs SB SK (childBv Bvf w) s w))) ks ∧
+          ((mainPredsH s w (hDvNH w) (Pvs w)).withTotal fs (mainBsH fs SB SK (childBv Bvf w) s w))) ks ∧
       calls (B1.Main.mEvs σ) = B1.Main.mCalls σ (hm fs 0 seed s w) ∧ bufs = B1.Main.mSizes (hData seed s w))
     (fun seed s w => Bmain fs SB SK (childBv Bvf w) 0 seed s w) hfs ?_ ?_ hwords
   · intro seed s w hrel hlim hok
@@ -118,7 +118,7 @@ row and `dvP` per padded row. -/
 theorem dvNH_weight {ω fs : String → ℕ} (H : MainCounts ω fs) {seed : Digest} {s : NodeStatement} {w : NodeWitness}
     (hr : NodeRel bytecode seed s w) (hnd : (hm fs 0 seed s w).nd = 1) (rd : Reader) (t : Tree)
     (args rets : List E) (hnm : t.name = "da_verify") (hv : t.Valid coreProgram rd args rets)
-    (hb : t.BufsOk coreProgram) (hT : hDvNH s w t) :
+    (hb : t.BufsOk coreProgram) (hT : hDvNH w t) :
     t.weight ω ≤ H.dvA + H.dvR * (work s w).rawDaRows + H.dvP * (work s w).rawDaPad := by
   obtain ⟨p, hp⟩ := List.length_eq_one_iff.mp (show (hRawD s w).length = 1 from hnd)
   have hw : p.2.Opens p.1.daRoot p.1.membershipVectorDigest :=
@@ -151,7 +151,7 @@ theorem mainComplete_budget (fs : String → ℕ) (cert : String → V → ℕ) 
       cnt t op ≤ t.weight (ω op) + jt op) (c5 s5 : Opcode → ℕ) (v5 : Opcode → ℕ → ℕ → ℕ)
     (h5 : ∀ seed s w, NodeRel bytecode seed s w → Limits s w → ∀ op (rd : Reader)
       (t : Tree) (args rets : List E), t.name = "__loop4" → t.Valid coreProgram rd args rets →
-      t.BufsOk coreProgram → (mainPredsH s w (hDvNH s w) (Pvs w)).T5 t →
+      t.BufsOk coreProgram → (mainPredsH s w (hDvNH w) (Pvs w)).T5 t →
         t.weight (ω op) ≤ l5Lin (c5 op) (s5 op) (v5 op) (work s w)) :
     MainComplete fs cert cnt (mainBudget fs SB SK Bvf ω H c5 s5 v5 jt) :=
   mainComplete_of_main fs cert cnt _ ω jt H hfs hxc hsc hrf hS hV hcnt
