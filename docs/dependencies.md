@@ -8,7 +8,7 @@ The repository tracks eight upstreams and six direct Lake packages:
 | Mathlib | `v4.34.1` (`d13f23b7`) | Algebra, finite types, probability measures, and tactics |
 | leanVM | `a386121f84292f6fa663aaa3e570c15bc0240ea2` | Audited Rust/specification target; not a Lake dependency |
 | CompPoly | `572f997390aa4fc131ef30b1186fa1dcf292ca10` (current main) | Computable polynomial and field infrastructure |
-| Clean | `9dd71e8214a06582e62a7981cdc8ed14febf7176` (current main) | Circuit, AIR, channel, and witness-generation infrastructure |
+| Clean | `61c6e013e523f13cbe4eaddf3485ee8b7c87212e` (fork: current main `9dd71e82` plus one rename, issue #183) | Circuit, AIR, channel, and witness-generation infrastructure |
 | ArkLib | `7653a901ed466c88a2e61a3075011b73d7bb2316` (current main) | Oracle reductions, security definitions, composition, sumcheck, and multilinear theory |
 | VCVio | `a4232d084aa18aa71f75b92b64082b457ffdb77b` (compatibility fix over current main) | Native probability measures and oracle computation security carriers |
 | PolyFun | `41d3b21dcc99817fe4f9f24ca7b2b58f0578083d` (current main) | Polynomial functors and free monads underlying oracle computations |
@@ -64,15 +64,20 @@ The retired `Pr[P | computation]` interface is no longer used by first-party pro
 Review these statement changes alongside the kernel audit, rather than relying on successful
 elaboration alone.
 
-Clean is pinned to upstream main `9dd71e82`, which builds unchanged under the root Lean 4.34.1
-toolchain: Clean PR #493 rewrote the balance lemma that the former compatibility pin
-([PR #474](https://github.com/Verified-zkEVM/clean/pull/474), `42fe4b26`) patched, so that pin is
-retired. The bump brings three API changes that leanISA's Layers 5–10 consume, reviewed as
+Clean is pinned to `scaraven/clean@61c6e013` (branch `fix/namespace-direction-verifier`), which
+is upstream main `9dd71e82` plus one mechanical commit. Upstream main builds unchanged under the
+root Lean 4.34.1 toolchain: Clean PR #493 rewrote the balance lemma that the former compatibility
+pin ([PR #474](https://github.com/Verified-zkEVM/clean/pull/474), `42fe4b26`) patched, so that
+pin is retired. Upstream main also declares root-level `Direction` and `Verifier`. ArkLib
+declares both too, so no module can import both libraries. The fork renames them
+`ChannelDirection` and `VerifierM` ([Clean #496](https://github.com/Verified-zkEVM/clean/issues/496)),
+and leanerVM names the type only in `abbrev BusDir` (`Arithmetization/Channels.lean`). Issue #183
+returns the pin to upstream once Clean resolves the collision. The bump brings three API changes that leanISA's Layers 5–10 consume, reviewed as
 semantic changes rather than mechanical ones (status page, "Clean main"):
 
-* **Direction tags** (#493): every interaction carries a `Direction` (`push` or `pull`), never
+* **Direction tags** (#493): every interaction carries a direction (`push` or `pull`; `ChannelDirection` at the fork), never
   read off the multiplicity's sign; a pull of multiplicity `1` gets its channel's `Guarantees`
-  and an active push owes them (`Direction.Requirements`). The leanISA channel pairs become three
+  and an active push owes them (`ChannelDirection.Requirements`). The leanISA channel pairs become three
   channels, and every table's soundness now also proves what its pushes owe.
 * **Multiset balance** (#493, `Clean/Air/Balance.lean`): `Balance.multiset` (multiplicities `0`
   or `1`, fewer than `FiniteField.size F` interactions per channel, active pushes a permutation of
@@ -86,7 +91,7 @@ semantic changes rather than mechanical ones (status page, "Clean main"):
   κ`, and the three named hypotheses of Layer 8 are deleted (issue #23).
 
 `Clean/Circuit/ExpressionPolynomial.lean` (Clean #466) is upstream at the pin, so the verbatim
-copy under `LeanerVM/Protocol/ToClean/` is deleted. The published commit is pinned directly;
+copy under `LeanerVM/Protocol/ToClean/` is deleted. The published fork commit is pinned directly;
 local package overrides must never be written into the committed manifest.
 
 VCVio's query-log counting bridge needs one proof adjustment for current PolyFun's sealed
