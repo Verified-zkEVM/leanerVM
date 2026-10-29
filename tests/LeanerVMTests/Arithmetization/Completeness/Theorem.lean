@@ -18,6 +18,7 @@ namespace LeanerVMTests.Arithmetization.Completeness.Theorem
 open LeanerVM.Parameters LeanerVM.Semantics LeanerVM.Arithmetization
 open LeanerVMTests.Semantics.PaddedImageRefutation
 open LeanerVMTests.Semantics.FillBlocks
+open Air.Flat (EnsembleWitness)
 
 /-- The sentinel counter of a `2^11`-slot program, as a literal term (status finding E8). -/
 local notation "d₀" => (gpow 2047 : K)
@@ -37,7 +38,8 @@ theorem badTrace_fits : badTrace.Fits :=
 theorem bad_trace_complete :
     ∃ t' : Trace ladderJumpProg, t'.PaddedFrom badTrace ∧
       ValidExecution ladderJumpProg badInput t' ∧
-      ∃ w, SatisfiedBy ladderJumpProg badInput w ∧ AssignmentRepresents w t' :=
+      ∃ w : EnsembleWitness (leanIsaEnsemble ladderJumpProg t'.κ),
+        SatisfiedBy ladderJumpProg badInput w ∧ AssignmentRepresents w t' :=
   constraintCompleteness ladderJump_wellFormed badTrace_valid badTrace_fits
 
 /-- The witness has an `XOR` row: the table's height is a power of two, which is at least `1`. The
@@ -45,8 +47,9 @@ image of `badTrace` admits no `XOR` step (`badImage_no_xor`), so these rows are 
 witness represents the padded trace, not `badTrace`. -/
 theorem bad_trace_witness_has_xor_row :
     ∃ t' : Trace ladderJumpProg, t'.PaddedFrom badTrace ∧
-      ∃ w, SatisfiedBy ladderJumpProg badInput w ∧ AssignmentRepresents w t' ∧
-        0 < (tableAt w 0).table.length := by
+      ∃ w : EnsembleWitness (leanIsaEnsemble ladderJumpProg t'.κ),
+        SatisfiedBy ladderJumpProg badInput w ∧ AssignmentRepresents w t' ∧
+          0 < (tableAt w 0).table.length := by
   obtain ⟨t', hp, -, w, hs, hr⟩ := bad_trace_complete
   refine ⟨t', hp, w, hs, hr, ?_⟩
   obtain ⟨τ, -, hτ⟩ := hs.caps.heights (tableAt w 0)

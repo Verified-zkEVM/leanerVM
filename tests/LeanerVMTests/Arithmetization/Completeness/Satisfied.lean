@@ -29,7 +29,7 @@ local notation "d₀" => (gpow 2047 : K)
 
 /-- The honest witnesses of a taken jump satisfy the table's constraints. -/
 example (data : ProverData K) :
-    (⟨jumpTable⟩ : Component K).operations.ConstraintsHold
+    jumpComponent.operations.ConstraintsHold
       (Environment.fromArray (jumpRaw takenRow 1 1) data) :=
   jumpRaw_constraints _ _ _ (by simp [takenRow, CharTwo.add_self_eq_zero])
     (by simp [takenRow, CharTwo.add_self_eq_zero]) data
@@ -37,7 +37,7 @@ example (data : ProverData K) :
 /-- `b = 0` for a nonzero condition violates the second residual `v_cond · (b + 1) = 0`: the
 constraints reject the witness that would push the fall-through for a taken jump. -/
 example (w : K) (data : ProverData K) :
-    ¬ (⟨jumpTable⟩ : Component K).operations.ConstraintsHold
+    ¬ jumpComponent.operations.ConstraintsHold
       (Environment.fromArray (jumpRaw takenRow w 0) data) := by
   rw [jumpRaw_constraints_iff]
   rintro ⟨-, h⟩
@@ -49,22 +49,25 @@ example (w : K) (data : ProverData K) :
 does not satisfy `Caps`, so it is not a witness. This is why the fill pads every table, the
 `BLAKE2S` table to at least eight rows. -/
 theorem empty_witness_not_satisfied (img : MemImage minLogMem) :
-    ¬ SatisfiedBy ladderJumpProg badInput (padWitness ladderJumpProg badInput img []) := by
+    ¬ SatisfiedBy ladderJumpProg badInput
+      (padWitness ladderJumpProg badInput img [] (by decide) (Nat.zero_le _)) := by
   intro h
-  obtain ⟨τ, -, hτ⟩ := h.caps.heights (opTable img (imageData img) (padRows img []) .xor)
-    (by simp [padWitness])
-  have h0 : (opTable img (imageData img) (padRows img []) .xor).table.length = 0 := rfl
+  obtain ⟨t, ht, -, htab⟩ := exists_padWitness_table (input := badInput)
+    (show opTable img (padRows img []) ((padRows_length img []).trans_le (Nat.zero_le _)) .xor ∈
+      padTables ladderJumpProg img [] (by decide) (Nat.zero_le _) from List.mem_cons_self)
+  obtain ⟨τ, -, hτ⟩ := h.caps.heights t ht
+  have h0 : t.table.length = 0 := by rw [htab]; rfl
   rw [h0] at hτ
   exact absurd hτ.symm (Nat.pos_iff_ne_zero.mp (Nat.two_pow_pos τ))
 
 /-- The witness of the all-zero image is not a witness of the input whose first word is `y`: the
 first public word is read from the image the data names, and the all-zero image holds `0` there. -/
-theorem zero_image_not_satisfied (S : List Skel) :
-    ¬ SatisfiedBy ladderJumpProg badInput (padWitness ladderJumpProg badInput zeroImage S) := by
+theorem zero_image_not_satisfied (S : List Skel) (hS : S.length ≤ UInt64.size) :
+    ¬ SatisfiedBy ladderJumpProg badInput
+      (padWitness ladderJumpProg badInput zeroImage S (by decide) hS) := by
   intro h
   have hw := h.word0_eq
-  change (imageOf (imageData zeroImage)).2.read (gpow 0) = some badInput.word0 at hw
-  rw [imageOf_imageData _ (by decide)] at hw
+  rw [imageOf_padWitness] at hw
   have h0 : zeroImage.read (gpow 0) = some 0 := read_lit zeroImage 0
   have := h0.symm.trans hw
   have h1 := congrArg (fun e : Option E ↦ e.map (·.limb 1)) this

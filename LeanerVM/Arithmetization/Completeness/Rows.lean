@@ -76,18 +76,13 @@ def bcMsgOf (pc c : K) (e : Vector K 8) : Array K :=
 with count `rbc` and the push with count `g·rbc`, then for each read `(addr, count, v)` the
 memory pull and the memory push with count `g·count`, in the circuits' order. -/
 def sendsOf (pc fp : K) (next : Regs K) (rbc : K) (e : Vector K 8)
-    (reads : List (K × K × Vector K 3)) : List (String × Array K) :=
-  [(StatePull.name, #[pc, fp]), (StatePush.name, #[next.pc, next.fp]),
-    (BytecodePull.name, bcMsgOf pc rbc e), (BytecodePush.name, bcMsgOf pc (g * rbc) e)] ++
+    (reads : List (K × K × Vector K 3)) : List (String × BusDir × Array K) :=
+  [(StateChannel.name, .pull, #[pc, fp]), (StateChannel.name, .push, #[next.pc, next.fp]),
+    (BytecodeChannel.name, .pull, bcMsgOf pc rbc e),
+    (BytecodeChannel.name, .push, bcMsgOf pc (g * rbc) e)] ++
   reads.flatMap fun x ↦
-    [(MemPull.name, memMsgOf x.1 x.2.1 x.2.2), (MemPush.name, memMsgOf x.1 (g * x.2.1) x.2.2)]
-
-/-- A row circuit's sends are those of its main at the row variable. -/
-theorem rowSends_mk {Input Output : TypeMap} [ProvableType Input] [ProvableType Output]
-    (c : GeneralFormalCircuit K Input Output) (env : Environment K) :
-    rowSends ⟨c⟩ env =
-      (((c.main (varFromOffset Input 0)).operations (size Input)).interactionValues env).map
-        (fun i ↦ (i.channel.name, i.msg)) := rfl
+    [(MemChannel.name, .pull, memMsgOf x.1 x.2.1 x.2.2),
+      (MemChannel.name, .push, memMsgOf x.1 (g * x.2.1) x.2.2)]
 
 /-! ## The cells an instruction reads -/
 
@@ -117,13 +112,14 @@ the word at `fp·o_C`, which the execution makes the sum. -/
 theorem xor_exec_sends {κ : ℕ} {mem : MemImage κ} {pc fp oA oB oC : K} {next : Regs K}
     (hexec : execute mem ⟨pc, fp⟩ (.xor oA oB oC) = some next) (rA rB rC rbc : K)
     (data : ProverData K) :
-    rowSends ⟨xorTable⟩
+    rowSends xorComponent
         (Environment.fromArray (rawRow (xorRowOf mem pc fp oA oB oC rA rB rC rbc)) data) =
       sendsOf pc fp next rbc (entry (.xor oA oB oC))
         [(fp * oA, rA, mem.limbsAt (fp * oA)), (fp * oB, rB, mem.limbsAt (fp * oB)),
           (fp * oC, rC, mem.limbsAt (fp * oC))] := by
   obtain ⟨⟨hA, hB⟩, hC, rfl⟩ := (xor_refines_iff _ _ _).mp (xorRowOf_refines hexec rA rB rC rbc)
-  rw [rowSends_mk, xor_sends_gen _ _ _ _ (eval_rowVar _ data)]
+  rw [show rowSends xorComponent _ = _ from
+    xor_sends_gen (varFromOffset XorRow 0) _ (size XorRow) _ (eval_rowVar _ data)]
   simp only [xorRowOf] at hC ⊢
   rw [add_limbs] at hC
   have hC' := MemImage.limbsAt_eq_of_read hC
@@ -136,13 +132,14 @@ the limbs of the word at `fp·o_C`, which the execution makes the product. -/
 theorem mul_exec_sends {κ : ℕ} {mem : MemImage κ} {pc fp oA oB oC : K} {next : Regs K}
     (hexec : execute mem ⟨pc, fp⟩ (.mulNative oA oB oC) = some next) (rA rB rC rbc : K)
     (data : ProverData K) :
-    rowSends ⟨mulTable⟩
+    rowSends mulComponent
         (Environment.fromArray (rawRow (mulRowOf mem pc fp oA oB oC rA rB rC rbc)) data) =
       sendsOf pc fp next rbc (entry (.mulNative oA oB oC))
         [(fp * oA, rA, mem.limbsAt (fp * oA)), (fp * oB, rB, mem.limbsAt (fp * oB)),
           (fp * oC, rC, mem.limbsAt (fp * oC))] := by
   obtain ⟨⟨hA, hB⟩, hC, rfl⟩ := (mul_refines_iff _ _ _).mp (mulRowOf_refines hexec rA rB rC rbc)
-  rw [rowSends_mk, mul_sends_gen _ _ _ _ (eval_rowVar _ data)]
+  rw [show rowSends mulComponent _ = _ from
+    mul_sends_gen (varFromOffset MulRow 0) _ (size MulRow) _ (eval_rowVar _ data)]
   simp only [mulRowOf] at hC ⊢
   rw [mul_limbs] at hC
   have hC' := MemImage.limbsAt_eq_of_read hC
@@ -155,10 +152,11 @@ the limbs of the immediate. -/
 theorem set_exec_sends {κ : ℕ} {mem : MemImage κ} {pc fp o : K} {k : E} {next : Regs K}
     (hexec : execute mem ⟨pc, fp⟩ (.setConstant o k) = some next) (rc rbc : K)
     (data : ProverData K) :
-    rowSends ⟨setTable⟩ (Environment.fromArray (rawRow (setRowOf pc fp o k rc rbc)) data) =
+    rowSends setComponent (Environment.fromArray (rawRow (setRowOf pc fp o k rc rbc)) data) =
       sendsOf pc fp next rbc (entry (.setConstant o k)) [(fp * o, rc, mem.limbsAt (fp * o))] := by
   obtain ⟨hk, rfl⟩ := (set_refines_iff _ _ _).mp (setRowOf_refines hexec rc rbc)
-  rw [rowSends_mk, set_sends_gen _ _ _ _ (eval_rowVar _ data)]
+  rw [show rowSends setComponent _ = _ from
+    set_sends_gen (varFromOffset SetRow 0) _ (size SetRow) _ (eval_rowVar _ data)]
   simp only [setRowOf] at hk ⊢
   have hk' := MemImage.limbsAt_eq_of_read hk
   simp only [limb_ofLimbs, Vector.getElem_mk] at hk'
@@ -170,14 +168,15 @@ theorem set_exec_sends {κ : ℕ} {mem : MemImage κ} {pc fp o : K} {k : E} {nex
 theorem deref_exec_sends {κ : ℕ} {mem : MemImage κ} {pc fp o1 o2 o3 : K} {mode : DerefMode}
     {next : Regs K} (hexec : execute mem ⟨pc, fp⟩ (.deref o1 o2 o3 mode) = some next)
     (r1 r2 r3 rbc : K) (data : ProverData K) :
-    rowSends ⟨derefTable⟩
+    rowSends derefComponent
         (Environment.fromArray (rawRow (derefRowOf mem pc fp o1 o2 o3 mode r1 r2 r3 rbc)) data) =
       sendsOf pc fp next rbc (entry (.deref o1 o2 o3 mode))
         [(fp * o1, r1, mem.limbsAt (fp * o1)), (fp * o3, r3, mem.limbsAt (fp * o3)),
           ((mem.limbsAt (fp * o1))[0] * o2, r2, mem.limbsAt ((mem.limbsAt (fp * o1))[0] * o2))] := by
   obtain ⟨mode', ⟨hflags, h1, h3⟩, h2, rfl⟩ :=
     (deref_refines_iff _ _ _).mp (derefRowOf_refines hexec r1 r2 r3 rbc)
-  rw [rowSends_mk, deref_sends_gen _ _ _ _ (eval_rowVar _ data)]
+  rw [show rowSends derefComponent _ = _ from
+    deref_sends_gen (varFromOffset DerefRow 0) _ (size DerefRow) _ (eval_rowVar _ data)]
   simp only [derefRowOf] at hflags h1 h3 h2 ⊢
   obtain ⟨h4, h5⟩ := Prod.ext_iff.mp hflags
   -- the pointer cell holds `(p, 0, 0)`
@@ -200,17 +199,20 @@ theorem jumpRaw_get_indicator (r : JumpRow K) (w b : K) (data : ProverData K) :
 
 /-- The sends of a `JUMP` raw row, in closed form: the pushed successor reads the indicator `b`. -/
 theorem jumpRaw_sends (r : JumpRow K) (w b : K) (data : ProverData K) :
-    rowSends ⟨jumpTable⟩ (Environment.fromArray (jumpRaw r w b) data) =
-      [(StatePull.name, #[r.pc, r.fp]),
-       (StatePush.name, #[b * r.vpc + b * (g * r.pc) + g * r.pc, b * r.vfp + b * r.fp + r.fp]),
-       (BytecodePull.name, #[r.pc, r.rbc, Opcode.jump.code, r.oc, r.od, r.of, 0, 0, 0, 0]),
-       (BytecodePush.name, #[r.pc, g * r.rbc, Opcode.jump.code, r.oc, r.od, r.of, 0, 0, 0, 0]),
-       (MemPull.name, #[r.fp * r.oc, r.rc, r.vcond, 0, 0]),
-       (MemPush.name, #[r.fp * r.oc, g * r.rc, r.vcond, 0, 0]),
-       (MemPull.name, #[r.fp * r.od, r.rd, r.vpc, 0, 0]),
-       (MemPush.name, #[r.fp * r.od, g * r.rd, r.vpc, 0, 0]),
-       (MemPull.name, #[r.fp * r.of, r.rf, r.vfp, 0, 0]),
-       (MemPush.name, #[r.fp * r.of, g * r.rf, r.vfp, 0, 0])] :=
+    rowSends jumpComponent (Environment.fromArray (jumpRaw r w b) data) =
+      [(StateChannel.name, .pull, #[r.pc, r.fp]),
+       (StateChannel.name, .push,
+        #[b * r.vpc + b * (g * r.pc) + g * r.pc, b * r.vfp + b * r.fp + r.fp]),
+       (BytecodeChannel.name, .pull,
+        #[r.pc, r.rbc, Opcode.jump.code, r.oc, r.od, r.of, 0, 0, 0, 0]),
+       (BytecodeChannel.name, .push,
+        #[r.pc, g * r.rbc, Opcode.jump.code, r.oc, r.od, r.of, 0, 0, 0, 0]),
+       (MemChannel.name, .pull, #[r.fp * r.oc, r.rc, r.vcond, 0, 0]),
+       (MemChannel.name, .push, #[r.fp * r.oc, g * r.rc, r.vcond, 0, 0]),
+       (MemChannel.name, .pull, #[r.fp * r.od, r.rd, r.vpc, 0, 0]),
+       (MemChannel.name, .push, #[r.fp * r.od, g * r.rd, r.vpc, 0, 0]),
+       (MemChannel.name, .pull, #[r.fp * r.of, r.rf, r.vfp, 0, 0]),
+       (MemChannel.name, .push, #[r.fp * r.of, g * r.rf, r.vfp, 0, 0])] :=
   jump_sends_gen (varFromOffset JumpRow 0) (Environment.fromArray (jumpRaw r w b) data)
     (size JumpRow) r (eval_rowVar_append r #[w, b] data) b (jumpRaw_get_indicator r w b data)
 
@@ -221,7 +223,7 @@ fall-through otherwise. -/
 theorem jump_exec_sends {κ : ℕ} {mem : MemImage κ} {pc fp oc od of : K} {next : Regs K}
     (hexec : execute mem ⟨pc, fp⟩ (.jump oc od of) = some next) (rc rd rf rbc : K)
     (data : ProverData K) :
-    rowSends ⟨jumpTable⟩
+    rowSends jumpComponent
         (Environment.fromArray
           (jumpRaw (jumpRowOf mem pc fp oc od of rc rd rf rbc)
             (if (mem.limbsAt (fp * oc))[0] = 0 then 0 else ((mem.limbsAt (fp * oc))[0])⁻¹)
@@ -262,7 +264,7 @@ theorem blake2s_exec_sends {κ : ℕ} {mem : MemImage κ}
     {pc fp om0 om1 om2 om3 ocv oout omd : K} {next : Regs K}
     (hexec : execute mem ⟨pc, fp⟩ (.blake2s ![om0, om1, om2, om3] ocv oout omd) = some next)
     (rm0 rm1 rm2 rm3 rcv0 rcv1 rout0 rout1 rmd rbc : K) (data : ProverData K) :
-    rowSends ⟨blake2sTable⟩
+    rowSends blake2sComponent
         (Environment.fromArray (rawRow (blake2sRowOf mem pc fp om0 om1 om2 om3 ocv oout omd
           rm0 rm1 rm2 rm3 rcv0 rcv1 rout0 rout1 rmd rbc)) data) =
       sendsOf pc fp next rbc (entry (.blake2s ![om0, om1, om2, om3] ocv oout omd))
@@ -276,7 +278,8 @@ theorem blake2s_exec_sends {κ : ℕ} {mem : MemImage κ}
   obtain ⟨⟨hm0, hm1, hm2, hm3, hcv0, hcv1, hout0, hout1, hmd⟩, -, rfl⟩ :=
     (blake2s_refines_iff _ _ _).mp
       (blake2sRowOf_refines hexec rm0 rm1 rm2 rm3 rcv0 rcv1 rout0 rout1 rmd rbc)
-  rw [rowSends_mk, blake2s_sends_gen _ _ _ _ (eval_rowVar _ data)]
+  rw [show rowSends blake2sComponent _ = _ from
+    blake2s_sends_gen (varFromOffset Blake2sRow 0) _ (size Blake2sRow) _ (eval_rowVar _ data)]
   simp only [blake2sRowOf] at hm0 hm1 hm2 hm3 hcv0 hcv1 hout0 hout1 hmd ⊢
   simp [sendsOf, bcMsgOf, entry, Regs.next, memMsgOf_cell hm0, memMsgOf_cell hm1,
     memMsgOf_cell hm2, memMsgOf_cell hm3, memMsgOf_cell hcv0, memMsgOf_cell hcv1,
@@ -330,15 +333,15 @@ theorem readAddrs_valid {κ : ℕ} {mem : MemImage κ} {pc fp : K} {ins : Instr}
 
 /-- The table of each opcode, in the ensemble's order (`leanIsaEnsemble`). -/
 def opComponent : Opcode → Component K
-  | .xor => ⟨xorTable⟩
-  | .mulNative => ⟨mulTable⟩
-  | .setConstant => ⟨setTable⟩
-  | .deref => ⟨derefTable⟩
-  | .jump => ⟨jumpTable⟩
-  | .blake2s => ⟨blake2sTable⟩
+  | .xor => xorComponent
+  | .mulNative => mulComponent
+  | .setConstant => setComponent
+  | .deref => derefComponent
+  | .jump => jumpComponent
+  | .blake2s => blake2sComponent
 
 /-- The width of a raw row of each opcode's table: the row's columns, and for `JUMP` its two
-local witnesses. -/
+local witnesses (`opComponent_width`: Clean's `Component.width`). -/
 def opWidth : Opcode → ℕ
   | .xor => size XorRow
   | .mulNative => size MulRow
@@ -346,6 +349,17 @@ def opWidth : Opcode → ℕ
   | .deref => size DerefRow
   | .jump => size JumpRow + 2
   | .blake2s => size Blake2sRow
+
+/-- The width is Clean's: the input columns and the local witnesses of the row circuit. -/
+theorem opComponent_width (op : Opcode) : (opComponent op).width = opWidth op := by
+  cases op <;> rfl
+
+/-- Every interaction of an opcode's table has multiplicity `1`. -/
+theorem opComponent_mults (op : Opcode) :
+    ∀ i ∈ (opComponent op).rowOperations.interactions, i.mult = 1 := by
+  cases op
+  exacts [xor_mults_gen _ _, mul_mults_gen _ _, set_mults_gen _ _, deref_mults_gen _ _,
+    jump_mults_gen _ _, blake2s_mults_gen _ _]
 
 /-- The raw row of an instruction executed from `(pc, fp)` over the image `mem`: the typed row of
 its table with the read counts `cnt` (positionally, in the order the circuit reads) and the

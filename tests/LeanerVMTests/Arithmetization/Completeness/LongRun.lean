@@ -13,8 +13,8 @@ so distinct rows. Hence a witness that satisfies `Caps` and represents a valid t
 
 The run of `Semantics.LongRun` loops `2^30` frames of thirty-three steps and a `JUMP`: it has
 `33 * 2^30 + 1 > 8 * 2^32` steps and is valid. So for every program of its shape,
-`constraintCompleteness` without the size hypothesis `hfit` is false: no witness satisfies the
-statement and represents this trace (`completeness_fails_on_long_run`), and the trace is not one
+`constraintCompleteness` without the size hypothesis `hfit` is false: no witness, at any memory
+log-size, satisfies the statement and represents this trace (`completeness_fails_on_long_run`), and the trace is not one
 that fits (`Semantics.LongRun`). The shape is inhabited by well formed bytecode, the compiler's
 layout with the loop in front (`completeness_needs_fit`), so the other hypothesis of the theorem
 holds and the failure is about the sizes alone.
@@ -85,14 +85,14 @@ theorem regs_ext' {a b : Regs K} (h1 : a.pc = b.pc) (h2 : a.fp = b.fp) : a = b :
 
 /-- A witness that satisfies `Caps` and represents a valid trace has at least as many rows as the
 trace has steps, over its eight tables: `t.steps ≤ 8 * 2^32`. -/
-theorem steps_le_rows {prog : Program} {input : PublicInput}
-    {w : EnsembleWitness (leanIsaEnsemble prog)} {t : Trace prog}
+theorem steps_le_rows {prog : Program} {input : PublicInput} {κ : ℕ}
+    {w : EnsembleWitness (leanIsaEnsemble prog κ)} {t : Trace prog}
     (hv : ValidExecution prog input t) (hc : Caps w) (hr : AssignmentRepresents w t) :
     t.steps ≤ 8 * 2 ^ 32 := by
   obtain ⟨-, hrun⟩ := hv
   have hlen : t.regs.length = t.steps + 1 := Trace.regs_length hrun
   have hrow : ∀ k : Fin t.steps, ∃ (j : Fin 8) (row : Array K), row ∈ (tableAt w j).table ∧
-      rowMessagesOn (tableAt w j) row StatePull.toRaw =
+      rowMessagesOn (tableAt w j) row StateChannel.toRaw .pull =
         [#[(t.regs[k.val]'(by omega)).pc, (t.regs[k.val]'(by omega)).fp]] := by
     intro k
     have hk : k.val + 1 < t.regs.length := by have := k.isLt; omega
@@ -142,11 +142,11 @@ theorem steps_le_rows {prog : Program} {input : PublicInput}
 valid execution that no witness of `SatisfiedBy` represents. -/
 theorem completeness_fails_on_long_run (prog : Program) (sh : Shape prog) :
     ∃ (input : PublicInput) (t : Trace prog), ValidExecution prog input t ∧
-      ¬ ∃ w : EnsembleWitness (leanIsaEnsemble prog),
+      ¬ ∃ (κ : ℕ) (w : EnsembleWitness (leanIsaEnsemble prog κ)),
           SatisfiedBy prog input w ∧ AssignmentRepresents w t := by
   obtain ⟨input, t, hv, hbig⟩ := long_run_valid prog sh
   refine ⟨input, t, hv, ?_⟩
-  rintro ⟨w, hsat, hrep⟩
+  rintro ⟨κ, w, hsat, hrep⟩
   have hle := steps_le_rows hv hsat.caps hrep
   norm_num at hle hbig
   omega
@@ -163,7 +163,7 @@ def longCode (i : ℕ) : Instr :=
   if i ≤ 32 then .setConstant (gpow 0) (ofK g)
   else if i = 33 then .jump (gpow 1) (gpow 2) (gpow 3)
   else if i ≤ 1611 then
-    (if (i - 34) % 263 ∈ closeOffsets then fillClose else fillDummy (tableOf ((i - 34) / 263)))
+    (if (i - 34) % 263 ∈ closeOffsets then fillClose else fillDummy (Semantics.FillBlocks.tableOf ((i - 34) / 263)))
   else .setConstant (gpow 0) (ofK g)
 
 /-- `34 + 6 * 263 = 1612` slots padded to `2^11`. -/
@@ -174,7 +174,7 @@ theorem long_fetch (n : ℕ) (hn : n < 2048) : longProg.fetch (gpow n) = some (l
   longProg.fetch_gpow ⟨n, hn⟩
 
 /-- A block of the layout: size `s` at offset `c` of the `k`-th table's slots. -/
-theorem long_block (t : Opcode) (k : ℕ) (hk : k < 6) (ht : tableOf k = t) (s c : ℕ)
+theorem long_block (t : Opcode) (k : ℕ) (hk : k < 6) (ht : Semantics.FillBlocks.tableOf k = t) (s c : ℕ)
     (hc : c + s < 263) (hclose : c + s ∈ closeOffsets)
     (hdummy : ∀ j, j < s → c + j ∉ closeOffsets) :
     IsFillBlock longProg t s (34 + 263 * k + c) := by
@@ -206,7 +206,7 @@ theorem long_block (t : Opcode) (k : ℕ) (hk : k < 6) (ht : tableOf k = t) (s c
 /-- Every table has a block of every size. -/
 theorem long_hasFillBlocks : HasFillBlocks longProg := by
   intro t s hs
-  obtain ⟨k, hk, ht⟩ : ∃ k, k < 6 ∧ tableOf k = t := by
+  obtain ⟨k, hk, ht⟩ : ∃ k, k < 6 ∧ Semantics.FillBlocks.tableOf k = t := by
     cases t
     exacts [⟨0, by decide, rfl⟩, ⟨1, by decide, rfl⟩, ⟨2, by decide, rfl⟩,
       ⟨3, by decide, rfl⟩, ⟨4, by decide, rfl⟩, ⟨5, by decide, rfl⟩]
@@ -244,7 +244,7 @@ and `Semantics.LongRun` shows that this trace does not fit. -/
 theorem completeness_needs_fit :
     WellFormedBytecode longProg ∧
       ∃ (input : PublicInput) (t : Trace longProg), ValidExecution longProg input t ∧ ¬ t.Fits ∧
-        ¬ ∃ w : EnsembleWitness (leanIsaEnsemble longProg),
+        ¬ ∃ (κ : ℕ) (w : EnsembleWitness (leanIsaEnsemble longProg κ)),
             SatisfiedBy longProg input w ∧ AssignmentRepresents w t := by
   refine ⟨long_wellFormed, ?_⟩
   obtain ⟨input, t, hv, hbig⟩ := long_run_valid longProg long_shape
@@ -254,7 +254,7 @@ theorem completeness_needs_fit :
     have hcap : maxLogRows = 32 := rfl
     rw [hcap] at this
     omega
-  · rintro ⟨w, hsat, hrep⟩
+  · rintro ⟨κ, w, hsat, hrep⟩
     have hle := steps_le_rows hv hsat.caps hrep
     omega
 

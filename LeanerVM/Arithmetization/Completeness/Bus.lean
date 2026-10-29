@@ -62,52 +62,46 @@ theorem flatMap_singleton_eq_map {α β : Type} (f : α → β) (l : List α) :
 /-- A row sends one state pull, `(pc, fp)`. -/
 theorem sendsOf_statePull (pc fp : K) (next : Regs K) (rbc : K) (e : Vector K 8)
     (reads : List (K × K × Vector K 3)) :
-    ((sendsOf pc fp next rbc e reads).filter (·.1 = StatePull.name)).map (·.2) =
+    chanOf StateChannel.name .pull (sendsOf pc fp next rbc e reads) =
       [#[pc, fp]] := by
-  simp [sendsOf, StatePull, StatePush, MemPull, MemPush, BytecodePull, BytecodePush,
-    List.filter_flatMap]
+  simp [chanOf, sendsOf, StateChannel, MemChannel, BytecodeChannel, List.filter_flatMap]
 
 /-- A row sends one state push, the successor. -/
 theorem sendsOf_statePush (pc fp : K) (next : Regs K) (rbc : K) (e : Vector K 8)
     (reads : List (K × K × Vector K 3)) :
-    ((sendsOf pc fp next rbc e reads).filter (·.1 = StatePush.name)).map (·.2) =
+    chanOf StateChannel.name .push (sendsOf pc fp next rbc e reads) =
       [#[next.pc, next.fp]] := by
-  simp [sendsOf, StatePull, StatePush, MemPull, MemPush, BytecodePull, BytecodePush,
-    List.filter_flatMap]
+  simp [chanOf, sendsOf, StateChannel, MemChannel, BytecodeChannel, List.filter_flatMap]
 
 /-- A row sends one bytecode pull, the entry with the count `rbc`. -/
 theorem sendsOf_bcPull (pc fp : K) (next : Regs K) (rbc : K) (e : Vector K 8)
     (reads : List (K × K × Vector K 3)) :
-    ((sendsOf pc fp next rbc e reads).filter (·.1 = BytecodePull.name)).map (·.2) =
+    chanOf BytecodeChannel.name .pull (sendsOf pc fp next rbc e reads) =
       [bcMsgOf pc rbc e] := by
-  simp [sendsOf, StatePull, StatePush, MemPull, MemPush, BytecodePull, BytecodePush,
-    List.filter_flatMap]
+  simp [chanOf, sendsOf, StateChannel, MemChannel, BytecodeChannel, List.filter_flatMap]
 
 /-- A row sends one bytecode push, the entry with the count `g · rbc`. -/
 theorem sendsOf_bcPush (pc fp : K) (next : Regs K) (rbc : K) (e : Vector K 8)
     (reads : List (K × K × Vector K 3)) :
-    ((sendsOf pc fp next rbc e reads).filter (·.1 = BytecodePush.name)).map (·.2) =
+    chanOf BytecodeChannel.name .push (sendsOf pc fp next rbc e reads) =
       [bcMsgOf pc (g * rbc) e] := by
-  simp [sendsOf, StatePull, StatePush, MemPull, MemPush, BytecodePull, BytecodePush,
-    List.filter_flatMap]
+  simp [chanOf, sendsOf, StateChannel, MemChannel, BytecodeChannel, List.filter_flatMap]
 
 /-- A row sends a memory pull per read. -/
 theorem sendsOf_memPull (pc fp : K) (next : Regs K) (rbc : K) (e : Vector K 8)
     (reads : List (K × K × Vector K 3)) :
-    ((sendsOf pc fp next rbc e reads).filter (·.1 = MemPull.name)).map (·.2) =
+    chanOf MemChannel.name .pull (sendsOf pc fp next rbc e reads) =
       reads.map fun x ↦ memMsgOf x.1 x.2.1 x.2.2 := by
-  simp only [sendsOf, List.filter_append, List.map_append, List.filter_flatMap]
-  simp [StatePull, StatePush, MemPull, MemPush, BytecodePull, BytecodePush,
-    map_flatMap_singleton]
+  simp only [chanOf, sendsOf, List.filter_append, List.map_append, List.filter_flatMap]
+  simp [StateChannel, MemChannel, BytecodeChannel, map_flatMap_singleton]
 
 /-- A row sends a memory push per read, with the count `g · count`. -/
 theorem sendsOf_memPush (pc fp : K) (next : Regs K) (rbc : K) (e : Vector K 8)
     (reads : List (K × K × Vector K 3)) :
-    ((sendsOf pc fp next rbc e reads).filter (·.1 = MemPush.name)).map (·.2) =
+    chanOf MemChannel.name .push (sendsOf pc fp next rbc e reads) =
       reads.map fun x ↦ memMsgOf x.1 (g * x.2.1) x.2.2 := by
-  simp only [sendsOf, List.filter_append, List.map_append, List.filter_flatMap]
-  simp [StatePull, StatePush, MemPull, MemPush, BytecodePull, BytecodePush,
-    map_flatMap_singleton]
+  simp only [chanOf, sendsOf, List.filter_append, List.map_append, List.filter_flatMap]
+  simp [StateChannel, MemChannel, BytecodeChannel, map_flatMap_singleton]
 
 /-! ## Rows with counts -/
 
@@ -139,7 +133,8 @@ noncomputable def PRow.raw {κ : ℕ} (img : MemImage κ) (r : PRow) : Array K :
   rowOf img r.sk.pc r.sk.fp r.cnt (g ^ r.bc) r.sk.ins
 
 /-- What a row of the witness sends. -/
-noncomputable def PRow.sends {κ : ℕ} (img : MemImage κ) (r : PRow) : List (String × Array K) :=
+noncomputable def PRow.sends {κ : ℕ} (img : MemImage κ) (r : PRow) :
+    List (String × BusDir × Array K) :=
   sendsOf r.sk.pc r.sk.fp (nextOf img r.sk) (g ^ r.bc) (entry r.sk.ins)
     (readsOf img r.sk.fp r.cnt r.sk.ins)
 
@@ -202,7 +197,7 @@ noncomputable def bcMsg (prog : Program) (pc : K) (e : ℕ) : Array K :=
 /-- A row's memory pulls are the messages of the cells it reads, numbered as its row says. -/
 theorem PRow.memPulls_eq {κ : ℕ} (img : MemImage κ) (r : PRow)
     (h : r.exps.length = (readAddrs img r.sk.fp r.sk.ins).length) :
-    ((r.sends img).filter (·.1 = MemPull.name)).map (·.2) =
+    chanOf MemChannel.name .pull (r.sends img) =
       List.zipWith (fun a e ↦ memMsg img a e) (readAddrs img r.sk.fp r.sk.ins) r.exps := by
   rw [PRow.sends, sendsOf_memPull, readsOf]
   have := mapIdx_eq_zipWith (fun a e ↦ ((a, g ^ e, img.limbsAt a) : K × K × Vector K 3)) r.exps
@@ -214,7 +209,7 @@ theorem PRow.memPulls_eq {κ : ℕ} (img : MemImage κ) (r : PRow)
 /-- A row's memory pushes are the messages of the cells it reads, numbered one higher. -/
 theorem PRow.memPushes_eq {κ : ℕ} (img : MemImage κ) (r : PRow)
     (h : r.exps.length = (readAddrs img r.sk.fp r.sk.ins).length) :
-    ((r.sends img).filter (·.1 = MemPush.name)).map (·.2) =
+    chanOf MemChannel.name .push (r.sends img) =
       List.zipWith (fun a e ↦ memMsg img a (e + 1)) (readAddrs img r.sk.fp r.sk.ins) r.exps := by
   rw [PRow.sends, sendsOf_memPush, readsOf]
   have := mapIdx_eq_zipWith (fun a e ↦ ((a, g ^ e, img.limbsAt a) : K × K × Vector K 3)) r.exps
@@ -228,7 +223,7 @@ theorem PRow.memPushes_eq {κ : ℕ} (img : MemImage κ) (r : PRow)
 /-- The memory pulls of the rows of a list of skeletons are the messages of its reads, numbered by
 the chain: the reads of the list, in order, with the numbers from the counters `sm`. -/
 theorem mkRows_memPulls {κ : ℕ} (img : MemImage κ) (sm sb : K → ℕ) (S : List Skel) :
-    (mkRows img sm sb S).flatMap (fun r ↦ ((r.sends img).filter (·.1 = MemPull.name)).map (·.2)) =
+    (mkRows img sm sb S).flatMap (fun r ↦ chanOf MemChannel.name .pull (r.sends img)) =
       List.zipWith (fun a e ↦ memMsg img a e) (S.flatMap fun sk ↦ readAddrs img sk.fp sk.ins)
         (readExps sm (S.flatMap fun sk ↦ readAddrs img sk.fp sk.ins)) := by
   induction S generalizing sm sb with
@@ -242,7 +237,7 @@ theorem mkRows_memPulls {κ : ℕ} (img : MemImage κ) (sm sb : K → ℕ) (S : 
 
 /-- The memory pushes of the rows of a list of skeletons, likewise. -/
 theorem mkRows_memPushes {κ : ℕ} (img : MemImage κ) (sm sb : K → ℕ) (S : List Skel) :
-    (mkRows img sm sb S).flatMap (fun r ↦ ((r.sends img).filter (·.1 = MemPush.name)).map (·.2)) =
+    (mkRows img sm sb S).flatMap (fun r ↦ chanOf MemChannel.name .push (r.sends img)) =
       List.zipWith (fun a e ↦ memMsg img a (e + 1))
         (S.flatMap fun sk ↦ readAddrs img sk.fp sk.ins)
         (readExps sm (S.flatMap fun sk ↦ readAddrs img sk.fp sk.ins)) := by
@@ -259,13 +254,13 @@ theorem mkRows_memPushes {κ : ℕ} (img : MemImage κ) (sm sb : K → ℕ) (S :
 number. -/
 theorem PRow.bcPulls_eq {κ : ℕ} {prog : Program} (img : MemImage κ) (r : PRow)
     (h : prog.fetch r.sk.pc = some r.sk.ins) :
-    ((r.sends img).filter (·.1 = BytecodePull.name)).map (·.2) = [bcMsg prog r.sk.pc r.bc] := by
+    chanOf BytecodeChannel.name .pull (r.sends img) = [bcMsg prog r.sk.pc r.bc] := by
   rw [PRow.sends, sendsOf_bcPull, bcMsg, entryAt, h]
 
 /-- … and pushes it with the next. -/
 theorem PRow.bcPushes_eq {κ : ℕ} {prog : Program} (img : MemImage κ) (r : PRow)
     (h : prog.fetch r.sk.pc = some r.sk.ins) :
-    ((r.sends img).filter (·.1 = BytecodePush.name)).map (·.2) =
+    chanOf BytecodeChannel.name .push (r.sends img) =
       [bcMsg prog r.sk.pc (r.bc + 1)] := by
   rw [PRow.sends, sendsOf_bcPush, bcMsg, entryAt, h, pow_succ']
 
@@ -274,7 +269,7 @@ counters, numbered by the chain over the counters. -/
 theorem mkRows_bcPulls {κ : ℕ} {prog : Program} (img : MemImage κ) (sm sb : K → ℕ)
     (S : List Skel) (hS : ∀ sk ∈ S, prog.fetch sk.pc = some sk.ins) :
     (mkRows img sm sb S).flatMap
-        (fun r ↦ ((r.sends img).filter (·.1 = BytecodePull.name)).map (·.2)) =
+        (fun r ↦ chanOf BytecodeChannel.name .pull (r.sends img)) =
       List.zipWith (fun pc e ↦ bcMsg prog pc e) (S.map (·.pc)) (readExps sb (S.map (·.pc))) := by
   induction S generalizing sm sb with
   | nil => simp [mkRows, readExps]
@@ -289,7 +284,7 @@ theorem mkRows_bcPulls {κ : ℕ} {prog : Program} (img : MemImage κ) (sm sb : 
 theorem mkRows_bcPushes {κ : ℕ} {prog : Program} (img : MemImage κ) (sm sb : K → ℕ)
     (S : List Skel) (hS : ∀ sk ∈ S, prog.fetch sk.pc = some sk.ins) :
     (mkRows img sm sb S).flatMap
-        (fun r ↦ ((r.sends img).filter (·.1 = BytecodePush.name)).map (·.2)) =
+        (fun r ↦ chanOf BytecodeChannel.name .push (r.sends img)) =
       List.zipWith (fun pc e ↦ bcMsg prog pc (e + 1)) (S.map (·.pc))
         (readExps sb (S.map (·.pc))) := by
   induction S generalizing sm sb with
@@ -304,9 +299,9 @@ theorem mkRows_bcPushes {κ : ℕ} {prog : Program} (img : MemImage κ) (sm sb :
 /-- The state pulls of the rows are the states of the skeletons. -/
 theorem mkRows_statePulls {κ : ℕ} (img : MemImage κ) (sm sb : K → ℕ) (S : List Skel) :
     (mkRows img sm sb S).flatMap
-        (fun r ↦ ((r.sends img).filter (·.1 = StatePull.name)).map (·.2)) =
+        (fun r ↦ chanOf StateChannel.name .pull (r.sends img)) =
       S.map fun sk ↦ #[sk.pc, sk.fp] := by
-  have h : ∀ r : PRow, ((r.sends img).filter (·.1 = StatePull.name)).map (·.2) =
+  have h : ∀ r : PRow, chanOf StateChannel.name .pull (r.sends img) =
       [#[r.sk.pc, r.sk.fp]] := fun r ↦ sendsOf_statePull _ _ _ _ _ _
   simp only [h]
   rw [flatMap_singleton_eq_map]
@@ -318,9 +313,9 @@ theorem mkRows_statePulls {κ : ℕ} (img : MemImage κ) (sm sb : K → ℕ) (S 
 /-- The state pushes of the rows are the successors of the skeletons. -/
 theorem mkRows_statePushes {κ : ℕ} (img : MemImage κ) (sm sb : K → ℕ) (S : List Skel) :
     (mkRows img sm sb S).flatMap
-        (fun r ↦ ((r.sends img).filter (·.1 = StatePush.name)).map (·.2)) =
+        (fun r ↦ chanOf StateChannel.name .push (r.sends img)) =
       S.map fun sk ↦ #[(nextOf img sk).pc, (nextOf img sk).fp] := by
-  have h : ∀ r : PRow, ((r.sends img).filter (·.1 = StatePush.name)).map (·.2) =
+  have h : ∀ r : PRow, chanOf StateChannel.name .push (r.sends img) =
       [#[(nextOf img r.sk).pc, (nextOf img r.sk).fp]] := fun r ↦ sendsOf_statePush _ _ _ _ _ _
   simp only [h]
   rw [flatMap_singleton_eq_map]

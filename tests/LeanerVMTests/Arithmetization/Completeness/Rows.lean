@@ -38,7 +38,7 @@ theorem xor_row_sends (cnt : ℕ → K) (rbc : K) (data : ProverData K) :
 /-- The state pull is `(pc, fp)` and the push the fall-through. -/
 example (rbc : K) (e : Vector K 8) (reads : List (K × K × Vector K 3)) :
     (sendsOf (gpow 5) 1 (Regs.next ⟨gpow 5, 1⟩) rbc e reads).take 2 =
-      [(StatePull.name, #[gpow 5, 1]), (StatePush.name, #[g * gpow 5, 1])] := by
+      [(StateChannel.name, .pull, #[gpow 5, 1]), (StateChannel.name, .push, #[g * gpow 5, 1])] := by
   simp only [sendsOf, List.cons_append, List.take_succ_cons, List.take_zero, Regs.next]
 
 /-- The three cells an `XOR` reads, in the circuit's order. -/
@@ -60,7 +60,7 @@ example : execute (badImage d₀) ⟨gpow 5, 1⟩ (.xor (gpow 0) (gpow 0) (gpow 
 carries `v_A + v_B`, the cell's limbs plus themselves, which in characteristic two is `0`, while
 the image holds `y = (0, 1, 0)` at that cell. -/
 theorem xor_row_not_sendsOf (next : Regs K) (rA rB rC rbc : K) (data : ProverData K) :
-    rowSends ⟨xorTable⟩
+    rowSends xorComponent
         (Environment.fromArray
           (rawRow (xorRowOf (badImage d₀) (gpow 5) 1 (gpow 0) (gpow 0) (gpow 0) rA rB rC rbc))
           data) ≠
@@ -69,7 +69,8 @@ theorem xor_row_not_sendsOf (next : Regs K) (rA rB rC rbc : K) (data : ProverDat
           (1 * gpow 0, rB, (badImage d₀).limbsAt (1 * gpow 0)),
           (1 * gpow 0, rC, (badImage d₀).limbsAt (1 * gpow 0))] := by
   intro h
-  rw [rowSends_mk, xor_sends_gen _ _ _ _ (eval_rowVar _ data)] at h
+  rw [show rowSends xorComponent _ = _ from
+    xor_sends_gen (varFromOffset XorRow 0) _ (size XorRow) _ (eval_rowVar _ data)] at h
   have hA : (badImage d₀).limbsAt (gpow 0) = #v[0, 1, 0] := by
     rw [MemImage.limbsAt_eq_of_read (read_lit (badImage d₀) 0)]
     rfl
@@ -92,18 +93,20 @@ def takenRow : JumpRow K :=
 
 /-- With the honest indicator `b = 1` the pushed successor is the destination and the frame. -/
 example (w : K) (data : ProverData K) :
-    ((rowSends ⟨jumpTable⟩ (Environment.fromArray (jumpRaw takenRow w 1) data)).filter
-      (·.1 = StatePush.name)).map (·.2) = [#[gpow 9, gpow 3]] := by
+    chanOf StateChannel.name .push
+      (rowSends jumpComponent (Environment.fromArray (jumpRaw takenRow w 1) data)) =
+      [#[gpow 9, gpow 3]] := by
   rw [jumpRaw_sends]
-  simp [takenRow, StatePush, StatePull, BytecodePush, BytecodePull, MemPull, MemPush,
-    CharTwo.add_self_eq_zero, add_assoc]
+  simp [chanOf, takenRow, StateChannel, BytecodeChannel, MemChannel, CharTwo.add_self_eq_zero,
+    add_assoc]
 
 /-- With `b = 0` the same row pushes the fall-through `(g · pc, fp)`. -/
 example (w : K) (data : ProverData K) :
-    ((rowSends ⟨jumpTable⟩ (Environment.fromArray (jumpRaw takenRow w 0) data)).filter
-      (·.1 = StatePush.name)).map (·.2) = [#[g * gpow 5, 1]] := by
+    chanOf StateChannel.name .push
+      (rowSends jumpComponent (Environment.fromArray (jumpRaw takenRow w 0) data)) =
+      [#[g * gpow 5, 1]] := by
   rw [jumpRaw_sends]
-  simp [takenRow, StatePush, StatePull, BytecodePush, BytecodePull, MemPull, MemPush]
+  simp [chanOf, takenRow, StateChannel, BytecodeChannel, MemChannel]
 
 /-- The two successors differ, so the indicator is what the push depends on. -/
 example : (#[gpow 9, gpow 3] : Array K) ≠ #[g * gpow 5, 1] := by
