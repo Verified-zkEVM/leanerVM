@@ -7,7 +7,7 @@
 
 module
 
-public import LeanerVM.Arithmetization.Completeness.Messages
+public import LeanerVM.Arithmetization.Messages
 
 @[expose] public section
 
@@ -45,7 +45,7 @@ most nine memory reads. Every interaction of a witness has multiplicity `1`
 (`interactions_mult_eq_one`), so none is dropped by Clean's `activeMessages`.
 
 The proofs read each row circuit's closed form over a row variable `x` with `eval env x = r`
-(`Completeness.Messages`) and specialize it at Clean's `varFromOffset`
+(`Arithmetization.Messages`) and specialize it at Clean's `varFromOffset`
 (`eval_varFromOffset_valueFromOffset`), reading each interaction as its channel name, direction
 and message.
 

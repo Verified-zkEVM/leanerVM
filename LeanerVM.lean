@@ -6,12 +6,12 @@ import LeanerVM.Arithmetization.Channels
 import LeanerVM.Arithmetization.Completeness.Balance
 import LeanerVM.Arithmetization.Completeness.Basics
 import LeanerVM.Arithmetization.Completeness.Bus
-import LeanerVM.Arithmetization.Completeness.Messages
 import LeanerVM.Arithmetization.Completeness.Rows
 import LeanerVM.Arithmetization.Completeness.Satisfied
 import LeanerVM.Arithmetization.Completeness.Theorem
 import LeanerVM.Arithmetization.Completeness.Witness
 import LeanerVM.Arithmetization.Equivalence
+import LeanerVM.Arithmetization.Messages
 import LeanerVM.Arithmetization.Rows
 import LeanerVM.Arithmetization.Soundness
 import LeanerVM.Arithmetization.Statement

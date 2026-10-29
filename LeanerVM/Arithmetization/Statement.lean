@@ -288,7 +288,10 @@ structure Caps (w : EnsembleWitness (leanIsaEnsemble prog κ)) : Prop where
   minLogMem_le : minLogMem ≤ κ
   /-- `log_mem ≤ MAX_LOG_MEM` (`:160`). -/
   le_maxLogMem : κ ≤ maxLogMem
-  /-- Every table's height is a power of two at most `2^MAX_LOG_ROWS` (`:161`, `:114-117`). -/
+  /-- Every table's height is a power of two at most `2^MAX_LOG_ROWS`. Rust caps the six
+  opcode tables' announced log-heights (`:161`, `:114-117`); the memory block's height is
+  `2^log_mem`, within the bound by `:160`, and the bytecode block's `2^prog.logSize`, within it
+  by `:158-159`, since `maxLogMem = maxLogBytecode = maxLogRows`. -/
   heights : ∀ t ∈ w.tables, ∃ τ ≤ maxLogRows, t.table.length = 2 ^ τ
   /-- The `BLAKE2S` table has at least `2^n_blocks_log(1)` rows (`:166`; Layer 2's
   `minLogRowsBlake2s`). -/

@@ -18,8 +18,8 @@ input` (some witness at some memory log-size satisfies `SatisfiedBy`), `leanIsa_
 `satisfiable_iff_valid`. The equivalence is not unconditional: it takes `hfit : (∃ t,
 ValidExecution prog input t) → ∃ t, ValidExecution prog input t ∧ t.Fits`, since a witness at
 `κ = 32` leaves no room for the fill frames and a long run has no witness at all. Everything
-builds except three protocol pieces held by a name clash between Clean and ArkLib/VCVio (the
-Clean findings below). The layer histories further down describe Layers 5 to 8 as they landed;
+builds, the three protocol pieces once held by the name clash between Clean and ArkLib/VCVio
+included, at the fork pin `61c6e013` (C13 below, issue #183). The layer histories further down describe Layers 5 to 8 as they landed;
 where they name the deleted declarations, this paragraph, the coverage table and the roadmap
 supersede them.
 
@@ -242,8 +242,7 @@ module (P3).
   typechecks by inspection, channels by name and messages typed (A7); `Caps.well_shaped` is
   labelled a representation hypothesis (A8); only `JUMP` has assertions (B3). Hygiene: the
   module docstring no longer restates declaration docstrings, Prop fields are `snake_case`,
-  `rawRow` for the test helper, one `filter_eq_nil_of_rowOps` for the two blocks' foreign
-  channels, `touched`/`untouched` named, the two filler examples deleted. Not done: merging the
+  `rawRow` for the test helper, `touched`/`untouched` named, the two filler examples deleted. Not done: merging the
   eight `*_constraints` lemmas (each unfolds its table by name), and a channel-name-confusion
   test (no component of the ensemble pushes on a pull channel, so none can be built).
 - **Lean's lazy unfolding and the kernel's literal check evaluate a `2^16`-row table** (E8,
@@ -590,8 +589,8 @@ module (P3).
 - **Clean's bus is no longer an external item** for Layers 9–10: Clean main `9dd71e82` carries
   direction tags and `Balance.multiset` (Clean #493, #495; #16) and fixed columns (Clean PR
   [#446](https://github.com/Verified-zkEVM/clean/pull/446)), and this branch consumes all three.
-  The one Clean item left is the name clash of C13 (a rename pending upstream), which holds back
-  three protocol pieces, not the leanISA layers.
+  The one Clean item left is the name clash of C13: the fork pin `61c6e013` carries the rename,
+  so everything builds, and issue #183 tracks the return to upstream once Clean #496 lands.
 - **Clean's VM theory does not replace the state walk** (`Clean/Air/Vm.lean`, assessed
   2026-10-29). `addVm` cannot take the place of `exists_run_of_balanced`: with the state
   channel's guarantee `True` its conclusion is vacuous, the counted memory is not a Clean sound
@@ -826,12 +825,13 @@ balance or of a row's messages first rewrites with `activeMessages_of_mults` (ev
 messages took the Statement test from about 135 s to about 324 s.
 **C13 Clean's root `Direction` and `Verifier` clash with ArkLib and VCVio** (2026-10-29): at
 `9dd71e82` Clean declares `Direction` and `def Verifier` at the root namespace, where ArkLib and
-VCVio have their own, so a module importing Clean and either library does not build. A Clean
-rename to `ChannelDirection` and `VerifierM` is pending upstream. Until it lands,
+VCVio have their own, so a module importing Clean and either library does not build. The pin
+is the fork commit `scaraven/clean@61c6e013`, `9dd71e82` plus the rename to `ChannelDirection`
+and `VerifierM` (Clean #496, issue #183), at which
 `LeanerVM/Protocol/LeanIsa/Conditions.lean`, `LeanerVM/Protocol/LeanIsa/Refinement.lean` and
-`tests/LeanerVMTests/Protocol/LeanIsaComplete.lean` are written but unbuilt, and leanerVM names
-Clean's type only through `abbrev BusDir` (`LeanerVM/Arithmetization/Channels.lean`), so that the
-rename touches one line.
+`tests/LeanerVMTests/Protocol/LeanIsaComplete.lean` build. leanerVM names Clean's type only
+through `abbrev BusDir` (`LeanerVM/Arithmetization/Channels.lean`), so that the return to
+upstream touches one line.
 **C8 Clean does not use Lean's module system**: no file under `Clean/` is a
 `module`, and `Lean.Environment.importModulesCore` in `v4.33.1` throws
 ``cannot import non-`module` Clean.Utils.FiniteField from `module` `` for any `import` or

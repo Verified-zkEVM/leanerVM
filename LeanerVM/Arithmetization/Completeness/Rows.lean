@@ -7,7 +7,7 @@
 
 module
 
-public import LeanerVM.Arithmetization.Completeness.Messages
+public import LeanerVM.Arithmetization.Messages
 
 @[expose] public section
 
@@ -22,14 +22,14 @@ siblings, with the `JUMP` table's honest local witnesses appended), as a raw row
 reads carry the counts `cnt 0, cnt 1, …` in the order the circuit reads them, and its bytecode
 read the count `rbc`.
 
-`sendsOf` is what any such row sends, in the shape every table shares (`Completeness.Messages`):
+`sendsOf` is what any such row sends, in the shape every table shares (`Arithmetization.Messages`):
 the state pull and push, the bytecode pull and push of `entry ins` at `pc`, and per read a
 memory pull of `(addr, count, v)` and a push of `(addr, g·count, v)`. `readAddrs` lists the
 cells an instruction reads, and the memory reads of the row are those cells with the limbs the
 image holds there. The master lemma `rowOf_sends` says that if the instruction executes
 from `(pc, fp)` to `next` then the row sends exactly `sendsOf` with `next`, and
 `readAddrs_valid` that every cell it reads is an address of the image. Both are per table,
-from the table's relation (`*_refines_iff`) and the closed forms of `Completeness.Messages`.
+from the table's relation (`*_refines_iff`) and the closed forms of `Arithmetization.Messages`.
 
 ## Wrong readings excluded
 

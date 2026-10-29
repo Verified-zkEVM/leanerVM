@@ -1,5 +1,5 @@
 /-
-  LeanerVM.Arithmetization.Completeness.Messages
+  LeanerVM.Arithmetization.Messages
 
   What the row of each of the six tables sends on the bus: the state step, the bytecode read, and
   the memory reads, as the explicit messages the row circuit emits.
@@ -14,9 +14,10 @@ public import LeanerVM.Arithmetization.Completeness.Basics
 /-!
 # The messages of a row
 
-leanISA roadmap Layer 10 (`docs/roadmap/leanisa-blueprint.md`), at Clean pin `9dd71e82`.
-Category A. The balance of the three channels is a statement about the messages the rows send,
-so the witness of `constraintCompleteness` needs them in closed form. Every table's row circuit
+leanISA roadmap Layers 9 and 10 (`docs/roadmap/leanisa-blueprint.md`), at Clean pin
+`9dd71e82`. Category A. The balance of the three channels is a statement about the messages the
+rows send, so constraint soundness (`Arithmetization.Rows`, on arbitrary rows) and the witness
+of `constraintCompleteness` (on honest rows) both read them from these closed forms. Every table's row circuit
 has the same shape: pull the state `(pc, fp)`, push the successor, read the bytecode entry at
 `pc` (`bytecodeRead`: a pull with count `r` and a push with count `g·r`), then read its memory
 cells (`memRead`, likewise). `rowSends c env` lists the `(channel name, direction, message)`
