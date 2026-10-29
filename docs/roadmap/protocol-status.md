@@ -639,10 +639,9 @@ pinned sources is [archived](../reviews/protocol-spine-revision.md).
     admits the directory.
   - `leanIsaRefinement` is the adaptor as the spine's `Refinement` from `M3Rel` to
     `SatisfiedBy`. Owed: the sizes `piopError_le` assumes, at admissible sizes (`μ_bus ≤ 30`
-    follows through the stack bound `leanIsaμ ≤ 28`, not from `logMem ≤ 32` alone); the
-    knowledge transport along it, which waits on the round-by-round-to-plain step (Layer 12) and
-    on `Refinement.knowledge_transport` being stated for a witness type in `Type 1`, as
-    `EnsembleWitness` is.
+    follows through the stack bound `leanIsaμ ≤ 28`, not from `logMem ≤ 32` alone). The base
+    theorems apply `satisfiedBy_witnessOf` inside their event, so no knowledge transport along it
+    is owed.
 - **The Merkle trees (Layer 11)** fix BLAKE2s as the hash, and `merkleVerify` checks one path
   (`Protocol/Merkle.lean`, over the generic tree of `ToArkLib/Merkle.lean`), with binding as a
   computed collision. Owed by decision 32: the hash as a parameter (`merkleRootWith`,
@@ -652,8 +651,8 @@ pinned sources is [archived](../reviews/protocol-spine-revision.md).
 ## What can start now
 
 The spine's slots are on `main`, so the phases are written against them. These can start: the
-WHIR opening, the Merkle trees with the WHIR parameters, and Merkle extraction with hashed leaves
-(Layer 11).
+WHIR opening and the Merkle trees with the WHIR parameters (Layer 11), and the charged invariant
+and, after the octopus the Merkle trees owe, Merkle binding by log replay (Layer 12).
 
 *On merge* of #103, the first slice of the WHIR opening is on `main`: the novel basis, the
 encoder as a linear injection with its distance, and the column weights with their `κ`-step
@@ -696,9 +695,10 @@ External work that may feed or replace a hole. The state of each is on GitHub.
 
 | Upstream | Hole | What it would replace or feed | Adopt when |
 | --- | --- | --- | --- |
-| ArkLib #615 | the knowledge-soundness composition | the port `ToArkLib/KnowledgeAppend.lean` | some ArkLib framework proves a guarded-first append for the named form |
-| ArkLib's typed framework (its roadmap items 3–4; #1251) | the spine | the framework decision (decision 24) | it has round-by-round knowledge soundness and its composition |
-| ArkLib #1245 | the list-binding compilation | the local stateless round-by-round-to-plain corollary | merged, for its soundness half |
+| ArkLib #615, #1295 (merged after the pin) | the knowledge-soundness composition | the port `ToArkLib/KnowledgeAppend.lean` | a verbatim copy of #1295 at the next refactor; deleted at the bump that contains it |
+| ArkLib's typed framework (its roadmap items 3–4; #1251; a knowledge notion since #1259–#1261) | the spine | the framework decision (decision 24) | it has round-by-round knowledge soundness and its composition at the pin |
+| ArkLib #1263, #1264 (merged after the pin) | the random-oracle theorems | state-restoration knowledge soundness from local round-by-round certificates, in the typed framework | reference only (decision 36) |
+| ArkLib #1245 | none | the round-by-round-to-plain corollary, which no theorem here uses | reference only |
 | ArkLib #1244, #1128, #1129 | the sumchecks | the classical leaf's repair (the verifier evaluates the sent polynomial; its knowledge soundness stays admitted); honest round identities over one `MvPolynomial` | reference only |
 | ArkLib #1261, #1269, #1274, #1277 | the sumchecks | the typed sumcheck's round-by-round soundness and state-restoration security, for one polynomial with unit weights and no witness | when the typed framework proves round-by-round knowledge soundness (decision 24) |
 | ArkLib's computable sumcheck (#1214, #1242, #1243; at the pin) | the sumchecks; the GKR's rounds | the round of `ToArkLib/SumcheckRound.lean`, which sends the coefficients as one message and weights the domain | an adaptor to `OracleReduction` and a weighted domain exist (decision 33) |
@@ -706,7 +706,9 @@ External work that may feed or replace a hole. The state of each is on GitHub.
 | ArkLib #1256, #1257 (and #615) | the Flock phase | the packing coordinates, observations and batching of Diamond–Posen ring switching, and the Flock paper's quirky layout | never as they are: leanVM's ring switching is the Frobenius-map variant (Annex A), whose soundness needs none of them; `ToArkLib/Flock/` is the candidate instead |
 | ArkLib #848, #469, #627 | the compiled verifier | Fiat–Shamir and BCS statements | a chain-based transform with proof of work, which none of them is |
 | ArkLib issues #900, #901 | tables and stacking; the fingerprint | the requests for stacking and fingerprints upstream | when the pull requests open |
-| VCVio #571 | Merkle extraction with hashed leaves; the random-oracle theorems | `ToVCVio/MerkleLeaves.lean`; the reduction from an adversary with coins | VCVio proves extraction with hashed leaves, or for an adversary with coins |
+| VCVio #571 | Merkle binding by log replay | `ToVCVio/MerkleLog.lean` | VCVio proves extraction with hashed leaves on one shared oracle |
+| VCVio #817 | the charged invariant | the laws of the scalar expectation, copied verbatim as `ToVCVio/ScalarExpectation.lean` | at the bump that contains it, delete the copy |
+| VCVio #823, #824, #826, #828 | the charged invariant | fresh-query bounds with a fixed error per key | reference only: the flip charge depends on the cache |
 | Clean #466 (merged 2026-10-05), #474 | Clean expressions as polynomials | `ToClean/ExpressionPolynomial.lean`, a verbatim copy of Clean's module | a pin holds both #466 and #474's Lean 4.34 fix; then delete the copy and import `Clean.Circuit.ExpressionPolynomial` |
 | Clean #464, #20 | the adaptor | leanISA's `BalancedPair` | merged and the pin bumped |
 | Clean #446, #23 | the adaptor | the three fixed-column conjuncts | merged and the pin bumped |
