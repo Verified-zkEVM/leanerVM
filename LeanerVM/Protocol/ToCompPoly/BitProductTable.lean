@@ -48,6 +48,14 @@ theorem bitProductTable_getElem {n : ℕ} (f : Fin n → Bool → R) {i : ℕ} (
     (bitProductTable f)[i] = ∏ k : Fin n, f k (i.testBit k) := by
   simp [bitProductTable]
 
+/-- Compiled code builds the table by doubling, `2^(n+1)` products where the definition takes
+`n · 2^n` (`LeanerVM.Protocol.ToCompPoly.Doubling`). -/
+@[csimp] theorem bitProductTable_eq_doublingTable : @bitProductTable = @doublingTable := by
+  funext R _ n f
+  apply Vector.ext
+  intro i hi
+  rw [doublingTable_getElem f hi, bitProductTable_getElem f hi]
+
 theorem map_bitProductTable {n : ℕ} (φ : R →+* S) (f : Fin n → Bool → R) :
     CMlPolynomialEval.map φ (bitProductTable f) = bitProductTable fun k b ↦ φ (f k b) := by
   apply Vector.ext

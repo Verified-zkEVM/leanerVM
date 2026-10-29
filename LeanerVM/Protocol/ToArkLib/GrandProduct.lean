@@ -202,6 +202,170 @@ def roundPoly (ctx : LayerCtx X F O nside m) (j : ℕ) (cv : Vector F j) :
   if h : j < m then SumcheckRound.ofCPolynomial _ (roundPolyRaw nside μ leaves ρ m ctx h cv)
   else SumcheckRound.ofCPolynomial _ 0
 
+/-! ### The honest polynomial, compiled
+
+`roundPoly` evaluates two extensions of the level below for every child, tree and point of the
+cube, the level rebuilt from the leaves for each, and the round's Lagrange basis for every
+point. `roundPolyFast`, which compiled code runs in its place (`roundPoly_eq_roundPolyFast`),
+builds each tree's level once per round and splits it by child (`sliceLow`), reads each
+descendant's two values off slices of that (`descendant_eq_slice`), takes the Lagrange basis
+once, and accumulates the message's coefficients without polynomial arithmetic
+(`affineProd_coeff`). -/
+
+/-- The coefficients up to degree `d` of `p·(a + X·(b - a))`, from those of `p`. A zero
+coefficient is not multiplied. -/
+def mulAffine {d : ℕ} (v : Vector F (d + 1)) (a b : F) : Vector F (d + 1) :=
+  let e := b - a
+  Vector.ofFn fun i ↦
+    let lo := if v[i] == 0 then 0 else a * v[i]
+    if h : i.val = 0 then lo else
+      let u := v[i.val - 1]
+      lo + if u == 0 then 0 else e * u
+
+omit [∀ i, OracleInterface (O i)] in
+private theorem mulAffine_getElem_eq {d : ℕ} (v : Vector F (d + 1)) (a b : F) (i : ℕ)
+    (hi : i < d + 1) :
+    (mulAffine v a b)[i] = if i = 0 then a * v[i] else a * v[i] + (b - a) * v[i - 1] := by
+  have hz : ∀ (c x : F), (if x == 0 then 0 else c * x) = c * x := fun c x ↦ by
+    split_ifs with h <;> simp_all
+  unfold mulAffine
+  rw [Vector.getElem_ofFn]
+  simp only [hz]
+  split_ifs <;> rfl
+
+omit [∀ i, OracleInterface (O i)] in
+/-- From the coefficients of `p`, `mulAffine` computes those of `p·(a + X·(b - a))`. -/
+theorem mulAffine_getElem {d : ℕ} (v : Vector F (d + 1)) (a b : F) (p : Polynomial F)
+    (hv : ∀ (i : ℕ) (hi : i < d + 1), v[i] = p.coeff i) (i : ℕ) (hi : i < d + 1) :
+    (mulAffine v a b)[i] =
+      (p * (Polynomial.C a + Polynomial.X * Polynomial.C (b - a))).coeff i := by
+  have hcoeff : ∀ n, (p * (Polynomial.C a + Polynomial.X * Polynomial.C (b - a))).coeff n =
+      p.coeff n * a + (if n = 0 then 0 else p.coeff (n - 1)) * (b - a) := by
+    intro n
+    rw [mul_add, Polynomial.coeff_add, Polynomial.coeff_mul_C, ← mul_assoc,
+      Polynomial.coeff_mul_C]
+    cases n with
+    | zero => simp
+    | succ k => rw [Polynomial.coeff_mul_X]; simp
+  rw [mulAffine_getElem_eq, hcoeff, hv i hi]
+  split_ifs with h0
+  · ring
+  · rw [hv (i - 1) (by omega)]
+    ring
+
+/-- The coefficients up to degree `d` of `∏_c (a_c + X·(b_c - a_c))`. -/
+def affineProd {d : ℕ} : (D : ℕ) → (Fin D → F × F) → Vector F (d + 1)
+  | 0, _ => Vector.ofFn fun i ↦ if i.val = 0 then 1 else 0
+  | D + 1, ab =>
+    mulAffine (affineProd D fun c ↦ ab c.castSucc) (ab (Fin.last D)).1 (ab (Fin.last D)).2
+
+omit [∀ i, OracleInterface (O i)] in
+/-- `affineProd` computes the coefficients of the product of the affine factors. -/
+theorem affineProd_getElem {d : ℕ} : ∀ (D : ℕ) (ab : Fin D → F × F) (i : ℕ) (hi : i < d + 1),
+    (affineProd (d := d) D ab)[i] = (∏ c : Fin D, (Polynomial.C (ab c).1 +
+      Polynomial.X * Polynomial.C ((ab c).2 - (ab c).1))).coeff i
+  | 0, _, i, hi => by simp [affineProd, Polynomial.coeff_one]
+  | D + 1, ab, i, hi => by
+    rw [Fin.prod_univ_castSucc, affineProd]
+    exact mulAffine_getElem (d := d) _ _ _ _
+      (fun i hi ↦ affineProd_getElem (d := d) D (fun c ↦ ab c.castSucc) i hi) i hi
+
+/-- `acc + c·v`, entry by entry. -/
+def axpy {n : ℕ} (acc : Vector F n) (c : F) (v : Vector F n) : Vector F n :=
+  Vector.ofFn fun i ↦ acc[i] + c * v[i]
+
+omit [BEq F] [LawfulBEq F] [∀ i, OracleInterface (O i)] in
+/-- A loop of `axpy` is the weighted sum. -/
+theorem foldl_axpy_getElem {n : ℕ} : ∀ (N : ℕ) (c : Fin N → F) (v : Fin N → Vector F n)
+    (init : Vector F n) (i : ℕ) (hi : i < n),
+    (Fin.foldl N (fun acc k ↦ axpy acc (c k) (v k)) init)[i] = init[i] + ∑ k, c k * (v k)[i]
+  | 0, _, _, init, i, hi => by simp
+  | N + 1, c, v, init, i, hi => by
+    rw [Fin.foldl_succ_last, Fin.sum_univ_castSucc, ← add_assoc,
+      ← foldl_axpy_getElem N (fun k ↦ c k.castSucc) (fun k ↦ v k.castSucc) init i hi]
+    simp [axpy]
+
+omit [BEq F] [LawfulBEq F] [∀ i, OracleInterface (O i)] in
+/-- A descendant's value at a Boolean value of the round's variable, off slices of the level
+below: the slice of its child, then of the coordinates not yet bound, then of the round's. -/
+theorem descendant_eq_slice (ctx : LayerCtx X F O nside m) {j : ℕ} (hj : j < m)
+    (cv : Vector F j) (x' : Fin (2 ^ (m - (j + 1)))) (s : Fin nside) (c : Fin (2 ^ ρ))
+    (zb : Fin (2 ^ 1)) :
+    descendant nside μ leaves ρ m ctx hj cv x' s c (boolVec zb : Vector F 1)[0] =
+      evalMle (slice (k := j) (m := 1) (slice (Vector.cast (congrArg (2 ^ ·)
+        (Nat.add_sub_cancel' hj).symm) (sliceLow (Vector.cast (congrArg (2 ^ ·)
+          (Nat.add_comm m ρ)) (below nside μ leaves ρ m ctx s)) c)) x') zb) cv := by
+  have hcast : ∀ {a b : ℕ} (h : a = b) (t : CMlPolynomialEval F a) (P : Vector F b),
+      evalMle t (Vector.cast h.symm P) = evalMle (Vector.cast (congrArg (2 ^ ·) h) t) P := by
+    intro a b h t P
+    subst h
+    rfl
+  unfold descendant childPoint fixLow
+  rw [hcast (Nat.add_comm m ρ), evalMle_boolVec_append, hcast (Nat.add_sub_cancel' hj).symm,
+    evalMle_append_boolVec]
+  have hz : cv.push (boolVec zb : Vector F 1)[0] = cv ++ (boolVec zb : Vector F 1) := by
+    rw [← Vector.append_singleton]
+    exact congrArg _ (Vector.ext fun i hi ↦ by obtain rfl : i = 0 := (by omega); rfl)
+  rw [hz, evalMle_append_boolVec (k := j) (m := 1)]
+
+/-- `roundPoly`, computed once per round as above. -/
+def roundPolyFast (ctx : LayerCtx X F O nside m) (j : ℕ) (cv : Vector F j) :
+    SumcheckRound.Message F (2 ^ ρ) :=
+  if h : j < m then
+    let lam := combinerOf ctx
+    let w := lagrangeBasis ((pointOf ctx).drop (j + 1))
+    let lows : Vector (Vector (CMlPolynomialEval F m) (2 ^ ρ)) nside := Vector.ofFn fun s ↦
+      let t := Vector.cast (congrArg (2 ^ ·) (Nat.add_comm m ρ)) (below nside μ leaves ρ m ctx s)
+      Vector.ofFn fun c ↦ sliceLow t c
+    let pows : Vector F nside := Vector.ofFn fun s ↦ lam ^ s.val
+    let inner (x' : Fin (2 ^ (m - (j + 1)))) : SumcheckRound.Message F (2 ^ ρ) :=
+      Fin.foldl nside (fun acc s ↦ axpy acc pows[s] (affineProd (2 ^ ρ) fun c ↦
+        let r := slice (Vector.cast (congrArg (2 ^ ·) (Nat.add_sub_cancel' h).symm) lows[s][c]) x'
+        (evalMle (slice (k := j) (m := 1) r ⟨0, by norm_num⟩) cv,
+          evalMle (slice (k := j) (m := 1) r ⟨1, by norm_num⟩) cv))) (Vector.replicate _ 0)
+    Fin.foldl (2 ^ (m - (j + 1))) (fun acc x' ↦ axpy acc w[x'] (inner x')) (Vector.replicate _ 0)
+  else roundPoly nside μ leaves ρ m ctx j cv
+
+omit [∀ i, OracleInterface (O i)] in
+/-- The compiled polynomial is the honest one. -/
+theorem roundPolyFast_eq (ctx : LayerCtx X F O nside m) (j : ℕ) (cv : Vector F j) :
+    roundPolyFast nside μ leaves ρ m ctx j cv = roundPoly nside μ leaves ρ m ctx j cv := by
+  unfold roundPolyFast
+  split_ifs with h
+  · rw [roundPoly, dite_eq_left h]
+    apply Vector.ext
+    intro i hi
+    have h0 := descendant_eq_slice nside μ leaves ρ m ctx h cv
+    rw [show (SumcheckRound.ofCPolynomial (2 ^ ρ) (roundPolyRaw nside μ leaves ρ m ctx h cv))[i] =
+      (roundPolyRaw nside μ leaves ρ m ctx h cv).coeff i from Vector.getElem_ofFn ..,
+      CPolynomial.coeff_toPoly, roundPolyRaw, ← CPolynomial.toPolyRingHom_apply]
+    dsimp only
+    rw [foldl_axpy_getElem]
+    simp only [map_sum, map_mul, map_prod, map_add, CPolynomial.toPolyRingHom_apply,
+      CPolynomial.C_toPoly, CPolynomial.X_toPoly, Polynomial.finsetSum_coeff,
+      Polynomial.coeff_C_mul, Vector.getElem_replicate, zero_add, Fin.getElem_fin]
+    refine Finset.sum_congr rfl fun x' _ ↦ ?_
+    rw [foldl_axpy_getElem]
+    simp only [Vector.getElem_replicate, zero_add, Vector.getElem_ofFn]
+    refine congrArg _ (Finset.sum_congr rfl fun t _ ↦ ?_)
+    rw [affineProd_getElem]
+    congr 3
+    refine Finset.prod_congr rfl fun c _ ↦ ?_
+    have e0 := h0 x' t c ⟨0, by norm_num⟩
+    have e1 := h0 x' t c ⟨1, by norm_num⟩
+    have b0 : (boolVec (⟨0, by norm_num⟩ : Fin (2 ^ 1)) : Vector F 1)[0] = 0 := by simp [boolVec]
+    have b1 : (boolVec (⟨1, by norm_num⟩ : Fin (2 ^ 1)) : Vector F 1)[0] = 1 := by simp [boolVec]
+    rw [b0] at e0
+    rw [b1] at e1
+    simp only [Fin.eta]
+    rw [e0, e1]
+  · rfl
+
+/-- Compiled code computes the honest polynomial once per round. -/
+@[csimp] theorem roundPoly_eq_roundPolyFast : @roundPoly = @roundPolyFast := by
+  funext F _ _ _ X ι O nside μ leaves ρ m ctx j cv
+  exact (roundPolyFast_eq nside μ leaves ρ m ctx j cv).symm
+
 /-- The verifier's domain at round `j`: the normalized round's, against the layer's point. -/
 def weights : SumcheckRound.Weights F (LayerX X F nside m) :=
   SumcheckRound.normalizedWeights fun x ↦ x.1.2.1
@@ -351,6 +515,23 @@ abbrev InterpStmt (X F : Type) (nside m ρ i : ℕ) : Type :=
 of `c`. -/
 def children (x : X) (o : ∀ i, O i) (c : Vector F m) (s : Fin nside) : CMlPolynomialEval F ρ :=
   Vector.ofFn fun b ↦ evalMle (layerTable (leaves x o s) (m + ρ)) (childPoint ρ b c)
+
+/-- `children` with the level below built once and each child read off its slice, where
+`children` rebuilds the level and evaluates it whole for every child. -/
+def childrenFast (x : X) (o : ∀ i, O i) (c : Vector F m) (s : Fin nside) :
+    CMlPolynomialEval F ρ :=
+  let t := Vector.cast (congrArg (2 ^ ·) (Nat.add_comm m ρ)) (layerTable (leaves x o s) (m + ρ))
+  Vector.ofFn fun b ↦ evalMle (sliceLow t b) c
+
+omit [DecidableEq F] [SampleableType F] [BEq F] [LawfulBEq F] [∀ i, OracleInterface (O i)] in
+/-- Compiled code reads the children off slices of the level below. -/
+@[csimp] theorem children_eq_childrenFast : @children = @childrenFast := by
+  funext F _ X ι O nside μ leaves ρ m x o c s
+  apply Vector.ext
+  intro b hb
+  simp only [children, childrenFast, Vector.getElem_ofFn, childPoint]
+  rw [← evalMle_boolVec_append, ← evalMle_cast (Nat.add_comm m ρ), Vector.cast_cast,
+    Vector.cast_rfl]
 
 /-- The verifier's check: the final claim is the combination, by the powers of the combiner, of
 the products of each tree's values. -/

@@ -56,6 +56,26 @@ compiled `#guard` or a kernel-checked `example` (see [`tests/README.md`](../test
 the module-system caveats). There is no test executable (finding P3 in
 [`docs/roadmap/leanisa-status.md`](roadmap/leanisa-status.md)).
 
+## Benchmarks
+
+`lakefile.toml` declares the benchmark source `bench/LeanerVMBench.lean` twice: as the library
+`LeanerVMBench`, a default target, so that `lake build` and the validator elaborate it without
+linking, and as the executable `leanervm-bench`, which is not a default target, because linking an
+executable compiles every transitive module, Mathlib's included, to C. Both are build targets of
+this package, not dependencies, so adding or changing them needs none of the review in
+[dependencies.md](dependencies.md).
+
+```sh
+lake build leanervm-bench
+.lake/build/bin/leanervm-bench [percent] [arith|sumcheck|provers|all] [filter]
+.lake/build/bin/leanervm-bench 1 protocol [bus|table|pub|flock|whole] [lm] [spec]
+```
+
+The object files land in each package's own `.lake/build`. A worktree that shares its
+`.lake/packages` with another checkout should build the executable on a private copy of the
+packages. See [`bench/README.md`](../bench/README.md) for the workloads and the recorded
+timings.
+
 ## CI
 
 Build/test, repository policy, architectural imports, and documentation links are separate

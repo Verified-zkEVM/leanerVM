@@ -8,6 +8,7 @@
 module
 
 public import LeanerVM.Protocol.Blake2sHash
+public import LeanerVM.Protocol.Blake2sHashFast
 public import LeanerVM.Protocol.ToArkLib.Merkle
 
 /-!

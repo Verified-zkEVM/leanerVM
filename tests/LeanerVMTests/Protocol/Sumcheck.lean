@@ -70,6 +70,21 @@ def V : Virtual E Unit NoOracle Unit 2 2 where
 /-- The context: no public data, no oracle, no witness. -/
 def ctx : SumcheckRound.Ctx Unit NoOracle Unit := (((), noO), ())
 
+/-- The specification's round polynomial: `roundPoly`'s body, compiled here, where it names
+`claim`, which no `@[csimp]` theorem replaces (`SumcheckFold`'s differential tests). -/
+def specRoundPoly {F : Type} [Field F] [BEq F] [LawfulBEq F] {X ι : Type} {O : ι → Type}
+    {W : Type} {n m d : ℕ} (V : Virtual F X O W n m) (wt : CoordWeights F X n)
+    (nodes : Fin (d + 1) → F) (ctx : SumcheckRound.Ctx X O W) (j : ℕ) (c : Vector F j) :
+    SumcheckRound.Message F d :=
+  if j < n then
+    SumcheckRound.ofCPolynomial d (CPolynomial.CLagrange.interpolate Finset.univ nodes
+      fun i ↦ claim V wt ctx (j + 1) (c.push (nodes i)))
+  else SumcheckRound.ofCPolynomial d 0
+
+/-- The first `j` of a list of challenges. -/
+def firstChals {F : Type} [Zero F] (cs : List F) (j : ℕ) : Vector F j :=
+  Vector.ofFn fun i ↦ cs.getD i.val 0
+
 /-- No side condition. -/
 def noSide : SumcheckRound.Ctx Unit NoOracle Unit → Prop := fun _ ↦ True
 

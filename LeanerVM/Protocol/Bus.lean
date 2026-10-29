@@ -170,6 +170,110 @@ def sideLeaves (k : Fin 3) (α : Fin 4 → E) (β : E) (q : Column I.μ) :
     CMlPolynomialEval E I.μBus :=
   (blocks I k).stackAt (fun b ↦ Vector.ofFn (((sorted I k)[b]).leaf α β q)) I.μBus 1
 
+/-! ## The leaf stacks, compiled
+
+`sideLeaves` reads a row off the stack and computes the fingerprint's weights for every leaf.
+`sideLeavesFast`, which compiled code runs in its place (`sideLeaves_eq_sideLeavesFast`), computes
+the weights once, as machine words, reads each table's columns once, on its first flush of the
+side, into arrays, fingerprints on machine words (`fingerprintWord_eq`), and builds the stack
+once. -/
+
+/-- The columns of every table, each read off the stack on first use. -/
+def tableArrays (q : Column I.μ) : Vector (Thunk (Array (Array K))) I.ntab :=
+  Vector.ofFn fun j ↦ Thunk.mk fun _ ↦ (I.columnsOf q j).toArray.map (·.toArray)
+
+variable {I} in
+/-- Row `x` of table `j`, out of the arrays. -/
+theorem tableArrays_row (q : Column I.μ) (j : Fin I.ntab) {x : ℕ} (hx : x < 2 ^ I.τ j) :
+    (fun i : Fin (I.width j) ↦ (((tableArrays I q)[j].get).getD i.val #[]).getD x 0) =
+      I.row q j ⟨x, hx⟩ := by
+  funext i
+  have h : (tableArrays I q)[j].get = (I.columnsOf q j).toArray.map (·.toArray) := by
+    simp only [tableArrays, Fin.getElem_fin, Vector.getElem_ofFn]
+    rfl
+  rw [h, M3Instance.row_eq_columnsOf]
+  simp [Array.getD_eq_getD_getElem?, Vector.get_eq_getElem, hx]
+
+variable {I} in
+/-- A boundary coordinate's reader: a constant, or its column's cells. -/
+def coordReader (q : Column I.μ) {κ : ℕ} : Coord I.toShape κ → K ⊕ Vector K (2 ^ κ)
+  | .const c => .inl c
+  | .known col => .inr col.values
+  | .committed c h => .inr (Vector.cast (congrArg (2 ^ ·) h) (I.column q c).values)
+
+/-- A reader's cell `x`. -/
+def readAt {n : ℕ} : K ⊕ Vector K n → Fin n → K
+  | .inl c, _ => c
+  | .inr v, x => v[x]
+
+variable {I} in
+/-- A coordinate's reader holds its cells. -/
+theorem readAt_coordReader (q : Column I.μ) {κ : ℕ} (co : Coord I.toShape κ) (x : Fin (2 ^ κ)) :
+    readAt (coordReader q co) x = I.coordCell q co x := by
+  cases co <;> simp [coordReader, readAt, M3Instance.coordCell, Vector.get_eq_getElem]
+
+variable {I} in
+/-- A boundary block's readers hold its tuples. -/
+theorem map_readAt_coordReader (q : Column I.μ) (b : BoundaryBlock I.toShape) (x : Fin (2 ^ b.κ)) :
+    (b.coords.map (coordReader q)).map (readAt · x) = b.coords.map (I.coordCell q · x) := by
+  apply Vector.ext
+  intro i hi
+  simp only [Vector.getElem_map, readAt_coordReader]
+
+variable {I} in
+/-- A block's leaves at the weights whose words are `W`, its columns read once. -/
+def Source.leafTable (W : Vector (Vector UInt64 16) 3) (β : E) (q : Column I.μ)
+    (tabs : Vector (Thunk (Array (Array K))) I.ntab) : (src : Source I) → CMlPolynomialEval E src.κ
+  | .boundary b =>
+    let rs := b.coords.map (coordReader q)
+    Vector.ofFn fun x ↦ β - fingerprintWord W (rs.map fun r ↦ readAt r x)
+  | .flush j f =>
+    let cols := tabs[j].get
+    let polys := flushPolys j f
+    Vector.ofFn fun x ↦ β - fingerprintWord W
+      (polys.map fun P ↦ P.eval fun i ↦ (cols.getD i.val #[]).getD x.val 0)
+  | .count j c =>
+    let cols := tabs[j].get
+    Vector.ofFn fun x ↦ ofK ((cols.getD c.val #[]).getD x.val 0)
+
+variable {I} in
+/-- At the fingerprint's weights and the stack's arrays, a block's leaf table is its leaves. -/
+theorem Source.leafTable_eq (α : Fin 4 → E) (β : E) (q : Column I.μ) (src : Source I) :
+    src.leafTable (fingerprintWordsOf (fingerprintWeights α)) β q (tableArrays I q) =
+      Vector.ofFn (src.leaf α β q) := by
+  apply Vector.ext
+  intro x hx
+  cases src with
+  | boundary b =>
+    simp only [leafTable, Source.leaf, Source.tuple, Vector.getElem_ofFn, fingerprintWord_eq,
+      fingerprintWith_eq]
+    exact congrArg (fun t ↦ β - fingerprint α t) (map_readAt_coordReader q b ⟨x, hx⟩)
+  | flush j f =>
+    simp only [leafTable, Source.leaf, Source.tuple, Vector.getElem_ofFn, fingerprintWord_eq,
+      fingerprintWith_eq]
+    rw [tableArrays_row q j hx]
+    rfl
+  | count j c =>
+    simp only [leafTable, Source.leaf, Vector.getElem_ofFn]
+    rw [congrFun (tableArrays_row q j hx) c, M3Instance.row]
+    rfl
+
+/-- `sideLeaves` with the blocks sorted once, the weights computed once and each table's columns
+read once. -/
+def sideLeavesFast (k : Fin 3) (α : Fin 4 → E) (β : E) (q : Column I.μ) :
+    CMlPolynomialEval E I.μBus :=
+  let W := fingerprintWordsOf (fingerprintWeights α)
+  let tabs := tableArrays I q
+  let srcs := (sorted I k).toArray
+  (blocks I k).stackAt (fun b ↦ (srcs[b.val]'(by simp [srcs]; exact b.isLt)).leafTable W β q tabs)
+    I.μBus 1
+
+/-- Compiled code builds the leaf stacks through `sideLeavesFast`. -/
+@[csimp] theorem sideLeaves_eq_sideLeavesFast : @sideLeaves = @sideLeavesFast := by
+  funext I k α β q
+  simp only [sideLeaves, sideLeavesFast, Source.leafTable_eq]
+  rfl
+
 /-- The bus phase's side conditions: the degree bound is at least one, a table with a constraint
 fits in the leaf stacks' depth, and the pull and count sides fit in it. -/
 structure Conditions : Prop where

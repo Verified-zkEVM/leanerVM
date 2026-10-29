@@ -153,7 +153,8 @@ Keep only leanVM-specific semantics, parameters, arithmetization instances, appl
 specifications, protocol assembly, and implementation-correspondence results here.
 
 Until its upstream pull request merges, such a result lives under
-`LeanerVM/Protocol/To<Library>/`, written for that library's other consumers. A local copy never
+`LeanerVM/Protocol/To<Library>/` (or under `LeanerVM/Parameters/To<Library>/` when a lower layer
+must compile against it), written for that library's other consumers. A local copy never
 outlives the pin: the pull request that moves a pin past the upstream merge deletes the `To*`
 files and declarations the new pin contains, moves their consumers to the upstream names, and
 updates the protocol blueprint's upstream ledger and the status page's watch list.

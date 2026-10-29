@@ -647,6 +647,19 @@ pinned sources is [archived](../reviews/protocol-spine-revision.md).
   computed collision. Owed by decision 32: the hash as a parameter (`merkleRootWith`,
   `merkleVerifyWith`), `merkleVerify` as a phase's pruned opening, the generic tree moved to
   `ToVCVio/Merkle.lean` beside `toBatchOpening`, `nodeModel`, and `merkle_fits`.
+- **The honest prover, compiled** (*on merge* of the stateful-provers branch). No target theorem
+  advances and no statement changes: `leanVmFastProver` (`Protocol/HonestProver.lean`) is an
+  honest-prover refinement, a prover whose run is `leanVmProver (leanVmPhases I h)`'s
+  (`leanVmFastProver_run`), so `leanVmFast_perfectCompleteness` is the master theorem's
+  completeness for it, with the same verifier. It carries prover state through the bus phase, the
+  table sumcheck and the Flock phase (`Component.Cached`); the commitment, the public-input check
+  and the opening run their honest provers. The BLAKE2s inhabitant's R1CS walks the compiled
+  circuit's words (`ProductCircuit.toBlockR1CSE`, equal to the circuit's R1CS by
+  `toBlockR1CSE_eq`). WHIR's opening has a cached prover, `whirOpenCached`
+  (`Protocol/Whir/Cached.lean`), whose run is `whirOpen`'s. At the smallest admissible size the
+  whole oracle protocol's prover runs in 25 s; WHIR at that size (`μ = 19`) takes 4 min to encode
+  the committed word and 5 min to open (`bench/README.md`). Owed: a prover of the compiled
+  protocol (Layer 12) that runs `leanVmFastProver` and `whirOpenCached` together.
 
 ## What can start now
 
@@ -704,6 +717,7 @@ External work that may feed or replace a hole. The state of each is on GitHub.
 | ArkLib's computable sumcheck (#1214, #1242, #1243; at the pin) | the sumchecks; the GKR's rounds | the round of `ToArkLib/SumcheckRound.lean`, which sends the coefficients as one message and weights the domain | an adaptor to `OracleReduction` and a weighted domain exist (decision 33) |
 | ArkLib #818, #383, #992 | the GKR; WHIR | patterns for a layer and for a proximity test as reductions | never as they are |
 | ArkLib #1256, #1257 (and #615) | the Flock phase | the packing coordinates, observations and batching of Diamond–Posen ring switching, and the Flock paper's quirky layout | never as they are: leanVM's ring switching is the Frobenius-map variant (Annex A), whose soundness needs none of them; `ToArkLib/Flock/` is the candidate instead |
+| ArkLib's appended-schedule instances (`ProtocolSpec.instSampleableTypeChallengeAppend`, the `Inhabited` and `OracleInterface` instances, `OracleReduction/Composition/Sequential/SeqCompose.lean:448-483` at the pin; upstream `main` unchanged on 2026-10-23) | every phase run through `Prover.run` | `ToArkLib/AppendLazy.lean`: the instances are `Fin.fappend₂`, whose strict compiled code reads entry `i` at right length `n` in about `C(n + i, i)` reads of the level below, exponential in the depth of a schedule appended on the right (261 s for 9 trivial sumcheck rounds); `Fin.dappend` and `Fin.happend` have the same shape | ArkLib redefines the instances by a comparison at the seam; then delete `AppendLazy.lean` |
 | ArkLib #848, #469, #627 | the compiled verifier | Fiat–Shamir and BCS statements | a chain-based transform with proof of work, which none of them is |
 | ArkLib issues #900, #901 | tables and stacking; the fingerprint | the requests for stacking and fingerprints upstream | when the pull requests open |
 | VCVio #571 | Merkle binding by log replay | `ToVCVio/MerkleLog.lean` | VCVio proves extraction with hashed leaves on one shared oracle |
@@ -712,6 +726,7 @@ External work that may feed or replace a hole. The state of each is on GitHub.
 | Clean #466 (merged 2026-10-05), #474 | Clean expressions as polynomials | `ToClean/ExpressionPolynomial.lean`, a verbatim copy of Clean's module | a pin holds both #466 and #474's Lean 4.34 fix; then delete the copy and import `Clean.Circuit.ExpressionPolynomial` |
 | Clean #464, #20 | the adaptor | leanISA's `BalancedPair` | merged and the pin bumped |
 | Clean #446, #23 | the adaptor | the three fixed-column conjuncts | merged and the pin bumped |
+| CompPoly (issue to open: word arithmetic for `BF64`, degree-three `Ext`) | none: compiled speed of `K` and `E` everywhere | `Parameters/ToCompPoly/BF64Fast.lean`, `Parameters/ToCompPoly/ExtensionFast.lean`. Upstream would attach the `@[csimp]` theorems to `BF64.mul` and `Ext.mul` (or store a `BF64` as a `UInt64`), so the instance-level substitutions here become unnecessary: the candidate is the algorithms and their proofs | CompPoly merges them; then delete both modules and their imports in `Parameters/Field.lean` |
 
 One check is owed at the current pins and has not been made: whether Clean `42fe4b26` contains
 any of Clean #446. Whether `ReedSolomon.mcaError_affineLine_johnson_le` meets Annex B's per-level
