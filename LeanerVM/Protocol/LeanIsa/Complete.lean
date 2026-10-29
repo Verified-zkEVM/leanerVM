@@ -15,8 +15,9 @@ public import LeanerVM.Protocol.LeanIsa.Sound
 `m3Holds_stackOf`: a witness `w` satisfying `SatisfiedBy prog input w` stacks, at the sizes it
 carries (`Sizes.ofWitness`, which `sizes_of_satisfiedBy` shows it has), into a column satisfying
 `M3Holds` of the leanISA instance. Those sizes are admissible exactly when the stack fits
-`2^maxMu` (`admissible_iff_of_satisfiedBy`): the statement's caps give the rest. `witnessOf_stackOf`: reading a witness back off that stack
-gives `w`'s opcode tables within their widths, its two blocks, its public input and its image.
+`2^maxMu` (`admissible_iff_of_satisfiedBy`): the statement's caps give the rest.
+`witnessOf_stackOf`: reading a witness back off that stack gives `w`'s opcode tables within their
+widths, its two blocks, its public input and its image.
 
 The stack agrees with the witness (`agrees_stackOf`): its committed columns are the witness's
 cells (`column_stackOf`), and its limb columns are the cells the honest Flock column carries at
@@ -160,30 +161,28 @@ private theorem opTable_length {input : PublicInput} (h : SatisfiedBy prog input
   obtain ⟨τ, -, hτ⟩ := h.caps.heights _ hmem
   rw [hτ, Nat.log_pow (by norm_num)]
 
+/-- An opcode table of a witness within the caps has its log-height within `maxLogRows`. -/
+private theorem log_opTable_le {input : PublicInput} (h : SatisfiedBy prog input w) (j : Fin 6) :
+    Nat.log 2 (opTable w j).table.length ≤ maxLogRows := by
+  obtain ⟨τ, hτ, hlen⟩ := h.caps.heights _ (mem_tables_iff.mpr ⟨⟨j, by omega⟩, rfl⟩)
+  rw [opTable, hlen, Nat.log_pow (by norm_num)]
+  exact hτ
+
 /-- The sizes a witness satisfying the constraint system carries are admissible exactly when the
 stack fits `2^maxMu`: the other conditions are the statement's caps. -/
 theorem admissible_iff_of_satisfiedBy {input : PublicInput} (h : SatisfiedBy prog input w)
     (hs : Sizes.ofWitness w = some s) : s.Admissible prog ↔ leanIsaμ prog s ≤ maxMu := by
   refine ⟨fun ha ↦ ha.2.2.2.2, fun hμ ↦ ?_⟩
   obtain ⟨hp, rfl⟩ := eq_of_ofWitness hs
-  refine ⟨h.caps.minLogMem_le, h.caps.le_maxLogMem, fun j ↦ ?_, ?_, hμ⟩
-  · obtain ⟨τ, hτ, hlen⟩ := h.caps.heights _ (mem_tables_iff.mpr ⟨⟨j, by omega⟩, rfl⟩)
-    show Nat.log 2 (opTable w j).table.length ≤ maxLogRows
-    rw [opTable, hlen, Nat.log_pow (by norm_num)]
-    exact hτ
-  · have hb : 2 ^ minLogRowsBlake2s ≤ (opTable w 5).table.length := h.caps.blake2s_height
-    rw [opTable_length h 5] at hb
-    exact (Nat.pow_le_pow_iff_right (by norm_num)).mp hb
+  exact ⟨h.caps.minLogMem_le, h.caps.le_maxLogMem, log_opTable_le h, (Nat.pow_le_pow_iff_right
+    (by norm_num)).mp (h.caps.blake2s_height.trans_eq (opTable_length h 5)), hμ⟩
 
 /-- The sizes a witness satisfying the constraint system carries fit Clean's tables. -/
 private theorem fits_of_satisfiedBy {input : PublicInput} (h : SatisfiedBy prog input w)
     (hs : Sizes.ofWitness w = some s) : s.Fits := by
   obtain ⟨hp, rfl⟩ := eq_of_ofWitness hs
-  refine ⟨lt_of_le_of_lt h.caps.le_maxLogMem (by decide), fun j ↦ ?_⟩
-  obtain ⟨τ, hτ, hlen⟩ := h.caps.heights _ (mem_tables_iff.mpr ⟨⟨j, by omega⟩, rfl⟩)
-  show Nat.log 2 (opTable w j).table.length ≤ 64
-  rw [opTable, hlen, Nat.log_pow (by norm_num)]
-  exact hτ.trans (by decide)
+  exact ⟨lt_of_le_of_lt h.caps.le_maxLogMem (by decide),
+    fun j ↦ (log_opTable_le h j).trans (by decide)⟩
 
 /-! ## The stack of a witness agrees with it -/
 

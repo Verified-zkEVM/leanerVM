@@ -358,13 +358,10 @@ private theorem bytecode_blocks (prog : Program) (s : Sizes) (b : BoundaryBlock 
     b.κ = prog.logSize ∧
       ∀ k : Fin 8, HEq b.coords[3 + k.val] (entryCoord (S := shape prog s) prog k) := by
   simp only [boundary, List.mem_cons, List.not_mem_nil, or_false] at hb
-  rcases hb with rfl | rfl | rfl | rfl | rfl | rfl
-  · rw [isBytecodeBlock_coords, seps_ne.1] at h; exact absurd h Bool.false_ne_true
-  · rw [isBytecodeBlock_coords, seps_ne.2] at h; exact absurd h Bool.false_ne_true
-  · exact ⟨rfl, fun k ↦ by fin_cases k <;> simp [coords]⟩
-  · rw [isBytecodeBlock_coords, seps_ne.1] at h; exact absurd h Bool.false_ne_true
-  · rw [isBytecodeBlock_coords, seps_ne.2] at h; exact absurd h Bool.false_ne_true
-  · exact ⟨rfl, fun k ↦ by fin_cases k <;> simp [coords]⟩
+  rcases hb with rfl | rfl | rfl | rfl | rfl | rfl <;>
+    first
+    | exact ⟨rfl, fun k ↦ by fin_cases k <;> simp [coords]⟩
+    | simp only [isBytecodeBlock_coords, seps_ne, Bool.false_eq_true] at h
 
 /-- A boundary source of a side is a boundary block of the instance. -/
 private theorem mem_boundary_of_mem {I : M3Instance} {k : Fin 3} {b : BoundaryBlock I.toShape}

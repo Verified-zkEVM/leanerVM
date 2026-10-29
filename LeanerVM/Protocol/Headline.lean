@@ -233,16 +233,16 @@ private theorem admissible_of_extract {F : FlockSpec} {prog : Program} {input : 
     · obtain ⟨_, -, ⟨⟩⟩ := Option.map_eq_some_iff.mp h
       exact hs.1
 
-/-- A satisfying extracted witness at a program whose sentinel slot is not a `JUMP` gives a valid
-extracted execution. -/
-private theorem execution_of_witness {prog : Program} {input : PublicInput}
-    {proof : Proof PrunedMerklePaths} {log : hashSpec.QueryLog} (hsafe : SentinelSafe prog)
-    {e : Σ s : Sizes, Column (leanIsaμ prog s)}
-    (he : extract Blake2sFlock.blake2sFlockSpec prog input proof log = some e)
-    (hsat : SatisfiedBy prog input (witnessOf Blake2sFlock.blake2sFlockSpec prog e.1 e.2)) :
-    ∃ t, extractExecution prog input proof log = some t ∧ ValidExecution prog input t := by
+/-- At a program whose sentinel slot is not a `JUMP`, no valid extracted execution means no
+satisfying extracted witness. -/
+private theorem noWitness {prog : Program} {input : PublicInput} {proof : Proof PrunedMerklePaths}
+    {log : hashSpec.QueryLog} (hsafe : SentinelSafe prog)
+    (h : ¬ ∃ t, extractExecution prog input proof log = some t ∧ ValidExecution prog input t) :
+    ¬ ∃ e, extract Blake2sFlock.blake2sFlockSpec prog input proof log = some e ∧
+      SatisfiedBy prog input (witnessOf Blake2sFlock.blake2sFlockSpec prog e.1 e.2) := by
+  rintro ⟨e, he, hsat⟩
   obtain ⟨t, ht, -, hvalid⟩ := (leanIsaTraceExtraction hsafe).valid _ _ _ hsat
-  refine ⟨t, ?_, hvalid⟩
+  refine h ⟨t, ?_, hvalid⟩
   simp only [extractExecution, hsafe, ↓reduceDIte, extractTrace, he, Option.bind_some]
   exact ht
 
@@ -324,8 +324,7 @@ theorem baseVerifier_extractsExecution_rom_adaptive {A : AdaptiveAdversary} {Q :
       ¬ ∃ t, extractExecution z.1.prog z.1.input z.1.proof z.1.logA = some t ∧
         ValidExecution z.1.prog z.1.input t] ≤
       ((Q + 13700 : ℕ) / 2 ^ 128 + hashTerm 13700 Q : ℝ≥0) :=
-  (OracleComp.prEvent_mono_of_support _ fun _ _ h ↦
-    ⟨h.1, fun ⟨_, he, hsat⟩ ↦ h.2.2 (execution_of_witness h.2.1 he hsat)⟩).trans
+  (OracleComp.prEvent_mono_of_support _ fun _ _ h ↦ ⟨h.1, noWitness h.2.1 h.2.2⟩).trans
     (baseVerifier_extractsWitness_rom_adaptive hQ)
 
 /-- **Adaptive knowledge soundness in the random-oracle model for well-formed programs**: the
@@ -419,8 +418,7 @@ theorem baseVerifier_extractsExecution_adaptive {A : AdaptiveAdversary} {δ : �
       verify g.prog g.input g.proof = true ∧ SentinelSafe g.prog ∧ ¬ ∃ t,
         extractExecution g.prog g.input g.proof g.logA = some t ∧
           ValidExecution g.prog g.input t] ≤ δ :=
-  (OracleComp.prEvent_mono_of_support _ fun _ _ h ↦
-    ⟨h.1, fun ⟨_, he, hsat⟩ ↦ h.2.2 (execution_of_witness h.2.1 he hsat)⟩).trans
+  (OracleComp.prEvent_mono_of_support _ fun _ _ h ↦ ⟨h.1, noWitness h.2.1 h.2.2⟩).trans
     (baseVerifier_extractsWitness_adaptive hB)
 
 /-- **Adaptive knowledge soundness for well-formed programs**: the execution form for an adversary
@@ -449,10 +447,9 @@ theorem baseVerifier_extractsExecution_adaptive_coins {coins : ProbComp Adaptive
       verify g.prog g.input g.proof = true ∧ SentinelSafe g.prog ∧ ¬ ∃ t,
         extractExecution g.prog g.input g.proof g.logA = some t ∧
           ValidExecution g.prog g.input t] ≤ δ := by
-  let : MeasurableSpace AdaptiveAdversary := ⊤
-  rw [← bind_assoc, prEvent_bind_eq_lintegral_of_discrete] at hB ⊢
-  exact (MeasureTheory.lintegral_mono fun _ ↦
-    baseVerifier_extractsExecution_adaptive le_rfl).trans hB
+  have hw := baseVerifier_extractsWitness_adaptive_coins hB
+  rw [← bind_assoc] at hw ⊢
+  exact (OracleComp.prEvent_mono_of_support _ fun _ _ h ↦ ⟨h.1, noWitness h.2.1 h.2.2⟩).trans hw
 
 /-! ## At a statement fixed before the adversary runs -/
 
@@ -484,8 +481,7 @@ theorem baseVerifier_extractsExecution_rom {prog : Program} {input : PublicInput
       z.1.ok = true ∧ ¬ ∃ t, extractExecution prog input z.1.proof z.1.logA = some t ∧
         ValidExecution prog input t] ≤
       ((Q + 13700 : ℕ) / 2 ^ 128 + hashTerm 13700 Q : ℝ≥0) :=
-  (OracleComp.prEvent_mono_of_support _ fun _ _ h ↦
-    ⟨h.1, fun ⟨_, he, hsat⟩ ↦ h.2 (execution_of_witness hsafe he hsat)⟩).trans
+  (OracleComp.prEvent_mono_of_support _ fun _ _ h ↦ ⟨h.1, noWitness hsafe h.2⟩).trans
     (baseVerifier_extractsWitness_rom hQ)
 
 /-- **Knowledge soundness of the deployed verifier, the constraint form**, at a statement fixed
@@ -531,8 +527,7 @@ theorem baseVerifier_extractsExecution {prog : Program} {input : PublicInput} {A
     Pr{let g ← runBlake2s (loggedGame verifyWith prog input A)}[
       verify prog input g.proof = true ∧ ¬ ∃ t,
         extractExecution prog input g.proof g.logA = some t ∧ ValidExecution prog input t] ≤ δ :=
-  (OracleComp.prEvent_mono_of_support _ fun _ _ h ↦
-    ⟨h.1, fun ⟨_, he, hsat⟩ ↦ h.2 (execution_of_witness hsafe he hsat)⟩).trans
+  (OracleComp.prEvent_mono_of_support _ fun _ _ h ↦ ⟨h.1, noWitness hsafe h.2⟩).trans
     (baseVerifier_extractsWitness hB)
 
 /-- **The headline for an adversary with coins** at a statement fixed before the coins are drawn.
@@ -547,10 +542,9 @@ theorem baseVerifier_extractsExecution_coins {prog : Program} {input : PublicInp
     Pr{let A ← coins; let g ← runBlake2s (loggedGame verifyWith prog input A)}[
       verify prog input g.proof = true ∧ ¬ ∃ t,
         extractExecution prog input g.proof g.logA = some t ∧ ValidExecution prog input t] ≤ δ := by
-  let : MeasurableSpace Adversary := ⊤
-  rw [← bind_assoc, prEvent_bind_eq_lintegral_of_discrete] at hB ⊢
-  exact (MeasureTheory.lintegral_mono fun _ ↦
-    baseVerifier_extractsExecution hsafe le_rfl).trans hB
+  have hw := baseVerifier_extractsWitness_coins hB
+  rw [← bind_assoc] at hw ⊢
+  exact (OracleComp.prEvent_mono_of_support _ fun _ _ h ↦ ⟨h.1, noWitness hsafe h.2⟩).trans hw
 
 /-- **The hypothesis from the comparison form** at a statement fixed before the adversary runs. If
 misbehaving on the run of an adversary of at most `Q` queries, its flips on the chain of
@@ -587,13 +581,10 @@ theorem prove_eq_none (fuel : ℕ) {prog : Program} {input : PublicInput} {κ : 
     (h : prove fuel prog input w ρ = none) :
     ∃ s, Sizes.ofWitness w = some s ∧ (maxMu < leanIsaμ prog s ∨ ¬ validRate ρ ∨
       ∃ fs : FsState, Id.run (fs.grind blake2sBytes fuel queryGrindingBits) = none) := by
-  rcases Prove.proveWith_eq_none blake2sBytes fuel Blake2sFlock.blake2sFlockSpec h with
-    hn | ⟨s, hs, hc⟩
+  rcases Prove.proveWith_eq_none blake2sBytes fuel _ h with hn | ⟨s, hs, hc⟩
   · obtain ⟨s, hs⟩ := sizes_of_satisfiedBy hsat
-    rw [hs] at hn
-    cases hn
-  · exact ⟨s, hs, hc.imp_left fun ha ↦ not_le.mp fun hμ ↦
-      ha ((admissible_iff_of_satisfiedBy hsat hs).mpr hμ)⟩
+    simp [hs] at hn
+  · exact ⟨s, hs, hc.imp_left ((admissible_iff_of_satisfiedBy hsat hs).not.trans not_le).mp⟩
 
 /-- **The headline: completeness of the deployed pair from an execution.** For well-formed
 bytecode, a valid execution `t` that fits the caps has a padding `t'` with the same steps, itself a

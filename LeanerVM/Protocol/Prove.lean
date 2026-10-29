@@ -159,9 +159,8 @@ def proveFrom {m : Type → Type} [Monad m] (H : List UInt8 → m Digest) (seed 
 /-- **leanVM's honest prover**, generic in how the hash `H` is answered: `proveFrom` from the
 statement's seed, its three hashes answered by `H`. -/
 def proveWith {m : Type → Type} [Monad m] (H : List UInt8 → m Digest) (fuel : ℕ) (F : FlockSpec)
-    (prog : Program) (input : PublicInput)
-    {κ : ℕ} (w : EnsembleWitness (leanIsaEnsemble prog κ)) (ρ : ℕ) :
-    m (Option (Proof PrunedMerklePaths)) :=
+    (prog : Program) (input : PublicInput) {κ : ℕ} (w : EnsembleWitness (leanIsaEnsemble prog κ))
+    (ρ : ℕ) : m (Option (Proof PrunedMerklePaths)) :=
   proveFrom H (FsState.seedWith H prog input) fuel F prog input w ρ
 
 /-- **leanVM's honest prover** at the deployed hash, BLAKE2s-256, and the deployed Flock

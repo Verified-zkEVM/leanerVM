@@ -603,8 +603,7 @@ theorem proveFrom_ne_none (H : List UInt8 → Digest) (seed : Id FsState) (fuel 
 and no grind runs out of fuel, whatever the hash and the Flock specification. -/
 theorem proveWith_ne_none (H : List UInt8 → Digest) (fuel : ℕ) (F : FlockSpec) {prog : Program}
     {input : PublicInput} {κ : ℕ} {w : EnsembleWitness (leanIsaEnsemble prog κ)} {ρ : ℕ}
-    {s : Sizes}
-    (hws : Sizes.ofWitness w = some s) (hs : s.Admissible prog) (hρ : validRate ρ)
+    {s : Sizes} (hws : Sizes.ofWitness w = some s) (hs : s.Admissible prog) (hρ : validRate ρ)
     (hg : ∀ fs : FsState, Id.run (fs.grind H fuel queryGrindingBits) ≠ none) :
     proveWith (m := Id) H fuel F prog input w ρ ≠ none :=
   proveFrom_ne_none H (FsState.seedWith (m := Id) H prog input) fuel F hws hs hρ hg
