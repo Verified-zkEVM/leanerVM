@@ -55,3 +55,8 @@ name = "LeanerVM"
 name = "LeanerVMTests"
 srcDir = "tests"
 allowNonModules = true
+
+# Local native microbenchmark, not part of the proof-only default target.
+[[lean_exe]]
+name = "novelBasisBench"
+root = "bench.NovelBasisBench"

@@ -31,3 +31,32 @@ Once the corresponding semantics exist, versioned target workloads should includ
 BLAKE2s batches, XMSS-only aggregation, SPHINCS-only aggregation, mixed aggregation, and recursive
 aggregation. Match public inputs and workload parameters across implementations; do not copy
 upstream headline numbers into an evergreen benchmark assertion.
+
+## Column-weight evaluator
+
+`lake build novelBasisBench` builds a local native/C microbenchmark of the column-weight
+`Weight.mle` route. Run `.lake/build/bin/novelBasisBench SAMPLES SEED` (defaults 32 and 20261028).
+It compares a separately assembled reference product with the public column-weight route at
+`(κ,R)=(0,1),(1,1),(8,2),(22,1)`; the last is a deployed WHIR level shape. Inputs vary per
+iteration, and matching output checksums are required. Timed intervals cover point construction,
+weight construction and evaluation; they do not construct the exponentially large cube table.
+One `IO.Ref` allocation per batch forces the checksum before the second timer read. Inspect
+the emitted C before interpreting timings: a pure `let` can be floated past that read. The
+checksums are non-injective sample controls; universal correctness comes from the Lean equality.
+
+`.lake/build/bin/novelBasisBench startup` performs module initialization only. Measure its
+external wall/user-CPU time separately. The inverse cache contains per-root thunks: import
+allocates those thunks, while a stage's inverse is computed and cached when first queried.
+`first KAPPA RATE SEED` measures a fresh process's first public-route result before reference
+checks or warmup, then checks its complete field value. `check SAMPLES SEED` compares every
+full field result at kappa 0, 1, 2, 8, 22, 64 and 65; it prints all three limbs for comparisons
+between source variants. Default timed batches are warmed. None of these modes equates a
+checksum with complete equality. The default proof-library gate does not build this non-default
+executable: explicitly run `lake build novelBasisBench` and its modes when changing this path.
+Comparisons must use identical benchmark source, seed, sample count, compiler and dependency
+pins; retain both native binaries, their hashes, generated C and the first-use/startup records.
+
+This is a local evaluator workload, not end-to-end verifier latency, a Rust comparison or a
+machine-independent speed claim. A warmed paired benchmark on a shared host is not a controlled
+cold-build benchmark. The reference implementation deliberately bypasses the `columnWeightMle`
+compiler substitution, so equality checks do not compare the fast path with itself.
