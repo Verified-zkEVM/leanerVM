@@ -27,7 +27,7 @@ rev = "572f997390aa4fc131ef30b1186fa1dcf292ca10"
 [[require]]
 name = "Clean"
 git = "https://github.com/Verified-zkEVM/clean"
-rev = "42fe4b268132a46604d40cc73f642a1995f26547"
+rev = "9dd71e8214a06582e62a7981cdc8ed14febf7176"
 
 # Root requirements select the reviewed current source revisions over inherited
 # manifests. Mathlib stays on the matching Lean 4.34.1 release; see docs/dependencies.md.
