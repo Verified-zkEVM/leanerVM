@@ -22,12 +22,15 @@ the history after a prefix the decoder reads exactly to it, its squeezes next
 (`challenge_cut`).
 
 `SlotReader.flipAt_of_decoder`, for any reader whose prefixes are a decoder's: on a log with no
-collision and no answer equal to the seed, holding every step of the history, if a challenge of
-the decoded transcript is bad at the prefix before it (`SlotReader.BadIn`), its group flips in the
-log: the group of its nonce when a grinding nonce precedes it, whose proof of work the log
-passes, and the group of its state otherwise. The group's history is the prefix, by the chain's
-injectivity on the log, and the prefix decodes with the words its own roots give.
-`flipAt_of_bad` is its instance at leanVM's reader, on a transcript of the compiled protocol.
+collision, holding every step of the history from a start that opens a statement, its later states
+no starts, if a challenge of the decoded transcript is bad at the prefix before it
+(`SlotReader.BadIn`), its group flips in the log on the chain of that statement
+(`SlotReader.FlipAtFor`): the group of its nonce when a grinding nonce precedes it, whose proof of
+work the log passes, and the group of its state otherwise. The group's history is the prefix from
+the history's start, by the chain's injectivity on the log, and the prefix decodes with the words
+its own roots give.
+`flipAt_of_bad` is its instance at leanVM's reader, from a first state that opens the statement,
+on a transcript of the compiled protocol at the statement.
 -/
 
 namespace LeanerVM.Protocol
@@ -484,17 +487,20 @@ private def _root_.LeanerVM.Protocol.SlotReader.prefixOf (R : SlotReader) {a : R
   ⟨i.1.castSucc, prefixBefore tr i⟩
 
 /-- **A bad challenge of a decoded history flips its group**, for any reader whose prefixes are
-those of a decoder whose challenges read squeezes alone: on a log holding the history's steps,
-with no collision and no answer equal to the seed, the group of a challenge of the decoded
-transcript that is bad at the prefix before it is closed on it, its proof of work passing. -/
+those of a decoder whose challenges read squeezes alone: on a log with no collision holding the
+history's steps from a start that opens the statement `st`, its later states no starts, the group
+of a challenge of the decoded transcript that is bad at the prefix before it is closed on it, its
+proof of work passing, and its history starts at that start: a flip on the chain of `st`. -/
 private theorem _root_.LeanerVM.Protocol.SlotReader.flipAt_of_decoder (R : SlotReader)
-    {l : hashSpec.QueryLog} (hc : QueryLog.Consistent l) (hcoll : ¬ QueryLog.HasCollision l)
-    (hseed : ∀ e ∈ l, e.2 ≠ R.seed) {a : R.Ann} {hist : List Reading}
-    (hchain : ∀ e ∈ HashChain.queries Block.input R.seed hist, e ∈ l)
+    {l : hashSpec.QueryLog} {st : R.Stmt} (hc : QueryLog.Consistent l)
+    (hcoll : ¬ QueryLog.HasCollision l) {σ : Digest} (hσ : R.stmtAt l σ = some st) {a : R.Ann}
+    {hist : List Reading}
+    (hstates : ∀ x ∈ hist.map (·.2), R.isStart l x = false)
+    (hchain : ∀ e ∈ HashChain.queries Block.input σ hist, e ∈ l)
     (hobs : ∀ j < 10, ∃ x d, hist[j]? = some (.observe x, d))
-    (hann : ∀ hs : List Reading, 8 ≤ hs.length → hs <+: hist → R.announcementOf hs = some a)
+    (hann : ∀ hs : List Reading, 8 ≤ hs.length → hs <+: hist → R.announcementOf st hs = some a)
     (hpow : ∀ (j : ℕ) n d, hist[j]? = some (.nonce n, d) →
-      PowPasses R.powBits l (HashChain.last R.seed (hist.take j)) n)
+      PowPasses R.powBits l (HashChain.last σ (hist.take j)) n)
     (hnonce : ∀ (hs : List Reading) n d, R.wordsAt a l (hs ++ [(.nonce n, d)]) = R.wordsAt a l hs)
     (D : R.Words a → SlotDecoder Reading (R.spec a)) (f : ChalSlots (R.spec a))
     (hD : ∀ W hs, R.decodePrefix a W hs = (D W).decodePrefix hs)
@@ -505,7 +511,7 @@ private theorem _root_.LeanerVM.Protocol.SlotReader.flipAt_of_decoder (R : SlotR
     (hwords : ∀ c rest, hist = c ++ rest →
       (D (R.wordsAt a l c)).decodePrefix c = (D W).decodePrefix c)
     {tr : (R.spec a).FullTranscript} (hdec : (D W).decode hist = some tr)
-    (i : (R.spec a).ChallengeIdx) (hbad : R.BadIn tr i) : R.FlipAt l := by
+    (i : (R.spec a).ChallengeIdx) (hbad : R.BadIn tr i) : R.FlipAtFor l st := by
   have hcut := challenge_cut (hS W) (hO W) hP hdec i
   obtain ⟨c, hcut⟩ := hcut
   obtain ⟨ds₀, hcut⟩ := hcut
@@ -521,6 +527,7 @@ private theorem _root_.LeanerVM.Protocol.SlotReader.flipAt_of_decoder (R : SlotR
     exact (apply_heq (hm i) (hasm i) ds₀).symm
   have hl : hist = c ++ (squeezeBlocks (List.ofFn ds) ++ rest) := by rw [hds]; exact hl₀
   have hpos : 0 < (R.slot a i).m := R.slot_pos a i
+  have hstart : R.isStart l σ = true := by simp [ChainStarts.isStart, hσ]
   -- the history's first readings are observes
   have h10 : ∀ (j : ℕ) (b : Block) (d : Digest), hist[j]? = some (b, d) → (∀ x, b ≠ .observe x) →
       10 ≤ j := by
@@ -533,13 +540,13 @@ private theorem _root_.LeanerVM.Protocol.SlotReader.flipAt_of_decoder (R : SlotR
     h10 c.length .squeeze (ds ⟨0, hpos⟩) (by rw [hl]; exact getElem?_cut hpos ds)
       (fun x h ↦ nomatch h)
   -- the squeezes' queries and their run
-  have hqs : ∀ e ∈ HashChain.queries Block.input (HashChain.last R.seed c)
+  have hqs : ∀ e ∈ HashChain.queries Block.input (HashChain.last σ c)
       (squeezeBlocks (List.ofFn ds)), e ∈ l := by
     intro e he
     refine hchain e ?_
     rw [hl, HashChain.queries_append, HashChain.queries_append]
     exact List.mem_append_right _ (List.mem_append_left _ he)
-  have hrun : squeezeRun l (HashChain.last R.seed c) (R.slot a i).m = List.ofFn ds := by
+  have hrun : squeezeRun l (HashChain.last σ c) (R.slot a i).m = List.ofFn ds := by
     have := squeezeRun_of_chain hc _ _ hqs
     rwa [List.length_ofFn] at this
   have hgetD : (fun j : Fin (R.slot a i).m ↦ (List.ofFn ds).getD j default) = ds := by
@@ -563,33 +570,33 @@ private theorem _root_.LeanerVM.Protocol.SlotReader.flipAt_of_decoder (R : SlotR
     have htake : hist.take hs₀.length = hs₀ := by
       rw [hhist]
       simp
-    have hch : chainHistory l ⟨R.seed⟩ ⟨HashChain.last R.seed hs₀⟩ = some hs₀ := by
-      have := LeanVmReader.chainHistory_of_log (seed := ⟨R.seed⟩) hcoll hseed hchain hs₀.length
+    have hch : chainHistory l (R.isStart l) ⟨HashChain.last σ hs₀⟩ = some (σ, hs₀) := by
+      have := LeanVmReader.chainHistory_of_log hcoll hstart hstates hchain hs₀.length
       rwa [htake] at this
     have hdp : R.decodePrefix a (R.wordsAt a l hs₀) (hs₀ ++ [(.nonce n, default)]) =
         some (R.prefixOf tr i) := by
       rw [R.decodePrefix_digest_indep a _ hs₀ (.nonce n) default d [] (fun h ↦ nomatch h),
         ← hnonce hs₀ n d]
       exact hpre
-    have hgs : R.groupSlot l ⟨HashChain.last R.seed hs₀, some n⟩ =
+    have hgs : R.groupSlot l ⟨HashChain.last σ hs₀, some n⟩ =
         some ⟨a, i, prefixBefore tr i⟩ := by
       simp only [SlotReader.groupSlot, Group.nonceBlock, Option.toList_some, List.map_cons,
         List.map_nil]
-      simp only [hch, Option.bind_eq_bind, Option.bind_some, hann hs₀ (by omega)
+      simp only [hch, Option.bind_eq_bind, Option.bind_some, hσ, hann hs₀ (by omega)
         ⟨_, hhist.symm⟩, hdp, hasc]
       simp [hmk]
-    have hstart : MerkleTree.logAnswer l (absorbInput (HashChain.last R.seed hs₀) n) = some d :=
-      logAnswer_of_consistent hc (e := ⟨Block.input (HashChain.last R.seed hs₀) (.nonce n), d⟩)
+    have hstart : MerkleTree.logAnswer l (absorbInput (HashChain.last σ hs₀) n) = some d :=
+      logAnswer_of_consistent hc (e := ⟨Block.input (HashChain.last σ hs₀) (.nonce n), d⟩)
         (hchain _ (by
           rw [hhist, HashChain.queries_append]
           simp [HashChain.queries]))
-    have hlast : HashChain.last R.seed (hs₀ ++ [(.nonce n, d)]) = d := by
+    have hlast : HashChain.last σ (hs₀ ++ [(.nonce n, d)]) = d := by
       rw [HashChain.last_append]
       rfl
-    refine ⟨⟨HashChain.last R.seed hs₀, some n⟩, ?_⟩
+    refine ⟨⟨HashChain.last σ hs₀, some n⟩, ?_, (σ, hs₀), hch, hσ⟩
     unfold SlotReader.Flips
     rw [hgs]
-    have hgrun : Group.run l ⟨HashChain.last R.seed hs₀, some n⟩ (R.slot a i).m = List.ofFn ds := by
+    have hgrun : Group.run l ⟨HashChain.last σ hs₀, some n⟩ (R.slot a i).m = List.ofFn ds := by
       rw [← hrun, hlast]
       simp only [Group.run, Group.start?, hstart]
     refine ⟨?_, ?_, ?_⟩
@@ -605,20 +612,20 @@ private theorem _root_.LeanerVM.Protocol.SlotReader.flipAt_of_decoder (R : SlotR
     have htake : hist.take c.length = c := by
       rw [hl]
       simp
-    have hch : chainHistory l ⟨R.seed⟩ ⟨HashChain.last R.seed c⟩ = some c := by
-      have := LeanVmReader.chainHistory_of_log (seed := ⟨R.seed⟩) hcoll hseed hchain c.length
+    have hch : chainHistory l (R.isStart l) ⟨HashChain.last σ c⟩ = some (σ, c) := by
+      have := LeanVmReader.chainHistory_of_log hcoll hstart hstates hchain c.length
       rwa [htake] at this
-    have hgs : R.groupSlot l ⟨HashChain.last R.seed c, none⟩ =
+    have hgs : R.groupSlot l ⟨HashChain.last σ c, none⟩ =
         some ⟨a, i, prefixBefore tr i⟩ := by
       simp only [SlotReader.groupSlot, Group.nonceBlock, Option.toList_none, List.map_nil,
         List.append_nil]
-      simp only [hch, Option.bind_eq_bind, Option.bind_some, hann c (by omega)
+      simp only [hch, Option.bind_eq_bind, Option.bind_some, hσ, hann c (by omega)
         ⟨_, hl.symm⟩, hpre, hasc]
       simp [hmk']
-    refine ⟨⟨HashChain.last R.seed c, none⟩, ?_⟩
+    refine ⟨⟨HashChain.last σ c, none⟩, ?_, (σ, c), hch, hσ⟩
     unfold SlotReader.Flips
     rw [hgs]
-    have hgrun : Group.run l ⟨HashChain.last R.seed c, none⟩ (R.slot a i).m = List.ofFn ds := by
+    have hgrun : Group.run l ⟨HashChain.last σ c, none⟩ (R.slot a i).m = List.ofFn ds := by
       rw [← hrun]
       rfl
     refine ⟨?_, (fun _ h ↦ nomatch h), ?_⟩
@@ -627,18 +634,20 @@ private theorem _root_.LeanerVM.Protocol.SlotReader.flipAt_of_decoder (R : SlotR
       exact hbad'
 
 open LeanVmReader in
-/-- **A bad challenge of the verifier's history flips its group**: on a log holding the history's
-steps, with no collision and no answer equal to the seed, the group of a challenge of the decoded
-transcript that is bad at the prefix before it is closed on it, its proof of work passing. -/
+/-- **A bad challenge of the verifier's history flips its group**: on a log with no collision
+holding the history's steps from a first state `σ` that opens the statement `(prog, input)`, no
+later state of the history opening one, the group of a challenge of the decoded transcript that is
+bad at the prefix before it is closed on it, its proof of work passing, and its history starts at
+`σ`: a flip on the chain of `(prog, input)`. -/
 theorem flipAt_of_bad {prog : Program} {input : PublicInput} {l : hashSpec.QueryLog}
-    (hc : QueryLog.Consistent l) (hcoll : ¬ QueryLog.HasCollision l)
-    (hseed : ∀ e ∈ l, e.2 ≠ (FsState.seed prog input).cv) {a : Ann prog} {hist : List Reading}
-    (hchain : ∀ e ∈ HashChain.queries Block.input (FsState.seed prog input).cv hist, e ∈ l)
+    (hc : QueryLog.Consistent l) (hcoll : ¬ QueryLog.HasCollision l) {σ : Digest}
+    (hσ : stmtOf l σ = some (prog, input)) {a : Ann prog} {hist : List Reading}
+    (hstates : ∀ x ∈ hist.map (·.2), stmtOf l x = none)
+    (hchain : ∀ e ∈ HashChain.queries Block.input σ hist, e ∈ l)
     (hobs : ∀ j < 10, ∃ x d, hist[j]? = some (.observe x, d))
     (hann : announcementOf prog hist = some a)
     (hpow : ∀ (j : ℕ) n d, hist[j]? = some (.nonce n, d) →
-      PowPasses LeanerVM.Parameters.Whir.queryGrindingBits l
-        (HashChain.last (FsState.seed prog input).cv (hist.take j)) n)
+      PowPasses LeanerVM.Parameters.Whir.queryGrindingBits l (HashChain.last σ (hist.take j)) n)
     {W : LeanWords prog a.1.1 a.2.1 a.1.2 a.2.2}
     (hW : W = wordsOf prog input a.1.1 a.2.1 a.1.2 a.2.2 l hist)
     {tr : (deployedSpec Blake2sFlock.blake2sFlockSpec prog a.1.1 a.2.1 a.1.2 a.2.2).FullTranscript}
@@ -646,10 +655,19 @@ theorem flipAt_of_bad {prog : Program} {input : PublicInput} {l : hashSpec.Query
     (i : (deployedSpec Blake2sFlock.blake2sFlockSpec prog a.1.1 a.2.1 a.1.2 a.2.2).ChallengeIdx)
     (hbad : challengeAt tr i ∈ Bad Blake2sFlock.blake2sFlockSpec prog a.1.1 a.2.1 a.1.2 a.2.2
       (input, fun j ↦ j.elim0) i (prefixBefore tr i)) :
-    (leanVmReader prog input).FlipAt l := by
+    leanVmReader.FlipAtFor l (prog, input) := by
+  have hann' : ∀ hs : List Reading, 8 ≤ hs.length → hs <+: hist → announcementOf prog hs = some a :=
+    fun hs h8 hpfx ↦ by
+      rw [← hann]
+      unfold announcementOf
+      obtain ⟨r, rfl⟩ := hpfx
+      rw [List.take_append_of_le_length h8]
   dsimp only [leanVmReader]
-  refine SlotReader.flipAt_of_decoder _ (a := a) hc hcoll hseed hchain hobs
-    (fun hs h8 hpfx ↦ ?_) hpow (fun hs n d ↦ wordsOf_append_nonce prog input _ _ _ _ l hs n d)
+  -- the reader and the statement come from the goal, before the arguments are elaborated
+  refine SlotReader.flipAt_of_decoder _ (a := ⟨(prog, input), a⟩) hc hcoll (σ := σ)
+    hσ (fun x hx ↦ by simp [ChainStarts.isStart, hstates x hx]) hchain hobs
+    (fun hs h8 hpfx ↦ by simp only [hann' hs h8 hpfx, Option.map_some]) hpow
+    (fun hs n d ↦ wordsOf_append_nonce prog input _ _ _ _ l hs n d)
     (fun W ↦ decoder prog input a.1.1 a.2.1 a.1.2 a.2.2 W) (famAt a) (fun _ _ ↦ rfl)
     (fun W ↦ (readsWell_decoder prog input a W).squeezes)
     (fun W ↦ squeezesOnly_compiledDec (leanIsaInstance Blake2sFlock.blake2sFlockSpec prog a.1.1)
@@ -660,16 +678,11 @@ theorem flipAt_of_bad {prog : Program} {input : PublicInput} {l : hashSpec.Query
     (fun _ ↦ by dsimp only [UniformSlot.slotAt]) (fun _ ↦ by dsimp only [UniformSlot.slotAt]; rfl)
     (W := W) (tr := tr) (fun c rest h ↦ ?_) (by dsimp only; exact hdec) i
     (by dsimp only [SlotReader.BadIn]; exact hbad)
-  · show announcementOf prog hs = some a
-    rw [← hann]
-    unfold announcementOf
-    obtain ⟨r, rfl⟩ := hpfx
-    rw [List.take_append_of_le_length h8]
-  · have h' := DecodeAgree.decodePrefix_words_congr (prog := prog) (input := input) (s := a.1.1)
-      (hs := a.2.1) (ρ := a.1.2) (hρ := a.2.2) (W := wordsOf prog input a.1.1 a.2.1 a.1.2 a.2.2 l c)
-      (W' := W) (hist := c) (by rw [hW, h]; exact wordsOf_prefix prog input _ _ _ _ l c _)
-    unfold DecodeChain.decodePrefix at h'
-    exact h'
+  have h' := DecodeAgree.decodePrefix_words_congr (prog := prog) (input := input) (s := a.1.1)
+    (hs := a.2.1) (ρ := a.1.2) (hρ := a.2.2) (W := wordsOf prog input a.1.1 a.2.1 a.1.2 a.2.2 l c)
+    (W' := W) (hist := c) (by rw [hW, h]; exact wordsOf_prefix prog input _ _ _ _ l c _)
+  unfold DecodeChain.decodePrefix at h'
+  exact h'
 
 end Core
 

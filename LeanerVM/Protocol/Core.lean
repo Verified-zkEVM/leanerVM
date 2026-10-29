@@ -20,13 +20,19 @@ public import LeanerVM.Protocol.Replay
 
 On a run of the logged game (`Run`) whose joint log is consistent and whose verifier, replayed on
 that log, accepts, either the extractor finds a stack with `M3Holds` from the prover's log
-(`Extracts`), or the hash misbehaves on the run (`HashMisbehaves`): a collision on the joint log,
-a hit, or a flip of the verifier's own chain (`core`, and `core_of_mem_support` on a possible run
-of the game). With the random-oracle bound on misbehaving this is knowledge soundness in the
-random-oracle model (`verify_knowledgeSound_rom`).
+(`Extracts`), or the hash misbehaves on the run (`HashMisbehavesFrom []`): a collision on the
+joint log, a hit, or a flip on the chain of the statement, read by leanVM's reader
+(`leanVmReader.FlipFor (prog, input)`) (`core`, and `core_of_mem_support` on a possible run of the
+game). A flip on the chain of the statement is a flip (`SlotReader.flip_of_flipFor`), so with the
+random-oracle bound on misbehaving this is knowledge soundness in the random-oracle model
+(`verify_knowledgeSound_rom`). The core is deterministic in the run and the statement, so it
+applies as well at a statement the prover chose.
 
-The argument is by contradiction: no collision, no hit and no flip. The accepted replay walks the
-chain and the openings, and the algebra accepts their wire and rows (`ChainLog.accepts_of_replay`).
+The argument is by contradiction: no collision, no hit and no flip. The accepted replay hashes the
+statement's seed, walks the chain from its first state and the openings, and the algebra accepts
+their wire and rows (`ChainLog.accepts_of_replay`). The first state opens the statement and no
+later state of the chain opens one (`start_of_seedWith`), so the reader's history of every state
+of the chain is the chain from it.
 The chain walk's history decodes, with the words read off the joint log under the roots the
 history carries, to a transcript of the compiled protocol whose wire is the walk's
 (`LeanVmReader.walkChainLogged_proof_decodes`) and whose rows are those the openings authenticate
@@ -34,7 +40,8 @@ history carries, to a transcript of the compiled protocol whose wire is the walk
 (`solved_of_decode`), so the compiled verifier accepts it (`Compile.compiled_of_algebra`). The
 state function of the compiled protocol's round-by-round knowledge soundness is then true at the
 transcript's end. Walking it back, a challenge that turns it from false to true is bad and its
-group flips (`flipAt_of_bad`); with no flip it is true after the commitment, where it says the
+group flips, its history starting at the chain's first state, which opens the statement
+(`flipAt_of_bad`); with no flip it is true after the commitment, where it says the
 commitment's pick finds a stack (`listBinding_deployed_kSF_one`). The committed word is the
 level-0 word read off the joint log under the proof's level-0 root, which with no hit is the word
 read off the prover's log (`extractRows_determined`): the word the extractor picks from.
@@ -79,7 +86,7 @@ private theorem logWord_congr {l l' : hashSpec.QueryLog} {root : Digest}
 verifier fresh with respect to the prover's log is answered by a root of the proof, or by a
 child of a node the prover asked. -/
 private theorem not_freshHit_roots {prog : Program} {input : PublicInput} {g : Run}
-    (hcons : QueryLog.Consistent g.log) (hhit : ¬ Hit (rootsOf prog input) prog input g) :
+    (hcons : QueryLog.Consistent g.log) (hhit : ¬ HitFrom [] (rootsOf prog input) g) :
     ¬ MerkleTree.FreshHit nodeOfBytes? (rootsOf prog input g.proof) g.logA g.logV := by
   intro h
   obtain ⟨k, hk, hfresh, hfirst, hknown⟩ := h.first hcons
@@ -105,7 +112,7 @@ private theorem not_freshHit_roots {prog : Program} {input : PublicInput} {g : R
     exact hr
   · refine .inl ⟨⟨g.logA.length + k, hlen⟩, hfr, ?_⟩
     rw [hget]
-    show g.logV[k].2 ∈ inPlay (seedDigests prog input) (g.log.take (g.logA.length + k))
+    show g.logV[k].2 ∈ inPlay [] (g.log.take (g.logA.length + k))
     rw [htake]
     obtain ⟨p, hp, rfl⟩ := List.mem_iff_getElem.mp he
     refine inPlay_mono _ (g.logA.take p ++ [g.logA[p]]) _ ?_ _
@@ -200,32 +207,34 @@ private theorem extract_isSome (F : FlockSpec) (prog : Program) (input : PublicI
 /-- **The core of knowledge soundness in the random-oracle model**: on a run of the game whose
 joint log is consistent, whose verifier replayed on the joint log accepts, and from whose prover's
 log the extractor finds no stack with `M3Holds`, the hash misbehaves: a collision on the joint log,
-a hit, or a flip of the verifier's own chain. -/
+a hit, or a flip on the chain of the statement the verifier checks. -/
 theorem core {prog : Program} {input : PublicInput} {g : Run}
     (hc : QueryLog.Consistent g.log)
     (hV : replay g.log prog input g.proof = some (true, g.logV))
     (hX : ¬ Extracts Blake2sFlock.blake2sFlockSpec prog input g.proof g.logA) :
-    HashMisbehaves (rootsOf prog input) (leanVmReader prog input).Flip prog input g := by
+    HashMisbehavesFrom [] (rootsOf prog input) (leanVmReader.FlipFor (prog, input)) g := by
   by_contra hmis
-  simp only [HashMisbehaves, not_or] at hmis
+  simp only [HashMisbehavesFrom, not_or] at hmis
   obtain ⟨hcoll, hhit, hflip⟩ := hmis
   -- the accepted replay
-  obtain ⟨s, ρ, levels, w, st₁, log₁, rows, st₂, log₂, hsetup, hl, hrc, hro, halg, hpre⟩ :=
-    ChainLog.accepts_of_replay hV
+  obtain ⟨s, ρ, levels, fs, log₀, w, st₁, log₁, rows, st₂, log₂, hsetup, hl, hseed, hrc, hro, halg,
+    hpre⟩ := ChainLog.accepts_of_replay hV
   obtain ⟨hist, hwl, ⟨L₁, hL₁, hq₁⟩, -⟩ := ChainLog.walkChain_log _ hrc
   obtain ⟨L₂, hL₂, hinv⟩ := nonceChecked_of_walkChain hrc
   obtain rfl : L₁ = L₂ := by simpa using hL₁.symm.trans hL₂
   obtain ⟨hs, hρ, hdecW⟩ := walkChainLogged_proof_decodes hsetup hl hwl
   obtain ⟨hread, hst⟩ := DecodeChain.walkChain_history _ hwl
   have hshapes := shapes_leanIsaChain hs hρ hl
-  -- the history: in the log, opening with the announcement, its nonces passing their checks
-  have hchain : ∀ e ∈ HashChain.queries Block.input (FsState.seed prog input).cv hist,
-      e ∈ g.log := fun e he ↦
-    List.mem_append_right _ (hpre.subset (by rw [hL₁]; exact List.mem_append_right _ (hq₁ e he)))
+  -- the history: in the log from the first state, which opens the statement while no later state
+  -- opens one, opening with the announcement, its nonces passing their checks
+  have hlog₁ : ∀ e ∈ log₁, e ∈ g.log := fun e he ↦ List.mem_append_right _ (hpre.subset he)
+  have hchain : ∀ e ∈ HashChain.queries Block.input fs.cv hist, e ∈ g.log := fun e he ↦
+    hlog₁ e (by rw [hL₁]; exact List.mem_append_right _ (hq₁ e he))
+  obtain ⟨hσ, hstates⟩ := start_of_seedWith hseed
+    (fun e he ↦ hlog₁ e (by rw [hL₁]; exact List.mem_append_left _ he)) hcoll hchain
   have hobs := observes_of_walkChain hread
   have hann := announcementOf_of_setup hsetup hs hρ hst hobs
-  have hseed := seed_not_answer hc fun h ↦ hhit (.inl h)
-  have hpow := powPasses_of_history hcoll hseed hchain fun e he ↦ hinv e (hq₁ e he)
+  have hpow := powPasses_of_history hcoll (hobs 0 (by omega)) hchain fun e he ↦ hinv e (hq₁ e he)
   -- the transcript decoded with the words read off the joint log
   obtain ⟨W, hW⟩ : ∃ W, W = wordsOf prog input s hs ρ hρ g.log hist := ⟨_, rfl⟩
   obtain ⟨tr, hdec, hwire⟩ := hdecW W
@@ -304,7 +313,7 @@ theorem core {prog : Program} {input : PublicInput} {g : Run}
     ((listBinding_deployed Blake2sFlock.blake2sFlockSpec prog a.1.1 a.2.1 a.1.2 a.2.2).kSF
       (pure ()) noSharedOracle) _ tr hfull
     fun i w' h ↦ Classical.byContradiction fun hneg ↦
-      hflip (flipAt_of_bad (a := a) hc hcoll hseed hchain hobs hann hpow hW hdec i (by
+      hflip (flipAt_of_bad (a := a) hc hcoll hσ hstates hchain hobs hann hpow hW hdec i (by
         unfold Bad
         dsimp only [deployedSpec] at hneg h ⊢
         exact ⟨w', hneg, h⟩))
@@ -322,13 +331,14 @@ theorem core {prog : Program} {input : PublicInput} {g : Run}
 
 /-- **The core on a possible run of the game**: on a run of the game whose joint log is
 consistent and whose verdict accepts, if the extractor finds no stack with `M3Holds` from the
-prover's log, the hash misbehaves. A run under BLAKE2s or under the lazy random oracle is such a
-possible run (`mem_support_runBlake2s`, `mem_support_runRandom`). -/
+prover's log, the hash misbehaves, a flip being one on the chain of the statement. A run under
+BLAKE2s or under the lazy random oracle is such a possible run (`mem_support_runBlake2s`,
+`mem_support_runRandom`). -/
 theorem core_of_mem_support {prog : Program} {input : PublicInput} {A : Adversary} {g : Run}
     (hg : g ∈ support (loggedGame verifyWith prog input A)) (hc : QueryLog.Consistent g.log)
     (hok : g.ok = true)
     (hX : ¬ Extracts Blake2sFlock.blake2sFlockSpec prog input g.proof g.logA) :
-    HashMisbehaves (rootsOf prog input) (leanVmReader prog input).Flip prog input g :=
+    HashMisbehavesFrom [] (rootsOf prog input) (leanVmReader.FlipFor (prog, input)) g :=
   core hc (by rw [replay_of_mem_support_loggedGame hg hc, hok]) hX
 
 /-! ## Knowledge soundness in the random-oracle model -/
@@ -336,15 +346,16 @@ theorem core_of_mem_support {prog : Program} {input : PublicInput} {A : Adversar
 /-- **Knowledge soundness of the verifier in the random-oracle model.** With the hash a uniformly
 random function and an adversary `A` of at most `Q` queries, the game's verifier accepts `A`'s
 proof while the extractor finds no stack with `M3Holds` from `A`'s queries with probability at
-most `(Q + 13697) / 2^128` (the challenges) plus `hashTerm 13697 Q` (collisions and hits).
-Selective: the program and the public input are fixed before `A` runs. -/
+most `(Q + 13700) / 2^128` (the challenges) plus `hashTerm 13700 Q` (collisions and hits), the
+program and the public input fixed before `A` runs. -/
 theorem verify_knowledgeSound_rom (prog : Program) (input : PublicInput) (A : Adversary) {Q : ℕ}
     (hQ : IsTotalQueryBound A Q) :
     Pr{let z ← runRandom (loggedGame verifyWith prog input A)}[
       z.1.ok = true ∧ ¬ Extracts Blake2sFlock.blake2sFlockSpec prog input z.1.proof z.1.logA] ≤
-      ((Q + 13697 : ℕ) / 2 ^ 128 + hashTerm 13697 Q : ℝ≥0) :=
+      ((Q + 13700 : ℕ) / 2 ^ 128 + hashTerm 13700 Q : ℝ≥0) :=
   (OracleComp.prEvent_mono_of_support _ fun _ hz h ↦
-    core_of_mem_support (mem_support_runRandom hz).1 (mem_support_runRandom hz).2 h.1 h.2).trans
+    (core_of_mem_support (mem_support_runRandom hz).1 (mem_support_runRandom hz).2 h.1 h.2).mono
+      fun _ ↦ leanVmReader.flip_of_flipFor).trans
     (leanVm_misbehaves_rom_closed prog input A hQ)
 
 end Core

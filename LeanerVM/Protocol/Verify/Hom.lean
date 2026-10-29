@@ -14,14 +14,17 @@ public import VCVio.OracleComp.SimSemantics.SimulateQ
 /-!
 # The verifier along a monad morphism
 
-`verifyWith H` is written once over the hash `H : List UInt8 → m Digest`. `verifyWith_hom`: for
-a monad morphism `φ : m →ᵐ m'`, `φ (verifyWith H prog input proof)` is
-`verifyWith (fun t ↦ φ (H t)) prog input proof`. `verifyWith_simulateQ` is the instance at
-VCVio's `simulateQ impl`: the verifier with every hash a query to the oracle
-`List UInt8 →ₒ Digest`, simulated by `impl`, is the verifier with `impl` answering, so the
-random-oracle run, the BLAKE2s run and a logged run are one function at three hashes;
-`verifyWith_pure` makes the BLAKE2s run, answering by `pure (blake2sBytes t)`, `pure` of
-`verify`.
+`verifyFrom H seed` is written once over the hash `H : List UInt8 → m Digest` and the start
+`seed : m FsState`. `verifyFrom_hom`: for a monad morphism `φ : m →ᵐ m'`, mapping
+`verifyFrom H seed` by `φ` is `verifyFrom (fun t ↦ φ (H t)) (φ seed)`; `FsState.seedWith_hom`
+carries the seed's hashes, and `verifyWith_hom` is the instance at the statement's seed computed
+through `H`.
+`verifyWith_simulateQ` is the instance at VCVio's `simulateQ impl`: the verifier with every hash
+a query to the oracle `List UInt8 →ₒ Digest`, simulated by `impl`, is the verifier with `impl`
+answering, so the random-oracle run, the BLAKE2s run and a logged run are one function at three
+hashes; `verifyWith_pure` makes the BLAKE2s run, answering by `pure (blake2sBytes t)`, `pure` of
+`verify`. `verifyFrom_simulateQ` and `FsState.seedWith_simulateQ` are the same for any start and
+for the seed's hashes.
 
 Lean has no parametricity theorem, so the transport is proved through the definitions: the
 chain's steps, the reader's operations along the lifted morphism `ReadM.mapHom φ`, the Merkle
@@ -54,6 +57,22 @@ private theorem sample_hom (s : FsState) : φ (s.sample H) = s.sample (fun t ↦
 private theorem checkPow_hom (s : FsState) (bits : ℕ) (nonce : E) :
     φ (s.checkPow H bits nonce) = s.checkPow (fun t ↦ φ (H t)) bits nonce := by
   simp [checkPow, powBase, powOk, absorbNonce]
+
+/-- The seed's hashes, mapped along a monad morphism, are the seed's hashes at the mapped hash. -/
+theorem seedWith_hom (prog : Program) (input : PublicInput) :
+    φ (seedWith H prog input) = seedWith (fun t ↦ φ (H t)) prog input := by
+  simp [seedWith]
+
+/-- The seed's hashes as queries to the oracle, simulated by `impl`, are the seed's hashes with
+`impl` answering. -/
+theorem seedWith_simulateQ {r : Type → Type} [Monad r] [LawfulMonad r]
+    (impl : QueryImpl (List UInt8 →ₒ Digest) r) (prog : Program) (input : PublicInput) :
+    simulateQ impl (seedWith (fun t ↦ liftM ((List UInt8 →ₒ Digest).query t)) prog input) =
+      seedWith impl prog input := by
+  have h := seedWith_hom (simulateQ' impl) (fun t ↦ liftM ((List UInt8 →ₒ Digest).query t))
+    prog input
+  simp only [simulateQ_spec_query] at h
+  exact h
 
 end FsState
 
@@ -261,11 +280,13 @@ theorem readerOps_hom :
   simp only [ChainOps.map, readerOps, Reader.nextScalar_hom, Reader.sample_hom,
     Reader.nextRoot_hom, Reader.checkPow_hom, Reader.nextOpening_hom, merkleVerifyWith_hom]
 
-/-- **The verifier along a monad morphism**: a run of `verifyWith H`, mapped by `φ`, is the run
-of `verifyWith` with every hash's answer mapped. -/
-theorem verifyWith_hom (prog : Program) (input : PublicInput) (proof : Proof PrunedMerklePaths) :
-    φ (verifyWith H prog input proof) = verifyWith (fun t ↦ φ (H t)) prog input proof := by
-  unfold verifyWith
+/-- **The verifier from a computed start along a monad morphism**: a run of `verifyFrom H seed`,
+mapped by `φ`, is the run of `verifyFrom` with every hash's answer and the start mapped. -/
+theorem verifyFrom_hom (seed : m FsState) (prog : Program) (input : PublicInput)
+    (proof : Proof PrunedMerklePaths) :
+    φ (verifyFrom H seed prog input proof) =
+      verifyFrom (fun t ↦ φ (H t)) (φ seed) prog input proof := by
+  unfold verifyFrom
   split
   · simp
   · split
@@ -275,8 +296,15 @@ theorem verifyWith_hom (prog : Program) (input : PublicInput) (proof : Proof Pru
       · simp
       · simp only [MonadHom.mmap_bind, ReadM.run'_mapHom, walkProof_hom, readerOps_hom,
           Reader.finish_hom, MonadHom.mmap_pure]
-        congr 1; funext r
+        congr 1; funext fs; congr 1; funext r
         cases r <;> simp
+
+/-- **The verifier along a monad morphism**: a run of `verifyWith H`, mapped by `φ`, is the run
+of `verifyWith` with every hash's answer mapped. -/
+theorem verifyWith_hom (prog : Program) (input : PublicInput) (proof : Proof PrunedMerklePaths) :
+    φ (verifyWith H prog input proof) = verifyWith (fun t ↦ φ (H t)) prog input proof := by
+  rw [verifyWith, verifyFrom_hom, FsState.seedWith_hom]
+  rfl
 
 /-- **The deterministic run**: the verifier with every hash answered by `pure (H t)` in a lawful
 monad is `pure` of the verifier in `Id`; at `H := blake2sBytes`, of `verify`. -/
@@ -299,6 +327,19 @@ theorem verifyWith_simulateQ {r : Type → Type} [Monad r] [LawfulMonad r]
       verifyWith impl prog input proof := by
   have h := verifyWith_hom (simulateQ' impl)
     (fun t ↦ liftM ((List UInt8 →ₒ Digest).query t)) prog input proof
+  simp only [simulateQ_spec_query] at h
+  exact h
+
+/-- The verifier from a computed start, every hash a query to the oracle, simulated by `impl`, is
+the verifier with `impl` answering, from the simulated start. -/
+theorem verifyFrom_simulateQ {r : Type → Type} [Monad r] [LawfulMonad r]
+    (impl : QueryImpl (List UInt8 →ₒ Digest) r) (seed : OracleComp (List UInt8 →ₒ Digest) FsState)
+    (prog : Program) (input : PublicInput) (proof : Proof PrunedMerklePaths) :
+    simulateQ impl
+        (verifyFrom (fun t ↦ liftM ((List UInt8 →ₒ Digest).query t)) seed prog input proof) =
+      verifyFrom impl (simulateQ impl seed) prog input proof := by
+  have h := verifyFrom_hom (simulateQ' impl)
+    (fun t ↦ liftM ((List UInt8 →ₒ Digest).query t)) seed prog input proof
   simp only [simulateQ_spec_query] at h
   exact h
 

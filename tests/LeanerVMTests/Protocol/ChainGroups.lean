@@ -4,8 +4,8 @@ import LeanerVM.Protocol.ChainGroups
 # The groups of a chain's challenges: tests
 
 A toy reader of two rounds, a nonce message and then a challenge of one squeeze that a proof of
-work precedes: a history reads its nonce step and its squeeze, at one announcement. The reader's
-facts hold of it, so `SlotReader` has an inhabitant.
+work precedes: a history reads its nonce step and its squeeze, at one announcement, from any
+starts. The reader's facts hold of it, so `SlotReader` has an inhabitant.
 
 On logs of hash queries answered by hand-picked digests (the answers of a random oracle, so no
 hashing is needed), from the seed:
@@ -16,6 +16,9 @@ hashing is needed), from the seed:
 * asked in the other order, the absorption first, the group opens at the absorption;
 * the challenge's squeeze is the next query of the group once the nonce is absorbed, and closes
   it on a bad challenge: the group flips, at probability `1`, and did not before the squeeze;
+* the flip is on the chain of the statement the seed opens (`FlipAtFor`), and a flip on a
+  statement's chain is a flip; with a second start opening a second statement, the log has no
+  flip on that statement's chain (`not_flipAtFor_true`): the start is not in play;
 * with the challenge unmarked, the nonce's group fixes nothing, and the plain group at the
   nonce's answer fixes it, opened and closed by its one squeeze;
 * a log whose base is answered by the seed has a hit, and a check answered by its own base is a
@@ -96,12 +99,12 @@ theorem toyDecode_one {hs : List (Block × Digest)} {tr : toySpec.Transcript 1}
   · cases b <;> cases b' <;> (try cases rest) <;>
       simp [toyDecode, toyDecodeView, readingView] at h
 
-/-- The toy reader. -/
-def toyReader (seed : Digest) : SlotReader where
-  seed := seed
+/-- The toy reader, its histories starting where `S` says. -/
+def toyReaderOn (S : ChainStarts) : SlotReader where
+  toChainStarts := S
   powBits := 1
   Ann := Unit
-  announcementOf _ := some ()
+  announcementOf _ _ := some ()
   n _ := 2
   spec _ := toySpec
   sampleable _ i := toySampleable i
@@ -140,6 +143,9 @@ def toyReader (seed : Digest) : SlotReader where
   slot_pos _ i := by
     obtain rfl := eq_chal i
     decide
+
+/-- The toy reader from one seed. -/
+abbrev toyReader (seed : Digest) : SlotReader := toyReaderOn (.startAt seed)
 
 /-- The toy reader with its challenge unmarked: no proof of work precedes it. -/
 def plainReader (seed : Digest) : SlotReader :=
@@ -217,6 +223,47 @@ def log₃ : hashSpec.QueryLog := log₂ ++ [⟨squeezeInput (d 3), d 4⟩]
 -- nothing.
 #guard R.groupSlot log₀ ⟨d 1, some n₁⟩ = none
 
+/-! ## Two statements -/
+
+/-- Another statement's seed. -/
+def s₁ : Digest := d 50
+
+/-- Two starts: the seed opens the statement `false`, and `s₁` the statement `true`. -/
+def twoStarts : ChainStarts where
+  Stmt := Bool
+  stmtAt _ x := if x = s₀ then some false else if x = s₁ then some true else none
+  stmtAt_append _ _ _ _ _ _ := rfl
+  stmtAt_dedupKeys _ _ _ := rfl
+
+/-- The toy reader from the two starts. -/
+abbrev R₂ : SlotReader := toyReaderOn twoStarts
+
+/-- The group of `n₁` flips at the two starts as at one. -/
+theorem flips₃' : R₂.Flips log₃ G₁ := by
+  unfold SlotReader.Flips
+  rw [show R₂.groupSlot log₃ G₁ = some ⟨(), chal, fun i ↦ match i with | ⟨0, _⟩ => n₁⟩ from rfl]
+  refine ⟨rfl, fun n hn ↦ ?_, rfl⟩
+  obtain rfl : n = n₁ := (Option.some.inj hn).symm
+  exact ⟨d 1, d 2, rfl, rfl, rfl⟩
+
+-- Its history starts at the seed: a flip on the chain of the statement `false`.
+example : R₂.FlipAtFor log₃ false := ⟨G₁, flips₃', (s₀, []), rfl, rfl⟩
+
+/-- **No flip on the chain of the other statement**, though the log has a flip: a flipping group
+has a logged query, so its history starts in play, and `s₁` is not in play. -/
+theorem not_flipAtFor_true : ¬ R₂.FlipAtFor log₃ true := by
+  rintro ⟨G, hG, ⟨σ, hs⟩, hch, hst⟩
+  have hin : σ ∈ inPlay [] log₃ := by
+    rcases (start_of_chainHistory hch []).2 with h | h
+    · obtain ⟨q, x, hq, hcv⟩ := Group.exists_query_of_asked (R₂.complete_of_flips hG).2.2
+      exact h ▸ mem_inPlay_of_logAnswer hq hcv
+    · exact h
+  change (if σ = s₀ then some false else if σ = s₁ then some true else none) = some true at hst
+  split_ifs at hst with h₀ h₁
+  · cases hst
+  · subst h₁
+    exact absurd hin (by decide)
+
 /-! ## A plain group -/
 
 /-- The toy reader with its challenge unmarked, from the seed. -/
@@ -266,6 +313,11 @@ theorem flips₃ : R.Flips log₃ G₁ := by
 -- So the log has a flip, at probability `1`.
 example : R.FlipAt log₃ := ⟨G₁, flips₃⟩
 example : R.π log₃ G₁ = 1 := R.π_eq_one_of_flips flips₃
+
+-- The group's history is the empty one from the seed, which opens the one statement: the flip is
+-- on that statement's chain. A flip on a statement's chain is a flip.
+example : R.FlipAtFor log₃ () := ⟨G₁, flips₃, (s₀, []), rfl, rfl⟩
+example (st : Unit) (g : Run) (h : R.FlipFor st g) : R.Flip g := R.flip_of_flipFor h
 
 -- Before the squeeze the group is not closed, so it does not flip.
 example : ¬ R.Flips log₂ G₁ := fun h ↦ by
@@ -389,10 +441,10 @@ theorem pairDecode_start {hs : List (Block × Digest)} {k : Fin 4} {tr : pairSpe
 
 /-- The two-challenge reader, both challenges unmarked. -/
 def pairReader (seed : Digest) : SlotReader where
-  seed := seed
+  toChainStarts := .startAt seed
   powBits := 1
   Ann := Unit
-  announcementOf _ := some ()
+  announcementOf _ _ := some ()
   n _ := 3
   spec _ := pairSpec
   sampleable _ i := pairSampleable i

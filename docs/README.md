@@ -43,6 +43,12 @@ This directory contains stable project and operating knowledge.
     named extractor, public lines, the strong Flock predicate).
   - [protocol-survey-record.md](reviews/protocol-survey-record.md): the proof system's survey
     log up to 2026-09-29, archived from its status file.
+  - [adaptive-blake2s.md](reviews/adaptive-blake2s.md): the review of the adaptive headline at
+    BLAKE2s and the bytecode hypothesis (2026-10-27), whose findings the branch now meets (the
+    necessity claim narrowed to constraint soundness, one extractor through the trace interface).
+  - [adaptive-rom.md](reviews/adaptive-rom.md): the review of the adaptive random-oracle theorems
+    (2026-10-27), whose findings the branches now meet (the hypothesis's flips on the chosen
+    statement's chain, the arithmetization wall, the deleted event names).
   - [protocol-layer1.md](reviews/protocol-layer1.md): the review of the proof system's Layer 1
     (2026-09-29), whose findings the branch now meets (a column claim as a weighted claim, the
     aligned layout in an instance's layout field, the bit order of the bytecode column stated

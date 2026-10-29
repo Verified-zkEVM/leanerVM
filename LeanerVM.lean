@@ -24,6 +24,7 @@ import LeanerVM.Parameters.Isa
 import LeanerVM.Parameters.ToCompPoly.BF64Fast
 import LeanerVM.Parameters.ToCompPoly.ExtensionFast
 import LeanerVM.Parameters.Whir
+import LeanerVM.Protocol.AdaptiveGame
 import LeanerVM.Protocol.Blake2sCircuit
 import LeanerVM.Protocol.Blake2sHash
 import LeanerVM.Protocol.Blake2sHashFast
@@ -100,6 +101,7 @@ import LeanerVM.Protocol.Spine.Phase
 import LeanerVM.Protocol.Spine.Seams
 import LeanerVM.Protocol.Spine.Toy
 import LeanerVM.Protocol.Stack
+import LeanerVM.Protocol.StatementSeeds
 import LeanerVM.Protocol.TableSumcheck
 import LeanerVM.Protocol.ToArkLib.AppendLazy
 import LeanerVM.Protocol.ToArkLib.Batch
@@ -258,3 +260,4 @@ import LeanerVM.Semantics.RunTrace
 import LeanerVM.Semantics.Step
 import LeanerVM.Semantics.TraceInput
 import LeanerVM.Semantics.Walk
+import LeanerVM.Semantics.WellFormedBytecode

@@ -27,6 +27,11 @@ and digests in play; a query asked again with another answer is inconsistent, an
 keeps the first answer; a hit survives deduplication. One more query answered by a digest not in
 play leaves the last state's history as it was; the late log, whose second answer is in play,
 makes a history appear.
+
+Where a history starts: the walk tests for a start before it looks for a step, so it stops at a
+start whose own query parses as a step, on a toy chain of numbers and on a chain log whose start
+is the answer of an observe step; one fixed seed reads the whole chain, and with no start the walk
+gives nothing.
 -/
 
 namespace LeanerVMTests.Protocol.RandomOracle
@@ -167,6 +172,10 @@ def loggedHash (t : List UInt8) : StateM Log Digest := do
 /-- The test chain's seed. -/
 def seed : FsState := ⟨blake2sBytes [1, 2, 3]⟩
 
+/-- The history of a state from the seed. -/
+abbrev seedHistory (log : Log) (s : FsState) : Option (Digest × List (Block × Digest)) :=
+  chainHistory log (HashChain.isSeed seed.cv) s
+
 /-- The observed elements. -/
 def x : E := E.ofLimbs (K.ofBits 5) (K.ofBits 6) (K.ofBits 7)
 
@@ -204,18 +213,18 @@ def blocks : List Block :=
 #guard !decide (QueryLog.HasHit (inPlay [seed.cv]) honestLog)
 
 -- The history of the last state is the chain: its blocks, and the answers of its step queries.
-#guard (chainHistory honestLog seed final).map (·.map (·.1)) = some blocks
-#guard (chainHistory honestLog seed final).map (·.map (·.2)) =
+#guard (seedHistory honestLog final).map (·.2.map (·.1)) = some blocks
+#guard (seedHistory honestLog final).map (·.2.map (·.2)) =
   some ((honestLog.eraseIdx 3).map (·.2))
 
 -- Before the last squeeze is asked, the history of the state it squeezes is the chain so far.
-#guard (chainHistory (honestLog.take 5) seed ⟨honestLog[4]!.2⟩).map (·.map (·.1)) =
+#guard (seedHistory (honestLog.take 5) ⟨honestLog[4]!.2⟩).map (·.2.map (·.1)) =
   some (blocks.take 4)
 
 -- The grinding base is not a step but starts from the state after the first squeeze: before it
 -- is asked, that state's history is the chain so far.
 #guard honestLog[2]!.2 ∈ halves honestLog[3]!.1
-#guard (chainHistory (honestLog.take 3) seed ⟨honestLog[2]!.2⟩).map (·.map (·.1)) =
+#guard (seedHistory (honestLog.take 3) ⟨honestLog[2]!.2⟩).map (·.2.map (·.1)) =
   some (blocks.take 3)
 
 /-- A digest whose last 64-bit lane is the observe tag. -/
@@ -234,8 +243,8 @@ def sharedLog : Log := honestLog.take 3 ++ [node] ++ honestLog.drop 3
 -- The node is one more entry: the chain's history is unchanged, and the node's own history is
 -- the chain to the first squeeze and one more step.
 #guard !decide (QueryLog.HasCollision sharedLog)
-#guard chainHistory sharedLog seed final = chainHistory honestLog seed final
-#guard (chainHistory sharedLog seed ⟨node.2⟩).map (·.map (·.1)) =
+#guard seedHistory sharedLog final = seedHistory honestLog final
+#guard (seedHistory sharedLog ⟨node.2⟩).map (·.2.map (·.1)) =
   some (blocks.take 3 ++ ((Block.parse? node.1).map (·.2)).toList)
 
 /-! ## The step parser -/
@@ -258,18 +267,18 @@ def d (n : UInt32) : Digest := #v[n, 0, 0, 0, 0, 0, 0, 0]
 def collidingLog : Log := honestLog ++ [⟨Block.input seed.cv (.observe y), honestLog[0]!.2⟩]
 
 #guard decide (QueryLog.HasCollision collidingLog)
-#guard chainHistory collidingLog seed final = none
+#guard seedHistory collidingLog final = none
 
 -- An answer equal to the seed: the chain's first state is the seed, and the history stops there.
 /-- A chain whose first step leads back to the seed. -/
 def seedSteps : List (Block × Digest) := [(.observe x, seed.cv), (.squeeze, d 2)]
 
 #guard !decide (QueryLog.HasCollision (HashChain.queries Block.input seed.cv seedSteps))
-#guard chainHistory (HashChain.queries Block.input seed.cv seedSteps) seed ⟨d 2⟩ =
-  some [(.squeeze, d 2)]
+#guard seedHistory (HashChain.queries Block.input seed.cv seedSteps) ⟨d 2⟩ =
+  some (seed.cv, [(.squeeze, d 2)])
 -- The same chain with a fresh first state is recovered.
-#guard chainHistory (HashChain.queries Block.input seed.cv [(.observe x, d 1), (.squeeze, d 2)])
-  seed ⟨d 2⟩ = some [(.observe x, d 1), (.squeeze, d 2)]
+#guard seedHistory (HashChain.queries Block.input seed.cv [(.observe x, d 1), (.squeeze, d 2)])
+  ⟨d 2⟩ = some (seed.cv, [(.observe x, d 1), (.squeeze, d 2)])
 
 -- A hit on a half of an earlier input: the query from `d 1` is asked before the query that
 -- produces `d 1`. The whole log has the history; the log before the query from `d 1` does not.
@@ -280,8 +289,8 @@ def lateLog : Log :=
 #guard decide (QueryLog.Consistent lateLog)
 #guard !decide (QueryLog.HasCollision lateLog)
 #guard decide (QueryLog.HasHit (inPlay [seed.cv]) lateLog)
-#guard chainHistory lateLog seed ⟨d 1⟩ = some [(.observe x, d 1)]
-#guard chainHistory (lateLog.take 0) seed ⟨d 1⟩ = none
+#guard seedHistory lateLog ⟨d 1⟩ = some (seed.cv, [(.observe x, d 1)])
+#guard seedHistory (lateLog.take 0) ⟨d 1⟩ = none
 
 -- A root absorbed as two observes is in play: a fresh node answered by it is a hit, which the
 -- halves of the inputs alone do not show.
@@ -311,7 +320,7 @@ def doubledLog : Log := honestLog ++ honestLog
 -- history nor the digests in play.
 #guard decide (QueryLog.Consistent doubledLog)
 #guard List.dedupKeys doubledLog = honestLog
-#guard chainHistory doubledLog seed final = chainHistory (List.dedupKeys doubledLog) seed final
+#guard seedHistory doubledLog final = seedHistory (List.dedupKeys doubledLog) final
 #guard (inPlay [seed.cv] doubledLog).all (· ∈ inPlay [seed.cv] (List.dedupKeys doubledLog))
 
 -- A repeated query with a second answer: the log is not consistent, and deduplication keeps
@@ -335,13 +344,37 @@ def reansweredLog : Log := honestLog ++ [⟨honestLog[0]!.1, d 9⟩]
 -- A query answered by a digest not in play leaves every other history as it was, here with a
 -- squeeze from the last state.
 #guard !(d 99 ∈ inPlay [seed.cv] honestLog)
-#guard chainHistory (honestLog ++ [⟨Block.input final.cv .squeeze, d 99⟩]) seed final =
-  chainHistory honestLog seed final
+#guard seedHistory (honestLog ++ [⟨Block.input final.cv .squeeze, d 99⟩]) final =
+  seedHistory honestLog final
 
 -- The mutation: the late log's second query is answered by `d 1`, a half of the first, in play.
 -- The history of `d 2` appears.
 #guard d 1 ∈ inPlay [seed.cv] (lateLog.take 1)
-#guard chainHistory (lateLog.take 1) seed ⟨d 2⟩ = none
-#guard chainHistory lateLog seed ⟨d 2⟩ = some [(.observe x, d 1), (.squeeze, d 2)]
+#guard seedHistory (lateLog.take 1) ⟨d 2⟩ = none
+#guard seedHistory lateLog ⟨d 2⟩ = some (seed.cv, [(.observe x, d 1), (.squeeze, d 2)])
+
+/-! ## Where a history starts -/
+
+/-- A toy chain of numbers: the query from `d` absorbing `b` is `(d, b)`, which parses back. -/
+def toyLog : List ((_ : ℕ × ℕ) × ℕ) := [⟨(0, 5), 1⟩, ⟨(1, 6), 2⟩, ⟨(2, 7), 3⟩]
+
+-- The start test comes first: `1` is a start, though its own query parses as a step from `0`.
+#guard HashChain.history some toyLog (· == 1) 3 = some (1, [(6, 2), (7, 3)])
+-- The start test of one fixed seed, `0`, reads the whole chain back to the seed.
+#guard HashChain.history some toyLog (HashChain.isSeed 0) 3 = some (0, [(5, 1), (6, 2), (7, 3)])
+-- With no start the walk finds no step into `0` and gives nothing.
+#guard HashChain.history some toyLog (fun _ ↦ false) 3 = none
+
+/-- A start `d 60` whose query is an observe step from `d 50`, then a squeeze from it. -/
+def startLog : Log :=
+  [⟨Block.input (d 50) (.observe x), d 60⟩, ⟨Block.input (d 60) .squeeze, d 61⟩]
+
+#guard Block.parse? startLog[0]!.1 = some (d 50, .observe x)
+-- The history stops at the start `d 60`, one of two starts.
+#guard chainHistory startLog (fun c ↦ c == d 60 || c == d 70) ⟨d 61⟩ =
+  some (d 60, [(.squeeze, d 61)])
+-- From the seed `d 50` the same log is a chain of two steps.
+#guard chainHistory startLog (HashChain.isSeed (d 50)) ⟨d 61⟩ =
+  some (d 50, [(.observe x, d 60), (.squeeze, d 61)])
 
 end LeanerVMTests.Protocol.RandomOracle

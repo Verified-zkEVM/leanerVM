@@ -26,6 +26,9 @@ does not answer. It is the verifier on the oracle, simulated by `QueryLog.replay
 anything, so the same holds of a run under the lazy random oracle or under BLAKE2s
 (`QueryLog.support_simulateQ_subset`). `mem_support_runBlake2s`: a run under BLAKE2s is a possible
 run whose joint log is consistent, and its verdict is `verify`'s.
+
+`FsState.seedWith_replay`: the seed's hashes, replayed on a log, append their three queries in
+order, each with the log's answer, and the state is the third's.
 -/
 
 namespace LeanerVM.Protocol
@@ -99,6 +102,27 @@ theorem mem_support_runBlake2s {prog : Program} {input : PublicInput} {A : Adver
   rw [hv, support_pure, Set.mem_singleton_iff] at hok
   exact ⟨consistent_of_answers (some ∘ blake2sBytes) fun e he ↦
     congrArg some ((List.mem_append.mp he).elim (hlA e) (hlV e)).symm, hok⟩
+
+/-- **The seed's hashes, replayed**: if the seed's hashes answered from `ans` succeed from a log,
+they append the program's bytes, the seed's preimage and the first state's input, in that order,
+each with its answer, and the state is the third answer. -/
+theorem FsState.seedWith_replay {ans : List UInt8 → Option Digest} {prog : Program}
+    {input : PublicInput} {log log' : hashSpec.QueryLog} {fs : FsState}
+    (h : (FsState.seedWith (QueryLog.replayImpl ans) prog input).run log = some (fs, log')) :
+    ∃ ph iv, ans (programBytes prog) = some ph ∧ ans (seedPreimageOf ph) = some iv ∧
+      ans (seedInput iv input) = some fs.cv ∧
+      log' = log ++ [⟨programBytes prog, ph⟩, ⟨seedPreimageOf ph, iv⟩,
+        ⟨seedInput iv input, fs.cv⟩] := by
+  unfold FsState.seedWith QueryLog.replayImpl at h
+  rcases h₁ : ans (programBytes prog) with _ | ph
+  · simp [h₁] at h
+  rcases h₂ : ans (seedPreimageOf ph) with _ | iv
+  · simp [h₁, h₂] at h
+  rcases h₃ : ans (seedInput iv input) with _ | d
+  · simp [h₁, h₂, h₃] at h
+  simp [h₁, h₂, h₃] at h
+  obtain ⟨rfl, rfl⟩ := h
+  exact ⟨ph, iv, rfl, h₂, h₃, by simp⟩
 
 end
 

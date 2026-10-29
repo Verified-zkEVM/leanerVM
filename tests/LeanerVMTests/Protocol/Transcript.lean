@@ -13,6 +13,12 @@ little-endian 64-bit lane, as the Rust prints it.
 Then the mutations a wrong reading would pass: the observe tag replaced by the squeeze tag, two
 observes swapped, the program and the public input changed, a nonce that does not clear, a
 nonzero nonce at 0 bits, and a grind whose fuel stops one short of the Rust's nonce.
+
+Last, the seed through the hash: its three hashes at BLAKE2s give the seeded state; the
+preimage's 78 bytes parse as no step; the first state's input on the lanes `a, b, c, t` is the
+step's input from the seed on the element `a + b·y + c·y²` and the tag `t`, so the lanes
+`0, 0, 0, 3` give the grinding base's input, a last lane `1` an observe step, and the test
+input's last lane `17` no step.
 -/
 
 namespace LeanerVMTests.Protocol.Transcript
@@ -144,5 +150,41 @@ def program' : Program :=
 -- The seed binds the program and the public input.
 #guard (FsState.seed program' input).cv ≠ s0.cv
 #guard (FsState.seed program ⟨![K.ofBits 7, K.ofBits 11, K.ofBits 13, K.ofBits 18]⟩).cv ≠ s0.cv
+
+/-! ## The seed through the hash -/
+
+-- The seed's three hashes at BLAKE2s give the seeded state.
+example : FsState.seedWith (m := Id) blake2sBytes program input = s0 :=
+  FsState.seedWith_blake2sBytes program input
+#guard (Id.run (FsState.seedWith blake2sBytes program input)).cv = s0.cv
+#guard (programBytes program).length = 512
+#guard blake2sBytes (seedInput (fsSeed program) input) = s0.cv
+
+-- The preimage's 78 bytes parse as no step.
+example (ph : Digest) : Block.parse? (seedPreimageOf ph) = none := by
+  simp [Block.parse?, length_seedPreimageOf]
+
+/-- The first state's input on the lanes `a, b, c, t` is the step's input from the seed on the
+element with limbs `a, b, c` and the tag `t`. -/
+private theorem seedInput_lanes (iv : Digest) (a b c t : K) :
+    seedInput iv ⟨![a, b, c, t]⟩ = FsState.stepBytes iv (E.ofLimbs a b c) t := by
+  simp [seedInput, FsState.stepBytes, FsState.block, Vector.toList_ofFn, List.ofFn_succ]
+
+-- The lanes `0, 0, 0, 3` give the grinding base's input.
+example (iv : Digest) :
+    seedInput iv ⟨![0, 0, 0, FsState.powBaseTag]⟩ = FsState.stepBytes iv 0 FsState.powBaseTag := by
+  rw [seedInput_lanes, (ofLimbs_eq_zero_iff 0).mpr rfl]
+#guard seedInput s0.cv ⟨![0, 0, 0, K.ofBits 3]⟩ = FsState.stepBytes s0.cv 0 FsState.powBaseTag
+
+-- A last lane `1` makes the first state an observe step from the seed.
+example (iv : Digest) (a b c : K) :
+    Block.parse? (seedInput iv ⟨![a, b, c, FsState.observeTag]⟩) =
+      some (iv, .observe (E.ofLimbs a b c)) := by
+  rw [seedInput_lanes]
+  exact Block.parse?_input iv (.observe _)
+#guard Block.parse? (seedInput (fsSeed program) ⟨![K.ofBits 7, K.ofBits 11, K.ofBits 13,
+  K.ofBits 1]⟩) = some (fsSeed program, .observe (e3 7 11 13))
+-- The test input's last lane, `17`, is no tag: its first state is no step.
+#guard Block.parse? (seedInput (fsSeed program) input) = none
 
 end LeanerVMTests.Protocol.Transcript

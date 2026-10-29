@@ -8,6 +8,7 @@
 
 import LeanerVM.Protocol.Prove
 import LeanerVMTests.Arithmetization.Statement
+import LeanerVMTests.Arithmetization.SentinelFixture
 import LeanerVMTests.Protocol.Verify
 import LeanerVM.Protocol.ProofRoots
 import LeanerVMTests.Protocol.LogScan
@@ -16,7 +17,8 @@ import LeanerVMTests.Protocol.LogScan
 # The `leanervm-prove` executable
 
 `leanervm-prove [file] [rate] [fuel] [pure]` (or `leanervm-prove probe [rate]`, or
-`leanervm-prove tamper [file]`, or `leanervm-prove log [file]`, or `leanervm-prove m3 [lm]`)
+`leanervm-prove tamper [file]`, or `leanervm-prove log [file]`, or `leanervm-prove m3 [lm]`, or
+`leanervm-prove sentinel [rate] [fuel]`)
 proves the hand-built leanISA witness of the constraint statement tests
 (`LeanerVMTests.Arithmetization.Statement.fillW 1 g memCnt`, the executor's `mul_192bit_word`
 with its fill blocks, `fill_satisfiedBy`) for its program
@@ -41,8 +43,10 @@ joint log has no collision and no hit (`LeanerVMTests.Protocol.LogScan.scan`), t
 word `extract` reads off the prover's log is the committed word, that the commitment's decoder
 reads it as the witness's stack alone, and that `extract` returns the witness's sizes and stack
 (`extractChecks`). `m3` decides the clauses of `M3Holds` one by one on the witness's stack, at
-its sizes or with the memory log-size replaced by `lm + 1`, each timed. The exit code is `1` if a
-check fails.
+its sizes or with the memory log-size replaced by `lm + 1`, each timed. `sentinel` runs `prove`
+on the sentinel tests' witness (`LeanerVMTests.Arithmetization.SentinelFixture.sentW`), whose
+program has a `JUMP` in its sentinel slot and no valid execution on the input over any memory, and
+checks that `verify` accepts the proof. The exit code is `1` if a check fails.
 -/
 
 open LeanerVM.Parameters LeanerVM.Semantics LeanerVM.Arithmetization LeanerVM.Protocol
@@ -50,6 +54,7 @@ open LeanerVM.Protocol.Prove
 open LeanerVM.Protocol.Verify LeanerVM.Protocol.LeanIsa LeanerVM.Protocol.Blake2sHash
 open LeanerVMTests.Arithmetization.Statement LeanerVMTests.Protocol.RustProof
 open LeanerVMTests.Protocol.Verify
+open LeanerVMTests.Arithmetization.Sentinel (sentProg sentW)
 
 namespace LeanerVMProve
 
@@ -380,7 +385,7 @@ def logChecks (f : Fixture) (fuel : ℕ) : IO ℕ := do
     p.merkle.map (·.leafData) == f.proof.merkle.map (·.leafData) &&
     p.merkle.map (fun o ↦ o.siblingHashes.map (·.toList)) ==
       f.proof.merkle.map (fun o ↦ o.siblingHashes.map (·.toList))
-  let (coll, hit) := LeanerVMTests.Protocol.LogScan.scan (seedDigests fillProg mulInput) roots
+  let (coll, hit) := LeanerVMTests.Protocol.LogScan.scan [] roots
     logA.size (logA ++ logV)
   let t2 ← IO.monoNanosNow
   IO.println s!"the honest run: {logA.size} prover queries, {logV.size} verifier queries, \
@@ -393,12 +398,32 @@ def logChecks (f : Fixture) (fuel : ℕ) : IO ℕ := do
   (← IO.getStdout).flush
   return failed + (← extractChecks p logA)
 
+/-- `prove` on the sentinel tests' witness and `verify` on its proof: an accepted proof of a
+statement with no execution. -/
+def sentinelChecks (fuel ρ : ℕ) : IO UInt32 := do
+  IO.println s!"sentinel slot is not a JUMP: {decide (SentinelSafe sentProg)}"
+  let some s := Sizes.ofWitness sentW | do IO.println "FAIL the witness gives no sizes"; return 1
+  IO.println s!"sizes: memory 2^{s.logMem}, tables {List.ofFn s.τ}, admissible at rate {ρ}: \
+    {decide (s.Admissible sentProg ∧ validRate ρ)}"
+  let t0 ← IO.monoNanosNow
+  let some p ← force (prove fuel sentProg mulInput sentW ρ) | do
+    IO.println "FAIL prove returned no proof"
+    return 1
+  let t1 ← IO.monoNanosNow
+  IO.println s!"prove: {p.stream.length} scalars, in {(t1 - t0).toFloat / 1e9} s"
+  let ok ← force (verify sentProg mulInput p)
+  IO.println s!"{if ok then "ok  " else "FAIL"} verify = {ok}, for a program with no execution"
+  return if ok then 0 else 1
+
 end LeanerVMProve
 
 open LeanerVMProve in
 /-- `leanervm-prove [file] [rate] [fuel] [pure]`: prove the vectors' witness, write the proof,
 read it back and check it. -/
 def main (args : List String) : IO UInt32 := do
+  if args.head? == some "sentinel" then
+    return ← sentinelChecks (((args[2]?).bind String.toNat?).getD (2 ^ 24))
+      (((args[1]?).bind String.toNat?).getD 1)
   if args.head? == some "probe" then
     probeCommit (2 ^ 24) (((args[1]?).bind String.toNat?).getD 1)
     return 0
