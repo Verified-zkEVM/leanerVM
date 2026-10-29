@@ -458,7 +458,8 @@ def append (D₁ : SlotDecoder α pSpec₁) (D₂ : pSpec₁.FullTranscript → 
 
 variable (D₁ : SlotDecoder α pSpec₁) (D₂ : pSpec₁.FullTranscript → SlotDecoder α pSpec₂)
 
-private theorem append_slot_left (i : ℕ) (hi : i < m) (h : i < m + n)
+/-- A round of the first schedule is read by the first decoder's slot. -/
+theorem append_slot_left (i : ℕ) (hi : i < m) (h : i < m + n)
     (tr : (pSpec₁ ++ₚ pSpec₂).Transcript ⟨i, by omega⟩) :
     (D₁.append D₂).slot ⟨i, h⟩ tr = (D₁.slot ⟨i, hi⟩ (left tr ⟨i, by omega⟩ le_rfl)).map
       (cast (append_Type_castAdd (pSpec₂ := pSpec₂) ⟨i, hi⟩).symm) := by
@@ -466,7 +467,8 @@ private theorem append_slot_left (i : ℕ) (hi : i < m) (h : i < m + n)
   exact congrFun (Fin.addCases_left (motive := fun k ↦
     (pSpec₁ ++ₚ pSpec₂).Transcript k.castSucc → Slot α ((pSpec₁ ++ₚ pSpec₂).«Type» k)) ⟨i, hi⟩) tr
 
-private theorem append_slot_right (j : ℕ) (hj : j < n) (h : m + j < m + n)
+/-- A round of the second schedule is read by the second decoder's slot. -/
+theorem append_slot_right (j : ℕ) (hj : j < n) (h : m + j < m + n)
     (tr : (pSpec₁ ++ₚ pSpec₂).Transcript ⟨m + j, by omega⟩) :
     (D₁.append D₂).slot ⟨m + j, h⟩ tr =
       ((D₂ (leftFull tr (Nat.le_add_right m j))).slot ⟨j, hj⟩ (right tr ⟨j, by omega⟩ le_rfl)).map
@@ -609,6 +611,309 @@ theorem decode_append (l : List α) :
 end SlotDecoder
 
 end Append
+
+/-! ## Slots as a monad -/
+
+namespace Slot
+
+variable {α β γ δ ε : Type}
+
+/-- The slot that reads nothing: it fails on every input. -/
+def fail : Slot α β where
+  read _ := none
+  read_iff := by simp
+
+/-- Two slots that read alike are equal. -/
+theorem ext {s t : Slot α β} (h : ∀ l, s.read l = t.read l) : s = t := by
+  rcases s with ⟨r, _⟩
+  rcases t with ⟨r', _⟩
+  obtain rfl : r = r' := funext h
+  rfl
+
+/-- Slots are a monad: `pure` reads nothing, `bind` reads one slot, then the next. -/
+instance : Monad (Slot α) where
+  pure := Slot.pure
+  bind := Slot.bind
+
+@[simp] theorem read_pure (x : β) (l : List α) :
+    (Pure.pure x : Slot α β).read l = some (x, l) := rfl
+
+@[simp] theorem read_bind (s : Slot α β) (f : β → Slot α γ) (l : List α) :
+    (s >>= f).read l = (s.read l).bind fun p ↦ (f p.1).read p.2 := rfl
+
+@[simp] theorem read_fail (l : List α) : (fail : Slot α β).read l = none := rfl
+
+@[simp] theorem read_next_nil (f : α → Option β) : (next f).read [] = none := rfl
+
+@[simp] theorem read_next_cons (f : α → Option β) (a : α) (r : List α) :
+    (next f).read (a :: r) = (f a).map (·, r) := rfl
+
+@[simp] theorem read_mapM (g : β → γ) (s : Slot α β) (l : List α) :
+    (g <$> s).read l = (s.read l).map fun p ↦ (g p.1, p.2) := by
+  show (s.read l).bind _ = _
+  cases s.read l <;> rfl
+
+instance : LawfulMonad (Slot α) := LawfulMonad.mk'
+  (id_map := fun s ↦ ext fun l ↦ by
+    show (s.read l).bind _ = _
+    rcases s.read l with _ | ⟨x, r⟩ <;> rfl)
+  (pure_bind := fun _ _ ↦ ext fun _ ↦ rfl)
+  (bind_assoc := fun s f g ↦ ext fun l ↦ by
+    show ((s.read l).bind _).bind _ = (s.read l).bind _
+    rcases s.read l with _ | ⟨x, r⟩ <;> rfl)
+
+/-! ## Slots that read alike -/
+
+/-- `t` reads wherever `s` reads: the same prefix, with a value related to `s`'s by `R`. -/
+def Refines (R : β → γ → Prop) (s : Slot α β) (t : Slot α γ) : Prop :=
+  ∀ l x r, s.read l = some (x, r) → ∃ y, t.read l = some (y, r) ∧ R x y
+
+/-- `s` and `t` read alike: on every input both fail, or both read the same prefix, with values
+related by `R`. -/
+def Agree (R : β → γ → Prop) (s : Slot α β) (t : Slot α γ) : Prop :=
+  Refines R s t ∧ Refines (flip R) t s
+
+theorem Refines.refl (s : Slot α β) : Refines Eq s s := fun _ x _ h ↦ ⟨x, h, rfl⟩
+
+theorem Refines.mono {R R' : β → γ → Prop} {s : Slot α β} {t : Slot α γ} (h : Refines R s t)
+    (hR : ∀ x y, R x y → R' x y) : Refines R' s t := fun l x r hs ↦
+  (h l x r hs).imp fun _ ⟨ht, hxy⟩ ↦ ⟨ht, hR _ _ hxy⟩
+
+theorem Refines.pure {R : β → γ → Prop} {x : β} {y : γ} (h : R x y) :
+    Refines R (Pure.pure x : Slot α β) (Pure.pure y) := by
+  rintro l x' r ⟨⟩
+  exact ⟨y, rfl, h⟩
+
+theorem Refines.bind {R : β → γ → Prop} {R' : δ → ε → Prop} {s : Slot α β} {t : Slot α γ}
+    {f : β → Slot α δ} {g : γ → Slot α ε} (h : Refines R s t)
+    (hf : ∀ x y, R x y → Refines R' (f x) (g y)) : Refines R' (s >>= f) (t >>= g) := by
+  intro l z r hs
+  rw [read_bind, Option.bind_eq_some_iff] at hs
+  obtain ⟨⟨x, l₁⟩, hx, hz⟩ := hs
+  obtain ⟨y, hy, hxy⟩ := h l x l₁ hx
+  obtain ⟨w, hw, hzw⟩ := hf x y hxy l₁ z r hz
+  exact ⟨w, by rw [read_bind, hy, Option.bind_some, hw], hzw⟩
+
+theorem Refines.map {R : β → γ → Prop} {s : Slot α β} {t : Slot α γ} (h : Refines R s t)
+    (f : β → δ) (g : γ → ε) :
+    Refines (fun x y ↦ ∃ a b, R a b ∧ x = f a ∧ y = g b) (f <$> s) (g <$> t) := by
+  intro l z r hs
+  rw [read_mapM, Option.map_eq_some_iff] at hs
+  obtain ⟨⟨x, r'⟩, hx, he⟩ := hs
+  obtain ⟨rfl, rfl⟩ := Prod.mk.inj he
+  obtain ⟨y, hy, hxy⟩ := h l x r' hx
+  exact ⟨g y, by rw [read_mapM, hy]; rfl, x, y, hxy, rfl, rfl⟩
+
+theorem Agree.refl (s : Slot α β) : Agree Eq s s :=
+  ⟨Refines.refl s, (Refines.refl s).mono fun _ _ h ↦ h.symm⟩
+
+theorem Agree.mono {R R' : β → γ → Prop} {s : Slot α β} {t : Slot α γ} (h : Agree R s t)
+    (hR : ∀ x y, R x y → R' x y) : Agree R' s t :=
+  ⟨h.1.mono hR, h.2.mono fun x y h ↦ hR y x h⟩
+
+theorem Agree.pure {R : β → γ → Prop} {x : β} {y : γ} (h : R x y) :
+    Agree R (Pure.pure x : Slot α β) (Pure.pure y) :=
+  ⟨Refines.pure h, Refines.pure (R := flip R) h⟩
+
+theorem Agree.bind {R : β → γ → Prop} {R' : δ → ε → Prop} {s : Slot α β} {t : Slot α γ}
+    {f : β → Slot α δ} {g : γ → Slot α ε} (h : Agree R s t)
+    (hf : ∀ x y, R x y → Agree R' (f x) (g y)) : Agree R' (s >>= f) (t >>= g) :=
+  ⟨h.1.bind fun x y hxy ↦ (hf x y hxy).1, h.2.bind fun y x hxy ↦ (hf x y hxy).2⟩
+
+/-- Two slots that read alike, their values mapped, still read alike: a map of the values changes
+no reading. -/
+theorem Agree.map {R : β → γ → Prop} {s : Slot α β} {t : Slot α γ} (h : Agree R s t)
+    (f : β → δ) (g : γ → ε) : Agree (fun _ _ ↦ True) (s.map f) (t.map g) := by
+  have hm : ∀ {β' δ' : Type} (u : Slot α β') (k : β' → δ'), u.map k = k <$> u :=
+    fun u k ↦ ext fun l ↦ by rw [read_mapM]; rfl
+  rw [hm, hm]
+  exact ⟨(h.1.map f g).mono fun _ _ _ ↦ trivial, (h.2.map g f).mono fun _ _ _ ↦ trivial⟩
+
+end Slot
+
+/-! ## Decoders that read alike -/
+
+namespace SlotDecoder
+
+variable {α : Type}
+
+section Alike
+
+variable {n : ℕ} {pSpec : ProtocolSpec n}
+
+/-- Two decoders of one schedule read alike: at every round, whatever the rounds before it, their
+slots read the same prefix of every input, or both fail. Their values may differ. -/
+def ReadsAlike (D D' : SlotDecoder α pSpec) : Prop :=
+  ∀ k tr tr', Slot.Agree (fun _ _ ↦ True) (D.slot k tr) (D'.slot k tr')
+
+variable {D D' : SlotDecoder α pSpec}
+
+/-- Decoders that read alike leave the same readings after every run, or both fail. -/
+theorem ReadsAlike.run (h : ReadsAlike D D') (i : ℕ) (hi : i ≤ n) (l : List α) :
+    (D.run i hi l).map Prod.snd = (D'.run i hi l).map Prod.snd := by
+  induction i with
+  | zero => rfl
+  | succ i ih =>
+    have ih := ih (by omega)
+    simp only [SlotDecoder.run]
+    cases ho : D.run i (by omega) l with
+    | none =>
+      rw [ho, Option.map_none, eq_comm, Option.map_eq_none_iff] at ih
+      rw [ih]
+      rfl
+    | some p =>
+      rw [ho, Option.map_some, eq_comm, Option.map_eq_some_iff] at ih
+      obtain ⟨p', hp', hr⟩ := ih
+      rw [hp', Option.bind_some, Option.bind_some, Option.map_map, Option.map_map]
+      have hag := h ⟨i, hi⟩ p.1 p'.1
+      rw [hr]
+      cases hq : (D.slot ⟨i, hi⟩ p.1).read p.2 with
+      | none =>
+        cases hq' : (D'.slot ⟨i, hi⟩ p'.1).read p.2 with
+        | none => rfl
+        | some q' =>
+          obtain ⟨_, hq'', -⟩ := hag.2 p.2 q'.1 q'.2 (by rw [hq'])
+          rw [hq] at hq''
+          cases hq''
+      | some q =>
+        obtain ⟨y, hq', -⟩ := hag.1 p.2 q.1 q.2 (by rw [hq])
+        rw [hq']
+        rfl
+
+/-- Decoders that read alike decode the same number of rounds off every input. -/
+theorem ReadsAlike.decodePrefix (h : ReadsAlike D D') (l : List α) :
+    (D.decodePrefix l).map Sigma.fst = (D'.decodePrefix l).map Sigma.fst := by
+  have hat : ∀ (E E' : SlotDecoder α pSpec), ReadsAlike E E' → ∀ i : Fin (n + 1),
+      (E.decodeAt i l).isSome → (E'.decodeAt i l).isSome := by
+    intro E E' hE i hs
+    obtain ⟨tr, htr⟩ := Option.isSome_iff_exists.mp hs
+    have hr := hE.run i.val (by omega) l
+    rw [E.decodeAt_eq_some.mp htr, Option.map_some, eq_comm, Option.map_eq_some_iff] at hr
+    obtain ⟨⟨tr', r⟩, hr', rfl⟩ := hr
+    exact Option.isSome_iff_exists.mpr ⟨tr', E'.decodeAt_eq_some.mpr hr'⟩
+  have hsymm : ReadsAlike D' D := fun k tr tr' ↦ ⟨(h k tr' tr).2, (h k tr' tr).1⟩
+  have hiff : ∀ i : Fin (n + 1), (D.decodeAt i l).isSome ↔ (D'.decodeAt i l).isSome :=
+    fun i ↦ ⟨hat D D' h i, hat D' D hsymm i⟩
+  have key : ∀ (E E' : SlotDecoder α pSpec), (∀ i : Fin (n + 1),
+      (E.decodeAt i l).isSome ↔ (E'.decodeAt i l).isSome) → ∀ i tr,
+      E.decodePrefix l = some ⟨i, tr⟩ → ∃ tr', E'.decodePrefix l = some ⟨i, tr'⟩ := by
+    intro E E' hE i tr hp
+    obtain ⟨ht, hj⟩ := E.decodePrefix_eq_some_iff.mp hp
+    obtain ⟨tr', ht'⟩ := Option.isSome_iff_exists.mp ((hE i).mp (by rw [ht]; rfl))
+    refine ⟨tr', E'.decodePrefix_eq_some_iff.mpr ⟨ht', fun j hij ↦ ?_⟩⟩
+    have := hj j hij
+    exact Option.not_isSome_iff_eq_none.mp fun hs ↦ by
+      rw [← hE j, this] at hs
+      exact absurd hs (by simp)
+  cases hD : D.decodePrefix l with
+  | none =>
+    cases hD' : D'.decodePrefix l with
+    | none => rfl
+    | some p =>
+      obtain ⟨tr, htr⟩ := key D' D (fun i ↦ (hiff i).symm) p.1 p.2 hD'
+      rw [hD] at htr
+      cases htr
+  | some p =>
+    obtain ⟨tr', htr'⟩ := key D D' hiff p.1 p.2 hD
+    rw [htr']
+    rfl
+
+/-- **Decodability does not depend on the values read**: decoders that read alike decode some
+prefix of the same inputs. -/
+theorem ReadsAlike.isSome_decodePrefix (h : ReadsAlike D D') (l : List α) :
+    (D.decodePrefix l).isSome = (D'.decodePrefix l).isSome := by
+  have := h.decodePrefix l
+  cases hD : D.decodePrefix l <;> cases hD' : D'.decodePrefix l <;> simp_all
+
+/-- Decoders of no round read alike. -/
+theorem readsAlike_empty {pSpec : ProtocolSpec 0} :
+    ReadsAlike (empty : SlotDecoder α pSpec) empty := fun k ↦ k.elim0
+
+/-- Decoders of one round read alike when their slots do. -/
+theorem readsAlike_single {pSpec : ProtocolSpec 1} {s s' : Slot α (pSpec.«Type» 0)}
+    (h : Slot.Agree (fun _ _ ↦ True) s s') : ReadsAlike (single s) (single s') := by
+  rintro ⟨k, hk⟩ _ _
+  obtain rfl : k = 0 := by omega
+  exact h
+
+end Alike
+
+section AppendAlike
+
+variable {m n : ℕ} {pSpec₁ : ProtocolSpec m} {pSpec₂ : ProtocolSpec n}
+
+/-- Appended decoders read alike when their parts do, whatever the first part read. -/
+theorem readsAlike_append {D₁ D₁' : SlotDecoder α pSpec₁}
+    {D₂ D₂' : pSpec₁.FullTranscript → SlotDecoder α pSpec₂} (h₁ : ReadsAlike D₁ D₁')
+    (h₂ : ∀ t t', ReadsAlike (D₂ t) (D₂' t')) : ReadsAlike (D₁.append D₂) (D₁'.append D₂') := by
+  rintro ⟨k, hk⟩ tr tr'
+  by_cases hkm : k < m
+  · rw [append_slot_left D₁ D₂ k hkm hk tr, append_slot_left D₁' D₂' k hkm hk tr']
+    exact (h₁ _ _ _).map _ _
+  · obtain ⟨j, rfl⟩ : ∃ j, k = m + j := ⟨k - m, by omega⟩
+    rw [append_slot_right D₁ D₂ j (by omega) hk tr, append_slot_right D₁' D₂' j (by omega) hk tr']
+    exact (h₂ _ _ _ _ _).map _ _
+
+end AppendAlike
+
+/-! ## A decoder as one slot -/
+
+section ToSlot
+
+variable {n : ℕ} {pSpec : ProtocolSpec n}
+
+/-- Every round of a decoder, as one slot reading the full transcript. -/
+def toSlot (D : SlotDecoder α pSpec) : Slot α pSpec.FullTranscript where
+  read := D.runFull
+  read_iff := D.run_eq_some_iff
+
+@[simp] theorem read_toSlot (D : SlotDecoder α pSpec) (l : List α) :
+    D.toSlot.read l = D.runFull l := rfl
+
+/-- The transcript of a schedule of one round. -/
+def oneTranscript {pSpec : ProtocolSpec 1} (x : pSpec.«Type» 0) : pSpec.FullTranscript
+  | ⟨0, _⟩ => x
+
+@[simp] theorem oneTranscript_zero {pSpec : ProtocolSpec 1} (x : pSpec.«Type» 0) :
+    oneTranscript x 0 = x := rfl
+
+/-- A decoder of one round is its slot. -/
+theorem toSlot_single {pSpec : ProtocolSpec 1} (s : Slot α (pSpec.«Type» 0)) :
+    (single s).toSlot = oneTranscript <$> s := by
+  refine Slot.ext fun l ↦ ?_
+  rw [read_toSlot, Slot.read_mapM]
+  change Option.map _ (s.read l) = _
+  congr 1
+  funext p
+  refine Prod.ext (funext fun i ↦ ?_) rfl
+  obtain ⟨k, hk⟩ := i
+  obtain rfl : k = 0 := by omega
+  rfl
+
+/-- A decoder of no round reads nothing. -/
+theorem toSlot_empty {pSpec : ProtocolSpec 0} :
+    (empty : SlotDecoder α pSpec).toSlot = pure fun i ↦ i.elim0 := rfl
+
+variable {m : ℕ} {pSpec₁ : ProtocolSpec m} {pSpec₂ : ProtocolSpec n}
+
+/-- **The append law as slots**: an appended decoder reads its first part, then its second. -/
+theorem toSlot_append (D₁ : SlotDecoder α pSpec₁)
+    (D₂ : pSpec₁.FullTranscript → SlotDecoder α pSpec₂) :
+    (D₁.append D₂).toSlot = do
+      let t₁ ← D₁.toSlot
+      let t₂ ← (D₂ t₁).toSlot
+      return t₁ ++ₜ t₂ := by
+  refine Slot.ext fun l ↦ ?_
+  simp only [read_toSlot, runFull_append, Slot.read_bind]
+  cases D₁.runFull l with
+  | none => rfl
+  | some p =>
+    simp only [Option.bind_some]
+    cases (D₂ p.1).runFull p.2 <;> rfl
+
+end ToSlot
+
+end SlotDecoder
 
 end
 

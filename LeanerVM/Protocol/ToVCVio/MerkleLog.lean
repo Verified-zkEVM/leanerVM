@@ -11,6 +11,7 @@
 module
 
 public import LeanerVM.Protocol.ToVCVio.Merkle
+public import LeanerVM.Protocol.ToVCVio.QueryLog
 public import Std.Data.HashMap.Basic
 import Std.Data.HashMap.Lemmas
 
@@ -45,6 +46,10 @@ All three are decidable. An answer of `logA` need not be known, since a fresh qu
 one is a collision, and the opening's siblings need not be, since the extraction never descends
 into a sibling. Several commitments, each opened once, are the instance with `roots` all their
 roots: the hypotheses on the log are shared, and each opening is bound to its own root.
+
+`not_freshHit_of_not_hasHit`: a fresh hit is a hit (`QueryLog.HasHit`) on any values in play that
+grow along the log and hold every child of a logged node query and the roots, so a log with no hit
+has no fresh hit.
 
 `extractLeaf_determined`: with a consistent log and no fresh hit, the leaves read off the whole
 log under a root are those read off `logA`, so no leaf joins a root once the root is known.
@@ -165,6 +170,37 @@ theorem FreshHit.first (hcons : Consistent (logA ++ logV))
   rwa [hcons _ (List.mem_append_right _ (List.getElem_mem hk)) e (List.mem_append_right _ he)
     hfirst]
 
+omit [DecidableEq D] in
+/-- **No hit, no fresh hit.** Let `inPlay` give the values in play after each prefix of a log,
+growing along it, every child of a logged query that parses as a node in play once the query is
+asked. In a consistent log `logA ++ logV` with no hit (`QueryLog.HasHit`), there is no fresh hit
+with respect to `logA` and roots in play after `logA`. -/
+theorem not_freshHit_of_not_hasHit {inPlay : QueryLog Q D → List D}
+    (hmono : ∀ l₁ l₂, l₁ <+: l₂ → ∀ d ∈ inPlay l₁, d ∈ inPlay l₂)
+    (hchild : ∀ l e, ∀ d ∈ queryChildren node? e.1, d ∈ inPlay (l ++ [e]))
+    (hcons : Consistent (logA ++ logV)) (hhit : ¬ QueryLog.HasHit inPlay (logA ++ logV))
+    (hroots : ∀ r ∈ roots, r ∈ inPlay logA) : ¬ FreshHit node? roots logA logV := by
+  intro h
+  obtain ⟨k, hk, hfresh, hfirst, hknown⟩ := h.first hcons
+  have htake : (logA ++ logV).take (logA.length + k) = logA ++ logV.take k := by
+    simp [List.take_append]
+  have hget : (logA ++ logV)[logA.length + k]'(by simp; omega) = logV[k] := by
+    simp [List.getElem_append_right]
+  refine hhit ⟨⟨logA.length + k, by simp; omega⟩, fun e he ↦ ?_, ?_⟩
+  · simp only [Fin.getElem_fin, htake, hget, List.mem_append] at he ⊢
+    rcases he with he | he
+    · exact hfresh e he
+    · obtain ⟨j, hj, rfl⟩ := List.mem_iff_getElem.mp he
+      simp only [List.length_take] at hj
+      simpa using hfirst j (by omega)
+  · simp only [Fin.getElem_fin, htake, hget]
+    rcases hknown with hr | ⟨e, he, hd⟩
+    · exact hmono _ _ (List.prefix_append _ _) _ (hroots _ hr)
+    · obtain ⟨p, hp, rfl⟩ := List.mem_iff_getElem.mp he
+      refine hmono (logA.take p ++ [logA[p]]) _ ?_ _ (hchild _ _ _ hd)
+      rw [← List.take_succ_eq_append_getElem hp]
+      exact (List.take_prefix _ _).trans (List.prefix_append _ _)
+
 end Log
 
 /-! ## Extraction -/
@@ -193,6 +229,20 @@ def extractTree (node? : Q → Option (D × D)) (log : QueryLog Q D) : D → ℕ
 def extractLeaf (node? : Q → Option (D × D)) (leaf? : Q → Option P) (log : QueryLog Q D)
     (root : D) (depth p : ℕ) : Option P :=
   (extractTree node? log root depth p).bind (leafPreimage leaf? log)
+
+/-- A tree read off two logs whose node preimages agree is the same. -/
+theorem extractTree_congr {node? : Q → Option (D × D)} {log log' : QueryLog Q D}
+    (h : ∀ d, nodePreimage node? log' d = nodePreimage node? log d) :
+    ∀ (top : D) (k p : ℕ), extractTree node? log' top k p = extractTree node? log top k p
+  | _, 0, _ => rfl
+  | top, k + 1, p => by simp only [extractTree, h, extractTree_congr h]
+
+/-- A leaf read off two logs whose node and leaf preimages agree is the same. -/
+theorem extractLeaf_congr {node? : Q → Option (D × D)} {leaf? : Q → Option P}
+    {log log' : QueryLog Q D} (hn : ∀ d, nodePreimage node? log' d = nodePreimage node? log d)
+    (hl : ∀ d, leafPreimage leaf? log' d = leafPreimage leaf? log d) (root : D) (depth p : ℕ) :
+    extractLeaf node? leaf? log' root depth p = extractLeaf node? leaf? log root depth p := by
+  simp only [extractLeaf, extractTree_congr hn, hl]
 
 end Extract
 

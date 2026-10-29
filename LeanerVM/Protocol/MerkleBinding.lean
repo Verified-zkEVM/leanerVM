@@ -24,6 +24,8 @@ hash of its children's 64 bytes (`nodeBytes`), a leaf the hash of its row's leaf
 the leaf of a row of `rowWords` words in leaves of `leafWords` when it is that row's leaf image
 as bytes (`leafRow?`); a 64-byte leaf parses as both, which the generic theory allows.
 
+`nodeOfBytes?_eq_some`: a node's children are the digests its input's two 32-byte halves begin.
+
 `extractRows log root depth rowWords leafWords p` is the row at position `p` of the tree under
 `root`, read top-down off `log` by `MerkleTree.extractLeaf`: `none` when the log does not reach
 the position, or when the leaf query found there is not the leaf image of a row of `rowWords`
@@ -84,6 +86,85 @@ theorem nodeOfBytes?_nodeBytes (left right : Digest) :
   rw [hb] at hlen ⊢
   simp only [nodeOfBytes?, hlen, ↓reduceDIte, leWords_flatMap_wordBytes]
   simp [Vector.ext_iff]
+
+/-- The two readings of four little-endian bytes as a word agree. -/
+private theorem leWord_eq_wordOfBytes (b0 b1 b2 b3 : UInt8) :
+    leWord b0 b1 b2 b3 = wordOfBytes b0 b1 b2 b3 := by
+  have h0 := b0.toNat_lt
+  have h1 := b1.toNat_lt
+  have h2 := b2.toNat_lt
+  have h3 := b3.toNat_lt
+  have hw : (wordOfBytes b0 b1 b2 b3).toNat =
+      b0.toNat + 2 ^ 8 * b1.toNat + 2 ^ 16 * b2.toNat + 2 ^ 24 * b3.toNat := by
+    simp only [wordOfBytes, UInt32.toNat_ofNat']
+    omega
+  have e0 : (wordOfBytes b0 b1 b2 b3).toUInt8 = b0 := by
+    apply UInt8.toNat_inj.mp
+    simp only [UInt32.toNat_toUInt8, hw]
+    omega
+  have e1 : (wordOfBytes b0 b1 b2 b3 >>> 8).toUInt8 = b1 := by
+    apply UInt8.toNat_inj.mp
+    simp only [UInt32.toNat_toUInt8, UInt32.toNat_shiftRight, hw, Nat.shiftRight_eq_div_pow]
+    simp
+    omega
+  have e2 : (wordOfBytes b0 b1 b2 b3 >>> 16).toUInt8 = b2 := by
+    apply UInt8.toNat_inj.mp
+    simp only [UInt32.toNat_toUInt8, UInt32.toNat_shiftRight, hw, Nat.shiftRight_eq_div_pow]
+    simp
+    omega
+  have e3 : (wordOfBytes b0 b1 b2 b3 >>> 24).toUInt8 = b3 := by
+    apply UInt8.toNat_inj.mp
+    simp only [UInt32.toNat_toUInt8, UInt32.toNat_shiftRight, hw, Nat.shiftRight_eq_div_pow]
+    simp
+    omega
+  calc leWord b0 b1 b2 b3
+      = leWord (wordOfBytes b0 b1 b2 b3).toUInt8 (wordOfBytes b0 b1 b2 b3 >>> 8).toUInt8
+          (wordOfBytes b0 b1 b2 b3 >>> 16).toUInt8 (wordOfBytes b0 b1 b2 b3 >>> 24).toUInt8 := by
+        rw [e0, e1, e2, e3]
+    _ = wordOfBytes b0 b1 b2 b3 := leWord_wordBytes _
+
+/-- `leWords` reads the words `digestOfBytes` reads. -/
+private theorem leWords_eq_wordsOfBytes :
+    ∀ q : List UInt8, leWords q = Blake2sHash.wordsOfBytes q
+  | b0 :: b1 :: b2 :: b3 :: rest => by
+    simp only [leWords, Blake2sHash.wordsOfBytes, leWord_eq_wordOfBytes,
+      leWords_eq_wordsOfBytes rest]
+  | [] | [_] | [_, _] | [_, _, _] => rfl
+
+/-- The words from byte `4k` on are the words from word `k` on. -/
+private theorem wordsOfBytes_drop : ∀ (k : ℕ) (q : List UInt8),
+    Blake2sHash.wordsOfBytes (q.drop (4 * k)) = (Blake2sHash.wordsOfBytes q).drop k
+  | 0, _ => rfl
+  | k + 1, b0 :: b1 :: b2 :: b3 :: rest => by
+    rw [show 4 * (k + 1) = 4 + 4 * k by omega, ← List.drop_drop]
+    simp only [List.drop_succ_cons, List.drop_zero, Blake2sHash.wordsOfBytes]
+    exact wordsOfBytes_drop k rest
+  | k + 1, [] | k + 1, [_] | k + 1, [_, _] | k + 1, [_, _, _] => by
+    rw [List.drop_eq_nil_of_le (by simp only [List.length_cons, List.length_nil]; omega)]
+    rfl
+
+/-- **A node's children are its input's halves**: a query read as a node has as children the
+digests its first and its last 32 bytes begin. -/
+theorem nodeOfBytes?_eq_some {q : List UInt8} {l r : Digest} (h : nodeOfBytes? q = some (l, r)) :
+    l = digestOfBytes q ∧ r = digestOfBytes (q.drop 32) := by
+  unfold nodeOfBytes? at h
+  split at h
+  · rename_i hlen
+    obtain ⟨rfl, rfl⟩ := Prod.mk.inj (Option.some.inj h)
+    have hw : (Blake2sHash.wordsOfBytes q).length = 16 := by
+      rw [← leWords_eq_wordsOfBytes, length_leWords, hlen]
+    refine ⟨Vector.ext fun i hi ↦ ?_, Vector.ext fun i hi ↦ ?_⟩
+    · simp only [digestOfBytes, Vector.getElem_ofFn, Vector.getElem_mk, Array.getElem_extract,
+        List.getElem_toArray, leWords_eq_wordsOfBytes]
+      rw [List.getD_eq_getElem _ _ (by omega)]
+      simp
+    · have hd := wordsOfBytes_drop 8 q
+      simp only [Nat.reduceMul] at hd
+      simp only [digestOfBytes, Vector.getElem_ofFn, Vector.getElem_mk, Array.getElem_extract,
+        List.getElem_toArray, leWords_eq_wordsOfBytes, hd]
+      rw [List.getD_eq_getElem _ _ (by simp; omega)]
+      simp
+  · cases h
 
 /-- The `K` word of eight little-endian bytes. -/
 def kOfBytes (b0 b1 b2 b3 b4 b5 b6 b7 : UInt8) : K :=
@@ -265,6 +346,17 @@ theorem extractRows_determined (logA logV : QueryLog (List UInt8) Digest) (roots
       extractRows logA root depth rowWords leafWords p :=
   @extractLeaf_determined _ _ _ Digest.decEq nodeOfBytes? (leafRow? rowWords leafWords) logA logV
     roots root hroot hcons hhit depth p
+
+/-- On a consistent log, the rows read off it are those read off its deduplication: each query at
+its first occurrence only. -/
+theorem extractRows_dedupKeys {log : QueryLog (List UInt8) Digest}
+    (hcons : LeanerVM.Protocol.QueryLog.Consistent log) (root : Digest)
+    (depth rowWords leafWords p : ℕ) :
+    extractRows (List.dedupKeys log) root depth rowWords leafWords p =
+      extractRows log root depth rowWords leafWords p :=
+  @extractLeaf_congr _ _ _ Digest.decEq _ _ _ _
+    (fun _ ↦ LeanerVM.Protocol.QueryLog.findSome?_dedupKeys hcons _)
+    (fun _ ↦ LeanerVM.Protocol.QueryLog.findSome?_dedupKeys hcons _) root depth p
 
 end
 end LeanerVM.Protocol

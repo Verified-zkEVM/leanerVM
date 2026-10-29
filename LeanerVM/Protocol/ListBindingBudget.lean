@@ -146,7 +146,7 @@ private theorem length_eraseDups_le {α : Type} [BEq α] :
     exact Nat.succ_le_succ ((length_eraseDups_le n _ (by simp at h; omega)).trans hf)
 
 /-- A sum over the sumcheck tables is at most the sum over every table. -/
-private theorem sum_sumcheckTables_le (I : M3Instance) (f : Fin I.ntab → ℕ) :
+theorem sum_sumcheckTables_le (I : M3Instance) (f : Fin I.ntab → ℕ) :
     ∑ j : I.SumcheckTables, f j.1 ≤ ∑ j, f j := by
   calc ∑ j : I.SumcheckTables, f j.1 =
         ∑ j ∈ Finset.univ.map (Function.Embedding.subtype I.SumcheckTable), f j :=
@@ -155,7 +155,7 @@ private theorem sum_sumcheckTables_le (I : M3Instance) (f : Fin I.ntab → ℕ) 
 
 /-- The bus phase pools at most `32` claims per boundary block: sixteen coordinates on each
 side. -/
-private theorem busClaims_le (I : M3Instance) : I.busClaims ≤ 2 * (I.boundary.length * 16) := by
+theorem busClaims_le (I : M3Instance) : I.busClaims ≤ 2 * (I.boundary.length * 16) := by
   refine (length_eraseDups_le _ _ le_rfl).trans ?_
   have hside : ∀ sd : Side, ((I.boundary.filter fun b ↦ decide (b.side = sd)).flatMap
       fun b ↦ b.coords.toList.filterMap Coord.committed?).length ≤ I.boundary.length * 16 := by
@@ -207,9 +207,10 @@ theorem leanIsa_poolSize_le : (leanIsaInstance F prog s).poolSize ≤ 2 ^ 57 := 
   omega
 
 variable {prog s} in
-/-- At admissible sizes every table and boundary block of leanISA has at most `2^40` rows. -/
-private theorem leanIsa_height_le (hs : s.Admissible prog) (j : Fin 9) : height prog s j ≤ 40 := by
-  obtain ⟨-, hm, hτ, -, -⟩ := hs
+/-- With the memory and the tables within their windows, every table and boundary block of
+leanISA has at most `2^40` rows. -/
+theorem leanIsa_height_le_of (hm : s.logMem ≤ maxLogMem) (hτ : ∀ j, s.τ j ≤ maxLogRows)
+    (j : Fin 9) : height prog s j ≤ 40 := by
   have hp := prog.logSize_le
   have hτ' : ∀ k, s.τ k ≤ 32 := hτ
   simp only [maxLogMem, maxLogBytecode] at hm hp
@@ -220,8 +221,10 @@ private theorem leanIsa_height_le (hs : s.Admissible prog) (j : Fin 9) : height 
   | ⟨j + 3, h⟩ => exact (hτ' ⟨j, by omega⟩).trans (by norm_num)
 
 variable {prog s} in
-/-- **The bus's leaf stacks at leanISA**: `μ_bus ≤ 55` at admissible sizes. -/
-theorem leanIsa_μBus_le (hs : s.Admissible prog) : (leanIsaInstance F prog s).μBus ≤ 55 := by
+/-- **The bus's leaf stacks at leanISA**: `μ_bus ≤ 55` with the memory and the tables within
+their windows. -/
+theorem leanIsa_μBus_le_of (hm : s.logMem ≤ maxLogMem) (hτ : ∀ j, s.τ j ≤ maxLogRows) :
+    (leanIsaInstance F prog s).μBus ≤ 55 := by
   unfold M3Instance.μBus
   rw [Nat.clog_le_iff_le_pow (by norm_num)]
   unfold M3Instance.pushLeaves
@@ -231,7 +234,6 @@ theorem leanIsa_μBus_le (hs : s.Admissible prog) : (leanIsaInstance F prog s).�
     · simp only [List.mem_map, List.mem_filter]
       rintro _ ⟨b, ⟨hb, -⟩, rfl⟩
       refine Nat.pow_le_pow_right (by norm_num) ?_
-      have hm := hs.2.1
       have hp := prog.logSize_le
       simp only [maxLogMem, maxLogBytecode] at hm hp
       simp only [LeanIsa.boundary, List.mem_cons, List.not_mem_nil, or_false] at hb
@@ -242,8 +244,13 @@ theorem leanIsa_μBus_le (hs : s.Admissible prog) : (leanIsaInstance F prog s).�
       (((leanIsaInstance F prog s).flushes j).filter fun f ↦ decide (f.1 = .push)).length *
         2 ^ (leanIsaInstance F prog s).τ j).sum ≤ 2 ^ 54 := by
     refine le_trans (List.sum_le_sum fun j _ ↦ Nat.mul_le_mul_left _
-      (Nat.pow_le_pow_right (by norm_num) (leanIsa_height_le hs j))) leanIsa_counts.2.2
+      (Nat.pow_le_pow_right (by norm_num) (leanIsa_height_le_of hm hτ j))) leanIsa_counts.2.2
   omega
+
+variable {prog s} in
+/-- **The bus's leaf stacks at leanISA**: `μ_bus ≤ 55` at admissible sizes. -/
+theorem leanIsa_μBus_le (hs : s.Admissible prog) : (leanIsaInstance F prog s).μBus ≤ 55 :=
+  leanIsa_μBus_le_of F hs.2.1 hs.2.2.1
 
 end LeanIsa
 

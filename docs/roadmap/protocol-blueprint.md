@@ -47,10 +47,10 @@ proof from whose queries the extractor reads no witness shows BLAKE2s misbehavin
 by a collision, a fresh digest equal to one already in play, or a challenge of the proof's own chain
 in a set of density at most `2^{−128}` fixed by its prefix. Its one assumption is `hB`, that this
 happens with probability at most `δ` for the adversary at hand, a hypothesis in the statement and
-never an axiom. `misbehaves_rom` shows that, for an adversary making at most `Q` hash queries and a
-uniformly random function in place of BLAKE2s, it happens with probability at most `niError Q`,
-which `niError_le` bounds by `(Q + verifierQueries)/2^128` plus a hash term quadratic in
-`Q + verifierQueries` over `2^256`.
+never an axiom. `misbehaves_rom` shows that, for a statement fixed before the adversary runs, an
+adversary making at most `Q` hash queries, a verifier making at most `V` and a uniformly random
+function in place of BLAKE2s, it happens with probability at most `niError εquery V Q`, which
+`niError_le` bounds by `(Q + V)/2^128` plus a hash term quadratic in `Q + V` over `2^256`.
 
 Home: `LeanerVM/Protocol/Spine/` (the spine), `LeanerVM/Protocol/` (the phases over an abstract
 instance, the adaptor, the compilation), the Clean bridge in `LeanerVM/Protocol/ToClean/`, the
@@ -113,7 +113,8 @@ and the composition this roadmap proves itself, and two facts about `verify`. Th
 is deterministic and holds for every function answering the hash: if `verify` accepts and the
 extractor reads no witness off the adversary's queries, the log of the run shows the hash
 misbehaving. The second, `misbehaves_rom`, is the random-oracle model: with BLAKE2s replaced by a
-uniformly random function, the hash misbehaves with probability at most `niError Q`. They rest on
+uniformly random function, the hash misbehaves with probability at most `niError εquery V Q`, for a
+statement fixed before the adversary runs and a verifier making at most `V` queries. They rest on
 Flock's security (inhabited from the Flock roadmap, #3), on WHIR's correlated agreement in the
 list-decoding regime (ArkLib proves it with Annex B's constant), on Merkle binding by replaying
 the log, and on the charged invariant, which bounds what each fresh hash query can buy, each a
@@ -125,18 +126,24 @@ security against quantum adversaries.
 The random-oracle model here stands for one function: BLAKE2s-256 on byte strings. The Fiat–Shamir
 chain, the Merkle nodes and the grinding call it on 64-byte inputs, and the Merkle leaves on 384- or
 512-byte ones. The statement's seed (a 78-byte string) and the program hash are constants of the
-statement, computed by BLAKE2s outside the oracle. The headline theorem's one assumption,
-`BlakeMisbehaves`, is about BLAKE2s on the adversary's run: except with probability `δ`, no two
-inputs share a digest, no fresh digest equals a value already in play, and no challenge of the
-proof's own Fiat–Shamir chain lands in the bad set of its prefix, a set of density at most
-`2^{−128}` that the prefix and the committed words fix (a theorem, `bad_density`). These are
-collision resistance, unpredictability and correlation intractability against a sparse relation,
-asked of one run. The adversary draws no coins, so under BLAKE2s its run is one computation and the
-hypothesis is one bit about it; the headline's content is `core`: on any run where the verifier
-accepts and the extractor fails, the hash misbehaves. Why the hypothesis must be per adversary, and
-what it excludes (attacks that use the code of BLAKE2s, [KRS25], [Fen26]), is in Layer 13. leanVM
-binds the statement and commits the trace before the first challenge, so the known attacks do not
-apply, but no theorem here says so.
+statement, computed by BLAKE2s outside the oracle. So the statement is fixed before the adversary
+runs, and the random-oracle bound is selective: for an adversary picking the public input after its
+queries, every statement's first chain state would be in play from the start, and a hit on one of
+them would not be unlikely. The headline theorem's one assumption, `BlakeMisbehaves`, is about
+BLAKE2s on the adversary's run: except with probability `δ`, no two inputs share a digest, no fresh
+digest equals a value already in play, and no challenge of the proof's own Fiat–Shamir chain lands
+in the bad set of its prefix, a set of density at most `2^{−128}` that the prefix and the committed
+words fix (a theorem, `bad_density`). These are collision resistance, unpredictability and
+correlation intractability against a sparse relation, asked of one run. The adversary's BLAKE2s
+calls must be its oracle queries: an adversary that hashes in its own code fails the hypothesis,
+since the verifier's query on a Merkle node the adversary hashed itself is fresh and answered by the
+proof's root, a hit with probability `1`. The theorem then says nothing about that adversary; the
+hypothesis is false, not the theorem wrong. The adversary draws no coins, so under BLAKE2s its run
+is one computation and the hypothesis is one bit about it; the headline's content is `core`: on any
+run where the verifier accepts and the extractor fails, the hash misbehaves. Why the hypothesis must
+be per adversary, and what it excludes (attacks that use the code of BLAKE2s, [KRS25], [Fen26]), is
+in Layer 13. leanVM binds the statement and commits the trace before the first challenge, so the
+known attacks do not apply, but no theorem here says so.
 
 Why the relation is polynomial and not "a valid execution exists": sumcheck, GKR and WHIR
 manipulate polynomials, and a knowledge extractor recovers column data, never an execution; a
@@ -432,7 +439,7 @@ protocol's witness, and the stack can.
                     ┌───────────────────────────┴───────────────────────────────┐
                     │  verify : Program → PublicInput → Proof → Bool             │
                     │  core: accepts ∧ no witness extracted ⇒ HashMisbehaves     │
-                    │  misbehaves_rom: Pr[HashMisbehaves] ≤ niError Q, random fn │
+                    │  misbehaves_rom: Pr[HashMisbehaves] ≤ niError ε V Q (ROM)  │
                     │  at BLAKE2s: the hypothesis BlakeMisbehaves                │
                     └───────────────────────────────────────────────────────────┘
    T4  =  core  ∘  satisfiedBy_witnessOf  ∘  TraceExtraction.valid  (leanISA's),
@@ -645,7 +652,7 @@ no other; the hole is built when the names in bold of its row are declared and m
 | Merkle binding by log replay | [Layer 12](#layer-12-compilation-the-transcript-the-proof-and-the-executable-verifier) | `nodePreimage`, `leafPreimage`, `extractTree`, `extractLeaf`, `extractLeaves`, `extractRows`, `extractAllRows`, `Consistent`, `HasCollision`, `Fresh`, `Known`, `FreshHit`, **`binding_of_log`** (generic `MerkleTree.binding_of_log` and leanVM's), **`extractRows_determined`** (generic `MerkleTree.extractLeaf_determined`) | Merkle trees (the generic walk `MerkleTree.fold`) |
 | list-binding compilation | [Layer 12](#layer-12-compilation-the-transcript-the-proof-and-the-executable-verifier) | `KWord`, `kwordOf`, `ListDecoder`, **`ListDecoder.bruteForce`**, `exactFast`, **`exactFast_eq`**, `ListDecoder.exactFirst`, `ListDecoder.exact`, **`isInK_of_cl`**, `stackOfMsgs`, `stackList`, `Component.relistRel`, **`Component.Front.relist`**, **`Component.Front.overComplete`**, `commitWord`, `commitPick`, **`commitWordSecurity`**, `openInput`, **`relist_of_relOpen`**, **`openInputSecurity`**, **`listBinding_compile`**, **`listBinding_kSF_one`**, **`listBinding_extractedStack_eq`**, **`listBinding_perfectCompleteness`**, `Whir.Transform` (`fwd`, `inv`, **`fwd_getElem`**, **`fwd_inv`**, **`inv_fwd`**, `encodeFast`, **`encodeFast_getElem`**), `exactNtt`, **`exactNtt_spec`**, **`exactNtt_of_codeword`**, `ListDecoder.nttFirst`, **`ListDecoder.decode_eq_of_codeword`**, `kwordOfFast`, **`kwordOfFast_eq`**, `deployedDecoder`, **`deployedChain_head`**, **`listBinding_deployed`**, **`listBinding_deployed_rbrKnowledgeSoundness`**, **`listBinding_deployed_perfectCompleteness`**, `deployedPick`, **`deployedPick_eq_commitPick`**, **`listBinding_deployed_kSF_one`**, **`listBinding_deployed_extractedStack_eq`**, **`commitPick_isSome_iff`**, **`commitPick_eq_some`** | the phases' knowledge soundness and completeness; WHIR opening; WHIR opening in the Johnson regime (`deployedChain`) |
 | transcript, proof object and compiled verifier | [Layer 12](#layer-12-compilation-the-transcript-the-proof-and-the-executable-verifier) | `Digest`, **`card_digest`**, `hashSpec`, `hashQuery`, `runBlake2s`, `runRandom`, `FsState`, `Block`, `FsState.checkPow`, **`FsState.challengeOf`**, `chainHistory`, **`chainHistory_determined`**, `Proof`, `Proof.sizes?`, `RoundPoly.decode`, `decodePrefix`, **`decodePrefix_mono`**, `decode`, `leanVmIopp`, **`verifyWith`**, **`verify`**, **`verifyWith_simulateQ`**, `rounds`, `verifierQueries`, `proofDigests`, **`rounds_bound`**, **`verifierQueries_bound`**, **`proofDigests_bound`**, **`verify_iff_compiled`**, `settleFixedClaims` | the phases' definitions; the Flock phase's definition; WHIR opening; Merkle trees |
-| the random-oracle theorems | [Layer 12](#layer-12-compilation-the-transcript-the-proof-and-the-executable-verifier) | `Adversary`, `Run`, `loggedGame`, `extract`, `Extracts`, `LogHasCollision`, `Hit`, `Bad`, **`bad_density`**, `Flip`, `HashMisbehaves`, **`core`**, `hashTerm`, `niError`, **`misbehaves_rom`**, **`niError_le`**, **`verify_knowledgeSound_rom`** | the compiled verifier; list-binding compilation; Merkle binding by log replay; the charged invariant in its logged form |
+| the random-oracle theorems | [Layer 12](#layer-12-compilation-the-transcript-the-proof-and-the-executable-verifier) | `Adversary`, `Run`, `loggedGame`, `extract`, `Extracts`, `LogHasCollision`, `Hit`, `Bad`, **`bad_density`**, `Flip`, `HashMisbehaves`, **`core`**, `hashTerm`, `niError`, **`misbehaves_rom`**, `misbehaves_rom_coins`, **`niError_le`**, **`verify_knowledgeSound_rom`** | the compiled verifier; list-binding compilation; Merkle binding by log replay; the charged invariant in its logged form |
 | the honest prover and the test vectors | [Layer 13](#the-executable-prover-and-the-test-vectors) | `proveWith`, **`prove`**, `honestAdversary`, **`baseProver_complete`**, the executable `leanervm-vectors` and its vectors | the compiled verifier; the adaptor; for the vectors, leanISA's `checkSatisfiedBy` |
 | the base theorems (T4) | [Layer 13](#layer-13-the-base-theorems-t4-and-the-fixtures) | **`BlakeMisbehaves`**, `extractTrace`, **`baseVerifier_extractsWitness`**, **`baseVerifier_extractsExecution`**, `Blake2sActsAsRandomOracle`, **`blakeMisbehaves_of_comparison`**, `baseProver_complete_of_execution` | the random-oracle theorems; the adaptor; the honest prover; leanISA's `TraceExtraction` (declared beside `SatisfiedBy`); for the instantiated execution form and completeness from an execution, leanISA Layers 9–10 |
 
@@ -1621,14 +1628,15 @@ def HashMisbehaves (rootsOf) (Flip) (prog input) (g : Run) : Prop := LogHasColli
 theorem core (hcons : g.log is consistent with a function) (hV : g.logV is the log of `verifyWith` on `g.proof`,
     its verdict `true`) (hX : ¬ Extracts prog input g.proof g.logA) : HashMisbehaves prog input g
 -- The random-oracle model
-def hashTerm (Q) : ℝ≥0 :=           -- `c` a numeral fixed by the proof
-  (c * (Q + verifierQueries) ^ 2 + (Q + verifierQueries) * (proofDigests + 1)) / 2 ^ 256
-def niError (Q) : ℝ≥0 := (Q + verifierQueries) * εquery + hashTerm Q   -- maximized over admissible sizes
+def hashTerm (V Q) : ℝ≥0 := (Q + V) * (4 * (Q + V) + 8) / 2 ^ 256
+def niError (ε : ℝ≥0) (V Q) : ℝ≥0 := (Q + V) * ε + hashTerm V Q   -- ε the density of every bad set
+-- for a statement fixed before the adversary runs; `V := verifierQueries`
 theorem misbehaves_rom (hQ : IsTotalQueryBound A Q) :
-    Pr[fun z ↦ HashMisbehaves prog input z.1 | runRandom (loggedGame prog input A)] ≤ niError Q
-theorem niError_le (Q) : niError Q ≤ (Q + verifierQueries) / 2 ^ 128 + hashTerm Q
+    Pr[fun z ↦ HashMisbehaves prog input z.1 | runRandom (loggedGame prog input A)] ≤ niError εquery verifierQueries Q
+theorem niError_le (V Q) : niError εquery V Q ≤ (Q + V) / 2 ^ 128 + hashTerm V Q
 theorem verify_knowledgeSound_rom (hQ : IsTotalQueryBound A Q) :
-    Pr[fun z ↦ z.1.ok = true ∧ ¬ Extracts prog input z.1.proof z.1.logA | runRandom (loggedGame prog input A)] ≤ niError Q
+    Pr[fun z ↦ z.1.ok = true ∧ ¬ Extracts prog input z.1.proof z.1.logA | runRandom (loggedGame prog input A)]
+      ≤ niError εquery verifierQueries Q
 ```
 
 `verify` is one function, phase by phase in the stream order, total and computable, and the first
@@ -1759,24 +1767,24 @@ the total charge, which is paid before the answer is seen. `challengePositions` 
 as the Rust does for `1 ≤ b < 64` bits per position, and every deployed level has
 `msgLog + rate < 64`.
 
-`niError Q` is `(Q + verifierQueries)` times `εquery`, the most one challenge can buy, plus
-`hashTerm Q`, maximized over the admissible sizes, which the challenge oracle takes with the
-statement (decision 29). The verifier's own queries are budgeted by their total, not by its chain
-`rounds`: a Merkle node query `left ‖ right` carries siblings the prover chose and can be
-byte-identical to a squeeze step (the parser accepts any 64-byte input whose bytes 32 to 55 are
-zero with tag 2), so it may open a Fiat–Shamir group. The adversary's run and the verifier's
-compose by the integral sequence bound, the second run's potential starting from the first run's
-final potential; a supremum over the first run's outcomes would count twice the groups the
-adversary left open. The hash term counts the adversary's queries and the verifier's own, since a
-node
-the verifier recomputes is a fresh value too, and the digests of the proof the verifier reads,
-`proofDigests`, since the verifier's fresh answer equal to one of them is a hit, as the
-replayer's root is. `rounds`, `verifierQueries` and `proofDigests` are numerals, each with a
-proved bound on one run. A program-hash collision does not enter: the statement is fixed outside
-the probability, and it would enter only in the adaptive form.
+`niError εquery V Q` is `(Q + V)` times `εquery`, the most one challenge can buy, plus
+`hashTerm V Q`, with `εquery` the bad sets' density at every admissible size, which the challenge
+oracle takes with the statement (decision 29). The verifier's queries are charged `εquery` each,
+not only its chain rounds: a Merkle node query whose sibling bytes the prover chose can have a
+squeeze step's shape. The adversary's run and the verifier's compose by the integral sequence
+bound, the second run's potential starting from the first run's final potential; a supremum over
+the first run's outcomes would count twice the groups the adversary left open. The hash term
+counts the adversary's queries and the verifier's own, since a node the verifier recomputes is a
+fresh value too, and the digests of the proof the verifier reads,
+`proofDigests`, since the verifier's fresh answer equal to one of them is a hit, as the replayer's
+root is. `verifierQueries` and `proofDigests` are numerals, each with a proved bound on one run.
+The bound is selective: the statement is fixed before the adversary runs. A program-hash collision
+does not enter, and the adaptive form would need more than that term: the chain's first state is
+BLAKE2s of the statement outside the oracle, so for an adversary picking the public input after
+its queries every statement's first state would be in play from the start.
 
 `niError_le` states the closed form an auditor reads: at the deployed parameters `εquery` is at
-most `2^{−128}`. A test checks `niError (2^64) ≤ 2^{−60}` by `norm_num` on `niError_le`. The MCA
+most `2^{−128}`. A test checks `niError εquery (2^20) (2^64) ≤ 2^{−60}` by `norm_num`. The MCA
 share of the fold rows is `mcaJohnson_annexB`'s bound at the ladder (Layer 11), and the query
 rounds reach `2^{−128}` only with the proof-of-work factor. Without that factor the statement
 certifies about 111 bits. No published theorem covers Fiat–Shamir with proof of work for a
@@ -1809,7 +1817,8 @@ the honest toy log, and on a log missing one leaf (zero there); `ListDecoder.bru
 codewords in its list; `exactFirst`'s fallback on a word one symbol off a codeword; `commitPick`
 on the toy's honest word, on the word of a stack failing `M3Holds` and on a word one symbol off;
 `runRandom`'s answer to a fresh query uniform on `Digest`, and a repeated query answered from the
-cache; and `niError (2^64) ≤ 2^{−60}`. The fixture waits on the Flock phase's definition.
+cache; and `niError εquery (2^20) (2^64) ≤ 2^{−60}`. The fixture waits on the Flock phase's
+definition.
 
 ### Layer 13: the base theorems (T4) and the fixtures
 
@@ -1856,7 +1865,7 @@ def Blake2sActsAsRandomOracle (G : OracleComp hashSpec α) (bad : α → Prop) (
   Pr[bad | runBlake2s G] ≤ Pr[fun z ↦ bad z.1 | runRandom G] + δ
 theorem blakeMisbehaves_of_comparison (hQ : IsTotalQueryBound A Q)
     (h : Blake2sActsAsRandomOracle (loggedGame prog input A) (HashMisbehaves prog input) δ) :
-    BlakeMisbehaves prog input A (niError Q + δ)
+    BlakeMisbehaves prog input A (niError εquery verifierQueries Q + δ)
 -- Completeness, for every function answering the hash, so at BLAKE2s with no hypothesis (Prover.lean)
 def proveWith [Monad m] (H : List UInt8 → m Digest) (fuel : ℕ) (prog input) (w) (ρ) : m (Option Proof)   -- grinding searches
 def prove (fuel prog input w ρ) : Option Proof := proveWith (m := Id) blake2sBytes fuel prog input w ρ
@@ -1894,10 +1903,14 @@ establishes it (`lean_compiler/src/lib.rs:162`). The existential corollary, "an 
 implies some valid execution", is not stated: it carries no knowledge (decision 34).
 
 `BlakeMisbehaves` is about one adversary, one statement and one run, and its three clauses name
-what of BLAKE2s is relied on (*For zkVM engineers* says what that makes of the headline). An
-adversary with coins is a distribution over coin-free ones (decision 38); the headline applied to
-each gives it the bound with `δ` the probability, over its coins, that the hash misbehaves.
-`blakeMisbehaves_of_comparison` derives the hypothesis at `niError Q + δ` from the comparison form,
+what of BLAKE2s is relied on (*For zkVM engineers* says what that makes of the headline). The
+statement is fixed before the adversary runs: the headline and `misbehaves_rom` are selective
+(Layer 12 says why the random-oracle bound does not lift to an adversary picking the public input
+after its queries). An adversary with coins is a distribution over coin-free ones (decision 38);
+the headline applied to each gives it the bound with `δ` the probability, over its coins, that the
+hash misbehaves, and `misbehaves_rom_coins` gives it the random-oracle bound unchanged.
+`blakeMisbehaves_of_comparison` derives the hypothesis at `niError εquery verifierQueries Q + δ`
+from the comparison form,
 in which misbehaving is at most `δ` likelier under BLAKE2s than under a uniformly random function;
 `misbehaves_rom` is the evidence that `δ` can be small. `δ` is the auditor's estimate, and the
 repository never supplies it.
@@ -1912,7 +1925,10 @@ Two facts fix its form:
   this one is stated on the hash's behaviour, which an auditor can judge without the proof system.
 
 An adversary that carries precomputed values, or uses BLAKE2s's code as the attacks of [KRS25] and
-[Fen26] do, may fail it, and the theorem then says nothing about that adversary. The hypothesis is
+[Fen26] do, may fail it, and the theorem then says nothing about that adversary. One that hashes in
+its own code at all fails it: the verifier's query on a Merkle node the adversary hashed itself is
+fresh and answered by the proof's root, a hit with probability `1`. The adversary's BLAKE2s calls
+must be its oracle queries; for any other adversary the hypothesis is false, not the theorem wrong. The hypothesis is
 satisfiable by an adversary whose proof is accepted: the honest prover on a toy instance meets it
 at `δ = 0` (acceptance test 37). That it holds at `δ = 0` for every satisfying witness is not
 claimed: rows of 384 or 512 bytes hash to 32, so colliding rows exist, and nothing excludes a
@@ -2127,8 +2143,8 @@ witness is executable it is a test under `tests/`.
     `(1 − γ_i)^{t_i}` per nonce. The group of the check, the nonce step and the squeezes is one
     challenge, the pair of the check's digest and the positions, bad only if the check passes,
     charged once at `2^{−17}·((a_i − 1)/n_i)^{t_i}` whichever order its queries come in (so the charged
-    invariant is stated for a potential). Witness: the test `niError (2^64) ≤ 2^{−60}`, false at
-    the per-squeeze charge.
+    invariant is stated for a potential). Witness: the test
+    `niError εquery (2^20) (2^64) ≤ 2^{−60}`, false at the per-squeeze charge.
 
 ## Interfaces supplied to later work
 

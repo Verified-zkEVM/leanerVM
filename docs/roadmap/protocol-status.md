@@ -881,9 +881,9 @@ form, its budget priced) and `expected_charge_le_sum` (a sum of components, comp
 `∑ j, n j * κ j` for at most `n j` such queries, `IsQueryBoundP`). A kind is read off the query
 input, so it counts every query of its shape. The adversary's run is budgeted by its `Q` queries.
 The verifier's run can only be budgeted by its total `V`, not by `rounds`: a Merkle node query
-`left ++ right` with sibling bytes the prover chose can have a squeeze step's shape, so the
-blueprint's `niError_le` term `(Q + rounds)·2^-128` becomes `(Q + V)·2^-128`, beside a `hashTerm`
-that already carries `Q + V`. Two runs in sequence: `prEvent_simulateQ_bind_le_lintegral` bounds an
+`left ++ right` with sibling bytes the prover chose can have a squeeze step's shape, so
+`niError_le`'s term is `(Q + V)·2^-128`, not `(Q + rounds)·2^-128`, beside a `hashTerm` that
+already carries `Q + V`. Two runs in sequence: `prEvent_simulateQ_bind_le_lintegral` bounds an
 event of `oa >>= ob` against a stateful oracle by the expectation over the first run's end of `1`
 on its bad event and of the second run's bound otherwise;
 `QueryHistory.prEvent_bind_le_of_potential` starts the second run from the potential the first
@@ -896,8 +896,40 @@ challenges of `m` fresh digests are uniform on `Fin m → E`), `challengeBits` a
 the tests check of every deployed level), and `prEvent_positions_uniform` (with `t ≤ m⌊192/b⌋`, the
 `t` positions of `m` fresh squeezes are uniform on `Fin t → Fin (2^b)`). The tests check the
 positions against the Rust's two-limb read by hand-computed values. It still owes the lemma that
-the verifier's `walkPositions` reads `challengePositions` of its squeezes' challenges, the step of
-the potential for a group's later queries, and `misbehaves_rom` itself.
+the verifier's `walkPositions` reads `challengePositions` of its squeezes' challenges, and
+`misbehaves_rom` itself; the step of the potential is in the next paragraph.
+
+*On merge* of the random-oracle potential pull request, the potential and its step are on `main`.
+`Protocol/ChainGroups.lean` reads a chain history through a `SlotReader` (the protocol at an
+announcement, the longest transcript prefix a history reads, each challenge as a `SqueezeSlot`, the
+marks and the bad challenges, with the decoder facts as fields) and defines the group of queries
+fixing a challenge (its squeezes, and the base, check and nonce step before a marked one), its
+status in a log, `Flips`/`FlipAt` (a group closed on a bad challenge, its proof of work passing),
+the probability `π` that it closes on one, and what one more clean query changes
+(`flipAt_append`, `openGroups_append_subset`). `Protocol/RandomOracleBound.lean`: the potential
+`Φ` (the open groups' `π`, `1` off a clean log), the charge (`|B|/2^256` for the answers to avoid,
+plus the groups the query opens), `potential_step`, the step of
+`QueryHistory.potential_le_expected_charge`, and `charge_le`
+(`(4L + |seedRoots| + |proofRoots|)/2^256 + ε` under a density bound `ε` per challenge). The
+generic lemmas are in `ToVCVio/` (`QueryLog.dedupKeys`, `withQueryLog_freshLog_support`,
+`HashChain.history_dedupKeys`, `UniformCondition.lean`). `Protocol/HashMisbehaves.lean`:
+`misbehaves_rom`, for a statement fixed before the prover runs (selective: the chain's first state
+is BLAKE2s of the statement outside the oracle), any reader `R` from that first state whose bad
+challenges have density at most `ε` (`SlotReader.Density`, a marked one after a uniform check
+passes), a prover of `Q` queries, a verifier of at most `V` queries on every proof and proofs of at
+most six roots, bounds the probability of `HashMisbehaves rootsOf R.Flip` in `loggedGame` by
+`niError ε V Q = (Q + V)·ε + (Q + V)(4(Q + V) + 8)/2^256`, with `ε = 2^-128` at `εquery`;
+`misbehaves_rom_coins` gives a prover with coins the same bound. The game's fresh log is its joint
+log deduplicated (Mathlib's `List.dedupKeys`), a misbehaving hash leaves it unclean
+(`badLog_of_hashMisbehaves`, through `flipAt_dedupKeys`, `extractRows_dedupKeys` and
+`mem_drop_dedupKeys`), and the potential bounds the two runs in sequence. Under BLAKE2s, a prover
+that hashes in its own code rather than through the oracle makes a hit with probability `1` (the
+verifier's query on a node it hashed itself is fresh and answered by the proof's root), so it fails
+the headline's hypothesis. Still owed: the `SlotReader` of the deployed protocol over the
+transcript decoder (its density bound from `bad_density` and the per-challenge budgets, its
+`sampleable` the very instance of `bad_density`'s uniform challenge, and a check over the window
+that every challenge reads a squeeze), the executable verifier's query bound and the proof's
+roots.
 
 *On merge* of the list-binding branch (`feat/protocol-list-binding`), the list-binding compilation
 is on `main` (`Protocol/ListBinding.lean`, `Protocol/Whir/Decode.lean`, the `K` word `KWord` in

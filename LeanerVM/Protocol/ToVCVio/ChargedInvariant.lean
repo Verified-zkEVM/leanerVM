@@ -11,6 +11,8 @@ module
 public import LeanerVM.Protocol.ToVCVio.EventExpectation
 public import VCVio.OracleComp.QueryTracking.RandomOracle.Basic
 public import VCVio.OracleComp.Constructions.SampleableType.NativeMeasure
+public import VCVio.OracleComp.QueryTracking.LoggingOracle.Core
+public import LeanerVM.Protocol.ToVCVio.QueryLog
 
 /-!
 # The charged invariant of a lazy random oracle
@@ -60,6 +62,13 @@ of `1` on a bad event of it and of the second run's bound otherwise, and
 bound. `QueryHistory.prEvent_bind_le_of_potential` composes the expectation form with the
 potential: the second run's bound from a good end of the first is the potential there plus `ε`,
 and the total is the initial potential, the first run's expected charge and `ε`.
+
+**The fresh log of a logged run.** `QueryHistory.IsFreshLog s` says the log of a `freshLog` state
+lists its cache's entries, each input once (`IsFreshLog.enncard_eq`: as many as the cache has).
+`QueryHistory.withQueryLog_freshLog_support`: a run of `oa.withQueryLog` from such a state ends in
+one whose log is the old log followed by the run's queries at their first occurrence
+(`List.dedupKeys`) the old cache did not hold, with the old cache kept and every logged query
+cached with its logged answer.
 
 `potential_le_expected_charge`, `prEvent_le_of_potential`,
 `prEvent_not_good_le_expected_charge`, `prEvent_not_good_le_mul`, `enncard_le_of_mem_support`
@@ -581,6 +590,152 @@ theorem prEvent_bind_le_of_potential {β γ : Type} (oa : OracleComp spec β)
   · rw [lintegral_id_evalDist_map_add _ (fun z₁ : β × σ ↦ Φ z₁.2) fun _ ↦ ε]
     exact add_le_add (H.potential_le_expected_charge Φ charge hstep oa s)
       (lintegral_id_evalDist_map_le_of_le _ fun _ ↦ le_rfl)
+
+/-! ### The fresh log of a logged run -/
+
+section FreshLog
+
+/-- A state of `freshLog` whose log lists the cache's entries, each input once: every state a run
+from the empty one reaches. -/
+def IsFreshLog (s : spec.QueryCache × spec.QueryLog) : Prop :=
+  (∀ e ∈ s.2, s.1 e.1 = some e.2) ∧ (∀ t u, s.1 t = some u → ⟨t, u⟩ ∈ s.2) ∧
+    (s.2.map (·.1)).Nodup
+
+omit [DecidableEq ι] [∀ t, SampleableType (spec.Range t)] in
+theorem isFreshLog_empty : IsFreshLog ((∅ : spec.QueryCache), ([] : spec.QueryLog)) :=
+  ⟨by simp, by simp [QueryCache.empty_apply], by simp⟩
+
+omit [∀ t, SampleableType (spec.Range t)] in
+/-- Recording a fresh query keeps the log the cache's. -/
+theorem IsFreshLog.record {s : spec.QueryCache × spec.QueryLog} (h : IsFreshLog s)
+    {t : spec.Domain} (ht : s.1 t = none) (u : spec.Range t) :
+    IsFreshLog (freshLog.record s t u) := by
+  obtain ⟨h₁, h₂, h₃⟩ := h
+  have hne : ∀ e ∈ s.2, e.1 ≠ t := fun ⟨t', u'⟩ he het ↦ by
+    have := h₁ _ he
+    simp only at het this
+    subst het
+    rw [ht] at this
+    cases this
+  refine ⟨fun e he ↦ ?_, fun t' u' ht' ↦ ?_, ?_⟩
+  · simp only [freshLog_record, List.mem_append, List.mem_singleton] at he ⊢
+    rcases he with he | rfl
+    · rw [QueryCache.cacheQuery_of_ne _ _ (hne e he)]
+      exact h₁ e he
+    · exact QueryCache.cacheQuery_self _ _ _
+  · simp only [freshLog_record] at ht' ⊢
+    by_cases htt : t' = t
+    · subst htt
+      rw [QueryCache.cacheQuery_self] at ht'
+      cases ht'
+      simp
+    · rw [QueryCache.cacheQuery_of_ne _ _ htt] at ht'
+      exact List.mem_append_left _ (h₂ t' u' ht')
+  · simp only [freshLog_record, List.map_append, List.map_cons, List.map_nil]
+    refine List.nodup_append.mpr ⟨h₃, by simp, fun a ha b hb hab ↦ ?_⟩
+    obtain ⟨e, he, rfl⟩ := List.mem_map.mp ha
+    exact hne e he (hab.trans (by simpa using hb))
+
+omit [∀ t, SampleableType (spec.Range t)] in
+/-- A state whose fresh query's record has its log the cache's has its log the cache's. -/
+theorem IsFreshLog.of_record {s : spec.QueryCache × spec.QueryLog} {t : spec.Domain}
+    (ht : s.1 t = none) {u : spec.Range t} (h : IsFreshLog (freshLog.record s t u)) :
+    IsFreshLog s := by
+  obtain ⟨h₁, h₂, h₃⟩ := h
+  simp only [freshLog_record, List.map_append, List.map_cons, List.map_nil] at h₁ h₂ h₃
+  have hne : ∀ e ∈ s.2, e.1 ≠ t := fun e he het ↦
+    (List.nodup_append.mp h₃).2.2 _ (List.mem_map_of_mem he) t (by simp) het
+  refine ⟨fun e he ↦ ?_, fun t' u' ht' ↦ ?_, (List.nodup_append.mp h₃).1⟩
+  · have := h₁ e (List.mem_append_left _ he)
+    rwa [QueryCache.cacheQuery_of_ne _ _ (hne e he)] at this
+  · have htt : t' ≠ t := fun h ↦ by subst h; rw [ht] at ht'; cases ht'
+    have := h₂ t' u' (by rwa [QueryCache.cacheQuery_of_ne _ _ htt])
+    rcases List.mem_append.mp this with h | h
+    · exact h
+    · obtain ⟨rfl, -⟩ := Sigma.mk.inj_iff.mp (List.mem_singleton.mp h)
+      exact absurd rfl htt
+
+omit [∀ t, SampleableType (spec.Range t)] in
+/-- A log that is the cache's has as many entries as the cache. -/
+theorem IsFreshLog.enncard_eq {s : spec.QueryCache × spec.QueryLog} (h : IsFreshLog s) :
+    s.1.enncard = s.2.length := by
+  classical
+  have hset : s.1.toSet = ↑s.2.toFinset := by
+    ext ⟨t, u⟩
+    simp only [QueryCache.mem_toSet, List.coe_toFinset]
+    exact ⟨h.2.1 t u, h.1 _⟩
+  rw [QueryCache.enncard, hset, Set.encard_coe_eq_coe_finsetCard,
+    List.toFinset_card_of_nodup (h.2.2.of_map _)]
+  rfl
+
+/-- **The state after a logged run.** Run a logged computation on `freshLog`'s lazy random
+oracle from a state whose log is the cache's. At every end, the log of fresh queries is the old
+one followed by the run's queries at their first occurrence that the old cache did not hold; it
+is still the cache's; the old cache is kept; and every logged query is cached with its logged
+answer. -/
+theorem withQueryLog_freshLog_support {α : Type} (oa : OracleComp spec α)
+    {s : spec.QueryCache × spec.QueryLog} (hs : IsFreshLog s)
+    {z : (α × spec.QueryLog) × spec.QueryCache × spec.QueryLog}
+    (hz : z ∈ support ((simulateQ freshLog.randomOracle oa.withQueryLog).run s)) :
+    z.2.2 = s.2 ++ (List.dedupKeys z.1.2).filter (fun e ↦ (s.1 e.1).isNone) ∧
+      IsFreshLog z.2 ∧ s.1 ≤ z.2.1 ∧ ∀ e ∈ z.1.2, z.2.1 e.1 = some e.2 := by
+  induction oa using OracleComp.inductionOn generalizing s z with
+  | pure a =>
+    simp only [withQueryLog_pure, simulateQ_pure, StateT.run_pure, support_pure,
+      Set.mem_singleton_iff] at hz
+    subst hz
+    exact ⟨by simp, hs, le_rfl, by simp⟩
+  | query_bind t k ih =>
+    have hq : (liftM (spec.query t) >>= k).withQueryLog = liftM (spec.query t) >>= fun u ↦
+        Prod.map id (⟨t, u⟩ :: ·) <$> (k u).withQueryLog := by
+      rw [withQueryLog_bind, withQueryLog_query, bind_assoc]
+      simp
+    rw [hq, run_query_bind, mem_support_bind_iff] at hz
+    obtain ⟨⟨u, s'⟩, hus, hz⟩ := hz
+    rw [simulateQ_map, StateT.run_map, support_map] at hz
+    obtain ⟨z', hz', rfl⟩ := hz
+    cases h : s.1 t with
+    | some u₀ =>
+      rw [freshLog.randomOracle_run_of_some (s := s) h, support_pure,
+        Set.mem_singleton_iff] at hus
+      obtain ⟨rfl, rfl⟩ := Prod.mk.inj hus
+      obtain ⟨h₁, h₂, h₃, h₄⟩ := ih u hs hz'
+      refine ⟨?_, h₂, h₃, ?_⟩
+      · simp only [Prod.map_snd, QueryLog.dedupKeys_cons, h, Option.isNone_some, List.filter_cons,
+          Bool.false_eq_true, ↓reduceIte, List.filter_filter, h₁]
+        congr 1
+        refine List.filter_congr fun x _ ↦ ?_
+        by_cases hx : x.1 = t
+        · obtain ⟨x₁, x₂⟩ := x
+          simp only at hx
+          subst hx
+          simp [h]
+        · simp [hx]
+      · simp only [Prod.map_snd, List.mem_cons, forall_eq_or_imp]
+        exact ⟨h₃ h, h₄⟩
+    | none =>
+      rw [freshLog.randomOracle_run_of_none (s := s) h, support_map] at hus
+      obtain ⟨v, -, hv⟩ := hus
+      obtain ⟨rfl, rfl⟩ := Prod.mk.inj hv
+      obtain ⟨h₁, h₂, h₃, h₄⟩ := ih v (hs.record h v) hz'
+      have hle : s.1 ≤ (freshLog.record s t v).1 := QueryCache.le_cacheQuery _ h
+      refine ⟨?_, h₂, hle.trans h₃, ?_⟩
+      · simp only [Prod.map_snd, QueryLog.dedupKeys_cons, h, Option.isNone_none, List.filter_cons,
+          ↓reduceIte, List.filter_filter, h₁, freshLog_record, List.append_assoc,
+          List.singleton_append]
+        congr 2
+        refine List.filter_congr fun x _ ↦ ?_
+        by_cases hx : x.1 = t
+        · obtain ⟨x₁, x₂⟩ := x
+          simp only at hx
+          subst hx
+          simp
+        · simp [hx]
+      · simp only [Prod.map_snd, List.mem_cons, forall_eq_or_imp]
+        refine ⟨h₃ ?_, h₄⟩
+        simp
+
+end FreshLog
 
 end QueryHistory
 
