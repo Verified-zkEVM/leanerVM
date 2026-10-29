@@ -69,47 +69,5 @@ theorem plain877 : Plain 877 := plain_of_nil (by decide +kernel)
 
 theorem plain878 : Plain 878 := plain_of_nil (by decide +kernel)
 
-theorem plain879 : Plain 879 := plain_of_nil (by decide +kernel)
-
-theorem plain880 : Plain 880 := plain_of_nil (by decide +kernel)
-
-theorem plain881 : Plain 881 := plain_of_nil (by decide +kernel)
-
-theorem plain882 : Plain 882 := plain_of_nil (by decide +kernel)
-
-theorem plain883 : Plain 883 := plain_of_nil (by decide +kernel)
-
-theorem plain884 : Plain 884 := plain_of_nil (by decide +kernel)
-
-theorem plain885 : Plain 885 := plain_of_nil (by decide +kernel)
-
-theorem plain886 : Plain 886 := plain_of_nil (by decide +kernel)
-
-theorem plain887 : Plain 887 := plain_of_nil (by decide +kernel)
-
-theorem plain888 : Plain 888 := plain_of_nil (by decide +kernel)
-
-theorem plain889 : Plain 889 := plain_of_nil (by decide +kernel)
-
-theorem plain890 : Plain 890 := plain_of_nil (by decide +kernel)
-
-theorem plain891 : Plain 891 := plain_of_nil (by decide +kernel)
-
-theorem plain892 : Plain 892 := plain_of_nil (by decide +kernel)
-
-theorem plain893 : Plain 893 := plain_of_nil (by decide +kernel)
-
-theorem plain894 : Plain 894 := plain_of_nil (by decide +kernel)
-
-theorem plain895 : Plain 895 := plain_of_nil (by decide +kernel)
-
-theorem plain896 : Plain 896 := plain_of_nil (by decide +kernel)
-
-theorem plain897 : Plain 897 := plain_of_nil (by decide +kernel)
-
-theorem plain898 : Plain 898 := plain_of_nil (by decide +kernel)
-
-theorem plain899 : Plain 899 := plain_of_nil (by decide +kernel)
-
 end
 end LeanVM.Guest.Checked

@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.Digest.ClaimListCLast
 
-  `claim_list_last__L{k}` and `__loop16`'s block, completely.
+  `claim_list_last__L{k}` and `__loop15`'s block, completely.
 -/
 
 module
@@ -16,7 +16,7 @@ public import LeanVM.Guest.B1.Digest.PairComplete
 `claimLast_complete`: from a state at `sp` after whole blocks `pre` and `4k` canonical cells at
 `blk`, `claim_list_last__L{k}` returns the digest of `pre ++` the cells: its evaluated valuation
 (`Fwd.ev`) loads them, every atom holds (`Fwd.atoms_holds`), and soundness (`claimLast_sound`)
-names the returns. `l16_block`: `__loop16`'s block at the counter `x` holds when the state after
+names the returns. `l16_block`: `__loop15`'s block at the counter `x` holds when the state after
 `pre` is at `chain · x^13`, the 68 cells at `entries · x^68`, and the state after them at offset
 `13` (its stores, `chain_whole` on the block without them, `check_filter`).
 -/
@@ -179,7 +179,7 @@ theorem cl_mem_atoms {ss : List Stmt} {a : Atom} (h : Stmt.atom a ∈ ss) : a �
 
 set_option maxRecDepth 20000 in
 set_option maxHeartbeats 1000000 in
-/-- **A group of claims** (`__loop16`'s block at the counter `x`): the state after whole blocks
+/-- **A group of claims** (`__loop15`'s block at the counter `x`): the state after whole blocks
 `pre` at `chain · x^13`, the 68 canonical cells at `entries · x^68`, the state after them at
 `chain · x^13` from offset `13`. -/
 theorem l16_block {x N chain entries : E} {n : ℕ} {pre : List UInt8}
@@ -188,11 +188,11 @@ theorem l16_block {x N chain entries : E} {n : ℕ} {pre : List UInt8}
     (hc : AllCanonical cells)
     (hS' : StateAt rd (chain * x ^ 13) 13
       (absorbChunks (n + 8) zeroState (pre ++ cellsBytes cells))) :
-    LoopBlock rd (coreProgram.getD 323 default) x N [chain, entries] := by
+    LoopBlock rd (coreProgram.getD 320 default) x N [chain, entries] := by
   have hok := l16_ok
   have hcok := l16c_ok
   have hnb := l16_nb
-  set fn := coreProgram.getD 323 default
+  set fn := coreProgram.getD 320 default
   set A := loopAtoms fn with hAdef
   set S := storesOf 4 fn.body with hSdef
   simp only [l16Ok, Bool.and_eq_true, decide_eq_true_eq] at hok

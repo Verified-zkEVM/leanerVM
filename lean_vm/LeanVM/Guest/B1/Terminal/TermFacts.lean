@@ -86,7 +86,7 @@ theorem tail_noDisp : termTailPre.all noDispB = true := by decide +kernel
 theorem head_callS : termHeadT.filterMap Main.Stmt.callS =
     [(none, "eq_prefix_chain", [.n 19, .n 20, .n 0, .n 15, .n 3], []),
       (none, "eq_prefix_chain", [.n 21, .n 22, .n 1, .n 15, .n 4], []),
-      (some (.n 30), "__loop15", [.n 31, .n 5, .n 25, .n 15], []),
+      (some (.n 30), "__loop14", [.n 31, .n 5, .n 25, .n 15], []),
       (none, "selector_tables", [.n 14, .n 15], [.n 34, .n 35])] := by decide +kernel
 
 theorem claims_callS : termClaims.filterMap Main.Stmt.callS = [] := by decide +kernel
@@ -115,7 +115,7 @@ theorem sels_callSF (σ : Val) :
 theorem term_callSF (σ : Val) : termPre.filterMap (Stmt.callSF σ) =
     [(none, "eq_prefix_chain", [.n 19, .n 20, .n 0, .n 15, .n 3], []),
       (none, "eq_prefix_chain", [.n 21, .n 22, .n 1, .n 15, .n 4], []),
-      (some (.n 30), "__loop15", [.n 31, .n 5, .n 25, .n 15], []),
+      (some (.n 30), "__loop14", [.n 31, .n 5, .n 25, .n 15], []),
       (none, "selector_tables", [.n 14, .n 15], [.n 34, .n 35])] ++
     (List.range Tables.nCommittedCols).map (selCall σ) ++
     [(none, "eq_prefix_chain", [.n 1993, .n 1994, .n 12, .n 15, .n 1996], []),

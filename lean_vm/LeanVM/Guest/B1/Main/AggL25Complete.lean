@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.Main.AggL25Complete
 
-  `__loop25` (a child's absorption), completely.
+  `__loop24` (a child's absorption), completely.
 -/
 
 module
@@ -11,7 +11,7 @@ public import LeanVM.Guest.B1.Main.AggL25CChk
 /-!
 # A child's absorption, completely
 
-`l25_block`: `__loop25`'s block at the child `x` holds on the evaluated valuation (`Fwd.ev`) when
+`l25_block`: `__loop24`'s block at the child `x` holds on the evaluated valuation (`Fwd.ev`) when
 its row (`absorb·x^13`) holds the honest words of a sponge with four waiting scalars, the next
 row the honest words of the sponge after the child's `52` words, the pointer tables the child's
 claims, and the child's words are in memory. Its atoms but its stores hold (their side conditions
@@ -32,7 +32,7 @@ variable {rd : Reader}
 
 set_option maxRecDepth 20000 in
 set_option maxHeartbeats 4000000 in
-/-- **A child's absorption** (`__loop25`). -/
+/-- **A child's absorption** (`__loop24`). -/
 theorem l25_block {x N absorb cfresh lfT ccarried lcT cpi : E} {st : Fs} (hst : StOk st)
     (hp4 : st.pend.length = 4) (hrow : ReadsAt rd (absorb * x ^ 13) (rowW st))
     (hnext : ReadsAt rd (absorb * x ^ 13 * gen ^ 13)
@@ -42,7 +42,7 @@ theorem l25_block {x N absorb cfresh lfT ccarried lcT cpi : E} {st : Fs} (hst : 
     (hpi : ∀ o < 2, ∃ v, LoadHolds rd (cpi * x ^ 2) o v)
     (hfr : ∀ o < 24, ∃ v, LoadHolds rd (cfresh * x ^ 24) o v)
     (hca : ∀ o < 24, ∃ v, LoadHolds rd (ccarried * x ^ 24) o v) :
-    LoopBlock rd (coreProgram.getD 394 default) x N [absorb, cfresh, lfT, ccarried, lcT, cpi] := by
+    LoopBlock rd (coreProgram.getD 374 default) x N [absorb, cfresh, lfT, ccarried, lcT, cpi] := by
   have hok := l25_ok
   simp only [l25Ok, Bool.and_eq_true, decide_eq_true_eq] at hok
   obtain ⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨hshape, hlen⟩, -⟩, -⟩, -⟩, -⟩, -⟩, -⟩, -⟩, -⟩, -⟩, -⟩, -⟩, -⟩, -⟩,
@@ -58,7 +58,7 @@ theorem l25_block {x N absorb cfresh lfT ccarried lcT cpi : E} {st : Fs} (hst : 
   simp only [List.all_eq_true, List.mem_range] at hsrc
   simp only [List.all_eq_true, List.mem_range, decide_eq_true_eq, Bool.and_eq_true] at hcst hrst
   have hS := l25_stores
-  set fn := coreProgram.getD 394 default
+  set fn := coreProgram.getD 374 default
   set A := atomsIn (loopPre fn)
   let args : List E := [x, N, absorb, cfresh, lfT, ccarried, lcT, cpi]
   obtain ⟨σ, hσ⟩ : ∃ σ : Val, σ = B1.Val.ofArgs (ev rd (fun _ => 0) args fn.body) := ⟨_, rfl⟩

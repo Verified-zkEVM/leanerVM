@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.Terminal.Loop15Complete
 
-  `__loop15`, completely: over the public input's honest chain, the loop runs from `g^k` to its
+  `__loop14`, completely: over the public input's honest chain, the loop runs from `g^k` to its
   end `g^m`, loading only the chain and the point.
 -/
 
@@ -11,7 +11,7 @@ public import LeanVM.Guest.B1.Terminal.PiChain
 public import LeanVM.Guest.Memory.Uniform
 
 /-!
-# `__loop15`, completely
+# `__loop14`, completely
 
 The honest memory: the chain `cs` (`m + 1` words) at `g^bc` and the point `ps` (`m` words) at
 `g^bp`, each step `cs[k+1] = cs[k]·ps[k]`, `1 ≤ k < m`. `l15_iter`: at `g^k`, `1 ≤ k < m`, the
@@ -29,7 +29,7 @@ open LeanVM.Guest.B1.Main (Layout MemL RegionL)
 
 @[expose] public section
 
-/-- `__loop15`'s statements before its `ret`. -/
+/-- `__loop14`'s statements before its `ret`. -/
 def l15Pre : List Stmt :=
   [.atom (.mul (.n 4) (.n 2) (.n 0)), .atom (.load (.n 5) (.n 4) 0),
     .atom (.mul (.n 6) (.n 3) (.n 0)), .atom (.load (.n 7) (.n 6) 0),
@@ -37,10 +37,10 @@ def l15Pre : List Stmt :=
     .atom (.load (.n 8) (.n 9) 1), .atom (.const (.n 10) (word 2 0 0)),
     .atom (.mul (.n 11) (.n 0) (.n 10)), .atom (.add (.n 12) (.n 11) (.n 1)),
     .atom (.const (.n 13) (word 2 0 0)), .atom (.mul (.n 14) (.n 0) (.n 13)),
-    .callIf (.n 12) "__loop15" [.n 14, .n 1, .n 2, .n 3]]
+    .callIf (.n 12) "__loop14" [.n 14, .n 1, .n 2, .n 3]]
 
-theorem l15_body : Fn.body Data.core263 = l15Pre ++ [.ret []] := by
-  rw [show Fn.body Data.core263 = loop15T from loop15_body]; rfl
+theorem l15_body : Fn.body Data.core260 = l15Pre ++ [.ret []] := by
+  rw [show Fn.body Data.core260 = loop15T from loop15_body]; rfl
 
 theorem l15_straight : l15Pre.all Main.Stmt.straight = true := by decide +kernel
 
@@ -48,9 +48,9 @@ theorem l15_loads : l15Pre.filterMap Stmt.loadS = [(.n 4, 0), (.n 6, 0), (.n 9, 
   decide +kernel
 
 theorem l15_callS : l15Pre.filterMap Main.Stmt.callS =
-    [(some (.n 12), "__loop15", [.n 14, .n 1, .n 2, .n 3], [])] := by decide +kernel
+    [(some (.n 12), "__loop14", [.n 14, .n 1, .n 2, .n 3], [])] := by decide +kernel
 
-/-- `__loop15`'s evident valuation at `x`, the chain's word `a` and the point's `b`. -/
+/-- `__loop14`'s evident valuation at `x`, the chain's word `a` and the point's `b`. -/
 noncomputable def l15σ (x N ch p a b : E) : Val :=
   B1.Val.ofArgs [x, N, ch, p, ch * x, a, p * x, b, a * b, ch * x, word 2 0 0, x * word 2 0 0,
     x * word 2 0 0 + N, word 2 0 0, x * word 2 0 0]
@@ -60,15 +60,15 @@ theorem l15_addr (b c k : ℕ) : (ofK (gpow b) * gen ^ c).limb 0 * gpow k = gpow
     rw [gen_pow_eq_ofK, ← ofK_mul, gpow, gpow, gpow, pow_add]
   rw [e, Main.addr_ofK]
 
-/-- **One iteration of `__loop15`, loading the chain and the point.** -/
+/-- **One iteration of `__loop14`, loading the chain and the point.** -/
 theorem l15_iter {rd : Reader} {bc bp m : ℕ} {cs ps : List E} (hcl : cs.length = m + 1)
     (hpl : ps.length = m) (hc : ReadsAt rd (ofK (gpow bc)) cs) (hp : ReadsAt rd (ofK (gpow bp)) ps)
     (hstep : ∀ k, 1 ≤ k → k < m → cs.getD (k + 1) 0 = cs.getD k 0 * ps.getD k 0) {R : ℕ → Prop}
     (hR : ∀ i, (bc ≤ i ∧ i ≤ bc + m) ∨ (bp ≤ i ∧ i < bp + m) → R i) {k : ℕ} (hk1 : 1 ≤ k)
     (hkm : k < m)
-    (hnext : k + 1 < m → coreProgram.RelIn rd R "__loop15"
+    (hnext : k + 1 < m → coreProgram.RelIn rd R "__loop14"
       [gen ^ (k + 1), gen ^ m, ofK (gpow bc), ofK (gpow bp)] []) :
-    coreProgram.RelIn rd R "__loop15" [gen ^ k, gen ^ m, ofK (gpow bc), ofK (gpow bp)] [] := by
+    coreProgram.RelIn rd R "__loop14" [gen ^ k, gen ^ m, ofK (gpow bc), ofK (gpow bp)] [] := by
   set σ := l15σ (gen ^ k) (gen ^ m) (ofK (gpow bc)) (ofK (gpow bp)) (cs.getD k 0) (ps.getD k 0)
     with hσ
   have hw := Main.walk_straight σ [] l15Pre l15_straight
@@ -128,18 +128,18 @@ theorem l15_iter {rd : Reader} {bc bp m : ℕ} {cs ps : List E} (hcl : cs.length
       apply htaken
       show gen ^ k * word 2 0 0 + gen ^ (k + 1) = 0
       rw [hw2, gen_pow_mul_gen]; exact e_add_self _
-    show coreProgram.RelIn rd R "__loop15"
+    show coreProgram.RelIn rd R "__loop14"
       [gen ^ k * word 2 0 0, gen ^ m, ofK (gpow bc), ofK (gpow bp)] []
     rw [hw2, gen_pow_mul_gen]
     exact hnext hk'
 
-/-- **`__loop15`, completely, loading the chain and the point**: from every `g^k`, `1 ≤ k < m`. -/
+/-- **`__loop14`, completely, loading the chain and the point**: from every `g^k`, `1 ≤ k < m`. -/
 theorem l15_relIn {rd : Reader} {bc bp m : ℕ} {cs ps : List E} (hcl : cs.length = m + 1)
     (hpl : ps.length = m) (hc : ReadsAt rd (ofK (gpow bc)) cs) (hp : ReadsAt rd (ofK (gpow bp)) ps)
     (hstep : ∀ k, 1 ≤ k → k < m → cs.getD (k + 1) 0 = cs.getD k 0 * ps.getD k 0) {R : ℕ → Prop}
     (hR : ∀ i, (bc ≤ i ∧ i ≤ bc + m) ∨ (bp ≤ i ∧ i < bp + m) → R i) :
     ∀ t k, k + 1 + t = m → 1 ≤ k →
-      coreProgram.RelIn rd R "__loop15" [gen ^ k, gen ^ m, ofK (gpow bc), ofK (gpow bp)] [] := by
+      coreProgram.RelIn rd R "__loop14" [gen ^ k, gen ^ m, ofK (gpow bc), ofK (gpow bp)] [] := by
   intro t
   induction t with
   | zero =>

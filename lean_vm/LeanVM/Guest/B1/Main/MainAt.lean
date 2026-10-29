@@ -140,15 +140,15 @@ def mCalls (σ : Val) (m : MainIn) : List Call :=
       ⟨"da_list_digest", [.n 69, .n 40], [.n 73, .n 74], true⟩,
       ⟨"claim_list_digest", [.n 77, .n 0], [.n 81, .n 82], true⟩,
       ⟨"claim_list_digest", [.n 80, .n 3], [.n 83, .n 84], true⟩,
-      ⟨"__loop1", [.n 87, .n 1, .n 77, .n 0], [], decide (σ (.n 86) ≠ 0)⟩,
-      ⟨"__loop2", [.n 90, .n 4, .n 80, .n 3], [], decide (σ (.n 89) ≠ 0)⟩,
-      ⟨"__loop3", [.n 358, .n 2, .n 55, .n 97, .n 77], [], decide (σ (.n 357) ≠ 0)⟩,
-      ⟨"__loop4", [.n 361, .n 5, .n 56, .n 97, .n 55, .n 2, .n 80, .n 99], [],
+      ⟨"__loop0", [.n 87, .n 1, .n 77, .n 0], [], decide (σ (.n 86) ≠ 0)⟩,
+      ⟨"__loop1", [.n 90, .n 4, .n 80, .n 3], [], decide (σ (.n 89) ≠ 0)⟩,
+      ⟨"__loop2", [.n 358, .n 2, .n 55, .n 97, .n 77], [], decide (σ (.n 357) ≠ 0)⟩,
+      ⟨"__loop3", [.n 361, .n 5, .n 56, .n 97, .n 55, .n 2, .n 80, .n 99], [],
         decide (σ (.n 360) ≠ 0)⟩] ++
     (if m.nd = 1 then [(⟨"da_verify", [.n 66], [.n 364, .n 365, .n 366, .n 367], true⟩ : Call),
       ⟨"cover_da_root", [.n 69, .n 98, .n 50, .n 368], [.n 369, .n 370, .n 371, .n 372], true⟩]
       else []) ++
-    [⟨"__loop5", [.n 394, .n 6, .n 389, .n 77, .n 97, .n 55, .n 80, .n 56, .n 386, .n 69, .n 98,
+    [⟨"__loop4", [.n 394, .n 6, .n 389, .n 77, .n 97, .n 55, .n 80, .n 56, .n 386, .n 69, .n 98,
       .n 50, .n 63, .n 64, .n 374, .n 65, .n 66, .n 380], [], decide (σ (.n 393) ≠ 0)⟩] ++
     (if m.nc = 0 then [] else [(⟨"aggregate_claims", [.n 6, .n 374, .n 380, .n 386, .n 397], [],
       true⟩ : Call)]) ++
@@ -414,15 +414,15 @@ theorem main_relAtInT_core (fs : String → ℕ) (cert : String → V → ℕ) (
           ⟨"da_list_digest", [.n 69, .n 40], [.n 73, .n 74], true⟩,
           ⟨"claim_list_digest", [.n 77, .n 0], [.n 81, .n 82], true⟩,
           ⟨"claim_list_digest", [.n 80, .n 3], [.n 83, .n 84], true⟩,
-          ⟨"__loop1", [.n 87, .n 1, .n 77, .n 0], [], decide (σ (.n 86) ≠ 0)⟩,
-          ⟨"__loop2", [.n 90, .n 4, .n 80, .n 3], [], decide (σ (.n 89) ≠ 0)⟩,
-          ⟨"__loop3", [.n 358, .n 2, .n 55, .n 97, .n 77], [], decide (σ (.n 357) ≠ 0)⟩,
-          ⟨"__loop4", [.n 361, .n 5, .n 56, .n 97, .n 55, .n 2, .n 80, .n 99], [],
+          ⟨"__loop0", [.n 87, .n 1, .n 77, .n 0], [], decide (σ (.n 86) ≠ 0)⟩,
+          ⟨"__loop1", [.n 90, .n 4, .n 80, .n 3], [], decide (σ (.n 89) ≠ 0)⟩,
+          ⟨"__loop2", [.n 358, .n 2, .n 55, .n 97, .n 77], [], decide (σ (.n 357) ≠ 0)⟩,
+          ⟨"__loop3", [.n 361, .n 5, .n 56, .n 97, .n 55, .n 2, .n 80, .n 99], [],
             decide (σ (.n 360) ≠ 0)⟩] ++
         (if m.nd = 1 then [(⟨"da_verify", [.n 66], [.n 364, .n 365, .n 366, .n 367], true⟩ : Call),
           ⟨"cover_da_root", [.n 69, .n 98, .n 50, .n 368], [.n 369, .n 370, .n 371, .n 372], true⟩]
           else []) ++
-        [⟨"__loop5", [.n 394, .n 6, .n 389, .n 77, .n 97, .n 55, .n 80, .n 56, .n 386, .n 69, .n 98,
+        [⟨"__loop4", [.n 394, .n 6, .n 389, .n 77, .n 97, .n 55, .n 80, .n 56, .n 386, .n 69, .n 98,
           .n 50, .n 63, .n 64, .n 374, .n 65, .n 66, .n 380], [], decide (σ (.n 393) ≠ 0)⟩] ++
         (if m.nc = 0 then [] else [(⟨"aggregate_claims", [.n 6, .n 374, .n 380, .n 386, .n 397], [],
           true⟩ : Call)]) ++

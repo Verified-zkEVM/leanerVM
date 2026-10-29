@@ -16,26 +16,20 @@ namespace LeanVM.Guest.B2C.Cplw
 
 @[expose] public section
 
-/-- `block_selector_tab__L32`, window 0, part 0. -/
+/-- `__loop10`, window 0, part 0. -/
 theorem cw251_0_0 : cplWin 251 0 0 = true := by decide +kernel
 
-/-- `block_selector_tab__L33`, window 0, part 0. -/
+/-- `keccak_layer__L1_L0`, window 0, part 0. -/
 theorem cw252_0_0 : cplWin 252 0 0 = true := by decide +kernel
 
-/-- `__loop10`, window 0, part 0. -/
-theorem cw253_0_0 : cplWin 253 0 0 = true := by decide +kernel
-
-/-- `__loop11`, window 0, part 0. -/
-theorem cw254_0_0 : cplWin 254 0 0 = true := by decide +kernel
-
-/-- `keccak_layer__L1_L0`, window 0, part 0. -/
-theorem cw255_0_0 : cplWin 255 0 0 = true := by decide +kernel
-
 /-- `keccak_layer__L1_L0`, window 1, part 0. -/
-theorem cw255_1_0 : cplWin 255 1 0 = true := by decide +kernel
+theorem cw252_1_0 : cplWin 252 1 0 = true := by decide +kernel
 
 /-- `keccak_layer__L1_L0`, window 1, part 1. -/
-theorem cw255_1_1 : cplWin 255 1 1 = true := by decide +kernel
+theorem cw252_1_1 : cplWin 252 1 1 = true := by decide +kernel
+
+/-- `keccak_layer__L1_L0`, window 2, part 0. -/
+theorem cw252_2_0 : cplWin 252 2 0 = true := by decide +kernel
 
 theorem ok251 : CplOk 251 := by
   intro i hi k hk
@@ -49,33 +43,22 @@ theorem ok251 : CplOk 251 := by
 
 theorem ok252 : CplOk 252 := by
   intro i hi k hk
-  have hc : (certOf 252).cuts.length = 0 := by decide +kernel
+  have hc : (certOf 252).cuts.length = 2 := by decide +kernel
   rw [hc] at hi
   interval_cases i
   · have hn : nParts 252 0 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
     · exact cw252_0_0
-
-theorem ok253 : CplOk 253 := by
-  intro i hi k hk
-  have hc : (certOf 253).cuts.length = 0 := by decide +kernel
-  rw [hc] at hi
-  interval_cases i
-  · have hn : nParts 253 0 = 1 := by decide +kernel
+  · have hn : nParts 252 1 = 2 := by decide +kernel
     rw [hn] at hk
     interval_cases k
-    · exact cw253_0_0
-
-theorem ok254 : CplOk 254 := by
-  intro i hi k hk
-  have hc : (certOf 254).cuts.length = 0 := by decide +kernel
-  rw [hc] at hi
-  interval_cases i
-  · have hn : nParts 254 0 = 1 := by decide +kernel
+    · exact cw252_1_0
+    · exact cw252_1_1
+  · have hn : nParts 252 2 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
-    · exact cw254_0_0
+    · exact cw252_2_0
 
 end
 end LeanVM.Guest.B2C.Cplw

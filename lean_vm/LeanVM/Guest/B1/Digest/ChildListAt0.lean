@@ -2,7 +2,7 @@
   LeanVM.Guest.B1.Digest.ChildListAt0
 
   `child_claim_list_digest`'s path and valuations, and its callees `child_claim_list_last__L{k}`
-  and `__loop17` in the uniform placed form.
+  and `__loop16` in the uniform placed form.
 -/
 
 module
@@ -21,7 +21,7 @@ public import LeanVM.Guest.B1.Digest.LoopAt
 * `ccl_completeAt`: `child_claim_list_last__L{k}` is `CompleteAtD` (`relAtIn_atoms` on `ccl_core`),
   reading the state's words, the records' marks and cells among the caller's words, its range
   checks below `2^κ`, `L ≤ 2^κ`.
-* `l17_completeAt`: `__loop17` is `CompleteAtD` from the first group (`loopA_completeAt` on
+* `l17_completeAt`: `__loop16` is `CompleteAtD` from the first group (`loopA_completeAt` on
   `l17_core`), reading the chain buffer's states and the records.
 -/
 
@@ -75,7 +75,7 @@ theorem ccP1_addrs : ccP1.filterMap Main.Stmt.addrS = [] := by decide +kernel
 set_option maxRecDepth 100000 in
 theorem ccP1_calls : ccP1.filterMap Main.Stmt.callS =
     [(none, "list_split", [.n 5], [.n 27, .n 28]),
-      (some (.n 51), "__loop17", [.n 52, .n 27, .n 36, .n 0, .n 1, .n 2, .n 3, .n 4], [])] := by
+      (some (.n 51), "__loop16", [.n 52, .n 27, .n 36, .n 0, .n 1, .n 2, .n 3, .n 4], [])] := by
   decide +kernel
 
 set_option maxRecDepth 100000 in
@@ -98,7 +98,7 @@ theorem ccElsePre_eq : ccElsePre = ccP1 ++
 set_option maxRecDepth 100000 in
 theorem ccP1_kinds : ccP1.all (fun s => isAtomS s ||
     stmtEqb s (.call "list_split" [.n 5] [.n 27, .n 28]) ||
-    stmtEqb s (.callIf (.n 51) "__loop17" [.n 52, .n 27, .n 36, .n 0, .n 1, .n 2, .n 3, .n 4])) =
+    stmtEqb s (.callIf (.n 51) "__loop16" [.n 52, .n 27, .n 36, .n 0, .n 1, .n 2, .n 3, .n 4])) =
       true := by decide +kernel
 
 set_option maxRecDepth 100000 in
@@ -387,13 +387,13 @@ theorem ccl_completeAt (fs : String → ℕ) (cert : String → V → ℕ) {k : 
   · exact ⟨_, h, Or.inl (hR3 j hj c hc4)⟩
 
 set_option maxRecDepth 100000 in
-theorem l17_atomsS : (loopPre (coreProgram.getD 341 default)).all isAtomS = true := by decide +kernel
+theorem l17_atomsS : (loopPre (coreProgram.getD 338 default)).all isAtomS = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
 theorem l17_unplaced :
-    (atomsIn (loopPre (coreProgram.getD 341 default))).all atomUnplaced = true := by decide +kernel
+    (atomsIn (loopPre (coreProgram.getD 338 default))).all atomUnplaced = true := by decide +kernel
 
-/-- **`__loop17` is complete, placed**: the chain buffer's states at `g^chP` and the records'
+/-- **`__loop16` is complete, placed**: the chain buffer's states at `g^chP` and the records'
 marks and cells among the caller's words, the groups `j < m`. -/
 theorem l17_completeAt (fs : String → ℕ) (cert : String → V → ℕ) {κ : ℕ} {Lin : Main.Layout}
     {chain entries cover base origin limit : E} {chP eP cv og L m : ℕ} {o : ℕ → ℕ}
@@ -407,7 +407,7 @@ theorem l17_completeAt (fs : String → ℕ) (cert : String → V → ℕ) {κ :
     (hR1 : ∀ j < m, ∀ c < 26, RegionL Lin (chP + 13 * j + c))
     (hR2 : ∀ j < 17 * m, RegionL Lin (cv + og + o j))
     (hR3 : ∀ j < 17 * m, ∀ c < 4, RegionL Lin (eP + 4 * o j + c)) :
-    CompleteAtD fs cert κ "__loop17" Lin
+    CompleteAtD fs cert κ "__loop16" Lin
       [1, gen ^ m, chain, entries, cover, base, origin, limit] (Returns []) := by
   have h := loopA_completeAt fs cert (find_of_idx l17_idx (by rw [coreProgram_length]; omega))
     l17_shapeF l17_atomsS l17_unplaced (Lin := Lin) (κ := κ) (N := gen ^ m)

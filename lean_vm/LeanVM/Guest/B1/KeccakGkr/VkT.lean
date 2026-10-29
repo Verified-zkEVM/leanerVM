@@ -16,17 +16,17 @@ The sections, in order:
 
 * `vkHeadT`: the capacity copied, `pack_g`, `y_g`, the bits of `y` (pinned boolean) and `half_g`,
   `odd_g`, `y_last` (`assert half_g·y_last = y_g`); the instance coordinates copied to `z_vals`;
-  the point's pack coordinates copied (`__loop11`); the segment and the lane coordinates
+  the point's pack coordinates copied (`__loop10`); the segment and the lane coordinates
   squeezed (`sqZeroT`); the committed outputs' value read;
 * the first claim's record: `KC_KAPPA`, `KC_POINT`, the instance weights (`eqtreeT`, `muCopyT`),
   the lanes (`eqtreeT`), the segment weights (`eqtreeT`), the value (`dotLoadsT`);
 * twelve steps (`stepT`): the claim's segment weights, its `ι` term (`flipsT`, `iotaSegT`), and
   `keccak_layer` by `odd_g` (`stepTailT`);
 * the committed outputs: `keccak_plain_rounds` over the slot, the word, the slot's lane weights
-  (`slotLanesT`), their check; the pack coordinates copied (`__loop12`);
+  (`slotLanesT`), their check; the pack coordinates copied (`__loop11`);
 * the inputs: `keccak_plain_rounds` over the pack, `μ(low)`, over the slot, the 64 slices
   (`slicesT`), the ring map's first challenge, the slot's lane weights, the shifts of the slices
-  (`foldT`), `keccak_form` (`formAll`), the check; the pack coordinates copied (`__loop13`); the
+  (`foldT`), `keccak_form` (`formAll`), the check; the pack coordinates copied (`__loop12`); the
   return.
 -/
 
@@ -227,13 +227,13 @@ def vkBitsT : List Stmt :=
     .atom (.const (.n 50) (word 2 0 0)), .atom (.mul (.n 51) (.n 17) (.n 50)),
     .atom (.assertEq (.n 49) (.n 51))]
 
-/-- The point's allocation and the copy of its pack coordinates (`__loop11`). -/
+/-- The point's allocation and the copy of its pack coordinates (`__loop10`). -/
 def vkPointT : List Stmt :=
   [.atom (.const (.n 56) (word 2 0 0)), .atom (.mul (.n 57) (.n 17) (.n 56)),
     .atom (.hint (.allocDyn (.n 58) (.n 57))), .atom (.const (.n 59) (word 1 0 0)),
     .atom (.add (.n 60) (.n 59) (.n 17)), .atom (.const (.n 61) (word 1 0 0)),
     .atom (.const (.n 62) (word 16 0 0)), .atom (.mul (.n 63) (.n 7) (.n 62)),
-    .callIf (.n 60) "__loop11" [.n 61, .n 17, .n 58, .n 63],
+    .callIf (.n 60) "__loop10" [.n 61, .n 17, .n 58, .n 63],
     .atom (.mul (.n 64) (.n 58) (.n 17)), .atom (.const (.n 65) (word 1 0 0)),
     .atom (.const (.n 66) (word 0 0 0)), .atom (.const (.n 67) (word 0 0 0)),
     .atom (.const (.n 68) (word 0 0 0)), .atom (.const (.n 69) (word 0 0 0))]
@@ -376,7 +376,7 @@ def vkOutT : List Stmt :=
     .atom (.const (.n 3970) (word 1 0 0)), .atom (.add (.n 3971) (.n 3970) (.n 17)),
     .atom (.const (.n 3972) (word 1 0 0)), .atom (.const (.n 3973) (word 16 0 0)),
     .atom (.mul (.n 3974) (.n 9) (.n 3973)),
-    .callIf (.n 3971) "__loop12" [.n 3972, .n 17, .n 3974, .n 58]]
+    .callIf (.n 3971) "__loop11" [.n 3972, .n 17, .n 3974, .n 58]]
 
 /-- The inputs' opening up to the slices and the ring map's first challenge (G:2880-2932). -/
 def vkInT : List Stmt :=
@@ -409,7 +409,7 @@ def vkFinT : List Stmt :=
     .atom (.assertEq (.n 6578) (.n 4116)), .atom (.const (.n 6579) (word 1 0 0)),
     .atom (.add (.n 6580) (.n 6579) (.n 17)), .atom (.const (.n 6581) (word 1 0 0)),
     .atom (.const (.n 6582) (word 8796093022208 0 0)), .atom (.mul (.n 6583) (.n 9) (.n 6582)),
-    .callIf (.n 6580) "__loop13" [.n 6581, .n 17, .n 6583, .n 4977]] ++
+    .callIf (.n 6580) "__loop12" [.n 6581, .n 17, .n 6583, .n 4977]] ++
   (List.range 5).map (fun j ↦ .atom (.copy (.n (6584 + j)) (.n (4965 + j)))) ++
   [.atom (.const (.n 6589) (word 27 0 0)), .atom (.mul (.n 6590) (.n 4115) (.n 6589)),
     .atom (.copy (.n 6591) (.n 6590)), .atom (.copy (.n 6592) (.n 3701)),

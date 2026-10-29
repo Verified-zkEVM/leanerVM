@@ -17,7 +17,7 @@ public import LeanVM.Guest.B1.Digest.PlacedLib
 The body is a branch on `n = 0` between two straight runs (`cl_body`). The empty list's arm is
 atoms (`clz_core`: the evaluated valuation, its atoms holding). The nonempty list's arm
 (`cl23Else_split`) calls `list_split`, allocates the chain buffer (`13 (m + 1)` words for
-`n = 17 m + r`), stores the zero state, runs `__loop16` over the groups when `m ≠ 0`, and
+`n = 17 m + r`), stores the zero state, runs `__loop15` over the groups when `m ≠ 0`, and
 dispatches on `r` to `claim_list_last__L{r}` (`cl_core`: the evaluated valuation, its atoms holding
 on a memory holding the zero state at the buffer). `chainCells`: the buffer's honest words, the
 state after each group (`claimChainMem_of_reads`).
@@ -78,7 +78,7 @@ theorem clP1_addrs : clP1.filterMap Main.Stmt.addrS = [] := by decide +kernel
 set_option maxRecDepth 100000 in
 theorem clP1_calls : clP1.filterMap Main.Stmt.callS =
     [(none, "list_split", [.n 1], [.n 23, .n 24]),
-      (some (.n 47), "__loop16", [.n 48, .n 23, .n 32, .n 0], [])] := by decide +kernel
+      (some (.n 47), "__loop15", [.n 48, .n 23, .n 32, .n 0], [])] := by decide +kernel
 
 set_option maxRecDepth 100000 in
 theorem clP1_loads : clP1.filterMap B1.Stmt.loadS = (List.range 13).map fun c => (.n 32, c) := by
@@ -374,7 +374,7 @@ theorem cl_pure {r : ℕ} (hr : r < 17) : coreProgram.PureIn [clNames.getD r ""]
   pure_one (find_of_idx (cl_idx r hr) (by rw [coreProgram_length]; omega)) (cl_pure_all r hr)
 
 set_option maxRecDepth 100000 in
-theorem l16_pure : coreProgram.PureIn ["__loop16"] :=
+theorem l16_pure : coreProgram.PureIn ["__loop15"] :=
   pure_one (find_of_idx l16_idx (by rw [coreProgram_length]; omega)) (by decide +kernel)
 
 theorem one_add_gen_ne {a : ℕ} (ha : a < 2 ^ 64 - 1) : ((1 : E) + gen ^ a ≠ 0) ↔ a ≠ 0 := by
@@ -386,7 +386,7 @@ theorem clElsePre_eq : clElsePre = clP1 ++ [.dispatch (.n 24) clNames [.n 54, .n
 set_option maxRecDepth 100000 in
 theorem clP1_kinds : clP1.all (fun s => isAtomS s ||
     stmtEqb s (.call "list_split" [.n 1] [.n 23, .n 24]) ||
-    stmtEqb s (.callIf (.n 47) "__loop16" [.n 48, .n 23, .n 32, .n 0])) = true := by decide +kernel
+    stmtEqb s (.callIf (.n 47) "__loop15" [.n 48, .n 23, .n 32, .n 0])) = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
 theorem cl23Zero_atoms : cl23Zero.all isAtomS = true := by decide +kernel
@@ -505,7 +505,7 @@ theorem claim_list_digest_completeAt (fs : String → ℕ) (cert : String → V 
     -- the callees
     let ks : List Kid :=
       [⟨"list_split", true, [gen ^ n], [], Returns [gen ^ m, gen ^ r]⟩,
-        ⟨"__loop16", decide (m ≠ 0), [1, gen ^ m, chain, gen ^ eP], Lin ++ Own, Returns []⟩,
+        ⟨"__loop15", decide (m ≠ 0), [1, gen ^ m, chain, gen ^ eP], Lin ++ Own, Returns []⟩,
         ⟨clNames[r]!, true, [chain * gen ^ (13 * m), gen ^ eP * gen ^ (68 * m)], Lin ++ Own,
           Returns (digestCells D)⟩]
     have hok : ∀ k ∈ ks, k.taken = true → CompleteAtD fs cert 16 k.f k.Lin k.args k.Out := by
@@ -619,7 +619,7 @@ theorem claim_list_digest_completeAt (fs : String → ℕ) (cert : String → V 
     have h47 : decide (σ (.n 47) ≠ 0) = decide (m ≠ 0) := by
       rw [hV.v47]; exact decide_eq_decide.mpr (one_add_gen_ne (by omega))
     have hcalls : calls es = [⟨"list_split", [.n 1], [.n 23, .n 24], true⟩,
-        ⟨"__loop16", [.n 48, .n 23, .n 32, .n 0], [], decide (m ≠ 0)⟩,
+        ⟨"__loop15", [.n 48, .n 23, .n 32, .n 0], [], decide (m ≠ 0)⟩,
         ⟨clNames[r]!, [.n 54, .n 62], [.n 63, .n 64], true⟩] := by
       rw [hes, es5_calls, hhc, hpc, hqc, htc, clP1_calls, hpostA.2.2.1]
       simp only [List.map_cons, List.map_nil, Main.mkCall, h47, clHead, clTail, List.filterMap_cons,

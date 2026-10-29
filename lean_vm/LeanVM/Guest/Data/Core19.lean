@@ -526,7 +526,7 @@ noncomputable def body : List Core.Stmt := [
     .atom (.const (.n 46) (word 1 0 0)) ::
     .atom (.add (.n 47) (.n 46) (.n 23)) ::
     .atom (.const (.n 48) (word 1 0 0)) ::
-    .callIf (.n 47) "__loop16" [.n 48, .n 23, .n 32, .n 0] ::
+    .callIf (.n 47) "__loop15" [.n 48, .n 23, .n 32, .n 0] ::
     .atom (.mul (.n 49) (.n 23) (.n 23)) ::
     .atom (.mul (.n 50) (.n 49) (.n 23)) ::
     .atom (.mul (.n 51) (.n 50) (.n 50)) ::
@@ -609,7 +609,7 @@ noncomputable def body : List Core.Stmt := [
     .atom (.const (.n 50) (word 1 0 0)) ::
     .atom (.add (.n 51) (.n 50) (.n 27)) ::
     .atom (.const (.n 52) (word 1 0 0)) ::
-    .callIf (.n 51) "__loop17" [.n 52, .n 27, .n 36, .n 0, .n 1, .n 2, .n 3, .n 4] ::
+    .callIf (.n 51) "__loop16" [.n 52, .n 27, .n 36, .n 0, .n 1, .n 2, .n 3, .n 4] ::
     .atom (.mul (.n 53) (.n 27) (.n 27)) ::
     .atom (.mul (.n 54) (.n 53) (.n 27)) ::
     .atom (.mul (.n 55) (.n 54) (.n 54)) ::
@@ -656,7 +656,7 @@ noncomputable def c0 : List Core.Stmt := (
   .atom (.const (.n 14) (word 1 0 0)) ::
   .atom (.add (.n 15) (.n 14) (.n 1)) ::
   .atom (.const (.n 16) (word 1 0 0)) ::
-  .callIf (.n 15) "__loop18" [.n 16, .n 1, .n 13, .n 12] ::
+  .callIf (.n 15) "__loop17" [.n 16, .n 1, .n 13, .n 12] ::
   .atom (.hint (.alloc (.n 17) 256)) ::
   .atom (.mul (.n 18) (.n 1) (.n 1)) ::
   .atom (.mul (.n 19) (.n 18) (.n 18)) ::
@@ -671,16 +671,16 @@ noncomputable def c0 : List Core.Stmt := (
   .atom (.const (.n 28) (word 1 0 0)) ::
   .atom (.add (.n 29) (.n 28) (.n 1)) ::
   .atom (.const (.n 30) (word 1 0 0)) ::
-  .callIf (.n 29) "__loop19" [.n 30, .n 1, .n 26, .n 27] ::
+  .callIf (.n 29) "__loop18" [.n 30, .n 1, .n 26, .n 27] ::
   .atom (.hint (.alloc (.n 31) 512)) ::
   .atom (.const (.n 32) (word 1 0 0)) ::
-  .call "__loop20" [.n 32, .n 1, .n 3, .n 4, .n 2, .n 13, .n 31, .n 27, .n 17] [] ::
+  .call "__loop19" [.n 32, .n 1, .n 3, .n 4, .n 2, .n 13, .n 31, .n 27, .n 17] [] ::
   .atom (.const (.n 33) (word 27 0 0)) ::
-  .call "__loop21" [.n 33, .n 1, .n 3, .n 4, .n 2, .n 13, .n 31, .n 27, .n 17] [] ::
+  .call "__loop20" [.n 33, .n 1, .n 3, .n 4, .n 2, .n 13, .n 31, .n 27, .n 17] [] ::
   .atom (.const (.n 34) (word 1 0 0)) ::
   .atom (.add (.n 35) (.n 34) (.n 1)) ::
   .atom (.const (.n 36) (word 1 0 0)) ::
-  .callIf (.n 35) "__loop22" [.n 36, .n 1, .n 27] ::
+  .callIf (.n 35) "__loop21" [.n 36, .n 1, .n 27] ::
   .call "da_levels__L128_L7" [.n 31] [.n 37, .n 38] ::
   .atom (.mul (.n 39) (.n 3) (.n 3)) ::
   .atom (.mul (.n 40) (.n 39) (.n 39)) ::
@@ -688,11 +688,11 @@ noncomputable def c0 : List Core.Stmt := (
   .atom (.const (.n 42) (word 1 0 0)) ::
   .atom (.add (.n 43) (.n 42) (.n 1)) ::
   .atom (.const (.n 44) (word 1 0 0)) ::
-  .callIf (.n 43) "__loop23" [.n 44, .n 1, .n 13, .n 41] ::
+  .callIf (.n 43) "__loop22" [.n 44, .n 1, .n 13, .n 41] ::
   .atom (.const (.n 45) (word 1 0 0)) ::
   .atom (.add (.n 46) (.n 45) (.n 4)) ::
   .atom (.const (.n 47) (word 1 0 0)) ::
-  .callIf (.n 46) "__loop24" [.n 47, .n 4, .n 41, .n 1] ::
+  .callIf (.n 46) "__loop23" [.n 47, .n 4, .n 41, .n 1] ::
   .dispatch (.n 2) ["da_levels__L1_L0", "da_levels__L2_L1", "da_levels__L4_L2", "da_levels__L8_L3", "da_levels__L16_L4", "da_levels__L32_L5", "da_levels__L64_L6", "da_levels__L128_L7", "da_levels__L256_L8", "da_levels__L512_L9", "da_levels__L1024_L10"] [.n 41] [.n 48, .n 49] ::
   .atom (.const (.n 50) (word 1 0 0)) ::
   .atom (.const (.n 51) (word 0 0 0)) ::
@@ -6602,50 +6602,6 @@ noncomputable def core28 : Core.Fn where
 
 namespace core29
 
-/-- `da_list_digest`: the body. -/
-noncomputable def body : List Core.Stmt := [
-  .dispatch (.n 1) ["da_hash_roots__L0", "da_hash_roots__L1", "da_hash_roots__L2", "da_hash_roots__L3", "da_hash_roots__L4", "da_hash_roots__L5", "da_hash_roots__L6", "da_hash_roots__L7", "da_hash_roots__L8", "da_hash_roots__L9", "da_hash_roots__L10", "da_hash_roots__L11", "da_hash_roots__L12", "da_hash_roots__L13", "da_hash_roots__L14", "da_hash_roots__L15", "da_hash_roots__L16"] [.n 0] [.n 2, .n 3],
-  .atom (.copy (.n 4) (.n 2)),
-  .atom (.copy (.n 5) (.n 3)),
-  .ret [.n 4, .n 5]]
-
-end core29
-
-/-- `da_list_digest`. -/
-noncomputable def core29 : Core.Fn where
-  name := "da_list_digest"
-  params := [.n 0, .n 1]
-  body := core29.body
-
-namespace core30
-
-/-- `cover_da_root`: the body. -/
-noncomputable def body : List Core.Stmt := [
-  .atom (.hint (.witness "da_index" (.stack [.n 4]))),
-  .atom (.const (.n 5) (word 9223372036854775821 0 0)),
-  .atom (.mul (.n 6) (.n 2) (.n 5)),
-  .atom (.rangeCheck (.n 4) (.n 7) (.n 8) (.n 9) (.n 6)),
-  .atom (.mul (.n 10) (.n 1) (.n 4)),
-  .atom (.load (.n 3) (.n 10) 0),
-  .atom (.mul (.n 11) (.n 4) (.n 4)),
-  .atom (.mul (.n 12) (.n 11) (.n 11)),
-  .atom (.mul (.n 13) (.n 0) (.n 12)),
-  .atom (.load (.n 14) (.n 13) 0),
-  .atom (.load (.n 15) (.n 13) 1),
-  .atom (.load (.n 16) (.n 13) 2),
-  .atom (.load (.n 17) (.n 13) 3),
-  .ret [.n 14, .n 15, .n 16, .n 17]]
-
-end core30
-
-/-- `cover_da_root`. -/
-noncomputable def core30 : Core.Fn where
-  name := "cover_da_root"
-  params := [.n 0, .n 1, .n 2, .n 3]
-  body := core30.body
-
-namespace core31
-
 /-- `aggregate_claims`: the body. -/
 noncomputable def body : List Core.Stmt := (
   .atom (.hint (.alloc (.n 5) 46)) ::
@@ -6717,7 +6673,7 @@ noncomputable def body : List Core.Stmt := (
   .atom (.const (.n 61) (word 1 0 0)) ::
   .atom (.add (.n 62) (.n 61) (.n 0)) ::
   .atom (.const (.n 63) (word 1 0 0)) ::
-  .callIf (.n 62) "__loop25" [.n 63, .n 0, .n 60, .n 2, .n 7, .n 3, .n 8, .n 1] ::
+  .callIf (.n 62) "__loop24" [.n 63, .n 0, .n 60, .n 2, .n 7, .n 3, .n 8, .n 1] ::
   .atom (.mul (.n 64) (.n 0) (.n 0)) ::
   .atom (.mul (.n 65) (.n 64) (.n 0)) ::
   .atom (.mul (.n 66) (.n 65) (.n 65)) ::
@@ -6765,7 +6721,7 @@ noncomputable def body : List Core.Stmt := (
   .atom (.const (.n 94) (word 1 0 0)) ::
   .atom (.add (.n 95) (.n 94) (.n 0)) ::
   .atom (.const (.n 96) (word 1 0 0)) ::
-  .callIf (.n 95) "__loop26" [.n 96, .n 0, .n 79, .n 71, .n 7, .n 8] ::
+  .callIf (.n 95) "__loop25" [.n 96, .n 0, .n 79, .n 71, .n 7, .n 8] ::
   .atom (.mul (.n 97) (.n 0) (.n 0)) ::
   .atom (.mul (.n 98) (.n 97) (.n 0)) ::
   .atom (.mul (.n 99) (.n 98) (.n 98)) ::
@@ -6788,7 +6744,7 @@ noncomputable def body : List Core.Stmt := (
   .atom (.const (.n 120) (word 1 0 0)) ::
   .atom (.add (.n 121) (.n 120) (.n 0)) ::
   .atom (.const (.n 122) (word 1 0 0)) ::
-  .callIf (.n 121) "__loop27" [.n 122, .n 0, .n 7, .n 8, .n 104, .n 118, .n 71] ::
+  .callIf (.n 121) "__loop26" [.n 122, .n 0, .n 7, .n 8, .n 104, .n 118, .n 71] ::
   .atom (.mul (.n 123) (.n 118) (.n 0)) ::
   .atom (.load (.n 124) (.n 123) 0) ::
   .atom (.mul (.n 125) (.n 6) (.n 124)) ::
@@ -6843,39 +6799,40 @@ noncomputable def body : List Core.Stmt := (
   .ret [] ::
   [])
 
-end core31
+end core29
 
 /-- `aggregate_claims`. -/
-noncomputable def core31 : Core.Fn where
+noncomputable def core29 : Core.Fn where
   name := "aggregate_claims"
   params := [.n 0, .n 1, .n 2, .n 3, .n 4]
-  body := core31.body
+  body := core29.body
 
-namespace core32
+namespace core30
 
 /-- `__loop0`: the body. -/
 noncomputable def body : List Core.Stmt := [
-  .atom (.mul (.n 3) (.n 0) (.n 0)),
-  .atom (.mul (.n 4) (.n 3) (.n 3)),
-  .atom (.mul (.n 5) (.n 2) (.n 4)),
-  .atom (.hint (.witness "da_roots" (.heap (.n 5) 0 4))),
-  .atom (.const (.n 6) (word 2 0 0)),
-  .atom (.mul (.n 7) (.n 0) (.n 6)),
-  .atom (.add (.n 8) (.n 7) (.n 1)),
-  .atom (.const (.n 9) (word 2 0 0)),
-  .atom (.mul (.n 10) (.n 0) (.n 9)),
-  .callIf (.n 8) "__loop0" [.n 10, .n 1, .n 2],
+  .atom (.mul (.n 4) (.n 3) (.n 0)),
+  .atom (.mul (.n 5) (.n 4) (.n 4)),
+  .atom (.mul (.n 6) (.n 5) (.n 5)),
+  .atom (.mul (.n 7) (.n 2) (.n 6)),
+  .atom (.hint (.witness "dup_claims" (.heap (.n 7) 0 4))),
+  .atom (.const (.n 8) (word 2 0 0)),
+  .atom (.mul (.n 9) (.n 0) (.n 8)),
+  .atom (.add (.n 10) (.n 9) (.n 1)),
+  .atom (.const (.n 11) (word 2 0 0)),
+  .atom (.mul (.n 12) (.n 0) (.n 11)),
+  .callIf (.n 10) "__loop0" [.n 12, .n 1, .n 2, .n 3],
   .ret []]
 
-end core32
+end core30
 
 /-- `__loop0`. -/
-noncomputable def core32 : Core.Fn where
+noncomputable def core30 : Core.Fn where
   name := "__loop0"
-  params := [.n 0, .n 1, .n 2]
-  body := core32.body
+  params := [.n 0, .n 1, .n 2, .n 3]
+  body := core30.body
 
-namespace core33
+namespace core31
 
 /-- `__loop1`: the body. -/
 noncomputable def body : List Core.Stmt := [
@@ -6892,42 +6849,17 @@ noncomputable def body : List Core.Stmt := [
   .callIf (.n 10) "__loop1" [.n 12, .n 1, .n 2, .n 3],
   .ret []]
 
-end core33
+end core31
 
 /-- `__loop1`. -/
-noncomputable def core33 : Core.Fn where
+noncomputable def core31 : Core.Fn where
   name := "__loop1"
   params := [.n 0, .n 1, .n 2, .n 3]
-  body := core33.body
+  body := core31.body
 
-namespace core34
+namespace core32
 
 /-- `__loop2`: the body. -/
-noncomputable def body : List Core.Stmt := [
-  .atom (.mul (.n 4) (.n 3) (.n 0)),
-  .atom (.mul (.n 5) (.n 4) (.n 4)),
-  .atom (.mul (.n 6) (.n 5) (.n 5)),
-  .atom (.mul (.n 7) (.n 2) (.n 6)),
-  .atom (.hint (.witness "dup_claims" (.heap (.n 7) 0 4))),
-  .atom (.const (.n 8) (word 2 0 0)),
-  .atom (.mul (.n 9) (.n 0) (.n 8)),
-  .atom (.add (.n 10) (.n 9) (.n 1)),
-  .atom (.const (.n 11) (word 2 0 0)),
-  .atom (.mul (.n 12) (.n 0) (.n 11)),
-  .callIf (.n 10) "__loop2" [.n 12, .n 1, .n 2, .n 3],
-  .ret []]
-
-end core34
-
-/-- `__loop2`. -/
-noncomputable def core34 : Core.Fn where
-  name := "__loop2"
-  params := [.n 0, .n 1, .n 2, .n 3]
-  body := core34.body
-
-namespace core35
-
-/-- `__loop3`: the body. -/
 noncomputable def body : List Core.Stmt := [
   .atom (.hint (.witness "raw_index" (.stack [.n 5]))),
   .atom (.const (.n 6) (word 9223372036854775821 0 0)),
@@ -6944,20 +6876,20 @@ noncomputable def body : List Core.Stmt := [
   .atom (.add (.n 17) (.n 16) (.n 1)),
   .atom (.const (.n 18) (word 2 0 0)),
   .atom (.mul (.n 19) (.n 0) (.n 18)),
-  .callIf (.n 17) "__loop3" [.n 19, .n 1, .n 2, .n 3, .n 4],
+  .callIf (.n 17) "__loop2" [.n 19, .n 1, .n 2, .n 3, .n 4],
   .ret []]
 
-end core35
+end core32
 
-/-- `__loop3`. -/
-noncomputable def core35 : Core.Fn where
-  name := "__loop3"
+/-- `__loop2`. -/
+noncomputable def core32 : Core.Fn where
+  name := "__loop2"
   params := [.n 0, .n 1, .n 2, .n 3, .n 4]
-  body := core35.body
+  body := core32.body
 
-namespace core36
+namespace core33
 
-/-- `__loop4`: the body. -/
+/-- `__loop3`: the body. -/
 noncomputable def body : List Core.Stmt := [
   .atom (.hint (.witness "sp_raw_index" (.stack [.n 8]))),
   .atom (.const (.n 9) (word 9223372036854775821 0 0)),
@@ -6976,86 +6908,79 @@ noncomputable def body : List Core.Stmt := [
   .atom (.add (.n 22) (.n 21) (.n 1)),
   .atom (.const (.n 23) (word 2 0 0)),
   .atom (.mul (.n 24) (.n 0) (.n 23)),
-  .callIf (.n 22) "__loop4" [.n 24, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6, .n 7],
+  .callIf (.n 22) "__loop3" [.n 24, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6, .n 7],
   .ret []]
 
-end core36
+end core33
 
-/-- `__loop4`. -/
-noncomputable def core36 : Core.Fn where
-  name := "__loop4"
+/-- `__loop3`. -/
+noncomputable def core33 : Core.Fn where
+  name := "__loop3"
   params := [.n 0, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6, .n 7]
-  body := core36.body
+  body := core33.body
 
-namespace core37
+namespace core34
 
-/-- `__loop5`: the body. -/
+/-- `__loop4`: the body. -/
 noncomputable def body : List Core.Stmt := (
-  .atom (.mul (.n 18) (.n 2) (.n 0)) ::
-  .atom (.load (.n 19) (.n 18) 0) ::
-  .atom (.hint (.witness "child_meta" (.stack [.n 20, .n 21]))) ::
-  .atom (.const (.n 22) (word 9272771591053052074 0 0)) ::
-  .atom (.rangeCheck (.n 20) (.n 23) (.n 24) (.n 25) (.n 22)) ::
-  .atom (.const (.n 26) (word 9272771591053052074 0 0)) ::
-  .atom (.rangeCheck (.n 21) (.n 27) (.n 28) (.n 29) (.n 26)) ::
-  .atom (.mul (.n 30) (.n 20) (.n 21)) ::
-  .atom (.const (.n 31) (word 1 0 0)) ::
-  .call "child_claim_list_digest" [.n 3, .n 4, .n 19, .n 31, .n 5, .n 20] [.n 32, .n 33] ::
-  .atom (.mul (.n 34) (.n 19) (.n 20)) ::
-  .call "child_claim_list_digest" [.n 6, .n 4, .n 34, .n 5, .n 7, .n 21] [.n 35, .n 36] ::
-  .atom (.mul (.n 37) (.n 0) (.n 0)) ::
-  .atom (.mul (.n 38) (.n 37) (.n 0)) ::
+  .atom (.mul (.n 16) (.n 2) (.n 0)) ::
+  .atom (.load (.n 17) (.n 16) 0) ::
+  .atom (.hint (.witness "child_meta" (.stack [.n 18, .n 19]))) ::
+  .atom (.const (.n 20) (word 9272771591053052074 0 0)) ::
+  .atom (.rangeCheck (.n 18) (.n 21) (.n 22) (.n 23) (.n 20)) ::
+  .atom (.const (.n 24) (word 9272771591053052074 0 0)) ::
+  .atom (.rangeCheck (.n 19) (.n 25) (.n 26) (.n 27) (.n 24)) ::
+  .atom (.mul (.n 28) (.n 18) (.n 19)) ::
+  .atom (.const (.n 29) (word 1 0 0)) ::
+  .call "child_claim_list_digest" [.n 3, .n 4, .n 17, .n 29, .n 5, .n 18] [.n 30, .n 31] ::
+  .atom (.mul (.n 32) (.n 17) (.n 18)) ::
+  .call "child_claim_list_digest" [.n 6, .n 4, .n 32, .n 5, .n 7, .n 19] [.n 33, .n 34] ::
+  .atom (.mul (.n 35) (.n 0) (.n 0)) ::
+  .atom (.mul (.n 36) (.n 35) (.n 0)) ::
+  .atom (.mul (.n 37) (.n 36) (.n 36)) ::
+  .atom (.mul (.n 38) (.n 37) (.n 37)) ::
   .atom (.mul (.n 39) (.n 38) (.n 38)) ::
-  .atom (.mul (.n 40) (.n 39) (.n 39)) ::
-  .atom (.mul (.n 41) (.n 40) (.n 40)) ::
-  .atom (.mul (.n 42) (.n 8) (.n 41)) ::
-  .atom (.hint (.witness "child_defer" (.heap (.n 42) 0 24))) ::
-  .atom (.hint (.witness "child_da_count" (.stack [.n 43]))) ::
-  .atom (.const (.n 44) (word 65536 0 0)) ::
-  .atom (.rangeCheck (.n 43) (.n 45) (.n 46) (.n 47) (.n 44)) ::
-  .atom (.mul (.n 48) (.n 43) (.n 43)) ::
-  .atom (.mul (.n 49) (.n 48) (.n 48)) ::
-  .atom (.hint (.allocDyn (.n 50) (.n 49))) ::
-  .atom (.const (.n 51) (word 1 0 0)) ::
-  .atom (.add (.n 52) (.n 51) (.n 43)) ::
-  .atom (.const (.n 53) (word 1 0 0)) ::
-  .callIf (.n 52) "__loop28" [.n 53, .n 43, .n 50, .n 9, .n 10, .n 11, .n 19, .n 30] ::
-  .call "da_list_digest" [.n 50, .n 43] [.n 54, .n 55] ::
-  .call "statement_digest" [.n 12, .n 13, .n 32, .n 33, .n 35, .n 36, .n 54, .n 55, .n 42] [.n 56, .n 57] ::
-  .atom (.mul (.n 58) (.n 0) (.n 0)) ::
-  .atom (.mul (.n 59) (.n 14) (.n 58)) ::
-  .atom (.load (.n 56) (.n 59) 0) ::
-  .atom (.mul (.n 60) (.n 14) (.n 58)) ::
-  .atom (.load (.n 57) (.n 60) 1) ::
-  .atom (.mul (.n 61) (.n 0) (.n 0)) ::
-  .atom (.mul (.n 62) (.n 61) (.n 0)) ::
-  .atom (.mul (.n 63) (.n 62) (.n 62)) ::
-  .atom (.mul (.n 64) (.n 63) (.n 63)) ::
-  .atom (.mul (.n 65) (.n 64) (.n 64)) ::
-  .atom (.mul (.n 66) (.n 17) (.n 65)) ::
-  .call "verify_sub" [.n 56, .n 57, .n 12, .n 13, .n 15, .n 16, .n 66] [] ::
-  .atom (.mul (.n 67) (.n 19) (.n 30)) ::
-  .atom (.mul (.n 68) (.n 67) (.n 43)) ::
-  .atom (.mul (.n 69) (.n 2) (.n 0)) ::
-  .atom (.load (.n 68) (.n 69) 1) ::
-  .atom (.const (.n 70) (word 2 0 0)) ::
-  .atom (.mul (.n 71) (.n 0) (.n 70)) ::
-  .atom (.add (.n 72) (.n 71) (.n 1)) ::
-  .atom (.const (.n 73) (word 2 0 0)) ::
-  .atom (.mul (.n 74) (.n 0) (.n 73)) ::
-  .callIf (.n 72) "__loop5" [.n 74, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6, .n 7, .n 8, .n 9, .n 10, .n 11, .n 12, .n 13, .n 14, .n 15, .n 16, .n 17] ::
+  .atom (.mul (.n 40) (.n 8) (.n 39)) ::
+  .atom (.hint (.witness "child_defer" (.heap (.n 40) 0 24))) ::
+  .atom (.mul (.n 41) (.n 0) (.n 0)) ::
+  .atom (.mul (.n 42) (.n 9) (.n 41)) ::
+  .atom (.hint (.witness "child_da" (.heap (.n 42) 0 2))) ::
+  .atom (.load (.n 43) (.n 42) 0) ::
+  .atom (.load (.n 44) (.n 42) 1) ::
+  .call "statement_digest" [.n 10, .n 11, .n 30, .n 31, .n 33, .n 34, .n 43, .n 44, .n 40] [.n 45, .n 46] ::
+  .atom (.mul (.n 47) (.n 0) (.n 0)) ::
+  .atom (.mul (.n 48) (.n 12) (.n 47)) ::
+  .atom (.load (.n 45) (.n 48) 0) ::
+  .atom (.mul (.n 49) (.n 12) (.n 47)) ::
+  .atom (.load (.n 46) (.n 49) 1) ::
+  .atom (.mul (.n 50) (.n 0) (.n 0)) ::
+  .atom (.mul (.n 51) (.n 50) (.n 0)) ::
+  .atom (.mul (.n 52) (.n 51) (.n 51)) ::
+  .atom (.mul (.n 53) (.n 52) (.n 52)) ::
+  .atom (.mul (.n 54) (.n 53) (.n 53)) ::
+  .atom (.mul (.n 55) (.n 15) (.n 54)) ::
+  .call "verify_sub" [.n 45, .n 46, .n 10, .n 11, .n 13, .n 14, .n 55] [] ::
+  .atom (.mul (.n 56) (.n 17) (.n 28)) ::
+  .atom (.mul (.n 57) (.n 2) (.n 0)) ::
+  .atom (.load (.n 56) (.n 57) 1) ::
+  .atom (.const (.n 58) (word 2 0 0)) ::
+  .atom (.mul (.n 59) (.n 0) (.n 58)) ::
+  .atom (.add (.n 60) (.n 59) (.n 1)) ::
+  .atom (.const (.n 61) (word 2 0 0)) ::
+  .atom (.mul (.n 62) (.n 0) (.n 61)) ::
+  .callIf (.n 60) "__loop4" [.n 62, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6, .n 7, .n 8, .n 9, .n 10, .n 11, .n 12, .n 13, .n 14, .n 15] ::
   .ret [] ::
   [])
 
-end core37
+end core34
 
-/-- `__loop5`. -/
-noncomputable def core37 : Core.Fn where
-  name := "__loop5"
-  params := [.n 0, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6, .n 7, .n 8, .n 9, .n 10, .n 11, .n 12, .n 13, .n 14, .n 15, .n 16, .n 17]
-  body := core37.body
+/-- `__loop4`. -/
+noncomputable def core34 : Core.Fn where
+  name := "__loop4"
+  params := [.n 0, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6, .n 7, .n 8, .n 9, .n 10, .n 11, .n 12, .n 13, .n 14, .n 15]
+  body := core34.body
 
-namespace core38
+namespace core35
 
 /-- `eq_prefix_run__L0`: the body. -/
 noncomputable def body : List Core.Stmt := [
@@ -7063,15 +6988,15 @@ noncomputable def body : List Core.Stmt := [
   .atom (.const (.n 4) (word 0 0 0)),
   .ret [.n 4]]
 
-end core38
+end core35
 
 /-- `eq_prefix_run__L0`. -/
-noncomputable def core38 : Core.Fn where
+noncomputable def core35 : Core.Fn where
   name := "eq_prefix_run__L0"
   params := [.n 0, .n 1, .n 2, .n 3]
-  body := core38.body
+  body := core35.body
 
-namespace core39
+namespace core36
 
 /-- `eq_prefix_run__L1`: the body. -/
 noncomputable def body : List Core.Stmt := [
@@ -7084,15 +7009,15 @@ noncomputable def body : List Core.Stmt := [
   .atom (.const (.n 8) (word 0 0 0)),
   .ret [.n 8]]
 
-end core39
+end core36
 
 /-- `eq_prefix_run__L1`. -/
-noncomputable def core39 : Core.Fn where
+noncomputable def core36 : Core.Fn where
   name := "eq_prefix_run__L1"
   params := [.n 0, .n 1, .n 2, .n 3]
-  body := core39.body
+  body := core36.body
 
-namespace core40
+namespace core37
 
 /-- `eq_prefix_run__L2`: the body. -/
 noncomputable def body : List Core.Stmt := [
@@ -7110,15 +7035,15 @@ noncomputable def body : List Core.Stmt := [
   .atom (.const (.n 12) (word 0 0 0)),
   .ret [.n 12]]
 
-end core40
+end core37
 
 /-- `eq_prefix_run__L2`. -/
-noncomputable def core40 : Core.Fn where
+noncomputable def core37 : Core.Fn where
   name := "eq_prefix_run__L2"
   params := [.n 0, .n 1, .n 2, .n 3]
-  body := core40.body
+  body := core37.body
 
-namespace core41
+namespace core38
 
 /-- `eq_prefix_run__L3`: the body. -/
 noncomputable def body : List Core.Stmt := [
@@ -7141,15 +7066,15 @@ noncomputable def body : List Core.Stmt := [
   .atom (.const (.n 16) (word 0 0 0)),
   .ret [.n 16]]
 
-end core41
+end core38
 
 /-- `eq_prefix_run__L3`. -/
-noncomputable def core41 : Core.Fn where
+noncomputable def core38 : Core.Fn where
   name := "eq_prefix_run__L3"
   params := [.n 0, .n 1, .n 2, .n 3]
-  body := core41.body
+  body := core38.body
 
-namespace core42
+namespace core39
 
 /-- `eq_prefix_run__L4`: the body. -/
 noncomputable def body : List Core.Stmt := [
@@ -7177,15 +7102,15 @@ noncomputable def body : List Core.Stmt := [
   .atom (.const (.n 20) (word 0 0 0)),
   .ret [.n 20]]
 
-end core42
+end core39
 
 /-- `eq_prefix_run__L4`. -/
-noncomputable def core42 : Core.Fn where
+noncomputable def core39 : Core.Fn where
   name := "eq_prefix_run__L4"
   params := [.n 0, .n 1, .n 2, .n 3]
-  body := core42.body
+  body := core39.body
 
-namespace core43
+namespace core40
 
 /-- `eq_prefix_run__L5`: the body. -/
 noncomputable def body : List Core.Stmt := [
@@ -7218,15 +7143,15 @@ noncomputable def body : List Core.Stmt := [
   .atom (.const (.n 24) (word 0 0 0)),
   .ret [.n 24]]
 
-end core43
+end core40
 
 /-- `eq_prefix_run__L5`. -/
-noncomputable def core43 : Core.Fn where
+noncomputable def core40 : Core.Fn where
   name := "eq_prefix_run__L5"
   params := [.n 0, .n 1, .n 2, .n 3]
-  body := core43.body
+  body := core40.body
 
-namespace core44
+namespace core41
 
 /-- `eq_prefix_run__L6`: the body. -/
 noncomputable def body : List Core.Stmt := (
@@ -7265,15 +7190,15 @@ noncomputable def body : List Core.Stmt := (
   .ret [.n 28] ::
   [])
 
-end core44
+end core41
 
 /-- `eq_prefix_run__L6`. -/
-noncomputable def core44 : Core.Fn where
+noncomputable def core41 : Core.Fn where
   name := "eq_prefix_run__L6"
   params := [.n 0, .n 1, .n 2, .n 3]
-  body := core44.body
+  body := core41.body
 
-namespace core45
+namespace core42
 
 /-- `eq_prefix_run__L7`: the body. -/
 noncomputable def body : List Core.Stmt := (
@@ -7317,15 +7242,15 @@ noncomputable def body : List Core.Stmt := (
   .ret [.n 32] ::
   [])
 
-end core45
+end core42
 
 /-- `eq_prefix_run__L7`. -/
-noncomputable def core45 : Core.Fn where
+noncomputable def core42 : Core.Fn where
   name := "eq_prefix_run__L7"
   params := [.n 0, .n 1, .n 2, .n 3]
-  body := core45.body
+  body := core42.body
 
-namespace core46
+namespace core43
 
 /-- `eq_prefix_run__L8`: the body. -/
 noncomputable def body : List Core.Stmt := (
@@ -7374,15 +7299,15 @@ noncomputable def body : List Core.Stmt := (
   .ret [.n 36] ::
   [])
 
-end core46
+end core43
 
 /-- `eq_prefix_run__L8`. -/
-noncomputable def core46 : Core.Fn where
+noncomputable def core43 : Core.Fn where
   name := "eq_prefix_run__L8"
   params := [.n 0, .n 1, .n 2, .n 3]
-  body := core46.body
+  body := core43.body
 
-namespace core47
+namespace core44
 
 /-- `eq_prefix_run__L9`: the body. -/
 noncomputable def body : List Core.Stmt := (
@@ -7436,15 +7361,15 @@ noncomputable def body : List Core.Stmt := (
   .ret [.n 40] ::
   [])
 
-end core47
+end core44
 
 /-- `eq_prefix_run__L9`. -/
-noncomputable def core47 : Core.Fn where
+noncomputable def core44 : Core.Fn where
   name := "eq_prefix_run__L9"
   params := [.n 0, .n 1, .n 2, .n 3]
-  body := core47.body
+  body := core44.body
 
-namespace core48
+namespace core45
 
 /-- `eq_prefix_run__L10`: the body. -/
 noncomputable def body : List Core.Stmt := (
@@ -7503,15 +7428,15 @@ noncomputable def body : List Core.Stmt := (
   .ret [.n 44] ::
   [])
 
-end core48
+end core45
 
 /-- `eq_prefix_run__L10`. -/
-noncomputable def core48 : Core.Fn where
+noncomputable def core45 : Core.Fn where
   name := "eq_prefix_run__L10"
   params := [.n 0, .n 1, .n 2, .n 3]
-  body := core48.body
+  body := core45.body
 
-namespace core49
+namespace core46
 
 /-- `eq_prefix_run__L11`: the body. -/
 noncomputable def body : List Core.Stmt := (
@@ -7575,15 +7500,15 @@ noncomputable def body : List Core.Stmt := (
   .ret [.n 48] ::
   [])
 
-end core49
+end core46
 
 /-- `eq_prefix_run__L11`. -/
-noncomputable def core49 : Core.Fn where
+noncomputable def core46 : Core.Fn where
   name := "eq_prefix_run__L11"
   params := [.n 0, .n 1, .n 2, .n 3]
-  body := core49.body
+  body := core46.body
 
-namespace core50
+namespace core47
 
 /-- `eq_prefix_run__L12`: the body. -/
 noncomputable def body : List Core.Stmt := (
@@ -7652,15 +7577,15 @@ noncomputable def body : List Core.Stmt := (
   .ret [.n 52] ::
   [])
 
-end core50
+end core47
 
 /-- `eq_prefix_run__L12`. -/
-noncomputable def core50 : Core.Fn where
+noncomputable def core47 : Core.Fn where
   name := "eq_prefix_run__L12"
   params := [.n 0, .n 1, .n 2, .n 3]
-  body := core50.body
+  body := core47.body
 
-namespace core51
+namespace core48
 
 /-- `eq_prefix_run__L13`: the body. -/
 noncomputable def body : List Core.Stmt := (
@@ -7734,15 +7659,15 @@ noncomputable def body : List Core.Stmt := (
   .ret [.n 56] ::
   [])
 
-end core51
+end core48
 
 /-- `eq_prefix_run__L13`. -/
-noncomputable def core51 : Core.Fn where
+noncomputable def core48 : Core.Fn where
   name := "eq_prefix_run__L13"
   params := [.n 0, .n 1, .n 2, .n 3]
-  body := core51.body
+  body := core48.body
 
-namespace core52
+namespace core49
 
 /-- `eq_prefix_run__L14`: the body. -/
 noncomputable def body : List Core.Stmt := (
@@ -7821,15 +7746,15 @@ noncomputable def body : List Core.Stmt := (
   .ret [.n 60] ::
   [])
 
-end core52
+end core49
 
 /-- `eq_prefix_run__L14`. -/
-noncomputable def core52 : Core.Fn where
+noncomputable def core49 : Core.Fn where
   name := "eq_prefix_run__L14"
   params := [.n 0, .n 1, .n 2, .n 3]
-  body := core52.body
+  body := core49.body
 
-namespace core53
+namespace core50
 
 /-- `eq_prefix_run__L15`: the body. -/
 noncomputable def body : List Core.Stmt := (
@@ -7913,15 +7838,15 @@ noncomputable def body : List Core.Stmt := (
   .ret [.n 64] ::
   [])
 
-end core53
+end core50
 
 /-- `eq_prefix_run__L15`. -/
-noncomputable def core53 : Core.Fn where
+noncomputable def core50 : Core.Fn where
   name := "eq_prefix_run__L15"
   params := [.n 0, .n 1, .n 2, .n 3]
-  body := core53.body
+  body := core50.body
 
-namespace core54
+namespace core51
 
 /-- `eq_prefix_run__L16`: the body. -/
 noncomputable def body : List Core.Stmt := (
@@ -8010,15 +7935,15 @@ noncomputable def body : List Core.Stmt := (
   .ret [.n 68] ::
   [])
 
-end core54
+end core51
 
 /-- `eq_prefix_run__L16`. -/
-noncomputable def core54 : Core.Fn where
+noncomputable def core51 : Core.Fn where
   name := "eq_prefix_run__L16"
   params := [.n 0, .n 1, .n 2, .n 3]
-  body := core54.body
+  body := core51.body
 
-namespace core55
+namespace core52
 
 /-- `eq_prefix_run__L17`: the body. -/
 noncomputable def body : List Core.Stmt := (
@@ -8112,15 +8037,15 @@ noncomputable def body : List Core.Stmt := (
   .ret [.n 72] ::
   [])
 
-end core55
+end core52
 
 /-- `eq_prefix_run__L17`. -/
-noncomputable def core55 : Core.Fn where
+noncomputable def core52 : Core.Fn where
   name := "eq_prefix_run__L17"
   params := [.n 0, .n 1, .n 2, .n 3]
-  body := core55.body
+  body := core52.body
 
-namespace core56
+namespace core53
 
 /-- `eq_prefix_run__L18`: the body. -/
 noncomputable def body : List Core.Stmt := (
@@ -8219,15 +8144,15 @@ noncomputable def body : List Core.Stmt := (
   .ret [.n 76] ::
   [])
 
-end core56
+end core53
 
 /-- `eq_prefix_run__L18`. -/
-noncomputable def core56 : Core.Fn where
+noncomputable def core53 : Core.Fn where
   name := "eq_prefix_run__L18"
   params := [.n 0, .n 1, .n 2, .n 3]
-  body := core56.body
+  body := core53.body
 
-namespace core57
+namespace core54
 
 /-- `eq_prefix_run__L19`: the body. -/
 noncomputable def body : List Core.Stmt := (
@@ -8331,15 +8256,15 @@ noncomputable def body : List Core.Stmt := (
   .ret [.n 80] ::
   [])
 
-end core57
+end core54
 
 /-- `eq_prefix_run__L19`. -/
-noncomputable def core57 : Core.Fn where
+noncomputable def core54 : Core.Fn where
   name := "eq_prefix_run__L19"
   params := [.n 0, .n 1, .n 2, .n 3]
-  body := core57.body
+  body := core54.body
 
-namespace core58
+namespace core55
 
 /-- `eq_prefix_run__L20`: the body. -/
 noncomputable def body : List Core.Stmt := (
@@ -8448,15 +8373,15 @@ noncomputable def body : List Core.Stmt := (
   .ret [.n 84] ::
   [])
 
-end core58
+end core55
 
 /-- `eq_prefix_run__L20`. -/
-noncomputable def core58 : Core.Fn where
+noncomputable def core55 : Core.Fn where
   name := "eq_prefix_run__L20"
   params := [.n 0, .n 1, .n 2, .n 3]
-  body := core58.body
+  body := core55.body
 
-namespace core59
+namespace core56
 
 /-- `eq_prefix_run__L21`: the body. -/
 noncomputable def body : List Core.Stmt := (
@@ -8570,15 +8495,15 @@ noncomputable def body : List Core.Stmt := (
   .ret [.n 88] ::
   [])
 
-end core59
+end core56
 
 /-- `eq_prefix_run__L21`. -/
-noncomputable def core59 : Core.Fn where
+noncomputable def core56 : Core.Fn where
   name := "eq_prefix_run__L21"
   params := [.n 0, .n 1, .n 2, .n 3]
-  body := core59.body
+  body := core56.body
 
-namespace core60
+namespace core57
 
 /-- `eq_prefix_run__L22`: the body. -/
 noncomputable def body : List Core.Stmt := (
@@ -8697,15 +8622,15 @@ noncomputable def body : List Core.Stmt := (
   .ret [.n 92] ::
   [])
 
-end core60
+end core57
 
 /-- `eq_prefix_run__L22`. -/
-noncomputable def core60 : Core.Fn where
+noncomputable def core57 : Core.Fn where
   name := "eq_prefix_run__L22"
   params := [.n 0, .n 1, .n 2, .n 3]
-  body := core60.body
+  body := core57.body
 
-namespace core61
+namespace core58
 
 /-- `eq_prefix_run__L23`: the body. -/
 noncomputable def body : List Core.Stmt := (
@@ -8829,15 +8754,15 @@ noncomputable def body : List Core.Stmt := (
   .ret [.n 96] ::
   [])
 
-end core61
+end core58
 
 /-- `eq_prefix_run__L23`. -/
-noncomputable def core61 : Core.Fn where
+noncomputable def core58 : Core.Fn where
   name := "eq_prefix_run__L23"
   params := [.n 0, .n 1, .n 2, .n 3]
-  body := core61.body
+  body := core58.body
 
-namespace core62
+namespace core59
 
 /-- `eq_prefix_run__L24`: the body. -/
 noncomputable def body : List Core.Stmt := (
@@ -8966,15 +8891,15 @@ noncomputable def body : List Core.Stmt := (
   .ret [.n 100] ::
   [])
 
-end core62
+end core59
 
 /-- `eq_prefix_run__L24`. -/
-noncomputable def core62 : Core.Fn where
+noncomputable def core59 : Core.Fn where
   name := "eq_prefix_run__L24"
   params := [.n 0, .n 1, .n 2, .n 3]
-  body := core62.body
+  body := core59.body
 
-namespace core63
+namespace core60
 
 /-- `eq_prefix_run__L25`: the body. -/
 noncomputable def body : List Core.Stmt := (
@@ -9108,15 +9033,15 @@ noncomputable def body : List Core.Stmt := (
   .ret [.n 104] ::
   [])
 
-end core63
+end core60
 
 /-- `eq_prefix_run__L25`. -/
-noncomputable def core63 : Core.Fn where
+noncomputable def core60 : Core.Fn where
   name := "eq_prefix_run__L25"
   params := [.n 0, .n 1, .n 2, .n 3]
-  body := core63.body
+  body := core60.body
 
-namespace core64
+namespace core61
 
 /-- `eq_prefix_run__L26`: the body. -/
 noncomputable def body : List Core.Stmt := (
@@ -9255,15 +9180,15 @@ noncomputable def body : List Core.Stmt := (
   .ret [.n 108] ::
   [])
 
-end core64
+end core61
 
 /-- `eq_prefix_run__L26`. -/
-noncomputable def core64 : Core.Fn where
+noncomputable def core61 : Core.Fn where
   name := "eq_prefix_run__L26"
   params := [.n 0, .n 1, .n 2, .n 3]
-  body := core64.body
+  body := core61.body
 
-namespace core65
+namespace core62
 
 /-- `eq_prefix_run__L27`: the body. -/
 noncomputable def body : List Core.Stmt := (
@@ -9407,15 +9332,15 @@ noncomputable def body : List Core.Stmt := (
   .ret [.n 112] ::
   [])
 
-end core65
+end core62
 
 /-- `eq_prefix_run__L27`. -/
-noncomputable def core65 : Core.Fn where
+noncomputable def core62 : Core.Fn where
   name := "eq_prefix_run__L27"
   params := [.n 0, .n 1, .n 2, .n 3]
-  body := core65.body
+  body := core62.body
 
-namespace core66
+namespace core63
 
 /-- `eq_prefix_run__L28`: the body. -/
 noncomputable def body : List Core.Stmt := (
@@ -9564,15 +9489,15 @@ noncomputable def body : List Core.Stmt := (
   .ret [.n 116] ::
   [])
 
-end core66
+end core63
 
 /-- `eq_prefix_run__L28`. -/
-noncomputable def core66 : Core.Fn where
+noncomputable def core63 : Core.Fn where
   name := "eq_prefix_run__L28"
   params := [.n 0, .n 1, .n 2, .n 3]
-  body := core66.body
+  body := core63.body
 
-namespace core67
+namespace core64
 
 /-- `eq_prefix_run__L29`: the body. -/
 noncomputable def body : List Core.Stmt := (
@@ -9726,15 +9651,15 @@ noncomputable def body : List Core.Stmt := (
   .ret [.n 120] ::
   [])
 
-end core67
+end core64
 
 /-- `eq_prefix_run__L29`. -/
-noncomputable def core67 : Core.Fn where
+noncomputable def core64 : Core.Fn where
   name := "eq_prefix_run__L29"
   params := [.n 0, .n 1, .n 2, .n 3]
-  body := core67.body
+  body := core64.body
 
-namespace core68
+namespace core65
 
 /-- `eq_prefix_run__L30`: the body. -/
 noncomputable def body : List Core.Stmt := (
@@ -9893,15 +9818,15 @@ noncomputable def body : List Core.Stmt := (
   .ret [.n 124] ::
   [])
 
-end core68
+end core65
 
 /-- `eq_prefix_run__L30`. -/
-noncomputable def core68 : Core.Fn where
+noncomputable def core65 : Core.Fn where
   name := "eq_prefix_run__L30"
   params := [.n 0, .n 1, .n 2, .n 3]
-  body := core68.body
+  body := core65.body
 
-namespace core69
+namespace core66
 
 /-- `eq_prefix_run__L31`: the body. -/
 noncomputable def body : List Core.Stmt := (
@@ -10065,15 +9990,15 @@ noncomputable def body : List Core.Stmt := (
   .ret [.n 128] ::
   [])
 
-end core69
+end core66
 
 /-- `eq_prefix_run__L31`. -/
-noncomputable def core69 : Core.Fn where
+noncomputable def core66 : Core.Fn where
   name := "eq_prefix_run__L31"
   params := [.n 0, .n 1, .n 2, .n 3]
-  body := core69.body
+  body := core66.body
 
-namespace core70
+namespace core67
 
 /-- `eq_prefix_run__L32`: the body. -/
 noncomputable def body : List Core.Stmt := (
@@ -10242,15 +10167,15 @@ noncomputable def body : List Core.Stmt := (
   .ret [.n 132] ::
   [])
 
-end core70
+end core67
 
 /-- `eq_prefix_run__L32`. -/
-noncomputable def core70 : Core.Fn where
+noncomputable def core67 : Core.Fn where
   name := "eq_prefix_run__L32"
   params := [.n 0, .n 1, .n 2, .n 3]
-  body := core70.body
+  body := core67.body
 
-namespace core71
+namespace core68
 
 /-- `eq_prefix_run__L33`: the body. -/
 noncomputable def body : List Core.Stmt := (
@@ -10424,15 +10349,15 @@ noncomputable def body : List Core.Stmt := (
   .ret [.n 136] ::
   [])
 
-end core71
+end core68
 
 /-- `eq_prefix_run__L33`. -/
-noncomputable def core71 : Core.Fn where
+noncomputable def core68 : Core.Fn where
   name := "eq_prefix_run__L33"
   params := [.n 0, .n 1, .n 2, .n 3]
-  body := core71.body
+  body := core68.body
 
-namespace core72
+namespace core69
 
 /-- `eq_prefix_run__L34`: the body. -/
 noncomputable def body : List Core.Stmt := (
@@ -10611,15 +10536,15 @@ noncomputable def body : List Core.Stmt := (
   .ret [.n 140] ::
   [])
 
-end core72
+end core69
 
 /-- `eq_prefix_run__L34`. -/
-noncomputable def core72 : Core.Fn where
+noncomputable def core69 : Core.Fn where
   name := "eq_prefix_run__L34"
   params := [.n 0, .n 1, .n 2, .n 3]
-  body := core72.body
+  body := core69.body
 
-namespace core73
+namespace core70
 
 /-- `eq_prefix_run__L35`: the body. -/
 noncomputable def body : List Core.Stmt := (
@@ -10803,15 +10728,15 @@ noncomputable def body : List Core.Stmt := (
   .ret [.n 144] ::
   [])
 
-end core73
+end core70
 
 /-- `eq_prefix_run__L35`. -/
-noncomputable def core73 : Core.Fn where
+noncomputable def core70 : Core.Fn where
   name := "eq_prefix_run__L35"
   params := [.n 0, .n 1, .n 2, .n 3]
-  body := core73.body
+  body := core70.body
 
-namespace core74
+namespace core71
 
 /-- `eq_prefix_run__L36`: the body. -/
 noncomputable def body : List Core.Stmt := (
@@ -11000,15 +10925,15 @@ noncomputable def body : List Core.Stmt := (
   .ret [.n 148] ::
   [])
 
-end core74
+end core71
 
 /-- `eq_prefix_run__L36`. -/
-noncomputable def core74 : Core.Fn where
+noncomputable def core71 : Core.Fn where
   name := "eq_prefix_run__L36"
   params := [.n 0, .n 1, .n 2, .n 3]
-  body := core74.body
+  body := core71.body
 
-namespace core75
+namespace core72
 
 /-- `eq_prefix_run__L37`: the body. -/
 noncomputable def body : List Core.Stmt := (
@@ -11202,15 +11127,15 @@ noncomputable def body : List Core.Stmt := (
   .ret [.n 152] ::
   [])
 
-end core75
+end core72
 
 /-- `eq_prefix_run__L37`. -/
-noncomputable def core75 : Core.Fn where
+noncomputable def core72 : Core.Fn where
   name := "eq_prefix_run__L37"
   params := [.n 0, .n 1, .n 2, .n 3]
-  body := core75.body
+  body := core72.body
 
-namespace core76
+namespace core73
 
 /-- `eq_prefix_run__L38`: the body. -/
 noncomputable def body : List Core.Stmt := (
@@ -11409,15 +11334,15 @@ noncomputable def body : List Core.Stmt := (
   .ret [.n 156] ::
   [])
 
-end core76
+end core73
 
 /-- `eq_prefix_run__L38`. -/
-noncomputable def core76 : Core.Fn where
+noncomputable def core73 : Core.Fn where
   name := "eq_prefix_run__L38"
   params := [.n 0, .n 1, .n 2, .n 3]
-  body := core76.body
+  body := core73.body
 
-namespace core77
+namespace core74
 
 /-- `eq_prefix_run__L39`: the body. -/
 noncomputable def body : List Core.Stmt := (
@@ -11621,15 +11546,15 @@ noncomputable def body : List Core.Stmt := (
   .ret [.n 160] ::
   [])
 
-end core77
+end core74
 
 /-- `eq_prefix_run__L39`. -/
-noncomputable def core77 : Core.Fn where
+noncomputable def core74 : Core.Fn where
   name := "eq_prefix_run__L39"
   params := [.n 0, .n 1, .n 2, .n 3]
-  body := core77.body
+  body := core74.body
 
-namespace core78
+namespace core75
 
 /-- `eq_prefix_run__L40`: the body. -/
 noncomputable def body : List Core.Stmt := (
@@ -11838,17 +11763,17 @@ noncomputable def body : List Core.Stmt := (
   .ret [.n 164] ::
   [])
 
-end core78
+end core75
 
 /-- `eq_prefix_run__L40`. -/
-noncomputable def core78 : Core.Fn where
+noncomputable def core75 : Core.Fn where
   name := "eq_prefix_run__L40"
   params := [.n 0, .n 1, .n 2, .n 3]
-  body := core78.body
+  body := core75.body
 
-namespace core79
+namespace core76
 
-/-- `__loop6`: the body. -/
+/-- `__loop5`: the body. -/
 noncomputable def body : List Core.Stmt := (
   .atom (.mul (.n 5) (.n 0) (.n 0)) ::
   .atom (.mul (.n 6) (.n 2) (.n 5)) ::
@@ -12379,21 +12304,21 @@ noncomputable def body : List Core.Stmt := (
   .atom (.add (.n 467) (.n 466) (.n 1)) ::
   .atom (.const (.n 468) (word 2 0 0)) ::
   .atom (.mul (.n 469) (.n 0) (.n 468)) ::
-  .callIf (.n 467) "__loop6" [.n 469, .n 1, .n 2, .n 3, .n 4] ::
+  .callIf (.n 467) "__loop5" [.n 469, .n 1, .n 2, .n 3, .n 4] ::
   .ret [] ::
   [])
 
-end core79
+end core76
 
-/-- `__loop6`. -/
-noncomputable def core79 : Core.Fn where
-  name := "__loop6"
+/-- `__loop5`. -/
+noncomputable def core76 : Core.Fn where
+  name := "__loop5"
   params := [.n 0, .n 1, .n 2, .n 3, .n 4]
-  body := core79.body
+  body := core76.body
 
-namespace core80
+namespace core77
 
-/-- `__loop7`: the body. -/
+/-- `__loop6`: the body. -/
 noncomputable def body : List Core.Stmt := (
   .atom (.mul (.n 6) (.n 0) (.n 0)) ::
   .atom (.mul (.n 7) (.n 2) (.n 3)) ::
@@ -12451,7 +12376,7 @@ noncomputable def body : List Core.Stmt := (
   .atom (.const (.n 63) (word 1 0 0)) ::
   .atom (.add (.n 64) (.n 63) (.n 61)) ::
   .atom (.const (.n 65) (word 1 0 0)) ::
-  .callIf (.n 64) "__loop29" [.n 65, .n 61, .n 52, .n 50] ::
+  .callIf (.n 64) "__loop27" [.n 65, .n 61, .n 52, .n 50] ::
   .ite (.n 62) [] [
     .atom (.mul (.n 66) (.n 61) (.n 61)),
     .atom (.mul (.n 67) (.n 66) (.n 66)),
@@ -12697,21 +12622,21 @@ noncomputable def body : List Core.Stmt := (
   .atom (.add (.n 342) (.n 341) (.n 1)) ::
   .atom (.const (.n 343) (word 2 0 0)) ::
   .atom (.mul (.n 344) (.n 0) (.n 343)) ::
-  .callIf (.n 342) "__loop7" [.n 344, .n 1, .n 2, .n 3, .n 4, .n 5] ::
+  .callIf (.n 342) "__loop6" [.n 344, .n 1, .n 2, .n 3, .n 4, .n 5] ::
   .ret [] ::
   [])
 
-end core80
+end core77
 
-/-- `__loop7`. -/
-noncomputable def core80 : Core.Fn where
-  name := "__loop7"
+/-- `__loop6`. -/
+noncomputable def core77 : Core.Fn where
+  name := "__loop6"
   params := [.n 0, .n 1, .n 2, .n 3, .n 4, .n 5]
-  body := core80.body
+  body := core77.body
 
-namespace core81
+namespace core78
 
-/-- `__loop8`: the body. -/
+/-- `__loop7`: the body. -/
 noncomputable def body : List Core.Stmt := [
   .atom (.mul (.n 4) (.n 3) (.n 0)),
   .atom (.load (.n 5) (.n 4) 0),
@@ -12722,20 +12647,20 @@ noncomputable def body : List Core.Stmt := [
   .atom (.add (.n 9) (.n 8) (.n 1)),
   .atom (.const (.n 10) (word 2 0 0)),
   .atom (.mul (.n 11) (.n 0) (.n 10)),
-  .callIf (.n 9) "__loop8" [.n 11, .n 1, .n 2, .n 3],
+  .callIf (.n 9) "__loop7" [.n 11, .n 1, .n 2, .n 3],
   .ret []]
 
-end core81
+end core78
 
-/-- `__loop8`. -/
-noncomputable def core81 : Core.Fn where
-  name := "__loop8"
+/-- `__loop7`. -/
+noncomputable def core78 : Core.Fn where
+  name := "__loop7"
   params := [.n 0, .n 1, .n 2, .n 3]
-  body := core81.body
+  body := core78.body
 
-namespace core82
+namespace core79
 
-/-- `__loop9`: the body. -/
+/-- `__loop8`: the body. -/
 noncomputable def body : List Core.Stmt := (
   .atom (.mul (.n 7) (.n 0) (.n 0)) ::
   .atom (.mul (.n 8) (.n 7) (.n 7)) ::
@@ -12853,34 +12778,34 @@ noncomputable def body : List Core.Stmt := (
   .atom (.add (.n 74) (.n 73) (.n 1)) ::
   .atom (.const (.n 75) (word 2 0 0)) ::
   .atom (.mul (.n 76) (.n 0) (.n 75)) ::
-  .callIf (.n 74) "__loop9" [.n 76, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6] ::
+  .callIf (.n 74) "__loop8" [.n 76, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6] ::
   .ret [] ::
   [])
 
-end core82
+end core79
 
-/-- `__loop9`. -/
-noncomputable def core82 : Core.Fn where
-  name := "__loop9"
+/-- `__loop8`. -/
+noncomputable def core79 : Core.Fn where
+  name := "__loop8"
   params := [.n 0, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6]
-  body := core82.body
+  body := core79.body
 
-namespace core83
+namespace core80
 
 /-- `sel_partial_nibble__L0`: the body. -/
 noncomputable def body : List Core.Stmt := [
   .atom (.const (.n 5) (word 0 0 0)),
   .ret [.n 5]]
 
-end core83
+end core80
 
 /-- `sel_partial_nibble__L0`. -/
-noncomputable def core83 : Core.Fn where
+noncomputable def core80 : Core.Fn where
   name := "sel_partial_nibble__L0"
   params := [.n 0, .n 1, .n 2, .n 3, .n 4]
-  body := core83.body
+  body := core80.body
 
-namespace core84
+namespace core81
 
 /-- `sel_partial_nibble__L1`: the body. -/
 noncomputable def body : List Core.Stmt := [
@@ -12895,15 +12820,15 @@ noncomputable def body : List Core.Stmt := [
   .atom (.const (.n 9) (word 0 0 0)),
   .ret [.n 9]]
 
-end core84
+end core81
 
 /-- `sel_partial_nibble__L1`. -/
-noncomputable def core84 : Core.Fn where
+noncomputable def core81 : Core.Fn where
   name := "sel_partial_nibble__L1"
   params := [.n 0, .n 1, .n 2, .n 3, .n 4]
-  body := core84.body
+  body := core81.body
 
-namespace core85
+namespace core82
 
 /-- `sel_partial_nibble__L2`: the body. -/
 noncomputable def body : List Core.Stmt := [
@@ -12933,15 +12858,15 @@ noncomputable def body : List Core.Stmt := [
   .atom (.const (.n 18) (word 0 0 0)),
   .ret [.n 18]]
 
-end core85
+end core82
 
 /-- `sel_partial_nibble__L2`. -/
-noncomputable def core85 : Core.Fn where
+noncomputable def core82 : Core.Fn where
   name := "sel_partial_nibble__L2"
   params := [.n 0, .n 1, .n 2, .n 3, .n 4]
-  body := core85.body
+  body := core82.body
 
-namespace core86
+namespace core83
 
 /-- `sel_partial_nibble__L3`: the body. -/
 noncomputable def body : List Core.Stmt := (
@@ -12999,15 +12924,15 @@ noncomputable def body : List Core.Stmt := (
   .ret [.n 33] ::
   [])
 
-end core86
+end core83
 
 /-- `sel_partial_nibble__L3`. -/
-noncomputable def core86 : Core.Fn where
+noncomputable def core83 : Core.Fn where
   name := "sel_partial_nibble__L3"
   params := [.n 0, .n 1, .n 2, .n 3, .n 4]
-  body := core86.body
+  body := core83.body
 
-namespace core87
+namespace core84
 
 /-- `padding_weight__L0`: the body. -/
 noncomputable def body : List Core.Stmt := [
@@ -13024,15 +12949,15 @@ noncomputable def body : List Core.Stmt := [
   .atom (.const (.n 9) (word 1 0 0)),
   .ret [.n 7, .n 8, .n 9]]
 
-end core87
+end core84
 
 /-- `padding_weight__L0`. -/
-noncomputable def core87 : Core.Fn where
+noncomputable def core84 : Core.Fn where
   name := "padding_weight__L0"
   params := [.n 0, .n 1]
-  body := core87.body
+  body := core84.body
 
-namespace core88
+namespace core85
 
 /-- `padding_weight__L1`: the body. -/
 noncomputable def body : List Core.Stmt := [
@@ -13064,15 +12989,15 @@ noncomputable def body : List Core.Stmt := [
   .atom (.copy (.n 24) (.n 5)),
   .ret [.n 22, .n 23, .n 24]]
 
-end core88
+end core85
 
 /-- `padding_weight__L1`. -/
-noncomputable def core88 : Core.Fn where
+noncomputable def core85 : Core.Fn where
   name := "padding_weight__L1"
   params := [.n 0, .n 1]
-  body := core88.body
+  body := core85.body
 
-namespace core89
+namespace core86
 
 /-- `padding_weight__L2`: the body. -/
 noncomputable def body : List Core.Stmt := (
@@ -13117,15 +13042,15 @@ noncomputable def body : List Core.Stmt := (
   .ret [.n 34, .n 35, .n 36] ::
   [])
 
-end core89
+end core86
 
 /-- `padding_weight__L2`. -/
-noncomputable def core89 : Core.Fn where
+noncomputable def core86 : Core.Fn where
   name := "padding_weight__L2"
   params := [.n 0, .n 1]
-  body := core89.body
+  body := core86.body
 
-namespace core90
+namespace core87
 
 /-- `padding_weight__L3`: the body. -/
 noncomputable def body : List Core.Stmt := (
@@ -13179,15 +13104,15 @@ noncomputable def body : List Core.Stmt := (
   .ret [.n 43, .n 44, .n 45] ::
   [])
 
-end core90
+end core87
 
 /-- `padding_weight__L3`. -/
-noncomputable def core90 : Core.Fn where
+noncomputable def core87 : Core.Fn where
   name := "padding_weight__L3"
   params := [.n 0, .n 1]
-  body := core90.body
+  body := core87.body
 
-namespace core91
+namespace core88
 
 /-- `padding_weight__L4`: the body. -/
 noncomputable def body : List Core.Stmt := (
@@ -13250,15 +13175,15 @@ noncomputable def body : List Core.Stmt := (
   .ret [.n 52, .n 53, .n 54] ::
   [])
 
-end core91
+end core88
 
 /-- `padding_weight__L4`. -/
-noncomputable def core91 : Core.Fn where
+noncomputable def core88 : Core.Fn where
   name := "padding_weight__L4"
   params := [.n 0, .n 1]
-  body := core91.body
+  body := core88.body
 
-namespace core92
+namespace core89
 
 /-- `padding_weight__L5`: the body. -/
 noncomputable def body : List Core.Stmt := (
@@ -13330,15 +13255,15 @@ noncomputable def body : List Core.Stmt := (
   .ret [.n 61, .n 62, .n 63] ::
   [])
 
-end core92
+end core89
 
 /-- `padding_weight__L5`. -/
-noncomputable def core92 : Core.Fn where
+noncomputable def core89 : Core.Fn where
   name := "padding_weight__L5"
   params := [.n 0, .n 1]
-  body := core92.body
+  body := core89.body
 
-namespace core93
+namespace core90
 
 /-- `padding_weight__L6`: the body. -/
 noncomputable def body : List Core.Stmt := (
@@ -13419,15 +13344,15 @@ noncomputable def body : List Core.Stmt := (
   .ret [.n 70, .n 71, .n 72] ::
   [])
 
-end core93
+end core90
 
 /-- `padding_weight__L6`. -/
-noncomputable def core93 : Core.Fn where
+noncomputable def core90 : Core.Fn where
   name := "padding_weight__L6"
   params := [.n 0, .n 1]
-  body := core93.body
+  body := core90.body
 
-namespace core94
+namespace core91
 
 /-- `padding_weight__L7`: the body. -/
 noncomputable def body : List Core.Stmt := (
@@ -13517,15 +13442,15 @@ noncomputable def body : List Core.Stmt := (
   .ret [.n 79, .n 80, .n 81] ::
   [])
 
-end core94
+end core91
 
 /-- `padding_weight__L7`. -/
-noncomputable def core94 : Core.Fn where
+noncomputable def core91 : Core.Fn where
   name := "padding_weight__L7"
   params := [.n 0, .n 1]
-  body := core94.body
+  body := core91.body
 
-namespace core95
+namespace core92
 
 /-- `padding_weight__L8`: the body. -/
 noncomputable def body : List Core.Stmt := (
@@ -13624,15 +13549,15 @@ noncomputable def body : List Core.Stmt := (
   .ret [.n 88, .n 89, .n 90] ::
   [])
 
-end core95
+end core92
 
 /-- `padding_weight__L8`. -/
-noncomputable def core95 : Core.Fn where
+noncomputable def core92 : Core.Fn where
   name := "padding_weight__L8"
   params := [.n 0, .n 1]
-  body := core95.body
+  body := core92.body
 
-namespace core96
+namespace core93
 
 /-- `padding_weight__L9`: the body. -/
 noncomputable def body : List Core.Stmt := (
@@ -13740,15 +13665,15 @@ noncomputable def body : List Core.Stmt := (
   .ret [.n 97, .n 98, .n 99] ::
   [])
 
-end core96
+end core93
 
 /-- `padding_weight__L9`. -/
-noncomputable def core96 : Core.Fn where
+noncomputable def core93 : Core.Fn where
   name := "padding_weight__L9"
   params := [.n 0, .n 1]
-  body := core96.body
+  body := core93.body
 
-namespace core97
+namespace core94
 
 /-- `padding_weight__L10`: the body. -/
 noncomputable def body : List Core.Stmt := (
@@ -13865,15 +13790,15 @@ noncomputable def body : List Core.Stmt := (
   .ret [.n 106, .n 107, .n 108] ::
   [])
 
-end core97
+end core94
 
 /-- `padding_weight__L10`. -/
-noncomputable def core97 : Core.Fn where
+noncomputable def core94 : Core.Fn where
   name := "padding_weight__L10"
   params := [.n 0, .n 1]
-  body := core97.body
+  body := core94.body
 
-namespace core98
+namespace core95
 
 /-- `padding_weight__L11`: the body. -/
 noncomputable def body : List Core.Stmt := (
@@ -13999,15 +13924,15 @@ noncomputable def body : List Core.Stmt := (
   .ret [.n 115, .n 116, .n 117] ::
   [])
 
-end core98
+end core95
 
 /-- `padding_weight__L11`. -/
-noncomputable def core98 : Core.Fn where
+noncomputable def core95 : Core.Fn where
   name := "padding_weight__L11"
   params := [.n 0, .n 1]
-  body := core98.body
+  body := core95.body
 
-namespace core99
+namespace core96
 
 /-- `padding_weight__L12`: the body. -/
 noncomputable def body : List Core.Stmt := (
@@ -14142,15 +14067,15 @@ noncomputable def body : List Core.Stmt := (
   .ret [.n 124, .n 125, .n 126] ::
   [])
 
-end core99
+end core96
 
 /-- `padding_weight__L12`. -/
-noncomputable def core99 : Core.Fn where
+noncomputable def core96 : Core.Fn where
   name := "padding_weight__L12"
   params := [.n 0, .n 1]
-  body := core99.body
+  body := core96.body
 
-namespace core100
+namespace core97
 
 /-- `padding_weight__L13`: the body. -/
 noncomputable def body : List Core.Stmt := (
@@ -14294,15 +14219,15 @@ noncomputable def body : List Core.Stmt := (
   .ret [.n 133, .n 134, .n 135] ::
   [])
 
-end core100
+end core97
 
 /-- `padding_weight__L13`. -/
-noncomputable def core100 : Core.Fn where
+noncomputable def core97 : Core.Fn where
   name := "padding_weight__L13"
   params := [.n 0, .n 1]
-  body := core100.body
+  body := core97.body
 
-namespace core101
+namespace core98
 
 /-- `padding_weight__L14`: the body. -/
 noncomputable def body : List Core.Stmt := (
@@ -14455,15 +14380,15 @@ noncomputable def body : List Core.Stmt := (
   .ret [.n 142, .n 143, .n 144] ::
   [])
 
-end core101
+end core98
 
 /-- `padding_weight__L14`. -/
-noncomputable def core101 : Core.Fn where
+noncomputable def core98 : Core.Fn where
   name := "padding_weight__L14"
   params := [.n 0, .n 1]
-  body := core101.body
+  body := core98.body
 
-namespace core102
+namespace core99
 
 /-- `padding_weight__L15`: the body. -/
 noncomputable def body : List Core.Stmt := (
@@ -14625,15 +14550,15 @@ noncomputable def body : List Core.Stmt := (
   .ret [.n 151, .n 152, .n 153] ::
   [])
 
-end core102
+end core99
 
 /-- `padding_weight__L15`. -/
-noncomputable def core102 : Core.Fn where
+noncomputable def core99 : Core.Fn where
   name := "padding_weight__L15"
   params := [.n 0, .n 1]
-  body := core102.body
+  body := core99.body
 
-namespace core103
+namespace core100
 
 /-- `padding_weight__L16`: the body. -/
 noncomputable def body : List Core.Stmt := (
@@ -14804,15 +14729,15 @@ noncomputable def body : List Core.Stmt := (
   .ret [.n 160, .n 161, .n 162] ::
   [])
 
-end core103
+end core100
 
 /-- `padding_weight__L16`. -/
-noncomputable def core103 : Core.Fn where
+noncomputable def core100 : Core.Fn where
   name := "padding_weight__L16"
   params := [.n 0, .n 1]
-  body := core103.body
+  body := core100.body
 
-namespace core104
+namespace core101
 
 /-- `padding_weight__L17`: the body. -/
 noncomputable def body : List Core.Stmt := (
@@ -14992,15 +14917,15 @@ noncomputable def body : List Core.Stmt := (
   .ret [.n 169, .n 170, .n 171] ::
   [])
 
-end core104
+end core101
 
 /-- `padding_weight__L17`. -/
-noncomputable def core104 : Core.Fn where
+noncomputable def core101 : Core.Fn where
   name := "padding_weight__L17"
   params := [.n 0, .n 1]
-  body := core104.body
+  body := core101.body
 
-namespace core105
+namespace core102
 
 /-- `padding_weight__L18`: the body. -/
 noncomputable def body : List Core.Stmt := (
@@ -15189,15 +15114,15 @@ noncomputable def body : List Core.Stmt := (
   .ret [.n 178, .n 179, .n 180] ::
   [])
 
-end core105
+end core102
 
 /-- `padding_weight__L18`. -/
-noncomputable def core105 : Core.Fn where
+noncomputable def core102 : Core.Fn where
   name := "padding_weight__L18"
   params := [.n 0, .n 1]
-  body := core105.body
+  body := core102.body
 
-namespace core106
+namespace core103
 
 /-- `padding_weight__L19`: the body. -/
 noncomputable def body : List Core.Stmt := (
@@ -15395,15 +15320,15 @@ noncomputable def body : List Core.Stmt := (
   .ret [.n 187, .n 188, .n 189] ::
   [])
 
-end core106
+end core103
 
 /-- `padding_weight__L19`. -/
-noncomputable def core106 : Core.Fn where
+noncomputable def core103 : Core.Fn where
   name := "padding_weight__L19"
   params := [.n 0, .n 1]
-  body := core106.body
+  body := core103.body
 
-namespace core107
+namespace core104
 
 /-- `padding_weight__L20`: the body. -/
 noncomputable def body : List Core.Stmt := (
@@ -15610,15 +15535,15 @@ noncomputable def body : List Core.Stmt := (
   .ret [.n 196, .n 197, .n 198] ::
   [])
 
-end core107
+end core104
 
 /-- `padding_weight__L20`. -/
-noncomputable def core107 : Core.Fn where
+noncomputable def core104 : Core.Fn where
   name := "padding_weight__L20"
   params := [.n 0, .n 1]
-  body := core107.body
+  body := core104.body
 
-namespace core108
+namespace core105
 
 /-- `padding_weight__L21`: the body. -/
 noncomputable def body : List Core.Stmt := (
@@ -15834,15 +15759,15 @@ noncomputable def body : List Core.Stmt := (
   .ret [.n 205, .n 206, .n 207] ::
   [])
 
-end core108
+end core105
 
 /-- `padding_weight__L21`. -/
-noncomputable def core108 : Core.Fn where
+noncomputable def core105 : Core.Fn where
   name := "padding_weight__L21"
   params := [.n 0, .n 1]
-  body := core108.body
+  body := core105.body
 
-namespace core109
+namespace core106
 
 /-- `padding_weight__L22`: the body. -/
 noncomputable def body : List Core.Stmt := (
@@ -16067,15 +15992,15 @@ noncomputable def body : List Core.Stmt := (
   .ret [.n 214, .n 215, .n 216] ::
   [])
 
-end core109
+end core106
 
 /-- `padding_weight__L22`. -/
-noncomputable def core109 : Core.Fn where
+noncomputable def core106 : Core.Fn where
   name := "padding_weight__L22"
   params := [.n 0, .n 1]
-  body := core109.body
+  body := core106.body
 
-namespace core110
+namespace core107
 
 /-- `padding_weight__L23`: the body. -/
 noncomputable def body : List Core.Stmt := (
@@ -16309,15 +16234,15 @@ noncomputable def body : List Core.Stmt := (
   .ret [.n 223, .n 224, .n 225] ::
   [])
 
-end core110
+end core107
 
 /-- `padding_weight__L23`. -/
-noncomputable def core110 : Core.Fn where
+noncomputable def core107 : Core.Fn where
   name := "padding_weight__L23"
   params := [.n 0, .n 1]
-  body := core110.body
+  body := core107.body
 
-namespace core111
+namespace core108
 
 /-- `padding_weight__L24`: the body. -/
 noncomputable def body : List Core.Stmt := (
@@ -16560,15 +16485,15 @@ noncomputable def body : List Core.Stmt := (
   .ret [.n 232, .n 233, .n 234] ::
   [])
 
-end core111
+end core108
 
 /-- `padding_weight__L24`. -/
-noncomputable def core111 : Core.Fn where
+noncomputable def core108 : Core.Fn where
   name := "padding_weight__L24"
   params := [.n 0, .n 1]
-  body := core111.body
+  body := core108.body
 
-namespace core112
+namespace core109
 
 /-- `padding_weight__L25`: the body. -/
 noncomputable def body : List Core.Stmt := (
@@ -16820,15 +16745,15 @@ noncomputable def body : List Core.Stmt := (
   .ret [.n 241, .n 242, .n 243] ::
   [])
 
-end core112
+end core109
 
 /-- `padding_weight__L25`. -/
-noncomputable def core112 : Core.Fn where
+noncomputable def core109 : Core.Fn where
   name := "padding_weight__L25"
   params := [.n 0, .n 1]
-  body := core112.body
+  body := core109.body
 
-namespace core113
+namespace core110
 
 /-- `padding_weight__L26`: the body. -/
 noncomputable def body : List Core.Stmt := (
@@ -17089,15 +17014,15 @@ noncomputable def body : List Core.Stmt := (
   .ret [.n 250, .n 251, .n 252] ::
   [])
 
-end core113
+end core110
 
 /-- `padding_weight__L26`. -/
-noncomputable def core113 : Core.Fn where
+noncomputable def core110 : Core.Fn where
   name := "padding_weight__L26"
   params := [.n 0, .n 1]
-  body := core113.body
+  body := core110.body
 
-namespace core114
+namespace core111
 
 /-- `padding_weight__L27`: the body. -/
 noncomputable def body : List Core.Stmt := (
@@ -17367,15 +17292,15 @@ noncomputable def body : List Core.Stmt := (
   .ret [.n 259, .n 260, .n 261] ::
   [])
 
-end core114
+end core111
 
 /-- `padding_weight__L27`. -/
-noncomputable def core114 : Core.Fn where
+noncomputable def core111 : Core.Fn where
   name := "padding_weight__L27"
   params := [.n 0, .n 1]
-  body := core114.body
+  body := core111.body
 
-namespace core115
+namespace core112
 
 /-- `padding_weight__L28`: the body. -/
 noncomputable def body : List Core.Stmt := (
@@ -17654,30 +17579,30 @@ noncomputable def body : List Core.Stmt := (
   .ret [.n 268, .n 269, .n 270] ::
   [])
 
-end core115
+end core112
 
 /-- `padding_weight__L28`. -/
-noncomputable def core115 : Core.Fn where
+noncomputable def core112 : Core.Fn where
   name := "padding_weight__L28"
   params := [.n 0, .n 1]
-  body := core115.body
+  body := core112.body
 
-namespace core116
+namespace core113
 
 /-- `plus_one_run__L0`: the body. -/
 noncomputable def body : List Core.Stmt := [
   .atom (.const (.n 2) (word 0 0 0)),
   .ret [.n 2]]
 
-end core116
+end core113
 
 /-- `plus_one_run__L0`. -/
-noncomputable def core116 : Core.Fn where
+noncomputable def core113 : Core.Fn where
   name := "plus_one_run__L0"
   params := [.n 0, .n 1]
-  body := core116.body
+  body := core113.body
 
-namespace core117
+namespace core114
 
 /-- `plus_one_run__L1`: the body. -/
 noncomputable def body : List Core.Stmt := [
@@ -17688,15 +17613,15 @@ noncomputable def body : List Core.Stmt := [
   .atom (.const (.n 5) (word 0 0 0)),
   .ret [.n 5]]
 
-end core117
+end core114
 
 /-- `plus_one_run__L1`. -/
-noncomputable def core117 : Core.Fn where
+noncomputable def core114 : Core.Fn where
   name := "plus_one_run__L1"
   params := [.n 0, .n 1]
-  body := core117.body
+  body := core114.body
 
-namespace core118
+namespace core115
 
 /-- `plus_one_run__L2`: the body. -/
 noncomputable def body : List Core.Stmt := [
@@ -17711,15 +17636,15 @@ noncomputable def body : List Core.Stmt := [
   .atom (.const (.n 8) (word 0 0 0)),
   .ret [.n 8]]
 
-end core118
+end core115
 
 /-- `plus_one_run__L2`. -/
-noncomputable def core118 : Core.Fn where
+noncomputable def core115 : Core.Fn where
   name := "plus_one_run__L2"
   params := [.n 0, .n 1]
-  body := core118.body
+  body := core115.body
 
-namespace core119
+namespace core116
 
 /-- `plus_one_run__L3`: the body. -/
 noncomputable def body : List Core.Stmt := [
@@ -17738,15 +17663,15 @@ noncomputable def body : List Core.Stmt := [
   .atom (.const (.n 11) (word 0 0 0)),
   .ret [.n 11]]
 
-end core119
+end core116
 
 /-- `plus_one_run__L3`. -/
-noncomputable def core119 : Core.Fn where
+noncomputable def core116 : Core.Fn where
   name := "plus_one_run__L3"
   params := [.n 0, .n 1]
-  body := core119.body
+  body := core116.body
 
-namespace core120
+namespace core117
 
 /-- `plus_one_run__L4`: the body. -/
 noncomputable def body : List Core.Stmt := [
@@ -17769,15 +17694,15 @@ noncomputable def body : List Core.Stmt := [
   .atom (.const (.n 14) (word 0 0 0)),
   .ret [.n 14]]
 
-end core120
+end core117
 
 /-- `plus_one_run__L4`. -/
-noncomputable def core120 : Core.Fn where
+noncomputable def core117 : Core.Fn where
   name := "plus_one_run__L4"
   params := [.n 0, .n 1]
-  body := core120.body
+  body := core117.body
 
-namespace core121
+namespace core118
 
 /-- `plus_one_run__L5`: the body. -/
 noncomputable def body : List Core.Stmt := [
@@ -17804,15 +17729,15 @@ noncomputable def body : List Core.Stmt := [
   .atom (.const (.n 17) (word 0 0 0)),
   .ret [.n 17]]
 
-end core121
+end core118
 
 /-- `plus_one_run__L5`. -/
-noncomputable def core121 : Core.Fn where
+noncomputable def core118 : Core.Fn where
   name := "plus_one_run__L5"
   params := [.n 0, .n 1]
-  body := core121.body
+  body := core118.body
 
-namespace core122
+namespace core119
 
 /-- `plus_one_run__L6`: the body. -/
 noncomputable def body : List Core.Stmt := [
@@ -17843,15 +17768,15 @@ noncomputable def body : List Core.Stmt := [
   .atom (.const (.n 20) (word 0 0 0)),
   .ret [.n 20]]
 
-end core122
+end core119
 
 /-- `plus_one_run__L6`. -/
-noncomputable def core122 : Core.Fn where
+noncomputable def core119 : Core.Fn where
   name := "plus_one_run__L6"
   params := [.n 0, .n 1]
-  body := core122.body
+  body := core119.body
 
-namespace core123
+namespace core120
 
 /-- `plus_one_run__L7`: the body. -/
 noncomputable def body : List Core.Stmt := [
@@ -17886,15 +17811,15 @@ noncomputable def body : List Core.Stmt := [
   .atom (.const (.n 23) (word 0 0 0)),
   .ret [.n 23]]
 
-end core123
+end core120
 
 /-- `plus_one_run__L7`. -/
-noncomputable def core123 : Core.Fn where
+noncomputable def core120 : Core.Fn where
   name := "plus_one_run__L7"
   params := [.n 0, .n 1]
-  body := core123.body
+  body := core120.body
 
-namespace core124
+namespace core121
 
 /-- `plus_one_run__L8`: the body. -/
 noncomputable def body : List Core.Stmt := (
@@ -17934,15 +17859,15 @@ noncomputable def body : List Core.Stmt := (
   .ret [.n 26] ::
   [])
 
-end core124
+end core121
 
 /-- `plus_one_run__L8`. -/
-noncomputable def core124 : Core.Fn where
+noncomputable def core121 : Core.Fn where
   name := "plus_one_run__L8"
   params := [.n 0, .n 1]
-  body := core124.body
+  body := core121.body
 
-namespace core125
+namespace core122
 
 /-- `plus_one_run__L9`: the body. -/
 noncomputable def body : List Core.Stmt := (
@@ -17986,15 +17911,15 @@ noncomputable def body : List Core.Stmt := (
   .ret [.n 29] ::
   [])
 
-end core125
+end core122
 
 /-- `plus_one_run__L9`. -/
-noncomputable def core125 : Core.Fn where
+noncomputable def core122 : Core.Fn where
   name := "plus_one_run__L9"
   params := [.n 0, .n 1]
-  body := core125.body
+  body := core122.body
 
-namespace core126
+namespace core123
 
 /-- `plus_one_run__L10`: the body. -/
 noncomputable def body : List Core.Stmt := (
@@ -18042,15 +17967,15 @@ noncomputable def body : List Core.Stmt := (
   .ret [.n 32] ::
   [])
 
-end core126
+end core123
 
 /-- `plus_one_run__L10`. -/
-noncomputable def core126 : Core.Fn where
+noncomputable def core123 : Core.Fn where
   name := "plus_one_run__L10"
   params := [.n 0, .n 1]
-  body := core126.body
+  body := core123.body
 
-namespace core127
+namespace core124
 
 /-- `plus_one_run__L11`: the body. -/
 noncomputable def body : List Core.Stmt := (
@@ -18102,15 +18027,15 @@ noncomputable def body : List Core.Stmt := (
   .ret [.n 35] ::
   [])
 
-end core127
+end core124
 
 /-- `plus_one_run__L11`. -/
-noncomputable def core127 : Core.Fn where
+noncomputable def core124 : Core.Fn where
   name := "plus_one_run__L11"
   params := [.n 0, .n 1]
-  body := core127.body
+  body := core124.body
 
-namespace core128
+namespace core125
 
 /-- `plus_one_run__L12`: the body. -/
 noncomputable def body : List Core.Stmt := (
@@ -18166,15 +18091,15 @@ noncomputable def body : List Core.Stmt := (
   .ret [.n 38] ::
   [])
 
-end core128
+end core125
 
 /-- `plus_one_run__L12`. -/
-noncomputable def core128 : Core.Fn where
+noncomputable def core125 : Core.Fn where
   name := "plus_one_run__L12"
   params := [.n 0, .n 1]
-  body := core128.body
+  body := core125.body
 
-namespace core129
+namespace core126
 
 /-- `plus_one_run__L13`: the body. -/
 noncomputable def body : List Core.Stmt := (
@@ -18234,15 +18159,15 @@ noncomputable def body : List Core.Stmt := (
   .ret [.n 41] ::
   [])
 
-end core129
+end core126
 
 /-- `plus_one_run__L13`. -/
-noncomputable def core129 : Core.Fn where
+noncomputable def core126 : Core.Fn where
   name := "plus_one_run__L13"
   params := [.n 0, .n 1]
-  body := core129.body
+  body := core126.body
 
-namespace core130
+namespace core127
 
 /-- `plus_one_run__L14`: the body. -/
 noncomputable def body : List Core.Stmt := (
@@ -18306,15 +18231,15 @@ noncomputable def body : List Core.Stmt := (
   .ret [.n 44] ::
   [])
 
-end core130
+end core127
 
 /-- `plus_one_run__L14`. -/
-noncomputable def core130 : Core.Fn where
+noncomputable def core127 : Core.Fn where
   name := "plus_one_run__L14"
   params := [.n 0, .n 1]
-  body := core130.body
+  body := core127.body
 
-namespace core131
+namespace core128
 
 /-- `plus_one_run__L15`: the body. -/
 noncomputable def body : List Core.Stmt := (
@@ -18382,15 +18307,15 @@ noncomputable def body : List Core.Stmt := (
   .ret [.n 47] ::
   [])
 
-end core131
+end core128
 
 /-- `plus_one_run__L15`. -/
-noncomputable def core131 : Core.Fn where
+noncomputable def core128 : Core.Fn where
   name := "plus_one_run__L15"
   params := [.n 0, .n 1]
-  body := core131.body
+  body := core128.body
 
-namespace core132
+namespace core129
 
 /-- `plus_one_run__L16`: the body. -/
 noncomputable def body : List Core.Stmt := (
@@ -18462,15 +18387,15 @@ noncomputable def body : List Core.Stmt := (
   .ret [.n 50] ::
   [])
 
-end core132
+end core129
 
 /-- `plus_one_run__L16`. -/
-noncomputable def core132 : Core.Fn where
+noncomputable def core129 : Core.Fn where
   name := "plus_one_run__L16"
   params := [.n 0, .n 1]
-  body := core132.body
+  body := core129.body
 
-namespace core133
+namespace core130
 
 /-- `plus_one_run__L17`: the body. -/
 noncomputable def body : List Core.Stmt := (
@@ -18546,15 +18471,15 @@ noncomputable def body : List Core.Stmt := (
   .ret [.n 53] ::
   [])
 
-end core133
+end core130
 
 /-- `plus_one_run__L17`. -/
-noncomputable def core133 : Core.Fn where
+noncomputable def core130 : Core.Fn where
   name := "plus_one_run__L17"
   params := [.n 0, .n 1]
-  body := core133.body
+  body := core130.body
 
-namespace core134
+namespace core131
 
 /-- `plus_one_run__L18`: the body. -/
 noncomputable def body : List Core.Stmt := (
@@ -18634,15 +18559,15 @@ noncomputable def body : List Core.Stmt := (
   .ret [.n 56] ::
   [])
 
-end core134
+end core131
 
 /-- `plus_one_run__L18`. -/
-noncomputable def core134 : Core.Fn where
+noncomputable def core131 : Core.Fn where
   name := "plus_one_run__L18"
   params := [.n 0, .n 1]
-  body := core134.body
+  body := core131.body
 
-namespace core135
+namespace core132
 
 /-- `plus_one_run__L19`: the body. -/
 noncomputable def body : List Core.Stmt := (
@@ -18726,15 +18651,15 @@ noncomputable def body : List Core.Stmt := (
   .ret [.n 59] ::
   [])
 
-end core135
+end core132
 
 /-- `plus_one_run__L19`. -/
-noncomputable def core135 : Core.Fn where
+noncomputable def core132 : Core.Fn where
   name := "plus_one_run__L19"
   params := [.n 0, .n 1]
-  body := core135.body
+  body := core132.body
 
-namespace core136
+namespace core133
 
 /-- `plus_one_run__L20`: the body. -/
 noncomputable def body : List Core.Stmt := (
@@ -18822,15 +18747,15 @@ noncomputable def body : List Core.Stmt := (
   .ret [.n 62] ::
   [])
 
-end core136
+end core133
 
 /-- `plus_one_run__L20`. -/
-noncomputable def core136 : Core.Fn where
+noncomputable def core133 : Core.Fn where
   name := "plus_one_run__L20"
   params := [.n 0, .n 1]
-  body := core136.body
+  body := core133.body
 
-namespace core137
+namespace core134
 
 /-- `plus_one_run__L21`: the body. -/
 noncomputable def body : List Core.Stmt := (
@@ -18922,15 +18847,15 @@ noncomputable def body : List Core.Stmt := (
   .ret [.n 65] ::
   [])
 
-end core137
+end core134
 
 /-- `plus_one_run__L21`. -/
-noncomputable def core137 : Core.Fn where
+noncomputable def core134 : Core.Fn where
   name := "plus_one_run__L21"
   params := [.n 0, .n 1]
-  body := core137.body
+  body := core134.body
 
-namespace core138
+namespace core135
 
 /-- `plus_one_run__L22`: the body. -/
 noncomputable def body : List Core.Stmt := (
@@ -19026,15 +18951,15 @@ noncomputable def body : List Core.Stmt := (
   .ret [.n 68] ::
   [])
 
-end core138
+end core135
 
 /-- `plus_one_run__L22`. -/
-noncomputable def core138 : Core.Fn where
+noncomputable def core135 : Core.Fn where
   name := "plus_one_run__L22"
   params := [.n 0, .n 1]
-  body := core138.body
+  body := core135.body
 
-namespace core139
+namespace core136
 
 /-- `plus_one_run__L23`: the body. -/
 noncomputable def body : List Core.Stmt := (
@@ -19134,15 +19059,15 @@ noncomputable def body : List Core.Stmt := (
   .ret [.n 71] ::
   [])
 
-end core139
+end core136
 
 /-- `plus_one_run__L23`. -/
-noncomputable def core139 : Core.Fn where
+noncomputable def core136 : Core.Fn where
   name := "plus_one_run__L23"
   params := [.n 0, .n 1]
-  body := core139.body
+  body := core136.body
 
-namespace core140
+namespace core137
 
 /-- `plus_one_run__L24`: the body. -/
 noncomputable def body : List Core.Stmt := (
@@ -19246,15 +19171,15 @@ noncomputable def body : List Core.Stmt := (
   .ret [.n 74] ::
   [])
 
-end core140
+end core137
 
 /-- `plus_one_run__L24`. -/
-noncomputable def core140 : Core.Fn where
+noncomputable def core137 : Core.Fn where
   name := "plus_one_run__L24"
   params := [.n 0, .n 1]
-  body := core140.body
+  body := core137.body
 
-namespace core141
+namespace core138
 
 /-- `plus_one_run__L25`: the body. -/
 noncomputable def body : List Core.Stmt := (
@@ -19362,15 +19287,15 @@ noncomputable def body : List Core.Stmt := (
   .ret [.n 77] ::
   [])
 
-end core141
+end core138
 
 /-- `plus_one_run__L25`. -/
-noncomputable def core141 : Core.Fn where
+noncomputable def core138 : Core.Fn where
   name := "plus_one_run__L25"
   params := [.n 0, .n 1]
-  body := core141.body
+  body := core138.body
 
-namespace core142
+namespace core139
 
 /-- `plus_one_run__L26`: the body. -/
 noncomputable def body : List Core.Stmt := (
@@ -19482,15 +19407,15 @@ noncomputable def body : List Core.Stmt := (
   .ret [.n 80] ::
   [])
 
-end core142
+end core139
 
 /-- `plus_one_run__L26`. -/
-noncomputable def core142 : Core.Fn where
+noncomputable def core139 : Core.Fn where
   name := "plus_one_run__L26"
   params := [.n 0, .n 1]
-  body := core142.body
+  body := core139.body
 
-namespace core143
+namespace core140
 
 /-- `plus_one_run__L27`: the body. -/
 noncomputable def body : List Core.Stmt := (
@@ -19606,15 +19531,15 @@ noncomputable def body : List Core.Stmt := (
   .ret [.n 83] ::
   [])
 
-end core143
+end core140
 
 /-- `plus_one_run__L27`. -/
-noncomputable def core143 : Core.Fn where
+noncomputable def core140 : Core.Fn where
   name := "plus_one_run__L27"
   params := [.n 0, .n 1]
-  body := core143.body
+  body := core140.body
 
-namespace core144
+namespace core141
 
 /-- `plus_one_run__L28`: the body. -/
 noncomputable def body : List Core.Stmt := (
@@ -19734,15 +19659,15 @@ noncomputable def body : List Core.Stmt := (
   .ret [.n 86] ::
   [])
 
-end core144
+end core141
 
 /-- `plus_one_run__L28`. -/
-noncomputable def core144 : Core.Fn where
+noncomputable def core141 : Core.Fn where
   name := "plus_one_run__L28"
   params := [.n 0, .n 1]
-  body := core144.body
+  body := core141.body
 
-namespace core145
+namespace core142
 
 /-- `plus_one_run__L29`: the body. -/
 noncomputable def body : List Core.Stmt := (
@@ -19866,15 +19791,15 @@ noncomputable def body : List Core.Stmt := (
   .ret [.n 89] ::
   [])
 
-end core145
+end core142
 
 /-- `plus_one_run__L29`. -/
-noncomputable def core145 : Core.Fn where
+noncomputable def core142 : Core.Fn where
   name := "plus_one_run__L29"
   params := [.n 0, .n 1]
-  body := core145.body
+  body := core142.body
 
-namespace core146
+namespace core143
 
 /-- `plus_one_run__L30`: the body. -/
 noncomputable def body : List Core.Stmt := (
@@ -20002,15 +19927,15 @@ noncomputable def body : List Core.Stmt := (
   .ret [.n 92] ::
   [])
 
-end core146
+end core143
 
 /-- `plus_one_run__L30`. -/
-noncomputable def core146 : Core.Fn where
+noncomputable def core143 : Core.Fn where
   name := "plus_one_run__L30"
   params := [.n 0, .n 1]
-  body := core146.body
+  body := core143.body
 
-namespace core147
+namespace core144
 
 /-- `plus_one_run__L31`: the body. -/
 noncomputable def body : List Core.Stmt := (
@@ -20142,15 +20067,15 @@ noncomputable def body : List Core.Stmt := (
   .ret [.n 95] ::
   [])
 
-end core147
+end core144
 
 /-- `plus_one_run__L31`. -/
-noncomputable def core147 : Core.Fn where
+noncomputable def core144 : Core.Fn where
   name := "plus_one_run__L31"
   params := [.n 0, .n 1]
-  body := core147.body
+  body := core144.body
 
-namespace core148
+namespace core145
 
 /-- `plus_one_run__L32`: the body. -/
 noncomputable def body : List Core.Stmt := (
@@ -20286,15 +20211,15 @@ noncomputable def body : List Core.Stmt := (
   .ret [.n 98] ::
   [])
 
-end core148
+end core145
 
 /-- `plus_one_run__L32`. -/
-noncomputable def core148 : Core.Fn where
+noncomputable def core145 : Core.Fn where
   name := "plus_one_run__L32"
   params := [.n 0, .n 1]
-  body := core148.body
+  body := core145.body
 
-namespace core149
+namespace core146
 
 /-- `plus_one_run__L33`: the body. -/
 noncomputable def body : List Core.Stmt := (
@@ -20434,15 +20359,15 @@ noncomputable def body : List Core.Stmt := (
   .ret [.n 101] ::
   [])
 
-end core149
+end core146
 
 /-- `plus_one_run__L33`. -/
-noncomputable def core149 : Core.Fn where
+noncomputable def core146 : Core.Fn where
   name := "plus_one_run__L33"
   params := [.n 0, .n 1]
-  body := core149.body
+  body := core146.body
 
-namespace core150
+namespace core147
 
 /-- `block_selector__L0`: the body. -/
 noncomputable def body : List Core.Stmt := [
@@ -20450,15 +20375,15 @@ noncomputable def body : List Core.Stmt := [
   .atom (.const (.n 4) (word 1 0 0)),
   .ret [.n 3, .n 4]]
 
-end core150
+end core147
 
 /-- `block_selector__L0`. -/
-noncomputable def core150 : Core.Fn where
+noncomputable def core147 : Core.Fn where
   name := "block_selector__L0"
   params := [.n 0, .n 1, .n 2]
-  body := core150.body
+  body := core147.body
 
-namespace core151
+namespace core148
 
 /-- `block_selector__L1`: the body. -/
 noncomputable def body : List Core.Stmt := [
@@ -20475,15 +20400,15 @@ noncomputable def body : List Core.Stmt := [
   .atom (.copy (.n 12) (.n 10)),
   .ret [.n 11, .n 12]]
 
-end core151
+end core148
 
 /-- `block_selector__L1`. -/
-noncomputable def core151 : Core.Fn where
+noncomputable def core148 : Core.Fn where
   name := "block_selector__L1"
   params := [.n 0, .n 1, .n 2]
-  body := core151.body
+  body := core148.body
 
-namespace core152
+namespace core149
 
 /-- `block_selector__L2`: the body. -/
 noncomputable def body : List Core.Stmt := [
@@ -20511,15 +20436,15 @@ noncomputable def body : List Core.Stmt := [
   .atom (.copy (.n 22) (.n 20)),
   .ret [.n 21, .n 22]]
 
-end core152
+end core149
 
 /-- `block_selector__L2`. -/
-noncomputable def core152 : Core.Fn where
+noncomputable def core149 : Core.Fn where
   name := "block_selector__L2"
   params := [.n 0, .n 1, .n 2]
-  body := core152.body
+  body := core149.body
 
-namespace core153
+namespace core150
 
 /-- `block_selector__L3`: the body. -/
 noncomputable def body : List Core.Stmt := (
@@ -20559,15 +20484,15 @@ noncomputable def body : List Core.Stmt := (
   .ret [.n 31, .n 32] ::
   [])
 
-end core153
+end core150
 
 /-- `block_selector__L3`. -/
-noncomputable def core153 : Core.Fn where
+noncomputable def core150 : Core.Fn where
   name := "block_selector__L3"
   params := [.n 0, .n 1, .n 2]
-  body := core153.body
+  body := core150.body
 
-namespace core154
+namespace core151
 
 /-- `block_selector__L4`: the body. -/
 noncomputable def body : List Core.Stmt := (
@@ -20618,15 +20543,15 @@ noncomputable def body : List Core.Stmt := (
   .ret [.n 41, .n 42] ::
   [])
 
-end core154
+end core151
 
 /-- `block_selector__L4`. -/
-noncomputable def core154 : Core.Fn where
+noncomputable def core151 : Core.Fn where
   name := "block_selector__L4"
   params := [.n 0, .n 1, .n 2]
-  body := core154.body
+  body := core151.body
 
-namespace core155
+namespace core152
 
 /-- `block_selector__L5`: the body. -/
 noncomputable def body : List Core.Stmt := (
@@ -20688,15 +20613,15 @@ noncomputable def body : List Core.Stmt := (
   .ret [.n 51, .n 52] ::
   [])
 
-end core155
+end core152
 
 /-- `block_selector__L5`. -/
-noncomputable def core155 : Core.Fn where
+noncomputable def core152 : Core.Fn where
   name := "block_selector__L5"
   params := [.n 0, .n 1, .n 2]
-  body := core155.body
+  body := core152.body
 
-namespace core156
+namespace core153
 
 /-- `block_selector__L6`: the body. -/
 noncomputable def body : List Core.Stmt := (
@@ -20769,15 +20694,15 @@ noncomputable def body : List Core.Stmt := (
   .ret [.n 61, .n 62] ::
   [])
 
-end core156
+end core153
 
 /-- `block_selector__L6`. -/
-noncomputable def core156 : Core.Fn where
+noncomputable def core153 : Core.Fn where
   name := "block_selector__L6"
   params := [.n 0, .n 1, .n 2]
-  body := core156.body
+  body := core153.body
 
-namespace core157
+namespace core154
 
 /-- `block_selector__L7`: the body. -/
 noncomputable def body : List Core.Stmt := (
@@ -20861,15 +20786,15 @@ noncomputable def body : List Core.Stmt := (
   .ret [.n 71, .n 72] ::
   [])
 
-end core157
+end core154
 
 /-- `block_selector__L7`. -/
-noncomputable def core157 : Core.Fn where
+noncomputable def core154 : Core.Fn where
   name := "block_selector__L7"
   params := [.n 0, .n 1, .n 2]
-  body := core157.body
+  body := core154.body
 
-namespace core158
+namespace core155
 
 /-- `block_selector__L8`: the body. -/
 noncomputable def body : List Core.Stmt := (
@@ -20964,15 +20889,15 @@ noncomputable def body : List Core.Stmt := (
   .ret [.n 81, .n 82] ::
   [])
 
-end core158
+end core155
 
 /-- `block_selector__L8`. -/
-noncomputable def core158 : Core.Fn where
+noncomputable def core155 : Core.Fn where
   name := "block_selector__L8"
   params := [.n 0, .n 1, .n 2]
-  body := core158.body
+  body := core155.body
 
-namespace core159
+namespace core156
 
 /-- `block_selector__L9`: the body. -/
 noncomputable def body : List Core.Stmt := (
@@ -21078,15 +21003,15 @@ noncomputable def body : List Core.Stmt := (
   .ret [.n 91, .n 92] ::
   [])
 
-end core159
+end core156
 
 /-- `block_selector__L9`. -/
-noncomputable def core159 : Core.Fn where
+noncomputable def core156 : Core.Fn where
   name := "block_selector__L9"
   params := [.n 0, .n 1, .n 2]
-  body := core159.body
+  body := core156.body
 
-namespace core160
+namespace core157
 
 /-- `block_selector__L10`: the body. -/
 noncomputable def body : List Core.Stmt := (
@@ -21203,15 +21128,15 @@ noncomputable def body : List Core.Stmt := (
   .ret [.n 101, .n 102] ::
   [])
 
-end core160
+end core157
 
 /-- `block_selector__L10`. -/
-noncomputable def core160 : Core.Fn where
+noncomputable def core157 : Core.Fn where
   name := "block_selector__L10"
   params := [.n 0, .n 1, .n 2]
-  body := core160.body
+  body := core157.body
 
-namespace core161
+namespace core158
 
 /-- `block_selector__L11`: the body. -/
 noncomputable def body : List Core.Stmt := (
@@ -21339,15 +21264,15 @@ noncomputable def body : List Core.Stmt := (
   .ret [.n 111, .n 112] ::
   [])
 
-end core161
+end core158
 
 /-- `block_selector__L11`. -/
-noncomputable def core161 : Core.Fn where
+noncomputable def core158 : Core.Fn where
   name := "block_selector__L11"
   params := [.n 0, .n 1, .n 2]
-  body := core161.body
+  body := core158.body
 
-namespace core162
+namespace core159
 
 /-- `block_selector__L12`: the body. -/
 noncomputable def body : List Core.Stmt := (
@@ -21486,15 +21411,15 @@ noncomputable def body : List Core.Stmt := (
   .ret [.n 121, .n 122] ::
   [])
 
-end core162
+end core159
 
 /-- `block_selector__L12`. -/
-noncomputable def core162 : Core.Fn where
+noncomputable def core159 : Core.Fn where
   name := "block_selector__L12"
   params := [.n 0, .n 1, .n 2]
-  body := core162.body
+  body := core159.body
 
-namespace core163
+namespace core160
 
 /-- `block_selector__L13`: the body. -/
 noncomputable def body : List Core.Stmt := (
@@ -21644,15 +21569,15 @@ noncomputable def body : List Core.Stmt := (
   .ret [.n 131, .n 132] ::
   [])
 
-end core163
+end core160
 
 /-- `block_selector__L13`. -/
-noncomputable def core163 : Core.Fn where
+noncomputable def core160 : Core.Fn where
   name := "block_selector__L13"
   params := [.n 0, .n 1, .n 2]
-  body := core163.body
+  body := core160.body
 
-namespace core164
+namespace core161
 
 /-- `block_selector__L14`: the body. -/
 noncomputable def body : List Core.Stmt := (
@@ -21813,15 +21738,15 @@ noncomputable def body : List Core.Stmt := (
   .ret [.n 141, .n 142] ::
   [])
 
-end core164
+end core161
 
 /-- `block_selector__L14`. -/
-noncomputable def core164 : Core.Fn where
+noncomputable def core161 : Core.Fn where
   name := "block_selector__L14"
   params := [.n 0, .n 1, .n 2]
-  body := core164.body
+  body := core161.body
 
-namespace core165
+namespace core162
 
 /-- `block_selector__L15`: the body. -/
 noncomputable def body : List Core.Stmt := (
@@ -21993,15 +21918,15 @@ noncomputable def body : List Core.Stmt := (
   .ret [.n 151, .n 152] ::
   [])
 
-end core165
+end core162
 
 /-- `block_selector__L15`. -/
-noncomputable def core165 : Core.Fn where
+noncomputable def core162 : Core.Fn where
   name := "block_selector__L15"
   params := [.n 0, .n 1, .n 2]
-  body := core165.body
+  body := core162.body
 
-namespace core166
+namespace core163
 
 /-- `block_selector__L16`: the body. -/
 noncomputable def body : List Core.Stmt := (
@@ -22184,15 +22109,15 @@ noncomputable def body : List Core.Stmt := (
   .ret [.n 161, .n 162] ::
   [])
 
-end core166
+end core163
 
 /-- `block_selector__L16`. -/
-noncomputable def core166 : Core.Fn where
+noncomputable def core163 : Core.Fn where
   name := "block_selector__L16"
   params := [.n 0, .n 1, .n 2]
-  body := core166.body
+  body := core163.body
 
-namespace core167
+namespace core164
 
 /-- `block_selector__L17`: the body. -/
 noncomputable def body : List Core.Stmt := (
@@ -22386,15 +22311,15 @@ noncomputable def body : List Core.Stmt := (
   .ret [.n 171, .n 172] ::
   [])
 
-end core167
+end core164
 
 /-- `block_selector__L17`. -/
-noncomputable def core167 : Core.Fn where
+noncomputable def core164 : Core.Fn where
   name := "block_selector__L17"
   params := [.n 0, .n 1, .n 2]
-  body := core167.body
+  body := core164.body
 
-namespace core168
+namespace core165
 
 /-- `block_selector__L18`: the body. -/
 noncomputable def body : List Core.Stmt := (
@@ -22599,15 +22524,15 @@ noncomputable def body : List Core.Stmt := (
   .ret [.n 181, .n 182] ::
   [])
 
-end core168
+end core165
 
 /-- `block_selector__L18`. -/
-noncomputable def core168 : Core.Fn where
+noncomputable def core165 : Core.Fn where
   name := "block_selector__L18"
   params := [.n 0, .n 1, .n 2]
-  body := core168.body
+  body := core165.body
 
-namespace core169
+namespace core166
 
 /-- `block_selector__L19`: the body. -/
 noncomputable def body : List Core.Stmt := (
@@ -22823,15 +22748,15 @@ noncomputable def body : List Core.Stmt := (
   .ret [.n 191, .n 192] ::
   [])
 
-end core169
+end core166
 
 /-- `block_selector__L19`. -/
-noncomputable def core169 : Core.Fn where
+noncomputable def core166 : Core.Fn where
   name := "block_selector__L19"
   params := [.n 0, .n 1, .n 2]
-  body := core169.body
+  body := core166.body
 
-namespace core170
+namespace core167
 
 /-- `block_selector__L20`: the body. -/
 noncomputable def body : List Core.Stmt := (
@@ -23058,15 +22983,15 @@ noncomputable def body : List Core.Stmt := (
   .ret [.n 201, .n 202] ::
   [])
 
-end core170
+end core167
 
 /-- `block_selector__L20`. -/
-noncomputable def core170 : Core.Fn where
+noncomputable def core167 : Core.Fn where
   name := "block_selector__L20"
   params := [.n 0, .n 1, .n 2]
-  body := core170.body
+  body := core167.body
 
-namespace core171
+namespace core168
 
 /-- `block_selector__L21`: the body. -/
 noncomputable def body : List Core.Stmt := (
@@ -23304,15 +23229,15 @@ noncomputable def body : List Core.Stmt := (
   .ret [.n 211, .n 212] ::
   [])
 
-end core171
+end core168
 
 /-- `block_selector__L21`. -/
-noncomputable def core171 : Core.Fn where
+noncomputable def core168 : Core.Fn where
   name := "block_selector__L21"
   params := [.n 0, .n 1, .n 2]
-  body := core171.body
+  body := core168.body
 
-namespace core172
+namespace core169
 
 /-- `block_selector__L22`: the body. -/
 noncomputable def body : List Core.Stmt := (
@@ -23561,15 +23486,15 @@ noncomputable def body : List Core.Stmt := (
   .ret [.n 221, .n 222] ::
   [])
 
-end core172
+end core169
 
 /-- `block_selector__L22`. -/
-noncomputable def core172 : Core.Fn where
+noncomputable def core169 : Core.Fn where
   name := "block_selector__L22"
   params := [.n 0, .n 1, .n 2]
-  body := core172.body
+  body := core169.body
 
-namespace core173
+namespace core170
 
 /-- `block_selector__L23`: the body. -/
 noncomputable def body : List Core.Stmt := (
@@ -23829,15 +23754,15 @@ noncomputable def body : List Core.Stmt := (
   .ret [.n 231, .n 232] ::
   [])
 
-end core173
+end core170
 
 /-- `block_selector__L23`. -/
-noncomputable def core173 : Core.Fn where
+noncomputable def core170 : Core.Fn where
   name := "block_selector__L23"
   params := [.n 0, .n 1, .n 2]
-  body := core173.body
+  body := core170.body
 
-namespace core174
+namespace core171
 
 /-- `block_selector__L24`: the body. -/
 noncomputable def body : List Core.Stmt := (
@@ -24108,15 +24033,15 @@ noncomputable def body : List Core.Stmt := (
   .ret [.n 241, .n 242] ::
   [])
 
-end core174
+end core171
 
 /-- `block_selector__L24`. -/
-noncomputable def core174 : Core.Fn where
+noncomputable def core171 : Core.Fn where
   name := "block_selector__L24"
   params := [.n 0, .n 1, .n 2]
-  body := core174.body
+  body := core171.body
 
-namespace core175
+namespace core172
 
 /-- `block_selector__L25`: the body. -/
 noncomputable def body : List Core.Stmt := (
@@ -24398,15 +24323,15 @@ noncomputable def body : List Core.Stmt := (
   .ret [.n 251, .n 252] ::
   [])
 
-end core175
+end core172
 
 /-- `block_selector__L25`. -/
-noncomputable def core175 : Core.Fn where
+noncomputable def core172 : Core.Fn where
   name := "block_selector__L25"
   params := [.n 0, .n 1, .n 2]
-  body := core175.body
+  body := core172.body
 
-namespace core176
+namespace core173
 
 /-- `block_selector__L26`: the body. -/
 noncomputable def body : List Core.Stmt := (
@@ -24699,15 +24624,15 @@ noncomputable def body : List Core.Stmt := (
   .ret [.n 261, .n 262] ::
   [])
 
-end core176
+end core173
 
 /-- `block_selector__L26`. -/
-noncomputable def core176 : Core.Fn where
+noncomputable def core173 : Core.Fn where
   name := "block_selector__L26"
   params := [.n 0, .n 1, .n 2]
-  body := core176.body
+  body := core173.body
 
-namespace core177
+namespace core174
 
 /-- `block_selector__L27`: the body. -/
 noncomputable def body : List Core.Stmt := (
@@ -25011,15 +24936,15 @@ noncomputable def body : List Core.Stmt := (
   .ret [.n 271, .n 272] ::
   [])
 
-end core177
+end core174
 
 /-- `block_selector__L27`. -/
-noncomputable def core177 : Core.Fn where
+noncomputable def core174 : Core.Fn where
   name := "block_selector__L27"
   params := [.n 0, .n 1, .n 2]
-  body := core177.body
+  body := core174.body
 
-namespace core178
+namespace core175
 
 /-- `block_selector__L28`: the body. -/
 noncomputable def body : List Core.Stmt := (
@@ -25334,15 +25259,15 @@ noncomputable def body : List Core.Stmt := (
   .ret [.n 281, .n 282] ::
   [])
 
-end core178
+end core175
 
 /-- `block_selector__L28`. -/
-noncomputable def core178 : Core.Fn where
+noncomputable def core175 : Core.Fn where
   name := "block_selector__L28"
   params := [.n 0, .n 1, .n 2]
-  body := core178.body
+  body := core175.body
 
-namespace core179
+namespace core176
 
 /-- `block_selector__L29`: the body. -/
 noncomputable def body : List Core.Stmt := (
@@ -25668,15 +25593,15 @@ noncomputable def body : List Core.Stmt := (
   .ret [.n 291, .n 292] ::
   [])
 
-end core179
+end core176
 
 /-- `block_selector__L29`. -/
-noncomputable def core179 : Core.Fn where
+noncomputable def core176 : Core.Fn where
   name := "block_selector__L29"
   params := [.n 0, .n 1, .n 2]
-  body := core179.body
+  body := core176.body
 
-namespace core180
+namespace core177
 
 /-- `block_selector__L30`: the body. -/
 noncomputable def body : List Core.Stmt := (
@@ -26013,15 +25938,15 @@ noncomputable def body : List Core.Stmt := (
   .ret [.n 301, .n 302] ::
   [])
 
-end core180
+end core177
 
 /-- `block_selector__L30`. -/
-noncomputable def core180 : Core.Fn where
+noncomputable def core177 : Core.Fn where
   name := "block_selector__L30"
   params := [.n 0, .n 1, .n 2]
-  body := core180.body
+  body := core177.body
 
-namespace core181
+namespace core178
 
 /-- `block_selector__L31`: the body. -/
 noncomputable def body : List Core.Stmt := (
@@ -26369,15 +26294,15 @@ noncomputable def body : List Core.Stmt := (
   .ret [.n 311, .n 312] ::
   [])
 
-end core181
+end core178
 
 /-- `block_selector__L31`. -/
-noncomputable def core181 : Core.Fn where
+noncomputable def core178 : Core.Fn where
   name := "block_selector__L31"
   params := [.n 0, .n 1, .n 2]
-  body := core181.body
+  body := core178.body
 
-namespace core182
+namespace core179
 
 /-- `block_selector__L32`: the body. -/
 noncomputable def body : List Core.Stmt := (
@@ -26736,15 +26661,15 @@ noncomputable def body : List Core.Stmt := (
   .ret [.n 321, .n 322] ::
   [])
 
-end core182
+end core179
 
 /-- `block_selector__L32`. -/
-noncomputable def core182 : Core.Fn where
+noncomputable def core179 : Core.Fn where
   name := "block_selector__L32"
   params := [.n 0, .n 1, .n 2]
-  body := core182.body
+  body := core179.body
 
-namespace core183
+namespace core180
 
 /-- `block_selector__L33`: the body. -/
 noncomputable def body : List Core.Stmt := (
@@ -27114,30 +27039,30 @@ noncomputable def body : List Core.Stmt := (
   .ret [.n 331, .n 332] ::
   [])
 
-end core183
+end core180
 
 /-- `block_selector__L33`. -/
-noncomputable def core183 : Core.Fn where
+noncomputable def core180 : Core.Fn where
   name := "block_selector__L33"
   params := [.n 0, .n 1, .n 2]
-  body := core183.body
+  body := core180.body
 
-namespace core184
+namespace core181
 
 /-- `index_mle__L0`: the body. -/
 noncomputable def body : List Core.Stmt := [
   .atom (.const (.n 1) (word 1 0 0)),
   .ret [.n 1]]
 
-end core184
+end core181
 
 /-- `index_mle__L0`. -/
-noncomputable def core184 : Core.Fn where
+noncomputable def core181 : Core.Fn where
   name := "index_mle__L0"
   params := [.n 0]
-  body := core184.body
+  body := core181.body
 
-namespace core185
+namespace core182
 
 /-- `index_mle__L1`: the body. -/
 noncomputable def body : List Core.Stmt := [
@@ -27149,15 +27074,15 @@ noncomputable def body : List Core.Stmt := [
   .atom (.copy (.n 6) (.n 5)),
   .ret [.n 6]]
 
-end core185
+end core182
 
 /-- `index_mle__L1`. -/
-noncomputable def core185 : Core.Fn where
+noncomputable def core182 : Core.Fn where
   name := "index_mle__L1"
   params := [.n 0]
-  body := core185.body
+  body := core182.body
 
-namespace core186
+namespace core183
 
 /-- `index_mle__L2`: the body. -/
 noncomputable def body : List Core.Stmt := [
@@ -27175,15 +27100,15 @@ noncomputable def body : List Core.Stmt := [
   .atom (.copy (.n 12) (.n 11)),
   .ret [.n 12]]
 
-end core186
+end core183
 
 /-- `index_mle__L2`. -/
-noncomputable def core186 : Core.Fn where
+noncomputable def core183 : Core.Fn where
   name := "index_mle__L2"
   params := [.n 0]
-  body := core186.body
+  body := core183.body
 
-namespace core187
+namespace core184
 
 /-- `index_mle__L3`: the body. -/
 noncomputable def body : List Core.Stmt := [
@@ -27207,15 +27132,15 @@ noncomputable def body : List Core.Stmt := [
   .atom (.copy (.n 18) (.n 17)),
   .ret [.n 18]]
 
-end core187
+end core184
 
 /-- `index_mle__L3`. -/
-noncomputable def core187 : Core.Fn where
+noncomputable def core184 : Core.Fn where
   name := "index_mle__L3"
   params := [.n 0]
-  body := core187.body
+  body := core184.body
 
-namespace core188
+namespace core185
 
 /-- `index_mle__L4`: the body. -/
 noncomputable def body : List Core.Stmt := [
@@ -27245,15 +27170,15 @@ noncomputable def body : List Core.Stmt := [
   .atom (.copy (.n 24) (.n 23)),
   .ret [.n 24]]
 
-end core188
+end core185
 
 /-- `index_mle__L4`. -/
-noncomputable def core188 : Core.Fn where
+noncomputable def core185 : Core.Fn where
   name := "index_mle__L4"
   params := [.n 0]
-  body := core188.body
+  body := core185.body
 
-namespace core189
+namespace core186
 
 /-- `index_mle__L5`: the body. -/
 noncomputable def body : List Core.Stmt := [
@@ -27289,15 +27214,15 @@ noncomputable def body : List Core.Stmt := [
   .atom (.copy (.n 30) (.n 29)),
   .ret [.n 30]]
 
-end core189
+end core186
 
 /-- `index_mle__L5`. -/
-noncomputable def core189 : Core.Fn where
+noncomputable def core186 : Core.Fn where
   name := "index_mle__L5"
   params := [.n 0]
-  body := core189.body
+  body := core186.body
 
-namespace core190
+namespace core187
 
 /-- `index_mle__L6`: the body. -/
 noncomputable def body : List Core.Stmt := (
@@ -27340,15 +27265,15 @@ noncomputable def body : List Core.Stmt := (
   .ret [.n 36] ::
   [])
 
-end core190
+end core187
 
 /-- `index_mle__L6`. -/
-noncomputable def core190 : Core.Fn where
+noncomputable def core187 : Core.Fn where
   name := "index_mle__L6"
   params := [.n 0]
-  body := core190.body
+  body := core187.body
 
-namespace core191
+namespace core188
 
 /-- `index_mle__L7`: the body. -/
 noncomputable def body : List Core.Stmt := (
@@ -27397,15 +27322,15 @@ noncomputable def body : List Core.Stmt := (
   .ret [.n 42] ::
   [])
 
-end core191
+end core188
 
 /-- `index_mle__L7`. -/
-noncomputable def core191 : Core.Fn where
+noncomputable def core188 : Core.Fn where
   name := "index_mle__L7"
   params := [.n 0]
-  body := core191.body
+  body := core188.body
 
-namespace core192
+namespace core189
 
 /-- `index_mle__L8`: the body. -/
 noncomputable def body : List Core.Stmt := (
@@ -27460,15 +27385,15 @@ noncomputable def body : List Core.Stmt := (
   .ret [.n 48] ::
   [])
 
-end core192
+end core189
 
 /-- `index_mle__L8`. -/
-noncomputable def core192 : Core.Fn where
+noncomputable def core189 : Core.Fn where
   name := "index_mle__L8"
   params := [.n 0]
-  body := core192.body
+  body := core189.body
 
-namespace core193
+namespace core190
 
 /-- `index_mle__L9`: the body. -/
 noncomputable def body : List Core.Stmt := (
@@ -27529,15 +27454,15 @@ noncomputable def body : List Core.Stmt := (
   .ret [.n 54] ::
   [])
 
-end core193
+end core190
 
 /-- `index_mle__L9`. -/
-noncomputable def core193 : Core.Fn where
+noncomputable def core190 : Core.Fn where
   name := "index_mle__L9"
   params := [.n 0]
-  body := core193.body
+  body := core190.body
 
-namespace core194
+namespace core191
 
 /-- `index_mle__L10`: the body. -/
 noncomputable def body : List Core.Stmt := (
@@ -27604,15 +27529,15 @@ noncomputable def body : List Core.Stmt := (
   .ret [.n 60] ::
   [])
 
-end core194
+end core191
 
 /-- `index_mle__L10`. -/
-noncomputable def core194 : Core.Fn where
+noncomputable def core191 : Core.Fn where
   name := "index_mle__L10"
   params := [.n 0]
-  body := core194.body
+  body := core191.body
 
-namespace core195
+namespace core192
 
 /-- `index_mle__L11`: the body. -/
 noncomputable def body : List Core.Stmt := (
@@ -27685,15 +27610,15 @@ noncomputable def body : List Core.Stmt := (
   .ret [.n 66] ::
   [])
 
-end core195
+end core192
 
 /-- `index_mle__L11`. -/
-noncomputable def core195 : Core.Fn where
+noncomputable def core192 : Core.Fn where
   name := "index_mle__L11"
   params := [.n 0]
-  body := core195.body
+  body := core192.body
 
-namespace core196
+namespace core193
 
 /-- `index_mle__L12`: the body. -/
 noncomputable def body : List Core.Stmt := (
@@ -27772,15 +27697,15 @@ noncomputable def body : List Core.Stmt := (
   .ret [.n 72] ::
   [])
 
-end core196
+end core193
 
 /-- `index_mle__L12`. -/
-noncomputable def core196 : Core.Fn where
+noncomputable def core193 : Core.Fn where
   name := "index_mle__L12"
   params := [.n 0]
-  body := core196.body
+  body := core193.body
 
-namespace core197
+namespace core194
 
 /-- `index_mle__L13`: the body. -/
 noncomputable def body : List Core.Stmt := (
@@ -27865,15 +27790,15 @@ noncomputable def body : List Core.Stmt := (
   .ret [.n 78] ::
   [])
 
-end core197
+end core194
 
 /-- `index_mle__L13`. -/
-noncomputable def core197 : Core.Fn where
+noncomputable def core194 : Core.Fn where
   name := "index_mle__L13"
   params := [.n 0]
-  body := core197.body
+  body := core194.body
 
-namespace core198
+namespace core195
 
 /-- `index_mle__L14`: the body. -/
 noncomputable def body : List Core.Stmt := (
@@ -27964,15 +27889,15 @@ noncomputable def body : List Core.Stmt := (
   .ret [.n 84] ::
   [])
 
-end core198
+end core195
 
 /-- `index_mle__L14`. -/
-noncomputable def core198 : Core.Fn where
+noncomputable def core195 : Core.Fn where
   name := "index_mle__L14"
   params := [.n 0]
-  body := core198.body
+  body := core195.body
 
-namespace core199
+namespace core196
 
 /-- `index_mle__L15`: the body. -/
 noncomputable def body : List Core.Stmt := (
@@ -28069,15 +27994,15 @@ noncomputable def body : List Core.Stmt := (
   .ret [.n 90] ::
   [])
 
-end core199
+end core196
 
 /-- `index_mle__L15`. -/
-noncomputable def core199 : Core.Fn where
+noncomputable def core196 : Core.Fn where
   name := "index_mle__L15"
   params := [.n 0]
-  body := core199.body
+  body := core196.body
 
-namespace core200
+namespace core197
 
 /-- `index_mle__L16`: the body. -/
 noncomputable def body : List Core.Stmt := (
@@ -28180,15 +28105,15 @@ noncomputable def body : List Core.Stmt := (
   .ret [.n 96] ::
   [])
 
-end core200
+end core197
 
 /-- `index_mle__L16`. -/
-noncomputable def core200 : Core.Fn where
+noncomputable def core197 : Core.Fn where
   name := "index_mle__L16"
   params := [.n 0]
-  body := core200.body
+  body := core197.body
 
-namespace core201
+namespace core198
 
 /-- `index_mle__L17`: the body. -/
 noncomputable def body : List Core.Stmt := (
@@ -28297,15 +28222,15 @@ noncomputable def body : List Core.Stmt := (
   .ret [.n 102] ::
   [])
 
-end core201
+end core198
 
 /-- `index_mle__L17`. -/
-noncomputable def core201 : Core.Fn where
+noncomputable def core198 : Core.Fn where
   name := "index_mle__L17"
   params := [.n 0]
-  body := core201.body
+  body := core198.body
 
-namespace core202
+namespace core199
 
 /-- `index_mle__L18`: the body. -/
 noncomputable def body : List Core.Stmt := (
@@ -28420,15 +28345,15 @@ noncomputable def body : List Core.Stmt := (
   .ret [.n 108] ::
   [])
 
-end core202
+end core199
 
 /-- `index_mle__L18`. -/
-noncomputable def core202 : Core.Fn where
+noncomputable def core199 : Core.Fn where
   name := "index_mle__L18"
   params := [.n 0]
-  body := core202.body
+  body := core199.body
 
-namespace core203
+namespace core200
 
 /-- `index_mle__L19`: the body. -/
 noncomputable def body : List Core.Stmt := (
@@ -28549,15 +28474,15 @@ noncomputable def body : List Core.Stmt := (
   .ret [.n 114] ::
   [])
 
-end core203
+end core200
 
 /-- `index_mle__L19`. -/
-noncomputable def core203 : Core.Fn where
+noncomputable def core200 : Core.Fn where
   name := "index_mle__L19"
   params := [.n 0]
-  body := core203.body
+  body := core200.body
 
-namespace core204
+namespace core201
 
 /-- `index_mle__L20`: the body. -/
 noncomputable def body : List Core.Stmt := (
@@ -28684,15 +28609,15 @@ noncomputable def body : List Core.Stmt := (
   .ret [.n 120] ::
   [])
 
-end core204
+end core201
 
 /-- `index_mle__L20`. -/
-noncomputable def core204 : Core.Fn where
+noncomputable def core201 : Core.Fn where
   name := "index_mle__L20"
   params := [.n 0]
-  body := core204.body
+  body := core201.body
 
-namespace core205
+namespace core202
 
 /-- `index_mle__L21`: the body. -/
 noncomputable def body : List Core.Stmt := (
@@ -28825,15 +28750,15 @@ noncomputable def body : List Core.Stmt := (
   .ret [.n 126] ::
   [])
 
-end core205
+end core202
 
 /-- `index_mle__L21`. -/
-noncomputable def core205 : Core.Fn where
+noncomputable def core202 : Core.Fn where
   name := "index_mle__L21"
   params := [.n 0]
-  body := core205.body
+  body := core202.body
 
-namespace core206
+namespace core203
 
 /-- `index_mle__L22`: the body. -/
 noncomputable def body : List Core.Stmt := (
@@ -28972,15 +28897,15 @@ noncomputable def body : List Core.Stmt := (
   .ret [.n 132] ::
   [])
 
-end core206
+end core203
 
 /-- `index_mle__L22`. -/
-noncomputable def core206 : Core.Fn where
+noncomputable def core203 : Core.Fn where
   name := "index_mle__L22"
   params := [.n 0]
-  body := core206.body
+  body := core203.body
 
-namespace core207
+namespace core204
 
 /-- `index_mle__L23`: the body. -/
 noncomputable def body : List Core.Stmt := (
@@ -29125,15 +29050,15 @@ noncomputable def body : List Core.Stmt := (
   .ret [.n 138] ::
   [])
 
-end core207
+end core204
 
 /-- `index_mle__L23`. -/
-noncomputable def core207 : Core.Fn where
+noncomputable def core204 : Core.Fn where
   name := "index_mle__L23"
   params := [.n 0]
-  body := core207.body
+  body := core204.body
 
-namespace core208
+namespace core205
 
 /-- `index_mle__L24`: the body. -/
 noncomputable def body : List Core.Stmt := (
@@ -29284,15 +29209,15 @@ noncomputable def body : List Core.Stmt := (
   .ret [.n 144] ::
   [])
 
-end core208
+end core205
 
 /-- `index_mle__L24`. -/
-noncomputable def core208 : Core.Fn where
+noncomputable def core205 : Core.Fn where
   name := "index_mle__L24"
   params := [.n 0]
-  body := core208.body
+  body := core205.body
 
-namespace core209
+namespace core206
 
 /-- `index_mle__L25`: the body. -/
 noncomputable def body : List Core.Stmt := (
@@ -29449,15 +29374,15 @@ noncomputable def body : List Core.Stmt := (
   .ret [.n 150] ::
   [])
 
-end core209
+end core206
 
 /-- `index_mle__L25`. -/
-noncomputable def core209 : Core.Fn where
+noncomputable def core206 : Core.Fn where
   name := "index_mle__L25"
   params := [.n 0]
-  body := core209.body
+  body := core206.body
 
-namespace core210
+namespace core207
 
 /-- `index_mle__L26`: the body. -/
 noncomputable def body : List Core.Stmt := (
@@ -29620,15 +29545,15 @@ noncomputable def body : List Core.Stmt := (
   .ret [.n 156] ::
   [])
 
-end core210
+end core207
 
 /-- `index_mle__L26`. -/
-noncomputable def core210 : Core.Fn where
+noncomputable def core207 : Core.Fn where
   name := "index_mle__L26"
   params := [.n 0]
-  body := core210.body
+  body := core207.body
 
-namespace core211
+namespace core208
 
 /-- `index_mle__L27`: the body. -/
 noncomputable def body : List Core.Stmt := (
@@ -29797,15 +29722,15 @@ noncomputable def body : List Core.Stmt := (
   .ret [.n 162] ::
   [])
 
-end core211
+end core208
 
 /-- `index_mle__L27`. -/
-noncomputable def core211 : Core.Fn where
+noncomputable def core208 : Core.Fn where
   name := "index_mle__L27"
   params := [.n 0]
-  body := core211.body
+  body := core208.body
 
-namespace core212
+namespace core209
 
 /-- `index_mle__L28`: the body. -/
 noncomputable def body : List Core.Stmt := (
@@ -29980,15 +29905,15 @@ noncomputable def body : List Core.Stmt := (
   .ret [.n 168] ::
   [])
 
-end core212
+end core209
 
 /-- `index_mle__L28`. -/
-noncomputable def core212 : Core.Fn where
+noncomputable def core209 : Core.Fn where
   name := "index_mle__L28"
   params := [.n 0]
-  body := core212.body
+  body := core209.body
 
-namespace core213
+namespace core210
 
 /-- `index_mle__L29`: the body. -/
 noncomputable def body : List Core.Stmt := (
@@ -30169,15 +30094,15 @@ noncomputable def body : List Core.Stmt := (
   .ret [.n 174] ::
   [])
 
-end core213
+end core210
 
 /-- `index_mle__L29`. -/
-noncomputable def core213 : Core.Fn where
+noncomputable def core210 : Core.Fn where
   name := "index_mle__L29"
   params := [.n 0]
-  body := core213.body
+  body := core210.body
 
-namespace core214
+namespace core211
 
 /-- `index_mle__L30`: the body. -/
 noncomputable def body : List Core.Stmt := (
@@ -30364,15 +30289,15 @@ noncomputable def body : List Core.Stmt := (
   .ret [.n 180] ::
   [])
 
-end core214
+end core211
 
 /-- `index_mle__L30`. -/
-noncomputable def core214 : Core.Fn where
+noncomputable def core211 : Core.Fn where
   name := "index_mle__L30"
   params := [.n 0]
-  body := core214.body
+  body := core211.body
 
-namespace core215
+namespace core212
 
 /-- `index_mle__L31`: the body. -/
 noncomputable def body : List Core.Stmt := (
@@ -30565,15 +30490,15 @@ noncomputable def body : List Core.Stmt := (
   .ret [.n 186] ::
   [])
 
-end core215
+end core212
 
 /-- `index_mle__L31`. -/
-noncomputable def core215 : Core.Fn where
+noncomputable def core212 : Core.Fn where
   name := "index_mle__L31"
   params := [.n 0]
-  body := core215.body
+  body := core212.body
 
-namespace core216
+namespace core213
 
 /-- `index_mle__L32`: the body. -/
 noncomputable def body : List Core.Stmt := (
@@ -30772,15 +30697,15 @@ noncomputable def body : List Core.Stmt := (
   .ret [.n 192] ::
   [])
 
-end core216
+end core213
 
 /-- `index_mle__L32`. -/
-noncomputable def core216 : Core.Fn where
+noncomputable def core213 : Core.Fn where
   name := "index_mle__L32"
   params := [.n 0]
-  body := core216.body
+  body := core213.body
 
-namespace core217
+namespace core214
 
 /-- `index_mle__L33`: the body. -/
 noncomputable def body : List Core.Stmt := (
@@ -30985,15 +30910,15 @@ noncomputable def body : List Core.Stmt := (
   .ret [.n 198] ::
   [])
 
-end core217
+end core214
 
 /-- `index_mle__L33`. -/
-noncomputable def core217 : Core.Fn where
+noncomputable def core214 : Core.Fn where
   name := "index_mle__L33"
   params := [.n 0]
-  body := core217.body
+  body := core214.body
 
-namespace core218
+namespace core215
 
 /-- `block_selector_tab__L0`: the body. -/
 noncomputable def body : List Core.Stmt := [
@@ -31001,15 +30926,15 @@ noncomputable def body : List Core.Stmt := [
   .atom (.const (.n 4) (word 1 0 0)),
   .ret [.n 3, .n 4]]
 
-end core218
+end core215
 
 /-- `block_selector_tab__L0`. -/
-noncomputable def core218 : Core.Fn where
+noncomputable def core215 : Core.Fn where
   name := "block_selector_tab__L0"
   params := [.n 0, .n 1, .n 2]
-  body := core218.body
+  body := core215.body
 
-namespace core219
+namespace core216
 
 /-- `block_selector_tab__L1`: the body. -/
 noncomputable def body : List Core.Stmt := [
@@ -31028,15 +30953,15 @@ noncomputable def body : List Core.Stmt := [
   .atom (.copy (.n 14) (.n 12)),
   .ret [.n 13, .n 14]]
 
-end core219
+end core216
 
 /-- `block_selector_tab__L1`. -/
-noncomputable def core219 : Core.Fn where
+noncomputable def core216 : Core.Fn where
   name := "block_selector_tab__L1"
   params := [.n 0, .n 1, .n 2]
-  body := core219.body
+  body := core216.body
 
-namespace core220
+namespace core217
 
 /-- `block_selector_tab__L2`: the body. -/
 noncomputable def body : List Core.Stmt := [
@@ -31063,15 +30988,15 @@ noncomputable def body : List Core.Stmt := [
   .atom (.copy (.n 21) (.n 19)),
   .ret [.n 20, .n 21]]
 
-end core220
+end core217
 
 /-- `block_selector_tab__L2`. -/
-noncomputable def core220 : Core.Fn where
+noncomputable def core217 : Core.Fn where
   name := "block_selector_tab__L2"
   params := [.n 0, .n 1, .n 2]
-  body := core220.body
+  body := core217.body
 
-namespace core221
+namespace core218
 
 /-- `block_selector_tab__L3`: the body. -/
 noncomputable def body : List Core.Stmt := [
@@ -31106,15 +31031,15 @@ noncomputable def body : List Core.Stmt := [
   .atom (.copy (.n 28) (.n 26)),
   .ret [.n 27, .n 28]]
 
-end core221
+end core218
 
 /-- `block_selector_tab__L3`. -/
-noncomputable def core221 : Core.Fn where
+noncomputable def core218 : Core.Fn where
   name := "block_selector_tab__L3"
   params := [.n 0, .n 1, .n 2]
-  body := core221.body
+  body := core218.body
 
-namespace core222
+namespace core219
 
 /-- `block_selector_tab__L4`: the body. -/
 noncomputable def body : List Core.Stmt := (
@@ -31158,15 +31083,15 @@ noncomputable def body : List Core.Stmt := (
   .ret [.n 34, .n 35] ::
   [])
 
-end core222
+end core219
 
 /-- `block_selector_tab__L4`. -/
-noncomputable def core222 : Core.Fn where
+noncomputable def core219 : Core.Fn where
   name := "block_selector_tab__L4"
   params := [.n 0, .n 1, .n 2]
-  body := core222.body
+  body := core219.body
 
-namespace core223
+namespace core220
 
 /-- `block_selector_tab__L5`: the body. -/
 noncomputable def body : List Core.Stmt := (
@@ -31223,15 +31148,15 @@ noncomputable def body : List Core.Stmt := (
   .ret [.n 46, .n 47] ::
   [])
 
-end core223
+end core220
 
 /-- `block_selector_tab__L5`. -/
-noncomputable def core223 : Core.Fn where
+noncomputable def core220 : Core.Fn where
   name := "block_selector_tab__L5"
   params := [.n 0, .n 1, .n 2]
-  body := core223.body
+  body := core220.body
 
-namespace core224
+namespace core221
 
 /-- `block_selector_tab__L6`: the body. -/
 noncomputable def body : List Core.Stmt := (
@@ -31296,15 +31221,15 @@ noncomputable def body : List Core.Stmt := (
   .ret [.n 53, .n 54] ::
   [])
 
-end core224
+end core221
 
 /-- `block_selector_tab__L6`. -/
-noncomputable def core224 : Core.Fn where
+noncomputable def core221 : Core.Fn where
   name := "block_selector_tab__L6"
   params := [.n 0, .n 1, .n 2]
-  body := core224.body
+  body := core221.body
 
-namespace core225
+namespace core222
 
 /-- `block_selector_tab__L7`: the body. -/
 noncomputable def body : List Core.Stmt := (
@@ -31377,15 +31302,15 @@ noncomputable def body : List Core.Stmt := (
   .ret [.n 60, .n 61] ::
   [])
 
-end core225
+end core222
 
 /-- `block_selector_tab__L7`. -/
-noncomputable def core225 : Core.Fn where
+noncomputable def core222 : Core.Fn where
   name := "block_selector_tab__L7"
   params := [.n 0, .n 1, .n 2]
-  body := core225.body
+  body := core222.body
 
-namespace core226
+namespace core223
 
 /-- `block_selector_tab__L8`: the body. -/
 noncomputable def body : List Core.Stmt := (
@@ -31466,15 +31391,15 @@ noncomputable def body : List Core.Stmt := (
   .ret [.n 67, .n 68] ::
   [])
 
-end core226
+end core223
 
 /-- `block_selector_tab__L8`. -/
-noncomputable def core226 : Core.Fn where
+noncomputable def core223 : Core.Fn where
   name := "block_selector_tab__L8"
   params := [.n 0, .n 1, .n 2]
-  body := core226.body
+  body := core223.body
 
-namespace core227
+namespace core224
 
 /-- `block_selector_tab__L9`: the body. -/
 noncomputable def body : List Core.Stmt := (
@@ -31568,15 +31493,15 @@ noncomputable def body : List Core.Stmt := (
   .ret [.n 79, .n 80] ::
   [])
 
-end core227
+end core224
 
 /-- `block_selector_tab__L9`. -/
-noncomputable def core227 : Core.Fn where
+noncomputable def core224 : Core.Fn where
   name := "block_selector_tab__L9"
   params := [.n 0, .n 1, .n 2]
-  body := core227.body
+  body := core224.body
 
-namespace core228
+namespace core225
 
 /-- `block_selector_tab__L10`: the body. -/
 noncomputable def body : List Core.Stmt := (
@@ -31678,15 +31603,15 @@ noncomputable def body : List Core.Stmt := (
   .ret [.n 86, .n 87] ::
   [])
 
-end core228
+end core225
 
 /-- `block_selector_tab__L10`. -/
-noncomputable def core228 : Core.Fn where
+noncomputable def core225 : Core.Fn where
   name := "block_selector_tab__L10"
   params := [.n 0, .n 1, .n 2]
-  body := core228.body
+  body := core225.body
 
-namespace core229
+namespace core226
 
 /-- `block_selector_tab__L11`: the body. -/
 noncomputable def body : List Core.Stmt := (
@@ -31796,15 +31721,15 @@ noncomputable def body : List Core.Stmt := (
   .ret [.n 93, .n 94] ::
   [])
 
-end core229
+end core226
 
 /-- `block_selector_tab__L11`. -/
-noncomputable def core229 : Core.Fn where
+noncomputable def core226 : Core.Fn where
   name := "block_selector_tab__L11"
   params := [.n 0, .n 1, .n 2]
-  body := core229.body
+  body := core226.body
 
-namespace core230
+namespace core227
 
 /-- `block_selector_tab__L12`: the body. -/
 noncomputable def body : List Core.Stmt := (
@@ -31922,15 +31847,15 @@ noncomputable def body : List Core.Stmt := (
   .ret [.n 100, .n 101] ::
   [])
 
-end core230
+end core227
 
 /-- `block_selector_tab__L12`. -/
-noncomputable def core230 : Core.Fn where
+noncomputable def core227 : Core.Fn where
   name := "block_selector_tab__L12"
   params := [.n 0, .n 1, .n 2]
-  body := core230.body
+  body := core227.body
 
-namespace core231
+namespace core228
 
 /-- `block_selector_tab__L13`: the body. -/
 noncomputable def body : List Core.Stmt := (
@@ -32061,15 +31986,15 @@ noncomputable def body : List Core.Stmt := (
   .ret [.n 112, .n 113] ::
   [])
 
-end core231
+end core228
 
 /-- `block_selector_tab__L13`. -/
-noncomputable def core231 : Core.Fn where
+noncomputable def core228 : Core.Fn where
   name := "block_selector_tab__L13"
   params := [.n 0, .n 1, .n 2]
-  body := core231.body
+  body := core228.body
 
-namespace core232
+namespace core229
 
 /-- `block_selector_tab__L14`: the body. -/
 noncomputable def body : List Core.Stmt := (
@@ -32208,15 +32133,15 @@ noncomputable def body : List Core.Stmt := (
   .ret [.n 119, .n 120] ::
   [])
 
-end core232
+end core229
 
 /-- `block_selector_tab__L14`. -/
-noncomputable def core232 : Core.Fn where
+noncomputable def core229 : Core.Fn where
   name := "block_selector_tab__L14"
   params := [.n 0, .n 1, .n 2]
-  body := core232.body
+  body := core229.body
 
-namespace core233
+namespace core230
 
 /-- `block_selector_tab__L15`: the body. -/
 noncomputable def body : List Core.Stmt := (
@@ -32363,15 +32288,15 @@ noncomputable def body : List Core.Stmt := (
   .ret [.n 126, .n 127] ::
   [])
 
-end core233
+end core230
 
 /-- `block_selector_tab__L15`. -/
-noncomputable def core233 : Core.Fn where
+noncomputable def core230 : Core.Fn where
   name := "block_selector_tab__L15"
   params := [.n 0, .n 1, .n 2]
-  body := core233.body
+  body := core230.body
 
-namespace core234
+namespace core231
 
 /-- `block_selector_tab__L16`: the body. -/
 noncomputable def body : List Core.Stmt := (
@@ -32526,15 +32451,15 @@ noncomputable def body : List Core.Stmt := (
   .ret [.n 133, .n 134] ::
   [])
 
-end core234
+end core231
 
 /-- `block_selector_tab__L16`. -/
-noncomputable def core234 : Core.Fn where
+noncomputable def core231 : Core.Fn where
   name := "block_selector_tab__L16"
   params := [.n 0, .n 1, .n 2]
-  body := core234.body
+  body := core231.body
 
-namespace core235
+namespace core232
 
 /-- `block_selector_tab__L17`: the body. -/
 noncomputable def body : List Core.Stmt := (
@@ -32702,15 +32627,15 @@ noncomputable def body : List Core.Stmt := (
   .ret [.n 145, .n 146] ::
   [])
 
-end core235
+end core232
 
 /-- `block_selector_tab__L17`. -/
-noncomputable def core235 : Core.Fn where
+noncomputable def core232 : Core.Fn where
   name := "block_selector_tab__L17"
   params := [.n 0, .n 1, .n 2]
-  body := core235.body
+  body := core232.body
 
-namespace core236
+namespace core233
 
 /-- `block_selector_tab__L18`: the body. -/
 noncomputable def body : List Core.Stmt := (
@@ -32886,15 +32811,15 @@ noncomputable def body : List Core.Stmt := (
   .ret [.n 152, .n 153] ::
   [])
 
-end core236
+end core233
 
 /-- `block_selector_tab__L18`. -/
-noncomputable def core236 : Core.Fn where
+noncomputable def core233 : Core.Fn where
   name := "block_selector_tab__L18"
   params := [.n 0, .n 1, .n 2]
-  body := core236.body
+  body := core233.body
 
-namespace core237
+namespace core234
 
 /-- `block_selector_tab__L19`: the body. -/
 noncomputable def body : List Core.Stmt := (
@@ -33078,15 +33003,15 @@ noncomputable def body : List Core.Stmt := (
   .ret [.n 159, .n 160] ::
   [])
 
-end core237
+end core234
 
 /-- `block_selector_tab__L19`. -/
-noncomputable def core237 : Core.Fn where
+noncomputable def core234 : Core.Fn where
   name := "block_selector_tab__L19"
   params := [.n 0, .n 1, .n 2]
-  body := core237.body
+  body := core234.body
 
-namespace core238
+namespace core235
 
 /-- `block_selector_tab__L20`: the body. -/
 noncomputable def body : List Core.Stmt := (
@@ -33278,15 +33203,15 @@ noncomputable def body : List Core.Stmt := (
   .ret [.n 166, .n 167] ::
   [])
 
-end core238
+end core235
 
 /-- `block_selector_tab__L20`. -/
-noncomputable def core238 : Core.Fn where
+noncomputable def core235 : Core.Fn where
   name := "block_selector_tab__L20"
   params := [.n 0, .n 1, .n 2]
-  body := core238.body
+  body := core235.body
 
-namespace core239
+namespace core236
 
 /-- `block_selector_tab__L21`: the body. -/
 noncomputable def body : List Core.Stmt := (
@@ -33491,15 +33416,15 @@ noncomputable def body : List Core.Stmt := (
   .ret [.n 178, .n 179] ::
   [])
 
-end core239
+end core236
 
 /-- `block_selector_tab__L21`. -/
-noncomputable def core239 : Core.Fn where
+noncomputable def core236 : Core.Fn where
   name := "block_selector_tab__L21"
   params := [.n 0, .n 1, .n 2]
-  body := core239.body
+  body := core236.body
 
-namespace core240
+namespace core237
 
 /-- `block_selector_tab__L22`: the body. -/
 noncomputable def body : List Core.Stmt := (
@@ -33712,15 +33637,15 @@ noncomputable def body : List Core.Stmt := (
   .ret [.n 185, .n 186] ::
   [])
 
-end core240
+end core237
 
 /-- `block_selector_tab__L22`. -/
-noncomputable def core240 : Core.Fn where
+noncomputable def core237 : Core.Fn where
   name := "block_selector_tab__L22"
   params := [.n 0, .n 1, .n 2]
-  body := core240.body
+  body := core237.body
 
-namespace core241
+namespace core238
 
 /-- `block_selector_tab__L23`: the body. -/
 noncomputable def body : List Core.Stmt := (
@@ -33941,15 +33866,15 @@ noncomputable def body : List Core.Stmt := (
   .ret [.n 192, .n 193] ::
   [])
 
-end core241
+end core238
 
 /-- `block_selector_tab__L23`. -/
-noncomputable def core241 : Core.Fn where
+noncomputable def core238 : Core.Fn where
   name := "block_selector_tab__L23"
   params := [.n 0, .n 1, .n 2]
-  body := core241.body
+  body := core238.body
 
-namespace core242
+namespace core239
 
 /-- `block_selector_tab__L24`: the body. -/
 noncomputable def body : List Core.Stmt := (
@@ -34178,15 +34103,15 @@ noncomputable def body : List Core.Stmt := (
   .ret [.n 199, .n 200] ::
   [])
 
-end core242
+end core239
 
 /-- `block_selector_tab__L24`. -/
-noncomputable def core242 : Core.Fn where
+noncomputable def core239 : Core.Fn where
   name := "block_selector_tab__L24"
   params := [.n 0, .n 1, .n 2]
-  body := core242.body
+  body := core239.body
 
-namespace core243
+namespace core240
 
 /-- `block_selector_tab__L25`: the body. -/
 noncomputable def body : List Core.Stmt := (
@@ -34428,15 +34353,15 @@ noncomputable def body : List Core.Stmt := (
   .ret [.n 211, .n 212] ::
   [])
 
-end core243
+end core240
 
 /-- `block_selector_tab__L25`. -/
-noncomputable def core243 : Core.Fn where
+noncomputable def core240 : Core.Fn where
   name := "block_selector_tab__L25"
   params := [.n 0, .n 1, .n 2]
-  body := core243.body
+  body := core240.body
 
-namespace core244
+namespace core241
 
 /-- `block_selector_tab__L26`: the body. -/
 noncomputable def body : List Core.Stmt := (
@@ -34686,15 +34611,15 @@ noncomputable def body : List Core.Stmt := (
   .ret [.n 218, .n 219] ::
   [])
 
-end core244
+end core241
 
 /-- `block_selector_tab__L26`. -/
-noncomputable def core244 : Core.Fn where
+noncomputable def core241 : Core.Fn where
   name := "block_selector_tab__L26"
   params := [.n 0, .n 1, .n 2]
-  body := core244.body
+  body := core241.body
 
-namespace core245
+namespace core242
 
 /-- `block_selector_tab__L27`: the body. -/
 noncomputable def body : List Core.Stmt := (
@@ -34952,15 +34877,15 @@ noncomputable def body : List Core.Stmt := (
   .ret [.n 225, .n 226] ::
   [])
 
-end core245
+end core242
 
 /-- `block_selector_tab__L27`. -/
-noncomputable def core245 : Core.Fn where
+noncomputable def core242 : Core.Fn where
   name := "block_selector_tab__L27"
   params := [.n 0, .n 1, .n 2]
-  body := core245.body
+  body := core242.body
 
-namespace core246
+namespace core243
 
 /-- `block_selector_tab__L28`: the body. -/
 noncomputable def body : List Core.Stmt := (
@@ -35226,15 +35151,15 @@ noncomputable def body : List Core.Stmt := (
   .ret [.n 232, .n 233] ::
   [])
 
-end core246
+end core243
 
 /-- `block_selector_tab__L28`. -/
-noncomputable def core246 : Core.Fn where
+noncomputable def core243 : Core.Fn where
   name := "block_selector_tab__L28"
   params := [.n 0, .n 1, .n 2]
-  body := core246.body
+  body := core243.body
 
-namespace core247
+namespace core244
 
 /-- `block_selector_tab__L29`: the body. -/
 noncomputable def body : List Core.Stmt := (
@@ -35513,15 +35438,15 @@ noncomputable def body : List Core.Stmt := (
   .ret [.n 244, .n 245] ::
   [])
 
-end core247
+end core244
 
 /-- `block_selector_tab__L29`. -/
-noncomputable def core247 : Core.Fn where
+noncomputable def core244 : Core.Fn where
   name := "block_selector_tab__L29"
   params := [.n 0, .n 1, .n 2]
-  body := core247.body
+  body := core244.body
 
-namespace core248
+namespace core245
 
 /-- `block_selector_tab__L30`: the body. -/
 noncomputable def body : List Core.Stmt := (
@@ -35808,15 +35733,15 @@ noncomputable def body : List Core.Stmt := (
   .ret [.n 251, .n 252] ::
   [])
 
-end core248
+end core245
 
 /-- `block_selector_tab__L30`. -/
-noncomputable def core248 : Core.Fn where
+noncomputable def core245 : Core.Fn where
   name := "block_selector_tab__L30"
   params := [.n 0, .n 1, .n 2]
-  body := core248.body
+  body := core245.body
 
-namespace core249
+namespace core246
 
 /-- `block_selector_tab__L31`: the body. -/
 noncomputable def body : List Core.Stmt := (
@@ -36111,15 +36036,15 @@ noncomputable def body : List Core.Stmt := (
   .ret [.n 258, .n 259] ::
   [])
 
-end core249
+end core246
 
 /-- `block_selector_tab__L31`. -/
-noncomputable def core249 : Core.Fn where
+noncomputable def core246 : Core.Fn where
   name := "block_selector_tab__L31"
   params := [.n 0, .n 1, .n 2]
-  body := core249.body
+  body := core246.body
 
-namespace core250
+namespace core247
 
 /-- `block_selector_tab__L32`: the body. -/
 noncomputable def body : List Core.Stmt := (
@@ -36422,15 +36347,15 @@ noncomputable def body : List Core.Stmt := (
   .ret [.n 265, .n 266] ::
   [])
 
-end core250
+end core247
 
 /-- `block_selector_tab__L32`. -/
-noncomputable def core250 : Core.Fn where
+noncomputable def core247 : Core.Fn where
   name := "block_selector_tab__L32"
   params := [.n 0, .n 1, .n 2]
-  body := core250.body
+  body := core247.body
 
-namespace core251
+namespace core248
 
 /-- `block_selector_tab__L33`: the body. -/
 noncomputable def body : List Core.Stmt := (
@@ -36746,17 +36671,17 @@ noncomputable def body : List Core.Stmt := (
   .ret [.n 277, .n 278] ::
   [])
 
-end core251
+end core248
 
 /-- `block_selector_tab__L33`. -/
-noncomputable def core251 : Core.Fn where
+noncomputable def core248 : Core.Fn where
   name := "block_selector_tab__L33"
   params := [.n 0, .n 1, .n 2]
-  body := core251.body
+  body := core248.body
 
-namespace core252
+namespace core249
 
-/-- `__loop10`: the body. -/
+/-- `__loop9`: the body. -/
 noncomputable def body : List Core.Stmt := [
   .atom (.mul (.n 6) (.n 0) (.n 0)),
   .atom (.mul (.n 7) (.n 6) (.n 0)),
@@ -36783,20 +36708,20 @@ noncomputable def body : List Core.Stmt := [
   .atom (.add (.n 26) (.n 25) (.n 1)),
   .atom (.const (.n 27) (word 2 0 0)),
   .atom (.mul (.n 28) (.n 0) (.n 27)),
-  .callIf (.n 26) "__loop10" [.n 28, .n 1, .n 2, .n 3, .n 4, .n 5],
+  .callIf (.n 26) "__loop9" [.n 28, .n 1, .n 2, .n 3, .n 4, .n 5],
   .ret []]
 
-end core252
+end core249
 
-/-- `__loop10`. -/
-noncomputable def core252 : Core.Fn where
-  name := "__loop10"
+/-- `__loop9`. -/
+noncomputable def core249 : Core.Fn where
+  name := "__loop9"
   params := [.n 0, .n 1, .n 2, .n 3, .n 4, .n 5]
-  body := core252.body
+  body := core249.body
 
-namespace core253
+namespace core250
 
-/-- `__loop11`: the body. -/
+/-- `__loop10`: the body. -/
 noncomputable def body : List Core.Stmt := [
   .atom (.mul (.n 4) (.n 3) (.n 0)),
   .atom (.load (.n 5) (.n 4) 0),
@@ -36807,16 +36732,16 @@ noncomputable def body : List Core.Stmt := [
   .atom (.add (.n 9) (.n 8) (.n 1)),
   .atom (.const (.n 10) (word 2 0 0)),
   .atom (.mul (.n 11) (.n 0) (.n 10)),
-  .callIf (.n 9) "__loop11" [.n 11, .n 1, .n 2, .n 3],
+  .callIf (.n 9) "__loop10" [.n 11, .n 1, .n 2, .n 3],
   .ret []]
 
-end core253
+end core250
 
-/-- `__loop11`. -/
-noncomputable def core253 : Core.Fn where
-  name := "__loop11"
+/-- `__loop10`. -/
+noncomputable def core250 : Core.Fn where
+  name := "__loop10"
   params := [.n 0, .n 1, .n 2, .n 3]
-  body := core253.body
+  body := core250.body
 
 end
 end LeanVM.Guest.Data

@@ -12,7 +12,7 @@ public import LeanVM.Guest.B1.Ring.Weight
 # `ring_switch_target` (TRIAGE G #64, #65)
 
 `ring_switch_target(slices, map_challenges)` (G:2958-2974, `Data.core13`) seeds a two-slot chain
-`(x^0, 0)` and runs `__loop14` (`Data.core262`) for `x = g^j`, `j < 8`: the loop body evaluates
+`(x^0, 0)` and runs `__loop13` (`Data.core259`) for `x = g^j`, `j < 8`: the loop body evaluates
 `Φ` (`ring_map`, G:2948-2955, inline: six stages, each `lin + f_p · lin^(2^shift)` by `shift`
 squarings, `stageT`) on the eight slices `8j .. 8j + 7` and combines them in Horner form by `g`
 (the chunk `Σ_i g^i Φ(s_(8j+i))`), then extends the chain: `x^0 ← x^0·g^8`,
@@ -118,7 +118,7 @@ theorem holds_rmapT {lin : V} {b : ℕ} {next : Prop} {kret : List E → Prop}
     rw [e5, e4, e3, e2, e1, e0]
     rfl
 
-/-! ## The loop body (`__loop14`) -/
+/-! ## The loop body (`__loop13`) -/
 
 /-- The first value of row `r ≥ 1` of a chunk: `5 + 85r`. -/
 abbrev ltBase (r : ℕ) : ℕ := 5 + 85 * r
@@ -131,7 +131,7 @@ def ltRow (r : ℕ) : List Stmt :=
     .atom (.load (.n (ltBase r + 2)) (.n 7) (7 - r))] ++ rmapT (.n (ltBase r + 2)) (ltBase r + 3) ++
   [.atom (.add (.n (ltBase r + 84)) (.n (ltBase r + 1)) (.n (ltBase r + 83)))]
 
-/-- `__loop14`'s body. -/
+/-- `__loop13`'s body. -/
 def loop14T : List Stmt :=
   [.atom (.mul (.n 4) (.n 0) (.n 0)), .atom (.mul (.n 5) (.n 4) (.n 4)),
     .atom (.mul (.n 6) (.n 5) (.n 5)), .atom (.mul (.n 7) (.n 1) (.n 6)),
@@ -145,12 +145,12 @@ def loop14T : List Stmt :=
     .atom (.const (.n 693) (word 2 0 0)), .atom (.mul (.n 694) (.n 0) (.n 693)),
     .atom (.const (.n 695) (word 256 0 0)), .atom (.add (.n 696) (.n 694) (.n 695)),
     .atom (.const (.n 697) (word 2 0 0)), .atom (.mul (.n 698) (.n 0) (.n 697)),
-    .callIf (.n 696) "__loop14" [.n 698, .n 1, .n 2, .n 3], .ret []]
+    .callIf (.n 696) "__loop13" [.n 698, .n 1, .n 2, .n 3], .ret []]
 
-theorem loop14_body : Data.core262.body = loop14T := stmtsEqb_sound (by decide +kernel)
+theorem loop14_body : Data.core259.body = loop14T := stmtsEqb_sound (by decide +kernel)
 
-theorem find_loop14 : coreProgram.find? "__loop14" = some Data.core262 :=
-  Program.find?_of_indexOf? (j := 262) (by decide +kernel) rfl
+theorem find_loop14 : coreProgram.find? "__loop13" = some Data.core259 :=
+  Program.find?_of_indexOf? (j := 259) (by decide +kernel) rfl
 
 theorem ltRow_noRet (r : ℕ) : Stmt.noRetList (ltRow r) = true := by
   simp only [ltRow, noRetList_append, rmapT_noRet]; rfl
@@ -193,16 +193,16 @@ theorem readsAt_six_unique {p : E} {a b c d e f : E} {chs : List E} (hl : chs.le
   intro k hk _
   exact loadHolds_unique (h' k hk) (h k (by simp at hk; omega))
 
-/-- **`__loop14`'s step**: at depth `d + 1` and `x`, the body's meaning, and the call at `x·g`
+/-- **`__loop13`'s step**: at depth `d + 1` and `x`, the body's meaning, and the call at `x·g`
 one level shallower unless `x·g = g^8`. -/
 theorem loop14_step (d : ℕ) (x sl mc ch : E)
-    (h : coreProgram.relN rd (d + 1) "__loop14" [x, sl, mc, ch] []) :
+    (h : coreProgram.relN rd (d + 1) "__loop13" [x, sl, mc, ch] []) :
     RowOk rd sl mc ch x ∧
-      (x * gen + gen ^ 8 ≠ 0 → coreProgram.relN rd d "__loop14" [x * gen, sl, mc, ch] []) := by
+      (x * gen + gen ^ 8 ≠ 0 → coreProgram.relN rd d "__loop13" [x * gen, sl, mc, ch] []) := by
   obtain ⟨fn, hf, σ, hpar, hb⟩ := h
   rw [find_loop14] at hf
   cases hf
-  simp only [Data.core262, List.map_cons, List.map_nil, List.cons.injEq, and_true] at hpar hb
+  simp only [Data.core259, List.map_cons, List.map_nil, List.cons.injEq, and_true] at hpar hb
   obtain ⟨rfl, rfl, rfl, rfl⟩ := hpar
   rw [loop14_body] at hb
   simp only [loop14T, holdsList_append] at hb
@@ -276,7 +276,7 @@ def rstT : List Stmt :=
   [.atom (.hint (.alloc (.n 2) 18)), .atom (.const (.n 3) (word 1 0 0)),
     .atom (.load (.n 3) (.n 2) 0), .atom (.const (.n 4) (word 0 0 0)),
     .atom (.load (.n 4) (.n 2) 1), .atom (.const (.n 5) (word 1 0 0)),
-    .call "__loop14" [.n 5, .n 0, .n 1, .n 2] [], .atom (.const (.n 6) (word 65536 0 0)),
+    .call "__loop13" [.n 5, .n 0, .n 1, .n 2] [], .atom (.const (.n 6) (word 65536 0 0)),
     .atom (.mul (.n 7) (.n 2) (.n 6)), .atom (.load (.n 8) (.n 7) 1), .ret [.n 8]]
 
 theorem rst_body : Data.core13.body = rstT := stmtsEqb_sound (by decide +kernel)
@@ -307,7 +307,7 @@ theorem ring_switch_target_holds : ring_switch_target_Spec := by
   simp only [rstT, Stmt.HoldsList, Stmt.Holds, Atom.Holds, List.map_cons, List.map_nil] at hb
   obtain ⟨-, e3, l3, e4, l4, e5, hloop, e6, e7, l8, hret⟩ := hb
   have hrows : ∀ j, j < 8 → RowOk rd (σ (.n 0)) (σ (.n 1)) (σ (.n 2)) (gen ^ j) := by
-    have := loop_sound (P := coreProgram) (f := "__loop14") (ps := [σ (.n 0), σ (.n 1), σ (.n 2)])
+    have := loop_sound (P := coreProgram) (f := "__loop13") (ps := [σ (.n 0), σ (.n 1), σ (.n 2)])
       (N := gen ^ 8) (m := 8) (B := RowOk rd (σ (.n 0)) (σ (.n 1)) (σ (.n 2)))
       (fun d x h => loop14_step d x _ _ _ h) rfl (by decide) 0
       (by rw [pow_zero, ← word_one, ← e5]; exact hloop)

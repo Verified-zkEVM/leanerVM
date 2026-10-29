@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.Tables.Kids.Loop10
 
-  `__loop10` (the table sumcheck's rounds) loads from any region holding the rounds' records, the
+  `__loop9` (the table sumcheck's rounds) loads from any region holding the rounds' records, the
   challenges, the running products and the round polynomials at the records' cursors.
 -/
 
@@ -11,9 +11,9 @@ public import LeanVM.Guest.B1.Tables.Kids.Loop9
 public import LeanVM.Guest.B1.Tables.Vt.Loop10
 
 /-!
-# `__loop10`, loading from a region
+# `__loop9`, loading from a region
 
-Iteration `k < K` of `__loop10` (`x = g^k`, the end and `g^n` both `g^K`) reads record `k` at
+Iteration `k < K` of `__loop9` (`x = g^k`, the end and `g^n` both `g^K`) reads record `k` at
 `rounds·g^(7k)` (offsets `5`, `6`, `12`, `13`; `sumcheck_round4` its first `12` words and the
 `3` words at its cursor), writes the challenge at `chi·g^(K-1-k)` and the running product at
 `cprod·g^k` (offsets `0`, `1`). `loop10_relIn`: by induction on the derivation's depth, every
@@ -28,7 +28,7 @@ open LeanVM.Protocol.Verifier (gen)
 
 @[expose] public section
 
-/-- `__loop10`'s statements before its `ret`. -/
+/-- `__loop9`'s statements before its `ret`. -/
 def l10Pre : List Stmt := l10Body.dropLast
 
 theorem l10Body_eq : l10Body = l10Pre ++ [.ret []] := by simp [l10Pre, l10Body]
@@ -37,28 +37,28 @@ theorem l10_flat : l10Pre.all Stmt.flat = true := by decide +kernel
 
 theorem l10_noDisp : l10Pre.all noDispB = true := by decide +kernel
 
-/-- The pointers `__loop10` loads through, and their runs. -/
+/-- The pointers `__loop9` loads through, and their runs. -/
 def l10Tbl : List (ℕ × ℕ) := [(10, 14), (19, 1), (20, 1), (23, 2)]
 
 theorem l10_loads : l10Pre.all (loadsViaB l10Tbl) = true := by decide +kernel
 
 theorem l10_calls : l10Pre.filterMap Main.Stmt.callS =
     [(none, "sumcheck_round4", [.n 10, .n 11, .n 12], [.n 13, .n 14, .n 15]),
-      (some (.n 26), "__loop10", [.n 28, .n 1, .n 2, .n 3, .n 4, .n 5], [])] := by
+      (some (.n 26), "__loop9", [.n 28, .n 1, .n 2, .n 3, .n 4, .n 5], [])] := by
   decide +kernel
 
 theorem gen_pow_pred_inv {K : ℕ} (hK : 0 < K) : gen ^ K * vtWInvGen = gen ^ (K - 1) := by
   obtain ⟨m, rfl⟩ : ∃ m, K = m + 1 := ⟨K - 1, by omega⟩
   rw [pow_succ, mul_assoc, mul_comm gen, vtWInvGen_mul, mul_one, Nat.add_sub_cancel]
 
-/-- **`__loop10` loads from `R`**, every iteration `k < K`. -/
+/-- **`__loop9` loads from `R`**, every iteration `k < K`. -/
 theorem loop10_relIn {rd : Reader} {R : ℕ → Prop} {K : ℕ} (hK : 0 < K)
     {rounds chi cprod : E} (hr : PtrIn R rounds (7 * (K + 1))) (hc : PtrIn R chi K)
     (hp : PtrIn R cprod (K + 1))
     (hcur : ∀ k < K, ∀ c, LoadHolds rd (rounds * gen ^ (7 * k)) 5 c → PtrIn R c 3) :
     ∀ d k, k < K →
-      coreProgram.relN rd d "__loop10" [gen ^ k, gen ^ K, rounds, chi, gen ^ K, cprod] [] →
-      coreProgram.RelIn rd R "__loop10" [gen ^ k, gen ^ K, rounds, chi, gen ^ K, cprod] [] := by
+      coreProgram.relN rd d "__loop9" [gen ^ k, gen ^ K, rounds, chi, gen ^ K, cprod] [] →
+      coreProgram.RelIn rd R "__loop9" [gen ^ k, gen ^ K, rounds, chi, gen ^ K, cprod] [] := by
   intro d
   induction d with
   | zero => intro k _ h; exact h.elim

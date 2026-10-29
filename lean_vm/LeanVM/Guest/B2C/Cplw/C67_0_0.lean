@@ -16,28 +16,28 @@ namespace LeanVM.Guest.B2C.Cplw
 
 @[expose] public section
 
-/-- `eq_prefix_run__L28`, window 0, part 0. -/
+/-- `eq_prefix_run__L31`, window 0, part 0. -/
 theorem cw67_0_0 : cplWin 67 0 0 = true := by decide +kernel
 
-/-- `eq_prefix_run__L29`, window 0, part 0. -/
+/-- `eq_prefix_run__L32`, window 0, part 0. -/
 theorem cw68_0_0 : cplWin 68 0 0 = true := by decide +kernel
 
-/-- `eq_prefix_run__L30`, window 0, part 0. -/
+/-- `eq_prefix_run__L33`, window 0, part 0. -/
 theorem cw69_0_0 : cplWin 69 0 0 = true := by decide +kernel
 
-/-- `eq_prefix_run__L31`, window 0, part 0. -/
+/-- `eq_prefix_run__L34`, window 0, part 0. -/
 theorem cw70_0_0 : cplWin 70 0 0 = true := by decide +kernel
 
-/-- `eq_prefix_run__L32`, window 0, part 0. -/
+/-- `eq_prefix_run__L35`, window 0, part 0. -/
 theorem cw71_0_0 : cplWin 71 0 0 = true := by decide +kernel
 
-/-- `eq_prefix_run__L33`, window 0, part 0. -/
+/-- `eq_prefix_run__L36`, window 0, part 0. -/
 theorem cw72_0_0 : cplWin 72 0 0 = true := by decide +kernel
 
-/-- `eq_prefix_run__L34`, window 0, part 0. -/
+/-- `eq_prefix_run__L37`, window 0, part 0. -/
 theorem cw73_0_0 : cplWin 73 0 0 = true := by decide +kernel
 
-/-- `eq_prefix_run__L35`, window 0, part 0. -/
+/-- `eq_prefix_run__L38`, window 0, part 0. -/
 theorem cw74_0_0 : cplWin 74 0 0 = true := by decide +kernel
 
 theorem ok67 : CplOk 67 := by

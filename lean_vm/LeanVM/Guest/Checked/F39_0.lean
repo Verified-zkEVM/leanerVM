@@ -17,28 +17,28 @@ open LeanVM.Guest.Check
 
 @[expose] public section
 
-/-- `eq_prefix_run__L0`, window 0. -/
+/-- `eq_prefix_run__L3`, window 0. -/
 theorem w39_0 : WinOk 39 0 := winOk_of_C (by decide +kernel)
 
-/-- `eq_prefix_run__L1`, window 0. -/
+/-- `eq_prefix_run__L4`, window 0. -/
 theorem w40_0 : WinOk 40 0 := winOk_of_C (by decide +kernel)
 
-/-- `eq_prefix_run__L2`, window 0. -/
+/-- `eq_prefix_run__L5`, window 0. -/
 theorem w41_0 : WinOk 41 0 := winOk_of_C (by decide +kernel)
 
-/-- `eq_prefix_run__L3`, window 0. -/
+/-- `eq_prefix_run__L6`, window 0. -/
 theorem w42_0 : WinOk 42 0 := winOk_of_C (by decide +kernel)
 
-/-- `eq_prefix_run__L4`, window 0. -/
+/-- `eq_prefix_run__L7`, window 0. -/
 theorem w43_0 : WinOk 43 0 := winOk_of_C (by decide +kernel)
 
-/-- `eq_prefix_run__L5`, window 0. -/
+/-- `eq_prefix_run__L8`, window 0. -/
 theorem w44_0 : WinOk 44 0 := winOk_of_C (by decide +kernel)
 
-/-- `eq_prefix_run__L6`, window 0. -/
+/-- `eq_prefix_run__L9`, window 0. -/
 theorem w45_0 : WinOk 45 0 := winOk_of_C (by decide +kernel)
 
-/-- `eq_prefix_run__L7`, window 0. -/
+/-- `eq_prefix_run__L10`, window 0. -/
 theorem w46_0 : WinOk 46 0 := winOk_of_C (by decide +kernel)
 
 theorem ok39 : CheckOk 39 := checkOk_one (by decide +kernel) w39_0

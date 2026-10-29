@@ -17,28 +17,28 @@ open LeanVM.Guest.Check
 
 @[expose] public section
 
-/-- `block_selector__L0`, window 0. -/
+/-- `block_selector__L3`, window 0. -/
 theorem w151_0 : WinOk 151 0 := winOk_of_C (by decide +kernel)
 
-/-- `block_selector__L1`, window 0. -/
+/-- `block_selector__L4`, window 0. -/
 theorem w152_0 : WinOk 152 0 := winOk_of_C (by decide +kernel)
 
-/-- `block_selector__L2`, window 0. -/
+/-- `block_selector__L5`, window 0. -/
 theorem w153_0 : WinOk 153 0 := winOk_of_C (by decide +kernel)
 
-/-- `block_selector__L3`, window 0. -/
+/-- `block_selector__L6`, window 0. -/
 theorem w154_0 : WinOk 154 0 := winOk_of_C (by decide +kernel)
 
-/-- `block_selector__L4`, window 0. -/
+/-- `block_selector__L7`, window 0. -/
 theorem w155_0 : WinOk 155 0 := winOk_of_C (by decide +kernel)
 
-/-- `block_selector__L5`, window 0. -/
+/-- `block_selector__L8`, window 0. -/
 theorem w156_0 : WinOk 156 0 := winOk_of_C (by decide +kernel)
 
-/-- `block_selector__L6`, window 0. -/
+/-- `block_selector__L9`, window 0. -/
 theorem w157_0 : WinOk 157 0 := winOk_of_C (by decide +kernel)
 
-/-- `block_selector__L7`, window 0. -/
+/-- `block_selector__L10`, window 0. -/
 theorem w158_0 : WinOk 158 0 := winOk_of_C (by decide +kernel)
 
 theorem ok151 : CheckOk 151 := checkOk_one (by decide +kernel) w151_0

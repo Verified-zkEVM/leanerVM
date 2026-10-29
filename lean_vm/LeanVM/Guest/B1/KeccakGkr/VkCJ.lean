@@ -69,16 +69,16 @@ def stepCall (o s : ℕ) : Option V × String × List V × List V :=
 
 /-- **The calls**, `odd_g = g^o`. -/
 def vkCalls (o : ℕ) : List (Option V × String × List V × List V) :=
-  [(some (.n 60), "__loop11", [.n 61, .n 17, .n 58, .n 63], [])] ++
+  [(some (.n 60), "__loop10", [.n 61, .n 17, .n 58, .n 63], [])] ++
     (List.range 12).map (stepCall o) ++
     [(none, "keccak_plain_rounds__L6_L0", [.n 3685, .n 3686, .n 3687, .n 3688, .n 3689, .n 3692,
         .n 3693, .n 3690, .n 191, .n 3691], (List.range 7).map fun j ↦ .n (3694 + j)),
-      (some (.n 3971), "__loop12", [.n 3972, .n 17, .n 3974, .n 58], []),
+      (some (.n 3971), "__loop11", [.n 3972, .n 17, .n 3974, .n 58], []),
       (none, "keccak_plain_rounds__L4_L1", [.n 3694, .n 3695, .n 3696, .n 3697, .n 3698, .n 3708,
         .n 3710, .n 3976, .n 3977, .n 3979], (List.range 7).map fun j ↦ .n (3980 + j)),
       (none, "keccak_plain_rounds__L6_L0", [.n 3980, .n 3981, .n 3982, .n 3983, .n 3984, .n 4108,
         .n 4109, .n 3985, .n 3986, .n 4107], (List.range 7).map fun j ↦ .n (4110 + j)),
-      (some (.n 6580), "__loop13", [.n 6581, .n 17, .n 6583, .n 4977], [])]
+      (some (.n 6580), "__loop12", [.n 6581, .n 17, .n 6583, .n 4977], [])]
 
 theorem vkPre_kernel :
     vkPre.all Stmt.flat = true ∧ vkPre.filterMap Main.Stmt.addrS = [] ∧

@@ -14,11 +14,11 @@ public import LeanVM.Guest.B1.Da.ChainSplit
 # `da_verify` (G:3920-3982), checked
 
 `da_verify(g_squares)` (`core25`): the shape (`da_row_shape`), the rows' prefix bases
-(`__loop18`: `prefix_bases[x] = prefix_digests·x^128`), the rows' running sums (`__loop19`:
-`rowbase[x] = acc·x^129`, its first word `0`), the columns (`__loop20`, `__loop21`:
-`da_verify_column__L1` on columns `0 … 63`, `__L0` on `64 … 127`), the sums' check (`__loop22`:
+(`__loop17`: `prefix_bases[x] = prefix_digests·x^128`), the rows' running sums (`__loop18`:
+`rowbase[x] = acc·x^129`, its first word `0`), the columns (`__loop19`, `__loop20`:
+`da_verify_column__L1` on columns `0 … 63`, `__L0` on `64 … 127`), the sums' check (`__loop21`:
 word `128` of every row's sum is `0`), the column tree (`da_levels__L128_L7`), the row tree
-(`__loop23`: each row's digest from its prefix cells; `__loop24`: the padding rows; `da_levels`
+(`__loop22`: each row's digest from its prefix cells; `__loop23`: the padding rows; `da_levels`
 dispatched on `g_log_pad`), the root (`keccak` of the two trees' roots) and the vector's digest
 (`keccak_cells` of the `256` column-digest cells).
 -/
@@ -33,45 +33,45 @@ open LeanVM.Guest.B1.Digest LeanVM.Guest.B1.Main
 
 /-! ## The loops -/
 
-/-- `__loop18`: `prefix_bases[x] = prefix_digests·x^128`. -/
+/-- `__loop17`: `prefix_bases[x] = prefix_digests·x^128`. -/
 def l18Ok (fn : Fn) : Bool :=
   let A := atomsIn (loopPre fn)
-  loopShapeF fn "__loop18" && decide (fn.params.length = 4) &&
+  loopShapeF fn "__loop17" && decide (fn.params.length = 4) &&
   monoIs A (.n 11) (.n 3) (.n 0) 128 && isMul A (.n 12) (.n 2) (.n 0) &&
   A.any (isLoadAt (.n 11) (.n 12) 0)
 
-/-- `__loop19`: `rowbase[x] = acc·x^129`, its word `0` zero. -/
+/-- `__loop18`: `rowbase[x] = acc·x^129`, its word `0` zero. -/
 def l19Ok (fn : Fn) : Bool :=
   let A := atomsIn (loopPre fn)
-  loopShapeF fn "__loop19" && decide (fn.params.length = 4) &&
+  loopShapeF fn "__loop18" && decide (fn.params.length = 4) &&
   monoIs A (.n 12) (.n 2) (.n 0) 129 && isMul A (.n 13) (.n 3) (.n 0) &&
   A.any (isLoadAt (.n 12) (.n 13) 0) && A.any (isConstAt (.n 14) 0 0) &&
   A.any (isLoadAt (.n 14) (.n 12) 0)
 
-/-- `__loop22`: word `128` of `rowbase[x]` is zero. -/
+/-- `__loop21`: word `128` of `rowbase[x]` is zero. -/
 def l22Ok (fn : Fn) : Bool :=
   let A := atomsIn (loopPre fn)
-  loopShapeF fn "__loop22" && decide (fn.params.length = 3) &&
+  loopShapeF fn "__loop21" && decide (fn.params.length = 3) &&
   isMul A (.n 3) (.n 2) (.n 0) && A.any (isLoadAt (.n 4) (.n 3) 0) &&
   A.any (isLoadAt (.n 5) (.n 4) 128) && A.any (isConstAt (.n 6) 0 0) &&
   A.any (isAssertEqAt (.n 5) (.n 6))
 
-/-- `__loop23`'s chain: the `128` cells loaded through `prefix_bases[x]`. -/
+/-- `__loop22`'s chain: the `128` cells loaded through `prefix_bases[x]`. -/
 def rowSpec (atoms : List Atom) : ChainSpec :=
   ⟨(List.range 128).map fun i => some (.n (6 + i)), 2048, true, none, keccakBlocks atoms⟩
 
-/-- `__loop23`: row `x`'s digest, from the `128` cells at `prefix_bases[x]`, written at
+/-- `__loop22`: row `x`'s digest, from the `128` cells at `prefix_bases[x]`, written at
 `rowtree·x²`. -/
 def l23Ok (fn : Fn) : Bool :=
   let A := atomsIn (loopPre fn)
-  loopShapeF fn "__loop23" && decide (fn.params.length = 4) &&
+  loopShapeF fn "__loop22" && decide (fn.params.length = 4) &&
   isMul A (.n 4) (.n 2) (.n 0) && A.any (isLoadAt (.n 5) (.n 4) 0) &&
   loadsOk A (.n 5) ((List.range 128).map fun i => some (.n (6 + i))) &&
   (rowSpec A).check A && isMul A (.n 477) (.n 0) (.n 0) && isMul A (.n 478) (.n 3) (.n 477) &&
   A.any (isLoadAt ((rowSpec A).outV ((rowSpec A).nb - 1) 0) (.n 478) 0) &&
   A.any (isLoadAt ((rowSpec A).outV ((rowSpec A).nb - 1) 1) (.n 478) 1)
 
-/-- The body of the column loops `__loop20`, `__loop21`: the column at `x`, then the next. -/
+/-- The body of the column loops `__loop19`, `__loop20`: the column at `x`, then the next. -/
 def colLoopBody (col loop : String) (endLo : ℕ) : List Stmt :=
   [.call col ((List.range 9).map V.n) [],
     .atom (.const (.n 9) (word 2 0 0)), .atom (.mul (.n 10) (.n 0) (.n 9)),
@@ -106,18 +106,18 @@ noncomputable def dvOk : Bool :=
   P.all Stmt.flat &&
   hasCall P "da_row_shape" [.n 1, .n 2, .n 0] [.n 3, .n 4] &&
   monoIs A (.n 11) (.n 3) (.n 3) 127 &&
-  guardOk P (.n 15) "__loop18" (.n 16) (.n 1) [.n 13, .n 12] &&
+  guardOk P (.n 15) "__loop17" (.n 16) (.n 1) [.n 13, .n 12] &&
   monoIs A (.n 25) (.n 1) (.n 1) 128 &&
-  guardOk P (.n 29) "__loop19" (.n 30) (.n 1) [.n 26, .n 27] &&
+  guardOk P (.n 29) "__loop18" (.n 30) (.n 1) [.n 26, .n 27] &&
   A.any (isConstAt (.n 32) 1 0) &&
-  hasCall P "__loop20" [.n 32, .n 1, .n 3, .n 4, .n 2, .n 13, .n 31, .n 27, .n 17] [] &&
+  hasCall P "__loop19" [.n 32, .n 1, .n 3, .n 4, .n 2, .n 13, .n 31, .n 27, .n 17] [] &&
   A.any (isConstAt (.n 33) 27 0) &&
-  hasCall P "__loop21" [.n 33, .n 1, .n 3, .n 4, .n 2, .n 13, .n 31, .n 27, .n 17] [] &&
-  guardOk P (.n 35) "__loop22" (.n 36) (.n 1) [.n 27] &&
+  hasCall P "__loop20" [.n 33, .n 1, .n 3, .n 4, .n 2, .n 13, .n 31, .n 27, .n 17] [] &&
+  guardOk P (.n 35) "__loop21" (.n 36) (.n 1) [.n 27] &&
   hasCall P "da_levels__L128_L7" [.n 31] [.n 37, .n 38] &&
   monoIs A (.n 40) (.n 3) (.n 3) 3 &&
-  guardOk P (.n 43) "__loop23" (.n 44) (.n 1) [.n 13, .n 41] &&
-  guardOk P (.n 46) "__loop24" (.n 47) (.n 4) [.n 41, .n 1] &&
+  guardOk P (.n 43) "__loop22" (.n 44) (.n 1) [.n 13, .n 41] &&
+  guardOk P (.n 46) "__loop23" (.n 47) (.n 4) [.n 41, .n 1] &&
   P.any (stmtEqb · (.dispatch (.n 2) dlNames [.n 41] [.n 48, .n 49])) &&
   (rootSpec A).check A &&
   A.any (isCopyAt (.n 993) ((rootSpec A).outV ((rootSpec A).nb - 1) 0)) &&

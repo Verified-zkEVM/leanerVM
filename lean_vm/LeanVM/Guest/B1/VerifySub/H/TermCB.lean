@@ -19,7 +19,7 @@ open LeanVM.Node LeanVM.Guest.Memory
 
 /-- The terminal's bound (`check_opening_terminal_completeAtB`'s). -/
 def termBound (fs : String → ℕ) (Beqc K15 Bcs Brs : ℕ) : ℕ :=
-  fs "check_opening_terminal" + 146 + 3 * Beqc + max (fs "__loop15") (32 * K15) +
+  fs "check_opening_terminal" + 146 + 3 * Beqc + max (fs "__loop14") (32 * K15) +
     (fs "selector_tables" + 322) + 99 * Bcs + (fs "ring_switch_weight" + 2240 + Brs)
 
 variable {fs : String → ℕ} {cert : String → V → ℕ}
@@ -32,7 +32,7 @@ theorem term_completeB {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) {see
     (pv : List (List E × Main.Layout))
     (ht : ((S.kids bs lpE sqE).getD 12 noKid pv).taken = true)
     {Beqc K15 Bcs Brs : ℕ} (hEqc : TotalLe coreProgram fs "eq_prefix_chain" fun _ => Beqc)
-    (hL15 : TotalLeOn coreProgram fs "__loop15" LoopPre fun a => logG (a.getD 1 0) * K15)
+    (hL15 : TotalLeOn coreProgram fs "__loop14" LoopPre fun a => logG (a.getD 1 0) * K15)
     (hCs : ∀ κ' < 29, TotalLe coreProgram fs (Tables.lName "column_selector" κ') fun _ => Bcs)
     (hCsF : ∀ κ' < 29, fs (Tables.lName "column_selector" κ') ≤ Bcs)
     (hrs : ∀ c ≤ 34, TotalLeOn coreProgram fs "rs_eq_run" (fun a => a.getD 3 0 = gen ^ c)

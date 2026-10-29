@@ -14,7 +14,7 @@ public import LeanVM.Guest.B1.Digest.Steps
 
 `claim_list_digest(entries, n_g)`: for `n_g = 1` the digest of the empty string; otherwise
 `list_split` writes `n = 17 a + b`, a heap chain starts at the zero state (`zero_state`), the
-loop `__loop16` absorbs group `q < a` (68 cells, `1088` bytes, eight blocks, `final=0`) from the
+loop `__loop15` absorbs group `q < a` (68 cells, `1088` bytes, eight blocks, `final=0`) from the
 state at `chain · g^(13q)` into the state at `chain · g^(13(q + 1))` (`l16_step`), and
 `claim_list_last__L{b}` absorbs the last `4b` cells with the padding from the state at
 `chain · g^(13a)` (`claimLast_sound`). By induction over the groups (`groups_sound`), the
@@ -100,19 +100,19 @@ theorem claimLast_sound {k : ℕ} (hk : k < 17) {rd : Reader} {args rets : List 
     rfl
   · exact absurd hok (by simp)
 
-/-! ## `__loop16`: one group of seventeen claims -/
+/-! ## `__loop15`: one group of seventeen claims -/
 
-/-- The state cells `__loop16` loads. -/
+/-- The state cells `__loop15` loads. -/
 def l16St : List V := (List.range 13).map fun c => V.n (86 + c)
 
-/-- The chain of `__loop16`: 68 cells loaded as `.n 18 …`, eight blocks, `final=0`. -/
+/-- The chain of `__loop15`: 68 cells loaded as `.n 18 …`, eight blocks, `final=0`. -/
 def l16Spec (atoms : List Atom) : ChainSpec :=
   ⟨(List.range 68).map (fun i => some (V.n (i + 18))), 0, false, some l16St, keccakBlocks atoms⟩
 
-/-- `__loop16`'s body: the state at `chain · x^13`, the cells at `entries · x^68`, the next state
+/-- `__loop15`'s body: the state at `chain · x^13`, the cells at `entries · x^68`, the next state
 at `chain · x^13 · g^13`. -/
 def l16Ok (fn : Fn) : Bool :=
-  loopShape fn "__loop16" && decide (fn.params.length = 4) &&
+  loopShape fn "__loop15" && decide (fn.params.length = 4) &&
     (l16Spec (loopAtoms fn)).check (loopAtoms fn) && stLoadsOk (loopAtoms fn) (V.n 9) l16St 0 &&
     loadsOk (loopAtoms fn) (V.n 17) (l16Spec (loopAtoms fn)).msg &&
     stLoadsOk (loopAtoms fn) (V.n 9)
@@ -121,13 +121,13 @@ def l16Ok (fn : Fn) : Bool :=
     monoIs (loopAtoms fn) (V.n 17) (V.n 3) (V.n 0) 68
 
 set_option maxRecDepth 100000 in
-theorem l16_ok : l16Ok (coreProgram.getD 323 default) = true := by decide +kernel
+theorem l16_ok : l16Ok (coreProgram.getD 320 default) = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem l16_idx : coreProgram.indexOf? "__loop16" = some 323 := by decide +kernel
+theorem l16_idx : coreProgram.indexOf? "__loop15" = some 320 := by decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem l16_nb : (l16Spec (loopAtoms (coreProgram.getD 323 default))).nb = 8 := by decide +kernel
+theorem l16_nb : (l16Spec (loopAtoms (coreProgram.getD 320 default))).nb = 8 := by decide +kernel
 
 /-- **One group**: from the state at `chain · x^13` after whole blocks `pre`, the 68 canonical
 cells at `entries · x^68` absorbed, the state written at `chain · x^13 · g^13`. -/
@@ -139,18 +139,18 @@ def GroupStep (rd : Reader) (chain entries x : E) : Prop :=
       StateAt rd (chain * x ^ 13) 13 (absorbChunks (n + 8) zeroState (pre ++ cellsBytes cells))
 
 theorem l16_step {rd : Reader} {x : E} {ps : List E}
-    (h : coreProgram.Rel rd "__loop16" (x :: ps) []) :
+    (h : coreProgram.Rel rd "__loop15" (x :: ps) []) :
     (∀ N chain entries, ps = [N, chain, entries] → GroupStep rd chain entries x) ∧
-      (x * gen + ps.headD 0 ≠ 0 → coreProgram.Rel rd "__loop16" (x * gen :: ps) []) := by
+      (x * gen + ps.headD 0 ≠ 0 → coreProgram.Rel rd "__loop15" (x * gen :: ps) []) := by
   have hf := find_of_idx l16_idx (by rw [coreProgram_length]; omega)
   have hok := l16_ok
   simp only [l16Ok, loopShape, Bool.and_eq_true, decide_eq_true_eq] at hok
   obtain ⟨⟨⟨⟨⟨⟨⟨hshape, hlen4⟩, hc⟩, hst⟩, hl⟩, hout⟩, hm9⟩, hm17⟩ := hok
-  have hshape' : loopShape (coreProgram.getD 323 default) "__loop16" = true := by
+  have hshape' : loopShape (coreProgram.getD 320 default) "__loop15" = true := by
     simpa only [loopShape, Bool.and_eq_true, decide_eq_true_eq] using hshape
   obtain ⟨σ, hx, hps, hat, hnext⟩ := loop_step hf hshape' h
   refine ⟨fun N chain entries hNce n pre hpre hS => ?_, hnext⟩
-  have hpar : (coreProgram.getD 323 default).params = [V.n 0, V.n 1, V.n 2, V.n 3] := by
+  have hpar : (coreProgram.getD 320 default).params = [V.n 0, V.n 1, V.n 2, V.n 3] := by
     rw [hshape.1.2, hlen4]; rfl
   rw [hpar, hNce] at hps
   simp only [List.tail_cons, List.map_cons, List.map_nil, List.cons.injEq, and_true] at hps
@@ -159,7 +159,7 @@ theorem l16_step {rd : Reader} {x : E} {ps : List E}
   have h17 : σ (V.n 17) = entries * x ^ 68 := by rw [monoIs_sound hm17 hat, hentries, hx]
   rw [← h9] at hS
   obtain ⟨hreads, hcan, hS', hl'⟩ := chain_whole_mem hc rfl rfl hst hl hout hat hpre hS
-  have hnb : (l16Spec (loopAtoms (coreProgram.getD 323 default))).nb = 8 := l16_nb
+  have hnb : (l16Spec (loopAtoms (coreProgram.getD 320 default))).nb = 8 := l16_nb
   rw [hnb] at hS'
   refine ⟨_, by simp [ChainSpec.vals, l16Spec], by rwa [← h17], hcan, by rwa [← h9]⟩
 
@@ -246,7 +246,7 @@ groups, `last = chain · groups^13`, `blk = entries · groups^68`, the dispatch 
 noncomputable def ceOk : Bool :=
   cl23Else.all Stmt.flat &&
   cl23Else.any (stmtEqb · (.call "list_split" [.n 1] [.n 23, .n 24])) &&
-  cl23Else.any (stmtEqb · (.callIf (.n 47) "__loop16" [.n 48, .n 23, .n 32, .n 0])) &&
+  cl23Else.any (stmtEqb · (.callIf (.n 47) "__loop15" [.n 48, .n 23, .n 32, .n 0])) &&
   cl23Else.any (stmtEqb · (.dispatch (.n 24) clNames [.n 54, .n 62] [.n 63, .n 64])) &&
   (atomsIn cl23Else).any (isConstAt (.n 48) 1 0) &&
   (atomsIn cl23Else).any (isAddAt (.n 47) (.n 46) (.n 23)) &&
@@ -313,7 +313,7 @@ theorem claim_list_digest_sound : claim_list_digest_sound_Spec := by
       rw [add_sound h47 hat, const_sound h46 hat, word_one]
     have h48v : σ (.n 48) = 1 := by rw [const_sound h48 hat, word_one]
     have hsteps : ∀ q < a, GroupStep rd (σ (.n 32)) (σ (.n 0)) (gen ^ q) :=
-      loop_sound (f := "__loop16") (ps := [σ (.n 23), σ (.n 32), σ (.n 0)]) (N := σ (.n 23))
+      loop_sound (f := "__loop15") (ps := [σ (.n 23), σ (.n 32), σ (.n 0)]) (N := σ (.n 23))
         (B := GroupStep rd (σ (.n 32)) (σ (.n 0))) (by unfold ordG; omega) h23
         (fun x hx => by
           obtain ⟨h1, h2⟩ := l16_step hx

@@ -94,17 +94,17 @@ def mKids (m : MainIn) (Lin : B1.Main.Layout) : List Kid :=
     ⟨"da_list_digest", true, [m.a69, gen ^ m.nda], Lin, Returns (digestCells m.dad)⟩,
     ⟨"claim_list_digest", true, [m.a77, gen ^ m.nlx], Lin, Returns (digestCells m.xd)⟩,
     ⟨"claim_list_digest", true, [m.a80, gen ^ m.nls], Lin, Returns (digestCells m.sd)⟩,
-    ⟨"__loop1", decide (m.nxd ≠ 0), [one, gen ^ m.nxd, m.a77, gen ^ m.nlx], Lin, Returns []⟩,
-    ⟨"__loop2", decide (m.nsd ≠ 0), [one, gen ^ m.nsd, m.a80, gen ^ m.nls], Lin, Returns []⟩,
-    ⟨"__loop3", decide (m.nrx ≠ 0), [one, gen ^ m.nrx, gen ^ X, m.a117, m.a77], Lin, Returns []⟩,
-    ⟨"__loop4", decide (m.nrs ≠ 0), [one, gen ^ m.nrs, gen ^ Y, m.a117, gen ^ X, gen ^ m.nrx, m.a80,
+    ⟨"__loop0", decide (m.nxd ≠ 0), [one, gen ^ m.nxd, m.a77, gen ^ m.nlx], Lin, Returns []⟩,
+    ⟨"__loop1", decide (m.nsd ≠ 0), [one, gen ^ m.nsd, m.a80, gen ^ m.nls], Lin, Returns []⟩,
+    ⟨"__loop2", decide (m.nrx ≠ 0), [one, gen ^ m.nrx, gen ^ X, m.a117, m.a77], Lin, Returns []⟩,
+    ⟨"__loop3", decide (m.nrs ≠ 0), [one, gen ^ m.nrs, gen ^ Y, m.a117, gen ^ X, gen ^ m.nrx, m.a80,
       m.a119], Lin, Returns []⟩] ++
   (if m.nd = 1 then
     [⟨"da_verify", true, [m.et2], Lin, Returns m.daR⟩,
       ⟨"cover_da_root", true, [m.a69, m.a117 * gen ^ (X + Y), gen ^ S, gen ^ (m.nrx + m.nrs)], Lin,
         Returns m.daR⟩]
   else []) ++
-  [⟨"__loop5", decide (m.nc ≠ 0), [one, gen ^ m.nc, m.a409, m.a77, m.a117, gen ^ X, m.a80, gen ^ Y,
+  [⟨"__loop4", decide (m.nc ≠ 0), [one, gen ^ m.nc, m.a409, m.a77, m.a117, gen ^ X, m.a80, gen ^ Y,
     m.a406, m.a69, m.a117 * gen ^ (X + Y), gen ^ S, (digestScalars m.seed).1,
     (digestScalars m.seed).2, m.a394, m.et1, m.et2, m.a400], Lin, Returns []⟩] ++
   (if m.nc = 0 then [] else

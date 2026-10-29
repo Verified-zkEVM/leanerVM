@@ -90,7 +90,7 @@ theorem vsTab_parts (op : Opcode) :
     (∀ k < 17, (kvOkB op (cclJ.getD k 0) ("child_claim_list_last__L" ++ B1.Whir.natStr k) &&
       kvSBJ op (cclJ.getD k 0) == (kcCclT op).getD k 0) = true) ∧
     (kvOkB op lsJ "list_split" && kvSBJ op lsJ == kcLs op) = true ∧
-    (kvOkK op l17J "__loop17" && kvSKJ op l17J == kcL17 op) = true ∧
+    (kvOkK op l17J "__loop16" && kvSKJ op l17J == kcL17 op) = true ∧
     (∀ i < 3, decide ((coreProgram[omJ.getD i 0]?).map Fn.name = some (omNames.getD i "")) = true ∧
       (B2C.plumbOf (omJ.getD i 0 + 1)).pmax.getD (B2C.opIdx op) 0 = (omT op).getD i 0) := by
   have h := vsTab_ok op
@@ -126,11 +126,11 @@ theorem ls_weightLe (op : Opcode) :
     WeightLe coreProgram (B2C.ωArm B2C.xmssArmC op) "list_split" fun _ => kcLs op :=
   weightLe_tab (vsTab_parts op).2.2.2.1
 
-/-- **`__loop17`, per iteration.** -/
-theorem l17_loop (op : Opcode) : LoopWeightLe (B2C.ωArm B2C.xmssArmC op) "__loop17" (kcL17 op) :=
+/-- **`__loop16`, per iteration.** -/
+theorem l17_loop (op : Opcode) : LoopWeightLe (B2C.ωArm B2C.xmssArmC op) "__loop16" (kcL17 op) :=
   loopWeightLe_tab (vsTab_parts op).2.2.2.2.1
 
-/-- **The frame weights** of `verify_sub`, `child_claim_list_digest`, `__loop5`. -/
+/-- **The frame weights** of `verify_sub`, `child_claim_list_digest`, `__loop4`. -/
 theorem om_eq (op : Opcode) {i : ℕ} (hi : i < 3) :
     B2C.ωArm B2C.xmssArmC op (omNames.getD i "") = (omT op).getD i 0 := by
   obtain ⟨hn, hv⟩ := (vsTab_parts op).2.2.2.2.2 i hi

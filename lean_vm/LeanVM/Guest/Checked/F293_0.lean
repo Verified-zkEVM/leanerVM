@@ -17,35 +17,29 @@ open LeanVM.Guest.Check
 
 @[expose] public section
 
-/-- `column_selector__L28`, window 0. -/
+/-- `open_stacked__L0`, window 0. -/
 theorem w293_0 : WinOk 293 0 := winOk_of_C (by decide +kernel)
 
-/-- `log2_ceil_in_the_exponent__L0_L34`, window 0. -/
-theorem w294_0 : WinOk 294 0 := winOk_of_C (by decide +kernel)
-
-/-- `log2_ceil_in_the_exponent__L15_L34`, window 0. -/
-theorem w295_0 : WinOk 295 0 := winOk_of_C (by decide +kernel)
-
-/-- `open_stacked__L0`, window 0. -/
-theorem w296_0 : WinOk 296 0 := winOk_of_C (by decide +kernel)
-
 /-- `open_stacked__L0`, window 1. -/
-theorem w296_1 : WinOk 296 1 := winOk_of_C (by decide +kernel)
+theorem w293_1 : WinOk 293 1 := winOk_of_C (by decide +kernel)
 
 /-- `open_stacked__L0`, window 2. -/
-theorem w296_2 : WinOk 296 2 := winOk_of_C (by decide +kernel)
+theorem w293_2 : WinOk 293 2 := winOk_of_C (by decide +kernel)
 
 /-- `open_stacked__L0`, window 3. -/
-theorem w296_3 : WinOk 296 3 := winOk_of_C (by decide +kernel)
+theorem w293_3 : WinOk 293 3 := winOk_of_C (by decide +kernel)
 
 /-- `open_stacked__L1`, window 0. -/
-theorem w297_0 : WinOk 297 0 := winOk_of_C (by decide +kernel)
+theorem w294_0 : WinOk 294 0 := winOk_of_C (by decide +kernel)
 
-theorem ok293 : CheckOk 293 := checkOk_one (by decide +kernel) w293_0
+/-- `open_stacked__L1`, window 1. -/
+theorem w294_1 : WinOk 294 1 := winOk_of_C (by decide +kernel)
 
-theorem ok294 : CheckOk 294 := checkOk_one (by decide +kernel) w294_0
+/-- `open_stacked__L1`, window 2. -/
+theorem w294_2 : WinOk 294 2 := winOk_of_C (by decide +kernel)
 
-theorem ok295 : CheckOk 295 := checkOk_one (by decide +kernel) w295_0
+/-- `open_stacked__L1`, window 3. -/
+theorem w294_3 : WinOk 294 3 := winOk_of_C (by decide +kernel)
 
 end
 end LeanVM.Guest.Checked

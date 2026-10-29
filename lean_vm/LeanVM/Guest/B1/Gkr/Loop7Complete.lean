@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.Gkr.Loop7Complete
 
-  `__loop7` is complete: an iteration holds on its honest valuation when the memory holds its
+  `__loop6` is complete: an iteration holds on its honest valuation when the memory holds its
   slot, its step's words, its round records and the next slot; iterations at every `g^j`,
   `j < m`, give the loop.
 -/
@@ -11,13 +11,13 @@ module
 public import LeanVM.Guest.B1.Gkr.Loop7C
 
 /-!
-# `__loop7`, completely (G:1689-1777)
+# `__loop6`, completely (G:1689-1777)
 
 `ly_iter`: from the slot of `L = 2j + sh` (`GkSlotC`), one step of two levels (`GkStepD.Ok`), its
 words at the cursor, its round records (`RecsAt`) and the slot of `L + 2` the step leads to, the
 iteration at `g^j` holds (its body evaluated forward, region by region), given the next
 iteration below the bound. `LyIter`: those words for the iteration at `g^j`; `ly_complete`: with
-them at every `j < m`, `__loop7` holds from `1` below `g^m`.
+them at every `j < m`, `__loop6` holds from `1` below `g^m`.
 -/
 
 namespace LeanVM.Guest.B1.Tables
@@ -45,7 +45,7 @@ theorem tb_squeezeN_two (s : Fs) : s.squeezeN 2 =
       ⟨capOf (permOf (rateOf [] ++ capOf s.perm)), []⟩) := rfl
 
 set_option maxHeartbeats 400000 in
-/-- **An iteration of `__loop7`, completely.** -/
+/-- **An iteration of `__loop6`, completely.** -/
 theorem ly_iter {rd : Reader} {N dsb gmu layers rounds : E} {j sh : ℕ} (hj : j < 2 ^ 30)
     (hsh2 : sh < 2) (hN : IsInK N) (hsh : LoadHolds rd (dsb * gmu) 0 (gen ^ sh))
     {s : Fs} {cur : E} {st : GkrState} {row pos : E} {D : GkStepD}
@@ -57,8 +57,8 @@ theorem ly_iter {rd : Reader} {N dsb gmu layers rounds : E} {j sh : ℕ} (hj : j
       (D.st' s st 2) (row * gen ^ 40) (pos * gen ^ (2 * j + sh + 1)) (gen ^ ((j + 1) / 2))
       (bitE ((j + 1) % 2 = 1)))
     (hnext : gen ^ j * gen + N ≠ 0 →
-      coreProgram.Rel rd "__loop7" [gen ^ j * gen, N, dsb, gmu, layers, rounds] []) :
-    coreProgram.Rel rd "__loop7" [gen ^ j, N, dsb, gmu, layers, rounds] [] := by
+      coreProgram.Rel rd "__loop6" [gen ^ j * gen, N, dsb, gmu, layers, rounds] []) :
+    coreProgram.Rel rd "__loop6" [gen ^ j, N, dsb, gmu, layers, rounds] [] := by
   obtain ⟨fn, hf, hp, hb⟩ := lyFound
   obtain ⟨c', hc'⟩ := Option.isSome_iff_exists.mp ly_chk
   set args : List E := [gen ^ j, N, dsb, gmu, layers, rounds] with hargs
@@ -228,13 +228,13 @@ def LyIter (rd : Reader) (layers rounds : E) (sh j : ℕ) : Prop :=
       (row * gen ^ 40) (pos * gen ^ (2 * j + sh + 1)) (gen ^ ((j + 1) / 2))
       (bitE ((j + 1) % 2 = 1))
 
-/-- **`__loop7`, completely**: an iteration's words at every `j < m` give the loop from `1` below
+/-- **`__loop6`, completely**: an iteration's words at every `j < m` give the loop from `1` below
 `g^m`. -/
 theorem ly_complete {rd : Reader} {dsb gmu layers rounds : E} {sh m : ℕ} (hm : 0 < m)
     (hmb : m < 2 ^ 30) (hsh2 : sh < 2) (hsh : LoadHolds rd (dsb * gmu) 0 (gen ^ sh))
     (hit : ∀ j < m, LyIter rd layers rounds sh j) :
-    coreProgram.Rel rd "__loop7" [1, gen ^ m, dsb, gmu, layers, rounds] [] := by
-  have key : ∀ t, t < m → coreProgram.Rel rd "__loop7"
+    coreProgram.Rel rd "__loop6" [1, gen ^ m, dsb, gmu, layers, rounds] [] := by
+  have key : ∀ t, t < m → coreProgram.Rel rd "__loop6"
       [gen ^ (m - 1 - t), gen ^ m, dsb, gmu, layers, rounds] [] := by
     intro t
     induction t with

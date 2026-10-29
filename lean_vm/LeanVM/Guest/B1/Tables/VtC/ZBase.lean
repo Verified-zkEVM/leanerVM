@@ -22,7 +22,7 @@ sumcheck from the capacity `cap0` and the claim `cl0`, round `j` reading the wor
 (the challenges' running products), `zcChis` (the challenges, last first, as `chi` holds them).
 
 `zc_run`: the rounds are the specification's `sumcheck cl0 4 (replicate n none)`.
-`zc_l10B`: on a memory holding the buffers and the words, every iteration of `__loop10` has
+`zc_l10B`: on a memory holding the buffers and the words, every iteration of `__loop9` has
 its facts.
 -/
 
@@ -127,7 +127,7 @@ noncomputable def zBlk : List Stmt := [
     .atom (.const (.n 5919) (word 1 0 0)),
     .atom (.add (.n 5920) (.n 5919) (.n 5817)),
     .atom (.const (.n 5921) (word 1 0 0)),
-    .callIf (.n 5920) "__loop10" [.n 5921, .n 5817, .n 5912, .n 18, .n 5817, .n 5915],
+    .callIf (.n 5920) "__loop9" [.n 5921, .n 5817, .n 5912, .n 18, .n 5817, .n 5915],
     .atom (.mul (.n 5922) (.n 5817) (.n 5817)),
     .atom (.mul (.n 5923) (.n 5922) (.n 5817)),
     .atom (.mul (.n 5924) (.n 5923) (.n 5923)),
@@ -279,7 +279,7 @@ theorem zc_rec_parts {rd : Reader} {p : E} {cap : List E} {a b : E} (h5 : cap.le
   refine ⟨⟨h5, fun j hj => ?_⟩, h.2.1, h.2.2⟩
   simpa using h.1 j hj
 
-/-- **Every iteration of `__loop10` has its facts** on the honest buffers and words. -/
+/-- **Every iteration of `__loop9` has its facts** on the honest buffers and words. -/
 theorem zc_l10B {rd : Reader} {R chi C : E} {cap0 : List E} {cl0 cur0 : E} {xs : List E} {n : ℕ}
     (h5 : cap0.length = 5) (hc : AllCanonical cap0)
     (hR : TbReadsAt rd R (zcRoundsW cap0 cl0 cur0 xs n))

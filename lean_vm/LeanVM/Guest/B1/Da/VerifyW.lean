@@ -37,7 +37,7 @@ open LeanVM.Guest.B1.Digest LeanVM.Guest.B1.Main
 def colNm (j : ℕ) : String := if j < 64 then "da_verify_column__L1" else "da_verify_column__L0"
 
 /-- Column `j`'s row loop. -/
-def rowNm (j : ℕ) : String := if j < 64 then "__loop417" else "__loop419"
+def rowNm (j : ℕ) : String := if j < 64 then "__loop415" else "__loop417"
 
 /-- Column `j`'s call's words. -/
 def dvColArgs (σ : Val) (j : ℕ) : List E :=
@@ -330,20 +330,20 @@ theorem da_verify_sound_w (hVm : UnfoldsV rd C Vm) (hle : CallRel.Le C (coreProg
     rw [hnp, LeanDa.nPad, LeanDa.logPad]; exact Nat.le_pow_clog (by norm_num) r
   -- the prefix bases and the running sums
   have L18 : ∀ i < r, LoadHolds rd (σ (.n 13) * gen ^ i) 0 (σ (.n 12) * (gen ^ i) ^ 128) :=
-    loop_sound (f := "__loop18") (ps := [σ (.n 1), σ (.n 13), σ (.n 12)]) (ordG_of (by omega)) h1
+    loop_sound (f := "__loop17") (ps := [σ (.n 1), σ (.n 13), σ (.n 12)]) (ordG_of (by omega)) h1
       (fun y hy => by
         obtain ⟨k1, k2⟩ := l18_step hy
         exact ⟨k1 _ _ _ rfl, k2⟩)
       (fun hne => by simpa using guardK_sound hg18 hall hne)
   have L19 : ∀ i < r, LoadHolds rd (σ (.n 27) * gen ^ i) 0 (σ (.n 26) * (gen ^ i) ^ 129) ∧
       LoadHolds rd (σ (.n 26) * (gen ^ i) ^ 129) 0 0 :=
-    loop_sound (f := "__loop19") (ps := [σ (.n 1), σ (.n 26), σ (.n 27)]) (ordG_of (by omega)) h1
+    loop_sound (f := "__loop18") (ps := [σ (.n 1), σ (.n 26), σ (.n 27)]) (ordG_of (by omega)) h1
       (fun y hy => by
         obtain ⟨k1, k2⟩ := l19_step hy
         exact ⟨k1 _ _ _ rfl, k2⟩)
       (fun hne => by simpa using guardK_sound hg19 hall hne)
   have L22 : ∀ i < r, ∃ ch, LoadHolds rd (σ (.n 27) * gen ^ i) 0 ch ∧ LoadHolds rd ch 128 0 :=
-    loop_sound (f := "__loop22") (ps := [σ (.n 1), σ (.n 27)]) (ordG_of (by omega)) h1
+    loop_sound (f := "__loop21") (ps := [σ (.n 1), σ (.n 27)]) (ordG_of (by omega)) h1
       (fun y hy => by
         obtain ⟨k1, k2⟩ := l22_step hy
         exact ⟨k1 _ _ rfl, k2⟩)
@@ -356,12 +356,12 @@ theorem da_verify_sound_w (hVm : UnfoldsV rd C Vm) (hle : CallRel.Le C (coreProg
   rw [const_sound hc33 hat, word_g64] at c21
   have h3' : σ (.n 3) = gen ^ 2 ^ L := h3
   have C1 : ∀ j < 64, C "da_verify_column__L1" (dvColArgs σ j) [] := fun j hj =>
-    loop_fromC (C := C) (f := "__loop20") (N := gen ^ 64) (m := 64) (a := 0) (ordG_of (by omega)) rfl
+    loop_fromC (C := C) (f := "__loop19") (N := gen ^ 64) (m := 64) (a := 0) (ordG_of (by omega)) rfl
       (fun y hy => by
         obtain ⟨k1, k2⟩ := col_loop_stepW hVm (by rw [coreProgram_length]; omega) l20_ok hy
         exact ⟨k1, by rw [← word_g64]; exact k2⟩) c20 j (Nat.zero_le _) hj
   have C0 : ∀ j, 64 ≤ j → j < 128 → C "da_verify_column__L0" (dvColArgs σ j) [] :=
-    loop_fromC (C := C) (f := "__loop21") (N := gen ^ 128) (m := 128) (a := 64) (ordG_of (by omega))
+    loop_fromC (C := C) (f := "__loop20") (N := gen ^ 128) (m := 128) (a := 64) (ordG_of (by omega))
       rfl
       (fun y hy => by
         obtain ⟨k1, k2⟩ := col_loop_stepW hVm (by rw [coreProgram_length]; omega) l21_ok hy
@@ -383,14 +383,14 @@ theorem da_verify_sound_w (hVm : UnfoldsV rd C Vm) (hle : CallRel.Le C (coreProg
     intro j hj
     by_cases hj64 : j < 64
     · have hcn : colNm j = "da_verify_column__L1" := by simp [colNm, hj64]
-      have hrn : rowNm j = "__loop417" := by simp [rowNm, hj64]
+      have hrn : rowNm j = "__loop415" := by simp [rowNm, hj64]
       have k := col_stepW (store := true) hVm hle (by rw [coreProgram_length]; omega)
           (by rw [coreProgram_length]; omega) (by rw [coreProgram_length]; omega) col1_ok row417_ok
           gap418_ok hr' hg' h1 h4 (C1 j hj64)
       simp only [lv, node, c0, c1, dvRowV, dvColV, dvColArgs, hcn, hrn, ← h2, decide_eq_true hj64]
       exact k
     · have hcn : colNm j = "da_verify_column__L0" := by simp [colNm, hj64]
-      have hrn : rowNm j = "__loop419" := by simp [rowNm, hj64]
+      have hrn : rowNm j = "__loop417" := by simp [rowNm, hj64]
       have k := col_stepW (store := false) hVm hle (by rw [coreProgram_length]; omega)
           (by rw [coreProgram_length]; omega) (by rw [coreProgram_length]; omega) col0_ok row419_ok
           gap420_ok hr' hg' h1 h4 (C0 j (by omega) hj)
@@ -526,13 +526,13 @@ theorem da_verify_sound_w (hVm : UnfoldsV rd C Vm) (hle : CallRel.Le C (coreProg
         (digestScalars (keccak256 (cellsBytes (memRun rd run 128)))).1 ∧
       LoadHolds rd (σ (.n 41) * (gen ^ i) ^ 2) 1
         (digestScalars (keccak256 (cellsBytes (memRun rd run 128)))).2 :=
-    loop_sound (f := "__loop23") (ps := [σ (.n 1), σ (.n 13), σ (.n 41)]) (ordG_of (by omega)) h1
+    loop_sound (f := "__loop22") (ps := [σ (.n 1), σ (.n 13), σ (.n 41)]) (ordG_of (by omega)) h1
       (fun y hy => by
         obtain ⟨k1, k2⟩ := l23_step hy
         exact ⟨k1 _ _ _ rfl, k2⟩)
       (fun hne => by simpa using guardK_sound hg23 hall hne)
   have L24 : ∀ d < 2 ^ L - r, GapRowC rd (σ (.n 41)) (σ (.n 1)) (gen ^ d) :=
-    loop_sound (f := "__loop24") (ps := [σ (.n 4), σ (.n 41), σ (.n 1)]) hg' h4
+    loop_sound (f := "__loop23") (ps := [σ (.n 4), σ (.n 41), σ (.n 1)]) hg' h4
       (fun y hy => by
         obtain ⟨k1, k2⟩ := l24_step hy
         exact ⟨k1 _ _ _ rfl, k2⟩)

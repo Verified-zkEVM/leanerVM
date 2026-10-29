@@ -58,17 +58,13 @@ def xmssListDigestWith (claims : List XmssClaim) : m Digest :=
 def sphincsListDigestWith (claims : List SphincsClaim) : m Digest :=
   H (claims.flatMap fun c ↦ claimBytes c.1.root c.1.parameter c.2)
 
-/-- `daListDigest` with the hash `H`. -/
-def daListDigestWith (claims : List DaClaim) : m Digest :=
-  H (claims.flatMap fun c ↦ digestBytes c.daRoot ++ digestBytes c.membershipVectorDigest)
-
 /-- **`statementDigest` with the hash `H`.** -/
 def statementDigestWith (seed : Digest) (s : NodeStatement) : m Digest := do
   let xd ← xmssListDigestWith H s.claims.xmss
   let sd ← sphincsListDigestWith H s.claims.sphincs
-  let dd ← daListDigestWith H s.claims.da
   let cells := s.defer.cells ++ if s.defer.cells.length % 2 = 1 then [0] else []
-  H (digestBytes seed ++ digestBytes xd ++ digestBytes sd ++ digestBytes dd ++ cells.flatMap eBytes)
+  H (digestBytes seed ++ digestBytes xd ++ digestBytes sd ++ digestBytes s.claims.da ++
+    cells.flatMap eBytes)
 
 /-! ### The batching -/
 

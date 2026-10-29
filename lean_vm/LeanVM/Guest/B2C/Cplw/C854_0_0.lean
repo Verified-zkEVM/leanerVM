@@ -16,48 +16,39 @@ namespace LeanVM.Guest.B2C.Cplw
 
 @[expose] public section
 
-/-- `__loop379`, window 0, part 0. -/
+/-- `__loop396`, window 0, part 0. -/
 theorem cw854_0_0 : cplWin 854 0 0 = true := by decide +kernel
 
-/-- `decode_query_bits__L23`, window 0, part 0. -/
+/-- `__loop396`, window 0, part 1. -/
+theorem cw854_0_1 : cplWin 854 0 1 = true := by decide +kernel
+
+/-- `__loop397`, window 0, part 0. -/
 theorem cw855_0_0 : cplWin 855 0 0 = true := by decide +kernel
 
-/-- `__loop380`, window 0, part 0. -/
-theorem cw856_0_0 : cplWin 856 0 0 = true := by decide +kernel
-
-/-- `__loop380`, window 0, part 1. -/
-theorem cw856_0_1 : cplWin 856 0 1 = true := by decide +kernel
+/-- `__loop397`, window 0, part 1. -/
+theorem cw855_0_1 : cplWin 855 0 1 = true := by decide +kernel
 
 theorem ok854 : CplOk 854 := by
   intro i hi k hk
   have hc : (certOf 854).cuts.length = 0 := by decide +kernel
   rw [hc] at hi
   interval_cases i
-  · have hn : nParts 854 0 = 1 := by decide +kernel
+  · have hn : nParts 854 0 = 2 := by decide +kernel
     rw [hn] at hk
     interval_cases k
     · exact cw854_0_0
+    · exact cw854_0_1
 
 theorem ok855 : CplOk 855 := by
   intro i hi k hk
   have hc : (certOf 855).cuts.length = 0 := by decide +kernel
   rw [hc] at hi
   interval_cases i
-  · have hn : nParts 855 0 = 1 := by decide +kernel
+  · have hn : nParts 855 0 = 2 := by decide +kernel
     rw [hn] at hk
     interval_cases k
     · exact cw855_0_0
-
-theorem ok856 : CplOk 856 := by
-  intro i hi k hk
-  have hc : (certOf 856).cuts.length = 0 := by decide +kernel
-  rw [hc] at hi
-  interval_cases i
-  · have hn : nParts 856 0 = 2 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw856_0_0
-    · exact cw856_0_1
+    · exact cw855_0_1
 
 end
 end LeanVM.Guest.B2C.Cplw

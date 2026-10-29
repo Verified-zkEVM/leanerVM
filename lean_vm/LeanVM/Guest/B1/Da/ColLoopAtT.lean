@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.Da.ColLoopAtT
 
-  `da_verify`'s column loops (`__loop20`, `__loop21`) placed, by trees of their honest shape
+  `da_verify`'s column loops (`__loop19`, `__loop20`) placed, by trees of their honest shape
   (`Budget.NodeHonest`): each iteration's node at its counter, its calls (the column, the rest of
   the loop), no `HeapBuf`.
 

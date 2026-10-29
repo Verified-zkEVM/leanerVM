@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.Main.KidCChk
 
-  `__loop5`'s block (a child), evaluated (by kernel evaluation), for its placed completeness.
+  `__loop4`'s block (a child), evaluated (by kernel evaluation), for its placed completeness.
 -/
 
 module
@@ -13,7 +13,7 @@ public import LeanVM.Guest.Memory.Uniform
 /-!
 # A child's block, evaluated
 
-`l5Pre`: `__loop5`'s statements before its tail call (`l5_body`). `l5COk`: the evaluator's pattern
+`l5Pre`: `__loop4`'s statements before its tail call (`l5_body`). `l5COk`: the evaluator's pattern
 (`chk`), the stores (`l5S`: the statement's digest's two cells into `child_pi_table`, the next
 running count), no `KECCAK` of its own, every side condition a load of `written[x]`, a store or a
 range check.
@@ -25,7 +25,7 @@ open LeanVM.Guest.Core LeanVM.Guest.B1.Fwd LeanVM.Guest.B1.Digest
 
 @[expose] public section
 
-/-- `__loop5`'s statements before its tail call. -/
+/-- `__loop4`'s statements before its tail call. -/
 def l5Pre : List Stmt := [
     .atom (.mul (.n 18) (.n 2) (.n 0)),
     .atom (.load (.n 19) (.n 18) 0),
@@ -80,20 +80,20 @@ def l5Pre : List Stmt := [
     .atom (.const (.n 73) (word 2 0 0)),
     .atom (.mul (.n 74) (.n 0) (.n 73))]
 
-/-- `__loop5`'s tail call. -/
+/-- `__loop4`'s tail call. -/
 def l5Tail : Stmt :=
-  .callIf (.n 72) "__loop5" [.n 74, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6, .n 7, .n 8, .n 9, .n 10,
+  .callIf (.n 72) "__loop4" [.n 74, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6, .n 7, .n 8, .n 9, .n 10,
     .n 11, .n 12, .n 13, .n 14, .n 15, .n 16, .n 17]
 
 set_option maxRecDepth 100000 in
-theorem l5_body : Fn.body (coreProgram.getD 37 default) = l5Pre ++ [l5Tail, .ret []] :=
+theorem l5_body : Fn.body (coreProgram.getD 34 default) = l5Pre ++ [l5Tail, .ret []] :=
   stmtsEqb_sound (by decide +kernel)
 
 set_option maxRecDepth 100000 in
-theorem l5_params : (coreProgram.getD 37 default).params = (List.range 18).map V.n := by
+theorem l5_params : (coreProgram.getD 34 default).params = (List.range 18).map V.n := by
   decide +kernel
 
-/-- `__loop5`'s stores. -/
+/-- `__loop4`'s stores. -/
 def l5S : List Atom :=
   [.load (.n 56) (.n 59) 0, .load (.n 57) (.n 60) 1, .load (.n 68) (.n 69) 1]
 
@@ -113,7 +113,7 @@ def l5Calls : List Stmt :=
     .call "statement_digest" [.n 12, .n 13, .n 32, .n 33, .n 35, .n 36, .n 54, .n 55, .n 42]
       [.n 56, .n 57]]
 
-/-- **`__loop5`'s block, evaluated.** -/
+/-- **`__loop4`'s block, evaluated.** -/
 def l5COk : Bool :=
   (chk 18 (l5Pre ++ [l5Tail, .ret []])).isSome &&
   decide (storesOf 18 (l5Pre ++ [l5Tail, .ret []]) = l5S) &&

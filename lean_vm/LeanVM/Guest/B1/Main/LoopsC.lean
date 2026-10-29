@@ -216,9 +216,9 @@ def RawXStepC (C : CallRel) (rd : Reader) (lxs cover lxt x : E) : Prop :=
     C "verify_lean_xmss" [lxt * gen ^ (4 * s)] []
 
 theorem l3_stepC {rd : Reader} {C : CallRel} (hC : Unfolds rd C) (hm : MemOk rd) {x : E} {ps : List E}
-    (h : C "__loop3" (x :: ps) []) :
+    (h : C "__loop2" (x :: ps) []) :
     (∀ N lxs cover lxt, ps = [N, lxs, cover, lxt] → RawXStepC C rd lxs cover lxt x) ∧
-      (x * gen + ps.headD 0 ≠ 0 → C "__loop3" (x * gen :: ps) []) := by
+      (x * gen + ps.headD 0 ≠ 0 → C "__loop2" (x * gen :: ps) []) := by
   have hf := find_of_idx l3_idx (by rw [coreProgram_length]; omega)
   have hok := l3_ok
   simp only [l3Ok, Bool.and_eq_true, decide_eq_true_eq] at hok
@@ -226,7 +226,7 @@ theorem l3_stepC {rd : Reader} {C : CallRel} (hC : Unfolds rd C) (hm : MemOk rd)
   obtain ⟨σ, hx, hps, hall, hnext⟩ := loop_stepC hC hf hshape h
   refine ⟨fun N lxs cover lxt hN => ?_, hnext⟩
   have hat := atoms_of_flat hall
-  have hpar : (coreProgram.getD 35 default).params = [V.n 0, V.n 1, V.n 2, V.n 3, V.n 4] := by
+  have hpar : (coreProgram.getD 32 default).params = [V.n 0, V.n 1, V.n 2, V.n 3, V.n 4] := by
     have hs := hshape
     simp only [loopShapeF, Bool.and_eq_true, decide_eq_true_eq] at hs
     rw [hs.1.2, hlen]; rfl
@@ -251,10 +251,10 @@ def RawSStepC (C : CallRel) (rd : Reader) (lss cover lxs nrx lst bb x : E) : Pro
     C "verify_sig_lean_sphincs" [lst * gen ^ (4 * s), bb] []
 
 theorem l4_stepC {rd : Reader} {C : CallRel} (hC : Unfolds rd C) (hm : MemOk rd) {x : E} {ps : List E}
-    (h : C "__loop4" (x :: ps) []) :
+    (h : C "__loop3" (x :: ps) []) :
     (∀ N lss cover lxs nrx lst bb, ps = [N, lss, cover, lxs, nrx, lst, bb] →
       RawSStepC C rd lss cover lxs nrx lst bb x) ∧
-      (x * gen + ps.headD 0 ≠ 0 → C "__loop4" (x * gen :: ps) []) := by
+      (x * gen + ps.headD 0 ≠ 0 → C "__loop3" (x * gen :: ps) []) := by
   have hf := find_of_idx l4_idx (by rw [coreProgram_length]; omega)
   have hok := l4_ok
   simp only [l4Ok, Bool.and_eq_true, decide_eq_true_eq] at hok
@@ -262,7 +262,7 @@ theorem l4_stepC {rd : Reader} {C : CallRel} (hC : Unfolds rd C) (hm : MemOk rd)
   obtain ⟨σ, hx, hps, hall, hnext⟩ := loop_stepC hC hf hshape h
   refine ⟨fun N lss cover lxs nrx lst bb hN => ?_, hnext⟩
   have hat := atoms_of_flat hall
-  have hpar : (coreProgram.getD 36 default).params =
+  have hpar : (coreProgram.getD 33 default).params =
       [V.n 0, V.n 1, V.n 2, V.n 3, V.n 4, V.n 5, V.n 6, V.n 7] := by
     have hs := hshape
     simp only [loopShapeF, Bool.and_eq_true, decide_eq_true_eq] at hs
@@ -301,13 +301,13 @@ def KidStepC (C : CallRel) (rd : Reader) (written lxt cover lxs lst lss carried 
 
 theorem l5_stepC {rd : Reader} {C : CallRel} (hC : Unfolds rd C)
     (hle : CallRel.Le C (coreProgram.Rel rd)) (hm : MemOk rd) {x : E} {ps : List E}
-    (h : C "__loop5" (x :: ps) []) :
+    (h : C "__loop4" (x :: ps) []) :
     (∀ N written lxt cover lxs lst lss carried roots dcov dslots s0 s1 cpi glp gsq cfresh,
       ps = [N, written, lxt, cover, lxs, lst, lss, carried, roots, dcov, dslots, s0, s1, cpi, glp,
         gsq, cfresh] →
       KidStepC C rd written lxt cover lxs lst lss carried roots dcov dslots s0 s1 cpi glp gsq cfresh
         x) ∧
-      (x * gen + ps.headD 0 ≠ 0 → C "__loop5" (x * gen :: ps) []) := by
+      (x * gen + ps.headD 0 ≠ 0 → C "__loop4" (x * gen :: ps) []) := by
   have hf := find_of_idx l5_idx (by rw [coreProgram_length]; omega)
   have hok := l5_ok
   simp only [l5Ok, Bool.and_eq_true, decide_eq_true_eq] at hok
@@ -318,7 +318,7 @@ theorem l5_stepC {rd : Reader} {C : CallRel} (hC : Unfolds rd C)
   refine ⟨fun N written lxt cover lxs lst lss carried roots dcov dslots s0 s1 cpi glp gsq cfresh hN
     => ?_, hnext⟩
   have hat := atoms_of_flat hall
-  have hpar : (coreProgram.getD 37 default).params = (List.range 18).map V.n := by
+  have hpar : (coreProgram.getD 34 default).params = (List.range 18).map V.n := by
     have hs := hshape
     simp only [loopShapeF, Bool.and_eq_true, decide_eq_true_eq] at hs
     rw [hs.1.2, hlen]

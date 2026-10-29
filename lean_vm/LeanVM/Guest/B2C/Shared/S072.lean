@@ -28,11 +28,11 @@ set_option maxRecDepth 100000 in
 theorem w29_9 : shareWin 29 (snapsOf 29) 9 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `da_list_digest`, once. -/
+/-- `aggregate_claims`, once. -/
 theorem st30 : shareStatic 30 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `da_list_digest`, window 0. -/
+/-- `aggregate_claims`, window 0. -/
 theorem w30_0 : shareWin 30 (snapsOf 30) 0 = true := by decide +kernel
 
 theorem ok30 : ShareOk 30 := ⟨st30, fun i hi ↦ by
@@ -41,11 +41,11 @@ theorem ok30 : ShareOk 30 := ⟨st30, fun i hi ↦ by
   exact w30_0⟩
 
 set_option maxRecDepth 100000 in
-/-- `cover_da_root`, once. -/
+/-- `__loop0`, once. -/
 theorem st31 : shareStatic 31 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `cover_da_root`, window 0. -/
+/-- `__loop0`, window 0. -/
 theorem w31_0 : shareWin 31 (snapsOf 31) 0 = true := by decide +kernel
 
 theorem ok31 : ShareOk 31 := ⟨st31, fun i hi ↦ by
@@ -54,11 +54,11 @@ theorem ok31 : ShareOk 31 := ⟨st31, fun i hi ↦ by
   exact w31_0⟩
 
 set_option maxRecDepth 100000 in
-/-- `aggregate_claims`, once. -/
+/-- `__loop1`, once. -/
 theorem st32 : shareStatic 32 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `aggregate_claims`, window 0. -/
+/-- `__loop1`, window 0. -/
 theorem w32_0 : shareWin 32 (snapsOf 32) 0 = true := by decide +kernel
 
 theorem ok32 : ShareOk 32 := ⟨st32, fun i hi ↦ by
@@ -67,11 +67,11 @@ theorem ok32 : ShareOk 32 := ⟨st32, fun i hi ↦ by
   exact w32_0⟩
 
 set_option maxRecDepth 100000 in
-/-- `__loop0`, once. -/
+/-- `__loop2`, once. -/
 theorem st33 : shareStatic 33 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `__loop0`, window 0. -/
+/-- `__loop2`, window 0. -/
 theorem w33_0 : shareWin 33 (snapsOf 33) 0 = true := by decide +kernel
 
 theorem ok33 : ShareOk 33 := ⟨st33, fun i hi ↦ by
@@ -80,11 +80,11 @@ theorem ok33 : ShareOk 33 := ⟨st33, fun i hi ↦ by
   exact w33_0⟩
 
 set_option maxRecDepth 100000 in
-/-- `__loop1`, once. -/
+/-- `__loop3`, once. -/
 theorem st34 : shareStatic 34 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `__loop1`, window 0. -/
+/-- `__loop3`, window 0. -/
 theorem w34_0 : shareWin 34 (snapsOf 34) 0 = true := by decide +kernel
 
 theorem ok34 : ShareOk 34 := ⟨st34, fun i hi ↦ by

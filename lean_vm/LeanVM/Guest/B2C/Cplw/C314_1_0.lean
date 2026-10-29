@@ -16,14 +16,17 @@ namespace LeanVM.Guest.B2C.Cplw
 
 @[expose] public section
 
-/-- `open_stacked__L18`, window 1, part 0. -/
+/-- `open_stacked__L21`, window 1, part 0. -/
 theorem cw314_1_0 : cplWin 314 1 0 = true := by decide +kernel
 
-/-- `open_stacked__L18`, window 2, part 0. -/
+/-- `open_stacked__L21`, window 2, part 0. -/
 theorem cw314_2_0 : cplWin 314 2 0 = true := by decide +kernel
 
-/-- `open_stacked__L18`, window 3, part 0. -/
+/-- `open_stacked__L21`, window 3, part 0. -/
 theorem cw314_3_0 : cplWin 314 3 0 = true := by decide +kernel
+
+/-- `open_stacked__L22`, window 0, part 0. -/
+theorem cw315_0_0 : cplWin 315 0 0 = true := by decide +kernel
 
 end
 end LeanVM.Guest.B2C.Cplw

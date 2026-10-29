@@ -19,7 +19,7 @@ claim on the committed column: the target `Σ_i g^i Φ(s_i)` and the weight
 | function | G | meaning |
 | --- | --- | --- |
 | `ring_map` (inline) | 2948-2955 | `phiMap` (V:2103): six stages `a ↦ a + f_p·a^(2^shift)` |
-| `ring_switch_target` | 2958-2974 | `polyEval (s.map (phiMap · challenges)) g` (V:2128), eight rows a loop iteration (`__loop14`) |
+| `ring_switch_target` | 2958-2974 | `polyEval (s.map (phiMap · challenges)) g` (V:2128), eight rows a loop iteration (`__loop13`) |
 | `ring_switch_weight` | 2977-2986 | `ringWeight point (1 + point1) c_table` (V:2109), the products by `rs_eq_run` |
 
 `verify_sub` builds `c_table` (G:3290-3297): `ringCoefficients challenges` (V:2117).

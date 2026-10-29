@@ -16,7 +16,7 @@ public import LeanVM.Guest.Budget.Weighs
 # `verify_tables` within its weights
 
 For weights `ω i` (one per index `i`, an opcode's instructions per frame): `vtKidW ω Wss W10`, a
-callee's tree, if `shared_selector_tables`', within `Wss i`, if `__loop10`'s, within `W10 i`, on
+callee's tree, if `shared_selector_tables`', within `Wss i`, if `__loop9`'s, within `W10 i`, on
 every valid run (`Budget.WeighsLe`). `verify_tables_completeAtTBW`: `verify_tables_completeAtTB` by
 a node of honest shape (`Budget.NodeHonest`) whose entered callees are `vtKidW`, the shared tables'
 within `Wss` on every run length `g^n`, `n < 64`, the rounds loop `K10w` an iteration
@@ -38,7 +38,7 @@ open LeanVM.Protocol.Verifier (gen)
 rounds loop's within `W10 i`, on every valid run. -/
 def vtKidW {ι : Type} (ω : ι → String → ℕ) (Wss W10 : ι → ℕ) (t : Tree) : Prop :=
   ∀ i, (t.name = "shared_selector_tables" → Budget.WeighsLe coreProgram (ω i) (Wss i) t) ∧
-    (t.name = "__loop10" → Budget.WeighsLe coreProgram (ω i) (W10 i) t)
+    (t.name = "__loop9" → Budget.WeighsLe coreProgram (ω i) (W10 i) t)
 
 variable {fs : String → ℕ} {cert : String → V → ℕ}
 
@@ -48,16 +48,16 @@ set_option maxHeartbeats 4000000 in
 callees are within their weights.** -/
 theorem verify_tables_completeAtTBW {κ : ℕ} (hκ : 8 ≤ κ) {H : VtHonest} (h : H.Ok)
     (hs : VtShape H) (B : VtBases) (Kf : String → ℕ) (Ksh K10 : ℕ)
-    (hKf : ∀ g ∈ vtKidS, g ≠ "__loop10" → g ≠ "__loop9" → g ≠ "shared_selector_tables" →
+    (hKf : ∀ g ∈ vtKidS, g ≠ "__loop9" → g ≠ "__loop8" → g ≠ "shared_selector_tables" →
       TotalLe coreProgram fs g (fun _ ↦ Kf g))
     (hsh : TotalLeOn coreProgram fs "shared_selector_tables"
       (fun a ↦ ∃ n < 64, a.getD 5 0 = gen ^ n) (fun _ ↦ Ksh))
-    (h10 : TotalLeOn coreProgram fs "__loop10" LoopPre (fun a ↦ logG (a.getD 1 0) * K10))
+    (h10 : TotalLeOn coreProgram fs "__loop9" LoopPre (fun a ↦ logG (a.getD 1 0) * K10))
     {ι : Type} (ω : ι → String → ℕ) (Wss K10w : ι → ℕ)
     (hssw : ∀ i (rd : Reader) (t : Tree) (args rets : List E), t.name = "shared_selector_tables" →
       (∃ n < 64, args.getD 5 0 = gen ^ n) → t.Valid coreProgram rd args rets →
       t.BufsOk coreProgram → t.weight (ω i) ≤ Wss i)
-    (h10w : ∀ i, Budget.LoopW (ω i) "__loop10" (K10w i)) :
+    (h10w : ∀ i, Budget.LoopW (ω i) "__loop9" (K10w i)) :
     CompleteAtDTB fs cert κ "verify_tables" (H.linL B) (H.args B) (Returns (H.retsH B))
       (Budget.NodeHonest coreProgram "verify_tables" (fun σ ↦ ∀ s ∈ vtPre, DispOk σ s)
         (flatCalls vtPre) (fun _ ↦ H.sizes) (List.replicate 116 (vtKidW ω Wss fun i ↦ 28 * K10w i)))
@@ -299,7 +299,7 @@ theorem verify_tables_completeAtTBW {κ : ℕ} (hκ : 8 ≤ κ) {H : VtHonest} (
 /-- **A call's weight bound by its callee**: the shared tables' `Wss`, the rounds loop's `W10`, the
 others' `Kw`. -/
 def vtCallW (Kw : String → ℕ) (Wss W10 : ℕ) (f : String) : ℕ :=
-  if f = "shared_selector_tables" then Wss else if f = "__loop10" then W10 else Kw f
+  if f = "shared_selector_tables" then Wss else if f = "__loop9" then W10 else Kw f
 
 /-- **The entered calls of a flat body weigh at most** the bounds of their statements. -/
 theorem callsW_flatCalls_le {σ : Val} (W : Call → ℕ) (bnd : Stmt → ℕ) : ∀ (pre : List Stmt),
@@ -325,7 +325,7 @@ set_option maxHeartbeats 1000000 in
 /-- **`verify_tables`' node of honest shape weighs at most** its frame's weight and its calls'
 bounds: the shared tables' `Wss i`, the rounds loop's `28 · K10w i`, the others' `Kw i`. -/
 theorem vt_weight_le {ι : Type} (ω : ι → String → ℕ) (Kw : ι → String → ℕ) (Wss K10w : ι → ℕ)
-    (hKw : ∀ i, ∀ g ∈ vtKidS, g ≠ "__loop10" → g ≠ "__loop9" → g ≠ "shared_selector_tables" →
+    (hKw : ∀ i, ∀ g ∈ vtKidS, g ≠ "__loop9" → g ≠ "__loop8" → g ≠ "shared_selector_tables" →
       WeightLe coreProgram (ω i) g (fun _ ↦ Kw i g))
     {sizes : List ℕ} {t : Tree} {rd : Reader} {args rets : List E}
     (h : Budget.NodeHonest coreProgram "verify_tables" (fun σ ↦ ∀ s ∈ vtPre, DispOk σ s)
@@ -353,7 +353,7 @@ theorem vt_weight_le {ι : Type} (ω : ι → String → ℕ) (Kw : ι → Strin
     split
     · exact (hT i).2 (by rwa [hn]) rd _ _ hv' hb'
     rename_i hsh h10
-    have hf : ∀ g, (Main.mkCall σ' tup).f = g → g ∈ vtKidS ∧ g ≠ "__loop9" := by
+    have hf : ∀ g, (Main.mkCall σ' tup).f = g → g ∈ vtKidS ∧ g ≠ "__loop8" := by
       intro g hg
       cases s with
       | call f a rr =>
@@ -420,18 +420,18 @@ theorem vt_weight_le {ι : Type} (ω : ι → String → ℕ) (Kw : ι → Strin
 `ω i "verify_tables" + (vtBs (Kw i) (Wss i) (28 · K10w i)).sum` at each `ω i`. -/
 theorem verify_tables_completeAtTBW' {κ : ℕ} (hκ : 8 ≤ κ) {H : VtHonest} (h : H.Ok)
     (hs : VtShape H) (B : VtBases) (Kf : String → ℕ) (Ksh K10 : ℕ)
-    (hKf : ∀ g ∈ vtKidS, g ≠ "__loop10" → g ≠ "__loop9" → g ≠ "shared_selector_tables" →
+    (hKf : ∀ g ∈ vtKidS, g ≠ "__loop9" → g ≠ "__loop8" → g ≠ "shared_selector_tables" →
       TotalLe coreProgram fs g (fun _ ↦ Kf g))
     (hsh : TotalLeOn coreProgram fs "shared_selector_tables"
       (fun a ↦ ∃ n < 64, a.getD 5 0 = gen ^ n) (fun _ ↦ Ksh))
-    (h10 : TotalLeOn coreProgram fs "__loop10" LoopPre (fun a ↦ logG (a.getD 1 0) * K10))
+    (h10 : TotalLeOn coreProgram fs "__loop9" LoopPre (fun a ↦ logG (a.getD 1 0) * K10))
     {ι : Type} (ω : ι → String → ℕ) (Kw : ι → String → ℕ) (Wss K10w : ι → ℕ)
-    (hKw : ∀ i, ∀ g ∈ vtKidS, g ≠ "__loop10" → g ≠ "__loop9" → g ≠ "shared_selector_tables" →
+    (hKw : ∀ i, ∀ g ∈ vtKidS, g ≠ "__loop9" → g ≠ "__loop8" → g ≠ "shared_selector_tables" →
       WeightLe coreProgram (ω i) g (fun _ ↦ Kw i g))
     (hssw : ∀ i (rd : Reader) (t : Tree) (args rets : List E), t.name = "shared_selector_tables" →
       (∃ n < 64, args.getD 5 0 = gen ^ n) → t.Valid coreProgram rd args rets →
       t.BufsOk coreProgram → t.weight (ω i) ≤ Wss i)
-    (h10w : ∀ i, Budget.LoopW (ω i) "__loop10" (K10w i)) :
+    (h10w : ∀ i, Budget.LoopW (ω i) "__loop9" (K10w i)) :
     CompleteAtDTB fs cert κ "verify_tables" (H.linL B) (H.args B) (Returns (H.retsH B))
       (fun t ↦ ∀ i, Budget.WeighsLe coreProgram (ω i)
         (ω i "verify_tables" + (vtBs (Kw i) (Wss i) (28 * K10w i)).sum) t)

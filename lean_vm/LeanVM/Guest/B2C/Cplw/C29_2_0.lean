@@ -25,19 +25,19 @@ theorem cw29_3_0 : cplWin 29 3 0 = true := by decide +kernel
 /-- `da_vector_cell`, window 4, part 0. -/
 theorem cw29_4_0 : cplWin 29 4 0 = true := by decide +kernel
 
-/-- `da_list_digest`, window 0, part 0. -/
+/-- `aggregate_claims`, window 0, part 0. -/
 theorem cw30_0_0 : cplWin 30 0 0 = true := by decide +kernel
 
-/-- `cover_da_root`, window 0, part 0. -/
+/-- `__loop0`, window 0, part 0. -/
 theorem cw31_0_0 : cplWin 31 0 0 = true := by decide +kernel
 
-/-- `aggregate_claims`, window 0, part 0. -/
+/-- `__loop1`, window 0, part 0. -/
 theorem cw32_0_0 : cplWin 32 0 0 = true := by decide +kernel
 
-/-- `__loop0`, window 0, part 0. -/
+/-- `__loop2`, window 0, part 0. -/
 theorem cw33_0_0 : cplWin 33 0 0 = true := by decide +kernel
 
-/-- `__loop1`, window 0, part 0. -/
+/-- `__loop3`, window 0, part 0. -/
 theorem cw34_0_0 : cplWin 34 0 0 = true := by decide +kernel
 
 theorem ok30 : CplOk 30 := by

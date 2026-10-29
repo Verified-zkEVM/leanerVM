@@ -16,28 +16,28 @@ namespace LeanVM.Guest.B2C.Cplw
 
 @[expose] public section
 
-/-- `__loop9`, window 0, part 0. -/
+/-- `sel_partial_nibble__L2`, window 0, part 0. -/
 theorem cw83_0_0 : cplWin 83 0 0 = true := by decide +kernel
 
-/-- `sel_partial_nibble__L0`, window 0, part 0. -/
+/-- `sel_partial_nibble__L3`, window 0, part 0. -/
 theorem cw84_0_0 : cplWin 84 0 0 = true := by decide +kernel
 
-/-- `sel_partial_nibble__L1`, window 0, part 0. -/
+/-- `padding_weight__L0`, window 0, part 0. -/
 theorem cw85_0_0 : cplWin 85 0 0 = true := by decide +kernel
 
-/-- `sel_partial_nibble__L2`, window 0, part 0. -/
+/-- `padding_weight__L1`, window 0, part 0. -/
 theorem cw86_0_0 : cplWin 86 0 0 = true := by decide +kernel
 
-/-- `sel_partial_nibble__L3`, window 0, part 0. -/
+/-- `padding_weight__L2`, window 0, part 0. -/
 theorem cw87_0_0 : cplWin 87 0 0 = true := by decide +kernel
 
-/-- `padding_weight__L0`, window 0, part 0. -/
+/-- `padding_weight__L3`, window 0, part 0. -/
 theorem cw88_0_0 : cplWin 88 0 0 = true := by decide +kernel
 
-/-- `padding_weight__L1`, window 0, part 0. -/
+/-- `padding_weight__L4`, window 0, part 0. -/
 theorem cw89_0_0 : cplWin 89 0 0 = true := by decide +kernel
 
-/-- `padding_weight__L2`, window 0, part 0. -/
+/-- `padding_weight__L5`, window 0, part 0. -/
 theorem cw90_0_0 : cplWin 90 0 0 = true := by decide +kernel
 
 theorem ok83 : CplOk 83 := by

@@ -60,10 +60,10 @@ theorem mPre_calls : mPre.filterMap Main.Stmt.callS =
       (none, "da_list_digest", [.n 69, .n 40], [.n 73, .n 74]),
       (none, "claim_list_digest", [.n 77, .n 0], [.n 81, .n 82]),
       (none, "claim_list_digest", [.n 80, .n 3], [.n 83, .n 84]),
-      (some (.n 86), "__loop1", [.n 87, .n 1, .n 77, .n 0], []),
-      (some (.n 89), "__loop2", [.n 90, .n 4, .n 80, .n 3], []),
-      (some (.n 357), "__loop3", [.n 358, .n 2, .n 55, .n 97, .n 77], []),
-      (some (.n 360), "__loop4", [.n 361, .n 5, .n 56, .n 97, .n 55, .n 2, .n 80, .n 99], [])] := by
+      (some (.n 86), "__loop0", [.n 87, .n 1, .n 77, .n 0], []),
+      (some (.n 89), "__loop1", [.n 90, .n 4, .n 80, .n 3], []),
+      (some (.n 357), "__loop2", [.n 358, .n 2, .n 55, .n 97, .n 77], []),
+      (some (.n 360), "__loop3", [.n 361, .n 5, .n 56, .n 97, .n 55, .n 2, .n 80, .n 99], [])] := by
   decide +kernel
 
 set_option maxRecDepth 100000 in
@@ -74,7 +74,7 @@ theorem mDa_calls : mDa.filterMap Main.Stmt.callS =
 
 set_option maxRecDepth 100000 in
 theorem mMid_calls : mMid.filterMap Main.Stmt.callS =
-    [(some (.n 393), "__loop5", [.n 394, .n 6, .n 389, .n 77, .n 97, .n 55, .n 80, .n 56, .n 386, .n 69,
+    [(some (.n 393), "__loop4", [.n 394, .n 6, .n 389, .n 77, .n 97, .n 55, .n 80, .n 56, .n 386, .n 69,
       .n 98, .n 50, .n 63, .n 64, .n 374, .n 65, .n 66, .n 380], [])] := by decide +kernel
 
 set_option maxRecDepth 100000 in

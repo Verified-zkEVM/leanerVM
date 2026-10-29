@@ -16,36 +16,36 @@ namespace LeanVM.Guest.B2C.Shared
 @[expose] public section
 
 set_option maxRecDepth 100000 in
-/-- `keccak_layer__L0_L0`, window 1. -/
-theorem w257_1 : shareWin 257 (snapsOf 257) 1 = true := by decide +kernel
-
-set_option maxRecDepth 100000 in
-/-- `keccak_layer__L0_L0`, window 2. -/
-theorem w257_2 : shareWin 257 (snapsOf 257) 2 = true := by decide +kernel
-
-set_option maxRecDepth 100000 in
-/-- `keccak_layer__L0_L0`, window 3. -/
-theorem w257_3 : shareWin 257 (snapsOf 257) 3 = true := by decide +kernel
-
-set_option maxRecDepth 100000 in
 /-- `keccak_layer__L0_L0`, window 4. -/
-theorem w257_4 : shareWin 257 (snapsOf 257) 4 = true := by decide +kernel
+theorem w254_4 : shareWin 254 (snapsOf 254) 4 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
 /-- `keccak_layer__L0_L0`, window 5. -/
-theorem w257_5 : shareWin 257 (snapsOf 257) 5 = true := by decide +kernel
+theorem w254_5 : shareWin 254 (snapsOf 254) 5 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
 /-- `keccak_layer__L0_L0`, window 6. -/
-theorem w257_6 : shareWin 257 (snapsOf 257) 6 = true := by decide +kernel
+theorem w254_6 : shareWin 254 (snapsOf 254) 6 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
 /-- `keccak_layer__L0_L0`, window 7. -/
-theorem w257_7 : shareWin 257 (snapsOf 257) 7 = true := by decide +kernel
+theorem w254_7 : shareWin 254 (snapsOf 254) 7 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
 /-- `keccak_layer__L0_L1`, once. -/
-theorem st258 : shareStatic 258 = true := by decide +kernel
+theorem st255 : shareStatic 255 = true := by decide +kernel
+
+set_option maxRecDepth 100000 in
+/-- `keccak_layer__L0_L1`, window 0. -/
+theorem w255_0 : shareWin 255 (snapsOf 255) 0 = true := by decide +kernel
+
+set_option maxRecDepth 100000 in
+/-- `keccak_layer__L0_L1`, window 1. -/
+theorem w255_1 : shareWin 255 (snapsOf 255) 1 = true := by decide +kernel
+
+set_option maxRecDepth 100000 in
+/-- `keccak_layer__L0_L1`, window 2. -/
+theorem w255_2 : shareWin 255 (snapsOf 255) 2 = true := by decide +kernel
 
 end
 end LeanVM.Guest.B2C.Shared

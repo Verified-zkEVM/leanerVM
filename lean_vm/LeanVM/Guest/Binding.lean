@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.Binding
 
-  The statement's digest binds the seed and the statement, unless one of four named pairs of
+  The statement's digest binds the seed and the statement, unless one of three named pairs of
   byte strings is a Keccak-256 collision.
 -/
 
@@ -21,11 +21,11 @@ public import LeanVM.Protocol.KeccakHash
 /-!
 # The statement's digest binds
 
-`statementDigest seed s` hashes the seed, the two claim lists' digests, the DA list's digest and
-the deferred claim's cells, an odd count paired with a zero cell (`statement_digest`,
-`crates/rec_aggregation/src/aggregation.rs:335-364` at leanVM `990b9352`). Every encoding on the
-way is injective at a fixed width (`digestBytes`, 32 bytes; `claimBytes`, 64; `eBytes`, 24; a DA
-claim, 64). So two statements with the same digest are equal, or one of the four Keccak-256
+`statementDigest seed s` hashes the seed, the two claim lists' digests, the DA digest and the
+deferred claim's cells, an odd count paired with a zero cell (`statement_digest`,
+`crates/rec_aggregation/src/aggregation.rs:331-360` at leanVM `93ebecc`). Every encoding on the
+way is injective at a fixed width (`digestBytes`, 32 bytes; `claimBytes`, 64; `eBytes`, 24). So
+two statements with the same digest are equal, or one of the three Keccak-256
 hashes on the way was given two different inputs with the same output: the pairs
 `collisionCandidates` lists (`statementDigest_binds`, and `digest_binds : DigestBinds`).
 
@@ -57,8 +57,6 @@ theorem xmssListDigest_eq (claims : List XmssClaim) :
 theorem sphincsListDigest_eq (claims : List SphincsClaim) :
     claimListDigest claims = keccak256 (claimsPreimage claims) := rfl
 
-theorem daListDigest_eq (claims : List DaClaim) :
-    daListDigest claims = keccak256 (daPreimage claims) := rfl
 
 /-! ## Fixed-width encodings are injective -/
 
@@ -141,16 +139,6 @@ theorem sphincsPreimage_inj {l l' : List SphincsClaim}
       obtain ⟨rfl, rfl, rfl⟩ := claimBytes_inj h
       rfl) h
 
-theorem daPreimage_inj {l l' : List DaClaim} (h : daPreimage l = daPreimage l') : l = l' :=
-  flatMap_inj (n := 64) (by decide)
-    (fun _ ↦ by rw [List.length_append, digestBytes_length, digestBytes_length])
-    (fun ⟨r, v⟩ ⟨r', v'⟩ h ↦ by
-      obtain ⟨h1, h2⟩ := List.append_inj h (by rw [digestBytes_length, digestBytes_length])
-      have e1 : r = r' := digestBytes_injective h1
-      have e2 : v = v' := digestBytes_injective h2
-      subst e1 e2
-      rfl) h
-
 /-- Two deferred claims with the same cells and points of the same length are equal. -/
 theorem cells_inj {c c' : DeferredClaim}
     (hb : c.bytecodePoint.length = c'.bytecodePoint.length) (h : c.cells = c'.cells) : c = c' := by
@@ -162,14 +150,14 @@ theorem cells_inj {c c' : DeferredClaim}
   subst h1 h2
   rfl
 
-/-- The outer preimage determines the seed, the three nested digests and, at a fixed point
-length, the deferred claim. -/
+/-- The outer preimage determines the seed, the two claim lists' digests, the DA digest and, at a
+fixed point length, the deferred claim. -/
 theorem statementPreimage_inj {seed seed' : Digest} {s s' : NodeStatement}
     (hb : s.defer.bytecodePoint.length = s'.defer.bytecodePoint.length)
     (h : statementPreimage seed s = statementPreimage seed' s') :
     seed = seed' ∧ claimListDigest s.claims.xmss = claimListDigest s'.claims.xmss ∧
       claimListDigest s.claims.sphincs = claimListDigest s'.claims.sphincs ∧
-      daListDigest s.claims.da = daListDigest s'.claims.da ∧ s.defer = s'.defer := by
+      s.claims.da = s'.claims.da ∧ s.defer = s'.defer := by
   have hc : s.defer.cells.length = s'.defer.cells.length := by
     simp [DeferredClaim.cells, hb]
   unfold statementPreimage at h
@@ -204,19 +192,14 @@ theorem statementDigest_binds_of_length {seed seed' : Digest} {s s' : NodeStatem
   swap
   · exact Or.inr ⟨(claimsPreimage s.claims.sphincs, claimsPreimage s'.claims.sphincs),
       by simp [collisionCandidates], h3, hp⟩
-  by_cases h4 : daPreimage s.claims.da = daPreimage s'.claims.da
-  swap
-  · exact Or.inr ⟨(daPreimage s.claims.da, daPreimage s'.claims.da),
-      by simp [collisionCandidates], h4, hda⟩
   left
   refine ⟨hseed, ?_⟩
   have e1 := xmssPreimage_inj h2
   have e2 := sphincsPreimage_inj h3
-  have e3 := daPreimage_inj h4
   obtain ⟨⟨x, p, d⟩, c⟩ := s
   obtain ⟨⟨x', p', d'⟩, c'⟩ := s'
-  dsimp only at e1 e2 e3 hdef
-  subst e1 e2 e3 hdef
+  dsimp only at e1 e2 hda hdef
+  subst e1 e2 hda hdef
   rfl
 
 /-- **The statement's digest binds the seed and the statement**, for two statements whose

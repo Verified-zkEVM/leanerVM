@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.Gkr.VbgB
 
-  `verify_bus_gkr`'s callee `__loop7` within its words on the honest buffers.
+  `verify_bus_gkr`'s callee `__loop6` within its words on the honest buffers.
 -/
 
 module
@@ -13,12 +13,12 @@ public import LeanVM.Guest.B1.Tables.FlatLiftT
 /-!
 # `verify_bus_gkr`'s callees, within their words
 
-* `vbg_ly7Mem`: on the honest buffers (`vbgLay`), `__loop7`'s bounds' words (`Ly7Mem`): the
+* `vbg_ly7Mem`: on the honest buffers (`vbgLay`), `__loop6`'s bounds' words (`Ly7Mem`): the
   `depth_shift` word `g^(depth % 2)`, each slot's `half` and `parity`.
-* `vbg_loop7_total`: there, a valid tree of `__loop7` from `1` below `g^(depth/2)` has at most
+* `vbg_loop7_total`: there, a valid tree of `__loop6` from `1` below `g^(depth/2)` has at most
   `ly7Total` words.
 * `verify_bus_gkr_completeAtTB`: `verify_bus_gkr` placed within `vbgBound`: its frame, its
-  buffers, `__loop7`'s chain and `__loop8`'s words (`depth · K8`), and the frames of its two
+  buffers, `__loop6`'s chain and `__loop7`'s words (`depth · K8`), and the frames of its two
   conditional calls (`flat_completeAtTB`).
 -/
 
@@ -32,7 +32,7 @@ open LeanVM.Guest.B1.Main (MemL RegionL)
 
 variable {fs : String → ℕ}
 
-/-- **`__loop7`'s bounds' words on the honest buffers.** -/
+/-- **`__loop6`'s bounds' words on the honest buffers.** -/
 theorem vbg_ly7Mem {depth : ℕ} (hd : depth ≤ 32) {cap0 xs : List E} {r : E × List E × List E} {cap' : List E}
     (hrun : RunsTo (gkrPhase depth) ⟨cap0, []⟩ xs r ⟨cap', []⟩)
     (hc : ∃ sp, (⟨cap0, []⟩ : Fs).Carries sp) {ec eL eR eP ePa eD : ℕ} {rd : Reader}
@@ -64,21 +64,21 @@ theorem vbg_ly7Mem {depth : ℕ} (hd : depth ≤ 32) {cap0 xs : List E} {r : E �
         (hmS _ (List.mem_map.mpr ⟨j, List.mem_range.mpr (by omega), rfl⟩))
     exact ⟨hhalf, hpar⟩
 
-/-- `__loop7`'s words from `1` below `g^(depth/2)`: the iterations' bounds and the last tail's
+/-- `__loop6`'s words from `1` below `g^(depth/2)`: the iterations' bounds and the last tail's
 frame. -/
 def ly7Total (fs : String → ℕ) (K29 R depth : ℕ) : ℕ :=
-  Budget.iterSum (ly7B fs K29 R (depth % 2)) 0 (depth / 2) + fs "__loop7"
+  Budget.iterSum (ly7B fs K29 R (depth % 2)) 0 (depth / 2) + fs "__loop6"
 
-/-- **`__loop7`'s words on the honest buffers.** -/
+/-- **`__loop6`'s words on the honest buffers.** -/
 theorem vbg_loop7_total {depth : ℕ} (hd : depth ≤ 32) {cap0 xs : List E}
     {r : E × List E × List E} {cap' : List E}
     (hrun : RunsTo (gkrPhase depth) ⟨cap0, []⟩ xs r ⟨cap', []⟩)
     (hc : ∃ sp, (⟨cap0, []⟩ : Fs).Carries sp) {ec eL eR eP ePa eD : ℕ} {rd : Reader}
     (hm : MemLay rd (vbgLay depth cap0 xs (ofK (gpow ec)) eL eR eP ePa eD)) {K29 R : ℕ}
-    (h29 : TotalLeOn coreProgram fs "__loop29" LoopPre (fun a ↦ logG (a.getD 1 0) * K29))
+    (h29 : TotalLeOn coreProgram fs "__loop27" LoopPre (fun a ↦ logG (a.getD 1 0) * K29))
     (hR1 : TotalLe coreProgram fs "gkr_rounds__L1" (fun _ ↦ R))
     (hR2 : TotalLe coreProgram fs "gkr_rounds__L2" (fun _ ↦ R))
-    (hm0 : 0 < depth / 2) {t : Tree} {rets : List E} (hn : t.name = "__loop7")
+    (hm0 : 0 < depth / 2) {t : Tree} {rets : List E} (hn : t.name = "__loop6")
     (hv : t.Valid coreProgram rd [1, gen ^ (depth / 2), ofK (gpow eD), gen ^ depth,
       ofK (gpow eL), ofK (gpow eR)] rets) (hb : t.BufsOk coreProgram) :
     t.total fs ≤ ly7Total fs K29 R depth := by
@@ -90,13 +90,13 @@ theorem vbg_loop7_total {depth : ℕ} (hd : depth ≤ 32) {cap0 xs : List E}
 theorem vbg_noDisp : vbgPre.all noDispB = true := by decide +kernel
 
 theorem vbg_callS : vbgPre.filterMap Main.Stmt.callS =
-    [(some (.n 303), "__loop7", [.n 304, .n 306, .n 57, .n 6, .n 15, .n 16], []),
-      (some (.n 316), "__loop8", [.n 317, .n 6, .n 7, .n 314], [])] := by decide +kernel
+    [(some (.n 303), "__loop6", [.n 304, .n 306, .n 57, .n 6, .n 15, .n 16], []),
+      (some (.n 316), "__loop7", [.n 317, .n 6, .n 7, .n 314], [])] := by decide +kernel
 
-/-- `verify_bus_gkr`'s frames: `__loop7`'s, then `__loop8`'s. -/
+/-- `verify_bus_gkr`'s frames: `__loop6`'s, then `__loop7`'s. -/
 theorem vbg_flatCalls (σ : Val) : flatCalls vbgPre σ =
-    [⟨"__loop7", [.n 304, .n 306, .n 57, .n 6, .n 15, .n 16], [], decide (σ (.n 303) ≠ 0)⟩,
-      ⟨"__loop8", [.n 317, .n 6, .n 7, .n 314], [], decide (σ (.n 316) ≠ 0)⟩] := by
+    [⟨"__loop6", [.n 304, .n 306, .n 57, .n 6, .n 15, .n 16], [], decide (σ (.n 303) ≠ 0)⟩,
+      ⟨"__loop7", [.n 317, .n 6, .n 7, .n 314], [], decide (σ (.n 316) ≠ 0)⟩] := by
   have e : vbgPre.filterMap (Stmt.callSF σ) = vbgPre.filterMap Main.Stmt.callS := by
     refine List.filterMap_congr fun s hs ↦ ?_
     have := List.all_eq_true.mp vbg_noDisp s hs
@@ -105,7 +105,7 @@ theorem vbg_flatCalls (σ : Val) : flatCalls vbgPre σ =
   rw [e, vbg_callS]
   rfl
 
-/-- `verify_bus_gkr`'s words: its frame, its buffers, `__loop7`'s chain, `__loop8`'s `depth`
+/-- `verify_bus_gkr`'s words: its frame, its buffers, `__loop6`'s chain, `__loop7`'s `depth`
 iterations of at most `K8` words, and the frames of its two conditional calls. -/
 def vbgBound (fs : String → ℕ) (K29 R K8 depth : ℕ) : ℕ :=
   fs "verify_bus_gkr" + (vbgSizes depth).sum +
@@ -115,16 +115,16 @@ variable {cert : String → V → ℕ}
 
 set_option maxHeartbeats 1000000 in
 /-- **`verify_bus_gkr` is complete, placed, within `vbgBound` words** (TRIAGE G #43), given the
-words of `__loop29` (linear in its end's exponent, `K29`), of the rounds (`R`) and of `__loop8`
+words of `__loop27` (linear in its end's exponent, `K29`), of the rounds (`R`) and of `__loop7`
 (linear in its end's exponent, `K8`), on every reader. -/
 theorem verify_bus_gkr_completeAtTB {κ depth : ℕ} (hd1 : 1 ≤ depth) (hd : depth ≤ 32)
     (hκ : 6 ≤ κ) {cap0 xs : List E} {r : E × List E × List E} {cap' : List E}
     (hrun : RunsTo (gkrPhase depth) ⟨cap0, []⟩ xs r ⟨cap', []⟩)
     (hc : ∃ sp, (⟨cap0, []⟩ : Fs).Carries sp) (ec ez : ℕ) {K29 R K8 : ℕ}
-    (h29 : TotalLeOn coreProgram fs "__loop29" LoopPre (fun a ↦ logG (a.getD 1 0) * K29))
+    (h29 : TotalLeOn coreProgram fs "__loop27" LoopPre (fun a ↦ logG (a.getD 1 0) * K29))
     (hR1 : TotalLe coreProgram fs "gkr_rounds__L1" (fun _ ↦ R))
     (hR2 : TotalLe coreProgram fs "gkr_rounds__L2" (fun _ ↦ R))
-    (h8 : TotalLeOn coreProgram fs "__loop8" LoopPre (fun a ↦ logG (a.getD 1 0) * K8)) :
+    (h8 : TotalLeOn coreProgram fs "__loop7" LoopPre (fun a ↦ logG (a.getD 1 0) * K8)) :
     CompleteAtDTB fs cert κ "verify_bus_gkr" [(ec, xs), (ez, r.2.1)]
       (cap0 ++ [ofK (gpow ec), gen ^ depth, ofK (gpow ez)])
       (Returns (cap' ++ [ofK (gpow ec) * gen ^ xs.length] ++ r.2.2)) (fun _ ↦ True)

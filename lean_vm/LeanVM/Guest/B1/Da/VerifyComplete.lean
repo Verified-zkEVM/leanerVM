@@ -356,7 +356,7 @@ theorem da_verify_complete_mem (hm : MemOk rd) {gsq : E} (hsq : SquaresAt rd gsq
     have h := l24_ok; simp only [Bool.and_eq_true, decide_eq_true_eq] at h; exact h.2)
     (show 366 < coreProgram.length by rw [coreProgram_length]; omega)
   obtain ⟨⟨s18, -⟩, ⟨s19, -⟩, ⟨s22, -⟩, ⟨s24, -⟩⟩ := dvloops_shape
-  have s23 : loopShapeF (coreProgram.getD 365 default) "__loop23" = true := by
+  have s23 : loopShapeF (coreProgram.getD 362 default) "__loop22" = true := by
     have h := l23_ok
     simp only [l23Ok, Bool.and_eq_true, decide_eq_true_eq] at h
     exact h.1.1.1.1.1.1.1.1.1.1
@@ -385,29 +385,29 @@ theorem da_verify_complete_mem (hm : MemOk rd) {gsq : E} (hsq : SquaresAt rd gsq
       rw [hV.v1, hV.v2, hV.v0, hV.v3, hV.v4]
       exact da_row_shape_complete rd hm gsq hsq r L hr1 hr hL
     · show IsInK (σ (.n 15)) ∧ (σ (.n 15) ≠ 0 →
-        coreProgram.Rel rd "__loop18" [σ (.n 16), σ (.n 1), σ (.n 13), σ (.n 12)] [])
+        coreProgram.Rel rd "__loop17" [σ (.n 16), σ (.n 1), σ (.n 13), σ (.n 12)] [])
       rw [hV.g15, hV.g16, hV.v1, hV.v13, hV.v12]
       exact guard_complete find359 s18 (rest := [P.pb, P.pd]) (m := r)
         fun i hi => l18_block (hmem.pbase i hi)
     · show IsInK (σ (.n 29)) ∧ (σ (.n 29) ≠ 0 →
-        coreProgram.Rel rd "__loop19" [σ (.n 30), σ (.n 1), σ (.n 26), σ (.n 27)] [])
+        coreProgram.Rel rd "__loop18" [σ (.n 30), σ (.n 1), σ (.n 26), σ (.n 27)] [])
       rw [hV.g29, hV.g30, hV.v1, hV.v26, hV.v27]
       exact guard_complete find360 s19 (rest := [P.acc, P.rb]) (m := r)
         fun i hi => l19_block (hmem.rbase i hi) (by
           have := hacc0 i hi 0 (by omega); simpa [accSum] using this)
-    · show coreProgram.Rel rd "__loop20" [σ (.n 32), σ (.n 1), σ (.n 3), σ (.n 4), σ (.n 2),
+    · show coreProgram.Rel rd "__loop19" [σ (.n 32), σ (.n 1), σ (.n 3), σ (.n 4), σ (.n 2),
         σ (.n 13), σ (.n 31), σ (.n 27), σ (.n 17)] []
       rw [hV.v32, ← pow_zero gen, hV.v1, hV.v3, hV.v4, hV.v2, hV.v13, hV.v31, hV.v27, hV.v17]
       exact colLoop_complete (by rw [coreProgram_length]; omega) l20_ok word_g64 (a := 0)
         (fun k _ hk => by have := hcolR k (by omega); rwa [ite_pos' hk] at this) 0 le_rfl (by norm_num)
-    · show coreProgram.Rel rd "__loop21" [σ (.n 33), σ (.n 1), σ (.n 3), σ (.n 4), σ (.n 2),
+    · show coreProgram.Rel rd "__loop20" [σ (.n 33), σ (.n 1), σ (.n 3), σ (.n 4), σ (.n 2),
         σ (.n 13), σ (.n 31), σ (.n 27), σ (.n 17)] []
       rw [hV.v33, hV.v1, hV.v3, hV.v4, hV.v2, hV.v13, hV.v31, hV.v27, hV.v17]
       exact colLoop_complete (by rw [coreProgram_length]; omega) l21_ok word_g128 (a := 64)
         (fun k hk hk' => by have := hcolR k hk'; rwa [ite_neg' (by omega)] at this) 64 le_rfl
         (by norm_num)
     · show IsInK (σ (.n 35)) ∧ (σ (.n 35) ≠ 0 →
-        coreProgram.Rel rd "__loop22" [σ (.n 36), σ (.n 1), σ (.n 27)] [])
+        coreProgram.Rel rd "__loop21" [σ (.n 36), σ (.n 1), σ (.n 27)] [])
       rw [hV.g35, hV.g36, hV.v1, hV.v27]
       exact guard_complete find363 s22 (rest := [P.rb]) (m := r)
         fun i hi => l22_block (hmem.rbase i hi) (by
@@ -417,7 +417,7 @@ theorem da_verify_complete_mem (hm : MemOk rd) {gsq : E} (hsq : SquaresAt rd gsq
       exact da_levels_complete 7 (by norm_num) rd P.ct (colLeaves r L syms)
         (by simp [colLeaves]) (fun _ => by rw [colLeaves]; exact canon_scalars_map _ _) hmem.ct
     · show IsInK (σ (.n 43)) ∧ (σ (.n 43) ≠ 0 →
-        coreProgram.Rel rd "__loop23" [σ (.n 44), σ (.n 1), σ (.n 13), σ (.n 41)] [])
+        coreProgram.Rel rd "__loop22" [σ (.n 44), σ (.n 1), σ (.n 13), σ (.n 41)] [])
       rw [hV.g43, hV.g44, hV.v1, hV.v13, hV.v41]
       refine guard_complete find365 s23 (rest := [P.pb, P.rt]) (m := r) fun i hi => ?_
       have hi2 : i < 2 ^ L := by omega
@@ -429,7 +429,7 @@ theorem da_verify_complete_mem (hm : MemOk rd) {gsq : E} (hsq : SquaresAt rd gsq
         (by rw [prefixCells, length_flatMap_range _ 2 _ (fun j => rfl)])
         (canon_digestCells_flat _ _) t0 t1
     · show IsInK (σ (.n 46)) ∧ (σ (.n 46) ≠ 0 →
-        coreProgram.Rel rd "__loop24" [σ (.n 47), σ (.n 4), σ (.n 41), σ (.n 1)] [])
+        coreProgram.Rel rd "__loop23" [σ (.n 47), σ (.n 4), σ (.n 41), σ (.n 1)] [])
       rw [hV.g46, hV.g47, hV.v4, hV.v41, hV.v1]
       refine guard_complete find366 s24 (rest := [P.rt, gen ^ r]) (m := 2 ^ L - r) fun d hd => ?_
       have hrd : r + d < 2 ^ L := by omega

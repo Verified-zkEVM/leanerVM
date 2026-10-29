@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.Da.VerifyL23CChk
 
-  `__loop23`, evaluated (by kernel evaluation), for its completeness.
+  `__loop22`, evaluated (by kernel evaluation), for its completeness.
 -/
 
 module
@@ -20,7 +20,7 @@ def isRowCellLoad : Atom → Bool
   | .load d p i => decide (p = .n 5) && decide (d = .n (6 + i)) && decide (i < 128)
   | _ => false
 
-/-- **`__loop23`, evaluated.** -/
+/-- **`__loop22`, evaluated.** -/
 noncomputable def l23COk (fn : Fn) : Bool :=
   let A := atomsIn (loopPre fn)
   let S := storesOf 4 fn.body
@@ -36,7 +36,7 @@ noncomputable def l23COk (fn : Fn) : Bool :=
   decide ((rowSpec A).outV ((rowSpec A).nb - 1) 1 = .n 465)
 
 set_option maxRecDepth 100000 in
-theorem l23c_ok : l23COk (coreProgram.getD 365 default) = true := by decide +kernel
+theorem l23c_ok : l23COk (coreProgram.getD 362 default) = true := by decide +kernel
 
 end
 end LeanVM.Guest.B1.Da

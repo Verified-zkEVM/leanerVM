@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.Main.AggAbsorb
 
-  `aggregate_claims`' absorbing loop (`__loop25`): one child's words absorbed into the batching's
+  `aggregate_claims`' absorbing loop (`__loop24`): one child's words absorbed into the batching's
   sponge, row by row.
 -/
 
@@ -10,11 +10,11 @@ module
 public import LeanVM.Guest.B1.Main.AggFs
 
 /-!
-# `__loop25`: the children's words
+# `__loop24`: the children's words
 
 `aggregate_claims` (G:4295-4360) keeps the batching's sponge in rows of thirteen words (`absorb`,
 `RowRel`: the capacity cells, then four waiting scalars' rate cells). Iteration `x = g^c`
-(`__loop25`, core function `394`) writes the child's pointers `child_fresh·x^24`,
+(`__loop24`, core function `394`) writes the child's pointers `child_fresh·x^24`,
 `child_carried·x^24` into the tables `lf`, `lc`, permutes row `c`, absorbs the child's `50` words
 (its public input's two cells at `child_pi·x^2`, its fresh claim's `24` cells, its carried claim's
 `24`) and two zeros in thirteen `KECCAK`s, and writes row `c + 1` (`l25_step`, `L25Step`).
@@ -163,11 +163,11 @@ noncomputable def l25Words (rd : Reader) (cpi cfresh ccarried x : E) : List E :=
 
 /-! ## The check -/
 
-/-- **`__loop25`'s body, checked.** -/
+/-- **`__loop24`'s body, checked.** -/
 def l25Ok (fn : Fn) : Bool :=
   let A := atomsIn (loopPre fn)
   let s : DupSpec := ⟨keccakBlocks A, packsOf A⟩
-  loopShapeF fn "__loop25" && decide (fn.params.length = 8) && s.check A && decide (s.nb = 13) &&
+  loopShapeF fn "__loop24" && decide (fn.params.length = 8) && s.check A && decide (s.nb = 13) &&
   rowInOk A (.n 13) (s.ins 0) &&
   storesOk A (.n 13) 13 5 (fun i => (s.outs 12).getD (8 + i) default) &&
   (List.range 4).all (fun j => A.any (isLoadAt (.n (s.wB (48 + j) + 6)) (.n 13) (13 + (5 + 2 * j))) &&
@@ -180,10 +180,10 @@ def l25Ok (fn : Fn) : Bool :=
   A.any (isLoadAt (.n 57) (.n 58) 0) && isMul A (.n 58) (.n 6) (.n 0)
 
 set_option maxRecDepth 100000 in
-theorem l25_ok : l25Ok (coreProgram.getD 394 default) = true := by decide +kernel
+theorem l25_ok : l25Ok (coreProgram.getD 374 default) = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem l25_idx : coreProgram.indexOf? "__loop25" = some 394 := by decide +kernel
+theorem l25_idx : coreProgram.indexOf? "__loop24" = some 374 := by decide +kernel
 
 /-! ## One child -/
 
@@ -210,10 +210,10 @@ theorem l25Src_pad {w : ℕ} (h1 : 50 ≤ w) : l25Src w = none := by
   unfold l25Src
   split_ifs <;> first | rfl | (exfalso; omega)
 
-theorem l25_step {x : E} {ps : List E} (h : coreProgram.Rel rd "__loop25" (x :: ps) []) :
+theorem l25_step {x : E} {ps : List E} (h : coreProgram.Rel rd "__loop24" (x :: ps) []) :
     (∀ N absorb cfresh lfT ccarried lcT cpi, ps = [N, absorb, cfresh, lfT, ccarried, lcT, cpi] →
       L25Step rd absorb cfresh lfT ccarried lcT cpi x) ∧
-      (x * gen + ps.headD 0 ≠ 0 → coreProgram.Rel rd "__loop25" (x * gen :: ps) []) := by
+      (x * gen + ps.headD 0 ≠ 0 → coreProgram.Rel rd "__loop24" (x * gen :: ps) []) := by
   have hf := find_of_idx l25_idx (by rw [coreProgram_length]; omega)
   have hok := l25_ok
   simp only [l25Ok, Bool.and_eq_true, decide_eq_true_eq] at hok
@@ -222,7 +222,7 @@ theorem l25_step {x : E} {ps : List E} (h : coreProgram.Rel rd "__loop25" (x :: 
   obtain ⟨σ, hx, hps, hall, hnext⟩ := loop_stepF hf hshape h
   refine ⟨fun N absorb cfresh lfT ccarried lcT cpi hN => ?_, hnext⟩
   have hat := atoms_of_flat hall
-  have hpar : (coreProgram.getD 394 default).params =
+  have hpar : (coreProgram.getD 374 default).params =
       [V.n 0, V.n 1, V.n 2, V.n 3, V.n 4, V.n 5, V.n 6, V.n 7] := by
     have hs := hshape
     simp only [loopShapeF, Bool.and_eq_true, decide_eq_true_eq] at hs
@@ -241,7 +241,7 @@ theorem l25_step {x : E} {ps : List E} (h : coreProgram.Rel rd "__loop25" (x :: 
   · have := load_sound hl57 hat
     rwa [isMul_sound hm58 hat, h6, hx, p57] at this
   -- the chain
-  set A := atomsIn (loopPre (coreProgram.getD 394 default))
+  set A := atomsIn (loopPre (coreProgram.getD 374 default))
   set s : DupSpec := ⟨keccakBlocks A, packsOf A⟩
   obtain ⟨-, hwl, hK, hP, -⟩ := DupSpec.check_facts hchk hat
   have hin := rowIn_sound hrin hat

@@ -66,7 +66,7 @@ theorem mainComplete_of_main (fs : String → ℕ) (cert : String → V → ℕ)
       t.Valid coreProgram rd args rets → t.BufsOk coreProgram →
       (mainPredsH s w (hDvNH s w) (Pvs w)).Pd t → t.weight (ω op) ≤ Kd op s w)
     (h5 : ∀ seed s w, NodeRel bytecode seed s w → Limits s w → ∀ op (rd : Reader)
-      (t : Tree) (args rets : List E), t.name = "__loop5" → t.Valid coreProgram rd args rets →
+      (t : Tree) (args rets : List E), t.name = "__loop4" → t.Valid coreProgram rd args rets →
       t.BufsOk coreProgram → (mainPredsH s w (hDvNH s w) (Pvs w)).T5 t →
         t.weight (ω op) ≤ K5 op s w)
     (hwords : ∀ seed s w, NodeRel bytecode seed s w → Limits s w →
@@ -150,7 +150,7 @@ theorem mainComplete_budget (fs : String → ℕ) (cert : String → V → ℕ) 
     (hcnt : ∀ (rd : Reader) (t : Tree), t.Valid coreProgram rd [] [] → ∀ op,
       cnt t op ≤ t.weight (ω op) + jt op) (c5 s5 : Opcode → ℕ) (v5 : Opcode → ℕ → ℕ → ℕ)
     (h5 : ∀ seed s w, NodeRel bytecode seed s w → Limits s w → ∀ op (rd : Reader)
-      (t : Tree) (args rets : List E), t.name = "__loop5" → t.Valid coreProgram rd args rets →
+      (t : Tree) (args rets : List E), t.name = "__loop4" → t.Valid coreProgram rd args rets →
       t.BufsOk coreProgram → (mainPredsH s w (hDvNH s w) (Pvs w)).T5 t →
         t.weight (ω op) ≤ l5Lin (c5 op) (s5 op) (v5 op) (work s w)) :
     MainComplete fs cert cnt (mainBudget fs SB SK Bvf ω H c5 s5 v5 jt) :=

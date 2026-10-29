@@ -791,14 +791,14 @@ theorem bs_complete {name : String} {f : Fn} (n : ℕ) (hn : 1 ≤ n)
     rfl
 
 set_option maxRecDepth 100000 in
-theorem core396_body : Fn.body Data.core396 = bsBody 23 := stmtsEqb_sound (by decide +kernel)
+theorem core396_body : Fn.body Data.core376 = bsBody 23 := stmtsEqb_sound (by decide +kernel)
 
 set_option maxRecDepth 100000 in
 /-- **`batch_sumcheck`'s core IR is its meaning.** -/
 theorem batch_sumcheck_holds : batch_sumcheck_Spec := by
   intro rd args rets
-  have hfind : coreProgram.find? "batch_sumcheck__L23" = some Data.core396 :=
-    Program.find?_of_indexOf? (j := 396) (by decide +kernel) rfl
+  have hfind : coreProgram.find? "batch_sumcheck__L23" = some Data.core376 :=
+    Program.find?_of_indexOf? (j := 376) (by decide +kernel) rfl
   exact ⟨bs_sound 23 (by decide) hfind rfl core396_body rd args rets,
     bs_complete 23 (by decide) hfind rfl core396_body rd args rets⟩
 

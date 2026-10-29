@@ -57,15 +57,15 @@ theorem canon_take {cells : List E} (hc : AllCanonical cells) (k : ℕ) : AllCan
 theorem canon_drop {cells : List E} (hc : AllCanonical cells) (k : ℕ) : AllCanonical (cells.drop k) :=
   fun c h => hc c (List.mem_of_mem_drop h)
 
-theorem l16_shapeF : loopShapeF (coreProgram.getD 323 default) "__loop16" = true := by
+theorem l16_shapeF : loopShapeF (coreProgram.getD 320 default) "__loop15" = true := by
   have h := l16c_ok
   simp only [l16cOk, Bool.and_eq_true] at h
   exact h.1.1.1.1.1.1.1.1.1
 
-/-- The groups of claims: `__loop16`'s block at every group below `a`. -/
+/-- The groups of claims: `__loop15`'s block at every group below `a`. -/
 theorem cl_blocks {chain entries : E} {n : ℕ} {cells : List E} (hl : cells.length = 4 * n)
     (hr : ReadsAt rd entries cells) (hc : AllCanonical cells) (hmem : ClaimChainMem rd chain entries n) :
-    ∀ j < n / 17, LoopBlock rd (coreProgram.getD 323 default) (gen ^ j) (gen ^ (n / 17))
+    ∀ j < n / 17, LoopBlock rd (coreProgram.getD 320 default) (gen ^ j) (gen ^ (n / 17))
       [chain, entries] := by
   intro j hj
   have h68 : 68 * j + 68 ≤ cells.length := by omega

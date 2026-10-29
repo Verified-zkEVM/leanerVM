@@ -2,7 +2,7 @@
   LeanVM.Guest.B1.Gkr.RecsC
 
   The honest round records of a run of GKR rounds: every run of consecutive rounds among them is
-  what `gkr_rounds` and `__loop29` ask.
+  what `gkr_rounds` and `__loop27` ask.
 -/
 
 module

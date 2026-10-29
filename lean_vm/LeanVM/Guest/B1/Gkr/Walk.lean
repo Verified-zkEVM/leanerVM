@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.Gkr.Walk
 
-  The layers of `verify_bus_gkr` in sequence: `n` iterations of `__loop7` from a slot are
+  The layers of `verify_bus_gkr` in sequence: `n` iterations of `__loop6` from a slot are
   `gkrPairs n`.
 -/
 

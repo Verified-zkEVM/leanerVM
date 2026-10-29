@@ -51,7 +51,7 @@ theorem kwschkIdx_20 : kwschkIdx 20 = true := by
     rfl
   exact kwschkIdx_of_split (fn := Data.core20) rfl rfl (by decide +kernel) hb (by decide +kernel) (by decide +kernel)
 
-theorem kwschkIdx_all : ∀ j < 899, kwschkIdx j = true := by
+theorem kwschkIdx_all : ∀ j < 878, kwschkIdx j = true := by
   intro j hj
   by_cases h1000 : j = 19
   · subst h1000; exact kwschkIdx_19
@@ -81,51 +81,49 @@ theorem kwschkIdx_all : ∀ j < 899, kwschkIdx j = true := by
   · exact kwsstaticRange_231.get (by omega) (by omega)
   by_cases h11 : j < 291
   · exact kwsstaticRange_261.get (by omega) (by omega)
-  by_cases h12 : j < 302
+  by_cases h12 : j < 299
   · exact kwsstaticRange_291.get (by omega) (by omega)
-  by_cases h13 : j < 309
-  · exact kwsstaticRange_302.get (by omega) (by omega)
-  by_cases h14 : j < 316
-  · exact kwsstaticRange_309.get (by omega) (by omega)
-  by_cases h15 : j < 346
-  · exact kwsstaticRange_316.get (by omega) (by omega)
-  by_cases h16 : j < 376
-  · exact kwsstaticRange_346.get (by omega) (by omega)
-  by_cases h17 : j < 406
-  · exact kwsstaticRange_376.get (by omega) (by omega)
-  by_cases h18 : j < 436
-  · exact kwsstaticRange_406.get (by omega) (by omega)
-  by_cases h19 : j < 466
-  · exact kwsstaticRange_436.get (by omega) (by omega)
-  by_cases h20 : j < 496
-  · exact kwsstaticRange_466.get (by omega) (by omega)
-  by_cases h21 : j < 526
-  · exact kwsstaticRange_496.get (by omega) (by omega)
-  by_cases h22 : j < 556
-  · exact kwsstaticRange_526.get (by omega) (by omega)
-  by_cases h23 : j < 586
-  · exact kwsstaticRange_556.get (by omega) (by omega)
-  by_cases h24 : j < 616
-  · exact kwsstaticRange_586.get (by omega) (by omega)
-  by_cases h25 : j < 646
-  · exact kwsstaticRange_616.get (by omega) (by omega)
-  by_cases h26 : j < 676
-  · exact kwsstaticRange_646.get (by omega) (by omega)
-  by_cases h27 : j < 706
-  · exact kwsstaticRange_676.get (by omega) (by omega)
-  by_cases h28 : j < 736
-  · exact kwsstaticRange_706.get (by omega) (by omega)
-  by_cases h29 : j < 766
-  · exact kwsstaticRange_736.get (by omega) (by omega)
-  by_cases h30 : j < 796
-  · exact kwsstaticRange_766.get (by omega) (by omega)
-  by_cases h31 : j < 826
-  · exact kwsstaticRange_796.get (by omega) (by omega)
-  by_cases h32 : j < 856
-  · exact kwsstaticRange_826.get (by omega) (by omega)
-  by_cases h33 : j < 886
-  · exact kwsstaticRange_856.get (by omega) (by omega)
-  exact kwsstaticRange_886.get (by omega) (by omega)
+  by_cases h13 : j < 306
+  · exact kwsstaticRange_299.get (by omega) (by omega)
+  by_cases h14 : j < 313
+  · exact kwsstaticRange_306.get (by omega) (by omega)
+  by_cases h15 : j < 343
+  · exact kwsstaticRange_313.get (by omega) (by omega)
+  by_cases h16 : j < 373
+  · exact kwsstaticRange_343.get (by omega) (by omega)
+  by_cases h17 : j < 403
+  · exact kwsstaticRange_373.get (by omega) (by omega)
+  by_cases h18 : j < 433
+  · exact kwsstaticRange_403.get (by omega) (by omega)
+  by_cases h19 : j < 463
+  · exact kwsstaticRange_433.get (by omega) (by omega)
+  by_cases h20 : j < 493
+  · exact kwsstaticRange_463.get (by omega) (by omega)
+  by_cases h21 : j < 523
+  · exact kwsstaticRange_493.get (by omega) (by omega)
+  by_cases h22 : j < 553
+  · exact kwsstaticRange_523.get (by omega) (by omega)
+  by_cases h23 : j < 583
+  · exact kwsstaticRange_553.get (by omega) (by omega)
+  by_cases h24 : j < 613
+  · exact kwsstaticRange_583.get (by omega) (by omega)
+  by_cases h25 : j < 643
+  · exact kwsstaticRange_613.get (by omega) (by omega)
+  by_cases h26 : j < 673
+  · exact kwsstaticRange_643.get (by omega) (by omega)
+  by_cases h27 : j < 703
+  · exact kwsstaticRange_673.get (by omega) (by omega)
+  by_cases h28 : j < 733
+  · exact kwsstaticRange_703.get (by omega) (by omega)
+  by_cases h29 : j < 763
+  · exact kwsstaticRange_733.get (by omega) (by omega)
+  by_cases h30 : j < 793
+  · exact kwsstaticRange_763.get (by omega) (by omega)
+  by_cases h31 : j < 823
+  · exact kwsstaticRange_793.get (by omega) (by omega)
+  by_cases h32 : j < 853
+  · exact kwsstaticRange_823.get (by omega) (by omega)
+  exact kwsstaticRange_853.get (by omega) (by omega)
 
 end
 end LeanVM.Guest

@@ -18,12 +18,12 @@ public import LeanVM.Guest.B1.Da.ColLoopAtT
 /-!
 # `da_verify`, its honest shape
 
-`dvQ r L`: `v1 = g^r` (the end of the row loops `__loop18`, `__loop19`, `__loop22`, `__loop23`),
-`v2 = g^L`, `v3 = g^(2^L)`, `v4 = g^(2^L - r)` (`da_row_shape`'s returns; the end of `__loop24`),
+`dvQ r L`: `v1 = g^r` (the end of the row loops `__loop17`, `__loop18`, `__loop21`, `__loop22`),
+`v2 = g^L`, `v3 = g^(2^L)`, `v4 = g^(2^L - r)` (`da_row_shape`'s returns; the end of `__loop23`),
 the buffers' sizes' operands `v11 = g^(128·2^L)`, `v25 = g^(129·r)`, `v40 = g^(4·2^L)`, and the
 row loops' starts `v16 = v30 = v36 = v44 = v47 = 1` (read by the budget's counts).
-`dvCallList r L`: its ten calls. `dvTs r L`: `__loop20`'s tree `l20NH r L` (64 iterations from
-counter `0`, each column `da_verify_column__L1` of `colNH`), `__loop21`'s `l21NH r L` (64 from
+`dvCallList r L`: its ten calls. `dvTs r L`: `__loop19`'s tree `l20NH r L` (64 iterations from
+counter `0`, each column `da_verify_column__L1` of `colNH`), `__loop20`'s `l21NH r L` (64 from
 `64`, `da_verify_column__L0`), no predicate on the others. `dvNH r L`: `da_verify`'s honest shape,
 its `HeapBuf`s `dvSizes r L`. `dvT_completeAt`: `da_verify_completeAt` (same proof) by such
 a tree.
@@ -52,25 +52,25 @@ def dvQ (r L : ℕ) (σ : Val) : Prop :=
 /-- `da_verify`'s calls. -/
 def dvCallList (r L : ℕ) : List Call :=
   [⟨"da_row_shape", [.n 1, .n 2, .n 0], [.n 3, .n 4], true⟩,
-    ⟨"__loop18", [.n 16, .n 1, .n 13, .n 12], [], true⟩,
-    ⟨"__loop19", [.n 30, .n 1, .n 26, .n 27], [], true⟩,
-    ⟨"__loop20", [.n 32, .n 1, .n 3, .n 4, .n 2, .n 13, .n 31, .n 27, .n 17], [], true⟩,
-    ⟨"__loop21", [.n 33, .n 1, .n 3, .n 4, .n 2, .n 13, .n 31, .n 27, .n 17], [], true⟩,
-    ⟨"__loop22", [.n 36, .n 1, .n 27], [], true⟩,
+    ⟨"__loop17", [.n 16, .n 1, .n 13, .n 12], [], true⟩,
+    ⟨"__loop18", [.n 30, .n 1, .n 26, .n 27], [], true⟩,
+    ⟨"__loop19", [.n 32, .n 1, .n 3, .n 4, .n 2, .n 13, .n 31, .n 27, .n 17], [], true⟩,
+    ⟨"__loop20", [.n 33, .n 1, .n 3, .n 4, .n 2, .n 13, .n 31, .n 27, .n 17], [], true⟩,
+    ⟨"__loop21", [.n 36, .n 1, .n 27], [], true⟩,
     ⟨"da_levels__L128_L7", [.n 31], [.n 37, .n 38], true⟩,
-    ⟨"__loop23", [.n 44, .n 1, .n 13, .n 41], [], true⟩,
-    ⟨"__loop24", [.n 47, .n 4, .n 41, .n 1], [], decide (2 ^ L - r ≠ 0)⟩,
+    ⟨"__loop22", [.n 44, .n 1, .n 13, .n 41], [], true⟩,
+    ⟨"__loop23", [.n 47, .n 4, .n 41, .n 1], [], decide (2 ^ L - r ≠ 0)⟩,
     ⟨dlNames[L]!, [.n 41], [.n 48, .n 49], true⟩]
 
-/-- `__loop20`'s honest tree: columns `0 … 63`, each `da_verify_column__L1`. -/
+/-- `__loop19`'s honest tree: columns `0 … 63`, each `da_verify_column__L1`. -/
 def l20NH (r L : ℕ) : Tree → Prop :=
-  colFrom "__loop20" "da_verify_column__L1" 64
-    (colNH "da_verify_column__L1" "__loop417" "__loop418" r L) 64 0
+  colFrom "__loop19" "da_verify_column__L1" 64
+    (colNH "da_verify_column__L1" "__loop415" "__loop416" r L) 64 0
 
-/-- `__loop21`'s honest tree: columns `64 … 127`, each `da_verify_column__L0`. -/
+/-- `__loop20`'s honest tree: columns `64 … 127`, each `da_verify_column__L0`. -/
 def l21NH (r L : ℕ) : Tree → Prop :=
-  colFrom "__loop21" "da_verify_column__L0" 128
-    (colNH "da_verify_column__L0" "__loop419" "__loop420" r L) 64 64
+  colFrom "__loop20" "da_verify_column__L0" 128
+    (colNH "da_verify_column__L0" "__loop417" "__loop418" r L) 64 64
 
 /-- The predicates on `da_verify`'s callees' trees. -/
 def dvTs (r L : ℕ) : List (Tree → Prop) :=
@@ -114,7 +114,7 @@ theorem dvT_completeAt (fs : String → ℕ) (cert : String → V → ℕ)
   -- the column loops
   have hcol1 : ∀ k, 0 ≤ k → k < 64 → CompleteAtDT fs cert 16 "da_verify_column__L1" Own
       [gen ^ k, gen ^ r, gen ^ 2 ^ L, gen ^ (2 ^ L - r), gen ^ L, P.pb, P.ct, P.rb, P.cd]
-      (Returns []) (colNH "da_verify_column__L1" "__loop417" "__loop418" r L) := fun k _ hk =>
+      (Returns []) (colNH "da_verify_column__L1" "__loop415" "__loop416" r L) := fun k _ hk =>
     col_completeAtT fs cert hcv find_col1 core769_body col1_params (by
       rw [Program.loop_of_find? find_col1]; decide +kernel) find_l417 row417_shape.1 find_l418
       gap418_shape.1 (by decide) (by decide)
@@ -123,20 +123,20 @@ theorem dvT_completeAt (fs : String → ℕ) (cert : String → V → ℕ)
       hr1 hrL hL10 hwl (by omega)
   have hcol0 : ∀ k, 64 ≤ k → k < 128 → CompleteAtDT fs cert 16 "da_verify_column__L0" Own
       [gen ^ k, gen ^ r, gen ^ 2 ^ L, gen ^ (2 ^ L - r), gen ^ L, P.pb, P.ct, P.rb, P.cd]
-      (Returns []) (colNH "da_verify_column__L0" "__loop419" "__loop420" r L) := fun k _ hk =>
+      (Returns []) (colNH "da_verify_column__L0" "__loop417" "__loop418" r L) := fun k _ hk =>
     col_completeAtT fs cert hcv find_col0 core770_body col0_params (by
       rw [Program.loop_of_find? find_col0]; decide +kernel) find_l419 row419_shape.1 find_l420
       gap420_shape.1 (by decide) (by decide)
       (fun rd node lv hm => colm_rows0 hm hrL hsl hwl hk)
       (fun rd node lv hm => colm_gaps hm gap420_shape.1 gap420_shape.2 core898_body)
       hr1 hrL hL10 hwl hk
-  have hl20 : CompleteAtDT fs cert 16 "__loop20" Own
+  have hl20 : CompleteAtDT fs cert 16 "__loop19" Own
       [1, gen ^ r, gen ^ 2 ^ L, gen ^ (2 ^ L - r), gen ^ L, P.pb, P.ct, P.rb, P.cd] (Returns [])
       (l20NH r L) := by
     have := colLoop_completeAtT fs cert (by rw [coreProgram_length]; omega) l20_ok word_g64
       (by norm_num) hcol1 0 le_rfl (by norm_num)
     rwa [pow_zero] at this
-  have hl21 : CompleteAtDT fs cert 16 "__loop21" Own
+  have hl21 : CompleteAtDT fs cert 16 "__loop20" Own
       [gen ^ 64, gen ^ r, gen ^ 2 ^ L, gen ^ (2 ^ L - r), gen ^ L, P.pb, P.ct, P.rb, P.cd]
       (Returns []) (l21NH r L) :=
     colLoop_completeAtT fs cert (by rw [coreProgram_length]; omega) l21_ok word_g128
@@ -144,16 +144,16 @@ theorem dvT_completeAt (fs : String → ℕ) (cert : String → V → ℕ)
   -- the callees
   let ks : List Kid :=
     [⟨"da_row_shape", true, [gen ^ r, gen ^ L, gen ^ s], Lin, Returns [gen ^ 2 ^ L, gen ^ (2 ^ L - r)]⟩,
-      ⟨"__loop18", true, [1, gen ^ r, P.pb, P.pd], Own, Returns []⟩,
-      ⟨"__loop19", true, [1, gen ^ r, P.acc, P.rb], Own, Returns []⟩,
-      ⟨"__loop20", true, [1, gen ^ r, gen ^ 2 ^ L, gen ^ (2 ^ L - r), gen ^ L, P.pb, P.ct, P.rb,
+      ⟨"__loop17", true, [1, gen ^ r, P.pb, P.pd], Own, Returns []⟩,
+      ⟨"__loop18", true, [1, gen ^ r, P.acc, P.rb], Own, Returns []⟩,
+      ⟨"__loop19", true, [1, gen ^ r, gen ^ 2 ^ L, gen ^ (2 ^ L - r), gen ^ L, P.pb, P.ct, P.rb,
         P.cd], Own, Returns []⟩,
-      ⟨"__loop21", true, [gen ^ 64, gen ^ r, gen ^ 2 ^ L, gen ^ (2 ^ L - r), gen ^ L, P.pb, P.ct,
+      ⟨"__loop20", true, [gen ^ 64, gen ^ r, gen ^ 2 ^ L, gen ^ (2 ^ L - r), gen ^ L, P.pb, P.ct,
         P.rb, P.cd], Own, Returns []⟩,
-      ⟨"__loop22", true, [1, gen ^ r, P.rb], Own, Returns []⟩,
+      ⟨"__loop21", true, [1, gen ^ r, P.rb], Own, Returns []⟩,
       ⟨"da_levels__L128_L7", true, [P.ct], Own, Returns [cr.1, cr.2]⟩,
-      ⟨"__loop23", true, [1, gen ^ r, P.pb, P.rt], Own, Returns []⟩,
-      ⟨"__loop24", decide (2 ^ L - r ≠ 0), [1, gen ^ (2 ^ L - r), P.rt, gen ^ r], Own, Returns []⟩,
+      ⟨"__loop22", true, [1, gen ^ r, P.pb, P.rt], Own, Returns []⟩,
+      ⟨"__loop23", decide (2 ^ L - r ≠ 0), [1, gen ^ (2 ^ L - r), P.rt, gen ^ r], Own, Returns []⟩,
       ⟨dlNames[L]!, true, [P.rt], Own, Returns [rr.1, rr.2]⟩]
   have hbm : ∀ rd, MemL rd Own → DvBufMem r L syms ws rd P := fun rd hm => dvBufMem_of_memL hm
   have hokT : B1.KidsDT fs cert 16 ks (dvTs r L) :=
@@ -259,14 +259,14 @@ theorem dvT_completeAt (fs : String → ℕ) (cert : String → V → ℕ)
   have hT : ∀ {c : V} {x : ℕ}, σ c = 1 + gen ^ x → x ≠ 0 → x < 2 ^ 64 - 1 → decide (σ c ≠ 0) = true :=
     fun h hx hx' => by rw [h]; exact decide_eq_true ((one_add_gen_pow_ne' hx').mpr hx)
   have hcalls : calls es = [⟨"da_row_shape", [.n 1, .n 2, .n 0], [.n 3, .n 4], true⟩,
-      ⟨"__loop18", [.n 16, .n 1, .n 13, .n 12], [], true⟩,
-      ⟨"__loop19", [.n 30, .n 1, .n 26, .n 27], [], true⟩,
-      ⟨"__loop20", [.n 32, .n 1, .n 3, .n 4, .n 2, .n 13, .n 31, .n 27, .n 17], [], true⟩,
-      ⟨"__loop21", [.n 33, .n 1, .n 3, .n 4, .n 2, .n 13, .n 31, .n 27, .n 17], [], true⟩,
-      ⟨"__loop22", [.n 36, .n 1, .n 27], [], true⟩,
+      ⟨"__loop17", [.n 16, .n 1, .n 13, .n 12], [], true⟩,
+      ⟨"__loop18", [.n 30, .n 1, .n 26, .n 27], [], true⟩,
+      ⟨"__loop19", [.n 32, .n 1, .n 3, .n 4, .n 2, .n 13, .n 31, .n 27, .n 17], [], true⟩,
+      ⟨"__loop20", [.n 33, .n 1, .n 3, .n 4, .n 2, .n 13, .n 31, .n 27, .n 17], [], true⟩,
+      ⟨"__loop21", [.n 36, .n 1, .n 27], [], true⟩,
       ⟨"da_levels__L128_L7", [.n 31], [.n 37, .n 38], true⟩,
-      ⟨"__loop23", [.n 44, .n 1, .n 13, .n 41], [], true⟩,
-      ⟨"__loop24", [.n 47, .n 4, .n 41, .n 1], [], decide (2 ^ L - r ≠ 0)⟩,
+      ⟨"__loop22", [.n 44, .n 1, .n 13, .n 41], [], true⟩,
+      ⟨"__loop23", [.n 47, .n 4, .n 41, .n 1], [], decide (2 ^ L - r ≠ 0)⟩,
       ⟨dlNames[L]!, [.n 41], [.n 48, .n 49], true⟩] := by
     rw [hes, calls_append, show calls (.call dlNames[L]! [.n 41] [.n 48, .n 49] ::
       dvPost.flatMap (Main.slEvs σ)) = ⟨dlNames[L]!, [.n 41], [.n 48, .n 49], true⟩ ::

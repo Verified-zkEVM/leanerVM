@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.Main.MainGoalsHKid
 
-  A child of `main`'s honest run as `__loop5` reads it (`hKid`): its counts, its base, its lists'
+  A child of `main`'s honest run as `__loop4` reads it (`hKid`): its counts, its base, its lists'
   digests, its DA roots' slots and words, its deferred cells; and its statement's digest.
 -/
 
@@ -170,7 +170,7 @@ theorem kid_segOf_sum : ∀ (ls : List ℕ) (c j : ℕ) (hc : c < ls.length), j 
 
 variable (seed : Digest) (s : NodeStatement) (w : NodeWitness)
 
-/-- **Child `c` of the honest run**, as `__loop5` reads it. -/
+/-- **Child `c` of the honest run**, as `__loop4` reads it. -/
 def hKid (c : ℕ) : KidH where
   ex := hEx w c
   es := hEs w c
@@ -246,7 +246,7 @@ theorem hKid_cdaW {c : ℕ} (hc : c < w.children.length) :
     ((w.children.map fun ch => ch.statement.claims.da.map daCells).getD c []).getD d [0, 0, 0, 0]) = _
   rw [getD_map_lt _ _ _ hc]
 
-/-- **Child `c`'s statement digest**, as `__loop5` computes it, is the child's statement's. -/
+/-- **Child `c`'s statement digest**, as `__loop4` computes it, is the child's statement's. -/
 theorem hKid_pi {c : ℕ} (hc : c < w.children.length)
     (hlen : w.children[c].statement.defer.cells.length = 24) :
     (hKid s w c).pi (digestScalars seed).1 (digestScalars seed).2 =

@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.Main.KidBlockC
 
-  `__loop5`'s block (a child) on its honest valuation: the block evaluated (`Fwd.ev`) on the
+  `__loop4`'s block (a child) on its honest valuation: the block evaluated (`Fwd.ev`) on the
   loop's words, the hints and the calls' returns the honest ones; its atoms hold and its words.
 -/
 
@@ -34,7 +34,7 @@ open LeanVM.Guest.B1 (LowDef)
 
 @[expose] public section
 
-/-- The oracle of `__loop5`'s block. -/
+/-- The oracle of `__loop4`'s block. -/
 def l5W (ex es ed P1 : ℕ) (cx0 cx1 cs0 cs1 d0 d1 p0 p1 : E) (j : ℕ) : E :=
   if j = 20 then gen ^ ex else if j = 21 then gen ^ es else if j = 32 then cx0
   else if j = 33 then cx1 else if j = 35 then cs0 else if j = 36 then cs1
@@ -42,10 +42,10 @@ def l5W (ex es ed P1 : ℕ) (cx0 cx1 cs0 cs1 d0 d1 p0 p1 : E) (j : ℕ) : E :=
   else if j = 54 then d0 else if j = 55 then d1 else if j = 56 then p0 else if j = 57 then p1
   else 0
 
-/-- `__loop5`'s body. -/
+/-- `__loop4`'s body. -/
 def l5Body : List Stmt := l5Pre ++ [l5Tail, .ret []]
 
-/-- `__loop5`'s honest valuation. -/
+/-- `__loop4`'s honest valuation. -/
 noncomputable def l5σ (rd : Reader) (args : List E) (w : ℕ → E) : Val :=
   B1.Val.ofArgs (ev rd w args l5Body)
 

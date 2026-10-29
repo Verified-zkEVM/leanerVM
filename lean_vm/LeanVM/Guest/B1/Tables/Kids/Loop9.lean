@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.Tables.Kids.Loop9
 
-  `__loop9` (the full nibbles of `shared_selector_tables`) and `shared_selector_tables` load from
+  `__loop8` (the full nibbles of `shared_selector_tables`) and `shared_selector_tables` load from
   any region holding the runs they read.
 -/
 
@@ -12,9 +12,9 @@ public import LeanVM.Guest.B1.Tables.Kids.Families
 public import LeanVM.Guest.B1.Selectors.SharedTables
 
 /-!
-# `__loop9` and `shared_selector_tables`, loading from a region
+# `__loop8` and `shared_selector_tables`, loading from a region
 
-`loop9_relIn`: iteration `k < K` of `__loop9` (`x = g^k`, the end `g^K`) reads the coordinates,
+`loop9_relIn`: iteration `k < K` of `__loop8` (`x = g^k`, the end `g^K`) reads the coordinates,
 complements and shares at `z·x^4`, `z1·x^4`, `gsq·x^4` (four each) and writes the eq levels at
 `eqt·x^32` (`30`) and the `g` table at `gt·x^16` (`16`); by induction on the derivation's depth,
 every iteration loads from `R` when the runs `z`, `z1`, `gsq` (`4K`), `eqt` (`32K`), `gt` (`16K`)
@@ -52,8 +52,8 @@ theorem filterMap_callSF {σ : Val} {pre : List Stmt} (h : pre.all noDispB = tru
     pre.filterMap (Stmt.callSF σ) = pre.filterMap Main.Stmt.callS :=
   List.filterMap_congr fun s hs ↦ callSF_of_noDisp (List.all_eq_true.mp h s hs)
 
-/-- `__loop9`'s statements before its `ret`. -/
-def lpPreC : List Stmt := lpPre ++ [.callIf (.n 74) "__loop9" [.n 76, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6]]
+/-- `__loop8`'s statements before its `ret`. -/
+def lpPreC : List Stmt := lpPre ++ [.callIf (.n 74) "__loop8" [.n 76, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6]]
 
 theorem lpBody_eq : lpBody = lpPreC ++ [.ret []] := by simp [lpBody, lpPreC]
 
@@ -61,21 +61,21 @@ theorem lp_flat : lpPreC.all Stmt.flat = true := by decide +kernel
 
 theorem lp_noDisp : lpPreC.all noDispB = true := by decide +kernel
 
-/-- The pointers `__loop9` loads through, and their runs. -/
+/-- The pointers `__loop8` loads through, and their runs. -/
 def lpTbl : List (ℕ × ℕ) := [(12, 30), (13, 4), (14, 4), (51, 16), (52, 4)]
 
 theorem lp_loads : lpPreC.all (loadsViaB lpTbl) = true := by decide +kernel
 
 theorem lp_calls : lpPreC.filterMap Main.Stmt.callS =
-    [(some (.n 74), "__loop9", [.n 76, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6], [])] := by
+    [(some (.n 74), "__loop8", [.n 76, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6], [])] := by
   decide +kernel
 
-/-- **`__loop9` loads from `R`**, every iteration `k < K`. -/
+/-- **`__loop8` loads from `R`**, every iteration `k < K`. -/
 theorem loop9_relIn {rd : Reader} {R : ℕ → Prop} {K : ℕ} {eqt z z1 gt gsq : E}
     (he : PtrIn R eqt (32 * K)) (hgt : PtrIn R gt (16 * K)) (hz : PtrIn R z (4 * K))
     (hz1 : PtrIn R z1 (4 * K)) (hgs : PtrIn R gsq (4 * K)) :
-    ∀ d k, k < K → coreProgram.relN rd d "__loop9" [gen ^ k, gen ^ K, eqt, z, z1, gt, gsq] [] →
-      coreProgram.RelIn rd R "__loop9" [gen ^ k, gen ^ K, eqt, z, z1, gt, gsq] [] := by
+    ∀ d k, k < K → coreProgram.relN rd d "__loop8" [gen ^ k, gen ^ K, eqt, z, z1, gt, gsq] [] →
+      coreProgram.RelIn rd R "__loop8" [gen ^ k, gen ^ K, eqt, z, z1, gt, gsq] [] := by
   intro d
   induction d with
   | zero => intro k _ h; exact h.elim

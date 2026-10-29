@@ -16,16 +16,16 @@ namespace LeanVM.Guest.B2C.Cplw
 
 @[expose] public section
 
-/-- `__loop387`, window 0, part 0. -/
+/-- `__loop404`, window 0, part 0. -/
 theorem cw863_0_0 : cplWin 863 0 0 = true := by decide +kernel
 
-/-- `__loop388`, window 0, part 0. -/
+/-- `__loop405`, window 0, part 0. -/
 theorem cw864_0_0 : cplWin 864 0 0 = true := by decide +kernel
 
-/-- `__loop388`, window 0, part 1. -/
+/-- `__loop405`, window 0, part 1. -/
 theorem cw864_0_1 : cplWin 864 0 1 = true := by decide +kernel
 
-/-- `__loop389`, window 0, part 0. -/
+/-- `__loop406`, window 0, part 0. -/
 theorem cw865_0_0 : cplWin 865 0 0 = true := by decide +kernel
 
 theorem ok863 : CplOk 863 := by
@@ -48,16 +48,6 @@ theorem ok864 : CplOk 864 := by
     interval_cases k
     · exact cw864_0_0
     · exact cw864_0_1
-
-theorem ok865 : CplOk 865 := by
-  intro i hi k hk
-  have hc : (certOf 865).cuts.length = 0 := by decide +kernel
-  rw [hc] at hi
-  interval_cases i
-  · have hn : nParts 865 0 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw865_0_0
 
 end
 end LeanVM.Guest.B2C.Cplw

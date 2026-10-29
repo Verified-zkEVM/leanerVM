@@ -90,14 +90,14 @@ theorem dvPost_addrs : dvPost.filterMap Main.Stmt.addrS = [] := by decide +kerne
 set_option maxRecDepth 100000 in
 theorem dvPre_calls : dvPre.filterMap Main.Stmt.callS =
     [(none, "da_row_shape", [.n 1, .n 2, .n 0], [.n 3, .n 4]),
-      (some (.n 15), "__loop18", [.n 16, .n 1, .n 13, .n 12], []),
-      (some (.n 29), "__loop19", [.n 30, .n 1, .n 26, .n 27], []),
-      (none, "__loop20", [.n 32, .n 1, .n 3, .n 4, .n 2, .n 13, .n 31, .n 27, .n 17], []),
-      (none, "__loop21", [.n 33, .n 1, .n 3, .n 4, .n 2, .n 13, .n 31, .n 27, .n 17], []),
-      (some (.n 35), "__loop22", [.n 36, .n 1, .n 27], []),
+      (some (.n 15), "__loop17", [.n 16, .n 1, .n 13, .n 12], []),
+      (some (.n 29), "__loop18", [.n 30, .n 1, .n 26, .n 27], []),
+      (none, "__loop19", [.n 32, .n 1, .n 3, .n 4, .n 2, .n 13, .n 31, .n 27, .n 17], []),
+      (none, "__loop20", [.n 33, .n 1, .n 3, .n 4, .n 2, .n 13, .n 31, .n 27, .n 17], []),
+      (some (.n 35), "__loop21", [.n 36, .n 1, .n 27], []),
       (none, "da_levels__L128_L7", [.n 31], [.n 37, .n 38]),
-      (some (.n 43), "__loop23", [.n 44, .n 1, .n 13, .n 41], []),
-      (some (.n 46), "__loop24", [.n 47, .n 4, .n 41, .n 1], [])] := by decide +kernel
+      (some (.n 43), "__loop22", [.n 44, .n 1, .n 13, .n 41], []),
+      (some (.n 46), "__loop23", [.n 47, .n 4, .n 41, .n 1], [])] := by decide +kernel
 
 set_option maxRecDepth 100000 in
 theorem dvPost_calls : dvPost.filterMap Main.Stmt.callS = [] := by decide +kernel
@@ -115,23 +115,23 @@ theorem dv_loop : coreProgram.loop "da_verify" = false := by
 theorem one_add_gen_pow_ne' {a : ℕ} (ha : a < 2 ^ 64 - 1) : ((1 : E) + gen ^ a ≠ 0) ↔ a ≠ 0 := by
   rw [Ne, e_add_eq_zero_iff, eq_comm, gen_pow_eq_one_iff ha]
 
-theorem find_l18 : coreProgram.find? "__loop18" = some (coreProgram.getD 359 default) :=
+theorem find_l18 : coreProgram.find? "__loop17" = some (coreProgram.getD 356 default) :=
   find_of_idx (by have h := l18_ok; simp only [Bool.and_eq_true, decide_eq_true_eq] at h; exact h.2)
     (by rw [coreProgram_length]; omega)
-theorem find_l19 : coreProgram.find? "__loop19" = some (coreProgram.getD 360 default) :=
+theorem find_l19 : coreProgram.find? "__loop18" = some (coreProgram.getD 357 default) :=
   find_of_idx (by have h := l19_ok; simp only [Bool.and_eq_true, decide_eq_true_eq] at h; exact h.2)
     (by rw [coreProgram_length]; omega)
-theorem find_l22 : coreProgram.find? "__loop22" = some (coreProgram.getD 363 default) :=
+theorem find_l22 : coreProgram.find? "__loop21" = some (coreProgram.getD 360 default) :=
   find_of_idx (by have h := l22_ok; simp only [Bool.and_eq_true, decide_eq_true_eq] at h; exact h.2)
     (by rw [coreProgram_length]; omega)
-theorem find_l23 : coreProgram.find? "__loop23" = some (coreProgram.getD 365 default) :=
+theorem find_l23 : coreProgram.find? "__loop22" = some (coreProgram.getD 362 default) :=
   find_of_idx (by have h := l23_ok; simp only [Bool.and_eq_true, decide_eq_true_eq] at h; exact h.2)
     (by rw [coreProgram_length]; omega)
-theorem find_l24 : coreProgram.find? "__loop24" = some (coreProgram.getD 366 default) :=
+theorem find_l24 : coreProgram.find? "__loop23" = some (coreProgram.getD 363 default) :=
   find_of_idx (by have h := l24_ok; simp only [Bool.and_eq_true, decide_eq_true_eq] at h; exact h.2)
     (by rw [coreProgram_length]; omega)
 
-theorem s23 : loopShapeF (coreProgram.getD 365 default) "__loop23" = true := by
+theorem s23 : loopShapeF (coreProgram.getD 362 default) "__loop22" = true := by
   have h := l23_ok
   simp only [l23Ok, Bool.and_eq_true, decide_eq_true_eq] at h
   exact h.1.1.1.1.1.1.1.1.1.1
@@ -145,19 +145,19 @@ variable {rd : Reader} {r L : ℕ} {syms : ℕ → ℕ → List K} {ws : ℕ →
 include hb
 
 theorem dvk_l18 (hr : r < 2 ^ 34) (hr1 : 1 ≤ r) :
-    coreProgram.Rel rd "__loop18" [1, gen ^ r, P.pb, P.pd] [] :=
+    coreProgram.Rel rd "__loop17" [1, gen ^ r, P.pb, P.pd] [] :=
   (guard_complete find_l18 dvloops_shape.1.1 (rest := [P.pb, P.pd]) (m := r)
     fun i hi => l18_block (hb.pbase i hi)).2 ((one_add_gen_pow_ne' (by omega)).mpr (by omega))
 
 theorem dvk_l19 (hr : r < 2 ^ 34) (hr1 : 1 ≤ r) :
-    coreProgram.Rel rd "__loop19" [1, gen ^ r, P.acc, P.rb] [] :=
+    coreProgram.Rel rd "__loop18" [1, gen ^ r, P.acc, P.rb] [] :=
   (guard_complete find_l19 dvloops_shape.2.1.1 (rest := [P.acc, P.rb]) (m := r)
     fun i hi => l19_block (hb.rbase i hi) (by
       have := hb.acc i hi 0 (by simp); simpa [accSum] using this)).2
     ((one_add_gen_pow_ne' (by omega)).mpr (by omega))
 
 theorem dvk_l22 (hr : r < 2 ^ 34) (hr1 : 1 ≤ r) (hdot : ∀ i < r, accSum syms ws i 128 = 0) :
-    coreProgram.Rel rd "__loop22" [1, gen ^ r, P.rb] [] :=
+    coreProgram.Rel rd "__loop21" [1, gen ^ r, P.rb] [] :=
   (guard_complete find_l22 dvloops_shape.2.2.1.1 (rest := [P.rb]) (m := r)
     fun i hi => l22_block (hb.rbase i hi) (by
       have := hb.acc i hi 128 (by simp); simp only [List.getElem_map, List.getElem_range] at this
@@ -169,7 +169,7 @@ theorem dvk_l7 : coreProgram.Rel rd "da_levels__L128_L7" [P.ct]
     (by simp [colLeaves]) (fun _ => by rw [colLeaves]; exact canon_scalars_map _ _) hb.ct
 
 theorem dvk_l23 (hrL : r ≤ 2 ^ L) (hr : r < 2 ^ 34) (hr1 : 1 ≤ r) :
-    coreProgram.Rel rd "__loop23" [1, gen ^ r, P.pb, P.rt] [] := by
+    coreProgram.Rel rd "__loop22" [1, gen ^ r, P.pb, P.rt] [] := by
   refine (guard_complete find_l23 s23 (rest := [P.pb, P.rt]) (m := r) fun i hi => ?_).2
     ((one_add_gen_pow_ne' (by omega)).mpr (by omega))
   have hi2 : i < 2 ^ L := by omega
@@ -182,7 +182,7 @@ theorem dvk_l23 (hrL : r ≤ 2 ^ L) (hr : r < 2 ^ 34) (hr1 : 1 ≤ r) :
     (canon_digestCells_flat _ _) t0 t1
 
 theorem dvk_l24 (hrL : r ≤ 2 ^ L) (hL : 2 ^ L < 2 ^ 34) (hg : 2 ^ L - r ≠ 0) :
-    coreProgram.Rel rd "__loop24" [1, gen ^ (2 ^ L - r), P.rt, gen ^ r] [] := by
+    coreProgram.Rel rd "__loop23" [1, gen ^ (2 ^ L - r), P.rt, gen ^ r] [] := by
   refine (guard_complete find_l24 dvloops_shape.2.2.2.1 (rest := [P.rt, gen ^ r]) (m := 2 ^ L - r)
     fun d hd => ?_).2 ((one_add_gen_pow_ne' (by omega)).mpr hg)
   have hrd : r + d < 2 ^ L := by omega
@@ -204,8 +204,8 @@ end Kids
 
 /-! ## `da_verify` -/
 
-theorem mem_daPure_of {g : String} (h : g ∈ ["__loop18", "__loop19", "__loop22", "__loop23",
-    "__loop24", "da_levels__L128_L7"]) : g ∈ daPureSet := by
+theorem mem_daPure_of {g : String} (h : g ∈ ["__loop17", "__loop18", "__loop21", "__loop22",
+    "__loop23", "da_levels__L128_L7"]) : g ∈ daPureSet := by
   simp only [List.mem_cons, List.not_mem_nil, or_false] at h
   rcases h with rfl | rfl | rfl | rfl | rfl | rfl <;> decide
 
@@ -259,12 +259,12 @@ theorem da_verify_completeAt (fs : String → ℕ) (cert : String → V → ℕ)
       (fun rd node lv hm => colm_rows0 hm hrL hsl hwl hk)
       (fun rd node lv hm => colm_gaps hm gap420_shape.1 gap420_shape.2 core898_body)
       hr1 hrL hL10 hwl hk
-  have hl20 : CompleteAtD fs cert 16 "__loop20" Own
+  have hl20 : CompleteAtD fs cert 16 "__loop19" Own
       [1, gen ^ r, gen ^ 2 ^ L, gen ^ (2 ^ L - r), gen ^ L, P.pb, P.ct, P.rb, P.cd] (Returns []) := by
     have := colLoop_completeAt fs cert (by rw [coreProgram_length]; omega) l20_ok word_g64
       (by norm_num) hcol1 0 le_rfl (by norm_num)
     rwa [pow_zero] at this
-  have hl21 : CompleteAtD fs cert 16 "__loop21" Own
+  have hl21 : CompleteAtD fs cert 16 "__loop20" Own
       [gen ^ 64, gen ^ r, gen ^ 2 ^ L, gen ^ (2 ^ L - r), gen ^ L, P.pb, P.ct, P.rb, P.cd]
       (Returns []) :=
     colLoop_completeAt fs cert (by rw [coreProgram_length]; omega) l21_ok word_g128
@@ -272,16 +272,16 @@ theorem da_verify_completeAt (fs : String → ℕ) (cert : String → V → ℕ)
   -- the callees
   let ks : List Kid :=
     [⟨"da_row_shape", true, [gen ^ r, gen ^ L, gen ^ s], Lin, Returns [gen ^ 2 ^ L, gen ^ (2 ^ L - r)]⟩,
-      ⟨"__loop18", true, [1, gen ^ r, P.pb, P.pd], Own, Returns []⟩,
-      ⟨"__loop19", true, [1, gen ^ r, P.acc, P.rb], Own, Returns []⟩,
-      ⟨"__loop20", true, [1, gen ^ r, gen ^ 2 ^ L, gen ^ (2 ^ L - r), gen ^ L, P.pb, P.ct, P.rb,
+      ⟨"__loop17", true, [1, gen ^ r, P.pb, P.pd], Own, Returns []⟩,
+      ⟨"__loop18", true, [1, gen ^ r, P.acc, P.rb], Own, Returns []⟩,
+      ⟨"__loop19", true, [1, gen ^ r, gen ^ 2 ^ L, gen ^ (2 ^ L - r), gen ^ L, P.pb, P.ct, P.rb,
         P.cd], Own, Returns []⟩,
-      ⟨"__loop21", true, [gen ^ 64, gen ^ r, gen ^ 2 ^ L, gen ^ (2 ^ L - r), gen ^ L, P.pb, P.ct,
+      ⟨"__loop20", true, [gen ^ 64, gen ^ r, gen ^ 2 ^ L, gen ^ (2 ^ L - r), gen ^ L, P.pb, P.ct,
         P.rb, P.cd], Own, Returns []⟩,
-      ⟨"__loop22", true, [1, gen ^ r, P.rb], Own, Returns []⟩,
+      ⟨"__loop21", true, [1, gen ^ r, P.rb], Own, Returns []⟩,
       ⟨"da_levels__L128_L7", true, [P.ct], Own, Returns [cr.1, cr.2]⟩,
-      ⟨"__loop23", true, [1, gen ^ r, P.pb, P.rt], Own, Returns []⟩,
-      ⟨"__loop24", decide (2 ^ L - r ≠ 0), [1, gen ^ (2 ^ L - r), P.rt, gen ^ r], Own, Returns []⟩,
+      ⟨"__loop22", true, [1, gen ^ r, P.pb, P.rt], Own, Returns []⟩,
+      ⟨"__loop23", decide (2 ^ L - r ≠ 0), [1, gen ^ (2 ^ L - r), P.rt, gen ^ r], Own, Returns []⟩,
       ⟨dlNames[L]!, true, [P.rt], Own, Returns [rr.1, rr.2]⟩]
   have hbm : ∀ rd, MemL rd Own → DvBufMem r L syms ws rd P := fun rd hm => dvBufMem_of_memL hm
   have hok : ∀ k ∈ ks, k.taken = true → CompleteAtD fs cert 16 k.f k.Lin k.args k.Out := by
@@ -392,14 +392,14 @@ theorem da_verify_completeAt (fs : String → ℕ) (cert : String → V → ℕ)
   have hT : ∀ {c : V} {x : ℕ}, σ c = 1 + gen ^ x → x ≠ 0 → x < 2 ^ 64 - 1 → decide (σ c ≠ 0) = true :=
     fun h hx hx' => by rw [h]; exact decide_eq_true ((one_add_gen_pow_ne' hx').mpr hx)
   have hcalls : calls es = [⟨"da_row_shape", [.n 1, .n 2, .n 0], [.n 3, .n 4], true⟩,
-      ⟨"__loop18", [.n 16, .n 1, .n 13, .n 12], [], true⟩,
-      ⟨"__loop19", [.n 30, .n 1, .n 26, .n 27], [], true⟩,
-      ⟨"__loop20", [.n 32, .n 1, .n 3, .n 4, .n 2, .n 13, .n 31, .n 27, .n 17], [], true⟩,
-      ⟨"__loop21", [.n 33, .n 1, .n 3, .n 4, .n 2, .n 13, .n 31, .n 27, .n 17], [], true⟩,
-      ⟨"__loop22", [.n 36, .n 1, .n 27], [], true⟩,
+      ⟨"__loop17", [.n 16, .n 1, .n 13, .n 12], [], true⟩,
+      ⟨"__loop18", [.n 30, .n 1, .n 26, .n 27], [], true⟩,
+      ⟨"__loop19", [.n 32, .n 1, .n 3, .n 4, .n 2, .n 13, .n 31, .n 27, .n 17], [], true⟩,
+      ⟨"__loop20", [.n 33, .n 1, .n 3, .n 4, .n 2, .n 13, .n 31, .n 27, .n 17], [], true⟩,
+      ⟨"__loop21", [.n 36, .n 1, .n 27], [], true⟩,
       ⟨"da_levels__L128_L7", [.n 31], [.n 37, .n 38], true⟩,
-      ⟨"__loop23", [.n 44, .n 1, .n 13, .n 41], [], true⟩,
-      ⟨"__loop24", [.n 47, .n 4, .n 41, .n 1], [], decide (2 ^ L - r ≠ 0)⟩,
+      ⟨"__loop22", [.n 44, .n 1, .n 13, .n 41], [], true⟩,
+      ⟨"__loop23", [.n 47, .n 4, .n 41, .n 1], [], decide (2 ^ L - r ≠ 0)⟩,
       ⟨dlNames[L]!, [.n 41], [.n 48, .n 49], true⟩] := by
     rw [hes, calls_append, show calls (.call dlNames[L]! [.n 41] [.n 48, .n 49] ::
       dvPost.flatMap (Main.slEvs σ)) = ⟨dlNames[L]!, [.n 41], [.n 48, .n 49], true⟩ ::

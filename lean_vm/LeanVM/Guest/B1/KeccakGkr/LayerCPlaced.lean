@@ -75,7 +75,7 @@ noncomputable def layerKids (D : LayerData) (first odd : ℕ) (CL : ClaimLay) (b
     layerLin D first CL bcur bout b ++ layerBufs D first (ptr bcur) b, Returns []⟩] else []
 
 /-- The layer's callees, directly or not. -/
-def layerKidS : List String := ["__loop30", "__loop31", "__loop32", "__loop33", "keccak_round"]
+def layerKidS : List String := ["__loop28", "__loop29", "__loop30", "__loop31", "keccak_round"]
 
 theorem layerKidS_pure : coreProgram.PureIn layerKidS :=
   Tables.pureIn_of_pureInB (by decide +kernel)

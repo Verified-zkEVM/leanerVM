@@ -14,7 +14,7 @@ public import LeanVM.Guest.B1.KeccakGkr.VkFirst
 /-!
 # `verify_keccak`, assembled
 
-The body is `vkT` (`vk_body`); its sections (`vkHeadT_holds`, the copy loop `__loop11`,
+The body is `vkT` (`vk_body`); its sections (`vkHeadT_holds`, the copy loop `__loop10`,
 `vkFirstT_holds`, `vkStepsT_holds`, `vkOutT_holds`, `vkInT_holds`, `vkFinT_holds`) give the sponge
 runs, the reads and the two opening checks (`vk_out_check`, `vk_in_check`), and `vk_runsTo`
 composes them into `keccakSeg`'s run.

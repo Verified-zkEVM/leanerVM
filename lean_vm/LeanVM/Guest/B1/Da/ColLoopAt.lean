@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.Da.ColLoopAt
 
-  `da_verify`'s column loops (`__loop20`, `__loop21`) in the uniform placed form: the rest of the
+  `da_verify`'s column loops (`__loop19`, `__loop20`) in the uniform placed form: the rest of the
   loop after the frame, the column after it.
 -/
 

@@ -16,28 +16,28 @@ namespace LeanVM.Guest.B2C.Cplw
 
 @[expose] public section
 
-/-- `eq_prefix_run__L36`, window 0, part 0. -/
+/-- `eq_prefix_run__L39`, window 0, part 0. -/
 theorem cw75_0_0 : cplWin 75 0 0 = true := by decide +kernel
 
-/-- `eq_prefix_run__L37`, window 0, part 0. -/
+/-- `eq_prefix_run__L40`, window 0, part 0. -/
 theorem cw76_0_0 : cplWin 76 0 0 = true := by decide +kernel
 
-/-- `eq_prefix_run__L38`, window 0, part 0. -/
+/-- `__loop5`, window 0, part 0. -/
 theorem cw77_0_0 : cplWin 77 0 0 = true := by decide +kernel
 
-/-- `eq_prefix_run__L39`, window 0, part 0. -/
+/-- `__loop6`, window 0, part 0. -/
 theorem cw78_0_0 : cplWin 78 0 0 = true := by decide +kernel
 
-/-- `eq_prefix_run__L40`, window 0, part 0. -/
+/-- `__loop7`, window 0, part 0. -/
 theorem cw79_0_0 : cplWin 79 0 0 = true := by decide +kernel
 
-/-- `__loop6`, window 0, part 0. -/
+/-- `__loop8`, window 0, part 0. -/
 theorem cw80_0_0 : cplWin 80 0 0 = true := by decide +kernel
 
-/-- `__loop7`, window 0, part 0. -/
+/-- `sel_partial_nibble__L0`, window 0, part 0. -/
 theorem cw81_0_0 : cplWin 81 0 0 = true := by decide +kernel
 
-/-- `__loop8`, window 0, part 0. -/
+/-- `sel_partial_nibble__L1`, window 0, part 0. -/
 theorem cw82_0_0 : cplWin 82 0 0 = true := by decide +kernel
 
 theorem ok75 : CplOk 75 := by

@@ -141,9 +141,9 @@ theorem check_opening_terminal_holds (hcs : Tables.column_selector_Spec)
       have := gen_pow_inj_le (a := 1) (b := layout.logMemory) (by omega) (by omega)
         (by rw [pow_one]; exact e_add_eq_zero_iff.mp h0)
       omega
-    have hc : coreProgram.Rel rd "__loop15" (gen ^ 1 :: [σ (.n 5), σ (.n 25), σ (.n 15)]) [] := by
+    have hc : coreProgram.Rel rd "__loop14" (gen ^ 1 :: [σ (.n 5), σ (.n 25), σ (.n 15)]) [] := by
       rw [pow_one, ← word_gen, ← e31]; exact hloop hne
-    exact loop_sound (P := coreProgram) (f := "__loop15") (ps := [σ (.n 5), σ (.n 25), σ (.n 15)])
+    exact loop_sound (P := coreProgram) (f := "__loop14") (ps := [σ (.n 5), σ (.n 25), σ (.n 15)])
       (N := σ (.n 5)) (B := PiStep rd (σ (.n 25)) (σ (.n 15))) (m := layout.logMemory)
       (fun d y h ↦ loop15_step d y _ _ _ h) hglm (by unfold ordG; omega) 1 hc k hk1 hk2
   have hx1_0 := loadHolds_unique l27 (readsAt_getD hpt1 (k := 0) (by rw [hpl40]; decide))

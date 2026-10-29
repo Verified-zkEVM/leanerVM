@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.Ring.Loop14Complete
 
-  `__loop14`, completely: on the honest chain, every iteration's block holds on its evaluated
+  `__loop13`, completely: on the honest chain, every iteration's block holds on its evaluated
   valuation, so the loop runs from `g^j` to its end `g^8`.
 -/
 
@@ -12,7 +12,7 @@ public import LeanVM.Guest.B1.Fwd.Canon
 public import LeanVM.Guest.Memory.Uniform
 
 /-!
-# `__loop14`, completely
+# `__loop13`, completely
 
 The honest memory of `ring_switch_target(slices, map_challenges)`: the 64 slices `s` at `sl`,
 the six challenges `chs` at `mc`, and its chain at `ch`, row `j ≤ 8` holding `(g^(8j), runL j)`
@@ -87,14 +87,14 @@ theorem holdsList_of_atoms {C : CallRel} {rd : Reader} {σ : Val} :
 
 /-! ## The block -/
 
-/-- `__loop14`'s first atoms, `Φ` of the last slice and the seven rows: no store. -/
+/-- `__loop13`'s first atoms, `Φ` of the last slice and the seven rows: no store. -/
 def l14Main : List Stmt :=
   [.atom (.mul (.n 4) (.n 0) (.n 0)), .atom (.mul (.n 5) (.n 4) (.n 4)),
     .atom (.mul (.n 6) (.n 5) (.n 5)), .atom (.mul (.n 7) (.n 1) (.n 6)),
     .atom (.load (.n 8) (.n 7) 7)] ++ rmapT (.n 8) 9 ++
   ((List.range 7).map fun r ↦ ltRow (r + 1)).flatten
 
-/-- `__loop14`'s last atoms: the chain's next row, and the guard's values. -/
+/-- `__loop13`'s last atoms: the chain's next row, and the guard's values. -/
 def l14Tail : List Stmt :=
   [.atom (.mul (.n 685) (.n 0) (.n 0)), .atom (.mul (.n 686) (.n 3) (.n 685)),
     .atom (.load (.n 687) (.n 686) 0), .atom (.const (.n 688) (word 256 0 0)),
@@ -106,7 +106,7 @@ def l14Tail : List Stmt :=
     .atom (.const (.n 697) (word 2 0 0)), .atom (.mul (.n 698) (.n 0) (.n 697))]
 
 theorem loop14T_split : loop14T = (l14Main ++ l14Tail) ++
-    [.callIf (.n 696) "__loop14" [.n 698, .n 1, .n 2, .n 3], .ret []] := by
+    [.callIf (.n 696) "__loop13" [.n 698, .n 1, .n 2, .n 3], .ret []] := by
   simp [loop14T, l14Main, l14Tail]
 
 /-- The atoms of a block. -/
@@ -131,7 +131,7 @@ theorem l14_chk : chk 4 loop14T = some 699 := by decide +kernel
 theorem l14_stores : storesOf 4 loop14T =
     [.load (.n 689) (.n 686) 2, .load (.n 692) (.n 686) 3] := by decide +kernel
 
-/-- The loads `__loop14` needs a word for: the slices (`7`), the challenges (`2`), the chain's
+/-- The loads `__loop13` needs a word for: the slices (`7`), the challenges (`2`), the chain's
 row (`686`). -/
 def l14LoadOk : Atom → Bool
   | .load _ (.n 7) off => decide (off < 8)
@@ -148,13 +148,13 @@ theorem l14_canon : canonChk [] ((rtAtoms (l14Main ++ l14Tail)).filter
 theorem l14_main_noStore : ∀ a ∈ rtAtoms l14Main, a ∉ storesOf 4 loop14T := by
   rw [l14_stores]; decide +kernel
 
-/-- The evaluated valuation of `__loop14`'s body. -/
+/-- The evaluated valuation of `__loop13`'s body. -/
 noncomputable def l14σ (rd : Reader) (x sl mc ch : E) : Val :=
   B1.Val.ofArgs (ev rd (fun _ => 0) [x, sl, mc, ch] loop14T)
 
 set_option maxRecDepth 10000 in
 set_option maxHeartbeats 1000000 in
-/-- **`__loop14`'s block holds** on its evaluated valuation, at `x = g^j` over the honest row. -/
+/-- **`__loop13`'s block holds** on its evaluated valuation, at `x = g^j` over the honest row. -/
 theorem l14_block {rd : Reader} {x sl mc ch : E} {vs chs : List E} {xp run : E}
     (hvl : vs.length = 8) (hcl : chs.length = 6) (hvs : ReadsAt rd (sl * x ^ 8) vs)
     (hmc : ReadsAt rd mc chs) (h0 : LoadHolds rd (ch * x ^ 2) 0 xp)
@@ -337,7 +337,7 @@ theorem l14_block {rd : Reader} {x sl mc ch : E} {vs chs : List E} {xp run : E}
 
 /-! ## The loop, loading the slices, the challenges and the chain -/
 
-/-- The loads of `__loop14`'s block: the slices' eight (`7`), the six challenges (`2`), the
+/-- The loads of `__loop13`'s block: the slices' eight (`7`), the six challenges (`2`), the
 chain's row and the next (`686`). -/
 def l14LoadIn : Atom → Bool
   | .load _ (.n 7) off => decide (off < 8)
@@ -353,11 +353,11 @@ theorem l14LoadIn_load {d p : V} {off : ℕ} (h : l14LoadIn (.load d p off) = tr
 
 theorem l14_loadIn : (rtAtoms (l14Main ++ l14Tail)).all l14LoadIn = true := by decide +kernel
 
-/-- `__loop14`'s statements before its `ret`. -/
+/-- `__loop13`'s statements before its `ret`. -/
 def l14Pre : List Stmt :=
-  (l14Main ++ l14Tail) ++ [Stmt.callIf (.n 696) "__loop14" [.n 698, .n 1, .n 2, .n 3]]
+  (l14Main ++ l14Tail) ++ [Stmt.callIf (.n 696) "__loop13" [.n 698, .n 1, .n 2, .n 3]]
 
-theorem l14_body_pre : Data.core262.body = l14Pre ++ [.ret []] := by
+theorem l14_body_pre : Data.core259.body = l14Pre ++ [.ret []] := by
   simp only [loop14_body, loop14T_split, l14Pre, List.append_assoc, List.cons_append,
     List.nil_append]
 
@@ -365,7 +365,7 @@ theorem l14_straight : l14Pre.all Main.Stmt.straight = true := by
   decide +kernel
 
 theorem l14_callS : l14Pre.filterMap Main.Stmt.callS =
-    [(some (.n 696), "__loop14", [.n 698, .n 1, .n 2, .n 3], [])] := by decide +kernel
+    [(some (.n 696), "__loop13", [.n 698, .n 1, .n 2, .n 3], [])] := by decide +kernel
 
 theorem rt_addr_mul (b c k : ℕ) : (ofK (Parameters.gpow b) * gen ^ c).limb 0 * Parameters.gpow k =
     Parameters.gpow (b + c + k) := by
@@ -373,7 +373,7 @@ theorem rt_addr_mul (b c k : ℕ) : (ofK (Parameters.gpow b) * gen ^ c).limb 0 *
     rw [gen_pow_eq_ofK, ← ofK_mul, Parameters.gpow, Parameters.gpow, Parameters.gpow, pow_add]
   rw [e, Main.addr_ofK]
 
-/-- **One iteration of `__loop14`, loading its regions**: at `g^j`, `j < 8`, over the honest
+/-- **One iteration of `__loop13`, loading its regions**: at `g^j`, `j < 8`, over the honest
 chain, the next iteration's relation (while `j < 7`) gives this one's. -/
 theorem l14_iter {rd : Reader} {bs bm bc : ℕ} {s chs : List E} (hs : s.length = 64)
     (hc : chs.length = 6) (hsl : ReadsAt rd (ofK (Parameters.gpow bs)) s)
@@ -381,9 +381,9 @@ theorem l14_iter {rd : Reader} {bs bm bc : ℕ} {s chs : List E} (hs : s.length 
     (hch : ReadsAt rd (ofK (Parameters.gpow bc)) (chainWords s chs)) {R : ℕ → Prop}
     (hR : ∀ i, (bs ≤ i ∧ i < bs + 64) ∨ (bm ≤ i ∧ i < bm + 6) ∨ (bc ≤ i ∧ i < bc + 18) → R i)
     {j : ℕ} (hj : j < 8)
-    (hnext : j < 7 → coreProgram.RelIn rd R "__loop14" [gen ^ (j + 1), ofK (Parameters.gpow bs),
+    (hnext : j < 7 → coreProgram.RelIn rd R "__loop13" [gen ^ (j + 1), ofK (Parameters.gpow bs),
       ofK (Parameters.gpow bm), ofK (Parameters.gpow bc)] []) :
-    coreProgram.RelIn rd R "__loop14" [gen ^ j, ofK (Parameters.gpow bs), ofK (Parameters.gpow bm),
+    coreProgram.RelIn rd R "__loop13" [gen ^ j, ofK (Parameters.gpow bs), ofK (Parameters.gpow bm),
       ofK (Parameters.gpow bc)] [] := by
   -- the row's facts
   have hvl : ((s.drop (8 * j)).take 8).length = 8 := by simp [hs]; omega
@@ -418,8 +418,8 @@ theorem l14_iter {rd : Reader} {bs bm bc : ℕ} {s chs : List E} (hs : s.length 
   rw [← l14_body_pre] at hw
   -- the events of the block and the guard
   have hev : ∀ e ∈ l14Pre.flatMap (Main.slEvs σ), (∃ a ∈ rtAtoms (l14Main ++ l14Tail), e = .atom a) ∨
-      e = .inK (.n 696) ∨ e = .skip "__loop14" [.n 698, .n 1, .n 2, .n 3] ∨
-      e = .call "__loop14" [.n 698, .n 1, .n 2, .n 3] [] := by
+      e = .inK (.n 696) ∨ e = .skip "__loop13" [.n 698, .n 1, .n 2, .n 3] ∨
+      e = .call "__loop13" [.n 698, .n 1, .n 2, .n 3] [] := by
     intro e he
     obtain ⟨st, hst, he⟩ := List.mem_flatMap.mp he
     rw [l14Pre, List.mem_append] at hst
@@ -479,13 +479,13 @@ theorem l14_iter {rd : Reader} {bs bm bc : ℕ} {s chs : List E} (hs : s.length 
     simp only [List.map_cons, List.map_nil, e698, e1, e2, e3, gen_pow_mul_gen]
     exact hnext hj7
 
-/-- **`__loop14`, completely, loading its regions**: over the honest chain, from `g^j`, `j ≤ 7`. -/
+/-- **`__loop13`, completely, loading its regions**: over the honest chain, from `g^j`, `j ≤ 7`. -/
 theorem l14_relIn {rd : Reader} {bs bm bc : ℕ} {s chs : List E} (hs : s.length = 64)
     (hc : chs.length = 6) (hsl : ReadsAt rd (ofK (Parameters.gpow bs)) s)
     (hmc : ReadsAt rd (ofK (Parameters.gpow bm)) chs)
     (hch : ReadsAt rd (ofK (Parameters.gpow bc)) (chainWords s chs)) {R : ℕ → Prop}
     (hR : ∀ i, (bs ≤ i ∧ i < bs + 64) ∨ (bm ≤ i ∧ i < bm + 6) ∨ (bc ≤ i ∧ i < bc + 18) → R i) :
-    ∀ t j, j + t = 7 → coreProgram.RelIn rd R "__loop14"
+    ∀ t j, j + t = 7 → coreProgram.RelIn rd R "__loop13"
       [gen ^ j, ofK (Parameters.gpow bs), ofK (Parameters.gpow bm), ofK (Parameters.gpow bc)] [] := by
   intro t
   induction t with

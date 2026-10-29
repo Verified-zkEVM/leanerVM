@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.Gkr.LayerStep
 
-  An iteration of `verify_bus_gkr`'s layer loop `__loop7` is one step of two levels of the
+  An iteration of `verify_bus_gkr`'s layer loop `__loop6` is one step of two levels of the
   specification's GKR walk, between two layer slots.
 -/
 
@@ -10,7 +10,7 @@ module
 public import LeanVM.Guest.B1.Gkr.LayerTail
 
 /-!
-# An iteration of `__loop7`
+# An iteration of `__loop6`
 
 * `ly_stores`: the next slot's stores and the loop's next call;
 * `ly_step`: an iteration at `x = g^j` runs `gkrStep 2` from the slot of `L = 2j + sh` to the slot
@@ -39,7 +39,7 @@ theorem ly_stores (h : Stmt.HoldsList C rd σ lyPre True kret) :
       LoadHolds rd (σ (.n 15)) 45 (σ (.n 61) * (1 + σ (.n 62) * (1 + gen))) ∧
       LoadHolds rd (σ (.n 15)) 46 (1 + σ (.n 62)) ∧
       (σ (.n 0) * gen + σ (.n 1) ≠ 0 →
-        C "__loop7" [σ (.n 0) * gen, σ (.n 1), σ (.n 2), σ (.n 3), σ (.n 4), σ (.n 5)] []) := by
+        C "__loop6" [σ (.n 0) * gen, σ (.n 1), σ (.n 2), σ (.n 3), σ (.n 4), σ (.n 5)] []) := by
   have hnr := lyPre_noRet
   have a := fun n a heq => tb_holds_atom (C := C) (rd := rd) (σ := σ) (kret := kret) hnr h n a heq
   have l274 := a 225 (.load (.n 274) (.n 50) 40) (by decide +kernel)
@@ -75,7 +75,7 @@ theorem ly_stores (h : Stmt.HoldsList C rd σ lyPre True kret) :
   have a342 := a 291 (.add (.n 342) (.n 341) (.n 1)) (by decide +kernel)
   have c343 := a 292 (.const (.n 343) (word 2 0 0)) (by decide +kernel)
   have m344 := a 293 (.mul (.n 344) (.n 0) (.n 343)) (by decide +kernel)
-  obtain ⟨-, hcall⟩ := tb_holds_callIf hnr h 294 (.n 342) "__loop7"
+  obtain ⟨-, hcall⟩ := tb_holds_callIf hnr h 294 (.n 342) "__loop6"
     [.n 344, .n 1, .n 2, .n 3, .n 4, .n 5] (by decide +kernel)
   simp only [Atom.Holds] at l274 l294 hcs c299 m300 l300 c328 m329 l329 m330 c331 m332 l332
   simp only [Atom.Holds] at c333 c334 m335 a336 m337 l337 c338 a339 l339 c340 m341 a342 c343 m344
@@ -123,13 +123,13 @@ theorem tb_rateOf_nil_getD (k : ℕ) : (rateOf []).getD k 0 = 0 := by
     List.getD_eq_getElem?_getD, List.getElem?_replicate]
   split <;> rfl
 
-/-- **An iteration of `__loop7`**: one step of two levels of the walk between two slots, and the
+/-- **An iteration of `__loop6`**: one step of two levels of the walk between two slots, and the
 next iteration below the bound. -/
 theorem ly_step (hGR : tb_gkr_rounds_Spec) {N dsb gmu layers rounds : E} (d : ℕ) (x : E)
-    (h : coreProgram.relN rd (d + 1) "__loop7" (x :: [N, dsb, gmu, layers, rounds]) []) :
+    (h : coreProgram.relN rd (d + 1) "__loop6" (x :: [N, dsb, gmu, layers, rounds]) []) :
     LyB rd dsb gmu layers x ∧
       (x * gen + N ≠ 0 →
-        coreProgram.relN rd d "__loop7" (x * gen :: [N, dsb, gmu, layers, rounds]) []) := by
+        coreProgram.relN rd d "__loop6" (x * gen :: [N, dsb, gmu, layers, rounds]) []) := by
   obtain ⟨fn, hf, σ, hpar, hbody⟩ := h
   obtain ⟨fn', hf', hp, hb⟩ := lyFound
   rw [hf] at hf'

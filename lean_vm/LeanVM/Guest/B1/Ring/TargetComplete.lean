@@ -18,7 +18,7 @@ public import LeanVM.Guest.Memory.LiftPure
 On the caller's words — the 64 slices `s` at `g^bs`, the six challenges `chs` at `g^bm` —
 `ring_switch_target` is complete at every frame pointer `fp` (`rst_completeAt`): its chain
 (`HeapBuf` of 18 words) at `fp + fs "ring_switch_target"` holds the honest rows `chainWords s chs`,
-its `__loop14` (pure) is complete by `l14_relIn` lifted by `Lift.completeAtD_of_relIn`, and it
+its `__loop13` (pure) is complete by `l14_relIn` lifted by `Lift.completeAtD_of_relIn`, and it
 returns `Σ_i g^i Φ(s_i)` (`runL_eight`).
 -/
 
@@ -63,7 +63,7 @@ def rstPre : List Stmt :=
   [.atom (.hint (.alloc (.n 2) 18)), .atom (.const (.n 3) (word 1 0 0)),
     .atom (.load (.n 3) (.n 2) 0), .atom (.const (.n 4) (word 0 0 0)),
     .atom (.load (.n 4) (.n 2) 1), .atom (.const (.n 5) (word 1 0 0)),
-    .call "__loop14" [.n 5, .n 0, .n 1, .n 2] [], .atom (.const (.n 6) (word 65536 0 0)),
+    .call "__loop13" [.n 5, .n 0, .n 1, .n 2] [], .atom (.const (.n 6) (word 65536 0 0)),
     .atom (.mul (.n 7) (.n 2) (.n 6)), .atom (.load (.n 8) (.n 7) 1)]
 
 theorem rst_body' : Fn.body Data.core13 = rstPre ++ [.ret [.n 8]] := by
@@ -80,7 +80,7 @@ theorem rst_loads : rstPre.filterMap Stmt.loadS = [(.n 2, 0), (.n 2, 1), (.n 7, 
 
 theorem rst_not_loop : coreProgram.loop "ring_switch_target" = false := by decide +kernel
 
-theorem l14_pure : coreProgram.PureIn ["__loop14"] := by
+theorem l14_pure : coreProgram.PureIn ["__loop13"] := by
   intro g hg fn hf
   rw [List.mem_singleton] at hg
   subst hg
@@ -94,7 +94,7 @@ noncomputable def rstσ (sl mc buf r : E) : Val :=
     buf * word 65536 0 0, r]
 
 theorem rst_callSF (σ : Val) : rstPre.filterMap (Stmt.callSF σ) =
-    [(none, "__loop14", [.n 5, .n 0, .n 1, .n 2], [])] := rfl
+    [(none, "__loop13", [.n 5, .n 0, .n 1, .n 2], [])] := rfl
 
 /-- The chain's words read through `g^b`. -/
 theorem chain_load {rd : Reader} {s chs : List E} {b : ℕ}
@@ -104,12 +104,12 @@ theorem chain_load {rd : Reader} {s chs : List E} {b : ℕ}
   have := h k (by rw [chainWords_length]; exact hk)
   rwa [chainWords_get] at this
 
-/-- The regions of `__loop14`'s caller's words. -/
+/-- The regions of `__loop13`'s caller's words. -/
 def l14Lin (bs bm bc : ℕ) (s chs : List E) : Main.Layout := [(bs, s), (bm, chs), (bc, chainWords s chs)]
 
 theorem l14_relIn_lin {rd : Reader} {bs bm bc : ℕ} {s chs : List E} (hs : s.length = 64)
     (hc : chs.length = 6) (hL : MemL rd (l14Lin bs bm bc s chs)) :
-    coreProgram.RelIn rd (RegionL (l14Lin bs bm bc s chs)) "__loop14"
+    coreProgram.RelIn rd (RegionL (l14Lin bs bm bc s chs)) "__loop13"
       [1, ofK (Parameters.gpow bs), ofK (Parameters.gpow bm), ofK (Parameters.gpow bc)] [] := by
   have := l14_relIn hs hc (hL (bs, s) (by simp [l14Lin])) (hL (bm, chs) (by simp [l14Lin]))
     (hL (bc, chainWords s chs) (by simp [l14Lin])) (R := RegionL (l14Lin bs bm bc s chs)) (fun i hi => by
@@ -132,7 +132,7 @@ theorem rst_completeAt (κ : ℕ) {bs bm : ℕ} {s chs : List E} (hs : s.length 
       (Returns [polyEval (s.map (phiMap · chs)) gen]) := by
   refine completeAt_flatD (fs := fs) (cert := cert) find_rst rst_not_loop κ _ _ _ rst_body' rst_flat
     rst_addrs [18] (fun _ ↦ [chainWords s chs]) (fun _ ↦ by simp [chainWords_length])
-    (fun fp ↦ [⟨"__loop14", true, [1, ofK (Parameters.gpow bs), ofK (Parameters.gpow bm),
+    (fun fp ↦ [⟨"__loop13", true, [1, ofK (Parameters.gpow bs), ofK (Parameters.gpow bm),
       ofK (Parameters.gpow (fp + fs "ring_switch_target"))], l14Lin bs bm (fp + fs "ring_switch_target") s chs, Returns []⟩])
     ?_ ?_ ?_ ?_
   · -- the loop, placed
@@ -194,7 +194,7 @@ theorem rst_completeAt (κ : ℕ) {bs bm : ℕ} {s chs : List E} (hs : s.length 
         have := chain_load hch (k := 1) (by norm_num)
         simpa [word_zero, runL] using this
       · rfl
-      · show coreProgram.Rel rd "__loop14" [word 1 0 0, ofK (Parameters.gpow bs),
+      · show coreProgram.Rel rd "__loop13" [word 1 0 0, ofK (Parameters.gpow bs),
           ofK (Parameters.gpow bm), ofK (Parameters.gpow (fp + fs "ring_switch_target"))] []
         rw [word_one]
         exact (l14_relIn_lin hs hc (fun q hq ↦ by

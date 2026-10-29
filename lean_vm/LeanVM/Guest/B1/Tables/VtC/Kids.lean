@@ -13,7 +13,7 @@ public import LeanVM.Guest.Memory.Uniform
 
 `vtKidS`: the 215 functions `verify_tables` calls, directly or not (`padding_weight`,
 `plus_one_run`, `shared_selector_tables`, `sel_partial_nibble`, `block_selector(_tab)`,
-`index_mle`, `__loop10`, `__loop9`, `sumcheck_round4`, `eq_prefix_chain`, `eq_prefix_run`, their
+`index_mle`, `__loop9`, `__loop8`, `sumcheck_round4`, `eq_prefix_chain`, `eq_prefix_run`, their
 specializations). `vt_kids_pure`: no `HeapBuf` hint or `frameAddr` in their bodies, every callee
 in the set (`pureInB`, checked by the kernel), so each is placed anywhere from its relation
 (`completeAt_of_rel_pureD`).
@@ -39,8 +39,8 @@ theorem pureIn_of_pureInB {P : Core.Program} {S : List String} (h : pureInB P S 
 
 /-- `verify_tables`' callees, directly or not. -/
 def vtKidS : List String := [
-  "__loop10",
   "__loop9",
+  "__loop8",
   "block_selector__L0",
   "block_selector__L1",
   "block_selector__L10",

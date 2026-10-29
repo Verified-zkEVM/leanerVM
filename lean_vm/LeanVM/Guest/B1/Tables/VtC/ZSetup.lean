@@ -154,7 +154,7 @@ noncomputable def zRest : List Stmt := [
     .atom (.load (.n 5917) (.n 5912) 5),
     .atom (.load (.n 5905) (.n 5912) 6),
     .atom (.load (.n 5918) (.n 5915) 0),
-    .callIf (.n 5920) "__loop10" [.n 5921, .n 5817, .n 5912, .n 18, .n 5817, .n 5915],
+    .callIf (.n 5920) "__loop9" [.n 5921, .n 5817, .n 5912, .n 18, .n 5817, .n 5915],
     .atom (.load (.n 5927) (.n 5926) 0),
     .atom (.load (.n 5928) (.n 5926) 1),
     .atom (.load (.n 5929) (.n 5926) 2),
@@ -168,7 +168,7 @@ set_option maxRecDepth 100000 in
 set_option maxHeartbeats 4000000 in
 /-- **Statements `5152 ..< 5259`, completely** (G:2185-2230): the hinted `g^n` with `n` the
 largest `τ_t` (at most `m = |point|`), the squeeze `ξ` of the sponge `S` after the bus words,
-the target, the first record, `__loop10`'s rounds on the honest buffers (records, running
+the target, the first record, `__loop9`'s rounds on the honest buffers (records, running
 products, `chi`) and words `xs` at the cursor five on, the last record, `eq_prefix_chain` into
 the prefix weights of `chi` against `zeta1`. -/
 theorem vtZ_complete {rd : Reader} {w : ℕ → E} {args : List E} (hl : args.length = 22)
@@ -310,7 +310,7 @@ theorem vtZ_complete {rd : Reader} {w : ℕ → E} {args : List E} (hl : args.le
   -- the rounds
   have v5920 : σ (.n 5920) = 1 + gen ^ n := by rw [g5239, g5238, tb_word_one, v5817]
   have c5241 : VSH (coreProgram.Rel rd) rd σ
-      (.callIf (.n 5920) "__loop10" [.n 5921, .n 5817, .n 5912, .n 18, .n 5817, .n 5915]) := by
+      (.callIf (.n 5920) "__loop9" [.n 5921, .n 5817, .n 5912, .n 18, .n 5817, .n 5915]) := by
     refine ⟨by rw [v5920]; exact isInK_add (by simpa using gen_pow_isInK 0) (gen_pow_isInK n),
       fun hne => ?_⟩
     have hn0 : 0 < n := by

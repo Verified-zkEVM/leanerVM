@@ -17,28 +17,28 @@ open LeanVM.Guest.Check
 
 @[expose] public section
 
-/-- `eq_prefix_run__L40`, window 0. -/
+/-- `__loop7`, window 0. -/
 theorem w79_0 : WinOk 79 0 := winOk_of_C (by decide +kernel)
 
-/-- `__loop6`, window 0. -/
+/-- `__loop8`, window 0. -/
 theorem w80_0 : WinOk 80 0 := winOk_of_C (by decide +kernel)
 
-/-- `__loop7`, window 0. -/
+/-- `sel_partial_nibble__L0`, window 0. -/
 theorem w81_0 : WinOk 81 0 := winOk_of_C (by decide +kernel)
 
-/-- `__loop8`, window 0. -/
+/-- `sel_partial_nibble__L1`, window 0. -/
 theorem w82_0 : WinOk 82 0 := winOk_of_C (by decide +kernel)
 
-/-- `__loop9`, window 0. -/
+/-- `sel_partial_nibble__L2`, window 0. -/
 theorem w83_0 : WinOk 83 0 := winOk_of_C (by decide +kernel)
 
-/-- `sel_partial_nibble__L0`, window 0. -/
+/-- `sel_partial_nibble__L3`, window 0. -/
 theorem w84_0 : WinOk 84 0 := winOk_of_C (by decide +kernel)
 
-/-- `sel_partial_nibble__L1`, window 0. -/
+/-- `padding_weight__L0`, window 0. -/
 theorem w85_0 : WinOk 85 0 := winOk_of_C (by decide +kernel)
 
-/-- `sel_partial_nibble__L2`, window 0. -/
+/-- `padding_weight__L1`, window 0. -/
 theorem w86_0 : WinOk 86 0 := winOk_of_C (by decide +kernel)
 
 theorem ok79 : CheckOk 79 := checkOk_one (by decide +kernel) w79_0

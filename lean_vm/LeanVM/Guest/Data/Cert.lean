@@ -93,9 +93,7 @@ noncomputable def certs : List Check.Cert :=
   cert816 :: cert817 :: cert818 :: cert819 :: cert820 :: cert821 :: cert822 :: cert823 :: cert824 :: cert825 :: cert826 :: cert827 :: cert828 :: cert829 :: cert830 :: cert831 ::
   cert832 :: cert833 :: cert834 :: cert835 :: cert836 :: cert837 :: cert838 :: cert839 :: cert840 :: cert841 :: cert842 :: cert843 :: cert844 :: cert845 :: cert846 :: cert847 ::
   cert848 :: cert849 :: cert850 :: cert851 :: cert852 :: cert853 :: cert854 :: cert855 :: cert856 :: cert857 :: cert858 :: cert859 :: cert860 :: cert861 :: cert862 :: cert863 ::
-  cert864 :: cert865 :: cert866 :: cert867 :: cert868 :: cert869 :: cert870 :: cert871 :: cert872 :: cert873 :: cert874 :: cert875 :: cert876 :: cert877 :: cert878 :: cert879 ::
-  cert880 :: cert881 :: cert882 :: cert883 :: cert884 :: cert885 :: cert886 :: cert887 :: cert888 :: cert889 :: cert890 :: cert891 :: cert892 :: cert893 :: cert894 :: cert895 ::
-  cert896 :: cert897 :: cert898 :: cert899 :: []
+  cert864 :: cert865 :: cert866 :: cert867 :: cert868 :: cert869 :: cert870 :: cert871 :: cert872 :: cert873 :: cert874 :: cert875 :: cert876 :: cert877 :: cert878 :: []
 
 end
 end LeanVM.Guest.Data

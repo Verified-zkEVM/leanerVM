@@ -15,7 +15,7 @@ public import LeanVM.Guest.B1.Sumcheck.Gkr
 `gk_body_holds`: from `MeaningGkrRounds n` at `[rec, pt]`, the valuation of B1-a's `gk_complete`
 (`gkVals`, a function of the value's index) satisfies `gkBody n` with its returns `[]`, for every
 `1 ≤ n < 16` and every call relation (the body has no call). The proof is `gk_complete`'s, copied: B1-a
-states it for the two specializations `gkr_rounds__L1`, `__L2` only; `__loop29`'s iteration is
+states it for the two specializations `gkr_rounds__L1`, `__L2` only; `__loop27`'s iteration is
 `gkBody 4` renamed.
 -/
 

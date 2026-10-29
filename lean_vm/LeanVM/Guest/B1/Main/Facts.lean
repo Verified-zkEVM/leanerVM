@@ -215,13 +215,13 @@ theorem main_facts {rd : Reader} {C : CallRel} (hC : Unfolds rd C)
     have := load_sound hlv atP
     rwa [const_sound hcv atP] at this
   · -- raw leanXMSS
-    refine loop_soundC (f := "__loop3") (ps := [σ (.n 2), σ (.n 55), σ (.n 97), σ (.n 77)])
+    refine loop_soundC (f := "__loop2") (ps := [σ (.n 2), σ (.n 55), σ (.n 97), σ (.n 77)])
       (N := σ (.n 2)) (B := RawXStepC C rd (σ (.n 55)) (σ (.n 97)) (σ (.n 77)))
       (by unfold ordG; omega) c2 (fun x hx => ?_) (fun hne => by simpa using hguard3 hne)
     obtain ⟨h1, h2⟩ := l3_stepC hC hm hx
     exact ⟨h1 _ _ _ _ rfl, h2⟩
   · -- raw leanSPHINCS
-    refine loop_soundC (f := "__loop4")
+    refine loop_soundC (f := "__loop3")
       (ps := [σ (.n 5), σ (.n 56), σ (.n 97), σ (.n 55), σ (.n 2), σ (.n 80), σ (.n 99)])
       (N := σ (.n 5))
       (B := RawSStepC C rd (σ (.n 56)) (σ (.n 97)) (σ (.n 55)) (σ (.n 2)) (σ (.n 80)) (σ (.n 99)))
@@ -243,7 +243,7 @@ theorem main_facts {rd : Reader} {C : CallRel} (hC : Unfolds rd C)
     rwa [isMul_sound mm411 atM, isMul_sound mm410 atM, c2, c5, l7, ← pow_add, ← pow_add] at this
   · -- the children
     have hguard5 := guard_soundC ml5 hmid
-    refine loop_soundC (f := "__loop5")
+    refine loop_soundC (f := "__loop4")
       (ps := [σ (.n 6), σ (.n 389), σ (.n 77), σ (.n 97), σ (.n 55), σ (.n 80), σ (.n 56),
         σ (.n 386), σ (.n 69), σ (.n 98), σ (.n 50), σ (.n 63), σ (.n 64), σ (.n 374), σ (.n 65),
         σ (.n 66), σ (.n 380)])

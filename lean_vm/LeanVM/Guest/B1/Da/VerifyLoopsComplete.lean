@@ -12,10 +12,10 @@ public import LeanVM.Guest.B1.Da.ColumnComplete
 /-!
 # `da_verify`'s loops, completely
 
-The blocks of `__loop18` (a row's prefix base), `__loop19` (a row's running sum, its first word
-zero), `__loop22` (word `128` of a row's sum zero) and `__loop24` (a padding row in the row tree),
-each from the memory words it reads and writes; `colLoop_complete`: a column loop (`__loop20`,
-`__loop21`) runs from `g^a` to its constant end `g^m` when every column holds.
+The blocks of `__loop17` (a row's prefix base), `__loop18` (a row's running sum, its first word
+zero), `__loop21` (word `128` of a row's sum zero) and `__loop23` (a padding row in the row tree),
+each from the memory words it reads and writes; `colLoop_complete`: a column loop (`__loop19`,
+`__loop20`) runs from `g^a` to its constant end `g^m` when every column holds.
 -/
 
 namespace LeanVM.Guest.B1.Da
@@ -29,9 +29,9 @@ open LeanVM.Guest.B1.Digest LeanVM.Guest.B1.Main
 variable {rd : Reader}
 
 set_option maxRecDepth 20000 in
-/-- **A row's prefix base** (`__loop18`). -/
+/-- **A row's prefix base** (`__loop17`). -/
 theorem l18_block {x N pb pd : E} (h : LoadHolds rd (pb * x) 0 (pd * x ^ 128)) :
-    LoopBlock rd (coreProgram.getD 359 default) x N [pb, pd] := by
+    LoopBlock rd (coreProgram.getD 356 default) x N [pb, pd] := by
   obtain ⟨⟨hs, hl⟩, -⟩ := dvloops_shape
   refine ⟨Val.ofArgs [x, N, pb, pd, x ^ 2, x ^ 4, x ^ 8, x ^ 16, x ^ 32, x ^ 64, x ^ 128,
     pd * x ^ 128, pb * x, word 2 0 0, x * word 2 0 0, x * word 2 0 0 + N, word 2 0 0,
@@ -48,10 +48,10 @@ theorem l18_block {x N pb pd : E} (h : LoadHolds rd (pb * x) 0 (pd * x ^ 128)) :
   exact h
 
 set_option maxRecDepth 20000 in
-/-- **A row's running sum** (`__loop19`): its pointer at `rowbase·x`, its first word zero. -/
+/-- **A row's running sum** (`__loop18`): its pointer at `rowbase·x`, its first word zero. -/
 theorem l19_block {x N acc rb : E} (h1 : LoadHolds rd (rb * x) 0 (acc * x ^ 129))
     (h2 : LoadHolds rd (acc * x ^ 129) 0 0) :
-    LoopBlock rd (coreProgram.getD 360 default) x N [acc, rb] := by
+    LoopBlock rd (coreProgram.getD 357 default) x N [acc, rb] := by
   obtain ⟨-, ⟨hs, hl⟩, -⟩ := dvloops_shape
   have e : x ^ 129 = x ^ 128 * x := pow_succ x 128
   rw [e] at h1 h2
@@ -71,9 +71,9 @@ theorem l19_block {x N acc rb : E} (h1 : LoadHolds rd (rb * x) 0 (acc * x ^ 129)
   exacts [h1, h2]
 
 set_option maxRecDepth 20000 in
-/-- **A row's sum ends at zero** (`__loop22`). -/
+/-- **A row's sum ends at zero** (`__loop21`). -/
 theorem l22_block {x N rb a : E} (h1 : LoadHolds rd (rb * x) 0 a) (h2 : LoadHolds rd a 128 0) :
-    LoopBlock rd (coreProgram.getD 363 default) x N [rb] := by
+    LoopBlock rd (coreProgram.getD 360 default) x N [rb] := by
   obtain ⟨-, -, ⟨hs, hl⟩, -⟩ := dvloops_shape
   refine ⟨Val.ofArgs [x, N, rb, rb * x, a, 0, word 0 0 0, word 2 0 0, x * word 2 0 0,
     x * word 2 0 0 + N, word 2 0 0, x * word 2 0 0], by rw [params_of_shape hs hl]; rfl, ?_⟩
@@ -89,11 +89,11 @@ theorem l22_block {x N rb a : E} (h1 : LoadHolds rd (rb * x) 0 a) (h2 : LoadHold
   · rw [word_zero, zero_add]
 
 set_option maxRecDepth 20000 in
-/-- **A padding row in the row tree** (`__loop24`). -/
+/-- **A padding row in the row tree** (`__loop23`). -/
 theorem l24_block {x N rt nb : E}
     (h0 : LoadHolds rd (rt * (nb * nb) * (x * x)) 0 (digestScalars daPadRowDigest).1)
     (h1 : LoadHolds rd (rt * (nb * nb) * (x * x)) 1 (digestScalars daPadRowDigest).2) :
-    LoopBlock rd (coreProgram.getD 366 default) x N [rt, nb] := by
+    LoopBlock rd (coreProgram.getD 363 default) x N [rt, nb] := by
   obtain ⟨-, -, -, hs, hl⟩ := dvloops_shape
   have e := daPadRow_cells
   simp only [Prod.ext_iff] at e

@@ -38,7 +38,7 @@ theorem w29_3 : WinOk 29 3 := winOk_of_C (by decide +kernel)
 /-- `da_vector_cell`, window 4. -/
 theorem w29_4 : WinOk 29 4 := winOk_of_C (by decide +kernel)
 
-/-- `da_list_digest`, window 0. -/
+/-- `aggregate_claims`, window 0. -/
 theorem w30_0 : WinOk 30 0 := winOk_of_C (by decide +kernel)
 
 theorem ok30 : CheckOk 30 := checkOk_one (by decide +kernel) w30_0

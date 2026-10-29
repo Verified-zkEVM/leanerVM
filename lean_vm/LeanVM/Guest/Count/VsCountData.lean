@@ -19,28 +19,28 @@ set_option maxRecDepth 100000
 @[expose] public section
 
 /-- The core indices of `open_stacked__L{c}`, `c < 28`. -/
-def osJ : List ℕ := [295, 296, 297, 298, 299, 300, 301, 302, 303, 304, 305, 306, 307, 308, 309, 310, 311, 312, 313, 314, 315, 316, 317, 318, 319, 320, 321, 322]
+def osJ : List ℕ := [292, 293, 294, 295, 296, 297, 298, 299, 300, 301, 302, 303, 304, 305, 306, 307, 308, 309, 310, 311, 312, 313, 314, 315, 316, 317, 318, 319]
 
 /-- `verify_sub`'s statically bounded callees but its opening arm. -/
 def vsStNames : List String := ["g_power_of_word", "log2_ceil_in_the_exponent__L0_L34", "assert_canonical", "ring_switch_target", "certify_placement", "log2_ceil_in_the_exponent__L15_L34"]
 
 /-- Their core indices. -/
-def vsStJ : List ℕ := [3, 293, 1, 13, 15, 294]
+def vsStJ : List ℕ := [3, 290, 1, 13, 15, 291]
 
 /-- The core indices of `child_claim_list_last__L{k}`, `k < 17`. -/
-def cclJ : List ℕ := [342, 343, 344, 345, 346, 347, 348, 349, 350, 351, 352, 353, 354, 355, 356, 357, 358]
+def cclJ : List ℕ := [339, 340, 341, 342, 343, 344, 345, 346, 347, 348, 349, 350, 351, 352, 353, 354, 355]
 
 /-- The core index of `list_split`. -/
 def lsJ : ℕ := 22
 
-/-- The core index of `__loop17`. -/
-def l17J : ℕ := 341
+/-- The core index of `__loop16`. -/
+def l17J : ℕ := 338
 
-/-- The core indices of `verify_sub`, `child_claim_list_digest`, `__loop5`. -/
-def omJ : List ℕ := [18, 24, 37]
+/-- The core indices of `verify_sub`, `child_claim_list_digest`, `__loop4`. -/
+def omJ : List ℕ := [18, 24, 34]
 
 /-- Their names. -/
-def omNames : List String := ["verify_sub", "child_claim_list_digest", "__loop5"]
+def omNames : List String := ["verify_sub", "child_claim_list_digest", "__loop4"]
 
 /-- `open_stacked__L{c}`'s instructions, by `c`. -/
 def kcOsT : Opcode → List ℕ
@@ -78,7 +78,7 @@ def kcLs : Opcode → ℕ
   | .jump => 1
   | .keccak => 0
 
-/-- `__loop17`'s instructions per iteration. -/
+/-- `__loop16`'s instructions per iteration. -/
 def kcL17 : Opcode → ℕ
   | .xor => 73
   | .mulNative => 159
@@ -89,11 +89,11 @@ def kcL17 : Opcode → ℕ
 
 /-- The frame weights of `omNames`. -/
 def omT : Opcode → List ℕ
-  | .xor => [187, 2, 2]
-  | .mulNative => [599, 21, 41]
-  | .setConstant => [31, 9, 12]
-  | .deref => [767, 42, 69]
-  | .jump => [35, 5, 8]
+  | .xor => [187, 2, 1]
+  | .mulNative => [599, 21, 36]
+  | .setConstant => [31, 9, 9]
+  | .deref => [767, 42, 52]
+  | .jump => [35, 5, 6]
   | .keccak => [14, 1, 0]
 
 /-- `verify_tables`' instructions (`B1.VerifySub.vtWB Count.vsWords`). -/
@@ -132,7 +132,7 @@ noncomputable def vsTabOk (op : Opcode) : Bool :=
   (List.range 17).all (fun k => kvOkB op (cclJ.getD k 0) ("child_claim_list_last__L" ++ B1.Whir.natStr k) &&
     kvSBJ op (cclJ.getD k 0) == (kcCclT op).getD k 0) &&
   kvOkB op lsJ "list_split" && kvSBJ op lsJ == kcLs op &&
-  kvOkK op l17J "__loop17" && kvSKJ op l17J == kcL17 op &&
+  kvOkK op l17J "__loop16" && kvSKJ op l17J == kcL17 op &&
   (List.range 3).all (fun i => decide ((coreProgram[omJ.getD i 0]?).map Fn.name = some (omNames.getD i "")) &&
     (B2C.plumbOf (omJ.getD i 0 + 1)).pmax.getD (B2C.opIdx op) 0 == (omT op).getD i 0)
 

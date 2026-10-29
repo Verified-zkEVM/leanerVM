@@ -743,7 +743,7 @@ def vsIdx : ℕ := 19
 exponent tables): `verify_sub`'s arguments 4 and 5, and the loop calling it, which receives
 them as arguments 15 and 16. -/
 def semOf (name : String) : List (ℕ × ℕ) :=
-  if name == "verify_sub" then [(6, 7)] else if name == "__loop5" then [(17, 18)] else []
+  if name == "verify_sub" then [(6, 7)] else if name == "__loop4" then [(17, 18)] else []
 
 /-- The semantic pairs a function learns from a top-level call, `(statement after it, value,
 value)`: the two tables `exponent_tables` returns. -/
@@ -768,7 +768,7 @@ def bounds (name : String) :
     name == "log2_ceil_in_the_exponent__L0_L34" || name == "log2_ceil_in_the_exponent__L15_L34" then
     ([], [(5, 34)], [], [])
   else if name == "check_opening_terminal" then ([], [], [(13, 99, 29)], [])
-  else if name == "__loop20" || name == "__loop21" || name == "da_verify_column__L0" ||
+  else if name == "__loop19" || name == "__loop20" || name == "da_verify_column__L0" ||
     name == "da_verify_column__L1" then ([(6, 11)], [], [], [])
   else ([], [], [], [])
 

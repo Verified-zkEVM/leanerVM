@@ -39,11 +39,11 @@ def aggQ (m : ℕ) (σ : Val) : Prop :=
 
 /-- `aggregate_claims`' calls, in order. -/
 def aggCallList : List Call :=
-  [⟨"__loop25", [.n 63, .n 0, .n 60, .n 2, .n 7, .n 3, .n 8, .n 1], [], true⟩,
-    ⟨"__loop26", [.n 96, .n 0, .n 79, .n 71, .n 7, .n 8], [], true⟩,
+  [⟨"__loop24", [.n 63, .n 0, .n 60, .n 2, .n 7, .n 3, .n 8, .n 1], [], true⟩,
+    ⟨"__loop25", [.n 96, .n 0, .n 79, .n 71, .n 7, .n 8], [], true⟩,
     ⟨"batch_sumcheck__L23", [.n 105, .n 106, .n 107, .n 108, .n 109, .n 5, .n 103, .n 104],
       [.n 110, .n 111, .n 112, .n 113, .n 114, .n 115], true⟩,
-    ⟨"__loop27", [.n 122, .n 0, .n 7, .n 8, .n 104, .n 118, .n 71], [], true⟩]
+    ⟨"__loop26", [.n 122, .n 0, .n 7, .n 8, .n 104, .n 118, .n 71], [], true⟩]
 
 /-- No predicate on `aggregate_claims`' callees' trees. -/
 def aggTs : List (Tree → Prop) := [fun _ => True, fun _ => True, fun _ => True, fun _ => True]
@@ -90,12 +90,12 @@ theorem aggregate_claims_completeAtT (fs : String → ℕ) (cert : String → V 
   have hne : (1 : E) + gen ^ m ≠ 0 := (one_add_gen_ne (by omega)).mpr (by omega)
   -- the callees
   let ks : List Kid :=
-    [⟨"__loop25", true, [1, gen ^ m, P.absorb, cfresh, P.lf, ccarried, P.lc, cpi], Own ++ Lin,
+    [⟨"__loop24", true, [1, gen ^ m, P.absorb, cfresh, P.lf, ccarried, P.lc, cpi], Own ++ Lin,
         Returns []⟩,
-      ⟨"__loop26", true, [1, gen ^ m, P.sq, P.lam, P.lf, P.lc], Own ++ Lin, Returns []⟩,
+      ⟨"__loop25", true, [1, gen ^ m, P.sq, P.lam, P.lf, P.lc], Own ++ Lin, Returns []⟩,
       ⟨"batch_sumcheck__L23", true, (sq2F m (aggAbs cs)).2.cap ++ [P.msgs, claimAt cs m, P.pt],
         Own ++ Lin, Returns ((aggRun cs h).2.cap ++ [(aggRun cs h).1.2])⟩,
-      ⟨"__loop27", true, [1, gen ^ m, P.lf, P.lc, P.pt, P.w, P.lam], Own ++ Lin, Returns []⟩]
+      ⟨"__loop26", true, [1, gen ^ m, P.lf, P.lc, P.pt, P.w, P.lam], Own ++ Lin, Returns []⟩]
   have hok : ∀ k ∈ ks, k.taken = true → CompleteAtD fs cert 16 k.f k.Lin k.args k.Out := by
     intro k hk _
     simp only [ks, List.mem_cons, List.not_mem_nil, or_false] at hk

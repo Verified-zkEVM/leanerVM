@@ -17,28 +17,28 @@ open LeanVM.Guest.Check
 
 @[expose] public section
 
-/-- `__loop365`, window 0. -/
+/-- `__loop379`, window 0. -/
 theorem w836_0 : WinOk 836 0 := winOk_of_C (by decide +kernel)
 
-/-- `__loop366`, window 0. -/
+/-- `__loop380`, window 0. -/
 theorem w837_0 : WinOk 837 0 := winOk_of_C (by decide +kernel)
 
-/-- `__loop367`, window 0. -/
+/-- `__loop381`, window 0. -/
 theorem w838_0 : WinOk 838 0 := winOk_of_C (by decide +kernel)
 
-/-- `decode_query_bits__L19`, window 0. -/
+/-- `__loop382`, window 0. -/
 theorem w839_0 : WinOk 839 0 := winOk_of_C (by decide +kernel)
 
-/-- `__loop368`, window 0. -/
+/-- `__loop383`, window 0. -/
 theorem w840_0 : WinOk 840 0 := winOk_of_C (by decide +kernel)
 
-/-- `__loop369`, window 0. -/
+/-- `__loop384`, window 0. -/
 theorem w841_0 : WinOk 841 0 := winOk_of_C (by decide +kernel)
 
-/-- `__loop370`, window 0. -/
+/-- `__loop385`, window 0. -/
 theorem w842_0 : WinOk 842 0 := winOk_of_C (by decide +kernel)
 
-/-- `decode_query_bits__L20`, window 0. -/
+/-- `__loop386`, window 0. -/
 theorem w843_0 : WinOk 843 0 := winOk_of_C (by decide +kernel)
 
 theorem ok836 : CheckOk 836 := checkOk_one (by decide +kernel) w836_0

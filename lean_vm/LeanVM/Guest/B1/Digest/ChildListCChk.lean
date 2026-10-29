@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.Digest.ChildListCChk
 
-  `child_claim_list_digest`'s branches and `__loop17`, evaluated (by kernel evaluation), for its
+  `child_claim_list_digest`'s branches and `__loop16`, evaluated (by kernel evaluation), for its
   completeness.
 -/
 
@@ -18,7 +18,7 @@ A claim record (`ChildList`), evaluated: its slot hinted (`isWitO`), its range c
 against `limit · g⁻¹` (`isLimK`), its mark `marks · E(2^j)` (`markC`) stored at
 `cover · origin · o`, its four cells read at `entries · o^4` (`recC`), the products by the pure
 atoms (`Fwd.pureB`). `recSide`: an atom with a side condition is one of these. `l17cOk`,
-`cccOk k`, `ccBrOk`: `__loop17`, `child_claim_list_last__L{k}` and the two branches of
+`cccOk k`, `ccBrOk`: `__loop16`, `child_claim_list_last__L{k}` and the two branches of
 `child_claim_list_digest` evaluate in order, their side atoms the records', the state's and the
 chain's.
 -/
@@ -91,13 +91,13 @@ def cccOk (k : ℕ) (f : Fn) : Bool :=
       stLoadsOk (A.filter fun a => decide (a ∉ S)) (.n 0) (cclSt k) 0
   | none => false
 
-/-- **`__loop17`, evaluated.** -/
+/-- **`__loop16`, evaluated.** -/
 def l17cOk (fn : Fn) : Bool :=
   let A := loopAtoms fn
   let S := storesOf 8 fn.body
   let F := A.filter pureB
   let G := A.filter fun a => decide (a ∉ S)
-  loopShapeF fn "__loop17" && (chk 8 fn.body).isSome && (loopPre fn).all isAtomS &&
+  loopShapeF fn "__loop16" && (chk 8 fn.body).isSome && (loopPre fn).all isAtomS &&
   atomsEqbL (atomsIn (loopPre fn)) A && S.all isLoadB &&
   canonChk (ccA l17St 20 17) G &&
   A.all (fun a => !needsSide a || (isLoadBelow 13 13 a && decide (a ∉ S)) ||
@@ -134,10 +134,10 @@ noncomputable def ccBrOk : Bool :=
   (atomsIn ccEEval).all (fun a => !needsSide a || decide (a ∈ SE)) &&
   canonChk [] ((atomsIn ccEEval).filter fun a => decide (a ∉ SE)) &&
   ccElsePre.all (fun s => isAtomS s || stmtEqb s (.call "list_split" [.n 5] [.n 27, .n 28]) ||
-    stmtEqb s (.callIf (.n 51) "__loop17" [.n 52, .n 27, .n 36, .n 0, .n 1, .n 2, .n 3, .n 4]) ||
+    stmtEqb s (.callIf (.n 51) "__loop16" [.n 52, .n 27, .n 36, .n 0, .n 1, .n 2, .n 3, .n 4]) ||
     stmtEqb s (.dispatch (.n 28) cclNames [.n 58, .n 0, .n 1, .n 64, .n 3, .n 4] [.n 65, .n 66])) &&
   ccElsePre.any (stmtEqb · (.call "list_split" [.n 5] [.n 27, .n 28])) &&
-  ccElsePre.any (stmtEqb · (.callIf (.n 51) "__loop17"
+  ccElsePre.any (stmtEqb · (.callIf (.n 51) "__loop16"
     [.n 52, .n 27, .n 36, .n 0, .n 1, .n 2, .n 3, .n 4])) &&
   ccElsePre.any (stmtEqb · (.dispatch (.n 28) cclNames [.n 58, .n 0, .n 1, .n 64, .n 3, .n 4]
     [.n 65, .n 66])) &&
@@ -152,7 +152,7 @@ set_option maxRecDepth 100000 in
 theorem ccbr_ok : ccBrOk = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem l17c_ok : l17cOk (coreProgram.getD 341 default) = true := by decide +kernel
+theorem l17c_ok : l17cOk (coreProgram.getD 338 default) = true := by decide +kernel
 
 end
 end LeanVM.Guest.B1.Digest

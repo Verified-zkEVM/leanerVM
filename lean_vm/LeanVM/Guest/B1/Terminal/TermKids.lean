@@ -162,7 +162,7 @@ noncomputable def termKids (Lin : Main.Layout) (D : TermData) (b0 : ℕ) : List 
     fun _ => ⟨"eq_prefix_chain", true,
       [ofK (gpow (b0 + 35)), word 1 0 0, ofK (gpow D.B.chi), ofK (gpow D.B.pt1), D.gzcn],
       (b0 + 35, eqChain D.chis ((p1Of D.x).take D.chis.length)) :: Lin, Returns []⟩,
-    fun _ => ⟨"__loop15", decide (word 2 0 0 + D.glm ≠ 0),
+    fun _ => ⟨"__loop14", decide (word 2 0 0 + D.glm ≠ 0),
       [word 2 0 0, D.glm, ofK (gpow (b0 + 70)), ofK (gpow D.B.pt1)],
       (b0 + 70, piW D.rm (p1Of D.x) D.m) :: Lin, Returns []⟩,
     fun _ => ⟨"selector_tables", true, [ofK (gpow D.B.pt), ofK (gpow D.B.pt1)],
@@ -187,7 +187,7 @@ theorem termKids_length (Lin : Main.Layout) (D : TermData) (b0 : ℕ) :
 theorem eqc_pure : coreProgram.PureIn ("eq_prefix_chain" :: eqPrefixRunNames) :=
   Tables.pureIn_of_pureInB (by decide +kernel)
 
-theorem l15_pure : coreProgram.PureIn ["__loop15"] := Tables.pureIn_of_pureInB (by decide +kernel)
+theorem l15_pure : coreProgram.PureIn ["__loop14"] := Tables.pureIn_of_pureInB (by decide +kernel)
 
 theorem low_rc {κ : ℕ} (hκ : 6 ≤ κ) {rd : Reader} (hl : LowDef κ rd) {n : ℕ} (hn : n ≤ 40) :
     RangeChecked rd (gen ^ n) (gen ^ 40) := by
@@ -230,7 +230,7 @@ theorem l15_kid_complete (κ : ℕ) {b bp m : ℕ} {rm glm : E} {ps : List E} {L
     (hm2 : 2 ≤ m) (hglm : glm = gen ^ m) (hps : m ≤ ps.length)
     (hrd : ∀ rd, LowDef κ rd → MemL rd L → ReadsAt rd (ofK (gpow bp)) ps)
     (hR : ∀ i, bp ≤ i ∧ i < bp + m → RegionL L i) :
-    CompleteAtD fs cert κ "__loop15" ((b, piW rm ps m) :: L)
+    CompleteAtD fs cert κ "__loop14" ((b, piW rm ps m) :: L)
       [word 2 0 0, glm, ofK (gpow b), ofK (gpow bp)] (Returns []) := by
   refine Lift.completeAtD_of_relIn l15_pure List.mem_cons_self fun rd hl hm => ?_
   have hm0 : ReadsAt rd (ofK (gpow b)) (piW rm ps m) := hm _ List.mem_cons_self

@@ -16,36 +16,36 @@ namespace LeanVM.Guest.B2C.Shared
 @[expose] public section
 
 set_option maxRecDepth 100000 in
-/-- `__loop366`, once. -/
-theorem st837 : shareStatic 837 = true := by decide +kernel
+/-- `decode_query_bits__L20`, once. -/
+theorem st822 : shareStatic 822 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `__loop366`, window 0. -/
-theorem w837_0 : shareWin 837 (snapsOf 837) 0 = true := by decide +kernel
+/-- `decode_query_bits__L20`, window 0. -/
+theorem w822_0 : shareWin 822 (snapsOf 822) 0 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `__loop366`, window 1. -/
-theorem w837_1 : shareWin 837 (snapsOf 837) 1 = true := by decide +kernel
+/-- `decode_query_bits__L20`, window 1. -/
+theorem w822_1 : shareWin 822 (snapsOf 822) 1 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `__loop367`, once. -/
-theorem st838 : shareStatic 838 = true := by decide +kernel
+/-- `__loop369`, once. -/
+theorem st823 : shareStatic 823 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `__loop367`, window 0. -/
-theorem w838_0 : shareWin 838 (snapsOf 838) 0 = true := by decide +kernel
+/-- `__loop369`, window 0. -/
+theorem w823_0 : shareWin 823 (snapsOf 823) 0 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `__loop367`, window 1. -/
-theorem w838_1 : shareWin 838 (snapsOf 838) 1 = true := by decide +kernel
+/-- `__loop369`, window 1. -/
+theorem w823_1 : shareWin 823 (snapsOf 823) 1 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `decode_query_bits__L19`, once. -/
-theorem st839 : shareStatic 839 = true := by decide +kernel
+/-- `__loop369`, window 2. -/
+theorem w823_2 : shareWin 823 (snapsOf 823) 2 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `decode_query_bits__L19`, window 0. -/
-theorem w839_0 : shareWin 839 (snapsOf 839) 0 = true := by decide +kernel
+/-- `__loop370`, once. -/
+theorem st824 : shareStatic 824 = true := by decide +kernel
 
 end
 end LeanVM.Guest.B2C.Shared

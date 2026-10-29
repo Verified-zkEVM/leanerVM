@@ -16,7 +16,7 @@ public import LeanVM.Guest.B1.KeccakGkr.LayerCPlacedB
 
 `kids_completeB` is `kids_complete` with each call within its bound in `D.kidsB` (in order):
 
-* the copy loops `__loop11`, `__loop12`, `__loop13` (`τ - 4` words each): `(τ - 4) * KC`, from
+* the copy loops `__loop10`, `__loop11`, `__loop12` (`τ - 4` words each): `(τ - 4) * KC`, from
   their words per iteration (`TotalLeOn … LoopPre`, at most `KC`);
 * the twelve layers: `layerWords fs (firstOf s) D.odd (D.layer s).y KP KR` (`layer_completeAtFB`);
 * the committed outputs' and the inputs' opening's rounds (`plainName 0`): `KO`; the inputs'
@@ -110,8 +110,8 @@ theorem plain_completeB {k0 : ℕ} (hk : k0 < 2) {K : ℕ}
 
 namespace VkData
 
-/-- **The calls' bounds**, in order: `__loop11`, the twelve layers, the committed outputs'
-rounds, `__loop12`, the inputs' rounds, their opening's rounds, `__loop13`. -/
+/-- **The calls' bounds**, in order: `__loop10`, the twelve layers, the committed outputs'
+rounds, `__loop11`, the inputs' rounds, their opening's rounds, `__loop12`. -/
 def kidsB (D : VkData) (fs : String → ℕ) (KC KP KR KO KI : ℕ) : List ℕ :=
   [(D.τ - 4) * KC] ++
   (List.range 12).map (fun s ↦ layerWords fs (firstOf s) D.odd (D.layer s).y KP KR) ++
@@ -140,7 +140,7 @@ set_option maxHeartbeats 4000000 in
 at most `KC` words per iteration, the layers' pack loops `KP`, `keccak_round` `KR`, the openings'
 rounds `KO` (`plainName 0`) and `KI` (`plainName 1`). -/
 theorem kids_completeB (h : D.Ok) (κ : ℕ) (B curE chiE olE zvE slE : ℕ) {KC KP KR KO KI : ℕ}
-    (hC : ∀ name ∈ ["__loop11", "__loop12", "__loop13"],
+    (hC : ∀ name ∈ ["__loop10", "__loop11", "__loop12"],
       TotalLeOn coreProgram fs name LoopPre fun a ↦ logG (a.getD 1 0) * KC)
     (hP : ∀ first < 2, TotalLeOn coreProgram fs (packLoopName first D.odd) LoopPre
       fun a ↦ logG (a.getD 1 0) * KP)
@@ -160,7 +160,7 @@ theorem kids_completeB (h : D.Ok) (κ : ℕ) (B curE chiE olE zvE slE : ℕ) {KC
   simp only [List.zip_cons_cons, List.zip_nil_right, List.mem_append, List.mem_cons,
     List.mem_map, List.mem_range, List.not_mem_nil, or_false] at hkb
   rcases hkb with ((rfl | ⟨s, hs, rfl⟩) | rfl | rfl | rfl | rfl | rfl)
-  · -- `__loop11`
+  · -- `__loop10`
     exact (loop_completeB find_copyLoop11 copyLoop_body11 rfl (by simp [vkKidS])
       (hC _ (by simp)) κ
       (L := [(chiE, D.chis), (B, D.c0.point)]) (dw := D.c0.point) (sw := D.chis)
@@ -197,7 +197,7 @@ theorem kids_completeB (h : D.Ok) (κ : ℕ) (B curE chiE olE zvE slE : ℕ) {KC
       rw [e]
       exact inR_entry (ws := D.op) (hlin (by simp))
         (by rw [op_length h]; simp [plainCount] at hj; omega)
-  · -- `__loop12`
+  · -- `__loop11`
     refine (loop_completeB find_copyLoop12 copyLoop_body12 rfl (by simp [vkKidS])
       (hC _ (by simp)) κ
       (L := [(zvE, D.op), (B, D.c0.point)]) (dw := D.op) (sw := D.c0.point) (m := D.τ - 4)
@@ -246,7 +246,7 @@ theorem kids_completeB (h : D.Ok) (κ : ℕ) (B curE chiE olE zvE slE : ℕ) {KC
       rw [e]
       exact inR_entry (ws := D.point) (hlin (by simp))
         (by rw [point_length h]; simp [plainCount] at hj; omega)
-  · -- `__loop13`
+  · -- `__loop12`
     have hL : (fun p ↦ [(zvE + qkeccakVarsCap, D.point),
         (D.lsOf fs (ps ++ [p]).dropLast 11, (D.layer 11).chs (firstOf 11))]) =
         fun _ ↦ [(zvE + qkeccakVarsCap, D.point),

@@ -35,7 +35,7 @@ theorem vkBound_eq : B1.VerifySub.vkBound = 87672 := by
 
 set_option maxRecDepth 100000 in
 theorem termBound_eq : B1.VerifySub.termBound B2C.fs vsWords.Beqc vsWords.K15 vsWords.Bcs vsWords.Brs = 38888 := by
-  show B2C.fs "check_opening_terminal" + 146 + 3 * 184 + max (B2C.fs "__loop15") (32 * 38) +
+  show B2C.fs "check_opening_terminal" + 146 + 3 * 184 + max (B2C.fs "__loop14") (32 * 38) +
     (B2C.fs "selector_tables" + 322) + 99 * 157 + (B2C.fs "ring_switch_weight" + 2240 + 16433) = 38888
   rw [← fsFast_eq]; decide +kernel
 

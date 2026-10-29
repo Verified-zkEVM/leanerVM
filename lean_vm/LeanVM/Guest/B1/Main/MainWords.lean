@@ -96,18 +96,18 @@ theorem colB_le {fname rl gl : String} {r L : ℕ} (hr : r ≤ 2 ^ L) (hL : L < 
 
 /-- `da_verify`'s constant words. -/
 def dvC : ℕ :=
-  fs "da_verify" + 768 + fs "da_row_shape" + fs "__loop24" + SB "da_levels__L128_L7" +
-    (65 * fs "__loop20" + 64 * colC fs "da_verify_column__L1" "__loop418") +
-    (65 * fs "__loop21" + 64 * colC fs "da_verify_column__L0" "__loop420")
+  fs "da_verify" + 768 + fs "da_row_shape" + fs "__loop23" + SB "da_levels__L128_L7" +
+    (65 * fs "__loop19" + 64 * colC fs "da_verify_column__L1" "__loop416") +
+    (65 * fs "__loop20" + 64 * colC fs "da_verify_column__L0" "__loop418")
 
 /-- `da_verify`'s words per row. -/
 def dvS : ℕ :=
-  131 + SK "__loop18" + SK "__loop19" + SK "__loop22" + (SK "__loop23" - SK "__loop24") +
-    64 * colS SK "__loop417" "__loop418" + 64 * colS SK "__loop419" "__loop420"
+  131 + SK "__loop17" + SK "__loop18" + SK "__loop21" + (SK "__loop22" - SK "__loop23") +
+    64 * colS SK "__loop415" "__loop416" + 64 * colS SK "__loop417" "__loop418"
 
 /-- `da_verify`'s words per padded row. -/
 def dvP : ℕ :=
-  132 + SK "__loop24" + dlK SB + 64 * colP SB SK "__loop418" + 64 * colP SB SK "__loop420"
+  132 + SK "__loop23" + dlK SB + 64 * colP SB SK "__loop416" + 64 * colP SB SK "__loop418"
 
 theorem clLoop_le {f : String} {Bc C S Q r p : ℕ} (h : Bc ≤ C + r * S + p * Q) :
     Da.clB fs f Bc 64 ≤ 65 * fs f + 64 * C + r * (64 * S) + p * (64 * Q) := by
@@ -119,25 +119,25 @@ theorem clLoop_le {f : String} {Bc C S Q r p : ℕ} (h : Bc ≤ C + r * S + p * 
 theorem dvB_le {r L : ℕ} (hr : r ≤ 2 ^ L) (hL : L < 11) :
     Da.dvB fs SB SK r L ≤ dvC fs SB + r * dvS SK + 2 ^ L * dvP SB SK := by
   unfold Da.dvB Da.dvKB dvC dvS dvP Da.dvSizes
-  have c1 := clLoop_le fs (f := "__loop20") (colB_le fs SB SK (fname := "da_verify_column__L1")
+  have c1 := clLoop_le fs (f := "__loop19") (colB_le fs SB SK (fname := "da_verify_column__L1")
+    (rl := "__loop415") (gl := "__loop416") hr hL)
+  have c0 := clLoop_le fs (f := "__loop20") (colB_le fs SB SK (fname := "da_verify_column__L0")
     (rl := "__loop417") (gl := "__loop418") hr hL)
-  have c0 := clLoop_le fs (f := "__loop21") (colB_le fs SB SK (fname := "da_verify_column__L0")
-    (rl := "__loop419") (gl := "__loop420") hr hL)
-  have h24 : (if 2 ^ L - r ≠ 0 then (2 ^ L - r) * SK "__loop24" else fs "__loop24") ≤
-      (2 ^ L - r) * SK "__loop24" + fs "__loop24" := by
+  have h24 : (if 2 ^ L - r ≠ 0 then (2 ^ L - r) * SK "__loop23" else fs "__loop23") ≤
+      (2 ^ L - r) * SK "__loop23" + fs "__loop23" := by
     split <;> omega
-  have hg := rows_gap_le (a := SK "__loop23") (b := SK "__loop24") hr
+  have hg := rows_gap_le (a := SK "__loop22") (b := SK "__loop23") hr
   have hd := dl_le SB hL
   simp only [List.sum_cons, List.sum_nil]
-  have e : r * (131 + SK "__loop18" + SK "__loop19" + SK "__loop22" + (SK "__loop23" - SK "__loop24") +
-      64 * colS SK "__loop417" "__loop418" + 64 * colS SK "__loop419" "__loop420") =
-      131 * r + r * SK "__loop18" + r * SK "__loop19" + r * SK "__loop22" +
-      r * (SK "__loop23" - SK "__loop24") + r * (64 * colS SK "__loop417" "__loop418") +
-      r * (64 * colS SK "__loop419" "__loop420") := by ring
-  have e' : 2 ^ L * (132 + SK "__loop24" + dlK SB + 64 * colP SB SK "__loop418" +
-      64 * colP SB SK "__loop420") =
-      132 * 2 ^ L + 2 ^ L * SK "__loop24" + dlK SB * 2 ^ L + 2 ^ L * (64 * colP SB SK "__loop418") +
-      2 ^ L * (64 * colP SB SK "__loop420") := by ring
+  have e : r * (131 + SK "__loop17" + SK "__loop18" + SK "__loop21" + (SK "__loop22" - SK "__loop23") +
+      64 * colS SK "__loop415" "__loop416" + 64 * colS SK "__loop417" "__loop418") =
+      131 * r + r * SK "__loop17" + r * SK "__loop18" + r * SK "__loop21" +
+      r * (SK "__loop22" - SK "__loop23") + r * (64 * colS SK "__loop415" "__loop416") +
+      r * (64 * colS SK "__loop417" "__loop418") := by ring
+  have e' : 2 ^ L * (132 + SK "__loop23" + dlK SB + 64 * colP SB SK "__loop416" +
+      64 * colP SB SK "__loop418") =
+      132 * 2 ^ L + 2 ^ L * SK "__loop23" + dlK SB * 2 ^ L + 2 ^ L * (64 * colP SB SK "__loop416") +
+      2 ^ L * (64 * colP SB SK "__loop418") := by ring
   omega
 
 /-! ## The claim lists
@@ -154,31 +154,31 @@ theorem div17_mul_le (n K : ℕ) : n / 17 * K ≤ n * ((K + 16) / 17) := by
 
 /-- A claim list's digest's constant words. -/
 def clC : ℕ :=
-  fs "claim_list_digest" + 13 + SB "list_split" + fs "__loop16" + nameSum SB B1.Digest.clNames 17
+  fs "claim_list_digest" + 13 + SB "list_split" + fs "__loop15" + nameSum SB B1.Digest.clNames 17
 
-/-- A claim list's digest's words per claim: `13` and a `__loop16` iteration per `17` claims. -/
-def clS : ℕ := 1 + (SK "__loop16" + 16) / 17
+/-- A claim list's digest's words per claim: `13` and a `__loop15` iteration per `17` claims. -/
+def clS : ℕ := 1 + (SK "__loop15" + 16) / 17
 
 theorem clB_le (n : ℕ) : B1.Digest.clB fs SB SK n ≤ clC fs SB + n * clS SK := by
   unfold B1.Digest.clB clC clS
   split
   · omega
   · have h1 := le_nameSum (g := SB) (names := B1.Digest.clNames) (j := n % 17) (Nat.mod_lt _ (by omega))
-    have h2 := div17_mul_le n (SK "__loop16")
-    have h3 : (if n / 17 ≠ 0 then n / 17 * SK "__loop16" else fs "__loop16") ≤
-        n * ((SK "__loop16" + 16) / 17) + fs "__loop16" := by
+    have h2 := div17_mul_le n (SK "__loop15")
+    have h3 : (if n / 17 ≠ 0 then n / 17 * SK "__loop15" else fs "__loop15") ≤
+        n * ((SK "__loop15" + 16) / 17) + fs "__loop15" := by
       split <;> omega
     have h4 : 13 * (n / 17) ≤ n := by omega
-    have e : n * (1 + (SK "__loop16" + 16) / 17) = n + n * ((SK "__loop16" + 16) / 17) := by ring
+    have e : n * (1 + (SK "__loop15" + 16) / 17) = n + n * ((SK "__loop15" + 16) / 17) := by ring
     omega
 
 /-- A child's claim list's digest's constant words. -/
 def ccC : ℕ :=
-  fs "child_claim_list_digest" + 13 + SB "list_split" + fs "__loop17" +
+  fs "child_claim_list_digest" + 13 + SB "list_split" + fs "__loop16" +
     nameSum (fun g => fs g) B1.Digest.cclNames 17
 
-/-- A child's claim list's digest's words per claim: `13` and a `__loop17` frame per `17` claims. -/
-def ccS : ℕ := 1 + (fs "__loop17" + 16) / 17
+/-- A child's claim list's digest's words per claim: `13` and a `__loop16` frame per `17` claims. -/
+def ccS : ℕ := 1 + (fs "__loop16" + 16) / 17
 
 theorem ccB_le (n : ℕ) : B1.Digest.ccB fs SB n ≤ ccC fs SB + n * ccS fs := by
   unfold B1.Digest.ccB ccC ccS
@@ -190,15 +190,15 @@ theorem ccB_le (n : ℕ) : B1.Digest.ccB fs SB n ≤ ccC fs SB + n * ccS fs := b
       simp only [List.getD_eq_getElem?_getD, getElem!_def]
       cases B1.Digest.cclNames[n % 17]? <;> rfl
     rw [hg]
-    have h2 := div17_mul_le n (fs "__loop17")
-    have h3 : (if n / 17 ≠ 0 then (n / 17 + 1) * fs "__loop17" else fs "__loop17") ≤
-        n * ((fs "__loop17" + 16) / 17) + fs "__loop17" := by
+    have h2 := div17_mul_le n (fs "__loop16")
+    have h3 : (if n / 17 ≠ 0 then (n / 17 + 1) * fs "__loop16" else fs "__loop16") ≤
+        n * ((fs "__loop16" + 16) / 17) + fs "__loop16" := by
       split
-      · have e : (n / 17 + 1) * fs "__loop17" = n / 17 * fs "__loop17" + fs "__loop17" := by ring
+      · have e : (n / 17 + 1) * fs "__loop16" = n / 17 * fs "__loop16" + fs "__loop16" := by ring
         omega
       · omega
     have h4 : 13 * (n / 17) ≤ n := by omega
-    have e : n * (1 + (fs "__loop17" + 16) / 17) = n + n * ((fs "__loop17" + 16) / 17) := by ring
+    have e : n * (1 + (fs "__loop16" + 16) / 17) = n + n * ((fs "__loop16" + 16) / 17) := by ring
     omega
 
 /-! ## The children's loop -/
@@ -207,17 +207,17 @@ theorem ccB_le (n : ℕ) : B1.Digest.ccB fs SB n ≤ ccC fs SB + n * ccS fs := b
 `HeapBuf`s, its claim lists' digests' constants, `__loop28` over at most `16` DA roots
 (`MAX_DA_ROOTS`, `Limits.daRoots`), `da_list_digest`, `statement_digest`. -/
 def l5A1 : ℕ :=
-  fs "__loop5" + 2 * ccC fs SB + (64 + 16 * (fs "__loop28" + fs "cover_da_root") +
+  fs "__loop4" + 2 * ccC fs SB + (64 + 16 * (fs "__loop28" + fs "cover_da_root") +
     fs "__loop28") + SB "da_list_digest" + SB "statement_digest"
 
 /-- The children's loop's words per child's claim. -/
 def l5A2 : ℕ := ccS fs
 
 /-- The children's loop's constant words. -/
-def l5A0 : ℕ := fs "__loop5"
+def l5A0 : ℕ := fs "__loop4"
 
 theorem l5Chain_le (K : ℕ → ℕ) : ∀ t c, l5ChainB fs K t c ≤
-    (t + 2) * fs "__loop5" + ∑ i ∈ Finset.range (t + 1), K (c + i)
+    (t + 2) * fs "__loop4" + ∑ i ∈ Finset.range (t + 1), K (c + i)
   | 0, c => by simp [l5ChainB]; omega
   | t + 1, c => by
     have ih := l5Chain_le K t (c + 1)
@@ -225,7 +225,7 @@ theorem l5Chain_le (K : ℕ → ℕ) : ∀ t c, l5ChainB fs K t c ≤
     have e : ∑ i ∈ Finset.range (t + 1), K (c + 1 + i) = ∑ i ∈ Finset.range (t + 1), K (c + (i + 1)) :=
       Finset.sum_congr rfl fun i _ => by rw [Nat.add_right_comm, Nat.add_assoc]
     rw [e] at ih
-    have e2 : (t + 1 + 2) * fs "__loop5" = fs "__loop5" + (t + 2) * fs "__loop5" := by ring
+    have e2 : (t + 1 + 2) * fs "__loop4" = fs "__loop4" + (t + 2) * fs "__loop4" := by ring
     simp only [Nat.add_zero]
     omega
 
@@ -262,7 +262,7 @@ theorem l5B_le (Bv : ℕ → ℕ) {s : NodeStatement} {w : NodeWitness}
     (B1.Digest.ccB fs SB (hKid s w c).es) (Bv c) (hKid s w c).ed) (w.children.length - 1) 0
   rw [show w.children.length - 1 + 1 = w.children.length by omega] at h
   have hK : ∀ c, l5K fs SB (B1.Digest.ccB fs SB (hKid s w c).ex) (B1.Digest.ccB fs SB (hKid s w c).es)
-      (Bv c) (hKid s w c).ed ≤ ((l5A1 fs SB - fs "__loop5" + Bv c) +
+      (Bv c) (hKid s w c).ed ≤ ((l5A1 fs SB - fs "__loop4" + Bv c) +
         l5A2 fs * (hEx w c + hEs w c + hEd w c)) := by
     intro c
     have h1 := ccB_le fs SB (hKid s w c).ex
@@ -287,12 +287,12 @@ theorem l5B_le (Bv : ℕ → ℕ) {s : NodeStatement} {w : NodeWitness}
     rfl
   rw [hcc] at hs
   simp only [Nat.zero_add] at h
-  have hA : fs "__loop5" ≤ l5A1 fs SB := by unfold l5A1; omega
+  have hA : fs "__loop4" ≤ l5A1 fs SB := by unfold l5A1; omega
   unfold l5A0
   have e : w.children.length * l5A1 fs SB =
-      w.children.length * (l5A1 fs SB - fs "__loop5") + w.children.length * fs "__loop5" := by
+      w.children.length * (l5A1 fs SB - fs "__loop4") + w.children.length * fs "__loop4" := by
     rw [← Nat.mul_add]; congr 1; omega
-  have e2 : (w.children.length + 1) * fs "__loop5" = w.children.length * fs "__loop5" + fs "__loop5" := by
+  have e2 : (w.children.length + 1) * fs "__loop4" = w.children.length * fs "__loop4" + fs "__loop4" := by
     ring
   rw [show w.children.length - 1 + 2 = w.children.length + 1 by omega] at h
   beta_reduce at h hs ⊢
@@ -337,7 +337,7 @@ theorem hDvB_le {bytecode : List K} {seed : Digest} {s : NodeStatement} {w : Nod
 def agA0 : ℕ := fs "aggregate_claims" + 97 + SB "batch_sumcheck__L23"
 
 /-- `aggregate_claims`' words per child. -/
-def agA1 : ℕ := 32 + SK "__loop25" + SK "__loop26" + SK "__loop27"
+def agA1 : ℕ := 32 + SK "__loop24" + SK "__loop25" + SK "__loop26"
 
 theorem aggB_eq (m : ℕ) : aggB fs SB SK m = agA0 fs SB + agA1 SK * m := by
   unfold aggB aggKB agA0 agA1 aggSizes
@@ -396,13 +396,13 @@ and each callee's frame and bound, child `c`'s `verify_sub` within `Bvf` at its 
 and rate. -/
 def mainWords (Bvf : ℕ → ℕ → ℕ) : End.Linear where
   base := fs "main" + 281 + fs "exponent_tables" + 68 + fs "__loop0" + SB "da_list_digest" +
-    fs "da_list_digest" + 2 * (clC fs SB + fs "claim_list_digest") + fs "__loop1" + fs "__loop2" +
-    fs "__loop3" + fs "__loop4" + 2 * l5A0 fs + (agA0 fs SB + fs "aggregate_claims") + SB "statement_digest" +
+    fs "da_list_digest" + 2 * (clC fs SB + fs "claim_list_digest") + fs "__loop0" + fs "__loop1" +
+    fs "__loop2" + fs "__loop3" + 2 * l5A0 fs + (agA0 fs SB + fs "aggregate_claims") + SB "statement_digest" +
     fs "statement_digest"
   declared := clS SK
-  coverage := 5 + SK "__loop0" + SK "__loop1" + SK "__loop2"
-  rawXmss := SK "__loop3"
-  rawSphincs := SK "__loop4"
+  coverage := 5 + SK "__loop0" + SK "__loop0" + SK "__loop1"
+  rawXmss := SK "__loop2"
+  rawSphincs := SK "__loop3"
   rawDa := dvC fs SB + fs "da_verify" + 2 * fs "cover_da_root"
   rawDaRows := dvS SK
   rawDaPad := dvP SB SK
@@ -422,11 +422,11 @@ alone when there is no child. -/
 theorem kidsBoundL_mKids (m : MainIn) (L : Layout) (b : MainBs) :
     kidsBoundL fs (mKids m L) (mBs fs SB SK m b) ≤
       (m.nda + m.ndd) * SK "__loop0" + fs "__loop0" + SB "da_list_digest" + fs "da_list_digest" +
-      b.Bx + b.Bs + 2 * fs "claim_list_digest" + m.nxd * SK "__loop1" + fs "__loop1" +
-      m.nsd * SK "__loop2" + fs "__loop2" + m.nrx * SK "__loop3" + fs "__loop3" +
-      m.nrs * SK "__loop4" + fs "__loop4" +
+      b.Bx + b.Bs + 2 * fs "claim_list_digest" + m.nxd * SK "__loop0" + fs "__loop0" +
+      m.nsd * SK "__loop1" + fs "__loop1" + m.nrx * SK "__loop2" + fs "__loop2" +
+      m.nrs * SK "__loop3" + fs "__loop3" +
       (if m.nd = 1 then b.Bd + fs "da_verify" + 2 * fs "cover_da_root" else 0) +
-      (if m.nc = 0 then fs "__loop5" else b.B5 + fs "__loop5" + b.Ba + fs "aggregate_claims") +
+      (if m.nc = 0 then fs "__loop4" else b.B5 + fs "__loop4" + b.Ba + fs "aggregate_claims") +
       SB "statement_digest" + fs "statement_digest" := by
   unfold mKids mBs
   by_cases hnd : m.nd = 1 <;> by_cases hnc : m.nc = 0 <;>
@@ -449,9 +449,9 @@ theorem Bmain_le (Bvf : ℕ → ℕ → ℕ) {bytecode : List K} {seed : Digest}
   simp only [List.length_append] at hcov
   have c0 : (s.claims.da.length + (dPlan s w).dups.length) * SK "__loop0" ≤
       coverage s w * SK "__loop0" := Nat.mul_le_mul_right _ (by omega)
-  have c1 : (xPlan s w).dups.length * SK "__loop1" ≤ coverage s w * SK "__loop1" :=
+  have c1 : (xPlan s w).dups.length * SK "__loop0" ≤ coverage s w * SK "__loop0" :=
     Nat.mul_le_mul_right _ (by omega)
-  have c2 : (sPlan s w).dups.length * SK "__loop2" ≤ coverage s w * SK "__loop2" :=
+  have c2 : (sPlan s w).dups.length * SK "__loop1" ≤ coverage s w * SK "__loop1" :=
     Nat.mul_le_mul_right _ (by omega)
   have hK := kidsBoundL_mKids fs SB SK (hm fs 0 seed s w) (hLmain fs 0 seed s w)
     (mainBsH fs SB SK (childBv Bvf w) s w)
@@ -488,12 +488,12 @@ theorem Bmain_le (Bvf : ℕ → ℕ → ℕ) {bytecode : List K} {seed : Digest}
   have r1 : clS SK * (End.work s w).declared = (End.work s w).declared * clS SK := Nat.mul_comm _ _
   have r2 : (s.claims.xmss.length + s.claims.sphincs.length) * clS SK =
       s.claims.xmss.length * clS SK + s.claims.sphincs.length * clS SK := Nat.add_mul _ _ _
-  have r3 : (5 + SK "__loop0" + SK "__loop1" + SK "__loop2") * (End.work s w).coverage =
+  have r3 : (5 + SK "__loop0" + SK "__loop0" + SK "__loop1") * (End.work s w).coverage =
       5 * (End.work s w).coverage + (End.work s w).coverage * SK "__loop0" +
-        (End.work s w).coverage * SK "__loop1" + (End.work s w).coverage * SK "__loop2" := by ring
-  have r4 : SK "__loop3" * (End.work s w).rawXmss = (End.work s w).rawXmss * SK "__loop3" :=
+        (End.work s w).coverage * SK "__loop0" + (End.work s w).coverage * SK "__loop1" := by ring
+  have r4 : SK "__loop2" * (End.work s w).rawXmss = (End.work s w).rawXmss * SK "__loop2" :=
     Nat.mul_comm _ _
-  have r5 : SK "__loop4" * (End.work s w).rawSphincs = (End.work s w).rawSphincs * SK "__loop4" :=
+  have r5 : SK "__loop3" * (End.work s w).rawSphincs = (End.work s w).rawSphincs * SK "__loop3" :=
     Nat.mul_comm _ _
   have r6 : dvS SK * (End.work s w).rawDaRows = (End.work s w).rawDaRows * dvS SK :=
     Nat.mul_comm _ _

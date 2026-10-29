@@ -16,9 +16,9 @@ public import LeanVM.Guest.Memory.LoopPre
 # The claim lists, within bounds
 
 `clB fs SB SK n`: `claim_list_digest`'s words on `n` claims: its frame; when `n ≠ 0`, its chain
-buffer `13 (n / 17 + 1)`, `list_split`'s bound `SB "list_split"`, `__loop16`'s `(n / 17) · SK`
+buffer `13 (n / 17 + 1)`, `list_split`'s bound `SB "list_split"`, `__loop15`'s `(n / 17) · SK`
 (its frame when not entered), `claim_list_last__L{n % 17}`'s `SB`. `ccB fs SB n`: the same for
-`child_claim_list_digest`, `__loop17` within `(n / 17 + 1)` frames, `child_claim_list_last__L*` a
+`child_claim_list_digest`, `__loop16` within `(n / 17 + 1)` frames, `child_claim_list_last__L*` a
 leaf within its frame. The static bounds `SB`, `SK` are hypotheses (`TotalLe`, `TotalLeOn` on
 `LoopPre`). `l17_completeAtB`, `ccl_completeAtB`, `list_split_completeAtDTB`: the callees within
 their bounds.
@@ -43,13 +43,13 @@ open LeanVM.Guest.Budget (NodeHonest)
 def clB (fs : String → ℕ) (SB SK : String → ℕ) (n : ℕ) : ℕ :=
   if n = 0 then fs "claim_list_digest" else
     fs "claim_list_digest" + 13 * (n / 17 + 1) + (SB "list_split" +
-      ((if n / 17 ≠ 0 then n / 17 * SK "__loop16" else fs "__loop16") + (SB clNames[n % 17]! + 0)))
+      ((if n / 17 ≠ 0 then n / 17 * SK "__loop15" else fs "__loop15") + (SB clNames[n % 17]! + 0)))
 
 /-- **`child_claim_list_digest`'s words** on `n` claims. -/
 def ccB (fs : String → ℕ) (SB : String → ℕ) (n : ℕ) : ℕ :=
   if n = 0 then fs "child_claim_list_digest" else
     fs "child_claim_list_digest" + 13 * (n / 17 + 1) + (SB "list_split" +
-      ((if n / 17 ≠ 0 then (n / 17 + 1) * fs "__loop17" else fs "__loop17") +
+      ((if n / 17 ≠ 0 then (n / 17 + 1) * fs "__loop16" else fs "__loop16") +
         (fs (cclNames.getD (n % 17) "") + 0)))
 
 /-- `list_split` within its static bound. -/
@@ -102,7 +102,7 @@ theorem ccl_completeAtB (fs : String → ℕ) (cert : String → V → ℕ) {k :
   · exact ⟨_, h, Or.inl (hR2 j hj)⟩
   · exact ⟨_, h, Or.inl (hR3 j hj c hc4)⟩
 
-/-- **`__loop17` is complete, placed**: the chain buffer's states at `g^chP` and the records'
+/-- **`__loop16` is complete, placed**: the chain buffer's states at `g^chP` and the records'
 marks and cells among the caller's words, the groups `j < m`. -/
 theorem l17_completeAtB (fs : String → ℕ) (cert : String → V → ℕ) {κ : ℕ} {Lin : Main.Layout}
     {chain entries cover base origin limit : E} {chP eP cv og L m : ℕ} {o : ℕ → ℕ}
@@ -116,9 +116,9 @@ theorem l17_completeAtB (fs : String → ℕ) (cert : String → V → ℕ) {κ 
     (hR1 : ∀ j < m, ∀ c < 26, RegionL Lin (chP + 13 * j + c))
     (hR2 : ∀ j < 17 * m, RegionL Lin (cv + og + o j))
     (hR3 : ∀ j < 17 * m, ∀ c < 4, RegionL Lin (eP + 4 * o j + c)) :
-    CompleteAtDTB fs cert κ "__loop17" Lin
+    CompleteAtDTB fs cert κ "__loop16" Lin
       [1, gen ^ m, chain, entries, cover, base, origin, limit] (Returns []) (fun _ => True)
-      ((m + 1) * fs "__loop17") := by
+      ((m + 1) * fs "__loop16") := by
   have h := loopA_completeAtB fs cert (find_of_idx l17_idx (by rw [coreProgram_length]; omega))
     l17_shapeF l17_atomsS l17_unplaced (Lin := Lin) (κ := κ) (N := gen ^ m)
     (rest := [chain, entries, cover, base, origin, limit]) (m := m) rfl hm ?_
@@ -160,7 +160,7 @@ theorem claim_list_digest_completeAtTB (fs : String → ℕ) (cert : String → 
     (hc : AllCanonical cells) (hLe : ∀ rd, MemL rd Lin → ReadsAt rd (gen ^ eP) cells)
     (hLr : ∀ k < cells.length, RegionL Lin (eP + k)) {SB SK : String → ℕ}
     (hLS : TotalLe coreProgram fs "list_split" (fun _ => SB "list_split"))
-    (hL16 : TotalLeOn coreProgram fs "__loop16" LoopPre (fun a => logG (a.getD 1 0) * SK "__loop16"))
+    (hL16 : TotalLeOn coreProgram fs "__loop15" LoopPre (fun a => logG (a.getD 1 0) * SK "__loop15"))
     (hCL : ∀ j < 17, TotalLe coreProgram fs clNames[j]! (fun _ => SB clNames[j]!)) :
     CompleteAtDTB fs cert 16 "claim_list_digest" Lin [gen ^ eP, gen ^ n]
       (Returns (digestCells (keccak256 (cellsBytes cells))))
@@ -274,17 +274,17 @@ theorem claim_list_digest_completeAtTB (fs : String → ℕ) (cert : String → 
     -- the callees
     let ks : List Kid :=
       [⟨"list_split", true, [gen ^ n], [], Returns [gen ^ m, gen ^ r]⟩,
-        ⟨"__loop16", decide (m ≠ 0), [1, gen ^ m, chain, gen ^ eP], Lin ++ Own, Returns []⟩,
+        ⟨"__loop15", decide (m ≠ 0), [1, gen ^ m, chain, gen ^ eP], Lin ++ Own, Returns []⟩,
         ⟨clNames[r]!, true, [chain * gen ^ (13 * m), gen ^ eP * gen ^ (68 * m)], Lin ++ Own,
           Returns (digestCells D)⟩]
-    have hokB : KidsDTB fs cert 16 ks clTs [SB "list_split", m * SK "__loop16", SB clNames[r]!] := by
+    have hokB : KidsDTB fs cert 16 ks clTs [SB "list_split", m * SK "__loop15", SB clNames[r]!] := by
       refine ⟨fun _ => ?_, fun ht => ?_, fun _ => ?_, trivial⟩
       · have := list_split_completeAtDTB fs cert (a := m) (b := r) le_rfl (by simp [maxKeys]; omega)
           (by simp [claimGroup]; omega) hLS
         rwa [show claimGroup * m + r = n by simp [claimGroup]; omega] at this
       · simp only [decide_eq_true_eq] at ht
         refine (completeAt_of_rel_pureBat l16_pure (List.mem_singleton_self _) (fun rd hm => ?_) 16
-          (B := m * SK "__loop16") (fun rd t hn hv hb => ?_)).toDTB
+          (B := m * SK "__loop15") (fun rd t hn hv hb => ?_)).toDTB
         · have hr := hLe rd (memL_append.mp hm).1
           have hmem := claimChainMem_of_reads hl hr (hmOwn rd (memL_append.mp hm).2)
           exact (guard_complete (find_of_idx l16_idx (by rw [coreProgram_length]; omega)) l16_shapeF
@@ -306,7 +306,7 @@ theorem claim_list_digest_completeAtTB (fs : String → ℕ) (cert : String → 
         rwa [← cellsBytes_append, List.take_append_drop] at this
     obtain ⟨Nk, Lk, outs, hNk, hoo, hW, hD, -, hKids⟩ :=
       kidsFromInT_of_kidsDTB (fs := fs) (cert := cert) 16 ks clTs
-        [SB "list_split", m * SK "__loop16", SB clNames[r]!] hokB (b0 + 13 * (m + 1))
+        [SB "list_split", m * SK "__loop15", SB clNames[r]!] hokB (b0 + 13 * (m + 1))
     have hl0 : outs.length = 3 := hoo.length
     obtain ⟨o1, t1, rfl, hl1⟩ := exists_of_length_succ hl0
     obtain ⟨o2, t2, rfl, hl2⟩ := exists_of_length_succ hl1
@@ -396,7 +396,7 @@ theorem claim_list_digest_completeAtTB (fs : String → ℕ) (cert : String → 
     have h47 : decide (σ (.n 47) ≠ 0) = decide (m ≠ 0) := by
       rw [hV.v47]; exact decide_eq_decide.mpr (one_add_gen_ne (by omega))
     have hcalls : calls es = [⟨"list_split", [.n 1], [.n 23, .n 24], true⟩,
-        ⟨"__loop16", [.n 48, .n 23, .n 32, .n 0], [], decide (m ≠ 0)⟩,
+        ⟨"__loop15", [.n 48, .n 23, .n 32, .n 0], [], decide (m ≠ 0)⟩,
         ⟨clNames[r]!, [.n 54, .n 62], [.n 63, .n 64], true⟩] := by
       rw [hes, es5_calls, hhc, hpc, hqc, htc, clP1_calls, hpostA.2.2.1]
       simp only [List.map_cons, List.map_nil, Main.mkCall, h47, clHead, clTail, List.filterMap_cons,
@@ -601,12 +601,12 @@ theorem child_claim_list_digest_completeAtTB (fs : String → ℕ) (cert : Strin
     -- the callees
     let ks : List Kid :=
       [⟨"list_split", true, [gen ^ n], [], Returns [gen ^ m, gen ^ r]⟩,
-        ⟨"__loop17", decide (m ≠ 0), [1, gen ^ m, chain, gen ^ eP, gen ^ cv, base, gen ^ og, gen ^ L],
+        ⟨"__loop16", decide (m ≠ 0), [1, gen ^ m, chain, gen ^ eP, gen ^ cv, base, gen ^ og, gen ^ L],
           Lin ++ Own, Returns []⟩,
         ⟨cclNames[r]!, true, [chain * gen ^ (13 * m), gen ^ eP, gen ^ cv, base * gen ^ (17 * m),
           gen ^ og, gen ^ L], Lin ++ Own, Returns (digestCells D)⟩]
     have hokB : KidsDTB fs cert κ ks clTs
-        [SB "list_split", (m + 1) * fs "__loop17", fs (cclNames.getD r "")] := by
+        [SB "list_split", (m + 1) * fs "__loop16", fs (cclNames.getD r "")] := by
       refine ⟨fun _ => ?_, fun ht => ?_, fun _ => ?_, trivial⟩
       · have := list_split_completeAtDTB fs cert (a := m) (b := r) hκ (by simp [maxKeys]; omega)
           (by simp [claimGroup]; omega) hLS
@@ -636,7 +636,7 @@ theorem child_claim_list_digest_completeAtTB (fs : String → ℕ) (cert : Strin
         rwa [← cellsBytes_append, List.take_append_drop] at this
     obtain ⟨Nk, Lk, outs, hNk, hoo, hW, hD, -, hKids⟩ :=
       kidsFromInT_of_kidsDTB (fs := fs) (cert := cert) κ ks clTs
-        [SB "list_split", (m + 1) * fs "__loop17", fs (cclNames.getD r "")] hokB (b0 + 13 * (m + 1))
+        [SB "list_split", (m + 1) * fs "__loop16", fs (cclNames.getD r "")] hokB (b0 + 13 * (m + 1))
     have hl0 : outs.length = 3 := hoo.length
     obtain ⟨o1, t1, rfl, hl1⟩ := exists_of_length_succ hl0
     obtain ⟨o2, t2, rfl, hl2⟩ := exists_of_length_succ hl1
@@ -732,7 +732,7 @@ theorem child_claim_list_digest_completeAtTB (fs : String → ℕ) (cert : Strin
     have h51 : decide (σ (.n 51) ≠ 0) = decide (m ≠ 0) := by
       rw [hV.v51]; exact decide_eq_decide.mpr (one_add_gen_ne (by omega))
     have hcalls : calls es = [⟨"list_split", [.n 5], [.n 27, .n 28], true⟩,
-        ⟨"__loop17", [.n 52, .n 27, .n 36, .n 0, .n 1, .n 2, .n 3, .n 4], [], decide (m ≠ 0)⟩,
+        ⟨"__loop16", [.n 52, .n 27, .n 36, .n 0, .n 1, .n 2, .n 3, .n 4], [], decide (m ≠ 0)⟩,
         ⟨cclNames[r]!, [.n 58, .n 0, .n 1, .n 64, .n 3, .n 4], [.n 65, .n 66], true⟩] := by
       rw [hes, es5_calls, hhc, hpc, hqc, htc, ccP1_calls, hpostA.2.2.1]
       simp only [List.map_cons, List.map_nil, Main.mkCall, h51, ccHead, ccTail, List.filterMap_cons,

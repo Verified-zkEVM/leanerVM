@@ -1,8 +1,8 @@
 /-
   LeanVM.Guest.B1.Gkr.Loop7T
 
-  `__loop7`'s valid trees are chains of honest shape (`Budget.ChainHonest`): each iteration's node
-  pins the bounds of the `__loop29` it calls and which rounds it calls.
+  `__loop6`'s valid trees are chains of honest shape (`Budget.ChainHonest`): each iteration's node
+  pins the bounds of the `__loop27` it calls and which rounds it calls.
 -/
 
 module
@@ -12,9 +12,9 @@ public import LeanVM.Guest.Budget.Chain
 public import LeanVM.Guest.Memory.LoopPre
 
 /-!
-# `__loop7`, of honest shape
+# `__loop6`, of honest shape
 
-Iteration `c` of `__loop7` (from `g^c` below `g^M`, layer `L = 2c + sh`) calls `__loop29` from
+Iteration `c` of `__loop6` (from `g^c` below `g^M`, layer `L = 2c + sh`) calls `__loop27` from
 `1` (`σ 65`) below `g^(c/2)` (`σ 61`, the slot's `half`), then `gkr_rounds__L2` when `c` is odd
 (`σ 62`, the slot's parity bit) and `gkr_rounds__L1` when `sh = 1` (`σ 70 = g^(2c+sh) + g^(2c)`),
 then itself from `g^(c+1)`, entered iff `c + 1 < M`.
@@ -33,13 +33,13 @@ open LeanVM.Protocol.Verifier (gen)
 
 @[expose] public section
 
-/-- What iteration `c`'s node pins: `__loop29`'s end `g^(c/2)`, start `1` and condition, the
+/-- What iteration `c`'s node pins: `__loop27`'s end `g^(c/2)`, start `1` and condition, the
 parity bit and whether the odd-depth round is called. -/
 def ly7Q (sh c : ℕ) (σ : Val) : Prop :=
   σ (.n 61) = gen ^ (c / 2) ∧ σ (.n 65) = 1 ∧ σ (.n 64) = 1 + gen ^ (c / 2) ∧
     σ (.n 62) = bitE (c % 2 = 1) ∧ (σ (.n 70) = 0 ↔ sh = 0) ∧ c < 2 ^ 62
 
-/-- The body's calls: `__loop29`, then the rounds of the branches taken. -/
+/-- The body's calls: `__loop27`, then the rounds of the branches taken. -/
 noncomputable def ly7Csb (σ : Val) : List Call :=
   (lyA.filterMap Main.Stmt.callS).map (Main.mkCall σ) ++
     (if σ (.n 62) = 0 then [] else (ly62.filterMap Main.Stmt.callS).map (Main.mkCall σ)) ++
@@ -47,13 +47,13 @@ noncomputable def ly7Csb (σ : Val) : List Call :=
 
 /-- The tail call. -/
 noncomputable def ly7Tl (σ : Val) : Call :=
-  Main.mkCall σ (some (.n 342), "__loop7", [.n 344, .n 1, .n 2, .n 3, .n 4, .n 5], [])
+  Main.mkCall σ (some (.n 342), "__loop6", [.n 344, .n 1, .n 2, .n 3, .n 4, .n 5], [])
 
 /-- One predicate per body call, none constraining. -/
 def ly7Tsb (sh c : ℕ) : List (Tree → Prop) :=
   List.replicate (1 + (if c % 2 = 1 then 1 else 0) + (if sh = 1 then 1 else 0)) fun _ ↦ True
 
-/-- **`__loop7`'s calls**: the body's, then the tail. -/
+/-- **`__loop6`'s calls**: the body's, then the tail. -/
 theorem ly7_calls (σ : Val) {es : List Ev} {vs : List V} (hw : walk σ lyBody = .ret es vs) :
     calls es = ly7Csb σ ++ [ly7Tl σ] := by
   rw [ly_walk σ, Out.ret.injEq] at hw
@@ -130,14 +130,14 @@ theorem tb_gen_pow_add_eq_zero {a b : ℕ} (ha : a < 2 ^ 62) (hb : b < 2 ^ 62) :
   · rintro rfl; exact e_add_self _
 
 set_option maxHeartbeats 1000000 in
-/-- **`__loop7`'s valid trees are chains of honest shape**: iteration `c < M`, on a memory holding
+/-- **`__loop6`'s valid trees are chains of honest shape**: iteration `c < M`, on a memory holding
 its bounds' words, runs `M - c` iterations, each pinning `ly7Q`. -/
 theorem ly7_chain {rd : Reader} {dsh gmu layers rounds : E} {sh M : ℕ} (hsh2 : sh < 2)
     (hM : 2 * M + 2 < 2 ^ 62) (hmem : Ly7Mem rd dsh gmu layers sh M) :
-    ∀ n c (t : Tree) (rets : List E), c + n = M → 0 < n → t.name = "__loop7" →
+    ∀ n c (t : Tree) (rets : List E), c + n = M → 0 < n → t.name = "__loop6" →
       t.Valid coreProgram rd [gen ^ c, gen ^ M, dsh, gmu, layers, rounds] rets →
       t.BufsOk coreProgram →
-      Budget.ChainHonest coreProgram "__loop7" (ly7Q sh) ly7Csb ly7Tl (fun _ ↦ []) (ly7Tsb sh)
+      Budget.ChainHonest coreProgram "__loop6" (ly7Q sh) ly7Csb ly7Tl (fun _ ↦ []) (ly7Tsb sh)
         n c t := by
   obtain ⟨fn, hf, hpar, hbody⟩ := lyFound
   intro n
@@ -261,8 +261,8 @@ theorem ly7_chain {rd : Reader} {dsh gmu layers rounds : E} {sh M : ℕ} (hsh2 :
 
 /-! ## The chain's words -/
 
-/-- The words of `__loop29` called below `g^(c/2)`: its frame when not entered. -/
-def ly7W29 (fs : String → ℕ) (K29 c : ℕ) : ℕ := fs "__loop29" + c / 2 * K29
+/-- The words of `__loop27` called below `g^(c/2)`: its frame when not entered. -/
+def ly7W29 (fs : String → ℕ) (K29 c : ℕ) : ℕ := fs "__loop27" + c / 2 * K29
 
 /-- The rounds the body calls: `gkr_rounds__L2` at an odd iteration, `gkr_rounds__L1` at an odd
 depth. -/
@@ -270,13 +270,13 @@ def ly7Rounds (σ : Val) : List Call :=
   (if σ (.n 62) = 0 then [] else [⟨"gkr_rounds__L2", [.n 68, .n 69], [], true⟩]) ++
     (if σ (.n 70) = 0 then [] else [⟨"gkr_rounds__L1", [.n 71, .n 72], [], true⟩])
 
-/-- The body calls' bounds, by position: `__loop29`'s, then `R` for each round. -/
+/-- The body calls' bounds, by position: `__loop27`'s, then `R` for each round. -/
 noncomputable def ly7Wb (fs : String → ℕ) (K29 R : ℕ) (c : ℕ) (σ : Val) : List ℕ :=
   ly7W29 fs K29 c :: List.replicate (ly7Rounds σ).length R
 
-/-- Iteration `c`'s words: its frame, `__loop29`'s and `R` per round. -/
+/-- Iteration `c`'s words: its frame, `__loop27`'s and `R` per round. -/
 def ly7B (fs : String → ℕ) (K29 R sh : ℕ) (c : ℕ) : ℕ :=
-  fs "__loop7" + ly7W29 fs K29 c + ((if c % 2 = 1 then 1 else 0) + (if sh = 1 then 1 else 0)) * R
+  fs "__loop6" + ly7W29 fs K29 c + ((if c % 2 = 1 then 1 else 0) + (if sh = 1 then 1 else 0)) * R
 
 theorem ly62_calls (σ : Val) : (ly62.filterMap Main.Stmt.callS).map (Main.mkCall σ) =
     [⟨"gkr_rounds__L2", [.n 68, .n 69], [], true⟩] := rfl
@@ -285,7 +285,7 @@ theorem ly70_calls (σ : Val) : (ly70.filterMap Main.Stmt.callS).map (Main.mkCal
     [⟨"gkr_rounds__L1", [.n 71, .n 72], [], true⟩] := rfl
 
 theorem ly7Csb_eq (σ : Val) : ly7Csb σ =
-    ⟨"__loop29", [.n 65, .n 61, .n 52, .n 50], [], decide (σ (.n 64) ≠ 0)⟩ :: ly7Rounds σ := by
+    ⟨"__loop27", [.n 65, .n 61, .n 52, .n 50], [], decide (σ (.n 64) ≠ 0)⟩ :: ly7Rounds σ := by
   simp only [ly7Csb, ly7Rounds, ly62_calls, ly70_calls]
   rw [lyA_calls]
   rfl
@@ -314,17 +314,17 @@ theorem ly7Rounds_length {sh c : ℕ} {σ : Val} (hQ : ly7Q sh c σ) (hsh2 : sh 
       simp [this, hs]
 
 set_option maxHeartbeats 1000000 in
-/-- **`__loop7`'s chain's words**: within the iterations' bounds `ly7B` and the last tail's
-frame, given `__loop29`'s words linear in its end's exponent and the rounds' bound `R`. -/
+/-- **`__loop6`'s chain's words**: within the iterations' bounds `ly7B` and the last tail's
+frame, given `__loop27`'s words linear in its end's exponent and the rounds' bound `R`. -/
 theorem ly7_total {P : Core.Program} {rd : Reader} (fs : String → ℕ) {sh K29 R : ℕ}
     (hsh2 : sh < 2)
-    (h29 : TotalLeOn P fs "__loop29" LoopPre (fun a ↦ logG (a.getD 1 0) * K29))
+    (h29 : TotalLeOn P fs "__loop27" LoopPre (fun a ↦ logG (a.getD 1 0) * K29))
     (hR1 : TotalLe P fs "gkr_rounds__L1" (fun _ ↦ R))
     (hR2 : TotalLe P fs "gkr_rounds__L2" (fun _ ↦ R)) :
     ∀ m c (t : Tree) args rets,
-      Budget.ChainHonest P "__loop7" (ly7Q sh) ly7Csb ly7Tl (fun _ ↦ []) (ly7Tsb sh) m c t →
+      Budget.ChainHonest P "__loop6" (ly7Q sh) ly7Csb ly7Tl (fun _ ↦ []) (ly7Tsb sh) m c t →
       t.Valid P rd args rets → t.BufsOk P →
-      t.total fs ≤ Budget.iterSum (ly7B fs K29 R sh) c m + fs "__loop7" := by
+      t.total fs ≤ Budget.iterSum (ly7B fs K29 R sh) c m + fs "__loop6" := by
   refine Budget.ChainHonest.total_le fs (ly7Wb fs K29 R) (ly7B fs K29 R sh)
     (fun σ ↦ rfl) (fun c σ _ ↦ ?_) (fun c σ hQ ↦ ?_) (fun c σ hQ i hi hW hu ↦ ?_)
     (fun c σ hQ i hi hT hW ht t rets hn hv hb _ ↦ ?_)
@@ -332,7 +332,7 @@ theorem ly7_total {P : Core.Program} {rd : Reader} (fs : String → ℕ) {sh K29
   · rw [ly7Wb, ly7B, List.sum_cons, List.sum_replicate, ly7Rounds_length hQ hsh2, smul_eq_mul]
     simp only [List.sum_nil, Nat.add_zero]
     omega
-  · -- only `__loop29`'s call can be skipped
+  · -- only `__loop27`'s call can be skipped
     rcases i with _ | j
     · rw [List.getElem_of_eq (ly7Csb_eq σ) hi, List.getElem_cons_zero]
       simp only [ly7Wb, List.getElem_cons_zero, ly7W29]; omega
@@ -348,7 +348,7 @@ theorem ly7_total {P : Core.Program} {rd : Reader} (fs : String → ℕ) {sh K29
   · obtain ⟨e61, e65, e64, -, -, hcb⟩ := hQ
     have e := List.getElem_of_eq (ly7Csb_eq σ) hi
     rcases i with _ | j
-    · -- `__loop29`
+    · -- `__loop27`
       rw [e, List.getElem_cons_zero] at ht hn hv
       simp only [decide_eq_true_eq] at ht
       have hc2 : 0 < c / 2 := by

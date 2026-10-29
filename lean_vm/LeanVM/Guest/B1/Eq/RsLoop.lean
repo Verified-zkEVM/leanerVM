@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.Eq.RsLoop
 
-  B1 for `__loop6`, the paired loop of `rs_eq_run`.
+  B1 for `__loop5`, the paired loop of `rs_eq_run`.
 -/
 
 module
@@ -9,7 +9,7 @@ module
 public import LeanVM.Guest.B1.Eq.Meaning
 
 /-!
-# `__loop6` (`rs_eq_run`'s `mul_range` loop, G:916-929)
+# `__loop5` (`rs_eq_run`'s `mul_range` loop, G:916-929)
 
 At `xp = g^h` the body reads `z[2h]`, `z[2h + 1]`, `point1[2h]`, `point1[2h + 1]` and, for every
 `k < 64`, the row word `w = chain[64h + k]`, storing `chain[64h + 64 + k] = w · (z0^(2^k) + p0) ·
@@ -57,7 +57,7 @@ def l6Blk : ℕ → List Stmt
       .atom (.mul (.n (30 + 7 * k)) (.n (28 + 7 * k)) (.n (29 + 7 * k))),
       .atom (.load (.n (30 + 7 * k)) (.n 18) (65 + k))]
 
-/-- The expansion of `__loop6`. -/
+/-- The expansion of `__loop5`. -/
 def l6Body : List Stmt :=
   [.atom (.mul (.n 5) (.n 0) (.n 0)), .atom (.mul (.n 6) (.n 2) (.n 5)),
     .atom (.mul (.n 7) (.n 3) (.n 5)), .atom (.load (.n 8) (.n 6) 0),
@@ -70,12 +70,12 @@ def l6Body : List Stmt :=
   [.atom (.const (.n 465) (word 2 0 0)), .atom (.mul (.n 466) (.n 0) (.n 465)),
     .atom (.add (.n 467) (.n 466) (.n 1)), .atom (.const (.n 468) (word 2 0 0)),
     .atom (.mul (.n 469) (.n 0) (.n 468)),
-    .callIf (.n 467) "__loop6" [.n 469, .n 1, .n 2, .n 3, .n 4], .ret []]
+    .callIf (.n 467) "__loop5" [.n 469, .n 1, .n 2, .n 3, .n 4], .ret []]
 
-theorem core79_body : Fn.body Data.core79 = l6Body := stmtsEqb_sound (by decide +kernel)
+theorem core79_body : Fn.body Data.core76 = l6Body := stmtsEqb_sound (by decide +kernel)
 
-theorem find_loop6 : coreProgram.find? "__loop6" = some Data.core79 :=
-  Program.find?_of_indexOf? (j := 79) (by decide +kernel) rfl
+theorem find_loop6 : coreProgram.find? "__loop5" = some Data.core76 :=
+  Program.find?_of_indexOf? (j := 76) (by decide +kernel) rfl
 
 /-- What coordinate `k` asks. -/
 def L6Ok (rd : Reader) (σ : Val) : ℕ → Prop
@@ -119,7 +119,7 @@ theorem x_pow_64 (x : E) : ((((((x * x) * (x * x)) * ((x * x) * (x * x))) *
     (((x * x) * (x * x)) * ((x * x) * (x * x)))) * ((((x * x) * (x * x)) * ((x * x) * (x * x))) *
     (((x * x) * (x * x)) * ((x * x) * (x * x)))))) = x ^ 64 := by ring
 
-/-- The honest values of `__loop6` at `x`, from the words of `Loop6Body`. -/
+/-- The honest values of `__loop5` at `x`, from the words of `Loop6Body`. -/
 def l6Vals (x N z p chain z0 z1 q0 q1 : E) (w : ℕ → E) (i : ℕ) : E :=
   if i < 24 then
     [x, N, z, p, chain, x * x, z * (x * x), p * (x * x), z0, z1, q0, q1, x ^ 2, x ^ 4, x ^ 8,
@@ -162,13 +162,13 @@ theorem l6Vals_blk (x N z p chain z0 z1 q0 q1 : E) (w : ℕ → E) (k : ℕ) (hk
   · rw [show (29 + 7 * k - 24) % 7 = 5 by omega, show (29 + 7 * k - 24) / 7 = k by omega]; rfl
   · rw [show (30 + 7 * k - 24) % 7 = 6 by omega, show (30 + 7 * k - 24) / 7 = k by omega]; rfl
 
-/-- **`__loop6`, one step**: at depth `d + 1` its relation at `x` is the body at `x` and the
+/-- **`__loop5`, one step**: at depth `d + 1` its relation at `x` is the body at `x` and the
 conditional call at `x·g`. -/
 theorem loop6_step (rd : Reader) (N z p chain : E) (d : ℕ) (x : E) :
-    coreProgram.relN rd (d + 1) "__loop6" (x :: [N, z, p, chain]) [] ↔
+    coreProgram.relN rd (d + 1) "__loop5" (x :: [N, z, p, chain]) [] ↔
       Loop6Body rd z p chain x ∧ IsInK (x * gen + N) ∧
-        (x * gen + N ≠ 0 → coreProgram.relN rd d "__loop6" (x * gen :: [N, z, p, chain]) []) := by
-  rw [relN_succ_iff find_loop6, show Fn.params Data.core79 = [.n 0, .n 1, .n 2, .n 3, .n 4] from rfl,
+        (x * gen + N ≠ 0 → coreProgram.relN rd d "__loop5" (x * gen :: [N, z, p, chain]) []) := by
+  rw [relN_succ_iff find_loop6, show Fn.params Data.core76 = [.n 0, .n 1, .n 2, .n 3, .n 4] from rfl,
     core79_body, l6Body]
   simp only [holdsList_append, holdsList_range_flatten 64 l6Blk (fun k => by cases k <;> rfl),
     holds_l6Blk, Stmt.HoldsList, Stmt.Holds, Atom.Holds, List.map_cons, List.map_nil, and_true,

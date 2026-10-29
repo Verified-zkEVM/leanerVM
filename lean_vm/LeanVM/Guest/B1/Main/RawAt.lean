@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.Main.RawAt
 
-  `main`'s raw-signature loops `__loop3` (leanXMSS) and `__loop4` (leanSPHINCS) in the uniform
+  `main`'s raw-signature loops `__loop2` (leanXMSS) and `__loop3` (leanSPHINCS) in the uniform
   placed form (`CompleteAtD`), over the raw signatures' honest data.
 -/
 
@@ -95,9 +95,9 @@ theorem guard_taken {i n : ℕ} (hn : n < 2 ^ 34) (hi : i + 1 ≤ n) :
     fun h he => h ?_⟩
   exact gen_pow_inj' (by omega) (by omega) (e_add_eq_zero_iff.mp he)
 
-/-! ## `__loop3` -/
+/-! ## `__loop2` -/
 
-/-- `__loop3`'s valuation at the counter `g^i`. -/
+/-- `__loop2`'s valuation at the counter `g^i`. -/
 noncomputable def l3σ (rd : Reader) (i nrx X cv tb s : ℕ) : Val :=
   Val.ofArgs [gen ^ i, gen ^ nrx, gen ^ X, gen ^ cv, gen ^ tb, gen ^ s, ginvW, gen ^ X * ginvW,
     gen ^ (X - 1 - s), (rd (gpow s)).getD 0, (rd (gpow (X - 1 - s))).getD 0, gen ^ cv * gen ^ s,
@@ -107,13 +107,13 @@ noncomputable def l3σ (rd : Reader) (i nrx X cv tb s : ℕ) : Val :=
 
 set_option maxRecDepth 20000 in
 set_option maxHeartbeats 4000000 in
-/-- **`__loop3` loads from the caller's words**, from every counter below the count. -/
+/-- **`__loop2` loads from the caller's words**, from every counter below the count. -/
 theorem rawX_relIn (hc : Sig.verify_lean_xmss_complete_Spec) {nrx X cv tb : ℕ} {Lin : Layout}
     (D : RawXData nrx X cv tb Lin) (hX : X ≤ 2 ^ 16) (hnrx : nrx < 2 ^ 34) {rd : Reader}
     (hl : LowDef 16 rd) (hL : MemL rd Lin) :
-    ∀ i < nrx, coreProgram.RelIn rd (RegionL Lin) "__loop3"
+    ∀ i < nrx, coreProgram.RelIn rd (RegionL Lin) "__loop2"
       [gen ^ i, gen ^ nrx, gen ^ X, gen ^ cv, gen ^ tb] [] := by
-  have key : ∀ t i, i + 1 + t = nrx → coreProgram.RelIn rd (RegionL Lin) "__loop3"
+  have key : ∀ t i, i + 1 + t = nrx → coreProgram.RelIn rd (RegionL Lin) "__loop2"
       [gen ^ i, gen ^ nrx, gen ^ X, gen ^ cv, gen ^ tb] [] := by
     intro t
     induction t with
@@ -146,7 +146,7 @@ theorem rawX_relIn (hc : Sig.verify_lean_xmss_complete_Spec) {nrx X cv tb : ℕ}
         show (gen ^ cv * gen ^ s).limb 0 * gpow 0 = _
         rw [← pow_add, limb0_gen_pow_mul]; rfl
       · rw [hpc, show l3Pre.filterMap Main.Stmt.callS = [(none, "verify_lean_xmss", [.n 14], []),
-          (some (.n 17), "__loop3", [.n 19, .n 1, .n 2, .n 3, .n 4], [])] from rfl] at hcm
+          (some (.n 17), "__loop2", [.n 19, .n 1, .n 2, .n 3, .n 4], [])] from rfl] at hcm
         simp only [List.map_cons, List.map_nil, Main.mkCall, List.mem_cons, List.not_mem_nil,
           or_false] at hcm
         rcases hcm with rfl | rfl
@@ -160,7 +160,7 @@ theorem rawX_relIn (hc : Sig.verify_lean_xmss_complete_Spec) {nrx X cv tb : ℕ}
           change gen ^ i * word 2 0 0 + gen ^ nrx ≠ 0 at ht
           have ht' := of_decide_eq_true ((guard_taken hnrx (by omega)).symm.trans
             (decide_eq_true ht))
-          show coreProgram.RelIn rd (RegionL Lin) "__loop3"
+          show coreProgram.RelIn rd (RegionL Lin) "__loop2"
             [gen ^ i * word 2 0 0, gen ^ nrx, gen ^ X, gen ^ cv, gen ^ tb] []
           rw [word_gen, gen_pow_mul_gen]
           first
@@ -169,17 +169,17 @@ theorem rawX_relIn (hc : Sig.verify_lean_xmss_complete_Spec) {nrx X cv tb : ℕ}
   intro i hi
   exact key (nrx - i - 1) i (by omega)
 
-/-- **`__loop3` is complete, placed**, from every counter below the count. -/
+/-- **`__loop2` is complete, placed**, from every counter below the count. -/
 theorem rawX_completeAt (fs : String → ℕ) (cert : String → V → ℕ)
     (hc : Sig.verify_lean_xmss_complete_Spec) {nrx X cv tb : ℕ} {Lin : Layout}
     (D : RawXData nrx X cv tb Lin) (hX : X ≤ 2 ^ 16) (hnrx : nrx < 2 ^ 34) :
-    ∀ i < nrx, CompleteAtD fs cert 16 "__loop3" Lin
+    ∀ i < nrx, CompleteAtD fs cert 16 "__loop2" Lin
       [gen ^ i, gen ^ nrx, gen ^ X, gen ^ cv, gen ^ tb] (Returns []) := fun i hi =>
   Lift.completeAtD_of_relIn raw3_pure (by simp) fun rd hl hL => rawX_relIn hc D hX hnrx hl hL i hi
 
-/-! ## `__loop4` -/
+/-! ## `__loop3` -/
 
-/-- `__loop4`'s valuation at the counter `g^j`. -/
+/-- `__loop3`'s valuation at the counter `g^j`. -/
 noncomputable def l4σ (rd : Reader) (j nrs Y cv X nrx tb bb s : ℕ) : Val :=
   Val.ofArgs [gen ^ j, gen ^ nrs, gen ^ Y, gen ^ cv, gen ^ X, gen ^ nrx, gen ^ tb, gen ^ bb,
     gen ^ s, ginvW, gen ^ Y * ginvW, gen ^ (Y - 1 - s), (rd (gpow s)).getD 0,
@@ -190,13 +190,13 @@ noncomputable def l4σ (rd : Reader) (j nrs Y cv X nrx tb bb s : ℕ) : Val :=
 
 set_option maxRecDepth 20000 in
 set_option maxHeartbeats 4000000 in
-/-- **`__loop4` loads from the caller's words**, from every counter below the count. -/
+/-- **`__loop3` loads from the caller's words**, from every counter below the count. -/
 theorem rawS_relIn (hc : Sig.verify_sig_lean_sphincs_complete_loads_Spec)
     {nrs Y X nrx cv tb bb : ℕ} {Lin : Layout} (D : RawSData nrs Y X nrx cv tb bb Lin)
     (hY : Y ≤ 2 ^ 16) (hnrs : nrs < 2 ^ 34) {rd : Reader} (hl : LowDef 16 rd) (hL : MemL rd Lin) :
-    ∀ j < nrs, coreProgram.RelIn rd (RegionL Lin) "__loop4"
+    ∀ j < nrs, coreProgram.RelIn rd (RegionL Lin) "__loop3"
       [gen ^ j, gen ^ nrs, gen ^ Y, gen ^ cv, gen ^ X, gen ^ nrx, gen ^ tb, gen ^ bb] [] := by
-  have key : ∀ t j, j + 1 + t = nrs → coreProgram.RelIn rd (RegionL Lin) "__loop4"
+  have key : ∀ t j, j + 1 + t = nrs → coreProgram.RelIn rd (RegionL Lin) "__loop3"
       [gen ^ j, gen ^ nrs, gen ^ Y, gen ^ cv, gen ^ X, gen ^ nrx, gen ^ tb, gen ^ bb] [] := by
     intro t
     induction t with
@@ -233,7 +233,7 @@ theorem rawS_relIn (hc : Sig.verify_sig_lean_sphincs_complete_loads_Spec)
         rw [← pow_add, ← pow_add, limb0_gen_pow_mul]; rfl
       · rw [hpc, show l4Pre.filterMap Main.Stmt.callS =
           [(none, "verify_sig_lean_sphincs", [.n 19, .n 7], []),
-          (some (.n 22), "__loop4", [.n 24, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6, .n 7], [])]
+          (some (.n 22), "__loop3", [.n 24, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6, .n 7], [])]
           from rfl] at hcm
         simp only [List.map_cons, List.map_nil, Main.mkCall, List.mem_cons, List.not_mem_nil,
           or_false] at hcm
@@ -249,7 +249,7 @@ theorem rawS_relIn (hc : Sig.verify_sig_lean_sphincs_complete_loads_Spec)
           change gen ^ j * word 2 0 0 + gen ^ nrs ≠ 0 at ht
           have ht' := of_decide_eq_true ((guard_taken hnrs (by omega)).symm.trans
             (decide_eq_true ht))
-          show coreProgram.RelIn rd (RegionL Lin) "__loop4"
+          show coreProgram.RelIn rd (RegionL Lin) "__loop3"
             [gen ^ j * word 2 0 0, gen ^ nrs, gen ^ Y, gen ^ cv, gen ^ X, gen ^ nrx, gen ^ tb,
               gen ^ bb] []
           rw [word_gen, gen_pow_mul_gen]
@@ -259,11 +259,11 @@ theorem rawS_relIn (hc : Sig.verify_sig_lean_sphincs_complete_loads_Spec)
   intro j hj
   exact key (nrs - j - 1) j (by omega)
 
-/-- **`__loop4` is complete, placed**, from every counter below the count. -/
+/-- **`__loop3` is complete, placed**, from every counter below the count. -/
 theorem rawS_completeAt (fs : String → ℕ) (cert : String → V → ℕ)
     (hc : Sig.verify_sig_lean_sphincs_complete_loads_Spec) {nrs Y X nrx cv tb bb : ℕ}
     {Lin : Layout} (D : RawSData nrs Y X nrx cv tb bb Lin) (hY : Y ≤ 2 ^ 16) (hnrs : nrs < 2 ^ 34) :
-    ∀ j < nrs, CompleteAtD fs cert 16 "__loop4" Lin
+    ∀ j < nrs, CompleteAtD fs cert 16 "__loop3" Lin
       [gen ^ j, gen ^ nrs, gen ^ Y, gen ^ cv, gen ^ X, gen ^ nrx, gen ^ tb, gen ^ bb]
       (Returns []) := fun j hj =>
   Lift.completeAtD_of_relIn raw4_pure (by simp) fun rd hl hL =>

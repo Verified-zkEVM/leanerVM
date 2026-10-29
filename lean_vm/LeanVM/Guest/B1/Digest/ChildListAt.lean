@@ -17,7 +17,7 @@ public import LeanVM.Guest.B1.Digest.ChildListAt0
 `o j` below `L`, marks `base · g^j` at `cover · origin · g^(o j)`, cells at `entries · g^(4 o j)`)
 among the caller's words, with `L ≤ 2^κ` (the range checks read below `2^κ`), the function is
 `CompleteAtD` returning the cells' digest: its chain buffer (`chainCells`) after its frame, then
-`list_split`, `__loop17` over the groups (`l17_completeAt`), `child_claim_list_last__L{r}`
+`list_split`, `__loop16` over the groups (`l17_completeAt`), `child_claim_list_last__L{r}`
 (`ccl_completeAt`).
 -/
 
@@ -154,7 +154,7 @@ theorem child_claim_list_digest_completeAt (fs : String → ℕ) (cert : String 
     -- the callees
     let ks : List Kid :=
       [⟨"list_split", true, [gen ^ n], [], Returns [gen ^ m, gen ^ r]⟩,
-        ⟨"__loop17", decide (m ≠ 0), [1, gen ^ m, chain, gen ^ eP, gen ^ cv, base, gen ^ og, gen ^ L],
+        ⟨"__loop16", decide (m ≠ 0), [1, gen ^ m, chain, gen ^ eP, gen ^ cv, base, gen ^ og, gen ^ L],
           Lin ++ Own, Returns []⟩,
         ⟨cclNames[r]!, true, [chain * gen ^ (13 * m), gen ^ eP, gen ^ cv, base * gen ^ (17 * m),
           gen ^ og, gen ^ L], Lin ++ Own, Returns (digestCells D)⟩]
@@ -282,7 +282,7 @@ theorem child_claim_list_digest_completeAt (fs : String → ℕ) (cert : String 
     have h51 : decide (σ (.n 51) ≠ 0) = decide (m ≠ 0) := by
       rw [hV.v51]; exact decide_eq_decide.mpr (one_add_gen_ne (by omega))
     have hcalls : calls es = [⟨"list_split", [.n 5], [.n 27, .n 28], true⟩,
-        ⟨"__loop17", [.n 52, .n 27, .n 36, .n 0, .n 1, .n 2, .n 3, .n 4], [], decide (m ≠ 0)⟩,
+        ⟨"__loop16", [.n 52, .n 27, .n 36, .n 0, .n 1, .n 2, .n 3, .n 4], [], decide (m ≠ 0)⟩,
         ⟨cclNames[r]!, [.n 58, .n 0, .n 1, .n 64, .n 3, .n 4], [.n 65, .n 66], true⟩] := by
       rw [hes, es5_calls, hhc, hpc, hqc, htc, ccP1_calls, hpostA.2.2.1]
       simp only [List.map_cons, List.map_nil, Main.mkCall, h51, ccHead, ccTail, List.filterMap_cons,

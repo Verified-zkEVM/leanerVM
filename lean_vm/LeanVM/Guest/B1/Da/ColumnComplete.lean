@@ -62,24 +62,24 @@ theorem params_of_shape {fn : Fn} {f : String} {n : ℕ} (hs : loopShapeF fn f =
   rw [hs.1.2, hl]
 
 set_option maxRecDepth 100000 in
-theorem row417_shape : loopShapeF (coreProgram.getD 895 default) "__loop417" = true ∧
-    (coreProgram.getD 895 default).params.length = 7 := by decide +kernel
+theorem row417_shape : loopShapeF (coreProgram.getD 874 default) "__loop415" = true ∧
+    (coreProgram.getD 874 default).params.length = 7 := by decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem row419_shape : loopShapeF (coreProgram.getD 897 default) "__loop419" = true ∧
-    (coreProgram.getD 897 default).params.length = 7 := by decide +kernel
+theorem row419_shape : loopShapeF (coreProgram.getD 876 default) "__loop417" = true ∧
+    (coreProgram.getD 876 default).params.length = 7 := by decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem gap418_shape : loopShapeF (coreProgram.getD 896 default) "__loop418" = true ∧
-    (coreProgram.getD 896 default).params.length = 4 := by decide +kernel
+theorem gap418_shape : loopShapeF (coreProgram.getD 875 default) "__loop416" = true ∧
+    (coreProgram.getD 875 default).params.length = 4 := by decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem gap420_shape : loopShapeF (coreProgram.getD 898 default) "__loop420" = true ∧
-    (coreProgram.getD 898 default).params.length = 4 := by decide +kernel
+theorem gap420_shape : loopShapeF (coreProgram.getD 877 default) "__loop418" = true ∧
+    (coreProgram.getD 877 default).params.length = 4 := by decide +kernel
 
 set_option maxRecDepth 20000 in
 set_option maxHeartbeats 2000000 in
-/-- **A prefix column's row** (`__loop417`): the cell check, the running sum's step, the cell's
+/-- **A prefix column's row** (`__loop415`): the cell check, the running sum's step, the cell's
 words at the node and in the row's prefix. -/
 theorem row_block1 {x N lv rowbase xb node pb d0 d1 s a prev pp : E}
     (hcell : coreProgram.Rel rd "da_verify_cell" [lv] [d0, d1, s])
@@ -87,7 +87,7 @@ theorem row_block1 {x N lv rowbase xb node pb d0 d1 s a prev pp : E}
     (hnew : LoadHolds rd (a * xb) 1 (prev + s)) (hn0 : LoadHolds rd (node * (x * x)) 0 d0)
     (hn1 : LoadHolds rd (node * (x * x)) 1 d1) (hpp : LoadHolds rd (pb * x) 0 pp)
     (hq0 : LoadHolds rd (pp * (xb * xb)) 0 d0) (hq1 : LoadHolds rd (pp * (xb * xb)) 1 d1) :
-    LoopBlock rd (coreProgram.getD 895 default) x N [lv, rowbase, xb, node, pb] := by
+    LoopBlock rd (coreProgram.getD 874 default) x N [lv, rowbase, xb, node, pb] := by
   obtain ⟨hs, hl⟩ := row417_shape
   refine ⟨Val.ofArgs [x, N, lv, rowbase, xb, node, pb, d0, d1, s, rowbase * x, a, a * xb, prev,
     prev + s, x * x, node * (x * x), pb * x, pp, xb * xb, pp * (xb * xb), word 2 0 0, x * word 2 0 0,
@@ -103,13 +103,13 @@ theorem row_block1 {x N lv rowbase xb node pb d0 d1 s a prev pp : E}
 
 set_option maxRecDepth 20000 in
 set_option maxHeartbeats 2000000 in
-/-- **A row of the other columns** (`__loop419`). -/
+/-- **A row of the other columns** (`__loop417`). -/
 theorem row_block0 {x N lv rowbase xb node pb d0 d1 s a prev : E}
     (hcell : coreProgram.Rel rd "da_verify_cell" [lv] [d0, d1, s])
     (ha : LoadHolds rd (rowbase * x) 0 a) (hprev : LoadHolds rd (a * xb) 0 prev)
     (hnew : LoadHolds rd (a * xb) 1 (prev + s)) (hn0 : LoadHolds rd (node * (x * x)) 0 d0)
     (hn1 : LoadHolds rd (node * (x * x)) 1 d1) :
-    LoopBlock rd (coreProgram.getD 897 default) x N [lv, rowbase, xb, node, pb] := by
+    LoopBlock rd (coreProgram.getD 876 default) x N [lv, rowbase, xb, node, pb] := by
   obtain ⟨hs, hl⟩ := row419_shape
   refine ⟨Val.ofArgs [x, N, lv, rowbase, xb, node, pb, d0, d1, s, rowbase * x, a, a * xb, prev,
     prev + s, x * x, node * (x * x), word 2 0 0, x * word 2 0 0, x * word 2 0 0 + N, word 2 0 0,
@@ -125,7 +125,7 @@ theorem row_block0 {x N lv rowbase xb node pb d0 d1 s a prev : E}
 
 set_option maxRecDepth 20000 in
 set_option maxHeartbeats 2000000 in
-/-- **A padding row of a column** (`__loop418`, `__loop420`): the padding cell at the node. -/
+/-- **A padding row of a column** (`__loop416`, `__loop418`): the padding cell at the node. -/
 theorem gap_block {j : ℕ} {f : String} (hs : loopShapeF (coreProgram.getD j default) f = true)
     (hl : (coreProgram.getD j default).params.length = 4)
     (hb : Fn.body (coreProgram.getD j default) = gapBody f) {x N node nb : E}

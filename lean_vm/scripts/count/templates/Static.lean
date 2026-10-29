@@ -22,13 +22,13 @@ public import LeanVM.Guest.Memory.LoopPre
 
 From the certificates counting each opcode's instructions (`Memory/GuestCnt*`): constants for
 `exponent_tables`, `da_list_digest`, `cover_da_root` and `statement_digest`, per iteration for the
-loops `__loop0`..`__loop4` and `__loop28` (each child's DA roots in `__loop5`) from `g^a` to `g^e`
+loops `__loop0`..`__loop3` and `__loop28` (each child's DA roots in `__loop4`) from `g^a` to `g^e`
 (`e - a` iterations, `LoopWeightLe`), and affine in `n` for `aggregate_claims` on `g^n`
 (`kcAgg_le`). From the certificates counting words (`Memory/GuestWords`), at `B2C.fs`: the
 constants' `TotalLe` and the loops' words per iteration (`LoopTotalLe`, and `TotalLeOn` from a
 start below the end, `LoopTotalLe.totalLeOn`).
 
-`claim_list_digest`, `child_claim_list_digest`, `da_verify`, `verify_sub` and `__loop5` have no
+`claim_list_digest`, `child_claim_list_digest`, `da_verify`, `verify_sub` and `__loop4` have no
 static bound (their loops end at hinted values), nor `aggregate_claims` a words certificate (its
 `HeapBuf` sizes are powers of its argument).
 -/

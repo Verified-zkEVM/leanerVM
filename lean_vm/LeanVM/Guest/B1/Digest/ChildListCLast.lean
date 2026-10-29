@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.Digest.ChildListCLast
 
-  `child_claim_list_last__L{k}` and `__loop17`'s block, completely.
+  `child_claim_list_last__L{k}` and `__loop16`'s block, completely.
 -/
 
 module
@@ -15,7 +15,7 @@ public import LeanVM.Guest.B1.Digest.ChildListCRec
 `ccLast_complete`: from a state at `sp` after whole blocks `pre` and `k` honest records
 (`RecMem`: slots `os j` below the bound `g^L`, marks `marks · g^j`, cells), with the words the
 range checks read defined (`BoundMem`), `child_claim_list_last__L{k}` returns the digest of
-`pre ++` the cells. `l17_block`: `__loop17`'s block at the counter `x` holds on 17 honest records
+`pre ++` the cells. `l17_block`: `__loop16`'s block at the counter `x` holds on 17 honest records
 with the marks `base · x^17`, the state after `pre` at `chain · x^13` and the state after the
 cells at offset `13`. Both evaluate the body (`Fwd.ev`), the slots' hints from the oracle
 `slotW`.
@@ -205,7 +205,7 @@ theorem ccLast_complete {k : ℕ} (hk : k < 17) {sp entries cover marks origin l
 
 set_option maxRecDepth 20000 in
 set_option maxHeartbeats 2000000 in
-/-- **A group of child claims** (`__loop17`'s block at the counter `x`): the state after whole
+/-- **A group of child claims** (`__loop16`'s block at the counter `x`): the state after whole
 blocks `pre` at `chain · x^13`, 17 honest records with the marks `base · x^17`, the state after
 their cells at `chain · x^13` from offset `13`. -/
 theorem l17_block {x N chain entries cover base origin limit : E} {n : ℕ} {pre : List UInt8}
@@ -215,11 +215,11 @@ theorem l17_block {x N chain entries cover base origin limit : E} {n : ℕ} {pre
     (hL : limit = gen ^ L) (hL33 : L < 2 ^ 33) (hdef : BoundMem rd L)
     (hS' : StateAt rd (chain * x ^ 13) 13
       (absorbChunks (n + 8) zeroState (pre ++ cellsBytes cells))) :
-    LoopBlock rd (coreProgram.getD 341 default) x N [chain, entries, cover, base, origin, limit] := by
+    LoopBlock rd (coreProgram.getD 338 default) x N [chain, entries, cover, base, origin, limit] := by
   have hok := l17_ok
   have hcok := l17c_ok
   have hnb := l17_nb
-  set fn := coreProgram.getD 341 default
+  set fn := coreProgram.getD 338 default
   set A := loopAtoms fn with hAdef
   set S := storesOf 8 fn.body with hSdef
   simp only [l17Ok, Bool.and_eq_true, decide_eq_true_eq] at hok

@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.Main.AggL26CChk
 
-  `__loop26` (a child's lambdas) and `__loop27` (a child's weight), evaluated (by kernel
+  `__loop25` (a child's lambdas) and `__loop26` (a child's weight), evaluated (by kernel
   evaluation), for their completeness.
 -/
 
@@ -15,42 +15,42 @@ open LeanVM.Guest.Core LeanVM.Guest.B1.Fwd LeanVM.Guest.B1.Digest
 
 @[expose] public section
 
-/-! ## `__loop26` -/
+/-! ## `__loop25` -/
 
 /-- A load of the row's word `o < 13` through `.n 11` into `.n (12 + o)`. -/
 def isL26RowLoad : Atom → Bool
   | .load d p o => decide (p = .n 11) && decide (d = .n (12 + o)) && decide (o < 13)
   | _ => false
 
-/-- `__loop26`'s other loads: the running claim, the pointers to the child's claims, their
+/-- `__loop25`'s other loads: the running claim, the pointers to the child's claims, their
 values. -/
 def l26Loads : List Atom :=
   [.load (.n 89) (.n 11) 13, .load (.n 78) (.n 77) 0, .load (.n 80) (.n 79) 0,
     .load (.n 90) (.n 78) 23, .load (.n 93) (.n 80) 23]
 
-/-- `__loop26`'s stores: the lambdas, then the next row's capacity, zero rate and claim. -/
+/-- `__loop25`'s stores: the lambdas, then the next row's capacity, zero rate and claim. -/
 def l26Stores : List Atom :=
   [.load (.n 48) (.n 75) 0, .load (.n 73) (.n 76) 1] ++
     (List.range 5).map (fun i => .load (.n (62 + i)) (.n 11) (14 + i)) ++
     (List.range 8).map (fun c => .load (.n (81 + c)) (.n 11) (19 + c)) ++
     [.load (.n 95) (.n 11) 27]
 
-/-- `__loop26`'s atoms but its stores. -/
+/-- `__loop25`'s atoms but its stores. -/
 noncomputable def l26A : List Atom :=
-  (atomsIn (loopPre (coreProgram.getD 395 default))).filter fun a => decide (a ∉ l26Stores)
+  (atomsIn (loopPre (coreProgram.getD 375 default))).filter fun a => decide (a ∉ l26Stores)
 
 theorem mem_l26A {a : Atom} :
-    a ∈ l26A ↔ a ∈ atomsIn (loopPre (coreProgram.getD 395 default)) ∧ a ∉ l26Stores := by
+    a ∈ l26A ↔ a ∈ atomsIn (loopPre (coreProgram.getD 375 default)) ∧ a ∉ l26Stores := by
   simp [l26A]
 
 set_option maxRecDepth 100000 in
-theorem l26_stores : storesOf 6 (coreProgram.getD 395 default).body = l26Stores := by
+theorem l26_stores : storesOf 6 (coreProgram.getD 375 default).body = l26Stores := by
   decide +kernel
 
-/-- **`__loop26`, evaluated**: its values defined in order, its atoms but its stores holding from
+/-- **`__loop25`, evaluated**: its values defined in order, its atoms but its stores holding from
 its loads and challenges, and the facts of its block on them. -/
 noncomputable def l26COk : Bool :=
-  let fn := coreProgram.getD 395 default
+  let fn := coreProgram.getD 375 default
   let A := l26A
   let P := (atomsIn (loopPre fn)).filter pureB
   (chk 6 fn.body).isSome && (loopPre fn).all (fun s => match s with | .atom _ => true | _ => false) &&
@@ -72,26 +72,26 @@ noncomputable def l26COk : Bool :=
   isMul P (.n 94) (.n 73) (.n 93) && P.any (isAddAt (.n 95) (.n 92) (.n 94))
 
 set_option maxRecDepth 100000 in
-theorem l26_shape : loopShapeF (coreProgram.getD 395 default) "__loop26" = true ∧
-    (coreProgram.getD 395 default).params.length = 6 := by decide +kernel
+theorem l26_shape : loopShapeF (coreProgram.getD 375 default) "__loop25" = true ∧
+    (coreProgram.getD 375 default).params.length = 6 := by decide +kernel
 
 set_option maxRecDepth 100000 in
 theorem l26c_ok : l26COk = true := by decide +kernel
 
-/-! ## `__loop27` -/
+/-! ## `__loop26` -/
 
-/-- `__loop27`'s store: the next weight. -/
+/-- `__loop26`'s store: the next weight. -/
 def l27Stores : List Atom := [.load (.n 272) (.n 273) 1]
 
-/-- `__loop27`'s atoms but its store. -/
+/-- `__loop26`'s atoms but its store. -/
 noncomputable def l27A : List Atom :=
-  (atomsIn (loopPre (coreProgram.getD 397 default))).filter fun a => decide (a ∉ l27Stores)
+  (atomsIn (loopPre (coreProgram.getD 377 default))).filter fun a => decide (a ∉ l27Stores)
 
 theorem mem_l27A {a : Atom} :
-    a ∈ l27A ↔ a ∈ atomsIn (loopPre (coreProgram.getD 397 default)) ∧ a ∉ l27Stores := by
+    a ∈ l27A ↔ a ∈ atomsIn (loopPre (coreProgram.getD 377 default)) ∧ a ∉ l27Stores := by
   simp [l27A]
 
-/-- A load of `__loop27`: the pointers to the child's claims, the lambdas, the weight, and
+/-- A load of `__loop26`: the pointers to the child's claims, the lambdas, the weight, and
 coordinate `o < 23` of the claims' points and of the sumcheck's point. -/
 def isL27Load : Atom → Bool
   | .load _ p o => (decide (p = .n 7) && decide (o = 0)) || (decide (p = .n 9) && decide (o = 0)) ||
@@ -101,13 +101,13 @@ def isL27Load : Atom → Bool
   | _ => false
 
 set_option maxRecDepth 100000 in
-theorem l27_stores : storesOf 7 (coreProgram.getD 397 default).body = l27Stores := by
+theorem l27_stores : storesOf 7 (coreProgram.getD 377 default).body = l27Stores := by
   decide +kernel
 
-/-- **`__loop27`, evaluated**: its values defined in order, its atoms but its store holding from
+/-- **`__loop26`, evaluated**: its values defined in order, its atoms but its store holding from
 its loads, and the facts of its block on them. -/
 noncomputable def l27COk : Bool :=
-  let fn := coreProgram.getD 397 default
+  let fn := coreProgram.getD 377 default
   let A := l27A
   let P := (atomsIn (loopPre fn)).filter pureB
   (chk 7 fn.body).isSome && (loopPre fn).all (fun s => match s with | .atom _ => true | _ => false) &&
@@ -124,8 +124,8 @@ noncomputable def l27COk : Bool :=
   isMul P (.n 273) (.n 5) (.n 0)
 
 set_option maxRecDepth 100000 in
-theorem l27_shape : loopShapeF (coreProgram.getD 397 default) "__loop27" = true ∧
-    (coreProgram.getD 397 default).params.length = 7 := by decide +kernel
+theorem l27_shape : loopShapeF (coreProgram.getD 377 default) "__loop26" = true ∧
+    (coreProgram.getD 377 default).params.length = 7 := by decide +kernel
 
 set_option maxRecDepth 100000 in
 theorem l27c_ok : l27COk = true := by decide +kernel

@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.Gkr.Layer
 
-  A layer of `verify_bus_gkr`'s walk, its loop `__loop7`: one step of two levels of the
+  A layer of `verify_bus_gkr`'s walk, its loop `__loop6`: one step of two levels of the
   specification's GKR walk, between two layer slots.
 -/
 
@@ -10,11 +10,11 @@ module
 public import LeanVM.Guest.B1.Gkr.Loop29
 
 /-!
-# A layer of two levels (`__loop7`, G:1689-1777)
+# A layer of two levels (`__loop6`, G:1689-1777)
 
-The template of `__loop7`'s body, from the layer slot at `layers·x_layer^17`: the combiner's
+The template of `__loop6`'s body, from the layer slot at `layers·x_layer^17`: the combiner's
 permutation over the slot's capacity and waiting cells, the first round record, the rounds
-(`__loop29`, then `gkr_rounds__L2` at an odd layer index, then `gkr_rounds__L1` at an odd depth),
+(`__loop27`, then `gkr_rounds__L2` at an odd layer index, then `gkr_rounds__L1` at an odd depth),
 the twelve children read, their check, the two new coordinates squeezed, and the next slot
 `34` words on.
 -/
@@ -53,7 +53,7 @@ def lyVal (t b off : ℕ) : List Stmt :=
     .atom (.add (.n (b + 6)) (.n (b + 2)) (.n (b + 5))), .atom (.mul (.n (b + 7)) (.n 294) (.n (b + 6))),
     .atom (.add (.n (b + 8)) (.n (b + 2)) (.n (b + 7))), .atom (.load (.n (b + 8)) (.n 15) off)]
 
-/-- `__loop7`'s body. -/
+/-- `__loop6`'s body. -/
 def lyBody : List Stmt :=
   [.atom (.mul (.n 6) (.n 0) (.n 0)), .atom (.mul (.n 7) (.n 2) (.n 3)),
     .atom (.load (.n 8) (.n 7) 0), .atom (.mul (.n 9) (.n 6) (.n 8)),
@@ -79,7 +79,7 @@ def lyBody : List Stmt :=
     .atom (.load (.n 61) (.n 15) 11), .atom (.load (.n 62) (.n 15) 12),
     .atom (.const (.n 63) (word 1 0 0)), .atom (.add (.n 64) (.n 63) (.n 61)),
     .atom (.const (.n 65) (word 1 0 0)),
-    .callIf (.n 64) "__loop29" [.n 65, .n 61, .n 52, .n 50],
+    .callIf (.n 64) "__loop27" [.n 65, .n 61, .n 52, .n 50],
     .ite (.n 62) [] [.atom (.mul (.n 66) (.n 61) (.n 61)), .atom (.mul (.n 67) (.n 66) (.n 66)),
       .atom (.mul (.n 68) (.n 52) (.n 67)), .atom (.mul (.n 69) (.n 50) (.n 67)),
       .call "gkr_rounds__L2" [.n 68, .n 69] []],
@@ -125,16 +125,16 @@ def lyBody : List Stmt :=
     .atom (.const (.n 340) (word 2 0 0)), .atom (.mul (.n 341) (.n 0) (.n 340)),
     .atom (.add (.n 342) (.n 341) (.n 1)), .atom (.const (.n 343) (word 2 0 0)),
     .atom (.mul (.n 344) (.n 0) (.n 343)),
-    .callIf (.n 342) "__loop7" [.n 344, .n 1, .n 2, .n 3, .n 4, .n 5], .ret []]
+    .callIf (.n 342) "__loop6" [.n 344, .n 1, .n 2, .n 3, .n 4, .n 5], .ret []]
 
 noncomputable def lyCheck : Bool :=
-  match coreProgram.find? "__loop7" with
+  match coreProgram.find? "__loop6" with
   | some fn => decide (fn.params = [.n 0, .n 1, .n 2, .n 3, .n 4, .n 5]) && tbStmtsEqb fn.body lyBody
   | none => false
 
 theorem lyCheck_eq : lyCheck = true := by decide +kernel
 
-theorem lyFound : ∃ fn : Fn, coreProgram.find? "__loop7" = some fn ∧
+theorem lyFound : ∃ fn : Fn, coreProgram.find? "__loop6" = some fn ∧
     fn.params = [.n 0, .n 1, .n 2, .n 3, .n 4, .n 5] ∧ fn.body = lyBody := by
   have h := lyCheck_eq
   unfold lyCheck at h
@@ -144,7 +144,7 @@ theorem lyFound : ∃ fn : Fn, coreProgram.find? "__loop7" = some fn ∧
     exact ⟨fn, hf, h.1, tbStmtsEqb_sound h.2⟩
   · exact absurd h (by simp)
 
-/-- `__loop7`'s statements before its `ret`. -/
+/-- `__loop6`'s statements before its `ret`. -/
 def lyPre : List Stmt := lyBody.take 295
 
 theorem lyBody_eq : lyBody = lyPre ++ [.ret []] := tbStmtsEqb_sound (by decide +kernel)

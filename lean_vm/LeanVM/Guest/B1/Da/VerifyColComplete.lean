@@ -217,7 +217,7 @@ theorem colm_ct (hj : j < 128) :
 /-- The rows' blocks of the first `64` columns. -/
 theorem colm_rows1 (hrL : r ≤ 2 ^ L) (hsl : ∀ i j, (syms i j).length = 256)
     (hwl : ∀ j, (ws j).length = 256) (hj : j < 64) : ∀ i < r,
-    LoopBlock rd (coreProgram.getD 895 default) (gen ^ i) (gen ^ r) [P.lv j, P.rb, gen ^ j, P.node j, P.pb] :=
+    LoopBlock rd (coreProgram.getD 874 default) (gen ^ i) (gen ^ r) [P.lv j, P.rb, gen ^ j, P.node j, P.pb] :=
   fun i hi => by
     obtain ⟨hc', ha, hp, hn, h0, h1⟩ := colm_row hm hrL hsl hwl (by omega) i hi
     obtain ⟨hpp, hq0, hq1⟩ := colm_pre hm i hi hj
@@ -226,7 +226,7 @@ theorem colm_rows1 (hrL : r ≤ 2 ^ L) (hsl : ∀ i j, (syms i j).length = 256)
 /-- The rows' blocks of the other columns. -/
 theorem colm_rows0 (hrL : r ≤ 2 ^ L) (hsl : ∀ i j, (syms i j).length = 256)
     (hwl : ∀ j, (ws j).length = 256) (hj : j < 128) : ∀ i < r,
-    LoopBlock rd (coreProgram.getD 897 default) (gen ^ i) (gen ^ r) [P.lv j, P.rb, gen ^ j, P.node j, P.pb] :=
+    LoopBlock rd (coreProgram.getD 876 default) (gen ^ i) (gen ^ r) [P.lv j, P.rb, gen ^ j, P.node j, P.pb] :=
   fun i hi => by
     obtain ⟨hc', ha, hp, hn, h0, h1⟩ := colm_row hm hrL hsl hwl hj i hi
     exact row_block0 (pb := P.pb) hc' ha hp hn h0 h1
@@ -242,17 +242,17 @@ theorem colm_gaps {jg : ℕ} {gl : String} (hs : loopShapeF (coreProgram.getD jg
 
 end ColMem
 
-theorem find_col1 : coreProgram.find? "da_verify_column__L1" = some (coreProgram.getD 769 default) := by
+theorem find_col1 : coreProgram.find? "da_verify_column__L1" = some (coreProgram.getD 748 default) := by
   have hc := col1_ok
   simp only [Bool.and_eq_true, decide_eq_true_eq] at hc
   exact find_of_idx hc.2 (by rw [coreProgram_length]; omega)
 
-theorem find_col0 : coreProgram.find? "da_verify_column__L0" = some (coreProgram.getD 770 default) := by
+theorem find_col0 : coreProgram.find? "da_verify_column__L0" = some (coreProgram.getD 749 default) := by
   have hc := col0_ok
   simp only [Bool.and_eq_true, decide_eq_true_eq] at hc
   exact find_of_idx hc.2 (by rw [coreProgram_length]; omega)
 
-theorem col1_params : (coreProgram.getD 769 default).params = (List.range 9).map V.n := by
+theorem col1_params : (coreProgram.getD 748 default).params = (List.range 9).map V.n := by
   have hc := col1_ok
   simp only [Bool.and_eq_true, decide_eq_true_eq] at hc
   have := hc.1
@@ -260,7 +260,7 @@ theorem col1_params : (coreProgram.getD 769 default).params = (List.range 9).map
   simp only [Bool.and_eq_true, decide_eq_true_eq] at this
   exact this.1
 
-theorem col0_params : (coreProgram.getD 770 default).params = (List.range 9).map V.n := by
+theorem col0_params : (coreProgram.getD 749 default).params = (List.range 9).map V.n := by
   have hc := col0_ok
   simp only [Bool.and_eq_true, decide_eq_true_eq] at hc
   have := hc.1
@@ -268,19 +268,19 @@ theorem col0_params : (coreProgram.getD 770 default).params = (List.range 9).map
   simp only [Bool.and_eq_true, decide_eq_true_eq] at this
   exact this.1
 
-theorem find_l417 : coreProgram.find? "__loop417" = some (coreProgram.getD 895 default) := by
+theorem find_l417 : coreProgram.find? "__loop415" = some (coreProgram.getD 874 default) := by
   have h := row417_ok; simp only [Bool.and_eq_true, decide_eq_true_eq] at h
   exact find_of_idx h.2 (by rw [coreProgram_length]; omega)
 
-theorem find_l418 : coreProgram.find? "__loop418" = some (coreProgram.getD 896 default) := by
+theorem find_l418 : coreProgram.find? "__loop416" = some (coreProgram.getD 875 default) := by
   have h := gap418_ok; simp only [Bool.and_eq_true, decide_eq_true_eq] at h
   exact find_of_idx h.2 (by rw [coreProgram_length]; omega)
 
-theorem find_l419 : coreProgram.find? "__loop419" = some (coreProgram.getD 897 default) := by
+theorem find_l419 : coreProgram.find? "__loop417" = some (coreProgram.getD 876 default) := by
   have h := row419_ok; simp only [Bool.and_eq_true, decide_eq_true_eq] at h
   exact find_of_idx h.2 (by rw [coreProgram_length]; omega)
 
-theorem find_l420 : coreProgram.find? "__loop420" = some (coreProgram.getD 898 default) := by
+theorem find_l420 : coreProgram.find? "__loop418" = some (coreProgram.getD 877 default) := by
   have h := gap420_ok; simp only [Bool.and_eq_true, decide_eq_true_eq] at h
   exact find_of_idx h.2 (by rw [coreProgram_length]; omega)
 

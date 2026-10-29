@@ -60,17 +60,17 @@ theorem recMem_group {cover origin limit entries base : E} {n : ℕ} {o : ℕ �
   rw [e]
   exact h3 c hc
 
-theorem l17_shapeF : loopShapeF (coreProgram.getD 341 default) "__loop17" = true := by
+theorem l17_shapeF : loopShapeF (coreProgram.getD 338 default) "__loop16" = true := by
   have h := l17c_ok
   simp only [l17cOk, Bool.and_eq_true] at h
   exact h.1.1.1.1.1.1.1.1.1.1
 
-/-- The groups of child claims: `__loop17`'s block at every group below `n / 17`. -/
+/-- The groups of child claims: `__loop16`'s block at every group below `n / 17`. -/
 theorem cc_blocks {entries cover base origin limit chain : E} {n L : ℕ} {o : ℕ → ℕ}
     {cells : List E} (hl : cells.length = 4 * n) (hc : AllCanonical cells)
     (hrec : RecMem rd cover origin limit entries base n o cells) (hL : limit = gen ^ L)
     (hL33 : L < 2 ^ 33) (hdef : BoundMem rd L) (hmem : ChildChainMem rd chain cells n) :
-    ∀ j < n / 17, LoopBlock rd (coreProgram.getD 341 default) (gen ^ j) (gen ^ (n / 17))
+    ∀ j < n / 17, LoopBlock rd (coreProgram.getD 338 default) (gen ^ j) (gen ^ (n / 17))
       [chain, entries, cover, base, origin, limit] := by
   intro j hj
   have hS := hmem j (by omega)

@@ -21,7 +21,7 @@ theorem kudstaticRange_18 : kudStaticRange 18 30 := by
   unfold kudStaticRange; decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem kudstaticRange_48 : kudStaticRange 48 26 := by
+theorem kudstaticRange_48 : kudStaticRange 48 25 := by
   unfold kudStaticRange; decide +kernel
 
 end

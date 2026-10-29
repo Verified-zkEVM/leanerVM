@@ -38,7 +38,7 @@ abbrev publicInputOf (d : Digest) : PublicInput := PublicInput.ofDigest d
 
 /-- **A node's work**: what the size of its run grows with. -/
 structure Work where
-  /-- The declared claims, of the three lists. -/
+  /-- The declared claims, of the two signature lists. -/
   declared : ℕ
   /-- The coverage table's slots. -/
   coverage : ℕ
@@ -46,7 +46,7 @@ structure Work where
   rawXmss : ℕ
   /-- The raw leanSPHINCS signatures. -/
   rawSphincs : ℕ
-  /-- The blob matrices held directly. -/
+  /-- The blob matrix checked directly: `1`, or `0` without one. -/
   rawDa : ℕ
   /-- Their rows: the blobs held directly. -/
   rawDaRows : ℕ
@@ -54,23 +54,23 @@ structure Work where
   rawDaPad : ℕ
   /-- The children. -/
   children : ℕ
-  /-- The children's declared claims, of the three lists. -/
+  /-- The children's declared claims, of the two signature lists. -/
   childClaims : ℕ
   /-- Each child's announced stack log and rate (`childShape`). -/
   childShapes : List (ℕ × ℕ)
 
 /-- The work of the node `s` with the witness `w`. -/
 def work (s : NodeStatement) (w : NodeWitness) : Work where
-  declared := s.claims.xmss.length + s.claims.sphincs.length + s.claims.da.length
+  declared := s.claims.xmss.length + s.claims.sphincs.length
   coverage := coverage s w
   rawXmss := (Hints.direct s.claims.xmss w.xmss).length
   rawSphincs := (Hints.direct s.claims.sphincs w.sphincs).length
-  rawDa := (Hints.direct s.claims.da w.da).length
-  rawDaRows := ((Hints.direct s.claims.da w.da).map fun p ↦ p.2.rows.length).sum
-  rawDaPad := ((Hints.direct s.claims.da w.da).map fun p ↦ LeanDa.nPad p.2.rows.length).sum
+  rawDa := (w.da.map fun _ ↦ 1).getD 0
+  rawDaRows := (w.da.map fun p ↦ p.2.rows.length).getD 0
+  rawDaPad := (w.da.map fun p ↦ LeanDa.nPad p.2.rows.length).getD 0
   children := w.children.length
   childClaims := (w.children.map fun c ↦ c.statement.claims.xmss.length +
-    c.statement.claims.sphincs.length + c.statement.claims.da.length).sum
+    c.statement.claims.sphincs.length).sum
   childShapes := w.children.map (childShape bytecode)
 
 end End

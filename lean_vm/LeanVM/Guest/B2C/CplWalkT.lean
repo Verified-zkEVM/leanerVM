@@ -47,7 +47,7 @@ theorem tbl_jt_mem {s t : ℕ} (h : glob.jt.get s = some t) : ∃ w, (s, w) ∈ 
 /-- **Slot `s` of the jump table**, holding `g^e`: the table cell found there. -/
 theorem tbl_slot {κ : ℕ} {L : MemImage κ} (hjt : JTHolds glob L)
     (htab : ∀ q ∈ tableCells, L.read (gpow q.1) = some q.2) {s e : ℕ} (h : glob.jt.get s = some e) :
-    (tableCells.find? fun q ↦ q.1 == s) = some (s, ofK (gpow e)) ∧ s < 408 + 8473 := by
+    (tableCells.find? fun q ↦ q.1 == s) = some (s, ofK (gpow e)) ∧ s < 406 + 8456 := by
   obtain ⟨w, hw⟩ := tbl_jt_mem h
   have hs := tableCells_off hw
   obtain ⟨q, hq⟩ := Option.isSome_iff_exists.mp
@@ -63,7 +63,7 @@ theorem tbl_slot {κ : ℕ} {L : MemImage κ} (hjt : JTHolds glob L)
 /-- The table word `armWord` at the selector `g^k` is slot `base + k`'s. -/
 theorem tbl_armWord {σ : Val} {x base k e : ℕ} (hk : σ (V.n x) = ofK (gpow k))
     (hf : (tableCells.find? fun q ↦ q.1 == base + k) = some (base + k, ofK (gpow e)))
-    (hlt : base + k < 408 + 8473) : armWord σ x base = ofK (gpow e) := by
+    (hlt : base + k < 406 + 8456) : armWord σ x base = ofK (gpow e) := by
   unfold armWord
   split
   case isFalse hn => exact absurd ⟨k, by omega, hk⟩ hn

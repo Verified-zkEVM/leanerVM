@@ -17,28 +17,28 @@ open LeanVM.Guest.Check
 
 @[expose] public section
 
-/-- `keccak_plain_rounds__L4_L1`, window 0. -/
+/-- `__loop14`, window 0. -/
 theorem w261_0 : WinOk 261 0 := winOk_of_C (by decide +kernel)
 
-/-- `__loop13`, window 0. -/
+/-- `column_selector__L0`, window 0. -/
 theorem w262_0 : WinOk 262 0 := winOk_of_C (by decide +kernel)
 
-/-- `__loop14`, window 0. -/
+/-- `column_selector__L1`, window 0. -/
 theorem w263_0 : WinOk 263 0 := winOk_of_C (by decide +kernel)
 
-/-- `__loop15`, window 0. -/
+/-- `column_selector__L2`, window 0. -/
 theorem w264_0 : WinOk 264 0 := winOk_of_C (by decide +kernel)
 
-/-- `column_selector__L0`, window 0. -/
+/-- `column_selector__L3`, window 0. -/
 theorem w265_0 : WinOk 265 0 := winOk_of_C (by decide +kernel)
 
-/-- `column_selector__L1`, window 0. -/
+/-- `column_selector__L4`, window 0. -/
 theorem w266_0 : WinOk 266 0 := winOk_of_C (by decide +kernel)
 
-/-- `column_selector__L2`, window 0. -/
+/-- `column_selector__L5`, window 0. -/
 theorem w267_0 : WinOk 267 0 := winOk_of_C (by decide +kernel)
 
-/-- `column_selector__L3`, window 0. -/
+/-- `column_selector__L6`, window 0. -/
 theorem w268_0 : WinOk 268 0 := winOk_of_C (by decide +kernel)
 
 theorem ok261 : CheckOk 261 := checkOk_one (by decide +kernel) w261_0

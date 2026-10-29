@@ -16,11 +16,11 @@ namespace LeanVM.Guest.B2C.Shared
 @[expose] public section
 
 set_option maxRecDepth 100000 in
-/-- `__loop7`, once. -/
+/-- `sel_partial_nibble__L0`, once. -/
 theorem st81 : shareStatic 81 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `__loop7`, window 0. -/
+/-- `sel_partial_nibble__L0`, window 0. -/
 theorem w81_0 : shareWin 81 (snapsOf 81) 0 = true := by decide +kernel
 
 theorem ok81 : ShareOk 81 := ⟨st81, fun i hi ↦ by
@@ -29,11 +29,11 @@ theorem ok81 : ShareOk 81 := ⟨st81, fun i hi ↦ by
   exact w81_0⟩
 
 set_option maxRecDepth 100000 in
-/-- `__loop8`, once. -/
+/-- `sel_partial_nibble__L1`, once. -/
 theorem st82 : shareStatic 82 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `__loop8`, window 0. -/
+/-- `sel_partial_nibble__L1`, window 0. -/
 theorem w82_0 : shareWin 82 (snapsOf 82) 0 = true := by decide +kernel
 
 theorem ok82 : ShareOk 82 := ⟨st82, fun i hi ↦ by
@@ -42,11 +42,11 @@ theorem ok82 : ShareOk 82 := ⟨st82, fun i hi ↦ by
   exact w82_0⟩
 
 set_option maxRecDepth 100000 in
-/-- `__loop9`, once. -/
+/-- `sel_partial_nibble__L2`, once. -/
 theorem st83 : shareStatic 83 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `__loop9`, window 0. -/
+/-- `sel_partial_nibble__L2`, window 0. -/
 theorem w83_0 : shareWin 83 (snapsOf 83) 0 = true := by decide +kernel
 
 theorem ok83 : ShareOk 83 := ⟨st83, fun i hi ↦ by
@@ -55,11 +55,11 @@ theorem ok83 : ShareOk 83 := ⟨st83, fun i hi ↦ by
   exact w83_0⟩
 
 set_option maxRecDepth 100000 in
-/-- `sel_partial_nibble__L0`, once. -/
+/-- `sel_partial_nibble__L3`, once. -/
 theorem st84 : shareStatic 84 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `sel_partial_nibble__L0`, window 0. -/
+/-- `sel_partial_nibble__L3`, window 0. -/
 theorem w84_0 : shareWin 84 (snapsOf 84) 0 = true := by decide +kernel
 
 theorem ok84 : ShareOk 84 := ⟨st84, fun i hi ↦ by
@@ -68,11 +68,11 @@ theorem ok84 : ShareOk 84 := ⟨st84, fun i hi ↦ by
   exact w84_0⟩
 
 set_option maxRecDepth 100000 in
-/-- `sel_partial_nibble__L1`, once. -/
+/-- `padding_weight__L0`, once. -/
 theorem st85 : shareStatic 85 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `sel_partial_nibble__L1`, window 0. -/
+/-- `padding_weight__L0`, window 0. -/
 theorem w85_0 : shareWin 85 (snapsOf 85) 0 = true := by decide +kernel
 
 theorem ok85 : ShareOk 85 := ⟨st85, fun i hi ↦ by
@@ -81,11 +81,11 @@ theorem ok85 : ShareOk 85 := ⟨st85, fun i hi ↦ by
   exact w85_0⟩
 
 set_option maxRecDepth 100000 in
-/-- `sel_partial_nibble__L2`, once. -/
+/-- `padding_weight__L1`, once. -/
 theorem st86 : shareStatic 86 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `sel_partial_nibble__L2`, window 0. -/
+/-- `padding_weight__L1`, window 0. -/
 theorem w86_0 : shareWin 86 (snapsOf 86) 0 = true := by decide +kernel
 
 theorem ok86 : ShareOk 86 := ⟨st86, fun i hi ↦ by
@@ -94,11 +94,11 @@ theorem ok86 : ShareOk 86 := ⟨st86, fun i hi ↦ by
   exact w86_0⟩
 
 set_option maxRecDepth 100000 in
-/-- `sel_partial_nibble__L3`, once. -/
+/-- `padding_weight__L2`, once. -/
 theorem st87 : shareStatic 87 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `sel_partial_nibble__L3`, window 0. -/
+/-- `padding_weight__L2`, window 0. -/
 theorem w87_0 : shareWin 87 (snapsOf 87) 0 = true := by decide +kernel
 
 theorem ok87 : ShareOk 87 := ⟨st87, fun i hi ↦ by
@@ -107,11 +107,11 @@ theorem ok87 : ShareOk 87 := ⟨st87, fun i hi ↦ by
   exact w87_0⟩
 
 set_option maxRecDepth 100000 in
-/-- `padding_weight__L0`, once. -/
+/-- `padding_weight__L3`, once. -/
 theorem st88 : shareStatic 88 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `padding_weight__L0`, window 0. -/
+/-- `padding_weight__L3`, window 0. -/
 theorem w88_0 : shareWin 88 (snapsOf 88) 0 = true := by decide +kernel
 
 theorem ok88 : ShareOk 88 := ⟨st88, fun i hi ↦ by

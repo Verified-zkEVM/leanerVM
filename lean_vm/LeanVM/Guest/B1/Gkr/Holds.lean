@@ -17,8 +17,8 @@ public import LeanVM.Guest.B1.Placement.Common
 The body (`vbgPre`, checked against the core IR by kernel evaluation): the range check of
 `g_bus_mu = g^depth` (`depth ≤ 32`), the two roots read and the count asserted nonzero, the root
 slot, the tables `pairs[d] = g^(d/2)` and `depth_shift[d] = g^(d % 2)`, the binary layer at an
-odd depth (`od_step`), the layer loop `__loop7` (`ly_step`, `ly_chain`), the final slot, the
-point's copy to `zeta` (`__loop8`), and the return.
+odd depth (`od_step`), the layer loop `__loop6` (`ly_step`, `ly_chain`), the final slot, the
+point's copy to `zeta` (`__loop7`), and the return.
 -/
 
 namespace LeanVM.Guest.B1.Tables
@@ -66,14 +66,14 @@ def vbgPre : List Stmt :=
     .atom (.load (.n 302) (.n 301) 0), .atom (.add (.n 303) (.n 300) (.n 302)),
     .atom (.const (.n 304) (word 1 0 0)), .atom (.mul (.n 305) (.n 56) (.n 6)),
     .atom (.load (.n 306) (.n 305) 0),
-    .callIf (.n 303) "__loop7" [.n 304, .n 306, .n 57, .n 6, .n 15, .n 16],
+    .callIf (.n 303) "__loop6" [.n 304, .n 306, .n 57, .n 6, .n 15, .n 16],
     .atom (.mul (.n 307) (.n 6) (.n 6)), .atom (.mul (.n 308) (.n 307) (.n 307)),
     .atom (.mul (.n 309) (.n 308) (.n 308)), .atom (.mul (.n 310) (.n 309) (.n 309)),
     .atom (.mul (.n 311) (.n 310) (.n 6)), .atom (.mul (.n 312) (.n 15) (.n 311)),
     .atom (.load (.n 313) (.n 312) 5), .atom (.load (.n 314) (.n 312) 9),
     .atom (.const (.n 315) (word 1 0 0)), .atom (.add (.n 316) (.n 315) (.n 6)),
     .atom (.const (.n 317) (word 1 0 0)),
-    .callIf (.n 316) "__loop8" [.n 317, .n 6, .n 7, .n 314],
+    .callIf (.n 316) "__loop7" [.n 317, .n 6, .n 7, .n 314],
     .atom (.load (.n 318) (.n 312) 0), .atom (.load (.n 319) (.n 312) 1),
     .atom (.load (.n 320) (.n 312) 2), .atom (.load (.n 321) (.n 312) 3),
     .atom (.load (.n 322) (.n 312) 4), .atom (.copy (.n 323) (.n 313)),
@@ -248,7 +248,7 @@ theorem vbg_walk {rd : Reader} {σ : Val} {kret : List E → Prop}
   have a303 := a 203 (.add (.n 303) (.n 300) (.n 302)) (by decide +kernel)
   have c304 := a 204 (.const (.n 304) (word 1 0 0)) (by decide +kernel)
   simp only [Atom.Holds, tb_word_one] at c300 a303 c304
-  obtain ⟨-, h7⟩ := tb_holds_callIf hnr h 207 (.n 303) "__loop7"
+  obtain ⟨-, h7⟩ := tb_holds_callIf hnr h 207 (.n 303) "__loop6"
     [.n 304, .n 306, .n 57, .n 6, .n 15, .n 16] (by decide +kernel)
   have hB : ∀ j < depth / 2, LyB rd (σ (.n 57)) (σ (.n 6)) (σ (.n 15)) (gen ^ j) := by
     intro j hj
@@ -373,7 +373,7 @@ theorem verify_bus_gkr_holds {μ : ℕ} (hμ : μ ≤ 32) (Lm : MemImage μ) :
   have e313 := tb_loadHolds_unique (ld _ _ l313) hcur
   have e314 := tb_loadHolds_unique (ld _ _ l314) hrow
   -- the point's copy
-  obtain ⟨-, h8⟩ := tb_holds_callIf hnr h 219 (.n 316) "__loop8" [.n 317, .n 6, .n 7, .n 314]
+  obtain ⟨-, h8⟩ := tb_holds_callIf hnr h 219 (.n 316) "__loop7" [.n 317, .n 6, .n 7, .n 314]
     (by decide +kernel)
   have hne8 : σ (.n 316) ≠ 0 := by
     rw [a316, c315, hg]

@@ -16,17 +16,17 @@ namespace LeanVM.Guest.B2C.Cplw
 
 @[expose] public section
 
-/-- `__loop367`, window 0, part 0. -/
+/-- `__loop381`, window 0, part 0. -/
 theorem cw838_0_0 : cplWin 838 0 0 = true := by decide +kernel
 
-/-- `decode_query_bits__L19`, window 0, part 0. -/
+/-- `__loop382`, window 0, part 0. -/
 theorem cw839_0_0 : cplWin 839 0 0 = true := by decide +kernel
 
-/-- `__loop368`, window 0, part 0. -/
-theorem cw840_0_0 : cplWin 840 0 0 = true := by decide +kernel
+/-- `__loop382`, window 0, part 1. -/
+theorem cw839_0_1 : cplWin 839 0 1 = true := by decide +kernel
 
-/-- `__loop368`, window 0, part 1. -/
-theorem cw840_0_1 : cplWin 840 0 1 = true := by decide +kernel
+/-- `__loop383`, window 0, part 0. -/
+theorem cw840_0_0 : cplWin 840 0 0 = true := by decide +kernel
 
 theorem ok838 : CplOk 838 := by
   intro i hi k hk
@@ -43,21 +43,11 @@ theorem ok839 : CplOk 839 := by
   have hc : (certOf 839).cuts.length = 0 := by decide +kernel
   rw [hc] at hi
   interval_cases i
-  · have hn : nParts 839 0 = 1 := by decide +kernel
+  · have hn : nParts 839 0 = 2 := by decide +kernel
     rw [hn] at hk
     interval_cases k
     · exact cw839_0_0
-
-theorem ok840 : CplOk 840 := by
-  intro i hi k hk
-  have hc : (certOf 840).cuts.length = 0 := by decide +kernel
-  rw [hc] at hi
-  interval_cases i
-  · have hn : nParts 840 0 = 2 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw840_0_0
-    · exact cw840_0_1
+    · exact cw839_0_1
 
 end
 end LeanVM.Guest.B2C.Cplw

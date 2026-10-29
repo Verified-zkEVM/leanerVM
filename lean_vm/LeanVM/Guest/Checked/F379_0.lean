@@ -17,28 +17,28 @@ open LeanVM.Guest.Check
 
 @[expose] public section
 
-/-- `da_hash_roots__L1`, window 0. -/
+/-- `__loop27`, window 0. -/
 theorem w379_0 : WinOk 379 0 := winOk_of_C (by decide +kernel)
 
-/-- `da_hash_roots__L2`, window 0. -/
+/-- `gkr_rounds__L2`, window 0. -/
 theorem w380_0 : WinOk 380 0 := winOk_of_C (by decide +kernel)
 
-/-- `da_hash_roots__L3`, window 0. -/
+/-- `gkr_rounds__L1`, window 0. -/
 theorem w381_0 : WinOk 381 0 := winOk_of_C (by decide +kernel)
 
-/-- `da_hash_roots__L4`, window 0. -/
+/-- `__loop28`, window 0. -/
 theorem w382_0 : WinOk 382 0 := winOk_of_C (by decide +kernel)
 
-/-- `da_hash_roots__L5`, window 0. -/
+/-- `__loop29`, window 0. -/
 theorem w383_0 : WinOk 383 0 := winOk_of_C (by decide +kernel)
 
-/-- `da_hash_roots__L6`, window 0. -/
+/-- `__loop30`, window 0. -/
 theorem w384_0 : WinOk 384 0 := winOk_of_C (by decide +kernel)
 
-/-- `da_hash_roots__L7`, window 0. -/
+/-- `__loop31`, window 0. -/
 theorem w385_0 : WinOk 385 0 := winOk_of_C (by decide +kernel)
 
-/-- `da_hash_roots__L8`, window 0. -/
+/-- `verify_log2_ceil__L0_L34`, window 0. -/
 theorem w386_0 : WinOk 386 0 := winOk_of_C (by decide +kernel)
 
 theorem ok379 : CheckOk 379 := checkOk_one (by decide +kernel) w379_0

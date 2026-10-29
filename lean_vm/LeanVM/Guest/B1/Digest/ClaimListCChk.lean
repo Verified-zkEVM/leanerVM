@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.Digest.ClaimListCChk
 
-  `claim_list_digest`'s branches and `__loop16`, evaluated (by kernel evaluation), for its
+  `claim_list_digest`'s branches and `__loop15`, evaluated (by kernel evaluation), for its
   completeness.
 -/
 
@@ -14,7 +14,7 @@ public import LeanVM.Guest.B1.Fwd.Canon
 /-!
 # `claim_list_digest`, evaluated
 
-`l16cOk`: `__loop16`'s block evaluates in order (`Fwd.chk`), its atoms are `loopAtoms`, its stores
+`l16cOk`: `__loop15`'s block evaluates in order (`Fwd.chk`), its atoms are `loopAtoms`, its stores
 write the chain's last state at `.n 9` from offset `13`, the chain's inputs are canonical from the
 state and the cells it loads, its other side conditions are those loads. `clBrOk`: each branch of
 `claim_list_digest`, its values padded by hints up to the final copies (`fillH`), evaluates in
@@ -64,14 +64,14 @@ def clcOk (k : ℕ) (f : Fn) : Bool :=
       atoms.all (fun a => !needsSide a || isLoadBelow 0 13 a || isLoadBelow 1 (4 * k) a)
   | none => false
 
-/-- **`__loop16`, evaluated**: in order, its atoms `loopAtoms`, its stores the next state's cells,
+/-- **`__loop15`, evaluated**: in order, its atoms `loopAtoms`, its stores the next state's cells,
 the chain's inputs canonical from the state and the cells it loads, its offsets and pointers
 products of pure atoms. -/
 def l16cOk (fn : Fn) : Bool :=
   let A := loopAtoms fn
   let S := storesOf 4 fn.body
   let F := A.filter fun a => decide (a ∉ S)
-  loopShapeF fn "__loop16" && (chk 4 fn.body).isSome && (loopPre fn).all isAtomS &&
+  loopShapeF fn "__loop15" && (chk 4 fn.body).isSome && (loopPre fn).all isAtomS &&
   atomsEqbL (atomsIn (loopPre fn)) A &&
   S.all (fun a => (List.range 13).any fun c =>
     atomEqb a (.load ((l16Spec A).outV ((l16Spec A).nb - 1) c) (.n 9) (13 + c))) &&
@@ -106,10 +106,10 @@ noncomputable def clBrOk : Bool :=
   (atomsIn clEEval).all (fun a => !needsSide a || decide (a ∈ SE)) &&
   canonChk [] ((atomsIn clEEval).filter fun a => decide (a ∉ SE)) &&
   clElsePre.all (fun s => isAtomS s || stmtEqb s (.call "list_split" [.n 1] [.n 23, .n 24]) ||
-    stmtEqb s (.callIf (.n 47) "__loop16" [.n 48, .n 23, .n 32, .n 0]) ||
+    stmtEqb s (.callIf (.n 47) "__loop15" [.n 48, .n 23, .n 32, .n 0]) ||
     stmtEqb s (.dispatch (.n 24) clNames [.n 54, .n 62] [.n 63, .n 64])) &&
   clElsePre.any (stmtEqb · (.call "list_split" [.n 1] [.n 23, .n 24])) &&
-  clElsePre.any (stmtEqb · (.callIf (.n 47) "__loop16" [.n 48, .n 23, .n 32, .n 0])) &&
+  clElsePre.any (stmtEqb · (.callIf (.n 47) "__loop15" [.n 48, .n 23, .n 32, .n 0])) &&
   clElsePre.any (stmtEqb · (.dispatch (.n 24) clNames [.n 54, .n 62] [.n 63, .n 64])) &&
   (List.range 13).all (fun c => (atomsIn clElsePre).any (isConstAt (.n (33 + c)) 0 0)) &&
   (atomsIn clElsePre).any (fun a => match a with
@@ -122,7 +122,7 @@ set_option maxRecDepth 100000 in
 theorem clbr_ok : clBrOk = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem l16c_ok : l16cOk (coreProgram.getD 323 default) = true := by decide +kernel
+theorem l16c_ok : l16cOk (coreProgram.getD 320 default) = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
 theorem clc_lo : ∀ k < 9, clcOk k (coreProgram.getD (324 + k) default) = true := by

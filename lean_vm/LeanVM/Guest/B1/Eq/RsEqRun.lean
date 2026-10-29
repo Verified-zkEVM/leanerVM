@@ -14,7 +14,7 @@ public import LeanVM.Guest.B1.Bits.GPower
 
 `rs_eq_run(chain, z_vals, point1, count_g)` hints the six bits of `count` (`count_g = g^count`,
 pinned by `half_g² · odd_g = count_g`, `half_g` from bits `1 .. 5`, `odd_g` from bit `0`), runs
-`__loop6` over the pairs (`loop6_step`), and when the count is odd (`ite` on `odd + 1`, its
+`__loop5` over the pairs (`loop6_step`), and when the count is odd (`ite` on `odd + 1`, its
 zero branch `rsOdd`) multiplies the last row by the last coordinate's factors; it returns the
 last row's pointer.
 -/
@@ -81,7 +81,7 @@ def rsBody : List Stmt :=
     .atom (.mul (.n 38) (.n 33) (.n 33)), .atom (.mul (.n 39) (.n 38) (.n 37)),
     .atom (.assertEq (.n 39) (.n 3)), .atom (.const (.n 40) (word 1 0 0)),
     .atom (.add (.n 41) (.n 40) (.n 33)), .atom (.const (.n 42) (word 1 0 0)),
-    .callIf (.n 41) "__loop6" [.n 42, .n 33, .n 1, .n 2, .n 0],
+    .callIf (.n 41) "__loop5" [.n 42, .n 33, .n 1, .n 2, .n 0],
     .atom (.const (.n 43) (word 1 0 0)), .atom (.add (.n 44) (.n 4) (.n 43)),
     .ite (.n 44) rsOdd [],
     .atom (.mul (.n 312) (.n 33) (.n 37)), .atom (.mul (.n 313) (.n 312) (.n 312)),
@@ -502,7 +502,7 @@ theorem rs_unfold (rd : Reader) (args rets : List E) :
       σ (.n 38) = σ (.n 33) * σ (.n 33) ∧ σ (.n 39) = σ (.n 38) * σ (.n 37) ∧
       σ (.n 39) + σ (.n 3) = 0 ∧ σ (.n 40) = word 1 0 0 ∧ σ (.n 41) = σ (.n 40) + σ (.n 33) ∧
       σ (.n 42) = word 1 0 0 ∧
-      IsInK (σ (.n 41)) ∧ (σ (.n 41) ≠ 0 → coreProgram.Rel rd "__loop6"
+      IsInK (σ (.n 41)) ∧ (σ (.n 41) ≠ 0 → coreProgram.Rel rd "__loop5"
         [σ (.n 42), σ (.n 33), σ (.n 1), σ (.n 2), σ (.n 0)] []) ∧
       σ (.n 43) = word 1 0 0 ∧ σ (.n 44) = σ (.n 4) + σ (.n 43) ∧
       (IsInK (σ (.n 44)) ∧ (σ (.n 44) = 0 →

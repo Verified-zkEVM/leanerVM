@@ -16,7 +16,7 @@ public import LeanVM.Guest.Memory.LoopPre
 
 The callees' words come as hypotheses in G7's forms: every statically bounded callee `g` of
 `vtKidS` within a constant `Kf g` (`TotalLe`), `shared_selector_tables` within `Ksh` on a run
-length `g^n`, `n < 64` (`TotalLeOn`), `__loop10` within `K10` words an iteration (`TotalLeOn …
+length `g^n`, `n < 64` (`TotalLeOn`), `__loop9` within `K10` words an iteration (`TotalLeOn …
 LoopPre`). Call by call (`vtCallBnd`): a call's callee's constant (`Ksh` for the shared tables), a
 dispatch's largest arm's, the rounds loop's `n·K10` at the honest round count `n`.
 `verify_tables_completeAtTB`: within `fs "verify_tables" + Σ sizes + Σ vtBs + ifFrames`.
@@ -68,11 +68,11 @@ noncomputable def vtBs (Kf : String → ℕ) (Ksh K10n : ℕ) : List ℕ := (vtP
 /-- The calls' kinds: a call is not the rounds loop, the shared tables' are of six arguments and
 no return, a dispatch's arms neither, the only conditional call the rounds loop's. -/
 def vtCallKindB : Stmt → Bool
-  | .call f a r => f != "__loop10" && f != "__loop9" &&
+  | .call f a r => f != "__loop9" && f != "__loop8" &&
       (f != "shared_selector_tables" || (a.length == 6 && r.isEmpty))
-  | .dispatch _ fs' _ _ => fs'.all fun g ↦ g != "__loop10" && g != "__loop9" &&
+  | .dispatch _ fs' _ _ => fs'.all fun g ↦ g != "__loop9" && g != "__loop8" &&
       g != "shared_selector_tables"
-  | .callIf c f a => f == "__loop10" && c == .n 5920 &&
+  | .callIf c f a => f == "__loop9" && c == .n 5920 &&
       a == [.n 5921, .n 5817, .n 5912, .n 18, .n 5817, .n 5915]
   | _ => true
 
@@ -103,11 +103,11 @@ memories defined below `2^κ`, `κ ≥ 8`, its tree of at most `fs "verify_table
 buffers, its callees' bounds and its skipped frames. -/
 theorem verify_tables_completeAtTB {κ : ℕ} (hκ : 8 ≤ κ) {H : VtHonest} (h : H.Ok)
     (hs : VtShape H) (B : VtBases) (Kf : String → ℕ) (Ksh K10 : ℕ)
-    (hKf : ∀ g ∈ vtKidS, g ≠ "__loop10" → g ≠ "__loop9" → g ≠ "shared_selector_tables" →
+    (hKf : ∀ g ∈ vtKidS, g ≠ "__loop9" → g ≠ "__loop8" → g ≠ "shared_selector_tables" →
       TotalLe coreProgram fs g (fun _ ↦ Kf g))
     (hsh : TotalLeOn coreProgram fs "shared_selector_tables"
       (fun a ↦ ∃ n < 64, a.getD 5 0 = gen ^ n) (fun _ ↦ Ksh))
-    (h10 : TotalLeOn coreProgram fs "__loop10" LoopPre (fun a ↦ logG (a.getD 1 0) * K10)) :
+    (h10 : TotalLeOn coreProgram fs "__loop9" LoopPre (fun a ↦ logG (a.getD 1 0) * K10)) :
     CompleteAtDTB fs cert κ "verify_tables" (H.linL B) (H.args B) (Returns (H.retsH B))
       (fun _ ↦ True)
       (fs "verify_tables" + H.sizes.sum + ((vtBs Kf Ksh (H.n * K10)).sum + ifFrames fs vtPre)) := by

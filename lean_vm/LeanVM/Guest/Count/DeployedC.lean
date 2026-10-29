@@ -21,7 +21,7 @@ theorem clC_eq : clC B2C.fs wSB = 2915 := by
   unfold clC
   rw [cl_sum,
     fs_idx (j := 23) (f := "claim_list_digest") (by decide +kernel),
-    fs_idx (j := 323) (f := "__loop16") (by decide +kernel),
+    fs_idx (j := 323) (f := "__loop15") (by decide +kernel),
     wSB_idx (j := 22) (f := "list_split") (by decide +kernel)]
   decide +kernel
 
@@ -29,24 +29,24 @@ theorem ccC_eq : ccC B2C.fs wSB = 5349 := by
   unfold ccC
   rw [ccl_sum,
     fs_idx (j := 24) (f := "child_claim_list_digest") (by decide +kernel),
-    fs_idx (j := 341) (f := "__loop17") (by decide +kernel),
+    fs_idx (j := 341) (f := "__loop16") (by decide +kernel),
     wSB_idx (j := 22) (f := "list_split") (by decide +kernel)]
   decide +kernel
 
 theorem l5A0_eq : l5A0 B2C.fs = 80 := by
   unfold l5A0
-  rw [fs_idx (j := 37) (f := "__loop5") (by decide +kernel)]
+  rw [fs_idx (j := 37) (f := "__loop4") (by decide +kernel)]
   decide +kernel
 
 theorem clS_eq : clS wSK = 35 := by
   unfold clS
-  rw [wSK_idx (j := 323) (f := "__loop16") (by decide +kernel)]
+  rw [wSK_idx (j := 323) (f := "__loop15") (by decide +kernel)]
   decide +kernel
 
 theorem l5A1_eq : l5A1 B2C.fs wSB = 12314 := by
   unfold l5A1
   rw [ccC_eq,
-    fs_idx (j := 37) (f := "__loop5") (by decide +kernel),
+    fs_idx (j := 37) (f := "__loop4") (by decide +kernel),
     fs_idx (j := 398) (f := "__loop28") (by decide +kernel),
     fs_idx (j := 30) (f := "cover_da_root") (by decide +kernel),
     wSB_idx (j := 29) (f := "da_list_digest") (by decide +kernel),
@@ -55,7 +55,7 @@ theorem l5A1_eq : l5A1 B2C.fs wSB = 12314 := by
 
 theorem l5A2_eq : l5A2 B2C.fs = 30 := by
   unfold l5A2 ccS
-  rw [fs_idx (j := 341) (f := "__loop17") (by decide +kernel)]
+  rw [fs_idx (j := 341) (f := "__loop16") (by decide +kernel)]
   decide +kernel
 
 theorem agA0_eq : agA0 B2C.fs wSB = 1406 := by
@@ -66,9 +66,9 @@ theorem agA0_eq : agA0 B2C.fs wSB = 1406 := by
 
 theorem agA1_eq : agA1 wSK = 1892 := by
   unfold agA1
-  rw [wSK_idx (j := 394) (f := "__loop25") (by decide +kernel),
-    wSK_idx (j := 395) (f := "__loop26") (by decide +kernel),
-    wSK_idx (j := 397) (f := "__loop27") (by decide +kernel)]
+  rw [wSK_idx (j := 394) (f := "__loop24") (by decide +kernel),
+    wSK_idx (j := 395) (f := "__loop25") (by decide +kernel),
+    wSK_idx (j := 397) (f := "__loop26") (by decide +kernel)]
   decide +kernel
 
 end

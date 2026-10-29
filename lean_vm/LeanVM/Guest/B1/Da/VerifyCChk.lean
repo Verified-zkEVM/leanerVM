@@ -24,14 +24,14 @@ def isCdLoad : Atom → Bool
 /-- `da_verify`'s calls. -/
 def dvCalls : List Stmt :=
   [.call "da_row_shape" [.n 1, .n 2, .n 0] [.n 3, .n 4],
-    .callIf (.n 15) "__loop18" [.n 16, .n 1, .n 13, .n 12],
-    .callIf (.n 29) "__loop19" [.n 30, .n 1, .n 26, .n 27],
-    .call "__loop20" [.n 32, .n 1, .n 3, .n 4, .n 2, .n 13, .n 31, .n 27, .n 17] [],
-    .call "__loop21" [.n 33, .n 1, .n 3, .n 4, .n 2, .n 13, .n 31, .n 27, .n 17] [],
-    .callIf (.n 35) "__loop22" [.n 36, .n 1, .n 27],
+    .callIf (.n 15) "__loop17" [.n 16, .n 1, .n 13, .n 12],
+    .callIf (.n 29) "__loop18" [.n 30, .n 1, .n 26, .n 27],
+    .call "__loop19" [.n 32, .n 1, .n 3, .n 4, .n 2, .n 13, .n 31, .n 27, .n 17] [],
+    .call "__loop20" [.n 33, .n 1, .n 3, .n 4, .n 2, .n 13, .n 31, .n 27, .n 17] [],
+    .callIf (.n 35) "__loop21" [.n 36, .n 1, .n 27],
     .call "da_levels__L128_L7" [.n 31] [.n 37, .n 38],
-    .callIf (.n 43) "__loop23" [.n 44, .n 1, .n 13, .n 41],
-    .callIf (.n 46) "__loop24" [.n 47, .n 4, .n 41, .n 1],
+    .callIf (.n 43) "__loop22" [.n 44, .n 1, .n 13, .n 41],
+    .callIf (.n 46) "__loop23" [.n 47, .n 4, .n 41, .n 1],
     .dispatch (.n 2) dlNames [.n 41] [.n 48, .n 49]]
 
 /-- `da_verify`'s hints. -/

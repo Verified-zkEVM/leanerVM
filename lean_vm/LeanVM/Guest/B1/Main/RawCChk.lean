@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.Main.RawCChk
 
-  `main`'s raw-signature loops `__loop3`, `__loop4` as statement lists (by kernel evaluation), and
+  `main`'s raw-signature loops `__loop2`, `__loop3` as statement lists (by kernel evaluation), and
   the pure sets they call into, for their placed completeness.
 -/
 
@@ -26,7 +26,7 @@ open LeanVM.Guest.B1.Digest
 
 @[expose] public section
 
-/-- `__loop3`'s statements before its `ret []`. -/
+/-- `__loop2`'s statements before its `ret []`. -/
 def l3Pre : List Stmt :=
   [.atom (.hint (.witness "raw_index" (.stack [.n 5]))),
     .atom (.const (.n 6) (word 9223372036854775821 0 0)), .atom (.mul (.n 7) (.n 2) (.n 6)),
@@ -36,9 +36,9 @@ def l3Pre : List Stmt :=
     .call "verify_lean_xmss" [.n 14] [], .atom (.const (.n 15) (word 2 0 0)),
     .atom (.mul (.n 16) (.n 0) (.n 15)), .atom (.add (.n 17) (.n 16) (.n 1)),
     .atom (.const (.n 18) (word 2 0 0)), .atom (.mul (.n 19) (.n 0) (.n 18)),
-    .callIf (.n 17) "__loop3" [.n 19, .n 1, .n 2, .n 3, .n 4]]
+    .callIf (.n 17) "__loop2" [.n 19, .n 1, .n 2, .n 3, .n 4]]
 
-/-- `__loop4`'s statements before its `ret []`. -/
+/-- `__loop3`'s statements before its `ret []`. -/
 def l4Pre : List Stmt :=
   [.atom (.hint (.witness "sp_raw_index" (.stack [.n 8]))),
     .atom (.const (.n 9) (word 9223372036854775821 0 0)), .atom (.mul (.n 10) (.n 2) (.n 9)),
@@ -49,32 +49,32 @@ def l4Pre : List Stmt :=
     .call "verify_sig_lean_sphincs" [.n 19, .n 7] [], .atom (.const (.n 20) (word 2 0 0)),
     .atom (.mul (.n 21) (.n 0) (.n 20)), .atom (.add (.n 22) (.n 21) (.n 1)),
     .atom (.const (.n 23) (word 2 0 0)), .atom (.mul (.n 24) (.n 0) (.n 23)),
-    .callIf (.n 22) "__loop4" [.n 24, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6, .n 7]]
+    .callIf (.n 22) "__loop3" [.n 24, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6, .n 7]]
 
 set_option maxRecDepth 100000 in
-theorem l3_body : Fn.body (coreProgram.getD 35 default) = l3Pre ++ [.ret []] :=
+theorem l3_body : Fn.body (coreProgram.getD 32 default) = l3Pre ++ [.ret []] :=
   stmtsEqb_sound (by decide +kernel)
 
 set_option maxRecDepth 100000 in
-theorem l4_body : Fn.body (coreProgram.getD 36 default) = l4Pre ++ [.ret []] :=
+theorem l4_body : Fn.body (coreProgram.getD 33 default) = l4Pre ++ [.ret []] :=
   stmtsEqb_sound (by decide +kernel)
 
 set_option maxRecDepth 100000 in
-theorem l3_params : (coreProgram.getD 35 default).params = [.n 0, .n 1, .n 2, .n 3, .n 4] := by
+theorem l3_params : (coreProgram.getD 32 default).params = [.n 0, .n 1, .n 2, .n 3, .n 4] := by
   decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem l4_params : (coreProgram.getD 36 default).params =
+theorem l4_params : (coreProgram.getD 33 default).params =
     [.n 0, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6, .n 7] := by
   decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem l4_idx' : coreProgram.indexOf? "__loop4" = some 36 := by decide +kernel
+theorem l4_idx' : coreProgram.indexOf? "__loop3" = some 33 := by decide +kernel
 
-theorem l3_find : coreProgram.find? "__loop3" = some (coreProgram.getD 35 default) :=
+theorem l3_find : coreProgram.find? "__loop2" = some (coreProgram.getD 32 default) :=
   find_of_idx l3_idx (by rw [coreProgram_length]; omega)
 
-theorem l4_find : coreProgram.find? "__loop4" = some (coreProgram.getD 36 default) :=
+theorem l4_find : coreProgram.find? "__loop3" = some (coreProgram.getD 33 default) :=
   find_of_idx l4_idx' (by rw [coreProgram_length]; omega)
 
 /-- Every member's body places nothing and calls members only. -/
@@ -90,11 +90,11 @@ theorem pureIn_of_ok {S : List String} (h : pureOk S = true) : coreProgram.PureI
   exact h
 
 set_option maxRecDepth 100000 in
-theorem raw3_pure : coreProgram.PureIn ["__loop3", "verify_lean_xmss"] :=
+theorem raw3_pure : coreProgram.PureIn ["__loop2", "verify_lean_xmss"] :=
   pureIn_of_ok (by decide +kernel)
 
 set_option maxRecDepth 100000 in
-theorem raw4_pure : coreProgram.PureIn ["__loop4", "verify_sig_lean_sphincs"] :=
+theorem raw4_pure : coreProgram.PureIn ["__loop3", "verify_sig_lean_sphincs"] :=
   pureIn_of_ok (by decide +kernel)
 
 end

@@ -23,28 +23,28 @@ set_option maxRecDepth 100000
 def dvStNames : List String := ["da_row_shape", "da_vector_cell", "da_levels__L128_L7"]
 
 /-- Their core indices. -/
-def dvStJ : List ℕ := [26, 28, 364]
+def dvStJ : List ℕ := [26, 28, 361]
 
 /-- `da_verify`'s row loops and its columns' row and padding loops. -/
-def dvLpNames : List String := ["__loop18", "__loop19", "__loop22", "__loop23", "__loop24", "__loop417", "__loop418", "__loop419", "__loop420"]
+def dvLpNames : List String := ["__loop17", "__loop18", "__loop21", "__loop22", "__loop23", "__loop415", "__loop416", "__loop417", "__loop418"]
 
 /-- Their core indices. -/
-def dvLpJ : List ℕ := [359, 360, 363, 365, 366, 895, 896, 897, 898]
+def dvLpJ : List ℕ := [356, 357, 360, 362, 363, 874, 875, 876, 877]
 
 /-- The core indices of the DA levels `B1.Da.dlNames`, by `L`. -/
-def dlJ : List ℕ := [367, 368, 369, 370, 371, 372, 373, 364, 374, 375, 376]
+def dlJ : List ℕ := [364, 365, 366, 367, 368, 369, 370, 361, 371, 372, 373]
 
 /-- The core indices of `claim_list_last__L{k}`, `k < 17`. -/
-def clJ : List ℕ := [324, 325, 326, 327, 328, 329, 330, 331, 332, 333, 334, 335, 336, 337, 338, 339, 340]
+def clJ : List ℕ := [321, 322, 323, 324, 325, 326, 327, 328, 329, 330, 331, 332, 333, 334, 335, 336, 337]
 
-/-- The core index of `__loop16`. -/
-def l16J : ℕ := 323
+/-- The core index of `__loop15`. -/
+def l16J : ℕ := 320
 
 /-- The functions whose frames the counts weigh. -/
-def mvOmNames : List String := ["da_verify", "__loop20", "__loop21", "da_verify_column__L1", "da_verify_column__L0", "claim_list_digest"]
+def mvOmNames : List String := ["da_verify", "__loop19", "__loop20", "da_verify_column__L1", "da_verify_column__L0", "claim_list_digest"]
 
 /-- Their core indices. -/
-def mvOmJ : List ℕ := [25, 361, 362, 769, 770, 23]
+def mvOmJ : List ℕ := [25, 358, 359, 748, 749, 23]
 
 /-- The instructions of `dvStNames`. -/
 def kcDvStT : Opcode → List ℕ
@@ -82,7 +82,7 @@ def kcClT : Opcode → List ℕ
   | .jump => [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
   | .keccak => [1, 1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 6, 6, 7, 7, 8, 8]
 
-/-- `__loop16`'s instructions per iteration. -/
+/-- `__loop15`'s instructions per iteration. -/
 def kcL16 : Opcode → ℕ
   | .xor => 73
   | .mulNative => 22
@@ -155,7 +155,7 @@ noncomputable def mvTabOk (op : Opcode) : Bool :=
     kvSBJ op (dlJ.getD L 0) == (kcDlT op).getD L 0) &&
   (List.range 17).all (fun k => kvOkB op (clJ.getD k 0) (B1.Digest.clNames.getD k "") &&
     kvSBJ op (clJ.getD k 0) == (kcClT op).getD k 0) &&
-  kvOkK op l16J "__loop16" && kvSKJ op l16J == kcL16 op &&
+  kvOkK op l16J "__loop15" && kvSKJ op l16J == kcL16 op &&
   (List.range 6).all (fun i => decide ((coreProgram[mvOmJ.getD i 0]?).map Fn.name = some (mvOmNames.getD i "")) &&
     (B2C.plumbOf (mvOmJ.getD i 0 + 1)).pmax.getD (B2C.opIdx op) 0 == (mvOmT op).getD i 0)
 

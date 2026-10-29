@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.Gkr.Loop7C
 
-  `__loop7`, completely: on a memory holding a layer's slot, its step's words, its round records
+  `__loop6`, completely: on a memory holding a layer's slot, its step's words, its round records
   and the next slot, an iteration's honest valuation satisfies its body; the iterations chain to
   the loop's relation.
 -/
@@ -16,7 +16,7 @@ public import LeanVM.Guest.B1.Gkr.Loop29Complete
 public import LeanVM.Guest.B1.Sumcheck.Gkr
 
 /-!
-# `__loop7`, completely (G:1689-1777)
+# `__loop6`, completely (G:1689-1777)
 
 An iteration at `x = g^j` from the slot of `L = 2j + sh` (`GkSlotC`, the slot's words exactly)
 runs one step of two levels (`GkStepD`, read back from the walk by `gkrStep_inv`). On a memory
@@ -25,13 +25,13 @@ the body evaluated forward (`lyEvL`, its `ite`s' branches in order) holds: `ly_i
 regions of the body (`lyR1 .. lyR6`):
 
 * `lyc_head`: the combiner's permutation, the first record stored, `half` and `parity`;
-* `lyc_rounds`: `__loop29`, `gkr_rounds__L2` at an odd `j`, `gkr_rounds__L1` at an odd depth;
+* `lyc_rounds`: `__loop27`, `gkr_rounds__L2` at an odd `j`, `gkr_rounds__L1` at an odd depth;
 * `lyc_last`: the last record read;
 * `lyc_children`: the twelve children read and absorbed;
 * `lyc_check`: their check and the two new coordinates;
 * `lyc_stores`: the next slot stored and the next iteration called.
 
-`ly_complete`: iterations at every `g^j`, `j < m`, give `__loop7` from `1` below `g^m`.
+`ly_complete`: iterations at every `g^j`, `j < m`, give `__loop6` from `1` below `g^m`.
 -/
 
 namespace LeanVM.Guest.B1.Tables
@@ -85,12 +85,12 @@ theorem tbCapAt_getD {rd : Reader} {rec : E} {off stride : ℕ} {cap : List E}
 
 /-! ## The evaluation list -/
 
-/-- `__loop7`'s evaluation list: its body, each `ite`'s branches in order. -/
+/-- `__loop6`'s evaluation list: its body, each `ite`'s branches in order. -/
 def lyEvL : List Stmt := flatIte lyPre
 
 theorem ly_chk : (chk 6 lyEvL).isSome = true := by decide +kernel
 
-/-- `__loop7`'s stores. -/
+/-- `__loop6`'s stores. -/
 def lyS : List Atom := storesOf 6 lyEvL
 
 /-- **The regions of the body.** The head: the combiner, the first record, `half`, `parity`. -/
@@ -122,7 +122,7 @@ def lyR1 : List Stmt :=
 
 /-- The rounds. -/
 def lyR2 : List Stmt :=
-  [.callIf (.n 64) "__loop29" [.n 65, .n 61, .n 52, .n 50],
+  [.callIf (.n 64) "__loop27" [.n 65, .n 61, .n 52, .n 50],
     .ite (.n 62) [] [.atom (.mul (.n 66) (.n 61) (.n 61)), .atom (.mul (.n 67) (.n 66) (.n 66)),
       .atom (.mul (.n 68) (.n 52) (.n 67)), .atom (.mul (.n 69) (.n 50) (.n 67)),
       .call "gkr_rounds__L2" [.n 68, .n 69] []],
@@ -180,7 +180,7 @@ def lyR6 : List Stmt :=
     .atom (.const (.n 340) (word 2 0 0)), .atom (.mul (.n 341) (.n 0) (.n 340)),
     .atom (.add (.n 342) (.n 341) (.n 1)), .atom (.const (.n 343) (word 2 0 0)),
     .atom (.mul (.n 344) (.n 0) (.n 343)),
-    .callIf (.n 342) "__loop7" [.n 344, .n 1, .n 2, .n 3, .n 4, .n 5]]
+    .callIf (.n 342) "__loop6" [.n 344, .n 1, .n 2, .n 3, .n 4, .n 5]]
 
 theorem lyPre_eq : lyPre = lyR1 ++ lyR2 ++ lyR3 ++ lyR4 ++ lyR5 ++ lyR6 :=
   tbStmtsEqb_sound (by decide +kernel)
@@ -379,7 +379,7 @@ theorem tb_bitE_isInK (b : Bool) : IsInK (bitE b) := by
     rwa [e_add_self] at this
   · exact tb_isInK_one
 
-/-- **The rounds**: `__loop29` (`4·(j/2)` rounds), `gkr_rounds__L2` at an odd `j`, and
+/-- **The rounds**: `__loop27` (`4·(j/2)` rounds), `gkr_rounds__L2` at an odd `j`, and
 `gkr_rounds__L1` at an odd depth, each from its record, when the records hold every run of
 consecutive rounds. -/
 theorem lyc_rounds (hG : ∀ s ∈ lyEvL, GoodS rd lyS (fun _ => 0) σ s) {j sh : ℕ}
@@ -393,7 +393,7 @@ theorem lyc_rounds (hG : ∀ s ∈ lyEvL, GoodS rd lyS (fun _ => 0) σ s) {j sh 
   refine holdsList_of_vsh lyR2 (by decide +kernel) (fun s hs => ?_) trivial
   simp only [lyR2, List.mem_cons, List.not_mem_nil, or_false] at hs
   rcases hs with rfl | rfl | rfl | rfl
-  · -- `__loop29`
+  · -- `__loop27`
     refine ⟨by rw [e64]; exact tb_isInK_add tb_isInK_one (tb_gen_pow_isInK _), fun hne => ?_⟩
     have hpos : 0 < j / 2 := by
       rcases Nat.eq_zero_or_pos (j / 2) with h0 | h0
@@ -758,7 +758,7 @@ theorem lyc_stores (hG : ∀ s ∈ lyEvL, GoodS rd lyS (fun _ => 0) σ s)
     (s46 : LoadHolds rd (σ (.n 15)) 46 (1 + σ (.n 62)))
     (hK : IsInK (σ (.n 0) * gen + σ (.n 1)))
     (hcall : σ (.n 0) * gen + σ (.n 1) ≠ 0 →
-      C "__loop7" [σ (.n 0) * gen, σ (.n 1), σ (.n 2), σ (.n 3), σ (.n 4), σ (.n 5)] []) :
+      C "__loop6" [σ (.n 0) * gen, σ (.n 1), σ (.n 2), σ (.n 3), σ (.n 4), σ (.n 5)] []) :
     Stmt.HoldsList C rd σ lyR6 True kret := by
   have g := fun n a heq => ly_good (rd := rd) (σ := σ) hG n a heq
   have gz := good_slice hG 232 ((List.range 4).map fun k ↦ [Stmt.atom (.const (.n (295 + k))

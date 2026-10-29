@@ -17,29 +17,29 @@ open LeanVM.Guest.Check
 
 @[expose] public section
 
-/-- `da_hash_roots__L9`, window 0. -/
+/-- `verify_log2_ceil__L15_L34`, window 0. -/
 theorem w387_0 : WinOk 387 0 := winOk_of_C (by decide +kernel)
 
-/-- `da_hash_roots__L10`, window 0. -/
+/-- `opening_ood_point__L16`, window 0. -/
 theorem w388_0 : WinOk 388 0 := winOk_of_C (by decide +kernel)
 
-/-- `da_hash_roots__L11`, window 0. -/
+/-- `grind_check__L17`, window 0. -/
 theorem w389_0 : WinOk 389 0 := winOk_of_C (by decide +kernel)
 
-/-- `da_hash_roots__L12`, window 0. -/
+/-- `__loop32`, window 0. -/
 theorem w390_0 : WinOk 390 0 := winOk_of_C (by decide +kernel)
 
-/-- `da_hash_roots__L13`, window 0. -/
+/-- `opening_row_weights__L6_L1`, window 0. -/
 theorem w391_0 : WinOk 391 0 := winOk_of_C (by decide +kernel)
 
-/-- `da_hash_roots__L14`, window 0. -/
+/-- `verify_merkle_cap__L8`, window 0. -/
 theorem w392_0 : WinOk 392 0 := winOk_of_C (by decide +kernel)
 
-/-- `da_hash_roots__L15`, window 0. -/
-theorem w393_0 : WinOk 393 0 := winOk_of_C (by decide +kernel)
+/-- `verify_merkle_cap__L8`, window 1. -/
+theorem w392_1 : WinOk 392 1 := winOk_of_C (by decide +kernel)
 
-/-- `da_hash_roots__L16`, window 0. -/
-theorem w394_0 : WinOk 394 0 := winOk_of_C (by decide +kernel)
+/-- `verify_merkle_cap__L8`, window 2. -/
+theorem w392_2 : WinOk 392 2 := winOk_of_C (by decide +kernel)
 
 theorem ok387 : CheckOk 387 := checkOk_one (by decide +kernel) w387_0
 
@@ -50,12 +50,6 @@ theorem ok389 : CheckOk 389 := checkOk_one (by decide +kernel) w389_0
 theorem ok390 : CheckOk 390 := checkOk_one (by decide +kernel) w390_0
 
 theorem ok391 : CheckOk 391 := checkOk_one (by decide +kernel) w391_0
-
-theorem ok392 : CheckOk 392 := checkOk_one (by decide +kernel) w392_0
-
-theorem ok393 : CheckOk 393 := checkOk_one (by decide +kernel) w393_0
-
-theorem ok394 : CheckOk 394 := checkOk_one (by decide +kernel) w394_0
 
 end
 end LeanVM.Guest.Checked

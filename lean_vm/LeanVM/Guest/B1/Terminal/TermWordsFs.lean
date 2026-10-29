@@ -18,9 +18,9 @@ The hypotheses of `check_opening_terminal_completeAtB`, `rst_completeAtB` and `r
 `B2C.fs`:
 
 * `eqc_totalLe_fs`: `eq_prefix_chain` within `184` (its certificate);
-* `l15_totalLeOn_fs`, `l6_totalLeOn_fs`: `__loop15`, `__loop6` within `38`, `948` words per
+* `l15_totalLeOn_fs`, `l6_totalLeOn_fs`: `__loop14`, `__loop5` within `38`, `948` words per
   iteration (their certificates);
-* `l14_totalLeOn_fs`: `__loop14` from `1` (to its constant end `g^8`) within `8 · 1322`;
+* `l14_totalLeOn_fs`: `__loop13` from `1` (to its constant end `g^8`) within `8 · 1322`;
 * `cs_totalLe_fs`, `cs_fs_le`: each `column_selector__L{κ}`, `κ < 29`, within `157` words, its frame
   at most `157` (its certificate is its frame);
 * `rs_totalLeOn_fs`: `rs_eq_run` on `c ≤ 34` coordinates within `317 + 17 · 948 = 16433`
@@ -57,8 +57,8 @@ theorem fsB_idx {j : ℕ} {f : String} (h : (coreProgram[j]?).map Fn.name = some
 theorem fs_cot : B2C.fs "check_opening_terminal" = 1795 := by
   rw [fsB_idx (j := 17) (by decide +kernel)]; decide +kernel
 
-theorem fs_l15 : B2C.fs "__loop15" = 19 := by
-  rw [fsB_idx (j := 263) (by decide +kernel)]; decide +kernel
+theorem fs_l15 : B2C.fs "__loop14" = 19 := by
+  rw [fsB_idx (j := 260) (by decide +kernel)]; decide +kernel
 
 theorem fs_st : B2C.fs "selector_tables" = 366 := by
   rw [fsB_idx (j := 16) (by decide +kernel)]; decide +kernel
@@ -72,8 +72,8 @@ theorem fs_rst : B2C.fs "ring_switch_target" = 12 := by
 theorem fs_rs : B2C.fs "rs_eq_run" = 317 := by
   rw [fsB_idx (j := 5) (by decide +kernel)]; decide +kernel
 
-theorem fs_l6 : B2C.fs "__loop6" = 474 := by
-  rw [fsB_idx (j := 79) (by decide +kernel)]; decide +kernel
+theorem fs_l6 : B2C.fs "__loop5" = 474 := by
+  rw [fsB_idx (j := 76) (by decide +kernel)]; decide +kernel
 
 /-! ## The callees' words -/
 
@@ -94,24 +94,24 @@ theorem loopTotalLeOn_fs {f : String} {K : ℕ} {ks : List (V × ℕ)}
   simp only [Aff.eval, List.map_nil, List.sum_nil, add_zero] at this
   exact this.trans (Nat.mul_le_mul_right _ (Nat.sub_le _ _))
 
-/-- `__loop15` within `38` words per iteration. -/
+/-- `__loop14` within `38` words per iteration. -/
 theorem l15_totalLeOn_fs :
-    TotalLeOn coreProgram B2C.fs "__loop15" LoopPre fun a => logG (a.getD 1 0) * 38 :=
-  loopTotalLeOn_fs (by rw [wcertOf_of_idx (j := 263) (by decide +kernel)]; rfl :
-    wcertOf "__loop15" = .loop none [] ⟨38, []⟩ [])
+    TotalLeOn coreProgram B2C.fs "__loop14" LoopPre fun a => logG (a.getD 1 0) * 38 :=
+  loopTotalLeOn_fs (by rw [wcertOf_of_idx (j := 260) (by decide +kernel)]; rfl :
+    wcertOf "__loop14" = .loop none [] ⟨38, []⟩ [])
 
-/-- `__loop6` within `948` words per iteration. -/
+/-- `__loop5` within `948` words per iteration. -/
 theorem l6_totalLeOn_fs :
-    TotalLeOn coreProgram B2C.fs "__loop6" LoopPre fun a => logG (a.getD 1 0) * 948 :=
-  loopTotalLeOn_fs (by rw [wcertOf_of_idx (j := 79) (by decide +kernel)]; rfl :
-    wcertOf "__loop6" = .loop none [] ⟨948, []⟩ [])
+    TotalLeOn coreProgram B2C.fs "__loop5" LoopPre fun a => logG (a.getD 1 0) * 948 :=
+  loopTotalLeOn_fs (by rw [wcertOf_of_idx (j := 76) (by decide +kernel)]; rfl :
+    wcertOf "__loop5" = .loop none [] ⟨948, []⟩ [])
 
-/-- `__loop14` from `1` (to its constant end `g^8`) within `8 · 1322` words. -/
+/-- `__loop13` from `1` (to its constant end `g^8`) within `8 · 1322` words. -/
 theorem l14_totalLeOn_fs :
-    TotalLeOn coreProgram B2C.fs "__loop14" (fun a => a.getD 0 0 = 1) fun _ => 10576 := by
+    TotalLeOn coreProgram B2C.fs "__loop13" (fun a => a.getD 0 0 = 1) fun _ => 10576 := by
   intro rd t args rets hn ha hv hb
-  have := fs_total_le_of_loop (by rw [wcertOf_of_idx (j := 262) (by decide +kernel)]; rfl :
-      wcertOf "__loop14" = .loop (some 8) [] ⟨1322, []⟩ []) hn hv hb (a := 0) (e := 8)
+  have := fs_total_le_of_loop (by rw [wcertOf_of_idx (j := 259) (by decide +kernel)]; rfl :
+      wcertOf "__loop13" = .loop (some 8) [] ⟨1322, []⟩ []) hn hv hb (a := 0) (e := 8)
     (by rw [ha]; simp [Parameters.gpow]) rfl (by decide) (by decide)
     (fun _ h => (List.not_mem_nil h).elim)
   simpa [Aff.eval] using this
@@ -163,7 +163,7 @@ theorem rs_totalLeOn_fs : ∀ c ≤ 34,
     TotalLeOn coreProgram B2C.fs "rs_eq_run" (fun a => a.getD 3 0 = gen ^ c) fun _ => 16433 := by
   intro c hc rd t args rets hn hp hv hb
   refine (rs_totalLeOn34 l6_totalLeOn_fs c hc rd t args rets hn hp hv hb).trans ?_
-  show B2C.fs "rs_eq_run" + max (B2C.fs "__loop6") (17 * 948) ≤ 16433
+  show B2C.fs "rs_eq_run" + max (B2C.fs "__loop5") (17 * 948) ≤ 16433
   rw [fs_rs, fs_l6]
   decide
 

@@ -8,6 +8,9 @@
 module
 
 public import LeanVM.Guest.CheckWinC
+public import LeanVM.Guest.Checked.F387_0
+public import LeanVM.Guest.Checked.F392_3
+public import LeanVM.Guest.Checked.F392_11
 
 namespace LeanVM.Guest.Checked
 
@@ -95,7 +98,28 @@ theorem plain390 : Plain 390 := plain_of_nil (by decide +kernel)
 
 theorem plain391 : Plain 391 := plain_of_nil (by decide +kernel)
 
-theorem plain392 : Plain 392 := plain_of_nil (by decide +kernel)
+theorem ok392 : CheckOk 392 := fun i hi ↦ by
+  have h : (certOf 392).cuts.length = 13 := by decide +kernel
+  rw [h] at hi
+  interval_cases i
+  · exact w392_0
+  · exact w392_1
+  · exact w392_2
+  · exact w392_3
+  · exact w392_4
+  · exact w392_5
+  · exact w392_6
+  · exact w392_7
+  · exact w392_8
+  · exact w392_9
+  · exact w392_10
+  · exact w392_11
+  · exact w392_12
+  · exact w392_13
+
+theorem plain392 : Plain 392 := by
+  unfold Plain
+  decide +kernel
 
 theorem plain393 : Plain 393 := plain_of_nil (by decide +kernel)
 

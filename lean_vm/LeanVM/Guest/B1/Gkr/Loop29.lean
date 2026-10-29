@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.Gkr.Loop29
 
-  `verify_bus_gkr`'s inner loop `__loop29`: four GKR rounds an iteration, from one round record
+  `verify_bus_gkr`'s inner loop `__loop27`: four GKR rounds an iteration, from one round record
   to the record four on.
 -/
 
@@ -10,7 +10,7 @@ module
 public import LeanVM.Guest.B1.Gkr.Rounds
 
 /-!
-# `__loop29` (G:1706-1736)
+# `__loop27` (G:1706-1736)
 
 `for x4 in mul_range(1, half)` in a layer of `verify_bus_gkr`: the record at
 `rd = rounds·pos·x4^4`, the point row `pt = point_row·x4^4`, four rounds (`gkRoundT`, from values
@@ -37,7 +37,7 @@ def l29Cap (q : ℕ) : List V :=
   if q = 0 then [.n 8, .n 9, .n 10, .n 11, .n 12]
   else (List.range 5).map fun k ↦ .n (l29B (q - 1) + 48 + k)
 
-/-- `__loop29`'s body. -/
+/-- `__loop27`'s body. -/
 def l29Body : List Stmt :=
   [.atom (.mul (.n 4) (.n 0) (.n 0)), .atom (.mul (.n 5) (.n 4) (.n 4)),
     .atom (.mul (.n 6) (.n 2) (.n 5)), .atom (.mul (.n 7) (.n 3) (.n 5)),
@@ -52,16 +52,16 @@ def l29Body : List Stmt :=
     .atom (.const (.n 313) (word 2 0 0)), .atom (.mul (.n 314) (.n 0) (.n 313)),
     .atom (.add (.n 315) (.n 314) (.n 1)), .atom (.const (.n 316) (word 2 0 0)),
     .atom (.mul (.n 317) (.n 0) (.n 316)),
-    .callIf (.n 315) "__loop29" [.n 317, .n 1, .n 2, .n 3], .ret []]
+    .callIf (.n 315) "__loop27" [.n 317, .n 1, .n 2, .n 3], .ret []]
 
 noncomputable def l29Check : Bool :=
-  match coreProgram.find? "__loop29" with
+  match coreProgram.find? "__loop27" with
   | some fn => decide (fn.params = [.n 0, .n 1, .n 2, .n 3]) && tbStmtsEqb fn.body l29Body
   | none => false
 
 theorem l29Check_eq : l29Check = true := by decide +kernel
 
-theorem l29Found : ∃ fn : Fn, coreProgram.find? "__loop29" = some fn ∧
+theorem l29Found : ∃ fn : Fn, coreProgram.find? "__loop27" = some fn ∧
     fn.params = [.n 0, .n 1, .n 2, .n 3] ∧ fn.body = l29Body := by
   have h := l29Check_eq
   unfold l29Check at h
@@ -92,11 +92,11 @@ theorem l29_round_cap (q : ℕ) (σ : Val) :
     (l29Cap (q + 1)).map σ = (List.range 5).map fun k ↦ σ (.n (l29B q + 48 + k)) := by
   simp [l29Cap]
 
-/-- **An iteration of `__loop29`**: four rounds from the record at `head·x^4`. -/
+/-- **An iteration of `__loop27`**: four rounds from the record at `head·x^4`. -/
 theorem l29_step {N head ptrow : E} (d : ℕ) (x : E)
-    (h : coreProgram.relN rd (d + 1) "__loop29" (x :: [N, head, ptrow]) []) :
+    (h : coreProgram.relN rd (d + 1) "__loop27" (x :: [N, head, ptrow]) []) :
     TbGkrRoundsOut 4 rd (head * x ^ 4) (ptrow * x ^ 4) ∧
-      (x * gen + N ≠ 0 → coreProgram.relN rd d "__loop29" (x * gen :: [N, head, ptrow]) []) := by
+      (x * gen + N ≠ 0 → coreProgram.relN rd d "__loop27" (x * gen :: [N, head, ptrow]) []) := by
   obtain ⟨fn, hf, σ, hpar, hbody⟩ := h
   obtain ⟨fn', hf', hp, hb⟩ := l29Found
   rw [hf] at hf'
@@ -222,11 +222,11 @@ theorem gkrRoundsOut_zero {rd : Reader} {rec pt : E} {cap : List E} {cur claim :
     tbReadsAt_nil _ _, tbReadsAt_nil _ _, by simpa [gkrRun] using hc,
     by simpa using hcur, by simpa [gkrRun] using hcl⟩
 
-/-- **`__loop29` behind its guard**: from the record at `head`, `half = g^h` iterations are the
+/-- **`__loop27` behind its guard**: from the record at `head`, `half = g^h` iterations are the
 `4h` rounds to the record at `head·g^(4h)`. -/
 theorem l29_loop {rd : Reader} {half head ptrow : E} {h : ℕ} (hh : half = gen ^ h)
     (hhb : h < 2 ^ 62)
-    (hcall : 1 + half ≠ 0 → coreProgram.Rel rd "__loop29" [1, half, head, ptrow] [])
+    (hcall : 1 + half ≠ 0 → coreProgram.Rel rd "__loop27" [1, half, head, ptrow] [])
     (h0 : TbGkrRoundsOut 0 rd head ptrow) : TbGkrRoundsOut (4 * h) rd head ptrow := by
   rcases Nat.eq_zero_or_pos h with rfl | hpos
   · simpa using h0

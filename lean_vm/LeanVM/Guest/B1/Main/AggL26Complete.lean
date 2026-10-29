@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.Main.AggL26Complete
 
-  `__loop26` (a child's lambdas) and `__loop27` (a child's weight), completely.
+  `__loop25` (a child's lambdas) and `__loop26` (a child's weight), completely.
 -/
 
 module
@@ -11,14 +11,14 @@ public import LeanVM.Guest.B1.Main.AggL26CChk
 /-!
 # A child's lambdas and weight, completely
 
-`l26_block`: `__loop26`'s block at the child `x` holds on the evaluated valuation (`Fwd.ev`) when
+`l26_block`: `__loop25`'s block at the child `x` holds on the evaluated valuation (`Fwd.ev`) when
 its row (`sqT·x^14`) holds the honest words of a sponge and a running claim, the next row the
 honest words of the sponge after two squeezes and the claim on, the lambdas' table the two
 squeezes, and the pointer tables the child's claims' values. Its atoms but its stores hold (their
 side conditions its loads and its challenges' `assert_in_k`, on canonical permutation cells), so
 its permutations and challenges are the squeezes (as in `l26_step`), which its stores find.
 
-`l27_block`: `__loop27`'s block at `x` holds when the pointer tables point to the claims' points,
+`l27_block`: `__loop26`'s block at `x` holds when the pointer tables point to the claims' points,
 `pt` holds the sumcheck's point, the lambdas' table the lambdas, and the weights' table at `x`
 the weight and the weight on.
 -/
@@ -47,7 +47,7 @@ theorem capOf_getD (S : KState) {i : ℕ} (hi : i < 5) :
 
 set_option maxRecDepth 20000 in
 set_option maxHeartbeats 4000000 in
-/-- **A child's lambdas** (`__loop26`). -/
+/-- **A child's lambdas** (`__loop25`). -/
 theorem l26_block {x N sqT lamT lfT lcT pf pc fv cv acc : E} {st : Fs} (hst : StOk st)
     (hrow : ReadsAt rd (sqT * x ^ 14) (rowW st ++ [acc]))
     (hnext : ReadsAt rd (sqT * x ^ 14 * gen ^ 14)
@@ -55,7 +55,7 @@ theorem l26_block {x N sqT lamT lfT lcT pf pc fv cv acc : E} {st : Fs} (hst : St
     (hlam : ReadsAt rd (lamT * x ^ 2) [st.squeeze.1, st.squeeze.2.squeeze.1])
     (hlf : LoadHolds rd (lfT * x) 0 pf) (hlc : LoadHolds rd (lcT * x) 0 pc)
     (hfv : LoadHolds rd pf 23 fv) (hcv : LoadHolds rd pc 23 cv) :
-    LoopBlock rd (coreProgram.getD 395 default) x N [sqT, lamT, lfT, lcT] := by
+    LoopBlock rd (coreProgram.getD 375 default) x N [sqT, lamT, lfT, lcT] := by
   obtain ⟨hshape, hlen⟩ := l26_shape
   have hcok := l26c_ok
   simp only [l26COk, Bool.and_eq_true, Option.isSome_iff_exists, decide_eq_true_eq] at hcok
@@ -65,7 +65,7 @@ theorem l26_block {x N sqT lamT lfT lcT pf pc fv cv acc : E} {st : Fs} (hst : St
   simp only [List.all_eq_true, decide_eq_true_eq, Bool.or_eq_true, Bool.not_eq_true',
     List.mem_range] at hatoms hneeds hrl hll hz hzc
   have hS := l26_stores
-  set fn := coreProgram.getD 395 default
+  set fn := coreProgram.getD 375 default
   set A := atomsIn (loopPre fn)
   let args : List E := [x, N, sqT, lamT, lfT, lcT]
   obtain ⟨σ, hσ⟩ : ∃ σ : Val, σ = B1.Val.ofArgs (ev rd (fun _ => 0) args fn.body) := ⟨_, rfl⟩
@@ -222,14 +222,14 @@ theorem l26_block {x N sqT lamT lfT lcT pf pc fv cv acc : E} {st : Fs} (hst : St
 
 set_option maxRecDepth 20000 in
 set_option maxHeartbeats 4000000 in
-/-- **A child's weight** (`__loop27`). -/
+/-- **A child's weight** (`__loop26`). -/
 theorem l27_block {x N lfT lcT pt wT lamT pf pc lf lc wc : E} {pp pq r : List E}
     (hlf : LoadHolds rd (lfT * x) 0 pf) (hlc : LoadHolds rd (lcT * x) 0 pc)
     (hpf : ReadsAt rd pf pp) (hpc : ReadsAt rd pc pq) (hr : ReadsAt rd pt r)
     (hpl : pp.length = 23) (hql : pq.length = 23) (hrl : r.length = 23)
     (hlam : ReadsAt rd (lamT * x ^ 2) [lf, lc]) (hw : LoadHolds rd (wT * x) 0 wc)
     (hw1 : LoadHolds rd (wT * x) 1 (wc + lf * eqEval pp r + lc * eqEval pq r)) :
-    LoopBlock rd (coreProgram.getD 397 default) x N [lfT, lcT, pt, wT, lamT] := by
+    LoopBlock rd (coreProgram.getD 377 default) x N [lfT, lcT, pt, wT, lamT] := by
   obtain ⟨hshape, hlen⟩ := l27_shape
   have hcok := l27c_ok
   simp only [l27COk, Bool.and_eq_true, Option.isSome_iff_exists] at hcok
@@ -237,7 +237,7 @@ theorem l27_block {x N lfT lcT pt wT lamT pf pc lf lc wc : E} {pp pq r : List E}
     he2⟩, hm262⟩, hm263⟩, hl264⟩, hm265⟩, hl266⟩, hm267⟩, ha268⟩, hm269⟩, hl270⟩, hm271⟩, ha272⟩,
     hm273⟩ := hcok
   simp only [List.all_eq_true, Bool.or_eq_true, Bool.not_eq_true'] at hatoms hneeds
-  set fn := coreProgram.getD 397 default
+  set fn := coreProgram.getD 377 default
   set A := atomsIn (loopPre fn)
   let args : List E := [x, N, lfT, lcT, pt, wT, lamT]
   obtain ⟨σ, hσ⟩ : ∃ σ : Val, σ = B1.Val.ofArgs (ev rd (fun _ => 0) args fn.body) := ⟨_, rfl⟩

@@ -21,7 +21,7 @@ public import LeanVM.Guest.B1.Tables.Kids.Loop10
 (`vsh_plain`). `verify_tables`' other statements are its `116` calls (`vt_calls`, by the kernel):
 the padding weights (`pwCall`), `plus_one_run` (`porCall`), the shared selector tables (`shCall`),
 the framework blocks' selectors and `index_mle` (`fwCall`, `imCall`), the table blocks' selectors
-(`selCall`), `__loop10` and `eq_prefix_chain`.
+(`selCall`), `__loop9` and `eq_prefix_chain`.
 
 A call's pointers are buffer bases times powers of `g` (from the statements' equations and the
 memory's words), inside the buffers (`ptr_lin`, `ptr_own`, the own buffers full length by
@@ -117,9 +117,9 @@ def selCall (x : ℕ × ℕ × ℕ × ℕ × Option ℕ) : Stmt :=
       .n (if x.2.2.2.1 = 0 then 2770 else x.2.2.1 + 13)]
     [.n (vtSelE x.2.2.1 x.2.2.2.1), .n (vtSelE x.2.2.1 x.2.2.2.1 + 1)]
 
-/-- The `__loop10` call. -/
+/-- The `__loop9` call. -/
 def loopCall : Stmt :=
-  .callIf (.n 5920) "__loop10" [.n 5921, .n 5817, .n 5912, .n 18, .n 5817, .n 5915]
+  .callIf (.n 5920) "__loop9" [.n 5921, .n 5817, .n 5912, .n 18, .n 5817, .n 5915]
 
 /-- The `eq_prefix_chain` call. -/
 def epcCall : Stmt := .call "eq_prefix_chain" [.n 5936, .n 5937, .n 18, .n 2767, .n 5817] []
@@ -596,10 +596,10 @@ theorem vt_loop_up (I : VtIn H B w rd) (h : VSH (coreProgram.Rel rd) rd σv loop
       simp only [VtHonest.curW, List.length_append, I.ok.hx5, I.ok.hxR]; omega
     exact ptr_lin (q := (B.cur, H.curW)) (by simp [VtHonest.linL]) hcl'
   refine loop10_relIn hK ?_ ?_ ?_ hcur d 0 hK hd
-  · exact ptr_own0 I.hw (j := 107) (by norm_num) (by decide) le_rfl
+  · exact ptr_own0 I.hw (j := 104) (by norm_num) (by decide) le_rfl
   · exact ptr_lin0 (q := (B.chi, H.chiW)) (by simp [VtHonest.linL]) (by
       simp [VtHonest.chiW, zcChis])
-  · exact ptr_own0 I.hw (j := 108) (by norm_num) (by decide) le_rfl
+  · exact ptr_own0 I.hw (j := 105) (by norm_num) (by decide) le_rfl
 
 theorem vt_epc_up (I : VtIn H B w rd) (h : VSH (coreProgram.Rel rd) rd σv epcCall) :
     VSH (coreProgram.RelIn rd (H.reg B)) rd σv epcCall := by
@@ -616,7 +616,7 @@ theorem vt_epc_up (I : VtIn H B w rd) (h : VSH (coreProgram.Rel rd) rd σv epcCa
   simp only [epcCall, vsh_call, List.map_cons, List.map_nil] at h ⊢
   rw [e5817] at h ⊢
   refine eq_prefix_chain_relIn (by omega) ?_ ?_ ?_ h
-  · rw [a5936]; exact ptr_own0 I.hw (j := 109) (by norm_num) (by decide) le_rfl
+  · rw [a5936]; exact ptr_own0 I.hw (j := 106) (by norm_num) (by decide) le_rfl
   · rw [vt_s18]
     exact ptr_lin0 (q := (B.chi, H.chiW)) (by simp [VtHonest.linL]) (by
       simp [VtHonest.chiW, zcChis])

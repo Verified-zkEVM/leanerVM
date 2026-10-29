@@ -26,9 +26,9 @@ variable {seed s w}
 /-- **`main`'s honest `aggregate_claims` call is complete within `aggB`, by a tree of honest shape**: under `NodeRel` and `Limits`, for a
 bytecode of `2^bytecodeVars` words. -/
 theorem mainGoalAgTB (cert : String → V → ℕ) (SB SK : String → ℕ)
-    (h25 : TotalLeOn coreProgram fs "__loop25" LoopPre (fun a => logG (a.getD 1 0) * SK "__loop25"))
-    (h26 : TotalLeOn coreProgram fs "__loop26" LoopPre (fun a => logG (a.getD 1 0) * SK "__loop26"))
-    (h27 : TotalLeOn coreProgram fs "__loop27" LoopPre (fun a => logG (a.getD 1 0) * SK "__loop27"))
+    (h25 : TotalLeOn coreProgram fs "__loop24" LoopPre (fun a => logG (a.getD 1 0) * SK "__loop24"))
+    (h26 : TotalLeOn coreProgram fs "__loop25" LoopPre (fun a => logG (a.getD 1 0) * SK "__loop25"))
+    (h27 : TotalLeOn coreProgram fs "__loop26" LoopPre (fun a => logG (a.getD 1 0) * SK "__loop26"))
     (hbs : TotalLe coreProgram fs "batch_sumcheck__L23" (fun _ => SB "batch_sumcheck__L23"))
     {bytecode : List K}
     (hbl : bytecode.length = 2 ^ bytecodeVars) (hrel : NodeRel bytecode seed s w)

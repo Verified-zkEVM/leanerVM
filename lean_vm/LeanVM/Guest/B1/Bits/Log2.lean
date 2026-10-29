@@ -115,9 +115,9 @@ def vlBody (fl : ℕ) : List Stmt :=
   [.atom (.hint (.alloc (.n 3) 35)), .atom (.const (.n 4) (word 0 0 0)),
     .atom (.load (.n 4) (.n 3) 0)] ++ ((List.range 34).map vlBlk).flatten ++ vlTail fl
 
-theorem core406_body : Fn.body Data.core406 = vlBody 0 := stmtsEqb_sound (by decide +kernel)
+theorem core406_body : Fn.body Data.core385 = vlBody 0 := stmtsEqb_sound (by decide +kernel)
 
-theorem core407_body : Fn.body Data.core407 = vlBody 15 := stmtsEqb_sound (by decide +kernel)
+theorem core407_body : Fn.body Data.core386 = vlBody 15 := stmtsEqb_sound (by decide +kernel)
 
 /-! ## The bits, the prefix sums, the product -/
 
@@ -615,13 +615,13 @@ theorem verify_log2_ceil_iff {name : String} {f : Fn} (fl : ℕ) (hfl : fl < 34)
 
 set_option maxRecDepth 100000 in
 theorem find_verify_log2_ceil_L0_L34 :
-    coreProgram.find? "verify_log2_ceil__L0_L34" = some Data.core406 :=
-  Program.find?_of_indexOf? (j := 406) (by decide +kernel) rfl
+    coreProgram.find? "verify_log2_ceil__L0_L34" = some Data.core385 :=
+  Program.find?_of_indexOf? (j := 385) (by decide +kernel) rfl
 
 set_option maxRecDepth 100000 in
 theorem find_verify_log2_ceil_L15_L34 :
-    coreProgram.find? "verify_log2_ceil__L15_L34" = some Data.core407 :=
-  Program.find?_of_indexOf? (j := 407) (by decide +kernel) rfl
+    coreProgram.find? "verify_log2_ceil__L15_L34" = some Data.core386 :=
+  Program.find?_of_indexOf? (j := 386) (by decide +kernel) rfl
 
 theorem verify_log2_ceil_L0_L34_iff {κ : ℕ} (hκ : κ ≤ 32) (hκ6 : 6 ≤ κ) (Lm : MemImage κ)
     {bits lp sq : E} (ht : ExpTables Lm.read lp sq) (rets : List E) :
@@ -677,7 +677,7 @@ theorem log2_ceil_in_the_exponent_L0_L34_iff {κ : ℕ} (hκ : κ ≤ 32) (hκ6 
     (Lm : MemImage κ) {gN lp sq : E} (ht : ExpTables Lm.read lp sq) (rets : List E) :
     coreProgram.Rel Lm.read "log2_ceil_in_the_exponent__L0_L34" [gN, lp, sq] rets ↔
       MeaningLog2CeilExp 0 Lm.read [gN, lp, sq] rets :=
-  log2_ceil_in_the_exponent_iff 0 (Program.find?_of_indexOf? (j := 293) (by decide +kernel) rfl)
+  log2_ceil_in_the_exponent_iff 0 (Program.find?_of_indexOf? (j := 290) (by decide +kernel) rfl)
     rfl rfl Lm (fun _ rets => verify_log2_ceil_L0_L34_iff hκ hκ6 Lm ht rets) rets
 
 set_option maxRecDepth 100000 in
@@ -685,7 +685,7 @@ theorem log2_ceil_in_the_exponent_L15_L34_iff {κ : ℕ} (hκ : κ ≤ 32) (hκ6
     (Lm : MemImage κ) {gN lp sq : E} (ht : ExpTables Lm.read lp sq) (rets : List E) :
     coreProgram.Rel Lm.read "log2_ceil_in_the_exponent__L15_L34" [gN, lp, sq] rets ↔
       MeaningLog2CeilExp 15 Lm.read [gN, lp, sq] rets :=
-  log2_ceil_in_the_exponent_iff 15 (Program.find?_of_indexOf? (j := 294) (by decide +kernel) rfl)
+  log2_ceil_in_the_exponent_iff 15 (Program.find?_of_indexOf? (j := 291) (by decide +kernel) rfl)
     rfl rfl Lm (fun _ rets => verify_log2_ceil_L15_L34_iff hκ hκ6 Lm ht rets) rets
 
 /-! ## The statements -/

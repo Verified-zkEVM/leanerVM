@@ -99,9 +99,7 @@ noncomputable def coreFunctions : List Core.Fn :=
   core816 :: core817 :: core818 :: core819 :: core820 :: core821 :: core822 :: core823 :: core824 :: core825 :: core826 :: core827 :: core828 :: core829 :: core830 :: core831 ::
   core832 :: core833 :: core834 :: core835 :: core836 :: core837 :: core838 :: core839 :: core840 :: core841 :: core842 :: core843 :: core844 :: core845 :: core846 :: core847 ::
   core848 :: core849 :: core850 :: core851 :: core852 :: core853 :: core854 :: core855 :: core856 :: core857 :: core858 :: core859 :: core860 :: core861 :: core862 :: core863 ::
-  core864 :: core865 :: core866 :: core867 :: core868 :: core869 :: core870 :: core871 :: core872 :: core873 :: core874 :: core875 :: core876 :: core877 :: core878 :: core879 ::
-  core880 :: core881 :: core882 :: core883 :: core884 :: core885 :: core886 :: core887 :: core888 :: core889 :: core890 :: core891 :: core892 :: core893 :: core894 :: core895 ::
-  core896 :: core897 :: core898 :: []
+  core864 :: core865 :: core866 :: core867 :: core868 :: core869 :: core870 :: core871 :: core872 :: core873 :: core874 :: core875 :: core876 :: core877 :: []
 
 end
 end LeanVM.Guest.Data

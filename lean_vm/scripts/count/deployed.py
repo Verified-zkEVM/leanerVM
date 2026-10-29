@@ -50,30 +50,30 @@ def numbers(g, certs):
     v['ccl'] = sum(fs(n) for n in CCL)
     colC = lambda f, gl: fs(f) + fs('da_vector_cell') + fs(gl)
     colP = lambda gl: 4 + SK(gl) + v['dlK']
-    v['colC1'] = colC('da_verify_column__L1', '__loop418')
-    v['colC0'] = colC('da_verify_column__L0', '__loop420')
-    v['clC'] = fs('claim_list_digest') + 13 + SB('list_split') + fs('__loop16') + v['cl']
-    v['dvC'] = (fs('da_verify') + 768 + fs('da_row_shape') + fs('__loop24') + SB('da_levels__L128_L7')
-                + (65 * fs('__loop20') + 64 * v['colC1']) + (65 * fs('__loop21') + 64 * v['colC0']))
+    v['colC1'] = colC('da_verify_column__L1', '__loop416')
+    v['colC0'] = colC('da_verify_column__L0', '__loop418')
+    v['clC'] = fs('claim_list_digest') + 13 + SB('list_split') + fs('__loop15') + v['cl']
+    v['dvC'] = (fs('da_verify') + 768 + fs('da_row_shape') + fs('__loop23') + SB('da_levels__L128_L7')
+                + (65 * fs('__loop19') + 64 * v['colC1']) + (65 * fs('__loop20') + 64 * v['colC0']))
     sub = lambda a, b: max(0, SK(a) - SK(b))
-    v['dvS'] = (131 + SK('__loop18') + SK('__loop19') + SK('__loop22') + sub('__loop23', '__loop24')
-                + 64 * sub('__loop417', '__loop418') + 64 * sub('__loop419', '__loop420'))
-    v['dvP'] = 132 + SK('__loop24') + v['dlK'] + 64 * colP('__loop418') + 64 * colP('__loop420')
-    v['ccC'] = fs('child_claim_list_digest') + 13 + SB('list_split') + fs('__loop17') + v['ccl']
-    v['clS'] = 1 + (SK('__loop16') + 16) // 17
-    v['ccS'] = 1 + (fs('__loop17') + 16) // 17
-    v['l5A0'] = fs('__loop5')
-    v['l5A1'] = (fs('__loop5') + 2 * v['ccC'] + (64 + 16 * (fs('__loop28') + fs('cover_da_root'))
+    v['dvS'] = (131 + SK('__loop17') + SK('__loop18') + SK('__loop21') + sub('__loop22', '__loop23')
+                + 64 * sub('__loop415', '__loop416') + 64 * sub('__loop417', '__loop418'))
+    v['dvP'] = 132 + SK('__loop23') + v['dlK'] + 64 * colP('__loop416') + 64 * colP('__loop418')
+    v['ccC'] = fs('child_claim_list_digest') + 13 + SB('list_split') + fs('__loop16') + v['ccl']
+    v['clS'] = 1 + (SK('__loop15') + 16) // 17
+    v['ccS'] = 1 + (fs('__loop16') + 16) // 17
+    v['l5A0'] = fs('__loop4')
+    v['l5A1'] = (fs('__loop4') + 2 * v['ccC'] + (64 + 16 * (fs('__loop28') + fs('cover_da_root'))
                  + fs('__loop28')) + SB('da_list_digest') + SB('statement_digest'))
     v['l5A2'] = v['ccS']
     v['agA0'] = fs('aggregate_claims') + 97 + SB('batch_sumcheck__L23')
-    v['agA1'] = 32 + SK('__loop25') + SK('__loop26') + SK('__loop27')
+    v['agA1'] = 32 + SK('__loop24') + SK('__loop25') + SK('__loop26')
     base = (fs('main') + 281 + fs('exponent_tables') + 68 + fs('__loop0') + SB('da_list_digest')
-            + fs('da_list_digest') + 2 * (v['clC'] + fs('claim_list_digest')) + fs('__loop1') + fs('__loop2')
-            + fs('__loop3') + fs('__loop4') + 2 * v['l5A0'] + (v['agA0'] + fs('aggregate_claims'))
+            + fs('da_list_digest') + 2 * (v['clC'] + fs('claim_list_digest')) + fs('__loop0') + fs('__loop1')
+            + fs('__loop2') + fs('__loop3') + 2 * v['l5A0'] + (v['agA0'] + fs('aggregate_claims'))
             + SB('statement_digest') + fs('statement_digest'))
-    words = [base, v['clS'], 5 + SK('__loop0') + SK('__loop1') + SK('__loop2'), SK('__loop3'),
-             SK('__loop4'), v['dvC'] + fs('da_verify') + 2 * fs('cover_da_root'), v['dvS'], v['dvP'], 51 + v['l5A1'] + v['agA1'], v['l5A2']]
+    words = [base, v['clS'], 5 + SK('__loop0') + SK('__loop0') + SK('__loop1'), SK('__loop2'),
+             SK('__loop3'), v['dvC'] + fs('da_verify') + 2 * fs('cover_da_root'), v['dvS'], v['dvP'], 51 + v['l5A1'] + v['agA1'], v['l5A2']]
     instrs = {}
     tbl = vscount.tables(g)
     _, _, _, dv_aff, cl_aff = vscount.main_tables(g)
@@ -83,16 +83,16 @@ def numbers(g, certs):
         lp = lambda n: c[n][3][0]
         agg = c['aggregate_claims']
         aggC, aggD = agg[2][0], sum(a for _, a in agg[2][1])
-        jt = 8473 if lop == 'setConstant' else 0
+        jt = 8456 if lop == 'setConstant' else 0
         clA, clS = cl_aff(k)
         dvA, dvR, dvP = dv_aff(k)
         om5, ccA, ccS, vst = vscount.l5_parts(tbl, k)
-        # `Budget.l5C`: `__loop5`'s frame, two claim lists' constants, 16 DA roots, the digests.
+        # `Budget.l5C`: `__loop4`'s frame, two claim lists' constants, 16 DA roots, the digests.
         l5C = om5 + 2 * ccA + 16 * lp('__loop28') + st('da_list_digest') + st('statement_digest')
         instrs[lop] = ([g.pm[1][k] + st('exponent_tables') + st('da_list_digest') + st('statement_digest') + jt
                         + 2 * clA,
                         clS,
-                        lp('__loop0') + lp('__loop1') + lp('__loop2'), lp('__loop3'), lp('__loop4'),
+                        lp('__loop0') + lp('__loop0') + lp('__loop1'), lp('__loop2'), lp('__loop3'),
                         dvA + st('cover_da_root'), dvR, dvP,
                         l5C + aggC + aggD, ccS], vst)
     return v, words, instrs
@@ -134,35 +134,35 @@ theorem ccl_sum : nameSum (fun g => B2C.fs g) B1.Digest.cclNames 17 = %d := by d
         steps = ', '.join(rws) + (',\n    ' if rws and r else '') + r
         return ('theorem %s : %s = %d := by\n  unfold %s\n  rw [%s]\n  decide +kernel\n'
                 % (name, lhs, val, unf, steps))
-    col1 = thm('colC1_eq', 'colC B2C.fs "da_verify_column__L1" "__loop418"', v['colC1'], 'colC', [],
-               fs=['da_verify_column__L1', 'da_vector_cell', '__loop418'])
-    col0 = thm('colC0_eq', 'colC B2C.fs "da_verify_column__L0" "__loop420"', v['colC0'], 'colC', [],
-               fs=['da_verify_column__L0', 'da_vector_cell', '__loop420'])
+    col1 = thm('colC1_eq', 'colC B2C.fs "da_verify_column__L1" "__loop416"', v['colC1'], 'colC', [],
+               fs=['da_verify_column__L1', 'da_vector_cell', '__loop416'])
+    col0 = thm('colC0_eq', 'colC B2C.fs "da_verify_column__L0" "__loop418"', v['colC0'], 'colC', [],
+               fs=['da_verify_column__L0', 'da_vector_cell', '__loop418'])
     dvc = thm('dvC_eq', 'dvC B2C.fs wSB', v['dvC'], 'dvC', ['colC1_eq', 'colC0_eq'],
-              fs=['da_verify', 'da_row_shape', '__loop24', '__loop20', '__loop21'], sb=['da_levels__L128_L7'])
+              fs=['da_verify', 'da_row_shape', '__loop23', '__loop19', '__loop20'], sb=['da_levels__L128_L7'])
     dvs = thm('dvS_eq', 'dvS wSK', v['dvS'], 'dvS colS', [],
-              sk=['__loop18', '__loop19', '__loop22', '__loop23', '__loop24', '__loop417', '__loop418',
-                  '__loop419', '__loop420'])
+              sk=['__loop17', '__loop18', '__loop21', '__loop22', '__loop23', '__loop415', '__loop416',
+                  '__loop417', '__loop418'])
     dvp = thm('dvP_eq', 'dvP wSB wSK', v['dvP'], 'dvP colP', ['dlK_eq'],
-              sk=['__loop24', '__loop418', '__loop420'])
+              sk=['__loop23', '__loop416', '__loop418'])
     mod('DeployedB', '`da_verify`\'s columns\' words, its constant and per row.',
         'public import LeanVM.Guest.Count.DeployedA\n',
         '\n' + col1 + '\n' + col0 + '\n/-- **`da_verify`\'s constant words.** -/\n' + dvc
         + '\n/-- **`da_verify`\'s words per row.** -/\n' + dvs
         + '\n/-- **`da_verify`\'s words per padded row.** -/\n' + dvp)
     body = '\n'.join([
-        thm('clC_eq', 'clC B2C.fs wSB', v['clC'], 'clC', ['cl_sum'], fs=['claim_list_digest', '__loop16'],
+        thm('clC_eq', 'clC B2C.fs wSB', v['clC'], 'clC', ['cl_sum'], fs=['claim_list_digest', '__loop15'],
             sb=['list_split']),
-        thm('ccC_eq', 'ccC B2C.fs wSB', v['ccC'], 'ccC', ['ccl_sum'], fs=['child_claim_list_digest', '__loop17'],
+        thm('ccC_eq', 'ccC B2C.fs wSB', v['ccC'], 'ccC', ['ccl_sum'], fs=['child_claim_list_digest', '__loop16'],
             sb=['list_split']),
-        thm('l5A0_eq', 'l5A0 B2C.fs', v['l5A0'], 'l5A0', [], fs=['__loop5']),
-        thm('clS_eq', 'clS wSK', v['clS'], 'clS', [], sk=['__loop16']),
+        thm('l5A0_eq', 'l5A0 B2C.fs', v['l5A0'], 'l5A0', [], fs=['__loop4']),
+        thm('clS_eq', 'clS wSK', v['clS'], 'clS', [], sk=['__loop15']),
         thm('l5A1_eq', 'l5A1 B2C.fs wSB', v['l5A1'], 'l5A1', ['ccC_eq'],
-            fs=['__loop5', '__loop28', 'cover_da_root'], sb=['da_list_digest', 'statement_digest']),
-        thm('l5A2_eq', 'l5A2 B2C.fs', v['l5A2'], 'l5A2 ccS', [], fs=['__loop17']),
+            fs=['__loop4', '__loop28', 'cover_da_root'], sb=['da_list_digest', 'statement_digest']),
+        thm('l5A2_eq', 'l5A2 B2C.fs', v['l5A2'], 'l5A2 ccS', [], fs=['__loop16']),
         thm('agA0_eq', 'agA0 B2C.fs wSB', v['agA0'], 'agA0', [], fs=['aggregate_claims'],
             sb=['batch_sumcheck__L23']),
-        thm('agA1_eq', 'agA1 wSK', v['agA1'], 'agA1', [], sk=['__loop25', '__loop26', '__loop27'])])
+        thm('agA1_eq', 'agA1 wSK', v['agA1'], 'agA1', [], sk=['__loop24', '__loop25', '__loop26'])])
     mod('DeployedC', 'The claim lists\', the children\'s loop\'s and `aggregate_claims`\' words.',
         'public import LeanVM.Guest.Count.DeployedA2\n', '\n' + body)
     wlit = '⟨%s, Bvf⟩' % ', '.join(str(x) for x in words)

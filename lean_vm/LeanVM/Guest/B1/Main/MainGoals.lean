@@ -69,23 +69,23 @@ def MainGoalClS : Prop :=
 
 def MainGoalL1 : Prop :=
   (hm fs fp seed s w).nxd ≠ 0 →
-    CompleteAtD fs cert 16 "__loop1" (hLmain fs fp seed s w)
+    CompleteAtD fs cert 16 "__loop0" (hLmain fs fp seed s w)
       [1, gen ^ (hm fs fp seed s w).nxd, (hm fs fp seed s w).a77, gen ^ (hm fs fp seed s w).nlx] (Returns [])
 
 def MainGoalL2 : Prop :=
   (hm fs fp seed s w).nsd ≠ 0 →
-    CompleteAtD fs cert 16 "__loop2" (hLmain fs fp seed s w)
+    CompleteAtD fs cert 16 "__loop1" (hLmain fs fp seed s w)
       [1, gen ^ (hm fs fp seed s w).nsd, (hm fs fp seed s w).a80, gen ^ (hm fs fp seed s w).nls] (Returns [])
 
 def MainGoalL3 : Prop :=
   (hm fs fp seed s w).nrx ≠ 0 →
-    CompleteAtD fs cert 16 "__loop3" (hLmain fs fp seed s w)
+    CompleteAtD fs cert 16 "__loop2" (hLmain fs fp seed s w)
       [1, gen ^ (hm fs fp seed s w).nrx, gen ^ ((hm fs fp seed s w).nlx + (hm fs fp seed s w).nxd),
         (hm fs fp seed s w).a117, (hm fs fp seed s w).a77] (Returns [])
 
 def MainGoalL4 : Prop :=
   (hm fs fp seed s w).nrs ≠ 0 →
-    CompleteAtD fs cert 16 "__loop4" (hLmain fs fp seed s w)
+    CompleteAtD fs cert 16 "__loop3" (hLmain fs fp seed s w)
       [1, gen ^ (hm fs fp seed s w).nrs, gen ^ ((hm fs fp seed s w).nls + (hm fs fp seed s w).nsd),
         (hm fs fp seed s w).a117, gen ^ ((hm fs fp seed s w).nlx + (hm fs fp seed s w).nxd),
         gen ^ (hm fs fp seed s w).nrx, (hm fs fp seed s w).a80, (hm fs fp seed s w).a119] (Returns [])
@@ -105,7 +105,7 @@ def MainGoalCv : Prop :=
 
 def MainGoalL5 : Prop :=
   (hm fs fp seed s w).nc ≠ 0 →
-    CompleteAtD fs cert 16 "__loop5" (hLmain fs fp seed s w)
+    CompleteAtD fs cert 16 "__loop4" (hLmain fs fp seed s w)
       [1, gen ^ (hm fs fp seed s w).nc, (hm fs fp seed s w).a409, (hm fs fp seed s w).a77,
         (hm fs fp seed s w).a117, gen ^ ((hm fs fp seed s w).nlx + (hm fs fp seed s w).nxd),
         (hm fs fp seed s w).a80, gen ^ ((hm fs fp seed s w).nls + (hm fs fp seed s w).nsd),

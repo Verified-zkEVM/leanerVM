@@ -16,28 +16,28 @@ namespace LeanVM.Guest.B2C.Cplw
 
 @[expose] public section
 
-/-- `__loop25`, window 0, part 0. -/
+/-- `__loop33`, window 0, part 0. -/
 theorem cw395_0_0 : cplWin 395 0 0 = true := by decide +kernel
 
-/-- `__loop26`, window 0, part 0. -/
+/-- `opening_row_weights__L4_L0`, window 0, part 0. -/
 theorem cw396_0_0 : cplWin 396 0 0 = true := by decide +kernel
 
-/-- `batch_sumcheck__L23`, window 0, part 0. -/
+/-- `verify_merkle_cap__L6`, window 0, part 0. -/
 theorem cw397_0_0 : cplWin 397 0 0 = true := by decide +kernel
 
-/-- `__loop27`, window 0, part 0. -/
+/-- `opening_queries__L0_L0_L16_L24_L16_L6`, window 0, part 0. -/
 theorem cw398_0_0 : cplWin 398 0 0 = true := by decide +kernel
 
-/-- `__loop28`, window 0, part 0. -/
+/-- `opening_ood_point__L8`, window 0, part 0. -/
 theorem cw399_0_0 : cplWin 399 0 0 = true := by decide +kernel
 
-/-- `__loop29`, window 0, part 0. -/
+/-- `__loop34`, window 0, part 0. -/
 theorem cw400_0_0 : cplWin 400 0 0 = true := by decide +kernel
 
-/-- `gkr_rounds__L2`, window 0, part 0. -/
+/-- `verify_merkle_cap__L5`, window 0, part 0. -/
 theorem cw401_0_0 : cplWin 401 0 0 = true := by decide +kernel
 
-/-- `gkr_rounds__L1`, window 0, part 0. -/
+/-- `opening_queries__L0_L0_L16_L24_L15_L5`, window 0, part 0. -/
 theorem cw402_0_0 : cplWin 402 0 0 = true := by decide +kernel
 
 theorem ok395 : CplOk 395 := by

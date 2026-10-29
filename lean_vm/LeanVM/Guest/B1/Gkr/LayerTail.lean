@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.Gkr.LayerTail
 
-  The tail of a layer of `verify_bus_gkr` (`__loop7`): the rounds between its first and last
+  The tail of a layer of `verify_bus_gkr` (`__loop6`): the rounds between its first and last
   records, the twelve children read and absorbed, their check, the two new coordinates squeezed,
   and the next slot's stores.
 -/
@@ -11,9 +11,9 @@ module
 public import LeanVM.Guest.B1.Gkr.Layer
 
 /-!
-# A layer's rounds and children (`__loop7`, G:1716-1777)
+# A layer's rounds and children (`__loop6`, G:1716-1777)
 
-* `ly_rounds`: `__loop29`, then `gkr_rounds__L2` at an odd layer index, then `gkr_rounds__L1` at
+* `ly_rounds`: `__loop27`, then `gkr_rounds__L2` at an odd layer index, then `gkr_rounds__L1` at
   an odd depth, run the `L = 2j + sh` rounds from the layer's first record;
 * `ly_tail`: the twelve words at the last record's cursor are the three trees' children, their
   products check the last claim, and the sponge after them squeezes the two new coordinates;
@@ -147,7 +147,7 @@ theorem tb_word_three : word 3 0 0 = 1 + gen := by
   rw [tb_word_eOfNat, show (3 : ℕ) = 1 ^^^ 2 from rfl, eOfNat_xor, eOfNat_one, ← tb_word_eOfNat,
     tb_word_gen]
 
-/-- **The rounds of a layer**: `__loop29` (`4·(j/2)` rounds), `gkr_rounds__L2` at an odd `j`, and
+/-- **The rounds of a layer**: `__loop27` (`4·(j/2)` rounds), `gkr_rounds__L2` at an odd `j`, and
 `gkr_rounds__L1` at an odd depth are the `2j + sh` rounds from the first record. -/
 theorem ly_rounds (hC : CallRel.Le C (coreProgram.Rel rd)) (hGR : tb_gkr_rounds_Spec)
     (h : Stmt.HoldsList C rd σ lyPre True kret) {j sh : ℕ} (hj : j < 2 ^ 30) (hsh : sh < 2)
@@ -162,7 +162,7 @@ theorem ly_rounds (hC : CallRel.Le C (coreProgram.Rel rd)) (hGR : tb_gkr_rounds_
   have c65 := a 55 (.const (.n 65) (word 1 0 0)) (by decide +kernel)
   have a70 := a 58 (.add (.n 70) (.n 9) (.n 6)) (by decide +kernel)
   simp only [Atom.Holds, tb_word_one] at c63 a64 c65 a70
-  obtain ⟨-, hc29⟩ := tb_holds_callIf hnr h 56 (.n 64) "__loop29" [.n 65, .n 61, .n 52, .n 50]
+  obtain ⟨-, hc29⟩ := tb_holds_callIf hnr h 56 (.n 64) "__loop27" [.n 65, .n 61, .n 52, .n 50]
     (by decide +kernel)
   simp only [List.map_cons, List.map_nil, c65] at hc29
   have R4 := l29_loop (h := j / 2) e61 (by omega)

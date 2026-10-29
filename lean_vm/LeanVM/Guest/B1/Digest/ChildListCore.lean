@@ -211,7 +211,7 @@ theorem ccl_core {k : ℕ} (hk : k < 17) {sp entries cover marks origin limit : 
 
 set_option maxRecDepth 20000 in
 set_option maxHeartbeats 4000000 in
-/-- **A group of child claims' honest valuation** (`__loop17`'s block at `x = g^xj`), with where
+/-- **A group of child claims' honest valuation** (`__loop16`'s block at `x = g^xj`), with where
 its loads read: the state's `13` words and the next state's at `chain · x^13`, a record's mark at
 `cover · origin · g^(os j)`, a record's cells at `entries · g^(4 os j)`. -/
 theorem l17_core {x N chain entries cover base origin limit : E} {xj chP eP cv og : ℕ}
@@ -223,10 +223,10 @@ theorem l17_core {x N chain entries cover base origin limit : E} {xj chP eP cv o
     (hL : limit = gen ^ L) (hL33 : L < 2 ^ 33) (hdef : BoundMem rd L)
     (hS' : StateAt rd (chain * x ^ 13) 13
       (absorbChunks (n + 8) zeroState (pre ++ cellsBytes cells))) :
-    ∃ σ : Val, (coreProgram.getD 341 default).params.map σ =
+    ∃ σ : Val, (coreProgram.getD 338 default).params.map σ =
         [x, N, chain, entries, cover, base, origin, limit] ∧
-      (∀ a ∈ atomsIn (loopPre (coreProgram.getD 341 default)), a.Holds rd σ) ∧
-      ∀ q ∈ (loopPre (coreProgram.getD 341 default)).filterMap B1.Stmt.loadS,
+      (∀ a ∈ atomsIn (loopPre (coreProgram.getD 338 default)), a.Holds rd σ) ∧
+      ∀ q ∈ (loopPre (coreProgram.getD 338 default)).filterMap B1.Stmt.loadS,
         (∃ o < 26, (σ q.1).limb 0 * Parameters.gpow q.2 = Parameters.gpow (chP + 13 * xj + o)) ∨
         (∃ j < 17, (σ q.1).limb 0 * Parameters.gpow q.2 = Parameters.gpow (cv + og + os j)) ∨
         (∃ j < 17, ∃ c < 4,
@@ -234,7 +234,7 @@ theorem l17_core {x N chain entries cover base origin limit : E} {xj chP eP cv o
   have hok := l17_ok
   have hcok := l17c_ok
   have hnb := l17_nb
-  set fn := coreProgram.getD 341 default
+  set fn := coreProgram.getD 338 default
   set A := loopAtoms fn with hAdef
   set S := storesOf 8 fn.body with hSdef
   simp only [l17Ok, Bool.and_eq_true, decide_eq_true_eq] at hok

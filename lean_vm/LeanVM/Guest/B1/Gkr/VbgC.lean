@@ -88,7 +88,7 @@ def vbR7 : List Stmt :=
     .atom (.load (.n 302) (.n 301) 0), .atom (.add (.n 303) (.n 300) (.n 302)),
     .atom (.const (.n 304) (word 1 0 0)), .atom (.mul (.n 305) (.n 56) (.n 6)),
     .atom (.load (.n 306) (.n 305) 0),
-    .callIf (.n 303) "__loop7" [.n 304, .n 306, .n 57, .n 6, .n 15, .n 16]]
+    .callIf (.n 303) "__loop6" [.n 304, .n 306, .n 57, .n 6, .n 15, .n 16]]
 
 /-- The last slot, the point's copy, the returns. -/
 def vbR8 : List Stmt :=
@@ -98,7 +98,7 @@ def vbR8 : List Stmt :=
     .atom (.load (.n 313) (.n 312) 5), .atom (.load (.n 314) (.n 312) 9),
     .atom (.const (.n 315) (word 1 0 0)), .atom (.add (.n 316) (.n 315) (.n 6)),
     .atom (.const (.n 317) (word 1 0 0)),
-    .callIf (.n 316) "__loop8" [.n 317, .n 6, .n 7, .n 314],
+    .callIf (.n 316) "__loop7" [.n 317, .n 6, .n 7, .n 314],
     .atom (.load (.n 318) (.n 312) 0), .atom (.load (.n 319) (.n 312) 1),
     .atom (.load (.n 320) (.n 312) 2), .atom (.load (.n 321) (.n 312) 3),
     .atom (.load (.n 322) (.n 312) 4), .atom (.copy (.n 323) (.n 313)),

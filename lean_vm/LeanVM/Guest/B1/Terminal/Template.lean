@@ -56,7 +56,7 @@ def colSelNames : List String := (List.range 29).map (Tables.lName "column_selec
 def selV (c : ℕ) : ℕ := 38 + 3 * c
 
 /-- The head (G:3083-3095): the chains at `zeta` (`19`) and `chi` (`21`), the slot points (`23`,
-`24`), the public input's chain (`25`, its loop `__loop15`) and its value (`33`), the selector
+`24`), the public input's chain (`25`, its loop `__loop14`) and its value (`33`), the selector
 tables (`34`, `35`). -/
 def termHeadT : List Stmt :=
   [.atom (.hint (.alloc (.n 19) 35)), .atom (.const (.n 20) (word 1 0 0)),
@@ -69,7 +69,7 @@ def termHeadT : List Stmt :=
     .atom (.add (.n 28) (.n 2) (.n 27)), .atom (.load (.n 28) (.n 25) 1),
     .atom (.const (.n 29) (word 2 0 0)), .atom (.add (.n 30) (.n 29) (.n 5)),
     .atom (.const (.n 31) (word 2 0 0)),
-    .callIf (.n 30) "__loop15" [.n 31, .n 5, .n 25, .n 15],
+    .callIf (.n 30) "__loop14" [.n 31, .n 5, .n 25, .n 15],
     .atom (.mul (.n 32) (.n 25) (.n 5)), .atom (.load (.n 33) (.n 32) 0),
     .call "selector_tables" [.n 14, .n 15] [.n 34, .n 35]]
 

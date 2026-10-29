@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.Da.VerifyL23Complete
 
-  `__loop23` (a row's digest), completely.
+  `__loop22` (a row's digest), completely.
 -/
 
 module
@@ -14,7 +14,7 @@ public import LeanVM.Guest.B1.Digest.PairComplete
 /-!
 # A row's digest, completely
 
-`l23_block`: `__loop23`'s block at row `x` holds on the evaluated valuation (`Fwd.ev`) when the
+`l23_block`: `__loop22`'s block at row `x` holds on the evaluated valuation (`Fwd.ev`) when the
 row's prefix base at `prefix_bases·x` points to the row's `128` canonical cells and the row tree
 holds their digest at `rowtree·x²`: its loads read the cells, its chain is their digest
 (`chain_final` on the block without its stores, `check_filter`), which its stores find.
@@ -43,12 +43,12 @@ theorem good_load {S : List Atom} {w : ℕ → E} {σ : Val} {d p : V} {o : ℕ}
 
 set_option maxRecDepth 20000 in
 set_option maxHeartbeats 1000000 in
-/-- **A row's digest** (`__loop23`). -/
+/-- **A row's digest** (`__loop22`). -/
 theorem l23_block {x N pb rt run : E} {cells : List E} (hrun : LoadHolds rd (pb * x) 0 run)
     (hcells : ReadsAt rd run cells) (hlen : cells.length = 128) (hcan : AllCanonical cells)
     (hd0 : LoadHolds rd (rt * (x * x)) 0 (digestScalars (keccak256 (cellsBytes cells))).1)
     (hd1 : LoadHolds rd (rt * (x * x)) 1 (digestScalars (keccak256 (cellsBytes cells))).2) :
-    LoopBlock rd (coreProgram.getD 365 default) x N [pb, rt] := by
+    LoopBlock rd (coreProgram.getD 362 default) x N [pb, rt] := by
   have hok := l23_ok
   have hcok := l23c_ok
   simp only [l23Ok, Bool.and_eq_true, decide_eq_true_eq] at hok
@@ -57,7 +57,7 @@ theorem l23_block {x N pb rt run : E} {cells : List E} (hrun : LoadHolds rd (pb 
     List.all_eq_true, List.mem_range, Bool.or_eq_true, Bool.not_eq_true'] at hcok
   obtain ⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨c', hchk⟩, hatoms⟩, hS⟩, hcan2⟩, hneeds⟩, hm4⟩, hm5⟩, hmc⟩, hm477⟩, hm478⟩,
     ho0⟩, ho1⟩ := hcok
-  set fn := coreProgram.getD 365 default
+  set fn := coreProgram.getD 362 default
   set A := atomsIn (loopPre fn)
   set S := storesOf 4 fn.body with hSdef
   let args : List E := [x, N, pb, rt]

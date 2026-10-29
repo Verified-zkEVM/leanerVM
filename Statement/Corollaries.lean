@@ -70,11 +70,10 @@ abbrev GuestCompleteRecursion : Prop :=
     NodeRel (bytecodeWords guest) seed s w → Limits s w →
     (∀ c ∈ w.children, ChildOk (bytecodeWords guest) seed c) →
     (direct s.claims.xmss w.xmss).length = 0 → (direct s.claims.sphincs w.sphincs).length = 0 →
-    (direct s.claims.da w.da).length = 0 →
-    s.claims.xmss.length + s.claims.sphincs.length + s.claims.da.length ≤ 2048 →
+    w.da = none → s.claims.xmss.length + s.claims.sphincs.length ≤ 2048 →
     coverage s w ≤ 2048 →
-    (w.children.map fun c ↦ c.statement.claims.xmss.length + c.statement.claims.sphincs.length +
-      c.statement.claims.da.length).sum ≤ 2048 →
+    (w.children.map fun c ↦ c.statement.claims.xmss.length +
+      c.statement.claims.sphincs.length).sum ≤ 2048 →
     ∃ t : Trace guest,
       ValidExecution guest (PublicInput.ofDigest (statementDigest seed s)) t ∧
       2 ^ 22 ≤ t.committedSize ∧ t.committedSize ≤ 2 ^ 28
@@ -89,9 +88,9 @@ abbrev GuestCompleteLeaf : Prop :=
   ∀ (seed : Digest) (s : NodeStatement) (w : NodeWitness),
     NodeRel (bytecodeWords guest) seed s w → Limits s w →
     (∀ c ∈ w.children, ChildOk (bytecodeWords guest) seed c) →
-    w.children = [] → (direct s.claims.da w.da).length = 0 →
+    w.children = [] → w.da = none →
     (direct s.claims.xmss w.xmss).length + (direct s.claims.sphincs w.sphincs).length ≤ 2048 →
-    s.claims.xmss.length + s.claims.sphincs.length + s.claims.da.length ≤ 2048 →
+    s.claims.xmss.length + s.claims.sphincs.length ≤ 2048 →
     coverage s w ≤ 2048 →
     ∃ t : Trace guest,
       ValidExecution guest (PublicInput.ofDigest (statementDigest seed s)) t ∧

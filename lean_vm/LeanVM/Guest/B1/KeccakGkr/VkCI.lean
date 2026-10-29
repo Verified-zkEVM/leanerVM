@@ -17,11 +17,11 @@ public import LeanVM.Guest.B1.KeccakGkr.PlainCompleteIn
 For a `VkData` `D` with `D.Ok`, the caller's words `D.lin …` (the stream, the instance and
 output coordinates, `z_vals`, the inputs' point, the slices) and the buffers' base `B`:
 
-* `D.kids …`: the eighteen calls in order (`__loop11`, the twelve layers, the committed outputs'
-  rounds, `__loop12`, the inputs' rounds, their opening's rounds, `__loop13`), each with its
+* `D.kids …`: the eighteen calls in order (`__loop10`, the twelve layers, the committed outputs'
+  rounds, `__loop11`, the inputs' rounds, their opening's rounds, `__loop12`), each with its
   arguments, the caller's words it reads and what it returns; a layer's next claim's record sits
   in `verify_keccak`'s claim records, pointing into the layer's buffers, and the next layer reads
-  them; `__loop13` copies the last claim's point out of the last layer's buffers.
+  them; `__loop12` copies the last claim's point out of the last layer's buffers.
 * `kids_complete`: each is complete there (`CompleteAtF`), as `completeAt_flatG` takes them.
 -/
 
@@ -36,7 +36,7 @@ open LeanVM.Guest.B1.Main (MemL RegionL)
 @[expose] public noncomputable section
 
 /-- `verify_keccak`'s loadless callees. -/
-def vkKidS : List String := ["__loop11", "__loop12", "__loop13", "keccak_plain_rounds__L6_L0",
+def vkKidS : List String := ["__loop10", "__loop11", "__loop12", "keccak_plain_rounds__L6_L0",
   "keccak_plain_rounds__L4_L1"]
 
 theorem vkKidS_pure : coreProgram.PureIn vkKidS := Tables.pureIn_of_pureInB (by decide +kernel)
@@ -101,18 +101,18 @@ def layKid (fs : String → ℕ) (B curE : ℕ) (s : ℕ) : KidG where
 
 /-- **The calls.** -/
 def kids (fs : String → ℕ) (B curE chiE olE zvE slE : ℕ) : List KidG :=
-  [⟨"__loop11", true, fun _ ↦ [1, gen ^ (D.τ - 4), ptr B, ptr chiE * gen ^ 4],
+  [⟨"__loop10", true, fun _ ↦ [1, gen ^ (D.τ - 4), ptr B, ptr chiE * gen ^ 4],
       fun _ ↦ [(chiE, D.chis), (B, D.c0.point)], fun _ ↦ Returns []⟩] ++
   (List.range 12).map (D.layKid fs B curE) ++
   [⟨plainName 0, true, fun _ ↦ D.oArgs curE zvE, fun _ ↦ D.lin curE chiE olE zvE slE,
       fun _ ↦ Returns (D.oRets curE)⟩,
-    ⟨"__loop12", true, fun _ ↦ [1, gen ^ (D.τ - 4), ptr zvE * gen ^ 4, ptr B],
+    ⟨"__loop11", true, fun _ ↦ [1, gen ^ (D.τ - 4), ptr zvE * gen ^ 4, ptr B],
       fun _ ↦ [(zvE, D.op), (B, D.c0.point)], fun _ ↦ Returns []⟩,
     ⟨plainName 1, true, fun _ ↦ D.iArgs curE zvE, fun _ ↦ D.lin curE chiE olE zvE slE,
       fun _ ↦ Returns (D.iRets curE)⟩,
     ⟨plainName 0, true, fun _ ↦ D.sArgs curE zvE, fun _ ↦ D.lin curE chiE olE zvE slE,
       fun _ ↦ Returns (D.sRets curE)⟩,
-    ⟨"__loop13", true, fun ps ↦ [1, gen ^ (D.τ - 4), ptr zvE * gen ^ 43, ptr (D.lsOf fs ps 11)],
+    ⟨"__loop12", true, fun ps ↦ [1, gen ^ (D.τ - 4), ptr zvE * gen ^ 43, ptr (D.lsOf fs ps 11)],
       fun ps ↦ [(zvE + qkeccakVarsCap, D.point),
         (D.lsOf fs ps.dropLast 11, (D.layer 11).chs (firstOf 11))], fun _ ↦ Returns []⟩]
 
@@ -287,7 +287,7 @@ theorem kids_complete (h : D.Ok) (κ : ℕ) (B curE chiE olE zvE slE : ℕ) :
   simp only [kids, List.mem_append, List.mem_cons, List.mem_map, List.mem_range,
     List.not_mem_nil, or_false] at hk
   rcases hk with ((rfl | ⟨s, hs, rfl⟩) | rfl | rfl | rfl | rfl | rfl)
-  · -- `__loop11`
+  · -- `__loop10`
     exact (loop_complete find_copyLoop11 copyLoop_body11 rfl (by simp [vkKidS]) κ
       (L := [(chiE, D.chis), (B, D.c0.point)]) (dw := D.c0.point) (sw := D.chis)
       (m := D.τ - 4) (by omega) hord (db := B) (dj := 0) (sb := chiE) (sj := 4)
@@ -320,7 +320,7 @@ theorem kids_complete (h : D.Ok) (κ : ℕ) (B curE chiE olE zvE slE : ℕ) :
     · have e : (D.oArgs curE zvE).getD 9 0 = ptr zvE * gen ^ D.τ := by rw [oArgs, hc]; rfl
       rw [e]
       exact inR_entry (ws := D.op) (hlin (by simp)) (by rw [op_length h]; simp [plainCount] at hj; omega)
-  · -- `__loop12`
+  · -- `__loop11`
     refine (loop_complete find_copyLoop12 copyLoop_body12 rfl (by simp [vkKidS]) κ
       (L := [(zvE, D.op), (B, D.c0.point)]) (dw := D.op) (sw := D.c0.point) (m := D.τ - 4) (by omega) hord (db := zvE) (dj := 4) (sb := B) (sj := 0)
       (by simp) (by simp) (by rw [op_length h]; omega) (by rw [c0_point_length h]; omega)
@@ -363,7 +363,7 @@ theorem kids_complete (h : D.Ok) (κ : ℕ) (B curE chiE olE zvE slE : ℕ) :
         rw [ptr_mul_gen]
       rw [e]
       exact inR_entry (ws := D.point) (hlin (by simp)) (by rw [point_length h]; simp [plainCount] at hj; omega)
-  · -- `__loop13`
+  · -- `__loop12`
     have hL : (fun p ↦ [(zvE + qkeccakVarsCap, D.point),
         (D.lsOf fs (ps ++ [p]).dropLast 11, (D.layer 11).chs (firstOf 11))]) =
         fun _ ↦ [(zvE + qkeccakVarsCap, D.point), (D.lsOf fs ps 11, (D.layer 11).chs (firstOf 11))] :=

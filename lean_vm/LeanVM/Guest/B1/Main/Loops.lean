@@ -1,8 +1,8 @@
 /-
   LeanVM.Guest.B1.Main.Loops
 
-  B1 for `main`'s loop helpers: the raw signatures (`__loop3`, `__loop4`), a child's DA roots
-  (`__loop28`) and the children (`__loop5`), each body checked by evaluation.
+  B1 for `main`'s loop helpers: the raw signatures (`__loop2`, `__loop3`), a child's DA roots
+  (`__loop28`) and the children (`__loop4`), each body checked by evaluation.
 -/
 
 module
@@ -17,13 +17,13 @@ Each helper's body (`loopPre`) is checked by evaluation (`l3Ok`, `l4Ok`, `l28Ok`
 run at `x` gives one iteration's facts (`RawXStep`, `RawSStep`, `KidDaStep`, `KidStep`) and the
 run at `x·g` (`loop_stepF`).
 
-* `__loop3` (G:4193-4202): a raw leanXMSS signature `i`: a slot `s` below the leanXMSS region,
+* `__loop2` (G:4193-4202): a raw leanXMSS signature `i`: a slot `s` below the leanXMSS region,
   `cover[g^s] = g^i`, `verify_lean_xmss(lx_table · g^(4s))`;
-* `__loop4` (G:4203-4207): a raw leanSPHINCS signature `j`: a slot `s` below the leanSPHINCS
+* `__loop3` (G:4203-4207): a raw leanSPHINCS signature `j`: a slot `s` below the leanSPHINCS
   region, `cover[lx_slots · g^s] = n_raw_x · g^j`, `verify_sig_lean_sphincs(ls_table · g^(4s), byte_bits)`;
 * `__loop28` (G:4231-4238): a child's DA root `d`: `cover_da_root(da_roots, da_cover, da_slots,
   base · n_sub · g^d)`, its four words copied to `child_da · g^(4d)`;
-* `__loop5` (G:4219-4260): child `c`.
+* `__loop4` (G:4219-4260): child `c`.
 -/
 
 namespace LeanVM.Guest.B1.Main
@@ -74,20 +74,20 @@ theorem guard_sound {rd : Reader} {σ : Val} {P : List Stmt} {gc : V} {f : Strin
     rwa [List.map_cons, List.map_cons, const_sound h1 hat, word_one] at this
   · exact absurd ha (by simp)
 
-/-! ## `__loop3`: raw leanXMSS signatures -/
+/-! ## `__loop2`: raw leanXMSS signatures -/
 
 def l3Ok (fn : Fn) : Bool :=
-  loopShapeF fn "__loop3" && decide (fn.params.length = 5) &&
+  loopShapeF fn "__loop2" && decide (fn.params.length = 5) &&
     rcBoundOk (atomsIn (loopPre fn)) (.n 5) (.n 2) && isMul (atomsIn (loopPre fn)) (.n 11) (.n 3) (.n 5) &&
     (atomsIn (loopPre fn)).any (isLoadAt (.n 0) (.n 11) 0) &&
     monoIs (atomsIn (loopPre fn)) (.n 14) (.n 4) (.n 5) 4 &&
     hasCall (loopPre fn) "verify_lean_xmss" [.n 14] []
 
 set_option maxRecDepth 100000 in
-theorem l3_ok : l3Ok (coreProgram.getD 35 default) = true := by decide +kernel
+theorem l3_ok : l3Ok (coreProgram.getD 32 default) = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem l3_idx : coreProgram.indexOf? "__loop3" = some 35 := by decide +kernel
+theorem l3_idx : coreProgram.indexOf? "__loop2" = some 32 := by decide +kernel
 
 /-- **A raw leanXMSS signature** at the counter `x`: a slot `s` below the region's bound holding
 the mark `x`, and the signature check of the claim at slot `s`. -/
@@ -96,9 +96,9 @@ def RawXStep (rd : Reader) (lxs cover lxt x : E) : Prop :=
     coreProgram.Rel rd "verify_lean_xmss" [lxt * gen ^ (4 * s)] []
 
 theorem l3_step {rd : Reader} (hm : MemOk rd) {x : E} {ps : List E}
-    (h : coreProgram.Rel rd "__loop3" (x :: ps) []) :
+    (h : coreProgram.Rel rd "__loop2" (x :: ps) []) :
     (∀ N lxs cover lxt, ps = [N, lxs, cover, lxt] → RawXStep rd lxs cover lxt x) ∧
-      (x * gen + ps.headD 0 ≠ 0 → coreProgram.Rel rd "__loop3" (x * gen :: ps) []) := by
+      (x * gen + ps.headD 0 ≠ 0 → coreProgram.Rel rd "__loop2" (x * gen :: ps) []) := by
   have hf := find_of_idx l3_idx (by rw [coreProgram_length]; omega)
   have hok := l3_ok
   simp only [l3Ok, Bool.and_eq_true, decide_eq_true_eq] at hok
@@ -106,7 +106,7 @@ theorem l3_step {rd : Reader} (hm : MemOk rd) {x : E} {ps : List E}
   obtain ⟨σ, hx, hps, hall, hnext⟩ := loop_stepF hf hshape h
   refine ⟨fun N lxs cover lxt hN => ?_, hnext⟩
   have hat := atoms_of_flat hall
-  have hpar : (coreProgram.getD 35 default).params = [V.n 0, V.n 1, V.n 2, V.n 3, V.n 4] := by
+  have hpar : (coreProgram.getD 32 default).params = [V.n 0, V.n 1, V.n 2, V.n 3, V.n 4] := by
     have hs := hshape
     simp only [loopShapeF, Bool.and_eq_true, decide_eq_true_eq] at hs
     rw [hs.1.2, hlen]; rfl
@@ -122,10 +122,10 @@ theorem l3_step {rd : Reader} (hm : MemOk rd) {x : E} {ps : List E}
     rwa [List.map_cons, List.map_nil, monoIs_sound hm14 hat, hs, hlxt, ← pow_mul, mul_comm s 4]
       at this
 
-/-! ## `__loop4`: raw leanSPHINCS signatures -/
+/-! ## `__loop3`: raw leanSPHINCS signatures -/
 
 def l4Ok (fn : Fn) : Bool :=
-  loopShapeF fn "__loop4" && decide (fn.params.length = 8) &&
+  loopShapeF fn "__loop3" && decide (fn.params.length = 8) &&
     rcBoundOk (atomsIn (loopPre fn)) (.n 8) (.n 2) &&
     isMul (atomsIn (loopPre fn)) (.n 14) (.n 5) (.n 0) &&
     isMul (atomsIn (loopPre fn)) (.n 15) (.n 4) (.n 8) &&
@@ -135,10 +135,10 @@ def l4Ok (fn : Fn) : Bool :=
     hasCall (loopPre fn) "verify_sig_lean_sphincs" [.n 19, .n 7] []
 
 set_option maxRecDepth 100000 in
-theorem l4_ok : l4Ok (coreProgram.getD 36 default) = true := by decide +kernel
+theorem l4_ok : l4Ok (coreProgram.getD 33 default) = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem l4_idx : coreProgram.indexOf? "__loop4" = some 36 := by decide +kernel
+theorem l4_idx : coreProgram.indexOf? "__loop3" = some 33 := by decide +kernel
 
 /-- **A raw leanSPHINCS signature** at the counter `x`: a slot `s` below the region's bound
 holding the mark `n_raw_x · x` (at `cover · lx_slots · g^s`), and the signature check of the
@@ -148,10 +148,10 @@ def RawSStep (rd : Reader) (lss cover lxs nrx lst bb x : E) : Prop :=
     coreProgram.Rel rd "verify_sig_lean_sphincs" [lst * gen ^ (4 * s), bb] []
 
 theorem l4_step {rd : Reader} (hm : MemOk rd) {x : E} {ps : List E}
-    (h : coreProgram.Rel rd "__loop4" (x :: ps) []) :
+    (h : coreProgram.Rel rd "__loop3" (x :: ps) []) :
     (∀ N lss cover lxs nrx lst bb, ps = [N, lss, cover, lxs, nrx, lst, bb] →
       RawSStep rd lss cover lxs nrx lst bb x) ∧
-      (x * gen + ps.headD 0 ≠ 0 → coreProgram.Rel rd "__loop4" (x * gen :: ps) []) := by
+      (x * gen + ps.headD 0 ≠ 0 → coreProgram.Rel rd "__loop3" (x * gen :: ps) []) := by
   have hf := find_of_idx l4_idx (by rw [coreProgram_length]; omega)
   have hok := l4_ok
   simp only [l4Ok, Bool.and_eq_true, decide_eq_true_eq] at hok
@@ -159,7 +159,7 @@ theorem l4_step {rd : Reader} (hm : MemOk rd) {x : E} {ps : List E}
   obtain ⟨σ, hx, hps, hall, hnext⟩ := loop_stepF hf hshape h
   refine ⟨fun N lss cover lxs nrx lst bb hN => ?_, hnext⟩
   have hat := atoms_of_flat hall
-  have hpar : (coreProgram.getD 36 default).params =
+  have hpar : (coreProgram.getD 33 default).params =
       [V.n 0, V.n 1, V.n 2, V.n 3, V.n 4, V.n 5, V.n 6, V.n 7] := by
     have hs := hshape
     simp only [loopShapeF, Bool.and_eq_true, decide_eq_true_eq] at hs
@@ -191,7 +191,7 @@ set_option maxRecDepth 100000 in
 theorem l28_ok : l28Ok (coreProgram.getD 398 default) = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem l28_idx : coreProgram.indexOf? "__loop28" = some 398 := by decide +kernel
+theorem l28_idx : coreProgram.indexOf? "__loop28" = some 381 := by decide +kernel
 
 /-- **A child's DA root** at the counter `x`: `cover_da_root` with the mark `base · n_sub · x`,
 its four words copied to `child_da · x^4`. -/
@@ -277,14 +277,14 @@ theorem pairHash_sound {rd : Reader} {σ : Val} {atoms : List Atom} {a b c d p :
       at this
     rw [← hd]; exact this
 
-/-! ## `__loop5`: the children -/
+/-! ## `__loop4`: the children -/
 
 def isLoad (atoms : List Atom) (x p : V) (o : ℕ) : Bool := atoms.any (isLoadAt x p o)
 
 def l5Ok (fn : Fn) : Bool :=
   let P := loopPre fn
   let A := atomsIn P
-  loopShapeF fn "__loop5" && decide (fn.params.length = 18) &&
+  loopShapeF fn "__loop4" && decide (fn.params.length = 18) &&
   isMul A (.n 18) (.n 2) (.n 0) && isLoad A (.n 19) (.n 18) 0 &&
   rcConstOk A (.n 20) 9272771591053052074 && rcConstOk A (.n 21) 9272771591053052074 &&
   isMul A (.n 30) (.n 20) (.n 21) && A.any (isConstAt (.n 31) 1 0) &&
@@ -305,10 +305,10 @@ def l5Ok (fn : Fn) : Bool :=
   isMul A (.n 69) (.n 2) (.n 0) && isLoad A (.n 68) (.n 69) 1
 
 set_option maxRecDepth 100000 in
-theorem l5_ok : l5Ok (coreProgram.getD 37 default) = true := by decide +kernel
+theorem l5_ok : l5Ok (coreProgram.getD 34 default) = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem l5_idx : coreProgram.indexOf? "__loop5" = some 37 := by decide +kernel
+theorem l5_idx : coreProgram.indexOf? "__loop4" = some 34 := by decide +kernel
 
 /-- **Child `x`'s facts**: its base `written[x]`, its counts `g^ex`, `g^es`, `g^ed`, its two
 rebuilt claim lists' digests, its DA roots, its statement's digest at `child_pi · x^2`, its
@@ -329,13 +329,13 @@ def KidStep (rd : Reader) (written lxt cover lxs lst lss carried roots dcov dslo
     LoadHolds rd (written * x) 1 (base * (gen ^ ex * gen ^ es) * gen ^ ed)
 
 theorem l5_step {rd : Reader} (hm : MemOk rd) {x : E} {ps : List E}
-    (h : coreProgram.Rel rd "__loop5" (x :: ps) []) :
+    (h : coreProgram.Rel rd "__loop4" (x :: ps) []) :
     (∀ N written lxt cover lxs lst lss carried roots dcov dslots s0 s1 cpi glp gsq cfresh,
       ps = [N, written, lxt, cover, lxs, lst, lss, carried, roots, dcov, dslots, s0, s1, cpi, glp,
         gsq, cfresh] →
       KidStep rd written lxt cover lxs lst lss carried roots dcov dslots s0 s1 cpi glp gsq cfresh
         x) ∧
-      (x * gen + ps.headD 0 ≠ 0 → coreProgram.Rel rd "__loop5" (x * gen :: ps) []) := by
+      (x * gen + ps.headD 0 ≠ 0 → coreProgram.Rel rd "__loop4" (x * gen :: ps) []) := by
   have hf := find_of_idx l5_idx (by rw [coreProgram_length]; omega)
   have hok := l5_ok
   simp only [l5Ok, Bool.and_eq_true, decide_eq_true_eq] at hok
@@ -346,7 +346,7 @@ theorem l5_step {rd : Reader} (hm : MemOk rd) {x : E} {ps : List E}
   refine ⟨fun N written lxt cover lxs lst lss carried roots dcov dslots s0 s1 cpi glp gsq cfresh hN
     => ?_, hnext⟩
   have hat := atoms_of_flat hall
-  have hpar : (coreProgram.getD 37 default).params = (List.range 18).map V.n := by
+  have hpar : (coreProgram.getD 34 default).params = (List.range 18).map V.n := by
     have hs := hshape
     simp only [loopShapeF, Bool.and_eq_true, decide_eq_true_eq] at hs
     rw [hs.1.2, hlen]

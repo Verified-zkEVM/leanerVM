@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.Terminal.PiChain
 
-  The public input's chain of `check_opening_terminal` (G:3088-3093): `__loop15` and the products
+  The public input's chain of `check_opening_terminal` (G:3088-3093): `__loop14` and the products
   it writes.
 -/
 
@@ -14,7 +14,7 @@ public import LeanVM.Guest.B1.Terminal.Template
 # The public input's chain
 
 `check_opening_terminal` writes `pi_chain[0] = 1`, `pi_chain[1] = rm + point1[0]` and runs
-`__loop15` (`mul_range(GEN, g_log_mem)`), whose body at `x = g^k` writes
+`__loop14` (`mul_range(GEN, g_log_mem)`), whose body at `x = g^k` writes
 `pi_chain[k + 1] = pi_chain[k]·point1[k]`. `piChain_value`: for `1 ≤ k ≤ m`, `pi_chain[k]` is
 `(rm + point1[0])·Π_{0 < i < k} point1[i]`.
 -/
@@ -28,7 +28,7 @@ open LeanVM.Protocol LeanVM.Protocol.Verifier Finset
 
 variable {rd : Reader}
 
-/-- `__loop15`'s body. -/
+/-- `__loop14`'s body. -/
 def loop15T : List Stmt :=
   [.atom (.mul (.n 4) (.n 2) (.n 0)), .atom (.load (.n 5) (.n 4) 0),
     .atom (.mul (.n 6) (.n 3) (.n 0)), .atom (.load (.n 7) (.n 6) 0),
@@ -36,27 +36,27 @@ def loop15T : List Stmt :=
     .atom (.load (.n 8) (.n 9) 1), .atom (.const (.n 10) (word 2 0 0)),
     .atom (.mul (.n 11) (.n 0) (.n 10)), .atom (.add (.n 12) (.n 11) (.n 1)),
     .atom (.const (.n 13) (word 2 0 0)), .atom (.mul (.n 14) (.n 0) (.n 13)),
-    .callIf (.n 12) "__loop15" [.n 14, .n 1, .n 2, .n 3], .ret []]
+    .callIf (.n 12) "__loop14" [.n 14, .n 1, .n 2, .n 3], .ret []]
 
-theorem loop15_body : Data.core263.body = loop15T := stmtsEqb_sound (by decide +kernel)
+theorem loop15_body : Data.core260.body = loop15T := stmtsEqb_sound (by decide +kernel)
 
-theorem find_loop15 : coreProgram.find? "__loop15" = some Data.core263 :=
-  Program.find?_of_indexOf? (j := 263) (by decide +kernel) rfl
+theorem find_loop15 : coreProgram.find? "__loop14" = some Data.core260 :=
+  Program.find?_of_indexOf? (j := 260) (by decide +kernel) rfl
 
 /-- One step of the chain at `x`: `chain[x·g] = chain[x]·p1[x]`. -/
 def PiStep (rd : Reader) (chain p1 x : E) : Prop :=
   ∃ a b : E, LoadHolds rd (chain * x) 0 a ∧ LoadHolds rd (p1 * x) 0 b ∧
     LoadHolds rd (chain * x) 1 (a * b)
 
-/-- **`__loop15`'s step.** -/
+/-- **`__loop14`'s step.** -/
 theorem loop15_step (d : ℕ) (x N chain p1 : E)
-    (h : coreProgram.relN rd (d + 1) "__loop15" [x, N, chain, p1] []) :
+    (h : coreProgram.relN rd (d + 1) "__loop14" [x, N, chain, p1] []) :
     PiStep rd chain p1 x ∧
-      (x * gen + N ≠ 0 → coreProgram.relN rd d "__loop15" [x * gen, N, chain, p1] []) := by
+      (x * gen + N ≠ 0 → coreProgram.relN rd d "__loop14" [x * gen, N, chain, p1] []) := by
   obtain ⟨fn, hf, σ, hpar, hb⟩ := h
   rw [find_loop15] at hf
   cases hf
-  simp only [Data.core263, List.map_cons, List.map_nil, List.cons.injEq, and_true] at hpar hb
+  simp only [Data.core260, List.map_cons, List.map_nil, List.cons.injEq, and_true] at hpar hb
   obtain ⟨rfl, rfl, rfl, rfl⟩ := hpar
   rw [loop15_body] at hb
   simp only [loop15T, Stmt.HoldsList, Stmt.Holds, Atom.Holds, List.map_cons, List.map_nil] at hb

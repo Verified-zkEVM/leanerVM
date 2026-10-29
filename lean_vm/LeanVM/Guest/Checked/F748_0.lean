@@ -17,28 +17,28 @@ open LeanVM.Guest.Check
 
 @[expose] public section
 
-/-- `__loop287`, window 0. -/
+/-- `__loop303`, window 0. -/
 theorem w748_0 : WinOk 748 0 := winOk_of_C (by decide +kernel)
 
-/-- `__loop288`, window 0. -/
+/-- `da_verify_column__L1`, window 0. -/
 theorem w749_0 : WinOk 749 0 := winOk_of_C (by decide +kernel)
 
-/-- `__loop289`, window 0. -/
+/-- `da_verify_column__L0`, window 0. -/
 theorem w750_0 : WinOk 750 0 := winOk_of_C (by decide +kernel)
 
-/-- `__loop290`, window 0. -/
+/-- `__loop304`, window 0. -/
 theorem w751_0 : WinOk 751 0 := winOk_of_C (by decide +kernel)
 
-/-- `__loop291`, window 0. -/
+/-- `__loop305`, window 0. -/
 theorem w752_0 : WinOk 752 0 := winOk_of_C (by decide +kernel)
 
-/-- `__loop292`, window 0. -/
+/-- `__loop306`, window 0. -/
 theorem w753_0 : WinOk 753 0 := winOk_of_C (by decide +kernel)
 
-/-- `__loop293`, window 0. -/
+/-- `__loop307`, window 0. -/
 theorem w754_0 : WinOk 754 0 := winOk_of_C (by decide +kernel)
 
-/-- `__loop294`, window 0. -/
+/-- `__loop308`, window 0. -/
 theorem w755_0 : WinOk 755 0 := winOk_of_C (by decide +kernel)
 
 theorem ok748 : CheckOk 748 := checkOk_one (by decide +kernel) w748_0

@@ -19,9 +19,9 @@ public import LeanVM.Guest.Count.VsMax
 # The children loop's instructions
 
 `ccW op n`: `child_claim_list_digest`'s instructions of `op` on `n` claims: its frame's weight,
-`list_split`'s, `n / 17` iterations of `__loop17` and the last group's
+`list_split`'s, `n / 17` iterations of `__loop16` and the last group's
 `child_claim_list_last__L{n % 17}` (`ccl_weight_le`, on a tree of honest shape `ccHonest n`).
-`l5B op X S V c`: iteration `c` of `__loop5`: its frame's weight, the two claim lists' digests
+`l5B op X S V c`: iteration `c` of `__loop4`: its frame's weight, the two claim lists' digests
 (`X c`, `S c` claims), at most `16` DA roots' `__loop28` iterations, `da_list_digest`,
 `statement_digest`, and `verify_sub` within `V c`. `l5_weight_le`: the iterations from `c`
 (`L5From`) weigh at most the sum of their `l5B`. `l5B_le`: `l5B` is at most a constant `l5C op`,
@@ -48,7 +48,7 @@ theorem cclNames_eq {k : ℕ} (hk : k < 17) :
   interval_cases k <;> decide +kernel
 
 theorem ccl_ne {k : ℕ} (hk : k < 17) :
-    B1.Digest.cclNames[k]! ≠ "list_split" ∧ B1.Digest.cclNames[k]! ≠ "__loop17" := by
+    B1.Digest.cclNames[k]! ≠ "list_split" ∧ B1.Digest.cclNames[k]! ≠ "__loop16" := by
   interval_cases k <;> decide
 
 set_option maxHeartbeats 1000000 in
@@ -58,7 +58,7 @@ theorem ccl_weight_le (op : Opcode) {n : ℕ} (hn : n / 17 < 2 ^ 64 - 1) {rd : R
     (hb : t.BufsOk coreProgram) : t.weight (B2C.ωArm B2C.xmssArmC op) ≤ ccW op n := by
   let W : Call → ℕ := fun c =>
     if c.f = "list_split" then kcLs op
-    else if c.f = "__loop17" then n / 17 * kcL17 op else (kcCclT op).getD (n % 17) 0
+    else if c.f = "__loop16" then n / 17 * kcL17 op else (kcCclT op).getD (n % 17) 0
   obtain ⟨σ, hQ, hle⟩ := NodeHonest.weight_le (B2C.ωArm B2C.xmssArmC op) (fun _ => W) h hv hb
     (by
       intro σ hQ c T hmem ht t' rets' hn' hv' hb' _
@@ -101,14 +101,14 @@ theorem ccl_weight_le (op : Opcode) {n : ℕ} (hn : n / 17 < 2 ^ 64 - 1) {rd : R
     simp only [h0, ↓reduceIte]
     omega
 
-/-- **Iteration `c` of `__loop5`**: its frame, the claim lists' digests on `X c` and `S c` claims,
+/-- **Iteration `c` of `__loop4`**: its frame, the claim lists' digests on `X c` and `S c` claims,
 at most `16` iterations of `__loop28`, the DA roots' and the statement's digests, and
 `verify_sub` within `V c`. -/
 def l5B (op : Opcode) (X S V : ℕ → ℕ) (c : ℕ) : ℕ :=
   (omT op).getD 2 0 + ccW op (X c) + ccW op (S c) + 16 * kcL28 op + kcDl op + kcSd op + V c
 
 theorem l5_walk {σ : Val} {fn : Fn} {es : List Ev} {vs : List V}
-    (hf : coreProgram.find? "__loop5" = some fn) (hw : walk σ fn.body = .ret es vs) :
+    (hf : coreProgram.find? "__loop4" = some fn) (hw : walk σ fn.body = .ret es vs) :
     es = l5Evs σ := by
   rw [find_l5, Option.some.injEq] at hf
   subst hf
@@ -182,7 +182,7 @@ theorem l5_weight_le (op : Opcode) {ex es ed X S : ℕ → ℕ} {Pvs : ℕ → T
       kcDl op + kcSd op + V c := rfl
     omega
 
-/-- The per-claim slope of `ccW`: `⌈K / 17⌉` of `__loop17`'s `K` per iteration and `1` more. -/
+/-- The per-claim slope of `ccW`: `⌈K / 17⌉` of `__loop16`'s `K` per iteration and `1` more. -/
 def ccS (op : Opcode) : ℕ := (kcL17 op + 16) / 17
 
 /-- The constant of `ccW`: the frame, `list_split` and the largest last group. -/

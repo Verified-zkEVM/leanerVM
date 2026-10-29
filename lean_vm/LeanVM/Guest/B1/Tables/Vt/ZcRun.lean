@@ -98,7 +98,7 @@ theorem vt_zc_run {rd : Reader} {σ : Val} (h : VtH rd σ) {n : ℕ} (hn : n < 3
   have a5254 := h.atom 5254 (.const (.n 5934) (word 2 0 0)) (by decide +kernel)
   have a5255 := h.atom 5255 (.mul (.n 5935) (.n 5817) (.n 5934)) (by decide +kernel)
   have a5257 := h.atom 5257 (.const (.n 5937) (word 1 0 0)) (by decide +kernel)
-  have hloop := h.callIf 5241 (.n 5920) "__loop10" [.n 5921, .n 5817, .n 5912, .n 18, .n 5817,
+  have hloop := h.callIf 5241 (.n 5920) "__loop9" [.n 5921, .n 5817, .n 5912, .n 18, .n 5817,
     .n 5915] (by decide +kernel)
   have hchain := h.call 5258 "eq_prefix_chain" [.n 5936, .n 5937, .n 18, .n 2767, .n 5817] []
     (by decide +kernel)

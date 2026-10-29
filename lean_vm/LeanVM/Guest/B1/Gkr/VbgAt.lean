@@ -18,8 +18,8 @@ cursor's words, the point at `zeta` and the five buffers whole (`vbgOwnW`), the 
 (`vbgFlat.σ`, the allocations answered by the buffers' pointers) satisfies every statement with
 its calls by relations loading from a region `R` holding the cursor's words, the point and the
 buffers, its loads land inside the buffers (`vbg_loadOk`, `vbg_ptrs`), its allocations are the
-buffers and it returns the accepting run's capacity, cursor and values. `__loop8`'s relation
-loads from `R` (`loop8_relIn`), and `__loop7`'s (`vbg_loop7_relIn`).
+buffers and it returns the accepting run's capacity, cursor and values. `__loop7`'s relation
+loads from `R` (`loop8_relIn`), and `__loop6`'s (`vbg_loop7_relIn`).
 
 `verify_bus_gkr_completeAt`: `flat_completeAt` for `vbgFlat`, the buffers at the bump allocator's
 positions from `fp + fs "verify_bus_gkr"`.
@@ -44,11 +44,11 @@ def atomsDeep : Stmt → Bool
     | _ => false
   | _ => false
 
-/-- `__loop7`'s call. -/
-def vbgCall7 : Stmt := .callIf (.n 303) "__loop7" [.n 304, .n 306, .n 57, .n 6, .n 15, .n 16]
+/-- `__loop6`'s call. -/
+def vbgCall7 : Stmt := .callIf (.n 303) "__loop6" [.n 304, .n 306, .n 57, .n 6, .n 15, .n 16]
 
-/-- `__loop8`'s call. -/
-def vbgCall8 : Stmt := .callIf (.n 316) "__loop8" [.n 317, .n 6, .n 7, .n 314]
+/-- `__loop7`'s call. -/
+def vbgCall8 : Stmt := .callIf (.n 316) "__loop7" [.n 317, .n 6, .n 7, .n 314]
 
 /-- Every statement is an atom, an `ite` of atoms, or one of the two calls. -/
 def vbgKindB (s : Stmt) : Bool :=
@@ -120,7 +120,7 @@ noncomputable def vbgσ (rd : Reader) (depth : ℕ) (cap0 : List E) (ec ez eL eR
   vbgFlat.σ rd (vbgW (ofK (gpow eL)) (ofK (gpow eR)) (ofK (gpow eP)) (ofK (gpow ePa)) (ofK (gpow eD)))
     (cap0 ++ [ofK (gpow ec), gen ^ depth, ofK (gpow ez)])
 
-/-- The values the calls of `__loop7` and `__loop8` start and end at, and `__loop7`'s buffers. -/
+/-- The values the calls of `__loop6` and `__loop7` start and end at, and `__loop6`'s buffers. -/
 def VbgVals (σ : Val) (depth eL eR eD : ℕ) : Prop :=
   σ (.n 304) = 1 ∧ σ (.n 306) = gen ^ (depth / 2) ∧ σ (.n 317) = 1 ∧ σ (.n 6) = gen ^ depth ∧
     σ (.n 57) = ofK (gpow eD) ∧ σ (.n 15) = ofK (gpow eL) ∧ σ (.n 16) = ofK (gpow eR) ∧

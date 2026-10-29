@@ -2,7 +2,7 @@
   LeanVM.Guest.B1.Main.Kids
 
   What each child of `main` establishes, its records named: the digest family's statements
-  applied to the calls of `__loop5`.
+  applied to the calls of `__loop4`.
 -/
 
 module
@@ -13,7 +13,7 @@ public import LeanVM.Guest.B1.Digest.Statement
 /-!
 # The children's records
 
-`KidStep` (`__loop5`'s iteration) names the calls; with the digest family's statements
+`KidStep` (`__loop4`'s iteration) names the calls; with the digest family's statements
 (`child_claim_list_digest_sound`, `cover_da_root_sound`, `da_list_digest_sound`,
 `statement_digest_sound`) each child's records are values (`KidRec`) with their facts (`KidOk`):
 its leanXMSS and leanSPHINCS claims' slots and cells, its DA roots' slots and words, its lists'

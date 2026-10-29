@@ -2,7 +2,7 @@
   LeanVM.Guest.B1.Digest.ClaimListsAtT
 
   `claim_list_digest` and `child_claim_list_digest` in the uniform placed form by trees of honest
-  shape (`Budget.NodeHonest`): the node's valuation pins the words that end `__loop16` / `__loop17`
+  shape (`Budget.NodeHonest`): the node's valuation pins the words that end `__loop15` / `__loop16`
   and size the chain buffer, its calls and `HeapBuf` are the honest ones.
 -/
 
@@ -15,12 +15,12 @@ public import LeanVM.Guest.B1.Main.NodeHonestAt
 # The claim lists, by trees of honest shape
 
 `clQ n σ`: the list's length `g^n` at `v1`; when `n ≠ 0`, `list_split`'s returns `g^(n / 17)`,
-`g^(n % 17)` at `v23`, `v24` (the first ends `__loop16`), the chain buffer's size
-`g^(13 (n / 17 + 1))` at `v31`, `__loop16`'s start `1` at `v48`. `clCalls n`: the calls (none for
-the empty list; `list_split`, `__loop16` when `n / 17 ≠ 0`, `claim_list_last__L{n % 17}`).
+`g^(n % 17)` at `v23`, `v24` (the first ends `__loop15`), the chain buffer's size
+`g^(13 (n / 17 + 1))` at `v31`, `__loop15`'s start `1` at `v48`. `clCalls n`: the calls (none for
+the empty list; `list_split`, `__loop15` when `n / 17 ≠ 0`, `claim_list_last__L{n % 17}`).
 `clBufs n`: the chain buffer (none for the empty list). `clTs`: no constraint on the callees.
 `ccQ`, `ccCalls`: the same for `child_claim_list_digest` (`v5`, `v27`, `v28`, `v35`, `v52`;
-`__loop17`). `claim_list_digest_completeAtT`, `child_claim_list_digest_completeAtT`: the placed
+`__loop16`). `claim_list_digest_completeAtT`, `child_claim_list_digest_completeAtT`: the placed
 completeness (same proofs as `claim_list_digest_completeAt`, `child_claim_list_digest_completeAt`)
 by trees of that shape.
 -/
@@ -49,7 +49,7 @@ def clQ (n : ℕ) (σ : Val) : Prop :=
 def clCalls (n : ℕ) (_ : Val) : List Call :=
   if n = 0 then [] else
     [⟨"list_split", [.n 1], [.n 23, .n 24], true⟩,
-      ⟨"__loop16", [.n 48, .n 23, .n 32, .n 0], [], decide (n / 17 ≠ 0)⟩,
+      ⟨"__loop15", [.n 48, .n 23, .n 32, .n 0], [], decide (n / 17 ≠ 0)⟩,
       ⟨clNames[n % 17]!, [.n 54, .n 62], [.n 63, .n 64], true⟩]
 
 /-- The claim lists' `HeapBuf`: the chain buffer. -/
@@ -67,7 +67,7 @@ def ccQ (n : ℕ) (σ : Val) : Prop :=
 def ccCalls (n : ℕ) (_ : Val) : List Call :=
   if n = 0 then [] else
     [⟨"list_split", [.n 5], [.n 27, .n 28], true⟩,
-      ⟨"__loop17", [.n 52, .n 27, .n 36, .n 0, .n 1, .n 2, .n 3, .n 4], [], decide (n / 17 ≠ 0)⟩,
+      ⟨"__loop16", [.n 52, .n 27, .n 36, .n 0, .n 1, .n 2, .n 3, .n 4], [], decide (n / 17 ≠ 0)⟩,
       ⟨cclNames[n % 17]!, [.n 58, .n 0, .n 1, .n 64, .n 3, .n 4], [.n 65, .n 66], true⟩]
 
 set_option maxRecDepth 20000 in
@@ -189,7 +189,7 @@ theorem claim_list_digest_completeAtT (fs : String → ℕ) (cert : String → V
     -- the callees
     let ks : List Kid :=
       [⟨"list_split", true, [gen ^ n], [], Returns [gen ^ m, gen ^ r]⟩,
-        ⟨"__loop16", decide (m ≠ 0), [1, gen ^ m, chain, gen ^ eP], Lin ++ Own, Returns []⟩,
+        ⟨"__loop15", decide (m ≠ 0), [1, gen ^ m, chain, gen ^ eP], Lin ++ Own, Returns []⟩,
         ⟨clNames[r]!, true, [chain * gen ^ (13 * m), gen ^ eP * gen ^ (68 * m)], Lin ++ Own,
           Returns (digestCells D)⟩]
     have hok : ∀ k ∈ ks, k.taken = true → CompleteAtD fs cert 16 k.f k.Lin k.args k.Out := by
@@ -308,7 +308,7 @@ theorem claim_list_digest_completeAtT (fs : String → ℕ) (cert : String → V
     have h47 : decide (σ (.n 47) ≠ 0) = decide (m ≠ 0) := by
       rw [hV.v47]; exact decide_eq_decide.mpr (one_add_gen_ne (by omega))
     have hcalls : calls es = [⟨"list_split", [.n 1], [.n 23, .n 24], true⟩,
-        ⟨"__loop16", [.n 48, .n 23, .n 32, .n 0], [], decide (m ≠ 0)⟩,
+        ⟨"__loop15", [.n 48, .n 23, .n 32, .n 0], [], decide (m ≠ 0)⟩,
         ⟨clNames[r]!, [.n 54, .n 62], [.n 63, .n 64], true⟩] := by
       rw [hes, es5_calls, hhc, hpc, hqc, htc, clP1_calls, hpostA.2.2.1]
       simp only [List.map_cons, List.map_nil, Main.mkCall, h47, clHead, clTail, List.filterMap_cons,
@@ -510,7 +510,7 @@ theorem child_claim_list_digest_completeAtT (fs : String → ℕ) (cert : String
     -- the callees
     let ks : List Kid :=
       [⟨"list_split", true, [gen ^ n], [], Returns [gen ^ m, gen ^ r]⟩,
-        ⟨"__loop17", decide (m ≠ 0), [1, gen ^ m, chain, gen ^ eP, gen ^ cv, base, gen ^ og, gen ^ L],
+        ⟨"__loop16", decide (m ≠ 0), [1, gen ^ m, chain, gen ^ eP, gen ^ cv, base, gen ^ og, gen ^ L],
           Lin ++ Own, Returns []⟩,
         ⟨cclNames[r]!, true, [chain * gen ^ (13 * m), gen ^ eP, gen ^ cv, base * gen ^ (17 * m),
           gen ^ og, gen ^ L], Lin ++ Own, Returns (digestCells D)⟩]
@@ -643,7 +643,7 @@ theorem child_claim_list_digest_completeAtT (fs : String → ℕ) (cert : String
     have h51 : decide (σ (.n 51) ≠ 0) = decide (m ≠ 0) := by
       rw [hV.v51]; exact decide_eq_decide.mpr (one_add_gen_ne (by omega))
     have hcalls : calls es = [⟨"list_split", [.n 5], [.n 27, .n 28], true⟩,
-        ⟨"__loop17", [.n 52, .n 27, .n 36, .n 0, .n 1, .n 2, .n 3, .n 4], [], decide (m ≠ 0)⟩,
+        ⟨"__loop16", [.n 52, .n 27, .n 36, .n 0, .n 1, .n 2, .n 3, .n 4], [], decide (m ≠ 0)⟩,
         ⟨cclNames[r]!, [.n 58, .n 0, .n 1, .n 64, .n 3, .n 4], [.n 65, .n 66], true⟩] := by
       rw [hes, es5_calls, hhc, hpc, hqc, htc, ccP1_calls, hpostA.2.2.1]
       simp only [List.map_cons, List.map_nil, Main.mkCall, h51, ccHead, ccTail, List.filterMap_cons,

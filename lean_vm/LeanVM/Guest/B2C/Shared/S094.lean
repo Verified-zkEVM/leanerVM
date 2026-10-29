@@ -16,11 +16,11 @@ namespace LeanVM.Guest.B2C.Shared
 @[expose] public section
 
 set_option maxRecDepth 100000 in
-/-- `index_mle__L16`, once. -/
+/-- `index_mle__L19`, once. -/
 theorem st201 : shareStatic 201 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `index_mle__L16`, window 0. -/
+/-- `index_mle__L19`, window 0. -/
 theorem w201_0 : shareWin 201 (snapsOf 201) 0 = true := by decide +kernel
 
 theorem ok201 : ShareOk 201 := ⟨st201, fun i hi ↦ by
@@ -29,11 +29,11 @@ theorem ok201 : ShareOk 201 := ⟨st201, fun i hi ↦ by
   exact w201_0⟩
 
 set_option maxRecDepth 100000 in
-/-- `index_mle__L17`, once. -/
+/-- `index_mle__L20`, once. -/
 theorem st202 : shareStatic 202 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `index_mle__L17`, window 0. -/
+/-- `index_mle__L20`, window 0. -/
 theorem w202_0 : shareWin 202 (snapsOf 202) 0 = true := by decide +kernel
 
 theorem ok202 : ShareOk 202 := ⟨st202, fun i hi ↦ by
@@ -42,11 +42,11 @@ theorem ok202 : ShareOk 202 := ⟨st202, fun i hi ↦ by
   exact w202_0⟩
 
 set_option maxRecDepth 100000 in
-/-- `index_mle__L18`, once. -/
+/-- `index_mle__L21`, once. -/
 theorem st203 : shareStatic 203 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `index_mle__L18`, window 0. -/
+/-- `index_mle__L21`, window 0. -/
 theorem w203_0 : shareWin 203 (snapsOf 203) 0 = true := by decide +kernel
 
 theorem ok203 : ShareOk 203 := ⟨st203, fun i hi ↦ by
@@ -55,11 +55,11 @@ theorem ok203 : ShareOk 203 := ⟨st203, fun i hi ↦ by
   exact w203_0⟩
 
 set_option maxRecDepth 100000 in
-/-- `index_mle__L19`, once. -/
+/-- `index_mle__L22`, once. -/
 theorem st204 : shareStatic 204 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `index_mle__L19`, window 0. -/
+/-- `index_mle__L22`, window 0. -/
 theorem w204_0 : shareWin 204 (snapsOf 204) 0 = true := by decide +kernel
 
 theorem ok204 : ShareOk 204 := ⟨st204, fun i hi ↦ by
@@ -68,11 +68,11 @@ theorem ok204 : ShareOk 204 := ⟨st204, fun i hi ↦ by
   exact w204_0⟩
 
 set_option maxRecDepth 100000 in
-/-- `index_mle__L20`, once. -/
+/-- `index_mle__L23`, once. -/
 theorem st205 : shareStatic 205 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `index_mle__L20`, window 0. -/
+/-- `index_mle__L23`, window 0. -/
 theorem w205_0 : shareWin 205 (snapsOf 205) 0 = true := by decide +kernel
 
 theorem ok205 : ShareOk 205 := ⟨st205, fun i hi ↦ by
@@ -81,11 +81,11 @@ theorem ok205 : ShareOk 205 := ⟨st205, fun i hi ↦ by
   exact w205_0⟩
 
 set_option maxRecDepth 100000 in
-/-- `index_mle__L21`, once. -/
+/-- `index_mle__L24`, once. -/
 theorem st206 : shareStatic 206 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `index_mle__L21`, window 0. -/
+/-- `index_mle__L24`, window 0. -/
 theorem w206_0 : shareWin 206 (snapsOf 206) 0 = true := by decide +kernel
 
 theorem ok206 : ShareOk 206 := ⟨st206, fun i hi ↦ by
@@ -94,11 +94,11 @@ theorem ok206 : ShareOk 206 := ⟨st206, fun i hi ↦ by
   exact w206_0⟩
 
 set_option maxRecDepth 100000 in
-/-- `index_mle__L22`, once. -/
+/-- `index_mle__L25`, once. -/
 theorem st207 : shareStatic 207 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `index_mle__L22`, window 0. -/
+/-- `index_mle__L25`, window 0. -/
 theorem w207_0 : shareWin 207 (snapsOf 207) 0 = true := by decide +kernel
 
 theorem ok207 : ShareOk 207 := ⟨st207, fun i hi ↦ by
@@ -107,11 +107,11 @@ theorem ok207 : ShareOk 207 := ⟨st207, fun i hi ↦ by
   exact w207_0⟩
 
 set_option maxRecDepth 100000 in
-/-- `index_mle__L23`, once. -/
+/-- `index_mle__L26`, once. -/
 theorem st208 : shareStatic 208 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `index_mle__L23`, window 0. -/
+/-- `index_mle__L26`, window 0. -/
 theorem w208_0 : shareWin 208 (snapsOf 208) 0 = true := by decide +kernel
 
 theorem ok208 : ShareOk 208 := ⟨st208, fun i hi ↦ by

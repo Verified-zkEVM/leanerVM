@@ -17,28 +17,28 @@ open LeanVM.Guest.Check
 
 @[expose] public section
 
-/-- `__loop346`, window 0. -/
+/-- `decode_query_bits__L14`, window 0. -/
 theorem w812_0 : WinOk 812 0 := winOk_of_C (by decide +kernel)
 
-/-- `__loop347`, window 0. -/
+/-- `__loop362`, window 0. -/
 theorem w813_0 : WinOk 813 0 := winOk_of_C (by decide +kernel)
 
-/-- `__loop348`, window 0. -/
+/-- `decode_query_bits__L18`, window 0. -/
 theorem w814_0 : WinOk 814 0 := winOk_of_C (by decide +kernel)
 
-/-- `__loop349`, window 0. -/
+/-- `__loop363`, window 0. -/
 theorem w815_0 : WinOk 815 0 := winOk_of_C (by decide +kernel)
 
-/-- `__loop350`, window 0. -/
+/-- `__loop364`, window 0. -/
 theorem w816_0 : WinOk 816 0 := winOk_of_C (by decide +kernel)
 
-/-- `__loop351`, window 0. -/
+/-- `__loop365`, window 0. -/
 theorem w817_0 : WinOk 817 0 := winOk_of_C (by decide +kernel)
 
-/-- `__loop352`, window 0. -/
+/-- `decode_query_bits__L19`, window 0. -/
 theorem w818_0 : WinOk 818 0 := winOk_of_C (by decide +kernel)
 
-/-- `__loop353`, window 0. -/
+/-- `__loop366`, window 0. -/
 theorem w819_0 : WinOk 819 0 := winOk_of_C (by decide +kernel)
 
 theorem ok812 : CheckOk 812 := checkOk_one (by decide +kernel) w812_0

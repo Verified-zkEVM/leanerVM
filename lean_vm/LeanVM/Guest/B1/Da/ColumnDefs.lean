@@ -13,8 +13,8 @@ public import LeanVM.Guest.B1.Da.Tree
 
 `da_verify_column(xb, n_blob_g, n_pad_g, gap_g, g_log_pad, prefix_bases, coltree, rowbase,
 column_digests)` (`__L1`, `store = 1`, core `769`; `__L0`, core `770`): the column's weights
-(`da_vector_cell` at `column_digests·xb²`), the row loop (`__loop417`, `__loop419`: a cell per row,
-`rowOk`), the gap loop (`__loop418`, `__loop420`: padding cells, `gapOk`), the column's root
+(`da_vector_cell` at `column_digests·xb²`), the row loop (`__loop415`, `__loop417`: a cell per row,
+`rowOk`), the gap loop (`__loop416`, `__loop418`: padding cells, `gapOk`), the column's root
 (`da_levels` dispatched on `g_log_pad`) written at `coltree·xb²` (`colOk`).
 -/
 

@@ -40,8 +40,8 @@ structure MainBs where
 
 /-- **Every callee's bound**, aligned with `mKids`. -/
 def mBs (fs : String → ℕ) (SB SK : String → ℕ) (m : MainIn) (b : MainBs) : List ℕ :=
-  [(m.nda + m.ndd) * SK "__loop0", SB "da_list_digest", b.Bx, b.Bs, m.nxd * SK "__loop1",
-    m.nsd * SK "__loop2", m.nrx * SK "__loop3", m.nrs * SK "__loop4"] ++
+  [(m.nda + m.ndd) * SK "__loop0", SB "da_list_digest", b.Bx, b.Bs, m.nxd * SK "__loop0",
+    m.nsd * SK "__loop1", m.nrx * SK "__loop2", m.nrs * SK "__loop3"] ++
     (if m.nd = 1 then [b.Bd, fs "cover_da_root"] else []) ++ [b.B5] ++
     (if m.nc = 0 then [] else [b.Ba]) ++ [SB "statement_digest"]
 
@@ -86,7 +86,7 @@ structure MainGoalsTB (p : MainPreds) (b : MainBs) : Prop where
       [gen ^ (hm fs fp seed s w).nc, (hm fs fp seed s w).a394, (hm fs fp seed s w).a400,
         (hm fs fp seed s w).a406, (hm fs fp seed s w).a417] (Returns []) p.Pa b.Ba
   l5 : (hm fs fp seed s w).nc ≠ 0 →
-    CompleteAtDTB fs cert 16 "__loop5" (hLmain fs fp seed s w)
+    CompleteAtDTB fs cert 16 "__loop4" (hLmain fs fp seed s w)
       [1, gen ^ (hm fs fp seed s w).nc, (hm fs fp seed s w).a409, (hm fs fp seed s w).a77,
         (hm fs fp seed s w).a117, gen ^ ((hm fs fp seed s w).nlx + (hm fs fp seed s w).nxd),
         (hm fs fp seed s w).a80, gen ^ ((hm fs fp seed s w).nls + (hm fs fp seed s w).nsd),
@@ -161,10 +161,10 @@ theorem main_honest_relAtInTB {SB SK : String → ℕ} {p : MainPreds} {b : Main
 /-- **The static bounds of `main`'s own static callees** (G7-cnt's certificates). -/
 structure MainStaticsMain (fs : String → ℕ) (SB SK : String → ℕ) : Prop where
   l0 : TotalLeOn coreProgram fs "__loop0" LoopPre (fun a => logG (a.getD 1 0) * SK "__loop0")
-  l1 : TotalLeOn coreProgram fs "__loop1" LoopPre (fun a => logG (a.getD 1 0) * SK "__loop1")
-  l2 : TotalLeOn coreProgram fs "__loop2" LoopPre (fun a => logG (a.getD 1 0) * SK "__loop2")
-  l3 : TotalLeOn coreProgram fs "__loop3" LoopPre (fun a => logG (a.getD 1 0) * SK "__loop3")
-  l4 : TotalLeOn coreProgram fs "__loop4" LoopPre (fun a => logG (a.getD 1 0) * SK "__loop4")
+  l1 : TotalLeOn coreProgram fs "__loop0" LoopPre (fun a => logG (a.getD 1 0) * SK "__loop0")
+  l2 : TotalLeOn coreProgram fs "__loop1" LoopPre (fun a => logG (a.getD 1 0) * SK "__loop1")
+  l3 : TotalLeOn coreProgram fs "__loop2" LoopPre (fun a => logG (a.getD 1 0) * SK "__loop2")
+  l4 : TotalLeOn coreProgram fs "__loop3" LoopPre (fun a => logG (a.getD 1 0) * SK "__loop3")
   dl : TotalLe coreProgram fs "da_list_digest" (fun _ => SB "da_list_digest")
   st : TotalLe coreProgram fs "statement_digest" (fun _ => SB "statement_digest")
 

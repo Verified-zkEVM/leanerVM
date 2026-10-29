@@ -19,12 +19,12 @@ the rounds at `bc_sumcheck_msgs` (`batch_sumcheck`'s statement, B1-a) and `bc_st
 claim written at `defer_stmt` is the sumcheck's point and the hint. For `m` children whose words
 the memory holds (`ChildWordsAt`), `batch_fs` reads `Node.batch` on the carried sponge:
 
-* the absorbing rows (`__loop25`, `l25_step`) carry the sponge after the count and the first `c`
+* the absorbing rows (`__loop24`, `l25_step`) carry the sponge after the count and the first `c`
   children's words (`absorb_rows`);
-* the squeezing rows (`__loop26`, `l26_step`) carry the sponge after `c` children's lambdas
+* the squeezing rows (`__loop25`, `l26_step`) carry the sponge after `c` children's lambdas
   (`sq2F`), and their running claim is the lambdas' combination of the children's values
   (`squeeze_rows`); the last one feeds `batch_sumcheck__L23`;
-* the weights (`__loop27`, `l27_step`) are the lambdas' combination of the claims' equality
+* the weights (`__loop26`, `l27_step`) are the lambdas' combination of the claims' equality
   weights at the sumcheck's point (`weight_rows`), and the body checks that the final claim is
   the hint times the last.
 -/
@@ -338,8 +338,8 @@ set_option maxHeartbeats 1000000 in
 /-- **`aggregate_claims` at a valuation** writes the batching, with the hints `aggHints rd σ`, of
 the children whose words the memory holds. -/
 theorem aggregate_claims_val {C : CallRel} {rd : Reader} (hle : CallRel.Le C (coreProgram.Rel rd))
-    {σ : Val} {args rets : List E} (hpar : Data.core31.params.map σ = args)
-    (hbC : Stmt.HoldsList C rd σ (Fn.body Data.core31) False (fun rs => rs = rets)) :
+    {σ : Val} {args rets : List E} (hpar : Data.core29.params.map σ = args)
+    (hbC : Stmt.HoldsList C rd σ (Fn.body Data.core29) False (fun rs => rs = rets)) :
     MeaningAggregateClaimsW rd (aggHints rd σ) args rets := by
   have hb := holdsList_mono hle _ id (fun _ h => h) hbC
   have hok := agg_ok
@@ -363,7 +363,7 @@ theorem aggregate_claims_val {C : CallRel} {rd : Reader} (hle : CallRel.Le C (co
   -- the loops
   have L25 : ∀ c < m, L25Step rd (σ (.n 60)) (σ (.n 2)) (σ (.n 7)) (σ (.n 3)) (σ (.n 8))
       (σ (.n 1)) (gen ^ c) :=
-    loop_sound (f := "__loop25")
+    loop_sound (f := "__loop24")
       (ps := [σ (.n 0), σ (.n 60), σ (.n 2), σ (.n 7), σ (.n 3), σ (.n 8), σ (.n 1)])
       (by unfold ordG; omega) hN
       (fun y hy => by
@@ -371,7 +371,7 @@ theorem aggregate_claims_val {C : CallRel} {rd : Reader} (hle : CallRel.Le C (co
         exact ⟨h1 _ _ _ _ _ _ _ rfl, h2⟩)
       (fun hne => by simpa using guard_sound hg25 hall hne)
   have L26 : ∀ c < m, L26Step rd (σ (.n 79)) (σ (.n 71)) (σ (.n 7)) (σ (.n 8)) (gen ^ c) :=
-    loop_sound (f := "__loop26") (ps := [σ (.n 0), σ (.n 79), σ (.n 71), σ (.n 7), σ (.n 8)])
+    loop_sound (f := "__loop25") (ps := [σ (.n 0), σ (.n 79), σ (.n 71), σ (.n 7), σ (.n 8)])
       (by unfold ordG; omega) hN
       (fun y hy => by
         obtain ⟨h1, h2⟩ := l26_step hy
@@ -379,7 +379,7 @@ theorem aggregate_claims_val {C : CallRel} {rd : Reader} (hle : CallRel.Le C (co
       (fun hne => by simpa using guard_sound hg26 hall hne)
   have L27 : ∀ c < m, L27Step rd (σ (.n 7)) (σ (.n 8)) (σ (.n 104)) (σ (.n 118)) (σ (.n 71))
       (gen ^ c) :=
-    loop_sound (f := "__loop27")
+    loop_sound (f := "__loop26")
       (ps := [σ (.n 0), σ (.n 7), σ (.n 8), σ (.n 104), σ (.n 118), σ (.n 71)])
       (by unfold ordG; omega) hN
       (fun y hy => by

@@ -28,10 +28,10 @@ public import LeanVM.Guest.B1.Main.MainGoalsClT
 iterations, its padding loop's `2^L - r`, the DA levels at `L` (`col_weight_le`, on a tree of
 `Da.colNH`). `colFrom_weight_le`: a column loop's `n` iterations, each its frame and a column.
 `dvW op r L`: `da_verify`'s, its frame, its static callees, its row loops' `r` iterations, its two
-column loops' 64 columns each, `__loop24`'s `2^L - r` and the levels at `L` (`dv_weight_le`, on a
+column loops' 64 columns each, `__loop23`'s `2^L - r` and the levels at `L` (`dv_weight_le`, on a
 tree of `Da.dvNH r L`); `dvW_le`: within `kcDvA op + kcDvR op · r + kcDvP op · 2^L`.
 `clW op n`: `claim_list_digest`'s on `n` claims, its frame's, `list_split`'s, `n / 17` iterations
-of `__loop16` and the last group's `claim_list_last__L{n % 17}` (`cl_weight_le`, on a tree of
+of `__loop15` and the last group's `claim_list_last__L{n % 17}` (`cl_weight_le`, on a tree of
 `Main.clHonest n`); `clW_le`: within `kcClA op + kcClS op · n`. `Count.mainCounts op`: `main`'s callees' weights at
 `op`'s instructions, the static ones' certificates and these two by their shapes.
 -/
@@ -62,7 +62,7 @@ theorem mvTab_parts (op : Opcode) :
       kvSBJ op (dlJ.getD L 0) == (kcDlT op).getD L 0) = true) ∧
     (∀ k < 17, (kvOkB op (clJ.getD k 0) (B1.Digest.clNames.getD k "") &&
       kvSBJ op (clJ.getD k 0) == (kcClT op).getD k 0) = true) ∧
-    (kvOkK op l16J "__loop16" && kvSKJ op l16J == kcL16 op) = true ∧
+    (kvOkK op l16J "__loop15" && kvSKJ op l16J == kcL16 op) = true ∧
     (∀ i < 6, decide ((coreProgram[mvOmJ.getD i 0]?).map Fn.name = some (mvOmNames.getD i "")) = true ∧
       (B2C.plumbOf (mvOmJ.getD i 0 + 1)).pmax.getD (B2C.opIdx op) 0 = (mvOmT op).getD i 0) := by
   have h := mvTab_ok op
@@ -100,8 +100,8 @@ theorem cl_weightLe {k : ℕ} (hk : k < 17) :
       fun _ => (kcClT op).getD k 0 :=
   weightLe_tab ((mvTab_parts op).2.2.2.1 k hk)
 
-/-- **`__loop16`, per iteration.** -/
-theorem l16_loop : LoopWeightLe (B2C.ωArm B2C.xmssArmC op) "__loop16" (kcL16 op) :=
+/-- **`__loop15`, per iteration.** -/
+theorem l16_loop : LoopWeightLe (B2C.ωArm B2C.xmssArmC op) "__loop15" (kcL16 op) :=
   loopWeightLe_tab (mvTab_parts op).2.2.2.2.1
 
 /-- **The frame weights** of `mvOmNames`. -/
@@ -118,7 +118,7 @@ theorem clNames_bang {k : ℕ} (hk : k < 17) :
   interval_cases k <;> decide
 
 theorem clNames_ne {k : ℕ} (hk : k < 17) :
-    B1.Digest.clNames[k]! ≠ "list_split" ∧ B1.Digest.clNames[k]! ≠ "__loop16" := by
+    B1.Digest.clNames[k]! ≠ "list_split" ∧ B1.Digest.clNames[k]! ≠ "__loop15" := by
   interval_cases k <;> decide
 
 /-- A loop of `r` iterations from the counter `1`, at most `r` per-iteration counts. -/
@@ -295,7 +295,7 @@ theorem cl_weight_le {n : ℕ} (hn : n / 17 < 2 ^ 64 - 1) {rd : Reader} {t : Tre
     (hb : t.BufsOk coreProgram) : t.weight (B2C.ωArm B2C.xmssArmC op) ≤ clW op n := by
   let W : Call → ℕ := fun c =>
     if c.f = "list_split" then kcLs op
-    else if c.f = "__loop16" then n / 17 * kcL16 op else (kcClT op).getD (n % 17) 0
+    else if c.f = "__loop15" then n / 17 * kcL16 op else (kcClT op).getD (n % 17) 0
   obtain ⟨σ, hQ, hle⟩ := NodeHonest.weight_le (B2C.ωArm B2C.xmssArmC op) (fun _ => W) h hv hb
     (by
       intro σ hQ c T hmem ht t' rets' hn' hv' hb' _

@@ -17,7 +17,7 @@ As `claim_list_digest`, but claim `j` of a group is read at a hinted slot `o` of
 table's slot `origin · g^o` holds the mark `marks · g^j`, and the four cells are read at
 `entries · g^(4o)`. `claimOk` checks one such record in a list of atoms, by evaluation, and
 `claimOk_sound` gives it on a memory image. The records sit at fixed value offsets in the 17
-specializations `child_claim_list_last__L{k}` and in the group loop `__loop17` (`ccOV`, `ccMark`,
+specializations `child_claim_list_last__L{k}` and in the group loop `__loop16` (`ccOV`, `ccMark`,
 `ccCell`).
 -/
 
@@ -364,22 +364,22 @@ theorem getD_map_range {α : Type} (f : ℕ → α) {n c : ℕ} (h : c < n) (d :
     ((List.range n).map f).getD c d = f c := by
   simp [List.getD_eq_getElem?_getD, h]
 
-/-! ## `__loop17`: one group of seventeen child claims -/
+/-! ## `__loop16`: one group of seventeen child claims -/
 
-/-- The state cells `__loop17` loads. -/
+/-- The state cells `__loop16` loads. -/
 def l17St : List V := (List.range 13).map fun c => V.n (307 + c)
 
-/-- The record values of `__loop17`. -/
+/-- The record values of `__loop16`. -/
 def l17P : ClaimVs := ⟨.n 4, .n 6, .n 7, .n 3, .n 19⟩
 
-/-- The chain of `__loop17`: the 68 record cells, eight blocks, `final=0`. -/
+/-- The chain of `__loop16`: the 68 record cells, eight blocks, `final=0`. -/
 def l17Spec (atoms : List Atom) : ChainSpec :=
   ⟨ccMsg 20 17, 0, false, some l17St, keccakBlocks atoms⟩
 
-/-- `__loop17`'s body: 17 records with the marks `base · x^17`, the state at `chain · x^13`, the
+/-- `__loop16`'s body: 17 records with the marks `base · x^17`, the state at `chain · x^13`, the
 next at `chain · x^13 · g^13`. -/
 def l17Ok (fn : Fn) : Bool :=
-  loopShape fn "__loop17" && decide (fn.params.length = 8) &&
+  loopShape fn "__loop16" && decide (fn.params.length = 8) &&
     (l17Spec (loopAtoms fn)).check (loopAtoms fn) && stLoadsOk (loopAtoms fn) (V.n 13) l17St 0 &&
     recordsOk (loopAtoms fn) l17P 20 17 &&
     stLoadsOk (loopAtoms fn) (V.n 13)
@@ -388,13 +388,13 @@ def l17Ok (fn : Fn) : Bool :=
     monoIs (loopAtoms fn) (V.n 19) (V.n 5) (V.n 0) 17
 
 set_option maxRecDepth 100000 in
-theorem l17_ok : l17Ok (coreProgram.getD 341 default) = true := by decide +kernel
+theorem l17_ok : l17Ok (coreProgram.getD 338 default) = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem l17_idx : coreProgram.indexOf? "__loop17" = some 341 := by decide +kernel
+theorem l17_idx : coreProgram.indexOf? "__loop16" = some 338 := by decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem l17_nb : (l17Spec (loopAtoms (coreProgram.getD 341 default))).nb = 8 := by decide +kernel
+theorem l17_nb : (l17Spec (loopAtoms (coreProgram.getD 338 default))).nb = 8 := by decide +kernel
 
 /-- **One group of child claims**: from the state at `chain · x^13` after whole blocks `pre`,
 17 claims read at hinted slots and marked `base · x^17 · g^j`, absorbed, the state written at
@@ -407,18 +407,18 @@ def ChildGroupStep (rd : Reader) (chain entries cover base origin limit x : E) :
       StateAt rd (chain * x ^ 13) 13 (absorbChunks (n + 8) zeroState (pre ++ cellsBytes cells))
 
 theorem l17_step {rd : Reader} (hm : MemOk rd) {x : E} {ps : List E}
-    (h : coreProgram.Rel rd "__loop17" (x :: ps) []) :
+    (h : coreProgram.Rel rd "__loop16" (x :: ps) []) :
     (∀ N chain entries cover base origin limit,
       ps = [N, chain, entries, cover, base, origin, limit] →
       ChildGroupStep rd chain entries cover base origin limit x) ∧
-      (x * gen + ps.headD 0 ≠ 0 → coreProgram.Rel rd "__loop17" (x * gen :: ps) []) := by
+      (x * gen + ps.headD 0 ≠ 0 → coreProgram.Rel rd "__loop16" (x * gen :: ps) []) := by
   have hf := find_of_idx l17_idx (by rw [coreProgram_length]; omega)
   have hok := l17_ok
   simp only [l17Ok, Bool.and_eq_true, decide_eq_true_eq] at hok
   obtain ⟨⟨⟨⟨⟨⟨⟨hshape, hlen8⟩, hc⟩, hst⟩, hrec⟩, hout⟩, hm13⟩, hm19⟩ := hok
   obtain ⟨σ, hx, hps, hat, hnext⟩ := loop_step hf hshape h
   refine ⟨fun N chain entries cover base origin limit hN n pre hpre hS => ?_, hnext⟩
-  have hpar : (coreProgram.getD 341 default).params =
+  have hpar : (coreProgram.getD 338 default).params =
       [V.n 0, V.n 1, V.n 2, V.n 3, V.n 4, V.n 5, V.n 6, V.n 7] := by
     have hs := hshape
     simp only [loopShape, Bool.and_eq_true, decide_eq_true_eq] at hs
@@ -431,7 +431,7 @@ theorem l17_step {rd : Reader} (hm : MemOk rd) {x : E} {ps : List E}
   rw [← h13] at hS
   obtain ⟨hw, -, hcan⟩ := chain_whole hc rfl hat hpre (initCell_of_loads rfl hst hat hS)
   obtain ⟨os, hos, hcl⟩ := records_sound hm (le_refl 17) hrec hat
-  have hlen : ((l17Spec (loopAtoms (coreProgram.getD 341 default))).vals σ).length = 68 := by
+  have hlen : ((l17Spec (loopAtoms (coreProgram.getD 338 default))).vals σ).length = 68 := by
     simp [ChainSpec.vals, l17Spec, length_ccMsg]
   refine ⟨os, _, ⟨hos, hlen, ?_⟩, hcan, fun c => ?_⟩
   · intro j hj
@@ -521,7 +521,7 @@ noncomputable def ccZOk : Bool :=
 noncomputable def ccEOk : Bool :=
   cc24Else.all Stmt.flat &&
   cc24Else.any (stmtEqb · (.call "list_split" [.n 5] [.n 27, .n 28])) &&
-  cc24Else.any (stmtEqb · (.callIf (.n 51) "__loop17"
+  cc24Else.any (stmtEqb · (.callIf (.n 51) "__loop16"
     [.n 52, .n 27, .n 36, .n 0, .n 1, .n 2, .n 3, .n 4])) &&
   cc24Else.any (stmtEqb · (.dispatch (.n 28) cclNames [.n 58, .n 0, .n 1, .n 64, .n 3, .n 4]
     [.n 65, .n 66])) &&
@@ -602,7 +602,7 @@ theorem child_claim_list_digest_sound : child_claim_list_digest_sound_Spec := by
     have h52v : σ (.n 52) = 1 := by rw [const_sound h52 hat, word_one]
     have hsteps : ∀ q < a, ChildGroupStep rd (σ (.n 36)) (σ (.n 0)) (σ (.n 1)) (σ (.n 2))
         (σ (.n 3)) (σ (.n 4)) (gen ^ q) :=
-      loop_sound (f := "__loop17")
+      loop_sound (f := "__loop16")
         (ps := [σ (.n 27), σ (.n 36), σ (.n 0), σ (.n 1), σ (.n 2), σ (.n 3), σ (.n 4)])
         (N := σ (.n 27))
         (B := ChildGroupStep rd (σ (.n 36)) (σ (.n 0)) (σ (.n 1)) (σ (.n 2)) (σ (.n 3)) (σ (.n 4)))

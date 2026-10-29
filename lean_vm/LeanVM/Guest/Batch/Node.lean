@@ -168,8 +168,9 @@ def _root_.LeanVM.Node.NodeRelB (bytecode : List K) (seed : Digest) (s : NodeSta
     w.children) s.claims.xmss w.xmss ∧
   List.Forall₂ (Held (fun (c : SphincsClaim) σ ↦ sphincsVerify c.1 c.2 σ = true) Claims.sphincs
     w.children) s.claims.sphincs w.sphincs ∧
-  List.Forall₂ (Held (fun (c : DaClaim) (m : Da.Witness) ↦
-    m.Opens c.daRoot c.membershipVectorDigest) Claims.da w.children) s.claims.da w.da ∧
+  (match w.da with
+    | some (c, m) => s.claims.da = daClaimDigest c ∧ m.Opens c.daRoot c.membershipVectorDigest
+    | none => s.claims.da = zeroDigest ∨ ∃ c ∈ w.children, c.statement.claims.da = s.claims.da) ∧
   if w.children = [] then s.defer.AtZero bytecode
   else batch (w.children.map fun c ↦
     ⟨statementDigest seed c.statement, c.fresh, c.statement.defer⟩) w.hints = some s.defer

@@ -16,11 +16,11 @@ namespace LeanVM.Guest.B2C.Shared
 @[expose] public section
 
 set_option maxRecDepth 100000 in
-/-- `block_selector__L18`, once. -/
+/-- `block_selector__L21`, once. -/
 theorem st169 : shareStatic 169 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `block_selector__L18`, window 0. -/
+/-- `block_selector__L21`, window 0. -/
 theorem w169_0 : shareWin 169 (snapsOf 169) 0 = true := by decide +kernel
 
 theorem ok169 : ShareOk 169 := ⟨st169, fun i hi ↦ by
@@ -29,11 +29,11 @@ theorem ok169 : ShareOk 169 := ⟨st169, fun i hi ↦ by
   exact w169_0⟩
 
 set_option maxRecDepth 100000 in
-/-- `block_selector__L19`, once. -/
+/-- `block_selector__L22`, once. -/
 theorem st170 : shareStatic 170 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `block_selector__L19`, window 0. -/
+/-- `block_selector__L22`, window 0. -/
 theorem w170_0 : shareWin 170 (snapsOf 170) 0 = true := by decide +kernel
 
 theorem ok170 : ShareOk 170 := ⟨st170, fun i hi ↦ by
@@ -42,11 +42,11 @@ theorem ok170 : ShareOk 170 := ⟨st170, fun i hi ↦ by
   exact w170_0⟩
 
 set_option maxRecDepth 100000 in
-/-- `block_selector__L20`, once. -/
+/-- `block_selector__L23`, once. -/
 theorem st171 : shareStatic 171 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `block_selector__L20`, window 0. -/
+/-- `block_selector__L23`, window 0. -/
 theorem w171_0 : shareWin 171 (snapsOf 171) 0 = true := by decide +kernel
 
 theorem ok171 : ShareOk 171 := ⟨st171, fun i hi ↦ by
@@ -55,11 +55,11 @@ theorem ok171 : ShareOk 171 := ⟨st171, fun i hi ↦ by
   exact w171_0⟩
 
 set_option maxRecDepth 100000 in
-/-- `block_selector__L21`, once. -/
+/-- `block_selector__L24`, once. -/
 theorem st172 : shareStatic 172 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `block_selector__L21`, window 0. -/
+/-- `block_selector__L24`, window 0. -/
 theorem w172_0 : shareWin 172 (snapsOf 172) 0 = true := by decide +kernel
 
 theorem ok172 : ShareOk 172 := ⟨st172, fun i hi ↦ by
@@ -68,11 +68,11 @@ theorem ok172 : ShareOk 172 := ⟨st172, fun i hi ↦ by
   exact w172_0⟩
 
 set_option maxRecDepth 100000 in
-/-- `block_selector__L22`, once. -/
+/-- `block_selector__L25`, once. -/
 theorem st173 : shareStatic 173 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `block_selector__L22`, window 0. -/
+/-- `block_selector__L25`, window 0. -/
 theorem w173_0 : shareWin 173 (snapsOf 173) 0 = true := by decide +kernel
 
 theorem ok173 : ShareOk 173 := ⟨st173, fun i hi ↦ by
@@ -81,11 +81,11 @@ theorem ok173 : ShareOk 173 := ⟨st173, fun i hi ↦ by
   exact w173_0⟩
 
 set_option maxRecDepth 100000 in
-/-- `block_selector__L23`, once. -/
+/-- `block_selector__L26`, once. -/
 theorem st174 : shareStatic 174 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `block_selector__L23`, window 0. -/
+/-- `block_selector__L26`, window 0. -/
 theorem w174_0 : shareWin 174 (snapsOf 174) 0 = true := by decide +kernel
 
 theorem ok174 : ShareOk 174 := ⟨st174, fun i hi ↦ by
@@ -94,11 +94,11 @@ theorem ok174 : ShareOk 174 := ⟨st174, fun i hi ↦ by
   exact w174_0⟩
 
 set_option maxRecDepth 100000 in
-/-- `block_selector__L24`, once. -/
+/-- `block_selector__L27`, once. -/
 theorem st175 : shareStatic 175 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `block_selector__L24`, window 0. -/
+/-- `block_selector__L27`, window 0. -/
 theorem w175_0 : shareWin 175 (snapsOf 175) 0 = true := by decide +kernel
 
 theorem ok175 : ShareOk 175 := ⟨st175, fun i hi ↦ by
@@ -107,11 +107,11 @@ theorem ok175 : ShareOk 175 := ⟨st175, fun i hi ↦ by
   exact w175_0⟩
 
 set_option maxRecDepth 100000 in
-/-- `block_selector__L25`, once. -/
+/-- `block_selector__L28`, once. -/
 theorem st176 : shareStatic 176 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `block_selector__L25`, window 0. -/
+/-- `block_selector__L28`, window 0. -/
 theorem w176_0 : shareWin 176 (snapsOf 176) 0 = true := by decide +kernel
 
 theorem ok176 : ShareOk 176 := ⟨st176, fun i hi ↦ by

@@ -16,8 +16,8 @@ public import LeanVM.Guest.Memory.SizeTotal
 
 `rst_completeAtB`, `rsw_completeAtB`: `rst_completeAt`, `rsw_completeAt` with the size bounded
 before the memory (B1-c's `completeAt_flatDTB`, forgetting the tree's shape). Their only callee is
-a pure loop (`__loop14`) or a pure function (`rs_eq_run`) whose words are a hypothesis
-(`TotalLeOn`, fs-generic): `__loop14` called from `1` (its end the constant `g^8`), `rs_eq_run` on
+a pure loop (`__loop13`) or a pure function (`rs_eq_run`) whose words are a hypothesis
+(`TotalLeOn`, fs-generic): `__loop13` called from `1` (its end the constant `g^8`), `rs_eq_run` on
 `count` coordinates (its last argument `g^count`).
 -/
 
@@ -42,11 +42,11 @@ theorem _root_.LeanVM.Guest.B1.CompleteAtDTB.toCompleteAtB {k : ℕ} {f : String
 
 set_option maxHeartbeats 400000 in
 /-- **`ring_switch_target` is complete, placed, within `fs "ring_switch_target" + 18 + B14`**: its
-frame, its chain (`18` words) and `__loop14`'s words, at most `B14` when called from `1` (`hl14`;
+frame, its chain (`18` words) and `__loop13`'s words, at most `B14` when called from `1` (`hl14`;
 at `B2C.fs` its words certificate gives `7 · 1322`). -/
 theorem rst_completeAtB (κ : ℕ) {bs bm : ℕ} {s chs : List E} (hs : s.length = 64)
     (hc : chs.length = 6) {B14 : ℕ}
-    (hl14 : TotalLeOn coreProgram fs "__loop14" (fun a => a.getD 0 0 = 1) fun _ => B14) :
+    (hl14 : TotalLeOn coreProgram fs "__loop13" (fun a => a.getD 0 0 = 1) fun _ => B14) :
     CompleteAtB fs cert κ "ring_switch_target" [(bs, s), (bm, chs)]
       [ofK (Parameters.gpow bs), ofK (Parameters.gpow bm)]
       (Returns [polyEval (s.map (phiMap · chs)) gen]) (fs "ring_switch_target" + 18 + B14) := by
@@ -54,7 +54,7 @@ theorem rst_completeAtB (κ : ℕ) {bs bm : ℕ} {s chs : List E} (hs : s.length
   rw [e]
   refine B1.CompleteAtDTB.toCompleteAtB (completeAt_flatDTB (fs := fs) (cert := cert) find_rst
     rst_not_loop κ _ _ _ rst_body' rst_flat rst_addrs [18] (fun _ ↦ [chainWords s chs]) (fun _ ↦ by simp [chainWords_length])
-    (fun fp ↦ [⟨"__loop14", true, [1, ofK (Parameters.gpow bs), ofK (Parameters.gpow bm),
+    (fun fp ↦ [⟨"__loop13", true, [1, ofK (Parameters.gpow bs), ofK (Parameters.gpow bm),
       ofK (Parameters.gpow (fp + fs "ring_switch_target"))], l14Lin bs bm (fp + fs "ring_switch_target") s chs, Returns []⟩])
     (fun _ => True) [fun _ => True] [B14] B14 ?_ (fun _ => by simp [kidsBoundL]) (fun _ => le_rfl)
     ?_ ?_ ?_)
@@ -117,7 +117,7 @@ theorem rst_completeAtB (κ : ℕ) {bs bm : ℕ} {s chs : List E} (hs : s.length
         have := chain_load hch (k := 1) (by norm_num)
         simpa [word_zero, runL] using this
       · rfl
-      · show coreProgram.Rel rd "__loop14" [word 1 0 0, ofK (Parameters.gpow bs),
+      · show coreProgram.Rel rd "__loop13" [word 1 0 0, ofK (Parameters.gpow bs),
           ofK (Parameters.gpow bm), ofK (Parameters.gpow (fp + fs "ring_switch_target"))] []
         rw [word_one]
         exact (l14_relIn_lin hs hc (fun q hq ↦ by

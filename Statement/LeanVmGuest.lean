@@ -62,7 +62,7 @@ LeanDA's deployed algorithms (`LeanDa.commitCodewords`, `LeanDa.vectorDigest`) a
 (`keccak`), its digest read as LeanDA's 32 bytes (`Digest.toBytes`).
 
 A DA claim (`DaClaim`) is held by a matrix committed to its root whose rows are orthogonal to a
-vector of its vector digest (`Witness.Opens`: the guest program's `da_verify`,
+vector of its vector digest; a statement carries the claim's digest (`daClaimDigest`), or zeros (`Witness.Opens`: the guest program's `da_verify`,
 `lean_ethereum.py:3922-4062`; the digest two-level, `LeanDa.vectorDigest`, `da_vector_cell`,
 `lean_ethereum.py:4050-4062`). Only where the vector is the root's membership vector, as the deployed
 outer verifier requires (no end statement here assumes it), are the rows codewords, except with the
@@ -131,26 +131,26 @@ abbrev XmssClaim : Type := LeanXmss.PublicKey × LeanXmss.Message
 /-- A leanSPHINCS key and a message it signed (`LeanSphincsClaim`, `aggregation.rs:66`). -/
 abbrev SphincsClaim : Type := Sphincs.PublicKey × Sphincs.Message
 
-/-- **A DA claim**: a blob's Merkle root, an entry of an aggregate's `da_roots`
-(`aggregation.rs:396-397`; the guest program's `da_roots`, `lean_ethereum.py:4153-4156`), with the
-digest of the vector the blob's rows are orthogonal to. The two are hashed as `da_claim_cells` and
-`verifier::da::list_digest` hash them, the root then the vector digest (`aggregation.rs:559-562`,
-`crates/verifier/src/da.rs:98-104`): `daListDigest`. -/
+/-- **A DA claim**: a blob matrix's Merkle root (an aggregate's `da_root`, `aggregation.rs:392-394`)
+with the digest of the vector its rows are orthogonal to. A statement carries its digest,
+`daClaimDigest`: the root then the vector digest, hashed (`root_vector_digest`,
+`aggregation.rs:559-562`; the guest program's `keccak([root_0, root_1], [vector_0, vector_1])`,
+`lean_ethereum.py:4169`). -/
 structure DaClaim where
-  /-- The blob's Merkle root (`da_roots`, `aggregation.rs:397`): the commitment to its matrix of
-  codewords (`Da.Witness.Opens`). -/
+  /-- The matrix's Merkle root: the commitment to its codewords (`Da.Witness.Opens`). -/
   daRoot : Digest
-  /-- The digest of the vector (`vector_hash`, `aggregation.rs:560`), which the guest program takes
-  from the statement; the deployed outer verifier requires it to be
-  `vector_digest(membership_vector(root))` (`crates/verifier/src/da.rs:83-96`). -/
+  /-- The digest of the vector, which the guest program takes from `da_verify`'s run; the deployed
+  outer verifier derives it as `vector_digest(membership_vector(root))` (`da_digest`,
+  `aggregation.rs:553-557`; `crates/verifier/src/da.rs:98-103`). -/
   membershipVectorDigest : Digest
   deriving DecidableEq, Inhabited
 
-/-- A node's claims: leanXMSS claims, leanSPHINCS claims, and DA claims. -/
+/-- A node's claims: leanXMSS claims, leanSPHINCS claims, and its DA digest: a DA claim's
+`daClaimDigest`, or `zeroDigest` without one (`da_digest`, `aggregation.rs:550-557`). -/
 structure Claims where
   xmss : List XmssClaim
   sphincs : List SphincsClaim
-  da : List DaClaim
+  da : Digest
 
 /-- The claim the statement defers on the stacked bytecode: its value at a point
 (`DeferredClaim`, `aggregation.rs:246-249`), the shape of a proof's claim (`FixedClaims`). -/
@@ -209,13 +209,17 @@ def claimsPreimage (claims : List XmssClaim) : List UInt8 :=
 `aggregation.rs:215-217`, `lean_ethereum.py:3829-3851`). -/
 def claimListDigest (claims : List XmssClaim) : Digest := keccak256 (claimsPreimage claims)
 
-/-- The bytes `daListDigest claims` hashes: each root, then its vector digest. -/
-def daPreimage (claims : List DaClaim) : List UInt8 :=
-  claims.flatMap fun c ↦ digestBytes c.daRoot ++ digestBytes c.membershipVectorDigest
+/-- The bytes `daClaimDigest c` hashes: the root, then the vector digest. -/
+def daPreimage (c : DaClaim) : List UInt8 :=
+  digestBytes c.daRoot ++ digestBytes c.membershipVectorDigest
 
-/-- The DA claims' digest (`da_list_digest` in the guest program, `lean_ethereum.py:4065-4077`; the
-outer verifier's `verifier::da::list_digest` derives the vector digests from the roots). -/
-def daListDigest (claims : List DaClaim) : Digest := keccak256 (daPreimage claims)
+/-- A DA claim's digest, which a statement carries (`root_vector_digest`, `aggregation.rs:559-562`;
+`lean_ethereum.py:4169`). -/
+def daClaimDigest (c : DaClaim) : Digest := keccak256 (daPreimage c)
+
+/-- The DA digest of a statement without a DA claim: zeros (`da_digest(None)`,
+`aggregation.rs:553-557`; `own_da`'s zero cells, `lean_ethereum.py:4171-4172`). -/
+def zeroDigest : Digest := Vector.replicate 4 0
 
 /-- The 24 bytes of a field element, its three limbs. -/
 def eBytes (x : E) : List UInt8 := kBytes (x.limb 0) ++ kBytes (x.limb 1) ++ kBytes (x.limb 2)
@@ -224,12 +228,12 @@ def eBytes (x : E) : List UInt8 := kBytes (x.limb 0) ++ kBytes (x.limb 1) ++ kBy
 def paddedCells (c : DeferredClaim) : List E :=
   c.cells ++ if c.cells.length % 2 = 1 then [0] else []
 
-/-- The bytes `statementDigest seed s` hashes: the seed, the leanXMSS, leanSPHINCS and DA claims'
-digests, then the padded deferred cells. Each list's digest binds its length through Keccak's
-padding. -/
+/-- The bytes `statementDigest seed s` hashes: the seed, the leanXMSS and leanSPHINCS claims'
+digests, the DA digest, then the padded deferred cells. Each list's digest binds its length
+through Keccak's padding. -/
 def statementPreimage (seed : Digest) (s : NodeStatement) : List UInt8 :=
   digestBytes seed ++ digestBytes (claimListDigest s.claims.xmss) ++
-    digestBytes (claimListDigest s.claims.sphincs) ++ digestBytes (daListDigest s.claims.da) ++
+    digestBytes (claimListDigest s.claims.sphincs) ++ digestBytes s.claims.da ++
     (paddedCells s.defer).flatMap eBytes
 
 /-- **The statement's digest under `seed`** (`statement_digest`, `aggregation.rs:335-364`,
@@ -439,13 +443,13 @@ inductive Holder (W : Type) where
   | direct (w : W)
   | child (i : ℕ)
 
-/-- What a node holds its statement by: its children, a holder for every claim, and the batching's
-hints. -/
+/-- What a node holds its statement by: its children, a holder for every signature claim, the blob
+matrix it checks directly with the DA claim it opens (if any), and the batching's hints. -/
 structure NodeWitness where
   children : List Child
   xmss : List (Holder LeanXmss.Signature)
   sphincs : List (Holder Sphincs.Signature)
-  da : List (Holder Da.Witness)
+  da : Option (DaClaim × Da.Witness)
   hints : BatchHints
 
 /-- **A claim is held**: by a witness `w` that `holds`, or by a child whose claims of the kind
@@ -461,21 +465,24 @@ def Held {α W : Type} (holds : α → W → Prop) (claimsOf : Claims → List �
 * the deferring verifier accepts every child's proof, for the child's statement under the same
   seed, the bytecode's value at the child's point taken from the witness (`fresh`; checked only at
   the root, in the batched claim);
-* every claim of `s` is held;
+* every signature claim of `s` is held;
+* its DA digest is that of the claim the matrix it checks opens, or, without one, zero or a
+  child's DA digest (`da_pick`, `lean_ethereum.py:4207-4211`);
 * `s` defers the batching of the children's claims on the bytecode (`batchOf`, on the stream of
   the children's claims and the hints), and a node without children the bytecode at zero. -/
 def NodeRel (bytecode : List K) (seed : Digest) (s : NodeStatement) (w : NodeWitness) : Prop :=
   s.defer.Shaped bytecode ∧
   (∀ c ∈ w.children, c.statement.defer.Shaped bytecode ∧
     verifyDeferred bytecode seed (statementDigest seed c.statement) c.fresh c.proof = true) ∧
-  -- a leanXMSS claim by a signature at any leaf index, a leanSPHINCS claim by a signature, a DA
-  -- claim by a matrix
+  -- a leanXMSS claim by a signature at any leaf index, a leanSPHINCS claim by a signature
   List.Forall₂ (Held (fun (c : XmssClaim) σ ↦ xmssVerify c.1 c.2 σ = true) Claims.xmss
     w.children) s.claims.xmss w.xmss ∧
   List.Forall₂ (Held (fun (c : SphincsClaim) σ ↦ sphincsVerify c.1 c.2 σ = true) Claims.sphincs
     w.children) s.claims.sphincs w.sphincs ∧
-  List.Forall₂ (Held (fun (c : DaClaim) (m : Da.Witness) ↦
-    m.Opens c.daRoot c.membershipVectorDigest) Claims.da w.children) s.claims.da w.da ∧
+  -- the DA digest: the claim the matrix checked directly opens, else zero or a child's
+  (match w.da with
+    | some (c, m) => s.claims.da = daClaimDigest c ∧ m.Opens c.daRoot c.membershipVectorDigest
+    | none => s.claims.da = zeroDigest ∨ ∃ c ∈ w.children, c.statement.claims.da = s.claims.da) ∧
   if w.children = [] then s.defer.AtZero bytecode
   else Guest.Batch.batchRun (m := Id) keccak256 keccakF
     (Guest.Batch.batchOf (· = s.defer) bytecode w.children.length)
@@ -488,14 +495,14 @@ abbrev deployedSeed (guest : Program) : Digest := fiatShamirIv (bytecodeWords gu
 
 /-! ## What a proof of the leanISA guest program establishes, its witness named -/
 
-/-- **The candidate collisions** of two statements' digests: the pairs of inputs of the four
-hashes the digests compute, the outer one, the two claim lists' and the DA list's. -/
+/-- **The candidate collisions** of two statements' digests: the pairs of inputs of the three
+hashes the digests compute, the outer one and the two claim lists'. The DA digest enters the
+preimage as it is. -/
 def collisionCandidates (seed : Digest) (s : NodeStatement) (seed' : Digest)
     (s' : NodeStatement) : List (List UInt8 × List UInt8) :=
   [(statementPreimage seed s, statementPreimage seed' s'),
     (claimsPreimage s.claims.xmss, claimsPreimage s'.claims.xmss),
-    (claimsPreimage s.claims.sphincs, claimsPreimage s'.claims.sphincs),
-    (daPreimage s.claims.da, daPreimage s'.claims.da)]
+    (claimsPreimage s.claims.sphincs, claimsPreimage s'.claims.sphincs)]
 
 /-- **A collision**: a pair of different inputs with the same Keccak-256 digest, among
 `pairs`. -/
@@ -727,19 +734,16 @@ def coverage (s : NodeStatement) (w : NodeWitness) : ℕ :=
   s.claims.xmss.length + (plan s.claims.xmss ((direct s.claims.xmss w.xmss).map (·.1))
       (ch.map (·.statement.claims.xmss))).dups.length +
     s.claims.sphincs.length + (plan s.claims.sphincs ((direct s.claims.sphincs w.sphincs).map (·.1))
-      (ch.map (·.statement.claims.sphincs))).dups.length +
-    s.claims.da.length + (plan s.claims.da ((direct s.claims.da w.da).map (·.1))
-      (ch.map (·.statement.claims.da))).dups.length
+      (ch.map (·.statement.claims.sphincs))).dups.length
 
 open Hints in
 /-- **The deployed limits**, where `NodeRel` admits witnesses the guest program cannot run; a
 child's own limits are `ChildOk`'s. Implied by these, with `NodeRel` and `ChildOk`, and so not
-limits of their own: a child's stack log at most `28` and rate in `[1, 4]` (`readSizes`), the duplicate DA slots below `258`
-(G:4127-4129), every count of `meta` below `2^16` (G:4114-4119), the bus depth at most `32`
-(G:1630), the tables' heights at most `28` (G:2010). -/
+limits of their own: a child's stack log at most `28` and rate in `[1, 4]` (`readSizes`), at
+most one blob matrix checked directly (`NodeWitness.da`, G:4097), every count of `meta` below
+`2^16` (G:4114-4119), the bus depth at most `32` (G:1630), the tables' heights at most `28`
+(G:2010). -/
 structure Limits (s : NodeStatement) (w : NodeWitness) : Prop where
-  /-- At most one DA claim is held directly (G:4121). -/
-  directDa : (direct s.claims.da w.da).length ≤ 1
   /-- A claim declared `n` times is held `n` times, by witnesses or by distinct entries of the
   children's lists: each coverage slot is written once (G:3871-3872, 4080-4081, 4262), where
   `NodeRel` lets two equal claims share one holder. -/
@@ -747,20 +751,13 @@ structure Limits (s : NodeStatement) (w : NodeWitness) : Prop where
     (w.children.map fun c ↦ c.statement.claims.xmss.count x).sum
   sphincsHeld : ∀ x, s.claims.sphincs.count x ≤ ((direct s.claims.sphincs w.sphincs).map (·.1)).count x +
     (w.children.map fun c ↦ c.statement.claims.sphincs.count x).sum
-  daHeld : ∀ x, s.claims.da.count x ≤ ((direct s.claims.da w.da).map (·.1)).count x +
-    (w.children.map fun c ↦ c.statement.claims.da.count x).sum
   /-- At most `MAX_RECURSIONS = 16` children (G:4120). -/
   children : w.children.length ≤ 16
-  /-- At most `MAX_DA_ROOTS = 16` DA claims in the statement and in each child (G:4126,
-  4246). -/
-  daRoots : s.claims.da.length ≤ 16 ∧ ∀ c ∈ w.children, c.statement.claims.da.length ≤ 16
   /-- Every child's signature list below `2^16` (G:4233-4234). -/
   lists : ∀ c ∈ w.children, c.statement.claims.xmss.length < 2 ^ 16 ∧
     c.statement.claims.sphincs.length < 2 ^ 16
   /-- The coverage table below `2^16` (G:4135-4136). -/
   coverage : coverage s w < 2 ^ 16
-  /-- At least one declared claim (G:4174). -/
-  nonempty : 0 < s.claims.xmss.length + s.claims.sphincs.length + s.claims.da.length
 
 /-! ## The leanISA guest program's completeness on the covered nodes -/
 
@@ -769,8 +766,8 @@ namespace Budget
 open Hints
 
 /-- **The nodes the deployed budget covers**, eight families by the node's children, raw
-signatures (leanXMSS and leanSPHINCS held directly), blob rows held directly (one matrix at most,
-`Limits`), and claims (declared, coverage slots, the children's declared claims): a recursion node
+signatures (leanXMSS and leanSPHINCS held directly), the rows of the blob matrix checked directly,
+and claims (declared, coverage slots, the children's declared claims): a recursion node
 of `2048` claims; a leaf of `2048` raw signatures and claims; `8` children and `2^15` claims; `4`
 children, `1024` raw signatures and `8192` claims; `4` children, a matrix of `32` rows and `8192`
 claims; `2` children, `256` raw signatures, a matrix of `32` rows and `8192` claims; `2` children,
@@ -778,11 +775,11 @@ a matrix of `32` rows and `2^14` claims; no child, a matrix of `32` rows and `2^
 def Covered (s : NodeStatement) (w : NodeWitness) : Prop :=
   let n := w.children.length
   let raw := (direct s.claims.xmss w.xmss).length + (direct s.claims.sphincs w.sphincs).length
-  let blobs := (direct s.claims.da w.da).length
-  let rows := ((direct s.claims.da w.da).map fun p ↦ p.2.rows.length).sum
-  let declared := s.claims.xmss.length + s.claims.sphincs.length + s.claims.da.length
+  let blobs := (w.da.map fun _ ↦ 1).getD 0
+  let rows := (w.da.map fun p ↦ p.2.rows.length).getD 0
+  let declared := s.claims.xmss.length + s.claims.sphincs.length
   let kids := (w.children.map fun c ↦ c.statement.claims.xmss.length +
-    c.statement.claims.sphincs.length + c.statement.claims.da.length).sum
+    c.statement.claims.sphincs.length).sum
   let claims (b : ℕ) : Prop := declared ≤ b ∧ coverage s w ≤ b ∧ kids ≤ b
   (raw = 0 ∧ blobs = 0 ∧ claims 2048) ∨
   (n = 0 ∧ blobs = 0 ∧ raw ≤ 2048 ∧ declared ≤ 2048 ∧ coverage s w ≤ 2048) ∨

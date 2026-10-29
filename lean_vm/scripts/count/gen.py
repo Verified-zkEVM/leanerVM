@@ -16,10 +16,10 @@ written under `LeanVM/Guest/`. `CMD` is one of
   among them, and `child_claim_list_digest`'s callees);
 * `cntw`: `Memory/GuestCntW{X,M,S,D,J,K}/`, their tops and `Memory/GuestCntWPm.lean`, the same
   over the closure of `WROOTS` (`verify_tables`' and `check_opening_terminal`'s statically bounded
-  callees, the rounds loop `__loop10`, `shared_selector_tables`' callees and `__loop15`);
+  callees, the rounds loop `__loop9`, `shared_selector_tables`' callees and `__loop14`);
 * `ratiov`: `Count/RatioVData.lean`, `Count/RatioVChk*.lean`, `Count/RatioV.lean`, the counts of
   `RATIOV_ROOTS` (`verify_sub`'s callees with no static bound but `verify_tables` and the terminal,
-  and the terminal's `__loop15` and `ring_switch_weight`) within ratios of their words;
+  and the terminal's `__loop14` and `ring_switch_weight`) within ratios of their words;
 * `vscount`: `Count/VsCountData.lean`, `Count/VsCountChk*.lean`, the `V` families' counts as tables
   (`vscount.py`, used by `Budget/VsCount.lean`, `Budget/L5Count.lean`), and
   `Count/MvCountData.lean`, `Count/MvCountChk*.lean`, those of `main`'s `claim_list_digest` and
@@ -41,12 +41,11 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 OPS = [('xor', 'X', 0), ('mulNative', 'M', 1), ('setConstant', 'S', 2), ('deref', 'D', 3),
        ('jump', 'J', 4), ('keccak', 'K', 5)]
 XMSS = 'verify_lean_xmss'
-MAIN_FRAME = 408 + 8473  # B2C.mainFrame
-# `main`'s statically bounded callees, and `__loop5`'s loop over a child's DA roots.
-CONST_ROOTS = [('Exp', 'exponent_tables'), ('Dl', 'da_list_digest'), ('Cov', 'cover_da_root'),
-               ('Sd', 'statement_digest')]
-LOOP_ROOTS = [('L0', '__loop0'), ('L1', '__loop1'), ('L2', '__loop2'), ('L3', '__loop3'),
-              ('L4', '__loop4'), ('L28', '__loop28')]
+MAIN_FRAME = 406 + 8456  # B2C.mainFrame
+# `main`'s statically bounded callees: the exponent tables, the statement's digest, and its four
+# loops (the two duplicate-claim regions, the raw leanXMSS and leanSPHINCS signatures).
+CONST_ROOTS = [('Exp', 'exponent_tables'), ('Sd', 'statement_digest')]
+LOOP_ROOTS = [('L1', '__loop0'), ('L2', '__loop1'), ('L3', '__loop2'), ('L4', '__loop3')]
 AGG = 'aggregate_claims'
 ROOTS = [n for _, n in CONST_ROOTS] + [n for _, n in LOOP_ROOTS] + [AGG]
 # `verify_sub`'s statically bounded callees (each child's opening arm among them),
@@ -57,24 +56,23 @@ ROOTS = [n for _, n in CONST_ROOTS] + [n for _, n in LOOP_ROOTS] + [AGG]
 VROOTS = (['open_stacked__L%d' % c for c in range(28)] +
           ['g_power_of_word', 'assert_canonical', 'log2_ceil_in_the_exponent__L0_L34',
            'log2_ceil_in_the_exponent__L15_L34', 'certify_placement', 'ring_switch_target',
-           'list_split', '__loop17'] + ['child_claim_list_last__L%d' % k for k in range(17)] +
-          vscount.MV_ST + vscount.MV_LP + vscount.MV_DL + vscount.MV_CL + ['__loop16'])
+           'list_split', '__loop16'] + ['child_claim_list_last__L%d' % k for k in range(17)] +
+          vscount.MV_ST + vscount.MV_LP + vscount.MV_DL + vscount.MV_CL + ['__loop15'])
 # `verify_tables`' and `check_opening_terminal`'s statically bounded callees, `verify_tables`' rounds
-# loop, `shared_selector_tables`' callees and the terminal's `__loop15`: the `W` count families
+# loop, `shared_selector_tables`' callees and the terminal's `__loop14`: the `W` count families
 # (`Memory/GuestCntW*`), which bound those two callees of `verify_sub` by their trees' shapes.
 WROOTS = (['block_selector__L%d' % k for k in range(34)] + ['block_selector_tab__L%d' % k for k in range(34)] +
           ['eq_prefix_run__L%d' % k for k in range(41)] + ['index_mle__L%d' % k for k in range(34)] +
           ['padding_weight__L%d' % k for k in range(29)] + ['plus_one_run__L%d' % k for k in range(34)] +
           ['sel_partial_nibble__L%d' % k for k in range(4)] + ['column_selector__L%d' % k for k in range(29)] +
-          ['eq_prefix_chain', 'sumcheck_round4', '__loop10', '__loop9', '__loop15', 'selector_tables'])
-# `verify_sub`'s callees with no static bound, and the terminal's `__loop15` and
+          ['eq_prefix_chain', 'sumcheck_round4', '__loop9', '__loop8', '__loop14', 'selector_tables'])
+# `verify_sub`'s callees with no static bound, and the terminal's `__loop14` and
 # `ring_switch_weight` (`verify_tables` and the terminal are bounded by their trees' shapes, the `W`
 # families), within ratios of their words (`Count/RatioV*`).
-RATIOV_ROOTS = [('Vbg', 'verify_bus_gkr'), ('Vk', 'verify_keccak'), ('Vl15', '__loop15'),
+RATIOV_ROOTS = [('Vbg', 'verify_bus_gkr'), ('Vk', 'verify_keccak'), ('Vl15', '__loop14'),
                 ('Vrsw', 'ring_switch_weight')]
-MAIN_CALLEES = ['exponent_tables', '__loop0', 'da_list_digest', 'claim_list_digest', '__loop1',
-                '__loop2', '__loop3', '__loop4', 'da_verify', 'cover_da_root', '__loop5',
-                AGG, 'statement_digest']
+MAIN_CALLEES = ['exponent_tables', 'claim_list_digest', '__loop0', '__loop1', '__loop2', '__loop3',
+                'da_verify', '__loop4', AGG, 'statement_digest']
 
 
 class G:
@@ -353,7 +351,7 @@ def cmd_report(g):
     print('not certified (xor):', [f['name'] for i, f in sorted(g.fns.items()) if f['name'] not in allc[0]])
     S = g.closure(ROOTS)
     print('closure of ROOTS:', len(S))
-    for n in MAIN_CALLEES + ['verify_sub', 'child_claim_list_digest', '__loop28', XMSS, 'verify_sig_lean_sphincs']:
+    for n in MAIN_CALLEES + ['verify_sub', 'child_claim_list_digest', XMSS, 'verify_sig_lean_sphincs']:
         print('  %-26s' % n, ' | '.join('%s %s' % (lop[:3], show(allc[k].get(n))) for lop, P, k in OPS),
               '| words', show(wcert.get(n)))
 

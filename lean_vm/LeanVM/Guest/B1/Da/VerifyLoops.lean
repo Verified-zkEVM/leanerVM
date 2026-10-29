@@ -14,7 +14,7 @@ public import LeanVM.Guest.B1.Da.VerifyL23Chk
 # `da_verify`'s loops
 
 `l18_step` (prefix bases), `l19_step` (running sums), `l22_step` (the sums' check), `l23_step`
-(a row's digest), `l24_step` (padding rows), `col_loop_step` (`__loop20`, `__loop21`), and
+(a row's digest), `l24_step` (padding rows), `col_loop_step` (`__loop19`, `__loop20`), and
 `loop_from`: a `mul_range` loop started at `g^a` gives its body at every `g^j`, `a ≤ j < m`.
 -/
 
@@ -63,9 +63,9 @@ theorem loop_params {j : ℕ} {f : String} (hshape : loopShapeF (coreProgram.get
   simp only [loopShapeF, Bool.and_eq_true, decide_eq_true_eq] at hs
   rw [hs.1.2, hlen]
 
-theorem l18_step {x : E} {ps : List E} (h : coreProgram.Rel rd "__loop18" (x :: ps) []) :
+theorem l18_step {x : E} {ps : List E} (h : coreProgram.Rel rd "__loop17" (x :: ps) []) :
     (∀ N pbT pd, ps = [N, pbT, pd] → LoadHolds rd (pbT * x) 0 (pd * x ^ 128)) ∧
-      (x * gen + ps.headD 0 ≠ 0 → coreProgram.Rel rd "__loop18" (x * gen :: ps) []) := by
+      (x * gen + ps.headD 0 ≠ 0 → coreProgram.Rel rd "__loop17" (x * gen :: ps) []) := by
   have hok := l18_ok
   simp only [Bool.and_eq_true, decide_eq_true_eq, l18Ok] at hok
   obtain ⟨⟨⟨⟨⟨hshape, hlen⟩, hm11⟩, hm12⟩, hl⟩, hidx⟩ := hok
@@ -73,7 +73,7 @@ theorem l18_step {x : E} {ps : List E} (h : coreProgram.Rel rd "__loop18" (x :: 
     loop_stepF (find_of_idx hidx (by rw [coreProgram_length]; omega)) hshape h
   refine ⟨fun N pbT pd hN => ?_, hnext⟩
   have hat := atoms_of_flat hall
-  have hpar : (coreProgram.getD 359 default).params = [V.n 0, V.n 1, V.n 2, V.n 3] := by
+  have hpar : (coreProgram.getD 356 default).params = [V.n 0, V.n 1, V.n 2, V.n 3] := by
     rw [loop_params hshape hlen]; rfl
   rw [hpar, hN] at hps
   simp only [List.tail_cons, List.map_cons, List.map_nil, List.cons.injEq, and_true] at hps
@@ -81,10 +81,10 @@ theorem l18_step {x : E} {ps : List E} (h : coreProgram.Rel rd "__loop18" (x :: 
   have := load_sound hl hat
   rwa [isMul_sound hm12 hat, monoIs_sound hm11 hat, h2, h3, hx] at this
 
-theorem l19_step {x : E} {ps : List E} (h : coreProgram.Rel rd "__loop19" (x :: ps) []) :
+theorem l19_step {x : E} {ps : List E} (h : coreProgram.Rel rd "__loop18" (x :: ps) []) :
     (∀ N acc rb, ps = [N, acc, rb] →
       LoadHolds rd (rb * x) 0 (acc * x ^ 129) ∧ LoadHolds rd (acc * x ^ 129) 0 0) ∧
-      (x * gen + ps.headD 0 ≠ 0 → coreProgram.Rel rd "__loop19" (x * gen :: ps) []) := by
+      (x * gen + ps.headD 0 ≠ 0 → coreProgram.Rel rd "__loop18" (x * gen :: ps) []) := by
   have hok := l19_ok
   simp only [Bool.and_eq_true, decide_eq_true_eq, l19Ok] at hok
   obtain ⟨⟨⟨⟨⟨⟨⟨hshape, hlen⟩, hm12⟩, hm13⟩, hl12⟩, hc14⟩, hl14⟩, hidx⟩ := hok
@@ -92,7 +92,7 @@ theorem l19_step {x : E} {ps : List E} (h : coreProgram.Rel rd "__loop19" (x :: 
     loop_stepF (find_of_idx hidx (by rw [coreProgram_length]; omega)) hshape h
   refine ⟨fun N acc rb hN => ?_, hnext⟩
   have hat := atoms_of_flat hall
-  have hpar : (coreProgram.getD 360 default).params = [V.n 0, V.n 1, V.n 2, V.n 3] := by
+  have hpar : (coreProgram.getD 357 default).params = [V.n 0, V.n 1, V.n 2, V.n 3] := by
     rw [loop_params hshape hlen]; rfl
   rw [hpar, hN] at hps
   simp only [List.tail_cons, List.map_cons, List.map_nil, List.cons.injEq, and_true] at hps
@@ -104,9 +104,9 @@ theorem l19_step {x : E} {ps : List E} (h : coreProgram.Rel rd "__loop19" (x :: 
   rw [p12, const_sound hc14 hat, word_zero] at b
   exact ⟨a, b⟩
 
-theorem l22_step {x : E} {ps : List E} (h : coreProgram.Rel rd "__loop22" (x :: ps) []) :
+theorem l22_step {x : E} {ps : List E} (h : coreProgram.Rel rd "__loop21" (x :: ps) []) :
     (∀ N rb, ps = [N, rb] → ∃ ch, LoadHolds rd (rb * x) 0 ch ∧ LoadHolds rd ch 128 0) ∧
-      (x * gen + ps.headD 0 ≠ 0 → coreProgram.Rel rd "__loop22" (x * gen :: ps) []) := by
+      (x * gen + ps.headD 0 ≠ 0 → coreProgram.Rel rd "__loop21" (x * gen :: ps) []) := by
   have hok := l22_ok
   simp only [Bool.and_eq_true, decide_eq_true_eq, l22Ok] at hok
   obtain ⟨⟨⟨⟨⟨⟨⟨hshape, hlen⟩, hm3⟩, hl4⟩, hl5⟩, hc6⟩, hae⟩, hidx⟩ := hok
@@ -114,7 +114,7 @@ theorem l22_step {x : E} {ps : List E} (h : coreProgram.Rel rd "__loop22" (x :: 
     loop_stepF (find_of_idx hidx (by rw [coreProgram_length]; omega)) hshape h
   refine ⟨fun N rb hN => ?_, hnext⟩
   have hat := atoms_of_flat hall
-  have hpar : (coreProgram.getD 363 default).params = [V.n 0, V.n 1, V.n 2] := by
+  have hpar : (coreProgram.getD 360 default).params = [V.n 0, V.n 1, V.n 2] := by
     rw [loop_params hshape hlen]; rfl
   rw [hpar, hN] at hps
   simp only [List.tail_cons, List.map_cons, List.map_nil, List.cons.injEq, and_true] at hps
@@ -125,12 +125,12 @@ theorem l22_step {x : E} {ps : List E} (h : coreProgram.Rel rd "__loop22" (x :: 
   rw [assertEq_sound hae hat, const_sound hc6 hat, word_zero] at b
   exact ⟨_, a, b⟩
 
-theorem l23_step {x : E} {ps : List E} (h : coreProgram.Rel rd "__loop23" (x :: ps) []) :
+theorem l23_step {x : E} {ps : List E} (h : coreProgram.Rel rd "__loop22" (x :: ps) []) :
     (∀ N pbT rt, ps = [N, pbT, rt] → ∃ run, LoadHolds rd (pbT * x) 0 run ∧
       ReadsAt rd run (memRun rd run 128) ∧
       LoadHolds rd (rt * x ^ 2) 0 (digestScalars (keccak256 (cellsBytes (memRun rd run 128)))).1 ∧
       LoadHolds rd (rt * x ^ 2) 1 (digestScalars (keccak256 (cellsBytes (memRun rd run 128)))).2) ∧
-      (x * gen + ps.headD 0 ≠ 0 → coreProgram.Rel rd "__loop23" (x * gen :: ps) []) := by
+      (x * gen + ps.headD 0 ≠ 0 → coreProgram.Rel rd "__loop22" (x * gen :: ps) []) := by
   have hok := l23_ok
   simp only [Bool.and_eq_true, decide_eq_true_eq, l23Ok] at hok
   obtain ⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨hshape, hlen⟩, hm4⟩, hl5⟩, hlds⟩, hchk⟩, hm477⟩, hm478⟩, hd0⟩, hd1⟩, hidx⟩ := hok
@@ -138,7 +138,7 @@ theorem l23_step {x : E} {ps : List E} (h : coreProgram.Rel rd "__loop23" (x :: 
     loop_stepF (find_of_idx hidx (by rw [coreProgram_length]; omega)) hshape h
   refine ⟨fun N pbT rt hN => ?_, hnext⟩
   have hat := atoms_of_flat hall
-  have hpar : (coreProgram.getD 365 default).params = [V.n 0, V.n 1, V.n 2, V.n 3] := by
+  have hpar : (coreProgram.getD 362 default).params = [V.n 0, V.n 1, V.n 2, V.n 3] := by
     rw [loop_params hshape hlen]; rfl
   rw [hpar, hN] at hps
   simp only [List.tail_cons, List.map_cons, List.map_nil, List.cons.injEq, and_true] at hps
@@ -153,10 +153,10 @@ theorem l23_step {x : E} {ps : List E} (h : coreProgram.Rel rd "__loop23" (x :: 
   rw [hv] at hr
   obtain ⟨hd, -⟩ := chain_final hchk rfl hat (pre := []) (n := 0) rfl
     (fun c => (cellsOfState_zero false c).symm)
-  have hv' : ((rowSpec (atomsIn (loopPre (coreProgram.getD 365 default)))).vals σ).take
-      ((rowSpec (atomsIn (loopPre (coreProgram.getD 365 default)))).len / 16) =
+  have hv' : ((rowSpec (atomsIn (loopPre (coreProgram.getD 362 default)))).vals σ).take
+      ((rowSpec (atomsIn (loopPre (coreProgram.getD 362 default)))).len / 16) =
       memRun rd (σ (.n 5)) 128 := by
-    rw [← hv, show (rowSpec (atomsIn (loopPre (coreProgram.getD 365 default)))).len / 16 = 128
+    rw [← hv, show (rowSpec (atomsIn (loopPre (coreProgram.getD 362 default)))).len / 16 = 128
       by simp [rowSpec]]
     simp [rowSpec, ChainSpec.vals]
   rw [hv', List.nil_append] at hd
@@ -164,17 +164,17 @@ theorem l23_step {x : E} {ps : List E} (h : coreProgram.Rel rd "__loop23" (x :: 
     rw [isMul_sound hm478 hat, isMul_sound hm477 hat, h3, hx, sq]
   refine ⟨σ (.n 5), a, hr, ?_, ?_⟩
   · have := load_sound hd0 hat
-    rw [show ((rowSpec (atomsIn (loopPre (coreProgram.getD 365 default)))).outV
-      ((rowSpec (atomsIn (loopPre (coreProgram.getD 365 default)))).nb - 1) 0) =
-      ((rowSpec (atomsIn (loopPre (coreProgram.getD 365 default)))).outV
-      ((rowSpec (atomsIn (loopPre (coreProgram.getD 365 default)))).nb - 1) ((0 : Fin 13) : ℕ))
+    rw [show ((rowSpec (atomsIn (loopPre (coreProgram.getD 362 default)))).outV
+      ((rowSpec (atomsIn (loopPre (coreProgram.getD 362 default)))).nb - 1) 0) =
+      ((rowSpec (atomsIn (loopPre (coreProgram.getD 362 default)))).outV
+      ((rowSpec (atomsIn (loopPre (coreProgram.getD 362 default)))).nb - 1) ((0 : Fin 13) : ℕ))
       from rfl, p478] at this
     rw [← hd]; exact this
   · have := load_sound hd1 hat
-    rw [show ((rowSpec (atomsIn (loopPre (coreProgram.getD 365 default)))).outV
-      ((rowSpec (atomsIn (loopPre (coreProgram.getD 365 default)))).nb - 1) 1) =
-      ((rowSpec (atomsIn (loopPre (coreProgram.getD 365 default)))).outV
-      ((rowSpec (atomsIn (loopPre (coreProgram.getD 365 default)))).nb - 1) ((1 : Fin 13) : ℕ))
+    rw [show ((rowSpec (atomsIn (loopPre (coreProgram.getD 362 default)))).outV
+      ((rowSpec (atomsIn (loopPre (coreProgram.getD 362 default)))).nb - 1) 1) =
+      ((rowSpec (atomsIn (loopPre (coreProgram.getD 362 default)))).outV
+      ((rowSpec (atomsIn (loopPre (coreProgram.getD 362 default)))).nb - 1) ((1 : Fin 13) : ℕ))
       from rfl, p478] at this
     rw [← hd]; exact this
 
@@ -183,9 +183,9 @@ def GapRowC (rd : Reader) (node nb : E) (x : E) : Prop :=
   LoadHolds rd (node * nb ^ 2 * x ^ 2) 0 (digestScalars daPadRowDigest).1 ∧
     LoadHolds rd (node * nb ^ 2 * x ^ 2) 1 (digestScalars daPadRowDigest).2
 
-theorem l24_step {x : E} {ps : List E} (h : coreProgram.Rel rd "__loop24" (x :: ps) []) :
+theorem l24_step {x : E} {ps : List E} (h : coreProgram.Rel rd "__loop23" (x :: ps) []) :
     (∀ N node nb, ps = [N, node, nb] → GapRowC rd node nb x) ∧
-      (x * gen + ps.headD 0 ≠ 0 → coreProgram.Rel rd "__loop24" (x * gen :: ps) []) := by
+      (x * gen + ps.headD 0 ≠ 0 → coreProgram.Rel rd "__loop23" (x * gen :: ps) []) := by
   have hok := l24_ok
   simp only [Bool.and_eq_true, decide_eq_true_eq] at hok
   obtain ⟨hok, hidx⟩ := hok
@@ -196,7 +196,7 @@ theorem l24_step {x : E} {ps : List E} (h : coreProgram.Rel rd "__loop24" (x :: 
     loop_stepF (find_of_idx hidx (by rw [coreProgram_length]; omega)) hshape h
   refine ⟨fun N node nb hN => ?_, hnext⟩
   have hat := atoms_of_flat hall
-  have hpar : (coreProgram.getD 366 default).params = [V.n 0, V.n 1, V.n 2, V.n 3] := by
+  have hpar : (coreProgram.getD 363 default).params = [V.n 0, V.n 1, V.n 2, V.n 3] := by
     rw [loop_params hshape hlen]; rfl
   rw [hpar, hN] at hps
   simp only [List.tail_cons, List.map_cons, List.map_nil, List.cons.injEq, and_true] at hps

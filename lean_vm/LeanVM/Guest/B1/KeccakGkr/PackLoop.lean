@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.KeccakGkr.PackLoop
 
-  B1 of the pack rounds' loop helpers (`__loop30` .. `__loop33`, one per `keccak_layer`
+  B1 of the pack rounds' loop helpers (`__loop28` .. `__loop31`, one per `keccak_layer`
   specialization): two equality-mode rounds an iteration, from one round record to the next.
 -/
 
@@ -13,7 +13,7 @@ public import LeanVM.Guest.B1.KeccakGkr.Plain
 # The pack rounds' loop (`keccak_layer`, G:2640-2671)
 
 `for x2 in mul_range(1, half_g)` in `keccak_layer` is lowered to a helper of parameters
-`[x2, half_g, rounds, prev_point, point]` (`Data.core402` .. `Data.core405`, the same body but
+`[x2, half_g, rounds, prev_point, point]` (`Data.core381` .. `Data.core384`, the same body but
 for the self-call's name, `packLoopT`). At `x = g^j` it reads the record `rounds·x`, the two
 coordinates `prev_point[2j], [2j + 1]` (`prev_point·x²`), runs two equality-mode rounds
 (`eqRound`, as `keccak_round`), stores their challenges at `point[2j], [2j + 1]` and writes the
@@ -182,24 +182,24 @@ def packLoopT (name : String) : List Stmt :=
 
 /-- The four helpers' names, by `keccak_layer` specialization (`first`, `odd`). -/
 def packLoopName : ℕ → ℕ → String
-  | 1, 0 => "__loop30"
-  | 1, _ => "__loop31"
-  | _, 0 => "__loop32"
-  | _, _ => "__loop33"
+  | 1, 0 => "__loop28"
+  | 1, _ => "__loop29"
+  | _, 0 => "__loop30"
+  | _, _ => "__loop31"
 
-theorem packLoop_body30 : Data.core402.body = packLoopT "__loop30" := stmtsEqb_sound (by decide +kernel)
-theorem packLoop_body31 : Data.core403.body = packLoopT "__loop31" := stmtsEqb_sound (by decide +kernel)
-theorem packLoop_body32 : Data.core404.body = packLoopT "__loop32" := stmtsEqb_sound (by decide +kernel)
-theorem packLoop_body33 : Data.core405.body = packLoopT "__loop33" := stmtsEqb_sound (by decide +kernel)
+theorem packLoop_body30 : Data.core381.body = packLoopT "__loop28" := stmtsEqb_sound (by decide +kernel)
+theorem packLoop_body31 : Data.core382.body = packLoopT "__loop29" := stmtsEqb_sound (by decide +kernel)
+theorem packLoop_body32 : Data.core383.body = packLoopT "__loop30" := stmtsEqb_sound (by decide +kernel)
+theorem packLoop_body33 : Data.core384.body = packLoopT "__loop31" := stmtsEqb_sound (by decide +kernel)
 
-theorem find_packLoop30 : coreProgram.find? "__loop30" = some Data.core402 :=
-  Program.find?_of_indexOf? (j := 402) (by decide +kernel) rfl
-theorem find_packLoop31 : coreProgram.find? "__loop31" = some Data.core403 :=
-  Program.find?_of_indexOf? (j := 403) (by decide +kernel) rfl
-theorem find_packLoop32 : coreProgram.find? "__loop32" = some Data.core404 :=
-  Program.find?_of_indexOf? (j := 404) (by decide +kernel) rfl
-theorem find_packLoop33 : coreProgram.find? "__loop33" = some Data.core405 :=
-  Program.find?_of_indexOf? (j := 405) (by decide +kernel) rfl
+theorem find_packLoop30 : coreProgram.find? "__loop28" = some Data.core381 :=
+  Program.find?_of_indexOf? (j := 381) (by decide +kernel) rfl
+theorem find_packLoop31 : coreProgram.find? "__loop29" = some Data.core382 :=
+  Program.find?_of_indexOf? (j := 382) (by decide +kernel) rfl
+theorem find_packLoop32 : coreProgram.find? "__loop30" = some Data.core383 :=
+  Program.find?_of_indexOf? (j := 383) (by decide +kernel) rfl
+theorem find_packLoop33 : coreProgram.find? "__loop31" = some Data.core384 :=
+  Program.find?_of_indexOf? (j := 384) (by decide +kernel) rfl
 
 /-- **One iteration's meaning at `x`**: the record `rounds·x` holds a canonical capacity, a cursor,
 a claim and a scale; the coordinates `r₀, r₁` at `prev_point·x²`; the four words at the cursor

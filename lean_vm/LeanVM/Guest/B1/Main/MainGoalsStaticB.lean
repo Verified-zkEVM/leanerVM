@@ -43,13 +43,13 @@ def MainGoalL0B : Prop :=
 
 def MainGoalL1B : Prop :=
   (hm fs fp seed s w).nxd ≠ 0 →
-    CompleteAtDTB fs cert 16 "__loop1" (hLmain fs fp seed s w)
-      [1, gen ^ (hm fs fp seed s w).nxd, (hm fs fp seed s w).a77, gen ^ (hm fs fp seed s w).nlx] (Returns []) (fun _ => True) ((hm fs fp seed s w).nxd * SK "__loop1")
+    CompleteAtDTB fs cert 16 "__loop0" (hLmain fs fp seed s w)
+      [1, gen ^ (hm fs fp seed s w).nxd, (hm fs fp seed s w).a77, gen ^ (hm fs fp seed s w).nlx] (Returns []) (fun _ => True) ((hm fs fp seed s w).nxd * SK "__loop0")
 
 def MainGoalL2B : Prop :=
   (hm fs fp seed s w).nsd ≠ 0 →
-    CompleteAtDTB fs cert 16 "__loop2" (hLmain fs fp seed s w)
-      [1, gen ^ (hm fs fp seed s w).nsd, (hm fs fp seed s w).a80, gen ^ (hm fs fp seed s w).nls] (Returns []) (fun _ => True) ((hm fs fp seed s w).nsd * SK "__loop2")
+    CompleteAtDTB fs cert 16 "__loop1" (hLmain fs fp seed s w)
+      [1, gen ^ (hm fs fp seed s w).nsd, (hm fs fp seed s w).a80, gen ^ (hm fs fp seed s w).nls] (Returns []) (fun _ => True) ((hm fs fp seed s w).nsd * SK "__loop1")
 
 def MainGoalDlB : Prop :=
   CompleteAtDTB fs cert 16 "da_list_digest" (hLmain fs fp seed s w)
@@ -58,15 +58,15 @@ def MainGoalDlB : Prop :=
 
 def MainGoalL3B : Prop :=
   (hm fs fp seed s w).nrx ≠ 0 →
-    CompleteAtDTB fs cert 16 "__loop3" (hLmain fs fp seed s w)
+    CompleteAtDTB fs cert 16 "__loop2" (hLmain fs fp seed s w)
       [1, gen ^ (hm fs fp seed s w).nrx, gen ^ ((hm fs fp seed s w).nlx + (hm fs fp seed s w).nxd), (hm fs fp seed s w).a117, (hm fs fp seed s w).a77] (Returns []) (fun _ => True)
-      ((hm fs fp seed s w).nrx * SK "__loop3")
+      ((hm fs fp seed s w).nrx * SK "__loop2")
 
 def MainGoalL4B : Prop :=
   (hm fs fp seed s w).nrs ≠ 0 →
-    CompleteAtDTB fs cert 16 "__loop4" (hLmain fs fp seed s w)
+    CompleteAtDTB fs cert 16 "__loop3" (hLmain fs fp seed s w)
       [1, gen ^ (hm fs fp seed s w).nrs, gen ^ ((hm fs fp seed s w).nls + (hm fs fp seed s w).nsd), (hm fs fp seed s w).a117, gen ^ ((hm fs fp seed s w).nlx + (hm fs fp seed s w).nxd),
-        gen ^ (hm fs fp seed s w).nrx, (hm fs fp seed s w).a80, (hm fs fp seed s w).a119] (Returns []) (fun _ => True) ((hm fs fp seed s w).nrs * SK "__loop4")
+        gen ^ (hm fs fp seed s w).nrx, (hm fs fp seed s w).a80, (hm fs fp seed s w).a119] (Returns []) (fun _ => True) ((hm fs fp seed s w).nrs * SK "__loop3")
 
 def MainGoalCvB : Prop :=
   (hm fs fp seed s w).nd = 1 →
@@ -86,7 +86,7 @@ def MainGoalStB : Prop :=
 
 variable {fs cert fp seed s w SB SK} {bytecode : List K}
 
-/-- **`__loop0`…`__loop2` within their static bounds.** -/
+/-- **`__loop0`…`__loop1` within their static bounds.** -/
 theorem mainGoalL0B (hT : TotalLeOn coreProgram fs "__loop0" LoopPre (fun a => logG (a.getD 1 0) * SK "__loop0"))
     (hl : (hm fs fp seed s w).nda + (hm fs fp seed s w).ndd < 2 ^ 64 - 1) : MainGoalL0B fs cert fp seed s w SK := fun hne =>
   (completeAt_of_rel_pureBat mfLoop_pure (by simp [mfLoopSet]) (fun rd _ => mfL0_rel rd _ hne) 16
@@ -94,14 +94,14 @@ theorem mainGoalL0B (hT : TotalLeOn coreProgram fs "__loop0" LoopPre (fun a => l
       have := hT rd t _ _ hn (loopPre_gen (Nat.pos_of_ne_zero hne) hl _) hv hb
       simpa [logG_gen hl] using this).toDTB
 
-theorem mainGoalL1B (hT : TotalLeOn coreProgram fs "__loop1" LoopPre (fun a => logG (a.getD 1 0) * SK "__loop1"))
+theorem mainGoalL1B (hT : TotalLeOn coreProgram fs "__loop0" LoopPre (fun a => logG (a.getD 1 0) * SK "__loop0"))
     (hl : (hm fs fp seed s w).nxd < 2 ^ 64 - 1) : MainGoalL1B fs cert fp seed s w SK := fun hne =>
   (completeAt_of_rel_pureBat mfLoop_pure (by simp [mfLoopSet]) (fun rd _ => mfL1_rel rd _ _ hne) 16
     fun rd t hn hv hb => by
       have := hT rd t _ _ hn (loopPre_gen (Nat.pos_of_ne_zero hne) hl _) hv hb
       simpa [logG_gen hl] using this).toDTB
 
-theorem mainGoalL2B (hT : TotalLeOn coreProgram fs "__loop2" LoopPre (fun a => logG (a.getD 1 0) * SK "__loop2"))
+theorem mainGoalL2B (hT : TotalLeOn coreProgram fs "__loop1" LoopPre (fun a => logG (a.getD 1 0) * SK "__loop1"))
     (hl : (hm fs fp seed s w).nsd < 2 ^ 64 - 1) : MainGoalL2B fs cert fp seed s w SK := fun hne =>
   (completeAt_of_rel_pureBat mfLoop_pure (by simp [mfLoopSet]) (fun rd _ => mfL2_rel rd _ _ hne) 16
     fun rd t hn hv hb => by
@@ -141,10 +141,10 @@ theorem mainGoalStB {bytecode : List K} (hR : NodeRel bytecode seed s w)
   · exact congrArg digestCells (statementDigest_parts (digestBytes_eq_cells _)
       (digestBytes_eq_cells _) (digestBytes_eq_cells _) (digestBytes_eq_cells _) rfl hlen)
 
-/-- **`__loop3` on an honest run.** -/
+/-- **`__loop2` on an honest run.** -/
 theorem mainGoalL3B (hn : NodeRel bytecode seed s w) (hl : Limits s w)
     (hc : Sig.verify_lean_xmss_complete_Spec) {SK : String → ℕ}
-    (hT : TotalLeOn coreProgram fs "__loop3" LoopPre (fun a => logG (a.getD 1 0) * SK "__loop3")) :
+    (hT : TotalLeOn coreProgram fs "__loop2" LoopPre (fun a => logG (a.getD 1 0) * SK "__loop2")) :
     MainGoalL3B fs cert fp seed s w SK := by
   intro h0
   have hpos : 0 < (hRawX s w).length := Nat.pos_of_ne_zero h0
@@ -155,10 +155,10 @@ theorem mainGoalL3B (hn : NodeRel bytecode seed s w) (hl : Limits s w)
   rw [pow_zero] at h
   exact h
 
-/-- **`__loop4` on an honest run.** -/
+/-- **`__loop3` on an honest run.** -/
 theorem mainGoalL4B (hn : NodeRel bytecode seed s w) (hl : Limits s w)
     (hc : Sig.verify_sig_lean_sphincs_complete_loads_Spec) {SK : String → ℕ}
-    (hT : TotalLeOn coreProgram fs "__loop4" LoopPre (fun a => logG (a.getD 1 0) * SK "__loop4")) :
+    (hT : TotalLeOn coreProgram fs "__loop3" LoopPre (fun a => logG (a.getD 1 0) * SK "__loop3")) :
     MainGoalL4B fs cert fp seed s w SK := by
   intro h0
   have hpos : 0 < (hRawS s w).length := Nat.pos_of_ne_zero h0

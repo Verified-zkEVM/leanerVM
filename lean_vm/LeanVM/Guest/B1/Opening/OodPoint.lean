@@ -379,119 +379,119 @@ set_option maxRecDepth 100000 in
 theorem ood_L6_iff (rd : Reader) (args rets : List E) :
     coreProgram.Rel rd "opening_ood_point__L6" args rets ↔
       MeaningOpeningOodPoint 6 rd args rets :=
-  ood_iff 6 (by decide) (Program.find?_of_indexOf? (j := 456) (by decide +kernel) rfl) rfl
+  ood_iff 6 (by decide) (Program.find?_of_indexOf? (j := 435) (by decide +kernel) rfl) rfl
     (stmtsEqb_sound (by decide +kernel)) rd args rets
 
 set_option maxRecDepth 100000 in
 theorem ood_L7_iff (rd : Reader) (args rets : List E) :
     coreProgram.Rel rd "opening_ood_point__L7" args rets ↔
       MeaningOpeningOodPoint 7 rd args rets :=
-  ood_iff 7 (by decide) (Program.find?_of_indexOf? (j := 475) (by decide +kernel) rfl) rfl
+  ood_iff 7 (by decide) (Program.find?_of_indexOf? (j := 454) (by decide +kernel) rfl) rfl
     (stmtsEqb_sound (by decide +kernel)) rd args rets
 
 set_option maxRecDepth 100000 in
 theorem ood_L8_iff (rd : Reader) (args rets : List E) :
     coreProgram.Rel rd "opening_ood_point__L8" args rets ↔
       MeaningOpeningOodPoint 8 rd args rets :=
-  ood_iff 8 (by decide) (Program.find?_of_indexOf? (j := 419) (by decide +kernel) rfl) rfl
+  ood_iff 8 (by decide) (Program.find?_of_indexOf? (j := 398) (by decide +kernel) rfl) rfl
     (stmtsEqb_sound (by decide +kernel)) rd args rets
 
 set_option maxRecDepth 100000 in
 theorem ood_L9_iff (rd : Reader) (args rets : List E) :
     coreProgram.Rel rd "opening_ood_point__L9" args rets ↔
       MeaningOpeningOodPoint 9 rd args rets :=
-  ood_iff 9 (by decide) (Program.find?_of_indexOf? (j := 437) (by decide +kernel) rfl) rfl
+  ood_iff 9 (by decide) (Program.find?_of_indexOf? (j := 416) (by decide +kernel) rfl) rfl
     (stmtsEqb_sound (by decide +kernel)) rd args rets
 
 set_option maxRecDepth 100000 in
 theorem ood_L10_iff (rd : Reader) (args rets : List E) :
     coreProgram.Rel rd "opening_ood_point__L10" args rets ↔
       MeaningOpeningOodPoint 10 rd args rets :=
-  ood_iff 10 (by decide) (Program.find?_of_indexOf? (j := 453) (by decide +kernel) rfl) rfl
+  ood_iff 10 (by decide) (Program.find?_of_indexOf? (j := 432) (by decide +kernel) rfl) rfl
     (stmtsEqb_sound (by decide +kernel)) rd args rets
 
 set_option maxRecDepth 100000 in
 theorem ood_L11_iff (rd : Reader) (args rets : List E) :
     coreProgram.Rel rd "opening_ood_point__L11" args rets ↔
       MeaningOpeningOodPoint 11 rd args rets :=
-  ood_iff 11 (by decide) (Program.find?_of_indexOf? (j := 472) (by decide +kernel) rfl) rfl
+  ood_iff 11 (by decide) (Program.find?_of_indexOf? (j := 451) (by decide +kernel) rfl) rfl
     (stmtsEqb_sound (by decide +kernel)) rd args rets
 
 set_option maxRecDepth 100000 in
 theorem ood_L12_iff (rd : Reader) (args rets : List E) :
     coreProgram.Rel rd "opening_ood_point__L12" args rets ↔
       MeaningOpeningOodPoint 12 rd args rets :=
-  ood_iff 12 (by decide) (Program.find?_of_indexOf? (j := 414) (by decide +kernel) rfl) rfl
+  ood_iff 12 (by decide) (Program.find?_of_indexOf? (j := 393) (by decide +kernel) rfl) rfl
     (stmtsEqb_sound (by decide +kernel)) rd args rets
 
 set_option maxRecDepth 100000 in
 theorem ood_L13_iff (rd : Reader) (args rets : List E) :
     coreProgram.Rel rd "opening_ood_point__L13" args rets ↔
       MeaningOpeningOodPoint 13 rd args rets :=
-  ood_iff 13 (by decide) (Program.find?_of_indexOf? (j := 434) (by decide +kernel) rfl) rfl
+  ood_iff 13 (by decide) (Program.find?_of_indexOf? (j := 413) (by decide +kernel) rfl) rfl
     (stmtsEqb_sound (by decide +kernel)) rd args rets
 
 set_option maxRecDepth 100000 in
 theorem ood_L14_iff (rd : Reader) (args rets : List E) :
     coreProgram.Rel rd "opening_ood_point__L14" args rets ↔
       MeaningOpeningOodPoint 14 rd args rets :=
-  ood_iff 14 (by decide) (Program.find?_of_indexOf? (j := 450) (by decide +kernel) rfl) rfl
+  ood_iff 14 (by decide) (Program.find?_of_indexOf? (j := 429) (by decide +kernel) rfl) rfl
     (stmtsEqb_sound (by decide +kernel)) rd args rets
 
 set_option maxRecDepth 100000 in
 theorem ood_L15_iff (rd : Reader) (args rets : List E) :
     coreProgram.Rel rd "opening_ood_point__L15" args rets ↔
       MeaningOpeningOodPoint 15 rd args rets :=
-  ood_iff 15 (by decide) (Program.find?_of_indexOf? (j := 469) (by decide +kernel) rfl) rfl
+  ood_iff 15 (by decide) (Program.find?_of_indexOf? (j := 448) (by decide +kernel) rfl) rfl
     (stmtsEqb_sound (by decide +kernel)) rd args rets
 
 set_option maxRecDepth 100000 in
 theorem ood_L16_iff (rd : Reader) (args rets : List E) :
     coreProgram.Rel rd "opening_ood_point__L16" args rets ↔
       MeaningOpeningOodPoint 16 rd args rets :=
-  ood_iff 16 (by decide) (Program.find?_of_indexOf? (j := 408) (by decide +kernel) rfl) rfl
+  ood_iff 16 (by decide) (Program.find?_of_indexOf? (j := 387) (by decide +kernel) rfl) rfl
     (stmtsEqb_sound (by decide +kernel)) rd args rets
 
 set_option maxRecDepth 100000 in
 theorem ood_L17_iff (rd : Reader) (args rets : List E) :
     coreProgram.Rel rd "opening_ood_point__L17" args rets ↔
       MeaningOpeningOodPoint 17 rd args rets :=
-  ood_iff 17 (by decide) (Program.find?_of_indexOf? (j := 431) (by decide +kernel) rfl) rfl
+  ood_iff 17 (by decide) (Program.find?_of_indexOf? (j := 410) (by decide +kernel) rfl) rfl
     (stmtsEqb_sound (by decide +kernel)) rd args rets
 
 set_option maxRecDepth 100000 in
 theorem ood_L18_iff (rd : Reader) (args rets : List E) :
     coreProgram.Rel rd "opening_ood_point__L18" args rets ↔
       MeaningOpeningOodPoint 18 rd args rets :=
-  ood_iff 18 (by decide) (Program.find?_of_indexOf? (j := 447) (by decide +kernel) rfl) rfl
+  ood_iff 18 (by decide) (Program.find?_of_indexOf? (j := 426) (by decide +kernel) rfl) rfl
     (stmtsEqb_sound (by decide +kernel)) rd args rets
 
 set_option maxRecDepth 100000 in
 theorem ood_L19_iff (rd : Reader) (args rets : List E) :
     coreProgram.Rel rd "opening_ood_point__L19" args rets ↔
       MeaningOpeningOodPoint 19 rd args rets :=
-  ood_iff 19 (by decide) (Program.find?_of_indexOf? (j := 466) (by decide +kernel) rfl) rfl
+  ood_iff 19 (by decide) (Program.find?_of_indexOf? (j := 445) (by decide +kernel) rfl) rfl
     (stmtsEqb_sound (by decide +kernel)) rd args rets
 
 set_option maxRecDepth 100000 in
 theorem ood_L20_iff (rd : Reader) (args rets : List E) :
     coreProgram.Rel rd "opening_ood_point__L20" args rets ↔
       MeaningOpeningOodPoint 20 rd args rets :=
-  ood_iff 20 (by decide) (Program.find?_of_indexOf? (j := 485) (by decide +kernel) rfl) rfl
+  ood_iff 20 (by decide) (Program.find?_of_indexOf? (j := 464) (by decide +kernel) rfl) rfl
     (stmtsEqb_sound (by decide +kernel)) rd args rets
 
 set_option maxRecDepth 100000 in
 theorem ood_L21_iff (rd : Reader) (args rets : List E) :
     coreProgram.Rel rd "opening_ood_point__L21" args rets ↔
       MeaningOpeningOodPoint 21 rd args rets :=
-  ood_iff 21 (by decide) (Program.find?_of_indexOf? (j := 499) (by decide +kernel) rfl) rfl
+  ood_iff 21 (by decide) (Program.find?_of_indexOf? (j := 478) (by decide +kernel) rfl) rfl
     (stmtsEqb_sound (by decide +kernel)) rd args rets
 
 set_option maxRecDepth 100000 in
 theorem ood_L22_iff (rd : Reader) (args rets : List E) :
     coreProgram.Rel rd "opening_ood_point__L22" args rets ↔
       MeaningOpeningOodPoint 22 rd args rets :=
-  ood_iff 22 (by decide) (Program.find?_of_indexOf? (j := 513) (by decide +kernel) rfl) rfl
+  ood_iff 22 (by decide) (Program.find?_of_indexOf? (j := 492) (by decide +kernel) rfl) rfl
     (stmtsEqb_sound (by decide +kernel)) rd args rets
 
 /-- **`opening_ood_point`'s core IR is its meaning**, at every deployed dimension. -/

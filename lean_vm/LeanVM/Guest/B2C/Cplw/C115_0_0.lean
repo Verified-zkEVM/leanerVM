@@ -16,28 +16,28 @@ namespace LeanVM.Guest.B2C.Cplw
 
 @[expose] public section
 
-/-- `padding_weight__L27`, window 0, part 0. -/
+/-- `plus_one_run__L1`, window 0, part 0. -/
 theorem cw115_0_0 : cplWin 115 0 0 = true := by decide +kernel
 
-/-- `padding_weight__L28`, window 0, part 0. -/
+/-- `plus_one_run__L2`, window 0, part 0. -/
 theorem cw116_0_0 : cplWin 116 0 0 = true := by decide +kernel
 
-/-- `plus_one_run__L0`, window 0, part 0. -/
+/-- `plus_one_run__L3`, window 0, part 0. -/
 theorem cw117_0_0 : cplWin 117 0 0 = true := by decide +kernel
 
-/-- `plus_one_run__L1`, window 0, part 0. -/
+/-- `plus_one_run__L4`, window 0, part 0. -/
 theorem cw118_0_0 : cplWin 118 0 0 = true := by decide +kernel
 
-/-- `plus_one_run__L2`, window 0, part 0. -/
+/-- `plus_one_run__L5`, window 0, part 0. -/
 theorem cw119_0_0 : cplWin 119 0 0 = true := by decide +kernel
 
-/-- `plus_one_run__L3`, window 0, part 0. -/
+/-- `plus_one_run__L6`, window 0, part 0. -/
 theorem cw120_0_0 : cplWin 120 0 0 = true := by decide +kernel
 
-/-- `plus_one_run__L4`, window 0, part 0. -/
+/-- `plus_one_run__L7`, window 0, part 0. -/
 theorem cw121_0_0 : cplWin 121 0 0 = true := by decide +kernel
 
-/-- `plus_one_run__L5`, window 0, part 0. -/
+/-- `plus_one_run__L8`, window 0, part 0. -/
 theorem cw122_0_0 : cplWin 122 0 0 = true := by decide +kernel
 
 theorem ok115 : CplOk 115 := by

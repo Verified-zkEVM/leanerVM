@@ -16,28 +16,27 @@ namespace LeanVM.Guest.B2C.Cplw
 
 @[expose] public section
 
-/-- `__loop361`, window 0, part 0. -/
+/-- `__loop373`, window 0, part 0. -/
 theorem cw828_0_0 : cplWin 828 0 0 = true := by decide +kernel
 
-/-- `__loop361`, window 0, part 1. -/
-theorem cw828_0_1 : cplWin 828 0 1 = true := by decide +kernel
-
-/-- `decode_query_bits__L16`, window 0, part 0. -/
+/-- `__loop374`, window 0, part 0. -/
 theorem cw829_0_0 : cplWin 829 0 0 = true := by decide +kernel
 
-/-- `__loop362`, window 0, part 0. -/
+/-- `decode_query_bits__L22`, window 0, part 0. -/
 theorem cw830_0_0 : cplWin 830 0 0 = true := by decide +kernel
+
+/-- `__loop375`, window 0, part 0. -/
+theorem cw831_0_0 : cplWin 831 0 0 = true := by decide +kernel
 
 theorem ok828 : CplOk 828 := by
   intro i hi k hk
   have hc : (certOf 828).cuts.length = 0 := by decide +kernel
   rw [hc] at hi
   interval_cases i
-  · have hn : nParts 828 0 = 2 := by decide +kernel
+  · have hn : nParts 828 0 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
     · exact cw828_0_0
-    · exact cw828_0_1
 
 theorem ok829 : CplOk 829 := by
   intro i hi k hk

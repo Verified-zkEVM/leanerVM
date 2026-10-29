@@ -14,7 +14,7 @@ public import LeanVM.Guest.Count.Words
 # `keccak_layer` within its words at `B2C.fs`
 
 At the deployed frame sizes the words certificates (`Count.Words`) give the callees' words: each
-pack loop `__loop30`..`__loop33` (core `402`..`405`, frame 147) at most `294` words per iteration
+pack loop `__loop28`..`__loop31` (core `402`..`405`, frame 147) at most `294` words per iteration
 (its frame and its last, skipped call's), `keccak_round` (core `11`, a leaf) at most its frame,
 `80`. So `keccak_layer__L{first}_L{odd}` (core `254`..`257`, frames `2152`, `2158`, `2519`,
 `2525`) is complete within `layerWords B2C.fs first odd y 294 80`
@@ -44,10 +44,10 @@ theorem packLoop_totalLeOn_fs {first odd : ℕ} (hf : first < 2) (ho : odd < 2) 
     TotalLeOn coreProgram LeanVM.Guest.B2C.fs (packLoopName first odd) LoopPre
       fun a ↦ logG (a.getD 1 0) * 294 := by
   interval_cases first <;> interval_cases odd
-  · exact packLoop_totalLeOn_at (j := 404) (by decide +kernel) (by decide +kernel) (by decide +kernel)
-  · exact packLoop_totalLeOn_at (j := 405) (by decide +kernel) (by decide +kernel) (by decide +kernel)
-  · exact packLoop_totalLeOn_at (j := 402) (by decide +kernel) (by decide +kernel) (by decide +kernel)
-  · exact packLoop_totalLeOn_at (j := 403) (by decide +kernel) (by decide +kernel) (by decide +kernel)
+  · exact packLoop_totalLeOn_at (j := 383) (by decide +kernel) (by decide +kernel) (by decide +kernel)
+  · exact packLoop_totalLeOn_at (j := 384) (by decide +kernel) (by decide +kernel) (by decide +kernel)
+  · exact packLoop_totalLeOn_at (j := 381) (by decide +kernel) (by decide +kernel) (by decide +kernel)
+  · exact packLoop_totalLeOn_at (j := 382) (by decide +kernel) (by decide +kernel) (by decide +kernel)
 
 /-- **`keccak_round`'s words at `B2C.fs`**: its frame, `80`. -/
 theorem round_totalLe_fs : TotalLe coreProgram LeanVM.Guest.B2C.fs "keccak_round" fun _ ↦ 80 := by
@@ -62,31 +62,31 @@ theorem layerWords_fs_le {first odd y : ℕ} (hf : first < 2) (ho : odd < 2) (hy
     layerWords LeanVM.Guest.B2C.fs first odd y 294 80 ≤ 7420 := by
   have hp : LeanVM.Guest.B2C.fs (packLoopName first odd) = 147 := by
     interval_cases first <;> interval_cases odd
-    · rw [show packLoopName 0 0 = "__loop32" from rfl,
-      fs_idx (j := 404) (f := "__loop32") (by decide +kernel)]
+    · rw [show packLoopName 0 0 = "__loop30" from rfl,
+      fs_idx (j := 383) (f := "__loop30") (by decide +kernel)]
       decide +kernel
-    · rw [show packLoopName 0 1 = "__loop33" from rfl,
-      fs_idx (j := 405) (f := "__loop33") (by decide +kernel)]
+    · rw [show packLoopName 0 1 = "__loop31" from rfl,
+      fs_idx (j := 384) (f := "__loop31") (by decide +kernel)]
       decide +kernel
-    · rw [show packLoopName 1 0 = "__loop30" from rfl,
-      fs_idx (j := 402) (f := "__loop30") (by decide +kernel)]
+    · rw [show packLoopName 1 0 = "__loop28" from rfl,
+      fs_idx (j := 381) (f := "__loop28") (by decide +kernel)]
       decide +kernel
-    · rw [show packLoopName 1 1 = "__loop31" from rfl,
-      fs_idx (j := 403) (f := "__loop31") (by decide +kernel)]
+    · rw [show packLoopName 1 1 = "__loop29" from rfl,
+      fs_idx (j := 382) (f := "__loop29") (by decide +kernel)]
       decide +kernel
   have hl : LeanVM.Guest.B2C.fs (layerName first odd) ≤ 2525 := by
     interval_cases first <;> interval_cases odd
     · rw [show layerName 0 0 = "keccak_layer__L0_L0" from rfl,
-      fs_idx (j := 256) (f := "keccak_layer__L0_L0") (by decide +kernel)]
+      fs_idx (j := 253) (f := "keccak_layer__L0_L0") (by decide +kernel)]
       decide +kernel
     · rw [show layerName 0 1 = "keccak_layer__L0_L1" from rfl,
-      fs_idx (j := 257) (f := "keccak_layer__L0_L1") (by decide +kernel)]
+      fs_idx (j := 254) (f := "keccak_layer__L0_L1") (by decide +kernel)]
       decide +kernel
     · rw [show layerName 1 0 = "keccak_layer__L1_L0" from rfl,
-      fs_idx (j := 254) (f := "keccak_layer__L1_L0") (by decide +kernel)]
+      fs_idx (j := 251) (f := "keccak_layer__L1_L0") (by decide +kernel)]
       decide +kernel
     · rw [show layerName 1 1 = "keccak_layer__L1_L1" from rfl,
-      fs_idx (j := 255) (f := "keccak_layer__L1_L1") (by decide +kernel)]
+      fs_idx (j := 252) (f := "keccak_layer__L1_L1") (by decide +kernel)]
       decide +kernel
   have hy2 : y / 2 * 294 ≤ 15 * 294 := Nat.mul_le_mul_right _ (by omega)
   simp only [layerWords, hp]

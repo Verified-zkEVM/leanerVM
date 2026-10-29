@@ -18,7 +18,7 @@ At `fp`, `aggregate_claims` allocates from `b0 = fp + fs "aggregate_claims"` the
 (`46`), the tables of the children's fresh and carried claims (`m` each), the absorbing rows
 (`13(m+1)`), the lambdas (`2m`), the squeezing rows (`14(m+1)`), the sumcheck's point (`23`) and
 the weights (`m+1`) (`aggSizes`), holding `aggConts` (`aggOwn`); its callees follow in call order:
-`__loop25`, `__loop26`, `batch_sumcheck__L23`, `__loop27`, which place nothing (`aggPure`). Its
+`__loop24`, `__loop25`, `batch_sumcheck__L23`, `__loop26`, which place nothing (`aggPure`). Its
 valuation is `agg_core`'s at the allocator's buffers (`aggPtrsAt`).
 `aggregate_claims_completeAt`: `aggregate_claims` is `CompleteAtD`, reading the children's words
 and the batching's claim at `g^ds` among the caller's words `Lin`.
@@ -158,7 +158,7 @@ theorem aggMem_of_memL {rd : Reader} {cfresh ccarried dst : E} {cs : List ChildC
 /-! ## The callees -/
 
 /-- `aggregate_claims`' callees, which place nothing. -/
-def aggPureSet : List String := ["__loop25", "__loop26", "__loop27", "batch_sumcheck__L23"]
+def aggPureSet : List String := ["__loop24", "__loop25", "__loop26", "batch_sumcheck__L23"]
 
 /-- Every member's body places nothing and calls members only. -/
 noncomputable def aggPureOk : Bool :=
@@ -200,11 +200,11 @@ theorem aggP_addrs : aggP.filterMap Main.Stmt.addrS = [] := by decide +kernel
 
 set_option maxRecDepth 100000 in
 theorem aggP_calls : aggP.filterMap Main.Stmt.callS =
-    [(some (.n 62), "__loop25", [.n 63, .n 0, .n 60, .n 2, .n 7, .n 3, .n 8, .n 1], []),
-      (some (.n 95), "__loop26", [.n 96, .n 0, .n 79, .n 71, .n 7, .n 8], []),
+    [(some (.n 62), "__loop24", [.n 63, .n 0, .n 60, .n 2, .n 7, .n 3, .n 8, .n 1], []),
+      (some (.n 95), "__loop25", [.n 96, .n 0, .n 79, .n 71, .n 7, .n 8], []),
       (none, "batch_sumcheck__L23", [.n 105, .n 106, .n 107, .n 108, .n 109, .n 5, .n 103, .n 104],
         [.n 110, .n 111, .n 112, .n 113, .n 114, .n 115]),
-      (some (.n 121), "__loop27", [.n 122, .n 0, .n 7, .n 8, .n 104, .n 118, .n 71], [])] := by
+      (some (.n 121), "__loop26", [.n 122, .n 0, .n 7, .n 8, .n 104, .n 118, .n 71], [])] := by
   decide +kernel
 
 /-- The loads `aggregate_claims` may make: its first rows, last rows, weights, point, and the
@@ -317,12 +317,12 @@ theorem aggregate_claims_completeAt (fs : String → ℕ) (cert : String → V �
   have hne : (1 : E) + gen ^ m ≠ 0 := (one_add_gen_ne (by omega)).mpr (by omega)
   -- the callees
   let ks : List Kid :=
-    [⟨"__loop25", true, [1, gen ^ m, P.absorb, cfresh, P.lf, ccarried, P.lc, cpi], Own ++ Lin,
+    [⟨"__loop24", true, [1, gen ^ m, P.absorb, cfresh, P.lf, ccarried, P.lc, cpi], Own ++ Lin,
         Returns []⟩,
-      ⟨"__loop26", true, [1, gen ^ m, P.sq, P.lam, P.lf, P.lc], Own ++ Lin, Returns []⟩,
+      ⟨"__loop25", true, [1, gen ^ m, P.sq, P.lam, P.lf, P.lc], Own ++ Lin, Returns []⟩,
       ⟨"batch_sumcheck__L23", true, (sq2F m (aggAbs cs)).2.cap ++ [P.msgs, claimAt cs m, P.pt],
         Own ++ Lin, Returns ((aggRun cs h).2.cap ++ [(aggRun cs h).1.2])⟩,
-      ⟨"__loop27", true, [1, gen ^ m, P.lf, P.lc, P.pt, P.w, P.lam], Own ++ Lin, Returns []⟩]
+      ⟨"__loop26", true, [1, gen ^ m, P.lf, P.lc, P.pt, P.w, P.lam], Own ++ Lin, Returns []⟩]
   have hok : ∀ k ∈ ks, k.taken = true → CompleteAtD fs cert 16 k.f k.Lin k.args k.Out := by
     intro k hk _
     simp only [ks, List.mem_cons, List.not_mem_nil, or_false] at hk
@@ -397,11 +397,11 @@ theorem aggregate_claims_completeAt (fs : String → ℕ) (cert : String → V �
   have hT : ∀ {c : V}, σ c = 1 + gen ^ m → decide (σ c ≠ 0) = true :=
     fun h => by rw [h]; exact decide_eq_true hne
   have hcalls : calls es =
-      [⟨"__loop25", [.n 63, .n 0, .n 60, .n 2, .n 7, .n 3, .n 8, .n 1], [], true⟩,
-        ⟨"__loop26", [.n 96, .n 0, .n 79, .n 71, .n 7, .n 8], [], true⟩,
+      [⟨"__loop24", [.n 63, .n 0, .n 60, .n 2, .n 7, .n 3, .n 8, .n 1], [], true⟩,
+        ⟨"__loop25", [.n 96, .n 0, .n 79, .n 71, .n 7, .n 8], [], true⟩,
         ⟨"batch_sumcheck__L23", [.n 105, .n 106, .n 107, .n 108, .n 109, .n 5, .n 103, .n 104],
           [.n 110, .n 111, .n 112, .n 113, .n 114, .n 115], true⟩,
-        ⟨"__loop27", [.n 122, .n 0, .n 7, .n 8, .n 104, .n 118, .n 71], [], true⟩] := by
+        ⟨"__loop26", [.n 122, .n 0, .n 7, .n 8, .n 104, .n 118, .n 71], [], true⟩] := by
     rw [hes, hpc, aggP_calls]
     simp only [List.map_cons, List.map_nil, Main.mkCall, hT hV.g62, hT hV.g95, hT hV.g121]
   -- the walk

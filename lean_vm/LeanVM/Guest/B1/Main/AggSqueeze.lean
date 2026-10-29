@@ -1,8 +1,8 @@
 /-
   LeanVM.Guest.B1.Main.AggSqueeze
 
-  `aggregate_claims`' squeezing loop (`__loop26`: the lambdas and the batched claim) and its
-  weighing loop (`__loop27`: the batched equality weight).
+  `aggregate_claims`' squeezing loop (`__loop25`: the lambdas and the batched claim) and its
+  weighing loop (`__loop26`: the batched equality weight).
 -/
 
 module
@@ -10,14 +10,14 @@ module
 public import LeanVM.Guest.B1.Main.AggAbsorb
 
 /-!
-# `__loop26` and `__loop27`
+# `__loop25` and `__loop26`
 
-* `l26_step` (`__loop26`, core function `395`): iteration `x = g^c` permutes the sponge its row of
+* `l26_step` (`__loop25`, core function `395`): iteration `x = g^c` permutes the sponge its row of
   fourteen words carries (`sqT·x^14`), squeezes `λ_fresh` and `λ_carried` (stored at
   `lam·x^2`), writes the row after them (an empty queue), and its running claim (word `13`) plus
   `λ_fresh · fresh[23] + λ_carried · carried[23]` of the child's claims (through the pointer
   tables `lf`, `lc`) into word `13` of the next row (`L26Step`).
-* `l27_step` (`__loop27`, core function `397`): iteration `x = g^c` adds
+* `l27_step` (`__loop26`, core function `397`): iteration `x = g^c` adds
   `λ_fresh · eq(fresh, r) + λ_carried · eq(carried, r)` to the running weight `w[c]` into
   `w[c + 1]`, `r` the `23` coordinates at `pt` (`L27Step`); the equality polynomials are products
   `Π (1 + p_j + r_j)` checked by evaluation (`eqChainOk`).
@@ -67,7 +67,7 @@ theorem chal_sound {s0 s1 : V} {b : ℕ} (h : allIn atoms (challA s0 s1 b) = tru
   ((holds_challengeT (C := fun _ _ _ => True) s0 s1 b True (fun _ => True)).mp
     (allIn_holds h hat _ _)).1
 
-/-! ## `__loop26`: the lambdas -/
+/-! ## `__loop25`: the lambdas -/
 
 /-- The first permutation's inputs: the row's rate cells (four copied), then its capacity. -/
 def k1i : List V := [.n 17, .n 18, .n 19, .n 20, .n 25, .n 26, .n 27, .n 28, .n 12, .n 13, .n 14,
@@ -83,10 +83,10 @@ def k2i : List V := [.n 50, .n 50, .n 50, .n 50, .n 50, .n 51, .n 52, .n 53, .n 
 /-- The second permutation's outputs. -/
 def k2o : List V := (List.range 13).map fun i => .n (54 + i)
 
-/-- **`__loop26`'s body, checked.** -/
+/-- **`__loop25`'s body, checked.** -/
 def l26Ok (fn : Fn) : Bool :=
   let A := atomsIn (loopPre fn)
-  loopShapeF fn "__loop26" && decide (fn.params.length = 6) &&
+  loopShapeF fn "__loop25" && decide (fn.params.length = 6) &&
   monoIs A (.n 11) (.n 2) (.n 0) 14 &&
   A.any (isKeccakAt k1i k1o false false) && rowInOk A (.n 11) k1i &&
   allIn A (challA (.n 29) (.n 30) 42) &&
@@ -107,10 +107,10 @@ def l26Ok (fn : Fn) : Bool :=
   A.any (isAddAt (.n 95) (.n 92) (.n 94)) && A.any (isLoadAt (.n 95) (.n 11) 27)
 
 set_option maxRecDepth 100000 in
-theorem l26_ok : l26Ok (coreProgram.getD 395 default) = true := by decide +kernel
+theorem l26_ok : l26Ok (coreProgram.getD 375 default) = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem l26_idx : coreProgram.indexOf? "__loop26" = some 395 := by decide +kernel
+theorem l26_idx : coreProgram.indexOf? "__loop25" = some 375 := by decide +kernel
 
 /-- **Child `x`'s lambdas**: from the sponge its row (`sqT·x^14`) carries, the two squeezes
 stored at `lam·x^2`, the row after them, and the running claim on. -/
@@ -132,9 +132,9 @@ theorem getD_k2o {c : ℕ} (hc : c < 13) : k2o.getD c default = .n (54 + c) := b
 theorem rateOf_nil : rateOf [] = List.replicate 8 0 := by
   rw [rateOf_eq_cells [] (by simp)]; rfl
 
-theorem l26_step {x : E} {ps : List E} (h : coreProgram.Rel rd "__loop26" (x :: ps) []) :
+theorem l26_step {x : E} {ps : List E} (h : coreProgram.Rel rd "__loop25" (x :: ps) []) :
     (∀ N sqT lamT lfT lcT, ps = [N, sqT, lamT, lfT, lcT] → L26Step rd sqT lamT lfT lcT x) ∧
-      (x * gen + ps.headD 0 ≠ 0 → coreProgram.Rel rd "__loop26" (x * gen :: ps) []) := by
+      (x * gen + ps.headD 0 ≠ 0 → coreProgram.Rel rd "__loop25" (x * gen :: ps) []) := by
   have hf := find_of_idx l26_idx (by rw [coreProgram_length]; omega)
   have hok := l26_ok
   simp only [l26Ok, Bool.and_eq_true, decide_eq_true_eq] at hok
@@ -144,7 +144,7 @@ theorem l26_step {x : E} {ps : List E} (h : coreProgram.Rel rd "__loop26" (x :: 
   obtain ⟨σ, hx, hps, hall, hnext⟩ := loop_stepF hf hshape h
   refine ⟨fun N sqT lamT lfT lcT hN st hrow => ?_, hnext⟩
   have hat := atoms_of_flat hall
-  have hpar : (coreProgram.getD 395 default).params = [V.n 0, V.n 1, V.n 2, V.n 3, V.n 4, V.n 5] := by
+  have hpar : (coreProgram.getD 375 default).params = [V.n 0, V.n 1, V.n 2, V.n 3, V.n 4, V.n 5] := by
     have hs := hshape
     simp only [loopShapeF, Bool.and_eq_true, decide_eq_true_eq] at hs
     rw [hs.1.2, hlen]; rfl
@@ -275,12 +275,12 @@ theorem eqChain_sound {pP pR : V} : ∀ {n : ℕ} {out : V}, eqChainOk atoms pP 
         memRun_succ rd _ (n + 1), memRun_succ rd _ (n + 1), eqEval_snoc _ _ _ _ (by simp)]
     · exact absurd h (by simp)
 
-/-! ## `__loop27`: the weights -/
+/-! ## `__loop26`: the weights -/
 
-/-- **`__loop27`'s body, checked.** -/
+/-- **`__loop26`'s body, checked.** -/
 def l27Ok (fn : Fn) : Bool :=
   let A := atomsIn (loopPre fn)
-  loopShapeF fn "__loop27" && decide (fn.params.length = 7) &&
+  loopShapeF fn "__loop26" && decide (fn.params.length = 7) &&
   isMul A (.n 7) (.n 2) (.n 0) && A.any (isLoadAt (.n 8) (.n 7) 0) &&
   isMul A (.n 9) (.n 3) (.n 0) && A.any (isLoadAt (.n 10) (.n 9) 0) &&
   eqChainOk A (.n 8) (.n 4) 23 (.n 256) && eqChainOk A (.n 10) (.n 4) 23 (.n 261) &&
@@ -293,10 +293,10 @@ def l27Ok (fn : Fn) : Bool :=
   isMul A (.n 273) (.n 5) (.n 0) && A.any (isLoadAt (.n 272) (.n 273) 1)
 
 set_option maxRecDepth 100000 in
-theorem l27_ok : l27Ok (coreProgram.getD 397 default) = true := by decide +kernel
+theorem l27_ok : l27Ok (coreProgram.getD 377 default) = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem l27_idx : coreProgram.indexOf? "__loop27" = some 397 := by decide +kernel
+theorem l27_idx : coreProgram.indexOf? "__loop26" = some 377 := by decide +kernel
 
 /-- **Child `x`'s weight**: `w[x·g] = w[x] + λ_fresh · eq(fresh, r) + λ_carried · eq(carried, r)`,
 the lambdas at `lam·x^2`, the claims' points through the pointer tables, `r` at `pt`. -/
@@ -305,9 +305,9 @@ def L27Step (rd : Reader) (lfT lcT pt wT lamT x : E) : Prop :=
     memAt rd (lamT * x ^ 2) 0 * eqEval (memRun rd (memAt rd (lfT * x) 0) 23) (memRun rd pt 23) +
     memAt rd (lamT * x ^ 2) 1 * eqEval (memRun rd (memAt rd (lcT * x) 0) 23) (memRun rd pt 23))
 
-theorem l27_step {x : E} {ps : List E} (h : coreProgram.Rel rd "__loop27" (x :: ps) []) :
+theorem l27_step {x : E} {ps : List E} (h : coreProgram.Rel rd "__loop26" (x :: ps) []) :
     (∀ N lfT lcT pt wT lamT, ps = [N, lfT, lcT, pt, wT, lamT] → L27Step rd lfT lcT pt wT lamT x) ∧
-      (x * gen + ps.headD 0 ≠ 0 → coreProgram.Rel rd "__loop27" (x * gen :: ps) []) := by
+      (x * gen + ps.headD 0 ≠ 0 → coreProgram.Rel rd "__loop26" (x * gen :: ps) []) := by
   have hf := find_of_idx l27_idx (by rw [coreProgram_length]; omega)
   have hok := l27_ok
   simp only [l27Ok, Bool.and_eq_true, decide_eq_true_eq] at hok
@@ -316,7 +316,7 @@ theorem l27_step {x : E} {ps : List E} (h : coreProgram.Rel rd "__loop27" (x :: 
   obtain ⟨σ, hx, hps, hall, hnext⟩ := loop_stepF hf hshape h
   refine ⟨fun N lfT lcT pt wT lamT hN => ?_, hnext⟩
   have hat := atoms_of_flat hall
-  have hpar : (coreProgram.getD 397 default).params =
+  have hpar : (coreProgram.getD 377 default).params =
       [V.n 0, V.n 1, V.n 2, V.n 3, V.n 4, V.n 5, V.n 6] := by
     have hs := hshape
     simp only [loopShapeF, Bool.and_eq_true, decide_eq_true_eq] at hs

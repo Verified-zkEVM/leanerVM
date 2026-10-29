@@ -17,28 +17,28 @@ open LeanVM.Guest.Check
 
 @[expose] public section
 
-/-- `cover_da_root`, window 0. -/
+/-- `__loop0`, window 0. -/
 theorem w31_0 : WinOk 31 0 := winOk_of_C (by decide +kernel)
 
-/-- `aggregate_claims`, window 0. -/
+/-- `__loop1`, window 0. -/
 theorem w32_0 : WinOk 32 0 := winOk_of_C (by decide +kernel)
 
-/-- `__loop0`, window 0. -/
+/-- `__loop2`, window 0. -/
 theorem w33_0 : WinOk 33 0 := winOk_of_C (by decide +kernel)
 
-/-- `__loop1`, window 0. -/
+/-- `__loop3`, window 0. -/
 theorem w34_0 : WinOk 34 0 := winOk_of_C (by decide +kernel)
 
-/-- `__loop2`, window 0. -/
+/-- `__loop4`, window 0. -/
 theorem w35_0 : WinOk 35 0 := winOk_of_C (by decide +kernel)
 
-/-- `__loop3`, window 0. -/
+/-- `eq_prefix_run__L0`, window 0. -/
 theorem w36_0 : WinOk 36 0 := winOk_of_C (by decide +kernel)
 
-/-- `__loop4`, window 0. -/
+/-- `eq_prefix_run__L1`, window 0. -/
 theorem w37_0 : WinOk 37 0 := winOk_of_C (by decide +kernel)
 
-/-- `__loop5`, window 0. -/
+/-- `eq_prefix_run__L2`, window 0. -/
 theorem w38_0 : WinOk 38 0 := winOk_of_C (by decide +kernel)
 
 theorem ok31 : CheckOk 31 := checkOk_one (by decide +kernel) w31_0

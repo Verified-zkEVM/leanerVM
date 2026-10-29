@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.KeccakGkr.CopyLoop
 
-  The copy loops of `verify_keccak` (`__loop11`, `__loop12`, `__loop13`, G:2810-2811, 2877-2878,
+  The copy loops of `verify_keccak` (`__loop10`, `__loop11`, `__loop12`, G:2810-2811, 2877-2878,
   2943-2944): `dst[x] = src[x]` for `x` over `g^0 .. g^(m-1)`.
 -/
 
@@ -26,16 +26,16 @@ def copyLoopT (name : String) : List Stmt :=
     .atom (.const (.n 10) (word 2 0 0)), .atom (.mul (.n 11) (.n 0) (.n 10)),
     .callIf (.n 9) name [.n 11, .n 1, .n 2, .n 3], .ret []]
 
-theorem copyLoop_body11 : Data.core253.body = copyLoopT "__loop11" := stmtsEqb_sound (by decide +kernel)
-theorem copyLoop_body12 : Data.core259.body = copyLoopT "__loop12" := stmtsEqb_sound (by decide +kernel)
-theorem copyLoop_body13 : Data.core261.body = copyLoopT "__loop13" := stmtsEqb_sound (by decide +kernel)
+theorem copyLoop_body11 : Data.core250.body = copyLoopT "__loop10" := stmtsEqb_sound (by decide +kernel)
+theorem copyLoop_body12 : Data.core256.body = copyLoopT "__loop11" := stmtsEqb_sound (by decide +kernel)
+theorem copyLoop_body13 : Data.core258.body = copyLoopT "__loop12" := stmtsEqb_sound (by decide +kernel)
 
-theorem find_copyLoop11 : coreProgram.find? "__loop11" = some Data.core253 :=
-  Program.find?_of_indexOf? (j := 253) (by decide +kernel) rfl
-theorem find_copyLoop12 : coreProgram.find? "__loop12" = some Data.core259 :=
-  Program.find?_of_indexOf? (j := 259) (by decide +kernel) rfl
-theorem find_copyLoop13 : coreProgram.find? "__loop13" = some Data.core261 :=
-  Program.find?_of_indexOf? (j := 261) (by decide +kernel) rfl
+theorem find_copyLoop11 : coreProgram.find? "__loop10" = some Data.core250 :=
+  Program.find?_of_indexOf? (j := 250) (by decide +kernel) rfl
+theorem find_copyLoop12 : coreProgram.find? "__loop11" = some Data.core256 :=
+  Program.find?_of_indexOf? (j := 256) (by decide +kernel) rfl
+theorem find_copyLoop13 : coreProgram.find? "__loop12" = some Data.core258 :=
+  Program.find?_of_indexOf? (j := 258) (by decide +kernel) rfl
 
 /-- **A copy loop's step.** -/
 theorem copyLoop_step {name : String} {fn : Fn} (hf : coreProgram.find? name = some fn)

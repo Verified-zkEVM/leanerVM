@@ -82,8 +82,8 @@ noncomputable def preOk : Bool :=
   isMul A (.n 98) (.n 97) (.n 57) &&
   ((List.range 256).all fun v => A.any (isConstAt (.n (100 + v)) v 0) &&
     A.any (isLoadAt (.n (100 + v)) (.n 99) v)) &&
-  guardOk P (.n 357) "__loop3" (.n 358) (.n 2) [.n 55, .n 97, .n 77] &&
-  guardOk P (.n 360) "__loop4" (.n 361) (.n 5) [.n 56, .n 97, .n 55, .n 2, .n 80, .n 99] &&
+  guardOk P (.n 357) "__loop2" (.n 358) (.n 2) [.n 55, .n 97, .n 77] &&
+  guardOk P (.n 360) "__loop3" (.n 361) (.n 5) [.n 56, .n 97, .n 55, .n 2, .n 80, .n 99] &&
   A.any (isAddAt (.n 363) (.n 7) (.n 362)) && A.any (isConstAt (.n 362) 2 0)
 
 noncomputable def daOk : Bool :=
@@ -102,7 +102,7 @@ noncomputable def midOk : Bool :=
   M.all Stmt.flat &&
   isMul A (.n 390) (.n 2) (.n 5) && isMul A (.n 391) (.n 390) (.n 7) &&
   isLoad A (.n 391) (.n 389) 0 &&
-  guardOk M (.n 393) "__loop5" (.n 394) (.n 6) [.n 389, .n 77, .n 97, .n 55, .n 80, .n 56,
+  guardOk M (.n 393) "__loop4" (.n 394) (.n 6) [.n 389, .n 77, .n 97, .n 55, .n 80, .n 56,
     .n 386, .n 69, .n 98, .n 50, .n 63, .n 64, .n 374, .n 65, .n 66, .n 380] &&
   isMul A (.n 395) (.n 389) (.n 6) && isLoad A (.n 396) (.n 395) 0 &&
   A.any (isAssertEqAt (.n 396) (.n 58)) &&

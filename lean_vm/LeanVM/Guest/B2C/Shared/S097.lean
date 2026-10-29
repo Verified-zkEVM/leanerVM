@@ -16,11 +16,11 @@ namespace LeanVM.Guest.B2C.Shared
 @[expose] public section
 
 set_option maxRecDepth 100000 in
-/-- `block_selector_tab__L6`, once. -/
+/-- `block_selector_tab__L9`, once. -/
 theorem st225 : shareStatic 225 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `block_selector_tab__L6`, window 0. -/
+/-- `block_selector_tab__L9`, window 0. -/
 theorem w225_0 : shareWin 225 (snapsOf 225) 0 = true := by decide +kernel
 
 theorem ok225 : ShareOk 225 := ⟨st225, fun i hi ↦ by
@@ -29,11 +29,11 @@ theorem ok225 : ShareOk 225 := ⟨st225, fun i hi ↦ by
   exact w225_0⟩
 
 set_option maxRecDepth 100000 in
-/-- `block_selector_tab__L7`, once. -/
+/-- `block_selector_tab__L10`, once. -/
 theorem st226 : shareStatic 226 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `block_selector_tab__L7`, window 0. -/
+/-- `block_selector_tab__L10`, window 0. -/
 theorem w226_0 : shareWin 226 (snapsOf 226) 0 = true := by decide +kernel
 
 theorem ok226 : ShareOk 226 := ⟨st226, fun i hi ↦ by
@@ -42,11 +42,11 @@ theorem ok226 : ShareOk 226 := ⟨st226, fun i hi ↦ by
   exact w226_0⟩
 
 set_option maxRecDepth 100000 in
-/-- `block_selector_tab__L8`, once. -/
+/-- `block_selector_tab__L11`, once. -/
 theorem st227 : shareStatic 227 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `block_selector_tab__L8`, window 0. -/
+/-- `block_selector_tab__L11`, window 0. -/
 theorem w227_0 : shareWin 227 (snapsOf 227) 0 = true := by decide +kernel
 
 theorem ok227 : ShareOk 227 := ⟨st227, fun i hi ↦ by
@@ -55,11 +55,11 @@ theorem ok227 : ShareOk 227 := ⟨st227, fun i hi ↦ by
   exact w227_0⟩
 
 set_option maxRecDepth 100000 in
-/-- `block_selector_tab__L9`, once. -/
+/-- `block_selector_tab__L12`, once. -/
 theorem st228 : shareStatic 228 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `block_selector_tab__L9`, window 0. -/
+/-- `block_selector_tab__L12`, window 0. -/
 theorem w228_0 : shareWin 228 (snapsOf 228) 0 = true := by decide +kernel
 
 theorem ok228 : ShareOk 228 := ⟨st228, fun i hi ↦ by
@@ -68,11 +68,11 @@ theorem ok228 : ShareOk 228 := ⟨st228, fun i hi ↦ by
   exact w228_0⟩
 
 set_option maxRecDepth 100000 in
-/-- `block_selector_tab__L10`, once. -/
+/-- `block_selector_tab__L13`, once. -/
 theorem st229 : shareStatic 229 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `block_selector_tab__L10`, window 0. -/
+/-- `block_selector_tab__L13`, window 0. -/
 theorem w229_0 : shareWin 229 (snapsOf 229) 0 = true := by decide +kernel
 
 theorem ok229 : ShareOk 229 := ⟨st229, fun i hi ↦ by
@@ -81,11 +81,11 @@ theorem ok229 : ShareOk 229 := ⟨st229, fun i hi ↦ by
   exact w229_0⟩
 
 set_option maxRecDepth 100000 in
-/-- `block_selector_tab__L11`, once. -/
+/-- `block_selector_tab__L14`, once. -/
 theorem st230 : shareStatic 230 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `block_selector_tab__L11`, window 0. -/
+/-- `block_selector_tab__L14`, window 0. -/
 theorem w230_0 : shareWin 230 (snapsOf 230) 0 = true := by decide +kernel
 
 theorem ok230 : ShareOk 230 := ⟨st230, fun i hi ↦ by
@@ -94,11 +94,11 @@ theorem ok230 : ShareOk 230 := ⟨st230, fun i hi ↦ by
   exact w230_0⟩
 
 set_option maxRecDepth 100000 in
-/-- `block_selector_tab__L12`, once. -/
+/-- `block_selector_tab__L15`, once. -/
 theorem st231 : shareStatic 231 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `block_selector_tab__L12`, window 0. -/
+/-- `block_selector_tab__L15`, window 0. -/
 theorem w231_0 : shareWin 231 (snapsOf 231) 0 = true := by decide +kernel
 
 theorem ok231 : ShareOk 231 := ⟨st231, fun i hi ↦ by
@@ -107,11 +107,11 @@ theorem ok231 : ShareOk 231 := ⟨st231, fun i hi ↦ by
   exact w231_0⟩
 
 set_option maxRecDepth 100000 in
-/-- `block_selector_tab__L13`, once. -/
+/-- `block_selector_tab__L16`, once. -/
 theorem st232 : shareStatic 232 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `block_selector_tab__L13`, window 0. -/
+/-- `block_selector_tab__L16`, window 0. -/
 theorem w232_0 : shareWin 232 (snapsOf 232) 0 = true := by decide +kernel
 
 theorem ok232 : ShareOk 232 := ⟨st232, fun i hi ↦ by

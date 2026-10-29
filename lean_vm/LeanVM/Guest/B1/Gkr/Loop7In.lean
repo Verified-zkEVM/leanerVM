@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.Gkr.Loop7In
 
-  `__loop7` loads from any region holding, at each iteration, its layer slot, its row, its round
+  `__loop6` loads from any region holding, at each iteration, its layer slot, its row, its round
   records and the words at the records' cursors.
 -/
 
@@ -11,16 +11,16 @@ public import LeanVM.Guest.B1.Gkr.Layer
 public import LeanVM.Guest.B1.Tables.Kids.Gkr
 
 /-!
-# `__loop7`, loading from a region
+# `__loop6`, loading from a region
 
-`__loop7`'s body is straight but for two branches of straight statements, each ending in a call of
+`__loop6`'s body is straight but for two branches of straight statements, each ending in a call of
 the rounds (`gkr_rounds__L2` at an odd layer index, `gkr_rounds__L1` at an odd depth): it walks
 its statements in turn, a branch's when taken (`ly_walk`).
 
 * `Ly7In`: what iteration `j` reads, in `R`: the slot of `L = 2j + sh` (`51` words, through the
   next slot's stores), its row (`L + 42` words), position, `half` and `parity`; the records from
   `rounds·pos` (`L + 5173` words), record `r`'s cursor `cj·g^(4r)`, the `4L + 12` words from `cj`.
-* `loop7_relIn`: with those at every `j < m`, iteration `j < m` of `__loop7` loads from `R`, by
+* `loop7_relIn`: with those at every `j < m`, iteration `j < m` of `__loop6` loads from `R`, by
   the depth of its derivation; its rounds by `loop29_relIn` and `gkr_rounds_relIn`.
 -/
 
@@ -49,10 +49,10 @@ theorem walk1_ite_straight (σ : Val) (c : V) {z n : List Stmt}
   · simp only [hc, ↓reduceIte, walk_straight_fall σ hz, Out.pre, List.singleton_append]
   · simp only [hc, ↓reduceIte, walk_straight_fall σ hn, Out.pre, List.singleton_append]
 
-/-- `__loop7`'s statements through `__loop29`. -/
+/-- `__loop6`'s statements through `__loop27`. -/
 def lyA : List Stmt := lyBody.take 57
 
-/-- `__loop7`'s statements after the rounds, before its `ret`. -/
+/-- `__loop6`'s statements after the rounds, before its `ret`. -/
 def lyB : List Stmt := lyPre.drop 60
 
 /-- The rounds at an odd layer index. -/
@@ -75,10 +75,10 @@ theorem ly62_straight : ly62.all Main.Stmt.straight = true := by decide +kernel
 theorem ly70_straight : ly70.all Main.Stmt.straight = true := by decide +kernel
 
 theorem lyA_calls : lyA.filterMap Main.Stmt.callS =
-    [(some (.n 64), "__loop29", [.n 65, .n 61, .n 52, .n 50], [])] := by decide +kernel
+    [(some (.n 64), "__loop27", [.n 65, .n 61, .n 52, .n 50], [])] := by decide +kernel
 
 theorem lyB_calls : lyB.filterMap Main.Stmt.callS =
-    [(some (.n 342), "__loop7", [.n 344, .n 1, .n 2, .n 3, .n 4, .n 5], [])] := by decide +kernel
+    [(some (.n 342), "__loop6", [.n 344, .n 1, .n 2, .n 3, .n 4, .n 5], [])] := by decide +kernel
 
 theorem lyA_loads : lyA.all (loadsViaB [(7, 1), (15, 51), (52, 5173)]) = true := by decide +kernel
 
@@ -89,7 +89,7 @@ theorem lyB_loads : lyB.all (loadsViaB [(15, 51), (50, 42), (73, 5173), (79, 12)
 noncomputable def lyBr (σ : Val) (c : V) (z : List Stmt) : List Ev :=
   .inK c :: (if σ c = 0 then [] else z).flatMap (Main.slEvs σ)
 
-/-- **`__loop7`'s walk**: its statements in turn, a branch's when taken. -/
+/-- **`__loop6`'s walk**: its statements in turn, a branch's when taken. -/
 theorem ly_walk (σ : Val) : walk σ lyBody = .ret (lyA.flatMap (Main.slEvs σ) ++ lyBr σ (.n 62) ly62 ++
     (.atom (.add (.n 70) (.n 9) (.n 6)) :: lyBr σ (.n 70) ly70) ++ lyB.flatMap (Main.slEvs σ)) [] := by
   rw [lyBody_split, walk_pre_straight σ _ lyA lyA_straight, walk, walk, walk,
@@ -136,14 +136,14 @@ theorem tb_lName_gkr_rounds : lName "gkr_rounds" 1 = "gkr_rounds__L1" ∧
     lName "gkr_rounds" 2 = "gkr_rounds__L2" := ⟨rfl, rfl⟩
 
 set_option maxHeartbeats 1000000 in
-/-- **`__loop7` loads from `R`**, every iteration `j < m`, its slots, rows, records and cursors
+/-- **`__loop6` loads from `R`**, every iteration `j < m`, its slots, rows, records and cursors
 in `R` (`Ly7In`) and `depth_shift[g_bus_mu]` at `dsh·gmu`, holding `g^sh`. -/
 theorem loop7_relIn {rd : Reader} {R : ℕ → Prop} {dsh gmu layers rounds : E} {sh m : ℕ}
     (hsh : LoadHolds rd (dsh * gmu) 0 (gen ^ sh)) (hshR : PtrIn R (dsh * gmu) 1)
     (hit : ∀ j < m, Ly7In rd R layers rounds sh j) :
     ∀ d j, j < m →
-      coreProgram.relN rd d "__loop7" [gen ^ j, gen ^ m, dsh, gmu, layers, rounds] [] →
-      coreProgram.RelIn rd R "__loop7" [gen ^ j, gen ^ m, dsh, gmu, layers, rounds] [] := by
+      coreProgram.relN rd d "__loop6" [gen ^ j, gen ^ m, dsh, gmu, layers, rounds] [] →
+      coreProgram.RelIn rd R "__loop6" [gen ^ j, gen ^ m, dsh, gmu, layers, rounds] [] := by
   intro d
   induction d with
   | zero => intro j _ h; exact h.elim
@@ -250,11 +250,11 @@ theorem loop7_relIn {rd : Reader} {R : ℕ → Prop} {dsh gmu layers rounds : E}
         (Main.straight_parts σ lyB lyB_straight).2.2.2, lyA_calls, lyB_calls] at hc
       simp only [List.mem_append] at hc
       rcases hc with ((hc | hc) | hc) | hc
-      · -- `__loop29`
+      · -- `__loop27`
         simp only [List.map_cons, List.map_nil, List.mem_singleton] at hc
         subst hc
         simp only [Main.mkCall, decide_eq_true_eq] at ht ⊢
-        have hci := tb_holds_callIf hnr hP 56 (.n 64) "__loop29" [.n 65, .n 61, .n 52, .n 50]
+        have hci := tb_holds_callIf hnr hP 56 (.n 64) "__loop27" [.n 65, .n 61, .n 52, .n 50]
           (by decide +kernel)
         have hrel := hci.2 ht
         have hK : 0 < j / 2 := by
@@ -318,7 +318,7 @@ theorem loop7_relIn {rd : Reader} {R : ℕ → Prop} {dsh gmu layers rounds : E}
         simp only [List.map_cons, List.map_nil, List.mem_singleton] at hc
         subst hc
         simp only [Main.mkCall, decide_eq_true_eq] at ht ⊢
-        have hci := tb_holds_callIf hnr hP 294 (.n 342) "__loop7"
+        have hci := tb_holds_callIf hnr hP 294 (.n 342) "__loop6"
           [.n 344, .n 1, .n 2, .n 3, .n 4, .n 5] (by decide +kernel)
         have hrel := hci.2 ht
         have e344 : σ (.n 344) = gen ^ (j + 1) := by rw [m344, c343, p0, pow_succ]

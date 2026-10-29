@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.Gkr.VbgL7
 
-  `verify_bus_gkr`'s layer loop `__loop7` loads from a region holding its buffers and the cursor's
+  `verify_bus_gkr`'s layer loop `__loop6` loads from a region holding its buffers and the cursor's
   words, on a memory holding the buffers' honest words.
 -/
 
@@ -11,10 +11,10 @@ public import LeanVM.Guest.B1.Gkr.Loop7In
 public import LeanVM.Guest.B1.Gkr.VbgComplete
 
 /-!
-# `__loop7` in `verify_bus_gkr`, loading from its buffers
+# `__loop6` in `verify_bus_gkr`, loading from its buffers
 
 `vbg_loop7_relIn`: on a memory holding the buffers' honest words (`vbgLay`), the call of
-`__loop7` from `1` below `g^(depth/2)` loads from any region holding the cursor's words and the
+`__loop6` from `1` below `g^(depth/2)` loads from any region holding the cursor's words and the
 buffers `layers`, `rounds`, the rows and `depth_shift`: iteration `j`'s slot, row, records and
 cursor (`Ly7In`) are the honest slot's (`GkSlotC`) and records' (`RecsAt`), inside the buffers.
 -/
@@ -31,8 +31,8 @@ theorem gkPos_closed (sh : ℕ) : ∀ j, gkPos sh j = sh + j * j + j * sh
   | j + 1 => by rw [gkPos, gkPos_closed sh j]; ring
 
 set_option maxHeartbeats 400000 in
-/-- **`__loop7` loads from the buffers** (TRIAGE G #43): at `2 ≤ depth ≤ 32`, an accepting run of
-`gkrPhase depth`, the buffers' honest words in memory (`vbgLay`), `__loop7`'s relation from `1`
+/-- **`__loop6` loads from the buffers** (TRIAGE G #43): at `2 ≤ depth ≤ 32`, an accepting run of
+`gkrPhase depth`, the buffers' honest words in memory (`vbgLay`), `__loop6`'s relation from `1`
 below `g^(depth/2)` loads from any region holding the cursor's words and the buffers. -/
 theorem vbg_loop7_relIn {depth : ℕ} (hd : depth ≤ 32) {cap0 xs : List E}
     {r : E × List E × List E} {cap' : List E}
@@ -42,9 +42,9 @@ theorem vbg_loop7_relIn {depth : ℕ} (hd : depth ≤ 32) {cap0 xs : List E}
     (hRx : ∀ i < xs.length, R (ec + i)) (hRL : ∀ i < 17 * (depth + 2), R (eL + i))
     (hRR : ∀ i < 6034, R (eR + i)) (hRr : ∀ i < 1640, R (eP + i)) (hRD : ∀ i < 33, R (eD + i))
     (hm0 : 0 < depth / 2)
-    (h : coreProgram.Rel rd "__loop7" [1, gen ^ (depth / 2), ofK (gpow eD), gen ^ depth,
+    (h : coreProgram.Rel rd "__loop6" [1, gen ^ (depth / 2), ofK (gpow eD), gen ^ depth,
       ofK (gpow eL), ofK (gpow eR)] []) :
-    coreProgram.RelIn rd R "__loop7" [1, gen ^ (depth / 2), ofK (gpow eD), gen ^ depth,
+    coreProgram.RelIn rd R "__loop6" [1, gen ^ (depth / 2), ofK (gpow eD), gen ^ depth,
       ofK (gpow eL), ofK (gpow eR)] [] := by
   obtain ⟨-, -, -, hsteps, -, -, -, -⟩ := gk_walk hrun hc
   obtain ⟨sp, hsp⟩ := hc
