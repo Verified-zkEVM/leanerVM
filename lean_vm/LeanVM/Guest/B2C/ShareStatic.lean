@@ -38,7 +38,7 @@ noncomputable def apartOkN (j vb : ℕ) : Bool :=
     bitsNodup ((plumbOf j).stat.map Prod.fst) 0 && bitsNodup (siteCells (plumbOf j)) 0 &&
     bitsNodup ((plumbOf j).arms.map fun a ↦ a.2.1) 0 &&
     (certOf j).facts.env.all (fun p ↦ (plumbOf j).stat.any fun q ↦ Nat.beq q.1 p.1 && q.2 == .fpg 0) &&
-    (bif Nat.beq j 1 then Nat.blt (Nat.lor (Nat.lor trsv sc) ac) (2 ^ 408) else true)
+    (bif Nat.beq j 1 then Nat.blt (Nat.lor (Nat.lor trsv sc) ac) (2 ^ 406) else true)
 
 theorem apartOk_eq (j : ℕ) : apartOk j = apartOkN j (bitsOf (certOf j).locs) := rfl
 

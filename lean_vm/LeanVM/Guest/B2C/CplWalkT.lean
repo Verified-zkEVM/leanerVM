@@ -37,7 +37,7 @@ theorem tbl_jt_mem {s t : ℕ} (h : glob.jt.get s = some t) : ∃ w, (s, w) ∈ 
   unfold JumpTable.entryOk at he
   rw [Bool.and_eq_true] at he
   obtain ⟨hlt, he⟩ := he
-  have hlen : s - 408 < Data.f0.len := by simpa using hlt
+  have hlen : s - 406 < Data.f0.len := by simpa using hlt
   obtain ⟨o, k0, k1, k2, hins, hmem⟩ := End.f0_instr hlen
   rw [hins] at he
   simp only [Bool.and_eq_true, beq_iff_eq] at he

@@ -496,7 +496,7 @@ noncomputable def cert35 : Check.Cert where
   pre := []
   post := []
   mem := []
-  sem := [(17, 18)]
+  sem := [(15, 16)]
   cuts := []
   ends := []
 

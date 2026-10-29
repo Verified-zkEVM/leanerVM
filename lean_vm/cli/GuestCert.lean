@@ -741,9 +741,9 @@ def vsIdx : ℕ := 19
 
 /-- The pairs of frame cells a function assumes in the semantic relation (`Glob.sem`, the
 exponent tables): `verify_sub`'s arguments 4 and 5, and the loop calling it, which receives
-them as arguments 15 and 16. -/
+them as arguments 13 and 14. -/
 def semOf (name : String) : List (ℕ × ℕ) :=
-  if name == "verify_sub" then [(6, 7)] else if name == "__loop4" then [(17, 18)] else []
+  if name == "verify_sub" then [(6, 7)] else if name == "__loop4" then [(15, 16)] else []
 
 /-- The semantic pairs a function learns from a top-level call, `(statement after it, value,
 value)`: the two tables `exponent_tables` returns. -/
@@ -760,8 +760,7 @@ remainder; `da_verify` on `da_row_shape`'s checked argument; `check_opening_term
 `col_kappas` entries, which `verify_sub` knows from an obligation. -/
 def bounds (name : String) :
     List (ℕ × ℕ) × List (ℕ × ℕ) × List (ℕ × ℕ × ℕ) × List (ℕ × ℕ × ℕ) :=
-  if name == "da_list_digest" then ([(3, 17)], [], [], [])
-  else if name == "da_row_shape" then ([], [(3, 11)], [], [])
+  if name == "da_row_shape" then ([], [(3, 11)], [], [])
   else if name == "list_split" then ([], [(4, 17)], [], [])
   else if name == "verify_tables" then ([(11, 34)], [], [], [])
   else if name == "verify_log2_ceil__L0_L34" || name == "verify_log2_ceil__L15_L34" ||

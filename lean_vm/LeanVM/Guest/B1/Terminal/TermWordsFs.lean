@@ -128,16 +128,16 @@ theorem csCertOk_spec {c : Cert} (h : csCertOk c = true) :
   · exact ⟨_, _, rfl, of_decide_eq_true h⟩
   · cases h
 
-/-- The column selectors: core functions `264 + κ`, constant words certificates within `157`, frames
+/-- The column selectors: core functions `261 + κ`, constant words certificates within `157`, frames
 within `157`. -/
 theorem cs_ok : (List.range 29).all (fun κ =>
-    decide ((coreProgram[264 + κ]?).map Fn.name = some (Tables.lName "column_selector" κ)) &&
-      csCertOk (Data.wcertJ (264 + κ)) && decide (wfsJ (264 + κ) ≤ 157)) = true := by
+    decide ((coreProgram[261 + κ]?).map Fn.name = some (Tables.lName "column_selector" κ)) &&
+      csCertOk (Data.wcertJ (261 + κ)) && decide (wfsJ (261 + κ) ≤ 157)) = true := by
   decide +kernel
 
 theorem cs_facts {κ : ℕ} (hκ : κ < 29) :
-    (coreProgram[264 + κ]?).map Fn.name = some (Tables.lName "column_selector" κ) ∧
-      csCertOk (Data.wcertJ (264 + κ)) = true ∧ wfsJ (264 + κ) ≤ 157 := by
+    (coreProgram[261 + κ]?).map Fn.name = some (Tables.lName "column_selector" κ) ∧
+      csCertOk (Data.wcertJ (261 + κ)) = true ∧ wfsJ (261 + κ) ≤ 157 := by
   have h := List.all_eq_true.mp cs_ok κ (List.mem_range.mpr hκ)
   simp only [Bool.and_eq_true, decide_eq_true_eq] at h
   exact ⟨h.1.1, h.1.2, h.2⟩
