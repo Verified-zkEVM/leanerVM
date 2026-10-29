@@ -172,7 +172,7 @@ theorem gpowCell_idx_eval {n i : ℕ} (hi : i < 2 ^ n) (hn : n ≤ 64) (env : Pr
   rw [gpowCell_eval _ n (by rw [h]; exact hi), h]
 
 /-- The row index a fixed cell reads is the row's. -/
-theorem idx_eval_toNat (ctx : Witgen.Ctx K) (h : ctx.idx < 2 ^ 64) :
+private theorem idx_eval_toNat (ctx : Witgen.Ctx K) (h : ctx.idx < 2 ^ 64) :
     (Witgen.U64Expr.idx.eval ctx).toNat = ctx.idx := by
   show (UInt64.ofNat ctx.idx).toNat = ctx.idx
   rw [UInt64.toNat_ofNat_of_lt' h]

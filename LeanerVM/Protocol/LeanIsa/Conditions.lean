@@ -40,12 +40,12 @@ private theorem sum_flatMap_replicate {α : Type} (l : List α) (a : α → ℕ)
       List.sum_replicate, smul_eq_mul, List.map_cons, List.sum_cons]
 
 /-- Every table has at most as many count columns as push flushes. -/
-theorem counts_le_pushes : ∀ j : Fin 9,
+private theorem counts_le_pushes : ∀ j : Fin 9,
     (counts j).length ≤ ((flushes j).filter fun f ↦ decide (f.1 = Side.push)).length := by
   decide +kernel
 
 /-- A table with a constraint has a push flush. -/
-theorem constrained_pushes : ∀ j : Fin 9, 0 < (LeanIsa.constraints j).length →
+private theorem constrained_pushes : ∀ j : Fin 9, 0 < (LeanIsa.constraints j).length →
     0 < ((LeanIsa.flushes j).filter fun f ↦ decide (f.1 = Side.push)).length := by
   decide +kernel
 

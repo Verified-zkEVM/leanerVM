@@ -172,12 +172,12 @@ def counts : (j : Fin 9) → List (Fin (width j))
   | ⟨j + 3, h⟩ => (opcodeTable ⟨j, by omega⟩).count
 
 /-- Every assert expression of an opcode table has syntactic degree at most two. -/
-theorem opcode_constraints_degreeBound :
+private theorem opcode_constraints_degreeBound :
     ∀ j : Fin 6, ∀ e ∈ (opcodeComponent j).rowOperations.constraints, e.degreeBound ≤ 2 := by
   decide +kernel
 
 /-- Every message coordinate of an opcode table has syntactic degree at most two. -/
-theorem opcode_flushes_degreeBound :
+private theorem opcode_flushes_degreeBound :
     ∀ j : Fin 6, ∀ i ∈ (opcodeComponent j).rowOperations.interactions,
       ∀ e ∈ i.msg.toList, e.degreeBound ≤ 2 := by
   decide +kernel

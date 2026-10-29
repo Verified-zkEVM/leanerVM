@@ -8,7 +8,7 @@
 module
 
 public import LeanerVM.Protocol.LeanIsa.Read
-public import LeanerVM.Arithmetization.Completeness.Messages
+public import LeanerVM.Arithmetization.Rows
 
 /-!
 # The leanISA bus as one bus
@@ -20,8 +20,8 @@ against pulls (`M3Instance.Balanced`). This module relates the two on any witnes
 ensemble.
 
 * `interaction_channel`: every interaction of a witness is on one of the three channels, with
-  that channel's arity; `interaction_mult`: with multiplicity `1`, so every interaction is
-  active.
+  that channel's arity; `interactions_mult_eq_one`: with multiplicity `1`, so every
+  interaction is active.
 * `sideTuples w side`: the tuples a witness flushes on one side: every interaction whose
   direction is that side, as `flushTuple`, leanISA's `busTuple`.
 * `balanced_iff`: the two sides are one multiset exactly when each of the three channels
@@ -45,31 +45,12 @@ def channelTable : List (String × ℕ) :=
 variable {prog : Program} {κ : ℕ}
 
 /-- Every interaction of a witness is on one of the three channels, with its arity. -/
-theorem interaction_channel {w : EnsembleWitness (leanIsaEnsemble prog κ)} {i : Interaction K}
-    (hi : i ∈ w.interactions) : (i.channel.name, i.channel.arity) ∈ channelTable := by
+private theorem interaction_channel {w : EnsembleWitness (leanIsaEnsemble prog κ)}
+    {i : Interaction K} (hi : i ∈ w.interactions) :
+    (i.channel.name, i.channel.arity) ∈ channelTable := by
   have h := EnsembleWitness.channel_mem_of_mem_interactions hi
   simp only [leanIsaEnsemble, List.mem_cons, List.not_mem_nil, or_false] at h
   rcases h with h | h | h <;> rw [h] <;> decide
-
-/-- The opcode components have unit multiplicities. -/
-private theorem opcode_unit : ∀ j : Fin 6, UnitMultiplicities (opcodeComponent j) := by
-  decide +kernel
-
-/-- Every component of the ensemble has unit multiplicities. -/
-private theorem tables_unit (prog : Program) (κ : ℕ) :
-    ∀ c ∈ (leanIsaEnsemble prog κ).tables, UnitMultiplicities c := by
-  intro c hc
-  simp only [leanIsaEnsemble, List.mem_cons, List.not_mem_nil, or_false] at hc
-  rcases hc with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl
-  · exact opcode_unit 0
-  · exact opcode_unit 1
-  · exact opcode_unit 2
-  · exact opcode_unit 3
-  · exact opcode_unit 4
-  · exact opcode_unit 5
-  · exact (by decide +kernel : UnitMultiplicities (memComponent 0))
-  · exact (by decide +kernel :
-      UnitMultiplicities (bytecodeComponent ⟨0, Nat.zero_le _, fun _ ↦ .jump 0 0 0⟩))
 
 /-- The verifier's two interactions: the initial state pushed, the final state pulled. -/
 theorem verifier_interactions (prog : Program) (κ : ℕ) :
@@ -77,19 +58,6 @@ theorem verifier_interactions (prog : Program) (κ : ℕ) :
       [(StateChannel.pushed (⟨1, 1⟩ : Regs (Expression K))).toRaw,
         (StateChannel.pulled (⟨.const prog.finalPc, 1⟩ : Regs (Expression K))).toRaw] :=
   rfl
-
-/-- Every interaction of a witness has multiplicity `1`. -/
-theorem interaction_mult {w : EnsembleWitness (leanIsaEnsemble prog κ)} {i : Interaction K}
-    (hi : i ∈ w.interactions) : i.mult = 1 := by
-  simp only [EnsembleWitness.interactions, List.mem_append, List.mem_flatMap,
-    Air.Flat.Table.interactions, Operations.interactionValues, List.mem_map,
-    Air.Flat.Component.interactions_eq] at hi
-  rcases hi with ⟨ai, hai, rfl⟩ | ⟨t, ht, row, -, ai, hai, rfl⟩
-  · rw [verifier_interactions] at hai
-    simp only [List.mem_cons, List.not_mem_nil, or_false] at hai
-    rcases hai with rfl | rfl <;> rfl
-  · exact Expression.eval_of_constValue
-      (tables_unit prog κ _ (EnsembleWitness.component_mem_tables_of_mem ht) ai hai) _
 
 /-- On interactions of multiplicity `1`, the active messages of a direction are all of its
 messages. -/
@@ -103,11 +71,11 @@ private theorem activeMessages_eq {l : List (Interaction K)} (h : ∀ i ∈ l, i
 
 /-- The messages of a witness on a channel in a direction: every interaction on the channel in
 that direction. -/
-theorem messagesOn_eq (w : EnsembleWitness (leanIsaEnsemble prog κ)) (c : RawChannel K)
+private theorem messagesOn_eq (w : EnsembleWitness (leanIsaEnsemble prog κ)) (c : RawChannel K)
     (d : BusDir) :
     messagesOn w c d = ((w.interactions.filter fun i ↦ decide (i.channel.name = c.name)).filter
       fun i ↦ decide (i.direction = d)).map (·.msg) :=
-  activeMessages_eq (fun _ hi ↦ interaction_mult (List.mem_filter.mp hi).1) d
+  activeMessages_eq (fun _ hi ↦ interactions_mult_eq_one w _ (List.mem_filter.mp hi).1) d
 
 /-! ## Tuples and separators -/
 
@@ -171,7 +139,7 @@ private theorem tupleOf_zero (σ : K) (m : Array K) : (tupleOf σ m)[0] = σ := 
   simp [tupleOf]
 
 /-- A message of at most fifteen coordinates is read back off its tuple. -/
-theorem tupleMsg_tupleOf (σ : K) (m : Array K) (h : m.size ≤ 15) :
+private theorem tupleMsg_tupleOf (σ : K) (m : Array K) (h : m.size ≤ 15) :
     tupleMsg m.size (tupleOf σ m) = m := by
   apply Array.ext (by simp [tupleMsg])
   intro k _ hk
@@ -181,7 +149,7 @@ theorem tupleMsg_tupleOf (σ : K) (m : Array K) (h : m.size ≤ 15) :
   rw [Array.getElem?_eq_getElem hk, Option.getD_some]
 
 /-- Messages of one length at most fifteen are read back off their tuples. -/
-theorem map_tupleMsg_tupleOf {σ : K} {a : ℕ} (l : List (Array K)) (hl : ∀ m ∈ l, m.size = a)
+private theorem map_tupleMsg_tupleOf {σ : K} {a : ℕ} (l : List (Array K)) (hl : ∀ m ∈ l, m.size = a)
     (ha : a ≤ 15) : (l.map (tupleOf σ)).map (tupleMsg a) = l := by
   rw [List.map_map]
   conv_rhs => rw [← List.map_id l]
@@ -203,7 +171,7 @@ abbrev sideTuples (w : EnsembleWitness (leanIsaEnsemble prog κ)) (side : Side) 
 
 /-- The tuples one side flushes with channel `k`'s separator are the messages on channel `k` in
 that side's direction, as tuples. -/
-theorem filter_tuplesOn (l : List (Interaction K)) (side : Side) (k : Fin 3) :
+private theorem filter_tuplesOn (l : List (Interaction K)) (side : Side) (k : Fin 3) :
     (tuplesOn l side).filter (fun v : Vector K 16 ↦ decide (v[0] = gpow k)) =
       (((l.filter fun i ↦ decide (i.channel.name = (channelAt k).name)).filter
         fun i ↦ decide (i.direction = dirOf side)).map (·.msg)).map (tupleOf (gpow k)) := by
@@ -244,7 +212,7 @@ private theorem size_of_mem_messagesOn {w : EnsembleWitness (leanIsaEnsemble pro
 
 /-- Channel `k` balances exactly when the two sides' tuples with its separator are one
 multiset. -/
-theorem channel_perm_iff (w : EnsembleWitness (leanIsaEnsemble prog κ)) (k : Fin 3) :
+private theorem channel_perm_iff (w : EnsembleWitness (leanIsaEnsemble prog κ)) (k : Fin 3) :
     (messagesOn w (channelAt k) .push).Perm (messagesOn w (channelAt k) .pull) ↔
       ((sideTuples w .push).filter fun v : Vector K 16 ↦ decide (v[0] = gpow k)).Perm
         ((sideTuples w .pull).filter fun v : Vector K 16 ↦ decide (v[0] = gpow k)) := by
@@ -301,7 +269,7 @@ private theorem tuplesOn_eq (l : List (Interaction K)) (side : Side) :
 
 /-- The memory block's two messages on a row: the seed push `(idx, 1, m)` and the finalize pull
 `(idx, cntFin, m)`. -/
-theorem memTable_messages (idx cnt a b c : K) (data : ProverData K) :
+private theorem memTable_messages (idx cnt a b c : K) (data : ProverData K) :
     ((memComponent κ).operations.interactionValues
       (Environment.fromArray (toElements (⟨idx, cnt, #v[a, b, c]⟩ : MemRow K)).toArray data)).map
         (fun i ↦ (i.channel.name, i.direction, i.msg)) =
@@ -312,7 +280,8 @@ theorem memTable_messages (idx cnt a b c : K) (data : ProverData K) :
 
 /-- The bytecode block's two messages on a row: the seed push `(idx, 1, opcode, op)` and the
 finalize pull `(idx, cntFin, opcode, op)`. -/
-theorem bytecodeTable_messages (idx cnt opc o₁ o₂ o₃ o₄ o₅ o₆ o₇ : K) (data : ProverData K) :
+private theorem bytecodeTable_messages (idx cnt opc o₁ o₂ o₃ o₄ o₅ o₆ o₇ : K)
+    (data : ProverData K) :
     ((bytecodeComponent prog).operations.interactionValues
       (Environment.fromArray (toElements (⟨idx, cnt, opc, #v[o₁, o₂, o₃, o₄, o₅, o₆, o₇]⟩ :
         BytecodeRow K)).toArray data)).map (fun i ↦ (i.channel.name, i.direction, i.msg)) =
@@ -334,7 +303,8 @@ theorem opTable_component (w : EnsembleWitness (leanIsaEnsemble prog κ)) (j : F
   fin_cases j <;> rfl
 
 /-- Every message coordinate of an opcode table reads within its width. -/
-theorem opcode_withinWidth : ∀ j : Fin 6, ∀ ai ∈ (opcodeComponent j).rowOperations.interactions,
+private theorem opcode_withinWidth :
+    ∀ j : Fin 6, ∀ ai ∈ (opcodeComponent j).rowOperations.interactions,
     ∀ e ∈ ai.msg.toList, e.WithinWidth (opcodeComponent j).width := by
   decide +kernel
 
@@ -434,7 +404,7 @@ structure Agrees (w : EnsembleWitness (leanIsaEnsemble prog κ)) : Prop where
 variable {F s q}
 
 /-- Opcode table `j` flushes, on one side, its flushes of that side on every row of the stack. -/
-theorem tuplesOn_opTable {w : EnsembleWitness (leanIsaEnsemble prog κ)} (h : Agrees F s q w)
+private theorem tuplesOn_opTable {w : EnsembleWitness (leanIsaEnsemble prog κ)} (h : Agrees F s q w)
     (j : Fin 6) (side : Side) :
     tuplesOn (opTable w j).interactions side =
       (List.finRange (2 ^ s.τ j)).flatMap fun x ↦
@@ -480,7 +450,7 @@ abbrev entryList (i : Fin (2 ^ prog.logSize)) : List K :=
   (List.finRange 8).map fun k ↦ (entry (prog.code i))[k]
 
 /-- The push side's boundary tuples: the initial state, the memory seed, the bytecode seed. -/
-theorem boundaryTuples_push :
+private theorem boundaryTuples_push :
     (leanIsaInstance F prog s).boundaryTuples q .push =
       [tupleOf (gpow 0) #[1, 1]] ++
       ((List.finRange (2 ^ s.logMem)).map fun x : Fin (2 ^ s.logMem) ↦
@@ -511,7 +481,7 @@ theorem boundaryTuples_push :
     exact (congrArg (fun l : List K ↦ tupleOf (gpow 2) l.toArray) hl).trans rfl
 
 /-- The pull side's boundary tuples: the final state, the memory finalize, the bytecode finalize. -/
-theorem boundaryTuples_pull :
+private theorem boundaryTuples_pull :
     (leanIsaInstance F prog s).boundaryTuples q .pull =
       [tupleOf (gpow 0) #[prog.finalPc, 1]] ++
       ((List.finRange (2 ^ s.logMem)).map fun x : Fin (2 ^ s.logMem) ↦
@@ -558,7 +528,8 @@ private theorem tuplesOn_pair {l : List (Interaction K)} {n : String} {mPull mPu
 variable {F s q}
 
 /-- The memory block flushes its seed and finalize tuples, on the stack's memory columns. -/
-theorem tuplesOn_memBlock {w : EnsembleWitness (leanIsaEnsemble prog κ)} (h : Agrees F s q w)
+private theorem tuplesOn_memBlock {w : EnsembleWitness (leanIsaEnsemble prog κ)}
+    (h : Agrees F s q w)
     (side : Side) :
     tuplesOn (tableAt w 6).interactions side =
       (List.finRange (2 ^ s.logMem)).map fun x : Fin (2 ^ s.logMem) ↦
@@ -575,7 +546,8 @@ theorem tuplesOn_memBlock {w : EnsembleWitness (leanIsaEnsemble prog κ)} (h : A
 
 /-- The bytecode block flushes the program's seed and finalize tuples, with the stack's finalize
 counts. -/
-theorem tuplesOn_bytecodeBlock {w : EnsembleWitness (leanIsaEnsemble prog κ)} (h : Agrees F s q w)
+private theorem tuplesOn_bytecodeBlock {w : EnsembleWitness (leanIsaEnsemble prog κ)}
+    (h : Agrees F s q w)
     (side : Side) :
     tuplesOn (tableAt w 7).interactions side =
       (List.finRange (2 ^ prog.logSize)).map fun i : Fin (2 ^ prog.logSize) ↦
@@ -591,7 +563,7 @@ theorem tuplesOn_bytecodeBlock {w : EnsembleWitness (leanIsaEnsemble prog κ)} (
   cases side <;> simp [entryList, List.finRange_succ]
 
 /-- The verifier pushes the initial state and pulls the final state. -/
-theorem tuplesOn_verifier (env : Environment K) (side : Side) :
+private theorem tuplesOn_verifier (env : Environment K) (side : Side) :
     tuplesOn ((leanIsaEnsemble prog κ).verifierOperations.interactionValues env) side =
       [tupleOf (gpow 0) (if side = .push then #[1, 1] else #[prog.finalPc, 1])] :=
   tuplesOn_pair (verifier_sends prog κ env) nameSep_three.1 side

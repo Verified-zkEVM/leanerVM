@@ -7,7 +7,7 @@
 
 module
 
-public import LeanerVM.Arithmetization.Statement
+public import LeanerVM.Arithmetization.Completeness.Messages
 
 @[expose] public section
 
@@ -44,9 +44,10 @@ direction as the verifier's (`verifierMessagesOn`) and its rows', table by table
 most nine memory reads. Every interaction of a witness has multiplicity `1`
 (`interactions_mult_eq_one`), so none is dropped by Clean's `activeMessages`.
 
-The proofs evaluate each row circuit once over a row variable `x` with `eval env x = r` and
-specialize it at Clean's `varFromOffset` (`eval_varFromOffset_valueFromOffset`), reading each
-interaction as its channel name, direction, multiplicity and message.
+The proofs read each row circuit's closed form over a row variable `x` with `eval env x = r`
+(`Completeness.Messages`) and specialize it at Clean's `varFromOffset`
+(`eval_varFromOffset_valueFromOffset`), reading each interaction as its channel name, direction
+and message.
 
 **From rows to interactions.** `exists_interaction_of_mem_rowMessagesOn` reads a row's message
 as one of its table's interactions, and `mem_messagesOn_of_mem_rowMessagesOn`,
@@ -194,174 +195,105 @@ def verifierMessagesOn {prog : Program} {κ : ℕ} (w : EnsembleWitness (leanIsa
 
 /-! ## Proof helpers -/
 
-/-- What the bus reads of an interaction: its channel's name, its direction, its multiplicity
-and its message. -/
-private def quad (i : Interaction K) : String × BusDir × K × Array K :=
-  (i.channel.name, i.direction, i.mult, i.msg)
+/-- The sends of an opcode row, in the order the tables emit them: the state pull and push, the
+bytecode read, then each memory read. -/
+private def OpcodeSends.sends (s : OpcodeSends) : List (String × BusDir × Array K) :=
+  [(StateChannel.name, .pull, #[s.pull.pc, s.pull.fp]),
+    (StateChannel.name, .push, #[s.push.pc, s.push.fp]),
+    (BytecodeChannel.name, .pull, (toElements s.bc).toArray),
+    (BytecodeChannel.name, .push, (toElements s.bc.bump).toArray)] ++
+  s.mem.flatMap fun m ↦ [(MemChannel.name, .pull, (toElements m).toArray),
+    (MemChannel.name, .push, (toElements m.bump).toArray)]
 
-/-- The active messages of the interactions on a channel name, read off their quads. -/
-private theorem activeMessages_filter_eq (l : List (Interaction K)) (c : RawChannel K)
-    (d : BusDir) :
-    activeMessages (l.filter (·.channel.name = c.name)) d =
-      ((l.map quad).filter fun p ↦ p.1 = c.name ∧ p.2.1 = d ∧ p.2.2.1 ≠ 0).map (·.2.2.2) := by
-  rw [activeMessages, List.filter_filter, List.filter_map, List.map_map]
-  refine congrArg (List.map _) (List.filter_congr fun i _ ↦ ?_)
-  by_cases h1 : i.channel.name = c.name <;> by_cases h2 : i.direction = d <;>
-    by_cases h3 : i.mult = 0 <;> simp [quad, h1, h2, h3]
-
-/-- The quads of an opcode row's sends, in the order the tables emit them: the state pull and
-push, the bytecode read, then each memory read, every one of multiplicity `1`. -/
-private def OpcodeSends.quads (s : OpcodeSends) : List (String × BusDir × K × Array K) :=
-  [(StateChannel.name, .pull, 1, (toElements s.pull).toArray),
-    (StateChannel.name, .push, 1, (toElements s.push).toArray),
-    (BytecodeChannel.name, .pull, 1, (toElements s.bc).toArray),
-    (BytecodeChannel.name, .push, 1, (toElements s.bc.bump).toArray)] ++
-  s.mem.flatMap fun m ↦ [(MemChannel.name, .pull, 1, (toElements m).toArray),
-    (MemChannel.name, .push, 1, (toElements m.bump).toArray)]
-
-private theorem OpcodeSends.quads_mult (s : OpcodeSends) : ∀ p ∈ s.quads, p.2.2.1 = 1 := by
-  intro p hp
-  simp only [OpcodeSends.quads, List.mem_append, List.mem_cons, List.mem_flatMap,
-    List.not_mem_nil, or_false] at hp
-  rcases hp with (rfl | rfl | rfl | rfl) | ⟨m, -, rfl | rfl⟩ <;> rfl
-
-/-- Evaluating a typed message's elements is evaluating the message. -/
-private theorem map_eval_toElements {M : TypeMap} [ProvableType M] (env : Environment K)
-    (x : M (Expression K)) :
-    (toElements x).map (Expression.eval env) = toElements (eval env x) :=
-  (ProvableType.toElements_eval env x).symm
-
-/-- A state message is the array `[pc, fp]`. -/
-private theorem regs_toArray (s : Regs K) : (toElements s).toArray = #[s.pc, s.fp] :=
-  Array.toList_inj.mp (by rw [Vector.toList_toArray, regs_toElements])
-
--- Each `*_quads` proof below writes the vector fields of the row variable as literals and
--- substitutes the typed row by its evaluation, field by field, before it evaluates the circuit:
--- a projection of an evaluated vector left under a product makes the kernel unfold
--- multiplication in `K`, and in a module the check does not return.
-
-/-- A vector of three is a literal. -/
-private theorem exists_vector_three {α : Type} (v : Vector α 3) : ∃ a b c, v = #v[a, b, c] :=
-  ⟨v[0], v[1], v[2], by ext i hi; interval_cases i <;> rfl⟩
-
-/-- A vector of two is a literal. -/
-private theorem exists_vector_two {α : Type} (v : Vector α 2) : ∃ a b, v = #v[a, b] :=
-  ⟨v[0], v[1], by ext i hi; interval_cases i <;> rfl⟩
-
-/-- Substitutes the typed row by its field-by-field evaluation, the vector fields of the row
-variable being literals. -/
-local macro "subst_row" hx:ident : tactic => `(tactic|
-  (simp only [circuit_norm, Vector.map_mk, List.map_toArray, List.map_cons, List.map_nil]
-     at $hx:ident
-   subst $hx:ident))
-
-/-- Evaluates an opcode row circuit's quads and the sends `s` they are compared with. -/
-local macro "eval_quads" circuit:ident s:ident : tactic => `(tactic|
-  simp only [Operations.interactionValues, circuit_norm, $circuit:ident, instructionStep, memRead,
-    bytecodeRead, AbstractInteraction.eval, map_eval_toElements, $s:ident, OpcodeSends.quads,
-    quad, MemMsg.bump, BytecodeMsg.bump, List.flatMap_cons, List.flatMap_nil, List.cons_append,
-    List.nil_append, List.append_nil, -BitVec.reduceNeg])
-
-/-- A row's messages on a channel in a direction, read off the quads its row circuit sends at
-the row variable. -/
-private theorem rowMessagesOn_eq_quads {t : Air.Flat.Table K} {c : Component K}
-    (ht : t.component = c) (row : Array K) (ch : RawChannel K) (d : BusDir) :
-    rowMessagesOn t row ch d =
-      (((c.rowOperations.interactionValues (t.environment row)).map quad).filter
-        fun p ↦ p.1 = ch.name ∧ p.2.1 = d ∧ p.2.2.1 ≠ 0).map (·.2.2.2) := by
-  rw [rowMessagesOn, activeMessages_filter_eq, ht, Component.interactionsValues_eq]
-
-/-- An opcode row whose circuit sends the quads of `s` sends `s`. -/
-private theorem sendsOpcode_of_quads {t : Air.Flat.Table K} {c : Component K}
-    (ht : t.component = c) (row : Array K) {s : OpcodeSends}
-    (h : (c.rowOperations.interactionValues (t.environment row)).map quad = s.quads) :
+/-- An opcode row whose circuit, every interaction of multiplicity `1`, sends the sends of `s`
+sends `s`. -/
+private theorem sendsOpcode_of_sends {t : Air.Flat.Table K}
+    (hm : ∀ i ∈ t.component.rowOperations.interactions, i.mult = 1) (row : Array K)
+    {s : OpcodeSends} (h : rowSends t.component (t.environment row) = s.sends) :
     SendsOpcode t row s := by
   refine ⟨?_, ?_, ?_, ?_, ?_, ?_⟩ <;>
-  · rw [rowMessagesOn_eq_quads ht, h, OpcodeSends.quads]
-    simp only [List.cons_append, List.nil_append, List.filter_cons, List.filter_flatMap,
-      Channel.toRaw_name, StateChannel, MemChannel, BytecodeChannel, String.reduceEq, ne_eq,
-      one_ne_zero, not_false_eq_true, and_true, decide_true, decide_false, Bool.false_eq_true,
-      ite_true, ite_false, List.filter_nil, List.map_cons, regs_toArray]
-    simp [List.map_flatMap, ← List.map_eq_flatMap]
+  · rw [rowMessagesOn_eq_rowSends t row _ _ hm, h]
+    simp [chanOf, OpcodeSends.sends, Channel.toRaw_name, StateChannel, MemChannel,
+      BytecodeChannel, List.filter_flatMap, List.map_flatMap, ← List.map_eq_flatMap]
+
+/-- Evaluates the closed form of an opcode row's sends against the sends `s`. -/
+local macro "eval_sends" s:ident : tactic => `(tactic|
+  simp [OpcodeSends.sends, $s:ident, memMsg_toArray, bytecodeMsg_toArray, MemMsg.bump,
+    BytecodeMsg.bump])
 
 /-! ## The six opcode tables -/
 
-/-- The quads an `XOR` row circuit sends, at a row variable that evaluates to `r`. -/
-private theorem xor_quads (x : Var XorRow K) (env : Environment K) (n : ℕ) (r : XorRow K)
-    (hx : eval env x = r) :
-    (((xorTable.main x).operations n).interactionValues env).map quad = (xorSends r).quads := by
-  obtain ⟨pc, fp, oA, oB, oC, vA, vB, rA, rB, rC, rbc⟩ := x
-  obtain ⟨a0, a1, a2, rfl⟩ := exists_vector_three vA
-  obtain ⟨b0, b1, b2, rfl⟩ := exists_vector_three vB
-  subst_row hx
-  eval_quads xorTable xorSends
+-- Each `*_rowSends` evaluates the closed form at a row variable that evaluates to a free row
+-- `r`, the typed row substituted afterwards: at the typed row itself the kernel unfolds it while
+-- it checks the rewrites.
+
+/-- The sends of an `XOR` row circuit, at a row variable that evaluates to `r`. -/
+private theorem xor_rowSends (env : Environment K) (r : XorRow K)
+    (hr : eval env (varFromOffset XorRow 0 : Var XorRow K) = r) :
+    rowSends xorComponent env = (xorSends r).sends := by
+  rw [show rowSends xorComponent _ = _ from xor_sends_gen _ _ _ _ hr]
+  eval_sends xorSends
 
 /-- Every row of an `XOR` table sends `xorSends` of its typed row. -/
 theorem xor_sendsOpcode {t : Air.Flat.Table K} (ht : t.component = xorComponent)
     (row : Array K) :
     SendsOpcode t row (xorSends (valueFromOffset XorRow 0 (t.environment row))) :=
-  sendsOpcode_of_quads ht row
-    (xor_quads _ _ _ _ (eval_varFromOffset_valueFromOffset XorRow 0 (t.environment row)))
+  sendsOpcode_of_sends (ht ▸ xor_mults_gen _ _) row (by
+    rw [ht]
+    exact xor_rowSends _ _ (eval_varFromOffset_valueFromOffset XorRow 0 _))
 
-/-- The quads a `MUL_NATIVE` row circuit sends, at a row variable that evaluates to `r`. -/
-private theorem mul_quads (x : Var MulRow K) (env : Environment K) (n : ℕ) (r : MulRow K)
-    (hx : eval env x = r) :
-    (((mulTable.main x).operations n).interactionValues env).map quad = (mulSends r).quads := by
-  obtain ⟨pc, fp, oA, oB, oC, vA, vB, rA, rB, rC, rbc⟩ := x
-  obtain ⟨a0, a1, a2, rfl⟩ := exists_vector_three vA
-  obtain ⟨b0, b1, b2, rfl⟩ := exists_vector_three vB
-  subst_row hx
-  eval_quads mulTable mulSends
+/-- The sends of a `MUL_NATIVE` row circuit, at a row variable that evaluates to `r`. -/
+private theorem mul_rowSends (env : Environment K) (r : MulRow K)
+    (hr : eval env (varFromOffset MulRow 0 : Var MulRow K) = r) :
+    rowSends mulComponent env = (mulSends r).sends := by
+  rw [show rowSends mulComponent _ = _ from mul_sends_gen _ _ _ _ hr]
+  eval_sends mulSends
 
 /-- Every row of a `MUL_NATIVE` table sends `mulSends` of its typed row. -/
 theorem mul_sendsOpcode {t : Air.Flat.Table K} (ht : t.component = mulComponent)
     (row : Array K) :
     SendsOpcode t row (mulSends (valueFromOffset MulRow 0 (t.environment row))) :=
-  sendsOpcode_of_quads ht row
-    (mul_quads _ _ _ _ (eval_varFromOffset_valueFromOffset MulRow 0 (t.environment row)))
+  sendsOpcode_of_sends (ht ▸ mul_mults_gen _ _) row (by
+    rw [ht]
+    exact mul_rowSends _ _ (eval_varFromOffset_valueFromOffset MulRow 0 _))
 
-/-- The quads a `SET_CONSTANT` row circuit sends, at a row variable that evaluates to `r`. -/
-private theorem set_quads (x : Var SetRow K) (env : Environment K) (n : ℕ) (r : SetRow K)
-    (hx : eval env x = r) :
-    (((setTable.main x).operations n).interactionValues env).map quad = (setSends r).quads := by
-  obtain ⟨pc, fp, o, k, rc, rbc⟩ := x
-  obtain ⟨k0, k1, k2, rfl⟩ := exists_vector_three k
-  subst_row hx
-  eval_quads setTable setSends
+/-- The sends of a `SET_CONSTANT` row circuit, at a row variable that evaluates to `r`. -/
+private theorem set_rowSends (env : Environment K) (r : SetRow K)
+    (hr : eval env (varFromOffset SetRow 0 : Var SetRow K) = r) :
+    rowSends setComponent env = (setSends r).sends := by
+  rw [show rowSends setComponent _ = _ from set_sends_gen _ _ _ _ hr]
+  eval_sends setSends
 
 /-- Every row of a `SET_CONSTANT` table sends `setSends` of its typed row. -/
 theorem set_sendsOpcode {t : Air.Flat.Table K} (ht : t.component = setComponent)
     (row : Array K) :
     SendsOpcode t row (setSends (valueFromOffset SetRow 0 (t.environment row))) :=
-  sendsOpcode_of_quads ht row
-    (set_quads _ _ _ _ (eval_varFromOffset_valueFromOffset SetRow 0 (t.environment row)))
+  sendsOpcode_of_sends (ht ▸ set_mults_gen _ _) row (by
+    rw [ht]
+    exact set_rowSends _ _ (eval_varFromOffset_valueFromOffset SetRow 0 _))
 
-/-- The quads a `DEREF` row circuit sends, at a row variable that evaluates to `r`. -/
-private theorem deref_quads (x : Var DerefRow K) (env : Environment K) (n : ℕ) (r : DerefRow K)
-    (hx : eval env x = r) :
-    (((derefTable.main x).operations n).interactionValues env).map quad =
-      (derefSends r).quads := by
-  obtain ⟨pc, fp, o1, o2, o3, fpc, ffp, p, v3, r1, r2, r3, rbc⟩ := x
-  obtain ⟨a0, a1, a2, rfl⟩ := exists_vector_three v3
-  subst_row hx
-  eval_quads derefTable derefSends
+/-- The sends of a `DEREF` row circuit, at a row variable that evaluates to `r`. -/
+private theorem deref_rowSends (env : Environment K) (r : DerefRow K)
+    (hr : eval env (varFromOffset DerefRow 0 : Var DerefRow K) = r) :
+    rowSends derefComponent env = (derefSends r).sends := by
+  rw [show rowSends derefComponent _ = _ from deref_sends_gen _ _ _ _ hr]
+  eval_sends derefSends
 
 /-- Every row of a `DEREF` table sends `derefSends` of its typed row. -/
 theorem deref_sendsOpcode {t : Air.Flat.Table K} (ht : t.component = derefComponent)
     (row : Array K) :
     SendsOpcode t row (derefSends (valueFromOffset DerefRow 0 (t.environment row))) :=
-  sendsOpcode_of_quads ht row
-    (deref_quads _ _ _ _ (eval_varFromOffset_valueFromOffset DerefRow 0 (t.environment row)))
+  sendsOpcode_of_sends (ht ▸ deref_mults_gen _ _) row (by
+    rw [ht]
+    exact deref_rowSends _ _ (eval_varFromOffset_valueFromOffset DerefRow 0 _))
 
-/-- The quads a `JUMP` row circuit sends, at a row variable that evaluates to `r` and with the
+/-- The sends of a `JUMP` row circuit, at a row variable that evaluates to `r` and with the
 indicator `b` at the second local witness slot. -/
-private theorem jump_quads (x : Var JumpRow K) (env : Environment K) (n : ℕ) (r : JumpRow K)
-    (hx : eval env x = r) :
-    (((jumpTable.main x).operations n).interactionValues env).map quad =
-      (jumpSends r (env.get (n + 1))).quads := by
-  obtain ⟨pc, fp, oc, od, of, vcond, vpc, vfp, rc, rd, rf, rbc⟩ := x
-  subst_row hx
-  eval_quads jumpTable jumpSends
+private theorem jump_rowSends (env : Environment K) (r : JumpRow K)
+    (hr : eval env (varFromOffset JumpRow 0 : Var JumpRow K) = r) (b : K)
+    (hb : env.get (size JumpRow + 1) = b) : rowSends jumpComponent env = (jumpSends r b).sends := by
+  rw [show rowSends jumpComponent _ = _ from jump_sends_gen _ _ _ _ hr b hb]
+  eval_sends jumpSends
 
 /-- Every row of a `JUMP` table sends `jumpSends` of its typed row and its indicator, the raw
 cell after its columns and its inverse witness. -/
@@ -369,79 +301,35 @@ theorem jump_sendsOpcode {t : Air.Flat.Table K} (ht : t.component = jumpComponen
     (row : Array K) :
     SendsOpcode t row (jumpSends (valueFromOffset JumpRow 0 (t.environment row))
       (row[size JumpRow + 1]?.getD 0)) :=
-  sendsOpcode_of_quads ht row
-    (jump_quads _ _ _ _ (eval_varFromOffset_valueFromOffset JumpRow 0 (t.environment row)))
+  sendsOpcode_of_sends (ht ▸ jump_mults_gen _ _) row (by
+    rw [ht]
+    exact jump_rowSends _ _ (eval_varFromOffset_valueFromOffset JumpRow 0 _) _ rfl)
 
-/-- The quads a `BLAKE2S` row circuit sends, at a row variable that evaluates to `r`. -/
-private theorem blake2s_quads (x : Var Blake2sRow K) (env : Environment K) (n : ℕ)
-    (r : Blake2sRow K) (hx : eval env x = r) :
-    (((blake2sTable.main x).operations n).interactionValues env).map quad =
-      (blake2sSends r).quads := by
-  obtain ⟨pc, fp, om0, om1, om2, om3, ocv, oout, omd, m0, m1, m2, m3, out0, out1, cv0, cv1, md,
-    rm0, rm1, rm2, rm3, rcv0, rcv1, rout0, rout1, rmd, rbc⟩ := x
-  obtain ⟨m0a, m0b, rfl⟩ := exists_vector_two m0
-  obtain ⟨m1a, m1b, rfl⟩ := exists_vector_two m1
-  obtain ⟨m2a, m2b, rfl⟩ := exists_vector_two m2
-  obtain ⟨m3a, m3b, rfl⟩ := exists_vector_two m3
-  obtain ⟨out0a, out0b, rfl⟩ := exists_vector_two out0
-  obtain ⟨out1a, out1b, rfl⟩ := exists_vector_two out1
-  obtain ⟨cv0a, cv0b, rfl⟩ := exists_vector_two cv0
-  obtain ⟨cv1a, cv1b, rfl⟩ := exists_vector_two cv1
-  obtain ⟨mda, mdb, rfl⟩ := exists_vector_two md
-  subst_row hx
-  eval_quads blake2sTable blake2sSends
+/-- The sends of a `BLAKE2S` row circuit, at a row variable that evaluates to `r`. -/
+private theorem blake2s_rowSends (env : Environment K) (r : Blake2sRow K)
+    (hr : eval env (varFromOffset Blake2sRow 0 : Var Blake2sRow K) = r) :
+    rowSends blake2sComponent env = (blake2sSends r).sends := by
+  rw [show rowSends blake2sComponent _ = _ from blake2s_sends_gen _ _ _ _ hr]
+  eval_sends blake2sSends
 
 /-- Every row of a `BLAKE2S` table sends `blake2sSends` of its typed row. -/
 theorem blake2s_sendsOpcode {t : Air.Flat.Table K} (ht : t.component = blake2sComponent)
     (row : Array K) :
     SendsOpcode t row (blake2sSends (valueFromOffset Blake2sRow 0 (t.environment row))) :=
-  sendsOpcode_of_quads ht row
-    (blake2s_quads _ _ _ _ (eval_varFromOffset_valueFromOffset Blake2sRow 0 (t.environment row)))
+  sendsOpcode_of_sends (ht ▸ blake2s_mults_gen _ _) row (by
+    rw [ht]
+    exact blake2s_rowSends _ _ (eval_varFromOffset_valueFromOffset Blake2sRow 0 _))
 
 /-! ## The blocks and the verifier -/
 
-/-- The quads a memory block row circuit sends, at a row variable that evaluates to `r`. -/
-private theorem mem_quads (x : Var MemRow K) (env : Environment K) (n : ℕ) (r : MemRow K)
-    (hx : eval env x = r) :
-    (((memTable.main x).operations n).interactionValues env).map quad =
-      [(MemChannel.name, .push, 1, (toElements (⟨r.idx, 1, r.m⟩ : MemMsg K)).toArray),
-        (MemChannel.name, .pull, 1, (toElements (⟨r.idx, r.cntFin, r.m⟩ : MemMsg K)).toArray)] := by
-  subst hx
-  obtain ⟨idx, cntFin, m⟩ := x
-  simp only [Operations.interactionValues, circuit_norm, memTable, AbstractInteraction.eval,
-    map_eval_toElements, quad, -BitVec.reduceNeg]
-
-/-- The quads a bytecode block row circuit sends, at a row variable that evaluates to `r`. -/
-private theorem bytecode_quads (x : Var BytecodeRow K) (env : Environment K) (n : ℕ)
-    (r : BytecodeRow K) (hx : eval env x = r) :
-    (((bytecodeTable.main x).operations n).interactionValues env).map quad =
-      [(BytecodeChannel.name, .push, 1,
-          (toElements (⟨r.idx, 1, r.opcode, r.op⟩ : BytecodeMsg K)).toArray),
-        (BytecodeChannel.name, .pull, 1,
-          (toElements (⟨r.idx, r.cntFin, r.opcode, r.op⟩ : BytecodeMsg K)).toArray)] := by
-  subst hx
-  obtain ⟨idx, cntFin, opcode, op⟩ := x
-  simp only [Operations.interactionValues, circuit_norm, bytecodeTable, AbstractInteraction.eval,
-    map_eval_toElements, quad, -BitVec.reduceNeg]
-
-/-- The quads the verifier sends, in every environment. -/
-private theorem verifier_quads (prog : Program) (κ : ℕ) (env : Environment K) :
-    ((leanIsaEnsemble prog κ).verifierOperations.interactionValues env).map quad =
-      [(StateChannel.name, .push, 1, #[1, 1]),
-        (StateChannel.name, .pull, 1, #[prog.finalPc, 1])] := by
-  simp only [Operations.interactionValues, Air.Flat.Ensemble.verifierOperations,
-    Verifier.Program.circuitOperations, leanIsaEnsemble, leanIsaVerifier, circuit_norm,
-    AbstractInteraction.eval, map_eval_toElements, regs_toArray, quad, -BitVec.reduceNeg]
-
-/-- Filtering a push and a pull on one channel by a channel name and a direction. -/
-private theorem filter_two (a : String) (u v : Array K) (c : String) (d : BusDir) :
-    ((([(a, .push, 1, u), (a, .pull, 1, v)] : List (String × BusDir × K × Array K)).filter
-        fun p ↦ p.1 = c ∧ p.2.1 = d ∧ p.2.2.1 ≠ 0).map (·.2.2.2)) =
+/-- A push and a pull on one channel, read on a channel name and a direction. -/
+private theorem chanOf_two (a : String) (u v : Array K) (c : String) (d : BusDir) :
+    chanOf c d [(a, .push, u), (a, .pull, v)] =
       if c = a then if d = .push then [u] else [v] else [] := by
   by_cases h : c = a
   · subst h
-    cases d <;> simp
-  · simp [h, Ne.symm h]
+    cases d <;> simp [chanOf]
+  · simp [chanOf, Ne.symm h, h]
 
 /-- A row of the memory block pushes its seed `(idx, 1, m)` and pulls its finalize
 `(idx, cntFin, m)` on the memory channel, and sends nothing on any other channel (specification
@@ -454,10 +342,10 @@ theorem memBlock_rowMessagesOn {κ : ℕ} {t : Air.Flat.Table K} (ht : t.compone
         if d = .push then [(toElements (⟨r.idx, 1, r.m⟩ : MemMsg K)).toArray]
         else [(toElements (⟨r.idx, r.cntFin, r.m⟩ : MemMsg K)).toArray]
       else [] := by
-  rw [rowMessagesOn_eq_quads ht, show (memComponent κ).rowOperations =
-      (memTable.main (varFromOffset MemRow 0)).operations (size MemRow) from rfl,
-    mem_quads _ _ _ _ ((eval_varFromOffset_valueFromOffset MemRow 0 _).trans hr)]
-  exact filter_two _ _ _ _ _
+  rw [rowMessagesOn_eq_rowSends t row c d (ht ▸ mem_mults κ), ht,
+    show rowSends (memComponent κ) _ = _ from mem_sends_gen _ _ _ _
+      ((eval_varFromOffset_valueFromOffset MemRow 0 _).trans hr),
+    chanOf_two, memMsg_toArray, memMsg_toArray]
 
 /-- A row of the bytecode block pushes its seed `(idx, 1, opcode, op)` and pulls its finalize
 `(idx, cntFin, opcode, op)` on the bytecode channel, and sends nothing on any other channel
@@ -471,10 +359,10 @@ theorem bytecodeBlock_rowMessagesOn {prog : Program} {t : Air.Flat.Table K}
         if d = .push then [(toElements (⟨r.idx, 1, r.opcode, r.op⟩ : BytecodeMsg K)).toArray]
         else [(toElements (⟨r.idx, r.cntFin, r.opcode, r.op⟩ : BytecodeMsg K)).toArray]
       else [] := by
-  rw [rowMessagesOn_eq_quads ht, show (bytecodeComponent prog).rowOperations =
-      (bytecodeTable.main (varFromOffset BytecodeRow 0)).operations (size BytecodeRow) from rfl,
-    bytecode_quads _ _ _ _ ((eval_varFromOffset_valueFromOffset BytecodeRow 0 _).trans hr)]
-  exact filter_two _ _ _ _ _
+  rw [rowMessagesOn_eq_rowSends t row c d (ht ▸ bytecode_mults prog), ht,
+    show rowSends (bytecodeComponent prog) _ = _ from bytecode_sends_gen _ _ _ _
+      ((eval_varFromOffset_valueFromOffset BytecodeRow 0 _).trans hr),
+    chanOf_two, bytecodeMsg_toArray, bytecodeMsg_toArray]
 
 /-- The verifier pushes `(1, 1)` and pulls `(g^(N_prog - 1), 1)` on the state channel, and
 sends nothing on any other channel (specification §6.1; `layout.rs:352-358`). -/
@@ -484,8 +372,9 @@ theorem verifier_messagesOn {prog : Program} {κ : ℕ}
       if c.name = StateChannel.name then
         if d = .push then [#[1, 1]] else [#[prog.finalPc, 1]]
       else [] := by
-  rw [verifierMessagesOn, activeMessages_filter_eq, verifier_quads]
-  exact filter_two _ _ _ _ _
+  rw [verifierMessagesOn, activeMessages_filter_name _
+    (fun i hi ↦ by rw [verifier_mults prog κ _ i hi]; exact one_ne_zero), verifier_sends,
+    chanOf_two]
 
 /-! ## The witness -/
 
@@ -501,50 +390,24 @@ theorem messagesOn_eq_flatMap (w : EnsembleWitness (leanIsaEnsemble prog κ)) (c
     EnsembleWitness.interactions, Air.Flat.Table.interactions, List.filter_append,
     List.filter_flatMap, List.map_append, List.map_flatMap]
 
-/-- Quads that are an opcode row's sends have multiplicity `1`. -/
-private theorem quads_mult_of {L : List (String × BusDir × K × Array K)} {s : OpcodeSends}
-    (h : L = s.quads) : ∀ p ∈ L, p.2.2.1 = 1 := h ▸ s.quads_mult
-
-/-- A push and a pull of multiplicity `1` have multiplicity `1`. -/
-private theorem quads_mult_two {L : List (String × BusDir × K × Array K)} {a : String}
-    {u v : Array K} (h : L = [(a, .push, 1, u), (a, .pull, 1, v)]) : ∀ p ∈ L, p.2.2.1 = 1 := by
-  rw [h]
-  simp
-
-/-- The quads every row of every table of a witness sends have multiplicity `1`. -/
-private theorem row_quads_mult {w : EnsembleWitness (leanIsaEnsemble prog κ)}
-    {t : Air.Flat.Table K} (ht : t ∈ w.tables) (row : Array K) :
-    ∀ p ∈ (t.component.rowOperations.interactionValues (t.environment row)).map quad,
-      p.2.2.1 = 1 := by
-  obtain ⟨j, rfl⟩ := mem_tables_iff.mp ht
-  rw [tableAt_component]
-  have e := eval_varFromOffset_valueFromOffset (F := K)
-  fin_cases j
-  · exact quads_mult_of (xor_quads _ _ _ _ (e XorRow 0 _))
-  · exact quads_mult_of (mul_quads _ _ _ _ (e MulRow 0 _))
-  · exact quads_mult_of (set_quads _ _ _ _ (e SetRow 0 _))
-  · exact quads_mult_of (deref_quads _ _ _ _ (e DerefRow 0 _))
-  · exact quads_mult_of (jump_quads _ _ _ _ (e JumpRow 0 _))
-  · exact quads_mult_of (blake2s_quads _ _ _ _ (e Blake2sRow 0 _))
-  · exact quads_mult_two (mem_quads _ _ _ _ (e MemRow 0 _))
-  · exact quads_mult_two (bytecode_quads _ _ _ _ (e BytecodeRow 0 _))
-
 /-- Every interaction of a witness has multiplicity `1`: every component and the verifier
 interact through Clean's `pull` and `push` only. -/
 theorem interactions_mult_eq_one (w : EnsembleWitness (leanIsaEnsemble prog κ)) :
     ∀ i ∈ w.interactions, i.mult = 1 := by
   intro i hi
-  rw [EnsembleWitness.interactions, List.mem_append] at hi
-  rcases hi with hi | hi
-  · have h := verifier_quads prog κ (.fromInput w.publicInput w.data)
-    have hq : quad i ∈ [(StateChannel.name, (.push : BusDir), (1 : K), #[1, 1]),
-        (StateChannel.name, .pull, 1, #[prog.finalPc, 1])] := h ▸ List.mem_map_of_mem hi
-    simp only [List.mem_cons, List.not_mem_nil, or_false] at hq
-    rcases hq with hq | hq <;> exact congrArg (·.2.2.1) hq
-  · obtain ⟨t, ht, hi⟩ := List.mem_flatMap.mp hi
-    obtain ⟨row, -, hi⟩ := List.mem_flatMap.mp hi
-    rw [Component.interactionsValues_eq] at hi
-    exact row_quads_mult ht row (quad i) (List.mem_map_of_mem hi)
+  rcases List.mem_append.mp hi with hi | hi
+  · exact verifier_mults prog κ _ i hi
+  obtain ⟨t, ht, hi⟩ := List.mem_flatMap.mp hi
+  rw [table_interactions_eq] at hi
+  obtain ⟨row, -, hi⟩ := List.mem_flatMap.mp hi
+  obtain ⟨j, hj, rfl⟩ := List.mem_map.mp hi
+  refine eval_mult_eq_one ?_ _
+  have hc := EnsembleWitness.component_mem_tables_of_mem ht
+  simp only [leanIsaEnsemble, List.mem_cons, List.not_mem_nil, or_false] at hc
+  rcases hc with h | h | h | h | h | h | h | h <;> rw [h] at hj
+  exacts [xor_mults_gen _ _ j hj, mul_mults_gen _ _ j hj, set_mults_gen _ _ j hj,
+    deref_mults_gen _ _ j hj, jump_mults_gen _ _ j hj, blake2s_mults_gen _ _ j hj,
+    mem_mults κ j hj, bytecode_mults prog j hj]
 
 /-- Every row of the six opcode tables of a witness sends an `OpcodeSends`, with at most nine
 memory reads (`BLAKE2S`'s nine). -/

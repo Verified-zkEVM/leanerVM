@@ -143,7 +143,7 @@ def rowsOn (ts : List (Air.Flat.Table K)) (c : RawChannel K) (d : BusDir) : List
   ts.flatMap fun t ↦ t.table.flatMap fun row ↦ rowMessagesOn t row c d
 
 /-- A witness's tables are the six opcode tables and the two blocks. -/
-theorem tables_eq_take_append (w : EnsembleWitness (leanIsaEnsemble prog κ)) :
+private theorem tables_eq_take_append (w : EnsembleWitness (leanIsaEnsemble prog κ)) :
     w.tables = w.tables.take 6 ++ [tableAt w 6, tableAt w 7] := by
   have hlen : w.tables.length = 8 := w.same_length.symm
   conv_lhs => rw [← List.take_append_drop 6 w.tables]

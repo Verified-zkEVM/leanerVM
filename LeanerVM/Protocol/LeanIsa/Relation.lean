@@ -41,17 +41,18 @@ variable {prog : Program} {F : FlockSpec} {s : Sizes} {q : Column (leanIsaμ pro
 /-! ## Facts of the opcode components -/
 
 /-- No opcode table has a lookup. -/
-theorem opcode_lookups : ∀ j : Fin 6, (opcodeComponent j).rowOperations.lookups.isEmpty := by
+private theorem opcode_lookups : ∀ j : Fin 6,
+    (opcodeComponent j).rowOperations.lookups.isEmpty := by
   decide +kernel
 
 /-- Every assert expression of an opcode table reads within its width. -/
-theorem opcode_constraints_withinWidth : ∀ j : Fin 6,
+private theorem opcode_constraints_withinWidth : ∀ j : Fin 6,
     ∀ e ∈ (opcodeComponent j).rowOperations.constraints,
         e.WithinWidth (opcodeComponent j).width := by
   decide +kernel
 
 /-- Every read count of an opcode table is a column. -/
-theorem opcode_countsAreVariables : ∀ j : Fin 6,
+private theorem opcode_countsAreVariables : ∀ j : Fin 6,
     CountsAreVariables (opcodeComponent j) counted := by
   decide +kernel
 
@@ -154,7 +155,7 @@ theorem balanced_multiset_iff (w : EnsembleWitness (leanIsaEnsemble prog κ)) :
     obtain ⟨k, rfl⟩ := exists_channelAt hc
     refine ⟨hl k, fun i hi ↦ .inr ?_, ?_⟩
     · rw [EnsembleWitness.interactionsWith_eq_filter_name hc] at hi
-      exact interaction_mult (List.mem_filter.mp hi).1
+      exact interactions_mult_eq_one _ _ (List.mem_filter.mp hi).1
     · rw [activeMessages_interactionsWith, activeMessages_interactionsWith]
       exact hp k
 

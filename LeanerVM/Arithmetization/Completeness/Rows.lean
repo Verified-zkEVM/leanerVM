@@ -54,15 +54,6 @@ theorem MemImage.limbsAt_eq_of_read {κ : ℕ} {L : MemImage κ} {a : K} {v : E}
   unfold MemImage.limbsAt
   rw [h]
 
-/-- The three limbs of `E.ofLimbs`, one by one. -/
-theorem limb0_ofLimbs (c0 c1 c2 : K) : (E.ofLimbs c0 c1 c2).limb 0 = c0 := rfl
-
-/-- The second limb of `E.ofLimbs`. -/
-theorem limb1_ofLimbs (c0 c1 c2 : K) : (E.ofLimbs c0 c1 c2).limb 1 = c1 := rfl
-
-/-- The third limb of `E.ofLimbs`. -/
-theorem limb2_ofLimbs (c0 c1 c2 : K) : (E.ofLimbs c0 c1 c2).limb 2 = c2 := rfl
-
 /-! ## The messages -/
 
 /-- The array a memory message `(addr, count, v)` flattens to. -/
@@ -129,7 +120,7 @@ theorem xor_exec_sends {κ : ℕ} {mem : MemImage κ} {pc fp oA oB oC : K} {next
 
 /-- The `MUL_NATIVE` row of an execution sends the `MUL_NATIVE` messages: the third read carries
 the limbs of the word at `fp·o_C`, which the execution makes the product. -/
-theorem mul_exec_sends {κ : ℕ} {mem : MemImage κ} {pc fp oA oB oC : K} {next : Regs K}
+private theorem mul_exec_sends {κ : ℕ} {mem : MemImage κ} {pc fp oA oB oC : K} {next : Regs K}
     (hexec : execute mem ⟨pc, fp⟩ (.mulNative oA oB oC) = some next) (rA rB rC rbc : K)
     (data : ProverData K) :
     rowSends mulComponent
@@ -149,7 +140,7 @@ theorem mul_exec_sends {κ : ℕ} {mem : MemImage κ} {pc fp oA oB oC : K} {next
 
 /-- The `SET_CONSTANT` row of an execution sends the `SET_CONSTANT` messages: its one read carries
 the limbs of the immediate. -/
-theorem set_exec_sends {κ : ℕ} {mem : MemImage κ} {pc fp o : K} {k : E} {next : Regs K}
+private theorem set_exec_sends {κ : ℕ} {mem : MemImage κ} {pc fp o : K} {k : E} {next : Regs K}
     (hexec : execute mem ⟨pc, fp⟩ (.setConstant o k) = some next) (rc rbc : K)
     (data : ProverData K) :
     rowSends setComponent (Environment.fromArray (rawRow (setRowOf pc fp o k rc rbc)) data) =
@@ -165,7 +156,7 @@ theorem set_exec_sends {κ : ℕ} {mem : MemImage κ} {pc fp o : K} {k : E} {nex
 
 /-- The `DEREF` row of an execution sends the `DEREF` messages: the pointer cell carries
 `(p, 0, 0)`, the local cell its word, and the target `p·o₂` the limbs of the mode's source. -/
-theorem deref_exec_sends {κ : ℕ} {mem : MemImage κ} {pc fp o1 o2 o3 : K} {mode : DerefMode}
+private theorem deref_exec_sends {κ : ℕ} {mem : MemImage κ} {pc fp o1 o2 o3 : K} {mode : DerefMode}
     {next : Regs K} (hexec : execute mem ⟨pc, fp⟩ (.deref o1 o2 o3 mode) = some next)
     (r1 r2 r3 rbc : K) (data : ProverData K) :
     rowSends derefComponent
@@ -181,13 +172,13 @@ theorem deref_exec_sends {κ : ℕ} {mem : MemImage κ} {pc fp o1 o2 o3 : K} {mo
   obtain ⟨h4, h5⟩ := Prod.ext_iff.mp hflags
   -- the pointer cell holds `(p, 0, 0)`
   have e1 := MemImage.limbsAt_eq_of_read h1
-  simp only [limb0_ofLimbs, limb1_ofLimbs, limb2_ofLimbs] at e1
+  simp only [limb_ofLimbs] at e1
   have e1' : (mem.limbsAt (fp * o1))[1] = 0 := by rw [e1]; rfl
   have e1'' : (mem.limbsAt (fp * o1))[2] = 0 := by rw [e1]; rfl
   -- the target cell holds the limbs of the mode's source
   have e2 := MemImage.limbsAt_eq_of_read h2
   rw [← storeCoords_eval, h4, h5] at e2
-  simp only [limb0_ofLimbs, limb1_ofLimbs, limb2_ofLimbs] at e2
+  simp only [limb_ofLimbs] at e2
   simp [sendsOf, memMsgOf, bcMsgOf, entry, Regs.next, e1', e1'', e2]
 
 /-- The indicator slot of a `JUMP` raw row is its second witness. -/
@@ -220,7 +211,7 @@ theorem jumpRaw_sends (r : JumpRow K) (w b : K) (data : ProverData K) :
 the condition, destination and frame cells carry `(v, 0, 0)` for the words in `K` they hold, and
 the pushed successor is the destination and frame when the condition is nonzero and the
 fall-through otherwise. -/
-theorem jump_exec_sends {κ : ℕ} {mem : MemImage κ} {pc fp oc od of : K} {next : Regs K}
+private theorem jump_exec_sends {κ : ℕ} {mem : MemImage κ} {pc fp oc od of : K} {next : Regs K}
     (hexec : execute mem ⟨pc, fp⟩ (.jump oc od of) = some next) (rc rd rf rbc : K)
     (data : ProverData K) :
     rowSends jumpComponent
@@ -237,7 +228,7 @@ theorem jump_exec_sends {κ : ℕ} {mem : MemImage κ} {pc fp oc od of : K} {nex
   have ec := MemImage.limbsAt_eq_of_read hc
   have ed := MemImage.limbsAt_eq_of_read hd
   have ef := MemImage.limbsAt_eq_of_read hf
-  simp only [limb0_ofLimbs, limb1_ofLimbs, limb2_ofLimbs] at ec ed ef
+  simp only [limb_ofLimbs] at ec ed ef
   have ec1 : (mem.limbsAt (fp * oc))[1] = 0 := by rw [ec]; rfl
   have ec2 : (mem.limbsAt (fp * oc))[2] = 0 := by rw [ec]; rfl
   have ed1 : (mem.limbsAt (fp * od))[1] = 0 := by rw [ed]; rfl
@@ -252,7 +243,7 @@ theorem jump_exec_sends {κ : ℕ} {mem : MemImage κ} {pc fp oc od of : K} {nex
 
 /-- The message of a read of a canonical cell: the limbs the image holds at its address are the
 cell's two limbs and `0`. -/
-theorem memMsgOf_cell {κ : ℕ} {mem : MemImage κ} {a c : K} {cell : Vector K 2}
+private theorem memMsgOf_cell {κ : ℕ} {mem : MemImage κ} {a c : K} {cell : Vector K 2}
     (h : mem.read a = some (E.ofCell cell)) :
     memMsgOf a c (mem.limbsAt a) = #[a, c, cell[0], cell[1], 0] := by
   rw [MemImage.limbsAt_eq_of_read h]
@@ -260,7 +251,7 @@ theorem memMsgOf_cell {κ : ℕ} {mem : MemImage κ} {a c : K} {cell : Vector K 
 
 /-- The `BLAKE2S` row of an execution sends the `BLAKE2S` messages: each of the nine cells
 carries its two limbs and a zero third limb, the canonical form the execution checks. -/
-theorem blake2s_exec_sends {κ : ℕ} {mem : MemImage κ}
+private theorem blake2s_exec_sends {κ : ℕ} {mem : MemImage κ}
     {pc fp om0 om1 om2 om3 ocv oout omd : K} {next : Regs K}
     (hexec : execute mem ⟨pc, fp⟩ (.blake2s ![om0, om1, om2, om3] ocv oout omd) = some next)
     (rm0 rm1 rm2 rm3 rcv0 rcv1 rout0 rout1 rmd rbc : K) (data : ProverData K) :

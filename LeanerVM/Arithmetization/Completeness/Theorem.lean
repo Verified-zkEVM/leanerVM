@@ -74,7 +74,7 @@ noncomputable def skAt (t : Trace prog) (k : ℕ) : Skel :=
   ⟨(stateAt t k).pc, (stateAt t k).fp, (prog.fetch (stateAt t k).pc).getD fillClose⟩
 
 /-- A list all of whose entries map to `some` is the `filterMap` of the entries' values. -/
-theorem filterMap_eq_map_of {α β : Type} (p : α → Option β) (f : α → β) (l : List α)
+private theorem filterMap_eq_map_of {α β : Type} (p : α → Option β) (f : α → β) (l : List α)
     (h : ∀ x ∈ l, p x = some (f x)) : l.filterMap p = l.map f := by
   induction l with
   | nil => rfl
@@ -92,7 +92,7 @@ theorem run_stateAt (hv : run prog t.image t.steps Regs.initial = some (Regs.fin
   simp [stateAt, hr]
 
 /-- Every step of a valid run is taken away from the sentinel, fetches and executes. -/
-theorem stateAt_step (hv : run prog t.image t.steps Regs.initial = some (Regs.final prog))
+private theorem stateAt_step (hv : run prog t.image t.steps Regs.initial = some (Regs.final prog))
     {k : ℕ} (hk : k < t.steps) :
     (stateAt t k).pc ≠ prog.finalPc ∧ step prog t.image (stateAt t k) = some (stateAt t (k + 1)) := by
   have h1 := run_stateAt hv (show k + 1 ≤ t.steps by omega)
@@ -121,7 +121,7 @@ theorem regs_eq_map (hv : run prog t.image t.steps Regs.initial = some (Regs.fin
     simp only [run_stateAt hv (Nat.lt_succ_iff.mp (List.mem_range.mp hk))]
 
 /-- Every state stepped from fetches an instruction that executes to the next state. -/
-theorem stateAt_exec (hv : run prog t.image t.steps Regs.initial = some (Regs.final prog))
+private theorem stateAt_exec (hv : run prog t.image t.steps Regs.initial = some (Regs.final prog))
     {k : ℕ} (hk : k < t.steps) :
     ∃ ins, prog.fetch (stateAt t k).pc = some ins ∧
       execute t.image (stateAt t k) ins = some (stateAt t (k + 1)) := by
@@ -131,12 +131,12 @@ theorem stateAt_exec (hv : run prog t.image t.steps Regs.initial = some (Regs.fi
   exact ⟨ins, hf, hex⟩
 
 /-- The instruction of a skeleton of the run is the one fetched. -/
-theorem skAt_ins {k : ℕ} {ins : Instr} (hf : prog.fetch (stateAt t k).pc = some ins) :
+private theorem skAt_ins {k : ℕ} {ins : Instr} (hf : prog.fetch (stateAt t k).pc = some ins) :
     (skAt t k).ins = ins := by
   simp only [skAt, hf, Option.getD_some]
 
 /-- The skeletons of a valid run are those stepped from, one per step. -/
-theorem runSkels_eq (hv : run prog t.image t.steps Regs.initial = some (Regs.final prog)) :
+private theorem runSkels_eq (hv : run prog t.image t.steps Regs.initial = some (Regs.final prog)) :
     t.runSkels = (List.range t.steps).map (skAt t) := by
   unfold Trace.runSkels
   rw [regs_eq_map hv, List.range_succ, List.map_append, List.map_singleton, List.dropLast_concat,
@@ -146,7 +146,7 @@ theorem runSkels_eq (hv : run prog t.image t.steps Regs.initial = some (Regs.fin
   simp only [Function.comp_apply, hf, Option.map_some, skAt, Option.getD_some]
 
 /-- Every skeleton of a valid run is sound over the run's image. -/
-theorem skAt_ok (hv : run prog t.image t.steps Regs.initial = some (Regs.final prog))
+private theorem skAt_ok (hv : run prog t.image t.steps Regs.initial = some (Regs.final prog))
     {k : ℕ} (hk : k < t.steps) : SkelOk prog t.image (skAt t k) := by
   obtain ⟨ins, hf, hex⟩ := stateAt_exec hv hk
   refine ⟨?_, stateAt t (k + 1), ?_⟩
@@ -158,7 +158,7 @@ theorem skAt_ok (hv : run prog t.image t.steps Regs.initial = some (Regs.final p
     exact hex
 
 /-- The successor of a skeleton of the run is the next state. -/
-theorem nextOf_skAt (hv : run prog t.image t.steps Regs.initial = some (Regs.final prog))
+private theorem nextOf_skAt (hv : run prog t.image t.steps Regs.initial = some (Regs.final prog))
     {k : ℕ} (hk : k < t.steps) : nextOf t.image (skAt t k) = stateAt t (k + 1) := by
   obtain ⟨ins, hf, hex⟩ := stateAt_exec hv hk
   show (execute t.image (stateAt t k) (skAt t k).ins).getD (stateAt t k) = _
@@ -202,7 +202,7 @@ section Fill
 variable {prog : Program}
 
 /-- A skeleton of a fill is a skeleton of one traversal of one cycle. -/
-theorem mem_padSkels {κ : ℕ} {pcs : Opcode → ℕ → ℕ} {count : Opcode → ℕ → ℕ} {sk : Skel}
+private theorem mem_padSkels {κ : ℕ} {pcs : Opcode → ℕ → ℕ} {count : Opcode → ℕ → ℕ} {sk : Skel}
     (h : sk ∈ padSkels κ pcs count) : ∃ t, ∃ k < 8, sk ∈ cycleSkels κ pcs t k := by
   unfold padSkels at h
   obtain ⟨t, -, h⟩ := List.mem_flatMap.mp h
@@ -212,7 +212,7 @@ theorem mem_padSkels {κ : ℕ} {pcs : Opcode → ℕ → ℕ} {count : Opcode �
   exact ⟨t, k, List.mem_range.mp hk, h⟩
 
 /-- A skeleton of a traversal of a block is the instruction fetched at its counter. -/
-theorem cycleSkels_fetch {κ : ℕ} {pcs : Opcode → ℕ → ℕ} {t : Opcode} {k : ℕ}
+private theorem cycleSkels_fetch {κ : ℕ} {pcs : Opcode → ℕ → ℕ} {t : Opcode} {k : ℕ}
     (hb : IsFillBlock prog t (sizeAt k) (pcs t (sizeAt k))) {sk : Skel}
     (h : sk ∈ cycleSkels κ pcs t k) : prog.fetch sk.pc = some sk.ins := by
   unfold cycleSkels at h
@@ -237,7 +237,7 @@ theorem padSkels_ok {κ : ℕ} (hκ : 10 ≤ κ) (hκ' : κ < 63) (img : MemImag
   exact ⟨hfetch, next, execute_of_step hfetch hstep⟩
 
 /-- Skeletons that are valid fillers and sound have the states pushed that they pull. -/
-theorem perm_of_skelsValid {κ : ℕ} {img : MemImage κ} {S : List Skel}
+private theorem perm_of_skelsValid {κ : ℕ} {img : MemImage κ} {S : List Skel}
     (hv : SkelsValid prog img S) (hok : ∀ sk ∈ S, SkelOk prog img sk) :
     (S.map fun sk ↦ #[(nextOf img sk).pc, (nextOf img sk).fp]).Perm
       (S.map fun sk ↦ #[sk.pc, sk.fp]) := by

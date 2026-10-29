@@ -63,7 +63,7 @@ private theorem witnessColumn_congr {c c' : Col} (h : c' = c) (x : Fin (2 ^ kapp
   rfl
 
 /-- A committed column of the stack of a witness is the witness's column. -/
-theorem column_stackOf (c : Col) (h : ¬ IsLimb c) (x : Fin (2 ^ kappa prog s c)) :
+private theorem column_stackOf (c : Col) (h : ¬ IsLimb c) (x : Fin (2 ^ kappa prog s c)) :
     ((leanIsaInstance F prog s).column (stackOf F prog s w) c).values.get x =
       (witnessColumn F prog s w c)[x] := by
   refine (column_committed F prog s _ c h x).trans ?_
@@ -74,7 +74,7 @@ theorem column_stackOf (c : Col) (h : ¬ IsLimb c) (x : Fin (2 ^ kappa prog s c)
 
 /-- Limb `k` of row `x` of the stack of a witness is the limb the honest Flock column carries at
 slot `k` of block `x`. -/
-theorem column_limb_stackOf (k : Fin 18) (x : Fin (2 ^ s.τ 5)) :
+private theorem column_limb_stackOf (k : Fin 18) (x : Fin (2 ^ s.τ 5)) :
     ((leanIsaInstance F prog s).column (stackOf F prog s w) (limbCol k)).values.get x =
       slotLimbs F.slot (F.gen (blake2sLimbs prog s w)) x k :=
   (column_limb F prog s _ k x).trans
@@ -137,7 +137,7 @@ def witnessSizes (w : EnsembleWitness (leanIsaEnsemble prog κ)) (h : 0 < κ) : 
   ⟨κ, h, fun j ↦ Nat.log 2 (opTable w j).table.length⟩
 
 /-- `Sizes.ofWitness` returns the sizes the witness carries. -/
-theorem eq_of_ofWitness (hs : Sizes.ofWitness w = some s) :
+private theorem eq_of_ofWitness (hs : Sizes.ofWitness w = some s) :
     ∃ h, s = witnessSizes w h := by
   unfold Sizes.ofWitness at hs
   split_ifs at hs with h
@@ -160,7 +160,7 @@ private theorem opTable_length {input : PublicInput} (h : SatisfiedBy prog input
   rw [hτ, Nat.log_pow (by norm_num)]
 
 /-- The sizes a witness satisfying the constraint system carries fit Clean's tables. -/
-theorem fits_of_satisfiedBy {input : PublicInput} (h : SatisfiedBy prog input w)
+private theorem fits_of_satisfiedBy {input : PublicInput} (h : SatisfiedBy prog input w)
     (hs : Sizes.ofWitness w = some s) : s.Fits := by
   obtain ⟨hp, rfl⟩ := eq_of_ofWitness hs
   refine ⟨lt_of_le_of_lt h.caps.le_maxLogMem (by decide), fun j ↦ ?_⟩
@@ -178,7 +178,7 @@ private theorem cellOf_eq (t : Air.Flat.Table K) {x : ℕ} (hx : x < t.table.len
   rfl
 
 /-- Every `BLAKE2S` row of a witness satisfying the constraint system has compressing limbs. -/
-theorem limbsCompress_of_satisfiedBy {input : PublicInput} (h : SatisfiedBy prog input w)
+private theorem limbsCompress_of_satisfiedBy {input : PublicInput} (h : SatisfiedBy prog input w)
     (hs : Sizes.ofWitness w = some s) (x : Fin (2 ^ s.τ 5)) :
     LimbsCompress (blake2sLimbs prog s w)[x] := by
   obtain ⟨hp, rfl⟩ := eq_of_ofWitness hs

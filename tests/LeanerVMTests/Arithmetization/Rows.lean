@@ -82,7 +82,7 @@ example (j : Fin 8) : SendsOpcode blakeT (rawRow (blakeRow j)) (blake2sSends (bl
     blakeRow j from rowAt_toElements _ (blakeRow j)] at h
 
 /-- The `JUMP` row's indicator is the raw cell after its columns and its inverse witness. -/
-example : (jumpRaw jumpRow3)[size JumpRow + 1]?.getD 0 = 1 := by decide +kernel
+example : (Statement.jumpRaw jumpRow3)[size JumpRow + 1]?.getD 0 = 1 := by decide +kernel
 
 /-! ## Concrete readings -/
 

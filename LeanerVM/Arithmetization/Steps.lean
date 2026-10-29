@@ -78,35 +78,35 @@ local macro "row_output" circuit:ident sends:ident : tactic => `(tactic|
 -- `rowOutput` carries the component's instance, definitionally the same.
 
 /-- An `XOR` row returns the state it pushes. -/
-theorem xor_rowOutput (env : Environment K) :
+private theorem xor_rowOutput (env : Environment K) :
     xorComponent.rowOutput env = (xorSends (valueFromOffset XorRow 0 env)).push := by
   have h : eval env ((xorTable.main (varFromOffset XorRow 0)).output (size XorRow)) =
       (xorSends (valueFromOffset XorRow 0 env)).push := by row_output xorTable xorSends
   exact h
 
 /-- A `MUL_NATIVE` row returns the state it pushes. -/
-theorem mul_rowOutput (env : Environment K) :
+private theorem mul_rowOutput (env : Environment K) :
     mulComponent.rowOutput env = (mulSends (valueFromOffset MulRow 0 env)).push := by
   have h : eval env ((mulTable.main (varFromOffset MulRow 0)).output (size MulRow)) =
       (mulSends (valueFromOffset MulRow 0 env)).push := by row_output mulTable mulSends
   exact h
 
 /-- A `SET_CONSTANT` row returns the state it pushes. -/
-theorem set_rowOutput (env : Environment K) :
+private theorem set_rowOutput (env : Environment K) :
     setComponent.rowOutput env = (setSends (valueFromOffset SetRow 0 env)).push := by
   have h : eval env ((setTable.main (varFromOffset SetRow 0)).output (size SetRow)) =
       (setSends (valueFromOffset SetRow 0 env)).push := by row_output setTable setSends
   exact h
 
 /-- A `DEREF` row returns the state it pushes. -/
-theorem deref_rowOutput (env : Environment K) :
+private theorem deref_rowOutput (env : Environment K) :
     derefComponent.rowOutput env = (derefSends (valueFromOffset DerefRow 0 env)).push := by
   have h : eval env ((derefTable.main (varFromOffset DerefRow 0)).output (size DerefRow)) =
       (derefSends (valueFromOffset DerefRow 0 env)).push := by row_output derefTable derefSends
   exact h
 
 /-- A `JUMP` row returns the state it pushes, which reads its indicator. -/
-theorem jump_rowOutput (env : Environment K) :
+private theorem jump_rowOutput (env : Environment K) :
     jumpComponent.rowOutput env =
       (jumpSends (valueFromOffset JumpRow 0 env) (env.get (size JumpRow + 1))).push := by
   have h : eval env ((jumpTable.main (varFromOffset JumpRow 0)).output (size JumpRow)) =
@@ -115,7 +115,7 @@ theorem jump_rowOutput (env : Environment K) :
   exact h
 
 /-- A `BLAKE2S` row returns the state it pushes. -/
-theorem blake2s_rowOutput (env : Environment K) :
+private theorem blake2s_rowOutput (env : Environment K) :
     blake2sComponent.rowOutput env = (blake2sSends (valueFromOffset Blake2sRow 0 env)).push := by
   have h : eval env ((blake2sTable.main (varFromOffset Blake2sRow 0)).output (size Blake2sRow)) =
       (blake2sSends (valueFromOffset Blake2sRow 0 env)).push := by

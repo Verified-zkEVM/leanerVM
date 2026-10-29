@@ -54,14 +54,14 @@ open Air.Flat (Component)
 /-! ## Messages as arrays -/
 
 /-- A vector of three is the list of its entries. -/
-theorem vec3_toList {F : Type} (v : Vector F 3) : v.toList = [v[0], v[1], v[2]] := by
+private theorem vec3_toList {F : Type} (v : Vector F 3) : v.toList = [v[0], v[1], v[2]] := by
   apply List.ext_getElem (by simp)
   intro i h1 h2
   have : i < 3 := by simpa using h1
   interval_cases i <;> simp
 
 /-- A vector of seven is the list of its entries. -/
-theorem vec7_toList {F : Type} (v : Vector F 7) :
+private theorem vec7_toList {F : Type} (v : Vector F 7) :
     v.toList = [v[0], v[1], v[2], v[3], v[4], v[5], v[6]] := by
   apply List.ext_getElem (by simp)
   intro i h1 h2
@@ -69,7 +69,7 @@ theorem vec7_toList {F : Type} (v : Vector F 7) :
   interval_cases i <;> simp
 
 /-- A state message flattens to the array `[pc, fp]`, over any type of coordinates. -/
-theorem regs_toArray {F : Type} (s : Regs F) : (toElements s).toArray = #[s.pc, s.fp] := by
+private theorem regs_toArray {F : Type} (s : Regs F) : (toElements s).toArray = #[s.pc, s.fp] := by
   obtain ⟨pc, fp⟩ := s
   simp [circuit_norm, explicit_provable_type, ProvableStruct.toComponents]
 
@@ -145,8 +145,8 @@ theorem eval_mult_eq_one {i : AbstractInteraction K} (h : i.mult = 1) (env : Env
   rfl
 
 /-- An interaction of multiplicity `1`, evaluated, is active. -/
-theorem eval_mult_ne_zero {i : AbstractInteraction K} (h : i.mult = 1) (env : Environment K) :
-    (i.eval env).mult ≠ 0 := by
+private theorem eval_mult_ne_zero {i : AbstractInteraction K} (h : i.mult = 1)
+    (env : Environment K) : (i.eval env).mult ≠ 0 := by
   rw [eval_mult_eq_one h env]
   exact one_ne_zero
 

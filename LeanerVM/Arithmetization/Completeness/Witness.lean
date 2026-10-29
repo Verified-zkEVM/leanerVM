@@ -88,7 +88,7 @@ private theorem cons_append_ops (e : Vector K 8) :
   interval_cases j <;> rfl
 
 /-- A typed row written as a raw row reads back from its prefix of the row type's width. -/
-theorem fromElements_rowPrefix_rawRow {Row : TypeMap} [ProvableType Row] (r : Row K) :
+private theorem fromElements_rowPrefix_rawRow {Row : TypeMap} [ProvableType Row] (r : Row K) :
     fromElements (Air.Flat.rowPrefix (size Row) (rawRow r)) = r := by
   rw [← Air.Flat.valueFromOffset_fromArray (Input := Row) (rawRow r) (fun _ _ ↦ #[])]
   exact rowAt_toElements _ r
@@ -282,7 +282,7 @@ variable {prog : Program} {input : PublicInput} {κ : ℕ} {img : MemImage κ} {
   {hκ : κ ≤ maxLogMem} {hS : S.length ≤ UInt64.size}
 
 /-- The `"mem"` table of the padded witness's data is the memory block's rows, as typed rows. -/
-theorem memRows_padWitness :
+private theorem memRows_padWitness :
     memRows (padWitness prog input img S hκ hS).data =
       (((memRowsOf img (padMemFin img S)).map (Air.Flat.rowPrefix (size MemRow))).toArray.map
         (fromElements (M := MemRow))).map (·.m) := by

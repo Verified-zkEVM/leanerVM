@@ -92,7 +92,7 @@ private theorem opTable_witnessOf (j : Fin 6) (h : s.τ j ≤ 64) :
   simp only [opTable_witnessOf_eq, opTableOf_table, h, ↓reduceIte]
 
 /-- The memory block of the witness read off a stack is the stack's, below `2^64` rows. -/
-theorem memBlockRows_witnessOf (h : s.logMem < 64) :
+private theorem memBlockRows_witnessOf (h : s.logMem < 64) :
     memBlockRows (witnessOf F prog s q) = memBlockRowsOf F prog s q := by
   refine (tableAt_witnessOf F prog s q 6).trans ?_
   show (memTableOf F prog s q).table = _
@@ -185,7 +185,7 @@ private theorem constraintsHold_of_nil (c : Component K) (h₁ : c.rowOperations
 
 /-- On a stack whose sizes fit and whose constraint polynomials vanish, every table of the
 witness read off it satisfies its Clean constraints. -/
-theorem constraints_witnessOf (hs : s.Fits)
+private theorem constraints_witnessOf (hs : s.Fits)
     (hcv : (leanIsaInstance F prog s).ConstraintsVanish q) :
     (witnessOf F prog s q).Constraints := by
   intro t ht

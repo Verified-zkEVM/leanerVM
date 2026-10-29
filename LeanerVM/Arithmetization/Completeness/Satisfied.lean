@@ -8,6 +8,7 @@
 module
 
 public import LeanerVM.Arithmetization.Completeness.Witness
+public import LeanerVM.Arithmetization.Rows
 
 @[expose] public section
 
@@ -22,17 +23,17 @@ proved from the run and the fill in `Completeness`), every table's height is a p
 within the cap and the `BLAKE2S` table has at least eight rows, and the image has the public
 words.
 
-The proof is the bus computation. Every interaction of a witness of the ensemble has
-multiplicity `1` (`witness_mults`), so Clean's active messages are the sends (`messagesOn_eq_sends`)
+The proof is the bus computation. Every interaction of a witness of the ensemble has multiplicity
+`1` (`interactions_mult_eq_one`), so Clean's active messages are the sends (`messagesOn_eq_sends`)
 and every multiplicity is boolean. `padWitness_sends` says what the witness sends: the verifier's
-two messages, then the rows of each table, then the blocks'. For the memory and the bytecode
-channel the rows are the reads of one list of skeletons, numbered by the chain
-(`Completeness.Bus`), so `chain_balance` (`Completeness.Balance`) balances them against the
-blocks' seeds and finalizes; the six tables hold the rows in another order than the list, which
-is a permutation (`regroup_perm`). The state channel is the hypothesis `hstate` regrouped the same
-way. Fewer than `2^64` interactions: at most `22` per row of at most `6·2^32` skeletons, and two
-per row of the blocks (`padSends_length_lt`). The `JUMP` table is the one component with
-constraints, and its two residuals hold of the honest witnesses (`flags_complete`).
+two messages, then the rows of each table, then the blocks'. For the memory and the bytecode channel
+the rows are the reads of one list of skeletons, numbered by the chain (`Completeness.Bus`), so
+`chain_balance` (`Completeness.Balance`) balances them against the blocks' seeds and finalizes; the
+six tables hold the rows in another order than the list, which is a permutation (`regroup_perm`).
+The state channel is the hypothesis `hstate` regrouped the same way. Fewer than `2^64` interactions:
+at most `22` per row of at most `6·2^32` skeletons, and two per row of the blocks
+(`padSends_length_lt`). The `JUMP` table is the one component with constraints, and its two
+residuals hold of the honest witnesses (`flags_complete`).
 
 ## Wrong readings excluded
 
@@ -52,31 +53,6 @@ namespace LeanerVM.Arithmetization
 open LeanerVM.Parameters LeanerVM.Semantics
 open Air.Flat (Component EnsembleWitness)
 
-/-! ## Every interaction has multiplicity one -/
-
-/-- Every interaction of a component of the ensemble has multiplicity `1`. -/
-theorem ensemble_mults {prog : Program} {κ : ℕ} :
-    ∀ c ∈ (leanIsaEnsemble prog κ).tables, ∀ i ∈ c.rowOperations.interactions, i.mult = 1 := by
-  simp only [leanIsaEnsemble, List.mem_cons, List.not_mem_nil, or_false]
-  rintro c (rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl)
-  exacts [opComponent_mults .xor, opComponent_mults .mulNative, opComponent_mults .setConstant,
-    opComponent_mults .deref, opComponent_mults .jump, opComponent_mults .blake2s, mem_mults κ,
-    bytecode_mults prog]
-
-/-- **Every interaction of a witness of the ensemble has multiplicity `1`**: the verifier's and
-every row's. -/
-theorem witness_mults {prog : Program} {κ : ℕ} (w : EnsembleWitness (leanIsaEnsemble prog κ)) :
-    ∀ i ∈ w.interactions, i.mult = 1 := by
-  intro i hi
-  rcases List.mem_append.mp hi with hi | hi
-  · exact verifier_mults prog κ _ i hi
-  · obtain ⟨t, ht, hi⟩ := List.mem_flatMap.mp hi
-    rw [table_interactions_eq] at hi
-    obtain ⟨row, -, hi⟩ := List.mem_flatMap.mp hi
-    obtain ⟨j, hj, rfl⟩ := List.mem_map.mp hi
-    exact eval_mult_eq_one
-      (ensemble_mults _ (EnsembleWitness.component_mem_tables_of_mem ht) j hj) _
-
 /-! ## What the bus carries -/
 
 /-- The sends of rows of a component over the data `data`. -/
@@ -85,7 +61,7 @@ def rowsSends (c : Component K) (rows : List (Array K)) (data : ProverData K) :
   rows.flatMap fun row ↦ rowSends c (Environment.fromArray row data)
 
 /-- A table's interactions, as sends, are its rows' sends. -/
-theorem table_sends (t : Air.Flat.Table K) :
+private theorem table_sends (t : Air.Flat.Table K) :
     t.interactions.map (fun i ↦ (i.channel.name, i.direction, i.msg)) =
       rowsSends t.component t.table t.data := by
   rw [table_interactions_eq, List.map_flatMap]
@@ -93,7 +69,8 @@ theorem table_sends (t : Air.Flat.Table K) :
 
 /-- Everything a witness sends: the verifier's two messages, then each table's rows, over the
 witness's data. -/
-theorem witness_sends {prog : Program} {κ : ℕ} (w : EnsembleWitness (leanIsaEnsemble prog κ)) :
+private theorem witness_sends {prog : Program} {κ : ℕ}
+    (w : EnsembleWitness (leanIsaEnsemble prog κ)) :
     w.interactions.map (fun i ↦ (i.channel.name, i.direction, i.msg)) =
       [(StateChannel.name, .push, #[1, 1]), (StateChannel.name, .pull, #[prog.finalPc, 1])] ++
         w.tables.flatMap fun t ↦ rowsSends t.component t.table w.data := by
@@ -105,15 +82,17 @@ theorem witness_sends {prog : Program} {κ : ℕ} (w : EnsembleWitness (leanIsaE
   rfl
 
 /-- The messages a witness sends on a channel in a direction: those of its sends. -/
-theorem messagesOn_eq_sends {prog : Program} {κ : ℕ} (w : EnsembleWitness (leanIsaEnsemble prog κ))
-    (c : RawChannel K) (d : BusDir) :
+private theorem messagesOn_eq_sends {prog : Program} {κ : ℕ}
+    (w : EnsembleWitness (leanIsaEnsemble prog κ)) (c : RawChannel K) (d : BusDir) :
     messagesOn w c d =
       chanOf c.name d (w.interactions.map fun i ↦ (i.channel.name, i.direction, i.msg)) :=
-  activeMessages_filter_name _ (fun i hi ↦ by rw [witness_mults w i hi]; exact one_ne_zero) _ _
+  activeMessages_filter_name _
+    (fun i hi ↦ by rw [interactions_mult_eq_one w i hi]; exact one_ne_zero) _ _
 
 /-- The sends of an opcode's table are those of its rows, when their instructions execute. -/
-theorem opTable_sends {κ : ℕ} (img : MemImage κ) (R : List PRow) (hR : R.length ≤ UInt64.size)
-    (op : Opcode) (hRx : ∀ r ∈ R, ∃ next, execute img r.sk.regs r.sk.ins = some next)
+private theorem opTable_sends {κ : ℕ} (img : MemImage κ) (R : List PRow)
+    (hR : R.length ≤ UInt64.size) (op : Opcode)
+    (hRx : ∀ r ∈ R, ∃ next, execute img r.sk.regs r.sk.ins = some next)
     (data : ProverData K) :
     rowsSends (opTable img R hR op).component (opTable img R hR op).table data =
       (R.filter fun r ↦ r.sk.ins.opcode = op).flatMap (PRow.sends img) := by
@@ -135,7 +114,7 @@ def memBlockSends {κ : ℕ} (img : MemImage κ) (fin : K → ℕ) :
         #[gpow i, g ^ fin (gpow i), (img i).limb 0, (img i).limb 1, (img i).limb 2])]
 
 /-- The sends of the memory block's rows are `memBlockSends`. -/
-theorem memBlock_sends {κ : ℕ} (hκ : κ ≤ maxLogMem) (img : MemImage κ) (fin : K → ℕ)
+private theorem memBlock_sends {κ : ℕ} (hκ : κ ≤ maxLogMem) (img : MemImage κ) (fin : K → ℕ)
     (data : ProverData K) :
     rowsSends (memBlock hκ img fin).component (memBlock hκ img fin).table data =
       memBlockSends img fin := by
@@ -154,7 +133,7 @@ def bcBlockSends (prog : Program) (fin : K → ℕ) : List (String × BusDir × 
       (BytecodeChannel.name, .pull, bcMsgOf (gpow i) (g ^ fin (gpow i)) (entry (prog.code i)))]
 
 /-- The sends of the bytecode block's rows are `bcBlockSends`. -/
-theorem bcBlock_sends (prog : Program) (fin : K → ℕ) (data : ProverData K) :
+private theorem bcBlock_sends (prog : Program) (fin : K → ℕ) (data : ProverData K) :
     rowsSends (bcBlock prog fin).component (bcBlock prog fin).table data =
       bcBlockSends prog fin := by
   show (List.ofFn fun i : Fin (2 ^ prog.logSize) ↦
@@ -193,7 +172,8 @@ theorem padWitness_sends (prog : Program) (input : PublicInput) {κ : ℕ} (img 
     List.append_assoc]
 
 /-- The messages the padded witness sends on a channel in a direction. -/
-theorem messagesOn_padWitness (prog : Program) (input : PublicInput) {κ : ℕ} (img : MemImage κ)
+private theorem messagesOn_padWitness (prog : Program) (input : PublicInput) {κ : ℕ}
+    (img : MemImage κ)
     (S : List Skel) (hκ : κ ≤ maxLogMem) (hS : S.length ≤ UInt64.size)
     (hSx : ∀ sk ∈ S, ∃ next, execute img sk.regs sk.ins = some next) (c : RawChannel K)
     (d : BusDir) :
@@ -201,7 +181,7 @@ theorem messagesOn_padWitness (prog : Program) (input : PublicInput) {κ : ℕ} 
   rw [messagesOn_eq_sends, padWitness_sends prog input img S hκ hS hSx]
 
 /-- Every opcode has a table. -/
-theorem opcode_mem_fillTables (o : Opcode) : o ∈ fillTables := by
+private theorem opcode_mem_fillTables (o : Opcode) : o ∈ fillTables := by
   cases o <;> decide
 
 /-- **The six tables hold the rows of `R` regrouped by opcode**: their sends are a permutation of
@@ -215,12 +195,12 @@ theorem tables_sends_perm {κ : ℕ} (img : MemImage κ) (R : List PRow) :
     fun r _ ↦ opcode_mem_fillTables _).flatMap_right _
 
 /-- Permuted sends carry permuted messages on every channel and direction. -/
-theorem chanOf_perm {n : String} {d : BusDir} {l₁ l₂ : List (String × BusDir × Array K)}
+private theorem chanOf_perm {n : String} {d : BusDir} {l₁ l₂ : List (String × BusDir × Array K)}
     (h : l₁.Perm l₂) : (chanOf n d l₁).Perm (chanOf n d l₂) :=
   (h.filter _).map _
 
 /-- On every channel and direction, the six tables carry the messages of the rows of `R`. -/
-theorem chanOf_tables_perm {κ : ℕ} (img : MemImage κ) (n : String) (d : BusDir)
+private theorem chanOf_tables_perm {κ : ℕ} (img : MemImage κ) (n : String) (d : BusDir)
     (R : List PRow) :
     (chanOf n d (fillTables.flatMap fun op ↦
       (R.filter fun r ↦ r.sk.ins.opcode = op).flatMap (PRow.sends img))).Perm
@@ -230,7 +210,7 @@ theorem chanOf_tables_perm {κ : ℕ} (img : MemImage κ) (n : String) (d : BusD
 
 /-- The padded witness's messages on a channel: the verifier's, the rows' of the six tables in
 order, the memory block's, the bytecode block's, up to the regrouping of the rows. -/
-theorem chanOf_padSends_perm (prog : Program) {κ : ℕ} (img : MemImage κ) (S : List Skel)
+private theorem chanOf_padSends_perm (prog : Program) {κ : ℕ} (img : MemImage κ) (S : List Skel)
     (n : String) (d : BusDir) :
     (chanOf n d (padSends prog img S)).Perm
       (chanOf n d [(StateChannel.name, .push, #[1, 1]),
@@ -245,28 +225,28 @@ theorem chanOf_padSends_perm (prog : Program) {κ : ℕ} (img : MemImage κ) (S 
 /-! ### The blocks' channels -/
 
 /-- The word at the address of an index, as a memory message. -/
-theorem memMsg_gpow {κ : ℕ} (hκ : κ < 64) (img : MemImage κ) (i : Fin (2 ^ κ)) (e : ℕ) :
+private theorem memMsg_gpow {κ : ℕ} (hκ : κ < 64) (img : MemImage κ) (i : Fin (2 ^ κ)) (e : ℕ) :
     memMsg img (gpow i) e =
       #[gpow i, g ^ e, (img i).limb 0, (img i).limb 1, (img i).limb 2] := by
   have h := MemImage.limbsAt_eq_of_read (MemImage.read_gpow hκ img i)
   simp [memMsg, memMsgOf, h]
 
 /-- The memory block sends only on the memory channel. -/
-theorem memBlockSends_names {κ : ℕ} (img : MemImage κ) (fin : K → ℕ) :
+private theorem memBlockSends_names {κ : ℕ} (img : MemImage κ) (fin : K → ℕ) :
     ∀ x ∈ memBlockSends img fin, x.1 = MemChannel.name := by
   intro x hx
   simp only [memBlockSends, List.mem_flatMap, List.mem_cons, List.not_mem_nil, or_false] at hx
   obtain ⟨i, -, rfl | rfl⟩ := hx <;> rfl
 
 /-- The bytecode block sends only on the bytecode channel. -/
-theorem bcBlockSends_names (prog : Program) (fin : K → ℕ) :
+private theorem bcBlockSends_names (prog : Program) (fin : K → ℕ) :
     ∀ x ∈ bcBlockSends prog fin, x.1 = BytecodeChannel.name := by
   intro x hx
   simp only [bcBlockSends, List.mem_flatMap, List.mem_cons, List.not_mem_nil, or_false] at hx
   obtain ⟨i, -, rfl | rfl⟩ := hx <;> rfl
 
 /-- The memory block's seed pushes: the word of each cell with the count `g^0`. -/
-theorem memBlock_push {κ : ℕ} (hκ : κ < 64) (img : MemImage κ) (fin : K → ℕ) :
+private theorem memBlock_push {κ : ℕ} (hκ : κ < 64) (img : MemImage κ) (fin : K → ℕ) :
     chanOf MemChannel.name .push (memBlockSends img fin) =
       (List.finRange (2 ^ κ)).map fun i : Fin (2 ^ κ) ↦ memMsg img (gpow i) 0 := by
   unfold memBlockSends
@@ -275,7 +255,7 @@ theorem memBlock_push {κ : ℕ} (hκ : κ < 64) (img : MemImage κ) (fin : K �
   simp [chanOf, memMsg_gpow hκ]
 
 /-- The memory block's finalize pulls: the word of each cell with the count its row holds. -/
-theorem memBlock_pull {κ : ℕ} (hκ : κ < 64) (img : MemImage κ) (fin : K → ℕ) :
+private theorem memBlock_pull {κ : ℕ} (hκ : κ < 64) (img : MemImage κ) (fin : K → ℕ) :
     chanOf MemChannel.name .pull (memBlockSends img fin) =
       (List.finRange (2 ^ κ)).map fun i : Fin (2 ^ κ) ↦ memMsg img (gpow i) (fin (gpow i)) := by
   unfold memBlockSends
@@ -284,7 +264,7 @@ theorem memBlock_pull {κ : ℕ} (hκ : κ < 64) (img : MemImage κ) (fin : K �
   simp [chanOf, memMsg_gpow hκ]
 
 /-- The bytecode block's seed pushes. -/
-theorem bcBlock_push (prog : Program) (fin : K → ℕ) :
+private theorem bcBlock_push (prog : Program) (fin : K → ℕ) :
     chanOf BytecodeChannel.name .push (bcBlockSends prog fin) =
       (List.finRange (2 ^ prog.logSize)).map fun i : Fin (2 ^ prog.logSize) ↦
         bcMsg prog (gpow i) 0 := by
@@ -294,7 +274,7 @@ theorem bcBlock_push (prog : Program) (fin : K → ℕ) :
   simp [chanOf, bcMsg, entryAt, Program.fetch_gpow]
 
 /-- The bytecode block's finalize pulls. -/
-theorem bcBlock_pull (prog : Program) (fin : K → ℕ) :
+private theorem bcBlock_pull (prog : Program) (fin : K → ℕ) :
     chanOf BytecodeChannel.name .pull (bcBlockSends prog fin) =
       (List.finRange (2 ^ prog.logSize)).map fun i : Fin (2 ^ prog.logSize) ↦
         bcMsg prog (gpow i) (fin (gpow i)) := by
@@ -304,7 +284,7 @@ theorem bcBlock_pull (prog : Program) (fin : K → ℕ) :
   simp [chanOf, bcMsg, entryAt, Program.fetch_gpow]
 
 /-- A list of sends all on one channel carries nothing on another. -/
-theorem chanOf_eq_nil_of_names {n m : String} {d : BusDir}
+private theorem chanOf_eq_nil_of_names {n m : String} {d : BusDir}
     {l : List (String × BusDir × Array K)} (h : ∀ x ∈ l, x.1 = m) (hnm : m ≠ n) :
     chanOf n d l = [] :=
   chanOf_eq_nil fun x hx h' ↦ hnm ((h x hx).symm.trans h'.1)
@@ -312,7 +292,7 @@ theorem chanOf_eq_nil_of_names {n m : String} {d : BusDir}
 /-! ## The three balances -/
 
 /-- The addresses of the `2^k` rows of a block are distinct, for `k ≤ 32`. -/
-theorem gpow_keys_nodup (k : ℕ) (hk : k ≤ 32) :
+private theorem gpow_keys_nodup (k : ℕ) (hk : k ≤ 32) :
     ((List.finRange (2 ^ k)).map fun i : Fin (2 ^ k) ↦ gpow (i : ℕ)).Nodup := by
   refine List.Nodup.map_on (fun x _ y _ h ↦ ?_) (List.nodup_finRange _)
   have h32 : 2 ^ k ≤ 2 ^ 32 := Nat.pow_le_pow_right (by norm_num) hk
@@ -324,7 +304,7 @@ theorem gpow_keys_nodup (k : ℕ) (hk : k ≤ 32) :
 
 /-- A block's seeds and finalizes against the reads of the rows, for any messages indexed by the
 address and the number. -/
-theorem block_balance {ι α : Type} [DecidableEq ι] (keys : List ι) (hnd : keys.Nodup)
+private theorem block_balance {ι α : Type} [DecidableEq ι] (keys : List ι) (hnd : keys.Nodup)
     (mk : ι → ℕ → α) (L : List ι) (hL : ∀ a ∈ L, a ∈ keys) :
     (List.zipWith (fun a e ↦ mk a (e + 1)) L (readExps (fun _ ↦ 0) L) ++
         keys.map fun a ↦ mk a 0).Perm
@@ -334,13 +314,13 @@ theorem block_balance {ι α : Type} [DecidableEq ι] (keys : List ι) (hnd : ke
     ((chain_balance keys hnd mk L hL fun _ ↦ 0).trans List.perm_append_comm)
 
 /-- The channel names are distinct. -/
-theorem state_ne_mem : StateChannel.name ≠ MemChannel.name := by decide
+private theorem state_ne_mem : StateChannel.name ≠ MemChannel.name := by decide
 
 /-- The channel names are distinct. -/
-theorem state_ne_bytecode : StateChannel.name ≠ BytecodeChannel.name := by decide
+private theorem state_ne_bytecode : StateChannel.name ≠ BytecodeChannel.name := by decide
 
 /-- The channel names are distinct. -/
-theorem mem_ne_bytecode : MemChannel.name ≠ BytecodeChannel.name := by decide
+private theorem mem_ne_bytecode : MemChannel.name ≠ BytecodeChannel.name := by decide
 
 /-- **The memory channel balances**: the rows' reads, numbered by the chain, against the block's
 seeds and finalizes. -/
@@ -449,7 +429,7 @@ theorem state_pair_perm (prog : Program) {κ : ℕ} (img : MemImage κ) (S : Lis
 /-! ### The number of interactions -/
 
 /-- Two sends per entry. -/
-theorem length_flatMap_pair {α β : Type} (l : List α) (f h : α → β) :
+private theorem length_flatMap_pair {α β : Type} (l : List α) (f h : α → β) :
     (l.flatMap fun x ↦ [f x, h x]).length = 2 * l.length := by
   induction l with
   | nil => rfl
@@ -459,7 +439,7 @@ theorem length_flatMap_pair {α β : Type} (l : List α) (f h : α → β) :
     omega
 
 /-- At most `k` sends per entry. -/
-theorem length_flatMap_le {α β : Type} (l : List α) (F : α → List β) (k : ℕ)
+private theorem length_flatMap_le {α β : Type} (l : List α) (F : α → List β) (k : ℕ)
     (h : ∀ a ∈ l, (F a).length ≤ k) : (l.flatMap F).length ≤ k * l.length := by
   induction l with
   | nil => simp
@@ -470,12 +450,12 @@ theorem length_flatMap_le {α β : Type} (l : List α) (F : α → List β) (k :
     omega
 
 /-- An instruction reads at most nine cells. -/
-theorem readAddrs_length_le {κ : ℕ} (mem : MemImage κ) (fp : K) (ins : Instr) :
+private theorem readAddrs_length_le {κ : ℕ} (mem : MemImage κ) (fp : K) (ins : Instr) :
     (readAddrs mem fp ins).length ≤ 9 := by
   cases ins <;> simp [readAddrs]
 
 /-- A row sends at most twenty-two messages. -/
-theorem PRow.sends_length_le {κ : ℕ} (img : MemImage κ) (r : PRow) :
+private theorem PRow.sends_length_le {κ : ℕ} (img : MemImage κ) (r : PRow) :
     (r.sends img).length ≤ 22 := by
   rw [PRow.sends, sendsOf, List.length_append, length_flatMap_pair, readsOf, List.length_mapIdx]
   have := readAddrs_length_le img r.sk.fp r.sk.ins
@@ -528,8 +508,9 @@ theorem padSends_length_lt (prog : Program) {κ : ℕ} (hκ : κ ≤ maxLogMem) 
 
 /-- The `JUMP` row circuit's constraints, generically: they are exactly the two residuals of the
 local witnesses `w` and `b`, at slots `n` and `n + 1`. -/
-theorem jump_constraints_iff (x : Var JumpRow K) (env : Environment K) (n : ℕ) (r : JumpRow K)
-    (hx : eval env x = r) (w b : K) (hw : env.get n = w) (hb : env.get (n + 1) = b) :
+private theorem jump_constraints_iff (x : Var JumpRow K) (env : Environment K) (n : ℕ)
+    (r : JumpRow K) (hx : eval env x = r) (w b : K) (hw : env.get n = w)
+    (hb : env.get (n + 1) = b) :
     ((jumpTable.main x).operations n).ConstraintsHold env ↔
       b + r.vcond * w = 0 ∧ r.vcond * (b + 1) = 0 := by
   subst hx
@@ -547,7 +528,7 @@ theorem jump_constraints_iff (x : Var JumpRow K) (env : Environment K) (n : ℕ)
     · simp only [Expression.eval, hb, h2]
 
 /-- The witness slot of a `JUMP` raw row is its first witness. -/
-theorem jumpRaw_get_witness (r : JumpRow K) (w b : K) (data : ProverData K) :
+private theorem jumpRaw_get_witness (r : JumpRow K) (w b : K) (data : ProverData K) :
     (Environment.fromArray (jumpRaw r w b) data).get (size JumpRow) = w := by
   show ((rawRow r ++ #[w, b])[size JumpRow]?).getD 0 = w
   rw [Array.getElem?_append_right (by rw [rawRow_size]), rawRow_size]
@@ -609,7 +590,7 @@ theorem padWitness_constraints (prog : Program) (input : PublicInput) {κ : ℕ}
 /-! ## The verifier's checks -/
 
 /-- Every pull of a row's read carries a nonzero count, when the row's counts are nonzero. -/
-theorem sendsOf_counts_ne_zero {pc fp : K} {next : Regs K} {rbc : K} {e : Vector K 8}
+private theorem sendsOf_counts_ne_zero {pc fp : K} {next : Regs K} {rbc : K} {e : Vector K 8}
     {reads : List (K × K × Vector K 3)} (hb : rbc ≠ 0) (hr : ∀ x ∈ reads, x.2.1 ≠ 0) :
     ∀ y ∈ sendsOf pc fp next rbc e reads,
       (y.1 = MemChannel.name ∨ y.1 = BytecodeChannel.name) → y.2.1 = .pull →
@@ -626,7 +607,7 @@ theorem sendsOf_counts_ne_zero {pc fp : K} {next : Regs K} {rbc : K} {e : Vector
   · simp at hd
 
 /-- A row of the witness has nonzero counts: they are powers of `g`. -/
-theorem PRow.sends_counts_ne_zero {κ : ℕ} (img : MemImage κ) (r : PRow) :
+private theorem PRow.sends_counts_ne_zero {κ : ℕ} (img : MemImage κ) (r : PRow) :
     ∀ y ∈ r.sends img,
       (y.1 = MemChannel.name ∨ y.1 = BytecodeChannel.name) → y.2.1 = .pull →
         ∃ h : 1 < y.2.2.size, y.2.2[1] ≠ 0 := by
@@ -694,7 +675,7 @@ theorem padWitness_blake2s_valid (prog : Program) (input : PublicInput) {κ : �
 /-! ## The caps -/
 
 /-- The rows of a table of the padded witness are the skeletons of its opcode. -/
-theorem length_filter_mkRows {κ : ℕ} (img : MemImage κ) (sm sb : K → ℕ) (S : List Skel)
+private theorem length_filter_mkRows {κ : ℕ} (img : MemImage κ) (sm sb : K → ℕ) (S : List Skel)
     (op : Opcode) :
     ((mkRows img sm sb S).filter fun r ↦ r.sk.ins.opcode = op).length = Skel.count op S := by
   unfold Skel.count Skel.onTable
@@ -703,7 +684,7 @@ theorem length_filter_mkRows {κ : ℕ} (img : MemImage κ) (sm sb : K → ℕ) 
   rfl
 
 /-- An opcode's table of the padded rows has a row per skeleton of the opcode. -/
-theorem opRows_length {κ : ℕ} (img : MemImage κ) (S : List Skel) (op : Opcode) :
+private theorem opRows_length {κ : ℕ} (img : MemImage κ) (S : List Skel) (op : Opcode) :
     (opRows img (padRows img S) op).length = Skel.count op S := by
   rw [opRows, List.length_map, padRows, length_filter_mkRows]
 
@@ -755,7 +736,7 @@ theorem padWitness_balanced (prog : Program) (input : PublicInput) {κ : ℕ} (i
   have hSx : ∀ sk ∈ S, ∃ next, execute img sk.regs sk.ins = some next := fun sk h ↦ (hSok sk h).2
   intro c hc
   rw [EnsembleWitness.interactionsWith_eq_filter_name hc]
-  refine ⟨?_, fun i hi ↦ Or.inr (witness_mults _ i (List.mem_of_mem_filter hi)), ?_⟩
+  refine ⟨?_, fun i hi ↦ Or.inr (interactions_mult_eq_one _ i (List.mem_of_mem_filter hi)), ?_⟩
   · refine lt_of_le_of_lt (List.length_filter_le _ _) ?_
     rw [← List.length_map (f := fun i : Interaction K ↦ (i.channel.name, i.direction, i.msg)),
       padWitness_sends prog input img S hκ hS hSx]

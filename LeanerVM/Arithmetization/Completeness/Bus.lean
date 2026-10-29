@@ -46,7 +46,7 @@ open LeanerVM.Parameters LeanerVM.Semantics
 /-! ## The channels of a row's sends -/
 
 /-- Mapping the singletons of a list and then a function is mapping the composition. -/
-theorem map_flatMap_singleton {α β γ : Type} (f : α → β) (h : β → γ) (l : List α) :
+private theorem map_flatMap_singleton {α β γ : Type} (f : α → β) (h : β → γ) (l : List α) :
     (l.flatMap fun a ↦ [f a]).map h = l.map fun a ↦ h (f a) := by
   induction l with
   | nil => rfl
@@ -74,21 +74,21 @@ theorem sendsOf_statePush (pc fp : K) (next : Regs K) (rbc : K) (e : Vector K 8)
   simp [chanOf, sendsOf, StateChannel, MemChannel, BytecodeChannel, List.filter_flatMap]
 
 /-- A row sends one bytecode pull, the entry with the count `rbc`. -/
-theorem sendsOf_bcPull (pc fp : K) (next : Regs K) (rbc : K) (e : Vector K 8)
+private theorem sendsOf_bcPull (pc fp : K) (next : Regs K) (rbc : K) (e : Vector K 8)
     (reads : List (K × K × Vector K 3)) :
     chanOf BytecodeChannel.name .pull (sendsOf pc fp next rbc e reads) =
       [bcMsgOf pc rbc e] := by
   simp [chanOf, sendsOf, StateChannel, MemChannel, BytecodeChannel, List.filter_flatMap]
 
 /-- A row sends one bytecode push, the entry with the count `g · rbc`. -/
-theorem sendsOf_bcPush (pc fp : K) (next : Regs K) (rbc : K) (e : Vector K 8)
+private theorem sendsOf_bcPush (pc fp : K) (next : Regs K) (rbc : K) (e : Vector K 8)
     (reads : List (K × K × Vector K 3)) :
     chanOf BytecodeChannel.name .push (sendsOf pc fp next rbc e reads) =
       [bcMsgOf pc (g * rbc) e] := by
   simp [chanOf, sendsOf, StateChannel, MemChannel, BytecodeChannel, List.filter_flatMap]
 
 /-- A row sends a memory pull per read. -/
-theorem sendsOf_memPull (pc fp : K) (next : Regs K) (rbc : K) (e : Vector K 8)
+private theorem sendsOf_memPull (pc fp : K) (next : Regs K) (rbc : K) (e : Vector K 8)
     (reads : List (K × K × Vector K 3)) :
     chanOf MemChannel.name .pull (sendsOf pc fp next rbc e reads) =
       reads.map fun x ↦ memMsgOf x.1 x.2.1 x.2.2 := by
@@ -96,7 +96,7 @@ theorem sendsOf_memPull (pc fp : K) (next : Regs K) (rbc : K) (e : Vector K 8)
   simp [StateChannel, MemChannel, BytecodeChannel, map_flatMap_singleton]
 
 /-- A row sends a memory push per read, with the count `g · count`. -/
-theorem sendsOf_memPush (pc fp : K) (next : Regs K) (rbc : K) (e : Vector K 8)
+private theorem sendsOf_memPush (pc fp : K) (next : Regs K) (rbc : K) (e : Vector K 8)
     (reads : List (K × K × Vector K 3)) :
     chanOf MemChannel.name .push (sendsOf pc fp next rbc e reads) =
       reads.map fun x ↦ memMsgOf x.1 (g * x.2.1) x.2.2 := by
@@ -165,7 +165,7 @@ theorem mkRows_sk {κ : ℕ} (img : MemImage κ) (sm sb : K → ℕ) (S : List S
   | cons sk S ih => simp [mkRows, ih]
 
 /-- A row has a number for each memory read. -/
-theorem mkRows_exps_length {κ : ℕ} (img : MemImage κ) (sm sb : K → ℕ) (S : List Skel) :
+private theorem mkRows_exps_length {κ : ℕ} (img : MemImage κ) (sm sb : K → ℕ) (S : List Skel) :
     ∀ r ∈ mkRows img sm sb S,
       r.exps.length = (readAddrs img r.sk.fp r.sk.ins).length := by
   induction S generalizing sm sb with
@@ -195,7 +195,7 @@ noncomputable def bcMsg (prog : Program) (pc : K) (e : ℕ) : Array K :=
   bcMsgOf pc (g ^ e) (entryAt prog pc)
 
 /-- A row's memory pulls are the messages of the cells it reads, numbered as its row says. -/
-theorem PRow.memPulls_eq {κ : ℕ} (img : MemImage κ) (r : PRow)
+private theorem PRow.memPulls_eq {κ : ℕ} (img : MemImage κ) (r : PRow)
     (h : r.exps.length = (readAddrs img r.sk.fp r.sk.ins).length) :
     chanOf MemChannel.name .pull (r.sends img) =
       List.zipWith (fun a e ↦ memMsg img a e) (readAddrs img r.sk.fp r.sk.ins) r.exps := by
@@ -207,7 +207,7 @@ theorem PRow.memPulls_eq {κ : ℕ} (img : MemImage κ) (r : PRow)
   rfl
 
 /-- A row's memory pushes are the messages of the cells it reads, numbered one higher. -/
-theorem PRow.memPushes_eq {κ : ℕ} (img : MemImage κ) (r : PRow)
+private theorem PRow.memPushes_eq {κ : ℕ} (img : MemImage κ) (r : PRow)
     (h : r.exps.length = (readAddrs img r.sk.fp r.sk.ins).length) :
     chanOf MemChannel.name .push (r.sends img) =
       List.zipWith (fun a e ↦ memMsg img a (e + 1)) (readAddrs img r.sk.fp r.sk.ins) r.exps := by
@@ -252,13 +252,13 @@ theorem mkRows_memPushes {κ : ℕ} (img : MemImage κ) (sm sb : K → ℕ) (S :
 
 /-- A row of a skeleton the program fetches pulls the bytecode entry at its counter with its
 number. -/
-theorem PRow.bcPulls_eq {κ : ℕ} {prog : Program} (img : MemImage κ) (r : PRow)
+private theorem PRow.bcPulls_eq {κ : ℕ} {prog : Program} (img : MemImage κ) (r : PRow)
     (h : prog.fetch r.sk.pc = some r.sk.ins) :
     chanOf BytecodeChannel.name .pull (r.sends img) = [bcMsg prog r.sk.pc r.bc] := by
   rw [PRow.sends, sendsOf_bcPull, bcMsg, entryAt, h]
 
 /-- … and pushes it with the next. -/
-theorem PRow.bcPushes_eq {κ : ℕ} {prog : Program} (img : MemImage κ) (r : PRow)
+private theorem PRow.bcPushes_eq {κ : ℕ} {prog : Program} (img : MemImage κ) (r : PRow)
     (h : prog.fetch r.sk.pc = some r.sk.ins) :
     chanOf BytecodeChannel.name .push (r.sends img) =
       [bcMsg prog r.sk.pc (r.bc + 1)] := by
