@@ -26,8 +26,9 @@ word of the image back as a row's limbs (`MemImage.limbsAt`, `MemImage.cellAt`) 
 
 * `instructionStep` is what every opcode row does first: pull its state `(pc, fp)`, push its
   successor, and read its bytecode entry at `pc`.
-* `opcodeGeneration Row` is the witness-generation metadata of an opcode table, a Clean demand
-  component on the state channel. No theorem uses Clean's generator.
+* `opcodeGeneration Row` is the witness-generation metadata of an opcode table, a guardless Clean
+  demand mode on the state channel: metadata, not a witness generator. No theorem uses Clean's
+  generator.
 * `rowEnv data` is the prover environment of a row of a table without local witnesses: no
   witness slots, the data, no hints. `*_exec_complete` states completeness in it, and so do the
   boundary blocks of Layer 7 (`LeanerVM.Arithmetization.Boundary`).
@@ -48,9 +49,15 @@ def instructionStep (pc fp rbc : Expression K) (next : Var Regs K) (op : Opcode)
   StateChannel.push next
   bytecodeRead pc rbc (Expression.const op.code) operands
 
-/-- The witness-generation metadata of an opcode table: a demand component on the state channel,
-one row per pushed state, which it pulls into its first two cells (every table's `pc`, `fp`);
-the other cells are placeholders. No theorem uses Clean's generator. -/
+/-- The witness-generation metadata of an opcode table, which Clean's `Component` requires: a
+demand component on the state channel that pulls a pushed state into its first two cells
+(every table's `pc`, `fp`), the other cells placeholders. It is guardless metadata, not a
+witness generator: Clean's `DemandMode.guard` defaults to accepting every message, so Clean's
+generator run on the ensemble would put a row for every pushed state in all six tables, and
+the result does not satisfy the constraints. No theorem uses Clean's generator; the witness of
+constraint completeness is built from the trace. A guard telling the tables apart would read
+the opcode at the state's `pc`, so it would need the program in a hint, which the prover data
+does not carry. -/
 def opcodeGeneration (Row : TypeMap) [ProvableType Row] :
     Air.Flat.WitnessGeneration.Generation K Row :=
   .demand

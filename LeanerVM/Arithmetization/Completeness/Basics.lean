@@ -26,9 +26,8 @@ them back and its proofs are unchanged.
   (`Component.rowOperations`): the form the kernel evaluates and the form this layer rewrites.
   `Component.operations` reaches them through `instantiate` and `toSubcircuit`, which the kernel
   does not unfold (status finding E8). `rowMessagesOn_eq` is the same for one row.
-* `filter_eq_nil_of_rowOps`, `memComponent_rowOps` and `bytecodeComponent_rowOps`: a table whose row
-  circuit has no interaction on a channel sends nothing on it, and the two blocks' interactions
-  are their seed push and finalize pull on the row's variables.
+* `memComponent_rowOps` and `bytecodeComponent_rowOps`: the two blocks' interactions are their
+  seed push and finalize pull on the row's variables.
 * `xor_constraints` and its five siblings: the components with no constraint satisfy their
   constraints on every row, in every environment, since only the `JUMP` table asserts anything
   (`tables.rs:724-731`).
@@ -36,7 +35,7 @@ them back and its proofs are unchanged.
 ## Wrong readings excluded
 
 * A raw row is the typed row's elements and nothing more: the `JUMP` table's two local
-  witnesses are not part of it and are appended by the witness (`Completeness.Messages`).
+  witnesses are not part of it and are appended by the witness (`Arithmetization.Messages`).
 * The constraints here hold in every environment: a wrong count never breaks them, it breaks
   the bus (roadmap acceptance test 14).
 -/
@@ -102,19 +101,6 @@ theorem bytecodeComponent_rowOps (prog : Program) :
   show ((bytecodeTable.main (varFromOffset BytecodeRow 0)).operations
     (size BytecodeRow)).interactions = _
   with_unfolding_all rfl
-
-/-- A table whose row circuit interacts on no channel named `c` sends nothing on `c`, whatever
-its rows. -/
-theorem filter_eq_nil_of_rowOps (t : Air.Flat.Table K) (c : RawChannel K)
-    (h : ∀ i ∈ t.component.rowOperations.interactions, i.channel.name ≠ c.name) :
-    t.interactions.filter (·.channel.name = c.name) = [] := by
-  rw [List.filter_eq_nil_iff, table_interactions_eq]
-  intro i hi
-  rw [List.mem_flatMap] at hi
-  obtain ⟨r, -, hi⟩ := hi
-  rw [List.mem_map] at hi
-  obtain ⟨j, hj, rfl⟩ := hi
-  exact fun h' ↦ h j hj (of_decide_eq_true h')
 
 /-! ## The components with no constraint -/
 

@@ -41,7 +41,7 @@ finding E8), and the active messages of a direction in their multiplicity-`1` fo
 (`activeMessages_of_mults`), since Clean decides `mult ≠ 0` by the field's generic equality,
 which the kernel does not reduce. On the three channels the messages of the verifier, the six
 opcode tables and the bytecode block are first rewritten to their closed forms
-(`intsOver_messages`, `verifier_msgs`, from `Completeness.Messages`), so that the kernel decides
+(`intsOver_messages`, `verifier_msgs`, from `Arithmetization.Messages`), so that the kernel decides
 each permutation without evaluating a circuit. Balance is Clean's multiset check on the three
 channels (`balanced_of`): every multiplicity `1` (`interactions_mult_eq_one`), fewer than `2^64`
 interactions, and each channel's pushes a permutation of its pulls.
@@ -533,7 +533,7 @@ theorem activeMessages_of_mults {l : List (Interaction K)} (h : ∀ i ∈ l, i.m
   exact ⟨And.left, fun h' ↦ ⟨h', by rw [h i hi]; exact one_ne_zero_K⟩⟩
 
 /-- A table's messages over `D` on a channel in a direction, read off the closed forms of its
-rows' sends (`Completeness.Messages`), so that the kernel evaluates no circuit. -/
+rows' sends (`Arithmetization.Messages`), so that the kernel evaluates no circuit. -/
 theorem intsOver_messages (D : ProverData K) (t : Air.Flat.Table K) {Row : TypeMap}
     [ProvableType Row] {rows : List (Row K)} {raw : Row K → Array K}
     (ht : t.table = rows.map raw)
