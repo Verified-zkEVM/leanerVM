@@ -121,7 +121,8 @@ theorem kid_digest (MF : MainFacts C rd σ) (hK : ∀ c < lg σ 6, KidOk C rd σ
       cellsBytes [(K c).cs0, (K c).cs1] := by
     rw [hs]; exact digestBytes_of_cells k.sdig
   have hda := (daDigestAt_of_loads k.da0 k.da1).2
-  have hdef : (deferOfCells (readCells rd (σ (.n 377) * gen ^ (24 * c)) 24)).cells = (K c).defer := by
+  have hdef :
+      (deferOfCells (readCells rd (σ (.n 377) * gen ^ (24 * c)) 24)).cells = (K c).defer := by
     rw [readCells_of_readsAt k.defreads k.deflen]; exact deferOfCells_cells k.deflen
   have hst := statementDigest_parts (seed := decSeed σ)
     (s := ⟨⟨(List.range (K c).ex).map fun j => xmssAt rd (σ (.n 53)) ((K c).ox j),

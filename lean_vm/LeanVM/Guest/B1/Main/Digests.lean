@@ -99,11 +99,17 @@ theorem sphincs_digest_id {p : E} {n : ℕ} {cells : List E} (h : SlotsHold rd p
 
 /-! ## DA digests -/
 
+/-- Two zero cells decode to the zero digest. -/
+theorem digestOfCells_zero : digestOfCells 0 0 = zeroDigest := by
+  simp only [digestOfCells, zeroDigest, limb_zero]
+  rfl
+
 /-- A DA digest slot of `da_digests` holding the cells `d0`, `d1` decodes to their digest, whose
 bytes are theirs. -/
 theorem daDigestAt_of_loads {σ : Val} {k : ℕ} {d0 d1 : E}
     (h0 : LoadHolds rd (σ (.n 334)) (2 * k) d0) (h1 : LoadHolds rd (σ (.n 334)) (2 * k + 1) d1) :
-    daDigestAt rd σ k = digestOfCells d0 d1 ∧ digestBytes (daDigestAt rd σ k) = cellsBytes [d0, d1] := by
+    daDigestAt rd σ k = digestOfCells d0 d1 ∧
+      digestBytes (daDigestAt rd σ k) = cellsBytes [d0, d1] := by
   have e : daDigestAt rd σ k = digestOfCells d0 d1 := by
     unfold daDigestAt
     rw [cellAt_eq_memAt, memAt_of_load h0, memAt_of_load h1]
