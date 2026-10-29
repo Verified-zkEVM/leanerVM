@@ -8,7 +8,7 @@ The repository tracks eight upstreams and six direct Lake packages:
 | Mathlib | `v4.34.1` (`d13f23b7`) | Algebra, finite types, probability measures, and tactics |
 | leanVM | `a386121f84292f6fa663aaa3e570c15bc0240ea2` | Audited Rust/specification target; not a Lake dependency |
 | CompPoly | `572f997390aa4fc131ef30b1186fa1dcf292ca10` (current main) | Computable polynomial and field infrastructure |
-| Clean | `42fe4b268132a46604d40cc73f642a1995f26547` (PR #474, includes current main) | Circuit, AIR, channel, and witness-generation infrastructure |
+| Clean | `61c6e013e523f13cbe4eaddf3485ee8b7c87212e` (fork: current main `9dd71e82` plus one rename, issue #183) | Circuit, AIR, channel, and witness-generation infrastructure |
 | ArkLib | `7653a901ed466c88a2e61a3075011b73d7bb2316` (current main) | Oracle reductions, security definitions, composition, sumcheck, and multilinear theory |
 | VCVio | `a4232d084aa18aa71f75b92b64082b457ffdb77b` (compatibility fix over current main) | Native probability measures and oracle computation security carriers |
 | PolyFun | `41d3b21dcc99817fe4f9f24ca7b2b58f0578083d` (current main) | Polynomial functors and free monads underlying oracle computations |
@@ -69,15 +69,35 @@ The retired `Pr[P | computation]` interface is no longer used by first-party pro
 Review these statement changes alongside the kernel audit, rather than relying on successful
 elaboration alone.
 
-Clean is pinned to the compatibility commit in [PR #474](https://github.com/Verified-zkEVM/clean/pull/474),
-with current Clean main (`fba2a29f`) merged into the compatibility branch. Mathlib 4.34 rejects
-`ring_nf at ih'` in
-`Clean.Air.Balance.balanceOf_active_append_eq` because normalization makes no progress at that
-hypothesis. The fix applies the induction equality under addition explicitly and proves the
-reassociation goals with `ring`, retaining the theorem statement and assumptions. The affected
-Clean import cone is built under the root Lean 4.34.1 toolchain; Clean CI checks the branch under
-its own toolchain. The published commit is pinned directly; local package overrides must never
-be written into the committed manifest.
+Clean is pinned to `scaraven/clean@61c6e013` (branch `fix/namespace-direction-verifier`), which
+is upstream main `9dd71e82` plus one mechanical commit. Upstream main builds unchanged under the
+root Lean 4.34.1 toolchain: Clean PR #493 rewrote the balance lemma that the former compatibility
+pin ([PR #474](https://github.com/Verified-zkEVM/clean/pull/474), `42fe4b26`) patched, so that
+pin is retired. Upstream main also declares root-level `Direction` and `Verifier`. ArkLib
+declares both too, so no module can import both libraries. The fork renames them
+`ChannelDirection` and `VerifierM` ([Clean #496](https://github.com/Verified-zkEVM/clean/issues/496)),
+and leanerVM names the type only in `abbrev BusDir` (`Arithmetization/Channels.lean`). Issue #183
+returns the pin to upstream once Clean resolves the collision. The bump brings three API changes that leanISA's Layers 5–10 consume, reviewed as
+semantic changes rather than mechanical ones (status page, "Clean main"):
+
+* **Direction tags** (#493): every interaction carries a direction (`push` or `pull`; `ChannelDirection` at the fork), never
+  read off the multiplicity's sign; a pull of multiplicity `1` gets its channel's `Guarantees`
+  and an active push owes them (`ChannelDirection.Requirements`). The leanISA channel pairs become three
+  channels, and every table's soundness now also proves what its pushes owe.
+* **Multiset balance** (#493, `Clean/Air/Balance.lean`): `Balance.multiset` (multiplicities `0`
+  or `1`, fewer than `FiniteField.size F` interactions per channel, active pushes a permutation of
+  active pulls) and `EnsembleWitness.Balanced`. It replaces leanerVM's `BalancedPair`; Clean's
+  field-sum `Balance.logUp` stays unused over `K`.
+* **Fixed columns and derived data** (#446, #495): a component's `generation` is `demand` or
+  `preallocated`; a preallocated component's height is part of it, its fixed cells are checked of
+  every row (`Table.fixed_rows_match`), and a witness's prover data is derived from its tables'
+  input rows (`deriveProverData`, `Table.data_consistent`). The verifier is a
+  `Verifier.Program`, no longer a component. The leanISA ensemble becomes `leanIsaEnsemble prog
+  κ`, and the three named hypotheses of Layer 8 are deleted (issue #23).
+
+`Clean/Circuit/ExpressionPolynomial.lean` (Clean #466) is upstream at the pin, so the verbatim
+copy under `LeanerVM/Protocol/ToClean/` is deleted. The published fork commit is pinned directly;
+local package overrides must never be written into the committed manifest.
 
 VCVio's query-log counting bridge needs one proof adjustment for current PolyFun's sealed
 free-monoid trace interface. The compatibility commit in [VCVio #820](https://github.com/Verified-zkEVM/VCVio/pull/820)
@@ -121,8 +141,7 @@ under the root Lean patch version.
 
 Clean's first consumers are the leanISA table components and the `FiniteField BF64` instance
 in [roadmap/leanisa-blueprint.md](roadmap/leanisa-blueprint.md). Its core is generic over
-`FiniteField F`; its `ZMod p` gadget tree is not used. Two limitations remain: push and pull
-multiplicities `±1` coincide in characteristic two, and `Expression` has no degree bound.
+`FiniteField F`; its `ZMod p` gadget tree is not used. `Expression` still has no degree bound.
 Clean's pinned source and first-party Clean bridges now use Lean's module system; the
 historical import restriction C8 no longer applies. Message-flattening proofs use Clean's
 public normalization lemmas for its now sealed struct conversions. Small literal row equations
@@ -184,8 +203,9 @@ supplies them); the additive NTT is instantiated only at `GF(2^8)`; no Frobenius
 conversion of `CMvPolynomial` to Mathlib's `MvPolynomial` is noncomputable; inside a `module`,
 `decide` cannot unfold `CMvPolynomial`'s `X` and `*`. `LawfulBEq (Ext P)` exists at `572f9973`.
 
-**Clean.** No degree, height or padding notion; `EnsembleWitness` has no generator
-(`Circuit.witgen` is per row); `Ensemble.Statement`'s balance over `K` is vacuous (leanerVM #16).
+**Clean.** No degree notion; heights are fixed only for preallocated components. The ensemble
+generator (`Clean/Air/WitnessGeneration`) exists but no leanerVM theorem uses it; leanISA's
+counted memory is not a Clean sound channel (Clean #494, open).
 
 **VCVio.** Merkle trees with proved completeness and random-oracle extraction, for one opening
 and for a sequence of commitments with path-pruned openings (`CryptoFoundations/MerkleTree/`,

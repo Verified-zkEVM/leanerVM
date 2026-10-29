@@ -170,7 +170,7 @@ private theorem kwordOf_row_eq_zero {ℓ κ R t : ℕ} (q : CompPoly.CMlPolynomi
 witness's stack encodes the stack's cells from `u · 2 ^ κ` on, which lie past the last block when
 `u` is past the committed lanes. -/
 private theorem kwordOf_stackOf_high {prog : Program} {s : Sizes} (hs : s.Admissible prog) {ρ : ℕ}
-    (hρ : validRate ρ) (w : EnsembleWitness (leanIsaEnsemble prog))
+    (hρ : validRate ρ) {κ : ℕ} (w : EnsembleWitness (leanIsaEnsemble prog κ))
     (y : Fin (2 ^ ((leanIsaChain prog s hs ρ hρ).κ + (leanIsaChain prog s hs ρ hρ).sh.R)))
     (u : Fin (2 ^ (leanIsaChain prog s hs ρ hρ).sh.ℓ)) (hu : Verify.nLanes prog s ≤ u.val) :
     ((kwordOf (leanIsaChain prog s hs ρ hρ).sh.ℓ (leanIsaChain prog s hs ρ hρ).κ
@@ -279,7 +279,8 @@ executable verifier at `H` from the same start, if, at the announcement and rate
 carries, the executable verifier's algebra accepts every transcript the compiled oracle
 protocol's verifier accepts (`PhasesAgree`). -/
 theorem baseProver_complete_of_agree_from (H : List UInt8 → Digest) (seed : Id FsState)
-    (fuel : ℕ) {prog : Program} {input : PublicInput} {w : EnsembleWitness (leanIsaEnsemble prog)}
+    (fuel : ℕ) {prog : Program} {input : PublicInput}
+    {κ : ℕ} {w : EnsembleWitness (leanIsaEnsemble prog κ)}
     {ρ : ℕ} {proof : Proof PrunedMerklePaths} (hsat : SatisfiedBy prog input w)
     (hagree : ∀ (s : Sizes) (hs : s.Admissible prog) (hρ : validRate ρ),
       PhasesAgree prog s hs ρ hρ input)
@@ -350,7 +351,7 @@ the public input, at the deployed Flock specification, is accepted by the execut
 `H`, if, at the announcement and rate the proof carries, the executable verifier's algebra accepts
 every transcript the compiled oracle protocol's verifier accepts (`PhasesAgree`). -/
 theorem baseProver_complete_of_agree (H : List UInt8 → Digest) (fuel : ℕ) {prog : Program}
-    {input : PublicInput} {w : EnsembleWitness (leanIsaEnsemble prog)} {ρ : ℕ}
+    {input : PublicInput} {κ : ℕ} {w : EnsembleWitness (leanIsaEnsemble prog κ)} {ρ : ℕ}
     {proof : Proof PrunedMerklePaths} (hsat : SatisfiedBy prog input w)
     (hagree : ∀ (s : Sizes) (hs : s.Admissible prog) (hρ : validRate ρ),
       PhasesAgree prog s hs ρ hρ input)
@@ -569,7 +570,8 @@ end Total
 admissible with the rate and no grind runs out of fuel, whatever the hash and the Flock
 specification. -/
 theorem proveFrom_ne_none (H : List UInt8 → Digest) (seed : Id FsState) (fuel : ℕ) (F : FlockSpec)
-    {prog : Program} {input : PublicInput} {w : EnsembleWitness (leanIsaEnsemble prog)} {ρ : ℕ}
+    {prog : Program} {input : PublicInput}
+    {κ : ℕ} {w : EnsembleWitness (leanIsaEnsemble prog κ)} {ρ : ℕ}
     {s : Sizes} (hws : Sizes.ofWitness w = some s) (hs : s.Admissible prog) (hρ : validRate ρ)
     (hg : ∀ fs : FsState, Id.run (fs.grind H fuel queryGrindingBits) ≠ none) :
     proveFrom (m := Id) H seed fuel F prog input w ρ ≠ none := by
@@ -600,7 +602,8 @@ theorem proveFrom_ne_none (H : List UInt8 → Digest) (seed : Id FsState) (fuel 
 /-- **The honest prover returns a proof** when the witness gives sizes admissible with the rate
 and no grind runs out of fuel, whatever the hash and the Flock specification. -/
 theorem proveWith_ne_none (H : List UInt8 → Digest) (fuel : ℕ) (F : FlockSpec) {prog : Program}
-    {input : PublicInput} {w : EnsembleWitness (leanIsaEnsemble prog)} {ρ : ℕ} {s : Sizes}
+    {input : PublicInput} {κ : ℕ} {w : EnsembleWitness (leanIsaEnsemble prog κ)} {ρ : ℕ}
+    {s : Sizes}
     (hws : Sizes.ofWitness w = some s) (hs : s.Admissible prog) (hρ : validRate ρ)
     (hg : ∀ fs : FsState, Id.run (fs.grind H fuel queryGrindingBits) ≠ none) :
     proveWith (m := Id) H fuel F prog input w ρ ≠ none :=
@@ -611,7 +614,8 @@ sizes are not admissible, or the rate is not valid, or the grind runs out of fue
 state. The openings' check that the commitments and the positions kept are as many never
 fails. -/
 theorem proveFrom_eq_none (H : List UInt8 → Digest) (seed : Id FsState) (fuel : ℕ) (F : FlockSpec)
-    {prog : Program} {input : PublicInput} {w : EnsembleWitness (leanIsaEnsemble prog)} {ρ : ℕ}
+    {prog : Program} {input : PublicInput}
+    {κ : ℕ} {w : EnsembleWitness (leanIsaEnsemble prog κ)} {ρ : ℕ}
     (h : proveFrom (m := Id) H seed fuel F prog input w ρ = none) :
     Sizes.ofWitness w = none ∨ ∃ s, Sizes.ofWitness w = some s ∧
       (¬ s.Admissible prog ∨ ¬ validRate ρ ∨
@@ -628,7 +632,7 @@ theorem proveFrom_eq_none (H : List UInt8 → Digest) (seed : Id FsState) (fuel 
 not admissible, or the rate is not valid, or the grind runs out of fuel at some chain state. The
 openings' check that the commitments and the positions kept are as many never fails. -/
 theorem proveWith_eq_none (H : List UInt8 → Digest) (fuel : ℕ) (F : FlockSpec) {prog : Program}
-    {input : PublicInput} {w : EnsembleWitness (leanIsaEnsemble prog)} {ρ : ℕ}
+    {input : PublicInput} {κ : ℕ} {w : EnsembleWitness (leanIsaEnsemble prog κ)} {ρ : ℕ}
     (h : proveWith (m := Id) H fuel F prog input w ρ = none) :
     Sizes.ofWitness w = none ∨ ∃ s, Sizes.ofWitness w = some s ∧
       (¬ s.Admissible prog ∨ ¬ validRate ρ ∨

@@ -166,7 +166,7 @@ interval. -/
 @[noinline] def force {α : Type} (x : α) : IO α := pure x
 
 /-- The witness, program and public input of the vectors. -/
-def theWitness : Air.Flat.EnsembleWitness (leanIsaEnsemble fillProg) := fillW 1 g memCnt
+def theWitness : Air.Flat.EnsembleWitness (leanIsaEnsemble fillProg minLogMem) := fillW 1 g memCnt
 
 /-- Run the prover in `IO` with the phases timed; the proof, or `none`. -/
 def proveTimed (fuel ρ : ℕ) : IO (Option (Proof PrunedMerklePaths)) := do

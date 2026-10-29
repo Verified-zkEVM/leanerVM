@@ -106,7 +106,7 @@ def eword : Whir.Word 1 1 1 :=
 the prover returns for a satisfying witness is accepted, given the phases' agreement at every
 admissible size and valid rate. -/
 example (H : List UInt8 → Digest) (fuel : ℕ) {prog : Program} {input : PublicInput}
-    {w : Air.Flat.EnsembleWitness (LeanerVM.Arithmetization.leanIsaEnsemble prog)} {ρ : ℕ}
+    {κ : ℕ} {w : Air.Flat.EnsembleWitness (LeanerVM.Arithmetization.leanIsaEnsemble prog κ)} {ρ : ℕ}
     {proof : Proof PrunedMerklePaths} (hsat : LeanerVM.Arithmetization.SatisfiedBy prog input w)
     (hagree : ∀ s hs hρ, PhasesAgree prog s hs ρ hρ input)
     (hp : proveWith (m := Id) H fuel Blake2sFlock.blake2sFlockSpec prog input w ρ = some proof) :
@@ -116,7 +116,7 @@ example (H : List UInt8 → Digest) (fuel : ℕ) {prog : Program} {input : Publi
 /-- The honest prover's completeness, the phases' agreement proved: for every hash and fuel, a
 proof the prover returns for a satisfying witness is accepted. -/
 example (H : List UInt8 → Digest) (fuel : ℕ) {prog : Program} {input : PublicInput}
-    {w : Air.Flat.EnsembleWitness (LeanerVM.Arithmetization.leanIsaEnsemble prog)} {ρ : ℕ}
+    {κ : ℕ} {w : Air.Flat.EnsembleWitness (LeanerVM.Arithmetization.leanIsaEnsemble prog κ)} {ρ : ℕ}
     {proof : Proof PrunedMerklePaths} (hsat : LeanerVM.Arithmetization.SatisfiedBy prog input w)
     (hp : proveWith (m := Id) H fuel Blake2sFlock.blake2sFlockSpec prog input w ρ = some proof) :
     verifyWith (m := Id) H prog input proof = true :=
@@ -127,7 +127,7 @@ open LeanerVM.Protocol.LeanIsa in
 not admissible, or the rate is not valid, or a grind runs out of fuel; never the openings. -/
 example (H : List UInt8 → Digest) (fuel : ℕ) (F : FlockSpec) {prog : Program}
     {input : PublicInput}
-    {w : Air.Flat.EnsembleWitness (LeanerVM.Arithmetization.leanIsaEnsemble prog)} {ρ : ℕ}
+    {κ : ℕ} {w : Air.Flat.EnsembleWitness (LeanerVM.Arithmetization.leanIsaEnsemble prog κ)} {ρ : ℕ}
     (h : proveWith (m := Id) H fuel F prog input w ρ = none) :
     Sizes.ofWitness w = none ∨ ∃ s, Sizes.ofWitness w = some s ∧
       (¬ s.Admissible prog ∨ ¬ validRate ρ ∨

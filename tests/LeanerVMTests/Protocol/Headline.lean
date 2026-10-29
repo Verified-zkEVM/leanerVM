@@ -2,6 +2,7 @@ import LeanerVM.Protocol.Headline
 import LeanerVMTests.Protocol.RandomOracleGame
 import LeanerVMTests.Arithmetization.Steps
 import LeanerVMTests.Arithmetization.Sentinel
+import LeanerVMTests.Semantics.FillBlocks
 import LeanerVMTests.Protocol.LogScan
 
 /-!
@@ -56,7 +57,8 @@ open LeanerVM.Protocol.ProofRoots LeanerVM.Protocol.LeanVmReader OracleComp Orac
 open LeanerVMTests.Protocol.Proof (program input)
 open LeanerVMTests.Protocol.RandomOracleGame (d nodeA nodeV)
 open LeanerVMTests.Arithmetization.Statement (fillProg mulInput)
-open LeanerVMTests.Arithmetization.Steps (fill_sentinelSafe fill_wellFormed)
+open LeanerVMTests.Arithmetization.Steps (fill_sentinelSafe)
+open LeanerVMTests.Semantics.FillBlocks (ladderProg ladder_wellFormed)
 open LeanerVMTests.Arithmetization.Sentinel (sentProg sentW sent_satisfiedBy sent_no_execution)
 open LeanerVMTests.Protocol.LogScan (entries scan)
 open scoped ENNReal
@@ -382,12 +384,12 @@ example (proof : Proof PrunedMerklePaths) :
       ((1 + 13700 : ℕ) / 2 ^ 128 + hashTerm 13700 1 : NNReal) :=
   baseVerifier_extractsWitness_rom_adaptive (chooser_queries _ _ _)
 
-/- The execution form for an adversary that only ever outputs the test vector's program, which
-is well-formed: the hypothesis on the adversary's programs is met. -/
+/- The execution form for an adversary that only ever outputs the fill-block ladder's program,
+which is well-formed: the hypothesis on the adversary's programs is met. -/
 example (A : Adversary) {δ : ℝ≥0∞}
-    (hB : BlakeMisbehavesAdaptive ((fun proof ↦ (fillProg, mulInput, proof)) <$> A) δ) :
+    (hB : BlakeMisbehavesAdaptive ((fun proof ↦ (ladderProg, mulInput, proof)) <$> A) δ) :
     Pr{let g ← runBlake2s (adaptiveGame verifyWith
-        ((fun proof ↦ (fillProg, mulInput, proof)) <$> A))}[
+        ((fun proof ↦ (ladderProg, mulInput, proof)) <$> A))}[
       verify g.prog g.input g.proof = true ∧ ¬ ∃ t,
         extractExecution g.prog g.input g.proof g.logA = some t ∧
           ValidExecution g.prog g.input t] ≤ δ :=
@@ -395,7 +397,7 @@ example (A : Adversary) {δ : ℝ≥0∞}
     have hg' := QueryLog.support_simulateQ_subset _ _ hg
     rw [adaptiveGame_const, support_map] at hg'
     obtain ⟨_, -, rfl⟩ := hg'
-    exact fill_wellFormed
+    exact ladder_wellFormed
 
 /-! ## The bytecode hypothesis cannot be dropped -/
 

@@ -446,7 +446,8 @@ a proof `proveFrom` returns for a witness satisfying leanISA's constraint statem
 input, at the deployed Flock specification, is accepted by the executable verifier at `H` from the
 same start. -/
 theorem baseProver_complete_from (H : List UInt8 → Digest) (seed : Id FsState) (fuel : ℕ)
-    {prog : Program} {input : PublicInput} {w : EnsembleWitness (leanIsaEnsemble prog)} {ρ : ℕ}
+    {prog : Program} {input : PublicInput}
+    {κ : ℕ} {w : EnsembleWitness (leanIsaEnsemble prog κ)} {ρ : ℕ}
     {proof : Proof PrunedMerklePaths} (hsat : SatisfiedBy prog input w)
     (hp : proveFrom (m := Id) H seed fuel Blake2sFlock.blake2sFlockSpec prog input w ρ =
       some proof) :
@@ -458,7 +459,7 @@ theorem baseProver_complete_from (H : List UInt8 → Digest) (seed : Id FsState)
 `proveWith` returns for a witness satisfying leanISA's constraint statement on the public input,
 at the deployed Flock specification, is accepted by the executable verifier at `H`. -/
 theorem baseProver_complete (H : List UInt8 → Digest) (fuel : ℕ) {prog : Program}
-    {input : PublicInput} {w : EnsembleWitness (leanIsaEnsemble prog)} {ρ : ℕ}
+    {input : PublicInput} {κ : ℕ} {w : EnsembleWitness (leanIsaEnsemble prog κ)} {ρ : ℕ}
     {proof : Proof PrunedMerklePaths} (hsat : SatisfiedBy prog input w)
     (hp : proveWith (m := Id) H fuel Blake2sFlock.blake2sFlockSpec prog input w ρ = some proof) :
     Verify.verifyWith (m := Id) H prog input proof = true :=

@@ -195,6 +195,7 @@ def DerefSpec (r : DerefRow K) (next : Regs K) (data : ProverData K) : Prop :=
 at `fp·o₃`, and the target read at `p·o₂` carrying the flag-selected source. Returns the
 pushed successor `(g·pc, fp)`. -/
 def derefTable : GeneralFormalCircuit K DerefRow Regs where
+  name := "deref"
   main r := do
     let next : Var Regs K := ⟨Expression.const g * r.pc, r.fp⟩
     -- `f̄ = 1 + f_pc + f_fp`: `1` at the three store modes' flags in `cell` mode, `0` otherwise.
@@ -208,8 +209,8 @@ def derefTable : GeneralFormalCircuit K DerefRow Regs where
          fbar * r.v3[1], fbar * r.v3[2]]
     memRead (r.fp * r.o3) r.r3 r.v3
     pure next
-  -- The push channels: their requirements are vacuous (Layer 5), the obligation is `Spec`.
-  channelsWithRequirements := [StatePush.toRaw, MemPush.toRaw, BytecodePush.toRaw]
+  -- The three channels: each push owes its channel's guarantee (Layer 5).
+  channelsWithRequirements := [StateChannel.toRaw, MemChannel.toRaw, BytecodeChannel.toRaw]
   requirementsChannelsLawful input offset := by
     -- Without core's `BitVec.reduceNeg` simproc, which misreads `-1 : K` (finding E6).
     simp only [circuit_norm, instructionStep, memRead, bytecodeRead, -BitVec.reduceNeg]
@@ -220,9 +221,11 @@ def derefTable : GeneralFormalCircuit K DerefRow Regs where
   -- instruction. Proved of the row built from any valid execution by `derefRowOf_refines`.
   ProverAssumptions r data _ := ∃ next, DerefSpec r next data
   soundness := by
-    circuit_proof_start [StatePull, StatePush, MemPull, MemPush, BytecodePull, BytecodePush,
+    circuit_proof_start [StateChannel, MemChannel, BytecodeChannel,
       instructionStep, memRead, bytecodeRead]
     obtain ⟨⟨ins, hdec⟩, h1, h2, h3⟩ := h_holds
+    -- Each push re-sends its pull's message: what it owes is what the pull is granted.
+    refine ⟨?_, fun _ ↦ ⟨ins, hdec⟩, fun _ ↦ h1, fun _ ↦ h2, fun _ ↦ h3⟩
     obtain ⟨_, _, _, _, _, _, _, _, hv3, _, _, _, _⟩ := h_input
     subst hv3
     -- The pulled tuple is an instruction (Layer 4): `DEREF` with the row's operands, the flags
@@ -236,7 +239,7 @@ def derefTable : GeneralFormalCircuit K DerefRow Regs where
     · simpa only [Vector.getElem_map] using h3
     · simpa only [Vector.getElem_map] using h2
   completeness := by
-    circuit_proof_start [StatePull, StatePush, MemPull, MemPush, BytecodePull, BytecodePush,
+    circuit_proof_start [StateChannel, MemChannel, BytecodeChannel,
       instructionStep, memRead, bytecodeRead]
     -- The four pull guarantees, from the semantic premise: the tuple `main` emits decodes
     -- (Layer 4), and the target read carries the coordinates of the mode's source

@@ -8,7 +8,7 @@
 
 module
 
-public import LeanerVM.Protocol.ToClean.ExpressionPolynomial
+public import Clean.Circuit.ExpressionPolynomial
 public import Clean.Air.FlatComponent
 public import CompPoly.Multivariate.Eval
 public import CompPoly.Multivariate.MvPolyEquiv.Eval
@@ -39,13 +39,13 @@ translation is CompPoly's, proved equal to Clean's.
   total degree by `degreeBound`. Within width `n`, Clean's evaluation reads only the first `n`
   cells of a row (`eval_fromArray_truncate`).
 
-* `Component.toM3 c sep dir counted` is the component `c` as one table of width `c.width`: its
+* `Component.toM3 c sep side counted` is the component `c` as one table of width `c.width`: its
   constraints are its `assert` expressions as polynomials; its flushes are its interactions,
-  each on the side `dir` names for its channel, the separator `sep` names first, then the
-  message's coordinates, then zeros (`flushPolys`); its count columns are the coordinate-`1`
-  variables of the interactions on the channels `counted` selects, in column order and each
-  once. The separators, the sides and the counted channels are explicit data, so the map from
-  Clean's channels to the bus is stated, not inferred.
+  each on the side `side` names for it (in leanVM, its direction's), the separator `sep` names
+  for its channel first, then the message's coordinates, then zeros (`flushPolys`); its count
+  columns are the coordinate-`1` variables of the interactions `counted` selects, in column
+  order and each once. The separators, the sides and the counted interactions are explicit
+  data, so the map from Clean's interactions to the bus is stated, not inferred.
 * `toM3_constraints_iff`: on a row of `c.width` cells, the constraint polynomials vanish
   exactly when Clean's constraints hold, for a component without lookups (Clean's
   `ConstraintsHold` is its `assert` expressions and its lookups).
@@ -59,9 +59,8 @@ translation is CompPoly's, proved equal to Clean's.
   so the tuples of one channel's messages determine the messages.
 
 Written from the M3 model of leanVM's specification (§5.1 "The bus", §5.5 "The zerocheck") and
-Clean's semantics of a flat component at `42fe4b26` (`Clean/Air/FlatComponent.lean`,
-`Clean/Circuit/Operations.lean`). Clean's polynomial interface is imported from the local copy
-`ToClean/ExpressionPolynomial.lean` until the pin contains it; nothing else changes then.
+Clean's semantics of a flat component at `9dd71e82` (`Clean/Air/FlatComponent.lean`,
+`Clean/Circuit/Operations.lean`, `Clean/Circuit/ExpressionPolynomial.lean`).
 
 ## Wrong readings excluded
 
@@ -69,10 +68,10 @@ Clean's semantics of a flat component at `42fe4b26` (`Clean/Air/FlatComponent.le
   Clean's `Environment.fromArray` reads a missing cell.
 * The degree bound is syntactic and can exceed the polynomial's degree (`x · y + x · y` is
   `2 · x · y`, `x · y - x · y` is `0`); it is an upper bound, never the degree.
-* A flush carries no multiplicity: the side is the channel's (`dir`), never the sign of a
+* A flush carries no multiplicity: the side is the interaction's (`side`), never the sign of a
   multiplicity, which carries none in characteristic two. The table is faithful to a component
-  whose multiplicities have no variable and the value `1` or `-1` (`UnitMultiplicities`,
-  decidable; `eval_of_constValue`).
+  whose multiplicities have no variable and the value `1` (`UnitMultiplicities`, decidable;
+  `eval_of_constValue`).
 * A message longer than fifteen coordinates is truncated by the sixteen-slot tuple.
 -/
 
@@ -281,25 +280,26 @@ def countVar (n : ℕ) (i : AbstractInteraction F) : Option (Fin n) :=
   | _ => none
 
 /-- The component `c` as one M3 table: its `assert` expressions as polynomials; its
-interactions as flushes, on the side `dir` names for the channel, with the separator `sep`
-names; and as count columns, the coordinate-`1` variables of the interactions on the channels
-`counted` selects, in column order and each once. -/
+interactions as flushes, on the side `side` names for each, with the separator `sep` names for
+its channel; and as count columns, the coordinate-`1` variables of the interactions `counted`
+selects, in column order and each once. -/
 def _root_.Air.Flat.Component.toM3 (c : Component F) (sep : RawChannel F → F)
-    (dir : RawChannel F → σ) (counted : RawChannel F → Bool) : M3Table F σ where
+    (side : AbstractInteraction F → σ) (counted : AbstractInteraction F → Bool) :
+    M3Table F σ where
   width := c.width
   constraints := c.rowOperations.constraints.map (·.toCMvPolynomial c.width)
-  flushes := c.rowOperations.interactions.map fun i ↦ (dir i.channel, flushPolys sep c.width i)
+  flushes := c.rowOperations.interactions.map fun i ↦ (side i, flushPolys sep c.width i)
   count := (List.finRange c.width).filter fun k ↦
-    c.rowOperations.interactions.any fun i ↦ counted i.channel && countVar c.width i == some k
+    c.rowOperations.interactions.any fun i ↦ counted i && countVar c.width i == some k
 
-variable (c : Component F) (sep : RawChannel F → F) (dir : RawChannel F → σ)
-  (counted : RawChannel F → Bool)
+variable (c : Component F) (sep : RawChannel F → F) (side : AbstractInteraction F → σ)
+  (counted : AbstractInteraction F → Bool)
 
 /-- On a row of `c.width` cells, the constraint polynomials vanish exactly when Clean's
 constraints hold, for a component without lookups. -/
 theorem toM3_constraints_iff (hl : c.rowOperations.lookups = []) (row : Fin c.width → F)
     (data : ProverData F) :
-    (∀ C ∈ (c.toM3 sep dir counted).constraints, C.eval row = 0) ↔
+    (∀ C ∈ (c.toM3 sep side counted).constraints, C.eval row = 0) ↔
       c.operations.ConstraintsHold (Environment.fromArray (Array.ofFn row) data) := by
   rw [Component.constraintsHold_iff, Operations.ConstraintsHold, hl]
   simp only [List.not_mem_nil, IsEmpty.forall_iff, implies_true, and_true]
@@ -307,21 +307,20 @@ theorem toM3_constraints_iff (hl : c.rowOperations.lookups = []) (row : Fin c.wi
   simp only [List.forall_mem_map, Expression.eval_toCMvPolynomial row data]
 
 /-- On a row of `c.width` cells, the flushes evaluate to the tuples of the interactions Clean
-evaluates on the row, each on its channel's side. -/
+evaluates on the row, each on its side. -/
 theorem toM3_flushes_eq (row : Fin c.width → F) (data : ProverData F) :
-    (c.toM3 sep dir counted).flushes.map (fun f ↦ (f.1, f.2.map (·.eval row))) =
-      (c.operations.interactionValues (Environment.fromArray (Array.ofFn row) data)).map
-        fun i ↦ (dir i.channel, flushTuple sep i) := by
-  rw [Component.interactionsValues_eq]
-  simp only [Component.toM3, Operations.interactionValues, List.map_map]
+    (c.toM3 sep side counted).flushes.map (fun f ↦ (f.1, f.2.map (·.eval row))) =
+      c.rowOperations.interactions.map
+        fun i ↦ (side i, flushTuple sep (i.eval (Environment.fromArray (Array.ofFn row) data))) := by
+  simp only [Component.toM3, List.map_map]
   apply List.map_congr_left
   intro i _
-  simp only [Function.comp_apply, flushPolys_eval sep row data, AbstractInteraction.eval]
+  simp only [Function.comp_apply, flushPolys_eval sep row data]
 
 /-- A count column is the coordinate-`1` variable of a counted interaction. -/
 theorem mem_toM3_count_iff (k : Fin c.width) :
-    k ∈ (c.toM3 sep dir counted).count ↔
-      ∃ i ∈ c.rowOperations.interactions, counted i.channel ∧ countVar c.width i = some k := by
+    k ∈ (c.toM3 sep side counted).count ↔
+      ∃ i ∈ c.rowOperations.interactions, counted i ∧ countVar c.width i = some k := by
   show k ∈ List.filter _ _ ↔ _
   simp [List.mem_filter, List.any_eq_true]
 
@@ -329,7 +328,7 @@ theorem mem_toM3_count_iff (k : Fin c.width) :
 syntactic degree is. -/
 theorem toM3_constraints_degree {d : ℕ}
     (h : ∀ e ∈ c.rowOperations.constraints, e.degreeBound ≤ d) :
-    ∀ C ∈ (c.toM3 sep dir counted).constraints, C.totalDegree ≤ d := by
+    ∀ C ∈ (c.toM3 sep side counted).constraints, C.totalDegree ≤ d := by
   show ∀ C ∈ c.rowOperations.constraints.map (·.toCMvPolynomial c.width), _
   simp only [List.forall_mem_map]
   exact fun e he ↦ (Expression.totalDegree_toCMvPolynomial_le _ e).trans (h e he)
@@ -338,35 +337,36 @@ theorem toM3_constraints_degree {d : ℕ}
 syntactic degree is: the separator is a constant, the padding zero. -/
 theorem toM3_flushes_degree {d : ℕ}
     (h : ∀ i ∈ c.rowOperations.interactions, ∀ e ∈ i.msg.toList, e.degreeBound ≤ d) :
-    ∀ f ∈ (c.toM3 sep dir counted).flushes, ∀ k, (f.2.get k).totalDegree ≤ d := by
+    ∀ f ∈ (c.toM3 sep side counted).flushes, ∀ k, (f.2.get k).totalDegree ≤ d := by
   intro f hf k
   have hf' : f ∈ c.rowOperations.interactions.map fun i ↦
-      (dir i.channel, flushPolys sep c.width i) := hf
+      (side i, flushPolys sep c.width i) := hf
   obtain ⟨i, hi, rfl⟩ := List.mem_map.mp hf'
   exact totalDegree_flushPolys_le sep i (h i hi) k
 
 /-- Every counted interaction's coordinate `1` is a variable below the width: no read count
 is a constant or out of the row. -/
 def CountsAreVariables : Prop :=
-  ∀ i ∈ c.rowOperations.interactions, counted i.channel → (countVar c.width i).isSome
+  ∀ i ∈ c.rowOperations.interactions, counted i → (countVar c.width i).isSome
 
 instance : Decidable (CountsAreVariables c counted) :=
   inferInstanceAs (Decidable (∀ i ∈ c.rowOperations.interactions, _))
 
-/-- Every interaction's multiplicity mentions no variable and has the value `1` or `-1`: a
-flush stands for one message, its side given by `dir`, so a table drops no multiplicity. -/
+/-- Every interaction's multiplicity mentions no variable and has the value `1`: a flush stands
+for one message, its side given by its direction, so a table drops no multiplicity. -/
 def UnitMultiplicities : Prop :=
-  ∀ i ∈ c.rowOperations.interactions, ∃ m, i.mult.constValue = some m ∧ (m = 1 ∨ m = -1)
+  ∀ i ∈ c.rowOperations.interactions, i.mult.constValue = some 1
 
 instance : Decidable (UnitMultiplicities c) :=
   inferInstanceAs (Decidable (∀ i ∈ c.rowOperations.interactions, _))
 
 /-- When counts are variables, every counted interaction has a count column. -/
 theorem exists_count_of_counted (h : CountsAreVariables c counted)
-    {i : AbstractInteraction F} (hi : i ∈ c.rowOperations.interactions) (hc : counted i.channel) :
-    ∃ k ∈ (c.toM3 sep dir counted).count, countVar c.width i = some k := by
+    {i : AbstractInteraction F} (hi : i ∈ c.rowOperations.interactions)
+    (hc : counted i) :
+    ∃ k ∈ (c.toM3 sep side counted).count, countVar c.width i = some k := by
   obtain ⟨k, hk⟩ := Option.isSome_iff_exists.mp (h i hi hc)
-  exact ⟨k, (mem_toM3_count_iff c sep dir counted k).mpr ⟨i, hi, hc, hk⟩, hk⟩
+  exact ⟨k, (mem_toM3_count_iff c sep side counted k).mpr ⟨i, hi, hc, hk⟩, hk⟩
 
 omit [DecidableEq F] in
 /-- Coordinate `1` of an interaction whose count column is `k` evaluates, on a row, to the

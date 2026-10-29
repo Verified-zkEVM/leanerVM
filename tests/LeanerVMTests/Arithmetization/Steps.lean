@@ -1,5 +1,4 @@
 import LeanerVM.Arithmetization.Steps
-import LeanerVM.Semantics.WellFormedBytecode
 import LeanerVMTests.Arithmetization.Statement
 
 /-!
@@ -28,9 +27,6 @@ open LeanerVMTests.Arithmetization.Statement
 /-- The fixture's sentinel slot is not a `JUMP`. -/
 theorem fill_sentinelSafe : SentinelSafe fillProg := by decide
 
-/-- The fixture's program is well-formed bytecode. -/
-theorem fill_wellFormed : WellFormedBytecode fillProg := ⟨fill_sentinelSafe⟩
-
 /-- The fixture's program with a `JUMP` in its sentinel slot. -/
 def jumpSentinelProg : Program :=
   ⟨fillProg.logSize, fillProg.logSize_le, fun i ↦
@@ -39,27 +35,41 @@ def jumpSentinelProg : Program :=
 /-- It is not sentinel-safe. -/
 example : ¬ SentinelSafe jumpSentinelProg := by decide
 
+/-- The `JUMP` table of the witness has the fixture's rows. -/
+theorem tableAt_four : (tableAt (fillW 1 g memCnt) 4).table = jumpT.table := by
+  simp only [tableAt, fillW, mkW, witnessOfTables, Air.Flat.withDerivedData, List.getElem_map,
+    List.getElem_attach]
+  rfl
+
+/-- The `XOR` table of the witness has the fixture's row. -/
+theorem tableAt_zero : (tableAt (fillW 1 g memCnt) 0).table = xorT.table := by
+  simp only [tableAt, fillW, mkW, witnessOfTables, Air.Flat.withDerivedData, List.getElem_map,
+    List.getElem_attach]
+  rfl
+
 /-- The `JUMP` row to the sentinel is a step of the program, from the statement alone. -/
 example : step fillProg fillImage ⟨gpow 3, 1⟩ = some ⟨gpow 31, 1⟩ := by
-  have h := rowSteps_of_satisfiedBy fill_satisfiedBy jumpT
-    (List.mem_cons_of_mem _ <| List.mem_cons_of_mem _ <| List.mem_cons_of_mem _ <|
-      List.mem_cons_of_mem _ List.mem_cons_self)
-    _ List.mem_cons_self ⟨gpow 3, 1⟩ ⟨gpow 31, 1⟩
-    (by rw [rowMessagesOn_eq]; decide +kernel) (by rw [rowMessagesOn_eq]; decide +kernel)
-  rw [data_eq, fill_imageOf] at h
+  have h := rowSteps_of_satisfiedBy fill_satisfiedBy (tableAt (fillW 1 g memCnt) 4)
+    (List.getElem_mem _) (jumpRaw jumpRow3) (by rw [tableAt_four]; exact List.mem_cons_self)
+    ⟨gpow 3, 1⟩ ⟨gpow 31, 1⟩
+    (by rw [rowMessagesOn_eq, activeMessages_of_mults ?_] <;> decide +kernel)
+    (by rw [rowMessagesOn_eq, activeMessages_of_mults ?_] <;> decide +kernel)
+  rw [fill_imageOf] at h
   exact h
 
 /-- The `XOR` fill row is a step too, off the run. -/
 example : step fillProg fillImage ⟨gpow 4, gpow 5⟩ = some ⟨gpow 5, gpow 5⟩ := by
-  have h := rowSteps_of_satisfiedBy fill_satisfiedBy xorT List.mem_cons_self _
-    List.mem_cons_self ⟨gpow 4, gpow 5⟩ ⟨gpow 5, gpow 5⟩
-    (by rw [rowMessagesOn_eq]; decide +kernel) (by rw [rowMessagesOn_eq]; decide +kernel)
-  rw [data_eq, fill_imageOf] at h
+  have h := rowSteps_of_satisfiedBy fill_satisfiedBy (tableAt (fillW 1 g memCnt) 0)
+    (List.getElem_mem _) (rawRow xorRow) (by rw [tableAt_zero]; exact List.mem_cons_self)
+    ⟨gpow 4, gpow 5⟩ ⟨gpow 5, gpow 5⟩
+    (by rw [rowMessagesOn_eq, activeMessages_of_mults ?_] <;> decide +kernel)
+    (by rw [rowMessagesOn_eq, activeMessages_of_mults ?_] <;> decide +kernel)
+  rw [fill_imageOf] at h
   exact h
 
 /-- No row of the fixture pulls the sentinel counter `g^31`. -/
 example : ∀ t ∈ (fillW 1 g memCnt).tables, ∀ row ∈ t.table, ∀ pc fp : K,
-    #[pc, fp] ∈ rowMessagesOn t row StatePull.toRaw → pc ≠ fillProg.finalPc :=
+    #[pc, fp] ∈ rowMessagesOn t row StateChannel.toRaw .pull → pc ≠ fillProg.finalPc :=
   no_row_at_sentinel fill_sentinelSafe fill_satisfiedBy
 
 end LeanerVMTests.Arithmetization.Steps

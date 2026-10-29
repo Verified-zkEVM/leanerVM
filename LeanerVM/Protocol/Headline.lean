@@ -14,7 +14,7 @@ public import LeanerVM.Protocol.LeanIsa.Sound
 public import LeanerVM.Arithmetization.Soundness
 public import LeanerVM.Protocol.Compile.Agree
 public import LeanerVM.Protocol.AdaptiveGame
-public import LeanerVM.Semantics.WellFormedBytecode
+public import LeanerVM.Semantics.FillBlocks
 
 /-!
 # The headline theorems
@@ -179,7 +179,7 @@ definition the compiler runs, whose last step at `leanIsaTraceExtraction` is lea
 def extractTrace {prog : Program} (X : TraceExtraction prog) (input : PublicInput)
     (proof : Proof PrunedMerklePaths) (log : hashSpec.QueryLog) : Option (Trace prog) :=
   (extract Blake2sFlock.blake2sFlockSpec prog input proof log).bind fun e ↦
-    X.traceOf input (witnessOf Blake2sFlock.blake2sFlockSpec prog e.1 e.2)
+    X.traceOf input _ (witnessOf Blake2sFlock.blake2sFlockSpec prog e.1 e.2)
 
 /-- **The extracted execution of a chosen program**: `extractTrace` at leanISA's trace
 extraction when the program's sentinel slot is not a `JUMP`, nothing otherwise. Computable. -/
@@ -210,7 +210,7 @@ private theorem execution_of_witness {prog : Program} {input : PublicInput}
     (he : extract Blake2sFlock.blake2sFlockSpec prog input proof log = some e)
     (hsat : SatisfiedBy prog input (witnessOf Blake2sFlock.blake2sFlockSpec prog e.1 e.2)) :
     ∃ t, extractExecution prog input proof log = some t ∧ ValidExecution prog input t := by
-  obtain ⟨t, ht, -, hvalid⟩ := (leanIsaTraceExtraction hsafe).valid _ _ hsat
+  obtain ⟨t, ht, -, hvalid⟩ := (leanIsaTraceExtraction hsafe).valid _ _ _ hsat
   refine ⟨t, ?_, hvalid⟩
   simp only [extractExecution, hsafe, ↓reduceDIte, extractTrace, he, Option.bind_some]
   exact ht
@@ -466,7 +466,7 @@ theorem baseVerifier_extractsExecution {prog : Program} {input : PublicInput} {A
           ValidExecution prog input t] ≤ δ := by
   refine (OracleComp.prEvent_mono_of_support _ fun _ _ h ↦
     ⟨h.1, fun ⟨e, he, hsat⟩ ↦ h.2 ?_⟩).trans (baseVerifier_extractsWitness hB)
-  obtain ⟨t, ht, -, hvalid⟩ := (leanIsaTraceExtraction hsafe).valid input _ hsat
+  obtain ⟨t, ht, -, hvalid⟩ := (leanIsaTraceExtraction hsafe).valid input _ _ hsat
   exact ⟨t, by rw [extractTrace, he, Option.bind_some, ht], hvalid⟩
 
 /-- **The hypothesis from the comparison form** at a statement fixed before the adversary runs. If
@@ -488,11 +488,11 @@ theorem blakeMisbehaves_of_comparison {prog : Program} {input : PublicInput} {A 
 /-- **Completeness of the deployed pair.** For a witness that satisfies leanISA's constraint
 statement, `verify` accepts every proof `prove` returns: `Prove.baseProver_complete` at
 BLAKE2s-256. `prove` returns no proof (`Prove.proveWith_eq_none`) only when the witness's memory
-image is a single word, so that `Sizes.ofWitness` reads no sizes off it; when its sizes are not
+log-size is `0`, so that `Sizes.ofWitness` reads no sizes off it; when its sizes are not
 admissible; when the rate `ρ` is not valid; or when a grind finds no nonce among its `fuel`
 candidates at some chain state. Nothing bounds how often the last happens. -/
-theorem prove_complete (fuel : ℕ) {prog : Program} {input : PublicInput}
-    {w : EnsembleWitness (leanIsaEnsemble prog)} {ρ : ℕ} {proof : Proof PrunedMerklePaths}
+theorem prove_complete (fuel : ℕ) {prog : Program} {input : PublicInput} {κ : ℕ}
+    {w : EnsembleWitness (leanIsaEnsemble prog κ)} {ρ : ℕ} {proof : Proof PrunedMerklePaths}
     (hsat : SatisfiedBy prog input w) (hp : prove fuel prog input w ρ = some proof) :
     verify prog input proof = true :=
   Prove.baseProver_complete blake2sBytes fuel hsat hp

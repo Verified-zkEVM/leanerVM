@@ -116,8 +116,8 @@ at leanVM's sizes and constants (`ToArkLib/Flock/`, `Parameters/Flock.lean`); on
 #88, stacked on it, its knowledge soundness (`flockSecurity`, on the generic
 `ToArkLib/Flock/Security.lean` and the field facts of `Protocol/FlockFields.lean`). On the
 branches stacked on the oracle protocol's, the Clean bridge (`ToClean/ComponentPolynomial.lean`:
-`Expression.toCMvPolynomial` and `Component.toM3` with their two translation theorems, over a
-verbatim copy of Clean's expression polynomials in `ToClean/ExpressionPolynomial.lean`) and the
+`Expression.toCMvPolynomial` and `Component.toM3` with their two translation theorems, over
+Clean's expression polynomials `Clean.Circuit.ExpressionPolynomial`) and the
 adaptor: the leanISA instance with the deployed stack layout (`Protocol/LeanIsa.lean`:
 `leanIsaInstance`, `witnessOf`, `stackOf`, `leanIsa_conditions`), its soundness
 (`LeanIsa/Sound.lean`: `satisfiedBy_witnessOf`, which discharges `SatisfiedBy`'s BLAKE2s validity
@@ -625,11 +625,10 @@ pinned sources is [archived](../reviews/protocol-spine-revision.md).
 
 - **The Clean bridge (Layer 2)** is a Clean candidate (`ToClean/`), computable over CompPoly
   and written over Clean #466's `degreeBound`, `WithinWidth` and `toBoundedPolynomial` (claimed
-  by #28; on Clean's main, but in no Clean revision built for Lean 4.34). Until the pin contains
-  it, `ToClean/ExpressionPolynomial.lean` is a verbatim copy of Clean's module, deleted at the
-  bump (the watch list). Where it differs from the sketch:
-  - Tables are generic over the type of bus sides; leanISA's carry the arithmetization's
-    `Direction`, mapped to the spine's `Side` by the instance. The counted channels are a
+  by #28; upstream at the Clean pin `9dd71e82`, which the bridge imports; the verbatim copy
+  kept until then is deleted). Where it differs from the sketch:
+  - Tables are generic over the type of bus sides; leanISA's carry Clean's direction tag
+    (`BusDir`), mapped to the spine's `Side` by the instance. The counted interactions are a
     predicate, and the count columns are listed in column order, each once, as the Rust's
     `count_columns()` are.
   - Flushes drop Clean's multiplicities; `UnitMultiplicities`, which the kernel checks for
@@ -1372,8 +1371,8 @@ at the chosen statement (`mem_support_loggedGame_of_adaptive`, `mem_support_runB
 so `core` applies unchanged: `baseVerifier_extractsWitness_adaptive`, its coins form, and
 `baseVerifier_extractsExecution_adaptive` (`SentinelSafe` of the chosen program a conjunct of the
 event) with the corollary `baseVerifier_extractsExecution_adaptive_wellFormed` for an adversary whose
-programs are all `WellFormedBytecode` (`Semantics/WellFormedBytecode.lean`, the `sentinelSafe`
-field; the fill blocks a later field). `#print axioms` gives the kernel's three axioms for each. The
+programs are all `WellFormedBytecode` (`Semantics/FillBlocks.lean`: `SentinelSafe` and the fill
+blocks). `#print axioms` gives the kernel's three axioms for each. The
 hypothesis is `BlakeMisbehavesAdaptive`, which at a fixed statement is `BlakeMisbehaves`
 (`blakeMisbehavesAdaptive_const`); the adaptive replayer fails it (`adaptiveReplayer_not_blakeMisbehaves`).
 Constraint soundness cannot drop `SentinelSafe`: the sentinel tests' program, whose sentinel slot is
@@ -1495,7 +1494,6 @@ External work that may feed or replace a hole. The state of each is on GitHub.
 | VCVio #571 | Merkle binding by log replay | `ToVCVio/MerkleLog.lean` | VCVio proves extraction with hashed leaves on one shared oracle |
 | VCVio #817 | the charged invariant | the laws of the scalar expectation, copied verbatim as `ToVCVio/ScalarExpectation.lean` | at the bump that contains it, delete the copy |
 | VCVio #823, #824, #826, #828 | the charged invariant | fresh-query bounds with a fixed error per key | reference only: the flip charge depends on the cache |
-| Clean #466 (merged 2026-10-05), #474 | Clean expressions as polynomials | `ToClean/ExpressionPolynomial.lean`, a verbatim copy of Clean's module | a pin holds both #466 and #474's Lean 4.34 fix; then delete the copy and import `Clean.Circuit.ExpressionPolynomial` |
 | Clean #464, #20 | the adaptor | leanISA's `BalancedPair` | merged and the pin bumped |
 | Clean #446, #23 | the adaptor | the three fixed-column conjuncts | merged and the pin bumped |
 | CompPoly (issue to open: word arithmetic for `BF64`, degree-three `Ext`) | none: compiled speed of `K` and `E` everywhere | `Parameters/ToCompPoly/BF64Fast.lean`, `Parameters/ToCompPoly/ExtensionFast.lean`. Upstream would attach the `@[csimp]` theorems to `BF64.mul` and `Ext.mul` (or store a `BF64` as a `UInt64`), so the instance-level substitutions here become unnecessary: the candidate is the algorithms and their proofs | CompPoly merges them; then delete both modules and their imports in `Parameters/Field.lean` |

@@ -146,8 +146,8 @@ inadmissible sizes, when a grind runs out of fuel, or when the commitments and t
 recorded differ in number (`hintOpenings`), which cannot happen: each level commits one word and
 draws its positions once (`Prove.proveFrom_eq_none`). -/
 def proveFrom {m : Type → Type} [Monad m] (H : List UInt8 → m Digest) (seed : m FsState)
-    (fuel : ℕ) (F : FlockSpec) (prog : Program) (input : PublicInput)
-    (w : EnsembleWitness (leanIsaEnsemble prog)) (ρ : ℕ) : m (Option (Proof PrunedMerklePaths)) :=
+    (fuel : ℕ) (F : FlockSpec) (prog : Program) (input : PublicInput) {κ : ℕ}
+    (w : EnsembleWitness (leanIsaEnsemble prog κ)) (ρ : ℕ) : m (Option (Proof PrunedMerklePaths)) :=
   match Sizes.ofWitness w with
   | none => pure none
   | some s =>
@@ -159,20 +159,21 @@ def proveFrom {m : Type → Type} [Monad m] (H : List UInt8 → m Digest) (seed 
 /-- **leanVM's honest prover**, generic in how the hash `H` is answered: `proveFrom` from the
 statement's seed, its three hashes answered by `H`. -/
 def proveWith {m : Type → Type} [Monad m] (H : List UInt8 → m Digest) (fuel : ℕ) (F : FlockSpec)
-    (prog : Program) (input : PublicInput) (w : EnsembleWitness (leanIsaEnsemble prog)) (ρ : ℕ) :
+    (prog : Program) (input : PublicInput)
+    {κ : ℕ} (w : EnsembleWitness (leanIsaEnsemble prog κ)) (ρ : ℕ) :
     m (Option (Proof PrunedMerklePaths)) :=
   proveFrom H (FsState.seedWith H prog input) fuel F prog input w ρ
 
 /-- **leanVM's honest prover** at the deployed hash, BLAKE2s-256, and the deployed Flock
 specification, the one `verify` reads. -/
-def prove (fuel : ℕ) (prog : Program) (input : PublicInput)
-    (w : EnsembleWitness (leanIsaEnsemble prog)) (ρ : ℕ) : Option (Proof PrunedMerklePaths) :=
+def prove (fuel : ℕ) (prog : Program) (input : PublicInput) {κ : ℕ}
+    (w : EnsembleWitness (leanIsaEnsemble prog κ)) (ρ : ℕ) : Option (Proof PrunedMerklePaths) :=
   proveWith (m := Id) blake2sBytes fuel Blake2sFlock.blake2sFlockSpec prog input w ρ
 
 /-- **The honest prover as an adversary** of the random-oracle game: every hash a query; out of
 fuel, the empty proof, which `verify` rejects. -/
 def honestAdversary (fuel : ℕ) (prog : Program) (input : PublicInput)
-    (w : EnsembleWitness (leanIsaEnsemble prog)) (ρ : ℕ) : Adversary := do
+    {κ : ℕ} (w : EnsembleWitness (leanIsaEnsemble prog κ)) (ρ : ℕ) : Adversary := do
   match ← proveWith hashQuery fuel Blake2sFlock.blake2sFlockSpec prog input w ρ with
   | some proof => pure proof
   | none => pure ⟨[], []⟩

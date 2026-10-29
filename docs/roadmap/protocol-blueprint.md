@@ -285,10 +285,10 @@ Consumed as named declarations of its
 | `iv`, `sigma`, `compress` (Layer 1) | The RFC compression `F`, which the Fiat–Shamir step, the Merkle nodes, the grinding and the Flock circuit share. |
 | `Program`, `PublicInput`, `word0`, `word1`, `minLogMem`, `maxLogMem`, `maxLogRows`, `maxLogBytecode`, `minLogRowsBlake2s` (Layer 2) | The typed statement and the caps; the top limb of a public word is zero by type. |
 | `encodeSlots` (Layer 4) | The bytecode multilinear is `encodeSlots` laid out on `2^(k_bc + 4)` points. |
-| `xorTable` … `blake2sTable`, `memTable`, `bytecodeTable`, `leanIsaVerifier` (Layers 6–8) | The opcode tables become tables of the instance; the memory, bytecode and verifier rows become boundary blocks. |
-| `StatePull` … `BytecodePush`, `MemMsg`, `Regs`, `BytecodeMsg`, `channelSep`, `channelDir`, `busTuple` (Layer 5) | A channel names its domain separator and coordinate order on the 16-slot bus. |
-| `SatisfiedBy`, `BalancedPair`, `CountsNonzero`, `Caps`, `imageOf`, `Blake2sRowsValid` (Layer 8) | The relation the adaptor targets; nothing above the adaptor mentions it (convention *The wall*). |
-| `constraintSoundness`, `constraintCompleteness`, `WellFormedBytecode` (Layer 10) | Consumed by Layer 13: `constraintCompleteness` by completeness from an execution; `constraintSoundness` through the trace interface. |
+| `xorComponent` … `blake2sComponent`, `memComponent κ`, `bytecodeComponent prog`, `leanIsaVerifier` (Layers 6–8) | The opcode tables become tables of the instance; the memory, bytecode and verifier rows become boundary blocks. |
+| `StateChannel`, `MemChannel`, `BytecodeChannel`, `MemMsg`, `Regs`, `BytecodeMsg`, `channelSep`, `busTuple` (Layer 5) | A channel names its domain separator and coordinate order on the 16-slot bus; an interaction's side is Clean's direction tag. |
+| `SatisfiedBy` (with Clean's `Balance.multiset`), `CountsNonzero`, `Caps`, `imageOf`, `Blake2sRowsValid` (Layer 8) | The relation the adaptor targets; nothing above the adaptor mentions it (convention *The wall*). |
+| `constraintSoundness`, `constraintCompleteness`, `WellFormedBytecode` (Layer 10) | Consumed by Layer 13; soundness takes `SentinelSafe prog`, completeness `WellFormedBytecode prog`. |
 | `TraceExtraction`, `checkSatisfiedBy`, `checkSatisfiedBy_eq_true_iff` (requested, beside `SatisfiedBy` in `Arithmetization/`) | The trace interface the execution-level headline takes, inhabited from Layers 9–10, and the decidable check the test vectors pass ([Boundaries](#boundaries)). |
 
 ### ArkLib
@@ -329,8 +329,8 @@ pin, so the spine stays on it (decision 24).
 | `CMlPolynomialEval R n`, `evalMle`, `evalMleLayer`, `eval₂Mle`, `eqTilde`, `lagrangeBasis`, `evalManyMleByLayers` (CompPoly `Multilinear/`) | Hypercube tables and their multilinear evaluation, computable; `eval₂Mle` is the `K → E` lift. |
 | `CMvPolynomial`, `CPolynomial` (CompPoly) | Constraint and flush polynomials of the instance; round polynomials. The conversion to Mathlib's `MvPolynomial` is noncomputable, so Layer 2 translates Clean expressions directly and proves the translation equal to Clean's polynomial. |
 | `AdditiveNTT` (CompPoly `Fields/Binary/AdditiveNTT/`) | The novel basis and the encoder of Annex B, generic over a basis; instantiated only at `GF(2^8)`, so Layer 11 supplies the `K` basis. |
-| `Expression`, `Expression.eval`, `Operations.constraints`, `Operations.interactions`, `AbstractInteraction`, `EnsembleWitness`, `Table.environment`, `Environment.fromArray` (Clean `Circuit/`, `Air/`) | Constraints and flushes as syntax over the row's variables (out-of-range variables read `0`); the witness. Clean's own balance over `K` is vacuous (#16), so `SatisfiedBy` uses `BalancedPair`. |
-| `Expression.degreeBound`, `Expression.WithinWidth`, `Expression.toBoundedPolynomial` (Clean `Circuit/ExpressionPolynomial`, held as a local copy until the pin contains it) | An expression's syntactic degree, the claim that its variables lie below a width, and its noncomputable Mathlib polynomial in that many variables; Layer 2's computable translation is proved equal to it. |
+| `Expression`, `Expression.eval`, `Operations.constraints`, `Operations.interactions`, `AbstractInteraction`, `EnsembleWitness`, `Table.environment`, `Environment.fromArray` (Clean `Circuit/`, `Air/`) | Constraints and flushes as syntax over the row's variables (out-of-range variables read `0`); the witness. `SatisfiedBy` uses Clean's `Balance.multiset`, counted in ℕ. |
+| `Expression.degreeBound`, `Expression.WithinWidth`, `Expression.toBoundedPolynomial` (Clean `Circuit/ExpressionPolynomial`, at the pin `9dd71e82`) | An expression's syntactic degree, the claim that its variables lie below a width, and its noncomputable Mathlib polynomial in that many variables; Layer 2's computable translation is proved equal to it. |
 | `MvPolynomial`, `Polynomial.card_roots'`, `UniqueFactorizationMonoid`, `Multiset.prod` (Mathlib) | Degrees and root counts behind every Schwartz–Zippel step; Lemma 5.2 by unique factorization. |
 
 ### The upstream ledger
@@ -356,9 +356,9 @@ and when the local copy goes. Nothing is worked around by a hypothesis.
 | Fiat–Shamir, BCS | `fiatShamir_completeness` admitted and for a constant oracle; `BCSTransform` commented out; `Commitment.extractability` has body `False`; the legacy state-restoration game cannot be stated for this protocol (Layer 12); #848 and #469 are single-salt and duplex-sponge Fiat–Shamir with no proof of work; #627 is a design issue. Merged after the pin: #1263, #1264 (state-restoration knowledge soundness from local round-by-round certificates, in the typed framework). Open: #1267–#1283 (cached query budgets, the Merkle terminal batch in the random-oracle model, single-salt Fiat–Shamir) | Proved here (Layer 12) by the direct route (decision 36): `core` and `misbehaves_rom` on the one hash oracle, the charged invariant (`ToVCVio/ChargedInvariant.lean`) the one generic lemma. #1263 and #1264 are a pattern only. |
 | Fresh-query bounds for the random oracle | absent at the pin; VCVio #817 gives the laws of the scalar expectation `∫⁻ r, r ∂𝒟[f <$> mx]`; VCVio #823, #824, #826 and #828 bound fresh queries with a fixed error per key | #817 is copied verbatim as `ToVCVio/ScalarExpectation.lean` and deleted at the bump that contains it. #823–#828 are not copied: their per-key errors cannot depend on the cache, which the flip charge does. The charged invariant is written here (`ToVCVio/ChargedInvariant.lean`), a VCVio candidate. |
 | Ring switching for `GF(2) → K` | the profile structure; every security leaf admitted; the protocol is Diamond–Posen's, not leanVM's | #3's; the profile structure only is consumed. |
-| Clean expressions as polynomials | on Clean's main since #466 (2026-10-05), but in no revision built for Lean 4.34 (Clean #474, the port, does not contain it) | `ToClean/ExpressionPolynomial.lean` is a verbatim copy of Clean's module; deleted when the pin contains #466 and its file is still `b449bf59`'s, its importer then importing `Clean.Circuit.ExpressionPolynomial` and the aggregate dropping it. The computable translation and the component tables (`ToClean/ComponentPolynomial.lean`) are written over Clean's names and stay. |
-| Balance counted in ℕ, direction-tagged | absent; Clean #464, #20 | leanISA's `BalancedPair` stands in. |
-| Fixed columns, sound prover data | absent; Clean #446, #23 | The instance states them as known coordinates (`Coord.known`). |
+| Clean expressions as polynomials | upstream at the pin `9dd71e82` (#466) | the local copy is deleted; `ToClean/ComponentPolynomial.lean` imports `Clean.Circuit.ExpressionPolynomial`. The computable translation and the component tables are written over Clean's names and stay. |
+| Balance counted in ℕ, direction-tagged | upstream at the pin `9dd71e82` (Clean #493) | `SatisfiedBy.balanced` is Clean's `w.Balanced .multiset`. |
+| Fixed columns, sound prover data | upstream at the pin `9dd71e82` (Clean #446, #495; #23) | The two blocks are preallocated components with fixed columns; the instance states the same columns as known coordinates (`Coord.known`). |
 
 ## Pinned conventions
 
@@ -411,7 +411,7 @@ balance summed in the field.
 | Relation | Witness | Where | What it says |
 | --- | --- | --- | --- |
 | `Ensemble.Statement ens pi` | `EnsembleWitness ens`, in `Type 1` | Clean | every row satisfies its component's constraints and every channel balances, multiplicities summed in the field. Over `K` the sum accepts a tuple pushed twice and never pulled, and the side condition `length < ringChar K` admits at most one interaction per channel, so it holds of no ensemble with a real bus (#16). Unusable here. |
-| `SatisfiedBy prog input w` | `EnsembleWitness (leanIsaEnsemble prog)` | leanISA Layer 8 | Clean's constraints and public input; three `BalancedPair`s counted in ℕ; `CountsNonzero`, `Caps`; the three fixed-column facts; `Blake2sRowsValid`; the two public words. T1's relation. |
+| `SatisfiedBy prog input w` | `EnsembleWitness (leanIsaEnsemble prog κ)` | leanISA Layer 8 | Clean's constraints and public input; Clean's multiset balance on the three channels, counted in ℕ; `CountsNonzero`, `Caps`; `Blake2sRowsValid`; the two public words. The fixed columns are the components'. T1's relation. |
 | `M3Holds I input q` | `q : Column I.μ`, in `Type 0` | the spine | what the verifier establishes about the stack. The protocol's relation. |
 | `ValidExecution prog input t` | a trace | leanISA Layer 3 | T1's target; never the protocol's relation. |
 
@@ -773,7 +773,7 @@ written with `K.ofBits`.
 
 ### Layer 2: Clean components as polynomials
 
-`LeanerVM/Protocol/ToClean/ExpressionPolynomial.lean` (an expression as a polynomial) and
+Clean's `Clean/Circuit/ExpressionPolynomial.lean` (an expression as a polynomial) and
 `LeanerVM/Protocol/ToClean/ComponentPolynomial.lean` (a component as a table; generic over any
 Clean component, its field and its type of bus sides). Upstream: Clean's pull request #466
 defines `degreeBound`, `WithinWidth` and the Mathlib polynomial `toBoundedPolynomial`; the first
