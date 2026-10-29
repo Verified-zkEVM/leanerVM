@@ -16,6 +16,7 @@ public import LeanerVM.Protocol.ToArkLib.Relist
 public import LeanerVM.Protocol.ToArkLib.SendEncoded
 public import LeanerVM.Protocol.ToArkLib.MapOracles
 public import LeanerVM.Protocol.ToArkLib.FirstRound
+public import LeanerVM.Protocol.ToArkLib.CachedProver
 
 /-!
 # List binding
@@ -40,7 +41,8 @@ of the word satisfies the claim". The compilation turns that into extraction.
   (`Component.Front.relist`): the relation of a phase over the stack becomes "some stack in the list
   of the word is related", and each challenge pays the list bound `L₀` of level 0 times its error.
   The phases are front (`Phase.FrontDef`), which is what makes this possible: their verifiers never
-  read the stack.
+  read the stack. A cached prover of a phase runs over the word as the phase does
+  (`Component.Cached.over`).
 * `openInput`: the batched claim, the word and the stack read by WHIR's opening: the weight at the
   stack's height, the word's `K` symbols in `E`, the stack's table in `E`. Its security is the seam
   between the relisted batching and WHIR (`relist_of_relOpen`): a codeword of the list relation is
@@ -155,6 +157,26 @@ def Phase.FrontDef.over (Pf : Phase.FrontDef I StmtIn StmtOut pSpec) :
     Component.Def StmtIn O' (Column I.μ) StmtOut O' (Column I.μ) pSpec :=
   Pf.front.over (fun _ ↦ ⟨Vector.replicate _ 0⟩)
     (Component.proverVia Pf.toDef.red.prover fun q ↦ (fun _ ↦ q, ()))
+
+variable {I} in
+/-- A cached prover of a front phase, run over other oracles on the stack the witness holds: it
+runs as the phase over them does. -/
+def Component.Cached.over {Pf : Phase.FrontDef I StmtIn StmtOut pSpec}
+    (Q : Component.Cached Pf.toDef (fun _ ↦ ()) (fun _ ↦ ())) :
+    Component.Cached (Pf.over I O') (fun _ ↦ ()) (fun _ ↦ ()) where
+  prover := adaptProver (fun x ↦ (x.1, x.2.1)) (fun y ↦ (y.1, (y.2, ())))
+    (Component.proverVia Q.toProver fun q ↦ ((fun _ ↦ q : ∀ i, TheOracle I i), ()))
+  run_eq s w := by
+    obtain ⟨st, o⟩ := s
+    rw [adaptProver_run]
+    have h₁ := Component.run_proverVia (O' := O') Q.toProver
+      (fun q ↦ (fun _ ↦ q : ∀ i, TheOracle I i)) st o w
+    have h₂ := Component.run_proverVia (O' := O') Pf.toDef.red.prover
+      (fun q ↦ (fun _ ↦ q : ∀ i, TheOracle I i)) st o w
+    rw [Q.toProver_run] at h₁
+    change _ <$> (Component.proverVia Q.toProver _).run (st, o) w =
+      _ <$> (Component.proverVia Pf.toDef.red.prover _).run (st, o) w
+    rw [h₁, h₂]
 
 /-- Its security through a list of stacks of at most `L` values, at `L` times the phase's error. -/
 @[macro_inline]

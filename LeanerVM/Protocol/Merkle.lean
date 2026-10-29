@@ -34,7 +34,9 @@ count is `2^depth` by construction, and an opening of no query fails since the w
 read at the top. The Rust also returns each query's full path, which is determined by the walk
 and dropped here. A prover commits to its rows once (`merkleCommitWith`, which builds the tree's
 levels) and reads every opening off the commitment (`merkleOpen`, `PrunedMerklePaths::prune`,
-`:101-136`); `merkleVerifyWith_merkleOpen` is completeness.
+`:101-136`); `merkleVerifyWith_merkleOpen` is completeness. `merkleCommitWithM` commits with the
+hash in a monad, one call per leaf and per node, and is `merkleCommitWith` for a pure hash
+(`merkleCommitWithM_pure`).
 
 `merkle_fits` reads the check as VCVio's trees for every hash `H`: it accepts exactly when the
 stored rows have the announced shape and the octopus, read by `MerkleTree.toBatchOpening` as a
@@ -156,6 +158,23 @@ def merkleCommitWith (H : List UInt8 → Digest) (leafWords : ℕ) {k : ℕ}
 def merkleCommit (leafWords : ℕ) {k : ℕ} (rows : Vector (List K) (2 ^ k)) :
     MerkleCommitment k :=
   merkleCommitWith blake2sBytes leafWords rows
+
+/-- The commitment to `rows` with every hash answered by `H` in a monad: the rows' leaf images in
+order, then each level's parents left to right. -/
+def merkleCommitWithM {m : Type → Type} [Monad m] (H : List UInt8 → m Digest) (leafWords : ℕ)
+    {k : ℕ} (rows : Vector (List K) (2 ^ k)) : m (MerkleCommitment k) := do
+  let leaves ← rows.mapM fun row ↦ H (leafBytes (leafImage leafWords row))
+  let levels ← MerkleTree.buildLevelsM (fun l r ↦ H (nodeBytes l r)) k leaves
+  return ⟨rows, levels⟩
+
+/-- With a pure hash, the monadic commitment is `merkleCommitWith`. -/
+theorem merkleCommitWithM_pure {m : Type → Type} [Monad m] [LawfulMonad m]
+    (H : List UInt8 → Digest) (leafWords : ℕ) {k : ℕ} (rows : Vector (List K) (2 ^ k)) :
+    merkleCommitWithM (m := m) (fun b ↦ pure (H b)) leafWords rows =
+      pure (merkleCommitWith H leafWords rows) := by
+  simp only [merkleCommitWithM, merkleCommitWith]
+  rw [Vector.mapM_pure (f := fun row ↦ H (leafBytes (leafImage leafWords row))), pure_bind,
+    MerkleTree.buildLevelsM_pure, pure_bind]
 
 /-- The committed root. -/
 def MerkleCommitment.root {k : ℕ} (c : MerkleCommitment k) : Digest := c.levels.root

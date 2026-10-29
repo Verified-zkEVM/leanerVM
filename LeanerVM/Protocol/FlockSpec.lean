@@ -40,12 +40,14 @@ are the specification's, whatever walks it evaluates them by.
 (Category B: `crates/lean_vm/src/hash_flock.rs:83-115` at leanVM
 `a386121f84292f6fa663aaa3e570c15bc0240ea2`, `SLOTS` in the order of
 `tables::BLAKE2S_VALUE_COLS`); its generator places each row's input limbs at their slots and
-runs the circuit's trace. Its R1CS has the matrices of `ProductCircuit.toBlockR1CS` with the walks
-on words (`ProductCircuit.toBlockR1CSE`, equal to it by `toBlockR1CSE_eq`): the naive walks sum
-`2 ^ 28` entries and do not run at leanVM's size. Compiled code runs the generator as
-`genColumnFast`, by the `@[csimp]` theorem `genColumn_eq_genColumnFast`, registered before the
-inhabitant is: the circuit compiled once (`ProductCircuit.compile`), each block traced on its
-64-bit words (`Compiled.traceW`), the cells read off the words (`cellOfW`).
+runs the circuit's trace. Its R1CS is the circuit's, `blake2sR1CS`.
+
+Compiled code runs both on the circuit's words, by `@[csimp]` theorems registered before the
+inhabitant is: the R1CS as `blake2sR1CSFast` (`blake2sR1CS_eq_blake2sR1CSFast`), the walks of
+`ProductCircuit.toBlockR1CSE` in place of the naive ones, which sum `2 ^ 28` entries and do not run
+at leanVM's size; the generator as `genColumnFast` (`genColumn_eq_genColumnFast`), the circuit
+compiled once (`ProductCircuit.compile`), each block traced on its 64-bit words
+(`Compiled.traceW`), the cells read off the words (`cellOfW`).
 -/
 
 namespace LeanerVM.Protocol
@@ -469,14 +471,24 @@ def genColumnFast (rows : Vector (Fin 18 → K) (2 ^ κ)) : Column (8 + κ) :=
 
 end Compiled
 
-/-- The BLAKE2s inhabitant of the Flock specification: the R1CS of `blake2sCircuit`, its walks on
-words, the deployed slots, and the honest column of the circuit's traces. -/
+/-- The R1CS of the BLAKE2s circuit over `E`. -/
+def blake2sR1CS : BlockR1CS E m := blake2sCircuit.toBlockR1CS E
+
+/-- The R1CS of the BLAKE2s circuit with its walks on the compiled circuit's words. -/
+def blake2sR1CSFast : BlockR1CS E m := blake2sCircuit.toBlockR1CSE
+
+/-- The walks on words are the circuit's R1CS. -/
+@[csimp] theorem blake2sR1CS_eq_blake2sR1CSFast : @blake2sR1CS = @blake2sR1CSFast :=
+  (toBlockR1CSE_eq _).symm
+
+/-- The BLAKE2s inhabitant of the Flock specification: the R1CS of `blake2sCircuit`, the deployed
+slots, and the honest column of the circuit's traces. -/
 def blake2sFlockSpec : FlockSpec where
-  r1cs := blake2sCircuit.toBlockR1CSE
+  r1cs := blake2sR1CS
   slot := slots
-  compress_of_holds := fun c h ↦ compress_of_holds c (by rwa [toBlockR1CSE_eq] at h)
+  compress_of_holds := compress_of_holds
   gen := genColumn
-  holds_gen := fun rows ↦ by rw [toBlockR1CSE_eq]; exact holds_gen rows
+  holds_gen := holds_gen
   slots_gen := slots_gen
 
 end Blake2sFlock

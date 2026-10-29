@@ -63,8 +63,10 @@ the module-system caveats). There is no test executable (finding P3 in
 linking, and as the executable `leanervm-bench`, which is not a default target, because linking an
 executable compiles every transitive module, Mathlib's included, to C. A second executable,
 `leanervm-verify` (`bench/LeanerVMVerify.lean`), runs the executable verifier on the Rust proof
-fixture and its mutations; it is not a default target either. These are build targets of this
-package, not dependencies, so adding or changing them needs none of the review in
+fixture and its mutations, or on a proof file; a third, `leanervm-prove`
+(`bench/LeanerVMProve.lean`), runs the honest prover on the constraint statement tests' witness
+and writes and checks the test vectors. Neither is a default target. These are build targets of
+this package, not dependencies, so adding or changing them needs none of the review in
 [dependencies.md](dependencies.md).
 
 ```sh
@@ -72,8 +74,18 @@ lake build leanervm-bench
 .lake/build/bin/leanervm-bench [percent] [arith|sumcheck|provers|all] [filter]
 .lake/build/bin/leanervm-bench 1 protocol [bus|table|pub|flock|whole] [lm] [spec]
 lake build leanervm-verify
-.lake/build/bin/leanervm-verify [runs]
+.lake/build/bin/leanervm-verify [runs] [file]
+lake build leanervm-prove
+.lake/build/bin/leanervm-prove [file] [rate] [fuel] [pure]   # or: leanervm-prove probe [rate]
 ```
+
+**Test vectors.** [`tests/vectors/`](../tests/vectors/README.md) holds proofs of the prover, each
+with its program and public input, in the text format of `scripts/dump-proof-rust.sh`, compressed.
+To regenerate one, run `leanervm-prove tests/vectors/fill.proof 1` (about seven minutes, 6 GB of
+memory): it proves, writes the file, reads it back, and checks that `verify` accepts it and
+rejects each mutation at the stage it names; then `gzip -9 -n -f tests/vectors/fill.proof`. The
+prover is deterministic, so the compressed file must not change. To check a stored vector,
+`gunzip -k` it and run `leanervm-verify 1 tests/vectors/fill.proof`.
 
 The object files land in each package's own `.lake/build`. A worktree that shares its
 `.lake/packages` with another checkout should build an executable on a private copy of the

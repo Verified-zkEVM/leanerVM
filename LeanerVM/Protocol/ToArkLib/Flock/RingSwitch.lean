@@ -12,6 +12,7 @@ public import LeanerVM.Protocol.ToArkLib.Flock.Lincheck
 public import LeanerVM.Protocol.ToArkLib.Flock.FrobeniusMap
 public import LeanerVM.Protocol.ToArkLib.WeightCombination
 public import LeanerVM.Protocol.ToCompPoly.Frobenius
+public import LeanerVM.Protocol.ToCompPoly.EqBatch
 
 /-!
 # Ring switching
@@ -90,6 +91,35 @@ staged map. -/
 def ringWeight (r' : Vector F (P.m + P.κ)) (fs : Vector F (s' + 1)) : Weight F μ :=
   Weight.combine
     ((frobTerms (ringStages s' fs)).map fun t ↦ (t.1, eqWeight (lift (frobPoint t.2 r'))))
+
+omit [SampleableType F] in
+/-- The switched weight's values: its terms' equality kernels combined. -/
+theorem ringWeight_onCube (r' : Vector F (P.m + P.κ)) (fs : Vector F (s' + 1)) :
+    (ringWeight P s' lift r' fs).onCube =
+      eqBatch μ ((frobTerms (ringStages s' fs)).map fun t ↦ (t.1, lift (frobPoint t.2 r'))) := by
+  refine Vector.ext fun x hx ↦ ?_
+  rw [eqBatch_getElem _ _ x hx]
+  simp only [ringWeight, Weight.onCube_combine, Vector.getElem_ofFn, List.map_map]
+  rfl
+
+/-- The switched weight with its values computed by `eqBatch`: each term's equality kernel vanishes
+off the region's block, so the terms are combined on their supports only. -/
+def ringWeightFast (r' : Vector F (P.m + P.κ)) (fs : Vector F (s' + 1)) : Weight F μ where
+  cube := .mk fun _ ↦
+    eqBatch μ ((frobTerms (ringStages s' fs)).map fun t ↦ (t.1, lift (frobPoint t.2 r')))
+  mle := (ringWeight P s' lift r' fs).mle
+  mle_eq r := by
+    rw [(ringWeight P s' lift r' fs).mle_eq r]
+    exact congrArg (evalMle · r) (ringWeight_onCube P s' lift r' fs)
+
+omit [SampleableType F] in
+/-- The switched weight by `eqBatch` is the switched weight. -/
+theorem ringWeightFast_eq (r' : Vector F (P.m + P.κ)) (fs : Vector F (s' + 1)) :
+    ringWeightFast P s' lift r' fs = ringWeight P s' lift r' fs := by
+  unfold ringWeightFast
+  conv_rhs => unfold ringWeight Weight.combine
+  congr 1
+  exact congrArg Thunk.mk (funext fun _ ↦ (ringWeight_onCube P s' lift r' fs).symm)
 
 /-- The target of the switched claim: `Σ_i g^i · Φ(s_i)`. -/
 def ringTarget (sv : Vector F (2 ^ P.s)) (fs : Vector F (s' + 1)) : F :=

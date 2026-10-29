@@ -10,6 +10,7 @@ module
 public import LeanerVM.Protocol.ToArkLib.ProductSumcheck
 public import LeanerVM.Protocol.ToArkLib.WeightBatch
 public import LeanerVM.Protocol.Whir.Word
+public import LeanerVM.Protocol.Whir.QueryWords
 
 /-!
 # Gluing claims into the running sumcheck
@@ -25,7 +26,8 @@ weight (`roundPoly_batch`), and the summed claim's value is the sum of the three
 (`claim_batch`), each the weighted claim it is (`claim_zero`).
 
 * `queryWeight`: the weight of the query batch, the column weights of the sampled positions
-  combined by the powers of `λ`;
+  combined by the powers of `λ`; compiled code computes its values on words
+  (`queryWeight_eq_queryWeightFast`, `@[csimp]`, registered before every use);
 * `gluedWeight`: the three weights combined at `λ`;
 * `batchMessage`: round polynomials combined by the powers of `λ`;
 * `roundPoly_batch`, `claim_batch`: linearity in the weight;
@@ -173,6 +175,25 @@ theorem claim_zero {n : ℕ} (W : Weight E n) (f : CMlPolynomialEval E n) :
 def queryWeight (κ R : ℕ) {t : ℕ} (pos : Fin t → Fin (2 ^ (κ + R))) (lam : E) :
     Weight E κ :=
   Weight.batch (fun q ↦ columnWeight (algebraMap K E) κ R (pos q)) lam
+
+/-- The query batch's weight with its values computed on words (`Whir.queryCubeW`). It stays above
+its `@[csimp]` theorem: compiled after it, `mle`, which reads `queryWeight`'s, would call
+`queryWeightFast` itself. -/
+def queryWeightFast (κ R : ℕ) {t : ℕ} (pos : Fin t → Fin (2 ^ (κ + R))) (lam : E) :
+    Weight E κ where
+  cube := .mk fun _ ↦ Whir.queryCubeW κ R pos lam
+  mle := (queryWeight κ R pos lam).mle
+  mle_eq r := by
+    rw [(queryWeight κ R pos lam).mle_eq r]
+    exact congrArg (evalMle · r) (Whir.queryCubeW_eq κ R pos lam).symm
+
+/-- Compiled code computes the query batch's weight values on words. -/
+@[csimp] theorem queryWeight_eq_queryWeightFast : @queryWeight = @queryWeightFast := by
+  funext κ R t pos lam
+  unfold queryWeightFast
+  conv_lhs => unfold queryWeight Weight.batch
+  congr 1
+  exact congrArg Thunk.mk (funext fun _ ↦ (Whir.queryCubeW_eq κ R pos lam).symm)
 
 /-- The equality kernel's claim on a table is the table's extension at its point. -/
 theorem pair_eqWeight_id {κ : ℕ} (z : Vector E κ) (f : CMlPolynomialEval E κ) :

@@ -609,9 +609,13 @@ def runFlock (I : M3Instance) (sd : ℕ) (tag : String) (spec : Bool)
 
 /-- The opening's honest prover. -/
 def runOpening (I : M3Instance) (sd : ℕ) (tag : String)
-    (x : (I.Stmt × FlockOut I) × ∀ i, TheOracle I i) : IO Unit :=
+    (x : (I.Stmt × FlockOut I) × ∀ i, TheOracle I i) : IO Unit := do
   discard <| timeProver s!"opening, honest, {tag}" sd
     (fun _ ↦ runProver (openingPhase I).red.prover x ()) fun _ ↦ "-"
+  -- The batched claim's weight on the cube, which WHIR's prover reads: `I.poolSize` weights.
+  timeOnce s!"opening: the batched weight's values, {I.poolSize} claims, {tag}"
+    (fun _ ↦ (Opening.weight I x.1 (eOf (xs (sd.toUInt64 * 17)))).onCube)
+    fun v ↦ toString (sumTable v)
 
 /-- The whole protocol's provers. -/
 def runWhole (I : M3Instance) (h : Bus.Conditions I) (sd : ℕ) (tag : String) (spec : Bool)
@@ -686,13 +690,6 @@ def whirLadder (one : Bool) : ℕ → List Whir.Level →
       ⟨Shape.ofFold l.fold l.logInvRate (if one then 1 else l.queries), Kap L.1 L.2.1,
         .cons _ L.2.2⟩
 
-open Whir in
-/-- The rows of the honest word of a table, its lanes encoded by the additive transform. -/
-def wordRowsFast (ℓ κ R : ℕ) (g : CMlPolynomialEval E (ℓ + κ)) :
-    Vector (Vector E (2 ^ ℓ)) (2 ^ (κ + R)) :=
-  let lanes := Vector.ofFn fun u : Fin (2 ^ ℓ) ↦ encodeFast (algebraMap K E) κ R (sliceLow g u)
-  Vector.ofFn fun y ↦ Vector.ofFn fun u ↦ lanes[u][y]
-
 /-- A row as the leaf of a Merkle tree: its entries' limbs. -/
 def rowLeaf {n : ℕ} (row : Vector E n) : List K :=
   row.toList.flatMap fun x ↦ [x.limb 0, x.limb 1, x.limb 2]
@@ -713,7 +710,7 @@ def runWhir (seed : UInt64) (μ R : ℕ) (spec one : Bool) : IO Unit := do
     let W := eqWeight p
     let c ← force (W.pair (RingHom.id E) f)
     let rows ← timeOnceR s!"WHIR level-0 word by the transform, {tag}"
-      (fun _ ↦ wordRowsFast sh.ℓ κ sh.R (relayout f))
+      (fun _ ↦ Whir.wordRows sh.ℓ κ sh.R (relayout f))
       fun rows ↦ toString (rows.toList.foldl (fun a r ↦ a + sumTable r) 0)
     timeOnce s!"WHIR level-0 Merkle root, 2^{κ + sh.R} leaves"
       (fun _ ↦ merkleRoot (rows.map rowLeaf)) fun d ↦ toString (d.toList.take 2)
@@ -735,6 +732,82 @@ def runWhir (seed : UInt64) (μ R : ℕ) (spec one : Bool) : IO Unit := do
       timeOnce s!"WHIR verifier on the honest transcript, {tag}"
         (fun _ ↦ (whirOpenComplete sh κ L).guarded.check ((W, c), o) r'.1) toString
 
+/-- Products and sums through a `CommRing` dictionary, the way generic code reaches them. -/
+@[noinline, nospecialize] def ringStep {R : Type} [CommRing R] (a b : R) : R := a * b + a
+
+/-- The pieces of WHIR's level-0 word at `κ` variables, rate exponent `R`: the arithmetic through
+a ring dictionary, one coset's transform over `E` and over `K`, the twiddles, one lane's
+encoding. -/
+def whirPieces (seed : UInt64) (κ R : ℕ) : IO Unit := do
+  let a := eOf seed
+  let b := eOf (xs seed)
+  timeLoop "E mul and add (CommRing dictionary)" 10000 a (fun _ x ↦ ringStep x b) toString
+  timeLoop "E mul and add" 10000 a (fun _ x ↦ x * b + x) toString
+  let ka := kOf seed
+  let kb := kOf (xs seed)
+  timeLoop "K mul and add (CommRing dictionary)" 100000 ka (fun _ x ↦ ringStep x kb)
+    fun x ↦ x.toBitVec.toHex
+  let m ← force (Vector.ofFn fun i : Fin (2 ^ κ) ↦ eOf (xs (seed + 7 * i.val.toUInt64)))
+  let mK ← force (m.map fun x ↦ x.limb 0)
+  let s := kOf (xs (seed * 3))
+  timeOnce s!"fwd over E, 2^{κ}" (fun _ ↦ fwd (algebraMap K E) κ m s) fun v ↦ toString (sumTable v)
+  timeOnce s!"fwd over K, 2^{κ}" (fun _ ↦ fwd (RingHom.id K) κ mK s)
+    fun v ↦ (sumTable v).toBitVec.toHex
+  timeOnce s!"twiddles, 2^{κ}" (fun _ ↦ (List.range (2 ^ κ)).foldl
+      (fun acc i ↦ acc + twiddle (i % κ) (s + domainPt i)) 0) fun x ↦ x.toBitVec.toHex
+  timeOnce s!"encodeFast over E, 2^{κ} to 2^{κ + R}" (fun _ ↦ encodeFast (algebraMap K E) κ R m)
+    fun v ↦ toString (sumTable v)
+  let mW ← force (mK.map FastBF64.toWord)
+  timeOnce s!"fwdW on words, 2^{κ}" (fun _ ↦ Whir.fwdW κ mW s) fun v ↦ toString (v.foldl (· ^^^ ·) 0)
+  timeOnce s!"encodeE on words, 2^{κ} to 2^{κ + R}" (fun _ ↦ Whir.encodeE κ R m)
+    fun v ↦ toString (sumTable v)
+
+/-- The product sumcheck's `rounds` rounds on two tables, each message read off the tables bound
+so far and each challenge bound once; the sum of the messages' first coefficients. -/
+def foldLoop : (k rounds : ℕ) → CMlPolynomialEval E (k + rounds) →
+    CMlPolynomialEval E (k + rounds) → UInt64 → E
+  | _, 0, _, _, _ => 0
+  | k, r + 1, a, b, seed =>
+    let msg := ProductSum.roundOfBound (n := k + (r + 1)) (j := 0) a b
+    let x := eOf (xs seed)
+    msg[0] + foldLoop k r (bindLow a x) (bindLow b x) (xs seed)
+
+/-- `foldLoop` with `E`'s products on words (`ProductSum.roundOfBoundW`, `ProductSum.bindLowW`). -/
+def foldLoopW : (k rounds : ℕ) → CMlPolynomialEval E (k + rounds) →
+    CMlPolynomialEval E (k + rounds) → UInt64 → E
+  | _, 0, _, _, _ => 0
+  | k, r + 1, a, b, seed =>
+    let msg := ProductSum.roundOfBoundW (n := k + (r + 1)) (j := 0) a b
+    let x := eOf (xs seed)
+    msg[0] + foldLoopW k r (ProductSum.bindLowW a x) (ProductSum.bindLowW b x) (xs seed)
+
+/-- The pieces of WHIR's opening at the first level of `μ = κ + 6`: the six fold rounds on
+`2 ^ μ`-entry tables, the query batch's weight on `2 ^ κ` entries for `t` positions, the equality
+kernel's table, a first-round polynomial and the next level's word. -/
+def whirOpenPieces (seed : UInt64) (κ t : ℕ) : IO Unit := do
+  let a ← force (tableOf (seed + 1) (κ + 6))
+  let b ← force (tableOf (seed + 2) (κ + 6))
+  timeOnce s!"WHIR fold rounds, 6 rounds on 2^{κ + 6}" (fun _ ↦ foldLoop κ 6 a b seed) toString
+  timeOnce s!"WHIR fold rounds on words, 6 rounds on 2^{κ + 6}" (fun _ ↦ foldLoopW κ 6 a b seed)
+    toString
+  let pos : Fin t → Fin (2 ^ (κ + 1)) := fun q ↦ Fin.ofNat _ (xs (seed + q.val.toUInt64)).toNat
+  let lam := eOf (xs (seed * 11))
+  timeOnce s!"WHIR query weight values, {t} positions, 2^{κ}"
+    (fun _ ↦ (Whir.queryWeight κ 1 pos lam).onCube) fun v ↦ toString (sumTable v)
+  timeOnce s!"WHIR query weight values by the definition, {t} positions, 2^{κ}"
+    (fun _ ↦ batchWeight (fun q ↦ (columnWeight (algebraMap K E) κ 1 (pos q)).onCube) lam)
+    fun v ↦ toString (sumTable v)
+  let z : Vector E κ := Vector.ofFn fun i ↦ eOf (xs (seed * 13 + i.val.toUInt64))
+  timeOnce s!"WHIR equality kernel's values, 2^{κ}" (fun _ ↦ (eqWeight z).onCube)
+    fun v ↦ toString (sumTable v)
+  let g ← force (tableOf (seed + 3) κ)
+  timeOnce s!"WHIR first-round polynomial, 2^{κ}" (fun _ ↦ Whir.firstPoly (eqWeight z) g)
+    fun v ↦ toString (v.toList.foldl (· + ·) 0)
+  if h : 4 ≤ κ then
+    let g' : CMlPolynomialEval E (4 + (κ - 4)) := Vector.cast (by congr 1; omega) g
+    timeOnce s!"WHIR next word's rows, 2^{κ} to 2^4 lanes of 2^{κ - 4 + 4}"
+      (fun _ ↦ Whir.wordRows 4 (κ - 4) 4 g') fun rows ↦ toString (sumTable rows[0])
+
 end Provers
 
 end LeanerVMBench
@@ -742,7 +815,9 @@ end LeanerVMBench
 /-- `leanervm-bench [percent] [group] [filter] [lm] [spec]`: run the workloads of `group` (`arith`,
 `sumcheck`, `provers` or `all`, the default; or `runs`, or `protocol` up to the phase `filter`, at
 memory log-size `lm + 1`, the stateless provers beside when the fifth argument is `spec`; or
-`flockpieces` at memory log-size `filter + 1`; or `whir` at `μ = filter` and rate exponent `lm`),
+`flockpieces` at memory log-size `filter + 1`; or `whir` at `μ = filter` and rate exponent `lm`;
+or `whirpieces` at `κ = filter` and rate exponent `lm`; or `whiropen` at `κ = filter`, `lm`
+positions),
 arithmetic iteration counts scaled to `percent` per cent (default `100`), keeping only the prover
 workloads whose name contains `filter`. -/
 def main (args : List String) : IO Unit := do
@@ -768,6 +843,12 @@ def main (args : List String) : IO Unit := do
     for n in [4, 8, 12, 16] do LeanerVMBench.runSumcheckProver seed n
   if group == "flockpieces" then
     LeanerVMBench.flockPieces seed (((args.drop 2).head?.bind String.toNat?).getD 15)
+  if group == "whirpieces" then
+    LeanerVMBench.whirPieces seed (((args.drop 2).head?.bind String.toNat?).getD 13)
+      (((args.drop 3).head?.bind String.toNat?).getD 1)
+  if group == "whiropen" then
+    LeanerVMBench.whirOpenPieces seed (((args.drop 2).head?.bind String.toNat?).getD 13)
+      (((args.drop 3).head?.bind String.toNat?).getD 224)
   if group == "whir" then
     -- `whir`: WHIR's opening and its level-0 commitment at `μ` (the third argument, default `15`)
     -- and rate exponent `R` (the fourth, default `1`).

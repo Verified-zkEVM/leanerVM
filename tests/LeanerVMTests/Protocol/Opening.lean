@@ -20,6 +20,10 @@ weights, combined by the powers of the challenge, is the pool's values combined 
   `0`, the stack is accepted, and the slot's error is `0`.
 * **The order of the powers.** On an instance with a Flock region, the weighted claim takes
   `λ^0` and the column claim `λ^1`, and the swapped order gives another value.
+* **The batched weight's values, compiled.** `Opening.weight`'s values, which compiled code
+  computes by `weightFast` (`eqBatch`), are the dense combination of the pool's weights, at a
+  generic point and at one whose top coordinates are selector bits; another challenge and another
+  point give other values.
 * **The phase fills its slot**: its two halves typecheck against the spine's seams at the slot's
   error, compute at `E`, and with the deployed public-input phase make a bundle the master
   theorems apply to, given the three other phases.
@@ -199,6 +203,33 @@ example : Opening.pool flocky flockyStmt.2 ⟨0, by decide⟩ = ⟨eqWeight ys, 
 example : Opening.pool flocky flockyStmt.2 ⟨1, by decide⟩ =
     Opening.columnWeighted flocky ⟨⟨0, 0⟩, ys, 1⟩ :=
   Opening.pool_column flocky flockyStmt.2 ⟨0, by decide⟩
+
+/-! ## The batched weight's values, compiled -/
+
+/-- A point with generic coordinates. -/
+def ptGen : Vector E 8 := Vector.ofFn fun i ↦ y ^ (i.val + 2) + ρ₂
+
+/-- A point whose top two coordinates are selector bits. -/
+def ptSel : Vector E 8 :=
+  Vector.ofFn fun i ↦ if i.val = 6 then 0 else if i.val = 7 then 1 else ρ₂ ^ i.val
+
+/-- `flockyStmt` with its column claim at `p`. -/
+def stmtAt (p : Vector E 8) : Unit × FlockOut flocky :=
+  ((), ⟨#v[⟨⟨0, 0⟩, p, 1⟩], #v[⟨eqWeight ys, y⟩]⟩)
+
+/-- `Σ_j ρ^j · w_j` on the cube, from the pool's weights: no constant that a `@[csimp]` theorem
+replaces. -/
+def denseWeight (p : Vector E 8) (ρ : E) : CMlPolynomialEval E 8 :=
+  Vector.ofFn fun x ↦
+    ∑ j : Fin flocky.poolSize, (Opening.pool flocky (stmtAt p).2 j).weight.onCube[x] * ρ ^ j.val
+
+#guard (Opening.weight flocky (stmtAt ptGen) ρ₂).onCube == denseWeight ptGen ρ₂
+#guard (Opening.weight flocky (stmtAt ptSel) ρ₂).onCube == denseWeight ptSel ρ₂
+#guard Opening.weightCube flocky (stmtAt ptSel) y == denseWeight ptSel y
+
+-- Mutations: another challenge, another point.
+#guard !((Opening.weight flocky (stmtAt ptSel) ρ₂).onCube == denseWeight ptSel y)
+#guard !((Opening.weight flocky (stmtAt ptSel) ρ₂).onCube == denseWeight ptGen ρ₂)
 
 /-! ## The phase fills its slot -/
 

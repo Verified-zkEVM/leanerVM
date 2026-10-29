@@ -238,6 +238,21 @@ def Cached.sample (hupd : ∀ p c, upd p (cin p) c = cout ((f p.1.1 c, p.1.2), p
       Fin.isValue]
     simp only [_root_.id, hupd]
 
+/-- `Cached.sample` with the output statement computed by `f'`, equal to `f`: a statement whose
+fields are read many times can be built by a faster function. -/
+def Cached.sampleOut (f' : S → C → T) (hf : ∀ s c, f' s c = f s c)
+    (hupd : ∀ p c, upd p (cin p) c = cout ((f p.1.1 c, p.1.2), p.2)) :
+    Cached (Component.sampleChallenge O C check f) cin cout where
+  prover := cachedSampleProver O C upd f'
+  run_eq s w := by
+    have h0 : (draw C).dir 0 = .V_to_P := rfl
+    simp only [Prover.run, Prover.runToRound, Fin.induction_one,
+      Prover.processRound_of_dir_eq_V_to_P 0 h0, map_bind, map_pure, pure_bind, bind_assoc]
+    refine bind_congr fun c ↦ ?_
+    simp only [cachedSampleProver, sampleChallenge, sampleProver, pure_bind, liftM_pure,
+      Fin.isValue]
+    simp only [_root_.id, hupd, hf]
+
 end Sample
 
 section PassThrough

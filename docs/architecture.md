@@ -620,20 +620,40 @@ and the bus phase's output tabulated once (`Bus.memoOut_eq`), proved to run as
 `leanVmProver (leanVmPhases I h)` (`leanVmFastProver_run`). WHIR's opening has a cached prover of
 its own (`Whir.whirOpenCached`, `LeanerVM.Protocol.Whir.Cached`, from the generic steps of
 `LeanerVM.Protocol.ToArkLib.CachedSteps` and `LeanerVM.Protocol.ToArkLib.ProductSumCached`): the
-fold rounds' tables bound once per challenge and the next level's word encoded once by the
-additive transform (`Whir.wordFast_eq`, `LeanerVM.Protocol.Whir.Transform`). This is an
-honest-prover refinement, not a `@[csimp]` substitution: a caller runs `leanVmFastProver` or
-`whirOpenCached`. Running any prover through
+fold rounds' tables bound once per challenge (`ProductSum.roundCacheW`, `E`'s products on words)
+and the next level's word encoded once by the additive transform, its rows built as data
+(`Whir.wordRows`, `Whir.wordOfRows_wordRows`). The Flock argument's cached prover builds the
+switched weight's values on its terms' supports (`Flock.ringSwitchCached`,
+`Flock.ringWeightFast_eq`, through `Component.Cached.sampleOut`). This is an honest-prover
+refinement, not a `@[csimp]` substitution: a caller runs `leanVmFastProver` or `whirOpenCached`.
+The non-interactive prover runs them together: `compiledProver`
+(`LeanerVM.Protocol.Prove.Compiled`) is the compiled protocol's cached prover, proved to run as
+`listBindingDef`'s honest prover (`compiledProver_run`), and `Prover.runWith`
+(`LeanerVM.Protocol.ToArkLib.RunCodec`) runs it round by round against the transcript writer. A
+word an honest prover sends must be built as data where its step starts and read through: compiled
+code expands a closure returning a word, a one-field structure of a function, to take the position
+as an argument, which rebuilds the word at every read (`commitWordCached`, `Whir.wordRows`).
+Running any prover through
 ArkLib's `Prover.run` needs the challenge samplers of its schedule, which ArkLib builds for an
 appended schedule with `Fin.fappend₂`, exponential in the depth of a schedule appended on the
 right when compiled; `LeanerVM.Protocol.ToArkLib.AppendLazy` substitutes lazy forms by
 `@[csimp]`, imported where the schedules are built. A block's selector weight is one product
 (`Blocks.selectorWeight_eq_selectorWeightFast`), and a combination of tables by powers builds each
-table once (`batchWeight_eq_batchWeightFast`). The BLAKE2s inhabitant's R1CS walks the compiled
-circuit's 64-bit words (`ProductCircuit.toBlockR1CSE`, `LeanerVM.Protocol.FlockWalks`): its
-matrices are `ProductCircuit.toBlockR1CS`'s by `rfl`, and its walks are proved equal to theirs
-(`toBlockR1CSE_eq`). All are timed by the `leanervm-bench` executable
-([bench/README.md](../bench/README.md)).
+table once (`batchWeight_eq_batchWeightFast`). The BLAKE2s inhabitant's R1CS, `blake2sR1CS`, runs
+as `blake2sR1CSFast` (`blake2sR1CS_eq_blake2sR1CSFast`), the walks on the compiled circuit's
+64-bit words (`ProductCircuit.toBlockR1CSE`, `LeanerVM.Protocol.FlockWalks`), whose matrices are
+`ProductCircuit.toBlockR1CS`'s by `rfl` (`toBlockR1CSE_eq`). The additive transform reads each
+node's halves once (`fwd_eq_fwdLet`, `encodeFast_eq_encodeFastLet`, over any ring: `fwd` reads
+them inside the closures that build a node's outputs), and over `E` it runs as three transforms
+of the limbs' words (`Whir.encodeE`, `Whir.encodeE_getElem`,
+`LeanerVM.Protocol.Whir.TransformWords`).
+The query batch's weight takes its values on words (`Whir.queryWeight_eq_queryWeightFast`,
+`LeanerVM.Protocol.Whir.QueryWords`), and the opening's batched weight its column claims' equality
+kernels on their blocks (`Opening.weight_eq_weightFast`, by
+`LeanerVM.Protocol.ToCompPoly.EqBatch`: a point read through a layout has the block's selector
+bits as coordinates). `LeanerVM.Protocol.ExtWords` has `E`'s sum and product on the limbs' words
+(`ExtWords.addW_eq`, `ExtWords.mulW_eq`), functions that code names in place of the instances.
+All are timed by the `leanervm-bench` executable ([bench/README.md](../bench/README.md)).
 
 Rust FFI follows when a Lean caller needs a measured fast path and the ABI can be
 specified. CUDA follows when profiling identifies a stable parallel kernel boundary. A

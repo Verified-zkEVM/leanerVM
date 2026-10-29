@@ -408,9 +408,17 @@ private theorem length_complete (claim : E) (eq? : Option E) (w : List E) :
     (complete claim eq? w).length = w.length + 1 := by
   rcases eq? with _ | _ <;> rcases w with _ | _ <;> simp [complete]
 
-private theorem ofList?_toList {n : ℕ} (c : Vector E n) : ofList? n c.toList = some c := by
+/-- A vector's list reads back as the vector. -/
+theorem ofList?_toList {n : ℕ} (c : Vector E n) : ofList? n c.toList = some c := by
   rcases c with ⟨a, rfl⟩
   simp [ofList?]
+
+/-- A vector read off a list carries it. -/
+theorem toList_of_ofList? {n : ℕ} {l : List E} {c : Vector E n}
+    (h : ofList? n l = some c) : c.toList = l := by
+  unfold ofList? at h
+  split at h <;> cases h
+  simp
 
 /-- A decoding succeeds at a positive degree on `d` wire coefficients, to their completion. -/
 private theorem of_decode {d : ℕ} {claim : E} {eq? : Option E} {w : List E}

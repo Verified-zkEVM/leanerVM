@@ -709,12 +709,13 @@ pinned sources is [archived](../reviews/protocol-spine-revision.md).
   (`leanVmFastProver_run`), so `leanVmFast_perfectCompleteness` is the master theorem's
   completeness for it, with the same verifier. It carries prover state through the bus phase, the
   table sumcheck and the Flock phase (`Component.Cached`); the commitment, the public-input check
-  and the opening run their honest provers. The BLAKE2s inhabitant's R1CS walks the compiled
-  circuit's words (`ProductCircuit.toBlockR1CSE`, equal to the circuit's R1CS by
-  `toBlockR1CSE_eq`). WHIR's opening has a cached prover, `whirOpenCached`
-  (`Protocol/Whir/Cached.lean`), whose run is `whirOpen`'s. At the smallest admissible size the
-  whole oracle protocol's prover runs in 25 s; WHIR at that size (`μ = 19`) takes 4 min to encode
-  the committed word and 5 min to open (`bench/README.md`). Owed: a prover of the compiled
+  and the opening run their honest provers. The BLAKE2s inhabitant's R1CS, `blake2sR1CS`, runs
+  on the compiled circuit's words (`blake2sR1CS_eq_blake2sR1CSFast`, `@[csimp]`). WHIR's opening
+  has a cached prover, `whirOpenCached` (`Protocol/Whir/Cached.lean`), whose run is
+  `whirOpen`'s. At the smallest admissible size the whole oracle protocol's prover runs in 25 s in
+  a process that has compiled the BLAKE2s circuit and built its R1CS's row table (about 6.6 s, once
+  per process), the opening's batched weight takes 4 s, and WHIR at that size (`μ = 19`) 7 s to
+  encode the committed word and 18 s to open (`bench/README.md`). Owed: a prover of the compiled
   protocol (Layer 12) that runs `leanVmFastProver` and `whirOpenCached` together.
 
 ## What can start now
@@ -1142,6 +1143,126 @@ Merkle trees', with the fast field arithmetic merged), the rest of Layer 12's ve
   reader's operations along the lifted morphism (`ReadM.mapHom`), the chain's steps and the
   Merkle check (`MerkleTree.octopusRoot_hom`, generic); `verifyWith_simulateQ` is its instance at
   `simulateQ impl` for the hash oracle `List UInt8 →ₒ Digest` of the random-oracle game.
+
+*On merge* of the prover's branch (`feat/protocol-prover`, on the verifier's and the stateful
+provers'), Layer 13's honest prover and its test vectors are on `main`. No target theorem
+advances; `baseProver_complete` holds modulo `PhasesAgree`, which the compiled verifier's branch
+below proves.
+
+- **The prover** (`Protocol/Prove.lean`, `Protocol/Prove/`): `proveWith H fuel F prog input w ρ`
+  reads the sizes off the witness, checks them with the rate, announces them, runs the compiled
+  protocol's prover against the chain, and opens every committed word at its level's positions;
+  `prove` is it at BLAKE2s-256 and the deployed Flock specification, `honestAdversary` the prover
+  in the random-oracle game. The prover is `compiledProver`, the cached prover of `listBindingDef`
+  (the bus phase, the table sumcheck, the Flock phase and WHIR's opening cached, the level-0 word's
+  rows by the transform), whose run is `listBindingDef`'s honest prover's
+  (`compiledProver_run`). It runs against the wire of its schedule, `compiledCodec`, written over
+  the writer's primitives (`WireOps`) phase by phase as the verifier's walk reads it, by
+  `Prover.runWith` (`ToArkLib/RunCodec.lean`), which runs an ArkLib prover round by round in any
+  monad as `Prover.run` does. Where it differs from the sketch: `proveWith` takes the Flock
+  specification, which the stack's layout reads, and `prove` fixes the deployed one; the oracle
+  protocol's nonce message is replaced on the wire by the grind's nonce, which no oracle verifier
+  reads.
+- **Words as data.** Compiled code expands a closure that returns a word (a one-field structure
+  of a function) to take the position as one more argument, so an honest prover whose message is
+  such a closure rebuilds the word at every row read; the honest level-0 commitment did not finish
+  in 90 minutes. The commitment and WHIR's next words are built as data when their step starts and
+  read through (`commitWordCached`, `Cached.sendEncoded`, `Whir.commitNextCached`).
+- **The vectors** (`tests/vectors/`, `bench/LeanerVMProve.lean`): `leanervm-prove` proves the
+  constraint statement tests' witness at the smallest admissible sizes in 434 s, writes the proof
+  in the dump format, and checks that `verify` accepts it (1.4 s) and rejects every mutation of
+  `mutationsOf` at its stage; `prove` in `Id` returns the same proof. The blueprint names the
+  executable `leanervm-vectors` with its root under `tests/`; it is `leanervm-prove` under `bench/`,
+  beside `leanervm-verify`, and the witness is the hand-built one, since `checkSatisfiedBy` does
+  not exist yet (the witness's `SatisfiedBy` is a proved theorem instead). Beside the proof's
+  mutations, both executables run the algebra on the honest wire with one message changed in each
+  front phase and in WHIR (`frontChecksOf`, `whirChecksOf`), and `leanervm-prove tamper` changes
+  one front phase's message as the prover sends it and checks that each phase rejects its own.
+  Owed: the prover within two orders of magnitude of the Rust's (it is about 125 times slower:
+  the level-0 encoding over `K` and the batched weight's table, `bench/README.md`).
+- **`baseProver_complete`, the generic half** (`ToArkLib/RunCodec.lean`): ArkLib's `Prover.run` is
+  not what the prover calls, and its challenge oracle cannot interleave the chain's sends, so the
+  oracle protocol's completeness reaches `runWith` through the run on given challenges,
+  `Prover.runWithChallenges`: `runWith_eq_runWithChallenges` (whatever the wire, a run's
+  transcript and output are the run on the transcript's own challenges),
+  `simulateQ_run_eq_runWithChallenges` (`Prover.run`, the challenge oracle answered off a vector,
+  is that run) and `accepts_of_perfectCompleteness` (a perfectly complete reduction with no shared
+  oracle accepts on every challenge vector: the run on given challenges is reachable under
+  uniform challenges, `mem_support_simulateQ_challenges`, and a probability-one event holds on
+  every reachable outcome).
+- **`baseProver_complete_of_agree`, modulo the phases' agreement** (`Protocol/Prove/Complete.lean`):
+  for every byte hash `H` and fuel, `proveWith (m := Id) H fuel blake2sFlockSpec prog input w ρ = some
+  proof → verifyWith (m := Id) H prog input proof = true` for a witness with `SatisfiedBy`, given
+  `PhasesAgree prog s hs ρ hρ input` at every admissible `s` and valid `ρ`: on every full
+  transcript of the compiled protocol (`listBindingDef` at leanVM's instance and WHIR's deployed
+  chain) that its verifier accepts on the public input, `Verify.algebra` accepts the transcript's
+  wire (`DecodeChain.wireOf`, `Verify/WireOf.lean`, the chain-history decoder's functions) and
+  its words' rows at its positions (`rowsOf`). The proof composes:
+  - *The run is the honest run on its challenges*: every run against a wire, in a monad that runs
+    from state to state, steps through the wire on its transcript (`Prover.runWith_runsAs`,
+    `RoundCodec.RunsAs.append_inv`, `ToArkLib/RunTrace.lean`), and the transcript is the honest
+    prover's on its own challenges (`runWith_eq_runWithChallenges`, `compiledProver_run`,
+    `runWithChallenges_eq_of_run_eq`).
+  - *The honest transcript is accepted*: `accepts_of_run` (by `accepts_of_perfectCompleteness`)
+    at `listBinding_deployed_perfectCompleteness`, on the stack's `M3Rel` (`m3Holds_stackOf`);
+    then `PhasesAgree`.
+  - *The nonces, the roots and the positions*: the walk's wire is the transcript's but for the
+    roots (the transcript carries words), the grinding nonces (the oracle prover sends `0`, the
+    proof the grind's nonce) and the positions' reduction, none of which the algebra reads
+    (`Verify.algebra_erase`, `Verify/Erase.lean`). So the agreement is applied at the honest
+    transcript and the compiled verifier's independence of the nonce rounds is not needed.
+  - *The wire read back by the walk* (`Prove/ReadBack.lean`): the writer's primitives read back by
+    the walk's (`back_send`, `back_sample`, `back_grind`, `runs_commit`, `runs_positions`), each
+    phase's wire by its walk (`back_bus`, `back_table`, `back_pub`, `back_flock`, `back_level`,
+    `back_final`, `back_ladder`), the whole chain (`walkChain_reads`), the book keeping the
+    commitments and positions in order. The public input's message has one value per sent line
+    because the algebra accepts it (`pubLength_of_algebra`).
+  - *The openings and the setup* (`Prove/Openings.lean`): `hintOpenings` against `walkOpenings`
+    by `merkleVerifyWith_merkleOpen` (`reads_openings`), `openingsOk` at the honest openings
+    (`openingsOk_openings`, the siblings at most the queries' paths' nodes), the announcement
+    (`setup?_of_announce`), the verifier's ladder walking the deployed chain's shapes
+    (`leanIsaChain_walk`, by `chainOf`'s structure and one decision on the window), the stream and openings consumed (`run_of_reads`). Level 0's rows carry only the
+    committed lanes; the honest word's lanes past them vanish (`level0Word_honest`, by
+    `runWithChallenges_append_fst`; `kwordOf_stackOf_high`), so the rows read are the word's.
+  - *When the prover returns a proof* (`proveWith_ne_none`, `proveWith_eq_none`): every round of
+    the wire runs from every state when no grind runs out of fuel (`Prover.runWith_total`,
+    `RoundCodec.Every`, `ToArkLib/RunTrace.lean`), and the book keeps as many commitments as
+    positions (`book_compiled`), so the openings' size check never fails: `proveWith` returns
+    `none` only when the witness gives no sizes, its sizes are not admissible, the rate is not
+    valid, or a grind finds no nonce within its fuel at some chain state.
+  - Owed: the random-oracle form, `Pr[prove fails] ≤ levels · (1 − 2^-17)^(2^24)`, otherwise
+    accepted, on the logged game with the hash a uniform function.
+
+*On merge* of the compiled verifier's branch (`feat/protocol-verify-compiled`, on the prover's and
+the chain-history decoder's), the executable verifier's algebra and the compiled oracle verifier
+agree on a transcript's wire, and `Prove.baseProver_complete` holds with no hypothesis. No target
+theorem advances.
+
+- **The phases on the wire** (`Protocol/Compile/`): the compiled verifier is a guarded verifier,
+  a check and a verdict built from its components' (`listBindingGuarded`). On a transcript a front
+  phase's oracle verifier accepts, the phase's algebra accepts the transcript's wire (`busWireOf`,
+  `tableWireOf`, `pubWireOf`, `flockWireOf`, the decoder's readers) with the oracle verifier's
+  output (`busStep_busWireOf`, `tableStep_tableWireOf`, `flockStep_flockWireOf`); the public
+  input's algebra is its oracle verifier's run on every transcript (`pubStep_pubWireOf`). WHIR's
+  algebra accepts what the opening's guarded verifier accepts, level by level
+  (`whirCheck_of_run`). The wire carries a round polynomial
+  without its dropped coefficient, which the algebra derives from the running claim, so the
+  algebra accepts round polynomials the oracle verifier rejects
+  (`tests/LeanerVMTests/Protocol/CompileWhir.lean`).
+- **Solved transcripts**: a transcript whose round polynomials pass their checks, each against its
+  running claim (`RoundsSolved`, `BusSolved`, `TableSolved`, `FlockSolved`, `LevelSolved`,
+  `FinalSolved`, `LadderSolved`, `WhirSolved`, and `Solved` for the whole protocol), which every
+  accepted transcript is (`*_of_check`, `whirSolved_of_run`). On a solved transcript the converse
+  holds: each phase's algebra is its oracle verifier's run (`*_of_solved`), the opening's guarded
+  verifier accepts when WHIR's algebra does (`whirOpenGuarded_run_of_whirCheck`), and the compiled
+  verifier accepts when the algebra does (`compiled_of_algebra`, `Compile/Agree.lean`).
+- **The phases agree** (`Compile/Agree.lean`): `phasesAgree` proves `PhasesAgree`, so
+  `Prove.baseProver_complete` needs no hypothesis (`baseProver_complete_of_agree` is the form
+  that takes it).
+- Owed: that the decoder's transcripts are solved (it decodes each dropped coefficient from the
+  running claim, `RoundPoly.check_of_decode`), after which the algebra's acceptance is the
+  compiled verifier's on decoded transcripts, which the soundness direction needs; and
+  `verify_iff_compiled`.
 
 ## Upstream watch
 

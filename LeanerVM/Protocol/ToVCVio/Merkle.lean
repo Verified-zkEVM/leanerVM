@@ -40,7 +40,9 @@ walking under the mapped hash.
 `openSiblings` is the honest prover and `prunedRoot_openSiblings` its completeness. A prover
 builds the tree once, as its `Levels` (`buildLevels`), and reads the root and the siblings of
 every opening off it (`Levels.root`, `Levels.siblings`); `root_buildLevels` and
-`siblings_buildLevels` equate these with `rootOfLevel` and `openSiblings`.
+`siblings_buildLevels` equate these with `rootOfLevel` and `openSiblings`. `buildLevelsM` builds
+them with the hash in a monad, each level's parents left to right, and is `buildLevels` for a pure
+hash (`buildLevelsM_pure`).
 `nodeQueryModelOfEncoding` is the VCVio query model of a node hash on `encode left ++ encode
 right`, which carries no address.
 -/
@@ -619,6 +621,40 @@ theorem siblings_buildLevels : ∀ (k : ℕ) (level : Vector D (2 ^ k)) (positio
   | 0, _, _ => rfl
   | k + 1, level, positions =>
     congrArg (levelSiblings level positions ++ ·) (siblings_buildLevels k _ _)
+
+variable {m : Type → Type} [Monad m]
+
+/-- The parents of a level with the hash in a monad, left to right. -/
+def parentsM (hashPairM : D → D → m D) {k : ℕ} (level : Vector D (2 ^ (k + 1))) :
+    m (Vector D (2 ^ k)) :=
+  (Vector.ofFn fun j : Fin (2 ^ k) ↦ j).mapM fun j ↦
+    hashPairM (level[2 * j.val]'(by omega)) (level[2 * j.val + 1]'(by omega))
+
+/-- The levels of the tree over a level of `2^k` nodes with the hash in a monad, each level's
+parents hashed once, left to right, from the bottom up. -/
+def buildLevelsM (hashPairM : D → D → m D) : (k : ℕ) → Vector D (2 ^ k) → m (Levels D k)
+  | 0, level => pure (.top level[0])
+  | k + 1, level => do
+    let above ← buildLevelsM hashPairM k (← parentsM hashPairM level)
+    return .cons level above
+
+/-- With a pure hash, the parents are `parents`. -/
+theorem parentsM_pure [LawfulMonad m] {k : ℕ} (level : Vector D (2 ^ (k + 1))) :
+    parentsM (m := m) (fun a b ↦ pure (hashPair a b)) level = pure (parents hashPair level) := by
+  rw [parentsM, Vector.mapM_pure]
+  congr 1
+  apply Vector.ext
+  intro j hj
+  simp [parents]
+
+/-- With a pure hash, the levels are `buildLevels`. -/
+theorem buildLevelsM_pure [LawfulMonad m] : ∀ (k : ℕ) (level : Vector D (2 ^ k)),
+    buildLevelsM (m := m) (fun a b ↦ pure (hashPair a b)) k level =
+      pure (buildLevels hashPair k level)
+  | 0, _ => rfl
+  | k + 1, level => by
+    rw [buildLevelsM, parentsM_pure, pure_bind, buildLevelsM_pure k, pure_bind]
+    rfl
 
 end Levels
 
