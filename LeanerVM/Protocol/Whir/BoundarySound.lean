@@ -30,7 +30,8 @@ and the language (what a cheating prover has gained, `FoldSound`) changes at eac
   `C(L', 2)` values (`card_ood_step_le`), where `L'` is the next word's list bound;
 * `QLang` after the positions: `OodLang`, or some codeword near the next word satisfies the residual
   claim, the out-of-domain claim and the consistency claims at the positions (`AllClaims`); outside
-  `OodLang` that happens for at most `a ^ t` choices of the positions (`card_positions_bad_le`);
+  `OodLang` that happens for at most `(a - 1) ^ t` choices of the positions
+  (`card_positions_bad_le`);
 * `BLang` after the batching challenge: some codeword near the next word satisfies the batched
   claim; outside `QLang` at most `(t + 1) L'` challenges (`card_batch_bad_le`). The reading of the
   level's word records the folded symbols (`cqAt`) and drops it; the language afterwards is `BLang`
@@ -181,16 +182,16 @@ private theorem eq_of_sep_eval (nw : WordOf sh' κ') (z : Vector E (sh'.ℓ + κ
     he, sub_self]
 
 /-- **The query positions.** If the residual claim's language and the separation fail to hold,
-at most `a ^ t` of the choices of the `t` positions make some codeword near the next word satisfy
-all the claims: at most one codeword has the out-of-domain value, and either it is a fold of a
-codeword near the level's word, which does not satisfy the residual claim, or its encoding agrees
-with the folded word on fewer than `a` positions, and every position must be one of them. -/
+at most `(a - 1) ^ t` of the choices of the `t` positions make some codeword near the next word
+satisfy all the claims: at most one codeword has the out-of-domain value, and either it is a fold
+of a codeword near the level's word, which does not satisfy the residual claim, or its encoding
+agrees with the folded word on fewer than `a` positions, and every position must be one of them. -/
 theorem card_positions_bad_le (s : Bd sh (Kap sh' κ'))
     (ob : ∀ i, Component.besideOracles (OneW sh (Kap sh' κ')) (WordOf sh' κ') i)
     (hnot : ¬ OodLang P P' s s.z ob) :
     Nat.card {x : Fin sh.t → Fin (2 ^ (Kap sh' κ' + sh.R)) //
       AllClaims P' { s with pos := x } (cqAt { s with pos := x } (oldOf ob)) (newOf ob)} ≤
-        P.a ^ sh.t := by
+        (P.a - 1) ^ sh.t := by
   classical
   have := Fintype.ofFinite (Msgs sh'.ℓ κ')
   unfold OodLang at hnot
@@ -204,7 +205,8 @@ theorem card_positions_bad_le (s : Bd sh (Kap sh' κ'))
     let S : Finset (Fin (2 ^ (Kap sh' κ' + sh.R))) := Finset.univ.filter fun y ↦
       encode (algebraMap K E) (Kap sh' κ') sh.R (ofLanes h0) y =
         foldRow s.r ((oldOf ob 0).row y)
-    have hS : S.card ≤ P.a := card_agree_folded_le P s (oldOf ob) hres (ofLanes h0) hr0
+    have hS : S.card ≤ P.a - 1 :=
+      Nat.le_sub_one_of_lt (card_agree_folded_lt P s (oldOf ob) hres (ofLanes h0) hr0)
     refine le_trans (Finset.card_le_card (t := Finset.univ.filter fun x :
         Fin sh.t → Fin (2 ^ (Kap sh' κ' + sh.R)) ↦ ∀ q, x q ∈ S) fun x hx ↦ ?_) ?_
     · obtain ⟨h, hh, hr, he, hc⟩ := (Finset.mem_filter.mp hx).2
@@ -379,14 +381,14 @@ def nonceSecurity : Component.Security (sendNonce (Component.besideOracles
     (sayError E) :=
   Component.sendCheckedSecurity _ E _ _ _ fun _ _ _ _ _ h ↦ h
 
-/-- **The positions**, at `a ^ t / (2 ^ (κ + R)) ^ t`, that is `(1 - γ) ^ t`: if the language before
-does not hold, at most `a ^ t` of the choices of the positions let some codeword near the next word
-satisfy all the claims. -/
+/-- **The positions**, at `(a - 1) ^ t / (2 ^ (κ + R)) ^ t`, below `(1 - γ) ^ t`: if the language
+before does not hold, at most `(a - 1) ^ t` of the choices of the positions let some codeword near
+the next word satisfy all the claims. -/
 def positionsSecurity : Component.Security (drawPositions (Component.besideOracles
     (OneW sh (Kap sh' κ')) (WordOf sh' κ')) sh (Kap sh' κ')) (relOod P P') (relQ P P')
     (drawError (Fin sh.t → Fin (2 ^ (Kap sh' κ' + sh.R)))
-      ((P.a ^ sh.t : ℕ) / (Nat.card (Fin sh.t → Fin (2 ^ (Kap sh' κ' + sh.R))) : ℝ≥0))) :=
-  Component.sampleChallengeSecurity _ _ _ _ (P.a ^ sh.t) fun s o _ ↦
+      (((P.a - 1) ^ sh.t : ℕ) / (Nat.card (Fin sh.t → Fin (2 ^ (Kap sh' κ' + sh.R))) : ℝ≥0))) :=
+  Component.sampleChallengeSecurity _ _ _ _ ((P.a - 1) ^ sh.t) fun s o _ ↦
     Component.card_badChallenge_le_of_indep _ _ _ _ _ _ s o fun hnot ↦
       le_trans (natCard_subtype_mono fun x hx ↦ by
         rcases hx with hx | hx

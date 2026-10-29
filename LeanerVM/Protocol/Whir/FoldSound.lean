@@ -202,10 +202,10 @@ claim's language does not hold, a table of `κ` variables that satisfies the res
 encoding that agrees with the folded word on fewer than `a` positions: otherwise it would be a
 codeword near the folded word, hence the fold of a codeword near the word, whose claim is the
 residual claim. -/
-theorem card_agree_folded_le (s : Bd sh κ) (o : ∀ i, OneW sh κ i) (hres : ¬ ResLang P s o)
+theorem card_agree_folded_lt (s : Bd sh κ) (o : ∀ i, OneW sh κ i) (hres : ¬ ResLang P s o)
     (T : Tab κ) (hT : s.resid.pair (RingHom.id E) T = s.c) :
     (Finset.univ.filter fun y : Fin (2 ^ (κ + sh.R)) ↦
-      encode (algebraMap K E) κ sh.R T y = foldRow s.r ((o 0).row y)).card ≤ P.a := by
+      encode (algebraMap K E) κ sh.R T y = foldRow s.r ((o 0).row y)).card < P.a := by
   classical
   have hres' : (∀ g : Msgs sh.ℓ κ, Cl κ sh.R P.a sh.ℓ (lanesOf o) g →
         ProductSum.claim s.W.onCube (ofLanes g) sh.ℓ s.r ≠ s.c) ∧
@@ -216,7 +216,7 @@ theorem card_agree_folded_le (s : Bd sh κ) (o : ∀ i, OneW sh κ i) (hres : ¬
   by_contra hlt
   push Not at hlt
   have hcl : Cl κ sh.R P.a 0 (foldW s.r (lanesOf o)) (fun _ ↦ T) := by
-    refine le_trans hlt.le (Finset.card_le_card fun y hy ↦ ?_)
+    refine le_trans hlt (Finset.card_le_card fun y hy ↦ ?_)
     refine Finset.mem_filter.mpr ⟨Finset.mem_univ _, fun u ↦ ?_⟩
     have hu : u.val = 0 := by simp
     simp only [hu, lanesOf, foldW_lane0]

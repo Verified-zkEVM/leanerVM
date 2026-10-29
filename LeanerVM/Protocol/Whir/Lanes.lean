@@ -31,8 +31,9 @@ Two interfaces, in counting form (a bound on the number of elements, never a pro
 the constants as parameters; each is a theorem of coding theory that this repository consumes:
 
 * `ListBound κ R a m L`: at most `L` interleaved codewords of `2 ^ m` lanes are within `a` of any
-  word (the Johnson bound, `thm:johnson-interleaved`, with `L = 1 / (2 η √ρ)` at the radius
-  `1 - √ρ - η`);
+  word, for any list bound `L`: the Annex's `1 / (2 η √ρ)` at the radius `1 - √ρ - η`
+  (`thm:johnson-interleaved`), or, as `LeanerVM.Protocol.Whir.Johnson` inhabits it, the pairwise
+  Johnson bound `⌊n (a - D) / (a² - n D)⌋` with `n = 2 ^ (κ + R)` and `D = 2 ^ κ - 1`;
 * `McaBound κ R a N`: for every two-lane word at most `N` of the folds `c ∈ E` are bad
   (`thm:mca-johnson`: on a set of at least `a` positions the fold agrees with the code while the two
   lanes do not agree with it); its error is `N / |E|`, so `N` is the Annex's `a` (here `a` is the

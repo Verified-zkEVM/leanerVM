@@ -754,9 +754,25 @@ component. It takes, per level, `Par`: a threshold, a list bound and a bound on 
 counting form (`ListBound`, `McaBound`), inhabited at exact agreement and, for the list bound, at
 unique decoding (`Whir/Exact.lean`); `stackRel_subset_relOpen` shows the honest inputs are in the
 relation. The blueprint's Layer 11 is updated with it (the theorem's statement and the interfaces).
-It still owes: the adaptor from `mcaJohnson_annexB` (and a Johnson list bound) to `ListBound` and
-`McaBound` is the remaining piece of Layer 11, and its planned name no longer collides with an
-interface; the theorem is not knowledge soundness.
+The theorem is not knowledge soundness.
+
+*On merge* of the Johnson-regime pull request (branch `feat/protocol-mca-johnson`), the opening is
+round-by-round sound at leanVM's parameters with no hypothesis: `deployed_rbrSoundness`
+(`Protocol/Whir/Deployed.lean`) is `whirOpen_rbrSoundness` at the chain of every admissible
+`(μ, R)`, each level's `Par` built by `johnsonPar` (`Protocol/Whir/Johnson.lean`) from the level's
+slack. The threshold is the exact `⌈(√ρ + η)·n⌉₊`, computed in naturals (`threshold`,
+`threshold_eq_ceil`); the list bound is ArkLib's pairwise Johnson bound,
+`L = ⌊n(a − D)/(a² − nD)⌋` (`listBound_johnson`); the bad folds are `mcaCount κ R η`, Annex B's
+constant rounded up from rational bounds so that every parameter is computed
+(`mcaConstant_le_mcaCount`), from `mcaJohnson_annexB` through `mcaBound_of_mcaJohnson`, the encoder's code being ArkLib's
+Reed–Solomon code (`encode_mem_code`, `exists_encode_of_mem_code`). The generic half is
+`ToArkLib/McaJohnson.lean`: `McaJohnson`, its inhabitant at [BCHKS25]'s constant,
+`mcaError_foldLine_eq_affineLine`, and the count of bad seeds an error bound gives. The slacks are
+the Rust's doubles, dumped (`Parameters/Whir.lean`, `slacks`). The tests
+(`tests/LeanerVMTests/Protocol/WhirJohnson.lean`) check `mcaConstant` against Annex B's formula,
+that all 224 levels fit, and that `2^{ℓ−1}·mcaConstant ≤ 2^{64}` at each; `L_0` is 23 to 122 (the
+Annex's `1/(2η₀√ρ₀)` is 110 to 648). Still owed: the wiring into the opening phase (the `K`-to-`E`
+lift of the witness), and knowledge soundness through list binding (Layer 12).
 
 *On merge* of the Fiat–Shamir chain's pull request, the first piece of Layer 12 is on `main`:
 the chain, transcribed from `fiat_shamir/src/lib.rs` (`Protocol/Transcript.lean`: `FsState`,
@@ -840,6 +856,143 @@ that the verifier's chain walk logs its chain, and the lemma that `HasCollision`
 `chainHistory` read the same on the game's `withQueryLog` log (repeats included) and on the
 charged invariant's log of fresh queries, given `Consistent`; it is stated once both branches are
 on `main`.
+
+*On merge* of the sharper query-error pull request, WHIR's query positions cost
+`((a − 1) / n)^t` instead of `(a / n)^t`, `a` the level's threshold and `n` its positions:
+`card_agree_folded_lt` (`Protocol/Whir/FoldSound.lean`) proves that a table satisfying the residual
+claim outside its language agrees with the folded word on fewer than `a` positions, which its
+argument already derived, and `card_positions_bad_le`, `card_final_positions_le`,
+`positionsSecurity`, `finalPositionsSecurity`, `levelErr` and `finalErr` (hence `openErr` and
+`listBindingError`) count `(a − 1)^t` choices. Annex B's `thm:rbr` states `(1 − γ_i)^{t_i}`; with
+`a = ⌈(1 − γ) n⌉`, `a − 1 < (1 − γ) n`, so the entry is below the Annex's at every level. With
+`a^t` the entry exceeded `2^-111` at 48 of the 224 deployed levels, the threshold rounding up past
+the `(1 − γ) n` the query counts were optimised for (worst `2^-110.34`: stack size `16`, rate
+`2⁻¹`, level `2`, `t = 30`, `a = 40`, `n = 2^9`), so the 17 bits of grinding gave `2^-127.34`;
+with `(a − 1)^t` every level is below `2^-111` (worst `2^-111.0002`, stack size `23`, rate `2⁻²`,
+level `0`), so `2^-128` after grinding.
+
+*On merge* of the charged-budgets pull request, the generic probability the random-oracle bound of
+`verify_knowledgeSound` (Layer 12, toward T4) consumes is on `main` beside the charged invariant
+(`ToVCVio/ChargedInvariant.lean`, `ToVCVio/UniformSample.lean`, `ToVCVio/EventExpectation.lean`).
+Budgets: `expected_charge_le_of_isQueryBound` (a charge paid by a query bound of VCVio's general
+form, its budget priced) and `expected_charge_le_sum` (a sum of components, component `j` at most
+`κ j` on the queries satisfying `p j` and zero elsewhere, has expected total at most
+`∑ j, n j * κ j` for at most `n j` such queries, `IsQueryBoundP`). A kind is read off the query
+input, so it counts every query of its shape. The adversary's run is budgeted by its `Q` queries.
+The verifier's run can only be budgeted by its total `V`, not by `rounds`: a Merkle node query
+`left ++ right` with sibling bytes the prover chose can have a squeeze step's shape, so the
+blueprint's `niError_le` term `(Q + rounds)·2^-128` becomes `(Q + V)·2^-128`, beside a `hashTerm`
+that already carries `Q + V`. Two runs in sequence: `prEvent_simulateQ_bind_le_lintegral` bounds an
+event of `oa >>= ob` against a stateful oracle by the expectation over the first run's end of `1`
+on its bad event and of the second run's bound otherwise;
+`QueryHistory.prEvent_bind_le_of_potential` starts the second run from the potential the first
+leaves, so the groups the adversary leaves open are counted once; the supremum form
+`prEvent_simulateQ_bind_le_add_iSup` would count them twice.
+Uniform laws: the first half of a bijection, coordinatewise on tuples, low digits, first entries,
+and digits in chunks are uniform. In `RandomOracle.lean`: `prEvent_challengeOf_tuple` (the
+challenges of `m` fresh digests are uniform on `Fin m → E`), `challengeBits` and
+`challengePositions` (WHIR's positions, `sample_queries_ordered`, faithful for `1 ≤ b < 64`, which
+the tests check of every deployed level), and `prEvent_positions_uniform` (with `t ≤ m⌊192/b⌋`, the
+`t` positions of `m` fresh squeezes are uniform on `Fin t → Fin (2^b)`). The tests check the
+positions against the Rust's two-limb read by hand-computed values. It still owes the lemma that
+the verifier's `walkPositions` reads `challengePositions` of its squeezes' challenges, the step of
+the potential for a group's later queries, and `misbehaves_rom` itself.
+
+*On merge* of the list-binding branch (`feat/protocol-list-binding`), the list-binding compilation
+is on `main` (`Protocol/ListBinding.lean`, `Protocol/Whir/Decode.lean`, the `K` word `KWord` in
+`Protocol/Whir/Word.lean`, and the generic `ToArkLib/Relist.lean`, `ToArkLib/SendEncoded.lean`,
+`ToArkLib/MapOracles.lean`, `ToArkLib/FirstRound.lean`, `ToCompPoly/LinearSolve.lean`).
+`listBinding_compile` is the security of `commitWord ⟫ fronts ⟫ batch ⟫ openInput ⟫ whirOpen L`
+from `M3Rel I` to acceptance at `listBindingError`: `L₀` times the oracle protocol's errors on its
+challenges, `L₀` level 0's list bound, and `openErr L ps` on WHIR's; for every bundle of phases
+with its security, every chain with its parameters and every `ListDecoder` at level 0's threshold
+`(L.headPar ps).a`. The extractor list-decodes the committed `K` word and picks the first stack
+satisfying `M3Holds` (`commitPick`): the stack it returns is that one whenever there is one
+(`listBinding_extractedStack_eq`), and at round `1` the state function holds exactly when there is
+one (`listBinding_kSF_one`), so a failed extraction leaves the state function false for every
+witness. `ListDecoder` is specified by WHIR's list relation (`mem_iff`); its inhabitants are
+`ListDecoder.bruteForce` (Gaussian elimination over `K` on every set of `2 ^ κ` positions),
+`ListDecoder.exactFirst` (the exact path, `exactFast_eq`, then a fallback) and, at exact
+agreement, `ListDecoder.exact`; `isInK_of_cl` makes the members of a `K` word's list `K`-valued.
+The exact path is one elimination over `K` with all lanes as one right-hand side,
+`O(2^(3κ) + 2^(2κ+ℓ))` operations, and a check of the whole word, `2^(κ+R+ℓ)` encodings of
+`O(κ · 2^κ)` operations each; it is not the deployed prover's inverse transform.
+`Component.Front.relist` is the generic step. `listBinding_perfectCompleteness` is the other half,
+from the phases' completeness: each carries over to the phase over the word
+(`Component.Front.overComplete`) at its seam read on the honest word, and WHIR's opening receives
+the honest word of the stack in `E` (`kwordOf_lift`). The shapes differ from the blueprint's sketch
+in four places: `relist` takes the front component over the new oracles with a proof that its
+check and verdict are the old ones (`Front.over` builds it, answering the oracle queries the front
+verifier never makes), and the list is a `List` with a length bound; the committed word is a `K`
+word (`KWord`), so that every member of its list is a stack, and a zero-round step `openInput`
+reads it in `E` for WHIR (a virtual output oracle, `Component.mapOracles`), whose security is the
+seam to `relOpen` (`relist_of_relOpen`); `listBinding_compile` takes the height equation
+`κ + sh.ℓ = I.μ`; `exactFast_eq` holds at every threshold `2 ^ κ ≤ a ≤ 2 ^ (κ + R)`, with no
+unique-decoding condition. It still owes the inverse additive transform for a fast exact path at
+deployed sizes and the instantiation at the deployed chain with a Johnson list bound; and, since
+the committed word is a `K` word, `verify_iff_compiled` must read the level-0 rows of a proof as
+`K` symbols (the deployed commitment's leaves), not as `E` ones.
+
+*On merge* of the deployed list-binding branch (`feat/protocol-list-binding-deployed`, stacked on
+the list-binding and Johnson-regime branches), the compilation holds at leanVM with no hypothesis:
+`listBinding_deployed` (`Protocol/ListBindingDeployed.lean`) is `listBinding_compile` at the
+leanISA instance of every program and admissible announcement, at every valid rate, with
+`leanVmPhases`, `leanVmSecurity` (`leanIsa_conditions`, `I.d ≤ 2`), WHIR's `deployedChain` and its
+parameters, and `deployedDecoder`; `listBinding_deployed_rbrKnowledgeSoundness` and
+`listBinding_deployed_perfectCompleteness` are its halves. Since the Johnson branch computes each
+level's bad-fold count (`mcaCount`), the chain is data and `listBinding_deployed` is a definition
+with no `noncomputable`: its extractor compiles. Level 0 of the chain is also computed on its own
+(`deployedHeadShape`, `deployedHeadKap`, `deployedHeadThreshold` in `Protocol/Whir/Deployed.lean`;
+`deployedChain_head` decides on the window that the chain's level 0 is that one: six folds,
+`μ − 6` variables left, `johnsonPar`'s threshold, 726 at `μ = 15` and rate `2⁻¹`).
+`deployedDecoder` is `ListDecoder.nttFirst` over `ListDecoder.bruteForce`, built at those indices,
+and `deployedPick` is the commitment's extractor there, which compiles without building the chain
+(`deployedPick_eq_commitPick`); `listBinding_deployed_kSF_one` (at round `1`, for every witness,
+the state function holds exactly when `deployedPick` succeeds) and
+`listBinding_deployed_extractedStack_eq` (the extracted stack is the pick) are stated with it, and
+`commitPick_eq_some` gives `M3Holds` of what it returns. The generic `listBinding_kSF_one` takes a
+symbolic round `k` with `k.val = 1`: a literal round makes the elaborator evaluate the schedule's
+length, through the chain, at the deployed instance. The fast exact path is the additive transform
+(`Protocol/Whir/Transform.lean`: `fwd`, `inv`, `encodeFast`, proved against `encode` by
+`fwd_getElem`, `fwd_inv`, `inv_fwd`, `encodeFast_getElem`; `encodeMatrix` is its row
+`novelAt`), and `exactNtt` (`Protocol/Whir/DecodeNtt.lean`) interpolates each lane on the first
+coset and checks it on every coset; `ListDecoder.decode_eq_of_codeword` makes its candidate the
+whole list. `kwordOfFast` is the honest word by the same transform (`kwordOfFast_eq`). Measured in
+compiled code (a local harness, not committed) on the honest word of a random stack, with this
+branch's field arithmetic (the specification's; the compiled fast paths are another branch): at
+`μ = 15` the decode takes 45 s at rate `2⁻¹` and 80 s at `2⁻²`, the honest word 7 s and 14 s; at
+`μ = 16`, 106 s and 192 s, the word 17 s and 38 s; the list is the stack every time. The brute
+force behind the exact path is exact but runs on toy words only, so a dishonest word at a deployed
+size has no executable extraction. Still owed: an efficient list decoder for words off the code.
+
+*On merge* of the random-oracle definitions pull request, the game and the per-challenge budgets
+are on `main`. `Protocol/RandomOracleGame.lean`: `loggedGame V prog input A` runs the adversary
+(`A : OracleComp hashSpec (Proof PrunedMerklePaths)`) logged, then `V hashQuery prog input proof`
+logged, with `V` any function of `verifyWith`'s shape (`VerifierWith`) until the executable
+verifier lands; `Run` holds the proof, the two logs and the verdict. `extract F prog input proof
+log` is computable: the announcement through `setupOk`'s checks, the level-0 root from stream
+scalars `8, 9`, every level-0 row under it by `extractAllRows` at `level0Lanes` words in leaves of
+`2^ℓ` words, a missing row zero, the stored row's lanes reversed as the Rust stores them
+(`laneRow`, `whir.rs:1305-1316`), then `deployedPick`; `extracts_iff_isSome` makes `Extracts`'s
+`M3Holds` automatic. `Hit` and `HashMisbehaves` take the proof's roots and the flip as parameters,
+since both read the verifier's chain walk; `core` instantiates the flip with the transcript
+decoder's clause. `Bad` and `bad_density` are the event and the bound of `listBinding_deployed`'s
+`rbr` at the unit shared oracle. `Protocol/ListBindingBudget.lean`,
+`Protocol/Whir/DeployedBudget.lean` and the generic `ToArkLib/ScheduleBounds.lean`:
+`listBindingMark` marks WHIR's query positions, and `listBindingError_deployed_le` bounds every
+other challenge by `2^-128` and the query positions by `2^-111`, so by `2^-128` after the 17 bits
+of grinding, at every admissible announcement and rate (`Whir.deployed_fits` decides the window,
+`L₀ ≤ 122`; `leanIsa_μBus_le`, `leanIsa_B_le`, `leanIsa_poolSize_le` bound the front at leanISA).
+The executable verifier must read the level-0 openings at the wire shape `extract` reads: rows of
+`level0Lanes prog s (deployedHeadKap μ ρ)` words, leaves of `2^ℓ` words for level 0's fold `ℓ`
+(`deployedHeadShape μ ρ`), depth `deployedHeadKap μ ρ + (deployedHeadShape μ ρ).R`.
+`deployedHeadKap_eq` decides `deployedHeadKap μ ρ = μ − initialFold` on the window, so
+`level0Lanes` is the verifier branch's `Verify.nLanes`, which `extract` takes at assembly. The
+blueprint has the three edits these definitions asked of it: Layer 11's threshold is
+`a = ⌈(1 − γ) 2^{κ+R}⌉`, its `thm:rbr` query entry is `((a − 1) / n)^t`, and Layer 12's `Hit` and
+`HashMisbehaves` take the proof's roots and the flip as parameters, with no "earlier answer" in play
+(an earlier answer to another input is a collision). Still owed: the flip, the proof's roots,
+`core` and `misbehaves_rom`.
 
 ## Upstream watch
 

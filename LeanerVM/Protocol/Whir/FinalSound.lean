@@ -19,7 +19,7 @@ codeword near an oracle, so there is no union over a list.
 After the folds and the residual claim (the language of `FoldSound`), the prover sends the plaintext
 table `ff`, then the verifier draws the positions. The language after the positions asks that `ff`
 satisfy the residual claim and the consistency claims there (`FinalClaims`); outside the residual
-claim's language that happens for at most `a ^ t` choices of the positions
+claim's language that happens for at most `(a - 1) ^ t` choices of the positions
 (`card_final_positions_le`:
 if `ff` satisfies the residual claim its encoding agrees with the folded word on fewer than `a`
 positions, every position would have to be one of them). The batching challenge draws the
@@ -91,18 +91,19 @@ def relFP : Set ((FBd sh (nf + 1) × ∀ i, Component.keptOracles (OneW sh (nf +
 
 /-! ## The counts -/
 
-/-- **The final positions.** If the residual claim's language does not hold, at most `a ^ t` choices
-of the positions let the plaintext table satisfy the residual and consistency claims. -/
+/-- **The final positions.** If the residual claim's language does not hold, at most `(a - 1) ^ t`
+choices of the positions let the plaintext table satisfy the residual and consistency claims. -/
 theorem card_final_positions_le (s : FBd sh (nf + 1)) (o : ∀ i, OneW sh (nf + 1) i)
     (hres : ¬ ResLang P s.toBd o) :
     Nat.card {x : Fin sh.t → Fin (2 ^ (nf + 1 + sh.R)) //
-      FinalClaims { s with pos := x } (cqAt { s with pos := x }.toBd o)} ≤ P.a ^ sh.t := by
+      FinalClaims { s with pos := x } (cqAt { s with pos := x }.toBd o)} ≤ (P.a - 1) ^ sh.t := by
   classical
   rw [natCard_subtype_eq_card_filter]
   by_cases hr0 : s.resid.pair (RingHom.id E) s.ff = s.c
   · let S : Finset (Fin (2 ^ (nf + 1 + sh.R))) := Finset.univ.filter fun y ↦
       encode (algebraMap K E) (nf + 1) sh.R s.ff y = foldRow s.r ((o 0).row y)
-    have hS : S.card ≤ P.a := card_agree_folded_le P s.toBd o hres s.ff hr0
+    have hS : S.card ≤ P.a - 1 :=
+      Nat.le_sub_one_of_lt (card_agree_folded_lt P s.toBd o hres s.ff hr0)
     refine le_trans (Finset.card_le_card (t := Finset.univ.filter fun x :
         Fin sh.t → Fin (2 ^ (nf + 1 + sh.R)) ↦ ∀ q, x q ∈ S) fun x hx ↦ ?_) ?_
     · obtain ⟨-, hc⟩ := (Finset.mem_filter.mp hx).2
@@ -186,12 +187,13 @@ def finalNonceSecurity : Component.Security (finalNonce sh nf)
     (relResF P) (relResF P) (sayError E) :=
   Component.sendCheckedSecurity _ E _ _ _ fun _ _ _ _ _ h ↦ h
 
-/-- **The positions of the last level**, at `(1 - γ) ^ t`. -/
+/-- **The positions of the last level**, at `(a - 1) ^ t / (2 ^ (κ + R)) ^ t`, below
+`(1 - γ) ^ t`. -/
 def finalPositionsSecurity : Component.Security
     (finalPositions sh nf) (relResF P) (relFQ P)
     (drawError (Fin sh.t → Fin (2 ^ (nf + 1 + sh.R)))
-      ((P.a ^ sh.t : ℕ) / (Nat.card (Fin sh.t → Fin (2 ^ (nf + 1 + sh.R))) : ℝ≥0))) :=
-  Component.sampleChallengeSecurity _ _ _ _ (P.a ^ sh.t) fun s o _ ↦
+      (((P.a - 1) ^ sh.t : ℕ) / (Nat.card (Fin sh.t → Fin (2 ^ (nf + 1 + sh.R))) : ℝ≥0))) :=
+  Component.sampleChallengeSecurity _ _ _ _ ((P.a - 1) ^ sh.t) fun s o _ ↦
     Component.card_badChallenge_le_of_indep _ _ _ _ _ _ s o fun hnot ↦
       le_trans (natCard_subtype_mono fun x hx ↦ by
         rcases hx with hx | hx
@@ -266,7 +268,7 @@ noncomputable def finalErr : (seqSpec (finalSteps sh nf)).ChallengeIdx → ℝ�
   errAppend (sayError (SumcheckRound.Message E 2)) <| errAppend (sayError (Tab (nf + 1))) <|
   errAppend (sayError E) <|
   errAppend (drawError (Fin sh.t → Fin (2 ^ (nf + 1 + sh.R)))
-    ((P.a ^ sh.t : ℕ) / (Nat.card (Fin sh.t → Fin (2 ^ (nf + 1 + sh.R))) : ℝ≥0))) <|
+    (((P.a - 1) ^ sh.t : ℕ) / (Nat.card (Fin sh.t → Fin (2 ^ (nf + 1 + sh.R))) : ℝ≥0))) <|
   errAppend (drawError E ((sh.t : ℕ) / (Nat.card E : ℝ≥0))) <|
   errAppend (fun i ↦ Fin.elim0 i.1) <| errAppend (sayError (SumcheckRound.Message E 2)) <|
   errAppend (fun i ↦ Fin.elim0 i.1) <|

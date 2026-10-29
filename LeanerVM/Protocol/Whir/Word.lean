@@ -81,6 +81,51 @@ theorem foldRow_wordOf {ℓ κ : ℕ} (R t : ℕ) (f : CMlPolynomialEval E (ℓ 
   rw [encode_foldTable]
   simp [foldRow, wordOf]
 
+/-! ## The level-0 word over `K` -/
+
+/-- A word with `K` symbols on `2 ^ b` positions with `2 ^ ℓ` lanes, read `t` positions at a time:
+the level-0 word the commitment binds. -/
+structure KWord (ℓ b t : ℕ) where
+  /-- The row at a position. -/
+  row : Fin (2 ^ b) → Vector K (2 ^ ℓ)
+
+/-- The `K` word read in `E`. -/
+def KWord.lift {ℓ b t : ℕ} (w : KWord ℓ b t) : Word ℓ b t := ⟨fun y ↦ (w.row y).map ofK⟩
+
+/-- A question to a `K` word is `t` positions; the answer is their rows, read in `E`. -/
+instance (ℓ b t : ℕ) : OracleInterface (KWord ℓ b t) where
+  Query := Fin t → Fin (2 ^ b)
+  toOC :=
+    { spec := (Fin t → Fin (2 ^ b)) →ₒ (Fin t → Vector E (2 ^ ℓ))
+      impl := fun q ↦ do
+        let w ← read
+        return fun k ↦ (KWord.lift w).row (q k) }
+
+/-- The honest `K` word of a stack table: the encodings over `K` of its lanes, the top
+coordinates. -/
+def kwordOf (ℓ κ R t : ℕ) (q : CMlPolynomialEval K (κ + ℓ)) : KWord ℓ (κ + R) t :=
+  ⟨fun y ↦ Vector.ofFn fun u ↦ encode (RingHom.id K) κ R (sliceLow (relayout q) u) y⟩
+
+/-- Relaying out commutes with mapping the entries. -/
+private theorem relayout_map {R S : Type} [CommRing R] [CommRing S] (φ : R →+* S) {κ ℓ : ℕ}
+    (q : CMlPolynomialEval R (κ + ℓ)) :
+    relayout (CMlPolynomialEval.map φ q) = CMlPolynomialEval.map φ (relayout q) := by
+  apply Vector.ext
+  intro i hi
+  simp [relayout, CMlPolynomialEval.map]
+
+/-- The honest `K` word of a stack, read in `E`, is the honest word of the stack in `E`. -/
+theorem kwordOf_lift (ℓ κ R t : ℕ) (q : CMlPolynomialEval K (κ + ℓ)) :
+    (kwordOf ℓ κ R t q).lift =
+      wordOf ℓ κ R t (relayout (CMlPolynomialEval.map (algebraMap K E) q)) := by
+  unfold KWord.lift kwordOf wordOf
+  congr 1
+  funext y
+  apply Vector.ext
+  intro u hu
+  simp only [Vector.getElem_map, Vector.getElem_ofFn]
+  rw [← encode_ofK, relayout_map, sliceLow_map]
+
 end Whir
 
 end
