@@ -53,14 +53,14 @@ theorem plain0_totalLe_fs :
     TotalLe coreProgram LeanVM.Guest.B2C.fs (plainName 0) fun _ ↦ 325 := by
   have h1 := wSB_totalLe (j := 255) (f := "keccak_plain_rounds__L6_L0") (by decide +kernel)
   rwa [wSB_idx (j := 255) (f := "keccak_plain_rounds__L6_L0") (by decide +kernel),
-    show wSBJ 258 = 325 by decide +kernel] at h1
+    show wSBJ 255 = 325 by decide +kernel] at h1
 
 /-- **`keccak_plain_rounds__L4_L1`'s words at `B2C.fs`**: `229`. -/
 theorem plain1_totalLe_fs :
     TotalLe coreProgram LeanVM.Guest.B2C.fs (plainName 1) fun _ ↦ 229 := by
   have h1 := wSB_totalLe (j := 257) (f := "keccak_plain_rounds__L4_L1") (by decide +kernel)
   rwa [wSB_idx (j := 257) (f := "keccak_plain_rounds__L4_L1") (by decide +kernel),
-    show wSBJ 260 = 229 by decide +kernel] at h1
+    show wSBJ 257 = 229 by decide +kernel] at h1
 
 /-- A layer's words at `B2C.fs`, its frame at most `2525`. -/
 theorem layerWords_fs_le_y {first odd y : ℕ} (hf : first < 2) (ho : odd < 2) :
