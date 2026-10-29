@@ -1,8 +1,7 @@
 /-
   LeanVM.Guest.B1.Digest.Lists
 
-  Straight-line `KECCAK` chains over loaded cells, checked by evaluation; B1 for `da_list_digest`
-  and its 17 specializations `da_hash_roots__L{n}` (G:4063-4075; TRIAGE #94).
+  Straight-line `KECCAK` chains over loaded cells, checked by evaluation.
 -/
 
 module
@@ -10,15 +9,12 @@ module
 public import LeanVM.Guest.B1.Digest.Chain
 
 /-!
-# Chains over loaded cells; `da_list_digest`
+# Chains over loaded cells
 
 A straight-line body (`splitBody`: atoms, then a `ret`) that loads its message cells through a
 pointer (`loadsOk`), hashes them by a padded chain (`ChainSpec.check`) and returns copies of the
-digest's cells (`retOk`) returns the digest of the cells read (`straight_digest`).
-
-`da_hash_roots__L{n}` (`core377 … core393`) loads `4n` cells from its argument and hashes their
-`64n` bytes, all 17 by one kernel evaluation (`hr_all`); `da_list_digest` dispatches on `g^n`
-(`da_list_digest_sound`).
+digest's cells (`retOk`) returns the digest of the cells read (`straight_digest`). `find_of_idx`:
+a function found by its core index.
 -/
 
 namespace LeanVM.Guest.B1.Digest
@@ -118,93 +114,11 @@ theorem straight_digest {rd : Reader} {σ : Val} {atoms : List Atom} {s : ChainS
   refine ⟨?_, hcan⟩
   rw [copy_sound hr.1 hat, copy_sound hr.2 hat, digestCells, ← hd]
 
-/-! ## `da_hash_roots__L{n}` -/
-
-/-- The chain of `da_hash_roots__L{n}`: `4n` cells loaded as `.n 1 … .n (4n)`, `64n` bytes. -/
-def hrSpec (n : ℕ) (atoms : List Atom) : ChainSpec :=
-  ⟨(List.range (4 * n)).map (fun i => some (V.n (i + 1))), 64 * n, true, none, keccakBlocks atoms⟩
-
-/-- `da_hash_roots__L{n}`'s body is the chain over the cells at its argument. -/
-def hrOk (n : ℕ) (f : Fn) : Bool :=
-  decide (f.params = [V.n 0]) &&
-  match splitBody f.body with
-  | some (atoms, [r0, r1]) =>
-    (hrSpec n atoms).check atoms && retOk atoms (hrSpec n atoms) r0 r1 &&
-      loadsOk atoms (V.n 0) (hrSpec n atoms).msg
-  | _ => false
-
-set_option maxRecDepth 100000 in
-theorem hr_all : ∀ n < 17, hrOk n (coreProgram.getD (377 + n) default) = true := by
-  decide +kernel
-
-/-- The names of `da_hash_roots`' specializations, `n ≤ 16`. -/
-def hrNames : List String :=
-  ["da_hash_roots__L0", "da_hash_roots__L1", "da_hash_roots__L2", "da_hash_roots__L3", "da_hash_roots__L4", "da_hash_roots__L5", "da_hash_roots__L6", "da_hash_roots__L7", "da_hash_roots__L8", "da_hash_roots__L9", "da_hash_roots__L10", "da_hash_roots__L11", "da_hash_roots__L12", "da_hash_roots__L13", "da_hash_roots__L14", "da_hash_roots__L15", "da_hash_roots__L16"]
-
-set_option maxRecDepth 100000 in
-theorem hr_idx : ∀ n < 17, coreProgram.indexOf? (hrNames.getD n "") = some (377 + n) := by
-  decide +kernel
-
 theorem find_of_idx {name : String} {j : ℕ} (h : coreProgram.indexOf? name = some j)
     (hj : j < coreProgram.length) : coreProgram.find? name = some (coreProgram.getD j default) := by
   refine Program.find?_of_indexOf? h ?_
   rw [List.getElem?_eq_getElem hj, List.getD_eq_getElem?_getD, List.getElem?_eq_getElem hj]
   rfl
-
-/-- **`da_hash_roots__L{n}`** returns the digest of the `4n` canonical cells at its argument. -/
-theorem hashRoots_sound {n : ℕ} (hn : n < 17) {rd : Reader} {args rets : List E}
-    (h : coreProgram.Rel rd (hrNames.getD n "") args rets) :
-    ∃ p, args = [p] ∧ ClaimListOut rd p n rets := by
-  have hf := find_of_idx (hr_idx n hn) (by rw [coreProgram_length]; omega)
-  obtain ⟨σ, hp, hb⟩ := (rel_iff_sem hf args rets).mp h
-  have hok := hr_all n hn
-  set f := coreProgram.getD (377 + n) default
-  simp only [hrOk, Bool.and_eq_true, decide_eq_true_eq] at hok
-  obtain ⟨hpar, hok⟩ := hok
-  split at hok
-  · rename_i atoms r0 r1 hsb
-    simp only [Bool.and_eq_true] at hok
-    obtain ⟨⟨hc, hr⟩, hl⟩ := hok
-    rw [splitBody_eq hsb, holdsList_atoms_ret] at hb
-    obtain ⟨hat, hret⟩ := hb
-    obtain ⟨hd, hcan⟩ := straight_digest hc rfl rfl hr hat
-    have hlen : ((hrSpec n atoms).vals σ).length = 4 * n := by
-      simp [ChainSpec.vals, hrSpec]
-    have htake : ((hrSpec n atoms).vals σ).take ((hrSpec n atoms).len / 16) =
-        (hrSpec n atoms).vals σ := by
-      rw [List.take_of_length_le]
-      rw [hlen]; simp only [hrSpec]; omega
-    rw [htake] at hd hcan
-    rw [hpar] at hp
-    refine ⟨σ (V.n 0), by rw [← hp]; rfl, (hrSpec n atoms).vals σ, hlen, loads_sound hl hat, hcan, ?_⟩
-    rw [← hret, ← hd]
-    rfl
-  · exact absurd hok (by simp)
-
-/-! ## `da_list_digest` -/
-
-theorem core29_body : Fn.body Data.core29 =
-    [.dispatch (.n 1) hrNames [.n 0]
-      [.n 2, .n 3], .atom (.copy (.n 4) (.n 2)), .atom (.copy (.n 5) (.n 3)), .ret [.n 4, .n 5]] :=
-  stmtsEqb_sound (by decide +kernel)
-
-/-- **`da_list_digest` computes the DA list's digest.** -/
-theorem da_list_digest_sound : da_list_digest_sound_Spec := by
-  intro rd args rets h
-  obtain ⟨σ, hp, hb⟩ := (rel_iff_sem find_da_list_digest args rets).mp h
-  rw [core29_body] at hb
-  simp only [Stmt.HoldsList, Stmt.Holds, Atom.Holds, List.map_cons, List.map_nil] at hb
-  obtain ⟨⟨j, hj, hsel, hcall⟩, e4, e5, hr⟩ := hb
-  have hj17 : j < 17 := hj
-  rw [show hrNames[j] = hrNames.getD j "" by
-    rw [List.getD_eq_getElem?_getD, List.getElem?_eq_getElem hj]; rfl] at hcall
-  obtain ⟨p, hpa, hout⟩ := hashRoots_sound hj17 hcall
-  simp only [List.cons.injEq, and_true] at hpa
-  have hp' : args = [σ (.n 0), σ (.n 1)] := by rw [← hp]; rfl
-  subst hp'
-  refine ⟨j, by simp only [maxDaRoots]; omega, by rw [hsel, gen_pow_eq_ofK], ?_⟩
-  rw [hpa, ← hr, e4, e5]
-  exact hout
 
 end
 end LeanVM.Guest.B1.Digest

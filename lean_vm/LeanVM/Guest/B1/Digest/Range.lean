@@ -2,7 +2,7 @@
   LeanVM.Guest.B1.Digest.Range
 
   Range checks on a memory image, the compile-time powers of `g` the guest bounds them by, and B1
-  for `list_split` (G:3812-3824; TRIAGE #87) and `cover_da_root` (G:4078-4083; TRIAGE #95).
+  for `list_split` (G:3812-3824; TRIAGE #87).
 -/
 
 module
@@ -10,7 +10,7 @@ module
 public import LeanVM.Guest.B1.Digest.Lists
 
 /-!
-# Range checks; `list_split`, `cover_da_root`
+# Range checks; `list_split`
 
 On a memory image of `2^κ` words, `16 ≤ κ ≤ 32` (`MemOk`), a word read through a pointer at
 offset `0` is a power of `g` below `2^32` (`load_gpow`), so a range check
@@ -122,46 +122,6 @@ theorem list_split_sound : list_split_sound_Spec := by
     simp only [claimGroup]
     ring
   · rw [← hr, e17, e18, hx1, hx2]
-
-/-! ## `cover_da_root` (G:4078-4083, TRIAGE #95) -/
-
-theorem core30_body : Fn.body Data.core30 =
-    [.atom (.hint (.witness "da_index" (.stack [.n 4]))),
-     .atom (.const (.n 5) (word 9223372036854775821 0 0)),
-     .atom (.mul (.n 6) (.n 2) (.n 5)),
-     .atom (.rangeCheck (.n 4) (.n 7) (.n 8) (.n 9) (.n 6)),
-     .atom (.mul (.n 10) (.n 1) (.n 4)), .atom (.load (.n 3) (.n 10) 0),
-     .atom (.mul (.n 11) (.n 4) (.n 4)), .atom (.mul (.n 12) (.n 11) (.n 11)),
-     .atom (.mul (.n 13) (.n 0) (.n 12)), .atom (.load (.n 14) (.n 13) 0),
-     .atom (.load (.n 15) (.n 13) 1), .atom (.load (.n 16) (.n 13) 2),
-     .atom (.load (.n 17) (.n 13) 3), .ret [.n 14, .n 15, .n 16, .n 17]] :=
-  stmtsEqb_sound (by decide +kernel)
-
-/-- **`cover_da_root` marks a DA slot below the bound and returns its four cells.** -/
-theorem cover_da_root_sound : cover_da_root_sound_Spec := by
-  intro rd hm args rets h
-  obtain ⟨σ, hp, hb⟩ := (rel_iff_sem find_cover_da_root args rets).mp h
-  rw [core30_body] at hb
-  simp only [Stmt.HoldsList, Stmt.Holds, Atom.Holds, List.map_cons, List.map_nil] at hb
-  obtain ⟨-, c5, m6, rc, m10, l3, m11, m12, m13, l14, l15, l16, l17, hr⟩ := hb
-  obtain ⟨i, hx, hbl⟩ := rc_below hm (b := σ (.n 2)) (by rw [m6, c5]) rc
-  have hp' : args = [σ (.n 0), σ (.n 1), σ (.n 2), σ (.n 3)] := by rw [← hp]; rfl
-  subst hp'
-  have h4 : σ (.n 13) = σ (.n 0) * gen ^ (4 * i) := by
-    rw [m13, m12, m11, hx, ← pow_add, ← pow_add]
-    congr 2
-    ring
-  refine ⟨i, hbl, ?_, by rw [← hr]; rfl, fun c hc => ?_⟩
-  · rw [m10, hx] at l3
-    have := (loadHolds_mul_gen_pow rd _ i 0 _).mp l3
-    simpa using this
-  · rw [h4] at l14 l15 l16 l17
-    rw [← hr]
-    interval_cases c
-    · exact (loadHolds_mul_gen_pow rd _ _ 0 _).mp l14
-    · exact (loadHolds_mul_gen_pow rd _ _ 1 _).mp l15
-    · exact (loadHolds_mul_gen_pow rd _ _ 2 _).mp l16
-    · exact (loadHolds_mul_gen_pow rd _ _ 3 _).mp l17
 
 end
 end LeanVM.Guest.B1.Digest

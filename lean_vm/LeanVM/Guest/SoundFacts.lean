@@ -94,14 +94,14 @@ theorem coreOf_19 : coreOf 19 = Data.core18 := rfl
 /-! ## `main`'s window -/
 
 theorem main_cut : (certOf 1).cuts.length = 1 ∧ ((certOf 1).cutAt 1).known = [] ∧
-    ((certOf 1).cutAt 1).sems = [((certOf 1).locs.getD 65 0, (certOf 1).locs.getD 66 0)] := by
+    ((certOf 1).cutAt 1).sems = [((certOf 1).locs.getD 49 0, (certOf 1).locs.getD 50 0)] := by
   decide +kernel
 
 theorem main_call : ((coreOf 1).body.take ((certOf 1).cutAt 1).start) =
     (coreOf 1).body.take (((certOf 1).cutAt 1).start - 1) ++
-      [.call "exponent_tables" [] [.n 65, .n 66]] := by
+      [.call "exponent_tables" [] [.n 49, .n 50]] := by
   have h : ((coreOf 1).body[((certOf 1).cutAt 1).start - 1]?) =
-      some (.call "exponent_tables" [] [.n 65, .n 66]) := rfl
+      some (.call "exponent_tables" [] [.n 49, .n 50]) := rfl
   obtain ⟨m, hm⟩ : ∃ m, ((certOf 1).cutAt 1).start = m + 1 :=
     ⟨_, (Nat.succ_pred_eq_of_pos (by decide +kernel)).symm⟩
   rw [hm, Nat.add_sub_cancel] at h ⊢
