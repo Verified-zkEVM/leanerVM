@@ -68,27 +68,27 @@ def colBody (rl gl : String) : List Stmt :=
     .atom (.load (.n 22) (.n 24) 1), .ret []]
 
 set_option maxRecDepth 100000 in
-theorem core895_body : Fn.body (coreProgram.getD 874 default) = rowBody true "__loop415" :=
+theorem core874_body : Fn.body (coreProgram.getD 874 default) = rowBody true "__loop415" :=
   stmtsEqb_sound (by decide +kernel)
 
 set_option maxRecDepth 100000 in
-theorem core897_body : Fn.body (coreProgram.getD 876 default) = rowBody false "__loop417" :=
+theorem core876_body : Fn.body (coreProgram.getD 876 default) = rowBody false "__loop417" :=
   stmtsEqb_sound (by decide +kernel)
 
 set_option maxRecDepth 100000 in
-theorem core896_body : Fn.body (coreProgram.getD 875 default) = gapBody "__loop416" :=
+theorem core875_body : Fn.body (coreProgram.getD 875 default) = gapBody "__loop416" :=
   stmtsEqb_sound (by decide +kernel)
 
 set_option maxRecDepth 100000 in
-theorem core898_body : Fn.body (coreProgram.getD 877 default) = gapBody "__loop418" :=
+theorem core877_body : Fn.body (coreProgram.getD 877 default) = gapBody "__loop418" :=
   stmtsEqb_sound (by decide +kernel)
 
 set_option maxRecDepth 100000 in
-theorem core769_body : Fn.body (coreProgram.getD 748 default) = colBody "__loop415" "__loop416" :=
+theorem core748_body : Fn.body (coreProgram.getD 748 default) = colBody "__loop415" "__loop416" :=
   stmtsEqb_sound (by decide +kernel)
 
 set_option maxRecDepth 100000 in
-theorem core770_body : Fn.body (coreProgram.getD 749 default) = colBody "__loop417" "__loop418" :=
+theorem core749_body : Fn.body (coreProgram.getD 749 default) = colBody "__loop417" "__loop418" :=
   stmtsEqb_sound (by decide +kernel)
 
 end

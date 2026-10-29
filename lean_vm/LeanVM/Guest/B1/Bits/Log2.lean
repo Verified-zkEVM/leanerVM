@@ -115,9 +115,9 @@ def vlBody (fl : ℕ) : List Stmt :=
   [.atom (.hint (.alloc (.n 3) 35)), .atom (.const (.n 4) (word 0 0 0)),
     .atom (.load (.n 4) (.n 3) 0)] ++ ((List.range 34).map vlBlk).flatten ++ vlTail fl
 
-theorem core406_body : Fn.body Data.core385 = vlBody 0 := stmtsEqb_sound (by decide +kernel)
+theorem core385_body : Fn.body Data.core385 = vlBody 0 := stmtsEqb_sound (by decide +kernel)
 
-theorem core407_body : Fn.body Data.core386 = vlBody 15 := stmtsEqb_sound (by decide +kernel)
+theorem core386_body : Fn.body Data.core386 = vlBody 15 := stmtsEqb_sound (by decide +kernel)
 
 /-! ## The bits, the prefix sums, the product -/
 
@@ -627,13 +627,13 @@ theorem verify_log2_ceil_L0_L34_iff {κ : ℕ} (hκ : κ ≤ 32) (hκ6 : 6 ≤ �
     {bits lp sq : E} (ht : ExpTables Lm.read lp sq) (rets : List E) :
     coreProgram.Rel Lm.read "verify_log2_ceil__L0_L34" [bits, lp, sq] rets ↔
       MeaningVerifyLog2Ceil 0 Lm.read [bits, lp, sq] rets :=
-  verify_log2_ceil_iff 0 (by decide) find_verify_log2_ceil_L0_L34 rfl core406_body hκ hκ6 Lm ht rets
+  verify_log2_ceil_iff 0 (by decide) find_verify_log2_ceil_L0_L34 rfl core385_body hκ hκ6 Lm ht rets
 
 theorem verify_log2_ceil_L15_L34_iff {κ : ℕ} (hκ : κ ≤ 32) (hκ6 : 6 ≤ κ) (Lm : MemImage κ)
     {bits lp sq : E} (ht : ExpTables Lm.read lp sq) (rets : List E) :
     coreProgram.Rel Lm.read "verify_log2_ceil__L15_L34" [bits, lp, sq] rets ↔
       MeaningVerifyLog2Ceil 15 Lm.read [bits, lp, sq] rets :=
-  verify_log2_ceil_iff 15 (by decide) find_verify_log2_ceil_L15_L34 rfl core407_body hκ hκ6 Lm ht
+  verify_log2_ceil_iff 15 (by decide) find_verify_log2_ceil_L15_L34 rfl core386_body hκ hκ6 Lm ht
     rets
 
 /-! ## `log2_ceil_in_the_exponent` -/

@@ -31,10 +31,10 @@ open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Memory Le
 /-- **`main`'s statically bounded callees' words.** -/
 theorem mainStaticsMain : B1.Main.MainStaticsMain B2C.fs wSB wSK where
   l0 := wSK_totalLeOn (j := wIdxL 0) (by decide +kernel)
-  l1 := wSK_totalLeOn (j := wIdxL 1) (by decide +kernel)
-  l2 := wSK_totalLeOn (j := wIdxL 2) (by decide +kernel)
-  l3 := wSK_totalLeOn (j := wIdxL 3) (by decide +kernel)
-  l4 := wSK_totalLeOn (j := wIdxL 4) (by decide +kernel)
+  l1 := wSK_totalLeOn (j := wIdxL 0) (by decide +kernel)
+  l2 := wSK_totalLeOn (j := wIdxL 1) (by decide +kernel)
+  l3 := wSK_totalLeOn (j := wIdxL 2) (by decide +kernel)
+  l4 := wSK_totalLeOn (j := wIdxL 3) (by decide +kernel)
   dl := wSB_totalLe (j := wIdx "da_list_digest") (by decide +kernel)
   st := wSB_totalLe (j := wIdx "statement_digest") (by decide +kernel)
 
@@ -44,15 +44,15 @@ theorem dlNames_ok : (List.range 11).all (fun k => wOkB (wIdx B1.Da.dlNames[k]!)
 
 /-- **`da_verify`'s static callees' words.** -/
 theorem dvStatic : B1.Da.DvStaticB B2C.fs wSB wSK where
-  l18 := wSK_totalLeOn (j := wIdxL 18) (by decide +kernel)
-  l19 := wSK_totalLeOn (j := wIdxL 19) (by decide +kernel)
-  l22 := wSK_totalLeOn (j := wIdxL 22) (by decide +kernel)
-  l23 := wSK_totalLeOn (j := wIdxL 23) (by decide +kernel)
-  l24 := wSK_totalLeOn (j := wIdxL 24) (by decide +kernel)
-  l417 := wSK_totalLeOn (j := wIdxL 417) (by decide +kernel)
-  l418 := wSK_totalLeOn (j := wIdxL 418) (by decide +kernel)
-  l419 := wSK_totalLeOn (j := wIdxL 419) (by decide +kernel)
-  l420 := wSK_totalLeOn (j := wIdxL 420) (by decide +kernel)
+  l18 := wSK_totalLeOn (j := wIdxL 17) (by decide +kernel)
+  l19 := wSK_totalLeOn (j := wIdxL 18) (by decide +kernel)
+  l22 := wSK_totalLeOn (j := wIdxL 21) (by decide +kernel)
+  l23 := wSK_totalLeOn (j := wIdxL 22) (by decide +kernel)
+  l24 := wSK_totalLeOn (j := wIdxL 23) (by decide +kernel)
+  l417 := wSK_totalLeOn (j := wIdxL 415) (by decide +kernel)
+  l418 := wSK_totalLeOn (j := wIdxL 416) (by decide +kernel)
+  l419 := wSK_totalLeOn (j := wIdxL 417) (by decide +kernel)
+  l420 := wSK_totalLeOn (j := wIdxL 418) (by decide +kernel)
   lev := wSB_totalLe (j := wIdx "da_levels__L128_L7") (by decide +kernel)
   dl := fun _ hk => wSB_totalLe (all_range_get dlNames_ok (Nat.lt_succ_of_le hk))
 
@@ -66,11 +66,11 @@ theorem mainStatics : B1.Main.MainStatics B2C.fs wSB wSK where
   main := mainStaticsMain
   dv := dvStatic
   ls := wSB_totalLe (j := wIdx "list_split") (by decide +kernel)
-  l16 := wSK_totalLeOn (j := wIdxL 16) (by decide +kernel)
+  l16 := wSK_totalLeOn (j := wIdxL 15) (by decide +kernel)
   cl := fun _ hk => wSB_totalLe (all_range_get clNames_ok hk)
-  l25 := wSK_totalLeOn (j := wIdxL 25) (by decide +kernel)
-  l26 := wSK_totalLeOn (j := wIdxL 26) (by decide +kernel)
-  l27 := wSK_totalLeOn (j := wIdxL 27) (by decide +kernel)
+  l25 := wSK_totalLeOn (j := wIdxL 24) (by decide +kernel)
+  l26 := wSK_totalLeOn (j := wIdxL 25) (by decide +kernel)
+  l27 := wSK_totalLeOn (j := wIdxL 26) (by decide +kernel)
   bs := wSB_totalLe (j := wIdx "batch_sumcheck__L23") (by decide +kernel)
 
 /-- `open_stacked`'s named callees, checked. -/

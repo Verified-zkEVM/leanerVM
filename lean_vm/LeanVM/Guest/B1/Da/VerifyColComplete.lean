@@ -296,13 +296,13 @@ theorem dv_colM {P : DaPtrs} {j : ℕ} (hm : ColMem r L syms ws rd P j) (hL : L 
   have hct := colm_ct hm hj
   by_cases h64 : j < 64
   · rw [ite_pos' h64]
-    exact col_rel find_col1 core769_body col1_params find_l417 row417_shape.1 find_l418
+    exact col_rel find_col1 core748_body col1_params find_l417 row417_shape.1 find_l418
       gap418_shape.1 hL hvec (colm_rows1 hm hrL hsl hwl h64)
-      (colm_gaps hm gap418_shape.1 gap418_shape.2 core896_body) hlev hct.1 hct.2
+      (colm_gaps hm gap418_shape.1 gap418_shape.2 core875_body) hlev hct.1 hct.2
   · rw [ite_neg' h64]
-    exact col_rel find_col0 core770_body col0_params find_l419 row419_shape.1 find_l420
+    exact col_rel find_col0 core749_body col0_params find_l419 row419_shape.1 find_l420
       gap420_shape.1 hL hvec (colm_rows0 hm hrL hsl hwl hj)
-      (colm_gaps hm gap420_shape.1 gap420_shape.2 core898_body) hlev hct.1 hct.2
+      (colm_gaps hm gap420_shape.1 gap420_shape.2 core877_body) hlev hct.1 hct.2
 
 /-- **Column `j` holds** on the honest memory. -/
 theorem dv_col {P : DaPtrs} (hm : DaMem r L syms ws rd P) (hL : L ≤ 10) (hrL : r ≤ 2 ^ L)

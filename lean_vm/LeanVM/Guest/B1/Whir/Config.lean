@@ -136,7 +136,7 @@ def osNLevels (m : Nat) : Nat := lig Data.arr_LIG_N_LEVELS m
 
 /-- The first loop helper of candidate `m`: the helpers are numbered in order, two per level
 (the squeeze loops, then the residual loops), from `__loop32`. -/
-def loopBase (m : Nat) : Nat := 34 + 2 * ((List.range m).map osNLevels).sum
+def loopBase (m : Nat) : Nat := 32 + 2 * ((List.range m).map osNLevels).sum
 
 /-- Candidate `m`'s configuration. -/
 def osCfg (m : Nat) : OsCfg :=

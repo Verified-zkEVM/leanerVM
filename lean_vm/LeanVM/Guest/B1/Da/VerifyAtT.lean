@@ -115,20 +115,20 @@ theorem dvT_completeAt (fs : String → ℕ) (cert : String → V → ℕ)
   have hcol1 : ∀ k, 0 ≤ k → k < 64 → CompleteAtDT fs cert 16 "da_verify_column__L1" Own
       [gen ^ k, gen ^ r, gen ^ 2 ^ L, gen ^ (2 ^ L - r), gen ^ L, P.pb, P.ct, P.rb, P.cd]
       (Returns []) (colNH "da_verify_column__L1" "__loop415" "__loop416" r L) := fun k _ hk =>
-    col_completeAtT fs cert hcv find_col1 core769_body col1_params (by
+    col_completeAtT fs cert hcv find_col1 core748_body col1_params (by
       rw [Program.loop_of_find? find_col1]; decide +kernel) find_l417 row417_shape.1 find_l418
       gap418_shape.1 (by decide) (by decide)
       (fun rd node lv hm => colm_rows1 hm hrL hsl hwl hk)
-      (fun rd node lv hm => colm_gaps hm gap418_shape.1 gap418_shape.2 core896_body)
+      (fun rd node lv hm => colm_gaps hm gap418_shape.1 gap418_shape.2 core875_body)
       hr1 hrL hL10 hwl (by omega)
   have hcol0 : ∀ k, 64 ≤ k → k < 128 → CompleteAtDT fs cert 16 "da_verify_column__L0" Own
       [gen ^ k, gen ^ r, gen ^ 2 ^ L, gen ^ (2 ^ L - r), gen ^ L, P.pb, P.ct, P.rb, P.cd]
       (Returns []) (colNH "da_verify_column__L0" "__loop417" "__loop418" r L) := fun k _ hk =>
-    col_completeAtT fs cert hcv find_col0 core770_body col0_params (by
+    col_completeAtT fs cert hcv find_col0 core749_body col0_params (by
       rw [Program.loop_of_find? find_col0]; decide +kernel) find_l419 row419_shape.1 find_l420
       gap420_shape.1 (by decide) (by decide)
       (fun rd node lv hm => colm_rows0 hm hrL hsl hwl hk)
-      (fun rd node lv hm => colm_gaps hm gap420_shape.1 gap420_shape.2 core898_body)
+      (fun rd node lv hm => colm_gaps hm gap420_shape.1 gap420_shape.2 core877_body)
       hr1 hrL hL10 hwl hk
   have hl20 : CompleteAtDT fs cert 16 "__loop19" Own
       [1, gen ^ r, gen ^ 2 ^ L, gen ^ (2 ^ L - r), gen ^ L, P.pb, P.ct, P.rb, P.cd] (Returns [])

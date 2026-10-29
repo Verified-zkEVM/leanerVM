@@ -113,31 +113,31 @@ def dqBody (d : ℕ) : List Stmt :=
   [.atom (.hint (.bits (.n 0) 0 192 (.stack dqRun))), .atom (.frameAddr (.n 195) dqRun)] ++ g.1 ++
     l.1 ++ [.atom (.assertEq l.2 (.n 0)), .ret []]
 
-theorem core832_body : Fn.body Data.core811 = dqBody 14 := stmtsEqb_sound (by decide +kernel)
+theorem core811_body : Fn.body Data.core811 = dqBody 14 := stmtsEqb_sound (by decide +kernel)
 
-theorem core826_body : Fn.body Data.core805 = dqBody 17 := stmtsEqb_sound (by decide +kernel)
+theorem core805_body : Fn.body Data.core805 = dqBody 17 := stmtsEqb_sound (by decide +kernel)
 
-theorem core828_body : Fn.body Data.core807 = dqBody 16 := stmtsEqb_sound (by decide +kernel)
+theorem core807_body : Fn.body Data.core807 = dqBody 16 := stmtsEqb_sound (by decide +kernel)
 
-theorem core830_body : Fn.body Data.core809 = dqBody 15 := stmtsEqb_sound (by decide +kernel)
+theorem core809_body : Fn.body Data.core809 = dqBody 15 := stmtsEqb_sound (by decide +kernel)
 
-theorem core834_body : Fn.body Data.core813 = dqBody 18 := stmtsEqb_sound (by decide +kernel)
+theorem core813_body : Fn.body Data.core813 = dqBody 18 := stmtsEqb_sound (by decide +kernel)
 
-theorem core838_body : Fn.body Data.core817 = dqBody 19 := stmtsEqb_sound (by decide +kernel)
+theorem core817_body : Fn.body Data.core817 = dqBody 19 := stmtsEqb_sound (by decide +kernel)
 
-theorem core842_body : Fn.body Data.core821 = dqBody 20 := stmtsEqb_sound (by decide +kernel)
+theorem core821_body : Fn.body Data.core821 = dqBody 20 := stmtsEqb_sound (by decide +kernel)
 
-theorem core846_body : Fn.body Data.core825 = dqBody 21 := stmtsEqb_sound (by decide +kernel)
+theorem core825_body : Fn.body Data.core825 = dqBody 21 := stmtsEqb_sound (by decide +kernel)
 
-theorem core850_body : Fn.body Data.core829 = dqBody 22 := stmtsEqb_sound (by decide +kernel)
+theorem core829_body : Fn.body Data.core829 = dqBody 22 := stmtsEqb_sound (by decide +kernel)
 
-theorem core854_body : Fn.body Data.core833 = dqBody 23 := stmtsEqb_sound (by decide +kernel)
+theorem core833_body : Fn.body Data.core833 = dqBody 23 := stmtsEqb_sound (by decide +kernel)
 
-theorem core868_body : Fn.body Data.core847 = dqBody 24 := stmtsEqb_sound (by decide +kernel)
+theorem core847_body : Fn.body Data.core847 = dqBody 24 := stmtsEqb_sound (by decide +kernel)
 
-theorem core879_body : Fn.body Data.core858 = dqBody 25 := stmtsEqb_sound (by decide +kernel)
+theorem core858_body : Fn.body Data.core858 = dqBody 25 := stmtsEqb_sound (by decide +kernel)
 
-theorem core891_body : Fn.body Data.core870 = dqBody 26 := stmtsEqb_sound (by decide +kernel)
+theorem core870_body : Fn.body Data.core870 = dqBody 26 := stmtsEqb_sound (by decide +kernel)
 
 /-! ## Sums and bit runs -/
 
@@ -1023,79 +1023,79 @@ set_option maxRecDepth 100000 in
 theorem decode_query_bits_L14_iff (rd : Reader) (args rets : List E) :
     coreProgram.Rel rd "decode_query_bits__L14" args rets ↔ MeaningDecodeQueryBits 14 rd args rets :=
   decode_query_bits_iff 14 (by decide) (by decide)
-    (Program.find?_of_indexOf? (j := 811) (by decide +kernel) rfl) rfl core832_body rd args rets
+    (Program.find?_of_indexOf? (j := 811) (by decide +kernel) rfl) rfl core811_body rd args rets
 
 set_option maxRecDepth 100000 in
 theorem decode_query_bits_L15_iff (rd : Reader) (args rets : List E) :
     coreProgram.Rel rd "decode_query_bits__L15" args rets ↔ MeaningDecodeQueryBits 15 rd args rets :=
   decode_query_bits_iff 15 (by decide) (by decide)
-    (Program.find?_of_indexOf? (j := 809) (by decide +kernel) rfl) rfl core830_body rd args rets
+    (Program.find?_of_indexOf? (j := 809) (by decide +kernel) rfl) rfl core809_body rd args rets
 
 set_option maxRecDepth 100000 in
 theorem decode_query_bits_L16_iff (rd : Reader) (args rets : List E) :
     coreProgram.Rel rd "decode_query_bits__L16" args rets ↔ MeaningDecodeQueryBits 16 rd args rets :=
   decode_query_bits_iff 16 (by decide) (by decide)
-    (Program.find?_of_indexOf? (j := 807) (by decide +kernel) rfl) rfl core828_body rd args rets
+    (Program.find?_of_indexOf? (j := 807) (by decide +kernel) rfl) rfl core807_body rd args rets
 
 set_option maxRecDepth 100000 in
 theorem decode_query_bits_L17_iff (rd : Reader) (args rets : List E) :
     coreProgram.Rel rd "decode_query_bits__L17" args rets ↔ MeaningDecodeQueryBits 17 rd args rets :=
   decode_query_bits_iff 17 (by decide) (by decide)
-    (Program.find?_of_indexOf? (j := 805) (by decide +kernel) rfl) rfl core826_body rd args rets
+    (Program.find?_of_indexOf? (j := 805) (by decide +kernel) rfl) rfl core805_body rd args rets
 
 set_option maxRecDepth 100000 in
 theorem decode_query_bits_L18_iff (rd : Reader) (args rets : List E) :
     coreProgram.Rel rd "decode_query_bits__L18" args rets ↔ MeaningDecodeQueryBits 18 rd args rets :=
   decode_query_bits_iff 18 (by decide) (by decide)
-    (Program.find?_of_indexOf? (j := 813) (by decide +kernel) rfl) rfl core834_body rd args rets
+    (Program.find?_of_indexOf? (j := 813) (by decide +kernel) rfl) rfl core813_body rd args rets
 
 set_option maxRecDepth 100000 in
 theorem decode_query_bits_L19_iff (rd : Reader) (args rets : List E) :
     coreProgram.Rel rd "decode_query_bits__L19" args rets ↔ MeaningDecodeQueryBits 19 rd args rets :=
   decode_query_bits_iff 19 (by decide) (by decide)
-    (Program.find?_of_indexOf? (j := 817) (by decide +kernel) rfl) rfl core838_body rd args rets
+    (Program.find?_of_indexOf? (j := 817) (by decide +kernel) rfl) rfl core817_body rd args rets
 
 set_option maxRecDepth 100000 in
 theorem decode_query_bits_L20_iff (rd : Reader) (args rets : List E) :
     coreProgram.Rel rd "decode_query_bits__L20" args rets ↔ MeaningDecodeQueryBits 20 rd args rets :=
   decode_query_bits_iff 20 (by decide) (by decide)
-    (Program.find?_of_indexOf? (j := 821) (by decide +kernel) rfl) rfl core842_body rd args rets
+    (Program.find?_of_indexOf? (j := 821) (by decide +kernel) rfl) rfl core821_body rd args rets
 
 set_option maxRecDepth 100000 in
 theorem decode_query_bits_L21_iff (rd : Reader) (args rets : List E) :
     coreProgram.Rel rd "decode_query_bits__L21" args rets ↔ MeaningDecodeQueryBits 21 rd args rets :=
   decode_query_bits_iff 21 (by decide) (by decide)
-    (Program.find?_of_indexOf? (j := 825) (by decide +kernel) rfl) rfl core846_body rd args rets
+    (Program.find?_of_indexOf? (j := 825) (by decide +kernel) rfl) rfl core825_body rd args rets
 
 set_option maxRecDepth 100000 in
 theorem decode_query_bits_L22_iff (rd : Reader) (args rets : List E) :
     coreProgram.Rel rd "decode_query_bits__L22" args rets ↔ MeaningDecodeQueryBits 22 rd args rets :=
   decode_query_bits_iff 22 (by decide) (by decide)
-    (Program.find?_of_indexOf? (j := 829) (by decide +kernel) rfl) rfl core850_body rd args rets
+    (Program.find?_of_indexOf? (j := 829) (by decide +kernel) rfl) rfl core829_body rd args rets
 
 set_option maxRecDepth 100000 in
 theorem decode_query_bits_L23_iff (rd : Reader) (args rets : List E) :
     coreProgram.Rel rd "decode_query_bits__L23" args rets ↔ MeaningDecodeQueryBits 23 rd args rets :=
   decode_query_bits_iff 23 (by decide) (by decide)
-    (Program.find?_of_indexOf? (j := 833) (by decide +kernel) rfl) rfl core854_body rd args rets
+    (Program.find?_of_indexOf? (j := 833) (by decide +kernel) rfl) rfl core833_body rd args rets
 
 set_option maxRecDepth 100000 in
 theorem decode_query_bits_L24_iff (rd : Reader) (args rets : List E) :
     coreProgram.Rel rd "decode_query_bits__L24" args rets ↔ MeaningDecodeQueryBits 24 rd args rets :=
   decode_query_bits_iff 24 (by decide) (by decide)
-    (Program.find?_of_indexOf? (j := 847) (by decide +kernel) rfl) rfl core868_body rd args rets
+    (Program.find?_of_indexOf? (j := 847) (by decide +kernel) rfl) rfl core847_body rd args rets
 
 set_option maxRecDepth 100000 in
 theorem decode_query_bits_L25_iff (rd : Reader) (args rets : List E) :
     coreProgram.Rel rd "decode_query_bits__L25" args rets ↔ MeaningDecodeQueryBits 25 rd args rets :=
   decode_query_bits_iff 25 (by decide) (by decide)
-    (Program.find?_of_indexOf? (j := 858) (by decide +kernel) rfl) rfl core879_body rd args rets
+    (Program.find?_of_indexOf? (j := 858) (by decide +kernel) rfl) rfl core858_body rd args rets
 
 set_option maxRecDepth 100000 in
 theorem decode_query_bits_L26_iff (rd : Reader) (args rets : List E) :
     coreProgram.Rel rd "decode_query_bits__L26" args rets ↔ MeaningDecodeQueryBits 26 rd args rets :=
   decode_query_bits_iff 26 (by decide) (by decide)
-    (Program.find?_of_indexOf? (j := 870) (by decide +kernel) rfl) rfl core891_body rd args rets
+    (Program.find?_of_indexOf? (j := 870) (by decide +kernel) rfl) rfl core870_body rd args rets
 
 /-- **`decode_query_bits`' core IR is its meaning**, at every deployed depth. -/
 theorem decode_query_bits_all_holds : decode_query_bits_all_Spec := by

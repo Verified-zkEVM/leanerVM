@@ -36,7 +36,7 @@ theorem l18_block {x N pb pd : E} (h : LoadHolds rd (pb * x) 0 (pd * x ^ 128)) :
   refine ⟨Val.ofArgs [x, N, pb, pd, x ^ 2, x ^ 4, x ^ 8, x ^ 16, x ^ 32, x ^ 64, x ^ 128,
     pd * x ^ 128, pb * x, word 2 0 0, x * word 2 0 0, x * word 2 0 0 + N, word 2 0 0,
     x * word 2 0 0], by rw [params_of_shape hs hl]; rfl, ?_⟩
-  rw [loopPre_of_body core359_body (by decide)]
+  rw [loopPre_of_body core356_body (by decide)]
   intro st hst
   simp only [l18Pre, sq7, stepAt, List.cons_append, List.nil_append, List.mem_cons,
     List.not_mem_nil, or_false] at hst
@@ -59,7 +59,7 @@ theorem l19_block {x N acc rb : E} (h1 : LoadHolds rd (rb * x) 0 (acc * x ^ 129)
   refine ⟨Val.ofArgs [x, N, acc, rb, x ^ 2, x ^ 4, x ^ 8, x ^ 16, x ^ 32, x ^ 64, x ^ 128,
     x ^ 128 * x, acc * (x ^ 128 * x), rb * x, word 0 0 0, word 2 0 0, x * word 2 0 0,
     x * word 2 0 0 + N, word 2 0 0, x * word 2 0 0], by rw [params_of_shape hs hl]; rfl, ?_⟩
-  rw [loopPre_of_body core360_body (by decide)]
+  rw [loopPre_of_body core357_body (by decide)]
   intro st hst
   simp only [l19Pre, sq7, stepAt, List.cons_append, List.nil_append, List.mem_cons,
     List.not_mem_nil, or_false] at hst
@@ -77,7 +77,7 @@ theorem l22_block {x N rb a : E} (h1 : LoadHolds rd (rb * x) 0 a) (h2 : LoadHold
   obtain ⟨-, -, ⟨hs, hl⟩, -⟩ := dvloops_shape
   refine ⟨Val.ofArgs [x, N, rb, rb * x, a, 0, word 0 0 0, word 2 0 0, x * word 2 0 0,
     x * word 2 0 0 + N, word 2 0 0, x * word 2 0 0], by rw [params_of_shape hs hl]; rfl, ?_⟩
-  rw [loopPre_of_body core363_body (by decide)]
+  rw [loopPre_of_body core360_body (by decide)]
   intro st hst
   simp only [l22Pre, stepAt, List.cons_append, List.nil_append, List.mem_cons,
     List.not_mem_nil, or_false] at hst
@@ -103,7 +103,7 @@ theorem l24_block {x N rt nb : E}
     word 4665334884586258498 1553031596697948144 0, word 7487832681283088925 14683883899259534590 0,
     word 2 0 0, x * word 2 0 0, x * word 2 0 0 + N, word 2 0 0, x * word 2 0 0],
     by rw [params_of_shape hs hl]; rfl, ?_⟩
-  rw [loopPre_of_body core366_body (by decide)]
+  rw [loopPre_of_body core363_body (by decide)]
   intro st hst
   simp only [l24Pre, stepAt, List.cons_append, List.nil_append, List.mem_cons,
     List.not_mem_nil, or_false] at hst

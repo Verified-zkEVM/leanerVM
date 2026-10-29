@@ -55,22 +55,22 @@ def l24Pre : List Stmt :=
     .atom (.load (.n 9) (.n 7) 1)] ++ stepAt 10
 
 set_option maxRecDepth 100000 in
-theorem core359_body : Fn.body (coreProgram.getD 356 default) =
+theorem core356_body : Fn.body (coreProgram.getD 356 default) =
     l18Pre ++ [.callIf (.n 15) "__loop17" [.n 17, .n 1, .n 2, .n 3], .ret []] :=
   stmtsEqb_sound (by decide +kernel)
 
 set_option maxRecDepth 100000 in
-theorem core360_body : Fn.body (coreProgram.getD 357 default) =
+theorem core357_body : Fn.body (coreProgram.getD 357 default) =
     l19Pre ++ [.callIf (.n 17) "__loop18" [.n 19, .n 1, .n 2, .n 3], .ret []] :=
   stmtsEqb_sound (by decide +kernel)
 
 set_option maxRecDepth 100000 in
-theorem core363_body : Fn.body (coreProgram.getD 360 default) =
+theorem core360_body : Fn.body (coreProgram.getD 360 default) =
     l22Pre ++ [.callIf (.n 9) "__loop21" [.n 11, .n 1, .n 2], .ret []] :=
   stmtsEqb_sound (by decide +kernel)
 
 set_option maxRecDepth 100000 in
-theorem core366_body : Fn.body (coreProgram.getD 363 default) =
+theorem core363_body : Fn.body (coreProgram.getD 363 default) =
     l24Pre ++ [.callIf (.n 12) "__loop23" [.n 14, .n 1, .n 2, .n 3], .ret []] :=
   stmtsEqb_sound (by decide +kernel)
 

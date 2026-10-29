@@ -55,7 +55,7 @@ theorem log2_L0_completeAtB (κ : ℕ) (hκ6 : 6 ≤ κ) (N lpE sqE : ℕ) (hN :
       (Returns [gen ^ max 0 (log2Ceil N)])
       (fs "log2_ceil_in_the_exponent__L0_L34" + 34 + (fs "verify_log2_ceil__L0_L34" + 35)) :=
   lce_completeAtB 0 (by norm_num) find_lce_L0 rfl rfl loop_lce_L0 find_verify_log2_ceil_L0_L34 rfl
-    core406_body loop_vl_L0 κ hκ6 N lpE sqE hN hL
+    core385_body loop_vl_L0 κ hκ6 N lpE sqE hN hL
 
 /-- **`log2_ceil_in_the_exponent__L15_L34`, placed and bounded.** -/
 theorem log2_L15_completeAtB (κ : ℕ) (hκ6 : 6 ≤ κ) (N lpE sqE : ℕ) (hN : N < 2 ^ 34)
@@ -65,7 +65,7 @@ theorem log2_L15_completeAtB (κ : ℕ) (hκ6 : 6 ≤ κ) (N lpE sqE : ℕ) (hN 
       (Returns [gen ^ max 15 (log2Ceil N)])
       (fs "log2_ceil_in_the_exponent__L15_L34" + 34 + (fs "verify_log2_ceil__L15_L34" + 35)) :=
   lce_completeAtB 15 (by norm_num) find_lce_L15 rfl rfl loop_lce_L15 find_verify_log2_ceil_L15_L34
-    rfl core407_body loop_vl_L15 κ hκ6 N lpE sqE hN hL
+    rfl core386_body loop_vl_L15 κ hκ6 N lpE sqE hN hL
 
 /-- **`log2_ceil_in_the_exponent__L0_L34`, placed** (the shape of fork c4's `Log2CompleteAt`). -/
 theorem log2_L0_completeAt (κ : ℕ) (hκ6 : 6 ≤ κ) : ∀ (N lpE sqE : ℕ), N < 2 ^ 34 →

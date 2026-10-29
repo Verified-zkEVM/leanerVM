@@ -596,10 +596,10 @@ theorem vt_loop_up (I : VtIn H B w rd) (h : VSH (coreProgram.Rel rd) rd σv loop
       simp only [VtHonest.curW, List.length_append, I.ok.hx5, I.ok.hxR]; omega
     exact ptr_lin (q := (B.cur, H.curW)) (by simp [VtHonest.linL]) hcl'
   refine loop10_relIn hK ?_ ?_ ?_ hcur d 0 hK hd
-  · exact ptr_own0 I.hw (j := 104) (by norm_num) (by decide) le_rfl
+  · exact ptr_own0 I.hw (j := 107) (by norm_num) (by decide) le_rfl
   · exact ptr_lin0 (q := (B.chi, H.chiW)) (by simp [VtHonest.linL]) (by
       simp [VtHonest.chiW, zcChis])
-  · exact ptr_own0 I.hw (j := 105) (by norm_num) (by decide) le_rfl
+  · exact ptr_own0 I.hw (j := 108) (by norm_num) (by decide) le_rfl
 
 theorem vt_epc_up (I : VtIn H B w rd) (h : VSH (coreProgram.Rel rd) rd σv epcCall) :
     VSH (coreProgram.RelIn rd (H.reg B)) rd σv epcCall := by
@@ -616,7 +616,7 @@ theorem vt_epc_up (I : VtIn H B w rd) (h : VSH (coreProgram.Rel rd) rd σv epcCa
   simp only [epcCall, vsh_call, List.map_cons, List.map_nil] at h ⊢
   rw [e5817] at h ⊢
   refine eq_prefix_chain_relIn (by omega) ?_ ?_ ?_ h
-  · rw [a5936]; exact ptr_own0 I.hw (j := 106) (by norm_num) (by decide) le_rfl
+  · rw [a5936]; exact ptr_own0 I.hw (j := 109) (by norm_num) (by decide) le_rfl
   · rw [vt_s18]
     exact ptr_lin0 (q := (B.chi, H.chiW)) (by simp [VtHonest.linL]) (by
       simp [VtHonest.chiW, zcChis])

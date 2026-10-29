@@ -92,7 +92,7 @@ theorem row_block1 {x N lv rowbase xb node pb d0 d1 s a prev pp : E}
   refine ⟨Val.ofArgs [x, N, lv, rowbase, xb, node, pb, d0, d1, s, rowbase * x, a, a * xb, prev,
     prev + s, x * x, node * (x * x), pb * x, pp, xb * xb, pp * (xb * xb), word 2 0 0, x * word 2 0 0,
     x * word 2 0 0 + N, word 2 0 0, x * word 2 0 0], by rw [params_of_shape hs hl]; rfl, ?_⟩
-  rw [loopPre_of_body core895_body (by decide)]
+  rw [loopPre_of_body core874_body (by decide)]
   intro st hst
   simp only [rowPre, ite_true, List.cons_append, List.nil_append, List.mem_cons,
     List.not_mem_nil, or_false] at hst
@@ -114,7 +114,7 @@ theorem row_block0 {x N lv rowbase xb node pb d0 d1 s a prev : E}
   refine ⟨Val.ofArgs [x, N, lv, rowbase, xb, node, pb, d0, d1, s, rowbase * x, a, a * xb, prev,
     prev + s, x * x, node * (x * x), word 2 0 0, x * word 2 0 0, x * word 2 0 0 + N, word 2 0 0,
     x * word 2 0 0], by rw [params_of_shape hs hl]; rfl, ?_⟩
-  rw [loopPre_of_body core897_body (by decide)]
+  rw [loopPre_of_body core876_body (by decide)]
   intro st hst
   simp only [rowPre, Bool.false_eq_true, ite_false, List.cons_append, List.nil_append,
     List.append_nil, List.mem_cons, List.not_mem_nil, or_false] at hst

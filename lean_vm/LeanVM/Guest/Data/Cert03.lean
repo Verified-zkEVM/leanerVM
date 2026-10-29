@@ -789,7 +789,7 @@ noncomputable def cert359 : Check.Cert where
   ins := [[]]
   nret := 0
   callees := [359, 749]
-  pre := []
+  pre := [(6, 11)]
   post := []
   mem := []
   sem := []
@@ -825,7 +825,7 @@ noncomputable def cert361 : Check.Cert where
   ins := [[]]
   nret := 0
   callees := [361]
-  pre := [(6, 11)]
+  pre := []
   post := []
   mem := []
   sem := []

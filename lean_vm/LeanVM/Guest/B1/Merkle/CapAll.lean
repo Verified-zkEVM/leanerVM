@@ -22,11 +22,11 @@ open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile LeanVM.P
 
 @[expose] public section
 
-theorem core523_body : Fn.body Data.core502 = mcBody (2 ^ 4) := stmtsEqb_sound (by decide +kernel)
-theorem core421_body : Fn.body Data.core400 = mcBody (2 ^ 5) := stmtsEqb_sound (by decide +kernel)
-theorem core417_body : Fn.body Data.core396 = mcBody (2 ^ 6) := stmtsEqb_sound (by decide +kernel)
-theorem core532_body : Fn.body Data.core511 = mcBody (2 ^ 7) := stmtsEqb_sound (by decide +kernel)
-theorem core412_body : Fn.body Data.core391 = mcBody (2 ^ 8) := stmtsEqb_sound (by decide +kernel)
+theorem core502_body : Fn.body Data.core502 = mcBody (2 ^ 4) := stmtsEqb_sound (by decide +kernel)
+theorem core400_body : Fn.body Data.core400 = mcBody (2 ^ 5) := stmtsEqb_sound (by decide +kernel)
+theorem core396_body : Fn.body Data.core396 = mcBody (2 ^ 6) := stmtsEqb_sound (by decide +kernel)
+theorem core511_body : Fn.body Data.core511 = mcBody (2 ^ 7) := stmtsEqb_sound (by decide +kernel)
+theorem core391_body : Fn.body Data.core391 = mcBody (2 ^ 8) := stmtsEqb_sound (by decide +kernel)
 
 theorem merkle_cap_at {name : String} {f : Fn} (D : ℕ) (hD : 4 ≤ D)
     (hfind : coreProgram.find? name = some f) (hparams : f.params = [.n 0, .n 1])
@@ -46,15 +46,15 @@ theorem verify_merkle_cap_holds : verify_merkle_cap_Spec := by
   simp only [merkleCapNames, List.mem_cons, List.not_mem_nil, or_false] at hp
   rcases hp with rfl | rfl | rfl | rfl | rfl
   · exact merkle_cap_at 4 le_rfl (Program.find?_of_indexOf? (j := 502) (by decide +kernel) rfl)
-      rfl core523_body
+      rfl core502_body
   · exact merkle_cap_at 5 (by omega) (Program.find?_of_indexOf? (j := 400) (by decide +kernel) rfl)
-      rfl core421_body
+      rfl core400_body
   · exact merkle_cap_at 6 (by omega) (Program.find?_of_indexOf? (j := 396) (by decide +kernel) rfl)
-      rfl core417_body
+      rfl core396_body
   · exact merkle_cap_at 7 (by omega) (Program.find?_of_indexOf? (j := 511) (by decide +kernel) rfl)
-      rfl core532_body
+      rfl core511_body
   · exact merkle_cap_at 8 (by omega) (Program.find?_of_indexOf? (j := 391) (by decide +kernel) rfl)
-      rfl core412_body
+      rfl core391_body
 
 end
 end LeanVM.Guest.B1

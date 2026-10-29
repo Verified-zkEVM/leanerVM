@@ -485,10 +485,10 @@ theorem rwStmts_complete {point out : E} {r : ℕ → E} :
     exact hst
 
 set_option maxRecDepth 100000 in
-theorem core416_body : Fn.body Data.core395 = rwBody 4 0 := stmtsEqb_sound (by decide +kernel)
+theorem core395_body : Fn.body Data.core395 = rwBody 4 0 := stmtsEqb_sound (by decide +kernel)
 
 set_option maxRecDepth 100000 in
-theorem core411_body : Fn.body Data.core390 = rwBody 6 1 := stmtsEqb_sound (by decide +kernel)
+theorem core390_body : Fn.body Data.core390 = rwBody 6 1 := stmtsEqb_sound (by decide +kernel)
 
 theorem rw_complete {name : String} {f : Fn} (folds rev : ℕ) (hlo : 0 < rwLo folds)
     (hhi : rwLo folds < folds) (hfind : coreProgram.find? name = some f)
@@ -545,11 +545,11 @@ theorem opening_row_weights_holds : opening_row_weights_Spec := by
   have l6 : rwLo 6 = 3 := rfl
   have l4 : rwLo 4 = 3 := rfl
   exact ⟨fun rd args rets ↦ ⟨rw_sound 6 1 (by rw [l6]; omega) (by rw [l6]; omega) h1 rfl
-      core411_body rd args rets, rw_complete 6 1 (by rw [l6]; omega) (by rw [l6]; omega) h1 rfl
-      core411_body rd args rets⟩,
+      core390_body rd args rets, rw_complete 6 1 (by rw [l6]; omega) (by rw [l6]; omega) h1 rfl
+      core390_body rd args rets⟩,
     fun rd args rets ↦ ⟨rw_sound 4 0 (by rw [l4]; omega) (by rw [l4]; omega) h2 rfl
-      core416_body rd args rets, rw_complete 4 0 (by rw [l4]; omega) (by rw [l4]; omega) h2 rfl
-      core416_body rd args rets⟩⟩
+      core395_body rd args rets, rw_complete 4 0 (by rw [l4]; omega) (by rw [l4]; omega) h2 rfl
+      core395_body rd args rets⟩⟩
 
 end
 end LeanVM.Guest.B1

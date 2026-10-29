@@ -47,7 +47,7 @@ def gcBody : List Stmt :=
   canonicalLimbsT (.n 0) 1 ++ [.atom (.hint (.bits (.n 1) 0 64 (.stack gcRun)))] ++
   ((List.range 47).map gcBlk).flatten ++ [.atom (.assertEq (.n 208) (.n 1)), .ret []]
 
-theorem core409_body : Fn.body Data.core388 = gcBody := stmtsEqb_sound (by decide +kernel)
+theorem core388_body : Fn.body Data.core388 = gcBody := stmtsEqb_sound (by decide +kernel)
 
 set_option maxRecDepth 100000 in
 theorem find_grind_check : coreProgram.find? "grind_check__L17" = some Data.core388 :=
@@ -125,7 +125,7 @@ theorem gv_acc (w : E) (j : ℕ) : gcVals w (gcAcc j) = gcSum w (j + 1) := by
 /-- **`grind_check`'s core IR is its meaning.** -/
 theorem grind_check_holds : grind_check_Spec := by
   intro rd args rets
-  rw [rel_iff_sem find_grind_check, core409_body, show Fn.params Data.core388 = [.n 0] from rfl,
+  rw [rel_iff_sem find_grind_check, core388_body, show Fn.params Data.core388 = [.n 0] from rfl,
     gcBody]
   simp only [holdsList_append, holds_canonicalLimbsT,
     holdsList_range_flatten 47 gcBlk (fun j => by cases j <;> rfl), holds_gcBlk, Stmt.HoldsList,
