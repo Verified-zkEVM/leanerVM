@@ -1,7 +1,7 @@
 # Status: the leanVM proof system on ArkLib
 
-Where the [protocol blueprint](protocol-blueprint.md) stands on `main` at `08dd030` (2026-10-07),
-checked on 2026-10-10; a row marked *on merge* lands with its pull request. This file says what is built and what the built work still owes the
+Where the [protocol blueprint](protocol-blueprint.md) stands at the reviewed `main` baseline
+`a37b2b045b6e6c8e70697c5332ae04683b157b55` (2026-10-22), checked on 2026-10-28. This file says what is built and what the built work still owes the
 blueprint. What is wanted is the blueprint's; who is taking which hole is issue
 [#12](https://github.com/Verified-zkEVM/leanerVM/issues/12)'s; discrepancies in the leanVM sources
 are in [leanvm-target.md](../leanvm-target.md#known-discrepancies-at-the-pin). Open pull requests
@@ -37,22 +37,34 @@ The pins are those of `upstreams.json`: leanVM `a386121f`, ArkLib `7653a901`, Co
 | bus phase: definition and completeness (Layer 6) | #79 | `97ef4d4` | 2026-10-07 |
 | bus phase: knowledge soundness (Layer 6) | #80 | `b12a9e8` | 2026-10-07 |
 | the opening phase (Layer 10), without `leanVmPhases` | #81 | `08dd030` | 2026-10-07 |
-| Flock phase: definition and completeness (Layer 9) | #86 | on merge | on merge |
-| Flock phase: knowledge soundness (Layer 9) | #88 | on merge | on merge |
-| Flock phase: the product-gate circuit library (Layer 9) | #92 | on merge | on merge |
-| Flock phase: the BLAKE2s circuit (Layer 9) | #93 | on merge | on merge |
-| Flock phase: `FlockSpec` and its BLAKE2s inhabitant (Layer 9) | #94 | on merge | on merge |
-| the oracle protocol: `leanVmPhases` and leanVM's master theorems (Layer 10) | #95 | on merge | on merge |
-| Clean expressions as polynomials (Layer 2) | #96 | on merge | on merge |
-| the adaptor: the leanISA instance, its stack and the witness read off it (Layer 3) | #97 | on merge | on merge |
-| the adaptor: soundness, discharging the BLAKE2s validity (Layer 3) | #98 | on merge | on merge |
-| the adaptor: completeness and the witness read back (Layer 3) | #99 | on merge | on merge |
+| Flock phase: definition and completeness (Layer 9) | #86 | `d0befbdf` | 2026-10-19 |
+| Flock phase: knowledge soundness (Layer 9) | #88 | `7e68f01e` | 2026-10-19 |
+| Flock phase: the product-gate circuit library (Layer 9) | #92 | `311acb5a` | 2026-10-19 |
+| Flock phase: the BLAKE2s circuit (Layer 9) | #93 | `e715c498` | 2026-10-19 |
+| Flock phase: `FlockSpec` and its BLAKE2s inhabitant (Layer 9) | #94 | `95595a90` | 2026-10-19 |
+| the oracle protocol: `leanVmPhases` and leanVM's master theorems (Layer 10) | #95 | `9f184cb5` | 2026-10-19 |
+| Clean expressions as polynomials (Layer 2) | #96 | `56b2e7a4` | 2026-10-19 |
+| the adaptor: the leanISA instance, its stack and the witness read off it (Layer 3) | #97 | `c29a7c12` | 2026-10-19 |
+| the adaptor: soundness, discharging the BLAKE2s validity (Layer 3) | #98 | `cb977a75` | 2026-10-19 |
+| the adaptor: completeness and the witness read back (Layer 3) | #99 | `3e455705` | 2026-10-19 |
 
-The two master theorems are proved over an abstract instance and are conditional on the five
-phases after the commitment; on `main`, the public-input phase is built, with the specification's
+The newer encoder/opening work is also on this baseline: the executable novel-basis encoder
+and column weights (`NovelBasis.lean`, #103, `30813407`), BLAKE2s byte hashing and Merkle/WHIR
+parameters (#67, `751d3d88`), the oracle WHIR opening and perfect completeness
+(`Whir/Open.lean`, `Whir.whirOpen_perfectCompleteness`, #108, `f44135e0`), its round-by-round
+security for the list relation (`Whir/OpenSound.lean`, `Whir.whirOpen_rbrSoundness`, #109,
+`b9b4ab33`), and lazy weight tables (#110, `b68a399c`). The list relation and the ideal oracle
+interfaces are part of those statements. They do not supply a compiled Rust-verifier
+refinement or the open same-oracle recursive extraction bridge. The blueprint retains those
+as separate obligations. The detailed historical development record below should be read
+with this current baseline summary.
+
+The two master theorems are proved over an abstract instance; their concrete phase assembly is
+on this baseline in `Piop.lean`. The component-level statements remain conditional on their
+relations and side conditions. On `main`, the public-input phase is built, with the specification's
 check and with the check of the deployed verifiers, the bus phase, both halves, with #79 and
 #80, the table sumcheck, both halves, with #85 and #87, and the opening phase, both halves, with
-#81. With the Flock phase (#86, #88), all five are built, and the branch of the oracle protocol
+#81. With the Flock phase (#86, #88), all five are built, and `Piop.lean`
 instantiates the master theorems at leanVM's phases (`Protocol/Piop.lean`: `leanVmPhases`,
 `leanVmComplete`, `leanVmSecurity`, `leanVm_perfectCompleteness`, `leanVm_rbrKnowledgeSoundness`)
 for every instance meeting the bus phase's conditions and the degree bound `I.d ≤ 2`. `#print axioms` gives the kernel's three
@@ -585,8 +597,9 @@ pinned sources is [archived](../reviews/protocol-spine-revision.md).
     two is the deployed `∏_{m<τ_t} (1 + ζ_m + r_m) · ∏_{m≥τ_t} r_m` (tested).
   - `tableSummand_target` is stated under the bus seam. What the security reads is the identity
     before it, `sum_tableSummand`: the sum over the cube is the true values (each constraint's
-    extension at `ζ`, each side's forms summed) batched by the powers of `ξ`, so it is the target
-    exactly when the bus seam's two claims hold (`trueValues_eq_claimed_iff`).
+    extension at `ζ`, each side's forms summed) batched by the powers of `ξ`. The seam implies
+    that this sum equals the target. `trueValues_eq_claimed_iff` characterizes the full vector
+    equality; a single batching challenge can hide false claims, as the security bound accounts.
   - Completeness takes `I.d ≤ 2`: the slot's rounds are cubic and the summand has degree `d + 1`
     in each variable. It is the phase's side condition, as the bus phase's are (decision 30);
     the leanISA instance has `d = 2` by definition.

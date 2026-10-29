@@ -17,9 +17,10 @@ public import LeanerVM.Semantics.Blake2s
 
 Category B: transcribed from leanVM at pin `a386121f84292f6fa663aaa3e570c15bc0240ea2`,
 `crates/flock/src/hash.rs:40-63` (layout), `:143-162` (positions and gadget offsets) and
-`:295-358` (`forward_walk`), with the adder rows of `crates/flock/src/gf2.rs`, cross-checked row
-for row against `python-verifier/verifier.py:1180-1295` (`blake2s_row_values`) by the digest
-test. The specification fixes the constant at position `512` and the row of each kind of wire
+`:295-358` (`forward_walk`), with the adder rows of `crates/flock/src/gf2.rs`. A single
+weighted checksum covering all circuit rows is compared with `python-verifier/verifier.py:1180-1295`
+(`blake2s_row_values`). This is regression evidence, not an injective matrix representation or
+a proof of rowwise equality. The specification fixes the constant at position `512` and the row of each kind of wire
 (`doc/leanvm/body/c-flock-protocol.tex:22-28`, `:205-215`: a product `(u, u')`, a committed XOR
 `(S_w, 1)`, a source `(w, 1)`, an empty position zero), which `rowOf` implements; it does not
 fix the circuit or its other positions.

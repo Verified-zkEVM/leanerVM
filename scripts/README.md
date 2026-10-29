@@ -48,8 +48,9 @@
   blocks), for the differential check of the honest column in
   `tests/LeanerVMTests/Protocol/FlockSpec.lean`; requires `cargo`.
 - `dump-flock-circuit-digest.py <leanVM checkout>`: digests the rows of the Flock BLAKE2s
-  circuit as the pinned Python verifier's `blake2s_row_values` walks them, for the row-for-row
-  comparison in `tests/LeanerVMTests/Protocol/Blake2sCircuit.lean`; requires only Python and a
+  circuit as the pinned Python verifier's `blake2s_row_values` walks them, for the modular
+  weighted-checksum regression in `tests/LeanerVMTests/Protocol/Blake2sCircuit.lean`; this does
+  not establish rowwise equality. Requires only Python and a
   checkout at the pinned commit.
 - `whir-mca-budget.py`: reproduces the pinned Rust's per-level WHIR `η` search in doubles, checks
   it against the Python verifier's query table, and decides in exact arithmetic that ArkLib's

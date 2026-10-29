@@ -50,8 +50,9 @@ back and is computable; `setRowOf_refines` and `set_exec_complete` are the `XOR`
 
 ## Wrong readings excluded
 
-* The immediate's three lanes are bytecode coordinates `4, 5, 6` of the entry, the slots
-  `DEREF` uses for `o₃, f_pc, f_fp` (roadmap acceptance test 16; Layer 4's `entry`).
+* The immediate's three lanes have zero-based indices `2, 3, 4` in the eight-coordinate
+  entry, or indices `5, 6, 7` in its sixteen-slot encoding. The same entry positions in
+  `DEREF` hold `o₂, o₃, f_pc` (roadmap acceptance test 16; Layer 4's `entry`).
 * The word read at `fp·o` is the immediate itself, all three limbs: a row whose cell holds any
   other word fails `SetRefines` (the mutated row in the tests). A row whose immediate is not the
   program's at its counter is the bus's to reject (Layer 9), as it is for leanVM's `SET` AIR,

@@ -45,8 +45,11 @@ sumcheck proves them all:
    coordinates (`tableOut`).
 
 The sum of the summand over the cube is the batch of the true values, each constraint's extension
-at `ζ` and each side's forms summed (`sum_tableSummand`), so it is the target exactly when the bus
-seam's two claims hold (`tableSummand_target`). In characteristic two the factor
+at `ζ` and each side's forms summed (`sum_tableSummand`). The bus seam implies that this sum
+is the target (`tableSummand_target`). Conversely, equality at a particular batching challenge
+can hide false entries; the reverse direction is bounded probabilistically in the security
+proof. The unbatched vector equality, rather than one power-batch evaluation, is equivalent
+to the seam's constraint and total claims (`trueValues_eq_claimed_iff`). In characteristic two the factor
 `(1 − r)(1 − ζ) + rζ` of `eq` is the deployed `1 + ζ + r`.
 
 Perfect completeness (`tableSumcheckComplete`), from `Seam.bus` to `Seam.table`, needs the
