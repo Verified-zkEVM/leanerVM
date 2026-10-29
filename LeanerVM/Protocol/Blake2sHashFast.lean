@@ -28,35 +28,6 @@ open LeanerVM.Parameters LeanerVM.Semantics
 
 @[expose] public section
 
-/-- The bytes of a word, read back little-endian, are the word. -/
-theorem leWord_wordBytes (w : UInt32) :
-    leWord w.toUInt8 (w >>> 8).toUInt8 (w >>> 16).toUInt8 (w >>> 24).toUInt8 = w := by
-  apply UInt32.toNat_inj.mp
-  apply Nat.eq_of_testBit_eq
-  intro j
-  simp only [leWord, UInt32.toNat_or, UInt32.toNat_shiftLeft, UInt8.toNat_toUInt32,
-    UInt32.toNat_toUInt8, UInt32.toNat_shiftRight, Nat.testBit_or, Nat.testBit_mod_two_pow,
-    Nat.testBit_shiftLeft, Nat.testBit_shiftRight]
-  have hw : w.toNat.testBit j = (decide (j < 32) && w.toNat.testBit j) := by
-    by_cases h : j < 32
-    · simp [h]
-    · simp [h, Nat.testBit_lt_two_pow (w.toNat_lt.trans_le (Nat.pow_le_pow_right (by norm_num)
-        (by omega : 32 ≤ j)))]
-  rw [hw]
-  rcases (by omega : j < 8 ∨ (8 ≤ j ∧ j < 16) ∨ (16 ≤ j ∧ j < 24) ∨ (24 ≤ j ∧ j < 32) ∨ 32 ≤ j)
-    with h | h | h | h | h
-  · simp [h, show j < 32 by omega, show ¬ 8 ≤ j by omega, show ¬ 16 ≤ j by omega,
-      show ¬ 24 ≤ j by omega]
-  · simp [h, show j < 32 by omega, show ¬ j < 8 by omega, show ¬ 16 ≤ j by omega,
-      show ¬ 24 ≤ j by omega, show j - 8 < 8 by omega, show 8 + (j - 8) = j by omega]
-  · simp [h, show j < 32 by omega, show ¬ j < 8 by omega, show ¬ 24 ≤ j by omega,
-      show 8 ≤ j by omega, show ¬ j - 8 < 8 by omega, show j - 16 < 8 by omega,
-      show 16 + (j - 16) = j by omega]
-  · simp [h, show ¬ j < 8 by omega, show 8 ≤ j by omega, show 16 ≤ j by omega,
-      show ¬ j - 8 < 8 by omega, show ¬ j - 16 < 8 by omega, show j - 24 < 8 by omega,
-      show 24 + (j - 24) = j by omega]
-  · simp [show ¬ j < 32 by omega, show ¬ j < 8 by omega]
-
 /-- The sixteen little-endian words of the 64 bytes of `a` from `off`, zero-padded past its end:
 `blockWords` reading in place. -/
 def blockWordsAt (a : Array UInt8) (off : ℕ) : Vector UInt32 16 :=

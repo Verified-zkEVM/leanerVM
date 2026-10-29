@@ -123,12 +123,23 @@ adaptor: the leanISA instance with the deployed stack layout (`Protocol/LeanIsa.
 (`LeanIsa/Sound.lean`: `satisfiedBy_witnessOf`, which discharges `SatisfiedBy`'s BLAKE2s validity
 from the Flock region by `blake2sRowsValid_witnessOf`) and its completeness
 (`LeanIsa/Complete.lean`: `m3Holds_stackOf`, `witnessOf_stackOf`), on the bus read as one bus and
-the relations' clauses as equivalences (`LeanIsa/Bus.lean`, `LeanIsa/Relation.lean`). *On
-merge* of #67: the Merkle trees over BLAKE2s with completeness and binding as a computed collision
-(`Protocol/Merkle.lean`, generic in `ToArkLib/Merkle.lean`), the byte hasher and the digest
-encoding (`Protocol/Blake2sHash.lean`), and the WHIR parameters (`Parameters/Whir.lean`). Nothing
-else is built: the other generic components, the WHIR opening, the compiled verifier and the base
-theorems.
+the relations' clauses as equivalences (`LeanIsa/Bus.lean`, `LeanIsa/Relation.lean`). The byte
+hasher and the digest encoding (`Protocol/Blake2sHash.lean`) and the WHIR parameters
+(`Parameters/Whir.lean`) are on `main` (#67). On the branch `feat/protocol-merkle-octopus`, the
+Merkle trees over a byte hash (`Protocol/Merkle.lean`, generic in `ToVCVio/Merkle.lean`): the root
+(`merkleRootWith`, `merkleRoot`), a phase's pruned opening as the verifier checks it
+(`merkleVerifyWith`, `merkleVerify`), the prover's commitment, with the tree built once, and
+its openings (`merkleCommitWith`, `merkleCommit`, `merkleOpen`), completeness
+(`merkleVerifyWith_merkleOpen`), the node query model (`nodeModel`), and the reading as VCVio's
+batch opening for every hash (`toBatchOpening`, `merkle_fits`); they replace the single-path
+check of #67 and its binding as a computed collision. On the branch
+`feat/protocol-merkle-binding`, their binding by replaying the hash log
+(`Protocol/MerkleBinding.lean`, generic in `ToVCVio/MerkleLog.lean`): the rows read off a log
+(`extractRows`, in one pass `extractAllRows`), `binding_of_log`, which equates an accepted
+opening's rows with them unless the log is inconsistent or shows a collision or a fresh hit, and
+`extractRows_determined`.
+Nothing else is built: the other generic components, the WHIR opening, the compiled verifier and
+the base theorems.
 
 ## What the built work owes the blueprint
 
@@ -642,11 +653,55 @@ pinned sources is [archived](../reviews/protocol-spine-revision.md).
     follows through the stack bound `leanIsaμ ≤ 28`, not from `logMem ≤ 32` alone). The base
     theorems apply `satisfiedBy_witnessOf` inside their event, so no knowledge transport along it
     is owed.
-- **The Merkle trees (Layer 11)** fix BLAKE2s as the hash, and `merkleVerify` checks one path
-  (`Protocol/Merkle.lean`, over the generic tree of `ToArkLib/Merkle.lean`), with binding as a
-  computed collision. Owed by decision 32: the hash as a parameter (`merkleRootWith`,
-  `merkleVerifyWith`), `merkleVerify` as a phase's pruned opening, the generic tree moved to
-  `ToVCVio/Merkle.lean` beside `toBatchOpening`, `nodeModel`, and `merkle_fits`.
+- **The Merkle trees (Layer 11)** are the Rust's over a byte hash, read as VCVio's (decision 32),
+  on the branch `feat/protocol-merkle-octopus`. `merkleVerifyWith` is a phase's pruned opening in
+  any monad, calling the hash once per stored row and once per rebuilt node, in the Rust's order
+  (nine calls for the octopus of the Rust's test). Where it differs from the sketch:
+  - `merkle_fits` reads the result through `Id.run`, and its row conjunct includes
+    `rowWords ≤ leafWords`, without which it is false (a four-word row in three-word leaves has
+    itself as its leaf image); the blueprint's sketch now says so.
+  - The Rust's checks that the leaf count is a power of two and that some query is made are
+    subsumed: the tree has `2^depth` leaves, and the walk over an opening of no query has no node
+    to read at the top. The Rust also returns each query's full path, which is dropped.
+  - The single-path check, its completeness and its binding as a computed collision are deleted.
+  - Binding is log replay, on the branch `feat/protocol-merkle-binding`, deterministic and over
+    any encoding of leaves and nodes into one query domain (`ToVCVio/MerkleLog.lean`).
+    `extractTree` reads a tree top-down off a log, a node's children those of the first logged
+    query answered by it that parses as a node (`nodePreimage`), and `leafPreimage` a leaf's
+    payload; `extractLeaves` does it for every position in one pass, by hash maps
+    (`extractLeaves_eq`). `MerkleTree.binding_of_log`: if the walk over a pruned opening at
+    strictly increasing positions in the tree, every hash answered from the log
+    `logA ++ logV`, reaches `root`, the log is `Consistent`, has no collision (`HasCollision`) and
+    no `FreshHit` (a query of `logV` that `logA` never asks, answered by a root or a child of a
+    node query of `logA`), then every opened payload is the one read off `logA` at its position.
+    `MerkleTree.extractLeaf_determined`: with a consistent log and no fresh hit, the leaves read
+    off the whole log under a root are those read off `logA`. A fresh hit grows with `logV`, the
+    roots and `logA`'s known digests, and is a hit at the first occurrence of its input
+    (`FreshHit.mono_logV`, `FreshHit.mono_roots`, `Known.mono`, `Fresh.anti`, `FreshHit.first`).
+    Each condition has a toy mutation in which the check accepts a payload other than the
+    extracted one, or with none extracted, and only that condition fails
+    (`tests/LeanerVMTests/Protocol/MerkleBinding.lean`).
+    leanVM's instance (`Protocol/MerkleBinding.lean`): `extractRows` takes the row width as well
+    as the leaf width, since a row may begin with zero words, and is `none` where the leaf query
+    found is not a row's leaf image; `binding_of_log` is stated for `merkleVerifyWith` run in
+    `Option` with every hash answered by a partial oracle whose answers are logged, and equates
+    the rows it returns with the leaf images of the rows read off `logA` at the queries;
+    `extractRows_determined` is the instance of `extractLeaf_determined`.
+  - Where binding differs from the docs pull request's sketch: the module is
+    `ToVCVio/MerkleLog.lean`; the known digests are the roots and the children of `logA`'s node
+    queries only (an answer of `logA` hit by a fresh query is a collision, and the extraction never
+    descends into a sibling), and only fresh queries of `logV` are constrained; consistency is a
+    hypothesis, since an input answered in `logV` other than in `logA` defeats the extraction.
+    `fold_map` (the walk commutes with a map of node algebras) is added to `ToVCVio/Merkle.lean`.
+  - Owed: `merkle_fits` is the reading as VCVio's and is not on the binding path; that
+    `toBatchOpening` selects exactly the queried positions, with their leaf digests as values, is
+    tested and not proved. The blueprint's decision 32 and the hashed-leaf hole are revised in the
+    docs pull request. In Layer 12: that `merkleVerifyWith` run with the hash as a random-oracle
+    query answered by BLAKE2s is `merkleVerify`; the probability of a collision or a fresh hit on
+    the logged game. A root is never a 32-byte block of a query: the chain absorbs it as two
+    scalars, each in an observe block (`transcript.rs:52`, `lib.rs:85`), so the in-play digests of
+    a prefix must include the digest decoded from two consecutive observe blocks of its chain for
+    a fresh hit on a root to be a hit.
 - **The honest prover, compiled** (*on merge* of the stateful-provers branch). No target theorem
   advances and no statement changes: `leanVmFastProver` (`Protocol/HonestProver.lean`) is an
   honest-prover refinement, a prover whose run is `leanVmProver (leanVmPhases I h)`'s
@@ -664,8 +719,9 @@ pinned sources is [archived](../reviews/protocol-spine-revision.md).
 ## What can start now
 
 The spine's slots are on `main`, so the phases are written against them. These can start: the
-WHIR opening and the Merkle trees with the WHIR parameters (Layer 11), and the charged invariant
-and, after the octopus the Merkle trees owe, Merkle binding by log replay (Layer 12).
+WHIR opening with the WHIR parameters (Layer 11), and the charged invariant (Layer 12). The Merkle
+trees are on the branch `feat/protocol-merkle-octopus`, and their binding by log replay on
+`feat/protocol-merkle-binding`.
 
 *On merge* of #103, the first slice of the WHIR opening is on `main`: the novel basis, the
 encoder as a linear injection with its distance, and the column weights with their `κ`-step
@@ -701,6 +757,89 @@ relation. The blueprint's Layer 11 is updated with it (the theorem's statement a
 It still owes: the adaptor from `mcaJohnson_annexB` (and a Johnson list bound) to `ListBound` and
 `McaBound` is the remaining piece of Layer 11, and its planned name no longer collides with an
 interface; the theorem is not knowledge soundness.
+
+*On merge* of the Fiat–Shamir chain's pull request, the first piece of Layer 12 is on `main`:
+the chain, transcribed from `fiat_shamir/src/lib.rs` (`Protocol/Transcript.lean`: `FsState`,
+`observe`, `sample`, `powBase`, `powOk`, `grind`, `checkPow`), every operation generic in the
+64-byte hash `H : List UInt8 → m Digest` with the deployed instances in `Deployed`, and the
+statement's constants computed by `blake2sBytes` directly, never through `H` (`programHash`, the
+hash of the stacked bytecode table; `fsSeed`, `fs_seed`'s 78-byte preimage hashed; and the
+starting state `FsState.seed`, the hash of `fsSeed` and the public input's lanes);
+`FsState.checkPow_of_grind`: the verifier's check accepts the prover's nonce and lands in its
+state, for every hash function. The tests are known answers dumped from the pinned Rust
+(`scripts/dump-fs-chain-rust.sh`): the program hash, the seed, observes, squeezes, the grinding
+base and an 8-bit grind (nonce 262). The chain computes the Rust's values; it differs only in that
+the prover's nonce search takes fuel, where the Rust loops, and that at `bits ≥ 64`, outside the
+Rust's debug assertion and far above the deployed `17`, `powOk` asks for a zero first word where a
+release build of the Rust masks the shift.
+
+*On merge* of the proof object's pull request, stacked on the chain's: the proof and its
+transcript, transcribed from `fiat_shamir/src/transcript.rs` and `cpu/mod.rs:108-178`
+(`Protocol/Proof.lean`). `Proof M` is a stream of `E` and the opening phases, generic in the
+opening type `M`, which the Merkle trees will fix. The reader (`ReaderState`, `ReadM` over the
+hash's monad, failing with a `ReadError`) has `nextScalar(s)`, `nextRoot`, `nextRoundPoly`,
+`sample`, `checkPow`, `nextOpening` (with an authenticator), `finish` and `readSizes` (the
+announced sizes and `read_public`'s setup checks, `setupOk`); the writer (`WriteM`) mirrors it.
+`Proof.announced?` and `Proof.sizes?` read the sizes off the stream, and
+`announced?_of_readSizes` says the reader accepts only those. `RoundPoly.decode` derives the
+dropped coefficient from the claim as `transcript.rs:289-309` does (`c_1` in a plain round, `c_0`
+with the equality weight factored out); `decode_encode`, `encode_decode` and `check_of_decode`
+make it an injection onto the polynomials that pass the round's check, and
+`Reader.nextRoundPoly_eq` says that reading a round is reading `d` scalars and decoding them, so
+its chain effect does not depend on the claim. The round trip is
+`ReadsBack`, proved for each pair of mirrored operations at every hash function in `Id` and
+composed along `bind`; `runRead_runWrite`: the reader run on what the writer wrote returns the
+related value and the writer's chain state, with nothing left over. The tests read the Rust's
+transcript (a root, a cubic plain and a quartic factored round, a grind) back to the Rust's
+values and challenges, and each reader check rejects its mutation. The transcript differs from
+the Rust's in no accepted proof: a memory log-size of `0` fails `Proof.announced?` where the Rust
+fails its window; a round takes its degree where the Rust takes its number of coefficients, and at
+degree `0`, where the Rust asserts, the reader rejects and the writer writes a wire the reader
+rejects; a round's coefficients are observed as they are read, as in the Python verifier; and the
+sizes' limbs are checked after all eight are read. The blueprint's Layer 12 sketch owes these
+edits:
+- `Proof` is generic in its opening type.
+- `RoundPoly.decode` takes the factored weight `eq?` and returns `Vector E (d + 1)`, the type of
+  `SumcheckRound.Message`, not `Fin (d + 1) → E`.
+- The sizes come with the rate (`Proof.announced?`), and `Proof.sizes?` is their first component.
+- The prover's grind takes fuel and returns the nonce (`grind fuel s bits`); the verifier's check
+  takes it (`checkPow s bits nonce`).
+- The chain's names: the 64-byte step is `FsState.stepBytes` (the sketch's `Block` and `step`),
+  absorbed by `observe`, `sample` and `absorbNonce`; the grinding predicate (`grinds`) is
+  `powOk`; the challenge of a digest (`chalOfDigest`) is `FsState.challengeOf`.
+
+*On merge* of the chain-history pull request, the hash oracle and the chain read off a log are on
+`main` (`Protocol/RandomOracle.lean`). The oracle is `hashSpec` (`List UInt8 →ₒ Digest`), queried
+by `hashQuery`, run by `runBlake2s` (every query answered by `blake2sBytes`) or `runRandom`
+(VCVio's lazy random oracle from the empty cache, with the final cache); a uniform digest is
+VCVio's vector sampler over Mathlib's enumeration of `UInt32`, and `card_digest` counts `2^256`.
+`prEvent_challengeOf`: the challenge of a uniform digest is uniform on `E`;
+`prEvent_lowBitsZero`: a grinding check of `bits ≤ 64` bits passes on a uniform digest with
+probability `2^-bits`. The chain's steps are `Block`s, an observe, a squeeze or a nonce
+(`Transcript.lean`: `Block.input`, `FsState.step` and its agreement with `observe`, `sample` and
+`absorbNonce`, the parser `Block.parse?` with `parse?_input`, over the byte decoders
+`digestOfBytes` and `kOfBytes` of `Blake2sHash.lean`). `chainHistory` reads a chain back from a
+state to the seed through the generic `HashChain.history` (`ToVCVio/HashChain.lean`), over the
+generic log predicates `Consistent`, `HasCollision`, `Fresh` and `HasHit` (`ToVCVio/QueryLog.lean`;
+a hit is a fresh answer in play after the entries before it, for an in-play function of the
+prefix), which have the shapes of the Merkle log replay's and are for it to reuse. The digests in
+play (`inPlay`) are fixed roots (the seed among them), the halves of every logged 64-byte input,
+and the Merkle roots the log's chains absorb as two consecutive observes (`rebuiltRoots`), so the
+hit is a function of the prefix, as the charged invariant needs.
+`chainHistory_of_noCollision_noSeed` (a logged chain is its history when the log has no collision
+and no answer is the seed); `chainHistory_take_of_noCollision_noHit` (in a consistent log with no
+collision and no hit, the history is in the log before any query from the chain's last state that
+is none of its steps: the next step, `chainHistory_take_of_step`, the grinding base or the
+grinding check); `chainHistory_determined`. A Merkle node, a 64-byte input of the same oracle, may
+parse as a step and is one more entry of the log. The tests: the random oracle's answer to a fresh
+query is uniform, a repeated query is answered from the cache, the log of an honest chain (with a
+node beside it) gives back its blocks and states, also before the grinding base, and a collision,
+an answer equal to the seed, a state produced after the query using it, and a fresh node answered
+by an absorbed root each break the history or are a hit. It still owes `decodePrefix`, the lemma
+that the verifier's chain walk logs its chain, and the lemma that `HasCollision`, `HasHit` and
+`chainHistory` read the same on the game's `withQueryLog` log (repeats included) and on the
+charged invariant's log of fresh queries, given `Consistent`; it is stated once both branches are
+on `main`.
 
 ## Upstream watch
 
