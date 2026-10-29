@@ -228,10 +228,10 @@ theorem main_relAtInT_core (fs : String → ℕ) (cert : String → V → ℕ) (
   have h404 : σ (.n 404) = 0 ↔ m.nc = 0 := by
     rw [hv.v404, add_comm, e_add_eq_zero_iff, eq_comm, gen_pow_eq_one_iff (by omega)]
   have hw := walk_main σ
-  have hes : mEvs σ = mPre.flatMap (Main.slEvs σ) ++ (.inK (.n 338) ::
+  have hes : mEvs σ = (mPre.flatMap (Main.slEvs σ) ++ (.inK (.n 338) ::
       (if m.nd = 1 then mDa else mDaZ).flatMap (Main.slEvs σ) ++ (mMid.flatMap (Main.slEvs σ) ++
         (.inK (.n 404) :: (if m.nc = 0 then mLeaf else mAgg).flatMap (Main.slEvs σ) ++
-          mPost.flatMap (Main.slEvs σ)))) := by
+          mPost.flatMap (Main.slEvs σ))))) := by
     unfold mEvs
     by_cases a : m.nd = 1 <;> by_cases b : m.nc = 0
     · rw [ite_pos' (h338.mpr a), ite_pos' (h404.mpr b), ite_pos' a, ite_pos' b]
@@ -244,10 +244,10 @@ theorem main_relAtInT_core (fs : String → ℕ) (cert : String → V → ℕ) (
   have sDa : (if m.nd = 1 then mDa else mDaZ).all Main.Stmt.straight = true := by split <;> simp_all
   have sBr : (if m.nc = 0 then mLeaf else mAgg).all Main.Stmt.straight = true := by split <;> simp_all
   -- the events hold
-  have hev : ∀ x ∈ mPre.flatMap (Main.slEvs σ) ++ (.inK (.n 338) ::
+  have hev : ∀ x ∈ (mPre.flatMap (Main.slEvs σ) ++ (.inK (.n 338) ::
       (if m.nd = 1 then mDa else mDaZ).flatMap (Main.slEvs σ) ++ (mMid.flatMap (Main.slEvs σ) ++
         (.inK (.n 404) :: (if m.nc = 0 then mLeaf else mAgg).flatMap (Main.slEvs σ) ++
-          mPost.flatMap (Main.slEvs σ)))), x.Holds rd σ := by
+          mPost.flatMap (Main.slEvs σ))))), x.Holds rd σ := by
     intro x hx
     simp only [List.mem_append, List.mem_cons] at hx
     rcases hx with hx | (rfl | hx) | hx | (rfl | hx) | hx
@@ -291,10 +291,10 @@ theorem main_relAtInT_core (fs : String → ℕ) (cert : String → V → ℕ) (
   have hX : m.nlx + m.nxd ≤ 65535 := by have := hb.total; simp only [MainIn.total] at this; omega
   have hY : m.nls + m.nsd ≤ 65535 := by have := hb.total; simp only [MainIn.total] at this; omega
   have hT : m.total ≤ 65535 := hb.total
-  have hal : allocs σ mPre.flatMap (Main.slEvs σ) ++ (.inK (.n 338) ::
+  have hal : allocs σ (mPre.flatMap (Main.slEvs σ) ++ (.inK (.n 338) ::
       (if m.nd = 1 then mDa else mDaZ).flatMap (Main.slEvs σ) ++ (mMid.flatMap (Main.slEvs σ) ++
         (.inK (.n 404) :: (if m.nc = 0 then mLeaf else mAgg).flatMap (Main.slEvs σ) ++
-          mPost.flatMap (Main.slEvs σ)))) = mSizes d := by
+          mPost.flatMap (Main.slEvs σ))))) = mSizes d := by
     rw [allocs_append, allocs_append, allocs_inK, allocs_append, allocs_append, allocs_inK, pa1, pa2,
       pa3, pa4, pa5, a1, aDa, a3, aBr, a6]
     simp only [List.map_cons, List.map_nil, Sum.elim_inr, Sum.elim_inl, id, List.append_nil,
@@ -317,10 +317,10 @@ theorem main_relAtInT_core (fs : String → ℕ) (cert : String → V → ℕ) (
   have o377 : σ (.n 377) = gen ^ (Memory.bases b0 (mSizes d)).getD 7 0 := by rw [hO (by decide)]; rfl
   have o380 : σ (.n 380) = gen ^ (Memory.bases b0 (mSizes d)).getD 8 0 := by rw [hO (by decide)]; rfl
   have o402 : σ (.n 402) = gen ^ (Memory.bases b0 (mSizes d)).getD 9 0 := by rw [hO (by decide)]; rfl
-  have hbuf : (allocDsts mPre.flatMap (Main.slEvs σ) ++ (.inK (.n 338) ::
+  have hbuf : (allocDsts (mPre.flatMap (Main.slEvs σ) ++ (.inK (.n 338) ::
       (if m.nd = 1 then mDa else mDaZ).flatMap (Main.slEvs σ) ++ (mMid.flatMap (Main.slEvs σ) ++
         (.inK (.n 404) :: (if m.nc = 0 then mLeaf else mAgg).flatMap (Main.slEvs σ) ++
-          mPost.flatMap (Main.slEvs σ))))).map σ = (Memory.bases b0 (mSizes d)).map fun b => ofK (gpow b) := by
+          mPost.flatMap (Main.slEvs σ)))))).map σ = (Memory.bases b0 (mSizes d)).map fun b => ofK (gpow b) := by
     rw [allocDsts_append, allocDsts_append, allocDsts_inK, allocDsts_append, allocDsts_append,
       allocDsts_inK, pd1, pd2, pd3, pd4, pd5, a1, aDa, a3, aBr, a6]
     simp only [List.map_cons, List.map_nil, List.append_nil, List.nil_append, List.cons_append,
@@ -338,10 +338,10 @@ theorem main_relAtInT_core (fs : String → ℕ) (cert : String → V → ℕ) (
     split
     · exact mLeaf_calls
     · exact mAgg_calls
-  have hcalls : calls mPre.flatMap (Main.slEvs σ) ++ (.inK (.n 338) ::
+  have hcalls : calls (mPre.flatMap (Main.slEvs σ) ++ (.inK (.n 338) ::
       (if m.nd = 1 then mDa else mDaZ).flatMap (Main.slEvs σ) ++ (mMid.flatMap (Main.slEvs σ) ++
         (.inK (.n 404) :: (if m.nc = 0 then mLeaf else mAgg).flatMap (Main.slEvs σ) ++
-          mPost.flatMap (Main.slEvs σ)))) = mCalls σ m := by
+          mPost.flatMap (Main.slEvs σ))))) = mCalls σ m := by
     unfold mCalls
     rw [calls_append, calls_append, calls_inK, calls_append, calls_append, calls_inK, pc1, pc2, pc3, pc4,
       pc5, mPre_calls, cDa, mMid_calls, cBr, mPost_calls]
@@ -351,10 +351,10 @@ theorem main_relAtInT_core (fs : String → ℕ) (cert : String → V → ℕ) (
       (mSizes d).zip (Memory.bases b0 (mSizes d)) := by
     intro j hj
     interval_cases j <;> simp [mSizes, Memory.bases]
-  set es := mPre.flatMap (Main.slEvs σ) ++ (.inK (.n 338) ::
+  set es := (mPre.flatMap (Main.slEvs σ) ++ (.inK (.n 338) ::
       (if m.nd = 1 then mDa else mDaZ).flatMap (Main.slEvs σ) ++ (mMid.flatMap (Main.slEvs σ) ++
         (.inK (.n 404) :: (if m.nc = 0 then mLeaf else mAgg).flatMap (Main.slEvs σ) ++
-          mPost.flatMap (Main.slEvs σ)))) with hesd
+          mPost.flatMap (Main.slEvs σ))))) with hesd
   have hown : ∀ j < 10, ∀ k < (mSizes d).getD j 0,
       ownData cert fp b0 "main" (mSizes d) es ((Memory.bases b0 (mSizes d)).getD j 0 + k) :=
     fun j hj k hk => Or.inl ⟨_, hzip j hj, by simp only; omega, by simp only; omega⟩
@@ -554,6 +554,8 @@ theorem main_relAtInT_core (fs : String → ℕ) (cert : String → V → ℕ) (
       · exact l2
       · exact l2'
     have hpk : d.pick ≤ d.nc := hb.pick
+    have hmn : m.nc = d.nc := rfl
+    have hmp : m.pick = d.pick := rfl
     have h336 : σ (.n 336) = gen ^ ((Memory.bases b0 (mSizes d)).getD 4 0 + 2 * m.nc) := by
       rw [hv.v336, pow_add]; rfl
     have h401 : σ (.n 401) = gen ^ ((Memory.bases b0 (mSizes d)).getD 4 0 + 2 * m.pick) := by
@@ -567,9 +569,9 @@ theorem main_relAtInT_core (fs : String → ℕ) (cert : String → V → ℕ) (
     · rw [lDa] at h
       simp only [List.map_cons, List.map_nil, List.mem_cons, List.not_mem_nil, or_false] at h
       rcases h with rfl | rfl
-      · exact ⟨_, by rw [h336, limb0_gen_pow_mul],
+      · exact ⟨_, by rw [h336, limb0_gen_pow_mul, Nat.add_assoc],
           Or.inl (hown 4 (by norm_num) (2 * m.nc + 0) (by simp [mSizes]; omega))⟩
-      · exact ⟨_, by rw [h336, limb0_gen_pow_mul],
+      · exact ⟨_, by rw [h336, limb0_gen_pow_mul, Nat.add_assoc],
           Or.inl (hown 4 (by norm_num) (2 * m.nc + 1) (by simp [mSizes]; omega))⟩
     · rw [l3] at h
       simp only [List.map_cons, List.map_nil, List.mem_cons, List.not_mem_nil, or_false] at h
@@ -588,9 +590,9 @@ theorem main_relAtInT_core (fs : String → ℕ) (cert : String → V → ℕ) (
     · rw [l6] at h
       simp only [List.map_cons, List.map_nil, List.mem_cons, List.not_mem_nil, or_false] at h
       rcases h with rfl | rfl | rfl | rfl
-      · exact ⟨_, by rw [h401, limb0_gen_pow_mul],
+      · exact ⟨_, by rw [h401, limb0_gen_pow_mul, Nat.add_assoc],
           Or.inl (hown 4 (by norm_num) (2 * m.pick + 0) (by simp [mSizes]; omega))⟩
-      · exact ⟨_, by rw [h401, limb0_gen_pow_mul],
+      · exact ⟨_, by rw [h401, limb0_gen_pow_mul, Nat.add_assoc],
           Or.inl (hown 4 (by norm_num) (2 * m.pick + 1) (by simp [mSizes]; omega))⟩
       · refine ⟨0, ?_, Or.inr (Or.inl (by norm_num))⟩
         rw [hv.v433, ← pow_zero gen, limb0_gen_pow_mul]
