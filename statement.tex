@@ -332,6 +332,11 @@ padded with one zero element to an even number. The lists' lengths are bound by 
 the deferred claim's encoding carries no length, so deferred claims are told apart only at one
 shape. The guest program's public input is this $32$-byte digest.
 
+The seed $\sigma$ is the Fiat--Shamir IV with which $G$ verifies its children's proofs, which are
+proofs of $G$ itself. $G$ cannot contain its own IV (a hash of its own bytecode), so it reads
+$\sigma$ as input, and the digest binds it; the outer verifier computes the digest with
+$\sigma = iv_G$.
+
 \paragraph{A witness} $w$ (\lean{NodeWitness}) consists of
 \begin{itemize}
 \item a list of \emph{children}, each a statement $s_i$, a proof $p_i$, and a \emph{fresh} claim
