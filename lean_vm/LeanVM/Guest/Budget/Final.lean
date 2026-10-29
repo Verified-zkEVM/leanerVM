@@ -35,7 +35,7 @@ open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest LeanVM.Guest.Core LeanVM.Gu
 open LeanVM.Node LeanVM.Protocol
 open LeanVM.Guest.End (MainComplete Budget work bytecode bytecode_length)
 open LeanVM.Guest.B1.Main (Bmain mainBsH hm hData mainPredsH hDvNH VerifySubGoalsTB MainStatics
-  main_honest_budgetB hData_bounds childBv hRawD direct_held)
+  main_honest_budgetB hData_bounds childBv)
 
 @[expose] public section
 
@@ -113,27 +113,21 @@ theorem clHonest_weight {ω fs : String → ℕ} (H : MainCounts ω fs) {n : ℕ
     (hb : t.BufsOk coreProgram) (hT : B1.Main.clHonest n t) : t.weight ω ≤ H.clA + H.clS * n :=
   H.cl rd t args rets n hnm hv hb hT (by omega)
 
-/-- **`main`'s `da_verify`'s instructions** on its honest tree at the direct blob: `dvA`, `dvR` per
-row and `dvP` per padded row. -/
+/-- **`main`'s `da_verify`'s instructions** on its honest tree at the checked blob matrix: `dvA`,
+`dvR` per row and `dvP` per padded row. -/
 theorem dvNH_weight {ω fs : String → ℕ} (H : MainCounts ω fs) {seed : Digest} {s : NodeStatement} {w : NodeWitness}
     (hr : NodeRel bytecode seed s w) (hnd : (hm fs 0 seed s w).nd = 1) (rd : Reader) (t : Tree)
     (args rets : List E) (hnm : t.name = "da_verify") (hv : t.Valid coreProgram rd args rets)
     (hb : t.BufsOk coreProgram) (hT : hDvNH w t) :
     t.weight ω ≤ H.dvA + H.dvR * (work s w).rawDaRows + H.dvP * (work s w).rawDaPad := by
-  obtain ⟨p, hp⟩ := List.length_eq_one_iff.mp (show (hRawD s w).length = 1 from hnd)
-  have hw : p.2.Opens p.1.daRoot p.1.membershipVectorDigest :=
-    direct_held (H := Held (fun (c : DaClaim) (m : LeanVM.Da.Witness) ↦ m.Opens c.daRoot c.membershipVectorDigest) Claims.da w.children)
-      (P := fun c x => x.Opens c.daRoot c.membershipVectorDigest) (fun _ _ h => h)
-      hr.2.2.2.2.1 p (show p ∈ hRawD s w by rw [hp]; exact List.mem_singleton_self p)
+  obtain ⟨p, hp, -, hw⟩ := B1.Main.checked_da fs 0 hr hnd
   have er : (work s w).rawDaRows = p.2.rows.length := by
-    show ((hRawD s w).map fun p => p.2.rows.length).sum = _
-    rw [hp]; simp
+    simp [work, hp]
   have ep : (work s w).rawDaPad = 2 ^ B1.Da.wLog p.2 := by
-    show ((hRawD s w).map fun p => LeanDa.nPad p.2.rows.length).sum = _
-    rw [hp]; simp [LeanDa.nPad, B1.Da.wLog]
+    simp [work, hp, LeanDa.nPad, B1.Da.wLog]
   unfold hDvNH at hT
   rw [hp] at hT
-  simp only [List.map_cons, List.map_nil, List.headD_cons] at hT
+  simp only [Option.map_some, Option.getD_some] at hT
   rw [er, ep]
   exact H.dv rd t args rets _ _ hnm hv hb hT hw.1 hw.2.1 rfl
 

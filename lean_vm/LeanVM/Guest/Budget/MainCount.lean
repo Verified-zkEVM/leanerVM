@@ -18,7 +18,7 @@ public import LeanVM.Guest.B1.Da.VerifyAtT
 
 `MainCounts ω fs`: per callee of `main`, a bound on every valid tree's weight at `ω` (an opcode's
 instructions per frame, `B2C.ωArm`):
-* `exponent_tables`, `da_list_digest`, `cover_da_root`, `statement_digest`: constants (`WeightLe`);
+* `exponent_tables`, `statement_digest`: constants (`WeightLe`);
 * the loops `__loop0` .. `__loop3`: per iteration (`LoopW`), run from `1` to `g^n` at `main`'s
   counts;
 * `aggregate_claims`: affine in its children's count;
@@ -44,14 +44,8 @@ open LeanVM.Guest.B1.Main (MainIn MVals MainBounds mCalls mTs mEvs MainPreds Mai
 structure MainCounts (ω fs : String → ℕ) : Type where
   kExp : ℕ
   exp : WeightLe coreProgram ω "exponent_tables" fun _ => kExp
-  kDl : ℕ
-  dl : WeightLe coreProgram ω "da_list_digest" fun _ => kDl
-  kCov : ℕ
-  cov : WeightLe coreProgram ω "cover_da_root" fun _ => kCov
   kSd : ℕ
   sd : WeightLe coreProgram ω "statement_digest" fun _ => kSd
-  kL0 : ℕ
-  l0 : LoopW ω "__loop0" kL0
   kL1 : ℕ
   l1 : LoopW ω "__loop0" kL1
   kL2 : ℕ
@@ -82,22 +76,19 @@ variable {ω fs : String → ℕ}
 /-- **`main`'s weight bound** at the counts `m`, the claim lists' weights `Kx`, `Ks`,
 `da_verify`'s `Kd` and the children's loop's `K5`. -/
 def mainCount (H : MainCounts ω fs) (m : MainIn) (Kx Ks Kd K5 : ℕ) : ℕ :=
-  ω "main" + (H.kExp + (m.nda + m.ndd) * H.kL0 + H.kDl + Kx + Ks + m.nxd * H.kL1 +
-    m.nsd * H.kL2 + m.nrx * H.kL3 + m.nrs * H.kL4 + (if m.nd = 1 then Kd + H.kCov else 0) +
+  ω "main" + (H.kExp + Kx + Ks + m.nxd * H.kL1 +
+    m.nsd * H.kL2 + m.nrx * H.kL3 + m.nrs * H.kL4 + (if m.nd = 1 then Kd else 0) +
     (if m.nc = 0 then 0 else K5 + (H.aggC + H.aggD * m.nc)) + H.kSd)
 
 /-- A call's bound, by its callee. -/
 def mainCallW (H : MainCounts ω fs) (m : MainIn) (Kx Ks Kd K5 : ℕ) (c : Call) : ℕ :=
   if c.f = "exponent_tables" then H.kExp
-  else if c.f = "__loop0" then (m.nda + m.ndd) * H.kL0
-  else if c.f = "da_list_digest" then H.kDl
-  else if c.f = "claim_list_digest" then (if c.args = [.n 77, .n 0] then Kx else Ks)
+  else if c.f = "claim_list_digest" then (if c.args = [.n 53, .n 0] then Kx else Ks)
   else if c.f = "__loop0" then m.nxd * H.kL1
   else if c.f = "__loop1" then m.nsd * H.kL2
   else if c.f = "__loop2" then m.nrx * H.kL3
   else if c.f = "__loop3" then m.nrs * H.kL4
   else if c.f = "da_verify" then Kd
-  else if c.f = "cover_da_root" then H.kCov
   else if c.f = "__loop4" then (if m.nc = 0 then 0 else K5)
   else if c.f = "aggregate_claims" then H.aggC + H.aggD * m.nc
   else if c.f = "statement_digest" then H.kSd
@@ -176,33 +167,28 @@ theorem main_weight_count (H : MainCounts ω fs) {bufs : List ℕ} {ks : List Tr
       List.zip_nil_right, List.mem_cons, List.not_mem_nil, or_false, Prod.mk.injEq,
       MainPreds.withTotal] at hmem <;>
     rcases hmem with ⟨rfl, rfl⟩ | ⟨rfl, rfl⟩ | ⟨rfl, rfl⟩ | ⟨rfl, rfl⟩ | ⟨rfl, rfl⟩ | ⟨rfl, rfl⟩ |
-      ⟨rfl, rfl⟩ | ⟨rfl, rfl⟩ | ⟨rfl, rfl⟩ | ⟨rfl, rfl⟩ | ⟨rfl, rfl⟩ | ⟨rfl, rfl⟩ | ⟨rfl, rfl⟩ |
-      ⟨rfl, rfl⟩ <;>
+      ⟨rfl, rfl⟩ | ⟨rfl, rfl⟩ | ⟨rfl, rfl⟩ | ⟨rfl, rfl⟩ | ⟨rfl, rfl⟩ <;>
     simp only [mainCallW, ↓reduceIte, String.reduceEq, hc0] at hn ⊢ <;>
     first
     | exact H.exp rd t _ rets hn hv' hb'
-    | exact H.dl rd t _ rets hn hv' hb'
-    | exact H.cov rd t _ rets hn hv' hb'
     | exact H.sd rd t _ rets hn hv' hb'
     | exact hclx rd t _ rets hn hv' hb' hT'.1
     | exact hcls rd t _ rets hn hv' hb' hT'.1
     | exact hdv hd rd t _ rets hn hv' hb' hT'.1
     | exact h5 rd t _ rets hn hv' hb' hT'.1
-    | exact absurd hc0 (ne_zero_of_guard (by simpa [hMV.g413] using ht))
-    | exact loop_case H.l0 hn hv' hb' (by simpa using hMV.g72) (by simpa using hMV.v50)
-        (ne_zero_of_guard (by simpa [hMV.g71] using ht)) (by have := hB.slots; omega) (by simp)
-    | exact loop_case H.l1 hn hv' hb' (by simpa using hMV.g87)
+    | exact absurd hc0 (ne_zero_of_guard (by simpa [hMV.g383] using ht))
+    | exact loop_case H.l1 hn hv' hb' (by simpa using hMV.g63)
         (by simpa [MainIn.cnt] using hx 1 (by norm_num))
-        (ne_zero_of_guard (by simpa [hMV.g86] using ht)) hB.xd (by simp)
-    | exact loop_case H.l2 hn hv' hb' (by simpa using hMV.g90)
+        (ne_zero_of_guard (by simpa [hMV.g62] using ht)) hB.xd (by simp)
+    | exact loop_case H.l2 hn hv' hb' (by simpa using hMV.g66)
         (by simpa [MainIn.cnt] using hx 4 (by norm_num))
-        (ne_zero_of_guard (by simpa [hMV.g89] using ht)) hB.sd (by simp)
-    | exact loop_case H.l3 hn hv' hb' (by simpa using hMV.g378)
+        (ne_zero_of_guard (by simpa [hMV.g65] using ht)) hB.sd (by simp)
+    | exact loop_case H.l3 hn hv' hb' (by simpa using hMV.g327)
         (by simpa [MainIn.cnt] using hx 2 (by norm_num))
-        (ne_zero_of_guard (by simpa [hMV.g377] using ht)) hB.rx (by simp)
-    | exact loop_case H.l4 hn hv' hb' (by simpa using hMV.g381)
+        (ne_zero_of_guard (by simpa [hMV.g326] using ht)) hB.rx (by simp)
+    | exact loop_case H.l4 hn hv' hb' (by simpa using hMV.g330)
         (by simpa [MainIn.cnt] using hx 5 (by norm_num))
-        (ne_zero_of_guard (by simpa [hMV.g380] using ht)) hB.rs (by simp)
+        (ne_zero_of_guard (by simpa [hMV.g329] using ht)) hB.rs (by simp)
     | exact H.agg rd t _ rets m.nc hn hv' hb'
         (by simpa [MainIn.cnt, Value.gen_pow_eq_ofK] using hx 6 (by norm_num))
         (Nat.pos_of_ne_zero hc0) (by have := hB.nc; omega)

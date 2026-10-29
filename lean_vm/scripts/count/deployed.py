@@ -63,17 +63,16 @@ def numbers(g, certs):
     v['clS'] = 1 + (SK('__loop15') + 16) // 17
     v['ccS'] = 1 + (fs('__loop16') + 16) // 17
     v['l5A0'] = fs('__loop4')
-    v['l5A1'] = (fs('__loop4') + 2 * v['ccC'] + (64 + 16 * (fs('__loop28') + fs('cover_da_root'))
-                 + fs('__loop28')) + SB('da_list_digest') + SB('statement_digest'))
+    v['l5A1'] = fs('__loop4') + 2 * v['ccC'] + SB('statement_digest')
     v['l5A2'] = v['ccS']
     v['agA0'] = fs('aggregate_claims') + 97 + SB('batch_sumcheck__L23')
     v['agA1'] = 32 + SK('__loop24') + SK('__loop25') + SK('__loop26')
-    base = (fs('main') + 281 + fs('exponent_tables') + 68 + fs('__loop0') + SB('da_list_digest')
-            + fs('da_list_digest') + 2 * (v['clC'] + fs('claim_list_digest')) + fs('__loop0') + fs('__loop1')
+    base = (fs('main') + 283 + fs('exponent_tables') + 68 + 2 * (v['clC'] + fs('claim_list_digest'))
+            + fs('__loop0') + fs('__loop1')
             + fs('__loop2') + fs('__loop3') + 2 * v['l5A0'] + (v['agA0'] + fs('aggregate_claims'))
             + SB('statement_digest') + fs('statement_digest'))
-    words = [base, v['clS'], 5 + SK('__loop0') + SK('__loop0') + SK('__loop1'), SK('__loop2'),
-             SK('__loop3'), v['dvC'] + fs('da_verify') + 2 * fs('cover_da_root'), v['dvS'], v['dvP'], 51 + v['l5A1'] + v['agA1'], v['l5A2']]
+    words = [base, v['clS'], 5 + SK('__loop0') + SK('__loop1'), SK('__loop2'),
+             SK('__loop3'), v['dvC'] + fs('da_verify'), v['dvS'], v['dvP'], 53 + v['l5A1'] + v['agA1'], v['l5A2']]
     instrs = {}
     tbl = vscount.tables(g)
     _, _, _, dv_aff, cl_aff = vscount.main_tables(g)
@@ -87,13 +86,12 @@ def numbers(g, certs):
         clA, clS = cl_aff(k)
         dvA, dvR, dvP = dv_aff(k)
         om5, ccA, ccS, vst = vscount.l5_parts(tbl, k)
-        # `Budget.l5C`: `__loop4`'s frame, two claim lists' constants, 16 DA roots, the digests.
-        l5C = om5 + 2 * ccA + 16 * lp('__loop28') + st('da_list_digest') + st('statement_digest')
-        instrs[lop] = ([g.pm[1][k] + st('exponent_tables') + st('da_list_digest') + st('statement_digest') + jt
-                        + 2 * clA,
+        # `Budget.l5C`: `__loop4`'s frame, two claim lists' constants, the statement's digest.
+        l5C = om5 + 2 * ccA + st('statement_digest')
+        instrs[lop] = ([g.pm[1][k] + st('exponent_tables') + st('statement_digest') + jt + 2 * clA,
                         clS,
-                        lp('__loop0') + lp('__loop0') + lp('__loop1'), lp('__loop2'), lp('__loop3'),
-                        dvA + st('cover_da_root'), dvR, dvP,
+                        lp('__loop0') + lp('__loop1'), lp('__loop2'), lp('__loop3'),
+                        dvA, dvR, dvP,
                         l5C + aggC + aggD, ccS], vst)
     return v, words, instrs
 
@@ -158,7 +156,7 @@ theorem ccl_sum : nameSum (fun g => B2C.fs g) B1.Digest.cclNames 17 = %d := by d
         thm('l5A0_eq', 'l5A0 B2C.fs', v['l5A0'], 'l5A0', [], fs=['__loop4']),
         thm('clS_eq', 'clS wSK', v['clS'], 'clS', [], sk=['__loop15']),
         thm('l5A1_eq', 'l5A1 B2C.fs wSB', v['l5A1'], 'l5A1', ['ccC_eq'],
-            fs=['__loop4', '__loop28', 'cover_da_root'], sb=['da_list_digest', 'statement_digest']),
+            fs=['__loop4'], sb=['statement_digest']),
         thm('l5A2_eq', 'l5A2 B2C.fs', v['l5A2'], 'l5A2 ccS', [], fs=['__loop16']),
         thm('agA0_eq', 'agA0 B2C.fs wSB', v['agA0'], 'agA0', [], fs=['aggregate_claims'],
             sb=['batch_sumcheck__L23']),
@@ -193,8 +191,7 @@ set_option maxRecDepth 100000 in
 theorem deployedBudget_instrs (Bvf : ℕ → ℕ → ℕ) (op : Opcode) :
     (Budget.deployedBudget Bvf).instrs op = deployedInstrs op := by
   simp only [Budget.deployedBudget, Budget.mainBudget, Budget.mainInstrs]
-  cases op <;> simp only [deployedInstrs, mainCounts, kcExp, kcDl, kcSd, kcCov, kcL0, kcL1, kcL2, kcL3,
-    kcL4, kcAggC, kcAggD, kcClA, kcClS, kcDvA, kcDvR, kcDvP, B2C.jtSets] <;> congr 1
+  cases op <;> simp only [deployedInstrs, mainCounts, kcExp, kcSd, kcL1, kcL2, kcL3, kcL4, kcAggC, kcAggD, kcClA, kcClS, kcDvA, kcDvR, kcDvP, B2C.jtSets] <;> congr 1
 '''
     mod('Deployed', 'The numbers of the deployed budget: `deployedBudget_words`, `deployedBudget_instrs`.',
         'public import LeanVM.Guest.Count.DeployedB\npublic import LeanVM.Guest.Count.DeployedC\n', body)
