@@ -5,6 +5,12 @@ import LeanerVMTests.Arithmetization.Channels
 import LeanerVMTests.Arithmetization.Rows
 import LeanerVMTests.Arithmetization.Sentinel
 import LeanerVMTests.Arithmetization.Soundness
+import LeanerVMTests.Arithmetization.Completeness.Balance
+import LeanerVMTests.Arithmetization.Completeness.LongRun
+import LeanerVMTests.Arithmetization.Completeness.Rows
+import LeanerVMTests.Arithmetization.Completeness.Satisfied
+import LeanerVMTests.Arithmetization.Completeness.Theorem
+import LeanerVMTests.Arithmetization.Completeness.Witness
 import LeanerVMTests.Arithmetization.Statement
 import LeanerVMTests.Arithmetization.Steps
 import LeanerVMTests.Arithmetization.Tables
@@ -62,11 +68,24 @@ import LeanerVMTests.Protocol.WhirLists
 import LeanerVMTests.Protocol.WhirOpen
 import LeanerVMTests.Protocol.WhirSound
 import LeanerVMTests.Semantics.Blake2s
+import LeanerVMTests.Semantics.Blake2sOutput
+import LeanerVMTests.Semantics.ClosedWalk
 import LeanerVMTests.Semantics.Executable
 import LeanerVMTests.Semantics.Execution
+import LeanerVMTests.Semantics.FillBlocks
+import LeanerVMTests.Semantics.FillCycle
+import LeanerVMTests.Semantics.FillPlan
+import LeanerVMTests.Semantics.FillRows
+import LeanerVMTests.Semantics.FillSteps
 import LeanerVMTests.Semantics.FillerRows
 import LeanerVMTests.Semantics.Instruction
+import LeanerVMTests.Semantics.LongRun
 import LeanerVMTests.Semantics.Memory
+import LeanerVMTests.Semantics.PaddedImage
+import LeanerVMTests.Semantics.PaddedImageRefutation
+import LeanerVMTests.Semantics.PaddedRows
+import LeanerVMTests.Semantics.PaddedRun
+import LeanerVMTests.Semantics.PaddedTrace
 import LeanerVMTests.Semantics.RustExport
 import LeanerVMTests.Semantics.TraceInput
 
