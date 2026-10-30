@@ -24,7 +24,7 @@ public import Clean.Air.FlatEnsemble
 # The constraint statement
 
 leanISA roadmap Layer 8 (`docs/roadmap/leanisa-blueprint.md`), at leanVM pin
-`a386121f84292f6fa663aaa3e570c15bc0240ea2` and Clean pin `9dd71e82`. Category A for the
+`a386121f84292f6fa663aaa3e570c15bc0240ea2` and Clean pin `ce2eee63`. Category A for the
 statement itself, which is what the M3 model means by an accepted instance (specification §5,
 `doc/leanvm/body/05-arithmetization.tex:4`: "an instance is accepted exactly when every
 table's constraints hold and the bus balances", the balance being the multiset equality of
@@ -38,7 +38,7 @@ of the bus the verifier forms itself, the index column and the program's share o
 block (§8.5, `:70`; §6.5, `06-bus-interactions.tex:95`), are the fixed columns of the two blocks
 (Layer 7). Artifact: the accept relation of the M3 constraint system and its ensemble. Direction:
 a statement, no soundness or completeness theorem. Boundary: leanVM at the pin above, Clean
-`9dd71e82`. Contribution: the statement surface of T1 (both directions); no target of
+`ce2eee63`. Contribution: the statement surface of T1 (both directions); no target of
 `docs/architecture.md` is claimed.
 
 **The ensemble.** `leanIsaEnsemble prog κ` is Clean's `Ensemble`: the six opcode tables of Layer

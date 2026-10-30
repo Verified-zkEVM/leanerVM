@@ -59,7 +59,7 @@ translation is CompPoly's, proved equal to Clean's.
   so the tuples of one channel's messages determine the messages.
 
 Written from the M3 model of leanVM's specification (§5.1 "The bus", §5.5 "The zerocheck") and
-Clean's semantics of a flat component at `9dd71e82` (`Clean/Air/FlatComponent.lean`,
+Clean's semantics of a flat component at `ce2eee63` (`Clean/Air/FlatComponent.lean`,
 `Clean/Circuit/Operations.lean`, `Clean/Circuit/ExpressionPolynomial.lean`).
 
 ## Wrong readings excluded

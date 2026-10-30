@@ -17,7 +17,7 @@ public import LeanerVM.Arithmetization.Rows
 
 Specification §6.2 "The lookup protocol" (`doc/leanvm/body/06-bus-interactions.tex:34-82` at
 leanVM pin `a386121f84292f6fa663aaa3e570c15bc0240ea2`: Lemma 6.3 `:51`, Theorem 6.4 `:59`,
-Corollary 6.5 `:70`, "Instance caps" `:80`), over Clean `9dd71e82`. Category A for the
+Corollary 6.5 `:70`, "Instance caps" `:80`), over Clean `ce2eee63`. Category A for the
 argument, which is the specification's; Category B for what it is applied to, the memory and
 bytecode channels as the components transcribe them (`LeanerVM.Arithmetization.Rows`).
 Artifact: the accept relation `SatisfiedBy`. Direction: soundness, from an accepted witness to

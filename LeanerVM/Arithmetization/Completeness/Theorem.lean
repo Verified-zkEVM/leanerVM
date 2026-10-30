@@ -15,7 +15,7 @@ public import LeanerVM.Arithmetization.Completeness.Satisfied
 # Constraint completeness
 
 leanISA roadmap Layer 10 (`docs/roadmap/leanisa-blueprint.md`), at leanVM pin
-`a386121f84292f6fa663aaa3e570c15bc0240ea2` and Clean pin `9dd71e82`. Category A, completeness
+`a386121f84292f6fa663aaa3e570c15bc0240ea2` and Clean pin `ce2eee63`. Category A, completeness
 direction of `T1`, for the proof system's constraint statement (`SatisfiedBy`).
 `constraintCompleteness` is the roadmap's statement for a padded trace, as the Semantics half of
 this slice (`Semantics.PaddedTrace`) restated it: a valid execution of well-formed bytecode that
