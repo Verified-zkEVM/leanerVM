@@ -9,7 +9,7 @@ module
 public import LeanVM.Guest.B1.Bits.Meaning
 
 /-!
-# `g_power_of_word` (G:670-683, TRIAGE #17)
+# `g_power_of_word` (G:668-681, TRIAGE #17)
 
 `g_power_of_word(value)` hints the six bits of `value` into frame cells `1 .. 6`, pins each by
 booleanity (`b = b·b`), accumulates the word `Σ b_j·2^j` (at `45`) and the product

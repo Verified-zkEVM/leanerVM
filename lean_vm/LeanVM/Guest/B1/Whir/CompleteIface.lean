@@ -23,8 +23,8 @@ waiting), the words `xs` and the openings `os`, the stack's root committed with 
 * `NoZeroChallenge μ r target S xs os root` (DESIGN §5.2.1): the same run passes
   `whirOpenNZ`, which is `whirOpen` refusing a zero fold challenge (`foldRoundsNZ`), a zero tail
   challenge (`tailRoundsNZ`) and a zero batching challenge `λ` of a level. The guest divides by
-  them: `μ = 1/λ` (`opening_queries`, G:1253) and the basis coefficients `(1 + c)/(c·inv)`
-  (G:1560, 1565). It fails with probability about `(number of challenges)·2^-192` per proof.
+  them: `μ = 1/λ` (`opening_queries`, G:1244) and the basis coefficients `(1 + c)/(c·inv)`
+  (G:1558, 1565). It fails with probability about `(number of challenges)·2^-192` per proof.
 * `CapsAgree μ r target S xs os root` (DESIGN §5.2.3): at every query step of the run
   (`queryStepsOf`, `Fs`-level `Compile.run`), two openings giving one node of the tree a digest
   (`NodeIs`: on their climb or as a sibling) give it the same (`BatchAgrees`). The guest writes

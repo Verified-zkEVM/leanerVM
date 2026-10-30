@@ -10,7 +10,7 @@ module
 public import LeanVM.Guest.B1.Common.Atoms
 
 /-!
-# `residual_query` (G:1272-1280, TRIAGE #41)
+# `residual_query` (G:1270-1278, TRIAGE #41)
 
 `residual_query(basis_chain, row_d, vanish, n)` is `Π_{t<n} (d_t + chain_t)` over the row
 `d_t = row_d[t]`, `chain_0` the query position and
@@ -22,7 +22,7 @@ and the constants `vals` (`open_stacked`'s query loops number it) is `residualT 
 * `residual_factor`: `1 + c·(1 + x·inv) = (c·inv)·((1 + c)/(c·inv) + x)` when `c·inv ≠ 0`, so the
   product of `inducedWeight`'s factors (V:1715) at one query is `Π_t (c_t·inv_t)` (the level's
   scale, `open_stacked`'s `level_scale`) times the template's value at `d_t = (1 + c_t)/(c_t·inv_t)`
-  (`basis_d`, G:1560-1566): `residual_prod`.
+  (`basis_d`, G:1558-1564): `residual_prod`.
 -/
 
 namespace LeanVM.Guest.B1
@@ -69,7 +69,7 @@ def residualProd (vals : List E) (x : E) (d : ℕ → E) : ℕ → E
   | 0 => 1
   | n + 1 => residualProd vals x d n * (d n + residualChain vals x n)
 
-/-- **`residual_query`** (G:1272-1280): with the row's words `d t` at `r`, the template's value is
+/-- **`residual_query`** (G:1270-1278): with the row's words `d t` at `r`, the template's value is
 `Π_{t ≤ vals.length} (d_t + chain_t)`. -/
 theorem residualT_sound {x r : V} {vals : List E} {b : ℕ}
     (hA : ∀ a, Stmt.atom a ∈ residualT x r vals b → a.Holds rd σ) {d : ℕ → E}
@@ -128,7 +128,7 @@ theorem residualT_sound {x r : V} {vals : List E} {b : ℕ}
 
 /-! ## The factoring -/
 
-/-- **A coordinate's factor** (G:1540-1548): `1 + c·(1 + x·inv) = (c·inv)·((1 + c)/(c·inv) + x)`. -/
+/-- **A coordinate's factor** (G:1538-1546): `1 + c·(1 + x·inv) = (c·inv)·((1 + c)/(c·inv) + x)`. -/
 theorem residual_factor {c inv x : E} (h : c * inv ≠ 0) :
     1 + c * (1 + x * inv) = c * inv * ((1 + c) / (c * inv) + x) := by
   have e : c * inv * ((1 + c) / (c * inv)) = 1 + c := mul_div_cancel₀ _ h

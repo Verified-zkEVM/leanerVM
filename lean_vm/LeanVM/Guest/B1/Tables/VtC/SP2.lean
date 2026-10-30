@@ -12,7 +12,7 @@ public import LeanVM.Guest.B1.Tables.VtC.SShared
 public import LeanVM.Guest.B1.Tables.VtC.SSort
 
 /-!
-# Statements `2189 ..< 2404` (G:1995-2037)
+# Statements `2189 ..< 2404` (G:1993-2035)
 
 `forall_slice_blocks`: `k` consecutive blocks of `L` statements. `vtS_p2`: for the bus point
 (`|point| = μ < 33`), the tables' heights `τ t = max (log2Ceil (n t)) floor < 29`, `τ t ≤ μ`, on a

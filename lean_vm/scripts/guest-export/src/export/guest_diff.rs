@@ -161,7 +161,7 @@ fn export(
     out.tag("log_memory");
     out.n(node.proof.stream[0].c0 as usize);
     out.tag("public_input");
-    out.es(&node.public_input());
+    out.es(&node.statement(da_digest(node.da_root)));
     out.tag("statement");
     out.statement(&node);
 
@@ -171,7 +171,7 @@ fn export(
     for child in &children {
         out.tag("child");
         out.statement(child);
-        let pi = child.public_input();
+        let pi = child.statement(da_digest(child.da_root));
         let summary = verifier::replay_unchecked(bytecode, &public_input_bytes(&pi), &scalar_proof(&child.proof))
             .expect("the child replays");
         let openings: Vec<(Vec<u64>, Vec<[u8; 32]>)> = summary
@@ -275,7 +275,8 @@ fn blob(seed: u64) -> Vec<u64> {
 /// Two leaves, one of both schemes with a blob, one whose leanXMSS list is longer than a group of its digest
 /// (`CLAIM_GROUP` claims), and a node over them with a blob and raw signatures, one of a claim both leaves make: the
 /// leaves overlap in a claim of each scheme, so every coverage region of the node has duplicate slots, and its claims
-/// and roots are held directly and through each child.
+/// are held directly and through each child. Then a node over the same leaves the other way round, with no blob and no
+/// raw signature: it publishes its second child's DA digest (`da_pick` a child's slot, not the first).
 #[test]
 #[ignore]
 fn guest_diff() {
@@ -289,7 +290,8 @@ fn guest_diff() {
     let left = export("left", vec![], xmss[..2].to_vec(), sphincs[..2].to_vec(), &blob(1));
     let right = export("right", vec![], xmss[1..wide + 1].to_vec(), sphincs[1..].to_vec(), &[]);
     let raw = vec![xmss[1].clone(), xmss[wide + 1].clone()];
-    export("node", vec![left, right], raw, vec![], &blob(2));
+    export("node", vec![left.clone(), right.clone()], raw, vec![], &blob(2));
+    export("pass", vec![right, left], vec![], vec![], &[]);
 }
 
 /// The smallest case: a leaf of one leanXMSS signature.

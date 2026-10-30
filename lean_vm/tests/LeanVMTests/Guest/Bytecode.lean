@@ -14,44 +14,47 @@ namespace LeanVMTests.Guest.Bytecode
 
 open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest
 
-example : Data.functions.length = 900 := by decide +kernel
+example : Data.functions.length = 879 := by decide +kernel
 
-example : Data.codeLen = 363727 := rfl
+example : Data.codeLen = 362322 := rfl
 
 /-- `verify_sig_lean_sphincs` is function 21. -/
 theorem sphincs_mem : Data.f21 ∈ Data.functions := mem_functions (j := 21) rfl
 
-example : Data.f21.name = "verify_sig_lean_sphincs" ∧ Data.f21.entry = 53215 ∧
+example : Data.f21.name = "verify_sig_lean_sphincs" ∧ Data.f21.entry = 53169 ∧
     Data.f21.len = 100444 := ⟨rfl, rfl, rfl⟩
 
 /-- Its first instruction, `DEREF *(fp[2]·g^1) = fp[4]`. -/
-example : guest.fetch (gpow 53215) = some (OInstr.deref 2 1 4 .cell).toInstr :=
+example : guest.fetch (gpow 53169) = some (OInstr.deref 2 1 4 .cell).toInstr :=
   guest_fetch_of sphincs_mem (i := 0) (by decide +kernel) (by decide +kernel) (by decide +kernel)
 
 /-- Its last, the return `JUMP if fp[26] ≠ 0: pc = fp[0], fp = fp[1]`. -/
-example : guest.fetch (gpow 153658) = some (OInstr.jump 26 0 1).toInstr :=
+example : guest.fetch (gpow 153612) = some (OInstr.jump 26 0 1).toInstr :=
   guest_fetch_of sphincs_mem (i := 100443) (by decide +kernel) (by decide +kernel)
     (by decide +kernel)
 
 /-- A `KECCAK` writing the odd layout, `KECCAK fp[3296..+13] odd = keccak_f(fp[139], fp[140],
 fp[141], fp[142], tail = fp[143..+4], b8 = fp[147], cap = fp[29..+4]) even`. -/
-example : guest.fetch (gpow (53215 + 76547)) =
+example : guest.fetch (gpow (53169 + 76547)) =
     some (OInstr.keccak 139 140 141 142 143 147 29 3296 false true).toInstr :=
   guest_fetch_of sphincs_mem (i := 76547) (by decide +kernel) rfl (by decide +kernel)
 
 /-- `main`'s first instruction, `SET fp[10] = g^65535`, the immediate as its bits. -/
-example : guest.fetch (gpow 8473) = some (OInstr.set 10 9272771591053052074 0 0).toInstr :=
+example : guest.fetch (gpow 8456) = some (OInstr.set 10 9272771591053052074 0 0).toInstr :=
   guest_fetch_of (f := Data.f1) (mem_functions (j := 1) rfl) (i := 0) (by decide +kernel)
     (by decide +kernel) (by decide +kernel)
 
-/-- `da_hash_roots__L0`'s `KECCAK`, both layouts even (`main` has none). -/
-example : guest.fetch (gpow 276081) =
-    some (OInstr.keccak 18 19 19 19 19 23 19 5 false false).toInstr :=
-  guest_fetch_of (f := Data.f378) (mem_functions (j := 378) rfl) (i := 6) (by decide +kernel)
+/-- `main`'s `KECCAK`, both layouts even: the digest of the DA claim it checks directly
+(`keccak([root_0, root_1], [vector_0, vector_1], own_da[0:2])`), `KECCAK fp[345..+13] even =
+keccak_f(fp[339], fp[340], fp[341], fp[342], tail = fp[358..+4], b8 = fp[363], cap = fp[359..+4])
+even`. -/
+example : guest.fetch (gpow 9093) =
+    some (OInstr.keccak 339 340 341 342 358 363 359 345 false false).toInstr :=
+  guest_fetch_of (f := Data.f1) (mem_functions (j := 1) rfl) (i := 637) (by decide +kernel)
     (by decide +kernel) (by decide +kernel)
 
-/-- The first instruction of the program, in `__jump_tables`, `SET fp[408] = g^159279`. -/
-example : guest.fetch (gpow 0) = some (OInstr.set 408 14895064668850555357 0 0).toInstr :=
+/-- The first instruction of the program, in `__jump_tables`, `SET fp[406] = g^159159`. -/
+example : guest.fetch (gpow 0) = some (OInstr.set 406 6581576542741297422 0 0).toInstr :=
   guest_fetch_of (f := Data.f0) (mem_functions (j := 0) rfl) (i := 0) (by decide +kernel)
     (by decide +kernel) (by decide +kernel)
 

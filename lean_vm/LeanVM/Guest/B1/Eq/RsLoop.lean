@@ -9,7 +9,7 @@ module
 public import LeanVM.Guest.B1.Eq.Meaning
 
 /-!
-# `__loop5` (`rs_eq_run`'s `mul_range` loop, G:916-929)
+# `__loop5` (`rs_eq_run`'s `mul_range` loop, G:914-927)
 
 At `xp = g^h` the body reads `z[2h]`, `z[2h + 1]`, `point1[2h]`, `point1[2h + 1]` and, for every
 `k < 64`, the row word `w = chain[64h + k]`, storing `chain[64h + 64 + k] = w · (z0^(2^k) + p0) ·

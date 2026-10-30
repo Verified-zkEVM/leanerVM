@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.VerifySub.C.Kappa
 
-  `verify_sub`'s `block_kappa` (G:3201-3205), honestly.
+  `verify_sub`'s `block_kappa` (G:3199-3203), honestly.
 -/
 
 module

@@ -9,7 +9,7 @@ module
 public import LeanVM.Guest.B1.Da.Tree
 
 /-!
-# `da_verify_column` (G:3997-4016), checked
+# `da_verify_column` (G:3997-4019), checked
 
 `da_verify_column(xb, n_blob_g, n_pad_g, gap_g, g_log_pad, prefix_bases, coltree, rowbase,
 column_digests)` (`__L1`, `store = 1`, core `769`; `__L0`, core `770`): the column's weights

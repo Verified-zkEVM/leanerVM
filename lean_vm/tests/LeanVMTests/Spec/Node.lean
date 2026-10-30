@@ -21,12 +21,13 @@ import LeanVMTests.Spec.NodeVectors
   cannot tell apart (`statementDigest` carries no lengths: the short claim's odd cell count is
   paired with a zero cell).
 * Known answers for the statement's encodings (`claimListDigest` of each scheme's claims,
-  `daListDigest`, `statementDigest`), the batching transcript's seed (`batchSeed`) and the
+  `daClaimDigest`, `statementDigest`), the batching transcript's seed (`batchSeed`) and the
   batching of two children (`batch`): computed by an independent Python transcription of
-  `claim_list_digest`, `statement_digest`, `FiatShamirState` and `aggregate_deferred_claims`
-  (`crates/rec_aggregation/src/aggregation.rs`, `crates/fiat_shamir/src/lib.rs` at leanVM
-  `4af2cdddd7cd41b9df2cc7e123e314a91b0b4462`, the statement's digest at
-  `990b935263dc7f793f280914f262ca7955ddc3e0`) over the Python verifier's Keccak and field
+  `claim_list_digest`, `root_vector_digest`, `statement_digest`, `FiatShamirState` and
+  `aggregate_deferred_claims` (`crates/rec_aggregation/src/aggregation.rs`,
+  `crates/fiat_shamir/src/lib.rs` at leanVM `4af2cdddd7cd41b9df2cc7e123e314a91b0b4462`, the
+  statement's digest at `990b935263dc7f793f280914f262ca7955ddc3e0`, its one DA digest at
+  `93ebecc5f87ed7b1248a9772c392f9a41b6ac8d0`) over the Python verifier's Keccak and field
   arithmetic (`python-verifier/verifier.py`). The batching's
   hints are the Python's honest sumcheck messages; Lean's transcript must squeeze the same
   challenges for the claim to close at the Python's point, which is a true claim on the table.
@@ -39,7 +40,7 @@ import LeanVMTests.Spec.NodeVectors
   bytecode are the Spec's, and a batching hint off by one rejects. What is slow in the
   interpreter, `lake exe node-vectors` (`cli/NodeVectors.lean`) checks compiled: that their seed
   is `deployedSeed guest` (the Keccak-256 IV of the guest's `2^23` bytecode words), and the DA
-  roots' vector digests.
+  root's vector digest.
 -/
 
 namespace LeanVMTests.Spec.Node
@@ -88,7 +89,7 @@ example : zeroClaim.Shaped bytecode ∧ zeroClaim.AtZero bytecode := by
   simp [DeferredClaim.Shaped, DeferredClaim.AtZero, zeroClaim, bytecode]; decide
 
 /-- No claims. -/
-def noClaims : Claims := ⟨[], [], []⟩
+def noClaims : Claims := ⟨[], [], zeroDigest⟩
 
 -- Mutation: a bytecode point one coordinate short has the same digest (its five cells are paired
 -- with a zero cell, the six zero cells of `zeroClaim`), and `Shaped` is what rejects it.
@@ -116,10 +117,11 @@ def sphincs : List SphincsClaim :=
   [(⟨BitVec.ofNat 128 0xfedcba98765432100123456789abcdef, BitVec.ofNat 128 1⟩,
     BitVec.ofNat 256 (2 ^ 256 - 1))]
 
-/-- The DA claims: two roots and membership vector digests. -/
-def da : List DaClaim :=
-  [⟨keccak256 (utf8 "root0"), keccak256 (utf8 "vd0")⟩,
-    ⟨keccak256 (utf8 "root1"), keccak256 (utf8 "vd1")⟩]
+/-- A DA claim: a root and a membership vector digest. -/
+def daClaim : DaClaim := ⟨keccak256 (utf8 "root0"), keccak256 (utf8 "vd0")⟩
+
+/-- The statement's DA digest of it. -/
+def da : Digest := daClaimDigest daClaim
 
 /-- A seed. -/
 def seed0 : Digest := keccak256 (utf8 "seed")
@@ -138,20 +140,24 @@ def defer0 : DeferredClaim :=
 #guard claimListDigest [] =
   #v[0x3c23f7860146d2c5, 0xc003c7dcb27d7e92, 0x3b2782ca53b600e5, 0x70a4855d04d8fa7b]
 
-#guard daListDigest da =
-  #v[0x67506ad9379ddcc3, 0xa767051b758c2b81, 0x474eb5e9359b5a34, 0x2b312eb8ef5489da]
+#guard da =
+  #v[0x12da73668473f030, 0x3b3c425c5e7d748d, 0x039ebf81841b3952, 0xde4718e69830fa95]
 
 #guard statementDigest seed0 ⟨⟨xmss, sphincs, da⟩, defer0⟩ =
-  #v[0x90cc93b7b553dc6b, 0x23a9c75acd39dabd, 0xfb565cf9a24de404, 0x4df0cfca12580e2c]
+  #v[0x390bb57c95a72731, 0xc6a7438398ab72ee, 0x42095a68d163c568, 0x172ac4a032779c05]
 
 /- The same claim one coordinate short: five cells, paired with a zero cell. -/
 #guard statementDigest seed0 ⟨⟨xmss, sphincs, da⟩, { defer0 with
     bytecodePoint := defer0.bytecodePoint.take 4 }⟩ =
-  #v[0x49cb78275b5b04cf, 0x870c7459f513971d, 0x209354b146cd1084, 0x488483980ac24875]
+  #v[0xdc54bf3336f25e78, 0xf384991b0b6165bf, 0xe7e52156413534f3, 0xe8b99f1696b9f4d7]
 
 -- Mutation: other signature lists give another digest.
 #guard statementDigest seed0 ⟨⟨[], [], da⟩, defer0⟩ =
-  #v[0xeac43f7f240fc801, 0x1fd46a11da66ae47, 0x2e7b5bf82f510a7b, 0x4d75397ae44c3f46]
+  #v[0xa592644862762952, 0x09567e10b4b0d8c3, 0x3cb6feed0116cea8, 0x412ab1045c7507e5]
+
+-- Mutation: no DA claim, the zero digest in its place.
+#guard statementDigest seed0 ⟨⟨xmss, sphincs, zeroDigest⟩, defer0⟩ =
+  #v[0xa065f9975aeba2b2, 0xdf0f15d80b8f94e2, 0x3d8fcd509b505190, 0xa750b8b1977f11ee]
 
 /-! ## The batching: known answers and mutations -/
 
@@ -226,11 +232,12 @@ def batchedPoint : List E :=
 
 #guard claimListDigest NodeVectors.xmss = NodeVectors.xmssListDigest
 #guard claimListDigest NodeVectors.sphincs = NodeVectors.sphincsListDigest
-#guard daListDigest NodeVectors.da = NodeVectors.daListDigest
+#guard daClaimDigest NodeVectors.daClaim = NodeVectors.daDigest
+#guard zeroDigest = NodeVectors.daNone
 
 /-- The statement of the vectors' claims, deferring their claim. -/
 def vectorStatement : NodeStatement :=
-  ⟨⟨NodeVectors.xmss, NodeVectors.sphincs, NodeVectors.da⟩, NodeVectors.defer⟩
+  ⟨⟨NodeVectors.xmss, NodeVectors.sphincs, NodeVectors.daDigest⟩, NodeVectors.defer⟩
 
 #guard statementDigest NodeVectors.seed vectorStatement = NodeVectors.statementDigest
 

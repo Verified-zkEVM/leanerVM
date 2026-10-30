@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.Sig.SphincsPrologue
 
-  The prologue of `verify_sig_lean_sphincs` (`lean_ethereum.py:3634-3679`) is sound: the message
+  The prologue of `verify_sig_lean_sphincs` (`lean_ethereum.py:3632-3677`) is sound: the message
   digest, the index's bits and node indices, the bound's start, the encoding's first two cells and
   the address constants.
 -/

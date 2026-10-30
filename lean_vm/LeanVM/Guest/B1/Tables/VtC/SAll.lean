@@ -10,7 +10,7 @@ module
 public import LeanVM.Guest.B1.Tables.VtC.SP2
 
 /-!
-# Statements `0 ..< 2404` (G:1955-2037)
+# Statements `0 ..< 2404` (G:1953-2035)
 
 `vtS_complete`: for the blocks' log-sizes `κ` (`block_kappa`), the bus point at `zeta`
 (`g_bus_mu = g^|point|`, `|point| < 33`), the tables' row counts `n` and heights

@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.Digest.ClaimList
 
-  B1 for `claim_list_digest` (G:3827-3861; TRIAGE #88): the digest of a declared claim list,
+  B1 for `claim_list_digest` (G:3827-3859; TRIAGE #88): the digest of a declared claim list,
   hashed seventeen claims a loop frame through a heap chain of sponge states.
 -/
 

@@ -13,7 +13,7 @@ public import LeanVM.Guest.B1.Selectors.TableLemmas
 /-!
 # `column_selector` (TRIAGE G #68)
 
-`column_selector(offset, sel_eq, sel_g, κ)` (G:3025-3049) hints the 28 bits of `offset`'s exponent
+`column_selector(offset, sel_eq, sel_g, κ)` (G:3023-3046) hints the 28 bits of `offset`'s exponent
 and, for each nibble `j` from `κ / 4` to `6` (the first `4j + 4 - κ` wide, the others four), pins
 its bits `4j + 3 - t` (`t < w`), folds them into `g^u` (`u`'s bit `t` the bit `4j + 3 - t`), reads
 the nibble's eq weight at `sel_eq·g^u` (offset `30j + 2^w - 2`) and its share of `g^offset` at

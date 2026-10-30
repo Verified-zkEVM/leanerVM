@@ -11,7 +11,7 @@ public import LeanVM.Guest.B1.Fs.Templates
 public import LeanVM.Guest.B1.Common.Run
 
 /-!
-# `batch_sumcheck` (G:1007-1022, TRIAGE #32)
+# `batch_sumcheck` (G:1005-1019, TRIAGE #32)
 
 Its body at `n` rounds (`bsBody n`): the capacity copied into `8 .. 12`; round `0` (`bsRound0`):
 `g(1)`, `g(∞)` read at `msgs[0]`, `msgs[1]` and packed (`fsNextT` from `13`, `23`), the pad run

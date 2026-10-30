@@ -10,7 +10,7 @@ module
 public import LeanVM.Guest.B1.Gkr.Loop29
 
 /-!
-# A layer of two levels (`__loop6`, G:1689-1777)
+# A layer of two levels (`__loop6`, G:1687-1775)
 
 The template of `__loop6`'s body, from the layer slot at `layers·x_layer^17`: the combiner's
 permutation over the slot's capacity and waiting cells, the first round record, the rounds

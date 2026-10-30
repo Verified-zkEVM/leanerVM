@@ -12,14 +12,14 @@ public import LeanVM.Guest.B1.Gkr.Fs
 /-!
 # `verify_bus_gkr` (TRIAGE G #43): the interface
 
-`verify_bus_gkr(fs0, …, fs4, cursor, g_bus_mu, zeta)` (G:1619-1785) runs the bus's one GKR
+`verify_bus_gkr(fs0, …, fs4, cursor, g_bus_mu, zeta)` (G:1617-1783) runs the bus's one GKR
 grand product over push, pull and count (`verifyGkrGrandProducts`, V:1379-1414): it reads the
 shared root and the count root (asserted nonzero, V:1490), runs one binary layer when the depth
 is odd and then layers of two levels (`gkrLayers`), writes the final point to `zeta`
 (`zeta[g^k]`, `k < depth`) and returns the carried capacity, the cursor past the words it read
 and the three trees' values at the point.
 
-At depth `0` the guest drops the two roots waiting in the sponge (G:1641-1644) where the
+At depth `0` the guest drops the two roots waiting in the sponge (G:1639-1642) where the
 specification keeps them waiting; `verify_sub` only calls it at `depth = μ ≥ 16`, so the
 statement asks `g_bus_mu ≠ 1`.
 -/

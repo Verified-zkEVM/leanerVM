@@ -2,7 +2,7 @@
   LeanVM.Guest.B1.VerifySub.Known
 
   `col_kappas` is in range after `verify_sub`'s placement and the stack's log check
-  (G:3310-3315): the tail of `VsKnown`.
+  (G:3308-3313): the tail of `VsKnown`.
 -/
 
 module

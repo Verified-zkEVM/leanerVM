@@ -10,7 +10,7 @@ public import LeanVM.Guest.B1.Whir.Flat
 public import LeanVM.Guest.B1.Opening.Residual
 
 /-!
-# `residual_query` inline (G:1272-1280)
+# `residual_query` inline (G:1270-1278)
 
 `osResQuery pos bd row vo n k` multiplies `d_t + chain_t` over `t < n`, the row's words `d_t`
 at `bd·g^(row + t)`, the chain from the position by `chain ← chain·(chain + VALS[vo + t])`

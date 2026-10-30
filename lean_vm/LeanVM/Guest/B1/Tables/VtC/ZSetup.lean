@@ -10,7 +10,7 @@ module
 public import LeanVM.Guest.B1.Tables.VtC.ZBase
 
 /-!
-# The table sumcheck's setup, completely (G:2185-2230)
+# The table sumcheck's setup, completely (G:2183-2228)
 
 Helpers for the honest valuation: a read of a word the memory holds (`z_read`), a product read
 as a quotient (`z_div`), a passing range check (`z_rc`, `z_rcd`), a `KECCAK` of canonical cells
@@ -166,7 +166,7 @@ noncomputable def zRest : List Stmt := [
 
 set_option maxRecDepth 100000 in
 set_option maxHeartbeats 4000000 in
-/-- **Statements `5152 ..< 5259`, completely** (G:2185-2230): the hinted `g^n` with `n` the
+/-- **Statements `5152 ..< 5259`, completely** (G:2183-2228): the hinted `g^n` with `n` the
 largest `τ_t` (at most `m = |point|`), the squeeze `ξ` of the sponge `S` after the bus words,
 the target, the first record, `__loop9`'s rounds on the honest buffers (records, running
 products, `chi`) and words `xs` at the cursor five on, the last record, `eq_prefix_chain` into

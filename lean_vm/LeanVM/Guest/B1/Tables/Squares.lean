@@ -49,7 +49,7 @@ theorem tbGetElem_squares {R : Type} [Monoid R] (n : ℕ) (x : R) (j : ℕ)
       simp only [tbSquares, List.getElem_cons_succ]
       rw [ih (x * x) j (by simpa [tbSquares] using hj), ← sq, ← pow_mul, pow_succ, Nat.mul_comm]
 
-/-- **`g_tbSquares`** (G:582-586): a run that starts at `GEN` and is squared at each step holds
+/-- **`g_tbSquares`** (G:580-584): a run that starts at `GEN` and is squared at each step holds
 `g^(2^j)` at step `j`. -/
 theorem tb_squares_eq {s : ℕ → E} (h0 : s 0 = gen) (hs : ∀ j, s (j + 1) = s j * s j) (j : ℕ) :
     s j = gen ^ 2 ^ j := by
@@ -57,7 +57,7 @@ theorem tb_squares_eq {s : ℕ → E} (h0 : s 0 = gen) (hs : ∀ j, s (j + 1) = 
   | zero => rw [h0, pow_zero, pow_one]
   | succ j ih => rw [hs, ih, ← sq, ← pow_mul, pow_succ]
 
-/-- **`g_logs_pow2`** (G:578-580): entry `j < 34` is `E(2^j)`, below `2^64`. -/
+/-- **`g_logs_pow2`** (G:576-578): entry `j < 34` is `E(2^j)`, below `2^64`. -/
 theorem tbLogsPow2_lt {j : ℕ} (hj : j < tbSizeBits) : 2 ^ j < 2 ^ 64 :=
   Nat.pow_lt_pow_right (by decide) (lt_trans hj (by decide))
 

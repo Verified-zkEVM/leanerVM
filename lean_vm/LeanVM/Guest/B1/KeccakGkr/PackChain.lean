@@ -12,7 +12,7 @@ public import LeanVM.Guest.B1.KeccakGkr.Round
 public import LeanVM.Guest.B1.KeccakGkr.LayerSpec
 
 /-!
-# The pack rounds (`keccak_layer`, G:2633-2675)
+# The pack rounds (`keccak_layer`, G:2631-2673)
 
 `keccak_layer` writes the record `rounds` (the capacity after the squeeze, the cursor past the
 product, the product's value at `s`, the scale `1`), runs `__loop{30..33}` for `x2 = g^j`,

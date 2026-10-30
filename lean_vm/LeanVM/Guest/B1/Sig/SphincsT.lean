@@ -2,7 +2,7 @@
   LeanVM.Guest.B1.Sig.SphincsT
 
   The body of `verify_sig_lean_sphincs` as a template, written from the guest's structure
-  (`lean_ethereum.py:3524-3763`) with the values numbered as the renumbered expansion numbers them.
+  (`lean_ethereum.py:3522-3761`) with the values numbered as the renumbered expansion numbers them.
 -/
 
 module
@@ -16,16 +16,16 @@ public import Sphincs.Equations
 `byte_bits` is the parameter `n1`, `P` the cell `n2` (`sPP`), the padding run `n12 … n16`, the
 index `idx` the node index `sNode 0`.
 
-* `sFromBytes` (`sp_from_bytes`, `lean_ethereum.py:3528-3544`): each byte mark range checked and read
+* `sFromBytes` (`sp_from_bytes`, `lean_ethereum.py:3526-3542`): each byte mark range checked and read
   off `byte_bits`, the value folded high byte first;
 * `sPrologue`: the message digest, its index bits pinned Boolean, the node indices (`shifts`), the
   unused bytes, the bound's start, the encoding's first two cells (`tops`), and the address
   constants of the forest keys (`tws`) and of the sub-trees (`sub_tws`);
-* `fkChain`, `fkArm`, `fkArms` (`sp_forest_top`, `sp_forest_key`, `lean_ethereum.py:3548-3589`): the
+* `fkChain`, `fkArm`, `fkArms` (`sp_forest_top`, `sp_forest_key`, `lean_ethereum.py:3546-3586`): the
   forest key of codeword entry `t`, each of its six chains walked its deficit `spCode t i` up to the
   top, the key's leaf hashed;
 * `foldLevel`, `foldArm`, `foldArms` (`sp_fold`, `sp_subtree_arm`, `sp_tree_arm`,
-  `lean_ethereum.py:3592-3631`): a leaf folded up its hinted path into the tree's two top nodes;
+  `lean_ethereum.py:3590-3629`): a leaf folded up its hinted path into the tree's two top nodes;
 * `sSubtree`, `sCoord`: a sub-tree of a coordinate (its key and codeword hints, the forest key's
   dispatch, the fold's dispatch) and a coordinate (its leaf hint, two sub-trees, the tree leaf's
   hash, the top fold's dispatch);
@@ -102,7 +102,7 @@ def sSubTwsWords : List E :=
   (List.range 8).flatMap fun a => (List.range 2).map fun l =>
     word (a * 2 ^ 40 ^^^ (tw 17 + (l + 1) * 2 ^ 40 + a / 2 ^ (l + 1) * 2 ^ 42)) 0 0
 
-/-- The prologue (`lean_ethereum.py:3634-3679`): the message digest into `n17 … n29`, the index's
+/-- The prologue (`lean_ethereum.py:3632-3677`): the message digest into `n17 … n29`, the index's
 bits, the node indices, the unused bytes into `n158`, the bound `n161`, `tops[0] = n162`,
 `tops[1] = n164`, and the address constants. -/
 def sPrologue : List Stmt :=
@@ -298,7 +298,7 @@ def sCoords : Nat → Nat → Option V → V → Nat → List Stmt × Nat × V �
 /-! ## The one-time signature and the tree -/
 
 /-- leanSPHINCS's chain step: the address `idx + (TW_CHAIN + i·2^32 + s·2^61)`, then
-`keccak([P, a], [v, 0], walks[o:o + 13], len=48)` (`walk`, `lean_ethereum.py:3391`). -/
+`keccak([P, a], [v, 0], walks[o:o + 13], len=48)` (`walk`, `lean_ethereum.py:3389`). -/
 def sWots (power : Nat → V) : WotsT where
   step i s v c o := cst c (word (tw 1 + i * hiMul + s * stepMul) 0 0) ::
     addS (.n (c + 1)) (sNode 0) (.n c) :: k48 (.n (c + 1)) v (c + 2) o

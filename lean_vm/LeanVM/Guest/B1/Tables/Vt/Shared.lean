@@ -13,7 +13,7 @@ public import LeanVM.Guest.B1.Eq.PlusOne
 public import LeanVM.Guest.B1.Selectors.SharedTables
 
 /-!
-# The selector tables (G:2019-2037)
+# The selector tables (G:2017-2035)
 
 * `vt_idxc`: `idxc_tab[g^t] = 1 + g^(2^t)`, `t < 34` (statements 2258-2325);
 * `vt_zeta1`: `zeta1` holds `1 + ζ_k` for the bus point's `μ` coordinates (`plus_one_run`, 2327);

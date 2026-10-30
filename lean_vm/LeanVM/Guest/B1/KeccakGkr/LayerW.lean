@@ -15,7 +15,7 @@ public import LeanVM.Guest.B1.KeccakGkr.LocalRounds
 # A layer, from its facts
 
 `LayerW` collects, for one reading of `keccak_layer`'s arguments (the claim `c`, `y`, the waiting
-word `w`), the facts its body gives (G:2480-2725): the product read, the projection check, the
+word `w`), the facts its body gives (G:2478-2723): the product read, the projection check, the
 squeeze after the product, the instance weights written, the pack rounds' records and calls, the
 eleven position rounds, `t`, the final check, the squeeze `β` and the next claim's record.
 `layer_of_w` turns them into the meaning: `layer_runsTo` with `pack_chain`'s messages, and the
@@ -87,7 +87,7 @@ structure LayerW (first odd : ℕ) (rd : Reader) (f0 f1 f2 f3 f4 cur hg yl claim
 theorem lanesOut_length (loc : List E) (beta : E) : (lanesOut loc beta).length = 25 := by
   simp [lanesOut]
 
-/-- **A layer, from its facts** (G:2480-2725 against V:1983-2019). -/
+/-- **A layer, from its facts** (G:2478-2723 against V:1983-2019). -/
 theorem layer_of_w {first odd : ℕ} (hf : first < 2) (ho : odd < 2) {rd : Reader}
     {f0 f1 f2 f3 f4 cur hg yl claim out iota : E} {rets : List E} {y step : ℕ} {c : KeccakClaim}
     {w : E} (hy : y % 2 = odd) (hy32 : y < 32) (hhg : hg = gen ^ (y / 2))

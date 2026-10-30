@@ -31,8 +31,8 @@ predicate on the witness:
   cap once, so two openings of one query step meeting at a node of the tree must give it one
   digest; one tree's openings agree; two that disagree at a node give a Keccak-256 collision, an
   argument in prose, not proved here); and no zero challenge where the guest divides (the guest
-  computes `μ = 1/λ` for each WHIR level's batching challenge `λ`, G:1253, and the basis
-  coefficients `(1 + c)/(c·inv)` for the fold and tail challenges `c`, G:1560, G:1565).
+  computes `μ = 1/λ` for each WHIR level's batching challenge `λ`, G:1251, and the basis
+  coefficients `(1 + c)/(c·inv)` for the fold and tail challenges `c`, G:1558, G:1563).
 
 The coverage table's size (`coverage`) is `Hints.plan`'s, as an honest run lays it out.
 -/

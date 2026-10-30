@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.Digest.ChildList
 
-  B1 for `child_claim_list_digest` (G:3864-3917; TRIAGE #89): a child's claim list rebuilt from
+  B1 for `child_claim_list_digest` (G:3864-3911; TRIAGE #89): a child's claim list rebuilt from
   this node's table through hinted slots, each marked in the coverage table, and its digest.
 -/
 
@@ -13,7 +13,7 @@ public import LeanVM.Guest.B1.Digest.ClaimList
 # `child_claim_list_digest`
 
 As `claim_list_digest`, but claim `j` of a group is read at a hinted slot `o` of the table
-(`child_claims`, G:3864-3874): `o` passes a range check against the region's bound, the coverage
+(`child_claims`, G:3864-3876): `o` passes a range check against the region's bound, the coverage
 table's slot `origin · g^o` holds the mark `marks · g^j`, and the four cells are read at
 `entries · g^(4o)`. `claimOk` checks one such record in a list of atoms, by evaluation, and
 `claimOk_sound` gives it on a memory image. The records sit at fixed value offsets in the 17

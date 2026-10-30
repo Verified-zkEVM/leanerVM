@@ -12,7 +12,7 @@ public import LeanVM.Guest.B1.Tables.Base
 /-!
 # `certify_placement` (TRIAGE G #67): the interface
 
-`certify_placement(kappa_base, g_squares)` (G:2989-3022) builds each committed column's `g^κ`
+`certify_placement(kappa_base, g_squares)` (G:2987-3020) builds each committed column's `g^κ`
 from its source in `kappa_base = [1, g^log_mem, g^τ_0, …, g^τ_5]` (`COL_KAPPA_SRC`,
 `COL_KAPPA_ADJ`, here `colKappaSrc`, `colKappaAdj`), reads the hinted order `col_sort_order`,
 certifies it to be `stackOffsets`'s (V:830: sizes non-increasing, ties by ascending index, every

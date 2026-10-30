@@ -80,14 +80,14 @@ example (W : Val → Reader → FrameMap → NodeWitness) (h : SoundHyps W) (inp
 
 /-- The statement with no claims and its deferred claim at the zero point, value `v`. -/
 def emptyStatement (v : E) : NodeStatement :=
-  ⟨⟨[], [], []⟩, ⟨List.replicate 23 0, v⟩⟩
+  ⟨⟨[], [], zeroDigest⟩, ⟨List.replicate 23 0, v⟩⟩
 
 /-- A witness holds the empty statement, whatever the seed and the deferred value: its digest
 ranges over a seed and a field element, so almost every public input is one's. -/
 example (seed : Digest) (v : E) (hints : BatchHints) :
     ∃ w, NodeRel bytecode seed (emptyStatement v) w := by
   have hlog : Nat.log2 bytecode.length = 23 := by rw [bytecode_length, Nat.log2_two_pow]
-  refine ⟨⟨[], [], [], [], hints⟩, ⟨?_, by simp, by simp [emptyStatement],
+  refine ⟨⟨[], [], [], none, hints⟩, ⟨?_, by simp, by simp [emptyStatement],
     by simp [emptyStatement], by simp [emptyStatement], ?_⟩⟩
   · simp [emptyStatement, DeferredClaim.Shaped, hlog]
   · simp [emptyStatement, DeferredClaim.AtZero, hlog]

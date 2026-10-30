@@ -21,7 +21,7 @@ soundness in the random-permutation model, the only term of its bound that depen
 argument.
 
 **The sources.** The leanVM definitions are transcribed from leanVM at
-`990b935263dc7f793f280914f262ca7955ddc3e0` (branch `main`, [`../leanvm-rev`](../leanvm-rev)): each
+`93ebecc5f87ed7b1248a9772c392f9a41b6ac8d0` (branch `main`, [`../leanvm-rev`](../leanvm-rev)): each
 cites its source (`verifier.py:N`, `*.rs:N`, `doc/leanvm` sections). LeanDA's security framework is
 Benedikt Wagner's ([b-wagn/fv-pq-da](https://github.com/b-wagn/fv-pq-da), Apache-2.0, see
 [`../lean_da/NOTICE`](../lean_da/NOTICE)).
@@ -93,8 +93,8 @@ Benedikt Wagner's ([b-wagn/fv-pq-da](https://github.com/b-wagn/fv-pq-da), Apache
    transcript (`extractorRpm`, on the Keccak-256 evaluations the transcript holds,
    `transcriptPaths`), **`LeanVM.KnowledgeSoundness`, `LeanVM.Completeness`**.
 10. [`LeanVmGuest.lean`](LeanVmGuest.lean): the leanISA guest program's specification (aggregation):
-    DA claims, a node's statement, its digest (Keccak-256 of a preimage), witness and relation
-    (`NodeRel`: leanXMSS and leanSPHINCS claims, DA claims, children verified by the deferring
+    DA claims and their digest, a node's statement, its digest (Keccak-256 of a preimage), witness
+    and relation (`NodeRel`: leanXMSS and leanSPHINCS claims, a DA digest, children verified by the deferring
     verifier, the batching of their deferred claims), a decoder and what a proof of the leanISA
     guest program establishes with it (**`GuestKnowledge`**), the candidate collisions of two
     statements' digests and **`LeanVM.Node.DigestBinds`** (a digest binds the seed and a statement

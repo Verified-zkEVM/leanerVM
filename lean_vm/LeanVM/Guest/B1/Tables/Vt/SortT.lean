@@ -10,7 +10,7 @@ module
 public import LeanVM.Guest.B1.Tables.Vt.Base
 
 /-!
-# The block certification's templates (G:1960-1993)
+# The block certification's templates (G:1958-1991)
 
 * `vtSideT`: `block_side_tab[g^b] = BLOCK_SIDE[b]` for the 153 blocks (statements 11-316);
 * `vtRank0T v R s`, `vtRankT v R s pk pc gin`: rank `R` of side `s`'s certification, its values

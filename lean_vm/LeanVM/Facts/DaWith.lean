@@ -10,7 +10,7 @@
   permutation; the guest's proofs also need them answered by a log. The deployed padding digests
   are parameters (`pc`, `pr`; deployed: the hashes of the zero cell and the zero row, which the
   guest bakes as constants, `DA_PAD_CELL_*`, `DA_PAD_ROW_*`,
-  `crates/rec_aggregation/src/aggregation.rs:2574-2577`). The tree is built with `nodes.length` as
+  `crates/rec_aggregation/src/aggregation.rs:2525-2528`). The tree is built with `nodes.length` as
   fuel, which is enough (`treeRootFuel_id`).
 -/
 
@@ -29,7 +29,7 @@ open LeanVM.Parameters LeanVM.Semantics LeanVM.Protocol LeanVM.Protocol.KeccakHa
 @[expose] public section
 
 /-- **The vector digest of a root**, as the outer verifier derives it
-(`vector_digest(membership_vector(root))`, `crates/verifier/src/da.rs:83-104`). -/
+(`vector_digest(membership_vector(root))`, `crates/verifier/src/da.rs:87-103`). -/
 def vectorDigestOf (root : Digest) : Common.KDigest :=
   LeanDa.vectorDigest keccak (LeanDa.membershipVector keccak keccakF root.toBytes)
 

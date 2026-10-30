@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.Sig.SphincsBytesComplete
 
-  `sp_from_bytes` (`lean_ethereum.py:3528-3544`) is complete: its marks hinted as `g^v` for bytes
+  `sp_from_bytes` (`lean_ethereum.py:3526-3542`) is complete: its marks hinted as `g^v` for bytes
   `v`, on a memory of at least `256` words holding the byte table, its value is the bytes' word.
 -/
 

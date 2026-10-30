@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.KeccakGkr.FoldT
 
-  `fold_shifts`' statements (`foldT`, G:2395-2424) compute `foldF`.
+  `fold_shifts`' statements (`foldT`, G:2393-2421) compute `foldF`.
 -/
 
 module
@@ -96,7 +96,7 @@ theorem foldLevelT_holds {src : ℕ → ℕ} {b : ℕ} {a : V} {t : ℕ} (ht : t
   rw [hx0, hx1, foldF_succ A hAl S ht hp hb hk]
   ring
 
-/-- **`fold_shifts`** (G:2395-2424): the used shifts `Σ_z V[z]·eq(a, z + r)`. -/
+/-- **`fold_shifts`** (G:2393-2421): the used shifts `Σ_z V[z]·eq(a, z + r)`. -/
 theorem foldT_holds {src : ℕ → ℕ} {b : ℕ} {a : V} {A : List E} {S : ℕ → E} (hAl : A.length = 6)
     (hA : ∀ t < 6, ∀ v, LoadHolds rd (σ a) t v → v = A.getD t 0)
     (hsrc : ∀ j < 64, σ (.n (src j)) = S j) {next : Prop} {kret : List E → Prop}

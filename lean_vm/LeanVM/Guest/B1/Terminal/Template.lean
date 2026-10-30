@@ -12,7 +12,7 @@ public import LeanVM.Guest.B1.Terminal.Interface
 /-!
 # `check_opening_terminal`, as a template
 
-The guest unrolls the claims' loop (G:3101-3131) at compile time on its tables `CLAIM_POINT_BUF`,
+The guest unrolls the claims' loop (G:3099-3129) at compile time on its tables `CLAIM_POINT_BUF`,
 `CLAIM_COMMITTED_COL` and `CLAIM_QKECCAK_SLOT_BITS`; here they are `termKind`, `termCol` and the
 slot `termSlot j`:
 
@@ -55,7 +55,7 @@ def colSelNames : List String := (List.range 29).map (Tables.lName "column_selec
 /-- The value of committed column `c`'s selector. -/
 def selV (c : ℕ) : ℕ := 38 + 3 * c
 
-/-- The head (G:3083-3095): the chains at `zeta` (`19`) and `chi` (`21`), the slot points (`23`,
+/-- The head (G:3081-3093): the chains at `zeta` (`19`) and `chi` (`21`), the slot points (`23`,
 `24`), the public input's chain (`25`, its loop `__loop14`) and its value (`33`), the selector
 tables (`34`, `35`). -/
 def termHeadT : List Stmt :=
@@ -73,7 +73,7 @@ def termHeadT : List Stmt :=
     .atom (.mul (.n 32) (.n 25) (.n 5)), .atom (.load (.n 33) (.n 32) 0),
     .call "selector_tables" [.n 14, .n 15] [.n 34, .n 35]]
 
-/-- Committed column `c`'s selector (G:3097-3100). -/
+/-- Committed column `c`'s selector (G:3095-3098). -/
 def selBlockT (c : ℕ) : List Stmt :=
   [.atom (.load (.n (36 + 3 * c)) (.n 10) c), .atom (.load (.n (37 + 3 * c)) (.n 11) c),
     .dispatch (.n (37 + 3 * c)) colSelNames [.n (36 + 3 * c), .n 34, .n 35] [.n (selV c)]]
@@ -142,7 +142,7 @@ def claimsT : List ℕ → ℕ → ℕ → List Stmt × ℕ × ℕ
       let rest := claimsT js b.2.1 b.2.2
       (b.1 ++ rest.1, rest.2.1, rest.2.2)
 
-/-- The tail (G:3133-3144) from value `b`, the claims' sum at `b - 1`: the outputs' chain, the
+/-- The tail (G:3131-3142) from value `b`, the claims' sum at `b - 1`: the outputs' chain, the
 ring switch's weight, the terminal check. -/
 def termTailT (b : ℕ) : List Stmt :=
   [.atom (.const (.n b) (word 64 0 0)), .atom (.mul (.n (b + 1)) (.n 6) (.n b)),

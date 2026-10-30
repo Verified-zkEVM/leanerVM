@@ -10,7 +10,7 @@ public import LeanVM.Guest.B1.Opening.QueriesSound
 public import LeanVM.Guest.B1.Common.Loops
 
 /-!
-# One iteration of `opening_queries`' loop (G:1259-1268)
+# One iteration of `opening_queries`' loop (G:1257-1266)
 
 * `oqQuery_bitLoads`: a query reads every bit of its position (`depth = pd + cd` of them);
   `bits_q`: bits read as `0`/`1` words are those of a position `q < 2^depth`.
@@ -107,7 +107,7 @@ theorem oqLoop1A_mem_q2 {s : Oq} {odd : ℕ} {a : Atom}
     Stmt.atom a ∈ oqLoop1A s odd := by
   simp only [oqLoop1A, List.mem_append]; simp_all
 
-/-- **A level-0 iteration** at `x = g^i` (G:1260-1264): its two queries open at the positions the
+/-- **A level-0 iteration** at `x = g^i` (G:1258-1262): its two queries open at the positions the
 bit pointers `qptrs[2i + odd]`, `qptrs[2i + odd + 1]` spell, and the chain steps by their
 values. -/
 theorem oqIter1_sound {s : Oq} (hs : s.RowShape) (hcd : 2 ≤ s.cd) (hcd8 : s.cd ≤ 8) {odd i : ℕ}
@@ -165,7 +165,7 @@ theorem oqLoop0A_mem_q {s : Oq} {a : Atom}
     Stmt.atom a ∈ oqLoop0A s := by
   simp only [oqLoop0A, List.mem_append]; simp_all
 
-/-- **A deeper iteration** at `x = g^i` (G:1265-1267): its query opens at the position the bit
+/-- **A deeper iteration** at `x = g^i` (G:1263-1265): its query opens at the position the bit
 pointer `qptrs[i]` spells, and the chain steps by its value. -/
 theorem oqIter0_sound {s : Oq} (hs : s.RowShape) (hcd : 2 ≤ s.cd) (hcd8 : s.cd ≤ 8) {i : ℕ}
     (hA : ∀ a, Stmt.atom a ∈ oqLoop0A s → a.Holds rd σ) (hx : σ (.n 0) = gen ^ i)

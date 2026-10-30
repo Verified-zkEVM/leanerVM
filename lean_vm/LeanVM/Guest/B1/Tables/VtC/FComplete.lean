@@ -11,7 +11,7 @@ public import LeanVM.Guest.B1.Tables.VtC.FWin
 public import LeanVM.Guest.B1.Tables.VtC.FFinal
 
 /-!
-# The table phase's evaluations and final check, complete (G:2231-2290)
+# The table phase's evaluations and final check, complete (G:2229-2288)
 
 `vtF_complete`: the window (`vtF_window`) and the final check `assert air_acc == claim`, which
 holds since `air_acc` is `termsPure`'s terminal value over the six tables (`vt_asm_finalF`) and

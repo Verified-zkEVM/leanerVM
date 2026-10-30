@@ -33,7 +33,7 @@ open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile LeanVM.P
 
 @[expose] public section
 
-/-! ## `opening_fold` (G:1103-1115, TRIAGE #35) -/
+/-! ## `opening_fold` (G:1101-1113, TRIAGE #35) -/
 
 /-- **`opening_fold(fs0..fs4, w0, w1, cursor, c0, c1, c2)`**: from the carried capacity
 (canonical cells) with the scalars `w0`, `w1` waiting (`dsObserve`), the challenge `r` is
@@ -53,7 +53,7 @@ def opening_fold_Spec : Prop :=
   ∀ (rd : Reader) (args rets : List E),
     coreProgram.Rel rd "opening_fold" args rets ↔ MeaningOpeningFold rd args rets
 
-/-! ## `opening_ood_point` (G:1118-1129, TRIAGE #36) -/
+/-! ## `opening_ood_point` (G:1116-1127, TRIAGE #36) -/
 
 /-- **`opening_ood_point(fs0..fs4, r0..r7, point, n)`** (`n ≥ 1`): the rate cells `r0..r7` and the
 capacity are canonical; the first coordinate is the challenge of their permutation, the other
@@ -85,7 +85,7 @@ def opening_ood_point_Spec : Prop :=
   ∀ p ∈ oodPointNames, ∀ (rd : Reader) (args rets : List E),
     coreProgram.Rel rd p.1 args rets ↔ MeaningOpeningOodPoint p.2 rd args rets
 
-/-! ## `opening_final_message` (G:1132-1150, TRIAGE #37) -/
+/-! ## `opening_final_message` (G:1130-1149, TRIAGE #37) -/
 
 /-- **`opening_final_message(fs0..fs4, w0, w1, cursor, out, n)`**: from the carried capacity
 (canonical cells) with `w0`, `w1` waiting, the `n` stream words at the cursor (the final message,
@@ -111,7 +111,7 @@ def opening_final_message_Spec : Prop :=
   ∀ p ∈ finalMessageNames, ∀ (rd : Reader) (args rets : List E),
     coreProgram.Rel rd p.1 args rets ↔ MeaningOpeningFinalMessage p.2 rd args rets
 
-/-! ## `opening_row_weights` (G:1153-1176, TRIAGE #38) -/
+/-! ## `opening_row_weights` (G:1152-1173, TRIAGE #38) -/
 
 /-- Slot `i` of a run of `2^m`, reversed when `rev = 1`. -/
 def rwSlot (m rev i : ℕ) : ℕ := if rev = 1 then 2 ^ m - 1 - i else i
@@ -143,7 +143,7 @@ def opening_row_weights_Spec : Prop :=
     coreProgram.Rel rd "opening_row_weights__L4_L0" args rets ↔
       MeaningOpeningRowWeights 4 0 rd args rets
 
-/-! ## `opening_query`, `opening_queries` (G:1179-1269, TRIAGE #39, #40) -/
+/-! ## `opening_query`, `opening_queries` (G:1177-1266, TRIAGE #39, #40) -/
 
 /-- `climb` (V:492) at the deployed hash: the node a path reaches. -/
 def climbD (leaf : Digest) (q : ℕ) (sibs : List Digest) : Digest :=
@@ -158,7 +158,7 @@ def rowWord (base : ℕ) (row : List K) (j : ℕ) : E :=
 /-- The low factor's length of a row of `I` words: `min I 8`. -/
 def rowLo (I : ℕ) : ℕ := if I / 8 = 0 then I else 8
 
-/-- **A row's dot product with its tensor weights** (`opening_query`, G:1205-1222): run `h` of
+/-- **A row's dot product with its tensor weights** (`opening_query`, G:1203-1220): run `h` of
 `lo` words, weighted by `w (lo + h)`, of the sums of its words weighted by `w l`, in the guest's
 order. -/
 def rowDot (base I : ℕ) (row : List K) (w : ℕ → E) : E :=
@@ -170,7 +170,7 @@ def rowDot (base I : ℕ) (row : List K) (w : ℕ → E) : E :=
 def climbNode (leaf : Digest) (q : ℕ) (sibs : List Digest) (l : ℕ) : Digest :=
   climbD leaf q (sibs.take l)
 
-/-- Cell `k` of a path's frame run (`verify_merkle_path`'s `path`, G:1031): level `k / 4`'s
+/-- Cell `k` of a path's frame run (`verify_merkle_path`'s `path`, G:1026): level `k / 4`'s
 children, two cells each, the node reached so far on the side of the position's bit at the level,
 the sibling on the other. -/
 def pathCell (leaf : Digest) (q : ℕ) (sibs : List Digest) (k : ℕ) : E :=
@@ -178,7 +178,7 @@ def pathCell (leaf : Digest) (q : ℕ) (sibs : List Digest) (k : ℕ) : E :=
     else sibs.getD (k / 4) (Vector.replicate 4 0)
   if k % 2 = 0 then (digestScalars d).1 else (digestScalars d).2
 
-/-- **One query** (`opening_query`, G:1179-1243, with `verify_merkle_path`, G:1028-1043; TRIAGE
+/-- **One query** (`opening_query`, G:1177-1241, with `verify_merkle_path`, G:1026-1041; TRIAGE
 #33, #39) at the position `q`: the hinted row of `I` (`base = 1`) or `3I` words of `K`, hashed
 (`hashWords`, the leaf of `openOne`, V:501) and climbed `depth - cd` levels by hinted siblings
 (`climb`, V:492, the position's low bits: `climbD`); the path's children cells are a frame run at
@@ -223,7 +223,7 @@ def QueryBitsBool (rd : Reader) (qptrs : E) (Q depth : ℕ) : Prop :=
   ∀ k < Q, ∀ bp, LoadHolds rd qptrs k bp → ∀ l < depth, ∀ b, LoadHolds rd bp l b → b = 0 ∨ b = 1
 
 /-- **`opening_queries(cap, flags, lam, lam_n, query_bit_ptrs, row_eq_weights, n_iters_g, odd,
-base, I, leaf_cells, depth, cd)`** (G:1246-1269; TRIAGE #40): `n_iters_g = g^N`, `λ ≠ 0`; query
+base, I, leaf_cells, depth, cd)`** (G:1244-1267; TRIAGE #40): `n_iters_g = g^N`, `λ ≠ 0`; query
 `k < Q` (`oqCount`) reads its bit pointer and the bits of its position `q_k < 2^depth`, and opens
 (`QueryOpens`) to the value `d_k`; the chain `h ← (h + d_k)·λ⁻¹` is in a heap run, and the
 function returns its end times `lam_n`: `lam_n · Σ_k d_k λ^(k - Q)` (`Σ_k λ^k d_k` at

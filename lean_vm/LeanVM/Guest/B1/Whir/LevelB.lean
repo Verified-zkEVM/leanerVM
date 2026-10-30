@@ -10,7 +10,7 @@ public import LeanVM.Protocol.Verifier.WhirTarget
 public import LeanVM.Guest.B1.Whir.LevelRest
 
 /-!
-# A level's queries and glue, soundly (G:1409-1502)
+# A level's queries and glue, soundly (G:1407-1500)
 
 `osLevelB_sound`: `osLevelB`'s atoms and calls (the squeezes, the weights, the queries, the glue)
 run `levelRest` from the sponge with nothing waiting after the proof of work, and leave the

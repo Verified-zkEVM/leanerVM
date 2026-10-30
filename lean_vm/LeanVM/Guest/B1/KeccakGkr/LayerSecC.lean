@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.KeccakGkr.LayerSecC
 
-  `keccak_layer`'s tail (G:2697-2725): the final check, the squeeze of `β`, the next claim's
+  `keccak_layer`'s tail (G:2695-2723): the final check, the squeeze of `β`, the next claim's
   record, the return.
 -/
 
@@ -46,7 +46,7 @@ theorem lanesOutT_holds {beta lp B : ℕ} {f : ℕ → ℕ} {next : Prop} {kret 
 theorem word_2p36 : word 68719476736 0 0 = gen ^ 36 := by
   rw [show (68719476736 : ℕ) = 2 ^ 36 from rfl]; exact word_two_pow (by decide)
 
-/-- **The tail** (G:2697-2725). -/
+/-- **The tail** (G:2695-2723). -/
 theorem tailT_holds {d W wv : ℕ} {locPt : List E} (hlocL : locPt.length = 11)
     (hloc : ReadsAt rd (σ (.n (d + 1325))) locPt)
     (hf : ∀ i < 25, σ (.n (laneW d i)) = eqAt (locPt.drop 6) i)

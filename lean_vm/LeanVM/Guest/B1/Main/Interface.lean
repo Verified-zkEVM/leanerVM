@@ -15,14 +15,14 @@ public import LeanVM.Guest.B1.Sig.Interface
 /-!
 # `main` and `aggregate_claims`: meanings (TRIAGE G #96, #97)
 
-**`aggregate_claims`** (G:4285-4392, `core31`): from the batching seed (`AGG_SEED_*`), the
+**`aggregate_claims`** (G:4234-4341, `core29`): from the batching seed (`AGG_SEED_*`), the
 duplex sponge absorbs the children's count and every child's words, squeezes two coefficients per
 child, and one sumcheck (`batch_sumcheck`) reduces the children's claims on the bytecode to the
 claim written at `defer_stmt`: `Node.batch` (N:272) of the children whose words the memory holds
 (`ChildWordsAt`) returns that claim, for the hints `bc_sumcheck_msgs`, `bc_star_hint`
 (`MeaningAggregateClaims`).
 
-**`main`** (G:4086-4282, `core0`). Its callees with a witness, each through a witness function of
+**`main`** (G:4063-4231, `core0`). Its callees with a witness, each through a witness function of
 the call's words (`CalleesW`): a leanXMSS signature `wX p` for the claim at `p`
 (`verify_lean_xmss`, `Sig.XmssOut`), a leanSPHINCS signature `wS p` (`verify_sig_lean_sphincs`,
 `Sig.SphincsOut`, with the byte table), a matrix `wD args rets` (`da_verify`, `Da.Witness.Opens`),
@@ -84,7 +84,7 @@ def deferOfCells (cs : List E) : DeferredClaim := ⟨cs.take bytecodeVars, cs.ge
 /-- A proof's claim on the bytecode of its `24` cells (`defer_out`). -/
 def fixedOfCells (cs : List E) : FixedClaims := ⟨cs.take bytecodeVars, cs.getD bytecodeVars 0⟩
 
-/-! ## `aggregate_claims` (G:4285-4392, TRIAGE #97) -/
+/-! ## `aggregate_claims` (G:4234-4341, TRIAGE #97) -/
 
 /-- **Child `c`'s words in memory**: its public input's two cells at `child_pi · g^(2c)`, its
 proof's claim at `child_fresh · g^(24c)`, its statement's deferred claim at
@@ -116,7 +116,7 @@ def aggregate_claims_sound_Spec : Prop :=
 
 /-! ## What `main` asks of its callees with a witness -/
 
-/-- **What a `verify_sub` call establishes for the proof `π`** (B1-d's `verify_sub`, G:3147;
+/-- **What a `verify_sub` call establishes for the proof `π`** (B1-d's `verify_sub`, G:3145;
 `VerifySub.MeaningVerifySub`): its first four cells hold a public input and a seed, its seventh
 argument the child proof's claim on the bytecode (`23` coordinates, then the value), and the
 deferring verifier accepts `π` for the public input under the seed. -/
@@ -270,7 +270,7 @@ noncomputable def decWit (σ : Val) (rd : Reader) (wX : E → LeanXmss.Signature
 
 /-! ## The statement -/
 
-/-- **`main`, soundly, its witness decoded** (G:4086-4282, TRIAGE #96): on a memory image whose
+/-- **`main`, soundly, its witness decoded** (G:4063-4231, TRIAGE #96): on a memory image whose
 public input cells (`[1]`, `[g]`) hold the digest `D`, given the callees' contracts with the
 witness functions, every run of `main`'s body (under `coreProgram.Rel`) gives the seed
 `decSeed σ` and the statement `decStmt σ rd` of digest `D`, which the witness

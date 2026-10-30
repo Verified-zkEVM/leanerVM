@@ -11,7 +11,7 @@ public import LeanVM.Guest.B1.Fs.Templates
 public import LeanVM.Guest.B1.Common.Run
 
 /-!
-# `opening_fold` (G:1103-1115, TRIAGE #35)
+# `opening_fold` (G:1101-1113, TRIAGE #35)
 
 Its body: the capacity copied into `11 .. 15`, the two waiting scalars packed (`fsPackT`, cells
 `22, 24` and `31, 33`), the pad run `34 .. 38`, the permutation into `39 .. 51`, the challenge

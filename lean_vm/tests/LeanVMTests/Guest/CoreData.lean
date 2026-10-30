@@ -168,6 +168,6 @@ example : coreProgram.find? "__loop418" = some Data.core877 :=
 
 example : Data.core20.name = Data.f21.name := name_eq_compiled (j := 20) rfl rfl
 
-example : Data.core877.name = Data.f899.name := name_eq_compiled (j := 877) rfl rfl
+example : Data.core877.name = Data.f878.name := name_eq_compiled (j := 877) rfl rfl
 
 end LeanVMTests.Guest.CoreData

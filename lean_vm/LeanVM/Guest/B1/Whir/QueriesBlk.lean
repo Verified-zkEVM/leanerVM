@@ -11,7 +11,7 @@ public import LeanVM.Guest.B1.Whir.QueriesOpenW
 public import LeanVM.Guest.B1.Whir.Squeezes
 
 /-!
-# A level's queries block (G:1454-1476)
+# A level's queries block (G:1452-1474)
 
 `osQueries_sound`: the row weights (`opening_row_weights`, the level's folds), the cap checked
 against the level's root (`verify_merkle_cap`, stored in `level_roots`), the queries

@@ -28,11 +28,11 @@ of entries in the order the guest pops them, for a run on the statement `s` unde
 `seed` held by the witness `w`; `publicInput seed s` is the initial memory, the statement's digest
 at cells `g^0` and `g^1`. They mirror the Rust producers of
 `crates/rec_aggregation/src/aggregation.rs` (leanVM `3375f7a13`) push for push (`honestPushes`,
-grouped by stream as `Hints::push` does, `aggregation.rs:1412-1418`): the node's streams
-(`aggregate_with_stats`, `aggregation.rs:1718-2010`), a raw signature's (`lean_xmss_hints`,
-`aggregation.rs:1584-1610`; `push_lean_sphincs_hints`, `aggregation.rs:1618-1684`), a child's
-(`gen_verify`, `aggregation.rs:1214-1378`), the batching's (`aggregate_deferred_claims`,
-`aggregation.rs:943-1056`) and LeanDA's.
+grouped by stream as `Hints::push` does, `aggregation.rs:1385-1391`): the node's streams
+(`aggregate_with_stats`, `aggregation.rs:1704-1961`), a raw signature's (`lean_xmss_hints`,
+`aggregation.rs:1557-1583`; `push_lean_sphincs_hints`, `aggregation.rs:1591-1660`), a child's
+(`gen_verify`, `aggregation.rs:1187-1351`), the batching's (`aggregate_deferred_claims`,
+`aggregation.rs:916-1029`) and LeanDA's.
 
 Where the Rust reads a child's proof (`verifier::replay_unchecked`), this replays the Spec's
 deferring verifier (`verifyDeferredWith`, Keccak-256 and Keccak-f[1600], from
@@ -44,12 +44,10 @@ Keccak-256 (`keccakBits`, as `xmssVerify` and `sphincsVerify` take it).
 
 Choices the witness does not fix, made as the Rust makes them:
 
-* **Coverage slots** (`plan`, `take_slot`, `aggregation.rs:1531-1541`): the raw signatures
+* **Coverage slots** (`plan`, `take_slot`, `aggregation.rs:1504-1514`): the raw signatures
   first, in the statement's order, then every child's claims, child by child; a claim takes its
   declared slot if it is still free, else the next duplicate slot. The deployed lists are
-  strictly sorted, where the first free match is the slot `binary_search` finds. A DA claim is
-  matched on its root and its vector digest: the guest rebuilds a child's DA list from the slots,
-  so the pair is what has to agree.
+  strictly sorted, where the first free match is the slot `binary_search` finds.
 * **Holders**: the raw signatures are the claims held `.direct`; a claim held through a child
   takes the slot of the first child making it, whichever child its holder names.
 * **A leaf's deferred value** (`leaf_defer`) is the statement's, which the guest does not check.
@@ -79,16 +77,16 @@ def group (pushes : List (String × Entry)) : Streams :=
 
 /-! ## The deployed constants -/
 
-/-- `CLAIM_GROUP` (`aggregation.rs:196`): the claims a claim list's digest absorbs per loop
+/-- `CLAIM_GROUP` (`aggregation.rs:192`): the claims a claim list's digest absorbs per loop
 frame. -/
 def claimGroup : ℕ := 17
 
-/-- `DIGIT_GROUP` (`aggregation.rs:97`): the codeword digits the guest dispatches on at a time. -/
+/-- `DIGIT_GROUP` (`aggregation.rs:93`): the codeword digits the guest dispatches on at a time. -/
 def digitGroup : ℕ := 3
 
 /-! ## Encodings -/
 
-/-- `count(n)`: `g^n` (`aggregation.rs:139-141`). -/
+/-- `count(n)`: `g^n` (`aggregation.rs:135-137`). -/
 def count (n : ℕ) : E := gpowE n
 
 /-- A bit as a word. -/
@@ -112,12 +110,12 @@ def claimCells (root parameter : BitVec 128) (message : BitVec 256) : Entry :=
   cellsOfBytes (claimBytes root parameter message)
 
 /-- The bytes of a `bits`-bit value, low first, each in the exponent (`exponent_bytes`,
-`aggregation.rs:145-150`). -/
+`aggregation.rs:141-146`). -/
 def exponentBytes (value bits : ℕ) : Entry :=
   (List.range ((bits + 7) / 8)).map fun k ↦ count (value / 2 ^ (8 * k) % 256)
 
 /-- How a list of `n` claims splits into whole groups of `claimGroup` and the rest
-(`list_split`, `aggregation.rs:204-207`). -/
+(`list_split`, `aggregation.rs:200-203`). -/
 def listSplit (n : ℕ) : Entry := [count (n / claimGroup), count (n % claimGroup)]
 
 /-- A list's split, if it is not empty, then one push per item. -/
@@ -174,14 +172,14 @@ def xmssHints (pk : LeanXmss.PublicKey) (message : LeanXmss.Message) (σ : LeanX
 /-! ## A leanSPHINCS signature (`push_lean_sphincs_hints`) -/
 
 /-- The digest bits the leanSPHINCS fields take (`LEAN_SPHINCS_USED_BITS`,
-`aggregation.rs:153-155`): from bit `128` of the digest, the index, every tree's leaf and every
+`aggregation.rs:149-151`): from bit `128` of the digest, the index, every tree's leaf and every
 subtree's key. -/
 def sphincsUsedBits : ℕ :=
   Sphincs.totalHeight + Sphincs.forestCoords * Sphincs.topHeight +
     2 * Sphincs.forestCoords * Sphincs.subHeight
 
 /-- A field the guest dispatches on: in the exponent, and as the address cell whose `hi` it is
-(`mark`, `aggregation.rs:1645-1648`). -/
+(`mark`, `aggregation.rs:1572-1575`). -/
 def markEntry (index field : ℕ) : Entry :=
   [count index, cellOfBytes (Sphincs.fieldBytes (Sphincs.tweakFields 0 0 field 0))]
 
@@ -232,7 +230,7 @@ def sphincsHints (pk : Sphincs.PublicKey) (message : Sphincs.Message) (σ : Sphi
 /-! ## LeanDA -/
 
 /-- A blob matrix's hints: the vector a cell at a time, the row count and its padded log, and
-every row's cells, column by column (`aggregation.rs:1900-1926`). -/
+every row's cells, column by column (`aggregation.rs:1842-1862`). -/
 def daHints (w : Da.Witness) : List (String × Entry) :=
   (List.range LeanDa.cellsPerRow).map (fun j ↦
       ("da_weights", (w.vector.drop (LeanDa.cellSymbols * j)).take LeanDa.cellSymbols)) ++
@@ -280,7 +278,7 @@ def stepChildren (step : ℕ × Digest × Digest) : Entry :=
 /-- One level's Merkle hints, from its commitment's height, its positions and their openings:
 per query its leaf's words and the ordered children below the cap (`merkle_leaf_rows`,
 `merkle_children`), and the level's cap nodes and their parents' activity flags
-(`aggregation.rs:1300-1340`). -/
+(`aggregation.rs:1273-1313`). -/
 def levelHints (depth : ℕ) (positions : List ℕ) (openings : List Opening) :
     List (String × Entry) × Entry × Entry :=
   let capDepth := min (log2Ceil positions.length) depth

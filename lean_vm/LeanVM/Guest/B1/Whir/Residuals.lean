@@ -10,7 +10,7 @@ module
 public import LeanVM.Guest.B1.Whir.ResLoop
 
 /-!
-# The residual sums (G:1575-1598)
+# The residual sums (G:1573-1596)
 
 `osResidual_sound`: level `lvl`'s block reads its positions `P` and weights `W`, its row's words
 `D` in `basis_d`, its scale `L` in `level_scale`, and stores
@@ -30,7 +30,7 @@ variable {rd : Reader} {σ : Val}
 abbrev lvRes (lv : OsLv) (D : ℕ → E) (p : E) : E :=
   residualProd (osVals lv.vanish lv.logCols) p D lv.logCols
 
-/-- **A level's residual sum** (G:1575-1598). -/
+/-- **A level's residual sum** (G:1573-1596). -/
 theorem osResidual_sound {c : OsCfg} {lvl : ℕ} {lv : OsLv} {ich bd ls k : ℕ}
     (hloop : FnIs (c.resLoop lvl) (osParams 6) (resLoopBody c lvl lv (c.resLoop lvl)))
     (hml : 1 ≤ lv.logCols) (hpo : lv.posOff < u128Bound) (hwo : lvl * c.maxQ < u128Bound)

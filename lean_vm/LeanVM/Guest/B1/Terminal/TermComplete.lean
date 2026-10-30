@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.Terminal.TermComplete
 
-  **`check_opening_terminal` is complete, placed** (G:3078-3144; TRIAGE #70): on the caller's
+  **`check_opening_terminal` is complete, placed** (G:3076-3142; TRIAGE #70): on the caller's
   words making `TermPre` true, when the WHIR terminal equation holds, it returns at every frame
   pointer.
 -/
@@ -22,9 +22,9 @@ The honest direction of `MeaningTerminal`: `check_opening_terminal_completeAt`. 
   and logs, the outputs' and the ring switch's points, the coefficients, the terminal point and its
   complements);
 * `hbus`: the bus point has at most `34` coordinates, so its prefix chain (`|bus.point| + 1` words)
-  fits the guest's `35`-word buffer (G:3083; `TermPre` allows `40`);
+  fits the guest's `35`-word buffer (G:3081; `TermPre` allows `40`);
 * `hlen`: every claim's point has its column's number of variables (honest claims do; the guest
-  checks it, G:3105-3121);
+  checks it, G:3103-3119);
 * `hfin`: the WHIR terminal equation `(inner + basis(x))·residual = target`, `MeaningTerminal`'s
   conclusion;
 * `6 ≤ κ`: the memory is defined below `64`, where `eq_prefix_chain`'s range checks read.

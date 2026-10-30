@@ -32,7 +32,7 @@ variable {C : CallRel} {rd : Reader} {σ : Val} {next : Prop} {kret : List E →
 theorem word_1024 : word 1024 0 0 = gen ^ 10 := by
   rw [show (1024 : ℕ) = 2 ^ 10 from rfl]; exact word_two_pow (by decide)
 
-/-- **The three calls** (G:3243-3255). -/
+/-- **The three calls** (G:3241-3253). -/
 theorem vsCallsT_holds (h : Stmt.HoldsList C rd σ vsCallsT next kret) :
     σ (.n 838) = σ (.n 27) * gen ^ 10 ∧
     C "verify_bus_gkr" [σ (.n 825), σ (.n 826), σ (.n 827), σ (.n 828), σ (.n 829), σ (.n 838),
@@ -67,7 +67,7 @@ theorem vsCallsT_holds (h : Stmt.HoldsList C rd σ vsCallsT next kret) :
       List.nil_append, List.cons_append, Stmt.HoldsList, Stmt.Holds, Atom.Holds] at h
     exact h.2.2.2.2.2
 
-/-- **The ring map's challenges** (G:3264-3270): the first `verify_keccak`'s, five squeezed from
+/-- **The ring map's challenges** (G:3262-3268): the first `verify_keccak`'s, five squeezed from
 the capacity it returned. -/
 theorem vsMapsT_holds (h10 : σ (.n 10) = 0) (h11 : σ (.n 11) = 0) (h12 : σ (.n 12) = 0)
     (h13 : σ (.n 13) = 0) (h : Stmt.HoldsList C rd σ vsMapsT next kret) :
@@ -119,7 +119,7 @@ theorem holds_copyLoads (p q b : ℕ) (qo : ℕ → ℕ) : ∀ (n : ℕ) {X : Pr
     · exact hk k hk'
     · exact ⟨_, l1, l2⟩
 
-/-- **The tail** (G:3301-3336): the placement, the stack's log `g^m`, `size_sel = g^m·g^-22` below
+/-- **The tail** (G:3299-3334): the placement, the stack's log `g^m`, `size_sel = g^m·g^-22` below
 `g^7`, the candidate `size_sel·rate_sel^7` below `g^28`, one specialization of `open_stacked`
 dispatched on it, the terminal, the deferred claim's words, and no return word. -/
 theorem vsTailT_holds (h : Stmt.HoldsList C rd σ vsTailT next kret) :

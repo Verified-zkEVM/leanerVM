@@ -308,8 +308,7 @@ theorem kcAgg_le (op : Opcode) : ∀ (rd : Reader) (t : Tree) (args rets : List 
 WORDS_PREFIXES = ('opening_fold', 'assert_canonical', 'grind_check__L', 'opening_row_weights__L',
                   'opening_ood_point__L', 'opening_final_message__L', 'verify_merkle_cap__L',
                   'fold_final_msg__L', 'claim_list_last__L', 'da_levels__L', 'list_split',
-                  'batch_sumcheck__L', 'da_list_digest', 'statement_digest', 'exponent_tables',
-                  'cover_da_root')
+                  'batch_sumcheck__L', 'statement_digest', 'exponent_tables')
 
 
 def cmd_words_by_name(g, wcert):

@@ -84,7 +84,7 @@ theorem digest_of_canonical {a b : E} (ha : IsCanonical128 a) (hb : IsCanonical1
     ⟨_, by simp only [digestOfScalars, ha, hb, and_self, ↓reduceIte]; exact rfl⟩
   exact ⟨d, (digestScalars_digestOfScalars hd).symm⟩
 
-/-- **The seed** (G:3162-3164; V:2338): the four cells are two digests' cells, and the capacity
+/-- **The seed** (G:3160-3162; V:2338): the four cells are two digests' cells, and the capacity
 the atom writes is the seed state's. -/
 theorem vs_seed (hk : vsSeedAtom.Holds rd σ) (h10 : σ (.n 10) = 0) (h11 : σ (.n 11) = 0)
     (h12 : σ (.n 12) = 0) (h13 : σ (.n 13) = 0) :
@@ -289,7 +289,7 @@ abbrev vsAtom671 : Atom :=
   .keccak [.n 544, .n 546, .n 554, .n 556, .n 10, .n 11, .n 12, .n 13, .n 532, .n 533, .n 534,
     .n 535, .n 536] (vsRun 560 13) false false
 
-/-- **The four bus challenges** (G:3231-3237). -/
+/-- **The four bus challenges** (G:3229-3235). -/
 theorem vsAlphasT_holds (h10 : σ (.n 10) = 0) (h11 : σ (.n 11) = 0) (h12 : σ (.n 12) = 0)
     (h13 : σ (.n 13) = 0) (w8 : WordAt rd σ 8 537) (w9 : WordAt rd σ 9 547)
     (h : Stmt.HoldsList C rd σ vsAlphasT next kret) :

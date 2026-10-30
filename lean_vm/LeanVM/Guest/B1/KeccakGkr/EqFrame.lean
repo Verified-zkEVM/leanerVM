@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.KeccakGkr.EqFrame
 
-  `eqtree_frame` (G:842-857), inline: the equality weights of a point built level by level in
+  `eqtree_frame` (G:848-855), inline: the equality weights of a point built level by level in
   frame cells; a generic template and its meaning, `eqAt`.
 -/
 

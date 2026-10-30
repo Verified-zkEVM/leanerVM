@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.Digest.Statement
 
-  B1 for `statement_digest` (G:3766-3797; TRIAGE #86): the statement's digest, byte for byte.
+  B1 for `statement_digest` (G:3764-3795; TRIAGE #86): the statement's digest, byte for byte.
 -/
 
 module
@@ -12,7 +12,7 @@ public import LeanVM.Guest.B1.Digest.Basic
 # `statement_digest`
 
 `statement_digest(seed_0, seed_1, xd_0, xd_1, sd_0, sd_1, da_0, da_1, defer)` hashes 44 cells: the
-seed's two cells, the two claim lists' digests' two each, the DA list digest's two, then the 24
+seed's two cells, the two claim lists' digests' two each, the DA digest's two, then the 24
 deferred cells (read at `defer`) two at a time as three canonical cells each (`pack_pair`), `704`
 bytes in six `KECCAK` blocks, the last holding bytes `680 … 703`, the padding's `0x01` (byte
 `704`, cell `44`) and `0x80` (byte `815`, cell `50`). Its core IR (`Data.core21`) is the template

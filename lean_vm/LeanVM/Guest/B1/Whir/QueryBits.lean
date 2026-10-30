@@ -9,7 +9,7 @@ module
 public import LeanVM.Guest.B1.Whir.Squeezes
 
 /-!
-# The positions table (G:1436-1440, 734-778)
+# The positions table (G:1434-1438, 734-778)
 
 `decode_query_bits` of challenge `jj` writes positions `jj·per .. jj·per + per - 1` and their
 bit runs (`per = 192 / depth`). `positions_of_decodes`: for every `k < q`, the position

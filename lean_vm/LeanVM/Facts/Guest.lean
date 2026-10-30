@@ -19,7 +19,7 @@ open LeanVM.Protocol.Verifier LeanVM.Node
 @[expose] public section
 
 /-- **A child's announced stack log and rate** (`readSizes`, `Verifier.announced`): the opening
-arm its `verify_sub` dispatches to (G:3314-3316); `(0, 0)` if its stream announces none, which no
+arm its `verify_sub` dispatches to (G:3312-3314); `(0, 0)` if its stream announces none, which no
 child of a node within `Limits`, its caps agreeing and no zero challenge, does
 (`B1.Main.childShape_bounds`). -/
 def childShape (bytecode : List K) (c : Child) : ℕ × ℕ :=

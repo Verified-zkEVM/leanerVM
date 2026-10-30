@@ -11,7 +11,7 @@ public import LeanVM.Guest.B1.Tables.Vt.Fresh
 public import LeanVM.Guest.B1.Selectors.IndexMle
 
 /-!
-# The framework's claims (G:2084-2120)
+# The framework's claims (G:2082-2118)
 
 `vt_fw`: `index_mle` at `log_mem` and at `19` (the bytecode's log-size) give the index extensions
 of the point's prefixes; the memory's three values, the final memory count and the final bytecode

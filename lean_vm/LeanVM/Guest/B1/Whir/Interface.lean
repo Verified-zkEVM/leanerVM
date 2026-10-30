@@ -16,13 +16,13 @@ public import LeanVM.Protocol.Compile.Prog
 # `open_stacked` (TRIAGE G #42): the interface
 
 `open_stacked(m_idx, fs0..fs4, target, commit_root_0, commit_root_1, cursor)`
-(`crates/rec_aggregation/guests/lean_ethereum.py:1283-1613` at leanVM `4af2cdddd`, G below) runs
+(`crates/rec_aggregation/guests/lean_ethereum.py:1281-1611` at leanVM `4af2cdddd`, G below) runs
 the stacked WHIR opening of one child's proof, `verifyWhir` (`Statement/LeanVmVerifier.lean`, V:1836;
 `verifier.py:1124-1202`) from `verifyStackedOpening` (V:1854), up to its terminal: the terminal's
-check `(inner + evaluateBasis point) · residual = target` is `check_opening_terminal`'s (G:3078,
+check `(inner + evaluateBasis point) · residual = target` is `check_opening_terminal`'s (G:3076,
 TRIAGE #70), which evaluates the transparent weight `evaluateBasis`. It has 28 specializations
 `open_stacked__L{m}`, one per candidate `m = (μ - 22) + 7·(r - 1)` of the stack log `22 ≤ μ ≤ 28`
-and the rate `1 ≤ r ≤ 4` (G:3315-3322, rate-major), each reading its row of the `LIG_*` tables at
+and the rate `1 ≤ r ≤ 4` (G:3313-3320, rate-major), each reading its row of the `LIG_*` tables at
 compile time.
 
 * `WhirEnd`, `whirLevelsOpen`, `whirOpen`: `whirLevels` and `verifyWhir` without the final
@@ -172,14 +172,14 @@ theorem commitStack_eq {logN logInvRate : ℕ} {level : Whir.Level} {rest : List
 def openNames : List String :=
   (List.range 28).map fun m ↦ "open_stacked__L" ++ toString m
 
-/-- The candidate of the stack log `μ` and the rate `r`, rate-major (G:3315-3321):
+/-- The candidate of the stack log `μ` and the rate `r`, rate-major (G:3313-3319):
 `(μ - 22) + 7·(r - 1)`. -/
 def candidate (μ r : ℕ) : ℕ := μ - 22 + 7 * (r - 1)
 
 /-- The specialization of `open_stacked` for the stack log `μ` and the rate `r`. -/
 def openName (μ r : ℕ) : String := openNames.getD (candidate μ r) ""
 
-/-- The length of the point buffers, `SIZE_BITS + QKECCAK_SLOT_LOG` (G:1578-1579). -/
+/-- The length of the point buffers, `SIZE_BITS + QKECCAK_SLOT_LOG` (G:1576-1577). -/
 abbrev pointCap : ℕ := 40
 
 /-! ## Runs with openings and commitments -/
@@ -195,9 +195,9 @@ def RunsWith {α : Type} (p : Prog α) (s : Fs) (xs : List E) (os : List Opening
 
 /-! ## What a call establishes -/
 
-/-- **`open_stacked__L{candidate μ r}(fs0..fs4, target, root_0, root_1, cursor)`** (G:1283-1613;
+/-- **`open_stacked__L{candidate μ r}(fs0..fs4, target, root_0, root_1, cursor)`** (G:1281-1609;
 TRIAGE #42): from the sponge the guest carries as the capacity `fs` with nothing waiting (the
-batching challenge of `verifyStackedOpening` was just squeezed, G:3299), the stack's root `root`
+batching challenge of `verifyStackedOpening` was just squeezed, G:3297), the stack's root `root`
 committed with its shape and nothing else, the words `xs` at the cursor and some openings `os`
 run `whirOpen μ r target` to `w`; the function returns `w`'s claim, a buffer holding its point
 (`μ` coordinates, zero-padded to `pointCap`), a buffer holding one plus each of them (one-padded),

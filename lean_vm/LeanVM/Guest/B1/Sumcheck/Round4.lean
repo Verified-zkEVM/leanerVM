@@ -11,7 +11,7 @@ public import LeanVM.Guest.B1.Fs.Templates
 public import LeanVM.Guest.B1.Common.Run
 
 /-!
-# `sumcheck_round4` (G:963-979, TRIAGE #30)
+# `sumcheck_round4` (G:961-977, TRIAGE #30)
 
 Its body: the record's capacity loaded into `3 .. 7`, three `fs_next` (`fsNextT`, cells `15, 17`,
 `25, 27`, `35, 37`), the zero run `38, 39`, the permutation into `40 .. 52`, the challenge

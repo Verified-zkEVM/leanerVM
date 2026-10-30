@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.Terminal.PiChain
 
-  The public input's chain of `check_opening_terminal` (G:3088-3093): `__loop14` and the products
+  The public input's chain of `check_opening_terminal` (G:3086-3091): `__loop14` and the products
   it writes.
 -/
 

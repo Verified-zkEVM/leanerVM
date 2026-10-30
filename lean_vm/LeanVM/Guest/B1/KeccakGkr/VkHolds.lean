@@ -37,7 +37,7 @@ theorem readsAt_single {rd : Reader} {p a : E} (h : LoadHolds rd p 0 a) : ReadsA
   interval_cases k
   exact h
 
-/-- **`verify_keccak`** (G:2735-2950; TRIAGE #53): its core IR computes its meaning. -/
+/-- **`verify_keccak`** (G:2733-2942; TRIAGE #53): its core IR computes its meaning. -/
 theorem verify_keccak_holds : verify_keccak_Spec := by
   intro rd args rets hrel
   obtain ⟨σ, hpar, hb⟩ := (rel_iff_sem find_vk args rets).mp hrel

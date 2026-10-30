@@ -773,7 +773,7 @@ def bounds (name : String) :
 
 /-- The selectors `1 + b·(1 + g)` (`b·b = b`, so `g^0` or `g^1`) a function dispatches on in
 windows after the one computing them: each window hands on their bound `2`. `verify_keccak`'s
-`odd_g` (G:2884). -/
+`odd_g` (G:2882). -/
 def selsHeld (name : String) : List ℕ :=
   if name == "verify_keccak" then [47] else []
 

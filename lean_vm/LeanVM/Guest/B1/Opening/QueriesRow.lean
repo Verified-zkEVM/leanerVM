@@ -10,7 +10,7 @@ public import LeanVM.Guest.B1.Opening.QueriesT
 public import LeanVM.Guest.B1.Common.Atoms
 
 /-!
-# A query's row (`opening_query`, G:1179-1222)
+# A query's row (`opening_query`, G:1177-1220)
 
 * `oqPack_sound`: the packs put each pair of row words in `K` and make the packed cell
   `E.ofLimbs` of their limbs (`pack64x2`); `oqRow b R σ` is the row's `K` words.
@@ -124,7 +124,7 @@ theorem mem_oqGroupT_term {s : Oq} {wp : V} {b h l : ℕ} (hl : l < s.lo) {a : A
 def oqW (s : Oq) (b : ℕ) (σ : Val) (i : ℕ) : E :=
   if i < s.lo then σ (.n (oqTs s b 0 i + s.tsz)) else σ (.n (oqGs s b (i - s.lo) + s.G - 2))
 
-/-- **The dot product** (G:1205-1222): from the words `W` the terms read, the template's value is
+/-- **The dot product** (G:1203-1220): from the words `W` the terms read, the template's value is
 `dotSum`, the weights read at `wp`. -/
 theorem oqDot_sound {s : Oq} (hs : s.RowShape) {wp : V} {b : ℕ} {W : ℕ → E}
     (hA : ∀ a, Stmt.atom a ∈ oqDotT s wp b → a.Holds rd σ)
@@ -242,7 +242,7 @@ theorem ofLimbs_add_yy (a b : K) {c : E} (hc : IsInK c) :
   rw [eq_ofK_limb hc, add_y_mul_y_mul_ofK]
   simp [limb_ofK]
 
-/-- **The row's words** (G:1210-1219): the word a term reads is `rowWord`. -/
+/-- **The row's words** (G:1208-1217): the word a term reads is `rowWord`. -/
 theorem oqWord_sound {s : Oq} (hs : s.RowShape) {wp : V} {b : ℕ}
     (hP : ∀ a, Stmt.atom a ∈ oqPacksT b s.R → a.Holds rd σ)
     (hD : ∀ a, Stmt.atom a ∈ oqDotT s wp b → a.Holds rd σ) :

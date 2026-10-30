@@ -62,7 +62,7 @@ theorem fold_args (st : OsSt) (hfs : st.fs.length = 5) :
   match h : st.fs, hfs with
   | [f0, f1, f2, f3, f4], _ => exact ⟨f0, f1, f2, f3, f4, rfl⟩
 
-/-- **One `opening_fold` call** (G:1103-1115): the challenge squeezed from the carried sponge,
+/-- **One `opening_fold` call** (G:1101-1113): the challenge squeezed from the carried sponge,
 the claim folded, the next quadratic read at the cursor; the challenge stored at `p·g^off`. -/
 theorem osFold_sound (hC : ∀ args rets, C "opening_fold" args rets → MeaningOpeningFold rd args rets)
     {p off : ℕ} {st : OsSt} (hfs : st.fs.length = 5) (hco : st.co < u128Bound)

@@ -14,7 +14,7 @@ public import LeanVM.Guest.B1.Digest.Interface
 
 * `holdsList_atoms_ret`: a body of atoms then a `ret` holds exactly when every atom does and the
   returned words are the continuation's.
-* `pair_fwd`: `pack_pair(cells, off, s, t)` (G:514-525) as the guest lowers it, 27 atoms: the
+* `pair_fwd`: `pack_pair(cells, off, s, t)` (G:512-522) as the guest lowers it, 27 atoms: the
   hinted limbs pinned by the three `pack64x2` checks make the three packed cells the six limbs of
   `s` and `t` (`pair_cells`), whose sixteen-byte cells are `eBytes s ++ eBytes t`
   (`pair_bytes`).

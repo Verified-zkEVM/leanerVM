@@ -9,7 +9,7 @@ module
 public import LeanVM.Guest.B1.Tables.Vt.Rounds
 
 /-!
-# `__loop9`, completely (G:2213-2223)
+# `__loop9`, completely (G:2211-2221)
 
 `l10_complete`: when every iteration `j < n` has its facts (`L10B`: the round on the record
 `rounds·g^(7j)`, the next record's cursor and claim, the challenge in `chi`, the running product

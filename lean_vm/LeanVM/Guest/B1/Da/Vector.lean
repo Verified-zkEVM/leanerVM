@@ -10,7 +10,7 @@ public import LeanVM.Guest.B1.Da.Cell
 public import LeanVM.Guest.B1.Da.ChainSplit
 
 /-!
-# `da_vector_cell` (G:4048-4060)
+# `da_vector_cell` (G:4048-4058)
 
 `da_vector_cell(digest)` (`core28`): `256` hinted weights `.n 1 … .n 256`; pair `p`'s atoms
 (`vpairA`, `pack_pair` of `w[2p]`, `w[2p + 1]` without loads, the template `tmplV`) split the two

@@ -9,7 +9,7 @@ module
 public import LeanVM.Guest.B1.Opening.QueriesLoop
 
 /-!
-# `opening_queries` is sound (G:1246-1269, TRIAGE #40)
+# `opening_queries` is sound (G:1244-1266, TRIAGE #40)
 
 `oqLoop_step`: the loop helper satisfies `loop_iff`'s step with its body of atoms
 (`loop_step_atoms`). `oqMain1_sound`, `oqMain0_sound`: the function's relation, its loop's
@@ -229,7 +229,7 @@ theorem atomsBody_params {fl : Fn} (hpl : fl.params = oqLoopParams) {A : List St
   obtain ⟨h0, h1, h2, h3, h4, h5, h6, h7, -⟩ := hp
   exact ⟨σ, hA, h0, h1, h2, h3, h4, h5, h6, h7⟩
 
-/-- **`opening_queries` at level 0 is sound** (G:1246-1269): with the bit pointers pointing to
+/-- **`opening_queries` at level 0 is sound** (G:1244-1266): with the bit pointers pointing to
 bits, its relation is `MeaningOpeningQueries`. -/
 theorem oqMain1_sound {s : Oq} (hs : s.RowShape) (hb1 : s.base = 1) (hcd : 2 ≤ s.cd)
     (hcd8 : s.cd ≤ 8) {odd : ℕ} (hodd : odd ≤ 1) {name loop : String} {fm fl : Fn}
@@ -354,7 +354,7 @@ theorem oqMain1_sound {s : Oq} (hs : s.RowShape) (hb1 : s.base = 1) (hcd : 2 ≤
   · rw [← p2]; exact hchain i hi
   · rw [← hret, e5, hv, p3, p2]
 
-/-- **`opening_queries` deeper is sound** (G:1246-1269, `base = 0`, `odd = 0`): with the bit
+/-- **`opening_queries` deeper is sound** (G:1244-1266, `base = 0`, `odd = 0`): with the bit
 pointers pointing to bits, its relation is `MeaningOpeningQueries`. -/
 theorem oqMain0_sound {s : Oq} (hs : s.RowShape) (hb0 : s.base = 0) (hcd : 2 ≤ s.cd)
     (hcd8 : s.cd ≤ 8) {name loop : String} {fm fl : Fn}

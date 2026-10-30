@@ -11,7 +11,7 @@ public import LeanVM.Guest.B1.Whir.SqLoop
 public import LeanVM.Guest.B1.Whir.Positions
 
 /-!
-# The squeezes of a level (G:1414-1449)
+# The squeezes of a level (G:1412-1447)
 
 After the proof of work the sponge has nothing waiting. The level stores its capacity in the
 squeeze run's row `0`, runs the squeeze loop (`lv.squeezes` squeezes, each decoding `192/depth`
@@ -86,7 +86,7 @@ theorem squeezeN_cap_length : ∀ (n : ℕ) (s : Fs), s.cap.length = 5 →
 theorem fs_of_pend_nil {s : Fs} (h : s.pend = []) : s = ⟨s.cap, []⟩ := by
   cases s; simp_all
 
-/-- **A level's squeezes** (G:1414-1449): from the capacity it carries with nothing waiting
+/-- **A level's squeezes** (G:1412-1447): from the capacity it carries with nothing waiting
 (`F0`), the loop's `n` squeezes decode the positions, the next squeeze is the batching
 challenge `lam` (at the returned `k - 1`), its capacity the sponge's. -/
 theorem osSqueezes_sound {c : OsCfg} {lvl : ℕ} {lv : OsLv} {st : OsSt}

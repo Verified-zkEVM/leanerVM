@@ -2,7 +2,7 @@
   LeanVM.Guest.B1.Sig.SphincsFold
 
   The folds of `verify_sig_lean_sphincs` (`sp_fold`, `sp_subtree_arm`, `sp_tree_arm`,
-  `lean_ethereum.py:3592-3631`) are sound: arm `index` of a fold's dispatch folds its leaf up the
+  `lean_ethereum.py:3590-3629`) are sound: arm `index` of a fold's dispatch folds its leaf up the
   hinted path into the top it reaches, and sets the mark and the weight of `index`.
 -/
 

@@ -9,7 +9,7 @@ module
 public import LeanVM.Guest.B1.Whir.Flat
 
 /-!
-# The out-of-domain weights (G:1603-1612)
+# The out-of-domain weights (G:1601-1610)
 
 The commitment level `ol ≥ 1` reads (its out-of-domain point `z` in `ood_z`, its scalar `λ` in
 `ood`) weighs `λ·Π_t (1 + z_t + c_t)` over the message coordinates `c` after the previous level's

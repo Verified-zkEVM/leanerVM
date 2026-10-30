@@ -27,9 +27,9 @@ def signature : LeanXmss.Signature :=
 
 def seed : Digest := keccak256 [1, 2, 3]
 
-def leaf : NodeStatement := ⟨⟨[(key, message)], [], []⟩, ⟨List.replicate 23 0, 5⟩⟩
+def leaf : NodeStatement := ⟨⟨[(key, message)], [], zeroDigest⟩, ⟨List.replicate 23 0, 5⟩⟩
 
-def witness : NodeWitness := ⟨[], [.direct signature], [], [], ⟨[], 0⟩⟩
+def witness : NodeWitness := ⟨[], [.direct signature], [], none, ⟨[], 0⟩⟩
 
 def streams : Streams := honestStreams [] seed leaf witness
 
@@ -37,7 +37,7 @@ def streams : Streams := honestStreams [] seed leaf witness
 #guard streams.map (fun s ↦ (s.1, s.2.length)) ==
   [("meta", 1), ("fs_seed", 1), ("signers_split", 1), ("claims", 1), ("raw_index", 1),
     ("leaf_index_bits", 1), ("siblings", 32), ("randomizer", 2), ("digits", 40),
-    ("chain_starts", 116), ("leaf_defer", 1), ("da_meta", 1)]
+    ("chain_starts", 116), ("leaf_defer", 1), ("da_pick", 1)]
 
 def get (n : String) : List Entry := (streams.lookup n).getD []
 
@@ -47,7 +47,8 @@ def get (n : String) : List Entry := (streams.lookup n).getD []
 #guard get "claims" == [claimCells key.root key.parameter message]
 #guard get "raw_index" == [[count 0]]
 #guard get "leaf_defer" == [[5]]
-#guard get "da_meta" == [[count 0, count 0]]
+/- No blob matrix and no child: the node publishes its own slot, zeros. -/
+#guard get "da_pick" == [[count 0]]
 
 /- The leaf index `2^16 + 2`, little endian. -/
 #guard get "leaf_index_bits" ==

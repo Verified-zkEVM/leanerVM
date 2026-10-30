@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.Tables.VtC.BAll
 
-  `verify_tables`' statements `2404 ..< 5152` (the bus sides, G:2038-2182) hold on the honest
+  `verify_tables`' statements `2404 ..< 5152` (the bus sides, G:2036-2180) hold on the honest
   valuation (fork B of B1-c's completeness).
 -/
 
@@ -18,7 +18,7 @@ public import LeanVM.Guest.B1.Tables.Vt.Fresh
 public import LeanVM.Guest.B1.Selectors.IndexMleComplete
 
 /-!
-# The bus sides (G:2038-2182)
+# The bus sides (G:2036-2180)
 
 `VtBIn`: the honest data: the bus point, the memory's log-size, the tables' row counts (heights
 `vtHt rows`), the bus challenges `alphas` (weights `eqKernel alphas` at `fp_w`), the five framework

@@ -17,7 +17,7 @@ public import LeanVM.Guest.B1.Bits.AssertCanonical
 # The front of `verify_sub`, assembled
 
 `vs_front`: the statements from the seed to the calls of `verify_bus_gkr`, `verify_tables` and
-`verify_keccak` (G:3159-3255), under their callees' statements, establish `VsFront`: the seed,
+`verify_keccak` (G:3157-3253), under their callees' statements, establish `VsFront`: the seed,
 the announced words absorbed, the root, the bus challenges and `β`, the rate and the memory's
 log, the rows and heights certified by `verify_tables` (`dims_g`, `kappa_base`, `block_kappa`
 on them), the bus depth, the GKR's and the tables' runs and outputs, and `verify_keccak`'s call.

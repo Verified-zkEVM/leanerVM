@@ -11,7 +11,7 @@ public import LeanVM.Guest.B1.Tables.Vt.Sort
 public import LeanVM.Guest.B1.Tables.Padding
 
 /-!
-# The tables' heights (G:2004-2018)
+# The tables' heights (G:2002-2016)
 
 Table `t`'s statements (`vtPadT`, `vtPad5T` for the `KECCAK` table, whose floor is `9`): its
 `τ_g = dims_g[t + 1]` below `g^29`, its row count, the `padding_weight` arm `τ` on `(rows, zeta)`,
@@ -165,7 +165,7 @@ theorem vt_pad5 (σ : Val) (h : VtH Lm.read σ) : VtPadOk Lm.read σ 5 := by
     have hlog := (lead_rest_iff (by omega) hn).mp hlr
     omega
 
-/-- **The tables' heights** (G:2004-2018). -/
+/-- **The tables' heights** (G:2002-2016). -/
 theorem vt_pads (σ : Val) (h : VtH Lm.read σ) : ∀ t < 6, VtPadOk Lm.read σ t := by
   intro t ht
   rcases Nat.lt_or_ge t 5 with h5 | h5

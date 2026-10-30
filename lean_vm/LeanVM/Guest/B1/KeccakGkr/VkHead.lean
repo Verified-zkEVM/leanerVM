@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.KeccakGkr.VkHead
 
-  `verify_keccak`'s head (G:2784-2827): `pack_g`, `y`'s bits, `half_g`, `odd_g`, `y_last`.
+  `verify_keccak`'s head (G:2782-2825): `pack_g`, `y`'s bits, `half_g`, `odd_g`, `y_last`.
 -/
 
 module
@@ -38,7 +38,7 @@ theorem bool_of_mul_self {b : E} (h : b * b = b) : b = 0 ∨ b = 1 := by
   · exact Or.inl h0
   · exact Or.inr (sub_eq_zero.mp h1)
 
-/-- **`y` in the exponent** (G:2788-2804). -/
+/-- **`y` in the exponent** (G:2786-2802). -/
 theorem vkBits_holds {τ : ℕ} (hτ1 : 9 ≤ τ) (hτ2 : τ ≤ 28) (htg : σ (.n 6) = gen ^ τ)
     {next : Prop} {kret : List E → Prop} (h : Stmt.HoldsList C rd σ vkBitsT next kret) :
     σ (.n 17) = gen ^ (τ - 4) ∧ σ (.n 19) = gen ^ (τ - 3) ∧
@@ -138,7 +138,7 @@ theorem sqZeroT_holds {capb o : ℕ} {cap : List E} (hcap : (cap5 capb).map σ =
   rw [← this.2]
   simp [cap5, List.range_succ]
 
-/-- **The six squeezes** (G:2812-2819): the segment coordinate, then the five lane coordinates. -/
+/-- **The six squeezes** (G:2810-2817): the segment coordinate, then the five lane coordinates. -/
 theorem vkSqueezesT_holds {cap0 : List E} (hcap : (cap5 11).map σ = cap0)
     (hz : ∀ k < 4, σ (.n (66 + k)) = 0) {next : Prop} {kret : List E → Prop}
     (h : Stmt.HoldsList C rd σ vkSqueezesT next kret) :
@@ -186,7 +186,7 @@ theorem vkSqueezesT_holds {cap0 : List E} (hcap : (cap5 11).map σ = cap0)
       List.map_nil, List.cons_append, Nat.reduceMul, Nat.reduceAdd]
     rw [h0, h1, h2, h3, h4, ← s0.1, ← s1.1, ← s2.1, ← s3.1, ← s4.1]
 
-/-- **`verify_keccak`'s head** (G:2784-2827). -/
+/-- **`verify_keccak`'s head** (G:2782-2825). -/
 theorem vkHeadT_holds {τ : ℕ} (hτ1 : 9 ≤ τ) (hτ2 : τ ≤ 28) (htg : σ (.n 6) = gen ^ τ)
     {next : Prop} {kret : List E → Prop} (h : Stmt.HoldsList C rd σ vkHeadT next kret) :
     σ (.n 17) = gen ^ (τ - 4) ∧ σ (.n 19) = gen ^ (τ - 3) ∧

@@ -14,7 +14,7 @@ public import LeanVM.Guest.Batch.Def
 /-!
 # `aggregate_claims`' body
 
-`aggregate_claims(n_children_g, child_pi, child_fresh, child_carried, defer_stmt)` (G:4295-4360):
+`aggregate_claims(n_children_g, child_pi, child_fresh, child_carried, defer_stmt)` (G:4252-4317):
 its body is its block `aggP`, then `ret []` (`agg_shape`). `aggOk` checks the block: the batching
 seed's capacity cells `AGG_SEED_*` and the packed count `n_children_g` with three zeros in row
 `0` of `absorb` (`.n 60`), the guarded loops `__loop24`, `__loop25`, `__loop26` and their tables

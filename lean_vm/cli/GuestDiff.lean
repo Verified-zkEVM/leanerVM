@@ -15,10 +15,11 @@ import LeanVM.Guest.Code
 aggregation's statement `s`, seed, node witness `w`, the streams `aggregate` installed (captured
 through `aggregation.rs`'s test-only `FORGE` hook) and its public input. For each case it checks
 
-* that `w` holds `s` (`NodeRel`'s computable parts: every child's proof verifies, every claim is
-  held, the batching closes, the shapes), within the deployed limits (`Limits`' parts) and with no
-  zero challenge where the guest divides (`NoZeroChallenge`: `verifyDeferredNZ` accepts every
-  child's proof);
+* that `w` holds `s` (`NodeRel`'s computable parts: every child's proof verifies, every signature
+  claim is held, the DA digest is that of the claim the directly checked matrix opens, else zero or
+  a child's, the batching closes, the shapes), within the deployed limits (`Limits`' parts) and
+  with no zero challenge where the guest divides (`NoZeroChallenge`: `verifyDeferredNZ` accepts
+  every child's proof);
 * (i) that `Hints.honestStreams` is the Rust streams, stream by stream and entry by entry;
 * (iii) that the public input is `statementDigest seed s`;
 * (ii) that the interpreter accepts the guest's core IR (`coreProgram`: the renumbered expansion
@@ -107,7 +108,7 @@ def statementR : R NodeStatement := do
   expect "sphincs"
   let sphincs ← many do let ((r, p), m) ← claimR; return ((⟨r, p⟩ : Sphincs.PublicKey), m)
   expect "da"
-  let da ← many do return DaClaim.mk (← digestR) (← digestR)
+  let da ← digestR
   return ⟨⟨xmss, sphincs, da⟩, ← deferR⟩
 
 def childR : R Child := do
@@ -150,6 +151,16 @@ def holderR {W : Type} (direct : R W) : R (Holder W) := do
 
 def daWitnessR : R LeanVM.Da.Witness := do return ⟨← many (many kR), ← many eR⟩
 
+/-- The blob matrix checked directly, with the DA claim it opens (`NodeWitness.da`): `direct`, the
+root, the vector digest, the rows and the vector; or `none`. -/
+def daR : R (Option (DaClaim × LeanVM.Da.Witness)) := do
+  match ← tok with
+  | "direct" =>
+    let claim := DaClaim.mk (← digestR) (← digestR)
+    return some (claim, ← daWitnessR)
+  | "none" => return none
+  | t => throw s!"`{t}` is no DA witness"
+
 /-- A case. -/
 structure Case where
   name : String
@@ -170,7 +181,7 @@ def caseR : R Case := do
   expect "children"; let children ← many childR
   expect "holders_xmss"; let xmss ← many (holderR xmssSigR)
   expect "holders_sphincs"; let sphincs ← many (holderR sphincsSigR)
-  expect "holders_da"; let da ← many (holderR daWitnessR)
+  expect "da_witness"; let da ← daR
   expect "batch"
   let pairs := fun (xs : List E) => (List.range (xs.length / 2)).map fun i => (xs[2 * i]!, xs[2 * i + 1]!)
   let bc ← many eR
@@ -231,9 +242,13 @@ def nodeRel (c : Case) : List (String × Bool) :=
     (fun ch cl => ch.statement.claims.xmss.any (· == cl)) ++
   held w.children "leanSPHINCS" s.claims.sphincs w.sphincs (fun cl σ => sphincsVerify cl.1 cl.2 σ)
     (fun ch cl => ch.statement.claims.sphincs.any (· == cl)) ++
-  held w.children "DA" s.claims.da w.da (fun cl d => daOpens cl.daRoot cl.membershipVectorDigest d)
-    (fun ch cl => ch.statement.claims.da.any fun d => digestEq d.daRoot cl.daRoot &&
-      digestEq d.membershipVectorDigest cl.membershipVectorDigest) ++
+  (match w.da with
+    | some (cl, m) =>
+      [("the DA digest is the directly checked claim's", digestEq s.claims.da (daClaimDigest cl)),
+        ("the directly checked matrix opens its claim", daOpens cl.daRoot cl.membershipVectorDigest m)]
+    | none =>
+      [("the DA digest is zero or a child's", digestEq s.claims.da zeroDigest ||
+        w.children.any fun ch => digestEq ch.statement.claims.da s.claims.da)]) ++
   [if w.children = [] then
       ("the leaf defers the bytecode at zero", s.defer.bytecodePoint.all (· == 0))
     else ("the batching defers the statement's claim",
@@ -246,10 +261,6 @@ def limits (c : Case) : List (String × Bool) :=
   let w := c.witness
   let rawX := Hints.direct s.claims.xmss w.xmss
   let rawS := Hints.direct s.claims.sphincs w.sphincs
-  let rawD := Hints.direct s.claims.da w.da
-  let daEq := fun (a b : DaClaim) =>
-    digestEq a.daRoot b.daRoot && digestEq a.membershipVectorDigest b.membershipVectorDigest
-  let countDa := fun (l : List DaClaim) (x : DaClaim) => (l.filter (daEq x)).length
   w.children.zipIdx.flatMap (fun (ch, i) => ([(s!"child {i}'s stack log is at least {muMin}",
         match announced bytecode ch.proof.stream with
         | some (layout, _) => decide (muMin ≤ layout.stackLog)
@@ -257,23 +268,16 @@ def limits (c : Case) : List (String × Bool) :=
       (s!"child {i}'s stream is at most {streamCap} scalars", ch.proof.stream.length ≤ streamCap),
       (s!"child {i}'s proof has no zero challenge where the guest divides",
         Limits.verifyDeferredNZ bytecode c.seed (statementDigest c.seed ch.statement) ch.fresh ch.proof),
-      (s!"child {i} has at most 16 DA claims", ch.statement.claims.da.length ≤ 16),
       (s!"child {i}'s lists are below 2^16", ch.statement.claims.xmss.length < 2 ^ 16 &&
         ch.statement.claims.sphincs.length < 2 ^ 16)] : List (String × Bool))) ++
-  ([("at most one DA claim held directly", rawD.length ≤ 1),
-    ("leanXMSS claims held as often as declared", s.claims.xmss.all fun x =>
+  ([("leanXMSS claims held as often as declared", s.claims.xmss.all fun x =>
       s.claims.xmss.count x ≤ (rawX.map (·.1)).count x +
         (w.children.map fun ch => ch.statement.claims.xmss.count x).sum),
     ("leanSPHINCS claims held as often as declared", s.claims.sphincs.all fun x =>
       s.claims.sphincs.count x ≤ (rawS.map (·.1)).count x +
         (w.children.map fun ch => ch.statement.claims.sphincs.count x).sum),
-    ("DA claims held as often as declared", s.claims.da.all fun x =>
-      countDa s.claims.da x ≤ countDa (rawD.map (·.1)) x +
-        (w.children.map fun ch => countDa ch.statement.claims.da x).sum),
     ("at most 16 children", w.children.length ≤ 16),
-    ("at most 16 DA claims", s.claims.da.length ≤ 16),
-    ("the coverage table below 2^16", coverage s w < 2 ^ 16),
-    ("at least one declared claim", 0 < s.claims.xmss.length + s.claims.sphincs.length + s.claims.da.length)] :
+    ("the coverage table below 2^16", coverage s w < 2 ^ 16)] :
     List (String × Bool))
 
 def showLimbs (x : E) : String :=
@@ -360,7 +364,8 @@ def main (args : List String) : IO UInt32 := do
     let c ← readCase path
     IO.println s!"case {c.name} ({path}): {c.witness.children.length} children, \
       {c.statement.claims.xmss.length} leanXMSS, {c.statement.claims.sphincs.length} leanSPHINCS, \
-      {c.statement.claims.da.length} DA claims, read in {(← IO.monoMsNow) - start} ms"
+      {if c.witness.da.isSome then "a blob matrix" else "no blob matrix"}, DA digest \
+      {if c.statement.claims.da == zeroDigest then "zero" else "nonzero"}, read in {(← IO.monoMsNow) - start} ms"
     let report := fun (what : String) (problem : Option String) (time : Nat) => do
       match problem with
       | none => IO.println s!"  {what}: ok ({time} ms)"

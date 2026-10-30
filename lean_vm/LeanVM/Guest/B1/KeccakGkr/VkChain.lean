@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.KeccakGkr.VkChain
 
-  `verify_keccak`'s twelve steps (G:2853-2886): the layers, one after the other, on the claim
+  `verify_keccak`'s twelve steps (G:2851-2884): the layers, one after the other, on the claim
   chain at `claims`.
 -/
 
@@ -50,7 +50,7 @@ theorem stepEnd_9 : stepEnd 9 2763 = 3074 := by decide +kernel
 theorem stepEnd_10 : stepEnd 10 3074 = 3383 := by decide +kernel
 theorem stepEnd_11 : stepEnd 11 3383 = 3691 := by decide +kernel
 
-/-- **The twelve steps** (G:2853-2886). -/
+/-- **The twelve steps** (G:2851-2884). -/
 theorem vkStepsT_holds {τ : ℕ} (hτ1 : 9 ≤ τ) (hτ2 : τ ≤ 28) (h17 : σ (.n 17) = gen ^ (τ - 4))
     (h43 : σ (.n 43) = gen ^ ((τ - 3) / 2)) (h47 : σ (.n 47) = gen ^ ((τ - 3) % 2))
     (h48 : σ (.n 48) = gen ^ ((τ - 3) / 2 + (τ - 3) % 2)) {c : KeccakClaim} {L0 : E}

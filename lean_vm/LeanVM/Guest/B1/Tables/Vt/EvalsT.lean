@@ -10,7 +10,7 @@ module
 public import LeanVM.Guest.B1.Tables.Vt.ZcRun
 
 /-!
-# The table evaluations' templates (G:2231-2245)
+# The table evaluations' templates (G:2229-2243)
 
 `vtEvalData[k]`: evaluation `k`'s first statement, its value, its table's `τ_g` value; it is
 `fs_next` at the cursor `σ 5932` (offset `k`), copied, stored to `claim_pool[5 + k]` with

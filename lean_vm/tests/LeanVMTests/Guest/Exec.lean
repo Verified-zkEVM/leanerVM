@@ -7,7 +7,7 @@ import LeanVM.Guest.Check
 
 * `assert_canonical`, straight code: its one segment, its atoms, and its contract by `exec_sound`,
   the run returning in fewer steps;
-* `da_hash_roots__L0`, straight code with a `KECCAK`: its contract gives `KeccakCells` of the
+* `claim_list_last__L0`, straight code with a `KECCAK`: its contract gives `KeccakCells` of the
   thirteen cells it reads (`m0..m3`, the runs from `tail` and `cap`, `b8`) and the thirteen it
   writes;
 * the selectors bounded by booleanity (`Check.selBound`): `r_g` of `shared_selector_tables`
@@ -26,9 +26,9 @@ def F0 : Facts := {}
 /-- Its atoms: the instructions it executes, the not-taken `JUMP` reading its cells in `K`, and
 the return. -/
 def canonicalAtoms : List Atom :=
-  [.instr 9249 (.xor 2 4 5), .instr 9250 (.set 6 1 0 1), .instr 9251 (.mul 5 6 7),
-    .instr 9252 (.set 8 0 0 0), .jump 8 4 7, .instr 9254 (.set 3 0 0 0),
-    .instr 9255 (.set 9 1 0 0), .jump 9 0 1]
+  [.instr 9203 (.xor 2 4 5), .instr 9204 (.set 6 1 0 1), .instr 9205 (.mul 5 6 7),
+    .instr 9206 (.set 8 0 0 0), .jump 8 4 7, .instr 9208 (.set 3 0 0 0),
+    .instr 9209 (.set 9 1 0 0), .jump 9 0 1]
 
 theorem canonical_name : Data.f2.name = "assert_canonical" := by decide +kernel
 
@@ -40,13 +40,13 @@ theorem canonical_shape : (exec F0 Data.f2).segs.map (fun s ↦ (s.start, s.env.
 /-- **`assert_canonical`'s contract**, from the executor: a halting run entering it returns, in
 fewer steps, with every atom holding. -/
 theorem canonical_spec {κ : ℕ} {L : MemImage κ} (hκ : κ ≤ 32) :
-    FunSpec guest L 9249 (fun _ ↦ True) (fun fp ↦ ∀ a ∈ canonicalAtoms, a.Holds L fp) := by
+    FunSpec guest L 9203 (fun _ ↦ True) (fun fp ↦ ∀ a ∈ canonicalAtoms, a.Holds L fp) := by
   intro fp k _ h
   obtain ⟨s, hs, he⟩ := List.mem_map.mp (canonical_shape ▸ List.mem_singleton_self _)
   simp only [Prod.mk.injEq] at he
   obtain ⟨h0, henv, hb, hatoms, hkind⟩ := he
   have hctx : Ctx F0 κ fp := ⟨trivial, fun h ↦ absurd h (by decide), hκ⟩
-  have hentry : Data.f2.entry + s.start = 9249 := by rw [h0]; rfl
+  have hentry : Data.f2.entry + s.start = 9203 := by rw [h0]; rfl
   have hrun := exec_sound hctx (guest_fetches (mem_functions (j := 2) rfl)) hs
     (EnvHolds.nil.sub henv) (hentry ▸ h)
   obtain ⟨hall, k', -, hlt, -, -, r, hr, hsafe⟩ :=
@@ -54,35 +54,35 @@ theorem canonical_spec {κ : ℕ} {L : MemImage κ} (hκ : κ ≤ 32) :
   rw [hkind] at hr
   exact ⟨k', hlt, r, hr, hatoms ▸ hall, hsafe⟩
 
-/-! ## A `KECCAK`: `da_hash_roots__L0` -/
+/-! ## A `KECCAK`: `claim_list_last__L0` -/
 
-/-- Its `KECCAK`: the thirteen cells `fp[18], fp[19], fp[19], fp[19]`, `fp[19..22]`, `fp[23]`,
-`fp[19..22]`, in the even layout, to `fp[5..17]`, in the even layout. -/
-def hashIns : OInstr := .keccak 18 19 19 19 19 23 19 5 false false
+/-- Its `KECCAK`: the thirteen cells `fp[37], fp[20], fp[21], fp[22]`, `fp[23..26]`, `fp[39]`,
+`fp[28..31]`, in the even layout, to `fp[6..18]`, in the even layout. -/
+def hashIns : OInstr := .keccak 37 20 21 22 23 39 28 6 false false
 
-theorem hash_name : Data.f378.name = "da_hash_roots__L0" ∧ Data.f378.entry = 276075 := by
+theorem hash_name : Data.f322.name = "claim_list_last__L0" ∧ Data.f322.entry = 269663 := by
   decide +kernel
 
-theorem hash_shape : (exec F0 Data.f378).segs.map (fun s ↦ (s.start, s.env.sub Sym.beq .nil,
-    (branchExits s.items).isEmpty, (s.items.filterMap Item.atom?).contains (.instr 276081 hashIns),
+theorem hash_shape : (exec F0 Data.f322).segs.map (fun s ↦ (s.start, s.env.sub Sym.beq .nil,
+    (branchExits s.items).isEmpty, (s.items.filterMap Item.atom?).contains (.instr 269684 hashIns),
       s.exit.kind)) = [(0, true, true, true, .ret)] := by
   decide +kernel
 
-/-- **`da_hash_roots__L0`'s contract**: a halting run entering it returns, in fewer steps, with
+/-- **`claim_list_last__L0`'s contract**: a halting run entering it returns, in fewer steps, with
 its `KECCAK` holding: the cells it reads hold a state whose Keccak-f[1600] the cells it writes
 hold. -/
 theorem hash_spec {κ : ℕ} {L : MemImage κ} (hκ : κ ≤ 32) :
-    FunSpec guest L 276075 (fun _ ↦ True) (fun fp ↦ ∃ input output : Fin 13 → E,
-      (∀ c : Fin 13, L.read (fp * gpow (keccakInOff 18 19 19 19 19 23 19 c.val)) = some (input c)) ∧
-      (∀ c : Fin 13, L.read (fp * gpow (5 + c.val)) = some (output c)) ∧
+    FunSpec guest L 269663 (fun _ ↦ True) (fun fp ↦ ∃ input output : Fin 13 → E,
+      (∀ c : Fin 13, L.read (fp * gpow (keccakInOff 37 20 21 22 23 39 28 c.val)) = some (input c)) ∧
+      (∀ c : Fin 13, L.read (fp * gpow (6 + c.val)) = some (output c)) ∧
       KeccakCells input false output false) := by
   intro fp k _ h
   obtain ⟨s, hs, he⟩ := List.mem_map.mp (hash_shape ▸ List.mem_singleton_self _)
   simp only [Prod.mk.injEq] at he
   obtain ⟨h0, henv, hb, hmem, hkind⟩ := he
   have hctx : Ctx F0 κ fp := ⟨trivial, fun h ↦ absurd h (by decide), hκ⟩
-  have hentry : Data.f378.entry + s.start = 276075 := by rw [h0]; rfl
-  have hrun := exec_sound hctx (guest_fetches (mem_functions (j := 378) rfl)) hs
+  have hentry : Data.f322.entry + s.start = 269663 := by rw [h0]; rfl
+  have hrun := exec_sound hctx (guest_fetches (mem_functions (j := 322) rfl)) hs
     (EnvHolds.nil.sub henv) (hentry ▸ h)
   obtain ⟨hall, k', -, hlt, -, -, r, hr, hsafe⟩ :=
     RunK.straight (List.isEmpty_iff.mp hb) hrun

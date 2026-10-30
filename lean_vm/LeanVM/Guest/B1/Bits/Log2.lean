@@ -14,7 +14,7 @@ public import LeanVM.Guest.B1.Bits.Grind
 
 Ported from the BLAKE2s-era `B1/Log2.lean` (both functions are unchanged).
 
-`verify_log2_ceil(bits, g_logs_pow2, g_squares, floor, 34)` (G:686-720) reads 34 Boolean bits of a
+`verify_log2_ceil(bits, g_logs_pow2, g_squares, floor, 34)` (G:684-718) reads 34 Boolean bits of a
 word `W`, multiplies `g^W` over `g_squares`, stores the prefix sums `W mod 2^j` in a fresh run,
 and pins the hinted `g^L` by two range checks (`L < 34`, `L - floor < 34`), `high·(W + 2^L) = 0`
 and, unless `L` is the floor or zero, `(W mod 2^(L-1) + W)·(W + 2^(L-1)) ≠ 0`: that is

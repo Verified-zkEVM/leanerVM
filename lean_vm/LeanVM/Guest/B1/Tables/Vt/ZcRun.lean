@@ -12,7 +12,7 @@ public import LeanVM.Guest.B1.Tables.Vt.Rounds
 public import LeanVM.Guest.B1.Eq.EqPrefix
 
 /-!
-# The table sumcheck (G:2183-2230)
+# The table sumcheck (G:2181-2228)
 
 `vt_zc_run`: with `ξ = zc_xi` and the sides' totals `T_s`, the target `ξ²·T_0 + ξ³·T_1 + ξ⁴·T_2`
 runs `n` plain rounds from the sponge after the bus words, reading `3n` words after the five; the

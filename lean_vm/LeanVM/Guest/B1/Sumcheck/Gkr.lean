@@ -11,7 +11,7 @@ public import LeanVM.Guest.B1.Fs.Templates
 public import LeanVM.Guest.B1.Common.Run
 
 /-!
-# `gkr_rounds` (G:982-1004, TRIAGE #31)
+# `gkr_rounds` (G:980-1002, TRIAGE #31)
 
 Its body at `n` rounds (`gkBody n`): the record's capacity, cursor and claim loaded into `2 .. 8`;
 round `q` (`gkRound q`, from `9 + 74 q`): four stream words read and packed, the permutation of

@@ -39,7 +39,7 @@ open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile LeanVM.P
 def CapAt (rd : Reader) (rec : E) (off stride : ℕ) (cap : List E) : Prop :=
   cap.length = 5 ∧ ∀ j (hj : j < cap.length), LoadHolds rd rec (off + j * stride) cap[j]
 
-/-! ## `sumcheck_round4` (G:963-979, TRIAGE #30) -/
+/-! ## `sumcheck_round4` (G:961-977, TRIAGE #30) -/
 
 /-- **`sumcheck_round4(rd, msg_cursor, claim)`**: the record at `rd` carries the sponge's
 capacity (canonical cells); the three stream words at the cursor are the round polynomial's
@@ -60,7 +60,7 @@ def sumcheck_round4_Spec : Prop :=
   ∀ (rd : Reader) (args rets : List E),
     coreProgram.Rel rd "sumcheck_round4" args rets ↔ MeaningSumcheckRound4 rd args rets
 
-/-! ## `gkr_rounds` (G:982-1004, TRIAGE #31) -/
+/-! ## `gkr_rounds` (G:980-1002, TRIAGE #31) -/
 
 /-- `GKR_ROUNDS_CAP`: the stride of a GKR round record's fields. -/
 abbrev gkrRoundsCap : ℕ := 862
@@ -105,7 +105,7 @@ def gkr_rounds_Spec : Prop :=
   ∀ (rd : Reader) (args rets : List E),
     coreProgram.Rel rd "gkr_rounds__L2" args rets ↔ MeaningGkrRounds 2 rd args rets
 
-/-! ## `batch_sumcheck` (G:1007-1022, TRIAGE #32) -/
+/-! ## `batch_sumcheck` (G:1005-1019, TRIAGE #32) -/
 
 /-- `Node.batchRounds` on the carried sponge: per round `g(1)`, `g(∞)` absorbed, the challenge
 squeezed, the degree-2 round folded. The challenges, the final claim, the final sponge. -/

@@ -8,7 +8,7 @@
 \emergencystretch=3em
 \setlength{\parskip}{0.35em}
 \title{What is proved about leanVM}
-\author{leanerVM, branch \texttt{mumbai}, about leanVM \texttt{990b9352}}
+\author{leanerVM, branch \texttt{mumbai}, about leanVM \texttt{93ebecc5}}
 \date{29 October 2026}
 \begin{document}
 \maketitle
@@ -19,7 +19,7 @@ data-availability claims and other proofs, is sound and complete as an aggregati
 and leanSPHINCS are strongly unforgeable; and LeanDA binds its commitments. Each is a Lean~4
 proposition proved using only Lean's three axioms (\lean{propext}, \lean{Classical.choice},
 \lean{Quot.sound}): no \lean{sorry}, no \lean{native_decide}, no added axiom. The system is
-leanVM at commit \texttt{990b9352} of its \texttt{main} branch.
+leanVM at commit \texttt{93ebecc5} of its \texttt{main} branch.
 
 \paragraph{Where to read it.} The statements live in one folder, \lean{Statement/}: twelve files
 of definitions and end statements ($7048$ lines with their documentation), which import Mathlib,
@@ -292,7 +292,7 @@ about it. Every definition named here is in \lean{Statement/LeanVmGuest.lean} un
 \subsection{The objects}
 
 \paragraph{The guest program} $G$ (\lean{LeanVM.Guest.guest}) is leanVM's compiled aggregation
-program (\texttt{crates/rec\_aggregation/guests/lean\_ethereum.py} at \texttt{990b9352}),
+program (\texttt{crates/rec\_aggregation/guests/lean\_ethereum.py} at \texttt{93ebecc5}),
 transcribed as generated data (\lean{Statement/Data/}). Its bytecode $B$ has $2^{19}$ instruction
 slots of $16$ words of $\mathbb{F} = \mathrm{GF}(2^{64})$, so $2^{23}$ words
 (\lean{bytecode_length}, in \lean{lean_vm}). Below, $H$ is Keccak-256 and
@@ -378,7 +378,7 @@ the value of $f_i$ and $v'_i$ that of $c_i$, to one claim on $\widehat{B}$ at a 
 run on the real Keccak, accepts its proof. Whether that makes them true is the soundness of leanVM
 with Keccak instantiated, which is not proved (Section~\ref{sec:notgive}).
 
-\paragraph{The outer verifier} (\texttt{EthereumProof::verify}, \texttt{aggregation.rs:694-717})
+\paragraph{The outer verifier} (\texttt{EthereumProof::verify}, \texttt{aggregation.rs:673-690})
 additionally checks that the DA digest is that of its root with the digest of the root's
 membership vector, that the deferred claim holds ($\widehat{B}(z) = v$), and the lists' form
 (sorted, no repeats, fewer than $2^{16}$ signature claims). The soundness
@@ -409,9 +409,10 @@ execution $t$ of $G$ on $x$, with $(\sigma', s', w') = \mathrm{dec}(t)$:
 that is, $\mathrm{dig}_{\sigma'}(s') = x$ and $\mathrm{NodeRel}(B, \sigma', s', w')$.
 \item \lean{DigestBinds} (no decoder): for every bytecode $B$, seeds $\sigma, \sigma_0$ and
 statements $s, s_0$ whose deferred claims have $B$'s shape, if $\mathrm{dig}_{\sigma}(s) =
-\mathrm{dig}_{\sigma_0}(s_0)$ then $(\sigma, s) = (\sigma_0, s_0)$, or one of four explicit pairs
-of byte strings, the inputs of the four hashes in $\mathrm{dig}$ (the outer hash and those of
-$\bar X$, $\bar S$ and $\bar D$, \lean{collisionCandidates}), is a Keccak-256 collision.
+\mathrm{dig}_{\sigma_0}(s_0)$ then $(\sigma, s) = (\sigma_0, s_0)$, or one of three explicit pairs
+of byte strings, the inputs of the three hashes in $\mathrm{dig}$ (the outer hash and those of
+$\bar X$ and $\bar S$, \lean{collisionCandidates}; the DA digest enters the preimage as it is), is a
+Keccak-256 collision.
 \end{itemize}
 Together they give \lean{decode_binds} (\lean{lean_vm}): the decoded $(\sigma', s')$ is any shaped
 $(\sigma_0, s_0)$ of digest $x$, up to such a collision. Here Keccak-256 is the real function the
@@ -426,7 +427,7 @@ $G$ on public input $\mathrm{dig}_{iv_G}(s)$ with $s$'s deferred claim of the by
 yet the extractor outputs no execution $t$ that \emph{explains} $s$, is at most the bound of
 \lean{KnowledgeSoundness}. An execution explains $s$ (\lean{Explains}) if $\mathrm{dec}(t) =
 (iv_G, s, w')$ with $\mathrm{NodeRel}(B, iv_G, s, w')$, or the decoded seed and statement, with
-$(iv_G, s)$, give a Keccak-256 collision among the four pairs.
+$(iv_G, s)$, give a Keccak-256 collision among the three pairs.
 \item \lean{aggregate_knowledge} (\lean{lean_vm}): with the same bound, the verifier accepts a
 proof of $G$ on some public input $x$ while the extractor outputs no execution whose decoding
 $(\sigma', s', w')$ satisfies $\mathrm{dig}_{\sigma'}(s') = x$ and $\mathrm{NodeRel}(B, \sigma',
@@ -491,11 +492,11 @@ declared claims plus the duplicates the guest program records) shorter than $2^{
 
 \paragraph{The budget} (\lean{lean_vm}). The node's \emph{work} (\lean{work}) consists of $d$
 declared claims (both signature lists), $k$ coverage slots, $n_X$ and $n_S$ signatures held directly,
-$n_D$ DA matrices held directly with $n_R$ rows in all, padded to $n_P$ rows ($2^{\lceil\log_2 r\rceil}$
+$n_D \le 1$ DA matrix held directly with $n_R$ rows, padded to $n_P$ rows ($2^{\lceil\log_2 r\rceil}$
 for a matrix of $r$ rows), $n_C$ children with $n_{CC}$ claims in all,
 and each child's announced stack log $\mu$ and rate exponent $r$. A run allocates at most
 \[
-W = 18106 + 35d + 109k + 6459n_X + 7328n_S + 480986n_D + 212653n_R + 17672n_P + 14257n_C + 30n_{CC}
+W = 17777 + 35d + 77k + 6459n_X + 7328n_S + 480944n_D + 212653n_R + 17672n_P + 13097n_C + 30n_{CC}
   + \sum_{\text{children}} \beta(\mu, r)
 \]
 words, where $\beta(\mu,r)$, the words of verifying one child, is:
@@ -509,8 +510,8 @@ $r=4$ & 389193 & 393074 & 408904 & 413004 & 417160 & 423729 & 439992
 \end{tabular}
 \end{center}
 The instructions of each opcode are bounded by linear forms of the same shape
-(\lean{Count.deployedInstrs}; for \texttt{KECCAK}, $32 + d + 398n_X + 390n_S + 6047n_D +
-2064n_R + 129n_P + 70n_C + n_{CC} + \sum \kappa(\mu, r)$ with $\kappa$ between $4922$ and $9979$). The
+(\lean{Count.deployedInstrs}; for \texttt{KECCAK}, $25 + d + 398n_X + 390n_S + 6047n_D +
+2064n_R + 129n_P + 62n_C + n_{CC} + \sum \kappa(\mu, r)$ with $\kappa$ between $4922$ and $9979$). The
 budget's size is the committed size of Section~\ref{sec:zkvm} at these bounds: memory
 $2^{\max(\lceil\log_2 W\rceil, 20)}$ and each table's height the least power of two at least its
 bound (at least $2^9$ for \texttt{KECCAK}). These are proved bounds on the guest program's runs,
@@ -543,9 +544,10 @@ Its first two families are the corollaries \lean{GuestCompleteRecursion} and
 any $\mu \in [22,28]$ and $r \in [1,4]$.
 \item \lean{guest_complete_numeric} (\lean{lean_vm}): under hypotheses 1 and 2, whenever the
 budget's size is at most $2^{28}$. Evaluating the budget also places under $2^{28}$ a leaf of up to
-$2538$ leanXMSS or $2242$ leanSPHINCS signatures (each declared once), and a node holding one DA
-claim directly with up to $57$ rows. On leanVM's own aggregations of $16$ and $32$ blobs the
-budget's size is the measured committed size, $2^{26.486}$ and $2^{27.482}$.
+$2550$ leanXMSS or $2252$ leanSPHINCS signatures (each declared once), and a node holding one DA
+matrix directly with up to $57$ rows. On leanVM's own aggregations of $16$ and $32$ blobs the
+budget's size is the measured committed size, $2^{26.486}$ and $2^{27.482}$ (at leanVM \texttt{990b9352} and
+\texttt{93ebecc5} alike).
 \item \lean{aggregate_complete_of} (\lean{lean_vm}, in the RPM): the execution so obtained,
 proved by the honest prover at $\rho \in [1,4]$ with $f \le 2^{64}$ nonces, is rejected with
 probability at most $\delta(f)$ of Section~\ref{sec:zkvm}.
@@ -599,9 +601,22 @@ Rust prover on the test corpus, and no complexity bound is proved.
 
 \section{Status}
 
-This document describes \texttt{mumbai}, about leanVM \texttt{990b9352}.
+This document describes \texttt{mumbai}, about leanVM \texttt{93ebecc5}.
 Recent changes, newest first:
 \begin{itemize}
+\item \texttt{dd57bea0}$\to$ this version, leanVM \texttt{990b9352}$\to$\texttt{93ebecc5} (LeanDA: one
+blob matrix per proof): a statement carries one DA digest (\lean{Claims.da}), $H(\rho \,\|\, \delta)$
+of one DA claim or zeros, in place of a list of DA claims and its digest $H(\bar D)$; a node checking
+a matrix publishes its digest, any other zeros or one child's (\texttt{da\_pick}); the witness holds
+at most one matrix (\lean{NodeWitness.da}); \lean{Limits} loses its DA limits (at most one DA claim
+held directly, at most $16$ DA claims in $s$ and each child) and the nonempty statement, and
+\lean{DigestBinds} has three pairs (was four). The guest program has $362{,}322$ instructions (was
+$363{,}727$). Its budget counts the claim lists and \texttt{da\_verify} exactly, by their trees'
+shapes, in place of ratios of their words: base $17777$ words (was $18106$), a coverage slot $77$
+(was $109$), a child $13097$ (was $14257$), a DA matrix $480944$ (was $480986$), a row $212653$ (was
+$247997$) and a padded row $17672$ (new); on leanVM's aggregations of $16$ and $32$ blobs its size is
+the measured $2^{26.486}$ and $2^{27.482}$ (was $2^{28.27}$ and $2^{29.20}$). \lean{Covered} gains four
+families of one matrix of up to $32$ rows, in place of two of up to $8$ and $4$ rows.
 \item \texttt{131bc3fd}$\to$ this version, leanVM \texttt{94ee12ff}$\to$\texttt{990b9352}
 ($7066 \to 7048$ lines): the Fiat--Shamir IV is $H(\mathit{TAG} \,\|\, \bar B)$, the version tag
 in place of the relation label and the bytecode's hash; the statement's digest hashes $H(\bar X)$

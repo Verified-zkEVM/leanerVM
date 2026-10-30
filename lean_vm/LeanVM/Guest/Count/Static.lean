@@ -21,8 +21,8 @@ public import LeanVM.Guest.Memory.LoopPre
 # `main`'s static callees' counts and words
 
 From the certificates counting each opcode's instructions (`Memory/GuestCnt*`): constants for
-`exponent_tables`, `da_list_digest`, `cover_da_root` and `statement_digest`, per iteration for the
-loops `__loop0`..`__loop3` and `__loop28` (each child's DA roots in `__loop4`) from `g^a` to `g^e`
+`exponent_tables` and `statement_digest`, per iteration for the loops `__loop0`..`__loop3` from
+`g^a` to `g^e`
 (`e - a` iterations, `LoopWeightLe`), and affine in `n` for `aggregate_claims` on `g^n`
 (`kcAgg_le`). From the certificates counting words (`Memory/GuestWords`), at `B2C.fs`: the
 constants' `TotalLe` and the loops' words per iteration (`LoopTotalLe`, and `TotalLeOn` from a

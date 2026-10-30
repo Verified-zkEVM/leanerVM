@@ -15,7 +15,7 @@ public import LeanVM.Guest.B1.Tables.Base
 # The Keccak GKR reduction (TRIAGE G #53-63): the interface
 
 `verify_keccak` (`crates/rec_aggregation/guests/lean_ethereum.py` at leanVM `3375f7a13`, G
-below, G:2773-2945) runs the specification's `verifyKeccak` (V:2061), then draws the first
+below, G:2771-2943) runs the specification's `verifyKeccak` (V:2061), then draws the first
 challenge of `ringSwitch` (V:2124), which the last slices wait for. Its callees:
 
 | function | G | meaning |
@@ -26,7 +26,7 @@ challenge of `ringSwitch` (V:2124), which the last slices wait for. Its callees:
 | `verify_keccak` | 2773-2945 | `verifyKeccak`, then one sample |
 
 The inline helpers (`carry_step`, `carry_wrap`, `keccak_shifts_eq`, `fold_node`,
-`fold_shifts`, `keccak_form`, `keccak_slot_lanes`, G:2318-2453, 2757-2770, TRIAGE #53-58, #62)
+`fold_shifts`, `keccak_form`, `keccak_slot_lanes`, G:2316-2451, 2757-2770, TRIAGE #53-58, #62)
 have no core function of their own: they are lemmas of `B1/KeccakGkr/`.
 
 **Records.** A round record (`KR_*`, G:232-239) holds a sponge's capacity, a cursor, a claim
@@ -79,7 +79,7 @@ def RoundRec (rd : Reader) (rec : E) (k : ℕ) (cap : List E) (cur claim scale :
   CapAt rd rec k krCap cap ∧ LoadHolds rd rec (k + 5 * krCap) cur ∧
     LoadHolds rd rec (k + 6 * krCap) claim ∧ LoadHolds rd rec (k + 7 * krCap) scale
 
-/-- **One equality-mode round of degree two** (`keccak_round`, G:2456-2477): `g₁`, `g₂` absorbed,
+/-- **One equality-mode round of degree two** (`keccak_round`, G:2454-2475): `g₁`, `g₂` absorbed,
 the challenge `c` squeezed; with `r` the round's coordinate, the claim becomes
 `(1 + r + c)·(claim + (r + c)·g₁ + (r + c²)·g₂)` (`(1 + r + c)·polyEval message c` of
 `sumcheckRoundPoly 3 claim (some r)`, V:1330, 1971) and the scale is multiplied by
@@ -89,7 +89,7 @@ def eqRound (s : Fs) (g1 g2 r claim scale : E) : E × E × E × Fs :=
   (q.1, (1 + (r + q.1)) * (claim + (r + q.1) * g1 + (r + q.1 * q.1) * g2),
     scale * (1 + (r + q.1)), q.2)
 
-/-- **`keccak_round(rd, pp, pt)`** (G:2456-2477; TRIAGE #59): the round record at `rd` holds a
+/-- **`keccak_round(rd, pp, pt)`** (G:2454-2475; TRIAGE #59): the round record at `rd` holds a
 sponge's capacity (canonical cells), a cursor, a claim and a scale; the two stream words at the
 cursor are the round's `g₁`, `g₂`, the word at `pp` its coordinate `r`; the challenge is stored at
 `pt`, and the next record (`rd·g`) holds the sponge after the round, the cursor two words on, the
@@ -131,7 +131,7 @@ scalar `w` waiting, its rate cells `p0`, `p1`. -/
 def plainStart (k0 : ℕ) (cap : List E) (w : E) : Fs :=
   ⟨cap, if k0 = 1 then [(w, dsObserve)] else []⟩
 
-/-- **`keccak_plain_rounds(fs0..fs4, p0, p1, cursor, value, point, n, k0)`** (G:2728-2754;
+/-- **`keccak_plain_rounds(fs0..fs4, p0, p1, cursor, value, point, n, k0)`** (G:2726-2751;
 TRIAGE #61): the capacity is canonical; the `2n` stream words at the cursor are the rounds' `c₀`,
 `c₂`; and for every scalar `w` whose rate cells are `p0`, `p1` with `k0 = 1`
 (`Keccak.scalarCells w dsObserve`, the scalar waiting), the rounds (`plainRun`) store their
@@ -217,7 +217,7 @@ def layerName : ℕ → ℕ → String
   | _, _ => "keccak_layer__L0_L1"
 
 /-- **`keccak_layer(fs0..fs4, p0, p1, cursor, y_g, half_g, y_last, claim, out, iota, first, odd)`**
-(G:2480-2725; TRIAGE #60): for every reading of its arguments as the claim `c` on points of
+(G:2478-2723; TRIAGE #60): for every reading of its arguments as the claim `c` on points of
 `y = 2·⌊y/2⌋ + odd` coordinates (`y_g = g^y`, `half_g = g^⌊y/2⌋`, `y_last = g^(⌊y/2⌋ + odd)`)
 whose record is at `claim`, the step `step`'s `ι` term (`keccakIota`), and with `first = 1` the
 committed outputs' word `w` waiting in the sponge (rate cells `p0`, `p1`): from the carried
@@ -252,7 +252,7 @@ def keccakSeg (logSteps : ℕ) (inst output : List E) :
   return (r, m)
 
 /-- **`verify_keccak(fs0..fs4, cursor, tau_g, chi, output_lanes, z_vals, slices)`**
-(G:2773-2945; TRIAGE #63): for the `KECCAK` table's log-height `τ` (`tau_g = g^τ`, `9 ≤ τ ≤ 28`,
+(G:2771-2943; TRIAGE #63): for the `KECCAK` table's log-height `τ` (`tau_g = g^τ`, `9 ≤ τ ≤ 28`,
 which `verify_tables` certifies), the table sumcheck's point `chis` at `chi` (at least `τ`
 coordinates) and the table's twenty-five output lane values `outs` at `output_lanes`: from the
 carried capacity, the stream words `xs` at the cursor run `keccakSeg τ (chis.take τ) outs` to the

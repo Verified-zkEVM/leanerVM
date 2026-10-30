@@ -36,7 +36,7 @@ open LeanVM.Guest.B1.Fwd
 
 /-! ## The statements -/
 
-/-- `verify_tables`' statements `5152 ..< 5259` (G:2185-2230). -/
+/-- `verify_tables`' statements `5152 ..< 5259` (G:2183-2228). -/
 noncomputable def zBlk : List Stmt := [
     .atom (.hint (.witness "zc_tau_max" (.stack [.n 5817]))),
     .atom (.load (.n 5818) (.n 10) 1),
@@ -146,7 +146,7 @@ noncomputable def zBlk : List Stmt := [
     .atom (.const (.n 5937) (word 1 0 0)),
     .call "eq_prefix_chain" [.n 5936, .n 5937, .n 18, .n 2767, .n 5817] []]
 
-/-- `verify_tables`' statements `10209 ..< 10251` (G:2301-2312). -/
+/-- `verify_tables`' statements `10209 ..< 10251` (G:2299-2312). -/
 noncomputable def zTail : List Stmt := [
     .atom (.keccak [.n 9416, .n 9418, .n 5872, .n 5872, .n 5872, .n 5873, .n 5874, .n 5875, .n 9404, .n 9405, .n 9406, .n 9407, .n 9408] [.n 11198, .n 11199, .n 11200, .n 11201, .n 11202, .n 11203, .n 11204, .n 11205, .n 11206, .n 11207, .n 11208, .n 11209, .n 11210] false false),
     .atom (.hint (.limbs (.n 11199) [.n 11211])),

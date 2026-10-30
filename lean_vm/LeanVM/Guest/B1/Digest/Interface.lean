@@ -68,14 +68,14 @@ def BelowLog (b : E) (e : ℕ) : Prop := e < 2 ^ 32 ∧ ∃ e' < 2 ^ 32, b = gen
 /-- `g⁻¹`, the word a runtime range bound is multiplied by (`assert log x < log b`). -/
 abbrev ginvW : E := word 9223372036854775821 0 0
 
-/-! ## `statement_digest` (G:3766-3797, TRIAGE #86) -/
+/-! ## `statement_digest` (G:3764-3795, TRIAGE #86) -/
 
 /-- `DEFER_STMT_CELLS`: the cells of a statement's deferred claim, `BYTECODE_VARS = 23`
 coordinates and the value. -/
 abbrev deferStmtCells : ℕ := 24
 
 /-- The bytes `statement_digest` hashes: the header cells (the seed, the two claim lists' digests,
-the DA list digest), then the deferred cells, three limbs each. `24` is even: no zero partner. -/
+the DA digest), then the deferred cells, three limbs each. `24` is even: no zero partner. -/
 def stmtBytes (hdr defer : List E) : List UInt8 := cellsBytes hdr ++ defer.flatMap Node.eBytes
 
 /-- **`statement_digest(seed_0, seed_1, xd_0, xd_1, sd_0, sd_1, da_0, da_1, defer)`**: the 24
@@ -124,7 +124,7 @@ def list_split_complete_Spec : Prop :=
   ∀ (rd : Reader), MemOk rd → ∀ (args rets : List E),
     MeaningListSplit args rets → coreProgram.Rel rd "list_split" args rets
 
-/-! ## `claim_list_digest` (G:3827-3861, TRIAGE #88) -/
+/-! ## `claim_list_digest` (G:3827-3859, TRIAGE #88) -/
 
 /-- The `4n` cells of `n` claims at `entries` are canonical, and `rets` is the two cells of their
 Keccak-256 digest (an empty list: the empty string's). -/
@@ -143,7 +143,7 @@ def claim_list_digest_sound_Spec : Prop :=
   ∀ (rd : Reader), MemOk rd → ∀ (args rets : List E),
     coreProgram.Rel rd "claim_list_digest" args rets → MeaningClaimListDigest rd args rets
 
-/-! ## `child_claim_list_digest` (G:3864-3917, TRIAGE #89) -/
+/-! ## `child_claim_list_digest` (G:3864-3911, TRIAGE #89) -/
 
 /-- **A child's claim list rebuilt from this node's table**: claim `j < n` sits at slot `o j` of
 the table at `entries` (its four cells at `entries · g^(4 o j)`), the slot below the log of `limit`

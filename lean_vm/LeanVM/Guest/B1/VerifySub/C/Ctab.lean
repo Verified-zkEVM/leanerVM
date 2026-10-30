@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.VerifySub.C.Ctab
 
-  `verify_sub`'s `c_table` (G:3271-3280), honestly: a kernel-checked pass on the evaluated
+  `verify_sub`'s `c_table` (G:3269-3278), honestly: a kernel-checked pass on the evaluated
   valuation, the table's cells checked against `ringCoefficients`' monomials as they are recorded.
 -/
 

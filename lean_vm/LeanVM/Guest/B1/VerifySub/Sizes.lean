@@ -87,7 +87,7 @@ theorem stackLog_eq {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) (logMem
 
 /-! ## The push side's cube -/
 
-/-- Push block `b`'s log-height (G:3203-3205): source `BLOCK_KAPPA_SRC[b]` of
+/-- Push block `b`'s log-height (G:3201-3203): source `BLOCK_KAPPA_SRC[b]` of
 `[0, log_mem, τ_0, …, τ_5]`, plus `BLOCK_KAPPA_ADJ[b]`. -/
 def pushKappa (logMem : ℕ) (hs : List ℕ) (b : ℕ) : ℕ :=
   ([0, logMem] ++ hs).getD (Tables.blockKappaSrc.getD b 0) 0 + Tables.blockKappaAdj b
@@ -123,7 +123,7 @@ theorem pushKappas_eq (logMem h0 h1 h2 h3 h4 h5 : ℕ) :
       [0, logMem, 19] ++ (List.replicate 5 h0 ++ List.replicate 5 h1 ++ List.replicate 3 h2 ++
         List.replicate 5 h3 ++ List.replicate 5 h4 ++ List.replicate 28 h5) := rfl
 
-/-- **The push side's cube** (G:3206-3209): its log-size is `log2Ceil` of the sum of `2^κ` over
+/-- **The push side's cube** (G:3204-3207): its log-size is `log2Ceil` of the sum of `2^κ` over
 the guest's `54` push blocks. -/
 theorem pushDepth_eq {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) (logMem : ℕ)
     (rowsN : List ℕ) (hlen : rowsN.length = 6) :
