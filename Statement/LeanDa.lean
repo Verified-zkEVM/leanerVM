@@ -544,7 +544,8 @@ def toChallenges (zs : List E) : Challenges := fun j ↦ zs.getD j 0
 
 /-- **The relation the argument proves**, with a hash `H` and the sponge's permutation `P` in any
 monad: the cells commit to the root and pass the membership test on the root's challenges, drawn
-by the deployed duplex (`membershipChallengesM`). In the games `H` is Keccak-256 and `P` is `π`. -/
+by the deployed duplex (`membershipChallengesM`). In the games `H` is Keccak-256 over `π`
+(`keccakK`) and `P` is `π` (`piK`). -/
 noncomputable def relationM {m : Type → Type} [Monad m] (H : List UInt8 → m KDigest)
     (P : KState → m KState) {r : ℕ} (root : KDigest) (c : Fin (r * 128) → Cell) : m Bool := do
   let zs ← membershipChallengesM H P root
@@ -553,15 +554,9 @@ noncomputable def relationM {m : Type → Type} [Monad m] (H : List UInt8 → m 
 
 /-! ## Arguments in the random-permutation model -/
 
-/-- Keccak-256 among the oracles of the random-permutation model. -/
-abbrev hK (a : List UInt8) : OracleComp KSpec KDigest := liftM (KSpec.query (.inr (.inl a)))
-
-/-- A call `π x` of the permutation among the oracles. -/
-abbrev pK (x : KState) : OracleComp KSpec KState := liftM (KSpec.query (.inr (.inr (.fwd x))))
-
 /-- **An argument in the random-permutation model** (Wagner's arguments of knowledge, Foundations
 Definition 18, with oracle access): its prover and verifier query the model's oracles (`KSpec`:
-coins, Keccak-256, `π` and `π⁻¹`), the oracles the adversary and LeanDA's verifier query. -/
+coins, `π` and `π⁻¹`), the oracles the adversary and LeanDA's verifier query. -/
 structure NarkRpm (Stmt Wit Crs Proof : Type) where
   /-- Sample a common reference string. -/
   setup : ProbComp Crs
@@ -583,13 +578,11 @@ the games when the permutation is `π` (`runK`). -/
 def keccakWith (π : KState → KState) (a : List UInt8) : KDigest :=
   (Id.run (keccak256With (fun x ↦ pure (π x)) a)).toBytes
 
-/-- **The model's oracles answered by a permutation `π`**: coins uniform, Keccak-256 over `π`,
-`π` and `π⁻¹`. -/
+/-- **The model's oracles answered by a permutation `π`**: coins uniform, `π` and `π⁻¹`. -/
 noncomputable def permImpl (π : Equiv.Perm KState) : QueryImpl KSpec ProbComp
   | .inl n => (unifSpec.query n : ProbComp (Fin (n + 1)))
-  | .inr (.inl a) => pure (keccakWith π a)
-  | .inr (.inr (.fwd x)) => pure (π x)
-  | .inr (.inr (.inv y)) => pure (π.symm y)
+  | .inr (.fwd x) => pure (π x)
+  | .inr (.inv y) => pure (π.symm y)
 
 /-- **Perfect completeness for every permutation**: with the oracles answered by any permutation
 `π`, an honest proof of a statement the relation `rel π` holds for verifies with probability
@@ -609,9 +602,10 @@ abbrev ArgumentRpm (r : ℕ) (Crs Proof : Type) := NarkRpm KDigest (Fin (r * 128
 
 /-! ## The games in the random-permutation model
 
-Every party queries the same oracles (`KSpec`): the adversary, the argument's prover and verifier
-Keccak-256, `π` and `π⁻¹`; LeanDA's verifier Keccak-256. A game is run against the lazily sampled
-permutation (`runK`), and its cost counts every party's calls (`permCalls`). LeanDA's verifier
+Every party queries the same oracles (`KSpec`: coins, `π` and `π⁻¹`) and hashes with Keccak-256
+over `π` (`keccakK`): the adversary, the argument's prover and verifier, and LeanDA's verifier. A
+game is run against the lazily sampled permutation (`runK`), and its cost counts every party's
+calls of `π` and `π⁻¹` (`permCalls`). LeanDA's verifier
 verifies the argument's proof for the commitment's root once, and each opening's path. -/
 
 variable (r : ℕ) {Crs Proof : Type} (ps : ArgumentRpm r Crs Proof)
@@ -629,8 +623,8 @@ def posBindingGame (A : PosBindingAdvRpm r Crs Proof) : OracleComp KSpec Bool :=
   let crs ← liftM ps.setup
   let (com, p, x, τ, x', τ') ← A ((), crs)
   let ok ← ps.verify crs com.1 com.2
-  let b ← verifyCellM hK r com.1 p x τ
-  let b' ← verifyCellM hK r com.1 p x' τ'
+  let b ← verifyCellM keccakK r com.1 p x τ
+  let b' ← verifyCellM keccakK r com.1 p x' τ'
   pure (decide (x ≠ x') && ok && b && b')
 
 /-- A code-binding adversary: from the commitment key, a commitment and a list of opened
@@ -644,7 +638,7 @@ noncomputable def codeBindingGame (A : CodeBindingAdvRpm r Crs Proof) : OracleCo
   let crs ← liftM ps.setup
   let (com, opened) ← A ((), crs)
   let ok ← ps.verify crs com.1 com.2
-  let verdicts ← opened.mapM fun o ↦ verifyCellM hK r com.1 o.1 o.2.1 o.2.2
+  let verdicts ← opened.mapM fun o ↦ verifyCellM keccakK r com.1 o.1 o.2.1 o.2.2
   pure (ok && verdicts.all id && !decide ((code r).Consistent (opened.map fun o ↦ (o.1, o.2.1))))
 
 /-- **The adversary's oracles, logged**: each query asked, and appended with its answer to the
@@ -661,12 +655,12 @@ abbrev KsAdvRpm (Crs Proof : Type) := Crs → OracleComp KSpec (KDigest × Proof
 random-permutation model with a straight-line extractor): the argument's setup, the adversary with
 its queries logged, the argument's verification, then the relation's check on the cells the
 extractor reads off the proof and the adversary's transcript; it wins when the proof verifies and
-the extracted cells do not satisfy the relation (`relationM` over Keccak-256 and `π`). -/
+the extracted cells do not satisfy the relation (`relationM` over Keccak-256 over `π`, and `π`). -/
 noncomputable def ksGame (B : KsAdvRpm Crs Proof) : OracleComp KSpec Bool := do
   let crs ← liftM ps.setup
   let ((root, proof), log) ← (simulateQ loggedK (B crs)).run []
   let v ← ps.verify crs root proof
-  let ok ← relationM hK pK root (ext crs root proof log)
+  let ok ← relationM keccakK piK root (ext crs root proof log)
   pure (v && !ok)
 
 /-- **The completeness experiment for a permutation `π`** (Wagner's, Foundations Definition 8,
@@ -701,8 +695,8 @@ abbrev PerfectlyCompleteRpm : Prop :=
 
 /-- **LeanDA is position binding in the random-permutation model.** For every argument `ps` (any
 prover and verifier) and every adversary whose game, verifications included, makes at most `Q`
-calls of the permutation on every path (`permCalls`: a hash of `n` bytes costs `⌊n / 136⌋ + 1`, a
-call of `π` or `π⁻¹` one, the argument's verifier's included), the probability of opening a
+calls of `π` and `π⁻¹` on every path (`permCalls`; a hash of `n` bytes, Keccak-256 over `π`, makes
+`⌊n / 136⌋ + 1`; the argument's verifier's included), the probability of opening a
 position to two different cells is at most `(Q + 1)² · 2^-256`, for every `Q` (past `2^128` the
 bound exceeds one). Proved by
 `LeanDa.leanDa_positionBinding_rpm`. -/

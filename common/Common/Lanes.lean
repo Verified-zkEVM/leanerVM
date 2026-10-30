@@ -1,5 +1,6 @@
 import Mathlib.Data.List.GetD
 import Common.Keccak
+import Common.HashOracle
 import Common.Lemmas
 
 /-!
@@ -18,10 +19,10 @@ is byte `k` of lane `i`, little-endian (`KState.toRpm`, `Digest.ofRpm`).
 * `lazyPerm_relabel`: the lazily sampled permutation of the lane states is the one of the byte
   states read through `stateEquiv` (a fresh answer is uniform among the unused points on either
   side, `uniformAvoiding_map`).
-* `Common.relabel`, `Common.runK_relabel`, `Common.isWeightBound_relabel`: a game of the
-  statement's model (`KSpec`, on lanes) is the game with its permutation queries read on bytes
-  (`KSpecB`), with the same distribution against the lazily sampled permutation and the same
-  permutation calls.
+* `Common.relabel`, `Common.runK_relabel`, `Common.isWeightBound_relabel`: a game of the model
+  with the hash oracle (`KSpecH`, on lanes) is the game with its permutation queries read on
+  bytes (`KSpecB`), with the same distribution against the lazily sampled permutation and the
+  same permutation calls.
 * `keccakNF_of_keep`: a state keeping lanes `16..24` of another keeps its capacity and its byte
   `135`, so the block that leads from one to the other is non-final (`Common.keccakNF`).
 -/
@@ -806,7 +807,7 @@ open LeanVM LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Rpm
 /-- **A game of the model with its permutation queries read on bytes**: coins and Keccak-256 as
 they are, a query `π x` or `π⁻¹ y` on lanes the query on the bytes of `x` or `y`, its answer read
 back on lanes. -/
-def relabel : QueryImpl KSpec (OracleComp KSpecB)
+def relabel : QueryImpl KSpecH (OracleComp KSpecB)
   | .inl n => liftM (KSpecB.query (.inl n))
   | .inr (.inl m) => liftM (KSpecB.query (.inr (.inl m)))
   | .inr (.inr q) => KState.ofRpm <$> liftM (KSpecB.query (.inr (.inr (mapQ stateEquiv q))))
@@ -823,20 +824,20 @@ theorem lazyPerm_eq_lanePerm :
   simp only [ofRpm_toRpm, id_map']
 
 /-- Each query of the model on lanes is its query on bytes, the edges read on lanes. -/
-theorem relabel_step (t : KSpec.Domain) (s : PermLog KState) :
+theorem relabel_step (t : KSpecH.Domain) (s : PermLog KState) :
     Prod.map id projLog <$> ((realImpl keccakPadding KState.zero ∘ₛ relabel) t).run s =ᵈ
-      (kImpl t).run (projLog s) := by
+      (kImplH t).run (projLog s) := by
   rcases t with n | m | q
-  · simp only [QueryImpl.apply_compose, relabel, simulateQ_spec_query, realImpl, kImpl]
+  · simp only [QueryImpl.apply_compose, relabel, simulateQ_spec_query, realImpl, kImplH]
     simp only [liftM, monadLift, MonadLift.monadLift, StateT.run_lift, map_bind, map_pure,
       Prod.map_apply, id_eq]
     exact EvalDistEq.rfl
-  · simp only [QueryImpl.apply_compose, relabel, simulateQ_spec_query, realImpl, kImpl]
+  · simp only [QueryImpl.apply_compose, relabel, simulateQ_spec_query, realImpl, kImplH]
     rw [lazyPerm_eq_lanePerm, keccak256With_rpm, Functor.map_map]
     simp only [toBytes_ofRpm, id_map']
     exact (StRel.map (absorbAll_rel _ _ fwd_rel _ _) _) s
   · simp only [QueryImpl.apply_compose, relabel, simulateQ_map, simulateQ_spec_query, realImpl,
-      kImpl]
+      kImplH]
     have h := lazyPerm_relabel stateEquiv q s
     rw [StateT.run_map, Functor.map_map]
     exact h
@@ -844,22 +845,22 @@ theorem relabel_step (t : KSpec.Domain) (s : PermLog KState) :
 /-- **A game of the model is the game on bytes**: against the lazily sampled permutations, the
 game with its permutation queries on lanes and the game with them read on bytes have one
 distribution. -/
-theorem runK_relabel {α : Type} (G : OracleComp KSpec α) :
-    runK G =ᵈ runKB (simulateQ relabel G) := by
+theorem runK_relabel {α : Type} (G : OracleComp KSpecH α) :
+    runKH G =ᵈ runKB (simulateQ relabel G) := by
   have h := map_run_simulateQ_evalDistEq_of_inv (realImpl keccakPadding KState.zero ∘ₛ relabel)
-    kImpl (fun _ ↦ True) projLog (fun _ _ _ _ _ ↦ trivial) (fun t s _ ↦ relabel_step t s) G []
+    kImplH (fun _ ↦ True) projLog (fun _ _ _ _ _ ↦ trivial) (fun t s _ ↦ relabel_step t s) G []
     trivial
   have h2 := h.map Prod.fst
   simp only [Functor.map_map] at h2
-  rw [runK, runKB, realGame, StateT.run'_eq, StateT.run'_eq, ← QueryImpl.simulateQ_compose]
+  rw [runKH, runKB, realGame, StateT.run'_eq, StateT.run'_eq, ← QueryImpl.simulateQ_compose]
   exact h2.symm
 
 /-- **A game on bytes weighs what the game on lanes weighs**, for weights that give each query
 on bytes at most the weight of the query on lanes it reads. -/
-theorem isWeightBound_relabel' (w : KSpec.Domain → ℕ) (w' : KSpecB.Domain → ℕ)
+theorem isWeightBound_relabel' (w : KSpecH.Domain → ℕ) (w' : KSpecB.Domain → ℕ)
     (h0 : ∀ n, w' (.inl n) ≤ w (.inl n)) (h1 : ∀ m, w' (.inr (.inl m)) ≤ w (.inr (.inl m)))
     (h2 : ∀ q, w' (.inr (.inr (mapQ stateEquiv q))) ≤ w (.inr (.inr q))) {α : Type}
-    {G : OracleComp KSpec α} {Q : ℕ} (h : IsWeightBound G w Q) :
+    {G : OracleComp KSpecH α} {Q : ℕ} (h : IsWeightBound G w Q) :
     IsWeightBound (simulateQ relabel G) w' Q := by
   induction G using OracleComp.inductionOn generalizing Q with
   | pure a => trivial
@@ -883,23 +884,23 @@ theorem isWeightBound_relabel' (w : KSpec.Domain → ℕ) (w' : KSpecB.Domain �
         ⟨(h2 q).trans h.1, fun u ↦ (ih _ (h.2 _)).mono (by have := h2 q; omega)⟩
 
 /-- **A game on bytes makes the permutation calls of the game on lanes.** -/
-theorem isWeightBound_relabel {α : Type} {G : OracleComp KSpec α} {Q : ℕ}
-    (h : IsWeightBound G permCalls Q) : IsWeightBound (simulateQ relabel G) permCallsB Q :=
-  isWeightBound_relabel' permCalls permCallsB (fun _ ↦ le_rfl) (fun _ ↦ le_rfl)
+theorem isWeightBound_relabel {α : Type} {G : OracleComp KSpecH α} {Q : ℕ}
+    (h : IsWeightBound G permCallsH Q) : IsWeightBound (simulateQ relabel G) permCallsB Q :=
+  isWeightBound_relabel' permCallsH permCallsB (fun _ ↦ le_rfl) (fun _ ↦ le_rfl)
     (fun q ↦ by cases q <;> exact le_rfl) h
 
 /-- **A game on bytes read on lanes**: the inverse of `relabel`. -/
-def unrelabel : QueryImpl KSpecB (OracleComp KSpec)
-  | .inl n => liftM (KSpec.query (.inl n))
-  | .inr (.inl m) => liftM (KSpec.query (.inr (.inl m)))
-  | .inr (.inr q) => KState.toRpm <$> liftM (KSpec.query (.inr (.inr (mapQ stateEquiv.symm q))))
+def unrelabel : QueryImpl KSpecB (OracleComp KSpecH)
+  | .inl n => liftM (KSpecH.query (.inl n))
+  | .inr (.inl m) => liftM (KSpecH.query (.inr (.inl m)))
+  | .inr (.inr q) => KState.toRpm <$> liftM (KSpecH.query (.inr (.inr (mapQ stateEquiv.symm q))))
 
 /-- An adversary with its queries read on bytes. -/
-def relabelAdv {X β : Type} (A : X → OracleComp KSpec β) : X → OracleComp KSpecB β :=
+def relabelAdv {X β : Type} (A : X → OracleComp KSpecH β) : X → OracleComp KSpecB β :=
   fun x ↦ simulateQ relabel (A x)
 
 /-- An adversary on bytes with its queries read on lanes. -/
-def unrelabelAdv {X β : Type} (A : X → OracleComp KSpecB β) : X → OracleComp KSpec β :=
+def unrelabelAdv {X β : Type} (A : X → OracleComp KSpecB β) : X → OracleComp KSpecH β :=
   fun x ↦ simulateQ unrelabel (A x)
 
 theorem mapQ_mapQ_symm (q : PermQuery KState) : mapQ stateEquiv (mapQ stateEquiv.symm q) = q := by
@@ -926,8 +927,8 @@ theorem relabelAdv_unrelabelAdv {X β : Type} (A : X → OracleComp KSpecB β) :
   exact simulateQ_relabel_unrelabel (A x)
 
 /-- **A game on lanes weighs what it weighs on bytes**, in permutation calls. -/
-theorem isWeightBound_relabel_iff {α : Type} (G : OracleComp KSpec α) (Q : ℕ) :
-    IsWeightBound (simulateQ relabel G) permCallsB Q ↔ IsWeightBound G permCalls Q := by
+theorem isWeightBound_relabel_iff {α : Type} (G : OracleComp KSpecH α) (Q : ℕ) :
+    IsWeightBound (simulateQ relabel G) permCallsB Q ↔ IsWeightBound G permCallsH Q := by
   refine ⟨fun h ↦ ?_, isWeightBound_relabel⟩
   induction G using OracleComp.inductionOn generalizing Q with
   | pure a => trivial

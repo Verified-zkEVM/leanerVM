@@ -10,7 +10,7 @@ numbers, with the axioms each depends on.
 
 open LeanVM.Semantics LeanVM
 
-example {A : RpmAdversary} {Q : ℕ} (hA : Common.IsWeightBound A permQueries Q)
+example {A : RpmAdversary} {Q : ℕ} (hA : Common.IsWeightBound A Common.permCalls Q)
     (hQ : Q ≤ 2 ^ 128) :
     Pr{let z ← rpmExperiment A}[z.1.2 = true ∧
       ¬ ∃ t, extractorRpm z.1.1.1.1 z.1.1.1.2 z.2 z.1.1.2 = some t ∧

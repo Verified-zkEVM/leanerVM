@@ -33,9 +33,9 @@ Benedikt Wagner's ([b-wagn/fv-pq-da](https://github.com/b-wagn/fv-pq-da), Apache
    Keccak-256 over any permutation of the state in any monad (`KeccakHash.keccak256With`), the
    deployed one over Keccak-f[1600] (`keccak256`); the random-permutation model (`permSpec`: `π`
    and `π⁻¹`; `lazyPerm`, the lazily sampled uniform permutation); a cost bounded on every path
-   (`IsWeightBound`); the oracles of the model (`KSpec`: coins, Keccak-256, `π`, `π⁻¹` on
-   `KState`), a game's cost in permutation calls (`permCalls`) and its run against the lazy
-   permutation, Keccak-256 the sponge over it (`runK`); the SUF-CMA game of a hash-based
+   (`IsWeightBound`); the oracles of the model (`KSpec`: coins, `π` and `π⁻¹` on `KState`,
+   nothing else), Keccak-256 in the model, the sponge over `π` (`keccakK`), a game's cost in
+   calls of `π` and `π⁻¹` (`permCalls`) and its run against the lazy permutation (`runK`); the SUF-CMA game of a hash-based
    signature scheme in the random-permutation model (`SufCma.rpmGame`, `rpmExperiment`) and its
    security notion (`SufCma.RpmSecure`).
 2. [`LeanXmss.lean`](LeanXmss.lean): what leanXMSS and leanSPHINCS share (the tweakable hash's
@@ -55,7 +55,8 @@ Benedikt Wagner's ([b-wagn/fv-pq-da](https://github.com/b-wagn/fv-pq-da), Apache
    the deployed duplex over a permutation), arguments that query the model's oracles, the
    commitment and the challenges' duplex over a permutation, LeanDA's games in the
    random-permutation model, where the adversary, the argument (`NarkRpm`, its extractor reading
-   the adversary's transcript) and the verifier query the same oracles (`KSpec`; position
+   the adversary's transcript) and the verifier query the same oracles (`KSpec`, hashing with
+   `keccakK`; position
    binding, code binding, the argument's knowledge soundness `ksGame`, completeness for every
    permutation `π`), and `LeanDa.PerfectlyCompleteRpm`,
    `LeanDa.PositionBindingRpm`, `LeanDa.CodeBindingRpm`. Code binding is conditional: if the

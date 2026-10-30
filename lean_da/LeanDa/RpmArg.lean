@@ -4,16 +4,16 @@ import LeanDa.RpmComplete
 /-!
 # LeanDA's binding with an argument that queries the oracles
 
-The end statements' argument (`NarkRpm`) queries the random-permutation model's oracles, and its
-extractor reads the adversary's transcript (`ksGame`, the adversary's queries logged by
-`loggedK`). Its verification in the games runs right after the adversary, so in the two-oracle
+The end statements' argument (`NarkRpmH`) queries the random-permutation model's oracles, and its
+extractor reads the adversary's transcript (`ksGameH`, the adversary's queries logged by
+`loggedKH`). Its verification in the games runs right after the adversary, so in the two-oracle
 form of a game (`Common.rpmGame2`) it belongs to the adversary's part, and the verifier's part is
 the openings' climbs, with `H` alone.
 
-* **Position binding** (`leanDa_positionBinding_rpm`): the adversary followed by the argument's
+* **Position binding** (`leanDa_positionBinding_rpmH`): the adversary followed by the argument's
   verification is an adversary of the two-oracle transfer; a win is a collision of `H` among the
   climbs' cached inputs, as before.
-* **Code binding** (`leanDa_codeBinding_rpm_bound`), by the straight-line argument of
+* **Code binding** (`leanDa_codeBinding_rpm_boundH`), by the straight-line argument of
   `LeanDa.StraightBound`, which is stated for an oracle-free argument: the adversary followed by
   the argument's verification, its proof carrying the argument's proof, the adversary's
   transcript and the verification's verdict (`advV`), is the adversary of the same games for an
@@ -37,13 +37,13 @@ namespace LeanDa
 
 /-! ## Logging -/
 
-theorem run_loggedK_query (t : KSpec.Domain) (s : Transcript) :
-    (loggedK t).run s = (fun u ↦ (u, s ++ [⟨t, u⟩])) <$> liftM (KSpec.query t) := by
-  simp [loggedK]
+theorem run_loggedK_query (t : KSpecH.Domain) (s : TranscriptH) :
+    (loggedKH t).run s = (fun u ↦ (u, s ++ [⟨t, u⟩])) <$> liftM (KSpecH.query t) := by
+  simp [loggedKH]
 
 /-- **Logging changes no answer.** -/
-theorem fst_run_loggedK {α : Type} (X : OracleComp KSpec α) (s : Transcript) :
-    Prod.fst <$> (simulateQ loggedK X).run s = X := by
+theorem fst_run_loggedK {α : Type} (X : OracleComp KSpecH α) (s : TranscriptH) :
+    Prod.fst <$> (simulateQ loggedKH X).run s = X := by
   induction X using OracleComp.inductionOn generalizing s with
   | pure a => simp
   | query_bind t k ih =>
@@ -52,8 +52,8 @@ theorem fst_run_loggedK {α : Type} (X : OracleComp KSpec α) (s : Transcript) :
     rw [run_loggedK_query, bind_map_left, map_bind]
     exact bind_congr fun u ↦ ih u _
 
-theorem run_loggedK_map {α β : Type} (f : α → β) (X : OracleComp KSpec α) (s : Transcript) :
-    (simulateQ loggedK (f <$> X)).run s = (fun p ↦ (f p.1, p.2)) <$> (simulateQ loggedK X).run s := by
+theorem run_loggedK_map {α β : Type} (f : α → β) (X : OracleComp KSpecH α) (s : TranscriptH) :
+    (simulateQ loggedKH (f <$> X)).run s = (fun p ↦ (f p.1, p.2)) <$> (simulateQ loggedKH X).run s := by
   rw [simulateQ_map, StateT.run_map]
 
 /-! ## Weights through a map -/
@@ -76,12 +76,12 @@ theorem advS2_map {α β : Type} (f : α → β) (X : OracleComp KSpecB α) :
 
 section Virtual
 
-variable (r : ℕ) {Crs Proof : Type} (ps : ArgumentRpm r Crs Proof)
-  (ext : ExtractorRpm Common.KDigest (Fin (r * 128) → Cell) Crs Proof)
+variable (r : ℕ) {Crs Proof : Type} (ps : ArgumentRpmH r Crs Proof)
+  (ext : ExtractorRpmH Common.KDigest (Fin (r * 128) → Cell) Crs Proof)
 
 /-- The proof of the virtual argument: the argument's proof, the adversary's transcript and the
 argument's verdict. -/
-abbrev PrfV (Proof : Type) := Option Proof × Transcript × Bool
+abbrev PrfV (Proof : Type) := Option Proof × TranscriptH × Bool
 
 /-- **The virtual oracle-free argument**: it reads the verdict its proof carries. -/
 def psV : Nark (Unit × Common.KDigest × Challenges) (Fin (r * 128) → Cell) Crs (PrfV Proof)
@@ -99,20 +99,20 @@ def extV : Nark.Extractor (Unit × Common.KDigest × Challenges) (Fin (r * 128) 
 
 /-- **The adversary followed by the argument's verification**, its queries logged: the virtual
 proof carries the proof, the transcript and the verdict. -/
-noncomputable def advV (A : CodeBindingAdvRpm r Crs Proof) (ck : Unit × Crs) :
-    OracleComp KSpec (CbOut r (PrfV Proof)) := do
-  let (out, log) ← (simulateQ loggedK (A ck)).run []
+noncomputable def advV (A : CodeBindingAdvRpmH r Crs Proof) (ck : Unit × Crs) :
+    OracleComp KSpecH (CbOut r (PrfV Proof)) := do
+  let (out, log) ← (simulateQ loggedKH (A ck)).run []
   let ok ← ps.verify ck.2 out.1.1 out.1.2
   pure ((out.1.1, (some out.1.2, log, ok)), out.2)
 
 /-- The same without the openings. -/
-noncomputable def advV0 (A : CodeBindingAdvRpm r Crs Proof) (ck : Unit × Crs) :
-    OracleComp KSpec (CbOut r (PrfV Proof)) :=
+noncomputable def advV0 (A : CodeBindingAdvRpmH r Crs Proof) (ck : Unit × Crs) :
+    OracleComp KSpecH (CbOut r (PrfV Proof)) :=
   (fun out ↦ (out.1, [])) <$> advV r ps A ck
 
 /-- **The knowledge-soundness adversary of a code-binding adversary**: the adversary itself, its
 root and proof. -/
-def ksB (A : CodeBindingAdvRpm r Crs Proof) : KsAdvRpm Crs Proof :=
+def ksB (A : CodeBindingAdvRpmH r Crs Proof) : KsAdvRpmH Crs Proof :=
   fun crs ↦ (fun out ↦ (out.1.1, out.1.2)) <$> A ((), crs)
 
 /-- The climbs of the code-binding game, with the virtual argument's verdict. -/
@@ -134,12 +134,12 @@ theorem toK_cbPostV (crs : Crs) (out : CbOut r (PrfV Proof)) :
 
 /-- **The code-binding game is its two-oracle form** with the adversary followed by the
 argument's verification. -/
-theorem relabel_codeBindingGame (A : CodeBindingAdvRpm r Crs Proof) :
-    simulateQ relabel (codeBindingGame r ps A) =
+theorem relabel_codeBindingGame (A : CodeBindingAdvRpmH r Crs Proof) :
+    simulateQ relabel (codeBindingGameH r ps A) =
       simulateQ (toOne (E := KRest) (C := KCap)) (rpmGame2 (liftM ps.setup)
         (fun crs ↦ relabelAdv (advV r ps A) ((), crs)) (cbPostV r ps)) := by
   rw [toOne_rpmGame2]
-  unfold codeBindingGame
+  unfold codeBindingGameH
   rw [simulateQ_bind, simulateQ_liftM_of_coins _ (fun n ↦ rfl)]
   refine bind_congr fun crs ↦ ?_
   conv_lhs => rw [← fst_run_loggedK (A ((), crs)) []]
@@ -156,12 +156,12 @@ theorem relabel_codeBindingGame (A : CodeBindingAdvRpm r Crs Proof) :
 
 /-- **The knowledge-soundness game of the code-binding adversary** is the knowledge-soundness
 game of the virtual argument against `ksAdv` of the adversary without its openings. -/
-theorem relabel_ksGame (A : CodeBindingAdvRpm r Crs Proof) :
-    simulateQ relabel (ksGame r ps ext (ksB r A)) =
+theorem relabel_ksGame (A : CodeBindingAdvRpmH r Crs Proof) :
+    simulateQ relabel (ksGameH r ps ext (ksB r A)) =
       simulateQ (toOne (E := KRest) (C := KCap))
         (ksGame2 r (psV r ps) (extV r ext) (ksAdv r (relabelAdv (advV0 r ps A)))) := by
   rw [ksGame2, toOne_rpmGame2]
-  unfold ksGame
+  unfold ksGameH
   rw [simulateQ_bind, simulateQ_liftM_of_coins _ (fun n ↦ rfl)]
   refine bind_congr fun crs ↦ ?_
   simp only [ksB, ksAdv, relabelAdv, advV0, advV, simulateQ_map, StateT.run_map, simulateQ_bind,
@@ -175,8 +175,8 @@ theorem relabel_ksGame (A : CodeBindingAdvRpm r Crs Proof) :
   rfl
 
 /-- **The position-binding adversary followed by the argument's verification.** -/
-noncomputable def advP (A : PosBindingAdvRpm r Crs Proof) (ck : Unit × Crs) :
-    OracleComp KSpec ((Common.KDigest × (Proof × Bool)) × Fin (r * 128) × Cell × Opening × Cell × Opening) := do
+noncomputable def advP (A : PosBindingAdvRpmH r Crs Proof) (ck : Unit × Crs) :
+    OracleComp KSpecH ((Common.KDigest × (Proof × Bool)) × Fin (r * 128) × Cell × Opening × Cell × Opening) := do
   let (com, p, x, τ, x', τ') ← A ck
   let ok ← ps.verify ck.2 com.1 com.2
   pure ((com.1, (com.2, ok)), p, x, τ, x', τ')
@@ -189,12 +189,12 @@ def posPostV (_ : Crs)
   let b' ← verifyCellM hR r out.1.1 out.2.1 out.2.2.2.2.1 out.2.2.2.2.2
   pure (decide (out.2.2.1 ≠ out.2.2.2.2.1) && out.1.2.2 && b && b')
 
-theorem relabel_posBindingGame (A : PosBindingAdvRpm r Crs Proof) :
-    simulateQ relabel (posBindingGame r ps A) =
+theorem relabel_posBindingGame (A : PosBindingAdvRpmH r Crs Proof) :
+    simulateQ relabel (posBindingGameH r ps A) =
       simulateQ (toOne (E := KRest) (C := KCap)) (rpmGame2 (liftM ps.setup)
         (fun crs ↦ relabelAdv (advP r ps A) ((), crs)) (posPostV r)) := by
   rw [toOne_rpmGame2]
-  unfold posBindingGame
+  unfold posBindingGameH
   rw [simulateQ_bind, simulateQ_liftM_of_coins _ (fun n ↦ rfl)]
   refine bind_congr fun crs ↦ ?_
   simp only [relabelAdv, advP, simulateQ_bind, bind_assoc]
@@ -212,7 +212,7 @@ end Virtual
 
 section PositionBinding
 
-variable (r : ℕ) {Crs Proof : Type} (ps : ArgumentRpm r Crs Proof)
+variable (r : ℕ) {Crs Proof : Type} (ps : ArgumentRpmH r Crs Proof)
 
 theorem duplex_posPostV (crs : Crs)
     (out : (Common.KDigest × (Proof × Bool)) × Fin (r * 128) × Cell × Opening × Cell × Opening) :
@@ -254,7 +254,7 @@ most `Q² / 2^256 + Q² / 2^508`, so at most `(Q + 1)² · 2^-256` for `Q ≤ 2^
 (`Common.sq_add_sq_le`), and for every `Q`, the bound being at least one past `2^128`: the adversary followed by the argument's verification is an adversary of
 the two-oracle transfer, and a win of the climbs is a collision of `H` (`posPostV_win`,
 `prob_hCollision_le`). -/
-theorem leanDa_positionBinding_rpm : PositionBindingRpm := by
+theorem leanDa_positionBinding_rpmH : PositionBindingRpmH := by
   intro r Crs Proof ps A Q hQ
   rcases le_or_gt Q (2 ^ 128) with hcap | hcap
   swap
@@ -314,8 +314,8 @@ theorem run'_bind_const {ι : Type} [DecidableEq ι] {hs : OracleSpec.{0, 0} ι}
 
 section CodeBinding
 
-variable (r : ℕ) {Crs Proof : Type} (ps : ArgumentRpm r Crs Proof)
-  (ext : ExtractorRpm Common.KDigest (Fin (r * 128) → Cell) Crs Proof)
+variable (r : ℕ) {Crs Proof : Type} (ps : ArgumentRpmH r Crs Proof)
+  (ext : ExtractorRpmH Common.KDigest (Fin (r * 128) → Cell) Crs Proof)
 
 theorem duplex_cbPostV (crs : Crs) (out : CbOut r (PrfV Proof)) :
     Duplex KState.zero keccakNF (cbPostV r ps crs out) [] :=
@@ -350,7 +350,7 @@ theorem isWeightBound_rpmGame2_map {β γ γ' δ δ' : Type} (p : ProbComp β)
   rw [e']
   exact (h.of_bind.bind fun xa ↦ h0 xa.1 xa.2).mono (by omega)
 
-theorem relabelAdv_advV0 (A : CodeBindingAdvRpm r Crs Proof) :
+theorem relabelAdv_advV0 (A : CodeBindingAdvRpmH r Crs Proof) :
     relabelAdv (advV0 r ps A) =
       fun ck ↦ (fun out ↦ (out.1, [])) <$> relabelAdv (advV r ps A) ck := by
   funext ck
@@ -363,8 +363,8 @@ theorem advSim_map {P' : Type} (A : CodeBindingAdvB r Crs P')
     Functor.map_map]
 
 /-- **The weights of the code-binding game without the openings** follow from the game's. -/
-theorem isWeightBound_codeBindingGame2_advV0 (A : CodeBindingAdvRpm r Crs Proof) (Q : ℕ)
-    (hQ : IsWeightBound (codeBindingGame r ps A) permCalls Q) :
+theorem isWeightBound_codeBindingGame2_advV0 (A : CodeBindingAdvRpmH r Crs Proof) (Q : ℕ)
+    (hQ : IsWeightBound (codeBindingGameH r ps A) permCallsH Q) :
     IsWeightBound (codeBindingGame2 r (psV r ps) (relabelAdv (advV0 r ps A))) permCalls2 Q := by
   have hQ' : IsWeightBound (rpmGame2 (liftM ps.setup)
       (fun crs ↦ relabelAdv (advV r ps A) ((), crs)) (cbPostV r ps)) permCalls2 Q := by
@@ -374,7 +374,7 @@ theorem isWeightBound_codeBindingGame2_advV0 (A : CodeBindingAdvRpm r Crs Proof)
   simp only [codeBindingPost, List.map_nil, List.mapM_nil, pure_bind, simulateQ_pure]
   exact isWeightBound_pure _ _ _
 
-theorem ksIdealG_advV0 (A : CodeBindingAdvRpm r Crs Proof) (crs : Crs) :
+theorem ksIdealG_advV0 (A : CodeBindingAdvRpmH r Crs Proof) (crs : Crs) :
     ksIdealG r (psV r ps) (extV r ext) (relabelAdv (advV0 r ps A)) crs =
       ksIdealG r (psV r ps) (extV r ext) (relabelAdv (advV r ps A)) crs := by
   unfold ksIdealG
@@ -384,9 +384,9 @@ theorem ksIdealG_advV0 (A : CodeBindingAdvRpm r Crs Proof) (crs : Crs) :
 /-- **From the random-permutation model to the simulated world**, the argument's verification
 with the adversary: the two-oracle transfer, the challenges of the root inserted unused before the
 climbs (`run'_bind_const`), and the duplex lemma. -/
-theorem codeBindingGame_le_G (A : CodeBindingAdvRpm r Crs Proof) (Q : ℕ)
-    (hQ : IsWeightBound (codeBindingGame r ps A) permCalls Q) :
-    Pr{let b ← runK (codeBindingGame r ps A)}[b = true] ≤
+theorem codeBindingGame_le_G (A : CodeBindingAdvRpmH r Crs Proof) (Q : ℕ)
+    (hQ : IsWeightBound (codeBindingGameH r ps A) permCallsH Q) :
+    Pr{let b ← runKH (codeBindingGameH r ps A)}[b = true] ≤
       prT (codeBindingExpG r (psV r ps) (relabelAdv (advV r ps A))) + (Q ^ 2 : ℝ≥0∞) / 2 ^ 508 +
         dupTerm Q := by
   have hQ0 := isWeightBound_codeBindingGame2_advV0 r ps A Q hQ
@@ -448,8 +448,14 @@ argument's verification (`psV`, `extV`): the transfer to the two-oracle model an
 statement's game of the code-binding adversary itself (`relabel_ksGame`, through `ksIdealG_le`
 and `rom2_le_ksExpRpm`), or a bad cache of the world with `H` and the challenges lazily sampled
 (`codeBindingExpG_le`). -/
-theorem leanDa_codeBinding_rpm_bound : CodeBindingRpm := by
-  intro r Crs Proof ps ext c k hks hr1 hrM A Q hQ
+theorem leanDa_codeBinding_rpm_bound_at (c k : ℕ) (A : CodeBindingAdvRpmH r Crs Proof)
+    (hks : ∀ q : ℕ, IsWeightBound (ksGameH r ps ext (ksB r A)) permCallsH q → q ≤ 2 ^ 128 →
+      Pr{let b ← runKH (ksGameH r ps ext (ksB r A))}[b = true] ≤
+        ((q : ℝ≥0∞) + c) * (2 : ℝ≥0∞)⁻¹ ^ k)
+    (hrM : r ≤ maxRows) (Q : ℕ) (hQ : IsWeightBound (codeBindingGameH r ps A) permCallsH Q) :
+    Pr{let b ← runKH (codeBindingGameH r ps A)}[b = true] ≤
+      ((Q : ℝ≥0∞) + c + 2 ^ 22) * (2 : ℝ≥0∞)⁻¹ ^ k + ((Q : ℝ≥0∞) + 2 ^ 22) * (2 : ℝ≥0∞)⁻¹ ^ 188 +
+        ((Q : ℝ≥0∞) + 2 ^ 22) ^ 2 * (2 : ℝ≥0∞)⁻¹ ^ 247 := by
   rcases le_or_gt Q (2 ^ 127) with hQcap | hQcap
   swap
   · -- past `2^127` the last term is at least one
@@ -474,10 +480,10 @@ theorem leanDa_codeBinding_rpm_bound : CodeBindingRpm := by
       (ksAdv r (relabelAdv (advV0 r ps A)))) ≤
       ((Q : ℝ≥0∞) + c + 2 ^ 22) * (2 : ℝ≥0∞)⁻¹ ^ k := by
     have e := relabel_ksGame r ps ext A
-    have hW : IsWeightBound (ksGame r ps ext (ksB r A)) permCalls (ksCalls r Q) := by
+    have hW : IsWeightBound (ksGameH r ps ext (ksB r A)) permCallsH (ksCalls r Q) := by
       rw [← isWeightBound_relabel_iff, e, isWeightBound_toOne_iff]
       exact isWeightBound_ksGame r (psV r ps) (extV r ext) _ Q hQ0
-    have h := hks (ksB r A) (ksCalls r Q) hW (by omega)
+    have h := hks (ksCalls r Q) hW (by omega)
     rw [(runK_relabel _).prEvent_eq, e] at h
     refine h.trans (mul_le_mul_left ?_ _)
     have : ((ksCalls r Q : ℕ) : ℝ≥0∞) ≤ (Q : ℝ≥0∞) + 2 ^ 22 := by exact_mod_cast hK
@@ -504,7 +510,7 @@ theorem leanDa_codeBinding_rpm_bound : CodeBindingRpm := by
     exact (ksIdealG_le r (psV r ps) (extV r ext) _ Q hQ0).trans
       (add_le_add (rom2_le_ksExpRpm r (psV r ps) (extV r ext) _ Q hQ0) le_rfl)
   have hR := straight_rest_le Q (ksCalls r Q) hK
-  calc Pr{let b ← runK (codeBindingGame r ps A)}[b = true]
+  calc Pr{let b ← runKH (codeBindingGameH r ps A)}[b = true]
       ≤ prT (codeBindingExpG r (psV r ps) (relabelAdv (advV r ps A))) +
           (Q ^ 2 : ℝ≥0∞) / 2 ^ 508 + dupTerm Q := hG
     _ ≤ prT (ksExpRpm r (psV r ps) (extV r ext)
@@ -520,6 +526,11 @@ theorem leanDa_codeBinding_rpm_bound : CodeBindingRpm := by
           (((Q : ℝ≥0∞) + 2 ^ 22) * (2 : ℝ≥0∞)⁻¹ ^ 188 +
             ((Q : ℝ≥0∞) + 2 ^ 22) ^ 2 * (2 : ℝ≥0∞)⁻¹ ^ 247) := add_le_add hε hR
     _ = _ := by ring
+
+/-- **Code binding with the hash oracle**, from knowledge soundness against every adversary. -/
+theorem leanDa_codeBinding_rpm_boundH : CodeBindingRpmH :=
+  fun r _ _ ps ext c k hks _ hrM A ↦
+    leanDa_codeBinding_rpm_bound_at r ps ext c k A (hks (ksB r A)) hrM
 
 end CodeBinding
 

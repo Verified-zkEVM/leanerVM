@@ -1,4 +1,5 @@
 import LeanDa.RpmCodeBinding
+import LeanDa.HashOracle
 import LeanDa.MerkleM
 import PqDas.Target.Scheme
 import LeanDa.Defs
@@ -9,7 +10,7 @@ import LeanDa.Defs
 LeanDA is perfectly complete for every permutation `π` of the Keccak state: with the hash
 Keccak-256 over `π` (`keccakWith π`), the membership challenges the deployed duplex over `π`, and
 the argument's prover and verifier answered by `π`, every position of every message's honest
-commitment opens and verifies (`leanDa_perfectlyComplete_rpm : PerfectlyCompleteRpm`).
+commitment opens and verifies (`leanDa_perfectlyComplete_rpmH : PerfectlyCompleteRpmH`).
 
 The proof is a transfer of Benedikt Wagner's completeness proof (`PqDas.scheme_perfectlyComplete`):
 the honest run verifies from the completeness of the Merkle commitment (`verifyCell_openCell`),
@@ -35,11 +36,11 @@ namespace LeanDa
 satisfy the relation for `π` (they commit to the root, and a codeword passes the membership test
 on every challenge, `checker_complete`), so the argument's honest proof verifies with probability
 one; and the honest opening verifies (`verifyCell_openCell`, `verifyCellM_id`). -/
-theorem leanDa_perfectlyComplete_rpm : PerfectlyCompleteRpm := by
+theorem leanDa_perfectlyComplete_rpmH : PerfectlyCompleteRpmH := by
   intro r π Crs Proof ps hps msg p
   rw [OracleComp.prEvent_eq_one_iff]
   intro b hb
-  simp only [completenessExpRpm, support_bind, Set.mem_iUnion, support_pure,
+  simp only [completenessExpRpmH, support_bind, Set.mem_iUnion, support_pure,
     Set.mem_singleton_iff, exists_prop] at hb
   obtain ⟨crs, hcrs, ok, hok, rfl⟩ := hb
   set c := (code r).encode msg

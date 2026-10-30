@@ -56,7 +56,7 @@ variable {W : Val → Reader → FrameMap → NodeWitness}
 verifier accepts a proof of the guest from which no execution is extracted, or the extracted one
 does not decode (`DecodesOn`), with probability at most the bound of `KnowledgeSoundness`. -/
 theorem aggregate_knowledge_of (h : SoundHyps W) (A : RpmAdversary) (Q : ℕ)
-    (hA : Common.IsWeightBound A permQueries Q) (hQ : Q ≤ 2 ^ 128) :
+    (hA : Common.IsWeightBound A Common.permCalls Q) (hQ : Q ≤ 2 ^ 128) :
     Pr{let z ← rpmExperiment A}[z.accepted ∧ z.program = guest ∧
       ¬ ∃ t, extractorRpm z.program z.input z.transcript z.proof = some t ∧
         DecodesOn guest z.input (decodeWith W t.image)] ≤
@@ -103,7 +103,7 @@ the random-permutation experiment, the verifier accepts a proof of the guest fro
 execution is extracted, or the extracted one does not decode (`DecodesOn`), with probability at
 most `(Q + 2^14) · 2^-128 + 5 (Q + 2^14)² · 2^-256`, for `Q ≤ 2^128`. -/
 theorem aggregate_knowledge (A : RpmAdversary) (Q : ℕ)
-    (hA : Common.IsWeightBound A permQueries Q) (hQ : Q ≤ 2 ^ 128) :
+    (hA : Common.IsWeightBound A Common.permCalls Q) (hQ : Q ≤ 2 ^ 128) :
     Pr{let z ← rpmExperiment A}[z.accepted ∧ z.program = guest ∧
       ¬ ∃ t, extractorRpm z.program z.input z.transcript z.proof = some t ∧
         DecodesOn guest z.input (decode t.image)] ≤

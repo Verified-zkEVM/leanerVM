@@ -19,9 +19,9 @@ The verifier (`verifier H F`, for any hash function `H` and permutation `F` in a
 honest prover call Keccak-256 and Keccak-f[1600] as oracle queries (`HashSpec`), which the model
 answers (`rpmImpl`): Keccak-256 the sponge over the lazily sampled permutation `π`
 (`keccak256With`, `Common.lazyPerm`), Keccak-f[1600] `π` itself. The adversary (`RpmAdversary`)
-flips private coins and queries `π` and `π⁻¹`, every query and its answer recorded, in order
-(`Transcript`), its coins neither recorded nor counted (`permQueries`); a Keccak-256 evaluation is
-a sequence of forward queries, which it makes itself. The experiment (`rpmExperiment`) runs it from
+flips private coins and queries `π` and `π⁻¹` (`Common.KSpec`), every query and its answer
+recorded, in order (`Transcript`), its coins neither recorded nor counted (`Common.permCalls`); a
+Keccak-256 evaluation is a sequence of forward queries, which it makes itself. The experiment (`rpmExperiment`) runs it from
 no edge, then the verifier on its statement and proof against the same permutation.
 
 **Knowledge soundness** is stated for one extractor, `extractorRpm`, which is straight-line: it
@@ -139,12 +139,7 @@ noncomputable def rpmImpl : QueryImpl HashSpec (StateT (PermLog KState) ProbComp
 
 /-- An adversary in the random-permutation model: a computation with private coins and oracle
 access to `π` and `π⁻¹` that outputs a statement and a proof. -/
-abbrev RpmAdversary : Type := OracleComp (unifSpec + permSpec KState) (Statement × Proof)
-
-/-- The adversary's queries to `π` and `π⁻¹`, one each; its coins are free. -/
-def permQueries : (unifSpec + permSpec KState).Domain → ℕ
-  | .inl _ => 0
-  | .inr _ => 1
+abbrev RpmAdversary : Type := OracleComp Common.KSpec (Statement × Proof)
 
 /-- A transcript: queries to `π` and `π⁻¹` with their answers, oldest first. -/
 abbrev Transcript : Type := List (Common.PermQuery KState × KState)
@@ -152,7 +147,7 @@ abbrev Transcript : Type := List (Common.PermQuery KState × KState)
 /-- The adversary's oracles: a coin is uniform and not recorded; `π` and `π⁻¹` are the lazily
 sampled permutation, each query and its answer appended to the transcript. -/
 noncomputable def loggedPerm :
-    QueryImpl (unifSpec + permSpec KState) (StateT (PermLog KState × Transcript) ProbComp)
+    QueryImpl Common.KSpec (StateT (PermLog KState × Transcript) ProbComp)
   | .inl n => liftM (unifSpec.query n : ProbComp (Fin (n + 1)))
   | .inr q => StateT.mk fun s ↦
     (fun r ↦ (r.1, (r.2, s.2 ++ [(q, r.1)]))) <$> (Common.lazyPerm q).run s.1
@@ -171,7 +166,7 @@ abbrev RpmOutcome.transcript (z : RpmOutcome) : Transcript := z.2
 against the lazily sampled permutation from no edge, its queries recorded; then a computation `V`
 over the verifier's calls on its output, with Keccak-256 the sponge over the same permutation and
 Keccak-f[1600] the permutation. The outputs, and the transcript. -/
-noncomputable def Rpm.rpmRun {α β : Type} (A : OracleComp (unifSpec + permSpec KState) α)
+noncomputable def Rpm.rpmRun {α β : Type} (A : OracleComp Common.KSpec α)
     (V : α → OracleComp HashSpec β) : ProbComp ((α × β) × Transcript) := do
   let (z, perms, transcript) ← (simulateQ loggedPerm A).run ([], [])
   let v ← (simulateQ rpmImpl (V z)).run' perms
@@ -258,7 +253,7 @@ with probability at most `(Q + 2^14) · 2^-128 + 5 (Q + 2^14)² · 2^-256`, the 
 verifier's own `12006` oracle calls and two terms of `2^-128` (a guessed stack root, the transfer
 from two random oracles to one permutation). -/
 def KnowledgeSoundness : Prop :=
-  ∀ (A : RpmAdversary) (Q : ℕ), Common.IsWeightBound A permQueries Q → Q ≤ 2 ^ 128 →
+  ∀ (A : RpmAdversary) (Q : ℕ), Common.IsWeightBound A Common.permCalls Q → Q ≤ 2 ^ 128 →
     Pr{let z ← rpmExperiment A}[BreaksRpm z] ≤
       (Q + 2 ^ 14 : ℝ≥0∞) * (2 : ℝ≥0∞)⁻¹ ^ 128 +
         5 * (Q + 2 ^ 14 : ℝ≥0∞) ^ 2 * (2 : ℝ≥0∞)⁻¹ ^ 256

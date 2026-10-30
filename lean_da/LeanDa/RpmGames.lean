@@ -1,5 +1,6 @@
 import LeanDa.RpmScheme
 import Common.Rerun
+import LeanDa.HashOracle
 
 /-!
 # The games of the statement in the two-oracle form

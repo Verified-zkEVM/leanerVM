@@ -267,7 +267,7 @@ theorem knowledgeSoundnessRpm {A : DetAdversary} {Q : ℕ} (hA : A.IsTotalQueryB
 most `Q` queries to `π` and `π⁻¹`: some deterministic adversary of at most `Q` queries does as
 well (`rpmExperiment_le_det`). -/
 theorem knowledgeSoundnessRpm_coins {B : RpmAdversary} {Q : ℕ}
-    (hB : Common.IsWeightBound B permQueries Q) :
+    (hB : Common.IsWeightBound B Common.permCalls Q) :
     Pr{let z ← rpmExperiment B}[BreaksRpm z] ≤
       soundnessError Q + rpmError (Q + verifierPermCalls) := by
   obtain ⟨A, hA, hle⟩ := rpmExperiment_le_det hB (BreaksRpm)

@@ -43,7 +43,7 @@ its probability is at most the bound of `KnowledgeSoundness`,
 Keccak-256 and Keccak-f[1600] outside the executed program are built from `π`; the statement's
 digest and the collisions are of the deployed Keccak-256, which the guest program computes. -/
 def AggregateSound (guest : Program) (decode : Decoder) : Prop :=
-  ∀ (A : RpmAdversary) (Q : ℕ), Common.IsWeightBound A permQueries Q → Q ≤ 2 ^ 128 →
+  ∀ (A : RpmAdversary) (Q : ℕ), Common.IsWeightBound A Common.permCalls Q → Q ≤ 2 ^ 128 →
     Pr{let z ← rpmExperiment A}[∃ s : NodeStatement, z.accepted ∧ z.program = guest ∧
       publicDigest z.input = statementDigest (deployedSeed guest) s ∧
       s.defer.Shaped (bytecodeWords guest) ∧

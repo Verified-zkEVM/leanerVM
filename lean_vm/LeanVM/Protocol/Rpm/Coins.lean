@@ -219,7 +219,7 @@ theorem snd_eq_stepLog {q : Common.PermQuery KState} {s : (Common.PermLog KState
 with coins of at most `Q` queries to `π` and `π⁻¹` does no better than some deterministic
 adversary of at most `Q` queries, for any continuation and any event. -/
 theorem exists_det_rpm {α γ : Type} (g : α × (Common.PermLog KState × Transcript) → ProbComp γ) (E : γ → Prop)
-    {B : OracleComp (unifSpec + Common.permSpec KState) α} {Q : ℕ} (hB : Common.IsWeightBound B permQueries Q) :
+    {B : OracleComp (unifSpec + Common.permSpec KState) α} {Q : ℕ} (hB : Common.IsWeightBound B Common.permCalls Q) :
     ∃ A : OracleComp (Common.permSpec KState) α, A.IsTotalQueryBound Q ∧
       Pr{let y ← (simulateQ loggedPerm B).run ([], []) >>= g}[E y] ≤
         Pr{let y ← (simulateQ loggedPermDet A).run ([], []) >>= g}[E y] :=
@@ -229,12 +229,12 @@ theorem exists_det_rpm {α γ : Type} (g : α × (Common.PermLog KState × Trans
         support_bind, support_pure, Set.mem_iUnion, Set.mem_singleton_iff] at hz
       obtain ⟨u, -, rfl⟩ := hz
       rfl)
-    (fun _ _ _ hz ↦ snd_eq_stepLog hz) permQueries (fun _ ↦ rfl) (fun _ ↦ rfl) g E B Q hB ([], [])
+    (fun _ _ _ hz ↦ snd_eq_stepLog hz) Common.permCalls (fun _ ↦ rfl) (fun _ ↦ rfl) g E B Q hB ([], [])
 
 /-- **The experiment against an adversary with coins is bounded by a deterministic one's**:
 for every event, some deterministic adversary of as many queries to `π` and `π⁻¹`. -/
 theorem rpmExperiment_le_det {B : RpmAdversary} {Q : ℕ}
-    (hB : Common.IsWeightBound B permQueries Q) (E : RpmOutcome → Prop) :
+    (hB : Common.IsWeightBound B Common.permCalls Q) (E : RpmOutcome → Prop) :
     ∃ A : DetAdversary, A.IsTotalQueryBound Q ∧
       Pr{let z ← rpmExperiment B}[E z] ≤ Pr{let z ← detExperiment A}[E z] :=
   exists_det_rpm _ E hB
@@ -242,7 +242,7 @@ theorem rpmExperiment_le_det {B : RpmAdversary} {Q : ℕ}
 /-- **`rpmRun` against an adversary with coins is bounded by a deterministic one's**: for every
 event of the outputs, some deterministic adversary of as many queries to `π` and `π⁻¹`. -/
 theorem rpmRun_le_det {α β : Type} {B : OracleComp (unifSpec + Common.permSpec KState) α} {Q : ℕ}
-    (hB : Common.IsWeightBound B permQueries Q) (V : α → OracleComp HashSpec β)
+    (hB : Common.IsWeightBound B Common.permCalls Q) (V : α → OracleComp HashSpec β)
     (E : α × β → Prop) :
     ∃ A : OracleComp (Common.permSpec KState) α, A.IsTotalQueryBound Q ∧
       Pr{let z ← rpmRun B V}[E z.1] ≤ Pr{let z ← detRun A V}[E z] := by

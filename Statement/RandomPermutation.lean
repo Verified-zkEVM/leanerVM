@@ -15,7 +15,8 @@ public import VCVio.EvalDist.Monad.UniformTable
 Read first (`Statement/README.md` states the model): Keccak-f[1600] as leanVM computes it, and
 Keccak-256 over any permutation of its state (namespaces `LeanVM.*`), then the model (namespace
 `Common`): `π` and `π⁻¹` lazily sampled, a cost bounded on every path, the oracles of the model
-and a game's run (`KSpec`, `permCalls`, `runK`: Keccak-256 over `π`), and the SUF-CMA game of a
+and a game's run (`KSpec`: coins, `π` and `π⁻¹`, nothing else; `permCalls`, `runK`; Keccak-256
+the sponge over `π`, `keccakK`), and the SUF-CMA game of a
 signature scheme (`SufCma`). The permutation's state is one type throughout, `KState`, `25` lanes
 of `64` bits.
 -/
@@ -272,23 +273,26 @@ open LeanVM.Semantics LeanVM.Protocol LeanVM.Protocol.KeccakHash
 /-- A 32-byte Keccak-256 digest. -/
 abbrev KDigest := Vector UInt8 32
 
-/-- **The oracles of the random-permutation model**: coins, Keccak-256 (its digest's 32 bytes),
-`π` and `π⁻¹` on Keccak states. -/
-abbrev KSpec := unifSpec + ((List UInt8 →ₒ KDigest) + permSpec KState)
+/-- **The oracles of the random-permutation model**: coins, `π` and `π⁻¹` on Keccak states, and
+nothing else. Every party hashes with Keccak-256 over `π` (`keccakK`). -/
+abbrev KSpec := unifSpec + permSpec KState
 
-/-- **Calls of the permutation**: a hash of `n` bytes costs `⌊n / 136⌋ + 1` (one per block of the
-padded message), a call of `π` or `π⁻¹` one. -/
+/-- **Calls of the permutation**: a call of `π` or `π⁻¹` costs one, a coin nothing. -/
 def permCalls : KSpec.Domain → ℕ
   | .inl _ => 0
-  | .inr (.inl m) => m.length / 136 + 1
-  | .inr (.inr _) => 1
+  | .inr _ => 1
 
-/-- The model's answers: coins forwarded, Keccak-256 over the lazily sampled permutation, `π`
-and `π⁻¹` the lazily sampled permutation. -/
+/-- A call `π x` of the permutation. -/
+def piK (x : KState) : OracleComp KSpec KState := liftM (KSpec.query (.inr (.fwd x)))
+
+/-- **Keccak-256 in the model**: the sponge over `π` (`keccak256With`), one call of `π` per block
+of the padded message (`⌊n / 136⌋ + 1` for `n` bytes), its digest's 32 bytes. -/
+def keccakK (m : List UInt8) : OracleComp KSpec KDigest := Digest.toBytes <$> keccak256With piK m
+
+/-- The model's answers: coins forwarded, `π` and `π⁻¹` the lazily sampled permutation. -/
 noncomputable def kImpl : QueryImpl KSpec (StateT (PermLog KState) ProbComp)
   | .inl n => liftM (unifSpec.query n : ProbComp (Fin (n + 1)))
-  | .inr (.inl m) => Digest.toBytes <$> keccak256With (fun x ↦ lazyPerm (.fwd x)) m
-  | .inr (.inr q) => lazyPerm q
+  | .inr q => lazyPerm q
 
 /-- **A game in the random-permutation model, run** against the lazily sampled random
 permutation from no edge. -/
@@ -336,9 +340,10 @@ abbrev Contains {M S : Type} (message : Req → M) (log : QueryLog (Req →ₒ O
     (s : S) : Prop :=
   ∃ entry ∈ log, message entry.1 = m ∧ entry.2 = some s
 
-/-- The hash as Keccak-256 (`digestBitVec`), in the random-permutation model. -/
+/-- The hash in the random-permutation model: Keccak-256 over `π` (`keccakK`), its digest read as a
+bit vector (`digestBitVec`). -/
 def hashK : QueryImpl HSpec (OracleComp KSpec) :=
-  fun m ↦ digestBitVec <$> (liftM (KSpec.query (.inr (.inl m))) : OracleComp KSpec KDigest)
+  fun m ↦ digestBitVec <$> keccakK m
 
 /-- The signing oracle in the random-permutation model. -/
 def signingOracleK (S : Scheme Seed PK SK Req Resp F) (sk : SK) :
@@ -346,7 +351,7 @@ def signingOracleK (S : Scheme Seed PK SK Req Resp F) (sk : SK) :
   QueryImpl.withLogging fun r ↦ simulateQ hashK (S.sign sk r)
 
 /-- **The RPM game**: the game with `H` Keccak-256 over the permutation, and an adversary that
-also queries Keccak-256, `π` and `π⁻¹`. -/
+also queries `π` and `π⁻¹`. -/
 noncomputable def rpmGame (S : Scheme Seed PK SK Req Resp F)
     (main : PK → OracleComp (KSpec + (Req →ₒ Resp)) F) : OracleComp KSpec Bool := do
   let seed ← liftM S.sample
@@ -363,7 +368,7 @@ noncomputable def rpmExperiment (S : Scheme Seed PK SK Req Resp F)
   runK (rpmGame S main)
 
 /-- **`bits` bits of SUF-CMA security in the random-permutation model**: every adversary `main`
-(coins, Keccak-256, `π`, `π⁻¹` and the signing oracle) whose game, key generation, the signer's
+(coins, `π`, `π⁻¹` and the signing oracle) whose game, key generation, the signer's
 answers and the forgery's verification included, makes at most `Q ≥ 1` permutation calls on every
 path wins with probability at most `(Q + 1) · 2^-bits`. -/
 def RpmSecure (S : Scheme Seed PK SK Req Resp F) (bits : ℕ) : Prop :=

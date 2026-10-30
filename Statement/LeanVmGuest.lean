@@ -894,8 +894,8 @@ the guest program's in-circuit statements, whose `KECCAK` instruction computes t
 Keccak-f[1600], so soundness across recursion levels does not follow from it. -/
 def BatchSound : Prop :=
   ∀ (M : ℕ) (bytecode : List K), bytecode.length = 2 ^ Nat.log2 bytecode.length →
-    M ≤ 2 ^ 64 - 1 → ∀ (A : OracleComp (unifSpec + Common.permSpec KState) (Unit × Proof)) (QA : ℕ),
-    Common.IsWeightBound A permQueries QA → QA ≤ 2 ^ 128 → batchQueryBound bytecode M ≤ 2 ^ 96 →
+    M ≤ 2 ^ 64 - 1 → ∀ (A : OracleComp Common.KSpec (Unit × Proof)) (QA : ℕ),
+    Common.IsWeightBound A Common.permCalls QA → QA ≤ 2 ^ 128 → batchQueryBound bytecode M ≤ 2 ^ 96 →
     Pr{let z ← rpmRun A fun z ↦ batchRun queryH queryF (batchAny M bytecode) z.2}[
       z.1.2 = true ∧ FalseChildren bytecode M z.1.1.2] ≤
       (((QA + batchQueryBound bytecode M : ℕ) : ℝ≥0∞) + 1) * (2 : ℝ≥0∞)⁻¹ ^ 191 +

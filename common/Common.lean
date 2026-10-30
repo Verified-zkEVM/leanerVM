@@ -6,12 +6,14 @@ import Common.Transfer2
 import Common.Keccak
 import Common.Signature
 import Common.Lanes
+import Common.PiOnly
 import Common.Duplex.Vec
 import Common.Linear
 
 /-! The random-permutation model and the indifferentiability of the sponge (Keccak-256) from a
 random oracle, with one oracle (`H`) or two (`H` and direct permutation calls `F`), the
-transfer of SUF-CMA signature games, and the duplex lemma: challenges derived by a duplex over
+transfer of SUF-CMA signature games, the statement's model (`π` and `π⁻¹` alone) as the model with
+a Keccak-256 oracle whose calls are expanded into permutation calls (`Common.PiOnly`), and the duplex lemma: challenges derived by a duplex over
 the random function `F` are a random oracle of the absorbed roots, up to capacity collisions
 (`Common.Duplex.duplex_le`). The build
 fails if the axiom footprint of the main theorems ever grows beyond Lean's three standard
@@ -95,6 +97,21 @@ axioms. -/
 [propext, Classical.choice, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
 #print axioms Common.SufCma.rpm_bound_perm
+
+/-- info: 'Common.runK_expand' depends on axioms:
+[propext, Classical.choice, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms Common.runK_expand
+
+/-- info: 'Common.isWeightBound_expand_iff' depends on axioms:
+[propext, Classical.choice, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms Common.isWeightBound_expand_iff
+
+/-- info: 'Common.SufCma.rpmSecure_of_rpmSecureH' depends on axioms:
+[propext, Classical.choice, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms Common.SufCma.rpmSecure_of_rpmSecureH
 
 /-- info: 'Common.Duplex.duplex_le' depends on axioms:
 [propext, Classical.choice, Quot.sound] -/

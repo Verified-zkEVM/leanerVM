@@ -5,6 +5,12 @@
 \usepackage{microtype}
 \usepackage{url}
 \DeclareUrlCommand\lean{\urlstyle{tt}\def\UrlBreaks{\do\.\do\_\do\/}}
+% the claim lists of a statement and their byte encodings
+\newcommand{\Cx}{C_{\mathrm{xmss}}}
+\newcommand{\Cs}{C_{\mathrm{sphincs}}}
+\newcommand{\enc}{\mathrm{enc}}
+% the counts of a node's work (Section~\ref{sec:guest}, the budget)
+\newcommand{\cnt}[1]{n_{\mathrm{#1}}}
 \emergencystretch=3em
 \setlength{\parskip}{0.35em}
 \title{What is proved about leanVM}
@@ -70,8 +76,9 @@ duplex that calls Keccak-f[1600] directly, overwriting the first $16$ lanes of t
 
 \paragraph{The random permutation model (RPM).} Keccak-f[1600] is modelled as a uniformly random
 permutation $\pi$ of $\{0,1\}^{1600}$, sampled lazily (\lean{Common.lazyPerm},
-\lean{Statement/RandomPermutation.lean}). The adversary queries $\pi$ and $\pi^{-1}$;
-Keccak-256 is the sponge over $\pi$, and the duplex calls $\pi$. \emph{The assumption is that the
+\lean{Statement/RandomPermutation.lean}). The model's oracles are $\pi$ and $\pi^{-1}$ and
+nothing else (\lean{Common.KSpec}): every party (adversary, scheme, argument, verifier) computes
+Keccak-256 as the sponge over $\pi$ (\lean{Common.keccakK}), and the duplex calls $\pi$. \emph{The assumption is that the
 deployed Keccak-f[1600], a fixed permutation, behaves like a random one.} Every end statement with
 an adversary is in this model; \lean{Statement/} contains no random oracle. Queries are counted in
 one of two ways:
@@ -90,8 +97,11 @@ oracles (Keccak-256 a random function on byte strings and, for leanVM and LeanDA
 function on states), then moved to the RPM by the project \lean{common}: the sponge over $\pi$ is
 indifferentiable from a random oracle, so an experiment of $q$ permutation calls changes
 probability by at most $q^2/2^{509}$, or $q^2/2^{508}$ with the duplex's direct calls
-(\lean{Common.keccak256_transfer}, \lean{keccak256_transfer2}). These are proof steps; their costs
-are included in the bounds below.
+(\lean{Common.keccak256_transfer}, \lean{keccak256_transfer2}). For the signature schemes and LeanDA
+the proofs first give Keccak-256 an oracle of its own over the same $\pi$; a game with each such
+call expanded into its permutation calls is the statement's game, with the same distribution and
+the same permutation calls (\lean{Common.PiOnly}). These are proof steps; their costs are included
+in the bounds below.
 
 \section{The zkVM: knowledge soundness and completeness}\label{sec:zkvm}
 
@@ -176,8 +186,8 @@ above one says nothing).
 
 \paragraph{leanXMSS} (\lean{LeanXmss.Rpm.LeanXmssRpmSecurityStatement},
 \lean{Statement/LeanXmss.lean}): a single key is strongly unforgeable under chosen-message attack.
-The game samples the key's seed, generates the keys, and runs the adversary with Keccak-256,
-$\pi$, $\pi^{-1}$ and a signing oracle; the adversary picks each request's leaf index and wins
+The game samples the key's seed, generates the keys, and runs the adversary with $\pi$,
+$\pi^{-1}$ and a signing oracle; the adversary picks each request's leaf index and wins
 only if no index is requested twice, and its forgery wins if it verifies and is not a pair the
 oracle returned. For every $Q \ge 1$, the forgery probability is at most
 \[
@@ -200,7 +210,7 @@ schemes are stated through one game, \lean{Common.SufCma.RpmSecure}, and share o
 LeanDA commits to a matrix of blobs so that clients can check random pieces of it. Its statements are
 Benedikt Wagner's framework, theorems and proofs, ported and instantiated with LeanDA
 (\lean{Statement/LeanDa.lean}). Everyone in the games (the adversary, the argument, the verifier)
-uses Keccak-256 over $\pi$, and $\pi$ and $\pi^{-1}$ directly.
+queries $\pi$ and $\pi^{-1}$ alone and hashes with Keccak-256 over $\pi$.
 
 \paragraph{The matrix.} The matrix has $r$ rows, $1 \le r \le 1024$, one blob each. A blob is a
 payload of $2^{14}$ field elements, Reed--Solomon encoded to $2^{15}$ (\texttt{code r}). Each
@@ -307,7 +317,7 @@ the Fiat--Shamir initial value prover and verifier derive from the bytecode; a t
 
 \paragraph{A statement} $s$ (\lean{NodeStatement}) consists of
 \begin{itemize}
-\item a list $X$ of leanXMSS claims and a list $S$ of leanSPHINCS claims, each a pair $(pk, m)$
+\item a list $\Cx$ of leanXMSS claims and a list $\Cs$ of leanSPHINCS claims, each a pair $(pk, m)$
 meaning ``$pk$ signed $m$'';
 \item a \emph{DA digest} $\mathit{da}$ (\lean{Claims.da}): either $H(\rho \,\|\, \delta)$ of one
 data-availability claim (\lean{DaClaim}, \lean{daClaimDigest}), a matrix root $\rho$
@@ -325,10 +335,11 @@ satisfies $\widehat{B}(z) = v$ (\lean{DeferredClaim.Holds}).
 \paragraph{The statement's digest} under a seed $\sigma$ (\lean{statementDigest},
 \texttt{aggregation.rs:331-360}) is
 \[
-\mathrm{dig}_\sigma(s) = H\big(\sigma \,\|\, H(\bar X) \,\|\, H(\bar S) \,\|\, \mathit{da} \,\|\, \bar c\big),
+\mathrm{dig}_\sigma(s) = H\big(\sigma \,\|\, H(\enc(\Cx)) \,\|\, H(\enc(\Cs)) \,\|\, \mathit{da} \,\|\, \enc(c)\big),
 \]
-where $\bar X$ concatenates, per claim, the key's root ($16$ bytes), its parameter ($16$) and the
-message ($32$); $\bar S$ likewise; and $\bar c$ is the $24$-byte encodings of $z_1, \dots, z_{23}, v$,
+where $\enc(\Cx)$ concatenates, per claim, the key's root ($16$ bytes), its parameter ($16$) and
+the message ($32$); $\enc(\Cs)$ likewise; and $\enc(c)$ is the $24$-byte encodings of
+$z_1, \dots, z_{23}, v$,
 padded with one zero element to an even number. The lists' lengths are bound by Keccak's padding;
 the deferred claim's encoding carries no length, so deferred claims are told apart only at one
 shape. The guest program's public input is this $32$-byte digest.
@@ -411,7 +422,7 @@ that is, $\mathrm{dig}_{\sigma'}(s') = x$ and $\mathrm{NodeRel}(B, \sigma', s', 
 statements $s, s_0$ whose deferred claims have $B$'s shape, if $\mathrm{dig}_{\sigma}(s) =
 \mathrm{dig}_{\sigma_0}(s_0)$ then $(\sigma, s) = (\sigma_0, s_0)$, or one of three explicit pairs
 of byte strings, the inputs of the three hashes in $\mathrm{dig}$ (the outer hash and those of
-$\bar X$ and $\bar S$, \lean{collisionCandidates}; the DA digest enters the preimage as it is), is a
+$\enc(\Cx)$ and $\enc(\Cs)$, \lean{collisionCandidates}; the DA digest enters the preimage as it is), is a
 Keccak-256 collision.
 \end{itemize}
 Together they give \lean{decode_binds} (\lean{lean_vm}): the decoded $(\sigma', s')$ is any shaped
@@ -490,15 +501,17 @@ declared claims plus the duplicates the guest program records) shorter than $2^{
 \item The budget: a bound on the run's size, below.
 \end{enumerate}
 
-\paragraph{The budget} (\lean{lean_vm}). The node's \emph{work} (\lean{work}) consists of $d$
-declared claims (both signature lists), $k$ coverage slots, $n_X$ and $n_S$ signatures held directly,
-$n_D \le 1$ DA matrix held directly with $n_R$ rows, padded to $n_P$ rows ($2^{\lceil\log_2 r\rceil}$
-for a matrix of $r$ rows), $n_C$ children with $n_{CC}$ claims in all,
+\paragraph{The budget} (\lean{lean_vm}). The node's \emph{work} (\lean{work}) consists of $\cnt{decl}$
+declared claims (both signature lists), $\cnt{cover}$ coverage slots, $\cnt{xmss}$ and $\cnt{sphincs}$
+signatures held directly, $\cnt{da} \le 1$ DA matrix held directly with $\cnt{rows}$ rows, padded to
+$\cnt{pad}$ rows ($2^{\lceil\log_2 \ell\rceil}$ for a matrix of $\ell$ rows), $\cnt{child}$ children
+with $\cnt{childclaims}$ claims in all,
 and each child's announced stack log $\mu$ and rate exponent $r$. A run allocates at most
-\[
-W = 17777 + 35d + 77k + 6459n_X + 7328n_S + 480944n_D + 212653n_R + 17672n_P + 13097n_C + 30n_{CC}
+\begin{multline*}
+W = 17777 + 35\cnt{decl} + 77\cnt{cover} + 6459\cnt{xmss} + 7328\cnt{sphincs} + 480944\cnt{da}
+  + 212653\cnt{rows} \\ + 17672\cnt{pad} + 13097\cnt{child} + 30\cnt{childclaims}
   + \sum_{\text{children}} \beta(\mu, r)
-\]
+\end{multline*}
 words, where $\beta(\mu,r)$, the words of verifying one child, is:
 \begin{center}\small
 \begin{tabular}{l|rrrrrrr}
@@ -510,8 +523,8 @@ $r=4$ & 389193 & 393074 & 408904 & 413004 & 417160 & 423729 & 439992
 \end{tabular}
 \end{center}
 The instructions of each opcode are bounded by linear forms of the same shape
-(\lean{Count.deployedInstrs}; for \texttt{KECCAK}, $25 + d + 398n_X + 390n_S + 6047n_D +
-2064n_R + 129n_P + 62n_C + n_{CC} + \sum \kappa(\mu, r)$ with $\kappa$ between $4922$ and $9979$). The
+(\lean{Count.deployedInstrs}; for \texttt{KECCAK}, $25 + \cnt{decl} + 398\cnt{xmss} + 390\cnt{sphincs} + 6047\cnt{da} +
+2064\cnt{rows} + 129\cnt{pad} + 62\cnt{child} + \cnt{childclaims} + \sum \kappa(\mu, r)$ with $\kappa$ between $4922$ and $9979$). The
 budget's size is the committed size of Section~\ref{sec:zkvm} at these bounds: memory
 $2^{\max(\lceil\log_2 W\rceil, 20)}$ and each table's height the least power of two at least its
 bound (at least $2^9$ for \texttt{KECCAK}). These are proved bounds on the guest program's runs,
@@ -521,13 +534,14 @@ counted from its code, not measurements.
 $\mathrm{dig}_\sigma(s)$ with $2^{22} \le \mathrm{size}(t) \le 2^{28}$ (committed size).
 \begin{itemize}
 \item \lean{GuestCompleteCovered}: under hypotheses 1 and 2 (the budget is discharged in the
-proof), for every node in one of eight families (\lean{Covered}), by its $n_C$ children, $n_X + n_S$
-raw signatures, $n_R$ blobs held directly (the rows of at most one matrix), and claim counts $d$,
-$k$, $n_{CC}$ each at most the family's cap:
+proof), for every node in one of eight families (\lean{Covered}), by its $\cnt{child}$ children,
+$\cnt{xmss} + \cnt{sphincs}$ raw signatures, $\cnt{rows}$ blobs held directly (the rows of at most
+one matrix), and claim counts $\cnt{decl}$, $\cnt{cover}$, $\cnt{childclaims}$ each at most the
+family's cap:
 \begin{center}\small
 \begin{tabular}{lrrrr}
 \toprule
-Family & $n_C$ & $n_X + n_S$ & $n_R$ & claims\\\midrule
+Family & $\cnt{child}$ & $\cnt{xmss} + \cnt{sphincs}$ & $\cnt{rows}$ & claims\\\midrule
 recursion & any & $0$ & $0$ & $2048$\\
 leaf & $0$ & $\le 2048$ & $0$ & $2048$\\
 & $\le 8$ & $0$ & $0$ & $2^{15}$\\
@@ -604,9 +618,14 @@ Rust prover on the test corpus, and no complexity bound is proved.
 This document describes \texttt{mumbai}, about leanVM \texttt{93ebecc5}.
 Recent changes, newest first:
 \begin{itemize}
-\item \texttt{dd57bea0}$\to$ this version, leanVM \texttt{990b9352}$\to$\texttt{93ebecc5} (LeanDA: one
+\item \texttt{c432f2bf}$\to$ this version ($7048 \to 7042$ lines): the model's oracles are $\pi$ and
+$\pi^{-1}$ alone (\lean{Common.KSpec}, was also Keccak-256); every party hashes with Keccak-256 over
+$\pi$ (\lean{Common.keccakK}), a hash of $n$ bytes counted as its $\lfloor n/136\rfloor + 1$ calls
+of $\pi$ as before, so the bounds are unchanged. leanVM's experiment uses the same oracles and
+count (\lean{Common.permCalls}, was \lean{permQueries}).
+\item \texttt{dd57bea0}$\to$\texttt{c432f2bf}, leanVM \texttt{990b9352}$\to$\texttt{93ebecc5} (LeanDA: one
 blob matrix per proof): a statement carries one DA digest (\lean{Claims.da}), $H(\rho \,\|\, \delta)$
-of one DA claim or zeros, in place of a list of DA claims and its digest $H(\bar D)$; a node checking
+of one DA claim or zeros, in place of a list of DA claims and its digest; a node checking
 a matrix publishes its digest, any other zeros or one child's (\texttt{da\_pick}); the witness holds
 at most one matrix (\lean{NodeWitness.da}); \lean{Limits} loses its DA limits (at most one DA claim
 held directly, at most $16$ DA claims in $s$ and each child) and the nonempty statement, and
@@ -619,8 +638,8 @@ the measured $2^{26.486}$ and $2^{27.482}$ (was $2^{28.27}$ and $2^{29.20}$). \l
 families of one matrix of up to $32$ rows, in place of two of up to $8$ and $4$ rows.
 \item \texttt{131bc3fd}$\to$ this version, leanVM \texttt{94ee12ff}$\to$\texttt{990b9352}
 ($7066 \to 7048$ lines): the Fiat--Shamir IV is $H(\mathit{TAG} \,\|\, \bar B)$, the version tag
-in place of the relation label and the bytecode's hash; the statement's digest hashes $H(\bar X)$
-and $H(\bar S)$ directly, without the signer-set digest, so \lean{DigestBinds} has four pairs (was
+in place of the relation label and the bytecode's hash; the statement's digest hashes $H(\enc(\Cx))$
+and $H(\enc(\Cs))$ directly, without the signer-set digest, so \lean{DigestBinds} has four pairs (was
 five). The verifier makes at most $12006$ calls (was $12008$), the honest prover and verifier
 together $12008 + 48017\,(2^{27}+2f+2)$ (was $12012 + \dots$); knowledge soundness's
 quadratic coefficient is $5$ (was $7$). The guest program
