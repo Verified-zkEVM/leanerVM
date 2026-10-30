@@ -16,7 +16,7 @@ public import LeanVM.Guest.B1.Da.AtBase
 
 At `fp`, `aggregate_claims` allocates from `b0 = fp + fs "aggregate_claims"` the rounds' words
 (`46`), the tables of the children's fresh and carried claims (`m` each), the absorbing rows
-(`13(m+1)`), the lambdas (`2m`), the squeezing rows (`14(m+1)`), the sumcheck's point (`23`) and
+(`13(m+1)`), the records of `bc_chain` (`2(m+1)`), the sumcheck's point (`23`) and
 the weights (`m+1`) (`aggSizes`), holding `aggConts` (`aggOwn`); its callees follow in call order:
 `__loop24`, `__loop25`, `batch_sumcheck__L23`, `__loop26`, which place nothing (`aggPure`). Its
 valuation is `agg_core`'s at the allocator's buffers (`aggPtrsAt`).
@@ -39,21 +39,23 @@ open LeanVM.Guest.B1 (CompleteAtD Returns Kid OutsOk CallsMatch RegionsOk outReg
 /-! ## The buffers -/
 
 /-- `aggregate_claims`' `HeapBuf` sizes, in allocation order. -/
-def aggSizes (m : ℕ) : List ℕ := [46, m, m, 13 * (m + 1), 2 * m, 14 * (m + 1), 23, m + 1]
+def aggSizes (m : ℕ) : List ℕ := [46, m, m, 13 * (m + 1), 2 * (m + 1), 23, m + 1]
 
 /-- The buffers' first words. -/
 def axLf (b0 : ℕ) : ℕ := b0 + 46
 def axLc (m b0 : ℕ) : ℕ := axLf b0 + m
 def axAbs (m b0 : ℕ) : ℕ := axLc m b0 + m
-def axLam (m b0 : ℕ) : ℕ := axAbs m b0 + 13 * (m + 1)
-def axSq (m b0 : ℕ) : ℕ := axLam m b0 + 2 * m
-def axPt (m b0 : ℕ) : ℕ := axSq m b0 + 14 * (m + 1)
+def axChain (m b0 : ℕ) : ℕ := axAbs m b0 + 13 * (m + 1)
+def axPt (m b0 : ℕ) : ℕ := axChain m b0 + 2 * (m + 1)
 def axW (m b0 : ℕ) : ℕ := axPt m b0 + 23
 
 /-- `aggregate_claims`' pointers at its buffers. -/
 def aggPtrsAt (m b0 : ℕ) : AggPtrs :=
-  ⟨gen ^ b0, gen ^ axLf b0, gen ^ axLc m b0, gen ^ axAbs m b0, gen ^ axLam m b0, gen ^ axSq m b0,
+  ⟨gen ^ b0, gen ^ axLf b0, gen ^ axLc m b0, gen ^ axAbs m b0, gen ^ axChain m b0,
     gen ^ axPt m b0, gen ^ axW m b0⟩
+
+/-- The records of `bc_chain`: record `c` the power `λ^(2c)` and the running claim. -/
+def chainRec (cs : List ChildClaims) (c : ℕ) : List E := [lamA cs ^ (2 * c), claimAt cs c]
 
 /-- **The words an honest run leaves in `aggregate_claims`' buffers.** -/
 def aggConts (m : ℕ) (cfresh ccarried : E) (cs : List ChildClaims) (h : BatchHints) :
@@ -62,8 +64,7 @@ def aggConts (m : ℕ) (cfresh ccarried : E) (cs : List ChildClaims) (h : BatchH
     (List.range m).map (fun c => cfresh * (gen ^ c) ^ 24),
     (List.range m).map (fun c => ccarried * (gen ^ c) ^ 24),
     (List.range (m + 1)).flatMap (fun c => rowW (absSt m cs c)),
-    (List.range m).flatMap (fun c => [(lamOf (aggAbs cs) c).1, (lamOf (aggAbs cs) c).2]),
-    (List.range (m + 1)).flatMap (fun c => rowW (sq2F c (aggAbs cs)).2 ++ [claimAt cs c]),
+    (List.range (m + 1)).flatMap (chainRec cs),
     (aggRun cs h).1.1,
     (List.range (m + 1)).map (weightAt cs h)]
 
@@ -78,16 +79,13 @@ theorem aggOwn_eq (m : ℕ) (cfresh ccarried : E) (cs : List ChildClaims) (h : B
         (axLf b0, (List.range m).map (fun c => cfresh * (gen ^ c) ^ 24)),
         (axLc m b0, (List.range m).map (fun c => ccarried * (gen ^ c) ^ 24)),
         (axAbs m b0, (List.range (m + 1)).flatMap (fun c => rowW (absSt m cs c))),
-        (axLam m b0, (List.range m).flatMap
-          (fun c => [(lamOf (aggAbs cs) c).1, (lamOf (aggAbs cs) c).2])),
-        (axSq m b0, (List.range (m + 1)).flatMap
-          (fun c => rowW (sq2F c (aggAbs cs)).2 ++ [claimAt cs c])),
+        (axChain m b0, (List.range (m + 1)).flatMap (chainRec cs)),
         (axPt m b0, (aggRun cs h).1.1),
         (axW m b0, (List.range (m + 1)).map (weightAt cs h))] := rfl
 
 theorem agg_zip (m b0 : ℕ) : (aggSizes m).zip (bases b0 (aggSizes m)) =
-    [(46, b0), (m, axLf b0), (m, axLc m b0), (13 * (m + 1), axAbs m b0), (2 * m, axLam m b0),
-      (14 * (m + 1), axSq m b0), (23, axPt m b0), (m + 1, axW m b0)] := rfl
+    [(46, b0), (m, axLf b0), (m, axLc m b0), (13 * (m + 1), axAbs m b0),
+      (2 * (m + 1), axChain m b0), (23, axPt m b0), (m + 1, axW m b0)] := rfl
 
 theorem len_frange {α : Type} (f : ℕ → List α) (w n : ℕ) (hf : ∀ j, (f j).length = w) :
     ((List.range n).flatMap f).length = n * w := by
@@ -96,20 +94,15 @@ theorem len_frange {α : Type} (f : ℕ → List α) (w n : ℕ) (hf : ∀ j, (f
 theorem rowW_abs_len (m : ℕ) (cs : List ChildClaims) (c : ℕ) : (rowW (absSt m cs c)).length = 13 :=
   rowW_length (absSt_ok m cs c)
 
-theorem rowW_sq_len (cs : List ChildClaims) (c : ℕ) :
-    (rowW (sq2F c (aggAbs cs)).2 ++ [claimAt cs c]).length = 14 := by
-  simp [rowW_length (sqSt_ok cs c)]
-
 /-- The buffers' words fit their sizes. -/
 theorem aggConts_fit {m : ℕ} {cfresh ccarried : E} {cs : List ChildClaims} {h : BatchHints}
     (hrl : h.bytecodeRounds.length = 23) :
     List.Forall₂ (fun c s => c.length ≤ s) (aggConts m cfresh ccarried cs h) (aggSizes m) := by
   simp only [aggConts, aggSizes, List.forall₂_cons, List.Forall₂.nil, and_true]
-  refine ⟨?_, by simp, by simp, ?_, ?_, ?_, ?_, by simp⟩
+  refine ⟨?_, by simp, by simp, ?_, ?_, ?_, by simp⟩
   · simp [hrl]
   · rw [len_frange _ 13 _ (rowW_abs_len m cs)]; omega
   · rw [len_frange _ 2 _ (fun _ => rfl)]; omega
-  · rw [len_frange _ 14 _ (rowW_sq_len cs)]; omega
   · rw [aggRun, bsRun_len, hrl]
 
 theorem readsAt_rows {rd : Reader} {p : E} {n w : ℕ} {f : ℕ → List E}
@@ -140,19 +133,15 @@ theorem aggMem_of_memL {rd : Reader} {cfresh ccarried dst : E} {cs : List ChildC
       (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ List.mem_cons_self)))) c (by omega),
     loadAt_map (M (List.mem_cons_of_mem _ List.mem_cons_self)),
     loadAt_map (M (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ List.mem_cons_self))),
-    fun c hc => readsAt_rows (rowW_sq_len cs) (M (List.mem_cons_of_mem _ (List.mem_cons_of_mem _
+    fun c hc => readsAt_rows (f := chainRec cs) (fun _ => rfl) (M (List.mem_cons_of_mem _
       (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _
-        List.mem_cons_self)))))) c (by omega),
-    fun c hc => readsAt_rows (f := fun c => [(lamOf (aggAbs cs) c).1, (lamOf (aggAbs cs) c).2])
-      (fun _ => rfl) (M (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _
-        (List.mem_cons_of_mem _ List.mem_cons_self))))) c hc,
+        List.mem_cons_self))))) c (by omega),
     M List.mem_cons_self,
     M (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _
-      (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _
-        List.mem_cons_self)))))),
+      (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ List.mem_cons_self))))),
     fun c hc => loadAt_map (M (List.mem_cons_of_mem _ (List.mem_cons_of_mem _
       (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _
-        (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ List.mem_cons_self)))))))) c (by omega),
+        (List.mem_cons_of_mem _ List.mem_cons_self))))))) c (by omega),
     hdst⟩
 
 /-! ## The callees -/
@@ -184,7 +173,7 @@ theorem aggP_straight : aggP.all Main.Stmt.straight = true := by decide +kernel
 def aggKind : Stmt → Bool
   | .atom _ => true
   | .call .. => true
-  | .callIf c _ _ => decide (c ∈ [V.n 62, .n 95, .n 121])
+  | .callIf c _ _ => decide (c ∈ [V.n 62, .n 115, .n 132])
   | _ => false
 
 set_option maxRecDepth 100000 in
@@ -192,8 +181,8 @@ theorem aggP_kinds : aggP.all aggKind = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
 theorem aggP_allocs : aggP.filterMap Main.Stmt.allocSz = [(.n 5, .inl 46), (.n 7, .inr (.n 0)),
-    (.n 8, .inr (.n 0)), (.n 60, .inr (.n 59)), (.n 71, .inr (.n 70)), (.n 79, .inr (.n 78)),
-    (.n 104, .inl 23), (.n 118, .inr (.n 117))] := by decide +kernel
+    (.n 8, .inr (.n 0)), (.n 60, .inr (.n 59)), (.n 111, .inr (.n 110)), (.n 120, .inl 23),
+    (.n 129, .inr (.n 128))] := by decide +kernel
 
 set_option maxRecDepth 100000 in
 theorem aggP_addrs : aggP.filterMap Main.Stmt.addrS = [] := by decide +kernel
@@ -201,19 +190,19 @@ theorem aggP_addrs : aggP.filterMap Main.Stmt.addrS = [] := by decide +kernel
 set_option maxRecDepth 100000 in
 theorem aggP_calls : aggP.filterMap Main.Stmt.callS =
     [(some (.n 62), "__loop24", [.n 63, .n 0, .n 60, .n 2, .n 7, .n 3, .n 8, .n 1], []),
-      (some (.n 95), "__loop25", [.n 96, .n 0, .n 79, .n 71, .n 7, .n 8], []),
-      (none, "batch_sumcheck__L23", [.n 105, .n 106, .n 107, .n 108, .n 109, .n 5, .n 103, .n 104],
-        [.n 110, .n 111, .n 112, .n 113, .n 114, .n 115]),
-      (some (.n 121), "__loop26", [.n 122, .n 0, .n 7, .n 8, .n 104, .n 118, .n 71], [])] := by
+      (some (.n 115), "__loop25", [.n 116, .n 0, .n 111, .n 7, .n 8, .n 107, .n 106], []),
+      (none, "batch_sumcheck__L23", [.n 95, .n 96, .n 97, .n 98, .n 99, .n 5, .n 119, .n 120],
+        [.n 121, .n 122, .n 123, .n 124, .n 125, .n 126]),
+      (some (.n 132), "__loop26", [.n 133, .n 0, .n 7, .n 8, .n 120, .n 111, .n 129, .n 106], [])] := by
   decide +kernel
 
-/-- The loads `aggregate_claims` may make: its first rows, last rows, weights, point, and the
-claim at `defer_stmt`. -/
+/-- The loads `aggregate_claims` may make: its first row and record, first weight, the claim at
+`defer_stmt`, its last row, record and weight, and the point. -/
 def aggLoadSet : List (V × ℕ) :=
-  (List.range 13).map (fun i => (.n 60, i)) ++ (List.range 14).map (fun k => (.n 79, k)) ++
-    [(.n 118, 0)] ++ (List.range 24).map (fun k => (.n 4, k)) ++
-    (List.range 13).map (fun k => (.n 69, k)) ++ (List.range 14).map (fun k => (.n 102, k)) ++
-    [(.n 123, 0)] ++ (List.range 23).map (fun k => (.n 104, k))
+  (List.range 13).map (fun i => (.n 60, i)) ++ [(.n 111, 0), (.n 111, 1)] ++
+    [(.n 129, 0)] ++ (List.range 24).map (fun k => (.n 4, k)) ++
+    (List.range 13).map (fun k => (.n 69, k)) ++ [(.n 118, 1)] ++
+    [(.n 134, 0)] ++ (List.range 23).map (fun k => (.n 120, k))
 
 set_option maxRecDepth 100000 in
 theorem aggP_loads : (aggP.filterMap B1.Stmt.loadS).all (fun q => decide (q ∈ aggLoadSet)) = true := by
@@ -225,12 +214,9 @@ noncomputable def aggSizeOk : Bool :=
   A.any (isConstAt (.n 53) 2 0) && isMul A (.n 54) (.n 0) (.n 53) && isMul A (.n 55) (.n 54) (.n 54) &&
   isMul A (.n 56) (.n 55) (.n 54) && isMul A (.n 57) (.n 56) (.n 56) &&
   isMul A (.n 58) (.n 57) (.n 57) && isMul A (.n 59) (.n 58) (.n 54) &&
-  isMul A (.n 70) (.n 0) (.n 0) &&
-  A.any (isConstAt (.n 72) 2 0) && isMul A (.n 73) (.n 0) (.n 72) &&
-  isMul A (.n 74) (.n 73) (.n 73) && isMul A (.n 75) (.n 74) (.n 73) &&
-  isMul A (.n 76) (.n 75) (.n 75) && isMul A (.n 77) (.n 76) (.n 73) &&
-  isMul A (.n 78) (.n 77) (.n 77) &&
-  A.any (isConstAt (.n 116) 2 0) && isMul A (.n 117) (.n 0) (.n 116)
+  A.any (isConstAt (.n 108) 2 0) && isMul A (.n 109) (.n 0) (.n 108) &&
+  isMul A (.n 110) (.n 109) (.n 109) &&
+  A.any (isConstAt (.n 127) 2 0) && isMul A (.n 128) (.n 0) (.n 127)
 
 set_option maxRecDepth 100000 in
 theorem aggSize_ok : aggSizeOk = true := by decide +kernel
@@ -244,15 +230,14 @@ theorem one_add_gen_ne {a : ℕ} (ha : a < 2 ^ 64 - 1) : ((1 : E) + gen ^ a ≠ 
 /-- The buffers' sizes, as the valuation computes them. -/
 theorem agg_sizes {rd : Reader} {σ : Val} {m : ℕ} (hat : ∀ a ∈ atomsIn aggP, a.Holds rd σ)
     (e0 : σ (.n 0) = gen ^ m) :
-    σ (.n 59) = gen ^ (13 * (m + 1)) ∧ σ (.n 70) = gen ^ (2 * m) ∧
-      σ (.n 78) = gen ^ (14 * (m + 1)) ∧ σ (.n 117) = gen ^ (m + 1) := by
+    σ (.n 59) = gen ^ (13 * (m + 1)) ∧ σ (.n 110) = gen ^ (2 * (m + 1)) ∧
+      σ (.n 128) = gen ^ (m + 1) := by
   have hok := aggSize_ok
   simp only [aggSizeOk, Bool.and_eq_true] at hok
-  obtain ⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨c53, m54⟩, m55⟩, m56⟩, m57⟩, m58⟩, m59⟩, m70⟩, c72⟩, m73⟩, m74⟩, m75⟩,
-    m76⟩, m77⟩, m78⟩, c116⟩, m117⟩ := hok
+  obtain ⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨c53, m54⟩, m55⟩, m56⟩, m57⟩, m58⟩, m59⟩, c108⟩, m109⟩, m110⟩, c127⟩, m128⟩ := hok
   have g53 : σ (.n 53) = gen := by rw [const_sound c53 hat, word_gen]
-  have g72 : σ (.n 72) = gen := by rw [const_sound c72 hat, word_gen]
-  have g116 : σ (.n 116) = gen := by rw [const_sound c116 hat, word_gen]
+  have g108 : σ (.n 108) = gen := by rw [const_sound c108 hat, word_gen]
+  have g127 : σ (.n 127) = gen := by rw [const_sound c127 hat, word_gen]
   have s54 : σ (.n 54) = gen ^ (m + 1) := by rw [isMul_sound m54 hat, e0, g53, pow_succ]
   have s55 : σ (.n 55) = gen ^ (2 * (m + 1)) := by
     rw [isMul_sound m55 hat, s54, ← pow_add, show m + 1 + (m + 1) = 2 * (m + 1) by ring]
@@ -264,24 +249,12 @@ theorem agg_sizes {rd : Reader} {σ : Val} {m : ℕ} (hat : ∀ a ∈ atomsIn ag
   have s58 : σ (.n 58) = gen ^ (12 * (m + 1)) := by
     rw [isMul_sound m58 hat, s57, ← pow_add,
       show 6 * (m + 1) + 6 * (m + 1) = 12 * (m + 1) by ring]
-  have s73 : σ (.n 73) = gen ^ (m + 1) := by rw [isMul_sound m73 hat, e0, g72, pow_succ]
-  have s74 : σ (.n 74) = gen ^ (2 * (m + 1)) := by
-    rw [isMul_sound m74 hat, s73, ← pow_add, show m + 1 + (m + 1) = 2 * (m + 1) by ring]
-  have s75 : σ (.n 75) = gen ^ (3 * (m + 1)) := by
-    rw [isMul_sound m75 hat, s74, s73, ← pow_add, show 2 * (m + 1) + (m + 1) = 3 * (m + 1) by ring]
-  have s76 : σ (.n 76) = gen ^ (6 * (m + 1)) := by
-    rw [isMul_sound m76 hat, s75, ← pow_add,
-      show 3 * (m + 1) + 3 * (m + 1) = 6 * (m + 1) by ring]
-  have s77 : σ (.n 77) = gen ^ (7 * (m + 1)) := by
-    rw [isMul_sound m77 hat, s76, s73, ← pow_add,
-      show 6 * (m + 1) + (m + 1) = 7 * (m + 1) by ring]
-  refine ⟨?_, ?_, ?_, ?_⟩
+  have s109 : σ (.n 109) = gen ^ (m + 1) := by rw [isMul_sound m109 hat, e0, g108, pow_succ]
+  refine ⟨?_, ?_, ?_⟩
   · rw [isMul_sound m59 hat, s58, s54, ← pow_add,
       show 12 * (m + 1) + (m + 1) = 13 * (m + 1) by ring]
-  · rw [isMul_sound m70 hat, e0, ← pow_add, show m + m = 2 * m by ring]
-  · rw [isMul_sound m78 hat, s77, ← pow_add,
-      show 7 * (m + 1) + 7 * (m + 1) = 14 * (m + 1) by ring]
-  · rw [isMul_sound m117 hat, e0, g116, pow_succ]
+  · rw [isMul_sound m110 hat, s109, ← pow_add, show m + 1 + (m + 1) = 2 * (m + 1) by ring]
+  · rw [isMul_sound m128 hat, e0, g127, pow_succ]
 
 /-! ## `aggregate_claims` -/
 
@@ -319,10 +292,12 @@ theorem aggregate_claims_completeAt (fs : String → ℕ) (cert : String → V �
   let ks : List Kid :=
     [⟨"__loop24", true, [1, gen ^ m, P.absorb, cfresh, P.lf, ccarried, P.lc, cpi], Own ++ Lin,
         Returns []⟩,
-      ⟨"__loop25", true, [1, gen ^ m, P.sq, P.lam, P.lf, P.lc], Own ++ Lin, Returns []⟩,
-      ⟨"batch_sumcheck__L23", true, (sq2F m (aggAbs cs)).2.cap ++ [P.msgs, claimAt cs m, P.pt],
+      ⟨"__loop25", true, [1, gen ^ m, P.chain, P.lf, P.lc, lamA cs * lamA cs, lamA cs],
+        Own ++ Lin, Returns []⟩,
+      ⟨"batch_sumcheck__L23", true, capOf (aggAbs cs).perm ++ [P.msgs, claimAt cs m, P.pt],
         Own ++ Lin, Returns ((aggRun cs h).2.cap ++ [(aggRun cs h).1.2])⟩,
-      ⟨"__loop26", true, [1, gen ^ m, P.lf, P.lc, P.pt, P.w, P.lam], Own ++ Lin, Returns []⟩]
+      ⟨"__loop26", true, [1, gen ^ m, P.lf, P.lc, P.pt, P.chain, P.w, lamA cs], Own ++ Lin,
+        Returns []⟩]
   have hok : ∀ k ∈ ks, k.taken = true → CompleteAtD fs cert 16 k.f k.Lin k.args k.Out := by
     intro k hk _
     simp only [ks, List.mem_cons, List.not_mem_nil, or_false] at hk
@@ -331,12 +306,13 @@ theorem aggregate_claims_completeAt (fs : String → ℕ) (cert : String → V �
         (guard_complete find_l25 l25_shape' (rest := [P.absorb, cfresh, P.lf, ccarried, P.lc, cpi])
           (agg_l25 (hcw' rd hm) (hbm rd hm))).2 hne) 16
     · exact completeAt_of_rel_pureD aggPure (by simp [aggPureSet]) (fun rd hm =>
-        (guard_complete find_l26 l26_shape.1 (rest := [P.sq, P.lam, P.lf, P.lc])
+        (guard_complete find_l26 l26_shape.1
+          (rest := [P.chain, P.lf, P.lc, lamA cs * lamA cs, lamA cs])
           (agg_l26 (hcw' rd hm) (hbm rd hm))).2 hne) 16
     · exact completeAt_of_rel_pureD aggPure (by simp [aggPureSet])
-        (fun rd hm => agg_bs hm1 hrl (hbm rd hm)) 16
+        (fun rd hm => agg_bs hrl (hbm rd hm)) 16
     · exact completeAt_of_rel_pureD aggPure (by simp [aggPureSet]) (fun rd hm =>
-        (guard_complete find_l27 l27_shape.1 (rest := [P.lf, P.lc, P.pt, P.w, P.lam])
+        (guard_complete find_l27 l27_shape.1 (rest := [P.lf, P.lc, P.pt, P.chain, P.w, lamA cs])
           (agg_l27 (hcw' rd hm) hrl (hbm rd hm))).2 hne) 16
   obtain ⟨Nk, Lk, outs, hoo, hW, hD, -, hKids⟩ :=
     kidsFromIn_of_kidsD (fs := fs) (cert := cert) 16 ks hok (b0 + (aggSizes m).sum)
@@ -360,7 +336,7 @@ theorem aggregate_claims_completeAt (fs : String → ℕ) (cert : String → V �
   have hmK : Main.MemL rd (Own ++ Lin) := Main.memL_append.mpr ⟨hmO, hLin'⟩
   have hmem := hbm rd hmK
   -- the valuation and the path
-  have hV := agg_core (rd := rd) (cpi := cpi) hm1 rfl hrl hb hmem
+  have hV := agg_core (rd := rd) (cpi := cpi) rfl hrl hb hmem
   obtain ⟨σ, hσ⟩ : ∃ σ : Val, σ = aggσ rd m cpi cfresh ccarried (gen ^ ds) P cs h := ⟨_, rfl⟩
   rw [← hσ] at hV
   have hw := Main.walk_straight σ [] aggP aggP_straight
@@ -381,29 +357,28 @@ theorem aggregate_claims_completeAt (fs : String → ℕ) (cert : String → V �
       show IsInK (σ c)
       rcases hk with rfl | rfl | rfl
       · rw [hV.g62, ← pow_zero gen]; exact gen_pow_add_isInK _ _
-      · rw [hV.g95, ← pow_zero gen]; exact gen_pow_add_isInK _ _
-      · rw [hV.g121, ← pow_zero gen]; exact gen_pow_add_isInK _ _
+      · rw [hV.g115, ← pow_zero gen]; exact gen_pow_add_isInK _ _
+      · rw [hV.g132, ← pow_zero gen]; exact gen_pow_add_isInK _ _
   obtain ⟨hpd, hpa, hpad, hpc⟩ := Main.straight_parts σ _ aggP_straight
-  obtain ⟨s59, s70, s78, s117⟩ := agg_sizes hV.atoms hV.e0
+  obtain ⟨s59, s110, s128⟩ := agg_sizes hV.atoms hV.e0
   have hal : allocs σ es = aggSizes m := by
     rw [hes, hpa, aggP_allocs]
-    simp only [List.map_cons, List.map_nil, Sum.elim_inr, Sum.elim_inl, id, hV.e0, s59, s70, s78,
-      s117, logG_gen_pow (show m < 2 ^ 64 - 1 by omega),
-      logG_gen_pow (show 13 * (m + 1) < 2 ^ 64 - 1 by omega),
-      logG_gen_pow (show 2 * m < 2 ^ 64 - 1 by omega),
-      logG_gen_pow (show 14 * (m + 1) < 2 ^ 64 - 1 by omega),
-      logG_gen_pow (show m + 1 < 2 ^ 64 - 1 by omega)]
+    simp only [List.map_cons, List.map_nil, Sum.elim_inr, Sum.elim_inl, id, hV.e0, s59, s110, s128,
+      logG_gen_pow (show cs.length < 2 ^ 64 - 1 by omega),
+      logG_gen_pow (show 13 * (cs.length + 1) < 2 ^ 64 - 1 by omega),
+      logG_gen_pow (show 2 * (cs.length + 1) < 2 ^ 64 - 1 by omega),
+      logG_gen_pow (show cs.length + 1 < 2 ^ 64 - 1 by omega)]
     rfl
   have hT : ∀ {c : V}, σ c = 1 + gen ^ m → decide (σ c ≠ 0) = true :=
     fun h => by rw [h]; exact decide_eq_true hne
   have hcalls : calls es =
       [⟨"__loop24", [.n 63, .n 0, .n 60, .n 2, .n 7, .n 3, .n 8, .n 1], [], true⟩,
-        ⟨"__loop25", [.n 96, .n 0, .n 79, .n 71, .n 7, .n 8], [], true⟩,
-        ⟨"batch_sumcheck__L23", [.n 105, .n 106, .n 107, .n 108, .n 109, .n 5, .n 103, .n 104],
-          [.n 110, .n 111, .n 112, .n 113, .n 114, .n 115], true⟩,
-        ⟨"__loop26", [.n 122, .n 0, .n 7, .n 8, .n 104, .n 118, .n 71], [], true⟩] := by
+        ⟨"__loop25", [.n 116, .n 0, .n 111, .n 7, .n 8, .n 107, .n 106], [], true⟩,
+        ⟨"batch_sumcheck__L23", [.n 95, .n 96, .n 97, .n 98, .n 99, .n 5, .n 119, .n 120],
+          [.n 121, .n 122, .n 123, .n 124, .n 125, .n 126], true⟩,
+        ⟨"__loop26", [.n 133, .n 0, .n 7, .n 8, .n 120, .n 111, .n 129, .n 106], [], true⟩] := by
     rw [hes, hpc, aggP_calls]
-    simp only [List.map_cons, List.map_nil, Main.mkCall, hT hV.g62, hT hV.g95, hT hV.g121]
+    simp only [List.map_cons, List.map_nil, Main.mkCall, hT hV.g62, hT hV.g115, hT hV.g132]
   -- the walk
   have hown : ∀ i, Main.RegionL Own i → ownData cert fp b0 "aggregate_claims" (aggSizes m) es i :=
     fun i hi => Or.inl (bufL_region _ _ _ hfit i hi)
@@ -419,8 +394,8 @@ theorem aggregate_claims_completeAt (fs : String → ℕ) (cert : String → V �
       rw [hV.e0, hV.e1, hV.e2, hV.e3, hV.e4]) hw rfl hev
     (by
       rw [hal, hes, hpd, aggP_allocs]
-      simp only [List.map_cons, List.map_nil, hV.v5, hV.v7, hV.v8, hV.v60, hV.v71, hV.v79, hV.v104,
-        hV.v118, hP, aggPtrsAt, gen_pow_eq_ofK]
+      simp only [List.map_cons, List.map_nil, hV.v5, hV.v7, hV.v8, hV.v60, hV.v111, hV.v120,
+        hV.v129, hP, aggPtrsAt, gen_pow_eq_ofK]
       rfl)
     (fun q hq => by
       rw [hes, hpad, aggP_addrs] at hq
@@ -435,13 +410,14 @@ theorem aggregate_claims_completeAt (fs : String → ℕ) (cert : String → V �
       · show [σ (.n 63), σ (.n 0), σ (.n 60), σ (.n 2), σ (.n 7), σ (.n 3), σ (.n 8), σ (.n 1)] = _
         rw [hV.g63, hV.e0, hV.v60, hV.e2, hV.v7, hV.e3, hV.v8, hV.e1]
       · rw [(h1 rfl).1]; rfl
-      · show [σ (.n 96), σ (.n 0), σ (.n 79), σ (.n 71), σ (.n 7), σ (.n 8)] = _
-        rw [hV.g96, hV.e0, hV.v79, hV.v71, hV.v7, hV.v8]
+      · show [σ (.n 116), σ (.n 0), σ (.n 111), σ (.n 7), σ (.n 8), σ (.n 107), σ (.n 106)] = _
+        rw [hV.g116, hV.e0, hV.v111, hV.v7, hV.v8, hV.v107, hV.v106]
       · rw [(h2 rfl).1]; rfl
       · exact hV.bsArgs
       · rw [(h3 rfl).1]; exact hV.bsRets
-      · show [σ (.n 122), σ (.n 0), σ (.n 7), σ (.n 8), σ (.n 104), σ (.n 118), σ (.n 71)] = _
-        rw [hV.g122, hV.e0, hV.v7, hV.v8, hV.v104, hV.v118, hV.v71]
+      · show [σ (.n 133), σ (.n 0), σ (.n 7), σ (.n 8), σ (.n 120), σ (.n 111), σ (.n 129),
+          σ (.n 106)] = _
+        rw [hV.g133, hV.e0, hV.v7, hV.v8, hV.v120, hV.v111, hV.v129, hV.v106]
       · rw [(h4 rfl).1]; rfl
     · intro q hq
       apply hmK
@@ -463,23 +439,26 @@ theorem aggregate_claims_completeAt (fs : String → ℕ) (cert : String → V �
     have zl := agg_zip m b0
     simp only [aggLoadSet, List.mem_append, List.mem_map, List.mem_range, List.mem_cons,
       List.not_mem_nil, or_false] at hq'
-    rcases hq' with ((((((⟨i, hi, rfl⟩ | ⟨k, hk, rfl⟩) | rfl) | ⟨k, hk, rfl⟩) | ⟨k, hk, rfl⟩) |
-      ⟨k, hk, rfl⟩) | rfl) | ⟨k, hk, rfl⟩
+    rcases hq' with ((((((⟨i, hi, rfl⟩ | (rfl | rfl)) | rfl) | ⟨k, hk, rfl⟩) | ⟨k, hk, rfl⟩) |
+      rfl) | rfl) | ⟨k, hk, rfl⟩
     · refine ⟨axAbs m b0 + i, ?_, Or.inl (hz (s := 13 * (m + 1)) (x := axAbs m b0)
         (by rw [zl]; simp) (by omega)
         (by omega))⟩
       show (σ (.n 60)).limb 0 * gpow i = _
       rw [hV.v60]; exact limb0_gen_pow_mul _ _
-    · refine ⟨axSq m b0 + k, ?_, Or.inl (hz (s := 14 * (m + 1)) (x := axSq m b0)
-        (by rw [zl]; simp) (by omega)
-        (by omega))⟩
-      show (σ (.n 79)).limb 0 * gpow k = _
-      rw [hV.v79]; exact limb0_gen_pow_mul _ _
+    · refine ⟨axChain m b0 + 0, ?_, Or.inl (hz (s := 2 * (m + 1)) (x := axChain m b0)
+        (by rw [zl]; simp) (by omega) (by omega))⟩
+      show (σ (.n 111)).limb 0 * gpow 0 = _
+      rw [hV.v111]; exact limb0_gen_pow_mul _ _
+    · refine ⟨axChain m b0 + 1, ?_, Or.inl (hz (s := 2 * (m + 1)) (x := axChain m b0)
+        (by rw [zl]; simp) (by omega) (by omega))⟩
+      show (σ (.n 111)).limb 0 * gpow 1 = _
+      rw [hV.v111]; exact limb0_gen_pow_mul _ _
     · refine ⟨axW m b0 + 0, ?_, Or.inl (hz (s := m + 1) (x := axW m b0)
         (by rw [zl]; simp) (by omega)
         (by omega))⟩
-      show (σ (.n 118)).limb 0 * gpow 0 = _
-      rw [hV.v118]; exact limb0_gen_pow_mul _ _
+      show (σ (.n 129)).limb 0 * gpow 0 = _
+      rw [hV.v129]; exact limb0_gen_pow_mul _ _
     · have hcl2 : (aggOut cs h).cells.length = 24 := by
         simp [aggOut, DeferredClaim.cells, aggRun, bsRun_len, hrl]
       refine ⟨ds + k, ?_, Or.inr (Or.inl (regionL_of_mem hdst (by rw [hcl2]; exact hk)))⟩
@@ -491,20 +470,20 @@ theorem aggregate_claims_completeAt (fs : String → ℕ) (cert : String → V �
       show (σ (.n 69)).limb 0 * gpow k = _
       rw [hV.p69, show P.absorb = gen ^ axAbs m b0 from rfl, ← pow_mul, ← pow_add,
         limb0_gen_pow_mul, Nat.mul_comm m 13]
-    · refine ⟨axSq m b0 + 14 * m + k, ?_, Or.inl (hz (s := 14 * (m + 1)) (x := axSq m b0)
+    · refine ⟨axChain m b0 + 2 * m + 1, ?_, Or.inl (hz (s := 2 * (m + 1)) (x := axChain m b0)
         (by rw [zl]; simp)
         (by omega) (by omega))⟩
-      show (σ (.n 102)).limb 0 * gpow k = _
-      rw [hV.p102, show P.sq = gen ^ axSq m b0 from rfl, ← pow_mul, ← pow_add,
-        limb0_gen_pow_mul, Nat.mul_comm m 14]
+      show (σ (.n 118)).limb 0 * gpow 1 = _
+      rw [hV.p118, show P.chain = gen ^ axChain m b0 from rfl, ← pow_mul, ← pow_add,
+        limb0_gen_pow_mul, Nat.mul_comm m 2]
     · refine ⟨axW m b0 + m + 0, ?_, Or.inl (hz (s := m + 1) (x := axW m b0)
         (by rw [zl]; simp) (by omega)
         (by omega))⟩
-      show (σ (.n 123)).limb 0 * gpow 0 = _
-      rw [hV.p123, show P.w = gen ^ axW m b0 from rfl, ← pow_add, limb0_gen_pow_mul]
+      show (σ (.n 134)).limb 0 * gpow 0 = _
+      rw [hV.p134, show P.w = gen ^ axW m b0 from rfl, ← pow_add, limb0_gen_pow_mul]
     · refine ⟨axPt m b0 + k, ?_, Or.inl (hz (s := 23) (x := axPt m b0) (by rw [zl]; simp) (by omega)
         (by omega))⟩
-      show (σ (.n 104)).limb 0 * gpow k = _
-      rw [hV.v104]; exact limb0_gen_pow_mul _ _
+      show (σ (.n 120)).limb 0 * gpow k = _
+      rw [hV.v120]; exact limb0_gen_pow_mul _ _
 end
 end LeanVM.Guest.B1.Main
