@@ -9,8 +9,8 @@ and evaluated on a satisfying and a failing row, and is Clean's polynomial of it
 the width reads `0`, as Clean reads a missing cell; the syntactic degree bounds but need not
 equal the degree.
 
-The six opcode tables and the two blocks of leanISA are translated with leanISA's separators,
-directions and counted channels (the memory and bytecode pulls), and the result is checked
+The six opcode tables and the two blocks of leanISA are translated with leanISA's separators and
+counted interactions (the memory and bytecode pulls), and the result is checked
 against the pinned Rust (`crates/lean_vm/src/tables.rs` at
 `a386121f84292f6fa663aaa3e570c15bc0240ea2`): the widths are the committed column counts `N` of
 `:455`, `:537`, `:608`, `:711`, `:862` (`XOR` and `MUL` share `arith`), the count columns are
@@ -55,20 +55,23 @@ example : (Expression.add xy xy).degreeBound = 2 := rfl
 
 /-! ## leanISA's tables -/
 
-/-- The channels whose coordinate `1` is a read count: the memory and bytecode pulls. -/
-def counted (c : RawChannel K) : Bool := c.name = MemPull.name || c.name = BytecodePull.name
+/-- The interactions whose coordinate `1` is a read count: the memory and bytecode pulls. -/
+def counted (i : AbstractInteraction K) : Bool :=
+  (i.channel.name = MemChannel.name || i.channel.name = BytecodeChannel.name) &&
+    i.direction == .pull
 
-/-- The ensemble's eight components, in its order. -/
-def components : List (Component K) :=
-  [⟨xorTable⟩, ⟨mulTable⟩, ⟨setTable⟩, ⟨derefTable⟩, ⟨jumpTable⟩, ⟨blake2sTable⟩, ⟨memTable⟩,
-    ⟨bytecodeTable⟩]
+/-- A program of four instructions, for the bytecode block. -/
+def prog4 : LeanerVM.Semantics.Program := ⟨2, by decide, fun _ ↦ .xor 0 0 0⟩
+
+/-- The ensemble's eight components, in its order, at memory log-size `16`. -/
+def components : List (Component K) := (leanIsaEnsemble prog4 16).tables
 
 -- The widths are the Rust's committed column counts, and the blocks' row widths.
 example : components.map Component.width = [15, 15, 8, 15, 14, 37, 5, 10] := by decide +kernel
 
 -- The count columns are `count_columns()`, in its order; each block's finalize count is its
 -- column `1`.
-example : components.map (fun c ↦ (c.toM3 channelSep channelDir counted).count.map (·.val)) =
+example : components.map (fun c ↦ (c.toM3 channelSep (·.direction) counted).count.map (·.val)) =
     [[11, 12, 13, 14], [11, 12, 13, 14], [6, 7], [11, 12, 13, 14], [8, 9, 10, 11],
       [27, 28, 29, 30, 31, 32, 33, 34, 35, 36], [1], [1]] := by
   decide +kernel
@@ -87,15 +90,15 @@ example : components.all fun c ↦ c.rowOperations.interactions.all fun i ↦
 
 -- The `JUMP` table's flushes: ten interactions, the state pull and push first; the push is
 -- on the push side of the bus.
-#guard ((⟨jumpTable⟩ : Component K).toM3 channelSep channelDir counted).flushes.map (·.1) =
+#guard (jumpComponent.toM3 channelSep (·.direction) counted).flushes.map (·.1) =
   [.pull, .push, .pull, .push, .pull, .push, .pull, .push, .pull, .push]
 
 -- Every read count of the eight components is a column: no count column is lost.
 example : components.all fun c ↦ decide (CountsAreVariables c counted) := by
   decide +kernel
 
--- Every multiplicity is `1` or `-1`, so the tables drop none. A pull's is the product
--- `-1 · 1`, which has a value; a variable has none.
+-- Every multiplicity is `1`, so the tables drop none. A product of constants has a value; a
+-- variable has none.
 example : components.all fun c ↦ decide (UnitMultiplicities c) := by
   decide +kernel
 example : (Expression.mul (.const (-1)) (.const 1) : Expression K).constValue = some (-1) := by
@@ -108,8 +111,8 @@ example : components.all fun c ↦ c.rowOperations.interactions.all fun i ↦
   decide +kernel
 
 -- A constant count is no count column: the predicate rejects it.
-example : ¬ CountsAreVariables (⟨memTable⟩ : Component K) fun c ↦
-    c.name = MemPush.name := by
+example : ¬ CountsAreVariables (memComponent 16) fun i ↦
+    i.channel.name = MemChannel.name && i.direction == .push := by
   decide +kernel
 
 -- Every expression of the eight components is within its width.

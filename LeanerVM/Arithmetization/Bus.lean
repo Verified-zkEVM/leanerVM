@@ -17,12 +17,12 @@ public import LeanerVM.Arithmetization.Rows
 
 Specification §6.2 "The lookup protocol" (`doc/leanvm/body/06-bus-interactions.tex:34-82` at
 leanVM pin `a386121f84292f6fa663aaa3e570c15bc0240ea2`: Lemma 6.3 `:51`, Theorem 6.4 `:59`,
-Corollary 6.5 `:70`, "Instance caps" `:80`). Category A for the argument, which is
-the specification's; Category B for what it is applied to, the memory and bytecode pairs as
-the components transcribe them (`LeanerVM.Arithmetization.Rows`). Artifact: the accept
-relation `SatisfiedBy`. Direction: soundness, from an accepted witness to facts about its
-pulls. Contribution: T1-S through BC (`docs/architecture.md`), the lookup half of constraint
-soundness.
+Corollary 6.5 `:70`, "Instance caps" `:80`), over Clean `ce2eee63`. Category A for the
+argument, which is the specification's; Category B for what it is applied to, the memory and
+bytecode channels as the components transcribe them (`LeanerVM.Arithmetization.Rows`).
+Artifact: the accept relation `SatisfiedBy`. Direction: soundness, from an accepted witness to
+facts about its messages. Contribution: T1-S through BC (`docs/architecture.md`), the lookup
+half of constraint soundness.
 
 **Lemma 6.3** (`eq_zero_of_perm_map_mul_g`). A list of counts `C` that is a permutation of
 `C.map (g * ·)` and has fewer than `2^64 - 1` elements holds only `0`: multiplication by `g`
@@ -40,20 +40,22 @@ a bad key are reads on both sides, and their counts satisfy Lemma 6.3.
 `SatisfiedBy`, with the messages as coordinate lists, the key every coordinate but the count,
 the reads the six opcode tables' pulls, and the seeds and finalizes the rows of the memory
 block, respectively the bytecode block. The verifier's facts are those of `SatisfiedBy` alone:
-the balance of the pair, `CountsNonzero`, the heights of `Caps` (each table has at most
-`2^32` rows and a row reads at most nine cells and one entry, so at most `9 · 6 · 2^32`
-memory reads and `6 · 2^32` bytecode reads, §6.2 "Instance caps"), and the block conjuncts:
-`SeedRowsAreTheImage` with `IndexColumnsAreRowIndices` make every memory block message's key
-`(g^i, mem[i])`, and `BytecodeRowsAreTheProgram prog` every bytecode block message's
-`(g^i, entry (prog.code i))`. The conclusions cover every pull on the channel, the blocks'
-finalizes included. A memory pull's conclusion is its channel guarantee
-(`MemPull.Guarantees`, which is Corollary 6.5 as well: the address is in range); a bytecode
-pull's is the strong form, the entry is the program's at the pulled counter, which implies the
-decoding guarantee `BytecodePull.Guarantees` (`decode_entry`).
+the channel's multiset balance (`SatisfiedBy.perm`), `CountsNonzero`, the heights of `Caps`
+(each table has at most `2^32` rows and a row reads at most nine cells and one entry, so at most
+`9 · 6 · 2^32` memory reads and `6 · 2^32` bytecode reads, §6.2 "Instance caps"), and the
+blocks' fixed columns: row `i` of the memory block sits at the address `g^i` and holds word `i`
+of the image by derivation of the prover data (`memBlock_rows`), so its key is `(g^i, mem[i])`,
+and row `i` of the bytecode block carries `(g^i, entry (prog.code i))` (`bytecodeBlock_rows`).
+The conclusions cover every interaction on the channel, pulls and pushes, the blocks' seeds and
+finalizes included (a push's key is its pull's). A memory tuple's conclusion is the channel's
+guarantee (`MemChannel.Guarantees`, which is Corollary 6.5 as well: the address is in range); a
+bytecode tuple's is the strong form, the entry is the program's at the tuple's counter, which
+implies the channel's decoding guarantee `BytecodeChannel.Guarantees` (`decode_entry`).
 
-**Messages, table by table.** `messagesOn_split` splits a witness's messages on a channel into
-the verifier's, the six opcode tables' and the two blocks' (`rowsOn`, `tables_eq_take_append`),
-and `rowsOn_single_nil` drops a table that sends nothing on the channel.
+**Messages, table by table.** `messagesOn_split` splits a witness's messages on a channel in a
+direction into the verifier's, the six opcode tables' and the two blocks' (`rowsOn`,
+`tables_eq_take_append`), and `rowsOn_single_nil` drops a table that sends nothing on the
+channel.
 
 ## Wrong readings excluded
 
@@ -63,8 +65,9 @@ and `rowsOn_single_nil` drops a table that sends nothing on the channel.
 * Balance is a permutation counted in `ℕ`: a field sum over `K`, of characteristic `2`, would
   cancel any message pushed twice.
 * The block rows' keys are what the verifier fixes: with the index column free, a memory block
-  row that seeds and finalizes `(g^j, mem[i])` for some `j ≠ i` balances by itself, and its
-  pull is a wrong read (the tests).
+  row that seeds and finalizes `(g^j, mem[i])` for some `j ≠ i` would balance by itself, and
+  its pull would be a wrong read; the address column is a fixed column, which Clean checks of
+  every row.
 -/
 
 namespace LeanerVM.Arithmetization
@@ -133,14 +136,14 @@ theorem lookup_sound {M κ : Type} [DecidableEq κ] {key : M → κ} {count : M 
 
 /-! ## A witness's messages, table by table -/
 
-variable {prog : Program} {input : PublicInput}
+variable {prog : Program} {κ : ℕ} {input : PublicInput}
 
-/-- The messages of a list of tables on a channel, row by row. -/
-def rowsOn (ts : List (Air.Flat.Table K)) (c : RawChannel K) : List (Array K) :=
-  ts.flatMap fun t ↦ t.table.flatMap fun row ↦ rowMessagesOn t row c
+/-- The messages of a list of tables on a channel in a direction, row by row. -/
+def rowsOn (ts : List (Air.Flat.Table K)) (c : RawChannel K) (d : BusDir) : List (Array K) :=
+  ts.flatMap fun t ↦ t.table.flatMap fun row ↦ rowMessagesOn t row c d
 
 /-- A witness's tables are the six opcode tables and the two blocks. -/
-theorem tables_eq_take_append (w : EnsembleWitness (leanIsaEnsemble prog)) :
+private theorem tables_eq_take_append (w : EnsembleWitness (leanIsaEnsemble prog κ)) :
     w.tables = w.tables.take 6 ++ [tableAt w 6, tableAt w 7] := by
   have hlen : w.tables.length = 8 := w.same_length.symm
   conv_lhs => rw [← List.take_append_drop 6 w.tables]
@@ -148,30 +151,31 @@ theorem tables_eq_take_append (w : EnsembleWitness (leanIsaEnsemble prog)) :
     List.drop_eq_nil_of_le (by omega)]
   rfl
 
-/-- A witness's messages on a channel: the verifier's, the six opcode tables', the memory
-block's and the bytecode block's. -/
-theorem messagesOn_split (w : EnsembleWitness (leanIsaEnsemble prog)) (c : RawChannel K) :
-    messagesOn w c = rowsOn [w.verifierTable] c ++ rowsOn (w.tables.take 6) c ++
-      rowsOn [tableAt w 6] c ++ rowsOn [tableAt w 7] c := by
-  rw [messagesOn_eq_flatMap, EnsembleWitness.allTables]
+/-- A witness's messages on a channel in a direction: the verifier's, the six opcode tables',
+the memory block's and the bytecode block's. -/
+theorem messagesOn_split (w : EnsembleWitness (leanIsaEnsemble prog κ)) (c : RawChannel K)
+    (d : BusDir) :
+    messagesOn w c d = verifierMessagesOn w c d ++ rowsOn (w.tables.take 6) c d ++
+      rowsOn [tableAt w 6] c d ++ rowsOn [tableAt w 7] c d := by
+  rw [messagesOn_eq_flatMap]
   conv_lhs => rw [tables_eq_take_append w]
   simp only [rowsOn, List.flatMap_cons, List.flatMap_append, List.flatMap_nil, List.append_nil,
     List.append_assoc]
 
-/-- A table whose every row sends nothing on `c` contributes nothing. -/
-theorem rowsOn_single_nil {t : Air.Flat.Table K} {c : RawChannel K}
-    (h : ∀ row, rowMessagesOn t row c = []) : rowsOn [t] c = [] := by
+/-- A table whose every row sends nothing on `c` in the direction `d` contributes nothing. -/
+theorem rowsOn_single_nil {t : Air.Flat.Table K} {c : RawChannel K} {d : BusDir}
+    (h : ∀ row, rowMessagesOn t row c d = []) : rowsOn [t] c d = [] := by
   simp only [rowsOn, List.flatMap_cons, List.flatMap_nil, List.append_nil, h]
   exact List.flatMap_eq_nil_iff.mpr fun _ _ ↦ rfl
 
-/-- The memory block's component is `memTable`. -/
-theorem tableAt_six_component (w : EnsembleWitness (leanIsaEnsemble prog)) :
-    (tableAt w 6).component = ⟨memTable⟩ :=
+/-- The memory block's component is `memComponent κ`. -/
+theorem tableAt_six_component (w : EnsembleWitness (leanIsaEnsemble prog κ)) :
+    (tableAt w 6).component = memComponent κ :=
   (tableAt_component w 6).trans rfl
 
-/-- The bytecode block's component is `bytecodeTable`. -/
-theorem tableAt_seven_component (w : EnsembleWitness (leanIsaEnsemble prog)) :
-    (tableAt w 7).component = ⟨bytecodeTable⟩ :=
+/-- The bytecode block's component is `bytecodeComponent prog`. -/
+theorem tableAt_seven_component (w : EnsembleWitness (leanIsaEnsemble prog κ)) :
+    (tableAt w 7).component = bytecodeComponent prog :=
   (tableAt_component w 7).trans rfl
 
 /-! ## Proof helpers -/
@@ -204,40 +208,49 @@ private theorem bytecodeMsg_bump_toList (m : BytecodeMsg K) :
     bytecodeMsg_toElements]
   rfl
 
+private theorem memChannel_mem : MemChannel.toRaw ∈ (leanIsaEnsemble prog κ).channels :=
+  List.mem_cons_of_mem _ List.mem_cons_self
+
+private theorem bytecodeChannel_mem :
+    BytecodeChannel.toRaw ∈ (leanIsaEnsemble prog κ).channels :=
+  List.mem_cons_of_mem _ (List.mem_cons_of_mem _ List.mem_cons_self)
+
 /-- The verifier sends nothing on a lookup channel. -/
-private theorem rowsOn_verifier (w : EnsembleWitness (leanIsaEnsemble prog)) {c : RawChannel K}
-    (h1 : c.name ≠ StatePush.name) (h2 : c.name ≠ StatePull.name) :
-    rowsOn [w.verifierTable] c = [] :=
-  rowsOn_single_nil fun row ↦ by
-    rw [verifier_rowMessagesOn (prog := prog) rfl, ite_eq_right h1, ite_eq_right h2]
+private theorem verifierMessagesOn_nil (w : EnsembleWitness (leanIsaEnsemble prog κ))
+    {c : RawChannel K} (h : c.name ≠ StateChannel.name) (d : BusDir) :
+    verifierMessagesOn w c d = [] := by
+  rw [verifier_messagesOn, ite_eq_right h]
 
-/-- On a memory channel, a witness's messages are the six opcode tables' and the memory
+/-- On the memory channel, a witness's messages are the six opcode tables' and the memory
 block's. -/
-private theorem messagesOn_memChannel (w : EnsembleWitness (leanIsaEnsemble prog))
-    {c : RawChannel K} (hc : c.name = MemPull.name ∨ c.name = MemPush.name) :
-    messagesOn w c = rowsOn (w.tables.take 6) c ++ rowsOn [tableAt w 6] c := by
-  rcases hc with hc | hc <;>
-  rw [messagesOn_split, rowsOn_verifier w (by rw [hc]; decide) (by rw [hc]; decide),
+private theorem messagesOn_memChannel (w : EnsembleWitness (leanIsaEnsemble prog κ))
+    (d : BusDir) :
+    messagesOn w MemChannel.toRaw d =
+      rowsOn (w.tables.take 6) MemChannel.toRaw d ++ rowsOn [tableAt w 6] MemChannel.toRaw d := by
+  rw [messagesOn_split, verifierMessagesOn_nil w (by decide),
     rowsOn_single_nil (t := tableAt w 7) fun row ↦ by
-      rw [bytecodeBlock_rowMessagesOn (tableAt_seven_component w) row rfl, hc,
-        ite_eq_right (by decide), ite_eq_right (by decide)], List.nil_append, List.append_nil]
+      rw [bytecodeBlock_rowMessagesOn (tableAt_seven_component w) row rfl,
+        ite_eq_right (by decide)],
+    List.nil_append, List.append_nil]
 
-/-- On a bytecode channel, a witness's messages are the six opcode tables' and the bytecode
+/-- On the bytecode channel, a witness's messages are the six opcode tables' and the bytecode
 block's. -/
-private theorem messagesOn_bytecodeChannel (w : EnsembleWitness (leanIsaEnsemble prog))
-    {c : RawChannel K} (hc : c.name = BytecodePull.name ∨ c.name = BytecodePush.name) :
-    messagesOn w c = rowsOn (w.tables.take 6) c ++ rowsOn [tableAt w 7] c := by
-  rcases hc with hc | hc <;>
-  rw [messagesOn_split, rowsOn_verifier w (by rw [hc]; decide) (by rw [hc]; decide),
+private theorem messagesOn_bytecodeChannel (w : EnsembleWitness (leanIsaEnsemble prog κ))
+    (d : BusDir) :
+    messagesOn w BytecodeChannel.toRaw d =
+      rowsOn (w.tables.take 6) BytecodeChannel.toRaw d ++
+        rowsOn [tableAt w 7] BytecodeChannel.toRaw d := by
+  rw [messagesOn_split, verifierMessagesOn_nil w (by decide),
     rowsOn_single_nil (t := tableAt w 6) fun row ↦ by
-      rw [memBlock_rowMessagesOn (tableAt_six_component w) row rfl, hc,
-        ite_eq_right (by decide), ite_eq_right (by decide)], List.nil_append, List.append_nil]
+      rw [memBlock_rowMessagesOn (tableAt_six_component w) row rfl, ite_eq_right (by decide)],
+    List.nil_append, List.append_nil]
 
 /-- At most `L · n` messages from a list of tables of at most `L` rows each sending at most `n`
 messages. -/
-private theorem length_rowsOn_le {ts : List (Air.Flat.Table K)} {c : RawChannel K} {L n : ℕ}
-    (hL : ∀ t ∈ ts, t.table.length ≤ L) (hn : ∀ t ∈ ts, ∀ row, (rowMessagesOn t row c).length ≤ n) :
-    (rowsOn ts c).length ≤ ts.length * (L * n) := by
+private theorem length_rowsOn_le {ts : List (Air.Flat.Table K)} {c : RawChannel K}
+    {d : BusDir} {L n : ℕ} (hL : ∀ t ∈ ts, t.table.length ≤ L)
+    (hn : ∀ t ∈ ts, ∀ row, (rowMessagesOn t row c d).length ≤ n) :
+    (rowsOn ts c d).length ≤ ts.length * (L * n) := by
   rw [rowsOn, List.length_flatMap]
   refine (List.sum_le_length_nsmul _ _ ?_).trans (by rw [List.length_map, smul_eq_mul])
   simp only [List.mem_map]
@@ -251,37 +264,44 @@ private theorem length_rowsOn_le {ts : List (Air.Flat.Table K)} {c : RawChannel 
     exact Nat.mul_le_mul_right n (hL t ht)
 
 /-- Every table of a witness satisfying the caps has at most `2^32` rows. -/
-private theorem length_table_le {w : EnsembleWitness (leanIsaEnsemble prog)} (h : Caps w) :
+private theorem length_table_le {w : EnsembleWitness (leanIsaEnsemble prog κ)} (h : Caps w) :
     ∀ t ∈ w.tables, t.table.length ≤ 2 ^ 32 := by
   intro t ht
   obtain ⟨τ, hτ, hlen⟩ := h.heights t ht
   rw [hlen]
   exact Nat.pow_le_pow_right (by norm_num) hτ
 
-/-- A row of the opcode tables pushes its pulls on a lookup pair, bumped. -/
-private theorem rowsOn_push_eq {w : EnsembleWitness (leanIsaEnsemble prog)}
-    {pull push : RawChannel K}
-    (hrow : ∀ t ∈ w.tables.take 6, ∀ row, (rowMessagesOn t row push).map Array.toList =
-      (rowMessagesOn t row pull).map (readBump ∘ Array.toList)) :
-    (rowsOn (w.tables.take 6) push).map Array.toList =
-      ((rowsOn (w.tables.take 6) pull).map Array.toList).map readBump := by
+/-- A row of the opcode tables pushes its pulls on a lookup channel, bumped. -/
+private theorem rowsOn_push_eq {w : EnsembleWitness (leanIsaEnsemble prog κ)} {c : RawChannel K}
+    (hrow : ∀ t ∈ w.tables.take 6, ∀ row, (rowMessagesOn t row c .push).map Array.toList =
+      (rowMessagesOn t row c .pull).map (readBump ∘ Array.toList)) :
+    (rowsOn (w.tables.take 6) c .push).map Array.toList =
+      ((rowsOn (w.tables.take 6) c .pull).map Array.toList).map readBump := by
   simp only [rowsOn, List.map_flatMap, List.map_map]
   exact List.flatMap_congr fun t ht ↦ List.flatMap_congr fun row _ ↦ hrow t ht row
 
-/-- The reads of a lookup pair, their counts nonzero, given each pulled message has at least
+/-- The reads of a lookup channel, their counts nonzero, given each pulled message has at least
 two coordinates. -/
-private theorem readCount_ne {w : EnsembleWitness (leanIsaEnsemble prog)} (h : CountsNonzero w)
-    {pull : RawChannel K} (hname : pull.name = MemPull.name ∨ pull.name = BytecodePull.name)
-    (hsize : ∀ t ∈ w.tables.take 6, ∀ row, ∀ a ∈ rowMessagesOn t row pull, 1 < a.size) :
-    ∀ l ∈ (rowsOn (w.tables.take 6) pull).map Array.toList, readCount l ≠ 0 := by
+private theorem readCount_ne {w : EnsembleWitness (leanIsaEnsemble prog κ)} (h : CountsNonzero w)
+    {c : RawChannel K} (hname : c.name = MemChannel.name ∨ c.name = BytecodeChannel.name)
+    (hsize : ∀ t ∈ w.tables.take 6, ∀ row, ∀ a ∈ rowMessagesOn t row c .pull, 1 < a.size) :
+    ∀ l ∈ (rowsOn (w.tables.take 6) c .pull).map Array.toList, readCount l ≠ 0 := by
   intro l hl
   obtain ⟨a, ha, rfl⟩ := List.mem_map.mp hl
   obtain ⟨t, ht, ha⟩ := List.mem_flatMap.mp ha
   obtain ⟨row, hrow, ha⟩ := List.mem_flatMap.mp ha
-  obtain ⟨i, hi, hiname, rfl⟩ := exists_interaction_of_mem_rowMessagesOn hrow ha
+  obtain ⟨i, hi, hiname, hidir, rfl⟩ := exists_interaction_of_mem_rowMessagesOn hrow ha
   have hs := hsize t ht row _ ha
-  have hne := h t ht i hi (by rw [hiname]; exact hname) hs
+  have hne := h t ht i hi (by rw [hiname]; exact hname) hidir hs
   rwa [readCount, List.getD_eq_getElem _ _ (by rwa [Array.length_toList]), Array.getElem_toList]
+
+/-- A message's key is good when its pull's is: the key of a bumped read is the read's. -/
+private theorem good_of_bump {Good : List K → Prop} {reads : List (List K)}
+    (h : ∀ l ∈ reads, Good (readKey l)) : ∀ l ∈ reads.map readBump, Good (readKey l) := by
+  intro l hl
+  obtain ⟨l', hl', rfl⟩ := List.mem_map.mp hl
+  rw [readKey_readBump]
+  exact h l' hl'
 
 /-! ## The memory lookup -/
 
@@ -292,81 +312,83 @@ private theorem readKey_memMsg (m : MemMsg K) :
   rfl
 
 /-- The good memory keys: an address `g^i` of the image and the word there. -/
-private def MemGood (w : EnsembleWitness (leanIsaEnsemble prog)) (k : List K) : Prop :=
-  ∃ i : Fin (2 ^ (imageOf w.data).1), k = gpow i ::
-    [((imageOf w.data).2 i).limb 0, ((imageOf w.data).2 i).limb 1, ((imageOf w.data).2 i).limb 2]
+private def MemGood (w : EnsembleWitness (leanIsaEnsemble prog κ)) (k : List K) : Prop :=
+  ∃ i : Fin (2 ^ (imageOf w.data).1), ∃ v : Vector K 3,
+    k = gpow i :: v.toList ∧ (imageOf w.data).2 i = E.ofLimbs v[0] v[1] v[2]
 
-/-- Every message of the memory block has a good key. -/
-private theorem memBlock_good {w : EnsembleWitness (leanIsaEnsemble prog)}
-    (h : SatisfiedBy prog input w) {c : RawChannel K} :
-    ∀ l ∈ (rowsOn [tableAt w 6] c).map Array.toList, MemGood w (readKey l) := by
-  obtain ⟨idx, cntFin, hrows⟩ := h.seed_rows
+/-- Every message of the memory block has a good key: row `i` sits at the fixed address `g^i`
+and holds word `i` of the image, by derivation. -/
+private theorem memBlock_good {w : EnsembleWitness (leanIsaEnsemble prog κ)}
+    (h : SatisfiedBy prog input w) {c : RawChannel K} {d : BusDir} :
+    ∀ l ∈ (rowsOn [tableAt w 6] c d).map Array.toList, MemGood w (readKey l) := by
+  have hκ := h.caps.le_maxLogMem
+  obtain ⟨hlen, hrows⟩ := memBlock_rows w hκ
   intro l hl
   obtain ⟨a, ha, rfl⟩ := List.mem_map.mp hl
   simp only [rowsOn, List.flatMap_cons, List.flatMap_nil, List.append_nil] at ha
   obtain ⟨row, hrow, ha⟩ := List.mem_flatMap.mp ha
-  have hrow' : row ∈ memBlockRows w := hrow
-  rw [hrows, List.mem_ofFn] at hrow'
-  obtain ⟨i, rfl⟩ := hrow'
-  have hidx := h.index_columns i (by rw [hrows, List.length_ofFn]; exact i.isLt)
-  simp only [hrows, List.getElem_ofFn, Fin.eta, memRowAt_toElements] at hidx
-  rw [memBlock_rowMessagesOn (tableAt_six_component w) _ (rowAt_toElements _ _)] at ha
-  refine ⟨i, ?_⟩
+  obtain ⟨i, hi, rfl⟩ := List.mem_iff_getElem.mp hrow
+  obtain ⟨hidx, hm⟩ := hrows i hi
+  rw [memBlock_rowMessagesOn (tableAt_six_component w) _ (r := memRowAt w (memBlockRows w)[i])
+    (by rw [Air.Flat.Table.environment, tableAt_data]; rfl)] at ha
+  have hi' : i < 2 ^ (imageOf w.data).1 := by rw [imageOf_data_fst hκ, ← hlen]; exact hi
+  refine ⟨⟨i, hi'⟩, (memRowAt w (memBlockRows w)[i]).m, ?_, imageOf_apply ⟨i, hi'⟩ hm⟩
   split_ifs at ha <;> simp only [List.mem_singleton, List.not_mem_nil] at ha <;> subst ha <;>
-    rw [readKey_memMsg] <;> exact congrArg₂ _ hidx rfl
+    rw [readKey_memMsg, hidx]
 
-/-- In a witness of the statement, every read of the six opcode tables reads the image: the
-memory pair, the counts and the caps, through Theorem 6.4. -/
-private theorem memReads_good {w : EnsembleWitness (leanIsaEnsemble prog)}
-    (h : SatisfiedBy prog input w) :
-    ∀ l ∈ (rowsOn (w.tables.take 6) MemPull.toRaw).map Array.toList, MemGood w (readKey l) := by
+/-- In a witness of the statement, every message on the memory channel has a good key: the
+balance of the channel, the counts and the caps, through Theorem 6.4. -/
+private theorem memMsgs_good {w : EnsembleWitness (leanIsaEnsemble prog κ)}
+    (h : SatisfiedBy prog input w) (d : BusDir) :
+    ∀ l ∈ (messagesOn w MemChannel.toRaw d).map Array.toList, MemGood w (readKey l) := by
   have hsends := exists_sendsOpcode w
-  have hbal := List.Perm.map Array.toList h.mem_balanced
-  rw [messagesOn_memChannel w (Or.inr rfl), messagesOn_memChannel w (Or.inl rfl), List.map_append,
-    List.map_append, rowsOn_push_eq (pull := MemPull.toRaw) fun t ht row ↦ by
+  have hpush := rowsOn_push_eq (w := w) (c := MemChannel.toRaw) fun t ht row ↦ by
     obtain ⟨s, hs, -⟩ := hsends t ht row
     simp only [hs.mem_push, hs.mem_pull, List.map_map]
-    exact List.map_congr_left fun m _ ↦ memMsg_bump_toList m] at hbal
-  refine lookup_sound readKey_readBump readCount_readBump hbal (memBlock_good h) (memBlock_good h)
-    (readCount_ne h.counts_nonzero (Or.inl rfl) fun t ht row a ha ↦ ?_) ?_
-  · obtain ⟨s, hs, -⟩ := hsends t ht row
-    rw [hs.mem_pull, List.mem_map] at ha
-    obtain ⟨m, -, rfl⟩ := ha
-    rw [Vector.size_toArray]
-    decide
-  · rw [List.length_map]
-    refine lt_of_le_of_lt (length_rowsOn_le (L := 2 ^ 32) (n := 9) (fun t ht ↦
-      length_table_le h.caps t (List.mem_of_mem_take ht)) fun t ht row ↦ ?_) ?_
-    · obtain ⟨s, hs, hlen⟩ := hsends t ht row
-      rw [hs.mem_pull, List.length_map]
-      exact hlen
-    · exact lt_of_le_of_lt (Nat.mul_le_mul_right _ (List.length_take_le _ _)) (by norm_num)
+    exact List.map_congr_left fun m _ ↦ memMsg_bump_toList m
+  have hbal := List.Perm.map Array.toList (h.perm memChannel_mem)
+  rw [messagesOn_memChannel w .push, messagesOn_memChannel w .pull, List.map_append,
+    List.map_append, hpush] at hbal
+  have hreads := lookup_sound readKey_readBump readCount_readBump hbal (memBlock_good h)
+    (memBlock_good h)
+    (readCount_ne h.counts_nonzero (Or.inl rfl) fun t ht row a ha ↦ by
+      obtain ⟨s, hs, -⟩ := hsends t ht row
+      rw [hs.mem_pull, List.mem_map] at ha
+      obtain ⟨m, -, rfl⟩ := ha
+      rw [Vector.size_toArray]
+      decide) (by
+      rw [List.length_map]
+      refine lt_of_le_of_lt (length_rowsOn_le (L := 2 ^ 32) (n := 9) (fun t ht ↦
+        length_table_le h.caps t (List.mem_of_mem_take ht)) fun t ht row ↦ ?_) ?_
+      · obtain ⟨s, hs, hlen⟩ := hsends t ht row
+        rw [hs.mem_pull, List.length_map]
+        exact hlen
+      · exact lt_of_le_of_lt (Nat.mul_le_mul_right _ (List.length_take_le _ _)) (by norm_num))
+  intro l hl
+  rw [messagesOn_memChannel w d, List.map_append, List.mem_append] at hl
+  rcases hl with hl | hl
+  · cases d
+    · rw [hpush] at hl
+      exact good_of_bump hreads l hl
+    · exact hreads l hl
+  · exact memBlock_good h l hl
 
-/-- Specification Theorem 6.4 and Corollary 6.5 on the memory pair: in a witness of the
-constraint statement, every pulled memory tuple, the six tables' reads and the memory block's
-finalizes, is a correct read of the image the data names; in particular its address is in
-range. -/
-theorem mem_channel_sound {w : EnsembleWitness (leanIsaEnsemble prog)}
+/-- Specification Theorem 6.4 and Corollary 6.5 on the memory channel: in a witness of the
+constraint statement, every memory tuple, pulled or pushed (the six tables' reads and their
+pushes, the memory block's seeds and finalizes), is a correct read of the image the data names;
+in particular its address is in range. -/
+theorem mem_channel_sound {w : EnsembleWitness (leanIsaEnsemble prog κ)}
     (h : SatisfiedBy prog input w) :
-    ∀ i ∈ w.interactions, i.channel.name = MemPull.name →
-      ∀ m : MemMsg K, i.msg = (toElements m).toArray → MemPull.Guarantees m w.data := by
+    ∀ i ∈ w.interactions, i.channel.name = MemChannel.name →
+      ∀ m : MemMsg K, i.msg = (toElements m).toArray → MemChannel.Guarantees m w.data := by
   intro i hi hname m hm
-  have hmem : i.msg ∈ messagesOn w MemPull.toRaw :=
-    List.mem_map_of_mem (List.mem_filter.mpr ⟨hi, decide_eq_true hname⟩)
-  rw [messagesOn_memChannel w (Or.inl rfl), List.mem_append] at hmem
-  have hgood : MemGood w (readKey i.msg.toList) := by
-    rcases hmem with hmem | hmem
-    · exact memReads_good h _ (List.mem_map_of_mem hmem)
-    · exact memBlock_good h _ (List.mem_map_of_mem hmem)
-  obtain ⟨j, hj⟩ := hgood
-  rw [hm, readKey_memMsg, List.cons.injEq] at hj
-  obtain ⟨haddr, hv⟩ := hj
-  have hv' : m.v = #v[((imageOf w.data).2 j).limb 0, ((imageOf w.data).2 j).limb 1,
-      ((imageOf w.data).2 j).limb 2] := Vector.toList_inj.mp hv
+  obtain ⟨j, v, hk, hv⟩ := memMsgs_good h i.direction _
+    (List.mem_map_of_mem (mem_messagesOn_of_mem_interactions hi (c := MemChannel.toRaw) hname))
+  rw [hm, readKey_memMsg, List.cons.injEq] at hk
+  obtain ⟨haddr, hv'⟩ := hk
+  obtain rfl : m.v = v := Vector.toList_inj.mp hv'
   show (imageOf w.data).2.read m.addr = some (E.ofLimbs m.v[0] m.v[1] m.v[2])
-  have hκ : (imageOf w.data).1 < 64 := lt_of_le_of_lt (Nat.min_le_right _ _) (by decide)
-  rw [haddr, hv', MemImage.read_gpow hκ]
-  exact congrArg some (ofLimbs_limb _).symm
+  rw [haddr, MemImage.read_gpow (imageOf_fst_lt _), hv]
 
 /-! ## The bytecode lookup -/
 
@@ -380,75 +402,75 @@ private theorem readKey_bytecodeMsg (m : BytecodeMsg K) :
 private def BytecodeGood (prog : Program) (k : List K) : Prop :=
   ∃ i : Fin (2 ^ prog.logSize), k = gpow i :: (entry (prog.code i)).toList
 
-/-- Every message of the bytecode block has a good key. -/
-private theorem bytecodeBlock_good {w : EnsembleWitness (leanIsaEnsemble prog)}
-    (h : SatisfiedBy prog input w) {c : RawChannel K} :
-    ∀ l ∈ (rowsOn [tableAt w 7] c).map Array.toList, BytecodeGood prog (readKey l) := by
-  obtain ⟨cntFin, hrows⟩ := h.bytecode_rows
+/-- Every message of the bytecode block has a good key: row `i` sits at the fixed counter `g^i`
+and holds the program's entry at slot `i`, the fixed columns. -/
+private theorem bytecodeBlock_good (w : EnsembleWitness (leanIsaEnsemble prog κ))
+    {c : RawChannel K} {d : BusDir} :
+    ∀ l ∈ (rowsOn [tableAt w 7] c d).map Array.toList, BytecodeGood prog (readKey l) := by
+  obtain ⟨-, hrows⟩ := bytecodeBlock_rows w
   intro l hl
   obtain ⟨a, ha, rfl⟩ := List.mem_map.mp hl
   simp only [rowsOn, List.flatMap_cons, List.flatMap_nil, List.append_nil] at ha
   obtain ⟨row, hrow, ha⟩ := List.mem_flatMap.mp ha
-  have hrow' : row ∈ bytecodeBlockRows w := hrow
-  rw [hrows, List.mem_ofFn] at hrow'
-  obtain ⟨i, rfl⟩ := hrow'
-  have hr := rowAt_toElements (tableAt w 7).data (bytecodeRowOf prog i (cntFin i))
-  rw [bytecodeBlock_rowMessagesOn (tableAt_seven_component w) _ hr] at ha
-  refine ⟨i, ?_⟩
-  have he : #v[(bytecodeRowOf prog i (cntFin i)).opcode] ++ (bytecodeRowOf prog i (cntFin i)).op =
-      entry (prog.code i) := by
-    ext j hj
-    interval_cases j <;> rfl
+  obtain ⟨i, hi, rfl⟩ := List.mem_iff_getElem.mp hrow
+  obtain ⟨k, hk, hidx, he⟩ := hrows i hi
+  rw [bytecodeBlock_rowMessagesOn (tableAt_seven_component w) _
+    (r := bytecodeRowAt w (bytecodeBlockRows w)[i])
+    (by rw [Air.Flat.Table.environment, tableAt_data]; rfl)] at ha
+  refine ⟨k, ?_⟩
   split_ifs at ha <;> simp only [List.mem_singleton, List.not_mem_nil] at ha <;> subst ha <;>
-    rw [readKey_bytecodeMsg] <;> exact congrArg _ (congrArg Vector.toList he)
+    rw [readKey_bytecodeMsg, hidx, hk] <;> exact congrArg _ (congrArg Vector.toList he)
 
-/-- In a witness of the statement, every bytecode read of the six opcode tables reads the
-program: the bytecode pair, the counts and the caps, through Theorem 6.4. -/
-private theorem bytecodeReads_good {w : EnsembleWitness (leanIsaEnsemble prog)}
-    (h : SatisfiedBy prog input w) :
-    ∀ l ∈ (rowsOn (w.tables.take 6) BytecodePull.toRaw).map Array.toList,
+/-- In a witness of the statement, every message on the bytecode channel has a good key: the
+balance of the channel, the counts and the caps, through Theorem 6.4. -/
+private theorem bytecodeMsgs_good {w : EnsembleWitness (leanIsaEnsemble prog κ)}
+    (h : SatisfiedBy prog input w) (d : BusDir) :
+    ∀ l ∈ (messagesOn w BytecodeChannel.toRaw d).map Array.toList,
       BytecodeGood prog (readKey l) := by
   have hsends := exists_sendsOpcode w
-  have hbal := List.Perm.map Array.toList h.bytecode_balanced
-  rw [messagesOn_bytecodeChannel w (Or.inr rfl), messagesOn_bytecodeChannel w (Or.inl rfl),
-    List.map_append, List.map_append, rowsOn_push_eq (pull := BytecodePull.toRaw) fun t ht row ↦ by
+  have hpush := rowsOn_push_eq (w := w) (c := BytecodeChannel.toRaw) fun t ht row ↦ by
     obtain ⟨s, hs, -⟩ := hsends t ht row
     rw [hs.bytecode_push, hs.bytecode_pull, List.map_singleton, List.map_singleton,
-      Function.comp_apply, bytecodeMsg_bump_toList]] at hbal
-  refine lookup_sound readKey_readBump readCount_readBump hbal (bytecodeBlock_good h)
-    (bytecodeBlock_good h)
-    (readCount_ne h.counts_nonzero (Or.inr rfl) fun t ht row a ha ↦ ?_) ?_
-  · obtain ⟨s, hs, -⟩ := hsends t ht row
-    rw [hs.bytecode_pull, List.mem_singleton] at ha
-    subst ha
-    rw [Vector.size_toArray]
-    decide
-  · rw [List.length_map]
-    refine lt_of_le_of_lt (length_rowsOn_le (L := 2 ^ 32) (n := 1) (fun t ht ↦
-      length_table_le h.caps t (List.mem_of_mem_take ht)) fun t ht row ↦ ?_) ?_
-    · obtain ⟨s, hs, -⟩ := hsends t ht row
-      rw [hs.bytecode_pull, List.length_singleton]
-    · exact lt_of_le_of_lt (Nat.mul_le_mul_right _ (List.length_take_le _ _)) (by norm_num)
+      Function.comp_apply, bytecodeMsg_bump_toList]
+  have hbal := List.Perm.map Array.toList (h.perm bytecodeChannel_mem)
+  rw [messagesOn_bytecodeChannel w .push, messagesOn_bytecodeChannel w .pull, List.map_append,
+    List.map_append, hpush] at hbal
+  have hreads := lookup_sound readKey_readBump readCount_readBump hbal (bytecodeBlock_good w)
+    (bytecodeBlock_good w)
+    (readCount_ne h.counts_nonzero (Or.inr rfl) fun t ht row a ha ↦ by
+      obtain ⟨s, hs, -⟩ := hsends t ht row
+      rw [hs.bytecode_pull, List.mem_singleton] at ha
+      subst ha
+      rw [Vector.size_toArray]
+      decide) (by
+      rw [List.length_map]
+      refine lt_of_le_of_lt (length_rowsOn_le (L := 2 ^ 32) (n := 1) (fun t ht ↦
+        length_table_le h.caps t (List.mem_of_mem_take ht)) fun t ht row ↦ ?_) ?_
+      · obtain ⟨s, hs, -⟩ := hsends t ht row
+        rw [hs.bytecode_pull, List.length_singleton]
+      · exact lt_of_le_of_lt (Nat.mul_le_mul_right _ (List.length_take_le _ _)) (by norm_num))
+  intro l hl
+  rw [messagesOn_bytecodeChannel w d, List.map_append, List.mem_append] at hl
+  rcases hl with hl | hl
+  · cases d
+    · rw [hpush] at hl
+      exact good_of_bump hreads l hl
+    · exact hreads l hl
+  · exact bytecodeBlock_good w l hl
 
-/-- Specification Theorem 6.4 on the bytecode pair, in the strong form: in a witness of the
-constraint statement, every pulled bytecode tuple, the six tables' reads and the bytecode
-block's finalizes, is the public program's entry at the pulled counter `g^k`. It implies the
-pull's guarantee, that the entry decodes (`decode_entry`). -/
-theorem bytecode_channel_sound {w : EnsembleWitness (leanIsaEnsemble prog)}
+/-- Specification Theorem 6.4 on the bytecode channel, in the strong form: in a witness of the
+constraint statement, every bytecode tuple, pulled or pushed (the six tables' reads and their
+pushes, the bytecode block's seeds and finalizes), is the public program's entry at the tuple's
+counter `g^k`. It implies the channel's guarantee, that the entry decodes (`decode_entry`). -/
+theorem bytecode_channel_sound {w : EnsembleWitness (leanIsaEnsemble prog κ)}
     (h : SatisfiedBy prog input w) :
-    ∀ i ∈ w.interactions, i.channel.name = BytecodePull.name →
+    ∀ i ∈ w.interactions, i.channel.name = BytecodeChannel.name →
       ∀ m : BytecodeMsg K, i.msg = (toElements m).toArray →
         ∃ k : Fin (2 ^ prog.logSize), m.pc = gpow k ∧
           #v[m.opcode] ++ m.op = entry (prog.code k) := by
   intro i hi hname m hm
-  have hmem : i.msg ∈ messagesOn w BytecodePull.toRaw :=
-    List.mem_map_of_mem (List.mem_filter.mpr ⟨hi, decide_eq_true hname⟩)
-  rw [messagesOn_bytecodeChannel w (Or.inl rfl), List.mem_append] at hmem
-  have hgood : BytecodeGood prog (readKey i.msg.toList) := by
-    rcases hmem with hmem | hmem
-    · exact bytecodeReads_good h _ (List.mem_map_of_mem hmem)
-    · exact bytecodeBlock_good h _ (List.mem_map_of_mem hmem)
-  obtain ⟨k, hk⟩ := hgood
+  obtain ⟨k, hk⟩ := bytecodeMsgs_good h i.direction _ (List.mem_map_of_mem
+    (mem_messagesOn_of_mem_interactions hi (c := BytecodeChannel.toRaw) hname))
   rw [hm, readKey_bytecodeMsg, List.cons.injEq] at hk
   exact ⟨k, hk.1, Vector.toList_inj.mp hk.2⟩
 

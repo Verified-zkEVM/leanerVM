@@ -1,4 +1,5 @@
 import LeanerVM.Protocol.LeanIsa.Complete
+import LeanerVM.Protocol.LeanIsa.Conditions
 import LeanerVM.Protocol.Piop
 import LeanerVMTests.Arithmetization.Statement
 
@@ -27,25 +28,29 @@ open Air.Flat (EnsembleWitness)
 abbrev F₀ : FlockSpec := Blake2sFlock.blake2sFlockSpec
 
 /-- A witness satisfying the constraint system has its sizes. -/
-example (prog : Program) (input : PublicInput) (w : EnsembleWitness (leanIsaEnsemble prog))
+example (prog : Program) (input : PublicInput) (κ : ℕ)
+    (w : EnsembleWitness (leanIsaEnsemble prog κ))
     (h : SatisfiedBy prog input w) : ∃ s, Sizes.ofWitness w = some s :=
   sizes_of_satisfiedBy h
 
 /-- The adaptor's completeness at the BLAKE2s inhabitant. -/
-example (prog : Program) (input : PublicInput) (w : EnsembleWitness (leanIsaEnsemble prog))
+example (prog : Program) (input : PublicInput) (κ : ℕ)
+    (w : EnsembleWitness (leanIsaEnsemble prog κ))
     (s : Sizes) (h : SatisfiedBy prog input w) (hs : Sizes.ofWitness w = some s) :
     M3Holds (leanIsaInstance F₀ prog s) input (stackOf F₀ prog s w) :=
   m3Holds_stackOf h hs
 
 /-- The round trip: completeness, then soundness on admissible sizes. -/
-example (prog : Program) (input : PublicInput) (w : EnsembleWitness (leanIsaEnsemble prog))
+example (prog : Program) (input : PublicInput) (κ : ℕ)
+    (w : EnsembleWitness (leanIsaEnsemble prog κ))
     (s : Sizes) (h : SatisfiedBy prog input w) (hs : Sizes.ofWitness w = some s)
     (hadm : s.Admissible prog) :
     SatisfiedBy prog input (witnessOf F₀ prog s (stackOf F₀ prog s w)) :=
   satisfiedBy_witnessOf F₀ prog s _ hadm (m3Holds_stackOf h hs)
 
 /-- The witness read back has the witness's memory, bytecode block, public input and image. -/
-example (prog : Program) (input : PublicInput) (w : EnsembleWitness (leanIsaEnsemble prog))
+example (prog : Program) (input : PublicInput) (κ : ℕ)
+    (w : EnsembleWitness (leanIsaEnsemble prog κ))
     (s : Sizes) (h : SatisfiedBy prog input w) (hs : Sizes.ofWitness w = some s) :
     (witnessOf F₀ prog s (stackOf F₀ prog s w)).publicInput = w.publicInput ∧
       imageOf (witnessOf F₀ prog s (stackOf F₀ prog s w)).data = imageOf w.data :=
@@ -58,6 +63,11 @@ example : ∃ s q, M3Holds (leanIsaInstance F₀ LeanerVMTests.Arithmetization.S
   ⟨s, _, m3Holds_stackOf LeanerVMTests.Arithmetization.Statement.fill_satisfiedBy hs⟩
 
 /-! ## leanVM's oracle protocol at the leanISA instance -/
+
+/-- The instance meets the bus phase's conditions and the degree bound at every size. -/
+example (F : FlockSpec) (prog : Program) (s : Sizes) :
+    Bus.Conditions (leanIsaInstance F prog s) ∧ (leanIsaInstance F prog s).d ≤ 2 :=
+  ⟨leanIsa_conditions F prog s, le_rfl⟩
 
 example (F : FlockSpec) (prog : Program) (s : Sizes) {σ : Type} (init : ProbComp σ)
     (impl : QueryImpl []ₒ (StateT σ ProbComp)) :

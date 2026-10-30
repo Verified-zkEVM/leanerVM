@@ -116,8 +116,8 @@ at leanVM's sizes and constants (`ToArkLib/Flock/`, `Parameters/Flock.lean`); on
 #88, stacked on it, its knowledge soundness (`flockSecurity`, on the generic
 `ToArkLib/Flock/Security.lean` and the field facts of `Protocol/FlockFields.lean`). On the
 branches stacked on the oracle protocol's, the Clean bridge (`ToClean/ComponentPolynomial.lean`:
-`Expression.toCMvPolynomial` and `Component.toM3` with their two translation theorems, over a
-verbatim copy of Clean's expression polynomials in `ToClean/ExpressionPolynomial.lean`) and the
+`Expression.toCMvPolynomial` and `Component.toM3` with their two translation theorems, over
+Clean's expression polynomials `Clean.Circuit.ExpressionPolynomial`) and the
 adaptor: the leanISA instance with the deployed stack layout (`Protocol/LeanIsa.lean`:
 `leanIsaInstance`, `witnessOf`, `stackOf`, `leanIsa_conditions`), its soundness
 (`LeanIsa/Sound.lean`: `satisfiedBy_witnessOf`, which discharges `SatisfiedBy`'s BLAKE2s validity
@@ -613,11 +613,10 @@ pinned sources is [archived](../reviews/protocol-spine-revision.md).
 
 - **The Clean bridge (Layer 2)** is a Clean candidate (`ToClean/`), computable over CompPoly
   and written over Clean #466's `degreeBound`, `WithinWidth` and `toBoundedPolynomial` (claimed
-  by #28; on Clean's main, but in no Clean revision built for Lean 4.34). Until the pin contains
-  it, `ToClean/ExpressionPolynomial.lean` is a verbatim copy of Clean's module, deleted at the
-  bump (the watch list). Where it differs from the sketch:
-  - Tables are generic over the type of bus sides; leanISA's carry the arithmetization's
-    `Direction`, mapped to the spine's `Side` by the instance. The counted channels are a
+  by #28; upstream at the Clean pin `ce2eee63`, which the bridge imports; the verbatim copy
+  kept until then is deleted). Where it differs from the sketch:
+  - Tables are generic over the type of bus sides; leanISA's carry Clean's direction tag
+    (`BusDir`), mapped to the spine's `Side` by the instance. The counted interactions are a
     predicate, and the count columns are listed in column order, each once, as the Rust's
     `count_columns()` are.
   - Flushes drop Clean's multiplicities; `UnitMultiplicities`, which the kernel checks for
@@ -707,7 +706,6 @@ External work that may feed or replace a hole. The state of each is on GitHub.
 | ArkLib #848, #469, #627 | the compiled verifier | Fiat–Shamir and BCS statements | a chain-based transform with proof of work, which none of them is |
 | ArkLib issues #900, #901 | tables and stacking; the fingerprint | the requests for stacking and fingerprints upstream | when the pull requests open |
 | VCVio #571 | Merkle extraction with hashed leaves; the random-oracle theorems | `ToVCVio/MerkleLeaves.lean`; the reduction from an adversary with coins | VCVio proves extraction with hashed leaves, or for an adversary with coins |
-| Clean #466 (merged 2026-10-05), #474 | Clean expressions as polynomials | `ToClean/ExpressionPolynomial.lean`, a verbatim copy of Clean's module | a pin holds both #466 and #474's Lean 4.34 fix; then delete the copy and import `Clean.Circuit.ExpressionPolynomial` |
 | Clean #464, #20 | the adaptor | leanISA's `BalancedPair` | merged and the pin bumped |
 | Clean #446, #23 | the adaptor | the three fixed-column conjuncts | merged and the pin bumped |
 
