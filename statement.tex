@@ -400,35 +400,37 @@ verifier.
 
 \subsection{Soundness}
 
-\paragraph{The decoder.} The two soundness statements take a decoder as a parameter;
-\lean{LeanVM.theorems_hold} proves them for one decoder, $\mathrm{dec}$
-(\lean{LeanVM.Guest.End.decode}, in \lean{lean_vm}, outside \lean{Statement/} because its
-definitions reach the guest program's generated core code, about $471{,}000$ lines). The content
-lies in that decoder: one that picked another statement of the same digest would satisfy
-\lean{GuestKnowledge} only up to a Keccak-256 collision (\lean{DigestBinds}), so a reviewer reads it
-too. From the memory of an execution of $G$, $\mathrm{dec}$ reads a seed $\sigma'$, a statement $s'$
-and a witness $w'$: the statement and seed from \texttt{main}'s frame, and each signature, matrix,
-child proof and batching hint from the frame of the function that checked it. It finds that frame
-as the first of the memory's $2^\kappa$ frames where the guest program's own code for the function
-holds on the call's arguments and results. That test is the guest program's semantics, a classical
-definition, but the decoder makes no other choice: it computes no hash and runs no verifier (a test,
-\lean{LeanVMTests.Guest.DecodeNoChoice}, follows every definition it unfolds to and checks this).
+\paragraph{The decoder.} Both soundness statements take a decoder: a map from an execution of $G$
+to a seed $\sigma'$, a statement $s'$ and a witness $w'$. \lean{LeanVM.theorems_hold} proves them
+for one decoder, $\mathrm{dec}$ (\lean{LeanVM.Guest.End.decode}). It lives in \lean{lean_vm}, not
+\lean{Statement/}, because it unfolds to the guest program's generated core code (about
+$471{,}000$ lines). A reviewer must read it too: a decoder that returned another statement of the
+same digest would still satisfy \lean{GuestKnowledge}, up to a Keccak-256 collision
+(\lean{DigestBinds}).
 
-\paragraph{Execution level: no oracle, no probability.} For every public input $x$ and every valid
-execution $t$ of $G$ on $x$, with $(\sigma', s', w') = \mathrm{dec}(t)$:
+$\mathrm{dec}$ reads everything from the execution's memory: the seed and the statement from
+\texttt{main}'s frame, and each signature, matrix, child proof and batching hint from the frame of
+the function that checked it. That frame is the first of the memory's $2^\kappa$ frames on which the
+guest's own code for the function holds for the call's arguments and results. This search is the
+decoder's only choice, and it is the guest's semantics: the decoder computes no hash and runs no
+verifier. The test \lean{LeanVMTests.Guest.DecodeNoChoice} checks this by following every
+definition the decoder unfolds to.
+
+\paragraph{Execution level: no oracle, no probability.} Keccak-256 here is the real function the
+guest computes; nothing is idealized. For every public input $x$, every valid execution $t$ of $G$
+on $x$, and $(\sigma', s', w') = \mathrm{dec}(t)$:
 \begin{itemize}
-\item \lean{GuestKnowledge}: the execution proves the statement its public input commits to,
-that is, $\mathrm{dig}_{\sigma'}(s') = x$ and $\mathrm{NodeRel}(B, \sigma', s', w')$.
-\item \lean{DigestBinds} (no decoder): for every bytecode $B$, seeds $\sigma, \sigma_0$ and
-statements $s, s_0$ whose deferred claims have $B$'s shape, if $\mathrm{dig}_{\sigma}(s) =
-\mathrm{dig}_{\sigma_0}(s_0)$ then $(\sigma, s) = (\sigma_0, s_0)$, or one of three explicit pairs
-of byte strings, the inputs of the three hashes in $\mathrm{dig}$ (the outer hash and those of
-$\enc(\Cx)$ and $\enc(\Cs)$, \lean{collisionCandidates}; the DA digest enters the preimage as it is), is a
-Keccak-256 collision.
+\item \lean{GuestKnowledge}: $t$ proves the statement that $x$ commits to, that is,
+$\mathrm{dig}_{\sigma'}(s') = x$ and $\mathrm{NodeRel}(B, \sigma', s', w')$.
+\item \lean{DigestBinds} (no decoder): let $(\sigma, s)$ and $(\sigma_0, s_0)$ be seeds and
+statements whose deferred claims have the shape of a bytecode $B$. If $\mathrm{dig}_{\sigma}(s) =
+\mathrm{dig}_{\sigma_0}(s_0)$, then $(\sigma, s) = (\sigma_0, s_0)$, or Keccak-256 collides on one of
+three explicit pairs of inputs (\lean{collisionCandidates}): those of the outer hash, of
+$\enc(\Cx)$ and of $\enc(\Cs)$. The DA digest is not hashed again; it enters the outer preimage as
+it is.
 \end{itemize}
-Together they give \lean{decode_binds} (\lean{lean_vm}): the decoded $(\sigma', s')$ is any shaped
-$(\sigma_0, s_0)$ of digest $x$, up to such a collision. Here Keccak-256 is the real function the
-guest program computes; nothing is idealized.
+Together they give \lean{decode_binds} (\lean{lean_vm}): if a shaped $(\sigma_0, s_0)$ has digest
+$x$, then $\mathrm{dec}(t)$ decodes to $(\sigma_0, s_0)$, or one of the three pairs collides.
 
 \paragraph{Protocol level, in the RPM.} In the experiment of Section~\ref{sec:zkvm}, for every
 adversary making at most $Q \le 2^{128}$ queries to $\pi$ and $\pi^{-1}$:
