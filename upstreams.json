@@ -18,10 +18,10 @@
     "commit": "572f997390aa4fc131ef30b1186fa1dcf292ca10"
   },
   "Clean": {
-    "repository": "scaraven/clean",
+    "repository": "Verified-zkEVM/clean",
     "tracking": "branch",
-    "ref": "fix/namespace-direction-verifier",
-    "commit": "61c6e013e523f13cbe4eaddf3485ee8b7c87212e"
+    "ref": "main",
+    "commit": "ce2eee63870e258eb56b2d1c58083b579a584049"
   },
   "ArkLib": {
     "repository": "Verified-zkEVM/ArkLib",

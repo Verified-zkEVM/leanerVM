@@ -1,8 +1,8 @@
 # Status: leanISA semantics and M3 constraints
 
 **This branch** (`feat/leanisa-clean-equivalence`, 2026-10-29) ports Layers 5 to 10 to Clean main
-`9dd71e82` (fixed columns, Clean #446; direction-tagged multiset balance, Clean #493 and #495),
-pinned through the fork commit `61c6e013` that renames two names colliding with ArkLib (issue #183).
+`ce2eee63` (fixed columns, Clean #446; direction-tagged multiset balance, Clean #493 and #495;
+the names that collided with ArkLib moved out of the root namespace, Clean #497).
 The bus is three direction-tagged channels (`StateChannel`, `MemChannel`, `BytecodeChannel`),
 balanced by Clean's `Balance.multiset`; the memory and bytecode blocks are preallocated
 components with fixed columns (`memComponent κ`, its address column `gpowCell`;
@@ -19,7 +19,7 @@ input` (some witness at some memory log-size satisfies `SatisfiedBy`), `leanIsa_
 ValidExecution prog input t) → ∃ t, ValidExecution prog input t ∧ t.Fits`, since a witness at
 `κ = 32` leaves no room for the fill frames and a long run has no witness at all. Everything
 builds, the three protocol pieces once held by the name clash between Clean and ArkLib/VCVio
-included, at the fork pin `61c6e013` (C13 below, issue #183). The layer histories further down describe Layers 5 to 8 as they landed;
+included (C13 below). The layer histories further down describe Layers 5 to 8 as they landed;
 where they name the deleted declarations, this paragraph, the coverage table and the roadmap
 supersede them.
 
@@ -168,7 +168,7 @@ module (P3).
 | 2 — instructions, image, public input | landed (PR #8) | `gLog?` is noncomputable behind `gLog?_spec`, hypothesis `κ < 64`; `MemImage` is an `abbrev`; `Instr.opcode` added (see the frontier) |
 | 3 — `step`, `ValidExecution` | landed (PR #11) | Category A, written from §2 first and diffed against `execute.rs` afterwards (no new divergence); `Regs` equality by hand (E5); fixtures in a plain test file (decision 4); unchanged by F6, whose hypothesis sits on Layer 10; `Regs` made parametric in the field by PR #17 |
 | 4 — bytecode encoding | landed (PR #9) | `decode` is exact (`decode_eq_some_iff`): a nonzero spare slot is no instruction; `derefFlags` added for Layer 6; a `module`, no Clean |
-| 5 — channels | landed (PR #17); ported to Clean `9dd71e82` on this branch | a `module`; three direction-tagged channels `StateChannel`, `MemChannel`, `BytecodeChannel`, one per bus; a pull of multiplicity `1` is granted the guarantee and an active push owes it; the state channel guarantees nothing (decision 7), the memory channel the read of the image the data names, the bytecode channel decodability, program- and data-free (decision 14, F10); `channelSep` by name, `busTuple` and the `toElements` lemmas (decision 8); gadgets through `Channel.pull`/`Channel.push`, never `emit` (C10); the `"mem"` data is the memory block's rows (`memRows`), read by `imageOf_fst` and `imageOf_apply` in `getElem?` form; `Direction` (ours), `channelDir` and `WellShapedData` are deleted, and Clean's `ChannelDirection` (the fork's name, issue #183) is named only through `abbrev BusDir` (C13) |
+| 5 — channels | landed (PR #17); ported to Clean main on this branch | a `module`; three direction-tagged channels `StateChannel`, `MemChannel`, `BytecodeChannel`, one per bus; a pull of multiplicity `1` is granted the guarantee and an active push owes it; the state channel guarantees nothing (decision 7), the memory channel the read of the image the data names, the bytecode channel decodability, program- and data-free (decision 14, F10); `channelSep` by name, `busTuple` and the `toElements` lemmas (decision 8); gadgets through `Channel.pull`/`Channel.push`, never `emit` (C10); the `"mem"` data is the memory block's rows (`memRows`), read by `imageOf_fst` and `imageOf_apply` in `getElem?` form; `Direction` (ours), `channelDir` and `WellShapedData` are deleted, and Clean's `Channel.Direction` is named only through `abbrev BusDir` (C13) |
 | 6 — six tables | landed (PR #19); ported on this branch | `module`s; each table's `Spec` is `*Spec`, the relation `*Refines mem r next` (the row's bindings to an image, and `execute` of the instruction the row names) adapted to the prover data (decision 11, F8; program-free, decision 14); each table returns the state it pushes (`GeneralFormalCircuit K Row Regs`), has a `name`, and lists the three channels as `channelsWithRequirements`, its soundness proving what the pushes owe from what the pulls are granted; `opcodeGeneration` makes it a demand component; `Blake2sRelation` is the one named assumption; rows from executions by `*RowOf`; row tests are kernel checks against `E.ofLimbs` words (decision 4, settled) |
 | 7 — boundary blocks | landed (PR #21); ported on this branch | a `module`; each block is its two flushes with no constraint, a preallocated component with fixed columns: `memComponent κ` (height `2^κ`, address column `gpowCell`, row assumption `MemSeed` from the fixed column and the derived data, `memMode_fixedAt_iff`) and `bytecodeComponent prog` (counter and entry columns the program's, `bytecodeMode_fixedAt_iff`); a block's `Spec` is its pull guarantee (`MemSpec`; `BytecodeDecodes`, program-free; decision 12, F9; decision 14); the verifier is a Clean `Verifier.Program` of the public program pulling its sentinel as a constant (`leanIsaVerifier prog`, `verifier_pull_eval`), `Spec` `True`; the seed rows of every word and slot are built and accepted (`mem_word_complete`, `bytecode_entry_complete`) |
 | 8 — statement | landed (PR #24); ported on this branch | a `module`; `SatisfiedBy prog input w` over `w : EnsembleWitness (leanIsaEnsemble prog κ)`, named fields `public_input_eq`, `constraints`, `balanced : w.Balanced .multiset`, `counts_nonzero`, `caps`, `blake2s_valid`, `word0_eq`, `word1_eq`; `SatisfiedBy.perm` reads balance as a `List.Perm` of `messagesOn w c d`, channels by name and direction (Clean's `activeMessages`); `CountsNonzero` covers the six tables' read pulls; `Caps` bounds κ, the heights and the BLAKE2S floor (decision 8); the blocks' rows are read off the fixed columns and the derived data (`memBlock_rows`, `bytecodeBlock_rows`, `memRows_size`, `imageOf_data_fst`); `Blake2sRowsValid` is the one conjunct outside the bus (review finding A1), turned into `w.Assumptions` with the memory cap; `TraceExtraction prog` quantifies over κ; witnesses are built by `tableOf` and `witnessOfTables`; one hand-built witness for the executor's program with fill blocks, at `2^16` cells, never enumerated (E8), and the rejections, the shifted index column now rejected by the memory block's `FixedRowsMatch`; the Statement test builds in about 324 s, up from about 135 s, the kernel's time computing messages (C12) |
@@ -589,8 +589,7 @@ module (P3).
 - **Clean's bus is no longer an external item** for Layers 9–10: Clean main `9dd71e82` carries
   direction tags and `Balance.multiset` (Clean #493, #495; #16) and fixed columns (Clean PR
   [#446](https://github.com/Verified-zkEVM/clean/pull/446)), and this branch consumes all three.
-  The one Clean item left is the name clash of C13: the fork pin `61c6e013` carries the rename,
-  so everything builds, and issue #183 tracks the return to upstream once Clean #496 lands.
+  The name clash of C13 is resolved upstream (Clean #497), so no Clean item is left.
 - **Clean's VM theory does not replace the state walk** (`Clean/Air/Vm.lean`, assessed
   2026-10-29). `addVm` cannot take the place of `exists_run_of_balanced`: with the state
   channel's guarantee `True` its conclusion is vacuous, the counted memory is not a Clean sound
@@ -825,13 +824,11 @@ balance or of a row's messages first rewrites with `activeMessages_of_mults` (ev
 messages took the Statement test from about 135 s to about 324 s.
 **C13 Clean's root `Direction` and `Verifier` clash with ArkLib and VCVio** (2026-10-29): at
 `9dd71e82` Clean declares `Direction` and `def Verifier` at the root namespace, where ArkLib and
-VCVio have their own, so a module importing Clean and either library does not build. The pin
-is the fork commit `scaraven/clean@61c6e013`, `9dd71e82` plus the rename to `ChannelDirection`
-and `VerifierM` (Clean #496, issue #183), at which
+VCVio have their own, so a module importing Clean and either library does not build. Clean #497
+(`ce2eee63`, for Clean #496) moved them to `Channel.Direction` and `VerifierM`; at that pin
 `LeanerVM/Protocol/LeanIsa/Conditions.lean`, `LeanerVM/Protocol/LeanIsa/Refinement.lean` and
 `tests/LeanerVMTests/Protocol/LeanIsaComplete.lean` build. leanerVM names Clean's type only
-through `abbrev BusDir` (`LeanerVM/Arithmetization/Channels.lean`), so that the return to
-upstream touches one line.
+through `abbrev BusDir` (`LeanerVM/Arithmetization/Channels.lean`).
 **C8 Clean does not use Lean's module system**: no file under `Clean/` is a
 `module`, and `Lean.Environment.importModulesCore` in `v4.33.1` throws
 ``cannot import non-`module` Clean.Utils.FiniteField from `module` `` for any `import` or

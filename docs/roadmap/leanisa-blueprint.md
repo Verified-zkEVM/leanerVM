@@ -154,10 +154,9 @@ whose bit encoding disagrees with `BF64` and is never used.
 
 ### Clean
 
-The Clean contract is at `9dd71e82` (upstream main, with fixed columns #446, direction-tagged
-multiset balance #493 and #495), pinned through the fork commit `scaraven/clean@61c6e013`, which
-adds only the rename of Clean's root `Direction` and `Verifier` to `ChannelDirection` and
-`VerifierM` (issue #183); Layers 5 to 10 were ported to it from `93c9d1ef`, where the
+The Clean contract is at `ce2eee63` (upstream main, with fixed columns #446, direction-tagged
+multiset balance #493 and #495, and `Channel.Direction` and `VerifierM` out of the root namespace
+#497); Layers 5 to 10 were ported to it from `93c9d1ef`, where the
 channel pairs, `BalancedPair` and three named hypotheses of Layer 8 stood in for what Clean then
 lacked (status page, "Clean main").
 
@@ -165,7 +164,7 @@ lacked (status page, "Clean main").
 | --- | --- |
 | `FiniteField F` (`Clean/Utils/FiniteField.lean`) | The field interface every Clean object is generic over. Layer 0 supplies the `K` instance (`size = 2^64`). |
 | `GeneralFormalCircuit F Input Output` with `name`, `Assumptions`, `Spec`, `ProverAssumptions`, `soundness`, `completeness` (`Clean/Circuit/Formal.lean`) | One per table and per boundary block. Soundness: constraints, the circuit's `Assumptions` and the guarantees of pulled tuples imply `Spec` and the requirements of pushed tuples. Completeness: an honest row satisfies the constraints and the pull guarantees. |
-| `ChannelDirection` (`Direction` upstream; named here only through `abbrev BusDir`), `Channel F Message` with `name` and `Guarantees`, `Channel.pull`, `Channel.push`, `ChannelDirection.Requirements` (`Clean/Circuit/Channel.lean`, `Basic.lean`) | A bus channel; every interaction carries its direction as a tag, never as a multiplicity's sign. A pull of multiplicity `1` is granted `Guarantees`; an active push owes them. leanISA has three channels, one per bus (Layer 5). |
+| `Channel.Direction` (named here only through `abbrev BusDir`), `Channel F Message` with `name` and `Guarantees`, `Channel.pull`, `Channel.push`, `Channel.Direction.Requirements` (`Clean/Circuit/Channel.lean`, `Basic.lean`) | A bus channel; every interaction carries its direction as a tag, never as a multiplicity's sign. A pull of multiplicity `1` is granted `Guarantees`; an active push owes them. leanISA has three channels, one per bus (Layer 5). |
 | `ProverData F` (`Clean/Circuit/Expression.lean`), `ProverData.getRows` | The string-keyed store a component's `Spec` sees; in a witness it is derived from the tables' input rows, the image being the memory block's `"mem"` rows (Layer 5). The program is never in it. |
 | `ProvableStruct`, its deriving handler, `toElements` (`Clean/Circuit/Provable.lean`) | Typed messages as flat element vectors: `toElements` lists the fields in declaration order, a `Vector F n` field as its `n` elements in place. |
 | `Air.Flat.Component` with `generation` (`demand`, `preallocated`), `Assumptions`, `circuit_assumptions_of_assumptions`; `Air.Flat.Table` with `fixed_rows_match`, `data_consistent` (`Clean/Air/FlatComponent.lean`, `WitnessGeneration/Generation.lean`) | A component is one row circuit checked on every row. A preallocated component has a fixed height and fixed cells, verifier-known columns that every row agrees with; its circuit's `Assumptions` are derived from those cells and the derived data. The two blocks are preallocated; the six tables carry a guardless demand mode (`opcodeGeneration`) only because a component needs a `generation`: with Clean's default guard accepting every message, Clean's generator would put a row for every pushed state in all six tables, so it is metadata, not a witness generator. No theorem uses Clean's witness generator; the completeness witness is built from the trace. |
@@ -205,7 +204,7 @@ the state channel's walk decomposition is Layer 9's.
 | `DEREF` | Reads the pointer `fp·o1` (in `K`), the local `fp·o3` (in every mode), and the target `p·o2`; modes `(f_pc, f_fp) ∈ {(0,0), (1,0), (0,1)}`; `src(pc) = g²·pc`. |
 | `JUMP` | The three `K` assertions are unconditional; taken iff `c ≠ 0`; flags `b = c·w`, `c·(b + 1) = 0`. |
 | `BLAKE2S` | Tree-mode compression with both flags, each a 32-bit word (`0xFFFFFFFF` when set), never a `Bool`; metadata `counter = limb 0`, `final = low 32 bits of limb 1`, `last_node = high 32 bits of limb 1`; all nine cells canonical 128-bit; word order transcribed from the Rust. |
-| Bus | One Clean channel per bus, three in all (`StateChannel`, `MemChannel`, `BytecodeChannel`, named `"state"`, `"memory"`, `"bytecode"`); each names its domain separator (`g^0`, `g^1`, `g^2`, `channelSep`); the direction of an interaction is Clean's tag (`ChannelDirection.push`, `ChannelDirection.pull`), never a multiplicity's sign; tuples are typed messages in the specification's coordinate order, and `busTuple` is their sixteen-slot form; `read(addr, count, v)` = pull `(addr, count, v)`, push `(addr, g·count, v)` on one channel; a pull of multiplicity `1` is granted the channel's guarantee and an active push owes it; balance is Clean's `Balance.multiset` on every channel, a `List.Perm` of the active pushes' and pulls' messages (`SatisfiedBy.perm`), a channel identified by its name. |
+| Bus | One Clean channel per bus, three in all (`StateChannel`, `MemChannel`, `BytecodeChannel`, named `"state"`, `"memory"`, `"bytecode"`); each names its domain separator (`g^0`, `g^1`, `g^2`, `channelSep`); the direction of an interaction is Clean's tag (`Channel.Direction.push`, `Channel.Direction.pull`), never a multiplicity's sign; tuples are typed messages in the specification's coordinate order, and `busTuple` is their sixteen-slot form; `read(addr, count, v)` = pull `(addr, count, v)`, push `(addr, g·count, v)` on one channel; a pull of multiplicity `1` is granted the channel's guarantee and an active push owes it; balance is Clean's `Balance.multiset` on every channel, a `List.Perm` of the active pushes' and pulls' messages (`SatisfiedBy.perm`), a channel identified by its name. |
 | Program | Public, never prover data, never a parameter of a channel or a table (§6.4; `layout.rs:288-290`, `Coord::Public`; `tables.rs:143-152`, an AIR's bytecode flush is its constant opcode and its own operand columns): the channels and the six tables are program-free, the bytecode guarantee is static decodability, and the program enters in two places, the fixed counter and entry columns of the bytecode block `bytecodeComponent prog` and the verifier `leanIsaVerifier prog`, so the ensemble is `leanIsaEnsemble prog κ` and the statement `SatisfiedBy prog`. `ProverData` is derived from the witness's tables, and a guarantee reads it only through the image, its `"mem"` table, the memory block's rows (acceptance test 22, decision 14). |
 | Boundary blocks | Three objects owned by no table (§8.5): the memory and bytecode blocks, preallocated Clean components (`memComponent κ` of height `2^κ`, `bytecodeComponent prog` of height `2^prog.logSize`) whose index column is fixed to `g^i` (`gpowCell`, leanVM's `index_mle`) and, for bytecode, whose entry columns are fixed to the program's (`entryCell`), push `(idx, 1, entry)` and pull `(idx, cntFin, entry)` per row; the verifier `leanIsaVerifier prog`, a Clean `Verifier.Program`, pushes `(1, 1)` and pulls `(prog.finalPc, 1)`, both constants, the counter the public program's as in `layout(prog, …)`; none has a constraint. A block's `Spec` is its pull guarantee, the verifier's `True` (acceptance test 21). `PublicIO` is the four input lanes; the ensemble is `leanIsaEnsemble prog κ`. |
 | Opcode codes | `g^0 … g^5` in the order XOR, MUL_NATIVE, SET_CONSTANT, DEREF, JUMP, BLAKE2S. |
@@ -546,12 +545,12 @@ theorem bytecodeMsg_toElements (b : BytecodeMsg K) :                            
 ```
 
 leanVM has three buses, one per domain separator, and so has the Lean: one Clean channel each.
-Every interaction carries Clean's direction tag, `ChannelDirection.push` or
-`ChannelDirection.pull`; the direction is never read off a multiplicity's sign, which over `K`
+Every interaction carries Clean's direction tag, `Channel.Direction.push` or
+`Channel.Direction.pull`; the direction is never read off a multiplicity's sign, which over `K`
 carries none (`-1 = 1`, acceptance test 13). The two read gadgets emit through `Channel.pull` and `Channel.push`, both
 of multiplicity `1`, never `Channel.emit`, so every interaction of Layers 6 and 7 has
 multiplicity `1`. What a pull of multiplicity `1` is granted is the channel's `Guarantees`, and
-what an active push owes is the same proposition (Clean's `ChannelDirection.Requirements`).
+what an active push owes is the same proposition (Clean's `Channel.Direction.Requirements`).
 
 A pulled memory tuple is a correct read of the committed image: the whole of specification
 Theorem 6.4 for the memory channel, since the image lives nowhere but the data. A pulled
@@ -1421,7 +1420,7 @@ witness that rejects it. Where the witness is executable it is a test under `tes
     interaction's direction off its multiplicity `±1` would grant every component the guarantee
     on its own pushes and make every requirement vacuous. Witness: a component that pushes an
     unreachable state passes such a soundness theorem. Clean's direction tag
-    (`ChannelDirection.push`, `ChannelDirection.pull`), under which a pull of multiplicity `1` is
+    (`Channel.Direction.push`, `Channel.Direction.pull`), under which a pull of multiplicity `1` is
     granted the channel's guarantee and an active push owes it (Layer 5), is the accepted form.
 14. **Balance counts in `ℕ`.** A message pushed twice and never pulled has field-sum balance
     `2 = 0` in `K`. Balance is Clean's `Balance.multiset`, a `List.Perm` of the active

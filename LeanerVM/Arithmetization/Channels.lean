@@ -44,14 +44,14 @@ tuples again (issue #13).
 
 **The channels** (Category A: specification §6, Theorem 6.4 and Corollary 6.5). leanVM has exactly
 three buses, one per separator, and so does the Lean: `StateChannel`, `MemChannel` and
-`BytecodeChannel`. Every interaction carries Clean's direction tag (`ChannelDirection.push` or
-`ChannelDirection.pull`), never read off the sign of a multiplicity, which carries none over `K`
+`BytecodeChannel`. Every interaction carries Clean's direction tag (`Channel.Direction.push` or
+`Channel.Direction.pull`), never read off the sign of a multiplicity, which carries none over `K`
 (`-1 = 1`, acceptance test 13). A read is `pull (addr, count, v)` then `push (addr, g·count, v)`
 on one channel (§6.2 "Flush rules"); the lookup theorem says that when the bus balances, every
 count is nonzero, and there are fewer than `2^64 - 1` reads, every pulled memory tuple is a
 correct read of the committed image and every pulled bytecode tuple is an entry of the public
 program. What a pull of multiplicity `1` may assume locally is the channel's `Guarantees`, and
-what an active push owes is the same proposition (Clean's `ChannelDirection.Requirements`):
+what an active push owes is the same proposition (Clean's `Channel.Direction.Requirements`):
 `MemChannel` states the whole lookup fact, `MemImage.read` of the image named by the prover
 data, since the image is committed and lives nowhere else; `BytecodeChannel` states only that the
 entry decodes, through Layer 4's `decode`, to an instruction, a static fact about the tuple that
@@ -129,7 +129,7 @@ open LeanerVM.Parameters LeanerVM.Semantics
 
 /-- The direction of a bus interaction, Clean's tag (`.push` or `.pull`); the one place leanerVM
 names Clean's type. -/
-abbrev BusDir : Type := ChannelDirection
+abbrev BusDir : Type := Channel.Direction
 
 /-- The memory tuple after its separator: `(addr, count, v₀, v₁, v₂)`, a read of the word
 `v = v₀ + v₁·y + v₂·y²` at address `addr` with count `count` (specification §6.2, §6.3). -/

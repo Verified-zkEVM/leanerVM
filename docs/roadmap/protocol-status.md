@@ -613,7 +613,7 @@ pinned sources is [archived](../reviews/protocol-spine-revision.md).
 
 - **The Clean bridge (Layer 2)** is a Clean candidate (`ToClean/`), computable over CompPoly
   and written over Clean #466's `degreeBound`, `WithinWidth` and `toBoundedPolynomial` (claimed
-  by #28; upstream at the Clean pin `9dd71e82`, which the bridge imports; the verbatim copy
+  by #28; upstream at the Clean pin `ce2eee63`, which the bridge imports; the verbatim copy
   kept until then is deleted). Where it differs from the sketch:
   - Tables are generic over the type of bus sides; leanISA's carry Clean's direction tag
     (`BusDir`), mapped to the spine's `Side` by the instance. The counted interactions are a
