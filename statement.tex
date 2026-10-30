@@ -14,7 +14,7 @@
 \emergencystretch=3em
 \setlength{\parskip}{0.35em}
 \title{What is proved about leanVM}
-\author{leanerVM, branch \texttt{mumbai}, about leanVM \texttt{93ebecc5}}
+\author{leanerVM, branch \texttt{mumbai}, about leanVM \texttt{c445e3d5}}
 \date{29 October 2026}
 \begin{document}
 \maketitle
@@ -25,7 +25,7 @@ data-availability claims and other proofs, is sound and complete as an aggregati
 and leanSPHINCS are strongly unforgeable; and LeanDA binds its commitments. Each is a Lean~4
 proposition proved using only Lean's three axioms (\lean{propext}, \lean{Classical.choice},
 \lean{Quot.sound}): no \lean{sorry}, no \lean{native_decide}, no added axiom. The system is
-leanVM at commit \texttt{93ebecc5} of its \texttt{main} branch.
+leanVM at commit \texttt{c445e3d5} of its \texttt{main} branch.
 
 \paragraph{Where to read it.} The statements live in one folder, \lean{Statement/}: twelve files
 of definitions and end statements ($7048$ lines with their documentation), which import Mathlib,
@@ -302,7 +302,7 @@ about it. Every definition named here is in \lean{Statement/LeanVmGuest.lean} un
 \subsection{The objects}
 
 \paragraph{The guest program} $G$ (\lean{LeanVM.Guest.guest}) is leanVM's compiled aggregation
-program (\texttt{crates/rec\_aggregation/guests/lean\_ethereum.py} at \texttt{93ebecc5}),
+program (\texttt{crates/rec\_aggregation/guests/lean\_ethereum.py} at \texttt{c445e3d5}),
 transcribed as generated data (\lean{Statement/Data/}). Its bytecode $B$ has $2^{19}$ instruction
 slots of $16$ words of $\mathbb{F} = \mathrm{GF}(2^{64})$, so $2^{23}$ words
 (\lean{bytecode_length}, in \lean{lean_vm}). Below, $H$ is Keccak-256 and
@@ -381,8 +381,9 @@ value is left to the outer verifier); otherwise $\mathrm{batch}\big((\mathrm{dig
 f_i, c_i)_i, \text{hints}\big) = c$ (\lean{batch}), with $c_i$ the deferred claim of $s_i$. The
 batching is a Fiat--Shamir transcript on Keccak-f[1600], seeded from the hash of the label
 \texttt{leanvm/recursion-aggregation/v1}: it absorbs the number of children, then each child's
-digest and two claims; squeezes two coefficients $\lambda_i, \lambda'_i \in \mathbb{E}$ per child;
-and runs one degree-$2$ sumcheck reducing $\sum_i (\lambda_i v_i + \lambda'_i v'_i)$, with $v_i$
+digest and two claims; squeezes one challenge $\lambda \in \mathbb{E}$, whose powers batch the
+claims (\lean{lambdaPowers}); and runs one degree-$2$ sumcheck reducing
+$\sum_i (\lambda^{2i} v_i + \lambda^{2i+1} v'_i)$, with $v_i$
 the value of $f_i$ and $v'_i$ that of $c_i$, to one claim on $\widehat{B}$ at a new point.
 \end{enumerate}
 \lean{NodeRel} does \emph{not} say that a child's claims are true, only that the deferring verifier,
@@ -457,11 +458,14 @@ making $Q_A$ queries to $\pi$ and $\pi^{-1}$ outputs a proof. The probability th
 while its stream begins with fewer than $M$ children of the bytecode's shape, one of whose claims
 (fresh or carried) is false (\lean{FalseChildren}), is at most
 \[
-\boxed{\ (Q_A + Q_V + 1)\cdot 2^{-191} + 5\,(Q_A+Q_V)^2\cdot 2^{-256}\ }
+\boxed{\ (Q_A + Q_V + 1)\cdot M\cdot 2^{-191} + 5\,(Q_A+Q_V)^2\cdot 2^{-256}\ }
 \quad\text{for } Q_A \le 2^{128},\ Q_V \le 2^{96},
 \]
 where $Q_V$ (\lean{batchQueryBound}) is the batching's own query bound for $M$ children (about
-$2^{68}$ for the guest program's bytecode at $M = 2^{64}-1$; \lean{batch_sound_holds}).
+$2^{68}$ for the guest program's bytecode at $M = 2^{64}-1$; \lean{batch_sound_holds}). The factor
+$M$ is the one challenge $\lambda$: the $2n < 2M$ claims' gaps combined by its powers form a nonzero
+polynomial of degree below $2M$, which vanishes at fewer than $2M$ values of $\lambda$, against at
+most $2$ for a sumcheck round's challenge. For the guest program's $16$ children, $M = 17$.
 
 \subsection{What the soundness theorems do not give}\label{sec:notgive}
 
@@ -508,8 +512,8 @@ $\cnt{pad}$ rows ($2^{\lceil\log_2 \ell\rceil}$ for a matrix of $\ell$ rows), $\
 with $\cnt{childclaims}$ claims in all,
 and each child's announced stack log $\mu$ and rate exponent $r$. A run allocates at most
 \begin{multline*}
-W = 17777 + 35\cnt{decl} + 77\cnt{cover} + 6459\cnt{xmss} + 7328\cnt{sphincs} + 480944\cnt{da}
-  + 212653\cnt{rows} \\ + 17672\cnt{pad} + 13097\cnt{child} + 30\cnt{childclaims}
+W = 17789 + 35\cnt{decl} + 77\cnt{cover} + 6459\cnt{xmss} + 7328\cnt{sphincs} + 480944\cnt{da}
+  + 212653\cnt{rows} \\ + 17672\cnt{pad} + 12941\cnt{child} + 30\cnt{childclaims}
   + \sum_{\text{children}} \beta(\mu, r)
 \end{multline*}
 words, where $\beta(\mu,r)$, the words of verifying one child, is:
@@ -524,7 +528,8 @@ $r=4$ & 389193 & 393074 & 408904 & 413004 & 417160 & 423729 & 439992
 \end{center}
 The instructions of each opcode are bounded by linear forms of the same shape
 (\lean{Count.deployedInstrs}; for \texttt{KECCAK}, $25 + \cnt{decl} + 398\cnt{xmss} + 390\cnt{sphincs} + 6047\cnt{da} +
-2064\cnt{rows} + 129\cnt{pad} + 62\cnt{child} + \cnt{childclaims} + \sum \kappa(\mu, r)$ with $\kappa$ between $4922$ and $9979$). The
+2064\cnt{rows} + 129\cnt{pad} + 61\cnt{child} + \cnt{childclaims} + \sum \kappa(\mu, r)$ with
+$\kappa$ between $4922$ and $9979$). The
 budget's size is the committed size of Section~\ref{sec:zkvm} at these bounds: memory
 $2^{\max(\lceil\log_2 W\rceil, 20)}$ and each table's height the least power of two at least its
 bound (at least $2^9$ for \texttt{KECCAK}). These are proved bounds on the guest program's runs,
@@ -560,8 +565,8 @@ any $\mu \in [22,28]$ and $r \in [1,4]$.
 budget's size is at most $2^{28}$. Evaluating the budget also places under $2^{28}$ a leaf of up to
 $2550$ leanXMSS or $2252$ leanSPHINCS signatures (each declared once), and a node holding one DA
 matrix directly with up to $57$ rows. On leanVM's own aggregations of $16$ and $32$ blobs the
-budget's size is the measured committed size, $2^{26.486}$ and $2^{27.482}$ (at leanVM \texttt{990b9352} and
-\texttt{93ebecc5} alike).
+budget's size is the measured committed size, $2^{26.486}$ and $2^{27.482}$ (at leanVM
+\texttt{990b9352}, \texttt{93ebecc5} and \texttt{c445e3d5} alike).
 \item \lean{aggregate_complete_of} (\lean{lean_vm}, in the RPM): the execution so obtained,
 proved by the honest prover at $\rho \in [1,4]$ with $f \le 2^{64}$ nonces, is rejected with
 probability at most $\delta(f)$ of Section~\ref{sec:zkvm}.
@@ -615,10 +620,17 @@ Rust prover on the test corpus, and no complexity bound is proved.
 
 \section{Status}
 
-This document describes \texttt{mumbai}, about leanVM \texttt{93ebecc5}.
+This document describes \texttt{mumbai}, about leanVM \texttt{c445e3d5}.
 Recent changes, newest first:
 \begin{itemize}
-\item \texttt{c432f2bf}$\to$ this version ($7048 \to 7042$ lines): the model's oracles are $\pi$ and
+\item \texttt{85e22229}$\to$ this version, leanVM \texttt{93ebecc5}$\to$\texttt{c445e3d5}: the
+recursion's batching squeezes one challenge $\lambda$ and batches child $i$'s two claims with
+$\lambda^{2i}$ and $\lambda^{2i+1}$ (\lean{lambdaPowers}), in place of two independent coefficients
+per child. \lean{BatchSound}'s first term gains the factor $M$ ($(Q_A + Q_V + 1)\cdot M\cdot 2^{-191}$),
+and its query bound $Q_V$ loses the per-child squeezes. The guest program has $362{,}263$
+instructions (was $362{,}322$); its budget's base is $17789$ words (was $17777$), a child $12941$
+(was $13097$).
+\item \texttt{c432f2bf}$\to$\texttt{85e22229} ($7048 \to 7042$ lines): the model's oracles are $\pi$ and
 $\pi^{-1}$ alone (\lean{Common.KSpec}, was also Keccak-256); every party hashes with Keccak-256 over
 $\pi$ (\lean{Common.keccakK}), a hash of $n$ bytes counted as its $\lfloor n/136\rfloor + 1$ calls
 of $\pi$ as before, so the bounds are unchanged. leanVM's experiment uses the same oracles and

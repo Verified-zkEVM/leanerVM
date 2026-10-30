@@ -65,8 +65,8 @@ def numbers(g, certs):
     v['l5A0'] = fs('__loop4')
     v['l5A1'] = fs('__loop4') + 2 * v['ccC'] + SB('statement_digest')
     v['l5A2'] = v['ccS']
-    v['agA0'] = fs('aggregate_claims') + 97 + SB('batch_sumcheck__L23')
-    v['agA1'] = 32 + SK('__loop24') + SK('__loop25') + SK('__loop26')
+    v['agA0'] = fs('aggregate_claims') + 85 + SB('batch_sumcheck__L23')
+    v['agA1'] = 18 + SK('__loop24') + SK('__loop25') + SK('__loop26')
     base = (fs('main') + 283 + fs('exponent_tables') + 68 + 2 * (v['clC'] + fs('claim_list_digest'))
             + fs('__loop0') + fs('__loop1')
             + fs('__loop2') + fs('__loop3') + 2 * v['l5A0'] + (v['agA0'] + fs('aggregate_claims'))

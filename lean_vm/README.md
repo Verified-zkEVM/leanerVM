@@ -102,7 +102,7 @@ Every child of a node within `Limits` (caps agreeing, no zero challenge) announc
 
 | | base | declared | coverage | raw XMSS | raw SPHINCS | DA matrix | DA row | DA padded row | child | child's claim |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| words | 17801 | 35 | 77 | 6459 | 7328 | 480944 | 212653 | 17672 | 12955 + Bv(μ, r) | 30 |
+| words | 17789 | 35 | 77 | 6459 | 7328 | 480944 | 212653 | 17672 | 12941 + Bv(μ, r) | 30 |
 | `XOR` | 282 | 5 | 2 | 295 | 604 | 166673 | 65797 | 387 | 739 + V(μ, r) | 5 |
 | `MUL` | 204 | 2 | 26 | 243 | 361 | 119121 | 50158 | 3483 | 785 + V(μ, r) | 10 |
 | `SET` | 8846 | 1 | 8 | 206 | 481 | 4060 | 913 | 2193 | 129 + V(μ, r) | 2 |
