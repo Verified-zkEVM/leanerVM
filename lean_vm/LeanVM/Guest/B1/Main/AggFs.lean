@@ -17,7 +17,7 @@ public import LeanVM.Guest.B1.Common.Atoms
 # The batching's sponge
 
 * `batch_fs`: `Node.batch` (N:268) on the carried sponge (`Fs`): the seed's capacity absorbs the
-  batching's words (`aggAbs`), two squeezes per child (`sq2F`) give the lambdas (`aggLam`), and
+  batching's words (`aggAbs`), one squeeze's powers give the lambdas (`sqLF`, `aggLam`), and
   `bsRun` (B1-a) runs the sumcheck (`aggRun`); from G4's `Batch.batch_eq` and the carried
   sponge's operations (`carries_absorb`, `carries_squeeze`, `batchRounds_run`).
 * `RowRel rd p s`: thirteen words at `p` carry the sponge `s`, its capacity cells, then each
@@ -49,31 +49,21 @@ theorem carries_obsAll : ∀ (xs : List E) {s : Fs} {sp : Sponge}, s.Carries sp 
   | [], _, _, h => h
   | x :: xs, _, _, h => carries_obsAll xs (carries_absorb h x dsObserve)
 
-/-- Two squeezes per child on the carried sponge: the lambdas and the sponge after them. -/
-def sq2F : ℕ → Fs → List (E × E) × Fs
-  | 0, s => ([], s)
-  | n + 1, s =>
-    ((s.squeeze.1, s.squeeze.2.squeeze.1) :: (sq2F n s.squeeze.2.squeeze.2).1,
-      (sq2F n s.squeeze.2.squeeze.2).2)
+/-- One squeeze on the carried sponge, its powers the lambdas of `n` children: the lambdas and the
+sponge after the squeeze. -/
+def sqLF (n : ℕ) (s : Fs) : List (E × E) × Fs := (Batch.lambdaPowers s.squeeze.1 n, s.squeeze.2)
 
-theorem carries_sq2 : ∀ (n : ℕ) {s : Fs} {sp : Sponge}, s.Carries sp →
-    (Batch.sq2 n sp).1 = (sq2F n s).1 ∧ (sq2F n s).2.Carries (Batch.sq2 n sp).2
-  | 0, _, _, h => ⟨rfl, h⟩
-  | n + 1, s, sp, h => by
-    obtain ⟨e1, h1⟩ := carries_squeeze h
-    obtain ⟨e2, h2⟩ := carries_squeeze h1
-    obtain ⟨e3, h3⟩ := carries_sq2 n h2
-    have e1' : (Batch.sq sp).1 = s.squeeze.1 := e1
-    have e2' : (Batch.sq (Batch.sq sp).2).1 = s.squeeze.2.squeeze.1 := e2
-    have e3' : (Batch.sq2 n (Batch.sq (Batch.sq sp).2).2).1 = (sq2F n s.squeeze.2.squeeze.2).1 := e3
-    refine ⟨?_, h3⟩
-    simp only [Batch.sq2, sq2F, e1', e2', e3']
+theorem carries_sqL (n : ℕ) {s : Fs} {sp : Sponge} (h : s.Carries sp) :
+    (Batch.sqL n sp).1 = (sqLF n s).1 ∧ (sqLF n s).2.Carries (Batch.sqL n sp).2 := by
+  obtain ⟨e1, h1⟩ := carries_squeeze h
+  have e1' : (Batch.sq sp).1 = s.squeeze.1 := e1
+  exact ⟨by simp only [Batch.sqL, sqLF, e1'], h1⟩
 
 /-- The sponge after the batching's words. -/
 def aggAbs (cs : List ChildClaims) : Fs := aggS0.absorbAll (Batch.batchWords cs) dsObserve
 
 /-- The lambdas and the sponge after them. -/
-def aggLam (cs : List ChildClaims) : List (E × E) × Fs := sq2F cs.length (aggAbs cs)
+def aggLam (cs : List ChildClaims) : List (E × E) × Fs := sqLF cs.length (aggAbs cs)
 
 /-- The sumcheck's run: its challenges and final claim, and the sponge after it. -/
 def aggRun (cs : List ChildClaims) (h : BatchHints) : (List E × E) × Fs :=
@@ -86,13 +76,13 @@ theorem batch_fs (cs : List ChildClaims) (h : BatchHints) :
       then some ⟨(aggRun cs h).1.1, h.bytecodeValue⟩ else none := by
   rw [Batch.batch_eq]
   have hc := carries_obsAll (Batch.batchWords cs) carries_aggS0
-  obtain ⟨e1, h1⟩ := carries_sq2 cs.length hc
+  obtain ⟨e1, h1⟩ := carries_sqL cs.length hc
   obtain ⟨sp', -, hr⟩ := B1.batchRounds_run h.bytecodeRounds (Batch.claimBOf cs (aggLam cs).1)
     (aggLam cs).2 _ h1
   rw [Batch.batchRounds_run] at hr
-  have e1' : (Batch.sq2 cs.length (Batch.batchSponge cs)).1 = (aggLam cs).1 := e1
+  have e1' : (Batch.sqL cs.length (Batch.batchSponge cs)).1 = (aggLam cs).1 := e1
   have hr' : (Batch.rsRun h.bytecodeRounds (Batch.claimBOf cs (aggLam cs).1)
-      (Batch.sq2 cs.length (Batch.batchSponge cs)).2).1 = (aggRun cs h).1 := congrArg Prod.fst hr
+      (Batch.sqL cs.length (Batch.batchSponge cs)).2).1 = (aggRun cs h).1 := congrArg Prod.fst hr
   simp only [e1', hr']
 
 /-! ## Absorbing a block of four -/

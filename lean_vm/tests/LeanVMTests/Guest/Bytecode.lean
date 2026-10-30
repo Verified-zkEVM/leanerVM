@@ -16,7 +16,7 @@ open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest
 
 example : Data.functions.length = 879 := by decide +kernel
 
-example : Data.codeLen = 362322 := rfl
+example : Data.codeLen = 362263 := rfl
 
 /-- `verify_sig_lean_sphincs` is function 21. -/
 theorem sphincs_mem : Data.f21 ∈ Data.functions := mem_functions (j := 21) rfl
@@ -53,8 +53,8 @@ example : guest.fetch (gpow 9093) =
   guest_fetch_of (f := Data.f1) (mem_functions (j := 1) rfl) (i := 637) (by decide +kernel)
     (by decide +kernel) (by decide +kernel)
 
-/-- The first instruction of the program, in `__jump_tables`, `SET fp[406] = g^159159`. -/
-example : guest.fetch (gpow 0) = some (OInstr.set 406 6581576542741297422 0 0).toInstr :=
+/-- The first instruction of the program, in `__jump_tables`, `SET fp[406] = g^159148`. -/
+example : guest.fetch (gpow 0) = some (OInstr.set 406 13063652579795698784 0 0).toInstr :=
   guest_fetch_of (f := Data.f0) (mem_functions (j := 0) rfl) (i := 0) (by decide +kernel)
     (by decide +kernel) (by decide +kernel)
 

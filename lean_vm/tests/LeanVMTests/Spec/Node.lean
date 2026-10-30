@@ -27,6 +27,7 @@ import LeanVMTests.Spec.NodeVectors
   `aggregate_deferred_claims` (`crates/rec_aggregation/src/aggregation.rs`,
   `crates/fiat_shamir/src/lib.rs` at leanVM `4af2cdddd7cd41b9df2cc7e123e314a91b0b4462`, the
   statement's digest at `990b935263dc7f793f280914f262ca7955ddc3e0`, its one DA digest at
+  `93ebecc5f87ed7b1248a9772c392f9a41b6ac8d0`, the batching's one challenge and its powers at
   `c445e3d51a5a85031df47240595698f3b24897bf`) over the Python verifier's Keccak and field
   arithmetic (`python-verifier/verifier.py`). The batching's
   hints are the Python's honest sumcheck messages; Lean's transcript must squeeze the same
@@ -191,19 +192,19 @@ def children : List ChildClaims := [child 0, child 1]
 
 /-- The Python's honest hints. -/
 def hints : BatchHints :=
-  ⟨[(e 0x8c2d70f60243e79a 0xc604221e4e6170ac 0x4b961ef2ea7dca3b,
-      e 0xaab71fc1c2d8c201 0xf2a5da88ee7af659 0xf55524d6fa065909),
-    (e 0x9a0cfdfeb1def484 0xfe0a219b5b61f5b8 0x82451ce6ffe24475,
-      e 0x89779b56b548eb94 0x4f644d24c57655d2 0x327b5ce4f7f71108),
-    (e 0x8249c1015b71778c 0x3c56e312cd234c80 0x9c162cfb9963f7c7,
-      e 0x20ed2dfd4e8f49d9 0xd9144a11462fbd34 0x5dfd591542aa9e89)],
-    e 0xa251703b3383e44b 0x42efb5fc2363771d 0x2c293884ef51233d⟩
+  ⟨[(e 0x79aca609cbc240eb 0x330e9f31986a68a6 0x2f43cb09de086072,
+      e 0x57abf0bf21536352 0x3ff8403a19a4a63c 0x600534b9909e581d),
+    (e 0x7d3effa4172e13e9 0x8b06819b75f551ab 0xf0afa16df931e5e,
+      e 0x216085d8a973a048 0x4cc37560e3af5849 0x2c8fda88d7fb3af9),
+    (e 0xf83368c1d8fa9bca 0xf478bc5c6648a954 0x4beebcc7db2cf34a,
+      e 0x25d6c858a4d23316 0xe119ed795e599cc0 0x480cfbef0b9064fc)],
+    e 0x995dddb79c2b594e 0xcfb3c7bfe92b5a17 0x3316f45eb5224d6f⟩
 
 /-- The Python's batched point. -/
 def batchedPoint : List E :=
-  [e 0xcf8118b32526c5fb 0xdb85e357e0c4b7b0 0x5e5cded60e5d82b,
-    e 0xd0a309bc796bbc3e 0xa6d2913a9b2c5b37 0x884658faa61456ab,
-    e 0xe7e169cc4ae17a74 0x3b033358521f3357 0x6fc70155944f8469]
+  [e 0x1c3b3515c26e39cd 0xd7cd85ddc12e4340 0x71e5c1b1a9072741,
+    e 0xbc88ed94799e1144 0x6a3d395c0baa4ec 0x15e9d45adcaccac8,
+    e 0xf5e74cc7d330c218 0xb9f65ff472a53d28 0xf002b01726f8c7eb]
 
 #guard (batch children hints).map (·.bytecodePoint) = some batchedPoint
 #guard (batch children hints).map (·.bytecodeValue) = some hints.bytecodeValue

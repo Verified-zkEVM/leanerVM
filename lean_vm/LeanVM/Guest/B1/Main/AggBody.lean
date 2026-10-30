@@ -17,11 +17,13 @@ public import LeanVM.Guest.Batch.Def
 `aggregate_claims(n_children_g, child_pi, child_fresh, child_carried, defer_stmt)` (G:4229-4328):
 its body is its block `aggP`, then `ret []` (`agg_shape`). `aggOk` checks the block: the batching
 seed's capacity cells `AGG_SEED_*` and the packed count `n_children_g` with three zeros in row
-`0` of `absorb` (`.n 60`), the guarded loops `__loop24`, `__loop25`, `__loop26` and their tables
-(`lf = .n 7`, `lc = .n 8`, `lam = .n 71`, `sq = .n 79`, `w = .n 118`), the copy of the last
-absorbing row into row `0` of `sq` (running claim `0`), `batch_sumcheck__L23` on the last
-squeezing row with the rounds at `.n 5` and the point at `.n 104`, the check that its final claim
-is `bc_star_hint (.n 6)` times the weight, and the claim written at `defer_stmt`.
+`0` of `absorb` (`.n 60`), the guarded loop `__loop24` and its tables (`lf = .n 7`,
+`lc = .n 8`), the permutation of the last absorbing row (`.n 69`, `aggKi`, `aggKo`) and the
+challenge `λ` from it (`.n 106`, `challA`) with `λ²` (`.n 107`), record `0` of `bc_chain`
+(`.n 111`: power `1`, claim `0`), the guarded loops `__loop25` and `__loop26` (weights
+`w = .n 129`), `batch_sumcheck__L23` on the permutation's capacity with the rounds at `.n 5`, the
+last record's claim and the point at `.n 120`, the check that its final claim is
+`bc_star_hint (.n 6)` times the weight, and the claim written at `defer_stmt`.
 `seed_cells`: the five constants are the capacity cells of `Node.batchSeed` (G3's
 `aggSeed_cells`).
 -/
@@ -47,6 +49,14 @@ def seedLo : List (ℕ × ℕ) :=
     (14528471851986820829, 15194020773630548750), (6704907289165917069, 10885225211858021658),
     (10587785389206534793, 159208925504336485)]
 
+/-- The permutation of the last absorbing row (`fs_perm_pending`): its rate cells (four copied),
+then its capacity. -/
+def aggKi : List V := [.n 75, .n 76, .n 77, .n 78, .n 83, .n 84, .n 85, .n 86, .n 70, .n 71, .n 72,
+  .n 73, .n 74]
+
+/-- The permutation's outputs. -/
+def aggKo : List V := (List.range 13).map fun i => .n (87 + i)
+
 /-- **`aggregate_claims`' block, checked.** -/
 noncomputable def aggOk : Bool :=
   let P := aggP
@@ -61,20 +71,20 @@ noncomputable def aggOk : Bool :=
     A.any (isLoadAt (.n (22 + 10 * j)) (.n 60) (6 + 2 * j))) &&
   guardOk P (.n 62) "__loop24" (.n 63) (.n 0) [.n 60, .n 2, .n 7, .n 3, .n 8, .n 1] &&
   monoIs A (.n 69) (.n 60) (.n 0) 13 &&
-  (List.range 13).all (fun k => A.any (isLoadAt (.n (80 + k)) (.n 69) k) &&
-    A.any (isLoadAt (.n (80 + k)) (.n 79) k)) &&
-  A.any (isConstAt (.n 93) 0 0) && A.any (isLoadAt (.n 93) (.n 79) 13) &&
-  guardOk P (.n 95) "__loop25" (.n 96) (.n 0) [.n 79, .n 71, .n 7, .n 8] &&
-  monoIs A (.n 102) (.n 79) (.n 0) 14 && A.any (isLoadAt (.n 103) (.n 102) 13) &&
-  (List.range 5).all (fun i => A.any (isLoadAt (.n (105 + i)) (.n 102) i)) &&
-  hasCall P "batch_sumcheck__L23" [.n 105, .n 106, .n 107, .n 108, .n 109, .n 5, .n 103, .n 104]
-    [.n 110, .n 111, .n 112, .n 113, .n 114, .n 115] &&
-  A.any (isConstAt (.n 119) 0 0) && A.any (isLoadAt (.n 119) (.n 118) 0) &&
-  guardOk P (.n 121) "__loop26" (.n 122) (.n 0) [.n 7, .n 8, .n 104, .n 118, .n 71] &&
-  isMul A (.n 123) (.n 118) (.n 0) && A.any (isLoadAt (.n 124) (.n 123) 0) &&
-  isMul A (.n 125) (.n 6) (.n 124) && A.any (isAssertEqAt (.n 115) (.n 125)) &&
-  (List.range 23).all (fun k => A.any (isLoadAt (.n (126 + k)) (.n 104) k) &&
-    A.any (isLoadAt (.n (126 + k)) (.n 4) k)) &&
+  A.any (isKeccakAt aggKi aggKo false false) && rowInOk A (.n 69) aggKi &&
+  allIn A (challA (.n 87) (.n 88) 100) && isMul A (.n 107) (.n 106) (.n 106) &&
+  A.any (isConstAt (.n 112) 1 0) && A.any (isLoadAt (.n 112) (.n 111) 0) &&
+  A.any (isConstAt (.n 113) 0 0) && A.any (isLoadAt (.n 113) (.n 111) 1) &&
+  guardOk P (.n 115) "__loop25" (.n 116) (.n 0) [.n 111, .n 7, .n 8, .n 107, .n 106] &&
+  monoIs A (.n 118) (.n 111) (.n 0) 2 && A.any (isLoadAt (.n 119) (.n 118) 1) &&
+  hasCall P "batch_sumcheck__L23" [.n 95, .n 96, .n 97, .n 98, .n 99, .n 5, .n 119, .n 120]
+    [.n 121, .n 122, .n 123, .n 124, .n 125, .n 126] &&
+  A.any (isConstAt (.n 130) 0 0) && A.any (isLoadAt (.n 130) (.n 129) 0) &&
+  guardOk P (.n 132) "__loop26" (.n 133) (.n 0) [.n 7, .n 8, .n 120, .n 111, .n 129, .n 106] &&
+  isMul A (.n 134) (.n 129) (.n 0) && A.any (isLoadAt (.n 135) (.n 134) 0) &&
+  isMul A (.n 136) (.n 6) (.n 135) && A.any (isAssertEqAt (.n 126) (.n 136)) &&
+  (List.range 23).all (fun k => A.any (isLoadAt (.n (137 + k)) (.n 120) k) &&
+    A.any (isLoadAt (.n (137 + k)) (.n 4) k)) &&
   A.any (isLoadAt (.n 6) (.n 4) 23)
 
 set_option maxRecDepth 100000 in

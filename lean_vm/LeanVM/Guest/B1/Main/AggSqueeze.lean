@@ -12,15 +12,15 @@ public import LeanVM.Guest.B1.Main.AggAbsorb
 /-!
 # `__loop25` and `__loop26`
 
-* `l26_step` (`__loop25`, core function `395`): iteration `x = g^c` permutes the sponge its row of
-  fourteen words carries (`sqT·x^14`), squeezes `λ_fresh` and `λ_carried` (stored at
-  `lam·x^2`), writes the row after them (an empty queue), and its running claim (word `13`) plus
-  `λ_fresh · fresh[23] + λ_carried · carried[23]` of the child's claims (through the pointer
-  tables `lf`, `lc`) into word `13` of the next row (`L26Step`).
-* `l27_step` (`__loop26`, core function `397`): iteration `x = g^c` adds
-  `λ_fresh · eq(fresh, r) + λ_carried · eq(carried, r)` to the running weight `w[c]` into
-  `w[c + 1]`, `r` the `23` coordinates at `pt` (`L27Step`); the equality polynomials are products
-  `Π (1 + p_j + r_j)` checked by evaluation (`eqChainOk`).
+* `l26_step` (`__loop25`, core function `375`): iteration `x = g^c` reads record `c` of
+  `bc_chain` (`chain·x^2`, two words: `λ`'s power `λ^(2c)` and the running claim), writes the
+  power times `λ²` into word `2` (record `c + 1`'s power) and the running claim plus the power
+  times `fresh[23] + λ · carried[23]` of the child's claims (through the pointer tables `lf`,
+  `lc`) into word `3` (record `c + 1`'s claim) (`L26Step`).
+* `l27_step` (`__loop26`, core function `377`): iteration `x = g^c` adds
+  `p · (eq(fresh, r) + λ · eq(carried, r))` to the running weight `w[c]` into `w[c + 1]`, `p`
+  record `c`'s power, `r` the `23` coordinates at `pt` (`L27Step`); the equality polynomials are
+  products `Π (1 + p_j + r_j)` checked by evaluation (`eqChainOk`).
 -/
 
 namespace LeanVM.Guest.B1.Main
@@ -67,44 +67,21 @@ theorem chal_sound {s0 s1 : V} {b : ℕ} (h : allIn atoms (challA s0 s1 b) = tru
   ((holds_challengeT (C := fun _ _ _ => True) s0 s1 b True (fun _ => True)).mp
     (allIn_holds h hat _ _)).1
 
-/-! ## `__loop25`: the lambdas -/
-
-/-- The first permutation's inputs: the row's rate cells (four copied), then its capacity. -/
-def k1i : List V := [.n 17, .n 18, .n 19, .n 20, .n 25, .n 26, .n 27, .n 28, .n 12, .n 13, .n 14,
-  .n 15, .n 16]
-
-/-- The first permutation's outputs. -/
-def k1o : List V := (List.range 13).map fun i => .n (29 + i)
-
-/-- The second permutation's inputs: a zero rate, the first's capacity. -/
-def k2i : List V := [.n 50, .n 50, .n 50, .n 50, .n 50, .n 51, .n 52, .n 53, .n 37, .n 38, .n 39,
-  .n 40, .n 41]
-
-/-- The second permutation's outputs. -/
-def k2o : List V := (List.range 13).map fun i => .n (54 + i)
+/-! ## `__loop25`: the powers of `λ` and the running claim -/
 
 /-- **`__loop25`'s body, checked.** -/
 def l26Ok (fn : Fn) : Bool :=
   let A := atomsIn (loopPre fn)
-  loopShapeF fn "__loop25" && decide (fn.params.length = 6) &&
-  monoIs A (.n 11) (.n 2) (.n 0) 14 &&
-  A.any (isKeccakAt k1i k1o false false) && rowInOk A (.n 11) k1i &&
-  allIn A (challA (.n 29) (.n 30) 42) &&
-  (List.range 4).all (fun i => A.any (isConstAt (.n (50 + i)) 0 0)) &&
-  A.any (isKeccakAt k2i k2o false false) &&
-  allIn A (challA (.n 54) (.n 55) 67) &&
-  isMul A (.n 74) (.n 0) (.n 0) && isMul A (.n 75) (.n 3) (.n 74) &&
-  A.any (isLoadAt (.n 48) (.n 75) 0) && isMul A (.n 76) (.n 3) (.n 74) &&
-  A.any (isLoadAt (.n 73) (.n 76) 1) &&
-  isMul A (.n 77) (.n 4) (.n 0) && A.any (isLoadAt (.n 78) (.n 77) 0) &&
-  isMul A (.n 79) (.n 5) (.n 0) && A.any (isLoadAt (.n 80) (.n 79) 0) &&
-  storesOk A (.n 11) 14 5 (fun i => .n (62 + i)) &&
-  (List.range 8).all (fun c => A.any (isLoadAt (.n (81 + c)) (.n 11) (14 + (5 + c)))) &&
-  (List.range 8).all (fun c => A.any (isConstAt (.n (81 + c)) 0 0)) &&
-  A.any (isLoadAt (.n 89) (.n 11) 13) && A.any (isLoadAt (.n 90) (.n 78) 23) &&
-  isMul A (.n 91) (.n 48) (.n 90) && A.any (isAddAt (.n 92) (.n 89) (.n 91)) &&
-  A.any (isLoadAt (.n 93) (.n 80) 23) && isMul A (.n 94) (.n 73) (.n 93) &&
-  A.any (isAddAt (.n 95) (.n 92) (.n 94)) && A.any (isLoadAt (.n 95) (.n 11) 27)
+  loopShapeF fn "__loop25" && decide (fn.params.length = 7) &&
+  isMul A (.n 7) (.n 0) (.n 0) && isMul A (.n 8) (.n 2) (.n 7) &&
+  A.any (isLoadAt (.n 9) (.n 8) 0) &&
+  isMul A (.n 10) (.n 3) (.n 0) && A.any (isLoadAt (.n 11) (.n 10) 0) &&
+  isMul A (.n 12) (.n 4) (.n 0) && A.any (isLoadAt (.n 13) (.n 12) 0) &&
+  isMul A (.n 14) (.n 9) (.n 5) && A.any (isLoadAt (.n 14) (.n 8) 2) &&
+  A.any (isLoadAt (.n 15) (.n 8) 1) && A.any (isLoadAt (.n 16) (.n 11) 23) &&
+  A.any (isLoadAt (.n 17) (.n 13) 23) && isMul A (.n 18) (.n 6) (.n 17) &&
+  A.any (isAddAt (.n 19) (.n 16) (.n 18)) && isMul A (.n 20) (.n 9) (.n 19) &&
+  A.any (isAddAt (.n 21) (.n 15) (.n 20)) && A.any (isLoadAt (.n 21) (.n 8) 3)
 
 set_option maxRecDepth 100000 in
 theorem l26_ok : l26Ok (coreProgram.getD 375 default) = true := by decide +kernel
@@ -112,109 +89,52 @@ theorem l26_ok : l26Ok (coreProgram.getD 375 default) = true := by decide +kerne
 set_option maxRecDepth 100000 in
 theorem l26_idx : coreProgram.indexOf? "__loop25" = some 375 := by decide +kernel
 
-/-- **Child `x`'s lambdas**: from the sponge its row (`sqT·x^14`) carries, the two squeezes
-stored at `lam·x^2`, the row after them, and the running claim on. -/
-def L26Step (rd : Reader) (sqT lamT lfT lcT x : E) : Prop :=
-  ∀ st : Fs, RowRel rd (sqT * x ^ 14) st →
-    LoadHolds rd (lamT * x ^ 2) 0 st.squeeze.1 ∧
-    LoadHolds rd (lamT * x ^ 2) 1 st.squeeze.2.squeeze.1 ∧
-    RowRel rd (sqT * x ^ 14 * gen ^ 14) st.squeeze.2.squeeze.2 ∧
-    LoadHolds rd (sqT * x ^ 14) 27 (memAt rd (sqT * x ^ 14) 13 +
-      st.squeeze.1 * memAt rd (memAt rd (lfT * x) 0) 23 +
-      st.squeeze.2.squeeze.1 * memAt rd (memAt rd (lcT * x) 0) 23)
-
-theorem getD_k1o {c : ℕ} (hc : c < 13) : k1o.getD c default = .n (29 + c) := by
-  simp [k1o, List.getD_eq_getElem?_getD, hc]
-
-theorem getD_k2o {c : ℕ} (hc : c < 13) : k2o.getD c default = .n (54 + c) := by
-  simp [k2o, List.getD_eq_getElem?_getD, hc]
-
-theorem rateOf_nil : rateOf [] = List.replicate 8 0 := by
-  rw [rateOf_eq_cells [] (by simp)]; rfl
+/-- **Child `x`'s record**: the record at `chain·x^2` holds `λ`'s power and the running claim;
+the next record holds the power times `λ²` and the running claim plus the power times
+`fresh[23] + λ · carried[23]` of the child's claims (through the pointer tables `lf`, `lc`). -/
+def L26Step (rd : Reader) (chainT lfT lcT lamSq lam x : E) : Prop :=
+  LoadHolds rd (chainT * x ^ 2) 2 (memAt rd (chainT * x ^ 2) 0 * lamSq) ∧
+  LoadHolds rd (chainT * x ^ 2) 3 (memAt rd (chainT * x ^ 2) 1 +
+    memAt rd (chainT * x ^ 2) 0 * (memAt rd (memAt rd (lfT * x) 0) 23 +
+      lam * memAt rd (memAt rd (lcT * x) 0) 23))
 
 theorem l26_step {x : E} {ps : List E} (h : coreProgram.Rel rd "__loop25" (x :: ps) []) :
-    (∀ N sqT lamT lfT lcT, ps = [N, sqT, lamT, lfT, lcT] → L26Step rd sqT lamT lfT lcT x) ∧
+    (∀ N chainT lfT lcT lamSq lam, ps = [N, chainT, lfT, lcT, lamSq, lam] →
+      L26Step rd chainT lfT lcT lamSq lam x) ∧
       (x * gen + ps.headD 0 ≠ 0 → coreProgram.Rel rd "__loop25" (x * gen :: ps) []) := by
   have hf := find_of_idx l26_idx (by rw [coreProgram_length]; omega)
   have hok := l26_ok
   simp only [l26Ok, Bool.and_eq_true, decide_eq_true_eq] at hok
-  obtain ⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨hshape, hlen⟩, hm11⟩, hk1⟩, hrin⟩, hc1⟩, hz⟩, hk2⟩,
-    hc2⟩, hm74⟩, hm75⟩, hl48⟩, hm76⟩, hl73⟩, hm77⟩, hl78⟩, hm79⟩, hl80⟩, hcst⟩, hzst⟩, hzc⟩,
-    hl89⟩, hl90⟩, hm91⟩, ha92⟩, hl93⟩, hm94⟩, ha95⟩, hl95⟩ := hok
+  obtain ⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨hshape, hlen⟩, hm7⟩, hm8⟩, hl9⟩, hm10⟩, hl11⟩, hm12⟩, hl13⟩, hm14⟩,
+    hl14⟩, hl15⟩, hl16⟩, hl17⟩, hm18⟩, ha19⟩, hm20⟩, ha21⟩, hl21⟩ := hok
   obtain ⟨σ, hx, hps, hall, hnext⟩ := loop_stepF hf hshape h
-  refine ⟨fun N sqT lamT lfT lcT hN st hrow => ?_, hnext⟩
+  refine ⟨fun N chainT lfT lcT lamSq lam hN => ?_, hnext⟩
   have hat := atoms_of_flat hall
-  have hpar : (coreProgram.getD 375 default).params = [V.n 0, V.n 1, V.n 2, V.n 3, V.n 4, V.n 5] := by
+  have hpar : (coreProgram.getD 375 default).params =
+      [V.n 0, V.n 1, V.n 2, V.n 3, V.n 4, V.n 5, V.n 6] := by
     have hs := hshape
     simp only [loopShapeF, Bool.and_eq_true, decide_eq_true_eq] at hs
     rw [hs.1.2, hlen]; rfl
   rw [hpar, hN] at hps
   simp only [List.tail_cons, List.map_cons, List.map_nil, List.cons.injEq, and_true] at hps
-  obtain ⟨-, h2, h3, h4, h5⟩ := hps
-  have p11 : σ (.n 11) = sqT * x ^ 14 := by rw [monoIs_sound hm11 hat, h2, hx]
-  -- the first squeeze
-  have hin := rowIn_sound hrin hat
-  rw [p11] at hin
-  obtain ⟨hcan1, hout1⟩ := DupSpec.keccak_facts (keccak_sound hk1 hat)
-  rw [hin] at hcan1 hout1
-  have hperm := rowRel_perm hrow (fun c hc => hcan1 c (List.mem_append_left _ hc))
-  rw [← hperm] at hout1
-  have o1 : ∀ c (hc : c < 13), σ (.n (29 + c)) = cellsOfState st.perm false ⟨c, hc⟩ :=
-    fun c hc => by rw [← getD_k1o hc]; exact hout1 c hc
-  have lf : σ (.n 48) = st.squeeze.1 :=
-    challengeT_value (chal_sound hc1 hat) (o1 0 (by omega)) (o1 1 (by omega))
-  -- the second
-  obtain ⟨-, hout2⟩ := DupSpec.keccak_facts (keccak_sound hk2 hat)
-  simp only [List.all_eq_true, List.mem_range] at hz hzc
-  have z : ∀ i < 4, σ (.n (50 + i)) = 0 := fun i hi => by
-    rw [const_sound (hz i hi) hat, word_zero]
-  have hin2 : k2i.map σ = rateOf [] ++ capOf st.perm := by
-    rw [rateOf_nil]
-    simp only [k2i, List.map_cons, List.map_nil, capOf]
-    rw [z 0 (by omega), z 1 (by omega), z 2 (by omega), z 3 (by omega), o1 8 (by omega),
-      o1 9 (by omega), o1 10 (by omega), o1 11 (by omega), o1 12 (by omega)]
-    rfl
-  have hp2 : permOf (k2i.map σ) = st.squeeze.2.perm := by rw [hin2]; rfl
-  rw [hp2] at hout2
-  have o2 : ∀ c (hc : c < 13), σ (.n (54 + c)) = cellsOfState st.squeeze.2.perm false ⟨c, hc⟩ :=
-    fun c hc => by rw [← getD_k2o hc]; exact hout2 c hc
-  have lc : σ (.n 73) = st.squeeze.2.squeeze.1 :=
-    challengeT_value (chal_sound hc2 hat) (o2 0 (by omega)) (o2 1 (by omega))
-  have p74 : σ (.n 74) = x ^ 2 := by rw [isMul_sound hm74 hat, hx, sq]
-  refine ⟨?_, ?_, ?_, ?_⟩
-  · have := load_sound hl48 hat
-    rwa [isMul_sound hm75 hat, h3, p74, lf] at this
-  · have := load_sound hl73 hat
-    rwa [isMul_sound hm76 hat, h3, p74, lc] at this
-  · -- the row after
-    have hcap : capOf st.squeeze.2.perm = rowCap rd (sqT * x ^ 14 * gen ^ 14) := by
-      have e := stores_sound hcst hat
-      rw [p11] at e
-      simp only [rowCap, List.range_succ, List.range_zero, List.nil_append, List.map_cons,
-        List.map_nil, List.cons_append, capOf]
-      rw [e 0 (by omega), e 1 (by omega), e 2 (by omega), e 3 (by omega), e 4 (by omega),
-        o2 8 (by omega), o2 9 (by omega), o2 10 (by omega), o2 11 (by omega), o2 12 (by omega)]
-      rfl
-    show RowRel rd (sqT * x ^ 14 * gen ^ 14) ⟨capOf st.squeeze.2.perm, []⟩
-    rw [hcap]
-    refine rowRel_empty fun c hc => ?_
-    simp only [List.all_eq_true, List.mem_range] at hzst
-    have e := store_at (hzst c hc) hat
-    rw [p11] at e
-    rw [e, const_sound (hzc c hc) hat, word_zero]
-  · -- the running claim
-    have e27 := load_sound hl95 hat
-    have e13 := memAt_of_load (load_sound hl89 hat)
-    have e90 := memAt_of_load (load_sound hl90 hat)
-    have e93 := memAt_of_load (load_sound hl93 hat)
-    have e78 := memAt_of_load (load_sound hl78 hat)
-    have e80 := memAt_of_load (load_sound hl80 hat)
-    rw [isMul_sound hm77 hat, h4, hx] at e78
-    rw [isMul_sound hm79 hat, h5, hx] at e80
-    rw [p11] at e27 e13
-    rw [add_sound ha95 hat, add_sound ha92 hat, isMul_sound hm91 hat, isMul_sound hm94 hat, lf,
-      lc, ← e13, ← e90, ← e93, ← e78, ← e80] at e27
-    exact e27
+  obtain ⟨-, h2, h3, h4, h5, h6⟩ := hps
+  have p8 : σ (.n 8) = chainT * x ^ 2 := by
+    rw [isMul_sound hm8 hat, isMul_sound hm7 hat, h2, hx, sq]
+  have e9 := memAt_of_load (load_sound hl9 hat)
+  have e11 := memAt_of_load (load_sound hl11 hat)
+  have e13 := memAt_of_load (load_sound hl13 hat)
+  have e15 := memAt_of_load (load_sound hl15 hat)
+  have e16 := memAt_of_load (load_sound hl16 hat)
+  have e17 := memAt_of_load (load_sound hl17 hat)
+  rw [p8] at e9 e15
+  rw [isMul_sound hm10 hat, h3, hx] at e11
+  rw [isMul_sound hm12 hat, h4, hx] at e13
+  refine ⟨?_, ?_⟩
+  · have := load_sound hl14 hat
+    rwa [p8, isMul_sound hm14 hat, h5, ← e9] at this
+  · have := load_sound hl21 hat
+    rwa [p8, add_sound ha21 hat, isMul_sound hm20 hat, add_sound ha19 hat, isMul_sound hm18 hat,
+      h6, ← e9, ← e15, ← e16, ← e17, ← e11, ← e13] at this
 
 /-! ## Equality weights -/
 
@@ -280,17 +200,16 @@ theorem eqChain_sound {pP pR : V} : ∀ {n : ℕ} {out : V}, eqChainOk atoms pP 
 /-- **`__loop26`'s body, checked.** -/
 def l27Ok (fn : Fn) : Bool :=
   let A := atomsIn (loopPre fn)
-  loopShapeF fn "__loop26" && decide (fn.params.length = 7) &&
-  isMul A (.n 7) (.n 2) (.n 0) && A.any (isLoadAt (.n 8) (.n 7) 0) &&
-  isMul A (.n 9) (.n 3) (.n 0) && A.any (isLoadAt (.n 10) (.n 9) 0) &&
-  eqChainOk A (.n 8) (.n 4) 23 (.n 256) && eqChainOk A (.n 10) (.n 4) 23 (.n 261) &&
-  isMul A (.n 262) (.n 0) (.n 0) &&
-  isMul A (.n 263) (.n 5) (.n 0) && A.any (isLoadAt (.n 264) (.n 263) 0) &&
-  isMul A (.n 265) (.n 6) (.n 262) && A.any (isLoadAt (.n 266) (.n 265) 0) &&
-  isMul A (.n 267) (.n 266) (.n 256) && A.any (isAddAt (.n 268) (.n 264) (.n 267)) &&
-  isMul A (.n 269) (.n 6) (.n 262) && A.any (isLoadAt (.n 270) (.n 269) 1) &&
-  isMul A (.n 271) (.n 270) (.n 261) && A.any (isAddAt (.n 272) (.n 268) (.n 271)) &&
-  isMul A (.n 273) (.n 5) (.n 0) && A.any (isLoadAt (.n 272) (.n 273) 1)
+  loopShapeF fn "__loop26" && decide (fn.params.length = 8) &&
+  isMul A (.n 8) (.n 2) (.n 0) && A.any (isLoadAt (.n 9) (.n 8) 0) &&
+  isMul A (.n 10) (.n 3) (.n 0) && A.any (isLoadAt (.n 11) (.n 10) 0) &&
+  eqChainOk A (.n 9) (.n 4) 23 (.n 257) && eqChainOk A (.n 11) (.n 4) 23 (.n 262) &&
+  isMul A (.n 263) (.n 0) (.n 0) && isMul A (.n 264) (.n 5) (.n 263) &&
+  isMul A (.n 265) (.n 6) (.n 0) && A.any (isLoadAt (.n 266) (.n 265) 0) &&
+  A.any (isLoadAt (.n 267) (.n 264) 0) && isMul A (.n 268) (.n 7) (.n 262) &&
+  A.any (isAddAt (.n 269) (.n 257) (.n 268)) && isMul A (.n 270) (.n 267) (.n 269) &&
+  A.any (isAddAt (.n 271) (.n 266) (.n 270)) && isMul A (.n 272) (.n 6) (.n 0) &&
+  A.any (isLoadAt (.n 271) (.n 272) 1)
 
 set_option maxRecDepth 100000 in
 theorem l27_ok : l27Ok (coreProgram.getD 377 default) = true := by decide +kernel
@@ -298,53 +217,51 @@ theorem l27_ok : l27Ok (coreProgram.getD 377 default) = true := by decide +kerne
 set_option maxRecDepth 100000 in
 theorem l27_idx : coreProgram.indexOf? "__loop26" = some 377 := by decide +kernel
 
-/-- **Child `x`'s weight**: `w[x·g] = w[x] + λ_fresh · eq(fresh, r) + λ_carried · eq(carried, r)`,
-the lambdas at `lam·x^2`, the claims' points through the pointer tables, `r` at `pt`. -/
-def L27Step (rd : Reader) (lfT lcT pt wT lamT x : E) : Prop :=
-  LoadHolds rd (wT * x) 1 (memAt rd (wT * x) 0 +
-    memAt rd (lamT * x ^ 2) 0 * eqEval (memRun rd (memAt rd (lfT * x) 0) 23) (memRun rd pt 23) +
-    memAt rd (lamT * x ^ 2) 1 * eqEval (memRun rd (memAt rd (lcT * x) 0) 23) (memRun rd pt 23))
+/-- **Child `x`'s weight**: `w[x·g] = w[x] + p · (eq(fresh, r) + λ · eq(carried, r))`, `p` the
+power of `λ` at `chain·x^2`, the claims' points through the pointer tables, `r` at `pt`. -/
+def L27Step (rd : Reader) (lfT lcT pt chainT wT lam x : E) : Prop :=
+  LoadHolds rd (wT * x) 1 (memAt rd (wT * x) 0 + memAt rd (chainT * x ^ 2) 0 *
+    (eqEval (memRun rd (memAt rd (lfT * x) 0) 23) (memRun rd pt 23) +
+      lam * eqEval (memRun rd (memAt rd (lcT * x) 0) 23) (memRun rd pt 23)))
 
 theorem l27_step {x : E} {ps : List E} (h : coreProgram.Rel rd "__loop26" (x :: ps) []) :
-    (∀ N lfT lcT pt wT lamT, ps = [N, lfT, lcT, pt, wT, lamT] → L27Step rd lfT lcT pt wT lamT x) ∧
+    (∀ N lfT lcT pt chainT wT lam, ps = [N, lfT, lcT, pt, chainT, wT, lam] →
+      L27Step rd lfT lcT pt chainT wT lam x) ∧
       (x * gen + ps.headD 0 ≠ 0 → coreProgram.Rel rd "__loop26" (x * gen :: ps) []) := by
   have hf := find_of_idx l27_idx (by rw [coreProgram_length]; omega)
   have hok := l27_ok
   simp only [l27Ok, Bool.and_eq_true, decide_eq_true_eq] at hok
-  obtain ⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨hshape, hlen⟩, hm7⟩, hl8⟩, hm9⟩, hl10⟩, he1⟩, he2⟩, hm262⟩, hm263⟩,
-    hl264⟩, hm265⟩, hl266⟩, hm267⟩, ha268⟩, hm269⟩, hl270⟩, hm271⟩, ha272⟩, hm273⟩, hl272⟩ := hok
+  obtain ⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨hshape, hlen⟩, hm8⟩, hl9⟩, hm10⟩, hl11⟩, he1⟩, he2⟩, hm263⟩, hm264⟩,
+    hm265⟩, hl266⟩, hl267⟩, hm268⟩, ha269⟩, hm270⟩, ha271⟩, hm272⟩, hl271⟩ := hok
   obtain ⟨σ, hx, hps, hall, hnext⟩ := loop_stepF hf hshape h
-  refine ⟨fun N lfT lcT pt wT lamT hN => ?_, hnext⟩
+  refine ⟨fun N lfT lcT pt chainT wT lam hN => ?_, hnext⟩
   have hat := atoms_of_flat hall
   have hpar : (coreProgram.getD 377 default).params =
-      [V.n 0, V.n 1, V.n 2, V.n 3, V.n 4, V.n 5, V.n 6] := by
+      [V.n 0, V.n 1, V.n 2, V.n 3, V.n 4, V.n 5, V.n 6, V.n 7] := by
     have hs := hshape
     simp only [loopShapeF, Bool.and_eq_true, decide_eq_true_eq] at hs
     rw [hs.1.2, hlen]; rfl
   rw [hpar, hN] at hps
   simp only [List.tail_cons, List.map_cons, List.map_nil, List.cons.injEq, and_true] at hps
-  obtain ⟨-, h2, h3, h4, h5, h6⟩ := hps
-  have p262 : σ (.n 262) = x ^ 2 := by rw [isMul_sound hm262 hat, hx, sq]
-  have e8 := memAt_of_load (load_sound hl8 hat)
-  have e10 := memAt_of_load (load_sound hl10 hat)
-  rw [isMul_sound hm7 hat, h2, hx] at e8
-  rw [isMul_sound hm9 hat, h3, hx] at e10
+  obtain ⟨-, h2, h3, h4, h5, h6, h7⟩ := hps
+  have e9 := memAt_of_load (load_sound hl9 hat)
+  have e11 := memAt_of_load (load_sound hl11 hat)
+  rw [isMul_sound hm8 hat, h2, hx] at e9
+  rw [isMul_sound hm10 hat, h3, hx] at e11
   have ef := eqChain_sound he1 hat
   have ec := eqChain_sound he2 hat
-  rw [← e8, h4] at ef
-  rw [← e10, h4] at ec
-  have e264 := memAt_of_load (load_sound hl264 hat)
+  rw [← e9, h4] at ef
+  rw [← e11, h4] at ec
   have e266 := memAt_of_load (load_sound hl266 hat)
-  have e270 := memAt_of_load (load_sound hl270 hat)
-  have e272 := load_sound hl272 hat
-  rw [isMul_sound hm263 hat, h5, hx] at e264
-  rw [isMul_sound hm273 hat, h5, hx] at e272
-  rw [isMul_sound hm265 hat, h6, p262] at e266
-  rw [isMul_sound hm269 hat, h6, p262] at e270
+  have e267 := memAt_of_load (load_sound hl267 hat)
+  have e271 := load_sound hl271 hat
+  rw [isMul_sound hm265 hat, h6, hx] at e266
+  rw [isMul_sound hm264 hat, isMul_sound hm263 hat, h5, hx, ← sq] at e267
+  rw [isMul_sound hm272 hat, h6, hx] at e271
   unfold L27Step
-  rw [add_sound ha272 hat, add_sound ha268 hat, isMul_sound hm267 hat, isMul_sound hm271 hat,
-    ← e264, ← e266, ← e270, ef, ec] at e272
-  exact e272
+  rw [add_sound ha271 hat, isMul_sound hm270 hat, add_sound ha269 hat, isMul_sound hm268 hat, h7,
+    ← e266, ← e267, ef, ec] at e271
+  exact e271
 
 end
 end LeanVM.Guest.B1.Main
