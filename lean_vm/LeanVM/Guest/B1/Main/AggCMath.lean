@@ -54,27 +54,31 @@ theorem absSt_last {m : ℕ} {cs : List ChildClaims} (hcl : cs.length = m) :
     absSt m cs m = aggAbs cs := by
   rw [absSt, List.take_of_length_le (by omega), aggAbs, Batch.batchWords, hcl]
 
-theorem claimAt_zero (cs : List ChildClaims) : claimAt cs 0 = 0 := by simp [claimAt, sumE]
+theorem claimAt_zero (cs : List ChildClaims) : claimAt cs 0 = 0 := by
+  simp [claimAt, sumE, Batch.lambdaPowers]
 
 theorem claimAt_succ {cs : List ChildClaims} {c : ℕ} (hc : c < cs.length) :
-    claimAt cs (c + 1) = claimAt cs c + (lamOf (aggAbs cs) c).1 * cs[c].fresh.bytecodeValue +
-      (lamOf (aggAbs cs) c).2 * cs[c].carried.bytecodeValue := by
-  rw [claimAt, claimAt, zip_prefix _ _ _ hc]
+    claimAt cs (c + 1) = claimAt cs c + lamA cs ^ (2 * c) *
+      (cs[c].fresh.bytecodeValue + lamA cs * cs[c].carried.bytecodeValue) := by
+  simp only [claimAt, lambdaPowers_eq]
+  rw [zip_prefix _ _ _ hc]
   ring
 
 theorem weightAt_zero (cs : List ChildClaims) (h : BatchHints) : weightAt cs h 0 = 0 := by
-  simp [weightAt, sumE]
+  simp [weightAt, sumE, Batch.lambdaPowers]
 
 theorem weightAt_succ {cs : List ChildClaims} {h : BatchHints} {c : ℕ} (hc : c < cs.length) :
-    weightAt cs h (c + 1) = weightAt cs h c +
-      (lamOf (aggAbs cs) c).1 * eqEval cs[c].fresh.bytecodePoint (aggRun cs h).1.1 +
-      (lamOf (aggAbs cs) c).2 * eqEval cs[c].carried.bytecodePoint (aggRun cs h).1.1 := by
-  rw [weightAt, weightAt, zip_prefix _ _ _ hc]
+    weightAt cs h (c + 1) = weightAt cs h c + lamA cs ^ (2 * c) *
+      (eqEval cs[c].fresh.bytecodePoint (aggRun cs h).1.1 +
+        lamA cs * eqEval cs[c].carried.bytecodePoint (aggRun cs h).1.1) := by
+  simp only [weightAt, lambdaPowers_eq]
+  rw [zip_prefix _ _ _ hc]
   ring
 
 theorem aggLam_fst {m : ℕ} {cs : List ChildClaims} (hcl : cs.length = m) :
-    (aggLam cs).1 = (List.range m).map (lamOf (aggAbs cs)) := by
-  rw [aggLam, hcl, sq2F_fst]
+    (aggLam cs).1 = Batch.lambdaPowers (lamA cs) m := by
+  rw [aggLam, sqLF, hcl]
+  rfl
 
 theorem claimAt_last {m : ℕ} {cs : List ChildClaims} (hcl : cs.length = m) :
     claimAt cs m = Batch.claimBOf cs (aggLam cs).1 := by
@@ -97,12 +101,9 @@ theorem bsRun_cap : ∀ (rounds : List (E × E)) (claim : E) (s : Fs), rounds �
       rw [bsRun]
       exact bsRun_cap _ _ _ (by simp)
 
-/-- The squeezing rows' last sponge: a state's capacity, nothing waiting. -/
-theorem aggLam_snd {m : ℕ} {cs : List ChildClaims} (hcl : cs.length = m) (hm : 1 ≤ m) :
-    (aggLam cs).2 = ⟨(sq2F m (aggAbs cs)).2.cap, []⟩ := by
-  obtain ⟨m', rfl⟩ : ∃ m', m = m' + 1 := ⟨m - 1, by omega⟩
-  rw [aggLam, hcl, sq2F_snoc]
-  rfl
+/-- The sponge after `λ`: the permutation's capacity, nothing waiting. -/
+theorem aggLam_snd (cs : List ChildClaims) :
+    (aggLam cs).2 = ⟨capOf (aggAbs cs).perm, []⟩ := rfl
 
 /-- **A child's words in memory**, as the loops read them. -/
 theorem kid_reads {cpi cfresh ccarried : E} {c : ℕ} {cc : ChildClaims}

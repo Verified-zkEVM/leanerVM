@@ -15,13 +15,13 @@ public import LeanVM.Guest.B1.Fwd.Canon
 
 For `m` children `cs` and the hints `h`: a row's thirteen words (`rowW`: the capacity cells, then
 the rate cells of the waiting scalars), the absorbing rows' sponges (`absSt`), the running claim
-(`claimAt`) and weight (`weightAt`) after `c` children. `AggPtrs`: `aggregate_claims`' buffers
-(the rounds `bc_sumcheck_msgs`, the pointer tables `lf`, `lc`, the absorbing rows, the lambdas,
-the squeezing rows, the sumcheck's point, the weights). `AggMem rd P …`: the memory an honest run
-leaves at them and at `defer_stmt`.
+(`claimAt`) and weight (`weightAt`) after `c` children, the lambdas the powers of the challenge
+`λ` (`lamA`). `AggPtrs`: `aggregate_claims`' buffers (the rounds `bc_sumcheck_msgs`, the pointer
+tables `lf`, `lc`, the absorbing rows, the records of `bc_chain`, the sumcheck's point, the
+weights). `AggMem rd P …`: the memory an honest run leaves at them and at `defer_stmt`.
 
-`rowRel_of_reads`: a row of honest words carries its sponge (`RowRel`); `absSt_ok`,
-`sqSt_ok`: the honest sponges' capacity cells are a state's, their scalars tagged `1`.
+`rowRel_of_reads`: a row of honest words carries its sponge (`RowRel`); `absSt_ok`: the honest
+sponges' capacity cells are a state's, their scalars tagged `1`.
 -/
 
 namespace LeanVM.Guest.B1.Main
@@ -39,16 +39,19 @@ def rowW (s : Fs) : List E := s.cap ++ rateOf s.pend
 def absSt (m : ℕ) (cs : List ChildClaims) (c : ℕ) : Fs :=
   aggS0.absorbAll (Batch.headCells m ++ (cs.take c).flatMap Batch.childCells) dsObserve
 
+/-- The batching's challenge `λ`: the squeeze of the sponge after its words. -/
+def lamA (cs : List ChildClaims) : E := (aggAbs cs).squeeze.1
+
 /-- The running claim after `c` children. -/
 def claimAt (cs : List ChildClaims) (c : ℕ) : E :=
   sumE (List.zipWith (fun c l ↦ l.1 * c.fresh.bytecodeValue + l.2 * c.carried.bytecodeValue)
-    (cs.take c) ((List.range c).map (lamOf (aggAbs cs))))
+    (cs.take c) (Batch.lambdaPowers (lamA cs) c))
 
 /-- The running weight after `c` children, at the sumcheck's point. -/
 def weightAt (cs : List ChildClaims) (h : BatchHints) (c : ℕ) : E :=
   sumE (List.zipWith (fun c l ↦ l.1 * eqEval c.fresh.bytecodePoint (aggRun cs h).1.1 +
     l.2 * eqEval c.carried.bytecodePoint (aggRun cs h).1.1) (cs.take c)
-    ((List.range c).map (lamOf (aggAbs cs))))
+    (Batch.lambdaPowers (lamA cs) c))
 
 /-- The claim `aggregate_claims` writes: the sumcheck's point, the hinted value. -/
 def aggOut (cs : List ChildClaims) (h : BatchHints) : DeferredClaim :=
@@ -60,8 +63,7 @@ structure AggPtrs where
   lf : E
   lc : E
   absorb : E
-  lam : E
-  sq : E
+  chain : E
   pt : E
   w : E
 
@@ -73,10 +75,8 @@ structure AggMem (rd : Reader) (cfresh ccarried dst : E) (cs : List ChildClaims)
   absorb : ∀ c ≤ cs.length, ReadsAt rd (P.absorb * (gen ^ c) ^ 13) (rowW (absSt cs.length cs c))
   lf : ∀ c < cs.length, LoadHolds rd (P.lf * gen ^ c) 0 (cfresh * (gen ^ c) ^ 24)
   lc : ∀ c < cs.length, LoadHolds rd (P.lc * gen ^ c) 0 (ccarried * (gen ^ c) ^ 24)
-  sq : ∀ c ≤ cs.length, ReadsAt rd (P.sq * (gen ^ c) ^ 14)
-    (rowW (sq2F c (aggAbs cs)).2 ++ [claimAt cs c])
-  lam : ∀ c < cs.length, ReadsAt rd (P.lam * (gen ^ c) ^ 2)
-    [(lamOf (aggAbs cs) c).1, (lamOf (aggAbs cs) c).2]
+  chain : ∀ c ≤ cs.length, ReadsAt rd (P.chain * (gen ^ c) ^ 2)
+    [lamA cs ^ (2 * c), claimAt cs c]
   msgs : ReadsAt rd P.msgs (h.bytecodeRounds.flatMap fun g => [g.1, g.2])
   pt : ReadsAt rd P.pt (aggRun cs h).1.1
   w : ∀ c ≤ cs.length, LoadHolds rd (P.w * gen ^ c) 0 (weightAt cs h c)
@@ -118,11 +118,6 @@ theorem absSt_ok (m : ℕ) (cs : List ChildClaims) (c : ℕ) : StOk (absSt m cs 
   stOk_absorbAll _ stOk_aggS0
 
 theorem aggAbs_ok (cs : List ChildClaims) : StOk (aggAbs cs) := stOk_absorbAll _ stOk_aggS0
-
-theorem sqSt_ok (cs : List ChildClaims) (c : ℕ) : StOk (sq2F c (aggAbs cs)).2 := by
-  cases c with
-  | zero => exact aggAbs_ok cs
-  | succ c => rw [sq2F_snoc]; exact stOk_squeeze _
 
 theorem capOf_length (S : KState) : (capOf S).length = 5 := rfl
 
