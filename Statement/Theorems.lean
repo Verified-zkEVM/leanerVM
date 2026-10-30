@@ -37,6 +37,7 @@ structure Theorems (decode : LeanVM.Node.Decoder) : Prop where
   most `2^28`, at an inverse rate `2^ρ` with `1 ≤ ρ ≤ 4` and `2^25` nonces per proof of work, is
   rejected with probability at most `2^-256` (`LeanVm.lean`). -/
   completeness : LeanVM.Completeness
+  
   /-- Every valid execution of the leanISA guest program proves the node statement its public
   input commits to: `decode` reads off its memory a seed, a statement whose digest under that seed
   is the input's digest, and a witness for it: each signature claim of the statement is held, by a
@@ -68,10 +69,13 @@ structure Theorems (decode : LeanVM.Node.Decoder) : Prop where
   batchSound : LeanVM.Guest.Batch.BatchSound
   /-- leanXMSS is strongly unforgeable: at most `(Q + 1) · 2^-127` for `Q ≥ 1` permutation
   calls (`LeanXmss.lean`). -/
+
   leanXmss : LeanXmss.Rpm.LeanXmssRpmSecurityStatement
   /-- leanSPHINCS is strongly unforgeable at every proved lifetime: at most `(Q + 1) · 2^-127` for
+
   `Q ≥ 1` permutation calls (`LeanSphincs.lean`). -/
   leanSphincs : Sphincs.Lifetimes.RequestedSecurityRpm
+
   /-- LeanDA is perfectly complete, for every `π` (`LeanDa.lean`). -/
   leanDaComplete : LeanDa.PerfectlyCompleteRpm
   /-- LeanDA is position binding: at most `(Q + 1)² · 2^-256` for every `Q` (`LeanDa.lean`). -/
