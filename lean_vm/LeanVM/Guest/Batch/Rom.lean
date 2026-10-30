@@ -505,7 +505,7 @@ theorem batchε_eq_pow (M : ℕ) : batchε M = (max M 1 : ℕ) * (2 : ℝ≥0∞
   rw [batchε, hc, inv_pow_eq_div 191 192 (by norm_num), show 192 - 191 = 1 from rfl, pow_one,
     mul_div_assoc']
   push_cast
-  ring
+  ring_nf
 
 /-- The failure term of the batching's one seeding: `5N/2^256`. -/
 theorem failBound_batchSeeds (N : ℕ) :

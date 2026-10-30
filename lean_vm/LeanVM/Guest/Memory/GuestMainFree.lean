@@ -67,16 +67,16 @@ theorem mainFree_all : ∀ j < coreProgram.length, mainFreeJ j = true := by
     h13.append' (mainFreeRange_312.on) rfl rfl
   have h15 : MainFreeOn 0 328 :=
     h14.append' (mainFreeRange_316.on) rfl rfl
-  have h16 : MainFreeOn 0 449 :=
+  have h16 : MainFreeOn 0 450 :=
     h15.append' (mainFreeRange_328.on) rfl rfl
-  have h17 : MainFreeOn 0 593 :=
-    h16.append' (mainFreeRange_449.on) rfl rfl
-  have h18 : MainFreeOn 0 727 :=
-    h17.append' (mainFreeRange_593.on) rfl rfl
-  have h19 : MainFreeOn 0 827 :=
-    h18.append' (mainFreeRange_727.on) rfl rfl
+  have h17 : MainFreeOn 0 594 :=
+    h16.append' (mainFreeRange_450.on) rfl rfl
+  have h18 : MainFreeOn 0 729 :=
+    h17.append' (mainFreeRange_594.on) rfl rfl
+  have h19 : MainFreeOn 0 828 :=
+    h18.append' (mainFreeRange_729.on) rfl rfl
   have h20 : MainFreeOn 0 858 :=
-    h19.append' (mainFreeRange_827.on) rfl rfl
+    h19.append' (mainFreeRange_828.on) rfl rfl
   have h21 : MainFreeOn 0 878 :=
     h20.append' (mainFreeRange_858.on) rfl rfl
   intro j hj
