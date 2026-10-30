@@ -12,21 +12,22 @@ public import LeanVM.Guest.Batch.Rounds
 /-!
 # The batching is sound, challenge by challenge
 
-`Node.batch` absorbs the children's claims, squeezes two lambdas per child, and runs one
-sumcheck on the bytecode, deferring one claim. `batch_sound`: if the batching accepts and its
-deferred claim holds, then every child's claims hold (its proof's, `FixedClaims.Holds`, and its
+`Node.batch` absorbs the children's claims, squeezes one challenge `λ`, whose powers are the
+lambdas (`λ^(2i)`, `λ^(2i+1)` for child `i`), and runs one sumcheck on the bytecode, deferring one
+claim. `batch_sound`: if the batching accepts and its deferred claim holds, then every child's
+claims hold (its proof's, `FixedClaims.Holds`, and its
 statement's, `DeferredClaim.Holds`), or a challenge is bad (`BatchBad`):
 
-* **a lambda**: the children's claims leave nonzero gaps (claimed less true values), and the
-  lambdas' combination of them vanishes. The last nonzero gap's lambda is then the one value the
-  gaps and the earlier lambdas fix (`lambdaBad_fixed`);
+* **the challenge `λ`**: the children's claims leave nonzero gaps (claimed less true values), and
+  the lambdas' combination of them vanishes: `λ` is a root of the nonzero polynomial whose
+  coefficients are the gaps, of degree below `2n` (`LeanVM.Guest.Batch.RomSpec` counts them);
 * **a sumcheck round**: a round's challenge is a root of its gap, a nonzero polynomial of degree
   at most two that the round's claim, message and earlier challenges fix (`BadRound`,
   `badRound_roots`).
 
 Every bad value is fixed before the challenge is squeezed from the sponge, which absorbed what
-fixes it. The lambdas and challenges are Keccak-f[1600] outputs computed by the guest: that a bad
-one is improbable is the in-guest hash heuristic, not a theorem here; `LeanVM.Guest.Batch.Rom`
+fixes it. `λ` and the rounds' challenges are Keccak-f[1600] outputs computed by the guest: that a
+bad one is improbable is the in-guest hash heuristic, not a theorem here; `LeanVM.Guest.Batch.Rom`
 bounds it with Keccak-256 and Keccak-f[1600] random oracles.
 -/
 
@@ -39,14 +40,14 @@ open LeanVM.Protocol.Verifier LeanVM.Node
 
 /-! ## The transcript -/
 
-/-- The lambdas, a pair per child. -/
-def lambdasB (cs : List ChildClaims) : List (E × E) := (sq2 cs.length (batchSponge cs)).1
+/-- The lambdas, a pair per child: the powers of the one challenge. -/
+def lambdasB (cs : List ChildClaims) : List (E × E) := (sqL cs.length (batchSponge cs)).1
 
 /-- The batched claim. -/
 def claimB (cs : List ChildClaims) : E := claimBOf cs (lambdasB cs)
 
 /-- The sponge at the sumcheck. -/
-def spB (cs : List ChildClaims) : Sponge := (sq2 cs.length (batchSponge cs)).2
+def spB (cs : List ChildClaims) : Sponge := (sqL cs.length (batchSponge cs)).2
 
 /-- **`Node.batch` in the transcript's names**: the deferred claim at the sumcheck's
 challenges, if the final check passes. -/
@@ -71,47 +72,6 @@ def gapsB (bytecode : List K) (cs : List ChildClaims) : List E :=
 the gaps vanishes. -/
 def LambdaBad (gaps lambdas : List E) : Prop :=
   (∃ g ∈ gaps, g ≠ 0) ∧ dot lambdas gaps = 0
-
-/-- **A bad lambda is fixed by the earlier ones**: the last nonzero gap's lambda is the
-combination of the earlier lambdas with their gaps, divided by its gap. -/
-theorem lambdaBad_fixed {gaps lambdas : List E} (hl : lambdas.length = gaps.length)
-    (h : LambdaBad gaps lambdas) :
-    ∃ k < gaps.length, gaps.getD k 0 ≠ 0 ∧ (∀ i, k < i → gaps.getD i 0 = 0) ∧
-      lambdas.getD k 0 =
-        (∑ i ∈ Finset.range k, lambdas.getD i 0 * gaps.getD i 0) / gaps.getD k 0 := by
-  obtain ⟨⟨g, hg, hg0⟩, hdot⟩ := h
-  rw [Whir.Complete.dot_eq_sum _ _ hl] at hdot
-  have hex : ∃ k, k < gaps.length ∧ gaps.getD k 0 ≠ 0 := by
-    obtain ⟨k, hk, rfl⟩ := List.getElem_of_mem hg
-    exact ⟨k, hk, by rwa [List.getD_eq_getElem _ _ hk]⟩
-  classical
-  let k := Nat.findGreatest (fun k ↦ gaps.getD k 0 ≠ 0) gaps.length
-  obtain ⟨k0, hk0, hk0'⟩ := hex
-  have hkspec : gaps.getD k 0 ≠ 0 := Nat.findGreatest_spec (P := fun k ↦ gaps.getD k 0 ≠ 0)
-    hk0.le hk0'
-  have hklt : k < gaps.length := by
-    by_contra hge
-    exact hkspec (List.getD_eq_default _ _ (by omega))
-  have hafter : ∀ i, k < i → gaps.getD i 0 = 0 := by
-    intro i hi
-    by_cases hil : i ≤ gaps.length
-    · by_contra hne
-      have := Nat.le_findGreatest (P := fun k ↦ gaps.getD k 0 ≠ 0) hil hne
-      omega
-    · exact List.getD_eq_default _ _ (by omega)
-  refine ⟨k, hklt, hkspec, hafter, ?_⟩
-  rw [eq_div_iff hkspec]
-  have hIco : ∑ i ∈ Finset.Ico (k + 1) gaps.length, lambdas.getD i 0 * gaps.getD i 0 = 0 :=
-    Finset.sum_eq_zero fun i hi ↦ by
-      rw [hafter i (by simp only [Finset.mem_Ico] at hi; omega), mul_zero]
-  have hsplit : ∑ i ∈ Finset.range lambdas.length, lambdas.getD i 0 * gaps.getD i 0 =
-      ∑ i ∈ Finset.range k, lambdas.getD i 0 * gaps.getD i 0 +
-        lambdas.getD k 0 * gaps.getD k 0 := by
-    rw [hl, ← Finset.sum_range_add_sum_Ico _ (show k + 1 ≤ gaps.length by omega), hIco,
-      add_zero, Finset.sum_range_succ]
-  rw [hsplit] at hdot
-  have := congrArg (· + lambdas.getD k 0 * gaps.getD k 0) hdot
-  simpa [add_assoc, CharTwo.add_self_eq_zero] using this.symm
 
 /-- The flattened pairs of lambdas. -/
 abbrev flat2 (l : List (E × E)) : List E := l.flatMap fun p ↦ [p.1, p.2]
@@ -193,7 +153,7 @@ theorem batch_sound {bytecode : List K} {cs : List ChildClaims} {h : BatchHints}
   have hlog' : Nat.log2 bytecode.length = n := by rw [← hpow, Nat.log2_two_pow]
   have hpB : ∀ c ∈ cs, c.fresh.bytecodePoint.length = n ∧ c.carried.bytecodePoint.length = n :=
     fun c hc' ↦ ⟨(hf c hc').trans hlog', (hc c hc').trans hlog'⟩
-  rcases gaps_cases (claimB_sub bytecode cs (lambdasB cs) (length_sq2 _ _)) with hz | hbad | hne
+  rcases gaps_cases (claimB_sub bytecode cs (lambdasB cs) (length_sqL _ _)) with hz | hbad | hne
   · exact Or.inl (holds_of_gaps hz (by rw [hlog', hpow]) hc)
   · exact Or.inr (Or.inl hbad)
   · refine Or.inr (Or.inr (rounds_sound rfl ?_ ?_))

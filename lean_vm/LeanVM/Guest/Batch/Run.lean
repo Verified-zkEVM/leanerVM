@@ -15,7 +15,7 @@ public import LeanVM.Protocol.Compile.Prover
 
 `Node.batch` is a `StateM Sponge` program. `batch_eq` unfolds it: the sponge after the label's
 seed absorbs the count and the children's words, each padded to a whole rate (`batchWords`), the
-lambdas are two squeezes per child (`sq2`), and the sumcheck's rounds absorb the round's two
+lambdas are the powers of one squeeze (`sqL`), and the sumcheck's rounds absorb the round's two
 values and squeeze its challenge (`rsRun`); the deferred claim is the challenges and the hinted
 value, if the final claim is the hinted value times the batched weight at the challenges.
 -/
@@ -48,17 +48,14 @@ theorem sq_fst (sp : Sponge) : (sq sp).1 = challengeOf (sq sp).2.state := rfl
 /-- The sponge after the batching's absorptions. -/
 def batchSponge (cs : List ChildClaims) : Sponge := obsAll ⟨batchSeed, []⟩ (batchWords cs)
 
-/-- Two squeezes per child: the lambdas and the sponge after them. -/
-def sq2 : ℕ → Sponge → List (E × E) × Sponge
-  | 0, sp => ([], sp)
-  | n + 1, sp =>
-    let a := sq sp
-    let b := sq a.2
-    ((a.1, b.1) :: (sq2 n b.2).1, (sq2 n b.2).2)
+/-- One squeeze, its powers the lambdas of `n` children (`lambdaPowers`): the lambdas and the
+sponge after the squeeze. -/
+def sqL (n : ℕ) (sp : Sponge) : List (E × E) × Sponge := (lambdaPowers (sq sp).1 n, (sq sp).2)
 
-theorem length_sq2 : ∀ (n : ℕ) (sp : Sponge), (sq2 n sp).1.length = n
-  | 0, _ => rfl
-  | n + 1, sp => by simp [sq2, length_sq2 n]
+theorem length_lambdaPowers (lam : E) (n : ℕ) : (lambdaPowers lam n).length = n := by
+  simp [lambdaPowers]
+
+theorem length_sqL (n : ℕ) (sp : Sponge) : (sqL n sp).1.length = n := length_lambdaPowers _ _
 
 /-! ## The rounds -/
 
@@ -155,29 +152,16 @@ theorem forIn_children_run (cs : List ChildClaims) (sp : Sponge) :
       obsAll_append]
     exact ih _
 
-theorem forIn_lambdas_run {α : Type} (l : List α) (acc : List (E × E)) (sp : Sponge) :
-    (forIn l acc (fun _ acc ↦ do
-        let lf ← sample
-        let lc ← sample
-        pure (ForInStep.yield (acc ++ [(lf, lc)]))) : Chain (List (E × E))).run sp =
-      (acc ++ (sq2 l.length sp).1, (sq2 l.length sp).2) := by
-  induction l generalizing acc sp with
-  | nil => simp [sq2]; rfl
-  | cons a l ih =>
-    simp only [List.forIn_cons, List.length_cons, sq2]
-    rw [← List.singleton_append, ← List.append_assoc, ← ih]
-    rfl
-
 /-- **`Node.batch` on the sponge.** -/
 theorem batch_eq (cs : List ChildClaims) (h : BatchHints) :
     batch cs h =
-      let L := sq2 cs.length (batchSponge cs)
+      let L := sqL cs.length (batchSponge cs)
       let R := rsRun h.bytecodeRounds (claimBOf cs L.1) L.2
       if R.1.2 = h.bytecodeValue * bytecodeWeight cs L.1 R.1.1 then
         some ⟨R.1.1, h.bytecodeValue⟩
       else none := by
   simp only [batch, batch.go, StateT.run'_eq, StateT.run_bind, forIn_observe_run,
-    forIn_children_run, forIn_lambdas_run, batchRounds_run, List.nil_append]
+    forIn_children_run, sample_run, batchRounds_run]
   rw [show batchSponge cs = obsAll (obsAll ⟨batchSeed, []⟩ (headCells cs.length))
     (cs.flatMap childCells) from obsAll_append _ _ _]
   simp only [id_bind, id_map, id_pure, ite_run, StateT.run_pure, apply_ite Prod.fst, headCells]

@@ -245,23 +245,6 @@ theorem runsTo_readCount {M n : ℕ} (hM : M ≤ 2 ^ 64 - 1) (hn : n < M) (sp : 
           exact runsTo_liftOption n _))
   exact h.of_eq (by simp)
 
-/-- The lambdas are `sq2`'s. -/
-theorem runsTo_sampleL :
-    ∀ (n : ℕ) (sp : Sponge), RunsTo (sampleL n) sp [] (sq2 n sp).1 (sq2 n sp).2
-  | 0, sp => runsTo_ret _ sp
-  | n + 1, sp =>
-    (runsTo_sampleE sp).bind
-      (f := fun a ↦ do
-        let b ← Prog.sampleE
-        let l ← sampleL n
-        return (a, b) :: l)
-      ((runsTo_sampleE (sq sp).2).bind
-        (f := fun b ↦ do
-          let l ← sampleL n
-          return ((sq sp).1, b) :: l)
-        ((runsTo_sampleL n _).bind
-          (f := fun l ↦ (pure (_ :: l) : Prog (List (E × E)))) (runsTo_ret _ _)))
-
 /-- The rounds of the sumcheck are `rsRun`'s. -/
 theorem runsTo_roundsProg : ∀ (rounds : List (E × E)) (claim : E) (sp : Sponge) {k : ℕ},
     rounds.length = k →
@@ -326,11 +309,11 @@ theorem runProof_batchAny {M : ℕ} (hM : M ≤ 2 ^ 64 - 1) {bytecode : List K}
   rw [hstream, batchAny, runD_bind_of_runsTo (runsTo_readCount hM hn _), batchProg,
     runD_bind_of_runsTo (runsTo_readChildren hs _), ← hsp, batchRest,
     ← List.nil_append (List.flatMap _ _ ++ _),
-    runD_bind_of_runsTo (runsTo_sampleL _ _),
+    runD_bind_of_runsTo (runsTo_sampleE _),
     runD_bind_of_runsTo (runsTo_roundsProg h.bytecodeRounds _ _ hr),
     ← List.append_nil [h.bytecodeValue],
     runD_bind_of_runsTo (runsTo_readE _ _), runD_require_true, batch_eq']
-  simp only [lambdasB, claimB, spB]
+  simp only [lambdasB, claimB, spB, sqL]
   split_ifs <;> simp_all
 
 end

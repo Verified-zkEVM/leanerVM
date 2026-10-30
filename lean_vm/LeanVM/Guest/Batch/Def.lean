@@ -50,9 +50,10 @@ label's hash in lanes `0..4`, the other lanes zero. The guest program bakes its 
 def batchSeed : KState := keccakF (seedInput (keccak256 batchLabel) (Vector.replicate 4 0))
 
 /-- **The batching**: one transcript absorbs the children's count, then every child's public
-input and claims, each group padded to a whole rate; it squeezes two coefficients per child,
-and one sumcheck reduces every child's two claims on the bytecode to one point. The claim
-deferred there, if the sumcheck closes. -/
+input and claims, each group padded to a whole rate; it squeezes one challenge `λ`, whose powers
+`λ^(2i)`, `λ^(2i+1)` are child `i`'s coefficients (`lambdaPowers`), and one sumcheck reduces every
+child's two claims on the bytecode to one point. The claim deferred there, if the sumcheck
+closes. -/
 def batch (children : List ChildClaims) (h : BatchHints) : Option DeferredClaim :=
   go.run' ⟨batchSeed, []⟩
 where
@@ -61,11 +62,8 @@ where
     for x in padRate [gpow children.length] do observe x
     for c in children do
       for x in padRate c.words do observe x
-    let mut lambdas : List (E × E) := []
-    for _ in children do
-      let lf ← sample
-      let lc ← sample
-      lambdas := lambdas ++ [(lf, lc)]
+    let lam ← sample
+    let lambdas := Guest.Batch.lambdaPowers lam children.length
     let (r, final) ← batchRounds (Guest.Batch.claimBOf children lambdas) h.bytecodeRounds
     if final = h.bytecodeValue * Guest.Batch.bytecodeWeight children lambdas r then
       return some ⟨r, h.bytecodeValue⟩

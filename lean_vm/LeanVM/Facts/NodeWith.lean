@@ -105,11 +105,8 @@ where
     for x in padRate [gpow children.length] do observeWith F x
     for c in children do
       for x in padRate c.words do observeWith F x
-    let mut lambdas : List (E × E) := []
-    for _ in children do
-      let lf ← sampleWith F
-      let lc ← sampleWith F
-      lambdas := lambdas ++ [(lf, lc)]
+    let lam ← sampleWith F
+    let lambdas := Guest.Batch.lambdaPowers lam children.length
     let (r, final) ← batchRoundsWith F (Guest.Batch.claimBOf children lambdas) h.bytecodeRounds
     if final = h.bytecodeValue * Guest.Batch.bytecodeWeight children lambdas r then
       return some ⟨r, h.bytecodeValue⟩

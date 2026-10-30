@@ -108,7 +108,7 @@ theorem rounds_length_of_accepts {check : DeferredClaim → Prop} {bytecode : Li
     | some (true, s) => s.stream.isEmpty && s.openings.isEmpty
     | _ => false) = true at hacc
   rw [batchStream_eq, runD_batchOf check hs, batchRest,
-    ← List.nil_append (List.flatMap _ _ ++ _), runD_bind_of_runsTo (runsTo_sampleL _ _)] at hacc
+    ← List.nil_append (List.flatMap _ _ ++ _), runD_bind_of_runsTo (runsTo_sampleE _)] at hacc
   generalize hR : runD (roundsProg _ _ >>= _) _ = R at hacc
   rcases R with _ | ⟨_ | _, s⟩
   · simp at hacc
@@ -136,11 +136,11 @@ theorem batchRun_batchOf_iff {bytecode : List K} {cs : List ChildClaims} {h : Ba
       | _ => false) = true ↔ _
     rw [batchStream_eq, runD_batchOf _ hs, batchRest,
       ← List.nil_append (List.flatMap _ _ ++ _),
-      runD_bind_of_runsTo (runsTo_sampleL _ _),
+      runD_bind_of_runsTo (runsTo_sampleE _),
       runD_bind_of_runsTo (runsTo_roundsProg h.bytecodeRounds _ _ hr),
       ← List.append_nil [h.bytecodeValue],
       runD_bind_of_runsTo (runsTo_readE _ _), runD_require_true, batch_eq']
-    simp only [lambdasB, claimB, spB]
+    simp only [lambdasB, claimB, spB, sqL]
     split_ifs <;> simp_all
   constructor
   · intro hacc

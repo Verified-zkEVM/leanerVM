@@ -174,11 +174,6 @@ theorem eq_of_flatMap_childCells {bytecode : List K} :
 
 /-! ## The batching after its children: no proof of work -/
 
-theorem movesOK_sampleL : ∀ n, MovesOK (· ≤ 64) False (sampleL n)
-  | 0 => trivial
-  | n + 1 => MovesOK.seq MovesOK.sampleE fun _ ↦ MovesOK.seq MovesOK.sampleE fun _ ↦
-      MovesOK.seq (movesOK_sampleL n) fun _ ↦ trivial
-
 theorem movesOK_roundsProg : ∀ (k : ℕ) (claim : E), MovesOK (· ≤ 64) False (roundsProg claim k)
   | 0, _ => trivial
   | k + 1, _ => MovesOK.seq MovesOK.readE fun _ ↦ MovesOK.seq MovesOK.readE fun _ ↦
@@ -191,7 +186,7 @@ theorem movesOK_require (q : Prop) (inst : Decidable q) :
 theorem movesOK_batchRest (bytecode : List K) (cs : List ChildClaims) :
     MovesOK (· ≤ 64) False (batchRest (DeferredClaim.Holds bytecode) bytecode cs) := by
   unfold batchRest
-  refine MovesOK.seq (movesOK_sampleL _) fun _ ↦ ?_
+  refine MovesOK.seq MovesOK.sampleE fun _ ↦ ?_
   refine MovesOK.seq (movesOK_roundsProg _ _) fun _ ↦ ?_
   refine MovesOK.seq MovesOK.readE fun _ ↦ ?_
   exact MovesOK.seq (movesOK_require _ _) fun _ ↦ trivial
@@ -220,7 +215,7 @@ def hist (p : BatchPre M bytecode) : List Ev := (batchWords p.cs).map Ev.read
 /-- The certificate of the batching after a prefix's children: `restSpec`'s. -/
 noncomputable def cert (hb : bytecode.length = 2 ^ Nat.log2 bytecode.length)
     (p : BatchPre M bytecode) : Cert (batchRest (DeferredClaim.Holds bytecode) bytecode p.cs) :=
-  (restSpec hb p.shaped p.gap).toCertOfLead
+  (restSpec hb p.lt p.shaped p.gap).toCertOfLead
 
 theorem after_hist (hM : M ≤ 2 ^ 64 - 1) (p : BatchPre M bytecode) :
     (batchAny M bytecode).after p.hist = some (batchRest (DeferredClaim.Holds bytecode) bytecode p.cs) := by
@@ -339,9 +334,9 @@ noncomputable def batchCert (hM : M ≤ 2 ^ 64 - 1) : Cert (batchAny M bytecode)
       (by rwa [after_drop hap] at ha) hDp
 
 /-- **The certificate's bound**: every escape bound, discounted by the proof of work before its
-group, is at most `2/|E|`. -/
+challenge, is at most `batchε M`. -/
 theorem batchCert_bound (hM : M ≤ 2 ^ 64 - 1) (h : List Ev) :
-    (2 : ℝ≥0∞)⁻¹ ^ min (grindBits h) 64 * (batchCert hb hM).ε h ≤ batchε := by
+    (2 : ℝ≥0∞)⁻¹ ^ min (grindBits h) 64 * (batchCert hb hM).ε h ≤ batchε M := by
   by_cases hx : ∃ (p : BatchPre M bytecode) (h' : List Ev), h = p.hist ++ h'
   · obtain ⟨p, h', rfl⟩ := hx
     show _ * batchCertε hb _ ≤ _
@@ -398,13 +393,6 @@ theorem costs_readChildren (nB : ℕ) :
     show (c :: cs).length = n + 1
     simp [hcs]
 
-theorem costs_sampleL : ∀ n, Costs 0 (sampleL n) (8 * n) fun _ ↦ True
-  | 0 => trivial
-  | n + 1 => by
-    refine Costs.seq Costs.sampleE (fun _ _ ↦ ?_) (by omega)
-    refine Costs.seq Costs.sampleE (fun _ _ ↦ ?_) (by omega)
-    exact Costs.seq (costs_sampleL n) (fun _ _ ↦ trivial) (by omega)
-
 theorem costs_roundsProg : ∀ (k : ℕ) (claim : E), Costs 0 (roundsProg claim k) (6 * k) fun _ ↦ True
   | 0, _ => trivial
   | k + 1, _ => by
@@ -413,24 +401,25 @@ theorem costs_roundsProg : ∀ (k : ℕ) (claim : E), Costs 0 (roundsProg claim 
     refine Costs.seq Costs.sampleE (fun _ _ ↦ ?_) (by omega)
     exact Costs.seq (costs_roundsProg k _) (fun _ _ ↦ trivial) (by omega)
 
-/-- The batching after `n` children costs `8n` for the lambdas, `6` per round, and the final
+/-- The batching after its children costs `4` for the challenge, `6` per round, and the final
 read. -/
-theorem costs_batchRest (bytecode : List K) {cs : List ChildClaims} {n : ℕ} (hn : cs.length = n) :
-    CostLE 0 (batchRest (DeferredClaim.Holds bytecode) bytecode cs) (8 * n + 6 * Nat.log2 bytecode.length + 1) := by
+theorem costs_batchRest (bytecode : List K) (cs : List ChildClaims) :
+    CostLE 0 (batchRest (DeferredClaim.Holds bytecode) bytecode cs)
+      (4 + 6 * Nat.log2 bytecode.length + 1) := by
   unfold batchRest
-  refine Costs.seq (costs_sampleL _) (fun _ _ ↦ ?_) (by omega)
+  refine Costs.seq Costs.sampleE (fun _ _ ↦ ?_) (by omega)
   refine Costs.seq (costs_roundsProg _ _) (fun _ _ ↦ ?_) (by omega)
   refine Costs.seq Costs.readE (fun _ _ ↦ ?_) (by omega)
   exact Costs.seq (costs_require _ _ (n := 0)) (fun _ _ ↦ trivial) (by omega)
 
-/-- **The batching of fewer than `M` children costs** the count, at most `M` children's cells
-and lambdas, and the rest. -/
+/-- **The batching of fewer than `M` children costs** the count, at most `M` children's cells,
+and the rest. -/
 theorem costs_batchAny (M : ℕ) (bytecode : List K) :
     CostLE 0 (batchAny M bytecode)
       (rateScalars + (M * (childLen (Nat.log2 bytecode.length) +
-        padLen (childLen (Nat.log2 bytecode.length)) + 8) + 6 * Nat.log2 bytecode.length + 1)) :=
+        padLen (childLen (Nat.log2 bytecode.length))) + 4 + 6 * Nat.log2 bytecode.length + 1)) :=
   Costs.bind (costs_readCount M) fun n hn ↦
-    (Costs.bind (costs_readChildren _ n) fun _ hcs ↦ costs_batchRest bytecode hcs).mono
+    (Costs.bind (costs_readChildren _ n) fun cs _ ↦ costs_batchRest bytecode cs).mono
       (by nlinarith) fun _ h ↦ h
 
 end Costs
@@ -488,68 +477,83 @@ theorem doomed_of_falseChildren (hb : bytecode.length = 2 ^ Nat.log2 bytecode.le
     rw [List.nil_append] at h
     exact h
   · exact boundary_map_read (by simp [batchWords, headCells_eq])
-  · exact ⟨p, [], by rw [List.append_nil], (restSpec hb p.shaped p.gap).start_D [] rfl⟩
+  · exact ⟨p, [], by rw [List.append_nil], (restSpec hb p.lt p.shaped p.gap).start_D [] rfl⟩
 
 /-- **The batching in the random-oracle model.** An adversary of `QA` queries to Keccak-256 and
 Keccak-f[1600], independent random oracles, outputs a proof; the probability that the batching
 program accepts it while it begins with fewer than `M` children of the bytecode's shapes one of
-whose claims is false is at most `(QA + QV) · (2/|E| + failBound (QA + QV))`, `QV` the
+whose claims is false is at most `(QA + QV) · (batchε M + failBound (QA + QV))`, `QV` the
 program's query bound. -/
 theorem batch_rom (hb : bytecode.length = 2 ^ Nat.log2 bytecode.length) (hM : M ≤ 2 ^ 64 - 1)
     (A : OracleComp HashSpec (Unit × Proof)) (QA : ℕ) (hA : IsTotalQueryBound A QA) :
     Pr{let z ← romExperiment A (verifierFam batchSeeds (batchAny M bytecode))}[
       z.1.2 = true ∧ FalseChildren bytecode M z.1.1.2] ≤
       ((QA + batchQueryBound bytecode M : ℕ) : ℝ≥0∞) *
-        (batchε + failBound batchSeeds (QA + batchQueryBound bytecode M)) :=
+        (batchε M + failBound batchSeeds (QA + batchQueryBound bytecode M)) :=
   romSound_of_imp (batchAny M bytecode) (batchCert hb hM) batchSeeds
-    (fun _ ↦ rootOk_batch M bytecode) batchε (batchCert_bound hb hM) A QA hA
+    (fun _ ↦ rootOk_batch M bytecode) (batchε M) (batchCert_bound hb hM) A QA hA
     (batchQueryBound bytecode M) (isTotalQueryBound_batchFam M bytecode)
     (fun z _ ↦ FalseChildren bytecode M z.2)
     fun _ _ hv hf ↦ doomed_of_falseChildren hb hM hv hf
 
 /-! ## The bound in bits -/
 
-/-- `2/|E| = 2^-191`. -/
-theorem batchε_eq_pow : batchε = (2 : ℝ≥0∞)⁻¹ ^ 191 := by
+/-- `2 max(M, 1)/|E| = max(M, 1) · 2^-191`. -/
+theorem batchε_eq_pow (M : ℕ) : batchε M = (max M 1 : ℕ) * (2 : ℝ≥0∞)⁻¹ ^ 191 := by
   have hc : ∀ inst : Fintype E, @Fintype.card E inst = 2 ^ 192 := fun inst ↦ by
     convert card_E
-  rw [inv_pow_eq_div 191 192 (by norm_num), batchε, hc]
-  norm_num
+  rw [batchε, hc, inv_pow_eq_div 191 192 (by norm_num), show 192 - 191 = 1 from rfl, pow_one,
+    mul_div_assoc']
+  push_cast
+  ring
 
 /-- The failure term of the batching's one seeding: `5N/2^256`. -/
 theorem failBound_batchSeeds (N : ℕ) :
     failBound batchSeeds N = ((5 * N : ℕ) : ℝ≥0∞) / 2 ^ 256 := by
   simp [failBound, batchSeeds]
 
-/-- **The batching's error**, explicit: `Q · (2^-191 + 5Q/2^256)` for `Q = QA + QV` queries. -/
+/-- **The batching's error**, explicit: `Q · (max(M, 1) · 2^-191 + 5Q/2^256)` for `Q = QA + QV`
+queries. -/
 theorem batch_rom_explicit (hb : bytecode.length = 2 ^ Nat.log2 bytecode.length)
     (hM : M ≤ 2 ^ 64 - 1) (A : OracleComp HashSpec (Unit × Proof)) (QA : ℕ)
     (hA : IsTotalQueryBound A QA) :
     Pr{let z ← romExperiment A (verifierFam batchSeeds (batchAny M bytecode))}[
       z.1.2 = true ∧ FalseChildren bytecode M z.1.1.2] ≤
-      ((QA + batchQueryBound bytecode M : ℕ) : ℝ≥0∞) * ((2 : ℝ≥0∞)⁻¹ ^ 191 +
+      ((QA + batchQueryBound bytecode M : ℕ) : ℝ≥0∞) * ((max M 1 : ℕ) * (2 : ℝ≥0∞)⁻¹ ^ 191 +
         ((5 * (QA + batchQueryBound bytecode M) : ℕ) : ℝ≥0∞) / 2 ^ 256) := by
   rw [← batchε_eq_pow, ← failBound_batchSeeds]
   exact batch_rom hb hM A QA hA
 
+/-- `m · 2^-191 + 5N/2^256 ≤ m · 2^-189` for `m ≥ 1` and `N ≤ 2^64`. -/
+theorem bits_189 {m N : ℕ} (hm : 1 ≤ m) (hN : N ≤ 2 ^ 64) :
+    (m : ℝ≥0∞) * (2 : ℝ≥0∞)⁻¹ ^ 191 + ((5 * N : ℕ) : ℝ≥0∞) / 2 ^ 256 ≤
+      (m : ℝ≥0∞) * (2 : ℝ≥0∞)⁻¹ ^ 189 := by
+  have h2 : (2 : ℝ≥0∞) ^ 256 = ((2 ^ 256 : ℕ) : ℝ≥0∞) := by rw [Nat.cast_pow, Nat.cast_ofNat]
+  rw [h2, inv_pow_eq_div 191 256 (by norm_num), inv_pow_eq_div 189 256 (by norm_num),
+    ← mul_div_assoc, ← mul_div_assoc, ← Nat.cast_mul, ← Nat.cast_mul,
+    ENNReal.div_add_div_same, ← Nat.cast_add]
+  refine ENNReal.div_le_div_right (Nat.cast_le.2 ?_) _
+  rw [show 256 - 191 = 65 from rfl, show 256 - 189 = 67 from rfl]
+  have : 5 * N ≤ 3 * m * 2 ^ 65 := by
+    calc 5 * N ≤ 5 * 2 ^ 64 := by omega
+      _ ≤ 3 * 1 * 2 ^ 65 := by norm_num
+      _ ≤ 3 * m * 2 ^ 65 := by gcongr
+  calc m * 2 ^ 65 + 5 * N ≤ m * 2 ^ 65 + 3 * m * 2 ^ 65 := by omega
+    _ = m * 2 ^ 67 := by ring
+
 /-- **The batching in the random-oracle model, in bits**: for `Q = QA + QV ≤ 2^64` queries to
 Keccak-256 and Keccak-f[1600] together, the adversary and the batching program's, the program
-accepts children with a false claim with probability at most `Q · 2^-189`. -/
+accepts fewer than `M` children with a false claim with probability at most
+`Q · max(M, 1) · 2^-189`. -/
 theorem batch_rom_bits (hb : bytecode.length = 2 ^ Nat.log2 bytecode.length)
     (hM : M ≤ 2 ^ 64 - 1) (A : OracleComp HashSpec (Unit × Proof)) (QA : ℕ)
     (hA : IsTotalQueryBound A QA) (hQ : QA + batchQueryBound bytecode M ≤ 2 ^ 64) :
     Pr{let z ← romExperiment A (verifierFam batchSeeds (batchAny M bytecode))}[
       z.1.2 = true ∧ FalseChildren bytecode M z.1.1.2] ≤
-      ((QA + batchQueryBound bytecode M : ℕ) : ℝ≥0∞) * (2 : ℝ≥0∞)⁻¹ ^ 189 := by
+      ((QA + batchQueryBound bytecode M : ℕ) : ℝ≥0∞) * ((max M 1 : ℕ) * (2 : ℝ≥0∞)⁻¹ ^ 189) := by
   refine (batch_rom_explicit hb hM A QA hA).trans ?_
   gcongr
-  have h2 : (2 : ℝ≥0∞) ^ 256 = ((2 ^ 256 : ℕ) : ℝ≥0∞) := by rw [Nat.cast_pow, Nat.cast_ofNat]
-  rw [h2, inv_pow_eq_div 191 256 (by norm_num), ENNReal.div_add_div_same, ← Nat.cast_add,
-    inv_pow_eq_div 189 256 (by norm_num)]
-  refine ENNReal.div_le_div_right (Nat.cast_le.2 ?_) _
-  rw [show 256 - 191 = 65 from rfl, show 256 - 189 = 67 from rfl]
-  calc 2 ^ 65 + 5 * (QA + batchQueryBound bytecode M) ≤ 2 ^ 65 + 5 * 2 ^ 64 := by omega
-    _ ≤ 2 ^ 67 := by norm_num
+  exact bits_189 (by omega) hQ
 
 end
 end LeanVM.Guest.Batch
