@@ -8,7 +8,7 @@ are in [leanvm-target.md](../leanvm-target.md#known-discrepancies-at-the-pin). O
 are not part of `main`.
 
 The pins are those of `upstreams.json`: leanVM `a386121f`, ArkLib `7653a901`, CompPoly `572f9973`,
-Clean `61c6e013` (the fork `scaraven/clean`, issue #183), VCVio `a4232d08`, PolyFun `41d3b21d`, Lean
+Clean `ce2eee63`, VCVio `a4232d08`, PolyFun `41d3b21d`, Lean
 and Mathlib `v4.34.1` ([dependencies.md](../dependencies.md#lean-434-port-review)).
 
 ## On `main`
@@ -1525,7 +1525,6 @@ External work that may feed or replace a hole. The state of each is on GitHub.
 | VCVio #571 | Merkle binding by log replay | `ToVCVio/MerkleLog.lean` | VCVio proves extraction with hashed leaves on one shared oracle |
 | VCVio #817 | the charged invariant | the laws of the scalar expectation, copied verbatim as `ToVCVio/ScalarExpectation.lean` | at the bump that contains it, delete the copy |
 | VCVio #823, #824, #826, #828 | the charged invariant | fresh-query bounds with a fixed error per key | reference only: the flip charge depends on the cache |
-| Clean #496 (issue #183) | every module that imports Clean and ArkLib | the fork pin `scaraven/clean@61c6e013`, upstream main `9dd71e82` with `Direction` and `Verifier` renamed | Clean resolves the collision; then pin back to `Verified-zkEVM/clean` |
 | CompPoly (issue to open: word arithmetic for `BF64`, degree-three `Ext`) | none: compiled speed of `K` and `E` everywhere | `Parameters/ToCompPoly/BF64Fast.lean`, `Parameters/ToCompPoly/ExtensionFast.lean`. Upstream would attach the `@[csimp]` theorems to `BF64.mul` and `Ext.mul` (or store a `BF64` as a `UInt64`), so the instance-level substitutions here become unnecessary: the candidate is the algorithms and their proofs | CompPoly merges them; then delete both modules and their imports in `Parameters/Field.lean` |
 
 Whether `ReedSolomon.mcaError_affineLine_johnson_le` meets Annex B's per-level
